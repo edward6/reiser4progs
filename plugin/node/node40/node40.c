@@ -542,6 +542,15 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	return 0;
 }
 
+static char *levels[6] = {
+	"",
+	"LEAF",
+	"TWIG",
+	"INTERNAL",
+	"INTERNAL",
+	"INTERNAL",
+};
+
 /* 
    Prepare text node description and push it into specied buffer. Caller should
    decide what it should do with filled buffer.
@@ -560,9 +569,13 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 
 	level = node40_get_level(entity);
 
-	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
+/*	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
 	       level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
-	       level, node40_count(entity), node40_space(entity));
+	       level, node40_count(entity), node40_space(entity));*/
+	
+	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
+			  levels[level], aal_block_number(node->block), level, node40_count(entity),
+			  node40_space(entity));
 
 	pos.unit = ~0ul;
 	

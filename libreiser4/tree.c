@@ -327,8 +327,8 @@ int reiser4_tree_lookup(
 	int lookup, deep;
 
 	reiser4_coord_t fake;
-	reiser4_joint_t *parent;
 	reiser4_pos_t pos = {0, ~0ul};
+	reiser4_joint_t *parent = NULL;
 
 	reiser4_ptr_hint_t ptr;
 
@@ -399,7 +399,8 @@ int reiser4_tree_lookup(
 			return -1;
 		}
 	
-		deep--; 
+		deep--;
+		
 		parent = coord->u.joint;
 	
 		/* 
@@ -428,6 +429,8 @@ int reiser4_tree_lookup(
 				goto error_free_joint;
 			}
 		}
+
+		parent->counter--;
 	}
     
 	return 0;

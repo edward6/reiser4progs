@@ -260,6 +260,8 @@ struct tree_frag_hint {
 	blk_t curr;
 	count_t total, bad;
 	uint16_t level;
+
+	count_t internals;
 };
 
 static errno_t frag_open_joint(
@@ -293,6 +295,8 @@ static errno_t callback_tree_frag(
 
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
+
+	frag_hint->internals++;
 	
 	aal_gauge_update(frag_hint->gauge, 0);
 		
@@ -353,13 +357,13 @@ static errno_t callback_setup_frag(reiser4_coord_t *coord, void *data) {
 }
 
 static errno_t callback_update_frag(reiser4_coord_t *coord, void *data) {
-    struct tree_frag_hint *frag_hint = (struct tree_frag_hint *)data;
+	struct tree_frag_hint *frag_hint = (struct tree_frag_hint *)data;
     
-    aal_assert("vpf-509", frag_hint != NULL, return -1);
+	aal_assert("vpf-509", frag_hint != NULL, return -1);
 
-    frag_hint->level++;
+	frag_hint->level++;
 
-    return 0;
+	return 0;
 }
 
 static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
@@ -374,7 +378,8 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 		return -1;
 	
 	root = fs->tree->root;
-	
+
+	frag_hint.internals = 0;
 	frag_hint.bad = 0;
 	frag_hint.total = 0;
 	frag_hint.gauge = gauge;
@@ -398,8 +403,12 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 
 	aal_gauge_free(gauge);
 
-	printf("%.5f\n", frag_hint.total > 0 ? (double)frag_hint.bad /
-	       frag_hint.total : 0);
+	progs_wipe_line(stdout);
+	
+	printf("Tree fragmentation:\t%.5f\n", frag_hint.total > 0 ?
+	       (double)frag_hint.bad / frag_hint.total : 0);
+
+	printf("Internal nodes:\t\t%llu\n", frag_hint.internals);
 	
 	return 0;
 };
@@ -408,30 +417,98 @@ struct node_pack_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
-	double used;
-	count_t total;
+	double formatted_used;
+	double leaves_used;
+	double internals_used;
+
+	count_t nodes;
+	count_t leaves;
+	count_t internals;
+	count_t formatted;
 };
 
 static errno_t callback_node_packing(
 	reiser4_joint_t *joint,	    /* joint to be inspected */
 	void *data)		    /* traverse data */
 {
-	uint32_t used;
+	uint8_t level;
+	uint32_t formatted_used;
+	uint32_t leaves_used;
+	uint32_t internals_used;
 	aal_device_t *device;
+	reiser4_node_t *node = joint->node;
 	
 	struct node_pack_hint *pack_hint =
 		(struct node_pack_hint *)data;
 
-	if (pack_hint->total % 128 == 0)
+	level = plugin_call(return -1, node->entity->plugin->node_ops,
+			    get_level, node->entity);
+
+	if (pack_hint->formatted % 128 == 0)
 		aal_gauge_update(pack_hint->gauge, 0);
 
 	device = joint->node->device;
-	used = aal_device_get_bs(device) - reiser4_node_space(joint->node);
+	formatted_used = aal_device_get_bs(device) - reiser4_node_space(joint->node);
+
+	pack_hint->formatted_used = (formatted_used + (pack_hint->formatted_used * pack_hint->formatted)) /
+		(pack_hint->formatted + 1);
+
+	if (level > LEAF_LEVEL) {
+		uint32_t count;
+		item_entity_t *item;
+		reiser4_coord_t coord;
+		reiser4_pos_t pos = {~0ul, ~0ul};
+		
+		internals_used = aal_device_get_bs(device) -
+			reiser4_node_space(joint->node);
+		
+		pack_hint->internals_used =
+			(internals_used + (pack_hint->internals_used * pack_hint->internals)) /
+			(pack_hint->internals + 1);
+
+		for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+			reiser4_coord_t coord;
+
+			if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+				aal_exception_error("Can't open item %u in node %llu.", 
+						    pos.item, node->blk);
+				return -1;
+			}
+
+			if (!reiser4_item_extent(&coord))
+				continue;
+
+			item = &coord.entity;
+				
+			count = plugin_call(return -1, item->plugin->item_ops,
+					    count, item);
+
+			for (pos.unit = 0; pos.unit < count; pos.unit++) {
+				reiser4_ptr_hint_t ptr;
+				
+				if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
+						pos.unit, &ptr, 1))
+					return -1;
+
+				pack_hint->nodes += ptr.width;
+			}
+		}
+	} else {
+		leaves_used = aal_device_get_bs(device) -
+			reiser4_node_space(joint->node);
+
+		pack_hint->leaves_used =
+			(leaves_used + (pack_hint->leaves_used * pack_hint->leaves)) /
+			(pack_hint->leaves + 1);
+	}
 	
-	pack_hint->used = (used + (pack_hint->used * pack_hint->total)) /
-		(pack_hint->total + 1);
-	
-	pack_hint->total++;
+	if (level > LEAF_LEVEL)
+		pack_hint->internals++;
+	else
+		pack_hint->leaves++;
+		
+	pack_hint->formatted++;
+	pack_hint->nodes++;
 	
 	return 0;
 }
@@ -463,7 +540,16 @@ static errno_t debugfs_node_packing(reiser4_fs_t *fs) {
 
 	aal_gauge_free(gauge);
 
-	printf("%.2f\n", pack_hint.used);
+	progs_wipe_line(stdout);
+
+	printf("Formatted packing:\t%.2f\n", pack_hint.formatted_used);
+	printf("Leaves packing:\t\t%.2f\n", pack_hint.leaves_used);
+	printf("Internals packing:\t%.2f\n\n", pack_hint.internals_used);
+
+	printf("Total nodes:\t\t%llu\n", pack_hint.nodes);
+	printf("Formatted nodes:\t%llu\n", pack_hint.formatted);
+	printf("Leaf nodes:\t\t%llu\n", pack_hint.leaves);
+	printf("Internal nodes:\t\t%llu\n", pack_hint.internals);
 	
 	return 0;
 }
