@@ -29,5 +29,4 @@ extern void debugfs_print_journal(reiser4_fs_t *fs);
 extern void debugfs_print_node(reiser4_node_t *node);
 
 extern errno_t debugfs_print_stream(aal_stream_t *stream);
-extern errno_t debugfs_print_buff(void *buff, uint32_t size);
 #endif

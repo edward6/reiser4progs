@@ -23,12 +23,11 @@ static errno_t debugfs_reg_cat(reiser4_object_t *object) {
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 		
-		read = reiser4_object_read(object, buff,
-				           sizeof(buff));
+		read = reiser4_object_read(object, buff, sizeof(buff));
 		if (read <= 0)
 			break;
 
-		debugfs_print_buff(buff, read);
+		printf(buff);
 	}
 
 	return 0;
@@ -37,7 +36,6 @@ static errno_t debugfs_reg_cat(reiser4_object_t *object) {
 /* If object is the directory, we show its contant here */
 static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 	errno_t res;
-	char buff[4096];
 	entry_hint_t entry;
 	
 	if ((res = reiser4_object_reset(object))) {
@@ -48,15 +46,8 @@ static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 
 	/* The loop until all entry read */
 	while (reiser4_object_readdir(object, &entry) > 0) {
-		char *key = reiser4_print_key(&entry.object,
-					      PO_DEFAULT);
-		
-		aal_memset(buff, 0, sizeof(buff));
-		
-		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
-			     key, entry.name);
-
-		debugfs_print_buff(buff, aal_strlen(buff));
+		printf("[%s] %s\n", reiser4_print_key(&entry.object, 
+						      PO_DEFAULT), entry.name);
 	}
 
 	printf("\n");
@@ -67,7 +58,6 @@ static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 /* Show special device info. */
 static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 	errno_t res;
-	char buff[256];
 
 	sdhint_lw_t lwh;
 	stat_hint_t stath;
@@ -83,18 +73,12 @@ static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 	stath.ext[SDEXT_UNIX_ID] = &unixh;
 
 	if ((res = reiser4_object_stat(object, &stath))) {
-		aal_error("Can't stat object %s.",
-			  object->name);
+		aal_error("Can't stat object %s.", object->name);
 		return res;
 	}
 
 	/* Printing @rdev and @mode. */
-	aal_memset(buff, 0, sizeof(buff));
-		
-	aal_snprintf(buff, sizeof(buff), "rdev:\t0x%llx\n"
-		     "mode:\t0x%u\n", unixh.rdev, lwh.mode);
-
-	debugfs_print_buff(buff, aal_strlen(buff));
+	printf("rdev:\t0x%x\nmode:\t0x%u\n", unixh.rdev, lwh.mode);
 
 	return 0;
 }

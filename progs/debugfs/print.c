@@ -12,30 +12,6 @@
 #include <errno.h>
 #include "debugfs.h"
 
-/* Prints passed @buff into stdout. The special print function is needed because
-   we can't just put 4k buffer into stdout. */
-errno_t debugfs_print_buff(void *buff, uint32_t size) {
-	int len = size;
-	void *ptr = buff;
-
-	while (len > 0) {
-		int written;
-
-		if ((written = write(1, ptr, len)) <= 0) {
-			
-			if (errno == EINTR)
-				continue;
-			
-			return -EIO;
-		}
-		
-		ptr += written;
-		len -= written;
-	}
-
-	return 0;
-}
-
 errno_t debugfs_print_stream(aal_stream_t *stream) {
 	char buff[256];
 
@@ -52,8 +28,7 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 		if ((size = aal_stream_read(stream, buff, size)) <= 0)
 			return size;
 		
-		if (debugfs_print_buff(buff, size))
-			return -EIO;
+		printf(buff);
 	}
 
 	return 0;
