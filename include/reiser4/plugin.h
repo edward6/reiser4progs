@@ -607,11 +607,8 @@ struct reiser4_object_ops {
 	
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (object_info_t *, object_hint_t *);
-    
-	/*
-	  Links/unlinks file in its parent and updates all needed stat data
-	  fields in parent file.
-	*/
+
+	/* These methods change @nlink value of passed @entity */
 	errno_t (*link) (object_entity_t *);
 	errno_t (*unlink) (object_entity_t *);
 
