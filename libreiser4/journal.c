@@ -208,7 +208,7 @@ errno_t reiser4_journal_replay(
 			   replay, journal->entity);
 }
 
-/* Saves journal strucres on jouranl's device */
+/* Saves journal structures on journal's device */
 errno_t reiser4_journal_sync(
 	reiser4_journal_t *journal)	/* journal to be saved */
 {
@@ -221,9 +221,9 @@ errno_t reiser4_journal_sync(
 			   sync, journal->entity);
 }
 
-/* Checks jouranl structure for validness */
+/* Checks journal structure for validness */
 errno_t reiser4_journal_valid(
-	reiser4_journal_t *journal)  /* jouranl to eb checked */
+	reiser4_journal_t *journal)  /* journal to be checked */
 {
 	aal_assert("umka-830", journal != NULL);
 
