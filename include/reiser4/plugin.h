@@ -1046,9 +1046,7 @@ union reiser4_plugin {
 };
 
 struct reiser4_place {
-	void *data;
-	int context;
-
+	void *node;
 	reiser4_pos_t pos;
 	item_entity_t entity;
 };
@@ -1116,10 +1114,6 @@ struct reiser4_core {
 		errno_t (*lock) (const void *, reiser4_place_t *);
 		errno_t (*unlock) (const void *, reiser4_place_t *);
 	} tree_ops;
-
-	struct {
-		errno_t (*open) (item_entity_t *, object_entity_t *, reiser4_pos_t *);
-	} item_ops;
 };
 
 #define plugin_equal(plugin1, plugin2)                        \
