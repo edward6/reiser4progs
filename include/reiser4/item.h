@@ -35,11 +35,12 @@ extern errno_t reiser4_item_max_poss_key(reiser4_item_t *item,
 
 /* Internal item methods */
 extern int reiser4_item_internal(reiser4_item_t *item);
-extern blk_t reiser4_item_get_iptr(reiser4_item_t *item);
+extern blk_t reiser4_item_get_nptr(reiser4_item_t *item);
+extern int reiser4_item_extent(reiser4_item_t *item);
 
 #ifndef ENABLE_COMPACT
 
-extern errno_t reiser4_item_set_iptr(reiser4_item_t *item,
+extern errno_t reiser4_item_set_nptr(reiser4_item_t *item,
     blk_t blk); 
 
 #endif
@@ -66,6 +67,9 @@ extern int reiser4_item_direntry(reiser4_item_t *item);
 
 extern int reiser4_item_tail(reiser4_item_t *item);
 extern int reiser4_item_extent(reiser4_item_t *item);
+
+extern errno_t reiser4_item_max_real_key(reiser4_item_t *item, 
+    reiser4_key_t *key);
 
 #endif
 
