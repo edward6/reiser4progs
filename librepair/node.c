@@ -12,14 +12,16 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 	reiser4_node_t *node;
 	
 	aal_assert("vpf-708", fs != NULL);
+	aal_assert("umka-2355", fs->tree != NULL);
 	
 	blocksize = reiser4_master_blksize(fs->master);
 
-	/* FIXME-UMKA->VITALY: Here should be used real node id. It can be
-	 * obtained from root node. */
-	pid = NODE_LARGE_ID;
+	if ((pid = reiser4_profile_value("node")) == INVAL_PID) {
+		aal_exception_error("Failed to find a valid plugin id "
+				    "for the node.");
+		return NULL;
+	}
 
-	aal_assert("umka-2355", fs->tree != NULL);
 	
 	if (!(node = reiser4_node_open(fs->device, blocksize, blk, 
 				       fs->tree->key.plug, pid)))
@@ -27,7 +29,9 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 	
 	if (reiser4_format_get_stamp(fs->format) != 
 	    reiser4_node_get_mstamp(node))
+	{
 		goto error_node_free;
+	}
 	
 	return node;
 	

@@ -225,8 +225,8 @@ errno_t obj40_ukey(obj40_t *obj, place_t *place,
 			    mode == RM_BUILD ? "fixed to" : "should be", 
 			    print_key(obj->core, key), obj->plug->label);
 	
-	if (mode != RM_BUILD)
-		return RE_FATAL;
+	if (mode == RM_CHECK)
+		return RE_FIXABLE;
 	
 	if ((res = obj->core->tree_ops.ukey(obj->info.tree, place, key))) {
 		aal_exception_error("Node (%llu), item(%u): update of the "
