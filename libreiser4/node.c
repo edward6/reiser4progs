@@ -906,7 +906,7 @@ int64_t reiser4_node_modify(node_t *node, pos_t *pos,
 	aal_assert("umka-2680", hint != NULL);
 	aal_assert("umka-2681", modify_func != NULL);
 	
-	len = hint->len + hint->ohd;
+	len = hint->len + hint->overhead;
 
 	needed = len + (pos->unit == MAX_UINT32 ?
 			reiser4_node_overhead(node) : 0);

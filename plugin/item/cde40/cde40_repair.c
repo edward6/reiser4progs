@@ -48,12 +48,6 @@
 #define en_len_min(count, pol)		\
         ((uint64_t)count * UNIT_LEN_MIN(S_NAME, pol) + sizeof(cde40_t))
 
-#define OFFSET(pl, i, pol)		\
-        ((uint32_t)(en_get_offset(cde_get_entry(pl, i, pol), pol)))
-
-#define SET_OFFSET(pl, i, offset, pol)	\
-	(en_set_offset(cde_get_entry(pl, i, pol), offset, pol))
-
 #define NR	0
 #define R	1
 
@@ -75,7 +69,7 @@ static errno_t cde40_offset_check(place_t *place, uint32_t pos) {
 	if (place->len < en_len_min(pos + 1, pol))
 		return 1;
 
-	offset = OFFSET(place, pos, pol);
+	offset = cde_get_offset(place, pos, pol);
     
 	/* There must be enough space for the entry in the item. */
 	if (offset != place->len - ENTRY_LEN_MIN(S_NAME, pol) && 
@@ -109,7 +103,7 @@ static errno_t cde40_offset_check(place_t *place, uint32_t pos) {
 
 static uint32_t cde40_count_estimate(place_t *place, uint32_t pos) {
 	uint32_t pol = cde40_key_pol(place);
-	uint32_t offset = OFFSET(place, pos, pol);
+	uint32_t offset = cde_get_offset(place, pos, pol);
 	
 	aal_assert("vpf-761", place->len >= en_len_min(pos + 1, pol));
 	
@@ -133,15 +127,15 @@ static errno_t cde40_pair_offsets_check(place_t *place,
 	aal_assert("vpf-753", start_pos < end_pos);
 	aal_assert("vpf-752", place->len >= en_len_min(end_pos + 1, pol));
 
-	end_offset = OFFSET(place, end_pos, pol);
+	end_offset = cde_get_offset(place, end_pos, pol);
 	
-	if (end_offset == OFFSET(place, start_pos, pol) +
+	if (end_offset == cde_get_offset(place, start_pos, pol) +
 	    ENTRY_LEN_MIN(S_NAME, pol) * count)
 	{
 		return 0;
 	}
 	
-	offset = OFFSET(place, start_pos, pol) +
+	offset = cde_get_offset(place, start_pos, pol) +
 		ENTRY_LEN_MIN(L_NAME, pol);
 	
 	return (end_offset < offset + (count - 1) * ENTRY_LEN_MIN(S_NAME, pol));
@@ -170,7 +164,7 @@ static uint8_t cde40_short_entry_detect(place_t *place,
 	uint32_t offset, limit;
 
 	pol = cde40_key_pol(place);
-	limit = OFFSET(place, start_pos, pol);
+	limit = cde_get_offset(place, start_pos, pol);
 	
 	aal_assert("vpf-770", length < place->len);
 	aal_assert("vpf-769", limit <= place->len - length);
@@ -187,11 +181,11 @@ static uint8_t cde40_short_entry_detect(place_t *place,
 		aal_exception_error("Node (%llu), item (%u), unit (%u): unit "
 				    "offset (%u) is wrong, should be (%u). %s", 
 				    place->block->nr, place->pos.item,
-				    start_pos, OFFSET(place, start_pos, pol),
+				    start_pos, cde_get_offset(place, start_pos, pol),
 				    limit + offset,  mode == RM_BUILD ? "Fixed." : "");
 		
 		if (mode == RM_BUILD)
-			SET_OFFSET(place, start_pos, limit + offset, pol);
+			cde_set_offset(place, start_pos, limit + offset, pol);
 	}
 	
 	return length / ENTRY_LEN_MIN(S_NAME, pol);
@@ -214,10 +208,10 @@ static uint8_t cde40_long_entry_detect(place_t *place,
 	aal_assert("umka-2405", place != NULL);
 	aal_assert("vpf-771", length < place->len);
 	
-	aal_assert("vpf-772", OFFSET(place, start_pos, pol)
+	aal_assert("vpf-772", cde_get_offset(place, start_pos, pol)
 		   <= (place->len - length));
 	
-	l_limit = OFFSET(place, start_pos, pol);
+	l_limit = cde_get_offset(place, start_pos, pol);
 	r_limit = l_limit + length;
 	
 	while (l_limit < r_limit) {
@@ -236,17 +230,17 @@ static uint8_t cde40_long_entry_detect(place_t *place,
 		count++;
 		
 		if (mode != REPAIR_SKIP && 
-		    l_limit != OFFSET(place, start_pos + count, pol)) 
+		    l_limit != cde_get_offset(place, start_pos + count, pol)) 
 		{
 			aal_exception_error("Node %llu, item %u, unit (%u): unit "
 					    "offset (%u) is wrong, should be (%u). "
 					    "%s", place->block->nr, place->pos.item,
 					    start_pos + count,
-					    OFFSET(place, start_pos + count, pol),
+					    cde_get_offset(place, start_pos + count, pol),
 					    l_limit, mode == RM_BUILD ? "Fixed." : "");
 			
 			if (mode == RM_BUILD)
-				SET_OFFSET(place, start_pos + count, 
+				cde_set_offset(place, start_pos + count, 
 					   l_limit, pol);
 		}
 	}
@@ -262,25 +256,29 @@ static inline uint8_t cde40_entry_detect(place_t *place, uint32_t start_pos,
 
 	pol = cde40_key_pol(place);
 	count = cde40_short_entry_detect(place, start_pos,
-					 OFFSET(place, end_pos, pol) - 
-					 OFFSET(place, start_pos, pol), 0);
+					 cde_get_offset(place, end_pos, pol) - 
+					 cde_get_offset(place, start_pos, pol), 
+					 0);
     
 	if (count == end_pos - start_pos) {
 		cde40_short_entry_detect(place, start_pos, 
-					 OFFSET(place, end_pos, pol) - 
-					 OFFSET(place, start_pos, pol), mode);
+					 cde_get_offset(place, end_pos, pol) - 
+					 cde_get_offset(place, start_pos, pol), 
+					 mode);
 		
 		return count;
 	}
 	
 	count = cde40_long_entry_detect(place, start_pos, 
-					OFFSET(place, end_pos, pol) - 
-					OFFSET(place, start_pos, pol), 0);
+					cde_get_offset(place, end_pos, pol) - 
+					cde_get_offset(place, start_pos, pol), 
+					0);
 	
 	if (count == end_pos - start_pos) {
 		cde40_long_entry_detect(place, start_pos, 
-					OFFSET(place, end_pos, pol) - 
-					OFFSET(place, start_pos, pol), mode);
+					cde_get_offset(place, end_pos, pol) - 
+					cde_get_offset(place, start_pos, pol), 
+					mode);
 		
 		return count;
 	}
@@ -309,7 +307,7 @@ static errno_t cde40_offsets_range_check(place_t *place,
 			aal_exception_error("Node %llu, item %u, unit %u: unit "
 					    "offset (%u) is wrong.", 
 					    place->block->nr, place->pos.item, 
-					    i, OFFSET(place, i, pol));
+					    i, cde_get_offset(place, i, pol));
 			
 			/* mark offset wrong. */	    
 			aal_set_bit(flags->elem + i, NR);
@@ -414,13 +412,13 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	
 	/* Last is the last valid offset. If the last unit is valid also, count 
 	   is the last + 1. */
-	if (OFFSET(place, last, pol) + ob_size(pol) == place->len) {
+	if (cde_get_offset(place, last, pol) + ob_size(pol) == place->len) {
 		flags->count++;
-	} else if (OFFSET(place, last, pol) + ob_size(pol) < place->len) {
+	} else if (cde_get_offset(place, last, pol) + ob_size(pol) < place->len) {
 		uint32_t offset;
 		
 		/* The last offset is correct,but the last entity is not checked yet. */
-		offset = cde40_name_end(place->body, OFFSET(place, last, pol) + 
+		offset = cde40_name_end(place->body, cde_get_offset(place, last, pol) + 
 					ob_size(pol), place->len);
 		if (offset == place->len - 1)
 			flags->count++;
@@ -442,7 +440,7 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	   is valid also, set @count unit offset to the item length. */
 	if (e_count > flags->count && last != flags->count) {
 		if (mode == RM_BUILD) {
-			SET_OFFSET(place, flags->count, place->len, pol);
+			cde_set_offset(place, flags->count, place->len, pol);
 			place_mkdirty(place);
 		} else {
 			res |= RE_FATAL;
@@ -452,7 +450,7 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	if (flags->count == last && mode == RM_BUILD) {
 		/* Last unit is not valid. */
 		if (mode == RM_BUILD) {
-			place->len = OFFSET(place, last, pol);
+			place->len = cde_get_offset(place, last, pol);
 			place_mkdirty(place);
 		} else {
 			res |= RE_FATAL;
@@ -466,7 +464,7 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 		e_count = flags->count;
 		
 		if (mode == RM_BUILD) {
-			SET_OFFSET(place, 0, sizeof(cde40_t) + 
+			cde_set_offset(place, 0, sizeof(cde40_t) + 
 				   en_size(pol) * flags->count, pol);
 			place_mkdirty(place);
 		}
@@ -624,8 +622,8 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 		
 		cde40_get_hash(place, i - 1, &key);
 
-		if (OFFSET(place, i - 1, pol) + ob_size(pol) == 
-		    OFFSET(place, i, pol))
+		if (cde_get_offset(place, i - 1, pol) + ob_size(pol) == 
+		    cde_get_offset(place, i, pol))
 		{
 			/* Check that [i-1] key is not hashed. */
 			if (!plug_call(place->key.plug->o.key_ops, 
@@ -718,6 +716,102 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 	return res;
 }
 
+/* Estimate the space needed for the insertion of the not overlapped part of the item,
+   overlapped part does not need any space. */
+errno_t cde40_prep_merge(place_t *place, trans_hint_t *hint) {
+	uint32_t sunits, send;
+	uint32_t offset, pol;
+	place_t *src;
+
+	aal_assert("vpf-957", place != NULL);
+	aal_assert("vpf-959", hint != NULL);
+
+	src = (place_t *)hint->specific;
+	sunits = cde40_units(src);
+	pol = cde40_key_pol(place);
+
+	if (place->pos.unit != MAX_UINT32 && 
+	    place->pos.unit != cde40_units(place)) 
+	{
+		/* Not the whole item to be inserted */
+		key_entity_t key;
+		
+		cde40_get_hash(place, place->pos.unit, &key);
+		
+		/* What is the last to be inserted? */
+		for (send = src->pos.unit; send < sunits; send++) {
+			/* FIXME-VITALY: this cde40_comp_entry should compare 
+			   not only key, but the name also <- key collision. */
+			if (cde40_comp_entry(src, send, &key) >= 0)
+				break;
+		}
+	} else
+		send = sunits;
+
+	hint->bytes = 0;
+	hint->count = send - src->pos.unit;
+	offset = send == sunits ? src->len : cde_get_offset(src, send, pol);
+	
+	/* Len to be inserted is the size of header + item bodies. */
+	hint->len = hint->count * en_size(pol) + offset -
+		cde_get_offset(src, src->pos.unit, pol);
+	
+	hint->overhead = (place->pos.unit == MAX_UINT32 && hint->len) ? 
+		cde40_overhead(place) : 0;
+
+	return 0;
+}
+
+int64_t cde40_merge(place_t *place, trans_hint_t *hint) {
+	uint32_t dpos, dunits;
+	uint32_t spos, sunits;
+	key_entity_t key;
+	place_t *src;
+	errno_t res;
+	
+	aal_assert("vpf-1370", place != NULL);
+	aal_assert("vpf-1371", hint != NULL);
+
+	src = (place_t *)hint->specific;
+	
+	cde40_get_hash(src, src->pos.unit, &key);
+	sunits = cde40_units(src);
+	
+	/* FIXME-VITALY: this cde40_comp_entry should compare not only key, but 
+	   the name also <- key collision. */
+	if (cde40_comp_entry(place, place->pos.unit, &key)) {
+		/* Expand @place item for coping and copy @hint->count units 
+		   there from @src. */
+		cde40_expand(place, place->pos.unit, hint->count, hint->len);	
+		if ((res = cde40_copy(place, place->pos.unit, src, 
+				      src->pos.unit, hint->count)) < 0)
+			return res;
+
+		spos = src->pos.unit + hint->count;
+	} else {
+		/* The first @place and @src entries match to each other. 
+		   Get the very first that differ. */
+		dunits = cde40_units(place);
+		for (dpos = place->pos.unit + 1, spos = src->pos.unit + 1;
+		     dpos < dunits; dpos++, spos++)
+		{
+			if (spos < sunits)
+				break;
+
+			cde40_get_hash(src, spos, &key);
+
+			if (cde40_comp_entry(place, dpos, &key))
+				break;
+		}
+	}
+	
+	if (spos == sunits)
+		return cde40_maxposs_key(src, &hint->maxkey);
+	
+	return cde40_get_hash(src, spos, &hint->maxkey);
+}
+
+#if 0
 errno_t cde40_prep_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
 	uint32_t units, next_pos, pos;
 	uint32_t dst_pos, src_pos;
@@ -774,7 +868,7 @@ errno_t cde40_prep_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
 	return 0;
 }
 
-errno_t cde40_merge_units(place_t *dst, place_t *src, merge_hint_t *hint) {
+errno_t cde40_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
 	aal_assert("vpf-1014", dst != NULL);
 	aal_assert("vpf-1013", src != NULL);
 	aal_assert("vpf-1012", hint != NULL);
@@ -787,4 +881,6 @@ errno_t cde40_merge_units(place_t *dst, place_t *src, merge_hint_t *hint) {
 	return cde40_copy(dst, dst->pos.unit, src, src->pos.unit,
 			  hint->src_count);
 }
+#endif
+
 #endif
