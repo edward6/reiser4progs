@@ -160,8 +160,4 @@ errno_t reiser4_item_ukey(reiser4_place_t *place, reiser4_key_t *key) {
 	return reiser4_node_ukey(place->node, &place->pos, &place->key);
 }
 
-int reiser4_item_data(reiser4_plug_t *plug) {
-        return (plug->o.item_ops->data &&
-		plug->o.item_ops->data(NULL));
-}
 #endif

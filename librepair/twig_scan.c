@@ -69,7 +69,7 @@ static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
 	
 	node = place->node;
 	
-	if (!reiser4_item_data(place->plug))
+	if (reiser4_item_branch(place->plug))
 		return 0;
 	
 	res = repair_item_check_layout(place, callback_item_region_check, 

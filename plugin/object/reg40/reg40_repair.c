@@ -17,27 +17,29 @@ extern errno_t reg40_reset(object_entity_t *entity);
 extern errno_t reg40_create_stat(obj40_t *obj, uint64_t sd);
 extern errno_t reg40_holes(object_entity_t *entity);
 
-static errno_t reg40_check_extentions(place_t *sd) {
-	uint64_t mask, extmask;
+#define reg40_zero_extentions(sd, mask)					\
+({									\
+	if ((mask = obj40_extmask(sd)) == MAX_UINT64)			\
+		return -EINVAL;						\
+									\
+	mask &= ~((uint64_t)(1 << SDEXT_UNIX_ID) | (1 << SDEXT_LW_ID) | \
+		  (1 << SDEXT_PLUG_ID));				\
+})
+
+static errno_t reg40_extentions(place_t *sd) {
+	uint64_t extmask;
 	
-	/*  SD may contain LW and UNIX extentions only. 
-	    FIXME-VITALY: tail policy is not supported yet;
-	    check if there is no point to another file plugin in SD. */
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
+	reg40_zero_extentions(sd, extmask);
 	
-	if ((extmask = obj40_extmask(sd)) == MAX_UINT64)
-		return -EINVAL;
-	
-	return mask == extmask ? RE_OK : RE_FATAL;
+	return extmask ? RE_FATAL : RE_OK;
 }
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
 static errno_t callback_stat(place_t *sd) {
 	sdext_lw_hint_t lw_hint;
-	uint64_t reg;
 	errno_t res;
 	
-	if ((res = reg40_check_extentions(sd)))
+	if ((res = reg40_extentions(sd)))
 		return res;
 	
 	/* Check the mode in the LW extention. */
@@ -89,12 +91,13 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static errno_t reg40_check_key(place_t *place, key_entity_t *key) {
+static errno_t reg40_ukey(place_t *place, key_entity_t *key) {
 	/* Fix SD's key if differs. */
-	if (key->plug->o.key_ops->compfull(key, &place->key))
-		return core->tree_ops.ukey(place, key);
 	
-	return 0;
+	if (!key->plug->o.key_ops->compfull(key, &place->key))
+		return 0;
+	
+	return core->tree_ops.ukey(place, key);
 }
 
 static errno_t reg40_check_stat(reg40_t *reg, uint64_t size, 
@@ -193,7 +196,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 	return res;
 }
 
-static errno_t reg40_recreate_stat(reg40_t *reg) {
+static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	key_entity_t *key;
 	uint64_t pid;
 	errno_t res;
@@ -201,9 +204,12 @@ static errno_t reg40_recreate_stat(reg40_t *reg) {
 	key = &reg->obj.info.object;
 	
 	aal_exception_error("Regular file [%s] does not have StatData "
-			    "item. Creating a new one. Plugin %s.",
-			    core->key_ops.print_key(key, 0), 
-			    reg->obj.plug->label);
+			    "item. %s Plugin %s.",
+			    core->key_ops.print_key(key, 0), mode == RM_BUILD ?
+			    "Creating a new one." : "", reg->obj.plug->label);
+	
+	if (mode != RM_BUILD)
+		return RE_FATAL;
 	
 	pid = core->tree_ops.profile(reg->obj.info.tree, "statdata");
 	
@@ -250,30 +256,23 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	if (lookup == ABSENT) {
 		/* If SD is not correct. Create a new one. */
-		res = obj40_check_stat(&reg->obj, reg40_check_extentions);
-
-		if (res < 0)
+		if ((res = obj40_check_stat(&reg->obj, reg40_extentions)) < 0)
 			return res;
 		
-		if (res) {
-			if ((res = reg40_recreate_stat(reg)))
-				return res;
-		}
+		if (res && (res = reg40_recreate_stat(reg, mode)))
+			return res;
 	} else {
 		/* If SD is not correct. Fix it if needed. */
-		uint64_t mask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
 		uint64_t extmask;
 		
-		if ((extmask = obj40_extmask(&info->start)) == MAX_UINT64)
-			return -EINVAL;
+		reg40_zero_extentions(&info->start, extmask);
 		
-		if (extmask != mask) {
+		if (extmask) {
 			aal_exception_error("Node (%llu), item (%u): statdata "
 					    "has unknown set of extentions "
-					    "(0x%llx), should be (0x%llx). "
-					    "Plugin (%s)", info->start.con.blk, 
-					    info->start.pos.item, 
-					    obj40_extmask(&info->start), mask,
+					    "(0x%llx). Plugin (%s)", 
+					    info->start.con.blk, 
+					    info->start.pos.item, extmask,
 					    info->start.plug->label);
 			return RE_FATAL;
 		}
@@ -284,7 +283,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return RE_FATAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = reg40_check_key(&info->start, &info->object))) {
+	if ((res = reg40_ukey(&info->start, &info->object))) {
 		aal_exception_error("Node (%llu), item(%u): update of the "
 				    "item key failed.", info->start.con.blk,
 				    info->start.pos.unit);
@@ -337,7 +336,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			}
 
 			/* Fix item key if differs. */
-			if ((res = reg40_check_key(&reg->body, &key))) {
+			if ((res = reg40_ukey(&reg->body, &key))) {
 				aal_exception_error("Node (%llu), item(%u): "
 						    "update of the item key "
 						    "failed.", reg->body.con.blk,

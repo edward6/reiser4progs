@@ -29,7 +29,7 @@ static errno_t callback_item_mark_region(void *object, uint64_t start,
    to some blocks. */
 static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
-	aal_assert("vpf-748", reiser4_item_data(place->plug));
+	aal_assert("vpf-748", !reiser4_item_branch(place->plug));
 
 	if (!place->plug->o.item_ops->layout)
 		return 0;
@@ -194,7 +194,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 				   metadata info from items, only user data should be 
 				   left. For now, items contain data xor metadata, not 
 				   both. */
-				if (!reiser4_item_data(place.plug)) {
+				if (reiser4_item_branch(place.plug)) {
 					res = reiser4_node_remove(place.node, pos, 1);
 					
 					if (res) {

@@ -34,7 +34,7 @@ static errno_t callback_data_level(reiser4_plug_t *plug, void *data) {
 	if (!repair_tree_legal_level(plug->id.group, *level))
 		return 0;
 	
-	return reiser4_item_data(plug);
+	return !reiser4_item_branch(plug);
 }
 
 bool_t repair_tree_data_level(uint8_t level) {
