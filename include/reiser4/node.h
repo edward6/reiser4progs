@@ -113,4 +113,8 @@ extern void reiser4_node_set_flush_stamp(reiser4_node_t *node,
 #define reiser4_node_isdirty(node) (node->flags & NF_DIRTY)
 #define reiser4_node_isclean(node) (!reiser4_node_isdirty(node))
 
+#define reiser4_node_lock(node) (node->counter++)
+#define reiser4_node_unlock(node) (node->counter--)
+#define reiser4_node_locked(node) (node->counter > 0)
+
 #endif

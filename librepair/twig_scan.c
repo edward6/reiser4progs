@@ -165,7 +165,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 	    callback_ptr_handler, rd)))
 	    goto error_node_free;
 
-	if (!node->counter)
+	if (!reiser4_node_locked(node))
 	    reiser4_node_release(node);
 
 	/* Do not keep twig marked in bm_twigs if it is in the tree already. */
@@ -228,7 +228,7 @@ static errno_t repair_ts_ovrl_add(reiser4_coord_t *coord, repair_data_t *rd) {
     }
 
     /* Pin it to avoid later closing. */
-    node->counter++;
+    reiser4_node_lock(node);
 
     ts = repair_ts(rd);
 
@@ -343,7 +343,7 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
 	
 	*ovrl_list = aal_list_remove(*ovrl_list, r_ovrl);
 	
-	r_ovrl->node->counter--;
+	reiser4_node_unlock(r_ovrl->node);
 	reiser4_node_release(r_ovrl->node);
 	aal_free(r_ovrl);
 

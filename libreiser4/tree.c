@@ -14,7 +14,7 @@
 static int callback_node_free(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	
-	if (node->counter || node->children || !node->parent)
+	if (reiser4_node_locked(node) || node->children || !node->parent)
 		return 0;
 
 	return reiser4_node_close(node) == 0;
@@ -493,15 +493,15 @@ int reiser4_tree_lookup(
 		   Check whether specified node already in cache. If so, we use
 		   node from the cache.
 		*/
-		parent->counter++;
+		reiser4_node_lock(parent);
 
 		/* Loading node by ptr */
 		if (!(coord->node = reiser4_tree_load(tree, parent, ptr.ptr))) {
-			parent->counter--;
+			reiser4_node_unlock(parent);
 			return -1;
 		}
 
-		parent->counter--;
+		reiser4_node_unlock(parent);
 	}
     
 	return 0;
