@@ -754,9 +754,13 @@ static errno_t dir40_detach(object_entity_t *entity,
 		break;
 	}
 
-        /* Decreasing parent's @nlink by one */
-	return plugin_call(parent->plugin->o.object_ops,
-			   unlink, parent);
+	if (parent) {
+		/* Decreasing parent's @nlink by one */
+		return plugin_call(parent->plugin->o.object_ops,
+				   unlink, parent);
+	}
+
+	return 0;
 }
 
 static uint32_t dir40_links(object_entity_t *entity) {
