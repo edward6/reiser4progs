@@ -5,7 +5,7 @@ reiser4progs/COPYING.
 
 * implement reiser4_tree_write function needed for fsck.
 
-* insert an extent among internals may require perform shift and
+* insert an extent among internal items may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
 
@@ -19,7 +19,7 @@ reiser4progs/COPYING.
 
 * finish --print-block handling code in debugfs.
 
-* special file plugin and its support in debugfs.
+* special file plugin and special files support in debugfs.
 
 * big digits stat data fields storing format change.
 

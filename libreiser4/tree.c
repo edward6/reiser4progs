@@ -1358,7 +1358,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			   reiser4_place_t *place, 
 			   uint8_t level) 
 {
-	uint8_t cur_level;
+	uint8_t curr;
 	rpos_t pos = {0, 0};
 	reiser4_node_t *node;
 	
@@ -1366,13 +1366,13 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	aal_assert("vpf-673", place != NULL);
 	aal_assert("vpf-674", level > 0);
 
-	cur_level = reiser4_node_get_level(place->node);
-	aal_assert("vpf-680", cur_level <= level);
+	curr = reiser4_node_get_level(place->node);
+	aal_assert("vpf-680", curr <= level);
 	
 	if (reiser4_place_realize(place))
 		return -1;
 
-	while (cur_level <= level) {
+	while (curr <= level) {
 		aal_assert("vpf-676", place->node->parent != NULL);
 		
 		if (place->pos.item != 0 || place->pos.unit != 0 || 
@@ -1380,7 +1380,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		    place->pos.unit != reiser4_item_units(place))
 		{
 			/* We are not on the border, split. */
-			if ((node = reiser4_tree_alloc(tree, cur_level)) == NULL) {
+			if ((node = reiser4_tree_alloc(tree, curr)) == NULL) {
 				aal_exception_error("Tree failed to allocate "
 						    "a new node.");
 				return -1;
@@ -1410,7 +1410,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		if (reiser4_place_open(place, node->parent, &node->pos))
 			return -1;
 
-		cur_level--;
+		curr--;
 	}
 	
 	return 0;
@@ -1454,44 +1454,28 @@ errno_t reiser4_tree_insert(
 		return -1;
 
 	/*
-	  Checking if tree is fresh one, thus, it does not have the root node.
-	  If so, we are taking care about it here.
+	  Checking if tree is fresh one, thus, it does not have the root
+	  node. If so, we allocate new node of the requested level, insert
+	  item/unit into it and then attach it into the empty tree by means of
+	  using reiser4_tree_attach function. This function will take care about
+	  another things which should be done for keeping reiser4 tree in tact
+	  and namely alloate new root and insert one nodeptr item into it.
 	*/
 	if (reiser4_tree_fresh(tree)) {
-		if (level == LEAF_LEVEL) {
-			
-			if (reiser4_tree_alloc_root(tree))
-				return -1;
-
-			if (!(place->node = reiser4_tree_alloc(tree, level)))
-				return -1;
 		
-			POS_INIT(&place->pos, 0, ~0ul);
+		if (!(place->node = reiser4_tree_alloc(tree, level)))
+			return -1;
 		
-			if (reiser4_node_insert(place->node, &place->pos, hint)) {
-				reiser4_tree_release(tree, place->node);
-				return -1;
-			}
+		POS_INIT(&place->pos, 0, ~0ul);
+		
+		if (reiser4_node_insert(place->node, &place->pos, hint)) {
+			reiser4_tree_release(tree, place->node);
+			return -1;
+		}
 
-			if (reiser4_tree_attach(tree, place->node)) {
-				reiser4_tree_release(tree, place->node);
-				return -1;
-			}
-		} else {
-			if (!(place->node = reiser4_tree_alloc(tree, level)))
-				return -1;
-
-			POS_INIT(&place->pos, 0, ~0ul);
-			
-			if (reiser4_node_insert(place->node, &place->pos, hint)) {
-				reiser4_tree_release(tree, place->node);
-				return -1;
-			}
-
-			if (reiser4_tree_attach(tree, place->node)) {
-				reiser4_tree_release(tree, place->node);
-				return -1;
-			}
+		if (reiser4_tree_attach(tree, place->node)) {
+			reiser4_tree_release(tree, place->node);
+			return -1;
 		}
 
 		return 0;
@@ -1537,7 +1521,8 @@ errno_t reiser4_tree_insert(
 	  one) before making space for new inset/unit.
 	*/
 	mode = (place->pos.unit == ~0ul);
-	
+
+	/* Making space in tree in order to insert new item/unit into it */
 	if (reiser4_tree_expand(tree, place, needed,
 				SF_LEFT | SF_RIGHT | SF_ALLOC))
 	{
@@ -1564,6 +1549,10 @@ errno_t reiser4_tree_insert(
 		return -1;
 	}
 
+	/*
+	  Parent keys will be updated if we inserted item/unit into leftmost pos
+	  and if target node has the parent.
+	*/
 	if (reiser4_place_leftmost(place) && place->node->parent) {
 		reiser4_place_t p;
 
