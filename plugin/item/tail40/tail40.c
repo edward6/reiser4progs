@@ -356,8 +356,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 		
 		/* Expanding tail item at @dst_place by @hint->units value. It
 		   is that, prep_shift() has prepared for us. */
-		tail40_expand(dst_place, pos,
-			      hint->units, hint->rest);
+		tail40_expand(dst_place, pos, hint->units);
 
 		/* Copy @hint->rest units from @src_place to @dst_place at
 		   @dst_place->len position. */
@@ -379,7 +378,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 			  offset + hint->rest);
 	} else {
 		/* Right shift. Expanding @dst_place at 0 pos. */
-		tail40_expand(dst_place, 0, hint->units, hint->rest);
+		tail40_expand(dst_place, 0, hint->units);
 
 		/* Copying data and removing it from source. */
 		pos = src_place->len - hint->units;

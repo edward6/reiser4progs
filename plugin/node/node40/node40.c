@@ -595,8 +595,8 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 }
 
 /* Mode modifying fucntion. */
-static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
-                             trans_hint_t *hint, bool_t insert)
+int64_t node40_modify(node_entity_t *entity, pos_t *pos,
+		      trans_hint_t *hint, modyfy_func_t modify_func)
 {
         void *ih;
         uint32_t pol;
@@ -606,7 +606,7 @@ static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         node40_t *node;
                                                                                               
         node = (node40_t *)entity;
-        len = hint->len + hint->ohd;
+        len = hint->len + hint->overhead;
                                                                                               
         /* Makes expand of the node new items will be inserted in */
         if (node40_expand(entity, pos, len, 1)) {
@@ -632,27 +632,14 @@ static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
                 return -EINVAL;
         }
                                                                                               
-        if (insert) {
-                /* Inserting units into @place */
-                if (!(write = plug_call(hint->plug->o.item_ops->object,
-                                        insert_units, &place, hint)) < 0)
-                {
-                        aal_exception_error("Can't insert unit to "
-                                            "node %llu.", node->block->nr);
-                        return write;
-                }
-        } else {
-                /* Writes data into @place */
-                if (!(write = plug_call(hint->plug->o.item_ops->object,
-                                        write_units, &place, hint)) < 0)
-                {
-                        aal_exception_error("Can't write data to "
-                                            "node %llu.", node->block->nr);
-                        return write;
-                                                                                              
-                        return write;
-                }
-        }
+	/* Inserting units into @place */
+	if ((write = modify_func(&place, hint)) < 0) {
+		aal_exception_error("Can't insert unit to "
+				    "node %llu, item %u.",
+				    node->block->nr,
+				    place.pos.item);
+		return write;
+	}
                                                                                               
         /* Updating item's key if we insert new item or if we insert unit into
            leftmost postion. */

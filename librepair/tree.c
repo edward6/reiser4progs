@@ -333,6 +333,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	return 0;
 }
 
+#if 0
 /* Merge @dst item with @src one from the key pointed by @key through the 
    @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
 static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
@@ -426,6 +427,7 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
 	
 	return 0;
 }
+#endif
 
 /* Check that conversion is needed. */
 static bool_t repair_tree_should_conv(reiser4_tree_t *tree, 

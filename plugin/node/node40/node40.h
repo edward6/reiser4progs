@@ -304,7 +304,7 @@ extern void *node40_ib_at(node40_t *node, uint32_t pos);
 typedef int64_t (*modyfy_func_t) (place_t *place, trans_hint_t *hint);
 
 extern int64_t node40_modify(node_entity_t *entity, pos_t *pos, 
-			     trans_hint_t *hint, modyfy_func_t modify);
+			     trans_hint_t *hint, modyfy_func_t modify_func);
 
 
 #endif

@@ -1078,7 +1078,7 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 		pos = extent40_units(dst_place) - hint->units;
 			
 		/* Preparing space in @dst_place */
-		extent40_expand(dst_place, pos, hint->units, 0);
+		extent40_expand(dst_place, pos, hint->units);
 
 		/* Copying data from the @src_place to @dst_place */
 		extent40_copy(dst_place, pos, src_place, 0,
