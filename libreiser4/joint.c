@@ -181,14 +181,8 @@ errno_t reiser4_joint_pos(
 errno_t reiser4_joint_realize(
 	reiser4_joint_t *joint)	/* joint for working with */
 {
-	uint32_t level;
 	reiser4_key_t key;
-    
-	aal_assert("umka-776", joint != NULL, return -1);
 
-	if (!joint->parent)
-		return 0;
-    
 	/* 
 	   Initializing stop level for tree lookup function. Here tree lookup
 	   function is used as instrument for reflecting the part of tree into
@@ -198,7 +192,12 @@ errno_t reiser4_joint_realize(
 	   neighbour will be mapped into cache and will be accesible by
 	   joint->left or joint->right pointers.
 	*/
-	level = LEAF_LEVEL;
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+    
+	aal_assert("umka-776", joint != NULL, return -1);
+
+	if (!joint->parent)
+		return 0;
     
 	/*
 	  Attaching right and left neighbours into the tree. Here we take them
@@ -207,12 +206,12 @@ errno_t reiser4_joint_realize(
 	*/
 	if (!joint->left) {
 		if (reiser4_joint_neighbour_key(joint, D_LEFT, &key) == 0)
-			reiser4_tree_lookup(joint->tree, &key, level, NULL);
+			reiser4_tree_lookup(joint->tree, &key, &level, NULL);
 	}
 
 	if (!joint->right) {
 		if (reiser4_joint_neighbour_key(joint, D_RIGHT, &key) == 0)
-			reiser4_tree_lookup(joint->tree, &key, level, NULL);
+			reiser4_tree_lookup(joint->tree, &key, &level, NULL);
 	}
     
 	return 0;

@@ -276,7 +276,7 @@ static uint16_t direntry40_remove(item_entity_t *item,
 static errno_t direntry40_print(item_entity_t *item, char *buff,
 				uint32_t n, uint16_t options) 
 {
-	uint32_t i;
+	uint32_t i, width;
 	direntry40_t *direntry;
 
 	char *name;
@@ -302,9 +302,9 @@ static errno_t direntry40_print(item_entity_t *item, char *buff,
 		objectid = *((uint64_t *)((void *)direntry + entry->offset +
 					  sizeof(uint64_t)));
 
+		width = 30 > aal_strlen(name) ? 30 - aal_strlen(name) + 1 : 1;
 		aux_strncat(buff, n, "%.7llx:%.7llx\t%s%*s%.16llx:%.16llx\n",
-			    locality, objectid, name, 40 - aal_strlen(name) + 1,
-			    " ", objid, offset);
+			    locality, objectid, name, width, " ", objid, offset);
 	}
 
 	return 0;

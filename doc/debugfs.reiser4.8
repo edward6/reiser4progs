@@ -58,23 +58,28 @@ prints the block allocator data.
 prints the oid allocator data.
 .SH MEASUREMENT OPTIONS
 .TP
+.B -N, --node-packing
+measures formatted node packing degree. The result is avarage used
+space in nodes on passed filesystem.
+.TP
 .B -T, --tree-fragmentation
 measures total tree fragmentation. The result is fragmentation factor
-- value from 0.00 (minimal fragmentation) to 1.00 (maximal one). Most
+- value from 0.00000 (minimal fragmentation) to 1.00000 (maximal one). Most
 probably, this factor may affect sequential read performance.
 .TP
 .B -D, --data-fragmentation
 measures average files fragmentation. It means, that fragmentation of
 each file in filesystem will be measured separately and results will
-be avaraged. The result is fragmentation factor - value from 0.00
-(minimal fragmentation) to 1.00 (maximal one).
+be avaraged. The result is fragmentation factor - value from 0.00000
+(minimal fragmentation) to 1.00000 (maximal one).
 .TP
 .B -F, --file-fragmentation FILE
 measures fragmentation of the specified file. The result is
-fragmentation factor - value from 0.00 (minimal fragmentation) to 1.00
-(maximal one). Note, that fragmentation of a small file (depends of used
-tail policy), which consists of tail items, is not very reliable
-value. That is because, they is always afoot due to balancing.
+fragmentation factor - value from 0.00000 (minimal fragmentation) to
+1.00000 (maximal one). Note, that fragmentation of a small file
+(depends of used tail policy), which consists of tail items, is not
+very reliable value. That is because, they is always afoot due to
+balancing.
 .sp 1
 Examples:
 .sp 1

@@ -64,8 +64,8 @@ static errno_t tree_remove(
 static int tree_lookup(
 	const void *tree,	    /* opaque pointer to the tree */
 	reiser4_key_t *key,	    /* key to be found */
-	uint8_t level,		    /* stop level */
-	reiser4_place_t *place)	    /* the same as reiser4_coord_t;result will be stored in */
+	reiser4_level_t *level,	    /* stop level */
+	reiser4_place_t *place)	    /* result will be stored in */
 {
 	aal_assert("umka-851", key != NULL, return -1);
 	aal_assert("umka-850", tree != NULL, return -1);

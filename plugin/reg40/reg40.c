@@ -101,18 +101,15 @@ static errno_t reg40_set_size(item_entity_t *item, uint64_t size) {
 static errno_t reg40_reset(object_entity_t *entity) {
 	reiser4_key_t key;
 	reg40_t *reg = (reg40_t *)entity;
+	reiser4_level_t level = {LEAF_LEVEL, TWIG_LEVEL};
     
 	aal_assert("umka-1161", reg != NULL, return -1);
-    
-	/* There is no any data in file */
-	if (!reg->body.entity.plugin)
-		return 0;
     
 	key.plugin = reg->key.plugin;
 	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body, 
 		    KEY_FILEBODY_TYPE, reg40_locality(reg), reg40_objectid(reg), 0);
     
-	if (core->tree_ops.lookup(reg->tree, &key, LEAF_LEVEL, &reg->body) != 1) {
+	if (core->tree_ops.lookup(reg->tree, &key, &level, &reg->body) != 1) {
 		aal_exception_error("Can't find the body of file 0x%llx.", 
 				    reg40_objectid(reg));
 		return -1;
@@ -126,8 +123,8 @@ static errno_t reg40_reset(object_entity_t *entity) {
 
 /* This function grabs the stat data of the reg file */
 static errno_t reg40_realize(reg40_t *reg) {
-	rpid_t pid;
-    
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	
 	aal_assert("umka-1162", reg != NULL, return -1);	
 
 	plugin_call(return -1, reg->key.plugin->key_ops, build_generic, 
@@ -135,10 +132,10 @@ static errno_t reg40_realize(reg40_t *reg) {
 		    reg40_objectid(reg), 0);
     
 	/* Positioning to the file stat data */
-	if (core->tree_ops.lookup(reg->tree, &reg->key, LEAF_LEVEL, 
+	if (core->tree_ops.lookup(reg->tree, &reg->key, &level, 
 				  &reg->statdata) != 1) 
 	{
-		aal_exception_error("Can't find stat data of the file 0x%llx.", 
+		aal_exception_error("Can't find stat data of file 0x%llx.", 
 				    reg40_objectid(reg));
 		return -1;
 	}
@@ -147,6 +144,19 @@ static errno_t reg40_realize(reg40_t *reg) {
 }
 
 static int reg40_next(object_entity_t *entity) {
+	reiser4_key_t key;
+	reg40_t *reg = (reg40_t *)entity;
+	reiser4_level_t level = {LEAF_LEVEL, TWIG_LEVEL};
+	
+	key.plugin = reg->key.plugin;
+	plugin_call(return -1, key.plugin->key_ops, build_generic, 
+		    key.body, KEY_FILEBODY_TYPE, reg40_locality(reg), 
+		    reg40_objectid(reg), reg->offset);
+    
+	return core->tree_ops.lookup(reg->tree, &key, &level, &reg->body);
+}
+
+static int reg40_next1(object_entity_t *entity) {
 	roid_t curr_objectid;
 	roid_t next_objectid;
 
@@ -454,10 +464,11 @@ static int32_t reg40_write(object_entity_t *entity,
 		reg->offset += chunk;
 	}
 
-	/* Updating stat data item, because it may be moved durring
-	 * balancing. In the futurewe should implement some mechanism for
-	 * automatic updating all opened files. Probably it will be called
-	 * "anchor" */
+	/*
+	  Updating stat data item, because it may be moved durring balancing. In
+	  the future we should implement some mechanism for automatic updating
+	  all opened files. Probably it will be called "anchor"
+	*/
 	if (reg40_realize(reg))
 		return 0;
 
@@ -465,13 +476,55 @@ static int32_t reg40_write(object_entity_t *entity,
 	return wrote;
 }
 
-static errno_t reg40_layout(object_entity_t *reg, file_layout_func_t func,
+static errno_t reg40_layout(object_entity_t *entity, file_layout_func_t func,
 			    void *data)
 {
-	aal_assert("umka-1471", reg != NULL, return -1);
+	errno_t res;
+	int64_t size;
+	reg40_t *reg = (reg40_t *)entity;
+	
+	aal_assert("umka-1471", entity != NULL, return -1);
 	aal_assert("umka-1472", func != NULL, return -1);
 
-	return -1;
+	if (!reg->body.entity.plugin)
+		return 0;
+
+	if (reg40_get_size(&reg->statdata.entity, &size))
+		return -1;
+		
+	while (1) {
+		if (reg->body.entity.plugin->h.sign.group == TAIL_ITEM) {
+			
+			aal_block_t *block = reg->body.entity.context.block;
+
+			if ((res = func(entity, aal_block_number(block), data)))
+				return res;
+
+			reg->offset += reg->body.entity.len;
+		} else {
+			uint64_t blk;
+			reiser4_ptr_hint_t ptr;
+			reiser4_pos_t pos = reg->body.pos;
+
+			if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
+					fetch, &reg->body.entity, pos.unit, &ptr, 1))
+				return -1;
+
+			for (blk = ptr.ptr; blk < ptr.ptr + ptr.width; blk++) {
+				if ((res = func(entity, blk, data)))
+					return res;
+			}
+			
+			reg->offset += ptr.width *
+				aal_block_size(reg->body.entity.context.block);
+		}
+		
+		if (reg40_next(entity) != 1 || reg->offset >= size)
+			break;
+			
+	}
+	
+	return 0;
 }
 
 #endif

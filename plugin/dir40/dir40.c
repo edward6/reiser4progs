@@ -58,6 +58,7 @@ static errno_t dir40_get_mode(item_entity_t *item, uint16_t *mode) {
 static errno_t dir40_reset(object_entity_t *entity) {
 	reiser4_key_t key;
 	dir40_t *dir = (dir40_t *)entity;
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
     
 	aal_assert("umka-864", dir != NULL, return -1);
     
@@ -66,7 +67,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	plugin_call(return -1, key.plugin->key_ops, build_direntry, key.body, 
 		    dir->hash, dir40_locality(dir), dir40_objectid(dir), ".");
 	    
-	if (core->tree_ops.lookup(dir->tree, &key, LEAF_LEVEL, &dir->body) != 1) {
+	if (core->tree_ops.lookup(dir->tree, &key, &level, &dir->body) != 1) {
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    dir40_objectid(dir));
 		return -1;
@@ -90,6 +91,8 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 
 /* This function grabs the stat data of directory */
 static errno_t dir40_realize(dir40_t *dir) {
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	
 	aal_assert("umka-857", dir != NULL, return -1);	
 
 	plugin_call(return -1, dir->key.plugin->key_ops, build_generic, 
@@ -97,7 +100,7 @@ static errno_t dir40_realize(dir40_t *dir) {
 		    dir40_objectid(dir), 0);
     
 	/* Positioning to the dir stat data */
-	if (core->tree_ops.lookup(dir->tree, &dir->key, LEAF_LEVEL, 
+	if (core->tree_ops.lookup(dir->tree, &dir->key, &level,
 				  &dir->statdata) != 1) 
 	{
 		aal_exception_error("Can't find stat data of directory 0x%llx.", 
@@ -533,14 +536,16 @@ static errno_t dir40_layout(object_entity_t *entity, file_layout_func_t func,
 	aal_assert("umka-1473", dir != NULL, return -1);
 	aal_assert("umka-1474", func != NULL, return -1);
 
-	do {
-		if ((res = func(entity, &dir->body, data)))
+	while (1) {
+		aal_block_t *block = dir->body.entity.context.block;
+		
+		if ((res = func(entity, aal_block_number(block), data)))
 			return res;
 		
 		if (dir40_next(entity) != 1)
 			break;
 			
-	} while (1);
+	}
     
 	return 0;
 }

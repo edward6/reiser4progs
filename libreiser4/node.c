@@ -100,6 +100,8 @@ errno_t reiser4_node_print(
 			return -1;
 		}
 
+		aux_strncat(buff, n, "(%u) ", pos.item);
+		
 		if (reiser4_item_statdata(&coord))
 			aux_strncat(buff, n, "STATDATA ITEM");
 		else if (reiser4_item_direntry(&coord))
@@ -372,7 +374,8 @@ int reiser4_node_lookup(
 		return -1;
 	}
 
-	if (lookup == 1) return 1;
+	if (lookup == 1)
+		return 1;
 
 	if (reiser4_coord_open(&coord, node, CT_NODE, pos)) {
 		aal_exception_error("Can't open item by coord. Node %llu, item %u.",

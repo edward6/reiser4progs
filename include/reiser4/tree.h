@@ -41,20 +41,15 @@ extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree, reiser4_coord_t *old,
 #endif
 
 extern int reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
-			       uint8_t level, reiser4_coord_t *coord);
+			       reiser4_level_t *level, reiser4_coord_t *coord);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
 extern reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
 
-extern reiser4_joint_t *reiser4_tree_allocate(reiser4_tree_t *tree, 
-					      uint8_t level);
-
-extern void reiser4_tree_release(reiser4_tree_t *tree, 
-				 reiser4_joint_t *joint);
-
-extern reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
-					  blk_t blk);
+extern reiser4_joint_t *reiser4_tree_allocate(reiser4_tree_t *tree, uint8_t level);
+extern void reiser4_tree_release(reiser4_tree_t *tree, reiser4_joint_t *joint);
+extern reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, blk_t blk);
 
 #endif
 

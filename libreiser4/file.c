@@ -46,9 +46,10 @@ static errno_t reiser4_file_realize(
 {
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
 
 	char track[4096], path[4096];
-	char *pointer = NULL, *dirname = NULL;
+	char *pointer = NULL, *entryname = NULL;
 
 	aal_assert("umka-682", file != NULL, return -1);
 	aal_assert("umka-681", name != NULL, return -1);
@@ -68,19 +69,19 @@ static errno_t reiser4_file_realize(
 		reiser4_key_set_offset(&file->key, 0);
 	
 		if (reiser4_tree_lookup(file->fs->tree, &file->key, 
-					LEAF_LEVEL, &file->coord) != 1) 
+					&level, &file->coord) != 1) 
 		{
 			aal_exception_error("Can't find stat data of directory %s.", track);
 			return -1;
 		}
 	
-		if (!(dirname = aal_strsep(&pointer, "/")))
+		if (!(entryname = aal_strsep(&pointer, "/")))
 			break;
 		
-		if (!aal_strlen(dirname))
+		if (!aal_strlen(entryname))
 			continue;
 	
-		aal_strncat(track, dirname, aal_strlen(dirname));
+		aal_strncat(track, entryname, aal_strlen(entryname));
 	
 		if (!(plugin = reiser4_file_guess(file))) {
 			aal_exception_error("Can't guess file plugin for "
@@ -103,7 +104,7 @@ static errno_t reiser4_file_realize(
 			return -1;
 		}
 	
-		if (plugin->file_ops.lookup(entity, dirname, &file->key) != 1) {
+		if (plugin->file_ops.lookup(entity, entryname, &file->key) != 1) {
 			plugin_call(return -1, plugin->file_ops, close, entity);
 			return -1;
 		}

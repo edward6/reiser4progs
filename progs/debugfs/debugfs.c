@@ -42,7 +42,8 @@ enum debugfs_behav_flags {
 	BF_QUIET    = 1 << 1,
 	BF_TFRAG    = 1 << 2,
 	BF_DFRAG    = 1 << 3,
-	BF_FFRAG    = 1 << 4
+	BF_FFRAG    = 1 << 4,
+	BF_NPACK    = 1 << 5
 };
 
 typedef enum debugfs_behav_flags debugfs_behav_flags_t;
@@ -53,7 +54,7 @@ static void debugfs_print_usage(char *name) {
     
 	fprintf(stderr, 
 		"Common options:\n"
-		"  -?, -h | --help                prints program usage.\n"
+		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                  prints current version.\n"
 		"  -q, --quiet                    forces creating filesystem without\n"
 		"                                 any questions.\n"
@@ -68,6 +69,7 @@ static void debugfs_print_usage(char *name) {
 		"  -b, --print-block-alloc        prints block allocator data.\n"
 		"  -o, --print-oid-alloc          prints oid allocator data.\n"
 		"Measurement options:\n"
+		"  -N, --node-packing             measures avarage node packing factor\n"
 		"  -T, --tree-fragmentation       measures total tree fragmentation\n"
 		"  -D, --data-fragmentation       measures average files fragmentation\n"
 		"  -F, --file-fragmentation FILE  measures fragmentation of the specified\n"
@@ -235,7 +237,7 @@ struct tree_frag_hint {
 	count_t total, bad;
 };
 
-static errno_t debugfs_calc_joint(
+static errno_t callback_tree_fragmentation(
 	reiser4_joint_t *joint,	   /* joint to be estimated */
 	void *data)		   /* user-specified data */
 {
@@ -321,11 +323,11 @@ static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
 	aal_gauge_start(gauge);
 	
 	reiser4_joint_traverse(fs->tree->root, (void *)&hint, debugfs_open_joint,
-			       debugfs_calc_joint, NULL, NULL, NULL);
+			       callback_tree_fragmentation, NULL, NULL, NULL);
 
 	aal_gauge_free(gauge);
 
-	printf("%.2f\n", frag_hint.total > 0 ? (double)frag_hint.bad /
+	printf("%.5f\n", frag_hint.total > 0 ? (double)frag_hint.bad /
 	       frag_hint.total : 0);
 	
 	return 0;
@@ -339,29 +341,26 @@ struct file_frag_hint {
 	count_t total, bad;
 };
 
-static errno_t callback_file_fragmentation(object_entity_t *entity,
-					   reiser4_place_t *place, void *data)
+static errno_t callback_file_fragmentation(object_entity_t *entity, blk_t blk,
+					   void *data)
 {
 	int64_t delta;
-	reiser4_coord_t *coord = (reiser4_coord_t *)place;
 	struct file_frag_hint *hint = (struct file_frag_hint *)data;
-	aal_block_t *block = reiser4_coord_block(coord);
 
 	aal_gauge_touch(hint->gauge);
 
 	if (hint->curr == 0) {
-		hint->curr = aal_block_number(block);
+		hint->curr = blk;
 		return 0;
 	}
 	
-	delta = hint->curr - aal_block_number(block);
+	delta = hint->curr - blk;
 
 	if (labs(delta) > 1)
 		hint->bad++;
-
+	
 	hint->total++;
-
-	hint->curr = aal_block_number(block);
+	hint->curr = blk;
 
 	return 0;
 }
@@ -397,7 +396,7 @@ static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
 	
 	aal_gauge_free(gauge);
 
-	printf("%.2f\n", hint.total > 0 ? (double)hint.bad / hint.total : 0);
+	printf("%.5f\n", hint.total > 0 ? (double)hint.bad / hint.total : 0);
 
 	reiser4_file_close(file);
 	
@@ -408,6 +407,62 @@ static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
  error_free_file:
 	reiser4_file_close(file);
 	return -1;
+}
+
+struct node_pack_hint {
+	reiser4_tree_t *tree;
+	aal_gauge_t *gauge;
+
+	double used;
+	count_t total;
+};
+
+static errno_t callback_node_packing(reiser4_joint_t *joint, void *data) {
+	uint32_t used;
+	aal_device_t *device;
+	struct node_pack_hint *hint = (struct node_pack_hint *)data;
+
+	if (hint->total % 128 == 0)
+		aal_gauge_touch(hint->gauge);
+
+	device = joint->node->block->device;
+	used = aal_device_get_bs(device) - reiser4_node_space(joint->node);
+	
+	hint->used = (used + (hint->used * hint->total)) /  (hint->total + 1);
+	hint->total++;
+	
+	return 0;
+}
+
+static errno_t debugfs_node_packing(reiser4_fs_t *fs) {
+	aal_gauge_t *gauge;
+	traverse_hint_t hint;
+	struct node_pack_hint pack_hint;
+
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Node packing",
+				       progs_gauge_handler, NULL)))
+		return -1;
+	
+	aal_memset(&pack_hint, 0, sizeof(pack_hint));
+
+	pack_hint.tree = fs->tree;
+	pack_hint.gauge = gauge;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	
+	hint.data = (void *)&pack_hint;
+	hint.objects = 1 << NODEPTR_ITEM;
+
+	aal_gauge_start(gauge);
+	
+	reiser4_joint_traverse(fs->tree->root, (void *)&hint, debugfs_open_joint,
+			       callback_node_packing, NULL, NULL, NULL);
+
+	aal_gauge_free(gauge);
+
+	printf("%.2f\n", pack_hint.used);
+	
+	return 0;
 }
 
 static errno_t debugfs_data_fragmentation(reiser4_fs_t *fs) {
@@ -440,6 +495,7 @@ int main(int argc, char *argv[]) {
 		{"print-super", no_argument, NULL, 's'},
 		{"print-block-alloc", no_argument, NULL, 'b'},
 		{"print-oid-alloc", no_argument, NULL, 'o'},
+		{"node-packing", no_argument, NULL, 'N'},
 		{"tree-fragmentation", no_argument, NULL, 'T'},
 		{"data-fragmentation", no_argument, NULL, 'D'},
 		{"file-fragmentation", required_argument, NULL, 'F'},
@@ -456,7 +512,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDF:",
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDNF:",
 				     long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -486,6 +542,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 't':
 			print_flags |= PF_TREE;
+			break;
+		case 'N':
+			behav_flags |= BF_NPACK;
 			break;
 		case 'T':
 			behav_flags |= BF_TFRAG;
@@ -617,6 +676,12 @@ int main(int argc, char *argv[]) {
 
 	if ((behav_flags & BF_FFRAG)) {
 		if (debugfs_file_fragmentation(fs, filename))
+			goto error_free_fs;
+		print_flags = 0;
+	}
+	
+	if ((behav_flags & BF_NPACK)) {
+		if (debugfs_node_packing(fs))
 			goto error_free_fs;
 		print_flags = 0;
 	}

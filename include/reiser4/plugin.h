@@ -11,10 +11,12 @@
 #include <aal/aal.h>
 
 #define LEAF_LEVEL	    (1)
-#define DEFAULT_BLOCKSIZE   (4096)
+#define TWIG_LEVEL	    (LEAF_LEVEL + 1)
 
 #define MASTER_OFFSET	    (65536)
 #define MASTER_MAGIC	    ("R4Sb")
+
+#define DEFAULT_BLOCKSIZE   (4096)
 
 enum direction {
 	D_LEFT  = 0,
@@ -245,7 +247,7 @@ typedef errno_t (*format_layout_func_t) (object_entity_t *, format_action_func_t
 					 void *);
 
 /* Type for file layout callback function */
-typedef errno_t (*file_layout_func_t) (object_entity_t *, reiser4_place_t *, void *);
+typedef errno_t (*file_layout_func_t) (object_entity_t *, uint64_t, void *);
 
 /* 
    To create a new item or to insert into the item we need to perform the
@@ -1026,6 +1028,12 @@ struct reiser4_node_header {
 
 typedef struct reiser4_node_header reiser4_node_header_t;
 
+struct reiser4_level {
+	uint8_t top, bottom;
+};
+
+typedef struct reiser4_level reiser4_level_t;
+
 /* 
    This structure is passed to all plugins in initialization time and used for
    access libreiser4 factories.
@@ -1053,7 +1061,8 @@ struct reiser4_core {
 		  Makes lookup in the tree in order to know where say stat data
 		  item of a file realy lies. It is used in all object plugins.
 		*/
-		int (*lookup) (const void *, reiser4_key_t *, uint8_t, reiser4_place_t *);
+		int (*lookup) (const void *, reiser4_key_t *, reiser4_level_t *,
+			       reiser4_place_t *);
 
 		/* 
 		   Inserts item/unit in the tree by calling reiser4_tree_insert

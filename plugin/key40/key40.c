@@ -217,8 +217,8 @@ static uint64_t key40_pack_string(const char *name,
 	return str;
 }
 
-static errno_t key40_build_hash(key40_t *key,
-				reiser4_plugin_t *hash_plugin, const char *name) 
+static errno_t key40_build_hash(key40_t *key, reiser4_plugin_t *hash_plugin,
+				const char *name) 
 {
 	uint16_t len;
 	roid_t objectid, offset;
@@ -249,20 +249,21 @@ static errno_t key40_build_hash(key40_t *key,
 			offset = key40_pack_string(name + OID_CHARS, 0);
 		}
 	} else {
-		objectid = 0x0100000000000000ull;
+		objectid |= 0x0100000000000000ull;
 		offset = hash_plugin->hash_ops.build((const char *)(name + OID_CHARS),
 						     aal_strlen(name) - OID_CHARS);
 	}
-    
+
+	aal_assert("umka-1499", !(objectid & ~KEY40_OBJECTID_MASK), return -1);
+	
 	key40_set_objectid(key, objectid);
 	key40_set_offset(key, offset);
 
 	return 0;
 }
 
-static errno_t key40_build_direntry(reiser4_body_t *body, 
-				    reiser4_plugin_t *hash_plugin, roid_t locality, 
-				    roid_t objectid, const char *name) 
+static errno_t key40_build_direntry(reiser4_body_t *body, reiser4_plugin_t *hash_plugin,
+				    roid_t locality, roid_t objectid, const char *name) 
 {
 	key40_t *key = (key40_t *)body;
     
@@ -296,9 +297,8 @@ static errno_t key40_build_entryid(reiser4_body_t *body,
 	return 0;
 }
 
-static errno_t key40_build_generic(reiser4_body_t *body, 
-				   reiser4_key_type_t type, roid_t locality, roid_t objectid, 
-				   uint64_t offset) 
+static errno_t key40_build_generic(reiser4_body_t *body, reiser4_key_type_t type,
+				   roid_t locality, roid_t objectid, uint64_t offset) 
 {
 	key40_t *key = (key40_t *)body;
     
@@ -307,15 +307,15 @@ static errno_t key40_build_generic(reiser4_body_t *body,
 	key40_clean(key);
     
 	k40_set_locality(key, locality);
-	k40_set_minor(key, key40_t2m(type));
 	k40_set_objectid(key, objectid);
+	k40_set_minor(key, key40_t2m(type));
 	k40_set_offset(key, offset);
 
 	return 0;
 }
 
-static errno_t key40_build_objid(reiser4_body_t *body, 
-				 reiser4_key_type_t type, roid_t locality, roid_t objectid)
+static errno_t key40_build_objid(reiser4_body_t *body, reiser4_key_type_t type,
+				 roid_t locality, roid_t objectid)
 {
 	key40_t key;
     

@@ -14,9 +14,6 @@ reiser4progs/COPYING.
 
 * finish balancing code in node40 plugin.
 
-* reg40_layout, which will allow us to measure the fragmentation of
-  the regular files
-
 * --print-journal and --print-alloc options in debugfs.
 
 * FIBMAP ioctl implementation in reiser4

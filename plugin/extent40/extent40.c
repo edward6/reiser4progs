@@ -16,6 +16,14 @@ static extent40_t *extent40_body(item_entity_t *item) {
 
 static uint32_t extent40_count(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL, return 0);
+
+	if (item->len % sizeof(extent40_t) != 0) {
+		aal_exception_error("Invalid item size detected. Node %llu, "
+				    "item %u.", aal_block_number(item->context.block),
+				    item->pos);
+		return 0;
+	}
+		
 	return item->len / sizeof(extent40_t);
 }
 
@@ -114,7 +122,7 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	
 	aal_assert("vpf-440", blocksize != 0, return -1);
 	
-	/* key offset + for all units { width * blocksize } */
+	/* Key offset + for all units { width * blocksize } */
 	for (i = 0; i < extent40_count(item); i++) {
 		delta = et40_get_width(extent40_body(item) + i);
 		
@@ -130,6 +138,57 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	plugin_call(return -1, key->plugin->key_ops, set_offset, key->body, offset);
 	
 	return 0;	
+}
+
+static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
+			     uint32_t *pos)
+{
+	uint32_t i, count;
+	uint32_t blocksize;
+	
+	extent40_t *extent;
+	reiser4_key_t maxkey;
+	uint64_t offset, lookuped;
+
+	aal_assert("umka-1500", item != NULL, return -1);
+	aal_assert("umka-1501", key  != NULL, return -1);
+	aal_assert("umka-1502", pos != NULL, return -1);
+	
+	maxkey.plugin = key->plugin;
+
+	if (extent40_max_poss_key(item, &maxkey))
+		return -1;
+
+	if (!(count = extent40_count(item)))
+		return -1;
+	
+	if (plugin_call(return -1, key->plugin->key_ops,
+			compare, key->body, maxkey.body) > 0)
+	{
+		*pos = count - 1;
+		return 0;
+	}
+
+	lookuped = plugin_call(return -1, key->plugin->key_ops,
+			       get_offset, key->body);
+
+	offset = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, item->key.body);
+
+	extent = extent40_body(item);
+	blocksize = aal_block_size(item->context.block);
+		
+	for (i = 0; i < count; i++, extent++) {
+		offset += (blocksize * et40_get_width(extent));
+		
+		if (offset > lookuped) {
+			*pos = i;
+			return 1;
+		}
+	}
+
+	*pos = count - 1;
+	return 1;
 }
 
 static errno_t extent40_fetch(item_entity_t *item, uint32_t pos,
@@ -192,11 +251,11 @@ static reiser4_plugin_t extent40_plugin = {
 #endif
 		.estimate      = NULL,
 		.check	       = NULL,
-		.lookup	       = NULL,
 		.valid	       = NULL,
 		.shift         = NULL,
 		.open          = NULL,
 
+		.lookup	       = extent40_lookup,
 		.count	       = extent40_count,
 		.fetch         = extent40_fetch,
 		

@@ -314,7 +314,7 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 int reiser4_tree_lookup(
 	reiser4_tree_t *tree,	/* tree to be grepped */
 	reiser4_key_t *key,	/* key to be find */
-	uint8_t level,		/* stop level for search */
+	reiser4_level_t *level,	/* stop level for search */
 	reiser4_coord_t *coord)	/* coord of found item */
 {
 	int lookup, deep;
@@ -326,6 +326,7 @@ int reiser4_tree_lookup(
 	reiser4_ptr_hint_t ptr;
 
 	aal_assert("umka-742", key != NULL, return -1);
+	aal_assert("umka-1498", level != NULL, return -1);
 
 	if (!coord)
 		coord = &fake;
@@ -334,7 +335,7 @@ int reiser4_tree_lookup(
 	reiser4_coord_init(coord, tree->root, CT_JOINT, &pos);
     
 	/* 
-	  Check for the case when looked key smaller than root key. This is the
+	  Check for the case when wanted key smaller than root key. This is the
 	  case, when somebody is trying to go up of the root by ".." entry of
 	  root directory.
 	*/
@@ -352,9 +353,13 @@ int reiser4_tree_lookup(
 		if ((lookup = reiser4_node_lookup(node, key, &coord->pos)) == -1)
 			return -1;
 
-		if (deep <= level || reiser4_node_count(coord->u.joint->node) == 0) {
+		if (reiser4_node_count(coord->u.joint->node) == 0)
+			return lookup;
 
-			if (deep <= level && lookup == 1)
+		/* Check if we should finish lookup because we reach stop level */
+		if (deep >= level->top && deep <= level->bottom) {
+			
+			if (lookup == 1)
 				reiser4_coord_realize(coord);
 			
 			return lookup;
@@ -404,13 +409,15 @@ int reiser4_tree_lookup(
 			   attach to the cache.
 			*/
 			if (!(coord->u.joint = reiser4_tree_load(tree, ptr.ptr))) {
-				aal_exception_error("Can't load node %llu durring lookup.", ptr.ptr);
+				aal_exception_error("Can't load node %llu durring "
+						    "lookup.", ptr.ptr);
 				return -1;
 			}
 
 			/* Registering node in tree cache */
 			if (reiser4_joint_attach(parent, coord->u.joint)) {
-				aal_exception_error("Can't attach the node %llu in the tree.", ptr.ptr);
+				aal_exception_error("Can't attach the node %llu "
+						    "in the tree.", ptr.ptr);
 				goto error_free_joint;
 			}
 		}
@@ -749,6 +756,8 @@ errno_t reiser4_tree_insert(
 	reiser4_key_t *key;
 	reiser4_coord_t fake;
 	reiser4_coord_t insert;
+	
+	reiser4_level_t stop = {level, level};
 
 	aal_assert("umka-779", tree != NULL, return -1);
 	aal_assert("umka-779", hint != NULL, return -1);
@@ -758,7 +767,7 @@ errno_t reiser4_tree_insert(
 	key = (reiser4_key_t *)&hint->key;
 
 	/* Looking up for target node */
-	if ((lookup = reiser4_tree_lookup(tree, key, level, coord)) == -1)
+	if ((lookup = reiser4_tree_lookup(tree, key, &stop, coord)) == -1)
 		return -1;
 
 	if (lookup == 1) {
@@ -850,12 +859,13 @@ errno_t reiser4_tree_remove(
 {
 	int lookup;
 	reiser4_coord_t coord;
+	reiser4_level_t stop = {level, level};
     
 	aal_assert("umka-1018", tree != NULL, return -1);
 	aal_assert("umka-1019", key != NULL, return -1);
     
 	/* Looking up for target */
-	if ((lookup = reiser4_tree_lookup(tree, key, level, &coord)) == -1)
+	if ((lookup = reiser4_tree_lookup(tree, key, &stop, &coord)) == -1)
 		return -1;
 
 	if (lookup == 0) {
