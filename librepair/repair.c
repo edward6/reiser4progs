@@ -617,7 +617,7 @@ static errno_t repair_update(repair_control_t *control) {
 	
 	/* FIXME: This is oid40 specific fix, not correct. To be rewritten when
 	   shared oid handling will be realy. */
-	if (control->oid && control->oid != val) {
+	if (control->oid && control->oid > val) {
 		if (mode != RM_BUILD) {
 			aal_mess("First not used oid %llu is wrong. %s %llu.",
 				 val, mode == RM_CHECK ? "Sould be" : 
