@@ -11,8 +11,10 @@
 
 #include <reiser4/reiser4.h>
 
-/* Returns count of units in item. If count method is not implemented,
- * it returns 1 */
+/*
+  Returns count of units in item. If count method is not implemented,
+  it returns 1.
+*/
 uint32_t reiser4_item_units(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	

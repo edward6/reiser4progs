@@ -33,7 +33,8 @@ enum print_flags {
 	PF_OID	    = 1 << 3,
 	PF_TREE	    = 1 << 4,
 	PF_BLOCK    = 1 << 5,
-	PF_FILE     = 1 << 6
+	PF_FILE     = 1 << 6,
+	PF_SITEMS   = 1 << 7
 };
 
 typedef enum print_flags print_flags_t;
@@ -76,7 +77,9 @@ static void debugfs_print_usage(char *name) {
 		"  -b, --print-block-alloc   prints block allocator data.\n"
 		"  -o, --print-oid-alloc     prints oid allocator data.\n"
 		"  -n, --print-block N       prints block by its number.\n"
-		"  -i, --print-file FILE     prints all metadata blocks file occupies.\n"
+		"  -i, --print-file FILE     prints the all file's metadata.\n"
+		"  -w, --show-items          forces --print-file show only items"
+		"                            which are belong to specified file.\n"
 		"Measurement options:\n"
 		"  -S, --tree-stat           measures some tree characteristics\n"
 		"                            (node packing, etc).\n"
@@ -111,7 +114,6 @@ static errno_t debugfs_print_stream(aal_stream_t *stream) {
 		int written;
 
 		if ((written = write(1, ptr, len)) <= 0) {
-
 			if (errno == EINTR)
 				continue;
 			
@@ -239,8 +241,8 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	}
 #endif
 
+	aal_stream_write(&stream, "\n", 1);
 	debugfs_print_stream(&stream);
-	printf("\n");
 	
 	return 0;
 }
@@ -256,13 +258,14 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	aal_stream_init(&stream);
 	
 	printf("Format super block:\n");
+	
 	if (reiser4_format_print(fs->format, &stream)) {
 		aal_exception_error("Can't print format specific super block.");
 		goto error_free_stream;
 	}
     
+	aal_stream_write(&stream, "\n", 1);
 	debugfs_print_stream(&stream);
-	printf("\n");
 
 	aal_stream_fini(&stream);
     	return 0;
@@ -290,8 +293,8 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 		goto error_free_stream;;
 	}
 
+	aal_stream_write(&stream, "\n", 1);
 	debugfs_print_stream(&stream);
-	printf("\n");
 
 	aal_stream_fini(&stream);
     	return 0;
@@ -609,9 +612,10 @@ static errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 struct ffrag_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
-	behav_flags_t flags;
 
 	blk_t curr;
+
+	uint32_t flags;
 	
 	count_t fs_total, fs_bad;
 	count_t fl_total, fl_bad;
@@ -774,7 +778,7 @@ static errno_t dfrag_update_node(reiser4_coord_t *coord, void *data) {
 	return 0;
 }
 
-static errno_t debugfs_data_frag(reiser4_fs_t *fs, behav_flags_t flags) {
+static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	ffrag_hint_t frag_hint;
@@ -872,6 +876,7 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 struct fprint_hint {
 	blk_t old;
 	void *data;
+	uint32_t flags;
 };
 
 typedef struct fprint_hint fprint_hint_t;
@@ -884,16 +889,37 @@ static errno_t fprint_process_blk(
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 	reiser4_coord_t *coord = (reiser4_coord_t *)place;
 
-	if (coord->node->blk == hint->old)
-		return 0;
+	if (!(PF_SITEMS & hint->flags)) {
+		if (coord->node->blk == hint->old)
+			return 0;
 
-	hint->old = coord->node->blk;
+		hint->old = coord->node->blk;
 	
-	return print_process_node(coord->node, NULL);
+		if (print_process_node(coord->node, NULL)) {
+			aal_exception_error("Can't print node %llu.",
+					    hint->old);
+			return -1;
+		}
+	} else {
+		aal_stream_t stream = EMPTY_STREAM;
+
+		if (reiser4_item_print(coord, &stream)) {
+			aal_exception_error("Can't print item %lu in node %llu.",
+					    coord->pos.item, coord->node->blk);
+			return -1;
+		}
+		
+		aal_stream_write(&stream, "\n", 1);
+		debugfs_print_stream(&stream);
+		aal_stream_fini(&stream);
+	}
+
+	return 0;
 }
 
 static errno_t debugfs_print_file(reiser4_fs_t *fs,
-				  char *filename)
+				  char *filename,
+				  uint32_t flags)
 {
 	errno_t res = 0;
 	fprint_hint_t hint;
@@ -904,10 +930,10 @@ static errno_t debugfs_print_file(reiser4_fs_t *fs,
 
 	hint.old = 0;
 	hint.data = fs;
+	hint.flags = flags;
 	
 	if (reiser4_file_metadata(file, fprint_process_blk, &hint)) {
-		aal_exception_error("Can't enumerate metadata "
-				    "blocks occupied by %s",
+		aal_exception_error("Can't print file %s metadata.",
 				    file->name);
 		res = -1;
 	}
@@ -919,14 +945,15 @@ static errno_t debugfs_print_file(reiser4_fs_t *fs,
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
+	char *host_dev;
 	uint32_t print_flags = 0;
 	uint32_t behav_flags = 0;
     
-	char *host_dev;
 	char *ls_filename = NULL;
 	char *cat_filename = NULL;
 	char *frag_filename = NULL;
 	char *print_filename = NULL;
+	
 	char *profile_label = "smart40";
     
 	reiser4_fs_t *fs;
@@ -949,6 +976,7 @@ int main(int argc, char *argv[]) {
 		{"print-oid-alloc", no_argument, NULL, 'o'},
 		{"print-block", required_argument, NULL, 'n'},
 		{"print-file", required_argument, NULL, 'i'},
+		{"show-items", no_argument, NULL, 'w'},
 		{"tree-stat", no_argument, NULL, 'S'},
 		{"tree-frag", no_argument, NULL, 'T'},
 		{"file-frag", required_argument, NULL, 'F'},
@@ -967,7 +995,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtbojTDpSF:c:l:n:i:",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtbojTDpSF:c:l:n:i:w",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -1010,6 +1038,9 @@ int main(int argc, char *argv[]) {
 		case 'i':
 			print_flags |= PF_FILE;
 			print_filename = optarg;
+			break;
+		case 'w':
+			print_flags |= PF_SITEMS;
 			break;
 		case 'S':
 			behav_flags |= BF_TSTAT;
@@ -1120,7 +1151,9 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET)) {
+	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET) &&
+	    !(print_flags & PF_SITEMS))
+	{
 		if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
 					"Few print options has been detected. "
 					"Continue?") == EXCEPTION_NO)
@@ -1133,6 +1166,11 @@ int main(int argc, char *argv[]) {
 	if (!(behav_flags & BF_DFRAG) && (behav_flags & BF_SEACH)) {
 		aal_exception_warn("Option --show-each is only active if "
 				   "--data-frag is specified.");
+	}
+
+	if (!(print_flags & PF_FILE) && (print_flags & PF_SITEMS)) {
+		aal_exception_warn("Option --show-items is only active if "
+				   "--print-file is specified.");
 	}
 
 	if (behav_flags & BF_TFRAG || behav_flags & BF_DFRAG ||
@@ -1208,7 +1246,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	if (print_flags & PF_FILE) {
-		if (debugfs_print_file(fs, print_filename))
+		if (debugfs_print_file(fs, print_filename, print_flags))
 			goto error_free_fs;
 	}
     
