@@ -466,7 +466,6 @@ reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Requests block allocator for new block and creates empty node in it */
 reiser4_node_t *reiser4_tree_alloc(
 	reiser4_tree_t *tree,	    /* tree for operating on */
@@ -539,7 +538,6 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	reiser4_format_set_free(tree->fs->format, free);
 	return reiser4_tree_unload(tree, node);
 }
-
 #endif
 
 /*
@@ -635,7 +633,6 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Saves passed @nodes and its children onto device */
 static errno_t reiser4_tree_flush(reiser4_tree_t *tree,
 				  reiser4_node_t *node)
@@ -684,7 +681,6 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 	return reiser4_tree_flush(tree, tree->root);
 }
-
 #endif
 
 void reiser4_tree_collapse(reiser4_tree_t *tree,

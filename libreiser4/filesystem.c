@@ -319,17 +319,19 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->alloc = reiser4_alloc_create(fs, blocks)))
 		goto error_free_format;
 
-	if (reiser4_fs_mark(fs)) {
-		aal_exception_error("Can't mark filesystem used blocks.");
-		goto error_free_alloc;
-	}
-    
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_create(fs)))
 		goto error_free_alloc;
+	
+	if (reiser4_fs_mark(fs)) {
+		aal_exception_error("Can't mark filesystem used blocks.");
+		goto error_free_oid;
+	}
 
 	return fs;
 
+ error_free_oid:
+	reiser4_oid_close(fs->oid);
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
  error_free_format:

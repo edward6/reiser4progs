@@ -1407,20 +1407,17 @@ typedef void (*register_builtin_t) (plugin_init_t,
 #define plugin_register(i, f)			               \
     extern register_builtin_t __register_builtin;              \
                                                                \
-    static void __plugin_init(plugin_init_t init,              \
-	                      plugin_fini_t fini)              \
-                              __attribute__((constructor));    \
+    static void __plugin_init(void)                            \
+            __attribute__((constructor));                      \
                                                                \
-    static void __plugin_init(plugin_init_t init,              \
-	                      plugin_fini_t fini)              \
-    {                                                          \
+    static void __plugin_init(void) {                          \
 	    __register_builtin(i, f);                          \
     }
 #else
 
 #define plugin_register(i, f)			               \
-    plugin_init_t __plugin_init = init;                        \
-    plugin_fini_t __plugin_fini = fini
+    plugin_init_t __plugin_init = i;                           \
+    plugin_fini_t __plugin_fini = f
 
 #endif
 
