@@ -918,6 +918,7 @@ lookup_t cde_short_lookup(place_t *place,
 			  key_entity_t *key,
 			  uint32_t *pos)
 {
+	int32_t i;
 	lookup_t res;
 	key_entity_t maxkey;
 
@@ -953,6 +954,25 @@ lookup_t cde_short_lookup(place_t *place,
 			       callback_comp_entry, (void *)place, pos))
 	{
 	case 1:
+#ifdef ENABLE_COLLISIONS
+		/* Making sure, that we have found right unit. This is needed
+		   because of possible key collition. We go to left until we
+		   find, that we found key smaller than passed one. */
+		for (i = *pos; i >= 0; i--) {
+			key_entity_t ekey;
+
+			/* Getting entry key */
+			cde_short_get_key(place, i, &ekey);
+
+			/* Comparing keys. We break the loop when keys as not
+			 * equal, that means, that we have found needed pos. */
+			if (plug_call(key->plug->o.key_ops, compfull,
+				      key, &ekey))
+			{
+				return PRESENT;
+			}
+		}
+#endif
 		return PRESENT;
 	case 0:
 		return ABSENT;

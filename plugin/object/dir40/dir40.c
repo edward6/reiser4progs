@@ -272,53 +272,50 @@ lookup_t dir40_lookup(object_entity_t *entity,
 		/* Correcting unit pos */
 		if (dir->body.pos.unit == MAX_UINT32)
 			dir->body.pos.unit = 0;
-
-		if (!entry)
-			return res;
-		
 		break;
 	default:
 		return res;
 	}
 
-	/* Fetching found entry to passed @entry */
-	if (dir40_fetch(entity, entry))
-		return FAILED;
-
 	/* Key collisions handling */
 #ifdef ENABLE_COLLISIONS
 	{
 		uint32_t units;
-		
-		if (aal_strlen(name) == aal_strlen(entry->name) &&
-		    !aal_strncmp(entry->name, name, aal_strlen(name)))
-		{
-			return PRESENT;
-		}
 
 		units = plug_call(dir->body.plug->o.item_ops,
 				  units, &dir->body);
 
 		/* Sequentional search of the needed entry by its name */
 		for (; dir->body.pos.unit < units; dir->body.pos.unit++) {
+			entry_hint_t temp;
 			
-			/* Fetching entry to @entry */
-			if (dir40_fetch(entity, entry))
+			/* Fetching entry to @temp */
+			if (dir40_fetch(entity, &temp))
 				return FAILED;
 
 			/* Checking if it is the same as we're looking for */
-			if (aal_strlen(name) == aal_strlen(entry->name) &&
-			    !aal_strncmp(entry->name, name, aal_strlen(name)))
+			if (aal_strlen(name) == aal_strlen(temp.name) &&
+			    !aal_strncmp(temp.name, name, aal_strlen(name)))
 			{
+				/* Saving found entry to passed @entry */
+				if (entry) {
+					aal_memcpy(entry, &temp,
+						   sizeof(temp));
+				}
+				
 				return PRESENT;
 			}
 		}
 	}
 				
 	return ABSENT;
-#endif
+#else
+	/* Fetching found entry to passed @entry */
+	if (entry && dir40_fetch(entity, entry))
+		return FAILED;
 
 	return PRESENT;
+#endif
 }
 
 /* Initializing dir40 instance by stat data place, resetring directory be means
