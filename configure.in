@@ -328,7 +328,7 @@ AC_CHECK_MEMBERS([struct stat.st_rdev])
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_STAT
 AC_CHECK_FUNCS([register_printf_function statfs getmntent hasmntopt memset strerror \
-strtol time uname, sysconf])
+strtol time uname sysconf])
 
 # The options -falign-* are supported by gcc 3.0 or later.
 # Probably it is sufficient to only check for -falign-loops.

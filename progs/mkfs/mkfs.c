@@ -20,7 +20,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#if defined(HAVE_UNAME)
+#ifdef HAVE_UNAME
 #  include <sys/utsname.h>
 #endif
 
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
 	char *host_dev;
 	count_t dev_len = 0;
 	
-#if defined(HAVE_UNAME)
+#ifdef HAVE_UNAME
 	struct utsname sysinfo;
 #endif
 	
