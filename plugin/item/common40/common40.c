@@ -17,7 +17,11 @@ errno_t common40_get_key(item_entity_t *item,
 			 key_entity_t *key,
 			 trans_func_t trans_func)
 {
+#ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
+#else
+	uint32_t offset;
+#endif
 
 	plugin_call(item->key.plugin->o.key_ops, assign,
 		    key, &item->key);
@@ -37,8 +41,12 @@ errno_t common40_get_key(item_entity_t *item,
 errno_t common40_maxposs_key(item_entity_t *item,
 			     key_entity_t *key) 
 {
+#ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
-
+#else
+	uint32_t offset;
+#endif
+	
 	key_entity_t *maxkey;
     
 	plugin_call(item->key.plugin->o.key_ops, assign,
@@ -102,19 +110,26 @@ lookup_t common40_lookup(item_entity_t *item,
 			 uint64_t *pos,
 			 trans_func_t trans_func)
 {
+#ifndef ENABLE_STAND_ALONE
 	uint64_t size;
 	uint64_t offset;
 	uint64_t wanted;
+#else
+	uint32_t size;
+	uint32_t offset;
+	uint32_t wanted;
+#endif
 	
 	uint32_t units;
 	key_entity_t maxkey;
 
 	common40_maxposs_key(item, &maxkey);
 
-	units = plugin_call(item->plugin->o.item_ops,
-			    units, item);
-	if (units == 0)
+	if (!(units = plugin_call(item->plugin->o.item_ops,
+				  units, item)))
+	{
 		return ABSENT;
+	}
 
 	size = trans_func ? trans_func(item, units) :
 		units;

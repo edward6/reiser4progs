@@ -9,7 +9,7 @@
 #define COMMON40_H
 
 typedef uint64_t (*trans_func_t) (item_entity_t *,
-				  uint64_t);
+				  uint32_t);
 
 extern errno_t common40_get_key(item_entity_t *item,
 				uint64_t pos,

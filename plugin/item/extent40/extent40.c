@@ -34,7 +34,7 @@ uint32_t extent40_units(item_entity_t *item) {
 
 /* Calculates extent size */
 uint64_t extent40_offset(item_entity_t *item,
-			 uint64_t pos)
+			 uint32_t pos)
 {
 	extent40_t *extent;
 	uint32_t i, blocks = 0;
@@ -50,30 +50,14 @@ uint64_t extent40_offset(item_entity_t *item,
 }
 
 /* Gets the number of unit specified offset lies in */
-#ifndef ENABLE_STAND_ALONE
 uint32_t extent40_unit(item_entity_t *item,
 		       uint64_t offset)
-#else
-uint32_t extent40_unit(item_entity_t *item,
-		       uint32_t offset)
-#endif
 {
-	uint32_t i, width;
-	extent40_t *extent;
-
-	extent = extent40_body(item);
+	uint32_t i;
 	
-	for (i = 0; i < extent40_units(item);
-	     i++, extent++)
-	{
-
-		width = et40_get_width(extent) *
-			extent40_blocksize(item);
-		
-		if (offset < width)
+	for (i = 0; i < extent40_units(item); i++) {
+		if (offset < extent40_offset(item, i + 1))
 			return i;
-
-		offset -= width;
 	}
 
 	return i;
@@ -175,7 +159,8 @@ errno_t extent40_maxreal_key(item_entity_t *item,
 	aal_assert("vpf-437", item != NULL);
 	aal_assert("vpf-438", key  != NULL);
 
-	return common40_maxreal_key(item, key, extent40_offset);
+	return common40_maxreal_key(item, key,
+				    extent40_offset);
 }
 #endif
 
