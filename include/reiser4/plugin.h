@@ -931,6 +931,10 @@ struct reiser4_alloc_ops {
 
 	/* Checks blocks allocator on validness */
 	errno_t (*valid) (object_entity_t *);
+
+	/* Prints block allocator data */
+	errno_t (*print) (object_entity_t *, char *, 
+			  uint32_t, uint16_t);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
@@ -958,6 +962,10 @@ struct reiser4_journal_ops {
 
 	/* Replays journal. Returns the number of replayed transactions. */
 	int (*replay) (object_entity_t *);
+
+	/* Prints journal content */
+	errno_t (*print) (object_entity_t *, char *, 
+			  uint32_t, uint16_t);
 };
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;

@@ -524,20 +524,20 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	return 0;
 }
 
-#endif
-
 /* 
-   Prepare text node description and push it into specied buffer. Caller should 
+   Prepare text node description and push it into specied buffer. Caller should
    decide what it should do with filled buffer.
 */
-static errno_t node40_print(object_entity_t *entity, 
-			    char *buff, uint32_t n, uint16_t options) 
+static errno_t node40_print(object_entity_t *entity, char *buff,
+			    uint32_t n, uint16_t options) 
 {
 	aal_assert("vpf-023", entity != NULL, return -1);
 	aal_assert("umka-457", buff != NULL, return -1);
 
 	return -1;
 }
+
+#endif
 
 static inline void *callback_get_key(void *node, 
 				     uint32_t pos, void *data)
@@ -711,7 +711,6 @@ static reiser4_plugin_t node40_plugin = {
 		.valid		= node40_valid,
 	
 		.lookup		= node40_lookup,
-		.print		= node40_print,
 		.count		= node40_count,
 	
 		.overhead	= node40_overhead,
@@ -731,6 +730,7 @@ static reiser4_plugin_t node40_plugin = {
 		.cut		= node40_cut,
 		.check		= node40_check,
 		.shift		= node40_shift,
+		.print		= node40_print,
 
 		.set_key	= node40_set_key,
 		.set_level	= node40_set_level,
@@ -745,6 +745,7 @@ static reiser4_plugin_t node40_plugin = {
 		.cut		= NULL,
 		.check		= NULL,
 		.shift		= NULL,
+		.print		= NULL,
 	
 		.set_key	= NULL,
 		.set_level	= NULL,

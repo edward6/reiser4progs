@@ -370,6 +370,15 @@ static int journal40_replay(object_entity_t *entity) {
 	return trans_nr;
 }
 
+static errno_t journal40_print(object_entity_t *entity, char *buff, 
+			      uint32_t n, uint16_t options)
+{
+	aal_assert("umka-1465", entity != NULL, return -1);
+	aal_assert("umka-1466", buff != NULL, return -1);
+
+	return 0;
+}
+
 #endif
 
 static void journal40_close(object_entity_t *entity) {
@@ -395,14 +404,17 @@ static reiser4_plugin_t journal40_plugin = {
 			.desc = "Default journal for reiserfs 4.0, ver. " VERSION,
 		},
 		.open	= journal40_open,
+		
 #ifndef ENABLE_COMPACT
 		.create	= journal40_create,
 		.sync	= journal40_sync,
 		.replay = journal40_replay,
+		.print  = journal40_print,
 #else
 		.create = NULL,
 		.sync	= NULL,
 		.replay = NULL,
+		.print  = NULL,
 #endif
 		.valid	= journal40_valid,
 		.close	= journal40_close,

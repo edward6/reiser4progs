@@ -81,9 +81,11 @@ static reiser4_plugin_t alloc36_plugin = {
 #ifndef ENABLE_COMPACT
 		.create	    = alloc36_create,
 		.sync	    = alloc36_sync,
+		.print      = NULL,
 #else
 		.create	    = NULL,
 		.sync	    = NULL,
+		.print      = NULL,
 #endif
 		.close	    = alloc36_close,
 		.open	    = alloc36_open,

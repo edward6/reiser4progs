@@ -5,7 +5,11 @@
 
 #include "stat40.h"
 
+#ifndef ENABLE_COMPACT
+
 errno_t stat40_check(item_entity_t *item, uint16_t options) {
     return 0;
 }
+
+#endif
 

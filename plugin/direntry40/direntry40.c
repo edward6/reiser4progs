@@ -271,19 +271,19 @@ static uint16_t direntry40_remove(item_entity_t *item,
 	return rem_len + sizeof(entry40_t);
 }
 
-extern errno_t direntry40_check(item_entity_t *item, 
-				uint16_t options);
-
-#endif
-
-static errno_t direntry40_print(item_entity_t *item, 
-				char *buff, uint32_t n, uint16_t options) 
+static errno_t direntry40_print(item_entity_t *item, char *buff,
+				uint32_t n, uint16_t options) 
 {
 	aal_assert("umka-548", item != NULL, return -1);
 	aal_assert("umka-549", buff != NULL, return -1);
 
 	return 0;
 }
+
+extern errno_t direntry40_check(item_entity_t *item, 
+				uint16_t options);
+
+#endif
 
 /* 
    Helper function that is used by lookup method for getting n-th element of 
@@ -446,22 +446,23 @@ static reiser4_plugin_t direntry40_plugin = {
 		.remove		= direntry40_remove,
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
+		.print		= direntry40_print,
 #else
 		.init		= NULL,
 		.estimate	= NULL,
 		.insert		= NULL,
 		.remove		= NULL,
 		.check		= NULL,
+		.print		= NULL,
 #endif
 		.valid		= NULL,
-		.shift      = NULL,
-		.open       = NULL,
-		.update     = NULL,
+		.shift          = NULL,
+		.open           = NULL,
+		.update         = NULL,
 		
-		.print		= direntry40_print,
 		.lookup		= direntry40_lookup,
 		.count		= direntry40_count,
-		.fetch       = direntry40_fetch,
+		.fetch          = direntry40_fetch,
 		
 		.max_poss_key	= direntry40_max_poss_key,
 		.max_real_key   = direntry40_max_real_key

@@ -310,6 +310,16 @@ static uint64_t alloc40_allocate(object_entity_t *entity) {
 	return blk;
 }
 
+static errno_t alloc40_print(object_entity_t *entity, char *buff, 
+			     uint32_t n, uint16_t options)
+{
+	aal_assert("umka-1467", entity != NULL, return -1);
+	aal_assert("umka-1468", buff != NULL, return -1);
+
+	return 0;
+}
+
+
 #endif
 
 /* Returns free blcoks count */
@@ -439,12 +449,14 @@ static reiser4_plugin_t alloc40_plugin = {
 		.mark	    = alloc40_mark,
 		.allocate   = alloc40_allocate,
 		.release    = alloc40_release,
+		.print      = alloc40_print,
 #else
 		.create	    = NULL,
 		.sync	    = NULL,
 		.mark	    = NULL,
 		.allocate   = NULL,
 		.release    = NULL,
+		.print      = NULL,
 #endif
 		.test	    = alloc40_test,
 		.free	    = alloc40_free,

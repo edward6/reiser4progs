@@ -3,7 +3,8 @@
   Copyright (C) 1996-2002 Hans Reiser.
 */
 
-#include <aal/aal.h>
-#include <aux/aux.h>
-
 #include "key40.h"
+
+#ifndef ENABLE_COMPACT
+
+#endif

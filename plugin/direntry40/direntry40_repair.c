@@ -5,6 +5,8 @@
 
 #include "direntry40.h"
 
+#ifndef ENABLE_COMPACT
+
 #define MIN_LEN			2 /* one symbol and '\0' */
 #define de40_min_length(count)	count * (sizeof(entry40_t) + MIN_LEN) + \
 				    sizeof(direntry40_t)
@@ -105,4 +107,4 @@ errno_t direntry40_check(item_entity_t *item, uint16_t options) {
     return 0;
 }
 
-
+#endif

@@ -5,6 +5,8 @@
 
 #include "node40.h"
 
+#ifndef ENABLE_COMPACT
+
 #define INVALID_U16	0xffff
 
 extern errno_t node40_remove(object_entity_t *entity, reiser4_pos_t *pos);
@@ -446,3 +448,5 @@ errno_t node40_item_legal(object_entity_t *entity, reiser4_plugin_t *plugin) {
     
     return 1;
 }
+
+#endif

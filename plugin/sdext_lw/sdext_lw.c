@@ -53,6 +53,8 @@ static uint16_t sdext_lw_length(void) {
 	return sizeof(sdext_lw_t);
 }
 
+#ifndef ENABLE_COMPACT
+
 static errno_t sdext_lw_print(reiser4_body_t *body,
 			      char *buff, uint32_t n,
 			      uint16_t options)
@@ -70,6 +72,8 @@ static errno_t sdext_lw_print(reiser4_body_t *body,
 	return 0;
 }
 
+#endif
+
 static reiser4_plugin_t sdext_lw_plugin = {
 	.sdext_ops = {
 		.h = {
@@ -84,7 +88,12 @@ static reiser4_plugin_t sdext_lw_plugin = {
 		},
 		.init	 = sdext_lw_init,
 		.open	 = sdext_lw_open,
+		
+#ifndef ENABLE_COMPACT
 		.print   = sdext_lw_print,
+#else
+		.print   = NULL,
+#endif		
 		.length	 = sdext_lw_length
 	}
 };

@@ -52,11 +52,12 @@ static reiser4_plugin_t journal36_plugin = {
 			.label = "journal36",
 			.desc = "Default journal for reiserfs 3.6.x, ver. " VERSION,
 		},
-		.create = NULL, 
 		.open	= journal36_open,
 		.close	= journal36_close,
 		.sync	= journal36_sync,
 		.replay = journal36_replay,
+		.print  = NULL,
+		.create = NULL, 
 		.valid	= NULL,
 		.device = NULL
 	}

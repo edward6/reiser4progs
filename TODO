@@ -14,3 +14,5 @@ Copyright (C) 1996-2002 Hans Reiser
 
 * rewrite progs/libmisc/profile.c in order to be using the last changes in plugin 
   header structure.
+
+* should we use node print method for printing the all node items?

@@ -40,10 +40,6 @@ static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-extern errno_t nodeptr40_check(item_entity_t *item, uint16_t options);
-
-#endif
-
 static errno_t nodeptr40_print(item_entity_t *item, 
 			       char *buff, uint32_t n,
 			       uint16_t options) 
@@ -58,6 +54,10 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	aal_snprintf(buff, n, "[ %llu ]", np40_get_ptr(nodeptr));
 	return 0;
 }
+
+extern errno_t nodeptr40_check(item_entity_t *item, uint16_t options);
+
+#endif
 
 static errno_t nodeptr40_max_poss_key(item_entity_t *item,
 				      reiser4_key_t *key) 
@@ -117,25 +117,26 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		},
 #ifndef ENABLE_COMPACT	    
 		.init		= nodeptr40_init,
-		.update     = nodeptr40_update,
+		.update         = nodeptr40_update,
 		.estimate	= nodeptr40_estimate,
 		.check		= nodeptr40_check,
+		.print		= nodeptr40_print,
 #else
 		.init		= NULL,
-		.update     = NULL,
+		.update         = NULL,
 		.estimate	= NULL,
 		.check		= NULL,
+		.print		= NULL,
 #endif
 		.lookup		= NULL,
 		.valid		= NULL,
 		.insert		= NULL,
 		.remove		= NULL,
-		.shift      = NULL,
-		.open       = NULL,
+		.shift          = NULL,
+		.open           = NULL,
 
-		.print		= nodeptr40_print,
 		.count		= nodeptr40_count,
-		.fetch       = nodeptr40_fetch,
+		.fetch          = nodeptr40_fetch,
 	
 		.max_poss_key	= nodeptr40_max_poss_key,
 		.max_real_key   = nodeptr40_max_poss_key,

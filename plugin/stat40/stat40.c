@@ -310,6 +310,8 @@ static int stat40_sdext_present(item_entity_t *item,
 	return hint.present;
 }
 
+#ifndef ENABLE_COMPACT
+
 struct print_hint {
 	char *buff;
 	uint32_t n;
@@ -359,6 +361,8 @@ static errno_t stat40_print(item_entity_t *item,
 	return 0;
 }
 
+#endif
+
 static errno_t stat40_max_poss_key(item_entity_t *item,
 				   reiser4_key_t *key) 
 {
@@ -387,12 +391,14 @@ static reiser4_plugin_t stat40_plugin = {
 		.insert		= stat40_insert,
 		.remove		= stat40_remove,
 		.check		= stat40_check,
+		.print		= stat40_print,
 #else
 		.init		= NULL,
 		.estimate	= NULL,
 		.insert		= NULL,
 		.remove		= NULL,
 		.check		= NULL,
+		.print		= NULL,
 #endif
 		.lookup		= NULL,
 		.shift          = NULL,
@@ -403,7 +409,6 @@ static reiser4_plugin_t stat40_plugin = {
 		.open           = stat40_open,
 		.count		= stat40_count,
 		.valid		= stat40_valid,
-		.print		= stat40_print,
         
 		.max_poss_key	= stat40_max_poss_key,
 		.max_real_key   = stat40_max_poss_key

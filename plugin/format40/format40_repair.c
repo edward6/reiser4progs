@@ -6,6 +6,8 @@
 #include <aux/aux.h>
 #include "format40.h"
 
+#ifndef ENABLE_COMPACT
+
 static int callback_len_check(int64_t len, void *data) {
     if (len > *(int64_t *)data) {
 	aal_exception_error("Invalid partition size was specified (%lld)", 
@@ -90,34 +92,4 @@ errno_t format40_check(object_entity_t *entity, uint16_t options) {
     return 0;
 }
 
-errno_t format40_print(object_entity_t *entity, char *buff, 
-    uint32_t n, uint16_t options) 
-{
-    aal_block_t *block;
-    format40_super_t *super;
-    
-    aal_assert("vpf-246", entity != NULL, return -1);
-    aal_assert("umka-1290", buff != NULL, return -1);
-    
-    block = ((format40_t *)entity)->block;
-    super = format40_super(block);
-    
-    aux_strncat(buff, n, "plugin:\t\t%s\n", entity->plugin->h.label);
-    aux_strncat(buff, n, "description:\t%s\n", entity->plugin->h.desc);
-    aux_strncat(buff, n, "block number:\t%llu\n", aal_block_number(block));
-    
-    aux_strncat(buff, n, "magic:\t\t%s\n", super->sb_magic);
-    aux_strncat(buff, n, "flushes:\t%llu\n", get_sb_flushes(super));
-    aux_strncat(buff, n, "stamp:\t\t0x%x\n", get_sb_mkfs_id(super));
-    
-    aux_strncat(buff, n, "total blocks:\t%llu\n",get_sb_block_count(super));
-    aux_strncat(buff, n, "free blocks:\t%llu\n", get_sb_free_blocks(super));
-    aux_strncat(buff, n, "root block:\t%llu\n", get_sb_root_block(super));
-    aux_strncat(buff, n, "tail policy:\t%u\n", get_sb_tail_policy(super));
-    aux_strncat(buff, n, "next oid:\t0x%llx\n", get_sb_oid(super));
-    aux_strncat(buff, n, "file count:\t%llu\n", get_sb_file_count(super));
-    aux_strncat(buff, n, "tree height:\t%u\n", get_sb_tree_height(super));
-    
-    return 0;
-}
-
+#endif

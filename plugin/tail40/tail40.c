@@ -131,9 +131,11 @@ static reiser4_plugin_t tail40_plugin = {
 #ifndef ENABLE_COMPACT
 		.init	       = tail40_init,
 		.insert	       = tail40_insert,
+		.print	       = NULL,
 #else
 		.init	       = NULL,
 		.insert	       = NULL,
+		.print	       = NULL,
 #endif
 		.open          = NULL,
 		.remove	       = NULL,
@@ -141,7 +143,6 @@ static reiser4_plugin_t tail40_plugin = {
 		.check	       = NULL,
 		.count	       = NULL,
 		.valid	       = NULL,
-		.print	       = NULL,
 		.shift         = NULL,
 		.update        = NULL,
 		

@@ -38,8 +38,6 @@ static uint16_t extent40_remove(item_entity_t *item, uint32_t pos) {
 	return -1;
 }
 
-#endif
-
 static errno_t extent40_print(item_entity_t *item, char *buff, 
 			      uint32_t n, uint16_t options) 
 {
@@ -53,13 +51,17 @@ static errno_t extent40_print(item_entity_t *item, char *buff,
 	count = extent40_count(item);
 
 	for (i = 0; i < count; i++) {
-		int len = aal_snprintf(buff, n, "%llu( %llu )%s", et40_get_start(extent + i),
-				       et40_get_width(extent + i), (i < count - 1 ? ", " : ""));
+		int len = aal_snprintf(buff, n, "%llu( %llu )%s",
+				       et40_get_start(extent + i),
+				       et40_get_width(extent + i),
+				       (i < count - 1 ? ", " : ""));
 		buff += len;
 	}
     
 	return 0;
 }
+
+#endif
 
 static errno_t extent40_max_poss_key(item_entity_t *item,
 				     reiser4_key_t *key) 
@@ -142,11 +144,13 @@ static reiser4_plugin_t extent40_plugin = {
 		.update        = extent40_update,
 		.insert	       = extent40_insert,
 		.remove	       = extent40_remove,
+		.print	       = extent40_print,
 #else
 		.init	       = NULL,
 		.update        = NULL,
 		.insert	       = NULL,
 		.remove	       = NULL,
+		.print	       = NULL,
 #endif
 		.estimate      = NULL,
 		.check	       = NULL,
@@ -156,7 +160,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.open          = NULL,
 
 		.count	       = extent40_count,
-		.print	       = extent40_print,
 		.fetch         = extent40_fetch,
 		
 		.max_poss_key = extent40_max_poss_key,

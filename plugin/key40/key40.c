@@ -331,6 +331,8 @@ static errno_t key40_build_objid(reiser4_body_t *body,
 	return 0;
 }
 
+#ifndef ENABLE_COMPACT
+
 errno_t key40_print(reiser4_body_t *body, char *buff, 
 		    uint32_t n, uint16_t options) 
 {
@@ -346,6 +348,8 @@ errno_t key40_print(reiser4_body_t *body, char *buff,
 
 	return 0;
 }
+
+#endif
 
 static reiser4_plugin_t key40_plugin = {
 	.key_ops = {
@@ -367,8 +371,13 @@ static reiser4_plugin_t key40_plugin = {
 		.maximal	= key40_maximal,
 		.clean		= key40_clean,
 		.compare	= key40_compare,
+		
+#ifndef ENABLE_COMPACT
 		.print		= key40_print,
-
+#else
+		.print		= NULL,
+#endif
+		
 		.set_type	= key40_set_type,
 		.get_type	= key40_get_type,
 

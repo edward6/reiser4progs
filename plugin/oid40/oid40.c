@@ -93,6 +93,17 @@ static void oid40_release(object_entity_t *entity,
 	((oid40_t *)entity)->used--;
 }
 
+static errno_t oid40_print(object_entity_t *entity,
+			   char *buff, uint32_t n, uint16_t options)
+{
+	aal_assert("umka-1303", entity != NULL, return -1);
+	aal_assert("umka-1304", buff != NULL, return -1);
+
+	aal_snprintf(buff, n, "next oid:\t0x%llx\nused oids:\t0x%llx\n",
+		     ((oid40_t *)entity)->next, ((oid40_t *)entity)->used);
+	return 0;
+}
+
 #endif
 
 static errno_t oid40_valid(object_entity_t *entity) {
@@ -112,17 +123,6 @@ static roid_t oid40_free(object_entity_t *entity) {
 static roid_t oid40_used(object_entity_t *entity) {
 	aal_assert("umka-530", entity != NULL, return 0);
 	return ((oid40_t *)entity)->used;
-}
-
-static errno_t oid40_print(object_entity_t *entity,
-			   char *buff, uint32_t n, uint16_t options)
-{
-	aal_assert("umka-1303", entity != NULL, return -1);
-	aal_assert("umka-1304", buff != NULL, return -1);
-
-	aal_snprintf(buff, n, "next oid:\t0x%llx\nused oids:\t0x%llx\n",
-		     ((oid40_t *)entity)->next, ((oid40_t *)entity)->used);
-	return 0;
 }
 
 static roid_t oid40_root_parent_locality(void) {
@@ -158,14 +158,15 @@ static reiser4_plugin_t oid40_plugin = {
 		.allocate	= oid40_allocate,
 		.release	= oid40_release,
 		.sync		= oid40_sync,
+		.print		= oid40_print,
 #else
 		.create		= NULL,
 		.next		= NULL,
 		.allocate	= NULL,
 		.release	= NULL,
 		.sync		= NULL,
+		.print		= NULL,
 #endif
-		.print		= oid40_print,
 		.used		= oid40_used,
 		.free		= oid40_free,
 	

@@ -1,14 +1,19 @@
 /*
-  sdext_unix.c -- stat data exception plugin, that implements unix stat data 
+  sdext_unix.c -- stat data exception plugin, that implements unix stat data
   fields.
   Copyright 1996-2002 (C) Hans Reiser.
 */
 
-#define _GNU_SOURCE 1
-#include <pwd.h>
-#include <sys/types.h>
+#ifndef ENABLE_COMPACT
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+
+#include <pwd.h>
 #include <time.h>
+#include <sys/types.h>
+#endif
 
 #include <aux/aux.h>
 #include "sdext_unix.h"
@@ -80,6 +85,8 @@ static char *sdext_unix_gecos(char *pwdline) {
 	return NULL;
 }
 
+#ifndef ENABLE_COMPACT
+
 static errno_t sdext_unix_print(reiser4_body_t *body,
 				char *buff, uint32_t n,
 				uint16_t options)
@@ -120,6 +127,8 @@ static errno_t sdext_unix_print(reiser4_body_t *body,
 	return 0;
 }
 
+#endif
+
 static reiser4_plugin_t sdext_unix_plugin = {
 	.sdext_ops = {
 		.h = {
@@ -134,7 +143,12 @@ static reiser4_plugin_t sdext_unix_plugin = {
 		},
 		.init	 = sdext_unix_init,
 		.open	 = sdext_unix_open,
+		
+#ifndef ENABLE_COMPACT		
 		.print   = sdext_unix_print,
+#else
+		.print   = NULL,
+#endif
 		.length	 = sdext_unix_length
 	}
 };

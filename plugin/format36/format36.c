@@ -280,15 +280,16 @@ static reiser4_plugin_t format36_plugin = {
 		.device		= NULL,
 #ifndef ENABLE_COMPACT
 		.check		= NULL,
+		.print		= NULL,
 		.sync		= format36_sync,
 		.create		= format36_create,
-		.print		= NULL,
 		.set_root	= format36_set_root,
 		.set_len	= format36_set_len,
 		.set_free	= format36_set_free,
 		.set_height	= NULL,
 		.set_stamp	= NULL,
 #else
+		.print		= NULL,
 		.check		= NULL,
 		.sync		= NULL,
 		.create		= NULL,
