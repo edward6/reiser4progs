@@ -849,8 +849,6 @@ errno_t reiser4_node_insert(
 		return res;
 	}
 
-	reiser4_node_mkdirty(node);
-	
 	if ((res = reiser4_node_uchild(node, pos))) {
 		aal_exception_error("Can't update child positions in "
 				    "node %llu.", node_blocknr(node));
@@ -883,8 +881,6 @@ errno_t reiser4_node_cut(
 		return res;
 	}
 
-	reiser4_node_mkdirty(node);
-	
 	/* Updating children */
 	if ((res = reiser4_node_uchild(node, start)))
 		return res;
@@ -915,9 +911,6 @@ errno_t reiser4_node_remove(
 	}
 
 	if (reiser4_node_items(node) > 0) {
-		
-		reiser4_node_mkdirty(node);
-	
 		/* Updating children */
 		if ((res = reiser4_node_uchild(node, pos)))
 			return res;
@@ -934,10 +927,8 @@ void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {
 
 	plug = node->entity->plug;
 	
-	if (plug->o.node_ops->set_mstamp) {
+	if (plug->o.node_ops->set_mstamp)
 		plug->o.node_ops->set_mstamp(node->entity, stamp);
-		reiser4_node_mkdirty(node);
-	}
 }
 
 void reiser4_node_set_fstamp(reiser4_node_t *node, uint64_t stamp) {
@@ -948,10 +939,8 @@ void reiser4_node_set_fstamp(reiser4_node_t *node, uint64_t stamp) {
 
 	plug = node->entity->plug;
 	
-	if (plug->o.node_ops->get_fstamp) {
+	if (plug->o.node_ops->get_fstamp)
 		plug->o.node_ops->set_fstamp(node->entity, stamp);
-		reiser4_node_mkdirty(node);
-	}
 }
 
 void reiser4_node_set_level(reiser4_node_t *node,
@@ -961,8 +950,6 @@ void reiser4_node_set_level(reiser4_node_t *node,
     
 	plug_call(node->entity->plug->o.node_ops, 
 		  set_level, node->entity, level);
-
-	reiser4_node_mkdirty(node);
 }
 
 uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {

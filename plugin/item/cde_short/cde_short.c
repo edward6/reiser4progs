@@ -290,8 +290,12 @@ errno_t cde_short_rep(place_t *dst_place, uint32_t dst_pos,
 
 	/* Updating item key by unit key if the first unit waqs changed. It is
 	   needed for correct updating left delimiting keys. */
-	if (dst_pos == 0)
-		cde_short_get_key(dst_place, 0, &dst_place->key);
+	if (dst_pos == 0) {
+		cde_short_get_key(dst_place, 0,
+				  &dst_place->key);
+	}
+	
+	place_mkdirty(dst_place);
 	
 	return 0;
 }
@@ -366,6 +370,8 @@ static uint32_t cde_short_shrink(place_t *place, uint32_t pos,
 	}
 
 	de_dec_units(cde, count);
+	place_mkdirty(place);
+	
 	return 0;
 }
 
@@ -443,6 +449,7 @@ uint32_t cde_short_expand(place_t *place, uint32_t pos,
 		aal_memmove(dst, src, first);
 	}
     
+	place_mkdirty(place);
 	return offset;
 }
 
@@ -698,8 +705,9 @@ static errno_t cde_short_insert(place_t *place,
 	
 	/* Updating item key by unit key if the first unit was changed. It is
 	   needed for correct updating left delimiting keys. */
-	if (pos == 0)
+	if (pos == 0) {
 		cde_short_get_key(place, 0, &place->key);
+	}
     
 	return 0;
 }
@@ -731,6 +739,8 @@ static errno_t cde_short_init(place_t *place) {
 	aal_assert("umka-2215", place->body != NULL);
 	
 	((cde_short_t *)place->body)->units = 0;
+	place_mkdirty(place);
+	
 	return 0;
 }
 

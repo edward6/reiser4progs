@@ -198,9 +198,11 @@ static errno_t cde_large_estimate_insert(place_t *place,
 }
 
 /* Calculates the size of @count units in passed @place at passed @pos */
-uint32_t cde_large_size_units(place_t *place, uint32_t pos, uint32_t count) {
-	uint32_t size = 0;
+uint32_t cde_large_size_units(place_t *place, uint32_t pos,
+			      uint32_t count)
+{
 	cde_large_t *cde;
+	uint32_t size = 0;
 	entry_t *entry_end;
 	entry_t *entry_start;
 
@@ -290,9 +292,12 @@ errno_t cde_large_rep(place_t *dst_place, uint32_t dst_pos,
 
 	/* Updating item key by unit key if the first unit was changed. It is
 	   needed for correct updating left delimiting keys. */
-	if (dst_pos == 0)
-		cde_large_get_key(dst_place, 0, &dst_place->key);
-	
+	if (dst_pos == 0) {
+		cde_large_get_key(dst_place, 0,
+				  &dst_place->key);
+	}
+
+	place_mkdirty(dst_place);
 	return 0;
 }
 
@@ -368,6 +373,8 @@ static uint32_t cde_large_shrink(place_t *place, uint32_t pos,
 	}
 
 	de_dec_units(cde, count);
+	place_mkdirty(place);
+	
 	return 0;
 }
 
@@ -448,6 +455,7 @@ uint32_t cde_large_expand(place_t *place, uint32_t pos,
 		aal_memmove(dst, src, first);
 	}
     
+	place_mkdirty(place);
 	return offset;
 }
 
@@ -748,6 +756,8 @@ static errno_t cde_large_init(place_t *place) {
 	aal_assert("umka-2215", place->body != NULL);
 	
 	((cde_large_t *)place->body)->units = 0;
+	place_mkdirty(place);
+	
 	return 0;
 }
 

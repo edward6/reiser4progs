@@ -53,6 +53,17 @@ static errno_t nodeptr40_layout(place_t *place,
 	return region_func(place, np40_get_ptr(nodeptr), 1, data);
 }
 
+/* Estimates how many bytes is needed for creating new nodeptr */
+static errno_t nodeptr40_estimate_insert(place_t *place,
+					 create_hint_t *hint,
+					 uint32_t pos)
+{
+	aal_assert("vpf-068", hint != NULL);
+
+	hint->len = sizeof(nodeptr40_t);
+	return 0;
+}
+
 /* Writes of the specified nodeptr into passed @place */
 static errno_t nodeptr40_insert(place_t *place,
 				create_hint_t *hint,
@@ -68,18 +79,8 @@ static errno_t nodeptr40_insert(place_t *place,
 	
 	ptr_hint = (ptr_hint_t *)hint->type_specific;
 	np40_set_ptr(nodeptr, ptr_hint->start);
-	
-	return 0;
-}
 
-/* Estimates how many bytes is needed for creating new nodeptr */
-static errno_t nodeptr40_estimate_insert(place_t *place,
-					 create_hint_t *hint,
-					 uint32_t pos)
-{
-	aal_assert("vpf-068", hint != NULL);
-
-	hint->len = sizeof(nodeptr40_t);
+	place_mkdirty(place);
 	return 0;
 }
 
@@ -95,8 +96,9 @@ static errno_t nodeptr40_print(place_t *place,
     
 	nodeptr = nodeptr40_body(place);
 
-	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=[%s] UNITS=1 "
-			  "\n[%llu]\n", place->plug->label, place->len, 
+	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, "
+			  "KEY=[%s] UNITS=1\n[%llu]\n",
+			  place->plug->label, place->len, 
 			  core->key_ops.print(&place->key, PO_DEF), 
 			  np40_get_ptr(nodeptr));
 	

@@ -234,6 +234,7 @@ static errno_t stat40_insert(place_t *place,
 		extbody += plug_call(plug->o.sdext_ops, length, extbody);
 	}
     
+	place_mkdirty(place);
 	return 0;
 }
 
@@ -389,7 +390,6 @@ static errno_t stat40_print(place_t *place,
 
 	return stat40_traverse(place, callback_print_ext, (void *)stream);
 }
-
 #endif
 
 /* Get the plugin id of the type @type if stored in SD. */

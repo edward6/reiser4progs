@@ -42,6 +42,32 @@ static int32_t tail40_read(place_t *place, void *buff,
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Estimates how many byte need to write @hint->count into the tree. This
+   function considers also, that tail item is not expandable one. That is, if
+   insert pos point inside the item body, it will not be splitted, but rewritten
+   instead. */
+static errno_t tail40_estimate_insert(place_t *place,
+				      create_hint_t *hint,
+				      uint32_t pos)
+{
+	aal_assert("umka-1836", hint != NULL);
+
+	if (pos == MAX_UINT32)
+		hint->len = hint->count;
+	else {
+		uint32_t right;
+
+		aal_assert("umka-2284", place != NULL);
+		
+		right = place->len - pos;
+
+		hint->len = (right >= hint->count ? 0 :
+			     hint->count - right);
+	}
+	
+	return 0;
+}
+
 /* Rewrites tail from passed @pos by data specifed by hint */
 static errno_t tail40_insert(place_t *place,
 			     create_hint_t *hint,
@@ -68,32 +94,7 @@ static errno_t tail40_insert(place_t *place,
 			return -EINVAL;
 	}
 
-	return 0;
-}
-
-/* Estimates how many byte need to write @hint->count into the tree. This
-   function considers also, that tail item is not expandable one. That is, if
-   insert pos point inside the item body, it will not be splitted, but rewritten
-   instead. */
-static errno_t tail40_estimate_insert(place_t *place,
-				      create_hint_t *hint,
-				      uint32_t pos)
-{
-	aal_assert("umka-1836", hint != NULL);
-
-	if (pos == MAX_UINT32)
-		hint->len = hint->count;
-	else {
-		uint32_t right;
-
-		aal_assert("umka-2284", place != NULL);
-		
-		right = place->len - pos;
-
-		hint->len = (right >= hint->count ? 0 :
-			     hint->count - right);
-	}
-	
+	place_mkdirty(place);
 	return 0;
 }
 
@@ -121,6 +122,7 @@ static int32_t tail40_remove(place_t *place, uint32_t pos,
 			return -EINVAL;
 	}
 	
+	place_mkdirty(place);
 	return count;
 }
 
@@ -269,6 +271,8 @@ errno_t tail40_rep(place_t *dst_place, uint32_t dst_pos,
 	if (count > 0) {
 		aal_memcpy(dst_place->body + dst_pos,
 			   src_place->body + src_pos, count);
+
+		place_mkdirty(dst_place);
 	}
 	
 	return 0;
@@ -280,6 +284,8 @@ static uint32_t tail40_expand(place_t *place, uint32_t pos,
 	if (pos < place->len) {
 		aal_memmove(place->body + pos + count,
 			    place->body + pos, place->len - pos);
+
+		place_mkdirty(place);
 	}
 
 	return 0;
@@ -292,6 +298,8 @@ static uint32_t tail40_shrink(place_t *place, uint32_t pos,
 		aal_memmove(place->body + pos,
 			    place->body + pos + count,
 			    place->len - (pos + count));
+
+		place_mkdirty(place);
 	}
 
 	return 0;
@@ -351,7 +359,6 @@ static errno_t tail40_shift(place_t *src_place,
 
 static uint64_t tail40_size(place_t *place) {
 	aal_assert("vpf-1210", place != NULL);
-	
 	return place->len;
 }
 

@@ -112,6 +112,7 @@ static int32_t extent40_remove(place_t *place,
 			return -EINVAL;
 	}
 	
+	place_mkdirty(place);
 	return 0;
 }
 
@@ -399,6 +400,7 @@ static errno_t extent40_insert(place_t *place,
 		block_offset += blksize;
 	}
 	
+	place_mkdirty(place);
 	return 0;
 }
 
@@ -529,6 +531,7 @@ static uint32_t extent40_expand(place_t *place, uint32_t pos,
 			sizeof(extent40_t);
 
 		aal_memmove(dst, src, len);
+		place_mkdirty(place);
 	}
 
 	return 0;
@@ -549,6 +552,7 @@ static uint32_t extent40_shrink(place_t *place, uint32_t pos,
 			sizeof(extent40_t);
 
 		aal_memmove(dst, src, len);
+		place_mkdirty(place);
 	}
 
 	return 0;
@@ -566,6 +570,8 @@ static errno_t extent40_rep(place_t *dst_place, uint32_t dst_pos,
 		src = (extent40_t *)src_place->body + src_pos;
 		dst = (extent40_t *)dst_place->body + dst_pos;
 		aal_memmove(dst, src, count * sizeof(extent40_t));
+		
+		place_mkdirty(dst_place);
 	}
 	
 	return 0;
@@ -649,10 +655,6 @@ static uint64_t extent40_bytes(place_t *place) {
 extern errno_t extent40_check_struct(place_t *place,
 				     uint8_t mode);
 
-extern errno_t extent40_check_layout(place_t *place,
-				     region_func_t func, 
-				     void *data, uint8_t mode);
-
 extern errno_t extent40_estimate_copy(place_t *dst,
 				      uint32_t dst_pos,
 				      place_t *src,
@@ -662,6 +664,10 @@ extern errno_t extent40_estimate_copy(place_t *dst,
 extern errno_t extent40_copy(place_t *dst, uint32_t dst_pos, 
 			     place_t *src, uint32_t src_pos, 
 			     copy_hint_t *hint);
+
+extern errno_t extent40_check_layout(place_t *place,
+				     region_func_t region_func, 
+				     void *data, uint8_t mode);
 #endif
 
 static reiser4_item_ops_t extent40_ops = {

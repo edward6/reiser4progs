@@ -1295,6 +1295,16 @@ struct reiser4_plug {
 	} o;
 };
 
+/* Macros for dirtying nodes place lie at */
+#define place_mkdirty(place) \
+        ((place)->block->dirty = 1)
+
+#define place_mkclean(place) \
+        ((place)->block->dirty = 0)
+
+#define place_isdirty(place) \
+        ((place)->block->dirty)
+
 struct tree_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Returns blocksize in passed tree */

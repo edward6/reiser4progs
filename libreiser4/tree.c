@@ -2117,7 +2117,6 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 	}
 	
 	reiser4_node_mkdirty(dst_node);
-	
 	return 0;
 
  error_free_dst_node:
