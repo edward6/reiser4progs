@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
 	if (flags & BF_PLUGS)
 		misc_plugins_print();
 
-#if defined(HAVE_SYSCONF)
+#ifdef HAVE_SYSCONF
 	/* Guessing block size by getting page size */
 	if (!hint.blksize) {
 		hint.blksize = sysconf(_SC_PAGESIZE);
@@ -268,7 +268,7 @@ int main(int argc, char *argv[]) {
 	}
 #endif
 	
-#if defined(HAVE_UNAME)
+#ifdef HAVE_UNAME
 	/* Guessing system type */
 	if (uname(&sysinfo) == -1) {
 		aal_exception_warn("Can't guess system type.");
