@@ -10,8 +10,8 @@ libtail40_static_la_LDFLAGS = @PLUGIN_LDFLAGS@
 libtail40_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 lib_LTLIBRARIES		    = libtail40.la
-libtail40_la_LIBADD	    = @AAL_LIBS@ \
-			      $(top_builddir)/libaux/libaux-static.la
+libtail40_la_LIBADD	    = $(top_builddir)/plugin/item/common40/libcommon40-static.la \
+			      @AAL_LIBS@
 
 libtail40_la_SOURCES	    = $(tail40_sources)
 libtail40_la_LDFLAGS	    = @PLUGIN_LDFLAGS@

@@ -10,8 +10,7 @@ libstat40_static_la_LDFLAGS = @PLUGIN_LDFLAGS@
 libstat40_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 lib_LTLIBRARIES		    = libstat40.la
-libstat40_la_LIBADD	    = @AAL_LIBS@ \
-			      $(top_builddir)/libaux/libaux-static.la
+libstat40_la_LIBADD	    = @AAL_LIBS@
 
 libstat40_la_SOURCES	    = $(stat40_sources)
 libstat40_la_LDFLAGS	    = @PLUGIN_LDFLAGS@

@@ -3,6 +3,10 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fix building on last gcc
+
+* fix bug with ENABLE_DEBUG in libaal and libreiser4.
+
 * add option to measurefs, which will introduce some kind of filter 
   for file fragmentation calculating.
 

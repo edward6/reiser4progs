@@ -7,6 +7,7 @@
 
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
+#include <plugin/item/common40/common40.h>
 
 static reiser4_core_t *core = NULL;
 
@@ -19,27 +20,14 @@ static uint32_t tail40_units(item_entity_t *item) {
 
 /* Returns the key of the specified unit */
 static errno_t tail40_get_key(item_entity_t *item,
-			      uint32_t offset, 
+			      uint32_t pos, 
 			      key_entity_t *key) 
 {
-	uint32_t units;
-
 	aal_assert("vpf-626", item != NULL);
 	aal_assert("vpf-627", key != NULL);
+	aal_assert("vpf-628", pos < tail40_units(item));
 
-	units = tail40_units(item);
-	aal_assert("vpf-628", offset < units);
-	
-	plugin_call(item->key.plugin->key_ops, assign,
-		    key, &item->key);
-
-	offset += plugin_call(key->plugin->key_ops,
-			      get_offset, key);
-	
-	plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset);
-
-	return 0;
+	return common40_get_key(item, pos, key, NULL);
 }
 
 static int32_t tail40_read(item_entity_t *item, void *buff,
@@ -208,35 +196,6 @@ static errno_t tail40_print(item_entity_t *item,
 	return 0;
 }
 
-#endif
-
-static errno_t tail40_maxposs_key(item_entity_t *item,
-				  key_entity_t *key) 
-{
-	uint64_t offset;
-	key_entity_t *maxkey;
-    
-	aal_assert("umka-1209", item != NULL);
-	aal_assert("umka-1210", key != NULL);
-
-	key->plugin = item->key.plugin;
-		
-	plugin_call(key->plugin->key_ops, assign,
-		    key, &item->key);
-	
-	maxkey = plugin_call(key->plugin->key_ops,
-			     maximal,);
-	
-	offset = plugin_call(key->plugin->key_ops,
-			     get_offset, maxkey);
-    
-	plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset);
-
-	return 0;
-}
-
-#ifndef ENABLE_STAND_ALONE
 static errno_t tail40_utmost_key(item_entity_t *item,
 				 key_entity_t *key) 
 {
@@ -245,10 +204,8 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 	aal_assert("vpf-442", item != NULL);
 	aal_assert("vpf-443", key != NULL);
 
-	key->plugin = item->key.plugin;
-	
-	plugin_call(key->plugin->key_ops, assign, key,
-		    &item->key);
+	plugin_call(item->key.plugin->key_ops,
+		    assign, key, &item->key);
 
 	offset = plugin_call(key->plugin->key_ops,
 			     get_offset, key);
@@ -259,6 +216,15 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 	return 0;
 }
 #endif
+
+static errno_t tail40_maxposs_key(item_entity_t *item,
+				  key_entity_t *key) 
+{
+	aal_assert("umka-1209", item != NULL);
+	aal_assert("umka-1210", key != NULL);
+
+	return common40_maxposs_key(item, key);
+}
 
 static lookup_t tail40_lookup(item_entity_t *item,
 			      key_entity_t *key, 
@@ -278,8 +244,8 @@ static lookup_t tail40_lookup(item_entity_t *item,
 	
 	tail40_maxposs_key(item, &maxkey);
 
-	if (plugin_call(key->plugin->key_ops, compare,
-			key, &maxkey) > 0)
+	if (plugin_call(key->plugin->key_ops,
+			compare, key, &maxkey) > 0)
 	{
 		*pos = item->len;
 		return LP_ABSENT;
@@ -309,44 +275,10 @@ static lookup_t tail40_lookup(item_entity_t *item,
 static int tail40_mergeable(item_entity_t *item1,
 			    item_entity_t *item2)
 {
-	reiser4_plugin_t *plugin;
-	uint64_t offset1, offset2;
-	oid_t objectid1, objectid2;
-	oid_t locality1, locality2;
-	
-	aal_assert("umka-1584", item1 != NULL);
-	aal_assert("umka-1585", item2 != NULL);
+	aal_assert("umka-2201", item1 != NULL);
+	aal_assert("umka-2202", item2 != NULL);
 
-	plugin = item1->key.plugin;
-		
-	locality1 = plugin_call(plugin->key_ops, get_locality,
-				&item1->key);
-	
-	locality2 = plugin_call(plugin->key_ops, get_locality,
-				&item2->key);
-
-	if (locality1 != locality2)
-		return 0;
-	
-	objectid1 = plugin_call(plugin->key_ops, get_objectid,
-				&item1->key);
-	
-	objectid2 = plugin_call(plugin->key_ops, get_objectid,
-				&item2->key);
-
-	if (objectid1 != objectid2)
-		return 0;
-
-	offset1 = plugin_call(plugin->key_ops, get_offset,
-			      &item1->key);
-	
-	offset2 = plugin_call(plugin->key_ops, get_offset,
-			      &item2->key);
-
-	if (offset1 + item1->len != offset2)
-		return 0;
-	
-	return 1;
+	return common40_mergeable(item1, item2);
 }
 
 /* Estimates how many bytes may be shifted into neighbour item */

@@ -87,7 +87,6 @@ errno_t reiser4_node_unload(reiser4_node_t *node) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 errno_t reiser4_node_form(reiser4_node_t *node,
 			  uint8_t level)
 {
@@ -108,7 +107,6 @@ errno_t reiser4_node_print(
 	return plugin_call(node->entity->plugin->node_ops,
 			   print, node->entity, stream, -1, -1, 0);
 }
-
 #endif
 
 /*
@@ -185,8 +183,8 @@ reiser4_node_t *reiser4_node_open(
 }
 
 /*
-  Closes specified node and ites children. Before the closing, this function
-  also detaches nodes from the tree if they were attached.
+  Closes specified node and its children. Before the closing, this function also
+  detaches nodes from the tree if they were attached.
 */
 errno_t reiser4_node_close(reiser4_node_t *node) {
 	errno_t res;
@@ -194,10 +192,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
 
-#ifndef ENABLE_STAND_ALONE
-	if (reiser4_node_isdirty(node))
-		reiser4_node_sync(node);
-#endif
+	reiser4_node_unload(node);
 	
 	res = plugin_call(node->entity->plugin->node_ops,
 			  close, node->entity);
@@ -829,10 +824,14 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 		if ((res = reiser4_place_realize(&place)))
 			return res;
 		
+		if (!reiser4_item_branch(&place))
+			continue;
+		
 		plugin_call(place.item.plugin->item_ops, read,
 			    &place.item, &ptr, place.pos.unit, 1);
 	
-		if ((list = aal_list_find_custom(node->children, (void *)&ptr.start,
+		if ((list = aal_list_find_custom(node->children,
+						 (void *)&ptr.start,
 						 callback_comp_blk, NULL)))
 			break;
 	}

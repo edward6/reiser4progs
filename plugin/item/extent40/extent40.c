@@ -7,6 +7,9 @@
 
 #include "extent40.h"
 
+#define extent40_size(item) \
+        (extent40_offset(item, extent40_units(item)))
+
 static reiser4_core_t *core = NULL;
 
 /* Returns blocksize of the device passed extent @item lies on */
@@ -32,16 +35,15 @@ uint32_t extent40_units(item_entity_t *item) {
 }
 
 /* Calculates extent size */
-static uint64_t extent40_size(item_entity_t *item) {
-	extent40_t *extent;
+static uint64_t extent40_offset(item_entity_t *item,
+				uint32_t pos)
+{
 	uint32_t i, blocks = 0;
     
-	aal_assert("umka-1583", item != NULL);
-
-	extent = extent40_body(item);
+	aal_assert("umka-2204", item != NULL);
 	
-	for (i = 0; i < extent40_units(item); i++)
-		blocks += et40_get_width(extent + i);
+	for (i = 0; i < pos; i++)
+		blocks += et40_get_width(extent40_body(item) + i);
     
 	return (blocks * item->context.device->blocksize);
 }
@@ -54,31 +56,11 @@ static errno_t extent40_get_key(item_entity_t *item,
 				uint32_t pos, 
 				key_entity_t *key)
 {
-	uint32_t i;
-	uint64_t offset;
-	extent40_t *extent;
-	
 	aal_assert("vpf-622", item != NULL);
 	aal_assert("vpf-623", key != NULL);
 	aal_assert("vpf-625", pos < extent40_units(item));
 	
-	extent = extent40_body(item);
-
-	plugin_call(item->key.plugin->key_ops, assign,
-		    key, &item->key);
-		
-	offset = plugin_call(key->plugin->key_ops,
-			     get_offset, key);
-
-	for (i = 0; i < pos; i++, extent++) {
-		offset += et40_get_width(extent) *
-			extent40_blocksize(item);
-	}
-
-	plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset);
-	
-	return 0;
+	return common40_get_key(item, pos, key, extent40_offset);
 }
 
 static int extent40_data(void) {
@@ -86,7 +68,6 @@ static int extent40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t extent40_init(item_entity_t *item) {
 	aal_assert("umka-1669", item != NULL);
 	
@@ -152,74 +133,37 @@ static errno_t extent40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t extent40_layout_check(item_entity_t *item,
-				     region_func_t func, 
-				     void *data, uint8_t mode);
+/* Builds maximal real key in use for specified @item */
+static errno_t extent40_utmost_key(item_entity_t *item,
+				   key_entity_t *key) 
+{
+	uint64_t offset;
+	
+	aal_assert("vpf-437", item != NULL);
+	aal_assert("vpf-438", key  != NULL);
 
+	plugin_call(item->key.plugin->key_ops,
+		    assign, key, &item->key);
+	
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, key);
+
+	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset + extent40_size(item) - 1);
+
+	return 0;	
+}
 #endif
 
 /* Builds maximal possible key for the extent item */
 static errno_t extent40_maxposs_key(item_entity_t *item,
 				    key_entity_t *key) 
 {
-	uint64_t offset;
-	key_entity_t *maxkey;
-    
 	aal_assert("umka-1211", item != NULL);
 	aal_assert("umka-1212", key != NULL);
 
-	key->plugin = item->key.plugin;
-	
-	plugin_call(key->plugin->key_ops, assign,
-		    key, &item->key);
-    
-	maxkey = plugin_call(key->plugin->key_ops,
-			     maximal,);
-    
-	offset = plugin_call(key->plugin->key_ops,
-			     get_offset, maxkey);
-	
-    	plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset);
-
-	return 0;
+	return common40_maxposs_key(item, key);
 }
-
-#ifndef ENABLE_STAND_ALONE
-/* Builds maximal real key in use for specified @item */
-static errno_t extent40_utmost_key(item_entity_t *item,
-				   key_entity_t *key) 
-{
-	uint32_t i, blocksize;
-	uint64_t delta, offset;
-	
-	aal_assert("vpf-437", item != NULL);
-	aal_assert("vpf-438", key  != NULL);
-
-	key->plugin = item->key.plugin;
-	
-	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -EINVAL;
-			
-	offset = plugin_call(key->plugin->key_ops, get_offset, key);
-	blocksize = extent40_blocksize(item);
-
-	/* Key offset + for all units { width * blocksize } */
-	for (i = 0; i < extent40_units(item); i++) {
-		delta = et40_get_width(extent40_body(item) + i);
-		aal_assert("vpf-439", delta < ((uint64_t) - 1) / 102400);
-
-		delta *= blocksize;
-		aal_assert("vpf-503", offset < ((uint64_t) - 1) - delta);
-		
-		offset += delta;
-	}
-
-	plugin_call(key->plugin->key_ops, set_offset, key, offset - 1);
-	
-	return 0;	
-}
-#endif
 
 /*
   Performs lookup for specified @key inside the passed @item. Result of lookup
@@ -381,44 +325,10 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 static int extent40_mergeable(item_entity_t *item1,
 			      item_entity_t *item2)
 {
-	reiser4_plugin_t *plugin;
-	uint64_t offset1, offset2;
-	oid_t objectid1, objectid2;
-	oid_t locality1, locality2;
-	
-	aal_assert("umka-1581", item1 != NULL);
-	aal_assert("umka-1582", item2 != NULL);
+	aal_assert("umka-2199", item1 != NULL);
+	aal_assert("umka-2200", item2 != NULL);
 
-	plugin = item1->key.plugin;
-	
-	locality1 = plugin_call(plugin->key_ops, get_locality,
-				&item1->key);
-	
-	locality2 = plugin_call(plugin->key_ops, get_locality,
-				&item2->key);
-
-	if (locality1 != locality2)
-		return 0;
-	
-	objectid1 = plugin_call(plugin->key_ops, get_objectid,
-				&item1->key);
-	
-	objectid2 = plugin_call(plugin->key_ops, get_objectid,
-				&item2->key);
-
-	if (objectid1 != objectid2)
-		return 0;
-
-	offset1 = plugin_call(plugin->key_ops, get_offset,
-			      &item1->key);
-	
-	offset2 = plugin_call(plugin->key_ops, get_offset,
-			      &item2->key);
-
-	if (offset1 + extent40_size(item1) != offset2)
-		return 0;
-	
-	return 1;
+	return common40_mergeable(item1, item2);
 }
 
 /*
@@ -631,6 +541,10 @@ static errno_t extent40_shift(item_entity_t *src_item,
 	
 	return 0;
 }
+
+extern errno_t extent40_layout_check(item_entity_t *item,
+				     region_func_t func, 
+				     void *data, uint8_t mode);
 
 extern errno_t extent40_check(item_entity_t *item, uint8_t mode);
 
