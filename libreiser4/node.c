@@ -46,12 +46,12 @@ reiser4_node_t *reiser4_node_create(
 	}
     
 	return node;
-    
- error_free_node:    
-	aal_free(node);
 
  error_free_block:
 	aal_block_close(node->block);
+   
+ error_free_node:    
+	aal_free(node);
 
 	return NULL;
 }
@@ -119,12 +119,12 @@ reiser4_node_t *reiser4_node_open(
 	    
 	return node;
     
- error_free_node:
-	aal_free(node);
-
  error_free_block:
 	aal_block_close(node->block);
-    
+
+ error_free_node:
+	aal_free(node);
+   
 	return NULL;
 }
 
