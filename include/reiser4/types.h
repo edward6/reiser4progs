@@ -190,12 +190,13 @@ typedef struct reiser4_object reiser4_object_t;
 #ifndef ENABLE_STAND_ALONE
 enum reiser4_owner {
 	O_SKIPPED  = 1 << 0,
-	O_FORMAT   = 1 << 1,
-	O_JOURNAL  = 1 << 2,
-	O_ALLOC    = 1 << 3,
-	O_OID      = 1 << 4,
-	O_STATUS   = 1 << 5,
-	O_UNKNOWN  = 1 << 6
+	O_MASTER   = 1 << 1,
+	O_FORMAT   = 1 << 2,
+	O_JOURNAL  = 1 << 3,
+	O_ALLOC    = 1 << 4,
+	O_OID      = 1 << 5,
+	O_STATUS   = 1 << 6,
+	O_UNKNOWN  = 1 << 7
 };
 
 typedef enum reiser4_owner reiser4_owner_t;

@@ -70,6 +70,14 @@ errno_t debugfs_print_block(
 		fprintf(stdout, "Block %llu belongs to skipped area "
 			"in the begin of partition.\n", blk);
 		return 0;
+	case O_MASTER:
+		fprintf(stdout, "Block %llu is filesystem "
+			"master super block.\n", blk);
+		return 0;
+	case O_STATUS:
+		fprintf(stdout, "Block %llu is filesystem "
+			"status block.\n", blk);
+		return 0;
 	case O_FORMAT:
 		fprintf(stdout, "Block %llu belongs to format "
 			"metadata.\n", blk);

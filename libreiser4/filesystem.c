@@ -143,6 +143,10 @@ reiser4_owner_t reiser4_fs_belongs(
 	if (reiser4_format_skipped(fs->format, callback_check_block, &blk) != 0)
 		return O_SKIPPED;
 	
+	/* Checks if passed @blk is master super block */
+	if (reiser4_master_layout(fs->master, callback_check_block, &blk) != 0)
+		return O_MASTER;
+	
 	/* Checks if passed @blk belongs to format metadata */
 	if (reiser4_format_layout(fs->format, callback_check_block, &blk) != 0)
 		return O_FORMAT;
@@ -159,6 +163,7 @@ reiser4_owner_t reiser4_fs_belongs(
 			return O_JOURNAL;
 	}
 
+	/* Check if @blk is filesystem status block. */
 	if (reiser4_status_layout(fs->status, callback_check_block, &blk) != 0)
 		return O_STATUS;
 	

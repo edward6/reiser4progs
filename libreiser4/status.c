@@ -3,9 +3,9 @@
    
    status.c -- filesystem status block functions. */
 
+#ifndef ENABLE_STAND_ALONE
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
 void reiser4_status_close(reiser4_status_t *status) {
 	aal_assert("umka-2487", status != NULL);
 	aal_free(status);
