@@ -5,32 +5,24 @@
 
 #include <repair/librepair.h>
 
-static errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node, 
-    reiser4_pos_t *pos)
-{
-    rpid_t pid;
-    
-    aal_assert("vpf-232", node != NULL, return -1);
-    aal_assert("vpf-235", node->entity != NULL, return -1);
-    aal_assert("vpf-236", node->entity->plugin != NULL, return -1);
-    aal_assert("vpf-233", pos != NULL, return -1);
-    aal_assert("vpf-234", item != NULL, return -1);
-    
-    /* Check items plugin ids. */
-    /* FIXME-VITALY: There will be a fix for plugin ids in a future here. */
-    pid = plugin_call(return 0, node->entity->plugin->node_ops, item_pid, 
-	node->entity, pos);
+errno_t repair_node_open(reiser4_node_t *node, blk_t blk, void *data) {
+    repair_check_t *check_data = data;
+    aal_block_t *block;
+    errno_t res;
 
-    if ((pid == FAKE_PLUGIN) || !(item->plugin = 
-	libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) 
-    {
-        aal_exception_error("Node (%llu): unknown plugin is specified for "
-	    "the item (%u).",aal_block_number(node->block), pos->item);
-	return 1;
-    }
+    aal_assert("vpf-383", check_data != NULL, return -1);
+    aal_assert("vpf-380", check_data->format != NULL, return -1);
+    aal_assert("vpf-381", check_data->format->device != NULL, return -1);
 
-    item->node = node->entity;
-    item->pos = pos;
+    if (!(block = aal_block_open(check_data->format->device, blk))) {
+	aal_exception_error("Can't read block %llu. %s.", blk, 
+	    check_data->format->device->error);
+
+	return -1;
+    } 
+
+    if ((node = reiser4_node_open(block)) == NULL)
+	return -1;
 
     return 0;
 }
@@ -48,8 +40,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     aal_assert("vpf-231", node->entity->plugin != NULL, return -1);
     aal_assert("vpf-242", data != NULL, return -1);
 
-    pos.unit = ~0ul;
-    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+    pos.item = reiser4_node_count(node) - 1;
+    do {
+	pos.unit = ~0ul;
+	
 	/* Open the item, checking its plugin id. */
 	if ((res = repair_item_open(&item, node, &pos))) {
 	    if (res > 0) {
@@ -61,32 +55,35 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 			"(%d).", aal_block_number(node->block), pos.item);
 		    return -1;
 		}
-	    } else {
-		aal_exception_error("Node (%llu): Failed to open the item (%u).", 
-		    aal_block_number(node->block), pos.item);
-		return -1;
-	    }
+		
+		continue;		
+	    } 
+		
+	    aal_exception_error("Node (%llu): Failed to open the item (%u).", 
+		aal_block_number(node->block), pos.item);
+
+	    return res;
 	}
 	
-	/* Check that the item is legal for this node. */
+	/* Check that the item is legal for this node. If not, it will be deleted 
+	 * in update traverse callback method. */
 	if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
 	    item_legal, node->entity, item.plugin)))
 	    return res;	
 
 	/* Check the item structure. */
 	if ((res = plugin_call(return -1, item.plugin->item_ops, check, 
-		&item, data->options))) 
+	    &item, data->options))) 
 	    return res;
-	
-	if (reiser4_item_extent(&item) || reiser4_item_internal(&item)) {
-	    /* FIXME: check what happens if item/unit will be deleted. */
-	    for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
-		if (repair_item_nptr_check(&item, data))
-		    return -1;
-	    }
-	    pos.unit = ~0ul;
-	}
-    }
+
+	if (!reiser4_item_extent(&item) && !reiser4_item_internal(&item))
+	    continue;
+	pos.unit = reiser4_item_count(&item) - 1;
+	do {
+	    if (repair_item_nptr_check(node, &item, data))
+		return -1;
+	} while (pos.unit--);	
+    } while (pos.item--);
     
     return 0;    
 }
@@ -241,7 +238,8 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 	return -1;
     }
     
-    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+    pos.item = reiser4_node_count(node) - 1;
+    do {
 	if (reiser4_node_get_key(node, &pos, &key)) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
 		"item (%u).", aal_block_number(node->block), pos.item);
@@ -271,14 +269,16 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 	    }
 	}
 	prev_key = key;
-    }
+    } while (pos.item--);
     
     return 0;
 }
 
-/* 
+/*  
     Checks the node content. 
-    Returns: 0 - OK; -1 - unrecoverable error; 1 - unrecoverable error;
+    Returns: 0 - OK; -1 - unexpected error; 1 - unrecoverable error;
+
+    Supposed to be run with repair_check.pass.cut structure initialized.
 */
 errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
     int res;
@@ -300,17 +300,6 @@ errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
 	return 1;
     }
 
-    /* FIXME-VITALY: This will be moved to scan pass.
-    blk = aal_block_number(node->block);
-    if ((res = reiser4_format_layout(data->format, callback_data_block_check, 
-	&blk))) 
-    {
-	aal_exception_error("The node in the invalid block number (%llu) "
-	    "found in the tree.", aal_block_number(node->block));
-	return res;
-    }
-    */
-    
     /* Check if we met it already in the control allocator. */
 /*  FIXME-VITALY: This will be moved to scan pass.
     if (reiser4_alloc_test(data->a_control, aal_block_number(node->block))) 
@@ -329,13 +318,63 @@ errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
     
     if ((res = repair_node_keys_check(node, data)))
 	return res;
-    
+ 
     if ((res = repair_node_dkeys_check(node, data)))
 	return res;
-    
+ 
     if (reiser4_node_count(node) == 0)
 	return 1;
-	
+
     return 0;
 }
 
+/* 
+    Zero extent pointers which point to an already used block. 
+    Returns -1 if block is used already.
+*/
+errno_t repair_node_handle_pointers(reiser4_node_t *node, repair_check_t *data) 
+{
+    reiser4_item_t item;
+    reiser4_pos_t pos = {0, 0};
+    
+    aal_assert("vpf-384", node != NULL, return -1);
+    aal_assert("vpf-385", data != NULL, return -1);
+    aal_assert("vpf-386", !aux_bitmap_test(repair_scan_data(data)->formatted, 
+	aal_block_number(node->block)), return -1);
+
+    aux_bitmap_mark(repair_scan_data(data)->formatted, 
+	aal_block_number(node->block));
+    aux_bitmap_clear(repair_scan_data(data)->used, 
+	aal_block_number(node->block));
+   
+    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++)  {	
+	if (repair_item_open(&item, node, &pos)) {
+	    aal_exception_error("Node (%llu): failed to open the item (%u).", 
+		aal_block_number(node->block), pos.item);
+	    return -1;
+	}	    
+
+	if (!reiser4_item_extent(&item) && !reiser4_item_internal(&item))
+	    continue;
+
+	for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
+	    blk_t form_blk, used_blk, blk;
+	    count_t width;
+
+	    if (!(blk = reiser4_item_get_nptr(&item)))
+		continue;
+	    
+	    width = reiser4_item_get_nwidth(&item);
+	    
+	    aal_assert("vpf-387", 
+		(blk < reiser4_format_get_len(data->format)) && 
+		(width < reiser4_format_get_len(data->format)) && 
+		(blk + width < reiser4_format_get_len(data->format)), 
+		return -1);
+	    
+	    
+	}
+    }
+    
+    return 0;
+}
