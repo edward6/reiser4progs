@@ -123,7 +123,7 @@ uint16_t fsck_callback_blocksize_from_user(reiser4_fs_t *fs, int *error) {
 	    blocksize = 0;
         }
     } else 
-	blocksize = REISER4_DEFAULT_BLOCKSIZE;
+	blocksize = DEFAULT_BLOCKSIZE;
 
     if (answer)
 	free(answer);
@@ -274,7 +274,7 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
     }
     
     if (!(data->host_device = aal_file_open(argv[optind], 
-	REISER4_DEFAULT_BLOCKSIZE, O_RDWR))) 
+	DEFAULT_BLOCKSIZE, O_RDWR))) 
     {
 	aal_exception_fatal("Cannot open the partition (%s): %s.", argv[optind], 
 	    strerror(errno));

@@ -197,7 +197,7 @@ errno_t reiser4_cache_raise(
     /* Rasing the right neighbour */
     if (!cache->left) {
 	if (!reiser4_cache_lnkey(cache, &key)) {
-	    if (reiser4_tree_lookup(cache->tree, level, &key, &coord) != 1) {
+	    if (reiser4_tree_lookup(cache->tree, &key, level, &coord) != 1) {
 		aal_exception_error("Can't find left neighbour key when "
 		    "raising left neigbour.");
 		return -1;
@@ -208,7 +208,7 @@ errno_t reiser4_cache_raise(
     /* Raising the right neighbour */
     if (!cache->right) {
 	if (!reiser4_cache_rnkey(cache, &key)) {
-	    if (reiser4_tree_lookup(cache->tree, level, &key, &coord) != 1) {
+	    if (reiser4_tree_lookup(cache->tree, &key, level, &coord) != 1) {
 		aal_exception_error("Can't find right neighbour key when "
 		    "raising right neigbour.");
 		return -1;
@@ -490,7 +490,7 @@ errno_t reiser4_cache_remove(
 	Updating list of childrens of modified node in the case we modifying an 
 	internal node.
     */
-    if (cache->level > REISER4_LEAF_LEVEL) {
+    if (cache->level > LEAF_LEVEL) {
         reiser4_key_t key;
         reiser4_cache_t *child;
 
@@ -565,7 +565,7 @@ errno_t reiser4_cache_move(
     }
     
     /* Updating cache pointers in the case of moving items on leaves level */
-    if (src_cache->level > REISER4_LEAF_LEVEL) {
+    if (src_cache->level > LEAF_LEVEL) {
         reiser4_key_t key;
         reiser4_cache_t *child;
 

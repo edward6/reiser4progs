@@ -69,7 +69,7 @@ static aal_block_t *format36_super_open(aal_device_t *device) {
     int i, super_offset[] = {16, 2, -1};
 
     blocksize = aal_device_get_bs(device);
-    aal_device_set_bs(device, REISER4_DEFAULT_BLOCKSIZE);
+    aal_device_set_bs(device, DEFAULT_BLOCKSIZE);
     
     for (i = 0; super_offset[i] != -1; i++) {
 	if ((block = aal_block_open(device, super_offset[i]))) {

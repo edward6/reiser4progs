@@ -57,10 +57,10 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 	get_level, node->entity);
 
     printf("%s NODE (%llu) contains level=%u, nr_items=%u, free_space=%u\n", 
-	level > REISER4_LEAF_LEVEL ? "INTERNAL" : "LEAF", aal_block_number(node->block),
+	level > LEAF_LEVEL ? "INTERNAL" : "LEAF", aal_block_number(node->block),
 	level, reiser4_node_count(node), reiser4_node_space(node));
     
-    if (level > REISER4_LEAF_LEVEL) {
+    if (level > LEAF_LEVEL) {
 	uint32_t i;
 	
 	for (i = 0; i < reiser4_node_count(node); i++) {
@@ -303,7 +303,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* Opening device */
-    if (!(device = aal_file_open(host_dev, REISER4_DEFAULT_BLOCKSIZE, O_RDONLY))) {
+    if (!(device = aal_file_open(host_dev, DEFAULT_BLOCKSIZE, O_RDONLY))) {
         char *error = strerror(errno);
 	
         aal_exception_error("Can't open device %s. %s.", host_dev, error);

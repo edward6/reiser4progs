@@ -321,8 +321,8 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 */
 int reiser4_tree_lookup(
     reiser4_tree_t *tree,	/* tree to be grepped */
-    uint8_t level,		/* stop level for search */
     reiser4_key_t *key,		/* key to be find */
+    uint8_t level,		/* stop level for search */
     reiser4_coord_t *coord	/* coord of found item */
 ) {
     blk_t target;
@@ -455,22 +455,9 @@ static errno_t reiser4_tree_attach(
 
     reiser4_node_lkey(cache->node, &ldkey);
     reiser4_key_init(&hint.key, ldkey.plugin, ldkey.body);
-
     hint.hint = &internal_hint;
 
-    level = REISER4_LEAF_LEVEL + 1;
-    
-    if ((lookup = reiser4_tree_lookup(tree, level, &ldkey, &coord)) == -1)
-	return -1;
-    
-    if (lookup == 1) {
-	aal_exception_error("Key (0x%llx:0x%x:0x%llx:0x%llx) already exists in tree.", 
-	    reiser4_key_get_locality(&ldkey), reiser4_key_get_type(&ldkey),
-	    reiser4_key_get_objectid(&ldkey), reiser4_key_get_offset(&ldkey));
-	return -1;
-    }
-
-    if (reiser4_cache_insert(coord.cache, &coord.pos, &hint)) {
+    if (reiser4_tree_insert(tree, &hint, LEAF_LEVEL + 1, &coord)) {
         aal_exception_error("Can't insert internal item to the tree.");
 	return -1;
     }
@@ -811,10 +798,11 @@ errno_t reiser4_tree_mkspace(
 errno_t reiser4_tree_insert(
     reiser4_tree_t *tree,	    /* tree new item will be inserted in */
     reiser4_item_hint_t *hint,	    /* item hint to be inserted */
+    uint8_t level,		    /* target level insertion will be performed on */
     reiser4_coord_t *coord	    /* coord item or unit inserted at */
 ) {
+    int lookup;
     uint32_t needed;
-    int lookup, level;
     
     reiser4_key_t *key;
     reiser4_item_t item;
@@ -826,24 +814,17 @@ errno_t reiser4_tree_insert(
     key = (reiser4_key_t *)&hint->key;
 
     /* Looking up for target node */
-    level = REISER4_LEAF_LEVEL;
-    
-    if ((lookup = reiser4_tree_lookup(tree, level, key, coord)) == -1)
+    if ((lookup = reiser4_tree_lookup(tree, key, level, coord)) == -1)
 	return -1;
 
     if (lookup == 1) {
 	aal_exception_error(
-	    "Key (0x%llx:0x%x:0x%llx:0x%llx) already exists in tree.", 
+	    "Key (0x%llx 0x%x 0x%llx 0x%llx) already exists in tree.", 
 	    reiser4_key_get_locality(key), reiser4_key_get_type(key),
 	    reiser4_key_get_objectid(key), reiser4_key_get_offset(key));
 	return -1;
     }
 
-    if ((level = coord->cache->level) > REISER4_LEAF_LEVEL + 1) {
-	aal_exception_error("Lookup stoped on invalid level %d.", level);
-	return -1;
-    }
-    
     /* 
 	Correcting unit position in the case lookup was called for pasting unit 
 	into existent item, not for inserting new item.
@@ -859,16 +840,12 @@ errno_t reiser4_tree_insert(
     /* Needed space is estimated space plugs item overhead */
     needed = hint->len + (coord->pos.unit == ~0ul ? 
 	reiser4_node_overhead(coord->cache->node) : 0);
-    
-    /* 
-	The all functions which are using reiser4_tree_insert function, are able
-	to insert just object items (the all except internals). In this case, tree
-	balancing algorithm should serve that calls itself. This is the special case.
-    */
-    if (level > REISER4_LEAF_LEVEL) {
+   
+    /* THis is the special case. The tree doesn't contain any nodes */
+    if (level == LEAF_LEVEL && !tree->cache->list) {
 	reiser4_cache_t *cache;
 	
-	if (!(cache = reiser4_tree_allocate(tree, REISER4_LEAF_LEVEL))) {
+	if (!(cache = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
 	    aal_exception_error("Can't allocate new leaf node.");
 	    return -1;
 	}
@@ -915,18 +892,17 @@ errno_t reiser4_tree_insert(
 /* Removes item by specified key */
 errno_t reiser4_tree_remove(
     reiser4_tree_t *tree,	/* tree item will be removed from */
-    reiser4_key_t *key		/* key item will be found by */
+    reiser4_key_t *key,		/* key item will be found by */
+    uint8_t level		/* the level removing will be performed on */
 ) {
-    int lookup, level;
+    int lookup;
     reiser4_coord_t coord;
     
     aal_assert("umka-1018", tree != NULL, return -1);
     aal_assert("umka-1019", key != NULL, return -1);
     
     /* Looking up for target */
-    level = REISER4_LEAF_LEVEL;
-    
-    if ((lookup = reiser4_tree_lookup(tree, level, key, &coord)) == -1)
+    if ((lookup = reiser4_tree_lookup(tree, key, level, &coord)) == -1)
 	return -1;
 
     if (lookup == 0) {
@@ -937,11 +913,6 @@ errno_t reiser4_tree_remove(
 	return -1;
     }
     
-    if (coord.cache->level > REISER4_LEAF_LEVEL + 1) {
-	aal_exception_error("Lookup stoped on invalid level %d.", level);
-	return -1;
-    }
-   
     if (reiser4_cache_remove(coord.cache, &coord.pos))
 	return -1;
 

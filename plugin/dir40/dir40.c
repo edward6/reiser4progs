@@ -47,7 +47,7 @@ static errno_t dir40_reset(reiser4_entity_t *entity) {
     plugin_call(return -1, key.plugin->key_ops, build_direntry, key.body, 
 	dir->hash, dir40_locality(dir), dir40_objectid(dir), ".");
 	    
-    if (core->tree_ops.lookup(dir->tree, &key, &dir->place) != 1) {
+    if (core->tree_ops.lookup(dir->tree, &key, LEAF_LEVEL, &dir->place) != 1) {
 	aal_exception_error("Can't find direntry of object 0x%llx.", 
 	    dir40_objectid(dir));
 	return -1;
@@ -100,9 +100,11 @@ static errno_t dir40_realize(dir40_t *dir) {
 	dir40_locality(dir), dir40_objectid(dir), 0);
     
     /* Positioning to the dir stat data */
-    if (core->tree_ops.lookup(dir->tree, &dir->key, &dir->place) != 1) {
-	aal_exception_error("Can't find stat data of directory with oid 0x%llx.", 
-	    dir40_objectid(dir));
+    if (core->tree_ops.lookup(dir->tree, &dir->key, LEAF_LEVEL, 
+	&dir->place) != 1) 
+    {
+	aal_exception_error("Can't find stat data of directory with "
+	    "oid 0x%llx.", dir40_objectid(dir));
 	return -1;
     }
     
@@ -507,14 +509,14 @@ static reiser4_entity_t *dir40_create(const void *tree,
     stat_hint.hint = &stat;
     
     /* Calling balancing code in order to insert statdata item into the tree */
-    if (core->tree_ops.item_insert(tree, &stat_hint)) {
+    if (core->tree_ops.item_insert(tree, &stat_hint, LEAF_LEVEL)) {
 	aal_exception_error("Can't insert stat data item of object 0x%llx into "
 	    "the thee.", objectid);
 	goto error_free_dir;
     }
     
     /* Inserting the direntry item into the tree */
-    if (core->tree_ops.item_insert(tree, &direntry_hint)) {
+    if (core->tree_ops.item_insert(tree, &direntry_hint, LEAF_LEVEL)) {
 	aal_exception_error("Can't insert direntry item of object 0x%llx into "
 	    "the thee.", objectid);
 	goto error_free_dir;
@@ -606,7 +608,7 @@ static int32_t dir40_write(reiser4_entity_t *entity,
 	hint.plugin = dir->direntry.plugin;
     
 	/* Inserting the entry to the tree */
-	if (core->tree_ops.item_insert(dir->tree, &hint)) {
+	if (core->tree_ops.item_insert(dir->tree, &hint, LEAF_LEVEL)) {
 	    aal_exception_error("Can't add entry %s to the thee.", 
 		entry->name);
 	    break;

@@ -48,7 +48,7 @@ static errno_t reg40_reset(reiser4_entity_t *entity) {
 	key.body, KEY_FILEBODY_TYPE, reg40_locality(reg), 
 	reg40_objectid(reg), 0);
     
-    if (core->tree_ops.lookup(reg->tree, &key, &reg->place) != 1) {
+    if (core->tree_ops.lookup(reg->tree, &key, LEAF_LEVEL, &reg->place) != 1) {
 	aal_exception_error("Can't find stream of regular file 0x%llx.", 
 	    reg40_objectid(reg));
 
@@ -94,11 +94,11 @@ static errno_t reg40_realize(reg40_t *reg) {
 	reg40_objectid(reg), 0);
     
     /* Positioning to the file stat data */
-    if (core->tree_ops.lookup(reg->tree, &reg->key, &reg->place) != 1) {
-
-	aal_exception_error("Can't find stat data of the file with oid 0x%llx.", 
-	    reg40_objectid(reg));
-	
+    if (core->tree_ops.lookup(reg->tree, &reg->key, LEAF_LEVEL, 
+	&reg->place) != 1) 
+    {
+	aal_exception_error("Can't find stat data of the file with "
+	    "oid 0x%llx.", reg40_objectid(reg));
 	return -1;
     }
     
@@ -365,7 +365,7 @@ static reiser4_entity_t *reg40_create(const void *tree,
     stat_hint.hint = &stat;
     
     /* Calling balancing code in order to insert statdata item into the tree */
-    if (core->tree_ops.item_insert(tree, &stat_hint)) {
+    if (core->tree_ops.item_insert(tree, &stat_hint, LEAF_LEVEL)) {
 	aal_exception_error("Can't insert stat data item of object 0x%llx into "
 	    "the thee.", objectid);
 	goto error_free_reg;
@@ -431,7 +431,7 @@ static int32_t reg40_write(reiser4_entity_t *entity,
 	reg40_objectid(reg), reg->offset);
     
     /* Inserting the entry to the tree */
-    if (core->tree_ops.item_insert(reg->tree, &hint)) {
+    if (core->tree_ops.item_insert(reg->tree, &hint, LEAF_LEVEL)) {
         aal_exception_error("Can't insert body item to the thee.");
 	return 0;
     }

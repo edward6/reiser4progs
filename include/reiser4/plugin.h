@@ -9,9 +9,11 @@
 
 #include <aal/aal.h>
 
-#define REISER4_DEFAULT_BLOCKSIZE	(4096)
-#define REISER4_MASTER_OFFSET		(65536)
-#define REISER4_MASTER_MAGIC		("R4Sb")
+#define LEAF_LEVEL	    (1)
+#define DEFAULT_BLOCKSIZE   (4096)
+
+#define MASTER_OFFSET	    (65536)
+#define MASTER_MAGIC	    ("R4Sb")
 
 /* 
     Defining types for disk structures. All types like f32_t are fake types needed
@@ -939,19 +941,19 @@ struct reiser4_core {
 	    Makes lookup in the tree in order to know where say stat data item of a
 	    file realy lies. It is used in all object plugins.
 	*/
-	int (*lookup) (const void *, reiser4_key_t *, reiser4_place_t *);
+	int (*lookup) (const void *, reiser4_key_t *, uint8_t, reiser4_place_t *);
 
 	/* 
 	    Inserts item/unit into the tree by calling reiser4_tree_insert function,
 	    used by all object plugins (dir, file, etc)
 	*/
-	errno_t (*item_insert)(const void *, reiser4_item_hint_t *);
+	errno_t (*item_insert)(const void *, reiser4_item_hint_t *, uint8_t);
     
 	/*
 	    Removes item/unit from the tree. It is used in all object plugins for
 	    modification purposes.
 	*/
-	errno_t (*item_remove)(const void *, reiser4_key_t *);
+	errno_t (*item_remove)(const void *, reiser4_key_t *, uint8_t);
 
 	/*
 	    Returns pointer on the item and its size by passed coord from the tree.

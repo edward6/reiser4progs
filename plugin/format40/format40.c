@@ -86,7 +86,7 @@ static errno_t format40_journal_layout(reiser4_entity_t *entity,
     return 0;
 }
 
-#define FORMAT40_ALLOC (REISER4_MASTER_OFFSET + (4096 * 2))
+#define FORMAT40_ALLOC (MASTER_OFFSET + (4096 * 2))
 	
 #define CRC_SIZE 4
 
@@ -122,7 +122,7 @@ static errno_t format40_skipped_layout(reiser4_entity_t *entity,
     aal_assert("umka-1085", entity != NULL, return -1);
     aal_assert("umka-1086", action_func != NULL, return -1);
     
-    offset = REISER4_MASTER_OFFSET / format->device->blocksize;
+    offset = MASTER_OFFSET / format->device->blocksize;
     
     for (blk = 0; blk < offset; blk++) {
 	if (action_func((reiser4_entity_t *)format, blk, data))
@@ -141,7 +141,7 @@ static errno_t format40_format_layout(reiser4_entity_t *entity,
     aal_assert("umka-1042", entity != NULL, return -1);
     aal_assert("umka-1043", action_func != NULL, return -1);
     
-    blk = REISER4_MASTER_OFFSET / format->device->blocksize;
+    blk = MASTER_OFFSET / format->device->blocksize;
     offset = FORMAT40_OFFSET / format->device->blocksize;
     
     for (; blk <= offset; blk++) {

@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
     char uuid[17], label[17];
     count_t fs_len = 0, dev_len = 0;
     char *host_dev, *profile_label = "default40";
-    uint16_t blocksize = REISER4_DEFAULT_BLOCKSIZE;
     int c, error, force = 0, quiet = 0, lost_found = 0;
+    uint16_t blocksize = DEFAULT_BLOCKSIZE;
     
     reiser4_fs_t *fs;
     aal_device_t *device;

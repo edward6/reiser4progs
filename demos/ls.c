@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 	return 0xff;
     }
     
-    if (!(device = aal_file_open(argv[1], REISER4_DEFAULT_BLOCKSIZE, O_RDWR))) {
+    if (!(device = aal_file_open(argv[1], DEFAULT_BLOCKSIZE, O_RDWR))) {
 	aal_exception_error("Can't open device %s.", argv[1]);
 	goto error_free_libreiser4;
     }

@@ -92,8 +92,8 @@ static errno_t reiser4_file_realize(
 	reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 	reiser4_key_set_offset(&file->key, 0);
 	
-	if (reiser4_tree_lookup(file->fs->tree, REISER4_LEAF_LEVEL, 
-	    &file->key, &file->coord) != 1) 
+	if (reiser4_tree_lookup(file->fs->tree, &file->key, 
+	    LEAF_LEVEL, &file->coord) != 1) 
 	{
 	    aal_exception_error("Can't find stat data of directory %s.", track);
 	    return -1;

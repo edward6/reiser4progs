@@ -14,7 +14,7 @@
 */
 
 /* Handler for plugin finding requests from all plugins */
-static inline reiser4_plugin_t *__plugin_ifind(
+static inline reiser4_plugin_t *plugin_ifind(
     rpid_t type,			    /* needed type of plugin*/
     rpid_t id			    /* needed plugin id */
 ) {
@@ -22,7 +22,7 @@ static inline reiser4_plugin_t *__plugin_ifind(
 }
 
 /* Handler for plugin finding requests from all plugins */
-static inline reiser4_plugin_t *__plugin_nfind(
+static inline reiser4_plugin_t *plugin_nfind(
     rpid_t type,			    /* needed type of plugin*/
     const char *name		    /* needed plugin name (label) */
 ) {
@@ -32,35 +32,39 @@ static inline reiser4_plugin_t *__plugin_nfind(
 #ifndef ENABLE_COMPACT
 
 /* Handler for item insert requests from the all plugins */
-static inline errno_t __item_insert(
+static inline errno_t item_insert(
     const void *tree,		    /* opaque pointer to the tree */
-    reiser4_item_hint_t *item	    /* item hint to be inserted into tree */
+    reiser4_item_hint_t *item,	    /* item hint to be inserted into tree */
+    uint8_t level
 ) {
     reiser4_coord_t coord;
 
     aal_assert("umka-846", tree != NULL, return -1);
     aal_assert("umka-847", item != NULL, return -1);
     
-    return reiser4_tree_insert((reiser4_tree_t *)tree, item, &coord);
+    return reiser4_tree_insert((reiser4_tree_t *)tree, item, 
+	level, &coord);
 }
 
 /* Handler for item removing requests from the all plugins */
-static inline errno_t __item_remove(
+static inline errno_t item_remove(
     const void *tree,		    /* opaque pointer to the tree */
-    reiser4_key_t *key		    /* key of the item to be removerd */
+    reiser4_key_t *key,		    /* key of the item to be removerd */
+    uint8_t level
 ) {
     aal_assert("umka-848", tree != NULL, return -1);
     aal_assert("umka-849", key != NULL, return -1);
     
-    return reiser4_tree_remove((reiser4_tree_t *)tree, key);
+    return reiser4_tree_remove((reiser4_tree_t *)tree, key, level);
 }
 
 #endif
 
 /* Handler for lookup reqiests from the all plugin can arrive */
-static inline int __lookup(
+static inline int item_lookup(
     const void *tree,		    /* opaque pointer to the tree */
-    reiser4_key_t *key,	    /* key to be found */
+    reiser4_key_t *key,		    /* key to be found */
+    uint8_t level,		    /* stop level */
     reiser4_place_t *place	    /* the same as reiser4_coord_t;result will be stored in */
 ) {
     aal_assert("umka-851", key != NULL, return -1);
@@ -68,10 +72,10 @@ static inline int __lookup(
     aal_assert("umka-852", place != NULL, return -1);
     
     return reiser4_tree_lookup((reiser4_tree_t *)tree, 
-	REISER4_LEAF_LEVEL, key, (reiser4_coord_t *)place);
+	key, level, (reiser4_coord_t *)place);
 }
 
-static inline reiser4_entity_t *__item_node(
+static inline reiser4_entity_t *item_node(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coords of the item */
 ) {
@@ -82,7 +86,7 @@ static inline reiser4_entity_t *__item_node(
 }
 
 /* Hanlder for item body requests arrive from the all plugins */
-static inline errno_t __item_body(
+static inline errno_t item_body(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place,	    /* coords of the item */
     void **item,		    /* address where item body should be saved */
@@ -110,7 +114,7 @@ static inline errno_t __item_body(
 }
 
 /* Handler for requests for right neighbor */
-static inline errno_t __item_right(
+static inline errno_t item_right(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node right neighbor will be obtained for */
 ) {
@@ -134,7 +138,7 @@ static inline errno_t __item_right(
 }
 
 /* Handler for requests for left neighbor */
-static inline errno_t __item_left(
+static inline errno_t item_left(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node left neighbor will be obtained for */
 ) {
@@ -158,7 +162,7 @@ static inline errno_t __item_left(
 }
 
 /* Hanlder for returning item key */
-static inline errno_t __item_key(
+static inline errno_t item_key(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place,	    /* coord of item key should be obtained from */
     reiser4_key_t *key		    /* place key should be stored in */
@@ -171,7 +175,7 @@ static inline errno_t __item_key(
 }
 
 /* Handler for plugin id requests */
-static inline rpid_t __item_pid(
+static inline rpid_t item_pid(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place,	    /* coord of item pid will be obtained from */
     reiser4_plugin_type_t type	    /* requested plugin type */
@@ -202,9 +206,10 @@ static inline rpid_t __item_pid(
 /* Support for the %k occurences in the formated messages */
 #define PA_REISER4_KEY  (PA_LAST)
 
-static int _arginfo_k (const struct printf_info *info, size_t n, int *argtypes) {
+static int _arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
     if (n > 0)
         argtypes[0] = PA_REISER4_KEY | PA_FLAG_PTR;
+    
     return 1;
 }
 
@@ -230,22 +235,22 @@ static int __print_key(FILE * stream, const struct printf_info *info,
 reiser4_core_t core = {
     .factory_ops = {
 	/* Installing callback for making search for a plugin by its type and id */
-	.plugin_ifind = __plugin_ifind,
+	.plugin_ifind = plugin_ifind,
 	
 	/* Installing callback for making search for a plugin by its type and name */
-	.plugin_nfind = __plugin_nfind,
+	.plugin_nfind = plugin_nfind,
     },
     
     .tree_ops = {
 	/* This one for lookuping the tree */
-	.lookup = __lookup,
+	.lookup = item_lookup,
 
 #ifndef ENABLE_COMPACT	
 	/* Installing callback function for inserting items into the tree */
-	.item_insert = __item_insert,
+	.item_insert = item_insert,
 
 	/* Installing callback function for removing items from the tree */
-	.item_remove = __item_remove,
+	.item_remove = item_remove,
 #else
 	.item_insert = NULL,
 	.item_remove = NULL,
@@ -254,21 +259,21 @@ reiser4_core_t core = {
 	    And finally this one for getting body of some item and its size by passed 
 	    coord.
 	*/
-	.item_body = __item_body,
+	.item_body = item_body,
 
-	.item_node = __item_node,
+	.item_node = item_node,
 
 	/* Returns key by coords */
-	.item_key = __item_key,
+	.item_key = item_key,
 
 	/* Returns right neighbour of passed coord */
-	.item_right = __item_right,
+	.item_right = item_right,
     
 	/* Returns left neighbour of passed coord */
-	.item_left = __item_left,
+	.item_left = item_left,
 
 	/* Returns tree pid by coord */
-	.item_pid = __item_pid
+	.item_pid = item_pid
     }
 };
 

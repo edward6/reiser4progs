@@ -14,8 +14,6 @@
 #include <reiser4/plugin.h>
 #include <reiser4/filesystem.h>
 
-#define REISER4_LEAF_LEVEL 1
-
 extern reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs);
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 
@@ -28,10 +26,10 @@ extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_flush(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, 
-    reiser4_item_hint_t *hint, reiser4_coord_t *coord);
+    reiser4_item_hint_t *hint, uint8_t level, reiser4_coord_t *coord);
 
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, 
-    reiser4_key_t *key);
+    reiser4_key_t *key, uint8_t level);
 
 extern errno_t reiser4_tree_move(reiser4_tree_t *tree,
     reiser4_coord_t *dst, reiser4_coord_t *src);
@@ -51,7 +49,7 @@ extern errno_t reiser4_tree_rshift(reiser4_tree_t *tree,
 #endif
 
 extern int reiser4_tree_lookup(reiser4_tree_t *tree, 
-    uint8_t level, reiser4_key_t *key, reiser4_coord_t *coord);
+    reiser4_key_t *key, uint8_t level, reiser4_coord_t *coord);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
 extern reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree);
