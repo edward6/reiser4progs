@@ -531,12 +531,16 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 				return -EINVAL;
 			}
 		} else {
+			void *ib = node40_ib_at(entity, pos->item);
+			uint32_t len = node40_len(entity, &place.pos);
+			
 			/* FIXME-UMKA->VITALY: Pack whole body of item. Is this
 			   safe to rely here that item header has correct
 			   offset? Probably it makes sense to take care about
-			   offsets in node first before packing? */
-			aal_stream_write(stream, node40_ib_at(entity, pos->item),
-					 node40_len(entity, &place.pos));
+			   offsets in node first before packing? Or probably we
+			   can check if node has incorrect items (offsets, ids,
+			   etc.) we should pack whole such a node as it is. */
+			aal_stream_write(stream, ib, len);
 		}
 	}
 	
@@ -633,9 +637,9 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	nh_set_pid(entity, node40_plug.id.id);
 	
 	/* All items. */
-	num = nh_get_num_items(entity);
 	pos = &place.pos;
 	pos->unit = MAX_UINT32;
+	num = nh_get_num_items(entity);
 	
 	/* Unpack all item headers. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
@@ -648,10 +652,9 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 
 	/* Unpack all item bodies. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
-		if (node40_fetch(entity, pos, &place))
-			return NULL;
-		
-		if (place.plug->o.item_ops->repair->unpack) {
+		if (!node40_fetch(entity, pos, &place) &&
+		    place.plug->o.item_ops->repair->unpack)
+		{
 			/* Unpack body. */
 			if (plug_call(place.plug->o.item_ops->repair,
 				      unpack, &place, stream))
