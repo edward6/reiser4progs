@@ -14,6 +14,34 @@ static reiser4_body_t *tail40_body(item_entity_t *item) {
 	return item->body;
 }
 
+static uint32_t tail40_units(item_entity_t *item) {
+	return item->len;
+}
+
+static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos, 
+	reiser4_key_t *key) 
+{
+	uint64_t offset;
+	uint32_t count;
+
+	aal_assert("vpf-626", item != NULL, return -1);
+	aal_assert("vpf-627", key != NULL, return -1);
+
+	count = tail40_units(item);
+
+	aal_assert("vpf-628", pos < count, return -1);
+	
+	aal_memcpy(key, &item->key, sizeof(*key));
+
+	offset = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, key->body);
+
+	plugin_call(return -1, key->plugin->key_ops, set_offset, 
+		    key->body, offset + pos);
+
+	return 0;
+}
+
 #ifndef ENABLE_COMPACT
 
 static errno_t tail40_insert(item_entity_t *item, uint32_t pos, 
@@ -24,6 +52,12 @@ static errno_t tail40_insert(item_entity_t *item, uint32_t pos,
 	aal_assert("umka-1178", hint->data != NULL, return -1);
     
 	aal_memcpy(tail40_body(item) + pos, hint->data, hint->len);
+
+	if (pos == 0) {
+		if (tail40_unit_key(item, 0, &item->key))
+			return -1;
+	}
+	
 	return 0;
 }
 
@@ -32,8 +66,12 @@ static uint16_t tail40_remove(item_entity_t *item, uint32_t pos) {
 	aal_assert("umka-1662", pos != ~0ul, return -1);
 	aal_assert("umka-1663", pos < item->len, return -1);
 
-	aal_memmove(item->body, item->body + 1,
-		    item->len - pos - 1);
+	aal_memmove(item->body, item->body + 1, item->len - pos - 1);
+	
+	if (pos == 0) {
+		if (tail40_unit_key(item, 0, &item->key))
+			return -1;
+	}
 	
 	return 1;
 }
@@ -100,34 +138,6 @@ static errno_t tail40_max_real_key(item_entity_t *item,
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
 		key, offset + item->len - 1);
 	
-	return 0;
-}
-
-static uint32_t tail40_units(item_entity_t *item) {
-	return item->len;
-}
-
-static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos, 
-	reiser4_key_t *key) 
-{
-	uint64_t offset;
-	uint32_t count;
-
-	aal_assert("vpf-626", item != NULL, return -1);
-	aal_assert("vpf-627", key != NULL, return -1);
-
-	count = tail40_units(item);
-
-	aal_assert("vpf-628", pos < count, return -1);
-	
-	aal_memcpy(key, &item->key, sizeof(*key));
-
-	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key->body);
-
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key->body, offset + pos);
-
 	return 0;
 }
 

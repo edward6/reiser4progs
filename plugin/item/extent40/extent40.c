@@ -135,6 +135,11 @@ static uint16_t extent40_remove(item_entity_t *item, uint32_t pos) {
 			    sizeof(extent40_t));
 	}
 		
+	if (pos == 0) {
+		if (extent40_unit_key(item, 0, &item->key))
+			return -1;
+	}
+	
 	return sizeof(extent40_t);
 }
 
