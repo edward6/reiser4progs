@@ -138,9 +138,11 @@ static int32_t cde_large_read(place_t *place, void *buff,
 	return count;
 }
 
-/* Returns TRUE if items are mergeable. That is if they belong to the same
-   directory. This function is used in shift code from the node plugin in order
-   to determine are two items may be merged or not. */
+/* Returns TRUE if items are mergeable. That is if they belong to the 
+   same directory. This function is used in shift code from the node 
+   plugin in order to determine are two items may be merged or not. 
+   FIXME-VITALY->UNMA: key->compshort can be used instead -- it is even 
+   better as compares minor also. */
 static int cde_large_mergeable(place_t *place1, place_t *place2) {
 	aal_assert("umka-1581", place1 != NULL);
 	aal_assert("umka-1582", place2 != NULL);

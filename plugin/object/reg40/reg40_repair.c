@@ -15,7 +15,7 @@
 extern reiser4_plug_t reg40_plug;
 
 extern errno_t reg40_reset(object_entity_t *entity);
-
+extern lookup_t reg40_next(reg40_t *reg);
 extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
 
@@ -126,16 +126,15 @@ static void reg40_zero_nlink(uint32_t *nlink) {
         *nlink = 0;
 }
 
-static errno_t reg40_create_hole(reg40_t *reg, uint64_t offset) {
+static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 	object_info_t *info = &reg->obj.info;
 	errno_t res;
 
-	/* FIXME-UMKA->VITALY: Fix third param (hole size) */
-	if ((res = reg40_put((object_entity_t *)reg, NULL, 0))) {
+	if ((res = reg40_put((object_entity_t *)reg, NULL, len))) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
-				    print_ino(core, &info->object),
-				    reg->offset, offset, reg->obj.plug->label);
+				    print_ino(core, &info->object), reg->offset,
+				    reg->offset + len - 1, reg->obj.plug->label);
 	}
 
 	return res;
@@ -146,7 +145,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 			   region_func_t region_func,
 			   uint8_t mode, void *data)
 {
-	uint64_t locality, objectid, ordering;
 	uint64_t size, bytes, offset, next;
 	reg40_t *reg = (reg40_t *)object;
 	object_info_t *info;
@@ -172,26 +170,17 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if ((res = obj40_ukey(&reg->obj, &info->start, &info->object, mode)))
 		return res;
 	
-	locality = plug_call(info->object.plug->o.key_ops,
-			     get_locality, &info->object);
-	
-	objectid = plug_call(info->object.plug->o.key_ops,
-			     get_objectid, &info->object);
-
-	ordering = plug_call(info->object.plug->o.key_ops,
-			     get_ordering, &info->object);
-
 	/* Build the start key of the body. */
-	plug_call(info->start.plug->o.key_ops, build_gener, &key,
-		  KEY_FILEBODY_TYPE, locality, ordering, objectid, 
+	plug_call(info->start.plug->o.key_ops, build_gener, 
+		  &key,  KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
+		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
 		  reg->offset);
 	
 	size = 0; bytes = 0; next = 0;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
-		if ((lookup = obj40_lookup(&reg->obj, &key, LEAF_LEVEL, 
-					   &reg->body)) == FAILED)
+		if ((lookup = reg40_next(reg)) == FAILED)
 			return -EINVAL;
 
 		if (lookup == ABSENT) {
@@ -209,25 +198,21 @@ errno_t reg40_check_struct(object_entity_t *object,
 				break;
 		}
 		
+		reg->bplug = reg->body.plug;
+		
 		offset = plug_call(key.plug->o.key_ops, get_offset, 
 				   &reg->body.key);
 		
 		/* If items was reached once, skip registering and fixing. */
-		if (next && next != offset) {
+		if (!next || next != offset) {
 			/* Try to register this item. Any item has a pointer 
 			   to objectid in the key, if it is shared between 2 
 			   objects, it should be already solved at relocation
 			   time. */
 			if (place_func && place_func(object, &reg->body, data))
 				return -EINVAL;
-
-			/* Fix item key if differs. */
-			if ((res |= obj40_ukey(&reg->obj, &reg->body, 
-					       &key, mode)) < 0)
-				return res;
 		} 
 
-		reg->bplug = reg->body.plug;
 		
 		/* If we found not we looking foe, insert the hole. */
 		if (reg->offset != offset) {
@@ -235,7 +220,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 				/* Save offset to avoid another registering. */
 				next = offset;
 				
-				if ((res |= reg40_create_hole(reg, offset)))
+				if ((res |= reg40_create_hole(reg, offset - 
+							      reg->offset)))
 					return res;
 				
 				/* Scan and register created items. */
@@ -251,6 +237,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 		} else
 			next = 0;
 		
+		/* Fix item key if differs. */
+		if ((res |= obj40_ukey(&reg->obj, &reg->body, 
+				       &key, mode)) < 0)
+			return res;
+
 		/* Count size and bytes. */
 		size += plug_call(reg->body.plug->o.item_ops, 
 					  size, &reg->body);
@@ -285,10 +276,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 		reg->offset = plug_call(key.plug->o.key_ops, 
 					get_offset, &key) + 1;
-		
-		/* Build the start key of the body. */
-		plug_call(info->start.plug->o.key_ops, set_offset, 
-			  &key, reg->offset);
 	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */

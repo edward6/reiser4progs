@@ -197,7 +197,7 @@ static void key_large_clean(key_entity_t *key) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Compares two first components of the pased keys (locality and objectid) */
+/* Figures out if items are of one file or not. */
 static int key_large_compshort(key_entity_t *key1, 
 			       key_entity_t *key2) 
 {

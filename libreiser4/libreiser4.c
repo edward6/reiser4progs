@@ -109,7 +109,7 @@ static errno_t tree_next(
 	t = (reiser4_tree_t *)tree;
 	curr = (reiser4_place_t *)place;
 
-	if (reiser4_place_ltlast(curr)) {
+	if (curr->pos.item < reiser4_node_items(curr->node) - 1) {
 		reiser4_place_assign((reiser4_place_t *)next,
 				     curr->node, curr->pos.item + 1,
 				     MAX_UINT32);
