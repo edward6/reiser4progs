@@ -191,6 +191,7 @@ static uint64_t key40_get_offset(key_entity_t *key) {
 	return k40_get_offset((key40_t *)key->body);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Sets up key offset */
 static void key40_set_hash(key_entity_t *key, 
 			   uint64_t hash)
@@ -204,6 +205,7 @@ static uint64_t key40_get_hash(key_entity_t *key) {
 	aal_assert("vpf-130", key != NULL);
 	return k40_get_hash((key40_t *)key->body);
 }
+#endif
 
 /* Cleans key body */
 static void key40_clean(key_entity_t *key) {
@@ -419,6 +421,9 @@ static reiser4_plugin_t key40_plugin = {
 #ifndef ENABLE_STAND_ALONE
 		.valid		= key40_valid,
 		.print		= key40_print,
+
+		.set_hash	= key40_set_hash,
+		.get_hash	= key40_get_hash,
 #endif
 		
 		.set_type	= key40_set_type,
@@ -433,9 +438,6 @@ static reiser4_plugin_t key40_plugin = {
 		.set_offset	= key40_set_offset,
 		.get_offset	= key40_get_offset,
 	
-		.set_hash	= key40_set_hash,
-		.get_hash	= key40_get_hash,
-
 		.build_short    = key40_build_short,
 		.build_entry    = key40_build_entry,
 		.build_generic  = key40_build_generic

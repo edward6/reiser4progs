@@ -132,19 +132,6 @@ errno_t reiser4_key_set_offset(
 	return 0;
 }
 
-/* Sets key hash component */
-errno_t reiser4_key_set_hash(
-	reiser4_key_t *key,	    /* key hash will be updated in */
-	uint64_t hash)		    /* new hash value */
-{
-	aal_assert("umka-706", key != NULL);
-	aal_assert("umka-707", key->plugin != NULL);
-    
-	plugin_call(key->plugin->key_ops, set_hash, key, hash);
-    
-	return 0;
-}
-
 /* Updates key objectid */
 errno_t reiser4_key_set_objectid(
 	reiser4_key_t *key,	    /* key objectid will be updated in */
@@ -188,14 +175,6 @@ uint64_t reiser4_key_get_offset(reiser4_key_t *key) {
 	return plugin_call(key->plugin->key_ops, get_offset, key);
 }
 
-/* Returns key hash */
-uint64_t reiser4_key_get_hash(reiser4_key_t *key) {
-	aal_assert("umka-708", key != NULL);
-	aal_assert("umka-709", key->plugin != NULL);
-
-	return plugin_call(key->plugin->key_ops, get_hash, key);
-}
-
 /* Returns key objectid */
 oid_t reiser4_key_get_objectid(reiser4_key_t *key) {
 	aal_assert("umka-702", key != NULL);
@@ -235,6 +214,27 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+
+/* Sets key hash component */
+errno_t reiser4_key_set_hash(
+	reiser4_key_t *key,	    /* key hash will be updated in */
+	uint64_t hash)		    /* new hash value */
+{
+	aal_assert("umka-706", key != NULL);
+	aal_assert("umka-707", key->plugin != NULL);
+    
+	plugin_call(key->plugin->key_ops, set_hash, key, hash);
+    
+	return 0;
+}
+
+/* Returns key hash */
+uint64_t reiser4_key_get_hash(reiser4_key_t *key) {
+	aal_assert("umka-708", key != NULL);
+	aal_assert("umka-709", key->plugin != NULL);
+
+	return plugin_call(key->plugin->key_ops, get_hash, key);
+}
 
 errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream) {
 	aal_assert("vpf-189", key != NULL);

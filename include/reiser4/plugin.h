@@ -629,11 +629,11 @@ struct reiser4_key_ops {
 	void (*set_offset) (key_entity_t *, uint64_t);
 	uint64_t (*get_offset) (key_entity_t *);
 
+#ifndef ENABLE_STAND_ALONE
 	/* Gets/sets directory key hash */
 	void (*set_hash) (key_entity_t *, uint64_t);
 	uint64_t (*get_hash) (key_entity_t *);
-
-#ifndef ENABLE_STAND_ALONE
+	
 	/* Check of key structure */
 	errno_t (*valid) (key_entity_t *);
     
