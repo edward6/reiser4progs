@@ -465,6 +465,7 @@ errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 				aal_stream_t *stream)
 {
+	uint32_t bs;
 	reiser4_fs_t *fs;
 	char sign[5] = {0};
 
@@ -476,6 +477,77 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	
 	fs->device = device;
 
+	if (aal_stream_read(stream, &sign, 4) != 4) {
+		aal_exception_error("Can't unpack master super "
+				    "block. Stream is over?");
+		goto error_free_fs;
+	}
+
+	if (aal_strncmp(sign, MASTER_PACK_SIGN, 4)) {
+		aal_exception_error("Invalid master sign %s is "
+				    "detected in stream.", sign);
+		goto error_free_fs;
+	}
+	
+	if (!(fs->master = reiser4_master_unpack(device, stream)))
+		goto error_free_fs;
+
+	if (aal_stream_read(stream, &sign, 4) != 4) {
+		aal_exception_error("Can't unpack format super "
+				    "block. Stream is over?");
+		goto error_free_master;
+	}
+
+	if (aal_strncmp(sign, FORMAT_PACK_SIGN, 4)) {
+		aal_exception_error("Invalid format sign %s is "
+				    "detected in stream.", sign);
+		goto error_free_master;
+	}
+	
+	if (!(fs->format = reiser4_format_unpack(fs, stream)))
+		goto error_free_master;
+
+	if (!(fs->oid = reiser4_oid_open(fs)))
+		goto error_free_format;
+			
+	if (!(fs->tree = reiser4_tree_init(fs)))
+		goto error_free_oid;
+			
+	if (aal_stream_read(stream, &sign, 4) != 4) {
+		aal_exception_error("Can't unpack block "
+				    "allocator. Stream is over?");
+		goto error_free_tree;
+	}
+
+	if (aal_strncmp(sign, ALLOC_PACK_SIGN, 4)) {
+		aal_exception_error("Invalid block alloc sign %s is "
+				    "detected in stream.", sign);
+		goto error_free_tree;
+	}
+
+	if (!(fs->alloc = reiser4_alloc_unpack(fs, stream)))
+		goto error_free_tree;
+			
+	if (aal_stream_read(stream, &sign, 4) != 4) {
+		aal_exception_error("Can't unpack status "
+				    "block. Stream is over?");
+		goto error_free_alloc;
+	}
+
+	if (aal_strncmp(sign, STATUS_PACK_SIGN, 4)) {
+		aal_exception_error("Invalid status block sign %s is "
+				    "detected in stream.", sign);
+		goto error_free_alloc;
+	}
+
+	bs = reiser4_master_get_blksize(fs->master);
+	
+	if (!(fs->status = reiser4_status_unpack(device, bs,
+						 stream)))
+	{
+		goto error_free_alloc;
+	}
+
 	while (1) {
 		reiser4_node_t *node;
 		
@@ -483,60 +555,11 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 			if (aal_stream_eof(stream)) {
 				break;
 			} else {
-				goto error_free_fs;
+				goto error_free_status;
 			}
 		}
 
-		if (!aal_strncmp(sign, MASTER_PACK_SIGN, 4)) {
-			if (fs->master) {
-				aal_exception_error("Few \"master\" objects "
-						    "detected in stream.");
-				goto error_free_fs;
-			}
-			
-			if (!(fs->master = reiser4_master_unpack(device, stream)))
-				goto error_free_fs;
-
-		} else if (!aal_strncmp(sign, FORMAT_PACK_SIGN, 4)) {
-			if (fs->format) {
-				aal_exception_error("Few \"format\" objects "
-						    "detected in stream.");
-				goto error_free_master;
-			}
-			
-			if (!(fs->format = reiser4_format_unpack(fs, stream)))
-				goto error_free_master;
-
-			if (!(fs->oid = reiser4_oid_open(fs)))
-				goto error_free_format;
-			
-			if (!(fs->tree = reiser4_tree_init(fs)))
-				goto error_free_oid;
-			
-		} else if (!aal_strncmp(sign, ALLOC_PACK_SIGN, 4)) {
-			if (fs->alloc) {
-				aal_exception_error("Few \"alloc\" objects "
-						    "detected in stream.");
-				goto error_free_tree;
-			}
-			
-			if (!(fs->alloc = reiser4_alloc_unpack(fs, stream)))
-				goto error_free_tree;
-		} else if (!aal_strncmp(sign, STATUS_PACK_SIGN, 4)) {
-			uint32_t bs = reiser4_master_get_blksize(fs->master);
-			
-			if (fs->status) {
-				aal_exception_error("Few \"ststus\" objects "
-						    "detected in stream.");
-				goto error_free_alloc;
-			}
-			
-			if (!(fs->status = reiser4_status_unpack(device, bs,
-								 stream)))
-			{
-				goto error_free_alloc;
-			}
-		} else if (!aal_strncmp(sign, NODE_PACK_SIGN, 4)) {
+		if (!aal_strncmp(sign, NODE_PACK_SIGN, 4)) {
 			if (!(node = reiser4_node_unpack(fs->tree, stream)))
 				goto error_free_status;
 
@@ -548,7 +571,8 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 			reiser4_node_close(node);
 		} else {
 			aal_exception_error("Invalid object %s is "
-					    "detected in stream.",
+					    "detected in stream. "
+					    "Node is expacted.",
 					    sign);
 			goto error_free_fs;
 		}

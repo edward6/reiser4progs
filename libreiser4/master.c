@@ -134,7 +134,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "blksize:\t%u\n",
 			  get_ms_blksize(SUPER(master)));
 
-	aal_stream_format(stream, "format plug id:\t%x\n",
+	aal_stream_format(stream, "format:\t%x\n",
 			  reiser4_master_get_format(master));
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)

@@ -408,6 +408,9 @@ struct fs_hint {
 
 typedef struct fs_hint fs_hint_t;
 
+typedef void (*uuid_unparse_t) (char *uuid,
+				char *string);
+
 typedef errno_t (*walk_func_t) (reiser4_tree_t *,
 				reiser4_node_t *);
 

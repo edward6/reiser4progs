@@ -56,10 +56,10 @@
 
 extern void misc_plugins_print(void);
 extern long long misc_size2long(const char *str);
+extern void misc_uuid_unparse(char *uuid, char *string);
 extern void misc_upper_case(char *dst, const char *src);
 extern long long misc_str2long(const char *str, int base);
 extern errno_t misc_dev_mounted(const char *name, const char *ops);
-extern void misc_uuid_unparse(const char *uuid, char *string);
 
 #endif
 

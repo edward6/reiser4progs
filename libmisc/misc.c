@@ -171,7 +171,7 @@ void misc_plugins_print(void) {
 	printf("\n");
 }
 
-void misc_uuid_unparse(const char *uuid, char *string) {
+void misc_uuid_unparse(char *uuid, char *string) {
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	uuid_unparse(uuid, string);
 #endif

@@ -171,7 +171,9 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 		
 	if ((res = reiser4_master_print(fs->master, &stream, 
 					misc_uuid_unparse)))
+	{
 		return res;
+	}
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
