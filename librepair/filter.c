@@ -92,12 +92,12 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
     if (plugin_call(coord->item.plugin->item_ops, read, 
 	&coord->item, &ptr, coord->pos.unit, 1) != 1) 
     {
-	aal_exception_fatal("Failed to fetch the item pointer.");
+	aal_exception_fatal("Failed to fetch the node pointer.");
 	return -1;
     }
 
     /* The validness of this pointer must be checked at node_check time. */
-    aux_bitmap_mark_region(fd->bm_used, ptr.ptr, ptr.ptr + ptr.width);
+    aux_bitmap_mark_region(fd->bm_used, ptr.ptr, ptr.width);
 
     fd->level--;
  
@@ -162,6 +162,15 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
     return 0;
 }
 
+static void repair_filter_release(repair_data_t *rd) {
+    aal_assert("vpf-738", rd != NULL, return);
+
+    if (repair_filter(rd)->bm_used)
+	aux_bitmap_close(repair_filter(rd)->bm_used);
+    if (repair_filter(rd)->bm_twig)
+	aux_bitmap_close(repair_filter(rd)->bm_twig);
+}
+
 /* Setup data (common and specific) before traverse through the tree. */
 static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     reiser4_ptr_hint_t ptr;
@@ -184,12 +193,12 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     }
 
     /* Mark all format area block in the bm_used bitmap. */
-    if (reiser4_format_layout(rd->fs->format, callback_mark_format_block, 
+    if (repair_fs_layout(rd->fs, callback_mark_format_block, 
 	repair_filter(rd)->bm_used)) 
     {
-	aal_exception_error("Failed to mark all format blocks in the bitmap as "
-	    "unused.");
-	return -1;
+	aal_exception_error("Failed to mark the filesystem area as used in "
+	    "the bitmap.");
+	goto error;
     }
     
     /* Allocate a bitmap for twig blocks in the tree. */
@@ -197,7 +206,7 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
 	reiser4_format_get_len(rd->fs->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for twig blocks.");
-	return -1;
+	goto error;
     }
  
     repair_filter(rd)->flags = 0;
@@ -219,6 +228,11 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
 	    reiser4_format_get_root(rd->fs->format));
  
     return 0;
+    
+error:
+    repair_filter_release(rd);
+    
+    return -1;
 }
 
 /* Does some updata stuff after traverse through the internal tree - deletes 
@@ -257,7 +271,7 @@ errno_t repair_filter_pass(repair_data_t *rd) {
 
     if ((res = repair_filter_node_open(&node, 
 	reiser4_format_get_root(rd->fs->format), rd)) < 0)
-	goto error_filter_update;
+	goto error;
     
     if (res == 0 && node != NULL) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
@@ -268,7 +282,7 @@ errno_t repair_filter_pass(repair_data_t *rd) {
 	reiser4_node_release(node);
 
 	if (res < 0)
-	    goto error_filter_update;
+	    goto error;
     } else 
 	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
 
@@ -277,16 +291,9 @@ errno_t repair_filter_pass(repair_data_t *rd) {
     
     return 0;
 
-error_filter_update:
-    repair_filter_update(&hint);
-    
-    return res;
+error:
+    repair_filter_release(rd);
+
+    return -1;
 }
 
-errno_t repair_filter_release(repair_data_t *rd) {
-    aal_assert("vpf-738", rd != NULL, return -1);
-    
-    aux_bitmap_close(repair_filter(rd)->bm_used);
-    aux_bitmap_close(repair_filter(rd)->bm_twig);
-    return 0;
-}

@@ -14,7 +14,6 @@
 #endif
 
 extern errno_t repair_add_missing_pass(repair_data_t *rd);
-extern errno_t repair_add_missing_release(repair_data_t *rd);
 
 #endif
 

@@ -19,7 +19,7 @@ int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func,
     nodeptr = nodeptr40_body(item);
 
     blk = np40_get_ptr(nodeptr);    
-    res = func(item, blk, blk + 1, data);
+    res = func(item, blk, 1, data);
     
     if (res > 0) 
 	return item->len;

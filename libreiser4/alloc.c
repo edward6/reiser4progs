@@ -284,7 +284,7 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
 		alloc->forbid = aux_bitmap_create(free + used);
 	}
 	
-	aux_bitmap_mark_region(alloc->forbid, start, start + count);
+	aux_bitmap_mark_region(alloc->forbid, start, count);
 	return 0;	
 }
 
@@ -294,8 +294,7 @@ errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc,
 	aal_assert("vpf-585", alloc != NULL, return -1);
 	
 	if (alloc->forbid) {
-		aux_bitmap_clear_region(alloc->forbid, start,
-					start + count);
+		aux_bitmap_clear_region(alloc->forbid, start, count);
 	}
 	
 	return 0;

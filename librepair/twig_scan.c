@@ -15,8 +15,8 @@
     area) or out of format area. Return 1 if it does, 0 - does not, -1 error.
 */
 
-static errno_t callback_item_region_check(item_entity_t *item, blk_t start, blk_t end, 
-    void *data) 
+static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
+    uint64_t count, void *data) 
 {
     repair_data_t *rd = (repair_data_t *)data;
     repair_ts_t *ts;
@@ -29,23 +29,24 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start, blk_
 
     /* This must be fixed at the first pass. */
     aal_assert("vpf-387", start < ts->bm_met->total && 
-	end < ts->bm_met->total && start < end, return -1);
+	count <= ts->bm_met->total && start <= ts->bm_met->total - count, 
+	return -1);
 
     if (!start)
 	return 0;
 
-    res = aux_bitmap_test_region_cleared(ts->bm_met, start, end);
+    res = aux_bitmap_test_region_cleared(ts->bm_met, start, count);
 
     /* If extent item points to a leaf, to format area or out of format area. */
     if (res == 0) {
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) points to some already used blocks.", 
-	    item->con.blk, item->pos.item, item->pos.unit, start, end - start);
+	    item->con.blk, item->pos.item, item->pos.unit, start, count);
 	return 1;
     } else if (aux_bitmap_test(ts->bm_used, item->con.blk))
-	aux_bitmap_mark_region(ts->bm_unfm_tree, start, end);
+	aux_bitmap_mark_region(ts->bm_unfm_tree, start, count);
     else
-	aux_bitmap_mark_region(ts->bm_unfm_out, start, end);
+	aux_bitmap_mark_region(ts->bm_unfm_out, start, count);
 
     return 0;
 }
@@ -77,6 +78,23 @@ static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
     }
 
     return 0;
+}
+
+static void repair_twig_scan_release(repair_data_t *rd) {
+    aal_assert("vpf-741", rd != NULL, return);
+
+    if (repair_ts(rd)->bm_used)
+	aux_bitmap_close(repair_ts(rd)->bm_used);
+    if (repair_ts(rd)->bm_twig)
+	aux_bitmap_close(repair_ts(rd)->bm_twig);
+    if (repair_ts(rd)->bm_leaf)
+	aux_bitmap_close(repair_ts(rd)->bm_leaf);
+    if (repair_ts(rd)->bm_met)
+	aux_bitmap_close(repair_ts(rd)->bm_met);
+    if (repair_ts(rd)->bm_unfm_tree)
+	aux_bitmap_close(repair_ts(rd)->bm_unfm_tree);
+    if (repair_ts(rd)->bm_unfm_out)
+	aux_bitmap_close(repair_ts(rd)->bm_unfm_out);
 }
 
 static errno_t repair_twig_scan_setup(repair_data_t *rd) {
@@ -115,10 +133,15 @@ static errno_t repair_twig_scan_setup(repair_data_t *rd) {
     {
 	aal_exception_error("Failed to allocate a bitmap for extents of "
 	    "unconnected twigs.");
-	return -1;
+	goto error;
     }
 
     return 0;
+    
+error:
+    repair_twig_scan_release(rd);
+
+    return -1;
 }
 
 static errno_t repair_twig_scan_update(repair_data_t *rd) {
@@ -178,14 +201,13 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
 	if (node == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);
-	    goto error_ts_update;
+	    goto error;
 	}
 
 	entity = node->entity;
 	
 	/* This block must contain twig. */
-	aal_assert("vpf-544", reiser4_node_level(node) == TWIG_LEVEL, 
-	    goto error_node_free);
+	aal_assert("vpf-544", reiser4_node_level(node) == TWIG_LEVEL,return -1);
 
 	/* Lookup the node. */	
 	if ((res = repair_node_traverse(node, 1 << EXTENT_ITEM, 
@@ -203,30 +225,20 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
     }
 
     if (repair_twig_scan_update(rd))
-	return -1;
+	goto error;
     
     return 0;
 
 error_node_free:
     reiser4_node_release(node);
 
-error_ts_update:
-    repair_twig_scan_update(rd);
+error:
+    repair_twig_scan_release(rd);
 
-    return res;
+    return -1;
 }
 
-errno_t repair_twig_scan_release(repair_data_t *rd) {
-    aal_assert("vpf-741", rd != NULL, return -1);
 
-    aux_bitmap_close(repair_ts(rd)->bm_used);
-    aux_bitmap_close(repair_ts(rd)->bm_twig);
-    aux_bitmap_close(repair_ts(rd)->bm_leaf);
-    aux_bitmap_close(repair_ts(rd)->bm_met);
-    aux_bitmap_close(repair_ts(rd)->bm_unfm_tree);
-    aux_bitmap_close(repair_ts(rd)->bm_unfm_out);
-    return 0;
-}
 
 #if 0
 

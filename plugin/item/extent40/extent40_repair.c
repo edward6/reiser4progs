@@ -29,7 +29,7 @@ int32_t extent40_layout_check(item_entity_t *item, region_func_t func,
 	start = et40_get_start(extent);
 
 	if (start) {
-	    res = func(item, start, start + et40_get_start(extent), data);
+	    res = func(item, start, et40_get_width(extent), data);
 
 	    if (res > 0) {
 		/* Zero the problem region. */

@@ -272,7 +272,7 @@ static int fsck_check(reiser4_fs_t *fs, repair_data_t *data) {
     time_t t;
     
     time(&t);
-    fprintf(stderr, "##########\nreiserfsck --check started at %s##########\n", 
+    fprintf(stderr, "##########\nfsck.reiser4 started at %s##########\n", 
 	ctime (&t));
  
     if ((retval = repair_fs_check(fs, data))) {
@@ -281,7 +281,7 @@ static int fsck_check(reiser4_fs_t *fs, repair_data_t *data) {
 	return OPER_ERROR;
     }
 
-    fprintf(stderr, "##########\nreiserfsck --check finished at %s##########\n", 
+    fprintf(stderr, "##########\nfsck.reiser4 finished at %s##########\n", 
 	ctime (&t));
     return NO_ERROR;
 }

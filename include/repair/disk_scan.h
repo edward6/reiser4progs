@@ -16,6 +16,5 @@
 #include <repair/repair.h>
 
 extern errno_t repair_disk_scan_pass(repair_data_t *rd);
-extern errno_t repair_disk_scan_release(repair_data_t *rd);
 
 #endif

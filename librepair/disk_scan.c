@@ -44,6 +44,21 @@ static errno_t callback_blk_mark(object_entity_t *entity, blk_t blk, void *data)
     return 0;
 }
 
+static void repair_disk_scan_release(repair_data_t *rd) {
+    aal_assert("vpf-740", rd != NULL, return);
+    
+    if (repair_ds(rd)->bm_used)
+	aux_bitmap_close(repair_ds(rd)->bm_used);
+    if (repair_ds(rd)->bm_twig)
+	aux_bitmap_close(repair_ds(rd)->bm_twig);
+    if (repair_ds(rd)->bm_leaf)
+	aux_bitmap_close(repair_ds(rd)->bm_leaf);
+    if (repair_ds(rd)->bm_frmt)
+	aux_bitmap_close(repair_ds(rd)->bm_frmt);
+    if (repair_ds(rd)->bm_scan)
+	aux_bitmap_close(repair_ds(rd)->bm_scan);
+}
+
 /*  Prepare the bitmap of blocks which are to be scanned. */
 static errno_t repair_disk_scan_setup(repair_data_t *rd) {
     struct ds_alloc_region region;
@@ -67,14 +82,14 @@ static errno_t repair_disk_scan_setup(repair_data_t *rd) {
     if (!(ds->bm_scan = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap for blocks unconnected"
 	    " from the tree.");
-	return -1;
+	goto error;
     }
 
     /* Allocate a bitmap for leaves to be inserted into the tree later. */
     if (!(ds->bm_leaf = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap for leaves unconnected"
 	    " from the tree.");
-	return -1;
+	goto error;
     }
 
     /* Allocate a bitmap for formatted blocks which cannot be pointed by extents,
@@ -82,7 +97,7 @@ static errno_t repair_disk_scan_setup(repair_data_t *rd) {
     if (!(ds->bm_frmt = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap for unaccounted "
 	    "formatted blocks.");
-	return -1;
+	goto error;
     }
 
     region.bm_used = ds->bm_used;	    
@@ -92,9 +107,9 @@ static errno_t repair_disk_scan_setup(repair_data_t *rd) {
     /* Build a bitmap of blocks which are not in the tree yet. */
     for (i = reiser4_format_start(format); i < fs_len; i++) {
 	
-	/* block cannot be marked in both used and twig bitmaps. */
-	aal_assert("vpf-693", (!aux_bitmap_test(ds->bm_used, i) || 
-	    !aux_bitmap_test(ds->bm_twig, i)), return -1);
+	/* If block is marked in twig, then it is marked in used. */
+	aal_assert("vpf-693", (!aux_bitmap_test(ds->bm_twig, i) || 
+	    aux_bitmap_test(ds->bm_used, i)), return -1);
 
 	if (aux_bitmap_test(ds->bm_used, i) && 
 	    reiser4_alloc_unused_region(rd->fs->alloc, i, 1)) 
@@ -112,6 +127,11 @@ static errno_t repair_disk_scan_setup(repair_data_t *rd) {
     }
 
     return 0;
+
+error:
+    repair_disk_scan_release(rd);
+    
+    return -1;
 }
 
 errno_t repair_disk_scan_pass(repair_data_t *rd) {
@@ -136,7 +156,7 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
 	aal_assert("vpf-694", !aux_bitmap_test(ds->bm_used, blk), return -1);
-	aal_assert("vpf-695", !aux_bitmap_test(ds->bm_used, blk), return -1);
+	aal_assert("vpf-695", !aux_bitmap_test(ds->bm_twig, blk), return -1);
 	
 	node = repair_node_open(rd->fs, blk);
 	if (node == NULL)
@@ -205,17 +225,10 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
     
 error_node_release:
     reiser4_node_release(node);
-    
+
+error:
+    repair_disk_scan_release(rd);
+
     return -1;
 }
 
-errno_t repair_disk_scan_release(repair_data_t *rd) {
-    aal_assert("vpf-740", rd != NULL, return -1);
-    
-    aux_bitmap_close(repair_ds(rd)->bm_used);
-    aux_bitmap_close(repair_ds(rd)->bm_twig);
-    aux_bitmap_close(repair_ds(rd)->bm_leaf);
-    aux_bitmap_close(repair_ds(rd)->bm_frmt);
-    aux_bitmap_close(repair_ds(rd)->bm_scan);
-    return 0;
-}

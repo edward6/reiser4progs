@@ -15,6 +15,5 @@
 #include <repair/repair.h>
 
 extern errno_t repair_twig_scan_pass(repair_data_t *rd);
-extern errno_t repair_twig_scan_release(repair_data_t *rd);
 
 #endif

@@ -16,7 +16,7 @@ static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start,
     aal_assert("vpf-735", bitmap != NULL, return -1);
     
     if (start != 0)
-	aux_bitmap_mark_region(bitmap, start, start + count);
+	aux_bitmap_mark_region(bitmap, start, count);
 
     return 0;
 }
@@ -36,6 +36,19 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
     return 0;
 }
 
+static void repair_add_missing_release(repair_data_t *rd) {
+    aal_assert("vpf-739", rd != NULL, return);
+
+    if (repair_am(rd)->bm_used)
+	aux_bitmap_close(repair_am(rd)->bm_used);
+    if (repair_am(rd)->bm_twig)
+	aux_bitmap_close(repair_am(rd)->bm_twig);
+    if (repair_am(rd)->bm_leaf)
+	aux_bitmap_close(repair_am(rd)->bm_leaf);
+    if (repair_am(rd)->tree)
+	reiser4_tree_close(repair_am(rd)->tree);
+}
+
 static errno_t repair_add_missing_setup(repair_data_t *rd) {
     aal_assert("vpf-594", rd != NULL, return -1);
     aal_assert("vpf-618", rd->fs != NULL, return -1);
@@ -45,17 +58,22 @@ static errno_t repair_add_missing_setup(repair_data_t *rd) {
 	/* Trere is no any tree yet.  */
 	if (!(rd->fs->tree = reiser4_tree_create(rd->fs, rd->profile))) {
 	    aal_exception_fatal("Failed to create the tree of the fs.");
-	    return -1;
+	    goto error;
 	}
     } else {
 	/* There is some tree already. */
 	if (!(rd->fs->tree = reiser4_tree_open(rd->fs))) {
 	    aal_exception_fatal("Failed to open the tree of the fs.");
-	    return -1;
+	    goto error;
 	}
     }
     
     return 0;
+
+error:
+    repair_add_missing_release(rd);
+    
+    return -1;
 }
 
 errno_t repair_add_missing_pass(repair_data_t *rd) {
@@ -94,14 +112,14 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
-		return -1;
+		goto error;
 	    }
 
 	    level = reiser4_node_level(node); 
 
 	    /* This block must contain twig/leaf. */
 	    aal_assert("vpf-638", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL), 
-		goto error_node_free);
+		return -1);
 
 	    res = repair_tree_attach(tree, node);
 
@@ -139,21 +157,21 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
-		return -1;
+		goto error;
 	    }
 
 	    level = reiser4_node_level(node); 
 
 	    /* This block must contain twig/leaf. */
 	    aal_assert("vpf-709", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL), 
-		goto error_node_free);
+		return -1);
 
 	    pos->unit = ~0ul;
 	    items = reiser4_node_items(node);
 	    coord.node = node;
 
 	    for (pos->item = 0; pos->item < items; pos->item++) {
-		aal_assert("vpf-636", pos->unit == ~0ul, goto error_node_free);
+		aal_assert("vpf-636", pos->unit == ~0ul, return -1);
 
 		if (reiser4_coord_realize(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u): cannot open "
@@ -164,7 +182,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	 
 		if (i == 0) {
 		    aal_assert("vpf-637", reiser4_item_extent(&coord), 
-			goto error_node_free);
+			return -1);
 		}
 
 
@@ -173,7 +191,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 
 		if (reiser4_item_extent(&coord)) {
 		    if (callback_extent_used(&coord, am))
-			return -1;
+			goto error_node_free;
 		}
 	    }
 	
@@ -191,18 +209,10 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 error_node_free:
     reiser4_node_release(node);
 
-    return res;
-}
-
-errno_t repair_add_missing_release(repair_data_t *rd) {
-    aal_assert("vpf-739", rd != NULL, return -1);
-
-    aux_bitmap_close(repair_am(rd)->bm_used);
-    aux_bitmap_close(repair_am(rd)->bm_twig);
-    aux_bitmap_close(repair_am(rd)->bm_leaf);
-
-    reiser4_tree_close(repair_am(rd)->tree);
+error:
+    repair_add_missing_release(rd);
     
-    return 0;
+    return -1;
 }
+
 

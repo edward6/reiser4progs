@@ -15,25 +15,17 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *rd) {
     aal_assert("vpf-180", fs != NULL, return -1);
     aal_assert("vpf-493", rd != NULL, return -1);
 
-    if ((res = repair_filter_pass(rd))) {
-	repair_filter_release(rd);
+    if ((res = repair_filter_pass(rd)))
 	return res;
-    }
 
-    if ((res = repair_disk_scan_pass(rd))) {
-	repair_disk_scan_release(rd);
+    if ((res = repair_disk_scan_pass(rd)))
 	return res;
-    }
 
-    if ((res = repair_twig_scan_pass(rd))) {
-	repair_twig_scan_release(rd);
+    if ((res = repair_twig_scan_pass(rd)))
 	return res;
-    }
 
-    if ((res = repair_add_missing_pass(rd))) {
-	repair_add_missing_release(rd);
+    if ((res = repair_add_missing_pass(rd)))
 	return res;
-    }
     
     return 0;
 }
@@ -130,3 +122,13 @@ void repair_fs_close(reiser4_fs_t *fs) {
     aal_free(fs);
 }
 
+/* Enumerates all filesystem areas (block alloc, journal, etc.) */
+errno_t repair_fs_layout(reiser4_fs_t *fs, block_func_t func, void *data) {
+    if (reiser4_format_skipped(fs->format, func, data))
+	return -1;
+	
+    if (reiser4_format_layout(fs->format, func, data))
+	return -1;
+    
+    return reiser4_alloc_layout(fs->alloc, func, data);
+}

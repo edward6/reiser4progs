@@ -8,19 +8,19 @@
 #include <repair/librepair.h>
 
 static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
-    blk_t end, void *data) 
+    uint64_t count, void *data) 
 {
     aux_bitmap_t *bitmap = data;
     
     aal_assert("vpf-722", item != NULL, return -1);
     aal_assert("vpf-723", bitmap != NULL, return -1);
-    aal_assert("vpf-726", start < bitmap->total && end < bitmap->total && 
-	start < end, return -1);
+    aal_assert("vpf-726", start < bitmap->total && count <= bitmap->total && 
+	start <= bitmap->total - count, return -1);
     
-    if (!aux_bitmap_test_region_cleared(bitmap, start, end)) {
+    if (!aux_bitmap_test_region_cleared(bitmap, start, count)) {
 	aal_exception_error("Node (%llu), item (%u), unit (%u): points to some "
 	    "already used block within (%llu - %llu).", item->con.blk, 
-	    item->pos.item, item->pos.unit, start, end);
+	    item->pos.item, item->pos.unit, start, start + count - 1);
 	return 1;
     }
  

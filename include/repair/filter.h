@@ -15,6 +15,5 @@
 #include <repair/repair.h>
 
 extern errno_t repair_filter_pass(repair_data_t *rd);
-extern errno_t repair_filter_release(repair_data_t *rd);
 
 #endif
