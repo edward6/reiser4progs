@@ -2,6 +2,7 @@
    reiser4progs/COPYING.
    
    factory.c -- reiser4 plugin factory implementation. */
+
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 #  include <dlfcn.h>
 #  include <errno.h>
@@ -24,7 +25,7 @@ unsigned int registered = 0;
 #define MAX_BUILTINS 16
 #endif
 
-/* Builtin plugin representative struct */
+/* Builtin plugin representative struct. */
 struct plug_builtin {
 	plug_init_t init;
 #ifndef ENABLE_STAND_ALONE
@@ -52,7 +53,7 @@ struct walk_desc {
 typedef struct walk_desc walk_desc_t;
 
 #ifdef ENABLE_PLUGINS_CHECK
-/* Helper callback for checking plugin validness */
+/* Helper callback for checking plugin validness. */
 static errno_t callback_check_plug(reiser4_plug_t *plug,
 				   void *data)
 {
@@ -62,7 +63,7 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 		return 0;
 
 #ifndef ENABLE_STAND_ALONE
-	/* Check plugins labels */
+	/* Check plugin labels. They should not be the same. */
 	if (!aal_strncmp(examined->label, plug->label,
 			 PLUG_MAX_LABEL))
 	{
@@ -73,7 +74,7 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 	}
 #endif
 	
-	/* Check plugin group */
+	/* Check plugin group. It should not be more or equal LAST_ITEM. */
 	if (examined->id.group >= LAST_ITEM) {
 		aal_exception_error("Plugin %s has invalid group id "
 				    "0x%x.", examined->cl.location,
@@ -81,7 +82,8 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 		return -EINVAL;
 	}
 
-	/* Check plugin place */
+	/* Check plugin id, type and group. There should be only one plugin with
+	   particular id. */
 	if (examined->id.group == plug->id.group &&
 	    examined->id.id == plug->id.id &&
 	    examined->id.type == plug->id.type)
@@ -97,15 +99,14 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 #endif
 
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
-/* Helper function for searching for the needed symbol inside loaded dynamic
-   library. */
+/* Helper function for searching needed symbol inside loaded dynamic library. */
 static void *find_symbol(void *handle, char *name, char *plug) {
 	void *addr;
 	
 	if (!name || !handle)
 		return NULL;
 	
-	/* Getting plugin entry point */
+	/* Getting plugin entry point. */
 	addr = dlsym(handle, name);
 	
 	if (dlerror() != NULL || addr == NULL) {
@@ -117,7 +118,7 @@ static void *find_symbol(void *handle, char *name, char *plug) {
 	return addr;
 }
 
-/* Loads plugin (*.so file) by its filename */
+/* Loads plugin (*.so file) by its filename. */
 errno_t reiser4_plug_open(char *name, plug_class_t *class) {
 	void *addr;
 	
@@ -133,13 +134,13 @@ errno_t reiser4_plug_open(char *name, plug_class_t *class) {
 
 	aal_strncpy(class->name, name, sizeof(class->name));
 
-	/* Getting plugin init function */
+	/* Getting plugin init function address. */
 	if (!(addr = find_symbol(class->data, "__plugin_init", (char *)name)))
 		goto error_free_data;
     
 	class->init = *((plug_init_t *)addr);
 
-	/* Getting plugin fini function */
+	/* Getting plugin fini function address. */
 	if (!(addr = find_symbol(class->data, "__plugin_fini", (char *)name)))
 		goto error_free_data;
     
@@ -151,6 +152,7 @@ errno_t reiser4_plug_open(char *name, plug_class_t *class) {
 	return -EINVAL;
 }
 
+/* Closes libarry plugin handle stored in passed @class. */
 void reiser4_plug_close(plug_class_t *class) {
 	void *data;
 	
@@ -184,7 +186,7 @@ errno_t reiser4_factory_load(char *name) {
 	if (!(plug = class.init(&core)))
 		return -EINVAL;
 
-	/* Checking plugin for validness (the same ids, etc) */
+	/* Checking plugin for validness (the ids, labels, etc) */
 	plug->h.class = class;
 
 #ifdef ENABLE_PLUGINS_CHECK
@@ -209,7 +211,7 @@ errno_t reiser4_factory_load(char *name) {
 
 #else
 
-/* Loads built-in plugin by its entry address */
+/* Loads built-in plugin. */
 errno_t reiser4_plug_open(plug_init_t init, plug_fini_t fini,
 			  plug_class_t *class)
 {
@@ -314,7 +316,7 @@ errno_t reiser4_factory_init(void) {
                 return -EINVAL;
         }
                                                                                                 
-        /* Getting plugins filenames */
+        /* Getting plugins filenames. */
         while ((ent = readdir(dir))) {
 		uint32_t len;
                 char *name;
@@ -337,6 +339,9 @@ errno_t reiser4_factory_init(void) {
                                                                                                 
                 /* Loading plugin at @name */
                 if (reiser4_factory_load(name)) {
+			aal_exception_warn("Can't load %s. Is it "
+					   "reiser4 plugin at all?",
+					   name);
 			aal_free(name);
 			continue;
 		}
@@ -363,12 +368,16 @@ errno_t reiser4_factory_init(void) {
 		if (reiser4_factory_load(builtin->init, builtin->fini))
                         continue;
 #else
-		if (reiser4_factory_load(builtin->init, NULL))
-                        continue;
+		if (reiser4_factory_load(builtin->init, NULL)) {
+			aal_exception_warn("Can't load built-in plugin."
+					   "Init function address is 0x%x");
+			continue;
+		}
 #endif
 	}
 
-#ifndef ENABLE_STAND_ALONE		
+#ifndef ENABLE_STAND_ALONE
+	/* Nothing loaded? */
 	if (aal_list_len(plugins) == 0) {
                 aal_exception_error("There are no valid built-in plugins "
                                     "found.");
@@ -380,7 +389,7 @@ errno_t reiser4_factory_init(void) {
         return 0;
 }
 
-/* Finalizes plugin factory, by means of unloading the all plugins */
+/* Finalizes plugin factory, by means of unloading the all plugins. */
 void reiser4_factory_fini(void) {
 	aal_list_t *walk, *next;
 
@@ -407,7 +416,7 @@ static int callback_match_id(const void *plug,
 	return !(p->id.type == d->type && p->id.id == d->id);
 }
 
-/* Finds plugins by its type and id */
+/* Finds plugin by its type and id. */
 reiser4_plug_t *reiser4_factory_ifind(
 	rid_t type,			         /* requested plugin type */
 	rid_t id)				 /* requested plugin id */
@@ -426,7 +435,7 @@ reiser4_plug_t *reiser4_factory_ifind(
 	return found ? (reiser4_plug_t *)found->data : NULL;
 }
 
-/* Finds first matches plugin */
+/* Finds plugin by variable criterios implemented by passed @plug_func. */
 reiser4_plug_t *reiser4_factory_cfind(
 	plug_func_t plug_func,                   /* per plugin function */
 	void *data)                              /* user-specified data */
@@ -447,7 +456,7 @@ reiser4_plug_t *reiser4_factory_cfind(
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Helper callback for matching plugin by its name */
+/* Helper callback for matching plugin by its name. */
 static int callback_match_name(reiser4_plug_t *plug,
 			       char *label, void *data)
 {
@@ -495,7 +504,7 @@ errno_t reiser4_factory_foreach(
 #endif
 
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
-/* This function registers builtin plugin entry points */
+/* This function registers builtin plugin entry points. */
 void register_builtin(plug_init_t init, plug_fini_t fini) {
 
 	if (registered >= MAX_BUILTINS)

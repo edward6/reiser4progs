@@ -24,7 +24,7 @@ static uint32_t swapped = 0;
    exists. In order to check this, it reads amount of all vitual memory that
    current process occupies and then reads amount of swapped part of process
    memory. Then it checks if current process has increased its swapped part from
-   last check and how mach. If so and swapped part is more than water mark, then
+   last check and how much. If so and swapped part is more than water mark, then
    memory pressure event is here. */
 bool_t misc_mpressure_detect(void) {
 #if defined(HAVE_STATFS) && defined (HAVE_SYS_VFS_H)
