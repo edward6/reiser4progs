@@ -81,10 +81,18 @@ errno_t repair_journal_handle(reiser4_fs_t *fs, aal_device_t *journal_device) {
     if (aal_device_reopen(journal_device, journal_device->blocksize, O_RDWR))
 	return -1;
     
-    /* FIXME-VITALY: What if we do it on RO partition? */
+    /* FIXME-VITALY: What if we do it on RO partition?
+       
+       UMKA: Here will be -EIO error code if relay is started on read only
+       device.
+    */
     if (reiser4_journal_replay(fs->journal))
 	ret = -1;
 
+    /* FIXME-UMKA->VITALY: Here should be also reopening format and master super
+     * blocks due to them might be in replayed transactions and we should keep
+     * them uptodate */
+    
     if (aal_device_reopen(journal_device, journal_device->blocksize, flags))
 	return -1;
     

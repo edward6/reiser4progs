@@ -255,7 +255,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	if (!(log_block = aal_block_open(txh_block->device, blk))) {
 	    aal_exception_error("Can't read block %llu while traversing "
 		"the journal. %s.", blk, txh_block->device->error);
-	    return -1;
+	    return -EIO;
 	}
 
 	lr_header = (journal40_lr_header_t *)log_block->data;
@@ -297,13 +297,16 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    if (ret == 0) {
 		/* Find the place we met blk previous time. */
 		check_data->wanted_blk = blk;
+
+		/* FIXME-UMKA->VITALY: Is this correct, that return value is
+		 * checked for 1, not for zero? */
 		if ((ret = journal40_traverse(journal, NULL, NULL, 
 		    callback_find_sec_blk, check_data)) != 1) 
 		{
 		    aal_exception_bug("Traverse which should find a transaction"
 			" the block (%llu) was met for the first time returned "
 			"the unexpected value (%d).", blk, ret);
-		    return -1;
+		    return -EINVAL;
 		}
 		/* Found trans is the oldest problem, return it to caller. */
 		aal_exception_error("Transaction Header (%llu): transaction "
@@ -324,13 +327,16 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	     * time and get its type. */	    
 	    check_data->wanted_blk = blk;
 	    check_data->flags = 0;
+
+	    /* FIXME-UMKA->VITALY: Is this correct, that return value is checked
+	     * for 1, not for zero? */
 	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
 		callback_find_sec_blk, check_data)) != 1)
 	    {
 		aal_exception_bug("Traverse which should find a transaction"
 		    " the block (%llu) was met for the first time returned "
 		    "the unexpected value (%d).", blk, ret);
-		return -1;
+		return -EINVAL;
 	    }
 
 	    aal_exception_error("Transaction Header (%llu): transaction "
@@ -354,13 +360,16 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 
 	    /* Stop looking through TxH's when reach the current trans. */
 	    check_data->flags = (1 << TF_SAME_TXH_BREAK);
+
+	    /* FIXME-UMKA->VITALY: Is this correct, that return value is checked
+	     * for 1, not for zero? */
 	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
 		NULL, check_data)) != 1)
 	    {
 		aal_exception_bug("Traverse which should find a transaction"
 		    " the block (%llu) was met for the first time returned "
 		    "the unexpected value (%d).", blk, ret);
-		return -1;
+		return -EINVAL;
 	    }
 
 	    /* If TxH was found, the current transaction is the oldest problem 
@@ -405,13 +414,13 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
     if (!(data.journal_layout = aux_bitmap_create(data.fs_len))) {
 	aal_exception_error("Failed to allocate a control bitmap for journal "
 	    "layout.");
-	return -1;
+	return -ENOMEM;
     }    
      
     if (!(data.current_layout = aux_bitmap_create(data.fs_len))) {
 	aal_exception_error("Failed to allocate a control bitmap of the current "
 	    "transaction blocks.");
-	return -1;
+	return -ENOMEM;
     }    
     
     if ((ret = journal40_traverse((journal40_t *)entity, NULL, 
@@ -435,13 +444,13 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
 	    if ((device = journal40_device((object_entity_t *)journal)) == NULL) 
 	    {
 		aal_exception_error("Invalid device has been detected.");
-		return -1;
+		return -EINVAL;
 	    }
 	    
 	    if (!(tx_block = aal_block_open(device, data.cur_txh))) {
 		aal_exception_error("Can't read the block %llu while checking "
 		    "the journal. %s.", data.cur_txh, device->error);
-		return -1;
+		return -EIO;
 	    }
 
 	    aal_exception_error("Corrupted transaction (%llu) was found. "

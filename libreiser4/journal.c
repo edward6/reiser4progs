@@ -36,13 +36,15 @@ reiser4_journal_t *reiser4_journal_open(
 		return NULL;
 
 	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid journal plugin id has been found.");
+		aal_exception_error("Invalid journal plugin id has "
+				    "been found.");
 		goto error_free_journal;
 	}
  
 	/* Getting plugin by its id from plugin factory */
 	if (!(plugin = libreiser4_factory_ifind(JOURNAL_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find journal plugin by its id 0x%x.", pid);
+		aal_exception_error("Can't find journal plugin by its "
+				    "id 0x%x.", pid);
 		goto error_free_journal;
 	}
     
@@ -166,18 +168,15 @@ reiser4_journal_t *reiser4_journal_create(
 	return NULL;
 }
 
-/* Replays specified journal. Returns error code */
+/*
+  Replays specified @journal. Returns error code. As super block may fit into
+  one of replayed transactions, it should be reopened after replay is finished.
+*/
 errno_t reiser4_journal_replay(
 	reiser4_journal_t *journal)	/* journal to be replayed */
 {
 	aal_assert("umka-727", journal != NULL);
     
-	if (aal_device_readonly(journal->device)) {
-		aal_exception_warn("Transactions can't be replayed on "
-				   "read only opened filesystem.");
-		return -EINVAL;
-	}
-	
 	/* Calling plugin for actual replaying */
 	return plugin_call(journal->entity->plugin->journal_ops, 
 			   replay, journal->entity);

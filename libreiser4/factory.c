@@ -466,18 +466,18 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 
 /* Finds plugins by its type and id */
 reiser4_plugin_t *libreiser4_factory_cfind(
-	reiser4_plugin_func_t func,		 /* per plugin function */
+	reiser4_plugin_func_t plugin_func,	 /* per plugin function */
 	void *data)				 /* user-specified data */
 {
 	aal_list_t *walk = NULL;
 
-	aal_assert("umka-899", func != NULL);    
 	aal_assert("umka-155", plugins != NULL);    
+	aal_assert("umka-899", plugin_func != NULL);    
 	
 	aal_list_foreach_forward(plugins, walk) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
 	
-		if (func(plugin, data))
+		if (plugin_func(plugin, data))
 			return plugin;
 	}
     
@@ -489,18 +489,18 @@ reiser4_plugin_t *libreiser4_factory_cfind(
    is used for getting any plugins information.
 */
 errno_t libreiser4_factory_foreach(
-	reiser4_plugin_func_t func,		/* per plugin function */
+	reiser4_plugin_func_t plugin_func,	/* per plugin function */
 	void *data)			        /* user-specified data */
 {
 	errno_t res = 0;
 	aal_list_t *walk;
     
-	aal_assert("umka-479", func != NULL);
+	aal_assert("umka-479", plugin_func != NULL);
 
 	aal_list_foreach_forward(plugins, walk) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
 	
-		if ((res = func(plugin, data)))
+		if ((res = plugin_func(plugin, data)))
 			return res;
 	}
 	

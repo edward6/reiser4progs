@@ -51,7 +51,7 @@ static errno_t node40_region_delete(node40_t *node, uint16_t start_pos,
 	aal_exception_bug("Node (%llu): Failed to delete the item (%d) of a "
 	    "region [%u..%u].", aal_block_number(node->block), i - pos.item,
 	    start_pos, end_pos);
-	return -1;
+	return -EINVAL;
     }
     
     return 0;    
@@ -166,7 +166,7 @@ static errno_t node40_item_array_check(node40_t *node, uint8_t mode) {
 		limit -= (offset - last_relable);
 		count -= (i - last_pos);
 		if (node40_region_delete(node, last_pos + 1, i))
-		    return -1;
+		    return -EINVAL;
 		
 		i = last_pos;
 	    } else {	    

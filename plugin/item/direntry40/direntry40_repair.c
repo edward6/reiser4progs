@@ -418,7 +418,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	    if (direntry40_remove(item, 0, i) < 0) {
 		aal_exception_error("Node %llu, item %u: remove of the unit "
 		    "(%u), count (%u) failed.", item->context.blk, item->pos, 0, i);
-		return -1;
+		return -EINVAL;
 	    }
 	    res |= REPAIR_FIXED;
 	} else
@@ -434,7 +434,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		aal_exception_error("Node %llu, item %u: remove of the unit "
 		    "(%u), count (%u) failed.", item->context.blk, item->pos, count, 
 		    e_count - count);
-		return -1;
+		return -EINVAL;
 	    }
 	    res |= REPAIR_FIXED;
 	} else
@@ -459,7 +459,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		    aal_exception_error("Node %llu, item %u: remove of the "
 			"unit (%u), count (%u) failed.", item->context.blk, 
 			item->pos, last, i - last);
-		    return -1;
+		    return -EINVAL;
 		}
 		i = last;
 		last = ~0ul;
@@ -574,8 +574,7 @@ static errno_t direntry40_count_check(item_entity_t *item,
     aal_assert("vpf-268", item != NULL);
     aal_assert("vpf-495", item->body != NULL);
     
-    if (!(de = direntry40_body(item)))
-	return -1;
+    de = direntry40_body(item);
     
     count_error = (de->entry[0].offset - sizeof(direntry40_t)) % 
 	sizeof(entry40_t);

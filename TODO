@@ -37,8 +37,8 @@ reiser4progs/COPYING.
 
 * some kind og flush is needed for libreiser4.
 
-* change balancing algorithm from the recursive to task oriented like 
-  kernel does.
+* change balancing algorithm from the recursive to task oriented one
+  like kernel does.
 
 * should we move out all bitmap's and alloc's functions which do not work 
   with regions and rename the rest in more simple maner (without region)?

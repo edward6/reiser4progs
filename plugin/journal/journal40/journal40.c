@@ -464,7 +464,8 @@ errno_t journal40_traverse(
 		tx_header = (journal40_tx_header_t *)tx_block->data;
 
 		if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
-			aal_exception_error("Invalid transaction header has been detected.");
+			aal_exception_error("Invalid transaction header has been "
+					    "detected.");
 			res = 1;
 			goto error_free_tx_list;
 		}
@@ -511,7 +512,6 @@ static errno_t journal40_replay(object_entity_t *entity) {
 				      NULL, NULL, NULL)))
 		return res;
 
-	/* FIXME-UMKA: Super block has been left not updated. */
 	return journal40_update((journal40_t *)entity);
 }
 
