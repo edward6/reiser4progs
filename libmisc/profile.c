@@ -158,7 +158,7 @@ void misc_profile_print(void) {
 	uint32_t i;
 	reiser4_plug_t *plug;
 
-	printf("Profile %s:\n", profile.name);
+	printf("Default profile\n");
 	
 	for (i = 0; i < PROFILE_SIZE; i++) {
 		uint32_t width;
@@ -170,10 +170,10 @@ void misc_profile_print(void) {
 		width = 12 - aal_strlen(pid->name);
 
 		if (plug) {
-			printf("%s:%*s%s (%s).\n", pid->name, width - 1, " ",
-			       plug->label, plug->desc);
+			printf("%s:%*s\"%s\"\n", pid->name, width - 1, " ",
+			       plug->label);
 		} else {
-			printf("%s:%*s0x%llx.\n", pid->name, width - 1, " ",
+			printf("%s:%*s\"0x%llx\"\n", pid->name, width - 1, " ",
 			       pid->value);
 		}
 	}

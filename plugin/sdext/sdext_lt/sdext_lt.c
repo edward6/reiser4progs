@@ -96,7 +96,6 @@ static reiser4_plug_t sdext_lt_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_lt",
 	.desc  = "Large times stat data extention for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.sdext_ops = &sdext_lt_ops

@@ -139,7 +139,6 @@ static reiser4_plug_t sdext_lw_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_lw",
 	.desc  = "Light stat data extention for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.sdext_ops = &sdext_lw_ops

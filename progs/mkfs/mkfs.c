@@ -28,8 +28,9 @@
 enum mkfs_behav_flags {
 	BF_FORCE   = 1 << 0,
 	BF_QUIET   = 1 << 1,
-	BF_PLUGS   = 1 << 2,
-	BF_LOST    = 1 << 3
+	BF_PROF    = 1 << 2,
+	BF_PLUGS   = 1 << 3,
+	BF_LOST    = 1 << 4
 };
 
 typedef enum mkfs_behav_flags mkfs_behav_flags_t;
@@ -56,7 +57,8 @@ static void mkfs_print_usage(char *name) {
 		"  -l, --label LABEL               volume label lets to mount\n"
 		"                                  filesystem by its label.\n"
 		"Plugins options:\n"
-		"  -P, --known-plugins             prints known plugins.\n"
+		"  -P, --print-profile             prints current profile.\n"
+		"  -p, --print-plugins             prints all known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -96,7 +98,8 @@ int main(int argc, char *argv[]) {
 		{"label", required_argument, NULL, 'l'},
 		{"uuid", required_argument, NULL, 'i'},
 		{"lost-found", required_argument, NULL, 's'},
-		{"known-plugins", no_argument, NULL, 'P'},
+		{"print-profile", no_argument, NULL, 'P'},
+		{"print-plugins", no_argument, NULL, 'p'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
@@ -116,7 +119,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPo:",
+	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPpo:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -132,8 +135,11 @@ int main(int argc, char *argv[]) {
 		case 'q':
 			flags |= BF_QUIET;
 			break;
-		case 'P':
+		case 'p':
 			flags |= BF_PLUGS;
+			break;
+		case 'P':
+			flags |= BF_PROF;
 			break;
 		case 's':
 			flags |= BF_LOST;
@@ -219,11 +225,11 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
 	}
 
-	if (flags & BF_PLUGS) {
+	if (flags & BF_PROF)
 		misc_profile_print();
-		libreiser4_fini();
-		return 0;
-	}
+	
+	if (flags & BF_PLUGS)
+		misc_plugins_print();
 	
 	/* Building list of devices the filesystem will be created on */
 	for (; optind < argc; optind++) {
@@ -253,12 +259,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (aal_list_len(devices) == 0) {
-		mkfs_print_usage(argv[0]);
-		goto error_free_libreiser4;
-	}
-	
-	if (!(flags & BF_QUIET)) {
+	if (!(flags & BF_QUIET) && aal_list_len(devices)) {
 		if (!(gauge = aal_gauge_create(GAUGE_SILENT, NULL)))
 			goto error_free_libreiser4;
 	}

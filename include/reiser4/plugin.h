@@ -1260,9 +1260,6 @@ struct reiser4_plug {
 	
 	/* Short plugin description */
 	const char desc[PLUG_MAX_DESC];
-
-	/* User-application data */
-	void *data;
 #endif
 
 	/* All possible plugin operations */

@@ -155,11 +155,14 @@ void misc_upper_case(char *dst, const char *src) {
 }
 
 static errno_t callback_print_plug(reiser4_plug_t *plug, void *data) {
-	printf("%s:  \t%s.\n", plug->label, plug->desc);
+	printf("plugin \"%s\"\n", plug->label);
+	printf("  description: %s\n", plug->desc);
+	printf("  location   : %s\n", plug->cl.location);
 	return 0;
 }
 
-void misc_plug_list(void) {
+void misc_plugins_print(void) {
+	printf("Known plugins:\n");
 	libreiser4_factory_foreach(callback_print_plug, NULL);
 	printf("\n");
 }

@@ -13,25 +13,21 @@ static void fsck_print_usage(char *name) {
     fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
     
     fprintf(stderr, "Modes:\n"
-	"  --check                         consistency checking (default).\n"
-	"  --fixable                       fixes what can be fixed without rebuild.\n"
-	"  --rebuild                       fixes all fs corruptions.\n"
-	"Options:\n"
-	"  -l, --logfile                   complains into the logfile\n"
-	"  -V, --version                   prints the current version.\n"
-	"  -?, -h, --help                  prints program usage.\n"
-	"  -n, --no-log                    makes fsck to not complain.\n"
-	"  -q, --quiet                     suppresses the most of the progress.\n"
-	"  -a, -p, --auto, --preen         automatically checks the file system\n"
-        "                                  without any questions.\n"
-	"  -f, --force                     forces checking even if the file system\n"
-        "                                  seems clean.\n"
-	"  -v, --verbose                   makes fsck to be verbose.\n"
-	"  -r                              ignored.\n"
-	"Plugin options:\n"
-	"  -k, --known-plugins             prints known plugins.\n"	
-	"  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
-	"                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
+	    "  --check                         consistency checking (default).\n"
+	    "  --fixable                       fixes what can be fixed without rebuild.\n"
+	    "  --rebuild                       fixes all fs corruptions.\n"
+	    "Options:\n"
+	    "  -l, --logfile                   complains into the logfile\n"
+	    "  -V, --version                   prints the current version.\n"
+	    "  -?, -h, --help                  prints program usage.\n"
+	    "  -n, --no-log                    makes fsck to not complain.\n"
+	    "  -q, --quiet                     suppresses the most of the progress.\n"
+	    "  -a, -p, --auto, --preen         automatically checks the file system\n"
+	    "                                  without any questions.\n"
+	    "  -f, --force                     forces checking even if the file system\n"
+	    "                                  seems clean.\n"
+	    "  -v, --verbose                   makes fsck to be verbose.\n"
+	    "  -r                              ignored.\n");
 }
 
 #define REBUILD_WARNING \
@@ -105,7 +101,6 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
     char *str;
     FILE *stream;
     static int flag;
-    char override[4096];
     static int mode = RM_CHECK;
 
     static struct option long_options[] = {
@@ -125,8 +120,6 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	{"preen", no_argument, NULL, 'p'},
 	{"force", no_argument, NULL, 'f'},
 	{"verbose", no_argument, NULL, 'v'},
-	{"known-plugins", no_argument, NULL, 'k'},
-	{"override", required_argument, NULL, 'o'},
 	/* Fsck hidden options. */
 	{"passes-dump", required_argument, 0, 'U'},
         {"rollback-data", required_argument, 0, 'R'},
@@ -137,8 +130,6 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
     misc_exception_set_stream(EXCEPTION_FATAL, stderr);
     data->logfile = stderr;
 
-    aal_memset(override,0, sizeof(override));
-
     if (argc < 2) {
 	fsck_print_usage(argv[0]);
 	return USER_ERROR;
@@ -146,7 +137,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 
     misc_print_banner(argv[0]);
     
-    while ((c = getopt_long(argc, argv, "l:Vhnqapfvko:U:R:r?d", long_options, 
+    while ((c = getopt_long(argc, argv, "l:VhnqapfvU:R:r?d", long_options, 
 	(int *)0)) != EOF) 
     {
 	switch (c) {
@@ -173,13 +164,6 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    break;
 	case 'v':
 	    aal_set_bit(&data->options, FSCK_OPT_VERBOSE);
-	    break;
-/*	case 'k':
-	    print_plugins = 1;
-	    break;*/
-	case 'o':
-	    aal_strncat(override, optarg, aal_strlen(optarg));
-	    aal_strncat(override, ",", 1);
 	    break;
 	case 'h': 
 	case '?':

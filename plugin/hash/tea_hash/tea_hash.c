@@ -151,7 +151,6 @@ static reiser4_plug_t tea_hash_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "tea_hash",
 	.desc  = "Tea hash for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.hash_ops = &tea_hash_ops

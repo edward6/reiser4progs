@@ -83,7 +83,6 @@ static reiser4_plug_t sdext_symlink_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_symlink",
 	.desc  = "Symlink stat data extention for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.sdext_ops = &sdext_symlink_ops

@@ -750,7 +750,6 @@ static reiser4_plug_t alloc40_plug = {
 	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
 	.label = "alloc40",
 	.desc  = "Space allocator for reiser4, ver. " VERSION,
-	.data  = NULL,
 	.o = {
 		.alloc_ops = &alloc40_ops
 	}

@@ -3,9 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* move all function declarations in all *_repair.c to corresponding
-  header files.
-
 * fix reiser4_object_begin()
 
 * cleanup in node plugins and cde plugins.

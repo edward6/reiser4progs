@@ -54,11 +54,10 @@
 
 #define INVAL_DIG (0x7fffffff)
 
-extern void misc_plug_list(void);
+extern void misc_plugins_print(void);
 extern long long misc_size2long(const char *str);
 extern void misc_upper_case(char *dst, const char *src);
 extern long long misc_str2long(const char *str, int base);
-
 extern errno_t misc_dev_mounted(const char *name, const char *ops);
 
 #endif

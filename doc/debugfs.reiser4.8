@@ -68,8 +68,13 @@ prints the block allocator data.
 prints the oid allocator data.
 .SH PLUGIN OPTIONS
 .TP
-.B -P, --known-plugins
-prints known plugins.
+.B -P, --print-profile
+prints current profile. Profile is the set of plugins used for each
+filesystem object (format, node, file, directories, hashes, etc.). If
+--override is specified, then prints modified profile.
+.TP
+.B -p, --print-plugins
+prints all plugins libreiser4 know about.
 .TP
 .B -o, --override TYPE=PLUGIN, ...
 overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"

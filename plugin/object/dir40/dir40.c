@@ -14,14 +14,16 @@ extern reiser4_plug_t dir40_plug;
 
 /* Gets size from the object stat data */
 static uint64_t dir40_size(object_entity_t *entity) {
-	dir40_t *dir = (dir40_t *)entity;
+	dir40_t *dir;
 
 	aal_assert("umka-2277", entity != NULL);
 	
+	dir = (dir40_t *)entity;
+	
 #ifndef ENABLE_STAND_ALONE
 	/* Updating stat data place */
-	if (obj40_stat(&dir->obj))
-		return 0;
+	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
+		return -EINVAL;
 #endif
 
 	return obj40_get_size(&dir->obj);
@@ -129,21 +131,6 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	return 0;
 }
 
-/* Updates body item */
-static errno_t dir40_update(object_entity_t *entity) {
-	dir40_t *dir = (dir40_t *)entity;
-	
-	/* Looking for stat data place */
-	switch (obj40_lookup(&dir->obj, &dir->body.key,
-			     LEAF_LEVEL, &dir->body))
-	{
-	case PRESENT:
-		return 0;
-	default:
-		return -EINVAL;
-	}
-}
-
 /* Trying to guess hash in use by stat data extention */
 static reiser4_plug_t *dir40_hash(object_entity_t *entity, rid_t pid) {
 	dir40_t *dir;
@@ -174,11 +161,12 @@ static lookup_t dir40_next(object_entity_t *entity) {
 
 	aal_assert("umka-2063", entity != NULL);
 
+	dir = (dir40_t *)entity;
+	
 	/* Making sure, that dir->body points to correct item */
-	if (dir40_update(entity))
+	if (obj40_update(&dir->obj, &dir->body))
 		return FAILED;
 	
-	dir = (dir40_t *)entity;
 	dir->body.pos.unit = dir->unit;
 	
 	/* Getting next directory item */
@@ -229,7 +217,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		return -EINVAL;
 
 	/* Making sure, that dir->body points to correct item */
-	if (dir40_update(entity))
+	if (obj40_update(&dir->obj, &dir->body))
 		return -EINVAL;
 	
 	units = plug_call(place->plug->o.item_ops,
@@ -425,7 +413,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
         }
 
 	/* Initialziing statdata place */
-	aal_memcpy(STAT_ITEM(&dir->obj), &info->start,
+	aal_memcpy(STAT_PLACE(&dir->obj), &info->start,
 		   sizeof(info->start));
 
 	/* Positioning to the first directory unit */
@@ -594,7 +582,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	/* Looking for place to insert directory stat data */
 	switch (obj40_lookup(&dir->obj, &stat_hint.key,
-			     LEAF_LEVEL, STAT_ITEM(&dir->obj)))
+			     LEAF_LEVEL, STAT_PLACE(&dir->obj)))
 	{
 	case FAILED:
 	case PRESENT:
@@ -605,13 +593,14 @@ static object_entity_t *dir40_create(object_info_t *info,
 	
 	/* Inserting stat data and body into the tree */
 	if (obj40_insert(&dir->obj, &stat_hint,
-			 LEAF_LEVEL, STAT_ITEM(&dir->obj)))
+			 LEAF_LEVEL, STAT_PLACE(&dir->obj)))
 	{
 		goto error_free_body;
 	}
 	
 	/* Saving stat data place insert function has returned */
-	aal_memcpy(&info->start, STAT_ITEM(&dir->obj), sizeof(info->start));
+	aal_memcpy(&info->start, STAT_PLACE(&dir->obj),
+		   sizeof(info->start));
 	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
@@ -657,7 +646,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Making sure, that dir->body points to correct item */
-	if (dir40_update(entity))
+	if (obj40_update(&dir->obj, &dir->body))
 		return -EINVAL;
 	
 	/* Getting maximal possible key form directory item. We will use it for
@@ -699,10 +688,10 @@ static errno_t dir40_clobber(object_entity_t *entity) {
 
 	dir = (dir40_t *)entity;
 
-	if (obj40_stat(&dir->obj))
+	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
 		return -EINVAL;
 
-	return obj40_remove(&dir->obj, STAT_ITEM(&dir->obj), 1);
+	return obj40_remove(&dir->obj, STAT_PLACE(&dir->obj), 1);
 }
 
 static key_entity_t *dir40_origin(object_entity_t *entity) {
@@ -792,7 +781,7 @@ static errno_t dir40_link(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	/* Updating stat data place */
-	if (obj40_stat(&dir->obj))
+	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
 		return -EINVAL;
 	
 	return obj40_link(&dir->obj, 1);
@@ -805,7 +794,7 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 
 	dir = (dir40_t *)entity;
 	
-	if (obj40_stat(&dir->obj))
+	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
 		return -EINVAL;
 	
 	return obj40_link(&dir->obj, -1);
@@ -858,8 +847,10 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	key = STAT_KEY(&dir->obj);
 
-	if (dir->body.plug == NULL && dir40_update(entity))
-		return -EINVAL;
+	if (dir->body.plug == NULL) {
+		if (obj40_update(&dir->obj, &dir->body))
+			return -EINVAL;
+	}
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -903,8 +894,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	}
 
 	/* Updating stat data place */
-	if ((res = obj40_stat(&dir->obj)))
-		return res;
+	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
+		return -EINVAL;
 	
 	/* Updating stat data fields */
 	size = obj40_get_size(&dir->obj);
@@ -912,7 +903,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
-	if ((res = obj40_read_ext(STAT_ITEM(&dir->obj),
+	if ((res = obj40_read_ext(STAT_PLACE(&dir->obj),
 				  SDEXT_UNIX_ID, 
 				  &unix_hint)))
 	{
@@ -925,7 +916,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes += dir40_estimate(entity, entry);
 
-	return obj40_write_ext(STAT_ITEM(&dir->obj),
+	return obj40_write_ext(STAT_PLACE(&dir->obj),
 			       SDEXT_UNIX_ID, &unix_hint);
 }
 
@@ -953,8 +944,10 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	key = STAT_KEY(&dir->obj);
 
-	if (dir->body.plug == NULL && dir40_update(entity))
-		return -EINVAL;
+	if (dir->body.plug == NULL) {
+		if (obj40_update(&dir->obj, &dir->body))
+			return -EINVAL;
+	}
 	
 	/* Generating key of the entry to be removed */
 	locality = obj40_locality(&dir->obj);
@@ -980,9 +973,9 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 		return res;
 
 	/* Updating directory body  */
-	if ((res = dir40_update(entity)))
-		return res;
-	
+	if (obj40_update(&dir->obj, &dir->body))
+		return -EINVAL;
+
 	units = plug_call(dir->body.plug->o.item_ops,
 			  units, &dir->body);
 
@@ -1005,8 +998,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	}
 
 	/* Updating stat data place */
-	if ((res = obj40_stat(&dir->obj)))
-		return res;
+	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
+		return -EINVAL;
 	
 	/* Updating size field */
 	size = obj40_get_size(&dir->obj);
@@ -1014,9 +1007,12 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size - 1)))
 		return res;
 
-	if ((res = obj40_read_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, 
+	if ((res = obj40_read_ext(STAT_PLACE(&dir->obj),
+				  SDEXT_UNIX_ID, 
 				  &unix_hint)))
+	{
 		return res;
+	}
 	
 	atime = time(NULL);
 	
@@ -1024,8 +1020,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes -= dir40_estimate(entity, entry);
 
-	return obj40_write_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, 
-			       &unix_hint);
+	return obj40_write_ext(STAT_PLACE(&dir->obj),
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 struct layout_hint {
@@ -1075,7 +1071,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 	
-	if (dir40_update(entity))
+	if (obj40_update(&dir->obj, &dir->body))
 		return -EINVAL;
 	
 	while (1) {
@@ -1120,10 +1116,10 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	
 	dir = (dir40_t *)entity;
 	
-	if (dir40_update(entity))
+	if (obj40_update(&dir->obj, &dir->body))
 		return -EINVAL;
 	
-	if ((res = place_func(entity, STAT_ITEM(&dir->obj), data)))
+	if ((res = place_func(entity, STAT_PLACE(&dir->obj), data)))
 		return res;
 
 	while (1) {
@@ -1202,7 +1198,6 @@ reiser4_plug_t dir40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "dir40",
 	.desc  = "Compound directory for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.object_ops = &dir40_ops

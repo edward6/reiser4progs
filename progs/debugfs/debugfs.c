@@ -47,7 +47,8 @@ static void debugfs_print_usage(char *name) {
 		"  -i, --print-items FILE          prints all items specified file\n"
 		"                                  consists of.\n"
 		"Plugins options:\n"
-		"  -P, --known-plugins             prints known plugins.\n"
+		"  -P, --print-profile             prints default profile.\n"
+		"  -p, --print-plugins             prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -121,7 +122,8 @@ int main(int argc, char *argv[]) {
 		{"print-block", required_argument, NULL, 'b'},
 		{"print-nodes", required_argument, NULL, 'n'},
 		{"print-items", required_argument, NULL, 'i'},
-		{"known-plugins", no_argument, NULL, 'P'},
+		{"print-profile", no_argument, NULL, 'P'},
+		{"print-plugins", no_argument, NULL, 'p'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
@@ -134,7 +136,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:P",
+	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Pp",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -188,8 +190,11 @@ int main(int argc, char *argv[]) {
 		case 'q':
 			behav_flags |= BF_QUIET;
 			break;
-		case 'P':
+		case 'p':
 			behav_flags |= BF_PLUGS;
+			break;
+		case 'P':
+			behav_flags |= BF_PROF;
 			break;
 		case 'o':
 			aal_strncat(override, optarg, aal_strlen(optarg));
@@ -199,11 +204,6 @@ int main(int argc, char *argv[]) {
 			debugfs_print_usage(argv[0]);
 			return NO_ERROR;
 		}
-	}
-    
-	if (optind >= argc) {
-		debugfs_print_usage(argv[0]);
-		return USER_ERROR;
 	}
     
 	if (!(behav_flags & BF_QUIET))
@@ -230,12 +230,15 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
 	}
 	
-	if (behav_flags & BF_PLUGS) {
+	if (behav_flags & BF_PROF)
 		misc_profile_print();
-		libreiser4_fini();
-		return 0;
-	}
-	
+
+	if (behav_flags & BF_PLUGS)
+		misc_plugins_print();
+
+	if (optind >= argc)
+		goto error_free_libreiser4;
+		
 	host_dev = argv[optind];
     
 	if (stat(host_dev, &st) == -1) {

@@ -35,7 +35,7 @@ object_entity_t *sym40_open(object_info_t *info) {
 	obj40_init(&sym->obj, &sym40_plug, core, info);
 
 	/* Initialziing statdata place */
-	aal_memcpy(STAT_ITEM(&sym->obj), &info->start,
+	aal_memcpy(STAT_PLACE(&sym->obj), &info->start,
 		   sizeof(info->start));
 	
 	return (object_entity_t *)sym;
@@ -55,7 +55,7 @@ static int32_t sym40_read(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 
-	if (obj40_stat(&sym->obj))
+	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
 		return -EINVAL;
 
 	aal_memset(&hint, 0, sizeof(hint));
@@ -64,7 +64,7 @@ static int32_t sym40_read(object_entity_t *entity,
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
-	place = STAT_ITEM(&sym->obj);
+	place = STAT_PLACE(&sym->obj);
 
 	if (plug_call(place->plug->o.item_ops,
 		      read, place, &hint, 0, 1) != 1)
@@ -163,8 +163,8 @@ static object_entity_t *sym40_create(object_info_t *info,
 
 	stat_hint.type_specific = &stat;
 
-	switch (obj40_lookup(&sym->obj, &stat_hint.key, LEAF_LEVEL, 
-			     STAT_ITEM(&sym->obj)))
+	switch (obj40_lookup(&sym->obj, &stat_hint.key,
+			     LEAF_LEVEL, STAT_PLACE(&sym->obj)))
 	{
 	case FAILED:
 	case PRESENT:
@@ -175,13 +175,14 @@ static object_entity_t *sym40_create(object_info_t *info,
 	
 	/* Inserting stat data into the tree */
 	if (obj40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, 
-			 STAT_ITEM(&sym->obj)))
+			 STAT_PLACE(&sym->obj)))
 	{
 		goto error_free_sym;
 	}
 
 	/* Saving statdata place and locking the node it lies in */
-	aal_memcpy(&info->start, STAT_ITEM(&sym->obj), sizeof(info->start));
+	aal_memcpy(&info->start, STAT_PLACE(&sym->obj),
+		   sizeof(info->start));
 
 	return (object_entity_t *)sym;
 
@@ -191,57 +192,53 @@ static object_entity_t *sym40_create(object_info_t *info,
 }
 
 static errno_t sym40_clobber(object_entity_t *entity) {
-	errno_t res;
 	sym40_t *sym;
 	
 	aal_assert("umka-2300", entity != NULL);
 
 	sym = (sym40_t *)entity;
 	
-	if ((res = obj40_stat(&sym->obj)))
-		return res;
+	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+		return -EINVAL;
 
-	return obj40_remove(&sym->obj, STAT_ITEM(&sym->obj), 1);
+	return obj40_remove(&sym->obj, STAT_PLACE(&sym->obj), 1);
 }
 
 static uint32_t sym40_links(object_entity_t *entity) {
-	errno_t res;
 	sym40_t *sym;
 	
 	aal_assert("umka-2295", entity != NULL);
 
 	sym = (sym40_t *)entity;
 	
-	if ((res = obj40_stat(&sym->obj)))
-		return res;
+	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+		return -EINVAL;
 
 	return obj40_get_nlink(&sym->obj);
 }
 
 static errno_t sym40_link(object_entity_t *entity) {
-	errno_t res;
 	sym40_t *sym;
 	
 	aal_assert("umka-1915", entity != NULL);
 
 	sym = (sym40_t *)entity;
 	
-	if ((res = obj40_stat(&sym->obj)))
-		return res;
+	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+		return -EINVAL;
 	
 	return obj40_link(&sym->obj, 1);
 }
 
 static errno_t sym40_unlink(object_entity_t *entity) {
-	errno_t res;
 	sym40_t *sym;
 	
 	aal_assert("umka-1914", entity != NULL);
 
 	sym = (sym40_t *)entity;
 	
-	if ((res = obj40_stat(&sym->obj)))
-		return res;
+	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+		return -EINVAL;
 
 	return obj40_link(&sym->obj, -1);
 }
@@ -251,7 +248,6 @@ static errno_t sym40_metadata(object_entity_t *entity,
 			      place_func_t place_func,
 			      void *data)
 {
-	errno_t res;
 	sym40_t *sym;
 
 	aal_assert("umka-1718", entity != NULL);
@@ -259,10 +255,10 @@ static errno_t sym40_metadata(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 
-	if ((res = obj40_stat(&sym->obj)))
-		return res;
+	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+		return -EINVAL;
 
-	return place_func(entity, STAT_ITEM(&sym->obj), data);
+	return place_func(entity, STAT_PLACE(&sym->obj), data);
 }
 
 /* Calls function @func for each block symlink items lie in */
@@ -271,7 +267,6 @@ static errno_t sym40_layout(object_entity_t *entity,
 			    void *data)
 {
 	blk_t blk;
-	errno_t res;
 	sym40_t *sym;
 
 	aal_assert("umka-1720", entity != NULL);
@@ -279,10 +274,10 @@ static errno_t sym40_layout(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 
-	if ((res = obj40_stat(&sym->obj)))
-		return res;
+	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+		return -EINVAL;
 	
-	blk = STAT_ITEM(&sym->obj)->con.blk;
+	blk = STAT_PLACE(&sym->obj)->con.blk;
 
 	return block_func(entity, blk, data);
 }
@@ -317,7 +312,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 		return -EIO;
 
 	return sym->obj.core->object_ops.resolve(sym->obj.info.tree,
-						 STAT_ITEM(&sym->obj),
+						 STAT_PLACE(&sym->obj),
 						 path, from, key);
 }
 
@@ -370,7 +365,6 @@ reiser4_plug_t sym40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "sym40",
 	.desc  = "Symlink plugin for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.object_ops = &sym40_ops

@@ -416,7 +416,6 @@ static reiser4_plug_t tail40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "tail40",
 	.desc  = "Tail item for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.item_ops = &tail40_ops

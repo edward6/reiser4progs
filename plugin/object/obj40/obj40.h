@@ -14,7 +14,7 @@ static reiser4_core_t *core = NULL;
 #define STAT_KEY(o) \
         (&((o)->info.start.key))
 
-#define STAT_ITEM(o) \
+#define STAT_PLACE(o) \
         (&((o)->info.start))
 
 struct obj40 {
@@ -39,7 +39,9 @@ extern oid_t obj40_objectid(obj40_t *obj);
 extern oid_t obj40_locality(obj40_t *obj);
 extern uint64_t obj40_ordering(obj40_t *obj);
 
-extern errno_t obj40_stat(obj40_t *obj);
+extern errno_t obj40_update(obj40_t *obj,
+			    place_t *place);
+
 extern rid_t obj40_pid(place_t *place);
 
 extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,

@@ -55,17 +55,6 @@ fixes what can be fixed without rebuild
 .TP
 .B --rebuild
 fixes all fs corruptions
-.SH PLUGIN OPTIONS
-.TP
-.B -P, --known-plugins
-prints known plugins.
-.TP
-.B -o, --override TYPE=PLUGIN, ...
-overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
-.sp 1
-Examples:
-.sp 1
-fsck.reiser4 -o hash=rupasov_hash --check /dev/hda2
 .RS
 .SH REPORTING BUGS
 Report bugs to <vitaly@namesys.com>, <reiserfs-list@namesys.com>

@@ -358,11 +358,8 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 				  extmask);
 	}
 				
-	aal_stream_format(stream, "label:\t\t%s\n",
-			  sdext->plug->label);
-	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  sdext->plug->desc);
+			  sdext->plug->label);
 	
 	aal_stream_format(stream, "offset:\t\t%u\n",
 			  sdext->offset);
@@ -453,7 +450,6 @@ static reiser4_plug_t stat40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "stat40",
 	.desc  = "Stat data item for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.item_ops = &stat40_ops

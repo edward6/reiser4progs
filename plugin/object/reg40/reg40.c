@@ -21,14 +21,16 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 
 static uint64_t reg40_size(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
+	reg40_t *reg;
 
 	aal_assert("umka-2278", entity != NULL);
 	
+	reg = (reg40_t *)entity;
+	
 #ifndef ENABLE_STAND_ALONE
 	/* Updating stat data place */
-	if (obj40_stat(&reg->obj))
-		return 0;
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
+		return -EINVAL;
 #endif
 
 	return obj40_get_size(&reg->obj);
@@ -70,20 +72,6 @@ static lookup_t reg40_next(reg40_t *reg) {
 	}
 
 	return res;
-}
-
-static errno_t reg40_update(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-	
-	/* Looking for stat data place */
-	switch (obj40_lookup(&reg->obj, &reg->body.key,
-			     LEAF_LEVEL, &reg->body))
-	{
-	case PRESENT:
-		return 0;
-	default:
-		return -EINVAL;
-	}
 }
 
 /* Resets file position. That is it searches first body item and sets file's
@@ -174,7 +162,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 
 	/* Initialziing statdata place */
-	aal_memcpy(STAT_ITEM(&reg->obj), &info->start,
+	aal_memcpy(STAT_PLACE(&reg->obj), &info->start,
 		   sizeof(info->start));
 	
 	/* Reseting file (setting offset to 0) */
@@ -276,7 +264,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 	stat_hint.type_specific = &stat;
 
 	switch (obj40_lookup(&reg->obj, &stat_hint.key,
-			     LEAF_LEVEL, STAT_ITEM(&reg->obj)))
+			     LEAF_LEVEL, STAT_PLACE(&reg->obj)))
 	{
 	case FAILED:
 	case PRESENT:
@@ -287,12 +275,13 @@ static object_entity_t *reg40_create(object_info_t *info,
 	
 	/* Insert statdata item into the tree */
 	if (obj40_insert(&reg->obj, &stat_hint,
-			 LEAF_LEVEL, STAT_ITEM(&reg->obj)))
+			 LEAF_LEVEL, STAT_PLACE(&reg->obj)))
 	{
 		goto error_free_reg;
 	}
 
-	aal_memcpy(&info->start, STAT_ITEM(&reg->obj), sizeof(info->start));
+	aal_memcpy(&info->start, STAT_PLACE(&reg->obj),
+		   sizeof(info->start));
 	
 	reg->bplug = reg40_bplug((object_entity_t *)reg, 0);
 	return (object_entity_t *)reg;
@@ -313,7 +302,7 @@ static uint32_t reg40_links(object_entity_t *entity) {
 
 	reg = (reg40_t *)entity;
 	
-	if (obj40_stat(&reg->obj))
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
 		return -EINVAL;
 	
 	return obj40_get_nlink(&reg->obj);
@@ -327,23 +316,22 @@ static errno_t reg40_link(object_entity_t *entity) {
 	reg = (reg40_t *)entity;
 	
 	/* Updating stat data place */
-	if (obj40_stat(&reg->obj))
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
 		return -EINVAL;
 	
 	return obj40_link(&reg->obj, 1);
 }
 
 static errno_t reg40_unlink(object_entity_t *entity) {
-	errno_t res;
 	reg40_t *reg;
 	
 	aal_assert("umka-1911", entity != NULL);
 
 	reg = (reg40_t *)entity;
 	
-	if ((res = obj40_stat(&reg->obj)))
-		return res;
-
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
+		return -EINVAL;
+	
 	return obj40_link(&reg->obj, -1);
 }
 
@@ -447,8 +435,8 @@ static int32_t reg40_put(object_entity_t *entity,
 	}
 	
 	/* Updating stat data place */
-	if ((res = obj40_stat(&reg->obj)))
-		return res;
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
+		return -EINVAL;
 	
 	/* Updating stat data fields */
 	size = obj40_get_size(&reg->obj);
@@ -461,7 +449,7 @@ static int32_t reg40_put(object_entity_t *entity,
 			return res;
 	}
 	
-	place = STAT_ITEM(&reg->obj);
+	place = STAT_PLACE(&reg->obj);
 	
 	if ((res = obj40_read_ext(place, SDEXT_UNIX_ID, &unix_hint)))
 		return res;
@@ -489,8 +477,8 @@ static errno_t reg40_holes(object_entity_t *entity) {
 	reg = (reg40_t *)entity;
 
 	/* Updating stat data place */
-	if ((res = obj40_stat(&reg->obj)))
-		return res;
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
+		return -EINVAL;
 	
 	size = obj40_get_size(&reg->obj);
 
@@ -536,8 +524,8 @@ static errno_t reg40_cut(object_entity_t *entity) {
 	reg = (reg40_t *)entity;
 	
 	/* Updating stat data place */
-	if ((res = obj40_stat(&reg->obj)))
-		return res;
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
+		return -EINVAL;
 	
 	/* Getting file size */
 	size = obj40_get_size(&reg->obj);
@@ -629,8 +617,8 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	reg = (reg40_t *)entity;
 	
 	/* Updating stat data place */
-	if ((res = obj40_stat(&reg->obj)))
-		return res;
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
+		return -EINVAL;
 	
 	/* Getting file size */
 	size = obj40_get_size(&reg->obj);
@@ -652,8 +640,8 @@ static errno_t reg40_truncate(object_entity_t *entity,
 			goto error_restore_offset;
 	}
 
-	if ((res = obj40_stat(&reg->obj)))
-		return res;
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
+		return -EINVAL;
 
 	obj40_set_size(&reg->obj, n);
 
@@ -677,10 +665,10 @@ static errno_t reg40_clobber(object_entity_t *entity) {
 
 	reg = (reg40_t *)entity;
 	
-	if (obj40_stat(&reg->obj))
+	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
 		return -EINVAL;
 
-	return obj40_remove(&reg->obj, STAT_ITEM(&reg->obj), 1);
+	return obj40_remove(&reg->obj, STAT_PLACE(&reg->obj), 1);
 }
 
 struct layout_hint {
@@ -728,7 +716,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 	if ((size = reg40_size(entity)) == 0)
 		return 0;
 
-	if (reg40_update(entity))
+	if (obj40_update(&reg->obj, &reg->body))
 		return -EINVAL;
 
 	hint.data = data;
@@ -782,13 +770,13 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	aal_assert("umka-1716", entity != NULL);
 	aal_assert("umka-1717", place_func != NULL);
 
-	if ((res = place_func(entity, STAT_ITEM(&reg->obj), data)))
+	if ((res = place_func(entity, STAT_PLACE(&reg->obj), data)))
 		return res;
 
 	if ((size = reg40_size(entity)) == 0)
 		return 0;
 	
-	if (reg40_update(entity))
+	if (obj40_update(&reg->obj, &reg->body))
 		return -EINVAL;
 
 	while (reg->offset < size) {
@@ -854,14 +842,13 @@ static reiser4_object_ops_t reg40_ops = {
 	.clobber        = reg40_clobber,
 	.origin         = reg40_origin,
 	.realize        = reg40_realize,
-	
+	.check_struct   = reg40_check_struct,
+
+	.check_attach 	= NULL,
 	.add_entry      = NULL,
 	.rem_entry      = NULL,
 	.attach         = NULL,
 	.detach         = NULL,
-	
-	.check_attach 	= NULL,
-	.check_struct   = reg40_check_struct,
 #endif
 	.lookup	        = NULL,
 	.follow         = NULL,
@@ -884,7 +871,6 @@ reiser4_plug_t reg40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "reg40",
 	.desc  = "Regular file for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.object_ops = &reg40_ops

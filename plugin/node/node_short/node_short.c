@@ -1513,7 +1513,6 @@ static reiser4_plug_t node_short_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "node_short",
 	.desc  = "Node plugin for reiser4, ver. " VERSION,
-	.data  = NULL,
 #endif
 	.o = {
 		.node_ops = &node_short_ops

@@ -196,7 +196,6 @@ static reiser4_plug_t oid40_plug = {
 	.id    = {OID_REISER40_ID, 0, OID_PLUG_TYPE},
 	.label = "oid40",
 	.desc  = "Inode allocator for reiser4, ver. " VERSION,
-	.data  = NULL,
 	.o = {
 		.oid_ops = &oid40_ops
 	}

@@ -22,7 +22,8 @@
 enum cpfs_behav_flags {
 	BF_FORCE   = 1 << 0,
 	BF_QUIET   = 1 << 1,
-	BF_PLUGS   = 1 << 2
+	BF_PROF    = 1 << 2,
+	BF_PLUGS   = 1 << 3
 };
 
 typedef enum cpfs_behav_flags cpfs_behav_flags_t;
@@ -40,7 +41,8 @@ static void cpfs_print_usage(char *name) {
 		"  -f, --force                     makes cpfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"Plugins options:\n"
-		"  -P, --known-plugins             prints known plugins.\n"
+		"  -P, --print-profile             prints default profile.\n"
+		"  -p, --known-plugins             prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -77,22 +79,18 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
 		{"quiet", no_argument, NULL, 'q'},
-		{"known-plugins", no_argument, NULL, 'P'},
+		{"print-profile", no_argument, NULL, 'P'},
+		{"print-plugins", no_argument, NULL, 'p'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
     
 	cpfs_init();
 
-	if (argc < 3) {
-		cpfs_print_usage(argv[0]);
-		return USER_ERROR;
-	}
-
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfPo:", long_options, 
+	while ((c = getopt_long(argc, argv, "hVqfPpo:", long_options, 
 				(int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -109,6 +107,9 @@ int main(int argc, char *argv[]) {
 			flags |= BF_QUIET;
 			break;
 		case 'P':
+			flags |= BF_PROF;
+			break;
+		case 'p':
 			flags |= BF_PLUGS;
 			break;
 		case 'o':
@@ -121,11 +122,6 @@ int main(int argc, char *argv[]) {
 			cpfs_print_usage(argv[0]);
 			return NO_ERROR;
 		}
-	}
-    
-	if (optind >= argc) {
-		cpfs_print_usage(argv[0]);
-		return USER_ERROR;
 	}
     
 	if (!(flags & BF_QUIET))
@@ -155,11 +151,14 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
 	}
 
-	if (flags & BF_PLUGS) {
+	if (flags & BF_PROF)
 		misc_profile_print();
-		libreiser4_fini();
-		return 0;
-	}
+	
+	if (flags & BF_PLUGS)
+		misc_plugins_print();
+
+	if (optind >= argc)
+		goto error_free_libreiser4;
 	
 	src_dev = argv[optind++];
 	dst_dev = argv[optind++];
