@@ -107,7 +107,7 @@ static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key,
 	
 	aal_exception_error("Node (%llu), item(%u): the key [%s] of the item "
 			    "is wrong, %s [%s]. Plugin (%s).", 
-			    place->con.blk, place->pos.unit, 
+			    place->block->nr, place->pos.unit, 
 			    core->key_ops.print(&place->key, PO_DEF),
 			    mode == RM_BUILD ? "fixed to" : "should be", 
 			    core->key_ops.print(key, PO_DEF), 
@@ -118,31 +118,11 @@ static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key,
 	
 	if ((res = core->tree_ops.ukey(info->tree, place, key))) {
 		aal_exception_error("Node (%llu), item(%u): update of the "
-				    "item key failed.", place->con.blk,
+				    "item key failed.", place->block->nr,
 				    place->pos.unit);
 	}
 
 	return res;
-}
-
-static void reg40_check_mode(uint16_t *mode) {
-	if (!S_ISREG(*mode)) {
-		*mode &= ~S_IFMT;
-        	*mode |= S_IFREG;
-	}
-}
-
-static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
-	/* FIXME-VITALY: This is not correct for extents as the last 
-	   block can be not used completely. Where to take the policy
-	   plugin to figure out if size is correct? */
-	if (*sd_size < counted_size)
-		*sd_size = counted_size;
-}
-
-/* Zero nlink number for BUILD mode. */
-static void reg40_zero_nlink(uint32_t *nlink) {
-	*nlink = 0;
 }
 
 static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
@@ -241,7 +221,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			aal_exception_error("Node (%llu), item (%u): statdata "
 					    "has unknown set of extentions "
 					    "(0x%llx). Plugin (%s)", 
-					    info->start.con.blk, 
+					    info->start.block->nr, 
 					    info->start.pos.item, extmask,
 					    info->start.plug->label);
 			return RE_FATAL;
