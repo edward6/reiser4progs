@@ -246,7 +246,7 @@ errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
     plugin_call(hint->end.plugin->o.key_ops, set_offset, &hint->end, src_max);
     
     lookup = extent40_lookup(dst, &key, &pos);
-    aal_assert("vpf-1001", lookup == LP_PRESENT);
+    aal_assert("vpf-1001", lookup == PRESENT);
 	
     hint->dst_count = pos - dst_pos + 1;
     hint->src_count = extent40_unit(src, src_max - 1 - src_min) - src_pos + 1;
