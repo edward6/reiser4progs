@@ -272,6 +272,7 @@ int main(int argc, char *argv[]) {
     memset(&parse_data, 0, sizeof(parse_data));
     memset(&repair, 0, sizeof(repair));
     aal_stream_init(&stream);
+    gauge = aal_gauge_create(GAUGE_SILENT, NULL);
 
     if ((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)
 	exit(exit_code);
@@ -288,7 +289,7 @@ int main(int argc, char *argv[]) {
 
     fsck_time("fsck.reiser4 started at");
 
-    gauge = aal_gauge_create(GAUGE_SILENT, "Openning the fs", NULL);
+    aal_gauge_rename(gauge, "Openning the fs");
     aal_gauge_start(gauge);
     if ((error = repair_fs_open(&repair, parse_data.host_device, parse_data.host_device,
 	parse_data.profile)))
