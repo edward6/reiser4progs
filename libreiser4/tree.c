@@ -851,14 +851,14 @@ errno_t reiser4_tree_mkspace(
 	return -(not_enough > 0);
 }
 
-errno_t reiser4_tree_split(
-	reiser4_tree_t *tree, 
-	reiser4_coord_t *coord, 
-	int level) 
+errno_t reiser4_tree_split(reiser4_tree_t *tree, 
+			   reiser4_coord_t *coord, 
+			   int level) 
 {
+	int cur_level;
+	uint64_t stamp;
 	reiser4_node_t *node;
 	reiser4_pos_t pos = {0, 0};
-	int cur_level;
 	
 	aal_assert("vpf-672", tree != NULL, return -1);
 	aal_assert("vpf-673", coord != NULL, return -1);
@@ -880,24 +880,25 @@ errno_t reiser4_tree_split(
 		{
 			/* We are not on the border, split. */
 			if ((node = reiser4_tree_allocate(tree, cur_level)) == NULL) {
-				aal_exception_error("Tree failed to allocate a new node.");
+				aal_exception_error("Tree failed to allocate "
+						    "a new node.");
 				return -1;
 			}
     
-			/* set flush_id */
-			reiser4_node_set_flush_stamp(node, 
-				reiser4_node_get_flush_stamp(coord->node));
+			/* Set flush_id */
+			stamp = reiser4_node_get_flush_stamp(coord->node);
+			reiser4_node_set_flush_stamp(node, stamp);
     
 			if (reiser4_tree_shift(tree, coord, node, SF_RIGHT)) {
-				aal_exception_error("Tree failed to shift into a newly "
+				aal_exception_error("Tree failed to shift "
+						    "into a newly "
 						    "allocated node.");
 				goto error_free_node;
 			}
 		
-			aal_assert("vpf-640", reiser4_node_items(node) != 0, return -1);
-
 			if (reiser4_tree_attach(tree, node)) {
-				aal_exception_error("Tree failed to attach a newly allocated "
+				aal_exception_error("Tree failed to attach "
+						    "a newly allocated "
 						    "node to the tree.");
 				goto error_free_node;
 			}
@@ -917,7 +918,7 @@ errno_t reiser4_tree_split(
 	
 	return 0;
 	
-error_free_node:
+ error_free_node:
 	reiser4_node_close(node);
 	return -1;
 }
