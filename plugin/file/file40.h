@@ -47,6 +47,12 @@ extern errno_t file40_realize(file40_t *file);
 extern errno_t file40_get_mode(item_entity_t *item,
 			       uint16_t *mode);
 
+extern errno_t file40_get_size(item_entity_t *item,
+			       uint64_t *size);
+
+extern errno_t file40_set_size(item_entity_t *item,
+			       uint64_t size);
+
 extern errno_t reg40_get_size(item_entity_t *item,
 			      uint64_t *size);
 
