@@ -3188,7 +3188,7 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 
  error_after_func:
 	if (after_func)
-		res = after_func(tree, node, data);
+		after_func(tree, node, data);
 
  error_unlock_node:
 	reiser4_tree_unlock_node(tree, node);
