@@ -51,8 +51,8 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 	nodeptr40_t *nodeptr;
 	
 	aal_assert("umka-1749", item != NULL);
-	aal_assert("umka-1750", func != NULL);
 	aal_assert("vpf-718",   item->body != NULL);
+	aal_assert("umka-1750", region_func != NULL);
 
 	nodeptr = nodeptr40_body(item);
 	return region_func(item, np40_get_ptr(nodeptr), 1, data);

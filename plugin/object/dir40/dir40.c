@@ -140,8 +140,8 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	dir40_t *dir;
 	place_t next;
 
-	item_entity_t *item;
 	entry_hint_t entry;
+	item_entity_t *item;
 
 	aal_assert("umka-2063", entity != NULL);
 	
@@ -208,9 +208,14 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		if (dir->body.pos.unit >= units)
 			dir40_next(entity);
 		else {
+			entry_hint_t current;
+			
 			plugin_call(item->plugin->item_ops,
-				    read, item, entry,
+				    read, item, &current,
 				    dir->body.pos.unit, 1);
+
+			aal_memcpy(&dir->offset, &current.offset,
+				   sizeof(dir->offset));
 		}
 	
 		return 0;

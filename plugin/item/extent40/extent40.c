@@ -486,7 +486,7 @@ static errno_t extent40_layout(item_entity_t *item,
 	extent40_t *extent;
 	
 	aal_assert("umka-1747", item != NULL);
-	aal_assert("umka-1748", func != NULL);
+	aal_assert("umka-1748", region_func != NULL);
 
 	extent = extent40_body(item);
 	units = extent40_units(item);
