@@ -117,7 +117,7 @@ static inline void ks_set_el(key_short_t *key,
 			     key_short_field_t off,
 			     uint64_t value)
 {
-	put_unaligned(key->el + off, CPU_TO_LE64(value));
+	put_unaligned(CPU_TO_LE64(value), key->el + off);
 }
 
 static inline int ks_comp_el(void *k1, void *k2, int off) {
