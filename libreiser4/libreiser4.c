@@ -207,7 +207,7 @@ static int __print_key(FILE * stream, const struct printf_info *info,
     aal_memset(buffer, 0, sizeof(buffer));
     
     key = *((reiser4_key_t **)(args[0]));
-    reiser4_key_print(key, buffer, sizeof(buffer), 0);
+    reiser4_key_print(key, buffer, sizeof(buffer));
 
     fprintf(stream, "%s", buffer);
     

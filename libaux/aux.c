@@ -13,7 +13,7 @@
     0 - exact key has not been found. key of *pos < then wanted.
 */
 
-int reiser4_aux_binsearch(
+int aux_binsearch(
     void *array,		    /* opaque pointer to array item will be searched in */
     uint32_t count,		    /* array length */
     void *needle,		    /* array item to be found */
@@ -61,7 +61,7 @@ int reiser4_aux_binsearch(
 
 #ifndef ENABLE_COMPACT
 
-long int reiser4_aux_strtol(
+long int aux_strtol(
     const char *str,	    /* string to be converted */
     int *error		    /* error will be stored here */
 ) {
@@ -86,7 +86,7 @@ long int reiser4_aux_strtol(
     return result;
 }
 
-char *reiser4_aux_strcat(
+char *aux_strncat(
     char *dest,		    /* a buffer where result will be stored */
     uint32_t n,		    /* size of the buffer */
     const char *src,	    /* format string */
@@ -95,8 +95,10 @@ char *reiser4_aux_strcat(
     va_list arg_list;
     
     va_start(arg_list, src);
+
     aal_vsnprintf(dest + aal_strlen(dest), 
 	n - aal_strlen(dest), src, arg_list);
+    
     va_end(arg_list);
     
     return dest;

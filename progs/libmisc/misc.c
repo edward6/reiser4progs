@@ -44,7 +44,7 @@ long long progs_misc_size_parse(
     else
 	label = 0;	
 	
-    if ((size = reiser4_aux_strtol(number, error)) == 0 && *error)
+    if ((size = aux_strtol(number, error)) == 0 && *error)
 	return 0;
 	
     if (toupper(label) == toupper('m'))

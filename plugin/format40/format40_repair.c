@@ -102,21 +102,21 @@ errno_t format40_print(reiser4_entity_t *entity, char *buff,
     block = ((format40_t *)entity)->block;
     super = format40_super(block);
     
-    reiser4_aux_strcat(buff, n, "Label: %s\n", entity->plugin->h.label);
-    reiser4_aux_strcat(buff, n, "Description: %s\n", entity->plugin->h.desc);
-    reiser4_aux_strcat(buff, n, "Block number: %llu\n\n", aal_block_number(block));
+    aux_strncat(buff, n, "plugin:\t\t%s\n", entity->plugin->h.label);
+    aux_strncat(buff, n, "description:\t%s\n", entity->plugin->h.desc);
+    aux_strncat(buff, n, "block number:\t%llu\n", aal_block_number(block));
     
-    reiser4_aux_strcat(buff, n, "Magic: %s\n", super->sb_magic);
-    reiser4_aux_strcat(buff, n, "Flushes: %llu\n", get_sb_flushes(super));
-    reiser4_aux_strcat(buff, n, "Stamp: 0x%x\n", get_sb_mkfs_id(super));
+    aux_strncat(buff, n, "magic:\t\t%s\n", super->sb_magic);
+    aux_strncat(buff, n, "flushes:\t%llu\n", get_sb_flushes(super));
+    aux_strncat(buff, n, "stamp:\t\t0x%x\n", get_sb_mkfs_id(super));
     
-    reiser4_aux_strcat(buff, n, "Total blocks: %llu\n",get_sb_block_count(super));
-    reiser4_aux_strcat(buff, n, "Free blocks: %llu\n", get_sb_free_blocks(super));
-    reiser4_aux_strcat(buff, n, "Root block: %llu\n", get_sb_root_block(super));
-    reiser4_aux_strcat(buff, n, "Tail policy: %u\n", get_sb_tail_policy(super));
-    reiser4_aux_strcat(buff, n, "Next oid: 0x%llx\n", get_sb_oid(super));
-    reiser4_aux_strcat(buff, n, "File count: %llu\n", get_sb_file_count(super));
-    reiser4_aux_strcat(buff, n, "Tree height: %u\n", get_sb_tree_height(super));
+    aux_strncat(buff, n, "total blocks:\t%llu\n",get_sb_block_count(super));
+    aux_strncat(buff, n, "free blocks:\t%llu\n", get_sb_free_blocks(super));
+    aux_strncat(buff, n, "root block:\t%llu\n", get_sb_root_block(super));
+    aux_strncat(buff, n, "tail policy:\t%u\n", get_sb_tail_policy(super));
+    aux_strncat(buff, n, "next oid:\t0x%llx\n", get_sb_oid(super));
+    aux_strncat(buff, n, "file count:\t%llu\n", get_sb_file_count(super));
+    aux_strncat(buff, n, "tree height:\t%u\n", get_sb_tree_height(super));
     
     return 0;
 }

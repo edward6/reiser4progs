@@ -16,10 +16,13 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <reiser4/reiser4.h>
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+#  include <uuid/uuid.h>
+#endif
 
 #include <aux/aux.h>
 #include <misc/misc.h>
+#include <reiser4/reiser4.h>
 
 enum debugfs_print_flags {
     PF_SUPER	= 1 << 0,
@@ -76,6 +79,7 @@ static errno_t debugfs_print_joint(
     reiser4_joint_t *joint,	/* joint to be printed */
     void *data			/* user-specified data */
 ) {
+    char buff[255];
     reiser4_node_t *node = joint->node;
     uint8_t level = plugin_call(return -1, node->entity->plugin->node_ops,
 	get_level, node->entity);
@@ -110,9 +114,9 @@ static errno_t debugfs_print_joint(
 		return -1;
 	    }
 	    
-	    printf("KEY: 0x%llx 0x%x 0x%llx 0x%llx, ",
-		reiser4_key_get_locality(&key), reiser4_key_get_type(&key),
-		reiser4_key_get_objectid(&key), reiser4_key_get_offset(&key));
+	    aal_memset(buff, 0, sizeof(buff));
+	    reiser4_key_print(&key, buff, sizeof(buff));
+	    printf("KEY: %s, ", buff);
 
 	    printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
 	   
@@ -121,7 +125,7 @@ static errno_t debugfs_print_joint(
 	    if (reiser4_item_print(&item, buff, sizeof(buff)))
 		return -1;
 
-	    printf("[ %s ]\n", buff);
+	    printf("[%s]\n", buff);
 	}
     } else {
 	uint32_t i;
@@ -155,9 +159,9 @@ static errno_t debugfs_print_joint(
 	    
 	    printf(": len=%u, ", reiser4_item_len(&item));
 
-	    printf("KEY: 0x%llx 0x%x 0x%llx 0x%llx, ", 
-		reiser4_key_get_locality(&key), reiser4_key_get_type(&key),
-		reiser4_key_get_objectid(&key), reiser4_key_get_offset(&key));
+	    aal_memset(buff, 0, sizeof(buff));
+	    reiser4_key_print(&key, buff, sizeof(buff));
+	    printf("KEY: %s, ", buff);
 	    
 	    printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
 	}
@@ -175,7 +179,34 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
     return 0;
 }
 
-static errno_t debugfs_print_super(reiser4_fs_t *fs) {
+errno_t debugfs_print_master(reiser4_fs_t *fs) {
+    reiser4_master_t *master;
+    
+    aal_assert("umka-1299", fs != NULL, return -1);
+
+    master = fs->master;
+    
+    printf("block number:\t%llu\n", aal_block_number(master->block));
+    printf("block size:\t%u\n", reiser4_master_blocksize(master));
+
+    printf("magic:\t\t%s\n", reiser4_master_magic(master));
+    printf("format:\t\t%x\n", reiser4_master_format(master));
+    printf("label:\t\t%s\n", reiser4_master_label(master));
+
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+    {
+	char uuid[37];
+	uuid_unparse(reiser4_master_uuid(master), uuid);
+	printf("uuid:\t\t%s\n", uuid);
+    }
+#endif
+
+    printf("\n");
+    
+    return 0;
+}
+
+static errno_t debugfs_print_format(reiser4_fs_t *fs) {
     char buff[4096];
 
     aal_memset(buff, 0, sizeof(buff));
@@ -374,7 +405,10 @@ int main(int argc, char *argv[]) {
     }
     
     if (flags & PF_SUPER) {
-	if (debugfs_print_super(fs))
+	if (debugfs_print_master(fs))
+	    goto error_free_fs;
+	
+	if (debugfs_print_format(fs))
 	    goto error_free_fs;
     }
     

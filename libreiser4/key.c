@@ -273,13 +273,13 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 
 /* Prints key to passed buffer */
 errno_t reiser4_key_print(reiser4_key_t *key, char *buff, 
-    uint32_t n, uint16_t options) 
+    uint32_t n) 
 {
     aal_assert("vpf-189", key != NULL, return -1);
     aal_assert("vpf-190", key->plugin != NULL, return -1);
 
     return plugin_call(return -1, key->plugin->key_ops, 
-	print, key->body, buff, n, options); 
+	print, key->body, buff, n, 0); 
 }
 
 errno_t reiser4_key_valid(reiser4_key_t *key) {

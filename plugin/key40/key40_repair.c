@@ -19,7 +19,7 @@ errno_t key40_print(reiser4_body_t *body, char *buff,
 
     if (!buff) return -1;
 
-    reiser4_aux_strcat(buff, n, "[key40: %llu:%u:%llu:%llu:%llu %s]", 
+    aux_strncat(buff, n, "[key40: 0x%llx:0x%x:0x%llx:0x%llx:0x%llx %s]",
 	k40_get_locality(key), k40_get_minor(key),  k40_get_band(key),
 	k40_get_objectid(key), k40_get_offset(key), key40_m2n(k40_get_minor(key)));
 

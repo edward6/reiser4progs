@@ -416,7 +416,7 @@ static int direntry40_lookup(reiser4_item_t *item,
 	return 0;
     }
     
-    lookup = reiser4_aux_binsearch((void *)direntry, direntry40_count(item), 
+    lookup = aux_binsearch((void *)direntry, direntry40_count(item), 
 	key->body, callback_get_entry, callback_comp_entry, key->plugin, &unit);
 
     if (lookup != -1) {
