@@ -38,6 +38,39 @@ static uint8_t node40_get_level(node_entity_t *entity) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Functions for making node dirty, cleann and for check if it is dirty. This is
+   used in all node modifying functions, etc. */
+void node40_mkdirty(node_entity_t *entity) {
+	node40_t *node;
+	
+	aal_assert("umka-3016", entity != NULL);
+
+	node = (node40_t *)entity;
+	node->state |= (1 << ENTITY_DIRTY);
+	node->block->dirty = 1;
+}
+
+void node40_mkclean(node_entity_t *entity) {
+	node40_t *node;
+	
+	aal_assert("umka-3017", entity != NULL);
+	
+	node = (node40_t *)entity;
+	node->state &= ~(1 << ENTITY_DIRTY);
+	node->block->dirty = 0;
+}
+
+int node40_isdirty(node_entity_t *entity) {
+	node40_t *node;
+	
+	aal_assert("umka-3018", entity != NULL);
+
+	node = (node40_t *)entity;
+	
+	return ((node->state & (1 << ENTITY_DIRTY)) ||
+		node->block->dirty);
+}
+
 static uint32_t node40_get_state(node_entity_t *entity) {
 	aal_assert("umka-2091", entity != NULL);
 	return ((node40_t *)entity)->state;
@@ -112,7 +145,7 @@ static errno_t node40_sync(node_entity_t *entity) {
 	if ((res = aal_block_write(node->block)))
 		return res;
 
-	node->state &= ~(1 << ENTITY_DIRTY);
+	node40_mkclean(entity);
 	
 	return 0;
 }
@@ -158,7 +191,7 @@ static void node40_set_mstamp(node_entity_t *entity,
 	aal_assert("vpf-644", entity != NULL);
 
 	nh_set_mkfs_id((node40_t *)entity, stamp);
-	((node40_t *)entity)->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty(entity);
 }
 
 /* Returns node flush stamp */
@@ -168,7 +201,7 @@ static void node40_set_fstamp(node_entity_t *entity,
 	aal_assert("vpf-643", entity != NULL);
 	
 	nh_set_flush_id((node40_t *)entity, stamp);
-	((node40_t *)entity)->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty(entity);
 }
 
 /* Set new node level to @level. */
@@ -178,7 +211,7 @@ static void node40_set_level(node_entity_t *entity,
 	aal_assert("umka-1864", entity != NULL);
 	
 	nh_set_level((node40_t *)entity, level);
-	((node40_t *)entity)->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty(entity);
 }
 #endif
 
@@ -224,11 +257,20 @@ static node_entity_t *node40_init(aal_block_t *block,
 
 	node->kplug = kplug;
 	node->block = block;
+	
 	node->plug = &node40_plug;
+
+	/* Making node dirty if block it is supposed to work with is dirty. */
+	if (block->dirty) {
+		node40_mkdirty((node_entity_t *)node);
+	} else {
+		node40_mkclean((node_entity_t *)node);
+	}
+	
 	return (node_entity_t *)node;
 }
 
-/* Returns key at passed @pos */
+/* Returns key at passed @pos. */
 static errno_t node40_get_key(node_entity_t *entity,
 			      pos_t *pos, key_entity_t *key) 
 {
@@ -417,7 +459,7 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 		nh_dec_free_space(node, headers);
 	}
 
-	node->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty(entity);
 	return 0;
 }
 
@@ -513,8 +555,8 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 	}
 
 	nh_dec_free_space_start(node, len);
-	node->state |= (1 << ENTITY_DIRTY);
-	
+
+	node40_mkdirty(entity);
 	return 0;
 }
 
@@ -590,7 +632,7 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 		ih -= ih_size(pol);
 	}
 	
-	dst_node->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty(dst_entity);
 	return 0;
 }
 
@@ -881,8 +923,8 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 		nh_dec_free_space_start(node, space);
 	}
 
-	/* Now making node dirty. */
-	node->state |= (1 << ENTITY_DIRTY);
+	/* Now make node dirty. */
+	node40_mkdirty(entity);
 	return 0;
 }
 
@@ -905,11 +947,10 @@ static errno_t node40_set_key(node_entity_t *entity,
 	node = (node40_t *)entity;
 
 	ih = node40_ih_at(node, pos->item);
-	node->state |= (1 << ENTITY_DIRTY);
-	
 	key_size = key_size(node40_key_pol(node));
 	aal_memcpy(ih, key->body, key_size);
 		
+	node40_mkdirty(entity);
 	return 0;
 }
 
