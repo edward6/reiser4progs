@@ -47,7 +47,7 @@ AC_DEFUN([AC_CHECK_LIBAAL],
 
 AC_CHECK_LIB($1, aal_device_open, ,
 	[AC_MSG_ERROR([lib$1 not found; install libaal available at \
-http://www.namesys.com/pub/libaal])]
+http://www.namesys.com/snapshots])]
 $4)
 
 # Check for headers and library
@@ -104,7 +104,7 @@ int main() {
 		$libaal_config_major_version, $libaal_config_minor_version, 
 		$libaal_config_micro_version);
 
-    	printf("You can get it at ftp://ftp.namesys.com/pub/libaal\n");
+    	printf("You can get it at www://www.namesys.com/snapshots\n");
     	return 1;
 }
 ], 

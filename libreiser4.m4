@@ -24,7 +24,7 @@ $3)
 
 AC_CHECK_LIB(reiser4, reiser4_fs_open, ,
     [AC_MSG_ERROR([libreiser4 not found; install reiser4progs available at \
-    http://www.namesys.com/pub/reiser4progs])]
+    http://www.namesys.com/snapshots])]
 $3)
 
 AC_MSG_CHECKING(for libreiser4 version >= $1)
@@ -74,7 +74,7 @@ int main() {
             "equal to %d.%d.%d.\n", $libreiser4_config_major_version, 
 	    $libreiser4_config_minor_version, $libreiser4_config_micro_version);
 
-	printf("You can get it at ftp://ftp.namesys.com/pub/reiser4progs\n");
+	printf("You can get it at www://www.namesys.com/snapshots\n");
 	return 1;
     }
 }
