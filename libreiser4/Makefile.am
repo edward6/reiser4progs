@@ -47,7 +47,8 @@ libreiser4_alone_la_LIBADD   = $(top_builddir)/libaal/libaal-alone.la \
 libreiser4_alone_la_SOURCES  = $(libreiser4_sources)
 
 libreiser4_alone_la_CFLAGS   = @ALONE_CFLAGS@
-libreiser4_alone_la_LDFLAGS  =
+libreiser4_alone_la_LDFLAGS  = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+			       -release $(LT_RELEASE)
 endif
 
 INCLUDES                     = $(includedir)

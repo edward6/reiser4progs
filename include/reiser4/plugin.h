@@ -520,7 +520,7 @@ typedef struct reiser4_core reiser4_core_t;
 
 typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
 typedef reiser4_plugin_t *(*plugin_init_t) (reiser4_core_t *);
-typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
+typedef errno_t (*plugin_func_t) (reiser4_plugin_t *, void *);
 
 #define EMPTY_HANDLE { "", NULL, NULL, NULL, NULL }
 
@@ -1372,21 +1372,20 @@ struct reiser4_core {
   support.
 */
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
-
-typedef void (*factory_register_t) (plugin_init_t,
+typedef void (*register_builtin_t) (plugin_init_t,
 				    plugin_fini_t);
 
 #define plugin_register(i, f)			               \
-    extern factory_register_t __factory_register;              \
+    extern register_builtin_t __register_builtin;              \
                                                                \
-    static void __init_plugin(plugin_init_t init,              \
+    static void __plugin_init(plugin_init_t init,              \
 	                      plugin_fini_t fini)              \
                               __attribute__((constructor));    \
                                                                \
-    static void __init_plugin(plugin_init_t init,              \
+    static void __plugin_init(plugin_init_t init,              \
 	                      plugin_fini_t fini)              \
     {                                                          \
-	    __factory_register(i, f);                          \
+	    __register_builtin(i, f);                          \
     }
 #else
 

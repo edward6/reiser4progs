@@ -21,8 +21,21 @@
 /* This list contain all known libreiser4 plugins */
 aal_list_t *plugins;
 
+#if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
+
+#define MAX_BUILTINS 100
+
+/* Builtin plugin representative struct */
+struct plugin_builtin {
+	plugin_init_t init;
+	plugin_fini_t fini;
+};
+
+typedef struct plugin_builtin plugin_builtin_t;
+
 /* The array of entry points of the all builtin plugins */
-unsigned long builtin[100];
+static plugin_builtin_t __builtins[MAX_BUILTINS];
+#endif
 
 /*
   The struct which contains libreiser4 functions, they may be used by all plugin
@@ -40,9 +53,8 @@ struct walk_desc {
 typedef struct walk_desc walk_desc_t;
 
 /* Helper callback function for matching plugin by type and id */
-static int callback_match_id(
-	reiser4_plugin_t *plugin,	         /* current plugin in list */
-	walk_desc_t *desc)		         /* key to searched */
+static int callback_match_id(reiser4_plugin_t *plugin,
+			     walk_desc_t *desc)
 {
 	return !(plugin->h.type == desc->type 
 		&& plugin->h.id == desc->id);
@@ -350,55 +362,75 @@ errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 
 /* Initializes plugin factory by means of loading all available plugins */
 errno_t libreiser4_factory_init(void) {
+        plugin_handle_t handle;
+        reiser4_plugin_t *plugin;
+                                                                                                
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
-	DIR *dir;
-	struct dirent *ent;
-	plugin_handle_t handle;
-	reiser4_plugin_t *plugin;
-
-	if (!(dir = opendir(PLUGIN_DIR))) {
-		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-				    "Can't open directory %s.", PLUGIN_DIR);
-		return -EINVAL;
-	}
-	
-	/* Getting plugins filenames */
-	while ((ent = readdir(dir))) {
-		char name[256];
-
-		if ((aal_strlen(ent->d_name) == 1 && aal_strncmp(ent->d_name, ".", 1)) ||
-		    (aal_strlen(ent->d_name) == 2 && aal_strncmp(ent->d_name, "..", 2)))
-			continue;	
-	
-		if (aal_strlen(ent->d_name) <= 2)
-			continue;
-		
-		if (ent->d_name[aal_strlen(ent->d_name) - 2] != 's' || 
-		    ent->d_name[aal_strlen(ent->d_name) - 1] != 'o')
-			continue;
-		
-		aal_memset(name, 0, sizeof(name));
-		aal_snprintf(name, sizeof(name), "%s/%s", PLUGIN_DIR, ent->d_name);
-
-		/* Loading plugin*/
-		if (libreiser4_factory_load(name))
-			continue;
-	}
-	
-	closedir(dir);
-#endif
-	if (aal_list_length(plugins) == 0) {
-#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
-		aal_exception_error("There are no valid plugins found "
-				    "in %s.", PLUGIN_DIR);
+        DIR *dir;
+        struct dirent *ent;
 #else
-		aal_exception_error("There are no valid built-in plugins "
-				    "found.");
+	uint32_t i;
+        plugin_builtin_t *builtin;
 #endif
-		return -EINVAL;
+                                                                                                
+        aal_assert("umka-159", plugins == NULL);
+                                                                                                
+#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
+        if (!(dir = opendir(PLUGIN_DIR))) {
+                aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
+                                    "Can't open directory %s.", PLUGIN_DIR);
+                return -EINVAL;
+        }
+                                                                                                
+        /* Getting plugins filenames */
+        while ((ent = readdir(dir))) {
+                char name[256];
+                                                                                                
+                if ((aal_strlen(ent->d_name) == 1 && aal_strncmp(ent->d_name, ".", 1)) ||
+                    (aal_strlen(ent->d_name) == 2 && aal_strncmp(ent->d_name, "..", 2)))
+                        continue;
+                                                                                                
+                if (aal_strlen(ent->d_name) <= 2)
+                        continue;
+                                                                                                
+                if (ent->d_name[aal_strlen(ent->d_name) - 2] != 's' ||
+                    ent->d_name[aal_strlen(ent->d_name) - 1] != 'o')
+                        continue;
+                                                                                                
+                aal_memset(name, 0, sizeof(name));
+                aal_snprintf(name, sizeof(name), "%s/%s", PLUGIN_DIR, ent->d_name);
+                                                                                                
+                /* Loading plugin*/
+                if (libreiser4_factory_load(name))
+                        continue;
+        }
+                                                                                                
+        closedir(dir);
+
+        if (aal_list_length(plugins) == 0) {
+                aal_exception_error("There are no valid plugins found "
+                                    "in %s.", PLUGIN_DIR);
+                return -EINVAL;
 	}
-	
-	return 0;
+#else
+        /* Loads the all builtin plugins */
+	for (i = 0; i < MAX_BUILTINS; i++) {
+		builtin = &__builtins[i];
+
+		if (!builtin->init)
+			break;
+		
+		if (libreiser4_factory_load(builtin->init, builtin->fini))
+                        continue;
+	}
+
+	if (aal_list_length(plugins) == 0) {
+                aal_exception_error("There are no valid built-in plugins "
+                                    "found.");
+                return -EINVAL;
+        }
+#endif
+        return 0;
 }
 
 /* Finalizes plugin factory, by means of unloading the all plugins */
@@ -441,8 +473,8 @@ reiser4_plugin_t *libreiser4_factory_ifind(
 
 /* Finds plugins by its type and id */
 reiser4_plugin_t *libreiser4_factory_cfind(
-	reiser4_plugin_func_t plugin_func,	 /* per plugin function */
-	void *data)				 /* user-specified data */
+	plugin_func_t plugin_func,               /* per plugin function */
+	void *data)                              /* user-specified data */
 {
 	aal_list_t *walk = NULL;
 
@@ -458,6 +490,31 @@ reiser4_plugin_t *libreiser4_factory_cfind(
     
 	return NULL;
 }
+
+#if !defined(ENABLE_STAND_ALONE) || defined(ENABLE_PLUGINS_CHECK)
+/* 
+   Calls specified function for every plugin from plugin list. This functions is
+   used for getting any plugins information.
+*/
+errno_t libreiser4_factory_foreach(
+	plugin_func_t plugin_func,               /* per plugin function */
+	void *data)                              /* user-specified data */
+{
+	errno_t res = 0;
+	aal_list_t *walk;
+    
+	aal_assert("umka-479", plugin_func != NULL);
+
+	aal_list_foreach_forward(plugins, walk) {
+		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
+	
+		if ((res = plugin_func(plugin, data)))
+			return res;
+	}
+	
+	return res;
+}
+#endif
 
 #ifndef ENABLE_STAND_ALONE
 /* Makes search for plugin by name */
@@ -476,33 +533,18 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 
 	return found ? (reiser4_plugin_t *)found->data : NULL;
 }
-
-/* 
-   Calls specified function for every plugin from plugin list. This functions is
-   used for getting any plugins information.
-*/
-errno_t libreiser4_factory_foreach(
-	reiser4_plugin_func_t plugin_func,	/* per plugin function */
-	void *data)			        /* user-specified data */
-{
-	errno_t res = 0;
-	aal_list_t *walk;
-    
-	aal_assert("umka-479", plugin_func != NULL);
-
-	aal_list_foreach_forward(plugins, walk) {
-		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
-	
-		if ((res = plugin_func(plugin, data)))
-			return res;
-	}
-	
-	return res;
-}
 #endif
 
-void factory_register(plugin_init_t init, plugin_fini_t fini) {
-	libreiser4_factory_load(init, fini);
+#if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
+/* This function registers builtin plugin entry points */
+void register_builtin(plugin_init_t init, plugin_fini_t fini) {
+	static int last = 0;
+	
+	__builtins[last].init = init;
+	__builtins[last].fini = fini;
+
+	last++;
 }
 
-factory_register_t __factory_register = factory_register;
+register_builtin_t __register_builtin = register_builtin;
+#endif

@@ -553,6 +553,8 @@ errno_t alloc40_valid(object_entity_t *entity) {
 			      callback_check_bitmap, alloc);
 }
 
+extern errno_t alloc40_check(object_entity_t *entity, uint8_t mode);
+
 /* Prepare alloc40 plugin by menas of filling it with abowe alloc40 methods */
 static reiser4_plugin_t alloc40_plugin = {
 	.alloc_ops = {
@@ -571,6 +573,7 @@ static reiser4_plugin_t alloc40_plugin = {
 		.assign		       = alloc40_assign,
 		.sync		       = alloc40_sync,
 		.print                 = alloc40_print,
+		.check                 = alloc40_check,
 		
 		.used                  = alloc40_used,
 		.unused                = alloc40_unused,
@@ -582,7 +585,7 @@ static reiser4_plugin_t alloc40_plugin = {
 		.related_region        = alloc40_related_region,
 		.occupy_region	       = alloc40_occupy_region,
 		.allocate_region       = alloc40_allocate_region,
-		.release_region	       = alloc40_release_region,
+		.release_region	       = alloc40_release_region
 	}
 };
 
