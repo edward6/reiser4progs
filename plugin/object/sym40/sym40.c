@@ -86,10 +86,10 @@ static object_entity_t *sym40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
 	sym40_t *sym;
-	oid_t objectid, locality;
     
 	statdata_hint_t stat;
 	create_hint_t stat_hint;
+	oid_t objectid, locality;
     
 	sdext_lw_hint_t lw_ext;
 	sdext_unix_hint_t unix_ext;
@@ -104,18 +104,20 @@ static object_entity_t *sym40_create(object_info_t *info,
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops,
-			       get_locality, &info->object);
+	locality = plugin_call(info->okey.plugin->o.key_ops,
+			       get_locality, &info->okey);
 	
-	objectid = plugin_call(info->object.plugin->o.key_ops,
-			       get_objectid, &info->object);
+	objectid = plugin_call(info->okey.plugin->o.key_ops,
+			       get_objectid, &info->okey);
 	
 	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(info->object.plugin->o.key_ops, build_generic, 
-		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(info->okey.plugin->o.key_ops, build_generic, 
+		    &info->okey, KEY_STATDATA_TYPE, locality,
+		    objectid, 0);
 	
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plugin, &info->object, core, info->tree);
+	obj40_init(&sym->obj, &sym40_plugin, &info->okey,
+		   core, info->tree);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -131,10 +133,10 @@ static object_entity_t *sym40_create(object_info_t *info,
 
 	stat_hint.plugin = stat_plugin;
 	stat_hint.flags = HF_FORMATD;
-	stat_hint.key.plugin = info->object.plugin;
+	stat_hint.key.plugin = info->okey.plugin;
 	
-	plugin_call(info->object.plugin->o.key_ops, assign,
-		    &stat_hint.key, &info->object);
+	plugin_call(info->okey.plugin->o.key_ops, assign,
+		    &stat_hint.key, &info->okey);
     
 	/*
 	  Initializing stat data item hint. Here we set up the extentions mask

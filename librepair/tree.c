@@ -174,8 +174,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 		return res;
 	}
 	
-	reiser4_tree_ltrt(tree, node, D_LEFT);
-	reiser4_tree_ltrt(tree, node, D_RIGHT);
+	reiser4_tree_neigh(tree, node, D_LEFT);
+	reiser4_tree_neigh(tree, node, D_RIGHT);
 	
 	return 0;
 }
@@ -294,7 +294,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			reiser4_place_t rplace;
 			reiser4_node_t *rnode;
 			
-			rnode = reiser4_tree_find_nbr(tree, dst.node, D_RIGHT);
+			rnode = reiser4_tree_neigh(tree, dst.node, D_RIGHT);
 			
 			if (rnode != NULL) {
 				if (reiser4_place_open(&rplace, rnode, &rpos))

@@ -22,8 +22,8 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	/* FIXME-VITALY: this is probably should be set by plugin. Together with 
 	   object->info.parent key. */
-	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
-	reiser4_key_string(&object->info.object, object->name);
+	reiser4_key_assign(&object->info.okey, &object->info.start.item.key);
+	reiser4_key_string(&object->info.okey, object->name);
 	
 	return 0;
 }
@@ -31,8 +31,8 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 errno_t repair_object_launch(reiser4_object_t *object) {
 	aal_assert("vpf-1097", object != NULL);
 	
-	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
-	reiser4_key_string(&object->info.object, object->name);
+	reiser4_key_assign(&object->info.okey, &object->info.start.item.key);
+	reiser4_key_string(&object->info.okey, object->name);
 	
 	return reiser4_object_guess(object);
 }
@@ -48,10 +48,10 @@ inline void repair_object_init(reiser4_object_t *object,
 		aal_memcpy(reiser4_object_start(object), place, sizeof(*place));
 	
 	if (parent)
-		aal_memcpy(&object->info.parent, parent, sizeof(*parent));
+		aal_memcpy(&object->info.pkey, parent, sizeof(*parent));
 	
 	if (key)
-		aal_memcpy(&object->info.object, key, sizeof(*key));
+		aal_memcpy(&object->info.okey, key, sizeof(*key));
 }
 
 /* Helper callback for probing passed @plugin. 
@@ -81,10 +81,10 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
 	aal_assert("vpf-1083", object != NULL); 
 	aal_assert("vpf-1084", object->info.tree != NULL); 
 	
-	if (object->info.object.plugin != NULL) {
+	if (object->info.okey.plugin != NULL) {
 		/* Realize by specified key, looking up its start place. */
 		lookup = reiser4_tree_lookup(object->info.tree, 
-					     &object->info.object, 
+					     &object->info.okey, 
 					     LEAF_LEVEL, 
 					     reiser4_object_start(object));
 		

@@ -76,7 +76,7 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 errno_t reiser4_object_stat(reiser4_object_t *object) {
 	object_info_t *info = &object->info;
 	
-	switch (reiser4_tree_lookup(info->tree, &info->object,
+	switch (reiser4_tree_lookup(info->tree, &info->okey,
 				    LEAF_LEVEL, reiser4_object_start(object)))
 	{
 	case PRESENT:
@@ -84,7 +84,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 		if (reiser4_place_realize(reiser4_object_start(object)))
 			return -EINVAL;
 
-		reiser4_key_assign(&info->object, &info->start.item.key);
+		reiser4_key_assign(&info->okey, &info->start.item.key);
 		return 0;
 	default:
 		return -EINVAL;
@@ -128,8 +128,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		  real stat data item.
 		*/
 		if ((res = plugin->o.object_ops->follow(object->entity,
-							&object->info.parent,
-							&object->info.object)))
+							&object->info.pkey,
+							&object->info.okey)))
 		{
 			aal_exception_error("Can't follow %s.", track);
 			reiser4_object_fini(object);
@@ -148,7 +148,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 	}
 
-	reiser4_key_assign(&object->info.parent, &object->info.object);
+	reiser4_key_assign(&object->info.pkey, &object->info.okey);
 #endif
 
 	return 0;
@@ -171,7 +171,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 			     lookup, object->entity, entry, &entry_hint);
 	
 	if (lookup == PRESENT) {
-		res = reiser4_key_assign(&object->info.object,
+		res = reiser4_key_assign(&object->info.okey,
 					 &entry_hint.object);
 	} else {
 		aal_exception_error("Can't find %s.", track);
@@ -229,11 +229,11 @@ reiser4_object_t *reiser4_object_open(
 #endif
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
-	reiser4_key_assign(&object->info.parent, &tree->key);
+	reiser4_key_assign(&object->info.pkey, &tree->key);
 #endif
 
 	/* Resolving path, starting from the root */
-	reiser4_key_assign(&object->info.object, &tree->key);
+	reiser4_key_assign(&object->info.okey, &tree->key);
 	
 	if (reiser4_object_resolve(object, filename, follow))
 		goto error_free_object;
@@ -262,11 +262,14 @@ reiser4_object_t *reiser4_object_launch(
     
 	object->info.tree = tree;
 	
-	aal_memcpy(reiser4_object_start(object), place, sizeof(*place));
-	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
+	aal_memcpy(reiser4_object_start(object),
+		   place, sizeof(*place));
+	
+	reiser4_key_assign(&object->info.okey,
+			   &object->info.start.item.key);
 	
 #ifndef ENABLE_STAND_ALONE
-	reiser4_key_string(&object->info.object, object->name);
+	reiser4_key_string(&object->info.okey, object->name);
 #endif
 	
 	if (reiser4_object_guess(object))
@@ -350,17 +353,17 @@ static void reiser4_object_base(
 	object->info.tree = fs->tree;
 	
 	if (parent) {
-		reiser4_key_assign(&object->info.parent,
-				   &parent->info.object);
+		reiser4_key_assign(&object->info.pkey,
+				   &parent->info.okey);
 		
 		objectid = reiser4_oid_allocate(fs->oid);
-		locality = reiser4_key_get_objectid(&object->info.parent);
+		locality = reiser4_key_get_objectid(&object->info.pkey);
 	} else {
 		/* If parent is NULL -- special case for '/' directory */
 		
-		object->info.parent.plugin = fs->tree->key.plugin;
+		object->info.pkey.plugin = fs->tree->key.plugin;
 		
-		reiser4_fs_root_key(fs, &object->info.parent);
+		reiser4_fs_root_key(fs, &object->info.pkey);
 		
 		locality = reiser4_oid_root_locality(fs->oid);
 		objectid = reiser4_oid_root_objectid(fs->oid);
@@ -371,11 +374,11 @@ static void reiser4_object_base(
 	   the @object->info.object key and plugin create method will build the
 	   whole key there.
 	*/
-	object->info.object.plugin = object->info.parent.plugin;
+	object->info.okey.plugin = object->info.pkey.plugin;
 	
-	reiser4_key_clean(&object->info.object);
-	reiser4_key_set_locality(&object->info.object, locality);
-	reiser4_key_set_objectid(&object->info.object, objectid);
+	reiser4_key_clean(&object->info.okey);
+	reiser4_key_set_locality(&object->info.okey, locality);
+	reiser4_key_set_objectid(&object->info.okey, objectid);
 }
 
 /* Creates new object on specified filesystem */
@@ -405,13 +408,12 @@ reiser4_object_t *reiser4_object_create(
 					   create, &object->info, hint)))
 	{
 		aal_exception_error("Can't create object with oid 0x%llx.", 
-				    reiser4_key_get_objectid(
-					    &object->info.object));
+				    reiser4_key_get_objectid(&object->info.okey));
 		goto error_free_object;
 	}
 	
 	/* @hint->object key is build by plugin create method. */
-	reiser4_key_string(&object->info.object, object->name);
+	reiser4_key_string(&object->info.okey, object->name);
 	
 	return object;
 	
@@ -456,7 +458,7 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		aal_memset(&entry_hint, 0, sizeof(entry_hint));	
 
 		reiser4_key_assign(&entry_hint.object,
-				   &child->info.object);
+				   &child->info.okey);
 		
 		aal_strncpy(entry_hint.name, name,
 			    sizeof(entry_hint.name));
@@ -521,7 +523,11 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 		return -EINVAL;
 	}
 
+	res = plugin_call(child->entity->plugin->o.object_ops,
+			  link, child->entity);
+	
 	reiser4_object_close(child);
+	
 	return res;
 }
 

@@ -299,9 +299,9 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 }
 
 /* Finds both left and right neighbours and connects them into the tree */
-reiser4_node_t *reiser4_tree_find_nbr(reiser4_tree_t *tree,
-				      reiser4_node_t *node,
-				      aal_direction_t where)
+static reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
+					 reiser4_node_t *node,
+					 aal_direction_t where)
 {
         int found = 0;
         uint32_t level;
@@ -368,9 +368,9 @@ reiser4_node_t *reiser4_tree_find_nbr(reiser4_tree_t *tree,
 }
 
 /* Gets left or right neighbour nodes */
-reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
-				  reiser4_node_t *node,
-				  aal_direction_t where)
+reiser4_node_t *reiser4_tree_neigh(reiser4_tree_t *tree,
+				   reiser4_node_t *node,
+				   aal_direction_t where)
 {
 	aal_assert("umka-2219", node != NULL);
 	aal_assert("umka-1859", tree != NULL);
@@ -382,8 +382,9 @@ reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 	if ((where == D_LEFT && !node->left) ||
 	    (where == D_RIGHT && !node->right))
 	{
+		/* Looking for neighbour on disk */
 		reiser4_node_lock(node);
-		reiser4_tree_find_nbr(tree, node, where);
+		reiser4_tree_neigh(tree, node, where);
 		reiser4_node_unlock(node);
 	}
 	
@@ -1041,8 +1042,8 @@ errno_t reiser4_tree_attach(
 		return res;
 	}
 
-	reiser4_tree_ltrt(tree, node, D_LEFT);
-	reiser4_tree_ltrt(tree, node, D_RIGHT);
+	reiser4_tree_neigh(tree, node, D_LEFT);
+	reiser4_tree_neigh(tree, node, D_RIGHT);
 	
 	return 0;
 }
@@ -1282,7 +1283,7 @@ errno_t reiser4_tree_expand(
 	
 	/* Shifting data into left neighbour if it exists */
 	if ((SF_LEFT & flags) &&
-	    (left = reiser4_tree_ltrt(tree, place->node, D_LEFT)))
+	    (left = reiser4_tree_neigh(tree, place->node, D_LEFT)))
 	{
 	    
 		if ((res = reiser4_tree_shift(tree, place, left,
@@ -1295,7 +1296,7 @@ errno_t reiser4_tree_expand(
 
 	/* Shifting data into right neighbour if it exists */
 	if ((SF_RIGHT & flags) &&
-	    (right = reiser4_tree_ltrt(tree, place->node, D_RIGHT)))
+	    (right = reiser4_tree_neigh(tree, place->node, D_RIGHT)))
 	{
 	    
 		if ((res = reiser4_tree_shift(tree, place, right,
@@ -1391,7 +1392,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	  anyway. Here we will shift data from the target node to its left
 	  neighbour node.
 	*/
-	if ((left = reiser4_tree_ltrt(tree, place->node, D_LEFT))) {
+	if ((left = reiser4_tree_neigh(tree, place->node, D_LEFT))) {
 	    
 		if ((res = reiser4_tree_shift(tree, place, left, SF_LEFT))) {
 			aal_exception_error("Can't pack node %llu into left.",
@@ -1405,7 +1406,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 		  Shifting the data from the right neigbour node into the target
 		  node.
 		*/
-		if ((right = reiser4_tree_ltrt(tree, place->node, D_RIGHT))) {
+		if ((right = reiser4_tree_neigh(tree, place->node, D_RIGHT))) {
 				
 			reiser4_place_t bogus;
 			bogus.node = right;
@@ -1746,10 +1747,10 @@ errno_t reiser4_tree_cut(
 	aal_assert("umka-1725", start != NULL);
 	aal_assert("umka-1782", end != NULL);
 
-	node = reiser4_tree_ltrt(tree, start->node, D_RIGHT);
+	node = reiser4_tree_neigh(tree, start->node, D_RIGHT);
 	
 	while (node && node != end->node)
-		node = reiser4_tree_ltrt(tree, node, D_RIGHT);
+		node = reiser4_tree_neigh(tree, node, D_RIGHT);
 
 	if (node != end->node) {
 		aal_exception_error("End place is not reachable from the"
@@ -1761,7 +1762,7 @@ errno_t reiser4_tree_cut(
 		pos_t pos = {~0ul, ~0ul};
 
 		/* Removing start + 1 though end - 1 node from the tree */
-		node = reiser4_tree_ltrt(tree, start->node, D_RIGHT);
+		node = reiser4_tree_neigh(tree, start->node, D_RIGHT);
 		
 		while (node && node != end->node) {
 			reiser4_node_t *right;

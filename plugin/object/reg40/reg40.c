@@ -216,19 +216,19 @@ static object_entity_t *reg40_create(object_info_t *info,
 	reg->offset = 0;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops,
-			       get_locality, &info->object);
+	locality = plugin_call(info->okey.plugin->o.key_ops,
+			       get_locality, &info->okey);
 	
-	objectid = plugin_call(info->object.plugin->o.key_ops,
-			       get_objectid, &info->object);
+	objectid = plugin_call(info->okey.plugin->o.key_ops,
+			       get_objectid, &info->okey);
 	
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->object.plugin->o.key_ops,
-		    build_generic, &info->object,
-		    KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(info->okey.plugin->o.key_ops, build_generic,
+		    &info->okey, KEY_STATDATA_TYPE, locality,
+		    objectid, 0);
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plugin, &info->object,
+	obj40_init(&reg->obj, &reg40_plugin, &info->okey,
 		   core, info->tree);
 	
 	/* Getting statdata plugin */
@@ -246,8 +246,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 	stat_hint.plugin = stat_plugin;
 	stat_hint.flags = HF_FORMATD;
 
-	plugin_call(info->object.plugin->o.key_ops, assign, 
-		    &stat_hint.key, &info->object);
+	plugin_call(info->okey.plugin->o.key_ops, assign, 
+		    &stat_hint.key, &info->okey);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;

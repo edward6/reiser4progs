@@ -482,12 +482,13 @@ struct object_hint {
 typedef struct object_hint object_hint_t;
 
 struct object_info {
-	key_entity_t object; 
-	key_entity_t parent;
-	
+	void *tree;
 	place_t start;
 	
-	void *tree;
+	key_entity_t okey;
+	key_entity_t pkey;
+	
+	object_entity_t *parent;
 };
 
 typedef struct object_info object_info_t;
@@ -603,6 +604,7 @@ typedef struct reiser4_key_ops reiser4_key_ops_t;
 
 struct reiser4_object_ops {
 #ifndef ENABLE_STAND_ALONE
+	
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (object_info_t *, object_hint_t *);
     

@@ -112,8 +112,8 @@ static errno_t tree_next(
 		reiser4_place_assign((reiser4_place_t *)next,
 				     curr->node, curr->pos.item + 1, ~0ul);
 	} else {
-		reiser4_tree_ltrt((reiser4_tree_t *)tree,
-				  curr->node, D_RIGHT);
+		reiser4_tree_neigh((reiser4_tree_t *)tree,
+				   curr->node, D_RIGHT);
 
 		if (!curr->node->right)
 			return -EINVAL;
@@ -144,8 +144,8 @@ static errno_t tree_prev(
 		reiser4_place_assign((reiser4_place_t *)prev,
 				     curr->node, curr->pos.item - 1, ~0ul);
 	} else {
-		reiser4_tree_ltrt((reiser4_tree_t *)tree,
-				  curr->node, D_LEFT);
+		reiser4_tree_neigh((reiser4_tree_t *)tree,
+				   curr->node, D_LEFT);
 
 		if (!curr->node->left)
 			return -EINVAL;
@@ -226,14 +226,14 @@ static errno_t object_resolve(void *tree, place_t *place, char *filename,
 		return -EINVAL;
 
 	/* Setting up the key resolve will start from */
-	reiser4_key_assign(&o->info.object, from);
+	reiser4_key_assign(&o->info.okey, from);
 
 	/* Resolving symlink */
 	if ((res = reiser4_object_resolve(o, filename, TRUE)))
 		goto error_free_object;
 
 	/* Assigning found key to passed @key */
-	reiser4_key_assign(key, &o->info.object);
+	reiser4_key_assign(key, &o->info.okey);
 
  error_free_object:
 	reiser4_object_close(o);

@@ -430,8 +430,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	create_hint_t body_hint;
 	create_hint_t stat_hint;
    
-	oid_t plocality, pobjectid;
 	oid_t objectid, locality;
+	oid_t plocality, pobjectid;
 
 	sdext_lw_hint_t lw_ext;
 	sdext_unix_hint_t unix_ext;
@@ -447,18 +447,18 @@ static object_entity_t *dir40_create(object_info_t *info,
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops,
-			       get_locality, &info->object);
+	locality = plugin_call(info->okey.plugin->o.key_ops,
+			       get_locality, &info->okey);
 	
-	objectid = plugin_call(info->object.plugin->o.key_ops,
-			       get_objectid, &info->object);
+	objectid = plugin_call(info->okey.plugin->o.key_ops,
+			       get_objectid, &info->okey);
 
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->object.plugin->o.key_ops, build_generic,
-		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(info->okey.plugin->o.key_ops, build_generic,
+		    &info->okey, KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plugin, &info->object, core, info->tree);
+	obj40_init(&dir->obj, &dir40_plugin, &info->okey, core, info->tree);
 
 	/* Getting hash plugin */
 	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
@@ -470,11 +470,11 @@ static object_entity_t *dir40_create(object_info_t *info,
 	}
 
 	/* Preparing parent locality and objectid */
-	plocality = plugin_call(info->object.plugin->o.key_ops,
-				get_locality, &info->parent);
+	plocality = plugin_call(info->pkey.plugin->o.key_ops,
+				get_locality, &info->pkey);
 	
-	pobjectid = plugin_call(info->object.plugin->o.key_ops,
-				get_objectid, &info->parent);
+	pobjectid = plugin_call(info->pkey.plugin->o.key_ops,
+				get_objectid, &info->pkey);
 
 	/* Getting item plugins for statdata and body */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -506,7 +506,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	body_hint.plugin = body_plugin;
    	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
-	plugin_call(info->object.plugin->o.key_ops, build_entry,
+	plugin_call(info->okey.plugin->o.key_ops, build_entry,
 		    &body_hint.key, dir->hash, locality, objectid, ".");
 
 	if (!(body = aal_calloc(body_hint.count * sizeof(*body), 0)))
@@ -540,11 +540,11 @@ static object_entity_t *dir40_create(object_info_t *info,
 		  Building key for the statdata of object new entry will point
 		  to.
 		*/
-		plugin_call(info->object.plugin->o.key_ops, build_generic,
+		plugin_call(info->okey.plugin->o.key_ops, build_generic,
 			    &entry->object, KEY_STATDATA_TYPE, loc, oid, 0);
 
 		/* Building key for the hash new entry will have */
-		plugin_call(info->object.plugin->o.key_ops, build_entry,
+		plugin_call(info->okey.plugin->o.key_ops, build_entry,
 			    &entry->offset, dir->hash, locality,
 			    objectid, name);
 	}
@@ -556,8 +556,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	stat_hint.flags = HF_FORMATD;
 	stat_hint.plugin = stat_plugin;
     
-	plugin_call(info->object.plugin->o.key_ops, assign,
-		    &stat_hint.key, &info->object);
+	plugin_call(info->okey.plugin->o.key_ops, assign,
+		    &stat_hint.key, &info->okey);
     
 	/*
 	  Initializing stat data item hint. It uses unix extention and light
@@ -646,8 +646,13 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_body;
 	}
 
-	obj40_lock(&dir->obj, &dir->body);
+	/* Adding one link to parent object */
+	if (info->parent) {
+		plugin_call(info->parent->plugin->o.object_ops,
+			    link, info->parent);
+	}
 	
+	obj40_lock(&dir->obj, &dir->body);
 	aal_free(body);
 
 	return (object_entity_t *)dir;
@@ -749,6 +754,8 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	if ((res = dir40_truncate(entity, 0)))
 		return res;
 
+	/* FIXME-UMKA: Here should be parent @link value decreased */
+
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
 	
@@ -809,14 +816,10 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 			   sizeof(dir->offset));
 	}
 	
-	/* Updating stat dat place */
+	/* Updating stat data place */
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
 	
-	/* Descreasing link counter. */
-	if ((res = dir40_unlink(entity)))
-		return res;
-
 	/* Updating size field */
 	size = obj40_get_size(&dir->obj);
 
@@ -906,10 +909,6 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		return res;
 	}
 
-	/* Increasing link counter. */
-	if ((res = dir40_link(entity)))
-		return res;
-	
 	/* Updating stat data place */
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
