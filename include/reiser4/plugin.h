@@ -282,10 +282,8 @@ enum shift_flags {
 	/* Allows to update insert point while performing shift. */
 	SF_UPDATE_POINT  = 1 << 3,
 
-	/* Forces do not create new items while performing shift of units. Units
-	   from the source node may be moved into destination one if there are
-	   two mergeable item. */
-	SF_MERGE_BORDER  = 1 << 4,
+	/* Should be border item merged or only whole items may be shifted . */
+	SF_ALLOW_MERGE   = 1 << 4,
 
 	/* Should be new nodes allocated durring make space or not */
 	SF_ALLOW_ALLOC   = 1 << 5
@@ -293,7 +291,8 @@ enum shift_flags {
 
 typedef enum mkspace_flags mkspace_flags_t;
 
-#define SF_DEFAULT (SF_LEFT_SHIFT | SF_RIGHT_SHIFT | SF_ALLOW_ALLOC)
+#define SF_DEFAULT \
+(SF_LEFT_SHIFT | SF_RIGHT_SHIFT | SF_ALLOW_ALLOC | SF_ALLOW_MERGE)
 
 struct shift_hint {
 	/* Flag which shows that we need create an item before we will move

@@ -1779,13 +1779,14 @@ int32_t reiser4_tree_expand(
 	if ((SF_LEFT_SHIFT & flags) &&
 	    (left = reiser4_tree_neigh_node(tree, place->node, D_LEFT)))
 	{
+		uint32_t left_flags = (SF_LEFT_SHIFT | SF_UPDATE_POINT);
 
+		if (SF_ALLOW_MERGE & flags)
+			left_flags |= SF_ALLOW_MERGE;
+		
 		/* Shift items from @place to @left neighbour. */
-		if ((res = reiser4_tree_shift(tree, place, left,
-					      SF_LEFT_SHIFT | SF_UPDATE_POINT)))
-		{
+		if ((res = reiser4_tree_shift(tree, place, left, left_flags)))
 			return res;
-		}
 
 		/* Check fo result of shift -- space in node. */
 		if ((enough = reiser4_node_space(place->node) - needed) > 0) {
@@ -1802,13 +1803,14 @@ int32_t reiser4_tree_expand(
 	if ((SF_RIGHT_SHIFT & flags) &&
 	    (right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT)))
 	{
-
+		uint32_t right_flags = (SF_RIGHT_SHIFT | SF_UPDATE_POINT);
+		
+		if (SF_ALLOW_MERGE & flags)
+			right_flags |= SF_ALLOW_MERGE;
+		
 		/* Shift items from @place to @right neighbour. */
-		if ((res = reiser4_tree_shift(tree, place, right,
-					      SF_RIGHT_SHIFT | SF_UPDATE_POINT)))
-		{
+		if ((res = reiser4_tree_shift(tree, place, right, right_flags)))
 			return res;
-		}
 
 		/* Check if node has enough of space and fucntion should do
 		   nothing but exit with success return code. */
@@ -1837,7 +1839,7 @@ int32_t reiser4_tree_expand(
 	   the tree. Allocating new node and trying to shift data into it. */
 	for (alloc = 0; enough < 0 && alloc < 2; alloc++) {
 		uint8_t level;
-		uint32_t flags;
+		uint32_t alloc_flags;
 		reiser4_place_t save;
 		reiser4_node_t *node;
 
@@ -1851,17 +1853,21 @@ int32_t reiser4_tree_expand(
 			return -ENOSPC;
 
 		/* Setting up shift flags */
-		flags = SF_RIGHT_SHIFT | SF_UPDATE_POINT;
+		alloc_flags = (SF_RIGHT_SHIFT | SF_UPDATE_POINT |
+			       SF_ALLOW_MERGE);
 
+		if (SF_ALLOW_MERGE & flags)
+			alloc_flags |= SF_ALLOW_MERGE;
+		
 		/* We will allow to move insert point to neighbour node if we
 		   are at first iteration in this loop or if place points behind
 		   the last unit of last item in current node. */
 		if (alloc == 0 || !reiser4_place_ltlast(place))
-			flags |= SF_MOVE_POINT;
+			alloc_flags |= SF_MOVE_POINT;
 
 		/* Shift data from @place to @node. Updating @place by new
 		   insert point. */
-		if ((res = reiser4_tree_shift(tree, place, node, flags)))
+		if ((res = reiser4_tree_shift(tree, place, node, alloc_flags)))
 			return res;
 
 		/* Taking care about new allocated @node and possible gets free
@@ -1898,17 +1904,20 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 			    reiser4_place_t *place)
 {
 	errno_t res;
+	uint32_t flags;
 	reiser4_node_t *left, *right;
 
 	aal_assert("umka-1784", tree != NULL);
 	aal_assert("umka-1783", place != NULL);
+
+	/* Shift flags to be used in packing. */
+	flags = (SF_LEFT_SHIFT | SF_ALLOW_MERGE);
 	
 	/* Packing node in order to keep the tree in well packed state
 	   anyway. Here we will shift data from the target node to its left
 	   neighbour node. */
 	if ((left = reiser4_tree_neigh_node(tree, place->node, D_LEFT))) {
-	    
-		if ((res = reiser4_tree_shift(tree, place, left, SF_LEFT_SHIFT))) {
+		if ((res = reiser4_tree_shift(tree, place, left, flags))) {
 			aal_exception_error("Can't pack node %llu into left.",
 					    node_blocknr(place->node));
 			return res;
@@ -1919,13 +1928,13 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 		/* Shifting the data from the right neigbour node into the
 		   target node. */
 		if ((right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT))) {
-				
 			reiser4_place_t bogus;
+
 			bogus.node = right;
 	    
 			if ((res = reiser4_tree_shift(tree, &bogus,
 						      place->node,
-						      SF_LEFT_SHIFT)))
+						      flags)))
 			{
 				aal_exception_error("Can't pack node "
 						    "%llu into left.",
@@ -1933,7 +1942,8 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 				return res;
 			}
 
-			/* Check if node got enmpty. If so -- release it. */
+			/* Check if node got enmpty. If so then we release
+			   it. */
 			if (reiser4_node_items(right) == 0) {
 				reiser4_node_mkclean(right);
 				reiser4_tree_detach_node(tree, right);
@@ -1963,6 +1973,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				  uint8_t level)
 {
 	errno_t res;
+	uint32_t flags;
 	uint32_t curr_level;
 	reiser4_node_t *node;
 	
@@ -1992,10 +2003,12 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				return -EINVAL;
 			}
 
+			flags = (SF_RIGHT_SHIFT | SF_UPDATE_POINT |
+				 SF_ALLOW_MERGE);
+			
 			/* Perform shift. */
 			if ((res = reiser4_tree_shift(tree, place, node,
-						      SF_RIGHT_SHIFT |
-						      SF_UPDATE_POINT)))
+						      flags)))
 			{
 				aal_exception_error("Tree failed to shift "
 						    "into a newly "

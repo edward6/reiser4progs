@@ -983,15 +983,36 @@ static int node40_splitable(place_t *place) {
 	return 0;
 }
 
+/* Initializes place by border item data (leftmost or rightmost). */
+static errno_t node40_border(node_entity_t *entity,
+			     int left_border,
+			     place_t *place)
+{
+	pos_t pos;
+	uint32_t items;
+	
+	aal_assert("umka-2669", place != NULL);
+	aal_assert("umka-2670", entity != NULL);
+	
+	if ((items = node40_items(entity)) == 0)
+		return -EINVAL;
+
+	POS_INIT(&pos, (left_border ? 0 : items - 1),
+		 MAX_UINT32);
+	
+	return node40_fetch(entity, &pos, place);
+}
+
 /* Merges border items of the src and dst nodes. The behavior depends on the
    passed hint pointer. */
 static errno_t node40_unite(node_entity_t *src_entity,
 			    node_entity_t *dst_entity, 
-			    shift_hint_t *hint)
+			    shift_hint_t *hint,
+			    int create)
 {
 	pos_t pos;
-	int remove;
 
+	errno_t res;
 	uint32_t pol;
 	uint32_t len;
 	uint32_t units;
@@ -1006,6 +1027,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	uint32_t src_items;
 	
 	void *src_ih, *dst_ih;
+	int left_shift, remove_src;
 	
 	aal_assert("umka-1624", hint != NULL);
 	aal_assert("umka-1622", src_entity != NULL);
@@ -1015,35 +1037,30 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	dst_node = (node40_t *)dst_entity;
 
 	pol = node40_key_pol(dst_node);
+
 	src_items = node40_items(src_entity);
 	dst_items = node40_items(dst_entity);
-
+	hint->rest = node40_space(dst_entity);
+	
 	if (src_items == 0 || hint->rest == 0)
 		return 0;
 	
-	/* We can't split the first and last items if they lie in position
-	   insert point points to. */
-	if (hint->control & SF_LEFT_SHIFT) {
- 		if (hint->pos.item == 0 &&
-		    hint->pos.unit == MAX_UINT32)
-		{
-			return 0;
-		}
-	} else {
-		if (hint->pos.item == src_items &&
-		    hint->pos.unit == MAX_UINT32)
+	left_shift = (hint->control & SF_LEFT_SHIFT);
+	
+	/* We can't split the leftmost and rightmost items if they are the same
+	   insetr point points to. */
+
+	if (hint->pos.unit == MAX_UINT32) {
+		if ((left_shift && hint->pos.item == 0) ||
+		    (!left_shift && hint->pos.item == src_items))
 		{
 			return 0;
 		}
 	}
 
-	/* Initializing items to be examined by the estimate_shift() method of
-	   corresponding item plugin. */
-	POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ? 0 :
-			src_items - 1), MAX_UINT32);
-	
-	if (node40_fetch(src_entity, &pos, &src_place))
-		return -EINVAL;
+	/* Getting src item. */
+	if ((res = node40_border(src_entity, left_shift, &src_place)))
+		return res;
 
 	/* Items that do not implement estimate_shift() and shift() methods
 	   cannot be splitted. */
@@ -1052,26 +1069,24 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* Checking if items are mergeable */
 	if (dst_items > 0) {
-		POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ?
-				dst_items - 1 : 0), MAX_UINT32);
-		
-		if (node40_fetch(dst_entity, &pos, &dst_place))
-			return -EINVAL;
+		/* Getting dst item. */
+		if ((res = node40_border(dst_entity, !left_shift, &dst_place)))
+			return res;
 
-		/* Check if items has the same flags. If so, they can be
-		   merged. */
+		/* Check if items has the same flags. If so, they can be tried
+		   to be merged. */
 		src_ih = node40_ih_at(src_node, src_place.pos.item);
 		dst_ih = node40_ih_at(dst_node, dst_place.pos.item);
 
 		if (ih_get_flags(src_ih, pol) != ih_get_flags(dst_ih, pol))
 			return 0;
-		
-		if (hint->control & SF_LEFT_SHIFT) {
-			hint->create = !node40_mergeable(&dst_place,
-							 &src_place);
+
+		/* Check if we need to create new new item in @dst_entity in
+		   order to move data to it. */
+		if (left_shift) {
+			hint->create = !node40_mergeable(&dst_place, &src_place);
 		} else {
-			hint->create = !node40_mergeable(&src_place,
-							 &dst_place);
+			hint->create = !node40_mergeable(&src_place, &dst_place);
 		}
 	} else {
 		hint->create = 1;
@@ -1089,7 +1104,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   mergeing mergeable items when they lie in different nodes.
 		   And it prevents creating two mergeable items in the same
 		   node. */
-		if (hint->control & SF_MERGE_BORDER)
+		if (!create)
 			return 0;
 
 		/* Getting node overhead in order to substract it from
@@ -1117,7 +1132,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		{
 			hint->pos.item = 0;
 			
-			if (hint->control & SF_LEFT_SHIFT)
+			if (left_shift)
 				hint->pos.item = dst_items;
 		}
 	} else {
@@ -1134,7 +1149,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		{
 			hint->pos.item = 0;
 
-			if (hint->control & SF_LEFT_SHIFT)
+			if (left_shift)
 				hint->pos.item = dst_items - 1;
 		}
 	}
@@ -1147,8 +1162,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	if (hint->create) {
 		/* Expanding dst node with creating new item we will shift units
 		   to it. */
-		POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ?
-				dst_items : 0), MAX_UINT32);
+		POS_INIT(&pos, (left_shift ? dst_items : 0), MAX_UINT32);
 		
 		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand node for "
@@ -1186,8 +1200,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   the dst node. We just need to expand existent dst item by
 		   hint->rest. So, we will call expand() with unit component not
 		   equal MAX_UINT32. */
-		POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ?
-				dst_items - 1 : 0), 0);
+		POS_INIT(&pos, (left_shift ? dst_items - 1 : 0), 0);
 
 		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand item for "
@@ -1213,14 +1226,15 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* We will remove src item if it has became empty and insert point is
 	   not points it, that is next insert will not be dealing with it. */
-	remove = ((hint->rest == src_place.len || units == 0) &&
-		  (hint->result & SF_MOVE_POINT || pos.item != hint->pos.item));
+	remove_src = ((hint->rest == src_place.len || units == 0) &&
+		      (hint->result & SF_MOVE_POINT ||
+		       pos.item != hint->pos.item));
 	
 	/* Updating item's keys. */
-	if (hint->control & SF_LEFT_SHIFT) {
+	if (left_shift) {
 		/* We do not need to update key of the src item which is going
 		   to be removed. */
-		if (!remove) {
+		if (!remove_src) {
 			src_ih = node40_ih_at(src_node, src_place.pos.item);
 			aal_memcpy(src_ih, src_place.key.body, key_size(pol));
 		}
@@ -1229,7 +1243,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		aal_memcpy(dst_ih, dst_place.key.body, key_size(pol));
 	}
 	
-	if (remove) {
+	if (remove_src) {
 		/* Like expand() does, shrink() will remove pointed item if unit
 		   component is MAX_UINT32 and shrink the item pointed by pos if
 		   unit component is not MAX_UINT32. */
@@ -1482,7 +1496,6 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	errno_t res;
 	node40_t *src_node;
 	node40_t *dst_node;
-	shift_hint_t merge;
 
 	aal_assert("umka-2050", src_entity != NULL);
 	aal_assert("umka-2051", dst_entity != NULL);
@@ -1490,29 +1503,39 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
 
-	/* First pass is merge border items. Thus, SF_MERGE_BORDER flags is set
-	   in order to let unite() function know, what we want it perform for
-	   us. */
-	merge = *hint;
-	merge.control |= SF_MERGE_BORDER;
-	merge.rest = node40_space(dst_entity);
-	
-	if ((res = node40_unite(src_entity, dst_entity, &merge))) {
-		aal_exception_error("Can't merge two nodes durring "
-				    "node shift operation.");
-		return res;
-	}
+	/* First pass is merge border items. */
+	if (hint->control & SF_ALLOW_MERGE) {
+		if ((res = node40_unite(src_entity, dst_entity, hint, 0))) {
+			aal_exception_error("Can't merge two nodes durring "
+					    "node shift operation.");
+			return res;
+		}
+	} else {
+		int left_shift;
+		place_t src_place;
+		place_t dst_place;
+		
+		/* Check if border items are mergeable. If so, we can't move at
+		   least one item to @dst_entity, because we have to support all
+		   invariants and namely there should not be mergeable items in
+		   the same node. */
 
-	/* Saving merge result, that is insert point and flags. */
-	hint->pos = merge.pos;
-	hint->result = merge.result;
+		left_shift = (hint->control & SF_LEFT_SHIFT);
+
+		if ((res = node40_border(src_entity, left_shift, &src_place)))
+			return res;
+
+		if ((res = node40_border(dst_entity, !left_shift, &dst_place)))
+			return res;
+		
+		if (node40_mergeable(&src_place, &dst_place))
+			return 0;
+	}
 
 	/* Check if insert point is moved to @dst_entity. If so then shift is
 	   finished. */
-	if (hint->result & SF_MOVE_POINT) {
-		hint->units = merge.units;
+	if (hint->result & SF_MOVE_POINT)
 		return 0;
-	}
 
 	/* Second pass is started here. Moving some amount of whole items from
 	   @src_entity to @dst_entity. */
@@ -1533,10 +1556,12 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   create new item in the @dst_entity. Here our objective is to shift
 	   into neighbour node as many units as possible and thus, to fill it
 	   up. */
-	if ((res = node40_unite(src_entity, dst_entity, hint))) {
-		aal_exception_error("Can't merge two nodes durring "
-				    "node shift operation.");
-		return res;
+	if (hint->control & SF_ALLOW_MERGE) {
+		if ((res = node40_unite(src_entity, dst_entity, hint, 1))) {
+			aal_exception_error("Can't merge two nodes durring "
+					    "node shift operation.");
+			return res;
+		}
 	}
 
 	/* Here is handling the case when insert point is moved to the
