@@ -287,16 +287,15 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	}
 
 	aal_stream_init(&stream);
-    
-	printf("Oid allocator:\n");
-	if (fs->oid->entity->plugin->oid_ops.print(fs->oid->entity,
-						   &stream, 0))
-	{
+
+	aal_stream_format(&stream, "Oid allocator:\n");
+	
+	if (reiser4_oid_print(fs->oid, &stream)) {
 		aal_exception_error("Can't print oid allocator.");
 		goto error_free_stream;;
 	}
 
-	aal_stream_write(&stream, "\n", 1);
+	aal_stream_format(&stream, "\n");
 	debugfs_print_stream(&stream);
 
 	aal_stream_fini(&stream);
@@ -308,9 +307,26 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 }
 
 static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
-	aal_exception_error("Sorry, block allocator print "
-			    "is not implemented yet!");
-	return 0;
+	aal_stream_t stream;
+
+	aal_stream_init(&stream);
+    
+	aal_stream_format(&stream, "Block allocator:\n");
+	
+	if (reiser4_alloc_print(fs->alloc, &stream)) {
+		aal_exception_error("Can't print block allocator.");
+		goto error_free_stream;;
+	}
+
+	aal_stream_format(&stream, "\n");
+	debugfs_print_stream(&stream);
+
+	aal_stream_fini(&stream);
+    	return 0;
+	
+ error_free_stream:
+	aal_stream_fini(&stream);
+	return -1;
 }
    
 static errno_t debugfs_print_journal(reiser4_fs_t *fs) {

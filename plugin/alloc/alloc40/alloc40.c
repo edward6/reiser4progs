@@ -365,12 +365,28 @@ static errno_t alloc40_print(object_entity_t *entity,
 			     aal_stream_t *stream,
 			     uint16_t options)
 {
-	aal_assert("umka-1467", entity != NULL, return -1);
-	aal_assert("umka-1468", stream != NULL, return -1);
+	alloc40_t *alloc;
+	
+	aal_assert("umka-1778", entity != NULL, return -1);
+	aal_assert("umka-1779", stream != NULL, return -1);
 
+	alloc = (alloc40_t *)entity;
+
+	aal_stream_format(stream, "%s (%s)\n",
+			  alloc->plugin->h.label,
+			  alloc->plugin->h.desc);
+
+	aal_stream_format(stream, "Total blocks: %llu\n",
+			  alloc->bitmap->total);
+
+	aal_stream_format(stream, "Used blocks: %llu\n",
+			  alloc->bitmap->marked);
+
+	aal_stream_format(stream, "Free blocks: %llu\n",
+			  alloc->bitmap->total - alloc->bitmap->marked);
+	
 	return 0;
 }
-
 
 #endif
 
