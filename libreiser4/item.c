@@ -97,24 +97,6 @@ errno_t reiser4_item_estimate(
 	}
 }
 
-/* Setts up the passed hint for copy operation */
-errno_t reiser4_item_feel(reiser4_place_t *place,
-			  reiser4_key_t *start,
-			  reiser4_key_t *end,
-			  feel_hint_t *hint)
-{
-	errno_t res;
-	
-	aal_assert("umka-2120", place != NULL);
-	aal_assert("umka-2121", hint  != NULL);
-	
-	if ((res = reiser4_place_realize(place)))
-		return res;
-		
-	return plugin_call(place->item.plugin->o.item_ops,
-			   feel, &place->item, start, end, hint);
-}
-
 /* Prints passed @place into passed @buff */
 errno_t reiser4_item_print(
 	reiser4_place_t *place,    /* item to be printed */
