@@ -445,9 +445,13 @@ errno_t obj40_insert(obj40_t *obj, reiser4_item_hint_t *hint,
 	*/
 	switch (obj40_lookup(obj, &hint->key, level, place)) {
 	case LP_ABSENT:
-		if (obj->core->tree_ops.insert(obj->tree, place, hint)) {
-			aal_exception_error("Can't insert new item/unit of object "
-					    "0x%llx into the tree.", objectid);
+		if (obj->core->tree_ops.insert(obj->tree, place,
+					       level, hint))
+		{
+			aal_exception_error("Can't insert new "
+					    "item/unit of object "
+					    "0x%llx into the tree.",
+					    objectid);
 			return -EINVAL;
 		}
 		break;

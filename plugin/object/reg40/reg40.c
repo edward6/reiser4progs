@@ -344,7 +344,6 @@ static reiser4_plugin_t *reg40_policy(reg40_t *reg,
 static int32_t reg40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
-	/* Sorry, not implemented yet! */
 	return 0;
 }
 

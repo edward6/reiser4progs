@@ -1301,7 +1301,7 @@ struct tree_ops {
 	   Inserts item/unit in the tree by calling reiser4_tree_insert
 	   function, used by all object plugins (dir, file, etc)
 	*/
-	errno_t (*insert) (void *, place_t *, reiser4_item_hint_t *);
+	errno_t (*insert) (void *, place_t *, uint8_t, reiser4_item_hint_t *);
     
 	/*
 	  Removes item/unit from the tree. It is used in all object
