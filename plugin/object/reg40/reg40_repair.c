@@ -275,6 +275,30 @@ errno_t reg40_check_struct(object_entity_t *object,
 			if (plug_call(reg->offset.plug->o.key_ops, compshort,
 				      &reg->offset, &reg->body.key))
 				break;
+
+			if (plug_call(reg->body.plug->o.item_ops, units, 
+				      &reg->body) == reg->body.pos.unit)
+			{
+				place_t next;
+				/* We on the not existent position in the item.
+				   Move the the next. */
+				if ((res = rcore->tree_ops.next(info->tree, 
+								&reg->body, 
+								&next)) < 0)
+					return res;
+
+				/* If this was the last item in the tree, 
+				   evth is handled. */
+				if (next.node == NULL)
+					break;
+
+				reg->body = next;
+			}
+
+			/* Check if this is an item of another object. */
+			if (plug_call(reg->offset.plug->o.key_ops, compshort,
+				      &reg->offset, &reg->body.key))
+				break;
 		}
 		
 //		aal_assert("vpf-1304", reg->body.pos.unit == MAX_UINT32);

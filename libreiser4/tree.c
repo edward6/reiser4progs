@@ -1897,7 +1897,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 	if ((res = reiser4_place_fetch(place)))
 		return res;
 	
-	if (plug->id.group == place->plug->id.group)
+	if (plug_equal(plug, place->plug))
 		return 0;
 
 	reiser4_item_maxreal_key(place, &maxkey);
