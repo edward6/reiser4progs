@@ -984,7 +984,7 @@ struct reiser4_journal_ops {
 	errno_t (*sync) (object_entity_t *);
 
 	/* Replays journal. Returns the number of replayed transactions. */
-	int (*replay) (object_entity_t *);
+	errno_t (*replay) (object_entity_t *);
 
 	/* Prints journal content */
 	errno_t (*print) (object_entity_t *, char *, 
