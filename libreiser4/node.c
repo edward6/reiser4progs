@@ -187,9 +187,6 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 			     lookup_bias_t bias,
 			     pos_t *pos)
 {
-#ifndef ENABLE_STAND_ALONE
-	int32_t i;
-#endif
 	lookup_t res;
 	reiser4_key_t maxkey;
 	reiser4_place_t place;
@@ -248,42 +245,6 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 			return ABSENT;
 		}
 	}
-	
-#ifndef ENABLE_STAND_ALONE
-	/* Initializng @place by current @node and found @pos. */
-	if (reiser4_place_open(&place, node, pos))
-		return -EIO;
-	
-	/* Loop through the items of the current node. */
-	for (i = place.pos.item - 1; i >= 0; i--) {
-		place.pos.item = i;
-
-		/* Fetching item info. */
-		if (reiser4_place_fetch(&place))
-			return -EIO;
-			
-		/* If items are of different objects, get out of here. */
-		if (reiser4_key_compshort(&place.key, hint->key))
-			return res;
-
-		/* If item's lookup is implemented, we use it. Item key
-		   comparing is used otherwise. */
-		if (place.plug->o.item_ops->balance->lookup) {
-			switch (plug_call(place.plug->o.item_ops->balance,
-					  lookup, &place, hint, FIND_EXACT))
-			{
-			case PRESENT:
-				*pos = place.pos;
-				break;
-			default:
-				return res;
-			}
-		} else {
-			if (reiser4_key_compfull(&place.key, hint->key))
-				return res;
-		}
-	}
-#endif
 
 	return res;
 }

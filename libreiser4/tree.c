@@ -1595,6 +1595,84 @@ lookup_t reiser4_collision_handler(reiser4_place_t *place,
 	return PRESENT;
 }
 
+#ifndef ENABLE_STAND_ALONE
+/* Makes search of the leftmost item/unit with the same key as passed @key is
+   starting from @place. This is needed to work with key collisions. */
+static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
+					    reiser4_place_t *place,
+					    reiser4_key_t *key)
+{
+        reiser4_place_t walk;
+                                                                                     
+        aal_assert("umka-2396", key != NULL);
+        aal_assert("umka-2388", tree != NULL);
+        aal_assert("umka-2389", place != NULL);
+                                                                                     
+        if (reiser4_place_fetch(place))
+                return -EINVAL;
+                                                                                     
+        aal_memcpy(&walk, place, sizeof(*place));
+                                                                                     
+        /* Main loop until leftmost node reached. */
+        while (walk.node) {
+                int32_t i;
+                                                                                     
+                /* Loop through the items of the current node */
+                for (i = walk.pos.item - 1; i >= 0; i--) {
+                        walk.pos.item = i;
+                                                                                     
+                        /* Fetching item info */
+                        if (reiser4_place_fetch(&walk))
+                                return -EINVAL;
+                                                                                     
+                        /* If items of different objects, get out here. */
+                        if (reiser4_key_compshort(&walk.key, key))
+                                return 0;
+                                                                                     
+                        /* If item's lookup is implemented, we use it. Item key
+                           comparing is used otherwise. */
+                        if (walk.plug->o.item_ops->balance->lookup) {
+				lookup_hint_t lhint;
+
+				lhint.key = key;
+				
+                                switch (plug_call(walk.plug->o.item_ops->balance,
+                                                  lookup, &walk, &lhint, FIND_EXACT))
+                                {
+                                case PRESENT:
+                                        aal_memcpy(place, &walk,
+                                                   sizeof(*place));
+                                        break;
+                                default:
+                                        return 0;
+                                }
+                        } else {
+                                if (!reiser4_key_compfull(&walk.key, key)) {
+                                        aal_memcpy(place, &walk, sizeof(*place));
+                                } else {
+                                        return 0;
+				}
+                        }
+                }
+                                                                                     
+                /* Getting left neighbour node. */
+                reiser4_node_lock(place->node);
+                reiser4_tree_neig_node(tree, walk.node, DIR_LEFT);
+                reiser4_node_unlock(place->node);
+                                                                                     
+                /* Initializing @walk by neighbour node and last item. */
+                if ((walk.node = walk.node->left)) {
+                        int32_t items = reiser4_node_items(walk.node);
+                                                                                     
+                        /* Here should be namely @items, not @items - 1, because
+                           we will access @walk.item - 1 on the next cycle */
+                        POS_INIT(&walk.pos, items, MAX_UINT32);
+                }
+        }
+                                                                                     
+        return 0;
+}
+#endif
 
 /* Makes search in the tree by specified @key. Fills passed place by data of
    found item. That is body pointer, plugin, etc. */
@@ -1654,6 +1732,10 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		   or some error occured during last node lookup. */
 		if (clevel <= hint->level || res < 0) {
 			if (res == PRESENT) {
+#ifndef ENABLE_STAND_ALONE
+				if (reiser4_tree_collision_start(tree, place, &wan))
+					return -EIO;
+#endif
 				/* Fetching item at @place if key is found */
 				if (reiser4_place_fetch(place))
 					return -EIO;
