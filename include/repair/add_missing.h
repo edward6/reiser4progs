@@ -21,6 +21,7 @@ typedef struct repair_am_stat {
 typedef struct repair_am {
 	repair_data_t *repair;
 	
+	aux_bitmap_t *bm_used;
 	aux_bitmap_t *bm_twig;
 	aux_bitmap_t *bm_leaf;
 	

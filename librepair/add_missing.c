@@ -11,13 +11,15 @@
 static errno_t callback_item_mark_region(void *object, uint64_t start, 
 					 uint64_t count, void *data)
 {
-	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
+	repair_am_t *am = (repair_am_t *)data;
 	
 	aal_assert("vpf-735", data != NULL);
 	
 	if (start != 0) {
-		reiser4_alloc_permit(alloc, start, count);
-		reiser4_alloc_occupy(alloc, start, count);
+		/* These blocks are marked in allocator as it already has all 
+		   blocks forbidden for allocation marked. Just mark them as 
+		   used now. */
+		aux_bitmap_mark_region(am->bm_used, start, count);
 	}
 	
 	return 0;
@@ -135,25 +137,19 @@ static errno_t repair_am_node_prepare(repair_am_t *am, reiser4_node_t *node) {
 }
 
 static errno_t repair_am_blk_free(repair_am_t *am, blk_t blk) {
-	errno_t res;
-	
 	aal_assert("vpf-1330", am != NULL);
-
-	if ((res = reiser4_alloc_permit(am->repair->fs->alloc, blk, 1)))
-		return res;
 
 	return reiser4_alloc_release(am->repair->fs->alloc, blk, 1);
 }
 
 static errno_t repair_am_blk_used(repair_am_t *am, blk_t blk) {
-	errno_t res;
-	
 	aal_assert("vpf-1330", am != NULL);
 
-	if ((res = reiser4_alloc_permit(am->repair->fs->alloc, blk, 1)))
-		return res;
+	/* These blocks are marked in allocator as it already has all blocks 
+	   forbidden for allocation marked. Just mark them as used now. */
+	aux_bitmap_mark_region(am->bm_used, blk, 1);
 
-	return reiser4_alloc_occupy(am->repair->fs->alloc, blk, 1);
+	return 0;
 }
 
 typedef struct stat_bitmap {
@@ -220,9 +216,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 
 			stat->by_node++;
 
-			if ((res = repair_node_traverse(node, callback_layout, 
-							alloc)))
-				goto error_close_node;
+			res = repair_node_traverse(node, callback_layout, am);
+			if (res) goto error_close_node;
 
 			blk++;
 		} /* if res > 0 - uninsertable case - insert by items later. */
@@ -292,7 +287,9 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 				goto error_close_node;
 
 			if (res == 0) {
-				if ((res = callback_layout(&place, alloc)))
+				/* FIXME-VITALY: this is wrong. Fix it when merge 
+				   will be ready. */
+				if ((res = callback_layout(&place, am)))
 					goto error_close_node;
 			}
 		}

@@ -817,7 +817,6 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	aal_assert("vpf-1026", sem->repair != NULL);
 	aal_assert("vpf-1027", sem->repair->fs != NULL);
 	aal_assert("vpf-1028", sem->repair->fs->tree != NULL);
-	aal_assert("vpf-1321", sem->bm_used != NULL);
 	
 	sem->progress = &progress;
 	repair_semantic_setup(sem);

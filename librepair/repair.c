@@ -346,22 +346,8 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts,
 	return 0;
 }
 
-static errno_t repair_ts_fini(repair_control_t *control) {
-	aal_assert("vpf-1334", control != NULL);
-
-	/* Not for the BUILD mode met points to the bm_used. */
-	control->bm_met = NULL;
-
-	/* All blocks that are met are forbidden for allocation. */
-	reiser4_alloc_assign_forb(control->repair->fs->alloc, 
-				  control->bm_used);
-	
-	return 0;
-}
-
 static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
-	uint64_t fs_len, i;
-	errno_t res;
+	uint64_t i;
 	
 	aal_assert("vpf-855", am != NULL);
 	aal_assert("vpf-857", control != NULL);
@@ -373,38 +359,22 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	am->repair = control->repair;
 	am->bm_leaf = control->bm_leaf;
 	am->bm_twig = control->bm_twig;
+	am->bm_used = control->bm_used;
 	
 	am->progress_handler = control->repair->progress_handler;
 	
-	if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of allocated "
-				    "blocks.");
-		return -EINVAL;
-	}
-	
-	if ((res = reiser4_alloc_extract(control->repair->fs->alloc, 
-					 control->bm_alloc)))
-		return res;
-
 	for (i = 0; i < control->bm_met->size; i++) {
 		/* Leave there twigs and leaves that are not in the tree. */
 		control->bm_twig->map[i] &= ~(control->bm_used->map[i]);
 		control->bm_leaf->map[i] &= ~(control->bm_used->map[i]);
-		
-		/* Through away from the allocator all not met blocks. */
-		control->bm_alloc->map[i] &= control->bm_met->map[i];
 	}
 	
-	/* Assign the changed bm_alloc bitmap to the block allocator. */
-	reiser4_alloc_assign(control->repair->fs->alloc, control->bm_alloc);
+	/* Assign the met bitmap to the block allocator. */
+	reiser4_alloc_assign(control->repair->fs->alloc, control->bm_met);
 	
-	/* All blocks that are met are forbidden for allocation. */
-	reiser4_alloc_assign_forb(control->repair->fs->alloc, control->bm_met);
-	
-	aux_bitmap_close(control->bm_alloc);
 	aux_bitmap_close(control->bm_met);
 	
-	control->bm_alloc = control->bm_met = NULL;
+	control->bm_met = NULL;
 	
 	aux_bitmap_calc_marked(control->bm_twig);
 	aux_bitmap_calc_marked(control->bm_leaf);
@@ -422,44 +392,38 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 	
 	aal_memset(sem, 0, sizeof(*sem));
 	
-	sem->bm_used = control->bm_used;
 	sem->repair = control->repair;
 	sem->progress_handler = control->repair->progress_handler;
 	
-	if (control->bm_leaf) {
-		aal_assert("vpf-1335", control->repair->mode != RM_BUILD || 
-			   !aux_bitmap_marked(control->bm_leaf));
-		
-		aux_bitmap_close(control->bm_leaf);
-		control->bm_leaf = NULL;
-	}
-
 	aal_assert("vpf-1335", control->repair->mode != RM_BUILD ||
 		   !aux_bitmap_marked(control->bm_twig));
 
 	aux_bitmap_close(control->bm_twig);
 	control->bm_twig = NULL;
 	
-	return 0;
-}
+	if (control->repair->mode == RM_BUILD) {
+		aal_assert("vpf-1335", control->repair->mode != RM_BUILD || 
+			   !aux_bitmap_marked(control->bm_leaf));
+		
+		aux_bitmap_close(control->bm_leaf);
+		control->bm_leaf = NULL;
 
-static errno_t repair_sem_fini(repair_control_t *control) {
-	uint64_t fs_len;
-	errno_t res;
+		/* Assign the used bitmap to the block allocator. */
+		reiser4_alloc_assign(control->repair->fs->alloc, control->bm_used);
+		reiser4_alloc_sync(control->repair->fs->alloc);
 
-	/* Build alloc on the base of bm_used, deallocate all bitmaps, 
-	   clear forbidden blocks in alloc. 
-	   In CHECK mode -- compare alloc bitmap and bm_used, sware, 
-	   error++ 
-	   In fixable mode == CHECK, but fix bitmaps if no fatal errors.
-	 */
-	
-	fs_len = reiser4_format_get_len(control->repair->fs->format);
-	
-	/* Permit all blocks for the allocation. */
-	reiser4_alloc_permit(control->repair->fs->alloc, 0, fs_len);
+		aux_bitmap_close(control->bm_used);
+		control->bm_used = NULL;
+	} else {
+		aux_bitmap_t *bm_temp;
+		uint64_t fs_len, i;
+		errno_t res;
+		
+		/* Not for the BUILD mode met points to the bm_used. */
+		control->bm_met = NULL;
+		
+		fs_len = reiser4_format_get_len(control->repair->fs->format);
 
-	if (control->repair->mode != RM_BUILD) {
 		if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
 			aal_exception_error("Failed to allocate a bitmap of "
 					    "allocated blocks.");
@@ -470,38 +434,64 @@ static errno_t repair_sem_fini(repair_control_t *control) {
 						 control->bm_alloc)))
 			return res;
 
-
-		if (repair_bitmap_compare(control->bm_alloc, 
-					  control->bm_used, 0))
-		{
-			aal_exception_error("On-disk used blocks and correct "
-					    "used blocks differ.%s",
-					    control->repair->mode == RM_FIX && 
-					    !control->repair->fatal ? " Fixed." 
-					    : "");
-			
-			
-			if (control->repair->mode == RM_FIX && 
-			    !control->repair->fatal)
-			{
-				/* Assign the bm_used bitmap to the block allocator. */
-				reiser4_alloc_assign(control->repair->fs->alloc, 
-						     control->bm_used);
+		if (control->repair->mode == RM_CHECK)
+			return 0;
 		
-				reiser4_alloc_sync(control->repair->fs->alloc);
-			} else 
-				control->repair->fixable++;
+		if (!(bm_temp = aux_bitmap_clone(control->bm_alloc))) {
+			aal_exception_error("Failed to allocate a backup of "
+					    "allocated blocks bitmap.");
+			return -EINVAL;
 		}
-	} else {
-		/* Assign the bm_used bitmap to the block allocator. */
-		reiser4_alloc_assign(control->repair->fs->alloc, 
-				     control->bm_used);
+		
+		for (i = 0; i < control->bm_met->size; i++)
+			bm_temp->map[i] |= control->bm_used->map[i];
 
-		reiser4_alloc_sync(control->repair->fs->alloc);
+
+		/* All blocks that are met are forbidden for allocation. */
+		reiser4_alloc_assign(control->repair->fs->alloc, bm_temp);
+
+		aux_bitmap_close(bm_temp);
 	}
+
+	return 0;
+}
+
+static errno_t repair_sem_fini(repair_control_t *control) {
+	uint64_t fs_len;
+
+	/* Build alloc on the base of bm_used, deallocate all bitmaps, 
+	   clear forbidden blocks in alloc. 
+	   In CHECK mode -- compare alloc bitmap and bm_used, sware, 
+	   error++ 
+	   In fixable mode == CHECK, but fix bitmaps if no fatal errors.
+	 */
 	
+	if (control->repair->mode == RM_BUILD)
+		return 0;
+	
+	fs_len = reiser4_format_get_len(control->repair->fs->format);
+	
+	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 0)) {
+		aal_exception_error("On-disk used blocks and really used "
+				    "blocks differ.%s", 
+				    control->repair->mode == RM_FIX && 
+				    !control->repair->fatal ? " Fixed." 
+				    : "");
+
+		if (control->repair->mode == RM_FIX && !control->repair->fatal)
+		{
+			/* Assign the bm_used bitmap to the block allocator. */
+			reiser4_alloc_assign(control->repair->fs->alloc, 
+					     control->bm_used);
+
+			reiser4_alloc_sync(control->repair->fs->alloc);
+		} else 
+			control->repair->fixable++;
+	}
+
 	aux_bitmap_close(control->bm_used);
-	control->bm_used = NULL;
+	aux_bitmap_close(control->bm_alloc);
+	control->bm_used = control->bm_alloc = NULL;
 	
 	return 0;
 }
@@ -617,15 +607,16 @@ errno_t repair_check(repair_data_t *repair) {
 	if ((res = repair_filter(&filter)))
 		goto error;
 	
-	if (repair->mode == RM_BUILD) {
-		/* Scan twigs which are in the tree to avoid scanning 
-		   the unformatted blocks which are pointed by extents. */
-		if ((res = repair_ts_prepare(&control, &ts, 1)))
-			goto error;
+	/* Scan twigs which are in the tree to avoid scanning the unformatted 
+	   blocks at BUILD pass which are pointed by extents and preparing the 
+	   allocable blocks. */
+	if ((res = repair_ts_prepare(&control, &ts, repair->mode == RM_BUILD)))
+		goto error;
 
-		if ((res = repair_twig_scan(&ts)))
-			goto error;
-		
+	if ((res = repair_twig_scan(&ts)))
+		goto error;
+
+	if (repair->mode == RM_BUILD) {
 		/* Scanning blocks which are used but not in the tree yet. */
 		if ((res = repair_ds_prepare(&control, &ds)))
 			goto error;
@@ -647,20 +638,7 @@ errno_t repair_check(repair_data_t *repair) {
 		
 		if ((res = repair_add_missing(&am)))
 			goto error;
-	} else {
-		/* Scanning all twig nodes and preparing the bitmap of 
-		   unformatted blocks. This is needed for FIX mode to 
-		   prepare the bitmap of allocable blocks which is needed 
-		   at semantic pass. */
-		if ((res = repair_ts_prepare(&control, &ts, 0)))
-			goto error;
-
-		if ((res = repair_twig_scan(&ts)))
-			goto error;
-
-		if ((res = repair_ts_fini(&control)))
-			goto error;
-	}
+	} 
 
 	if (repair->mode != RM_BUILD && repair->fatal) {
 		aal_exception_mess("\nFatal corruptions were found. "

@@ -186,9 +186,6 @@ void reiser4_alloc_close(
 	plug_call(alloc->entity->plug->o.alloc_ops, 
 		  close, alloc->entity);
     
-	if (alloc->forbid)
-		aux_bitmap_close(alloc->forbid);
-	    
 	aal_free(alloc);
 }
 
@@ -223,6 +220,9 @@ errno_t reiser4_alloc_occupy(
 
 	plug_call(alloc->entity->plug->o.alloc_ops, 
 		  occupy, alloc->entity, start, count);
+
+	if (alloc->hook.alloc)
+		alloc->hook.alloc(alloc, start, count, alloc->hook.data);
 
 	return 0;
 }
@@ -313,79 +313,4 @@ errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 			 data);
 }
 
-errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
-			     blk_t start, count_t count) 
-{
-	aal_assert("vpf-584", alloc != NULL);
-
-	if (!alloc->forbid) {
-		count_t used = reiser4_alloc_used(alloc);
-		count_t free = reiser4_alloc_free(alloc);
-		alloc->forbid = aux_bitmap_create(used + free);
-	}
-	
-	aux_bitmap_mark_region(alloc->forbid, start, count);
-	return 0;	
-}
-
-errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc,
-			     blk_t start, count_t count) 
-{
-	aal_assert("vpf-585", alloc != NULL);
-	
-	if (!alloc->forbid) 
-		return 0;
-	
-	aux_bitmap_clear_region(alloc->forbid, start, count);
-
-	if (alloc->forbid->marked == 0) {
-		aux_bitmap_close(alloc->forbid);
-		alloc->forbid = NULL;
-	}
-
-	return 0;
-}
-
-errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc, 
-				  aux_bitmap_t *bitmap) 
-{
-	uint32_t i;
-
-	aal_assert("vpf-583", alloc != NULL);
-	aal_assert("umka-1849", bitmap != NULL);
-
-	if (!alloc->forbid) {
-		count_t used = reiser4_alloc_used(alloc);
-		count_t free = reiser4_alloc_free(alloc);
-		alloc->forbid = aux_bitmap_create(used + free);
-	}
-
-	aal_assert("vpf-589", alloc->forbid->size == bitmap->size &&
-		   alloc->forbid->total == bitmap->total);
-
-	for (i = 0; i < alloc->forbid->size; i++)
-		alloc->forbid->map[i] |= bitmap->map[i];
-	
-	return 0;
-}
-
-errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc, 
-				  aux_bitmap_t *bitmap) 
-{
-	uint32_t i;
-
-	aal_assert("vpf-587", alloc != NULL);
-	aal_assert("umka-1850", bitmap != NULL);
-	
-	if (!alloc->forbid) 
-		return 0;
-
-	aal_assert("vpf-590", alloc->forbid->size == bitmap->size &&
-		   alloc->forbid->total == bitmap->total);
-	
-	for (i = 0; i < alloc->forbid->size; i++)
-		alloc->forbid->map[i] &= ~bitmap->map[i];
-
-	return 0;
-}
 #endif

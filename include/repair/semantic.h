@@ -27,8 +27,6 @@ typedef struct repair_ancestor {
 typedef struct repair_semantic {
 	repair_data_t *repair;
 
-	aux_bitmap_t *bm_used;
-	
 	reiser4_object_t *root;
 	reiser4_object_t *lost;
 	

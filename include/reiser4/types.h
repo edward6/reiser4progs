@@ -242,8 +242,6 @@ typedef errno_t (*hook_alloc_t) (reiser4_alloc_t *, uint64_t, uint64_t, void *);
 /* Block allocator structure */
 struct reiser4_alloc {
 	reiser4_fs_t *fs;
-	
-	aux_bitmap_t *forbid;
 	generic_entity_t *entity;
 
 	struct {
