@@ -76,7 +76,6 @@ errno_t extent40_copy(place_t *dst, uint32_t dst_pos,
 {
 	extent40_t *dst_body, *src_body;
 	uint32_t dst_units, src_units;
-	uint32_t dst_end, src_end;
 	uint64_t dst_head, dst_tail;
 	int32_t  move;
     

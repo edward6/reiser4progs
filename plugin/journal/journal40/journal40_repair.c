@@ -186,7 +186,6 @@ static errno_t callback_journal_txh_check(generic_entity_t *entity, blk_t blk,
 {
 	journal40_t *journal = (journal40_t *)entity;
 	journal40_check_t *check_data = (journal40_check_t *)data;
-	errno_t ret;
 	
 	aal_assert("vpf-461", journal != NULL);
 	aal_assert("vpf-491", check_data != NULL);

@@ -40,7 +40,6 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	pos_t *pos = &place.pos;
 	errno_t res = 0;
 	uint32_t count;
-	int32_t len;
 	
 	aal_assert("vpf-229", node != NULL);
 	aal_assert("vpf-230", node->entity != NULL);
@@ -309,13 +308,16 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			return res;
 		}
 		
-		if (reiser4_key_valid(&key)) {
+		if ((res = repair_key_check_struct(&key)) < 0)
+			return res;
+		
+		if (res || reiser4_key_compare(&key, &place.key)) {
 			remove_hint_t hint;
 			
 			aal_exception_error("Node (%llu): The key [%s] of the "
-					    "item (%u) is not valid. Item "
-					    "removed.", node_blocknr(node),
-					    reiser4_print_key(&key, PO_DEF),
+					    "item (%u) is broken.", 
+					    node_blocknr(node),
+					    reiser4_print_key(&place.key, PO_DEF),
 					    pos->item);
 
 			hint.count = 1;
@@ -330,15 +332,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		}
 		
 		if (pos->item) {
-			res = reiser4_key_compare(&prev_key, &key);
-			
-			if ((res == 0 && 
-			     (reiser4_key_get_type(&key) != KEY_FILENAME_TYPE ||
-			      reiser4_key_get_type(&prev_key) != KEY_FILENAME_TYPE)) ||
-			    (res > 0)) 
-			{
-				/* FIXME-VITALY: Which part does put the rule 
-				   that neighbour keys could be equal? */
+			if (reiser4_key_compare(&prev_key, &key) >= 0) {
 				aal_exception_error("Node (%llu), items (%u) "
 						    "and (%u): Wrong order of "
 						    "keys.", node_blocknr(node), 
@@ -388,7 +382,6 @@ errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func,
 {
 	reiser4_place_t place;
 	pos_t *pos = &place.pos;
-	uint32_t items;
 	errno_t res;
 	
 	aal_assert("vpf-744", node != NULL);

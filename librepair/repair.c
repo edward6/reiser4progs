@@ -304,8 +304,6 @@ errno_t repair_sem_prepare(repair_control_t *control, repair_semantic_t *sem) {
 static errno_t repair_cleanup_prepare(repair_control_t *control, 
 				      repair_cleanup_t *cleanup) 
 {
-	uint64_t i;
-	
 	aal_assert("vpf-855", cleanup != NULL);
 	aal_assert("vpf-857", control != NULL);
 	aal_assert("vpf-859", control->repair != NULL);
@@ -322,7 +320,6 @@ static errno_t repair_cleanup_prepare(repair_control_t *control,
 /* Debugging. */
 static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 	uint64_t fs_len;
-	uint64_t i;
 	
 	aal_assert("vpf-855", am != NULL);
 	aal_assert("vpf-857", control != NULL);

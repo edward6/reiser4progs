@@ -21,7 +21,6 @@ static int callback_bs_check (int64_t val, void * data) {
    one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	uint16_t blocksize = 0;
-	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-730", fs != NULL);
 	aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);

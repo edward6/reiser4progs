@@ -10,7 +10,6 @@
 
 static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	repair_cleanup_t *cleanup;
-	reiser4_object_t *object;
 	errno_t res = 0;
 	uint8_t i;
 	
@@ -92,11 +91,11 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 }
 
 errno_t repair_cleanup(repair_cleanup_t *cleanup) {
-	reiser4_object_t *root;
 	repair_progress_t progress;
 	reiser4_fs_t *fs;
 	errno_t res;
 	
+	cleanup->progress = &progress;
 	repair_cleanup_setup(cleanup);
 	
 	fs = cleanup->repair->fs;

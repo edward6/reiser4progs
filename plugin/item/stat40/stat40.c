@@ -292,7 +292,7 @@ static errno_t callback_body_ext(sdext_entity_t *sdext,
 }
 
 /* Finds extention body by number of bit in 64bits mask */
-static body_t *stat40_sdext_body(place_t *place, uint8_t bit) {
+body_t *stat40_sdext_body(place_t *place, uint8_t bit) {
 	struct body_hint hint = {NULL, bit};
 
 	if (stat40_traverse(place, callback_body_ext, &hint) < 0)
@@ -321,7 +321,7 @@ static errno_t callback_present_ext(sdext_entity_t *sdext,
 }
 
 /* Determines if passed extention denoted by @bit present in statdata item */
-static int stat40_sdext_present(place_t *place, uint8_t bit) {
+int stat40_sdext_present(place_t *place, uint8_t bit) {
 	present_hint_t hint = {0, bit};
 
 	if (!stat40_traverse(place, callback_present_ext, &hint) < 0)

@@ -57,7 +57,6 @@ extern errno_t reiser4_key_set_ordering(reiser4_key_t *key,
 					uint64_t ordering);
 
 #ifndef ENABLE_STAND_ALONE
-extern errno_t reiser4_key_valid(reiser4_key_t *key);
 extern uint32_t reiser4_key_get_type(reiser4_key_t *key);
 extern uint64_t reiser4_key_get_offset(reiser4_key_t *key);
 extern oid_t reiser4_key_get_objectid(reiser4_key_t *key);

@@ -373,10 +373,6 @@ reiser4_node_t *reiser4_tree_alloc(
 
 	node->tree = tree;
 	return node;
-
- error_free_node:
-	reiser4_node_close(node);
-	return NULL;
 }
 
 /* Unload node and releasing it in block allocator */
@@ -410,8 +406,6 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 /* Builds root key and stores it in passed @tree instance */
 static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	rid_t pid;
-	oid_t locality;
-	oid_t objectid;
     
 	aal_assert("umka-1090", tree != NULL);
 	aal_assert("umka-1091", tree->fs != NULL);
@@ -1432,8 +1426,6 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 {
 	errno_t res;
 	uint8_t curr;
-	
-	pos_t pos = {0, 0};
 	reiser4_node_t *node;
 	
 	aal_assert("vpf-672", tree != NULL);
@@ -1532,7 +1524,6 @@ errno_t reiser4_tree_insert(
 	errno_t res;
 	uint32_t len;
 	uint32_t needed;
-	reiser4_key_t *key;
 	reiser4_place_t old;
 
 	aal_assert("umka-779", tree != NULL);
@@ -1915,12 +1906,10 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 			 reiser4_node_t *src_node,
 			 void *data)
 {
-	pos_t pos;
 	errno_t res = 0;
 	move_hint_t *hint;
 
 	aal_list_t *last;
-	reiser4_key_t lkey;
 	aal_list_t *current;
 	reiser4_node_t *parent;
 	reiser4_node_t *dst_node;

@@ -236,7 +236,6 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    key_entity_t *from,
 			    key_entity_t *key)
 {
-	errno_t res;
 	sym40_t *sym;
 	char path[_SYMLINK_LEN];
 	

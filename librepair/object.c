@@ -118,10 +118,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_object_t *parent,
 				       reiser4_key_t *key)
 {
-	reiser4_object_t *object;
 	reiser4_place_t place;
-	reiser4_plug_t *plug;
-	object_info_t info;
 	lookup_t lookup;
 	
 	aal_assert("vpf-1132", tree != NULL);

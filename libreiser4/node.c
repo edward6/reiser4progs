@@ -818,7 +818,6 @@ errno_t reiser4_node_insert(
 	errno_t res;
 	uint32_t len;
 	uint32_t needed;
-	uint32_t maxspace;
     
 	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-991", pos != NULL);

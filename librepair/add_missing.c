@@ -11,7 +11,6 @@
 static errno_t callback_item_mark_region(void *object, uint64_t start, 
 					 uint64_t count, void *data)
 {
-	reiser4_place_t *place = (reiser4_place_t *)object;
 	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
 	
 	aal_assert("vpf-735", data != NULL);
@@ -324,8 +323,6 @@ errno_t repair_add_missing(repair_am_t *am) {
  error_node_close:
 	reiser4_node_close(node);
 
- error_progress_close:
-    
 	am->progress->state = PROGRESS_END;
 	if (am->progress_handler)
 		am->progress_handler(am->progress);

@@ -101,9 +101,7 @@ static void fsck_init_streams(fsck_parse_t *data) {
 static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
 {
 	int c;
-	char *str;
 	FILE *stream;
-	static int flag;
 	static int mode = RM_CHECK;
 
 	static struct option long_options[] = {
@@ -235,8 +233,7 @@ int main(int argc, char *argv[]) {
 	fsck_parse_t parse_data;
 	repair_data_t repair;
 	aal_stream_t stream;
-	uint16_t mask = 0;
-    
+ 
 	memset(&parse_data, 0, sizeof(parse_data));
 	memset(&repair, 0, sizeof(repair));
 	aal_stream_init(&stream);

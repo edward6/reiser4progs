@@ -155,7 +155,6 @@ errno_t reiser4_alloc_extract(reiser4_alloc_t *alloc,
 errno_t reiser4_alloc_sync(
 	reiser4_alloc_t *alloc)	/* allocator to be synced */
 {
-	errno_t res;
 	aal_assert("umka-139", alloc != NULL);
 
 	if (!reiser4_alloc_isdirty(alloc))

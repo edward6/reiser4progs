@@ -396,7 +396,7 @@ errno_t key_large_print(key_entity_t *key,
 	return 0;
 }
 
-extern errno_t key_large_check_struct(key_entity_t *key, uint8_t mode);
+extern errno_t key_large_check_struct(key_entity_t *key);
 
 #endif
 

@@ -69,9 +69,7 @@ errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 	uint64_t locality, objectid, ordering;
 	object_info_t *info;
 	key_entity_t key;
-	errno_t res;
 
-	aal_assert("vpf-1121", info != NULL);
 	aal_assert("vpf-1121", obj->info.tree != NULL);
 	aal_assert("vpf-1127", obj->info.object.plug || obj->info.start.plug);
 	

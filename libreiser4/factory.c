@@ -295,8 +295,6 @@ errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
 
 /* Initializes plugin factory by means of loading all available plugins */
 errno_t reiser4_factory_init(void) {
-        reiser4_plug_t *plug;
-                                                                                                
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
         DIR *dir;
         struct dirent *ent;

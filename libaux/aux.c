@@ -39,9 +39,6 @@ int aux_bin_search(
 			left = i + 1;
 			continue;
 		} else if (res == 1) {
-			if (i == 0)
-				break;
-	    
 			right = i - 1;
 			continue;
 		} else {
@@ -91,11 +88,11 @@ errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 #endif
     
 		if (!(entry = aal_strsep(&pointer, "/")))
-			return 0;
+			break;
 
 		if (!aal_strlen(entry)) {
 			if (!pointer || !aal_strlen(pointer))
-				return 0;
+				break;
 			else
 				continue;
 		}

@@ -166,8 +166,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 	reiser4_plug_t *bplug;
 	object_info_t *info;
 	entry_hint_t entry;
-	key_entity_t key;
-	lookup_t lookup;
 	rid_t pid;
 	
 	uint64_t size, bytes;
@@ -334,7 +332,6 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	dir40_t *dir = (dir40_t *)object;
 	entry_hint_t entry;
 	lookup_t lookup;
-	uint32_t links;
 	errno_t res;
 	
 	aal_assert("vpf-1151", object != NULL);
@@ -376,7 +373,6 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 /* Creates the fake dir40 entity by the given @info for the futher recovery. */
 object_entity_t *dir40_fake(object_info_t *info) {
 	dir40_t *dir;
-	errno_t res;
 	
 	aal_assert("vpf-1231", info != NULL);
 	
@@ -393,10 +389,9 @@ object_entity_t *dir40_fake(object_info_t *info) {
 }
 
 /* Updates the @object->info.parent. If ".." cannot be found, zero the key. */
-errno_t dir40_update(object_entity_t *object) {
+errno_t dir40_update_info(object_entity_t *object) {
 	entry_hint_t entry;
 	dir40_t *dir;
-	errno_t res;
 
 	aal_assert("vpf-1269", object != NULL);
 

@@ -135,7 +135,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 	reg40_t *reg = (reg40_t *)object;
 	object_info_t *info;
 	key_entity_t key;
-	lookup_t lookup;
 	errno_t res = 0;
 
 	aal_assert("vpf-1126", reg != NULL);

@@ -68,7 +68,7 @@ static errno_t callback_register_region(void *o, uint64_t start,
 static errno_t repair_semantic_check_struct(repair_semantic_t *sem, 
 					    reiser4_object_t *object) 
 {
-	errno_t res;
+	errno_t res = 0;
 	
 	aal_assert("vpf-1169", sem != NULL);
 	aal_assert("vpf-1170", object != NULL);
@@ -95,7 +95,6 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 					    reiser4_object_t *parent,
 					    reiser4_object_t *object) 
 {
-	reiser4_place_t *start;
 	errno_t res;
 	
 	aal_assert("vpf-1182", sem != NULL);
@@ -193,7 +192,7 @@ static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
 static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem, 
 						reiser4_object_t *object) 
 {
-	bool_t checked, name_missed = FALSE;
+	bool_t checked;
 	reiser4_object_t *parent, *found;
 	reiser4_place_t *pstart;
 	entry_hint_t entry;
@@ -304,7 +303,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 						  void *data)
 {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
-	reiser4_object_t *object, *upper = NULL;
+	reiser4_object_t *object;
 	bool_t checked, attached;
 	reiser4_place_t *start;
 	errno_t res = 0;

@@ -28,7 +28,6 @@ static errno_t journal40_layout(generic_entity_t *entity,
 				void *data)
 {
 	blk_t blk;
-	errno_t res;
 	journal40_t *journal;
 
 	aal_assert("umka-1040", entity != NULL);
@@ -647,7 +646,6 @@ static errno_t journal40_print(generic_entity_t *entity,
 			       aal_stream_t *stream, 
 			       uint16_t options)
 {
-	errno_t res;
 	journal40_t *journal;
 	journal40_footer_t *footer;
 	journal40_header_t *header;

@@ -237,8 +237,6 @@ static errno_t fprint_process_place(
 	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
-	errno_t res;
-	
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 	reiser4_place_t *p = (reiser4_place_t *)place;
 

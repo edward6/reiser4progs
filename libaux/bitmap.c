@@ -246,14 +246,12 @@ aux_bitmap_t *aux_bitmap_create(uint64_t len) {
 	bitmap->total = len;
 	bitmap->size = (len + 7) / 8;
     
-	if (!(bitmap->map = aal_calloc(bitmap->size, 0)))
-		goto error_free_bitmap;
+	if (!(bitmap->map = aal_calloc(bitmap->size, 0))) {
+		aal_free(bitmap);
+		return NULL;
+	}
     
 	return bitmap;
-    
- error_free_bitmap:
-	aal_free(bitmap);
-	return NULL;
 }
 
 errno_t aux_bitmap_resize(aux_bitmap_t *bitmap,

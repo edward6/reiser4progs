@@ -12,7 +12,6 @@ errno_t repair_fs_open(repair_data_t *repair,
 		       aal_device_t *host_device,
 		       aal_device_t *journal_device)
 {
-	void *oid_area_start, *oid_area_end;
 	uint64_t len;
 	errno_t res;
 

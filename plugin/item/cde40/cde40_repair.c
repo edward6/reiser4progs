@@ -91,7 +91,7 @@ extern inline uint32_t cde40_key_pol(place_t *place);
 /* Check the i-th offset of the unit body within the item. */
 static errno_t cde40_offset_check(place_t *place, uint32_t pos) {
 	uint32_t pol;
-	uint32_t offset, limit;
+	uint32_t offset;
     
 	pol = cde40_key_pol(place);
 	

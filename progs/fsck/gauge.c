@@ -15,7 +15,6 @@ void gauge_tree(aal_gauge_t *gauge) {
     repair_progress_tree_t *tree;
     gauge_hint_t *hint;
     aal_list_t *elem;
-    uint32_t count;
     time_t t;
 
     aal_assert("vpf-873", gauge != NULL);
@@ -73,7 +72,6 @@ void gauge_tree(aal_gauge_t *gauge) {
 void gauge_rate(aal_gauge_t *gauge) {
     repair_progress_rate_t *rate;
     gauge_hint_t *hint;    
-    uint8_t i;
     time_t t;
     
     aal_assert("vpf-871", gauge != NULL);
@@ -159,7 +157,6 @@ static errno_t progress_start(repair_progress_t *progress) {
     case GAUGE_TREE:
 	{
 	    repair_progress_tree_t *tree;
-	    aal_list_t *list;
 	    
 	    tree = aal_calloc(sizeof(repair_progress_tree_t), 0);
 

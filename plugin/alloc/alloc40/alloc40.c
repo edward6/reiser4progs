@@ -91,7 +91,6 @@ errno_t alloc40_related(generic_entity_t *entity, blk_t blk,
 {
 	uint64_t size;
 	alloc40_t *alloc;
-	aal_device_t *device;
     
 	aal_assert("vpf-554", entity != NULL);
 	aal_assert("umka-1746", region_func != NULL);

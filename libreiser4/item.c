@@ -96,8 +96,6 @@ bool_t reiser4_item_branch(reiser4_plug_t *plug) {
 errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 				 reiser4_key_t *key)
 {
-	errno_t res;
-	
 	aal_assert("umka-1270", key != NULL);
 	aal_assert("umka-1269", place != NULL);
 	aal_assert("umka-1456", place->plug != NULL);
@@ -117,8 +115,6 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 				 reiser4_key_t *key)
 {
-	errno_t res;
-	
 	aal_assert("vpf-352", key != NULL);
 	aal_assert("vpf-351", place != NULL);
 	aal_assert("umka-1457", place->plug != NULL);
@@ -134,8 +130,6 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 }
 
 errno_t reiser4_item_ukey(reiser4_place_t *place, reiser4_key_t *key) {
-	errno_t res;
-
 	aal_assert("vpf-1205", place != NULL);
 	aal_assert("vpf-1205", key != NULL);
 	

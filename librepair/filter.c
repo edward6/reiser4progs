@@ -31,7 +31,6 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	repair_filter_t *fd = (repair_filter_t *)data;
 	reiser4_node_t *node = NULL;
 	ptr_hint_t ptr;
-	errno_t res;
 	
 	aal_assert("vpf-379", fd != NULL);
 	aal_assert("vpf-433", fd->repair != NULL);
@@ -561,7 +560,7 @@ static void repair_filter_update(repair_filter_t *fd,
 errno_t repair_filter(repair_filter_t *fd) {
 	repair_progress_t progress;
 	reiser4_fs_t *fs;
-	errno_t res;
+	errno_t res = 0;
 
 	aal_assert("vpf-536", fd != NULL);
 	aal_assert("vpf-814", fd->repair != NULL);

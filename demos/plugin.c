@@ -67,8 +67,6 @@ int main(int argc, char *argv[]) {
     
 	return 0;
 
- error_free_fs:
-	reiser4_fs_close(fs);
  error_free_device:
 	aal_device_close(device);
  error_free_libreiser4:

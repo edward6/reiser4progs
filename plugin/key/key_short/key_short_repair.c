@@ -14,7 +14,7 @@ extern void key_short_set_fobjectid(key_entity_t *key, uint64_t objectid);
 extern uint64_t key_short_get_fobjectid(key_entity_t *key);
 	
 /* Checks than oid is not used in neither locality not objectid. */
-errno_t key_short_check_struct(key_entity_t *key, uint8_t mode) {
+errno_t key_short_check_struct(key_entity_t *key) {
 	key_minor_t minor;
 	uint64_t oid;
 	

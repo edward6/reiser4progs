@@ -7,8 +7,6 @@
 
 /* Opens filesystem on specified device */
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
-	rid_t pid;
-
 #ifndef ENABLE_STAND_ALONE
 	count_t blocks;
 #endif
@@ -316,7 +314,7 @@ reiser4_fs_t *reiser4_fs_create(
 	reiser4_master_close(fs->master);
  error_free_fs:
 	aal_free(fs);
- error:
+
 	return NULL;
 }
 

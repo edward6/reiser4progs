@@ -145,7 +145,7 @@ static uint16_t node40_space(node_entity_t *entity) {
 	return nh_get_free_space((node40_t *)entity);
 }
 
-/* Returns node make stamp */
+/* Sets node make stamp */
 static void node40_set_mstamp(node_entity_t *entity,
 			      uint32_t stamp)
 {
@@ -172,16 +172,6 @@ static void node40_set_level(node_entity_t *entity,
 	
 	node40_mkdirty(entity);
 	nh_set_level((node40_t *)entity, level);
-}
-
-/* Updating node stamp */
-static void node40_set_stamp(node_entity_t *entity,
-			     uint32_t stamp)
-{
-	aal_assert("umka-1126", entity != NULL);
-
-	node40_mkdirty(entity);
-	nh_set_mkfs_id(((node40_t *)entity), stamp);
 }
 #endif
 
@@ -437,7 +427,6 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 	void *src, *dst;
 
 	node40_t *node;
-	uint32_t offset;
 	uint32_t headers;
 	uint32_t i, items;
 

@@ -406,7 +406,7 @@ errno_t node40_check_struct(node_entity_t *entity, uint8_t mode) {
 	return node40_item_array_check(node, mode);    
 }
 
-static errno_t node40_corrupt(node_entity_t *entity, uint16_t options) {
+errno_t node40_corrupt(node_entity_t *entity, uint16_t options) {
 	int i;
 	node40_t *node;
 	
@@ -427,7 +427,6 @@ errno_t node40_copy(node_entity_t *dst, pos_t *dst_pos,
 {
 	place_t dst_place, src_place;
 	node40_t *dst_node, *src_node;
-	reiser4_plug_t *plug;
 	errno_t res;
 	void *ih;
 	

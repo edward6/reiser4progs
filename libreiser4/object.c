@@ -242,7 +242,6 @@ reiser4_object_t *reiser4_object_guess(
 
 {
 	object_info_t info;
-	reiser4_plug_t *plug;
 	reiser4_object_t *object;
 	
 	aal_assert("umka-1508", tree != NULL);

@@ -318,8 +318,6 @@ static errno_t tail40_shift(place_t *src_place,
 			    place_t *dst_place,
 			    shift_hint_t *hint)
 {
-	void *src, *dst;
-	
 	aal_assert("umka-1665", src_place != NULL);
 	aal_assert("umka-1666", dst_place != NULL);
 	aal_assert("umka-1667", hint != NULL);

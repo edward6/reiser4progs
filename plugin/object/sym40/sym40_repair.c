@@ -88,7 +88,6 @@ errno_t sym40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	sym40_t *sym = (sym40_t *)object;
-	uint64_t size, bytes;
 	errno_t res;
 	
 	aal_assert("vpf-1232", sym != NULL);

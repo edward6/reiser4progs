@@ -595,14 +595,11 @@ struct reiser4_key_ops {
 	void (*set_hash) (key_entity_t *, uint64_t);
 	uint64_t (*get_hash) (key_entity_t *);
 	
-	/* Check of key structure */
-	errno_t (*valid) (key_entity_t *);
-    
 	/* Prints key into specified buffer */
 	errno_t (*print) (key_entity_t *, aal_stream_t *,
 			  uint16_t);
 
-	errno_t (*check_struct) (key_entity_t *, uint8_t);
+	errno_t (*check_struct) (key_entity_t *);
 #endif
 };
 
