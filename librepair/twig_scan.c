@@ -10,9 +10,7 @@
 /* Check unfm block pointer if it points to an already used block (leaf, 
    format area) or out of format area. Return 1 if it does, 0 - does not,
    -1 error. */
-static errno_t cb_item_region_check(void *object, blk_t start, 
-				    uint64_t count, void *data) 
-{
+static errno_t cb_item_region_check(blk_t start, uint64_t count, void *data) {
 	repair_ts_t *ts = (repair_ts_t *)data;
 	
 	aal_assert("vpf-385", ts != NULL);

@@ -123,6 +123,6 @@ errno_t reiser4_status_layout(reiser4_status_t *status,
 	aal_assert("umka-2492", region_func != NULL);
 
 	blk = REISER4_STATUS_BLOCKNR(status->blksize);
-	return region_func(status, blk, 1, data);
+	return region_func(blk, 1, data);
 }
 #endif

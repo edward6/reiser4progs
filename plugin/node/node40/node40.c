@@ -739,11 +739,11 @@ static int64_t node40_trunc(reiser4_node_t *entity, pos_t *pos,
 errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 		      trans_hint_t *hint) 
 {
-	errno_t res;
-	uint32_t len;
 	reiser4_place_t place;
 	uint32_t count;
 	uint32_t units;
+	uint32_t len;
+	errno_t res;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
@@ -769,11 +769,17 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 				if (node40_fetch(entity, &walk, &place))
 					return -EINVAL;
 
-				if (place.plug->o.item_ops->object->layout) {
-					plug_call(place.plug->o.item_ops->object,
-						  layout, &place, hint->region_func,
-						  hint->data);
-				}
+				/* Not for nodeprt items. */
+				if (place.plug->o.item_ops->tree->down_link)
+					continue;
+
+				/* Only if item has a block layout. */
+				if (!place.plug->o.item_ops->object->layout)
+					continue;
+				
+				plug_call(place.plug->o.item_ops->object, 
+					  layout, &place, hint->region_func,
+					  hint->data);
 			}
 		}
 	} else {

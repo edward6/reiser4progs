@@ -2967,7 +2967,8 @@ int64_t reiser4_tree_write(reiser4_tree_t *tree, reiser4_place_t *place,
 }
 
 /* Removes item/unit at @place. */
-errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_place_t *place,
+errno_t reiser4_tree_remove(reiser4_tree_t *tree, 
+			    reiser4_place_t *place,
 			    trans_hint_t *hint)
 {
 	errno_t res;

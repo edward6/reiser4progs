@@ -8,9 +8,7 @@
 
 /* Callback for item_ops->layout method to mark all the blocks, items points 
    to, in the allocator. */
-static errno_t cb_item_mark_region(void *object, uint64_t start, 
-				   uint64_t count, void *data)
-{
+static errno_t cb_item_mark_region(uint64_t start, uint64_t count, void *data) {
 	repair_am_t *am = (repair_am_t *)data;
 	
 	aal_assert("vpf-735", data != NULL);

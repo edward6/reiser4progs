@@ -51,8 +51,10 @@ static int extent40_join_units(reiser4_place_t *place, int fix) {
 	return joint;
 }
 
-errno_t extent40_check_layout(reiser4_place_t *place, repair_hint_t *hint, 
-			      region_func_t func, void *data)
+errno_t extent40_check_layout(reiser4_place_t *place, 
+			      repair_hint_t *hint, 
+			      region_func_t func, 
+			      void *data)
 {
 	extent40_t *extent;
 	uint32_t i, units;
@@ -78,7 +80,7 @@ errno_t extent40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
 			continue;
 		}
 
-		if ((res = func(place, start, width, data)) < 0)
+		if ((res = func(start, width, data)) < 0)
 			return res;
 		
 		if (!res) continue;
@@ -439,10 +441,13 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	/* Call region_func for all inserted regions. */
 	if (hint->region_func) {
+		uint64_t dwidth;
+		
 		dextent -= (hint->count - 1);
 		
 		for (i = 0; i < hint->count; i++, dextent++) {
 			dstart = et40_get_start(dextent);
+			dwidth = et40_get_width(dextent);
 			
 			if (dstart == EXTENT_UNALLOC_UNIT || 
 			    dstart == EXTENT_HOLE_UNIT)
@@ -450,10 +455,11 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 				continue;
 			}
 			
-			if ((res = hint->region_func(place, dstart,
-						     et40_get_width(dextent),
+			if ((res = hint->region_func(dstart, dwidth,
 						     hint->data)))
+			{
 				return res;
+			}
 		}
 	}
 	

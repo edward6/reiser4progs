@@ -141,9 +141,7 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 }
 
 #ifndef ENABLE_MINIMAL
-static errno_t cb_check_block(void *entity, blk_t start,
-			      count_t width, void *data)
-{
+static errno_t cb_check_block(blk_t start, count_t width, void *data) {
 	blk_t blk = *(blk_t *)data;
 	return (blk >= start && blk < start + width);
 }
@@ -191,41 +189,36 @@ reiser4_owner_t reiser4_fs_belongs(
 /* Enumerates all filesystem areas (block alloc, journal, etc.). This is used
    for marking all blocks belong to all fs components as budy in block allocator
    and in fsck. */
-errno_t reiser4_fs_layout(reiser4_fs_t *fs,
-			  region_func_t region_func, 
-			  void *data)
-{
+errno_t reiser4_fs_layout(reiser4_fs_t *fs, region_func_t func, void *data) {
 	errno_t res;
 
-	if ((res = reiser4_master_layout(fs->master, region_func, data)))
+	if ((res = reiser4_master_layout(fs->master, func, data)))
 		return res;
 
-	if ((res = reiser4_oid_layout(fs->oid, region_func, data)))
+	if ((res = reiser4_oid_layout(fs->oid, func, data)))
 		return res;
 	
-	if ((res = reiser4_format_layout(fs->format, region_func, data)))
+	if ((res = reiser4_format_layout(fs->format, func, data)))
 		return res;
 
 	if (fs->journal) {
 		if ((res = reiser4_journal_layout(fs->journal,
-						  region_func, data)))
+						  func, data)))
 		{
 			return res;
 		}
 	}
 	
-	if ((res = reiser4_status_layout(fs->status, region_func, data)))
+	if ((res = reiser4_status_layout(fs->status, func, data)))
 		return res;
 
-	if ((res = reiser4_alloc_layout(fs->alloc, region_func, data)))
+	if ((res = reiser4_alloc_layout(fs->alloc, func, data)))
 		return res;
 
-	return reiser4_backup_layout(fs, region_func, data);
+	return reiser4_backup_layout(fs, func, data);
 }
 
-static errno_t cb_mark_block(void *entity, blk_t start,
-			     count_t width, void *data)
-{
+static errno_t cb_mark_block(blk_t start, count_t width, void *data) {
 	return reiser4_alloc_occupy((reiser4_alloc_t *)data,
 				    start, width);
 }

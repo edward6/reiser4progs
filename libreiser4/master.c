@@ -84,7 +84,7 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 
 	blksize = get_ms_blksize(SUPER(master));
 	blk = REISER4_MASTER_BLOCKNR(blksize);
-	return region_func(master, blk, 1, data);
+	return region_func(blk, 1, data);
 }
 
 /* Callback function for comparing plugins */

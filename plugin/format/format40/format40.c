@@ -82,10 +82,10 @@ static errno_t format40_layout(generic_entity_t *entity,
 	format = (format40_t *)entity;
 	blk = FORMAT40_BLOCKNR(format->blksize);
 	
-	if ((res = region_func(entity, 0, blk, data)))
+	if ((res = region_func(0, blk, data)))
 		return res;
 	
-	return region_func(entity, blk, 1, data);
+	return region_func(blk, 1, data);
 }
 
 static errno_t format40_check(generic_entity_t *entity,

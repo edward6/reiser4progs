@@ -508,9 +508,8 @@ errno_t obj40_clobber(obj40_t *obj) {
 	if ((res = obj40_update(obj)))
 		return res;
 
+	aal_memset(&hint, 0, sizeof(hint));
 	hint.count = 1;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
 	STAT_PLACE(obj)->pos.unit = MAX_UINT32;
 	
@@ -518,18 +517,16 @@ errno_t obj40_clobber(obj40_t *obj) {
 }
 
 /* Enumerates object data (stat data only for special files and symlinks). */
-errno_t obj40_layout(obj40_t *obj, region_func_t region_func,
-		     void *data)
-{
+errno_t obj40_layout(obj40_t *obj, region_func_t func, void *data) {
 	errno_t res;
 
 	aal_assert("umka-2547", obj != NULL);
-	aal_assert("umka-2548", region_func != NULL);
+	aal_assert("umka-2548", func != NULL);
 
 	if ((res = obj40_update(obj)))
 		return res;
 	
-	return region_func(obj, place_blknr(STAT_PLACE(obj)), 1, data);
+	return func(place_blknr(STAT_PLACE(obj)), 1, data);
 }
 
 /* Enumerates object metadata. */

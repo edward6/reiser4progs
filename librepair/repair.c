@@ -87,9 +87,7 @@ static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2,
 }
 
 /* Callback for the format_ops.layout method - mark all blocks in the bitmap. */
-static errno_t cb_format_mark(void *format, blk_t start,
-			      count_t width, void *data)
-{
+static errno_t cb_format_mark(blk_t start, count_t width, void *data) {
 	aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
 	aux_bitmap_mark_region(format_layout, start, width);
 	return 0;
@@ -190,9 +188,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 
 /* Mark blk in the scan bitmap if not marked in used bitmap (in this case it 
    is a node). */
-static errno_t cb_region_mark(void *object, blk_t blk, 
-			      uint64_t count, void *data)
-{
+static errno_t cb_region_mark(blk_t blk, uint64_t count, void *data) {
 	repair_control_t *control = (repair_control_t *)data;
 	uint32_t i;
 	

@@ -117,9 +117,7 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 			 journal->ent, region_func, data);
 }
 
-static errno_t cb_action_mark(void *entity, blk_t start,
-			      count_t width, void *data)
-{
+static errno_t cb_action_mark(blk_t start, count_t width, void *data) {
 	reiser4_fs_t *fs = (reiser4_fs_t *)data;
 	errno_t res;
 

@@ -74,8 +74,8 @@ typedef struct journal40_check {
 	
 	blk_t fs_start;
 	count_t fs_len;
-	layout_func_t fs_layout;
-	void *layout;
+	layout_func_t layout_func;
+	void *layout_data;
 } journal40_check_t;
 
 static char *blk_types[] = {
@@ -94,9 +94,7 @@ static char *__blk_type_name(journal40_block_t blk_type) {
 }
 
 /* Callback for format.layout. Returns 1 for all fotmat blocks. */
-static errno_t cb_check_format_block(void *entity, blk_t start,
-				     count_t width, void *data)
-{
+static errno_t cb_check_format_block(blk_t start, count_t width, void *data) {
 	blk_t blk = *(blk_t *)data;
 	return (blk >= start && blk < start + width);
 }
@@ -118,8 +116,8 @@ static errno_t journal40_blk_format_check(journal40_t *journal, blk_t blk,
 		return 0;
 	
 	/* blk belongs to format area */
-	return data->fs_layout(data->layout, cb_check_format_block, &blk) ? 
-		-ESTRUCT : 0;
+	return data->layout_func(data->layout_data, 
+				 cb_check_format_block, &blk) ? -ESTRUCT : 0;
 }
 
 /* TxH callback for nested traverses. Should find the transaction which TxH 
@@ -391,91 +389,95 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 }
 
 errno_t journal40_check_struct(generic_entity_t *entity, 
-			       layout_func_t fs_layout, 
-			       void *layout)
+			       layout_func_t func, void *data)
 {
 	journal40_t *journal = (journal40_t *)entity;
-	journal40_check_t data;
+	journal40_header_t *header;
+	journal40_tx_header_t *txh;
+	journal40_check_t jdata;
 	errno_t ret;
-	
+
 	aal_assert("vpf-447", journal != NULL);
-	aal_assert("vpf-733", fs_layout != NULL);
-	
-	aal_memset(&data, 0, sizeof(data));
-	
-	data.fs_start = plug_call(journal->format->plug->o.format_ops, 
-				  start, journal->format);
-	
-	data.fs_len = plug_call(journal->format->plug->o.format_ops, 
-				get_len, journal->format);
-	
-	data.fs_layout = fs_layout;
-	data.layout = layout;
-	
-	if (!(data.journal_layout = aux_bitmap_create(data.fs_len))) {
+	aal_assert("vpf-733", func != NULL);
+
+	aal_memset(&jdata, 0, sizeof(jdata));
+
+	jdata.fs_start = plug_call(journal->format->plug->o.format_ops, 
+				   start, journal->format);
+
+	jdata.fs_len = plug_call(journal->format->plug->o.format_ops, 
+				 get_len, journal->format);
+
+	jdata.layout_func = func;
+	jdata.layout_data = data;
+
+	if (!(jdata.journal_layout = aux_bitmap_create(jdata.fs_len))) {
 		aal_error("Failed to allocate a control bitmap for "
 			  "journal layout.");
 		return -ENOMEM;
 	}
-	
-	if (!(data.current_layout = aux_bitmap_create(data.fs_len))) {
+
+	if (!(jdata.current_layout = aux_bitmap_create(jdata.fs_len))) {
 		aal_error("Failed to allocate a control bitmap of the "
 			  "current transaction blocks.");
 		return -ENOMEM;
 	}
-	
+
 	ret = journal40_traverse((journal40_t *)entity, cb_journal_txh_check,
-				 NULL, cb_journal_sec_check, &data);
-	
+				 NULL, cb_journal_sec_check, &jdata);
+
 	if (ret && ret != -ESTRUCT)
 		return ret;
-	
+
 	if (ret) {
 		/* Journal should be updated */
-		if (!data.cur_txh) {
+		if (!jdata.cur_txh) {
 			fsck_mess("Journal has broken list of transaction "
 				  "headers. Reinitialize the journal.");
-			
-			data.cur_txh = 
+
+			jdata.cur_txh = 
 				get_jf_last_flushed((journal40_footer_t *)
 						    journal->footer->data);
 		} else {
 			aal_block_t *tx_block = NULL;
 			aal_device_t *device = NULL;
-			
-			/* data.cur_txh is the oldest problem transaction. 
+
+			/* jdata.cur_txh is the oldest problem transaction. 
 			   Set the last_committed to the previous one. */
 			device = journal40_device((generic_entity_t *)journal);
-			
+
 			if (device == NULL) {
 				aal_error("Invalid device has been detected.");
 				return -EINVAL;
 			}
+
+			tx_block = aal_block_load(device, 
+						  journal->blksize,
+						  jdata.cur_txh);
 			
-			if (!(tx_block = aal_block_load(device, journal->blksize,
-							data.cur_txh)))
-			{
-				aal_error("Can't read the block %llu while checking "
-					  "the journal. %s.", data.cur_txh, device->error);
+			if (!tx_block) {
+				aal_error("Can't read the block %llu while "
+					  "checking the journal. %s.", 
+					  jdata.cur_txh, device->error);
 				return -EIO;
 			}
-			
-			fsck_mess("Corrupted transaction (%llu) was found. The last "
-				  "valid transaction is (%llu).", data.cur_txh,
-				  get_th_prev_tx((journal40_tx_header_t *)tx_block->data));
-			
-			data.cur_txh = get_th_prev_tx((journal40_tx_header_t *)
-						      tx_block->data);
-			
+
+			txh = (journal40_tx_header_t *)tx_block->data;
+			fsck_mess("Corrupted transaction (%llu) was found. "
+				  "The last valid transaction is (%llu).", 
+				  jdata.cur_txh, get_th_prev_tx(txh));
+
+			jdata.cur_txh = get_th_prev_tx(txh);
+
 			aal_block_free(tx_block);
 		}
-		
-		set_jh_last_commited((journal40_header_t *)journal->header->data, 
-				     data.cur_txh);
+
+		header = (journal40_header_t *)journal->header->data;
+		set_jh_last_commited(header, jdata.cur_txh);
 
 		journal->state |= (1 << ENTITY_DIRTY);
 	}
-	
+
 	return 0;
 }
 

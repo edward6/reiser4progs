@@ -104,7 +104,7 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	for (blk = start; blk < start + alloc->bitmap->total;
 	     blk = ((blk / bpb) + 1) * bpb) 
 	{
-		res |= region_func(entity, blk, 1, data);
+		res |= region_func(blk, 1, data);
 		
 		if (res && res != -ESTRUCT)
 			return res;
@@ -117,9 +117,7 @@ errno_t alloc40_layout(generic_entity_t *entity,
    saves it in allocator checksums area. Actually this function is callback one
    which is called by alloc40_layout function in order to load all bitmap map
    from the device. See alloc40_open for details. */
-static errno_t cb_fetch_bitmap(void *entity, blk_t start,
-			       count_t width, void *data)
-{
+static errno_t cb_fetch_bitmap(blk_t start, count_t width, void *data) {
 	errno_t res;
 	uint64_t offset;
 	alloc40_t *alloc;
@@ -127,7 +125,7 @@ static errno_t cb_fetch_bitmap(void *entity, blk_t start,
 	char *current, *map;
 	uint32_t size, chunk, free;
     
-	alloc = (alloc40_t *)entity;
+	alloc = (alloc40_t *)data;
 
 	if ((res = aal_block_init(&block, alloc->device,
 				  alloc->blksize, start)))
@@ -293,16 +291,14 @@ static errno_t alloc40_extract(generic_entity_t *entity, void *data) {
 }
 
 /* Callback for saving one bitmap block onto device */
-static errno_t cb_sync_bitmap(void *entity, blk_t start,
-			      count_t width, void *data)
-{
+static errno_t cb_sync_bitmap(blk_t start, count_t width, void *data) {
 	errno_t res;
 	alloc40_t *alloc;
 	aal_block_t block;
 	char *current, *map; 
 	uint32_t size, adler, chunk;
 	
-	alloc = (alloc40_t *)entity;
+	alloc = (alloc40_t *)data;
 	
 	/* Allocating new block and filling it by 0xff bytes (all bits are
 	   turned on). This is needed in order to make the rest of last block
@@ -512,19 +508,22 @@ typedef void (*inval_func_t) (blk_t, uint32_t, uint32_t);
 
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t cb_valid_block(void *entity, blk_t start, count_t width, void *data) {
-	uint32_t chunk;
-	uint64_t offset;
+errno_t cb_valid_block(blk_t start, count_t width, void *data) {
+	inval_func_t inval_func;
 	alloc40_t *alloc;
 	errno_t res;
-
-	uint32_t size, free;
-	char *current, *map;
-	inval_func_t inval_func;
-	uint32_t ladler, cadler;
-
-	alloc = (alloc40_t *)entity;
-	inval_func = (inval_func_t)data;
+	
+	uint64_t offset;
+	uint32_t ladler;
+	uint32_t cadler;
+	uint32_t chunk;
+	uint32_t size;
+	uint32_t free;	
+	char *current;
+	char *map;
+	
+	alloc = (alloc40_t *)data;
+	inval_func = (inval_func_t)alloc->data;
 	
 	size = alloc->blksize - CRC_SIZE;
 	map = alloc->bitmap->map;
@@ -572,8 +571,8 @@ errno_t alloc40_valid(generic_entity_t *entity) {
 
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
-	return alloc40_layout((generic_entity_t *)alloc,
-			      cb_valid_block, cb_inval_warn);
+	alloc->data = cb_inval_warn;
+	return alloc40_layout(entity, cb_valid_block, alloc);
 }
 
 /* Call @func for all blocks which belong to the same bitmap block as passed
@@ -604,7 +603,7 @@ errno_t alloc40_region(generic_entity_t *entity, blk_t blk,
 	
 	/* Loop though the all blocks one bitmap block describes and calling
 	   passed @region_func for each of them. */   
-	return region_func(entity, start, size, data);
+	return region_func(start, size, data);
 }
 
 static reiser4_alloc_ops_t alloc40_ops = {

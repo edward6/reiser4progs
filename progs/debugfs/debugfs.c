@@ -66,17 +66,13 @@ static void debugfs_print_usage(char *name) {
 }
 
 
-static errno_t cb_count_block(void *entity, blk_t start,
-			      count_t width, void *data) 
-{
+static errno_t cb_count_block(blk_t start, count_t width, void *data) {
 	(*(uint64_t *)data)++;
 	return 0;
 }
 
-static errno_t cb_mark_block(void *entity, blk_t start,
-			     count_t width, void *data)
-{
-	reiser4_fs_t *fs = (reiser4_fs_t *)entity;
+static errno_t cb_mark_block(blk_t start, count_t width, void *data) {
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
 	blk_t *backup = (blk_t *)fs->data;
 	errno_t res;
 
@@ -95,12 +91,10 @@ static errno_t cb_mark_block(void *entity, blk_t start,
 	return reiser4_alloc_occupy((reiser4_alloc_t *)data, start, width);
 }
 
-static errno_t cb_unmark_block(void *entity, blk_t start,
-			       count_t width, void *data)
-{
-	reiser4_fs_t *fs = (reiser4_fs_t *)entity;
+static errno_t cb_unmark_block(blk_t start, count_t width, void *data) {
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
 	reiser4_format_inc_free(fs->format, 1);
-	return reiser4_alloc_release((reiser4_alloc_t *)data, start, width);
+	return reiser4_alloc_release(fs->alloc, start, width);
 }
 
 /* Initializes exception streams used by debugfs */
@@ -740,7 +734,7 @@ int main(int argc, char *argv[]) {
 		aal_gauge_free(backup.gauge);
 
 		/* Mark all old backup blocks as unused. */
-		if (reiser4_old_backup_layout(fs, cb_unmark_block, fs->alloc)) {
+		if (reiser4_old_backup_layout(fs, cb_unmark_block, fs)) {
 			aal_error("Failed to mark backup blocks used.");
 			goto error_free_journal;
 		}

@@ -7,8 +7,10 @@
 #include "nodeptr40.h"
 #include <repair/plugin.h>
 
-errno_t nodeptr40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
-			       region_func_t region_func, void *data) 
+errno_t nodeptr40_check_layout(reiser4_place_t *place, 
+			       repair_hint_t *hint,
+			       region_func_t region_func, 
+			       void *data)
 {
 	nodeptr40_t *nodeptr;
 	blk_t blk;
@@ -20,7 +22,7 @@ errno_t nodeptr40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
 	
 	blk = np40_get_ptr(nodeptr);
 	
-	res = region_func(place, blk, 1, data);
+	res = region_func(blk, 1, data);
 	
 	if (res > 0) {
 		fsck_mess("Node (%llu), item (%u): wrong pointer to "

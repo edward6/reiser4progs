@@ -5,9 +5,9 @@
 
 #include <repair/librepair.h>
 
-static errno_t cb_pack(void *object, blk_t blk, uint64_t count, void *data) {
-	reiser4_fs_t *fs = (reiser4_fs_t *)object;
-	aal_stream_t *stream = (aal_stream_t *)data;
+static errno_t cb_pack(blk_t blk, uint64_t count, void *data) {
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
+	aal_stream_t *stream = (aal_stream_t *)fs->data;
 
 	count_t size;
 	aal_block_t *block;
@@ -31,12 +31,13 @@ errno_t repair_backup_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	aal_assert("vpf-1411", fs != NULL);
 	aal_assert("vpf-1412", stream != NULL);
 
-	return reiser4_backup_layout(fs, cb_pack, stream);
+	fs->data = stream;
+	return reiser4_backup_layout(fs, cb_pack, fs);
 }
 
-static errno_t cb_unpack(void *object, blk_t blk, uint64_t count, void *data) {
-	reiser4_fs_t *fs = (reiser4_fs_t *)object;
-	aal_stream_t *stream = (aal_stream_t *)data;
+static errno_t cb_unpack(blk_t blk, uint64_t count, void *data) {
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
+	aal_stream_t *stream = (aal_stream_t *)fs->data;
 	
 	count_t size;
 	aal_block_t *block;
@@ -69,6 +70,7 @@ errno_t repair_backup_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	aal_assert("vpf-1413", fs != NULL);
 	aal_assert("vpf-1414", stream != NULL);
 
-	return reiser4_backup_layout(fs, cb_unpack, stream);
+	fs->data = stream;
+	return reiser4_backup_layout(fs, cb_unpack, fs);
 }
 

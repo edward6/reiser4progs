@@ -125,8 +125,10 @@ static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
 	   levels know that some extent region is released and perform some
 	   actions like release blocks in block allocator, etc. */
 	if (hint->region_func) {
-		uint32_t i, start;
 		extent40_t *extent;
+		uint32_t start;
+		uint32_t width;
+		uint32_t i;
 
 		extent = extent40_body(place) + pos;
 			
@@ -134,14 +136,13 @@ static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
 			errno_t res;
 			
 			start = et40_get_start(extent);
+			width = et40_get_width(extent);
 
 			if (start == EXTENT_UNALLOC_UNIT || 
 			    start == EXTENT_HOLE_UNIT)
 				continue;
 			
-			if ((res = hint->region_func(place, start,
-						     et40_get_width(extent), 
-						     hint->data)))
+			if ((res = hint->region_func(start, width, hint->data)))
 				return res;
 		}
 	}
@@ -246,9 +247,11 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		if (start != EXTENT_HOLE_UNIT && start != EXTENT_UNALLOC_UNIT) {
 			errno_t res;
 			
-			if ((res = hint->region_func(place, start, remove, 
+			if ((res = hint->region_func(start, remove, 
 						     hint->data)))
+			{
 				return res;
+			}
 		}
 
 		hint->bytes += remove * blksize;
@@ -1262,7 +1265,7 @@ static errno_t extent40_layout(reiser4_place_t *place,
 		
 		width = et40_get_width(extent);
 		
-		if ((res = region_func(place, start, width, data)))
+		if ((res = region_func(start, width, data)))
 			return res;
 	}
 			

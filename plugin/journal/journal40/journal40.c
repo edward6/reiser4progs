@@ -41,7 +41,7 @@ static errno_t journal40_layout(generic_entity_t *entity,
 	journal = (journal40_t *)entity;
 	
 	blk = JOURNAL40_BLOCKNR(journal->blksize);
-	return region_func(entity, blk, 2, data);
+	return region_func(blk, 2, data);
 }
 
 aal_device_t *journal40_device(generic_entity_t *entity) {
@@ -51,10 +51,8 @@ aal_device_t *journal40_device(generic_entity_t *entity) {
 
 /* Helper function for fetching journal footer and header in initialization
    time. */
-static errno_t cb_fetch_journal(void *entity, blk_t start,
-				count_t width, void *data)
-{
-	journal40_t *journal = (journal40_t *)entity;
+static errno_t cb_fetch_journal(blk_t start, count_t width, void *data) {
+	journal40_t *journal = (journal40_t *)data;
 
 	/* Load journal header. */
 	if (!(journal->header = aal_block_load(journal->device,
@@ -122,10 +120,8 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 
 /* Helper function for creating empty journal header and footer. Used in journal
    create time. */
-static errno_t cb_alloc_journal(void *entity, blk_t start,
-				count_t width, void *data)
-{
-	journal40_t *journal = (journal40_t *)entity;
+static errno_t cb_alloc_journal(blk_t start, count_t width, void *data) {
+	journal40_t *journal = (journal40_t *)data;
 	
 	if (!(journal->header = aal_block_alloc(journal->device,
 						journal->blksize,
@@ -189,10 +185,8 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 
 /* Helper function for save jopurnal header and footer to device journal is
    working on. */
-static errno_t cb_sync_journal(void *entity, blk_t start,
-			       count_t width, void *data)
-{
-	journal40_t *journal = (journal40_t *)entity;
+static errno_t cb_sync_journal(blk_t start, count_t width, void *data) {
+	journal40_t *journal = (journal40_t *)data;
 	
 	if (aal_block_write(journal->header)) {
 		aal_error("Can't write journal header. %s.",

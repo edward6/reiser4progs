@@ -545,12 +545,9 @@ struct layout_hint {
 
 typedef struct layout_hint layout_hint_t;
 
-static errno_t cb_item_layout(void *place, blk_t start,
-			      count_t width, void *data)
-{
+static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
 	layout_hint_t *hint = (layout_hint_t *)data;
-	return hint->region_func(hint->entity, start,
-				 width, hint->data);
+	return hint->region_func(start, width, hint->data);
 }
 
 /* Enumerates all blocks belong to file and calls passed @region_func for each
@@ -602,7 +599,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 		} else {
 			blk_t blk = place_blknr(place);
 			
-			if ((res = cb_item_layout(place, blk, 1, &hint)))
+			if ((res = cb_item_layout(blk, 1, &hint)))
 				return res;
 		}
 

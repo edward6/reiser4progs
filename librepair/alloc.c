@@ -12,8 +12,8 @@ errno_t repair_alloc_check_struct(reiser4_alloc_t *alloc, uint8_t mode) {
 			 check_struct, alloc->ent, mode);
 }
 
-errno_t repair_alloc_layout_bad(reiser4_alloc_t *alloc, region_func_t func, 
-				void *data) 
+errno_t repair_alloc_layout_bad(reiser4_alloc_t *alloc, 
+				region_func_t func, void *data)
 {
 	aal_assert("vpf-1322", alloc != NULL);
 	

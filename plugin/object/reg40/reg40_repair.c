@@ -217,6 +217,7 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 	if (mode != RM_BUILD) 
 		return RE_FATAL;
 
+	aal_memset(&hint, 0, sizeof(hint));
 	hint.count = 1;
 	hint.shift_flags = SF_DEFAULT;
 	reg->body.pos.unit = MAX_UINT32;

@@ -776,8 +776,6 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 		aal_memset(&hint, 0, sizeof(hint));
 
 		hint.count = 1;
-		hint.place_func = NULL;
-		hint.region_func = NULL;
 		hint.shift_flags = SF_DEFAULT;
 		
 		/* Removing one unit from directory */
@@ -888,12 +886,9 @@ struct layout_hint {
 
 typedef struct layout_hint layout_hint_t;
 
-static errno_t cb_item_layout(void *place, blk_t start,
-			      count_t width, void *data)
-{
+static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
 	layout_hint_t *hint = (layout_hint_t *)data;
-	return hint->region_func(hint->entity, start,
-				 width, hint->data);
+	return hint->region_func(start, width, hint->data);
 }
 
 /* This fucntion implements hashed directory enumerator function. It is used for
@@ -941,7 +936,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 			   itself. */
 			blk_t blk = place_blknr(place);
 			
-			if ((res = cb_item_layout(place, blk, 1, &hint)))
+			if ((res = cb_item_layout(blk, 1, &hint)))
 				return res;
 		}
 

@@ -223,9 +223,7 @@ errno_t repair_fs_pack(reiser4_fs_t *fs,
 	return 0;
 }
 
-static errno_t cb_mark_used(void *object, uint64_t start,
-			    uint64_t count, void *data) 
-{
+static errno_t cb_mark_used(uint64_t start, uint64_t count, void *data) {
 	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
 
 	aux_bitmap_mark_region(bitmap, start, count);

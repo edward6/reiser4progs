@@ -62,7 +62,7 @@ static errno_t nodeptr40_layout(reiser4_place_t *place,
 	aal_assert("umka-1750", region_func != NULL);
 
 	blk = np40_get_ptr(nodeptr40_body(place));
-	return region_func(place, blk, 1, data);
+	return region_func(blk, 1, data);
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */

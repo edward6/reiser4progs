@@ -23,6 +23,8 @@ struct alloc40 {
 	aux_bitmap_t *bitmap;
 
 	char *crc;
+
+	void *data;
 };
 
 typedef struct alloc40 alloc40_t;

@@ -162,6 +162,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 			
+			aal_memset(&trans, 0, sizeof(trans));
 			trans.count = 1;
 			trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
 			pos->unit = MAX_UINT32;

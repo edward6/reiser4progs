@@ -104,8 +104,9 @@ static reiser4_node_t *tree_frag_open_node(reiser4_tree_t *tree,
 
 /* Handler for region callback for an item. Its objective is to check if region
    start is not next to current value. If so -- counting bad occurence. */
-static errno_t tree_frag_process_item(void *entity, uint64_t start,
-				      uint64_t count, void *data)
+static errno_t tree_frag_process_item(uint64_t start, 
+				      uint64_t count, 
+				      void *data) 
 {
 	int64_t delta;
 	tree_frag_hint_t *hint;
@@ -251,20 +252,20 @@ struct tree_stat_hint {
 	double leaves_used;
 	double branches_used;
 	double formatted_used;
+
+	reiser4_place_t *place;
 };
 
 typedef struct tree_stat_hint tree_stat_hint_t;
 
 /* Process one item on level > LEAF_LEVEL. */
-static errno_t stat_item_layout(void *entity, uint64_t start,
-				uint64_t width, void *data)
-{
+static errno_t stat_item_layout(uint64_t start, uint64_t width, void *data) {
+	tree_stat_hint_t *stat_hint;
 	reiser4_place_t *place;
 	uint32_t blksize;
-	tree_stat_hint_t *stat_hint;
 
-	place = (reiser4_place_t *)entity;
 	stat_hint = (tree_stat_hint_t *)data;
+	place = stat_hint->place;
 
 	if (place->plug->id.group == EXTENT_ITEM) {
 		reiser4_master_t *master;
@@ -383,6 +384,7 @@ static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 		if (!place.plug->o.item_ops->object->layout)
 			continue;
 
+		stat_hint->place = &place;
 		plug_call(place.plug->o.item_ops->object, layout,
 			  &place, stat_item_layout, data);
 	}
@@ -495,9 +497,7 @@ typedef struct file_frag_hint file_frag_hint_t;
 
 /* Callback function for processing one block belong to the file we are
    traversing. */
-static errno_t file_frag_process_blk(void *entity, blk_t start,
-				     count_t width, void *data)
-{
+static errno_t file_frag_process_blk(blk_t start, count_t width, void *data) {
 	int64_t delta;
 	file_frag_hint_t *frag_hint;
 

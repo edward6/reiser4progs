@@ -47,9 +47,7 @@ void reiser4_backup_close(reiser4_backup_t *backup) {
 }
 
 /* Assign the block to @blk block number and write it. */
-static errno_t cb_write_block(void *object, blk_t blk, 
-			      uint64_t count, void *data) 
-{
+static errno_t cb_write_block(blk_t blk, uint64_t count, void *data) {
 	aal_block_t *block = (aal_block_t *)data;
 
 	aal_block_move(block, block->device, blk);
@@ -87,9 +85,7 @@ void reiser4_backup_sync(reiser4_backup_t *backup) {
 	aal_block_free(block);
 }
 
-static errno_t cb_region(void *object, blk_t blk,
-			 uint64_t count, void *data)
-{
+static errno_t cb_region(blk_t blk, uint64_t count, void *data) {
 	/* 2nd block in the given region is a backup block. */
 	*((blk_t *)data) = (count == 1) ? 0 :blk + 1;
 
@@ -137,7 +133,7 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 		if (copy <= prev)
 			continue;
 
-		if ((res = region_func(fs, copy, 1, data)))
+		if ((res = region_func(copy, 1, data)))
 			return res;
 
 		prev = copy;
@@ -146,9 +142,7 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 	return 0;
 }
 
-static errno_t cb_region_last(void *object, blk_t blk, 
-			      uint64_t count, void *data) 
-{
+static errno_t cb_region_last(blk_t blk, uint64_t count, void *data) {
 	*((blk_t *)data) = count == 1 ? 0 :
 		blk + count - 1;
 
@@ -183,7 +177,7 @@ errno_t reiser4_old_backup_layout(reiser4_fs_t *fs,
 		if (!copy || copy == prev)
 			continue;
 
-		if ((res = region_func(fs, copy, 1, data)))
+		if ((res = region_func(copy, 1, data)))
 			return res;
 
 		prev = copy;

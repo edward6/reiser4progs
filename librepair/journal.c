@@ -11,11 +11,10 @@
    journal, is of the special filesystem areas - skipped, block allocator,
    oid alocator, etc. */
 
-static errno_t cb_journal_check(void *layout, region_func_t func, void *data) {
-	reiser4_fs_t *fs = (reiser4_fs_t *)layout;
+static errno_t cb_journal_check(void *object, region_func_t func, void *data) {
+	reiser4_fs_t *fs = (reiser4_fs_t *)object;
 	
 	aal_assert("vpf-737", fs != NULL);
-	
 	return reiser4_fs_layout(fs, func, data);
 }
 
