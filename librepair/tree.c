@@ -348,8 +348,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	/* This is needed to update sibling links, as new attached node may be
 	   inserted between two nodes, that has established sibling links
 	   andthey should be changed. */
-	reiser4_tree_neigh_node(tree, node, DIR_LEFT);
-	reiser4_tree_neigh_node(tree, node, DIR_RIGHT);
+	reiser4_tree_neig_node(tree, node, DIR_LEFT);
+	reiser4_tree_neig_node(tree, node, DIR_RIGHT);
 
 	return 0;
 }
@@ -652,4 +652,3 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src,
 	
 	return res;
 }
-
