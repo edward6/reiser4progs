@@ -112,6 +112,10 @@ static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
 
 	pos = place->pos.unit;
 	units = extent40_units(place);
+	
+	/* Check for unit pos. */
+	if (pos == MAX_UINT32)
+		pos = 0;
 
 	aal_assert("umka-3026",
 		   pos + hint->count <= units);
@@ -180,7 +184,6 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	
 	aal_assert("umka-2458", place != NULL);
 	aal_assert("umka-2461", hint != NULL);
-
 
 	hint->len = 0;
 	hint->bytes = 0;
@@ -507,13 +510,14 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	buff = hint->specific;
 	count = (uint32_t)hint->count;
 	
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
+	
 	extent40_fetch_key(place, &key);
 	
 	blksize = extent40_blksize(place);
 	secsize = extent40_secsize(place);
 
-	if (place->pos.unit == MAX_UINT32)
-		place->pos.unit = 0;
 
 	read_offset = plug_call(hint->offset.plug->o.key_ops,
 				get_offset, &hint->offset);
@@ -600,7 +604,8 @@ static int64_t extent40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) 
 	aal_assert("umka-2435", hint != NULL);
 	aal_assert("umka-2434", place != NULL);
 	
-	pos = place->pos.unit;
+	pos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
+
 	extent = extent40_body(place) + pos;
 	ptr_hint = (ptr_hint_t *)hint->specific;
 
@@ -698,8 +703,7 @@ static int64_t extent40_update_units(reiser4_place_t *place,
 	aal_assert("umka-2431", hint != NULL);
 	aal_assert("umka-2430", place != NULL);
 	
-	if ((pos = place->pos.unit) == MAX_UINT32)
-		pos = 0;
+	pos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 	
 	extent = extent40_body(place) + pos;
 	ptr_hint = (ptr_hint_t *)hint->specific;
