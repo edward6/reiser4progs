@@ -17,31 +17,37 @@
 static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
     uint64_t count, void *data) 
 {
-    repair_data_t *rd = (repair_data_t *)data;
-    repair_ts_t *ts;
+    repair_ts_t *ts = (repair_ts_t *)data;
     int res;
 
-    aal_assert("vpf-385", rd != NULL);
-    aal_assert("vpf-567", rd->pass.ts.bm_met != NULL);
+    aal_assert("vpf-385", ts != NULL);
+    aal_assert("vpf-567", ts->bm_met != NULL);
     
-    ts = repair_ts(rd);
-
     /* This must be fixed at the first pass. */
-    aal_assert("vpf-387", start < ts->bm_met->total && 
-	count <= ts->bm_met->total && start <= ts->bm_met->total - count);
-
+    if (start >= ts->bm_met->total || count > ts->bm_met->total ||
+	start >= ts->bm_met->total - count)
+    {
+	aal_exception_error("Node (%llu), item (%u): Pointed region "
+	    "[%llu..%llu] is invalid.", item->con.blk, item->pos.item, 
+	    start, start + count - 1);
+	return 1;
+    }
+    
     if (!start)
 	return 0;
 
     res = aux_bitmap_test_region_cleared(ts->bm_met, start, count);
 
-    /* If extent item points to a leaf, to format area or out of format area. */
+    /* Pointed region is used already. */
     if (res == 0) {
-	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
-	    "(start %llu, count %llu) points to some already used blocks.", 
-	    item->context.blk, item->pos.item, item->pos.unit, start, count);
+	aal_exception_error("Node (%llu), item (%u): Pointed region "
+	    "[%llu..%llu] is used already or contains a formatted block.", 
+	    item->con.blk, item->pos.item, item->pos.unit, item->pos.unit, 
+	    start, start + count - 1);
 	return 1;
-    } else if (aux_bitmap_test(ts->bm_used, item->context.blk))
+    } 
+    
+    if (aux_bitmap_test(ts->bm_used, item->con.blk))
 	aux_bitmap_mark_region(ts->bm_unfm_tree, start, count);
     else
 	aux_bitmap_mark_region(ts->bm_unfm_out, start, count);
@@ -53,34 +59,33 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
  * exists for all items which can contain data, not tree index data only. 
  * Shrink the node if item lenght is changed. */
 static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
+    repair_data_t *rd = (repair_data_t *)data;
     reiser4_node_t *node;
-    int32_t len;
-    int res;
+    errno_t res;
  
     aal_assert("vpf-384", place != NULL);
     aal_assert("vpf-727", place->node != NULL);
+    aal_assert("vpf-797", data != NULL);
 
     node = place->node;
     
-    if (!reiser4_item_data(place->item.plugin) || 
-	!place->item.plugin->item_ops.layout_check)
-	return 0;
+    res = repair_item_layout_check(place, callback_item_region_check, 
+	repair_ts(rd), rd->mode);
     
-    len = place->item.plugin->item_ops.layout_check(&place->item, 
-	callback_item_region_check, data);
+    if (res < 0) 
+	return res;
     
-    if (len > 0) {
-	/* shrink the node. */
-	if ((res = plugin_call(node->entity->plugin->node_ops,
-	    shrink, node->entity, &place->pos, len, 1)))
-	{
-	    aal_exception_bug("Node (%llu), pos (%u, %u), len (%u): Failed "
-		"to shrink the node on (%u) bytes.", node->blk, 
-		place->pos.item, place->pos.unit, place->item.len, len);
-	    return -1;
-	}	
+    if (res | REPAIR_FATAL) 
+	rd->info.check.fatal++;
+    else if (res | REPAIR_FIXABLE)
+	rd->info.check.fixable++;
+    else if (res | REPAIR_FIXED)
+	reiser4_node_mkdirty(place->node);
+    else if (res | REPAIR_REMOVED) {
+	reiser4_node_mkdirty(place->node);
+	place->pos.item--;
     }
-
+    
     return 0;
 }
 

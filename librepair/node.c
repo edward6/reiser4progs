@@ -7,70 +7,47 @@
 
 #include <repair/librepair.h>
 
-/* Callback for item_ops.layout_check which mark all correct blocks of the item 
- * layout as the given bitmap. */
-static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
-    uint64_t count, void *data) 
-{
-    aux_bitmap_t *bitmap = data;
-    
-    aal_assert("vpf-722", item != NULL);
-    aal_assert("vpf-723", bitmap != NULL);
-    aal_assert("vpf-726", start < bitmap->total && count <= bitmap->total && 
-	start <= bitmap->total - count);
-    
-    if (!aux_bitmap_test_region_cleared(bitmap, start, count)) {
-	aal_exception_error("Node (%llu), item (%u), unit (%u): points to some "
-	    "already used block within (%llu - %llu).", item->context.blk, 
-	    item->pos.item, item->pos.unit, start, start + count - 1);
-	return 1;
-    }
- 
-    return 0;
-}
-
-/* Sets the @key to the most right real key kept in the node or its children. */
-static errno_t repair_node_child_max_real_key(reiser4_place_t *parent, reiser4_key_t *key)
-{
+/* Get the max real key existed in the tree. Go down through all right-most 
+ * child to get it. */
+errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
     reiser4_place_t place;
+    reiser4_node_t *child;
     errno_t res;
 
-    aal_assert("vpf-614", parent != NULL);
-    aal_assert("vpf-615", key != NULL);
-    aal_assert("vpf-616", parent->item.plugin != NULL);
+    aal_assert("vpf-712", node != NULL);
+    aal_assert("vpf-713", key != NULL);
 
-    if (reiser4_item_nodeptr(parent)) {
-	item_entity_t *item = &parent->item;
+    place.node = node;
+    place.pos.item = reiser4_node_items(node) - 1;
+    place.pos.unit = ~0ul;
+
+    if (reiser4_place_realize(&place)) {
+	aal_exception_error("Node (%llu): Failed to open the item (%u).",
+	    node->blk, place.pos.item);
+	return -1;
+    }
+ 
+    if (reiser4_item_branch(&place)) {
+	item_entity_t *item = &place.item;
 	reiser4_ptr_hint_t ptr;
 
+	place.pos.unit = reiser4_item_units(&place) - 1;
+	
 	if (plugin_call(item->plugin->item_ops, read, item, 
-	    &ptr, parent->pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
+	    &ptr, place.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
 	    return -1;
 
-	if (!(place.node = reiser4_node_open(parent->node->device, ptr.ptr))) 
+	if (!(child = reiser4_node_open(place.node->device, ptr.ptr))) 
 	    return -1;
-
-	place.pos.item = reiser4_node_items(place.node) - 1;
-	place.pos.unit = ~0ul;
 	
-	if (reiser4_place_realize(&place)) {
-	    aal_exception_error("Node (%llu): Failed to open the item (%u).",
-		place.node->blk, place.pos.item);
-	    goto error_child_close;
-	}
+	res = repair_node_max_real_key(child, key);
 	
-	res = repair_node_child_max_real_key(&place, key);
-	
-	if (reiser4_node_close(place.node))
+	if (reiser4_node_close(child))
 	    return -1;
     } else 
-	res = reiser4_item_utmost_key(parent, key);
+	res = reiser4_item_utmost_key(&place, key);
 
     return res;
-    
-error_child_close:
-    reiser4_node_close(place.node);
-    return -1;
 }
 
 /* Opens the node if it has correct mkid stamp. */
@@ -94,18 +71,17 @@ error_node_free:
 
 /* Checks all the items of the node. */
 static errno_t repair_node_items_check(reiser4_node_t *node, 
-    aux_bitmap_t *bm_used) 
+    uint8_t mode) 
 {
     reiser4_place_t place;
     rpos_t *pos = &place.pos;
     uint32_t count;
     int32_t len;
-    int res;
+    errno_t res = REPAIR_OK;
 
     aal_assert("vpf-229", node != NULL);
     aal_assert("vpf-230", node->entity != NULL);
     aal_assert("vpf-231", node->entity->plugin != NULL);
-    aal_assert("vpf-529", bm_used != NULL);
 
     place.node = node;
     count = reiser4_node_items(node);
@@ -114,62 +90,82 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	pos->unit = ~0ul;
 	
 	/* Open the item, checking its plugin id. */
-	if ((res = reiser4_place_realize(&place))) {
-	    if (res > 0) {
-		aal_exception_error("Node (%llu): Failed to open the item (%u)."
-		    " Removed.", node->blk, pos->item);
+	if (reiser4_place_realize(&place)) {
+	    aal_exception_error("Node (%llu): Failed to open the item (%u)."
+		" %s", node->blk, pos->item, mode == REPAIR_REBUILD ? 
+		"Removed." : "");
 	    
+	    if (mode == REPAIR_REBUILD) {
 		if (reiser4_node_remove(node, pos, 1)) {
 		    aal_exception_bug("Node (%llu): Failed to delete the item "
 			"(%d).", node->blk, pos->item);
 		    return -1;
-		}		
+		}
 		pos->item--;
 		count = reiser4_node_items(node);
-		    
-		continue;
-	    } 
-
-	    aal_exception_fatal("Node (%llu): Failed to open the item (%u).", 
-		node->blk, pos->item);
-
-	    return res;
+		res |= REPAIR_FIXED;
+	    } else 
+		res |= REPAIR_FATAL;
+	    
+	    continue;
 	}
 
 	/* Check that the item is legal for this node. If not, it will be 
 	 * deleted in update traverse callback method. */
 	if (!repair_tree_legal_level(place.item.plugin->h.group, 
 	    reiser4_node_get_level(node)))
-	    return 1;
-
-	/* Check the item structure. */
-	if (place.item.plugin->item_ops.check) {
-	    /* FIXME: add repair_info->mode here. */
-	    if ((res = repair_item_check(&place, 0)))
-		return res;
+	{
+	    aal_exception_error("Node (%llu): Node level (%u) does not match "
+		"to the item type (%s).", node->blk, 
+		reiser4_node_get_level(node), place.item.plugin->h.label);
+	    /* FIXME-VITALY: smth should be done here later. */
+	    res |= REPAIR_FATAL;
 	}
 
-	if (!reiser4_item_extent(&place) && !reiser4_item_nodeptr(&place))
-	    continue;
-
+	/* Check the item structure. */
+	res |= repair_item_check(&place, mode);
+	
+	if (res < 0)
+	    return res;
+    
+	if (res | REPAIR_REMOVED) {
+	    pos->item--;
+	    count = reiser4_node_items(node);
+	    res &= ~REPAIR_REMOVED;
+	    res |= REPAIR_FIXED;
+	}
+	
+#if 0
 	if (place.item.plugin->item_ops.layout_check) {
+	    uint32_t lenght = place.item.len;
+	    
 	    len = plugin_call(place.item.plugin->item_ops, 
 		layout_check, &place.item, callback_item_region_check, bm_used);
 
 	    if (len > 0) {
+		//aal_assert("vpf-790", len < lenght);
+		
 		/* shrink the node */
-		if (reiser4_node_shrink(node, pos, len, 1)) {
-		    aal_exception_bug("Node (%llu), item (%llu), len (%u): Failed "
-			"to shrink the node on (%u) bytes.", node->blk, pos->item,
-			place.item.len, len);
-		    return -1;
+		if (len) {
+		    pos->unit = 0;
+		    
+		    if (reiser4_node_shrink(node, pos, len, 1)) {
+			aal_exception_bug("Node (%llu), item (%llu), len (%u): "
+			    "Failed to shrink the node on (%u) bytes.", 
+			    node->blk, pos->item, place.item.len, len);
+			return -1;
+		    }
+		} else {
+		    
 		}
 	    } else
 		return len;
 	}
+#endif
+	
     }
- 
-    return 0;    
+
+    return res;
 }
 
 /* Sets @key to the left delimiting key of the node kept in the parent. */
@@ -265,7 +261,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     will 3.6 format be supported?
 */
 /* Checks the delimiting keys of the node kept in the parent. */
-errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
+errno_t repair_node_dkeys_check(reiser4_node_t *node) {
     reiser4_place_t place;
     reiser4_key_t key, d_key;
     rpos_t *pos = &place.pos;
@@ -274,7 +270,6 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
     aal_assert("vpf-248", node != NULL);
     aal_assert("vpf-249", node->entity != NULL);
     aal_assert("vpf-250", node->entity->plugin != NULL);
-    aal_assert("vpf-240", data != NULL);
 
     /* FIXME-VITALY: Fixed plugin id is used for key. */
     if (!(d_key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
@@ -313,7 +308,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 	aal_exception_error("Node (%llu): The first key %k is not equal to "
 	    "the left delimiting key %k.", node->blk, 
 	    &place.item.key, &d_key);
-	return 1;
+	return REPAIR_FIXABLE;
     } else if (res < 0) {
    	/* It is legal to have the left key in the node much then its left 
 	 * delimiting key - due to removing some items from the node, for 
@@ -353,14 +348,14 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 	aal_exception_error("Node (%llu): The last key %k in the node is less "
 	    "then the right delimiting key %k.", 
 	    node->blk, &key, &d_key);
-	return 1;
+	return REPAIR_FIXABLE;
     }
 
     return 0;
 }
 
 /* Checks the set of keys of the node. */
-static errno_t repair_node_keys_check(reiser4_node_t *node) {
+static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
     reiser4_place_t place;
     reiser4_key_t key, prev_key;
     rpos_t *pos = &place.pos;
@@ -406,42 +401,46 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
 		    FIXME-VITALY: Which part does put the rule that neighbour 
 		    keys could be equal?
 		*/
-		return 1;		
+		aal_exception_error("Node (%llu), items (%u) and (%u): Wrong "
+		    "order of keys.", node->blk, pos->item - 1, pos->item);
+
+		return REPAIR_FATAL;
 	    }
 	}
 	prev_key = key;
     }
     
-    return 0;
+    return REPAIR_OK;
 }
 
 /*  
     Checks the node content. 
-    Returns: 0 - OK; -1 - unexpected error; 1 - unrecoverable error;
-
-    Supposed to be run with repair_check.pass.filter structure initialized.
+    Returns values according to repair_error_codes_t.
 */
-errno_t repair_node_check(reiser4_node_t *node, aux_bitmap_t *bm_used) {
-    int res;
+errno_t repair_node_check(reiser4_node_t *node, uint8_t mode) {
+    errno_t res = REPAIR_OK;
     
     aal_assert("vpf-494", node != NULL);
     aal_assert("vpf-193", node->entity != NULL);    
     aal_assert("vpf-220", node->entity->plugin != NULL);
 
-    if ((res = plugin_call(node->entity->plugin->node_ops, 
-	check, node->entity)))
-	return res;
+    res |= plugin_call(node->entity->plugin->node_ops, check, 
+	node->entity, mode);
 
-    if ((res = repair_node_items_check(node, bm_used)))
+    if (repair_error_fatal(res))
 	return res;
     
-    if ((res = repair_node_keys_check(node)))
-	return res;
- 
-    if (reiser4_node_items(node) == 0)
-	return 1;
+    res |= repair_node_items_check(node, mode);
 
-    return 0;
+    if (repair_error_fatal(res))
+	return res;
+    
+    res |= repair_node_keys_check(node, mode);
+    
+    if (repair_error_fatal(res))
+	return res;
+
+    return res;
 }
 
 /* Traverse through all items of the gived node. */
@@ -469,5 +468,4 @@ errno_t repair_node_traverse(reiser4_node_t *node, traverse_item_func_t func,
 
     return 0;
 }
-
 
