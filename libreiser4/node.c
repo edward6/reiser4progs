@@ -728,63 +728,43 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
   keys in all parent nodes.
 */
 errno_t reiser4_node_insert(
-	reiser4_node_t *node,	            /* node item will be inserted in */
-	rpos_t *pos,                        /* pos item will be inserted at */
-	reiser4_item_hint_t *hint)	    /* item hint to be inserted */
+	reiser4_node_t *node,	         /* node item will be inserted in */
+	rpos_t *pos,                     /* pos item will be inserted at */
+	reiser4_item_hint_t *hint)	 /* item hint to be inserted */
 {
 	errno_t res;
-	rpos_t ppos;
-	
+	uint32_t needed;
 	uint32_t maxspace;
     
 	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-991", pos != NULL);
 	aal_assert("umka-992", hint != NULL);
 
-	/* Saving the node in parent */
-	if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
-		if (node->parent) {
-			if (reiser4_node_pos(node, &ppos))
-				return -1;
-		}
-	}
-
 #ifdef ENABLE_DEBUG
-	
 	maxspace = reiser4_node_maxspace(node);
-	
-	aal_assert("umka-761", hint->len > 0 && 
-		   hint->len < maxspace);
-
+	aal_assert("umka-761", hint->len > 0 && hint->len < maxspace);
 #endif
+
+	needed = hint->len + (pos->unit == ~0ul ?
+			      reiser4_node_overhead(node) : 0);
 	
 	/* Checking if item length is gretter then free space in node */
-	if (hint->len + (pos->unit == ~0ul ? reiser4_node_overhead(node) : 0) >
-	    reiser4_node_space(node))
-	{
-		aal_exception_error("There is no space to insert new item/unit of (%u) "
-				    "size in the node (%llu).", hint->len, node->blk);
+	if (needed > reiser4_node_space(node)) {
+		aal_exception_error("There is no space to insert new "
+				    "item/unit of (%u) size in the node "
+				    "(%llu).", hint->len, node->blk);
 		return -1;
 	}
 
 	/* 
-	   Inserting new item or pasting unit into one existent item pointed by
-	   pos->item.
+	  Inserting new item or pasting unit into one existent item pointed by
+	  pos->item.
 	*/
 	if ((res = plugin_call(node->entity->plugin->node_ops,
 			       insert, node->entity, pos, hint)))
 		return res;
-	
-	/* Updating ldkey in parent node */
-	if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
-		if (node->parent) {
-			if (reiser4_node_ukey(node->parent, &ppos, &hint->key))
-				return -1;
-		}
-	}
 
 	reiser4_node_mkdirty(node);
-	
 	return 0;
 }
 
@@ -796,6 +776,7 @@ errno_t reiser4_node_write(
 	rpos_t *src_pos,                 /* source pos */
 	uint32_t count)
 {
+	aal_exception_error("Sorry, not implemented yet!");
 	return -1;
 }
 
@@ -869,13 +850,9 @@ errno_t reiser4_node_remove(
 			return -1;
 	}
 
-	/* Initializing the coord of the item/unit we are going to remove */
-	if (reiser4_coord_open(&coord, node, pos))
-		return -1;
-
 	/*
 	  Removing item or unit. We assume that we are going to remove unit if
-	  unit component is setted up.
+	  unit component is set up.
 	*/
 	if (plugin_call(node->entity->plugin->node_ops, remove,
 			node->entity, pos, count))

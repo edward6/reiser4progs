@@ -10,9 +10,9 @@
 
 #include <reiser4/types.h>
 
-extern blk_t reiser4_coord_block(reiser4_coord_t *coord);
 extern errno_t reiser4_coord_realize(reiser4_coord_t *coord);
-extern aal_device_t *reiser4_coord_device(reiser4_coord_t *coord);
+
+extern bool_t reiser4_coord_utmost(reiser4_coord_t *coord);
 
 extern errno_t reiser4_coord_assign(reiser4_coord_t *coord,
 					     reiser4_node_t *node);

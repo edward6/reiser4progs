@@ -1397,14 +1397,32 @@ errno_t reiser4_tree_insert(
 		if (reiser4_item_estimate(coord, hint))
 			return -1;
 	}
-	
-	if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
-		aal_exception_error("Can't insert an %s into the node %llu.", 
-				    (coord->pos.unit == ~0ul ? "item" : "unit"),
-				    coord->node->blk);
-		return -1;
-	}
 
+	/* Inserting item/unit and updating parent keys */
+	{
+		int update;
+		rpos_t ppos;
+
+		if ((update = reiser4_coord_utmost(coord))) {
+			if (coord->node->parent) {
+				if (reiser4_node_pos(coord->node, &ppos))
+					return -1;
+			}
+		}
+
+		if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
+			aal_exception_error("Can't insert an %s into the node %llu.", 
+					    (coord->pos.unit == ~0ul ? "item" : "unit"),
+					    coord->node->blk);
+			return -1;
+		}
+
+		if (update && coord->node->parent) {
+			if (reiser4_node_ukey(coord->node->parent, &ppos, &hint->key))
+				return -1;
+		}
+	}
+	
 	/* 
 	   If make space function allocates new node, we should attach it to the
 	   tree. Also, here we should handle the special case, when tree root
@@ -1424,13 +1442,15 @@ errno_t reiser4_tree_insert(
 			return -1;
 		}
 	}
-    
+
+	/* Initializing insert point coord */
 	if (reiser4_coord_realize(coord))
 		return -1;
 
 	if (reiser4_item_get_key(coord, NULL))
 		return -1;
-	
+
+	/* Calling post_insert hook installed in tree */
 	if (tree->traps.post_insert) {
 		bool_t res;
 		

@@ -10,14 +10,12 @@
 
 #include <reiser4/reiser4.h>
 
-blk_t reiser4_coord_block(reiser4_coord_t *coord) {
-	aal_assert("umka-1445", coord != NULL);
-	return coord->node->blk;
-}
-
-aal_device_t *reiser4_coord_device(reiser4_coord_t *coord) {
-	aal_assert("umka-1553", coord != NULL);
-	return coord->node->device;
+/* Returns TRUE if passed @coord points to left delimiting item */
+bool_t reiser4_coord_utmost(reiser4_coord_t *coord) {
+	aal_assert("umka-1862", coord != NULL);
+	
+	return ((coord->pos.unit == 0 || coord->pos.unit == ~0ul) &&
+		coord->pos.item == 0) ? TRUE : FALSE;
 }
 
 /* Initializes all item-related fields */
@@ -61,8 +59,8 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 				entity, &coord->pos);
 
 	/* Initializing item context fields */
-	item->con.blk = reiser4_coord_block(coord);
-	item->con.device = reiser4_coord_device(coord);
+	item->con.blk = coord->node->blk;
+	item->con.device = coord->node->device;
 	
 	/* Initializing item enviromnent fields */
 	if (coord->node->tree) {

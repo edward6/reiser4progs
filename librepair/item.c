@@ -170,8 +170,8 @@ errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
 error:
     aal_exception_error("Node (%llu), item (%u), unit(%u): %s pointer "
 	"(start (%llu), count (%llu)) points some reiser4 system blocks.", 
-	aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
-	coord->pos.unit, reiser4_item_nodeptr(coord) ? "node" : "extent",
+	coord->node->blk, coord->pos.item, coord->pos.unit,
+	reiser4_item_nodeptr(coord) ? "node" : "extent",
 	ptr.ptr, ptr.width);
 	
     return 1;
