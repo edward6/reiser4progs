@@ -116,7 +116,7 @@ static reiser4_profile_t profiles[] = {
 	},
 	[1] = {
 		.name = "extent40",
-		.desc = "Profile for reiser4 with extents turned on",
+		.desc = "Profile for reiser4 with tails turned off",
 		.plugin = {
 			[0] = {
 				.name  = "node",
@@ -222,7 +222,7 @@ static reiser4_profile_t profiles[] = {
 	},
 	[2] = {
 		.name = "tail40",
-		.desc = "Profile for reiser4 with tails turned on",     
+		.desc = "Profile for reiser4 with extents turned off",     
 		.plugin = {
 			[0] = {
 				.name  = "node",
