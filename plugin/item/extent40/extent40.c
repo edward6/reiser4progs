@@ -435,7 +435,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 
 					aal_memcpy(ins_key, &key, sizeof(key));
 					
-					aal_hash_table_insert(hint->blocks, &key, block);
+					aal_hash_table_insert(hint->blocks, ins_key, block);
 				}
 
 				/* Copying data from found (loaded) block to
@@ -1029,7 +1029,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 
 					aal_memcpy(ins_key, &key, sizeof(key));
 					
-					aal_hash_table_insert(hint->blocks, &key, block);
+					aal_hash_table_insert(hint->blocks, ins_key, block);
 
 					/* Updating @hint->bytes field by blksize, as
 					   new block is allocated. */
@@ -1113,7 +1113,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 					aal_memcpy(ins_key, &key, sizeof(key));
 					
 					/* Updating block in data cache. */
-					aal_hash_table_insert(hint->blocks, &key, block);
+					aal_hash_table_insert(hint->blocks, ins_key, block);
 				}
 
 				/* Writting data to @block. */
