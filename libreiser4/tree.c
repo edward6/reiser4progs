@@ -304,6 +304,9 @@ reiser4_tree_t *reiser4_tree_create(
 		goto error_free_tree;
 	}
 
+	reiser4_node_set_make_stamp(tree->root, 
+		reiser4_format_get_make_stamp(tree->fs->format));
+
 	/* Setting up of the root block */
 	reiser4_format_set_root(fs->format, tree->root->blk);
     

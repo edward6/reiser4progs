@@ -25,7 +25,7 @@ static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk,
     if (repair_test_flag(repair_data, REPAIR_BAD_PTR))
 	return 0;
 
-    if ((*node = repair_node_open(repair_data->fs->format, blk)) == NULL) 
+    if ((*node = repair_node_open(repair_data->fs, blk)) == NULL)
 	repair_set_flag(repair_data, REPAIR_BAD_PTR);    
 
     return 0;
@@ -157,6 +157,7 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
 /* Setup data (common and specific) before traverse through the tree. */
 static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     reiser4_ptr_hint_t ptr;
+    blk_t root;
     
     aal_assert("vpf-420", hint != NULL, return -1);
     aal_assert("vpf-423", rd != NULL, return -1);
@@ -190,11 +191,17 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
 	aal_exception_error("Failed to allocate a bitmap for twig blocks.");
 	return -1;
     }
-    
+ 
     rd->flags = 0;
 
+    root = reiser4_format_get_root(rd->fs->format);
+
     /* Check the root pointer to be valid block. */
-    if (aux_bitmap_test(repair_filter(rd)->bm_used, 
+    if (root < reiser4_format_start(rd->fs->format) || 
+	root > reiser4_format_get_len(rd->fs->format))
+	/* Wrong pointer. */
+	repair_set_flag(rd, REPAIR_BAD_PTR);
+    else if (aux_bitmap_test(repair_filter(rd)->bm_used, 
 	reiser4_format_get_root(rd->fs->format))) 
 	/* This block is from format area. */
 	repair_set_flag(rd, REPAIR_BAD_PTR);

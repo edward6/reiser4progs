@@ -27,7 +27,7 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
 
 
 
-errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *key)
+static errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *key)
 {
     reiser4_coord_t coord;
     errno_t res;
@@ -70,21 +70,19 @@ error_child_close:
     return -1;
 }
 
-reiser4_node_t *repair_node_open(reiser4_format_t *format, blk_t blk) {
+reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
     reiser4_node_t *node;
 
-    aal_assert("vpf-708", format != NULL, return NULL);
-//    aal_assert("vpf-563", format->device != NULL, return NULL);
+    aal_assert("vpf-708", fs != NULL, return NULL);
 
-    /* FIXME-UMKA->VITALY */
-    if ((node = reiser4_node_open(NULL/* Device should be here */, blk)) == NULL)
+    if ((node = reiser4_node_open(fs->device, blk)) == NULL)
 	return NULL;
 
-    if (reiser4_format_get_make_stamp(format) != reiser4_node_get_make_stamp(node))
+    if (reiser4_format_get_make_stamp(fs->format) != reiser4_node_get_make_stamp(node))
 	goto error_node_free;
 
     return node;
-    
+
 error_node_free:
     reiser4_node_release(node);
     return NULL;
@@ -95,6 +93,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 {
     reiser4_coord_t coord;
     rpos_t *pos = &coord.pos;
+    uint32_t count;
     int32_t len;
     int res;
 
@@ -104,8 +103,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     aal_assert("vpf-529", bm_used != NULL, return -1);
 
     coord.node = node;
+    count = reiser4_node_items(node);
     
-    for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
+    for (pos->item = 0; pos->item < count; pos->item++) {
 	pos->unit = ~0ul;
 	
 	/* Open the item, checking its plugin id. */
@@ -120,7 +120,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		    return -1;
 		}		
 		pos->item--;
-		
+		count = reiser4_node_items(node);
+		    
 		continue;
 	    } 
 
@@ -353,13 +354,15 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
     reiser4_coord_t coord;
     reiser4_key_t key, prev_key;
     rpos_t *pos = &coord.pos;
+    uint32_t count;
     errno_t res;
     
     aal_assert("vpf-258", node != NULL, return -1);
     
     coord.node = node;
+    count = reiser4_node_items(node);
     
-    for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
+    for (pos->item = 0; pos->item < count; pos->item++) {
 	if (reiser4_coord_realize(&coord))
 	    return -1;
 	
@@ -379,6 +382,8 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
 		return -1;
 	    }
 	    pos->item--;
+	    count = reiser4_node_items(node);
+	    
 	    continue;
 	}
 	

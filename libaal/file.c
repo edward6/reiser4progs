@@ -68,7 +68,7 @@ errno_t file_open(
 #else
 	if ((fd = open(filename, flags)) == -1)
 #endif
-		goto error_free_device;
+		goto error_free_entity;
 
 	*(int *)device->entity = fd;
 	
@@ -77,8 +77,8 @@ errno_t file_open(
 	
 	return 0;
     
- error_free_device:
-	aal_free(device);
+ error_free_entity:
+	aal_free(device->entity);
  error:
 	return -1;    
 }
