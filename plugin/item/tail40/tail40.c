@@ -193,12 +193,17 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 
 		/* Can we update insert point? */
 		if (hint->control & SF_UPTIP) {
-			
+
+			/*
+			  Correcting @hint->rest. It should contains number of
+			  bytes we realy can move out.
+			*/
 			if (hint->rest > pos)
 				hint->rest = pos;
 
 			pos -= hint->rest;
-		
+
+			/* Moving insert point into neighbour item */
 			if (pos == 0 && hint->control & SF_MOVIP) {
 				hint->result |= SF_MOVIP;
 				pos = dst_item->len + hint->rest;
@@ -208,14 +213,24 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 		uint32_t right;
 
 		if (hint->control & SF_UPTIP) {
+			
+			/* Is insert point inside item? */
 			if (pos < src_item->len) {
 				right = src_item->len - pos;
-		
+
+				/*
+				  Insert point inside item and we can move
+				  something.
+				*/
 				if (hint->rest > right)
 					hint->rest = right;
 
 				pos += hint->rest;
-			
+
+				/*
+				  Updating insert point to first position in
+				  neighbour item.
+				*/
 				if (pos == src_item->len &&
 				    hint->control & SF_MOVIP)
 				{
@@ -223,6 +238,10 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 					pos = 0;
 				}
 			} else {
+				/*
+				  Updating insert point to first position in
+				  neighbour item.
+				*/
 				if (hint->control & SF_MOVIP) {
 					hint->result |= SF_MOVIP;
 					pos = 0;

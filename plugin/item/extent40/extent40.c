@@ -88,9 +88,9 @@ static errno_t extent40_get_key(item_entity_t *item,
 {
 	aal_assert("vpf-622", item != NULL);
 	aal_assert("vpf-623", key != NULL);
-	aal_assert("vpf-625", pos < extent40_units(item));
-	
-	return common40_get_key(item, pos, key, extent40_offset);
+
+	return common40_get_key(item, pos, key,
+				extent40_offset);
 }
 
 static int extent40_data(void) {
@@ -103,9 +103,8 @@ static int32_t extent40_remove(item_entity_t *item,
 			       uint32_t pos,
 			       uint32_t count)
 {
-	void *src;
-	void *dst;
 	uint32_t len;
+	void *src, *dst;
 	
 	aal_assert("vpf-941", item != NULL);
 	aal_assert("vpf-940", pos < extent40_units(item));
@@ -463,8 +462,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 				    pos == ((src_item->len - hint->rest) /
 					    sizeof(extent40_t)))
 				{
-					pos = 0;
 					hint->result |= SF_MOVIP;
+					pos = 0;
 				}
 			} else {
 				/*
@@ -472,8 +471,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 				  flags and out.
 				*/
 				if (hint->control & SF_MOVIP) {
-					pos = 0;
 					hint->result |= SF_MOVIP;
+					pos = 0;
 				}
 
 				hint->rest = 0;
@@ -495,9 +494,8 @@ static uint32_t extent40_expand(item_entity_t *item, uint32_t pos,
 {
 	/* Preparing space in @dst_item */
 	if (pos < extent40_units(item)) {
-		void *src;
-		void *dst;
 		uint32_t len;
+		void *src, *dst;
 
 		src = (extent40_t *)item->body + pos;
 		dst = src + (count * sizeof(extent40_t));
@@ -516,9 +514,8 @@ static uint32_t extent40_shrink(item_entity_t *item, uint32_t pos,
 {
 	/* Srinking @dst_item */
 	if (pos < extent40_units(item)) {
-		void *src;
-		void *dst;
 		uint32_t len;
+		void *src, *dst;
 
 		dst = (extent40_t *)item->body + pos;
 		src = dst + (count * sizeof(extent40_t));
@@ -541,8 +538,7 @@ static errno_t extent40_rep(item_entity_t *dst_item,
 {
 	/* Copying units from @src_item to @dst_item */
 	if (count > 0) {
-		void *src;
-		void *dst;
+		void *src, *dst;
 
 		src = (extent40_t *)src_item->body + src_pos;
 		dst = (extent40_t *)dst_item->body + dst_pos;
