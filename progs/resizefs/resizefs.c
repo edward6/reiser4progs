@@ -260,7 +260,11 @@ int main(int argc, char *argv[]) {
 	fs_len /= reiser4_master_blocksize(fs->master);
 	fs->tree->traps.connect = resizefs_connect_handler;
 
-	aal_exception_error("Sorry, not implemented yet!");
+	if (reiser4_fs_resize(fs, fs_len)) {
+		aal_exception_error("Can't resize reiser4 on %s.",
+				    host_dev);
+		goto error_free_tree;
+	}
 	
 	/* Freeing tree */
 	reiser4_tree_close(fs->tree);

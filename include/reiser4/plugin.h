@@ -1106,6 +1106,9 @@ struct reiser4_oid_ops {
 	/* Synchronizes oid allocator */
 	errno_t (*sync) (object_entity_t *);
 
+	errno_t (*layout) (object_entity_t *,
+			   block_func_t, void *);
+
 	int (*isdirty) (object_entity_t *);
 	void (*mkdirty) (object_entity_t *);
 	void (*mkclean) (object_entity_t *);

@@ -232,6 +232,7 @@ static reiser4_plugin_t oid40_plugin = {
 		.print		= oid40_print,
 		.used		= oid40_used,
 		.free		= oid40_free,
+		.layout         = NULL,
 #endif
 		.root_locality	= oid40_root_locality,
 		.root_objectid	= oid40_root_objectid,

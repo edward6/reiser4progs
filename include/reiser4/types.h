@@ -202,6 +202,7 @@ enum reiser4_owner {
 	O_FORMAT   = 1 << 1,
 	O_JOURNAL  = 1 << 2,
 	O_ALLOC    = 1 << 3,
+	O_OID      = 1 << 4,
 	O_UNKNOWN  = 1 << 5
 };
 

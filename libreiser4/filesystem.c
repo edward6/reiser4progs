@@ -143,24 +143,36 @@ static errno_t callback_check_block(
 	return -(blk == *(uint64_t *)data);
 }
 
+/* Returns passed @blk owner */
 reiser4_owner_t reiser4_fs_belongs(
 	reiser4_fs_t *fs,
 	blk_t blk)
 {
 	aal_assert("umka-1534", fs != NULL);
 
+	/* Checks if passed @blk belongs to skipped area */
 	if (reiser4_format_skipped(fs->format, callback_check_block, &blk) != 0)
 		return O_SKIPPED;
 	
+	/* Checks if passed @blk belongs to format metadata */
 	if (reiser4_format_layout(fs->format, callback_check_block, &blk) != 0)
 		return O_FORMAT;
 
+	/* Checks if passed @blk belongs to oid allocator metadata */
+	if (reiser4_oid_layout(fs->oid, callback_check_block, &blk) != 0)
+		return O_OID;
+
+	/*
+	  Checks if passed @blk belongs to journal metadata if journal
+	  opened.
+	*/
 	if (fs->journal) {
 		if (reiser4_journal_layout(fs->journal,
 					   callback_check_block, &blk) != 0)
 			return O_JOURNAL;
 	}
 
+	/* Checks if passed @blk belongs to block allocator data */
 	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk) != 0)
 		return O_ALLOC;
 
@@ -170,23 +182,31 @@ reiser4_owner_t reiser4_fs_belongs(
 /* Enumerates all filesystem areas (block alloc, journal, etc.) */
 errno_t reiser4_fs_layout(
 	reiser4_fs_t *fs,
-	block_func_t func, 
+	block_func_t block_func, 
 	void *data)
 {
 	errno_t res;
-	
-	if ((res = reiser4_format_skipped(fs->format, func, data)))
+
+	/* Enumerating skipped area */
+	if ((res = reiser4_format_skipped(fs->format, block_func, data)))
 		return res;
 	
-	if ((res = reiser4_format_layout(fs->format, func, data)))
+	/* Enumerating oid allocator area */
+	if ((res = reiser4_oid_layout(fs->oid, block_func, data)))
+		return res;
+	
+	/* Enumerating format area */
+	if ((res = reiser4_format_layout(fs->format, block_func, data)))
 		return res;
 
+	/* Enumerating journal area */
 	if (fs->journal) {
-		if ((res = reiser4_journal_layout(fs->journal, func, data)))
+		if ((res = reiser4_journal_layout(fs->journal, block_func, data)))
 			return res;
 	}
     
-	return reiser4_alloc_layout(fs->alloc, func, data);
+	/* Enumerating block allocator area */
+	return reiser4_alloc_layout(fs->alloc, block_func, data);
 }
 
 /* Destroys reiser4 master super block */
@@ -320,6 +340,15 @@ reiser4_fs_t *reiser4_fs_create(
 	aal_free(fs);
  error:
 	return NULL;
+}
+
+/* Resizes passed open @fs by passed @blocks */
+errno_t reiser4_fs_resize(
+	reiser4_fs_t *fs,               /* fs to be resized */
+	count_t blocks)                 /* new fs size */
+{
+	/* FIXME-UMKA: Not implemented yet! */
+	return -EINVAL;
 }
 
 /* 

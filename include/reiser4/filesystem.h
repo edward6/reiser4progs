@@ -24,13 +24,17 @@ extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
 					  blk_t blk);
 
-extern errno_t reiser4_fs_layout(reiser4_fs_t *fs, block_func_t func, 
+extern errno_t reiser4_fs_layout(reiser4_fs_t *fs,
+				 block_func_t block_func, 
 				 void *data);
 
 extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 				       char *uuid, char *label,
 				       reiser4_profile_t *profile,
 				       count_t blocks);
+
+extern errno_t reiser4_fs_resize(reiser4_fs_t *fs,
+				 count_t blocks);
 
 extern errno_t reiser4_fs_clobber(aal_device_t *device);
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);

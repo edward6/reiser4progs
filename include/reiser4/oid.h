@@ -14,10 +14,14 @@
 
 #include <reiser4/types.h>
 
-extern reiser4_oid_t *reiser4_oid_open(reiser4_fs_t *fs);
 extern void reiser4_oid_close(reiser4_oid_t *oid);
+extern reiser4_oid_t *reiser4_oid_open(reiser4_fs_t *fs);
 
 #ifndef ENABLE_STAND_ALONE
+
+extern errno_t reiser4_oid_layout(reiser4_oid_t *oid,
+				  block_func_t block_func,
+				  void *data);
 
 extern errno_t reiser4_oid_sync(reiser4_oid_t *oid);
 extern errno_t reiser4_oid_valid(reiser4_oid_t *oid);

@@ -157,6 +157,20 @@ reiser4_oid_t *reiser4_oid_create(
 	return NULL;
 }
 
+/* Oid allocator enumerator */
+errno_t reiser4_oid_layout(reiser4_oid_t *oid,
+			   block_func_t block_func,
+			   void *data)
+{
+	aal_assert("umka-2198", oid != NULL);
+
+	if (!oid->entity->plugin->oid_ops.layout)
+		return 0;
+
+	return oid->entity->plugin->oid_ops.layout(oid->entity,
+						   block_func, data);
+}
+
 /* Returns next object id from specified oid allocator */
 oid_t reiser4_oid_next(reiser4_oid_t *oid) {
 	aal_assert("umka-1108", oid != NULL);
