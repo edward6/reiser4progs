@@ -441,8 +441,8 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 		/* Moving items bodies */
 		offset = ih_get_offset(ih, pol);
 		src = node->block->data + offset;
-		dst = src + len;
-
+		
+		dst = node->block->data + offset + len;
 		size = nh_get_free_space_start(node) - offset;
 
 		aal_memmove(dst, src, size);
@@ -515,19 +515,21 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 		headers = count * ih_size(pol);
 		end = node40_ih_at(node, items - 1);
 
-		/* Moving item header and bodies if it is needed */
+		/* Moving item header and bodies if it is needed. */
 		if (pos->item + count < items) {
 
 			/* Moving item bodies */
 			dst = node40_ib_at(node, pos->item);
-			src = node40_ib_at(node, pos->item + count);
+			
+			src = node40_ib_at(node, pos->item +
+					   count);
 
 			size = node40_size(node, pos, items -
 					   pos->item) - len;
  
 			aal_memmove(dst, src, size);
 
-			/* Moving item headers */
+			/* Moving item headers. */
 			src = node40_ih_at(node, items - 1);
 			dst = src + headers;
 			
@@ -536,7 +538,7 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 	
 			aal_memmove(dst, src, size);
 
-			/* Updating item offsets */
+			/* Updating item offsets. */
 			cur = node40_ih_at(node, pos->item);
 	
 			for (i = pos->item; i < items - count; i++) {
@@ -551,9 +553,6 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 	} else {
 		void *ih;
 		uint32_t item_len;
-		node_entity_t *entity;
-
-		entity = (node_entity_t *)node;
 
 		ih = node40_ih_at(node, pos->item);
 		item_len = node40_len(entity, pos);
@@ -667,20 +666,36 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 		      trans_hint_t *hint, modyfy_func_t modify_func)
 {
         void *ih;
+	int64_t res;
         uint32_t pol;
         uint32_t len;
+	
         int64_t write;
         place_t place;
         node40_t *node;
 
         node = (node40_t *)entity;
         len = hint->len + hint->overhead;
-                                                                                              
-        /* Makes expand of the node new items will be inserted in. */
-        if (node40_expand(entity, pos, len, 1)) {
-                aal_error("Can't expand node for insert item/unit.");
-                return -EINVAL;
-        }
+
+	if (len > 0) {
+		/* Expand node if @len greater than zero. */
+		if ((res = node40_expand(entity, pos, len, hint->count))) {
+			aal_error("Can't expand node for insert one "
+				  "more item/unit.");
+			return res;
+		}
+	} else {
+#if 0
+		/* Shrink node if @len less than zero. This is possible for
+		   extents, that in order to write something we need to remove
+		   some extent units. */
+		if ((res = node40_shrink(entity, pos, len, hint->count))) {
+			aal_error("Can't shrink node for insert one "
+				  "more item/unit.");
+			return res;
+		}
+#endif
+	}
         
 	pol = node40_key_pol(node);
         ih = node40_ih_at(node, pos->item);
