@@ -45,7 +45,7 @@ static void resizefs_print_usage(char *name) {
 		"                                any questions.\n"
 		"  -f, --force                   makes resizer to use whole disk, not\n"
 		"                                block device or mounted partition.\n"
-		"  -c, --cache N                 number of nodes in tree byffer cache\n");
+		"  -c, --cache N                 number of nodes in tree buffer cache\n");
 }
 
 /* Initializes exception streams used by resizefs */
