@@ -363,7 +363,7 @@ struct reiser4_entry_hint {
 	} entryid;
 
 	/* Name of entry */
-	char *name;
+	char name[256];
 };
 
 typedef struct reiser4_entry_hint reiser4_entry_hint_t;

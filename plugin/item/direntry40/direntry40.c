@@ -21,13 +21,36 @@ static inline entry40_t *direntry40_entry(direntry40_t *direntry,
 	return &direntry->entry[pos];
 }
 
+#define OID_CHARS (sizeof(uint64_t) - 1)
+
+static inline int direntry40_name_long(char *name) {
+	return (aal_strlen(name) > OID_CHARS + sizeof(uint64_t));
+}
+
+static inline int direntry40_entry_long(direntry40_t *direntry,
+					entry40_t *entry)
+{
+	uint64_t objectid = eid_get_objectid(&entry->entryid);
+	return (objectid & 0x0100000000000000ull) ? 1 : 0;
+}
+
 static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
 					    entry40_t *entry)
 {
-	objid40_t *objid = (objid40_t *)((void *)direntry +
-					 entry->offset);
+	uint32_t len;
+	objid40_t *objid;
+
+	len = sizeof(objid40_t);
 	
-	return aal_strlen((char *)(objid + 1)) + sizeof(objid40_t) + 1;
+	if (direntry40_entry_long(direntry, entry)) {
+		
+		objid = (objid40_t *)((void *)direntry +
+				      entry->offset);
+		
+		len += aal_strlen((char *)(objid + 1)) + 1;
+	}
+	
+	return len;
 }
 
 /* Builds full key by entry components */
@@ -73,6 +96,51 @@ static uint32_t direntry40_units(item_entity_t *item) {
 	return de40_get_count(direntry);
 }
 
+static char *direntry40_unpack_string(uint64_t value, char *buff) {
+	do {
+		*buff = value >> (64 - 8);
+		if (*buff)
+			buff++;
+		value <<= 8;
+		
+	} while (value != 0);
+
+	*buff = '\0';
+	return buff; 
+}
+
+static char *direntry40_extract_name(direntry40_t *direntry,
+				     entry40_t *entry, char *buff)
+{
+	char *cont;
+	uint64_t offset;
+	objid40_t *objid;
+	uint64_t objectid;
+
+	objid = (objid40_t *)((void *)direntry +
+			      entry->offset);
+	
+	if (direntry40_entry_long(direntry, entry)) {
+		char *name = (char *)(objid + 1);
+		aal_strncpy(buff, name, aal_strlen(name));
+	} else {
+		objectid = (eid_get_objectid(&entry->entryid) &
+			    ~0x0100000000000000ull);
+		
+		offset = eid_get_offset(&entry->entryid);
+
+		if (objectid == 0ull && offset == 0ull) {
+			*buff = '.';
+			*(buff + 1) = '\0';
+		} else {
+			cont = direntry40_unpack_string(objectid, buff);
+			direntry40_unpack_string(offset, cont);
+		}
+	}
+
+	return buff;
+}
+
 static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 				uint32_t pos, uint32_t count)
 {
@@ -105,9 +173,9 @@ static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 		hint->entryid.objectid = eid_get_objectid(&entry->entryid);
 		hint->entryid.offset = eid_get_offset(&entry->entryid);
 
+		direntry40_extract_name(direntry, entry, hint->name);
+				
 		objid = direntry40_unit(direntry, pos);
-
-		hint->name = (char *)(objid + 1);
 		hint->objid.objectid = oid_get_objectid(objid);
 		hint->objid.locality = oid_get_locality(objid);
 	}
@@ -149,8 +217,10 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 	hint->len = direntry_hint->count * sizeof(entry40_t);
     
 	for (i = 0; i < direntry_hint->count; i++) {
-		hint->len += aal_strlen(direntry_hint->unit[i].name) + 
-			sizeof(objid40_t) + 1;
+		hint->len += sizeof(objid40_t);
+
+		if (direntry40_name_long(direntry_hint->unit[i].name))
+			hint->len += aal_strlen(direntry_hint->unit[i].name) + 1;
 	}
 
 	if (pos == ~0ul)
@@ -599,7 +669,6 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 	entry = direntry40_entry(direntry, pos);
 		
 	for (i = 0; i < dehint->count; i++, entry++) {
-		uint32_t len = aal_strlen(dehint->unit[i].name);
 		objid40_t *objid = (objid40_t *)((void *)direntry + offset);
 
 		en40_set_offset(entry, offset);
@@ -608,13 +677,18 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 			   sizeof(entryid40_t));
 	
 		aal_memcpy(objid, &dehint->unit[i].objid, sizeof(objid40_t));
+		offset += sizeof(objid40_t);
 
-		aal_memcpy((void *)direntry + offset + sizeof(objid40_t),
-			   dehint->unit[i].name, len);
+		if (direntry40_name_long(dehint->unit[i].name)) {
+			uint32_t len = aal_strlen(dehint->unit[i].name);
 
-		offset += len + sizeof(objid40_t);
-		*((char *)(direntry) + offset) = '\0';
-		offset++;
+			aal_memcpy((void *)direntry + offset ,
+				   dehint->unit[i].name, len);
+
+			offset += len;
+			*((char *)(direntry) + offset) = '\0';
+			offset++;
+		}
 	}
 
 	/*
@@ -707,13 +781,14 @@ static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
 	return unit_len + sizeof(entry40_t);
 }
 
-static errno_t direntry40_print(item_entity_t *item, aal_stream_t *stream,
+static errno_t direntry40_print(item_entity_t *item,
+				aal_stream_t *stream,
 				uint16_t options) 
 {
 	uint32_t i, width;
 	direntry40_t *direntry;
 
-	char *name;
+	char name[256];
 	uint64_t objid, offset;
 	uint64_t locality, objectid;
 	
@@ -728,11 +803,13 @@ static errno_t direntry40_print(item_entity_t *item, aal_stream_t *stream,
 	for (i = 0; i < de40_get_count(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
 
-		objid = *((uint64_t *)entry->entryid.objectid);
-		offset = *((uint64_t *)entry->entryid.offset);
-		name = (void *)direntry + entry->offset + sizeof(objid40_t);
+		objid = eid_get_objectid(&entry->entryid);
+		offset = eid_get_offset(&entry->entryid);
+
+		direntry40_extract_name(direntry, entry, name);
 
 		locality = *((uint64_t *)((void *)direntry + entry->offset));
+		
 		objectid = *((uint64_t *)((void *)direntry + entry->offset +
 					  sizeof(uint64_t)));
 

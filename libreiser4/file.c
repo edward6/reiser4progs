@@ -341,7 +341,7 @@ reiser4_file_t *reiser4_file_create(
 	
 		entry.objid.objectid = reiser4_key_get_objectid(&file->key);
 		entry.objid.locality = reiser4_key_get_locality(&file->key);
-		entry.name = (char *)name;
+		aal_strncpy(entry.name, (char *)name, sizeof(entry.name));
 
 		if (reiser4_file_write(parent, (char *)&entry, 1) == -1) {
 			aal_exception_error("Can't add entry %s.", name);

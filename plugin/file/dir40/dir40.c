@@ -315,7 +315,7 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 		goto error_free_dir;
     
 	/* Preparing dot entry */
-	body.unit[0].name = ".";
+	aal_strncpy(body.unit[0].name, ".", 1);
     
 	plugin_call(goto error_free_body, object->plugin->key_ops,
 		    build_objid, &body.unit[0].objid, KEY_STATDATA_TYPE,
@@ -326,7 +326,7 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 		    body.unit[0].name);
     
 	/* Preparing dot-dot entry */
-	body.unit[1].name = "..";
+	aal_strncpy(body.unit[1].name, "..", 2);
     
 	plugin_call(goto error_free_body, object->plugin->key_ops,
 		    build_objid, &body.unit[1].objid, KEY_STATDATA_TYPE,
@@ -469,6 +469,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	hint.hint = &body_hint;
   
 	for (i = 0; i < n; i++) {
+		
 		plugin_call(break, dir->file.key.plugin->key_ops, build_objid,
 			    &entry->objid, KEY_STATDATA_TYPE, entry->objid.locality,
 			    entry->objid.objectid);
@@ -479,6 +480,7 @@ static int32_t dir40_write(object_entity_t *entity,
 		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
     
 		hint.key.plugin = dir->file.key.plugin;
+		
 		plugin_call(break, hint.key.plugin->key_ops, build_direntry,
 			    hint.key.body, dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);

@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
-	if (reiser4_file_reset(dir)) {
+/*	if (reiser4_file_reset(dir)) {
 		aal_exception_error("Can't rewind dir %s.", argv[2]);
 		goto error_free_dir;
 	}
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 	while (reiser4_file_read(dir, (char *)&entry, 1)) {
 		fprintf(stdout, "[%llx:%llx] %s\n", (entry.objid.locality >> 4), 
 			entry.objid.objectid, entry.name);
-	}
+	}*/
     
 	reiser4_file_close(dir);
 //        reiser4_fs_sync(fs);
