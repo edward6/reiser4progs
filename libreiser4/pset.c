@@ -175,7 +175,6 @@ void reiser4_opset_root(reiser4_opset_t *opset) {
 		if (opset->plug[i])
 			continue;
 		
-		aal_set_bit(&opset->mask, i);
 		opset->plug[i] = opset_prof[i].prof == INVAL_PID ? 
 			NULL : reiser4_profile_plug(opset_prof[i].prof);
 	}
@@ -186,7 +185,6 @@ void reiser4_opset_root(reiser4_opset_t *opset) {
 
 	/* Directory plugin does not exist in progs at all. */
 	opset->plug[OPSET_DIR] = NULL;
-	aal_clear_bit(&opset->mask, OPSET_DIR);
 }
 
 errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
@@ -238,24 +236,29 @@ void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {
 	if (!tree->ent.opset[OPSET_HASH]) {
 		/* The special case -- the root directory. 
 		   All opset members must be stored. */
+		opset->mask = (1 << OPSET_LAST) - 1;
+		opset->mask &= ~(1 << OPSET_DIR);
 		return;
 	}
 	
 	for (i= 0; i < OPSET_LAST; i++) {
-		if (opset_prof[i].ess) {
-			/* Only not fs-default essential plugins are stored. */
-			if (tree->ent.opset[i] != opset->plug[i]) {
-				aal_set_bit(&opset->mask, i);
-				continue;
-			}
+		/* Leave non-essential members as is. */
+		if (!opset_prof[i].ess)
+			continue;
 
-			/* Remove from SD existent essential plugins that match 
-			   the fs-defaul ones. */
-			if (aal_test_bit(&opset->mask, i)) {
-				aal_clear_bit(&opset->mask, i);
-				opset->plug[i] = INVAL_PTR;
-				continue;
-			}
+		/* Only not fs-default essential plugins are stored. */
+		if (tree->ent.opset[i] != opset->plug[i]) {
+			aal_set_bit(&opset->mask, i);
+			continue;
+		}
+
+
+		/* Remove from SD existent essential plugins that match 
+		   the fs-defaul ones. */
+		if (aal_test_bit(&opset->mask, i)) {
+			aal_clear_bit(&opset->mask, i);
+			opset->plug[i] = INVAL_PTR;
+			continue;
 		}
 
 		/* All present Non-Essential plugins are left on disk. */

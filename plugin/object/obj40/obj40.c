@@ -190,7 +190,6 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 	stat_hint_t stat;
 	trans_hint_t hint;
 	lookup_t lookup;
-	bool_t plcount;
 	int64_t res;
 	
 	aal_assert("vpf-1592", obj != NULL);
@@ -251,7 +250,10 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 	stat.ext[SDEXT_LW_ID] = &lwh;
 	stat.ext[SDEXT_UNIX_ID] = &unixh;
 
-	if (plcount) {
+	/* Get plugins that must exists in the PLUGID extention. */
+	obj->core->pset_ops.diff(obj->info.tree, &plugh);
+	
+	if (plugh.mask) {
 		stat.extmask |= (1 << SDEXT_PLUG_ID);
 		stat.ext[SDEXT_PLUG_ID] = &plugh;
 	}
@@ -602,8 +604,6 @@ inline errno_t obj40_init(obj40_t *obj, object_info_t *info,
 	   the mask of the specific plugins. */
 	for (i = 0; i < OPSET_LAST; i++) {
 		aal_assert("vpf-1647", info->opset.plug[i] != INVAL_PTR);
-		aal_assert("vpf-1648", (info->opset.plug[i] == NULL) || 
-			   aal_test_bit(&obj->info.opset.mask, i));
 		
 		if (info->opset.plug[i] == NULL)
 			obj->info.opset.plug[i] = info->tree->opset[i];

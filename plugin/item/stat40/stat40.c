@@ -231,8 +231,8 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 		if ((res = stat40_fetch_units(place, &trans)) != 1)
 			return res;
 		
-		/* If there is no LW extention at all, nothing to excode. */
-		if (stat.extmask & (1 << SDEXT_LW_ID))
+		/* If there is no LW extention at all, nothing to encode. */
+		if (!(stat.extmask & (1 << SDEXT_LW_ID)))
 			return 0;
 			
 		mode = lwh.mode;
@@ -317,9 +317,6 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 	aal_memset(&stat, 0, sizeof(stat));
 	stat.place = place;
 
-	if (place->pos.unit == MAX_UINT32 && insert)
-		((stat40_t *)stat_body(&stat))->extmask = 0;
-	
 	if (!stath->extmask)
 		return 0;
     
