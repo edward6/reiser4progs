@@ -415,16 +415,16 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 			  char *filename)
 {
 	aal_gauge_t *gauge;
-	reiser4_file_t *file;
 	ffrag_hint_t frag_hint;
+	reiser4_object_t *object;
 
-	/* Opens file by its name */
-	if (!(file = reiser4_file_open(fs, filename)))
+	/* Opens object by its name */
+	if (!(object = reiser4_object_open(fs, filename)))
 		return -1;
 
 	/* Create a gauge which will show the progress */
 	if (!(gauge = aal_gauge_create(progs_gauge_indicator_handler, "", NULL)))
-		goto error_free_file;
+		goto error_free_object;
 
 	/* Initializing serve structures */
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
@@ -441,14 +441,14 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 	  data file fragmentation will be calculated on are gathering in that
 	  function.
 	*/
-	if (reiser4_file_layout(file, ffrag_process_blk, &frag_hint)) {
-		aal_exception_error("Can't enumerate data blocks occupied by %s",
-				    filename);
+	if (reiser4_object_layout(object, ffrag_process_blk, &frag_hint)) {
+		aal_exception_error("Can't enumerate data blocks occupied "
+				    "by %s", filename);
 		goto error_free_gauge;
 	}
 	
 	aal_gauge_free(gauge);
-	reiser4_file_close(file);
+	reiser4_object_close(object);
 
 	/* Showing the results */
 	printf("%.6f\n", frag_hint.fl_total > 0 ?
@@ -458,8 +458,8 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 
  error_free_gauge:
 	aal_gauge_free(gauge);
- error_free_file:
-	reiser4_file_close(file);
+ error_free_object:
+	reiser4_object_close(object);
 	return -1;
 }
 
@@ -493,9 +493,11 @@ static errno_t dfrag_process_node(
 	pos.unit = ~0ul;
 
 	/* The loop though the all items in current node */
-	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
-		reiser4_file_t *file;
+	for (pos.item = 0; pos.item < reiser4_node_items(node);
+	     pos.item++)
+	{
 		reiser4_place_t place;
+		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
@@ -512,8 +514,8 @@ static errno_t dfrag_process_node(
 		if (!reiser4_item_statdata(&place))
 			continue;
 
-		/* Opening file by its stat data item denoded by @place */
-		if (!(file = reiser4_file_begin(frag_hint->tree->fs, &place)))
+		/* Opening object by its stat data item denoded by @place */
+		if (!(object = reiser4_object_begin(frag_hint->tree->fs, &place)))
 			continue;
 
 		/* Initializing per-file counters */
@@ -530,11 +532,11 @@ static errno_t dfrag_process_node(
 		  Calling calculating the file fragmentation by emans of using
 		  the function we have seen abowe.
 		*/
-		if (reiser4_file_layout(file, ffrag_process_blk, data)) {
+		if (reiser4_object_layout(object, ffrag_process_blk, data)) {
 			aal_exception_error("Can't enumerate data blocks "
-					    "occupied by %s", file->name);
+					    "occupied by %s", object->name);
 			
-			reiser4_file_close(file);
+			reiser4_object_close(object);
 			continue;
 		}
 
@@ -547,10 +549,10 @@ static errno_t dfrag_process_node(
 				(double)frag_hint->fl_bad / frag_hint->fl_total : 0;
 			
 			aal_exception_info("Fragmentation for %s: %.6f",
-					   file->name, factor);
+					   object->name, factor);
 		}
 		
-		reiser4_file_close(file);
+		reiser4_object_close(object);
 	}
 	
 	return 0;

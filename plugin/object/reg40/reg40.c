@@ -98,6 +98,9 @@ static int32_t reg40_read(object_entity_t *entity,
 	if (size == 0 || !reg->body.node)
 		return 0;
 
+	if (reg->offset >= size)
+		return -1;
+	
 	if (n > size - reg->offset)
 		n = size - reg->offset;
 
@@ -180,7 +183,7 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 /* Creating the file described by pased @hint */
 static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
-				     reiser4_file_hint_t *hint,
+				     reiser4_object_hint_t *hint,
 				     place_t *place) 
 {
 	reg40_t *reg;
@@ -266,7 +269,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	obj40_lock(&reg->obj, &reg->obj.statdata);
     
 	if (parent) {
-		plugin_call(parent->plugin->file_ops, link,
+		plugin_call(parent->plugin->object_ops, link,
 			    parent);
 	}
 	
@@ -485,52 +488,50 @@ static errno_t reg40_seek(object_entity_t *entity,
 			  uint64_t offset) 
 {
 	reg40_t *reg;
-	uint64_t size;
 	
 	aal_assert("umka-1968", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	
-	if (offset >= (size = (reg40_size(entity))))
-		offset = size - 1;
-
 	reg->offset = offset;
-	
-	return -(reg40_next(reg) != LP_PRESENT);
+
+	return 0;
 }
 
 static reiser4_plugin_t reg40_plugin = {
-	.file_ops = {
+	.object_ops = {
 		.h = {
 			.handle = EMPTY_HANDLE,
-			.id = FILE_REGULAR40_ID,
-			.group = REGULAR_FILE,
-			.type = FILE_PLUGIN_TYPE,
+			.id = OBJECT_FILE40_ID,
+			.group = FILE_OBJECT,
+			.type = OBJECT_PLUGIN_TYPE,
 			.label = "reg40",
 			.desc = "Regular file for reiserfs 4.0, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE
-		.create	    = reg40_create,
-		.write	    = reg40_write,
-		.truncate   = reg40_truncate,
-		.layout     = reg40_layout,
-		.metadata   = reg40_metadata,
-		.link       = reg40_link,
-		.unlink     = reg40_unlink,
-		.remove     = NULL,
-#endif
-		.valid	    = NULL,
-		.lookup	    = NULL,
-		.follow     = NULL,
+		.create	      = reg40_create,
+		.write	      = reg40_write,
+		.truncate     = reg40_truncate,
+		.layout       = reg40_layout,
+		.metadata     = reg40_metadata,
+		.link         = reg40_link,
+		.unlink       = reg40_unlink,
 		
-		.open	    = reg40_open,
-		.close	    = reg40_close,
-		.reset	    = reg40_reset,
-		.offset	    = reg40_offset,
-		.seek	    = reg40_seek,
-		.size       = reg40_size,
-		.read	    = reg40_read
+		.add_entry    = NULL,
+		.rem_entry    = NULL,
+#endif
+		.valid	      = NULL,
+		.lookup	      = NULL,
+		.follow       = NULL,
+		.read_entry   = NULL,
+		
+		.open	      = reg40_open,
+		.close	      = reg40_close,
+		.reset	      = reg40_reset,
+		.offset	      = reg40_offset,
+		.seek	      = reg40_seek,
+		.size         = reg40_size,
+		.read	      = reg40_read
 	}
 };
 

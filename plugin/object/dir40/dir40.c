@@ -125,70 +125,47 @@ static lookup_t dir40_next(dir40_t *dir) {
 }
 
 /* Reads n entries to passed buffer buff */
-static int32_t dir40_read(object_entity_t *entity, 
-			  void *buff, uint32_t n)
+static errno_t dir40_read_entry(object_entity_t *entity, 
+				reiser4_entry_hint_t *entry)
 {
 	dir40_t *dir;
 	uint64_t size;
-	uint32_t read;
-	uint32_t chunk;
 	uint32_t units;
 
 	item_entity_t *item;
-	reiser4_entry_hint_t *entry;
 
 	aal_assert("umka-844", entity != NULL);
-	aal_assert("umka-845", buff != NULL);
+	aal_assert("umka-845", entry != NULL);
 
 	dir = (dir40_t *)entity;
+	item = &dir->body.item;
 
 	/* Getting size from teh statdata */
 	if ((size = dir40_size(entity)) == 0)
-		return 0;
-
-	if (n > size - dir->offset)
-		n = size - dir->offset;
-	
-	entry = (reiser4_entry_hint_t *)buff;
-	
-	item = &dir->body.item;
+		return -1;
 
 	units = plugin_call(item->plugin->item_ops,
 			    units, item);
 
-	/* Loop until requested data is read */
-	for (read = 0; read < n; entry += chunk) {
-		
-		/* Getting next direntry item to be current */
-		if (dir->body.pos.unit >= units) {
-			
-			if (dir40_next(dir) != LP_PRESENT)
-				break;
-
-			item = &dir->body.item;
-
-			units = plugin_call(item->plugin->item_ops,
-					    units, item);
-		}
-		
-		if ((chunk = n - read) == 0)
-			return read;
-
-		/* Reading piece of data */
-		chunk = plugin_call(item->plugin->item_ops, read,
-				    item, entry, dir->body.pos.unit, chunk);
-
-		/* If actual read data is zero, we going out */
-		if (chunk == 0)
-			return read;
-
-		/* Updating positions */
-		read += chunk;
-		dir->offset += chunk;
-		dir->body.pos.unit += chunk;
+	if (dir->body.pos.unit >= units)
+		return -1;
+	
+	/* Reading piece of data */
+	if (plugin_call(item->plugin->item_ops, read, item,
+			entry, dir->body.pos.unit, 1) != 1)
+	{
+		return -1;
 	}
+
+	/* Updating positions */
+	dir->offset++;
+	dir->body.pos.unit++;
     
-	return read;
+	/* Getting next direntry item */
+	if (dir->body.pos.unit >= units)
+		dir40_next(dir);
+	
+	return 0;
 }
 
 /* 
@@ -196,20 +173,16 @@ static int32_t dir40_read(object_entity_t *entity,
   (offset key, object key, etc).
 */
 static lookup_t dir40_lookup(object_entity_t *entity, 
-			     char *name, void *buff) 
+			     char *name, reiser4_entry_hint_t *entry) 
 {
 	lookup_t res;
 	key_entity_t wanted;
-
-	reiser4_entry_hint_t *entry;
 	dir40_t *dir = (dir40_t *)entity;
     
 	aal_assert("umka-1117", entity != NULL);
 	aal_assert("umka-1118", name != NULL);
-	aal_assert("umka-1924", buff != NULL);
+	aal_assert("umka-1924", entry != NULL);
 
-	entry = (reiser4_entry_hint_t *)buff;
-	
 	/*
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
@@ -262,7 +235,8 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 				return LP_FAILED;
 			
 			units = item->plugin->item_ops.units(item);
-			
+
+			/* Sequentional search of the needed entry by its name */
 			for (; dir->body.pos.unit < units; dir->body.pos.unit++) {
 				
 				if (plugin_call(item->plugin->item_ops, read, item,
@@ -284,6 +258,7 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 			
 		}
 
+		/* Getting next direntry item */
 		if ((res = dir40_next(dir)) != LP_PRESENT)
 			return res;
 	}
@@ -345,7 +320,7 @@ static char *dir40_empty_dir[2] = { ".", ".." };
   passed @hint.
 */
 static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
-				     reiser4_file_hint_t *hint,
+				     reiser4_object_hint_t *hint,
 				     place_t *place)
 {
 	uint32_t i;
@@ -418,8 +393,8 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	  data item hint, because we will need size of direntry item durring
 	  stat data initialization.
 	*/
-	body_hint.plugin = body_plugin;
 	body_hint.flags = HF_FORMATD;
+	body_hint.plugin = body_plugin;
 	body_hint.key.plugin = hint->object.plugin; 
    	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
@@ -540,7 +515,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	aal_free(body);
 
 	if (parent) {
-		plugin_call(parent->plugin->file_ops, link,
+		plugin_call(parent->plugin->object_ops, link,
 			    parent);
 	}
 	
@@ -558,6 +533,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 static errno_t dir40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
+	errno_t res;
 	uint64_t offset;
 	uint64_t objectid;
 	
@@ -602,11 +578,13 @@ static errno_t dir40_truncate(object_entity_t *entity,
 			return 0;
 
 		/* Removing item from the tree */
-		if (dir->obj.core->tree_ops.remove(dir->obj.tree, &place, 1)) {
+		if ((res = dir->obj.core->tree_ops.remove(dir->obj.tree,
+							  &place, 1)))
+		{
 			aal_exception_error("Can't remove directory item "
 					    "from directory 0x%llx.",
 					    obj40_objectid(&dir->obj));
-			return -1;
+			return res;
 		}
 	}
 	
@@ -615,22 +593,22 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 static errno_t dir40_link(object_entity_t *entity) {
 	aal_assert("umka-1908", entity != NULL);
-	
 	return obj40_link(&((dir40_t *)entity)->obj, 1);
 }
 
 static errno_t dir40_unlink(object_entity_t *entity) {
+	errno_t res;
 	dir40_t *dir;
 	
 	aal_assert("umka-1907", entity != NULL);
 
 	dir = (dir40_t *)entity;
 	
-	if (obj40_stat(&dir->obj))
-		return -1;
+	if ((res = obj40_stat(&dir->obj)))
+		return res;
 	
-	if (obj40_link(&dir->obj, -1))
-		return -1;
+	if ((res = obj40_link(&dir->obj, -1)))
+		return res;
 
 	/*
 	  Checking if nlink reached 1. It is right for directory because it has
@@ -640,70 +618,79 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 		return 0;
 	
 	/* Removing directory when nlink became zero */
-	if (dir40_reset(entity))
-		return -1;
+	if ((res = dir40_reset(entity)))
+		return res;
 		
-	if (dir40_truncate(entity, 0))
-		return -1;
+	if ((res = dir40_truncate(entity, 0)))
+		return res;
 
-	if (obj40_stat(&dir->obj))
-		return -1;
+	if ((res = obj40_stat(&dir->obj)))
+		return res;
 	
 	return obj40_remove(&dir->obj, &dir->obj.key, 1);
 }
 
-static errno_t dir40_remove(object_entity_t *entity,
-			    key_entity_t *key)
+/* Removing entry from the directory */
+static errno_t dir40_rem_entry(object_entity_t *entity,
+			       reiser4_entry_hint_t *entry)
 {
+	errno_t res;
 	dir40_t *dir;
 	uint64_t size;
 	uint32_t atime;
+	key_entity_t *key;
 	
 	aal_assert("umka-1922", entity != NULL);
-	aal_assert("umka-1923", key != NULL);
+	aal_assert("umka-1923", entry != NULL);
 
 	dir = (dir40_t *)entity;
+	key = &dir->obj.key;
+
+	/* Generating key of the entry to be removed */
+	entry->offset.plugin = dir->obj.key.plugin;
 	
-	if (obj40_remove(&dir->obj, key, 1))
-		return -1;
+	plugin_call(key->plugin->key_ops, build_entry, &entry->offset,
+		    dir->hash, obj40_locality(&dir->obj),
+		    obj40_objectid(&dir->obj), entry->name);
+	
+	if ((res = obj40_remove(&dir->obj, &entry->offset, 1)))
+		return res;
 
 	/* Updating size field in stat data */
-	if (obj40_stat(&dir->obj))
-		return -1;
+	if ((res = obj40_stat(&dir->obj)))
+		return res;
 	
 	size = obj40_get_size(&dir->obj);
 
-	if (obj40_set_size(&dir->obj, size - 1))
-		return -1;
+	if ((res = obj40_set_size(&dir->obj, size - 1)))
+		return res;
 
 	atime = time(NULL);
 	
-	if (obj40_set_atime(&dir->obj, atime))
-		return -1;
+	if ((res = obj40_set_atime(&dir->obj, atime)))
+		return res;
 
 	return obj40_set_mtime(&dir->obj, atime);
 }
 
-/* Writes @n number of entries described by @buff to passed directory entity */
-static int32_t dir40_write(object_entity_t *entity, 
-			   void *buff, uint32_t n) 
+/* Adding new entry  */
+static errno_t dir40_add_entry(object_entity_t *entity, 
+			       reiser4_entry_hint_t *entry)
 {
-	uint32_t i;
 	uint64_t size;
 	uint32_t atime;
 
+	dir40_t *dir;
 	place_t place;
 	key_entity_t *key;
 	
 	reiser4_item_hint_t hint;
-	reiser4_entry_hint_t *entry;
-	dir40_t *dir = (dir40_t *)entity;
-    
-	aal_assert("umka-844", dir != NULL);
-	aal_assert("umka-845", buff != NULL);
-   
+
+	aal_assert("umka-844", entity != NULL);
+	aal_assert("umka-845", entry != NULL);
+
+	dir = (dir40_t *)entity;
 	key = &dir->obj.key;
-	entry = (reiser4_entry_hint_t *)buff;
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -712,26 +699,21 @@ static int32_t dir40_write(object_entity_t *entity,
 	hint.key.plugin = key->plugin;
 	hint.plugin = dir->body.item.plugin;
 
-	/* Loop until told number of entries is written */
-	for (i = 0; i < n; i++, entry++) {
-		hint.type_specific = (void *)entry;
+	hint.type_specific = (void *)entry;
 
-		/* Building key of the new entry */
-		plugin_call(key->plugin->key_ops, build_entry, &hint.key,
-			    dir->hash, obj40_locality(&dir->obj),
-			    obj40_objectid(&dir->obj), entry->name);
+	/* Building key of the new entry */
+	plugin_call(key->plugin->key_ops, build_entry, &hint.key,
+		    dir->hash, obj40_locality(&dir->obj),
+		    obj40_objectid(&dir->obj), entry->name);
 	
-		entry->offset.plugin = key->plugin;
-			
-		plugin_call(key->plugin->key_ops, assign, &entry->offset,
-			    &hint.key);
+	plugin_call(key->plugin->key_ops, assign, &entry->offset,
+		    &hint.key);
 
-		/* Inserting entry */
-		if (obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place)) {
-			aal_exception_error("Can't insert entry %s.",
-					    entry->name);
-			return -1;
-		}
+	/* Inserting entry */
+	if (obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place)) {
+		aal_exception_error("Can't insert entry %s.",
+				    entry->name);
+		return -1;
 	}
 	
 	/* Updating size field in stat data */
@@ -740,7 +722,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	
 	size = obj40_get_size(&dir->obj);
 
-	if (obj40_set_size(&dir->obj, size + n))
+	if (obj40_set_size(&dir->obj, size + 1))
 		return -1;
 
 	atime = time(NULL);
@@ -751,7 +733,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	if (obj40_set_mtime(&dir->obj, atime))
 		return -1;
 
-	return i;
+	return 0;
 }
 
 struct layout_hint {
@@ -880,37 +862,39 @@ static uint64_t dir40_offset(object_entity_t *entity) {
 }
 
 static reiser4_plugin_t dir40_plugin = {
-	.file_ops = {
+	.object_ops = {
 		.h = {
 			.handle = EMPTY_HANDLE,
-			.id = FILE_DIRTORY40_ID,
-			.group = DIRTORY_FILE,
-			.type = FILE_PLUGIN_TYPE,
+			.id = OBJECT_DIRTORY40_ID,
+			.group = DIRTORY_OBJECT,
+			.type = OBJECT_PLUGIN_TYPE,
 			.label = "dir40",
 			.desc = "Compound directory for reiserfs 4.0, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE
-		.create	    = dir40_create,
-		.write	    = dir40_write,
-		.layout     = dir40_layout,
-		.metadata   = dir40_metadata,
-		.link       = dir40_link,
-		.unlink     = dir40_unlink,
-		.truncate   = dir40_truncate,
-		.remove     = dir40_remove,
+		.create	      = dir40_create,
+		.layout       = dir40_layout,
+		.metadata     = dir40_metadata,
+		.link         = dir40_link,
+		.unlink       = dir40_unlink,
+		.truncate     = dir40_truncate,
+		.add_entry    = dir40_add_entry,
+		.rem_entry    = dir40_rem_entry,
 #endif
-		.follow     = NULL,
-		.valid	    = NULL,
-		.seek	    = NULL,
+		.follow       = NULL,
+		.valid	      = NULL,
+		.seek	      = NULL,
+		.read         = NULL,
+		.write        = NULL,
 		
-		.open	    = dir40_open,
-		.close	    = dir40_close,
-		.reset	    = dir40_reset,
-		.lookup	    = dir40_lookup,
-		.offset	    = dir40_offset,
-		.size	    = dir40_size,
-		.read	    = dir40_read
+		.open	      = dir40_open,
+		.close	      = dir40_close,
+		.reset	      = dir40_reset,
+		.lookup	      = dir40_lookup,
+		.offset	      = dir40_offset,
+		.size	      = dir40_size,
+		.read_entry   = dir40_read_entry,
 	}
 };
 
