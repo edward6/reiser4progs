@@ -210,32 +210,21 @@ enum print_options {
 
 typedef enum print_options print_options_t;
 
-/* Type for describing reiser4 objects (like node, block allocator, etc) inside
-   the library, created by plugins themselves and which also have the our plugin
-   referrence. */
-struct object_entity {
+/* Type for describing reiser4 objects (like format, block allocator, etc) inside
+   the library, created by plugins themselves. */
+struct generic_entity {
 	reiser4_plug_t *plug;
 };
 
-typedef struct object_entity object_entity_t;
+typedef struct generic_entity generic_entity_t;
 
+/* Node plugins entity */
 struct node_entity {
 	reiser4_plug_t *plug;
 	aal_block_t *block;
 };
 
 typedef struct node_entity node_entity_t;
-
-
-struct sdext_entity {
-	reiser4_plug_t *plug;
-
-	body_t *body;
-	uint32_t sdlen;
-	uint32_t offset;
-};
-
-typedef struct sdext_entity sdext_entity_t;
 
 struct place_context {
 	blk_t blk;
@@ -246,7 +235,7 @@ struct place_context {
 typedef struct place_context place_context_t;
 
 struct place {
-	object_entity_t *node;
+	node_entity_t *node;
 	reiser4_plug_t *plug;
 
 	pos_t pos;
@@ -257,6 +246,34 @@ struct place {
 };
 
 typedef struct place place_t;
+
+struct object_info {
+	void *tree;
+	place_t start;
+	
+	key_entity_t object;
+	key_entity_t parent;
+};
+
+typedef struct object_info object_info_t;
+
+/* Object plugins entity */
+struct object_entity {
+	reiser4_plug_t *plug;
+	object_info_t info;
+};
+
+typedef struct object_entity object_entity_t;
+
+struct sdext_entity {
+	reiser4_plug_t *plug;
+
+	body_t *body;
+	uint32_t sdlen;
+	uint32_t offset;
+};
+
+typedef struct sdext_entity sdext_entity_t;
 
 /* Shift flags control shift process */
 enum shift_flags {
@@ -340,12 +357,14 @@ struct copy_hint {
 
 typedef struct copy_hint copy_hint_t;
 
-typedef errno_t (*region_func_t) (void *, uint64_t, uint64_t, void *);
-typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
-typedef errno_t (*place_func_t) (object_entity_t *, place_t *, void *);
+typedef errno_t (*region_func_t) (void *, uint64_t,
+				  uint64_t, void *);
+
+typedef errno_t (*block_func_t) (void *, uint64_t, void *);
+typedef errno_t (*place_func_t) (void *, place_t *, void *);
 
 typedef errno_t (*layout_func_t) (void *, block_func_t, void *);
-typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
+typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
 
 /* To create a new item or to insert into the item we need to perform the
    following operations:
@@ -476,16 +495,6 @@ struct object_hint {
 };
 
 typedef struct object_hint object_hint_t;
-
-struct object_info {
-	void *tree;
-	place_t start;
-	
-	key_entity_t object;
-	key_entity_t parent;
-};
-
-typedef struct object_info object_info_t;
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. */ 
@@ -955,142 +964,141 @@ typedef struct reiser4_hash_ops reiser4_hash_ops_t;
 /* Disk-format plugin */
 struct reiser4_format_ops {
 	/* Functions for getting flags from format */
-	int (*tst_flag) (object_entity_t *, uint8_t);
-	void (*set_flag) (object_entity_t *, uint8_t);
-	void (*clr_flag) (object_entity_t *, uint8_t);
+	int (*tst_flag) (generic_entity_t *, uint8_t);
+	void (*set_flag) (generic_entity_t *, uint8_t);
+	void (*clr_flag) (generic_entity_t *, uint8_t);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
-	object_entity_t *(*create) (aal_device_t *, uint64_t,
+	generic_entity_t *(*create) (aal_device_t *, uint64_t,
 				    uint32_t, uint16_t);
 	
-	errno_t (*sync) (object_entity_t *);
+	errno_t (*sync) (generic_entity_t *);
 	
-	int (*isdirty) (object_entity_t *);
-	void (*mkdirty) (object_entity_t *);
-	void (*mkclean) (object_entity_t *);
+	int (*isdirty) (generic_entity_t *);
+	void (*mkdirty) (generic_entity_t *);
+	void (*mkclean) (generic_entity_t *);
 	
 	/* Update only fields which can be changed after journal replay in
 	   memory to avoid second checking. */
-	errno_t (*update) (object_entity_t *);
+	errno_t (*update) (generic_entity_t *);
 	    
 	/* Checks thoroughly the format structure and fixes what needed. */
-	errno_t (*check_struct) (object_entity_t *, uint8_t);
+	errno_t (*check_struct) (generic_entity_t *, uint8_t);
 
 	/* Prints all useful information about the format */
-	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
     
 	/* Probes whether filesystem on given device has this format. Returns
 	   "true" if so and "false" otherwise. */
 	int (*confirm) (aal_device_t *device);
 
-	void (*set_root) (object_entity_t *, uint64_t);
-	void (*set_len) (object_entity_t *, uint64_t);
-	void (*set_height) (object_entity_t *, uint16_t);
-	void (*set_free) (object_entity_t *, uint64_t);
-	void (*set_stamp) (object_entity_t *, uint32_t);
-	void (*set_policy) (object_entity_t *, uint16_t);
+	void (*set_root) (generic_entity_t *, uint64_t);
+	void (*set_len) (generic_entity_t *, uint64_t);
+	void (*set_height) (generic_entity_t *, uint16_t);
+	void (*set_free) (generic_entity_t *, uint64_t);
+	void (*set_stamp) (generic_entity_t *, uint32_t);
+	void (*set_policy) (generic_entity_t *, uint16_t);
 	    
-	rid_t (*journal_pid) (object_entity_t *);
-	rid_t (*alloc_pid) (object_entity_t *);
+	rid_t (*journal_pid) (generic_entity_t *);
+	rid_t (*alloc_pid) (generic_entity_t *);
 
-	errno_t (*layout) (object_entity_t *, block_func_t, void *);
-	errno_t (*skipped) (object_entity_t *, block_func_t, void *);
+	errno_t (*layout) (generic_entity_t *, block_func_t, void *);
+	errno_t (*skipped) (generic_entity_t *, block_func_t, void *);
 
 	/* Checks format-specific super block for validness. Also checks whether
 	   filesystem objects lie in valid places. For example, format-specific
 	   super block for format40 must lie in 17-th block for 4096 byte long
 	   blocks. */
-	errno_t (*valid) (object_entity_t *);
+	errno_t (*valid) (generic_entity_t *);
 
 	/* Returns the device disk-format lies on */
-	aal_device_t *(*device) (object_entity_t *);
+	aal_device_t *(*device) (generic_entity_t *);
 
-	/* Returns format string for this format. For example "reiserfs 4.0" ot
-	   something like this. */
-	const char *(*name) (object_entity_t *);
+	/* Returns format string for this format. */
+	const char *(*name) (generic_entity_t *);
 #endif
 	/* Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format. */
-	object_entity_t *(*open) (aal_device_t *, uint32_t);
+	generic_entity_t *(*open) (aal_device_t *, uint32_t);
     
 	/* Closes opened or created previously filesystem. Frees all assosiated
 	   memory. */
-	void (*close) (object_entity_t *);
+	void (*close) (generic_entity_t *);
     
-	int (*get_flag) (object_entity_t *, uint8_t);
-	uint64_t (*get_root) (object_entity_t *);
-	uint16_t (*get_height) (object_entity_t *);
+	int (*get_flag) (generic_entity_t *, uint8_t);
+	uint64_t (*get_root) (generic_entity_t *);
+	uint16_t (*get_height) (generic_entity_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Gets the start of the filesystem. */
-	uint64_t (*start) (object_entity_t *);
+	uint64_t (*start) (generic_entity_t *);
 	
-	uint64_t (*get_len) (object_entity_t *);
-	uint64_t (*get_free) (object_entity_t *);
+	uint64_t (*get_len) (generic_entity_t *);
+	uint64_t (*get_free) (generic_entity_t *);
     
-	uint32_t (*get_stamp) (object_entity_t *);
-	uint16_t (*get_policy) (object_entity_t *);
+	uint32_t (*get_stamp) (generic_entity_t *);
+	uint16_t (*get_policy) (generic_entity_t *);
 #endif
 	    
-	rid_t (*oid_pid) (object_entity_t *);
+	rid_t (*oid_pid) (generic_entity_t *);
 
 	/* Returns area where oid data lies in */
-	void (*oid) (object_entity_t *, void **, uint32_t *);
+	void (*oid) (generic_entity_t *, void **, uint32_t *);
 };
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;
 
 struct reiser4_oid_ops {
 	/* Opens oid allocator on passed area */
-	object_entity_t *(*open) (void *,
+	generic_entity_t *(*open) (void *,
 				  uint32_t);
 
 	/* Closes passed instance of oid allocator */
-	void (*close) (object_entity_t *);
+	void (*close) (generic_entity_t *);
     
 #ifndef ENABLE_STAND_ALONE
 	/* Creates oid allocator on passed area */
-	object_entity_t *(*create) (void *,
+	generic_entity_t *(*create) (void *,
 				    uint32_t);
 
 	/* Synchronizes oid allocator */
-	errno_t (*sync) (object_entity_t *);
+	errno_t (*sync) (generic_entity_t *);
 
-	errno_t (*layout) (object_entity_t *,
+	errno_t (*layout) (generic_entity_t *,
 			   block_func_t, void *);
 
-	int (*isdirty) (object_entity_t *);
-	void (*mkdirty) (object_entity_t *);
-	void (*mkclean) (object_entity_t *);
+	int (*isdirty) (generic_entity_t *);
+	void (*mkdirty) (generic_entity_t *);
+	void (*mkclean) (generic_entity_t *);
 
 	/* Gets next object id */
-	oid_t (*next) (object_entity_t *);
+	oid_t (*next) (generic_entity_t *);
 
 	/* Gets next object id */
-	oid_t (*allocate) (object_entity_t *);
+	oid_t (*allocate) (generic_entity_t *);
 
 	/* Releases passed object id */
-	void (*release) (object_entity_t *, oid_t);
+	void (*release) (generic_entity_t *, oid_t);
     
 	/* Returns the number of used object ids */
-	uint64_t (*used) (object_entity_t *);
+	uint64_t (*used) (generic_entity_t *);
     
 	/* Returns the number of free object ids */
-	uint64_t (*free) (object_entity_t *);
+	uint64_t (*free) (generic_entity_t *);
 
 	/* Prints oid allocator data */
-	errno_t (*print) (object_entity_t *, aal_stream_t *,
+	errno_t (*print) (generic_entity_t *, aal_stream_t *,
 			  uint16_t);
 
 	/* Makes check for validness */
-	errno_t (*valid) (object_entity_t *);
+	errno_t (*valid) (generic_entity_t *);
 #endif
 	
 	/* Root locality and objectid */
-	oid_t (*root_locality) (void);
-	oid_t (*root_objectid) (void);
+	oid_t (*root_locality) (generic_entity_t *);
+	oid_t (*root_objectid) (generic_entity_t *);
 };
 
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;
@@ -1098,69 +1106,69 @@ typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 #ifndef ENABLE_STAND_ALONE
 struct reiser4_alloc_ops {
 	/* Creates block allocator */
-	object_entity_t *(*create) (aal_device_t *,
+	generic_entity_t *(*create) (aal_device_t *,
 				    uint64_t, uint32_t);
 
 	/* Opens block allocator */
-	object_entity_t *(*open) (aal_device_t *,
+	generic_entity_t *(*open) (aal_device_t *,
 				  uint64_t, uint32_t);
 
 	/* Closes blcok allocator */
-	void (*close) (object_entity_t *);
+	void (*close) (generic_entity_t *);
 
 	/* Synchronizes block allocator */
-	errno_t (*sync) (object_entity_t *);
+	errno_t (*sync) (generic_entity_t *);
 
-	int (*isdirty) (object_entity_t *);
-	void (*mkdirty) (object_entity_t *);
-	void (*mkclean) (object_entity_t *);
+	int (*isdirty) (generic_entity_t *);
+	void (*mkdirty) (generic_entity_t *);
+	void (*mkclean) (generic_entity_t *);
 	
 	/* Assign the bitmap to the block allocator */
-	errno_t (*assign) (object_entity_t *, void *);
+	errno_t (*assign) (generic_entity_t *, void *);
 
 	/* Extract block allocator data into passed bitmap */
-	errno_t (*extract) (object_entity_t *, void *);
+	errno_t (*extract) (generic_entity_t *, void *);
 	
 	/* Returns number of used blocks */
-	uint64_t (*used) (object_entity_t *);
+	uint64_t (*used) (generic_entity_t *);
 
 	/* Returns number of unused blocks */
-	uint64_t (*free) (object_entity_t *);
+	uint64_t (*free) (generic_entity_t *);
 
 	/* Checks blocks allocator on validness */
-	errno_t (*valid) (object_entity_t *);
+	errno_t (*valid) (generic_entity_t *);
 
-	errno_t (*check_struct) (object_entity_t *, uint8_t);
+	errno_t (*check_struct) (generic_entity_t *, uint8_t);
 	    
 	/* Prints block allocator data */
-	errno_t (*print) (object_entity_t *, aal_stream_t *,
+	errno_t (*print) (generic_entity_t *, aal_stream_t *,
 			  uint16_t);
 
 	/* Calls func for each block in block allocator */
-	errno_t (*layout) (object_entity_t *, block_func_t, void *);
+	errno_t (*layout) (generic_entity_t *, block_func_t, void *);
 	
 	/* Checks if passed range of blocks used */
-	int (*occupied) (object_entity_t *, uint64_t,
+	int (*occupied) (generic_entity_t *, uint64_t,
 			 uint64_t);
     	
 	/* Checks if passed range of blocks unused */
-	int (*available) (object_entity_t *, uint64_t,
+	int (*available) (generic_entity_t *, uint64_t,
 			  uint64_t);
 
 	/* Marks passed block as used */
-	errno_t (*occupy) (object_entity_t *, uint64_t,
+	errno_t (*occupy) (generic_entity_t *, uint64_t,
 			   uint64_t);
 
 	/* Tries to allocate passed amount of blocks */
-	uint64_t (*allocate) (object_entity_t *, uint64_t *,
+	uint64_t (*allocate) (generic_entity_t *, uint64_t *,
 			      uint64_t);
 	
 	/* Deallocates passed blocks */
-	errno_t (*release) (object_entity_t *, uint64_t,
+	errno_t (*release) (generic_entity_t *, uint64_t,
 			    uint64_t);
 
 	/* Calls func for all block of the same area as blk is. */
-	errno_t (*related) (object_entity_t *, blk_t,
+	errno_t (*related) (generic_entity_t *, blk_t,
 			    region_func_t, void *);
 };
 
@@ -1168,41 +1176,45 @@ typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
 
 struct reiser4_journal_ops {
 	/* Opens journal on specified device */
-	object_entity_t *(*open) (object_entity_t *, aal_device_t *,
-				  uint64_t, uint64_t, uint32_t);
+	generic_entity_t *(*open) (generic_entity_t *,
+				  aal_device_t *,
+				  uint64_t, uint64_t,
+				  uint32_t);
 
 	/* Creates journal on specified device */
-	object_entity_t *(*create) (object_entity_t *, aal_device_t *,
-				    uint64_t, uint64_t, uint32_t, void *);
+	generic_entity_t *(*create) (generic_entity_t *,
+				    aal_device_t *,
+				    uint64_t, uint64_t,
+				    uint32_t, void *);
 
 	/* Returns the device journal lies on */
-	aal_device_t *(*device) (object_entity_t *);
+	aal_device_t *(*device) (generic_entity_t *);
     
 	/* Frees journal instance */
-	void (*close) (object_entity_t *);
+	void (*close) (generic_entity_t *);
 
 	/* Checks journal metadata on validness */
-	errno_t (*valid) (object_entity_t *);
+	errno_t (*valid) (generic_entity_t *);
     
 	/* Synchronizes journal */
-	errno_t (*sync) (object_entity_t *);
+	errno_t (*sync) (generic_entity_t *);
 
-	int (*isdirty) (object_entity_t *);
-	void (*mkdirty) (object_entity_t *);
-	void (*mkclean) (object_entity_t *);
+	int (*isdirty) (generic_entity_t *);
+	void (*mkdirty) (generic_entity_t *);
+	void (*mkclean) (generic_entity_t *);
 	
 	/* Replays the journal */
-	errno_t (*replay) (object_entity_t *);
+	errno_t (*replay) (generic_entity_t *);
 
 	/* Prints journal content */
-	errno_t (*print) (object_entity_t *, aal_stream_t *,
+	errno_t (*print) (generic_entity_t *, aal_stream_t *,
 			  uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
-	errno_t (*check_struct) (object_entity_t *, layout_func_t, void *);
+	errno_t (*check_struct) (generic_entity_t *, layout_func_t, void *);
 
 	/* Calls func for each block in block allocator */
-	errno_t (*layout) (object_entity_t *, block_func_t,
+	errno_t (*layout) (generic_entity_t *, block_func_t,
 			   void *);
 };
 
