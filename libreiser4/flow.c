@@ -277,7 +277,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 				/* Updating parent keys. */
 				reiser4_node_leftmost_key(place.node, &lkey);
-				aal_memcmp(&parent, &place.node->p, sizeof(parent));
+				aal_memcpy(&parent, &place.node->p, sizeof(parent));
 
 				if ((res = reiser4_tree_update_keys(tree, &parent,
 								    &lkey)))

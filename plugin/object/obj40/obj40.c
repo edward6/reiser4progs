@@ -590,7 +590,7 @@ errno_t obj40_init(obj40_t *obj, object_info_t *info, reiser4_core_t *core) {
 	aal_memcpy(&obj->info, info, sizeof(*info));
 	obj->core = core;
 	
-	if (info->object.plug) {
+	if (!info->start.plug) {
 		plug_call(info->object.plug->o.key_ops, assign, 
 			  STAT_KEY(obj), &info->object);
 	}
@@ -616,7 +616,7 @@ errno_t obj40_update(obj40_t *obj) {
 	aal_assert("umka-1905", obj != NULL);
 		
 	/* Looking for stat data place by */
-	switch ((res = obj40_find_item(obj, &STAT_PLACE(obj)->key, 
+	switch ((res = obj40_find_item(obj, &obj->info.object,
 				       FIND_EXACT, NULL, NULL,
 				       STAT_PLACE(obj))))
 	{

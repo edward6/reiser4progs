@@ -180,6 +180,9 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	return 0;
 }
 
+/* This method is intended to refresh all info needed for the futher work 
+   with the object. For now it is only updating the parent pointer. 
+   Should be called after repair_object_obtain, repair_object_check_sytict. */
 errno_t repair_object_refresh(reiser4_object_t *object) {
 	reiser4_plug_t *plug;
 	entry_hint_t entry;

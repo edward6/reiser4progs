@@ -94,12 +94,13 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 
 static void fsck_init_streams(fsck_parse_t *data) {
 	
-	misc_exception_set_stream(EXCEPTION_TYPE_INFO, 
-				  aal_test_bit(&data->options,
-					       FSCK_OPT_VERBOSE) ? stderr : NULL);
+	if ((data && aal_test_bit(&data->options, FSCK_OPT_VERBOSE)) || !data)
+		misc_exception_set_stream(EXCEPTION_TYPE_INFO, stderr);
 	
-	misc_exception_set_stream(EXCEPTION_TYPE_ERROR, data->logfile);
-	misc_exception_set_stream(EXCEPTION_TYPE_WARNING, data->logfile);
+	misc_exception_set_stream(EXCEPTION_TYPE_ERROR, 
+				  data ? data->logfile: stderr);
+
+	misc_exception_set_stream(EXCEPTION_TYPE_WARNING, stderr);
 	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stdout);
 	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
 	misc_exception_set_stream(EXCEPTION_TYPE_BUG, stderr);
@@ -151,7 +152,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{0, 0, 0, 0}
 	};
 
-	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
+	fsck_init_streams(NULL);
 	memset(override, 0, sizeof(override));
 	data->logfile = stderr;
 
@@ -216,7 +217,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 			break;
 		case 'c':
 			if ((cache = misc_str2long(optarg, 10)) == INVAL_DIG) {
-				aal_error("Invalid cache value specified (%s).",
+				aal_fatal("Invalid cache value specified (%s).",
 					  optarg);
 				return USER_ERROR;
 			}
@@ -262,8 +263,6 @@ static errno_t fsck_init(fsck_parse_t *data,
 		goto user_error;
 	}
 
-	fsck_init_streams(data);
-    
 	if (optind != argc - 1) {
 		fsck_print_usage(argv[0]);
 		goto user_error;
@@ -312,6 +311,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
 	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
 
+	fsck_init_streams(data);
 		
 	return fsck_ask_confirmation(data, argv[optind]);
 	
