@@ -178,71 +178,83 @@ lookup_t dir40_next(dir40_t *dir) {
 
 /* Updates current body place by place found by @dir->position and
    @dir->adjust. */
-static lookup_t dir40_update_body(object_entity_t *entity) {
-	dir40_t *dir;
+lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
+	dir40_t *dir = (dir40_t *)entity;
 	lookup_t res;
 	uint32_t units;
 	
 #ifndef ENABLE_STAND_ALONE
-	uint32_t adjust;
+	uint32_t adjust = dir->position.adjust;
 #endif
 	
-	dir = (dir40_t *)entity;
-
 	/* Making lookup by current dir key. */
 	if ((res = obj40_find_item(&dir->obj, &dir->position, 
 				   FIND_EXACT, NULL, NULL,
 				   &dir->body)) < 0)
-	{
 		return res;
-	}
-
-	/* Correcting unit pos for next body item. */
-	if (dir->body.pos.unit == MAX_UINT32)
-		dir->body.pos.unit = 0;
 
 	if (res == ABSENT) {
-
 		/* Directory is over. */
 		if (!dir40_belong(dir, &dir->body))
 			return ABSENT;
 		
 		/* If ABSENT means there is no any dir item, check this again
 		   for the case key matches. */
-		if (dir->body.plug->id.group != DIRENTRY_ITEM)
+		if (check_group && dir->body.plug->id.group != DIRENTRY_ITEM)
 			return ABSENT;
-			
-		/* Checking if directory is over. */
-		units = plug_call(dir->body.plug->o.item_ops->balance,
-				  units, &dir->body);
-			
-		if (dir->body.pos.unit >= units)
-			return ABSENT;
+		
+#ifndef ENABLE_STAND_ALONE
+		/* No adjusting for the ABSENT result. */
+		adjust = 0;
+#endif
 	}
+	
+	/* Checking if directory is over. */
+	units = plug_call(dir->body.plug->o.item_ops->balance,
+			  units, &dir->body);
+	
+	/* Correcting unit pos for next body item. */
+	if (dir->body.pos.unit == MAX_UINT32)
+		dir->body.pos.unit = 0;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Adjusting current position by key's adjust. This is needed
 	   for working fine when key collisions take place. */
-	for (adjust = dir->position.adjust; adjust;) {
-		uint32_t off = adjust;
+	while (adjust || dir->body.pos.unit >= units) {
+		entry_hint_t temp;
 
-		units = plug_call(dir->body.plug->o.item_ops->balance,
-				  units, &dir->body);
-			
-		if (off > units - 1 - dir->body.pos.unit)
-			off = units - dir->body.pos.unit;
-
-		dir->body.pos.unit += off - 1;
-
-		if ((adjust -= off) > 0) {
+		if (dir->body.pos.unit >= units) {
+			/* Getting next directory item */
 			if ((res = dir40_next(dir)) < 0)
 				return res;
-
+			
+			/* No more items in the tree. */
 			if (res == ABSENT)
 				return ABSENT;
+			
+			/* Some item of the dir was found. */
+			if (adjust == 0) 
+				return PRESENT;
+
+			units = plug_call(dir->body.plug->o.item_ops->balance,
+					  units, &dir->body);
 		}
+		
+		if (dir40_fetch(dir, &temp))
+			return -EIO;
+
+		/* If greater key is reached, return PRESENT. */
+		if (plug_call(temp.offset.plug->o.key_ops, compfull, 
+			      &temp.offset, &dir->position))
+			return PRESENT;
+		
+		adjust--;
+		dir->body.pos.unit++;
 	}
 #endif
+	if (dir->body.pos.unit >= units)
+		return ABSENT;
+
 	return PRESENT;
 }
 
@@ -262,7 +274,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Getting place of current unit */
-	if ((res = dir40_update_body(entity)) < 0)
+	if ((res = dir40_update_body(entity, 1)) < 0)
 		return res;
 
 	/* Directory is over? */
@@ -554,7 +566,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	{
 	
 		/* Removing body item. */	
-		if (dir40_update_body((object_entity_t *)dir) == 0) {
+		if (dir40_update_body((object_entity_t *)dir, 1) == 0) {
 			body_hint.count = 1;
 			body_hint.place_func = NULL;
 			body_hint.region_func = NULL;
@@ -585,7 +597,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Making sure, that dir->body points to correct item */
-	if ((res = dir40_update_body(entity)) < 0)
+	if ((res = dir40_update_body(entity, 1)) < 0)
 		return res;
 
 	/* There is no body in directory */
@@ -905,7 +917,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Update current body item coord. */
-	if ((res = dir40_update_body(entity)) < 0)
+	if ((res = dir40_update_body(entity, 1)) < 0)
 		return res;
 
 	/* There is no body in directory */
@@ -972,7 +984,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		return res;
 
 	/* Update current body item coord. */
-	if ((res = dir40_update_body(entity)) < 0)
+	if ((res = dir40_update_body(entity, 1)) < 0)
 		return res;
 
 	if (res == ABSENT)

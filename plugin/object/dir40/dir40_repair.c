@@ -134,81 +134,6 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	return res < 0 ? res : 0;
 }
 
-/* Search for the position for the read in the directory by @dir->position,
-   Returns ABSENT only if there is no more entries in the directory. 
-   FIXME: This looks like dir40_update_body, probably one of them is 
-   redundant. */
-static lookup_t dir40_search(dir40_t *dir) {
-	uint32_t units, adjust;
-	lookup_t res;
-	
-	aal_assert("vpf-1343", dir != NULL);
-	
-	adjust = dir->position.adjust;
-	
-	/* Making tree_lookup() to find entry by key */
-	if ((res = obj40_find_item(&dir->obj, &dir->position,  
-				   FIND_EXACT, NULL, NULL,
-				   &dir->body)) < 0)
-	{
-		return res;
-	}
-	
-	/* No adjusting for the ABSENT result. */
-	if (res == ABSENT) {
-		if (!dir40_belong(dir, &dir->body))
-			return ABSENT;
-		
-		adjust = 0;
-	}
-	
-	units = plug_call(dir->body.plug->o.item_ops->balance,
-			  units, &dir->body);
-
-	if (dir->body.pos.unit == MAX_UINT32)
-		dir->body.pos.unit = 0;
-	
-	do {
-		entry_hint_t temp;
-		
-		if (dir->body.pos.unit >= units) {
-			/* Getting next directory item */
-			if ((res = dir40_next(dir)) < 0)
-				return res;
-			
-			/* No more items in the tree. */
-			if (res == ABSENT)
-				return ABSENT;
-			
-			/* Some item of the dir was found. */
-			if (adjust == 0) 
-				return PRESENT;
-
-			units = plug_call(dir->body.plug->o.item_ops->balance,
-					  units, &dir->body);
-
-		} else if (!adjust) {
-			/* We get here from above with PRESENT only. */
-			return PRESENT;
-		}
-				
-		if (dir40_fetch(dir, &temp))
-			return -EIO;
-
-		if (plug_call(temp.offset.plug->o.key_ops, compfull, 
-			      &temp.offset, &dir->position))
-		{
-			/* Greater key is reached. */
-			return PRESENT;
-		}
-
-		adjust--;
-		dir->body.pos.unit++;
-	} while (adjust ||  dir->body.pos.unit >= units);
-
-	return PRESENT;	
-}
-
 errno_t dir40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
 			   void *data, uint8_t mode)
@@ -286,7 +211,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		lookup_t lookup;
 		uint32_t units;
 		
-		if ((lookup = dir40_search(dir)) < 0) 
+		if ((lookup = dir40_update_body(dir, 0)) < 0) 
 			return lookup;
 
 		/* No more items of the dir40. */

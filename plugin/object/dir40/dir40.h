@@ -41,4 +41,6 @@ extern lookup_t dir40_lookup(object_entity_t *entity,
 extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
 extern int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place);
 
+extern lookup_t dir40_update_body(object_entity_t *entity, int check_group);
+
 #endif
