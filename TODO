@@ -13,9 +13,6 @@ reiser4progs/COPYING.
 * add option to measurefs, which will introduce some kind of filter 
   for file fragmentation calculating.
 
-* implement drilling (the case when we're going to insert an item to 
-  leaf level, but lookup stumbled on twig level because of an extent).
-
 * should we print blocks, that belong to some of fs objects 
   (block allocator, etc) while handling --print-block option?
 
@@ -35,8 +32,5 @@ reiser4progs/COPYING.
 
 * change balancing algorithm from the recursive to task oriented one
   like kernel does.
-
-* make GRUB working in its native mode (make reiser4 in GRUB less size 
-  that it is for now).
 
 * online/offline resizer/repacker.
