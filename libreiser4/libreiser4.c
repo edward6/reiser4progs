@@ -78,19 +78,20 @@ static errno_t tree_right(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node right neighbor will be obtained for */
 ) {
-    reiser4_cache_t *cache;
+    reiser4_avatar_t *avatar;
     
     aal_assert("umka-867", tree != NULL, return -1);
     aal_assert("umka-868", place != NULL, return -1);
     
-    cache = (reiser4_cache_t *)place->cache; 
+    avatar = (reiser4_avatar_t *)place->avatar; 
     
     /* Rasing from the device tree lies on both neighbors */
-    if (reiser4_cache_raise(cache) || !cache->right)
+    if (reiser4_avatar_realize(avatar) || !avatar->right)
 	return -1;
 
     /* Filling passed coord by right neighbor coords */
-    place->cache = cache->right;
+    place->avatar = avatar->right;
+
     place->pos.item = 0;
     place->pos.unit = 0;
     
@@ -102,19 +103,20 @@ static errno_t tree_left(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node left neighbor will be obtained for */
 ) {
-    reiser4_cache_t *cache;
+    reiser4_avatar_t *avatar;
     
     aal_assert("umka-867", tree != NULL, return -1);
     aal_assert("umka-868", place != NULL, return -1);
     
-    cache = (reiser4_cache_t *)place->cache; 
+    avatar = (reiser4_avatar_t *)place->avatar; 
     
     /* Rasing from the device tree lies on both neighbors */
-    if (reiser4_cache_raise(cache) || !cache->left)
+    if (reiser4_avatar_realize(avatar) || !avatar->left)
 	return -1;
 
     /* Filling passed coord by left neighbor coords */
-    place->cache = cache->left;
+    place->avatar = avatar->left;
+
     place->pos.item = 0;
     place->pos.unit = 0;
     
@@ -123,7 +125,7 @@ static errno_t tree_left(
 
 static uint32_t tree_blockspace(const void *tree) {
     aal_assert("umka-1220", tree != NULL, return 0);
-    return aal_block_size(((reiser4_tree_t *)tree)->cache->node->block);
+    return aal_block_size(((reiser4_tree_t *)tree)->root->node->block);
 }
 	
 static uint32_t tree_nodespace(const void *tree) {
@@ -131,7 +133,7 @@ static uint32_t tree_nodespace(const void *tree) {
     
     aal_assert("umka-1220", tree != NULL, return 0);
 
-    node = ((reiser4_tree_t *)tree)->cache->node;
+    node = ((reiser4_tree_t *)tree)->root->node;
     return reiser4_node_maxspace(node) - reiser4_node_overhead(node);
 }
 
@@ -144,7 +146,7 @@ static errno_t item_open(
     aal_assert("umka-1218", place != NULL, return -1);
     aal_assert("umka-1219", item != NULL, return -1);
     
-    node = ((reiser4_cache_t *)place->cache)->node;
+    node = ((reiser4_avatar_t *)place->avatar)->node;
     return reiser4_item_open(item, node, &place->pos);
 }
 
@@ -188,7 +190,7 @@ static reiser4_plugin_t *item_plugin(
 /* Support for the %k occurences in the formated messages */
 #define PA_REISER4_KEY  (PA_LAST)
 
-static int _arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
+static int __arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
     if (n > 0)
         argtypes[0] = PA_REISER4_KEY | PA_FLAG_PTR;
     
@@ -294,7 +296,7 @@ errno_t libreiser4_init(void) {
     }
     
 #ifndef ENABLE_COMPACT
-    register_printf_function ('k', __print_key, _arginfo_k);
+    register_printf_function ('k', __print_key, __arginfo_k);
 #endif
     
     return 0;

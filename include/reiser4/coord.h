@@ -11,13 +11,16 @@
 extern inline void reiser4_pos_init(reiser4_pos_t *pos,
     uint32_t item, uint32_t unit);
 
-extern reiser4_coord_t *reiser4_coord_create(reiser4_cache_t *cache, 
+extern reiser4_coord_t *reiser4_coord_create(reiser4_avatar_t *avatar, 
     uint32_t item, uint32_t unit);
 
 extern errno_t reiser4_coord_init(reiser4_coord_t *coord, 
-    reiser4_cache_t *cache, uint32_t item, uint32_t unit);
+    reiser4_avatar_t *avatar, uint32_t item, uint32_t unit);
 
-extern void reiser4_coord_free(reiser4_coord_t *coord);
+extern errno_t reiser4_coord_dup(reiser4_coord_t *coord,
+    reiser4_coord_t *dup);
+
+extern void reiser4_coord_close(reiser4_coord_t *coord);
 
 #endif
 

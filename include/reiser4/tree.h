@@ -37,14 +37,6 @@ extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree,
     reiser4_coord_t *old, reiser4_coord_t *new, 
     uint32_t needed);
 
-extern errno_t reiser4_tree_lshift(reiser4_tree_t *tree, 
-    reiser4_coord_t *old, reiser4_coord_t *new, 
-    uint32_t needed);
-
-extern errno_t reiser4_tree_rshift(reiser4_tree_t *tree, 
-    reiser4_coord_t *old, reiser4_coord_t *new, 
-    uint32_t needed);
-
 #endif
 
 extern int reiser4_tree_lookup(reiser4_tree_t *tree, 
@@ -53,9 +45,6 @@ extern int reiser4_tree_lookup(reiser4_tree_t *tree,
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
 extern reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
-
-extern count_t reiser4_tree_limit(reiser4_tree_t *tree);
-extern void reiser4_tree_setup(reiser4_tree_t *tree, count_t limit);
 
 #endif
 

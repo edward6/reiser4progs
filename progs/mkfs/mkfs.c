@@ -257,7 +257,7 @@ int main(int argc, char *argv[]) {
     /* The loop through all devices */
     aal_list_foreach_forward(walk, devices) {
     
-	host_dev = (char *)walk->item;
+	host_dev = (char *)walk->data;
     
 	if (stat(host_dev, &st) == -1)
 	    goto error_free_libreiser4;

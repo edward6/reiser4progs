@@ -136,7 +136,7 @@ void progs_ui_print_wrap(void *stream, char *text) {
     
 	/* Printing message */
 	aal_list_foreach_forward(walk, list) {
-	    char *line = (char *)walk->item;
+	    char *line = (char *)walk->data;
 
 	    if (line && aal_strlen(line) > 0) {
 		fprintf(stream, "%s\n", line);
@@ -162,7 +162,7 @@ static char *progs_ui_generator(char *text, int state) {
 	aal_memset(s, 0, sizeof(s));
 	aal_memset(s1, 0, sizeof(s1));
 	
-	opt = (char *)cur->item;
+	opt = (char *)cur->data;
 	cur = cur->next;
 
 	progs_misc_upper(s, opt); 

@@ -21,7 +21,6 @@
 
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-//#include <sys/mount.h>
 
 /* Function for saving last error message into device assosiated buffer */
 static void save_error(

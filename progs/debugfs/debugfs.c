@@ -181,7 +181,7 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 }
 
 static errno_t debugfs_print_fs(reiser4_fs_t *fs) {
-    return debugfs_print_node(fs->tree->cache->node);
+    return debugfs_print_node(fs->tree->root->node);
 }
 
 int main(int argc, char *argv[]) {

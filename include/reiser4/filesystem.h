@@ -14,6 +14,9 @@
 #include <reiser4/plugin.h>
 #include <reiser4/key.h>
 
+#define LEFT	(0)
+#define RIGHT	(1)
+
 /* Master super block structure and macros */
 struct reiser4_master_super {
 
@@ -97,20 +100,35 @@ struct reiser4_profile {
 typedef struct reiser4_profile reiser4_profile_t;
 
 typedef struct reiser4_tree reiser4_tree_t;
-typedef struct reiser4_cache reiser4_cache_t;
 typedef struct reiser4_node reiser4_node_t;
+typedef struct reiser4_coord reiser4_coord_t;
+typedef struct reiser4_avatar reiser4_avatar_t;
 
-/* Coord inside reiser4 tree */
-struct reiser4_coord {
+/* The real personalization of on-disk node in libreiser4 internal tree */
+struct reiser4_avatar {
 
-    /* Pointer to the cached node */
-    reiser4_cache_t *cache;
+    /* Reference to the tree */
+    reiser4_tree_t *tree;
+    
+    /* Pointer to the node */
+    reiser4_node_t *node;
 
-    /* Position inside the cached node */
-    reiser4_pos_t pos;
+    /* Level in the tree */
+    uint8_t level;
+    
+    /* References to parent, left and right neighbours */
+    reiser4_avatar_t *parent;
+    reiser4_avatar_t *left;
+    reiser4_avatar_t *right;
+
+    /* List of children */
+    aal_list_t *children;
 };
 
-typedef struct reiser4_coord reiser4_coord_t;
+struct reiser4_coord {
+    reiser4_avatar_t *avatar;
+    reiser4_pos_t pos;
+};
 
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
@@ -186,45 +204,6 @@ struct reiser4_oid {
 
 typedef struct reiser4_oid reiser4_oid_t;
 
-/* Structure of one cached node in the internal libreiser4 tree */
-struct reiser4_cache {
-    uint8_t level;
-	
-    /* Reference to tree instance cache lies in */
-    reiser4_tree_t *tree;
-       	
-    /* Reference to the node assosiated with this cache node */
-    reiser4_node_t *node;
-    
-    /* 
-	Reference to the parent node. It is used for accessing parent durring 
-	balancing.
-    */
-    reiser4_cache_t *parent;
-
-    /* Reference to left neighbour */
-    reiser4_cache_t *left;
-
-    /* Reference to right neighbour */
-    reiser4_cache_t *right;
-    
-    /* List of children nodes */
-    aal_list_t *list;
-};
-
-struct reiser4_cache_limit {
-    /* Current size of cache in blocks */
-    count_t cur;
-
-    /* Maximal allowed size */
-    count_t max;
-
-    /* Is cache limit spying active? */
-    int enabled;
-};
-
-typedef struct reiser4_cache_limit reiser4_cache_limit_t;
-
 /* Tree structure */
 struct reiser4_tree {
 
@@ -232,19 +211,12 @@ struct reiser4_tree {
     reiser4_fs_t *fs;
 
     /* 
-	Reference to root cached node. It is created by tree initialization 
-	routines and always exists. All other cached nodes are loaded on demand 
-	and flushed at memory presure event.
+	Reference to root node. It is created by tree initialization routines 
+	and always exists. All other nodes are loaded on demand and flushed at 
+	memory presure event.
     */
-    reiser4_cache_t *cache;
+    reiser4_avatar_t *root;
 
-    /* 
-	Limit for number of blocks allowed to be cached. If this value will be 
-	exceeded, tree will perform flush operation until this value reach 
-	allowed value minus some customizable and reasonable number of blocks.
-    */
-    reiser4_cache_limit_t limit;
-    
     /* Tree root key */
     reiser4_key_t key;
 };
@@ -280,10 +252,10 @@ struct reiser4_fs {
     /* Pointer to the oid allocator */
     reiser4_oid_t *oid;
 
-    /* Tree cache */
+    /* The part of tree */
     reiser4_tree_t *tree;
 
-    /* Root object */
+    /* Root file (by default directory) */
     reiser4_file_t *root;
 
     /* User-specified data (used by fsck) */

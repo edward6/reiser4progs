@@ -9,15 +9,16 @@
 
 #include <aal/aal.h>
 
-aal_list_t *aal_list_alloc(void *item) {
+aal_list_t *aal_list_alloc(void *data) {
     aal_list_t *list;
    
     if (!(list  = (aal_list_t *)aal_calloc(sizeof(*list), 0)))
 	return NULL;
     
-    list->item = item;
+    list->data = data;
     list->next = NULL;
     list->prev = NULL;
+    
     return list;
 }
 
@@ -69,7 +70,7 @@ int aal_list_foreach(aal_list_t *list, foreach_func_t func,
     while (list) {
 	int res;
 	
-	if ((res = func(list->item, data)))
+	if ((res = func(list->data, data)))
 	    return res;
 	
 	list = list->next;
@@ -77,12 +78,13 @@ int aal_list_foreach(aal_list_t *list, foreach_func_t func,
     return 0;
 }
 
-int32_t aal_list_pos(aal_list_t *list, void *item) {
+int32_t aal_list_pos(aal_list_t *list, void *data) {
     int32_t pos = 0;
 
     while (list) {
-	if (list->item == item)
+	if (list->data == data)
 	    return pos;
+	
 	pos++;
 	list = list->next;
     }
@@ -97,24 +99,25 @@ aal_list_t *aal_list_at(aal_list_t *list, uint32_t n) {
 }
 
 aal_list_t *aal_list_insert(aal_list_t *list, 
-    void *item, uint32_t n) 
+    void *data, uint32_t n) 
 {
     aal_list_t *temp;
     aal_list_t *new;
     
     if (n == 0)
-	return aal_list_prepend(list, item);
+	return aal_list_prepend(list, data);
     
     if (!(temp = aal_list_at(list, n)))
-	return aal_list_append(list, item);
+	return aal_list_append(list, data);
 
-    if (!(new = aal_list_alloc(item)))
+    if (!(new = aal_list_alloc(data)))
 	return NULL;
     
     if (temp->prev) {
 	temp->prev->next = new;
 	new->prev = temp->prev;
     }
+    
     new->next = temp;
     temp->prev = new;
 
@@ -122,7 +125,7 @@ aal_list_t *aal_list_insert(aal_list_t *list,
 }
 
 aal_list_t *aal_list_insert_sorted(aal_list_t *list,
-    void *item, comp_func_t comp_func, void *data)
+    void *data, comp_func_t comp_func, void *user)
 {
     aal_list_t *tmp_list = list;
     aal_list_t *new_list;
@@ -132,20 +135,20 @@ aal_list_t *aal_list_insert_sorted(aal_list_t *list,
 	return NULL;
     
     if (!list) {
-	new_list = aal_list_alloc(item);
+	new_list = aal_list_alloc(data);
 	return new_list;
     }
   
-    cmp = comp_func((const void *)item, 
-	(const void *)tmp_list->item, data);
+    cmp = comp_func((const void *)data, 
+	(const void *)tmp_list->data, user);
   
     while ((tmp_list->next) && (cmp > 0)) {
 	tmp_list = tmp_list->next;
-	cmp = comp_func((const void *)item, 
-	    (const void *)tmp_list->item, data);
+	cmp = comp_func((const void *)data, 
+	    (const void *)tmp_list->data, user);
     }
 
-    new_list = aal_list_alloc(item);
+    new_list = aal_list_alloc(data);
 
     if ((!tmp_list->next) && (cmp > 0)) {
 	tmp_list->next = new_list;
@@ -163,11 +166,11 @@ aal_list_t *aal_list_insert_sorted(aal_list_t *list,
     return new_list;
 }
 
-aal_list_t *aal_list_prepend(aal_list_t *list, void *item) {
+aal_list_t *aal_list_prepend(aal_list_t *list, void *data) {
     aal_list_t *new;
     aal_list_t *last;
     
-    if (!(new = aal_list_alloc(item)))
+    if (!(new = aal_list_alloc(data)))
 	return 0;
     
     if (list) {
@@ -182,11 +185,11 @@ aal_list_t *aal_list_prepend(aal_list_t *list, void *item) {
     return new;
 }
 
-aal_list_t *aal_list_append(aal_list_t *list, void *item) {
+aal_list_t *aal_list_append(aal_list_t *list, void *data) {
     aal_list_t *new;
     aal_list_t *last;
     
-    if (!(new = aal_list_alloc(item)))
+    if (!(new = aal_list_alloc(data)))
 	return 0;
     
     if (list) {
@@ -199,10 +202,10 @@ aal_list_t *aal_list_append(aal_list_t *list, void *item) {
 	return new;
 }
 
-void aal_list_remove(aal_list_t *list, void *item) {
+void aal_list_remove(aal_list_t *list, void *data) {
     aal_list_t *temp;
    
-    temp = aal_list_find(list, item);
+    temp = aal_list_find(list, data);
     if (temp) {
 	if (temp->prev)
 	    temp->prev->next = temp->next;
@@ -214,9 +217,9 @@ void aal_list_remove(aal_list_t *list, void *item) {
     }
 }
 
-aal_list_t *aal_list_find(aal_list_t *list, void *item) {
+aal_list_t *aal_list_find(aal_list_t *list, void *data) {
     while (list) {
-	if (list->item == item)
+	if (list->data == data)
 	    return list;
 	
 	list = list->next;
@@ -225,14 +228,14 @@ aal_list_t *aal_list_find(aal_list_t *list, void *item) {
 }
 
 aal_list_t *aal_list_find_custom(aal_list_t *list, void *needle, 
-    comp_func_t comp_func, void *data) 
+    comp_func_t comp_func, void *user) 
 {
 
     if (!comp_func)
 	return NULL;
     
     while (list) {
-	if (comp_func((const void *)list->item, (const void *)needle, data))
+	if (comp_func((const void *)list->data, (const void *)needle, user))
 	    return list;
 
 	list = list->next;

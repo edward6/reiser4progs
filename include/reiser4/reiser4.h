@@ -36,10 +36,10 @@ extern "C" {
 #include "key.h"
 #include "file.h"
 #include "coord.h"
-#include "cache.h"
 #include "master.h"
 #include "item.h"
 #include "factory.h"
+#include "avatar.h"
 
 extern errno_t libreiser4_init(void);
 extern void libreiser4_done(void);

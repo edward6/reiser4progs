@@ -54,7 +54,7 @@ static void info_print_fs(reiser4_fs_t *fs) {
     info_print_plugin(fs->tree->key.plugin);
     
     fprintf(stderr, "(6) ");
-    info_print_plugin(fs->tree->cache->node->entity->plugin);
+    info_print_plugin(fs->tree->root->node->entity->plugin);
     
     fprintf(stderr, "(7) ");
     info_print_plugin(fs->root->entity->plugin);

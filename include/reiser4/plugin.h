@@ -905,11 +905,11 @@ union reiser4_plugin {
 };
 
 /* 
-    The replica of coord for using in plugins. Field "cache" is void * because we 
+    The replica of coord for using in plugins. Field "avatar" is void * because we 
     should keep libreiser4 structures unknown for plugins.
 */
 struct reiser4_place {
-   void *cache;
+   void *avatar;
    reiser4_pos_t pos;
 };
 
