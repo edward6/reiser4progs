@@ -202,9 +202,7 @@ static errno_t extent40_utmost_key(item_entity_t *item,
 	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
 		return -EINVAL;
 			
-	if ((offset = plugin_call(key->plugin->key_ops, get_offset, key)))
-		return -EINVAL;
-	
+	offset = plugin_call(key->plugin->key_ops, get_offset, key);
 	blocksize = extent40_blocksize(item);
 
 	/* Key offset + for all units { width * blocksize } */
