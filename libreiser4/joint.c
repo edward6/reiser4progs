@@ -643,7 +643,7 @@ errno_t reiser4_joint_traverse(
 	aal_assert("umka-1024", open_func != NULL, return -1);
 	aal_assert("vpf-390", joint!= NULL, return -1);
 	aal_assert("vpf-391", joint->node != NULL, return -1);
-	aal_assert("vpf-391", joint->node->block != NULL, return -1);
+	aal_assert("vpf-392", joint->node->block != NULL, return -1);
 
 	if ((handler_func && !(result = handler_func(joint, data))) || !handler_func) {
 	    

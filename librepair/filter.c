@@ -21,7 +21,7 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
     if (repair_test_flag(check_data, REPAIR_BAD_PTR))
 	return 0;
 	
-/*    if (!aux_bitmap_test(repair_cut_data(check_data)->format_layout, blk)) {
+/*    if (!aux_bitmap_test(repair_filter_data(check_data)->format_layout, blk)) {
 	aal_exception_error("Node (%llu): format area cannot contain a node.", 
 	    blk);
 
@@ -59,19 +59,13 @@ errno_t repair_filter_before_traverse(reiser4_joint_t *joint, reiser4_item_t *it
     aal_assert("vpf-254", check_data->format != NULL, return -1);
 
     /* Initialize the level for the root node before traverse. */
-    if (!repair_cut_data(check_data)->level)
-	repair_cut_data(check_data)->level = 
+    if (!repair_filter_data(check_data)->level)
+	repair_filter_data(check_data)->level = 
 	    (joint->node->entity->plugin->node_ops.get_level ? 
 	    joint->node->entity->plugin->node_ops.get_level(joint->node->entity) : 
 	    reiser4_format_get_height(check_data->format));
     
-    repair_cut_data(check_data)->level--;
-
-    
-    repair_cut_data(check_data)->nodes_path = 
-	aal_list_append(repair_cut_data(check_data)->nodes_path, joint->node);
-    repair_cut_data(check_data)->items_path = 
-	aal_list_append(repair_cut_data(check_data)->items_path, item);
+    repair_filter_data(check_data)->level--;
 
     return 0;
 }
@@ -83,18 +77,12 @@ errno_t repair_filter_after_traverse(reiser4_joint_t *joint, reiser4_item_t *ite
     
     aal_assert("vpf-256", check_data != NULL, return -1);
     
-    repair_cut_data(check_data)->level++;
+    repair_filter_data(check_data)->level++;
 
     if (reiser4_node_count(joint->node) == 0)
 	repair_set_flag(check_data, REPAIR_NOT_FIXED);
     /* FIXME-VITALY: else - sync the node */
 
-
-    aal_list_remove(repair_cut_data(check_data)->nodes_path, 
-	aal_list_last(repair_cut_data(check_data)->nodes_path)->data);
-    aal_list_remove(repair_cut_data(check_data)->items_path, 
-	aal_list_last(repair_cut_data(check_data)->items_path)->data);
-  
     return 0;
 }
 
@@ -138,7 +126,7 @@ errno_t repair_filter_update_traverse(reiser4_joint_t *joint,
 			return -1;
 	
 	/* Mark the child as a formatted block in the bitmap. */
-	aux_bitmap_clear(repair_cut_data(check_data)->formatted, ptr.ptr);
+	aux_bitmap_clear(repair_filter_data(check_data)->formatted, ptr.ptr);
     }
     
     return 0;
@@ -150,7 +138,7 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
     
     aal_assert("vpf-252", check_data != NULL, return -1);
     
-    if ((res = repair_node_check(joint->node, check_data)) > 0) 
+    if ((res = repair_joint_check(joint, check_data)) > 0) 
 	repair_set_flag(check_data, REPAIR_NOT_FIXED);
         
     return res;
@@ -174,28 +162,28 @@ errno_t repair_filter_setup(reiser4_fs_t *fs, repair_check_t *data) {
     reiser4_format_mark(fs->format, data->a_control);
 */
  
-    if (!(repair_cut_data(data)->formatted = aux_bitmap_create(
+    if (!(repair_filter_data(data)->formatted = aux_bitmap_create(
 	reiser4_format_get_len(data->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for once pointed blocks.");
 	return -1;
     }
     
-    aal_memset(repair_cut_data(data)->formatted->map, 0xff, 
-	repair_cut_data(data)->formatted->size);
+    aal_memset(repair_filter_data(data)->formatted->map, 0xff, 
+	repair_filter_data(data)->formatted->size);
     
-    if (!(repair_cut_data(data)->format_layout = aux_bitmap_create(
+    if (!(repair_filter_data(data)->format_layout = aux_bitmap_create(
 	reiser4_format_get_len(data->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for format layout blocks.");
 	return -1;
     }
     
-    aal_memset(repair_cut_data(data)->format_layout->map, 0xff, 
-	repair_cut_data(data)->format_layout->size);
+    aal_memset(repair_filter_data(data)->format_layout->map, 0xff, 
+	repair_filter_data(data)->format_layout->size);
     
     if (reiser4_format_layout(fs->format, callback_mark_format_block, 
-	repair_cut_data(data)->format_layout)) 
+	repair_filter_data(data)->format_layout)) 
     {
 	aal_exception_error("Failed to mark all format blocks in the bitmap as unused.");
 	return -1;
@@ -213,7 +201,7 @@ errno_t repair_filter_update(reiser4_fs_t *fs, repair_check_t *data) {
 	repair_clear_flag(data, REPAIR_NOT_FIXED);
     } else {
 	/* Mark the root block as a formatted block in the bitmap. */
-	aux_bitmap_clear(repair_cut_data(data)->formatted, 
+	aux_bitmap_clear(repair_filter_data(data)->formatted, 
 	    reiser4_format_get_root(data->format));
     }
 

@@ -62,10 +62,8 @@ struct repair_check {
 	struct {
 	    aux_bitmap_t *format_layout;
 	    aux_bitmap_t *formatted;
-	    aal_list_t *nodes_path;
-	    aal_list_t *items_path;
 	    uint8_t level;
-	} cut;
+	} filter;
 	struct {
 	    aux_bitmap_t *format_layout;
 	    aux_bitmap_t *formatted;
@@ -77,7 +75,7 @@ struct repair_check {
 
 typedef struct repair_check repair_check_t;
 
-#define repair_cut_data(data)		(&(data)->pass.cut)
+#define repair_filter_data(data)	(&(data)->pass.filter)
 #define repair_scan_data(data)		(&(data)->pass.scan)
 
 #define REPAIR_NOT_FIXED		0x1
@@ -86,16 +84,6 @@ typedef struct repair_check repair_check_t;
 #define repair_set_flag(data, flag)	(aal_set_bit(flag, &(data)->flags))
 #define repair_test_flag(data, flag)	(aal_test_bit(flag, &(data)->flags))
 #define repair_clear_flag(data, flag)	(aal_clear_bit(flag, &(data)->flags))
-
-
-#define repair_cut_node_at(joint, h)				    \
-    (h < aal_list_length(repair_cut_data(data)->nodes_path) ?	    \
-     aal_list_at(repair_cut_data(data)->nodes_path, h)->data :	    \
-     NULL)
-#define repair_cut_item_at(data, h)				    \
-    (h < aal_list_length(repair_cut_data(data)->items_path) ?	    \
-     aal_list_at(repair_cut_data(data)->items_path, h)->data :	    \
-     NULL)
 
 #endif
 

@@ -32,7 +32,7 @@ errno_t repair_item_nptr_check(reiser4_node_t *node,
 	return 1;
 	
     /* Check if no any formatted blocks exists after ptr. */
-    if ((next_blk = aux_bitmap_find(repair_cut_data(data)->format_layout, ptr.ptr)) == 0)
+    if ((next_blk = aux_bitmap_find(repair_filter_data(data)->format_layout, ptr.ptr)) == 0)
         return 0;
     
     if (next_blk >= ptr.ptr && next_blk < ptr.ptr + ptr.width) 

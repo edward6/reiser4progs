@@ -4,25 +4,7 @@
 */
 
 #include <repair/librepair.h>
-/*
-reiser4_node_t *repair_node_open(reiser4_block_t *block, void *data) {
-    repair_check_t *check_data = data;
-    errno_t res;
 
-    aal_assert("vpf-383", check_data != NULL, return -1);
-    aal_assert("vpf-380", check_data->format != NULL, return -1);
-    aal_assert("vpf-381", check_data->format->device != NULL, return -1);
-
-    if (!(block = aal_block_open(check_data->format->device, blk))) {
-	aal_exception_error("Can't read block %llu. %s.", blk, 
-	    check_data->format->device->error);
-
-	return -1;
-    } 
-
-    return -((*node = reiser4_node_open(block)) == NULL);
-}
-*/
 static errno_t repair_node_items_check(reiser4_node_t *node, 
     repair_check_t *data) 
 {
@@ -115,66 +97,51 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     return 0;    
 }
 
-errno_t repair_node_ld_key(reiser4_key_t *ld_key, repair_check_t *data,
-     uint8_t path_length) 
+errno_t repair_joint_ld_key(reiser4_joint_t *joint, reiser4_key_t *ld_key, 
+    repair_check_t *data) 
 {
-    reiser4_item_t *item;
+    reiser4_item_t item;
+    errno_t res;
     
+    aal_assert("vpf-393", joint != NULL, return -1);
     aal_assert("vpf-344", ld_key != NULL, return -1);
     aal_assert("vpf-345", data != NULL, return -1);
 
-    item = repair_cut_item_at(data, path_length);
-    
-    aal_assert("vpf-346", item != NULL, return -1);
-    aal_assert("vpf-346", reiser4_item_nodeptr(item), return -1);
-    /* 
-	FIXME-VITALY: This needs to be changed when we will work with multy units 
-	internal pointers.
-    */
-    if (path_length > 0)
-/*	return reiser4_node_get_key(repair_cut_node_at(data, path_length), item->pos, 
-	ld_key);*/
-		return reiser4_item_get_key(item, ld_key);
+    if (joint->parent != NULL) {
+	if ((res = reiser4_item_open(&item, joint->parent->node->entity, 
+	    &joint->pos)))
+	    return res;
+	
+	return reiser4_item_get_key(&item, ld_key);
+    }
 
     reiser4_key_minimal(ld_key);
     
     return 0;
 }
 
-errno_t repair_node_rd_key(reiser4_key_t *rd_key, repair_check_t *data,
-     uint8_t path_length)
+errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key, 
+    repair_check_t *data)
 {
-    reiser4_item_t *item;
-    reiser4_pos_t pos;
+    reiser4_item_t item;
+    reiser4_pos_t pos = {0, 0};
+    errno_t res;
     
+    aal_assert("vpf-394", joint != NULL, return -1);
     aal_assert("vpf-347", rd_key != NULL, return -1);
     aal_assert("vpf-348", data != NULL, return -1);
 
-    item = repair_cut_item_at(data, path_length);
-    
-    aal_assert("vpf-349", item != NULL, return -1);
-    aal_assert("vpf-350", reiser4_item_nodeptr(item), return -1);
-    /* 
-	FIXME-VITALY: This needs to be changed when we will work with multy units 
-	internal pointers.
-    */
-    if (path_length-- > 0) {
-	if (reiser4_node_count(repair_cut_node_at(data, path_length)) == 
-	    item->pos->item + 1)
-	{
-	    return repair_node_rd_key(rd_key, data, path_length);
+    if (joint->parent != NULL) {
+	if ((res = reiser4_item_open(&item, joint->parent->node->entity, 
+	    &joint->pos)))
+	    return res;
+	
+	if (reiser4_node_count(joint->node) == item.pos->item + 1) {
+	    return repair_joint_rd_key(joint->parent, rd_key, data);
 	} else {
-	    pos = *item->pos;
-	    pos.item++;
-/*	    return reiser4_node_get_key(repair_cut_node_at(data, path_length), &pos,
-		rd_key);*/
-		
-		/* FIXME-UMKA->VITALY: Here should be more convenient way */
-		{
-			reiser4_item_t fake;
-			reiser4_item_open(&fake, item->node, &pos);
-			return reiser4_item_get_key(&fake, rd_key);
-		}
+	    pos.item = item.pos->item + 1;
+	    reiser4_item_open(&item, joint->parent->node->entity, &pos);
+	    return reiser4_item_get_key(&item, rd_key);
 	}
     }
 
@@ -188,72 +155,68 @@ errno_t repair_node_rd_key(reiser4_key_t *rd_key, repair_check_t *data,
     FIXME-VITALY: Should this stuff be moved to plugin and how will 3.6 format be 
     supported? 
 */
-static errno_t repair_node_dkeys_check(reiser4_node_t *node, 
+static errno_t repair_joint_dkeys_check(reiser4_joint_t *joint, 
     repair_check_t *data) 
 {
     reiser4_key_t key, d_key;
     reiser4_pos_t pos;
     reiser4_item_t item;
 
-    aal_assert("vpf-248", node != NULL, return -1);
-    aal_assert("vpf-249", node->entity != NULL, return -1);
-    aal_assert("vpf-250", node->entity->plugin != NULL, return -1);
+    aal_assert("vpf-248", joint != NULL, return -1);
+    aal_assert("vpf-395", joint->node != NULL, return -1);
+    aal_assert("vpf-249", joint->node->entity != NULL, return -1);
+    aal_assert("vpf-250", joint->node->entity->plugin != NULL, return -1);
     aal_assert("vpf-240", data != NULL, return -1);
     aal_assert("vpf-241", data->format != NULL, return -1);
 
-    if (repair_node_ld_key(&d_key, data, 
-	aal_list_length(repair_cut_data(data)->nodes_path))) 
-    {
+    if (repair_joint_ld_key(joint, &d_key, data)) {
 	aal_exception_error("Node (%llu): Failed to get the left delimiting key.", 
-	    aal_block_number(node->block));
+	    aal_block_number(joint->node->block));
 	return -1;
     }
     
     reiser4_pos_init(&pos, 0, ~0ul);
 	
-    if (repair_item_open(&item, node, &pos))
-		return -1;
+    if (reiser4_item_open(&item, joint->node->entity, &pos))
+	return -1;
 	
-/*    if (reiser4_node_get_key(node, &pos, &key)) {*/
-	if (reiser4_item_get_key(&item, &key)) {
+    if (reiser4_item_get_key(&item, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the left key.",
-	    aal_block_number(node->block));
+	    aal_block_number(joint->node->block));
 	return -1;
     }
 
     if (reiser4_key_compare(&d_key, &key) != 0) {
 	aal_exception_error("Node (%llu): The first key %k is not equal to "
-	    "the left delimiting key %k.", aal_block_number(node->block), &key,
-	    &d_key);
+	    "the left delimiting key %k.", aal_block_number(joint->node->block), 
+	    &key, &d_key);
 	return 1;
     }
     
-    if (repair_node_rd_key(&d_key, data, 
-	aal_list_length(repair_cut_data(data)->nodes_path))) 
-    {
+    if (repair_joint_rd_key(joint, &d_key, data)) {
 	aal_exception_error("Node (%llu): Failed to get the right delimiting "
-	    "key.", aal_block_number(node->block));
+	    "key.", aal_block_number(joint->node->block));
 	return -1;
     }
 
-    reiser4_pos_init(&pos, reiser4_node_count(node) - 1, ~0ul);
+    reiser4_pos_init(&pos, reiser4_node_count(joint->node) - 1, ~0ul);
  
-    if (repair_item_open(&item, node, &pos)) {
+    if (reiser4_item_open(&item, joint->node->entity, &pos)) {
 	aal_exception_error("Node (%llu): Failed to open the item (%llu).",
-	    aal_block_number(node->block), pos.item);
+	    aal_block_number(joint->node->block), pos.item);
 	return -1;
     }
     
     if (reiser4_item_max_real_key(&item, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the max real key of "
-	    "the last item.", aal_block_number(node->block));
+	    "the last item.", aal_block_number(joint->node->block));
 	return -1;
     }
     
     if (reiser4_key_compare(&key, &d_key) < 0) {
 	aal_exception_error("Node (%llu): The last key %k in the node is less "
-	    "then the right delimiting key %k.", aal_block_number(node->block), 
-	    &key, &d_key);
+	    "then the right delimiting key %k.", 
+	    aal_block_number(joint->node->block), &key, &d_key);
 	return 1;
     }
 
@@ -324,25 +287,27 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
     Checks the node content. 
     Returns: 0 - OK; -1 - unexpected error; 1 - unrecoverable error;
 
-    Supposed to be run with repair_check.pass.cut structure initialized.
+    Supposed to be run with repair_check.pass.filter structure initialized.
 */
-errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
+errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data) {
     int res;
     
     aal_assert("vpf-183", data != NULL, return -1);
     aal_assert("vpf-184", data->format != NULL, return -1);
-    aal_assert("vpf-192", node != NULL, return -1);
-    aal_assert("vpf-193", node->entity != NULL, return -1);    
-    aal_assert("vpf-220", node->entity->plugin != NULL, return -1);
+    aal_assert("vpf-192", joint != NULL, return -1);
+    aal_assert("vpf-192", joint->node != NULL, return -1);
+    aal_assert("vpf-193", joint->node->entity != NULL, return -1);    
+    aal_assert("vpf-220", joint->node->entity->plugin != NULL, return -1);
 
-    /* Skip this check if level is not set. level is not set for the root node. */
-    if (repair_cut_data(data)->level && node->entity->plugin->node_ops.get_level && 
-	node->entity->plugin->node_ops.get_level(node->entity) != 
-	repair_cut_data(data)->level) 
+    /* Skip this check if level is not set. level is not set for the root node.*/
+    if (joint->node->entity->plugin->node_ops.get_level && 
+	repair_filter_data(data)->level && 
+	joint->node->entity->plugin->node_ops.get_level(joint->node->entity) != 
+	repair_filter_data(data)->level) 
     {
-	aal_exception_error("Level of the node (%u) is not correct, expected "
-	    "(%u)", node->entity->plugin->node_ops.get_level(node->entity), 
-	    repair_cut_data(data)->level);
+	aal_exception_error("Level of the node (%u) is not correct, expected (%u)", 
+	    joint->node->entity->plugin->node_ops.get_level(joint->node->entity), 
+	    repair_filter_data(data)->level);
 	return 1;
     }
 
@@ -355,20 +320,20 @@ errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
 	return 1;
     }
 */
-    if ((res = plugin_call(return -1, node->entity->plugin->node_ops, check, 
-	node->entity, data->options)))
+    if ((res = plugin_call(return -1, joint->node->entity->plugin->node_ops, 
+	check, joint->node->entity, data->options)))
 	return res;
 
-    if ((res = repair_node_items_check(node, data))) 
+    if ((res = repair_node_items_check(joint->node, data))) 
 	return res;
     
-    if ((res = repair_node_keys_check(node, data)))
+    if ((res = repair_node_keys_check(joint->node, data)))
 	return res;
  
-    if ((res = repair_node_dkeys_check(node, data)))
+    if ((res = repair_joint_dkeys_check(joint, data)))
 	return res;
  
-    if (reiser4_node_count(node) == 0)
+    if (reiser4_node_count(joint->node) == 0)
 	return 1;
 
     return 0;
