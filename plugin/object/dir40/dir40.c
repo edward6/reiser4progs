@@ -10,8 +10,8 @@
 
 #include "dir40.h"
 
-reiser4_core_t *dcore = NULL;
 extern reiser4_plug_t dir40_plug;
+reiser4_core_t *dir40_core = NULL;
 
 /* Gets size from the object stat data */
 static uint64_t dir40_size(object_entity_t *entity) {
@@ -59,7 +59,7 @@ int32_t dir40_belong(dir40_t *dir, place_t *place, bool_t pcheck) {
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
 	   check this here. */
-	if (!dcore->tree_ops.valid(dir->obj.info.tree, place))
+	if (!dir40_core->tree_ops.valid(dir->obj.info.tree, place))
 		return 0;
 
 	/* Fetching item info at @place */
@@ -146,7 +146,7 @@ lookup_t dir40_next(dir40_t *dir, bool_t check) {
 	aal_assert("umka-2063", dir != NULL);
 
 	/* Getting next directory item */
-	if ((res = dcore->tree_ops.next(dir->obj.info.tree,
+	if ((res = dir40_core->tree_ops.next(dir->obj.info.tree,
 					&dir->body, &place)))
 	{
 		return res;
@@ -170,7 +170,7 @@ lookup_t dir40_next(dir40_t *dir, bool_t check) {
 }
 
 /* Updates current body place by place found by @dir->offset and @dir->adjust */
-static lookup_t dir40_update(object_entity_t *entity) {
+static lookup_t dir40_update_body(object_entity_t *entity) {
 	dir40_t *dir;
 	lookup_t res;
 	uint32_t units;
@@ -247,7 +247,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Getting place of current unit */
-	if ((res = dir40_update(entity)) < 0)
+	if ((res = dir40_update_body(entity)) < 0)
 		return res;
 
 	/* Directory is over? */
@@ -451,7 +451,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initializing obj handle for the directory */
-	obj40_init(&dir->obj, &dir40_plug, dcore, info);
+	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
 	
 	if (obj40_pid(&dir->obj, OBJECT_PLUG_TYPE,
 		      "directory") !=  dir40_plug.id.id)
@@ -492,10 +492,10 @@ static object_entity_t *dir40_create(object_info_t *info,
 		return NULL;
 	
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plug, dcore, info);
+	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
 
 	/* Getting hash plugin */
-	if (!(dir->hash = dcore->factory_ops.ifind(HASH_PLUG_TYPE, 
+	if (!(dir->hash = dir40_core->factory_ops.ifind(HASH_PLUG_TYPE, 
 						   hint->body.dir.hash))) 
 	{
 		aal_exception_error("Can't find hash plugin by its "
@@ -503,7 +503,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_dir;
 	}
    
-	if (!(body_plug = dcore->factory_ops.ifind(ITEM_PLUG_TYPE, 
+	if (!(body_plug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, 
 						   hint->body.dir.direntry)))
 	{
 		aal_exception_error("Can't find direntry item plugin by "
@@ -559,8 +559,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	   parent directory, which points to this new directory. */
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
-	if (obj40_create_stat(&dir->obj, hint->statdata, mask,
-			      1, body_hint.len, 1, S_IFDIR, NULL))
+	if (obj40_create_stat(&dir->obj, hint->label.statdata, mask,
+			      1, body_hint.len, 0, 1, S_IFDIR, NULL))
 	{
 		goto error_free_dir;
 	}
@@ -586,7 +586,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Making sure, that dir->body points to correct item */
-	if ((res = dir40_update(entity)) < 0)
+	if ((res = dir40_update_body(entity)) < 0)
 		return res;
 
 	/* There is no body in directory */
@@ -626,23 +626,13 @@ static errno_t dir40_truncate(object_entity_t *entity,
 /* Removes directory body and stat data from the tree */
 static errno_t dir40_clobber(object_entity_t *entity) {
 	errno_t res;
-	dir40_t *dir;
-	trans_hint_t hint;
 		
 	aal_assert("umka-2298", entity != NULL);
 
 	if ((res = dir40_truncate(entity, 0)))
 		return res;
 
-	dir = (dir40_t *)entity;
-
-	if (obj40_update(&dir->obj))
-		return -EINVAL;
-
-	hint.count = 1;
-	
-	return obj40_remove(&dir->obj,
-			    STAT_PLACE(&dir->obj), &hint);
+	return obj40_clobber(&((dir40_t *)entity)->obj);
 }
 
 static errno_t dir40_attach(object_entity_t *entity,
@@ -706,11 +696,7 @@ static uint32_t dir40_links(object_entity_t *entity) {
 	aal_assert("umka-2294", entity != NULL);
 
 	dir = (dir40_t *)entity;
-	
-	if (obj40_update(&dir->obj))
-		return -EINVAL;
-	
-	return obj40_get_nlink(&((dir40_t *)entity)->obj);
+	return obj40_links(&dir->obj);
 }
 
 static errno_t dir40_link(object_entity_t *entity) {
@@ -719,11 +705,7 @@ static errno_t dir40_link(object_entity_t *entity) {
 	aal_assert("umka-1908", entity != NULL);
 
 	dir = (dir40_t *)entity;
-	
-	if (obj40_update(&dir->obj))
-		return -EINVAL;
-	
-	return obj40_link(&dir->obj, 1);
+	return obj40_link(&dir->obj);
 }
 
 static errno_t dir40_unlink(object_entity_t *entity) {
@@ -732,11 +714,7 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	aal_assert("umka-1907", entity != NULL);
 
 	dir = (dir40_t *)entity;
-	
-	if (obj40_update(&dir->obj))
-		return -EINVAL;
-	
-	return obj40_link(&dir->obj, -1);
+	return obj40_unlink(&dir->obj);
 }
 
 static errno_t dir40_build_entry(object_entity_t *entity, 
@@ -893,7 +871,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 	
-	if ((res = dir40_update(entity)) < 0)
+	if ((res = dir40_update_body(entity)) < 0)
 		return res;
 
 	/* There is no body in directory */
@@ -951,16 +929,14 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	
 	dir = (dir40_t *)entity;
 
-	/* Getting current position */
-	if ((res = dir40_update(entity)) < 0)
+	if ((res = obj40_metadata(&dir->obj, place_func, data)))
+		return res;
+	
+	if ((res = dir40_update_body(entity)) < 0)
 		return res;
 
-	/* Nothing found */
 	if (res == ABSENT)
 		return 0;
-	
-	if ((res = place_func(entity, STAT_PLACE(&dir->obj), data)))
-		return res;
 
 	while (1) {
 		if ((res = place_func(entity, &dir->body, data)))
@@ -974,6 +950,32 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	}
 	
 	return 0;
+}
+
+/* Loads stat data to passed @hint */
+static errno_t dir40_stat(object_entity_t *entity,
+			  statdata_hint_t *hint)
+{
+	dir40_t *dir;
+	
+	aal_assert("umka-2563", entity != NULL);
+	aal_assert("umka-2564", hint != NULL);
+
+	dir = (dir40_t *)entity;
+	return obj40_load_stat(&dir->obj, hint);
+}
+
+/* Updates stat data from passed @hint */
+static errno_t dir40_update(object_entity_t *entity,
+			    statdata_hint_t *hint)
+{
+	dir40_t *dir;
+	
+	aal_assert("umka-2565", entity != NULL);
+	aal_assert("umka-2566", hint != NULL);
+
+	dir = (dir40_t *)entity;
+	return obj40_save_stat(&dir->obj, hint);
 }
 
 extern errno_t dir40_form(object_entity_t *object);
@@ -997,6 +999,8 @@ static reiser4_object_ops_t dir40_ops = {
 	.link		= dir40_link,
 	.unlink		= dir40_unlink,
 	.links		= dir40_links,
+	.stat           = dir40_stat,
+	.update         = dir40_update,
 	.truncate	= dir40_truncate,
 	.add_entry	= dir40_add_entry,
 	.rem_entry	= dir40_rem_entry,
@@ -1006,14 +1010,13 @@ static reiser4_object_ops_t dir40_ops = {
 	.clobber	= dir40_clobber,
 	.recognize	= dir40_recognize,
 	.form		= dir40_form,
-	
-	.seek		= NULL,
-	.write		= NULL,
-	.convert        = NULL,
-	
 	.fake		= dir40_fake,
 	.check_struct	= dir40_check_struct,
 	.check_attach	= dir40_check_attach,
+
+	.seek		= NULL,
+	.write		= NULL,
+	.convert        = NULL,
 #endif
 	.follow		= NULL,
 	.read		= NULL,
@@ -1047,7 +1050,7 @@ reiser4_plug_t dir40_plug = {
 };
 
 static reiser4_plug_t *dir40_start(reiser4_core_t *c) {
-	dcore = c;
+	dir40_core = c;
 	return &dir40_plug;
 }
 

@@ -7,7 +7,7 @@
 #include "dir40.h"
 #include "repair/plugin.h"
 
-extern reiser4_core_t *dcore;
+extern reiser4_core_t *dir40_core;
 extern reiser4_plug_t dir40_plug;
 
 extern errno_t dir40_reset(object_entity_t *entity);
@@ -58,7 +58,7 @@ object_entity_t *dir40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plug, dcore, info);
+	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
 	
 	if ((res = obj40_recognize(&dir->obj, callback_stat)))
 		goto error;
@@ -111,7 +111,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	info = &dir->obj.info;
 	
 	aal_exception_error("Directory [%s]: The entry \".\" is not found.%s "
-			    "Plugin (%s).", print_ino(dcore, &info->object), 
+			    "Plugin (%s).", print_ino(dir40_core, &info->object), 
 			    mode != RM_CHECK ? " Inserts a new one." : "", 
 			    dir->obj.plug->label);
 	
@@ -143,7 +143,7 @@ static errno_t dir40_belongs(dir40_t *dir) {
 	aal_assert("vpf-1245", dir != NULL);
 	
 	/* Check that the body place is valid. */
-	if (!dcore->tree_ops.valid(dir->obj.info.tree, &dir->body))
+	if (!dir40_core->tree_ops.valid(dir->obj.info.tree, &dir->body))
 		return RE_FATAL;
 
 	/* Fetching item info at @place */
@@ -236,7 +236,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	info = &dir->obj.info;
 	
-	if ((res = obj40_stat_launch(&dir->obj, NULL, dir40_exts, 1, 
+	if ((res = obj40_launch_stat(&dir->obj, NULL, dir40_exts, 1, 
 				     S_IFDIR, mode)))
 		return res;
 	
@@ -254,20 +254,20 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	if (dir->hash == NULL) {
                 aal_exception_error("Directory %s: failed to init hash plugin."
-				    "Plugin (%s).", print_ino(dcore, &info->object),
+				    "Plugin (%s).", print_ino(dir40_core, &info->object),
 				    dir40_plug.label);
                 return -EINVAL;
         }
 	
 	/* FIXME-VITALY: take it from SD first. But of which type -- there is 
 	   only ITEM_TYPE for now. */
-	if ((pid = dcore->param_ops.value("direntry")) == INVAL_PID) {
+	if ((pid = dir40_core->param_ops.value("direntry")) == INVAL_PID) {
 		aal_exception_error("Failed to get a plugid for direntry from "
 				    "the params.");
 		return -EINVAL;
 	}
 	
-	if ((bplug = dcore->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) == NULL) {
+	if ((bplug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) == NULL) {
 		aal_exception_error("Failed to find direntry plugin by "
 				    "the id %d.", pid);
                  return -EINVAL;
@@ -313,7 +313,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 					    "[%llu], item [%u]: item of the "
 					    "illegal plugin [%s] with the key "
 					    "of this object found.%s",
-					    print_ino(dcore, &info->object),
+					    print_ino(dir40_core, &info->object),
 					    dir40_plug.label, 
 					    dir->body.block->nr,
 					    dir->body.pos.item,
@@ -370,13 +370,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 					    "[%llu], item [%u], unit [%u]: "
 					    "entry has wrong offset [%s]."
 					    " Should be [%s]. %s", 
-					    print_ino(dcore, &info->object),
+					    print_ino(dir40_core, &info->object),
 					    dir40_plug.label, 
 					    dir->body.block->nr,
 					    dir->body.pos.item, 
 					    dir->body.pos.unit,
-					    print_key(dcore, &entry.offset),
-					    print_key(dcore, &key), 
+					    print_key(dir40_core, &entry.offset),
+					    print_key(dir40_core, &key), 
 					    mode == RM_BUILD ? "Removed." : "");
 
 
@@ -459,20 +459,20 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		aal_exception_error("Directory [%s], plugin [%s]: the object "
 				    "is attached already to [%s] and cannot "
 				    "be attached to [%s].", 
-				    print_ino(dcore, &object->info.object),
+				    print_ino(dir40_core, &object->info.object),
 				    dir40_plug.label, 
-				    print_key(dcore, &entry.object),
-				    print_ino(dcore, &parent->info.object));
+				    print_key(dir40_core, &entry.object),
+				    print_ino(dir40_core, &parent->info.object));
 
 		return RE_FATAL;
 	case ABSENT:
 		/* Not attached yet. */
 		aal_exception_error("Directory [%s], plugin [%s]: the object "
 				    "is not attached. %s [%s].", 
-				    print_ino(dcore, &object->info.object),
+				    print_ino(dir40_core, &object->info.object),
 				    dir40_plug.label, mode == RM_CHECK ? 
 				    "Reached from" : "Attaching to",
-				    print_ino(dcore, &parent->info.object));
+				    print_ino(dir40_core, &parent->info.object));
 	
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
@@ -510,7 +510,7 @@ object_entity_t *dir40_fake(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plug, dcore, info);
+	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
 	
 	/* Positioning to the first directory unit */
 	dir40_reset((object_entity_t *)dir);
@@ -536,7 +536,7 @@ errno_t dir40_form(object_entity_t *object) {
 		if (dir->hash == NULL) {
 			aal_exception_error("Directory [%s]: failed to init "
 					    "hash plugin. Plugin (%s).", 
-					    print_ino(dcore, &dir->obj.info.object),
+					    print_ino(dir40_core, &dir->obj.info.object),
 					    dir40_plug.label);
 			return -EINVAL;
 		}

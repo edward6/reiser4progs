@@ -6,7 +6,7 @@
 #ifdef ENABLE_SYMLINKS
 #include "sym40.h"
 
-reiser4_core_t *score = NULL;
+reiser4_core_t *sym40_core = NULL;
 extern reiser4_plug_t sym40_plug;
 
 /* Opens symlink and returns initialized instance to the caller */
@@ -23,7 +23,7 @@ object_entity_t *sym40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initalizing file handle */
-	obj40_init(&sym->obj, &sym40_plug, score, info);
+	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 	
 	if (obj40_pid(&sym->obj, OBJECT_PLUG_TYPE, "symlink") != 
 	    sym40_plug.id.id)
@@ -31,7 +31,7 @@ object_entity_t *sym40_open(object_info_t *info) {
 		goto error_free_sym;
 	}
 	
-	/* Initialziing statdata place */
+	/* Initializing statdata place */
 	aal_memcpy(STAT_PLACE(&sym->obj), &info->start,
 		   sizeof(info->start));
 	
@@ -83,15 +83,15 @@ static object_entity_t *sym40_create(object_info_t *info,
 		return NULL;
 	
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plug, score, info);
+	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
 		1 << SDEXT_SYMLINK_ID);
 
 	len = aal_strlen(hint->body.sym);
 	
-	if (obj40_create_stat(&sym->obj, hint->statdata, mask,
-			      len, len, 0, S_IFLNK, hint->body.sym))
+	if (obj40_create_stat(&sym->obj, hint->label.statdata, mask,
+			      len, len, 0, 0, S_IFLNK, hint->body.sym))
 	{
 		goto error_free_sym;
 	}
@@ -108,20 +108,8 @@ static object_entity_t *sym40_create(object_info_t *info,
 }
 
 static errno_t sym40_clobber(object_entity_t *entity) {
-	sym40_t *sym;
-	trans_hint_t hint;
-	
 	aal_assert("umka-2300", entity != NULL);
-
-	sym = (sym40_t *)entity;
-	
-	if (obj40_update(&sym->obj))
-		return -EINVAL;
-
-	hint.count = 1;
-	
-	return obj40_remove(&sym->obj,
-			    STAT_PLACE(&sym->obj), &hint);
+	return obj40_clobber(&((sym40_t *)entity)->obj);
 }
 
 static uint32_t sym40_links(object_entity_t *entity) {
@@ -130,11 +118,7 @@ static uint32_t sym40_links(object_entity_t *entity) {
 	aal_assert("umka-2295", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	
-	if (obj40_update(&sym->obj))
-		return -EINVAL;
-
-	return obj40_get_nlink(&sym->obj);
+	return obj40_links(&sym->obj);
 }
 
 static errno_t sym40_link(object_entity_t *entity) {
@@ -143,11 +127,7 @@ static errno_t sym40_link(object_entity_t *entity) {
 	aal_assert("umka-1915", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	
-	if (obj40_update(&sym->obj))
-		return -EINVAL;
-	
-	return obj40_link(&sym->obj, 1);
+	return obj40_link(&sym->obj);
 }
 
 static errno_t sym40_unlink(object_entity_t *entity) {
@@ -156,11 +136,7 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 	aal_assert("umka-1914", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	
-	if (obj40_update(&sym->obj))
-		return -EINVAL;
-
-	return obj40_link(&sym->obj, -1);
+	return obj40_unlink(&sym->obj);
 }
 
 /* Calls function @func for each symlink item (statdata only) */
@@ -174,31 +150,33 @@ static errno_t sym40_metadata(object_entity_t *entity,
 	aal_assert("umka-1719", place_func != NULL);
 
 	sym = (sym40_t *)entity;
-
-	if (obj40_update(&sym->obj))
-		return -EINVAL;
-
-	return place_func(entity, STAT_PLACE(&sym->obj), data);
+	return obj40_metadata(&sym->obj, place_func, data);
 }
 
-/* Calls function @func for each block symlink items lie in */
-static errno_t sym40_layout(object_entity_t *entity,
-			    region_func_t region_func,
-			    void *data)
+/* Loads symlink stat data to passed @hint */
+static errno_t sym40_stat(object_entity_t *entity,
+			  statdata_hint_t *hint)
 {
-	blk_t blk;
 	sym40_t *sym;
-
-	aal_assert("umka-1720", entity != NULL);
-	aal_assert("umka-1721", region_func != NULL);
+	
+	aal_assert("umka-2557", entity != NULL);
+	aal_assert("umka-2558", hint != NULL);
 
 	sym = (sym40_t *)entity;
+	return obj40_load_stat(&sym->obj, hint);
+}
 
-	if (obj40_update(&sym->obj))
-		return -EINVAL;
+/* Updates symlink stat data from passed @hint */
+static errno_t sym40_update(object_entity_t *entity,
+			    statdata_hint_t *hint)
+{
+	sym40_t *sym;
 	
-	blk = STAT_PLACE(&sym->obj)->block->nr;
-	return region_func(entity, blk, 1, data);
+	aal_assert("umka-2559", entity != NULL);
+	aal_assert("umka-2560", hint != NULL);
+
+	sym = (sym40_t *)entity;
+	return obj40_save_stat(&sym->obj, hint);
 }
 
 extern object_entity_t *sym40_recognize(object_info_t *info);
@@ -243,15 +221,17 @@ static void sym40_close(object_entity_t *entity) {
 static reiser4_object_ops_t sym40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.create	        = sym40_create,
-	.layout         = sym40_layout,
 	.metadata       = sym40_metadata,
 	.link           = sym40_link,
 	.unlink         = sym40_unlink,
 	.links          = sym40_links,
+	.stat           = sym40_stat,
+	.update         = sym40_update,
 	.clobber        = sym40_clobber,
 	.recognize	= sym40_recognize,
 	.check_struct   = sym40_check_struct,
 
+	.layout         = NULL,
 	.form		= NULL,
 	.seek	        = NULL,
 	.write	        = NULL,
@@ -293,7 +273,7 @@ reiser4_plug_t sym40_plug = {
 };
 
 static reiser4_plug_t *sym40_start(reiser4_core_t *c) {
-	score = c;
+	sym40_core = c;
 	return &sym40_plug;
 }
 

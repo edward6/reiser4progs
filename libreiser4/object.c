@@ -63,7 +63,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 }
 
 /* Looks up for the object stat data place in tree */
-errno_t reiser4_object_stat(reiser4_object_t *object) {
+errno_t reiser4_object_refresh(reiser4_object_t *object) {
 	object_info_t *info = object->info;
 
 	switch (reiser4_tree_lookup(object->tree, &info->object,
@@ -91,7 +91,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 	object = (reiser4_object_t *)data;
 
-	if ((res = reiser4_object_stat(object))) {
+	if ((res = reiser4_object_refresh(object))) {
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
 		return res;
@@ -124,7 +124,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		}
 		
 		/* Getting stat data place by key returned by follow() */
-		if ((res = reiser4_object_stat(object)))
+		if ((res = reiser4_object_refresh(object)))
 			return res;
 
 		/* Initializing entity on new place */
@@ -391,6 +391,26 @@ int64_t reiser4_object_write(
 	
 	return plug_call(object->entity->plug->o.object_ops, 
 			 write, object->entity, buff, n);
+}
+
+errno_t reiser4_object_stat(reiser4_object_t *object,
+			    statdata_hint_t *hint)
+{
+	aal_assert("umka-2570", object != NULL);
+	aal_assert("umka-2571", object->entity != NULL);
+
+	return plug_call(object->entity->plug->o.object_ops,
+			 stat, object->entity, hint);
+}
+
+errno_t reiser4_object_update(reiser4_object_t *object,
+			      statdata_hint_t *hint)
+{
+	aal_assert("umka-2572", object != NULL);
+	aal_assert("umka-2573", object->entity != NULL);
+
+	return plug_call(object->entity->plug->o.object_ops,
+			 update, object->entity, hint);
 }
 
 /* Prepases @info to be used for creating new object */
@@ -815,7 +835,39 @@ static reiser4_object_t *reiser4_object_comp(reiser4_tree_t *tree,
 	return object;
 }
 
-/* Creates directory */
+errno_t reiser4_object_traverse(reiser4_object_t *object,
+				object_open_func_t open_func,
+				void *data)
+{
+	entry_hint_t entry;
+	errno_t res = 0;
+	
+	aal_assert("vpf-1090", object != NULL);
+	aal_assert("vpf-1103", open_func != NULL);
+	
+	if (!object->entity->plug->o.object_ops->readdir)
+		return 0;
+	
+	while ((res = reiser4_object_readdir(object, &entry)) > 0) {
+		reiser4_object_t *child = NULL;
+		
+		if ((child = open_func(object, &entry, data)) == INVAL_PTR)
+			return -EINVAL;
+		
+		if (child == NULL)
+			continue;
+
+		res = reiser4_object_traverse(child, open_func, data);
+		
+		reiser4_object_close(child);
+		
+		if (res) return res;
+	}
+	
+	return res;
+}
+
+/* Creates directory. */
 reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 				     reiser4_object_t *parent,
 				     const char *name)
@@ -832,12 +884,16 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid);
 
 	if (!hint.plug) {
-		aal_exception_error("Can't find dir plugin by "
-				    "its id 0x%x.", pid);
+		aal_exception_error("Can't find directory plugin "
+				    "by its id 0x%x.", pid);
 		return NULL;
 	}
-    
-	hint.statdata = reiser4_param_value("statdata");
+
+	/* Preparing directory label. */
+	hint.label.mode = 0;
+	hint.label.statdata = reiser4_param_value("statdata");
+	
+	/* Preparing directory body. */
 	hint.body.dir.hash = reiser4_param_value("hash");
 	hint.body.dir.direntry = reiser4_param_value("direntry");
 	hint.parent = (parent ? &parent->info->object : NULL);
@@ -870,12 +926,16 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, regular);
 
 	if (!hint.plug) {
-		aal_exception_error("Can't find dir plugin by its id "
-				    "0x%x.", regular);
+		aal_exception_error("Can't find regual file plugin "
+				    "by its id 0x%x.", regular);
 		return NULL;
 	}
-	
-	hint.statdata = reiser4_param_value("statdata");
+
+	/* Preparing label fields. */
+	hint.label.mode = 0;
+	hint.label.statdata = reiser4_param_value("statdata");
+
+	/* Preparing body fields. */
 	hint.body.reg.tail = reiser4_param_value("tail");
 	hint.body.reg.extent = reiser4_param_value("extent");
 	hint.body.reg.policy = reiser4_param_value("policy");
@@ -910,13 +970,17 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, symlink);
 
 	if (!hint.plug) {
-		aal_exception_error("Can't find dir plugin by its id "
-				    "0x%x.", symlink);
+		aal_exception_error("Can't find symlink plugin by "
+				    "its id 0x%x.", symlink);
 		return NULL;
 	}
-	
+
+	/* Preparing label fields. */
+	hint.label.mode = 0;
+	hint.label.statdata = reiser4_param_value("statdata");
+
+	/* Preparing body fields. */
 	hint.body.sym = (char *)target;
-	hint.statdata = reiser4_param_value("statdata");
 	hint.parent = (parent ? &parent->info->object : NULL);
 	
 	if (name) {
@@ -929,35 +993,46 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	return reiser4_object_comp(fs->tree, parent, &entry, &hint);
 }
 
-errno_t reiser4_object_traverse(reiser4_object_t *object,
-				object_open_func_t open_func,
-				void *data)
+/* Creates special file. */
+reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
+				     reiser4_object_t *parent,
+		                     const char *name,
+				     uint32_t mode,
+		                     uint64_t rdev)
 {
+	rid_t special;
 	entry_hint_t entry;
-	errno_t res = 0;
+	object_hint_t hint;
 	
-	aal_assert("vpf-1090", object != NULL);
-	aal_assert("vpf-1103", open_func != NULL);
+	aal_assert("umka-2534", fs != NULL);
+	aal_assert("umka-2535", rdev != 0);
 	
-	if (!object->entity->plug->o.object_ops->readdir)
-		return 0;
+	special = reiser4_param_value("special");
 	
-	while ((res = reiser4_object_readdir(object, &entry)) > 0) {
-		reiser4_object_t *child = NULL;
-		
-		if ((child = open_func(object, &entry, data)) == INVAL_PTR)
-			return -EINVAL;
-		
-		if (child == NULL)
-			continue;
+	/* Preparing object hint. */
+	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, special);
 
-		res = reiser4_object_traverse(child, open_func, data);
-		
-		reiser4_object_close(child);
-		
-		if (res) return res;
+	if (!hint.plug) {
+		aal_exception_error("Can't find special file plugin "
+				    "by its id 0x%x.", special);
+		return NULL;
 	}
+
+	/* Preparing label fields. */
+	hint.label.mode = mode;
+	hint.label.statdata = reiser4_param_value("statdata");
+
+	/* Preparing body fields. */
+	hint.body.spl.rdev = rdev;
+	hint.parent = (parent ? &parent->info->object : NULL);
 	
-	return res;
+	if (name) {
+		aal_strncpy(entry.name, name,
+			    sizeof(entry.name));
+	} else {
+		entry.name[0] = '\0';
+	}
+
+	return reiser4_object_comp(fs->tree, parent, &entry, &hint);
 }
 #endif

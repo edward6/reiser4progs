@@ -27,14 +27,12 @@
 #  define _SYMLINK_LEN _POSIX_PATH_MAX
 #endif
 
-/* Compaund directory structure */
+/* Symlink struct. */
 struct sym40 {
 
-	/*
-	  Common file fiedls (statdata, etc). As symlink40 has nothing but
-	  statdata only, this structure has only file handler, which contains
-	  stuff for statdata handling.
-	*/
+	/* Common file fiedls (statdata, etc). As sym40 has nothing but statdata
+	   only, this structure has only file handler, which contains stuff for
+	   statdata handling. */
 	obj40_t obj;
 };
 

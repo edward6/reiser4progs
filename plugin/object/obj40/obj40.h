@@ -74,11 +74,6 @@ extern errno_t obj40_write_ext(place_t *place, rid_t id,
 extern errno_t obj40_touch(obj40_t *obj, uint64_t size,
 			   uint64_t bytes, uint32_t atime);
 
-extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
-				 uint64_t mask, uint64_t size,
-				 uint64_t bytes, uint32_t nlink,
-				 uint16_t mode, char *path);
-
 extern uint64_t obj40_extmask(place_t *sd);
 extern uint16_t obj40_get_mode(obj40_t *obj);
 extern uint32_t obj40_get_nlink(obj40_t *obj);
@@ -86,8 +81,14 @@ extern uint32_t obj40_get_atime(obj40_t *obj);
 extern uint32_t obj40_get_mtime(obj40_t *obj);
 extern uint64_t obj40_get_bytes(obj40_t *obj);
 
-extern errno_t obj40_link(obj40_t *obj,
-			  uint32_t value);
+extern errno_t obj40_clobber(obj40_t *obj);
+
+extern errno_t obj40_link(obj40_t *obj);
+extern errno_t obj40_unlink(obj40_t *obj);
+extern uint32_t obj40_links(obj40_t *obj);
+
+extern errno_t obj40_inc_link(obj40_t *obj,
+			      uint32_t value);
 
 extern errno_t obj40_set_mode(obj40_t *obj,
 			      uint16_t mode);
@@ -107,6 +108,14 @@ extern errno_t obj40_set_mtime(obj40_t *obj,
 extern errno_t obj40_set_bytes(obj40_t *obj,
 			       uint64_t bytes);
 
+extern errno_t obj40_layout(obj40_t *obj,
+			    region_func_t region_func,
+			    void *data);
+
+extern errno_t obj40_metadata(obj40_t *obj,
+			      place_func_t place_func,
+			      void *data);
+
 extern errno_t obj40_recognize(obj40_t *obj,
 			       stat_func_t stat_func);
 
@@ -123,7 +132,19 @@ extern int64_t obj40_trunc(obj40_t *obj, trans_hint_t *hint);
 extern errno_t obj40_fix_key(obj40_t *obj, place_t *place, 
 			     key_entity_t *key, uint8_t mode);
 
-extern errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func, 
+extern errno_t obj40_save_stat(obj40_t *obj,
+			       statdata_hint_t *hint);
+
+extern errno_t obj40_load_stat(obj40_t *obj,
+			       statdata_hint_t *hint);
+
+extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
+				 uint64_t mask, uint64_t size,
+				 uint64_t bytes, uint64_t rdev,
+				 uint32_t nlink, uint16_t mode,
+				 char *path);
+
+extern errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func, 
 				 uint64_t mask, uint32_t nlink, 
 				 uint16_t objmode, uint8_t mode);
 

@@ -38,21 +38,21 @@ uint64_t obj40_ordering(obj40_t *obj) {
 
 /* Reads one stat data extention to @data. */
 errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
-	trans_hint_t hint;
+	trans_hint_t trans;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* Preparing hint and mask */
-	hint.specific = &stat;
+	trans.specific = &stat;
 	
 	if (data) {
 		stat.ext[id] = data;
 	}
 	
-	/* Calling statdata open method if any */
+	/* Calling statdata open method. */
 	if (plug_call(place->plug->o.item_ops,
-		      fetch, place, &hint) != 1)
+		      fetch, place, &trans) != 1)
 	{
 		return -EIO;
 	}
@@ -71,11 +71,49 @@ uint64_t obj40_get_size(obj40_t *obj) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Loads stat data to passed @hint. */
+errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint) {
+	trans_hint_t trans;
+	
+	aal_assert("umka-2553", obj != NULL);
+
+	/* Preparing hint and mask */
+	trans.specific = hint;
+	
+	/* Calling statdata fetch method. */
+	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops,
+		      fetch, STAT_PLACE(obj), &trans) != 1)
+	{
+		return -EIO;
+	}
+	
+	return 0;
+}
+
+/* Saves stat data to passed @hint. */
+errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
+	trans_hint_t trans;
+	
+	aal_assert("umka-2554", obj != NULL);
+
+	/* Preparing hint and mask */
+	trans.specific = hint;
+
+	/* Updating stat data. */
+	if (!plug_call(STAT_PLACE(obj)->plug->o.item_ops,
+		       update, STAT_PLACE(obj), &trans))
+	{
+		return -EIO;
+	}
+
+	return 0;
+}
+
 /* Create stat data item basing on passed extentions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
 errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
-			  uint64_t size, uint64_t bytes, uint32_t nlink,
-			  uint16_t mode, char *path)
+			  uint64_t size, uint64_t bytes, uint64_t rdev,
+			  uint32_t nlink, uint16_t mode, char *path)
 {
 	lookup_t res;
 	trans_hint_t hint;
@@ -106,8 +144,15 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	lw_ext.mode = mode | 0755;
 	
 	/* Unix extention hint initializing */
-	unix_ext.rdev = 0;
-	unix_ext.bytes = bytes;
+	if (rdev && bytes) {
+		aal_exception_error("Invalid stat data params (rdev or "
+				    "bytes).");
+		return -EINVAL;
+	} else {
+		unix_ext.rdev = rdev;
+		unix_ext.bytes = bytes;
+	}
+	
 	unix_ext.uid = getuid();
 	unix_ext.gid = getgid();
 	
@@ -168,11 +213,10 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 	}
 
 	/* Updating values and write unix extention back. */
+	unix_hint.rdev = 0;
 	unix_hint.atime = atime;
 	unix_hint.mtime = atime;
-
-	if (bytes != unix_hint.bytes)
-		unix_hint.bytes = bytes;
+	unix_hint.bytes = bytes;
 
 	return obj40_write_ext(STAT_PLACE(obj),
 			       SDEXT_UNIX_ID,
@@ -388,6 +432,7 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 		return res;
 	}
 
+	unix_hint.rdev = 0;
 	unix_hint.bytes = bytes;
 	
 	return obj40_write_ext(STAT_PLACE(obj),
@@ -395,9 +440,89 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 }
 
 /* Changes nlink field in statdata by passed @value */
-errno_t obj40_link(obj40_t *obj, uint32_t value) {
+errno_t obj40_inc_link(obj40_t *obj, uint32_t value) {
 	uint32_t nlink = obj40_get_nlink(obj);
 	return obj40_set_nlink(obj, nlink + value);
+}
+
+/* Removes object stat data. */
+errno_t obj40_clobber(obj40_t *obj) {
+	errno_t res;
+	trans_hint_t hint;
+	
+	aal_assert("umka-2546", obj != NULL);
+
+	if ((res = obj40_update(obj)))
+		return res;
+
+	hint.count = 1;
+	
+	return obj40_remove(obj, STAT_PLACE(obj), &hint);
+}
+
+/* Enumerates object data (stat data only for special files and symlinks). */
+errno_t obj40_layout(obj40_t *obj, region_func_t region_func,
+		     void *data)
+{
+	blk_t blk;
+	errno_t res;
+
+	aal_assert("umka-2547", obj != NULL);
+	aal_assert("umka-2548", region_func != NULL);
+
+	if ((res = obj40_update(obj)))
+		return res;
+	
+	blk = STAT_PLACE(obj)->block->nr;
+	return region_func(obj, blk, 1, data);
+}
+
+/* Enumerates object metadata. */
+errno_t obj40_metadata(obj40_t *obj, place_func_t place_func,
+		       void *data)
+{
+	errno_t res;
+	
+	aal_assert("umka-2549", obj != NULL);
+	aal_assert("umka-2550", place_func != NULL);
+
+	if ((res = obj40_update(obj)))
+		return res;
+
+	return place_func(obj, STAT_PLACE(obj), data);
+}
+
+uint32_t obj40_links(obj40_t *obj) {
+	errno_t res;
+
+	aal_assert("umka-2567", obj != NULL);
+	
+	if ((res = obj40_update(obj)))
+		return res;
+	
+	return obj40_get_nlink(obj);
+}
+
+errno_t obj40_link(obj40_t *obj) {
+	errno_t res;
+	
+	aal_assert("umka-2568", obj != NULL);
+
+	if ((res = obj40_update(obj)))
+		return res;
+	
+	return obj40_inc_link(obj, 1);
+}
+
+errno_t obj40_unlink(obj40_t *obj) {
+	errno_t res;
+	
+	aal_assert("umka-2569", obj != NULL);
+	
+	if ((res = obj40_update(obj)))
+		return res;
+	
+	return obj40_inc_link(obj, -1);
 }
 #endif
 

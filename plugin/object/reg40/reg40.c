@@ -10,8 +10,8 @@
 
 #include "reg40.h"
 
-reiser4_core_t *rcore = NULL;
 extern reiser4_plug_t reg40_plug;
+reiser4_core_t *reg40_core = NULL;
 
 /* Returns regular file current offset. */
 uint64_t reg40_offset(object_entity_t *entity) {
@@ -56,7 +56,7 @@ static void reg40_close(object_entity_t *entity) {
 }
 
 /* Updates body place in correspond to file offset */
-lookup_t reg40_update(object_entity_t *entity) {
+lookup_t reg40_update_body(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 
 	aal_assert("umka-1161", entity != NULL);
@@ -139,7 +139,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, rcore, info);
+	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
 	
 	if (obj40_pid(&reg->obj, OBJECT_PLUG_TYPE,
 		      "regular") !=  reg40_plug.id.id)
@@ -181,13 +181,13 @@ static object_entity_t *reg40_create(object_info_t *info,
 		return NULL;
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, rcore, info);
+	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
 
 	/* Initializing tail policy plugin */
 	if (hint->body.reg.policy == INVAL_PID) {
 		/* Getting default tail policy from param if passed hint
 		   contains no valid tail policy plugin id. */
-		hint->body.reg.policy = rcore->param_ops.value("policy");
+		hint->body.reg.policy = reg40_core->param_ops.value("policy");
 
 		if (hint->body.reg.policy == INVAL_PID) {
 			aal_exception_error("Invalid default tail policy "
@@ -197,7 +197,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 	}
 
 	/* Initializing tail policy plugin. */
-	if (!(reg->policy = rcore->factory_ops.ifind(POLICY_PLUG_TYPE,
+	if (!(reg->policy = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE,
 						     hint->body.reg.policy)))
 	{
 		aal_exception_error("Can't find tail policy plugin by "
@@ -208,8 +208,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 	/* Initializing stat data. */
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
-	if (obj40_create_stat(&reg->obj, hint->statdata,
-			      mask, 0, 0, 0, S_IFREG, NULL))
+	if (obj40_create_stat(&reg->obj, hint->label.statdata,
+			      mask, 0, 0, 0, 0, S_IFREG, NULL))
 	{
 		goto error_free_reg;
 	}
@@ -233,11 +233,7 @@ static uint32_t reg40_links(object_entity_t *entity) {
 	aal_assert("umka-2296", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	
-	if (obj40_update(&reg->obj))
-		return -EINVAL;
-	
-	return obj40_get_nlink(&reg->obj);
+	return obj40_links(&reg->obj);
 }
 
 /* Increments link number in stat data. */
@@ -247,11 +243,7 @@ static errno_t reg40_link(object_entity_t *entity) {
 	aal_assert("umka-1912", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	
-	if (obj40_update(&reg->obj))
-		return -EINVAL;
-	
-	return obj40_link(&reg->obj, 1);
+	return obj40_link(&reg->obj);
 }
 
 /* Decrements link number in stat data. */
@@ -261,11 +253,7 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	aal_assert("umka-1911", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	
-	if (obj40_update(&reg->obj))
-		return -EINVAL;
-	
-	return obj40_link(&reg->obj, -1);
+	return obj40_unlink(&reg->obj);
 }
 
 /* Returns plugin (tail or extent) for next write operation basing on passed
@@ -545,23 +533,13 @@ static errno_t reg40_truncate(object_entity_t *entity,
 /* Removes all file items. */
 static errno_t reg40_clobber(object_entity_t *entity) {
 	errno_t res;
-	reg40_t *reg;
-	trans_hint_t hint;
 	
 	aal_assert("umka-2299", entity != NULL);
 
-	reg = (reg40_t *)entity;
-	
 	if ((res = reg40_truncate(entity, 0)))
 		return res;
 
-	if ((res = obj40_update(&reg->obj)))
-		return res;
-
-	hint.count = 1;
-
-	return obj40_remove(&reg->obj,
-			    STAT_PLACE(&reg->obj), &hint);
+	return obj40_clobber(&((reg40_t *)entity)->obj);
 }
 
 struct layout_hint {
@@ -611,7 +589,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 		place_t *place = &reg->body;
 		
 		/* Update body place. Check for error. */
-		if ((res = reg40_update(entity)) < 0)
+		if ((res = reg40_update_body(entity)) < 0)
 			return res;
 
 		/* Check if file stream is over. */
@@ -664,6 +642,9 @@ static errno_t reg40_metadata(object_entity_t *entity,
 
 	reg = (reg40_t *)entity;
 	
+	if ((res = obj40_metadata(&reg->obj, place_func, data)))
+		return res;
+	
 	if (!(size = reg40_size(entity)))
 		return 0;
 
@@ -672,7 +653,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		key_entity_t maxkey;
 		
 		/* Update body place. Check for error. */
-		if ((res = reg40_update(entity)) < 0)
+		if ((res = reg40_update_body(entity)) < 0)
 			return res;
 
 		/* Check if file stream is over. */
@@ -699,6 +680,32 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
+/* Loads stat data to passed @hint */
+static errno_t reg40_stat(object_entity_t *entity,
+			  statdata_hint_t *hint)
+{
+	reg40_t *reg;
+	
+	aal_assert("umka-2561", entity != NULL);
+	aal_assert("umka-2562", hint != NULL);
+
+	reg = (reg40_t *)entity;
+	return obj40_load_stat(&reg->obj, hint);
+}
+
+/* Updates stat data from passed @hint */
+static errno_t reg40_update(object_entity_t *entity,
+			    statdata_hint_t *hint)
+{
+	reg40_t *reg;
+	
+	aal_assert("umka-2559", entity != NULL);
+	aal_assert("umka-2560", hint != NULL);
+
+	reg = (reg40_t *)entity;
+	return obj40_save_stat(&reg->obj, hint);
+}
+
 extern errno_t reg40_form(object_entity_t *object);
 extern object_entity_t *reg40_recognize(object_info_t *info);
 
@@ -716,6 +723,8 @@ static reiser4_object_ops_t reg40_ops = {
 	.metadata       = reg40_metadata,
 	.convert        = reg40_convert,
 	.form		= reg40_form,
+	.stat           = reg40_stat,
+	.update         = reg40_update,
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,
 	.links          = reg40_links,
@@ -749,7 +758,7 @@ static reiser4_object_ops_t reg40_ops = {
 
 reiser4_plug_t reg40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OBJECT_REG40_ID, FILE_OBJECT, OBJECT_PLUG_TYPE},
+	.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "reg40",
 	.desc  = "Regular file for reiser4, ver. " VERSION,
@@ -760,7 +769,7 @@ reiser4_plug_t reg40_plug = {
 };
 
 static reiser4_plug_t *reg40_start(reiser4_core_t *c) {
-	rcore = c;
+	reg40_core = c;
 	return &reg40_plug;
 }
 

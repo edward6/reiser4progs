@@ -8,7 +8,7 @@
 #include "sym40.h"
 #include "repair/plugin.h"
 
-extern reiser4_core_t *score;
+extern reiser4_core_t *sym40_core;
 extern reiser4_plug_t sym40_plug;
 
 extern object_entity_t *sym40_open(object_info_t *info);
@@ -56,7 +56,7 @@ object_entity_t *sym40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&sym->obj, &sym40_plug, score, info);
+	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 	
 	if ((res = obj40_recognize(&sym->obj, callback_stat)))
 		goto error;
@@ -95,9 +95,11 @@ errno_t sym40_check_struct(object_entity_t *object,
 	aal_assert("vpf-1233", sym->obj.info.tree != NULL);
 	aal_assert("vpf-1234", sym->obj.info.object.plug != NULL);
 
-	if ((res = obj40_stat_launch(&sym->obj, sym40_extentions, 
+	if ((res = obj40_launch_stat(&sym->obj, sym40_extentions, 
 				     sym40_exts, 1, S_IFLNK, mode)))
+	{
 		return res;
+	}
 	
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(object, &sym->obj.info.start, data))

@@ -28,6 +28,7 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          object/dir40/libdir40-static.la \
 			          object/reg40/libreg40-static.la \
 				  object/sym40/libsym40-static.la \
+				  object/spl40/libspl40-static.la \
 			          sdext/sdext_unix/libsdext_unix-static.la \
 			          sdext/sdext_lw/libsdext_lw-static.la \
 			          sdext/sdext_lt/libsdext_lt-static.la \
@@ -59,6 +60,7 @@ libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          object/dir40/libdir40-alone.la \
 			          object/reg40/libreg40-alone.la \
 				  object/sym40/libsym40-alone.la \
+				  object/spl40/libspl40-alone.la \
 			          sdext/sdext_unix/libsdext_unix-alone.la \
 			          sdext/sdext_lw/libsdext_lw-alone.la \
 			          sdext/sdext_lt/libsdext_lt-alone.la \

@@ -83,14 +83,14 @@ enum reiser4_object_plug_id {
 	OBJECT_REG40_ID         = 0x0,
 	OBJECT_DIR40_ID		= 0x1,
 	OBJECT_SYM40_ID		= 0x2,
-	OBJECT_SPCL40_ID	= 0x3
+	OBJECT_SPL40_ID	        = 0x3
 };
 
 enum reiser4_object_group {
-	FILE_OBJECT		= 0x0,
+	REG_OBJECT		= 0x0,
 	DIR_OBJECT		= 0x1,
 	SYM_OBJECT		= 0x2,
-	SPCL_OBJECT		= 0x3
+	SPL_OBJECT		= 0x3
 };
 
 typedef enum reiser4_object_group reiser4_object_group_t;
@@ -355,24 +355,26 @@ typedef struct merge_hint merge_hint_t;
    (1) Create the description of the data being inserted.
    (2) Ask item plugin how much space is needed for the data, described in 1.
    
-   (3) Free needed space for data being inserted.
-   (4) Ask item plugin to create an item (to paste into the item) on the base
-   of description from 1.
+   (3) Prepare needed space for data being inserted.
+   
+   (4) Ask item plugin to create an item (to paste into the item) on the base of
+   description from 1.
 
    For such purposes we have:
     
-   (1) Fixed description structures for all item types (statdata, direntry, 
+   (1) Fixed description structures for all item types (statdata, direntry,
    nodeptr, etc).
     
-   (2) Estimate common item method which gets place of where to insert into
-   (NULL or unit == -1 for insertion, otherwise it is pasting) and data
-   description from 1.
+   (2) Estimate item method which gets place of where to insert into (NULL or
+   unit == -1 for insertion, otherwise it is pasting) and data description from
+   1.
    
    (3) Insert node methods prepare needed space and call create/paste item
    methods if data description is specified.
     
-   (4) Create/Paste item methods if data description has not beed specified
-   on 3. */
+   (4) Create/Paste item methods if data description has not beed specified on
+   3.
+*/
 struct ptr_hint {    
 	uint64_t start;
 	uint64_t width;
@@ -452,8 +454,15 @@ typedef struct entry_hint entry_hint_t;
 
 struct object_hint {
 
-	/* Stata plugin id */
-	rid_t statdata;
+	/* Stat data related fields. */
+	struct {
+		/* Additional mode to be masked to stat data mode. This is
+		   needed for special files, but mat be used somewhere else. */
+		uint32_t mode;
+		
+		/* Stata plugin id. */
+		rid_t statdata;
+	} label;
 
 	/* Hint for a file body */
 	union {
@@ -470,6 +479,13 @@ struct object_hint {
 			rid_t extent;
 			rid_t policy;
 		} reg;
+
+		/* rdev field for special file. Nevertheless it is stored inside
+		   special file stat data field, we put it to @body definition,
+		   because it is the special file essence. */
+		struct {
+			uint64_t rdev;
+		} spl;
 
 		/* Symlink data */
 		char *sym;
@@ -633,6 +649,12 @@ typedef struct reiser4_key_ops reiser4_key_ops_t;
 
 struct reiser4_object_ops {
 #ifndef ENABLE_STAND_ALONE
+	/* Loads object stat data to passed hint. */
+	errno_t (*stat) (object_entity_t *, statdata_hint_t *);
+
+	/* Updates object stat data from passed hint. */
+	errno_t (*update) (object_entity_t *, statdata_hint_t *);
+	
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (object_info_t *,
 				    object_hint_t *);

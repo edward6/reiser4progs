@@ -165,7 +165,7 @@ errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
 	aal_assert("vpf-1270", object != NULL);
 	
 	/* Get the start place. */
-	if ((res = reiser4_object_stat(object))) {
+	if ((res = reiser4_object_refresh(object))) {
 		aal_exception_error("Update of the object [%s] failed.",
 				    object->name);
 		return res;
@@ -182,7 +182,7 @@ int repair_object_test(reiser4_object_t *object, uint16_t flag) {
 	aal_assert("vpf-1273", object != NULL);
 	
 	/* Get the start place. */
-	if ((res = reiser4_object_stat(object))) {
+	if ((res = reiser4_object_refresh(object))) {
 		aal_exception_error("Update of the object [%s] failed.",
 				    object->name);
 		return res;
@@ -197,7 +197,7 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	aal_assert("vpf-1272", object != NULL);
 	
 	/* Get the start place. */
-	if ((res = reiser4_object_stat(object))) {
+	if ((res = reiser4_object_refresh(object))) {
 		aal_exception_error("Update of the object [%s] failed.",
 				    object->name);
 		return res;

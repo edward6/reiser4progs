@@ -6,6 +6,8 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
+/* Tree packing callback. Used for packing the tree, after delete items. This is
+   needed for keeping tree in well packed state. */
 static errno_t callback_tree_pack(reiser4_tree_t *tree,
 				  reiser4_place_t *place,
 				  void *data)

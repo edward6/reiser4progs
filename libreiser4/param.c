@@ -77,7 +77,7 @@ reiser4_param_t default_param = {
 		[13] = {
 			.name  = "special",
 			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_SPCL40_ID
+			.value = OBJECT_SPL40_ID
 		},
 		[14] = {
 			.name  = "format",

@@ -255,7 +255,7 @@ errno_t obj40_fix_key(obj40_t *obj, place_t *place,
 	return res;
 }
 
-errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func, 
+errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func, 
 			  uint64_t mask, uint32_t nlink, 
 			  uint16_t objmode, uint8_t mode)
 {
@@ -305,8 +305,10 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	if ((pid = obj->core->param_ops.value("statdata") == INVAL_PID))
 		return -EINVAL;
 
+	/* FIXME-UMKA->VITALY: Here also should be passed valid @rdev if this is
+	   a special file device stat data item. */
 	if ((res = obj40_create_stat(obj, pid, mask, 0, 0,
-				     nlink, objmode, NULL)))
+				     0, nlink, objmode, NULL)))
 	{
 		aal_exception_error("The file [%s] failed to create a "
 				    "StatData item. Plugin %s.", 
@@ -316,5 +318,4 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 
 	return res;
 }
-
 #endif

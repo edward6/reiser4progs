@@ -56,8 +56,11 @@ static errno_t sdext_unix_init(body_t *body,
 	sdext_unix_set_atime(ext, sdext_unix->atime);
 	sdext_unix_set_mtime(ext, sdext_unix->mtime);
 	sdext_unix_set_ctime(ext, sdext_unix->ctime);
-	sdext_unix_set_rdev(ext, sdext_unix->rdev);
-	sdext_unix_set_bytes(ext, sdext_unix->bytes);
+
+	if (sdext_unix->rdev)
+		sdext_unix_set_rdev(ext, sdext_unix->rdev);
+	else
+		sdext_unix_set_bytes(ext, sdext_unix->bytes);
 
 	return 0;
 }

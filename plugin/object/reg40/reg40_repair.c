@@ -7,14 +7,14 @@
 #include "reg40.h"
 #include "repair/plugin.h"
 
-extern reiser4_core_t *rcore;
+extern reiser4_core_t *reg40_core;
 extern reiser4_plug_t reg40_plug;
 
 extern errno_t reg40_seek(object_entity_t *entity, uint64_t offset);
 
 extern errno_t reg40_reset(object_entity_t *entity);
 extern uint64_t reg40_offset(object_entity_t *entity);
-extern lookup_t reg40_update(object_entity_t *entity);
+extern lookup_t reg40_update_body(object_entity_t *entity);
 
 extern int64_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
@@ -66,7 +66,7 @@ object_entity_t *reg40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, rcore, info);
+	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
 	
 	if ((res = obj40_recognize(&reg->obj, callback_stat)))
 		goto error;
@@ -126,7 +126,7 @@ static int64_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
-				    print_ino(rcore, &info->object),
+				    print_ino(reg40_core, &info->object),
 				    offset, offset + len, reg->obj.plug->label);
 	}
 
@@ -153,11 +153,11 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	}
 
 	/* If place is invalid, there is no items of the file. */
-	if (!rcore->tree_ops.valid(reg->obj.info.tree, &place))
+	if (!reg40_core->tree_ops.valid(reg->obj.info.tree, &place))
 		return reg40_policy_plug(reg, 0);
 
 	/* Initializing item entity. */
-	if ((res = rcore->tree_ops.fetch(reg->obj.info.tree, &place)))
+	if ((res = reg40_core->tree_ops.fetch(reg->obj.info.tree, &place)))
 		return NULL;
 
 	/* Get the maxreal key of the found item and find next. */
@@ -210,16 +210,16 @@ static errno_t reg40_next(object_entity_t *object,
 	info = &reg->obj.info;
 	
 	while (1) {
-		if ((res = reg40_update(object)) < 0)
+		if ((res = reg40_update_body(object)) < 0)
 			return res;
 
 		if (res == ABSENT) {
 			/* If place is invalid, no more reg40 items. */
-			if (!rcore->tree_ops.valid(info->tree, &reg->body))
+			if (!reg40_core->tree_ops.valid(info->tree, &reg->body))
 				goto end;
 
 			/* Initializing item entity at @next place */
-			if ((res = rcore->tree_ops.fetch(info->tree, 
+			if ((res = reg40_core->tree_ops.fetch(info->tree, 
 							 &reg->body)))
 				return res;
 
@@ -234,7 +234,7 @@ static errno_t reg40_next(object_entity_t *object,
 			{
 				place_t next;
 
-				if ((res = rcore->tree_ops.next(info->tree, 
+				if ((res = reg40_core->tree_ops.next(info->tree, 
 								&reg->body,
 								&next)))
 					return res;
@@ -262,11 +262,11 @@ static errno_t reg40_next(object_entity_t *object,
 			aal_exception_error("The object [%s] (%s), node (%llu),"
 					    "item (%u): the item [%s] of the "
 					    "invalid plugin (%s) found.%s",
-					    print_ino(rcore, &info->object),
+					    print_ino(reg40_core, &info->object),
 					    reg->obj.plug->label,
 					    reg->body.block->nr, 
 					    reg->body.pos.item,
-					    print_key(rcore, &reg->body.key),
+					    print_key(reg40_core, &reg->body.key),
 					    reg->body.plug->label, 
 					    mode == RM_BUILD ? 
 					    " Removed." : "");
@@ -274,11 +274,11 @@ static errno_t reg40_next(object_entity_t *object,
 			aal_exception_error("The object [%s] (%s), node (%llu),"
 					    "item (%u): the item [%s] has the "
 					    "wrong offset.%s",
-					    print_ino(rcore, &info->object),
+					    print_ino(reg40_core, &info->object),
 					    reg->obj.plug->label,
 					    reg->body.block->nr, 
 					    reg->body.pos.item,
-					    print_key(rcore, &reg->body.key),
+					    print_key(reg40_core, &reg->body.key),
 					    mode == RM_BUILD ? 
 					    " Removed." : "");
 		} else
@@ -317,10 +317,10 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	aal_exception_error("The object [%s] (%s), node (%llu), item (%u): the "
 			    "found item [%s] of the plugin (%s) does not match "
 			    "the detected tail policy (%s).%s", 
-			    print_ino(rcore, &info->object),
+			    print_ino(reg40_core, &info->object),
 			    reg->obj.plug->label, reg->body.block->nr, 
 			    reg->body.pos.item,
-			    print_key(rcore, &reg->body.key),
+			    print_key(reg40_core, &reg->body.key),
 			    reg->body.plug->label, reg->policy->label,
 			    mode == RM_BUILD ? " Converted." : "");
 
@@ -410,7 +410,7 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 	
 	aal_exception_error("The object [%s] has a break at [%llu-%llu] "
 			    "offsets. Plugin %s.%s", 
-			    print_ino(rcore, &info->object), 
+			    print_ino(reg40_core, &info->object), 
 			    reg40_offset(object), offset, 
 			    reg->obj.plug->label,
 			    mode == RM_BUILD ? " Writing a hole there." 
@@ -444,9 +444,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	info = &reg->obj.info;
 	
-	if ((res = obj40_stat_launch(&reg->obj, callback_stat, 
+	if ((res = obj40_launch_stat(&reg->obj, callback_stat, 
 				     reg40_exts, 1, S_IFREG, mode)))
+	{
 		return res;
+	}
 
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(object, &info->start, data))
@@ -461,7 +463,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				       "policy")))
 	{
 		aal_exception_error("The object [%s] failed to detect the tail "
-				    "policy.", print_ino(rcore, &info->object));
+				    "policy.", print_ino(reg40_core, &info->object));
 		return -EINVAL;
 	}
 	
@@ -469,7 +471,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* Get the reg file tail never policy. FIXME-VITALY: obj40_plug
 	   when we can point tail_never policy in plug_extention */
-	if (!(repair.extent = rcore->factory_ops.ifind(POLICY_PLUG_TYPE, 
+	if (!(repair.extent = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
 						       TAIL_NEVER_ID)))
 	{
 		aal_exception_error("Failed to find the 'tail never' tail "
@@ -482,7 +484,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if (!(repair.eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent"))){
 		aal_exception_error("The object [%s] failed to detect the "
 				    "extent plugin to use.", 
-				    print_ino(rcore, &info->object));
+				    print_ino(reg40_core, &info->object));
 		return -EINVAL;
 	}
 
@@ -491,7 +493,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if (!(repair.tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
 		aal_exception_error("The object [%s] failed to detect the "
 				    "tail plugin to use.", 
-				    print_ino(rcore, &info->object));
+				    print_ino(reg40_core, &info->object));
 		return -EINVAL;
 	}
 	
@@ -534,7 +536,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		/* If no more reg40 body items and some of them need to be 
 		   converted, or convertion is to be now, run tree_conv. */
 		if ((!reg->body.plug && hint.offset.plug) || result) {
-			result = rcore->tree_ops.conv(info->tree, &hint);
+			result = reg40_core->tree_ops.conv(info->tree, &hint);
 			
 			if (result) return result;
 
@@ -606,14 +608,10 @@ errno_t reg40_form(object_entity_t *object) {
 	{
 		aal_exception_error("The object [%s] failed to detect "
 				    "the tail policy.", 
-				    print_ino(rcore, &reg->obj.info.object));
+				    print_ino(reg40_core, &reg->obj.info.object));
 		return -EINVAL;
 	}
 
 	return 0;
-}
-
-void reg40_core(reiser4_core_t *c) {
-	rcore = c;
 }
 #endif
