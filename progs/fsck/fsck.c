@@ -9,24 +9,6 @@
 
 #include <fsck.h>
 
-/* fsck options. */
-enum {
-    REPAIR_OPT_AUTO	    = 0x1,
-    REPAIR_OPT_FORCE	    = 0x2,
-    REPAIR_OPT_QUIET	    = 0x3,
-    REPAIR_OPT_VERBOSE	    = 0x4,
-    REPAIR_OPT_READ_ONLY    = 0x5
-} fsck_options;
-
-typedef struct fsck_parse {
-    reiser4_profile_t *profile;
-    uint8_t mode;
-
-    FILE *logfile;
-    aal_device_t *host_device;
-    uint16_t options;
-} fsck_parse_t;
-
 static void fsck_print_usage(char *name) {
     fprintf(stderr, "\nUsage: %s [ options ] FILE\n", name);
     
@@ -216,8 +198,10 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    case 'V': 
 		progs_print_banner(argv[0]);
 		return USER_ERROR;
-	    case 'q': 
-		aal_set_bit(&data->options, REPAIR_OPT_QUIET);
+	    case 'q':
+		aal_gauge_set_handler(GAUGE_PERCENTAGE, NULL);
+		aal_gauge_set_handler(GAUGE_INDICATOR, NULL);
+		aal_gauge_set_handler(GAUGE_SILENT, NULL);
 		break;
 	    case 'r':
 		break;
@@ -262,10 +246,13 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	return OPER_ERROR;
     }
 
+    aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_percentage);
+    aal_gauge_set_handler(GAUGE_EMBEDDED, gauge_embedded);
+    
     return fsck_ask_confirmation(data, argv[optind]);
 }
 
-void fsck_time(char *string) {
+static void fsck_time(char *string) {
     time_t t;
 
     time(&t);
@@ -293,8 +280,9 @@ int main(int argc, char *argv[]) {
 	goto free_device;
     }
     
-    repair.mode = parse_data.mode;
-    
+    repair.mode = parse_data.mode;    
+    repair.progress_handler = gauge_handler;    
+
     if ((error = repair_fs_open(&repair, parse_data.host_device, parse_data.host_device,
 	parse_data.profile)))
     {

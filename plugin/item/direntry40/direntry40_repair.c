@@ -311,9 +311,9 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 		    if (flags->count > limit)
 			flags->count = limit;
 		    
-
-		    /* Problems were detected. */
-		    if (i - j - 1) {
+		    /* If more then 1 item were detected, some offsets have been 
+		     * recovered, set result properly. */
+		    if (i - j > 1) {
 			if (mode == REPAIR_REBUILD)
 			    res |= REPAIR_FIXED;
 			else
@@ -321,7 +321,7 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 		    }
 		    
 		    /* Mark all recovered elements as R. */
-		    for (; j <= i; j++)
+		    for (j++; j <= i; j++)
 			aal_set_bit(flags->elem + j, R);
 		    
 		    break;
@@ -362,7 +362,7 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
 	return REPAIR_FATAL;
     }
     
-    flags->count = last;
+    flags->count = --last;
 
     /* Last is the last valid offset. If the last unit is valid also, count is 
      * the last + 1. */
@@ -392,21 +392,33 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
     
     /* If there is enough space for another entry header, and the @last entry is
      * valid also, set @count unit offset to the item length. */
-    if (e_count > flags->count && last != flags->count && mode == REPAIR_REBUILD)
-	en40_set_offset(&de->entry[flags->count], item->len);
+    if (e_count > flags->count && last != flags->count) {
+	if (mode == REPAIR_REBUILD) {
+	    en40_set_offset(&de->entry[flags->count], item->len);
+	    res |= REPAIR_FIXED;
+	} else 
+	    res |= REPAIR_FATAL;
+    }
  	
-    if (flags->count == last && mode == REPAIR_REBUILD) 
+    if (flags->count == last && mode == REPAIR_REBUILD) {
 	/* Last unit is not valid. */
-	item->len = OFFSET(de, last);
-   
+	if (mode == REPAIR_REBUILD) {
+	    item->len = OFFSET(de, last);
+	    res |= REPAIR_FIXED;
+	} else
+	    res |= REPAIR_FATAL;
+    }
+    
     if (i) {
 	/* Some first offset are not relable. Consider count as the correct 
 	 * count and set the first offset just after the last unit.*/
 	e_count = flags->count;
 
-	if (mode == REPAIR_REBUILD)
+	if (mode == REPAIR_REBUILD) {	    
 	    en40_set_offset(&de->entry[0], sizeof(direntry40_t) + 
 		sizeof(entry40_t) * flags->count);
+	    res |= REPAIR_FIXED;
+	}
     }
     
     if (e_count != de40_get_units(de)) {
@@ -460,15 +472,16 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
 	    res |= REPAIR_FIXED;
 	    aal_memmove(flags->elem, flags->elem + i, flags->count - i);
 	    flags->count -= i;
+	    i = 0;
 	} else
-	    return REPAIR_FATAL;
+	    res |= REPAIR_FATAL;
 
     } 
     
-    /* First and the last units are ok. Remove all not relable units in the 
-     * midle of the item. */
+    /* Units before @i and after @count were handled, do not care about them anymore. 
+     * Handle all not relable units between them. */
     last = ~0ul;
-    for (i = 0; i < flags->count; i++) {
+    for (; i < flags->count; i++) {
 	if (last == ~0ul) {
 	    /* Looking for the problem interval start. */
 	    if (!aal_test_bit(flags->elem + i, R))

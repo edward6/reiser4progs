@@ -28,7 +28,8 @@ typedef struct repair_filter {
 				   be pointed by extents nor marked nowhere else. */
     uint8_t level;
     uint8_t flags;
-    
+
+    repair_progress_handler_t *progress_handler;    
     repair_filter_info_t info;
 } repair_filter_t;
 

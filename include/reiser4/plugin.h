@@ -240,7 +240,7 @@ struct sdext_entity {
 	reiser4_plugin_t *plugin;
 
 	body_t *body;
-	uint32_t len;
+	uint32_t sdlen;
 	uint32_t offset;
 };
 

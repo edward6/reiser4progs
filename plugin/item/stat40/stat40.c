@@ -23,6 +23,7 @@ errno_t stat40_traverse(item_entity_t *item,
 	uint8_t i;
 	stat40_t *stat;
 	uint16_t extmask;
+	uint16_t length;
 	sdext_entity_t sdext;
 
 	aal_assert("umka-1197", item != NULL);
@@ -70,9 +71,6 @@ errno_t stat40_traverse(item_entity_t *item,
 			return 0;
 		}
 
-		sdext.len = plugin_call(sdext.plugin->sdext_ops,
-					length, sdext.body);
-		
 		/*
 		  Okay, extention is present, calling callback function for it
 		  and if result is not good, returning it to teh caller.
@@ -80,9 +78,11 @@ errno_t stat40_traverse(item_entity_t *item,
 		if ((res = ext_func(&sdext, extmask, data)))
 			return res;
 
+		length = plugin_call(sdext.plugin->sdext_ops, length, 
+				     sdext.body);
 		/* Calculating the pointer to the next extention body */
-		sdext.offset += sdext.len;
-		sdext.body += sdext.len;
+		sdext.offset += length;
+		sdext.body += length;
 	}
     
 	return 0;
@@ -370,31 +370,13 @@ static uint32_t stat40_sdext_count(item_entity_t *item) {
         return count;
 }
 
-/* Callback for counting stat data extention length */
-static errno_t callback_len_ext(sdext_entity_t *sdext,
-				uint16_t extmask, 
-				void *data)
-{
-        (*(uint32_t *)data) += sdext->len;
-        return 0;
-}
-
-/* This function returns stat data length */
-static uint32_t stat40_len(item_entity_t *item) {
-        uint32_t len = sizeof(stat40_t);
-
-        if (stat40_traverse(item, callback_len_ext, &len) < 0)
-                return 0;
-
-        return len;
-}
-
 /* Prints extention into @stream */
 static errno_t callback_print_ext(sdext_entity_t *sdext,
 				  uint16_t extmask, 
 				  void *data)
 {
 	int print_mask;
+	uint16_t length;
 	aal_stream_t *stream = (aal_stream_t *)data;
 
 	print_mask = (sdext->plugin->h.id == 0 ||
@@ -414,8 +396,9 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 	aal_stream_format(stream, "offset:\t\t%u\n",
 			  sdext->offset);
 	
-	aal_stream_format(stream, "len:\t\t%u\n",
-			  sdext->len);
+	length = plugin_call(sdext->plugin->sdext_ops, length, sdext->body);
+	
+	aal_stream_format(stream, "len:\t\t%u\n", length);
 	
 	plugin_call(sdext->plugin->sdext_ops, print,
 		    sdext->body, stream, 0);
@@ -459,7 +442,7 @@ static errno_t stat40_feel(item_entity_t *item,
 	aal_assert("umka-2153", hint != NULL);
 
 	hint->count = 1;
-	hint->len = stat40_len(item);
+	hint->len = item->len;
 	
 	return 0;
 }

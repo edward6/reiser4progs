@@ -313,6 +313,7 @@ static void repair_filter_fini_traverse(repair_filter_t *fd,
  * corrupted parts off, and fixing what can be fixed. Account all kind of 
  * nodes in corresponding bitmaps. */
 errno_t repair_filter(repair_filter_t *fd) {
+    repair_progress_t progress;
     traverse_hint_t hint;
     errno_t res;
 
@@ -334,13 +335,28 @@ errno_t repair_filter(repair_filter_t *fd) {
     if (res == 0 && fd->repair->fs->tree->root != NULL) {
 	hint.data = fd;
 	hint.cleanup = 1;
-
+	
+	if (fd->progress_handler) {
+	    aal_memset(&progress, 0, sizeof(repair_progress_t));
+	    progress.type = PROGRESS_EMBEDDED;
+	    progress.state = PROGRESS_START;
+	    progress.total = reiser4_node_items(fd->repair->fs->tree->root);
+	    progress.title = "Tree Traverse: scanning the reiser4 tree:";
+	    progress.text = "";
+	    fd->progress_handler(&progress);
+	    progress.state = PROGRESS_UPDATE;
+	}
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
 	res = reiser4_tree_down(fd->repair->fs->tree, 
 	    fd->repair->fs->tree->root, &hint, repair_filter_node_open,
 	    repair_filter_node_check,	    repair_filter_setup_traverse,
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
+	if (fd->progress_handler) {
+	    progress.state = PROGRESS_END;
+	    fd->progress_handler(&progress);
+	}
+	 
 	if (res < 0)
 	    return res;
 	

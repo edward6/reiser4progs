@@ -25,6 +25,7 @@
  * not tree index data only) then fix all corruptions within the node and 
  * save it for further insertion. */
 errno_t repair_disk_scan(repair_ds_t *ds) {
+    repair_progress_t progress;
     reiser4_node_t *node;
     errno_t res = 0;
     uint8_t level;
@@ -38,7 +39,25 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
     aal_assert("vpf-820", ds->bm_scan != NULL);
     aal_assert("vpf-820", ds->bm_met != NULL);    
 
+    
+    if (ds->progress_handler) {
+	aal_memset(&progress, 0, sizeof(repair_progress_t));
+	progress.type = PROGRESS_INDICATOR;
+	progress.state = PROGRESS_START;
+	progress.total = aux_bitmap_marked(ds->bm_scan);
+	progress.title = "DiskScan Pass: scanning the partition for lost "
+	    "nodes:";
+	ds->progress_handler(&progress);
+	progress.state = PROGRESS_UPDATE;
+	progress.text = "";
+    }
+    
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
+	if (ds->progress_handler) {
+	    progress.done++;
+	    ds->progress_handler(&progress);
+	}
+ 
 	node = repair_node_open(ds->repair->fs, blk);
 	if (node == NULL) {
 	    blk++;
@@ -54,8 +73,10 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 
 	res = repair_node_check(node, ds->repair->mode);
 
-	if (res < 0)
-	    goto error_node_release;
+	if (res < 0) {
+	    reiser4_node_close(node);
+	    goto error;
+	}
 	
 	aal_assert("vpf-812", (res & ~REPAIR_FATAL) == 0);
 	
@@ -69,13 +90,15 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 	
     next:
 	reiser4_node_close(node);
-	blk++;	
+	blk++;
     }
     
-    return 0;
+error:
     
-error_node_release:
-    reiser4_node_close(node);
+    if (ds->progress_handler) {
+	progress.state = PROGRESS_END;
+	ds->progress_handler(&progress);
+    }
     
     return res;
 }

@@ -24,7 +24,7 @@ errno_t sdext_symlink_check(sdext_entity_t *sdext, uint8_t mode) {
     
     while (*((char *)sdext->body + offset)) {
 	offset++;
-	if (offset == sdext->len) {
+	if (offset == sdext->sdlen) {
 	    aal_exception_error("Does not look like a valid (%s) statdata "
 		"extention.", sdext->plugin->h.label);
 	    

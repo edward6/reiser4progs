@@ -30,6 +30,7 @@ typedef struct repair_ds {
     aux_bitmap_t *bm_leaf;	/* Found leaves. */
     aux_bitmap_t *bm_twig;	/* Fount twigs. */
 
+    repair_progress_handler_t *progress_handler;    
     repair_ds_info_t info;
 } repair_ds_t;
 

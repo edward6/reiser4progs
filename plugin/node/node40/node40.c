@@ -881,24 +881,28 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 errno_t node40_remove(object_entity_t *entity, 
 		      pos_t *pos, uint32_t count) 
 {
-	uint32_t len;
 	node40_t *node;
+	item_entity_t item;
+	uint32_t len, units;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
 	aal_assert("umka-2027", node40_loaded(entity));
 
 	node = (node40_t *)entity;
+
+	if (node40_item(entity, pos, &item))
+		return -EINVAL;
+	
+	units = plugin_call(item.plugin->item_ops, units, &item);
+	
+	if (units == 1)
+		pos->unit = ~0ul;
 	
 	if (pos->unit == ~0ul) {
 		if (!(len = node40_size(node, pos, count)))
 			return -EINVAL;
 	} else {
-		item_entity_t item;
-
-		if (node40_item(entity, pos, &item))
-			return -EINVAL;
-
 		/* Removing units from the item ;pointed by pos */
 		len = plugin_call(item.plugin->item_ops, remove, &item,
 				  pos->unit, count);

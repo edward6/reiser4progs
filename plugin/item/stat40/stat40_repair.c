@@ -51,6 +51,8 @@ errno_t stat40_check(item_entity_t *item, uint8_t mode) {
 	return REPAIR_FATAL;
     }
     
+    /* hint is set up by callback, so the last extention lenght has not been 
+     * added yet. */
     hint.sdext.offset += plugin_call(hint.sdext.plugin->sdext_ops, length, 
 	hint.sdext.body);
     

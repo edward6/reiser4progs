@@ -47,6 +47,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
     aal_memset(filter, 0, sizeof(*filter));    
     filter->repair = control->repair;
 
+    filter->progress_handler = control->repair->progress_handler;
+
     fs_len = reiser4_format_get_len(control->repair->fs->format);
 
     /* Allocate a bitmap of blocks belong to the format area - skipped, 
@@ -135,6 +137,8 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
     ds->bm_met = control->bm_met;
     ds->bm_scan = control->bm_unfm_tree;
     
+    ds->progress_handler = control->repair->progress_handler;
+
     fs_len = reiser4_format_get_len(control->repair->fs->format);
     
     /* Build a bitmap of what was met already. */
