@@ -285,7 +285,7 @@ errno_t debugfs_print_file(
 	  file. If no, that we show all items whihc lie in the same block as the
 	  item belong to the file denoted by @filename.
 	*/
-	if (PF_SITEMS & flags) {
+	if (PF_ITEMS & flags) {
 		aal_stream_t stream;
 
 		aal_stream_init(&stream);

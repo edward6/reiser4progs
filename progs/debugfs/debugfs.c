@@ -43,10 +43,10 @@ static void debugfs_print_usage(char *name) {
 		"  -j, --print-journal             prints journal.\n"
 		"  -s, --print-super               prints the both super blocks.\n"
 		"  -b, --print-block-alloc         prints block allocator data.\n"
-		"  -o, --print-oid-alloc           prints oid allocator data.\n"
+		"  -d, --print-oid-alloc           prints oid allocator data.\n"
 		"  -n, --print-block N             prints block by its number.\n"
 		"  -i, --print-file FILE           prints the all file's metadata.\n"
-		"  -w, --show-items                forces --print-file show only items\n"
+		"  -w, --print-items               forces --print-file show only items\n"
 		"                                  which are belong to specified file.\n"
 		"Measurement options:\n"
 		"  -S, --tree-stat                 measures some tree characteristics\n"
@@ -59,7 +59,10 @@ static void debugfs_print_usage(char *name) {
 		"                                  if --data-frag is specified.\n"
 		"Plugins options:\n"
 		"  -e, --profile PROFILE           profile to be used.\n"
-		"  -K, --known-profiles            prints known profiles.\n");
+		"  -P, --known-plugins             prints known plugins.\n"
+		"  -K, --known-profiles            prints known profiles.\n"
+	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
+	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
 
 /* Initializes used by debugfs exception streams */
@@ -134,7 +137,8 @@ int main(int argc, char *argv[]) {
 	char *host_dev;
 	uint32_t print_flags = 0;
 	uint32_t behav_flags = 0;
-    
+
+	char override[4096];
 	char *ls_filename = NULL;
 	char *cat_filename = NULL;
 	char *frag_filename = NULL;
@@ -151,7 +155,6 @@ int main(int argc, char *argv[]) {
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
-		{"profile", required_argument, NULL, 'e'},
 		{"force", no_argument, NULL, 'f'},
 		{"ls", required_argument, NULL, 'l'},
 		{"cat", required_argument, NULL, 'c'},
@@ -159,16 +162,19 @@ int main(int argc, char *argv[]) {
 		{"print-journal", no_argument, NULL, 'j'},
 		{"print-super", no_argument, NULL, 's'},
 		{"print-block-alloc", no_argument, NULL, 'b'},
-		{"print-oid-alloc", no_argument, NULL, 'o'},
+		{"print-oid-alloc", no_argument, NULL, 'd'},
 		{"print-block", required_argument, NULL, 'n'},
 		{"print-file", required_argument, NULL, 'i'},
-		{"show-items", no_argument, NULL, 'w'},
+		{"print-items", no_argument, NULL, 'w'},
 		{"tree-stat", no_argument, NULL, 'S'},
 		{"tree-frag", no_argument, NULL, 'T'},
 		{"file-frag", required_argument, NULL, 'F'},
 		{"data-frag", no_argument, NULL, 'D'},
 		{"show-each", no_argument, NULL, 'p'},
+		{"profile", required_argument, NULL, 'e'},
 		{"known-profiles", no_argument, NULL, 'K'},
+		{"known-plugins", no_argument, NULL, 'P'},
+		{"override", required_argument, NULL, 'o'},
 		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
 	};
@@ -181,7 +187,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtbojTDpSF:c:l:n:i:w",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjTDpSF:c:l:n:i:wo:P",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -194,7 +200,7 @@ int main(int argc, char *argv[]) {
 		case 'e':
 			profile_label = optarg;
 			break;
-		case 'o':
+		case 'd':
 			print_flags |= PF_OID;
 			break;
 		case 'b':
@@ -225,7 +231,7 @@ int main(int argc, char *argv[]) {
 			print_filename = optarg;
 			break;
 		case 'w':
-			print_flags |= PF_SITEMS;
+			print_flags |= PF_ITEMS;
 			break;
 		case 'S':
 			behav_flags |= BF_TSTAT;
@@ -257,6 +263,13 @@ int main(int argc, char *argv[]) {
 		case 'q':
 			behav_flags |= BF_QUIET;
 			break;
+		case 'P':
+			behav_flags |= BF_PLUGS;
+			break;
+		case 'o':
+			aal_strncat(override, optarg, aal_strlen(optarg));
+			aal_strncat(override, ",", 1);
+			break;
 		case 'K':
 			progs_print_banner(argv[0]);
 			progs_profile_list();
@@ -286,6 +299,24 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
+	if (behav_flags & BF_PLUGS) {
+		progs_plugin_list();
+		libreiser4_done();
+		return 0;
+	}
+	
+	/*
+	  Overriding profile by passed by used values. This should be done after
+	  libreiser4 is initialized.
+	*/
+	if (aal_strlen(override) > 0) {
+		aal_exception_info("Overriding profile %s by \"%s\".",
+				   profile->name, override);
+		
+		if (progs_profile_override(profile, override))
+			goto error_free_libreiser4;
+	}
+	
 	host_dev = argv[optind];
     
 	if (stat(host_dev, &st) == -1) {
@@ -352,7 +383,7 @@ int main(int argc, char *argv[]) {
 	  a lot of information will confuse him.
 	*/
 	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET) &&
-	    !(print_flags & PF_SITEMS))
+	    !(print_flags & PF_ITEMS))
 	{
 		if (aal_exception_yesno("Few print options has been detected. "
 					"Continue?") == EXCEPTION_NO)
@@ -376,8 +407,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* The same for --print-file option */
-	if (!(print_flags & PF_FILE) && (print_flags & PF_SITEMS)) {
-		aal_exception_warn("Option --show-items is only active if "
+	if (!(print_flags & PF_FILE) && (print_flags & PF_ITEMS)) {
+		aal_exception_warn("Option --print-items is only active if "
 				   "--print-file is specified.");
 	}
 

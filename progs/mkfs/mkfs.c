@@ -127,15 +127,15 @@ int main(int argc, char *argv[]) {
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
-		{"profile", required_argument, NULL, 'e'},
 		{"force", no_argument, NULL, 'f'},
-		{"known-profiles", no_argument, NULL, 'K'},
-		{"known-plugins", no_argument, NULL, 'P'},
 		{"quiet", no_argument, NULL, 'q'},
 		{"block-size", required_argument, NULL, 'b'},
 		{"label", required_argument, NULL, 'l'},
 		{"uuid", required_argument, NULL, 'i'},
 		{"lost-found", required_argument, NULL, 's'},
+		{"profile", required_argument, NULL, 'e'},
+		{"known-profiles", no_argument, NULL, 'K'},
+		{"known-plugins", no_argument, NULL, 'P'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
@@ -248,6 +248,12 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
+	if (flags & BF_PLUGS) {
+		progs_plugin_list();
+		libreiser4_done();
+		return 0;
+	}
+	
 	/*
 	  Overriding profile by passed by used values. This should be done after
 	  libreiser4 is initialized.
@@ -258,12 +264,6 @@ int main(int argc, char *argv[]) {
 		
 		if (progs_profile_override(profile, override))
 			goto error_free_libreiser4;
-	}
-	
-	if (flags & BF_PLUGS) {
-		progs_plugin_list();
-		libreiser4_done();
-		return 0;
 	}
 	
 	/* Building list of devices the filesystem will be created on */
