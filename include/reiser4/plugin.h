@@ -62,25 +62,25 @@ typedef enum key_policy key_policy_t;
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
 
-enum reiser4_plugin_type {
-	OBJECT_PLUGIN_TYPE      = 0x0,
-	ITEM_PLUGIN_TYPE        = 0x2,
-	NODE_PLUGIN_TYPE        = 0x3,
-	HASH_PLUGIN_TYPE        = 0x4,
-	POLICY_PLUGIN_TYPE      = 0x5,
-	PERM_PLUGIN_TYPE        = 0x6,
-	SDEXT_PLUGIN_TYPE       = 0x7,
-	FORMAT_PLUGIN_TYPE      = 0x8,
-	OID_PLUGIN_TYPE         = 0x9,
-	ALLOC_PLUGIN_TYPE       = 0xa,
-	JNODE_PLUGIN_TYPE       = 0xb,
-	JOURNAL_PLUGIN_TYPE     = 0xc,
-	KEY_PLUGIN_TYPE         = 0xd
+enum reiser4_plug_type {
+	OBJECT_PLUG_TYPE      = 0x0,
+	ITEM_PLUG_TYPE        = 0x2,
+	NODE_PLUG_TYPE        = 0x3,
+	HASH_PLUG_TYPE        = 0x4,
+	POLICY_PLUG_TYPE      = 0x5,
+	PERM_PLUG_TYPE        = 0x6,
+	SDEXT_PLUG_TYPE       = 0x7,
+	FORMAT_PLUG_TYPE      = 0x8,
+	OID_PLUG_TYPE         = 0x9,
+	ALLOC_PLUG_TYPE       = 0xa,
+	JNODE_PLUG_TYPE       = 0xb,
+	JOURNAL_PLUG_TYPE     = 0xc,
+	KEY_PLUG_TYPE         = 0xd
 };
 
-typedef enum reiser4_plugin_type reiser4_plugin_type_t;
+typedef enum reiser4_plug_type reiser4_plug_type_t;
 
-enum reiser4_object_plugin_id {
+enum reiser4_object_plug_id {
 	OBJECT_FILE40_ID        = 0x0,
 	OBJECT_DIRTORY40_ID     = 0x1,
 	OBJECT_SYMLINK40_ID     = 0x2,
@@ -96,7 +96,7 @@ enum reiser4_object_group {
 
 typedef enum reiser4_object_group reiser4_object_group_t;
 
-enum reiser4_item_plugin_id {
+enum reiser4_item_plug_id {
 	ITEM_STATDATA40_ID	= 0x0,
 	ITEM_CDE_LARGE_ID	= 0x1,
 	ITEM_CDE_SHORT_ID	= 0x2,
@@ -118,12 +118,12 @@ enum reiser4_item_group {
 
 typedef enum reiser4_item_group reiser4_item_group_t;
 
-enum reiser4_node_plugin_id {
+enum reiser4_node_plug_id {
 	NODE_SHORT_ID	        = 0x0,
 	NODE_LARGE_ID	        = 0x1
 };
 
-enum reiser4_hash_plugin_id {
+enum reiser4_hash_plug_id {
 	HASH_RUPASOV_ID		= 0x0,
 	HASH_R5_ID		= 0x1,
 	HASH_TEA_ID		= 0x2,
@@ -131,9 +131,9 @@ enum reiser4_hash_plugin_id {
 	HASH_DEGENERATE_ID	= 0x4
 };
 
-typedef enum reiser4_hash_plugin_id reiser4_hash_plugin_id_t;
+typedef enum reiser4_hash_plug_id reiser4_hash_plug_id_t;
 
-enum reiser4_tail_plugin_id {
+enum reiser4_tail_plug_id {
 	TAIL_NEVER_ID		= 0x0,
 	TAIL_SUPPRESS_ID	= 0x1,
 	TAIL_FOURK_ID		= 0x2,
@@ -142,52 +142,51 @@ enum reiser4_tail_plugin_id {
 	TAIL_LAST_ID		= 0x5
 };
 
-enum reiser4_perm_plugin_id {
+enum reiser4_perm_plug_id {
 	PERM_RWX_ID		= 0x0
 };
 
-enum reiser4_sdext_plugin_id {
+enum reiser4_sdext_plug_id {
 	SDEXT_LW_ID	        = 0x0,
 	SDEXT_UNIX_ID		= 0x1,
 	SDEXT_LT_ID             = 0x2,
 	SDEXT_SYMLINK_ID	= 0x3,
-	SDEXT_PLUGIN_ID		= 0x4,
+	SDEXT_PLUG_ID		= 0x4,
 	SDEXT_GEN_FLAGS_ID      = 0x5,
 	SDEXT_CAPS_ID           = 0x6,
 	SDEXT_LARGE_TIMES_ID    = 0x7,
 	SDEXT_LAST
 };
 
-enum reiser4_format_plugin_id {
+enum reiser4_format_plug_id {
 	FORMAT_REISER40_ID	= 0x0
 };
 
-enum reiser4_oid_plugin_id {
+enum reiser4_oid_plug_id {
 	OID_REISER40_ID		= 0x0
 };
 
-enum reiser4_alloc_plugin_id {
+enum reiser4_alloc_plug_id {
 	ALLOC_REISER40_ID	= 0x0
 };
 
-enum reiser4_journal_plugin_id {
+enum reiser4_journal_plug_id {
 	JOURNAL_REISER40_ID	= 0x0
 };
 
-enum reiser4_key_plugin_id {
+enum reiser4_key_plug_id {
 	KEY_SHORT_ID		= 0x0,
 	KEY_LARGE_ID		= 0x1
 };
 
-typedef struct reiser4_plugin reiser4_plugin_t;
+typedef struct reiser4_plug reiser4_plug_t;
 
 #define INVAL_PTR	        ((void *)-1)
 #define INVAL_PID	        0xff
-#define KEY_SIZE                4
 
 struct key_entity {
-	reiser4_plugin_t *plugin;
-	d64_t body[KEY_SIZE];
+	reiser4_plug_t *plug;
+	d64_t body[4];
 };
 
 typedef struct key_entity key_entity_t;
@@ -207,36 +206,21 @@ typedef enum key_type key_type_t;
    the library, created by plugins themselves and which also have the our plugin
    referrence. */
 struct object_entity {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 };
 
 typedef struct object_entity object_entity_t;
 
-struct item_context {
+struct place_context {
 	blk_t blk;
 	uint32_t blksize;
  	aal_device_t *device; 
 };
 
-typedef struct item_context item_context_t;
-
-/* Type for describing an item. The pointer of this type will be passed to the
-   all item plugins. */
-struct item_entity {
-	reiser4_plugin_t *plugin;
-
-	pos_t pos;
-	body_t *body;
-	uint32_t len;
-	
-	key_entity_t key;
-	item_context_t context;
-};
-
-typedef struct item_entity item_entity_t;
+typedef struct place_context place_context_t;
 
 struct sdext_entity {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 
 	body_t *body;
 	uint32_t sdlen;
@@ -246,11 +230,15 @@ struct sdext_entity {
 typedef struct sdext_entity sdext_entity_t;
 
 struct place {
+	object_entity_t *node;
+	reiser4_plug_t *plug;
 	void *tree;
-	void *node;
+
 	pos_t pos;
-	
-	item_entity_t item;
+	body_t *body;
+	uint32_t len;
+	key_entity_t key;
+	place_context_t con;
 };
 
 typedef struct place place_t;
@@ -468,7 +456,7 @@ struct object_hint {
 	} body;
     
 	/* The plugin in use */
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 };
 
 typedef struct object_hint object_hint_t;
@@ -514,7 +502,7 @@ struct create_hint {
 	key_entity_t key;
 
 	/* Plugin to be used for working with item */
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 };
 
 typedef struct create_hint create_hint_t;
@@ -553,7 +541,7 @@ struct reiser4_key_ops {
 				uint64_t, uint64_t, uint64_t,
 				uint64_t);
     
-	errno_t (*build_entry) (key_entity_t *, reiser4_plugin_t *,
+	errno_t (*build_entry) (key_entity_t *, reiser4_plug_t *,
 				uint64_t, uint64_t, char *);
 	
 	/* Gets/sets key type (minor in reiser4 notation) */	
@@ -696,81 +684,75 @@ typedef struct reiser4_object_ops reiser4_object_ops_t;
 struct reiser4_item_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Prepares item body for working with it */
-	errno_t (*init) (item_entity_t *);
+	errno_t (*init) (place_t *);
 
 	/* Returns overhead */
-	uint16_t (*overhead) (item_entity_t *);
+	uint16_t (*overhead) (place_t *);
 	
 	/* Estimate copy operation */
-	errno_t (*estimate_copy) (item_entity_t *, uint32_t, 
-				  item_entity_t *, uint32_t, 
+	errno_t (*estimate_copy) (place_t *, uint32_t, 
+				  place_t *, uint32_t, 
 				  copy_hint_t *);
 
 	/* Estimates insert operation */
-	errno_t (*estimate_insert) (item_entity_t *, create_hint_t *,
+	errno_t (*estimate_insert) (place_t *, create_hint_t *,
 				    uint32_t);
 
 	/* Predicts the shift parameters (units, bytes, etc) */
-	errno_t (*estimate_shift) (item_entity_t *, item_entity_t *,
+	errno_t (*estimate_shift) (place_t *, place_t *,
 				   shift_hint_t *);
 	
 	/* Inserts some amount of units described by passed hint into passed
 	   item. */
-	errno_t (*insert) (item_entity_t *, create_hint_t *, uint32_t);
+	errno_t (*insert) (place_t *, create_hint_t *, uint32_t);
 	
 	/* Performs shift of units from passed @src item to @dst item */
-	errno_t (*shift) (item_entity_t *, item_entity_t *,
-			  shift_hint_t *);
+	errno_t (*shift) (place_t *, place_t *, shift_hint_t *);
 
 	/* Copies some amount of units from @src_item to @dst_item with partial
 	   overwritting. */
-	errno_t (*copy) (item_entity_t *, uint32_t,
-			 item_entity_t *, uint32_t,
+	errno_t (*copy) (place_t *, uint32_t, place_t *, uint32_t,
 			 copy_hint_t *);
 
 	/* Copes @count units from @src_item to @dst_item */
-	errno_t (*rep) (item_entity_t *, uint32_t,
-			item_entity_t *, uint32_t,
+	errno_t (*rep) (place_t *, uint32_t, place_t *, uint32_t,
 			uint32_t);
 	
-	uint32_t (*expand) (item_entity_t *, uint32_t,
-			    uint32_t, uint32_t);
-	
-	uint32_t (*shrink) (item_entity_t *, uint32_t,
-			    uint32_t, uint32_t);
+	uint32_t (*expand) (place_t *, uint32_t, uint32_t, uint32_t);
+	uint32_t (*shrink) (place_t *, uint32_t, uint32_t, uint32_t);
 	
 	/* Removes specified unit from the item. Returns released space */
-	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
+	int32_t (*remove) (place_t *, uint32_t, uint32_t);
 	
 	/* Checks the item structure. */
-	errno_t (*check_struct) (item_entity_t *, uint8_t);
+	errno_t (*check_struct) (place_t *, uint8_t);
 	
 	/* Prints item into specified buffer */
-	errno_t (*print) (item_entity_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (place_t *, aal_stream_t *, uint16_t);
 
 	/* Goes through all blocks item points to. */
-	errno_t (*layout) (item_entity_t *, region_func_t, void *);
+	errno_t (*layout) (place_t *, region_func_t, void *);
 
 	/* Does some specific actions if a block the item points to is wrong. */
-	errno_t (*check_layout) (item_entity_t *, region_func_t,
+	errno_t (*check_layout) (place_t *, region_func_t,
 				 void *, uint8_t);
 
 	/* Set the key of a particular unit of the item. */
-	errno_t (*set_key) (item_entity_t *, uint32_t, key_entity_t *);
+	errno_t (*set_key) (place_t *, uint32_t, key_entity_t *);
 #endif
 	
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
-	int (*mergeable) (item_entity_t *, item_entity_t *);
+	int (*mergeable) (place_t *, place_t *);
 
 	/* Reads passed amount of units from the item. */
-	int32_t (*read) (item_entity_t *, void *, uint32_t,
+	int32_t (*read) (place_t *, void *, uint32_t,
 			 uint32_t);
 
 	/* Returns unit count */
-	uint32_t (*units) (item_entity_t *);
+	uint32_t (*units) (place_t *);
 
 	/* Makes lookup for passed key */
-	lookup_t (*lookup) (item_entity_t *, key_entity_t *, uint32_t *);
+	lookup_t (*lookup) (place_t *, key_entity_t *, uint32_t *);
 
 	/* Returns TRUE is specified item is a nodeptr one. That is, it points
 	   to formatted node in the tree. If this method if not implemented,
@@ -783,17 +765,17 @@ struct reiser4_item_ops {
 	int (*data) (void);
 	
 	/* Get the key of a particular unit of the item. */
-	errno_t (*get_key) (item_entity_t *, uint32_t, key_entity_t *);
+	errno_t (*get_key) (place_t *, uint32_t, key_entity_t *);
 
 	/* Get the max key which could be stored in the item of this type */
-	errno_t (*maxposs_key) (item_entity_t *, key_entity_t *);
+	errno_t (*maxposs_key) (place_t *, key_entity_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Get the max real key which is stored in the item */
-	errno_t (*maxreal_key) (item_entity_t *, key_entity_t *);
+	errno_t (*maxreal_key) (place_t *, key_entity_t *);
 	
 	/* Get the plugin id of the specified type if stored in SD. */
-	rid_t (*get_plugid) (item_entity_t *, uint16_t);
+	rid_t (*get_plugid) (place_t *, uint16_t);
 #endif
 };
 
@@ -945,7 +927,7 @@ struct reiser4_node_ops {
 	uint8_t (*get_level) (object_entity_t *);
 
 	errno_t (*get_item) (object_entity_t *, pos_t *,
-			     item_entity_t *);
+			     place_t *);
 };
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;
@@ -1219,25 +1201,25 @@ struct reiser4_policy_ops {
 typedef struct reiser4_policy_ops reiser4_policy_ops_t;
 #endif
 
-#define PLUGIN_MAX_LABEL	22
-#define PLUGIN_MAX_DESC		64
+#define PLUG_MAX_LABEL	22
+#define PLUG_MAX_DESC	64
 
 typedef struct reiser4_core reiser4_core_t;
 
-typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
-typedef reiser4_plugin_t *(*plugin_init_t) (reiser4_core_t *);
-typedef errno_t (*plugin_func_t) (reiser4_plugin_t *, void *);
+typedef errno_t (*plug_fini_t) (reiser4_core_t *);
+typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
+typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
 
 /* Plugin class descriptor. Used for loading plugins. */
-struct plugin_class {
+struct plug_class {
 	void *data;
 
 	/* Plugin initialization routine */
-	plugin_init_t init;
+	plug_init_t init;
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Plugin finalization routine. */
-	plugin_fini_t fini;
+	plug_fini_t fini;
 
 	/* Plugin location (path for library plugins and address for built-in
 	   ones). This will let user know, that something bad happened to
@@ -1246,15 +1228,15 @@ struct plugin_class {
 #endif
 };
 
-typedef struct plugin_class plugin_class_t;
+typedef struct plug_class plug_class_t;
 
-struct plugin_id {
+struct plug_id {
 	rid_t id;
 	rid_t group;
 	rid_t type;
 };
 
-typedef struct plugin_id plugin_id_t;
+typedef struct plug_id plug_id_t;
 
 #ifndef ENABLE_STAND_ALONE
 #define CLASS_INIT \
@@ -1264,19 +1246,19 @@ typedef struct plugin_id plugin_id_t;
         {NULL, NULL}
 #endif
 
-struct reiser4_plugin {
+struct reiser4_plug {
 	/* Plugin id. This will be used for looking for a plugin. */
-	plugin_id_t id;
+	plug_id_t id;
 	
 	/* Plugin handle. This will be used by plugin factory. */
-	plugin_class_t cl;
+	plug_class_t cl;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Plugin label (name) */
-	const char label[PLUGIN_MAX_LABEL];
+	const char label[PLUG_MAX_LABEL];
 	
 	/* Short plugin description */
-	const char desc[PLUGIN_MAX_DESC];
+	const char desc[PLUG_MAX_DESC];
 #endif
 
 	/* All possible plugin operations */
@@ -1343,14 +1325,14 @@ typedef struct tree_ops tree_ops_t;
 struct factory_ops {
 
 	/* Finds plugin by its attributes (type and id) */
-	reiser4_plugin_t *(*ifind) (rid_t, rid_t);
+	reiser4_plug_t *(*ifind) (rid_t, rid_t);
 	
 	/* Finds plugin by its attributes plus key policy */
-	reiser4_plugin_t *(*pfind) (rid_t, rid_t, key_policy_t);
+	reiser4_plug_t *(*pfind) (rid_t, rid_t, key_policy_t);
 	
 #ifndef ENABLE_STAND_ALONE	
 	/* Finds plugin by its type and name */
-	reiser4_plugin_t *(*nfind) (char *);
+	reiser4_plug_t *(*nfind) (char *);
 #endif
 };
 
@@ -1376,21 +1358,20 @@ struct reiser4_core {
 #endif
 };
 
-#define plugin_equal(plugin1, plugin2)                           \
-        (plugin1->id.group == plugin2->id.group &&               \
-	 plugin1->id.id == plugin2->id.id)
+#define plug_equal(plug1, plug2)                                 \
+        (plug1->id.group == plug2->id.group &&                   \
+	 plug1->id.id == plug2->id.id)
 
 
 /* Makes check is needed method implemengted */
-#define plugin_call(ops, method, ...) ({                         \
+#define plug_call(ops, method, ...) ({                           \
         aal_assert("Method \""#method"\" isn't implemented in "  \
                    ""#ops".", ops->method != NULL);              \
         ops->method(__VA_ARGS__);			         \
 })
 
 #if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
-typedef void (*register_builtin_t) (plugin_init_t,
-				    plugin_fini_t);
+typedef void (*register_builtin_t) (plug_init_t, plug_fini_t);
 #endif
 
 
@@ -1400,25 +1381,25 @@ typedef void (*register_builtin_t) (plugin_init_t,
    support. */
 #if defined(ENABLE_MONOLITHIC)
 
-#define plugin_register(n, i, f)			       \
+#define plug_register(n, i, f)			               \
     extern register_builtin_t __register_builtin;              \
                                                                \
-    static void __plugin_init(void)                            \
+    static void __plug_init(void)                              \
             __attribute__((constructor));                      \
                                                                \
-    static void __plugin_init(void) {                          \
+    static void __plug_init(void) {                            \
 	    __register_builtin(i, f);                          \
     }
 
 #elif defined (ENABLE_STAND_ALONE)
 
-#define plugin_register(n, i, f)                               \
-    plugin_init_t __##n##_plugin_init = i
+#define plug_register(n, i, f)                                 \
+    plug_init_t __##n##_plug_init = i
 #else
 
-#define plugin_register(n, i, f)			       \
-    plugin_init_t __plugin_init = i;                           \
-    plugin_fini_t __plugin_fini = f
+#define plug_register(n, i, f)			               \
+    plug_init_t __plug_init = i;                               \
+    plug_fini_t __plug_fini = f
 
 #endif
 
