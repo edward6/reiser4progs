@@ -424,11 +424,15 @@ rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops,
 			plugid, STAT_PLACE(obj), type);
 
-#ifndef ENABLE_STAND_ALONE
 	/* If nothing found in SD, obtain the default one. */
-	if (pid == INVAL_PID)
+	if (pid == INVAL_PID) {
+#ifndef ENABLE_STAND_ALONE
 		pid = obj->core->param_ops.value(name);
+#else
+		if (type == HASH_PLUG_TYPE)
+			pid = HASH_R5_ID;
 #endif
+	}
 	
 	return pid;
 }
