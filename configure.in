@@ -516,6 +516,12 @@ if test x$enable_stand_alone = xyes; then
 		LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
    	fi
 
+	if test x$enable_large_keys != xyes -a x$enable_short_keys != xyes ; then
+		echo
+		echo Both LARGE and SHORT keys cannot be disabled at the same time.
+		exit 1;
+	fi
+	
     	ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $SYMLINKS_CFLAGS $SPECIAL_CFLAGS \
 $R5_HASH_CFLAGS $FNV1_HASH_CFLAGS $RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS $DEG_HASH_CFLAGS \
 $ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS"
