@@ -12,8 +12,27 @@
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
+static reiser4_plugin_t *reiser4_file_plugin(reiser4_file_t *file) {
+	item_entity_t *item;
+
+	/* Getting file plugin */
+	item = &file->coord.item;
+		
+	if (!item->plugin->item_ops.belongs) {
+		aal_exception_error("Method \"belongs\" is not "
+				    "implemented. Can't find file plugin.");
+		return NULL;
+	}
+
+	return item->plugin->item_ops.belongs(item);
+}
+
 /* Callback function for finding statdata of the current directory */
 static errno_t callback_find_statdata(char *track, char *entry, void *data) {
+	reiser4_place_t *place;
+	object_entity_t *entity;
+	reiser4_plugin_t *plugin;
+	
 	reiser4_file_t *file = (reiser4_file_t *)data;
 
 	/* Setting up the file key */
@@ -33,22 +52,43 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 	if (reiser4_coord_realize(&file->coord))
 		return -1;
 
-	return reiser4_item_get_key(&file->coord, &file->key);
-}
-
-static reiser4_plugin_t *reiser4_file_plugin(reiser4_file_t *file) {
-	item_entity_t *item;
+	if (reiser4_item_get_key(&file->coord, &file->key))
+		return -1;
 
 	/* Getting file plugin */
-	item = &file->coord.item;
-		
-	if (!item->plugin->item_ops.belongs) {
-		aal_exception_error("Method \"belongs\" is not "
-				    "implemented. Can't find file plugin.");
-		return NULL;
+	if (!(plugin = reiser4_file_plugin(file))) {
+		aal_exception_error("Can't find file plugin for %s.",
+				    track);
+		return -1;
 	}
 
-	return item->plugin->item_ops.belongs(item);
+	/* Symlinks handling. Method "follow" should be implemented */
+	if (plugin->file_ops.follow) {
+
+		/* Opening file */
+		place = (reiser4_place_t *)&file->coord;
+		
+		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+					   file->fs->tree, place)))
+		{
+			aal_exception_error("Can't open parent of %s.", track);
+			return -1;
+		}
+
+		if (plugin->file_ops.follow(entity, &file->key)) {
+			aal_exception_error("Can't follow %s.", track);
+			goto error_free_entity;
+		}
+		
+		plugin_call(return -1, plugin->file_ops, close, entity);
+	}
+	
+	reiser4_key_assign(&file->dir, &file->key);
+	return 0;
+
+ error_free_entity:
+	plugin_call(return -1, plugin->file_ops, close, entity);
+	return -1;
 }
 
 /* Callback function for finding passed @entry inside the current directory */
@@ -77,16 +117,6 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 				    "%s.", track);
 		return -1;
 	}
-
-	/* Symlinks handling. Method "follow" should be implemented */
-	if (plugin->file_ops.follow) {
-		if (plugin->file_ops.follow(entity, &file->key)) {
-			aal_exception_error("Can't follow %s.", track);
-			goto error_free_entity;
-		}
-	}
-	
-	reiser4_key_assign(&file->dir, &file->key);
 
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(goto error_free_entity, plugin->file_ops, lookup,

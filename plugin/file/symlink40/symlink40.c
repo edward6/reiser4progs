@@ -50,7 +50,6 @@ static object_entity_t *symlink40_open(void *tree,
 				       reiser4_place_t *place) 
 {
 	key_entity_t *key;
-	key_entity_t rootkey;
 	symlink40_t *symlink;
 
 	aal_assert("umka-1163", tree != NULL, return NULL);
@@ -67,7 +66,9 @@ static object_entity_t *symlink40_open(void *tree,
 	aal_memcpy(&symlink->file.statdata, place, sizeof(*place));
 	file40_lock(&symlink->file, &symlink->file.statdata);
 
-	symlink->file.core->tree_ops.rootkey(symlink->file.tree, &rootkey);
+	symlink->file.core->tree_ops.rootkey(symlink->file.tree,
+					     &symlink->parent);
+	
 	return (object_entity_t *)symlink;
 
  error_free_symlink:
@@ -221,10 +222,21 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	file40_t *file;
-	symlink40_t *symlink = (symlink40_t *)data;
-	key_entity_t *key = &symlink->file.key;
+	key_entity_t *key;
+	item_entity_t *item;
+	symlink40_t *symlink;
+
+	reiser4_place_t *place;
+	object_entity_t *entity;
+	reiser4_plugin_t *plugin;
+
+	symlink = (symlink40_t *)data;
 
 	file = &symlink->file;
+	key = &symlink->file.key;
+	
+	place = &symlink->file.statdata;
+	item = &symlink->file.statdata.item;
 		
 	/* Setting up the file key */
 	plugin_call(return -1, key->plugin->key_ops, set_type,
@@ -240,8 +252,44 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		return -1;
 	}
 
-	return file->core->tree_ops.realize(file->tree,
-					    &file->statdata);
+	if (file->core->tree_ops.realize(file->tree,
+					 &file->statdata))
+		return -1;
+	
+	/* Getting file plugin */
+	if (!(plugin = item->plugin->item_ops.belongs(item))) {
+		aal_exception_error("Can't find file plugin for %s.",
+				    track);
+		return -1;
+	}
+
+	/* Symlinks handling. Method "follow" should be implemented */
+	if (plugin->file_ops.follow) {
+		
+		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+					   symlink->file.tree, place)))
+		{
+			aal_exception_error("Can't open parent of directory "
+					    "%s.", track);
+			return -1;
+		}
+
+		if (plugin->file_ops.follow(entity, &symlink->file.key)) {
+			aal_exception_error("Can't follow %s.", track);
+			goto error_free_entity;
+		}
+
+		plugin_call(return -1, plugin->file_ops, close, entity);
+	}
+	
+	plugin_call(return -1, symlink->file.key.plugin->key_ops,
+		    assign, &symlink->parent, &symlink->file.key);
+
+	return 0;
+
+ error_free_entity:
+	plugin_call(return -1, plugin->file_ops, close, entity);
+	return -1;
 }
 
 static errno_t callback_find_entry(char *track, char *entry,
@@ -273,17 +321,6 @@ static errno_t callback_find_entry(char *track, char *entry,
 		return -1;
 	}
 
-	/* Symlinks handling. Method "follow" should be implemented */
-	if (plugin->file_ops.follow) {
-		if (plugin->file_ops.follow(entity, &symlink->file.key)) {
-			aal_exception_error("Can't follow %s.", track);
-			goto error_free_entity;
-		}
-	}
-
-	plugin_call(goto error_free_entity, symlink->parent.plugin->key_ops,
-		    assign, &symlink->parent, &symlink->file.key);
-	
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(goto error_free_entity, plugin->file_ops, lookup,
 			entity, entry, &symlink->file.key) != PRESENT)
@@ -314,6 +351,7 @@ static errno_t symlink40_follow(object_entity_t *entity,
 	aal_assert("umka-1775", key != NULL, return -1);
 
 	symlink = (symlink40_t *)entity;
+	aal_memset(path, 0, sizeof(path));
 	
 	if (file40_get_symlink(&symlink->file, path))
 		return -1;
