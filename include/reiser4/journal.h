@@ -37,7 +37,7 @@ extern void reiser4_journal_close(reiser4_journal_t *journal);
 extern errno_t reiser4_journal_valid(reiser4_journal_t *journal);
 
 extern errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
-				      action_func_t action_func,
+				      block_func_t func,
 				      void *data);
 
 #endif

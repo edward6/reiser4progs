@@ -72,40 +72,42 @@ static uint32_t format40_get_stamp(object_entity_t *entity) {
 }
 
 static errno_t format40_skipped(object_entity_t *entity,
-				action_func_t action_func,
+				block_func_t func,
 				void *data) 
 {
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
         
+	aal_assert("umka-1086", func != NULL, return -1);
 	aal_assert("umka-1085", entity != NULL, return -1);
-	aal_assert("umka-1086", action_func != NULL, return -1);
     
 	offset = MASTER_OFFSET / format->device->blocksize;
     
 	for (blk = 0; blk < offset; blk++) {
-		if (action_func((object_entity_t *)format, blk, data))
-			return -1;
+		errno_t res;
+		
+		if ((res = func(entity, blk, data)))
+			return res;
 	}
     
 	return 0;
 }
 
 static errno_t format40_layout(object_entity_t *entity,
-			       action_func_t action_func,
+			       block_func_t func,
 			       void *data) 
 {
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
         
 	aal_assert("umka-1042", entity != NULL, return -1);
-	aal_assert("umka-1043", action_func != NULL, return -1);
+	aal_assert("umka-1043", func != NULL, return -1);
     
 	blk = MASTER_OFFSET / format->device->blocksize;
 	offset = FORMAT40_OFFSET / format->device->blocksize;
     
 	for (; blk <= offset; blk++) {
-		if (action_func((object_entity_t *)format, blk, data))
+		if (func(entity, blk, data))
 			return -1;
 	}
     

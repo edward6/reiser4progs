@@ -293,11 +293,11 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
-typedef errno_t (*action_func_t) (object_entity_t *, uint64_t, void *);
-typedef errno_t (*layout_func_t) (object_entity_t *, action_func_t, void *);
+typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
+typedef errno_t (*place_func_t) (object_entity_t *, reiser4_place_t *, void *);
 
-typedef errno_t (*metadata_func_t) (object_entity_t *, reiser4_place_t *,
-				    void *data);
+typedef errno_t (*layout_func_t) (object_entity_t *, block_func_t, void *);
+typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
 
 /* 
    To create a new item or to insert into the item we need to perform the
@@ -469,9 +469,8 @@ typedef struct reiser4_item_hint reiser4_item_hint_t;
 
 typedef struct reiser4_core reiser4_core_t;
 
-typedef reiser4_plugin_t *(*reiser4_plugin_init_t) (reiser4_core_t *);
-
 typedef errno_t (*reiser4_plugin_fini_t) (reiser4_core_t *);
+typedef reiser4_plugin_t *(*reiser4_plugin_init_t) (reiser4_core_t *);
 
 typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
 
@@ -613,13 +612,13 @@ struct reiser4_file_ops {
 	  Function for going throught all metadata blocks specfied file
 	  occupied.
 	*/
-	errno_t (*metadata) (object_entity_t *, metadata_func_t, void *);
+	errno_t (*metadata) (object_entity_t *, place_func_t, void *);
 	
 	/*
 	  Function for going throught the all data blocks specfied file
 	  occupied.
 	*/
-	errno_t (*layout) (object_entity_t *, action_func_t, void *);
+	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 };
 
 typedef struct reiser4_file_ops reiser4_file_ops_t;
@@ -679,18 +678,21 @@ struct reiser4_item_ops {
 
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
 	int (*mergeable) (item_entity_t *, item_entity_t *);
+
+	/* Enumerates all the blocks item's data lies in */
+//	errno_t (*layout) (item_entity_t *, action_func_t, void *);
+	
+	/* Get the key of a particular unit of the item. */
+	errno_t (*get_key) (item_entity_t *, uint32_t, reiser4_key_t *);
+
+	/* Set the key of a particular unit of the item. */
+	errno_t (*set_key) (item_entity_t *, uint32_t, reiser4_key_t *);
 	
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*max_poss_key) (item_entity_t *, reiser4_key_t *);
  
 	/* Get the max real key which is stored in the item */
 	errno_t (*max_real_key) (item_entity_t *, reiser4_key_t *);
-
-	/* Get the key of a particular unit of the item. */
-	errno_t (*get_key) (item_entity_t *, uint32_t, reiser4_key_t *);
-
-	/* Set the key of a particular unit of the item. */
-	errno_t (*set_key) (item_entity_t *, uint32_t, reiser4_key_t *);
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
@@ -940,11 +942,8 @@ struct reiser4_format_ops {
 	/* Returns area where oid data lies */
 	void (*oid) (object_entity_t *, void **, uint32_t *);
 
-	errno_t (*layout) (object_entity_t *,
-			   action_func_t, void *);
-	
-	errno_t (*skipped) (object_entity_t *,
-			    action_func_t, void *);
+	errno_t (*layout) (object_entity_t *, block_func_t, void *);
+	errno_t (*skipped) (object_entity_t *, block_func_t, void *);
 };
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;
@@ -1037,12 +1036,10 @@ struct reiser4_alloc_ops {
 			  uint16_t);
 
 	/* Calls func for each block in block allocator */
-	errno_t (*layout) (object_entity_t *, action_func_t,
-			   void *);
+	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
 	/* Calls func for all block of the same area as blk is. */
-	errno_t (*region) (object_entity_t *, blk_t, 
-			   action_func_t, void *);
+	errno_t (*region) (object_entity_t *, blk_t, block_func_t, void *);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
@@ -1081,7 +1078,7 @@ struct reiser4_journal_ops {
 	errno_t (*check) (object_entity_t *, layout_func_t);
 
 	/* Calls func for each block in block allocator */
-	errno_t (*layout) (object_entity_t *, action_func_t,
+	errno_t (*layout) (object_entity_t *, block_func_t,
 			   void *);
 };
 

@@ -12,12 +12,7 @@ static reiser4_core_t *core = NULL;
 
 /* Names of levels nodes lie on. It is used for node40_print function */
 static char *levels[6] = {
-	"LEAF",
-	"LEAF",
-	"TWIG",
-	"INTERNAL",
-	"INTERNAL",
-	"INTERNAL"
+	"LEAF", "LEAF", "TWIG",	"INTERNAL", "INTERNAL",	"INTERNAL"
 };
 
 /* Returns item header by pos */
@@ -862,9 +857,7 @@ static errno_t node40_predict_units(node40_t *src_node,
  		if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
 			goto out;
 	} else {
-		uint32_t items = nh40_get_num_items(src_node);
-		
-		if (hint->pos.item == items && hint->pos.unit == ~0ul)
+		if (hint->pos.item == src_items && hint->pos.unit == ~0ul)
 			goto out;
 	}
 
@@ -937,6 +930,7 @@ static errno_t node40_predict_units(node40_t *src_node,
 		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
 			return -1;
 
+		dst_items++;
 		hint->items++;
 	} else {
 		if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
@@ -948,7 +942,8 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  neighbour item.
 	*/
 	if (hint->flags & SF_MOVIP) {
-		hint->pos.item = hint->flags & SF_LEFT ? dst_items - 1 : 0;
+		hint->pos.item = hint->flags & SF_LEFT ?
+			dst_items - 1 : 0;
 	}
 		
 	return 0;
@@ -1050,7 +1045,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 	if (plugin_call(return -1, src_item.plugin->item_ops,
 			shift, &src_item, &dst_item, hint))
 		return -1;
-	
+
 	/* Updating source node fields */
 	pos.item = src_item.pos.item;
 

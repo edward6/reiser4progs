@@ -175,18 +175,18 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	}
 		
 	switch (reiser4_fs_belongs(fs, blk)) {
-	case RB_SKIPPED:
+	case O_SKIPPED:
 		aal_exception_info("Block %llu belongs to skipped area.", blk);
 		return 0;
-	case RB_FORMAT:
+	case O_FORMAT:
 		aal_exception_info("Sorry, printing format area blocks is not "
 				   "implemented yet!");
 		return 0;
-	case RB_JOURNAL:
+	case O_JOURNAL:
 		aal_exception_info("Sorry, printing journal area blocks is not "
 				   "implemented yet!");
 		return 0;
-	case RB_ALLOC:
+	case O_ALLOC:
 		aal_exception_info("Sorry, printing block allocator blocks is not "
 				   "implemented yet!");
 		return 0;
@@ -867,9 +867,9 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 
 	if (file->entity->plugin->h.group == REGULAR_FILE)
 		res = debugfs_file_cat(file);
-	else if (file->entity->plugin->h.group == DIRTORY_FILE) {
+	else if (file->entity->plugin->h.group == DIRTORY_FILE)
 		res = debugfs_file_ls(file);
-	} else {
+	else {
 		aal_exception_info("Sorry, browing special files and symlinks "
 				   "is not implemented yet.");
 	}

@@ -191,15 +191,15 @@ struct reiser4_file {
 
 typedef struct reiser4_file reiser4_file_t;
 
-enum reiser4_belong {
-	RB_SKIPPED  = 1 << 0,
-	RB_FORMAT   = 1 << 1,
-	RB_JOURNAL  = 1 << 2,
-	RB_ALLOC    = 1 << 3,
-	RB_UNKNOWN  = 1 << 5
+enum reiser4_owner {
+	O_SKIPPED  = 1 << 0,
+	O_FORMAT   = 1 << 1,
+	O_JOURNAL  = 1 << 2,
+	O_ALLOC    = 1 << 3,
+	O_UNKNOWN  = 1 << 5
 };
 
-typedef enum reiser4_belong reiser4_belong_t;
+typedef enum reiser4_owner reiser4_owner_t;
 
 /* Reiser4 disk-format in-memory structure */
 struct reiser4_format {
@@ -387,11 +387,11 @@ extern aal_device_t *reiser4_fs_host_device(reiser4_fs_t *fs);
 extern aal_device_t *reiser4_fs_journal_device(reiser4_fs_t *fs);
 
 extern errno_t reiser4_fs_layout(reiser4_fs_t *fs,
-				 action_func_t action_func, 
+				 block_func_t func, 
 				 void *data);
 
-extern reiser4_belong_t reiser4_fs_belongs(reiser4_fs_t *fs,
-					   blk_t blk);
+extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
+					  blk_t blk);
 	
 #endif
 

@@ -18,23 +18,25 @@ static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t journal40_plugin;
 
 static errno_t journal40_layout(object_entity_t *entity,
-				action_func_t action_func,
+				block_func_t func,
 				void *data)
 {
 	blk_t blk;
-	journal40_t *journal = (journal40_t *)entity;
+	journal40_t *journal;
+
+	aal_assert("umka-1040", entity != NULL, return -1);
+	aal_assert("umka-1041", func != NULL, return -1);
     
-	aal_assert("umka-1040", journal != NULL, return -1);
-	aal_assert("umka-1041", action_func != NULL, return -1);
-    
+	journal = (journal40_t *)entity;
+	
 	blk = JOURNAL40_HEADER / aal_device_get_bs(journal->device);
     
-	if (action_func(entity, blk, data))
+	if (func(entity, blk, data))
 		return -1;
     
 	blk = JOURNAL40_FOOTER / aal_device_get_bs(journal->device);
     
-	if (action_func(entity, blk, data))
+	if (func(entity, blk, data))
 		return -1;
 
 	return 0;

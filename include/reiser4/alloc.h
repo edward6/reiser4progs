@@ -58,10 +58,9 @@ extern count_t reiser4_alloc_used(reiser4_alloc_t *alloc);
 extern int reiser4_alloc_test(reiser4_alloc_t *alloc, blk_t blk);
 
 extern errno_t reiser4_alloc_region(reiser4_alloc_t *alloc, blk_t blk, 
-				    action_func_t action_func, void *data);
+				    block_func_t func, void *data);
 
 extern errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc, 
-				    action_func_t action_func,
-				    void *data);
+				    block_func_t func, void *data);
 #endif
 

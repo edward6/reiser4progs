@@ -19,21 +19,27 @@ extern reiser4_plugin_t alloc40_plugin;
 
 /* Call func for all blocks which belong to the same bitmap block as blk. */
 errno_t alloc40_region(object_entity_t *entity, blk_t blk, 
-		       action_func_t action_func, void *data) 
+		       block_func_t func, void *data) 
 {
 	uint64_t size, i;
+	alloc40_t *alloc;
 	aal_device_t *device;
-	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("vpf-554", alloc != NULL, return -1);
+	aal_assert("vpf-554", entity != NULL, return -1);
+	aal_assert("umka-1746", func != NULL, return -1);
+
+	alloc = (alloc40_t *)entity;
+	
 	aal_assert("vpf-554", alloc->bitmap != NULL, return -1);
 	aal_assert("vpf-554", alloc->device != NULL, return -1);
-
+	
 	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
     
 	for (i = blk / size; i < blk / size + size; i++) {
-		if (action_func(entity, i, data))
-			return -1;
+		errno_t res;
+		
+		if ((res = func(entity, i, data)))
+			return res;
 	}
 
 	return 0;    
@@ -41,18 +47,18 @@ errno_t alloc40_region(object_entity_t *entity, blk_t blk,
 
 /* Calls func for each block allocator block */
 static errno_t alloc40_layout(object_entity_t *entity,
-			      action_func_t action_func,
+			      block_func_t func,
 			      void *data) 
 {
 	count_t bpb;
+	alloc40_t *alloc;
 	blk_t blk, start;
 	uint32_t blocksize;
 	
-	alloc40_t *alloc = (alloc40_t *)entity;
-	
 	aal_assert("umka-347", entity != NULL, return -1);
-	aal_assert("umka-348", action_func != NULL, return -1);
+	aal_assert("umka-348", func != NULL, return -1);
 
+	alloc = (alloc40_t *)entity;
 	blocksize = aal_device_get_bs(alloc->device);
 	
 	bpb = (blocksize - CRC_SIZE) * 8;
@@ -61,8 +67,10 @@ static errno_t alloc40_layout(object_entity_t *entity,
 	for (blk = start; blk < start + alloc->bitmap->total;
 	     blk = (blk / bpb + 1) * bpb) 
 	{
-		if (action_func(entity, blk, data))
-			return -1;
+		errno_t res;
+		
+		if ((res = func(entity, blk, data)))
+			return res;
 	}
     
 	return 0;

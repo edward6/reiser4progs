@@ -66,11 +66,11 @@ extern rpid_t reiser4_format_alloc_pid(reiser4_format_t *format);
 extern rpid_t reiser4_format_oid_pid(reiser4_format_t *format);
 
 extern errno_t reiser4_format_skipped(reiser4_format_t *format, 
-				      action_func_t action_func,
+				      block_func_t func,
 				      void *data);
 
 extern errno_t reiser4_format_layout(reiser4_format_t *format, 
-				     action_func_t action_func,
+				     block_func_t func,
 				     void *data);
 
 #endif

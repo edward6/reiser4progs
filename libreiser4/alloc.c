@@ -240,27 +240,28 @@ int reiser4_alloc_test(
 }
 
 errno_t reiser4_alloc_region(
-	reiser4_alloc_t *alloc, blk_t blk, 
-	action_func_t action_func, 
+	reiser4_alloc_t *alloc,
+	blk_t blk,
+	block_func_t func, 
 	void *data)
 {
 	aal_assert("vpf-557", alloc != NULL, return 0);
-	aal_assert("umka-1685", action_func != NULL, return 0);
+	aal_assert("umka-1685", func != NULL, return 0);
 
 	return plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
-			   region, alloc->entity, blk, action_func, data);
+			   region, alloc->entity, blk, func, data);
 }
 
 errno_t reiser4_alloc_layout(
 	reiser4_alloc_t *alloc, 
-	action_func_t action_func,
+	block_func_t func,
 	void *data)
 {
 	aal_assert("umka-1080", alloc != NULL, return -1);
-	aal_assert("umka-1081", action_func != NULL, return -1);
+	aal_assert("umka-1081", func != NULL, return -1);
 
 	return plugin_call(return -1, alloc->entity->plugin->alloc_ops,
-			   layout, alloc->entity, action_func, data);
+			   layout, alloc->entity, func, data);
 }
 
 errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk) {

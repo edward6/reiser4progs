@@ -294,7 +294,7 @@ static int32_t reg40_write(object_entity_t *entity,
 }
 
 static errno_t reg40_layout(object_entity_t *entity,
-			    action_func_t func,
+			    block_func_t func,
 			    void *data)
 {
 	errno_t res;
@@ -359,7 +359,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 }
 
 static errno_t reg40_metadata(object_entity_t *entity,
-			      metadata_func_t func,
+			      place_func_t func,
 			      void *data)
 {
 	errno_t res;

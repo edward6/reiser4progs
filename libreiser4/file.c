@@ -433,7 +433,7 @@ errno_t reiser4_file_seek(
 
 errno_t reiser4_file_layout(
 	reiser4_file_t *file,       /* file we working with */
-	action_func_t func,         /* layout callback */
+	block_func_t func,          /* layout callback */
 	void *data)                 /* user-spaecified data */
 {
 	aal_assert("umka-1469", file != NULL, return -1);
@@ -448,7 +448,7 @@ errno_t reiser4_file_layout(
 
 errno_t reiser4_file_metadata(
 	reiser4_file_t *file,       /* file we working with */
-	metadata_func_t func,       /* layout callback */
+	place_func_t func,          /* metadata layout callback */
 	void *data)                 /* user-spaecified data */
 {
 	aal_assert("umka-1714", file != NULL, return -1);

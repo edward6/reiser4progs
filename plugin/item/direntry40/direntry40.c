@@ -1065,6 +1065,7 @@ static reiser4_plugin_t direntry40_plugin = {
 
 		.shift          = direntry40_shift,
 		.predict        = direntry40_predict,
+//		.layout         = direntry40_layout,
 #else
 		.init		= NULL,
 		.estimate	= NULL,
@@ -1075,6 +1076,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.mergeable      = NULL,
 		.shift          = NULL,
 		.predict        = NULL,
+//		.layout         = NULL,
 #endif
 		.valid		= NULL,
 		.open           = NULL,

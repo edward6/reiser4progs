@@ -130,14 +130,14 @@ reiser4_journal_t *reiser4_journal_create(
 }
 
 errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
-			       action_func_t action_func,
+			       block_func_t func,
 			       void *data)
 {
 	aal_assert("umka-1078", journal != NULL, return -1);
-	aal_assert("umka-1079", action_func != NULL, return -1);
+	aal_assert("umka-1079", func != NULL, return -1);
 
 	return plugin_call(return -1, journal->entity->plugin->journal_ops,
-			   layout, journal->entity, action_func, data);
+			   layout, journal->entity, func, data);
 }
 
 /* Replays specified journal. Returns error code */

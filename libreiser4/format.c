@@ -335,23 +335,23 @@ rpid_t reiser4_format_oid_pid(
 }
 
 errno_t reiser4_format_skipped(reiser4_format_t *format, 
-			       action_func_t action_func,
+			       block_func_t func,
 			       void *data)
 {
 	aal_assert("umka-1083", format != NULL, return -1);
-	aal_assert("umka-1084", action_func != NULL, return -1);
+	aal_assert("umka-1084", func != NULL, return -1);
 
 	return plugin_call(return -1, format->entity->plugin->format_ops,
-			   skipped, format->entity, action_func, data);
+			   skipped, format->entity, func, data);
 }
 
 errno_t reiser4_format_layout(reiser4_format_t *format, 
-			      action_func_t action_func,
+			      block_func_t func,
 			      void *data)
 {
 	aal_assert("umka-1076", format != NULL, return -1);
-	aal_assert("umka-1077", action_func != NULL, return -1);
+	aal_assert("umka-1077", func != NULL, return -1);
 
 	return plugin_call(return -1, format->entity->plugin->format_ops,
-			   layout, format->entity, action_func, data);
+			   layout, format->entity, func, data);
 }

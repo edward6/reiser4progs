@@ -37,11 +37,11 @@ extern errno_t reiser4_file_truncate(reiser4_file_t *file,
 				     uint64_t n);
 
 extern errno_t reiser4_file_layout(reiser4_file_t *file,
-				   action_func_t func,
+				   block_func_t func,
 				   void *data);
 
 extern errno_t reiser4_file_metadata(reiser4_file_t *file,
-				     metadata_func_t func,
+				     place_func_t func,
 				     void *data);
 #endif
 

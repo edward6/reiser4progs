@@ -14,19 +14,19 @@
 /* Enumerates all filesystem areas (block alloc, journal, etc.) */
 errno_t reiser4_fs_layout(
 	reiser4_fs_t *fs,
-	action_func_t action_func, 
+	block_func_t func, 
 	void *data)
 {
-	if (reiser4_format_skipped(fs->format, action_func, data))
+	if (reiser4_format_skipped(fs->format, func, data))
 		return -1;
 	
-	if (reiser4_format_layout(fs->format, action_func, data))
+	if (reiser4_format_layout(fs->format, func, data))
 		return -1;
     
-	if (reiser4_journal_layout(fs->journal, action_func, data))
+	if (reiser4_journal_layout(fs->journal, func, data))
 		return -1;
     
-	return reiser4_alloc_layout(fs->alloc, action_func, data);
+	return reiser4_alloc_layout(fs->alloc, func, data);
 }
 
 /* 
@@ -152,25 +152,25 @@ static errno_t callback_check_block(
 	return -(blk == *(uint64_t *)data);
 }
 
-reiser4_belong_t reiser4_fs_belongs(
+reiser4_owner_t reiser4_fs_belongs(
 	reiser4_fs_t *fs,
 	blk_t blk)
 {
 	aal_assert("umka-1534", fs != NULL, return -1);
 
 	if (reiser4_format_skipped(fs->format, callback_check_block, &blk) != 0)
-		return RB_SKIPPED;
+		return O_SKIPPED;
 	
 	if (reiser4_format_layout(fs->format, callback_check_block, &blk) != 0)
-		return RB_FORMAT;
+		return O_FORMAT;
 
 	if (reiser4_journal_layout(fs->journal, callback_check_block, &blk) != 0)
-		return RB_JOURNAL;
+		return O_JOURNAL;
 
 	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk) != 0)
-		return RB_ALLOC;
+		return O_ALLOC;
 
-	return RB_UNKNOWN;
+	return O_UNKNOWN;
 }
 
 #ifndef ENABLE_COMPACT

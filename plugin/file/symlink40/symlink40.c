@@ -177,32 +177,32 @@ static int32_t symlink40_write(object_entity_t *entity,
 }
 
 static errno_t symlink40_metadata(object_entity_t *entity,
-			      metadata_func_t metadata_func,
+			      place_func_t func,
 			      void *data)
 {
 	symlink40_t *symlink;
 
+	aal_assert("umka-1719", func != NULL, return -1);
 	aal_assert("umka-1718", entity != NULL, return -1);
-	aal_assert("umka-1719", metadata_func != NULL, return -1);
 
 	symlink = (symlink40_t *)entity;
-	return metadata_func(entity, &symlink->file.statdata, data);
+	return func(entity, &symlink->file.statdata, data);
 }
 
 static errno_t symlink40_layout(object_entity_t *entity,
-				action_func_t action_func,
+				block_func_t func,
 				void *data)
 {
 	blk_t blk;
 	symlink40_t *symlink;
 
+	aal_assert("umka-1721", func != NULL, return -1);
 	aal_assert("umka-1720", entity != NULL, return -1);
-	aal_assert("umka-1721", action_func != NULL, return -1);
 
 	symlink = (symlink40_t *)entity;
 	blk = symlink->file.statdata.entity.con.blk;
 		
-	return action_func(entity, blk, data);
+	return func(entity, blk, data);
 }
 
 #endif
