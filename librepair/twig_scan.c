@@ -109,7 +109,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 	if (node == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);
-	    return -1;
+	    return -EINVAL;
 	}
 
 	entity = node->entity;
@@ -129,7 +129,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 error_node_free:
     reiser4_node_close(node);
 
-    return -1;
+    return -EINVAL;
 }
 
 

@@ -36,7 +36,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 	if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO, 
 	    "Master super block cannot be found. Do you want to build a new "
 	    "one on (%s)?", aal_device_name(fs->device)) == EXCEPTION_NO)
-	    return -1;
+	    return -EINVAL;
 
 	blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL, 
 	    "Which block size do you use?");
@@ -52,7 +52,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 	    blocksize, NULL, NULL))) 
 	{
 	    aal_exception_fatal("Cannot create a new master super block.");
-	    return -1;
+	    return -EINVAL;
 	} else 
 	    /* Will be printed if verbose. */
 	    aal_exception_info("A new master superblock was created on (%s).", 
@@ -76,7 +76,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
     if (aal_device_set_bs(fs->device, reiser4_master_blocksize(fs->master))) {
         aal_exception_fatal("Invalid block size was specified (%u). It must "
 	    "be power of two.", reiser4_master_blocksize(fs->master));
-	return -1;
+	return -EINVAL;
     }
     
     return 0;
@@ -84,6 +84,8 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 
 /* Opens and checks the master. */
 errno_t repair_master_open(reiser4_fs_t *fs) {
+    errno_t ret;
+    
     aal_assert("vpf-399", fs != NULL);
     aal_assert("vpf-729", fs->device != NULL);
 
@@ -91,7 +93,7 @@ errno_t repair_master_open(reiser4_fs_t *fs) {
     fs->master = reiser4_master_open(fs->device);
 
     /* Either check the opened master or build a new one. */
-    if (repair_master_check(fs))
+    if ((ret = repair_master_check(fs)))
 	goto error_master_free;
  
     return 0;
@@ -102,6 +104,6 @@ error_master_free:
 	fs->master = NULL;
     }
  
-    return -1;
+    return ret;
 }
 

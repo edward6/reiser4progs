@@ -91,7 +91,7 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     }
     
     /* There are no fatal errors, check delimiting keys. */
-    if ((res = repair_node_dkeys_check(node)) < 0)
+    if ((res = repair_node_dkeys_check(node)) < 0 && res != -ESTRUCT)
 	return res;
     
     if (res) {
@@ -117,7 +117,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
     {
 	aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to fetch "
 	    "the node pointer.", place->node, place->pos.item, place->pos.unit);
-	return -1;
+	return -EINVAL;
     }
     
     /* FIXME: as a result layout of nodeptr items is checked automatically, what
@@ -145,7 +145,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 	    if (reiser4_node_remove(place->node, &place->pos, 1)) {
 		aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.",
 		    place->node->blk, place->pos.item, place->pos.unit);
-		return -1;
+		return -EINVAL;
 	    }
 	
 	    place->pos = ppos;
@@ -179,7 +179,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to "
 	    "fetch the node pointer.", place->node, place->pos.item, 
 	    place->pos.unit);
-	return -1;
+	return -EINVAL;
     }
 
     if (fd->flags) {
@@ -228,7 +228,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	    if (reiser4_node_remove(place->node, &place->pos, 1)) {
 		aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
 		    place->node->blk, place->pos.item, place->pos.unit);
-		return -1;
+		return -EINVAL;
 	    }
 	
 	    place->pos = prev;
@@ -306,7 +306,7 @@ static void repair_filter_update(repair_filter_t *fd) {
  * nodes in corresponding bitmaps. */
 errno_t repair_filter(repair_filter_t *fd) {
     traverse_hint_t hint;
-    errno_t res = -1;
+    errno_t res;
 
     aal_assert("vpf-536", fd != NULL);
     aal_assert("vpf-814", fd->fs != NULL);

@@ -118,7 +118,7 @@ static errno_t callback_check_format_block(object_entity_t *format, blk_t blk,
 }
 
 /* Check if blk belongs to format area. */
-static int journal40_blk_format_check(journal40_t *journal, blk_t blk, 
+static errno_t journal40_blk_format_check(journal40_t *journal, blk_t blk, 
     journal40_check_t *data) 
 {
     aal_assert("vpf-490", journal != NULL);
@@ -127,14 +127,15 @@ static int journal40_blk_format_check(journal40_t *journal, blk_t blk,
     /* blk is out of format bound */
     if (blk >= journal->area.start + journal->area.len || 
 	blk < journal->area.start) 
-	return 1;
+	return -ESTRUCT;
 
     /* If blk can be from format area, nothing to check anymore. */
     if (!(data->flags & (1 << TF_DATA_AREA_ONLY)))
 	return 0;
 	
     /* blk belongs to format area */
-    return data->fs_layout(data->layout, callback_check_format_block, &blk);
+    return data->fs_layout(data->layout, callback_check_format_block, &blk) ? 
+	-ESTRUCT : 0;
 }
 
 /* TxH callback for nested traverses. Should find the transaction which TxH 
@@ -150,7 +151,7 @@ static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk,
     if (check_data->wanted_blk == blk) {
 	/* wanted_blk equals blk already. */
 	check_data->found_type = TXH;
-	return 1;
+	return -ESTRUCT;
     }
  
     /* If the current transaction was reached and traverse should stop here. */
@@ -158,7 +159,7 @@ static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk,
 	(check_data->flags & (1 << TF_SAME_TXH_BREAK))) 
     {
 	check_data->found_type = 0;
-	return 1;
+	return -ESTRUCT;
     }
  
     return 0;    
@@ -175,7 +176,7 @@ static errno_t callback_find_sec_blk(object_entity_t *entity,
     if (check_data->wanted_blk == blk) {
 	check_data->wanted_blk = aal_block_number(txh_block);
 	check_data->found_type = blk_type;
-	return 1;
+	return -ESTRUCT;
     }
 
     return 0;
@@ -196,18 +197,18 @@ static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk,
 
     check_data->flags = 1 << TF_DATA_AREA_ONLY;
     
-    if ((ret = journal40_blk_format_check(journal, blk, check_data))) {
+    if (journal40_blk_format_check(journal, blk, check_data)) {
 	aal_exception_error("Transaction header lies in the illegal block "
 	    "(%llu) for the used format (%s).", blk, 
 	    journal->format->plugin->h.label);
-	return ret;
+	return -ESTRUCT;
     }
 
     if (aux_bitmap_test(check_data->journal_layout, blk)) {
 	/* TxH block is met not for the 1 time. Kill the journal. */
 	aal_exception_error("Transaction header in the block (%llu) was met "
 	    "already.", blk);
-	return 1;
+	return -ESTRUCT;
     }
     
     aux_bitmap_mark(check_data->journal_layout, blk);
@@ -240,11 +241,11 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
      * is not from format area. */
     check_data->flags = blk_type == ORG ? 0 : 1 << TF_DATA_AREA_ONLY;
     
-    if ((ret = journal40_blk_format_check(journal, blk, check_data))) {
+    if (journal40_blk_format_check(journal, blk, check_data)) {
 	aal_exception_error("%s lies in the illegal block (%llu) for the used "
 	    "format (%s).", __blk_type_name(blk_type), blk, 
 	    journal->format->plugin->h.label);
-	return ret;
+	return -ESTRUCT;
     }
 
     /* Read the block and check the magic for LGR. */
@@ -265,7 +266,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		" Log Record Magic was not found.", 
 		check_data->cur_txh, blk);
 	    aal_block_close(log_block);
-	    return 1;
+	    return -ESTRUCT;
 	}
 
 	aal_block_close(log_block);
@@ -278,7 +279,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    aal_exception_error("Transaction Header (%llu): %s block (%llu) "
 		"was met in the transaction more then once.", 
 		check_data->cur_txh, __blk_type_name(blk_type), blk);
-	    return 1;
+	    return -ESTRUCT;
 	}
 	
 	/* Block was met before. */
@@ -298,15 +299,13 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		/* Find the place we met blk previous time. */
 		check_data->wanted_blk = blk;
 
-		/* FIXME-UMKA->VITALY: Is this correct, that return value is
-		 * checked for 1, not for zero? */
 		if ((ret = journal40_traverse(journal, NULL, NULL, 
-		    callback_find_sec_blk, check_data)) != 1) 
+		    callback_find_sec_blk, check_data)) != -ESTRUCT) 
 		{
 		    aal_exception_bug("Traverse which should find a transaction"
 			" the block (%llu) was met for the first time returned "
 			"the unexpected value (%d).", blk, ret);
-		    return -EINVAL;
+		    return ret;
 		}
 		/* Found trans is the oldest problem, return it to caller. */
 		aal_exception_error("Transaction Header (%llu): transaction "
@@ -315,28 +314,27 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		    check_data->wanted_blk);
 		
 		check_data->cur_txh = check_data->wanted_blk;
-	    } else if (ret < 0) {
+	    } else if (ret != -ESTRUCT) {
 		aal_exception_error("Transaction Header (%llu): corrupted log "
 		    "record circle found.", aal_block_number(txh_block));
+
 		return ret;
 	    }
 
-	    return 1;
+	    return -ESTRUCT;
 	} else if (blk_type == WAN) {
 	    /* Run the whole traverse to find the transaction we met blk for the first 
 	     * time and get its type. */	    
 	    check_data->wanted_blk = blk;
 	    check_data->flags = 0;
 
-	    /* FIXME-UMKA->VITALY: Is this correct, that return value is checked
-	     * for 1, not for zero? */
 	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
-		callback_find_sec_blk, check_data)) != 1)
+		callback_find_sec_blk, check_data)) != -ESTRUCT)
 	    {
 		aal_exception_bug("Traverse which should find a transaction"
 		    " the block (%llu) was met for the first time returned "
 		    "the unexpected value (%d).", blk, ret);
-		return -EINVAL;
+		return ret;
 	    }
 
 	    aal_exception_error("Transaction Header (%llu): transaction "
@@ -350,10 +348,10 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    if (check_data->found_type == WAN || check_data->found_type == ORG)
 		check_data->cur_txh = check_data->wanted_blk;
 
-	    return 1;
+	    return -ESTRUCT;
 	} else if (blk_type == ORG) {
 	    /* It could be met before as TxH block of a next trans or as any 
-	     * other block of previous trans. It is legal tp meet it in a 
+	     * other block of previous trans. It is legal to meet it in a 
 	     * previous trans. Run traverse with one txh callback to check for 
 	     * next trans' TxH blocks. */
 	    check_data->wanted_blk = blk;
@@ -361,15 +359,13 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    /* Stop looking through TxH's when reach the current trans. */
 	    check_data->flags = (1 << TF_SAME_TXH_BREAK);
 
-	    /* FIXME-UMKA->VITALY: Is this correct, that return value is checked
-	     * for 1, not for zero? */
 	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
-		NULL, check_data)) != 1)
+		NULL, check_data)) != -ESTRUCT)
 	    {
 		aal_exception_bug("Traverse which should find a transaction"
 		    " the block (%llu) was met for the first time returned "
 		    "the unexpected value (%d).", blk, ret);
-		return -EINVAL;
+		return ret;
 	    }
 
 	    /* If TxH was found, the current transaction is the oldest problem 
@@ -379,7 +375,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		    "location (%llu) was met before as a Transaction Header "
 		    "of one of the next transactions.", check_data->cur_txh, 
 		    blk);
-		return 1;
+		return -ESTRUCT;
 	    }
 	}
     }
@@ -415,7 +411,7 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
 	aal_exception_error("Failed to allocate a control bitmap for journal "
 	    "layout.");
 	return -ENOMEM;
-    }    
+    }
      
     if (!(data.current_layout = aux_bitmap_create(data.fs_len))) {
 	aal_exception_error("Failed to allocate a control bitmap of the current "
@@ -423,11 +419,12 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
 	return -ENOMEM;
     }    
     
-    if ((ret = journal40_traverse((journal40_t *)entity, NULL, 
-	callback_journal_txh_check, callback_journal_sec_check, &data)) < 0)
+    ret = journal40_traverse((journal40_t *)entity, NULL, 
+	callback_journal_txh_check, callback_journal_sec_check, &data);
+    
+    if (ret && ret != -ESTRUCT)
 	return ret;
-
-
+    
     if (ret) {
 	/* Journal should be updated */
 	if (!data.cur_txh) {

@@ -68,27 +68,27 @@ static errno_t repair_filter_prepare(repair_data_t *rd, repair_filter_t *filter)
      * super block, journal, bitmaps. */
     if (!(rd->bm_used = filter->bm_used = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of format layout.");
-	return -1;
+	return -EINVAL;
     }
 
     /* Mark all format area block in the bm_used bitmap. */
     if (repair_fs_layout(rd->fs, callback_format_mark, rd->bm_used)) {
 	aal_exception_error("Failed to mark the filesystem area as used in "
 	    "the bitmap.");
-	return -1;
+	return -EINVAL;
     }
     
     /* A bitmap of leaves removed from the tree and to be inserted back. */
     if (!(rd->bm_leaf = filter->bm_leaf = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of leaves removed "
 	    " from the tree and to be inserted later back item-by-item.");
-	return -1;
+	return -EINVAL;
     }
     
     /* Allocate a bitmap of twig blocks in the tree. */
     if (!(rd->bm_twig = filter->bm_twig = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of twig blocks.");
-	return -1;
+	return -EINVAL;
     }
  
     /* Allocate a bitmap of formatted blocks which cannot be pointed by 
@@ -96,7 +96,7 @@ static errno_t repair_filter_prepare(repair_data_t *rd, repair_filter_t *filter)
     if (!(rd->bm_met = filter->bm_met = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of broken formatted "
 	    "blocks.");
-	return -1;
+	return -EINVAL;
     }
 
     return 0; 
@@ -143,7 +143,7 @@ static errno_t repair_ds_prepare(repair_data_t *rd, repair_ds_t *ds) {
     if (!(rd->bm_unfm_tree = ds->bm_scan = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of blocks unconnected"
 	    " from the tree.");
-	return -1;
+	return -EINVAL;
     }
 
     /* Build a bitmap of what was met already. */
@@ -196,7 +196,7 @@ static errno_t repair_ts_prepare(repair_data_t *rd, repair_ts_t *ts) {
     if (!(rd->bm_unfm_out = ts->bm_unfm_tree = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of unformatted blocks "
 	    "pointed by extents which are not in the tree.");
-	return -1;
+	return -EINVAL;
     }
 
     return 0;

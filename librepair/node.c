@@ -24,7 +24,7 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
     if (reiser4_place_realize(&place)) {
 	aal_exception_error("Node (%llu): Failed to open the item (%u).",
 	    node->blk, place.pos.item);
-	return -1;
+	return -EINVAL;
     }
  
     if (reiser4_item_branch(&place)) {
@@ -35,15 +35,15 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
 	
 	if (plugin_call(item->plugin->item_ops, read, item, 
 	    &ptr, place.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
-	    return -1;
+	    return -EINVAL;
 
 	if (!(child = reiser4_node_open(place.node->device, ptr.ptr))) 
-	    return -1;
+	    return -EINVAL;
 	
 	res = repair_node_max_real_key(child, key);
 	
 	if (reiser4_node_close(child))
-	    return -1;
+	    return -EINVAL;
     } else 
 	res = reiser4_item_utmost_key(&place, key);
 
@@ -77,7 +77,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     pos_t *pos = &place.pos;
     uint32_t count;
     int32_t len;
-    errno_t res = REPAIR_OK;
+    errno_t ret, res = REPAIR_OK;
 
     aal_assert("vpf-229", node != NULL);
     aal_assert("vpf-230", node->entity != NULL);
@@ -96,10 +96,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		"Removed." : "");
 	    
 	    if (mode == REPAIR_REBUILD) {
-		if (reiser4_node_remove(node, pos, 1)) {
+		if ((ret = reiser4_node_remove(node, pos, 1))) {
 		    aal_exception_bug("Node (%llu): Failed to delete the item "
 			"(%d).", node->blk, pos->item);
-		    return -1;
+		    return ret;
 		}
 		pos->item--;
 		count = reiser4_node_items(node);
@@ -123,11 +123,11 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	}
 
 	/* Check the item structure. */
-	res |= repair_item_check(&place, mode);
+	if ((ret = repair_item_check(&place, mode)) < 0)
+	    return ret;
 	
-	if (res < 0)
-	    return res;
-    
+	res |= ret;
+	
 	if (res & REPAIR_REMOVED) {
 	    pos->item--;
 	    count = reiser4_node_items(node);
@@ -172,15 +172,15 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 static errno_t repair_node_ld_key_fetch(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
-    errno_t res;
-
+    errno_t ret;
+    
     aal_assert("vpf-501", node != NULL);
     aal_assert("vpf-344", ld_key != NULL);
     aal_assert("vpf-407", ld_key->plugin != NULL);
 
     if (node->parent.node != NULL) {
-	if (reiser4_item_get_key(&node->parent, ld_key))
-	    return -1;
+	if ((ret = reiser4_item_get_key(&node->parent, ld_key)))
+	    return ret;
     } else
 	reiser4_key_minimal(ld_key);
     
@@ -191,8 +191,6 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
-    errno_t res;
-    
     aal_assert("vpf-467", node != NULL);
     aal_assert("vpf-468", ld_key != NULL);
     aal_assert("vpf-469", ld_key->plugin != NULL);
@@ -206,7 +204,7 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
 /* Sets to the @key the right delimiting key of the node kept in the parent. */
 errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     reiser4_place_t place;
-    errno_t res;
+    errno_t ret;
     
     aal_assert("vpf-502", node != NULL);
     aal_assert("vpf-347", rd_key != NULL);
@@ -215,8 +213,8 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     if (node->parent.node != NULL) {
 	/* Take the right delimiting key from the parent. */
 	
-	if (reiser4_node_pos(node, NULL))
-	    return -1;
+	if ((ret = reiser4_node_pos(node, NULL)))
+	    return ret;
 
 	place = node->parent;
 
@@ -228,17 +226,17 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	    (reiser4_item_units(&place) == place.pos.unit + 1 || 
 	     place.pos.unit == ~0ul)) 
 	{
-	    if (repair_node_rd_key(node->parent.node, rd_key))
-		return -1;
+	    if ((ret = repair_node_rd_key(node->parent.node, rd_key)))
+		return ret;
 	} else {
 	    place.pos.item++;
 	    place.pos.unit = 0;
 	    
-	    if (reiser4_place_realize(&place))
-		return -1;
+	    if ((ret = reiser4_place_realize(&place)))
+		return ret;
 
-	    if (reiser4_item_get_key(&place, rd_key))
-		return -1;
+	    if ((ret = reiser4_item_get_key(&place, rd_key)))
+		return ret;
 	}
     } else
 	reiser4_key_maximal(rd_key);
@@ -267,26 +265,26 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
     {
 	aal_exception_error("Can't find key plugin by its id 0x%x.", 
 	    KEY_REISER40_ID);
-	return -1;
+	return -EINVAL;
     }
 
-    if (repair_node_ld_key_fetch(node, &d_key)) {
+    if ((res = repair_node_ld_key_fetch(node, &d_key))) {
 	aal_exception_error("Node (%llu): Failed to get the left delimiting key.", 
 	    node->blk);
-	return -1;
+	return res;
     }
 
     place.pos.item = 0; 
     place.pos.unit = ~0ul;
     place.node = node;
 
-    if (reiser4_place_realize(&place))
-	return -1;
+    if ((res = reiser4_place_realize(&place)))
+	return res;
 
-    if (reiser4_item_get_key(&place, NULL)) {
+    if ((res = reiser4_item_get_key(&place, NULL))) {
 	aal_exception_error("Node (%llu): Failed to get the left key.",
 	    node->blk);
-	return -1;
+	return res;
     }
 
     res = reiser4_key_compare(&d_key, &place.item.key);
@@ -298,7 +296,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
 	aal_exception_error("Node (%llu): The first key %k is not equal to "
 	    "the left delimiting key %k.", node->blk, 
 	    &place.item.key, &d_key);
-	return 1;
+	return -ESTRUCT;
     } else if (res < 0) {
    	/* It is legal to have the left key in the node much then its left 
 	 * delimiting key - due to removing some items from the node, for 
@@ -309,36 +307,36 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
 		"node. Left delimiting key is fixed.", 
 		node->blk, &place.item.key, node->parent.node->blk, place.pos.item, 
 		place.pos.unit, &d_key);
-	    if (repair_node_ld_key_update(node, &d_key)) 
-		return -1;
+	    if ((res = repair_node_ld_key_update(node, &d_key)))
+		return res;
 	}
     }
     
-    if (repair_node_rd_key(node, &d_key)) {
+    if ((res = repair_node_rd_key(node, &d_key))) {
 	aal_exception_error("Node (%llu): Failed to get the right delimiting "
 	    "key.", node->blk);
-	return -1;
+	return res;
     }
 
     pos->item = reiser4_node_items(node) - 1;
  
-    if (reiser4_place_realize(&place)) {
+    if ((res = reiser4_place_realize(&place))) {
 	aal_exception_error("Node (%llu): Failed to open the item (%llu).",
 	    node->blk, pos->item);
-	return -1;
+	return res;
     }
     
-    if (reiser4_item_utmost_key(&place, &key)) {
+    if ((res = reiser4_item_utmost_key(&place, &key))) {
 	aal_exception_error("Node (%llu): Failed to get the max real key of "
 	    "the last item.", node->blk);
-	return -1;
+	return res;
     }
     
     if (reiser4_key_compare(&key, &d_key) >= 0) {
 	aal_exception_error("Node (%llu): The last key %k in the node is less "
 	    "then the right delimiting key %k.", 
 	    node->blk, &key, &d_key);
-	return 1;
+	return -ESTRUCT;
     }
 
     return 0;
@@ -358,23 +356,23 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
     count = reiser4_node_items(node);
     
     for (pos->item = 0; pos->item < count; pos->item++) {
-	if (reiser4_place_realize(&place))
-	    return -1;
+	if ((res = reiser4_place_realize(&place)))
+	    return res;
 	
-	if (reiser4_item_get_key(&place, &key)) {
+	if ((res = reiser4_item_get_key(&place, &key))) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
 		"item (%u).", node->blk, pos->item);
-	    return -1;
+	    return res;
 	}
 	
 	if (reiser4_key_valid(&key)) {
 	    aal_exception_error("Node (%llu): The key %k of the item (%u) is "
 		"not valid. Item removed.", node->blk, &key, pos->item);
 	    
-	    if (reiser4_node_remove(node, pos, 1)) {
+	    if ((res = reiser4_node_remove(node, pos, 1))) {
 		aal_exception_bug("Node (%llu): Failed to delete the item "
 		    "(%d).", node->blk, pos->item);
-		return -1;
+		return res;
 	    }
 	    pos->item--;
 	    count = reiser4_node_items(node);
@@ -440,20 +438,21 @@ errno_t repair_node_traverse(reiser4_node_t *node, traverse_item_func_t func,
     reiser4_place_t place;
     pos_t *pos = &place.pos;
     uint32_t items;
+    errno_t res;
 
     aal_assert("vpf-744", node != NULL);
     
     pos->unit = ~0ul;
 
     for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
-	if (reiser4_place_open(&place, node, pos)) {
+	if ((res = reiser4_place_open(&place, node, pos))) {
 	    aal_exception_error("Node (%llu), item (%u): failed to open the "
 		"item by its place.", node->blk, pos->item);
-	    return -1;
+	    return res;
 	}
 
-	if (func(&place, data))
-		return -1;
+	if ((res = func(&place, data)))
+	    return res;
     }
 
     return 0;

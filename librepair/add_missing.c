@@ -71,7 +71,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
-		return -1;
+		return -EINVAL;
 	    }
 
 	    /* Prepare the node for insertion - Remove all metadata items. */
@@ -79,18 +79,18 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    pos->unit = ~0ul;
 	    count = reiser4_node_items(node);
 	    for (pos->item = 0; pos->item < count; pos->item++) {
-		if (reiser4_place_realize(&place)) {
+		if ((res = reiser4_place_realize(&place))) {
 		    aal_exception_error("Node (%llu), item (%u): failed to open"
 			" the item.", node->blk, pos->item);
 		    goto error_node_close;
 		}
 		
-		/* If an item does not contain data (only metadata), remove it. */
+		/* If an item does not contain data (only metadata),remove it.*/
 		/* FIXME: Just a reminder - here should be deleted all metadata
 		* info from items, only user data should be left. For now, items
 		* contain data xor metadata, not both. */
 		if (!reiser4_item_data(place.item.plugin)) {
-		    if (reiser4_node_remove(place.node, pos, 1)) {
+		    if ((res = reiser4_node_remove(place.node, pos, 1))) {
 			aal_exception_error("Node (%llu), item (%u): failed to "
 			    "remove the item.", node->blk, pos->item);
 			goto error_node_close;
@@ -111,7 +111,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 		
 	    res = repair_tree_attach(am->fs->tree, node);
 
-	    if (res < 0) {
+	    if (res < 0 && res != -ESTRUCT) {
 		aal_exception_bug("Add missing pass failed to attach the %s "
 		    "(%llu) to the tree.", blk, i == 0 ? "twig" : "leaf");
 		goto error_node_close;
@@ -121,7 +121,8 @@ errno_t repair_add_missing(repair_am_t *am) {
 		reiser4_alloc_permit(am->fs->alloc, node->blk, 1);
 		reiser4_alloc_occupy_region(am->fs->alloc, node->blk, 1);
 
-		if (repair_node_traverse(node, callback_layout, am->fs->alloc))
+		res = repair_node_traverse(node, callback_layout, am->fs->alloc);
+		if (res)
 		    goto error_node_close;
 
 	    } /* if res > 0 - uninsertable case - insert by items later. */
@@ -143,7 +144,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
-		return -1;
+		return -EINVAL;
 	    }
 
 	    pos->unit = ~0ul;
@@ -153,17 +154,17 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    for (pos->item = 0; pos->item < items; pos->item++) {
 		aal_assert("vpf-636", pos->unit == ~0ul);
 
-		if (reiser4_place_realize(&place)) {
+		if ((res = reiser4_place_realize(&place))) {
 		    aal_exception_error("Node (%llu), item (%u): cannot open "
 			"the item place.", blk, pos->item);
 		    
 		    goto error_node_close;
 		}
 	 
-		if (repair_tree_insert(am->fs->tree, &place))
+		if ((res = repair_tree_insert(am->fs->tree, &place)))
 		    goto error_node_close;
 
-		if (callback_layout(&place, am->fs->alloc))
+		if ((res = callback_layout(&place, am->fs->alloc)))
 		    goto error_node_close;
 	    }
 	
@@ -182,7 +183,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 error_node_close:
     reiser4_node_close(node);
     
-    return -1;
+    return res;
 }
 
 

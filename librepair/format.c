@@ -56,6 +56,7 @@ static reiser4_plugin_t *repair_format_confirm(reiser4_profile_t *profile,
 static errno_t repair_format_check(reiser4_fs_t *fs) 
 {
     reiser4_plugin_t *plugin = NULL;
+    errno_t ret;
 
     aal_assert("vpf-165", fs != NULL);
     aal_assert("vpf-171", fs->device != NULL);
@@ -67,7 +68,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs)
 	    aal_device_name(fs->device));
 	
 	if (!(plugin = repair_format_confirm(fs->profile, fs->device)))
-	    return -1;
+	    return -EINVAL;
 
 	/* Create the format with fake tail plugin. */
 	if (!(fs->format = reiser4_format_create(fs, 0, INVAL_PID, 
@@ -75,17 +76,17 @@ static errno_t repair_format_check(reiser4_fs_t *fs)
 	{
 	    aal_exception_fatal("Cannot create a filesystem of the format "
 		"(%s).", plugin->h.label);
-	    return -1;
+	    return -EINVAL;
 	}
     } 
     
     /* Format was either opened or created. Check it and fix it. */
-    if (plugin_call(fs->format->entity->plugin->format_ops, check, 
-	fs->format->entity)) 
+    if ((ret = plugin_call(fs->format->entity->plugin->format_ops, check, 
+	fs->format->entity)))
     {
 	aal_exception_error("Failed to recover the on-disk format (%s) on "
 	    "(%s).", plugin->h.label, aal_device_name(fs->device));
-	return -1;
+	return ret;
     }
     
     return 0;
@@ -110,7 +111,7 @@ error_format_close:
 	fs->format = NULL;
     }
     
-    return -1;
+    return -EINVAL;
 }
 
 /* Prints the opened format. */

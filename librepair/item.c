@@ -17,7 +17,7 @@ uint32_t repair_item_split(
     uint32_t unit = 0;
 
     if (reiser4_item_utmost_key(place, &key))
-	return -1;
+	return -EINVAL;
  
     /* rd_key greater then max real key - nothing to split. */
     if (reiser4_key_compare(rd_key, &key) > 0) 
@@ -29,7 +29,7 @@ uint32_t repair_item_split(
     {
 	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
 	    place->pos.item, place->node->blk);
-	return -1;
+	return -EINVAL;
     }       
    
     return unit;
@@ -39,6 +39,7 @@ uint32_t repair_item_split(
 static errno_t repair_item_check_fini(reiser4_place_t *place, 
     repair_error_t result, uint32_t old_len, uint8_t mode) 
 {
+    errno_t ret;
     pos_t pos;
     
     if (place->item.len == 0)
@@ -50,11 +51,12 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 	pos = place->pos;
 	pos.unit = 0;
     
-	if (reiser4_node_shrink(place->node, &pos, old_len - place->item.len, 1)) {
+	ret = reiser4_node_shrink(place->node, &pos, old_len - place->item.len, 1);
+	if (ret) {
 	    aal_exception_bug("Node (%llu), item (%u), len (%u): Failed "
 		"to shrink the node on (%u) bytes.", place->node->blk, pos.item,
 		old_len, old_len - place->item.len);
-	    return -1;
+	    return ret;
 	}
 	result = REPAIR_FIXED;
     } 
@@ -65,10 +67,10 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 		
 	place->pos.unit = ~0ul;
 
-	if (reiser4_node_remove(place->node, &place->pos, 1)) {
+	if ((ret = reiser4_node_remove(place->node, &place->pos, 1))) {
 	    aal_exception_error("Node (%llu), item (%u): failed to remove the "
 		"item.", place->node->blk, place->pos.item);
-	    return -1;
+	    return ret;
 	}
 	result = REPAIR_REMOVED;
     }

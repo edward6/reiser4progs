@@ -65,27 +65,29 @@ error_fs_free:
 
 /* Sync the filesystem - master, format, block and oid allocators. */
 errno_t repair_fs_sync(reiser4_fs_t *fs) {
+    errno_t res;
+    
     aal_assert("vpf-173", fs != NULL);
     
     /* Synchronizing block allocator */
-    if (reiser4_alloc_sync(fs->alloc))
-	return -1;
+    if ((res = reiser4_alloc_sync(fs->alloc)))
+	return res;
     
     /* Synchronizing the object allocator */
-    if (reiser4_oid_sync(fs->oid))
-	return -1;
+    if ((res = reiser4_oid_sync(fs->oid)))
+	return res;
 
     /* Synchronizing the disk format */
-    if (reiser4_format_sync(fs->format))
-	return -1;
+    if ((res = reiser4_format_sync(fs->format)))
+	return res;
 
     /* Synchronizing the master */
     if (reiser4_master_confirm(fs->device)) {
-	if (reiser4_master_sync(fs->master))
-	    return -1;
+	if ((res = reiser4_master_sync(fs->master)))
+	    return res;
     }
     
- return 0;
+    return 0;
 }
 
 /* 
@@ -107,11 +109,13 @@ void repair_fs_close(reiser4_fs_t *fs) {
 
 /* Enumerates all filesystem areas (block alloc, journal, etc.) */
 errno_t repair_fs_layout(reiser4_fs_t *fs, block_func_t func, void *data) {
-    if (reiser4_format_skipped(fs->format, func, data))
-	return -1;
+    errno_t res;
+    
+    if ((res = reiser4_format_skipped(fs->format, func, data)))
+	return res;
 	
-    if (reiser4_format_layout(fs->format, func, data))
-	return -1;
+    if ((res = reiser4_format_layout(fs->format, func, data)))
+	return res;
     
     return reiser4_alloc_layout(fs->alloc, func, data);
 }
