@@ -50,7 +50,7 @@ static errno_t callback_register_region(void *o, uint64_t start,
 	aal_assert("vpf-1114", object != NULL);
 	aal_assert("vpf-1217", data != NULL);
 	
-	if (sem->repair->mode != RM_BUILD) {
+	if (sem->repair->mode == RM_CHECK) {
 		/* Check if the region is legal. */
 		if (start >= sem->bm_used->total || 
 		    count > sem->bm_used->total  || 
@@ -349,7 +349,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	   to "lost+found" ]. If not ATTACHED @object knows about its parent, 
 	   
 	   this parent matches @parent, otherwise do uptraverse() */
-	while (!attached) {
+	while (sem->repair->mode == RM_BUILD && !attached) {
 		/* If @object knows nothing about its parent, just attach 
 		   it to the @parent. */
 		if (!object->info->parent.plug)
@@ -400,7 +400,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	
 	/* If object has been attached already -- it was traversed already. 
 	   close the object here to avoid another traversing. */
-	if (attached) {
+	if (sem->repair->mode == RM_BUILD && attached) {
 		reiser4_object_close(object);
 		return NULL;
 	}

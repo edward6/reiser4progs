@@ -71,7 +71,7 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 		if (fd->bm_met) {
 			if (mark == RM_MARK)
 				aux_bitmap_mark_region(fd->bm_met, blk, 1);
-			else if (mark == RM_BAD)
+			else if (mark == RM_CLEAR)
 				aux_bitmap_clear_region(fd->bm_met, blk, 1);
 		}
 		

@@ -231,15 +231,23 @@ struct reiser4_journal {
 
 typedef struct reiser4_journal reiser4_journal_t;
 
+typedef struct reiser4_alloc reiser4_alloc_t;
+typedef errno_t (*hook_alloc_t) (reiser4_alloc_t *, uint64_t, uint64_t, void *);
+
 /* Block allocator structure */
 struct reiser4_alloc {
 	reiser4_fs_t *fs;
 	
 	aux_bitmap_t *forbid;
 	generic_entity_t *entity;
+
+	struct {
+		hook_alloc_t alloc;
+		hook_alloc_t release;
+		void *data;
+	} hook;
 };
 
-typedef struct reiser4_alloc reiser4_alloc_t;
 #endif
 
 /* Oid allocator structure */
