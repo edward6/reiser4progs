@@ -147,8 +147,11 @@ errno_t reiser4_profile_override(const char *type,
 	aal_assert("umka-923", type != NULL);
 	aal_assert("umka-924", name != NULL);
 
-	if (!(pid = reiser4_profile_pid(type)))
+	if (!(pid = reiser4_profile_pid(type))) {
+		aal_exception_error("Can't find profile type \"%s\".",
+				   type);
 		return -EINVAL;
+	}
 
 	if (!(plug = reiser4_factory_nfind((char *)name))) {
 		aal_exception_error("Can't find plugin by name "

@@ -439,19 +439,21 @@ GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_COLLISIONS -DENABLE_PLUGINS_CHECK \
 -DENABLE_SYMLINKS -DENABLE_R5_HASH -DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH \
 -DENABLE_TEA_HASH -DENABLE_DEG_HASH -DENABLE_LARGE_KEYS -DENABLE_SHORT_KEYS"
 
+CFLAGS="$CFLAGS -W -Wall"
+
 if test x$enable_debug = xyes; then
-    GENERIC_CFLAGS="$GENERIC_CFLAGS -O1 -g"
-    ALONE_CFLAGS="$ALONE_CFLAGS -O1 -g"
+    GENERIC_CFLAGS="$GENERIC_CFLAGS -O0 -g"
+    ALONE_CFLAGS="$ALONE_CFLAGS -O0 -g"
 else
     GENERIC_CFLAGS="$GENERIC_CFLAGS -O2"
     ALONE_CFLAGS="$ALONE_CFLAGS -Os"
+
+    if test "x$uninitialized" = xyes; then
+       CFLAGS="$CFLAGS -Wuninitialized"
+    fi
 fi
 
-if test "x$uninitialized" = xyes; then
-    CFLAGS="$CFLAGS -W -Wall -Wno-unused-parameter -Wuninitialized -Wredundant-decls"
-else
-    CFLAGS="$CFLAGS -W -Wall"
-fi
+CFLAGS="$CFLAGS -Wno-unused-parameter -Wredundant-decls"
 
 if test x$enable_Werror = xyes; then
     CFLAGS="$CFLAGS -Werror"

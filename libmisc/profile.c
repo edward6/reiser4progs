@@ -11,9 +11,9 @@ errno_t misc_profile_override(char *override) {
 		char *index;
 		char *entry;
 			
-		char name[255];
-		char value[255];
-			
+		char name[256];
+		char value[256];
+
 		if (!(entry = aal_strsep(&override, ",")))
 			break;
 		
