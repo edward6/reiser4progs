@@ -16,7 +16,16 @@
 
 #define MIN_ITEM_LEN	1
 
-extern errno_t node40_remove(object_entity_t *entity, pos_t *pos, uint32_t count);
+extern errno_t node40_remove(object_entity_t *entity, pos_t *pos, 
+    uint32_t count);
+extern errno_t node40_item(object_entity_t *entity, pos_t *pos, 
+    item_entity_t *item);
+extern errno_t node40_expand(object_entity_t *entity, pos_t *pos, uint32_t len,
+    uint32_t count);
+extern errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos, 
+    node40_t *src_node, pos_t *src_pos, uint32_t count);
+extern errno_t node40_shrink(object_entity_t *entity, pos_t *pos, uint32_t len,
+    uint32_t count);
 
 static void node40_set_offset_at(node40_t *node, int pos, uint16_t offset) {
     if (pos > nh40_get_num_items(node))
@@ -82,7 +91,8 @@ static uint32_t node40_count_estimate(node40_t *node) {
     if (blk_size - sizeof(item40_header_t) < nh40_get_free_space_start(node))
 	return 0;
 
-    /* Free space + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them blksize. */
+    /* Free space + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them 
+     * blksize. */
     if (nh40_get_free_space(node) > blk_size - sizeof(node40_header_t) - 
 	sizeof(item40_header_t) - MIN_ITEM_LEN)
 	return 0;
@@ -156,7 +166,7 @@ static errno_t node40_item_array_check(node40_t *node, uint8_t mode) {
 	if (offset < last_relable + (i - last_pos) * MIN_ITEM_LEN || 
 	    offset + (count - i) * MIN_ITEM_LEN > limit) 
 	{
-	    aal_exception_error("Node (%llu), item (%u): Offset (%u) is wrong.", 
+	    aal_exception_error("Node (%llu), item (%u): Offset (%u) is wrong.",
 		blk, i, offset);
 	} else {
 	    if ((mode == REPAIR_REBUILD) && (last_pos != i - 1)) {
@@ -273,7 +283,8 @@ static errno_t node40_item_array_find(node40_t *node, uint8_t mode) {
 	    return REPAIR_FIXABLE;
     }
     
-    offset = aal_block_size(node->block) - offset - nr * sizeof(item40_header_t);
+    offset = aal_block_size(node->block) - offset - 
+	nr * sizeof(item40_header_t);
 
     if (offset != nh40_get_free_space_start(node)) {
 	aal_exception_error("Node (%llu): Free space (%u) is wrong. Should be "
@@ -362,6 +373,73 @@ static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
 	}
     }
 
+    return 0;
+}
+
+errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos, 
+    object_entity_t *src, pos_t *src_pos, copy_hint_t *hint) 
+{
+    node40_t *dst_node;
+    node40_t *src_node;
+    errno_t res;
+    	
+    item40_header_t *ih;
+    item_entity_t src_item;
+    item_entity_t dst_item;
+    reiser4_plugin_t *plugin;
+
+    aal_assert("vpf-965", dst != NULL);
+    aal_assert("vpf-966", src != NULL);
+    aal_assert("vpf-912", hint != NULL);
+    
+    aal_assert("umka-2029", node40_loaded(dst));
+    aal_assert("umka-2030", node40_loaded(src));
+	
+    dst_node = (node40_t *)dst;
+    src_node = (node40_t *)src;
+    
+    if (hint->src_count == 0)
+	return 0;
+    
+    if (node40_item(src, src_pos, &src_item))
+	return -EINVAL;
+    
+    if (hint->len_delta > 0) {
+	/* Expand the node first. */
+	if (node40_expand(dst, dst_pos, hint->len_delta, 1))
+	    return -EINVAL;
+    }
+    
+    if (node40_item(dst, dst_pos, &dst_item))
+	return -EINVAL;
+	
+    /* If the whole @src item is to be inserted */
+    if (dst_pos->unit == ~0ul)
+	return node40_rep(dst_node, dst_pos, src_node, src_pos, 1);
+    
+    if ((res = plugin_call(src_item.plugin->item_ops, copy, &dst_item, 
+	dst_pos->unit, &src_item, src_pos->unit, hint)))
+    {
+	aal_exception_error("Can't copy units from node %llu to node %llu.",
+	    src_node->block->blk, dst_node->block->blk);
+	return res;
+    }
+   
+    if (hint->len_delta < 0) {
+	/* Shrink the node if needed. */
+	if (node40_shrink(dst, dst_pos, -hint->len_delta, 1))
+	    return -EINVAL;
+    }
+    	
+    /* Updating item's key if we insert new item or if we insert unit into 
+     * leftmost postion. */
+    if (dst_pos->unit == 0) {
+	ih = node40_ih_at(dst_node, dst_pos->item);
+	
+	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+    }
+
+    dst_node->dirty = 1;
     return 0;
 }
 

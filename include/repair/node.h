@@ -25,8 +25,10 @@ extern errno_t repair_node_traverse(reiser4_node_t *node,
 extern errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key);
 extern errno_t repair_node_max_real_key(reiser4_node_t *node, 
     reiser4_key_t *key);
-extern void repair_node_print(reiser4_node_t *node, uint32_t start, uint32_t count, 
-    uint16_t options);
+extern void repair_node_print(reiser4_node_t *node, uint32_t start, 
+    uint32_t count, uint16_t options);
+extern errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos, 
+    reiser4_node_t *src, pos_t *src_pos, copy_hint_t *hint);
 
 #endif
 

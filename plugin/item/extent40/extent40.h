@@ -19,7 +19,7 @@ struct extent40 {
 
 typedef struct extent40 extent40_t;
 
-#define extent40_body(item) ((extent40_t *)item->body)
+#define extent40_body(item)	    ((extent40_t *)item->body)
 
 #define et40_get_start(et)	    aal_get_le64((et), start)
 #define et40_set_start(et, val)	    aal_set_le64((et), start, val)

@@ -60,16 +60,6 @@ extern errno_t reiser4_tree_attach(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
 
-extern errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
-				      reiser4_place_t *dst,
-				      reiser4_place_t *src,
-				      reiser4_key_t *end);
-
-extern errno_t reiser4_tree_copy(reiser4_tree_t *tree,
-				 reiser4_place_t *dst,
-				 reiser4_place_t *src,
-				 reiser4_key_t *end);
-
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
 				   uint8_t level,
