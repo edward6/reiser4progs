@@ -172,6 +172,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    reiser4_key_t *key)
 {
 	sym40_t *sym = (sym40_t *)entity;
+	uint32_t size;
 	errno_t res;
 	char *path;
 	
@@ -181,11 +182,12 @@ static errno_t sym40_follow(object_entity_t *entity,
 
 	/* Maximal symlink size is MAX_ITEM_LEN. Take the block size to 
 	   simplify it. */
-	if (!(path = aal_calloc(STAT_PLACE(&sym->obj)->node->block->size, 0)))
+	size = STAT_PLACE(&sym->obj)->node->block->size;
+	if (!(path = aal_calloc(size, 0)))
 		return -ENOMEM;
 	
 	/* Read symlink data to @path */
-	if ((res = sym40_read(entity, path, sizeof(path)) < 0))
+	if ((res = sym40_read(entity, path, size) < 0))
 		goto error;
 
 	/* Calling symlink parse function and resolution function. */

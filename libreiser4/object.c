@@ -101,14 +101,6 @@ reiser4_object_t *reiser4_object_form(reiser4_tree_t *tree,
 	if (!(object->ent = init_func(&info)) || object->ent == INVAL_PTR)
 		goto error_free_object;
 	
-#ifndef ENABLE_STAND_ALONE
-	{
-		/* Initializing object name. */
-//		char *name = reiser4_print_key(&object->ent->object, PO_INODE);
-//		aal_strncpy(object->oname, name, sizeof(object->oname));
-	}
-#endif
-	
 	return object;
 
  error_free_object:
@@ -332,7 +324,6 @@ reiser4_object_t *reiser4_object_create(
 {
 	reiser4_object_t *object;
 	reiser4_plug_t *plug;
-//	char *name;
 	
 	aal_assert("umka-790", tree != NULL);
 	aal_assert("umka-1128", hint != NULL);
@@ -352,10 +343,6 @@ reiser4_object_t *reiser4_object_create(
 	if (!(object->ent = plug_call(plug->o.object_ops, create, hint)))
 		goto error_free_object;
 
-	/* @hint->object key is built by plugin create method. */
-//	name = reiser4_print_key(&object->ent->object, PO_INODE);
-//	aal_strncpy(object->oname, name, sizeof(object->oname));
-	
 	return object;
 	
  error_free_object:
