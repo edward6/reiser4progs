@@ -74,7 +74,7 @@ int main() {
             "equal to %d.%d.%d.\n", $libreiser4_config_major_version, 
 	    $libreiser4_config_minor_version, $libreiser4_config_micro_version);
 
-	printf("You can get it at www://www.namesys.com/snapshots\n");
+	printf("You can get it at http://www.namesys.com/snapshots\n");
 	return 1;
     }
 }
