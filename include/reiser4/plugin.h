@@ -1124,16 +1124,14 @@ typedef struct reiser4_format_ops reiser4_format_ops_t;
 
 struct reiser4_oid_ops {
 	/* Opens oid allocator on passed area */
-	generic_entity_t *(*open) (void *,
-				  uint32_t);
+	generic_entity_t *(*open) (void *, uint32_t);
 
 	/* Closes passed instance of oid allocator */
 	void (*close) (generic_entity_t *);
     
 #ifndef ENABLE_STAND_ALONE
 	/* Creates oid allocator on passed area */
-	generic_entity_t *(*create) (void *,
-				    uint32_t);
+	generic_entity_t *(*create) (void *, uint32_t);
 
 	/* Synchronizes oid allocator */
 	errno_t (*sync) (generic_entity_t *);
@@ -1177,18 +1175,14 @@ typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 
 #ifndef ENABLE_STAND_ALONE
 struct reiser4_alloc_ops {
-	/* Creates block allocator */
-	generic_entity_t *(*create) (aal_device_t *,
-				    uint64_t, uint32_t);
+	/* Functions for create and open block allocator. */
+	generic_entity_t *(*open) (fs_desc_t *, uint64_t);
+	generic_entity_t *(*create) (fs_desc_t *, uint64_t);
 
-	/* Opens block allocator */
-	generic_entity_t *(*open) (aal_device_t *,
-				  uint64_t, uint32_t);
-
-	/* Closes blcok allocator */
+	/* Closes block allocator. */
 	void (*close) (generic_entity_t *);
 
-	/* Synchronizes block allocator */
+	/* Saves block allocator data to desired device. */
 	errno_t (*sync) (generic_entity_t *);
 
 	/* Make dirty or clean functions. */
@@ -1197,9 +1191,7 @@ struct reiser4_alloc_ops {
 	void (*mkclean) (generic_entity_t *);
 	
 	/* Format pack/unpack methods. */
-	generic_entity_t *(*unpack) (aal_device_t *, uint32_t,
-				     aal_stream_t *);
-	
+	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
 	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
 	
 	/* Assign the bitmap to the block allocator */
@@ -1256,17 +1248,13 @@ struct reiser4_alloc_ops {
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
 
 struct reiser4_journal_ops {
-	/* Opens journal on specified device */
-	generic_entity_t *(*open) (generic_entity_t *,
-				  aal_device_t *,
-				  uint64_t, uint64_t,
-				  uint32_t);
+	/* Opens journal on specified device. */
+	generic_entity_t *(*open) (fs_desc_t *, generic_entity_t *,
+				   uint64_t, uint64_t);
 
-	/* Creates journal on specified device */
-	generic_entity_t *(*create) (generic_entity_t *,
-				    aal_device_t *,
-				    uint64_t, uint64_t,
-				    uint32_t, void *);
+	/* Creates journal on specified device. */
+	generic_entity_t *(*create) (fs_desc_t *, generic_entity_t *,
+				     uint64_t, uint64_t);
 
 	/* Returns the device journal lies on */
 	aal_device_t *(*device) (generic_entity_t *);

@@ -432,7 +432,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Creating journal */
-		if (!(fs->journal = reiser4_journal_create(fs, device, NULL)))
+		if (!(fs->journal = reiser4_journal_create(fs, device)))
 			goto error_free_fs;
 
 		/* Creating root directory */

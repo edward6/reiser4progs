@@ -6,6 +6,14 @@
 #ifndef ENABLE_STAND_ALONE
 #include <reiser4/reiser4.h>
 
+enum alloc_init {
+	ALLOC_OPEN,
+	ALLOC_CREATE
+};
+
+typedef enum alloc_init alloc_init_t;
+
+/* Funtions for dirtying block allocator. */
 bool_t reiser4_alloc_isdirty(reiser4_alloc_t *alloc) {
 	aal_assert("umka-2097", alloc != NULL);
 
@@ -27,21 +35,17 @@ void reiser4_alloc_mkclean(reiser4_alloc_t *alloc) {
 		  mkclean, alloc->entity);
 }
 
-/* Initializes block allocator structures and make request to block allocator
-   plugin for opening. Returns initialized instance, which may be used in all
-   further operations. */
-reiser4_alloc_t *reiser4_alloc_open(
-	reiser4_fs_t *fs,	/* fs allocator is going to be opened on */
-	count_t count)		/* filesystem size in blocks */
+/* Common block allocator init function. It is used for open, create and unpack
+   block allocator instance. */
+static reiser4_alloc_t *reiser4_alloc_init(reiser4_fs_t *fs,
+					   count_t blocks,
+					   alloc_init_t init)
 {
 	rid_t pid;
-	uint32_t blksize;
+	fs_desc_t desc;
 	reiser4_plug_t *plug;
 	reiser4_alloc_t *alloc;
 	
-	aal_assert("umka-135", fs != NULL);
-	aal_assert("umka-135", fs->format != NULL);
-
 	/* Initializing instance of block allocator */
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
@@ -61,74 +65,59 @@ reiser4_alloc_t *reiser4_alloc_open(
 				    "its id 0x%x.", pid);
 		goto error_free_alloc;
 	}
-    
-	blksize = reiser4_master_get_blksize(fs->master);
-	
-	/* Calling "open" method from block allocator plugin */
-	if (!(alloc->entity = plug_call(plug->o.alloc_ops, open,
-					fs->device, count, blksize)))
-	{
-		aal_exception_error("Can't initialize block allocator.");
+
+	desc.device = fs->device;
+	desc.blksize = reiser4_master_get_blksize(fs->master);
+
+	/* Initializing block allocator entity. */
+	switch (init) {
+	case ALLOC_OPEN:
+		alloc->entity = plug_call(plug->o.alloc_ops,
+					  open, &desc, blocks);
+		break;
+	case ALLOC_CREATE:
+		alloc->entity = plug_call(plug->o.alloc_ops,
+					  create, &desc, blocks);
+		break;
+	}
+
+	if (!alloc->entity) {
+		aal_exception_error("Can't initialize block "
+				    "allocator.");
 		goto error_free_alloc;
 	}
-	
+
 	return alloc;
-	
+
  error_free_alloc:
 	aal_free(alloc);
 	return NULL;
 }
 
-/* Creates new block allocator. Initializes all structures, calles block
+/* Initializes block allocator structures and make request to block allocator
+   plugin for opening. Returns initialized instance, which may be used in all
+   further operations. */
+reiser4_alloc_t *reiser4_alloc_open(
+	reiser4_fs_t *fs,	/* fs allocator is going to be opened on */
+	count_t blocks)		/* filesystem size in blocks */
+{
+	aal_assert("umka-135", fs != NULL);
+	aal_assert("umka-135", fs->format != NULL);
+
+	return reiser4_alloc_init(fs, blocks, ALLOC_OPEN);
+}
+
+/* Creates block allocator instance. Initializes all structures, calles block
    allocator plugin in order to initialize allocator instance and returns
    instance to caller. */
 reiser4_alloc_t *reiser4_alloc_create(
 	reiser4_fs_t *fs,    /* fs block allocator is going to be created on */
-	count_t count)	     /* filesystem size in blocks */
+	count_t blocks)	     /* filesystem size in blocks */
 {
-	rid_t pid;
-	uint32_t blksize;
-	reiser4_plug_t *plug;
-	reiser4_alloc_t *alloc;
-	
 	aal_assert("umka-726", fs != NULL);
 	aal_assert("umka-1694", fs->format != NULL);
 
-	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid block allocator plugin id "
-				    "has been found.");
-		return NULL;
-	}
-    
-	/* Getting needed plugin from plugin factory by its id */
-	if (!(plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find block allocator plugin by "
-				    "its id 0x%x.", pid);
-		return NULL;
-	}
-    
-	blksize = reiser4_master_get_blksize(fs->master);
-	
-	/* Allocating memory for the allocator instance */
-	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
-		return NULL;
-
-	alloc->fs = fs;
-	alloc->fs->alloc = alloc;
-	
-	/* Query the block allocator plugin for creating allocator entity */
-	if (!(alloc->entity = plug_call(plug->o.alloc_ops, create,
-					fs->device, count, blksize)))
-	{
-		aal_exception_error("Can't create block allocator.");
-		goto error_free_alloc;
-	}
-	
-	return alloc;
-	
- error_free_alloc:
-	aal_free(alloc);
-	return NULL;
+	return reiser4_alloc_init(fs, blocks, ALLOC_CREATE);
 }
 
 /* Fetches block allocator data to @stream. */
@@ -147,7 +136,7 @@ reiser4_alloc_t *reiser4_alloc_unpack(reiser4_fs_t *fs,
 				      aal_stream_t *stream)
 {
 	rid_t pid;
-	uint32_t blksize;
+	fs_desc_t desc;
 	reiser4_plug_t *plug;
 	reiser4_alloc_t *alloc;
 	
@@ -155,7 +144,7 @@ reiser4_alloc_t *reiser4_alloc_unpack(reiser4_fs_t *fs,
 	aal_assert("umka-2617", stream != NULL);
 
 	aal_stream_read(stream, &pid, sizeof(pid));
-    
+	
 	/* Getting needed plugin from plugin factory by its id */
 	if (!(plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find block allocator plugin "
@@ -169,12 +158,13 @@ reiser4_alloc_t *reiser4_alloc_unpack(reiser4_fs_t *fs,
 
 	alloc->fs = fs;
 	alloc->fs->alloc = alloc;
-	
-	blksize = reiser4_master_get_blksize(fs->master);
+
+	desc.device = fs->device;
+	desc.blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Query the block allocator plugin for creating allocator entity */
 	if (!(alloc->entity = plug_call(plug->o.alloc_ops, unpack,
-					fs->device, blksize, stream)))
+					&desc, stream)))
 	{
 		aal_exception_error("Can't unpack block allocator.");
 		goto error_free_alloc;

@@ -10,10 +10,10 @@
 #include <reiser4/types.h>
 
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 
-					   count_t count);
+					   count_t blocks);
 
 extern reiser4_alloc_t *reiser4_alloc_create(reiser4_fs_t *fs, 
-					     count_t count);
+					     count_t blocks);
 
 extern errno_t reiser4_alloc_extract(reiser4_alloc_t *alloc,
 				     aux_bitmap_t *bitmap);

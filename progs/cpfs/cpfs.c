@@ -303,7 +303,7 @@ int main(int argc, char *argv[]) {
 	dst_fs->tree->mpc_func = misc_mpressure_detect;
 	
 	/* Creating journal */
-	if (!(dst_fs->journal = reiser4_journal_create(dst_fs, dst_device, NULL)))
+	if (!(dst_fs->journal = reiser4_journal_create(dst_fs, dst_device)))
 		goto error_free_dst_fs;
 
 

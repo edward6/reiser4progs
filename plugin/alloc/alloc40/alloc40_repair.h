@@ -12,8 +12,7 @@
 extern errno_t alloc40_pack(generic_entity_t *entity,
 			    aal_stream_t *stream);
 
-extern generic_entity_t *alloc40_unpack(aal_device_t *device,
-					uint32_t blksize,
+extern generic_entity_t *alloc40_unpack(fs_desc_t *desc3,
 					aal_stream_t *stream);
 
 extern errno_t alloc40_check_struct(generic_entity_t *entity,

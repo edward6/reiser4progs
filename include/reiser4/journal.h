@@ -9,20 +9,18 @@
 #ifndef ENABLE_STAND_ALONE
 #include <reiser4/types.h>
 
-extern reiser4_journal_t *reiser4_journal_open(reiser4_fs_t *fs,
-					       aal_device_t *device);
-
 extern errno_t reiser4_journal_mark(reiser4_journal_t *journal);
-
-extern reiser4_journal_t *reiser4_journal_create(reiser4_fs_t *fs,
-						 aal_device_t *device,
-						 void *hint);
-
 extern errno_t reiser4_journal_sync(reiser4_journal_t *journal);
 extern errno_t reiser4_journal_replay(reiser4_journal_t *journal);
 
 extern errno_t reiser4_journal_print(reiser4_journal_t *journal,
 				     aal_stream_t *stream);
+
+extern reiser4_journal_t *reiser4_journal_open(reiser4_fs_t *fs,
+					       aal_device_t *device);
+
+extern reiser4_journal_t *reiser4_journal_create(reiser4_fs_t *fs,
+						 aal_device_t *device);
 
 extern void reiser4_journal_close(reiser4_journal_t *journal);
 extern void reiser4_journal_mkdirty(reiser4_journal_t *journal);

@@ -35,18 +35,22 @@ reiser4_journal_t *reiser4_journal_open(
 {
 	rid_t pid;
 	blk_t start;
-	count_t len;
-
-	uint32_t blocksize;
+	count_t blocks;
+	
+	fs_desc_t desc;
 	reiser4_plug_t *plug;
 	reiser4_journal_t *journal;
 	
 	aal_assert("umka-095", fs != NULL);
 	aal_assert("umka-1695", fs->format != NULL);
 	
-	/* Allocating memory for jouranl instance */
+	/* Allocating memory for journal instance and initialize its fields. */
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
+
+	journal->fs = fs;
+	journal->device = device;
+	journal->fs->journal = journal;
 
 	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid journal plugin id has "
@@ -60,25 +64,21 @@ reiser4_journal_t *reiser4_journal_open(
 				    "id 0x%x.", pid);
 		goto error_free_journal;
 	}
-    
-	journal->fs = fs;
-	journal->fs->journal = journal;
-	
-	journal->device = device;
 
 	start = reiser4_format_start(fs->format);
-	len = reiser4_format_get_len(fs->format);
+	blocks = reiser4_format_get_len(fs->format);
 
-	blocksize = reiser4_master_get_blksize(fs->master);
+	desc.device = journal->device;
+	desc.blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Initializing journal entity by means of calling "open" method from
 	   found journal plugin. */
 	if (!(journal->entity = plug_call(plug->o.journal_ops, open,
-					  fs->format->entity, device,
-					  start, len, blocksize))) 
+					  &desc, fs->format->entity,
+					  start, blocks))) 
 	{
 		aal_exception_error("Can't open journal %s on %s.",
-				    plug->label, fs->device->name);
+				    plug->label, device->name);
 		goto error_free_journal;
 	}
 	
@@ -121,14 +121,13 @@ errno_t reiser4_journal_mark(reiser4_journal_t *journal) {
 /* Creates journal on specified jopurnal. Returns initialized instance */
 reiser4_journal_t *reiser4_journal_create(
 	reiser4_fs_t *fs,	        /* fs journal will be opened on */
-	aal_device_t *device,	        /* device journal will be created on */
-	void *hint)		        /* journal params (opaque pointer) */
+	aal_device_t *device)	        /* device journal will be created on */
 {
 	rid_t pid;
 	blk_t start;
-	count_t len;
+	count_t blocks;
 
-	uint32_t blocksize;
+	fs_desc_t desc;
 	reiser4_plug_t *plug;
 	reiser4_journal_t *journal;
 
@@ -139,6 +138,11 @@ reiser4_journal_t *reiser4_journal_create(
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
+	journal->fs = fs;
+	journal->device = device;
+	journal->fs->journal = journal;
+
+	/* Getting journal plugin to be used. */
 	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid journal plugin id has "
 				    "been found.");
@@ -151,27 +155,27 @@ reiser4_journal_t *reiser4_journal_create(
 		goto error_free_journal;
 	}
     
-	journal->fs = fs;
-	journal->fs->journal = journal;
-	
-	journal->device = device;
-	
 	start = reiser4_format_start(fs->format);
-	len = reiser4_format_get_len(fs->format);
-	blocksize = reiser4_master_get_blksize(fs->master);
+	blocks = reiser4_format_get_len(fs->format);
+
+	desc.device = journal->device;
+	desc.blksize = reiser4_master_get_blksize(fs->master);
 	
-	/* Initializing journal entity */
+	/* Creating journal entity. */
 	if (!(journal->entity = plug_call(plug->o.journal_ops, create,
-					  fs->format->entity, device,
-					  start, len, blocksize, hint))) 
+					  &desc, fs->format->entity,
+					  start, blocks))) 
 	{
 		aal_exception_error("Can't create journal %s on %s.",
-				    plug->label, device->name);
+				    plug->label, journal->device->name);
 		goto error_free_journal;
 	}
 	
-	if (reiser4_journal_mark(journal))
+	if (reiser4_journal_mark(journal)) {
+		aal_exception_error("Can't mark journal blocks used in "
+				    "block allocator.");
 		goto error_free_entity;
+	}
 	
 	return journal;
 

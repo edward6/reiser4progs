@@ -65,7 +65,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 					plug->label) == EXCEPTION_NO)
 			return -EINVAL;
 	    
-		if (!(fs->journal = reiser4_journal_create(fs, journal_device, NULL))) {
+		if (!(fs->journal = reiser4_journal_create(fs, journal_device))) {
 			aal_exception_fatal("Cannot create a journal by its id (0x%x).",
 					    reiser4_format_journal_pid(fs->format));
 			return -EINVAL;

@@ -164,31 +164,30 @@ errno_t alloc40_pack(generic_entity_t *entity,
 }
 
 /* Create block allocator from passed @stream. */
-generic_entity_t *alloc40_unpack(aal_device_t *device,
-				 uint32_t blksize,
+generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 				 aal_stream_t *stream)
 {
-	uint64_t len;
+	uint64_t blocks;
 	uint32_t crcsize;
 	uint32_t mapsize;
 	alloc40_t *alloc;
 	
-	aal_assert("umka-2620", device != NULL);
+	aal_assert("umka-2620", desc != NULL);
 	aal_assert("umka-2621", stream != NULL);
 
 	/* Allocating block allocator instance and initializing it by passed
-	   @blksize, @device and data from the @stream. */
+	   @desc and data from the @stream. */
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
-	alloc->device = device;
-	alloc->blksize = blksize;
 	alloc->plug = &alloc40_plug;
+	alloc->device = desc->device;
+	alloc->blksize = desc->blksize;
 
 	/* Read number of bits in bitmap. */
-	aal_stream_read(stream, &len, sizeof(len));
+	aal_stream_read(stream, &blocks, sizeof(blocks));
 
-	if (!(alloc->bitmap = aux_bitmap_create(len)))
+	if (!(alloc->bitmap = aux_bitmap_create(blocks)))
 		goto error_free_alloc;
 
 	/* Initializing adler checksums. */

@@ -24,6 +24,11 @@ static void journal40_mkclean(generic_entity_t *entity) {
 	((journal40_t *)entity)->dirty = 0;
 }
 
+static errno_t journal40_valid(generic_entity_t *entity) {
+	aal_assert("umka-965", entity != NULL);
+	return 0;
+}
+
 static errno_t journal40_layout(generic_entity_t *entity,
 				region_func_t region_func,
 				void *data)
@@ -73,32 +78,31 @@ static errno_t callback_fetch_journal(void *entity, blk_t start,
 	return 0;
 }
 
-static generic_entity_t *journal40_open(generic_entity_t *format,
-					aal_device_t *device,
-					uint64_t start, uint64_t len,
-					uint32_t blksize)
+static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *format,
+					uint64_t start, uint64_t blocks)
 {
 	journal40_t *journal;
 
-	aal_assert("umka-409", device != NULL);
+	aal_assert("umka-409", desc != NULL);
 	aal_assert("umka-1692", format != NULL);
     
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
 	journal->dirty = 0;
-	journal->device = device;
 	journal->format = format;
-	journal->blksize = blksize;
+	journal->device = desc->device;
 	journal->plug = &journal40_plug;
+	journal->blksize = desc->blksize;
 
-	journal->area.len = len;
+	journal->area.len = blocks;
 	journal->area.start = start;
 
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_fetch_journal, journal))
 	{
-		aal_exception_error("Can't load journal metadata.");
+		aal_exception_error("Can't open journal "
+				    "header/footer.");
 		goto error_free_journal;
 	}
 
@@ -107,13 +111,6 @@ static generic_entity_t *journal40_open(generic_entity_t *format,
  error_free_journal:
 	aal_free(journal);
 	return NULL;
-}
-
-static errno_t journal40_valid(generic_entity_t *entity) {
-	aal_assert("umka-965", entity != NULL);
-
-	/* FIXME-UMKA: Not implemented yet! */
-	return 0;
 }
 
 static errno_t callback_alloc_journal(void *entity, blk_t start,
@@ -142,32 +139,31 @@ static errno_t callback_alloc_journal(void *entity, blk_t start,
 	return 0;
 }
 
-static generic_entity_t *journal40_create(generic_entity_t *format,
-					  aal_device_t *device,
-					  uint64_t start, uint64_t len,
-					  uint32_t blksize, void *hint)
+static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *format,
+					  uint64_t start, uint64_t blocks)
 {
 	journal40_t *journal;
     
-	aal_assert("umka-1057", device != NULL);
+	aal_assert("umka-1057", desc != NULL);
 	aal_assert("umka-1691", format != NULL);
     
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
 	journal->dirty = 1;
-	journal->device = device;
 	journal->format = format;
-	journal->blksize = blksize;
+	journal->device = desc->device;
 	journal->plug = &journal40_plug;
+	journal->blksize = desc->blksize;
 
-	journal->area.len = len;
+	journal->area.len = blocks;
 	journal->area.start = start;
     
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_alloc_journal, journal))
 	{
-		aal_exception_error("Can't load journal metadata.");
+		aal_exception_error("Can't create journal "
+				    "header/footer.");
 		goto error_free_journal;
 	}
     
