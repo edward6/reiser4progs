@@ -398,12 +398,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			} else {
 				conv_hint_t hint;
 
-				/* FIXME-UMKA->VITALY: This is new bytes field
-				   after convertation. Now it is set up to
-				   zero. Use it after convertation to update
-				   @bytes field in stat data. */
 				hint.bytes = 0;
-
 				hint.plug = bplug;
 				hint.place = &reg->body;
 
@@ -423,6 +418,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				}
 
 			}
+			
 			continue;
 		}
 		
