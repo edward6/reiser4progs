@@ -138,7 +138,6 @@ static errno_t node40_form(object_entity_t *entity,
 	nh40_set_pid(node, NODE_REISER40_ID);
 
 	header_size = sizeof(node40_header_t);
-	
 	nh40_set_free_space_start(node, header_size);
 	nh40_set_free_space(node, node->size - header_size);
 
@@ -312,8 +311,9 @@ static errno_t node40_get_item(object_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-errno_t node40_item(object_entity_t *entity, pos_t *pos, item_entity_t *item) {
-	rid_t pid;
+errno_t node40_item(object_entity_t *entity, pos_t *pos,
+		    item_entity_t *item)
+{
 	errno_t res;
 	node40_t *node;
 	
@@ -322,7 +322,6 @@ errno_t node40_item(object_entity_t *entity, pos_t *pos, item_entity_t *item) {
 	if ((res = node40_get_item(entity, pos, item)))
 		return res;
 	
-	/* FIXME-UMKA: Hardcoded key plugin id */
 	if (!(item->key.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
 							 KEY_REISER40_ID)))
 	{
@@ -332,30 +331,7 @@ errno_t node40_item(object_entity_t *entity, pos_t *pos, item_entity_t *item) {
 	}
 
 	/* Getting item key */
-	if (node40_get_key(entity, pos, &item->key))
-		return -EINVAL;
-	
-        /* Getting unit key if unit component is specified */
-	if (pos->unit != ~0ul && item->plugin->o.item_ops->get_key) {
-		uint32_t units = 1;
-
-		if (item->plugin->o.item_ops->units)
-			units = item->plugin->o.item_ops->units(item);
-
-		if (pos->unit < units) {
-			if (item->plugin->o.item_ops->get_key(item, pos->unit,
-							      &item->key))
-			{
-				aal_exception_error("Can't get unit key. Node "
-						    "%llu, item %lu, unit %lu.",
-						    node->block->number,
-						    pos->item, pos->unit);
-				return -EINVAL;
-			}
-		}
-	}
-
-	return 0;
+	return node40_get_key(entity, pos, &item->key);
 }
 
 /* Returns node free space */
@@ -390,7 +366,7 @@ static uint16_t node40_maxspace(object_entity_t *entity) {
 
 /*
   Calculates size of a region denoted by @pos and @count. This is used by
-  node40_rep, node40_remove, etc.
+  node40_rep(), node40_remove(), etc.
 */
 static uint32_t node40_size(node40_t *node, pos_t *pos,
 			    uint32_t count)
@@ -419,20 +395,23 @@ static uint32_t node40_size(node40_t *node, pos_t *pos,
   Makes expand passed @node by @len in odrer to make room for insert new
   items/units. This function is used by insert and shift methods.
 */
-static errno_t node40_grow(node40_t *node, pos_t *pos,
-			   uint32_t len, uint32_t count)
+errno_t node40_expand(object_entity_t *entity, pos_t *pos,
+		      uint32_t len, uint32_t count)
 {
 	int is_insert;
 
 	uint32_t item;
+	node40_t *node;
 	uint32_t items;
 	uint32_t offset;
 	uint32_t headers;
 	item40_header_t *ih;
 
-	aal_assert("umka-817", node != NULL);
 	aal_assert("vpf-006", pos != NULL);
+	aal_assert("umka-817", entity != NULL);
 
+	node = (node40_t *)entity;
+	
 	/* Checks for input validness */
 	is_insert = (pos->unit == ~0ul);
 
@@ -441,6 +420,7 @@ static errno_t node40_grow(node40_t *node, pos_t *pos,
 
 	aal_assert("vpf-026", nh40_get_free_space(node) >= 
 		   len + (is_insert ? sizeof(item40_header_t) : 0));
+	
 	aal_assert("vpf-027", pos->item <= items);
 
 	/* Getting real pos of the item to be updated */
@@ -515,14 +495,14 @@ static errno_t node40_grow(node40_t *node, pos_t *pos,
   General node40 cutting function. It is used from shift, remove, etc. It
   removes an amount of items specified by @count and shrinks node. 
 */
-static errno_t node40_cutout(node40_t *node, pos_t *pos,
-			     uint32_t len, uint32_t count)
+errno_t node40_shrink(object_entity_t *entity, pos_t *pos,
+		      uint32_t len, uint32_t count)
 {
 	int is_range;
-	
 	uint32_t size;
 	void *src, *dst;
 
+	node40_t *node;
 	uint32_t offset;
 	uint32_t headers;
 	uint32_t i, items;
@@ -530,10 +510,11 @@ static errno_t node40_cutout(node40_t *node, pos_t *pos,
 	item40_header_t *cur;
 	item40_header_t *end;
 
-	aal_assert("umka-1798", node != NULL);
-	aal_assert("umka-1799", pos != NULL);
 	aal_assert("umka-1800", count > 0);
+	aal_assert("umka-1799", pos != NULL);
+	aal_assert("umka-1798", entity != NULL);
 
+	node = (node40_t *)entity;
 	items = nh40_get_num_items(node);
 
 	is_range = (pos->item < items);
@@ -613,9 +594,9 @@ static errno_t node40_cutout(node40_t *node, pos_t *pos,
 	return 0;
 }
 
-/* Makes copy of @count items from @src_node to @dst_node */
-errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
-		   node40_t *src_node, pos_t *src_pos,
+/* Makes copy of @count items from @src_entity to @dst_entity */
+errno_t node40_rep(object_entity_t *dst_entity, pos_t *dst_pos,
+		   object_entity_t *src_entity, pos_t *src_pos,
 		   uint32_t count)
 {
 	uint32_t size;
@@ -624,9 +605,14 @@ errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
 	uint32_t offset;
 	uint32_t headers;
 
+	node40_t *dst_node;
+	node40_t *src_node;
 	item40_header_t *ih;
 	item40_header_t *end;
 	void *src, *dst, *body;
+
+	dst_node = (node40_t *)dst_entity;
+	src_node = (node40_t *)src_entity;
 
 	items = nh40_get_num_items(dst_node);
 	headers = count * sizeof(item40_header_t);
@@ -690,12 +676,11 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 	aal_assert("umka-818", entity != NULL);
 	aal_assert("umka-2026", node40_loaded(entity));
     
-	node = (node40_t *)entity;
-	
 	/* Makes expand of the node new items will be inserted in */
-	if (node40_grow(node, pos, hint->len, 1))
+	if (node40_expand(entity, pos, hint->len, 1))
 		return -EINVAL;
 
+	node = (node40_t *)entity;
 	ih = node40_ih_at(node, pos->item);
 
 	/* Updating item header if we want insert new item */
@@ -781,7 +766,7 @@ errno_t node40_remove(object_entity_t *entity,
 		}
 	}
 	
-	return node40_cutout(node, pos, len, count);
+	return node40_shrink(entity, pos, len, count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
@@ -875,44 +860,13 @@ static errno_t node40_cut(object_entity_t *entity,
 		{
 			pos.unit = ~0ul;
 
-			if (node40_cutout(node, &pos, item.len, 1))
+			if (node40_shrink(entity, &pos, item.len, 1))
 				return -EINVAL;
 		}
 	}
 
 	return 0;
 }
-
-errno_t node40_expand(object_entity_t *entity,
-		      pos_t *pos, uint32_t len,
-		      uint32_t count)
-{
-	aal_assert("umka-2034", pos != NULL);
-	aal_assert("umka-2033", entity != NULL);
-	aal_assert("umka-2032", node40_loaded(entity));
-	
-	return node40_grow((node40_t *)entity, pos,
-			   len, count);
-}
-
-errno_t node40_shrink(object_entity_t *entity,
-		      pos_t *pos, uint32_t len,
-		      uint32_t count)
-{
-	aal_assert("umka-2035", pos != NULL);
-	aal_assert("umka-2036", entity != NULL);
-	aal_assert("umka-2037", node40_loaded(entity));
-	
-	return node40_cutout((node40_t *)entity, pos,
-			     len, count);
-}
-
-extern errno_t node40_check(object_entity_t *entity,
-			    uint8_t mode);
-
-extern errno_t node40_copy(object_entity_t *dst_entity, pos_t *dst_pos, 
-			   object_entity_t *src_entity, pos_t *src_pos, 
-			   copy_hint_t *hint);
 
 /* Returns node make stamp */
 static void node40_set_mstamp(object_entity_t *entity,
@@ -1148,6 +1102,15 @@ static bool_t node40_splitable(item_entity_t *item) {
 	return TRUE;
 }
 
+/* Fises two neighbour items is they are mergeable */
+static errno_t node40_fuse(object_entity_t *src_entity,
+			   uint32_t src_pos,
+			   object_entity_t *dst_entity,
+			   uint32_t dst_pos)
+{
+	return 0;
+}
+
 /*
   Merges border items of the src and dst nodes. The behavior depends on the
   passed hint pointer.
@@ -1179,8 +1142,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
 	
-	src_items = nh40_get_num_items(src_node);
-	dst_items = nh40_get_num_items(dst_node);
+	src_items = node40_items(src_entity);
+	dst_items = node40_items(dst_entity);
 	
 	if (src_items == 0 || hint->rest == 0)
 		return 0;
@@ -1298,7 +1261,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items : 0), ~0ul);
 		
-		if (node40_grow(dst_node, &pos, hint->rest, 1)) {
+		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand node for "
 					    "shifting units into it.");
 			return -EINVAL;
@@ -1310,7 +1273,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
 
 		/*
-		  Initializing dst item after it was created by node40_grow
+		  Initializing dst item after it was created by node40_expand()
 		  function.
 		*/
 		if (node40_item(dst_entity, &pos, &dst_item))
@@ -1321,13 +1284,13 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		/*
 		  Items are mergeable, so we do not need to create new item in
 		  the dst node. We just need to expand existent dst item by
-		  hint->rest. So, we will call node40_grow with unit component
-		  not equal ~0ul.
+		  hint->rest. So, we will call node40_expand() with unit
+		  component not equal ~0ul.
 		*/
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items - 1 : 0), 0);
 
-		if (node40_grow(dst_node, &pos, hint->rest, 1)) {
+		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand item for "
 					    "shifting units into it.");
 			return -EINVAL;
@@ -1375,9 +1338,9 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	
 	if (remove) {
 		/*
-		  Like to node40_grow, node40_cutout will remove pointed item
-		  if unit component is ~0ul and shrink pointed by pos item if
-		  unit is not ~0ul.
+		  Like node40_expand() does, node40_shrink() will remove pointed
+		  item if unit component is ~0ul and shrink pointed by pos item
+		  if unit is not ~0ul.
 		*/
 		pos.unit = ~0ul;
 		len = src_item.len;
@@ -1393,39 +1356,33 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		len = hint->rest;
 	}
 
-	return node40_cutout(src_node, &pos, len, 1);
+	return node40_shrink(src_entity, &pos, len, 1);
 }
 
 /*
-  Estimating how many whole items may be shifted from the src node to dst
-  one. Then shifting estimated items. This function is used from node40_shift.
+  Predicts how many whole item may be shifted from @src_entity to
+  @dst_entity.
 */
-static errno_t node40_transfuse(object_entity_t *src_entity,
-				object_entity_t *dst_entity, 
-				shift_hint_t *hint)
+static errno_t node40_predict(object_entity_t *src_entity,
+			      object_entity_t *dst_entity, 
+			      shift_hint_t *hint)
 {
 	pos_t pos;
-	pos_t src_pos;
-	pos_t dst_pos;
-	
 	uint32_t len;
+	
 	uint32_t flags;
 	uint32_t space;
-
 	uint32_t overhead;
+	
 	uint32_t src_items;
 	uint32_t dst_items;
 
 	node40_t *src_node;
 	node40_t *dst_node;
-	
+
 	item40_header_t *cur;
 	item40_header_t *end;
-
-	aal_assert("umka-1620", hint != NULL);
-	aal_assert("umka-1621", src_entity != NULL);
-	aal_assert("umka-1619", dst_entity != NULL);
-
+	
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
 	
@@ -1560,12 +1517,37 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 	*/
 	hint->rest = space;
 
+	return 0;
+}
+
+/*
+  Estimating how many whole items may be shifted from the src node to dst
+  one. Then shifting estimated items. This function is used from node40_shift.
+*/
+static errno_t node40_move(object_entity_t *src_entity,
+			   object_entity_t *dst_entity, 
+			   shift_hint_t *hint)
+{	
+	errno_t res;
+	pos_t src_pos;
+	pos_t dst_pos;
+	
+	uint32_t src_items;
+	uint32_t dst_items;
+
+	aal_assert("umka-1620", hint != NULL);
+	aal_assert("umka-1621", src_entity != NULL);
+	aal_assert("umka-1619", dst_entity != NULL);
+
+	if ((res = node40_predict(src_entity, dst_entity, hint)))
+		return res;
+
 	/* No items to be shifted */
 	if (hint->items == 0 || hint->bytes == 0)
 		return 0;
 	
-	dst_items = nh40_get_num_items(dst_node);
-	src_items = nh40_get_num_items(src_node);
+	dst_items = node40_items(dst_entity);
+	src_items = node40_items(src_entity);
 
 	if (hint->control & SF_LEFT) {
 		POS_INIT(&src_pos, 0, ~0ul);
@@ -1579,22 +1561,16 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 	  Expanding dst node in order to making room for new items and
 	  update node header.
 	*/
-	if (node40_grow(dst_node, &dst_pos, hint->bytes,
-			hint->items))
+	if (node40_expand(dst_entity, &dst_pos, hint->bytes,
+			  hint->items))
 	{
-		aal_exception_error("Can't expand node %llu durring "
-				    "shift.", dst_node->block->number);
 		return -EINVAL;
 	}
 		
 	/* Copying items from src node to dst one */
-	if (node40_rep(dst_node, &dst_pos, src_node, &src_pos,
+	if (node40_rep(dst_entity, &dst_pos, src_entity, &src_pos,
 		       hint->items))
 	{
-		aal_exception_error("Can't copy items from node "
-				    "%llu to node %llu, durring "
-				    "shift", src_node->block->number,
-				    dst_node->block->number);
 		return -EINVAL;
 	}
 
@@ -1602,12 +1578,9 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 	  Shrinking source node after items are copied from it to dst
 	  node.
 	*/
-	if (node40_cutout(src_node, &src_pos, hint->bytes,
+	if (node40_shrink(src_entity, &src_pos, hint->bytes,
 			  hint->items))
 	{
-		aal_exception_error("Can't shrink node "
-				    "%llu durring shift.",
-				    src_node->block->number);
 		return -EINVAL;
 	}
 	
@@ -1671,9 +1644,10 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	if (hint->result & SF_MOVIP)
 		goto update_hint_out;
 	
-	/* Transfusing items from src node to dst one */
-	if (node40_transfuse(src_entity, dst_entity, hint)) {
-		aal_exception_error("Can't transfuse nodes %llu and %llu. ",
+	/* Moving items from src node to dst one */
+	if (node40_move(src_entity, dst_entity, hint)) {
+		aal_exception_error("Can't move items from node "
+				    "%llu to %llu one.",
 				    src_node->block->number,
 				    dst_node->block->number);
 		return -EINVAL;
@@ -1719,6 +1693,15 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	
 	return 0;
 }
+
+extern errno_t node40_check(object_entity_t *entity,
+			    uint8_t mode);
+
+extern errno_t node40_copy(object_entity_t *dst_entity,
+			   pos_t *dst_pos, 
+			   object_entity_t *src_entity,
+			   pos_t *src_pos, 
+			   copy_hint_t *hint);
 
 #endif
 

@@ -18,12 +18,16 @@
 
 extern errno_t node40_remove(object_entity_t *entity, pos_t *pos, 
     uint32_t count);
+
 extern errno_t node40_item(object_entity_t *entity, pos_t *pos, 
     item_entity_t *item);
+
 extern errno_t node40_expand(object_entity_t *entity, pos_t *pos, uint32_t len,
     uint32_t count);
-extern errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos, 
-    node40_t *src_node, pos_t *src_pos, uint32_t count);
+
+extern errno_t node40_rep(object_entity_t *dst_entity, pos_t *dst_pos, 
+    object_entity_t *src_entity, pos_t *src_pos, uint32_t count);
+
 extern errno_t node40_shrink(object_entity_t *entity, pos_t *pos, uint32_t len,
     uint32_t count);
 
@@ -415,7 +419,7 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
 	
     /* If the whole @src item is to be inserted */
     if (dst_pos->unit == ~0ul)
-	return node40_rep(dst_node, dst_pos, src_node, src_pos, 1);
+	return node40_rep(dst, dst_pos, src, src_pos, 1);
     
     if ((res = plugin_call(src_item.plugin->o.item_ops, copy, &dst_item, 
 	dst_pos->unit, &src_item, src_pos->unit, hint)))

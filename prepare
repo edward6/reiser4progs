@@ -1,19 +1,13 @@
 #!/bin/bash
 
 echo "Running aclocal..."
-aclocal
-
-[ ! $? -eq 0 ] && exit
-
-echo "Running autoheader..."
-autoheader
-
-[ ! $? -eq 0 ] && exit
-
-echo "Running autoconf..."
-autoconf
-
-[ ! $? -eq 0 ] && exit
-
-echo "Running automake --add-missing..."
-automake --add-missing
+aclocal && (
+    echo "Running autoheader..."
+    autoheader && (
+	echo "Running autoconf..."
+	autoconf && (
+	    echo "Running automake --add-missing..."
+	    automake --add-missing
+	)
+    )
+)

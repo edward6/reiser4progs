@@ -293,8 +293,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 							     sec)))
 				{
 					aal_exception_error("Can't read device "
-							    "block %llu.", 
-							    sec);
+							    "block %llu.", sec);
 					return -EIO;
 				}
 
