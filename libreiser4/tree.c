@@ -1431,11 +1431,11 @@ errno_t reiser4_tree_shift(
 
 	place->pos = hint.pos;
 
-	if (hint.result & SF_MOVIP)
+	if (hint.result & MSF_IPMOVE)
 		place->node = neig;
 
 	/* Updating left delimiting keys in the tree */
-	if (hint.control & SF_LEFT) {
+	if (hint.control & MSF_LEFT) {
 		
 		if (reiser4_node_items(node) > 0 &&
 		    (hint.items > 0 || hint.units > 0))
@@ -1531,12 +1531,12 @@ errno_t reiser4_tree_expand(
 		return 0;
 
 	/* Shifting data into left neighbour if it exists */
-	if ((SF_LEFT & flags) &&
+	if ((MSF_LEFT & flags) &&
 	    (left = reiser4_tree_neigh(tree, place->node, D_LEFT)))
 	{
 	    
 		if ((res = reiser4_tree_shift(tree, place, left,
-					      SF_LEFT | SF_UPTIP)))
+					      MSF_LEFT | MSF_IPUPDT)))
 		{
 			return res;
 		}
@@ -1546,12 +1546,12 @@ errno_t reiser4_tree_expand(
 	}
 
 	/* Shifting data into right neighbour if it exists */
-	if ((SF_RIGHT & flags) &&
+	if ((MSF_RIGHT & flags) &&
 	    (right = reiser4_tree_neigh(tree, place->node, D_RIGHT)))
 	{
 	    
 		if ((res = reiser4_tree_shift(tree, place, right,
-					      SF_RIGHT | SF_UPTIP)))
+					      MSF_RIGHT | MSF_IPUPDT)))
 		{
 			return res;
 		}
@@ -1560,7 +1560,7 @@ errno_t reiser4_tree_expand(
 			return 0;
 	}
 
-	if (!(SF_ALLOC & flags))
+	if (!(MSF_ALLOC & flags))
 		return -ENOSPC;
 	
 	/*
@@ -1583,13 +1583,13 @@ errno_t reiser4_tree_expand(
 			return -ENOSPC;
 
 		/* Setting up shift flags */
-		flags = SF_RIGHT | SF_UPTIP;
+		flags = MSF_RIGHT | MSF_IPUPDT;
 
 		/* We will allow to move insert point to neighbour node if we
 		   are at first iteration in this loop or if place points behind
 		   the last unit of last item in current node. */
 		if (alloc == 0 || !reiser4_place_ltlast(place))
-			flags |= SF_MOVIP;
+			flags |= MSF_IPMOVE;
 
 		/* Shift data from @place to @node. Updating @place by new
 		   insert point. */
@@ -1634,7 +1634,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	   neighbour node. */
 	if ((left = reiser4_tree_neigh(tree, place->node, D_LEFT))) {
 	    
-		if ((res = reiser4_tree_shift(tree, place, left, SF_LEFT))) {
+		if ((res = reiser4_tree_shift(tree, place, left, MSF_LEFT))) {
 			aal_exception_error("Can't pack node %llu into left.",
 					    node_blocknr(place->node));
 			return res;
@@ -1650,7 +1650,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 			bogus.node = right;
 	    
 			if ((res = reiser4_tree_shift(tree, &bogus,
-						      place->node, SF_LEFT)))
+						      place->node, MSF_LEFT)))
 			{
 				aal_exception_error("Can't pack node %llu "
 						    "into left.", node_blocknr(right));
@@ -1713,7 +1713,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			}
     
 			if ((res = reiser4_tree_shift(tree, place, node,
-						      SF_RIGHT | SF_UPTIP)))
+						      MSF_RIGHT | MSF_IPUPDT)))
 			{
 				aal_exception_error("Tree failed to shift "
 						    "into a newly "
@@ -1775,8 +1775,7 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				trans_hint_t *hint)
 {
-	uint32_t chunk;
-	uint32_t towrite;
+	uint32_t size, chunk;
 	reiser4_place_t place;
 
 	chunk = reiser4_master_blksize(tree->fs->master);
@@ -1785,15 +1784,15 @@ errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		chunk = reiser4_node_maxspace(tree->root);
 	}
 	
-	for (towrite = hint->count; towrite > 0;) {
-		errno_t res;
+	for (size = hint->count; size > 0;) {
+		int32_t write;
 		uint32_t level;
 		uint64_t offset;
 
 		hint->count = chunk;
 
-		if (hint->count > towrite)
-			hint->count = towrite;
+		if (hint->count > size)
+			hint->count = size;
 			
 		/* Looking for place to write */
 		switch (reiser4_tree_lookup(tree, &hint->key,
@@ -1810,21 +1809,18 @@ errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		
 		/* Writing one chunk of data @hint->count bytes of length to the
 		   tree. */
-		if ((res = reiser4_tree_write(tree, &place,
-					      hint, level)))
-		{
-			return res;
+		if ((write = reiser4_tree_write(tree, &place, hint, level)) < 0) {
+			aal_exception_error("Can't write data to tree.");
+			return write;
 		}
 
+		/* Updating counters */
+		size -= write;
+		hint->specific += write;
+		
 		/* Updating key */
 		offset = reiser4_key_get_offset(&hint->key);
-		
-		reiser4_key_set_offset(&hint->key, offset +
-				       hint->count);
-
-		/* Updating counters */
-		towrite -= hint->count;
-		hint->specific += hint->count;
+		reiser4_key_set_offset(&hint->key, offset + write);
 	}
 
 	return 0;
@@ -1956,67 +1952,36 @@ static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
 }
 
 /* Function for tre modifying */
-static errno_t reiser4_tree_mod(
+static int32_t reiser4_tree_mod(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
 	trans_hint_t *hint,         /* item hint to be inserted */
 	uint8_t level,              /* level item/unit will be inserted on */
 	bool_t insert)              /* is this insert operation or write */
 {
-	int mode;
+	bool_t mode;
 	errno_t res;
-	uint32_t len;
+	
+	int32_t write;
 	uint32_t needed;
 	reiser4_place_t old;
 
-	/* Checking if tree is fresh one, thus, it does not have the root node.
-	   If so, we allocate new node of the requested level, insert item/unit
-	   into it and then attach it into the empty tree by means of using 
-	   reiser4_tree_attach() function. This function will take care about 
-	   another things which should be done for keeping reiser4 tree intact 
-	   and namely alloate new root and insert one nodeptr item into it. */
-	if (reiser4_tree_fresh(tree)) {
-		if (level == LEAF_LEVEL) {
-			if ((res = reiser4_tree_aroot(tree)))
-				return res;
-		}
-		
-		if (!(place->node = reiser4_tree_alloc(tree, level)))
-			return -EINVAL;
-		
-		POS_INIT(&place->pos, 0, MAX_UINT32);
-		
-		if ((res = reiser4_tree_estimate(tree, place,
-						 hint, insert)))
-		{
+	if (!reiser4_tree_fresh(tree)) {
+		if ((res = reiser4_tree_lroot(tree)))
 			return res;
-		}
-
-		if ((res = reiser4_node_mod(place->node, &place->pos,
-					    hint, insert)))
-		{
-			aal_exception_error("Can't insert data to node %llu.",
-					    node_blocknr(place->node));
-			reiser4_tree_release(tree, place->node);
-			return res;
-		}
-
-		if ((res = reiser4_tree_attach(tree, place->node))) {
-			reiser4_tree_release(tree, place->node);
-			return res;
-		}
-
-		return 0;
 	}
-	
-	if ((res = reiser4_tree_lroot(tree)))
-		return res;
 
-	/* Checking if we have the tree with height smaller than requested
+	/* Checking if we have the tree with height less than requested
 	   level. If so, we should grow the tree up to requested level. */
 	if (level > reiser4_tree_get_height(tree)) {
-		while (level > reiser4_tree_get_height(tree))
-			reiser4_tree_growup(tree);
+		
+		if (reiser4_tree_fresh(tree))
+			return -EINVAL;
+		
+		while (level > reiser4_tree_get_height(tree)) {
+			if (reiser4_tree_growup(tree))
+				return -EINVAL;
+		}
 
 		/* Getting new place item/unit will be inserted at after tree 
 		   is growed up. It is needed because we want to insert item 
@@ -2032,45 +1997,62 @@ static errno_t reiser4_tree_mod(
 		}
 	}
 
-	old = *place;
-
-	if (level < reiser4_node_get_level(place->node)) {
-		/* Allocating node of requested level and assign place for
-		   insert to it. */
-		if (!(place->node = reiser4_tree_alloc(tree, level)))
-			return -ENOSPC;
-
-		POS_INIT(&place->pos, 0, MAX_UINT32);
-	} else if (level > reiser4_node_get_level(place->node)) {
+	if (!reiser4_tree_fresh(tree)) {
+		old = *place;
 		
-		/* Prepare the tree for insertion at the level @level. */
-		if ((res = reiser4_tree_split(tree, place, level)))
-			return res;
-	}
+		if (level < reiser4_node_get_level(place->node)) {
+			/* Allocating node of requested level and assign place
+			   for insert to it. */
+			if (!(place->node = reiser4_tree_alloc(tree, level)))
+				return -ENOSPC;
 
+			POS_INIT(&place->pos, 0, MAX_UINT32);
+		} else if (level > reiser4_node_get_level(place->node)) {
+		
+			/* Prepare the tree for insertion at the level
+			   @level. */
+			if ((res = reiser4_tree_split(tree, place, level)))
+				return res;
+		}
+	} else {
+		old.node = NULL;
+		
+		if ((res = reiser4_tree_aroot(tree)))
+			return res;
+
+		if (level == reiser4_tree_get_height(tree)) {
+			reiser4_place_assign(place, tree->root,
+					     0, MAX_UINT32);
+		} else {
+			if (!(place->node = reiser4_tree_alloc(tree, level)))
+				return -ENOMEM;
+			
+			POS_INIT(&place->pos, 0, MAX_UINT32);
+		}
+	}
+	
 	/* Estimating item/unit to inserted.written to tree */
 	if ((res = reiser4_tree_estimate(tree, place, hint, insert)))
 		return res;
 	
-	len = hint->len + hint->ohd;
-	
-	/* Saving mode of insert (insert new item, paste units to the existent
-	   one) before making space for new inset/unit. */
-	mode = (place->pos.unit == MAX_UINT32);
-	
 	/* Needed space to be prepared in tree */
-	needed = len + (place->pos.unit == MAX_UINT32 ? 
-		reiser4_node_overhead(place->node) : 0);
-	    
-	if ((res = reiser4_tree_expand(tree, place, needed, SF_DEFAULT))) {
-		aal_exception_error("Can't expand the tree for insertion.");
+	needed = hint->len + hint->ohd;
+
+	if ((mode = (place->pos.unit == MAX_UINT32))) {
+		needed += reiser4_node_overhead(place->node);
+	}
+
+	/* Making space in target node */
+	if ((res = reiser4_tree_expand(tree, place, needed, MSF_DEF))) {
+		aal_exception_error("Can't expand tree for insertion "
+				    "data %u bytes long.", needed);
 		return res;
 	}
 	
-	/* As position after making space is generaly changing, we check is mode
-	   of insert was changed or not. If so, we should perform estimate one
-	   more time. That is because, estimated value depends on insert
-	   mode. */
+	/* As insert point is changing durring make space, we check if insert
+	   mode was changed too. If so, we should perform estimate one more time
+	   in order to get right space for @hint. That is because, estimated
+	   value depends on insert point. */
 	if (mode != (place->pos.unit == MAX_UINT32)) {
 		if ((res = reiser4_tree_estimate(tree, place,
 						 hint, insert)))
@@ -2080,49 +2062,49 @@ static errno_t reiser4_tree_mod(
 	}
 
 	/* Inserting/writing data to node */
-	if ((res = reiser4_node_mod(place->node, &place->pos,
-				    hint, insert)))
+	if ((write = reiser4_node_mod(place->node, &place->pos,
+				      hint, insert)) < 0)
 	{
 		aal_exception_error("Can't insert data to node %llu.",
 				    node_blocknr(place->node));
-		return res;
+		return write;
 	}
 
 	/* Parent keys will be updated if we inserted item/unit into leftmost
 	   pos and if target node has the parent. */
-	if (reiser4_place_leftmost(place) &&
-	    place->node->p.node)
-	{
-		reiser4_place_t p;
-
-		reiser4_place_init(&p, place->node->p.node,
-				   &place->node->p.pos);
+	if (reiser4_place_leftmost(place) && place->node != tree->root) {
+		reiser4_place_t *parent = &place->node->p;
 		
-		if ((res = reiser4_tree_ukey(tree, &p, &hint->key)))
-			return res;
+		if (parent->node) {
+			if ((res = reiser4_tree_ukey(tree, parent,
+						     &hint->key)))
+			{
+				return res;
+			}
+		}
 	}
 	
 	/* If make space function allocates new node, we should attach it to the
 	   tree. Also, here we should handle the special case, when tree root
 	   should be changed. */
 	if (place->node != tree->root && !place->node->p.node) {
-		
-		aal_assert("vpf-889", old.node != NULL);
-		
-		/* Growing the tree */
-		if (reiser4_tree_get_root(tree) == node_blocknr(old.node))
-			reiser4_tree_growup(tree);
-	
-		/* Attaching new node to the tree */
-		if ((res = reiser4_tree_attach(tree, place->node))) {
-			reiser4_node_mkclean(place->node);
-			reiser4_tree_release(tree, place->node);
-			return res;
-		}
-	}
+		blk_t rootblk = reiser4_tree_get_root(tree);
 
+		if (old.node && rootblk == node_blocknr(old.node)) {
+			if (reiser4_tree_growup(tree))
+				return -EINVAL;
+		}
+		
+		/* Attaching new node to the tree */
+		if ((res = reiser4_tree_attach(tree, place->node)))
+			return res;
+	}
+	
 	/* Initializing insert point place */
-	return reiser4_place_fetch(place);
+	if ((res = reiser4_place_fetch(place)))
+		return res;
+
+	return write;
 }
 
 /* Fetches data from the @tree to passed @hint */
@@ -2159,7 +2141,7 @@ int32_t reiser4_tree_read(reiser4_tree_t *tree,
 }
 
 /* Writes data to the tree */
-errno_t reiser4_tree_write(reiser4_tree_t *tree,
+int32_t reiser4_tree_write(reiser4_tree_t *tree,
 			   reiser4_place_t *place,
 			   trans_hint_t *hint,
 			   uint8_t level)
@@ -2186,7 +2168,7 @@ errno_t reiser4_tree_cutout(reiser4_tree_t *tree,
 		return -EIO;
 	}
 
-	/* Updating left deleimiting key in all parent nodes */
+	/* Updating left delimiting keys in all parent nodes */
 	if (reiser4_place_leftmost(place) &&
 	    place->node->p.node)
 	{

@@ -616,7 +616,7 @@ errno_t reiser4_node_shift(
 		uint32_t units;
 		reiser4_place_t place;
 
-		if (hint->control & SF_LEFT) {
+		if (hint->control & MSF_LEFT) {
 			reiser4_place_assign(&place, neig,
 					     items - i - 1,
 					     MAX_UINT32);
@@ -664,7 +664,7 @@ errno_t reiser4_node_shift(
 	}
 
 	/* Updating children positions in both nodes */
-	if (hint->control & SF_LEFT) {
+	if (hint->control & MSF_LEFT) {
 		pos_t pos;
 
 		/* Updating neighbour starting from the first moved item */
@@ -836,7 +836,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 }
 
 /* Node modifying fucntion. */
-errno_t reiser4_node_mod(
+int32_t reiser4_node_mod(
 	reiser4_node_t *node,	         /* node item will be inserted in */
 	pos_t *pos,                      /* pos item will be inserted at */
 	trans_hint_t *hint,              /* item hint to be inserted */
@@ -845,6 +845,7 @@ errno_t reiser4_node_mod(
 	errno_t res;
 	uint32_t len;
 	uint32_t needed;
+	int32_t write = 0;
     
 	len = hint->len + hint->ohd;
 
@@ -863,16 +864,16 @@ errno_t reiser4_node_mod(
 		/* Inserting new item or pasting unit into one existent item pointed by
 		   pos->item. */
 		if ((res = plug_call(node->entity->plug->o.node_ops,
-				     insert, node->entity, pos, hint)))
+				     insert, node->entity, pos, hint)) < 0)
 		{
 			return res;
 		}
 	} else {
 		/* Writing data to node. */
-		if ((res = plug_call(node->entity->plug->o.node_ops,
-				     write, node->entity, pos, hint)))
+		if ((write = plug_call(node->entity->plug->o.node_ops,
+				       write, node->entity, pos, hint)) < 0)
 		{
-			return res;
+			return write;
 		}
 	}
 
@@ -882,7 +883,7 @@ errno_t reiser4_node_mod(
 		return res;
 	}
 	
-	return 0;
+	return write;
 }
 
 errno_t reiser4_node_insert(reiser4_node_t *node,
@@ -895,7 +896,7 @@ errno_t reiser4_node_insert(reiser4_node_t *node,
 	return reiser4_node_mod(node, pos, hint, 1);
 }
 
-errno_t reiser4_node_write(reiser4_node_t *node,
+int32_t reiser4_node_write(reiser4_node_t *node,
 			   pos_t *pos, trans_hint_t *hint)
 {
 	aal_assert("umka-2445", node != NULL);
