@@ -13,8 +13,7 @@
 #define stat40_body(place) ((stat40_t *)place->body)
 
 /* Type for stat40 layout callback function */
-typedef int (*stat40_ext_func_t) (sdext_entity_t *,
-				  uint16_t, void *);
+typedef int (*ext_func_t) (sdext_entity_t *, uint16_t, void *);
 
 struct stat40 {
 	d16_t extmask;

@@ -10,10 +10,10 @@
 static reiser4_core_t *core = NULL;
 
 /* The function which implements stat40 layout pass. This function is used for
-   all statdata extention-related actions. For example for opening, of
+   all statdata extention-related actions. For example for reading, or
    counting. */
 errno_t stat40_traverse(place_t *place,
-			stat40_ext_func_t ext_func,
+			ext_func_t ext_func,
 			void *data)
 {
 	uint16_t i, len;
@@ -120,6 +120,14 @@ static int32_t stat40_read(place_t *place, void *buff,
 	if (stat40_traverse(place, callback_open_ext, buff))
 		return -EINVAL;
 
+	return 1;
+}
+
+/* This function returns unit count. This value must be 1 if item has not
+   units. It is because balancing code assumes that if item has more than one
+   unit the it may be shifted out. That is because w ecan't return the number of
+   extentions here. Extentions are the statdata private bussiness. */
+static uint32_t stat40_units(place_t *place) {
 	return 1;
 }
 
@@ -251,17 +259,7 @@ extern errno_t stat40_estimate_copy(place_t *dst,
 				    copy_hint_t *hint);
 
 extern errno_t stat40_check_struct(place_t *, uint8_t);
-#endif
 
-/* This function returns unit count. This value must be 1 if item has not
-   units. It is because balancing code assumes that if item has more than one
-   unit the it may be shifted out. That is because w ecan't return the number of
-   extentions here. Extentions are the statdata private bussiness. */
-static uint32_t stat40_units(place_t *place) {
-	return 1;
-}
-
-#ifndef ENABLE_STAND_ALONE
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
 	body_t *body;
