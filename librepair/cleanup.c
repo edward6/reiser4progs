@@ -62,7 +62,10 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	return res;
 }
 
-static errno_t repair_semantic_node_traverse(reiser4_node_t *node, void *data) {
+static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree, 
+					     reiser4_node_t *node, 
+					     void *data) 
+{
     return repair_node_traverse(node, repair_cleanup_check, data);
 }
 
@@ -116,7 +119,6 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	reiser4_object_t *root;
 	repair_progress_t progress;
-	traverse_hint_t hint;
 	reiser4_fs_t *fs;
 	errno_t res;
 	
@@ -157,12 +159,10 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	
 	reiser4_object_close(root);
 	
-	hint.data = cleanup;
-	hint.cleanup = 1;
-	
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-	res = reiser4_tree_down(fs->tree, fs->tree->root, &hint, 
-				NULL, NULL, NULL, NULL, NULL);
+	res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
+				repair_semantic_node_traverse, 
+				NULL, NULL, cleanup);
 	
 	if (res)
 		goto error_close_lost;

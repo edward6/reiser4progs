@@ -129,7 +129,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 	res = repair_object_check_struct(&object, plugin, callback_check_struct, 
 					 sem->repair->mode, sem);
 	
-	if (res){
+	if (res) {
 		aal_exception_error("Node %llu, item %u: structure check of the "
 				    "object pointed by %k failed. Plugin %s.", 
 				    place->node->blk, place->pos.item, 
@@ -152,7 +152,10 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 	return res;
 }
 
-static errno_t repair_semantic_node_traverse(reiser4_node_t *node, void *data) {
+static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree, 
+					     reiser4_node_t *node, 
+					     void *data) 
+{
 	return repair_node_traverse(node, repair_semantic_object_check, data);
 }
 
@@ -160,7 +163,6 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	repair_progress_t progress;
 	reiser4_plugin_t *plugin;
 	reiser4_object_t object;
-	traverse_hint_t hint;
 	reiser4_fs_t *fs;
 	errno_t res;
 	
@@ -196,7 +198,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if ((plugin = repair_object_realize(&object)) == NULL) {
 		reiser4_object_t *root;
 		
-		/* Failed to realize the root directory, create a new one. */	
+		/* Failed to realize the root directory, create a new one. */
 		if (!(root = reiser4_dir_create(fs, NULL, NULL, fs->profile))) {
 			aal_exception_error("Failed to create the root directory.");
 			return -EINVAL;
@@ -205,12 +207,10 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		reiser4_object_close(root);
 	}
 	
-	hint.data = sem;
-	hint.cleanup = 1;
-	
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-	res = reiser4_tree_down(fs->tree, fs->tree->root, &hint, NULL, 
-				repair_semantic_node_traverse, NULL, NULL, NULL);
+	res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
+				repair_semantic_node_traverse, 
+				NULL, NULL, sem);
 	
 	return res;
 }

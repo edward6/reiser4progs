@@ -2025,39 +2025,56 @@ errno_t reiser4_tree_remove(
 
 static errno_t reiser4_tree_down_open(reiser4_tree_t *tree,
 				      reiser4_node_t **node,
-				      blk_t blk,			      
-				      void *data) 
+				      reiser4_place_t *place,
+				      void *data)
 {
 	uint32_t blocksize;
+	ptr_hint_t ptr;
 	errno_t res;
 	
 	aal_assert("vpf-1049", tree != NULL);
 	aal_assert("vpf-1050", node != NULL);
 	aal_assert("vpf-1051", tree->fs != NULL);
+	aal_assert("vpf-1119", place != NULL);
 	
+	/* Fetching node ptr */
+	plugin_call(place->item.plugin->o.item_ops, read, &place->item, &ptr,
+		    place->pos.unit, 1);
+
 	blocksize = reiser4_master_blksize(tree->fs->master);
 	
-	*node = reiser4_node_open(tree->fs->device, blocksize, blk);
-	
-	return *node == NULL ? -EINVAL : 0;
+	/*
+	   Trying to get child node pointed by @ptr from the parent cache. 
+	   It fails, if the child is not loaded yet and we have to load 
+	   and connect it to the tree explicitly.
+	 */	
+	if ((*node = reiser4_node_cbp(place->node, ptr.start)))
+		return 0;
+
+	if (!(*node = reiser4_node_open(tree->fs->device, blocksize, 
+					ptr.start)))
+		return -EINVAL;
+
+	if ((res = reiser4_tree_connect(tree, place->node, *node)))
+		reiser4_node_close(*node);
+
+	return res;
 }
 
 errno_t reiser4_tree_down(
 	reiser4_tree_t *tree,                /* tree for traversing it */
 	reiser4_node_t *node,		     /* node which should be traversed */
-	traverse_hint_t *hint,		     /* hint for traverse and for callback methods */
 	traverse_open_func_t open_func,	     /* callback for node opening */
 	traverse_edge_func_t before_func,    /* callback to be called at the beginning */
-	traverse_setup_func_t setup_func,    /* callback to be called before a child  */
-	traverse_setup_func_t update_func,   /* callback to be called after a child */
-	traverse_edge_func_t after_func)     /* callback to be called at the end */
+	traverse_update_func_t update_func,   /* callback to be called after a child */
+	traverse_edge_func_t after_func,     /* callback to be called at the end */
+	void *data)			     /* caller specific data */
 {
 	errno_t res = 0;
 	reiser4_place_t place;
 	pos_t *pos = &place.pos;
 	reiser4_node_t *child = NULL;
  
-	aal_assert("vpf-418", hint != NULL);
 	aal_assert("vpf-390", node != NULL);
 	aal_assert("umka-1935", tree != NULL);
 	
@@ -2066,7 +2083,7 @@ errno_t reiser4_tree_down(
 	
 	reiser4_node_lock(node);
 
-	if ((before_func && (res = before_func(node, hint->data))))
+	if ((before_func && (res = before_func(tree, node, data))))
 		goto error_unlock_node;
 
 	/* The loop though the items of current node */
@@ -2089,91 +2106,34 @@ errno_t reiser4_tree_down(
 
 		/* The loop though the units of the current item */
 		for (pos->unit = 0; pos->unit < reiser4_item_units(&place); pos->unit++) {
-			ptr_hint_t ptr;
+			/* Opening the node by its pointer kept in @place */
+			if ((res = open_func(tree, &child, &place, data)))
+				goto error_after_func;
+
+			if (!child)
+				continue;
+
+			/* Traversing the node */
+			if ((res = reiser4_tree_down(tree, child, open_func, 
+						     before_func, update_func, 
+						     after_func, data)) < 0)
+				goto error_after_func;
 			
-			/* Fetching node ptr */
-			plugin_call(place.item.plugin->o.item_ops, read,
-				    &place.item, &ptr, pos->unit, 1);
-
-			if (setup_func && (res = setup_func(&place, hint->data))) {
-				if (res < 0)
-					goto error_after_func;
-				else
-					continue;
-			}
-
-			/*
-			  Trying to get child node pointed by @ptr from the
-			  parent cache. If it is successful we will traverse
-			  it. If we are unable to find it in parent cache, it
-			  means that it is not loaded yet and w load it and
-			  connect to the tree explicitly.
-			*/
-			if (!(child = reiser4_node_cbp(node, ptr.start))) {
-				res = open_func(tree, &child, ptr.start, hint->data);
-				
-				/* Opening the node by its @ptr */
-				if (res)
-					goto error_update_func;
-
-				if (!child)
-					goto update;
-
-				/* Connect opened node to the tree */
-				if (reiser4_tree_connect(tree, node, child))
-					goto error_free_child;
-
-				/* Traversing the node */
-				if ((res = reiser4_tree_down(tree, child,
-							     hint, open_func,
-							     before_func,
-							     setup_func,
-							     update_func,
-							     after_func)) < 0)
-					goto error_free_child;
-
-				/*
-				  Here we're trying to unload loaded earlier
-				  @child if it is not used and corresponding
-				  control flag is specified.
-				*/
-				if (!reiser4_node_locked(child) && hint->cleanup)
-					reiser4_tree_unload(tree, child);
-			} else {
-				if ((res = reiser4_tree_down(tree, child,
-							     hint, open_func,
-							     before_func,
-							     setup_func,
-							     update_func,
-							     after_func)) < 0)
-					goto error_after_func;
-
-			}
-			
-		update:
-			if (update_func && (res = update_func(&place, hint->data)))
+			if (update_func && (res = update_func(tree, &place, data)))
 				goto error_after_func;
 		}
 	}
 	
 	if (after_func)
-		res = after_func(node, hint->data);
+		res = after_func(tree, node, data);
 
 	reiser4_node_unlock(node);
 	
 	return res;
 
- error_free_child:
-	if (!reiser4_node_locked(child) && hint->cleanup)
-		reiser4_tree_unload(tree, child);
-
- error_update_func:
-	if (update_func)
-		res = update_func(&place, hint->data);
-    
  error_after_func:
 	if (after_func)
-		res = after_func(node, hint->data);
+		res = after_func(tree, node, data);
 
  error_unlock_node:
 	reiser4_node_unlock(node);
@@ -2182,12 +2142,11 @@ errno_t reiser4_tree_down(
 
 errno_t reiser4_tree_traverse(
 	reiser4_tree_t *tree,		     /* node which should be traversed */
-	traverse_hint_t *hint,		     /* hint for for callback methods */
 	traverse_open_func_t open_func,	     /* callback for node opening */
 	traverse_edge_func_t before_func,    /* callback to be called at the start */
-	traverse_setup_func_t setup_func,    /* callback to be called before a child  */
-	traverse_setup_func_t update_func,   /* callback to be called after a child */
-	traverse_edge_func_t after_func)     /* callback to be called at the end */
+	traverse_update_func_t update_func,  /* callback to be called after a child */
+	traverse_edge_func_t after_func,     /* callback to be called at the end */
+	void *data)			     /* caller specific data */
 {
 	errno_t res;
 	
@@ -2196,8 +2155,7 @@ errno_t reiser4_tree_traverse(
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	
-	return reiser4_tree_down(tree, tree->root, hint, open_func,
-				 before_func, setup_func, update_func,
-				 after_func);
+	return reiser4_tree_down(tree, tree->root, open_func, before_func, 
+				 update_func, after_func, data);
 }
 #endif

@@ -18,6 +18,7 @@
 
 /* Prints passed @node */
 static errno_t tprint_process_node(
+	reiser4_tree_t *tree,	    /* tree being traversed */
 	reiser4_node_t *node,	    /* node to be printed */
 	void *data)		    /* traverse data */
 {
@@ -43,7 +44,7 @@ static errno_t tprint_process_node(
 }
 
 errno_t debugfs_print_node(reiser4_node_t *node) {
-	return tprint_process_node(node, NULL);
+	return tprint_process_node(NULL, node, NULL);
 }
 
 /* Prints block denoted as blk */
@@ -113,13 +114,8 @@ errno_t debugfs_print_block(
 
 /* Makes traverse though the whole tree and prints all nodes */
 errno_t debugfs_print_tree(reiser4_fs_t *fs) {
-	traverse_hint_t hint;
-	
-	hint.cleanup = 1;
-	hint.data = fs->tree;
-	
-	return reiser4_tree_traverse(fs->tree, &hint, NULL, 
-				     tprint_process_node, 
+	return reiser4_tree_traverse(fs->tree, NULL, 
+				     tprint_process_node,
 				     NULL, NULL, NULL);
 }
 

@@ -74,7 +74,6 @@ static void measurefs_init(void) {
 }
 
 struct tfrag_hint {
-	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
 	blk_t curr;
@@ -88,23 +87,36 @@ typedef struct tfrag_hint tfrag_hint_t;
 static errno_t tfrag_open_node(
 	reiser4_tree_t *tree,	    /* tree being traveresed */
 	reiser4_node_t **node,      /* node to be opened */
-	blk_t blk,                  /* blk node lies in */
+	reiser4_place_t *place,     /* place to read the blk number from */
 	void *data)		    /* traverse hint */
 {
+	errno_t res;
+	ptr_hint_t ptr;
 	uint32_t blocksize;
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
-	aal_device_t *device = frag_hint->tree->fs->device;
+	aal_device_t *device = tree->fs->device;
 
 	aal_assert("umka-1556", frag_hint->level > 0);
 	
-	*node = NULL;
-
 	/* As we do not need traverse leaf level at all, we going out here */
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
+	
+	/* Fetching node ptr */
+	plugin_call(place->item.plugin->o.item_ops, read, &place->item, &ptr, 
+		    place->pos.unit, 1);
 
-	blocksize = reiser4_master_blksize(frag_hint->tree->fs->master);
-	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
+	blocksize = reiser4_master_blksize(tree->fs->master);
+	
+	if ((*node = reiser4_node_open(device, blocksize, ptr.start)) == NULL)
+		return -EINVAL;
+	
+	if ((res = reiser4_tree_connect(tree, place->node, *node))) {
+		reiser4_node_close(*node);
+		return -EINVAL;
+	}
+	
+	return 0;
 }
 
 static errno_t tfrag_process_item(
@@ -140,6 +152,7 @@ static errno_t tfrag_process_item(
   routine for each internal node. See bellow for details.
 */
 static errno_t tfrag_process_node(
+	reiser4_tree_t *tree,	   /* tree being traversed */
 	reiser4_node_t *node,	   /* node to be estimated */
 	void *data)	           /* user-specified data */
 {
@@ -183,22 +196,14 @@ static errno_t tfrag_process_node(
 		item->plugin->o.item_ops->layout(item, tfrag_process_item, data);
 	}
 	
-	return 0;
-}
-
-/*
-  Traverse callbacks for keeping track the current level we are on. They are
-  needed in order to know what level is traversing now and do we want open nodes
-  on this level for checking node pointers on it.
-*/
-static errno_t tfrag_setup_node(reiser4_place_t *place, void *data) {
-	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
-
 	frag_hint->level--;
 	return 0;
 }
 
-static errno_t tfrag_update_node(reiser4_place_t *place, void *data) {
+static errno_t tfrag_update_node(reiser4_tree_t *tree, 
+				 reiser4_place_t *place, 
+				 void *data) 
+{
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 
 	frag_hint->level++;
@@ -214,10 +219,8 @@ static errno_t tfrag_update_node(reiser4_place_t *place, void *data) {
 */
 errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	errno_t res;
-	traverse_hint_t hint;
 	tfrag_hint_t frag_hint;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
 	if (!(flags & F_QUIET)) {
@@ -237,20 +240,16 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	}
 	
 	/* Preparing serve structure, statistics will be stored in  */
-	frag_hint.tree = fs->tree;
 	frag_hint.curr = reiser4_tree_root(fs->tree);
 	frag_hint.level = reiser4_tree_height(fs->tree);
 	
-	hint.cleanup = 1;
-	hint.data = (void *)&frag_hint;
-
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
 
 	/* Calling tree traversal */
-	if ((res = reiser4_tree_traverse(fs->tree, &hint, tfrag_open_node,
-					 tfrag_process_node, tfrag_setup_node,
-					 tfrag_update_node, NULL)))
+	if ((res = reiser4_tree_traverse(fs->tree, tfrag_open_node,
+					 tfrag_process_node, tfrag_update_node,
+					 NULL, &frag_hint)))
 		return res;
 
 	if (frag_hint.gauge)
@@ -266,7 +265,6 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 };
 
 struct tstat_hint {
-	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
 	double leaves_used;
@@ -297,6 +295,7 @@ static errno_t stat_process_item(
 
 /* Processing one formatted node */
 static errno_t stat_process_node(
+	reiser4_tree_t *tree,	    /* tree being traversed */
 	reiser4_node_t *node,	    /* node to be inspected */
 	void *data)		    /* traverse data */
 {
@@ -379,10 +378,8 @@ static errno_t stat_process_node(
 /* Entry point function for calculating tree statistics */
 errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	errno_t res;
-	traverse_hint_t hint;
 	tstat_hint_t stat_hint;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 	
 	if (!(flags & F_QUIET)) {
@@ -396,17 +393,11 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 		aal_gauge_rename(stat_hint.gauge, "Tree statistics");
 	}
 
-	stat_hint.tree = fs->tree;
-	
-	hint.cleanup = 1;
-	hint.data = (void *)&stat_hint;
-
 	if (stat_hint.gauge)
 		aal_gauge_start(stat_hint.gauge);
 	
-	if ((res = reiser4_tree_traverse(fs->tree, &hint, NULL, 
-					 stat_process_node, 
-					 NULL, NULL, NULL)))
+	if ((res = reiser4_tree_traverse(fs->tree, NULL, stat_process_node, 
+					 NULL, NULL, &stat_hint)))
 		return res;
 
 	if (stat_hint.gauge) {
@@ -429,7 +420,6 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 }
 
 struct ffrag_hint {
-	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
 	count_t bad;
@@ -489,8 +479,6 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 	/* Initializing serve structures */
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
-	frag_hint.tree = fs->tree;
-
 	/*
 	  Calling file layout function, which calls ffrag_process_blk() fucntion
 	  for each block belong to the file @filename.
@@ -522,6 +510,7 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
   corresponding files and calculate file fragmentation for each of them.
 */
 static errno_t dfrag_process_node(
+	reiser4_tree_t *tree,	    /* tree being traversed */
 	reiser4_node_t *node,       /* node to be inspected */
 	void *data)                 /* traverse hint */
 {
@@ -532,6 +521,8 @@ static errno_t dfrag_process_node(
 	pos.unit = ~0ul;
 	frag_hint = (ffrag_hint_t *)data;
 
+	frag_hint->level--;
+	
 	if (frag_hint->level > LEAF_LEVEL)
 		return 0;
 	
@@ -559,7 +550,7 @@ static errno_t dfrag_process_node(
 			continue;
 
 		/* Opening object by its stat data item denoded by @place */
-		if (!(object = reiser4_object_launch(frag_hint->tree, &place)))
+		if (!(object = reiser4_object_launch(tree, &place)))
 			continue;
 
 		/* Initializing per-file counters */
@@ -611,17 +602,8 @@ static errno_t dfrag_process_node(
 	return 0;
 }
 
-/* Level keeping track for data fragmentation traversal */
-static errno_t dfrag_setup_node(reiser4_place_t *place,
-				void *data)
-{
-	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
-    
-	frag_hint->level--;
-	return 0;
-}
-
-static errno_t dfrag_update_node(reiser4_place_t *place,
+static errno_t dfrag_update_node(reiser4_tree_t *tree, 
+				 reiser4_place_t *place,
 				 void *data)
 {
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
@@ -635,10 +617,8 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 			    uint32_t flags)
 {
 	errno_t res;
-	traverse_hint_t hint;
 	ffrag_hint_t frag_hint;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
 	if (!(flags & F_QUIET)) {
@@ -653,18 +633,13 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	}
 
 	frag_hint.flags = flags;
-	frag_hint.tree = fs->tree;
 	frag_hint.level = reiser4_tree_height(fs->tree);
 	
-	hint.cleanup = 1;
-	hint.data = (void *)&frag_hint;
-
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
 	
-	if ((res = reiser4_tree_traverse(fs->tree, &hint, NULL, 
-					 dfrag_process_node, dfrag_setup_node,
-					 dfrag_update_node, NULL)))
+	if ((res = reiser4_tree_traverse(fs->tree, NULL, dfrag_process_node, 
+					 dfrag_update_node, NULL, &frag_hint)))
 		return res;
 
 	if (frag_hint.gauge)

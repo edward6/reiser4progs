@@ -215,14 +215,16 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	return res;
 }
 
-static errno_t repair_lost_found_node_traverse(reiser4_node_t *node, void *data) {
+static errno_t repair_lost_found_node_traverse(reiser4_tree_t *tree, 
+					       reiser4_node_t *node, 
+					       void *data) 
+{
 	return repair_node_traverse(node, repair_lost_found_object_check, data);
 }
 
 errno_t repair_lost_found(repair_lost_found_t *lf) {
 	repair_progress_t progress;
 	reiser4_object_t *root;
-	traverse_hint_t hint;
 	reiser4_fs_t *fs;
 	errno_t res;
     
@@ -275,12 +277,10 @@ errno_t repair_lost_found(repair_lost_found_t *lf) {
 		reiser4_object_close(root);
 	}
 	
-	hint.data = lf;
-	hint.cleanup = 1;
-	
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-	res = reiser4_tree_down(fs->tree, fs->tree->root, &hint, NULL, 
-				repair_lost_found_node_traverse, NULL, NULL, NULL);
+	res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
+				repair_lost_found_node_traverse, 
+				NULL, NULL, lf);
 	
 	if (res)
 		return res;

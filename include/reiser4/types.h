@@ -348,29 +348,21 @@ struct reiser4_tree {
 
 #ifndef ENABLE_STAND_ALONE
 
-struct traverse_hint {
-	/*
-	  Flag which shows should traverse remove nodes from the tree cache
-	  after they are passed or not.
-	*/
-	bool_t cleanup;
-	
-	/* User-specified data */
-	void *data;
-};
-
-typedef struct traverse_hint traverse_hint_t;
-
 /* Callback function type for opening node. */
 typedef errno_t (*traverse_open_func_t) (reiser4_tree_t *, 
-					 reiser4_node_t **, 
-					 blk_t, void *);
+					 reiser4_node_t **,
+					 reiser4_place_t *, 
+					 void *);
 
 /* Callback function type for preparing per-node traverse data. */
-typedef errno_t (*traverse_edge_func_t) (reiser4_node_t *, void *);
+typedef errno_t (*traverse_edge_func_t) (reiser4_tree_t *, 
+					 reiser4_node_t *, 
+					 void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*traverse_setup_func_t) (reiser4_place_t *, void *);
+typedef errno_t (*traverse_update_func_t) (reiser4_tree_t *, 
+					   reiser4_place_t *, 
+					   void *);
 
 #endif
 

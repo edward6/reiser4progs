@@ -100,20 +100,18 @@ extern errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_down(reiser4_tree_t *tree,
 				 reiser4_node_t *node,
-				 traverse_hint_t *hint,
 				 traverse_open_func_t open_func,
 				 traverse_edge_func_t before_func,
-				 traverse_setup_func_t setup_func,
-				 traverse_setup_func_t update_func,
-				 traverse_edge_func_t after_func);
+				 traverse_update_func_t update_func,
+				 traverse_edge_func_t after_func,
+				 void *data);
 
 extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
-				     traverse_hint_t *hint,
 				     traverse_open_func_t open_func,
 				     traverse_edge_func_t before_func,
-				     traverse_setup_func_t setup_func,
-				     traverse_setup_func_t update_func,
-				     traverse_edge_func_t after_func);
+				     traverse_update_func_t update_func,
+				     traverse_edge_func_t after_func,
+				     void *data);
 
 #endif
 
