@@ -332,7 +332,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	aal_assert("umka-1604", src_units >= hint->units, return -1);
 
 	headers = hint->units * sizeof(entry40_t);
-	hint->rest -= (dst_units == 0 ? sizeof(direntry40_t) : 0);
+	hint->rest -= (hint->create ? sizeof(direntry40_t) : 0);
 		
 	if (hint->flags & SF_LEFT) {
 		
