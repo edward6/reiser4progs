@@ -15,12 +15,12 @@ static reiser4_core_t *core = NULL;
 #define stat40_body(item) ((stat40_t *)item->body)
 
 /* Type for stat40 layout callback function */
-typedef int (*stat40_perext_func_t) (uint8_t, uint16_t,
-				     reiser4_body_t *, void *);
+typedef int (*stat40_ext_func_t) (uint8_t, uint16_t,
+				  reiser4_body_t *, void *);
 
 /* The function which implements stat40 layout pass */
 static errno_t stat40_traverse(item_entity_t *item,
-			       stat40_perext_func_t func,
+			       stat40_ext_func_t func,
 			       void *data)
 {
 	uint8_t i;
@@ -75,8 +75,8 @@ static errno_t stat40_traverse(item_entity_t *item,
 	return 0;
 }
 
-static int callback_open(uint8_t ext, uint16_t extmask,
-			 reiser4_body_t *extbody, void *data)
+static errno_t callback_open_ext(uint8_t ext, uint16_t extmask,
+				 reiser4_body_t *extbody, void *data)
 {
 	reiser4_plugin_t *plugin;
 	reiser4_statdata_hint_t *hint;
@@ -110,7 +110,7 @@ static errno_t stat40_open(item_entity_t *item,
 	aal_assert("umka-1414", item != NULL, return -1);
 	aal_assert("umka-1415", hint != NULL, return -1);
 
-	return stat40_traverse(item, callback_open, (void *)hint);
+	return stat40_traverse(item, callback_open_ext, (void *)hint);
 }
 
 #ifndef ENABLE_COMPACT
@@ -182,7 +182,7 @@ static errno_t stat40_insert(item_entity_t *item,
     
 	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
 		reiser4_plugin_t *plugin;
-	
+
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
 	    
@@ -382,6 +382,47 @@ static errno_t stat40_print(item_entity_t *item, aal_stream_t *stream,
 
 #endif
 
+static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
+	uint32_t pid;
+	uint64_t extmask;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+	
+	/*
+	  Traverse all statdata extentions and try to find out a non-standard
+	  file plugin. If it is not found, we detect file plugin by mode field.
+	*/
+	extmask = st40_get_extmask(stat40_body(item));
+
+	/* FIXME-UMKA: Here should be checking for the extention first */
+	if (!(((uint64_t)1 << SDEXT_LW_ID) & extmask))
+		return NULL;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.hint = &stat;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+	
+	if (stat40_open(item, &hint)) {
+		aal_exception_error("Can't open statdata extention (0x%x)",
+				    SDEXT_LW_ID);
+		return NULL;
+	}
+
+	pid = FILE_SPECIAL40_ID;
+	
+	if (S_ISLNK(lw_hint.mode))
+		pid = FILE_SYMLINK40_ID;
+	else if (S_ISREG(lw_hint.mode))
+		pid = FILE_REGULAR40_ID;
+	else if (S_ISDIR(lw_hint.mode))
+		pid = FILE_DIRTORY40_ID;
+	
+	return core->factory_ops.ifind(FILE_PLUGIN_TYPE, pid);
+}
+
 static reiser4_plugin_t stat40_plugin = {
 	.item_ops = {
 		.h = {
@@ -416,7 +457,8 @@ static reiser4_plugin_t stat40_plugin = {
 	    
 		.shift          = NULL,
 		.predict        = NULL,
-		
+
+		.belongs        = stat40_belongs,
 		.open           = stat40_open,
 		.units		= stat40_units,
 		.valid		= stat40_valid,

@@ -21,13 +21,6 @@ struct file40 {
 	reiser4_plugin_t *plugin;
     
 	/* 
-	   Poiter to the instance of internal libreiser4 tree, file opened on
-	   stored here for lookup and modiying purposes. It is passed by reiser4
-	   library durring initialization of the fileinstance.
-	*/
-	const void *tree;
-
-	/* 
 	   The key of stat data (or just first item if stat data doesn't exists)
 	   for this directory.
 	*/
@@ -38,6 +31,13 @@ struct file40 {
 
 	/* Core operations pointer */
 	reiser4_core_t *core;
+
+	/* 
+	   Poiter to the instance of internal libreiser4 tree, file opened on
+	   stored here for lookup and modiying purposes. It is passed by reiser4
+	   library durring initialization of the fileinstance.
+	*/
+	void *tree;
 };
 
 typedef struct file40 file40_t;
@@ -46,18 +46,20 @@ extern roid_t file40_objectid(file40_t *file);
 extern roid_t file40_locality(file40_t *file);
 extern errno_t file40_realize(file40_t *file);
 
+extern uint16_t file40_get_mode(file40_t *file);
+extern errno_t file40_set_mode(file40_t *file, uint16_t mode);
+
+extern uint64_t file40_get_size(file40_t *file);
+extern errno_t file40_set_size(file40_t *file, uint64_t size);
+
 extern errno_t file40_lock(file40_t *file, reiser4_place_t *place);
 extern errno_t file40_unlock(file40_t *file, reiser4_place_t *place);
 
-extern uint16_t file40_get_mode(reiser4_place_t *place);
-extern errno_t file40_set_mode(reiser4_place_t *place, uint16_t mode);
+extern errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
+			   key_entity_t *key, reiser4_core_t *core,
+			   void *tree);
 
-extern uint64_t file40_get_size(reiser4_place_t *place);
-extern errno_t file40_set_size(reiser4_place_t *place, uint64_t size);
-
-extern errno_t file40_init(file40_t *file, key_entity_t *key,
-			   reiser4_plugin_t *plugin, const void *tree,
-			   reiser4_core_t *core);
+extern errno_t file40_fini(file40_t *file);
 
 extern errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
 			     uint8_t stop, reiser4_place_t *place);

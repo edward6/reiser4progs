@@ -453,6 +453,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.shift		= NULL,
 		.layout		= NULL,
 #endif
+		.belongs        = NULL,
 		.open		= NULL,
 		.check		= NULL,
 		.valid		= NULL,

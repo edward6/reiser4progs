@@ -10,13 +10,19 @@
 
 #include <aal/aal.h>
 #include <aux/aux.h>
+#include <sys/stat.h>
+
 #include <reiser4/plugin.h>
 #include <plugin/file/file40/file40.h>
 
 /* Compaund directory structure */
 struct symlink40 {
 
-	/* Common file fiedls (statdata, etc) */
+	/*
+	  Common file fiedls (statdata, etc). As symlink40 has nothing but
+	  statdata only, this structure has only file handler, which contains
+	  stuff for statdata handling.
+	*/
 	file40_t file;
 };
 

@@ -9,8 +9,6 @@
 #  include <config.h>
 #endif
 
-#include <sys/stat.h>
-
 #ifndef ENABLE_COMPACT
 #  include <time.h>
 #  include <unistd.h>
@@ -18,9 +16,8 @@
 
 #include "dir40.h"
 
-extern reiser4_plugin_t dir40_plugin;
-
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t dir40_plugin;
 
 static errno_t dir40_reset(object_entity_t *entity) {
 	dir40_t *dir;
@@ -129,7 +126,7 @@ static int32_t dir40_read(object_entity_t *entity,
 
 	file40_realize(&dir->file);
 	
-	if ((size = file40_get_size(&dir->file.statdata)) == 0)
+	if ((size = file40_get_size(&dir->file)) == 0)
 		return 0;
 
 	if (n > size - dir->offset)
@@ -208,7 +205,7 @@ static int dir40_lookup(object_entity_t *entity,
 	return 0;
 }
 
-static object_entity_t *dir40_open(const void *tree, 
+static object_entity_t *dir40_open(void *tree, 
 				   reiser4_place_t *place) 
 {
 	dir40_t *dir;
@@ -222,7 +219,7 @@ static object_entity_t *dir40_open(const void *tree,
 
 	key = &place->item.key;
 	
-	if (file40_init(&dir->file, key, &dir40_plugin, tree, core))
+	if (file40_init(&dir->file, &dir40_plugin, key, core, tree))
 		goto error_free_dir;
 
 	if (!(dir->hash = dir40_guess(dir))) {
@@ -252,7 +249,7 @@ static object_entity_t *dir40_open(const void *tree,
 
 static char *dir40_empty_dir[2] = { ".", ".." };
 
-static object_entity_t *dir40_create(const void *tree,
+static object_entity_t *dir40_create(void *tree,
 				     reiser4_file_hint_t *hint) 
 {
 	uint32_t i;
@@ -279,7 +276,7 @@ static object_entity_t *dir40_create(const void *tree,
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
     
-	if (file40_init(&dir->file, &hint->object, &dir40_plugin, tree, core))
+	if (file40_init(&dir->file, &dir40_plugin, &hint->object, core, tree))
 		goto error_free_dir;
 	
 	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
@@ -487,9 +484,9 @@ static int32_t dir40_write(object_entity_t *entity,
 	/* Updating size field */
 	file40_realize(&dir->file);
 	
-	size = file40_get_size(&dir->file.statdata);
+	size = file40_get_size(&dir->file);
 
-	if (file40_set_size(&dir->file.statdata, size + n))
+	if (file40_set_size(&dir->file, size + n))
 		return -1;
 	
 	aal_free(body_hint.unit);
@@ -586,25 +583,6 @@ static uint64_t dir40_offset(object_entity_t *entity) {
 	return ((dir40_t *)entity)->offset;
 }
 
-/* Detecting the object plugin by extentions or mode */
-static int dir40_confirm(reiser4_place_t *place) {
-	uint16_t mode;
-    
-	aal_assert("umka-1417", place != NULL, return 0);
-
-	/* 
-	   FIXME-UMKA: Here we should inspect all extentions and try to find out
-	   if non-standard file plugin is in use.
-	*/
-
-	/* 
-	   Guessing plugin type and plugin id by mode field from the stat data 
-	   item. Here we return default plugins for every file type.
-	*/
-	mode = file40_get_mode(place);
-	return S_ISDIR(mode);
-}
-
 static reiser4_plugin_t dir40_plugin = {
 	.file_ops = {
 		.h = {
@@ -615,6 +593,7 @@ static reiser4_plugin_t dir40_plugin = {
 			.label = "dir40",
 			.desc = "Compound directory for reiserfs 4.0, ver. " VERSION,
 		},
+		
 #ifndef ENABLE_COMPACT
 		.create	    = dir40_create,
 		.write	    = dir40_write,
@@ -632,7 +611,6 @@ static reiser4_plugin_t dir40_plugin = {
 		.seek	    = NULL,
 		
 		.open	    = dir40_open,
-		.confirm    = dir40_confirm,
 		.close	    = dir40_close,
 		.reset	    = dir40_reset,
 		.offset	    = dir40_offset,

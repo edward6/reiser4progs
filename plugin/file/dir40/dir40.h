@@ -9,6 +9,7 @@
 #define DIR40_H
 
 #include <aal/aal.h>
+#include <sys/stat.h>
 #include <reiser4/plugin.h>
 #include <plugin/file/file40/file40.h>
 

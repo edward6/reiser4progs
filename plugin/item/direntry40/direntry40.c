@@ -1151,6 +1151,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.predict        = NULL,
 		.layout         = NULL,
 #endif
+		.belongs        = NULL,
 		.valid		= NULL,
 		.open           = NULL,
 		.update         = NULL,

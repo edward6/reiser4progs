@@ -9,8 +9,6 @@
 #  include <config.h>
 #endif
 
-#include <sys/stat.h>
-
 #ifndef ENABLE_COMPACT
 #  include <time.h>
 #  include <unistd.h>
@@ -30,7 +28,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 
 	reg = (reg40_t *)entity;
 	
-	if ((size = file40_get_size(&reg->file.statdata)) == 0)
+	if ((size = file40_get_size(&reg->file)) == 0)
 		return 0;
 	
 	key.plugin = reg->file.key.plugin;
@@ -108,7 +106,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	aal_assert("umka-1183", buff != NULL, return 0);
 	aal_assert("umka-1182", entity != NULL, return 0);
 
-	size = file40_get_size(&reg->file.statdata);
+	size = file40_get_size(&reg->file);
 
 	/* The file has not data at all */
 	if (size == 0 || !reg->body.node)
@@ -154,7 +152,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	return read;
 }
 
-static object_entity_t *reg40_open(const void *tree, 
+static object_entity_t *reg40_open(void *tree, 
 				   reiser4_place_t *place) 
 {
 	reg40_t *reg;
@@ -168,7 +166,7 @@ static object_entity_t *reg40_open(const void *tree,
 
 	key = &place->item.key;
 	
-	if (file40_init(&reg->file, key, &reg40_plugin, tree, core))
+	if (file40_init(&reg->file, &reg40_plugin, key, core, tree))
 		goto error_free_reg;
 	
 	aal_memcpy(&reg->file.statdata, place, sizeof(*place));
@@ -189,7 +187,7 @@ static object_entity_t *reg40_open(const void *tree,
 
 #ifndef ENABLE_COMPACT
 
-static object_entity_t *reg40_create(const void *tree, 
+static object_entity_t *reg40_create(void *tree, 
 				     reiser4_file_hint_t *hint) 
 {
 	reg40_t *reg;
@@ -214,7 +212,7 @@ static object_entity_t *reg40_create(const void *tree,
 
 	reg->offset = 0;
     
-	if (file40_init(&reg->file, &hint->object, &reg40_plugin, tree, core))
+	if (file40_init(&reg->file, &reg40_plugin, &hint->object, core, tree))
 		goto error_free_reg;
 	
 	locality = file40_locality(&reg->file);
@@ -328,7 +326,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 	reg = (reg40_t *)entity;
 	
-	if ((size = file40_get_size(&reg->file.statdata)) == 0)
+	if ((size = file40_get_size(&reg->file)) == 0)
 		return 0;
 
 	hint.func = func;
@@ -370,7 +368,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	if ((res = func(entity, &reg->file.statdata, data)))
 		return res;
 
-	if ((size = file40_get_size(&reg->file.statdata)) == 0)
+	if ((size = file40_get_size(&reg->file)) == 0)
 		return 0;
 	
 	while (reg->offset < size) {
@@ -410,25 +408,6 @@ static uint64_t reg40_offset(object_entity_t *entity) {
 	return ((reg40_t *)entity)->offset;
 }
 
-/* Detecting the object plugin by extentions or mode */
-static int reg40_confirm(reiser4_place_t *place) {
-	uint16_t mode;
-    
-	aal_assert("umka-1292", place != NULL, return 0);
-
-	/* 
-	   FIXME-UMKA: Here we should inspect all extentions and try to find out
-	   if non-standard file plugin is in use.
-	*/
-
-	/* 
-	   Guessing plugin type and plugin id by mode field from the stat data
-	   item. Here we return default plugins for every file type.
-	*/
-	mode = file40_get_mode(place);
-	return S_ISREG(mode);
-}
-
 static errno_t reg40_seek(object_entity_t *entity, 
 			  uint64_t offset) 
 {
@@ -464,7 +443,6 @@ static reiser4_plugin_t reg40_plugin = {
 		.follow     = NULL,
 		
 		.open	    = reg40_open,
-		.confirm    = reg40_confirm,
 		.close	    = reg40_close,
 		.reset	    = reg40_reset,
 		.offset	    = reg40_offset,

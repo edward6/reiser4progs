@@ -48,7 +48,7 @@ errno_t file40_unlock(file40_t *file, reiser4_place_t *place) {
 }
 
 /* Gets mode field from the stat data */
-uint16_t file40_get_mode(reiser4_place_t *place) {
+uint16_t file40_get_mode(file40_t *file) {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -60,7 +60,7 @@ uint16_t file40_get_mode(reiser4_place_t *place) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-	item = &place->item;
+	item = &file->statdata.item;
 
 	if (!item->plugin->item_ops.open)
 		return 0;
@@ -73,38 +73,7 @@ uint16_t file40_get_mode(reiser4_place_t *place) {
 	return lw_hint.mode;
 }
 
-errno_t file40_set_mode(reiser4_place_t *place, uint16_t mode) {
-	return -1;
-}
-
-/* Gets size field from the stat data */
-uint64_t file40_get_size(reiser4_place_t *place) {
-	item_entity_t *item;
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
-	reiser4_sdext_lw_hint_t lw_hint;
-
-	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&stat, 0, sizeof(stat));
-
-	hint.hint = &stat;
-	stat.ext[SDEXT_LW_ID] = &lw_hint;
-
-	item = &place->item;
-
-	if (!item->plugin->item_ops.open)
-		return 0;
-
-	if (item->plugin->item_ops.open(item, &hint)) {
-		aal_exception_error("Can't open statdata item.");
-		return 0;
-	}
-	
-	return lw_hint.size;
-}
-
-/* Updates size field in the stat data */
-errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
+errno_t file40_set_mode(file40_t *file, uint16_t mode) {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -118,7 +87,66 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 	stat.extmask = 1 << SDEXT_LW_ID;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-	item = &place->item;
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.open)
+		return -1;
+
+	if (item->plugin->item_ops.open(item, &hint)) {
+		aal_exception_error("Can't open statdata item.");
+		return -1;
+	}
+
+	lw_hint.mode = mode;
+	
+	if (!item->plugin->item_ops.insert)
+		return -1;
+
+	return item->plugin->item_ops.insert(item, &hint, 0);
+}
+
+/* Gets size field from the stat data */
+uint64_t file40_get_size(file40_t *file) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+
+	hint.hint = &stat;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.open)
+		return 0;
+
+	if (item->plugin->item_ops.open(item, &hint)) {
+		aal_exception_error("Can't open statdata item.");
+		return 0;
+	}
+	
+	return lw_hint.size;
+}
+
+/* Updates size field in the stat data */
+errno_t file40_set_size(file40_t *file, uint64_t size) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.hint = &stat;
+
+	stat.extmask = 1 << SDEXT_LW_ID;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+
+	item = &file->statdata.item;
 
 	if (!item->plugin->item_ops.open)
 		return -1;
@@ -136,9 +164,9 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 	return item->plugin->item_ops.insert(item, &hint, 0);
 }
 
-errno_t file40_init(file40_t *file, key_entity_t *key,
-		    reiser4_plugin_t *plugin,
-		    const void *tree, reiser4_core_t *core)
+errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
+		    key_entity_t *key, reiser4_core_t *core,
+		    void *tree)
 {
 	aal_assert("umka-1574", file != NULL, return -1);
 	aal_assert("umka-1756", plugin != NULL, return -1);

@@ -710,10 +710,11 @@ static reiser4_plugin_t extent40_plugin = {
 		.shift         = NULL,
 		.layout        = NULL,
 #endif
-		.set_key       = NULL,
+		.belongs       = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
 		.open          = NULL,
+		.set_key       = NULL,
 
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,

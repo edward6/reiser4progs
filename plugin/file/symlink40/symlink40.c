@@ -9,8 +9,6 @@
 #  include <config.h>
 #endif
 
-#include <sys/stat.h>
-
 #ifndef ENABLE_COMPACT
 #  include <time.h>
 #  include <unistd.h>
@@ -18,9 +16,8 @@
 
 #include "symlink40.h"
 
-extern reiser4_plugin_t symlink40_plugin;
-
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t symlink40_plugin;
 
 /* Reads @n bytes to passed buffer @buff */
 static int32_t symlink40_read(object_entity_t *entity, 
@@ -49,7 +46,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 	return aal_strlen(buff);
 }
 
-static object_entity_t *symlink40_open(const void *tree, 
+static object_entity_t *symlink40_open(void *tree, 
 				       reiser4_place_t *place) 
 {
 	key_entity_t *key;
@@ -63,7 +60,7 @@ static object_entity_t *symlink40_open(const void *tree,
 
 	key = &place->item.key;
 		
-	if (file40_init(&symlink->file, key, &symlink40_plugin, tree, core))
+	if (file40_init(&symlink->file, &symlink40_plugin, key, core, tree))
 		goto error_free_symlink;
 	
 	aal_memcpy(&symlink->file.statdata, place, sizeof(*place));
@@ -77,8 +74,8 @@ static object_entity_t *symlink40_open(const void *tree,
 }
 
 /* Gets symlink from the stat data */
-errno_t symlink40_get_data(reiser4_place_t *place,
-			   char *data)
+static errno_t symlink40_get_data(reiser4_place_t *place,
+				  char *data)
 {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
@@ -105,7 +102,7 @@ errno_t symlink40_get_data(reiser4_place_t *place,
 
 #ifndef ENABLE_COMPACT
 
-static object_entity_t *symlink40_create(const void *tree, 
+static object_entity_t *symlink40_create(void *tree, 
 					 reiser4_file_hint_t *hint) 
 {
 	roid_t objectid;
@@ -128,8 +125,8 @@ static object_entity_t *symlink40_create(const void *tree,
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
     
-	file40_init(&symlink->file, &hint->object, &symlink40_plugin,
-		    tree, core);
+	file40_init(&symlink->file, &symlink40_plugin, &hint->object, 
+		    core, tree);
 	
 	locality = file40_locality(&symlink->file);
 	objectid = file40_objectid(&symlink->file);
@@ -232,12 +229,30 @@ static errno_t symlink40_layout(object_entity_t *entity,
 
 #endif
 
+static errno_t callback_find_statdata(char *track,
+				      char *entry,
+				      void *data)
+{
+	symlink40_t *synlink = (symlink40_t *)data;
+	return -1;
+}
+
+static errno_t callback_find_entry(char *track,
+				   char *entry,
+				   void *data)
+{
+	symlink40_t *synlink = (symlink40_t *)data;
+	return -1;
+}
+
 static errno_t symlink40_follow(object_entity_t *entity,
 				key_entity_t *key)
 {
 	aal_assert("umka-1774", entity != NULL, return -1);
 	aal_assert("umka-1775", key != NULL, return -1);
 
+/*	return aux_parse_path(name, callback_find_statdata,
+			      callback_find_entry, (void *)entity);*/
 	return -1;
 }
 
@@ -250,25 +265,6 @@ static void symlink40_close(object_entity_t *entity) {
 	file40_unlock(&symlink->file, &symlink->file.statdata);
 	
 	aal_free(entity);
-}
-
-/* Detecting the object plugin by extentions or mode */
-static int symlink40_confirm(reiser4_place_t *place) {
-	uint16_t mode;
-    
-	aal_assert("umka-1292", place != NULL, return 0);
-
-	/* 
-	   FIXME-UMKA: Here we should inspect all extentions and try to find out
-	   if non-standard file plugin is in use.
-	*/
-
-	/* 
-	   Guessing plugin type and plugin id by mode field from the stat data
-	   item. Here we return default plugins for every file type.
-	*/
-	mode = file40_get_mode(place);
-	return S_ISLNK(mode);
 }
 
 static reiser4_plugin_t symlink40_plugin = {
@@ -302,7 +298,6 @@ static reiser4_plugin_t symlink40_plugin = {
 		
 		.follow     = symlink40_follow,
 		.open	    = symlink40_open,
-		.confirm    = symlink40_confirm,
 		.close	    = symlink40_close,
 		.read	    = symlink40_read
 	}

@@ -12,27 +12,6 @@
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
-/* Callback function for probing all file plugins */
-static errno_t callback_guess_file(
-	reiser4_plugin_t *plugin,	    /* plugin to be checked */
-	void *data)			    /* item ot be checked */
-{
-	if (plugin->h.type != FILE_PLUGIN_TYPE)
-		return 0;
-	
-	return plugin_call(return 0, plugin->file_ops, confirm,
-			   (reiser4_place_t *)data);
-}
-
-/* 
-   Tries to guess object plugin type passed first item plugin and item
-   body. Most probably, that passed item body is stat data body.
-*/
-static reiser4_plugin_t *reiser4_file_guess(reiser4_coord_t *coord) {
-	aal_assert("umka-1296", coord != NULL, return NULL);
-	return libreiser4_factory_cfind(callback_guess_file, (void *)coord);
-}
-
 /* Callback function for finding statdata of the current directory */
 static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 	reiser4_file_t *file = (reiser4_file_t *)data;
@@ -57,6 +36,21 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 	return reiser4_item_get_key(&file->coord, &file->key);
 }
 
+static reiser4_plugin_t *reiser4_file_plugin(reiser4_file_t *file) {
+	item_entity_t *item;
+
+	/* Getting file plugin */
+	item = &file->coord.item;
+		
+	if (!item->plugin->item_ops.belongs) {
+		aal_exception_error("Method \"belongs\" is not "
+				    "implemented. Can't find file plugin.");
+		return NULL;
+	}
+
+	return item->plugin->item_ops.belongs(item);
+}
+
 /* Callback function for finding passed @entry inside the current directory */
 static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	reiser4_file_t *file;
@@ -66,13 +60,10 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	
 	file = (reiser4_file_t *)data;
 
-	/*
-	  File's key field points ot the statdata of the current directory
-	  (actually it is not neccessary directory).
-	*/
-	if (!(plugin = reiser4_file_guess(&file->coord))) {
-		aal_exception_error("Can't guess file plugin for "
-				    "parent of %s.", track);
+	/* Getting file plugin */
+	if (!(plugin = reiser4_file_plugin(file))) {
+		aal_exception_error("Can't find file plugin for %s.",
+				    track);
 		return -1;
 	}
 
@@ -122,9 +113,6 @@ static errno_t reiser4_file_lookup(
 	reiser4_file_t *file,	    /* file lookup will be performed in */
 	char *name)	            /* name to be parsed */
 {
-	object_entity_t *entity;
-	reiser4_plugin_t *plugin;
-
 	aal_assert("umka-682", file != NULL, return -1);
 	aal_assert("umka-681", name != NULL, return -1);
 
@@ -159,8 +147,9 @@ reiser4_file_t *reiser4_file_begin(
 	
 	aal_snprintf(file->name, sizeof(file->name), "file %llx",
 		     reiser4_key_get_objectid(&file->key));
-	
-	if (!(plugin = reiser4_file_guess(&file->coord))) {
+
+	/* Guessing file plugin */
+	if (!(plugin = reiser4_file_plugin(file))) {
 		aal_exception_error("Can't find file plugin for %s.",
 				    file->name);
 		goto error_free_file;
@@ -215,12 +204,10 @@ reiser4_file_t *reiser4_file_open(
 	   method should convert name previously into absolute one by getcwd
 	   function.
 	*/
-	if (reiser4_file_lookup(file, name)) {
-		aal_exception_error("Can't find file %s.", name);
+	if (reiser4_file_lookup(file, name))
 		goto error_free_file;
-	}
     
-	if (!(plugin = reiser4_file_guess(&file->coord))) {
+	if (!(plugin = reiser4_file_plugin(file))) {
 		aal_exception_error("Can't find file plugin for %s.", name);
 		goto error_free_file;
 	}
