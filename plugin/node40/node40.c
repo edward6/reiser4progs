@@ -449,6 +449,26 @@ static errno_t node40_cut(reiser4_entity_t *entity,
     return 0;
 }
 
+static int node40_mergeable(reiser4_entity_t *entity1, 
+    reiser4_entity_t *entity2) 
+{
+    aal_assert("umka-1274", entity1 != NULL, return 0);
+    aal_assert("umka-1275", entity2 != NULL, return 0);
+
+    return (entity1->plugin->h.id == entity2->plugin->h.id);
+}
+
+static errno_t node40_shift(reiser4_entity_t *entity1, 
+    reiser4_entity_t *entity2, reiser4_pos_t *pos, 
+    reiser4_shift_flags_t flags)
+{
+    aal_assert("umka-1276", entity1 != NULL, return -1);
+    aal_assert("umka-1277", entity2 != NULL, return -1);
+    aal_assert("umka-1278", pos != NULL, return -1);
+
+    return 0;
+}
+
 extern errno_t node40_check(reiser4_entity_t *entity, 
     uint16_t options);
 
@@ -607,8 +627,8 @@ static reiser4_plugin_t node40_plugin = {
 	.get_level	= node40_get_level,
 	.get_stamp	= node40_get_stamp,
 
-	.mergeable	= NULL,
-	.shift		= NULL,
+	.mergeable	= node40_mergeable,
+	.shift		= node40_shift,
 	
 #ifndef ENABLE_COMPACT
 	.create		= node40_create,

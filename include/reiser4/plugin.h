@@ -563,6 +563,14 @@ struct reiser4_sdext_ops {
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
 
+enum reiser4_shift_flags {
+    SF_LEFT	= 1 << 0,
+    SF_RIGHT	= 1 << 1,
+    SF_MIP	= 1 << 2
+};
+
+typedef enum reiser4_shift_flags reiser4_shift_flags_t;
+
 /*
     Node plugin operates on passed block. It doesn't any initialization, so it 
     hasn't close method and all its methods accepts first argument aal_block_t, 
@@ -590,7 +598,8 @@ struct reiser4_node_ops {
     errno_t (*close) (reiser4_entity_t *);
     
     /* Performs shift of some amount of items to passed node */
-    errno_t (*shift) (reiser4_entity_t *, reiser4_entity_t *);
+    errno_t (*shift) (reiser4_entity_t *, reiser4_entity_t *, 
+	reiser4_pos_t *, reiser4_shift_flags_t);
 
     /* Checks if passed nodes are mergeable */
     int (*mergeable) (reiser4_entity_t *, reiser4_entity_t *);

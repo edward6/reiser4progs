@@ -10,3 +10,4 @@ Copyright (C) 1996-2002 Hans Reiser
 * should we throw out uint32_t additional param (unit pos) from item plugin functions?
 * should items have read/write methods?
 * should we split reiser4_fs_cerate and reiser4_fs_open onto separate functions?
+* probably tree traverse function should belong to tree object.
