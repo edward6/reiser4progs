@@ -21,11 +21,11 @@ extern errno_t debugfs_print_file(reiser4_fs_t *fs,
 
 extern errno_t debugfs_print_node(reiser4_node_t *node);
 
-extern errno_t debugfs_print_tree(reiser4_fs_t *fs);
-extern errno_t debugfs_print_master(reiser4_fs_t *fs);
-extern errno_t debugfs_print_format(reiser4_fs_t *fs);
 extern errno_t debugfs_print_oid(reiser4_fs_t *fs);
+extern errno_t debugfs_print_tree(reiser4_fs_t *fs);
 extern errno_t debugfs_print_alloc(reiser4_fs_t *fs);
+extern errno_t debugfs_print_master(reiser4_fs_t *fs);
+extern errno_t debugfs_print_status(reiser4_fs_t *fs);
+extern errno_t debugfs_print_format(reiser4_fs_t *fs);
 extern errno_t debugfs_print_journal(reiser4_fs_t *fs);
-
 #endif

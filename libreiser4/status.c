@@ -127,4 +127,34 @@ errno_t reiser4_status_layout(reiser4_status_t *status,
 	blk = REISER4_STATUS_BLOCK;
 	return region_func(status, blk, 1, data);
 }
+
+errno_t reiser4_status_print(reiser4_status_t *status,
+			     aal_stream_t *stream)
+{
+	aal_assert("umka-2493", status != NULL);
+	aal_assert("umka-2494", stream != NULL);
+
+	aal_stream_format(stream, "Status block:\n");
+
+	aal_stream_format(stream, "offset:\t\t%lu\n",
+			  REISER4_STATUS_BLOCK);
+	
+	aal_stream_format(stream, "magic:\t\t%s\n",
+			  status->status.ss_magic);
+	
+	aal_stream_format(stream, "status:\t\t%0xllx\n",
+			  get_ss_status(&status->status));
+
+	aal_stream_format(stream, "extended:\t%0xllx\n",
+			  get_ss_extended(&status->status));
+
+	if (*status->status.ss_message != '\0') {
+		aal_stream_format(stream, "message:\t%s\n",
+				  status->status.ss_message);
+	} else {
+		aal_stream_format(stream, "message:\t<none>\n");
+	}
+
+	return 0;
+}
 #endif

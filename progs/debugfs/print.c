@@ -152,6 +152,25 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	return 0;
 }
 
+/* Prints fs status block. */
+errno_t debugfs_print_status(reiser4_fs_t *fs) {
+	errno_t res;
+	aal_stream_t stream;
+	
+	aal_assert("umka-2495", fs != NULL);
+
+	aal_stream_init(&stream);
+		
+	if ((res = reiser4_status_print(fs->status, &stream)))
+		return res;
+
+	aal_stream_format(&stream, "\n");
+	debugfs_print_stream(&stream);
+	
+	aal_stream_fini(&stream);
+	return 0;
+}
+
 /* Prints format-specific super block */
 errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	errno_t res;
