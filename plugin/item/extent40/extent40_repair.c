@@ -48,4 +48,9 @@ int32_t extent40_layout_check(item_entity_t *item, region_func_t func,
     return 0;
 }
 
+errno_t extent40_check(item_entity_t *item, uint8_t mode) {
+    aal_assert("vpf-750", item != NULL);
+    return item->len % sizeof(extent40_t);
+}
+
 #endif

@@ -35,4 +35,9 @@ int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func,
     return 0;
 }
 
+errno_t nodeptr40_check(item_entity_t *item, uint8_t mode) {
+    aal_assert("vpf-751", item != NULL);
+    return item->len != sizeof(nodeptr40_t);
+}
+
 #endif
