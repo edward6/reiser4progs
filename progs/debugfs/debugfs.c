@@ -186,6 +186,7 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 
     master = fs->master;
     
+    printf("Master super block:\n");
     printf("block number:\t%llu\n", aal_block_number(master->block));
     printf("block size:\t%u\n", reiser4_master_blocksize(master));
 
@@ -211,6 +212,7 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 
     aal_memset(buff, 0, sizeof(buff));
     
+    printf("Format super block:\n");
     if (plugin_call(return -1, fs->format->entity->plugin->format_ops,
 	print, fs->format->entity, buff, sizeof(buff), 0))
     {
@@ -225,17 +227,31 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 }
 
 static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
-    aal_exception_error("Sorry, block allocator print not implemented yet!");
+    aal_exception_error("Sorry, block allocator print "
+	"is not implemented yet!");
     return 0;
 }
    
 static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
-    aal_exception_error("Sorry, oid allocator print not implemented yet!");
+    char buff[255];
+    
+    if (!fs->oid->entity->plugin->oid_ops.print) {
+	aal_exception_info("Oid allocator print is not implemented or its info "
+	    "is printed by super block print.");
+	return 0;
+    }
+    
+    fs->oid->entity->plugin->oid_ops.print(fs->oid->entity,
+	buff, sizeof(buff), 0);
+
+    printf(buff);
+    printf("\n");
+
     return 0;
 }
    
 static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
-    aal_exception_error("Sorry, journal print not implemented yet!");
+    aal_exception_error("Sorry, journal print is not implemented yet!");
     return 0;
 }
 

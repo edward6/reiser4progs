@@ -844,6 +844,10 @@ struct reiser4_oid_ops {
     /* Returns the number of free object ids */
     uint64_t (*free) (reiser4_entity_t *);
 
+    /* Prints oid allocator data */
+    errno_t (*print) (reiser4_entity_t *, char *, 
+	uint32_t, uint16_t);
+
     /* Object ids of root and root parenr object */
     roid_t (*root_parent_locality) (void);
     roid_t (*root_locality) (void);

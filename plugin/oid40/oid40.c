@@ -152,6 +152,7 @@ static reiser4_plugin_t oid40_plugin = {
 	.release	= NULL,
 	.sync		= NULL,
 #endif
+	.print		= NULL,
 	.used		= oid40_used,
 	.free		= oid40_free,
 	
