@@ -83,8 +83,8 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 static errno_t tree_next_item(void *tree, reiser4_place_t *place,
 			      reiser4_place_t *next)
 {
-	return reiser4_tree_next_node((reiser4_tree_t *)tree, 
-				      place, next);
+	return reiser4_tree_next_place((reiser4_tree_t *)tree, 
+				       place, next);
 }
 
 #ifndef ENABLE_STAND_ALONE

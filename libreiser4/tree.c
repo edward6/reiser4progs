@@ -294,6 +294,27 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	return 0;
 }
 
+#if 0
+static errno_t callback_count_children(reiser4_place_t *place, void *data) {
+	uint32_t *count = (uint32_t *)data;
+	blk_t blk;
+	
+	blk = reiser4_item_down_link(place);
+	if (reiser4_tree_lookup_node(place->node->tree, blk))
+		(*count)++;
+	
+	return 0;
+}
+
+/* Debugging code for catching wrong node->counter. */
+uint32_t debug_node_loaded_children(reiser4_node_t *node) {
+	uint32_t count = 0;
+	if (!node) return 0;
+	reiser4_node_trav(node, callback_count_children, &count);
+	return count;
+}
+#endif
+
 #ifndef ENABLE_STAND_ALONE
 /* Assignes passed @node to root. Takes care about root block number and tree
    height in format. */
@@ -366,6 +387,10 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 			aal_error("Can't adjust tree during connect "
 				  "node %llu.", node_blocknr(node));
 			reiser4_node_unlock(node);
+			if (parent) {
+				reiser4_node_unlock(parent);
+			}
+			
 			reiser4_tree_unhash_node(tree, node);
 			return -EINVAL;
 		}
@@ -469,8 +494,8 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
 				if (node->flags & NF_HEARD_BANSHEE)
 					continue;
 
-				aal_bug("umka-3060", "Node %llu not marked as "
-					"heard banshee, but it is empty.",
+				aal_bug("umka-3060", "Node %llu is empty but "
+					"not marked as 'heard banshee'.",
 					node_blocknr(node));
 			}
 
@@ -551,7 +576,7 @@ errno_t reiser4_tree_unload_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 /* Loads denoted by passed nodeptr @place child node */
 reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
-				reiser4_place_t *place)
+					reiser4_place_t *place)
 {
 	blk_t blk;
 	
@@ -679,19 +704,12 @@ reiser4_node_t *reiser4_tree_neig_node(reiser4_tree_t *tree,
 	return reiser4_tree_ltrt_node(tree, node, where);
 }
 
-/* Moves @place by one item to right. If node is over, returns node next to
-   passed @place. Needed for moving though the tree node by node, for instance
-   in directory read code. */
-errno_t reiser4_tree_next_node(reiser4_tree_t *tree, 
-			       reiser4_place_t *place,
-			       reiser4_place_t *next)
+static errno_t reiser4_tree_adjust_place(reiser4_tree_t *tree, 
+					 reiser4_place_t *place, 
+					 reiser4_place_t *next) 
 {
-	aal_assert("umka-867", tree != NULL);
-	aal_assert("umka-868", place != NULL);
-	aal_assert("umka-1491", next != NULL);
-
 	/* Check if we have to get right neighbour node. */
-	if (place->pos.item >= reiser4_node_items(place->node) - 1) {
+	if (place->pos.item >= reiser4_node_items(place->node)) {
 		/* Load the right neighbour. */
 		reiser4_tree_neig_node(tree, place->node, DIR_RIGHT);
 
@@ -703,19 +721,39 @@ errno_t reiser4_tree_next_node(reiser4_tree_t *tree,
 			   of the above level if there is one. */
 			aal_memcpy(next, place, sizeof(*place));
 
-			if (!reiser4_tree_neig_place(tree, next, DIR_RIGHT))
-				goto error;
+			if (!reiser4_tree_neig_place(tree, next, DIR_RIGHT)) {
+				/* Not found. */
+				aal_memset(next, 0, sizeof(*next));
+				return 0;
+			}
 		}
 	} else {
-		/* Assigning new coord to @place. */
-		reiser4_place_assign(next, place->node,
-				     place->pos.item + 1, 0);
+		aal_memcpy(next, place, sizeof(*place));
 	}
-
+	
 	/* Initializing @place. */
-	if (reiser4_place_fetch(next))
+	return reiser4_place_fetch(next);
+}
+
+/* Moves @place by one item to right. If node is over, returns node next to
+   passed @place. Needed for moving though the tree node by node, for instance
+   in directory read code. */
+errno_t reiser4_tree_next_place(reiser4_tree_t *tree, 
+				reiser4_place_t *place,
+				reiser4_place_t *next)
+{
+	aal_assert("umka-867", tree != NULL);
+	aal_assert("umka-868", place != NULL);
+	aal_assert("umka-1491", next != NULL);
+
+	aal_memcpy(next, place, sizeof(*place));
+	next->pos.item++;
+	
+	if (reiser4_tree_adjust_place(tree, next, next) || !next->node)
 		return -EINVAL;
 
+	reiser4_node_lock(next->node);
+	
 	/* If nodeptr item go down. */
 	while (reiser4_item_branch(next->plug)) {
 		if (!(next->node = reiser4_tree_child_node(tree, next)))
@@ -725,13 +763,44 @@ errno_t reiser4_tree_next_node(reiser4_tree_t *tree,
 			goto error;
 
 		if (reiser4_place_fetch(next))
-			return -EINVAL;
+			goto error;
 	}
+	
+	reiser4_node_unlock(next->node);
 
 	return 0;
  error:
-	/* Not found. */
-	aal_memset(next, 0, sizeof(*next));
+	reiser4_node_unlock(next->node);
+	return -EINVAL;
+}
+
+/* Get the key of the given @place. If @place is not valid, get the key of 
+   the right neighbour. */
+errno_t reiser4_tree_place_key(reiser4_tree_t *tree, 
+			       reiser4_place_t *place,
+			       reiser4_key_t *key) 
+{
+	reiser4_place_t next;
+	
+	aal_assert("vpf-1527", tree != NULL);
+	aal_assert("vpf-1528", place != NULL);
+	aal_assert("vpf-1529", key != NULL);
+	
+	aal_memcpy(&next, place, sizeof(*place));
+	
+	if (next.pos.item >= reiser4_node_items(next.node)) {
+		if (!reiser4_tree_neig_place(tree, &next, DIR_RIGHT)) {
+			key->plug = tree->key.plug;
+			reiser4_key_maximal(key);
+			return 0;
+		}
+	}
+
+	if (reiser4_place_fetch(&next))
+		return -EINVAL;
+	
+	reiser4_item_get_key(&next, key);
+
 	return 0;
 }
 
@@ -1613,7 +1682,7 @@ lookup_t reiser4_collision_handler(reiser4_place_t *place,
 
 		if (place->pos.unit >= units) {
 			/* Getting next item. */
-			if ((reiser4_tree_next_node(tree, place, &temp)))
+			if ((reiser4_tree_next_place(tree, place, &temp)))
 				return -EIO;
 			
 			/* Directory is over? */
@@ -2945,8 +3014,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			
 			reiser4_node_unlock(place->node);
 
-			reiser4_place_dup(&aplace,
-					  &old.node->p);
+			reiser4_place_dup(&aplace, &old.node->p);
 			
 			aplace.pos.item++;
 		}

@@ -110,15 +110,18 @@ bool_t reiser4_place_right(reiser4_place_t *place) {
 
 	items = reiser4_node_items(place->node);
 	
-	if (place->pos.item >= items)
+	if (place->pos.item >= items || 
+	    place->pos.unit == MAX_UINT32)
+	{
 		return 0;
+	}
 	
 	if (reiser4_place_fetch(place))
 		return 0;
 	
 	units = reiser4_item_units(place);
 	
-	return place->pos.unit == units;
+	return place->pos.unit >= units;
 }
 
 void reiser4_place_inc(reiser4_place_t *place, int whole) {

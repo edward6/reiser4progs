@@ -625,9 +625,8 @@ int64_t node40_modify(reiser4_node_t *entity, pos_t *pos,
         
 	/* Preparing place for calling item plugin with them. */
         if (node40_fetch(entity, pos, &place)) {
-		aal_error("Can't fetch item data. Node %llu, "
-			  "item %u.", entity->block->nr,
-			  pos->item);
+		aal_error("Can't fetch item data. Node %llu, item %u.", 
+			  entity->block->nr, pos->item);
 		return -EINVAL;
         }
 

@@ -256,7 +256,7 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	}
 
 	/* Updating key if it makes sense. */
-	if (pos == 0 && place->len > (uint32_t)hint->len) {
+	if (pos == 0 && hint->len) {
 		offset = plug_call(place->key.plug->o.key_ops,
 				   get_offset, &place->key);
 		

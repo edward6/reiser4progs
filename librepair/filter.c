@@ -160,8 +160,8 @@ static void repair_filter_bad_level(repair_filter_t *fd,
    nothing if RE_PTR is set and set this flag if node cannot 
    be opeened. Returns error if any. */
 static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
-				       reiser4_place_t *place,
-				       void *data)
+					       reiser4_place_t *place,
+					       void *data)
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	reiser4_node_t *node = NULL;

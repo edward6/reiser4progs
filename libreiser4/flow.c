@@ -30,11 +30,9 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		lhint.correct_func = NULL;
 	
 		/* Looking for the place to read. */
-		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT,
-					       &place)) < 0)
-		{
-			return res;
-		}
+		res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, &place);
+		
+		if (res < 0) return res;
 
 		/* Data does not found. This may mean, that we have hole in tree
 		   between keys. */
@@ -42,13 +40,25 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			uint64_t hole_size;
 			uint64_t next_offset;
 			uint64_t look_offset;
+			reiser4_key_t tkey;
 			
 			/* Here we suppose, that @place points to next item,
 			   just behind the hole. */
-			if ((res = reiser4_place_fetch(&place)))
-				return res;
+			if (reiser4_place_right(&place))
+				reiser4_place_inc(&place, 1);
 
-			next_offset = reiser4_key_get_offset(&place.key);
+			if ((res = reiser4_tree_place_key(tree, &place, &tkey)))
+				return res;
+			
+			if (plug_call(place.key.plug->o.key_ops, compshort,
+				      &tkey, &hint->offset))
+			{
+				/* No data found. */
+				read = 0;
+				break;
+			}
+			
+			next_offset = reiser4_key_get_offset(&tkey);
 			look_offset = reiser4_key_get_offset(&hint->offset);
 
 			hole_size = next_offset - look_offset;
@@ -209,12 +219,25 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 			uint64_t hole_size;
 			uint64_t next_offset;
 			uint64_t look_offset;
+			reiser4_key_t tkey;
+			
+			/* Here we suppose, that @place points to next item,
+			   just behind the hole. */
+			if (reiser4_place_right(&place))
+				reiser4_place_inc(&place, 1);
 
-			/* Emulating truncating unexistent item. */
-			if ((res = reiser4_place_fetch(&place)))
+			if ((res = reiser4_tree_place_key(tree, &place, &tkey)))
 				return res;
-
-			next_offset = reiser4_key_get_offset(&place.key);
+			
+			if (plug_call(place.key.plug->o.key_ops, compshort,
+				      &tkey, &hint->offset))
+			{
+				/* No data found. */
+				trunc = 0;
+				break;
+			}
+			
+			next_offset = reiser4_key_get_offset(&tkey);
 			look_offset = reiser4_key_get_offset(&hint->offset);
 
 			hole_size = next_offset - look_offset;

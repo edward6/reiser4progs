@@ -111,48 +111,12 @@ errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 	return 0;
 }
 
-/* Sets to the @key the right delimiting key of the node kept in the parent. */
-errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node, 
-				reiser4_key_t *key) 
-{
-	reiser4_place_t place;
-	errno_t ret;
-	
-	aal_assert("vpf-502", node != NULL);
-	aal_assert("vpf-347", key != NULL);
-	
-	if (node->p.node != NULL) {
-		/* Take the right delimiting key from the parent. */
-		
-		place = node->p;
-		reiser4_place_inc(&place, 0);
-		
-		/* If the rightmost place, call recursevely for the parent. */ 
-		if (reiser4_place_rightmost(&place)) {
-			ret = repair_tree_parent_rkey(tree, node->p.node, key);
-			
-			if (ret) return ret;
-		} else {
-			if ((ret = reiser4_place_fetch(&place)))
-				return ret;
-			
-			reiser4_key_assign(key, &place.key);
-		}
-	} else {
-		key->plug = tree->key.plug;
-		reiser4_key_maximal(key);
-	}
-	
-	return 0;
-}
-
 /* Gets the key of the next item. */
 errno_t repair_tree_next_key(reiser4_tree_t *tree, 
 			     reiser4_place_t *place, 
 			     reiser4_key_t *key) 
 {
 	reiser4_place_t temp;
-	errno_t res;
 	
 	aal_assert("vpf-1427", tree != NULL);
 	aal_assert("vpf-1427", place != NULL);
@@ -162,15 +126,7 @@ errno_t repair_tree_next_key(reiser4_tree_t *tree,
 	temp.pos.item++;
 	temp.pos.unit = MAX_UINT32;
 
-	if (reiser4_place_rightmost(&temp))
-		return repair_tree_parent_rkey(tree, temp.node, key);
-	
-	if ((res = reiser4_place_fetch(&temp)))
-		return res;
-
-	reiser4_key_assign(key, &temp.key);
-	
-	return 0;
+	return reiser4_tree_place_key(tree, &temp, key);
 }
 
 reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, reiser4_node_t *parent,
@@ -205,8 +161,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 {
 	reiser4_key_t key_max, dkey;
 	pos_t pos = {0, MAX_UINT32};
-	errno_t res = 0;
 	reiser4_place_t place;
+	errno_t res = 0;
 	int comp = 0;
 	
 	aal_assert("vpf-1281", tree != NULL);
@@ -262,13 +218,15 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		break;
 	}
 	
-	if ((res |= repair_tree_parent_rkey(tree, node, &dkey)) < 0) {
+	place.pos.item = reiser4_node_items(node);
+	
+	if ((res |= reiser4_tree_place_key(tree, &place, &dkey))) {
 		aal_error("Node (%llu): Failed to get the right "
 			  "delimiting key.", node_blocknr(node));
 		return res;
 	}
 	
-	place.pos.item = reiser4_node_items(node) - 1;
+	place.pos.item--;
 	
 	if ((res |= reiser4_place_fetch(&place)) < 0) 
 		return res;
@@ -327,21 +285,11 @@ errno_t repair_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 	
 	/* Check that the node does not overlapped anything by keys. */
 	if (place.node != NULL) {
-		/* Check by keys that the whole node can be attached. */
 		if (reiser4_place_right(&place))
 			reiser4_place_inc(&place, 1);
-		
-		if (reiser4_place_rightmost(&place)) {
-			res = repair_tree_parent_rkey(tree, place.node, &key);
 
-			if (res) return res;
-		} else {
-			if ((res = reiser4_place_fetch(&place)))
-				return res;
-			
-			if ((res = reiser4_item_get_key(&place, &key)))
-				return res;
-		}
+		if ((res = reiser4_tree_place_key(tree, &place, &key)))
+			return res;
 		
 		/* Get the maxreal existing key of the node being inserted. */
 		if ((res = repair_tree_maxreal_key(tree, node, &rkey)))
@@ -389,21 +337,23 @@ static bool_t repair_tree_need_conv(reiser4_tree_t *tree,
 
 /* Prepare repair convertion and perform it. */
 static errno_t repair_tree_conv(reiser4_tree_t *tree, 
-				reiser4_place_t *place,
-				reiser4_plug_t *plug) 
+				reiser4_place_t *dst,
+				reiser4_place_t *src) 
 {
 	conv_hint_t hint;
 
 	/* Set bytes, plug, offset and count in @hint */
 	hint.chunk = 0;
 	hint.bytes = 0;
-	hint.plug = plug;
+	hint.plug = src->plug;
 	hint.place_func = NULL;
 	
-	reiser4_key_assign(&hint.offset, &place->key);
+	reiser4_key_assign(&hint.offset, &dst->key);
+	reiser4_key_set_offset(&hint.offset, 
+			       reiser4_key_get_offset(&src->key));
 
-	hint.count = plug_call(place->plug->o.item_ops->object,
-			       size, place);
+	hint.count = plug_call(src->plug->o.item_ops->object,
+			       size, src);
 
 	return reiser4_flow_convert(tree, &hint);
 }
@@ -456,6 +406,9 @@ static lookup_t callback_lookup(reiser4_place_t *place,
 		if (place->pos.unit == MAX_UINT32)
 			place->pos.unit = 0;
 
+		if (reiser4_place_fetch(place))
+			return -EIO;
+
 		return PRESENT;
 	}
 
@@ -470,12 +423,14 @@ static lookup_t callback_lookup(reiser4_place_t *place,
 		reiser4_place_inc(place, 1);
 
 	if (reiser4_place_rightmost(place)) {
+		place->plug = NULL;
+		
 		prev = *place;
 
 		reiser4_node_lock(prev.node);
 		
-		if ((res = reiser4_tree_next_node(place->node->tree, 
-						  place, place))) 
+		if ((res = reiser4_tree_next_place(place->node->tree, 
+						   place, place))) 
 		{
 			aal_error("vpf-1363: Failed to get the next node.");
 			reiser4_node_unlock(prev.node);
@@ -493,8 +448,8 @@ static lookup_t callback_lookup(reiser4_place_t *place,
 		aal_memset(&prev, 0, sizeof(prev));
 
 	/* Get the current key of the @place. */
-	if ((res = reiser4_place_fetch(place)))
-		return res;
+	if (reiser4_place_fetch(place))
+		return -EIO;
 
 	if ((res = reiser4_item_get_key(place, &dkey)))
 		return res;
@@ -517,7 +472,7 @@ static lookup_t callback_lookup(reiser4_place_t *place,
 }
 
 static errno_t callback_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
-	return plug_call(place->plug->o.item_ops->repair,
+	return plug_call(hint->plug->o.item_ops->repair,
 			 prep_merge, place, hint);
 }
 
@@ -585,7 +540,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 			
 			switch (conv) {
 			case 1:
-				res = repair_tree_conv(tree, &dst, src->plug);
+				res = repair_tree_conv(tree, &dst, src);
 				if (res) return res;
 
 				/* Repeat lookup after @dst conversion. */
@@ -609,8 +564,12 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 			}
 		}
 
-		if (plug_equal(dst.plug, src->plug) && 
-		    hint.plug->o.item_ops->repair->merge) 
+		/* If dst points to some existent item of the same plugin type
+		   as src item and merge method is implemented for this plugin,
+		   call merge. Call it also if dst points to not existent item. 
+		 */
+		if ((dst.plug && plug_equal(dst.plug, src->plug) && 
+		     hint.plug->o.item_ops->repair->merge) || !dst.plug) 
 		{
 			if ((res = reiser4_tree_modify(tree, &dst, &hint, level,
 						       callback_prep_merge,

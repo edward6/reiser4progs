@@ -74,8 +74,7 @@ extern void reiser4_node_set_level(reiser4_node_t *node, uint8_t level);
 
 extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
 
-extern reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree,
-				 blk_t nr);
+extern reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr);
 
 extern errno_t reiser4_node_leftmost_key(reiser4_node_t *node,
 					 reiser4_key_t *key);
