@@ -21,7 +21,7 @@ static errno_t callback_item_mark_region(void *object, uint64_t start,
     
     if (start != 0) {
 	reiser4_alloc_permit(alloc, start, count);
-	reiser4_alloc_occupy_region(alloc, start, count);
+	reiser4_alloc_occupy(alloc, start, count);
     }
 
     return 0;
@@ -123,8 +123,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 		/* Has been inserted. */
 		aux_bitmap_clear(bitmap, node->blk);
 		reiser4_alloc_permit(am->repair->fs->alloc, node->blk, 1);
-		reiser4_alloc_occupy_region(am->repair->fs->alloc, 
-		    node->blk, 1);
+		reiser4_alloc_occupy(am->repair->fs->alloc, node->blk, 1);
 
 		res = repair_node_traverse(node, callback_layout, 
 		    am->repair->fs->alloc);

@@ -17,7 +17,7 @@ errno_t repair_alloc_related_region(reiser4_alloc_t *alloc, blk_t blk,
     aal_assert("vpf-557", alloc != NULL);
     aal_assert("umka-1685", func != NULL);
 
-    return plugin_call(alloc->entity->plugin->alloc_ops, related_region, 
+    return plugin_call(alloc->entity->plugin->alloc_ops, related, 
 	alloc->entity, blk, func, data);
 }
 

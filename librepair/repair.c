@@ -106,7 +106,7 @@ static errno_t callback_region_mark(void *object, blk_t blk, uint64_t count,
     
     aal_assert("vpf-561", ds != NULL);
 
-    reiser4_alloc_occupy_region(ds->repair->fs->alloc, blk, count);
+    reiser4_alloc_occupy(ds->repair->fs->alloc, blk, count);
 
     for (i = blk; i < blk + count; i++) {
 	if (!aux_bitmap_test(ds->bm_met, i))
@@ -156,13 +156,13 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	 * Looks like the bitmap block of the allocator has not been synced on 
 	 * disk. Scan through all its blocks. */
 	if (aux_bitmap_test(ds->bm_met, i) && 
-	    reiser4_alloc_unused_region(control->repair->fs->alloc, i, 1)) 
+	    reiser4_alloc_available(control->repair->fs->alloc, i, 1)) 
 	{
 	    repair_alloc_related_region(control->repair->fs->alloc, i, 
 		callback_region_mark, ds);
 	}
 
-	if (reiser4_alloc_used_region(control->repair->fs->alloc, i, 1) && 
+	if (reiser4_alloc_available(control->repair->fs->alloc, i, 1) && 
 	    !aux_bitmap_test(ds->bm_met, i))
 	    aux_bitmap_mark(ds->bm_scan, i);
     }

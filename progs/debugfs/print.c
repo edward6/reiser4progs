@@ -64,8 +64,8 @@ errno_t debugfs_print_block(
 	reiser4_node_t *node;
 
 	/* Check if @blk is a filesystem block at all */
-	if (!reiser4_alloc_used_region(fs->alloc, blk, 1)) {
-		aal_exception_info("Block %llu is not belong to "
+	if (!reiser4_alloc_occupied(fs->alloc, blk, 1)) {
+		aal_exception_info("Block %llu is not occupied by"
 				   "filesystem.", blk);
 		return 0;
 	}

@@ -3,20 +3,12 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* add option to debugfs, which will turn off directories from the data
+* add option to measurefs, which will turn off directories from the data
   fragmentation calculating.
 
 * insert an extent among internal items may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
-
-* implement reiser4_tree_copy() and reiser4_tree_overwrite() functions, 
-  that needed for fsck.
-
-* should we use sdext_entity_t in sdext plugin interface?
-
-* solve the problem with that, the item plugins cannot rely on item.len 
-  due to it is changing by the node plugin before calling item plugin.
 
 * --print-journal option handling code in debugfs.
 
@@ -29,8 +21,6 @@ reiser4progs/COPYING.
 
 * big digits stat data fields storing format change.
 
-* smart bitmap working functions (copy, invert, etc).
-
 * there should be an ability to work with symlinks from the API.
   Currently if we open a symlink we just "follow" it and then work
   with object it points to.
@@ -39,11 +29,8 @@ reiser4progs/COPYING.
   not allow write symlinks at all? Write method may just remove old 
   stat data and insert new one.
 
-* some kind og flush is needed for libreiser4.
+* some kind of flush is needed for libreiser4.
 
 * change balancing algorithm from the recursive to task oriented one
   like kernel does.
-
-* should we move out all bitmap's and alloc's functions which do not work 
-  with regions and rename the rest in more simple maner (without region)?
 

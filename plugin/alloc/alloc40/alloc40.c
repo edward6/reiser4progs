@@ -20,10 +20,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t alloc40_plugin;
 
-extern errno_t alloc40_related_region(object_entity_t *entity,
-				      blk_t blk, region_func_t func,
-				      void *data);
-
 static int alloc40_isdirty(object_entity_t *entity) {
 	aal_assert("umka-2084", entity != NULL);
 	return ((alloc40_t *)entity)->dirty;
@@ -40,11 +36,41 @@ static void alloc40_mkclean(object_entity_t *entity) {
 }
 
 /*
+  Call @func for all blocks which belong to the same bitmap block as passed
+  @blk. It is needed for fsck. In the case it detremined that a block is not
+  corresponds to its value in block allocator, it should check all the related
+  (neighbour) blocks which are described by one bitmap block (4096 - CRC_SIZE).
+*/
+errno_t alloc40_related(object_entity_t *entity, blk_t blk, 
+			region_func_t region_func, void *data) 
+{
+	uint64_t size;
+	alloc40_t *alloc;
+	aal_device_t *device;
+    
+	aal_assert("vpf-554", entity != NULL);
+	aal_assert("umka-1746", region_func != NULL);
+    
+	alloc = (alloc40_t *)entity;
+    
+	aal_assert("vpf-710", alloc->bitmap != NULL);
+	aal_assert("vpf-711", alloc->device != NULL);
+    
+	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
+    
+	/*
+	  Loop though the all blocks one bitmap block describes and calling
+	  passed @region_func for each of them.
+	*/   
+	return region_func(entity, (blk / size) * size, size, data);
+}
+
+/*
   Calls func for each block allocator block. This function is used in all block
   block allocator operations like load, save, etc.
 */
 errno_t alloc40_layout(object_entity_t *entity,
-		       block_func_t func,
+		       block_func_t block_func,
 		       void *data) 
 {
 	count_t bpb;
@@ -53,7 +79,7 @@ errno_t alloc40_layout(object_entity_t *entity,
 	uint32_t blocksize;
 	
 	aal_assert("umka-347", entity != NULL);
-	aal_assert("umka-348", func != NULL);
+	aal_assert("umka-348", block_func != NULL);
 
 	alloc = (alloc40_t *)entity;
 	blocksize = aal_device_get_bs(alloc->device);
@@ -73,7 +99,7 @@ errno_t alloc40_layout(object_entity_t *entity,
 	{
 		errno_t res;
 		
-		if ((res = func(entity, blk, data)))
+		if ((res = block_func(entity, blk, data)))
 			return res;
 	}
     
@@ -378,8 +404,8 @@ static void alloc40_close(object_entity_t *entity) {
 }
 
 /* Marks specified region as used in block allocator */
-static errno_t alloc40_occupy_region(object_entity_t *entity,
-				    uint64_t start, uint64_t count) 
+static errno_t alloc40_occupy(object_entity_t *entity,
+			      uint64_t start, uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -393,8 +419,8 @@ static errno_t alloc40_occupy_region(object_entity_t *entity,
 }
 
 /* Marks specified region as free in blockallocator bitmap */
-static errno_t alloc40_release_region(object_entity_t *entity,
-				      uint64_t start, uint64_t count) 
+static errno_t alloc40_release(object_entity_t *entity,
+			       uint64_t start, uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -413,8 +439,8 @@ static errno_t alloc40_release_region(object_entity_t *entity,
   blocks is retured to caller. This function is mostly needed for handling
   extent allocation.
 */
-static uint64_t alloc40_allocate_region(object_entity_t *entity,
-					uint64_t *start, uint64_t count)
+static uint64_t alloc40_allocate(object_entity_t *entity,
+				 uint64_t *start, uint64_t count)
 {
 	uint64_t found;
 	alloc40_t *alloc;
@@ -480,7 +506,7 @@ static errno_t alloc40_print(object_entity_t *entity,
 }
 
 /* Returns free blocks count */
-static uint64_t alloc40_unused(object_entity_t *entity) {
+static uint64_t alloc40_free(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-376", alloc != NULL);
@@ -500,8 +526,8 @@ static uint64_t alloc40_used(object_entity_t *entity) {
 }
 
 /* Checks whether specified blocks are used */
-static int alloc40_used_region(object_entity_t *entity,
-			       uint64_t start, uint64_t count) 
+static int alloc40_occupied(object_entity_t *entity,
+			    uint64_t start, uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -513,9 +539,9 @@ static int alloc40_used_region(object_entity_t *entity,
 }
 
 /* Checks whether specified blocks are unused */
-static int alloc40_unused_region(object_entity_t *entity,
-				 uint64_t start, 
-				 uint64_t count) 
+static int alloc40_available(object_entity_t *entity,
+			     uint64_t start, 
+			     uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -629,16 +655,16 @@ static reiser4_plugin_t alloc40_plugin = {
 		.check               = alloc40_check,
 		
 		.used                = alloc40_used,
-		.unused              = alloc40_unused,
+		.free                = alloc40_free,
 		.valid               = alloc40_valid,
 		.layout              = alloc40_layout,
-		.used_region         = alloc40_used_region,
-		.unused_region       = alloc40_unused_region,
+		.occupied            = alloc40_occupied,
+		.available           = alloc40_available,
 
-		.related_region      = alloc40_related_region,
-		.occupy_region	     = alloc40_occupy_region,
-		.allocate_region     = alloc40_allocate_region,
-		.release_region	     = alloc40_release_region
+		.related             = alloc40_related,
+		.occupy	             = alloc40_occupy,
+		.allocate            = alloc40_allocate,
+		.release             = alloc40_release
 	}
 };
 

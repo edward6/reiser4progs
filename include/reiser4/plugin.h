@@ -1141,19 +1141,12 @@ struct reiser4_oid_ops {
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 
 #ifndef ENABLE_STAND_ALONE
-
 struct reiser4_alloc_ops {
 	reiser4_plugin_header_t h;
 
 	/* Creates block allocator */
 	object_entity_t *(*create) (aal_device_t *, uint64_t);
 
-	/* Assign the bitmap to the block allocator */
-	errno_t (*assign) (object_entity_t *, void *);
-
-	/* Extract block allocator data into passed bitmap */
-	errno_t (*extract) (object_entity_t *, void *);
-	
 	/* Opens block allocator */
 	object_entity_t *(*open) (aal_device_t *, uint64_t);
 
@@ -1167,11 +1160,17 @@ struct reiser4_alloc_ops {
 	void (*mkdirty) (object_entity_t *);
 	void (*mkclean) (object_entity_t *);
 	
+	/* Assign the bitmap to the block allocator */
+	errno_t (*assign) (object_entity_t *, void *);
+
+	/* Extract block allocator data into passed bitmap */
+	errno_t (*extract) (object_entity_t *, void *);
+	
 	/* Returns number of used blocks */
 	uint64_t (*used) (object_entity_t *);
 
 	/* Returns number of unused blocks */
-	uint64_t (*unused) (object_entity_t *);
+	uint64_t (*free) (object_entity_t *);
 
 	/* Checks blocks allocator on validness */
 	errno_t (*valid) (object_entity_t *);
@@ -1186,28 +1185,28 @@ struct reiser4_alloc_ops {
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
 	/* Checks if passed range of blocks used */
-	int (*used_region) (object_entity_t *, uint64_t,
-			    uint64_t);
+	int (*occupied) (object_entity_t *, uint64_t,
+			 uint64_t);
     	
 	/* Checks if passed range of blocks unused */
-	int (*unused_region) (object_entity_t *, uint64_t,
-			      uint64_t);
+	int (*available) (object_entity_t *, uint64_t,
+			  uint64_t);
 
 	/* Marks passed block as used */
-	errno_t (*occupy_region) (object_entity_t *, uint64_t,
-				  uint64_t);
+	errno_t (*occupy) (object_entity_t *, uint64_t,
+			   uint64_t);
 
 	/* Tries to allocate passed amount of blocks */
-	uint64_t (*allocate_region) (object_entity_t *, uint64_t *,
-				     uint64_t);
+	uint64_t (*allocate) (object_entity_t *, uint64_t *,
+			      uint64_t);
 	
 	/* Deallocates passed blocks */
-	errno_t (*release_region) (object_entity_t *, uint64_t,
-				   uint64_t);
+	errno_t (*release) (object_entity_t *, uint64_t,
+			    uint64_t);
 
 	/* Calls func for all block of the same area as blk is. */
-	errno_t (*related_region) (object_entity_t *, blk_t,
-				   region_func_t, void *);
+	errno_t (*related) (object_entity_t *, blk_t,
+			    region_func_t, void *);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
