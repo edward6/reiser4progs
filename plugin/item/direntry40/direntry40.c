@@ -296,24 +296,19 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		}
 
 		if (hint->flags & SF_LEFT) {
-			if (item == src_item) {
-				if (hint->pos.unit == 0) {
-					hint->pos.unit = dst_units;
-					item = dst_item;
-				} else
-					hint->pos.unit--;
-			}
-		} else {
-			if (item == src_item) {
-				if (hint->pos.unit >= src_units - 1) {
-					hint->pos.unit = 0;
-					item = dst_item;
-
-					if (hint->pos.unit > src_units - 1)
-						break;
-				}
+			if (hint->pos.unit == 0) {
+				hint->pos.unit = dst_units;
+				item = dst_item;
 			} else
-				hint->pos.unit++;
+				hint->pos.unit--;
+		} else {
+			if (hint->pos.unit >= src_units - 1) {
+				hint->pos.unit = 0;
+				item = dst_item;
+
+				if (hint->pos.unit > src_units - 1)
+					break;
+			}
 		}
 
 		src_units--;

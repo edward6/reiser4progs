@@ -11,6 +11,15 @@ extern reiser4_plugin_t node40_plugin;
 
 static reiser4_core_t *core = NULL;
 
+static char *levels[6] = {
+	"LEAF", "LEAF","TWIG", "INTERNAL", "INTERNAL", "INTERNAL"
+};
+
+static char *groups[6] = {
+	"STATDATA ITEM", "NODEPTR ITEM", "DIRENTRY ITEM",
+	"TAIL ITEM", "EXTENT ITEM", "PERMISSION ITEM"
+};
+
 /* Returns item header by pos */
 inline item40_header_t *node40_ih_at(node40_t *node, int pos) {
 	aal_block_t *block = node->block;
@@ -282,6 +291,7 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	aal_assert("vpf-006", pos != NULL, return -1);
 
 	is_insert = (pos->unit == ~0ul);
+
 	is_space = (nh40_get_free_space(node) >= len +
 		    (is_insert ? sizeof(item40_header_t) : 0));
     
@@ -575,24 +585,6 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	return 0;
 }
 
-static char *levels[6] = {
-	"LEAF",
-	"LEAF",
-	"TWIG",
-	"INTERNAL",
-	"INTERNAL",
-	"INTERNAL"
-};
-
-static char *groups[6] = {
-	"STATDATA ITEM",
-	"NODEPTR ITEM",
-	"DIRENTRY ITEM",
-	"TAIL ITEM",
-	"EXTENT ITEM",
-	"PERMISSION ITEM",
-};
-
 /* 
    Prepare text node description and push it into specied buffer. Caller should
    decide what it should do with filled buffer.
@@ -704,6 +696,7 @@ static errno_t node40_predict(object_entity_t *entity,
 	node40_t *src, *dst;
 	item40_header_t *cur;
 	item40_header_t *end;
+	item40_header_t *start;
 	reiser4_plugin_t *plugin;
 
 	uint32_t len, dst_space;
@@ -716,47 +709,33 @@ static errno_t node40_predict(object_entity_t *entity,
 	src_items = nh40_get_num_items(src);
 	dst_items = nh40_get_num_items(dst);
 
+	start = node40_ih_at(src, 0);
 	end = node40_ih_at(src, src_items - 1);
-	cur = (hint->flags & SF_LEFT ? node40_ih_at(src, 0) : end);
+	cur = (hint->flags & SF_LEFT ? start : end);
 
 	dst_space = node40_space((object_entity_t *)dst);
 
-	while (node == src) {
-		len = (cur == end ? nh40_get_free_space_start(node) - ih40_get_offset(cur) :
-		       ih40_get_offset(cur) - ih40_get_offset(cur + 1));
+	while (src_items > 0) {
 
+		if (cur == end)
+			len = nh40_get_free_space_start(node) -
+				ih40_get_offset(cur);
+		else {
+			len = ih40_get_offset(cur) -
+				ih40_get_offset(cur + 1);
+		}
+		
 		if (dst_space < (len + sizeof(item40_header_t)))
 			break;
 
-		if (!(hint->flags & SF_MOVIP) && node == src) {
-			if (hint->flags & SF_LEFT) {
-				if (hint->pos.item == 0)
-					break;
-			} else {
-				if (hint->pos.item == src_items - 1)
-					break;
-			}
-		}
-
 		if (hint->flags & SF_LEFT) {
-			if (node == src) {
-				if (hint->pos.item == 0) {
-					hint->pos.item = dst_items;
-					node = dst;
-				} else
-					hint->pos.item--;
-			}
+			if (hint->pos.item == 0)
+				break;
+			else
+				hint->pos.item--;
 		} else {
-			if (node == src) {
-				if (hint->pos.item >= src_items - 1) {
-					hint->pos.item = 0;
-					node = dst;
-
-					if (hint->pos.item > src_items - 1)
-						break;
-				}
-			} else
-				hint->pos.item++;
+			if (hint->pos.item >= src_items - 1)
+				break;
 		}
 
 		src_items--;
@@ -764,15 +743,38 @@ static errno_t node40_predict(object_entity_t *entity,
 		
 		hint->items++;
 		hint->bytes += len;
-		dst_space -= (len + sizeof(item40_header_t));
-
+		
 		cur += (hint->flags & SF_LEFT ? -1 : 1);
+		dst_space -= (len + sizeof(item40_header_t));
+	}
+
+	if (dst_space >= (len + sizeof(item40_header_t))) {
+		if (hint->flags & SF_LEFT) {
+			if (hint->pos.item == 0 && (hint->flags & SF_MOVIP)) {
+				hint->items++;
+				hint->bytes += len;
+				hint->pos.item = dst_items;
+				
+				dst_space -= (len + sizeof(item40_header_t));
+			} else
+				hint->flags &= ~SF_MOVIP;
+		} else {
+			if (hint->pos.item <= src_items - 1) {
+				if (hint->flags & SF_MOVIP) {
+					hint->items++;
+					hint->bytes += len;
+					hint->pos.item = 0;
+			
+					dst_space -= (len + sizeof(item40_header_t));
+				}
+			} else {
+				hint->pos.item = 0;
+				hint->flags |= SF_MOVIP;
+			}
+		}
 	}
 	
 	hint->part = dst_space;
-	hint->flags = (node != src ? hint->flags | SF_MOVIP :
-		       hint->flags & ~SF_MOVIP);
-
 	return 0;
 }
 
