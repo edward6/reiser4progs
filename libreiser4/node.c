@@ -446,11 +446,11 @@ errno_t reiser4_node_disconnect(
     
 	/* Updating node children list */
 	next = aal_list_remove(node->children, child);
-	reiser4_node_unlock(node);
 	
 	if (!next || !next->prev)
 		node->children = next;
 
+	reiser4_node_unlock(node);
 	return 0;
 }
 
@@ -740,7 +740,9 @@ errno_t reiser4_node_update(reiser4_node_t *node) {
 	aal_assert("umka-2263", node != NULL);
 
 	place = &node->p;
-	aal_assert("umka-2262", place->node != NULL);
+
+	if (!place->node)
+		return 0;
 	
 	aal_memset(&hint, 0, sizeof(hint));
 

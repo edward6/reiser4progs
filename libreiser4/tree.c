@@ -2086,7 +2086,6 @@ reiser4_node_t *reiser4_tree_clone(reiser4_tree_t *src_tree,
 	}
 
 	level = reiser4_node_get_level(src_node);
-
 	reiser4_node_form(dst_node, level);
 
 	if (reiser4_node_clone(src_node, dst_node))
@@ -2100,28 +2099,29 @@ reiser4_node_t *reiser4_tree_clone(reiser4_tree_t *src_tree,
 }
 
 struct move_hint {
+	aal_list_t *path;
 	reiser4_tree_t *tree;
-	reiser4_node_t *parent;
 };
 
 typedef struct move_hint move_hint_t;
 
-static errno_t copy_node_move(reiser4_tree_t *src_tree,
-			      reiser4_node_t *src_node,
-			      void *data)
+static errno_t copy_down(reiser4_tree_t *src_tree,
+			 reiser4_node_t *src_node,
+			 void *data)
 {
 	pos_t pos;
 	errno_t res = 0;
-
 	move_hint_t *hint;
+
+	aal_list_t *last;
+	reiser4_key_t lkey;
+	aal_list_t *current;
+	reiser4_node_t *parent;
 	reiser4_node_t *dst_node;
 	reiser4_tree_t *dst_tree;
 
 	hint = (move_hint_t *)data;
 
-	if (hint->parent)
-		return 0;
-	
 	if (!(dst_tree = hint->tree))
 		return -EINVAL;
 
@@ -2133,14 +2133,36 @@ static errno_t copy_node_move(reiser4_tree_t *src_tree,
 		return -EINVAL;
 	}
 
-	if ((res = reiser4_tree_connect(dst_tree, NULL, dst_node))) {
+	last = aal_list_last(hint->path);
+	parent = last ?	(reiser4_node_t *)last->data : NULL;
+	
+	if (parent) {
+		dst_node->p.node = parent;
+		reiser4_node_lkey(dst_node, &lkey);
+
+		reiser4_node_lookup(parent, &lkey,
+				    &dst_node->p.pos);
+	    
+		if ((res = reiser4_node_update(dst_node)))
+			return res;
+	}
+	
+	if ((res = reiser4_tree_connect(dst_tree, parent, dst_node))) {
 		aal_exception_error("Can't connect node %llu to "
 				    "target tree.", src_node->number);
 		goto error_free_dst_node;
 	}
 
-	if (reiser4_node_get_level(dst_node) > LEAF_LEVEL)
-		hint->parent = dst_node;
+	/* FIXME-UMKA: Here also should be extents handling */
+	
+	if (reiser4_node_get_level(src_node) > LEAF_LEVEL) {
+		current = aal_list_append(hint->path, dst_node);
+	
+		if (!current->prev)
+			hint->path = current;
+	}
+	
+	reiser4_node_mkdirty(dst_node);
 	
 	return 0;
 
@@ -2149,62 +2171,25 @@ static errno_t copy_node_move(reiser4_tree_t *src_tree,
 	return res;
 }
 
-static errno_t copy_node_open(reiser4_tree_t *tree,
-			      reiser4_node_t **node,
-			      reiser4_place_t *place,
-			      void *data)
+/* Cutting path by one from the end */
+static errno_t copy_up(reiser4_tree_t *src_tree,
+		       reiser4_node_t *src_node,
+		       void *data)
 {
-	errno_t res;
-
+	aal_list_t *next;
+	aal_list_t *last;
 	move_hint_t *hint;
-	key_entity_t lkey;
-	reiser4_node_t *child;
 
-	hint = (move_hint_t *)data;
+	if (reiser4_node_get_level(src_node) > LEAF_LEVEL) {
+		hint = (move_hint_t *)data;
+		last = aal_list_last(hint->path);
+		next = aal_list_remove(last, last->data);
 
-	aal_assert("umka-2325", hint != NULL);
-	aal_assert("umka-2324", hint->parent != NULL);
-	
-	if ((res = down_node_open(tree, node, place, data)))
-		return res;
-
-	if (!(child = reiser4_tree_clone(tree, *node,
-					 hint->tree)))
-	{
-		aal_exception_error("Can't clone node %llu.",
-				    (*node)->number);
-		return -EINVAL;
+		if (!next || !next->prev)
+			hint->path = next;
 	}
-			
-	/* Connecting clonned child to destination tree */
-	child->p.node = hint->parent;
-
-        reiser4_node_lkey(child, &lkey);
-                                                                                                   
-        reiser4_node_lookup(hint->parent, &lkey,
-			    &child->p.pos);
-	    
-	if ((res = reiser4_node_update(child)))
-		return res;
-			
-	if ((res = reiser4_tree_connect(hint->tree,
-					hint->parent,
-					child)))
-	{
-		aal_exception_error("Can't connect node %llu "
-				    "to target tree.",
-				    (*node)->number);
-		goto error_free_child;
-	}
-	
-	if (reiser4_node_get_level(child) > LEAF_LEVEL)
-		hint->parent = child;
 	
 	return 0;
-
- error_free_child:
-	reiser4_node_close(child);
-	return res;
 }
 
 /* Makes copy of @src_tree to @dst_tree */
@@ -2216,12 +2201,11 @@ errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
 	aal_assert("umka-2304", src_tree != NULL);
 	aal_assert("umka-2305", dst_tree != NULL);
 
+	hint.path = NULL;
 	hint.tree = dst_tree;
-	hint.parent = dst_tree->root;
 
-	return reiser4_tree_traverse(src_tree, copy_node_open,
-				     copy_node_move, NULL, NULL,
-				     &hint);
+	return reiser4_tree_traverse(src_tree, NULL, copy_down,
+				     NULL, copy_up, &hint);
 }
 
 /* Resizes @tree by @blocks */
