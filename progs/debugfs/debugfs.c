@@ -206,10 +206,9 @@ static errno_t debugfs_print_joint(
 
 static errno_t debugfs_print_tree(reiser4_fs_t *fs, debugfs_print_flags_t flags) {
 	struct print_tree_hint print_hint = {fs->tree, flags};
-	traverse_hint_t traverse_hint = {TO_FORWARD, LEAF_LEVEL};
 	
-	reiser4_joint_traverse(fs->tree->root, &traverse_hint, (void *)&print_hint,
-			       debugfs_open_joint, debugfs_print_joint, NULL, NULL, NULL, NULL);
+	reiser4_joint_traverse(fs->tree->root, (void *)&print_hint, debugfs_open_joint, 
+			       debugfs_print_joint, NULL, NULL, NULL, NULL);
     
 	printf("\n");
     
