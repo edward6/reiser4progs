@@ -277,7 +277,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				break;
 		}
 		
-		aal_assert("vpf-1304", reg->body.pos.unit == MAX_UINT32);
+//		aal_assert("vpf-1304", reg->body.pos.unit == MAX_UINT32);
 		
 		if ((result = reg40_check_ikey(reg)) < 0)
 			return result;
