@@ -25,4 +25,3 @@ typedef struct extent40 extent40_t;
 #define et40_set_width(et, val)	    aal_set_le64(et, width, val)
 
 #endif
-

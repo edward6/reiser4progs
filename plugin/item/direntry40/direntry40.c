@@ -9,10 +9,6 @@
 
 static reiser4_core_t *core = NULL;
 
-direntry40_t *direntry40_body(item_entity_t *item) {
-	return (direntry40_t *)item->body;
-}
-
 static inline objid40_t *direntry40_unit(direntry40_t *direntry, 
 				  uint32_t pos)
 {
@@ -86,9 +82,10 @@ static uint32_t direntry40_units(item_entity_t *item) {
 	return de40_get_count(direntry);
 }
 
-static errno_t direntry40_fetch(item_entity_t *item, uint32_t pos,
+static int32_t direntry40_fetch(item_entity_t *item, uint32_t pos,
 				void *buff, uint32_t count)
 {
+	uint32_t i;
 	entry40_t *entry;
 	objid40_t *objid;
 	direntry40_t *direntry;
@@ -106,21 +103,24 @@ static errno_t direntry40_fetch(item_entity_t *item, uint32_t pos,
 
 	aal_assert("umka-1608", direntry != NULL, return 0);
 	aal_assert("umka-1598", pos < de40_get_count(direntry), return -1);
+
+	if (count > direntry40_units(item) - pos)
+		count = direntry40_units(item) - pos;
+	
+	for (i = pos; i < pos + count; i++, hint++) {
+		entry = direntry40_entry(direntry, i);
+		
+		hint->entryid.objectid = eid_get_objectid(&entry->entryid);
+		hint->entryid.offset = eid_get_offset(&entry->entryid);
+
+		objid = direntry40_unit(direntry, pos);
+
+		hint->name = (char *)(objid + 1);
+		hint->objid.objectid = oid_get_objectid(objid);
+		hint->objid.locality = oid_get_locality(objid);
+	}
     
-	if (pos > direntry40_units(item))
-		return -1;
-
-	entry = direntry40_entry(direntry, pos);
-	hint->entryid.objectid = eid_get_objectid(&entry->entryid);
-	hint->entryid.offset = eid_get_offset(&entry->entryid);
-
-	objid = direntry40_unit(direntry, pos);
-
-	hint->name = (char *)(objid + 1);
-	hint->objid.objectid = oid_get_objectid(objid);
-	hint->objid.locality = oid_get_locality(objid);
-    
-	return 0;
+	return i - pos;
 }
 
 #ifndef ENABLE_COMPACT
@@ -877,6 +877,7 @@ static reiser4_plugin_t direntry40_plugin = {
 			.label = "direntry40",
 			.desc = "Compound direntry for reiserfs 4.0, ver. " VERSION,
 		},
+		
 #ifndef ENABLE_COMPACT	    
 		.init		= direntry40_init,
 		.insert		= direntry40_insert,

@@ -19,7 +19,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *k
 	reiser4_ptr_hint_t ptr;
 
 	if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-	    parent->pos.unit, &ptr, 1) || ptr.ptr == INVAL_BLK)
+	    parent->pos.unit, &ptr, 1) != 1 || ptr.ptr == INVAL_BLK)
 	    return -1;
 
 	if (!(coord.node = reiser4_node_open(parent->node->device, ptr.ptr))) 

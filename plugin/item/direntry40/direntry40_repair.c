@@ -13,8 +13,6 @@
 #define de40_min_length(count)	count * (sizeof(entry40_t) + MIN_LEN) + \
 				    sizeof(direntry40_t)
 
-extern direntry40_t *direntry40_body(item_entity_t *item);
-    
 static errno_t direntry40_count_check(item_entity_t *item) {
     direntry40_t *de;
     uint16_t count_error, count;

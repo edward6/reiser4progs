@@ -9,9 +9,7 @@
 
 static reiser4_core_t *core = NULL;
 
-static nodeptr40_t *nodeptr40_body(item_entity_t *item) {
-	return (nodeptr40_t *)item->body;
-}
+#define nodeptr40_body(item) ((nodeptr40_t *)item->body)
 
 static uint32_t nodeptr40_units(item_entity_t *item) {
 	return 1;
@@ -65,7 +63,7 @@ static errno_t nodeptr40_print(item_entity_t *item, aal_stream_t *stream,
 
 #endif
 
-static errno_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
+static int32_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
 			       void *buff, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
@@ -75,15 +73,16 @@ static errno_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
 	aal_assert("umka-1420", buff != NULL, return -1);
 
 	nodeptr = nodeptr40_body(item);
+	
 	hint->ptr = np40_get_ptr(nodeptr);
 	hint->width = 1;
 	
-	return 0;
+	return 1;
 }
 
 #ifndef ENABLE_COMPACT
 
-static errno_t nodeptr40_update(item_entity_t *item, uint32_t pos,
+static int32_t nodeptr40_update(item_entity_t *item, uint32_t pos,
 				void *buff, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
@@ -95,7 +94,7 @@ static errno_t nodeptr40_update(item_entity_t *item, uint32_t pos,
 	nodeptr = nodeptr40_body(item);
 	np40_set_ptr(nodeptr, hint->ptr);
 	
-	return 0;
+	return 1;
 }
 
 #endif

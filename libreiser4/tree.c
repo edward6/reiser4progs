@@ -461,9 +461,8 @@ int reiser4_tree_lookup(
 		item = &coord->entity;
 		
 		/* Getting the node pointer from internal item */
-		if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-				coord->pos.unit, &ptr, 1))
-			return -1;
+		plugin_call(return -1, item->plugin->item_ops, fetch, item, 
+			    coord->pos.unit, &ptr, 1);
 		
 		if (ptr.ptr == INVAL_BLK) {
 			aal_exception_error("Can't get pointer from nodeptr item %u, "

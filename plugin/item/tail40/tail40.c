@@ -10,9 +10,7 @@
 
 static reiser4_core_t *core = NULL;
 
-static reiser4_body_t *tail40_body(item_entity_t *item) {
-	return item->body;
-}
+#define tail40_body(item) (item->body)
 
 static uint32_t tail40_units(item_entity_t *item) {
 	return item->len;
@@ -43,6 +41,26 @@ static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos,
 }
 
 #ifndef ENABLE_COMPACT
+
+static int32_t tail40_update(item_entity_t *item, uint32_t pos,
+			     void *buff, uint32_t count)
+{
+	uint32_t update = count;
+
+	if (item->len - pos < update)
+		update = item->len - pos;
+	
+	/* Copying new data into freed place */
+	aal_memcpy(item->body + pos, buff, update);
+
+	/* Updating the key */
+	if (pos == 0) {
+		if (tail40_unit_key(item, 0, &item->key))
+			return -1;
+	}
+
+	return update;
+}
 
 static errno_t tail40_insert(item_entity_t *item, uint32_t pos, 
 			     reiser4_item_hint_t *hint)
@@ -160,11 +178,19 @@ static errno_t tail40_max_real_key(item_entity_t *item,
 	return 0;
 }
 
-static errno_t tail40_fetch(item_entity_t *item, uint32_t pos,
+static int32_t tail40_fetch(item_entity_t *item, uint32_t pos,
 			    void *buff, uint32_t count)
 {
-	aal_memcpy(buff, tail40_body(item) + pos, count);
-	return 0;
+	uint32_t read;
+	
+	aal_assert("umka-1673", item != NULL, return -1);
+	aal_assert("umka-1674", item->body != NULL, return -1);
+	aal_assert("umka-1675", pos < item->len, return -1);
+
+	read = count > item->len - pos ? item->len - pos : count;
+	
+	aal_memcpy(buff, item->body + pos, read);
+	return read;
 }
 
 static int tail40_lookup(item_entity_t *item, reiser4_key_t *key, 
@@ -366,6 +392,7 @@ static reiser4_plugin_t tail40_plugin = {
 #ifndef ENABLE_COMPACT
 		.init	       = tail40_init,
 		.insert	       = tail40_insert,
+		.update        = tail40_update,
 		.remove	       = tail40_remove,
 		.print	       = tail40_print,
 		.mergeable     = tail40_mergeable,
@@ -374,6 +401,7 @@ static reiser4_plugin_t tail40_plugin = {
 #else
 		.init	       = NULL,
 		.insert	       = NULL,
+		.update        = NULL,
 		.remove	       = NULL,
 		.print	       = NULL,
 		.mergeable     = NULL,
@@ -383,7 +411,6 @@ static reiser4_plugin_t tail40_plugin = {
 		.open          = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
-		.update        = NULL,
 		.estimate      = NULL,
 
 		.units	       = tail40_units,

@@ -320,13 +320,6 @@ struct reiser4_ptr_hint {
 
 typedef struct reiser4_ptr_hint reiser4_ptr_hint_t;
 
-struct reiser4_extent_hint {
-	uint16_t count;
-	reiser4_ptr_hint_t *unit;
-};
-
-typedef struct reiser4_extent_hint reiser4_extent_hint_t;
-
 struct reiser4_tail_hint {
 	void *data;
 	uint16_t len;
@@ -631,11 +624,11 @@ struct reiser4_item_ops {
 	uint16_t (*remove) (item_entity_t *, uint32_t);
 
 	/* Reads passed amount of units from the item. */
-	errno_t (*fetch) (item_entity_t *, uint32_t,
-			   void *, uint32_t);
+	int32_t (*fetch) (item_entity_t *, uint32_t,
+			  void *, uint32_t);
 
 	/* Updates passed amount of units in the item */
-	errno_t (*update) (item_entity_t *, uint32_t,
+	int32_t (*update) (item_entity_t *, uint32_t,
 			   void *, uint32_t);
 
 	/* Estimates item */

@@ -12,9 +12,7 @@
 
 static reiser4_core_t *core = NULL;
 
-static inline stat40_t *stat40_body(item_entity_t *item) {
-	return (stat40_t *)item->body;
-}
+#define stat40_body(item) ((stat40_t *)item->body)
 
 /* Type for stat40 layout callback function */
 typedef int (*stat40_perext_func_t) (uint8_t, uint16_t, reiser4_body_t *, void *);

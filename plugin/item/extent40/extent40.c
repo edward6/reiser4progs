@@ -10,9 +10,7 @@
 
 static reiser4_core_t *core = NULL;
 
-static extent40_t *extent40_body(item_entity_t *item) {
-	return (extent40_t *)item->body;
-}
+#define extent40_body(item) ((extent40_t *)item->body)
 
 static uint32_t extent40_units(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL, return 0);
@@ -63,10 +61,11 @@ static errno_t extent40_unit_key(item_entity_t *item, uint32_t pos,
 static errno_t extent40_insert(item_entity_t *item, uint32_t pos, 
 			       reiser4_item_hint_t *hint)
 {
+	uint32_t count;
 	void *src, *dst;
 	uint32_t i, units;
 	extent40_t *extent;
-	reiser4_extent_hint_t *extent_hint;
+	reiser4_ptr_hint_t *ptr;
 	
 	aal_assert("umka-1202", item != NULL, return -1); 
 	aal_assert("umka-1203", hint != NULL, return -1);
@@ -78,22 +77,23 @@ static errno_t extent40_insert(item_entity_t *item, uint32_t pos,
 	if (!(extent = extent40_body(item)))
 		return -1;
 
-	extent_hint = (reiser4_extent_hint_t *)hint->hint;
+	ptr = (reiser4_ptr_hint_t *)hint->hint;
 
+	count = hint->len / sizeof(extent40_t);
+		
 	/* Preparing space for new extent units */
 	if ((units = extent40_units(item))) {
 		src = extent + pos;
+		dst = src + count * sizeof(extent40_t);
 		
-		dst = src + extent_hint->count * sizeof(extent40_t);
-	
 		aal_memmove(dst, src, (units - pos) * sizeof(extent40_t));
 	}
 
 	extent += pos;
 	
-	for (i = 0; i < extent_hint->count; i++, extent++) {
-		et40_set_start(extent, extent_hint->unit[0].ptr);
-		et40_set_width(extent, extent_hint->unit[0].width);
+	for (i = 0; i < count; i++, extent++, ptr++) {
+		et40_set_start(extent, ptr->ptr);
+		et40_set_width(extent, ptr->width);
 	}
 
 	/* Updating item's key by key of the first unit */
@@ -303,42 +303,61 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 	return 1;
 }
 
-static errno_t extent40_fetch(item_entity_t *item, uint32_t pos,
+static int32_t extent40_fetch(item_entity_t *item, uint32_t pos,
 			      void *buff, uint32_t count)
 {
+	uint32_t i;
 	extent40_t *extent;
-	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
+	reiser4_ptr_hint_t *hint;
 	
 	aal_assert("umka-1421", item != NULL, return -1);
 	aal_assert("umka-1422", buff != NULL, return -1);
+	aal_assert("umka-1672", pos < extent40_units(item), return -1);
 
 	if (!(extent = extent40_body(item)))
 		return -1;
+
+	hint = (reiser4_ptr_hint_t *)buff;
+
+	if (count > extent40_units(item) - pos)
+		count = extent40_units(item) - pos;
 	
-	hint->ptr = et40_get_start(extent + pos);
-	hint->width = et40_get_width(extent + pos);
+	for (i = pos; i < pos + count; i++, hint++) {
+		hint->ptr = et40_get_start(extent + i);
+		hint->width = et40_get_width(extent + i);
+	}
 	
-	return 0;
+	return i - pos;
 }
 
 #ifndef ENABLE_COMPACT
 
-static errno_t extent40_update(item_entity_t *item, uint32_t pos,
+static int32_t extent40_update(item_entity_t *item, uint32_t pos,
 			       void *buff, uint32_t count)
 {
+	uint32_t i;
 	extent40_t *extent;
-	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
+	reiser4_ptr_hint_t *ptr = (reiser4_ptr_hint_t *)buff;
 	
 	aal_assert("umka-1425", item != NULL, return -1);
 	aal_assert("umka-1426", buff != NULL, return -1);
 
 	if (!(extent = extent40_body(item)))
 		return -1;
+
+	extent += pos;
 	
-	et40_set_start((extent + pos), hint->ptr);
-	et40_set_width((extent + pos), hint->width);
+	for (i = pos; i < extent40_units(item); i++, extent++, ptr++) {
+		et40_set_start(extent, ptr->ptr);
+		et40_set_width(extent, ptr->width);
+	}
 	
-	return 0;
+	if (pos == 0) {
+		if (extent40_unit_key(item, 0, &item->key))
+			return -1;
+	}
+	
+	return i - pos;
 }
 
 static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {

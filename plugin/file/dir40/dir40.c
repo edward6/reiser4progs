@@ -107,10 +107,12 @@ static int32_t dir40_read(object_entity_t *entity,
 	item = &dir->body.entity;
 	
 	/* Getting the number of entries */
-	if (!(units = plugin_call(return -1, item->plugin->item_ops,
-				  units, item)))
-		return -1;
-    
+	units = plugin_call(return -1, item->plugin->item_ops,
+			    units, item);
+
+	if (units == 0)
+		return 0;
+	
 	for (i = 0; i < n; i++) {
 		
 		/* Check if we should get next item in right neighbour */
@@ -120,9 +122,8 @@ static int32_t dir40_read(object_entity_t *entity,
 		item = &dir->body.entity;
 
 		/* Getting next entry from the current direntry item */
-		if (plugin_call(break, item->plugin->item_ops, fetch, item,
-				dir->body.pos.unit, entry++, 1))
-			break;
+		plugin_call(break, item->plugin->item_ops, fetch, item,
+			    dir->body.pos.unit, entry++, 1);
 
 		dir->offset++; 
 		dir->body.pos.unit++; 

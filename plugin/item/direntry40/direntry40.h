@@ -16,6 +16,8 @@
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 
+#define direntry40_body(item) ((direntry40_t *)item->body)
+
 /*
   The direntry40 structure is as the following:
   +-------------------------------+-------------------------------------------------+

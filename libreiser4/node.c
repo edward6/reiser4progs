@@ -883,9 +883,8 @@ errno_t reiser4_node_shift(
 		if (!reiser4_item_nodeptr(&coord))
 			continue;
 			
-		if (plugin_call(return -1, coord.entity.plugin->item_ops,
-				fetch, &coord.entity, 0, &ptr, 1))
-			return -1;
+		plugin_call(return -1, coord.entity.plugin->item_ops,
+			    fetch, &coord.entity, 0, &ptr, 1);
 			
 		if (!(child = reiser4_node_cbp(node, ptr.ptr)))
 			continue;
@@ -1197,9 +1196,8 @@ errno_t reiser4_node_traverse(
 			reiser4_ptr_hint_t ptr;
 
 			/* Fetching node ptr */
-			if (plugin_call(continue, coord.entity.plugin->item_ops,
-					fetch, &coord.entity, pos->unit, &ptr, 1))
-				goto error_after_func;
+			plugin_call(continue, coord.entity.plugin->item_ops,
+				    fetch, &coord.entity, pos->unit, &ptr, 1);
 		
 			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {
 				child = NULL;

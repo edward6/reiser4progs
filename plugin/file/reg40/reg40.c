@@ -114,16 +114,24 @@ static int32_t reg40_read(object_entity_t *entity,
 					break;
 			}
 		
-			/* Calculating the chunk of data to be read. If it is
-			 * zero, we go away. Else fetching of data from the item
-			 * will be performed */
+			/*
+			  Calculating the chunk of data to be read. If it is
+			  zero, we go away. Else fetching of data from the item
+			  will be performed.
+			*/
 			chunk = (item->len - reg->local) > n - read ?
 				n - read : (item->len - reg->local);
 			
 			if (!chunk) break;
 	
-			plugin_call(return -1, item->plugin->item_ops, fetch,
-				    item, reg->local, buff + read, chunk);
+			if (plugin_call(return -1, item->plugin->item_ops, fetch,
+					item, reg->local, buff + read, chunk) != (int32_t)chunk)
+			{
+				aal_exception_error("Can't fetch data from tail item. "
+						    "Pos %lu, count %lu.", reg->local,
+						    chunk);
+				return -1;
+			}
 			
 			read += chunk;
 			reg->offset += chunk;
@@ -154,10 +162,14 @@ static int32_t reg40_read(object_entity_t *entity,
 			for (; pos->unit < units && read < n; ) {
 				uint64_t blk;
 				reiser4_ptr_hint_t ptr;
-				
+
 				if (plugin_call(return -1, item->plugin->item_ops,
-						fetch, item, pos->unit, &ptr, 1))
+						fetch, item, pos->unit, &ptr, 1) != 1)
+				{
+					aal_exception_error("Can't fetch data from extent item. "
+							    "Pos %lu, count %lu.", pos->unit, 1);
 					return -1;
+				}
 
 				blk = ptr.ptr + (reg->local / blocksize);
 				
@@ -408,8 +420,12 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 				uint64_t blk;
 				
 				if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
-						fetch, &reg->body.entity, pos.unit, &ptr, 1))
+						fetch, &reg->body.entity, pos.unit, &ptr, 1) != 1)
+				{
+					aal_exception_error("Can't fetch data from extent item. "
+							    "Pos %lu, count %lu.", pos.unit, 1);
 					return -1;
+				}
 
 				for (blk = ptr.ptr; blk < ptr.ptr + ptr.width; blk++) {
 					if ((res = func(entity, blk, data)))
