@@ -193,9 +193,6 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		}
 	}
 	
-	if (reiser4_alloc_assign(repair->fs->alloc, control->bm_alloc))
-		return -EINVAL;
-
 	aux_bitmap_close(control->bm_alloc);
 	control->bm_alloc = NULL;
 	

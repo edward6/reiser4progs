@@ -50,7 +50,7 @@ static errno_t callback_register_region(void *o, uint64_t start,
 	aal_assert("vpf-1114", object != NULL);
 	aal_assert("vpf-1217", data != NULL);
 	
-	if (reiser4_alloc_available(sem->repair->fs->alloc, start, count)) {
+	if (!reiser4_alloc_available(sem->repair->fs->alloc, start, count)) {
 		aal_exception_error("Object [%s] failed to register the "
 				    "region [%llu-%llu] -- it belongs to "
 				    "another object already. Plugin (%s).",
@@ -74,7 +74,9 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	aal_assert("vpf-1170", object != NULL);
 	
 	if (!repair_item_test_flag(object_start(object), OF_CHECKED)) {
-		res = repair_object_check_struct(object, callback_register_item,
+		res = repair_object_check_struct(object, 
+						 sem->repair->mode == RM_BUILD ?
+						 callback_register_item : NULL,
 						 callback_register_region,
 						 sem->repair->mode, sem);
 		if (res < 0)
