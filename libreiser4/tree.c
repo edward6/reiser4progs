@@ -1450,9 +1450,6 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	curr = reiser4_node_get_level(place->node);
 	aal_assert("vpf-680", curr <= level);
 	
-	if ((res = reiser4_place_realize(place)))
-		return res;
-
 	while (curr <= level) {
 		aal_assert("vpf-676", place->node->parent.node != NULL);
 		
@@ -1491,10 +1488,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				return res;
 		}
 		
-		if ((res = reiser4_place_open(place, node->parent.node,
-					      &node->parent.pos)))
-			return res;
-
+		reiser4_place_init(place, node->parent.node, &node->parent.pos);
 		curr--;
 	}
 	
@@ -1727,6 +1721,8 @@ errno_t reiser4_tree_insert(
 			}
 		}
 
+		old = *place;
+
 		if (level < reiser4_node_get_level(place->node)) {
 
 			/*
@@ -1744,7 +1740,6 @@ errno_t reiser4_tree_insert(
 	if ((res = reiser4_item_estimate(place, hint)))
 		return res;
 	
-	old = *place;
 		
 	if (tree->traps.pre_insert) {
 		if ((res = tree->traps.pre_insert(tree, place, hint,
@@ -1804,7 +1799,9 @@ errno_t reiser4_tree_insert(
 	  should be changed.
 	*/
 	if (place->node != tree->root && !place->node->parent.node) {
-
+		
+		aal_assert("vpf-889", old.node != NULL);
+		
 		/* Growing the tree */
 		if (!old.node->parent.node)
 			reiser4_tree_growup(tree);
