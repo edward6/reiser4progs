@@ -12,6 +12,9 @@
 extern void oid40_print(generic_entity_t *entity,
 			aal_stream_t *stream,
 			uint16_t options);
+
+extern oid_t oid40_lost_objectid(generic_entity_t *entity);
+
 #endif
 
 #endif

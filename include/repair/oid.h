@@ -9,7 +9,10 @@
 #ifndef ENABLE_STAND_ALONE
 #include <repair/repair.h>
 
-extern void repair_oid_print(reiser4_oid_t *oid, aal_stream_t *stream);
+extern void repair_oid_print(reiser4_oid_t *oid, 
+			     aal_stream_t *stream);
+
+extern oid_t repair_oid_lost_objectid(reiser4_oid_t *oid);
 
 #endif
 #endif

@@ -25,4 +25,9 @@ void oid40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "used oids:\t%llu\n",
 			  ((oid40_t *)entity)->used);
 }
+
+oid_t oid40_lost_objectid(generic_entity_t *entity) {
+	return OID40_LOST;
+}
+
 #endif

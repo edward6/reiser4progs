@@ -24,9 +24,9 @@
 /* Max number of backups on the reiser4. */
 #define REISER4_BACKUPS_MAX	16
 
-/* Root key locality and objectid. This actually is defined by oid plugin, but
-   we hardcoded them her to avoid use oid plugin in stand alone mode. Because in
-   stand alone mode we do not need from it nothing but root key component. */
+/* Root key locality and objectid. This is actually defined in oid plugin,
+   but hardcoded here to exclude oid plugin from the stand alone mode at all,
+   nothing but these oids is needed there. */
 #define REISER4_ROOT_LOCALITY   (0x29)
 #define REISER4_ROOT_OBJECTID   (0x2a)
 
@@ -1335,9 +1335,10 @@ struct reiser4_oid_ops {
 	/* Makes check for validness */
 	errno_t (*valid) (generic_entity_t *);
 	
-	/* Root locality and objectid */
+	/* Root locality and objectid and lost+found objectid. */
 	oid_t (*root_locality) (generic_entity_t *);
 	oid_t (*root_objectid) (generic_entity_t *);
+	oid_t (*lost_objectid) (generic_entity_t *);
 };
 
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;

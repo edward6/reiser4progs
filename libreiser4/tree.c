@@ -978,28 +978,6 @@ static int callback_nodes_comp_func(void *key1, void *key2,
 	return 0;
 }
 
-/* Builds root key and stores it in passed @tree instance. */
-static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
-	rid_t pid;
-    
-	aal_assert("umka-1090", tree != NULL);
-	aal_assert("umka-1091", tree->fs != NULL);
-	aal_assert("umka-1092", tree->fs->oid != NULL);
-
-	pid = reiser4_format_key_pid(tree->fs->format);
-
-	/* Finding needed key plugin by its identifier. */
-	if (!(tree->key.plug = reiser4_factory_ifind(KEY_PLUG_TYPE,
-						     pid)))
-	{
-		aal_error("Can't find key plugin by its "
-			  "id 0x%x.", pid);
-		return -EINVAL;
-	}
-
-	return reiser4_fs_root_key(tree->fs, &tree->key);
-}
-
 /* Returns level in tree particular item should be inserted at. */
 inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
 					  reiser4_plug_t *plug)
@@ -1068,7 +1046,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 #endif
 
 	/* Building tree root key. It is used in tree lookup, etc. */
-	if (reiser4_tree_key(tree)) {
+	if (reiser4_fs_root_key(tree->fs, &tree->key)) {
 		aal_error("Can't build the tree root key.");
 		goto error_free_data;
 	}

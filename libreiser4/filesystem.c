@@ -431,11 +431,19 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 {
 	oid_t locality;
 	oid_t objectid;
+	rid_t pid;
 	
 	aal_assert("umka-1949", fs != NULL);
 	aal_assert("umka-1950", key != NULL);
-	aal_assert("umka-1951", key->plug != NULL);
 
+	pid = reiser4_format_key_pid(fs->format);
+
+	/* Finding needed key plugin by its identifier. */
+	if (!(key->plug = reiser4_factory_ifind(KEY_PLUG_TYPE, pid))) {
+		aal_error("Can't find key plugin by its id 0x%x.", pid);
+		return -EINVAL;
+	}
+	
 #ifndef ENABLE_STAND_ALONE
 	locality = reiser4_oid_root_locality(fs->oid);
 	objectid = reiser4_oid_root_objectid(fs->oid);

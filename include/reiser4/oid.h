@@ -21,6 +21,7 @@ extern errno_t reiser4_oid_valid(reiser4_oid_t *oid);
 extern reiser4_oid_t *reiser4_oid_create(reiser4_fs_t *fs);
 
 extern oid_t reiser4_oid_next(reiser4_oid_t *oid);
+extern oid_t reiser4_oid_lost(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_allocate(reiser4_oid_t *oid);
 extern void reiser4_oid_release(reiser4_oid_t *oid, oid_t id);
 

@@ -566,9 +566,9 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	return repair_object_fake(tree, parent, key, plug);
 }
 
-static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem, 
-					   reiser4_object_t *parent,
-					   reiser4_object_t *object) 
+static errno_t repair_semantic_object_check(repair_semantic_t *sem, 
+					    reiser4_object_t *parent,
+					    reiser4_object_t *object) 
 {
 	errno_t res;
 	
@@ -629,10 +629,12 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		sem->repair->fatal++;
 		aal_error("No root directory openned.");
 		return RE_FATAL;
-	} else if (sem->root == INVAL_PTR)
+	} else if (sem->root == INVAL_PTR) {
+		sem->root = NULL;
 		return -EINVAL;
+	}
 	
-	if ((res = repair_semantic_dir_prepare(sem, sem->root, sem->root))) {
+	if ((res = repair_semantic_object_check(sem, sem->root, sem->root))) {
 		reiser4_object_close(sem->root);
 		sem->root = NULL;
 		return res;
@@ -642,46 +644,8 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 }
 
 static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
+	reiser4_key_t lost;
 	entry_hint_t entry;
-	errno_t res;
-	
-	aal_assert("vpf-1193", sem != NULL);
-	aal_assert("vpf-1194", sem->root != NULL);
-	
-	/* Look for the entry "lost+found" in the "/". */
-	if ((res = reiser4_object_lookup(sem->root, "lost+found", &entry)) < 0)
-		return res;
-
-	if (res == ABSENT) return 0;
-
-	/* The entry was found, take the key of "lost+found" and try to open the
-	   object. */
-	sem->lost = repair_semantic_dir_open(sem, sem->root, &entry.object);
-	
-	if (sem->lost == INVAL_PTR) {
-		sem->lost = NULL;
-		return -EINVAL;
-	}
-	
-	if (sem->lost == NULL) {
-		/* "lost+found" has not been openned, remove the entry 
-		   from "/". */
-		if ((res = reiser4_object_rem_entry(sem->root, &entry)))
-			return res;
-		
-		return 0;
-	}
-	
-	if ((res = repair_semantic_dir_prepare(sem, sem->root, sem->lost))) {
-		reiser4_object_close(sem->lost);
-		sem->lost = NULL;
-		return res;
-	}
-
-	return 0;
-}
-
-static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 	reiser4_fs_t *fs;
 	errno_t res;
 
@@ -689,21 +653,40 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 	aal_assert("vpf-1265", sem->root != NULL);
 	
 	fs = sem->repair->fs;
-	
-	if ((res = repair_semantic_lost_prepare(sem)))
+
+	/* Look for the entry "lost+found" in the "/". */
+	if ((res = reiser4_object_lookup(sem->root, "lost+found", &entry)) < 0)
 		return res;
 
-	if (sem->lost) return 0;
+	/* Prepare the lost+found key. */
+	if (res == ABSENT) {
+		if ((res = repair_fs_lost_key(fs, &lost)))
+			return res;
+		aal_error("No 'lost+found' entry found. "
+			  "Building a new object with the key %s.",
+			  reiser4_print_key(&lost, PO_INODE));
+	} else {
+		reiser4_key_assign(&lost, &entry.object);
+	}
 	
-	/* There is no "lost+found" entry in the "/". Create a new one. */
-	if (!(sem->lost = reiser4_dir_create(fs, sem->root,
-					     "lost+found")))
-	{
-		aal_error("Semantic pass failed: cannot "
-			  "create 'lost+found' directory.");
+	/* Try to open the "lost+found" object by its key. */
+	sem->lost = repair_semantic_dir_open(sem, sem->root, &lost);
+	
+	if (sem->lost == INVAL_PTR) {
+		sem->lost = NULL;
 		return -EINVAL;
+	} else if (sem->lost == NULL) {
+		sem->repair->fatal++;
+		aal_error("No 'lost+found' directory openned.");
+		return RE_FATAL;
 	}
 
+	if ((res = repair_semantic_object_check(sem, sem->root, sem->lost))) {
+		reiser4_object_close(sem->lost);
+		sem->lost = NULL;
+		return res;
+	}
+	
 	return 0;
 }
 
@@ -809,7 +792,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	
 	/* Open "lost+found" directory in BUILD mode. */
 	if (sem->repair->mode == RM_BUILD) {
-		if ((res = repair_semantic_lost_open(sem)))
+		if ((res = repair_semantic_lost_prepare(sem)))
 			goto error_close_root;
 	}
 

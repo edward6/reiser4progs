@@ -24,4 +24,7 @@ extern reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 				      aux_bitmap_t *bitmap,
 				      aal_stream_t *stream);
 
+extern errno_t repair_fs_lost_key(reiser4_fs_t *fs, 
+				  reiser4_key_t *key);
+
 #endif

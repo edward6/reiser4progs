@@ -168,11 +168,11 @@ errno_t reiser4_oid_layout(reiser4_oid_t *oid,
 }
 
 /* Returns next object id from specified oid allocator */
-oid_t reiser4_oid_next(reiser4_oid_t *oid) {
+oid_t reiser4_oid_lost_objectid(reiser4_oid_t *oid) {
 	aal_assert("umka-1108", oid != NULL);
     
 	return plug_call(oid->entity->plug->o.oid_ops, 
-			 next, oid->entity);
+			 lost_objectid, oid->entity);
 }
 
 /* Returns free object id from specified oid allocator */

@@ -419,3 +419,25 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 	return NULL;
 }
 
+errno_t repair_fs_lost_key(reiser4_fs_t *fs, reiser4_key_t *key) {
+	oid_t locality;
+	oid_t objectid;
+	rid_t pid;
+
+	aal_assert("vpf-1553", fs != NULL);
+	aal_assert("vpf-1554", key != NULL);
+
+	pid = reiser4_format_key_pid(fs->format);
+
+	/* Finding needed key plugin by its identifier. */
+	if (!(key->plug = reiser4_factory_ifind(KEY_PLUG_TYPE, pid))) {
+		aal_error("Can't find key plugin by its id 0x%x.", pid);
+		return -EINVAL;
+	}
+	
+	locality = reiser4_oid_root_objectid(fs->oid);
+	objectid = repair_oid_lost_objectid(fs->oid);
+	
+	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
+					 locality, 0, objectid, 0);
+}

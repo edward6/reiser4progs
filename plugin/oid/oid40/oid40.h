@@ -8,10 +8,12 @@
 
 #include <reiser4/plugin.h>
 
-#define OID40_ROOT_LOCALITY             0x29
-#define OID40_ROOT_OBJECTID             0x2a
+#define OID40_ROOT_LOCALITY	0x29
+#define OID40_ROOT_OBJECTID	0x2a
 
-#define OID40_RESERVED                  (1 << 16)
+#define OID40_RESERVED		(1 << 16)
+
+#define OID40_LOST		(OID40_RESERVED - 1)
 
 struct oid40 {
 	reiser4_plug_t *plug;

@@ -178,7 +178,8 @@ reiser4_oid_ops_t oid40_ops = {
 	.set_state      = oid40_set_state,
 	.get_state      = oid40_get_state,
 	.root_locality	= oid40_root_locality,
-	.root_objectid	= oid40_root_objectid
+	.root_objectid	= oid40_root_objectid,
+	.lost_objectid	= oid40_lost_objectid
 };
 
 static reiser4_plug_t oid40_plug = {
