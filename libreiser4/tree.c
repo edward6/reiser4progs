@@ -6,17 +6,6 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
-/* Tree packing callback. Used for packing the tree, after delete items. This is
-   needed for keeping tree in well packed state. */
-static errno_t callback_tree_pack(reiser4_tree_t *tree,
-				  place_t *place, void *data)
-{
-	aal_assert("umka-1897", tree != NULL);
-	aal_assert("umka-1898", place != NULL);
-
-	return reiser4_tree_shrink(tree, place);
-}
-
 /* Updates root block number in format by passed @blk. Takes care about correct
    block number in loaded root node if any. */
 void reiser4_tree_set_root(reiser4_tree_t *tree, blk_t blk) {
@@ -142,7 +131,7 @@ static bool_t reiser4_tree_root_node(reiser4_tree_t *tree,
 	return reiser4_tree_get_root(tree) == node_blocknr(node);
 }
 
-/* Dealing with loading root node if it is not loaded yet. */
+/* Loads root node and put it to @tree->nodes hash table. */
 errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	blk_t root_blk;
 	
@@ -167,7 +156,6 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	}
 
 	tree->root->tree = tree;
-	
 	return 0;
 }
 
@@ -186,8 +174,6 @@ static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 	/* Establishing connection between node and tree. */
 	tree->root = node;
 	node->tree = tree;
-
-	/* Zeroing out parent pointer, as root has not parent. */
 	node->p.node = NULL;
 
 	/* Updating tree height. */
@@ -198,7 +184,7 @@ static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 	root_blk = node_blocknr(tree->root);
 	reiser4_tree_set_root(tree, root_blk);
 
-	return reiser4_tree_connect_node(tree, NULL, node);
+	return 0;
 }
 
 /* Dealing with allocating root node if it is not allocated yet. */
@@ -371,11 +357,17 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 			/* Adjusting the tree. It will be finished as soon as
 			   memory pressure condition will gone. */
 			if (tree->root) {
-				reiser4_tree_adjust_node(tree, tree->root);
+				if (reiser4_tree_adjust_node(tree,
+							     tree->root))
+				{
+					aal_exception_error("Can't adjust tree "
+							    "during loading node.");
+					return NULL;
+				}
 			} else {
-				aal_exception_warn("Tree seem to be empty, but "
-						   "there is memory pressure event "
-						   "occured.");
+				aal_exception_warn("Tree seems to be empty, but "
+						   "there memory pressure event "
+						   "has been detected.");
 			}
 		}
 		
@@ -417,13 +409,11 @@ errno_t reiser4_tree_unload_node(reiser4_tree_t *tree, node_t *node) {
 #endif
 
 	/* Disconnecting @node from its parent node. */
-	if (node->tree) {
-		if ((res = reiser4_tree_disconnect_node(tree, node))) {
-			aal_exception_error("Can't disconnect node %llu "
-					    "from tree cache.",
-					    node_blocknr(node));
-			return res;
-		}
+	if ((res = reiser4_tree_disconnect_node(tree, node))) {
+		aal_exception_error("Can't disconnect node %llu "
+				    "from tree cache.",
+				    node_blocknr(node));
+		return res;
 	}
 
 	/* Releasing node instance. */
@@ -582,30 +572,37 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 				uint8_t level)
 {
 	rid_t pid;
+	node_t *node;
 	blk_t fake_blk;
 	uint32_t stamp;
 	uint64_t free_blocks;
-	node_t *node;
     
 	aal_assert("umka-756", tree != NULL);
     
-	/* Setting up of the free blocks in format */
-	if (!(free_blocks = reiser4_format_get_free(tree->fs->format)))
-		return NULL;
-
 	/* Check for memory pressure event. */
-	if (tree->mpc_func && tree->mpc_func() && tree->root) {
-		/* Memory pressure is here, trying to release nodes. */
-		if (reiser4_tree_adjust_node(tree, tree->root)) {
-			aal_exception_warn("Error when adjusting "
-					   "tree during allocating "
-					   "new node.");
+	if (tree->mpc_func && tree->mpc_func()) {
+		if (tree->root) {
+			/* Memory pressure is here, trying to release nodes. */
+			if (reiser4_tree_adjust_node(tree, tree->root)) {
+				aal_exception_error("Error when adjusting "
+						    "tree during allocating "
+						    "new node.");
+				return NULL;
+			}
+		} else {
+			aal_exception_warn("Tree seems to be empty, but "
+					   "memory pressure event has "
+					   "been detected");
 		}
 	}
 
 	/* Allocating fake block number. */
 	fake_blk = reiser4_fake_get();
 	pid = reiser4_param_value("node");
+
+	/* Setting up of the free blocks in format. */
+	if (!(free_blocks = reiser4_format_get_free(tree->fs->format)))
+		return NULL;
 
 	reiser4_format_set_free(tree->fs->format, free_blocks - 1);
 
@@ -643,30 +640,21 @@ errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
 	/* Check if we're trying to releas a node with fake block number. If
 	   not, free it in block allocator too. */
 	if (!reiser4_fake_ack(node_blocknr(node))) {
-		blk_t blk = node_blocknr(node);
+		blk_t blk;
+		count_t free_blocks;
+
+		blk = node_blocknr(node);
 		reiser4_alloc_release(alloc, blk, 1);
+
+		free_blocks = reiser4_alloc_free(alloc);
+
+		reiser4_format_set_free(tree->fs->format,
+					free_blocks);
+	
 	}
 
 	/* Updating free blocks in super block */
-	reiser4_format_set_free(tree->fs->format,
-				reiser4_alloc_free(alloc) + 1);
-	
-	return reiser4_tree_unload_node(tree, node);
-}
-
-/* Releases node from tree previously detaching it if @detach is 1. This
-   function is just for making bunch of actions which occured often enough. */
-static void reiser4_tree_discard_node(reiser4_tree_t *tree,
-				      node_t *node, int detach)
-{
-	aal_assert("umka-2671", tree != NULL);
-	aal_assert("umka-2672", node != NULL);
-
-	if (detach)
-		reiser4_tree_detach_node(tree, node);
-	
-	reiser4_node_mkclean(node);
-	reiser4_tree_release_node(tree, node);
+	return reiser4_node_close(node);
 }
 
 /* Helper function for freeing passed key instance tree's data hashtable entry
@@ -742,6 +730,18 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	return reiser4_fs_root_key(tree->fs, &tree->key);
 }
 
+#ifndef ENABLE_STAND_ALONE
+/* Tree packing callback. Used for packing the tree, after delete items. This is
+   needed for keeping tree in well packed state. */
+static errno_t callback_pack_place(reiser4_tree_t *tree,
+				   place_t *place, void *data)
+{
+	aal_assert("umka-1897", tree != NULL);
+	aal_assert("umka-1898", place != NULL);
+	return reiser4_tree_shrink(tree, place);
+}
+#endif
+
 /* Initializes tree instance on passed filesystem and return it to caller. Then
    it may be used for modifying tree, making lookup, etc. */
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
@@ -792,7 +792,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 #ifndef ENABLE_STAND_ALONE
 	/* Initializing packing trap. */
 	reiser4_tree_pack_on(tree);
-	tree->traps.pack = callback_tree_pack;
+	tree->traps.pack = callback_pack_place;
 #endif
 		
 	return tree;
@@ -808,24 +808,39 @@ error_free_nodes:
 	return NULL;
 }
 
-/* Closes specified tree (frees all assosiated with tree memory). */
+/* Closes specified tree. */
 void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_assert("umka-134", tree != NULL);
 
+	/* Allocates everything is needed to allocated and saves dirty nodes to
+	   device. Unloads saved nodes from tree. */
 #ifndef ENABLE_STAND_ALONE
-	/* Flushing tree cache */
 	reiser4_tree_sync(tree);
 #endif
 
-	/* Releasing all loaded formetted nodes and tree itself */
+	/* Releasing all loaded formatted nodes and tree itself. */
 	reiser4_tree_close(tree);
 }
 
-/* Closes specified tree (frees all assosiated memory). */
+/* Unloads all loaded tree nodes. */
+errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
+        aal_assert("umka-2265", tree != NULL);
+                                                                                          
+        if (!tree->root)
+                return 0;
+                                                                                          
+        return reiser4_tree_walk_node(tree, tree->root,
+                                      reiser4_tree_unload_node);
+}
+
+/* Closes specified tree without saving dirty nodes to device. It just thows out
+   all loaded nodes without dealing with allocating etc. This may be used in
+   stand alone mode and/or just to free modified tree without a changes on
+   device. */
 void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("vpf-1316", tree != NULL);
 
-	/* Releasing loaded formatted nodes. */
+	/* Close all remaining nodes. */
 	reiser4_tree_collapse(tree);
 
 	/* Releasing unformatted nodes hash table. */
@@ -833,15 +848,11 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_hash_table_free(tree->data);
 #endif
 
-	aal_assert("umka-3011", tree->nodes->real == 0);
-	
 	/* Releasing fomatted nodes hash table. */
 	aal_hash_table_free(tree->nodes);
 
-	/* Detaching tree instance from fs. */
-	tree->fs->tree = NULL;
-	
 	/* Freeing tree instance. */
+	tree->fs->tree = NULL;
 	aal_free(tree);
 }
 
@@ -853,8 +864,7 @@ static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 	node_t *node;
 	uint32_t units;
 	
-	units = plug_call(place->plug->o.item_ops->balance,
-			  units, place);
+	units = reiser4_item_units(place);
 
 	for (place->pos.unit = 0; place->pos.unit < units;
 	     place->pos.unit++)
@@ -897,9 +907,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	uint32_t blksize;
 	trans_hint_t hint;
 
-	units = plug_call(place->plug->o.item_ops->balance,
-			  units, place);
-
+	units = reiser4_item_units(place);
 	blksize = reiser4_tree_get_blksize(tree);
 	
 	for (place->pos.unit = 0; place->pos.unit < units;
@@ -1034,10 +1042,11 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 				 node_t *node)
 {
-	uint32_t i;
+#ifndef ENABLE_STAND_ALONE
 	errno_t res;
-	blk_t allocnr;
-
+	count_t free_blocks;
+#endif
+	
 	aal_assert("umka-2302", tree != NULL);
 	aal_assert("umka-2303", node != NULL);
 
@@ -1045,6 +1054,8 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 	/* Requesting block allocator to allocate the real block number
 	   for fake allocated node. */
 	if (reiser4_fake_ack(node_blocknr(node))) {
+		blk_t allocnr;
+		
 		if (!reiser4_alloc_allocate(tree->fs->alloc,
 					    &allocnr, 1))
 		{
@@ -1053,10 +1064,8 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 
 		if (reiser4_tree_root_node(tree, node))
 			reiser4_tree_set_root(tree, allocnr);
-
 		/* Rehashing node in @tree->nodes hash table. */
 		reiser4_tree_rehash_node(tree, node, allocnr);
-
 		if (!reiser4_tree_root_node(tree, node)) {
 			if ((res = reiser4_node_update_ptr(node)))
 				return res;
@@ -1066,6 +1075,8 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 	/* Allocating all children nodes if we are up on
 	   @tree->bottom. */
 	if (reiser4_node_get_level(node) >= tree->bottom) {
+		uint32_t i;
+		
 		/* Going though the all items in node and allocating
 		   them if needed. */
 		for (i = 0; i < reiser4_node_items(node); i++) {
@@ -1088,7 +1099,6 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 				blk_t blk;
 				uint32_t j;
 				node_t *child;
-
 				/* Allocating unallocated nodeptr item
 				   at @place. */
 				if ((res = reiser4_tree_alloc_nodeptr(tree, &place)))
@@ -1101,7 +1111,7 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 					   onit recursively in order to
 					   allocate it and its items. */
 					place.pos.unit = j;
-
+			
 					blk = reiser4_item_down_link(&place);
 
 					if (!(child = reiser4_tree_lookup_node(tree, blk)))
@@ -1119,33 +1129,35 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 		}
 	}
 
-        /* Updating free space counter in format. */
-	{
-		count_t free_blocks;
-			
-		free_blocks = reiser4_alloc_free(tree->fs->alloc);
-		reiser4_format_set_free(tree->fs->format, free_blocks);
-	}
+	/* Updating free space counter in format. */
+	free_blocks = reiser4_alloc_free(tree->fs->alloc);
+	reiser4_format_set_free(tree->fs->format, free_blocks);
 #endif
 
 	/* If node is locked, that is not a leaf or it is used by someone, it
 	   cannot be released, and thus, it does not make sense to save it to
 	   device. */
-	if (!reiser4_node_locked(node)) {
+	if (reiser4_node_locked(node))
+		return 0;
+	
 #ifndef ENABLE_STAND_ALONE
-		/* Okay, node is allocated and ready to be saved to device. */
-		if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
-			aal_exception_error("Can't write node %llu.",
-					    node_blocknr(node));
-			return -EIO;
-		}
-
-#endif
-		/* Unloading node from tree cache. */
-		reiser4_tree_unload_node(tree, node);
+	/* Okay, node is allocated and ready to be saved to device. */
+	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
+		aal_exception_error("Can't write node %llu.",
+				    node_blocknr(node));
+		return -EIO;
 	}
+#endif
+	/* Unloading node from tree cache. */
+	return reiser4_tree_unload_node(tree, node);
+}
 
-	return 0;
+/* Returns 1 if tree has not root node and 0 otherwise. Tree has not root just
+   after format instance is created and tree is initialized on fs with it. And
+   thus tree has not any nodes in it. */
+bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
+	aal_assert("umka-1930", tree != NULL);
+	return (reiser4_tree_get_root(tree) == INVAL_BLK);
 }
 
 /* Walking though the tree cache and closing all nodes. */
@@ -1258,7 +1270,8 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 			/* Releasing @right node from tree cache and from tree
 			   structures (that is remove internal nodeptr item in
 			   parent node if any). */
-			reiser4_tree_discard_node(tree, right, 1);
+			reiser4_tree_detach_node(tree, right);
+			reiser4_tree_release_node(tree, right);
 
 			/* Here we do not move compress point to node next to
 			   @right, because @node may still have enough of space
@@ -1325,13 +1338,11 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 	if (!tree->root)
 		return 0;
-#if 0
 	if ((res = reiser4_tree_compress(tree))) {
 		aal_exception_error("Can't compress tree during "
 				    "synchronizing.");
 		return res;
 	}
-#endif
         /* Flushing formatted nodes starting from root node with memory pressure
 	   flag set to 0, that is do not check memory presure, and save
 	   everything. */
@@ -1353,28 +1364,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	
 	return res;
 }
-#endif
 
-/* Returns 1 if tree has not root node and 0 otherwise. Tree has not root just
-   after format instance is created and tree is initialized on fs with it. And
-   thus tree has not any nodes in it. */
-bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
-	aal_assert("umka-1930", tree != NULL);
-	return (reiser4_tree_get_root(tree) == INVAL_BLK);
-}
-
-/* Unloads all tree nodes from memory. Used in tree_collapse(). */
-errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
-	aal_assert("umka-2265", tree != NULL);
-
-	if (!tree->root)
-		return 0;
-
-	return reiser4_tree_walk_node(tree, tree->root,
-				      reiser4_tree_unload_node);
-}
-
-#ifndef ENABLE_STAND_ALONE
 /* Makes search of the leftmost item/unit with the same key as passed @key is
    starting from @place. This is needed to work with key collisions. */
 static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
@@ -1785,15 +1775,19 @@ errno_t reiser4_tree_growup(
 	if ((res = reiser4_tree_assign_root(tree, new_root)))
 		return res;
 
-	old_root->p.node = new_root;
+	if ((res = reiser4_tree_connect_node(tree, NULL, new_root)))
+		return res;
 
 	/* Attaching old root node to tree. */
+	old_root->p.node = new_root;
+
 	if ((res = reiser4_tree_attach_node(tree, old_root)))
 		goto error_return_root;
 
 	return 0;
 
- error_return_root:
+error_return_root:
+	reiser4_tree_disconnect_node(tree, new_root);
 	reiser4_tree_release_node(tree, new_root);
 	reiser4_tree_assign_root(tree, old_root);
 	
@@ -1833,16 +1827,13 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 
-	/* Disconnect old root and its child from the tree */
-	reiser4_tree_disconnect_node(tree, old_root);
-	reiser4_tree_disconnect_node(tree, new_root);
-
 	/* Assign new root. Setting tree height to new root level and root block
 	   number to new root block number. */
 	reiser4_tree_assign_root(tree, new_root);
 	
         /* Releasing old root node */
-	reiser4_tree_discard_node(tree, old_root, 0);
+	reiser4_tree_disconnect_node(tree, old_root);
+	reiser4_tree_release_node(tree, old_root);
 	
 	return 0;
 }
@@ -1966,8 +1957,10 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 	} else {
 		/* Releasing old node, because it got empty as result of data
 		   shifting. */
-		if (reiser4_node_items(left) == 0)
-			reiser4_tree_discard_node(tree, left, 1);
+		if (reiser4_node_items(left) == 0) {
+			reiser4_tree_detach_node(tree, left);
+			reiser4_tree_release_node(tree, left);
+		}
 	}
 
 	/* Attaching new allocated node into the tree, if it is not
@@ -2131,7 +2124,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		/* Taking care about new allocated @node and possible gets free
 		   @save.node (attaching, detaching from the tree, etc.). */
 		if ((res = reiser4_tree_care(tree, save.node, node))) {
-			reiser4_tree_discard_node(tree, node, 0);
+			reiser4_tree_release_node(tree, node);
 			return res;
 		}
 
@@ -2201,12 +2194,15 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 
 			/* Check if node got enmpty. If so then we release
 			   it. */
-			if (reiser4_node_items(right) == 0)
-				reiser4_tree_discard_node(tree, right, 1);
+			if (reiser4_node_items(right) == 0) {
+				reiser4_tree_detach_node(tree, right);
+				reiser4_tree_release_node(tree, right);
+			}
 		}
 	} else {
 		/* Release node, because it got empty. */
-		reiser4_tree_discard_node(tree, place->node, 1);
+		reiser4_tree_detach_node(tree, place->node);
+		reiser4_tree_release_node(tree, place->node);
 	}
 
 	/* Drying tree up in the case root node has only one item */
@@ -2275,7 +2271,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 
 			/* Attach new node to tree. */
 			if ((res = reiser4_tree_attach_node(tree, node))) {
-				reiser4_tree_discard_node(tree, node, 0);
+				reiser4_tree_release_node(tree, node);
 				aal_exception_error("Tree is failed to attach "
 						    "node during split opeartion.");
 				goto error_free_node;
@@ -2322,7 +2318,7 @@ void reiser4_tree_pack_set(reiser4_tree_t *tree,
 			   pack_func_t func)
 {
 	aal_assert("umka-1896", tree != NULL);
-	tree->traps.pack = func ? func : callback_tree_pack;
+	tree->traps.pack = func ? func : callback_pack_place;
 }
 
 /* Switches on/off pack flag, which displays whether tree should pack itself
@@ -2517,7 +2513,8 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 			}
 		} else {
 			/* Release @place.node, as it gets empty.  */
-			reiser4_tree_discard_node(tree, place.node, 1);
+			reiser4_tree_detach_node(tree, place.node);
+			reiser4_tree_release_node(tree, place.node);
 		}
 
 		/* Drying tree up in the case root node has only one item */
@@ -2731,6 +2728,9 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		if ((res = reiser4_tree_alloc_root(tree)))
 			return res;
 
+		if ((res = reiser4_tree_connect_node(tree, NULL, tree->root)))
+			return res;
+
 		if (level == reiser4_tree_get_height(tree)) {
 			reiser4_place_assign(place, tree->root,
 					     0, MAX_UINT32);
@@ -2929,7 +2929,8 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 		}
 	} else {
 		/* Releasing node from the tree, as it gets empty. */
-		reiser4_tree_discard_node(tree, place->node, 1);
+		reiser4_tree_detach_node(tree, place->node);
+		reiser4_tree_release_node(tree, place->node);
 	}
 
 	/* Drying tree up in the case root node has only one item */
