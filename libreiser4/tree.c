@@ -1163,7 +1163,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	/* We force balancing use these flags with disables left shift
 	   in order to not affect to items/units left of insert point,
 	   as we allocate items/units from left to right. */
-	hint.shift_flags = (SF_DEFAULT & SF_ALLOW_LEFT);
+	hint.shift_flags = (SF_DEFAULT & ~SF_ALLOW_LEFT);
 
 	for (place->pos.unit = 0; place->pos.unit < units;
 	     place->pos.unit++)
@@ -2297,9 +2297,7 @@ static errno_t tree_shift_todir(reiser4_tree_t *tree, reiser4_place_t *place,
 	if (direction == DIR_RIGHT && (SF_ALLOW_RIGHT & flags))
 		shift_flags = SF_ALLOW_RIGHT;
 
-	if (!(SF_ALLOW_LEFT & flags) && !(SF_ALLOW_RIGHT & flags))
-		return 0;
-	
+	/* Setting up shift flags. */
 	shift_flags |= SF_UPDATE_POINT;
 
 	if (SF_ALLOW_MERGE & flags)
@@ -2397,7 +2395,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	/* Shifting data into left neighbour if it exists and left shift
 	   allowing flag is specified. */
-	if ((reiser4_tree_neig_node(tree, place->node, DIR_LEFT))) {
+	if ((SF_ALLOW_LEFT & flags) && 
+	    reiser4_tree_neig_node(tree, place->node, DIR_LEFT)) 
+	{
 		if ((res = tree_shift_todir(tree, place, flags, DIR_LEFT)))
 			return res;
 
@@ -2407,7 +2407,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	/* Shifting data into right neighbour if it exists and right shift
 	   allowing flag is specified. */
-	if ((reiser4_tree_neig_node(tree, place->node, DIR_RIGHT))) {
+	if ((SF_ALLOW_RIGHT & flags) && 
+	    reiser4_tree_neig_node(tree, place->node, DIR_RIGHT)) 
+	{
 		if ((res = tree_shift_todir(tree, place, flags, DIR_RIGHT)))
 			return res;
 

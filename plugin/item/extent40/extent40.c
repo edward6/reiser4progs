@@ -672,7 +672,9 @@ static int64_t extent40_update_units(reiser4_place_t *place,
 	aal_assert("umka-2431", hint != NULL);
 	aal_assert("umka-2430", place != NULL);
 	
-	pos = place->pos.unit;
+	if ((pos = place->pos.unit) == MAX_UINT32)
+		pos = 0;
+	
 	extent = extent40_body(place) + pos;
 	ptr_hint = (ptr_hint_t *)hint->specific;
 
