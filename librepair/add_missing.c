@@ -317,6 +317,8 @@ errno_t repair_add_missing(repair_am_t *am) {
 	}
 	
 	repair_add_missing_update(am);
+	reiser4_tree_collapse(am->repair->fs->tree);
+	am->repair->fs->tree->root = NULL;
 	return 0;
 
  error_node_close:
@@ -328,6 +330,10 @@ errno_t repair_add_missing(repair_am_t *am) {
 	if (am->progress_handler)
 		am->progress_handler(am->progress);
 	
+	repair_add_missing_update(am);
+	reiser4_tree_collapse(am->repair->fs->tree);
+	am->repair->fs->tree->root = NULL;
+
 	return res;
 }
 

@@ -20,8 +20,6 @@ typedef struct repair_cleanup_stat {
 typedef struct repair_cleanup {
 	repair_data_t *repair;
 	
-	reiser4_object_t *lost;
-	
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;
 	repair_cleanup_stat_t stat;

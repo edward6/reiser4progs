@@ -152,7 +152,9 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		blk++;
 	}
 error:
-    repair_disk_scan_update(ds);
-    return res;
+	repair_disk_scan_update(ds);
+	reiser4_tree_collapse(ds->repair->fs->tree);
+	ds->repair->fs->tree->root = NULL;
+	return res;
 }
 

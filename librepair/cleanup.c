@@ -75,9 +75,7 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	
 	aal_stream_format(&stream, "\tRemoved items %llu\n", 
 			  cleanup->stat.removed);
-	aal_stream_format(&stream, "\tObjects list to 'lost+found' %llu\n",
-			  cleanup->stat.linked);
-		
+	
 	time_str = ctime(&cleanup->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
@@ -114,46 +112,16 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	if (fs->tree->root == NULL)
 		return -EINVAL;
 	
-	/* Make sure that '/' and 'lost+found' exist. */
-	root = reiser4_object_open(fs->tree, "/", FALSE);
-	
-	if (root == NULL) {
-		aal_exception_error("Cleanup failed to find '/' directory.");
-		return -EINVAL;
-	}
-	
-	cleanup->lost = reiser4_object_open(fs->tree, "/lost+found", FALSE);
-	
-	if (cleanup->lost == NULL) {	
-		cleanup->lost = reiser4_dir_create(fs, root, "lost+found");
-		
-		if (cleanup->lost == NULL) {
-			aal_exception_error("Cleanup failed to find '/' "
-					    "directory.");
-			reiser4_object_close(root);
-			return -EINVAL;
-		}
-	}
-	
-	reiser4_object_close(root);
-	
 	/* Cut the corrupted, unrecoverable parts of the tree off. */
-	res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
-				repair_semantic_node_traverse, 
-				NULL, NULL, cleanup);
-	
-	if (res)
-		goto error_close_lost;
-	
-	reiser4_object_close(cleanup->lost);
+	if ((res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
+				     repair_semantic_node_traverse, 
+				     NULL, NULL, cleanup)))
+		return res;
 	
 	repair_cleanup_update(cleanup);
+	reiser4_tree_collapse(fs->tree);
+	fs->tree->root = NULL;
 	
 	return 0;
-	    
- error_close_lost:
-	reiser4_object_close(cleanup->lost);
-        
-	return res;
 }
 
