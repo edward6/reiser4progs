@@ -70,7 +70,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 				break;
 			}
 			
-			/* Making holes in buffer */
+			/* Making holes in buffer. */
 			aal_memset(hint->specific, 0, read);
 		} else {
 			/* Prepare hint for read */
@@ -268,19 +268,15 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 			   tree, so updating is not needed and impossible,
 			   because it has no items. */
 			if (reiser4_node_items(place.node) > 0) {
-				reiser4_place_t p;
 				reiser4_key_t lkey;
+				reiser4_place_t parent;
 
 				/* Updating parent keys. */
 				reiser4_node_leftmost_key(place.node, &lkey);
-				
-				reiser4_place_init(&p, place.node->p.node,
-						   &place.node->p.pos);
+				reiser4_place_dup(&parent, &place.node->p);
 
-				reiser4_key_assign(&place.node->p.key, &lkey);
-
-				if ((res = reiser4_tree_update_key(tree, &p,
-								   &lkey)))
+				if ((res = reiser4_tree_update_keys(tree, &parent,
+								    &lkey)))
 				{
 					return res;
 				}

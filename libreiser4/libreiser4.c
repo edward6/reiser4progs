@@ -91,12 +91,12 @@ static errno_t tree_next_item(void *tree, reiser4_place_t *place,
 static errno_t tree_update_key(void *tree, reiser4_place_t *place,
 			       reiser4_key_t *key)
 {
-	return reiser4_tree_update_key((reiser4_tree_t *)tree,
-				       place, (reiser4_key_t *)key);
+	return reiser4_tree_update_keys((reiser4_tree_t *)tree,
+					place, key);
 }
 
 static char *key_print(reiser4_key_t *key, uint16_t options) {
-	return reiser4_print_key((reiser4_key_t *)key, options);
+	return reiser4_print_key(key, options);
 }
 
 static errno_t tree_convert(void *tree, conv_hint_t *hint) {

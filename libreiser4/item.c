@@ -108,23 +108,28 @@ errno_t reiser4_item_update_key(reiser4_place_t *place,
 }
 #endif
 
-
 errno_t reiser4_item_get_key(reiser4_place_t *place,
 			     reiser4_key_t *key)
 {
 	aal_assert("vpf-1290", place != NULL);
 	aal_assert("vpf-1291", key != NULL);
 
-	aal_memcpy(key, &place->key, sizeof(*key));
-	
-	if (!place->plug->o.item_ops->balance->fetch_key ||
-	    !(place->pos.unit && place->pos.unit != MAX_UINT32))
+	/* Getting key from item or node and updating it in passed @place. */
+	key->plug = place->key.plug;
+
+	if (place->plug->o.item_ops->balance->fetch_key &&
+	    (place->pos.unit && place->pos.unit != MAX_UINT32))
 	{
-		return 0;
+		plug_call(place->plug->o.item_ops->balance,
+			  fetch_key, place, key);
+	} else {
+		plug_call(place->node->plug->o.node_ops,
+			  get_key, place->node, &place->pos, key);
 	}
 	
-	return plug_call(place->plug->o.item_ops->balance,
-			 fetch_key, place, key);
+	aal_memcpy(&place->key, key, sizeof(*key));
+
+	return 0;
 }
 
 #ifndef ENABLE_STAND_ALONE

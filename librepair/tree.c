@@ -216,7 +216,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 			break;
 		}
 		
-		if ((res = reiser4_tree_update_key(tree, &node->p, &place.key)))
+		if ((res = reiser4_tree_update_keys(tree, &node->p, &place.key)))
 			return res;
 
 		break;
