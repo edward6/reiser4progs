@@ -385,9 +385,7 @@ errno_t reg40_conv_body(object_entity_t *entity, uint64_t new_size) {
    tree. That is if we insert tail, we will have the same as passed data
    size. In the case of insert an extent, we will have its meta data size. */
 int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
-	errno_t res;
 	reg40_t *reg;
-
 	int32_t bytes;
 	uint32_t written;
 	uint32_t maxspace;
@@ -396,11 +394,9 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 	maxspace = reg40_chunk(reg);
 	
 	for (bytes = 0, written = 0; written < n; ) {
+		int32_t write;
 		uint32_t level;
-		uint64_t offset;
-
 		trans_hint_t hint;
-		key_entity_t maxkey;
 
 		/* Preparing hint key */
 		plug_call(reg->offset.plug->o.key_ops,
@@ -421,30 +417,10 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 				     LEAF_LEVEL, INST, &reg->body))
 		{
 		case PRESENT:
-			if (reg->body.plug->id.group == TAIL_ITEM) {
-				/* Checking if we need write chunk by chunk in
-				   odrer to rewrite tail correctly in the case
-				   we write the tail, that overlaps two
-				   neighbour tails by key. */
-				plug_call(reg->body.plug->o.item_ops, maxreal_key,
-					  &reg->body, &maxkey);
-
-				offset = plug_call(hint.key.plug->o.key_ops,
-						   get_offset, &maxkey);
-
-				/* Rewritting only tails' last part */
-				if (reg40_offset(entity) +
-				    hint.count > offset + 1)
-				{
-					hint.count = (offset + 1) -
-						reg40_offset(entity);
-				}
-			} else {
-				hint.offset = reg40_offset(entity);
-
-				hint.offset -= plug_call(hint.key.plug->o.key_ops,
-							 get_offset, &reg->body.key);
-			}
+			hint.offset = reg40_offset(entity);
+			
+			hint.offset -= plug_call(hint.key.plug->o.key_ops,
+						 get_offset, &reg->body.key);
 			
 			break;
 		case FAILED:
@@ -458,24 +434,23 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 			LEAF_LEVEL + 1 : LEAF_LEVEL;
 
 		/* Inserting data to the tree */
-		if ((res = obj40_write(&reg->obj, &reg->body,
-				       &hint, level)))
+		if ((write = obj40_write(&reg->obj, &reg->body,
+					 &hint, level)) < 0)
 		{
-			return res;
+			return write;
 		}
 
-		reg40_seek(entity, reg40_offset(entity) +
-			   hint.count);
+		reg40_seek(entity, reg40_offset(entity) + write);
 
 		/* @buff may be NULL for inserting holes */
 		if (buff) {
-			buff += hint.count;
+			buff += write;
 		}
 
 		bytes += hint.bytes;
 
 		/* Updating counters and offset */
-		written += hint.count;
+		written += write;
 	}
 
 	return bytes;
