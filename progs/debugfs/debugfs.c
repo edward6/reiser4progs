@@ -367,7 +367,6 @@ static errno_t debugfs_calc_joint(
 static errno_t debugfs_total_fragmentation(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	struct total_frag_hint total_frag_hint;
-	traverse_hint_t traverse_hint = {TO_FORWARD, LEAF_LEVEL};
 
 	aal_memset(&total_frag_hint, 0, sizeof(total_frag_hint));
 	
@@ -380,7 +379,7 @@ static errno_t debugfs_total_fragmentation(reiser4_fs_t *fs) {
 
 	aal_gauge_start(gauge);
 	
-	reiser4_joint_traverse(fs->tree->root, &traverse_hint, (void *)&total_frag_hint,
+	reiser4_joint_traverse(fs->tree->root, (void *)&total_frag_hint,
 			       debugfs_open_joint, debugfs_calc_joint, NULL, NULL, NULL, NULL);
 
 	aal_gauge_free(gauge);
