@@ -619,12 +619,11 @@ errno_t reiser4_joint_move(
 errno_t reiser4_joint_traverse(
 	reiser4_joint_t *joint,		     /* block which should be traversed */
 	void *data,			     /* user-spacified data */
-	reiser4_open_func_t open_func,	     /* callback will be used for opening node */
-	reiser4_handler_func_t handler_func, /* callback will be called on node */
-	reiser4_edge_func_t before_func,    /* callback will be called before all childs */
-	reiser4_setup_func_t setup_func,     /* callback will be called before a child */
-	reiser4_setup_func_t update_func,    /* callback will be called after a child */
-	reiser4_edge_func_t after_func)     /* callback will be called after all childs */
+	reiser4_open_func_t open_func,	     /* callback for node opening */
+	reiser4_edge_func_t before_func,     /* callback to be called at the beginning */
+	reiser4_setup_func_t setup_func,     /* callback to be called before the recursive traverse */
+	reiser4_setup_func_t update_func,    /* callback to be called after the recursive traverse */
+	reiser4_edge_func_t after_func)      /* callback to be called at the end */
 {
 	reiser4_pos_t pos;
 	errno_t result = 0;
@@ -636,67 +635,72 @@ errno_t reiser4_joint_traverse(
 	aal_assert("vpf-391", joint->node != NULL, return -1);
 	aal_assert("vpf-392", joint->node->block != NULL, return -1);
 
-	if ((handler_func && !(result = handler_func(joint, data))) || !handler_func) {
-	    
-		if (before_func && (result = before_func(joint, data)))
-			goto error;
+	if ((before_func && (result = before_func(joint, data))))
+		goto error;
 
-		for (pos.item = 0; pos.item < reiser4_node_count(joint->node); pos.item++) {
-			pos.unit = ~0ul; 
+	for (pos.item = 0; pos.item < reiser4_node_count(joint->node); pos.item++) {
+		pos.unit = ~0ul; 
 	    
-			/* If there is a suspicion in a corruption, it must be 
-			 * checked in handler_func. All items must be openned
-			 * here. */
-			if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
-				blk_t blk = aal_block_number(joint->node->block);
-				aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-						    blk, pos.item);
+		/* If there is a suspicion in a corruption, it must be 
+		 * checked in before_func. All items must be openned
+		 * here. */
+		if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
+			blk_t blk = aal_block_number(joint->node->block);
+			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
+					    blk, pos.item);
+			goto error_after_func;
+		}
+		
+		/* This is a traverse method for formatted nodes only. Write another one for 
+		 * unformatted if you need. */
+		if (!reiser4_item_nodeptr(&coord))
+			continue;
+	    
+		for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+			reiser4_ptr_hint_t ptr;
+		
+			if (plugin_call(continue, coord.entity.plugin->item_ops,
+					fetch, &coord.entity, pos.unit, &ptr, 1))
 				goto error_after_func;
-			}
-			
-			if (!reiser4_item_nodeptr(&coord))
-				continue;
-	    
-			for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
-				reiser4_ptr_hint_t ptr;
 		
-				if (plugin_call(continue, coord.entity.plugin->item_ops,
-						fetch, &coord.entity, pos.unit, &ptr, 1))
+			if (ptr.ptr != FAKE_BLK && ptr.ptr != 0) {
+			
+				child = NULL;
+					
+				if (setup_func && (result = setup_func(&coord, data)))
 					goto error_after_func;
-		
-				if (ptr.ptr != FAKE_BLK) {
-			
-					if (setup_func && (result = setup_func(&coord, data)))
-						goto error_after_func;
-	    
-					if ((result = open_func(&child, ptr.ptr, data)))
+
+				if ((result = open_func(&child, ptr.ptr, data)))
+					goto error_update_func;
+
+				if (child) {
+					reiser4_joint_attach(joint, child);
+ 
+					if ((result = reiser4_joint_traverse(child,
+									     data, 
+									     open_func,
+									     before_func, 
+									     setup_func,
+									     update_func,
+									     after_func)))
 						goto error_update_func;
 
-					if (child) {
-						reiser4_joint_attach(joint, child);
- 
-						if ((result = reiser4_joint_traverse(child,
-										     data, open_func,
-										     handler_func,
-										     before_func, 
-										     setup_func,
-										     update_func,
-										     after_func)))
-							goto error_update_func;
-
-						reiser4_joint_detach(joint, child);
-						reiser4_joint_close(child);
-					}
-
-					if (update_func && (result = update_func(&coord, data)))
-						goto error_after_func;
+					reiser4_joint_detach(joint, child);
+					reiser4_joint_close(child);
 				}
+
+				if (update_func && (result = update_func(&coord, data)))
+					goto error_after_func;
 			}
+				
+			/* We want to get out of the internal loop or the item was removed. */
+			if (pos.unit == ~0ul)
+				break;				
 		}
-	
-		if (after_func && (result = after_func(joint, data)))
-			goto error;
 	}
+	
+	if (after_func && (result = after_func(joint, data)))
+		goto error;
 
 	return result;
 
