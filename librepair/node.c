@@ -5,48 +5,6 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *key)
-{
-    reiser4_coord_t coord;
-    errno_t res;
-
-    aal_assert("vpf-614", parent != NULL, return -1);
-    aal_assert("vpf-615", key != NULL, return -1);
-    aal_assert("vpf-616", parent->entity.plugin != NULL, return -1);
-
-    if (reiser4_item_nodeptr(parent)) {
-	item_entity_t *item = &parent->item;
-	reiser4_ptr_hint_t ptr;
-
-	if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-	    &ptr, parent->pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
-	    return -1;
-
-	if (!(coord.node = reiser4_node_open(parent->node->device, ptr.ptr))) 
-	    return -1;
-
-	coord.pos.item = reiser4_node_items(coord.node) - 1;
-	coord.pos.unit = ~0ul;
-	
-	if (reiser4_coord_realize(&coord)) {
-	    aal_exception_error("Node (%llu): Failed to open the item (%u).",
-		coord.node->blk, coord.pos.item);
-	    goto error_child_close;
-	}
-	
-	res = repair_node_child_max_real_key(&coord, key);
-	
-	if (reiser4_node_close(coord.node))
-	    return -1;
-    } else 
-	res = reiser4_item_max_real_key(parent, key);
-
-    return res;
-    
-error_child_close:
-    reiser4_node_close(coord.node);
-    return -1;
-}
 
 reiser4_node_t *repair_node_open(reiser4_format_t *format, blk_t blk) {
     reiser4_node_t *node;
@@ -180,9 +138,7 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     return reiser4_item_set_key(&coord, ld_key);
 }
 
-static errno_t repair_node_rd_key(reiser4_node_t *node, 
-    reiser4_key_t *rd_key)
-{
+errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     reiser4_coord_t coord;
     errno_t res;
     
@@ -191,7 +147,10 @@ static errno_t repair_node_rd_key(reiser4_node_t *node,
     aal_assert("vpf-408", rd_key->plugin != NULL, return -1);
 
     if (node->parent != NULL) {
-	aal_assert("vpf-413", node->parent != NULL, return -1);
+	/* Take the right delimiting key from the parent. */
+	
+	if (reiser4_node_pos(coord.node, NULL))
+	    return -1;
 	
 	/* Open coord in the parent at the correct position. */
         if ((res = reiser4_coord_open(&coord, node->parent, &node->pos)))
@@ -399,4 +358,30 @@ errno_t repair_node_check(reiser4_node_t *node, aux_bitmap_t *bm_used) {
 
     return 0;
 }
+
+errno_t repair_node_traverse(reiser4_node_t *node, rpid_t object_hint, 
+    traverse_item_func_t func, void *data) 
+{
+    reiser4_coord_t coord;
+    reiser4_pos_t *pos = &coord.pos;
+    uint32_t items;
+
+    pos->unit = ~0ul;
+    for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
+	if (reiser4_coord_open(&coord, node, pos)) {
+	    aal_exception_error("Node (%llu), item (%u): failed to open the "
+		"item by its coord.", node->blk, pos->item);
+	    return -1;
+	}
+
+	if (!(object_hint & (1 << reiser4_item_type(&coord))))
+	    continue;
+	
+	if (func(&coord, data))
+		return -1;
+    }
+
+    return 0;
+}
+
 
