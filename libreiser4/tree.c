@@ -117,27 +117,36 @@ void reiser4_tree_release(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 #endif
 
-reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree, blk_t blk) {
+/* Loads node and attaches it into the tree */
+reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
+				  reiser4_node_t *parent,
+				  blk_t blk)
+{
 	aal_device_t *device;
-	reiser4_node_t *node;
+	reiser4_node_t *node = NULL;
 
 	aal_assert("umka-1289", tree != NULL, return NULL);
     
 	device = tree->fs->device;
-    
-	if (!(node = reiser4_node_open(device, blk))) 
-		return NULL;
-	    
-	node->tree = tree;
-	node->flags &= ~NF_DIRTY;
+
+	if (parent)
+		node = reiser4_node_cbp(parent, blk);
+
+	if (!node) {
+		if (!(node = reiser4_node_open(device, blk))) {
+			aal_exception_error("Can't read block %llu. %s.",
+					    blk, device->error);
+			return NULL;
+		}
+		
+		node->tree = tree;
+		node->flags &= ~NF_DIRTY;
+
+		if (parent && reiser4_node_attach(parent, node))
+			return NULL;
+	}
 	
 	return node;
-}
-
-/* Returns tree root key */
-reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree) {
-	aal_assert("umka-1089", tree != NULL, return NULL);
-	return &tree->key;
 }
 
 /*
@@ -145,7 +154,7 @@ reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree) {
   method id needed because of root key in reiser3 and reiser4 has a diffrent
   locality and object id values.
 */
-static errno_t reiser4_tree_build_key(
+static errno_t reiser4_tree_key(
 	reiser4_tree_t *tree,	/* tree to be used */
 	rpid_t pid)	        /* key plugin in use */
 {
@@ -255,7 +264,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	tree->fs = fs;
 
 	/* Building the tree root key */
-	if (reiser4_tree_build_key(tree, KEY_REISER40_ID)) {
+	if (reiser4_tree_key(tree, KEY_REISER40_ID)) {
 		aal_exception_error("Can't build the tree root key.");
 		goto error_free_tree;
 	}
@@ -264,7 +273,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	if ((tree_root = reiser4_format_get_root(fs->format)) == INVAL_BLK)
 		goto error_free_tree;
 	
-	if (!(tree->root = reiser4_tree_load(tree, tree_root)))
+	if (!(tree->root = reiser4_tree_load(tree, NULL, tree_root)))
 		goto error_free_tree;
     
 	tree->root->tree = tree;
@@ -298,7 +307,7 @@ reiser4_tree_t *reiser4_tree_create(
 	tree->fs = fs;
     
 	/* Building the tree root key */
-	if (reiser4_tree_build_key(tree, profile->key)) {
+	if (reiser4_tree_key(tree, profile->key)) {
 		aal_exception_error("Can't build the tree root key.");
 		goto error_free_tree;
 	}
@@ -481,26 +490,11 @@ int reiser4_tree_lookup(
 		   node from the cache.
 		*/
 		parent->counter++;
-		
-		if (!(coord->node = reiser4_node_cbp(parent, ptr.ptr))) {
-			/* 
-			   Node was not found in the cache, we open it and
-			   attach to the cache.
-			*/
-			if (!(coord->node = reiser4_tree_load(tree, ptr.ptr))) {
-				aal_exception_error("Can't load node %llu durring "
-						    "lookup.", ptr.ptr);
-				parent->counter--;
-				return -1;
-			}
 
-			/* Registering node in tree cache */
-			if (reiser4_node_attach(parent, coord->node)) {
-				aal_exception_error("Can't attach the node %llu "
-						    "in the tree.", ptr.ptr);
-				parent->counter--;
-				goto error_free_node;
-			}
+		/* Loading node by ptr */
+		if (!(coord->node = reiser4_tree_load(tree, parent, ptr.ptr))) {
+			parent->counter--;
+			return -1;
 		}
 
 		parent->counter--;
@@ -589,7 +583,7 @@ errno_t reiser4_tree_attach(
 	  only.
 	*/
 	if (reiser4_node_attach(coord.node, node)) {
-		aal_exception_error("Can't attach the node %llu in tree cache.", 
+		aal_exception_error("Can't attach the node %llu to the tree.", 
 				    node->blk);
 		return -1;
 	}
@@ -978,8 +972,8 @@ errno_t reiser4_tree_insert(
 			}
 	
 			if (reiser4_tree_attach(tree, coord->node)) {
-				aal_exception_error("Can't attach node to the tree.");
-			
+				aal_exception_error("Can't attach node %llu to the tree.",
+						    coord->node->blk);
 				reiser4_tree_release(tree, coord->node);
 				return -1;
 			}
@@ -1048,8 +1042,8 @@ errno_t reiser4_tree_insert(
 	
 		/* Attaching new node to the tree */
 		if (reiser4_tree_attach(tree, coord->node)) {
-			aal_exception_error("Can't attach node to the tree.");
-
+			aal_exception_error("Can't attach node %llu to the tree.",
+					    coord->node->blk);
 			reiser4_tree_release(tree, coord->node);
 			return -1;
 		}

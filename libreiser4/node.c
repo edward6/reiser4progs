@@ -338,7 +338,7 @@ static inline int callback_comp_blk(
 /* Finds child by block number */
 reiser4_node_t *reiser4_node_cbp(
 	reiser4_node_t *node,	        /* node to be greped */
-	blk_t blk)		        /* left delimiting key */
+	blk_t blk)                      /* left delimiting key */
 {
 	aal_list_t *list;
 	reiser4_node_t *child;
@@ -386,6 +386,9 @@ static errno_t reiser4_node_register(reiser4_node_t *node,
 				     reiser4_node_t *child)
 {
 	aal_list_t *current;
+
+	aal_assert("umka-1758", node != NULL, return -1);
+	aal_assert("umka-1759", child != NULL, return -1);
 	
 	current = aal_list_insert_sorted(node->children, child,
 					 callback_comp_node, NULL);
@@ -458,7 +461,13 @@ static reiser4_node_t *reiser4_node_fnn(
 			    fetch, &coord.item, &ptr, 0, 1);
 
 		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
-			child = reiser4_tree_load(node->tree, ptr.ptr);
+			aal_device_t *device = node->tree->fs->device;
+			
+			if (!(child = reiser4_node_open(device, ptr.ptr))) {
+				aal_exception_error("Can't read block %llu. %s.",
+						    ptr.ptr, device->error);
+				return NULL;
+			}
 
 			if (reiser4_node_register(node, child))
 				return NULL;
