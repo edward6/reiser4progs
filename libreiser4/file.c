@@ -17,7 +17,7 @@ static errno_t callback_guess_file(
 	reiser4_plugin_t *plugin,	    /* plugin to be checked */
 	void *data)			    /* item ot be checked */
 {
-	if (plugin->h.sign.type == FILE_PLUGIN_TYPE) {
+	if (plugin->h.type == FILE_PLUGIN_TYPE) {
 		return plugin_call(return 0, plugin->file_ops, confirm,
 				   (reiser4_place_t *)data);
 	}

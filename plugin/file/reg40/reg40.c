@@ -105,7 +105,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	for (read = 0; read < n; ) {
 		item_entity_t *item = &reg->body.entity;
 
-		if (item->plugin->h.sign.group == TAIL_ITEM) {
+		if (item->plugin->h.group == TAIL_ITEM) {
 			uint32_t chunk;
 			
 			/* Check if we need next item */
@@ -304,7 +304,7 @@ static object_entity_t *reg40_create(const void *tree,
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
-	stat_hint.hint = &stat;
+	stat_hint.u.hint = &stat;
     
 	/* Calling balancing code in order to insert statdata item into the tree */
 	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
@@ -369,7 +369,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 		return -1;
 		
 	while (1) {
-		if (reg->body.entity.plugin->h.sign.group == TAIL_ITEM) {
+		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
 			blk_t blk = reg->body.entity.con.blk;
 
 			if ((res = func(entity, blk, data)))
@@ -467,11 +467,9 @@ static reiser4_plugin_t reg40_plugin = {
 	.file_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = FILE_REGULAR40_ID,
-				.group = REGULAR_FILE,
-				.type = FILE_PLUGIN_TYPE
-			},
+			.id = FILE_REGULAR40_ID,
+			.group = REGULAR_FILE,
+			.type = FILE_PLUGIN_TYPE,
 			.label = "reg40",
 			.desc = "Regular file for reiserfs 4.0, ver. " VERSION,
 		},

@@ -298,8 +298,9 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 	body_hint.plugin = body_plugin;
 	body_hint.key.plugin = object->plugin; 
    
-	plugin_call(goto error_free_dir, object->plugin->key_ops, build_direntry, 
-		    body_hint.key.body, dir->hash, locality, objectid, ".");
+	plugin_call(goto error_free_dir, object->plugin->key_ops,
+		    build_direntry, body_hint.key.body, dir->hash,
+		    locality, objectid, ".");
 
 	if (!(body.entry = aal_calloc(body.count*sizeof(*body.entry), 0)))
 		goto error_free_dir;
@@ -307,22 +308,26 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 	/* Preparing dot entry */
 	body.entry[0].name = ".";
     
-	plugin_call(goto error_free_body, object->plugin->key_ops, build_objid, 
-		    &body.entry[0].objid, KEY_STATDATA_TYPE, locality, objectid);
+	plugin_call(goto error_free_body, object->plugin->key_ops,
+		    build_objid, &body.entry[0].objid, KEY_STATDATA_TYPE,
+		    locality, objectid);
 	
-	plugin_call(goto error_free_body, object->plugin->key_ops, build_entryid, 
-		    &body.entry[0].entryid, dir->hash, body.entry[0].name);
+	plugin_call(goto error_free_body, object->plugin->key_ops,
+		    build_entryid, &body.entry[0].entryid, dir->hash,
+		    body.entry[0].name);
     
 	/* Preparing dot-dot entry */
 	body.entry[1].name = "..";
     
-	plugin_call(goto error_free_body, object->plugin->key_ops, build_objid, 
-		    &body.entry[1].objid, KEY_STATDATA_TYPE, parent_locality, locality);
+	plugin_call(goto error_free_body, object->plugin->key_ops,
+		    build_objid, &body.entry[1].objid, KEY_STATDATA_TYPE,
+		    parent_locality, locality);
 	
-	plugin_call(goto error_free_body, object->plugin->key_ops, build_entryid, 
-		    &body.entry[1].entryid, dir->hash, body.entry[1].name);
+	plugin_call(goto error_free_body, object->plugin->key_ops,
+		    build_entryid, &body.entry[1].entryid, dir->hash,
+		    body.entry[1].name);
     
-	body_hint.hint = &body;
+	body_hint.u.hint = &body;
 
 	/* Initializing stat data hint */
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
@@ -354,14 +359,14 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 		goto error_free_body;
 	}
     
-	unix_ext.bytes = body_hint.len;
+	unix_ext.bytes = body_hint.u.len;
     
 	aal_memset(&stat.ext, 0, sizeof(stat.ext));
     
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
-	stat_hint.hint = &stat;
+	stat_hint.u.hint = &stat;
     
 	/* Calling balancing code in order to insert statdata item into the tree */
 	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
@@ -430,7 +435,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	if (!(body_hint.entry = aal_calloc(sizeof(*entry), 0)))
 		return 0;
     
-	hint.hint = &body_hint;
+	hint.u.hint = &body_hint;
   
 	for (i = 0; i < n; i++) {
 		plugin_call(break, dir->file.key.plugin->key_ops, build_objid,
@@ -447,7 +452,7 @@ static int32_t dir40_write(object_entity_t *entity,
 			    hint.key.body, dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);
     
-		hint.len = 0;
+		hint.u.len = 0;
 		hint.plugin = dir->body.entity.plugin;
 
 		/* Inserting the entry to the tree */
@@ -547,11 +552,9 @@ static reiser4_plugin_t dir40_plugin = {
 	.file_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = FILE_DIRTORY40_ID,
-				.group = DIRTORY_FILE,
-				.type = FILE_PLUGIN_TYPE
-			},
+			.id = FILE_DIRTORY40_ID,
+			.group = DIRTORY_FILE,
+			.type = FILE_PLUGIN_TYPE,
 			.label = "dir40",
 			.desc = "Compound directory for reiserfs 4.0, ver. " VERSION,
 		},

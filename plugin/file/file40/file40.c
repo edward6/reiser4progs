@@ -57,7 +57,7 @@ errno_t file40_get_mode(reiser4_place_t *place, uint16_t *mode) {
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 	
-	hint.hint = &stat;
+	hint.u.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 	item = &place->entity;
@@ -83,7 +83,7 @@ errno_t file40_get_size(reiser4_place_t *place, uint64_t *size) {
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.hint = &stat;
+	hint.u.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 	item = &place->entity;
@@ -104,7 +104,7 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 	
-	hint.hint = &stat;
+	hint.u.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 	item = &place->entity;

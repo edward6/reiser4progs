@@ -238,10 +238,10 @@ errno_t node40_item_legal(object_entity_t *entity, reiser4_plugin_t *plugin) {
     
     level = node40_get_level(entity);
     
-    if (plugin->h.sign.group == NODEPTR_ITEM) {
+    if (plugin->h.group == NODEPTR_ITEM) {
 	if (level == NODE40_LEAF)
 	    return 1;
-    } else if (plugin->h.sign.group == EXTENT_ITEM) {
+    } else if (plugin->h.group == EXTENT_ITEM) {
 	if (level != NODE40_TWIG)
 	    return 1;
     } else if (level != NODE40_LEAF) 

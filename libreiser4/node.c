@@ -75,7 +75,7 @@ static errno_t callback_guess_node(reiser4_plugin_t *plugin, void *data) {
 	struct guess_node *guess = (struct guess_node *)data;
 
 	/* We are interested only in node plugins here */
-	if (plugin->h.sign.type == NODE_PLUGIN_TYPE) {
+	if (plugin->h.type == NODE_PLUGIN_TYPE) {
 
 		/*
 		  Requesting block supposed to be a correct node to be opened
@@ -988,12 +988,12 @@ errno_t reiser4_node_insert(
 	}
 
 	/* Inserting item into the node */
-	if (!hint->data) {
+	if (!hint->u.data) {
 		/* 
 		   Estimate the size that will be spent for item. This should be
 		   done if item->data not installed.
 		*/
-		if (hint->len == 0) {
+		if (hint->u.len == 0) {
 			reiser4_coord_t coord;
 	    
 			if (reiser4_coord_init(&coord, node, pos))
@@ -1006,18 +1006,18 @@ errno_t reiser4_node_insert(
 			}
 		}
 	} else {
-		aal_assert("umka-761", hint->len > 0 && 
-			   hint->len < reiser4_node_maxspace(node), return -1);
+		aal_assert("umka-761", hint->u.len > 0 && 
+			   hint->u.len < reiser4_node_maxspace(node), return -1);
 	}
     
 	/* Checking if item length is gretter then free space in node */
-	if (hint->len + (pos->unit == ~0ul ? reiser4_node_overhead(node) : 0) >
+	if (hint->u.len + (pos->unit == ~0ul ? reiser4_node_overhead(node) : 0) >
 	    reiser4_node_space(node))
 	{
 		char *target = (pos->unit == ~0ul ? "item" : "unit");
 		aal_exception_error("There is no space to insert the %s of (%u) "
 				    "size in the node (%llu).", target, 
-				    hint->len, node->blk);
+				    hint->u.len, node->blk);
 		return -1;
 	}
 

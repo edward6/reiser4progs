@@ -75,7 +75,7 @@ reiser4_node_t *reiser4_tree_allocate(
 	}
 
 	device = tree->fs->format->device;
-	pid = tree->root->entity->plugin->h.sign.id;
+	pid = tree->root->entity->plugin->h.id;
     
 	/* Creating new node */
 	if (!(node = reiser4_node_create(device, blk, pid, level)))
@@ -534,7 +534,7 @@ errno_t reiser4_tree_attach(
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&ptr, 0, sizeof(ptr));
 
-	hint.hint = &ptr;
+	hint.u.hint = &ptr;
 	ptr.ptr = node->blk;
 
 	reiser4_node_lkey(node, &hint.key);
@@ -798,8 +798,8 @@ errno_t reiser4_tree_insert(
 		return -1;
     
 	/* Needed space is estimated space plugs item overhead */
-	needed = hint->len + (coord->pos.unit == ~0ul ? 
-			      reiser4_node_overhead(coord->node) : 0);
+	needed = hint->u.len + (coord->pos.unit == ~0ul ? 
+				reiser4_node_overhead(coord->node) : 0);
    
 	/* This is the special case. The tree doesn't contain any nodes */
 	if (level == LEAF_LEVEL && !tree->root->children) {

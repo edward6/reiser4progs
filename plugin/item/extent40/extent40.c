@@ -33,7 +33,7 @@ static errno_t extent40_init(item_entity_t *item,
 {
 	aal_assert("umka-1202", item != NULL, return -1); 
 	aal_assert("umka-1203", hint != NULL, return -1);
-	aal_assert("umka-1204", hint->data != NULL, return -1);
+	aal_assert("umka-1204", hint->u.data != NULL, return -1);
     
 	return 0;
 }
@@ -288,11 +288,9 @@ static reiser4_plugin_t extent40_plugin = {
 	.item_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = ITEM_EXTENT40_ID,
-				.group = EXTENT_ITEM,
-				.type = ITEM_PLUGIN_TYPE
-			},
+			.id = ITEM_EXTENT40_ID,
+			.group = EXTENT_ITEM,
+			.type = ITEM_PLUGIN_TYPE,
 			.label = "extent40",
 			.desc = "Extent item for reiserfs 4.0, ver. " VERSION,
 		},

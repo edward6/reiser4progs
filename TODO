@@ -33,4 +33,10 @@ reiser4progs/COPYING.
 * unit_key function into item plugin 
 
 * --print-file option in debugfs for printing nodes
-  specified file lies in
+  specified file lies in.
+
+* update parent directory fields (nlink, etc) when creating file or
+  directories.
+
+* symlinks and special files browsing in debugfs.
+* creating extents

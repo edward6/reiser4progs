@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 	if (!(reg = reiser4_file_open(fs, argv[2])))
 		goto error_free_fs;
 
-	if (reg->entity->plugin->h.sign.group != REGULAR_FILE) {
+	if (reg->entity->plugin->h.group != REGULAR_FILE) {
 		aal_exception_error("File %s is not a regular file.",
 				    argv[2]);
 		goto error_free_reg;

@@ -139,11 +139,9 @@ static reiser4_plugin_t sdext_unix_plugin = {
 	.sdext_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = SDEXT_UNIX_ID,
-				.group = 0,
-				.type = SDEXT_PLUGIN_TYPE
-			},
+			.id = SDEXT_UNIX_ID,
+			.group = 0,
+			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_unix",
 			.desc = "Unix stat data extention for reiserfs 4.0, ver. " VERSION,
 		},

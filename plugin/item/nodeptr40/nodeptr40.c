@@ -28,7 +28,7 @@ static errno_t nodeptr40_init(item_entity_t *item,
 	aal_assert("vpf-064", hint != NULL, return -1);
 
 	nodeptr = nodeptr40_body(item);
-	np40_set_ptr(nodeptr,((reiser4_ptr_hint_t *)hint->hint)->ptr);
+	np40_set_ptr(nodeptr,((reiser4_ptr_hint_t *)hint->u.hint)->ptr);
 	    
 	return 0;
 }
@@ -38,7 +38,7 @@ static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
 {
 	aal_assert("vpf-068", hint != NULL, return -1);
     
-	hint->len = sizeof(nodeptr40_t);
+	hint->u.len = sizeof(nodeptr40_t);
 	return 0;
 }
 
@@ -97,11 +97,9 @@ static reiser4_plugin_t nodeptr40_plugin = {
 	.item_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = ITEM_NODEPTR40_ID,
-				.group = NODEPTR_ITEM,
-				.type = ITEM_PLUGIN_TYPE,
-			},
+			.id = ITEM_NODEPTR40_ID,
+			.group = NODEPTR_ITEM,
+			.type = ITEM_PLUGIN_TYPE,
 			.label = "nodeptr40",
 			.desc = "Node pointer item for reiserfs 4.0, ver. " VERSION,
 		},

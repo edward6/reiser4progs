@@ -124,11 +124,9 @@ static reiser4_plugin_t sdext_lw_plugin = {
 	.sdext_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = SDEXT_LW_ID,
-				.group = 0,
-				.type = SDEXT_PLUGIN_TYPE
-			},
+			.id = SDEXT_LW_ID,
+			.group = 0,
+			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_lw",
 			.desc = "Light stat data extention for reiserfs 4.0, ver. " VERSION,
 		},

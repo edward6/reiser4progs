@@ -37,14 +37,14 @@ static int callback_match_id(
 	reiser4_plugin_t *plugin,	         /* current plugin in list */
 	walk_desc_t *desc)		         /* desction contained needed plugin type and id */
 {
-	return !(plugin->h.sign.type == desc->type 
-		&& plugin->h.sign.id == desc->id);
+	return !(plugin->h.type == desc->type 
+		&& plugin->h.id == desc->id);
 }
 
 /* Helper callback for matching plugin by its name */
 static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
-	return !(plugin->h.sign.type == desc->type 
-		&& !aal_strncmp(plugin->h.label, desc->name, aal_strlen(desc->name)));
+	return !(plugin->h.type == desc->type &&
+		 !aal_strncmp(plugin->h.label, desc->name, aal_strlen(desc->name)));
 }
 
 /* Helper callback for checking plugin validness */
@@ -62,16 +62,16 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
 	}
 
 	/* Check plugin group */
-	if (examined->h.sign.group >= LAST_ITEM) {
+	if (examined->h.group >= LAST_ITEM) {
 		aal_exception_error("Plugin %s has invalid group id 0x%x.",
-				    examined->h.handle.name, examined->h.sign.group);
+				    examined->h.handle.name, examined->h.group);
 		return -1;
 	}
 
 	/* Check plugin coord */
-	if (examined->h.sign.group == plugin->h.sign.group &&
-	    examined->h.sign.id == plugin->h.sign.id &&
-	    examined->h.sign.type == plugin->h.sign.type)
+	if (examined->h.group == plugin->h.group &&
+	    examined->h.id == plugin->h.id &&
+	    examined->h.type == plugin->h.type)
 	{
 		aal_exception_error("Plugin %s has the same sign as %s.",
 				    examined->h.handle.name, plugin->h.handle.name);

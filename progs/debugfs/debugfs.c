@@ -835,9 +835,9 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
 
-	if (file->entity->plugin->h.sign.group == REGULAR_FILE)
+	if (file->entity->plugin->h.group == REGULAR_FILE)
 		res = debugfs_file_cat(file);
-	else if (file->entity->plugin->h.sign.group == DIRTORY_FILE) {
+	else if (file->entity->plugin->h.group == DIRTORY_FILE) {
 		res = debugfs_file_ls(file);
 	} else {
 		aal_exception_info("Sorry, browing special files and symlinks "

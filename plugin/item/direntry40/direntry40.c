@@ -146,16 +146,16 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 	    
 	aal_assert("vpf-095", hint != NULL, return -1);
     
-	direntry_hint = (reiser4_direntry_hint_t *)hint->hint;
-	hint->len = direntry_hint->count * sizeof(entry40_t);
+	direntry_hint = (reiser4_direntry_hint_t *)hint->u.hint;
+	hint->u.len = direntry_hint->count * sizeof(entry40_t);
     
 	for (i = 0; i < direntry_hint->count; i++) {
-		hint->len += aal_strlen(direntry_hint->entry[i].name) + 
+		hint->u.len += aal_strlen(direntry_hint->entry[i].name) + 
 			sizeof(objid40_t) + 1;
 	}
 
 	if (pos == ~0ul)
-		hint->len += sizeof(direntry40_t);
+		hint->u.len += sizeof(direntry40_t);
     
 	return 0;
 }
@@ -504,12 +504,12 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	aal_assert("umka-791", item != NULL, return -1);
 	aal_assert("umka-792", hint != NULL, return -1);
 	aal_assert("umka-897", pos != ~0ul, return -1);
-	aal_assert("umka-1600", hint->len > 0, return -1);
+	aal_assert("umka-1600", hint->u.len > 0, return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
     
-	dh = (reiser4_direntry_hint_t *)hint->hint;
+	dh = (reiser4_direntry_hint_t *)hint->u.hint;
     
 	if (pos > de40_get_count(direntry))
 		return -1;
@@ -544,11 +544,11 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 		en40_inc_offset(&direntry->entry[i], headers_size);
     
 	for (i = pos; i < units; i++)
-		en40_inc_offset(&direntry->entry[i], hint->len);
+		en40_inc_offset(&direntry->entry[i], hint->u.len);
     
 	/* Moving unit bodies */
 	if (pos < units) {
-		dst = (void *)direntry + offset + hint->len -
+		dst = (void *)direntry + offset + hint->u.len -
 			headers_size;
 
 		src = (void *)direntry + offset - headers_size;
@@ -840,11 +840,9 @@ static reiser4_plugin_t direntry40_plugin = {
 	.item_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = ITEM_CDE40_ID,
-				.group = DIRENTRY_ITEM,
-				.type = ITEM_PLUGIN_TYPE
-			},
+			.id = ITEM_CDE40_ID,
+			.group = DIRENTRY_ITEM,
+			.type = ITEM_PLUGIN_TYPE,
 			.label = "direntry40",
 			.desc = "Compound direntry for reiserfs 4.0, ver. " VERSION,
 		},

@@ -13,21 +13,21 @@
 
 #define tea_hash_core(rounds)					               \
 do {								               \
-    uint64_t sum = 0;						               \
-    int n = rounds;						               \
-    uint64_t b0, b1;						               \
+        uint64_t sum = 0;						       \
+        int n = rounds;						               \
+        uint64_t b0, b1;						       \
 								               \
-    b0 = h0;							               \
-    b1 = h1;							               \
+        b0 = h0;							       \
+        b1 = h1;							       \
 								               \
-    do {							               \
-	    sum += DELTA;						       \
-	    b0 += ((b1 << 4) + a) ^ (b1 + sum) ^ ((b1 >> 5) + b);              \
-	    b1 += ((b0 << 4) + c) ^ (b0 + sum) ^ ((b0 >> 5) + d);              \
-    } while (--n);						               \
+        do {							               \
+	        sum += DELTA;						       \
+	        b0 += ((b1 << 4) + a) ^ (b1 + sum) ^ ((b1 >> 5) + b);          \
+	        b1 += ((b0 << 4) + c) ^ (b0 + sum) ^ ((b0 >> 5) + d);          \
+        } while (--n);						               \
 								               \
-    h0 += b0;							               \
-    h1 += b1;							               \
+        h0 += b0;							       \
+        h1 += b1;							       \
 } while(0)
 
 uint64_t tea_hash_build(const unsigned char *name, uint32_t len) {
@@ -144,11 +144,9 @@ static reiser4_plugin_t tea_hash_plugin = {
 	.hash_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = HASH_TEA_ID,
-				.group = 0,
-				.type = HASH_PLUGIN_TYPE
-			},
+			.id = HASH_TEA_ID,
+			.group = 0,
+			.type = HASH_PLUGIN_TYPE,
 			.label = "tea_hash",
 			.desc = "Implementation of tea hash for reiserfs 4.0, ver. " VERSION,
 		},

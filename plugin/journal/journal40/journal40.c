@@ -321,7 +321,7 @@ errno_t journal40_traverse_trans(
 	}
 	
 	while (log_blk != aal_block_number(tx_block)) {
-		/* FIXME-VITALY->UMKA: There should be a check that the log_blk 
+		/* FIXME-VITALY->UMKA: There should be a check that the log_blk
 		 * is not one of the LGR's of the same transaction. return 1. */
 	    
 		if (sec_func && (ret = sec_func((object_entity_t *)journal, 
@@ -399,12 +399,15 @@ errno_t journal40_traverse_trans(
 	return ret;	
 }
 
-/* Journal traverse method. Finds the oldest transaction first, then goes through each 
- * transaction from the oldest to the earliest. 
- * Returns: 
- *	what a callback has returned if not 0; 
- *	1 for bad journal structure; 
- *	-1 - fatal error */
+/*
+  Journal traverse method. Finds the oldest transaction first, then goes through
+  each transaction from the oldest to the earliest.
+  
+  Returns: 
+  what a callback has returned if not 0; 
+  1 for bad journal structure; 
+  -1 - fatal error
+*/
 errno_t journal40_traverse(
 	journal40_t *journal,			/* journal object to be traversed */
 	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
@@ -441,7 +444,7 @@ errno_t journal40_traverse(
 	}
 	
 	while (txh_blk != last_flushed_tx) {
-		/* FIXME-VITALY->UMKA: There should be a check that the txh_blk 
+		/* FIXME-VITALY->UMKA: There should be a check that the txh_blk
 		 * is not one of the TxH's we have met already. return 1. */
 	    
 		if (txh_func && (ret = txh_func((object_entity_t *)journal, 
@@ -536,11 +539,9 @@ static reiser4_plugin_t journal40_plugin = {
 	.journal_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = JOURNAL_REISER40_ID,
-				.group = 0,
-				.type = JOURNAL_PLUGIN_TYPE
-			},
+			.id = JOURNAL_REISER40_ID,
+			.group = 0,
+			.type = JOURNAL_PLUGIN_TYPE,
 			.label = "journal40",
 			.desc = "Default journal for reiserfs 4.0, ver. " VERSION,
 		},

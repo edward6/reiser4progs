@@ -63,11 +63,9 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 	.sdext_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = SDEXT_SYMLINK_ID,
-				.group = 0,
-				.type = SDEXT_PLUGIN_TYPE
-			},
+			.id = SDEXT_SYMLINK_ID,
+			.group = 0,
+			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_symlink",
 			.desc = "Symlink data extention for reiserfs 4.0, ver. " VERSION,
 		},

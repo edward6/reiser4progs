@@ -478,16 +478,16 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	aal_assert("umka-818", node != NULL, return -1);
 	aal_assert("umka-908", pos->unit == ~0ul, return -1);
     
-	if (!hint->data)
+	if (!hint->u.data)
 		aal_assert("umka-712", hint->key.plugin != NULL, return -1);
 
 	/* Makes expand of the node new item will be inaserted to */
-	if (node40_expand(node, pos, hint->len))
+	if (node40_expand(node, pos, hint->u.len))
 		return -1;
 
 	/* Updating item header of the new item */
 	ih = node40_ih_at(node, pos->item);
-	ih40_set_pid(ih, hint->plugin->h.sign.id);
+	ih40_set_pid(ih, hint->plugin->h.id);
 	aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
 
 	nh40_inc_num_items(node, 1);
@@ -496,9 +496,9 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	  If item hint contains some data, we just copy it and going out. This
 	  mode probably will be used by fsck.
 	*/
-	if (hint->data) {
+	if (hint->u.data) {
 		aal_memcpy(node40_ib_at(node, pos->item), 
-			   hint->data, hint->len);
+			   hint->u.data, hint->u.len);
 		return 0;
 	}
 
@@ -524,7 +524,7 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 	aal_assert("vpf-120", pos != NULL && pos->unit != ~0ul, return -1);
 
 	/* Expanding item at @pos to insert new unit(s) into it */
-	if (node40_expand(node, pos, hint->len))
+	if (node40_expand(node, pos, hint->u.len))
 		return -1;
 
 	/* Initilizing item entity to pass it to item plugin */
@@ -719,7 +719,7 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 		}
 
 		aal_stream_format(stream, "(%u) ", pos.item);
-		aal_stream_format(stream, groups[item.plugin->h.sign.group]);
+		aal_stream_format(stream, groups[item.plugin->h.group]);
 		aal_stream_format(stream, ": len=%u, KEY: ", item.len);
 		
 		if (plugin_call(return -1, item.key.plugin->key_ops, print,
@@ -727,7 +727,7 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 			return -1;
 	
 		aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-				  item.plugin->h.sign.id, item.plugin->h.label);
+				  item.plugin->h.id, item.plugin->h.label);
 
 		/* Printing item by means of calling item print method */
 		if (plugin_call(return -1, item.plugin->item_ops, print,
@@ -1076,7 +1076,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 
 		/* Setting up new item fiedls */
 		ih = node40_ih_at(dst_node, pos.item);
-		ih40_set_pid(ih, src_item.plugin->h.sign.id);
+		ih40_set_pid(ih, src_item.plugin->h.id);
 		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
 
 		/*
@@ -1443,11 +1443,9 @@ static reiser4_plugin_t node40_plugin = {
 	.node_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = NODE_REISER40_ID,
-				.group = 0,
-				.type = NODE_PLUGIN_TYPE
-			},
+			.id = NODE_REISER40_ID,
+			.group = 0,
+			.type = NODE_PLUGIN_TYPE,
 			.label = "node40",
 			.desc = "Node for reiserfs 4.0, ver. " VERSION,
 		},

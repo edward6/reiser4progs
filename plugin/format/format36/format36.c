@@ -281,17 +281,16 @@ static reiser4_plugin_t format36_plugin = {
 	.format_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = FORMAT_REISER36_ID,
-				.group = 0,
-				.type = FORMAT_PLUGIN_TYPE
-			},
+			.id = FORMAT_REISER36_ID,
+			.group = 0,
+			.type = FORMAT_PLUGIN_TYPE,
 			.label = "format36",
 			.desc = "Disk-format for reiserfs 3.6.x, ver. " VERSION,
 		},
 		.open		= format36_open,
 		.valid		= format36_valid,
 		.device		= NULL,
+		
 #ifndef ENABLE_COMPACT
 		.check		= NULL,
 		.print		= NULL,

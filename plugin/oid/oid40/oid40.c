@@ -143,17 +143,16 @@ static reiser4_plugin_t oid40_plugin = {
 	.oid_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = OID_REISER40_ID,
-				.group = 0,
-				.type = OID_PLUGIN_TYPE
-			},
+			.id = OID_REISER40_ID,
+			.group = 0,
+			.type = OID_PLUGIN_TYPE,
 			.label = "oid40",
 			.desc = "Inode allocator for reiserfs 4.0, ver. " VERSION,
 		},
 		.open		= oid40_open,
 		.close		= oid40_close,
 		.valid		= oid40_valid,
+		
 #ifndef ENABLE_COMPACT	
 		.create		= oid40_create,
 		.next		= oid40_next,

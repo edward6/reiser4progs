@@ -81,7 +81,7 @@ static int callback_open(uint8_t ext, uint16_t extmask,
 	reiser4_plugin_t *plugin;
 	reiser4_statdata_hint_t *hint;
 
-	hint = ((reiser4_item_hint_t *)data)->hint;
+	hint = ((reiser4_item_hint_t *)data)->u.hint;
 
 	/* Reading mask into hint */
 	if ((ext + 1) % 16 == 0) {
@@ -127,7 +127,7 @@ static errno_t stat40_init(item_entity_t *item,
 	aal_assert("vpf-075", hint != NULL, return -1);
     
 	extbody = (reiser4_body_t *)stat40_body(item);
-	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
+	stat_hint = (reiser4_statdata_hint_t *)hint->u.hint;
     
 	if (!stat_hint->extmask)
 		return 0;
@@ -183,8 +183,8 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
     
 	aal_assert("vpf-074", hint != NULL, return -1);
 
-	hint->len = sizeof(stat40_t);
-	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
+	hint->u.len = sizeof(stat40_t);
+	stat_hint = (reiser4_statdata_hint_t *)hint->u.hint;
     
 	if (!stat_hint->extmask)
 		return 0;
@@ -197,7 +197,7 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 			continue;
 	
 		if ((i + 1) % 16 == 0) {
-			hint->len += sizeof(d16_t);
+			hint->u.len += sizeof(d16_t);
 			continue;
 		}
 	
@@ -207,7 +207,7 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 			continue;
 		}
 	
-		hint->len += plugin_call(return -1, plugin->sdext_ops, 
+		hint->u.len += plugin_call(return -1, plugin->sdext_ops, 
 					 length, stat_hint->ext[i]);
 	}
 	
@@ -363,11 +363,9 @@ static reiser4_plugin_t stat40_plugin = {
 	.item_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = ITEM_STATDATA40_ID,
-				.group = STATDATA_ITEM,
-				.type = ITEM_PLUGIN_TYPE
-			},
+			.id = ITEM_STATDATA40_ID,
+			.group = STATDATA_ITEM,
+			.type = ITEM_PLUGIN_TYPE,
 			.label = "stat40",
 			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 		},

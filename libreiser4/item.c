@@ -65,7 +65,7 @@ errno_t reiser4_item_estimate(
 		   hint->plugin != NULL, return -1);
    
 	/* Here hint has been already set for the 3rd case */
-	if (hint->data != NULL)
+	if (hint->u.data != NULL)
 		return 0;
     
 	/* Estimate for the 2nd and for the 4th cases */
@@ -105,8 +105,8 @@ int reiser4_item_permissn(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("umka-1450", item->plugin != NULL, return 0);
 	
-	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.sign.group == PERMISSN_ITEM;
+	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.group == PERMISSN_ITEM;
 }
 
 int reiser4_item_tail(reiser4_coord_t *coord) {
@@ -117,8 +117,8 @@ int reiser4_item_tail(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("umka-1451", item->plugin != NULL, return 0);
 	
-	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.sign.group == TAIL_ITEM;
+	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.group == TAIL_ITEM;
 }
 
 int reiser4_item_extent(reiser4_coord_t *coord) {
@@ -129,8 +129,8 @@ int reiser4_item_extent(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("umka-1452", item->plugin != NULL, return 0);
 	
-	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.sign.group == EXTENT_ITEM;
+	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.group == EXTENT_ITEM;
 }
 
 int reiser4_item_direntry(reiser4_coord_t *coord) {
@@ -141,8 +141,8 @@ int reiser4_item_direntry(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("umka-1453", item->plugin != NULL, return 0);
 	
-	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.sign.group == DIRENTRY_ITEM;
+	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.group == DIRENTRY_ITEM;
 }
 
 int reiser4_item_statdata(reiser4_coord_t *coord) {
@@ -153,8 +153,8 @@ int reiser4_item_statdata(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("umka-1454", item->plugin != NULL, return 0);
 	
-	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.sign.group == STATDATA_ITEM;
+	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.group == STATDATA_ITEM;
 }
 
 int reiser4_item_nodeptr(reiser4_coord_t *coord) {
@@ -165,8 +165,8 @@ int reiser4_item_nodeptr(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("umka-1455", item->plugin != NULL, return 0);
 	
-	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.sign.group == NODEPTR_ITEM;
+	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.group == NODEPTR_ITEM;
 }
 
 rpid_t reiser4_item_type(reiser4_coord_t *coord) {
@@ -177,11 +177,11 @@ rpid_t reiser4_item_type(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("vpf-425", item->plugin != NULL, return 0);
 	
-	if (item->plugin->h.sign.type != ITEM_PLUGIN_TYPE)
+	if (item->plugin->h.type != ITEM_PLUGIN_TYPE)
 		return LAST_ITEM;
 		
-	return (item->plugin->h.sign.group < LAST_ITEM ?
-		item->plugin->h.sign.group : LAST_ITEM);
+	return (item->plugin->h.group < LAST_ITEM ?
+		item->plugin->h.group : LAST_ITEM);
 }
 
 uint32_t reiser4_item_len(reiser4_coord_t *coord) {

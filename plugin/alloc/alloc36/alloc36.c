@@ -71,11 +71,9 @@ static reiser4_plugin_t alloc36_plugin = {
 	.alloc_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = ALLOC_REISER36_ID,
-				.group = 0,
-				.type = ALLOC_PLUGIN_TYPE
-			},
+			.id = ALLOC_REISER36_ID,
+			.group = 0,
+			.type = ALLOC_PLUGIN_TYPE,
 			.label = "alloc36",
 			.desc = "Space allocator for reiserfs 3.6.x, ver. " VERSION,
 		},

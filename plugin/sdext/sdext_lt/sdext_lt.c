@@ -78,11 +78,9 @@ static reiser4_plugin_t sdext_lt_plugin = {
 	.sdext_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = SDEXT_LT_ID,
-				.group = 0,
-				.type = SDEXT_PLUGIN_TYPE
-			},
+			.id = SDEXT_LT_ID,
+			.group = 0,
+			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_lt",
 			.desc = "Large times data extention for reiserfs 4.0, ver. " VERSION,
 		},

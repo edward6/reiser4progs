@@ -508,17 +508,16 @@ static reiser4_plugin_t format40_plugin = {
 	.format_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = FORMAT_REISER40_ID,
-				.group = 0,
-				.type = FORMAT_PLUGIN_TYPE
-			},
+			.id = FORMAT_REISER40_ID,
+			.group = 0,
+			.type = FORMAT_PLUGIN_TYPE,
 			.label = "format40",
 			.desc = "Disk-format for reiserfs 4.0, ver. " VERSION,
 		},
 		.open		= format40_open,
 		.valid		= format40_valid,
 		.device		= format40_device,
+		
 #ifndef ENABLE_COMPACT	
 		.check		= format40_check,
 		.sync		= format40_sync,

@@ -115,7 +115,8 @@ reiser4_profile_t *progs_profile_find(
 	aal_assert("vpf-104", profile != NULL, return NULL);
     
 	for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++) {
-		if (!aal_strncmp(profiles[i].label, profile, strlen(profiles[i].label)))
+		char *label = profiles[i].label;
+		if (!aal_strncmp(label, profile, strlen(label)))
 			return &profiles[i];
 	}
 
@@ -367,7 +368,7 @@ errno_t progs_profile_override(reiser4_profile_t *profile,
 		return -1;
 	}
     
-	*field = plugin->h.sign.id;
+	*field = plugin->h.id;
  
 	return 0;
 }
@@ -379,9 +380,10 @@ void progs_profile_print(reiser4_profile_t *profile) {
 	aal_assert("umka-925", profile != NULL, return);
 	
 	printf("Profile %s:\n", profile->label);
+	
 	for (i = 0; i < PROGS_LAST_PLUGIN; i++) {
 		if ((plugin = libreiser4_factory_ifind(progs_profile_it2pt(i), 
-						       *progs_profile_field(profile, i))) != NULL) 
+						       *progs_profile_field(profile, i))) != NULL)
 		{
 			printf("%s:\t%s\t(%s).\n", progs_profile_it2name(i),
 			       plugin->h.label, plugin->h.desc);

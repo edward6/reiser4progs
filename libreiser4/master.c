@@ -80,7 +80,7 @@ static errno_t callback_guess_format(
 	reiser4_plugin_t *plugin,    /* plugin to be checked */
 	void *data)		     /* needed plugin type */
 {
-	if (plugin->h.sign.type == FORMAT_PLUGIN_TYPE) {
+	if (plugin->h.type == FORMAT_PLUGIN_TYPE) {
 		aal_device_t *device = (aal_device_t *)data;
 
 		return plugin_call(return 0, plugin->format_ops, 
@@ -203,8 +203,9 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 				goto error_free_block;
 	    
 			/* Creating in-memory master super block */
-			if (!(master = reiser4_master_create(device, plugin->h.sign.id, 
-							     DEFAULT_BLOCKSIZE, NULL, NULL)))
+			if (!(master = reiser4_master_create(device, plugin->h.id, 
+							     DEFAULT_BLOCKSIZE,
+							     NULL, NULL)))
 			{
 				aal_exception_error("Can't find format in use after probe the "
 						    "all registered format plugins.");

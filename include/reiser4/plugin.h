@@ -26,7 +26,7 @@ enum direction {
 typedef enum direction direction_t;
 
 /* 
-   Defining types for disk structures. All types like f32_t are fake types
+   Defining the types for disk structures. All types like f32_t are fake ones
    needed to avoid gcc-2.95.x bug with typedef of aligned types.
 */
 typedef uint8_t  f8_t;  typedef f8_t  d8_t  __attribute__((aligned(1)));
@@ -264,6 +264,7 @@ typedef errno_t (*file_layout_func_t) (object_entity_t *, file_action_func_t, vo
 
 /* Type for alloc layout callback function */
 typedef errno_t (*alloc_layout_func_t) (object_entity_t *, blk_t, void *);
+
 /* 
    To create a new item or to insert into the item we need to perform the
    following operations:
@@ -400,25 +401,28 @@ typedef struct reiser4_file_hint reiser4_file_hint_t;
    a pointer to data to be copied.
 */ 
 struct reiser4_item_hint {
-	/*
-	  This is pointer to already formated item body. It is useful for item
-	  copying, replacing, etc. This will be used by fsck probably.
-	*/
-	void *data;
+	union {
+		/*
+		  This is pointer to already formated item body. It is useful
+		  for item copying, replacing, etc. This will be used by fsck
+		  probably.
+		*/
+		void *data;
 
-	/*
-	  This is pointer to hint which describes item. It is widely used for
-	  creating an item.
-	*/
-	void *hint;
+		/* Length of the data field */
+		uint16_t len;
     
-	/* Length of the item to inserted */
-	uint16_t len;
+		/*
+		  This is pointer to hint which describes item. It is widely
+		  used for creating an item.
+		*/
+		void *hint;
+	} u;
     
 	/* The key of item */
 	reiser4_key_t key;
 
-	/* Plugin to be used for creating item */
+	/* Plugin to be used for working with item */
 	reiser4_plugin_t *plugin;
 };
 
@@ -445,14 +449,6 @@ struct plugin_handle {
 
 typedef struct plugin_handle plugin_handle_t;
 
-struct plugin_sign {
-	rpid_t id;
-	rpid_t type;
-	rpid_t group;
-};
-
-typedef struct plugin_sign plugin_sign_t;
-
 /* Common plugin header */
 struct reiser4_plugin_header {
 
@@ -462,8 +458,10 @@ struct reiser4_plugin_header {
 	*/
 	plugin_handle_t handle;
 
-	/* Plugin will be found by its sign */
-	plugin_sign_t sign;
+	/* Plugin will be looked by its id, type, etc */
+	rpid_t id;
+	rpid_t type;
+	rpid_t group;
 
 	/* Label and description */
 	const char label[PLUGIN_MAX_LABEL];
@@ -1115,8 +1113,8 @@ struct reiser4_core {
 };
 
 #define plugin_equal(plugin1, plugin2)                        \
-        (plugin1->h.sign.group == plugin2->h.sign.group &&    \
-	 plugin1->h.sign.id == plugin2->h.sign.id)
+        (plugin1->h.group == plugin2->h.group &&              \
+	 plugin1->h.id == plugin2->h.id)
 
 /* Plugin functions and macros */
 #ifndef ENABLE_COMPACT

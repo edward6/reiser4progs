@@ -16,22 +16,21 @@ static reiser4_body_t *tail40_body(item_entity_t *item) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t tail40_init(item_entity_t *item, 
-			   reiser4_item_hint_t *hint)
-{
-	aal_assert("umka-1172", item != NULL, return -1); 
-	aal_assert("umka-1173", hint != NULL, return -1);
-	aal_assert("umka-1178", hint->data != NULL, return -1);
-    
-	aal_memcpy(tail40_body(item), hint->data, hint->len);
-	return 0;
-}
-
 static errno_t tail40_insert(item_entity_t *item, uint32_t pos, 
 			     reiser4_item_hint_t *hint)
 {
-	aal_memcpy(tail40_body(item) + pos, hint->data, hint->len);
+	aal_assert("umka-1172", item != NULL, return -1); 
+	aal_assert("umka-1173", hint != NULL, return -1);
+	aal_assert("umka-1178", hint->u.data != NULL, return -1);
+    
+	aal_memcpy(tail40_body(item) + pos, hint->u.data, hint->u.len);
 	return 0;
+}
+
+static errno_t tail40_init(item_entity_t *item, 
+			   reiser4_item_hint_t *hint)
+{
+	return tail40_insert(item, 0, hint);
 }
 
 static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,
@@ -203,11 +202,9 @@ static reiser4_plugin_t tail40_plugin = {
 	.item_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = ITEM_TAIL40_ID,
-				.group = TAIL_ITEM,
-				.type = ITEM_PLUGIN_TYPE
-			},
+			.id = ITEM_TAIL40_ID,
+			.group = TAIL_ITEM,
+			.type = ITEM_PLUGIN_TYPE,
 			.label = "tail40",
 			.desc = "Tail item for reiserfs 4.0, ver. " VERSION,
 		},

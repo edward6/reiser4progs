@@ -38,7 +38,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.hint = &stat;
+	hint.u.hint = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
 	item = &symlink->file.statdata.entity;
@@ -153,7 +153,7 @@ static object_entity_t *symlink40_create(const void *tree,
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 	stat.ext[SDEXT_SYMLINK_ID] = hint->body.symlink.data;
 
-	stat_hint.hint = &stat;
+	stat_hint.u.hint = &stat;
     
 	/* Calling balancing code in order to insert statdata item into the tree */
 	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
@@ -225,11 +225,9 @@ static reiser4_plugin_t symlink40_plugin = {
 	.file_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = FILE_SYMLINK40_ID,
-				.group = SYMLINK_FILE,
-				.type = FILE_PLUGIN_TYPE
-			},
+			.id = FILE_SYMLINK40_ID,
+			.group = SYMLINK_FILE,
+			.type = FILE_PLUGIN_TYPE,
 			.label = "symlink40",
 			.desc = "Symlink for reiserfs 4.0, ver. " VERSION,
 		},

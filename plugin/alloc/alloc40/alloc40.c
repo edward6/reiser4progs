@@ -485,11 +485,9 @@ static reiser4_plugin_t alloc40_plugin = {
 	.alloc_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
-			.sign   = {
-				.id = ALLOC_REISER40_ID,
-				.group = 0,
-				.type = ALLOC_PLUGIN_TYPE
-			},
+			.id = ALLOC_REISER40_ID,
+			.group = 0,
+			.type = ALLOC_PLUGIN_TYPE,
 			.label = "alloc40",
 			.desc = "Space allocator for reiserfs 4.0, ver. " VERSION,
 		},
