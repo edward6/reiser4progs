@@ -16,9 +16,12 @@ extern errno_t repair_fs_open(repair_data_t *repair,
 
 extern void repair_fs_close(reiser4_fs_t *fs);
 
-extern errno_t repair_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream);
+extern errno_t repair_fs_pack(reiser4_fs_t *fs, 
+			      aux_bitmap_t *bitmap, 
+			      aal_stream_t *stream);
 
 extern reiser4_fs_t *repair_fs_unpack(aal_device_t *device, 
+				      aux_bitmap_t *bitmap,
 				      aal_stream_t *stream);
 
 #endif

@@ -271,6 +271,38 @@ aux_bitmap_t *aux_bitmap_clone(
 	return clone;
 }
 
+/* Resizes the @bitmap to the given @len.  */
+void aux_bitmap_resize(aux_bitmap_t *bitmap, uint64_t len) {
+	void *map;
+	uint32_t size;
+	bool_t enlarge;
+	uint64_t i, total;
+
+	size = (len + 7) / 8;
+	enlarge = size > bitmap->size ? 1 : 0;
+	
+	if (!(map = aal_calloc(size, 0)))
+		return;
+
+	aal_memcpy(map, bitmap->map, enlarge ? bitmap->size : size);
+
+	if (enlarge) {
+		/* Fix bits that were out of bounds. */
+		total = bitmap->size * 8;
+		for (i = bitmap->total; i < total; i++)
+			aal_clear_bit(map, i);
+	}
+
+	aal_free(bitmap->map);
+	bitmap->map = map;
+	bitmap->total = len;
+	bitmap->size = size;
+	
+	if (!enlarge) {
+		aux_bitmap_calc_marked(bitmap);
+	}
+}
+
 /* Frees all memory assigned to bitmap */
 void aux_bitmap_close(
 	aux_bitmap_t *bitmap)	    /* bitmap to be closed */
@@ -280,6 +312,23 @@ void aux_bitmap_close(
 	
 	aal_free(bitmap->map);
 	aal_free(bitmap);
+}
+
+/* Inverts the bitmap data. */
+void aux_bitmap_invert(aux_bitmap_t *bitmap) {
+	uint64_t i, total;
+	
+	aal_assert("vpf-1421", bitmap != NULL);
+
+	for (i = 0; i < bitmap->size; i++)
+		bitmap->map[i] = ~bitmap->map[i];
+
+	/* Fix bits that are out of bounds. */
+	total = bitmap->size * 8;
+	for (i = bitmap->total; i < total; i++) 
+		aal_clear_bit(bitmap->map, i);
+
+	bitmap->marked = bitmap->total - bitmap->marked;
 }
 
 /* Return bitmap's map (memory chunk, bits array lies in) for direct access */

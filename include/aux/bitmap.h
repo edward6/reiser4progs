@@ -49,6 +49,8 @@ extern bool_t aux_bitmap_test_region(aux_bitmap_t *bitmap,
 				     uint64_t count,
 				     int marked);
 
+extern void aux_bitmap_invert(aux_bitmap_t *bitmap);
+
 extern uint64_t aux_bitmap_find_region(aux_bitmap_t *bitmap,
 				       uint64_t *start,
 				       uint64_t count,
@@ -69,6 +71,7 @@ extern uint64_t aux_bitmap_cleared(aux_bitmap_t *bitmap);
 extern aux_bitmap_t *aux_bitmap_create(uint64_t len);
 extern aux_bitmap_t *aux_bitmap_clone(aux_bitmap_t *bitmap);
 
+extern void aux_bitmap_resize(aux_bitmap_t *bitmap, uint64_t len);
 extern void aux_bitmap_close(aux_bitmap_t *bitmap);
 extern char *aux_bitmap_map(aux_bitmap_t *bitmap);
 #endif

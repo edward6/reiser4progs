@@ -142,13 +142,17 @@ void repair_fs_close(reiser4_fs_t *fs) {
 }
 
 /* Pack passed @fs to @stream. */
-errno_t repair_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
+errno_t repair_fs_pack(reiser4_fs_t *fs, 
+		       aux_bitmap_t *bitmap, 
+		       aal_stream_t *stream) 
+{
 	count_t len;
 	errno_t res;
 	blk_t blk;
 	
 	aal_assert("umka-2630", fs != NULL);
 	aal_assert("umka-2647", stream != NULL);
+	aal_assert("umka-2647", bitmap != NULL);
 
 	aal_stream_write(stream, MASTER_PACK_SIGN, 4);
 
@@ -184,7 +188,7 @@ errno_t repair_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 		errno_t res;
 		
 		/* We're not interested in unused blocks yet. */
-		if (!reiser4_alloc_occupied(fs->alloc, blk, 1))
+		if (!aux_bitmap_test(bitmap, blk))
 			continue;
 
 		/* We're not interested in other blocks, but tree nodes. */
@@ -222,8 +226,19 @@ errno_t repair_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	return 0;
 }
 
+static errno_t callback_mark_used(void *object, uint64_t start,
+				  uint64_t count, void *data) 
+{
+	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
+
+	aux_bitmap_mark_region(bitmap, start, count);
+	
+	return 0;
+}
+
 /* Unpack filesystem from @stream to @device. */
 reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
+			       aux_bitmap_t *bitmap,
 			       aal_stream_t *stream)
 {
 	uint64_t bn;
@@ -337,6 +352,20 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 	if (repair_backup_unpack(fs, stream))
 		goto error_free_status;
 
+	/* If @bitmap is given, save there unpacked blocks of the fs. */
+	if (bitmap) {
+		uint64_t len = reiser4_format_get_len(fs->format);
+		
+		/* Resize the bitmap. */
+		aux_bitmap_resize(bitmap, len);
+		
+		if (reiser4_fs_layout(fs, callback_mark_used, bitmap)) {
+			aal_error("Can't to mark all frozen fs "
+				  "blocks as used in the bitmap.");
+			goto error_free_status;
+		}
+	}
+		
 	while (1) {
 		node_t *node;
 		
@@ -364,6 +393,9 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 			goto error_free_status;
 		}
 
+		if (bitmap)
+			aux_bitmap_mark(bitmap, node_blocknr(node));
+		
 		reiser4_node_close(node);
 	}
 

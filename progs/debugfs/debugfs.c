@@ -47,6 +47,11 @@ static void debugfs_print_usage(char *name) {
 		"                                  to standard output.\n"
 		"  -U, --unpack-metadata           uses metadata stream from stdandard input\n"
 		"                                  to construct filesystem by it.\n"
+		"Space options:\n"
+		"  -O, --occupied-blocks           works with occupied blocks only(default).\n"
+		"  -F, --free-blocks               works with free blocks only.\n"
+		"  -W, --whole-partition           works with the whole partition.\n"
+		"  -B, --bitmap                    works with blocks marked in the bitmap only.\n"
 		"Plugins options:\n"
 		"  -p, --print-params              prints default params.\n"
 		"  -l, --print-plugins             prints known plugins.\n"
@@ -70,6 +75,7 @@ int main(int argc, char *argv[]) {
 
 	uint32_t print_flags = 0;
 	uint32_t behav_flags = 0;
+	uint32_t space_flags = 0;
 
 	char override[4096];
 	char *cat_filename = NULL;
@@ -78,6 +84,8 @@ int main(int argc, char *argv[]) {
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 	blk_t blocknr = 0;
+
+	aux_bitmap_t *bitmap = NULL;
 	
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -98,6 +106,10 @@ int main(int argc, char *argv[]) {
 		{"print-params", no_argument, NULL, 'p'},
 		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
+		{"occupied-blocks", no_argument, NULL, 'O'},
+		{"free-blocks", no_argument, NULL, 'F'},
+		{"bitmap", required_argument, NULL, 'B'},
+		{"whole-partition", no_argument, NULL, 'W'},
 		{0, 0, 0, 0}
 	};
 
@@ -110,7 +122,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:plsaPU",
+	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:plsaPUOFWB:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -183,6 +195,18 @@ int main(int argc, char *argv[]) {
 		case '?':
 			debugfs_print_usage(argv[0]);
 			return NO_ERROR;
+		case 'O':
+			space_flags = 0;
+			break;
+		case 'F':
+			space_flags |= SF_FREE;
+			break;
+		case 'W':
+			space_flags |= SF_WHOLE;
+			break;
+		case 'B':
+			space_flags |= SF_BITMAP;
+			break;
 		}
 	}
     
@@ -234,20 +258,28 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device with file_ops and default blocksize */
 	if (!(device = aal_device_open(&file_ops, host_dev, 512,
-				       (behav_flags & BF_UNPACK_META ) ?
+				       (behav_flags & BF_UNPACK_META) ?
 				       O_RDWR : O_RDONLY)))
 	{
-		aal_error("Can't open %s. %s.", host_dev,
-			  strerror(errno));
+		aal_error("Can't open %s. %s.", host_dev, strerror(errno));
 		goto error_free_libreiser4;
 	}
 
+			
 	if (behav_flags & BF_UNPACK_META) {
 		aal_stream_t stream;
 		
 		aal_stream_init(&stream, stdin, &file_stream);
 		
-		if (!(fs = repair_fs_unpack(device, &stream))) {
+		/* Prepare the bitmap if needed. */
+		if (space_flags & SF_BITMAP) {
+			if (!(bitmap = aux_bitmap_create(0))) {
+				aal_error("Can't allocate a bitmap.");
+				goto error_free_fs;
+			}
+		}
+		
+		if (!(fs = repair_fs_unpack(device, bitmap, &stream))) {
 			aal_error("Can't unpack filesystem.");
 			goto error_free_device;
 		}
@@ -258,6 +290,9 @@ int main(int argc, char *argv[]) {
 			aal_error("Can't save unpacked filesystem.");
 			goto error_free_fs;
 		}
+
+		/* Save and free bitmap. */
+		aux_bitmap_close(bitmap);
 	} else {
 		/* Open file system on the device */
 		if (!(fs = reiser4_fs_open(device, FALSE))) {
@@ -267,6 +302,29 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
+	if (behav_flags & BF_PACK_META /* || print disk blocks */) {
+		uint64_t len = reiser4_format_get_len(fs->format);
+		
+		if (!(bitmap = aux_bitmap_create(len))) {
+			aal_error("Can't allocate a bitmap.");
+			goto error_free_fs;
+		}
+
+		/* For occupied and free blocks extract allocator to bitmap. */
+		if (space_flags == 0 || space_flags & SF_FREE) {
+			if (reiser4_alloc_extract(fs->alloc, bitmap)) {
+				aal_error("Can't extract the space allocator "
+					  "data into bitmap.");
+				goto error_free_bitmap;
+			}
+		}
+
+		/* For whole partition and free blocks invert the bitmap. */
+		if (space_flags & SF_WHOLE || space_flags & SF_FREE) {
+			aux_bitmap_invert(bitmap);
+		}
+	}
+
 	/* Opening the journal */
 	if (!(fs->journal = reiser4_journal_open(fs, device))) {
 		aal_error("Can't open journal on %s", host_dev);
@@ -327,7 +385,7 @@ int main(int argc, char *argv[]) {
 		error = misc_exception_get_stream(EXCEPTION_TYPE_ERROR);
 		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, NULL);
 		
-		if (repair_fs_pack(fs, &stream)) {
+		if (repair_fs_pack(fs, bitmap, &stream)) {
 			misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
 			aal_error("Can't pack filesystem.");
 			goto error_free_journal;
@@ -353,6 +411,9 @@ int main(int argc, char *argv[]) {
 
  error_free_journal:
 	reiser4_journal_close(fs->journal);
+ error_free_bitmap:
+	if (bitmap)
+		aux_bitmap_close(bitmap);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:
