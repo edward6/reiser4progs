@@ -742,6 +742,8 @@ errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 				reiser4_place_t *place,
 				reiser4_place_t *next)
 {
+	reiser4_node_t *node;
+	
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
 	aal_assert("umka-1491", next != NULL);
@@ -749,10 +751,14 @@ errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 	aal_memcpy(next, place, sizeof(*place));
 	next->pos.item++;
 	
-	if (reiser4_tree_adjust_place(tree, next, next) || !next->node)
+	if (reiser4_tree_adjust_place(tree, next, next))
 		return -EINVAL;
 
-	reiser4_node_lock(next->node);
+	if (!next->node) 
+		return 0;
+	
+	node = next->node;
+	reiser4_node_lock(node);
 	
 	/* If nodeptr item go down. */
 	while (reiser4_item_branch(next->plug)) {
@@ -766,11 +772,11 @@ errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 			goto error;
 	}
 	
-	reiser4_node_unlock(next->node);
+	reiser4_node_unlock(node);
 
 	return 0;
  error:
-	reiser4_node_unlock(next->node);
+	reiser4_node_unlock(node);
 	return -EINVAL;
 }
 
