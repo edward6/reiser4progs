@@ -1061,6 +1061,27 @@ errno_t reiser4_tree_insert(
 	return 0;
 }
 
+/* 
+    The method should insert/overwrite the specified src_coord to the dst_coord 
+    from count units started at src_coord->pos.unit.
+    scr_coord->pos.unit is set to the start of what should be inserted.
+    count is amount of units to be inserted.
+    dst_coord->pos.unit != ~0ul - item_ops.write does there.
+*/
+errno_t reiser4_tree_write(
+	reiser4_tree_t *tree,	    /* tree insertion is performing into. */
+	reiser4_coord_t *dst_coord, /* coord found by lookup */
+	reiser4_coord_t *src_coord, /* coord to be inserted. */
+	uint32_t count)		    /* number of units to be inserted. */
+{
+	aal_assert("vpf-683", tree != NULL, return -1);
+	aal_assert("vpf-684", dst_coord != NULL, return -1);
+	aal_assert("vpf-685", src_coord != NULL, return -1);
+	aal_assert("vpf-686", count != 0, return -1);
+	
+	return 0;
+}
+
 /* Removes item by specified key */
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	  /* tree item will be removed from */
