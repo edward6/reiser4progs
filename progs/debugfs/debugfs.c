@@ -880,7 +880,7 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	else if (file->entity->plugin->h.group == DIRTORY_FILE)
 		res = debugfs_file_ls(file);
 	else {
-		aal_exception_info("Sorry, browsing special files and symlinks "
+		aal_exception_info("Sorry, browsing of the special files "
 				   "is not implemented yet.");
 	}
 	

@@ -27,15 +27,9 @@ static reiser4_plugin_t *reiser4_file_plugin(reiser4_file_t *file) {
 	return item->plugin->item_ops.belongs(item);
 }
 
-/* Callback function for finding statdata of the current directory */
-static errno_t callback_find_statdata(char *track, char *entry, void *data) {
-	reiser4_place_t *place;
-	object_entity_t *entity;
-	reiser4_plugin_t *plugin;
+static errno_t reiser4_file_stat(reiser4_file_t *file) {
 	
-	reiser4_file_t *file = (reiser4_file_t *)data;
-
-	/* Setting up the file key */
+	/* Setting up the file key to statdata one */
 	reiser4_key_set_offset(&file->key, 0);
 	reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 
@@ -43,17 +37,31 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 	if (reiser4_tree_lookup(file->fs->tree, &file->key, 
 				LEAF_LEVEL, &file->coord) != PRESENT) 
 	{
-		aal_exception_error("Can't find stat data of "
-				    "directory %s.", track);
+		/* Stat adta is not found. getting us out */
 		return -1;
 	}
 
-	/* Initializing item at @coord */
+	/* Initializing item at @file->coord */
 	if (reiser4_coord_realize(&file->coord))
 		return -1;
 
-	if (reiser4_item_get_key(&file->coord, &file->key))
+	return reiser4_item_get_key(&file->coord, &file->key);
+}
+
+/* Callback function for finding statdata of the current directory */
+static errno_t callback_find_statdata(char *track, char *entry, void *data) {
+	reiser4_file_t *file;
+	reiser4_place_t *place;
+	object_entity_t *entity;
+	reiser4_plugin_t *plugin;
+
+	file = (reiser4_file_t *)data;
+
+	if (reiser4_file_stat(file)) {
+		aal_exception_error("Can't find stat data of %s.",
+				    track);
 		return -1;
+	}
 
 	/* Getting file plugin */
 	if (!(plugin = reiser4_file_plugin(file))) {
@@ -146,8 +154,19 @@ static errno_t reiser4_file_lookup(
 	aal_assert("umka-682", file != NULL, return -1);
 	aal_assert("umka-681", name != NULL, return -1);
 
-	return aux_parse_path(name, callback_find_statdata,
-			      callback_find_entry, (void *)file);
+	/*
+	  Parsing path and finding actual stat data key. I've said actual,
+	  because there may be a symlink.
+	*/
+	if (aux_parse_path(name, callback_find_statdata,
+			   callback_find_entry, (void *)file))
+		return -1;
+
+	/*
+	  As the last part of path may be a symlink, we need position onto
+	  actual stat data item.
+	*/
+	return reiser4_file_stat(file);
 }
 
 /* This function opens file by its @coord */
@@ -230,7 +249,7 @@ reiser4_file_t *reiser4_file_open(
     
 	/* 
 	   Getting the file's stat data key by means of parsing its path. I
-	   assume, that name is absolute name. So, user, who will call this
+	   assume, that name is absolute one. So, user, who will call this
 	   method should convert name previously into absolute one by getcwd
 	   function.
 	*/
