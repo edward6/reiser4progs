@@ -26,11 +26,9 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	res = plugin_call(object->entity->plugin->o.object_ops, check_struct,
-			  object->entity, &object->info, place_func, mode, data);
-	
-	if (res)
-		return -EINVAL;
+	if ((res = plugin_call(object->entity->plugin->o.object_ops, check_struct, 
+			       object->entity, &object->info, place_func, mode, data)))
+		return res;
 	
 	/* FIXME-VITALY: this is probably should be set by plugin. Together with 
 	   object->info.parent key. */
@@ -124,7 +122,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 		
 		object->info.tree = tree;
 		object->info.object = *key;
-		object->info.parent = parent->info.object;
+		if (parent)
+			object->info.parent = parent->info.object;
 		
 		libreiser4_factory_cfind(callback_object_open, object, FALSE);
 		
@@ -283,11 +282,12 @@ errno_t repair_object_traverse(reiser4_object_t *object,
 }
 
 /* Check '..' entry of directories. If the directory object keeps '..' and it 
-   matches the parent -- OK; if the directory object does not keep '..'-- OK. 
-   If the directory allows the only downlink from a parent, fix '..' to point
-   to this parent. */
-errno_t repair_object_check_link(reiser4_object_t *object, 
-				 reiser4_object_t *parent, uint8_t mode) 
+   matches the parent -- OK; if the directory object should not keep '..'-- OK. 
+   If '..' points to another object, fix '..' to point if REBUILD mode or 
+   return FIXABLE error othewise. */
+errno_t repair_object_check_attach(reiser4_object_t *object, 
+				   reiser4_object_t *parent, 
+				   uint8_t mode)
 {
 	aal_assert("vpf-1044", object != NULL);
 	aal_assert("vpf-1098", object->entity != NULL);
@@ -296,75 +296,45 @@ errno_t repair_object_check_link(reiser4_object_t *object,
 	
 	if (!object->entity->plugin->o.object_ops->check_link)
 		return 0;
-		
+	
 	return object->entity->plugin->o.object_ops->check_link(object->entity, 
 								parent->entity, 
 								mode);
 }
 
-errno_t repair_object_check(reiser4_object_t *object, reiser4_object_t *parent,
-			    entry_hint_t *entry, repair_data_t *repair)
+errno_t repair_object_check(reiser4_object_t *object,
+			    reiser4_object_t *parent,
+			    uint8_t mode)
 {
-	errno_t res = 0;
-
+	reiser4_place_t *start;
+	errno_t res = REPAIR_OK;
+	
 	aal_assert("vpf-1139", object != NULL);
 	aal_assert("vpf-1140", parent != NULL);
-	aal_assert("vpf-1141", entry  != NULL);
-	aal_assert("vpf-1142", repair != NULL);
 	
-	/* Object->start contains the first item of the object. Do not check it if 
-	   checked already. */
-	if (!repair_item_test_flag(reiser4_object_start(object), ITEM_CHECKED)) {
-		/* The realized object has not been checked yet. */
+	start = reiser4_object_start(object);
+	
+	if (!repair_item_test_flag(start, ITEM_CHECKED)) {
+		/* The openned object has not been checked yet. */
 		res = repair_object_check_struct(object, callback_check_struct, 
-						 repair->mode, NULL);
-		
-		if (res < 0) {
-			aal_exception_error("Check of the object pointed by %k from "
-					    "the %k (%s) failed.", &entry->object, 
-					    &entry->offset, entry->name);
-			
-			return res;
-		} else if (res) {
-			repair_error_check(result, repair->mode);
-			
-			/* Do no do down in traverse for fatal errors. */
-			if (res == REPAIR_FATAL) {
-				if (repair->mode == REPAIR_REBUILD) {
-					res = reiser4_object_rem_entry(parent, entry);
-					
-					if (res) {
-						aal_exception_error("Semantic traverse "
-								    "failed to remove "
-								    "the entry %k (%s) "
-								    "pointing to %k.", 
-								    &entry->offset, 
-								    entry->name,
-								    &entry->object);
-						return res;
-					}
-				} else
-					repair->fatal++;
-				
-				return REPAIR_FATAL;
-			} else if (res == REPAIR_FIXABLE) {
-				repair->fixable++;
-			}
-		}
+						 mode, NULL);
 	}
 	
-	if ((res = plugin_call(object->entity->plugin->o.object_ops,
-			       link, object->entity)))
-	{
-		aal_exception_error("Node %llu, item %u: failed to link the "
-				    "object pointed by %k.",
-				    reiser4_object_start(object)->node->number,
-				    object->info.start.pos.item, 
-				    &object->info.object);
-		
+	if (repair_error_fatal(res)) {
 		return res;
-	}
-
-	return 0;
+	} 
 	
+	/* Increment the link. */
+	res |= plugin_call(object->entity->plugin->o.object_ops, link, 
+			   object->entity);
+	
+	if (repair_error_fatal(res))
+		return res;
+	
+	/* Check the uplink -- '..' in directories -- if not reachable yet and 
+	   correct it if needed. */
+	if (!repair_item_test_flag(start, ITEM_REACHABLE))
+		res |= repair_object_check_attach(object, parent, mode);
+
+	return res;
 }
