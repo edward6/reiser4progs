@@ -12,8 +12,8 @@
 
 /* The plugin tries to realize the object: detects the SD, body items */
 errno_t obj40_realize(object_info_t *info, 
-		      obj40_realize_func_t mode_func, 
-		      obj40_realize_func_t type_func) 
+		      realize_func_t mode_func, 
+		      realize_func_t type_func) 
 {
 	sdext_lw_hint_t lw_hint;
 	key_entity_t key;

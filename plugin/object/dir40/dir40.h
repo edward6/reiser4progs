@@ -20,6 +20,9 @@ struct dir40 {
 	/* Current body item coord */
 	place_t body;
 
+	/* Current unit in current body item */
+	uint32_t unit;
+	
 	/* Current position in the directory */
 	key_entity_t offset;
 

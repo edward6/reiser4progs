@@ -390,7 +390,7 @@ errno_t obj40_stat(obj40_t *obj) {
 	
 	aal_assert("umka-1905", obj != NULL);
 
-	/* Lookuing for stat data place by */
+	/* Looking for stat data place by */
 	switch (obj->core->tree_ops.lookup(obj->tree, STAT_KEY(obj),
 					   LEAF_LEVEL, &place))
 	{
@@ -437,26 +437,16 @@ errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 }
 
 /* Removes item/unit by @key */
-errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
-		     uint64_t count)
+errno_t obj40_remove(obj40_t *obj, place_t *place,
+		     uint32_t count)
 {
-	place_t place;
-	oid_t objectid = obj40_objectid(obj);
-	
-	/* Lookup the place by @key and remove @count items/units if PRESENT. */
-	switch (obj40_lookup(obj, key, LEAF_LEVEL, &place)) {
-	case FAILED:
-	case ABSENT:
-		aal_exception_error("Can't find item/unit durring remove.");
+	if (obj->core->tree_ops.remove(obj->tree, place,
+				       count))
+	{
+		aal_exception_error("Can't remove item/unit "
+				    "from object 0x%llx.",
+				    obj40_objectid(obj));
 		return -EINVAL;
-	case PRESENT:
-		if (obj->core->tree_ops.remove(obj->tree, &place,
-					       (uint32_t)count))
-		{
-			aal_exception_error("Can't remove item/unit from "
-					    "object 0x%llx.", objectid);
-			return -EINVAL;
-		}
 	}
 
 	return 0;

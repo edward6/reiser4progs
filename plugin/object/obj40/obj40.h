@@ -94,17 +94,17 @@ extern errno_t obj40_set_bytes(obj40_t *obj,
 
 extern errno_t obj40_link(obj40_t *obj, uint32_t value);
 
-extern errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
-			    uint64_t count);
-
 extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 			    uint8_t level, place_t *place);
 
-typedef bool_t (*obj40_realize_func_t) (uint16_t);
+extern errno_t obj40_remove(obj40_t *obj, place_t *place,
+			    uint32_t count);
+
+typedef bool_t (*realize_func_t) (uint16_t);
 
 extern errno_t obj40_realize(object_info_t *info, 
-			     obj40_realize_func_t mode_func, 
-			     obj40_realize_func_t type_func);
+			     realize_func_t mode_func, 
+			     realize_func_t type_func);
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);

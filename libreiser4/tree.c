@@ -22,7 +22,7 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	blk_t root;
 	
 	aal_assert("umka-1870", tree != NULL);
-	
+
 	if (tree->root)
 		return 0;
 

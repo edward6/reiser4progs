@@ -655,7 +655,7 @@ static errno_t reg40_clobber(object_entity_t *entity) {
 	if (obj40_stat(&reg->obj))
 		return -EINVAL;
 
-	return obj40_remove(&reg->obj, STAT_KEY(&reg->obj), 1);
+	return obj40_remove(&reg->obj, &reg->obj.statdata, 1);
 }
 
 struct layout_hint {

@@ -122,8 +122,10 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	obj40_relock(&dir->obj, &dir->body, &next);
 	aal_memcpy(&dir->body, &next, sizeof(dir->body));
 
-	if (dir->body.pos.unit == ~0ul)
-		dir->body.pos.unit = 0;
+	dir->unit = dir->body.pos.unit;
+	
+	if (dir->unit == ~0ul)
+		dir->unit = 0;
 
 	return 0;
 }
@@ -178,6 +180,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	aal_assert("umka-2063", entity != NULL);
 	
 	dir = (dir40_t *)entity;
+	dir->body.pos.unit = dir->unit;
 	
 	/* Getting next directory item */
 	core->tree_ops.next(dir->obj.tree,
@@ -186,17 +189,17 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	if (!dir40_mergeable(entity, &next))
 		return ABSENT;
 
+	dir->unit = 0;
+	
 	obj40_relock(&dir->obj, &dir->body, &next);
-
 	aal_memcpy(&dir->body, &next, sizeof(next));
-	dir->body.pos.unit = 0;
-
+	
 #ifndef ENABLE_STAND_ALONE
 	item = &dir->body.item;
 	
 	/* Updating current position by entry offset key */
-	if (plugin_call(item->plugin->o.item_ops, read, item,
-			&entry, dir->body.pos.unit, 1) == 1)
+	if (plugin_call(item->plugin->o.item_ops, read,
+			item, &entry, dir->unit, 1) == 1)
 	{
 		aal_memcpy(&dir->offset, &entry.offset,
 			   sizeof(dir->offset));
@@ -227,28 +230,30 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	units = plugin_call(item->plugin->o.item_ops,
 			    units, item);
 
-	if (dir->body.pos.unit >= units)
+	if (dir->unit >= units)
 		return -EINVAL;
 
 	/* Reading piece of data */
-	if (plugin_call(item->plugin->o.item_ops, read, item,
-			entry, dir->body.pos.unit, 1) == 1)
+	if (plugin_call(item->plugin->o.item_ops, read,
+			item, entry, dir->unit, 1) == 1)
 	{
 		/* Updating positions */
-		dir->body.pos.unit++;
+		dir->unit++;
 		
 		/* Getting next direntry item */
-		if (dir->body.pos.unit >= units)
+		if (dir->unit >= units)
 			dir40_next(entity);
 #ifndef ENABLE_STAND_ALONE
 		else {
-			entry_hint_t current;
+			entry_hint_t ent;
 			
-			plugin_call(item->plugin->o.item_ops,
-				    read, item, &current,
-				    dir->body.pos.unit, 1);
+			if (plugin_call(item->plugin->o.item_ops, read,
+					item, &ent, dir->unit, 1) != 1)
+			{
+				return -EINVAL;
+			}
 
-			aal_memcpy(&dir->offset, &current.offset,
+			aal_memcpy(&dir->offset, &ent.offset,
 				   sizeof(dir->offset));
 		}
 #endif
@@ -262,14 +267,16 @@ static errno_t dir40_readdir(object_entity_t *entity,
 /* Makes lookup in directory by name. Fills passed buff by found entry fields
    (offset key, object key, etc). */
 static lookup_t dir40_lookup(object_entity_t *entity,
-			     char *name,
-			     entry_hint_t *entry) 
+			     char *name, entry_hint_t *entry) 
 {
 	dir40_t *dir;
 	place_t next;
 	lookup_t res;
-	
-	key_entity_t wanted;
+
+	oid_t locality;
+	oid_t objectid;
+
+	key_entity_t key;
 	item_entity_t *item;
 
 	aal_assert("umka-1118", name != NULL);
@@ -277,25 +284,43 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
+	locality = obj40_locality(&dir->obj);
+	objectid = obj40_objectid(&dir->obj);
+
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
 	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops, build_entry,
-		    &wanted, dir->hash, obj40_locality(&dir->obj),
-		    obj40_objectid(&dir->obj), name);
+		    &key, dir->hash, locality, objectid, name);
 
 	/* Looking for @wan */
-	res = obj40_lookup(&dir->obj, &wanted, LEAF_LEVEL, &next);
-
-	if (res != PRESENT)
+	switch ((res = obj40_lookup(&dir->obj, &key,
+				    LEAF_LEVEL, &next)))
+	{
+	case ABSENT:
+	case FAILED:
 		return res;
+	default:
+		break;
+	}
 
 	obj40_relock(&dir->obj, &dir->body, &next);
 	aal_memcpy(&dir->body, &next, sizeof(dir->body));
+
+#ifndef ENABLE_STAND_ALONE
+	if (entry) {
+		plugin_call(key.plugin->o.key_ops, assign,
+			    &dir->offset, &entry->offset);
+	}
+#endif
+
+	dir->unit = dir->body.pos.unit;
 	
-	if (dir->body.pos.unit == ~0ul)
-		dir->body.pos.unit = 0;
-		
-	if (!entry)
+	if (dir->unit == ~0ul)
+		dir->unit = 0;
+
+	/* Entry is null, it is probebly the case when we want just know, that
+	   passed @name exists. */
+	if (entry == NULL)
 		return PRESENT;
 
 	item = &dir->body.item;
@@ -303,27 +328,21 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 	/* If needed entry is found, we fetch it into local buffer and get stat
 	   data key of the object it points to from it. This key will be used
 	   for searching next entry in passed path and so on. */
-	entry->object.plugin = wanted.plugin;
-	entry->offset.plugin = wanted.plugin;
+	entry->object.plugin = key.plugin;
+	entry->offset.plugin = key.plugin;
 	
-	if (plugin_call(item->plugin->o.item_ops, read, item,
-			entry, dir->body.pos.unit, 1) != 1)
+	if (plugin_call(item->plugin->o.item_ops, read,
+			item, entry, dir->unit, 1) != 1)
 	{
-		aal_exception_error("Can't read %lu entry from object "
-				    "0x%llx:0x%llx.", dir->body.pos.unit,
-				    obj40_locality(&dir->obj),
+		aal_exception_error("Can't read %lu entry from "
+				    "object 0x%llx.", dir->unit,
 				    obj40_objectid(&dir->obj));
 		return FAILED;
 	}
 
-#ifndef ENABLE_STAND_ALONE
-	plugin_call(wanted.plugin->o.key_ops, assign, &dir->offset,
-		    &entry->offset);
-#endif
-
 #ifdef ENABLE_COLLISIONS_HANDLING
 	if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
-		aal_memcpy(&dir->offset, &wanted, sizeof(dir->offset));
+		aal_memcpy(&dir->offset, &key, sizeof(dir->offset));
 		return PRESENT;
 	}
 
@@ -335,21 +354,20 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 		return FAILED;
 			
 	/* Sequentional search of the needed entry by its name */
-	for (; dir->body.pos.unit < item->plugin->o.item_ops->units(item);
-	     dir->body.pos.unit++)
+	for (; dir->unit < item->plugin->o.item_ops->units(item);
+	     dir->unit++)
 	{
-		if (plugin_call(item->plugin->o.item_ops, read, item,
-				entry, dir->body.pos.unit, 1) != 1)
+		if (plugin_call(item->plugin->o.item_ops, read,
+				item, entry, dir->unit, 1) != 1)
 		{
 			aal_exception_error("Can't read %lu entry "
 					    "from object 0x%llx.",
-					    dir->body.pos.unit,
-					    obj40_objectid(&dir->obj));
+					    dir->unit, objectid);
 			return FAILED;
 		}
 
-		if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
-			aal_memcpy(&dir->offset, &wanted, sizeof(dir->offset));
+		if (!aal_strncmp(entry->name, name, aal_strlen(name))) {
+			aal_memcpy(&dir->offset, &key, sizeof(key));
 			return PRESENT;
 		}
 	}
@@ -420,9 +438,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	create_hint_t body_hint;
 	create_hint_t stat_hint;
    
-	oid_t objectid, locality;
-
 	sdext_lw_hint_t lw_ext;
+	oid_t objectid, locality;
 	sdext_unix_hint_t unix_ext;
 	
 	reiser4_plugin_t *stat_plugin;
@@ -603,8 +620,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	/* Initializing @dir->offset by key of the "." entry */
 	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
 		    build_entry, &dir->offset, dir->hash,
-		    obj40_locality(&dir->obj),
-		    obj40_objectid(&dir->obj), ".");
+		    locality, objectid, ".");
 	
 	obj40_lock(&dir->obj, &dir->body);
 	aal_free(body);
@@ -654,11 +670,8 @@ static errno_t dir40_truncate(object_entity_t *entity,
 			return 0;
 
 		/* Removing item from the tree */
-		if ((res = dir->obj.core->tree_ops.remove(dir->obj.tree,
-							  &place, 1)))
-		{
+		if ((res = obj40_remove(&dir->obj, &place, 1)))
 			return res;
-		}
 	}
 	
 	return 0;
@@ -678,7 +691,7 @@ static errno_t dir40_clobber(object_entity_t *entity) {
 	if (obj40_stat(&dir->obj))
 		return -EINVAL;
 
-	return obj40_remove(&dir->obj, STAT_KEY(&dir->obj), 1);
+	return obj40_remove(&dir->obj, &dir->obj.statdata, 1);
 }
 
 static errno_t dir40_attach(object_entity_t *entity,
@@ -778,71 +791,14 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	return obj40_link(&dir->obj, -1);
 }
 
-/* Removing entry from the directory */
-static errno_t dir40_rem_entry(object_entity_t *entity,
+/* Estimates directory operations (add_entry, rem_entry) */
+static uint32_t dir40_estimate(object_entity_t *entity, 
 			       entry_hint_t *entry)
 {
-	errno_t res;
 	dir40_t *dir;
-	uint64_t size;
-	
-	uint32_t units;
-	uint32_t atime;
-
-	entry_hint_t ent;
 	create_hint_t hint;
-	
-	key_entity_t *key;
-	item_entity_t *item;
-
-	oid_t locality, objectid;
-	sdext_unix_hint_t unix_hint;
-	
-	aal_assert("umka-1922", entity != NULL);
-	aal_assert("umka-1923", entry != NULL);
 
 	dir = (dir40_t *)entity;
-	key = STAT_KEY(&dir->obj);
-
-	/* Generating key of the entry to be removed */
-	locality = obj40_locality(&dir->obj);
-	objectid = obj40_objectid(&dir->obj);
-	
-	plugin_call(key->plugin->o.key_ops, build_entry,
-		    &entry->offset, dir->hash, locality,
-		    objectid, entry->name);
-
-	/* Removing one unit from directory */
-	if ((res = obj40_remove(&dir->obj, &entry->offset, 1)))
-		return res;
-
-	item = &dir->body.item;
-	
-	units = plugin_call(item->plugin->o.item_ops,
-			    units, item);
-
-	/* Getting next direntry item */
-	if (dir->body.pos.unit >= units)
-		dir40_next(entity);
-
-	/* Updating current position by entry offset key */
-	if (plugin_call(item->plugin->o.item_ops, read, item,
-			&ent, dir->body.pos.unit, 1) == 1)
-	{
-		aal_memcpy(&dir->offset, &ent.offset,
-			   sizeof(dir->offset));
-	}
-	
-	/* Updating stat data place */
-	if ((res = obj40_stat(&dir->obj)))
-		return res;
-	
-	/* Updating size field */
-	size = obj40_get_size(&dir->obj);
-
-	if ((res = obj40_set_size(&dir->obj, size - 1)))
-		return res;
-
 	aal_memset(&hint, 0, sizeof(hint));
 
 	hint.count = 1;
@@ -851,27 +807,42 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	hint.plugin = dir->body.item.plugin;
 	hint.key.plugin = STAT_KEY(&dir->obj)->plugin;
 
-	res = plugin_call(hint.plugin->o.item_ops,
-			  estimate_insert, NULL, &hint, 0);
-	
-	if (res != 0)
-		return res;
+	if (plugin_call(hint.plugin->o.item_ops,
+			estimate_insert, NULL, &hint, 0))
+	{
+		aal_exception_error("Can't estimate directory "
+				    "operation.");
+	}
 
-	item = &dir->obj.statdata.item;
-	
-	if ((res = obj40_read_unix(item, &unix_hint)))
-		return res;
-	
-	atime = time(NULL);
-	
-	unix_hint.atime = atime;
-	unix_hint.mtime = atime;
-	unix_hint.bytes -= hint.len;
-
-	return obj40_write_unix(item, &unix_hint);
+	return hint.len;
 }
 
-/* Adding new entry  */
+/* Updates body item */
+static errno_t dir40_update(object_entity_t *entity) {
+	dir40_t *dir;
+	place_t place;
+	key_entity_t *key;
+	
+	dir = (dir40_t *)entity;
+	key = &dir->body.item.key;
+	
+	/* Looking for stat data place by */
+	switch (obj40_lookup(&dir->obj, key,
+			     LEAF_LEVEL, &place))
+	{
+	case PRESENT:
+		obj40_relock(&dir->obj, &dir->body,
+			     &place);
+
+		aal_memcpy(&dir->body, &place,
+			   sizeof(place));
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+/* Adding new entry */
 static errno_t dir40_add_entry(object_entity_t *entity, 
 			       entry_hint_t *entry)
 {
@@ -885,6 +856,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	item_entity_t *item;
 	
 	create_hint_t hint;
+	oid_t locality, objectid;
 	sdext_unix_hint_t unix_hint;
 
 	aal_assert("umka-844", entity != NULL);
@@ -897,13 +869,15 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	
 	hint.count = 1;
 	hint.flags = HF_FORMATD;
-	hint.plugin = dir->body.item.plugin;
 	hint.type_specific = (void *)entry;
+	hint.plugin = dir->body.item.plugin;
 
 	/* Building key of the new entry */
+	locality = obj40_locality(&dir->obj);
+	objectid = obj40_objectid(&dir->obj);
+	
 	plugin_call(key->plugin->o.key_ops, build_entry, &hint.key,
-		    dir->hash, obj40_locality(&dir->obj),
-		    obj40_objectid(&dir->obj), entry->name);
+		    dir->hash, locality, objectid, entry->name);
 	
 	plugin_call(key->plugin->o.key_ops, assign, &entry->offset,
 		    &hint.key);
@@ -942,10 +916,111 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		return res;
 	
 	atime = time(NULL);
+
+	unix_hint.atime = atime;
+	unix_hint.mtime = atime;
+	unix_hint.bytes += dir40_estimate(entity, entry);
+
+	if ((res = obj40_write_unix(item, &unix_hint)))
+		return res;
+
+	/* Updating body place */
+	return dir40_update(entity);
+}
+
+/* Removing entry from the directory */
+static errno_t dir40_rem_entry(object_entity_t *entity,
+			       entry_hint_t *entry)
+{
+	errno_t res;
+	dir40_t *dir;
+	uint64_t size;
+	uint32_t units;
+	uint32_t atime;
+
+	entry_hint_t ent;
+
+	place_t place;
+	key_entity_t *key;
+	item_entity_t *item;
+
+	oid_t locality, objectid;
+	sdext_unix_hint_t unix_hint;
+	
+	aal_assert("umka-1922", entity != NULL);
+	aal_assert("umka-1923", entry != NULL);
+
+	dir = (dir40_t *)entity;
+	key = STAT_KEY(&dir->obj);
+
+	/* Generating key of the entry to be removed */
+	locality = obj40_locality(&dir->obj);
+	objectid = obj40_objectid(&dir->obj);
+	
+	plugin_call(key->plugin->o.key_ops, build_entry,
+		    &entry->offset, dir->hash, locality,
+		    objectid, entry->name);
+
+	/* Looking for place to insert directory entry */
+	switch (obj40_lookup(&dir->obj, &entry->offset,
+			     LEAF_LEVEL, &place))
+	{
+	case FAILED:
+	case ABSENT:
+		return -EINVAL;
+	default:
+		break;
+	}
+	
+	/* Removing one unit from directory */
+	if ((res = obj40_remove(&dir->obj, &place, 1)))
+		return res;
+
+	/* Updating directory body  */
+	dir40_update(entity);
+	item = &dir->body.item;
+	
+	units = plugin_call(item->plugin->o.item_ops,
+			    units, item);
+
+	/* Getting next direntry item */
+	if (dir->unit >= units)
+		dir40_next(entity);
+	else {
+		if (place.pos.unit == dir->unit) {
+			/* Updating current position by entry offset key */
+			if (plugin_call(item->plugin->o.item_ops, read,
+					item, &ent, dir->unit, 1) == 1)
+			{
+				aal_memcpy(&dir->offset, &ent.offset,
+					   sizeof(dir->offset));
+			}
+		}
+		
+		if (place.pos.unit < dir->unit)
+			dir->unit--;
+	}
+
+	/* Updating stat data place */
+	if ((res = obj40_stat(&dir->obj)))
+		return res;
+	
+	item = &dir->obj.statdata.item;
+	
+	/* Updating size field */
+	size = obj40_get_size(&dir->obj);
+
+	if ((res = obj40_set_size(&dir->obj, size - 1)))
+		return res;
+
+	if ((res = obj40_read_unix(item, &unix_hint)))
+		return res;
+	
+	atime = time(NULL);
 	
 	unix_hint.atime = atime;
 	unix_hint.mtime = atime;
-	unix_hint.bytes += hint.len;
+	unix_hint.bytes -= dir40_estimate(entity, entry);
 
 	return obj40_write_unix(item, &unix_hint);
 }
@@ -1000,11 +1075,11 @@ static errno_t dir40_layout(object_entity_t *entity,
 		if (item->plugin->o.item_ops->layout) {
 			
 			/* Calling item's layout method */
-			res = plugin_call(item->plugin->o.item_ops, layout,
-					  item, callback_item_data, &hint);
-
-			if (res != 0)
+			if ((res = plugin_call(item->plugin->o.item_ops, layout,
+					       item, callback_item_data, &hint)))
+			{
 				return res;
+			}
 		} else {
 			blk_t blk = item->context.blk;
 			
@@ -1016,7 +1091,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 		}
 		
 		if (dir40_next(entity) != PRESENT)
-			break;
+			return 0;
 	}
     
 	return 0;
@@ -1026,24 +1101,24 @@ static errno_t dir40_layout(object_entity_t *entity,
    @func for each of them. It is needed for printing, fragmentation calculating,
    etc. */
 static errno_t dir40_metadata(object_entity_t *entity,
-			      place_func_t func,
+			      place_func_t place_func,
 			      void *data)
 {
 	errno_t res = 0;
 	dir40_t *dir = (dir40_t *)entity;
 	
 	aal_assert("umka-1712", entity != NULL);
-	aal_assert("umka-1713", func != NULL);
+	aal_assert("umka-1713", place_func != NULL);
 	
-	if ((res = func(entity, &dir->obj.statdata, data)))
+	if ((res = place_func(entity, &dir->obj.statdata, data)))
 		return res;
 
 	while (1) {
-		if ((res = func(entity, &dir->body, data)))
+		if ((res = place_func(entity, &dir->body, data)))
 			return res;
 		
 		if (dir40_next(entity) != PRESENT)
-			break;
+			return 0;
 	}
 	
 	return res;

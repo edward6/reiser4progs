@@ -204,7 +204,7 @@ static errno_t sym40_clobber(object_entity_t *entity) {
 	if (obj40_stat(&sym->obj))
 		return -EINVAL;
 
-	return obj40_remove(&sym->obj, STAT_KEY(&sym->obj), 1);
+	return obj40_remove(&sym->obj, &sym->obj.statdata, 1);
 }
 
 static uint32_t sym40_links(object_entity_t *entity) {
