@@ -417,8 +417,6 @@ static errno_t callback_file_frag(object_entity_t *entity, blk_t blk,
 	int64_t delta;
 	struct file_frag_hint *hint = (struct file_frag_hint *)data;
 
-	aal_gauge_update(hint->gauge, 0);
-
 	if (hint->curr == 0) {
 		hint->curr = blk;
 		return 0;
@@ -494,6 +492,8 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 		return 0;
 	
 	pos.unit = ~0ul;
+	
+	aal_gauge_update(hint->gauge, 0);
 	
 	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 		reiser4_file_t *file;

@@ -39,8 +39,8 @@ reiser4_fs_t *reiser4_fs_open(
     
 	/* Setting actual used block size from master super block */
 	if (aal_device_set_bs(host_device, reiser4_master_blocksize(fs->master))) {
-		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-				    "Invalid block size detected %u. It must be power of two.", 
+		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, "Invalid block "
+				    "size detected %u. It must be power of two.", 
 				    reiser4_master_blocksize(fs->master));
 		goto error_free_master;
 	}
@@ -60,10 +60,10 @@ reiser4_fs_t *reiser4_fs_open(
 	/* Initializes block allocator. See alloc.c for details */
 	if (!(fs->alloc = reiser4_alloc_open(fs->format, len)))
 		goto error_free_format;
-    
+
 	if (reiser4_alloc_valid(fs->alloc))
 		aal_exception_warn("Block allocator data seems corrupted.");
-    
+	
 	/* Journal device may be not specified. In this case it will not be opened */
 	if (journal_device) {
 	    

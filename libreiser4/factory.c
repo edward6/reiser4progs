@@ -335,7 +335,6 @@ errno_t libreiser4_factory_init(void) {
 			continue;
 	}
 #endif
-	plugins = (plugins != NULL ? aal_list_first(plugins) : NULL);
 	return -(aal_list_length(plugins) == 0);
 }
 

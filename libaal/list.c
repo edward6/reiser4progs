@@ -128,9 +128,9 @@ aal_list_t *aal_list_insert(aal_list_t *list,
 aal_list_t *aal_list_insert_sorted(aal_list_t *list, void *data,
 				   comp_func_t comp_func, void *user)
 {
-	aal_list_t *tmp_list = list;
-	aal_list_t *new_list;
 	int cmp;
+	aal_list_t *new_list;
+	aal_list_t *tmp_list = list;
 
 	if (!comp_func)
 		return NULL;
@@ -161,6 +161,7 @@ aal_list_t *aal_list_insert_sorted(aal_list_t *list, void *data,
 		tmp_list->prev->next = new_list;
 		new_list->prev = tmp_list->prev;
 	}
+	
 	new_list->next = tmp_list;
 	tmp_list->prev = new_list;
  
@@ -188,15 +189,18 @@ aal_list_t *aal_list_prepend(aal_list_t *list, void *data) {
 
 aal_list_t *aal_list_append(aal_list_t *list, void *data) {
 	aal_list_t *new;
-	aal_list_t *last;
     
 	if (!(new = aal_list_alloc(data)))
 		return 0;
     
 	if (list) {
-		last = aal_list_last(list);
-		last->next = new;
-		new->prev = last;
+		if (list->next)
+			list->next->prev = new;
+
+		new->next = list->next;
+		new->prev = list;
+
+		list->next = new;
 
 		return list;
 	} else
@@ -209,7 +213,7 @@ aal_list_t *aal_list_append(aal_list_t *list, void *data) {
 */
 aal_list_t *aal_list_remove(aal_list_t *list, void *data) {
 	aal_list_t *temp;
-	aal_list_t *result = NULL;
+	aal_list_t *result = list;
 
 	if (list && (temp = aal_list_find(list, data))) {
 		if (temp->prev)
@@ -217,9 +221,15 @@ aal_list_t *aal_list_remove(aal_list_t *list, void *data) {
 	    
 		if (temp->next)
 			temp->next->prev = temp->prev;
-	    
-		if (!(result = temp->next))
-			result = temp->prev;
+
+		if (temp == list) {
+			if (temp->next)
+				result = temp->next;
+			else if (temp->prev)
+				result = temp->prev;
+			else
+				result = NULL;
+		}
 		
 		aal_free(temp);
 	}

@@ -166,6 +166,10 @@ struct reiser4_joint {
 	/* Some flags (dirty, etc) */
 	joint_flags_t flags;
 
+	/* Pointers to next and prev items in lru list */
+	aal_list_t *prev;
+	aal_list_t *next;
+
 	/* Usage counter */
 	int counter;
 	
@@ -257,9 +261,9 @@ struct reiser4_tree {
 	reiser4_fs_t *fs;
 
 	/* 
-	   Reference to root node. It is created by tree initialization routines 
-	   and always exists. All other nodes are loaded on demand and flushed at 
-	   memory presure event.
+	   Reference to root node. It is created by tree initialization routines
+	   and always exists. All other nodes are loaded on demand and flushed
+	   at memory presure event.
 	*/
 	reiser4_joint_t *root;
 
@@ -272,8 +276,15 @@ struct reiser4_tree {
 	*/
 	aal_list_t *lru;
 
-	/* The old value of major page faults */
-	long flt;
+	/* Counter of nodes added since the last timer tick */
+	uint32_t shrink;
+	
+	/* Previous value of difference of vmsize and rss */
+	long vmsize_rss;
+
+	/* Flag which shows, that cache is shrinkable in principle. It means, we
+	 * able to get memory statistics from the /proc filesystem */
+	int shrinkable;
 };
 
 /* Callback function type for opening node. */

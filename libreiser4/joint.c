@@ -6,10 +6,6 @@
   reiser4progs/COPYING.
 */
 
-#ifndef ENABLE_COMPACT
-#  include <sys/resource.h>
-#endif
-
 #include <reiser4/reiser4.h>
 
 /* Creates joint instance based on passed node */
@@ -69,8 +65,6 @@ errno_t reiser4_joint_dup(
 void reiser4_joint_close(
 	reiser4_joint_t *joint)	/* joint to be freed */
 {
-	aal_list_t *children;
-    
 	aal_assert("umka-793", joint != NULL, return);
 
 	if (joint->flags & JF_DIRTY) {
@@ -83,18 +77,13 @@ void reiser4_joint_close(
 				   joint->counter, aal_block_number(joint->node->block));
 	}
 	
-	children = joint->children ? 
-		aal_list_first(joint->children) : NULL;
-
-	if (children) {
+	if (joint->children) {
 		aal_list_t *walk;
-	
-		/* Recurcive calling the same function in order to free all
-		 * children too */
-		aal_list_foreach_forward(walk, children)
+
+		aal_list_foreach_forward(walk, joint->children)
 			reiser4_joint_close((reiser4_joint_t *)walk->data);
 
-		aal_list_free(children);
+		aal_list_free(joint->children);
 		joint->children = NULL;
 	}
  
@@ -133,24 +122,43 @@ reiser4_joint_t *reiser4_joint_find(
 	reiser4_joint_t *joint,	        /* joint to be greped */
 	reiser4_key_t *key)		/* left delimiting key */
 {
-	aal_list_t *found;
+	aal_list_t *list;
+	reiser4_joint_t *child;
     
 	if (!joint->children)
 		return NULL;
     
 	/* Using aal_list find function */
-	if (!(found = aal_list_find_custom(aal_list_first(joint->children), 
-					   (void *)key, callback_comp_key, NULL)))
+	if (!(list = aal_list_find_custom(joint->children, (void *)key,
+					   callback_comp_key, NULL)))
 		return NULL;
 
-	/* Updating tree lru */
-	joint->tree->lru = aal_list_remove(
-		aal_list_first(joint->tree->lru), found);
+	child = (reiser4_joint_t *)list->data;
 
-	joint->tree->lru = aal_list_insert(
-		aal_list_first(joint->tree->lru), found, 0);
+	/* Updating tree lru */
+	if (joint->tree->lru) {
+		if (child->prev) {
+			((reiser4_joint_t *)child->prev->data)->next = child->next;
+
+			if (child->next)
+				((reiser4_joint_t *)child->next->data)->prev = child->prev;
+			
+			aal_list_remove(child->prev, child);
+
+			child->prev = joint->tree->lru;
+			child->next = joint->tree->lru ? joint->tree->lru->next : NULL;
+
+			aal_list_append(joint->tree->lru, child);
+
+			if (child->prev)
+				((reiser4_joint_t *)child->prev->data)->next = joint->tree->lru->next;
+
+			if (child->next)
+				((reiser4_joint_t *)child->next->data)->prev = joint->tree->lru->next;
+		}
+	}
 	
-	return (reiser4_joint_t *)found->data;
+	return child;
 }
 
 /* Returns left or right neighbor key for passed joint */
@@ -294,32 +302,6 @@ static int callback_comp_joint(
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
-#define WATERMARK (10*1024*1024)
-
-static inline errno_t reiser4_joint_check(reiser4_joint_t *joint) {
-
-#ifndef ENABLE_COMPACT
-	int res;
-	struct rusage rusage;
-
-	if ((res = getrusage(RUSAGE_SELF, &rusage)))
-		return res;
-
-	if (rusage.ru_majflt != joint->tree->flt) {
-		
-		if (joint->tree->lru == NULL)
-			return 0;
-
-		aal_exception_info("Memory pressure event. Running tree collector.");
-		
-		joint->tree->flt = rusage.ru_majflt;
-		return reiser4_tree_collector(joint->tree);
-	}
-#endif
-	
-	return 0;
-}
-
 /*
   Connects children into sorted children list of specified node. Sets up both
   neighbours and parent pointer.
@@ -328,31 +310,18 @@ errno_t reiser4_joint_attach(
 	reiser4_joint_t *joint,	       /* joint child will be connected to */
 	reiser4_joint_t *child)	       /* child joint for registering */
 {
-	aal_list_t *children;
-	reiser4_key_t key, lkey;
-    
 	reiser4_joint_t *left;
 	reiser4_joint_t *right;
+	reiser4_key_t key, lkey;
     
 	aal_assert("umka-561", joint != NULL, return -1);
 	aal_assert("umka-564", child != NULL, return -1);
 
 	joint->counter++;
-	
-	if (reiser4_joint_check(joint)) {
-		aal_exception_error("Can't flush unused nodes "
-				    "under memory preure.");
-		joint->counter--;
-		return -1;
-	}
-	
+	reiser4_tree_collector(joint->tree);
 	joint->counter--;
-	
-	/* Inserting passed joint into right position */
-	children = joint->children ? 
-		aal_list_first(joint->children) : NULL;
 
-	joint->children = aal_list_insert_sorted(children, child, 
+	joint->children = aal_list_insert_sorted(joint->children, child,
 						 callback_comp_joint, NULL);
     
 	left = joint->children->prev ? 
@@ -393,10 +362,21 @@ errno_t reiser4_joint_attach(
 			child->right->left = child;
 	}
 
+	joint->children = aal_list_first(joint->children);
+	
 	/* Updating tree lru list */
-	joint->tree->lru = aal_list_insert(aal_list_first(joint->tree->lru),
-					   child, 0);
+	child->prev = joint->tree->lru;
+	child->next = joint->tree->lru ? joint->tree->lru->next : NULL;
 
+	joint->tree->lru = aal_list_append(joint->tree->lru, child);
+	joint->tree->shrink++;
+	
+	if (child->prev)
+		((reiser4_joint_t *)child->prev->data)->next = joint->tree->lru->next;
+
+	if (child->next)
+		((reiser4_joint_t *)child->next->data)->prev = joint->tree->lru->next;
+		
 	return 0;
 }
 
@@ -430,8 +410,25 @@ void reiser4_joint_detach(
 	/* Updating joint children list */
 	joint->children = aal_list_remove(joint->children, child);
 
+	aal_assert("umka-1522", joint->tree->lru != NULL, return);
+	
 	/* Updating tree lru list */
-	joint->tree->lru = aal_list_remove(aal_list_first(joint->tree->lru), child);
+	if (child->prev) {
+		((reiser4_joint_t *)child->prev->data)->next = child->next;
+
+		if (child->next)
+			((reiser4_joint_t *)child->next->data)->prev = child->prev;
+		
+		aal_list_remove(child->prev, child);
+	} else {
+		joint->tree->lru = aal_list_remove(child->prev, child);
+
+		if (child->next)
+			((reiser4_joint_t *)child->next->data)->prev = child->prev;
+	}
+
+	aal_assert("umka-1523", joint->tree->shrink > 0, return);
+	joint->tree->shrink--;
 }
 
 #ifndef ENABLE_COMPACT
@@ -445,20 +442,16 @@ void reiser4_joint_detach(
 errno_t reiser4_joint_sync(
 	reiser4_joint_t *joint)	/* joint to be synchronized */
 {
-	aal_list_t *children;
-    
 	aal_assert("umka-124", joint != NULL, return 0);
-    
-	children = joint->children ? aal_list_first(joint->children) : NULL;
     
 	/*
 	  Walking through the list of children and calling reiser4_joint_sync
 	  function for each element.
 	*/
-	if (children) {
+	if (joint->children) {
 		aal_list_t *walk;
 	
-		aal_list_foreach_forward(walk, children) {
+		aal_list_foreach_forward(walk, joint->children) {
 			if (reiser4_joint_sync((reiser4_joint_t *)walk->data))
 				return -1;
 		}
@@ -806,7 +799,6 @@ errno_t reiser4_joint_traverse(
 					reiser4_joint_detach(joint, child);
 					reiser4_joint_close(child);
 				}
-
 					
 			update:
 				if (update_func && (result = update_func(&coord, hint->data)))

@@ -10,8 +10,9 @@
 #endif
 
 #ifndef ENABLE_COMPACT
-#  include <sys/stat.h>
-#  include <sys/resource.h>
+#  include <signal.h>
+#  include <unistd.h>
+#  include <sys/vfs.h>
 #endif
 
 #include <reiser4/reiser4.h>
@@ -65,18 +66,18 @@ reiser4_joint_t *reiser4_tree_allocate(
 	return NULL;
 }
 
-void reiser4_tree_release(reiser4_tree_t *tree, 
-			  reiser4_joint_t *joint) 
-{
+void reiser4_tree_release(reiser4_tree_t *tree, reiser4_joint_t *joint) {
+	blk_t blk, free;
+	
 	aal_assert("umka-917", joint != NULL, return);
 	aal_assert("umka-918", joint->node != NULL, return);
 
-	reiser4_alloc_release(tree->fs->alloc, 
-			      aal_block_number(joint->node->block));
-    
-	/* Sets up the free blocks in block allocator */
-	reiser4_format_set_free(tree->fs->format, 
-				reiser4_alloc_free(tree->fs->alloc));
+	blk = aal_block_number(joint->node->block);
+	free = reiser4_alloc_free(tree->fs->alloc);
+	
+    	/* Sets up the free blocks in block allocator */
+	reiser4_alloc_release(tree->fs->alloc, blk);
+	reiser4_format_set_free(tree->fs->format, free);
     
 	reiser4_joint_close(joint);
 }
@@ -157,58 +158,112 @@ static errno_t reiser4_tree_build_key(
 	return 0;
 }
 
+#ifndef ENABLE_COMPACT
+
+static int alarm_flag = 0;
+
+/* Returns true in the case we should shirnk tree case due to memory pressure */
+static inline int reiser4_tree_mpressure(reiser4_tree_t *tree) {
+	int dint, res;
+	long dlong, diff;
+	long rss, vmsize;
+	char cmd[256], dchar;
+
+	FILE *f;
+
+	if (!(f = fopen("/proc/self/stat", "r"))) {
+		aal_exception_error("Can't open /proc/self/stat.");
+		return 0;
+	}
+
+	fscanf(f, "%d %s %c %d %d %d %d %d %lu %lu %lu %lu %lu %lu %lu "
+	       "%ld %ld %ld %ld %ld %ld %lu %lu %ld %lu %lu %lu %lu %lu "
+	       "%lu %lu %lu %lu %lu %lu %lu %lu %d %d %lu %lu\n",
+	       &dint, cmd, &dchar, &dint, &dint, &dint, &dint, &dint, &dlong,
+	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
+	       &dlong, &dlong, &dlong, &dlong, &dlong, &vmsize, &rss, &dlong,
+	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
+	       &dlong, &dlong, &dlong, &dlong, &dint, &dint, &dlong, &dlong);
+	
+	diff = (vmsize - (rss << 12)) - tree->vmsize_rss;
+
+	if (!(res = labs(diff) > 4096))
+		tree->shrink = 0;
+		
+	tree->vmsize_rss = vmsize - (rss << 12);
+
+	fclose(f);
+	
+	return res;
+}
+
 errno_t reiser4_tree_collector(reiser4_tree_t *tree) {
 	aal_list_t *curr;
 	reiser4_joint_t *joint;
 	
 	aal_assert("umka-1519", tree != NULL, return -1);
-	aal_assert("umka-1520", tree->lru != NULL, return -1);
 
-	curr = aal_list_last(tree->lru);
+	if (tree->shrinkable) {
+		if (!alarm_flag)
+			return 0;
+
+		alarm_flag = !alarm_flag;
 	
-	while (curr) {
+		if (!reiser4_tree_mpressure(tree) || tree->lru == NULL)
+			return 0;
+	} else {
+		tree->shrink = 1;
+	}
+
+	aal_exception_info("Shrinking cache on %u nodes.", tree->shrink);
+	
+	if (!(curr = aal_list_last(tree->lru)))
+		return 0;
+	
+	while (curr && tree->shrink > 0) {
 		joint = (reiser4_joint_t *)curr->data;
 		curr = curr->prev;
-
+		
 		if (joint->counter == 0) {
 			if (!(joint->flags & JF_DIRTY)) {
 				
-				if (joint == tree->root)
-					continue;
-
-				if (joint->children)
+				if (joint == tree->root || joint->children)
 					continue;
 				
 				reiser4_joint_detach(joint->parent, joint);
-				tree->lru = aal_list_remove(tree->lru, joint);
 				reiser4_joint_close(joint);
-
-				return 0;
 			} else {
-				/* Joint flushing will be here */
-//				aal_exception_info("Flushing the joint %llu.",
-//						   aal_block_number(joint->node->block));
 			}
 		}
+	}
+
+	return 0;
+}
+
+static void alarm_handler(int dummy) {
+	alarm_flag = 1;
+	alarm(1);
+}
+
+static errno_t reiser4_tree_setup(reiser4_tree_t *tree) {
+	struct statfs fs_st;
+	struct sigaction new, old;
+
+	tree->shrinkable = statfs("/proc", &fs_st) != -1 &&
+		fs_st.f_type == 0x9fa0;
+
+	if (tree->shrinkable) {
+		new.sa_flags = 0;
+		new.sa_handler = alarm_handler;
+
+		sigaction(SIGALRM, &new, &old);
+		alarm(1);
 	}
 	
 	return 0;
 }
 
-static errno_t reiser4_tree_setup(reiser4_tree_t *tree) {
-	
-#ifndef ENABLE_COMPACT
-	int res;
-	struct rusage rusage;
-	
-	if ((res = getrusage(RUSAGE_SELF, &rusage)))
-		return res;
-
-	tree->flt = rusage.ru_majflt;
 #endif
-	
-	return 0;
-}
 
 /* Returns tree root block number */
 blk_t reiser4_tree_root(reiser4_tree_t *tree) {
@@ -243,7 +298,10 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 		goto error_free_tree;
     
 	tree->root->tree = tree;
+
+#ifndef ENABLE_COMPACT
 	reiser4_tree_setup(tree);
+#endif
     
 	return tree;
 
@@ -306,8 +364,11 @@ reiser4_tree_t *reiser4_tree_create(
 	reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
 
 	tree->root->tree = tree;
+
+#ifndef ENABLE_COMPACT
 	reiser4_tree_setup(tree);
-    
+#endif
+
 	return tree;
 
  error_free_node:
@@ -356,7 +417,7 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("umka-134", tree != NULL, return);
 
 	/* Freeing tree lru list */
-	aal_list_free(aal_list_first(tree->lru));
+	aal_list_free(tree->lru);
 
 	/* Freeing tree cashe and tree itself*/
 	reiser4_joint_close(tree->root);
