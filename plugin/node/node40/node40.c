@@ -1054,8 +1054,12 @@ static errno_t node40_shift(object_entity_t *entity,
 			
 			aal_memmove(dst, src, size);
 
+			/* Updating item headers */
 			ih = (item40_header_t *)dst;
-
+			
+			for (i = 0; i < dst_items; i++, ih++)
+				ih40_inc_offset(ih, hint->bytes);
+			
 			/* Preparing space for bodies in dst node */
 			src = dst_node->block->data + sizeof(node40_header_t);
 			dst = src + hint->bytes;
@@ -1064,10 +1068,6 @@ static errno_t node40_shift(object_entity_t *entity,
 				sizeof(node40_header_t);
 			
 			aal_memmove(dst, src, size);
-
-			/* Updating item headers */
-			for (i = 0; i < dst_items; i++, ih++)
-				ih40_inc_offset(ih, hint->bytes);
 		}
 
 		/* Copying item headers from src node to dst */
@@ -1077,18 +1077,18 @@ static errno_t node40_shift(object_entity_t *entity,
 		aal_memcpy(dst, src, headers_size);
 
 		/* Updating item headers in dst node */
-		ih = node40_ih_at(src_node, src_items -
-				  hint->items - 1);
-		
-		offset = ih40_get_offset(ih);
+		offset = nh40_get_free_space_start(src_node) -
+			hint->bytes;
 		
 		ih = node40_ih_at(dst_node, 0);
 		
 		for (i = 0; i < hint->items; i++, ih--)
-			ih40_dec_offset(ih, offset);
+			ih40_dec_offset(ih, (offset - sizeof(node40_header_t)));
 
 		/* Copying item bodies from src node to dst */
-		ih = node40_ih_at(src_node, src_items - hint->items - 1);
+		ih = node40_ih_at(src_node, src_items - 1) +
+			(hint->items - 1);
+		
 		src = src_node->block->data + ih40_get_offset(ih);
 		dst = dst_node->block->data + sizeof(node40_header_t);
 

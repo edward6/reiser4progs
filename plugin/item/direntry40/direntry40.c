@@ -281,6 +281,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			uint32_t i;
 
 			if (de40_get_count(dst_direntry) > 0) {
+
 				/* Moving entry headers of dst direntry */
 				src = (void *)dst_direntry + sizeof(direntry40_t);
 				dst = src + (hint->units * sizeof(entry40_t));
@@ -339,17 +340,18 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			
 			/* Moving headers of src direntry */
 			src = (void *)src_direntry + sizeof(direntry40_t) +
-				src_units * sizeof(entry40_t);
+				(src_units * sizeof(entry40_t));
 			
 			dst = src - (hint->units * sizeof(entry40_t));
 
-			size = en40_get_offset((entry40_t *)dst) -
-				(src - (void *)src_direntry);
+			size = src_item->len - sizeof(direntry40_t) -
+				(src_units * sizeof(entry40_t));
 			
 			aal_memmove(dst, src, size);
 
 			/* Updating offsets of src direntry */
 			entry = direntry40_entry(src_direntry, 0);
+			
 			for (i = 0; i < src_units - hint->units; i++, entry++) {
 				uint32_t offset = hint->units * sizeof(entry40_t);
 				en40_dec_offset(entry, offset);
@@ -559,7 +561,7 @@ static errno_t direntry40_print(item_entity_t *item, aal_stream_t *stream,
 	if (!(direntry = direntry40_body(item)))
 		return -1;
 	
-	aal_stream_format(stream, "count:\t\t%u\n", direntry->count);
+	aal_stream_format(stream, "count:\t\t%u\n", de40_get_count(direntry));
 
 	for (i = 0; i < de40_get_count(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
