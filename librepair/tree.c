@@ -502,11 +502,16 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	if (reiser4_place_rightmost(place)) {
 		prev = *place;
 
+		reiser4_node_lock(prev.node);
+		
 		if ((res = reiser4_tree_next_node(tree, place, place))) {
 			aal_error("vpf-1363: Failed to get the next node.");
+			reiser4_node_unlock(prev.node);
 			return res;
 		}
-
+		
+		reiser4_node_unlock(prev.node);
+		
 		/* No right node. */
 		if (!place->node) {
 			*place = prev;
