@@ -14,7 +14,8 @@ extern errno_t dir40_reset(object_entity_t *entity);
 extern lookup_t dir40_lookup(object_entity_t *entity,
 			     char *name, entry_hint_t *entry);
 
-extern errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry);
+extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
+extern lookup_t dir40_next(dir40_t *dir, bool_t check);
 
 #define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
@@ -137,6 +138,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	return obj40_insert(&dir->obj, &dir->body, &body_hint, LEAF_LEVEL);
 }
 
+#if 0
 static errno_t dir40_belongs(dir40_t *dir) {
 	aal_assert("vpf-1245", dir != NULL);
 	
@@ -151,6 +153,68 @@ static errno_t dir40_belongs(dir40_t *dir) {
 	/* Does the body item belong to the current object. */
 	return plug_call(dir->body.key.plug->o.key_ops, compshort,
 			 &dir->body.key, &dir->offset) ? RE_FATAL : 0;
+}
+#endif
+
+/* Search for the position for the read in the directory by dir->offset,
+   Returns ABSENT only if there is no more entries in the directory. */
+static lookup_t dir40_search(dir40_t *dir) {
+	uint32_t units, adjust;
+	lookup_t res;
+	
+	aal_assert("vpf-1343", dir != NULL);
+	
+	adjust = dir->offset.adjust;
+	
+	/* Making tree_lookup() to find entry by key */
+	if ((res = obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, 
+				FIND_EXACT, &dir->body)) < 0)
+		return res;
+	
+	/* No adjusting for the ABSENT result. */
+	if (res == ABSENT) adjust = 0;
+	
+	units = plug_call(dir->body.plug->o.item_ops, units, &dir->body);
+
+	if (dir->body.pos.unit == MAX_UINT32)
+		dir->body.pos.unit = 0;
+	
+	do {
+		entry_hint_t temp;
+		
+		if (dir->body.pos.unit >= units) {
+			/* Getting next directory item */
+			if ((res = dir40_next(dir, 0)) < 0)
+				return res;
+			
+			/* No more items in the tree. */
+			if (res == ABSENT) return ABSENT;
+
+			/* Some item of the dir was found. */
+			if (!adjust) return PRESENT;
+				
+			units = plug_call(dir->body.plug->o.item_ops,
+				  units, &dir->body);
+
+		} else if (!adjust)
+			/* We get here from above with PRESENT only. */
+			return PRESENT;
+				
+		if (dir40_fetch(dir, &temp))
+			return -EIO;
+
+		if (plug_call(temp.offset.plug->o.key_ops, compfull, 
+			      &temp.offset, &dir->offset))
+		{
+			/* Greater key is reached. */
+			return PRESENT;
+		}
+
+		adjust--;
+		dir->body.pos.unit++;
+	} while (adjust ||  dir->body.pos.unit >= units);
+
+	return PRESENT;	
 }
 
 errno_t dir40_check_struct(object_entity_t *object, 
@@ -208,12 +272,15 @@ errno_t dir40_check_struct(object_entity_t *object,
                  return -EINVAL;
 	}
 
-	/* Take case about the ".". */
+	/* Take care about the ".". */
 	if ((res |= dir40_dot(dir, bplug, mode)) < 0)
 		return res;
 	
 	size = 0; bytes = 0; 
 	
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_gener,
+		  &dir->offset, 0, 0, 0, 0, 0);
+
 	/* FIXME-VITALY: this probably should be changed. Now hash plug that is
 	   used is taken from SD or the default one from the params. Probably it
 	   would be better to do evth in vise versa order -- choose the hash
@@ -223,18 +290,25 @@ errno_t dir40_check_struct(object_entity_t *object,
 		pos_t *pos = &dir->body.pos;
 		trans_hint_t hint;
 		key_entity_t key;
+		lookup_t lookup;
 		uint32_t units;
-		errno_t ret;
 		
-		/* Check that the body item is of the current dir. */
-		if ((ret = dir40_belongs(dir)) < 0)
-			return ret;
-		else if (ret) /* Not of the current dir. */
+		if ((lookup = dir40_search(dir)) < 0) 
+			return lookup;
+
+		/* No more items of the dir40. */
+		if (lookup == ABSENT)
 			break;
 		
+		/* Looks like an item of dir40. If there were some key 
+		   collisions, this search was performed with incremented 
+		   adjust, decrement it here. */
+		if (dir->offset.adjust)
+			dir->offset.adjust--;
+			
 		/* Item can be of another plugin, but of the same group. 
 		   FIXME-VITALY: item of the same group but of another 
-		   plugin should be converted. */
+		   plugin, it should be converted. */
 		/*if (dir->body.plug->id.group != DIRENTRY_ITEM) {*/
 		if (dir->body.plug != bplug) {
 			aal_exception_error("Directory [%s], plugin [%s], node "
@@ -272,18 +346,19 @@ errno_t dir40_check_struct(object_entity_t *object,
 		units = plug_call(dir->body.plug->o.item_ops, 
 				  units, &dir->body);
 		
-		for (pos->unit = 0; pos->unit < units; pos->unit++) {
-			/*  */
-			if ((res |= dir40_fetch(object, &entry)) < 0)
+		for (; pos->unit < units; pos->unit++) {
+			if ((res |= dir40_fetch(dir, &entry)) < 0)
 				return res;
 			
+			/* Prepare the correct key for the entry. */
 			plug_call(entry.offset.plug->o.key_ops, build_entry, 
 				  &key, dir->hash, obj40_locality(&dir->obj),
 				  obj40_objectid(&dir->obj), entry.name);
-	
+			
+			/* If the key matches, continue. */
 			if (!plug_call(key.plug->o.key_ops, compfull, 
 				       &key, &entry.offset))
-				continue;
+				goto leave;
 			
 			/* Broken entry found, remove it. */
 			aal_exception_error("Directory [%s], plugin [%s], node "
@@ -302,7 +377,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 			if (mode != RM_BUILD) {
 				res |= RE_FIXABLE;
-				continue;
+				goto leave;
 			}
 
 			hint.count = 1;
@@ -317,6 +392,22 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 			units--; 
 			pos->unit--;
+			
+			continue;
+			
+		leave:
+			/* The key is ok. */
+			if (plug_call(key.plug->o.key_ops, compfull, 
+				      &dir->offset, &key))
+			{
+				/* Key differs from the offset of the 
+				   last left entry. */
+				plug_call(key.plug->o.key_ops, assign,
+					  &dir->offset, &key);
+			} else {
+				/* Key collision. */
+				dir->offset.adjust++;
+			}
 		}
 		
 		if (units) {
@@ -326,22 +417,11 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 			bytes += plug_call(dir->body.plug->o.item_ops, 
 					   bytes, &dir->body);
-			
-			if ((res |= dcore->tree_ops.next(dir->obj.info.tree,
-							&dir->body, 
-							&dir->body)) < 0)
-				return res;
+		} 
 
-			if (!dir->body.node)
-				break;
-		} else {
-			
-			/* Lookup the last removed entry, get the next item. */
-			if (dir40_lookup(object, entry.name, &entry) < 0)
-				return -EIO;
-
-			dir->body = entry.place;
-		}
+		/* Lookup for the last entry left in the tree with the 
+		   incremented adjust to get the next one. */
+		dir->offset.adjust++;
 	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */

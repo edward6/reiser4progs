@@ -54,11 +54,7 @@ static errno_t dir40_telldir(object_entity_t *entity,
 
 /* This fucntion checks if passed @place point to item related to @entity, that
    is belong to directory. */
-static int32_t dir40_belong(object_entity_t *entity,
-			    place_t *place)
-{
-	dir40_t *dir = (dir40_t *)entity;
-
+int32_t dir40_belong(dir40_t *dir, place_t *place, bool_t pcheck) {
 	/* Checking if item component in @place->pos is valid one. This is
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
@@ -68,19 +64,17 @@ static int32_t dir40_belong(object_entity_t *entity,
 
 	/* Fetching item info at @place */
 	if (obj40_fetch(&dir->obj, place))
+		/* FIXME-VITALY: This is an error. */
 		return 0;
 	
 	/* Checking if item plugins are the same. This is needed, because item
 	   method mergeable() expects to have items of the same type. */
-	if (!plug_equal(dir->body.plug, place->plug))
+	if (pcheck && !plug_equal(dir->body.plug, place->plug))
 		return 0;
 
-	/* Calling item mergeable() method in order to determine if items are
-	   mergeable. Directory items will check only locality component of
-	   keys. If it the same for both arguments, items are mergeable, as
-	   belong to the same directory. */
-	return plug_call(dir->body.plug->o.item_ops,
-			 mergeable, &dir->body, place);
+	/* Is the place of the same object? */
+	return plug_call(dir->body.key.plug->o.key_ops, compshort,
+			 &dir->body.key, &place->key) ? 0 : 1;
 }
 
 static errno_t dir40_seekdir(object_entity_t *entity,
@@ -123,13 +117,11 @@ errno_t dir40_reset(object_entity_t *entity) {
 }
 
 /* Fetches current unit to passed @entry */
-errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
-	dir40_t *dir;
+errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	trans_hint_t hint;
 
 	hint.count = 1;
 	hint.specific = entry;
-	dir = (dir40_t *)entity;
 
 	/* Reading entry to passed @entry */
 	if (plug_call(dir->body.plug->o.item_ops,
@@ -147,15 +139,12 @@ errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
 
 /* Switches current dir body item onto next one. Returns 1 on success, 0 on the
    case of directory is over and values < 0 on error. */
-static lookup_t dir40_next(object_entity_t *entity) {
-	dir40_t *dir;
+lookup_t dir40_next(dir40_t *dir, bool_t check) {
 	lookup_t res;
 	place_t place;
 
-	aal_assert("umka-2063", entity != NULL);
+	aal_assert("umka-2063", dir != NULL);
 
-	dir = (dir40_t *)entity;
-	
 	/* Getting next directory item */
 	if ((res = dcore->tree_ops.next(dir->obj.info.tree,
 					&dir->body, &place)))
@@ -163,11 +152,10 @@ static lookup_t dir40_next(object_entity_t *entity) {
 		return res;
 	}
 
-	if (!place.node || !dir40_belong(entity, &place)) {
+	if (!place.node || !dir40_belong(dir, &place, check)) {
 		uint64_t offset;
 		
-		/* Making offset pointed to nowhere in order to let know that
-		   directory is over. */
+		/* Set offset to non-existent value as the end is reached. */
 		offset = plug_call(dir->offset.plug->o.key_ops,
 				   get_offset, &dir->offset);
 		
@@ -208,7 +196,7 @@ static lookup_t dir40_update(object_entity_t *entity) {
 	if (res == ABSENT) {
 
 		/* Directory is over */
-		if (!dir40_belong(entity, &dir->body))
+		if (!dir40_belong(dir, &dir->body, 1))
 			return ABSENT;
 
 		/* Checking if directory is over */
@@ -234,7 +222,7 @@ static lookup_t dir40_update(object_entity_t *entity) {
 		dir->body.pos.unit += off - 1;
 
 		if ((adjust -= off) > 0) {
-			if ((res = dir40_next(entity)) < 0)
+			if ((res = dir40_next(dir, 1)) < 0)
 				return res;
 
 			if (res == ABSENT)
@@ -267,7 +255,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 		return 0;
 
 	/* Reading next entry */
-	if ((res = dir40_fetch(entity, entry)))
+	if ((res = dir40_fetch(dir, entry)))
 		return res;
 
 	/* Setting up the entry type. It is essential for fsck to know
@@ -297,7 +285,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	/* Getting next entry in odrer to set up @dir->offset correctly */
 	if (++dir->body.pos.unit >= units) {
 		/* Switching to the next directory item */
-		if ((res = dir40_next(entity)) < 0)
+		if ((res = dir40_next(dir, 1)) < 0)
 			return res;
 	} else {
 		/* There is no needs to switch */
@@ -307,7 +295,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	if (res == 1) {
 		entry_hint_t temp;
 		
-		if ((res = dir40_fetch(entity, &temp)))
+		if ((res = dir40_fetch(dir, &temp)))
 			return res;
 
 #ifndef ENABLE_STAND_ALONE
@@ -389,7 +377,6 @@ static lookup_t dir40_search(object_entity_t *entity,
 		
 	while (1) {
 		int32_t comp;
-		lookup_t res;
 		uint32_t units;
 		entry_hint_t temp;
 		
@@ -397,14 +384,14 @@ static lookup_t dir40_search(object_entity_t *entity,
 				  units, &dir->body);
 
 		if (dir->body.pos.unit >= units) {
-			if ((res = dir40_next(entity)) < 0)
+			if ((res = dir40_next(dir, 1)) < 0)
 				return res;
 
 			if (res == ABSENT)
 				return res;
 		}
 		
-		if (dir40_fetch(entity, &temp))
+		if (dir40_fetch(dir, &temp))
 			return -EIO;
 
 		if (entry) {
@@ -435,7 +422,7 @@ static lookup_t dir40_search(object_entity_t *entity,
 	}
 #else
 	/* Fetching found entry to passed @entry */
-	if (entry && dir40_fetch(entity, entry))
+	if (entry && dir40_fetch(dir, entry))
 		return -EIO;
 
 	return PRESENT;
@@ -623,7 +610,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		}
 
 		/* Checking if found item belongs this directory */
-		if (!dir40_belong(entity, &place))
+		if (!dir40_belong(dir, &place, 1))
 			return 0;
 
 		hint.count = 1;
@@ -921,7 +908,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 			}
 		}
 		
-		if ((res = dir40_next(entity)) < 0)
+		if ((res = dir40_next(dir, 1)) < 0)
 			return res;
 
 		if (res == ABSENT)
@@ -961,7 +948,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = place_func(entity, &dir->body, data)))
 			return res;
 		
-		if ((res = dir40_next(entity)) < 0)
+		if ((res = dir40_next(dir, 1)) < 0)
 			return res;
 		
 		if (res == ABSENT)
