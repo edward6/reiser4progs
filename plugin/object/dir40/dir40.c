@@ -182,12 +182,12 @@ static int32_t dir40_next(object_entity_t *entity) {
 /* Updates current body place by place found by @dir->offset and @dir->adjust */
 static int32_t dir40_update(object_entity_t *entity) {
 	dir40_t *dir;
-	lookup_t res;
+	lookup_res_t res;
 	
 	dir = (dir40_t *)entity;
 	
 	switch ((res = obj40_lookup(&dir->obj, &dir->offset,
-				    LEAF_LEVEL, &dir->body)))
+				    LEAF_LEVEL, READ, &dir->body)))
 	{
 	case FAILED:
 		return -EINVAL;
@@ -212,7 +212,6 @@ static int32_t dir40_update(object_entity_t *entity) {
 			
 			if (dir->body.pos.unit >= units)
 				return 0;
-
 		}
 
 #ifdef ENABLE_COLLISIONS
@@ -336,13 +335,16 @@ static int32_t dir40_compent(char *entry1, char *entry2) {
 	return aal_strncmp(entry1, entry2, len1);
 }
 
-/* Makes lookup in directory by name. Fills passed buff by found entry fields
-   (offset key, object key, etc). */
-lookup_t dir40_lookup(object_entity_t *entity,
-		      char *name, entry_hint_t *entry) 
+/* Makes lookup iside directory with specified position correcting mode. This is
+   needed to be used in add_entry() for two reasons: for make sure, that passed
+   entry does not exists and to use lookup result for consequent insert. As it
+   is used for insert, we should specify pos correctring mode INST. */
+static lookup_res_t dir40_search(object_entity_t *entity,
+				 char *name, lookup_mod_t mode,
+				 entry_hint_t *entry)
 {
 	dir40_t *dir;
-	lookup_t res;
+	lookup_res_t res;
 
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1117", entity != NULL);
@@ -357,7 +359,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 
 	/* Making tree_lookup() to find entry by key */
 	switch ((res = obj40_lookup(&dir->obj, &dir->body.key,
-				    LEAF_LEVEL, &dir->body)))
+				    LEAF_LEVEL, mode, &dir->body)))
 	{
 	case PRESENT:
 		/* Correcting unit pos */
@@ -434,6 +436,13 @@ lookup_t dir40_lookup(object_entity_t *entity,
 
 	return PRESENT;
 #endif
+}
+
+/* Makes lookup inside @entity by passed @name */
+lookup_res_t dir40_lookup(object_entity_t *entity,
+			  char *name, entry_hint_t *entry) 
+{
+	return dir40_search(entity, name, READ, entry);
 }
 
 /* Initializing dir40 instance by stat data place, resetring directory be means
@@ -539,7 +548,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
-			     LEAF_LEVEL, &dir->body))
+			     LEAF_LEVEL, INST, &dir->body))
 	{
 	case ABSENT:
 		/* Inserting the direntry item into the tree */
@@ -599,8 +608,8 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		remove_hint_t hint;
 
 		/* Looking for the last directory item */
-		switch ((obj40_lookup(&dir->obj, &key,
-				      LEAF_LEVEL, &place)))
+		switch ((obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
+				      READ, &place)))
 		{
 		case FAILED:
 			return -EINVAL;
@@ -755,7 +764,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting place new entry will be inserted at */
-	switch (dir40_lookup(entity, entry->name, &temp)) {
+	switch (dir40_search(entity, entry->name, INST, &temp)) {
 	case ABSENT:
 		if ((res = obj40_fetch(&dir->obj, &temp.place)))
 			return res;
@@ -811,7 +820,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Looking for place to insert directory entry */
-	switch (dir40_lookup(entity, entry->name, &temp)) {
+	switch (dir40_search(entity, entry->name, READ, &temp)) {
 	case PRESENT:
 		hint.count = 1;
 		

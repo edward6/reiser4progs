@@ -123,6 +123,16 @@ static int32_t stat40_read(place_t *place, void *buff,
 	return 1;
 }
 
+static errno_t stat40_maxposs_key(place_t *place, 
+				  key_entity_t *key)
+{
+	aal_assert("umka-2421", key != NULL);
+	aal_assert("umka-2420", place != NULL);
+	
+	return plug_call(place->key.plug->o.key_ops,
+			 assign, key, &place->key);
+}
+
 /* This function returns unit count. This value must be 1 if item has not
    units. It is because balancing code assumes that if item has more than one
    unit the it may be shifted out. That is because w ecan't return the number of
@@ -446,6 +456,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.read             = stat40_read,
 	.units		  = stat40_units,
 	.plugid	          = stat40_plugid,
+	.maxposs_key	  = stat40_maxposs_key,
 	
 #ifndef ENABLE_STAND_ALONE
 	.init             = stat40_init,
@@ -459,10 +470,10 @@ static reiser4_item_ops_t stat40_ops = {
 
 	.estimate_shift   = NULL,
 	.overhead         = NULL,
-	.rep              = NULL,
 	.expand	          = NULL,
 	.shrink           = NULL,
 	.layout           = NULL,
+	.rep              = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
 	.set_key	  = NULL,
@@ -474,8 +485,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.lookup		  = NULL,
 	.branch           = NULL,
 	.get_key	  = NULL,
-	.mergeable        = NULL,
-	.maxposs_key	  = NULL
+	.mergeable        = NULL
 };
 
 static reiser4_plug_t stat40_plug = {

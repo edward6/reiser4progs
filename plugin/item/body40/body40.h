@@ -19,8 +19,8 @@ extern errno_t body40_maxreal_key(place_t *item, key_entity_t *key,
 
 extern errno_t body40_maxposs_key(place_t *item, key_entity_t *key);
 
-extern lookup_t body40_lookup(place_t *item, key_entity_t *key,
-			      uint64_t *pos, trans_func_t trans_func);
+extern lookup_res_t body40_lookup(place_t *item, key_entity_t *key,
+				  uint64_t *pos, trans_func_t trans_func);
 
 #ifndef ENABLE_STAND_ALONE
 extern int body40_mergeable(place_t *place1, place_t *place2);

@@ -15,7 +15,6 @@ static errno_t callback_tree_pack(reiser4_tree_t *tree,
 
 	return reiser4_tree_shrink(tree, place);
 }
-#endif
 
 /* Updates root block number in format by passed blk */
 void reiser4_tree_set_root(reiser4_tree_t *tree,
@@ -32,15 +31,6 @@ void reiser4_tree_set_root(reiser4_tree_t *tree,
 	reiser4_format_set_root(tree->fs->format, blk);
 }
 
-/* Returns tree root block number */
-blk_t reiser4_tree_get_root(reiser4_tree_t *tree) {
-	aal_assert("umka-738", tree != NULL);
-	aal_assert("umka-2414", tree->fs != NULL);
-	aal_assert("umka-2415", tree->fs->format != NULL);
-
-	return reiser4_format_get_root(tree->fs->format);
-}
-
 /* Updates height in format by passed blk */
 void reiser4_tree_set_height(reiser4_tree_t *tree,
 			     uint8_t height)
@@ -51,6 +41,16 @@ void reiser4_tree_set_height(reiser4_tree_t *tree,
 	
 	reiser4_format_set_height(tree->fs->format,
 				  height);
+}
+#endif
+
+/* Returns tree root block number */
+blk_t reiser4_tree_get_root(reiser4_tree_t *tree) {
+	aal_assert("umka-738", tree != NULL);
+	aal_assert("umka-2414", tree->fs != NULL);
+	aal_assert("umka-2415", tree->fs->format != NULL);
+
+	return reiser4_format_get_root(tree->fs->format);
 }
 
 /* Returns tree height from format */
@@ -860,13 +860,14 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 
 /* Makes search in the tree by specified key. Fills passed place by places of
    found item. */
-lookup_t reiser4_tree_lookup(
+lookup_res_t reiser4_tree_lookup(
 	reiser4_tree_t *tree,	  /* tree to be grepped */
 	reiser4_key_t *key,	  /* key to be find */
 	uint8_t level,	          /* stop level for search */
+	lookup_mod_t mode,        /* position correcting mode (insert or read) */
 	reiser4_place_t *place)	  /* place the found item to be stored */
 {
-	lookup_t res;
+	lookup_res_t res;
 	reiser4_key_t wan;
 
 	aal_assert("umka-742", key != NULL);
@@ -897,11 +898,18 @@ lookup_t reiser4_tree_lookup(
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
-		int whole = 0, adjust = 1;
-		
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
-		res = reiser4_node_lookup(place->node, &wan, &place->pos);
+		if (reiser4_node_get_level(place->node) > level) {
+			/* Here we use READ mode for pos correscting, as we are
+			   on internal level still. */
+			res = reiser4_node_lookup(place->node, &wan,
+						  READ, &place->pos);
+		} else {
+			/* Using passed @mode */
+			res = reiser4_node_lookup(place->node, &wan,
+						  mode, &place->pos);
+		}
 
 		/* Check if we should finish lookup because we reach stop level
 		   or some error occured durring last node lookup. */
@@ -910,7 +918,7 @@ lookup_t reiser4_tree_lookup(
 		{
 			if (res == PRESENT) {
 #ifdef ENABLE_COLLISIONS
-				/* If collition handling is allwoed, we will
+				/* If collision handling is allwoed, we will
 				   find leftmost coord with the same key. This
 				   is needed for correct key collitions
 				   handling. */
@@ -924,42 +932,15 @@ lookup_t reiser4_tree_lookup(
 			return res;
 		}
 
-		/* Position correcting for internal levels */
-		if (res == ABSENT) {
-			whole = (place->pos.unit == MAX_UINT32);
-			
-			adjust = (place->pos.item > 0 ||
-				  (place->pos.unit > 0 &&
-				   whole == 0));
-
-			if (adjust) {
-				reiser4_place_dec(place, whole);
-			}
-		}
-		
-		/* Initializing @place->item. This should be done before using
-		   any item methods. */
+		/* Initializing @place. This should be done before using any
+		   item methods. */
 		if (reiser4_place_fetch(place))
 			return FAILED;
 		    
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   posision back. */
-		if (!reiser4_item_branch(place->plug)) {
-
-			/* Correcting position back if item is not a branch */
-			if (res == ABSENT && adjust) {
-				reiser4_place_inc(place, whole);
-			}
-
-			if (!reiser4_place_valid(place))
-				return res;
-			
-			if (reiser4_place_fetch(place))
-				return FAILED;
-			
-			if (!reiser4_item_branch(place->plug))
-				return res;
-		} 
+		if (!reiser4_item_branch(place->plug))
+			return res;
 
 		/* Loading node by its nodeptr item at @place */
 		if (!(place->node = reiser4_tree_child(tree, place)))
@@ -1045,7 +1026,7 @@ errno_t reiser4_tree_attach(
 
 	/* Looking up for the insert point place */
 	switch ((res = reiser4_tree_lookup(tree, &hint.key,
-					   level, &place)))
+					   level, INST, &place)))
 	{
 	case FAILED:
 		aal_exception_error("Lookup is failed durring "
@@ -1057,7 +1038,8 @@ errno_t reiser4_tree_attach(
 
 	/* Inserting node pointer into tree */
 	if ((res = reiser4_tree_insert(tree, &place, &hint, level))) {
-		aal_exception_error("Can't insert nodeptr item to the tree.");
+		aal_exception_error("Can't insert nodeptr item "
+				    "to the tree.");
 		return res;
 	}
 
@@ -1648,7 +1630,7 @@ errno_t reiser4_tree_insert(
 		   is growed up. It is needed because we want to insert item 
 		   into the node of the given @level. */
 		if (reiser4_tree_lookup(tree, &hint->key, level,
-					place) == FAILED)
+					INST, place) == FAILED)
 		{
 			aal_exception_error("Lookup failed after "
 					    "tree growed up to "

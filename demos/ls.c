@@ -123,8 +123,8 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_object_t *object;
 	    
-			for (i = 0; i < 1; i++) {
-				aal_snprintf(name, 256, "very long test file name%d", i);
+			for (i = 0; i < 5000; i++) {
+				aal_snprintf(name, 256, "file name%d", i);
 
 				if (!(object = reiser4_object_create(fs->tree, dir,
 								     &reg_hint)))
@@ -134,9 +134,9 @@ int main(int argc, char *argv[]) {
 
 				reiser4_object_link(dir, object, name);
 
-				for (j = 0; j < 656; j++) {
-					reiser4_object_write(object, name,
-							     aal_strlen(name));
+				for (j = 0; j < 2000; j++) {
+/*					reiser4_object_write(object, name,
+							     aal_strlen(name));*/
 				}
 				
 				reiser4_object_close(object);

@@ -102,8 +102,8 @@ int body40_mergeable(place_t *place1, place_t *place2) {
 }
 #endif
 
-lookup_t body40_lookup(place_t *place, key_entity_t *key,
-		       uint64_t *pos, trans_func_t trans_func)
+lookup_res_t body40_lookup(place_t *place, key_entity_t *key,
+			   uint64_t *pos, trans_func_t trans_func)
 {
 #ifndef ENABLE_STAND_ALONE
 	uint64_t size;
@@ -118,7 +118,7 @@ lookup_t body40_lookup(place_t *place, key_entity_t *key,
 	uint32_t units;
 	key_entity_t maxkey;
 
-	body40_maxposs_key(place, &maxkey);
+	body40_maxreal_key(place, &maxkey, trans_func);
 
 	if (!(units = plug_call(place->plug->o.item_ops,
 				units, place)))

@@ -61,9 +61,9 @@ extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
 extern errno_t reiser4_object_telldir(reiser4_object_t *object,
 				      reiser4_key_t *offset);
 
-extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
-				      const char *name,
-				      entry_hint_t *entry);
+extern lookup_res_t reiser4_object_lookup(reiser4_object_t *object,
+					  const char *name,
+					  entry_hint_t *entry);
 
 extern errno_t reiser4_object_print(reiser4_object_t *object,
 				    aal_stream_t *stream);

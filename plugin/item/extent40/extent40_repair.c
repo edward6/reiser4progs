@@ -16,8 +16,8 @@ extern uint64_t extent40_offset(place_t *place, uint64_t pos);
 
 extern uint32_t extent40_unit(place_t *place, uint64_t offset);
 
-extern lookup_t extent40_lookup(place_t *place, key_entity_t *key, 
-				uint32_t *pos);
+extern lookup_res_t extent40_lookup(place_t *place, key_entity_t *key, 
+				    uint32_t *pos);
 
 errno_t extent40_check_layout(place_t *place, region_func_t func, 
 			      void *data, uint8_t mode) 
@@ -154,7 +154,7 @@ errno_t extent40_estimate_merge(place_t *dst, uint32_t dst_pos,
 	uint64_t src_start, dst_start, dst_min;
 	extent40_t *dst_body, *src_body;
 	key_entity_t key;
-	lookup_t lookup;
+	lookup_res_t lookup;
 	uint64_t b_size;
 	uint32_t pos;
 	errno_t res;

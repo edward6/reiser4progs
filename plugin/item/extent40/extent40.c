@@ -174,12 +174,12 @@ errno_t extent40_maxposs_key(place_t *place,
 
 /* Performs lookup for specified @key inside the passed @place. Result of lookup
    will be stored in @pos. */
-lookup_t extent40_lookup(place_t *place,
-			 key_entity_t *key,
-			 uint32_t *pos)
+lookup_res_t extent40_lookup(place_t *place,
+			     key_entity_t *key,
+			     uint32_t *pos)
 {
-	lookup_t res;
 	uint64_t offset;
+	lookup_res_t res;
 
 	aal_assert("umka-1500", place != NULL);
 	aal_assert("umka-1501", key  != NULL);
@@ -190,7 +190,8 @@ lookup_t extent40_lookup(place_t *place,
 			    (trans_func_t)extent40_offset);
 
 	/* Transforming from the offset ot unit */
-	*pos = extent40_unit(place, offset);
+	*pos = extent40_unit(place, res == ABSENT ?
+			     offset - 1 : offset);
 	return res;
 }
 
@@ -368,13 +369,13 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	unit_offset = plug_call(key.plug->o.key_ops,
 				get_offset, &key);
 
-	/* Block offset we will insert in. */
-	block_offset = (unit_offset + hint->offset) -
-		((unit_offset + hint->offset) & (blksize - 1));
-
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
+		/* Block offset we will insert in. */
+		block_offset = (unit_offset + hint->offset) -
+			((unit_offset + hint->offset) & (blksize - 1));
+
 		/* Preparing key for getting data by it */
 		plug_call(key.plug->o.key_ops, set_offset,
 			  &key, block_offset);
@@ -405,7 +406,6 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 
 			hint->bytes += blksize;
 			hint->maxoff += blksize;
-			block_offset += blksize;
 			et40_inc_width(extent, 1);
 		}
 

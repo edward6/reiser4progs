@@ -171,12 +171,12 @@ static errno_t tail40_maxposs_key(place_t *place,
 	return body40_maxposs_key(place, key);
 }
 
-static lookup_t tail40_lookup(place_t *place,
-			      key_entity_t *key, 
-			      uint32_t *pos)
+static lookup_res_t tail40_lookup(place_t *place,
+				  key_entity_t *key, 
+				  uint32_t *pos)
 {
-	lookup_t res;
 	uint64_t offset;
+	lookup_res_t res;
 	
 	aal_assert("umka-1228", place != NULL);
 	aal_assert("umka-1229", key != NULL);

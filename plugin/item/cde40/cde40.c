@@ -942,8 +942,8 @@ static int callback_comp_entry(void *array, uint32_t pos,
 }
 
 /* Performs lookup inside cde. Found pos is stored in @pos */
-lookup_t cde40_lookup(place_t *place, key_entity_t *key,
-		      uint32_t *pos)
+lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
+			  uint32_t *pos)
 {
 	int32_t i;
 	key_entity_t maxkey;

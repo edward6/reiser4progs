@@ -261,7 +261,7 @@ errno_t reiser4_node_realize(
         reiser4_node_lkey(node, &lkey);
                                                                                                    
 	/* Getting position by means of using node lookup */
-        if (reiser4_node_lookup(parent->node, &lkey,
+        if (reiser4_node_lookup(parent->node, &lkey, READ,
 				&parent->pos) == PRESENT)
 	{
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
@@ -276,9 +276,9 @@ errno_t reiser4_node_realize(
 	/* Getting position by means of linear traverse */
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
 	if (!(node->flags & NF_FOREIGN)) {
-		lookup_t res;
 		uint32_t i, j;
 		ptr_hint_t ptr;
+		lookup_res_t res;
 		
 		for (i = 0; i < reiser4_node_items(parent->node); i++) {
 			parent->pos.item = i;
@@ -425,12 +425,13 @@ errno_t reiser4_node_disconnect(
 
 /* This function makes search inside of specified node for passed key. Position
    will be stored in passed @pos. */
-lookup_t reiser4_node_lookup(
+lookup_res_t reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
 	reiser4_key_t *key,	/* key to be find */
+	lookup_mod_t mode,      /* position correcting mode (insert or read) */
 	pos_t *pos)	        /* found pos will be stored here */
 {
-	lookup_t res;
+	lookup_res_t res;
 	reiser4_key_t maxkey;
 	reiser4_place_t place;
     
@@ -451,19 +452,16 @@ lookup_t reiser4_node_lookup(
 	}
 
 	if (res == ABSENT) {
-		/* Check if node was empty */
+		
 		if (pos->item == 0)
 			return ABSENT;
 		
-		/* Correcting position, as node plugin lookup returns position
-		   next to convenient item. */
+		/* Correcting position. */
 		pos->item--;
-	}
 		
-	if (reiser4_place_open(&place, node, pos))
-		return FAILED;
+		if (reiser4_place_open(&place, node, pos))
+			return FAILED;
 		
-	if (res == ABSENT) {
 		/* We are on the position where key is less then wanted. Key
 		   could lie within the item or after the item. */
 		if (place.plug->o.item_ops->maxposs_key) {
@@ -480,22 +478,16 @@ lookup_t reiser4_node_lookup(
 			return plug_call(place.plug->o.item_ops, lookup,
 					 (place_t *)&place, key, &pos->unit);
 		}
-	
-		/* Lookup isn't implemented whereas maxposs_key() isn't
-		   implemented too. Is it correct? */
-		pos->item++;
-		return ABSENT;
-	} else {
-		/* Calling lookup method of found item */
-		if (place.plug->o.item_ops->lookup) {
-			return plug_call(place.plug->o.item_ops, lookup,
-					 (place_t *)&place, key, &pos->unit);
+
+		if (mode == INST) {
+			pos->item++;
+			return ABSENT;
+		} else {
+			return PRESENT;
 		}
-		
-		return PRESENT;
 	}
 
-	return ABSENT;
+	return PRESENT;
 }
 
 /* Returns real item count in specified node */

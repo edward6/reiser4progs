@@ -102,23 +102,24 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     tree_edge_func_t after_func,
 				     void *data);
 
-#endif
-
-extern blk_t reiser4_tree_get_root(reiser4_tree_t *tree);
-extern uint8_t reiser4_tree_get_height(reiser4_tree_t *tree);
 
 extern void reiser4_tree_set_root(reiser4_tree_t *tree,
 				  blk_t blk);
 
 extern void reiser4_tree_set_height(reiser4_tree_t *tree,
 				    uint8_t height);
+#endif
+
+extern blk_t reiser4_tree_get_root(reiser4_tree_t *tree);
+extern uint8_t reiser4_tree_get_height(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
 
-extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
-			       reiser4_key_t *key,
-			       uint8_t level,
-			       reiser4_place_t *place);
+extern lookup_res_t reiser4_tree_lookup(reiser4_tree_t *tree,
+					reiser4_key_t *key,
+					uint8_t level,
+					lookup_mod_t mode,
+					reiser4_place_t *place);
 
 extern reiser4_node_t *reiser4_tree_alloc(reiser4_tree_t *tree,
 					  uint8_t level);

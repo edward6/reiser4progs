@@ -242,7 +242,7 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 			  uint16_t objmode, uint8_t mode)
 {
 	key_entity_t *key;
-	lookup_t lookup;
+	lookup_res_t lookup;
 	place_t *start;
 	uint64_t pid;
 	errno_t res;
@@ -253,7 +253,9 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	key = &obj->info.object;
 
 	/* Update the place of SD. */
-	switch ((lookup = obj40_lookup(obj, key, LEAF_LEVEL, start))) {
+	switch ((lookup = obj40_lookup(obj, key, LEAF_LEVEL,
+				       READ, start)))
+	{
 	case PRESENT:
 		if ((res = stat_func(start))) {
 			aal_exception_error("Node (%llu), item (%u): StatData "

@@ -73,8 +73,8 @@ extern errno_t cde40_remove(place_t *place, uint32_t pos,
 extern errno_t cde40_get_key(place_t *place, uint32_t pos, 
 			     key_entity_t *key);
 
-extern lookup_t cde40_lookup(place_t *place, key_entity_t *key,
-			     uint32_t *pos);
+extern lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
+				 uint32_t *pos);
 
 extern uint32_t cde40_size_units(place_t *place, uint32_t pos, 
 				 uint32_t count);
@@ -752,7 +752,7 @@ errno_t cde40_estimate_merge(place_t *dst, uint32_t dst_pos,
 {
 	uint32_t units, next_pos, pos;
 	key_entity_t dst_key;
-	lookup_t lookup;
+	lookup_res_t lookup;
 	
 	aal_assert("vpf-957", dst  != NULL);
 	aal_assert("vpf-958", src  != NULL);

@@ -11,8 +11,8 @@ extern reiser4_core_t *dcore;
 extern reiser4_plug_t dir40_plug;
 
 extern errno_t dir40_reset(object_entity_t *entity);
-extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
-			     entry_hint_t *entry);
+extern lookup_res_t dir40_lookup(object_entity_t *entity, char *name, 
+				 entry_hint_t *entry);
 extern errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry);
 
 #define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
@@ -94,11 +94,12 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	aal_assert("vpf-1242", dir != NULL);
 	aal_assert("vpf-1244", bplug != NULL);
 	
-	/* Lookup the ".". */
+	/* Lookup the "." */
 	if ((res = dir40_reset((object_entity_t *)dir)))
 		return res;
 	
-	switch (obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, &dir->body)) {
+	switch (obj40_lookup(&dir->obj, &dir->offset,
+			     LEAF_LEVEL, INST, &dir->body)) {
 	case PRESENT:
 		return 0;
 	case FAILED:
@@ -331,7 +332,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 {
 	dir40_t *dir = (dir40_t *)object;
 	entry_hint_t entry;
-	lookup_t lookup;
+	lookup_res_t lookup;
 	errno_t res;
 	
 	aal_assert("vpf-1151", object != NULL);

@@ -67,7 +67,8 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 	object_info_t *info = object->info;
 
 	switch (reiser4_tree_lookup(object->tree, &info->object,
-				    LEAF_LEVEL, object_start(object)))
+				    LEAF_LEVEL, READ,
+				    object_start(object)))
 	{
 	case PRESENT:
 		reiser4_key_assign(&info->object,
@@ -314,7 +315,9 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 	aal_assert("vpf-1136", tree != NULL);
 	aal_assert("vpf-1185", key != NULL);
 	
-	switch (reiser4_tree_lookup(tree, key, LEAF_LEVEL, &place)) {
+	switch (reiser4_tree_lookup(tree, key, LEAF_LEVEL,
+				    READ, &place))
+	{
 	case PRESENT:
 		/* The key must point to the start of the object. */
 		if (reiser4_key_compare(&place.key, key))
@@ -547,7 +550,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	/* Looking up for the victim statdata place */
 	if (reiser4_tree_lookup(object->info->tree, &entry.object,
-				LEAF_LEVEL, &place) != PRESENT)
+				LEAF_LEVEL, READ, &place) != PRESENT)
 	{
 		aal_exception_error("Can't find an item pointed by %s. "
 				    "Entry %s/%s points to nowere.",
@@ -650,9 +653,9 @@ errno_t reiser4_object_metadata(
 }
 
 /* Makes lookup inside the @object */
-lookup_t reiser4_object_lookup(reiser4_object_t *object,
-			     const char *name,
-			     entry_hint_t *entry)
+lookup_res_t reiser4_object_lookup(reiser4_object_t *object,
+				   const char *name,
+				   entry_hint_t *entry)
 {
 	aal_assert("umka-1919", object != NULL);
 	aal_assert("umka-1920", name != NULL);

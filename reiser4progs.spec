@@ -78,7 +78,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librepair.*a
 
 %changelog
-* Fri Aug 29 2003 Yury V Umanets <umka@namesys.com>
+* Fri Aug 29 2003 Yuey V Umanets <umka@namesys.com>
 - Some cleanups and improvements inf this spec file
 * Wed Aug 27 2003 David T Hollis <dhollis@davehollis.com>
 - RPM package created

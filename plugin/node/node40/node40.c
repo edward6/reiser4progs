@@ -814,8 +814,9 @@ static int callback_comp_key(void *node, uint32_t pos,
 
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
-static lookup_t node40_lookup(node_entity_t *entity, 
-			      key_entity_t *key, pos_t *pos)
+static lookup_res_t node40_lookup(node_entity_t *entity, 
+				  key_entity_t *key,
+				  pos_t *pos)
 {
 	aal_assert("umka-472", key != NULL);
 	aal_assert("umka-478", pos != NULL);

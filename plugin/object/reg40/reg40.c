@@ -59,7 +59,7 @@ errno_t reg40_update(object_entity_t *entity) {
 	
 	/* Getting the next body item from the tree */
 	switch (obj40_lookup(&reg->obj, &reg->offset,
-			     LEAF_LEVEL, &reg->body))
+			     LEAF_LEVEL, READ, &reg->body))
 	{
 	case PRESENT:
 		return 0;
@@ -394,7 +394,7 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 
 		/* Lookup place data will be inserted at */
 		switch (obj40_lookup(&reg->obj, &hint.key,
-				     LEAF_LEVEL, &reg->body))
+				     LEAF_LEVEL, INST, &reg->body))
 		{
 		case PRESENT:
 			if (reg->body.plug->id.group == TAIL_ITEM) {
@@ -486,7 +486,7 @@ static int32_t reg40_cut(object_entity_t *entity,
 
 		/* Making lookup for last item. */
 		if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				  &place) != PRESENT))
+				  READ, &place) != PRESENT))
 		{
 			return -EINVAL;
 		}
@@ -788,17 +788,16 @@ static reiser4_object_ops_t reg40_ops = {
 	.links          = reg40_links,
 	.clobber        = reg40_clobber,
 	.recognize	= reg40_recognize,
+	.check_struct   = reg40_check_struct,
+
 	.update		= NULL,
-	
 	.add_entry      = NULL,
 	.rem_entry      = NULL,
 	.attach         = NULL,
 	.detach         = NULL,
 	
 	.fake		= NULL,
-	.check_struct   = reg40_check_struct,
 	.check_attach 	= NULL,
-
 #endif
 	.lookup	        = NULL,
 	.follow         = NULL,

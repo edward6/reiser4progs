@@ -124,7 +124,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 
 	/* Lookup place new item to be insert at and insert it to tree */
 	if (obj40_lookup(obj, &hint.key, LEAF_LEVEL, 
-			 STAT_PLACE(obj)) != ABSENT)
+			 INST, STAT_PLACE(obj)) != ABSENT)
 	{
 		return -EINVAL;
 	}
@@ -451,7 +451,7 @@ errno_t obj40_update(obj40_t *obj) {
 		
 	/* Looking for stat data place by */
 	switch (obj40_lookup(obj, &STAT_PLACE(obj)->key,
-			     LEAF_LEVEL, STAT_PLACE(obj)))
+			     LEAF_LEVEL, READ, STAT_PLACE(obj)))
 	{
 	case PRESENT:
 		return 0;
@@ -461,13 +461,14 @@ errno_t obj40_update(obj40_t *obj) {
 }
 
 /* Performs lookup and returns result to caller */
-lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
-		      uint8_t level, place_t *place)
+lookup_res_t obj40_lookup(obj40_t *obj, key_entity_t *key,
+			  uint8_t level, lookup_mod_t mode,
+			  place_t *place)
 {
 	aal_assert("umka-1966", obj != NULL);
 	
 	return obj->core->tree_ops.lookup(obj->info.tree, key,
-					  level, place);
+					  level, mode, place);
 }
 
 #ifndef ENABLE_STAND_ALONE

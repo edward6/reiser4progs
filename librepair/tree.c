@@ -254,7 +254,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
 	reiser4_place_t place;
 	insert_hint_t hint;
-	lookup_t lookup;
+	lookup_res_t lookup;
 	ptr_hint_t ptr;
 	uint32_t level;
 	errno_t res;
@@ -270,7 +270,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_node_lkey(node, &hint.key);
 	
 	/* Key should not exist in the tree yet. */
-	lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL, &place);
+	lookup = reiser4_tree_lookup(tree, &hint.key,
+				     LEAF_LEVEL, INST, &place);
 	
 	if (lookup != ABSENT)
 		return lookup;
@@ -496,7 +497,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		return res;
 	
 	while (1) {
-		switch (reiser4_tree_lookup(tree, &key, LEAF_LEVEL, &dst)) {
+		switch (reiser4_tree_lookup(tree, &key, LEAF_LEVEL,
+					    INST, &dst))
+		{
 		case PRESENT:
 			/* Whole data can not be inserted */
 			whole = FALSE;
