@@ -167,12 +167,12 @@ static errno_t callback_find_entry(char *track, char *entry,
 }
 
 errno_t reiser4_object_resolve(reiser4_object_t *object,
-			       char *filename)
+			       char *filename, bool_t follow)
 {
 	aal_assert("umka-2246", object != NULL);
 	aal_assert("umka-2247", filename != NULL);
 	
-	object->follow = TRUE;
+	object->follow = follow;
 	
 	/* 
 	  Parsing path and looking for object's stat data. We assume, that name
@@ -220,7 +220,7 @@ reiser4_object_t *reiser4_object_open(
 	/* Resolving path, starting from the root */
 	reiser4_key_assign(&object->key, &fs->tree->key);
 	
-	if (reiser4_object_resolve(object, filename))
+	if (reiser4_object_resolve(object, filename, follow))
 		goto error_free_object;
 
 	return object;

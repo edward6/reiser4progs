@@ -15,7 +15,7 @@ extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
 					     bool_t follow);
 
 extern errno_t reiser4_object_resolve(reiser4_object_t *object,
-				      char *filename);
+				      char *filename, bool_t follow);
 
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint32_t n);
