@@ -527,8 +527,6 @@ errno_t reiser4_tree_attach(
 	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
 
-	reiser4_pos_t pos = {0, ~0ul};
-
 	aal_assert("umka-913", tree != NULL, return -1);
 	aal_assert("umka-916", node != NULL, return -1);
     

@@ -27,10 +27,6 @@ reiser4progs/COPYING.
 
 * fix gpart to wotk with more recent reiserfs than version 3.5.x
 
-* fix reiser4_tree_attach
-	(1) hardcoded nodeptr plugin id
-	(2) node to be attached may contain an extent as the first item
-
 * improve balacing for the case when we are going to insert new unit
   at the end of last item in node. Suppose right neighbour exists and
   has enough free space. In this case we should insert new unit into
