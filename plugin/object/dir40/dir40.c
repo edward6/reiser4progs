@@ -158,7 +158,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 
 	dir40_relock(entity, &dir->body, &next);
 
-	dir->body = next;
+	aal_memcpy(&dir->body, &next, sizeof(next));
 	dir->body.pos.unit = 0;
 
 	/* Updating current position by entry offset key */

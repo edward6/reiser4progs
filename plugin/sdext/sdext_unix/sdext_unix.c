@@ -78,7 +78,7 @@ static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 				uint16_t options)
 {
 	sdext_unix_t *ext;
-	uint32_t atm, mtm, ctm;
+	time_t atm, mtm, ctm;
 	char uid[255], gid[255];
 	
 	aal_assert("umka-1412", body != NULL);
@@ -100,13 +100,13 @@ static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 	ctm = sdext_unix_get_ctime(ext);
 
 	aal_stream_format(stream, "atime:\t\t%s",
-			  ctime((time_t *)&atm));
+			  ctime(&atm));
 	
 	aal_stream_format(stream, "mtime:\t\t%s",
-			  ctime((time_t *)&mtm));
+			  ctime(&mtm));
 	
 	aal_stream_format(stream, "ctime:\t\t%s",
-			  ctime((time_t *)&ctm));
+			  ctime(&ctm));
 
 	aal_stream_format(stream, "rdev:\t\t%u\n",
 			  sdext_unix_get_rdev(ext));

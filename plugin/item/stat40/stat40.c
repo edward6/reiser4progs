@@ -31,6 +31,7 @@ errno_t stat40_traverse(item_entity_t *item,
     
 	stat = stat40_body(item);
 
+	extmask = 0;
 	sdext.offset = 0;
 	sdext.body = item->body;
 
