@@ -309,11 +309,6 @@ void reiser4_master_close(reiser4_master_t *master) {
 	aal_free(master);
 }
 
-char *reiser4_master_magic(reiser4_master_t *master) {
-	aal_assert("umka-982", master != NULL);
-	return SUPER(master)->ms_magic;
-}
-
 rid_t reiser4_master_format(reiser4_master_t *master) {
 	aal_assert("umka-982", master != NULL);
 	return get_ms_format(SUPER(master));
@@ -322,6 +317,12 @@ rid_t reiser4_master_format(reiser4_master_t *master) {
 uint32_t reiser4_master_blocksize(reiser4_master_t *master) {
 	aal_assert("umka-983", master != NULL);
 	return get_ms_blocksize(SUPER(master));
+}
+
+#ifndef ENABLE_STAND_ALONE
+char *reiser4_master_magic(reiser4_master_t *master) {
+	aal_assert("umka-982", master != NULL);
+	return SUPER(master)->ms_magic;
 }
 
 char *reiser4_master_uuid(reiser4_master_t *master) {
@@ -333,3 +334,4 @@ char *reiser4_master_label(reiser4_master_t *master) {
 	aal_assert("umka-985", master != NULL);
 	return SUPER(master)->ms_label;
 }
+#endif

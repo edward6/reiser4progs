@@ -10,6 +10,7 @@
 
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_STAND_ALONE
 /* Returns TRUE if passed @place points to left delimiting item */
 bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 	aal_assert("umka-1862", place != NULL);
@@ -37,6 +38,7 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	return ((place->pos.unit == units - 1 || place->pos.unit == ~0ul) &&
 		place->pos.item == items - 1) ? TRUE : FALSE;
 }
+#endif
 
 /* Initializes all item-related fields */
 errno_t reiser4_place_realize(reiser4_place_t *place) {

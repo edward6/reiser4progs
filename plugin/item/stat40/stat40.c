@@ -284,6 +284,7 @@ static uint32_t stat40_units(item_entity_t *item) {
 	return 1;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
 	body_t *body;
@@ -345,8 +346,6 @@ static int stat40_sdext_present(item_entity_t *item,
 
 	return hint.present;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Callback for counting the number of stat data extentions in use */
 static errno_t callback_count_ext(sdext_entity_t *sdext, uint16_t extmask, 
