@@ -7,9 +7,9 @@
 #include "obj40.h"
 #include <repair/plugin.h>
 
-/* Obtains the plugin of the type @type from SD if stored there, otherwise 
-   obtains the default one from the profile.  This differs from obj40_plug
-   as it checks if the id from the SD is a valid one. */
+/* Obtains the plugin of the type @type from SD if stored there, otherwise
+   obtains the default one from the params. This differs from obj40_plug as it
+   checks if the id from the SD is a valid one. */
 reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	reiser4_plug_t *plug;
 	rid_t pid;
@@ -28,7 +28,7 @@ reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	
 	/* Id either is not kept in SD or has not been found, 
 	   obtain the default one. */
-	if ((pid = obj->core->profile_ops.value(name)) == INVAL_PID)
+	if ((pid = obj->core->param_ops.value(name)) == INVAL_PID)
 		return NULL;
 	
 	return obj->core->factory_ops.ifind(type, pid);
@@ -289,7 +289,7 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	if ((pid = obj->core->profile_ops.value("statdata") == INVAL_PID))
+	if ((pid = obj->core->param_ops.value("statdata") == INVAL_PID))
 		return -EINVAL;
 
 	if ((res = obj40_create_stat(obj, pid, mask, 0, 0,

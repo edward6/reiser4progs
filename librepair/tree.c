@@ -316,7 +316,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;
 	
-	pid = reiser4_profile_value("nodeptr");
+	pid = reiser4_param_value("nodeptr");
 	
 	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id 0x%x.", 

@@ -429,21 +429,28 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 		if (stat40_read(place, &hint, 0, 1) != 1)
 			return INVAL_PID;
 
-		if (S_ISLNK(lw_hint.mode))
-			return core->profile_ops.value("symlink");
-		else if (S_ISREG(lw_hint.mode))
-			return core->profile_ops.value("regular");
-		else if (S_ISDIR(lw_hint.mode))
-			return core->profile_ops.value("directory");
 #ifndef ENABLE_STAND_ALONE	
+		if (S_ISLNK(lw_hint.mode))
+			return core->param_ops.value("symlink");
+		else if (S_ISREG(lw_hint.mode))
+			return core->param_ops.value("regular");
+		else if (S_ISDIR(lw_hint.mode))
+			return core->param_ops.value("directory");
 		else if (S_ISCHR(lw_hint.mode))
-			return core->profile_ops.value("special");
+			return core->param_ops.value("special");
 		else if (S_ISBLK(lw_hint.mode))
-			return core->profile_ops.value("special");
+			return core->param_ops.value("special");
 		else if (S_ISFIFO(lw_hint.mode))
-			return core->profile_ops.value("special");
+			return core->param_ops.value("special");
 		else if (S_ISSOCK(lw_hint.mode))
-			return core->profile_ops.value("special");
+			return core->param_ops.value("special");
+#else
+		if (S_ISLNK(lw_hint.mode))
+			return OBJECT_SYM40_ID;
+		else if (S_ISREG(lw_hint.mode))
+			return OBJECT_REG40_ID;
+		else if (S_ISDIR(lw_hint.mode))
+			return OBJECT_DIR40_ID;
 #endif
 	}
 	

@@ -48,7 +48,7 @@
 #include "gauge.h"
 #include "mpressure.h"
 #include "exception.h"
-#include "profile.h"
+#include "param.h"
 #include "version.h"
 #include "ui.h"
 

@@ -118,10 +118,11 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
 	
-	/* Absent. Add a new ".". Take it from the profile for now.
-	   FIXME-VITALY: It can be stored in SD also, but it is not 
-	   clear under which type -- ITEM_PLUG? Fix it when reiser4 
-	   syscall will be ready. */
+	/* Absent. Add a new ".". Take it from the param for now.
+
+	   FIXME-VITALY: It can be stored in SD also, but it is not clear under
+	   which type -- ITEM_PLUG? Fix it when reiser4 syscall will be
+	   ready. */
 		
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
@@ -200,9 +201,9 @@ errno_t dir40_check_struct(object_entity_t *object,
                 return -EINVAL;
         }
 	
-	if ((pid = dcore->profile_ops.value("direntry")) == INVAL_PID) {
+	if ((pid = dcore->param_ops.value("direntry")) == INVAL_PID) {
 		aal_exception_error("Failed to get a plugid for direntry from "
-				    "the profile.");
+				    "the params.");
 		return -EINVAL;
 	}
 	
@@ -218,11 +219,11 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	size = 0; bytes = 0; 
 	
-	/* FIXME-VITALY: this probably should be changed. Now hash plug
-	   that is used is taken from SD or the default one from the 
-	   profile. Probably it would be better to do evth in vise versa
-	   order -- choose the hash found among the entries most of the 
-	   times and correct hash plugin in SD. */
+	/* FIXME-VITALY: this probably should be changed. Now hash plug that is
+	   used is taken from SD or the default one from the params. Probably it
+	   would be better to do evth in vise versa order -- choose the hash
+	   found among the entries most of the times and correct hash plugin in
+	   SD. */
 	while (TRUE) {
 		pos_t *pos = &dir->body.pos;
 		remove_hint_t hint;

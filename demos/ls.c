@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 		return 0xff;
 	}
     
-//	misc_profile_override("hash=deg_hash");
+//	misc_param_override("hash=deg_hash");
 		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 		object_hint_t reg_hint;
 	
 		reg_hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE,
-						      OBJECT_FILE40_ID);
+						      OBJECT_REG40_ID);
 		
 		reg_hint.statdata = ITEM_STATDATA40_ID;
 

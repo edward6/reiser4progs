@@ -22,7 +22,10 @@ mkfs.reiser4 \- the program for creating reiser4 filesystem.
 [ options ] FILE1 FILE2 ... [ size[K|M|G] ]
 .SH DESCRIPTION
 .B mkfs.reiser4
-is reiser4 filesystem creation program. It is based on new libreiser4 library. Since libreiser4 fully plugin-based, we have potential possibility to create not just reiser4, but any filesystem or database format, which based on the balanced tree.
+is reiser4 filesystem creation program. It is based on new libreiser4
+library. Since libreiser4 fully plugin-based, we have potential
+possibility to create not just reiser4, but any filesystem or database
+format, which based on the balanced tree.
 .SH COMMON OPTIONS
 .TP
 .B -V, --version
@@ -51,10 +54,10 @@ universally unique identifier to be used
 forces mkfs to create lost+found directory.
 .SH PLUGIN OPTIONS
 .TP
-.B -P, --print-profile
-prints current profile. Profile is the set of plugins used for each
+.B -P, --print-params
+prints default parameters. This is the set of plugins used for each
 filesystem object (format, node, file, directories, hashes, etc.). If
---override is specified, then prints modified profile.
+--override is specified, then prints modified parameters.
 .TP
 .B -p, --print-plugins
 prints all plugins libreiser4 know about.
@@ -64,8 +67,8 @@ overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
 .sp 1
 Examples:
 .sp 1
-assign short key plugin to "key" field of profile in order to create
-filesystem with short keys policy:
+assign short key plugin to "key" field in order to create filesystem
+with short keys policy:
 .sp 1
 mkfs.reiser4 -qf -o key=key_short /dev/hda2
 .RS

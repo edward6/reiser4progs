@@ -40,7 +40,7 @@ static void resizefs_print_usage(char *name) {
 		"  -f, --force                     makes reiserer to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"Plugins options:\n"
-		"  -P, --print-profile             prints default profile.\n"
+		"  -P, --print-params              prints default params.\n"
 		"  -p, --print-plugins             prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
 		{"quiet", no_argument, NULL, 'q'},
-		{"print-profile", no_argument, NULL, 'P'},
+		{"print-params", no_argument, NULL, 'P'},
 		{"print-plugins", no_argument, NULL, 'p'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
@@ -124,22 +124,22 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	/* Overriding profile by passed by used values. This should be done
-	   after libreiser4 is initialized. */
+	/* Overriding params by passed values. This should be done after
+	   libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		override[aal_strlen(override) - 1] = '\0';
 
 		if (!(flags & BF_QUIET)) {
-			aal_exception_info("Overriding default profile "
+			aal_exception_mess("Overriding default params "
 					   "by \"%s\".", override);
 		}
 		
-		if (misc_profile_override(override))
+		if (misc_param_override(override))
 			goto error_free_libreiser4;
 	}
 	
 	if (flags & BF_PROF)
-		misc_profile_print();
+		misc_param_print();
 
 	if (flags & BF_PLUGS)
 		misc_plugins_print();

@@ -788,7 +788,7 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	
 	aal_assert("vpf-1053", fs != NULL);
 	
-	pid = reiser4_profile_value("directory");
+	pid = reiser4_param_value("directory");
 	
 	/* Preparing object hint */
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid);
@@ -799,9 +799,9 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 		return NULL;
 	}
     
-	hint.statdata = reiser4_profile_value("statdata");
-	hint.body.dir.hash = reiser4_profile_value("hash");
-	hint.body.dir.direntry = reiser4_profile_value("direntry");
+	hint.statdata = reiser4_param_value("statdata");
+	hint.body.dir.hash = reiser4_param_value("hash");
+	hint.body.dir.direntry = reiser4_param_value("direntry");
 
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
@@ -826,7 +826,7 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	
 	aal_assert("vpf-1054", fs != NULL);
 	
-	regular = reiser4_profile_value("regular");
+	regular = reiser4_param_value("regular");
 	
 	/* Preparing object hint */
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, regular);
@@ -837,10 +837,10 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 		return NULL;
 	}
 	
-	hint.statdata = reiser4_profile_value("statdata");
-	hint.body.reg.tail = reiser4_profile_value("tail");
-	hint.body.reg.extent = reiser4_profile_value("extent");
-	hint.body.reg.policy = reiser4_profile_value("policy");
+	hint.statdata = reiser4_param_value("statdata");
+	hint.body.reg.tail = reiser4_param_value("tail");
+	hint.body.reg.extent = reiser4_param_value("extent");
+	hint.body.reg.policy = reiser4_param_value("policy");
 	
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
@@ -867,7 +867,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	aal_assert("vpf-1186", fs != NULL);
 	aal_assert("vpf-1057", target != NULL);
 	
-	symlink = reiser4_profile_value("symlink");
+	symlink = reiser4_param_value("symlink");
 	
 	/* Preparing object hint */
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, symlink);
@@ -879,7 +879,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	}
 	
 	hint.body.sym = (char *)target;
-	hint.statdata = reiser4_profile_value("statdata");
+	hint.statdata = reiser4_param_value("statdata");
 	
 	/* Creating object by passed parameters */	
 	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))

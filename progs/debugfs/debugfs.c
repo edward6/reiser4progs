@@ -47,7 +47,7 @@ static void debugfs_print_usage(char *name) {
 		"  -i, --print-items FILE          prints all items specified file\n"
 		"                                  consists of.\n"
 		"Plugins options:\n"
-		"  -P, --print-profile             prints default profile.\n"
+		"  -P, --print-params              prints default params.\n"
 		"  -p, --print-plugins             prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 		{"print-block", required_argument, NULL, 'b'},
 		{"print-nodes", required_argument, NULL, 'n'},
 		{"print-items", required_argument, NULL, 'i'},
-		{"print-profile", no_argument, NULL, 'P'},
+		{"print-params", no_argument, NULL, 'P'},
 		{"print-plugins", no_argument, NULL, 'p'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
@@ -213,22 +213,22 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	/* Overriding profile by passed by used values. This should be done after
+	/* Overriding default params by passed values. This should be done after
 	   libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		override[aal_strlen(override) - 1] = '\0';
 		
 		if (!(behav_flags & BF_QUIET)) {
-			aal_exception_info("Overriding default profile "
+			aal_exception_mess("Overriding default params "
 					   "by \"%s\".", override);
 		}
 		
-		if (misc_profile_override(override))
+		if (misc_param_override(override))
 			goto error_free_libreiser4;
 	}
 	
 	if (behav_flags & BF_PROF)
-		misc_profile_print();
+		misc_param_print();
 
 	if (behav_flags & BF_PLUGS)
 		misc_plugins_print();

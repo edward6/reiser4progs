@@ -74,7 +74,7 @@ enum reiser4_plug_type {
 typedef enum reiser4_plug_type reiser4_plug_type_t;
 
 enum reiser4_object_plug_id {
-	OBJECT_FILE40_ID	= 0x0,
+	OBJECT_REG40_ID         = 0x0,
 	OBJECT_DIR40_ID		= 0x1,
 	OBJECT_SYM40_ID		= 0x2,
 	OBJECT_SPCL40_ID	= 0x3
@@ -1376,14 +1376,14 @@ struct object_ops {
 typedef struct object_ops object_ops_t;
 #endif
 
-struct profile_ops {
-	/* Obtains the profile value by plugin name. */
+#ifndef ENABLE_STAND_ALONE
+struct param_ops {
+	/* Obtains the param value by its name. */
 	uint64_t (*value) (char *);
 };
 
-typedef struct profile_ops profile_ops_t;
+typedef struct param_ops param_ops_t;
 
-#ifndef ENABLE_STAND_ALONE
 struct key_ops {
 	char *(*print) (key_entity_t *, uint16_t);
 };
@@ -1395,7 +1395,11 @@ typedef struct key_ops key_ops_t;
    access libreiser4 factories. */
 struct reiser4_core {
 	tree_ops_t tree_ops;
-	profile_ops_t profile_ops;
+	
+#ifndef ENABLE_STAND_ALONE
+	param_ops_t param_ops;
+#endif
+	
 	factory_ops_t factory_ops;
 	
 #ifdef ENABLE_SYMLINKS

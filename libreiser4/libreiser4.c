@@ -173,12 +173,12 @@ static char *key_print(key_entity_t *key, uint16_t options) {
 static errno_t tree_conv(void *tree, place_t *place, reiser4_plug_t *plug) {
 	return reiser4_tree_conv(tree, (reiser4_place_t *)place, plug);
 }
-#endif
 
-static uint64_t profile_value(char *name) {
+static uint64_t param_value(char *name) {
 	aal_assert("vpf-1202", name != NULL);
-	return reiser4_profile_value(name);
+	return reiser4_param_value(name);
 }
+#endif
 
 #ifdef ENABLE_SYMLINKS
 static errno_t object_resolve(void *tree, place_t *place, char *filename,
@@ -250,9 +250,11 @@ reiser4_core_t core = {
 		.conv	    = tree_conv
 #endif
 	},
-	.profile_ops = {
-		.value = profile_value
+#ifndef ENABLE_STAND_ALONE
+	.param_ops = {
+		.value = param_value
 	},
+#endif
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its
 		   type and id. */

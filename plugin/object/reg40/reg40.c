@@ -198,9 +198,9 @@ static object_entity_t *reg40_create(object_info_t *info,
 
 	/* Initializing tail policy plugin */
 	if (hint->body.reg.policy == INVAL_PID) {
-		/* Getting default tail policy from profile if passed hint
+		/* Getting default tail policy from param if passed hint
 		   contains no valid tail policy plugin id. */
-		hint->body.reg.policy = rcore->profile_ops.value("policy");
+		hint->body.reg.policy = rcore->param_ops.value("policy");
 
 		if (hint->body.reg.policy == INVAL_PID) {
 			aal_exception_error("Invalid default tail policy "
@@ -295,7 +295,7 @@ reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint64_t new_size) {
 	/* Calling tail policy plugin to detect body plugin */
 	if (plug_call(reg->policy->o.policy_ops, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
-		   it is not found, default one from profile will be taken. */
+		   it is not found, default one from params will be taken. */
 		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail");
 	} else {
 		/* The same for extent plugin */
@@ -812,7 +812,7 @@ static reiser4_object_ops_t reg40_ops = {
 
 reiser4_plug_t reg40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OBJECT_FILE40_ID, FILE_OBJECT, OBJECT_PLUG_TYPE},
+	.id    = {OBJECT_REG40_ID, FILE_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "reg40",
 	.desc  = "Regular file for reiser4, ver. " VERSION,

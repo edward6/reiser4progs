@@ -39,7 +39,7 @@ typedef enum fsck_options {
 } fsck_options_t;
 
 typedef struct fsck_parse {
-    reiser4_profile_t *profile;
+    reiser4_param_t *param;
     uint8_t mode;
 
     FILE *logfile;

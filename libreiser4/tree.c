@@ -399,7 +399,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	reiser4_format_set_free(tree->fs->format, free - 1);
 
 	fake_blk = reiser4_fake_get();
-	pid = reiser4_profile_value("node");
+	pid = reiser4_param_value("node");
 	blksize = reiser4_master_blksize(tree->fs->master);
 
 	/* Creating new node */
@@ -575,7 +575,7 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Allocates nodeptr item */
+/* Allocates nodeptr item at passed @place */
 static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 					  reiser4_place_t *place)
 {
@@ -715,7 +715,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 	}
 #endif
 	
-	/* Checking if we should flush the whole tree */
+	/* Checking if we should try to release some nodes.*/
 	if (check) {
 		/* Checking if memory pressure is still exist */
 		if (!tree->mpc_func || !tree->mpc_func())
@@ -1027,7 +1027,7 @@ errno_t reiser4_tree_attach(
 	hint.specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);
-	pid = reiser4_profile_value("nodeptr");
+	pid = reiser4_param_value("nodeptr");
 
 	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE,
 						pid)))

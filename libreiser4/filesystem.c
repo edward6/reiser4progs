@@ -37,9 +37,9 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	if (plug_call(fs->format->entity->plug->o.format_ops,
 		      tst_flag, fs->format->entity, 0))
 	{
-		reiser4_profile_override("key", "key_large");
+		reiser4_param_override("key", "key_large");
 	} else {
-		reiser4_profile_override("key", "key_short");
+		reiser4_param_override("key", "key_short");
 	}
 	
 	if (reiser4_format_valid(fs->format))
@@ -256,7 +256,7 @@ reiser4_fs_t *reiser4_fs_create(
 	fs->device = device;
 	
 	/* Creates master super block */
-	format = reiser4_profile_value("format");
+	format = reiser4_param_value("format");
 		
 	if (!(fs->master = reiser4_master_create(device, format,
 						 hint->blksize,
@@ -266,8 +266,8 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_fs;
 	}
 
-	/* Getting tail policy from the passed profile */
-	policy = reiser4_profile_value("policy");
+	/* Getting tail policy from default params. */
+	policy = reiser4_param_value("policy");
 	
 	/* Creates disk format */
 	if (!(fs->format = reiser4_format_create(fs, hint->blocks,
@@ -277,7 +277,7 @@ reiser4_fs_t *reiser4_fs_create(
 	}
 
 	/* Taking care about key flags in format super block */
-	if (reiser4_profile_value("key") == KEY_LARGE_ID) {
+	if (reiser4_param_value("key") == KEY_LARGE_ID) {
 		plug_call(fs->format->entity->plug->o.format_ops,
 			  set_flag, fs->format->entity, 0);
 	} else {

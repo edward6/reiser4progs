@@ -543,7 +543,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	if (sem->repair->mode != RM_BUILD)
 		return NULL;
 	
-	if ((pid = reiser4_profile_value("directory")) == INVAL_PID) {
+	if ((pid = reiser4_param_value("directory")) == INVAL_PID) {
 		aal_exception_error("Can't get the valid plugin id "
 				    "for the directory plugin.");
 		return INVAL_PTR;

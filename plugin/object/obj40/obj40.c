@@ -403,8 +403,8 @@ reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
 	return obj->core->factory_ops.ifind(type, pid);
 }
 
-/* Obtains plugid of the type @type from the SD if it is kept 
-   there, othewise obtains the default one from the profile. */
+/* Obtains plugid of the type @type from the SD if it is kept there, othewise
+   obtains the default one from the params. */
 rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	rid_t pid;
 	
@@ -413,17 +413,19 @@ rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	
 	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops,
 			plugid, STAT_PLACE(obj), type);
-	
+
+#ifndef ENABLE_STAND_ALONE
 	/* If nothing found in SD, obtain the default one. */
 	if (pid == INVAL_PID)
-		pid = obj->core->profile_ops.value(name);
+		pid = obj->core->param_ops.value(name);
+#endif
 	
 	return pid;
 }
 
 /*
-  Initializes object handle by plugin, key, core operations and 
-  opaque pointer to tree file is going to be opened/created in. */
+  Initializes object handle by plugin, key, core operations and opaque pointer
+  to tree file is going to be opened/created in. */
 errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 		   reiser4_core_t *core, object_info_t *info)
 {

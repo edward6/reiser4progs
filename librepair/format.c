@@ -16,7 +16,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	aal_assert("vpf-171", fs->device != NULL);
 	aal_assert("vpf-834", fs->master != NULL);
 	
-	policy = reiser4_profile_value("policy");
+	policy = reiser4_param_value("policy");
 	
 	if (policy >= TAIL_LAST_ID) {
 		/* Tail id from the profile is wrong. */
@@ -34,7 +34,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			/* Fatal error in the format structure. */
 			return RE_FATAL;
 		
-		pid = reiser4_profile_value("format");
+		pid = reiser4_param_value("format");
 		
 		/* Try to detect a format on the device. */
 		if (!(plug = reiser4_master_guess(fs->device))) {

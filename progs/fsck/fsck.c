@@ -78,7 +78,7 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 			"into (%s).\n", "", host_name);
 	}
 
-	fprintf(stderr, "Will use (%s) profile.\n", data->profile->name);
+	fprintf(stderr, "Will use (%s) params.\n", data->param->name);
 
 	if (aal_exception_yesno("Continue?") == EXCEPTION_NO) 
 		return USER_ERROR;
@@ -127,7 +127,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		{0, 0, 0, 0}
 	};
 
-	data->profile = &default_profile;
+	data->param = &default_param;
 	misc_exception_set_stream(EXCEPTION_FATAL, stderr);
 	data->logfile = stderr;
 

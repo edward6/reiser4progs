@@ -22,8 +22,8 @@ debugfs.reiser4 \- the program for debugging the reiser4 filesystem.
 [ options ] FILE
 .SH DESCRIPTION
 .B debugfs.reiser4
-is reiser4 filesystem debug program. You can disscover the internal reiser4 filesystem 
-structures by using it.
+is reiser4 filesystem debug program. You can disscover the internal
+reiser4 filesystem structures by using it.
 .SH COMMON OPTIONS
 .TP
 .B -V, --version
@@ -68,10 +68,10 @@ prints the block allocator data.
 prints the oid allocator data.
 .SH PLUGIN OPTIONS
 .TP
-.B -P, --print-profile
-prints current profile. Profile is the set of plugins used for each
+.B -P, --print-params
+prints default parameters. This is the set of plugins used for each
 filesystem object (format, node, file, directories, hashes, etc.). If
---override is specified, then prints modified profile.
+--override is specified, then prints modified parameters.
 .TP
 .B -p, --print-plugins
 prints all plugins libreiser4 know about.
