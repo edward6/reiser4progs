@@ -122,11 +122,11 @@ reiser4_node_t *reiser4_node_open(
    
 	if (!(node->entity = reiser4_node_guess(device, blk))) {
 		/* 
-		    FIXME-VITALY->UMKA: It is needed sometimes, like during 
-		    scanning the disk at fsck time, to disable logical 
-		    exceptions - e.g. this block does not contain a node - but 
-		    does not disable fatal exceptions  - bad environement, 
-		    failed to allocated a memory, etc.
+		    FIXME-VITALY->UMKA: It is needed sometimes, like during
+		    scanning the disk at fsck time, to disable logical
+		    exceptions - e.g. this block does not contain a node - but
+		    does not disable fatal exceptions - bad environement, failed
+		    to allocated a memory, etc.
 		*/
 		aal_exception_error("Can't guess node plugin for "
 				    "node %llu.", blk);
@@ -436,7 +436,7 @@ errno_t reiser4_node_attach(
 		node->children->next->data : NULL;
     
 	child->parent = node;
-    
+
 	if (reiser4_node_pos(child, &child->pos)) {
 		aal_exception_error("Can't find child %llu in parent node %llu.",
 				    child->blk, node->blk);
@@ -699,6 +699,30 @@ errno_t reiser4_node_shift(
 			}
 		}
 	} else {
+/*		uint32_t i;
+		uint32_t level;
+
+		level = plugin_call(return -1, node->entity->plugin->node_ops,
+				    get_level, node->entity);
+		
+		if (level > LEAF_LEVEL && node->children) {
+			aal_list_t *walk = aal_list_last(node->children);
+
+			for (i = 0; i < hint->items && walk; i++) {
+				reiser4_pos_t pos;
+				reiser4_node_t *child = (reiser4_node_t *)walk->data;
+								
+				if (reiser4_node_pos(child, &pos)) {
+					reiser4_node_detach(node, child);
+
+					if (reiser4_node_attach(neig, child))
+						return -1;
+				}
+				
+				walk = walk->prev;
+			}
+		}*/
+		
 		if (hint->items > 0 || hint->units > 0) {
 			neig->flags |= NF_DIRTY;
 			
@@ -710,6 +734,7 @@ errno_t reiser4_node_shift(
 					return -1;
 			}
 		}
+		
 	}
 
 	return 0;

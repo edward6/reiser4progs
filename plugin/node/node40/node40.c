@@ -106,14 +106,6 @@ static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 	}
 	
 	node->plugin = &node40_plugin;
-    
-	if (nh40_get_pid(node) != NODE_REISER40_ID) {
-		aal_exception_error("Plugin id (%u) does not "
-				    "match current plugin id (%u).", 
-				    nh40_get_pid(node), NODE_REISER40_ID);
-		goto error_free_node;
-	}
-
 	return (object_entity_t *)node;
     
  error_free_node:
