@@ -1124,9 +1124,6 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	
 	*pos = (uint32_t)unit;
 
-	if (res == LP_ABSENT)
-		(*pos)++;
-    
 	return res;
 }
 

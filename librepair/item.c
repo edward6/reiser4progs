@@ -8,10 +8,10 @@
 #include <repair/librepair.h>
 
 /* Prepare place for just a piece of item insertion. Return the number of 
- * units to be splited. */
+ * units to be splited. 
 uint32_t repair_item_split(
     reiser4_place_t *place, 
-    reiser4_key_t *rd_key)  /* split to this right delimiting key */
+    reiser4_key_t *rd_key)  // split to this right delimiting key 
 {    
     reiser4_key_t key;
     uint32_t unit = 0;
@@ -19,11 +19,11 @@ uint32_t repair_item_split(
     if (reiser4_item_maxreal_key(place, &key))
 	return -EINVAL;
  
-    /* rd_key greater then max real key - nothing to split. */
+    // rd_key greater then max real key - nothing to split. 
     if (reiser4_key_compare(rd_key, &key) > 0) 
 	return reiser4_item_units(place);
  
-    /* Split. Lookup method must be implemented in this case. */
+    // Split. Lookup method must be implemented in this case. 
     if (plugin_call(place->item.plugin->item_ops, lookup, 
 	&place->item, rd_key, &unit) == LP_FAILED) 
     {
@@ -34,6 +34,7 @@ uint32_t repair_item_split(
    
     return unit;
 }
+*/
 
 /* Checks if length has been changed, shrink the node if so. */
 static errno_t repair_item_check_fini(reiser4_place_t *place, 
