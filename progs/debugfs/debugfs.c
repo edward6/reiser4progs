@@ -55,9 +55,8 @@ static void debugfs_print_usage(char *name) {
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
-		"  -q, --quiet                   forces using filesystem without\n"
-		"                                any questions.\n"
 		"  -f, --force                   makes debugfs to use whole disk, not\n"
+		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"                                block device or mounted partition.\n"
 		"  -c, --cache N                 number of nodes in tree buffer cache\n"
 		"\n"
@@ -347,7 +346,7 @@ int main(int argc, char *argv[]) {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
-		{"quiet", no_argument, NULL, 'q'},
+		{"yes", no_argument, NULL, 'y'},
 		{"cat", required_argument, NULL, 'k'},
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
@@ -379,7 +378,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djk:n:i:o:plsaPUOFWB:c:C?",
+	while ((c = getopt_long(argc, argv, "hVyftb:djk:n:i:o:plsaPUOFWB:c:C?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -440,8 +439,8 @@ int main(int argc, char *argv[]) {
 		case 'f':
 			behav_flags |= BF_FORCE;
 			break;
-		case 'q':
-			behav_flags |= BF_QUIET;
+		case 'y':
+			behav_flags |= BF_YES;
 			break;
 		case 'P':
 			behav_flags |= BF_PACK_META;
@@ -477,7 +476,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
-	if (!(behav_flags & BF_QUIET))
+	if (!(behav_flags & BF_YES))
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
@@ -490,7 +489,7 @@ int main(int argc, char *argv[]) {
 	if (aal_strlen(override) > 0) {
 		override[aal_strlen(override) - 1] = '\0';
 		
-		if (!(behav_flags & BF_QUIET)) {
+		if (!(behav_flags & BF_YES)) {
 			aal_mess("Overriding the plugin profile by \"%s\".", 
 				 override);
 		}
@@ -675,7 +674,7 @@ int main(int argc, char *argv[]) {
 
 	/* In the case no print flags was specified, debugfs will print super
 	   blocks by defaut. */
-	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
+	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_YES)) == 0)
 		print_flags = PF_SUPER;
 
 	/* Handling print options */

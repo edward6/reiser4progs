@@ -12,6 +12,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 		       aal_device_t *hdevice,
 		       aal_device_t *jdevice)
 {
+	reiser4_fs_t *fs;
 	errno_t res = 0;
 
 	aal_assert("vpf-851",  repair != NULL);
@@ -19,21 +20,19 @@ errno_t repair_fs_open(repair_data_t *repair,
 	aal_assert("vpf-1556", jdevice != NULL);
  
 	/* Allocating memory and initializing fields */
-	if (!(repair->fs = aal_calloc(sizeof(*repair->fs), 0)))
+	if (!(fs = repair->fs = aal_calloc(sizeof(*repair->fs), 0)))
 		return -ENOMEM;
 
-	repair->fs->device = hdevice;
+	fs->device = hdevice;
 	
 	/* Try to open master & format -- evth what gets backed up. */
-	repair->fs->master = reiser4_master_open(repair->fs->device);
-	if (repair->fs->master) {
-		repair->fs->format = reiser4_format_open(repair->fs);
+	fs->master = reiser4_master_open(fs->device);
+	if (fs->master) {
+		fs->format = reiser4_format_open(fs);
 	}
 	
 	/* Try to open the reiser4 backup. */
-	if (!(repair->fs->backup = repair_backup_open(repair->fs, 
-						      repair->mode))) 
-	{
+	if (!(fs->backup = repair_backup_open(fs, repair->mode))) {
 		if (repair->mode != RM_BUILD) {
 			aal_fatal("Failed to open the reiser4 backup.");
 			res = RE_FATAL;
@@ -41,14 +40,14 @@ errno_t repair_fs_open(repair_data_t *repair,
 		}
 	}
 	
-	res |= repair_master_check_struct(repair->fs, repair->mode);
+	res |= repair_master_check_struct(fs, repair->mode, repair->flags);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the master super block.");
 		goto error_fs_close;
 	}
 	
-	res |= repair_format_check_struct(repair->fs, repair->mode);
+	res |= repair_format_check_struct(fs, repair->mode, repair->flags);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the format.");
@@ -58,40 +57,40 @@ errno_t repair_fs_open(repair_data_t *repair,
 	/* FIXME-VITALY: if status has io flag set and there is no bad
 	   block file given to fsck -- do not continue -- when bad block 
 	   support will be written. */
-	res |= repair_status_open(repair->fs, repair->mode);
+	res |= repair_status_open(fs, repair->mode);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the status block.");
 		goto error_fs_close;
 	}
 	
-	res |= repair_alloc_open(repair->fs, repair->mode);
+	res |= repair_alloc_open(fs, repair->mode);
 
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the block allocator.");
 		goto error_status_close;
 	}
 	
-	if (!(repair->fs->oid = reiser4_oid_open(repair->fs))) {	
+	if (!(fs->oid = reiser4_oid_open(fs))) {
 		aal_fatal("Failed to open an object id allocator.");
 		res = -EINVAL;
 		goto error_alloc_close;
 	}
 
-	res |= repair_journal_open(repair->fs, jdevice, repair->mode);
+	res |= repair_journal_open(fs, jdevice, repair->mode, repair->flags);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the journal.");
 		goto error_oid_close;
 	}
 	
-	if (!(repair->fs->tree = reiser4_tree_init(repair->fs))) {
+	if (!(fs->tree = reiser4_tree_init(fs))) {
 		aal_fatal("Failed to init the fs-global plugin set.");
 		res = -ENOMEM;
 		goto error_journal_close;
 	}
 
-	if (!(repair->fs->backup = repair_backup_reopen(repair->fs))) {
+	if (!(fs->backup = repair_backup_reopen(fs))) {
 		aal_fatal("Failed to reopen backup.");
 		res = -EINVAL;
 		goto error_tree_close;
@@ -101,35 +100,35 @@ errno_t repair_fs_open(repair_data_t *repair,
 	return 0;
 
  error_tree_close:
-	reiser4_tree_close(repair->fs->tree);
-	repair->fs->tree = NULL;
+	reiser4_tree_close(fs->tree);
+	fs->tree = NULL;
 
  error_journal_close:
-	reiser4_journal_close(repair->fs->journal);
-	repair->fs->journal = NULL;
+	reiser4_journal_close(fs->journal);
+	fs->journal = NULL;
 
  error_oid_close:
-	reiser4_oid_close(repair->fs->oid);
+	reiser4_oid_close(fs->oid);
 	
  error_alloc_close:
-	reiser4_alloc_close(repair->fs->alloc);
-	repair->fs->alloc = NULL;
+	reiser4_alloc_close(fs->alloc);
+	fs->alloc = NULL;
 
  error_status_close:
-	reiser4_status_close(repair->fs->status);
-	repair->fs->status = NULL;
+	reiser4_status_close(fs->status);
+	fs->status = NULL;
 
  error_fs_close:
-	if (repair->fs->backup)
-		reiser4_backup_close(repair->fs->backup);
+	if (fs->backup)
+		reiser4_backup_close(fs->backup);
 	
-	if (repair->fs->format)
-		reiser4_format_close(repair->fs->format);
+	if (fs->format)
+		reiser4_format_close(fs->format);
 	
-	if (repair->fs->master)
-		reiser4_master_close(repair->fs->master);
+	if (fs->master)
+		reiser4_master_close(fs->master);
 
-	aal_free(repair->fs);
+	aal_free(fs);
 	repair->fs = NULL;
 
 	repair_error_count(repair, res);

@@ -10,7 +10,7 @@
 #include <reiser4/filesystem.h>
 
 extern errno_t repair_format_check_struct(reiser4_fs_t *fs, 
-					  uint8_t mode);
+					  uint8_t mode, uint32_t options);
 
 extern errno_t repair_format_update(reiser4_format_t *format);
 

@@ -20,7 +20,7 @@
 
 enum behav_flags {
 	BF_FORCE      = 1 << 0,
-	BF_QUIET      = 1 << 1,
+	BF_YES        = 1 << 1,
 	BF_SHOW_PARM  = 1 << 2,
 	BF_SHOW_PLUG  = 1 << 3
 };
@@ -41,8 +41,7 @@ static void resizefs_print_usage(char *name) {
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
-		"  -q, --quiet                   forces creating filesystem without\n"
-		"                                any questions.\n"
+		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"  -f, --force                   makes resizer to use whole disk, not\n"
 		"                                block device or mounted partition.\n"
 		"  -c, --cache N                 number of nodes in tree buffer cache\n");
@@ -74,7 +73,7 @@ int main(int argc, char *argv[]) {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
-		{"quiet", no_argument, NULL, 'q'},
+		{"yes", no_argument, NULL, 'y'},
 		{"print-profile", no_argument, NULL, 'p'},
 		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
@@ -86,7 +85,7 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "Vhqfo:plc:?",
+	while ((c = getopt_long(argc, argv, "Vhyfo:plc:?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -100,8 +99,8 @@ int main(int argc, char *argv[]) {
 		case 'f':
 			flags |= BF_FORCE;
 			break;
-		case 'q':
-			flags |= BF_QUIET;
+		case 'y':
+			flags |= BF_YES;
 			break;
 		case 'p':
 			flags |= BF_SHOW_PARM;
@@ -130,7 +129,7 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 	
-	if (!(flags & BF_QUIET))
+	if (!(flags & BF_YES))
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
@@ -143,7 +142,7 @@ int main(int argc, char *argv[]) {
 	if (aal_strlen(override) > 0) {
 		override[aal_strlen(override) - 1] = '\0';
 
-		if (!(flags & BF_QUIET)) {
+		if (!(flags & BF_YES)) {
 			aal_mess("Overriding the plugin profile by \"%s\".",
 				 override);
 		}

@@ -31,7 +31,7 @@
 
 enum mkfs_behav_flags {
 	BF_FORCE      = 1 << 0,
-	BF_QUIET      = 1 << 1,
+	BF_YES        = 1 << 1,
 	BF_LOST       = 1 << 2,
 	BF_SHOW_PARM  = 1 << 3,
 	BF_SHOW_PLUG  = 1 << 4
@@ -62,8 +62,7 @@ static void mkfs_print_usage(char *name) {
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
-		"  -q, --quiet                   forces creating filesystem without\n"
-		"                                any questions.\n"
+		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"  -f, --force                   makes mkfs to use whole disk, not\n"
 		"                                block device or mounted partition.\n");
 }
@@ -126,7 +125,7 @@ int main(int argc, char *argv[]) {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
-		{"quiet", no_argument, NULL, 'q'},
+		{"yes", no_argument, NULL, 'y'},
 		{"block-size", required_argument, NULL, 'b'},
 		{"label", required_argument, NULL, 'L'},
 		{"uuid", required_argument, NULL, 'U'},
@@ -152,7 +151,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfb:U:L:splo:?",
+	while ((c = getopt_long(argc, argv, "hVyfb:U:L:splo:?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -166,8 +165,8 @@ int main(int argc, char *argv[]) {
 		case 'f':
 			flags |= BF_FORCE;
 			break;
-		case 'q':
-			flags |= BF_QUIET;
+		case 'y':
+			flags |= BF_YES;
 			break;
 		case 'l':
 			flags |= BF_SHOW_PLUG;
@@ -227,7 +226,7 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
     
-	if (!(flags & BF_QUIET))
+	if (!(flags & BF_YES))
 		misc_print_banner(argv[0]);
 
 	/* Initializing libreiser4 (getting plugins, checking them on validness,
@@ -242,7 +241,7 @@ int main(int argc, char *argv[]) {
 	if (aal_strlen(override) > 0) {
 		override[aal_strlen(override) - 1] = '\0';
 
-		if (!(flags & BF_QUIET)) {
+		if (!(flags & BF_YES)) {
 			aal_mess("Overriding the plugin profile by \"%s\".",
 				 override);
 		}
@@ -278,7 +277,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	if (!(flags & BF_QUIET)) {
+	if (!(flags & BF_YES)) {
 		aal_mess("Block size %u will be used.", hint.blksize);
 	}
 #else
@@ -316,7 +315,7 @@ int main(int argc, char *argv[]) {
 
 	}
 
-	if (!(flags & BF_QUIET)) {
+	if (!(flags & BF_YES)) {
 		aal_mess("%s %s is detected.", sysinfo.sysname,
 			 sysinfo.release);
 	}
@@ -353,7 +352,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (!(flags & BF_QUIET) && aal_list_len(devices)) {
+	if (!(flags & BF_YES) && aal_list_len(devices)) {
 		if (!(gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
 					       NULL, NULL, 0, NULL)))
 			goto error_free_libreiser4;
@@ -408,7 +407,7 @@ int main(int argc, char *argv[]) {
 			uuid_generate(hint.uuid);
 		}
 
-		if (!(flags & BF_QUIET)) {
+		if (!(flags & BF_YES)) {
 			char uuid[256];
 				
 			uuid_unparse(hint.uuid, uuid);
@@ -438,8 +437,8 @@ int main(int argc, char *argv[]) {
 			goto error_free_device;
 		}
 
-		/* Checking for "quiet" mode */
-		if (!(flags & BF_QUIET)) {
+		/* Checking for non-intercative mode */
+		if (!(flags & BF_YES)) {
 			if (aal_yesno("Reiser4 is going to be created on %s.",
 				      host_dev) == EXCEPTION_OPT_NO)
 			{

@@ -9,6 +9,8 @@
 
 #include <fsck.h>
 
+#define fsck_opt(parse, flag) aal_test_bit(&(parse)->options, flag)
+
 static void fsck_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
 
@@ -23,7 +25,7 @@ static void fsck_print_usage(char *name) {
 		"  -n, --no-log                  makes fsck to not complain\n"
 		"  -a, --auto                    automatically checks the consistency\n"
 		"                                without any questions.\n"
-		"  -v, --verbose                 makes fsck to be verbose\n"
+		"  -q, --quiet                   supresses gauges\n"
 		"  -r                            ignored\n"
 		"Plugins options:\n"
 		"  -p, --print-profile           prints the plugin profile.\n"
@@ -34,7 +36,7 @@ static void fsck_print_usage(char *name) {
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
-		"  -q, --quiet                   supresses progress information.\n"
+		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"  -f, --force                   makes fsck to use whole disk, not block\n"
 		"                                device or mounted partition.\n"
 		"  -c, --cache N                 number of nodes in tree buffer cache\n");
@@ -85,8 +87,10 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 		break;
 	}
 	
-	if (aal_yesno("Continue?") == EXCEPTION_OPT_NO) 
-		return USER_ERROR;
+	if (!fsck_opt(data, FSCK_OPT_YES)) {
+		if (aal_yesno("Continue?") == EXCEPTION_OPT_NO) 
+			return USER_ERROR;
+	}
      
 	return NO_ERROR; 
 }
@@ -132,10 +136,10 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"quiet", no_argument, NULL, 'q'},
+		{"yes", no_argument, NULL, 'y'},
 		{"no-log", no_argument, NULL, 'n'},
 		{"auto", no_argument, NULL, 'a'},
 		{"force", no_argument, NULL, 'f'},
-		{"verbose", no_argument, NULL, 'v'},
 		{"cashe", required_argument, 0, 'c'},
 		{"override", required_argument, NULL, 'o'},
 		/* Fsck hidden options. */
@@ -156,7 +160,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		return USER_ERROR;
 	}
 
-	while ((c = getopt_long(argc, argv, "L:VhnqafvU:b:r?dB:plo:c:u", 
+	while ((c = getopt_long(argc, argv, "L:VhnqafU:b:r?dB:plo:c:uy", 
 				options, &option_index)) >= 0) 
 	{
 		switch (c) {
@@ -187,9 +191,6 @@ static errno_t fsck_init(fsck_parse_t *data,
 		case 'a':
 			aal_set_bit(&data->options, FSCK_OPT_AUTO);
 			break;
-		case 'v':
-			aal_set_bit(&data->options, FSCK_OPT_VERBOSE);
-			break;
 		case 'h': 
 		case '?':
 			fsck_print_usage(argv[0]);
@@ -199,6 +200,9 @@ static errno_t fsck_init(fsck_parse_t *data,
 			goto user_error;
 		case 'q':
 			aux_gauge_set_handler(NULL, GT_PROGRESS);
+			break;
+		case 'y':
+			aal_set_bit(&data->options, FSCK_OPT_YES);
 			break;
 		case 'r':
 			break;
@@ -474,8 +478,6 @@ static errno_t fsck_check_fini(repair_data_t *repair) {
 	return 0;
 }
 
-#define fsck_opt(parse, flag) aal_test_bit(&(parse)->options, flag)
-
 int main(int argc, char *argv[]) {
 	struct aal_device_ops fsck_ops = file_ops;
 	aal_device_t *device;
@@ -511,7 +513,8 @@ int main(int argc, char *argv[]) {
 	/* SB_mode is specified, otherwise  */
 	repair.flags = 
 		fsck_opt(&parse_data, FSCK_OPT_DEBUG) << REPAIR_DEBUG |
-		fsck_opt(&parse_data, FSCK_OPT_WHOLE) << REPAIR_WHOLE;
+		fsck_opt(&parse_data, FSCK_OPT_WHOLE) << REPAIR_WHOLE |
+		fsck_opt(&parse_data, FSCK_OPT_YES) << REPAIR_YES;
 		
 	repair.bitmap_file = parse_data.bitmap_file;
 	
@@ -590,7 +593,7 @@ int main(int argc, char *argv[]) {
 		ex = FIXABLE_ERROR;
 	} else if (!repair.sb_fixable) {
 		if (parse_data.fs_mode != RM_CHECK && 
-		    aal_test_bit(&parse_data.options, FSCK_OPT_RO))
+		    fsck_opt(&parse_data, FSCK_OPT_RO))
 		{
 			fprintf(stderr, "\nThe filesystem was mounted RO. It is "
 				"better to umount and mount it again.\n");

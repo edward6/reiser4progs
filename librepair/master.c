@@ -22,7 +22,10 @@ static int cb_bs_check (int64_t val, void * data) {
 
 /* Checks the opened master, builds a new one on the base of user profile if no 
    one was opened. */
-errno_t repair_master_check_struct(reiser4_fs_t *fs, uint8_t mode) {
+errno_t repair_master_check_struct(reiser4_fs_t *fs, 
+				   uint8_t mode, 
+				   uint32_t options) 
+{
 	reiser4_master_sb_t *master;
 	reiser4_plug_t *format;
 	fs_hint_t hint;
@@ -51,15 +54,23 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			size = get_ms_blksize(master);
 		} else {
 			/* Master SB was not opened. Create a new one. */
-			if (aal_yesno("Master super block cannot be found. Do"
-				      " you want to build a new one on (%s)?",
-				      fs->device->name) == EXCEPTION_OPT_NO)
-			{
-				return -EINVAL;
-			}
+			size = 4096;
+			
+			if (!(options & (1 << REPAIR_YES))) {
+				int opt;
+			
+				opt = aal_yesno("Master super block cannot be "
+						"found on (%s). Do you want to "
+						"build a new one?", 
+						fs->device->name);
+				
+				if (opt == EXCEPTION_OPT_NO)
+					return -EINVAL;
 
-			size = aal_ui_get_numeric(4096, cb_bs_check, NULL,
-						  "Which block size do you use?");
+				size = aal_ui_get_numeric(size, cb_bs_check, 
+							  NULL, "Which block "
+							  "size do you use?");
+			} 
 		}
 		
 		/* Create a new master SB. */
@@ -166,10 +177,14 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 			
-			size = aal_ui_get_numeric(4096, cb_bs_check, NULL,
-						  "Which block size do you "
-						  "use?");
-
+			size = 4096;
+			
+			if (!(options & (1 << REPAIR_YES))) {
+				size = aal_ui_get_numeric(size, cb_bs_check, 
+							  NULL, "Which block "
+							  "size do you  use?");
+			}
+			
 			reiser4_master_set_blksize(fs->master, size);
 		}
 	}

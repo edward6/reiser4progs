@@ -14,6 +14,7 @@
 enum {
 	REPAIR_DEBUG	= 0x0,
 	REPAIR_WHOLE	= 0x1,
+	REPAIR_YES	= 0X2,
 	REPAIR_LAST
 };
 

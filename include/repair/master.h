@@ -10,7 +10,8 @@
 #include <repair/repair.h>
 
 extern errno_t repair_master_check_struct(reiser4_fs_t *fs, 
-					  uint8_t mode);
+					  uint8_t mode,
+					  uint32_t options);
 
 extern errno_t repair_master_pack(reiser4_master_t *master,
 				  aal_stream_t *stream);

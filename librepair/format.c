@@ -29,7 +29,10 @@ static int cb_check_count(int64_t val, void *data) {
 }
 
 /* Try to open format if not yet and check it. */
-errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
+errno_t repair_format_check_struct(reiser4_fs_t *fs, 
+				   uint8_t mode, 
+				   uint32_t options) 
+{
 	generic_entity_t *fent;
 	reiser4_plug_t *plug; 
 	format_hint_t hint;
@@ -82,8 +85,11 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		aal_memcpy(buff, plug->label, 
 			   aal_strlen(plug->label));
 
-		aal_ui_get_alpha(buff, cb_check_plugname, &plug, 
-				 "Enter the key plugin name");
+		if (!(options & (1 << REPAIR_YES))) {
+			aal_ui_get_alpha(buff, cb_check_plugname, &plug, 
+					 "Enter the key plugin name");
+		}
+		
 		hint.mask |= (1 << PM_KEY);
 	}
 	hint.key = plug->id.id;
@@ -118,11 +124,14 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 
 		if (blocks != hint.blocks && mode == RM_BUILD) {
 			/* Confirm that size is correct. */
-			blocks = aal_ui_get_numeric(blocks == MAX_UINT64 ? 
-						    hint.blocks : blocks, 
-						    cb_check_count, fs, 
-						    "Enter the correct "
-						    "block count please");
+			blocks = blocks == MAX_UINT64 ? hint.blocks : blocks;
+			
+			if (!(options & (1 << REPAIR_YES))) {
+				blocks = aal_ui_get_numeric(blocks, 
+							    cb_check_count, fs, 
+							    "Enter the correct "
+							    "block count please");
+			}
 			
 			hint.blocks = blocks;
 		}

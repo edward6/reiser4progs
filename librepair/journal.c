@@ -29,8 +29,9 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 }
 
 /* Open the journal and check it. */
-errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
-			    uint8_t mode) 
+errno_t repair_journal_open(reiser4_fs_t *fs, 
+			    aal_device_t *journal_device,
+			    uint8_t mode, uint32_t options)
 {
 	reiser4_plug_t *plug;
 	errno_t res = 0;
@@ -60,10 +61,12 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			return -EINVAL;
 		}
 		
-		if (aal_yesno("Do you want to create a new journal (%s)?",
-					plug->label) == EXCEPTION_OPT_NO)
-		{
-			return -EINVAL;
+		if (!(options & (1 << REPAIR_YES))) {
+			if (aal_yesno("Do you want to create a new journal "
+				      "(%s)?", plug->label) == EXCEPTION_OPT_NO)
+			{
+				return -EINVAL;
+			}
 		}
 	    
 		if (!(fs->journal = reiser4_journal_create(fs, journal_device))) {

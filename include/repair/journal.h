@@ -10,7 +10,7 @@
 
 extern errno_t repair_journal_open(reiser4_fs_t *fs, 
 				   aal_device_t *journal_device, 
-				   uint8_t mode);
+				   uint8_t mode, uint32_t options);
 
 extern void repair_journal_invalidate(reiser4_journal_t *journal);
 

@@ -21,7 +21,7 @@
 /* Known measurefs behavior flags. */
 enum behav_flags {
 	BF_FORCE      = 1 << 0,
-	BF_QUIET      = 1 << 1,
+	BF_YES        = 1 << 1,
 	BF_TREE_FRAG  = 1 << 2,
 	BF_TREE_STAT  = 1 << 3,
 	BF_FILE_FRAG  = 1 << 4,
@@ -57,8 +57,7 @@ static void measurefs_print_usage(char *name) {
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
-		"  -q, --quiet                   forces using filesystem without\n"
-		"                                any questions.\n"
+		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"  -f, --force                   makes measurefs to use whole disk, not\n"
 		"                                block device or mounted partition.\n"
 		"  -c, --cache N                 number of nodes in tree buffer cache\n");
@@ -188,7 +187,7 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
-	if (!(flags & BF_QUIET)) {
+	if (!(flags & BF_YES)) {
 		/* Initializing gauge, because it is a long process and user
 		   should be informed what the stage of the process is going at
 		   the moment. */
@@ -410,7 +409,7 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 
 	/* Creating gauge. */
-	if (!(flags & BF_QUIET)) {
+	if (!(flags & BF_YES)) {
 		stat_hint.gauge = 
 			aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
 					 NULL, NULL, 0, "Tree statistics ... ");
@@ -648,7 +647,7 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 
 	/* Create gauge. */
-	if (!(flags & BF_QUIET)) {
+	if (!(flags & BF_YES)) {
 		frag_hint.gauge = 
 			aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
 					 NULL, NULL, 0, "Data fragmentation "
@@ -700,7 +699,7 @@ int main(int argc, char *argv[]) {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
-		{"quiet", no_argument, NULL, 'q'},
+		{"yes", no_argument, NULL, 'y'},
 		{"tree-stat", no_argument, NULL, 'S'},
 		{"tree-frag", no_argument, NULL, 'T'},
 		{"file-frag", required_argument, NULL, 'F'},
@@ -722,7 +721,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Parsing parameters */
-	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:plc:?",
+	while ((c = getopt_long(argc, argv, "hVyfKTDESF:o:plc:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -752,8 +751,8 @@ int main(int argc, char *argv[]) {
 		case 'f':
 			flags |= BF_FORCE;
 			break;
-		case 'q':
-			flags |= BF_QUIET;
+		case 'y':
+			flags |= BF_YES;
 			break;
 		case 'p':
 			flags |= BF_SHOW_PARM;
@@ -779,7 +778,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (!(flags & BF_QUIET))
+	if (!(flags & BF_YES))
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
@@ -792,7 +791,7 @@ int main(int argc, char *argv[]) {
 	if (aal_strlen(override) > 0) {
 		override[aal_strlen(override) - 1] = '\0';
 		
-		if (!(flags & BF_QUIET)) {
+		if (!(flags & BF_YES)) {
 			aal_mess("Overriding the plugin profile by \"%s\".", 
 				 override);
 		}
