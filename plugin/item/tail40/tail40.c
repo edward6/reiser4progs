@@ -84,12 +84,16 @@ static int32_t tail40_write(place_t *place,
 
 	count = hint->count;
         pos = place->pos.unit;
+
+	if (pos == MAX_UINT32)
+		pos = 0;
 	
 	if (count > place->len - pos)
 		count = place->len - pos;
 
 	/* Checking if we insert hole */
 	if (hint->specific) {
+
 		/* Copying new data into place */
 		aal_memcpy(place->body + pos,
 			   hint->specific, count);
