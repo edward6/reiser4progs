@@ -307,28 +307,28 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 	if (pos == MAX_UINT32) {
 		/* Creating new item. We need one unit size room  */
 		hint->len = sizeof(extent40_t);
+		aal_memset(&hint->maxkey, 0, sizeof(hint->maxkey));
 	} else {
 		key_entity_t key;
 		extent40_t *extent;
-		key_entity_t maxkey;
-		
 		uint64_t ins_offset;
 		uint64_t max_offset;
 
+		/* Getting max real key */
+		extent40_maxreal_key(place, &hint->maxkey);
+		
 		/* Check if we will need to create addition unit. If so we need
 		   space for this new unit. */
 		extent = extent40_body(place);
-
 		extent40_get_key(place, pos, &key);
-		extent40_maxreal_key(place, &maxkey);
 
 		/* Write offset initializing */
 		ins_offset = (plug_call(key.plug->o.key_ops,
 					get_offset, &key) +
 			      hint->offset);
 
-		max_offset = plug_call(maxkey.plug->o.key_ops,
-				       get_offset, &maxkey);
+		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+				       get_offset, &hint->maxkey);
 
 		if (ins_offset + hint->count > max_offset) {
 			uint32_t unit;
@@ -350,7 +350,8 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	key_entity_t key;
 	aal_block_t *block;
 	extent40_t *extent;
-
+	
+	uint64_t max_offset;
 	uint32_t count, size;
 	uint64_t unit_offset;
 	uint64_t block_offset;
@@ -361,15 +362,25 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	blksize = extent40_blksize(place);
 	extent = extent40_body(place) + pos;
 	
-	/* Getting offset of block data will be written in. */
+	if (hint->len) {
+		et40_set_start(extent, 1);
+		et40_set_width(extent, 0);
+	}
+	
 	extent40_get_key(place, pos, &key);
 
+	/* Offset of the unit we will insert at. */
 	unit_offset = plug_call(key.plug->o.key_ops,
 				get_offset, &key);
 
+	/* Block offset we will insert in. */
 	block_offset = (unit_offset + hint->offset) -
 		((unit_offset + hint->offset) & (blksize - 1));
 
+	/* Max real offset. */
+	max_offset = plug_call(place->key.plug->o.key_ops,
+			       get_offset, &hint->maxkey);
+		
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
@@ -377,19 +388,36 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 		plug_call(key.plug->o.key_ops, set_offset,
 			  &key, block_offset);
 
-		/* Setting up data block */
-		if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
+		if (block_offset >= max_offset) {
+			
+			/* Setting up data block */
 			if (!(block = aal_block_alloc(extent40_device(place),
 						      blksize, 0)))
 			{
 				return -ENOMEM;
 			}
-
-			hint->bytes += blksize;
-			et40_set_start(extent, 1);
-			et40_inc_width(extent, 1);
 			
 			core->tree_ops.set_data(hint->tree, &key, block);
+
+			max_offset += blksize;
+			hint->bytes += blksize;
+			et40_inc_width(extent, 1);
+		} else {
+			blk_t blk;
+			
+			if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
+				
+				blk = et40_get_start(extent) +
+					(block_offset - unit_offset) / blksize;
+				
+				if (!(block = aal_block_load(extent40_device(place),
+							     blksize, blk)))
+				{
+					return -EIO;
+				}
+
+				core->tree_ops.set_data(hint->tree, &key, block);
+			}
 		}
 
 		/* Writting data to @block */

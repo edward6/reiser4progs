@@ -509,6 +509,10 @@ struct insert_hint {
 	/* The key of item/unit to be inserted */
 	key_entity_t key;
 
+	/* Max real item key. Filled by item estimate and need for item insert
+	   method. */
+	key_entity_t maxkey;
+
 	/* Plugin to be used for working with item */
 	reiser4_plug_t *plug;
 };
