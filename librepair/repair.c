@@ -443,7 +443,7 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 			return -EINVAL;
 		}
 		
-		for (i = 0; i < control->bm_met->size; i++)
+		for (i = 0; i < control->bm_used->size; i++)
 			bm_temp->map[i] |= control->bm_used->map[i];
 
 

@@ -278,9 +278,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	size = 0; bytes = 0; 
 	
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_gener,
-		  &dir->offset, 0, 0, 0, 0, 0);
-
 	/* FIXME-VITALY: this probably should be changed. Now hash plug that is
 	   used is taken from SD or the default one from the params. Probably it
 	   would be better to do evth in vise versa order -- choose the hash
@@ -404,7 +401,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 				   last left entry. */
 				plug_call(key.plug->o.key_ops, assign,
 					  &dir->offset, &key);
-			} else {
+			} else if (aal_strlen(entry.name) != 1 ||
+				   aal_strncmp(entry.name, ".", 1))
+			{
 				/* Key collision. */
 				dir->offset.adjust++;
 			}
