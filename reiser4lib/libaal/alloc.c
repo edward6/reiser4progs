@@ -51,7 +51,7 @@ void *aal_calloc(size_t size, char c) {
 	if (!(mem = aal_malloc(size)))
 		return NULL;
 
-	memset(mem, c, size);
+	aal_memset(mem, c, size);
 	return mem;
 }
 

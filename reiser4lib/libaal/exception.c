@@ -37,12 +37,6 @@ static char *option_strings[] = {
 
 static int fetch_count = 0;
 
-static int aal_log2(int n) {
-	int x;
-	for (x = 0; 1 << x <= n; x++);
-		return x - 1;
-}
-
 char *aal_exception_type_string(aal_exception_type_t type) {
 	return type_strings[type - 1];
 }

@@ -8,24 +8,20 @@
 
 #include <aal/aal.h>
 
-static int power_of_two(unsigned long n) {
-	return (n & -n) == n;
-}
-
-device_t *device_open(struct device_ops *ops, const void *entity, 
+aal_device_t *aal_device_open(struct aal_device_ops *ops, const void *entity, 
 	size_t blocksize, int flags, void *data) 
 {
-	device_t *device;
+	aal_device_t *device;
 	
 	if (!ops) 
 		return NULL;
 	
-	if (!power_of_two(blocksize)) {
+	if (!aal_pow_of_two(blocksize)) {
 		aal_printf("Block size %d isn't power of two.\n", blocksize);
 		return NULL;
 	}	
 	
-	if (!(device = (device_t *)aal_malloc(sizeof(*device))))
+	if (!(device = (aal_device_t *)aal_malloc(sizeof(*device))))
 		return NULL;
 
 	device->ops = ops;
@@ -37,7 +33,7 @@ device_t *device_open(struct device_ops *ops, const void *entity,
 	return device;
 }
 
-void device_close(device_t *device) {
+void aal_device_close(aal_device_t *device) {
 	
 	if (!device) 
 		return;
@@ -48,12 +44,12 @@ void device_close(device_t *device) {
 	aal_free(device);
 }
 
-int device_set_block_size(device_t *device, size_t blocksize) {
+int aal_device_set_blocksize(aal_device_t *device, size_t blocksize) {
 
 	if (!device) 
 		return 0;
 	
-	if (!power_of_two(blocksize)) {
+	if (!aal_pow_of_two(blocksize)) {
 		aal_printf("Block size %d isn't power of two.\n", blocksize);
 		return 0;
 	}	
@@ -63,7 +59,7 @@ int device_set_block_size(device_t *device, size_t blocksize) {
 	return 1;
 }
 
-size_t device_block_size(device_t *device) {
+size_t aal_device_blocksize(aal_device_t *device) {
 
 	if (!device) 
 		return 0;
@@ -71,7 +67,7 @@ size_t device_block_size(device_t *device) {
 	return device->blocksize;
 }
 
-int device_read(device_t *device, void *buff, blk_t block, count_t count) {
+int aal_device_read(aal_device_t *device, void *buff, blk_t block, count_t count) {
 
 	if (!device) 
 		return 0;
@@ -82,7 +78,7 @@ int device_read(device_t *device, void *buff, blk_t block, count_t count) {
 	return 0;
 }
 
-int device_write(device_t *device, void *buff, blk_t block, count_t count) {
+int aal_device_write(aal_device_t *device, void *buff, blk_t block, count_t count) {
 
 	if (!device) 
 		return 0;
@@ -93,7 +89,7 @@ int device_write(device_t *device, void *buff, blk_t block, count_t count) {
 	return 0;
 }
 	
-int device_sync(device_t *device) {
+int aal_device_sync(aal_device_t *device) {
 
 	if (!device) 
 		return 0;
@@ -104,7 +100,7 @@ int device_sync(device_t *device) {
 	return 0;	
 }
 
-int device_flags(device_t *device) {
+int aal_device_flags(aal_device_t *device) {
 
 	if (!device) 
 		return 0;
@@ -115,7 +111,7 @@ int device_flags(device_t *device) {
 	return 0;
 }
 
-int device_equals(device_t *device1, device_t *device2) {
+int aal_device_equals(aal_device_t *device1, aal_device_t *device2) {
 	
 	if (!device1 || !device2) 
 		return 0;
@@ -126,9 +122,9 @@ int device_equals(device_t *device1, device_t *device2) {
 	return 0;
 }
 
-int device_stat(device_t *device, struct stat* st) {
+int aal_device_stat(aal_device_t *device, struct stat* st) {
 
-	if (!device) 
+	if (!device)
 		return 0;
 	
 	if (device->ops->stat)
@@ -137,7 +133,7 @@ int device_stat(device_t *device, struct stat* st) {
 	return 0;
 }
 
-count_t device_len(device_t *device) {
+count_t aal_device_len(aal_device_t *device) {
 	
 	if (!device)
 		return 0;
