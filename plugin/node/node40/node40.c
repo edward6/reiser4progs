@@ -7,8 +7,8 @@
 
 #include "node40.h"
 
-extern reiser4_plugin_t node40_plugin;
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t node40_plugin;
 
 /* Names of levels nodes lie on. It is used for node40_print function */
 static char *levels[6] = {
@@ -330,8 +330,8 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	ih = node40_ih_at(node, item_pos);
 
 	/*
-	  If item pos is inside the range [0..count - 1], we should perform
-	  the data moving and offset upadting.
+	  If item pos is inside the range [0..count - 1], we should perform the
+	  data moving and offset upadting.
 	*/
 	if (item_pos < nh40_get_num_items(node)) {
 		uint32_t tomove;

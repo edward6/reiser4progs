@@ -8,8 +8,6 @@ reiser4progs/COPYING.
 * something like "print_block" method for format, journal and block
   allocator plugins.
 
-* should we have aal_block_t buffer list on device layer?
-
 * special file plugin.
 
 * big digits stat data fields storing format change.
@@ -40,7 +38,5 @@ reiser4progs/COPYING.
 * conform reiser4 and reiser4progs to be worked with LILO and GRUB.
 
 * copy methods in node API.
-
-* should we have the unit position inside an extent in bytes?
 
 * symlink support in reiser4_file_realize function.

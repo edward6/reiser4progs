@@ -576,6 +576,7 @@ errno_t reiser4_tree_attach(
 		return result;
 	}
 
+	/* Inserting node pointer into tree */
 	if ((res = reiser4_tree_insert(tree, &coord, &hint))) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return res;
@@ -642,7 +643,8 @@ errno_t reiser4_tree_grow(
 	}
 
 	tree->root->tree = tree;
-	
+
+	/* Updating format-related fields */
     	reiser4_format_set_root(tree->fs->format,
 				tree->root->blk);
 

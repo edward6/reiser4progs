@@ -12,8 +12,6 @@
 #ifndef AAL_H
 #define AAL_H
 
-#define inline
-
 /*
   As libaal may be used without any standard headers, we need to declare NULL
   macro here in order to avoid compilation errors.
