@@ -7,7 +7,11 @@
 #include "dir40.h"
 #include "repair/plugin.h"
 
-#define dir40_exts ((uint64_t)1 << SDEXT_LW_ID)
+/* Set of extentions that must present. */
+#define DIR40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
+
+/* Set of unknown extentions. */
+#define DIR40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
 
 static errno_t dir40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;
@@ -15,12 +19,11 @@ static errno_t dir40_extensions(reiser4_place_t *stat) {
 	extmask = obj40_extmask(stat);
 	
 	/* Check that there is no one unknown extension. */
-	/*
-	if (extmask & ~(dir40_exts | 1 << SDEXT_PLUG_ID))
+	if (extmask & DIR40_EXTS_UNKN)
 		return RE_FATAL;
-	*/
+	
 	/* Check that LW and UNIX extensions exist. */
-	return ((extmask & dir40_exts) == dir40_exts) ? 0 : RE_FATAL;
+	return ((extmask & DIR40_EXTS_MUST) == DIR40_EXTS_MUST) ? 0 : RE_FATAL;
 }
 
 /* Check SD extensions and that mode in LW extension is DIRFILE. */
@@ -153,8 +156,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	info = &dir->obj.info;
 	
-	if ((res = obj40_launch_stat(&dir->obj, NULL, dir40_exts, 1, 
-				     S_IFDIR, mode)))
+	if ((res = obj40_launch_stat(&dir->obj, NULL, 1, S_IFDIR, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */

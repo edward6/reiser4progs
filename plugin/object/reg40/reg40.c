@@ -195,7 +195,6 @@ static object_entity_t *reg40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
 	reg40_t *reg;
-	uint64_t mask;
 	
 	aal_assert("umka-1169", info != NULL);
 	aal_assert("umka-1738", hint != NULL);
@@ -229,12 +228,9 @@ static object_entity_t *reg40_create(object_info_t *info,
 		goto error_free_reg;
 	}
 
-	/* Create stat data item with size, bytes, nlinks equal to zero and mask
-	   equal to @mask. */
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-
+	/* Create stat data item with size, bytes, nlinks equal to zero. */
 	if (obj40_create_stat(&reg->obj, hint->label.statdata,
-			      mask, 0, 0, 0, 0, S_IFREG, NULL))
+			      0, 0, 0, 0, S_IFREG, NULL))
 	{
 		goto error_free_reg;
 	}

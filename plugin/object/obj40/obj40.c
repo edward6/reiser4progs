@@ -189,9 +189,9 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 
 /* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
-errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
-			  uint64_t size, uint64_t bytes, uint64_t rdev,
-			  uint32_t nlink, uint16_t mode, char *path)
+errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t size, 
+			  uint64_t bytes, uint64_t rdev, uint32_t nlink, 
+			  uint16_t mode, char *path)
 {
 	int64_t res;
 	lookup_t lookup;
@@ -218,7 +218,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 		  &hint.offset, &obj->info.object);
     
 	/* Initializing stat data item hint. */
-	stat.extmask = mask;
+	stat.extmask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
     	
 	/* Light weight hint initializing. */
 	lw_ext.size = size;
@@ -247,8 +247,10 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
-	if ((1 << SDEXT_SYMLINK_ID) & mask)
+	if (path) {
+		stat.extmask |= (1 << SDEXT_SYMLINK_ID);
 		stat.ext[SDEXT_SYMLINK_ID] = path;
+	}
 	
 	hint.specific = &stat;
 

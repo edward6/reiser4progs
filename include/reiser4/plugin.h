@@ -185,8 +185,9 @@ enum reiser4_sdext_plug_id {
 	SDEXT_SYMLINK_ID	= 0x3,
 	SDEXT_PLUG_ID		= 0x4,
 	SDEXT_FLAGS_ID          = 0x5,
-	SDEXT_CAPS_ID           = 0x6,
-	SDEXT_LARGE_TIMES_ID    = 0x7,
+	SDEXT_CAPS_ID		= 0x6,
+	SDEXT_CLASTER_ID	= 0x7,
+	SDEXT_CRYPTO_ID		= 0x8,
 	SDEXT_LAST_ID
 };
 

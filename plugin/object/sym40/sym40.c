@@ -89,7 +89,6 @@ static object_entity_t *sym40_create(object_info_t *info,
 {
 	sym40_t *sym;
 	uint32_t len;
-	uint64_t mask;
 	
 	aal_assert("umka-1741", info != NULL);
 	aal_assert("vpf-1094",  info->tree != NULL);
@@ -101,14 +100,10 @@ static object_entity_t *sym40_create(object_info_t *info,
 	/* Inizializes symlink file handle. */
 	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 
-	/* Initializing stat data extensions mask */
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
-		1 << SDEXT_SYMLINK_ID);
-
 	len = aal_strlen(hint->body.sym);
 
 	/* Create symlink sta data item. */
-	if (obj40_create_stat(&sym->obj, hint->label.statdata, mask,
+	if (obj40_create_stat(&sym->obj, hint->label.statdata,
 			      len, len, 0, 0, S_IFLNK, hint->body.sym))
 	{
 		goto error_free_sym;

@@ -476,7 +476,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 {
 	rid_t pid;
 	dir40_t *dir;
-	uint64_t mask;
 	entry_hint_t entry;
 	trans_hint_t body_hint;
 	reiser4_plug_t *body_plug;
@@ -568,9 +567,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	}
 
 	/* Create stat data item. */
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-	
-	if (obj40_create_stat(&dir->obj, hint->label.statdata, mask,
+	if (obj40_create_stat(&dir->obj, hint->label.statdata, 
 			      1, body_hint.len, 0, 1, S_IFDIR, NULL))
 	{
 	

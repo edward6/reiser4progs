@@ -6,6 +6,7 @@
 #ifndef ENABLE_STAND_ALONE
 #include "obj40.h"
 #include <repair/plugin.h>
+#include <sys/stat.h>
 
 /* Obtains the plugin of the type @type from SD if stored there, otherwise
    obtains the default one from the params. This differs from obj40_plug as it
@@ -60,13 +61,10 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return RE_FATAL;
 	
-	/* Is @info->start SD of the wanted file? If some fields are broken, 
-	   like offset != 0, fix it at check_struct time. */
-	if (info->object.plug->o.key_ops->compshort(&info->object, 
-						    &info->start.key))
-	{
+	/* Compare the correct key with the place key. */
+	if (plug_call(info->object.plug->o.key_ops, compfull,
+		      &info->object, &info->start.key))
 		return RE_FATAL;
-	}
 	
 	/* Some SD is recognized. Check that this is our SD. */
 	return stat_func ? stat_func(&info->start) : 0;
@@ -79,48 +77,28 @@ errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 	reiser4_key_t key;
 
 	aal_assert("vpf-1121", obj->info.tree != NULL);
-	aal_assert("vpf-1127", obj->info.object.plug || obj->info.start.plug);
+	aal_assert("vpf-1127", obj->info.object.plug != NULL);
 	
 	info = &obj->info;
 	
-	if (info->object.plug) {
-		locality = plug_call(info->object.plug->o.key_ops,
-				     get_locality, &info->object);
+	/* Check if the key pointer is correct and then check the found item 
+	   if it is SD with the proper key. */
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
 
-		objectid = plug_call(info->object.plug->o.key_ops,
-				     get_objectid, &info->object);
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
 
-		ordering = plug_call(info->object.plug->o.key_ops,
-				     get_ordering, &info->object);
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
 
-	
-		plug_call(info->object.plug->o.key_ops, build_generic, &key,
-			  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
-		
-		/* Realizing on the key: SD is not found. Check if the key 
-		   pointer is correct. */
-		if (plug_call(info->object.plug->o.key_ops, compfull, 
-			      &key, &info->object))
-			return RE_FATAL;
-	} else {
-		/* Realizing on the SD. */
-		aal_assert("vpf-1204",  info->start.plug->id.group == 
-			   		STATDATA_ITEM);
+	plug_call(info->object.plug->o.key_ops, build_generic, &key,
+		  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
 
-		locality = plug_call(info->object.plug->o.key_ops,
-				     get_locality, &info->start.key);
-
-		objectid = plug_call(info->object.plug->o.key_ops,
-				     get_objectid, &info->start.key);
-
-		ordering = plug_call(info->object.plug->o.key_ops,
-				     get_ordering, &info->start.key);
-
-		/* Build the SD key into @info->object. */
-		plug_call(info->start.key.plug->o.key_ops, build_generic, 
-			  &info->object, KEY_STATDATA_TYPE, locality, 
-			  ordering, objectid, 0);
-	}
+	/* Compare the correct key with the search one. */
+	if (plug_call(info->object.plug->o.key_ops, compfull, 
+		      &key, &info->object))
+		return RE_FATAL;
 	
 	/* @info->object is the key of SD for now and @info->start is the 
 	   result of tree lookup by @info->object -- skip objects w/out SD. */
@@ -255,8 +233,7 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 }
 
 errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func, 
-			  uint64_t mask, uint32_t nlink, 
-			  uint16_t objmode, uint8_t mode)
+			  uint32_t nlink, uint16_t objmode, uint8_t mode)
 {
 	reiser4_key_t *key;
 	lookup_t lookup;
@@ -309,8 +286,8 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	if ((pid = obj->core->param_ops.value("statdata") == INVAL_PID))
 		return -EINVAL;
 
-	if ((res = obj40_create_stat(obj, pid, mask, 0, 0,
-				     0, nlink, objmode, NULL)))
+	if ((res = obj40_create_stat(obj, pid, 0, 0, 0, nlink, objmode, 
+				     objmode == S_IFLNK ? "FAKE_LINK" : NULL)))
 	{
 		aal_error("The file [%s] failed to create a "
 			  "StatData item. Plugin %s.", 

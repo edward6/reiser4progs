@@ -61,7 +61,6 @@ static object_entity_t *spl40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
 	spl40_t *spl;
-	uint64_t mask;
 	
 	aal_assert("umka-2531", info != NULL);
 	aal_assert("umka-2533", hint != NULL);
@@ -73,10 +72,8 @@ static object_entity_t *spl40_create(object_info_t *info,
 	/* Inizializes file handle */
 	obj40_init(&spl->obj, &spl40_plug, spl40_core, info);
 
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-	
 	if (obj40_create_stat(&spl->obj, hint->label.statdata,
-			      mask, 0, 0, hint->body.spl.rdev,
+			      0, 0, hint->body.spl.rdev,
 			      0, hint->label.mode, NULL))
 	{
 		goto error_free_spl;

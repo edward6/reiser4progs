@@ -8,20 +8,15 @@
 #include "sym40.h"
 #include "repair/plugin.h"
 
-#define sym40_exts ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)
+#define SYM40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)
 
 static errno_t sym40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;
 	
 	extmask = obj40_extmask(stat);
 	
-	/* Check that there is no one unknown extension. */
-	/*
-	if (extmask & ~(sym40_exts | 1 << SDEXT_PLUG_ID))
-		return RE_FATAL;
-	*/
 	/* Check that LW, UNIX and SYMLINK extensions exist. */
-	return ((extmask & sym40_exts) == sym40_exts) ? 0 : RE_FATAL;
+	return ((extmask & SYM40_EXTS_MUST) == SYM40_EXTS_MUST) ? 0 : RE_FATAL;
 }
 
 /* Check SD extensions and that mode in LW extension is DIRFILE. */
@@ -92,7 +87,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 	place = STAT_PLACE(&sym->obj);
 	
 	if ((res = obj40_launch_stat(&sym->obj, sym40_extensions, 
-				     sym40_exts, 1, S_IFLNK, mode)))
+				     1, S_IFLNK, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */

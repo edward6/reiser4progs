@@ -207,12 +207,12 @@ static int key_large_compshort(reiser4_key_t *key1,
 	if (key_large_get_type(key1) == KEY_FILENAME_TYPE)
 		return 0;
 
-	ord1 = key_large_get_ordering(key1);
-	ord2 = key_large_get_ordering(key2);
-	
 	/* Checking ordering. */
-	if ((res = aal_memcmp(&ord1, &ord2, sizeof(ord1))))
+	if ((res = kl_comp_el((key_large_t *)key1->body,
+			      (key_large_t *)key2->body, 1)))
+	{
 		return res;
+	}
 	
 	/* Checking objectid  */
 	return kl_comp_el((key_large_t *)key1->body,

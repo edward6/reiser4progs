@@ -7,7 +7,11 @@
 #include "reg40.h"
 #include "repair/plugin.h"
 
-#define reg40_exts ((uint64_t)1 << SDEXT_LW_ID)
+/* Set of extentions that must present. */
+#define REG40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
+
+/* Set of unknown extentions. */
+#define REG40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
 
 static errno_t reg40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;
@@ -15,12 +19,12 @@ static errno_t reg40_extensions(reiser4_place_t *stat) {
 	/* Check that there is no one unknown extension. */
 	extmask = obj40_extmask(stat);
 	
-	/*
-	if (extmask & ~(reg40_exts | 1 << SDEXT_PLUG_ID))
+	/* Check that there is no one unknown extension. */
+	if (extmask & REG40_EXTS_UNKN)
 		return RE_FATAL;
-	*/
+
 	/* Check that LW and UNIX extensions exist. */
-	return ((extmask & reg40_exts) == reg40_exts) ? 0 : RE_FATAL;
+	return ((extmask & REG40_EXTS_MUST) == REG40_EXTS_MUST) ? 0 : RE_FATAL;
 }
 
 /* Check SD extensions and that mode in LW extension is REGFILE. */
@@ -389,18 +393,12 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	info = &reg->obj.info;
 	
 	if ((res = obj40_launch_stat(&reg->obj, callback_stat, 
-				     reg40_exts, 1, S_IFREG, mode)))
-	{
+				     1, S_IFREG, mode)))
 		return res;
-	}
 
 	/* Try to register SD as an item of this file. */
 	if (func && func(&info->start, data))
 		return -EINVAL;
-	
-	/* Fix SD's key if differs. */
-	if ((res = obj40_fix_key(&reg->obj, &info->start, &info->object, mode)))
-		return res;
 	
 	/* Get the reg file tail policy. */
 	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, "policy")))

@@ -130,14 +130,12 @@ extern errno_t obj40_load_stat(obj40_t *obj,
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
-				 uint64_t mask, uint64_t size,
-				 uint64_t bytes, uint64_t rdev,
-				 uint32_t nlink, uint16_t mode,
-				 char *path);
+				 uint64_t size, uint64_t bytes, 
+				 uint64_t rdev, uint32_t nlink, 
+				 uint16_t mode, char *path);
 
 extern errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func, 
-				 uint64_t mask, uint32_t nlink, 
-				 uint16_t objmode, uint8_t mode);
+				 uint32_t nlink, uint16_t objmode, uint8_t mode);
 
 extern errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				mode_func_t mode_func, size_func_t size_func,
