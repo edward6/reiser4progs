@@ -14,11 +14,10 @@
 static int callback_node_free(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	
-	if (!node->counter || node->children)
+	if (node->counter || node->children || !node->parent)
 		return 0;
 
-	reiser4_node_close(node);
-	return 1;
+	return reiser4_node_close(node) == 0;
 }
 
 static int callback_node_sync(void *data) {
