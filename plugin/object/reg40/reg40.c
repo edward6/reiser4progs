@@ -3,10 +3,6 @@
    
    reg40.c -- reiser4 default regular file plugin. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <unistd.h>
@@ -188,8 +184,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
 	reg40_t *reg;
-	uint64_t ordering;
-	oid_t objectid, locality;
+	uint64_t mask;
 	
 	aal_assert("umka-1169", info != NULL);
 	aal_assert("umka-1738", hint != NULL);
@@ -198,26 +193,16 @@ static object_entity_t *reg40_create(object_info_t *info,
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 	
-	/* Preparing dir oid and locality */
-	locality = plug_call(info->object.plug->o.key_ops,
-			     get_locality, &info->object);
-	
-	objectid = plug_call(info->object.plug->o.key_ops,
-			     get_objectid, &info->object);
-
-	ordering = plug_call(info->object.plug->o.key_ops,
-			     get_ordering, &info->object);
-	
-	/* Key contains valid locality and objectid only, build start key */
-	plug_call(info->object.plug->o.key_ops, build_gener,
-		  &info->object, KEY_STATDATA_TYPE, locality,
-		  ordering, objectid, 0);
-	
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
+
+	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
-	if (obj40_create_stat(&reg->obj, hint->statdata, 0, 0, 0, S_IFREG))
+	if (obj40_create_stat(&reg->obj, hint->statdata,
+			      mask, 0, 0, 0, S_IFREG, NULL))
+	{
 		goto error_free_reg;
+	}
 
 	aal_memcpy(&info->start, STAT_PLACE(&reg->obj),
 		   sizeof(info->start));
@@ -273,22 +258,24 @@ static uint32_t reg40_chunk(reg40_t *reg) {
 	return core->tree_ops.maxspace(reg->obj.info.tree);
 }
 
-/* Writes passed data to the file */
+/* Writes passed data to the file. Returns amount of data written to the
+   tree. That is if we insert tail, we will have the same as passed data
+   size. In the case of insert an extent, we will have its meta data size. */
 int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 	errno_t res;
 	reg40_t *reg;
 	
-	uint64_t size;
+	int32_t bytes;
 	uint32_t written;
 	uint32_t maxspace;
 
 	reg = (reg40_t *)entity;
 	maxspace = reg40_chunk(reg);
 	
-	for (written = 0; written < n; ) {
+	for (bytes = 0, written = 0; written < n; ) {
 		uint32_t level;
 		uint64_t offset;
-		create_hint_t hint;
+		insert_hint_t hint;
 		key_entity_t maxkey;
 
 		/* Preparing hint key */
@@ -348,14 +335,17 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 			LEAF_LEVEL + 1 : LEAF_LEVEL;
 
 		/* Inserting data to the tree */
-		if ((res = obj40_insert(&reg->obj, &hint, level,
-					&reg->body)))
+		if ((res = obj40_insert(&reg->obj, &reg->body,
+					&hint, level)))
 		{
 			return res;
 		}
 
 		reg40_seek(entity, reg40_offset(entity) +
 			   hint.count);
+
+		/* Updating metadata size that was written */
+		bytes += hint.len;
 		
 		/* @buff may be NULL for inserting holes */
 		if (buff)
@@ -365,20 +355,23 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 		written += hint.count;
 	}
 	
-	return written;
+	return bytes;
 }
 
-static errno_t reg40_cut(object_entity_t *entity,
+static int32_t reg40_cut(object_entity_t *entity,
 			 uint32_t n)
 {
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
+
+	int32_t bytes = 0;
+	remove_hint_t hint;
 	
 	reg = (reg40_t *)entity;
 	size = reg40_size(entity);
 
-	while (n) {
+	while (n > 0) {
 		place_t place;
 		key_entity_t key;
 
@@ -404,20 +397,27 @@ static errno_t reg40_cut(object_entity_t *entity,
 		/* Check if we should remove whole item at @place or just some
 		   units from it. */
 		if (place.len <= n) {
+			hint.count = 1;
 			place.pos.unit = MAX_UINT32;
 			
-			if ((res = obj40_remove(&reg->obj, &place, 1)))
+			if ((res = obj40_remove(&reg->obj, &place, &hint)))
 				return res;
 
 			n -= place.len;
+			bytes += hint.len;
 			size -= place.len;
 		} else {
+			hint.count = n;
 			place.pos.unit = place.len - n;
-			return obj40_remove(&reg->obj, &place, n);
+
+			if ((res = obj40_remove(&reg->obj, &place, &hint)))
+				return res;
+
+			bytes += hint.len;
 		}
 	}
 
-	return 0;
+	return bytes;
 }
 
 /* Writes "n" bytes from "buff" to passed file */
@@ -426,7 +426,8 @@ static int32_t reg40_write(object_entity_t *entity,
 {
 	int32_t res;
 	reg40_t *reg;
-	
+
+	int32_t bytes;
 	uint64_t size;
 	uint64_t offset;
 	
@@ -439,10 +440,10 @@ static int32_t reg40_write(object_entity_t *entity,
 
 	/* Inserting holes if it is needed */
 	if (offset > size) {
-		if ((res = reg40_put(entity, NULL,
-				     offset - size)) < 0)
+		if ((bytes = reg40_put(entity, NULL,
+				       offset - size)) < 0)
 		{
-			return res;
+			return bytes;
 		}
 	}
 
@@ -450,17 +451,19 @@ static int32_t reg40_write(object_entity_t *entity,
 	if ((res = reg40_put(entity, buff, n)) < 0)
 		return res;
 
+	bytes += obj40_get_bytes(&reg->obj) + res;
+
 	/* Updating stat data fields */
 	return obj40_touch(&reg->obj, size + n,
-			   size + n, time(NULL));
+			   bytes, time(NULL));
 }
 
 /* Truncates file to passed size */
 static errno_t reg40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
-	errno_t res;
 	reg40_t *reg;
+	int32_t bytes;
 	uint64_t size;
 	uint64_t offset;
 
@@ -474,31 +477,37 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 	if (n > size) {
 		/* Inserting holes */
-		if ((res = reg40_put(entity, NULL,
-				     n - size)))
+		if ((bytes = reg40_put(entity, NULL,
+				       n - size)) < 0)
 		{
-			return res;
+			return bytes;
 		}
+		
+		/* Updating stat data fields */
+		bytes += obj40_get_bytes(&reg->obj);
+		return obj40_touch(&reg->obj, n, bytes, time(NULL));
 	} else {
 		/* Cutting items/units */
-		if ((res = reg40_cut(entity,
-				     size - n)))
+		if ((bytes = reg40_cut(entity,
+				       size - n)) < 0)
 		{
-			return res;
+			return bytes;
 		}
+
+		/* Updating stat data fields */
+		bytes = obj40_get_bytes(&reg->obj) - bytes;
+		return obj40_touch(&reg->obj, n, bytes, time(NULL));
 	}
 
 	/* Updating offset */
 	reg40_seek(entity, n);
-
-	/* Updating stat dat fields */
-	return obj40_touch(&reg->obj, n, n, time(NULL));
 }
 
 /* Removes all file items. */
 static errno_t reg40_clobber(object_entity_t *entity) {
 	errno_t res;
 	reg40_t *reg;
+	remove_hint_t hint;
 	
 	aal_assert("umka-2299", entity != NULL);
 
@@ -510,7 +519,10 @@ static errno_t reg40_clobber(object_entity_t *entity) {
 	if ((res = obj40_update(&reg->obj)))
 		return res;
 
-	return obj40_remove(&reg->obj, STAT_PLACE(&reg->obj), 1);
+	hint.count = 1;
+
+	return obj40_remove(&reg->obj,
+			    STAT_PLACE(&reg->obj), &hint);
 }
 
 /* Layout related stuff */

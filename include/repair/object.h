@@ -6,10 +6,6 @@
 #ifndef REPAIR_OBJECT_H
 #define REPAIR_OBJECT_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <repair/repair.h>
 
 typedef enum repair_object_flag {

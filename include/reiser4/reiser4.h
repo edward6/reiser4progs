@@ -11,25 +11,24 @@ extern "C" {
 #endif
 
 #include <aal/aal.h>
-
-#include "types.h"
-#include "filesystem.h"
-#include "format.h"
-#include "journal.h"
-#include "alloc.h"
-#include "oid.h"
-#include "plugin.h"
-#include "tree.h"
-#include "node.h"
-#include "key.h"
-#include "object.h"
-#include "place.h"
-#include "master.h"
-#include "item.h"
-#include "factory.h"
-#include "profile.h"
-#include "print.h"
-#include "fake.h"
+#include <reiser4/types.h>
+#include <reiser4/filesystem.h>
+#include <reiser4/format.h>
+#include <reiser4/journal.h>
+#include <reiser4/alloc.h>
+#include <reiser4/oid.h>
+#include <reiser4/plugin.h>
+#include <reiser4/tree.h>
+#include <reiser4/node.h>
+#include <reiser4/key.h>
+#include <reiser4/object.h>
+#include <reiser4/place.h>
+#include <reiser4/master.h>
+#include <reiser4/item.h>
+#include <reiser4/factory.h>
+#include <reiser4/profile.h>
+#include <reiser4/print.h>
+#include <reiser4/fake.h>
 
 extern void libreiser4_fini(void);
 extern errno_t libreiser4_init(void);

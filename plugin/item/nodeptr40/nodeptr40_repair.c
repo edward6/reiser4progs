@@ -3,12 +3,7 @@
    
    nodeptr40_repair.c -- repair default node pointer item plugin methods. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "nodeptr40.h"
 #include <repair/plugin.h>
 
@@ -49,6 +44,5 @@ errno_t nodeptr40_check_struct(place_t *place, uint8_t mode) {
 	aal_assert("vpf-751", place != NULL);
 	return place->len != sizeof(nodeptr40_t) ? RE_FATAL : RE_OK;
 }
-
 #endif
 

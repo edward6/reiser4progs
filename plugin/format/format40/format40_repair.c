@@ -4,12 +4,7 @@
    format40_repair.c -- repair methods for the default disk-layout plugin for 
    reiserfs 4.0. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "format40.h"
 #include <repair/plugin.h>
 

@@ -432,7 +432,7 @@ errno_t node_short_rep(node_entity_t *dst_entity, pos_t *dst_pos,
 
 /* Inserts item described by hint structure into node */
 static errno_t node_short_insert(node_entity_t *entity,
-				 pos_t *pos, create_hint_t *hint)
+				 pos_t *pos, insert_hint_t *hint)
 {
 	errno_t res;
 	node_t *node;
@@ -494,11 +494,10 @@ static errno_t node_short_insert(node_entity_t *entity,
 }
 
 /* This function removes item/unit from the node at specified @pos */
-errno_t node_short_remove(node_entity_t *entity, 
-			  pos_t *pos, uint32_t count) 
+errno_t node_short_remove(node_entity_t *entity, pos_t *pos,
+			  remove_hint_t *hint) 
 {
 	pos_t rpos;
-	uint32_t len;
 	node_t *node;
 	place_t place;
 	
@@ -517,12 +516,12 @@ errno_t node_short_remove(node_entity_t *entity,
 		rpos.unit = MAX_UINT32;
 	
 	if (rpos.unit == MAX_UINT32) {
-		if (!(len = node_short_size(node, &rpos, count)))
+		if (!(hint->len = node_short_size(node, &rpos, hint->count)))
 			return -EINVAL;
 	} else {
 		/* Removing units from the item pointed by @pos */
-		len = plug_call(place.plug->o.item_ops, remove, &place,
-				rpos.unit, count);
+		hint->len = plug_call(place.plug->o.item_ops, remove,
+				      &place, rpos.unit, hint->count);
 
                 /* Updating items key if leftmost unit was changed */
 		if (rpos.unit == 0) {
@@ -530,8 +529,8 @@ errno_t node_short_remove(node_entity_t *entity,
 			aal_memcpy(&ih->key, place.key.body, sizeof(ih->key));
 		}
 	}
-	
-	return node_short_shrink(entity, &rpos, len, count);
+
+	return node_short_shrink(entity, &rpos, hint->len, hint->count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
@@ -547,6 +546,8 @@ static errno_t node_short_cut(node_entity_t *entity,
 	uint32_t begin;
 	uint32_t count;
 	
+	remove_hint_t hint;
+	
 	aal_assert("umka-1790", end != NULL);
 	aal_assert("umka-1789", start != NULL);
 	aal_assert("umka-1788", entity != NULL);
@@ -555,7 +556,6 @@ static errno_t node_short_cut(node_entity_t *entity,
 		
 	/* Check if there some amount of whole items can be removed */
 	if (start->item != end->item) {
-
 		begin = start->item + 1;
 		count = end->item - start->item;
 		
@@ -569,7 +569,10 @@ static errno_t node_short_cut(node_entity_t *entity,
 			units = plug_call(place.plug->o.item_ops,
 					  units, &place);
 
-			if (node_short_remove(entity, &pos, units - start->unit))
+			/* Remove units */
+			hint.count = units - start->unit;
+
+			if (node_short_remove(entity, &pos, &hint))
 				return -EINVAL;
 			
 			if (start->unit == 0)
@@ -586,7 +589,9 @@ static errno_t node_short_cut(node_entity_t *entity,
 			units = plug_call(place.plug->o.item_ops,
 					  units, &place);
 
-			if (node_short_remove(entity, &pos, end->unit))
+			hint.count = end->unit;
+			
+			if (node_short_remove(entity, &pos, &hint))
 				return -EINVAL;
 			
 			if (end->unit >= units)
@@ -599,7 +604,9 @@ static errno_t node_short_cut(node_entity_t *entity,
 			   they will be removed too. */
 			POS_INIT(&pos, begin, MAX_UINT32);
 			
-			if (node_short_remove(entity, &pos, count))
+			hint.count = count;
+			
+			if (node_short_remove(entity, &pos, &hint))
 				return -EINVAL;
 		}
 	} else {
@@ -607,9 +614,9 @@ static errno_t node_short_cut(node_entity_t *entity,
 		aal_assert("umka-1794", start->unit != MAX_UINT32);
 		
 		pos = *start;
-		count = end->unit - start->unit;
-		
-		if (node_short_remove(entity, &pos, count))
+		hint.count = end->unit - start->unit;
+			
+		if (node_short_remove(entity, &pos, &hint))
 			return -EINVAL;
 
 		if (node_short_fetch(entity, &pos, &place))

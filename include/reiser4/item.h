@@ -6,10 +6,6 @@
 #ifndef REISER4_ITEM_H
 #define REISER4_ITEM_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/types.h>
 
 #ifndef ENABLE_STAND_ALONE
@@ -20,7 +16,7 @@ extern errno_t reiser4_item_print(reiser4_place_t *place,
 				  aal_stream_t *stream);
 
 extern errno_t reiser4_item_estimate(reiser4_place_t *place,
-				     create_hint_t *hint);
+				     insert_hint_t *hint);
 
 extern errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 					reiser4_key_t *key);

@@ -4,10 +4,6 @@
    libreiser4.c -- version control functions, library initialization code and
    plugin-accessible library functions implemetation. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 
@@ -38,8 +34,8 @@ static reiser4_plug_t *factory_nfind(char *name) {
 static errno_t tree_insert(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* insertion point will be saved here */
-	uint8_t level,              /* target level */
-	create_hint_t *hint)        /* item hint to be inserted into tree */
+	insert_hint_t *hint,        /* item hint to be inserted into tree */
+	uint8_t level)              /* target level */
 {
 	aal_assert("umka-846", tree != NULL);
 	aal_assert("umka-847", hint != NULL);
@@ -47,20 +43,21 @@ static errno_t tree_insert(
 
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
 				   (reiser4_place_t *)place,
-				   level, hint);
+				   hint, level);
 }
 
 /* Handler for item removing requests from the all plugins */
 static errno_t tree_remove(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* place of the item to be removerd */
-	uint32_t count)
+	remove_hint_t *hint)
 {
 	aal_assert("umka-848", tree != NULL);
 	aal_assert("umka-849", place != NULL);
     
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
-				   (reiser4_place_t *)place, count);
+				   (reiser4_place_t *)place,
+				   hint);
 }
 #endif
 

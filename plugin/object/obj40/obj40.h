@@ -32,6 +32,9 @@ struct obj40 {
 
 typedef struct obj40 obj40_t;
 
+extern errno_t obj40_fetch(obj40_t *obj,
+			   place_t *place);
+
 extern errno_t obj40_fini(obj40_t *obj);
 extern errno_t obj40_update(obj40_t *obj);
 
@@ -40,10 +43,10 @@ extern oid_t obj40_locality(obj40_t *obj);
 extern uint64_t obj40_ordering(obj40_t *obj);
 extern uint64_t obj40_get_size(obj40_t *obj);
 
-extern rid_t obj40_pid(obj40_t *obj, rid_t type, char *name);
-
 extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type,
 				  char *name);
+
+extern rid_t obj40_pid(obj40_t *obj, rid_t type, char *name);
 
 extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 			     uint8_t level, place_t *place);
@@ -61,18 +64,18 @@ typedef void (*mode_func_t) (uint16_t *);
 typedef void (*nlink_func_t) (uint32_t *);
 typedef void (*size_func_t) (uint64_t *, uint64_t);
 
-extern errno_t obj40_touch(obj40_t *obj, uint64_t size,
-			   uint64_t bytes, uint32_t atime);
-
-extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid, 
-				 uint64_t size, uint64_t bytes,
-				 uint32_t nlink, uint16_t mode);
-
 extern errno_t obj40_write_ext(place_t *place,
 			       rid_t id, void *data);
 
-extern uint64_t obj40_extmask(place_t *sd);
+extern errno_t obj40_touch(obj40_t *obj, uint64_t size,
+			   uint64_t bytes, uint32_t atime);
 
+extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
+				 uint64_t mask, uint64_t size,
+				 uint64_t bytes, uint32_t nlink,
+				 uint16_t mode, char *path);
+
+extern uint64_t obj40_extmask(place_t *sd);
 extern uint16_t obj40_get_mode(obj40_t *obj);
 extern uint32_t obj40_get_nlink(obj40_t *obj);
 extern uint32_t obj40_get_atime(obj40_t *obj);
@@ -104,11 +107,11 @@ extern errno_t obj40_realize(obj40_t *obj,
 			     stat_func_t stat_func,
 			     key_func_t key_func);
 
-extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
-			    uint8_t level, place_t *place);
-
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
-			    uint32_t count);
+			    remove_hint_t *hint);
+
+extern errno_t obj40_insert(obj40_t *obj, place_t *place,
+			    insert_hint_t *hint, uint8_t level);
 
 extern errno_t obj40_ukey(obj40_t *obj, place_t *place, 
 			  key_entity_t *key, uint8_t mode);

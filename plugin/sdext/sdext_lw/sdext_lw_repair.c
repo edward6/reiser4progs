@@ -4,12 +4,7 @@
    sdext_lw_repair.c -- light weight stat data extention plugin recovery 
    code. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "sdext_lw.h"
 #include <repair/plugin.h>
 
@@ -26,6 +21,5 @@ errno_t sdext_lw_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	
 	return RE_OK;
 }
-
 #endif
 

@@ -267,7 +267,7 @@ errno_t reiser4_node_realize(
         if (reiser4_node_lookup(parent->node, &lkey,
 				&parent->pos) == PRESENT)
 	{
-#ifndef ENABLE_STAND_ALONE
+#if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
 		if (!(node->flags & NF_FOREIGN)) {
 			if (reiser4_node_ack(node, parent))
 				goto parent_fetch;
@@ -277,7 +277,7 @@ errno_t reiser4_node_realize(
 	}
 
 	/* Getting position by means of linear traverse */
-#ifndef ENABLE_STAND_ALONE
+#ifdef ENABLE_COLLISIONS
 	if (!(node->flags & NF_FOREIGN)) {
 		for (i = 0; i < reiser4_node_items(parent->node); i++) {
 			parent->pos.item = i;
@@ -688,7 +688,7 @@ errno_t reiser4_node_sync(
 /* Updates nodeptr item in parent node */
 errno_t reiser4_node_upos(reiser4_node_t *node) {
 	errno_t res;
-	create_hint_t hint;
+	insert_hint_t hint;
 	ptr_hint_t nodeptr_hint;
 
 	aal_assert("umka-2263", node != NULL);
@@ -806,7 +806,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	         /* node item will be inserted in */
 	pos_t *pos,                      /* pos item will be inserted at */
-	create_hint_t *hint)             /* item hint to be inserted */
+	insert_hint_t *hint)             /* item hint to be inserted */
 {
 	errno_t res;
 	uint32_t needed;
@@ -883,20 +883,22 @@ errno_t reiser4_node_cut(
 errno_t reiser4_node_remove(
 	reiser4_node_t *node,	          /* node item will be removed from */
 	pos_t *pos,                       /* pos item will be removed at */
-	uint32_t count)                   /* the number of item/units */
+	remove_hint_t *hint)
 {
 	errno_t res;
 	
 	aal_assert("umka-993", node != NULL);
 	aal_assert("umka-994", pos != NULL);
+	aal_assert("umka-2391", hint != NULL);
 
 	/* Removing item or unit. We assume that we are going to remove unit if
 	   unit component is set up. */
 	if ((res = plug_call(node->entity->plug->o.node_ops,
-			     remove, node->entity, pos, count)))
+			     remove, node->entity, pos, hint)))
 	{
-		aal_exception_error("Can't remove %u items/units from "
-				    "node %llu.", count, node_blocknr(node));
+		aal_exception_error("Can't remove %u items/units "
+				    "from node %llu.", hint->count,
+				    node_blocknr(node));
 		return res;
 	}
 

@@ -2,10 +2,6 @@
    reiser4progs/COPYING.
    
    sym40_repair.c -- reiser4 default symlink file plugin repair code. */
- 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
 
 #ifndef ENABLE_STAND_ALONE
 
@@ -54,6 +50,5 @@ object_entity_t *sym40_realize(object_info_t *info) {
 
 	return (object_entity_t *)sym;
 }
-
 #endif
 

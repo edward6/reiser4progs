@@ -295,7 +295,7 @@ static int extent40_mergeable(place_t *place1, place_t *place2) {
 }
 
 static errno_t extent40_estimate_insert(place_t *place,
-					create_hint_t *hint,
+					insert_hint_t *hint,
 					uint32_t pos)
 {
 	aal_assert("umka-1836", hint != NULL);
@@ -328,7 +328,7 @@ static errno_t extent40_estimate_insert(place_t *place,
 }
 
 static errno_t extent40_insert(place_t *place,
-			       create_hint_t *hint,
+			       insert_hint_t *hint,
 			       uint32_t pos)
 {
 	uint32_t blksize;

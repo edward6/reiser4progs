@@ -3,12 +3,7 @@
    
    alloc.c -- reiser4 block allocator common code. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include <reiser4/reiser4.h>
 
 bool_t reiser4_alloc_isdirty(reiser4_alloc_t *alloc) {

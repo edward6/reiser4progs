@@ -7,10 +7,6 @@
 #ifndef REPAIR_FORMAT_H
 #define REPAIR_FORMAT_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <stdio.h>
 #include <reiser4/filesystem.h>
 

@@ -3,16 +3,12 @@
    
    format40.c -- default disk-layout plugin for reiser4. */
 
-#include "format40.h"
-
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <stdlib.h>
 #endif
+
+#include "format40.h"
 
 extern reiser4_plug_t format40_plug;
 

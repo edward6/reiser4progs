@@ -22,7 +22,12 @@ struct dir40 {
 	/* Current body item coord */
 	place_t body;
 	
-	/* Current position in the directory */
+	/* Current position in the directory (key and adjust). Adjust is needed
+	   to work fine when key collitions take place. */
+#ifdef ENABLE_COLLISIONS
+	uint32_t adjust;
+#endif
+	
 	key_entity_t offset;
 
 	/* Hash plugin in use */
@@ -30,7 +35,5 @@ struct dir40 {
 };
 
 typedef struct dir40 dir40_t;
-
-
 #endif
 

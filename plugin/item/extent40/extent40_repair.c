@@ -3,12 +3,7 @@
    
    extent40_repare.c -- repair dafault extent plugin methods. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "extent40.h"
 #include <repair/plugin.h>
 

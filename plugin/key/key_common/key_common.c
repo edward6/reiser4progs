@@ -8,13 +8,15 @@
 /* Minimal possible key */
 static key_entity_t minimal_key = {
 	.plug = NULL,
-	.body = {0ull, 0ull, 0ull, 0ull}
+	.body = {0ull, 0ull, 0ull, 0ull},
+	.adjust = 0
 };
 
 /* Maximal possible key */
 static key_entity_t maximal_key = {
 	.plug = NULL,
-	.body = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64}
+	.body = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64},
+	.adjust = 0
 };
 
 /* Translates key type from libreiser4 type to key_common one */

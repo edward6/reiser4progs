@@ -6,15 +6,11 @@
 #ifndef FORMAT40_H
 #define FORMAT40_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aux/aux.h>
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-#define FORMAT40_MAGIC	    "R4Sb-Default"
+#define FORMAT40_MAGIC "R4Sb-Default"
 
 #define FORMAT40_BLOCKNR(blksize) \
         ((REISER4_MASTER_OFFSET / blksize) + 1)

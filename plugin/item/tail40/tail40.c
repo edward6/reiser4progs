@@ -47,7 +47,7 @@ static int32_t tail40_read(place_t *place, void *buff,
    insert pos point inside the item body, it will not be splitted, but rewritten
    instead. */
 static errno_t tail40_estimate_insert(place_t *place,
-				      create_hint_t *hint,
+				      insert_hint_t *hint,
 				      uint32_t pos)
 {
 	aal_assert("umka-1836", hint != NULL);
@@ -70,7 +70,7 @@ static errno_t tail40_estimate_insert(place_t *place,
 
 /* Rewrites tail from passed @pos by data specifed by hint */
 static errno_t tail40_insert(place_t *place,
-			     create_hint_t *hint,
+			     insert_hint_t *hint,
 			     uint32_t pos)
 {
 	uint32_t count;

@@ -103,7 +103,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
 	reiser4_place_t place;
-	create_hint_t hint;
+	insert_hint_t hint;
 	lookup_t lookup;
 	ptr_hint_t ptr;
 	uint32_t level;
@@ -166,7 +166,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 		return -EINVAL;
 	}
 	
-	if ((res = reiser4_tree_insert(tree, &place, level, &hint))) {
+	if ((res = reiser4_tree_insert(tree, &place, &hint, level))) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}

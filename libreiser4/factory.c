@@ -2,11 +2,6 @@
    reiser4progs/COPYING.
    
    factory.c -- reiser4 plugin factory implementation. */
-
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 #  include <dlfcn.h>
 #  include <errno.h>

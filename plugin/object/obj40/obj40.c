@@ -3,10 +3,6 @@
    
    obj40.c -- reiser4 file 40 plugins common code. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <sys/stat.h>
 
 #ifndef ENABLE_STAND_ALONE
@@ -42,7 +38,7 @@ uint64_t obj40_ordering(obj40_t *obj) {
 
 /* Reads stat data extention */
 errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
-	create_hint_t hint;
+	insert_hint_t hint;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -74,34 +70,31 @@ uint64_t obj40_get_size(obj40_t *obj) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-errno_t obj40_create_stat(obj40_t *obj, rid_t pid, 
-			  uint64_t size, uint64_t bytes, 
-			  uint32_t nlink, uint16_t mode)
+errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
+			  uint64_t size, uint64_t bytes, uint32_t nlink,
+			  uint16_t mode, char *path)
 {
+	insert_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_ext;
-	create_hint_t stat_hint;
 	sdext_unix_hint_t unix_ext;
 	
-	aal_memset(&stat_hint, 0, sizeof(stat_hint));
+	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting statdata plugin */
-	if (!(stat_hint.plug =
-	      obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)))
-	{
-		aal_exception_error("Can't find stat data item "
-				    "plugin by its id 0x%x.", pid);
+	if (!(hint.plug = obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
+		aal_exception_error("Can't find stat data item plugin by "
+				    "its id 0x%x.", pid);
 		return -EINVAL;
 	}
 
-	stat_hint.count = 1;
+	hint.count = 1;
 	
 	plug_call(obj->info.object.plug->o.key_ops, assign, 
-		  &stat_hint.key, &obj->info.object);
+		  &hint.key, &obj->info.object);
     
-	/* Initializing stat data item hint. It uses unix extention and light
-	   weight one. So we set up the mask in corresponding maner. */
-	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
+	/* Initializing stat data item hint. */
+	stat.extmask = mask;
     	
 	/* Light weight hint initializing. */
 	lw_ext.size = size;
@@ -120,17 +113,23 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
 
 	aal_memset(&stat.ext, 0, sizeof(stat.ext));
 
+	/* Initializing extentions array */
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
-	stat_hint.type_specific = &stat;
+
+	if ((1 << SDEXT_SYMLINK_ID) & mask)
+		stat.ext[SDEXT_SYMLINK_ID] = path;
+	
+	hint.type_specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	switch (obj40_lookup(obj, &stat_hint.key,
-			     LEAF_LEVEL, STAT_PLACE(obj)))
+	switch (obj40_lookup(obj, &hint.key, LEAF_LEVEL,
+			     STAT_PLACE(obj)))
 	{
 	case ABSENT:
-		return obj40_insert(obj, &stat_hint,
-				    LEAF_LEVEL, STAT_PLACE(obj));
+		/* Insert stat data to tree */
+		return obj40_insert(obj, STAT_PLACE(obj),
+				    &hint, LEAF_LEVEL);
 	default:
 		return -EINVAL;
 	}
@@ -178,7 +177,7 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 errno_t obj40_write_ext(place_t *place, rid_t id,
 			void *data)
 {
-	create_hint_t hint;
+	insert_hint_t hint;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -198,7 +197,7 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 }
 
 uint64_t obj40_extmask(place_t *place) {
-	create_hint_t hint;
+	insert_hint_t hint;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -390,6 +389,12 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 }
 #endif
 
+/* Fetches item at passed @place */
+errno_t obj40_fetch(obj40_t *obj, place_t *place) {
+	return obj->core->tree_ops.fetch(obj->info.tree,
+					 place);
+}
+
 /* Just returns a plugin for it @pid if specified; otherwise call
  * obj40_pid(). */
 reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
@@ -465,35 +470,17 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Inserts passed item hint into the tree. After function is finished, place
-  contains the place of the inserted item.
-*/
-errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
-		     uint8_t level, place_t *place)
+/* Inserts passed item hint into the tree. After function is finished, place
+   contains the place of the inserted item. */
+errno_t obj40_insert(obj40_t *obj, place_t *place,
+		     insert_hint_t *hint, uint8_t level)
 {
-	if (obj->core->tree_ops.insert(obj->info.tree, place,
-				       level, hint))
-	{
-		aal_exception_error("Can't insert new "
-				    "item/unit of object "
-				    "0x%llx into the tree.",
-				    obj40_objectid(obj));
-		return -EINVAL;
-	}
-
-	return 0;
+	return obj->core->tree_ops.insert(obj->info.tree,
+					  place, hint, level);
 }
 
 /* Removes item/unit by @key */
-errno_t obj40_remove(obj40_t *obj, place_t *place, uint32_t count) {
-	if (obj->core->tree_ops.remove(obj->info.tree, place, count)) {
-		aal_exception_error("Can't remove item/unit "
-				    "from object 0x%llx.",
-				    obj40_objectid(obj));
-		return -EINVAL;
-	}
-
-	return 0;
+errno_t obj40_remove(obj40_t *obj, place_t *place, remove_hint_t *hint) {
+	return obj->core->tree_ops.remove(obj->info.tree, place, hint);
 }
 #endif

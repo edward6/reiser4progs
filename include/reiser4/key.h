@@ -6,10 +6,6 @@
 #ifndef REISER4_KEY_H
 #define REISER4_KEY_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/types.h>
 
 extern void reiser4_key_free(reiser4_key_t *key);

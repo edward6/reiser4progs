@@ -6,10 +6,6 @@
 #ifndef REPAIR_H
 #define REPAIR_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aux/bitmap.h>
 #include <reiser4/reiser4.h>
 #include <repair/plugin.h>
@@ -70,5 +66,4 @@ typedef struct repair_data {
 } repair_data_t;
 
 extern errno_t repair_check(repair_data_t *repair);
-
 #endif

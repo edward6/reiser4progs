@@ -6,10 +6,6 @@
 #ifndef REISER4_FILESYSTEM_H
 #define REISER4_FILESYSTEM_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/types.h>
 
 extern void reiser4_fs_close(reiser4_fs_t *fs);

@@ -3,14 +3,10 @@
    
    oid.c -- oid allocator common code. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
+#ifndef ENABLE_STAND_ALONE
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
 bool_t reiser4_oid_isdirty(reiser4_oid_t *oid) {
 	aal_assert("umka-2103", oid != NULL);
 

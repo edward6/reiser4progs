@@ -3,12 +3,7 @@
    
    reg40_repair.c -- reiser4 default regular file plugin repair code. */
  
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "reg40.h"
 #include "repair/plugin.h"
 
@@ -137,11 +132,13 @@ static void reg40_zero_nlink(uint32_t *nlink) {
 static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 	object_info_t *info = &reg->obj.info;
 	uint64_t offset;
-	errno_t res;
+	int32_t res;
 
 	offset = reg40_offset((object_entity_t *)reg);
-	
-	if ((res = reg40_put((object_entity_t *)reg, NULL, len))) {
+
+	/* FIXME-UMKA->VITALY: reg40_put() return number of bytes written to
+	   tree. Stat data "bytes" fields should be updated byt using it. */
+	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
 				    print_ino(core, &info->object),

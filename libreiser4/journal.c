@@ -3,12 +3,7 @@
    
    journal.c -- reiser4 filesystem common journal code. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include <reiser4/reiser4.h>
 
 bool_t reiser4_journal_isdirty(reiser4_journal_t *journal) {

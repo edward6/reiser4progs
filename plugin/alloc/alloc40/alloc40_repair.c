@@ -3,12 +3,7 @@
    
    alloc40_repair.c -- repair default block allocator plugin methods. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "alloc40.h"
 #include <repair/plugin.h>
 

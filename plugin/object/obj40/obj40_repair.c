@@ -2,13 +2,8 @@
    reiser4progs/COPYING.
    
    obj40_repair.c -- reiser4 file 40 plugins repair code. */
- 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
 
 #ifndef ENABLE_STAND_ALONE
-
 #include "obj40.h"
 #include <repair/plugin.h>
 
@@ -223,11 +218,12 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 			  uint32_t nlink, uint16_t fmode, 
 			  uint8_t mode)
 {
-	key_entity_t *key;
-	lookup_t lookup;
-	place_t *start;
-	uint64_t pid;
 	errno_t res;
+	uint64_t pid;
+	uint64_t mask;
+	place_t *start;
+	lookup_t lookup;
+	key_entity_t *key;
 
 	aal_assert("vpf-1225", obj != NULL);
 	
@@ -235,13 +231,12 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	key = &obj->info.object;
 
 	/* Update the place of SD. */
-	lookup = obj->core->tree_ops.lookup(obj->info.tree, key, 
-					    LEAF_LEVEL, start);
-
-	if (lookup == FAILED)
+	switch ((lookup = obj40_lookup(obj, key,
+				       LEAF_LEVEL, start)))
+	{
+	case FAILED:
 		return -EINVAL;
-
-	if (lookup == PRESENT) {
+	case PRESENT:
 		if ((res = stat_func(start))) {
 			aal_exception_error("Node (%llu), item (%u): StatData "
 					    "is not of the current object. "
@@ -250,15 +245,17 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 		}
 
 		return res;
+	default:
+		break;
 	}
 
 	/* Absent. If SD is not correct. Create a new one. */
 	if ((res = obj40_stat(obj, stat_func)) <= 0)
 		return res;
 	
-	/* Check showed that this is not right SD, create a new one. This is 
-	   the special case and usually is not used as object plugin cannot 
-	   be realized w/out SD. Used for for "/" and "lost+found" recovery. */
+	/* Check showed that this is not right SD, create a new one. This is the
+	   special case and usually is not used as object plugin cannot be
+	   realized w/out SD. Used for for "/" and "lost+found" recovery. */
 	aal_exception_error("The file [%s] does not have a StatData item. %s"
 			    "Plugin %s.", print_ino(obj->core, key), 
 			    mode == RM_BUILD ? " Creating a new one." :
@@ -267,12 +264,14 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	pid = obj->core->profile_ops.value("statdata");
-	
-	if (pid == INVAL_PID)
+	if ((pid = obj->core->profile_ops.value("statdata") == INVAL_PID))
 		return -EINVAL;
+
+	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
-	if ((res = obj40_create_stat(obj, pid,  0, 0, nlink, fmode))) {
+	if ((res = obj40_create_stat(obj, pid, mask, 0, 0,
+				     nlink, fmode, NULL)))
+	{
 		aal_exception_error("The file [%s] failed to create a "
 				    "StatData item. Plugin %s.", 
 				    print_ino(obj->core, key),

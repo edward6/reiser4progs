@@ -6,10 +6,10 @@
 #ifndef LIBREPAIR_H
 #define LIBREPAIR_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
+#ifdef __cplusplus
+extern "C" {
 #endif
-
+	
 #include <reiser4/reiser4.h>
 #include <repair/repair.h>
 #include <repair/plugin.h>
@@ -46,5 +46,9 @@
     (provide some extra information) and Quiet (quiet progress and provide only
     fatal and bug infotmation to stderr; does not affect the log content though
     if log presents). */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

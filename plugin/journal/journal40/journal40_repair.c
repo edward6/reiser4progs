@@ -48,12 +48,7 @@
 
    FIXME-VITALY: For now II.4.5. and III.5. - cut to the previous transaction. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "journal40.h"
 #include <repair/plugin.h>
 #include <aux/bitmap.h>

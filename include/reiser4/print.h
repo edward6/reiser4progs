@@ -13,7 +13,8 @@
 extern errno_t reiser4_print_init(void);
 extern errno_t reiser4_print_fini(void);
 
-extern char *reiser4_print_key(reiser4_key_t *key, uint16_t options);
+extern char *reiser4_print_key(reiser4_key_t *key,
+			       uint16_t options);
 
 #endif
 

@@ -6,16 +6,11 @@
 #ifndef REISER4_MASTER_H
 #define REISER4_MASTER_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/types.h>
 
 #define SUPER(master) (&master->super)
 
 #ifndef ENABLE_STAND_ALONE
-
 extern errno_t reiser4_master_print(reiser4_master_t *master,
 				    aal_stream_t *stream);
 

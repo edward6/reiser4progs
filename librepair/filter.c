@@ -63,10 +63,12 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		fd->stat.bad_ptrs += ptr.width;
 		if (fd->repair->mode == RM_BUILD) {
 			pos_t ppos;
+			remove_hint_t hint;
 			
 			repair_place_get_lpos(place, ppos);
-			
-			if (reiser4_node_remove(place->node, &place->pos, 1)) {
+
+			hint.count = 1;
+			if (reiser4_node_remove(place->node, &place->pos, &hint)) {
 				aal_exception_error("Node (%llu), pos (%u, "
 						    "%u): Remove failed.",
 						    node_blocknr(place->node),
@@ -351,13 +353,15 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		
 		if (fd->repair->mode == RM_BUILD) {
 			pos_t prev;
+			remove_hint_t hint;
 			
 			fd->repair->fatal--;
 			/* The node corruption was not fixed - delete the 
 			   internal item. */
 			repair_place_get_lpos(place, prev);
-	
-			if (reiser4_node_remove(place->node, &place->pos, 1)) {
+
+			hint.count = 1;
+			if (reiser4_node_remove(place->node, &place->pos, &hint)) {
 				aal_exception_error("Node (%llu), pos (%u, %u): "
 						    "Remove failed.", node_blocknr(place->node), 
 						    place->pos.item, place->pos.unit);

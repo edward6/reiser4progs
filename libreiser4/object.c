@@ -4,10 +4,6 @@
    object.c -- common code for all reiser4 objects (regular files, directories,
    symlinks, etc). */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 

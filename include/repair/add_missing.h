@@ -7,12 +7,8 @@
 #ifndef ADD_MISSING_H
 #define ADD_MISSING_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
-#include <repair/librepair.h>
 #include <time.h>
+#include <repair/librepair.h>
 
 /* Statistics gathered during the pass. */
 typedef struct repair_am_stat {

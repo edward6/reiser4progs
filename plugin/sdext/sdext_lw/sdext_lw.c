@@ -4,12 +4,12 @@
    sdext_lw.c -- light weight stat data extention plugin, that implements base
    stat data fields. */
 
+#ifndef ENABLE_STAND_ALONE
+#  include <sys/stat.h>
+#endif
+
 #include "sdext_lw.h"
 #include <aux/aux.h>
-
-#ifndef ENABLE_STAND_ALONE
-#include <sys/stat.h>
-#endif
 
 static errno_t sdext_lw_open(body_t *body, 
 			     void *hint) 

@@ -56,6 +56,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		/* Open the item, checking its plugin id. */
 		if (reiser4_place_fetch(&place)) {
+			remove_hint_t hint;
+			
 			aal_exception_error("Node (%llu): Failed to open the "
 					    "item (%u). %s", node_blocknr(node),
 					    pos->item, mode == RM_BUILD ? 
@@ -66,7 +68,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 				continue;
 			}
 
-			if ((ret = reiser4_node_remove(node, pos, 1))) {
+			hint.count = 1;
+
+			if ((ret = reiser4_node_remove(node, pos, &hint))) {
 				aal_exception_bug("Node (%llu): Failed to "
 						  "delete the item (%d).", 
 						  node_blocknr(node), 
@@ -316,13 +320,17 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		}
 		
 		if (reiser4_key_valid(&key)) {
+			remove_hint_t hint;
+			
 			aal_exception_error("Node (%llu): The key [%s] of the "
 					    "item (%u) is not valid. Item "
 					    "removed.", node_blocknr(node),
 					    reiser4_print_key(&key, PO_DEF),
 					    pos->item);
+
+			hint.count = 1;
 			
-			if ((res = reiser4_node_remove(node, pos, 1))) {
+			if ((res = reiser4_node_remove(node, pos, &hint))) {
 				aal_exception_bug("Node (%llu): Failed to "
 						  "delete the item (%d).",
 						  node_blocknr(node), pos->item);

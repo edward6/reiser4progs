@@ -6,10 +6,6 @@
 #ifndef REPAIR_COORD_H
 #define REPAIR_COORD_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <repair/repair.h>
 
 #define repair_place_get_lpos(place, ppos)					\

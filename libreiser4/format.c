@@ -5,10 +5,6 @@
    plugin. It is used by filesystem code (filesystem.c) for working with
    different disk-format plugins in independent maner. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 

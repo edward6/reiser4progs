@@ -26,6 +26,7 @@ static errno_t key_large_assign(key_entity_t *dst,
 	aal_assert("umka-1111", src != NULL);
 
 	dst->plug = src->plug;
+	dst->adjust = src->adjust;
 
 	aal_memcpy(dst->body, src->body,
 		   sizeof(key_large_t));
@@ -193,7 +194,9 @@ static uint64_t key_large_get_hash(key_entity_t *key) {
 /* Cleans key body */
 static void key_large_clean(key_entity_t *key) {
 	aal_assert("vpf-139", key != NULL);
-	aal_memset(key->body, 0, sizeof(key_large_t));
+
+	key->adjust = 0;
+	aal_memset(key->body, 0, sizeof(key->body));
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -355,9 +358,14 @@ static errno_t key_large_build_gener(key_entity_t *key,
 	kl_set_ordering((key_large_t *)key->body,
 			ordering);
 	
-	kl_set_objectid((key_large_t *)key->body,
-			objectid);
-
+	if (type == KEY_FILENAME_TYPE) {
+		kl_set_fobjectid((key_large_t *)key->body,
+				objectid);
+	} else {
+		kl_set_objectid((key_large_t *)key->body,
+				objectid);
+	}
+	
 	kl_set_minor((key_large_t *)key->body,
 		     key_common_type2minor(type));
 	

@@ -7,12 +7,8 @@
 #ifndef REPAIR_LOST_FOUND_H
 #define REPAIR_LOST_FOUNS_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
-#include <repair/librepair.h>
 #include <time.h>
+#include <repair/librepair.h>
 
 /* Statistics gathered during the pass. */
 typedef struct repair_lost_found_stat {
@@ -31,5 +27,4 @@ typedef struct repair_lost_found {
 } repair_lost_found_t;
 
 extern errno_t repair_lost_found(repair_lost_found_t *lf);
-
 #endif

@@ -218,25 +218,7 @@ struct reiser4_oid {
 
 typedef struct reiser4_oid reiser4_oid_t;
 
-typedef errno_t (*connect_func_t) (reiser4_tree_t *,
-				   reiser4_place_t *,
-				   reiser4_node_t *, void *);
-
 #ifndef ENABLE_STAND_ALONE
-typedef bool_t (*enough_func_t) (reiser4_tree_t *,
-				 reiser4_place_t *,
-				 uint32_t);
-
-/* Tree modification trap typedefs */
-typedef bool_t (*insert_func_t) (reiser4_tree_t *,
-				 reiser4_place_t *,
-				 create_hint_t *, 
-				 void *);
-
-typedef bool_t (*remove_func_t) (reiser4_tree_t *,
-				 reiser4_place_t *,
-				 void *);
-
 typedef errno_t (*pack_func_t) (reiser4_tree_t *,
 				reiser4_place_t *,
 				void *);
@@ -276,28 +258,17 @@ struct reiser4_tree {
 	struct {
 
 #ifndef ENABLE_STAND_ALONE
-		/* These traps will be called durring insert an item/unit */
-		insert_func_t pre_insert;
-		insert_func_t post_insert;
-
-		/* These traps will be called durring remove an item/unit */
-		remove_func_t pre_remove;
-		remove_func_t post_remove;
-
-		/* These traps will be called for connect/disconnect nodes in
-		   tree. They may be used for keeping track nodes in tree. */
-		connect_func_t connect;
-		connect_func_t disconnect;
-
-		/* This trap is called by any remove from the tree. It may be
-		   used for implementing an alternative tree packing in remove
-		   point. By default it uses so called "local packing", that is,
-		   shift target node into left neighbour and shift right node
-		   into target one. */
+		/* This trap is called by tree_remove(). It may be used for
+		   implementing an alternative tree packing at remove. By
+		   default it uses so called "local packing", that is, shift
+		   everything from target node to left neighbour and shift
+		   everything from right node to target one. */
 		pack_func_t pack;
-#endif
-		/* Traps used opaque data  */
+
+		/* Pack callback related data. User may use it for setting some
+		   usefull data to it, and then use it in alternative pack(). */
 		void *data;
+#endif
 	} traps;
 
 #ifndef ENABLE_STAND_ALONE

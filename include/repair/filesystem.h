@@ -7,10 +7,6 @@
 #ifndef REPAIR_FILESYSTEM_H
 #define REPAIR_FILESYSTEM_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <repair/repair.h>
 #include <reiser4/filesystem.h>
 

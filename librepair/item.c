@@ -39,13 +39,16 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 	}
 	
 	if ((result & RE_FATAL) && mode == RM_BUILD) {
+		remove_hint_t hint;
+		
 		aal_exception_error("Node (%llu), item (%u): unrecoverable "
 				    "corruption found. Remove item.", 
 				    node_blocknr(place->node), place->pos.item);
-		
+
+		hint.count = 1;
 		place->pos.unit = MAX_UINT32;
 		
-		if ((ret = reiser4_node_remove(place->node, &place->pos, 1))) {
+		if ((ret = reiser4_node_remove(place->node, &place->pos, &hint))) {
 			aal_exception_error("Node (%llu), item (%u): failed to "
 					    "remove the item.",
 					    node_blocknr(place->node), 

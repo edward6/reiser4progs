@@ -114,29 +114,6 @@ errno_t reiser4_tree_connect(
 		}
 	}
 
-#ifndef ENABLE_STAND_ALONE
-	if (tree->traps.connect) {
-		reiser4_place_t place;
-
-		reiser4_place_init(&place, parent, &node->p.pos);
-		
-		if (place.node) {
-			if ((res = reiser4_place_fetch(&place)))
-				return res;
-		}
-			
-		/* Placing the connect() callback calling between lock/unlock
-		   braces in order to prevent its freeing by memory pressure
-		   handler. */
-		reiser4_node_lock(node);
-		
-		res = tree->traps.connect(tree, &place, node,
-					  tree->traps.data);
-		
-		reiser4_node_unlock(node);
-	}
-#endif
-
 	return res;
 }
 
@@ -149,30 +126,6 @@ errno_t reiser4_tree_disconnect(
 {
 	aal_assert("umka-1858", tree != NULL);
 	aal_assert("umka-563", node != NULL);
-
-#ifndef ENABLE_STAND_ALONE
-	if (tree->traps.disconnect) {
-		errno_t res;
-
-		if (node->p.node) {
-			if ((res = reiser4_place_fetch(&node->p)))
-				return res;
-		}
-
-		/* Placing callback calling into lock/unlock braces for
-		   preventing it freeing by handler. */
-		reiser4_node_lock(node);
-		
-		if ((res = tree->traps.disconnect(tree, &node->p, node,
-						  tree->traps.data)))
-		{
-			reiser4_node_unlock(node);
-			return res;
-		}
-
-		reiser4_node_unlock(node);
-	}
-#endif
 	
 	/* Disconnecting left and right neighbours */
 	if (node->left) {
@@ -797,6 +750,8 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 }
 
 #ifdef ENABLE_COLLISIONS
+/* Makes search of the leftmost item/unit with the same key as passed @place
+ * has. This is needed to work with key collitions. */
 static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 				     reiser4_place_t *place)
 {
@@ -811,23 +766,50 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 
 	reiser4_key_assign(&key, &place->key);
 	aal_memcpy(&walk, place, sizeof(*place));
-	
+
+	/* Main loop until leftmost node reached */
 	while (walk.node) {
 		int32_t i, items;
 
+		/* Loop therugh the items of the current node */
 		for (i = walk.pos.item - 1; i >= 0; i--) {
 			walk.pos.item = i;
-			
+
+			/* Fetching item info */
 			if (reiser4_place_fetch(&walk))
 				return -EINVAL;
 
-			if (!reiser4_key_compare(&key, &walk.key)) {
-				aal_memcpy(place, &walk, sizeof(*place));
+			/* If item's lookup is implemented, we use it. Item key
+			   comparing is used otherwise. */
+			if (walk.plug->o.item_ops->lookup) {
+				switch (plug_call(walk.plug->o.item_ops,
+						  lookup, (place_t *)&walk,
+						  &place->key, &walk.pos.unit))
+				{
+				case PRESENT:
+					if (walk.pos.unit > 0) {
+						aal_memcpy(place, &walk,
+							   sizeof(*place));
+						return 0;
+					}
+				
+					break;
+				default:
+					return 0;
+				}
 			} else {
-				return 0;
+				if (!reiser4_key_compare(&walk.key,
+							&place->key))
+				{
+					aal_memcpy(place, &walk,
+						   sizeof(*place));
+				} else {
+					return 0;
+				}
 			}
 		}
 
+		/* Getting left neighbour node */
 		reiser4_tree_neigh(tree, walk.node, D_LEFT);
 
 		if ((walk.node = walk.node->left)) {
@@ -990,7 +972,7 @@ errno_t reiser4_tree_attach(
 	errno_t res;
 	uint8_t level;
 	
-	create_hint_t hint;
+	insert_hint_t hint;
 	reiser4_place_t place;
 	ptr_hint_t nodeptr_hint;
 
@@ -1033,7 +1015,7 @@ errno_t reiser4_tree_attach(
 	}
 
 	/* Inserting node pointer into tree */
-	if ((res = reiser4_tree_insert(tree, &place, level, &hint))) {
+	if ((res = reiser4_tree_insert(tree, &place, &hint, level))) {
 		aal_exception_error("Can't insert nodeptr item to "
 				    "the tree.");
 		return res;
@@ -1056,6 +1038,7 @@ errno_t reiser4_tree_attach(
 errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 			    reiser4_node_t *node)
 {
+	remove_hint_t hint;
 	reiser4_place_t parent;
 	
 	aal_assert("umka-1726", tree != NULL);
@@ -1069,7 +1052,8 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	reiser4_tree_disconnect(tree, parent.node, node);
 	
 	/* Removing item/unit from the parent node */
-	return reiser4_tree_remove(tree, &parent, 1);
+	hint.count = 1;
+	return reiser4_tree_remove(tree, &parent, &hint);
 }
 
 /* This function forces tree to grow by one level and sets it up after the
@@ -1515,12 +1499,36 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return res;
 }
 
+/* Installs new pack handler. If it is NULL, default one will be used */
+void reiser4_tree_pack_set(reiser4_tree_t *tree,
+			   pack_func_t func)
+{
+	aal_assert("umka-1896", tree != NULL);
+
+	tree->traps.pack = (func != NULL) ? func :
+		callback_tree_pack;
+}
+
+
+/* Switches on/off flag, which displays whenever tree should pack itself after
+   remove operations or not. It is needed because all operations like this
+   should be under control. */
+void reiser4_tree_pack_on(reiser4_tree_t *tree) {
+	aal_assert("umka-1881", tree != NULL);
+	tree->flags |= TF_PACK;
+}
+
+void reiser4_tree_pack_off(reiser4_tree_t *tree) {
+	aal_assert("umka-1882", tree != NULL);
+	tree->flags &= ~TF_PACK;
+}
+
 /* Inserts new item/unit described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
-	uint8_t level,              /* level item/unit will be inserted on */
-	create_hint_t *hint)        /* item hint to be inserted */
+	insert_hint_t *hint,        /* item hint to be inserted */
+	uint8_t level)              /* level item/unit will be inserted on */
 {
 	int mode;
 	errno_t res;
@@ -1614,12 +1622,6 @@ errno_t reiser4_tree_insert(
 	/* Estimating item/unit to inserted to tree */
 	if ((res = reiser4_item_estimate(place, hint)))
 		return res;
-	
-	if (tree->traps.pre_insert) {
-		if ((res = tree->traps.pre_insert(tree, place, hint,
-						  tree->traps.data)))
-			return res;
-	}
 
 	maxspace = reiser4_node_maxspace(place->node);
 	
@@ -1694,16 +1696,79 @@ errno_t reiser4_tree_insert(
 	}
 
 	/* Initializing insert point place */
-	if ((res = reiser4_place_fetch(place)))
-		return res;
+	return reiser4_place_fetch(place);
+}
 
-	/* Calling post_insert hook installed in tree */
-	if (tree->traps.post_insert) {
-		if ((res = tree->traps.post_insert(tree, place, hint,
-						   tree->traps.data)))
+/* Removes item/unit at passed @place. This functions also perform so called
+   "local packing". */
+errno_t reiser4_tree_remove(
+	reiser4_tree_t *tree,	  /* tree item will be removed from */
+	reiser4_place_t *place,   /* place the item will be removed at */
+	remove_hint_t *hint)
+{
+	errno_t res;
+
+	aal_assert("umka-2055", tree != NULL);
+	aal_assert("umka-2056", place != NULL);
+	aal_assert("umka-2392", hint != NULL);
+
+	if (hint->count == 0)
+		return -EINVAL;
+	
+	/* Removing iten/unit from the node */
+	if ((res = reiser4_node_remove(place->node,
+				       &place->pos, hint)))
+	{
+		return res;
+	}
+
+	/* Updating left deleimiting key in all parent nodes */
+	if (reiser4_place_leftmost(place) &&
+	    place->node->p.node)
+	{
+
+		/* If node became empty it will be detached from the tree, so
+		   updating is not needed and impossible, because it has no
+		   items. */
+		if (reiser4_node_items(place->node) > 0) {
+			reiser4_place_t p;
+			reiser4_key_t lkey;
+
+			/* Updating parent keys */
+			reiser4_node_lkey(place->node, &lkey);
+				
+			reiser4_place_init(&p, place->node->p.node,
+					   &place->node->p.pos);
+
+			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
+				return res;
+		}
+	}
+	
+	/* Checking if the node became empty. If so, we release it, otherwise we
+	   pack the tree about it. */
+	if (reiser4_node_items(place->node) > 0) {
+		if ((tree->flags & TF_PACK) && tree->traps.pack) {
+			if ((res = tree->traps.pack(tree, place, tree->traps.data)))
+				return res;
+		}
+	} else {
+		/* Detaching node from the tree, because it became empty */
+		reiser4_node_mkclean(place->node);
+		reiser4_tree_detach(tree, place->node);
+
+		/* Freeing node and updating place node component in order to
+		   let user know that node do not exist any longer. */
+		reiser4_tree_release(tree, place->node);
+		place->node = NULL;
+	}
+
+	/* Drying tree up in the case root node has only one item */
+	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+		if ((res = reiser4_tree_dryout(tree)))
 			return res;
 	}
-    
+	
 	return 0;
 }
 
@@ -1877,114 +1942,6 @@ errno_t reiser4_tree_cut(
 			return res;
 	}
 
-	return 0;
-}
-
-/* Installs new pack handler. If it is NULL, default one will be used */
-void reiser4_tree_pack_set(reiser4_tree_t *tree,
-			   pack_func_t func)
-{
-	aal_assert("umka-1896", tree != NULL);
-
-	tree->traps.pack = (func != NULL) ? func :
-		callback_tree_pack;
-}
-
-
-/* Switches on/off flag, which displays whenever tree should pack itself after
-   remove operations or not. It is needed because all operations like this
-   should be under control. */
-void reiser4_tree_pack_on(reiser4_tree_t *tree) {
-	aal_assert("umka-1881", tree != NULL);
-	tree->flags |= TF_PACK;
-}
-
-void reiser4_tree_pack_off(reiser4_tree_t *tree) {
-	aal_assert("umka-1882", tree != NULL);
-	tree->flags &= ~TF_PACK;
-}
-
-/* Removes item/unit at passed @place. This functions also perform so called
-   "local packing". This is shift as many as possible items and units from the
-   node pointed by @place into its left neighbour node and the same shift from
-   the right neighbour into target node. This behavior may be controlled by
-   tree's control flags (tree->flags) or by functions tree_pack_on() and
-   tree_pack_off(). */
-errno_t reiser4_tree_remove(
-	reiser4_tree_t *tree,	  /* tree item will be removed from */
-	reiser4_place_t *place,   /* place the item will be removed at */
-	uint32_t count)
-{
-	errno_t res;
-
-	aal_assert("umka-2055", tree != NULL);
-	aal_assert("umka-2056", place != NULL);
-	
-	/* Calling "pre_remove" handler if it is defined */
-	if (tree->traps.pre_remove) {
-		if ((res = tree->traps.pre_remove(tree, place,
-						  tree->traps.data)))
-			return res;
-	}
-
-	/* Removing iten/unit from the node */
-	if ((res = reiser4_node_remove(place->node, &place->pos, count)))
-		return res;
-
-	/* Updating left deleimiting key in all parent nodes */
-	if (reiser4_place_leftmost(place) &&
-	    place->node->p.node)
-	{
-
-		/* If node became empty it will be detached from the tree, so
-		   updating is not needed and impossible, because it has no
-		   items. */
-		if (reiser4_node_items(place->node) > 0) {
-			reiser4_place_t p;
-			reiser4_key_t lkey;
-
-			/* Updating parent keys */
-			reiser4_node_lkey(place->node, &lkey);
-				
-			reiser4_place_init(&p, place->node->p.node,
-					   &place->node->p.pos);
-
-			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
-				return res;
-		}
-	}
-	
-	/* Calling "post_remove" handler if it is defined */
-	if (tree->traps.post_remove) {
-		if ((res = tree->traps.post_remove(tree, place,
-						   tree->traps.data)))
-			return res;
-	}
-
-	/* Checking if the node became empty. If so, we release it, otherwise we
-	   pack the tree about it. */
-	if (reiser4_node_items(place->node) > 0) {
-		if ((tree->flags & TF_PACK) && tree->traps.pack) {
-			if ((res = tree->traps.pack(tree, place, tree->traps.data)))
-				return res;
-		}
-	} else {
-		/* Detaching node from the tree, because it became empty */
-		reiser4_node_mkclean(place->node);
-		reiser4_tree_detach(tree, place->node);
-
-		/* Freeing node and updating place node component in order to
-		   let user know that node do not exist any longer. */
-		reiser4_tree_release(tree, place->node);
-		place->node = NULL;
-	}
-
-	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
-		if ((res = reiser4_tree_dryout(tree)))
-			return res;
-	}
-	
 	return 0;
 }
 

@@ -6,12 +6,7 @@
 #ifndef REISER4_ALLOC_H
 #define REISER4_ALLOC_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include <reiser4/types.h>
 
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 

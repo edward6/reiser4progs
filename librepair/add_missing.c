@@ -195,7 +195,10 @@ errno_t repair_add_missing(repair_am_t *am) {
 				   left. For now, items contain data xor metadata, not 
 				   both. */
 				if (reiser4_item_branch(place.plug)) {
-					res = reiser4_node_remove(place.node, pos, 1);
+					remove_hint_t hint;
+
+					hint.count = 1;
+					res = reiser4_node_remove(place.node, pos, &hint);
 					
 					if (res) {
 						aal_exception_error("Node (%llu), item "

@@ -6,10 +6,6 @@
 #ifndef REISER4_PLUGIN_H
 #define REISER4_PLUGIN_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aal/aal.h>
 
 #define LEAF_LEVEL	        1
@@ -186,6 +182,7 @@ typedef struct reiser4_plug reiser4_plug_t;
 struct key_entity {
 	reiser4_plug_t *plug;
 	d64_t body[4];
+	uint32_t adjust;
 };
 
 typedef struct key_entity key_entity_t;
@@ -440,6 +437,12 @@ typedef enum entry_type entry_type_t;
         ((link >> 1) == (back >> 1) && link != back)
 
 struct entry_hint {
+	/* Entry metadata size. Filled by rem_entry and add_entry. */
+	uint16_t len;
+	
+	/* Tree coord entry lies at. Filled by dir plugin's lookup. */
+	place_t place;
+	
 	/* Entry key within the current directory */
 	key_entity_t offset;
 
@@ -488,7 +491,7 @@ typedef struct object_hint object_hint_t;
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. */ 
-struct create_hint {
+struct insert_hint {
 	/* This is pointer to already formated item body. It is useful for item
 	   copying, replacing, etc. This will be used by fsck probably. */
 	void *data;
@@ -515,7 +518,17 @@ struct create_hint {
 	reiser4_plug_t *plug;
 };
 
-typedef struct create_hint create_hint_t;
+typedef struct insert_hint insert_hint_t;
+
+struct remove_hint {
+	/* Length of removed data */
+	uint16_t len;
+
+	/* Number of items/units to be removed */
+	uint16_t count;
+};
+
+typedef struct remove_hint remove_hint_t;
 
 struct reiser4_key_ops {
 	/* Cleans key up. Actually it just memsets it by zeros, but more smart
@@ -701,7 +714,7 @@ struct reiser4_item_ops {
 				  copy_hint_t *);
 
 	/* Estimates insert operation */
-	errno_t (*estimate_insert) (place_t *, create_hint_t *,
+	errno_t (*estimate_insert) (place_t *, insert_hint_t *,
 				    uint32_t);
 
 	/* Predicts the shift parameters (units, bytes, etc) */
@@ -710,7 +723,7 @@ struct reiser4_item_ops {
 	
 	/* Inserts some amount of units described by passed hint into passed
 	   item. */
-	errno_t (*insert) (place_t *, create_hint_t *, uint32_t);
+	errno_t (*insert) (place_t *, insert_hint_t *, uint32_t);
 	
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (place_t *, place_t *, shift_hint_t *);
@@ -845,11 +858,11 @@ struct reiser4_node_ops {
 
 	/* Inserts item at specified pos */
 	errno_t (*insert) (node_entity_t *, pos_t *,
-			   create_hint_t *);
+			   insert_hint_t *);
     
 	/* Removes item/unit at specified pos */
 	errno_t (*remove) (node_entity_t *, pos_t *,
-			   uint32_t);
+			   remove_hint_t *);
 
 	/* Removes some amount of items/units */
 	errno_t (*cut) (node_entity_t *, pos_t *, pos_t *);
@@ -1312,12 +1325,12 @@ struct tree_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Inserts item/unit in the tree by calling reiser4_tree_insert function,
 	   used by all object plugins (dir, file, etc) */
-	errno_t (*insert) (void *, place_t *, uint8_t,
-			   create_hint_t *);
+	errno_t (*insert) (void *, place_t *,
+			   insert_hint_t *, uint8_t);
     
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
-	errno_t (*remove) (void *, place_t *, uint32_t);
+	errno_t (*remove) (void *, place_t *, remove_hint_t *);
 
 	/* Functions for getting/setting extent data */
 	aal_block_t *(*get_data) (void *, key_entity_t *);

@@ -24,10 +24,6 @@
    10)Remove the space between the end of the last entry and the end of 
    the item. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifdef ENABLE_LARGE_KEYS
 #ifndef ENABLE_STAND_ALONE
 

@@ -6,10 +6,6 @@
 #ifndef REPAIR_TREE_H
 #define REPAIR_TREE_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <repair/repair.h>
 
 extern errno_t repair_tree_copy(reiser4_tree_t *, reiser4_place_t *);

@@ -3,12 +3,7 @@
    
    dir40_repair.c -- reiser4 default directory file plugin repair code. */
  
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "dir40.h"
 #include "repair/plugin.h"
 
@@ -19,7 +14,6 @@ extern lookup_t dir40_lookup(object_entity_t *entity, char *name,
 			     entry_hint_t *entry);
 extern errno_t dir40_readdir(object_entity_t *entity, entry_hint_t *entry);
 extern errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry);
-extern uint32_t dir40_estimate(object_entity_t *entity, entry_hint_t *entry);
 
 #define known_extentions ((uint64_t)1 << SDEXT_UNIX_ID | 	\
 			  	    1 << SDEXT_LW_ID |		\
@@ -224,7 +218,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		
 		/* Count size and bytes. */
 		size++;
-		bytes += dir40_estimate(object, &entry); 
+		bytes += entry.len; 
 	}
 	
 	/* Take care about "." */

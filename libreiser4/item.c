@@ -23,7 +23,7 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 /* Estimating insert operation. */
 errno_t reiser4_item_estimate(
 	reiser4_place_t *place,	   /* item we will work with */
-	create_hint_t *hint)       /* item hint to be estimated */
+	insert_hint_t *hint)       /* item hint to be estimated */
 {
 	aal_assert("vpf-106", place != NULL);
 	aal_assert("umka-541", hint != NULL);

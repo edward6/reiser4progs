@@ -84,7 +84,7 @@ errno_t stat40_traverse(place_t *place,
 static errno_t callback_open_ext(sdext_entity_t *sdext,
 				 uint16_t extmask, void *data)
 {
-	create_hint_t *hint;
+	insert_hint_t *hint;
 	statdata_hint_t *stat_hint;
 
 	/* Method open is not defined, this probably means, we only interested
@@ -93,7 +93,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	if (!sdext->plug->o.sdext_ops->open)
 		return 0;
 	
-	hint = (create_hint_t *)data;
+	hint = (insert_hint_t *)data;
 	stat_hint = hint->type_specific;
 
 	/* Reading mask into hint */
@@ -127,7 +127,7 @@ static int32_t stat40_read(place_t *place, void *buff,
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
 static errno_t stat40_estimate_insert(place_t *place,
-				      create_hint_t *hint,
+				      insert_hint_t *hint,
 				      uint32_t pos)
 {
 	uint16_t i;
@@ -176,7 +176,7 @@ static errno_t stat40_estimate_insert(place_t *place,
 
 /* This method writes the stat data extentions */
 static errno_t stat40_insert(place_t *place,
-			     create_hint_t *hint,
+			     insert_hint_t *hint,
 			     uint32_t pos)
 {
 	uint16_t i;
@@ -394,7 +394,7 @@ static errno_t stat40_print(place_t *place,
 
 /* Get the plugin id of the type @type if stored in SD. */
 static rid_t stat40_plugid(place_t *place, rid_t type) {
-	create_hint_t hint;
+	insert_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_hint;
 	

@@ -186,7 +186,7 @@ static uint16_t cde_short_overhead(place_t *place) {
 /* Estimates how much bytes will be needed to prepare in node in odrer to make
    room for inserting new entries. */
 static errno_t cde_short_estimate_insert(place_t *place,
-					 create_hint_t *hint,
+					 insert_hint_t *hint,
 					 uint32_t pos)
 {
 	uint32_t i;
@@ -654,7 +654,7 @@ static errno_t cde_short_shift(place_t *src_place,
 
 /* Inserts new entries to cde item */
 static errno_t cde_short_insert(place_t *place,
-				create_hint_t *hint,
+				insert_hint_t *hint,
 				uint32_t pos)
 {
 	entry_t *entry;

@@ -3,12 +3,7 @@
    
    stat40_repair.c -- reiser4 default stat data plugin. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "stat40.h"
 #include <repair/plugin.h>
 

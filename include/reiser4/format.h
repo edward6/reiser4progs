@@ -6,10 +6,6 @@
 #ifndef REISER4_FORMAT_H
 #define REISER4_FORMAT_H
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
 #include <reiser4/types.h>
 
 extern reiser4_format_t *reiser4_format_open(reiser4_fs_t *fs);

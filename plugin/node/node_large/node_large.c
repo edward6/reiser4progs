@@ -448,7 +448,7 @@ errno_t node_large_rep(node_entity_t *dst_entity, pos_t *dst_pos,
 
 /* Inserts item described by hint structure into node */
 static errno_t node_large_insert(node_entity_t *entity, pos_t *pos,
-				 create_hint_t *hint)
+				 insert_hint_t *hint)
 {
 	errno_t res;
 	node_t *node;
@@ -525,10 +525,9 @@ static errno_t node_large_insert(node_entity_t *entity, pos_t *pos,
 
 /* This function removes item/unit from the node at specified @pos */
 errno_t node_large_remove(node_entity_t *entity, 
-			  pos_t *pos, uint32_t count) 
+			  pos_t *pos, remove_hint_t *hint) 
 {
 	pos_t rpos;
-	uint32_t len;
 	node_t *node;
 	place_t place;
 	
@@ -547,12 +546,15 @@ errno_t node_large_remove(node_entity_t *entity,
 		rpos.unit = MAX_UINT32;
 	
 	if (rpos.unit == MAX_UINT32) {
-		if (!(len = node_large_size(node, &rpos, count)))
+		if (!(hint->len = node_large_size(node, &rpos,
+						  hint->count)))
+		{
 			return -EINVAL;
+		}
 	} else {
 		/* Removing units from the item pointed by @pos */
-		len = plug_call(place.plug->o.item_ops, remove,
-				&place, rpos.unit, count);
+		hint->len = plug_call(place.plug->o.item_ops, remove,
+				      &place, rpos.unit, hint->count);
 
                 /* Updating items key if leftmost unit was changed */
 		if (rpos.unit == 0) {
@@ -561,7 +563,7 @@ errno_t node_large_remove(node_entity_t *entity,
 		}
 	}
 	
-	return node_large_shrink(entity, &rpos, len, count);
+	return node_large_shrink(entity, &rpos, hint->len, hint->count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
@@ -576,6 +578,8 @@ static errno_t node_large_cut(node_entity_t *entity,
 	uint32_t units;
 	uint32_t begin;
 	uint32_t count;
+
+	remove_hint_t hint;
 	
 	aal_assert("umka-1790", end != NULL);
 	aal_assert("umka-1789", start != NULL);
@@ -599,7 +603,9 @@ static errno_t node_large_cut(node_entity_t *entity,
 			units = plug_call(place.plug->o.item_ops,
 					  units, &place);
 
-			if (node_large_remove(entity, &pos, units - start->unit))
+			hint.count = units - start->unit;
+
+			if (node_large_remove(entity, &pos, &hint))
 				return -EINVAL;
 			
 			if (start->unit == 0)
@@ -616,7 +622,9 @@ static errno_t node_large_cut(node_entity_t *entity,
 			units = plug_call(place.plug->o.item_ops,
 					  units, &place);
 
-			if (node_large_remove(entity, &pos, end->unit))
+			hint.count = end->unit;
+
+			if (node_large_remove(entity, &pos, &hint))
 				return -EINVAL;
 			
 			if (end->unit >= units)
@@ -628,8 +636,10 @@ static errno_t node_large_cut(node_entity_t *entity,
 			   previous node_large_remove produced empty edge items,
 			   they will be removed too. */
 			POS_INIT(&pos, begin, MAX_UINT32);
+
+			hint.count = count;
 			
-			if (node_large_remove(entity, &pos, count))
+			if (node_large_remove(entity, &pos, &hint))
 				return -EINVAL;
 		}
 	} else {
@@ -637,9 +647,9 @@ static errno_t node_large_cut(node_entity_t *entity,
 		aal_assert("umka-1794", start->unit != MAX_UINT32);
 		
 		pos = *start;
-		count = end->unit - start->unit;
+		hint.count = end->unit - start->unit;
 		
-		if (node_large_remove(entity, &pos, count))
+		if (node_large_remove(entity, &pos, &hint))
 			return -EINVAL;
 
 		if (node_large_fetch(entity, &pos, &place))

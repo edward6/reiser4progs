@@ -55,7 +55,7 @@ static errno_t nodeptr40_layout(place_t *place,
 
 /* Estimates how many bytes is needed for creating new nodeptr */
 static errno_t nodeptr40_estimate_insert(place_t *place,
-					 create_hint_t *hint,
+					 insert_hint_t *hint,
 					 uint32_t pos)
 {
 	aal_assert("vpf-068", hint != NULL);
@@ -66,7 +66,7 @@ static errno_t nodeptr40_estimate_insert(place_t *place,
 
 /* Writes of the specified nodeptr into passed @place */
 static errno_t nodeptr40_insert(place_t *place,
-				create_hint_t *hint,
+				insert_hint_t *hint,
 				uint32_t pos)
 {
 	nodeptr40_t *nodeptr;

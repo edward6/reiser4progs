@@ -6,10 +6,6 @@
 #ifndef REISER4_TREE_H
 #define REISER4_TREE_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/types.h>
 
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
@@ -61,18 +57,18 @@ extern errno_t reiser4_tree_attach(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
 
-extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
-				   reiser4_place_t *place,
-				   uint8_t level,
-				   create_hint_t *hint);
-
 extern errno_t reiser4_tree_cut(reiser4_tree_t *tree,
 				reiser4_place_t *start,
 				reiser4_place_t *end);
 
+extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
+				   reiser4_place_t *place,
+				   insert_hint_t *hint,
+				   uint8_t level);
+
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
-				   uint32_t count);
+				   remove_hint_t *hint);
 
 extern errno_t reiser4_tree_shift(reiser4_tree_t *tree,
 				  reiser4_place_t *place,

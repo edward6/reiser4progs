@@ -6,10 +6,6 @@
 #ifndef REPAIR_NODE_H
 #define REPAIR_NODE_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <repair/repair.h>
 
 typedef errno_t (*repair_extent_func_t)(ptr_hint_t *, void *);

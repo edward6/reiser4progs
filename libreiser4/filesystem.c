@@ -3,10 +3,6 @@
    
    filesystem.c -- common reiser4 filesystem code. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/reiser4.h>
 
 /* Opens filesystem on specified device */
