@@ -135,13 +135,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 			return res;
 		}
 
-		/* Making decision if we should write data to leaf level or to
-		   twig. Probably this may be improved somehow. */
-		if (hint->plug->id.group == TAIL_ITEM) {
-			level = LEAF_LEVEL;
-		} else {
-			level = TWIG_LEVEL;
-		}
+		/* level new item will be inserted a on. */
+		level = reiser4_tree_target_level(tree, hint->plug);
 
 		/* Writing data to tree. */
 		if ((write = reiser4_tree_write(tree, &place,

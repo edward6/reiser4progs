@@ -33,9 +33,6 @@ extern errno_t reiser4_tree_next_node(reiser4_tree_t *tree,
 				      reiser4_place_t *place,
 				      reiser4_place_t *next);
 
-extern reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
-					       reiser4_place_t *place);
-
 extern errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 					reiser4_node_t *node);
 
@@ -55,6 +52,12 @@ extern errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 extern reiser4_node_t *reiser4_tree_neig_node(reiser4_tree_t *tree,
 					      reiser4_node_t *node,
 					      uint32_t where);
+
+extern reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
+					       reiser4_place_t *place);
+
+extern inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
+						 reiser4_plug_t *plug);
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);

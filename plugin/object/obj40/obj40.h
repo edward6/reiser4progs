@@ -46,17 +46,16 @@ extern bool_t obj40_valid_item(obj40_t *obj,
 extern errno_t obj40_fetch_item(obj40_t *obj,
 				reiser4_place_t *place);
 
+extern lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
+				lookup_bias_t bias, correct_func_t func,
+				void *data, reiser4_place_t *place);
+
 extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type,
 				  char *name);
 
 extern rid_t obj40_pid(obj40_t *obj, rid_t type, char *name);
 
 extern int64_t obj40_read(obj40_t *obj, trans_hint_t *hint);
-
-extern lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
-			     uint8_t level, lookup_bias_t bias,
-			     correct_func_t func, void *data,
-			     reiser4_place_t *place);
 
 extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 			  reiser4_core_t *core, object_info_t *info);

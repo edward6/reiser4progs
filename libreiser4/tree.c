@@ -902,6 +902,14 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	return reiser4_fs_root_key(tree->fs, &tree->key);
 }
 
+/* Returns level in tree particular item should be inserted at. */
+inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
+					  reiser4_plug_t *plug)
+{
+	return (plug->id.group == TAIL_ITEM) ?
+		LEAF_LEVEL : TWIG_LEVEL;
+}
+
 #define TREE_NODES_TABLE_SIZE (512)
 #define TREE_BLOCKS_TABLE_SIZE (512)
 

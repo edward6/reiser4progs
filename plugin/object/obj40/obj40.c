@@ -50,6 +50,26 @@ bool_t obj40_valid_item(obj40_t *obj, reiser4_place_t *place) {
 	return (place->pos.item < items);
 }
 
+/* Performs lookup and returns result to caller */
+lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
+			 lookup_bias_t bias, correct_func_t func,
+			 void *data, reiser4_place_t *place)
+{
+	lookup_hint_t hint;
+	
+	aal_assert("umka-1966", obj != NULL);
+	aal_assert("umka-3111", key != NULL);
+	aal_assert("umka-3112", place != NULL);
+
+	hint.key = key;
+	hint.data = data;
+	hint.level = LEAF_LEVEL;
+	hint.correct_func = func;
+	
+	return obj->core->tree_ops.lookup(obj->info.tree,
+					  &hint, bias, place);
+}
+
 /* Reads one stat data extension to @data. */
 errno_t obj40_read_ext(reiser4_place_t *place, rid_t id,
 		       void *data)
@@ -200,8 +220,8 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	switch ((lookup = obj40_lookup(obj, &hint.offset, LEAF_LEVEL, FIND_CONV, 
-				       NULL, NULL, STAT_PLACE(obj))))
+	switch ((lookup = obj40_find_item(obj, &hint.offset, FIND_CONV, 
+					  NULL, NULL, STAT_PLACE(obj))))
 	{
 	case ABSENT:
 		break;
@@ -613,33 +633,15 @@ errno_t obj40_update(obj40_t *obj) {
 	aal_assert("umka-1905", obj != NULL);
 		
 	/* Looking for stat data place by */
-	switch ((res = obj40_lookup(obj, &STAT_PLACE(obj)->key, LEAF_LEVEL, 
-				    FIND_EXACT, NULL, NULL, STAT_PLACE(obj))))
+	switch ((res = obj40_find_item(obj, &STAT_PLACE(obj)->key, 
+				       FIND_EXACT, NULL, NULL,
+				       STAT_PLACE(obj))))
 	{
 	case PRESENT:
 		return 0;
 	default:
 		return res;
 	}
-}
-
-/* Performs lookup and returns result to caller */
-lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
-		      uint8_t level, lookup_bias_t bias,
-		      correct_func_t func, void *data,
-		      reiser4_place_t *place)
-{
-	lookup_hint_t hint;
-	
-	aal_assert("umka-1966", obj != NULL);
-
-	hint.key = key;
-	hint.level = level;
-	hint.correct_func = func;
-	hint.data = data;
-	
-	return obj->core->tree_ops.lookup(obj->info.tree,
-					  &hint, bias, place);
 }
 
 /* Reads data from the tree to passed @hint. */

@@ -269,9 +269,11 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	key = &obj->info.object;
 
 	/* Update the place of SD. */
-	if ((lookup = obj40_lookup(obj, key, LEAF_LEVEL, FIND_EXACT, 
-				   NULL, NULL, start)) < 0)
+	if ((lookup = obj40_find_item(obj, key, FIND_EXACT, 
+				      NULL, NULL, start)) < 0)
+	{
 		return lookup;
+	}
 
 	if (lookup == PRESENT) {
 		/* FIXME-VITALY: fix the found SD if needed. */

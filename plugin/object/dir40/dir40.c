@@ -186,8 +186,9 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 
 	/* Making lookup by current dir key. */
-	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
-				FIND_EXACT, NULL, NULL, &dir->body)) < 0)
+	if ((res = obj40_find_item(&dir->obj, &dir->position, 
+				   FIND_EXACT, NULL, NULL,
+				   &dir->body)) < 0)
 	{
 		return res;
 	}
@@ -327,6 +328,7 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 {
 	dir40_t *dir;
 	lookup_t res;
+	correct_func_t chandler;
 
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1117", entity != NULL);
@@ -339,9 +341,11 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 		  &dir->body.key, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), name);
 
-	if ((res = obj40_lookup(&dir->obj, &dir->body.key, LEAF_LEVEL, 
-				bias, dir40_core->tree_ops.collision, 
-				name, &dir->body)) < 0)
+	chandler = dir40_core->tree_ops.collision;
+	
+	if ((res = obj40_find_item(&dir->obj, &dir->body.key, 
+				   bias, chandler, name,
+				   &dir->body)) < 0)
 	{
 		return res;
 	}
@@ -513,8 +517,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	dir40_reset((object_entity_t *)dir);
 	
         /* Looking for place to insert directory body */
-	switch (obj40_lookup(&dir->obj, &body_hint.offset, LEAF_LEVEL, 
-			     FIND_CONV, NULL, NULL, &dir->body))
+	switch (obj40_find_item(&dir->obj, &body_hint.offset,
+				FIND_CONV, NULL, NULL, &dir->body))
 	{
 	case ABSENT:
 		/* Inserting the direntry body item into the tree. */
@@ -581,12 +585,12 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		  set_offset, &key, MAX_UINT64);
 
 	while (1) {
-		reiser4_place_t place;
 		trans_hint_t hint;
+		reiser4_place_t place;
 
 		/* Looking for the last directory item */
-		if ((res = obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
-				  FIND_EXACT, NULL, NULL, &place)) < 0)
+		if ((res = obj40_find_item(&dir->obj, &key, FIND_EXACT,
+					   NULL, NULL, &place)) < 0)
 		{
 			return res;
 		}
