@@ -135,9 +135,12 @@ extern errno_t obj40_fix_key(obj40_t *obj, place_t *place,
 extern errno_t obj40_save_stat(obj40_t *obj,
 			       statdata_hint_t *hint);
 
+#endif
+
 extern errno_t obj40_load_stat(obj40_t *obj,
 			       statdata_hint_t *hint);
 
+#ifndef ENABLE_STAND_ALONE
 extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
 				 uint64_t mask, uint64_t size,
 				 uint64_t bytes, uint64_t rdev,

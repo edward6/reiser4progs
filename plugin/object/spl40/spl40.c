@@ -42,6 +42,19 @@ object_entity_t *spl40_open(object_info_t *info) {
 	return NULL;
 }
 
+/* Loads special file stat data to passed @hint */
+static errno_t spl40_stat(object_entity_t *entity,
+			  statdata_hint_t *hint)
+{
+	spl40_t *spl;
+	
+	aal_assert("umka-2551", entity != NULL);
+	aal_assert("umka-2552", hint != NULL);
+
+	spl = (spl40_t *)entity;
+	return obj40_load_stat(&spl->obj, hint);
+}
+
 #ifndef ENABLE_STAND_ALONE
 /* Creates special file and returns initialized instance to the caller. */
 static object_entity_t *spl40_create(object_info_t *info,
@@ -130,19 +143,6 @@ static errno_t spl40_metadata(object_entity_t *entity,
 	return obj40_metadata(&spl->obj, place_func, data);
 }
 
-/* Loads special file stat data to passed @hint */
-static errno_t spl40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
-	spl40_t *spl;
-	
-	aal_assert("umka-2551", entity != NULL);
-	aal_assert("umka-2552", hint != NULL);
-
-	spl = (spl40_t *)entity;
-	return obj40_load_stat(&spl->obj, hint);
-}
-
 /* Updates special file stat data from passed @hint */
 static errno_t spl40_update(object_entity_t *entity,
 			    statdata_hint_t *hint)
@@ -171,7 +171,6 @@ static reiser4_object_ops_t spl40_ops = {
 	.unlink         = spl40_unlink,
 	.links          = spl40_links,
 	.clobber        = spl40_clobber,
-	.stat           = spl40_stat,
 	.update         = spl40_update,
 
 	.layout         = NULL,
@@ -192,13 +191,13 @@ static reiser4_object_ops_t spl40_ops = {
 	.lookup	        = NULL,
 	.reset	        = NULL,
 	.offset	        = NULL,
-	.size           = NULL,
 	.readdir        = NULL,
 	.telldir        = NULL,
 	.seekdir        = NULL,
 	.read	        = NULL,
 	.follow         = NULL,
 	
+	.stat           = spl40_stat,
 	.open	        = spl40_open,
 	.close	        = spl40_close
 };

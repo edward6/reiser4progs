@@ -70,7 +70,6 @@ uint64_t obj40_get_size(obj40_t *obj) {
 	return lw_hint.size;
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* Loads stat data to passed @hint. */
 errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint) {
 	trans_hint_t trans;
@@ -90,6 +89,7 @@ errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint) {
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Saves stat data to passed @hint. */
 errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 	trans_hint_t trans;

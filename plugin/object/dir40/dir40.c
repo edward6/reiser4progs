@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   dir40.c -- reiser4 default directory object plugin. */
+   dir40.c -- reiser4 directory object plugin. */
 
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>
@@ -12,21 +12,6 @@
 
 extern reiser4_plug_t dir40_plug;
 reiser4_core_t *dir40_core = NULL;
-
-/* Gets size from the object stat data */
-static uint64_t dir40_size(object_entity_t *entity) {
-	dir40_t *dir;
-
-	aal_assert("umka-2277", entity != NULL);
-	
-	dir = (dir40_t *)entity;
-	
-	/* Updating stat data place */
-	if (obj40_update(&dir->obj))
-		return 0;
-
-	return obj40_get_size(&dir->obj);
-}
 
 static void dir40_close(object_entity_t *entity) {
 	aal_assert("umka-750", entity != NULL);
@@ -472,7 +457,35 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	return NULL;
 }
 
+/* Loads stat data to passed @hint */
+static errno_t dir40_stat(object_entity_t *entity,
+			  statdata_hint_t *hint)
+{
+	dir40_t *dir;
+	
+	aal_assert("umka-2563", entity != NULL);
+	aal_assert("umka-2564", hint != NULL);
+
+	dir = (dir40_t *)entity;
+	return obj40_load_stat(&dir->obj, hint);
+}
+
 #ifndef ENABLE_STAND_ALONE
+/* Gets size from the object stat data */
+static uint64_t dir40_size(object_entity_t *entity) {
+	dir40_t *dir;
+
+	aal_assert("umka-2277", entity != NULL);
+	
+	dir = (dir40_t *)entity;
+	
+	/* Updating stat data place */
+	if (obj40_update(&dir->obj))
+		return 0;
+
+	return obj40_get_size(&dir->obj);
+}
+
 /* Creates dir40 instance and inserts few item in new directory described by
    passed @hint. */
 static object_entity_t *dir40_create(object_info_t *info,
@@ -954,19 +967,6 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	return 0;
 }
 
-/* Loads stat data to passed @hint */
-static errno_t dir40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
-	dir40_t *dir;
-	
-	aal_assert("umka-2563", entity != NULL);
-	aal_assert("umka-2564", hint != NULL);
-
-	dir = (dir40_t *)entity;
-	return obj40_load_stat(&dir->obj, hint);
-}
-
 /* Updates stat data from passed @hint */
 static errno_t dir40_update(object_entity_t *entity,
 			    statdata_hint_t *hint)
@@ -1001,7 +1001,6 @@ static reiser4_object_ops_t dir40_ops = {
 	.link		= dir40_link,
 	.unlink		= dir40_unlink,
 	.links		= dir40_links,
-	.stat           = dir40_stat,
 	.update         = dir40_update,
 	.truncate	= dir40_truncate,
 	.add_entry	= dir40_add_entry,
@@ -1024,11 +1023,11 @@ static reiser4_object_ops_t dir40_ops = {
 	.read		= NULL,
 	.offset		= NULL,
 	
+	.stat           = dir40_stat,
 	.open		= dir40_open,
 	.close		= dir40_close,
 	.reset		= dir40_reset,
 	.lookup		= dir40_lookup,
-	.size		= dir40_size,
 	.seekdir	= dir40_seekdir,
 	.readdir	= dir40_readdir,
 

@@ -648,10 +648,10 @@ struct reiser4_key_ops {
 typedef struct reiser4_key_ops reiser4_key_ops_t;
 
 struct reiser4_object_ops {
-#ifndef ENABLE_STAND_ALONE
 	/* Loads object stat data to passed hint. */
 	errno_t (*stat) (object_entity_t *, statdata_hint_t *);
 
+#ifndef ENABLE_STAND_ALONE
 	/* Updates object stat data from passed hint. */
 	errno_t (*update) (object_entity_t *, statdata_hint_t *);
 	
@@ -730,9 +730,6 @@ struct reiser4_object_ops {
    
 	/* Returns current position in directory */
 	uint64_t (*offset) (object_entity_t *);
-
-	/* Returns file size */
-	uint64_t (*size) (object_entity_t *);
 
 	/* Makes lookup inside file */
 	lookup_t (*lookup) (object_entity_t *, char *,

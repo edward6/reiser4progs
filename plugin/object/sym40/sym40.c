@@ -66,6 +66,19 @@ static int64_t sym40_read(object_entity_t *entity,
 	return aal_strlen(buff);
 }
 
+/* Loads symlink stat data to passed @hint */
+static errno_t sym40_stat(object_entity_t *entity,
+			  statdata_hint_t *hint)
+{
+	sym40_t *sym;
+	
+	aal_assert("umka-2557", entity != NULL);
+	aal_assert("umka-2558", hint != NULL);
+
+	sym = (sym40_t *)entity;
+	return obj40_load_stat(&sym->obj, hint);
+}
+
 #ifndef ENABLE_STAND_ALONE
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_create(object_info_t *info,
@@ -153,19 +166,6 @@ static errno_t sym40_metadata(object_entity_t *entity,
 	return obj40_metadata(&sym->obj, place_func, data);
 }
 
-/* Loads symlink stat data to passed @hint */
-static errno_t sym40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
-	sym40_t *sym;
-	
-	aal_assert("umka-2557", entity != NULL);
-	aal_assert("umka-2558", hint != NULL);
-
-	sym = (sym40_t *)entity;
-	return obj40_load_stat(&sym->obj, hint);
-}
-
 /* Updates symlink stat data from passed @hint */
 static errno_t sym40_update(object_entity_t *entity,
 			    statdata_hint_t *hint)
@@ -225,7 +225,6 @@ static reiser4_object_ops_t sym40_ops = {
 	.link           = sym40_link,
 	.unlink         = sym40_unlink,
 	.links          = sym40_links,
-	.stat           = sym40_stat,
 	.update         = sym40_update,
 	.clobber        = sym40_clobber,
 	.recognize	= sym40_recognize,
@@ -249,11 +248,11 @@ static reiser4_object_ops_t sym40_ops = {
 	.lookup	        = NULL,
 	.reset	        = NULL,
 	.offset	        = NULL,
-	.size           = NULL,
 	.readdir        = NULL,
 	.telldir        = NULL,
 	.seekdir        = NULL,
 
+	.stat           = sym40_stat,
 	.read	        = sym40_read,
 	.open	        = sym40_open,
 	.close	        = sym40_close,

@@ -56,10 +56,21 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 }
 
 uint64_t reiser4_object_size(reiser4_object_t *object) {
+	statdata_hint_t hint;
+	sdext_lw_hint_t lw_hint;
+	
 	aal_assert("umka-1961", object != NULL);
 
-	return plug_call(object->entity->plug->o.object_ops,
-			 size, object->entity);
+	hint.extmask = 1 << SDEXT_LW_ID;
+	hint.ext[SDEXT_LW_ID] = &lw_hint;
+
+	if (plug_call(object->entity->plug->o.object_ops,
+		      stat, object->entity, &hint))
+	{
+		return 0;
+	}
+
+	return lw_hint.size;
 }
 
 /* Looks up for the object stat data place in tree */

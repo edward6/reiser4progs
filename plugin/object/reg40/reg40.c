@@ -107,7 +107,7 @@ static int64_t reg40_read(object_entity_t *entity,
 
 	/* Correcting number of bytes to be read. It cannot be more then file
 	   size value from stat data. That it is needed for reading extents,
-	   where we can't udnerstand real data size without stat datasaved
+	   where we can't udnerstand real data size without stat data saved
 	   value. */
 	if (reg40_offset(entity) + hint.count > fsize)
 		hint.count = fsize - reg40_offset(entity);
@@ -163,6 +163,19 @@ static object_entity_t *reg40_open(object_info_t *info) {
  error_free_reg:
 	aal_free(reg);
 	return NULL;
+}
+
+/* Loads stat data to passed @hint */
+static errno_t reg40_stat(object_entity_t *entity,
+			  statdata_hint_t *hint)
+{
+	reg40_t *reg;
+	
+	aal_assert("umka-2561", entity != NULL);
+	aal_assert("umka-2562", hint != NULL);
+
+	reg = (reg40_t *)entity;
+	return obj40_load_stat(&reg->obj, hint);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -681,19 +694,6 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
-/* Loads stat data to passed @hint */
-static errno_t reg40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
-	reg40_t *reg;
-	
-	aal_assert("umka-2561", entity != NULL);
-	aal_assert("umka-2562", hint != NULL);
-
-	reg = (reg40_t *)entity;
-	return obj40_load_stat(&reg->obj, hint);
-}
-
 /* Updates stat data from passed @hint */
 static errno_t reg40_update(object_entity_t *entity,
 			    statdata_hint_t *hint)
@@ -724,7 +724,6 @@ static reiser4_object_ops_t reg40_ops = {
 	.metadata       = reg40_metadata,
 	.convert        = reg40_convert,
 	.form		= reg40_form,
-	.stat           = reg40_stat,
 	.update         = reg40_update,
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,
@@ -748,12 +747,12 @@ static reiser4_object_ops_t reg40_ops = {
 	.telldir        = NULL,
 	.seekdir        = NULL,
 		
+	.stat           = reg40_stat,
 	.open	        = reg40_open,
 	.close	        = reg40_close,
 	.reset	        = reg40_reset,
 	.seek	        = reg40_seek,
 	.offset	        = reg40_offset,
-	.size           = reg40_size,
 	.read	        = reg40_read,
 };
 
