@@ -54,3 +54,8 @@ reiser4progs/COPYING.
 * repacking is needed after tree is created by reiser4progs. Or we
   should produce the tree in the right order.
 
+* remove and insert in node plugin probably should take an additional
+  param, and namely the count of items/unit to be inserted/removed.
+
+* node plugin insert probably should be renamed into write
+

@@ -382,86 +382,13 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 }
 
 /*
-  Makes shrink the @node by passed @len after item/unit was removed. This
-  function is called from remove and shift methods.
+  General node40 cutting function. It is used frim shift, remove, etc. It
+  removes an amount of items specified by @count and shrinks node. If unit
+  component of pos is specified, then it will shrink specified by @pos->item
+  node by specified @len.
 */
 static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
-			     uint32_t size) 
-{
-	int is_range;
-    
-	uint32_t len;
-	uint32_t items;
-	uint32_t offset;
-	
-	item40_header_t *ih;
-
-	aal_assert("umka-958", node != NULL, return -1);
-	aal_assert("umka-959", pos != NULL, return -1);
-
-	items = nh40_get_num_items(node);
-	is_range = (pos->item < items);
-	
-	aal_assert("umka-960", is_range, return -1);
-    
-	ih = node40_ih_at(node, pos->item);
-    
-	offset = ih40_get_offset(ih);
-	len = node40_item_len((object_entity_t *)node, pos);
-
-	/*
-	  Checking if we should perform any data moving due to we remove
-	  item/units inside the range 0 ... items - 1
-	*/
-	if ((offset + len) < nh40_get_free_space_start(node)) {
-		uint32_t move;
-		void *src, *dst;
-		
-		item40_header_t *cur;
-		item40_header_t *end;
-
-		/* Preparing data to be moved and moving it */
-		src = node->block->data + offset + len;
-		dst = node->block->data + offset + len - size;
-
-		move = nh40_get_free_space_start(node) -
-			sizeof(node40_header_t) - offset - len;
-		
-		aal_memmove(dst, src, move);
-
-		/* Updating item offsets */
-		end = node40_ih_at(node, items - 1);
-
-		for (cur = ih - 1; cur >= end; cur--)
-			ih40_dec_offset(cur, size);
-
-		/*
-		  Moving item headers in the case we remove an item (pos->unit
-		  equals ~0ul).
-		*/
-		if (pos->unit == ~0ul) {
-			move = (void *)ih - (void *)end;
-			aal_memmove(end + 1, end, move);
-		}
-	}
-
-	/* Updating node and item fields */
-	if (pos->unit != ~0ul)
-		ih40_dec_len(ih, size);
-
-	nh40_dec_free_space_start(node, size);
-	nh40_inc_free_space(node, size);
-
-	if (pos->unit == ~0ul) {
-		nh40_dec_num_items(node, 1);
-		nh40_inc_free_space(node, sizeof(item40_header_t));
-	}
-    
-	return 0;
-}
-
-static errno_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
-			      uint32_t len, uint32_t count)
+			     uint32_t len, uint32_t count)
 {
 	int is_range;
 	
@@ -475,18 +402,18 @@ static errno_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
 	item40_header_t *cur;
 	item40_header_t *end;
 	
-	aal_assert("umka-958", node != NULL, return -1);
-	aal_assert("umka-959", pos != NULL, return -1);
-	aal_assert("umka-1792", count > 0, return -1);
+	aal_assert("umka-1798", node != NULL, return -1);
+	aal_assert("umka-1799", pos != NULL, return -1);
+	aal_assert("umka-1800", count > 0, return -1);
 
 	items = nh40_get_num_items(node);
 
 	is_range = (pos->item < items);
-	aal_assert("umka-960", is_range, return -1);
+	aal_assert("umka-1801", is_range, return -1);
 
 	if (pos->unit == ~0ul) {
 		is_range = (is_range && pos->item + count <= items);
-		aal_assert("umka-1793", is_range, return -1);
+		aal_assert("umka-1802", is_range, return -1);
 
 		end = node40_ih_at(node, items - 1);
 		headers = count * sizeof(item40_header_t);
@@ -507,22 +434,21 @@ static errno_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
 			src = node40_ih_at(node, items - 1);
 			dst = src + headers;
 			
-			size = (items - pos->item) *
+			size = (items - (pos->item + count)) *
 				sizeof(item40_header_t);
 	
 			aal_memmove(dst, src, size);
 
 			/* Updating item offsets */
-			cur = node40_ih_at(node, pos->item + count);
+			cur = node40_ih_at(node, pos->item);
 	
-			for (i = 0; i < items - count; i++, cur--)
+			for (i = pos->item; i < items - count; i++, cur--)
 				ih40_dec_offset(cur, len);
 		}
 
 		/* Updating node header */
 		nh40_dec_num_items(node, count);
 		nh40_inc_free_space(node, (len + headers));
-		nh40_dec_free_space_start(node, len);
 	} else {
 		item_entity_t item;
 		item40_header_t *ih;
@@ -555,9 +481,9 @@ static errno_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
 		/* Updating node header and item header */
 		nh40_inc_free_space(node, len);
 		ih40_dec_len(ih, len);
-		nh40_dec_free_space_start(node, len);
 	}
 
+	nh40_dec_free_space_start(node, len);
 	return 0;
 }
 
@@ -566,110 +492,45 @@ static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 {
 	int is_range;
 	
-	uint32_t size;
-	void *src, *dst;
-
-	uint32_t headers;
-	uint32_t i, items;
-	uint32_t len, offset;
-
+	uint32_t items;
+	uint32_t i, len;
+	
 	item40_header_t *cur;
 	item40_header_t *end;
-	
-	aal_assert("umka-958", node != NULL, return -1);
-	aal_assert("umka-959", pos != NULL, return -1);
-	aal_assert("umka-1792", count > 0, return -1);
 
+	aal_assert("umka-1803", node != NULL, return -1);
+	aal_assert("umka-1804", pos != NULL, return -1);
+		
 	items = nh40_get_num_items(node);
-
-	is_range = (pos->item < items);
-	aal_assert("umka-960", is_range, return -1);
-
+	
 	if (pos->unit == ~0ul) {
-		is_range = (is_range && pos->item + count <= items);
-		aal_assert("umka-1793", is_range, return -1);
-
+		is_range = (pos->item + count <= items);
+		aal_assert("umka-1805", is_range, return -1);
+		
 		end = node40_ih_at(node, items - 1);
 		cur = node40_ih_at(node, pos->item);
-
-		/* Calculating how much bytes will be removed */
+		
 		for (len = 0, i = 0; i < count && cur >= end; i++, cur--) {
 			len += (cur == end ? nh40_get_free_space_start(node) :
 				ih40_get_offset(cur - 1)) - ih40_get_offset(cur);
 		}
-
-		/* Moving item header and bodies if it is needed */
-		if (pos->item + count < items) {
-
-			/* Moving item bodies */
-			dst = node40_ib_at(node, pos->item);
-			src = node40_ib_at(node, pos->item + count);
-			size = nh40_get_free_space_start(node) - len;
-
-			aal_memmove(dst, src, size);
-
-			/* Moving item headers */
-			src = node40_ih_at(node, items - 1);
-			dst = src + (count * sizeof(item40_header_t));
-			size = (items - pos->item - 1) * sizeof(item40_header_t);
-	
-			aal_memmove(dst, src, size);
-
-			/* Updating item offsets */
-			cur = node40_ih_at(node, pos->item + count);
-	
-			for (i = 0; i < items - count; i++, cur--)
-				ih40_dec_offset(cur, len);
-		}
-
-		/* Updating node header */
-		headers = count * sizeof(item40_header_t);
-	
-		nh40_dec_num_items(node, count);
-		nh40_inc_free_space(node, (len + headers));
-		nh40_dec_free_space_start(node, len);
 	} else {
 		item_entity_t item;
-		item40_header_t *ih;
+		
+		is_range = (pos->item <= items);
+		aal_assert("umka-1806", is_range, return -1);
 		
 		if (node40_item(&item, node, pos->item))
 			return -1;
 			
-		ih = node40_ih_at(node, pos->item);
-		
 		/*
 		  The number of bytes will be removed from the item. Node will
 		  be shrinked by this value.
 		*/
 		len = item.plugin->item_ops.remove(&item, pos->unit, count);
-		
-		/* Updating items key */
-		if (pos->unit == 0)
-			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
-		
-		/* Moving item bodies */
-		src = node40_ib_at(node, pos->item) + item.len;
-
-		dst = node40_ib_at(node, pos->item) + item.len - len;
-
-		size = nh40_get_free_space_start(node) -
-			ih40_get_offset(ih) - item.len;
-		
-		aal_memmove(dst, src, size);
-		
-		/* Updating header offsets */
-		end = node40_ih_at(node, items - 1);
-		
-		for (cur = ih - 1; cur >= end; cur--)
-			ih40_dec_offset(cur, len);
-
-		/* Updating node header and item header */
-		nh40_inc_free_space(node, len);
-		ih40_dec_len(ih, len);
-		nh40_dec_free_space_start(node, len);
 	}
 
-	return 0;
+	return node40_shrink(node, pos, len, count);
 }
 
 /* Inserts item described by hint structure into node */
@@ -750,25 +611,19 @@ errno_t node40_remove(object_entity_t *entity,
 
 	node = (node40_t *)entity;
 	
-	if (pos->unit == ~0ul) {
+	if (pos->unit == ~0ul)
 		len = node40_item_len(entity, pos);
-		return node40_shrink(node, pos, len);
-	} else {
+	else {
 		item_entity_t item;
-		item40_header_t *ih;
 
-		ih = node40_ih_at(node, pos->item);
-
-		node40_item(&item, node, pos->item);
+		if (node40_item(&item, node, pos->item))
+			return -1;
 		
 		len = plugin_call(item.plugin->item_ops, remove, &item,
 				  pos->unit, 1);
-
-		if (pos->unit == 0)
-			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
-
-		return node40_shrink(node, pos, len);
 	}
+	
+	return node40_shrink(node, pos, len, 1);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
@@ -861,7 +716,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		/* Remove empty item */
 		if (!(units = item.plugin->item_ops.units(&item))) {
 			pos.unit = ~0ul;
-			node40_shrink(node, &pos, item.len);
+			node40_shrink(node, &pos, item.len, 1);
 		}
 	}
 
@@ -1325,7 +1180,7 @@ static errno_t node40_merge(node40_t *src_node,
 		len = hint->rest;
 	}
 
-	return node40_shrink(src_node, &pos, len);
+	return node40_shrink(src_node, &pos, len, 1);
 
  out:
 	hint->flags &= ~SF_MOVIP;
@@ -1543,46 +1398,19 @@ static errno_t node40_shift_items(node40_t *src_node,
 			ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));
 
 		if (src_items > hint->items) {
-/*			reiser4_pos_t pos = {0, ~0ul};
+			reiser4_pos_t pos = {0, ~0ul};
 
-			if (node40_shrink1(src_node, &pos, hint->bytes,
-					   hint->items))
+			if (node40_shrink(src_node, &pos, hint->bytes,
+					  hint->items))
 			{
 				aal_exception_error("Can't shrink node "
 						    "%llu durring shift.",
 						    src_node->block->blk);
 				return -1;
-			}*/
-			
-			/* Moving src item headers to right place */
-			src = node40_ih_at(src_node, src_items - 1);
-
-			dst = src + headers;
-
-			size = (src_items - hint->items) *
-				sizeof(item40_header_t);
-
-			aal_memmove(dst, src, size);
-
-			/* Moving src item bodies to right place */
-			src = src_node->block->data + sizeof(node40_header_t) +
-				hint->bytes;
-			
-			dst = src_node->block->data + sizeof(node40_header_t);
-
-			size = nh40_get_free_space_start(src_node) -
-				hint->bytes - sizeof(node40_header_t);
-			
-			aal_memmove(dst, src, size);
-
-			/* Updating item headers in src node */
-			ih = node40_ih_at(src_node, src_items - hint->items - 1);
-		
-			for (i = 0; i < src_items - hint->items; i++, ih++)
-				ih40_dec_offset(ih, hint->bytes);
+			}
 		}
 	} else {
-//		reiser4_pos_t pos = {src_items - hint->items, ~0ul};
+		reiser4_pos_t pos = {src_items - hint->items, ~0ul};
 		
 		/* Preparing space for headers in dst node */
 		if (dst_items > 0) {
@@ -1631,14 +1459,14 @@ static errno_t node40_shift_items(node40_t *src_node,
 
 		aal_memcpy(dst, src, hint->bytes);
 
-/*		if (node40_shrink1(src_node, &pos, hint->bytes,
-				   hint->items))
+		if (node40_shrink(src_node, &pos, hint->bytes,
+				  hint->items))
 		{
 			aal_exception_error("Can't shrink node "
 					    "%llu durring shift.",
 					    src_node->block->blk);
 			return -1;
-		}*/
+		}
 	}
 	
 	/* Updating destination node fields */
@@ -1646,11 +1474,6 @@ static errno_t node40_shift_items(node40_t *src_node,
 	nh40_inc_num_items(dst_node, hint->items);
 	nh40_inc_free_space_start(dst_node, hint->bytes);
 	
-	/* Updating source node fields */
-	nh40_inc_free_space(src_node, (hint->bytes + headers));
-	nh40_dec_num_items(src_node, hint->items);
-	nh40_dec_free_space_start(src_node, hint->bytes);
-
 	return 0;
 }
 
