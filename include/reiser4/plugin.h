@@ -1296,13 +1296,6 @@ struct reiser4_plugin {
 	} o;
 };
 
-/* The common node header */
-struct node_header {
-	d16_t pid;
-};
-
-typedef struct node_header node_header_t;
-
 struct tree_ops {
 		
 #ifndef ENABLE_STAND_ALONE

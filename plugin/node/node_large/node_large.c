@@ -9,66 +9,27 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t node_large_plugin;
 
-#ifndef ENABLE_STAND_ALONE
-static int node_large_isdirty(object_entity_t *entity) {
-	aal_assert("umka-2091", entity != NULL);
-	return ((node_large_t *)entity)->dirty;
-}
-
-static void node_large_mkdirty(object_entity_t *entity) {
-	aal_assert("umka-2092", entity != NULL);
-	((node_large_t *)entity)->dirty = 1;
-}
-
-static void node_large_mkclean(object_entity_t *entity) {
-	aal_assert("umka-2093", entity != NULL);
-	((node_large_t *)entity)->dirty = 0;
-}
-#endif
-
-/* Returns node level */
-static uint8_t node_large_get_level(object_entity_t *entity) {
-	aal_assert("umka-1116", entity != NULL);
-	aal_assert("umka-2017", loaded(entity));
-	
-	return nh_get_level((node_large_t *)entity);
-}
-
-#ifndef ENABLE_STAND_ALONE
-/* Returns node make stamp */
-static uint32_t node_large_get_mstamp(object_entity_t *entity) {
-	aal_assert("umka-1127", entity != NULL);
-	aal_assert("umka-2018", loaded(entity));
-	
-	return nh_get_mkfs_id((node_large_t *)entity);
-}
-
-/* Returns node flush stamp */
-static uint64_t node_large_get_fstamp(object_entity_t *entity) {
-	aal_assert("vpf-645", entity != NULL);
-	aal_assert("umka-2019", loaded(entity));
-	
-	return nh_get_flush_id((node_large_t *)entity);
-}
-#endif
-
 /* Returns item header by pos */
-item_header_t *node_large_ih_at(node_large_t *node, uint32_t pos) {
+item_header_t *node_large_ih_at(node_t *node,
+				uint32_t pos)
+{
 	item_header_t *ih;
 	aal_block_t *block;
 
 	block = node->block;
 
 	ih = (item_header_t *)(block->data +
-			       aal_block_size(block));
+			       block->size);
 	
 	return ih - pos - 1;
 }
 
 /* Retutrns item body by pos */
-void *node_large_ib_at(node_large_t *node, uint32_t pos) {
-	aal_block_t *block;
+void *node_large_ib_at(node_t *node,
+		       uint32_t pos)
+{
 	item_header_t *ih;
+	aal_block_t *block;
 	
 	block = node->block;
 	ih = node_large_ih_at(node, pos);
@@ -77,10 +38,11 @@ void *node_large_ib_at(node_large_t *node, uint32_t pos) {
 }
 
 /* Returns node free space end offset */
-uint16_t node_large_free_space_end(node_large_t *node) {
+uint16_t node_large_free_space_end(node_t *node) {
+	uint32_t items = nh_get_num_items(node);
+
 	return aal_block_size(node->block) -
-		(nh_get_num_items(node) *
-		 sizeof(item_header_t));
+		(items * sizeof(item_header_t));
 }
 
 /* Creates node_large entity on specified device and block number. This can be
@@ -88,165 +50,14 @@ uint16_t node_large_free_space_end(node_large_t *node) {
 static object_entity_t *node_large_init(aal_device_t *device,
 					uint32_t size, blk_t blk)
 {
-	node_large_t *node;
-    
-	aal_assert("umka-806", device != NULL);
+	object_entity_t *entity;
 
-	/* Allocating memory for the entity */
-	if (!(node = aal_calloc(sizeof(*node), 0)))
+	if (!(entity = node_common_init(device, size, blk)))
 		return NULL;
-
-	node->number = blk;
 	
-#ifndef ENABLE_STAND_ALONE
-	node->dirty = 0;
-#endif
-	
-	node->size = size;
-	node->device = device;
-	node->plugin = &node_large_plugin;
+	entity->plugin = &node_large_plugin;
 
-	return (object_entity_t *)node;
-}
-
-#ifndef ENABLE_STAND_ALONE
-static errno_t node_large_clone(object_entity_t *src_entity,
-				object_entity_t *dst_entity)
-{
-	uint32_t blksize;
-	node_large_t *src_node, *dst_node;
-	
-	aal_assert("umka-2308", src_entity != NULL);
-	aal_assert("umka-2309", dst_entity != NULL);
-
-	aal_assert("umka-2310", loaded(src_entity));
-	aal_assert("umka-2311", loaded(dst_entity));
-
-	src_node = (node_large_t *)src_entity;
-	dst_node = (node_large_t *)dst_entity;
-	
-	blksize = aal_block_size(src_node->block);
-
-	aal_memcpy(dst_node->block->data,
-		   src_node->block->data, blksize);
-
-	return 0;
-}
-
-static void node_large_move(object_entity_t *entity,
-			    blk_t number)
-{
-	node_large_t *node;
-	
-	aal_assert("umka-2249", entity != NULL);
-	aal_assert("umka-2012", loaded(entity));
-
-	node = (node_large_t *)entity;
-	node->number = number;
-	
-	aal_block_move(node->block, number);
-}
-
-/* Opens node on passed device and block number */
-static errno_t node_large_form(object_entity_t *entity,
-			       uint8_t level)
-{
-	uint32_t header_size;
-	node_large_t *node = (node_large_t *)entity;
-    
-	aal_assert("umka-2013", entity != NULL);
-
-	if (node->block == NULL) {
-		if (!(node->block = aal_block_create(node->device,
-						     node->size,
-						     node->number, 0)))
-		{
-			return -ENOMEM;
-		}
-	}
-
-	nh_set_pid(node, 0);
-	nh_set_num_items(node, 0);
-	nh_set_level(node, level);
-	nh_set_magic(node, NODE_LARGE_MAGIC);
-
-	header_size = sizeof(node_large_header_t);
-	nh_set_free_space_start(node, header_size);
-	nh_set_free_space(node, node->size - header_size);
-
-	node->dirty = 1;
-	return 0;
-}
-#endif
-
-static errno_t node_large_load(object_entity_t *entity) {
-	node_large_t *node = (node_large_t *)entity;
-	
-	aal_assert("umka-2010", entity != NULL);
-	
-	if (node->block)
-		return 0;
-
-	if (!(node->block = aal_block_read(node->device,
-					   node->size,
-					   node->number)))
-	{
-		return -EIO;
-	}
-
-#ifndef ENABLE_STAND_ALONE
-	node->dirty = 0;
-#endif
-	
-	return 0;
-}
-
-static errno_t node_large_unload(object_entity_t *entity) {
-	node_large_t *node = (node_large_t *)entity;
-	
-	aal_assert("umka-2011", entity != NULL);
-	aal_assert("umka-2012", loaded(entity));
-
-	aal_block_free(node->block);
-	node->block = NULL;
-
-#ifndef ENABLE_STAND_ALONE
-	node->dirty = 0;
-#endif
-
-	return 0;
-}
-
-/* Closes node by means of closing its block */
-static errno_t node_large_close(object_entity_t *entity) {
-	node_large_t *node;
-
-	aal_assert("umka-825", entity != NULL);
-
-	node = (node_large_t *)entity;
-
-	if (node->block)
-		node_large_unload(entity);
-	
-	aal_free(entity);
-	return 0;
-}
-
-/* Confirms that passed node corresponds current plugin */
-static int node_large_confirm(object_entity_t *entity) {
-	aal_assert("vpf-014", entity != NULL);
-	aal_assert("umka-2020", loaded(entity));
-	
-	return (nh_get_magic((node_large_t *)entity) == NODE_LARGE_MAGIC);
-}
-
-/* Returns item number in passed node entity. Used for any loops through the all
-   node items. */
-uint16_t node_large_items(object_entity_t *entity) {
-	aal_assert("vpf-018", entity != NULL);
-	aal_assert("umka-2021", loaded(entity));
-	
-	return nh_get_num_items((node_large_t *)entity);
+	return entity;
 }
 
 /* Returns key at passed @pos */
@@ -258,28 +69,27 @@ static errno_t node_large_get_key(object_entity_t *entity,
 	aal_assert("umka-821", key != NULL);
 	aal_assert("umka-939", pos != NULL);
 	
+	aal_assert("umka-2344", pos->item <
+		   node_common_items(entity));
+
 	aal_assert("umka-2333", entity != NULL);
 	aal_assert("umka-2022", loaded(entity));
 
-	aal_assert("umka-2344", pos->item <
-		   node_large_items(entity));
-
-	body = &(node_large_ih_at((node_large_t *)entity,
+	body = &(node_large_ih_at((node_t *)entity,
 				  pos->item)->key);
 	
 	aal_memcpy(key->body, body, sizeof(key_t));
-    
 	return 0;
 }
 
 /* Returns length of item at pos. */
-static uint16_t node_large_item_len(object_entity_t *entity, 
-				    pos_t *pos)
+static uint16_t node_large_len(object_entity_t *entity, 
+			       pos_t *pos)
 {
 	item_header_t *ih;
     
-	aal_assert("vpf-037", entity != NULL);
 	aal_assert("umka-942", pos != NULL);
+	aal_assert("vpf-037", entity != NULL);
 	aal_assert("umka-2024", loaded(entity));
 
 	/* Item length is calculated as next item body offset minus current item
@@ -287,10 +97,10 @@ static uint16_t node_large_item_len(object_entity_t *entity,
 	   that. We use this way, because reiser4 kernel code does not set
 	   item's length correctly. And they are rather reserved for future
 	   using. */
-	ih = node_large_ih_at((node_large_t *)entity, pos->item);
+	ih = node_large_ih_at((node_t *)entity, pos->item);
 
-	if (pos->item == (uint32_t)(node_large_items(entity) - 1)) {
-		return nh_get_free_space_start((node_large_t *)entity) -
+	if (pos->item == (uint32_t)(node_common_items(entity) - 1)) {
+		return nh_get_free_space_start((node_t *)entity) -
 			ih_get_offset(ih);
 	}
 
@@ -300,17 +110,17 @@ static uint16_t node_large_item_len(object_entity_t *entity,
 /* Initializes item entity in order to pass it to an item plugin routine. If
    unit component of pos is set up the function will initialize item's key from
    the unit one. */
-static errno_t node_large_get_item(object_entity_t *entity,
-				   pos_t *pos, item_entity_t *item)
+errno_t node_large_get_item(object_entity_t *entity,
+			    pos_t *pos, item_entity_t *item)
 {
 	rid_t pid;
-	node_large_t *node;
+	node_t *node;
 	
 	aal_assert("umka-1813", pos != NULL);
 	aal_assert("umka-1602", item != NULL);
 	aal_assert("umka-1631", entity != NULL);
 
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 	
 	if (pos->item >= nh_get_num_items(node))
 		return -EINVAL;
@@ -332,25 +142,10 @@ static errno_t node_large_get_item(object_entity_t *entity,
 	}
 
 	/* Initializing item's pos, body pointer and length */
-	item->len = node_large_item_len(entity, pos);
+	item->len = node_large_len(entity, pos);
 	item->body = node_large_ib_at(node, pos->item);
 	aal_memcpy(&item->pos, pos, sizeof(pos_t));
 
-	return 0;
-}
-
-#ifndef ENABLE_STAND_ALONE
-errno_t node_large_item(object_entity_t *entity, pos_t *pos,
-			item_entity_t *item)
-{
-	errno_t res;
-	node_large_t *node;
-	
-	node = (node_large_t *)entity;
-	
-	if ((res = node_large_get_item(entity, pos, item)))
-		return res;
-	
 	if (!(item->key.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
 							 KEY_LARGE_ID)))
 	{
@@ -363,14 +158,7 @@ errno_t node_large_item(object_entity_t *entity, pos_t *pos,
 	return node_large_get_key(entity, pos, &item->key);
 }
 
-/* Returns node free space */
-static uint16_t node_large_space(object_entity_t *entity) {
-	aal_assert("vpf-020", entity != NULL);
-	aal_assert("umka-2025", loaded(entity));
-	
-	return nh_get_free_space((node_large_t *)entity);
-}
-
+#ifndef ENABLE_STAND_ALONE
 /* Retutns item overhead for this node format. Widely used in modification and
    estimation routines. */
 static uint16_t node_large_overhead(object_entity_t *entity) {
@@ -379,19 +167,17 @@ static uint16_t node_large_overhead(object_entity_t *entity) {
 
 /* Returns maximal size of item possible for passed node instance */
 static uint16_t node_large_maxspace(object_entity_t *entity) {
-	node_large_t *node = (node_large_t *)entity;
-    
-	aal_assert("vpf-016", node != NULL);
+	aal_assert("vpf-016", entity != NULL);
 
 	/* Maximal space is node size minus node header and minus item
 	   overhead. */
-	return node->size - sizeof(node_large_header_t) -
+	return ((node_t *)entity)->size - sizeof(node_header_t) -
 		sizeof(item_header_t);
 }
 
 /* Calculates size of a region denoted by @pos and @count. This is used by
    node_large_rep(), node_large_remove(), etc. */
-static uint32_t node_large_size(node_large_t *node, pos_t *pos,
+static uint32_t node_large_size(node_t *node, pos_t *pos,
 				uint32_t count)
 {
 	uint32_t len;
@@ -420,9 +206,9 @@ errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 			  uint32_t len, uint32_t count)
 {
 	int is_insert;
-
+	
+	node_t *node;
 	uint32_t item;
-	node_large_t *node;
 	uint32_t items;
 	uint32_t offset;
 	uint32_t headers;
@@ -431,7 +217,7 @@ errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 	aal_assert("vpf-006", pos != NULL);
 	aal_assert("umka-817", entity != NULL);
 
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 
 	if (len == 0)
 		return 0;
@@ -518,7 +304,7 @@ errno_t node_large_shrink(object_entity_t *entity, pos_t *pos,
 	uint32_t size;
 	void *src, *dst;
 
-	node_large_t *node;
+	node_t *node;
 	uint32_t offset;
 	uint32_t headers;
 	uint32_t i, items;
@@ -530,7 +316,7 @@ errno_t node_large_shrink(object_entity_t *entity, pos_t *pos,
 	aal_assert("umka-1799", pos != NULL);
 	aal_assert("umka-1798", entity != NULL);
 
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 	items = nh_get_num_items(node);
 
 	is_range = (pos->item < items);
@@ -582,7 +368,7 @@ errno_t node_large_shrink(object_entity_t *entity, pos_t *pos,
 		entity = (object_entity_t *)node;
 
 		ih = node_large_ih_at(node, pos->item);
-		item_len = node_large_item_len(entity, pos);
+		item_len = node_large_len(entity, pos);
 		
 		/* Moving item bodies */
 		src = node_large_ib_at(node, pos->item) + item_len;
@@ -620,14 +406,14 @@ errno_t node_large_rep(object_entity_t *dst_entity, pos_t *dst_pos,
 	uint32_t offset;
 	uint32_t headers;
 
-	node_large_t *dst_node;
-	node_large_t *src_node;
+	node_t *dst_node;
+	node_t *src_node;
 	item_header_t *ih;
 	item_header_t *end;
 	void *src, *dst, *body;
 
-	dst_node = (node_large_t *)dst_entity;
-	src_node = (node_large_t *)src_entity;
+	dst_node = (node_t *)dst_entity;
+	src_node = (node_t *)src_entity;
 
 	items = nh_get_num_items(dst_node);
 	headers = count * sizeof(item_header_t);
@@ -681,7 +467,7 @@ static errno_t node_large_insert(object_entity_t *entity, pos_t *pos,
 				 create_hint_t *hint)
 {
 	errno_t res;
-	node_large_t *node;
+	node_t *node;
 	item_entity_t item;
 	item_header_t *ih;
     
@@ -698,7 +484,7 @@ static errno_t node_large_insert(object_entity_t *entity, pos_t *pos,
 		return -EINVAL;
 	}
 
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 	ih = node_large_ih_at(node, pos->item);
 
 	/* Updating item header if we want insert new item */
@@ -710,7 +496,7 @@ static errno_t node_large_insert(object_entity_t *entity, pos_t *pos,
 	}
 	
 	/* Preparing item for calling item plugin with them */
-	if (node_large_item(entity, pos, &item)) {
+	if (node_large_get_item(entity, pos, &item)) {
 		aal_exception_error("Can't prepare item entity.");
 		return -EINVAL;
 	}
@@ -764,16 +550,16 @@ errno_t node_large_remove(object_entity_t *entity,
 {
 	pos_t rpos;
 	uint32_t len;
-	node_large_t *node;
+	node_t *node;
 	item_entity_t item;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
 	aal_assert("umka-2027", loaded(entity));
 
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 
-	if (node_large_item(entity, pos, &item))
+	if (node_large_get_item(entity, pos, &item))
 		return -EINVAL;
 
 	rpos = *pos;
@@ -806,7 +592,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 {
 	pos_t pos;
 
-	node_large_t *node;
+	node_t *node;
 	uint32_t units;
 	
 	uint32_t begin;
@@ -819,7 +605,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 	aal_assert("umka-1788", entity != NULL);
 	aal_assert("umka-2028", loaded(entity));
 
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 		
 	/* Check if there some amount of whole items can be removed */
 	if (start->item != end->item) {
@@ -831,7 +617,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		if (start->unit != ~0ul) {
 			pos = *start;
 			
-			if (node_large_item(entity, &pos, &item))
+			if (node_large_get_item(entity, &pos, &item))
 				return -EINVAL;
 				
 			units = plugin_call(item.plugin->o.item_ops,
@@ -848,7 +634,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		if (end->unit != ~0ul) {
 			pos = *end;
 			
-			if (node_large_item(entity, &pos, &item))
+			if (node_large_get_item(entity, &pos, &item))
 				return -EINVAL;
 				
 			units = plugin_call(item.plugin->o.item_ops,
@@ -880,7 +666,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		if (node_large_remove(entity, &pos, count))
 			return -EINVAL;
 
-		if (node_large_item(entity, &pos, &item))
+		if (node_large_get_item(entity, &pos, &item))
 			return -EINVAL;
 
 		/* Remove empty item */
@@ -897,86 +683,28 @@ static errno_t node_large_cut(object_entity_t *entity,
 	return 0;
 }
 
-/* Returns node make stamp */
-static void node_large_set_mstamp(object_entity_t *entity,
-				  uint32_t stamp)
-{
-	aal_assert("vpf-644", entity != NULL);
-	aal_assert("umka-2038", loaded(entity));
-	
-	((node_large_t *)entity)->dirty = 1;
-	nh_set_mkfs_id((node_large_t *)entity, stamp);
-}
-
-/* Returns node flush stamp */
-static void node_large_set_fstamp(object_entity_t *entity,
-				  uint64_t stamp)
-{
-	aal_assert("vpf-643", entity != NULL);
-	aal_assert("umka-2039", loaded(entity));
-	
-	((node_large_t *)entity)->dirty = 1;
-	nh_set_flush_id((node_large_t *)entity, stamp);
-}
-
-static void node_large_set_level(object_entity_t *entity,
-				 uint8_t level)
-{
-	aal_assert("umka-1864", entity != NULL);
-	aal_assert("umka-2040", loaded(entity));
-	
-	((node_large_t *)entity)->dirty = 1;
-	nh_set_level((node_large_t *)entity, level);
-}
-
 /* Updates key at @pos by specified @key */
 static errno_t node_large_set_key(object_entity_t *entity, 
 				  pos_t *pos, key_entity_t *key) 
 {
+	node_t *node;
 	item_header_t *ih;
-	node_large_t *node;
 
 	aal_assert("umka-819", key != NULL);
     	aal_assert("umka-944", pos != NULL);
 	
+	aal_assert("umka-811", pos->item <
+		   node_common_items(entity));
+
 	aal_assert("umka-809", entity != NULL);
 	aal_assert("umka-2041", loaded(entity));
 
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 	
-	aal_assert("umka-811", pos->item <
-		   node_large_items(entity));
-
 	ih = node_large_ih_at(node, pos->item);
 	aal_memcpy(&ih->key, key->body, sizeof(ih->key));
 
 	node->dirty = 1;
-	return 0;
-}
-
-/* Updating node stamp */
-static errno_t node_large_set_stamp(object_entity_t *entity,
-				    uint32_t stamp)
-{
-	aal_assert("umka-1126", entity != NULL);
-	aal_assert("umka-2042", loaded(entity));
-
-	nh_set_mkfs_id(((node_large_t *)entity), stamp);
-	return 0;
-}
-
-/* Saves node to device */
-static errno_t node_large_sync(object_entity_t *entity) {
-	errno_t res;
-	
-	aal_assert("umka-1552", entity != NULL);
-	aal_assert("umka-2043", loaded(entity));
-	
-	if ((res = aal_block_write(((node_large_t *)entity)->block)))
-		return res;
-
-	((node_large_t *)entity)->dirty = 0;
-	
 	return 0;
 }
 
@@ -990,37 +718,38 @@ static errno_t node_large_print(object_entity_t *entity,
 	pos_t pos;
 	uint8_t level;
 	uint32_t last;
-	node_large_t *node;
+	node_t *node;
 	item_entity_t item;
 
 	aal_assert("vpf-023", entity != NULL);
 	aal_assert("umka-457", stream != NULL);
 	aal_assert("umka-2044", loaded(entity));
 
-	node = (node_large_t *)entity;
-	level = node_large_get_level(entity);
+	node = (node_t *)entity;
+	level = node_common_get_level(entity);
 	
 	aal_assert("umka-1580", level > 0);
 
 	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
 			  "SPACE=%u MKFS=0x%llx FLUSH=0x%llx\n",
 			  aal_block_number(node->block), level,
-			  node_large_items(entity), node_large_space(entity),
+			  node_common_items(entity), node_common_space(entity),
 			  nh_get_mkfs_id(node), nh_get_flush_id(node));
 	
 	pos.unit = ~0ul;
 	
 	if (start == ~0ul)
-	    start = 0;
+		start = 0;
 	
-	last = node_large_items(entity);
+	last = node_common_items(entity);
+	
 	if (last > start + count)
-	    last = start + count;
+		last = start + count;
 	
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
 
-		if (node_large_item(entity, &pos, &item))
+		if (node_large_get_item(entity, &pos, &item))
 			return -EINVAL;
 
 		aal_stream_format(stream, "(%u) ", pos.item);
@@ -1030,14 +759,14 @@ static errno_t node_large_print(object_entity_t *entity,
 			if (item.plugin->o.item_ops->print(&item, stream, options))
 				return -EINVAL;
 		} else {
-			aal_stream_format(stream, "Method \"print\" is not "
-					  "implemented.");
+			aal_stream_format(stream, "Method \"print\" is "
+					  "not implemented for \"%s\".",
+					  item.plugin->label);
 		}
 
 	}
 
 	aal_stream_format(stream, "\n");
-
 	return 0;
 }
 #endif
@@ -1052,7 +781,7 @@ static int callback_comp_key(void *node, uint32_t pos,
 	aal_assert("umka-567", key2 != NULL);
 	aal_assert("umka-656", data != NULL);
 
-	key1 = &node_large_ih_at((node_large_t *)node, pos)->key;
+	key1 = &node_large_ih_at((node_t *)node, pos)->key;
 
 	return plugin_call(((reiser4_plugin_t *)data)->o.key_ops,
 			   compraw, key1, key2);
@@ -1061,16 +790,15 @@ static int callback_comp_key(void *node, uint32_t pos,
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
 static lookup_t node_large_lookup(object_entity_t *entity, 
-				  key_entity_t *key,
-				  pos_t *pos)
+				  key_entity_t *key, pos_t *pos)
 {
 	aal_assert("umka-472", key != NULL);
 	aal_assert("umka-478", pos != NULL);
 	aal_assert("umka-470", entity != NULL);
-	aal_assert("umka-714", key->plugin != NULL);
 	aal_assert("umka-2046", loaded(entity));
+	aal_assert("umka-714", key->plugin != NULL);
 
-	switch (aux_bin_search(entity, node_large_items(entity),
+	switch (aux_bin_search(entity, node_common_items(entity),
 			       key->body, callback_comp_key,
 			       key->plugin, &pos->item))
 	{
@@ -1085,16 +813,16 @@ static lookup_t node_large_lookup(object_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 /* Checks if two item entities are mergeable */
-static bool_t node_large_mergeable(item_entity_t *item1,
-				   item_entity_t *item2)
+static bool_t node_large_mergeable(item_entity_t *src,
+				   item_entity_t *dst)
 {
-	if (!plugin_equal(item1->plugin, item2->plugin))
+	if (!plugin_equal(src->plugin, dst->plugin))
 		return FALSE;
 
-	if (!item1->plugin->o.item_ops->mergeable)
+	if (!src->plugin->o.item_ops->mergeable)
 		return FALSE;
 	
-	return item1->plugin->o.item_ops->mergeable(item1, item2);
+	return src->plugin->o.item_ops->mergeable(src, dst);
 }
 
 static bool_t node_large_splitable(item_entity_t *item) {
@@ -1141,10 +869,10 @@ static errno_t node_large_fuse(object_entity_t *src_entity,
 		return -EINVAL;
 	
 	/* Initializing items */
-	if (node_large_item(src_entity, src_pos, &src_item))
+	if (node_large_get_item(src_entity, src_pos, &src_item))
 		return -EINVAL;
 	
-	if (node_large_item(dst_entity, dst_pos, &dst_item))
+	if (node_large_get_item(dst_entity, dst_pos, &dst_item))
 		return -EINVAL;
 
 	/* Making copy of the src_item */
@@ -1176,7 +904,7 @@ static errno_t node_large_fuse(object_entity_t *src_entity,
 		pos.item--;
 
 	/* Reinitializing @dst_item after shrink and pos correcting */
-	if ((res = node_large_item(dst_entity, &pos, &dst_item)))
+	if ((res = node_large_get_item(dst_entity, &pos, &dst_item)))
 		goto error_free_body;
 	
 	if ((res = node_large_expand(dst_entity, &pos, len, 1))) {
@@ -1221,8 +949,8 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 	uint32_t dst_items;
 	uint32_t src_items;
 	
-	node_large_t *src_node;
-	node_large_t *dst_node;
+	node_t *src_node;
+	node_t *dst_node;
 
 	item_header_t *ih;
 	
@@ -1233,11 +961,11 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 	aal_assert("umka-1622", src_entity != NULL);
 	aal_assert("umka-1623", dst_entity != NULL);
 	
-	src_node = (node_large_t *)src_entity;
-	dst_node = (node_large_t *)dst_entity;
+	src_node = (node_t *)src_entity;
+	dst_node = (node_t *)dst_entity;
 	
-	src_items = node_large_items(src_entity);
-	dst_items = node_large_items(dst_entity);
+	src_items = node_common_items(src_entity);
+	dst_items = node_common_items(dst_entity);
 
 	if (src_items == 0 || hint->rest == 0)
 		return 0;
@@ -1257,7 +985,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 	POS_INIT(&pos, (hint->control & SF_LEFT ? 0 :
 			src_items - 1), ~0ul);
 	
-	if (node_large_item(src_entity, &pos, &src_item))
+	if (node_large_get_item(src_entity, &pos, &src_item))
 		return -EINVAL;
 
 	/* Items that do not implement predict and shift methods cannot be
@@ -1270,7 +998,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items - 1 : 0), ~0ul);
 		
-		if (node_large_item(dst_entity, &pos, &dst_item))
+		if (node_large_get_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
 
 		if (hint->control & SF_LEFT)
@@ -1357,7 +1085,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 
 		/* Initializing dst item after it was created by node_large_expand()
 		   function. */
-		if (node_large_item(dst_entity, &pos, &dst_item))
+		if (node_large_get_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
 
 		if (dst_item.plugin->o.item_ops->init)
@@ -1459,21 +1187,21 @@ static errno_t node_large_predict(object_entity_t *src_entity,
 	uint32_t src_items;
 	uint32_t dst_items;
 
-	node_large_t *src_node;
-	node_large_t *dst_node;
+	node_t *src_node;
+	node_t *dst_node;
 
 	item_header_t *cur;
 	item_header_t *end;
 	
-	src_node = (node_large_t *)src_entity;
-	dst_node = (node_large_t *)dst_entity;
+	src_node = (node_t *)src_entity;
+	dst_node = (node_t *)dst_entity;
 
-	dst_items = node_large_items(dst_entity);
+	dst_items = node_common_items(dst_entity);
 	
-	if (!(src_items = node_large_items(src_entity)))
+	if (!(src_items = node_common_items(src_entity)))
 		return 0;
 
-	space = node_large_space(dst_entity);
+	space = node_common_space(dst_entity);
 
 	end = node_large_ih_at(src_node,
 			   src_items - 1);
@@ -1515,7 +1243,7 @@ static errno_t node_large_predict(object_entity_t *src_entity,
 					   shift whole item pointed by pos. */
 					POS_INIT(&pos, 0, ~0ul);
 					
-					if (node_large_item(src_entity, &pos, &item))
+					if (node_large_get_item(src_entity, &pos, &item))
 						return -EINVAL;
 
 					if (!item.plugin->o.item_ops->units)
@@ -1610,8 +1338,8 @@ static errno_t node_large_transfuse(object_entity_t *src_entity,
 	if (hint->items == 0 || hint->bytes == 0)
 		return 0;
 	
-	dst_items = node_large_items(dst_entity);
-	src_items = node_large_items(src_entity);
+	dst_items = node_common_items(dst_entity);
+	src_items = node_common_items(src_entity);
 
 	if (hint->control & SF_LEFT) {
 		POS_INIT(&src_pos, 0, ~0ul);
@@ -1652,8 +1380,8 @@ static errno_t node_large_shift(object_entity_t *src_entity,
 				shift_hint_t *hint)
 {
 	errno_t res;
-	node_large_t *src_node;
-	node_large_t *dst_node;
+	node_t *src_node;
+	node_t *dst_node;
 	shift_hint_t merge;
 
 	aal_assert("umka-2050", src_entity != NULL);
@@ -1662,8 +1390,8 @@ static errno_t node_large_shift(object_entity_t *src_entity,
 	aal_assert("umka-2048", loaded(src_entity));
 	aal_assert("umka-2049", loaded(dst_entity));
 
-	src_node = (node_large_t *)src_entity;
-	dst_node = (node_large_t *)dst_entity;
+	src_node = (node_t *)src_entity;
+	dst_node = (node_t *)dst_entity;
 
 	merge = *hint;
 	
@@ -1672,7 +1400,7 @@ static errno_t node_large_shift(object_entity_t *src_entity,
 	   special shift flags SF_MERGE. It will forbid creating the new item if
 	   boundary items are not mergeable. */
 	merge.control |= SF_MERGE;
-	merge.rest = node_large_space(dst_entity);
+	merge.rest = node_common_space(dst_entity);
 	
 	/* Merges nodes without ability to create the new item in the
 	   @dst_node. This is needed for avoiding the case when a node will
@@ -1743,47 +1471,46 @@ extern bool_t node_large_test_flag(object_entity_t *entity,
 				   uint32_t pos, 
 				   uint16_t flag);
 
-extern errno_t node_large_check_struct(object_entity_t *entity,
-				       uint8_t mode);
-
 extern errno_t node_large_copy(object_entity_t *dst_entity,
 			       pos_t *dst_pos, 
 			       object_entity_t *src_entity,
 			       pos_t *src_pos, 
 			       copy_hint_t *hint);
 
+extern errno_t node_large_check_struct(object_entity_t *entity,
+				       uint8_t mode);
+
 #endif
 
 static reiser4_node_ops_t node_large_ops = {
 	.init		= node_large_init,
-	.load		= node_large_load,
-	.close		= node_large_close,
-	.unload		= node_large_unload,
-	
-	.confirm	= node_large_confirm,
-	
+	.load		= node_common_load,
+	.close		= node_common_close,
+	.unload		= node_common_unload,	
+	.confirm	= node_common_confirm,
+	.items		= node_common_items,
 	.lookup		= node_large_lookup,
-	.items		= node_large_items,
 	
 	.get_key	= node_large_get_key,
 	.get_item       = node_large_get_item,
-	.get_level	= node_large_get_level,
+	.get_level	= node_common_get_level,
 		
 #ifndef ENABLE_STAND_ALONE
-	.get_mstamp	= node_large_get_mstamp,
-	.get_fstamp     = node_large_get_fstamp,
+	.get_mstamp	= node_common_get_mstamp,
+	.get_fstamp     = node_common_get_fstamp,
 		
-	.move		= node_large_move,
-	.clone          = node_large_clone,
-	.form		= node_large_form,
-	.sync           = node_large_sync,
-	.isdirty        = node_large_isdirty,
-	.mkdirty        = node_large_mkdirty,
-	.mkclean        = node_large_mkclean,
+	.move		= node_common_move,
+	.clone          = node_common_clone,
+	.form		= node_common_form,
+	.sync           = node_common_sync,
+	
+	.isdirty        = node_common_isdirty,
+	.mkdirty        = node_common_mkdirty,
+	.mkclean        = node_common_mkclean,
+	
 	.insert		= node_large_insert,
 	.remove		= node_large_remove,
 	.cut            = node_large_cut,
-	.check_struct	= node_large_check_struct,
 	.print		= node_large_print,
 	.shift		= node_large_shift,
 	.shrink		= node_large_shrink,
@@ -1793,16 +1520,18 @@ static reiser4_node_ops_t node_large_ops = {
 
 	.overhead	= node_large_overhead,
 	.maxspace	= node_large_maxspace,
-	.space		= node_large_space,
+	.space		= node_common_space,
 	
 	.set_key	= node_large_set_key,
-	.set_level      = node_large_set_level,
-	.set_mstamp	= node_large_set_mstamp,
-	.set_fstamp     = node_large_set_fstamp,
+	.set_level      = node_common_set_level,
+	.set_mstamp	= node_common_set_mstamp,
+	.set_fstamp     = node_common_set_fstamp,
 	
 	.set_flag	= node_large_set_flag,
 	.clear_flag	= node_large_clear_flag,
-	.test_flag	= node_large_test_flag
+	.test_flag	= node_large_test_flag,
+
+	.check_struct	= node_large_check_struct
 #endif
 };
 

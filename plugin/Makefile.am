@@ -14,6 +14,7 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          journal/journal40/libjournal40-static.la \
 			          alloc/alloc40/liballoc40-static.la \
 			          oid/oid40/liboid40-static.la \
+			          node/node_common/libnode_common-static.la \
 			          node/node_short/libnode_short-static.la \
 			          node/node_large/libnode_large-static.la \
 			          key/key_common/libkey_common-static.la \
@@ -46,6 +47,7 @@ endif
 if ENABLE_STAND_ALONE
 libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          oid/oid40/liboid40-alone.la \
+			          node/node_common/libnode_common-alone.la \
 			          node/node_short/libnode_short-alone.la \
 			          node/node_large/libnode_large-alone.la \
 			          key/key_common/libkey_common-alone.la \

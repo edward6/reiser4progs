@@ -13,8 +13,8 @@
 extern errno_t node_large_remove(object_entity_t *entity, pos_t *pos, 
 				 uint32_t count);
 
-extern errno_t node_large_item(object_entity_t *entity, pos_t *pos, 
-			       item_entity_t *item);
+extern errno_t node_large_get_item(object_entity_t *entity, pos_t *pos, 
+				   item_entity_t *item);
 
 extern errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 				 uint32_t len, uint32_t count);
@@ -26,7 +26,7 @@ extern errno_t node_large_rep(object_entity_t *dst_entity, pos_t *dst_pos,
 extern errno_t node_large_shrink(object_entity_t *entity, pos_t *pos, 
 				 uint32_t len, uint32_t count);
 
-static void node_large_set_offset_at(node_large_t *node, int pos,
+static void node_large_set_offset_at(node_t *node, int pos,
 				     uint16_t offset)
 {
 	if (pos > nh_get_num_items(node))
@@ -38,7 +38,7 @@ static void node_large_set_offset_at(node_large_t *node, int pos,
 		ih_set_offset(node_large_ih_at(node, pos), offset);
 }
 
-static errno_t node_large_region_delete(node_large_t *node,
+static errno_t node_large_region_delete(node_t *node,
 					uint16_t start_pos, 
 					uint16_t end_pos) 
 {
@@ -72,12 +72,12 @@ static errno_t node_large_region_delete(node_large_t *node,
 }
 
 static bool_t node_large_item_count_valid(uint32_t blk_size, uint32_t count) {
-	return !( ( blk_size - sizeof(node_large_header_t) ) / 
+	return !( ( blk_size - sizeof(node_header_t) ) / 
 		  ( sizeof(item_header_t) + MIN_ITEM_LEN ) 
 		  < count);
 }
 
-static uint32_t node_large_count_estimate(node_large_t *node) {
+static uint32_t node_large_count_estimate(node_t *node) {
 	uint32_t num, blk_size;
 	
 	aal_assert("vpf-804", node != NULL);
@@ -86,7 +86,7 @@ static uint32_t node_large_count_estimate(node_large_t *node) {
 	blk_size = aal_block_size(node->block);
 	
 	/* Free space start is less then node_header + MIN_ITEM_LEN. */
-	if (sizeof(node_large_header_t) + MIN_ITEM_LEN > 
+	if (sizeof(node_header_t) + MIN_ITEM_LEN > 
 	    nh_get_free_space_start(node))
 		return 0;
 	
@@ -96,7 +96,7 @@ static uint32_t node_large_count_estimate(node_large_t *node) {
 	
 	/* Free space + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them 
 	 * blksize. */
-	if (nh_get_free_space(node) > blk_size - sizeof(node_large_header_t) - 
+	if (nh_get_free_space(node) > blk_size - sizeof(node_header_t) - 
 	    sizeof(item_header_t) - MIN_ITEM_LEN)
 		return 0;
 	
@@ -123,7 +123,7 @@ static uint32_t node_large_count_estimate(node_large_t *node) {
 
 /* Count of items is correct. Free space fields and item locations should be 
  * checked/recovered if broken. */
-static errno_t node_large_item_array_check(node_large_t *node, uint8_t mode) {
+static errno_t node_large_item_array_check(node_t *node, uint8_t mode) {
 	uint32_t limit, offset, last_relable, count, i, last_pos;
 	errno_t res = REPAIR_OK;
 	bool_t free_valid;
@@ -145,7 +145,7 @@ static errno_t node_large_item_array_check(node_large_t *node, uint8_t mode) {
 		aal_block_size(node->block) - count * sizeof(item_header_t);
 	
 	last_pos = 0;
-	last_relable = sizeof(node_large_header_t);
+	last_relable = sizeof(node_header_t);
 	for(i = 0; i <= count; i++) {
 		offset = (i == count) ? nh_get_free_space_start(node) : 
 			ih_get_offset(node_large_ih_at(node, i));
@@ -238,7 +238,7 @@ static errno_t node_large_item_array_check(node_large_t *node, uint8_t mode) {
 	return res;
 }
 
-static errno_t node_large_item_array_find(node_large_t *node, uint8_t mode) {
+static errno_t node_large_item_array_find(node_t *node, uint8_t mode) {
 	uint32_t offset, i, nr = 0;
 	errno_t res = REPAIR_OK;
 	blk_t blk;
@@ -251,10 +251,10 @@ static errno_t node_large_item_array_find(node_large_t *node, uint8_t mode) {
 		offset = ih_get_offset(node_large_ih_at(node, i));
 		
 		if (i) {
-			if (offset < sizeof(node_large_header_t) + i * MIN_ITEM_LEN)
+			if (offset < sizeof(node_header_t) + i * MIN_ITEM_LEN)
 				break;	
 		} else {
-			if (offset != sizeof(node_large_header_t))
+			if (offset != sizeof(node_header_t))
 				return REPAIR_FATAL;
 		}
 		
@@ -323,7 +323,7 @@ static errno_t node_large_item_array_find(node_large_t *node, uint8_t mode) {
 /* Checks the count of items written in node_header. If it is wrong, it tries
    to estimate it on the base of free_space fields and recover if REBUILD mode.
    Returns FATAL otherwise. */
-static errno_t node_large_count_check(node_large_t *node, uint8_t mode) {
+static errno_t node_large_count_check(node_t *node, uint8_t mode) {
 	uint32_t num;
 	blk_t blk;
 	
@@ -360,7 +360,7 @@ static errno_t node_large_count_check(node_large_t *node, uint8_t mode) {
 }
 
 errno_t node_large_check_struct(object_entity_t *entity, uint8_t mode) {
-	node_large_t *node = (node_large_t *)entity;
+	node_t *node = (node_t *)entity;
 	errno_t res;
 	
 	aal_assert("vpf-194", node != NULL);
@@ -382,7 +382,7 @@ errno_t node_large_check_struct(object_entity_t *entity, uint8_t mode) {
 }
 
 static errno_t node_large_corrupt(object_entity_t *entity, uint16_t options) {
-	node_large_t *node = (node_large_t *)entity;
+	node_t *node = (node_t *)entity;
 	int i;
 	item_header_t *ih;    
 	
@@ -400,7 +400,7 @@ errno_t node_large_copy(object_entity_t *dst, pos_t *dst_pos,
 		    copy_hint_t *hint) 
 {
 	item_entity_t dst_item, src_item;
-	node_large_t *dst_node, *src_node;
+	node_t *dst_node, *src_node;
 	reiser4_plugin_t *plugin;
 	item_header_t *ih;
 	errno_t res;
@@ -410,14 +410,14 @@ errno_t node_large_copy(object_entity_t *dst, pos_t *dst_pos,
 	aal_assert("umka-2029", loaded(dst));
 	aal_assert("umka-2030", loaded(src));
 	
-	dst_node = (node_large_t *)dst;
-	src_node = (node_large_t *)src;
+	dst_node = (node_t *)dst;
+	src_node = (node_t *)src;
 	
 	if (hint && hint->src_count == 0)
 		return 0;
 	
 	/* Just a part of src item being copied, gets merged with dst item. */
-	if (node_large_item(src, src_pos, &src_item))
+	if (node_large_get_item(src, src_pos, &src_item))
 		return -EINVAL;
 	
 	/* Expand the node if needed. */
@@ -434,11 +434,11 @@ errno_t node_large_copy(object_entity_t *dst, pos_t *dst_pos,
 		return node_large_rep(dst, dst_pos, src, src_pos, 1);
 	
 	/* Just a part of src item being copied, gets merged with dst item. */
-	if (node_large_item(src, src_pos, &src_item))
+	if (node_large_get_item(src, src_pos, &src_item))
 		return -EINVAL;
 	
 	/* If not the whole item, realize the dst item. */
-	if (node_large_item(dst, dst_pos, &dst_item))
+	if (node_large_get_item(dst, dst_pos, &dst_item))
 		return -EINVAL;
 	
 	if ((res = plugin_call(src_item.plugin->o.item_ops, copy, &dst_item, 
@@ -469,12 +469,12 @@ errno_t node_large_copy(object_entity_t *dst, pos_t *dst_pos,
 }
 
 void node_large_set_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
-	node_large_t *node;
+	node_t *node;
 	item_header_t *ih; 
 	
 	aal_assert("vpf-1038", entity != NULL);
 	
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 	ih = node_large_ih_at(node, pos);
 	
 	if (aal_test_bit(ih, flag))
@@ -485,12 +485,12 @@ void node_large_set_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
 }
 
 void node_large_clear_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
-	node_large_t *node;
+	node_t *node;
 	item_header_t *ih; 
 	
 	aal_assert("vpf-1039", entity != NULL);
 	
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 	ih = node_large_ih_at(node, pos);
 	
 	if (!aal_test_bit(ih, flag))
@@ -501,12 +501,12 @@ void node_large_clear_flag(object_entity_t *entity, uint32_t pos, uint16_t flag)
 }
 
 bool_t node_large_test_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
-	node_large_t *node;
+	node_t *node;
 	item_header_t *ih; 
 	
 	aal_assert("vpf-1040", entity != NULL);
 	
-	node = (node_large_t *)entity;
+	node = (node_t *)entity;
 	ih = node_large_ih_at(node, pos);
 	
 	return aal_test_bit(ih, flag);

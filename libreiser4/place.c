@@ -98,7 +98,6 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 
 /* Initializes all item-related fields */
 errno_t reiser4_place_realize(reiser4_place_t *place) {
-	errno_t res;
 	object_entity_t *entity;
 	
 	aal_assert("umka-1459", place != NULL);
@@ -106,22 +105,8 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 
 	entity = place->node->entity;
 
-	if ((res = plugin_call(entity->plugin->o.node_ops, get_item,
-			       entity, &place->pos, &place->item)))
-	{
-		aal_exception_error("Can't fetch item.");
-		return res;
-	}
-
-	if ((res = plugin_call(entity->plugin->o.node_ops, get_key,
-			       entity, &place->pos, &place->item.key)))
-	{
-		aal_exception_error("Can't fetch item key.");
-		return res;
-	}
-
-	place->item.key.plugin = place->tree->key.plugin;
-	return 0;
+	return plugin_call(entity->plugin->o.node_ops, get_item,
+			   entity, &place->pos, &place->item);
 }
 
 /* This function initializes passed @place by specified params */
