@@ -6,6 +6,8 @@
 #include "stat40.h"
 #include <sys/stat.h>
 
+#include <aux/aux.h>
+
 static reiser4_core_t *core = NULL;
 
 static inline stat40_t *stat40_body(item_entity_t *item) {
@@ -36,6 +38,10 @@ static errno_t stat40_layout(item_entity_t *item,
 		int ret;
 
 		if ((i + 1) % 16 == 0) {
+			
+			if (!((1 << i) & extmask))
+				break;
+			
 			extmask = *((uint16_t *)extbody);
 
 			/* Clear the last bit in last mask */
@@ -48,12 +54,12 @@ static errno_t stat40_layout(item_entity_t *item,
 			continue;
 		}
 
-		if (!(ret = perext_func(i, extmask, extbody, data)))
-			return ret;
-
 		if (!((1 << i) & extmask))
 			continue;
 		
+		if (!(ret = perext_func(i, extmask, extbody, data)))
+			return ret;
+
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 					   "by its id 0x%x.", i);
@@ -72,9 +78,6 @@ static int callback_open(uint8_t ext, uint16_t extmask,
 {
 	reiser4_plugin_t *plugin;
 	reiser4_statdata_hint_t *hint;
-
-	if (!((1 << ext) & extmask))
-		return 1;
 
 	hint = ((reiser4_item_hint_t *)data)->hint;
 
@@ -161,8 +164,8 @@ static errno_t stat40_init(item_entity_t *item,
 			    stat_hint->ext[i]);
 	
 		/* 
-		   Getting pointer to the next extention. It is evaluating as previous 
-		   pointer plus its size.
+		   Getting pointer to the next extention. It is evaluating as
+		   previous pointer plus its size.
 		*/
 		extbody += plugin_call(return -1, plugin->sdext_ops, length,);
 	}
@@ -237,8 +240,7 @@ static errno_t stat40_valid(item_entity_t *item) {
 static int callback_count(uint8_t ext, uint16_t extmask,
 			  reiser4_body_t *extbody, void *data)
 {
-	uint32_t *count = (uint32_t *)data;
-	*count += ((1 << ext) & extmask);
+	(*(uint32_t *)data)++;
 	return 1;
 }
 
@@ -293,8 +295,8 @@ static int callback_present(uint8_t ext, uint16_t extmask,
 {
 	struct present_hint *hint = (struct present_hint *)data;
 	
-	hint->present = (((1 << ext) & extmask));
-	return (!hint->present && ext < hint->ext);
+	hint->present = (ext == hint->ext);
+	return !hint->present;
 }
 
 static int stat40_sdext_present(item_entity_t *item, 
@@ -308,20 +310,51 @@ static int stat40_sdext_present(item_entity_t *item,
 	return hint.present;
 }
 
+struct print_hint {
+	char *buff;
+	uint32_t n;
+};
+
+static int callback_print(uint8_t ext, uint16_t extmask,
+			  reiser4_body_t *extbody, void *data)
+{
+	reiser4_plugin_t *plugin;
+	struct print_hint *hint = (struct print_hint *)data;
+
+	if (ext == 0 || (ext + 1) % 16 == 0)
+		aux_strncat(hint->buff, hint->n, "mask:\t\t0x%x\n", extmask);
+				
+	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, ext))) {
+		aal_exception_warn("Can't find stat data extention plugin "
+				   "by its id 0x%x.", ext);
+		return 1;
+	}
+
+	aux_strncat(hint->buff, hint->n, "label:\t\t%s\n",
+		    plugin->h.label);
+		
+	aux_strncat(hint->buff, hint->n, "plugin:\t\t%s\n",
+		    plugin->h.desc);
+	
+	plugin_call(return 1, plugin->sdext_ops, print, extbody,
+		    hint->buff, hint->n, 0);
+	
+	return 1;
+}
+
 static errno_t stat40_print(item_entity_t *item,
 			    char *buff, uint32_t n,
 			    uint16_t options)
 {
-	stat40_t *stat;
-	uint16_t extmask;
+	struct print_hint hint = {buff, n};
 	
 	aal_assert("umka-1407", item != NULL, return -1);
 	aal_assert("umka-1408", buff != NULL, return -1);
     
-	aal_assert("umka-1293", item != NULL, return -1);
-    
-	stat = stat40_body(item);
-	extmask = st40_get_extmask(stat);
+	aux_strncat(buff, n, "count:\t\t%u\n", stat40_count(item));
+
+	if (!stat40_layout(item, callback_print, &hint) < 0)
+		return 0;
 
 	return 0;
 }

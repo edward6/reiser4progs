@@ -6,8 +6,10 @@
 */
 
 #include "sdext_lw.h"
+#include <aux/aux.h>
 
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t sdext_lw_plugin;
 
 static errno_t sdext_lw_init(reiser4_body_t *body, 
 			     void *hint) 
@@ -55,9 +57,16 @@ static errno_t sdext_lw_print(reiser4_body_t *body,
 			      char *buff, uint32_t n,
 			      uint16_t options)
 {
+	sdext_lw_t *ext;
+	
 	aal_assert("umka-1410", body != NULL, return -1);
 	aal_assert("umka-1411", buff != NULL, return -1);
 
+	ext = (sdext_lw_t *)body;
+
+	aux_strncat(buff, n, "mode:\t\t0%o\n", sdext_lw_get_mode(ext));
+	aux_strncat(buff, n, "nlink:\t\t%u\n", sdext_lw_get_nlink(ext));
+	aux_strncat(buff, n, "size:\t\t%llu\n", sdext_lw_get_size(ext));
 	return 0;
 }
 
@@ -71,7 +80,7 @@ static reiser4_plugin_t sdext_lw_plugin = {
 				.type = SDEXT_PLUGIN_TYPE
 			},
 			.label = "sdext_lw",
-			.desc = "Base stat data extention for reiserfs 4.0, ver. " VERSION,
+			.desc = "Light stat data extention for reiserfs 4.0, ver. " VERSION,
 		},
 		.init	 = sdext_lw_init,
 		.open	 = sdext_lw_open,

@@ -79,7 +79,7 @@ static errno_t debugfs_print_joint(
 	reiser4_joint_t *joint,	   /* joint to be printed */
 	void *data)		   /* user-specified data */
 {
-	char buff[255];
+	char buff[4096];
 	reiser4_node_t *node = joint->node;
 	uint8_t level = plugin_call(return -1, node->entity->plugin->node_ops,
 				    get_level, node->entity);
@@ -90,7 +90,6 @@ static errno_t debugfs_print_joint(
     
 	if (level > LEAF_LEVEL) {
 		uint32_t i;
-		char buff[255];
 	
 		for (i = 0; i < reiser4_node_count(node); i++) {
 			reiser4_key_t key;
@@ -166,6 +165,13 @@ static errno_t debugfs_print_joint(
 	    
 			printf("PLUGIN: 0x%x (%s)\n", coord.entity.plugin->h.sign.id,
 			       coord.entity.plugin->h.label);
+
+			aal_memset(buff, 0, sizeof(buff));
+			
+			if (reiser4_item_print(&coord, buff, sizeof(buff)))
+				return -1;
+
+			printf(buff);
 		}
 	}
     
@@ -309,54 +315,42 @@ int main(int argc, char *argv[]) {
 				     (int *)0)) != EOF) 
 	{
 		switch (c) {
-		case 'h': {
+		case 'h':
 			debugfs_print_usage(argv[0]);
 			return NO_ERROR;
-		}
-		case 'V': {
+		case 'V':
 			progs_print_banner(argv[0]);
 			return NO_ERROR;
-		}
-		case 'e': {
+		case 'e':
 			profile_label = optarg;
 			break;
-		}
-		case 'o': {
+		case 'o':
 			flags |= PF_OID;
 			break;
-		}
-		case 'b': {
+		case 'b':
 			flags |= PF_ALLOC;
 			break;
-		}
-		case 's': {
+		case 's':
 			flags |= PF_SUPER;
 			break;
-		}
-		case 'j': {
+		case 'j':
 			flags |= PF_JOURNAL;
 			break;
-		}
-		case 't': {
+		case 't':
 			flags |= PF_TREE;
 			break;
-		}
-		case 'f': {
+		case 'f':
 			force = 1;
 			break;
-		}
-		case 'q': {
+		case 'q':
 			quiet = 1;
 			break;
-		}
-		case 'K': {
+		case 'K':
 			progs_profile_list();
 			return NO_ERROR;
-		}
-		case '?': {
+		case '?':
 			debugfs_print_usage(argv[0]);
 			return USER_ERROR;
-		}
 		}
 	}
     

@@ -289,14 +289,14 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 
 		aal_block_close(log_block);
 
-		footer = (journal40_footer_t *)journal->footer->data;
-	
-		/* Updating journal footer */
-		set_jf_last_flushed(footer, aal_block_number(tx_block));
-		set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
-		set_jf_nr_files(footer, get_th_nr_files(tx_header));
-		set_jf_next_oid(footer, get_th_next_oid(tx_header));
 	}
+	footer = (journal40_footer_t *)journal->footer->data;
+	
+	/* Updating journal footer */
+	set_jf_last_flushed(footer, aal_block_number(tx_block));
+	set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
+	set_jf_nr_files(footer, get_th_nr_files(tx_header));
+	set_jf_next_oid(footer, get_th_next_oid(tx_header));
     
 	return 0;
 }

@@ -282,7 +282,7 @@ static errno_t direntry40_print(item_entity_t *item,
 	aal_assert("umka-548", item != NULL, return -1);
 	aal_assert("umka-549", buff != NULL, return -1);
 
-	return -1;
+	return 0;
 }
 
 /* 
