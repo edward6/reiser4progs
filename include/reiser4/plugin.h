@@ -370,6 +370,10 @@ struct reiser4_file_hint {
 			rpid_t extent_pid;
 		} file;
 	
+		struct {
+			char data[4096];
+		} symlink;
+		
 	} body;
     
 	/* The plugin in use */

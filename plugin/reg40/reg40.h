@@ -1,5 +1,5 @@
 /*
-  dir40.h -- reiser4 hashed directory plugin structures.
+  reg40.h -- reiser4 regular file plugin structures.
 
   Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
