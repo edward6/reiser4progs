@@ -604,7 +604,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         int64_t write;
         place_t place;
         node40_t *node;
-                                                                                              
+
         node = (node40_t *)entity;
         len = hint->len + hint->overhead;
                                                                                               

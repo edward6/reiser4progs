@@ -11,7 +11,7 @@
 #include <reiser4/plugin.h>
 
 /* Minimal block number needed to reiser4 filesystem on device. */
-#define REISER4_FS_MIN_SIZE 23
+#define REISER4_FS_MIN_SIZE(blksize) (7 + REISER4_MASTER_OFFSET / blksize)
 
 typedef struct key_entity reiser4_key_t;
 

@@ -253,13 +253,13 @@ reiser4_fs_t *reiser4_fs_create(
 				    hint->blocks);
 		return NULL;
 	}
-    
+	
 	/* Checks whether filesystem size is enough big. */
-	if (hint->blocks < REISER4_FS_MIN_SIZE) {
-		aal_exception_error("Requested filesytem size (%llu) "
+	if (hint->blocks < REISER4_FS_MIN_SIZE(hint->blksize)) {
+		aal_exception_error("Requested filesystem size (%llu) is"
 				    "too small. Reiser4 required minimal "
 				    "size %u blocks long.", hint->blocks,
-				    REISER4_FS_MIN_SIZE);
+				    REISER4_FS_MIN_SIZE(hint->blksize));
 		return NULL;
 	}
     
