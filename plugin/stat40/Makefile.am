@@ -11,12 +11,12 @@ libstat40_la_LDFLAGS	    = $(PLUGIN_LDFLAGS)
 
 if ENABLE_MONOLITHIC
 libstat40_static_la_SOURCES = $(stat40_sources)
-#else
+else
 libstat40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
 			      $(top_builddir)/libaux/libaux-static.la
 
 libstat40_la_SOURCES	    = $(stat40_sources)
-#endif
+endif
 
 INCLUDES = $(includedir)
 

@@ -174,6 +174,7 @@ reiser4_format_t *reiser4_format_reopen(
 	aal_device_t *device)	        /* device format will be reopened on */
 {
 	rpid_t pid;
+	
 	aal_assert("umka-428", format != NULL, return NULL);
 
 	pid = format->entity->plugin->h.sign.id;
@@ -186,8 +187,7 @@ reiser4_format_t *reiser4_format_reopen(
 void reiser4_format_close(
 	reiser4_format_t *format)	/* format to be closed */
 {
-	if (format == NULL)
-		return;
+	aal_assert("umka-1505", format != NULL, return);
    
 	plugin_call(goto error_free_format, 
 		    format->entity->plugin->format_ops, close, format->entity);

@@ -11,12 +11,12 @@ libnode40_la_LDFLAGS	    = $(PLUGIN_LDFLAGS)
 
 if ENABLE_MONOLITHIC
 libnode40_static_la_SOURCES = $(node40_sources)
-#else
+else
 libnode40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
 			      $(top_builddir)/libaux/libaux-static.la
 
 libnode40_la_SOURCES	    = $(node40_sources)
-#endif
+endif
 
 INCLUDES = $(includedir)
 
