@@ -22,71 +22,6 @@ extern reiser4_plugin_t symlink40_plugin;
 
 static reiser4_core_t *core = NULL;
 
-static roid_t symlink40_objectid(symlink40_t *symlink) {
-	aal_assert("umka-839", symlink != NULL, return 0);
-    
-	return plugin_call(return 0, symlink->key.plugin->key_ops, 
-			   get_objectid, symlink->key.body);
-}
-
-static roid_t symlink40_locality(symlink40_t *symlink) {
-	aal_assert("umka-839", symlink != NULL, return 0);
-    
-	return plugin_call(return 0, symlink->key.plugin->key_ops, 
-			   get_locality, symlink->key.body);
-}
-
-/* Gets mode field from the stat data */
-static errno_t symlink40_get_mode(item_entity_t *item, uint16_t *mode) {
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
-	reiser4_sdext_lw_hint_t lw_hint;
-
-	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&stat, 0, sizeof(stat));
-
-	hint.hint = &stat;
-	stat.ext[SDEXT_LW_ID] = &lw_hint;
-
-	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
-		return -1;
-
-	*mode = lw_hint.mode;
-	return 0;
-}
-
-/* This function grabs the stat data of the symlink */
-static errno_t symlink40_realize(symlink40_t *symlink) {
-	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
-	
-	aal_assert("umka-1162", symlink != NULL, return -1);	
-
-	plugin_call(return -1, symlink->key.plugin->key_ops,
-		    build_generic, symlink->key.body, KEY_STATDATA_TYPE,
-		    symlink40_locality(symlink), symlink40_objectid(symlink), 0);
-
-	if (symlink->statdata.data)
-		core->tree_ops.unlock(symlink->tree, &symlink->statdata);
-	
-	/* Positioning to the stat data */
-	if (core->tree_ops.lookup(symlink->tree, &symlink->key, &level, 
-				  &symlink->statdata) != 1) 
-	{
-		aal_exception_error("Can't find stat data of symlink 0x%llx.", 
-				    symlink40_objectid(symlink));
-
-		if (symlink->statdata.data)
-			core->tree_ops.lock(symlink->tree, &symlink->statdata);
-		
-		return -1;
-	}
-
-	/* Locking the statdata */
-	core->tree_ops.lock(symlink->tree, &symlink->statdata);
-	
-	return 0;
-}
-
 /* Reads @n bytes to passed buffer @buff */
 static int32_t symlink40_read(object_entity_t *entity, 
 			      void *buff, uint32_t n)
@@ -106,7 +41,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 	hint.hint = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
-	item = &symlink->statdata.entity;
+	item = &symlink->file.statdata.entity;
 	
 	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
 		return -1;
@@ -125,17 +60,13 @@ static object_entity_t *symlink40_open(const void *tree,
     
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
-    
-	symlink->tree = tree;
-	symlink->plugin = &symlink40_plugin;
-    
-	symlink->key.plugin = object->plugin;
-	plugin_call(goto error_free_symlink, object->plugin->key_ops, assign, 
-		    symlink->key.body, object->body);
-    
-	if (symlink40_realize(symlink)) {
+
+	if (file40_init(&symlink->file, object, &symlink40_plugin, tree, core))
+		goto error_free_symlink;
+	
+	if (file40_realize(&symlink->file)) {
 		aal_exception_error("Can't grab stat data of the file "
-				    "with oid 0x%llx.", symlink40_objectid(symlink));
+				    "0x%llx.", file40_objectid(&symlink->file));
 		goto error_free_symlink;
 	}
     
@@ -174,19 +105,12 @@ static object_entity_t *symlink40_create(const void *tree,
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
     
-	symlink->tree = tree;
-	symlink->plugin = &symlink40_plugin;
-    
-	symlink->key.plugin = object->plugin;
-	plugin_call(goto error_free_symlink, object->plugin->key_ops,
-		    assign, symlink->key.body, object->body);
-    
-	locality = plugin_call(return NULL, object->plugin->key_ops, 
-			       get_objectid, parent->body);
-    
-	objectid = plugin_call(return NULL, object->plugin->key_ops, 
-			       get_objectid, object->body);
-    
+	if (file40_init(&symlink->file, object, &symlink40_plugin, tree, core))
+		goto error_free_symlink;
+	
+	locality = file40_locality(&symlink->file);
+	objectid = file40_objectid(&symlink->file);
+
 	parent_locality = plugin_call(return NULL, object->plugin->key_ops, 
 				      get_locality, parent->body);
     
@@ -239,9 +163,9 @@ static object_entity_t *symlink40_create(const void *tree,
 	}
     
 	/* Grabbing the stat data item */
-	if (symlink40_realize(symlink)) {
+	if (file40_realize(&symlink->file)) {
 		aal_exception_error("Can't grab stat data of file 0x%llx.", 
-				    symlink40_objectid(symlink));
+				    file40_objectid(&symlink->file));
 		goto error_free_symlink;
 	}
     
@@ -268,8 +192,8 @@ static void symlink40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL, return);
 
 	/* Unlocking statdata and body */
-	if (symlink->statdata.data)
-		core->tree_ops.unlock(symlink->tree, &symlink->statdata);
+	if (symlink->file.statdata.data)
+		core->tree_ops.unlock(symlink->file.tree, &symlink->file.statdata);
 	
 	aal_free(entity);
 }
@@ -289,7 +213,7 @@ static int symlink40_confirm(item_entity_t *item) {
 	   Guessing plugin type and plugin id by mode field from the stat data
 	   item. Here we return default plugins for every file type.
 	*/
-	if (symlink40_get_mode(item, &mode)) {
+	if (file40_get_mode(item, &mode)) {
 		aal_exception_error("Can't get mode from stat data while probing %s.",
 				    symlink40_plugin.h.label);
 		return 0;
