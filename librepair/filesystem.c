@@ -136,7 +136,6 @@ static errno_t repair_fs_check_setup(reiser4_fs_t *fs, repair_check_t *data) {
 */
  
     if (!(repair_cut_data(data)->once_pointed = reiser4_bitmap_create(
-	reiser4_format_get_len(data->format), 
 	reiser4_format_get_len(data->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for once pointed blocks.");
@@ -145,7 +144,6 @@ static errno_t repair_fs_check_setup(reiser4_fs_t *fs, repair_check_t *data) {
     
  
     if (!(repair_cut_data(data)->many_pointed = reiser4_bitmap_create(
-	reiser4_format_get_len(data->format), 
 	reiser4_format_get_len(data->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for many pointed blocks.");
