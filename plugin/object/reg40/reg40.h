@@ -20,7 +20,7 @@ struct reg40 {
 	/* Current body item coord stored here */
 	place_t body;
 
-	/* Current position in the directory */
+	/* Current position in the reg file */
 	key_entity_t offset;
 
 #ifndef ENABLE_STAND_ALONE

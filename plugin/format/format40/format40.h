@@ -33,8 +33,8 @@ struct format40_super {
 	d16_t sb_tail_policy;
 	d64_t sb_flags;
 	
-	char sb_unused[430];
-};
+	char sb_unused[432];
+} __attribute__((packed));
 
 typedef struct format40_super format40_super_t;
 

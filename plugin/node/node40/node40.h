@@ -35,19 +35,23 @@ struct node40_header {
 	/* Free space start */
 	d16_t free_space_start;
 
-	struct {
-		/* node magic 0x52344653 */
-		d32_t magic;
-
-		d32_t mkfs_id;
-		d64_t flush_id;
-
-		d16_t flags;
-	} fsck;
+	/* node magic 0x52344653 */
+	d32_t magic;
+	
+	/* id common for all nodes, generated at mkfs time. */
+	d32_t mkfs_id;
+	
+	/* id of the flush the node was written at. */
+	d64_t flush_id;
+	
+	/* Useful flags. */
+	d16_t flags;
 
 	/* Node level */
 	d8_t level;
-};
+	
+	d8_t pad;
+}  __attribute__((packed));
 
 typedef struct node40_header node40_header_t;  
 
@@ -67,22 +71,22 @@ typedef struct node40_header node40_header_t;
         (nh((node)->block)->level = val)
 
 #define nh_get_magic(node)                \
-        aal_get_le32(nh((node)->block), fsck.magic)
+        aal_get_le32(nh((node)->block), magic)
 
 #define nh_set_magic(node, val)           \
-        aal_set_le32(nh((node)->block), fsck.magic, val)
+        aal_set_le32(nh((node)->block), magic, val)
 
 #define nh_set_mkfs_id(node, val)         \
-        aal_set_le32(nh((node)->block), fsck.mkfs_id, val)
+        aal_set_le32(nh((node)->block), mkfs_id, val)
 
 #define nh_get_mkfs_id(node)              \
-        aal_get_le32(nh((node)->block), fsck.mkfs_id)
+        aal_get_le32(nh((node)->block), mkfs_id)
 
 #define nh_set_flush_id(node, val)        \
-        aal_set_le64(nh((node)->block), fsck.flush_id, val)
+        aal_set_le64(nh((node)->block), flush_id, val)
 
 #define nh_get_flush_id(node)             \
-        aal_get_le64(nh((node)->block), fsck.flush_id)
+        aal_get_le64(nh((node)->block), flush_id)
 
 #define nh_get_num_items(node)            \
         aal_get_le16(nh((node)->block), num_items)
@@ -134,7 +138,7 @@ struct item_header3 {
 	d16_t offset;
 	d16_t flags;
 	d16_t pid;
-};
+} __attribute__((packed));
 
 typedef struct item_header3 item_header3_t;
 #endif
@@ -153,7 +157,7 @@ struct item_header4 {
 	d16_t offset;
 	d16_t flags;
 	d16_t pid;
-};
+} __attribute__((packed));
 
 typedef struct item_header4 item_header4_t;
 #endif

@@ -268,13 +268,18 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_node_lkey(node, &hint.offset);
 	
 	/* Key should not exist in the tree yet. */
-	if ((lookup = reiser4_tree_lookup(tree, &hint.offset,
-					  LEAF_LEVEL, FIND_EXACT,
-					  &place)) < 0)
-	{
-		return 0;
+	lookup = reiser4_tree_lookup(tree, &hint.offset,  LEAF_LEVEL, 
+				     FIND_EXACT, &place);
+	
+	switch(lookup) {
+	case PRESENT:
+		return -ESTRUCT;
+	case ABSENT:
+		break;
+	default:
+		return lookup;
 	}
-
+	
 	/* If some node was found and it is not of higher level then the node
 	   being attached, try to split nodes to be able to attach the node as a
 	   whole. */

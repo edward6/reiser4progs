@@ -102,9 +102,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	if ((res = obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, 
 				FIND_EXACT, &dir->body)) < 0)
-	{
 		return res;
-	}
 
 	if (res == PRESENT)
 		return 0;
@@ -180,7 +178,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	info = &dir->obj.info;
 	
-	if ((res = obj40_stat_launch(&dir->obj, dir40_extentions, 
+	if ((res = obj40_stat_launch(&dir->obj, NULL, 
 				     dir40_exts, 1, S_IFDIR, mode)))
 		return res;
 	
@@ -202,6 +200,8 @@ errno_t dir40_check_struct(object_entity_t *object,
                 return -EINVAL;
         }
 	
+	/* FIXME-VITALY: take it from SD first. But of which type -- there is 
+	   only ITEM_TYPE for now. */
 	if ((pid = dcore->param_ops.value("direntry")) == INVAL_PID) {
 		aal_exception_error("Failed to get a plugid for direntry from "
 				    "the params.");
@@ -240,6 +240,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 			break;
 		}
 		
+		if (dir->body.plug->id.group != DIRENTRY_ITEM) {
+			/* FIXME-VITALY: break; for now -- delete the item
+			   as it matches by keys. -- this all is handled in 
+			   dir40_belongs -- fix it also. */
+			break;
+		}
+		    
 		/* Try to register the item if it has not been yet. Any 
 		   item has a pointer to objectid in the key, if it is 
 		   shared between 2 objects, it should be already solved 
@@ -313,6 +320,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			if (!dir->body.node)
 				break;
 		} else {
+			
 			/* Lookup the last removed entry, get the next item. */
 			if (dir40_lookup(object, entry.name, &entry) < 0)
 				return -EIO;

@@ -210,15 +210,21 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 /*  Checks the node content.
     Returns values according to repair_error_codes_t. */
 errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
+	uint8_t level;
 	errno_t res;
 	
 	aal_assert("vpf-494", node != NULL);
 	aal_assert("vpf-193", node->entity != NULL);    
 	aal_assert("vpf-220", node->entity->plug != NULL);
 	
+	level = reiser4_node_get_level(node);
+	
 	/* Level of the node must be > 0 */
-	if (!reiser4_node_get_level(node))
+	if (!level) {
+		aal_exception_error("Node (%llu): illegal level found (%u).", 
+				    node_blocknr(node), level);
 		return RE_FATAL;
+	}
 
 	res = plug_call(node->entity->plug->o.node_ops, check_struct, 
 			node->entity, mode);

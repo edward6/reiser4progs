@@ -88,10 +88,8 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 					    "the one specified in the profile. Do not "
 					    "forget to fix the profile." : "");
 			
-			if (pid != plug->id.id) {
-				set_ms_format(SUPER(fs->master), plug->id.id);
-				reiser4_master_mkdirty(fs->master);
-			}
+			set_ms_format(SUPER(fs->master), plug->id.id);
+			reiser4_master_mkdirty(fs->master);
 			
 			if (!(fs->format = reiser4_format_open(fs))) {
 				aal_exception_fatal("Failed to open the format (%s) "

@@ -28,7 +28,7 @@ reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 		/* FIXME-VITALY: This is probably wrong -- if there is a hash
 		   plugin in SD saved, that means that it is not standard and
 		   it is probably should be detected. For now the default one 
-		   is used. */
+		   is used. Hash detection it to be done sometimes later.  */
 	}
 	
 	/* Id either is not kept in SD or has not been found, 
@@ -66,7 +66,7 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 		return RE_FATAL;
 	
 	/* Some SD is recognized. Check that this is our SD. */
-	return stat_func(&info->start);
+	return stat_func ? stat_func(&info->start) : 0;
 }
 
 /* The plugin tries to recognize the object: detects the SD, body items */
@@ -259,9 +259,9 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 {
 	key_entity_t *key;
 	lookup_t lookup;
+	errno_t res = 0;
 	place_t *start;
 	uint64_t pid;
-	errno_t res;
 
 	aal_assert("vpf-1225", obj != NULL);
 	
@@ -271,12 +271,11 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	/* Update the place of SD. */
 	if ((lookup = obj40_lookup(obj, key, LEAF_LEVEL,
 				   FIND_EXACT, start)) < 0)
-	{
 		return lookup;
-	}
 
 	if (lookup == PRESENT) {
-		if ((res = stat_func(start))) {
+		/* FIXME-VITALY: fix the found SD if needed. */
+		if (stat_func && (res = stat_func(start))) {
 			aal_exception_error("Node (%llu), item (%u): StatData "
 					    "is not of the current object. "
 					    "Plugin (%s)", start->block->nr,

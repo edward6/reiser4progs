@@ -135,13 +135,12 @@ static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
 }
 
 static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
-	object_info_t *info = &reg->obj.info;
-	uint64_t offset;
 	int32_t res;
 
-	offset = reg40_offset((object_entity_t *)reg);
-
 	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
+		uint64_t offset = reg40_offset((object_entity_t *)reg);
+		object_info_t *info = &reg->obj.info;
+
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
 				    print_ino(rcore, &info->object),
@@ -212,7 +211,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	reiser4_plug_t *eplug, *tplug, *bplug, *extent;
-	uint64_t size, bytes, offset, next, maxreal;
+	uint64_t size, bytes, offset, maxreal;
 	reg40_t *reg = (reg40_t *)object;
 	object_info_t *info;
 	key_entity_t key;
@@ -224,7 +223,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	info = &reg->obj.info;
 	
-	if ((res = obj40_stat_launch(&reg->obj, reg40_extentions, 
+	if ((res = obj40_stat_launch(&reg->obj, callback_stat, 
 				     reg40_exts, 1, S_IFREG, mode)))
 		return res;
 
@@ -245,7 +244,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	}
 	
-	/* Get the reg file tail policy. */
+	/* Get the reg file tail never policy. FIXME-VITALY: obj40_plug
+	   when we can point tail_never policy in plug_extention */
 	if (!(extent = rcore->factory_ops.ifind(POLICY_PLUG_TYPE, 
 						TAIL_NEVER_ID)))
 	{
@@ -254,7 +254,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	}
 	
-	/* Get the extent item plugin. */
+	/* Get the extent item plugin. FIXME-VITALY: param_ops.valus+ifind
+	   for now untill we can point tail item in plug_extention */
 	if (!(eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent")))	{
 		aal_exception_error("The object [%s] failed to detect the "
 				    "extent plugin to use.", 
@@ -262,7 +263,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	}
 
-	/* Get the tail item plugin. */
+	/* Get the tail item plugin. FIXME-VITALY: param_ops.valus+ifind
+	   for now untill we can point extent item in plug_extention */
 	if (!(tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
 		aal_exception_error("The object [%s] failed to detect the "
 				    "tail plugin to use.", 
@@ -274,7 +276,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if (!(bplug = reg40_body_plug(reg)))
 		return -EINVAL;
 		
-	size = bytes = next = 0;
+	size = bytes = 0;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
@@ -290,7 +292,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			
 			/* Initializing item entity at @next place */
 			if ((res |= rcore->tree_ops.fetch(info->tree, 
-							  &reg->body)))
+							  &reg->body)) < 0)
 				return res;
 			
 			/* Check if this is an item of another object. */
@@ -298,12 +300,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 				      &reg->offset, &reg->body.key))
 				break;
 
+			/* If non-existent position in the item, move next. */
 			if (plug_call(reg->body.plug->o.item_ops, units, 
 				      &reg->body) == reg->body.pos.unit)
 			{
 				place_t next;
-				/* We on the not existent position in the item.
-				   Move the the next. */
 				if ((res = rcore->tree_ops.next(info->tree, 
 								&reg->body, 
 								&next)) < 0)
@@ -315,27 +316,22 @@ errno_t reg40_check_struct(object_entity_t *object,
 					break;
 
 				reg->body = next;
+				
+				/* Check if this is an item of another object. */
+				if (plug_call(reg->offset.plug->o.key_ops, 
+					      compshort, &reg->offset, 
+					      &reg->body.key))
+					break;
 			}
-
-			/* Check if this is an item of another object. */
-			if (plug_call(reg->offset.plug->o.key_ops, compshort,
-				      &reg->offset, &reg->body.key))
-				break;
 		}
 		
 //		aal_assert("vpf-1304", reg->body.pos.unit == MAX_UINT32);
 		
-		if ((result = reg40_check_ikey(reg)) < 0)
-			return result;
+		result = 0;
 		
-		/* If key is not correct or item of unknwon plugin is found, 
-		   remove it. */
-		if ((!plug_equal(reg->body.plug, eplug) && 
-		     !plug_equal(reg->body.plug, tplug)) || result) 
+		if (!plug_equal(reg->body.plug, eplug) && 
+		    !plug_equal(reg->body.plug, tplug))
 		{
-			trans_hint_t hint;
-			hint.count = 1;
-			
 			aal_exception_error("The object [%s] (%s), node (%llu),"
 					    "item (%u): the item [%s] of the "
 					    "invalid plugin (%s) found.%s",
@@ -347,9 +343,31 @@ errno_t reg40_check_struct(object_entity_t *object,
 					    reg->body.plug->label, 
 					    mode == RM_BUILD ? 
 					    " Removed." : "");
+			result = RE_FATAL;
+		} else if (reg40_check_ikey(reg)) {
+			aal_exception_error("The object [%s] (%s), node (%llu),"
+					    "item (%u): the item [%s] has the "
+					    "wrong offset.%s",
+					    print_ino(rcore, &info->object),
+					    reg->obj.plug->label,
+					    reg->body.block->nr, 
+					    reg->body.pos.item,
+					    print_key(rcore, &reg->body.key),
+					    mode == RM_BUILD ? 
+					    " Removed." : "");
+			result = RE_FATAL;
+		} else 
+			result = 0;
+		
+		/* If key is not correct or item of unknwon plugin is found, 
+		   remove it. */
+		if (result) {
+			trans_hint_t hint;
 			
 			if (mode != RM_BUILD) 
 				return RE_FATAL;
+			
+			hint.count = 1;
 			
 			/* Item has wrong key, remove it. */
 			if ((result = obj40_remove(&reg->obj, &reg->body, 
@@ -359,13 +377,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 			continue;
 		}
 		
-		/* Get the maxreal key of the found item and find next. */
-		if ((res |= plug_call(reg->body.plug->o.item_ops, 
-				      maxreal_key, &reg->body, &key)))
-			return res;
-		
-		maxreal = plug_call(key.plug->o.key_ops, get_offset, &key);
-			
 		while (!plug_equal(reg->body.plug, bplug)) {
 			conv_hint_t hint;
 			
@@ -410,7 +421,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				/* Tail found, extent should be. Convert 
 				   the item to extent. */
 
-				hint.plug = bplug;		
+				hint.plug = bplug;
 				hint.count = plug_call(reg->body.plug->o.item_ops,
 						       size, &reg->body);
 			}
@@ -424,22 +435,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 		offset = plug_call(reg->body.key.plug->o.key_ops,
 				   get_offset, &reg->body.key);
 		
-		/* If items was reached once, skip registering and fixing. */
-		if (!next || next != offset) {
-			/* Try to register this item. Any item has a pointer 
-			   to objectid in the key, if it is shared between 2 
-			   objects, it should be already solved at relocation
-			   time. */
-			if (place_func && place_func(object, &reg->body, data))
-				return -EINVAL;
-		}
-
 		/* If we found not we looking for, insert the hole. */
 		if (reg40_offset(object) != offset) {
 			if (mode == RM_BUILD) {
-				/* Save offset to avoid another registering. */
-				next = offset;
-				
 				res |= reg40_create_hole(reg, offset - 
 							 reg40_offset(object));							 
 				if (res < 0)
@@ -455,15 +453,18 @@ errno_t reg40_check_struct(object_entity_t *object,
 					    reg40_offset(object), offset,
 					    reg->obj.plug->label);
 			res |= RE_FATAL;
-		} else
-			next = 0;
+		}
 		
+		/* Try to register this item. Any item has a pointer to 
+		   objectid in the key, if it is shared between 2 objects, 
+		   it should be already solved at relocation  time. */
+		if (place_func && place_func(object, &reg->body, data))
+			return -EINVAL;
+
 		/* Fix item key if differs. */
 		if ((res |= obj40_fix_key(&reg->obj, &reg->body, 
 					  &reg->offset, mode)) < 0)
-		{
 			return res;
-		}
 
 		/* Count size and bytes. */
 		size += plug_call(reg->body.plug->o.item_ops, 
@@ -487,7 +488,13 @@ errno_t reg40_check_struct(object_entity_t *object,
 				return res;
 		}
 		
-	
+		/* Get the maxreal key of the found item and find next. */
+		if ((res |= plug_call(reg->body.plug->o.item_ops, 
+				      maxreal_key, &reg->body, &key)))
+			return res;
+		
+		maxreal = plug_call(key.plug->o.key_ops, get_offset, &key);
+
 		/* Find the next after the maxreal key. */
 		reg40_seek(object, maxreal + 1);
 

@@ -145,38 +145,38 @@ errno_t reiser4_status_print(reiser4_status_t *status,
 	extended = get_ss_extended(STATUS(status));
 
 	if (!state) {
-		aal_stream_format(stream, "\tfs marked consistent\n");
+		aal_stream_format(stream, "FS marked consistent\n");
 		return 0;
 	}
 	
 	if (state & FS_CORRUPTED) {
-		aal_stream_format(stream, "\tfs marked corruped\n");
+		aal_stream_format(stream, "FS marked corruped\n");
 		state &= ~FS_CORRUPTED;
 	}
 
 	if (state & (1 << FS_DAMAGED)) {
-		aal_stream_format(stream, "\tfs marked damaged\n");
+		aal_stream_format(stream, "FS marked damaged\n");
 		state &= ~FS_DAMAGED;
 	}
 
 	if (state & FS_DESTROYED) {
-		aal_stream_format(stream, "\tfs marked destroyed\n");
+		aal_stream_format(stream, "FS marked destroyed\n");
 		state &= ~FS_DESTROYED;
 	}
 
 	if (state & FS_IO) {
-		aal_stream_format(stream, "\tfs marked having io "
+		aal_stream_format(stream, "FS marked having io "
 				  "problems\n");
 		state &= ~FS_IO;
 	}
 
 	if (state) {
-		aal_stream_format(stream, "\tsome unknown status "
+		aal_stream_format(stream, "Some unknown status "
 				  "flags found: %0xllx\n", state);
 	}
 
 	if (extended) {
-		aal_stream_format(stream, "\textended status: %0xllx\n",
+		aal_stream_format(stream, "Extended status: %0xllx\n",
 				  get_ss_extended(STATUS(status)));
 	}
 	

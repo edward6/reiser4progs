@@ -68,10 +68,8 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 
 	blksize = reiser4_master_get_blksize(master);
 	
-	aal_stream_format(stream, "Master super block:\n");
-	
-	aal_stream_format(stream, "offset:\t\t%lu\n",
-			  (REISER4_MASTER_OFFSET / blksize));
+	aal_stream_format(stream, "Master super block (%lu):\n",
+			  REISER4_MASTER_OFFSET / blksize);
 	
 	aal_stream_format(stream, "magic:\t\t%s\n",
 			  reiser4_master_get_magic(master));
@@ -79,7 +77,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "blksize:\t%u\n",
 			  reiser4_master_get_blksize(master));
 
-	aal_stream_format(stream, "format:\t\t%x\n",
+	aal_stream_format(stream, "format plug id:\t%x\n",
 			  reiser4_master_get_format(master));
 
 	if (*master->ent.ms_label != '\0') {

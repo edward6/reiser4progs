@@ -458,7 +458,8 @@ errno_t format40_print(generic_entity_t *entity,
 	format = (format40_t *)entity;
 	super = &format->super;
     
-	aal_stream_format(stream, "Format super block:\n");
+	aal_stream_format(stream, "Format super block (%lu):\n",
+			  FORMAT40_BLOCKNR(format->blksize));
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
 			  entity->plug->label);
@@ -466,16 +467,13 @@ errno_t format40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "description:\t%s\n",
 			  entity->plug->desc);
 
-	aal_stream_format(stream, "offset:\t\t%lu\n",
-			  FORMAT40_BLOCKNR(format->blksize));
-    
 	aal_stream_format(stream, "magic:\t\t%s\n",
 			  super->sb_magic);
 	
 	aal_stream_format(stream, "flushes:\t%llu\n",
 			  get_sb_flushes(super));
 	
-	aal_stream_format(stream, "stamp:\t\t0x%x\n",
+	aal_stream_format(stream, "mkfs id:\t0x%x\n",
 			  get_sb_mkfs_id(super));
     
 	aal_stream_format(stream, "blocks:\t\t%llu\n",

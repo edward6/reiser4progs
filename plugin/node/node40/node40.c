@@ -853,7 +853,7 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 	aal_assert("umka-1580", level > 0);
 
 	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
-			  "SPACE=%u MKFS=0x%x FLUSH=0x%llx\n",
+			  "SPACE=%u MKFS ID=0x%x FLUSH=0x%llx\n",
 			  node->block->nr, level, node40_items(entity),
 			  node40_space(entity), nh_get_mkfs_id(node),
 			  nh_get_flush_id(node));
