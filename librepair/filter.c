@@ -376,6 +376,22 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place,
 		return -EIO;
 	}
 
+	/* In the case of an error when the node was openned and was connected 
+	   to the current parent, the node should be closed and disconnected 
+	   from the parent to avoid futher problems with poitners to this node
+	   from other parents. */
+	if ((node = reiser4_tree_lookup_node(tree, blk)) &&
+	    node->p.node->block->nr == place->node->block->nr)
+	{
+		if ((res = reiser4_tree_disconnect_node(tree, node)))
+			return -EINVAL;
+		
+		/* If there is another pointer to this node, 
+		   changes should be saved. */
+		if ((res = reiser4_node_fini(node)))
+			return res;
+	}
+
 	if (!fd->flags)
 		return 0;
 
@@ -394,19 +410,6 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place,
 			  place->pos.unit, blk, fd->repair->mode == RM_BUILD ?
 			  "Removed, content will be inserted later item-by-"
 			  "item." : "The whole subtree is skipped.");
-	}
-	
-	/* In the case of an error the node should be closed as it should 
-	   be disconnected from the parent -- it may happen that another 
-	   parent has a pointer to it. */
-	if ((node = reiser4_tree_lookup_node(tree, blk))) {
-		if ((res = reiser4_tree_disconnect_node(tree, node)))
-			return -EINVAL;
-		
-		/* If there is another pointer to this node, 
-		   changes should be saved. */
-		if ((res = reiser4_node_fini(node)))
-			return res;
 	}
 	
 	if (fd->repair->mode == RM_BUILD) {
