@@ -131,8 +131,10 @@ static errno_t key40_assign(key_entity_t *dst,
 		if (dst->plugin->h.id != src->plugin->h.id)
 			return -1;
 	}
-	
+
+	dst->plugin = src->plugin;
 	aal_memcpy(dst->body, src->body, sizeof(key40_t));
+	
 	return 0;
 }
 

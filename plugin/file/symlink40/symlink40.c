@@ -50,6 +50,7 @@ static object_entity_t *symlink40_open(void *tree,
 				       reiser4_place_t *place) 
 {
 	key_entity_t *key;
+	key_entity_t rootkey;
 	symlink40_t *symlink;
 
 	aal_assert("umka-1163", tree != NULL, return NULL);
@@ -65,7 +66,8 @@ static object_entity_t *symlink40_open(void *tree,
 	
 	aal_memcpy(&symlink->file.statdata, place, sizeof(*place));
 	file40_lock(&symlink->file, &symlink->file.statdata);
-    
+
+	symlink->file.core->tree_ops.rootkey(symlink->file.tree, &rootkey);
 	return (object_entity_t *)symlink;
 
  error_free_symlink:
@@ -128,10 +130,14 @@ static object_entity_t *symlink40_create(void *tree,
 	file40_init(&symlink->file, &symlink40_plugin, &hint->object, 
 		    core, tree);
 	
+	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops,
+		    assign, &symlink->parent, &hint->parent);
+	
 	locality = file40_locality(&symlink->file);
 	objectid = file40_objectid(&symlink->file);
 
-	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops, 
+	parent_locality = plugin_call(goto error_free_symlink,
+				      hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -293,7 +299,8 @@ static errno_t callback_find_entry(char *track, char *entry,
 		}
 	}
 
-	/* Updating parent key will be here */
+	plugin_call(goto error_free_entity, symlink->parent.plugin->key_ops,
+		    assign, &symlink->parent, &symlink->file.key);
 	
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(goto error_free_entity, plugin->file_ops, lookup,
@@ -315,8 +322,11 @@ static errno_t callback_find_entry(char *track, char *entry,
 static errno_t symlink40_follow(object_entity_t *entity,
 				key_entity_t *key)
 {
+	errno_t res;
 	char path[4096];
+
 	symlink40_t *symlink;
+	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1774", entity != NULL, return -1);
 	aal_assert("umka-1775", key != NULL, return -1);
@@ -326,14 +336,30 @@ static errno_t symlink40_follow(object_entity_t *entity,
 	if (symlink40_get_data(&symlink->file.statdata, path))
 		return -1;
 
+	plugin = symlink->file.key.plugin;
+		
 	/*
-	  Getting the parent or root key will be here. Actually, we should set
-	  up the key to root one if got symlink data is a absolute path and to
-	  parent key otherwise.
+	  Assigning parent key to root one of path symlink has is beginning from
+	  the slash or assigning it to the parent key otherwise.
 	*/
-	
-	return aux_parse_path(path, callback_find_statdata,
-			      callback_find_entry, (void *)entity);
+	if (path[0] == '/') {
+		symlink->file.core->tree_ops.rootkey(symlink->file.tree,
+						     &symlink->file.key);
+	} else {
+		plugin_call(return -1, plugin->key_ops, assign,
+			    &symlink->file.key, &symlink->parent);
+	}
+
+	res = aux_parse_path(path, callback_find_statdata,
+			     callback_find_entry, (void *)entity);
+
+	/* If there is no errors, we assign result ot passed @key */
+	if (res == 0) {
+		plugin_call(return -1, plugin->key_ops, assign,
+			    key, &symlink->file.key);
+	}
+
+	return res;
 }
 
 static void symlink40_close(object_entity_t *entity) {

@@ -426,6 +426,7 @@ static errno_t reiser4_node_register(reiser4_node_t *node,
 					 callback_comp_node, NULL);
 	
 	child->parent = node;
+	child->tree = node->tree;
 
 	/* Checking tree validness and updating node parent pos */
 	if (reiser4_node_pos(child, &child->pos)) {
@@ -456,8 +457,7 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
 	
-	level = reiser4_node_level(node);
-	orig = level;
+	level = orig = reiser4_node_level(node);
 
 	while (node->parent && !found) {
 		

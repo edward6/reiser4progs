@@ -108,7 +108,9 @@ static char *direntry40_entry_name(direntry40_t *direntry,
 	
 	if (direntry40_entry_long(direntry, entry)) {
 		char *name = (char *)(objid + 1);
-		aal_strncpy(buff, name, aal_strlen(name));
+		uint32_t len = aal_strlen(name);
+		aal_strncpy(buff, name, len);
+		*(buff + len) = '\0';
 	} else {
 		objectid = (eid40_get_objectid(&entry->entryid) &
 			    ~0x0100000000000000ull);

@@ -1153,6 +1153,9 @@ struct reiser4_core {
 	
 		/* Returns maximal available space in a node */
 		uint32_t (*nodespace) (void *);
+
+		/* Gets root key */
+		errno_t (*rootkey) (void *, key_entity_t *);
 	
 		/*
 		  Makes lookup in the tree in order to know where say stat data

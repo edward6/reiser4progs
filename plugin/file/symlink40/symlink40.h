@@ -24,6 +24,9 @@ struct symlink40 {
 	  stuff for statdata handling.
 	*/
 	file40_t file;
+
+	/* Parent key */
+	key_entity_t parent;
 };
 
 typedef struct symlink40 symlink40_t;

@@ -211,6 +211,11 @@ static uint32_t tree_nodespace(void *tree) {
 	return reiser4_node_maxspace(root) - reiser4_node_overhead(root);
 }
 
+static errno_t tree_rootkey(void *tree, key_entity_t *key) {
+	key_entity_t *rootkey = &((reiser4_tree_t *)tree)->key;
+	return reiser4_key_assign(key, rootkey);
+}
+
 reiser4_core_t core = {
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its
@@ -252,6 +257,7 @@ reiser4_core_t core = {
 		.insert	    = NULL,
 		.remove	    = NULL,
 #endif
+		.rootkey    = tree_rootkey,
 		.nodespace  = tree_nodespace,
 		.blockspace = tree_blockspace
 	}
