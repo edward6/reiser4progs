@@ -101,6 +101,19 @@ static void debugfs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
+static void debugfs_print_stream(aal_stream_t *stream) {
+	char buff[256];
+
+	aal_stream_reset(stream);
+	
+	while (stream->offset < stream->size) {
+		aal_memset(buff, 0, sizeof(buff));
+
+		if ((aal_stream_read(stream, buff, sizeof(buff) - 1)) > 0)
+			printf(buff);
+	}
+}
+
 /* Callback function used in traverse for opening the node */
 static errno_t print_open_node(
 	reiser4_node_t **node,      /* node to be opened */
@@ -118,15 +131,14 @@ static errno_t print_process_node(
 	void *data)		    /* traverse data */
 {	
 	aal_stream_t stream;
-
 	aal_stream_init(&stream);
 
 	if (reiser4_node_print(node, &stream))
 		goto error_free_stream;
 
-	printf((char *)stream.data);
-
+	debugfs_print_stream(&stream);
 	aal_stream_fini(&stream);
+	
 	return 0;
 	
  error_free_stream:
@@ -216,7 +228,7 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	}
 #endif
 
-	printf((char *)stream.data);
+	debugfs_print_stream(&stream);
 	printf("\n");
 	
 	return 0;
@@ -238,7 +250,7 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 		goto error_free_stream;
 	}
     
-	printf((char *)stream.data);
+	debugfs_print_stream(&stream);
 	printf("\n");
 
 	aal_stream_fini(&stream);
@@ -267,7 +279,7 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 		goto error_free_stream;;
 	}
 
-	printf((char *)stream.data);
+	debugfs_print_stream(&stream);
 	printf("\n");
 
 	aal_stream_fini(&stream);

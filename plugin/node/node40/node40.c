@@ -761,6 +761,8 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 
 		aal_stream_format(stream, "\n");
 	}
+
+	aal_stream_format(stream, "\n");
 	
 	return 0;
 }

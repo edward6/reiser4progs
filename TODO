@@ -3,8 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* shift method for item plugins.
-
 * --print-journal and --print-alloc options in debugfs.
 
 * FIBMAP ioctl implementation in reiser4
@@ -18,7 +16,7 @@ reiser4progs/COPYING.
 
 * copy bitmap functions Vitaly need
 
-* few disk-format changes (direntry format, big digits storing in stat data)
+* big digits storing stat data fields format change
 
 * --print-file option in debugfs for printing nodes
   specified file lies in.
@@ -39,8 +37,6 @@ reiser4progs/COPYING.
   up to the libreiser4 level.
 
 * add overwriting ability to balancing code
-
-* update of unit key function.
 
 * fix bug with directing debugfs output onto less
   debugfs.reiser4 -tf ~/tmp/loop | less
