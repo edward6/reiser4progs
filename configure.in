@@ -46,20 +46,20 @@ AC_DEFUN([AC_CHECK_LIBAAL],
 [
 
 AC_CHECK_LIB($1, aal_device_open, ,
-    [AC_MSG_ERROR([lib$1 not found; install libaal available at \
+	[AC_MSG_ERROR([lib$1 not found; install libaal available at \
 http://www.namesys.com/pub/libaal])]
 $4)
 
 # Check for headers and library
 AC_CHECK_HEADER(aal/aal.h, ,
-    [AC_MSG_ERROR([<aal/aal.h> not found])] 
+    	[AC_MSG_ERROR([<aal/aal.h> not found])] 
 $4)
 
 AC_MSG_CHECKING(for lib$1 version = $2)
 
 AC_TRY_LINK_FUNC(libaal_version,,
-    AC_MSG_RESULT(failed)
-    AC_MSG_ERROR([lib$1 can't execute test]))
+    	AC_MSG_RESULT(failed)
+    	AC_MSG_ERROR([lib$1 can't execute test]))
 
 # Get major, minor, and micro version from arg MINIMUM-VERSION
 libaal_config_major_version=`echo $2 | \
@@ -76,100 +76,100 @@ AC_TRY_RUN([
 #include <aal/aal.h>
 
 int main() {
-    const char *version;    
-    int major, minor, micro;
+    	const char *version;    
+    	int major, minor, micro;
 	
-    if (!(version = libaal_version()))
-	exit(1);
+    	if (!(version = libaal_version()))
+		exit(1);
 		
-    if (sscanf(version, "%d.%d.%d", &major, &minor, &micro) != 3) {
-	printf("%s, bad version string\n", version);
-	exit(1);
-    }
+    	if (sscanf(version, "%d.%d.%d", &major, &minor, &micro) != 3) {
+		printf("%s, bad version string\n", version);
+		exit(1);
+    	}
 	
-    if ((major >= $libaal_config_major_version) &&
-	((major == $libaal_config_major_version) && 
-	(minor >= $libaal_config_minor_version)) &&
-	((major == $libaal_config_major_version) && 
-	(minor == $libaal_config_minor_version) && 
-	(micro >= $libaal_config_micro_version))) 
-    {
-	return 0;
-    }
+    	if ((major >= $libaal_config_major_version) &&
+		((major == $libaal_config_major_version) && 
+		(minor >= $libaal_config_minor_version)) &&
+		((major == $libaal_config_major_version) && 
+		(minor == $libaal_config_minor_version) && 
+		(micro >= $libaal_config_micro_version))) 
+    	{
+		return 0;
+    	}
 
-    printf("\nAn old version of libaal (%s) was found.\n",
-	version);
+    	printf("\nAn old version of libaal (%s) was found.\n",
+		version);
 
-    printf("You need a version of libaal newer than %d.%d.%d.\n", 
-	$libaal_config_major_version, $libaal_config_minor_version, 
-	$libaal_config_micro_version);
+    	printf("You need a version of libaal newer than %d.%d.%d.\n", 
+		$libaal_config_major_version, $libaal_config_minor_version, 
+		$libaal_config_micro_version);
 
-    printf("You can get it at ftp://ftp.namesys.com/pub/libaal\n");
-    return 1;
+    	printf("You can get it at ftp://ftp.namesys.com/pub/libaal\n");
+    	return 1;
 }
 ], 
-    AC_MSG_RESULT(yes),
-    AC_MSG_RESULT(no) ; $4,
-    [echo $ac_n "cross compiling; assumed OK... $ac_c"])
+    	AC_MSG_RESULT(yes),
+    	AC_MSG_RESULT(no) ; $4,
+    	[echo $ac_n "cross compiling; assumed OK... $ac_c"])
 
 # Execute ACTION-IF-FOUND
 $3])
 
 AC_ARG_WITH(libaal,
-    [  --with-libaal            prefix of where libaal was installed], ,
+	[  --with-libaal            prefix of where libaal was installed], ,
 )
 
 LIBS=""
 CFLAGS=""
 
 if test x$with_libaal != x; then
-    LIBS="-L$with_libaal/lib"
-    CFLAGS="-I$with_libaal/include"
-    CPPFLAGS="-I$with_libaal/include"
+    	LIBS="-L$with_libaal/lib"
+    	CFLAGS="-I$with_libaal/include"
+    	CPPFLAGS="-I$with_libaal/include"
 fi
 
 AC_ARG_WITH(uuid,
-    [  --with-uuid              support uuid generating and checking], ,
-        with_uuid=yes
+    	[  --with-uuid              support uuid generating and checking], ,
+        	with_uuid=yes
 )
 
 # Check for libuuid
 if test "$with_uuid" = yes; then
-    OLD_LIBS="$LIBS"
-    LIBS=""
-    AC_CHECK_LIB(uuid, uuid_generate, ,
-	AC_MSG_WARN(
-libuuid could not be found which is required for the --with-uuid
-	)
-	with_uuid=no
-    )
+    	OLD_LIBS="$LIBS"
+    	LIBS=""
+    	AC_CHECK_LIB(uuid, uuid_generate, ,
+		AC_MSG_WARN(libuuid could not be found which is required \
+for the --with-uuid
+		)
+		with_uuid=no
+    	)
 
-    UUID_LIBS="$LIBS"
-    LIBS="$OLD_LIBS"
+    	UUID_LIBS="$LIBS"
+    	LIBS="$OLD_LIBS"
 fi
 
 AC_SUBST(UUID_LIBS)
 
 AC_ARG_WITH(readline,
-    [  --with-readline          support fancy command line editing], ,
-        with_readline=yes
+    	[  --with-readline          support fancy command line editing], ,
+        	with_readline=yes
 )
 
 PROGS_LIBS=""
 
 # Check for readline
 if test "x$with_readline" = xyes; then
-    OLD_LIBS="$LIBS"
-    LIBS=""
-    AC_CHECK_LIB(readline, readline, ,
-	    AC_MSG_WARN(
-GNU Readline could not be found which is required for the --with-readline
-	    )
-	    with_readline=no,
-	    -lncurses
-    )
-    PROGS_LIBS="$PROGS_LIBS $LIBS"
-    LIBS="$OLD_LIBS"
+    	OLD_LIBS="$LIBS"
+    	LIBS=""
+    	AC_CHECK_LIB(readline, readline, ,
+	    	AC_MSG_WARN(GNU Readline could not be found which is required \
+for the --with-readline
+	    	)
+	    	with_readline=no,
+	    	-lncurses
+    	)
+    	PROGS_LIBS="$PROGS_LIBS $LIBS"
+    	LIBS="$OLD_LIBS"
 fi
 
 # Check for ncurses
@@ -178,8 +178,7 @@ if test "x$with_readline" = xyes; then
 	LIBS=""
 	AC_SEARCH_LIBS(tgetent, ncurses, 
 		PROGS_LIBS="$PROGS_LIBS $LIBS",
-		AC_MSG_WARN(
-ncurses could not be found which is required for the
+		AC_MSG_WARN(ncurses could not be found which is required for the \
 --with-readline option (which is enabled by default).
 		)
 		with_readline=no
@@ -190,82 +189,142 @@ fi
 AM_ENABLE_SHARED
 
 PROGS_LDFLAGS=""
+MKFS_LDFLAGS=""
+FSCK_LDFLAGS=""
+DEBUGFS_LDFLAGS=""
+MEASUREFS_LDFLAGS=""
+CPFS_LDFLAGS=""
+RESIZEFS_LDFLAGS=""
+
 AC_ARG_ENABLE(all-static,
-    [  --enable-all-static      build static binaries [default=no]], ,
-	enable_all_static=no
+    	[  --enable-all-static      build static binaries [default=no]], ,
+		enable_all_static=no
 )
 if test x$enable_all_static = xyes; then
 	PROGS_LDFLAGS=-all-static
-	enable_static=yes
 fi
 
 AC_ARG_ENABLE(part-static,
-    [  --enable-part-static     build partially static binaries [default=no]], ,
-	enable_part_static=no
+    	[  --enable-part-static     build partially static binaries [default=no]], ,
+		enable_part_static=no
 )
 if test x$enable_part_static = xyes; then
 	PROGS_LDFLAGS="-Wl,-lc,-static -static"
-	enable_static=yes
 fi
 
+AC_ARG_ENABLE(mkfs-static,
+	[  --enable-mkfs-static     builds mkfs statically [default=no]], ,
+		enable_mkfs_static=no
+)
+if test x$enable_mkfs_static = xyes; then
+	MKFS_LDFLAGS=$PROGS_LDFLAGS
+fi
+
+AC_ARG_ENABLE(fsck-static,
+	[  --enable-fsck-static     builds fsck statically [default=no]], ,
+		enable_fsck_static=no
+)
+if test x$enable_fsck_static = xyes; then
+	FSCK_LDFLAGS=$PROGS_LDFLAGS
+fi
+
+AC_ARG_ENABLE(debugfs-static,
+	[  --enable-debugfs-static  builds debugfs statically [default=no]], ,
+		enable_debugfs_static=no
+)
+if test x$enable_debugfs_static = xyes; then
+	DEBUGFS_LDFLAGS=$PROGS_LDFLAGS
+fi
+
+AC_ARG_ENABLE(measurefs-static,
+	[  --enable-measfs-static   builds measurefs statically [default=no]], ,
+		enable_measure_static=no
+)
+if test x$enable_measurefs_static = xyes; then
+	MEASUREFS_LDFLAGS=$PROGS_LDFLAGS
+fi
+
+AC_ARG_ENABLE(cpfs-static,
+	[  --enable-cpfs-static     builds cpfs statically [default=no]], ,
+		enable_cpfs_static=no
+)
+if test x$enable_cpfs_static = xyes; then
+	CPFS_LDFLAGS=$PROGS_LDFLAGS
+fi
+
+AC_ARG_ENABLE(resizefs-static,
+	[  --enable-resizefs-static builds resizefs statically [default=no]], ,
+		enable_resizefs_static=no
+)
+if test x$enable_resizefs_static = xyes; then
+	RESIZEFS_LDFLAGS=$PROGS_LDFLAGS
+fi
+
+AC_SUBST(MKFS_LDFLAGS)
+AC_SUBST(FSCK_LDFLAGS)
+AC_SUBST(DEBUGFS_LDFLAGS)
+AC_SUBST(MEASUREFS_LDFLAGS)
+AC_SUBST(CPFS_LDFLAGS)
+AC_SUBST(RESIZEFS_LDFLAGS)
+
 AC_ARG_ENABLE(Werror,
-    [  --enable-Werror          enable build with gcc -Werror ], ,
-	enable_Werror=no
+    	[  --enable-Werror          enable build with gcc -Werror ], ,
+		enable_Werror=no
 )
 
 AC_ARG_ENABLE(debug, 
-    [  --disable-debug          disable asserts and debug information ], , 
-	enable_debug=yes
+    	[  --disable-debug          disable asserts and debug information ], , 
+		enable_debug=yes
 )
 
 AC_ARG_ENABLE(stand_alone,
-    [  --enable-stand-alone     enable stand alone library ], ,
-        enable_stand_alone=no
+    	[  --enable-stand-alone     enable stand alone library ], ,
+        	enable_stand_alone=no
 )
 
 AC_ARG_ENABLE(symlinks,
-    [  --disable-symlinks       disable symlinks support in stand alone library ], ,
-        enable_symlinks=yes
+    	[  --disable-symlinks       disable symlinks support in stand alone library ], ,
+        	enable_symlinks=yes
 )
 
 AC_ARG_ENABLE(special,
-    [  --disable-special        disable special files support in stand alone library ], ,
-        enable_special=yes
+    	[  --disable-special        disable special files support in stand alone library ], ,
+        	enable_special=yes
 )
 
 AC_ARG_ENABLE(r5_hash,
-    [  --disable-r5-hash        disable r5 hash plugin in stand alone library ], ,
-        enable_r5_hash=yes
+    	[  --disable-r5-hash        disable r5 hash plugin in stand alone library ], ,
+        	enable_r5_hash=yes
 )
 
 AC_ARG_ENABLE(fnv1_hash,
-    [  --disable-fnv1-hash      disable fnv1 hash plugin in stand alone library ], ,
-        enable_fnv1_hash=yes
+    	[  --disable-fnv1-hash      disable fnv1 hash plugin in stand alone library ], ,
+        	enable_fnv1_hash=yes
 )
 
 AC_ARG_ENABLE(rupasov_hash,
-    [  --disable-rupasov-hash   disable rupasov hash plugin in stand alone library ], ,
-        enable_rupasov_hash=yes
+    	[  --disable-rupasov-hash   disable rupasov hash plugin in stand alone library ], ,
+        	enable_rupasov_hash=yes
 )
 
 AC_ARG_ENABLE(tea_hash,
-    [  --disable-tea-hash       disable tea hash plugin in stand alone library ], ,
-        enable_tea_hash=yes
+    	[  --disable-tea-hash       disable tea hash plugin in stand alone library ], ,
+        	enable_tea_hash=yes
 )
 
 AC_ARG_ENABLE(deg_hash,
-    [  --enable-deg-hash        enable degenerate hash plugin in stand alone library ], ,
-        enable_deg_hash=no
+    	[  --enable-deg-hash        enable degenerate hash plugin in stand alone library ], ,
+        	enable_deg_hash=no
 )
 
 AC_ARG_ENABLE(short_keys,
-    [  --disable-short-keys     disable short keys in stand alone library ], ,
-        enable_short_keys=yes
+    	[  --disable-short-keys     disable short keys in stand alone library ], ,
+        	enable_short_keys=yes
 )
 
 AC_ARG_ENABLE(large_keys,
-    [  --disable-large-keys     disable large keys in stand alone library ], ,
-        enable_large_keys=yes
+    	[  --disable-large-keys     disable large keys in stand alone library ], ,
+        	enable_large_keys=yes
 )
 
 # Checks for programs.
@@ -287,21 +346,19 @@ GENERIC_CFLAGS="$GENERIC_CFLAGS -D_REENTRANT"
 AM_PROG_LIBTOOL
 
 if test "$with_uuid" = yes; then
-    AC_CHECK_HEADERS(uuid/uuid.h, ,
-	AC_MSG_WARN(
-The headers for libuuid could not be found which
+    	AC_CHECK_HEADERS(uuid/uuid.h, ,
+		AC_MSG_WARN(The headers for libuuid could not be found which \
 are required for the --with-uuid option.
-	)
-    )
+		)
+    	)
 fi
 
 if test "x$with_readline" = xyes; then
-    AC_CHECK_HEADERS(readline/readline.h readline/history.h, ,
-	AC_MSG_WARN(
-The headers for GNU Readline could not be found which
+    	AC_CHECK_HEADERS(readline/readline.h readline/history.h, ,
+		AC_MSG_WARN(The headers for GNU Readline could not be found which \
 are required for the --with-readline option.
-	)
-    )
+		)
+    	)
 fi
 
 # Checks for header files.
@@ -315,10 +372,10 @@ AC_C_BIGENDIAN
 
 # Checks for library functions.
 if test "x$with_readline" = xyes; then
-    OLD_LIBS="$LIBS"
-    LIBS="$LIBS $PROGS_LIBS"
-    AC_CHECK_FUNCS(rl_completion_matches)
-    LIBS="$OLD_LIBS"
+    	OLD_LIBS="$LIBS"
+    	LIBS="$LIBS $PROGS_LIBS"
+    	AC_CHECK_FUNCS(rl_completion_matches)
+    	LIBS="$OLD_LIBS"
 fi
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -336,54 +393,59 @@ strtol time uname sysconf])
 # The options -falign-* are supported by gcc 3.0 or later.
 # Probably it is sufficient to only check for -falign-loops.
 AC_CACHE_CHECK([whether -falign-loops works], [falign_loop_flag], [
-  saved_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="-falign-loops=1"
-  AC_TRY_COMPILE(, , [falign_loop_flag=yes], [falign_loop_flag=no])
-  CPPFLAGS="$saved_CPPFLAGS"
+  	saved_CPPFLAGS="$CPPFLAGS"
+  	CPPFLAGS="-falign-loops=1"
+  	AC_TRY_COMPILE(, , [falign_loop_flag=yes], [falign_loop_flag=no])
+  	CPPFLAGS="$saved_CPPFLAGS"
 ])
 
 # Checking for compiler warning options
 AC_CACHE_CHECK([whether -Wuninitialized works], [uninitialized], [
-  saved_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="-O1 -Wuninitialized"
-  AC_TRY_COMPILE(, , [uninitialized=yes], [uninitialized=no])
-  CPPFLAGS="$saved_CPPFLAGS"
+  	saved_CPPFLAGS="$CPPFLAGS"
+  	CPPFLAGS="-O1 -Wuninitialized"
+  	AC_TRY_COMPILE(, , [uninitialized=yes], [uninitialized=no])
+  	CPPFLAGS="$saved_CPPFLAGS"
 ])
  
 AC_CACHE_CHECK([whether -Wno-unused-parameter works], [no_unused_parameter], [
-  saved_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="-Wno-unused-parameter"
-  AC_TRY_COMPILE(, , [no_unused_parameter=yes], [no_unused_parameter=no])
-  CPPFLAGS="$saved_CPPFLAGS"
+  	saved_CPPFLAGS="$CPPFLAGS"
+  	CPPFLAGS="-Wno-unused-parameter"
+  	AC_TRY_COMPILE(, , [no_unused_parameter=yes], [no_unused_parameter=no])
+  	CPPFLAGS="$saved_CPPFLAGS"
 ])
  
 AC_CACHE_CHECK([whether -Wredundant-decls works], [redundant_decls], [
-  saved_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="-Wredundant-decls"
-  AC_TRY_COMPILE(, , [redundant_decls=yes], [redundant_decls=no])
-  CPPFLAGS="$saved_CPPFLAGS"
+  	saved_CPPFLAGS="$CPPFLAGS"
+  	CPPFLAGS="-Wredundant-decls"
+  	AC_TRY_COMPILE(, , [redundant_decls=yes], [redundant_decls=no])
+  	CPPFLAGS="$saved_CPPFLAGS"
 ])
 
 if test "x$with_readline" = xyes && test "x$redundant_decls" == xyes; then
-  saved_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="-Werror -Wredundant-decls"
+  	saved_CPPFLAGS="$CPPFLAGS"
+  	CPPFLAGS="-Werror -Wredundant-decls"
 
-  AC_MSG_CHECKING(whether -Wredundant-decls works with readline.h)
+ 	AC_MSG_CHECKING(whether -Wredundant-decls works with readline.h)
 
-  AC_TRY_COMPILE([
-	#include <stdio.h> 
-	#include <readline/readline.h>
-  ], ,[redundant_decls=yes; AC_MSG_RESULT(yes)], 
-      [redundant_decls=no; AC_MSG_RESULT(no)])
-  CPPFLAGS="$saved_CPPFLAGS"
+  	AC_TRY_COMPILE([
+#include <stdio.h> 
+#include <readline/readline.h>
+	], ,[
+		redundant_decls=yes; 
+		AC_MSG_RESULT(yes)
+	], [
+		redundant_decls=no; 
+		AC_MSG_RESULT(no)
+	])
+  	CPPFLAGS="$saved_CPPFLAGS"
 fi
  
 # Force no alignment to save space.
 if test "x$falign_loop_flag" = xyes; then
-  ALIGN_FLAGS="-falign-jumps=1 -falign-loops=1 -falign-functions=1 \
+  	ALIGN_FLAGS="-falign-jumps=1 -falign-loops=1 -falign-functions=1 \
 -falign-labels=1 -fomit-frame-pointer -fno-inline -fstrength-reduce"
 else
-  ALIGN_FLAGS="-malign-jumps=1 -malign-loops=1 -malign-functions=1 \
+  	ALIGN_FLAGS="-malign-jumps=1 -malign-loops=1 -malign-functions=1 \
 -malign-labels=1 -momit-frame-pointer -mno-inline -mstrength-reduce"
 fi
 
@@ -391,8 +453,7 @@ fi
 AC_SYS_LARGEFILE
 
 if test -z "${ac_cv_sys_file_offset_bits}"; then
-	AC_MSG_WARN(
-Can't detect right _FILE_OFFSET_BITS. Will be forced to 64bit.)
+	AC_MSG_WARN(Can't detect right _FILE_OFFSET_BITS. Will be forced to 64bit.)
 	ac_cv_sys_file_offset_bits=64
 fi
 
@@ -411,51 +472,50 @@ LIBS="$OLD_LIBS"
 AC_SUBST(AAL_LIBS)
 
 if test x$enable_stand_alone = xyes; then
+    	OLD_LIBS="$LIBS"
+    	AC_CHECK_LIBAAL(aal-alone, 0.4.14, ,exit)
+    	AAL_ALONE_LIBS="$LIBS"
+    	LIBS="$OLD_LIBS"
 
-    OLD_LIBS="$LIBS"
-    AC_CHECK_LIBAAL(aal-alone, 0.4.14, ,exit)
-    AAL_ALONE_LIBS="$LIBS"
-    LIBS="$OLD_LIBS"
+    	AC_SUBST(AAL_ALONE_LIBS)
 
-    AC_SUBST(AAL_ALONE_LIBS)
+    	if test x$enable_symlinks = xyes; then
+		SYMLINKS_CFLAGS="-DENABLE_SYMLINKS"
+    	fi
 
-    if test x$enable_symlinks = xyes; then
-	SYMLINKS_CFLAGS="-DENABLE_SYMLINKS"
-    fi
+    	if test x$enable_special = xyes; then
+		SPECIAL_CFLAGS="-DENABLE_SPECIAL"
+    	fi
 
-    if test x$enable_special = xyes; then
-	SPECIAL_CFLAGS="-DENABLE_SPECIAL"
-    fi
+    	if test x$enable_r5_hash = xyes; then
+		R5_HASH_CFLAGS="-DENABLE_R5_HASH"
+    	fi
 
-    if test x$enable_r5_hash = xyes; then
-	R5_HASH_CFLAGS="-DENABLE_R5_HASH"
-    fi
+    	if test x$enable_fnv1_hash = xyes; then
+		FNV1_HASH_CFLAGS="-DENABLE_FNV1_HASH"
+    	fi
 
-    if test x$enable_fnv1_hash = xyes; then
-	FNV1_HASH_CFLAGS="-DENABLE_FNV1_HASH"
-    fi
+    	if test x$enable_rupasov_hash = xyes; then
+		RUPASOV_HASH_CFLAGS="-DENABLE_RUPASOV_HASH"
+    	fi
 
-    if test x$enable_rupasov_hash = xyes; then
-	RUPASOV_HASH_CFLAGS="-DENABLE_RUPASOV_HASH"
-    fi
+    	if test x$enable_tea_hash = xyes; then
+		TEA_HASH_CFLAGS="-DENABLE_TEA_HASH"
+    	fi
 
-    if test x$enable_tea_hash = xyes; then
-	TEA_HASH_CFLAGS="-DENABLE_TEA_HASH"
-    fi
+    	if test x$enable_deg_hash = xyes; then
+		DEG_HASH_CFLAGS="-DENABLE_DEG_HASH"
+    	fi
 
-    if test x$enable_deg_hash = xyes; then
-	DEG_HASH_CFLAGS="-DENABLE_DEG_HASH"
-    fi
+    	if test x$enable_short_keys = xyes; then
+		SHORT_KEYS_CFLAGS="-DENABLE_SHORT_KEYS"
+    	fi
 
-    if test x$enable_short_keys = xyes; then
-	SHORT_KEYS_CFLAGS="-DENABLE_SHORT_KEYS"
-    fi
+    	if test x$enable_large_keys = xyes; then
+		LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
+   	fi
 
-    if test x$enable_large_keys = xyes; then
-	LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
-    fi
-
-    ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $SYMLINKS_CFLAGS $SPECIAL_CFLAGS \
+    	ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $SYMLINKS_CFLAGS $SPECIAL_CFLAGS \
 $R5_HASH_CFLAGS $FNV1_HASH_CFLAGS $RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS $DEG_HASH_CFLAGS \
 $ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS"
 fi
@@ -467,35 +527,35 @@ GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_SYMLINKS -DENABLE_SPECIAL -DENABLE_R5_H
 CFLAGS="$CFLAGS -W -Wall"
 
 if test x$enable_debug = xyes; then
-    GENERIC_CFLAGS="$GENERIC_CFLAGS -O0 -g"
-    ALONE_CFLAGS="$ALONE_CFLAGS -O0 -g"
+    	GENERIC_CFLAGS="$GENERIC_CFLAGS -O0 -g"
+    	ALONE_CFLAGS="$ALONE_CFLAGS -O0 -g"
 else
-    GENERIC_CFLAGS="$GENERIC_CFLAGS -O2"
-    ALONE_CFLAGS="$ALONE_CFLAGS -Os"
+    	GENERIC_CFLAGS="$GENERIC_CFLAGS -O2"
+    	ALONE_CFLAGS="$ALONE_CFLAGS -Os"
 
-    if test x$uninitialized = xyes; then
-       CFLAGS="$CFLAGS -Wuninitialized"
-    fi
+    	if test x$uninitialized = xyes; then
+       		CFLAGS="$CFLAGS -Wuninitialized"
+    	fi
 fi
 
 if test x$no_unused_parameter = xyes; then
-    CFLAGS="$CFLAGS -Wno-unused-parameter"
+    	CFLAGS="$CFLAGS -Wno-unused-parameter"
 else
-    CFLAGS="$CFLAGS -Wno-unused"
+    	CFLAGS="$CFLAGS -Wno-unused"
 fi
 
 if test x$redundant_decls = xyes; then
-    CFLAGS="$CFLAGS -Wredundant-decls"
+    	CFLAGS="$CFLAGS -Wredundant-decls"
 fi
 
 if test x$enable_Werror = xyes; then
-    CFLAGS="$CFLAGS -Werror"
+    	CFLAGS="$CFLAGS -Werror"
 fi
 
 AM_CONDITIONAL(ENABLE_STAND_ALONE, test x$enable_stand_alone = xyes)
 
 if test x$enable_debug = xyes; then
-    AC_DEFINE(ENABLE_DEBUG)
+    	AC_DEFINE(ENABLE_DEBUG)
 fi
 
 AC_SUBST(PROGS_LIBS)
@@ -504,70 +564,70 @@ AC_SUBST(GENERIC_CFLAGS)
 AC_SUBST(PROGS_LDFLAGS)
 
 AC_OUTPUT([
-    Makefile
-    include/Makefile
-    include/aux/Makefile
-    include/misc/Makefile
-    include/reiser4/Makefile
-    include/repair/Makefile
-    libmisc/Makefile
-    libaux/Makefile
-    libreiser4/Makefile
-    librepair/Makefile
-    plugin/Makefile
-    plugin/format/Makefile
-    plugin/format/format40/Makefile
-    plugin/alloc/Makefile
-    plugin/alloc/alloc40/Makefile
-    plugin/journal/Makefile
-    plugin/journal/journal40/Makefile
-    plugin/oid/Makefile
-    plugin/oid/oid40/Makefile
-    plugin/node/Makefile
-    plugin/node/node40/Makefile
-    plugin/key/Makefile
-    plugin/key/key_common/Makefile
-    plugin/key/key_short/Makefile
-    plugin/key/key_large/Makefile
-    plugin/item/Makefile
-    plugin/item/body40/Makefile
-    plugin/item/nodeptr40/Makefile
-    plugin/item/stat40/Makefile
-    plugin/item/cde40/Makefile
-    plugin/item/tail40/Makefile
-    plugin/item/extent40/Makefile
-    plugin/object/Makefile
-    plugin/object/obj40/Makefile
-    plugin/object/dir40/Makefile
-    plugin/object/reg40/Makefile
-    plugin/object/sym40/Makefile
-    plugin/object/spl40/Makefile
-    plugin/policy/Makefile
-    plugin/policy/tails/Makefile
-    plugin/policy/extents/Makefile
-    plugin/policy/smart/Makefile
-    plugin/hash/Makefile
-    plugin/hash/r5_hash/Makefile
-    plugin/hash/tea_hash/Makefile
-    plugin/hash/deg_hash/Makefile
-    plugin/hash/rupasov_hash/Makefile
-    plugin/hash/fnv1_hash/Makefile
-    plugin/sdext/Makefile
-    plugin/sdext/sdext_unix/Makefile
-    plugin/sdext/sdext_lw/Makefile
-    plugin/sdext/sdext_lt/Makefile
-    plugin/sdext/sdext_symlink/Makefile
-    demos/Makefile
-    progs/Makefile
-    progs/mkfs/Makefile
-    progs/fsck/Makefile
-    progs/debugfs/Makefile
-    progs/measurefs/Makefile
-    progs/resizefs/Makefile
-    progs/cpfs/Makefile
-    debug/Makefile
-    doc/Makefile
-    reiser4progs.spec
+    	Makefile
+    	include/Makefile
+    	include/aux/Makefile
+    	include/misc/Makefile
+    	include/reiser4/Makefile
+    	include/repair/Makefile
+    	libmisc/Makefile
+    	libaux/Makefile
+    	libreiser4/Makefile
+    	librepair/Makefile
+    	plugin/Makefile
+    	plugin/format/Makefile
+    	plugin/format/format40/Makefile
+    	plugin/alloc/Makefile
+    	plugin/alloc/alloc40/Makefile
+    	plugin/journal/Makefile
+    	plugin/journal/journal40/Makefile
+    	plugin/oid/Makefile
+    	plugin/oid/oid40/Makefile
+    	plugin/node/Makefile
+    	plugin/node/node40/Makefile
+   	plugin/key/Makefile
+    	plugin/key/key_common/Makefile
+    	plugin/key/key_short/Makefile
+    	plugin/key/key_large/Makefile
+    	plugin/item/Makefile
+    	plugin/item/body40/Makefile
+    	plugin/item/nodeptr40/Makefile
+    	plugin/item/stat40/Makefile
+    	plugin/item/cde40/Makefile
+    	plugin/item/tail40/Makefile
+    	plugin/item/extent40/Makefile
+    	plugin/object/Makefile
+    	plugin/object/obj40/Makefile
+    	plugin/object/dir40/Makefile
+    	plugin/object/reg40/Makefile
+    	plugin/object/sym40/Makefile
+    	plugin/object/spl40/Makefile
+    	plugin/policy/Makefile
+    	plugin/policy/tails/Makefile
+    	plugin/policy/extents/Makefile
+    	plugin/policy/smart/Makefile
+    	plugin/hash/Makefile
+    	plugin/hash/r5_hash/Makefile
+    	plugin/hash/tea_hash/Makefile
+    	plugin/hash/deg_hash/Makefile
+    	plugin/hash/rupasov_hash/Makefile
+    	plugin/hash/fnv1_hash/Makefile
+    	plugin/sdext/Makefile
+    	plugin/sdext/sdext_unix/Makefile
+    	plugin/sdext/sdext_lw/Makefile
+    	plugin/sdext/sdext_lt/Makefile
+    	plugin/sdext/sdext_symlink/Makefile
+    	demos/Makefile
+    	progs/Makefile
+    	progs/mkfs/Makefile
+    	progs/fsck/Makefile
+    	progs/debugfs/Makefile
+    	progs/measurefs/Makefile
+    	progs/resizefs/Makefile
+    	progs/cpfs/Makefile
+    	debug/Makefile
+    	doc/Makefile
+    	reiser4progs.spec
 ])
 
 echo
