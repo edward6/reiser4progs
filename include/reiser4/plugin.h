@@ -242,7 +242,7 @@ typedef errno_t (*format_layout_func_t) (object_entity_t *, format_action_func_t
 					 void *);
 
 /* Type for file layout callback function */
-typedef errno_t (*file_layout_func_t) (object_entity_t *, uint64_t, void *);
+typedef errno_t (*file_layout_func_t) (object_entity_t *, reiser4_place_t *, void *);
 
 /* 
    To create a new item or to insert into the item we need to perform the

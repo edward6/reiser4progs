@@ -173,8 +173,6 @@ static int32_t dir40_read(object_entity_t *entity,
 		return -1;
     
 	for (i = 0; i < n; i++) {
-		uint16_t chunk;
-
 		/* Check if we should get next item in right neighbour */
 		if (dir->body.pos.unit >= count && dir40_next(entity))
 			break;
@@ -534,13 +532,25 @@ static int32_t dir40_write(object_entity_t *entity,
 	return i;
 }
 
-static errno_t dir40_layout(object_entity_t *dir, file_layout_func_t func,
+static errno_t dir40_layout(object_entity_t *entity, file_layout_func_t func,
 			    void *data)
 {
+	errno_t res;
+	dir40_t *dir = (dir40_t *)entity;
+
 	aal_assert("umka-1473", dir != NULL, return -1);
 	aal_assert("umka-1474", func != NULL, return -1);
 
-	return -1;
+	do {
+		if ((res = func(entity, &dir->body, data)))
+			return res;
+		
+		if (dir40_next(entity))
+			break;
+			
+	} while (1);
+    
+	return 0;
 }
 
 #endif

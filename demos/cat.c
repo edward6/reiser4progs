@@ -65,69 +65,26 @@ int main(int argc, char *argv[]) {
 		goto error_free_device;
 	}
 
-	if (!(fs->root = reiser4_file_open(fs, "/"))) {
-		aal_exception_error("Can't open root directory.");
+	if (!(reg = reiser4_file_open(fs, argv[2])))
 		goto error_free_fs;
+
+	if (reg->entity->plugin->h.sign.group != REGULAR_FILE) {
+		aal_exception_error("File %s is not a regular file.",
+				    argv[2]);
+		goto error_free_reg;
 	}
-    
-	{
-		reiser4_plugin_t *reg_plugin;
-		reiser4_file_hint_t reg_hint;
 	
-		reg_hint.plugin = libreiser4_factory_ifind(FILE_PLUGIN_TYPE, FILE_REGULAR40_ID);
-		reg_hint.statdata_pid = ITEM_STATDATA40_ID;
-	
-		reg_hint.body.file.tail_pid = ITEM_TAIL40_ID;
-		reg_hint.body.file.extent_pid = ITEM_EXTENT40_ID;
-	
-		reg = reiser4_file_create(fs, &reg_hint, fs->root, argv[2]);
+	while (1) {
+		aal_memset(buff, 0, sizeof(buff));
 
-		{
-			char *name = "/home/umka/download/parted-1.6.3-tar.gz";
-			int f = open(name, O_RDONLY);
-			void *buff = aal_calloc(4096, 0);
-	    
-			if (!f) {
-				printf("Can't open %s.", name);
-				return 0;
-			}
-	    
-			if (f) {
-				uint32_t bytes = 0;
-				aal_memset(buff, 0, 4096);
-		
-/*				while (read(f, buff, 4096)) {
-				bytes += 4096;*/
-				if (!reiser4_file_write(reg, "Hello world!", 12)) {
-					aal_exception_error("Can't write next chunk "
-							    "of data (%u).", bytes);
-					return 0;
-				}
-//				}
-			}
-	    
-			aal_free(buff);
-			close(f);
-		}
+		if (!reiser4_file_read(reg, buff, sizeof(buff) - 1))
+			break;
+
+		printf("%s", buff);
 	}
-    
-/*    if (!(reg = reiser4_file_open(fs, argv[2]))) {
-      aal_exception_error("Can't open file %s.", argv[2]);
-      goto error_free_root;
-      }
-    
-      while (1) {
-      aal_memset(buff, 0, sizeof(buff));
-
-      if (!reiser4_file_read(reg, buff, sizeof(buff) - 1))
-      break;
-
-      printf("%s", buff);
-      }*/
     
 	reiser4_file_close(reg);
 
-	reiser4_file_close(fs->root);
 	reiser4_fs_sync(fs);
 	reiser4_fs_close(fs);
     
@@ -138,8 +95,6 @@ int main(int argc, char *argv[]) {
 
  error_free_reg:
 	reiser4_file_close(reg);
- error_free_root:
-	reiser4_file_close(fs->root);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

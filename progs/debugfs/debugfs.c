@@ -403,22 +403,27 @@ struct file_frag_hint {
 };
 
 static errno_t callback_file_fragmentation(object_entity_t *entity,
-					   uint64_t blk, void *data)
+					   reiser4_place_t *place, void *data)
 {
 	int64_t delta;
+	reiser4_coord_t *coord = (reiser4_coord_t *)place;
 	struct file_frag_hint *hint = (struct file_frag_hint *)data;
+	aal_block_t *block = reiser4_coord_block(coord);
 
+	aal_gauge_touch(hint->gauge);
+	
 	if (hint->curr == 0) {
-		hint->curr = blk;
+		hint->curr = aal_block_number(block);
 		return 0;
 	}
 		
-	delta = hint->curr - blk;
+	delta = hint->curr - aal_block_number(block);
 
-	if (labs(delta) > 1)
-		hint->bad++;
-
-	hint->total++;
+	if (labs(delta) > 1) {
+		hint->bad += labs(delta);
+		hint->total += labs(delta);
+	} else
+		hint->total++;
 
 	return 0;
 }
@@ -431,7 +436,7 @@ static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
 
-	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "File fragmentation",
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "",
 				       progs_gauge_handler, NULL)))
 		goto error_free_file;
 	
@@ -440,6 +445,9 @@ static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
 	hint.fs = fs;
 	hint.gauge = gauge;
 
+	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
+	aal_gauge_start(gauge);
+	
 	if (reiser4_file_layout(file, callback_file_fragmentation, (void *)&hint)) {
 		aal_exception_error("Can't enumerate blocks occupied by %s",
 				    filename);

@@ -169,7 +169,7 @@ static errno_t reg40_next(object_entity_t *entity) {
     
 	/* 
 	   Getting objectid of both keys in order to determine are items
-	   mergeable.
+	   mergeable or not.
 	*/
 	curr_objectid = plugin_call(goto error_set_context, reg->key.plugin->key_ops,
 				    get_objectid, reg->key.body);
@@ -204,20 +204,25 @@ static int32_t reg40_read(object_entity_t *entity,
 		uint32_t chunk;
 		item_entity_t *item = &reg->body.entity;
 
-		/* Check if we need next item */
-		if (reg->body.pos.unit >= item->len && reg40_next(entity))
-			break;
+		if (item->plugin->h.sign.group == TAIL_ITEM) {
+			/* Check if we need next item */
+			if (reg->body.pos.unit >= item->len && reg40_next(entity))
+				break;
 
-		/* Calculating the chunk of data to be read. If it is zero, we
-		 * go away. Else fetching of data from the item will be performed */
-		chunk = (item->len - reg->body.pos.unit) > n - read ?
-			n - read : (item->len - reg->body.pos.unit);
-
-		if (!chunk) break;
+			/* Calculating the chunk of data to be read. If it is zero, we
+			 * go away. Else fetching of data from the item will be performed */
+			chunk = (item->len - reg->body.pos.unit) > n - read ?
+				n - read : (item->len - reg->body.pos.unit);
+			
+			if (!chunk) break;
 	
-		plugin_call(return -1, item->plugin->item_ops, fetch,
-			    item, reg->body.pos.unit, buff + read, chunk);
-
+			plugin_call(return -1, item->plugin->item_ops, fetch,
+				    item, reg->body.pos.unit, buff + read, chunk);
+		} else {
+			/* FIXME-UMKA: Reading data from extent item will be here. */
+			break;
+		}
+		
 		read += chunk;
 		reg->body.pos.unit += chunk;
 	}

@@ -70,9 +70,13 @@ be avaraged. The result is fragmentation factor - value from 0.00
 (minimal fragmentation) to 1.00 (maximal one).
 .TP
 .B -F, --file-fragmentation FILE
-measures fragmentation of teh specified file. The result is
+measures fragmentation of the specified file. The result is
 fragmentation factor - value from 0.00 (minimal fragmentation) to 1.00
-(maximal one).
+(maximal one). Note, fragmentation for a directory is always 0.00,
+because directory entries lie in contiguous blocks on the leaf
+level. Note also, that fragmentation of a small file (depends of used
+tail policy), which consists of tail items, is not very reliable
+value. That is because, they is always afoot due to balancing.
 .SH PLUGIN OPTIONS
 .TP
 .B -e, --profile PROFILE

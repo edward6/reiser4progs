@@ -104,8 +104,6 @@ static errno_t reiser4_file_realize(
 		}
 	
 		if (plugin->file_ops.lookup(entity, dirname, &file->key) != 1) {
-			aal_exception_error("Can't find entry %s.", dirname);
-		
 			plugin_call(return -1, plugin->file_ops, close, entity);
 			return -1;
 		}
