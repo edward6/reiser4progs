@@ -13,6 +13,7 @@
 reiser4_core_t *rcore = NULL;
 extern reiser4_plug_t reg40_plug;
 
+/* Returns regular file current offset. */
 uint64_t reg40_offset(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 	
@@ -22,6 +23,7 @@ uint64_t reg40_offset(object_entity_t *entity) {
 			 get_offset, &reg->offset);
 }
 
+/* Returns regular file size. */
 static uint64_t reg40_size(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 
@@ -33,6 +35,7 @@ static uint64_t reg40_size(object_entity_t *entity) {
 	return obj40_get_size(&reg->obj);
 }
 
+/* Position regular file to passed @offset. */
 errno_t reg40_seek(object_entity_t *entity, 
 		   uint64_t offset) 
 {
@@ -46,6 +49,7 @@ errno_t reg40_seek(object_entity_t *entity,
 	return 0;
 }
 
+/* Closes file. */
 static void reg40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
 	aal_free(entity);
@@ -77,7 +81,8 @@ errno_t reg40_reset(object_entity_t *entity) {
 	return 0;
 }
 
-/* Reads @n bytes to passed buffer @buff. */
+/* Reads @n bytes to passed buffer @buff. Negative values are returned in case
+   of errors. */
 static int64_t reg40_read(object_entity_t *entity, 
 			  void *buff, uint64_t n)
 {
@@ -100,7 +105,7 @@ static int64_t reg40_read(object_entity_t *entity,
 	plug_call(reg->offset.plug->o.key_ops,
 		  assign, &hint.offset, &reg->offset);
 
-	/* Correcting numebr of bytes to be read. It cannot be more then file
+	/* Correcting number of bytes to be read. It cannot be more then file
 	   size value from stat data. That it is needed for reading extents,
 	   where we can't udnerstand real data size without stat datasaved
 	   value. */
@@ -190,7 +195,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 			goto error_free_reg;
 		}
 	}
-	
+
+	/* Initializing tail policy plugin. */
 	if (!(reg->policy = rcore->factory_ops.ifind(POLICY_PLUG_TYPE,
 						     hint->body.reg.policy)))
 	{
@@ -198,7 +204,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 				    "its id 0x%x.", hint->body.reg.policy);
 		goto error_free_reg;
 	}
-	
+
+	/* Initializing stat data. */
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
 	if (obj40_create_stat(&reg->obj, hint->statdata,
@@ -218,6 +225,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 	return NULL;
 }
 
+/* Returns number of links. Needed to let higher API levels know, that file has
+   zero links and may be clobbered in tree. */
 static uint32_t reg40_links(object_entity_t *entity) {
 	reg40_t *reg;
 	
@@ -231,6 +240,7 @@ static uint32_t reg40_links(object_entity_t *entity) {
 	return obj40_get_nlink(&reg->obj);
 }
 
+/* Increments link number in stat data. */
 static errno_t reg40_link(object_entity_t *entity) {
 	reg40_t *reg;
 	
@@ -244,6 +254,7 @@ static errno_t reg40_link(object_entity_t *entity) {
 	return obj40_link(&reg->obj, 1);
 }
 
+/* Decrements link number in stat data. */
 static errno_t reg40_unlink(object_entity_t *entity) {
 	reg40_t *reg;
 	
@@ -315,6 +326,9 @@ errno_t reg40_convert(object_entity_t *entity,
 			   hint.bytes, time(NULL));
 }
 
+/* Make sure, that file body is of perticular plugin, that depends on tail
+   policy plugin. If no -- converts it to plugin told by tail policy
+   plugin. called from all modifying calls like write(), truncate(), etc. */
 static errno_t reg40_check_body(object_entity_t *entity,
 				uint64_t new_size)
 {
@@ -396,9 +410,8 @@ int64_t reg40_put(object_entity_t *entity, void *buff, uint64_t n) {
 	return hint.bytes;
 }
 
-static int64_t reg40_cut(object_entity_t *entity,
-			 uint64_t n)
-{
+/* Cuts some amount of data and makes file length of passed @n value. */
+static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;

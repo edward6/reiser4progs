@@ -176,21 +176,6 @@ errno_t reiser4_key_set_ordering(
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
-/* Increases key's offset by passed @value */
-void reiser4_key_inc_offset(reiser4_key_t *key, uint64_t value) {
-	reiser4_key_set_offset(key, reiser4_key_get_offset(key) + value);
-}
-
-/* Gets key type */
-uint32_t reiser4_key_get_type(reiser4_key_t *key) {
-	aal_assert("umka-698", key != NULL);
-	aal_assert("umka-699", key->plug != NULL);
-
-	return plug_call(key->plug->o.key_ops,
-			 get_type, key);
-}
-
 /* Returns key offset */
 uint64_t reiser4_key_get_offset(reiser4_key_t *key) {
 	aal_assert("umka-700", key != NULL);
@@ -198,6 +183,21 @@ uint64_t reiser4_key_get_offset(reiser4_key_t *key) {
 
 	return plug_call(key->plug->o.key_ops,
 			 get_offset, key);
+}
+
+/* Increases key's offset by passed @value */
+void reiser4_key_inc_offset(reiser4_key_t *key, uint64_t value) {
+	reiser4_key_set_offset(key, reiser4_key_get_offset(key) + value);
+}
+
+#ifndef ENABLE_STAND_ALONE
+/* Gets key type */
+uint32_t reiser4_key_get_type(reiser4_key_t *key) {
+	aal_assert("umka-698", key != NULL);
+	aal_assert("umka-699", key->plug != NULL);
+
+	return plug_call(key->plug->o.key_ops,
+			 get_type, key);
 }
 
 /* Returns key objectid */

@@ -589,14 +589,13 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 }
 
 /* Mode modifying fucntion. */
-static int32_t node40_mod(node_entity_t *entity, pos_t *pos,
+static int64_t node40_mod(node_entity_t *entity, pos_t *pos,
 			  trans_hint_t *hint, bool_t insert)
 {
 	void *ih;
-	errno_t res;
 	uint32_t pol;
 	uint32_t len;
-	int32_t write;
+	int64_t write;
 	place_t place;
 	node40_t *node;
     
@@ -636,17 +635,17 @@ static int32_t node40_mod(node_entity_t *entity, pos_t *pos,
 
 	if (insert) {
 		/* Inserting units into @place */
-		if (!(res = plug_call(hint->plug->o.item_ops,
-				      insert, &place, hint)) < 0)
+		if (!(write = plug_call(hint->plug->o.item_ops,
+					insert, &place, hint)) < 0)
 		{
 			aal_exception_error("Can't insert unit to "
 					    "node %llu.", node->block->nr);
-			return res;
+			return write;
 		}
 	} else {
 		/* Writes data into @place */
 		if (!(write = plug_call(hint->plug->o.item_ops,
-				      write, &place, hint)) < 0)
+					write, &place, hint)) < 0)
 		{
 			aal_exception_error("Can't write data to "
 					    "node %llu.", node->block->nr);

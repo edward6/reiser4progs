@@ -84,7 +84,9 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
+#ifdef ENABLE_SYMLINKS
 	reiser4_plug_t *plug;
+#endif
 	reiser4_object_t *object;
 
 	object = (reiser4_object_t *)data;

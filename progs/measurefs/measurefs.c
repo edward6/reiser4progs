@@ -144,7 +144,7 @@ static errno_t tfrag_process_node(
 
 	/* Loop though the node items */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
-		reiser4_place_t place;
+		reiser4_place_t place, *p;
 
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
@@ -159,7 +159,9 @@ static errno_t tfrag_process_node(
 		if (!place.plug->o.item_ops->layout)
 			continue;
 
-		plug_call(place.plug->o.item_ops, layout, (place_t *)&place,
+		p = &place;
+		
+		plug_call(place.plug->o.item_ops, layout, (place_t *)p,
 			  tfrag_process_item, data);
 	}
 	
@@ -310,7 +312,7 @@ static errno_t stat_process_node(
 		     pos.item++)
 		{
 			errno_t res;
-			reiser4_place_t place;
+			reiser4_place_t place, *p;
 			
 			if ((res = reiser4_place_open(&place, node, &pos))) {
 				aal_exception_error("Can't open item %u in node %llu.",
@@ -321,8 +323,10 @@ static errno_t stat_process_node(
 			if (!place.plug->o.item_ops->layout)
 				continue;
 
+			p = &place;
+			
 			plug_call(place.plug->o.item_ops, layout,
-				  (place_t *)&place, stat_process_item, data);
+				  (place_t *)p, stat_process_item, data);
 		}
 	} else {
 		leaves_used = blksize - reiser4_node_space(node);

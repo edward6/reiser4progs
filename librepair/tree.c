@@ -66,17 +66,21 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	
 	if (reiser4_item_branch(place.plug)) {
 		ptr_hint_t ptr;
-		trans_hint_t hint;
 		uint32_t blksize;
+		trans_hint_t hint;
+		reiser4_place_t *p;
 		
 		place.pos.unit = reiser4_item_units(&place) - 1;
 
+		p = &place;
 		hint.count = 1;
 		hint.specific = &ptr;
 		
 		if (plug_call(place.plug->o.item_ops, fetch,
-			      (place_t *)&place, &hint) != 1)
+			      (place_t *)p, &hint) != 1)
+		{
 			return -EIO;
+		}
 		
 		if (ptr.start == INVAL_BLK)
 			return -EINVAL;
@@ -581,16 +585,19 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		switch(repair_tree_do_conv(tree, dst.plug, src->plug)) {
 		case TRUE: {
 			conv_hint_t hint;
+			reiser4_place_t *p;
 
 			hint.bytes = 0;
 			hint.plug = src->plug;
 			reiser4_key_assign(&hint.offset, &dst.key);
+
+			p = &dst;
 			
 			/* FIXME-UMKA->VITALY: This should be fixed to right
 			   item size, which depends on size stat data field for
 			   the last item in file. */
 			hint.count = plug_call(dst.plug->o.item_ops,
-					      size, (place_t *)&dst);
+					      size, (place_t *)p);
 
 			if ((res = reiser4_tree_conv_flow(tree, &hint)))
 				return res;

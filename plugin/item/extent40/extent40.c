@@ -482,9 +482,9 @@ static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 		uint32_t blkchunk;
 		uint64_t blk, start;
 
-		/* Calculating start block for read */
+		/* Calculating start block for read. */
 		start = blk = et40_get_start(extent40_body(place) + i) +
-			(rel_offset / blksize);
+			aal_div64(rel_offset, blksize, NULL);
 
 		/* Loop though the extent blocks */
 		while (blk < start + et40_get_width(extent40_body(place) + i) &&
@@ -493,7 +493,7 @@ static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 			blk_t sec;
 			uint32_t blklocal;
 
-			blklocal = (rel_offset % blksize);
+			blklocal = aal_mod64(rel_offset, blksize);
 			
 			if ((blkchunk = blksize - blklocal) > count)
 				blkchunk = count;
@@ -526,9 +526,8 @@ static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 				
 				aal_block_free(block);
 
-				if ((seclocal + secchunk) % secsize == 0) {
+				if ((seclocal + secchunk) % secsize == 0)
 					sec++;
-				}
 					
 				buff += secchunk;
 				count -= secchunk;
@@ -538,9 +537,8 @@ static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 				blklocal += secchunk;
 			}
 
-			if (blklocal % blksize == 0) {
+			if (blklocal % blksize == 0)
 				blk++;
-			}
 		}
 	}
 	

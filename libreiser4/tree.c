@@ -332,7 +332,7 @@ static reiser4_node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
         /* Going up to the level where corresponding neighbour node may be
 	   obtained by its nodeptr item. */
         while (place.node->p.node && found == 0) {
-		place = place.node->p;
+		aal_memcpy(&place, &place.node->p, sizeof(place));
 
 		/* Checking position. Level is found if position is not first
 		   (right neighbour) and is not last one (left neighbour). */
@@ -1124,8 +1124,10 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 			/* If item's lookup is implemented, we use it. Item key
 			   comparing is used otherwise. */
 			if (walk.plug->o.item_ops->lookup) {
+				reiser4_place_t *p = &walk;
+				
 				switch (plug_call(walk.plug->o.item_ops,
-						  lookup, (place_t *)&walk,
+						  lookup, (place_t *)p,
 						  key, FIND_EXACT))
 				{
 				case PRESENT:
@@ -1251,6 +1253,87 @@ lookup_t reiser4_tree_lookup(
 	}
     
 	return ABSENT;
+}
+
+/* Reads data from the @tree to passed @hint */
+int64_t reiser4_tree_read(reiser4_tree_t *tree,
+			  reiser4_place_t *place,
+			  trans_hint_t *hint)
+{
+	return plug_call(place->plug->o.item_ops, read,
+			 (place_t *)place, hint);
+}
+
+/* Reads one convert chunk from src item */
+int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
+			       trans_hint_t *hint)
+{
+	char *buff;
+	errno_t res;
+	int64_t total;
+	uint64_t size;
+	reiser4_key_t key;
+
+	buff = hint->specific;
+	reiser4_key_assign(&key, &hint->offset);
+	
+	for (total = 0, size = hint->count; size > 0; ) {
+		int32_t read;
+		reiser4_place_t place;
+
+		/* Looking for the place to read */
+		if ((res = reiser4_tree_lookup(tree, &hint->offset,
+					       LEAF_LEVEL, FIND_EXACT,
+					       &place)) < 0)
+		{
+			return res;
+		}
+
+		/* Data does not found. This may mean, that we have hole in tree
+		   between keys. */
+		if (res == ABSENT) {
+			uint64_t next_offset;
+			uint64_t look_offset;
+			
+			/* Here we suppose, that @place points to next item,
+			   just behind the hole. */
+			if ((res = reiser4_place_fetch(&place)))
+				return res;
+
+			next_offset = reiser4_key_get_offset(&place.key);
+			look_offset = reiser4_key_get_offset(&hint->offset);
+			
+			read = (next_offset - look_offset > size ? size :
+				next_offset - look_offset);
+
+			/* Making holes in buffer */
+			aal_memset(hint->specific, 0, read);
+		} else {
+			/* Prepare hint for read */
+			hint->tree = tree;
+			hint->count = size;
+		
+			/* Read data from the tree */
+			if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {
+				return read;
+			} else {
+				if (read == 0)
+					break;
+			}
+		}
+
+		size -= read;
+		total += read;
+
+		/* Updating key and data buffer pointer */
+		hint->specific += read;
+		reiser4_key_inc_offset(&hint->offset, read);
+	}
+
+	hint->specific = buff;
+	reiser4_key_assign(&hint->offset, &key);
+	
+	return total;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -1977,78 +2060,6 @@ int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 	return total;
 }
 
-/* Reads one convert chunk from src item */
-int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
-			       trans_hint_t *hint)
-{
-	char *buff;
-	errno_t res;
-	int64_t total;
-	uint64_t size;
-	reiser4_key_t key;
-
-	buff = hint->specific;
-	reiser4_key_assign(&key, &hint->offset);
-	
-	for (total = 0, size = hint->count; size > 0; ) {
-		int32_t read;
-		reiser4_place_t place;
-
-		/* Looking for the place to read */
-		if ((res = reiser4_tree_lookup(tree, &hint->offset,
-					       LEAF_LEVEL, FIND_EXACT,
-					       &place)) < 0)
-		{
-			return res;
-		}
-
-		/* Data does not found. This may mean, that we have hole in tree
-		   between keys. */
-		if (res == ABSENT) {
-			uint64_t next_offset;
-			uint64_t look_offset;
-			
-			/* Here we suppose, that @place points to next item,
-			   just behind the hole. */
-			if ((res = reiser4_place_fetch(&place)))
-				return res;
-
-			next_offset = reiser4_key_get_offset(&place.key);
-			look_offset = reiser4_key_get_offset(&hint->offset);
-			
-			read = (next_offset - look_offset > size ? size :
-				next_offset - look_offset);
-
-			/* Making holes in buffer */
-			aal_memset(hint->specific, 0, read);
-		} else {
-			/* Prepare hint for read */
-			hint->tree = tree;
-			hint->count = size;
-		
-			/* Read data from the tree */
-			if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {
-				return read;
-			} else {
-				if (read == 0)
-					break;
-			}
-		}
-
-		size -= read;
-		total += read;
-
-		/* Updating key and data buffer pointer */
-		hint->specific += read;
-		reiser4_key_inc_offset(&hint->offset, read);
-	}
-
-	hint->specific = buff;
-	reiser4_key_assign(&hint->offset, &key);
-	
-	return total;
-}
-
 /* Truncates item @hint->offset point to by value stored in @hint->count. This
    is used durring tail conversion. */
 int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
@@ -2443,15 +2454,6 @@ errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 	aal_assert("umka-1645", hint->plug != NULL);
 
 	return reiser4_tree_mod(tree, place, hint, level, 1);
-}
-
-/* Reads data from the @tree to passed @hint */
-int64_t reiser4_tree_read(reiser4_tree_t *tree,
-			  reiser4_place_t *place,
-			  trans_hint_t *hint)
-{
-	return plug_call(place->plug->o.item_ops, read,
-			 (place_t *)place, hint);
 }
 
 /* Writes data to the tree */

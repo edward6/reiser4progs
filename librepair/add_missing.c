@@ -233,7 +233,6 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap, 
 				      stat_bitmap_t *stat)
 {
-	reiser4_alloc_t *alloc;
 	reiser4_node_t *node;
 	uint32_t count;
 	errno_t res;

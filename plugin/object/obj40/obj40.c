@@ -445,7 +445,8 @@ errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 
 	obj->core = core;
 	obj->plug = plug;
-	obj->info = *info;
+	
+	aal_memcpy(&obj->info, info, sizeof(*info));
 
 	if (info->object.plug) {
 		plug_call(info->object.plug->o.key_ops,

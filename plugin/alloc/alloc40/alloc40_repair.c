@@ -72,17 +72,15 @@ errno_t alloc40_layout_bad(object_entity_t *entity,
 			   region_func_t func,
 			   void *data)
 {
-	alloc40_t *alloc = (alloc40_t *)entity;
 	struct alloc_hint hint;
 	
+	aal_assert("vpf-1323", func != NULL);
 	aal_assert("vpf-865", alloc != NULL);
 	aal_assert("vpf-866", alloc->bitmap != NULL);
-	aal_assert("vpf-1323", func != NULL);
 	
 	hint.func = func;
 	hint.data = data;
 	
 	return alloc40_layout(entity, callback_check_layout, &hint);
 }
-
 #endif

@@ -501,8 +501,11 @@ lookup_t reiser4_node_lookup(
 	
 		/* Calling lookup method of found item */
 		if (place.plug->o.item_ops->lookup) {
+			reiser4_place_t *p = &place;
+				
 			res = plug_call(place.plug->o.item_ops, lookup,
-					(place_t *)&place, key, bias);
+					(place_t *)p, key, bias);
+			
 			pos->unit = place.pos.unit;
 			return res;
 		}
@@ -647,15 +650,18 @@ errno_t reiser4_node_shift(
 		for (; place.pos.unit < units; place.pos.unit++) {
 			ptr_hint_t ptr;
 			trans_hint_t hint;
+			reiser4_place_t *p;
 			reiser4_node_t *child;
 
 			/* Getting nodeptr and looking for the cached child by
 			   using it. */
 			hint.count = 1;
 			hint.specific = &ptr;
+
+			p = (reiser4_place_t *)&place;
 			
 			if (plug_call(place.plug->o.item_ops, fetch,
-				      (place_t *)&place, &hint) != 1)
+				      (place_t *)p, &hint) != 1)
 			{
 				return -EIO;
 			}
@@ -804,6 +810,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 	for (; place.pos.item < items; place.pos.item++) {
 		ptr_hint_t ptr;
 		trans_hint_t hint;
+		reiser4_place_t *p;
 		
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
@@ -811,11 +818,12 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 		if (!reiser4_item_branch(place.plug))
 			continue;
 
+		p = &place;
 		hint.count = 1;
 		hint.specific = &ptr;
 		
 		if (plug_call(place.plug->o.item_ops, fetch,
-			      (place_t *)&place, &hint) != 1)
+			      (place_t *)p, &hint) != 1)
 		{
 			return -EIO;
 		}
