@@ -59,7 +59,7 @@ libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
                                     item/tail40/libtail40-alone.la \
                                     item/extent40/libextent40-alone.la \
                                     item/stat40/libstat40-alone.la \
-                                    item/blackbox40/libstat40-alone.la \
+                                    item/blackbox40/libblackbox40-alone.la \
                                     object/obj40/libobj40-alone.la \
                                     object/dir40/libdir40-alone.la \
                                     object/reg40/libreg40-alone.la \
