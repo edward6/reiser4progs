@@ -120,6 +120,9 @@ struct reiser4_joint {
 
     /* List of children */
     aal_list_t *children;
+
+    /* User spacified data */
+    void *data;
 };
 
 struct reiser4_coord {
