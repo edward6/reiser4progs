@@ -206,8 +206,8 @@ lookup_t extent40_lookup(item_entity_t *item,
 static int32_t extent40_read(item_entity_t *item, void *buff,
 			     uint32_t pos, uint32_t count)
 {
-	uint32_t read, i;
 	key_entity_t key;
+	uint32_t read, i;
 	uint32_t blocksize;
 	uint32_t sectorsize;
 
@@ -218,7 +218,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	blocksize = extent40_blocksize(item);
 	sectorsize = item->context.device->blocksize;
 
-	for (read = count, i = extent40_unit(item, pos);
+	for (read = count, i = item->pos.unit;
 	     i < extent40_units(item) && count > 0; i++)
 	{
 		uint32_t blkchunk;
@@ -232,21 +232,15 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		*/
 		
 #ifndef ENABLE_STAND_ALONE
-		uint64_t blk, start, offset;
+		uint64_t blk, start;
 #else
-		uint32_t blk, start, offset;
+		uint32_t blk, start;
 #endif
 		extent40_get_key(item, i, &key);
 
-		/* Calculating in-unit local offset */
-		offset = plugin_call(item->key.plugin->o.key_ops,
-				     get_offset, &key);
-
-		offset -= plugin_call(item->key.plugin->o.key_ops,
-				      get_offset, &item->key);
-
+		/* Calculating start block for read */
 		start = blk = et40_get_start(extent40_body(item) + i) +
-			((pos - offset) / blocksize);
+			((pos - (uint32_t)extent40_offset(item, i)) / blocksize);
 
 		/* Loop though the extent blocks */
 		while (blk < start + et40_get_width(extent40_body(item) + i) &&

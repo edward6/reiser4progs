@@ -110,19 +110,18 @@ static int32_t reg40_read(object_entity_t *entity,
 		
 		chunk = n - read;
 
-		/* Calculating in-item local offset */
+		/* Calculating in-item offset */
 		offset = reg->offset - plugin_call(item->key.plugin->o.key_ops,
 						   get_offset, &item->key);
 
-		/* Calling body item's "read" method */
+		/* Calling body item's read() method */
 		chunk = plugin_call(item->plugin->o.item_ops, read,
 				    item, buff, offset, chunk);
 
 		aal_assert("umka-2216", chunk > 0);
 		
-		buff += chunk;
-		read += chunk;
 		reg->offset += chunk;
+		buff += chunk; read += chunk;
 	}
 
 	return read;
