@@ -322,6 +322,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			
 			hint.count = 1;
 			hint.shift_flags = SF_DEFAULT;
+			pos->unit = MAX_UINT32;
 
 			/* Item has wrong key, remove it. */
 			res |= obj40_remove(&dir->obj, &dir->body, &hint);
@@ -330,6 +331,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 			continue;
 		}
 
+		if (pos->unit == MAX_UINT32)
+			pos->unit = 0;
 		
 		units = plug_call(dir->body.plug->o.item_ops->balance, 
 				  units, &dir->body);
