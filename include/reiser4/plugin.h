@@ -71,19 +71,20 @@ typedef enum bias bias_t;
 
 /* Known by library plugin types. */
 enum reiser4_plug_type {
-	OBJECT_PLUG_TYPE      = 0x0,
-	ITEM_PLUG_TYPE        = 0x2,
-	NODE_PLUG_TYPE        = 0x3,
-	HASH_PLUG_TYPE        = 0x4,
-	POLICY_PLUG_TYPE      = 0x5,
-	PERM_PLUG_TYPE        = 0x6,
-	SDEXT_PLUG_TYPE       = 0x7,
-	FORMAT_PLUG_TYPE      = 0x8,
-	OID_PLUG_TYPE         = 0x9,
-	ALLOC_PLUG_TYPE       = 0xa,
-	JNODE_PLUG_TYPE       = 0xb,
-	JOURNAL_PLUG_TYPE     = 0xc,
-	KEY_PLUG_TYPE         = 0xd
+	OBJECT_PLUG_TYPE        = 0x0,
+	ITEM_PLUG_TYPE          = 0x2,
+	NODE_PLUG_TYPE          = 0x3,
+	HASH_PLUG_TYPE          = 0x4,
+	POLICY_PLUG_TYPE        = 0x5,
+	PERM_PLUG_TYPE          = 0x6,
+	SDEXT_PLUG_TYPE         = 0x7,
+	FORMAT_PLUG_TYPE        = 0x8,
+	OID_PLUG_TYPE           = 0x9,
+	ALLOC_PLUG_TYPE         = 0xa,
+	JNODE_PLUG_TYPE         = 0xb,
+	JOURNAL_PLUG_TYPE       = 0xc,
+	KEY_PLUG_TYPE           = 0xd,
+	LAST_PLUG_TYPE
 };
 
 typedef enum reiser4_plug_type reiser4_plug_type_t;
@@ -92,14 +93,16 @@ enum reiser4_object_plug_id {
 	OBJECT_REG40_ID         = 0x0,
 	OBJECT_DIR40_ID		= 0x1,
 	OBJECT_SYM40_ID		= 0x2,
-	OBJECT_SPL40_ID	        = 0x3
+	OBJECT_SPL40_ID	        = 0x3,
+	OBJECT_LAST_ID
 };
 
 enum reiser4_object_group {
 	REG_OBJECT		= 0x0,
 	DIR_OBJECT		= 0x1,
 	SYM_OBJECT		= 0x2,
-	SPL_OBJECT		= 0x3
+	SPL_OBJECT		= 0x3,
+	LAST_OBJECT
 };
 
 typedef enum reiser4_object_group reiser4_object_group_t;
@@ -111,7 +114,8 @@ enum reiser4_item_plug_id {
 	ITEM_NODEPTR40_ID	= 0x3,
 	ITEM_ACL40_ID		= 0x4,
 	ITEM_EXTENT40_ID	= 0x5,
-	ITEM_TAIL40_ID		= 0x6
+	ITEM_TAIL40_ID		= 0x6,
+	ITEM_LAST_ID
 };
 
 enum reiser4_item_group {
@@ -127,7 +131,8 @@ enum reiser4_item_group {
 typedef enum reiser4_item_group reiser4_item_group_t;
 
 enum reiser4_node_plug_id {
-	NODE40_ID               = 0x0
+	NODE_REISER40_ID        = 0x0,
+	NODE_LAST_ID
 };
 
 enum reiser4_hash_plug_id {
@@ -135,7 +140,8 @@ enum reiser4_hash_plug_id {
 	HASH_R5_ID		= 0x1,
 	HASH_TEA_ID		= 0x2,
 	HASH_FNV1_ID		= 0x3,
-	HASH_DEG_ID             = 0x4
+	HASH_DEG_ID             = 0x4,
+	HASH_LAST_ID
 };
 
 typedef enum reiser4_hash_plug_id reiser4_hash_plug_id_t;
@@ -146,11 +152,12 @@ enum reiser4_tail_plug_id {
 	TAIL_FOURK_ID		= 0x2,
 	TAIL_ALWAYS_ID		= 0x3,
 	TAIL_SMART_ID		= 0x4,
-	TAIL_LAST_ID		= 0x5
+	TAIL_LAST_ID
 };
 
 enum reiser4_perm_plug_id {
-	PERM_RWX_ID		= 0x0
+	PERM_RWX_ID		= 0x0,
+	PERM_LAST_ID
 };
 
 enum reiser4_sdext_plug_id {
@@ -162,30 +169,35 @@ enum reiser4_sdext_plug_id {
 	SDEXT_GEN_FLAGS_ID      = 0x5,
 	SDEXT_CAPS_ID           = 0x6,
 	SDEXT_LARGE_TIMES_ID    = 0x7,
-	SDEXT_LAST
+	SDEXT_LAST_ID
 };
 
 typedef enum reiser4_sdext_plug_id reiser4_sdext_plug_id_t;
 
 enum reiser4_format_plug_id {
-	FORMAT_REISER40_ID	= 0x0
+	FORMAT_REISER40_ID	= 0x0,
+	FORMAT_LAST_ID
 };
 
 enum reiser4_oid_plug_id {
-	OID_REISER40_ID		= 0x0
+	OID_REISER40_ID		= 0x0,
+	OID_LAST_ID
 };
 
 enum reiser4_alloc_plug_id {
-	ALLOC_REISER40_ID	= 0x0
+	ALLOC_REISER40_ID	= 0x0,
+	ALLOC_LAST_ID
 };
 
 enum reiser4_journal_plug_id {
-	JOURNAL_REISER40_ID	= 0x0
+	JOURNAL_REISER40_ID	= 0x0,
+	JOURNAL_LAST
 };
 
 enum reiser4_key_plug_id {
 	KEY_SHORT_ID		= 0x0,
-	KEY_LARGE_ID		= 0x1
+	KEY_LARGE_ID		= 0x1,
+	KEY_LAST_ID
 };
 
 typedef struct reiser4_plug reiser4_plug_t;

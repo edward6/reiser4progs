@@ -12,7 +12,7 @@ reiser4_param_t default_param = {
 		[0] = {
 			.name  = "node",
 			.type  = NODE_PLUG_TYPE,
-			.value = NODE40_ID
+			.value = NODE_REISER40_ID
 		},
 		[1] = {
 			.name  = "nodeptr",
