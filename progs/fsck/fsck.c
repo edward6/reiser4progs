@@ -29,52 +29,17 @@ static void fsck_print_usage(char *name) {
 		"  -f, --force            forces checking even if the file system\n"
 		"                         seems clean\n"
 		"  -v, --verbose          makes fsck to be verbose\n"
-		"  -B | --bitmap file     handle blocks marked in the bitmap only\n"
 		"  -r                     ignored\n"
-		"Backup options:\n"
-		" --rollback              rollback changes made before\n"
-		"  -b | --backup file     backup blocks being written to the file\n"
 		);
 }
 
-#define REBUILD_WARNING \
-"  *************************************************************\n\
-  **     This is an experimental version of reiser4fsck.     **\n\
-  **                 MAKE A BACKUP FIRST!                    **\n\
-  ** Do not run rebuild unless something  is broken.  If you **\n\
-  ** have bad sectors on a drive it is usually a bad idea to **\n\
-  ** continue using it.  Then  you  probably  should  get  a **\n\
-  ** working hard drive,  copy the file system from  the bad **\n\
-  ** drive  to the good one -- dd_rescue is  a good tool for **\n\
-  ** that -- and only then run this program.If you are using **\n\
-  ** the latest reiser4progs and  it fails  please email bug **\n\
-  ** reports to reiserfs-list@namesys.com, providing as much **\n\
-  ** information  as  possible  --  your  hardware,  kernel, **\n\
-  ** patches, settings, all reiser4fsck messages  (including **\n\
-  ** version), the reiser4fsck  logfile,  check  the  syslog **\n\
-  ** file for  any  related information.                     **\n\
-  ** If you would like advice on using this program, support **\n\
-  ** is available  for $25 at  www.namesys.com/support.html. **\n\
-  *************************************************************\n\n"
-
-#define CHECK_WARNING \
-"  *************************************************************\n\
-  ** If you are using the latest reiser4progs  and  it fails **\n\
-  ** please  email bug reports to reiserfs-list@namesys.com, **\n\
-  ** providing  as  much  information  as  possible --  your **\n\
-  ** hardware,  kernel,  patches,  settings,  all  reiserfsk **\n\
-  ** messages  (including version), the reiser4fsck logfile, **\n\
-  ** check  the  syslog file  for  any  related information. **\n\
-  ** If you would like advice on using this program, support **\n\
-  ** is available  for $25 at  www.namesys.com/support.html. **\n\
-  *************************************************************\n\n"
+#define WARNING \
+"*******************************************************************\n"\
+"This is an EXPERIMENTAL version of fsck.reiser4. Read REAMDE first.\n"\
+"*******************************************************************\n\n"
 
 static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
-	if (data->sb_mode == RM_BUILD || data->fs_mode == RM_BUILD)
-		fprintf(stderr, REBUILD_WARNING);
-	else
-		fprintf(stderr, CHECK_WARNING);
-	
+	fprintf(stderr, WARNING);
 	fprintf(stderr, "Fscking the %s block device.\n", host_name);
 	
 	switch (data->sb_mode) {

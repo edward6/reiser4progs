@@ -1,9 +1,25 @@
-This file is part of reiser4progs package.
-
 Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-This is a library for reiser4 filesystem access and manipulation.
+REISER4PROGS
 
-Send reiser4progs bug reports, requests for help, feature requests,
-comments, etc. to  reiserfs-list@namesys.com.
+It contains the library for reiser4 filesystem access and manipulation and
+reiser4 utilities.
+
+Send reiser4progs bug reports, requests for help, feature requests, comments, 
+etc. to reiserfs-list@namesys.com. If you are using the latest reiser4progs 
+and it fails provide as much information as possible: your hardware, kernel, 
+patches, settings, reiser4progs version, printed messages, logfile, syslog 
+messages if there is any related information. 
+
+If you would like advice on using this software, support is available for $25
+at www.namesys.com/support.html.
+
+FSCK.REISER4 WARNING
+
+This is an experimental software yet, MAKE A BACKUP BEFORE USING IT! Do not 
+run rebuild unless something is broken. If you have bad sectors on a drive 
+it is usually a bad idea to continue using it. Then you probably should get
+a working hard drive, copy the file system from the bad drive to the good
+one -- dd_rescue is a good tool for that -- and only then run this program.
+

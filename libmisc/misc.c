@@ -109,7 +109,12 @@ int misc_dev_mounted(
 	/* Stating given device */
 	if ((res = stat(name, &giv_st)) == -1)
 		return res;
- 
+
+	/* Check only block devices. 
+	   FIXME: files mounted through loop should be checked also. */
+	if (!S_ISBLK(giv_st.st_mode))
+		return 0;
+		
 	/* Procfs magic is 0x9fa0 */
 	if (statfs("/proc", &fs_st) == -1 || fs_st.f_type != 0x9fa0) {
 

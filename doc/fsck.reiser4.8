@@ -23,6 +23,25 @@ fsck.reiser4 \- the program for checking and repairing reiser4 filesystem.
 .SH DESCRIPTION
 .B fsck.reiser4
 is reiser4 filesystem check and repair program.
+.SH CHECK OPTIONS
+.TP
+.B --check
+consistency checking (default)
+.TP
+.B --fix
+fixes what can be fixed without rebuilding.
+.TP
+.B --build-sb
+fixes all super block corruptions.
+.TP
+.B --build-fs
+fixes all fs corruptions, does not fix super block.
+.TP
+.B -l, --logfile
+complains into the logfile
+.TP
+.B -n, --no-log
+makes fsck do not complain.
 .SH COMMON OPTIONS
 .TP
 .B -V, --version
@@ -42,19 +61,6 @@ makes fsck to be verbose.
 .TP
 .B -f, --force
 makes fsck to use whole disk, not block device or mounted partition.
-.SH CHECK OPTIONS
-.TP
-.B -l, --logfile
-complains into the logfile
-.TP
-.B --check
-consistency checking (default)
-.TP
-.B --fixable
-fixes what can be fixed without rebuild
-.TP
-.B --rebuild
-fixes all fs corruptions
 .RS
 .SH REPORTING BUGS
 Report bugs to <vitaly@namesys.com>, <reiserfs-list@namesys.com>
