@@ -450,9 +450,9 @@ int reiser4_tree_lookup(
 			coord->pos.item--;
 				
 		if (reiser4_coord_realize(coord)) {
-			blk_t blk = reiser4_coord_blk(coord);
 			aal_exception_error("Can't open item by its coord. Node "
-					    "%llu, item %u.", blk, coord->pos.item);
+					    "%llu, item %u.", coord->node->blk,
+					    coord->pos.item);
 			return -1;
 		}
 
@@ -600,6 +600,7 @@ errno_t reiser4_tree_attach(
 errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 			    reiser4_node_t *node)
 {
+	reiser4_coord_t coord;
 	reiser4_node_t *parent;
 	
 	aal_assert("umka-1726", tree != NULL, return -1);
@@ -608,8 +609,10 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	if (!(parent = node->parent))
 		return 0;
 
+	reiser4_coord_init(&coord, parent, &node->pos);
+	
 	/* Removing item/unit from the parent node */
-	if (reiser4_node_remove(parent, &node->pos))
+	if (reiser4_tree_remove(tree, &coord))
 		return -1;
 
 	reiser4_node_detach(parent, node);
@@ -981,9 +984,7 @@ errno_t reiser4_tree_remove(
 		if ((right = reiser4_node_right(coord->node))) {
 			reiser4_coord_t bogus;
 
-			bogus.node = right;
-			bogus.pos.item = 0;
-			bogus.pos.unit = ~0ul;
+			reiser4_coord_assign(&bogus, right);
 	    
 			if (reiser4_tree_shift(tree, &bogus, coord->node, SF_LEFT)) {
 				aal_exception_error("Can't pack node %llu into left.",

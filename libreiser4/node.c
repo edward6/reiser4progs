@@ -973,9 +973,8 @@ errno_t reiser4_node_insert(
 		if (hint->len == 0) {
 			reiser4_coord_t coord;
 	    
-			if (reiser4_coord_init(&coord, node, pos))
-				return -1;
-	    
+			reiser4_coord_init(&coord, node, pos);
+			
 			if (reiser4_item_estimate(&coord, hint)) {
 				aal_exception_error("Can't estimate space that "
 						    "item being inserted will consume.");

@@ -586,7 +586,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	item_entity_t item;
 	item40_header_t *ih;
 	
-	aal_assert("umka-988", node != NULL, return -1);
+	aal_assert("umka-988", entity != NULL, return -1);
 	aal_assert("umka-989", pos != NULL, return -1);
     
 	node = (node40_t *)entity;
