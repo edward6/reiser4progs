@@ -483,6 +483,16 @@ static uint16_t node40_space(object_entity_t *entity) {
 	return nh40_get_free_space(node);
 }
 
+uint8_t node40_get_level(object_entity_t *entity) {
+	aal_assert("umka-1116", entity != NULL, return 0);
+	return nh40_get_level(((node40_t *)entity));
+}
+
+static uint32_t node40_get_stamp(object_entity_t *entity) {
+	aal_assert("umka-1127", entity != NULL, return -1);
+	return nh40_get_mkfs_id(((node40_t *)entity));
+}
+
 #ifndef ENABLE_COMPACT
 
 static errno_t node40_set_key(object_entity_t *entity, 
@@ -517,6 +527,8 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	return 0;
 }
 
+#define ITEM_SIZE (32768)
+
 /* 
    Prepare text node description and push it into specied buffer. Caller should
    decide what it should do with filled buffer.
@@ -524,10 +536,77 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 static errno_t node40_print(object_entity_t *entity, char *buff,
 			    uint32_t n, uint16_t options) 
 {
+	uint8_t level;
+	reiser4_pos_t pos;
+	item_entity_t item;
+
+	char *item_buff, key_buff[255];
+	node40_t *node = (node40_t *)entity;
+	
 	aal_assert("vpf-023", entity != NULL, return -1);
 	aal_assert("umka-457", buff != NULL, return -1);
 
-	return -1;
+	level = node40_get_level(entity);
+
+	aux_strncat(buff, n, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
+	       level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
+	       level, node40_count(entity), node40_space(entity));
+
+	pos.unit = ~0ul;
+	
+	for (pos.item = 0; pos.item < node40_count(entity); pos.item++) {
+
+		if (core->item_ops.open(&item, entity, &pos)) {
+			aal_exception_error("Can't open item %u in node %llu.", 
+					    pos.item, aal_block_number(node->block));
+			return -1;
+		}
+
+		aux_strncat(buff, n, "(%u) ", pos.item);
+		
+		if (item.plugin->h.sign.group == STATDATA_ITEM)
+			aux_strncat(buff, n, "STATDATA ITEM");
+		else if (item.plugin->h.sign.group == DIRENTRY_ITEM)
+			aux_strncat(buff, n, "DIRENTRY ITEM");
+		else if (item.plugin->h.sign.group == TAIL_ITEM)
+			aux_strncat(buff, n, "TAIL ITEM");
+		else if (item.plugin->h.sign.group == NODEPTR_ITEM)
+			aux_strncat(buff, n, "NODEPTR ITEM");
+		else if (item.plugin->h.sign.group == EXTENT_ITEM)
+			aux_strncat(buff, n, "EXTENT ITEM");
+		else
+			aux_strncat(buff, n, "UNKNOWN ITEM");
+	    
+		aux_strncat(buff, n, ": len=%u, ", item.len);
+		
+		aal_memset(key_buff, 0, sizeof(key_buff));
+		
+		if (plugin_call(return -1, item.key.plugin->key_ops, print,
+				&item.key, key_buff, sizeof(key_buff), options))
+			return -1;
+		
+		aux_strncat(buff, n, "KEY: %s, ", key_buff);
+
+		aux_strncat(buff, n, "PLUGIN: 0x%x (%s)\n", item.plugin->h.sign.id,
+			    item.plugin->h.label);
+
+		if (level > LEAF_LEVEL || options) {
+			
+			if (!(item_buff = aal_calloc(ITEM_SIZE, 0)))
+				return -1;
+
+			if (plugin_call(return -1, item.plugin->item_ops, print,
+					&item, item_buff, ITEM_SIZE, options))
+				goto error_free_buff;
+
+			aux_strncat(buff, n, "%s\n", item_buff);
+			
+		error_free_buff:
+			aal_free(item_buff);
+		}
+	}
+	
+	return 0;
 }
 
 #endif
@@ -571,16 +650,6 @@ static int node40_lookup(object_entity_t *entity,
 		pos->item = item;
 
 	return lookup;
-}
-
-uint8_t node40_get_level(object_entity_t *entity) {
-	aal_assert("umka-1116", entity != NULL, return 0);
-	return nh40_get_level(((node40_t *)entity));
-}
-
-static uint32_t node40_get_stamp(object_entity_t *entity) {
-	aal_assert("umka-1127", entity != NULL, return -1);
-	return nh40_get_mkfs_id(((node40_t *)entity));
 }
 
 #ifndef ENABLE_COMPACT

@@ -193,6 +193,23 @@ static uint32_t tree_nodespace(const void *tree) {
 	return reiser4_node_maxspace(node) - reiser4_node_overhead(node);
 }
 
+static errno_t item_open (item_entity_t *item,
+			  object_entity_t *entity,
+			  reiser4_pos_t *pos)
+{
+	reiser4_coord_t coord;
+	
+	aal_assert("umka-1539", item != NULL, return -1);
+	aal_assert("umka-1540", entity != NULL, return -1);
+	aal_assert("umka-1541", pos != NULL, return -1);
+
+	if (reiser4_coord_open(&coord, (void *)entity, CT_ENTITY, pos))
+		return -1;
+
+	aal_memcpy(item, &coord.entity, sizeof(*item));
+	return 0;
+}
+
 reiser4_core_t core = {
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its
@@ -233,6 +250,10 @@ reiser4_core_t core = {
 #endif
 		.nodespace  = tree_nodespace,
 		.blockspace = tree_blockspace
+	},
+
+	.item_ops = {
+		.open       = item_open
 	}
 };
 

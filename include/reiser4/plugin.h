@@ -1090,6 +1090,10 @@ struct reiser4_core {
 		errno_t (*lock) (const void *, reiser4_place_t *);
 		errno_t (*unlock) (const void *, reiser4_place_t *);
 	} tree_ops;
+
+	struct {
+		errno_t (*open) (item_entity_t *, object_entity_t *, reiser4_pos_t *);
+	} item_ops;
 };
 
 /* Plugin functions and macros */

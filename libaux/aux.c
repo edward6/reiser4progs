@@ -64,8 +64,8 @@ int aux_binsearch(
 #ifndef ENABLE_COMPACT
 
 long int aux_strtol(
-	const char *str,	    /* string to be converted */
-	int *error)		    /* error will be stored here */
+	const char *str,	        /* string to be converted */
+	int *error)		        /* error will be stored here */
 {
 	char *err;
 	long result = 0;
@@ -88,22 +88,27 @@ long int aux_strtol(
 	return result;
 }
 
-char *aux_strncat(
-	char *dest,	        /* a buffer where result will be stored */
-	uint32_t n,	        /* size of the buffer */
-	const char *src,	/* format string */
-	...)		        /* list of params */
+int aux_strncat(
+	char *dest,	               /* a buffer where result will be stored */
+	uint32_t n,	               /* size of the buffer */
+	const char *src,	       /* format string */
+	...)		               /* list of params */
 {
+	int res;
+	uint32_t size;
 	va_list arg_list;
-    
+
+	if (!(size = n - aal_strlen(dest)))
+		return 0;
+	
 	va_start(arg_list, src);
 
-	aal_vsnprintf(dest + aal_strlen(dest), 
-		      n - aal_strlen(dest), src, arg_list);
+	res = aal_vsnprintf(dest + aal_strlen(dest), 
+		      size, src, arg_list);
     
 	va_end(arg_list);
     
-	return dest;
+	return res;
 }
 
 #endif
