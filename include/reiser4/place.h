@@ -35,7 +35,4 @@ extern errno_t reiser4_place_open(reiser4_place_t *place,
 extern errno_t reiser4_place_assign(reiser4_place_t *place,
 				    reiser4_node_t *node,
 				    uint32_t item, uint32_t unit);
-
-extern reiser4_place_t *reiser4_place_dup(reiser4_place_t *dst,
-					  reiser4_place_t *src);
 #endif

@@ -5,11 +5,13 @@
 
 #include <reiser4/libreiser4.h>
 
+#define INVAL_TYPE		((uint8_t)~0)
+
 struct opset_member {
 	/* Opset type -> Plugin type. INVAL_PID means that the slot is valid,
 	   but the library does not have any plugin written for it yet. See
 	   reiser4_opset_plug. */
-	rid_t type;
+	uint8_t type;
 	
 #ifndef ENABLE_STAND_ALONE
 	/* To be sure that a plugin found by type,id pair is valid, add the
@@ -30,7 +32,7 @@ typedef struct opset_member opset_member_t;
 
 opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_OBJ] = {
-		.type = INVAL_PID,
+		.type = INVAL_TYPE,
 #ifndef ENABLE_STAND_ALONE
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
@@ -38,7 +40,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #endif
 	},
 	[OPSET_DIR] = {
-		.type = INVAL_PID,
+		.type = INVAL_TYPE,
 #ifndef ENABLE_STAND_ALONE
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
@@ -46,7 +48,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #endif
 	},
 	[OPSET_PERM] = {
-		.type = INVAL_PID,
+		.type = INVAL_TYPE,
 #ifndef ENABLE_STAND_ALONE
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
@@ -94,7 +96,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #endif
 	},
 	[OPSET_CRYPTO] = {
-		.type = INVAL_PID,
+		.type = INVAL_TYPE,
 #ifndef ENABLE_STAND_ALONE
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
@@ -102,7 +104,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #endif
 	},
 	[OPSET_DIGEST] = {
-		.type = INVAL_PID,
+		.type = INVAL_TYPE,
 #ifndef ENABLE_STAND_ALONE
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
@@ -110,7 +112,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #endif
 	},
 	[OPSET_COMPRES] = {
-		.type = INVAL_PID,
+		.type = INVAL_TYPE,
 #ifndef ENABLE_STAND_ALONE
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
@@ -161,7 +163,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 		.ess = 1,
 	},
 	[OPSET_ACL] = {
-		.type = INVAL_PID,
+		.type = INVAL_TYPE,
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 0,
@@ -177,7 +179,7 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 	reiser4_plug_t *plug;
 	aal_assert("vpf-1613", member < OPSET_LAST);
 
-	if (opset_prof[member].type == INVAL_PID && id == 0)
+	if (opset_prof[member].type == INVAL_TYPE && id == 0)
 		return NULL;
 	
 	if (!(plug = reiser4_factory_ifind(opset_prof[member].type, id)))
@@ -361,7 +363,7 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
 		if (!check)
 			break;
 
-		if (!tree->ent.opset[i] && opset_prof[i].type != INVAL_PID) {
+		if (!tree->ent.opset[i] && opset_prof[i].type != INVAL_TYPE) {
 			aal_error("The slot %u in the fs-global object "
 				  "plugin set is not initialized.", i);
 			return -EINVAL;

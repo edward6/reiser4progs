@@ -253,19 +253,6 @@ struct reiser4_tree {
 	/* Memory pressure detect function. */
 	mpc_func_t mpc_func;
 
-#ifndef ENABLE_STAND_ALONE
-	/* Minimal tree level we have to allocate something on it. In current
-	   tree implementation this is TWIG_LEVEL, that is LEAF_LEVEL + 1. In
-	   tree like reiser3 uses it is LEAF_LEVEL.
-
-	   Few words about why do we need it. We need it not because of
-	   reiser3. We really don't think, that libreiser4 will support reiser3
-	   some day, we need it just to make tree code more flexible and avoid
-	   to use any kind of hardcoding. */
-	uint32_t bottom;
-
-#endif
-	
 	/* Formatted nodes hash table. */
 	aal_hash_table_t *nodes;
 
@@ -344,6 +331,7 @@ typedef struct fs_hint fs_hint_t;
 
 typedef void (*uuid_unparse_t) (char *uuid, char *string);
 typedef errno_t (*walk_func_t) (reiser4_tree_t *, reiser4_node_t *);
+typedef errno_t (*walk_on_func_t) (reiser4_tree_t *, reiser4_place_t *);
 
 /* Number of bit to test it in format flags in order check if large keys policy
    in use. Large keys in use if bit is set. */

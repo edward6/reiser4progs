@@ -144,7 +144,7 @@ static void stat40_decode_opset(tree_entity_t *tree,
 	if (plugh->plug[OPSET_OBJ])
 		return;
 
-	/* FIXME: Should here anything to be done with OPSET_DIR */
+	/* FIXME: Should here anything to be done with OPSET_DIR? */
 	
 	plugh->plug[OPSET_OBJ] = stat40_modeplug(tree, lwh->mode);
 	plugh->mask |= (1 << OPSET_OBJ);

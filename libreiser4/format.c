@@ -182,6 +182,7 @@ void reiser4_format_close(
 	aal_free(format);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Returns root block from passed disk-format */
 blk_t reiser4_format_get_root(
 	reiser4_format_t *format)	/* format to be used */
@@ -192,7 +193,6 @@ blk_t reiser4_format_get_root(
 			 get_root, format->ent);
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* Returns string described used disk-format */
 const char *reiser4_format_name(
 	reiser4_format_t *format)	/* disk-format to be inspected */
@@ -227,7 +227,6 @@ count_t reiser4_format_get_free(
 	return plug_call(format->ent->plug->o.format_ops, 
 			 get_free, format->ent);
 }
-#endif
 
 /* Returns tree height */
 uint16_t reiser4_format_get_height(
@@ -239,7 +238,6 @@ uint16_t reiser4_format_get_height(
 			 get_height, format->ent);
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* Returns current mkfs id from the format-specific super-block */
 uint32_t reiser4_format_get_stamp(
 	reiser4_format_t *format)	/* format to be inspected */

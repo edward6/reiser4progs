@@ -162,6 +162,43 @@ reiser4_object_t *reiser4_object_obtain(reiser4_tree_t *tree,
 	return reiser4_object_open(tree, parent, &place);
 }
 
+/* Returns object size. That is stat data field st_size. Actually it might be
+   got by means of using object_stat() function, but, we implemented this
+   function as helper, because using object_stat() is rather complicated due to
+   somplex initializing stat data extensions to be loaded by it. */
+uint64_t reiser4_object_size(reiser4_object_t *object) {
+	stat_hint_t hint;
+	sdhint_lw_t lwh;
+
+	aal_assert("umka-1961", object != NULL);
+
+	/* Initializing stat data hint. And namely extension mask of extension
+	   slot we are interested in. Size lies in light weight extension. */
+
+	/* FIXME-UMKA: Why object (on API abstraction level) knows, that size
+	   lies in LW extension? What if someone will move it to another one? */
+	hint.extmask = 1 << SDEXT_LW_ID;
+	hint.ext[SDEXT_LW_ID] = &lwh;
+
+	/* Calling objects stat() method. */
+	if (plug_call(objplug(object)->o.object_ops,
+		      stat, object->ent, &hint))
+		return 0;
+
+	return lwh.size;
+}
+
+/* Closes specified object */
+void reiser4_object_close(
+	reiser4_object_t *object)    /* object to be closed */
+{
+	aal_assert("umka-680", object != NULL);
+	aal_assert("umka-1149", object->ent != NULL);
+
+	plug_call(objplug(object)->o.object_ops, close, object->ent);
+	aal_free(object);
+}
+
 #ifndef ENABLE_STAND_ALONE
 /* Adds @entry to @object */
 errno_t reiser4_object_add_entry(
@@ -489,33 +526,6 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 	return plug_call(objplug(object)->o.object_ops, lookup, 
 			 object->ent, (char *)name, (void *)entry);
 }
-#endif
-
-/* Returns object size. That is stat data field st_size. Actually it might be
-   got by means of using object_stat() function, but, we implemented this
-   function as helper, because using object_stat() is rather complicated due to
-   somplex initializing stat data extensions to be loaded by it. */
-uint64_t reiser4_object_size(reiser4_object_t *object) {
-	stat_hint_t hint;
-	sdhint_lw_t lwh;
-
-	aal_assert("umka-1961", object != NULL);
-
-	/* Initializing stat data hint. And namely extension mask of extension
-	   slot we are interested in. Size lies in light weight extension. */
-
-	/* FIXME-UMKA: Why object (on API abstraction level) knows, that size
-	   lies in LW extension? What if someone will move it to another one? */
-	hint.extmask = 1 << SDEXT_LW_ID;
-	hint.ext[SDEXT_LW_ID] = &lwh;
-
-	/* Calling objects stat() method. */
-	if (plug_call(objplug(object)->o.object_ops,
-		      stat, object->ent, &hint))
-		return 0;
-
-	return lwh.size;
-}
 
 /* Loads object stat data to @hint. */
 errno_t reiser4_object_stat(reiser4_object_t *object, stat_hint_t *hint) {
@@ -622,26 +632,6 @@ errno_t reiser4_object_readdir(reiser4_object_t *object,
 			 readdir, object->ent, entry);
 }
 
-/* Closes object entity. */
-static void reiser4_object_fini(reiser4_object_t *object) {
-	plug_call(objplug(object)->o.object_ops, 
-		  close, object->ent);
-	
-	object->ent = NULL;
-}
-
-/* Closes specified object */
-void reiser4_object_close(
-	reiser4_object_t *object)    /* object to be closed */
-{
-	aal_assert("umka-680", object != NULL);
-	aal_assert("umka-1149", object->ent != NULL);
-
-	reiser4_object_fini(object);
-	aal_free(object);
-}
-
-#ifndef ENABLE_STAND_ALONE
 /* Completes object creating. */
 static reiser4_object_t *reiser4_obj_create(reiser4_tree_t *tree,
 					    reiser4_object_t *parent,

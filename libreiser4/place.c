@@ -177,16 +177,6 @@ void reiser4_place_dec(reiser4_place_t *place, int whole) {
 }
 #endif
 
-/* Copies @src to @dst and returns pointer to @dst. */
-reiser4_place_t *reiser4_place_dup(reiser4_place_t *dst,
-				   reiser4_place_t *src)
-{
-	aal_assert("umka-3105", dst != NULL);
-	aal_assert("umka-3106", src != NULL);
-
-	aal_memcpy(dst, src, sizeof(*dst));
-	return dst;
-}
 /* Initializes all item-related fields */
 errno_t reiser4_place_fetch(reiser4_place_t *place) {
 	aal_assert("umka-1459", place != NULL);

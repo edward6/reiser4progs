@@ -26,6 +26,11 @@ extern reiser4_object_t *reiser4_object_obtain(reiser4_tree_t *tree,
 extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 					     reiser4_object_t *parent,
 					     reiser4_place_t *place);
+
+uint64_t reiser4_object_size(reiser4_object_t *object);
+
+extern void reiser4_object_close(reiser4_object_t *object);
+
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_object_add_entry(reiser4_object_t *object,
 					entry_hint_t *entry);
@@ -68,9 +73,6 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 				      const char *name,
 				      entry_hint_t *entry);
 
-#endif
-uint64_t reiser4_object_size(reiser4_object_t *object);
-	
 extern errno_t reiser4_object_stat(reiser4_object_t *object,
 				   stat_hint_t *hint);
 
@@ -93,10 +95,6 @@ extern int64_t reiser4_object_read(reiser4_object_t *object,
 
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
-
-extern void reiser4_object_close(reiser4_object_t *object);
-
-#ifndef ENABLE_STAND_ALONE
 
 extern reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 					    reiser4_object_t *parent,

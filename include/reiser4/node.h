@@ -84,11 +84,11 @@ extern lookup_t reiser4_node_lookup(reiser4_node_t *node,
 				    lookup_bias_t bias,
 				    pos_t *pos);
 
-extern errno_t reiser4_node_fini(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
 extern uint32_t reiser4_node_items(reiser4_node_t *node);
 
 #ifndef ENABLE_STAND_ALONE
+extern errno_t reiser4_node_fini(reiser4_node_t *node);
 extern bool_t reiser4_node_isdirty(reiser4_node_t *node);
 extern void reiser4_node_mkdirty(reiser4_node_t *node);
 extern void reiser4_node_mkclean(reiser4_node_t *node);

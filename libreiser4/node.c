@@ -164,17 +164,17 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
         return NULL;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Saves node to device if it is dirty and closes node */
 errno_t reiser4_node_fini(reiser4_node_t *node) {
-#ifndef ENABLE_STAND_ALONE
 	/* Node should be clean when it is going to be closed. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
 		aal_error("Can't write node %llu.", node->block->nr);
 	}
-#endif
 
 	return reiser4_node_close(node);
 }
+#endif
 
 /* Closes specified node and its children. Before the closing, this function
    also detaches nodes from the tree if they were attached. */

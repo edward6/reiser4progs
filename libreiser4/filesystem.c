@@ -86,8 +86,8 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
  error_free_format:
-	reiser4_format_close(fs->format);
 #endif
+	reiser4_format_close(fs->format);
  error_free_status:
 #ifndef ENABLE_STAND_ALONE
 	reiser4_status_close(fs->status);
@@ -107,9 +107,11 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 #ifndef ENABLE_STAND_ALONE
 	if (!aal_device_readonly(fs->device))
 		reiser4_fs_sync(fs);
-#endif
 	reiser4_tree_fini(fs->tree);
-	
+#else
+	reiser4_tree_close(fs->tree);
+#endif
+
 #ifndef ENABLE_STAND_ALONE
 	reiser4_oid_close(fs->oid);
 	reiser4_alloc_close(fs->alloc);
@@ -436,6 +438,6 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 	locality = REISER4_ROOT_LOCALITY;
 	objectid = REISER4_ROOT_OBJECTID;
 #endif
-	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
-					 locality, 0, objectid, 0);
+	return plug_call(key->plug->o.key_ops, build_generic, key,
+			 KEY_STATDATA_TYPE, locality, 0, objectid, 0);
 }
