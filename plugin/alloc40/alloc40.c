@@ -18,8 +18,8 @@ static reiser4_core_t *core = NULL;
 static errno_t callback_fetch_bitmap(reiser4_entity_t *format, 
     blk_t blk, void *data)
 {
-    uint32_t size;
     aal_block_t *block;
+    uint32_t size, chunk;
     aal_device_t *device;
     char *current, *start;
     alloc40_t *alloc = (alloc40_t *)data;
@@ -46,7 +46,10 @@ static errno_t callback_fetch_bitmap(reiser4_entity_t *format,
     size = aal_block_size(block) - CRC_SIZE;
     current = start + (size * (blk / size / 8));
     
-    aal_memcpy(current, block->data + CRC_SIZE, size);
+    chunk = (start + alloc->bitmap->size) - current > (int)size ? 
+	size : (start + alloc->bitmap->size) - current;
+	    
+    aal_memcpy(current, block->data + CRC_SIZE, chunk);
     
     aal_memcpy((void *)(alloc->crc + ((blk / size / 8) * CRC_SIZE)), 
 	block->data, CRC_SIZE);
@@ -66,7 +69,7 @@ static reiser4_entity_t *alloc40_open(reiser4_entity_t *format,
     aal_device_t *device;
     reiser4_layout_func_t layout;
     
-    uint32_t blocksize, crcsize, mapsize;
+    uint32_t blocksize, crcsize;
     
     aal_assert("umka-364", format != NULL, return NULL);
 
@@ -83,9 +86,8 @@ static reiser4_entity_t *alloc40_open(reiser4_entity_t *format,
 	return NULL;
     
     blocksize = aal_device_get_bs(device) - CRC_SIZE;
-    mapsize = (((len - 1) / blocksize / 8) + 1) * blocksize;
     
-    if (!(alloc->bitmap = reiser4_bitmap_create(len, mapsize)))
+    if (!(alloc->bitmap = reiser4_bitmap_create(len)))
 	goto error_free_alloc;
   
     crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;
@@ -131,7 +133,7 @@ static reiser4_entity_t *alloc40_create(reiser4_entity_t *format,
     alloc40_t *alloc;
     aal_device_t *device;
     
-    uint32_t blocksize, crcsize, mapsize;
+    uint32_t blocksize, crcsize;
 
     aal_assert("umka-365", format != NULL, return NULL);
 	
@@ -148,9 +150,8 @@ static reiser4_entity_t *alloc40_create(reiser4_entity_t *format,
 	return NULL;
 
     blocksize = aal_device_get_bs(device) - CRC_SIZE;
-    mapsize = (((len - 1) / blocksize / 8) + 1) * blocksize;
     
-    if (!(alloc->bitmap = reiser4_bitmap_create(len, mapsize)))
+    if (!(alloc->bitmap = reiser4_bitmap_create(len)))
 	goto error_free_alloc;
   
     crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;
@@ -176,8 +177,8 @@ static errno_t callback_flush_bitmap(reiser4_entity_t *format,
 {
     aal_block_t *block;
     aal_device_t *device;
-    uint32_t size, adler;
     char *current, *start; 
+    uint32_t size, adler, chunk;
    
     alloc40_t *alloc = (alloc40_t *)data;
     
@@ -204,9 +205,12 @@ static errno_t callback_flush_bitmap(reiser4_entity_t *format,
     current = start + (size * (blk / size / 8));
     
     /* Updating block which is going to be saved */
-    aal_memcpy(block->data + CRC_SIZE, current, size);
+    chunk = (start + alloc->bitmap->size) - current > (int)size ? 
+	size : (start + alloc->bitmap->size) - current;
+
+    aal_memcpy(block->data + CRC_SIZE, current, chunk);
     
-    adler = aal_adler32(current, size);
+    adler = aal_adler32(current, chunk);
     aal_memcpy(block->data, &adler, sizeof(adler));
     
     if (aal_block_sync(block)) {
@@ -345,7 +349,7 @@ static errno_t callback_check_bitmap(reiser4_entity_t *format,
     aal_device_t *device;
     
     uint32_t size, i, n;
-    uint32_t ladler, cadler;
+    uint32_t ladler, cadler, chunk;
     
     alloc40_t *alloc = (alloc40_t *)data;
     
@@ -368,7 +372,10 @@ static errno_t callback_check_bitmap(reiser4_entity_t *format,
     ladler = *((uint32_t *)(alloc->crc + (i * CRC_SIZE)));
     
     /* Calculating adler checksumm for piece of bitmap */
-    cadler = aal_adler32(current, size);
+    chunk = (alloc->bitmap->map + alloc->bitmap->size) - current > (int)size ? 
+	size : (alloc->bitmap->map + alloc->bitmap->size) - current;
+	    
+    cadler = aal_adler32(current, chunk);
 
     /* 
         If loaded checksum and calculated are not equal, then we have corrupted 

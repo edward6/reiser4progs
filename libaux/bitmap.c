@@ -168,13 +168,13 @@ count_t reiser4_bitmap_unused(
 }
 
 /* Creates instance of bitmap */
-reiser4_bitmap_t *reiser4_bitmap_create(count_t len, uint32_t size) {
+reiser4_bitmap_t *reiser4_bitmap_create(count_t len) {
     reiser4_bitmap_t *bitmap;
 	    
     if (!(bitmap = (reiser4_bitmap_t *)aal_calloc(sizeof(*bitmap), 0)))
 	return NULL;
 	
-    bitmap->size = size;
+    bitmap->size = /*size*/(len + 7) / 8;
     bitmap->used_blocks = 0;
     bitmap->total_blocks = len;
     
@@ -196,7 +196,7 @@ reiser4_bitmap_t *reiser4_bitmap_clone(
 
     aal_assert("umka-358", bitmap != NULL, return 0);	
 
-    if (!(clone = reiser4_bitmap_create(bitmap->total_blocks, bitmap->size)))
+    if (!(clone = reiser4_bitmap_create(bitmap->total_blocks)))
 	return NULL;
 	
     clone->size = bitmap->size;
