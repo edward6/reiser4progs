@@ -2875,8 +2875,14 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	   has not nodes just after it is created. Root node and first leaf will
 	   be created on demand then. */
 	if (!reiser4_tree_fresh(tree)) {
-		if ((res = reiser4_tree_load_root(tree)))
+		reiser4_node_lock(place->node);
+		
+		if ((res = reiser4_tree_load_root(tree))) {
+			reiser4_node_unlock(place->node);
 			return res;
+		}
+
+		reiser4_node_unlock(place->node);
 	}
 
 	/* Checking if we have the tree with height less than requested
