@@ -235,8 +235,8 @@ static void node40_item_init(object_entity_t *entity, reiser4_pos_t *pos,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t node40_expand(node40_t *node, 
-			     reiser4_pos_t *pos, reiser4_item_hint_t *hint) 
+static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
+			     reiser4_item_hint_t *hint) 
 {
 	void *body;
 	int i, item_pos;
@@ -252,8 +252,8 @@ static errno_t node40_expand(node40_t *node,
 	aal_assert("vpf-006", pos != NULL, return -1);
 	aal_assert("vpf-007", hint != NULL, return -1);
 
-	is_space = (nh40_get_free_space(node) >= 
-		    hint->len + (pos->unit == ~0ul ? sizeof(item40_header_t) : 0));
+	is_space = (nh40_get_free_space(node) >= hint->len +
+		    (pos->unit == ~0ul ? sizeof(item40_header_t) : 0));
     
 	is_range = (pos->item <= nh40_get_num_items(node));
     
@@ -560,9 +560,10 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 
 	level = node40_get_level(entity);
 
-	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
-	       level > LEAF_LEVEL ? "INTERNAL" : "LEAF", aal_block_number(node->block),
-	       level, node40_count(entity), node40_space(entity));
+	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, "
+			  "items=%u, space=%u\n", level > LEAF_LEVEL ?
+			  "INTERNAL" : "LEAF", aal_block_number(node->block),
+			  level, node40_count(entity), node40_space(entity));
 	
 	pos.unit = ~0ul;
 	
@@ -670,7 +671,7 @@ struct node40_estimate {
 
 typedef struct node40_estimate node40_estimate_t;
 
-static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
+static errno_t node40_estimate(node40_estimate_t *estimate) {
 	uint32_t len, space;
 	item40_header_t *end;
 	item40_header_t *cur;
@@ -678,11 +679,14 @@ static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
 	item40_header_t *start;
 
 	space = node40_space((object_entity_t *)estimate->dst);
+	
 	ins = node40_ih_at((object_entity_t *)estimate->src, estimate->pos->item);
 
 	start = node40_ih_at((object_entity_t *)estimate->src, 0);
+
 	end = node40_ih_at((object_entity_t *)estimate->src, 
 			   nh40_get_num_items(estimate->src) - 1);
+	
 	cur = (estimate->flags & SF_LEFT ? start : end);
 
 	/* Checking if insert point is at end of node */
@@ -701,12 +705,12 @@ static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
 				break;
 		}
 
-		if (space < len)
+		if (space < (len + sizeof(item40_header_t)))
 			break;
 
 		estimate->items++;
 		estimate->bytes += len;
-		space -= len;
+		space -= (len + sizeof(item40_header_t));
 
 		cur += (estimate->flags & SF_LEFT ? -1 : 1);
 	}
@@ -719,6 +723,10 @@ static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
 static int node40_shift(object_entity_t *entity, object_entity_t *target, 
 			reiser4_pos_t *pos, shift_flags_t flags)
 {
+	item40_header_t *end;
+	item40_header_t *cur;
+	item40_header_t *ins;
+	item40_header_t *start;
 	node40_estimate_t estimate;
 
 	aal_assert("umka-1305", entity != NULL, return -1);
@@ -727,22 +735,76 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 
 	aal_memset(&estimate, 0, sizeof(estimate));
     
+	estimate.pos = pos;
+	estimate.flags = flags;
 	estimate.src = (node40_t *)entity;
 	estimate.dst = (node40_t *)target;
-	estimate.flags = flags;
-	estimate.pos = pos;
 
-	if (node40_shift_estimate(&estimate)) {
+	if (node40_estimate(&estimate)) {
+		blk_t blk = aal_block_number(estimate.src->block);
 		aal_exception_error("Can't estimate shift for source node %llu, "
-				    "destination node %llu.", aal_block_number(estimate.src->block),
+				    "destination node %llu.", blk,
 				    aal_block_number(estimate.dst->block));
 		return -1;
 	}
 
+	start = node40_ih_at((object_entity_t *)estimate.src, 0);
+
+	end = node40_ih_at((object_entity_t *)estimate.src, 
+			   nh40_get_num_items(estimate.src) - 1);
+	
+	cur = (estimate.flags & SF_LEFT ? start : end);
+
+	if (estimate.flags & SF_LEFT) {
+		uint32_t i;
+		void *dst, *src;
+		item40_header_t *bih;
+		item40_header_t *nih;
+		uint32_t items_size;
+		
+		bih = start - (estimate.items - 1);
+		
+		/* Copying item headers */
+		dst = node40_ih_at((object_entity_t *)estimate.dst,
+				   nh40_get_num_items(estimate.dst) - 1);
+
+		items_size = sizeof(item40_header_t) * estimate.items;
+		dst -= items_size;
+			
+		aal_memcpy(dst, bih, items_size);
+
+		/* Copying data */
+		src = ih40_get_offset(bih) + estimate.src->block->data;
+		dst = estimate.dst->block->data + nh40_get_free_space_start(estimate.dst);
+
+		aal_memcpy(dst, src, estimate.bytes);
+
+		/* Updating item headers and destination node fields */
+		nih = (item40_header_t *)dst;
+		
+		for (i = 0; i < estimate.items; i++, nih++) {
+			uint32_t offset = nh40_get_free_space_start(estimate.dst);
+			ih40_set_offset(nih, (uint32_t)(offset - ih40_get_offset(nih)));
+		}
+
+		nh40_set_free_space(estimate.dst, nh40_get_free_space(estimate.dst) -
+				    estimate.bytes - items_size);
+
+		nh40_set_num_items(estimate.dst, nh40_get_num_items(estimate.dst) - 1);
+
+		/* Updating source node fields */
+		nh40_set_free_space(estimate.src, nh40_get_free_space(estimate.src) +
+				    estimate.bytes + items_size);
+
+		nh40_set_num_items(estimate.src, nh40_get_num_items(estimate.src) - 1);
+	} else {
+	}
+	
+	
 	/*
-	  If after moving the items we will have some amount of free space
-	  in destination node, we should try to shift units from the last
-	  item to first item of destination node.
+	  If after moving the items we will have some amount of free space in
+	  destination node, we should try to shift units from the last item to
+	  first item of destination node.
 	*/
 	if (estimate.part > 0) {
 	}
