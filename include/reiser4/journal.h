@@ -22,7 +22,8 @@ extern reiser4_journal_t *reiser4_journal_open(reiser4_format_t *format,
 #ifndef ENABLE_COMPACT
 
 extern reiser4_journal_t *reiser4_journal_create(reiser4_format_t *format,
-						 aal_device_t *device, void *params);
+						 aal_device_t *device,
+						 void *hint);
 
 extern errno_t reiser4_journal_sync(reiser4_journal_t *journal);
 extern int reiser4_journal_replay(reiser4_journal_t *journal);
@@ -32,8 +33,12 @@ extern errno_t reiser4_journal_print(reiser4_journal_t *journal,
 
 #endif
 
-extern errno_t reiser4_journal_valid(reiser4_journal_t *journal);
 extern void reiser4_journal_close(reiser4_journal_t *journal);
+extern errno_t reiser4_journal_valid(reiser4_journal_t *journal);
+
+extern errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
+				      action_func_t action_func,
+				      void *data);
 
 #endif
 

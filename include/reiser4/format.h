@@ -51,9 +51,11 @@ extern errno_t reiser4_format_print(reiser4_format_t *format,
 
 #endif
 
+extern blk_t reiser4_format_start(reiser4_format_t *format);
 extern errno_t reiser4_format_valid(reiser4_format_t *format);
 extern void reiser4_format_close(reiser4_format_t *format);
 extern int reiser4_format_confirm(reiser4_format_t *format);
+
 extern blk_t reiser4_format_get_root(reiser4_format_t *format);
 extern count_t reiser4_format_get_len(reiser4_format_t *format);
 extern count_t reiser4_format_get_free(reiser4_format_t *format);
@@ -65,27 +67,13 @@ extern rpid_t reiser4_format_journal_pid(reiser4_format_t *format);
 extern rpid_t reiser4_format_alloc_pid(reiser4_format_t *format);
 extern rpid_t reiser4_format_oid_pid(reiser4_format_t *format);
 
+extern errno_t reiser4_format_skipped(reiser4_format_t *format, 
+				      action_func_t action_func,
+				      void *data);
+
 extern errno_t reiser4_format_layout(reiser4_format_t *format, 
-				     format_action_func_t action_func, void *data);
-
-extern errno_t reiser4_format_skipped_layout(reiser4_format_t *format, 
-					     format_action_func_t action_func,
-					     void *data);
-
-extern errno_t reiser4_format_format_layout(reiser4_format_t *format, 
-					    format_action_func_t action_func,
-					    void *data);
-
-extern errno_t reiser4_format_journal_layout(reiser4_format_t *format, 
-					     format_action_func_t action_func,
-					     void *data);
-
-extern errno_t reiser4_format_alloc_layout(reiser4_format_t *format, 
-					   format_action_func_t action_func,
-					   void *data);
-
-extern reiser4_belong_t reiser4_format_belongs(reiser4_format_t *format,
-					       blk_t blk);
+				     action_func_t action_func,
+				     void *data);
 
 #endif
 

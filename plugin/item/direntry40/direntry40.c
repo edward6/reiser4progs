@@ -338,8 +338,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		uint32_t dst_len = 0;
 
 		/* Calculating dst item body length */
-		for (i = 0; i < dst_units; i++)
-			dst_len += direntry40_unit_len(dst_direntry, i);
+		dst_len = dst_item->len - hint->rest -
+			sizeof(direntry40_t) - (dst_units * sizeof(entry40_t));
 		
 		if (dst_units > 0) {
 
@@ -526,9 +526,8 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 	reiser4_direntry_hint_t *dehint;
     
 	aal_assert("umka-791", item != NULL, return -1);
-	aal_assert("umka-792", hint != NULL, return -1);
+	aal_assert("umka-792", buff != NULL, return -1);
 	aal_assert("umka-897", pos != ~0ul, return -1);
-	aal_assert("umka-1600", hint->len > 0, return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
@@ -647,17 +646,22 @@ static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
 	uint16_t unit_len;
 	uint32_t head_len;
 	uint32_t foot_len;
+
+	uint32_t units;
 	uint32_t i, offset;
 
 	entry40_t *entry;
 	direntry40_t *direntry;
     
 	aal_assert("umka-934", item != NULL, return -1);
-	aal_assert("umka-1681", pos < de40_get_count(direntry), return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
 
+	units = de40_get_count(direntry);
+	
+	aal_assert("umka-1681", pos < units, return -1);
+	
 	entry = direntry40_entry(direntry, pos);
 	offset = en40_get_offset(entry);
     
@@ -672,7 +676,7 @@ static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
 	for (i = 0; i < pos; i++)
 		en40_dec_offset(&direntry->entry[i], sizeof(entry40_t));
     
-	if (pos < (uint32_t)de40_get_count(direntry) - 1) {
+	if (pos < units - 1) {
 		uint32_t dec = sizeof(entry40_t) + unit_len;
 		offset = en40_get_offset(&direntry->entry[pos]);
 	

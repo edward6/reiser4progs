@@ -15,10 +15,9 @@
 struct alloc40 {
 	reiser4_plugin_t *plugin;
 	
-	aux_bitmap_t *bitmap;
-	object_entity_t *format;
-
 	char *crc;
+	aal_device_t *device;
+	aux_bitmap_t *bitmap;
 };
 
 typedef struct alloc40 alloc40_t;

@@ -12,34 +12,75 @@
 #include "alloc40.h"
 
 #define CRC_SIZE (4)
-
-extern reiser4_plugin_t alloc40_plugin;
+#define ALLOC40_START (MASTER_OFFSET + (4096 * 2))
 
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t alloc40_plugin;
 
-static errno_t callback_fetch_bitmap(object_entity_t *format, 
+/* Call func for all blocks which belong to the same bitmap block as blk. */
+errno_t alloc40_region(object_entity_t *entity, blk_t blk, 
+		       action_func_t action_func, void *data) 
+{
+	uint64_t size, i;
+	aal_device_t *device;
+	alloc40_t *alloc = (alloc40_t *)entity;
+    
+	aal_assert("vpf-554", alloc != NULL, return -1);
+	aal_assert("vpf-554", alloc->bitmap != NULL, return -1);
+	aal_assert("vpf-554", alloc->device != NULL, return -1);
+
+	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
+    
+	for (i = blk / size; i < blk / size + size; i++) {
+		if (action_func(entity, i, data))
+			return -1;
+	}
+
+	return 0;    
+}
+
+/* Calls func for each block allocator block */
+static errno_t alloc40_layout(object_entity_t *entity,
+			      action_func_t action_func,
+			      void *data) 
+{
+	count_t bpb;
+	blk_t blk, start;
+	uint32_t blocksize;
+	
+	alloc40_t *alloc = (alloc40_t *)entity;
+	
+	aal_assert("umka-347", entity != NULL, return -1);
+	aal_assert("umka-348", action_func != NULL, return -1);
+
+	blocksize = aal_device_get_bs(alloc->device);
+	
+	bpb = (blocksize - CRC_SIZE) * 8;
+	start = ALLOC40_START / blocksize;
+    
+	for (blk = start; blk < start + alloc->bitmap->total;
+	     blk = (blk / bpb + 1) * bpb) 
+	{
+		if (action_func(entity, blk, data))
+			return -1;
+	}
+    
+	return 0;
+}
+
+static errno_t callback_fetch_bitmap(object_entity_t *entity, 
 				     uint64_t blk, void *data)
 {
 	aal_block_t *block;
-	aal_device_t *device;
 	char *current, *start;
 	uint32_t size, chunk, free;
-	alloc40_t *alloc = (alloc40_t *)data;
+	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-1053", alloc != NULL, return -1);
-    
-	device = plugin_call(return -1, format->plugin->format_ops, 
-			     device, format);
-    
-	if (!device) {
-		aal_exception_error("Can't get device from format instance "
-				    "durring bitmap loading.");
-		return -1;
-	}
-    
-	if (!(block = aal_block_open(device, blk))) {
+	aal_assert("umka-1053", entity != NULL, return -1);
+
+	if (!(block = aal_block_open(alloc->device, blk))) {
 		aal_exception_error("Can't read bitmap block %llu. %s.", 
-				    blk, device->error);
+				    blk, alloc->device->error);
 		return -1;
 	}
 
@@ -64,26 +105,15 @@ static errno_t callback_fetch_bitmap(object_entity_t *format,
 	return -1;
 }
 
-static object_entity_t *alloc40_open(object_entity_t *format,
-				      uint64_t len)
+static object_entity_t *alloc40_open(aal_device_t *device,
+				     uint64_t len)
 {
 	alloc40_t *alloc;
-	aal_device_t *device;
-	format_layout_func_t layout;
-    
 	uint32_t blocksize, crcsize;
     
-	aal_assert("umka-364", format != NULL, return NULL);
+	aal_assert("umka-364", device != NULL, return NULL);
+	aal_assert("umka-1682", len > 0, return NULL);
 
-	device = plugin_call(return NULL, format->plugin->format_ops,
-			     device, format);
-    
-	if (!device) {
-		aal_exception_error("Can't get device from format instance "
-				    "durring bitmap loading.");
-		return NULL;
-	}
-    
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
     
@@ -97,16 +127,12 @@ static object_entity_t *alloc40_open(object_entity_t *format,
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
     
-	alloc->format = format;
+	alloc->device = device;
 	alloc->plugin = &alloc40_plugin;
 
-	if (!(layout = format->plugin->format_ops.alloc_layout)) {
-		aal_exception_error("Method \"alloc_layout\" doesn't implemented "
-				    "in format plugin.");
-		goto error_free_bitmap;
-	}
-    
-	if (layout(format, callback_fetch_bitmap, alloc)) {
+	if (alloc40_layout((object_entity_t *)alloc,
+			   callback_fetch_bitmap, alloc))
+	{
 		aal_exception_error("Can't load ondisk bitmap.");
 		goto error_free_bitmap;
 	}
@@ -129,25 +155,15 @@ static object_entity_t *alloc40_open(object_entity_t *format,
    Initializes new alloc40 instance, creates bitmap and return new instance to 
    caller (block allocator in libreiser4).
 */
-static object_entity_t *alloc40_create(object_entity_t *format,
-					uint64_t len) 
+static object_entity_t *alloc40_create(aal_device_t *device,
+				       uint64_t len) 
 {
 	alloc40_t *alloc;
-	aal_device_t *device;
-    
 	uint32_t blocksize, crcsize;
 
-	aal_assert("umka-365", format != NULL, return NULL);
+	aal_assert("umka-365", device != NULL, return NULL);
+	aal_assert("umka-1683", device != NULL, return NULL);
 	
-	device = plugin_call(return NULL, format->plugin->format_ops, 
-			     device, format);
-
-	if (!device) {
-		aal_exception_error("Can't get device from format instance "
-				    "durring bitmap creating.");
-		return NULL;
-	}
-    
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
@@ -161,7 +177,7 @@ static object_entity_t *alloc40_create(object_entity_t *format,
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
     
-	alloc->format = format;
+	alloc->device = device;
 	alloc->plugin = &alloc40_plugin;
     
 	return (object_entity_t *)alloc;
@@ -174,12 +190,13 @@ static object_entity_t *alloc40_create(object_entity_t *format,
 	return NULL;
 }
 
-static errno_t alloc40_assign(object_entity_t *entity, void *bm) {
+static errno_t alloc40_assign(object_entity_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
-	aux_bitmap_t *bitmap = bm;
+	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
 
 	aal_assert("vpf-580", alloc != NULL, return -1);
 	aal_assert("vpf-579", bitmap != NULL, return -1);
+	
 	aal_assert("vpf-581", alloc->bitmap->total == bitmap->total && 
 		alloc->bitmap->size == bitmap->size, return -1);
 
@@ -189,30 +206,20 @@ static errno_t alloc40_assign(object_entity_t *entity, void *bm) {
 	return 0;
 }
 
-static errno_t callback_sync_bitmap(object_entity_t *format, 
-				     uint64_t blk, void *data)
+static errno_t callback_sync_bitmap(object_entity_t *entity, 
+				    uint64_t blk, void *data)
 {
 	aal_block_t *block;
-	aal_device_t *device;
 	char *current, *start; 
 	uint32_t size, adler, chunk;
-   
-	alloc40_t *alloc = (alloc40_t *)data;
     
+	alloc40_t *alloc = (alloc40_t *)entity;
+	
 	aal_assert("umka-1055", alloc != NULL, return -1);
-    
-	device = plugin_call(return -1, format->plugin->format_ops, 
-			     device, format);
-    
-	if (!device) {
-		aal_exception_error("Can't get device from format instance "
-				    "durring bitmap flushing.");
-		return -1;
-	}
-    
-	if (!(block = aal_block_create(device, blk, 0xff))) {
+
+	if (!(block = aal_block_create(alloc->device, blk, 0xff))) {
 		aal_exception_error("Can't read bitmap block %llu. %s.", 
-				    blk, device->error);
+				    blk, alloc->device->error);
 		return -1;
 	}
 
@@ -244,7 +251,7 @@ static errno_t callback_sync_bitmap(object_entity_t *format,
     
 	if (aal_block_sync(block)) {
 		aal_exception_error("Can't write bitmap block %llu. %s.", 
-				    blk, device->error);
+				    blk, alloc->device->error);
 	
 		goto error_free_block;
 	}
@@ -260,20 +267,14 @@ static errno_t callback_sync_bitmap(object_entity_t *format,
 
 /* Saves alloc40 data (bitmap in fact) to device */
 static errno_t alloc40_sync(object_entity_t *entity) {
-	format_layout_func_t layout;
-    
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-366", alloc != NULL, return -1);
 	aal_assert("umka-367", alloc->bitmap != NULL, return -1);
     
-	if (!(layout = alloc->format->plugin->format_ops.alloc_layout)) {
-		aal_exception_error("Method \"alloc_layout\" doesn't implemented "
-				    "in format plugin.");
-		return -1;
-	}
-    
-	if (layout(alloc->format, callback_sync_bitmap, alloc)) {
+	if (alloc40_layout((object_entity_t *)alloc,
+			   callback_sync_bitmap, alloc))
+	{
 		aal_exception_error("Can't synchronize bitmap.");
 		return -1;
 	}
@@ -381,36 +382,24 @@ static int alloc40_test(object_entity_t *entity, uint64_t blk) {
 	return aux_bitmap_test(alloc->bitmap, blk);
 }
 
-static errno_t callback_check_bitmap(object_entity_t *format, 
+static errno_t callback_check_bitmap(object_entity_t *entity, 
 				     uint64_t blk, void *data)
 {
 	char *current, *start;
-	aal_device_t *device;
     
-	uint32_t size, i, n, free;
+	uint32_t size, n, free;
 	uint32_t ladler, cadler, chunk;
-    
-	alloc40_t *alloc = (alloc40_t *)data;
-    
-	device = plugin_call(return -1, format->plugin->format_ops, 
-			     device, format);
-    
-	if (!device) {
-		aal_exception_error("Can't get device from format instance "
-				    "durring bitmap checking.");
-		return -1;
-	}
-        
-	size = aal_device_get_bs(device) - CRC_SIZE;
-	i = (blk / size / 8);
+	alloc40_t *alloc = (alloc40_t *)entity;
     
 	start = aux_bitmap_map(alloc->bitmap);
+	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
     
 	/* Getting pointer to next bitmap portion */
-	current = start + (i * size);
+	n = (blk / size / 8);
+	current = start + (n * size);
 	    
 	/* Getting the checksum from loaded crc map */
-	ladler = *((uint32_t *)(alloc->crc + (i * CRC_SIZE)));
+	ladler = *((uint32_t *)(alloc->crc + (n * CRC_SIZE)));
 	free = (start + alloc->bitmap->size) - current;
     
 	/* Calculating adler checksumm for piece of bitmap */
@@ -446,53 +435,16 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 
 /* Checks allocator on validness using loaded checksums */
 errno_t alloc40_valid(object_entity_t *entity) {
-	format_layout_func_t layout;
-    
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-963", alloc != NULL, return -1);
 	aal_assert("umka-964", alloc->bitmap != NULL, return -1);
     
-	if (!(layout = alloc->format->plugin->format_ops.alloc_layout)) {
-		aal_exception_error("Method \"alloc_layout\" doesn't implemented "
-				    "in format plugin.");
-		return -1;
-	}
-    
-	if (layout(alloc->format, callback_check_bitmap, alloc))
+	if (alloc40_layout((object_entity_t *)alloc,
+			   callback_check_bitmap, alloc))
 		return -1;
 
 	return 0;
-}
-
-/* Call func for all blocks which belong to the same bitmap block as blk. */
-errno_t alloc40_region_layout(object_entity_t *entity, blk_t blk, 
-    alloc_layout_func_t func, void *data) 
-{
-    alloc40_t *alloc = (alloc40_t *)entity;
-    aal_device_t *device;
-    uint64_t size, i;
-    
-    aal_assert("vpf-554", alloc != NULL, return -1);
-    aal_assert("vpf-554", alloc->bitmap != NULL, return -1);
-    aal_assert("vpf-554", alloc->format != NULL, return -1);
-
-    device = plugin_call(return -1, alloc->format->plugin->format_ops, 
-			 device, alloc->format);
-    
-    if (!device) {
-	    aal_exception_error("Can't get device from format instance "
-				"durring bitmap loading.");
-	    return -1;
-    }
-	
-    size = aal_device_get_bs(device) - CRC_SIZE;
-    
-    for (i = blk / size; i < blk / size + size; i++)
-	if (func(entity, i, data))
-	    return -1;
-
-    return 0;    
 }
 
 /* Filling the alloc40 structure by methods */
@@ -517,7 +469,7 @@ static reiser4_plugin_t alloc40_plugin = {
 		.allocate	= alloc40_allocate,
 		.release	= alloc40_release,
 		.print		= alloc40_print,
-		.region_layout	= alloc40_region_layout,
+		.region         = alloc40_region,
 #else
 		.create		= NULL,
 		.assign		= NULL,
@@ -526,12 +478,13 @@ static reiser4_plugin_t alloc40_plugin = {
 		.allocate	= NULL,
 		.release	= NULL,
 		.print		= NULL,
-		.region_layout	= NULL,
+		.region	        = NULL,
 #endif
 		.test		= alloc40_test,
 		.free		= alloc40_free,
 		.used		= alloc40_used,
-		.valid		= alloc40_valid
+		.valid		= alloc40_valid,
+		.layout         = alloc40_layout
 	}
 };
 

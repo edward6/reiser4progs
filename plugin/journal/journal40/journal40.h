@@ -11,10 +11,25 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
+struct journal40_area {
+	blk_t start;
+	count_t len;
+};
+
+typedef struct journal40_area journal40_area_t;
+
 struct journal40 {
 	reiser4_plugin_t *plugin;
+
+	/* Joirnal device */
+	aal_device_t *device;
+
+	/* Format instance */
 	object_entity_t *format;
 
+	journal40_area_t area;
+	
+	/* Journal header and footer */
 	aal_block_t *header;
 	aal_block_t *footer;
 };
@@ -135,7 +150,13 @@ typedef struct journal40_lr_entry journal40_lr_entry_t;
 #define get_le_wandered(le)			aal_get_le64(le, le_wandered)
 #define set_le_wandered(le, val)		aal_set_le64(le, le_wandered, val)
 
+typedef errno_t (*journal40_handler_func_t) (object_entity_t *, aal_block_t *, 
+					     d64_t, void *);
 
+typedef errno_t (*journal40_txh_func_t) (object_entity_t *, blk_t, void *);
+
+typedef errno_t (*journal40_sec_func_t) (object_entity_t *, aal_block_t *, 
+					 blk_t, int, void *);
 
 #endif
 

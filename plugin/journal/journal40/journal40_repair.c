@@ -69,7 +69,6 @@ FIXME-VITALY: For now II.4.5. and III.5. - cut to the previous transaction.
 typedef struct journal40_check {
     aux_bitmap_t *journal_layout;   /* All blocks are pointed by journal. */
     aux_bitmap_t *current_layout;   /* Blocks of current trans only. */
-    blk_t format_start, format_len; /* Format bounds. */
     blk_t cur_txh;		    /* TxH block of the current trans at
 				       traverse time. And the oldest problem 
 				       trans at traverse return time if return 
@@ -79,13 +78,11 @@ typedef struct journal40_check {
 				       here. */
     int found_type;		    /* Put the type of the found block here. */
     int flags;
-} journal40_check_t;
 
-typedef errno_t (*journal40_handler_func_t)(object_entity_t *, aal_block_t *, 
-    d64_t, void *);
-typedef errno_t (*journal40_txh_func_t)(object_entity_t *, blk_t, void *);
-typedef errno_t (*journal40_sec_func_t)(object_entity_t *, aal_block_t *, 
-    blk_t, int, void *);
+    blk_t fs_start;
+    count_t fs_len;
+    layout_func_t fs_layout;
+} journal40_check_t;
 
 extern errno_t journal40_traverse(journal40_t *, journal40_handler_func_t,
     journal40_txh_func_t,journal40_sec_func_t, void *);
@@ -118,14 +115,14 @@ static errno_t callback_check_format_block(object_entity_t *format, blk_t blk,
 }
 
 /* Check if blk belongs to format area. */
-static int journal40_blk_format_check(object_entity_t *format, blk_t blk, 
+static int journal40_blk_format_check(journal40_t *journal, blk_t blk, 
     journal40_check_t *data) 
 {
-    aal_assert("vpf-490", format != NULL, return -1);
+    aal_assert("vpf-490", journal != NULL, return -1);
     aal_assert("vpf-492", data != NULL, return -1);
 
     /* blk is out of format bound */
-    if (blk >= data->format_start + data->format_len || blk < data->format_start) 
+    if (blk >= journal->area.start + journal->area.len || blk < journal->area.start) 
 	return 1;
 
     /* If blk can be from format area, nothing to check anymore. */
@@ -133,8 +130,8 @@ static int journal40_blk_format_check(object_entity_t *format, blk_t blk,
 	return 0;
 	
     /* blk belongs to format area */
-    return plugin_call(return -1, format->plugin->format_ops, layout, format, 
-	callback_check_format_block, &blk);
+    return data->fs_layout((object_entity_t *)journal,
+			   callback_check_format_block, &blk);
 }
 
 /* TxH callback for nested traverses. Should find the transaction which TxH 
@@ -196,7 +193,7 @@ static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk,
 
     check_data->flags = 1 << TF_DATA_AREA_ONLY;
     
-    if ((ret = journal40_blk_format_check(journal->format, blk, check_data))) {
+    if ((ret = journal40_blk_format_check(journal, blk, check_data))) {
 	aal_exception_error("Transaction header lies in the illegal block "
 	    "(%llu) for the used format (%s).", blk, 
 	    journal->format->plugin->h.label);
@@ -240,12 +237,12 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
      * is not from format area. */
     check_data->flags = blk_type == ORG ? 0 : 1 << TF_DATA_AREA_ONLY;
     
-    if ((ret = journal40_blk_format_check(journal->format, blk, check_data))) {
+    if ((ret = journal40_blk_format_check(journal, blk, check_data))) {
 	aal_exception_error("%s lies in the illegal block (%llu) for the used "
 	    "format (%s).", __blk_type_name(blk_type), blk, 
 	    journal->format->plugin->h.label);
 	return ret;
-    }    
+    }
 
     /* Read the block and check the magic for LGR. */
     if (blk_type == LGR) {
@@ -381,28 +378,30 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
     return 0;
 }
 
-errno_t journal40_check(object_entity_t *entity) {
-    journal40_t *journal = (journal40_t *)entity;
-    journal40_check_t data;
+errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout) {
     errno_t ret;
+    journal40_check_t data;
+    journal40_t *journal = (journal40_t *)entity;
     
     aal_assert("vpf-447", journal != NULL, return -1);
 
     aal_memset(&data, 0, sizeof(data));
     
-    data.format_start = plugin_call(return -1, journal->format->plugin->format_ops,
+    data.fs_start = plugin_call(return -1, journal->format->plugin->format_ops, 
 	start, journal->format);
-
-    data.format_len = plugin_call(return -1, journal->format->plugin->format_ops, 
+    
+    data.fs_len = plugin_call(return -1, journal->format->plugin->format_ops, 
 	get_len, journal->format);
     
-    if (!(data.journal_layout = aux_bitmap_create(data.format_len))) {
+    data.fs_layout = fs_layout;
+    
+    if (!(data.journal_layout = aux_bitmap_create(data.fs_len))) {
 	aal_exception_error("Failed to allocate a control bitmap for journal "
 	    "layout.");
 	return -1;
     }    
      
-    if (!(data.current_layout = aux_bitmap_create(data.format_len))) {
+    if (!(data.current_layout = aux_bitmap_create(data.fs_len))) {
 	aal_exception_error("Failed to allocate a control bitmap for current "
 	    "transaction blocks.");
 	return -1;

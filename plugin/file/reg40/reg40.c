@@ -378,7 +378,8 @@ static int32_t reg40_write(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
+static errno_t reg40_layout(object_entity_t *entity,
+			    action_func_t action_func,
 			    void *data)
 {
 	errno_t res;
@@ -386,7 +387,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1471", entity != NULL, return -1);
-	aal_assert("umka-1472", func != NULL, return -1);
+	aal_assert("umka-1472", action_func != NULL, return -1);
 
 	if (!reg->body.node)
 		return 0;
@@ -398,7 +399,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
 			blk_t blk = reg->body.entity.con.blk;
 
-			if ((res = func(entity, blk, data)))
+			if ((res = action_func(entity, blk, data)))
 				return res;
 
 			reg->offset += reg->body.entity.len;
@@ -428,7 +429,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 				}
 
 				for (blk = ptr.ptr; blk < ptr.ptr + ptr.width; blk++) {
-					if ((res = func(entity, blk, data)))
+					if ((res = action_func(entity, blk, data)))
 						return res;
 				}
 			

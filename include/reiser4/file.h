@@ -12,20 +12,32 @@
 #  include <config.h>
 #endif
 
-extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs, const char *name);
-extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs, reiser4_coord_t *coord);
-extern errno_t reiser4_file_read(reiser4_file_t *file, void *buff, uint64_t n);
+extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs,
+					 const char *name);
+
+extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs,
+					  reiser4_coord_t *coord);
+
+extern errno_t reiser4_file_read(reiser4_file_t *file, void *buff,
+				 uint64_t n);
+
 extern void reiser4_file_close(reiser4_file_t *file);
 
 #ifndef ENABLE_COMPACT
 
-extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs, reiser4_file_hint_t *hint,
-					   reiser4_file_t *parent,  const char *name);
+extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs,
+					   reiser4_file_hint_t *hint,
+					   reiser4_file_t *parent,
+					   const char *name);
 
-extern errno_t reiser4_file_write(reiser4_file_t *file, void *buff, uint64_t n);
-extern errno_t reiser4_file_truncate(reiser4_file_t *file, uint64_t n);
+extern errno_t reiser4_file_write(reiser4_file_t *file, void *buff,
+				  uint64_t n);
 
-extern errno_t reiser4_file_layout(reiser4_file_t *file, file_action_func_t func,
+extern errno_t reiser4_file_truncate(reiser4_file_t *file,
+				     uint64_t n);
+
+extern errno_t reiser4_file_layout(reiser4_file_t *file,
+				   action_func_t func,
 				   void *data);
 
 #endif

@@ -413,14 +413,14 @@ static errno_t extent40_predict(item_entity_t *src_item,
 				item_entity_t *dst_item,
 				shift_hint_t *hint)
 {
-	return -1;
+	return 0;
 }
 
 static errno_t extent40_shift(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
 {
-	return -1;
+	return 0;
 }
 
 #endif

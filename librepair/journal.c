@@ -7,9 +7,10 @@
 
 static errno_t repair_journal_check(reiser4_journal_t *journal) {
     aal_assert("vpf-460", journal != NULL, return -1);
-   
+
+    /* FIXME-UMKA->VITALY: Where we should get filesystem layout function? */
     if (plugin_call(return -1, journal->entity->plugin->journal_ops, check, 
-	journal->entity))
+	journal->entity, NULL))
     {
 	aal_exception_error("Failed to recover the journal (%s) on (%s).", 
 	    journal->entity->plugin->h.label, aal_device_name(journal->device));

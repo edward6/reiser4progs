@@ -126,46 +126,6 @@ errno_t reiser4_format_valid(
 			   valid, format->entity);
 }
 
-/* This function is used as callback for marking format blocks used */
-static errno_t callback_action_mark(
-	object_entity_t *entity,	/* device for operating on */ 
-	blk_t blk,			/* block number to be marked */
-	void *data)			/* pointer to block allocator */
-{
-	return reiser4_alloc_mark((reiser4_alloc_t *)data, blk);
-}
-
-/* Marks format area as used */
-errno_t reiser4_format_mark(
-	reiser4_format_t *format,	/* format function works with */
-	reiser4_alloc_t *alloc)	/* block allocator */
-{
-	reiser4_plugin_t *plugin;
-    
-	aal_assert("umka-1139", format != NULL, return -1);
-	aal_assert("umka-1140", alloc != NULL, return -1);
-    
-	plugin = format->entity->plugin;
-    
-	if (plugin_call(return -1, plugin->format_ops, skipped_layout, 
-			format->entity, callback_action_mark, alloc))
-		return -1;
-    
-	if (plugin_call(return -1, plugin->format_ops, format_layout, 
-			format->entity, callback_action_mark, alloc))
-		return -1;
-    
-	if (plugin_call(return -1, plugin->format_ops, journal_layout, 
-			format->entity, callback_action_mark, alloc))
-		return -1;
-    
-	if (plugin_call(return -1, plugin->format_ops, alloc_layout, 
-			format->entity, callback_action_mark, alloc))
-		return -1;
-    
-	return 0;
-}
-
 errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-1560", format != NULL, return -1);
 	aal_assert("umka-1561", stream != NULL, return -1);
@@ -234,6 +194,13 @@ blk_t reiser4_format_get_root(
 
 	return plugin_call(return INVAL_BLK, format->entity->plugin->format_ops, 
 			   get_root, format->entity);
+}
+
+blk_t reiser4_format_start(reiser4_format_t *format) {
+	aal_assert("umka-1693", format != NULL, return INVAL_BLK);
+	
+	return plugin_call(return INVAL_BLK, format->entity->plugin->format_ops, 
+			   start, format->entity);
 }
 
 /* Returns filesystem length in blocks from passed disk-format */
@@ -365,86 +332,24 @@ rpid_t reiser4_format_oid_pid(
 			   oid_pid, format->entity);
 }
 
-/* Enumerates all filesystem areas (block alloc, journal, etc.) */
-errno_t reiser4_format_layout(
-	reiser4_format_t *format,
-	format_action_func_t action_func, 
-	void *data)
-{
-	if (reiser4_format_skipped_layout(format, action_func, data))
-		return -1;
-    
-	if (reiser4_format_format_layout(format, action_func, data))
-		return -1;
-    
-	if (reiser4_format_journal_layout(format, action_func, data))
-		return -1;
-    
-	return reiser4_format_alloc_layout(format, action_func, data);
-}
-
-errno_t reiser4_format_skipped_layout(reiser4_format_t *format, 
-				      format_action_func_t action_func, void *data)
+errno_t reiser4_format_skipped(reiser4_format_t *format, 
+			       action_func_t action_func,
+			       void *data)
 {
 	aal_assert("umka-1083", format != NULL, return -1);
 	aal_assert("umka-1084", action_func != NULL, return -1);
 
 	return plugin_call(return -1, format->entity->plugin->format_ops,
-			   skipped_layout, format->entity, action_func, data);
+			   skipped, format->entity, action_func, data);
 }
 
-errno_t reiser4_format_format_layout(reiser4_format_t *format, 
-				     format_action_func_t action_func, void *data)
+errno_t reiser4_format_layout(reiser4_format_t *format, 
+			      action_func_t action_func,
+			      void *data)
 {
 	aal_assert("umka-1076", format != NULL, return -1);
 	aal_assert("umka-1077", action_func != NULL, return -1);
 
 	return plugin_call(return -1, format->entity->plugin->format_ops,
-			   format_layout, format->entity, action_func, data);
-}
-
-errno_t reiser4_format_journal_layout(reiser4_format_t *format, 
-				      format_action_func_t action_func, void *data)
-{
-	aal_assert("umka-1078", format != NULL, return -1);
-	aal_assert("umka-1079", action_func != NULL, return -1);
-
-	return plugin_call(return -1, format->entity->plugin->format_ops,
-			   journal_layout, format->entity, action_func, data);
-}
-
-errno_t reiser4_format_alloc_layout(reiser4_format_t *format, 
-				    format_action_func_t action_func, void *data)
-{
-	aal_assert("umka-1080", format != NULL, return -1);
-	aal_assert("umka-1081", action_func != NULL, return -1);
-
-	return plugin_call(return -1, format->entity->plugin->format_ops,
-			   alloc_layout, format->entity, action_func, data);
-}
-
-static errno_t callback_check_block(object_entity_t *entity,
-					   uint64_t blk, void *data)
-{
-	return -(blk == *(uint64_t *)data);
-}
-
-reiser4_belong_t reiser4_format_belongs(reiser4_format_t *format,
-					blk_t blk)
-{
-	aal_assert("umka-1534", format != NULL, return -1);
-
-	if (reiser4_format_skipped_layout(format, callback_check_block, &blk) != 0)
-		return RB_SKIPPED;
-	
-	if (reiser4_format_format_layout(format, callback_check_block, &blk) != 0)
-		return RB_FORMAT;
-
-	if (reiser4_format_journal_layout(format, callback_check_block, &blk) != 0)
-		return RB_JOURNAL;
-
-	if (reiser4_format_alloc_layout(format, callback_check_block, &blk) != 0)
-		return RB_ALLOC;
-
-	return RB_UNKNOWN;
+			   layout, format->entity, action_func, data);
 }

@@ -11,6 +11,24 @@
 
 #include <reiser4/reiser4.h>
 
+/* Enumerates all filesystem areas (block alloc, journal, etc.) */
+errno_t reiser4_fs_layout(
+	reiser4_fs_t *fs,
+	action_func_t action_func, 
+	void *data)
+{
+	if (reiser4_format_skipped(fs->format, action_func, data))
+		return -1;
+	
+	if (reiser4_format_layout(fs->format, action_func, data))
+		return -1;
+    
+	if (reiser4_journal_layout(fs->journal, action_func, data))
+		return -1;
+    
+	return reiser4_alloc_layout(fs->alloc, action_func, data);
+}
+
 /* 
    Opens filesysetm on specified host device and journal device. Replays the
    journal if "replay" flag is specified.
@@ -154,15 +172,46 @@ aal_device_t *reiser4_fs_journal_device(reiser4_fs_t *fs) {
 	return (fs->journal ? fs->journal->device : NULL);
 }
 
+static errno_t callback_check_block(
+	object_entity_t *entity,
+	uint64_t blk, void *data)
+{
+	return -(blk == *(uint64_t *)data);
+}
+
+reiser4_belong_t reiser4_fs_belongs(
+	reiser4_fs_t *fs,
+	blk_t blk)
+{
+	aal_assert("umka-1534", fs != NULL, return -1);
+
+	if (reiser4_format_skipped(fs->format, callback_check_block, &blk) != 0)
+		return RB_SKIPPED;
+	
+	if (reiser4_format_layout(fs->format, callback_check_block, &blk) != 0)
+		return RB_FORMAT;
+
+	if (reiser4_journal_layout(fs->journal, callback_check_block, &blk) != 0)
+		return RB_JOURNAL;
+
+	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk) != 0)
+		return RB_ALLOC;
+
+	return RB_UNKNOWN;
+}
+
 #ifndef ENABLE_COMPACT
 
 /* Destroys reiser4 super block */
 errno_t reiser4_fs_clobber(aal_device_t *device) {
+	blk_t blk;
 	aal_block_t *block;
     
 	aal_assert("umka-1273", device != NULL, return -1);
 
-	if (!(block = aal_block_create(device, (MASTER_OFFSET / device->blocksize), 0)))
+	blk = (MASTER_OFFSET / device->blocksize);
+		
+	if (!(block = aal_block_create(device, blk, 0)))
 		return -1;
 
 	if (aal_block_sync(block)) {
@@ -172,6 +221,23 @@ errno_t reiser4_fs_clobber(aal_device_t *device) {
 	}
 
 	return 0;
+}
+
+static errno_t callback_action_mark(
+	object_entity_t *entity,	/* device for operating on */ 
+	blk_t blk,			/* block number to be marked */
+	void *data)			/* pointer to block allocator */
+{
+	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
+	return reiser4_alloc_mark(alloc, blk);
+}
+
+/* Marks format area as used */
+errno_t reiser4_fs_mark(reiser4_fs_t *fs, reiser4_alloc_t *alloc) {
+	aal_assert("umka-1139", fs != NULL, return -1);
+	aal_assert("umka-1684", alloc != NULL, return -1);
+	
+	return reiser4_fs_layout(fs, callback_action_mark, alloc);
 }
 
 #define REISER4_MIN_SIZE 122
@@ -239,11 +305,11 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_format;
 
 	/* Creates journal on journal device */
-	if (!(fs->journal = reiser4_journal_create(fs->format, 
-						   journal_device, journal_params)))
+	if (!(fs->journal = reiser4_journal_create(fs->format, journal_device,
+						   journal_params)))
 		goto error_free_alloc;
    
-	if (reiser4_format_mark(fs->format, fs->alloc))
+	if (reiser4_fs_mark(fs, fs->alloc))
 		goto error_free_journal;
     
 	/* Initializes oid allocator */

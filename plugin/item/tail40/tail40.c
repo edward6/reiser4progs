@@ -50,7 +50,7 @@ static int32_t tail40_update(item_entity_t *item, void *buff,
 {
 	aal_assert("umka-1677", buff != NULL, return -1);
 	aal_assert("umka-1678", item != NULL, return -1);
-	aal_assert("umka-1679", pos < item.len, return -1);
+	aal_assert("umka-1679", pos < item->len, return -1);
 	
 	if (count > item->len - pos)
 		count = item->len - pos;
@@ -301,19 +301,19 @@ static errno_t tail40_predict(item_entity_t *src_item,
 	uint32_t space;
 	
 	aal_assert("umka-1664", src_item != NULL, return -1);
+	aal_assert("umka-1690", dst_item != NULL, return -1);
 
 	space = hint->rest;
 		
 	if (hint->flags & SF_LEFT) {
+
 		if (hint->rest > hint->pos.unit)
-			hint->rest -= (hint->rest - hint->pos.unit);
-		
+			hint->rest = hint->pos.unit;
+
 		hint->pos.unit -= hint->rest;
 		
-		if (hint->pos.unit == 0 && hint->flags & SF_MOVIP) {
-			hint->rest++;
-			hint->pos.unit = space + hint->rest;
-		}
+		if (hint->pos.unit == 0 && hint->flags & SF_MOVIP)
+			hint->pos.unit = dst_item->len + hint->rest;
 	} else {
 		uint32_t right;
 
@@ -321,23 +321,22 @@ static errno_t tail40_predict(item_entity_t *src_item,
 			right = src_item->len - hint->pos.unit;
 		
 			if (hint->rest > right)
-				hint->rest -= (hint->rest - right);
-		
-			if (hint->pos.unit == (src_item->len - hint->rest) &&
+				hint->rest = right;
+
+			hint->pos.unit += hint->rest;
+			
+			if (hint->pos.unit == src_item->len &&
 			    hint->flags & SF_MOVIP)
 			{
-				hint->rest++;
 				hint->pos.unit = 0;
 			}
 		} else {
-			if (hint->flags & SF_MOVIP) {
+			if (hint->flags & SF_MOVIP)
 				hint->pos.unit = 0;
-				hint->rest = 0;
-			}
+
+			hint->rest = 0;
 		}
 	}
-
-	hint->units = hint->rest;
 
 	return 0;
 }

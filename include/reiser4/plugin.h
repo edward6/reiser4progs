@@ -273,18 +273,8 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
-/* Types for layout defining */
-typedef errno_t (*format_action_func_t) (object_entity_t *, uint64_t, void *);
-
-typedef errno_t (*format_layout_func_t) (object_entity_t *, format_action_func_t,
-					 void *);
-
-/* Type for file layout callback function */
-typedef errno_t (*file_action_func_t) (object_entity_t *, uint64_t, void *);
-typedef errno_t (*file_layout_func_t) (object_entity_t *, file_action_func_t, void *);
-
-/* Type for alloc layout callback function */
-typedef errno_t (*alloc_layout_func_t) (object_entity_t *, blk_t, void *);
+typedef errno_t (*action_func_t) (object_entity_t *, uint64_t, void *);
+typedef errno_t (*layout_func_t) (object_entity_t *, action_func_t, void *);
 
 /* 
    To create a new item or to insert into the item we need to perform the
@@ -453,8 +443,8 @@ typedef struct reiser4_item_hint reiser4_item_hint_t;
 
 typedef struct reiser4_core reiser4_core_t;
 
-/* Types for plugin init and fini functions */
 typedef reiser4_plugin_t *(*reiser4_plugin_init_t) (reiser4_core_t *);
+
 typedef errno_t (*reiser4_plugin_fini_t) (reiser4_core_t *);
 
 typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
@@ -595,7 +585,7 @@ struct reiser4_file_ops {
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
 	/* Function for going throught all blocks specfied file occupied */
-	file_layout_func_t layout;
+	errno_t (*layout) (object_entity_t *, action_func_t, void *);
 };
 
 typedef struct reiser4_file_ops reiser4_file_ops_t;
@@ -911,12 +901,11 @@ struct reiser4_format_ops {
 	/* Returns area where oid data lies */
 	void (*oid_area)(object_entity_t *, void **, uint32_t *);
 
-	/* The set of methods for going through format blocks */
-	format_layout_func_t layout;
-	format_layout_func_t skipped_layout;
-	format_layout_func_t format_layout;
-	format_layout_func_t alloc_layout;
-	format_layout_func_t journal_layout;
+	errno_t (*layout) (object_entity_t *,
+			   action_func_t, void *);
+	
+	errno_t (*skipped) (object_entity_t *,
+			    action_func_t, void *);
 };
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;
@@ -969,10 +958,10 @@ struct reiser4_alloc_ops {
 	reiser4_plugin_header_t h;
     
 	/* Opens block allocator */
-	object_entity_t *(*open) (object_entity_t *, uint64_t);
+	object_entity_t *(*open) (aal_device_t *, uint64_t);
 
 	/* Creates block allocator */
-	object_entity_t *(*create) (object_entity_t *, uint64_t);
+	object_entity_t *(*create) (aal_device_t *, uint64_t);
     
 	/* Assign the bitmap to the block allocator. */
 	errno_t (*assign) (object_entity_t *, void *);
@@ -1005,11 +994,16 @@ struct reiser4_alloc_ops {
 	errno_t (*valid) (object_entity_t *);
 
 	/* Prints block allocator data */
-	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *,
+			  uint16_t);
 
+	/* Calls func for each block in block allocator */
+	errno_t (*layout) (object_entity_t *, action_func_t,
+			   void *);
+	
 	/* Calls func for all block of the same area as blk is. */
-	errno_t (*region_layout) (object_entity_t *, blk_t, 
-		alloc_layout_func_t, void *);
+	errno_t (*region) (object_entity_t *, blk_t, 
+			   action_func_t, void *);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
@@ -1018,10 +1012,12 @@ struct reiser4_journal_ops {
 	reiser4_plugin_header_t h;
     
 	/* Opens journal on specified device */
-	object_entity_t *(*open) (object_entity_t *);
+	object_entity_t *(*open) (object_entity_t *, aal_device_t *,
+				  uint64_t, uint64_t);
 
 	/* Creates journal on specified device */
-	object_entity_t *(*create) (object_entity_t *, void *);
+	object_entity_t *(*create) (object_entity_t *, aal_device_t *,
+				    uint64_t, uint64_t, void *);
 
 	/* Returns the device journal lies on */
 	aal_device_t *(*device) (object_entity_t *);
@@ -1035,14 +1031,19 @@ struct reiser4_journal_ops {
 	/* Synchronizes journal */
 	errno_t (*sync) (object_entity_t *);
 
-	/* Replays journal. Returns the number of replayed transactions. */
+	/* Replays the journal */
 	errno_t (*replay) (object_entity_t *);
 
 	/* Prints journal content */
-	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *,
+			  uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
-	errno_t (*check) (object_entity_t *);
+	errno_t (*check) (object_entity_t *, layout_func_t);
+
+	/* Calls func for each block in block allocator */
+	errno_t (*layout) (object_entity_t *, action_func_t,
+			   void *);
 };
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;

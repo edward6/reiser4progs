@@ -1,2 +1,2 @@
-SUBDIRS = alloc36 alloc40
+SUBDIRS = alloc40
 

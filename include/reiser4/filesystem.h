@@ -127,6 +127,7 @@ typedef struct lru_link lru_link_t;
 
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
+	
 	/* Lru related fields */
 	lru_link_t lru;
 
@@ -359,6 +360,8 @@ extern void reiser4_fs_close(reiser4_fs_t *fs);
 
 #ifndef ENABLE_COMPACT
 
+extern errno_t reiser4_fs_mark(reiser4_fs_t *fs, reiser4_alloc_t *alloc);
+
 extern reiser4_fs_t *reiser4_fs_create(reiser4_profile_t *profile,
 				       aal_device_t *host_device,
 				       size_t blocksize, const char *uuid, 
@@ -375,8 +378,16 @@ extern const char *reiser4_fs_name(reiser4_fs_t *fs);
 extern uint16_t reiser4_fs_blocksize(reiser4_fs_t *fs);
 
 extern rpid_t reiser4_fs_format_pid(reiser4_fs_t *fs);
+
 extern aal_device_t *reiser4_fs_host_device(reiser4_fs_t *fs);
 extern aal_device_t *reiser4_fs_journal_device(reiser4_fs_t *fs);
 
+extern errno_t reiser4_fs_layout(reiser4_fs_t *fs,
+				 action_func_t action_func, 
+				 void *data);
+
+extern reiser4_belong_t reiser4_fs_belongs(reiser4_fs_t *fs,
+					   blk_t blk);
+	
 #endif
 

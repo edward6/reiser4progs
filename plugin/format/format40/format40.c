@@ -17,7 +17,7 @@ extern reiser4_plugin_t format40_plugin;
 
 static reiser4_core_t *core = NULL;
 
-static uint64_t format40_start_at(object_entity_t *entity) {
+static uint64_t format40_begin(object_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
 	aal_assert("vpf-462", format != NULL, return INVAL_BLK);
@@ -71,62 +71,9 @@ static uint32_t format40_get_stamp(object_entity_t *entity) {
 	return get_sb_mkfs_id(super);
 }
 
-#define FORMAT40_JHEADER (4096 * 19)
-#define FORMAT40_JFOOTER (4096 * 20)
-
-/* This function describes journal layout in format40 */
-static errno_t format40_journal_layout(object_entity_t *entity,
-				       format_action_func_t action_func,
-				       void *data)
-{
-	blk_t blk;
-	format40_t *format = (format40_t *)entity;
-    
-	aal_assert("umka-1040", format != NULL, return -1);
-	aal_assert("umka-1041", action_func != NULL, return -1);
-    
-	blk = FORMAT40_JHEADER / aal_device_get_bs(format->device);
-    
-	if (action_func((object_entity_t *)format, blk, data))
-		return -1;
-    
-	blk = FORMAT40_JFOOTER / aal_device_get_bs(format->device);
-    
-	if (action_func((object_entity_t *)format, blk, data))
-		return -1;
-
-	return 0;
-}
-
-#define FORMAT40_ALLOC (MASTER_OFFSET + (4096 * 2))
-	
-#define CRC_SIZE 4
-
-static errno_t format40_alloc_layout(object_entity_t *entity,
-				     format_action_func_t action_func, void *data) 
-{
-	count_t bpb;
-	blk_t blk, start;
-	format40_t *format = (format40_t *)entity;
-	
-	aal_assert("umka-347", entity != NULL, return -1);
-	aal_assert("umka-348", action_func != NULL, return -1);
-
-	bpb = (aal_device_get_bs(format->device) - CRC_SIZE) * 8;
-	start = FORMAT40_ALLOC / aal_device_get_bs(format->device);
-    
-	for (blk = start; blk < format40_get_len(entity);
-	     blk = (blk / bpb + 1) * bpb) 
-	{
-		if (action_func((object_entity_t *)format, blk, data))
-			return -1;
-	}
-    
-	return 0;
-}
-
-static errno_t format40_skipped_layout(object_entity_t *entity,
-				       format_action_func_t action_func, void *data) 
+static errno_t format40_skipped(object_entity_t *entity,
+				action_func_t action_func,
+				void *data) 
 {
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
@@ -144,8 +91,9 @@ static errno_t format40_skipped_layout(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t format40_format_layout(object_entity_t *entity,
-				      format_action_func_t action_func, void *data) 
+static errno_t format40_layout(object_entity_t *entity,
+			       action_func_t action_func,
+			       void *data) 
 {
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
@@ -162,16 +110,6 @@ static errno_t format40_format_layout(object_entity_t *entity,
 	}
     
 	return 0;
-}
-
-static errno_t format40_layout(object_entity_t *entity,
-			       format_action_func_t action_func,
-			       void *data)
-{
-    return (format40_skipped_layout(entity, action_func, data) ||
-	    format40_format_layout(entity, action_func, data) ||
-	    format40_journal_layout(entity, action_func, data) ||
-	    format40_alloc_layout(entity, action_func, data));
 }
 
 static errno_t format40_super_check(format40_super_t *super, 
@@ -312,8 +250,8 @@ static object_entity_t *format40_create(aal_device_t *device,
 	set_sb_mkfs_id(super, random());
 
 	/* Clobbering skipped area */
-	if (format40_skipped_layout((object_entity_t *)format, 
-				    callback_clobber_block, NULL))
+	if (format40_skipped((object_entity_t *)format, 
+			     callback_clobber_block, NULL))
 	{
 		aal_exception_error("Can't clobber skipped area.");
 		goto error_free_block;
@@ -535,18 +473,15 @@ static reiser4_plugin_t format40_plugin = {
 		.confirm	= format40_confirm,
 		.name		= format40_name,
 
-		.start		= format40_start_at,
+		.start		= format40_begin,
 		.get_root	= format40_get_root,
 		.get_len	= format40_get_len,
 		.get_free	= format40_get_free,
 		.get_height	= format40_get_height,
 		.get_stamp	= format40_get_stamp,
 
-		.layout		= format40_layout,
-		.skipped_layout	= format40_skipped_layout,
-		.format_layout	= format40_format_layout,
-		.alloc_layout	= format40_alloc_layout,
-		.journal_layout	= format40_journal_layout,
+		.layout	        = format40_layout,
+		.skipped        = format40_skipped,
 	
 #ifndef ENABLE_COMPACT	
 		.set_root	= format40_set_root,

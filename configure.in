@@ -261,13 +261,10 @@ AC_OUTPUT([
     plugin/Makefile
     plugin/format/Makefile
     plugin/format/format40/Makefile
-    plugin/format/format36/Makefile
     plugin/alloc/Makefile
     plugin/alloc/alloc40/Makefile
-    plugin/alloc/alloc36/Makefile
     plugin/journal/Makefile
     plugin/journal/journal40/Makefile
-    plugin/journal/journal36/Makefile
     plugin/oid/Makefile
     plugin/oid/oid40/Makefile
     plugin/node/Makefile

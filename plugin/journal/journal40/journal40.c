@@ -11,16 +11,34 @@
 
 #include "journal40.h"
 
-extern reiser4_plugin_t journal40_plugin;
-
-typedef errno_t (*journal40_handler_func_t)(object_entity_t *, aal_block_t *, 
-					    d64_t, void *);
-
-typedef errno_t (*journal40_txh_func_t)(object_entity_t *, blk_t, void *);
-typedef errno_t (*journal40_sec_func_t)(object_entity_t *, aal_block_t *, 
-	blk_t, int, void *);
+#define JOURNAL40_HEADER (4096 * 19)
+#define JOURNAL40_FOOTER (4096 * 20)
 
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t journal40_plugin;
+
+static errno_t journal40_layout(object_entity_t *entity,
+				action_func_t action_func,
+				void *data)
+{
+	blk_t blk;
+	journal40_t *journal = (journal40_t *)entity;
+    
+	aal_assert("umka-1040", journal != NULL, return -1);
+	aal_assert("umka-1041", action_func != NULL, return -1);
+    
+	blk = JOURNAL40_HEADER / aal_device_get_bs(journal->device);
+    
+	if (action_func(entity, blk, data))
+		return -1;
+    
+	blk = JOURNAL40_FOOTER / aal_device_get_bs(journal->device);
+    
+	if (action_func(entity, blk, data))
+		return -1;
+
+	return 0;
+}
 
 static errno_t journal40_hcheck(journal40_header_t *header) {
 	aal_assert("umka-515", header != NULL, return -1);
@@ -33,27 +51,19 @@ static errno_t journal40_fcheck(journal40_footer_t *footer) {
 }
 
 aal_device_t *journal40_device(object_entity_t *entity) {
-	object_entity_t *format;
-	
 	aal_assert("vpf-455", entity != NULL, return NULL);
-	
-	format = ((journal40_t *)entity)->format;
-
-	return plugin_call(return NULL, format->plugin->format_ops, 
-			     device, format);
+	return ((journal40_t *)entity)->device;
 }
 
-static errno_t callback_fetch_journal(object_entity_t *format, 
+static errno_t callback_fetch_journal(object_entity_t *entity, 
 				      blk_t blk, void *data)
 {
 	aal_device_t *device;
-	journal40_t *journal = (journal40_t *)data;
+	journal40_t *journal;
 
-	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
-		aal_exception_error("Invalid device has been detected.");
-		return -1;
-	}
-
+	journal = (journal40_t *)entity;
+	device = journal->device;
+		
 	if (!journal->header) {
 		if (!(journal->header = aal_block_open(device, blk))) {
 			aal_exception_error("Can't read journal header from "
@@ -71,25 +81,28 @@ static errno_t callback_fetch_journal(object_entity_t *format,
 	return 0;
 }
 
-static object_entity_t *journal40_open(object_entity_t *format) {
+static object_entity_t *journal40_open(object_entity_t *format,
+				       aal_device_t *device,
+				       uint64_t start, uint64_t len)
+{
 	journal40_t *journal;
-	format_layout_func_t layout;
 
-	aal_assert("umka-409", format != NULL, return NULL);
+	aal_assert("umka-409", device != NULL, return NULL);
+	aal_assert("umka-1692", format != NULL, return NULL);
     
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
+	journal->device = device;
 	journal->format = format;
 	journal->plugin = &journal40_plugin;
-    
-	if (!(layout = format->plugin->format_ops.journal_layout)) {
-		aal_exception_error("Method \"journal_layout\" doesn't implemented "
-				    "in format plugin.");
-		goto error_free_journal;
-	}
-    
-	if (layout(format, callback_fetch_journal, journal)) {
+
+	journal->area.start = start;
+	journal->area.len = len;
+
+	if (journal40_layout((object_entity_t *)journal,
+			     callback_fetch_journal, journal))
+	{
 		aal_exception_error("Can't load journal metadata.");
 		goto error_free_journal;
 	}
@@ -118,17 +131,14 @@ static errno_t journal40_valid(object_entity_t *entity) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t callback_alloc_journal(object_entity_t *format,
+static errno_t callback_alloc_journal(object_entity_t *entity,
 				      blk_t blk, void *data)
 {
 	aal_device_t *device;
-	journal40_t *journal = (journal40_t *)data;
+	journal40_t *journal = (journal40_t *)entity;
 
-	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
-		aal_exception_error("Invalid device has been detected.");
-		return -1;
-	}
-
+	device = journal->device;
+	
 	if (!journal->header) {
 		if (!(journal->header = aal_block_create(device, blk, 0))) {
 			aal_exception_error("Can't alloc journal "
@@ -147,61 +157,58 @@ static errno_t callback_alloc_journal(object_entity_t *format,
 }
 
 static object_entity_t *journal40_create(object_entity_t *format,
-					  void *params) 
+					 aal_device_t *device,
+					 uint64_t start, uint64_t len,
+					 void *hint)
 {
 	journal40_t *journal;
-	format_layout_func_t layout;
     
-	aal_assert("umka-1057", format != NULL, return NULL);
+	aal_assert("umka-1057", device != NULL, return NULL);
+	aal_assert("umka-1691", format != NULL, return NULL);
     
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
     
+	journal->device = device;
 	journal->format = format;
 	journal->plugin = &journal40_plugin;
+
+	journal->area.start = start;
+	journal->area.len = len;
     
-	if (!(layout = format->plugin->format_ops.journal_layout)) {
-		aal_exception_error("Method \"journal_layout\" doesn't "
-				    "implemented in format plugin.");
-		goto error_free_journal;
-	}
-    
-	if (layout(format, callback_alloc_journal, journal)) {
+	if (journal40_layout((object_entity_t *)journal,
+			     callback_alloc_journal, journal))
+	{
 		aal_exception_error("Can't load journal metadata.");
 		goto error_free_journal;
 	}
     
 	return (object_entity_t *)journal;
 
- error_free_header:
-	aal_block_close(journal->header);
  error_free_journal:
 	aal_free(journal);
  error:
 	return NULL;
 }
 
-static errno_t callback_sync_journal(object_entity_t *format,
-				      blk_t blk, void *data)
+static errno_t callback_sync_journal(object_entity_t *entity,
+				     blk_t blk, void *data)
 {
 	aal_device_t *device;
-	journal40_t *journal = (journal40_t *)data;
+	journal40_t *journal = (journal40_t *)entity;
 
-	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
-		aal_exception_error("Invalid device has been detected.");
-		return -1;
-	}
+	device = journal->device;
 
 	if (blk == aal_block_number(journal->header)) {
 		if (aal_block_sync(journal->header)) {
-			aal_exception_error("Can't write journal header to block %llu. %s.", 
-					    blk, device->error);
+			aal_exception_error("Can't write journal header to block "
+					    "%llu. %s.", blk, device->error);
 			return -1;
 		}
 	} else {
 		if (aal_block_sync(journal->footer)) {
-			aal_exception_error("Can't write journal footer to block %llu. %s.", 
-					    blk, device->error);
+			aal_exception_error("Can't write journal footer to block "
+					    "%llu. %s.", blk, device->error);
 			return -1;
 		}
 	}
@@ -210,18 +217,11 @@ static errno_t callback_sync_journal(object_entity_t *format,
 }
 
 static errno_t journal40_sync(object_entity_t *entity) {
-	format_layout_func_t layout;
 	journal40_t *journal = (journal40_t *)entity;
 
 	aal_assert("umka-410", journal != NULL, return -1);
     
-	if (!(layout = journal->format->plugin->format_ops.journal_layout)) {
-		aal_exception_error(
-			"Method \"journal_layout\" doesn't implemented in format plugin.");
-		return -1;
-	}
-    
-	if (layout(journal->format, callback_sync_journal, journal)) {
+	if (journal40_layout(entity, callback_sync_journal, journal)) {
 		aal_exception_error("Can't load journal metadata.");
 		return -1;
 	}
@@ -229,12 +229,14 @@ static errno_t journal40_sync(object_entity_t *entity) {
 	return 0;
 }
 
-static errno_t callback_journal_handler(object_entity_t *entity, aal_block_t *block,
+static errno_t callback_journal_handler(object_entity_t *entity,
+					aal_block_t *block,
 					d64_t original, void *data) 
 {
 	aal_block_relocate(block, original);
 	    
 	if (aal_block_sync(block)) {
+		
 		aal_exception_error("Can't write block %llu.", 
 				    aal_block_number(block));
 		
@@ -258,38 +260,37 @@ static errno_t journal40_update(journal40_t *journal) {
 	aal_assert("vpf-452", journal->footer->data != NULL, return -1);
 	aal_assert("vpf-453", journal->header != NULL, return -1);
 	aal_assert("vpf-504", journal->header->data != NULL, return -1);
-	aal_assert("vpf-454", journal->format != NULL, return -1);
+	aal_assert("vpf-454", journal->device != NULL, return -1);
 
 	footer = (journal40_footer_t *)journal->footer->data;	
-	header = (journal40_header_t *)journal->header->data;	
+	header = (journal40_header_t *)journal->header->data;
+	
 	last_commited_tx = get_jh_last_commited(header);
 	last_flushed_tx = get_jf_last_flushed(footer);
 
 	if (last_flushed_tx == last_commited_tx)
 		return 0;
-	
-	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
-		aal_exception_error("Invalid device has been detected.");
-		return -1;
-	}
+
+	device = journal->device;
 
 	if (!(tx_block = aal_block_open(device, last_commited_tx))) {
-	    aal_exception_error("Can't read block %llu while updating "
-		"the journal. %s.", last_commited_tx, device->error);
-	    return -1;
+		aal_exception_error("Can't read block %llu while updating "
+				    "the journal. %s.", last_commited_tx, device->error);
+		return -1;
 	}
 	
 	tx_header = (journal40_tx_header_t *)tx_block->data;
 	
 	if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
-	    aal_exception_error("Invalid transaction header has "
-		"been detected.");
-	    return -1;
+		aal_exception_error("Invalid transaction header has "
+				    "been detected.");
+		return -1;
 	}
 	
 	/* Updating journal footer */
 	set_jf_last_flushed(footer, last_commited_tx);
 	set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
+	
 	set_jf_nr_files(footer, get_th_nr_files(tx_header));
 	set_jf_next_oid(footer, get_th_next_oid(tx_header));
 
@@ -300,29 +301,28 @@ errno_t journal40_traverse_trans(
 	journal40_t *journal,			/* journal object to be traversed */
 	aal_block_t *tx_block,			/* trans header of a transaction */
 	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
-	journal40_sec_func_t sec_func,		/* secondary (LGR, wand, orig) blocks 
-						   callback */
+	journal40_sec_func_t sec_func,		/* secondary blocks callback */
 	void *data) 
 {
 	errno_t ret;
 	uint64_t log_blk;
 	uint32_t i, capacity;
 	aal_device_t *device;
+
 	journal40_lr_entry_t *entry;
 	aal_block_t *log_block = NULL;
 	aal_block_t *wan_block = NULL;	
 	journal40_lr_header_t *lr_header;
 
+	device = journal->device;
 	log_blk = get_th_next_block((journal40_tx_header_t *)tx_block->data);
 	
-	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
-		aal_exception_error("Invalid device has been detected.");
-		return -1;
-	}
-	
 	while (log_blk != aal_block_number(tx_block)) {
-		/* FIXME-VITALY->UMKA: There should be a check that the log_blk
-		 * is not one of the LGR's of the same transaction. return 1. */
+		
+		/*
+		  FIXME-VITALY->UMKA: There should be a check that the log_blk
+		  is not one of the LGR's of the same transaction. return 1.
+		*/
 	    
 		if (sec_func && (ret = sec_func((object_entity_t *)journal, 
 						tx_block, log_blk, LGR, data)))
@@ -347,6 +347,7 @@ errno_t journal40_traverse_trans(
 		}
 
 		entry = (journal40_lr_entry_t *)(lr_header + 1);
+		
 		capacity = (device->blocksize - sizeof(journal40_lr_header_t)) /
 			sizeof(journal40_lr_entry_t);
 
@@ -390,9 +391,9 @@ errno_t journal40_traverse_trans(
 	}
 
 	return 0;
+	
  error_free_wandered:
 	aal_block_close(wan_block);
-    
  error_free_log_block:
 	aal_block_close(log_block);
  error:
@@ -403,49 +404,50 @@ errno_t journal40_traverse_trans(
   Journal traverse method. Finds the oldest transaction first, then goes through
   each transaction from the oldest to the earliest.
   
-  Returns: 
-  what a callback has returned if not 0; 
-  1 for bad journal structure; 
-  -1 - fatal error
+  Returns:
+  0:  everything okay
+  1:  for bad journal structure; 
+  -1: fatal error
 */
 errno_t journal40_traverse(
 	journal40_t *journal,			/* journal object to be traversed */
 	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
 	journal40_txh_func_t txh_func,		/* TxH block callback */
-	journal40_sec_func_t sec_func,		/* secondary (LGR, wand, orig) blocks 
-						   callback */
+	journal40_sec_func_t sec_func,		/* secondary blocks callback */
 	void *data)				/* opaque data for traverse callbacks. */ 
 {
-	int ret;
+	errno_t ret;
 	uint64_t txh_blk;
+	aal_device_t *device;
 	uint64_t last_flushed_tx;
 	uint64_t last_commited_tx;
 
-	journal40_tx_header_t *tx_header = NULL;
-	aal_device_t *device = NULL;
-	aal_block_t *tx_block = NULL;
+	aal_block_t *tx_block;
 	aal_list_t *tx_list = NULL;
+	journal40_tx_header_t *tx_header;
+
+	journal40_header_t *jheader;
+	journal40_footer_t *jfooter;
     
 	aal_assert("vpf-448", journal != NULL, return -1);
 	aal_assert("vpf-487", journal->header != NULL, return -1);
 	aal_assert("vpf-488", journal->header->data != NULL, return -1);
 
-	last_commited_tx = 
-		get_jh_last_commited((journal40_header_t *)journal->header->data);
-    
-	last_flushed_tx = 
-		get_jf_last_flushed((journal40_footer_t *)journal->footer->data);
+	jheader = (journal40_header_t *)journal->header->data;
+	jfooter = (journal40_footer_t *)journal->footer->data;
+	
+	last_commited_tx = get_jh_last_commited(jheader);
+    	last_flushed_tx =  get_jf_last_flushed(jfooter);
 
+	device = journal->device;
 	txh_blk = last_commited_tx;
-
-	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
-		aal_exception_error("Invalid device has been detected.");
-		return -1;
-	}
 	
 	while (txh_blk != last_flushed_tx) {
-		/* FIXME-VITALY->UMKA: There should be a check that the txh_blk
-		 * is not one of the TxH's we have met already. return 1. */
+		
+		/*
+		  FIXME-VITALY->UMKA: There should be a check that the txh_blk
+		  is not one of the TxH's we have met already. return 1.
+		*/
 	    
 		if (txh_func && (ret = txh_func((object_entity_t *)journal, 
 						txh_blk, data)))
@@ -471,12 +473,13 @@ errno_t journal40_traverse(
 	}
 
 	while (tx_list != NULL) {
-		/* The last valid unreplayed transction. */
+		
+		/* The last valid unreplayed transction */
 		tx_block = (aal_block_t *)aal_list_last(tx_list)->data;
 		
 		if ((ret = journal40_traverse_trans(journal, tx_block, handler_func, 
 						    sec_func, data)))
-		    goto error_free_tx_list;
+			goto error_free_tx_list;
 	
 		tx_list = aal_list_remove(tx_list, tx_block);
 		aal_block_close(tx_block);
@@ -502,17 +505,19 @@ static errno_t journal40_replay(object_entity_t *entity) {
     
 	aal_assert("umka-412", entity != NULL, return -1);
 
-	if (journal40_traverse((journal40_t *)entity, callback_journal_handler, 
+	if (journal40_traverse((journal40_t *)entity,
+			       callback_journal_handler, 
 			       NULL, NULL, NULL))
 		return -1;
 
-	/* FIXME: super block has been left not updated. */
+	/* FIXME-UMKA: Super block has been left not updated. */
 	journal40_update((journal40_t *)entity);
 
 	return 0;
 }
 
-static errno_t journal40_print(object_entity_t *entity, aal_stream_t *stream, 
+static errno_t journal40_print(object_entity_t *entity,
+			       aal_stream_t *stream, 
 			       uint16_t options)
 {
 	aal_assert("umka-1465", entity != NULL, return -1);
@@ -533,7 +538,7 @@ static void journal40_close(object_entity_t *entity) {
 	aal_free(journal);
 }
 
-extern errno_t journal40_check(object_entity_t *);
+extern errno_t journal40_check(object_entity_t *, layout_func_t);
 
 static reiser4_plugin_t journal40_plugin = {
 	.journal_ops = {
@@ -559,6 +564,7 @@ static reiser4_plugin_t journal40_plugin = {
 		.replay = NULL,
 		.print  = NULL,
 #endif
+		.layout = journal40_layout,
 		.valid	= journal40_valid,
 		.close	= journal40_close,
 		.device = journal40_device

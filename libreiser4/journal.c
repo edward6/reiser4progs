@@ -16,12 +16,15 @@
    opened journal.
 */
 reiser4_journal_t *reiser4_journal_open(
-	reiser4_format_t *format,	/* format journal is going to be opened on */
-	aal_device_t *device)	        /* device journal weill be opened on */
+	reiser4_format_t *format,	/* format journal will be opened on */
+	aal_device_t *device)	        /* device journal will be opened on */
 {
 	rpid_t pid;
 	reiser4_plugin_t *plugin;
 	reiser4_journal_t *journal;
+	
+	blk_t start;
+	count_t len;
 	
 	aal_assert("umka-095", format != NULL, return NULL);
 	
@@ -42,15 +45,19 @@ reiser4_journal_t *reiser4_journal_open(
     
 	journal->device = device;
 
+	start = reiser4_format_start(format);
+	len = reiser4_format_get_len(format);
+	
 	/* 
-	   Initializing journal entity by means of calling "open" method from found 
-	   journal plugin.
+	   Initializing journal entity by means of calling "open" method from
+	   found journal plugin.
 	*/
 	if (!(journal->entity = plugin_call(goto error_free_journal, 
-					    plugin->journal_ops, open, format->entity))) 
+					    plugin->journal_ops, open,
+					    format->entity, device, start, len))) 
 	{
-		aal_exception_error("Can't open journal %s on %s.", plugin->h.label, 
-				    aal_device_name(device));
+		aal_exception_error("Can't open journal %s on %s.",
+				    plugin->h.label, aal_device_name(device));
 		goto error_free_journal;
 	}
 	
@@ -67,11 +74,14 @@ reiser4_journal_t *reiser4_journal_open(
 reiser4_journal_t *reiser4_journal_create(
 	reiser4_format_t *format,	/* format journal will be opened on */
 	aal_device_t *device,	        /* device journal will be created on */
-	void *params)		        /* journal params (opaque pointer) */
+	void *hint)		        /* journal params (opaque pointer) */
 {
 	rpid_t pid;
 	reiser4_plugin_t *plugin;
 	reiser4_journal_t *journal;
+
+	blk_t start;
+	count_t len;
 	
 	aal_assert("umka-095", format != NULL, return NULL);
 	
@@ -91,10 +101,14 @@ reiser4_journal_t *reiser4_journal_create(
     
 	journal->device = device;
 	
+	start = reiser4_format_start(format);
+	len = reiser4_format_get_len(format);
+	
 	/* Initializing journal entity */
 	if (!(journal->entity = plugin_call(goto error_free_journal, 
 					    plugin->journal_ops, create,
-					    format->entity, params))) 
+					    format->entity, device, start,
+					    len, hint))) 
 	{
 		aal_exception_error("Can't create journal %s on %s.", plugin->h.label, 
 				    aal_device_name(device));
@@ -106,6 +120,17 @@ reiser4_journal_t *reiser4_journal_create(
  error_free_journal:
 	aal_free(journal);
 	return NULL;
+}
+
+errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
+			       action_func_t action_func,
+			       void *data)
+{
+	aal_assert("umka-1078", journal != NULL, return -1);
+	aal_assert("umka-1079", action_func != NULL, return -1);
+
+	return plugin_call(return -1, journal->entity->plugin->journal_ops,
+			   layout, journal->entity, action_func, data);
 }
 
 /* Replays specified journal. Returns error code */

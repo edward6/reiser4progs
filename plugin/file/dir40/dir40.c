@@ -514,19 +514,20 @@ static int32_t dir40_write(object_entity_t *entity,
 	return i;
 }
 
-static errno_t dir40_layout(object_entity_t *entity, file_action_func_t func,
+static errno_t dir40_layout(object_entity_t *entity,
+			    action_func_t action_func,
 			    void *data)
 {
 	errno_t res;
 	dir40_t *dir = (dir40_t *)entity;
 
 	aal_assert("umka-1473", dir != NULL, return -1);
-	aal_assert("umka-1474", func != NULL, return -1);
+	aal_assert("umka-1474", action_func != NULL, return -1);
 
 	while (1) {
 		blk_t blk = dir->body.entity.con.blk;
 		
-		if ((res = func(entity, blk, data)))
+		if ((res = action_func(entity, blk, data)))
 			return res;
 		
 		if (dir40_next(entity) != 1)

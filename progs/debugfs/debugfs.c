@@ -145,7 +145,7 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 		return 0;
 	}
 		
-	switch (reiser4_format_belongs(fs->format, blk)) {
+	switch (reiser4_fs_belongs(fs, blk)) {
 	case RB_SKIPPED:
 		aal_exception_info("Block %llu belongs to skipped area.", blk);
 		return 0;

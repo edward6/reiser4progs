@@ -91,7 +91,7 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 	    /* Block was met as formatted, but unused in on-disk block 
 	     * allocator. Looks like the bitmap block of the allocator
 	     * has not been synced on disk. Scan through all its blocks. */
-	    reiser4_alloc_region_layout(rd->fs->alloc, i, callback_blk_mark, 
+	    reiser4_alloc_region(rd->fs->alloc, i, callback_blk_mark, 
 		&region);
 	}
 
