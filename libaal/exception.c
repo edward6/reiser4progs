@@ -83,6 +83,10 @@ void aal_exception_set_handler(
 	exception_handler = handler;
 }
 
+aal_exception_handler_t aal_exception_get_handler(void) {
+	return exception_handler;
+}
+
 /* Finishes exception life cycle, that is, destroys exception */
 void aal_exception_catch(
 	aal_exception_t *exception)	/* exception, to be destroyed */

@@ -126,18 +126,8 @@ reiser4_node_t *reiser4_node_open(
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
    
-	if (!(node->entity = reiser4_node_guess(device, blk))) {
-		/* 
-		  FIXME-VITALY->UMKA: It is needed sometimes, like durring
-		  scanning the disk at fsck time, to disable logical exceptions
-		  - e.g. this block does not contain a node - but does not
-		  disable fatal exceptions - bad environement, failed to
-		  allocated a memory, etc.
-		*/
-		aal_exception_error("Can't guess node plugin for "
-				    "node %llu.", blk);
+	if (!(node->entity = reiser4_node_guess(device, blk)))
 		goto error_free_node;
-	}
     
 	node->device = device;
 	node->blk = blk;

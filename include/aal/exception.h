@@ -17,6 +17,7 @@ extern char *aal_exception_message(aal_exception_t *ex);
 extern aal_exception_type_t aal_exception_type(aal_exception_t *ex);
 extern aal_exception_option_t aal_exception_option(aal_exception_t *ex);
 
+extern aal_exception_handler_t aal_exception_get_handler(void);
 extern void aal_exception_set_handler(aal_exception_handler_t handler);
 
 extern aal_exception_option_t aal_exception_throw(aal_exception_type_t type, 
