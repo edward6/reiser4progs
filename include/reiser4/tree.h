@@ -50,8 +50,8 @@ extern errno_t reiser4_tree_node_realize(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 					    node_t *node);
 
-extern node_t *reiser4_tree_neigh_node(reiser4_tree_t *tree,
-				       node_t *node, uint32_t where);
+extern node_t *reiser4_tree_neig_node(reiser4_tree_t *tree,
+				      node_t *node, uint32_t where);
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);

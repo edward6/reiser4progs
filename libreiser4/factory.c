@@ -166,9 +166,9 @@ errno_t reiser4_factory_init(void) {
 	aal_assert("umka-3013", plugins == NULL);
 	
 	/* Init plugin hash table. */
-	if (!(plugins = aal_hash_table_alloc(callback_hash_func,
-					     callback_comp_func,
-					     NULL, NULL)))
+	if (!(plugins = aal_hash_table_create(100, callback_hash_func,
+					      callback_comp_func,
+					      NULL, NULL)))
 	{
 		return -ENOMEM;
 	}

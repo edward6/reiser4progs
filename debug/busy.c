@@ -75,27 +75,17 @@ int main(int argc, char *argv[]) {
                 int i;
                 char name[256];
                 reiser4_object_t *object;
-//		FILE *file;
-
-//		file  = fopen("/home/umka/tmp/out", "r");
 
 		srandom(time(0));
+		
                 for (i = 0; i < 500000; i++) {
-//                while (!feof(file)) {
                         int j, count;
-//			char part[100];
-
-//			aal_memset(name, 0, sizeof(name));
-//			fscanf(file, "%s %s\n", name, part);
-//			strcat(name, " ");
-//			strcat(name, part);
 
 			aal_snprintf(name, 256, "file name%d", random());
 /*			if (i % 2 == 0)
 				i += 50;
 			else
 				i -= 50;*/
-//			printf("%s\n", name);
                                                                                        
                         if (!(object = reiser4_reg_create(fs, dir, name)))
                                 continue;
