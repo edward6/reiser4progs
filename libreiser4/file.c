@@ -265,15 +265,14 @@ errno_t reiser4_file_write(
 /* Creates new file on specified filesystem */
 reiser4_file_t *reiser4_file_create(
 	reiser4_fs_t *fs,		    /* filesystem dir will be created on */
-	reiser4_file_hint_t *hint,	    /* directory hint */
 	reiser4_file_t *parent,	            /* parent file */
+	reiser4_file_hint_t *hint,	    /* directory hint */
 	const char *name)		    /* name of entry */
 {
 	reiser4_file_t *file;
 	reiser4_plugin_t *plugin;
     
 	roid_t objectid, locality;
-	reiser4_key_t parent_key, file_key;
     
 	aal_assert("umka-790", fs != NULL, return NULL);
 	aal_assert("umka-1128", hint != NULL, return NULL);
@@ -308,27 +307,28 @@ reiser4_file_t *reiser4_file_create(
 	   create root directory.
 	*/
 	if (parent) {
-		reiser4_key_init(&parent_key, parent->key.plugin, parent->key.body);
+		reiser4_key_init(&hint->parent, parent->key.plugin, parent->key.body);
 		objectid = reiser4_oid_allocate(parent->fs->oid);
 	} else {
 		roid_t root_locality = reiser4_oid_root_locality(fs->oid);
 		roid_t root_parent_locality = reiser4_oid_root_parent_locality(fs->oid);
 		
-		parent_key.plugin = fs->tree->key.plugin;
-		reiser4_key_build_generic(&parent_key, KEY_STATDATA_TYPE, 
+		hint->parent.plugin = fs->tree->key.plugin;
+		reiser4_key_build_generic(&hint->parent, KEY_STATDATA_TYPE, 
 					  root_parent_locality, root_locality, 0);
 
 		objectid = reiser4_oid_root_objectid(fs->oid);
 	}
 
-	locality = reiser4_key_get_objectid(&parent_key);
+	locality = reiser4_key_get_objectid(&hint->parent);
     
 	/* Building stat data key of directory */
-	file_key.plugin = parent_key.plugin;
-	reiser4_key_build_generic(&file_key, KEY_STATDATA_TYPE,
+	hint->object.plugin = hint->parent.plugin;
+	
+	reiser4_key_build_generic(&hint->object, KEY_STATDATA_TYPE,
 				  locality, objectid, 0);
     
-	reiser4_key_init(&file->key, file_key.plugin, file_key.body);
+	reiser4_key_init(&file->key, hint->object.plugin, hint->object.body);
     
 	/* Creating entry in parent */
 	if (parent) {   
@@ -353,10 +353,10 @@ reiser4_file_t *reiser4_file_create(
 	}
 
 	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
-					 create, fs->tree, &parent_key, &file_key, hint)))
+					 create, fs->tree, hint)))
 	{
 		aal_exception_error("Can't create file with oid 0x%llx.", 
-				    reiser4_key_get_objectid(&file_key));
+				    reiser4_key_get_objectid(&file->key));
 		goto error_free_file;
 	}
 

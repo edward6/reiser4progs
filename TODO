@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* splitt reg40_read into few separate and simple functions.
+
 * print_item method in node plugin.
 
 * --print-journal and --print-alloc options in debugfs.

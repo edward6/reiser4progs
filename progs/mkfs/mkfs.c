@@ -96,7 +96,7 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, reiser4_profile_t *prof
 	hint.body.dir.direntry_pid = profile->item.file_body.direntry;
 	
 	/* Creating directory by passed parameters */
-	return reiser4_file_create(fs, &hint, parent, name);
+	return reiser4_file_create(fs, parent, &hint, name);
 }
 
 int main(int argc, char *argv[]) {

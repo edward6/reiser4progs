@@ -86,11 +86,11 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_file_t *file;
 	    
-			for (i = 0; i < 1000000; i++) {
+			for (i = 0; i < 5000; i++) {
 				aal_memset(name, 0, sizeof(name));
 				aal_snprintf(name, 256, "testdir%d", i);
 
-				if (!(file = reiser4_file_create(fs, &dir_hint, dir, name)))
+				if (!(file = reiser4_file_create(fs, dir, &dir_hint, name)))
 					goto error_free_dir;
 				
 				reiser4_file_close(file);

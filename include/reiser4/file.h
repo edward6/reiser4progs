@@ -26,8 +26,8 @@ extern void reiser4_file_close(reiser4_file_t *file);
 #ifndef ENABLE_COMPACT
 
 extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs,
-					   reiser4_file_hint_t *hint,
 					   reiser4_file_t *parent,
+					   reiser4_file_hint_t *hint,
 					   const char *name);
 
 extern errno_t reiser4_file_write(reiser4_file_t *file, void *buff,

@@ -421,6 +421,9 @@ struct reiser4_file_hint {
 		
 	} body;
     
+	reiser4_key_t object; 
+	reiser4_key_t parent;
+		
 	/* The plugin in use */
 	reiser4_plugin_t *plugin;
 };
@@ -568,8 +571,7 @@ struct reiser4_file_ops {
 	reiser4_plugin_header_t h;
 
 	/* Creates new file with passed parent and object keys */
-	object_entity_t *(*create) (const void *, reiser4_key_t *, 
-				    reiser4_key_t *, reiser4_file_hint_t *); 
+	object_entity_t *(*create) (const void *, reiser4_file_hint_t *); 
     
 	/* Opens a file with specified key */
 	object_entity_t *(*open) (const void *, reiser4_place_t *);

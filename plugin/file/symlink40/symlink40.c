@@ -79,12 +79,14 @@ static object_entity_t *symlink40_open(const void *tree,
 #ifndef ENABLE_COMPACT
 
 static object_entity_t *symlink40_create(const void *tree, 
-					 reiser4_key_t *parent,
-					 reiser4_key_t *object, 
 					 reiser4_file_hint_t *hint) 
 {
+	int lookup;
+	roid_t objectid;
+	roid_t locality;
+	roid_t parent_locality;
+
 	symlink40_t *symlink;
-	
 	reiser4_place_t place;
 	reiser4_plugin_t *stat_plugin;
     
@@ -94,29 +96,22 @@ static object_entity_t *symlink40_create(const void *tree,
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
     
-	int lookup;
-	roid_t objectid;
-	roid_t locality;
-	roid_t parent_locality;
-
-	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 	
-	aal_assert("umka-1166", parent != NULL, return NULL);
-	aal_assert("umka-1167", object != NULL, return NULL);
-	aal_assert("umka-1168", object->plugin != NULL, return NULL);
-	aal_assert("umka-1169", tree != NULL, return NULL);
+	aal_assert("umka-1741", tree != NULL, return NULL);
+	aal_assert("umka-1740", hint != NULL, return NULL);
 
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
     
-	if (file40_init(&symlink->file, object, &symlink40_plugin, tree, core))
+	if (file40_init(&symlink->file, &hint->object, &symlink40_plugin, tree, core))
 		goto error_free_symlink;
 	
 	locality = file40_locality(&symlink->file);
 	objectid = file40_objectid(&symlink->file);
 
-	parent_locality = plugin_call(return NULL, object->plugin->key_ops, 
-				      get_locality, parent->body);
+	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops, 
+				      get_locality, hint->parent.body);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata_pid)))
@@ -130,9 +125,10 @@ static object_entity_t *symlink40_create(const void *tree,
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 	stat_hint.plugin = stat_plugin;
     
-	stat_hint.key.plugin = object->plugin;
-	plugin_call(goto error_free_symlink, object->plugin->key_ops, assign, 
-		    stat_hint.key.body, object->body);
+	stat_hint.key.plugin = hint->object.plugin;
+	
+	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops, assign, 
+		    stat_hint.key.body, hint->object.body);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
@@ -160,7 +156,7 @@ static object_entity_t *symlink40_create(const void *tree,
 
 	stat_hint.hint = &stat;
 
-	if ((lookup = core->tree_ops.lookup(tree, object, &level, &place)) == FAILED)
+	if ((lookup = core->tree_ops.lookup(tree, &hint->object, &stop, &place)) == FAILED)
 		goto error_free_symlink;
 
 	if (lookup == PRESENT) {

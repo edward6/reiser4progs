@@ -25,11 +25,12 @@ static reiser4_core_t *core = NULL;
 static errno_t reg40_reset(object_entity_t *entity) {
 	uint64_t size;
 	reiser4_key_t key;
+
 	reg40_t *reg = (reg40_t *)entity;
-	reiser4_level_t level = {LEAF_LEVEL, TWIG_LEVEL};
+	reiser4_level_t stop = {LEAF_LEVEL, TWIG_LEVEL};
     
 	aal_assert("umka-1161", reg != NULL, return -1);
-    
+
 	if (file40_get_size(&reg->file.statdata, &size))
 		return -1;
 
@@ -37,13 +38,14 @@ static errno_t reg40_reset(object_entity_t *entity) {
 		return 0;
 	
 	key.plugin = reg->file.key.plugin;
+	
 	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body,
 		    KEY_FILEBODY_TYPE, file40_locality(&reg->file),
 		    file40_objectid(&reg->file), 0);
     
 	file40_unlock(&reg->file, &reg->body);
 	
-	if (core->tree_ops.lookup(reg->file.tree, &key, &level, &reg->body) != PRESENT)
+	if (core->tree_ops.lookup(reg->file.tree, &key, &stop, &reg->body) != PRESENT)
 		reg->body.node = NULL;
 	
 	/*
@@ -62,9 +64,10 @@ static int reg40_next(object_entity_t *entity) {
 	int res;
 	reiser4_key_t key;
 	reg40_t *reg = (reg40_t *)entity;
-	reiser4_level_t level = {LEAF_LEVEL, TWIG_LEVEL};
+	reiser4_level_t stop = {LEAF_LEVEL, TWIG_LEVEL};
 	
 	key.plugin = reg->file.key.plugin;
+	
 	plugin_call(return -1, key.plugin->key_ops, build_generic, 
 		    key.body, KEY_FILEBODY_TYPE, file40_locality(&reg->file), 
 		    file40_objectid(&reg->file), reg->offset);
@@ -73,7 +76,7 @@ static int reg40_next(object_entity_t *entity) {
 	file40_unlock(&reg->file, &reg->body);
 
 	/* Getting the next body item from the tree */
-	res = core->tree_ops.lookup(reg->file.tree, &key, &level, &reg->body);
+	res = core->tree_ops.lookup(reg->file.tree, &key, &stop, &reg->body);
 
 	/* Locking new body or old one if lookup failed */
 	file40_lock(&reg->file, &reg->body);
@@ -249,8 +252,6 @@ static object_entity_t *reg40_open(const void *tree,
 #ifndef ENABLE_COMPACT
 
 static object_entity_t *reg40_create(const void *tree, 
-				     reiser4_key_t *parent,
-				     reiser4_key_t *object, 
 				     reiser4_file_hint_t *hint) 
 {
 	reg40_t *reg;
@@ -269,24 +270,22 @@ static object_entity_t *reg40_create(const void *tree,
 	roid_t locality;
 	roid_t parent_locality;
 
-	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 	
-	aal_assert("umka-1166", parent != NULL, return NULL);
-	aal_assert("umka-1167", object != NULL, return NULL);
-	aal_assert("umka-1168", object->plugin != NULL, return NULL);
 	aal_assert("umka-1169", tree != NULL, return NULL);
+	aal_assert("umka-1738", hint != NULL, return NULL);
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
     
-	if (file40_init(&reg->file, object, &reg40_plugin, tree, core))
+	if (file40_init(&reg->file, &hint->object, &reg40_plugin, tree, core))
 		goto error_free_reg;
 	
 	locality = file40_locality(&reg->file);
     	objectid = file40_objectid(&reg->file);
 
-	parent_locality = plugin_call(return NULL, object->plugin->key_ops, 
-				      get_locality, parent->body);
+	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops, 
+				      get_locality, hint->parent.body);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata_pid)))
@@ -300,9 +299,10 @@ static object_entity_t *reg40_create(const void *tree,
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 	stat_hint.plugin = stat_plugin;
     
-	stat_hint.key.plugin = object->plugin;
-	plugin_call(goto error_free_reg, object->plugin->key_ops, assign, 
-		    stat_hint.key.body, object->body);
+	stat_hint.key.plugin = hint->object.plugin;
+	
+	plugin_call(goto error_free_reg, hint->object.plugin->key_ops, assign, 
+		    stat_hint.key.body, hint->object.body);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
@@ -328,7 +328,7 @@ static object_entity_t *reg40_create(const void *tree,
 
 	stat_hint.hint = &stat;
     
-	if ((lookup = core->tree_ops.lookup(tree, object, &level, &place)) == FAILED)
+	if ((lookup = core->tree_ops.lookup(tree, &hint->object, &stop, &place)) == FAILED)
 		goto error_free_reg;
 
 	if (lookup == PRESENT) {
@@ -351,8 +351,8 @@ static object_entity_t *reg40_create(const void *tree,
 		goto error_free_reg;
 	}
 
-	reg->offset = 0;
 	reg->local = 0;
+	reg->offset = 0;
     
 	return (object_entity_t *)reg;
 
