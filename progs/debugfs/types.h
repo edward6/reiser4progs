@@ -26,7 +26,8 @@ enum behav_flags {
 	BF_SHOW_PARM   = 1 << 3,
 	BF_SHOW_PLUG   = 1 << 4,
 	BF_PACK_META   = 1 << 5,
-	BF_UNPACK_META = 1 << 6
+	BF_UNPACK_META = 1 << 6,
+	BF_FREE_NEW_BACKUP = 1 << 7
 };
 
 typedef enum behav_flags behav_flags_t;

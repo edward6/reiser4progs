@@ -61,6 +61,37 @@ static void debugfs_print_usage(char *name) {
 		"  -c, --cache N                 number of nodes in tree buffer cache\n");
 }
 
+static errno_t cb_mark_block(void *entity, blk_t start,
+			     count_t width, void *data)
+{
+	reiser4_fs_t *fs = (reiser4_fs_t *)entity;
+	uint64_t free;
+
+	if (reiser4_alloc_occupied((reiser4_alloc_t *)data, start, width))
+		return 0;
+		
+	if (!(free = reiser4_format_get_free(fs->format))) {
+		aal_error("No free blocks on the fs");
+		return -ENOSPC;
+	}
+
+	reiser4_format_set_free(fs->format, free - 1);
+	
+	return reiser4_alloc_occupy((reiser4_alloc_t *)data, start, width);
+}
+
+static errno_t cb_unmark_block(void *entity, blk_t start,
+			       count_t width, void *data)
+{
+	reiser4_fs_t *fs = (reiser4_fs_t *)entity;
+	uint64_t free;
+
+	free = reiser4_format_get_free(fs->format);
+	reiser4_format_set_free(fs->format, free + 1);
+	
+	return reiser4_alloc_release((reiser4_alloc_t *)data, start, width);
+}
+
 /* Initializes exception streams used by debugfs */
 static void debugfs_init(void) {
 	int ex;
@@ -74,6 +105,199 @@ static void debugfs_init(void) {
 	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stderr);
 	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stderr);
 	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, NULL);
+}
+
+static errno_t cb_check_block(void *entity, blk_t start,
+			      count_t width, void *data)
+{
+	blk_t blk = *(blk_t *)data;
+	return (blk == start);
+}
+
+typedef struct free_region_hint {
+	ptr_hint_t ptr;
+	blk_t blk;
+} free_region_hint_t;
+
+static errno_t cb_check_region(void *entity, blk_t start,
+			       count_t width, void *data)
+{
+	free_region_hint_t *hint = (free_region_hint_t *)data;
+	
+	if (hint->ptr.start == 0)
+		return 0;
+	
+	if (start >= hint->ptr.start && 
+	    start < hint->ptr.start + hint->ptr.width)
+	{
+		hint->blk = start;
+		return 1;
+	}
+
+	return (start >= hint->ptr.start + hint->ptr.width) ? 2 : 0;
+}
+
+
+static errno_t cb_free_backup(reiser4_tree_t *tree, 
+			      reiser4_node_t *node, 
+			      void *data)
+{
+	uint32_t items, units, blksize, i;
+	uint64_t count, offset, free;
+	free_region_hint_t hint;
+	reiser4_place_t place;
+	aal_device_t *device;
+	trans_hint_t trans;
+	errno_t res;
+	blk_t blk;
+	
+	aal_assert("vpf-1691", node != NULL);
+
+	/* Relocate the node if belongs to backup layout. */
+	if (reiser4_backup_layout(tree->fs, cb_check_block, 
+				  &node->block->nr)) 
+	{
+		aal_mess("Relocating the node %llu.", node->block->nr);
+		
+		
+		if (!(free = reiser4_format_get_free(tree->fs->format))) {
+			aal_error("No free blocks on the fs");
+			return -EIO;
+		}
+		
+		reiser4_format_set_free(tree->fs->format, free - 1);
+
+		blk = reiser4_fake_get();
+		
+		if (reiser4_tree_get_root(tree) == node->block->nr)
+			reiser4_tree_set_root(tree, blk);
+
+		if (node->p.node && reiser4_item_update_link(&node->p, blk))
+			return -EIO;
+
+		/* Rehashing node in @tree->nodes hash table. */
+		reiser4_tree_rehash_node(tree, node, blk);
+
+		if (reiser4_tree_get_root(tree) != node->block->nr) {
+			if ((res = reiser4_node_update_ptr(node)))
+				return res;
+		}
+	}
+	
+	if (reiser4_node_get_level(node) != TWIG_LEVEL)
+		return 0;
+
+	/* Check extents on the TWIG level. */
+	reiser4_place_assign(&place, node, 0, MAX_UINT32);
+	
+	items = reiser4_node_items(node);
+	
+	/* Prepare @hint. */
+	aal_memset(&trans, 0, sizeof(trans));
+	trans.count = 1;
+	trans.specific = &hint.ptr;
+	
+	device = node->block->device;
+	blksize = node->block->size;
+
+	for (place.pos.item = 0; 
+	     place.pos.item < items; 
+	     place.pos.item++) 
+	{
+		if (reiser4_place_fetch(&place))
+			return -EIO;
+
+		if (place.plug->id.group != EXTENT_ITEM)
+			continue;
+
+		units = reiser4_item_units(&place);
+		offset = reiser4_key_get_offset(&place.key);
+		
+		trans.plug = place.plug;
+		
+		for (place.pos.unit = 0, count = 0;
+		     place.pos.unit < units; place.pos.unit++)
+		{
+			aal_block_t *block;
+
+			if (plug_call(place.plug->o.item_ops->object,
+				      fetch_units, &place, &trans) != 1)
+			{
+				return -EIO;
+			}
+
+			/* If no match with a backup block, continue. */
+			if (!(res = reiser4_backup_layout(tree->fs, 
+							  cb_check_region,
+							  &hint)) || 
+			    (res == 2)) 
+			{
+				count += hint.ptr.width;
+				continue;
+			}
+
+		
+			aal_mess("Relocating the extent region[%llu..%llu]: "
+				 "node %llu, item %u, unit %u.", 
+				 hint.ptr.start, hint.ptr.start + 
+				 hint.ptr.width - 1, node->block->nr, 
+				 place.pos.item, place.pos.unit);
+
+			/* Relocate the extent unit. */
+			for (blk = hint.ptr.start, i = 0; 
+			     i < hint.ptr.width; 
+			     i++, blk++)
+			{
+				reiser4_key_t *ins_key;
+
+				if (!(block = aal_block_load(device, 
+							     blksize, 
+							     blk)))
+				{
+					return -EIO;
+				}
+
+				aal_block_move(block, device, 0);
+				
+				if (!(ins_key = aal_calloc(sizeof(*ins_key), 0)))
+					return -ENOMEM;
+					
+				aal_memcpy(ins_key, &place.key, 
+					   sizeof(place.key));
+
+				reiser4_key_set_offset(ins_key, offset + 
+						       count * blksize);
+
+				aal_hash_table_insert(tree->blocks, 
+						      ins_key, block);
+				
+				count++;
+			}
+
+			reiser4_alloc_release(tree->fs->alloc, hint.ptr.start,
+					      hint.ptr.width);
+
+			reiser4_alloc_occupy(tree->fs->alloc, hint.blk, 1);
+
+			hint.ptr.start = EXTENT_UNALLOC_UNIT;
+
+			/* Updating extent unit at @place->pos.unit. */
+			if (plug_call(place.plug->o.item_ops->object,
+				      update_units, &place, &trans) != 1)
+			{
+				return -EIO;
+			}
+			
+			if (!(free = reiser4_format_get_free(tree->fs->format))) {
+				aal_error("No free blocks on the fs");
+				return -EIO;
+			}
+		
+			reiser4_format_set_free(tree->fs->format, free - 1);
+		}
+	}
+	
+	return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -135,7 +359,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djk:n:i:o:plsaPUOFWB:c:",
+	while ((c = getopt_long(argc, argv, "hVqftb:djk:n:i:o:plsaPUOFWB:c:C",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -229,6 +453,9 @@ int main(int argc, char *argv[]) {
 		case 'B':
 			bm_file = optarg;
 			break;
+		case 'C':
+			behav_flags |= BF_FREE_NEW_BACKUP;
+			break;
 		}
 	}
     
@@ -279,7 +506,8 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device with file_ops and default blocksize */
 	if (!(device = aal_device_open(&file_ops, host_dev, 512,
-				       (behav_flags & BF_UNPACK_META) ?
+				       (behav_flags & BF_UNPACK_META ||
+					behav_flags & BF_FREE_NEW_BACKUP) ?
 				       O_RDWR : O_RDONLY)))
 	{
 		aal_error("Can't open %s. %s.", host_dev, strerror(errno));
@@ -461,6 +689,30 @@ int main(int argc, char *argv[]) {
 		aal_stream_fini(&stream);
 		aux_bitmap_close(bitmap);
 		bitmap = NULL;
+	}
+	
+	if (behav_flags & BF_FREE_NEW_BACKUP) {
+		fs->tree->mpc_func = misc_mpressure_detect;
+		
+		/* Mark all new backup blocks as used to not allocate them
+		   again on reallocation. */
+		if (reiser4_backup_layout(fs, cb_mark_block, fs->alloc)) {
+			aal_error("Failed to mark backup blocks used.");
+			goto error_free_journal;
+		}
+			
+		if (reiser4_tree_trav(fs->tree, NULL, cb_free_backup, 
+				      NULL, NULL, NULL))
+		{
+			aal_error("Failed to free blocks for the new backup.");
+			goto error_free_journal;
+		}
+
+		/* Mark all old backup blocks as unused. */
+		if (reiser4_old_backup_layout(fs, cb_unmark_block, fs->alloc)) {
+			aal_error("Failed to mark backup blocks used.");
+			goto error_free_journal;
+		}
 	}
 	
 	/* Closing the journal */

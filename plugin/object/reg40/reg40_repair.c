@@ -52,7 +52,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 		return 0;
 	
 	/* sd_size lt counted size, check if it is correct for extent. */
-	if (reg->body_plug->id.group == EXTENT_ITEM) {
+	if (reg->body_plug && reg->body_plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
 		if (*sd_size < counted_size &&
 		    *sd_size + STAT_PLACE(obj)->node->block->size > 

@@ -142,6 +142,12 @@ extern errno_t reiser4_tree_resize(reiser4_tree_t *tree,
 				   count_t blocks);
 
 extern uint8_t reiser4_tree_get_height(reiser4_tree_t *tree);
+
+extern errno_t reiser4_tree_rehash_node(reiser4_tree_t *tree,
+					reiser4_node_t *node,
+					blk_t new_blk);
+
+
 #endif
 
 extern blk_t reiser4_tree_get_root(reiser4_tree_t *tree);

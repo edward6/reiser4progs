@@ -100,9 +100,9 @@ uint8_t reiser4_tree_get_height(reiser4_tree_t *tree) {
 /* As @node already lies in @tree->nodes hash table and it is going to change
    its block number, we have to update its hash entry in @tree->nodes. This
    function does that job and also moves @node to @new_blk location. */
-static errno_t reiser4_tree_rehash_node(reiser4_tree_t *tree,
-					reiser4_node_t *node,
-					blk_t new_blk)
+errno_t reiser4_tree_rehash_node(reiser4_tree_t *tree,
+				 reiser4_node_t *node,
+				 blk_t new_blk)
 {
 	blk_t old_blk;
 	blk_t *set_blk;

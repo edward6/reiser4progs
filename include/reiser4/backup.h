@@ -17,5 +17,9 @@ extern void reiser4_backup_close(reiser4_backup_t *backup);
 
 extern reiser4_backup_t *reiser4_backup_create(reiser4_fs_t *fs);
 
+extern errno_t reiser4_old_backup_layout(reiser4_fs_t *fs, 
+					 region_func_t region_func,
+					 void *data);
+
 #endif
 #endif

@@ -146,4 +146,51 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 
 	return 0;
 }
+
+static errno_t cb_region_last(void *object, blk_t blk, 
+			      uint64_t count, void *data) 
+{
+	*((blk_t *)data) = count == 1 ? 0 :
+		blk + count - 1;
+
+	return 0;
+}
+
+#define REISER4_BACKUPS_MAX 16
+
+errno_t reiser4_old_backup_layout(reiser4_fs_t *fs, 
+				  region_func_t region_func,
+				  void *data)
+{
+	errno_t res;
+	count_t len;
+	count_t delta;
+	blk_t prev = 0;
+	blk_t blk, copy;
+	
+	aal_assert("vpf-1399", fs != NULL);
+	aal_assert("vpf-1400", region_func != NULL);
+
+	len = reiser4_format_get_len(fs->format);
+	delta = len / (REISER4_BACKUPS_MAX + 1);
+	
+	for (blk = delta - 1; blk < len; blk += delta) {
+		reiser4_alloc_region(fs->alloc, blk, cb_region_last, &copy);
+
+		/* If copy == 0 -- it is not possible to have the last copy 
+		   on this fs as the last block is the allocator one. If the 
+		   blk number for the copy is the same as the previous one, 
+		   skip another copy as fs is pretty small. */
+		if (!copy || copy == prev)
+			continue;
+
+		if ((res = region_func(fs, copy, 1, data)))
+			return res;
+
+		prev = copy;
+	}
+
+	return 0;
+}
+
 #endif

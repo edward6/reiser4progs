@@ -45,6 +45,7 @@ static errno_t nodeptr40_update_link(reiser4_place_t *place,
 {
 	aal_assert("umka-2667", place != NULL);
 	np40_set_ptr(nodeptr40_body(place), blk);
+	place_mkdirty(place);
 	return 0;
 }
 
