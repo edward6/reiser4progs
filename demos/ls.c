@@ -26,11 +26,11 @@ static void ls_init(void) {
 }
 
 int main(int argc, char *argv[]) {
-//	char buff[4096];
+	char buff[4096];
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 
-//	entry_hint_t entry;
+	entry_hint_t entry;
 	reiser4_object_t *dir;
 
 	if (argc < 3) {
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 		char name[256];
 		reiser4_object_t *object;
 	    
-		for (i = 0; i < 2650; i++) {
+		for (i = 0; i < 240; i++) {
 //			int j, count;
 			
 			aal_snprintf(name, 256, "file name%d", i);
@@ -108,7 +108,6 @@ int main(int argc, char *argv[]) {
 		goto error_free_dir;
 	}
 
-#if 0
 	while (reiser4_object_readdir(dir, &entry) > 0) {
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
 			     reiser4_print_key(&entry.object, PO_DEFAULT),
@@ -116,7 +115,6 @@ int main(int argc, char *argv[]) {
 
 		printf(buff);
 	}
-#endif
 	
 	reiser4_object_close(dir);
 	reiser4_object_close(fs->root);

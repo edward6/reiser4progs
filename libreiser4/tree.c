@@ -394,9 +394,7 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree, node_t *node) {
 			/* Update @child parent. */
 			child->p.node = node;
 
-			/* Lock new parent node. */
-//			reiser4_node_lock(child->p.node);
-			
+			/* Updating position in parent node. */
 			if ((res = reiser4_tree_node_realize(tree, child)))
 				return res;
 		}
@@ -2092,6 +2090,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 				return res;
 		}
 		
+		if (reiser4_node_items(save.node) == 0) {
+			if ((res = reiser4_tree_detach_node(tree, save.node)))
+				return res;
+		}
+		
 		/* Attaching new allocated node into the tree, if it is not
 		   empty. */
 		if (reiser4_node_items(node) > 0) {
@@ -2099,7 +2102,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			if ((res = reiser4_tree_attach_node(tree, node)))
 				return res;
 		}
-		
+
 		/* Checking if it is enough of space in @place. */
 		enough = (reiser4_node_space(place->node) - needed);
 
