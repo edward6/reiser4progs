@@ -10,12 +10,16 @@
 
 #include "dir40.h"
 
-bool_t realize_mode_dir(uint16_t mode) {
-	return S_ISDIR(mode);
+static errno_t callback_mode_dir(uint16_t mode) {
+	return S_ISDIR(mode) ? 0 : -EINVAL;
+}
+
+static errno_t callback_type_name(uint16_t type) {
+	return type == KEY_FILENAME_TYPE ? 0 : -EINVAL;
 }
 
 errno_t dir40_realize(object_info_t *info) {
-	return obj40_realize(info, realize_mode_dir, KEY_FILENAME_TYPE);
+	return obj40_realize(info, callback_mode_dir, callback_type_name);
 }
 
 #endif

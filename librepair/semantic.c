@@ -40,7 +40,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	
 	/* Cannot detect the object plugin, rm the entry. */
 	if ((plugin = repair_object_realize(*object)) == NULL) {
-		reiser4_object_close(*object);
+		aal_free(*object);
 		return -EINVAL;
 	}
 	

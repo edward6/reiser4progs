@@ -12,12 +12,13 @@
 
 /* The plugin tryes to realize the object: detects the SD, body items. */
 errno_t obj40_realize(object_info_t *info, 
-		      realize_mode_t mode_func, 
-		      key_type_t type) 
+		      obj40_realize_func_t mode_func, 
+		      obj40_realize_func_t type_func) 
 {
 	sdext_lw_hint_t lw_hint;
 	key_entity_t key;
 	lookup_t lookup;
+	key_type_t type;
 	place_t place;
 	errno_t res;
 
@@ -94,9 +95,10 @@ errno_t obj40_realize(object_info_t *info,
 			return mode_func(lw_hint.mode) ? 0 : -EINVAL;
 		}
 		
-		return plugin_call(info->okey.plugin->o.key_ops, get_type, 
-				   &info->start.item.key) == 
-			type ? 0 : -EINVAL;
+		type = plugin_call(info->okey.plugin->o.key_ops, get_type, 
+				   &info->start.item.key);
+		
+		return type_func(type);
 	}
 
 	return 0;

@@ -10,12 +10,48 @@
 
 #include "reg40.h"
 
-bool_t realize_mode_reg(uint16_t mode) {
-	return S_ISREG(mode);
+static errno_t callback_mode_reg(uint16_t mode) {
+	return S_ISREG(mode) ? 0 : -EINVAL;
+}
+
+static errno_t callback_type_file(uint16_t type) {
+	return type == KEY_FILEBODY_TYPE ? 0 : -EINVAL;
 }
 
 errno_t reg40_realize(object_info_t *info) {
-	return obj40_realize(info, realize_mode_reg, KEY_FILEBODY_TYPE);
+	return obj40_realize(info, callback_mode_reg, callback_type_file);
+}
+
+object_entity_t *reg40_check_struct(object_info_t *info, place_func_t place,
+				    uint16_t mode, void *data) 
+{
+	reg40_t *reg;
+	
+	aal_assert("vpf-1126", info != NULL);
+	
+	if (!(reg = aal_calloc(sizeof(*reg), 0)))
+		return NULL;
+	
+	if (!info->okey.plugin) {
+		uint64_t locality, objectid;
+		
+		/* Build the SD key. */
+		locality = plugin_call(info->start.item.key.plugin->o.key_ops,
+				       get_locality, &info->okey);
+		objectid = plugin_call(info->start.item.plugin->o.key_ops,
+				       get_objectid, &info->okey);
+
+		plugin_call(info->start.item.plugin->o.key_ops, build_generic,
+			    &info->okey, KEY_STATDATA_TYPE, locality, objectid, 0);
+	}
+	
+	if (info->start.item.plugin) {
+		if (info->start.item.plugin->h.group != STATDATA_ITEM)
+	}
+	
+ error_free_reg:
+	aal_free(reg);
+	return NULL;
 }
 
 #endif

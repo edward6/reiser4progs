@@ -211,7 +211,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
-
+	
 	reg->offset = 0;
 	
 	/* Preparing dir oid and locality */
@@ -704,6 +704,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 }
 
 extern errno_t reg40_realize (object_info_t *);
+extern object_entity_t *reg40_check_struct(object_info_t *, place_func_t, 
+					   uint8_t, void *);
 
 #endif
 
@@ -718,7 +720,7 @@ static errno_t reg40_seek(object_entity_t *entity,
 
 static void reg40_close(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
-		
+	
 	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
@@ -747,7 +749,7 @@ static reiser4_object_ops_t reg40_ops = {
 		
 	.add_entry    = NULL,
 	.rem_entry    = NULL,
-	.check_struct = NULL,
+	.check_struct = reg40_check_struct,
 	.check_link   = NULL,
 	.realize      = reg40_realize,
 #endif

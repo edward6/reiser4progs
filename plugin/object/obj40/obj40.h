@@ -106,11 +106,11 @@ extern errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 			    uint8_t level, place_t *place);
 
-typedef bool_t (*realize_mode_t) (uint16_t);
+typedef bool_t (*obj40_realize_func_t) (uint16_t);
 
 extern errno_t obj40_realize(object_info_t *info, 
-			     realize_mode_t mode_func, 
-			     key_type_t type);
+			     obj40_realize_func_t mode_func, 
+			     obj40_realize_func_t type_func);
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);
