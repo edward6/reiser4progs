@@ -827,7 +827,7 @@ lookup_t reiser4_tree_lookup(
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
-		bool_t whole = 0;
+		int whole = 0;
 		
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */

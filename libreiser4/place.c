@@ -127,17 +127,12 @@ void reiser4_place_inc(reiser4_place_t *place,
 void reiser4_place_dec(reiser4_place_t *place,
 		       int whole)
 {
-	uint32_t unit;
-	
 	aal_assert("umka-2362", place != NULL);
 	aal_assert("umka-2365", place->node != NULL);
 	
-	unit = whole ? MAX_UINT32 : 0;
-	
-	if (place->pos.unit == MAX_UINT32)
-		place->pos.unit = unit;
-
-	if (place->pos.unit == unit) {
+	if (place->pos.unit == 0 || 
+	    place->pos.unit == MAX_UINT32) 
+	{
 		uint32_t units;
 		
 		place->pos.item--;
@@ -149,6 +144,9 @@ void reiser4_place_dec(reiser4_place_t *place,
 		place->pos.unit = units - 1;
 	} else
 		place->pos.unit--;
+	
+	if (whole && place->pos.unit == 0)
+		place->pos.unit = MAX_UINT32;
 }
 
 /* Initializes all item-related fields */
