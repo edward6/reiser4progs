@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 //		file = fopen("/home/umka/tmp/out", "r");
 
 //		while (!feof(file)) {
-		for (i = 0; i < 75; i++) {
+		for (i = 0; i < 100; i++) {
                         int j, count;
 //			char part[256];
 
@@ -93,11 +93,11 @@ int main(int argc, char *argv[]) {
 //			strcat(name, " ");
 //			strcat(name, part);
 //			printf("%s\n", name);
-                                                                                       
+
                         if (!(object = reiser4_reg_create(fs, dir, name)))
                                 continue;
-                                                                                       
-                        count = 1000;
+
+			count = 1000;
 
                         for (j = 0; j < count; j++) {
 /*				reiser4_object_seek(object,
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
 					break;
                                 }
                         }
-                                                                                       
+
                         reiser4_object_close(object);
                 }
         }

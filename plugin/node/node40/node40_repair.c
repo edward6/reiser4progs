@@ -678,7 +678,7 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 		ih = node40_ih_at(entity, pos.item);
 		key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
 		
-		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF %u, "
+		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF=%u, "
 				  "LEN=%u, flags=0x%x ", pos.item,
 				  pos.item >= num ? "D" : " ",
 				  reiser4_igname[place.plug->id.group],
