@@ -43,13 +43,13 @@ static void debugfs_print_usage(char *name) {
 		"  -i, --print-file FILE           prints all items specified file\n"
 		"                                  consists of.\n"
 		"Metadata options:\n"
-		"  -g, --pack-metadata             fetches filesystem metadata and writes it\n"
+		"  -P, --pack-metadata             fetches filesystem metadata and writes it\n"
 		"                                  to standard output.\n"
-		"  -l, --unpack-metadata           uses metadata stream from stdandard input\n"
+		"  -U, --unpack-metadata           uses metadata stream from stdandard input\n"
 		"                                  to construct filesystem by it.\n"
 		"Plugins options:\n"
-		"  -P, --print-params              prints default params.\n"
-		"  -p, --print-plugins             prints known plugins.\n"
+		"  -p, --print-params              prints default params.\n"
+		"  -l, --print-plugins             prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -93,10 +93,10 @@ int main(int argc, char *argv[]) {
 		{"print-block", required_argument, NULL, 'b'},
 		{"print-nodes", required_argument, NULL, 'n'},
 		{"print-file", required_argument, NULL, 'i'},
-		{"pack-metadata", no_argument, NULL, 'g'},
-		{"unpack-metadata", no_argument, NULL, 'l'},
-		{"print-params", no_argument, NULL, 'P'},
-		{"print-plugins", no_argument, NULL, 'p'},
+		{"pack-metadata", no_argument, NULL, 'P'},
+		{"unpack-metadata", no_argument, NULL, 'U'},
+		{"print-params", no_argument, NULL, 'p'},
+		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Ppsagl",
+	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:plsaPU",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -164,16 +164,16 @@ int main(int argc, char *argv[]) {
 		case 'q':
 			behav_flags |= BF_QUIET;
 			break;
-		case 'g':
+		case 'P':
 			behav_flags |= BF_PACK_META;
 			break;
-		case 'l':
+		case 'U':
 			behav_flags |= BF_UNPACK_META;
 			break;
-		case 'p':
+		case 'l':
 			behav_flags |= BF_SHOW_PLUG;
 			break;
-		case 'P':
+		case 'p':
 			behav_flags |= BF_SHOW_PARM;
 			break;
 		case 'o':

@@ -68,20 +68,20 @@ prints the block allocator data.
 prints the oid allocator data.
 .SH METADATA OPTIONS
 .TP
-.B -g, --pack-metadata
+.B -P, --pack-metadata
 fetches filesystem metadata and writes it to standard output.
 .TP
-.B -u, --unpack-metadata
+.B -U, --unpack-metadata
 uses metadata stream from stdandard input to construct filesystem on
 it.
 .SH PLUGIN OPTIONS
 .TP
-.B -P, --print-params
+.B -p, --print-params
 prints default parameters. This is the set of plugins used for each
 filesystem object (format, node, file, directories, hashes, etc.). If
 --override is specified, then prints modified parameters.
 .TP
-.B -p, --print-plugins
+.B -l, --print-plugins
 prints all plugins libreiser4 know about.
 .TP
 .B -o, --override TYPE=PLUGIN, ...

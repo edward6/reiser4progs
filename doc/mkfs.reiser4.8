@@ -44,22 +44,22 @@ makes mkfs to use whole disk, not block device or mounted partition.
 .B -b, --block-size N
 block size to be used (architecture page size by default)
 .TP
-.B -l, --label LABEL
+.B -L, --label LABEL
 volume label to be used
 .TP
-.B -i, --uuid UUID
+.B -U, --uuid UUID
 universally unique identifier to be used
 .TP
 .B -s, --lost-found
 forces mkfs to create lost+found directory.
 .SH PLUGIN OPTIONS
 .TP
-.B -P, --print-params
+.B -p, --print-params
 prints default parameters. This is the set of plugins used for each
 filesystem object (format, node, file, directories, hashes, etc.). If
 --override is specified, then prints modified parameters.
 .TP
-.B -p, --print-plugins
+.B -l, --print-plugins
 prints all plugins libreiser4 know about.
 .TP
 .B -o, --override TYPE=PLUGIN, ...

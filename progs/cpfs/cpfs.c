@@ -41,8 +41,8 @@ static void cpfs_print_usage(char *name) {
 		"  -f, --force                     makes cpfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"Plugins options:\n"
-		"  -P, --print-params              prints default params.\n"
-		"  -p, --known-plugins             prints known plugins.\n"
+		"  -p, --print-params              prints default params.\n"
+		"  -l, --known-plugins             prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -79,8 +79,8 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
 		{"quiet", no_argument, NULL, 'q'},
-		{"print-params", no_argument, NULL, 'P'},
-		{"print-plugins", no_argument, NULL, 'p'},
+		{"print-params", no_argument, NULL, 'p'},
+		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfPpo:", long_options, 
+	while ((c = getopt_long(argc, argv, "hVqfplo:", long_options, 
 				(int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -105,10 +105,10 @@ int main(int argc, char *argv[]) {
 		case 'q':
 			flags |= BF_QUIET;
 			break;
-		case 'P':
+		case 'p':
 			flags |= BF_SHOW_PARM;
 			break;
-		case 'p':
+		case 'l':
 			flags |= BF_SHOW_PLUG;
 			break;
 		case 'o':

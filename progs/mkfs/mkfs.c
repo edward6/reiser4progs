@@ -57,12 +57,12 @@ static void mkfs_print_usage(char *name) {
 		"                                  directory.\n"
 		"  -b, --block-size N              block size, 4096 by default, other\n"
 		"                                  are not supported at the moment.\n"
-		"  -i, --uuid UUID                 universally unique identifier.\n"
-		"  -l, --label LABEL               volume label lets to mount\n"
+		"  -U, --uuid UUID                 universally unique identifier.\n"
+		"  -L, --label LABEL               volume label lets to mount\n"
 		"                                  filesystem by its label.\n"
 		"Plugins options:\n"
-		"  -P, --print-params              prints default params.\n"
-		"  -p, --print-plugins             prints all known plugins.\n"
+		"  -p, --print-params              prints default params.\n"
+		"  -l, --print-plugins             prints all known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -104,11 +104,11 @@ int main(int argc, char *argv[]) {
 		{"force", no_argument, NULL, 'f'},
 		{"quiet", no_argument, NULL, 'q'},
 		{"block-size", required_argument, NULL, 'b'},
-		{"label", required_argument, NULL, 'l'},
-		{"uuid", required_argument, NULL, 'i'},
+		{"label", required_argument, NULL, 'L'},
+		{"uuid", required_argument, NULL, 'U'},
 		{"lost-found", required_argument, NULL, 's'},
-		{"print-params", no_argument, NULL, 'P'},
-		{"print-plugins", no_argument, NULL, 'p'},
+		{"print-params", no_argument, NULL, 'p'},
+		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPpo:",
+	while ((c = getopt_long(argc, argv, "hVqfb:U:L:splo:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -144,10 +144,10 @@ int main(int argc, char *argv[]) {
 		case 'q':
 			flags |= BF_QUIET;
 			break;
-		case 'p':
+		case 'l':
 			flags |= BF_SHOW_PLUG;
 			break;
-		case 'P':
+		case 'p':
 			flags |= BF_SHOW_PARM;
 			break;
 		case 's':
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 				return USER_ERROR;	
 			}
 			break;
-		case 'i':
+		case 'U':
 			/* Parsing passed by user uuid */
 			if (aal_strlen(optarg) != 36) {
 				aal_error("Invalid uuid was specified (%s).",
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 			}
 #endif		
 			break;
-		case 'l':
+		case 'L':
 			aal_strncpy(hint.label, optarg,
 				    sizeof(hint.label));
 			break;

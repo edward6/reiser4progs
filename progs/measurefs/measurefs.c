@@ -56,8 +56,8 @@ static void measurefs_print_usage(char *name) {
 		"                                  during calclulation if --data-frag is\n"
 		"                                  specified.\n"
 		"Plugins options:\n"
-		"  -P, --print-params              prints default params.\n"
-		"  -p, --print-plugins             prints known plugins.\n"
+		"  -p, --print-params              prints default params.\n"
+		"  -l, --print-plugins             prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -708,8 +708,8 @@ int main(int argc, char *argv[]) {
 		{"file-frag", required_argument, NULL, 'F'},
 		{"data-frag", no_argument, NULL, 'D'},
 		{"show-file", no_argument, NULL, 'E'},
-		{"print-params", no_argument, NULL, 'P'},
-		{"print-plugins", no_argument, NULL, 'p'},
+		{"print-params", no_argument, NULL, 'p'},
+		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
@@ -723,7 +723,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:Pp",
+	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:pl",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -755,10 +755,10 @@ int main(int argc, char *argv[]) {
 		case 'q':
 			flags |= BF_QUIET;
 			break;
-		case 'P':
+		case 'p':
 			flags |= BF_SHOW_PARM;
 			break;
-		case 'p':
+		case 'l':
 			flags |= BF_SHOW_PLUG;
 			break;
 		case 'o':
