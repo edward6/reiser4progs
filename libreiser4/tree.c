@@ -1532,7 +1532,7 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 			       reiser4_key_t *end)
 {
 	errno_t res;
-	copy_hint_t hint;
+	copy_hint_t src_hint, dst_hint;
 	
 	aal_assert("umka-2161", dst != NULL);
 	aal_assert("umka-2162", src != NULL);
@@ -1545,14 +1545,26 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 		return -EINVAL;
 	}
 	
-	if ((res = reiser4_item_feel(src, &src->item.key, end, &hint)))
+	if ((res = reiser4_item_feel(src, &src->item.key, end, &src_hint)))
 		return res;
-
-	aal_assert("umka-2122", hint.len > 0);
 	
+	if ((res = reiser4_item_feel(dst, &src->item.key, end, &dst_hint)))
+		return res;
+	
+	aal_assert("umka-2122", src_hint.len > 0);
+	aal_assert("vpf-905", dst_hint.len > 0);
+	
+	if (src_hint.len != dst_hint.len) {
+	    /*
+	       FIXME-VITALY: ajust space for the new data according to 
+	       src_hint.len. 
+	    */
+	}
+	    
 	if ((res = reiser4_node_copy(dst->node, &dst->pos,
 				     src->node, &src->pos,
-				     &src->item.key, end, &hint)))
+				     &src->item.key, end, 
+				     &src_hint)))
 	{
 		aal_exception_error("Can't copy an item/unit from node "
 				    "%llu to %llu one.", src->node->blk,
@@ -1604,7 +1616,7 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 	
 	old = *dst;
 	
-	if ((res = reiser4_tree_mkspace(tree, dst, hint.plugin,
+	if ((res = reiser4_tree_mkspace(tree, dst, src->item.plugin,
 					hint.len)))
 	{
 		aal_exception_error("Can't prepare space for "
@@ -1627,7 +1639,7 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 		reiser4_place_init(&p, dst->node->parent.node,
 				   &dst->node->parent.pos);
 		
-		if ((res = reiser4_tree_ukey(tree, &p, &hint.key)))
+		if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
 			return res;
 	}
 	
