@@ -417,10 +417,10 @@ errno_t reg40_check_struct(object_entity_t *object,
 {
 	reg40_t *reg = (reg40_t *)object;
 	reg40_repair_t repair;
-	uint64_t offset, size;
 	object_info_t *info;
 	conv_hint_t hint;
 	errno_t res = 0;
+	uint64_t size;
 
 	aal_assert("vpf-1126", reg != NULL);
 	aal_assert("vpf-1190", reg->obj.info.tree != NULL);
@@ -454,7 +454,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	/* Get the reg file tail never policy. FIXME-VITALY: obj40_plug
 	   when we can point tail_never policy in plug_extension */
 	if (!(repair.extent = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
-						       TAIL_NEVER_ID)))
+							    TAIL_NEVER_ID)))
 	{
 		aal_exception_error("Failed to find the 'tail never' tail "
 				    "policy plugin.");

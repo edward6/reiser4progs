@@ -383,17 +383,19 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree, node_t *node) {
 			if (!(child = reiser4_tree_lookup_node(tree, blk)))
 				continue;
 
-			/* Unlock old parent node. Thre are some cases when
+			/* Unlock old parent node. There are some cases when
 			   parent is not set yet (like tree_growup()). So, we
 			   check parent for null. */
-			if (child->p.node)
+			if (child->p.node) {
 				reiser4_node_unlock(child->p.node);
+				reiser4_node_lock(node);
+			}
 			
 			/* Update @child parent. */
 			child->p.node = node;
 
 			/* Lock new parent node. */
-			reiser4_node_lock(child->p.node);
+//			reiser4_node_lock(child->p.node);
 			
 			if ((res = reiser4_tree_node_realize(tree, child)))
 				return res;
