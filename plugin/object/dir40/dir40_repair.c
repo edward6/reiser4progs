@@ -236,8 +236,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	info = &dir->obj.info;
 	
-	if ((res = obj40_stat_launch(&dir->obj, NULL, 
-				     dir40_exts, 1, S_IFDIR, mode)))
+	if ((res = obj40_stat_launch(&dir->obj, NULL, dir40_exts, 1, 
+				     S_IFDIR, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */
@@ -245,7 +245,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = obj40_fix_key(&dir->obj, &info->start, &info->object, mode)) < 0)
+	if ((res = obj40_fix_key(&dir->obj, &info->start, 
+				 &info->object, mode)) < 0)
 		return res;
 	
 	/* Init hash plugin in use. */
@@ -297,9 +298,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 		if (lookup == ABSENT)
 			break;
 		
-		/* Looks like an item of dir40. If there were some key 
-		   collisions, this search was performed with incremented 
-		   adjust, decrement it here. */
+		/* Looks like an item of dir40. If there were some key collisions, 
+		   this search was performed with incremented adjust, decrement it 
+		   here. */
 		if (dir->offset.adjust)
 			dir->offset.adjust--;
 			
@@ -332,7 +333,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			
 			continue;
 		}
-		    
+
 		/* Try to register the item if it has not been yet. Any 
 		   item has a pointer to objectid in the key, if it is 
 		   shared between 2 objects, it should be already solved 
@@ -340,6 +341,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 		if (place_func && place_func(object, &dir->body, data))
 			return -EINVAL;
 		
+		/* Count size and bytes. */
+		size += plug_call(dir->body.plug->o.item_ops, 
+				  size, &dir->body);
+
+		bytes += plug_call(dir->body.plug->o.item_ops, 
+				   bytes, &dir->body);
+
 		units = plug_call(dir->body.plug->o.item_ops, 
 				  units, &dir->body);
 		
@@ -387,10 +395,11 @@ errno_t dir40_check_struct(object_entity_t *object,
 						 &hint)) < 0)
 				return res;
 
-			units--; 
-			pos->unit--;
+			/* Lookup it again. */
+			size--;
+			bytes -= hint.bytes;
 			
-			continue;
+			break;
 			
 		leave:
 			/* The key is ok. */
@@ -409,15 +418,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 			}
 		}
 		
-		if (units) {
-			/* Count size and bytes. */
-			size += plug_call(dir->body.plug->o.item_ops, 
-					  size, &dir->body);
-
-			bytes += plug_call(dir->body.plug->o.item_ops, 
-					   bytes, &dir->body);
-		} 
-
 		/* Lookup for the last entry left in the tree with the 
 		   incremented adjust to get the next one. */
 		dir->offset.adjust++;
@@ -525,6 +525,8 @@ errno_t dir40_form(object_entity_t *object) {
 	entry_hint_t entry;
 
 	aal_assert("vpf-1269", object != NULL);
+
+	dir40_reset(object);
 
 	/* Init hash plugin in use if is not known yet. */
 	if (!dir->hash) {

@@ -16,7 +16,7 @@ extern errno_t reg40_reset(object_entity_t *entity);
 extern uint64_t reg40_offset(object_entity_t *entity);
 extern lookup_t reg40_update(object_entity_t *entity);
 
-extern int32_t reg40_put(object_entity_t *entity,
+extern int64_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
 
 extern reiser4_plug_t *reg40_policy_plug(reg40_t *reg,
@@ -117,8 +117,8 @@ static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
         *nlink = 0;
 }
 
-static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
-	int32_t res;
+static int64_t reg40_create_hole(reg40_t *reg, uint64_t len) {
+	int64_t res;
 
 	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
 		uint64_t offset = reg40_offset((object_entity_t *)reg);
@@ -187,16 +187,268 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 	return offset % reg->body.block->size ? RE_FATAL : 0;
 }
 
+typedef struct reg40_repair {
+	reiser4_plug_t *eplug;
+	reiser4_plug_t *tplug;
+	reiser4_plug_t *bplug;
+	reiser4_plug_t *extent;
+	uint64_t size, bytes, maxreal;
+} reg40_repair_t;
+
+static errno_t reg40_next(object_entity_t *object, 
+			  reg40_repair_t *repair,
+			  uint8_t mode)
+{
+	reg40_t *reg = (reg40_t *)object;
+	object_info_t *info;
+	trans_hint_t hint;
+	errno_t res;
+	
+	aal_assert("vpf-1344", object != NULL);
+	aal_assert("vpf-1345", repair != NULL);
+	
+	info = &reg->obj.info;
+	
+	while (1) {
+		if ((res = reg40_update(object)) < 0)
+			return res;
+
+		if (res == ABSENT) {
+			/* If place is invalid, no more reg40 items. */
+			if (!rcore->tree_ops.valid(info->tree, &reg->body))
+				goto end;
+
+			/* Initializing item entity at @next place */
+			if ((res = rcore->tree_ops.fetch(info->tree, 
+							 &reg->body)))
+				return res;
+
+			/* Check if this is an item of another object. */
+			if (plug_call(reg->offset.plug->o.key_ops, compshort,
+				      &reg->offset, &reg->body.key))
+				goto end;
+
+			/* If non-existent position in the item, move next. */
+			if (plug_call(reg->body.plug->o.item_ops, units, 
+				      &reg->body) == reg->body.pos.unit)
+			{
+				place_t next;
+
+				if ((res = rcore->tree_ops.next(info->tree, 
+								&reg->body,
+								&next)))
+					return res;
+
+				/* If this was the last item in the tree, 
+				   evth is handled. */
+				if (next.node == NULL)
+					break;
+
+				reg->body = next;
+
+				/* Check if this is an item of another object. */
+				if (plug_call(reg->offset.plug->o.key_ops, 
+					      compshort, &reg->offset, 
+					      &reg->body.key))
+					break;
+			}
+		}
+
+		res = 0;
+
+		if (!plug_equal(reg->body.plug, repair->eplug) && 
+		    !plug_equal(reg->body.plug, repair->tplug))
+		{
+			aal_exception_error("The object [%s] (%s), node (%llu),"
+					    "item (%u): the item [%s] of the "
+					    "invalid plugin (%s) found.%s",
+					    print_ino(rcore, &info->object),
+					    reg->obj.plug->label,
+					    reg->body.block->nr, 
+					    reg->body.pos.item,
+					    print_key(rcore, &reg->body.key),
+					    reg->body.plug->label, 
+					    mode == RM_BUILD ? 
+					    " Removed." : "");
+		} else if (reg40_check_ikey(reg)) {
+			aal_exception_error("The object [%s] (%s), node (%llu),"
+					    "item (%u): the item [%s] has the "
+					    "wrong offset.%s",
+					    print_ino(rcore, &info->object),
+					    reg->obj.plug->label,
+					    reg->body.block->nr, 
+					    reg->body.pos.item,
+					    print_key(rcore, &reg->body.key),
+					    mode == RM_BUILD ? 
+					    " Removed." : "");
+		} else
+			return 0;
+
+		/* Rm an item with not correct key or of unknown plugin. */
+		if (mode != RM_BUILD) 
+			return RE_FATAL;
+
+		hint.count = 1;
+
+		/* Item has wrong key, remove it. */
+		if ((res = obj40_remove(&reg->obj, &reg->body, &hint)))
+			return res;
+
+		continue;
+	}
+ end:
+	reg->body.plug = NULL;
+	return 0;
+}
+
+/* Returns 1 if the convertion is needed right now, 0 if should be delayed. */
+static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
+			      reg40_repair_t *repair, uint8_t mode)
+{
+	object_info_t *info;
+	
+	aal_assert("vpf-1348", reg != NULL);
+	aal_assert("vpf-1349", hint != NULL);
+	aal_assert("vpf-1350", repair != NULL);
+	aal_assert("vpf-1353", reg->body.plug != NULL);
+	aal_assert("vpf-1354", !plug_equal(reg->body.plug, repair->bplug));
+
+	info = &reg->obj.info;
+	aal_exception_error("The object [%s] (%s), node (%llu), item (%u): the "
+			    "found item [%s] of the plugin (%s) does not match "
+			    "the detected tail policy (%s).%s", 
+			    print_ino(rcore, &info->object),
+			    reg->obj.plug->label, reg->body.block->nr, 
+			    reg->body.pos.item,
+			    print_key(rcore, &reg->body.key),
+			    reg->body.plug->label, reg->policy->label,
+			    mode == RM_BUILD ? " Converted." : "");
+
+	if (mode != RM_BUILD) 
+		return 1;
+
+	hint->plug = repair->eplug;
+	
+	if (plug_equal(repair->bplug, repair->tplug)) {
+		/* Extent found, tail should be. Convert evth between 0 and 
+		   the current offset to extents, start from the beginning 
+		   using extent only policy then. */
+		
+		/* Set the start key for convertion. */
+		plug_call(reg->body.key.plug->o.key_ops, assign,
+			  &hint->offset, &reg->offset);
+		plug_call(reg->body.key.plug->o.key_ops, set_offset,
+			  &hint->offset, 0);
+
+		hint->bytes = hint->size = 0;
+
+		/* Count of bytes 0-this item offset. */
+		hint->count = plug_call(reg->body.key.plug->o.key_ops, 
+					get_offset, &reg->body.key);
+
+		reg->policy = repair->extent;
+
+		/* Evth is to be converted. */
+		repair->size = repair->bytes = 0;
+
+		return 1;
+	}
+
+	/* Tail found, extent should be. Gather all tails and convert them 
+	   at once later. */
+	if (hint->offset.plug == NULL) {
+		plug_call(reg->body.key.plug->o.key_ops, assign,
+			  &hint->offset, &reg->offset);
+
+		hint->bytes = hint->size = 0;
+	}
+
+	/* Count of bytes 0-this item offset. */
+	hint->count = repair->maxreal + 1 - 
+		plug_call(reg->body.key.plug->o.key_ops,
+			  get_offset, &hint->offset);
+/*
+	} else if (hint->offset.plug) {
+		// Plugins are equal. But some items need to be converted.
+		if ((res = rcore->tree_ops.conv(info->tree, hint)) < 0)
+			return res;
+
+		// Evth was converted, update size and bytes. 
+		repair->size += hint->size;
+		repair->bytes += hint->bytes;
+		aal_memset(&hint->offset, 0, sizeof(hint->offset));
+	}
+*/
+	return 0;
+}
+
+/* Obtains the maxreal key of the given place.
+   Returns: maxreal key if evth is ok.
+   0 -- no place; MAX_UINT64 -- some error. */
+static uint64_t reg40_place_maxreal(place_t *place) {
+	key_entity_t key;
+	errno_t res;
+	
+	if (!place->plug)
+		return 0;
+
+	/* Get the maxreal key of the found item. */
+	if ((res = plug_call(place->plug->o.item_ops, 
+			     maxreal_key, place, &key)))
+		return MAX_UINT64;
+
+	return plug_call(key.plug->o.key_ops, get_offset, &key);
+}
+
+static errno_t reg40_hole_cure(object_entity_t *object, 
+			       reg40_repair_t *repair, 
+			       uint8_t mode) 
+{
+	reg40_t *reg = (reg40_t *)object;
+	object_info_t *info;
+	uint64_t offset;
+	int64_t res;
+	
+	aal_assert("vpf-1355", reg != NULL);
+
+	offset = plug_call(reg->body.key.plug->o.key_ops, 
+			   get_offset, &reg->body.key);
+
+	if (reg40_offset(object) == offset)
+		return 0;
+
+	info = &object->info;
+	
+	aal_exception_error("The object [%s] has a break at [%llu-%llu] "
+			    "offsets. Plugin %s.%s", 
+			    print_ino(rcore, &info->object), 
+			    reg40_offset(object), offset, 
+			    reg->obj.plug->label,
+			    mode == RM_BUILD ? " Writing a hole there." 
+			    : "");
+
+	if (mode != RM_BUILD)
+		return RE_FATAL;
+
+	repair->size += offset - reg40_offset(object);
+
+	if ((res = reg40_create_hole(reg, offset - reg40_offset(object))) < 0)
+		return res;
+	
+	repair->bytes += res;
+	
+	return 0;
+}
 
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
 			   void *data, uint8_t mode)
 {
-	reiser4_plug_t *eplug, *tplug, *bplug, *extent;
-	uint64_t size, bytes, offset, maxreal;
 	reg40_t *reg = (reg40_t *)object;
+	uint64_t offset;
+	reg40_repair_t repair;
 	object_info_t *info;
-	key_entity_t key;
+	conv_hint_t hint;
 	errno_t res = 0;
 
 	aal_assert("vpf-1126", reg != NULL);
@@ -226,10 +478,12 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	}
 	
+	aal_memset(&repair, 0, sizeof(repair));
+	
 	/* Get the reg file tail never policy. FIXME-VITALY: obj40_plug
 	   when we can point tail_never policy in plug_extention */
-	if (!(extent = rcore->factory_ops.ifind(POLICY_PLUG_TYPE, 
-						TAIL_NEVER_ID)))
+	if (!(repair.extent = rcore->factory_ops.ifind(POLICY_PLUG_TYPE, 
+						       TAIL_NEVER_ID)))
 	{
 		aal_exception_error("Failed to find the 'tail never' tail "
 				    "policy plugin.");
@@ -238,7 +492,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* Get the extent item plugin. FIXME-VITALY: param_ops.valus+ifind
 	   for now untill we can point tail item in plug_extention */
-	if (!(eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent")))	{
+	if (!(repair.eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent"))){
 		aal_exception_error("The object [%s] failed to detect the "
 				    "extent plugin to use.", 
 				    print_ino(rcore, &info->object));
@@ -247,7 +501,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 
 	/* Get the tail item plugin. FIXME-VITALY: param_ops.valus+ifind
 	   for now untill we can point extent item in plug_extention */
-	if (!(tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
+	if (!(repair.tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
 		aal_exception_error("The object [%s] failed to detect the "
 				    "tail plugin to use.", 
 				    print_ino(rcore, &info->object));
@@ -255,216 +509,91 @@ errno_t reg40_check_struct(object_entity_t *object,
 	}
 	
 	/* Get the maxreal file byte and find out what body plug to use. */
-	if (!(bplug = reg40_body_plug(reg)))
+	if (!(repair.bplug = reg40_body_plug(reg)))
 		return -EINVAL;
 		
-	size = bytes = 0;
+	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
 		errno_t result;
 		
-		if ((result = reg40_update(object)) < 0)
+		if ((result = reg40_next(object, &repair, mode)) < 0)
 			return result;
 		
-		if (result == ABSENT) {
-			/* If place is invalid, no more reg40 items. */
-			if (!rcore->tree_ops.valid(info->tree, &reg->body))
-				break;
-			
-			/* Initializing item entity at @next place */
-			if ((res |= rcore->tree_ops.fetch(info->tree, 
-							  &reg->body)) < 0)
-				return res;
-			
-			/* Check if this is an item of another object. */
-			if (plug_call(reg->offset.plug->o.key_ops, compshort,
-				      &reg->offset, &reg->body.key))
-				break;
-
-			/* If non-existent position in the item, move next. */
-			if (plug_call(reg->body.plug->o.item_ops, units, 
-				      &reg->body) == reg->body.pos.unit)
-			{
-				place_t next;
-				if ((res = rcore->tree_ops.next(info->tree, 
-								&reg->body, 
-								&next)) < 0)
-					return res;
-
-				/* If this was the last item in the tree, 
-				   evth is handled. */
-				if (next.node == NULL)
-					break;
-
-				reg->body = next;
-				
-				/* Check if this is an item of another object. */
-				if (plug_call(reg->offset.plug->o.key_ops, 
-					      compshort, &reg->offset, 
-					      &reg->body.key))
-					break;
-			}
-		}
-		
-//		aal_assert("vpf-1304", reg->body.pos.unit == MAX_UINT32);
-		
-		result = 0;
-		
-		if (!plug_equal(reg->body.plug, eplug) && 
-		    !plug_equal(reg->body.plug, tplug))
+		if ((repair.maxreal = reg40_place_maxreal(&reg->body)) 
+		    == MAX_UINT64)
 		{
-			aal_exception_error("The object [%s] (%s), node (%llu),"
-					    "item (%u): the item [%s] of the "
-					    "invalid plugin (%s) found.%s",
-					    print_ino(rcore, &info->object),
-					    reg->obj.plug->label,
-					    reg->body.block->nr, 
-					    reg->body.pos.item,
-					    print_key(rcore, &reg->body.key),
-					    reg->body.plug->label, 
-					    mode == RM_BUILD ? 
-					    " Removed." : "");
-			result = RE_FATAL;
-		} else if (reg40_check_ikey(reg)) {
-			aal_exception_error("The object [%s] (%s), node (%llu),"
-					    "item (%u): the item [%s] has the "
-					    "wrong offset.%s",
-					    print_ino(rcore, &info->object),
-					    reg->obj.plug->label,
-					    reg->body.block->nr, 
-					    reg->body.pos.item,
-					    print_key(rcore, &reg->body.key),
-					    mode == RM_BUILD ? 
-					    " Removed." : "");
-			result = RE_FATAL;
-		} else 
-			result = 0;
+			return -EINVAL;
+		}
 		
-		/* If key is not correct or item of unknwon plugin is found, 
-		   remove it. */
 		if (result) {
-			trans_hint_t hint;
-			
-			if (mode != RM_BUILD) 
-				return RE_FATAL;
-			
-			hint.count = 1;
-			
-			/* Item has wrong key, remove it. */
-			if ((result = obj40_remove(&reg->obj, &reg->body, 
-						   &hint)))
-				return result;
-
-			continue;
+			res |= result;
+			goto next;
 		}
 		
-		while (!plug_equal(reg->body.plug, bplug)) {
-			conv_hint_t hint;
-			
-			aal_exception_error("The object [%s] (%s), node (%llu),"
-					    "item (%u): the found item [%s] of "
-					    "the plugin (%s) does not match "
-					    "the detected tail policy (%s).%s",
-					    print_ino(rcore, &info->object),
-					    reg->obj.plug->label,
-					    reg->body.block->nr, 
-					    reg->body.pos.item,
-					    print_key(rcore, &reg->body.key),
-					    reg->body.plug->label,
-					    reg->policy->label,
-					    mode == RM_BUILD ? 
-					    " Converted." : "");
+		if (reg->body.plug && !plug_equal(reg->body.plug, 
+						  repair.bplug)) 
+		{
+			/* If found item should be converted, prepare it. */
+			result = reg40_conv_prepare(reg, &hint, &repair, mode);
 
-			if (mode != RM_BUILD) {
-				res |= RE_FATAL;
-				break;
+			if (result && mode != RM_BUILD) {
+				res |= result;
+				goto next;
 			}
-			
-			hint.bytes = 0;
-			
-			plug_call(reg->body.key.plug->o.key_ops, assign,
-				  &hint.offset, &reg->body.key);
-	
-			if (plug_equal(bplug, tplug)) {
-				/* Extent found, tail should be. Convert evth 
-				   between 0 and the current offset to extents,
-				   start from the beginning using extent only 
-				   policy then. */
-				reg->policy = extent;
-				
-				hint.plug = eplug;
-				hint.count = reg40_offset(object);
-				
-				/* Start from the beginning. */
-				size = bytes = 0;
-				reg40_reset(object);
-			} else {
-				/* Tail found, extent should be. Convert 
-				   the item to extent. */
+		}
 
-				hint.plug = bplug;
-				hint.count = plug_call(reg->body.plug->o.item_ops,
-						       size, &reg->body);
-			}
-
-			if ((res |= rcore->tree_ops.conv(info->tree, &hint)) < 0)
-				return res;
+		/* If no more reg40 body items and some of them need to be 
+		   converted, or convertion is to be now, run tree_conv. */
+		if ((!reg->body.plug && hint.offset.plug) || result) {
+			result = rcore->tree_ops.conv(info->tree, &hint);
 			
-			continue;
+			if (result) return result;
+
+			/* Evth was converted, update size and bytes. */
+			repair.size += hint.size;
+			repair.bytes += hint.bytes;
+			aal_memset(&hint, 0, sizeof(hint));
+			
+			goto next;
 		}
 		
-		offset = plug_call(reg->body.key.plug->o.key_ops,
-				   get_offset, &reg->body.key);
-		
-		/* If we found not we looking for, insert the hole. */
-		if (reg40_offset(object) != offset) {
-			if (mode == RM_BUILD) {
-				res |= reg40_create_hole(reg, offset - 
-							 reg40_offset(object));							 
-				if (res < 0)
-					return res;
-				
-				/* Scan and register created items. */
-				continue;
-			}
-			
-			aal_exception_error("The object [%s] has a break at "
-					    "[%llu-%llu] offsets. Plugin %s.",
-					    print_ino(rcore, &info->object),
-					    reg40_offset(object), offset,
-					    reg->obj.plug->label);
-			res |= RE_FATAL;
-		}
-		
+		/* No more items, break out here. */
+		if (!reg->body.plug) break;
+
 		/* Try to register this item. Any item has a pointer to 
 		   objectid in the key, if it is shared between 2 objects, 
 		   it should be already solved at relocation  time. */
 		if (place_func && place_func(object, &reg->body, data))
 			return -EINVAL;
 
+		if ((result = obj40_fix_key(&reg->obj, &reg->body, 
+					    &reg->offset, mode)))
+			return result;
+
 		/* Fix item key if differs. */
-		if ((res |= obj40_fix_key(&reg->obj, &reg->body, 
-					  &reg->offset, mode)) < 0)
+		offset = plug_call(reg->body.key.plug->o.key_ops,
+				   get_offset, &reg->body.key);
+		
+		/* If we found not we looking for, insert the hole. */
+		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
 			return res;
 
 		/* Count size and bytes. */
-		size += plug_call(reg->body.plug->o.item_ops, 
-				  size, &reg->body);
+		repair.size += plug_call(reg->body.plug->o.item_ops,
+					 size, &reg->body);
 		
-		bytes += plug_call(reg->body.plug->o.item_ops, 
-				   bytes, &reg->body);
+		repair.bytes += plug_call(reg->body.plug->o.item_ops,
+					  bytes, &reg->body);
 		
-		/* Get the maxreal key of the found item and find next. */
-		if ((res |= plug_call(reg->body.plug->o.item_ops, 
-				      maxreal_key, &reg->body, &key)))
-			return res;
-		
-		maxreal = plug_call(key.plug->o.key_ops, get_offset, &key);
 
+	next:
+		if (!repair.maxreal)
+			break;
+		
 		/* Find the next after the maxreal key. */
-		reg40_seek(object, maxreal + 1);
-
+		reg40_seek(object, repair.maxreal + 1);
 	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */
@@ -473,7 +602,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 					reg40_zero_nlink : NULL,
 					reg40_check_mode, 
 					reg40_check_size,
-					size, bytes, mode);
+					repair.size, repair.bytes, mode);
 
 	return res;
 }
@@ -483,6 +612,8 @@ errno_t reg40_form(object_entity_t *object) {
 
 	aal_assert("vpf-1319", object != NULL);
 
+	reg40_reset(object);
+	
 	/* Get the reg file tail policy. */
 	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, "policy")))
 	{
