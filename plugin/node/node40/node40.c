@@ -708,28 +708,26 @@ errno_t node40_cutout(node_entity_t *entity, pos_t *pos,
 		{
 			return res;
 		}
-	}
 
-	/* Updating items key */
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, place.pos.item);
-	aal_memcpy(ih, place.key.body, key_size(pol));
+		pol = node40_key_pol(node);
+		ih = node40_ih_at(node, place.pos.item);
+		aal_memcpy(ih, place.key.body, key_size(pol));
+	} else {
+		hint->ohd = 0;
+		hint->len = hint->count;
+	}
 	
-	/* Shrinking node */
 	len = hint->ohd + hint->len;
-	
-	if (node40_shrink(entity, &place.pos,
-			  len, hint->count))
-	{
-		return -EIO;
+
+	if (len >= node40_size(node, &place.pos, 1)) {
+		place.pos.unit = MAX_UINT32;
+		
+		return node40_shrink(entity, &place.pos,
+				     0, 1);
+	} else {
+		return node40_shrink(entity, &place.pos,
+				     len, hint->count);
 	}
-
-	place.pos.unit = MAX_UINT32;
-	
-	if (node40_size(node, &place.pos, 1) == 0)
-		return node40_shrink(entity, &place.pos, 0, 1);
-
-	return 0;
 }
 
 /* This function removes item/unit from the node at specified @pos */
@@ -769,7 +767,6 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		{
 			return -EINVAL;
 		}
-		
 	} else {
 		if (place.plug->o.item_ops->remove) {
 			/* Removing units from the item pointed by @pos */
