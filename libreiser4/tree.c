@@ -1925,29 +1925,21 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
-static errno_t down_node_open(reiser4_tree_t *tree,
-			      reiser4_node_t **node,
-			      reiser4_place_t *place,
-			      void *data)
+static reiser4_node_t *down_node_open(reiser4_tree_t *tree,
+				      reiser4_place_t *place,
+				      void *data)
 {
-	aal_assert("vpf-1049", tree != NULL);
-	aal_assert("vpf-1050", node != NULL);
-	aal_assert("vpf-1119", place != NULL);
-
-	if (!(*node = reiser4_tree_child(tree, place)))
-		return -EINVAL;
-	
-	return 0;
+	return reiser4_tree_child(tree, place);
 }
 
 errno_t reiser4_tree_down(
-	reiser4_tree_t *tree,                /* tree for traversing it */
-	reiser4_node_t *node,		     /* node to be traversed */
-	tree_open_func_t open_func,	     /* callback for node opening */
-	tree_edge_func_t before_func,    /* begin callback */
-	tree_update_func_t update_func,  /* per child callback */
-	tree_edge_func_t after_func,     /* end callback */
-	void *data)			     /* caller specific data */
+	reiser4_tree_t *tree,		/* tree for traversing it */
+	reiser4_node_t *node,		/* node to be traversed */
+	tree_open_func_t open_func,	/* callback for node opening */
+	tree_edge_func_t before_func,	/* begin callback */
+	tree_update_func_t update_func,	/* per child callback */
+	tree_edge_func_t after_func,	/* end callback */
+	void *data)			/* caller specific data */
 {
 	errno_t res = 0;
 	reiser4_place_t place;
@@ -1989,7 +1981,7 @@ errno_t reiser4_tree_down(
 			reiser4_node_t *child = NULL;
 			
 			/* Opening the node by its pointer kept in @place */
-			if ((res = open_func(tree, &child, &place, data)))
+			if ((child = open_func(tree, &place, data)) == INVAL_PTR)
 				goto error_after_func;
 
 			if (!child)
@@ -2027,12 +2019,12 @@ errno_t reiser4_tree_down(
    etc). This is is used for all tree traverse related operations like copy,
    measurements, etc. */
 errno_t reiser4_tree_traverse(
-	reiser4_tree_t *tree,		     /* node to be traversed */
-	tree_open_func_t open_func,	     /* callback for node opening */
-	tree_edge_func_t before_func,    /* start callback */
-	tree_update_func_t update_func,  /* after child callback */
-	tree_edge_func_t after_func,     /* end callback */
-	void *data)			     /* caller specific data */
+	reiser4_tree_t *tree,		/* node to be traversed */
+	tree_open_func_t open_func,	/* callback for node opening */
+	tree_edge_func_t before_func,	/* start callback */
+	tree_update_func_t update_func,	/* after child callback */
+	tree_edge_func_t after_func,	/* end callback */
+	void *data)			/* caller specific data */
 {
 	errno_t res;
 	

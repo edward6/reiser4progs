@@ -79,24 +79,23 @@ struct tfrag_hint {
 typedef struct tfrag_hint tfrag_hint_t;
 
 /* Open node callback for calculating the tree fragmentation */
-static errno_t tfrag_open_node(
+static reiser4_node_t *tfrag_open_node(
 	reiser4_tree_t *tree,	    /* tree being traveresed */
-	reiser4_node_t **node,      /* node to be opened */
 	reiser4_place_t *place,     /* place to read the blk number from */
 	void *data)		    /* traverse hint */
 {
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
+	reiser4_node_t *node;
 
 	aal_assert("umka-1556", frag_hint->level > 0);
 	
 	/* As we do not need traverse leaf level at all, we going out here */
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
-
-	if (!(*node = reiser4_tree_child(tree, place)))
-		return -EINVAL;
 	
-	return 0;
+	node = reiser4_tree_child(tree, place);
+	
+	return node == NULL ? INVAL_PTR : node;
 }
 
 static errno_t tfrag_process_item(

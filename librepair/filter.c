@@ -23,22 +23,21 @@ typedef enum repair_error_filter {
 /* Open callback for traverse. It opens a node at passed blk. It does nothing if 
    REPAIR_BAD_PTR is set and set this flag if node cannot be opeened. Returns 
    error if any. */
-static errno_t repair_filter_node_open(reiser4_tree_t *tree, reiser4_node_t **node,
-				       reiser4_place_t *place, void *data)
+static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
+					       reiser4_place_t *place, 
+					       void *data)
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
+	reiser4_node_t *node = NULL;
 	ptr_hint_t ptr;
 	errno_t res;
 	
-	aal_assert("vpf-432", node != NULL);
 	aal_assert("vpf-379", fd != NULL);
 	aal_assert("vpf-433", fd->repair != NULL);
 	aal_assert("vpf-842", fd->repair->fs != NULL);
 	aal_assert("vpf-591", fd->repair->fs->format != NULL);
 	aal_assert("vpf-1118", tree != NULL);
 	aal_assert("vpf-1118", place != NULL);
-	
-	*node = NULL;
 	
 	/* Fetching node ptr */
 	plugin_call(place->item.plugin->o.item_ops, read, &place->item, 
@@ -68,19 +67,19 @@ static errno_t repair_filter_node_open(reiser4_tree_t *tree, reiser4_node_t **no
 				aal_exception_error("Node (%llu), pos (%u, %u): "
 						    "Remove failed.", place->node->number,
 						    place->pos.item, place->pos.unit);
-				return -EINVAL;
+				return INVAL_PTR;
 			}
 			
 			place->pos = ppos;
 		} else
 			fd->repair->fatal++;
 		
-		return 0;
+		return NULL;
 	}
 	
-	if ((*node = repair_node_open(fd->repair->fs, ptr.start)) == NULL) {
+	if ((node = repair_node_open(fd->repair->fs, ptr.start)) == NULL) {
 		fd->flags |= REPAIR_BAD_PTR;
-		return 0;
+		return NULL;
 	}
 	
 	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
@@ -94,11 +93,11 @@ static errno_t repair_filter_node_open(reiser4_tree_t *tree, reiser4_node_t **no
 	
 	aux_bitmap_mark_region(fd->bm_used, ptr.start, ptr.width);
 	
-	return 0;
+	return node;
 	
  error_close_node:
-	reiser4_node_close(*node);
-	return res;
+	reiser4_node_close(node);
+	return INVAL_PTR;
 }
 
 /* Before callback for traverse. It checks node level, node consistency, and 
