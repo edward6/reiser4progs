@@ -68,7 +68,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 		return -EINVAL;
 	}
 	
-	if (reiser4_item_branch(&place)) {
+	if (reiser4_item_branch(place.plug)) {
 		ptr_hint_t ptr;
 		uint32_t blksize;
 		
@@ -278,7 +278,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 	aal_assert("vpf-655", src != NULL);
 	aal_assert("vpf-657", src->node != NULL);
 	
-	if (reiser4_item_branch(src))
+	if (reiser4_item_branch(src->plug))
 		return -EINVAL;
 	
 	src_units = reiser4_item_units(src);

@@ -281,7 +281,7 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 		return NULL;
 
 	/* Checking if item is a branch of tree */
-	if (!reiser4_item_branch(place))
+	if (!reiser4_item_branch(place->plug))
 		return NULL;
 			
 	plug_call(place->plug->o.item_ops, read,
@@ -863,7 +863,7 @@ lookup_t reiser4_tree_lookup(
 		    
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   position back. */
-		if (!reiser4_item_branch(place)) {
+		if (!reiser4_item_branch(place->plug)) {
 			if (res == ABSENT)
 				reiser4_place_inc(place, whole);
 
@@ -873,7 +873,7 @@ lookup_t reiser4_tree_lookup(
 			if (reiser4_place_fetch(place))
 				return FAILED;
 			
-			if (!reiser4_item_branch(place))
+			if (!reiser4_item_branch(place->plug))
 				return res;
 		} 
 
@@ -1954,7 +1954,7 @@ errno_t reiser4_tree_down(
 			goto error_after_func;
 		}
 
-		if (!reiser4_item_branch(&place))
+		if (!reiser4_item_branch(place.plug))
 			continue;
 
 		/* The loop though the units of the current item */

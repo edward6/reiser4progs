@@ -210,11 +210,13 @@ static uint64_t tree_profile(void *t, char *entry) {
 	return reiser4_profile_value(tree->fs->profile, entry);
 }
 
-static errno_t tree_ukey(place_t *place, key_entity_t *key) {
+static errno_t tree_ukey(void *tree, place_t *place, key_entity_t *key) {
+	aal_assert("vpf-1219", tree != NULL);
 	aal_assert("vpf-1206", place != NULL);
 	aal_assert("vpf-1207", key != NULL);
 
-	return reiser4_item_ukey((reiser4_place_t *)place, 
+	return reiser4_tree_ukey((reiser4_tree_t *)tree,
+				 (reiser4_place_t *)place,
 				 (reiser4_key_t *)key);
 }
 
@@ -321,7 +323,7 @@ reiser4_core_t core = {
 	},
 #endif
 	.key_ops = {
-		.print_key = key_print
+		.print = key_print
 	}
 };
 

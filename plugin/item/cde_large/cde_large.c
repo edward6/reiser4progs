@@ -773,7 +773,7 @@ static errno_t cde_large_print(place_t *place,
 	
 	aal_stream_format(stream, "CDE PLUGIN=%s LEN=%u, KEY=[%s] UNITS=%u\n",
 			  place->plug->label, place->len, 
-			  core->key_ops.print_key(&place->key, 0), 
+			  core->key_ops.print(&place->key, 0), 
 			  de_get_units(cde));
 		
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "

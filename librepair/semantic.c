@@ -17,17 +17,54 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 }
 
 /* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */
-static errno_t callback_check_struct(object_entity_t *object, 
-				     place_t *place, void *data) 
+static errno_t callback_register_item(object_entity_t *object, 
+				      place_t *place, void *data) 
 {
 	aal_assert("vpf-1114", object != NULL);
 	aal_assert("vpf-1115", place != NULL);
+	
+	if (repair_item_test_flag((reiser4_place_t *)place, OF_CHECKED)) {
+		aal_exception_error("Node (%llu), item (%u): item registering "
+				    "failed--it belongs to another object "
+				    "already. Plugin (%s).", place->con.blk,
+				    place->pos.unit, object->plug->label);
+		return 1;
+	}
 	
 	repair_item_set_flag((reiser4_place_t *)place, OF_CHECKED);
 	
 	return 0;
 }
 
+/* Callback for repair_object_check_struct. Register blocks of object layout. 
+   All these blocks are marked used here, not on twig_scan pass, because it's
+   easy to write regular file plugin objects of which will share some blocks.
+   In this case this callback should take one parameter more--kind of region
+   to be registered--REGION_SHARED. Not needed for now. */
+static errno_t callback_register_region(void *o, uint64_t start, 
+					uint64_t count, void *data)
+{
+	repair_semantic_t *sem = (repair_semantic_t *)data;
+	object_entity_t *object = (object_entity_t *)o;
+	
+	aal_assert("vpf-1114", object != NULL);
+	aal_assert("vpf-1217", data != NULL);
+	
+	if (reiser4_alloc_available(sem->repair->fs->alloc, start, count)) {
+		/* FIXME-VITALY: print object key when available through @object. */
+		aal_exception_error("Object failed to register the region "
+				    "[%llu-%llu] -- it belongs to another "
+				    "object already. Plugin (%s).", 
+				    start, start + count - 1, 
+				    object->plug->label);
+		return 1;
+	}
+	
+	reiser4_alloc_permit(sem->repair->fs->alloc, start, count);
+	reiser4_alloc_occupy(sem->repair->fs->alloc, start, count);
+	
+	return 0;
+}
 static errno_t repair_semantic_check_struct(repair_semantic_t *sem, 
 					    reiser4_object_t *object) 
 {
@@ -43,8 +80,9 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	if (repair_item_test_flag(start, OF_CHECKED))
 		return 0;
 	
-	if ((res = repair_object_check_struct(object, callback_check_struct,
-					      sem->repair->mode, NULL)) < 0)
+	if ((res = repair_object_check_struct(object, callback_register_item,
+					      callback_register_region,
+					      sem->repair->mode, sem)) < 0)
 		return res;
 	
 	if (res & RE_FATAL)

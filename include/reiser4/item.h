@@ -32,7 +32,7 @@ extern errno_t reiser4_item_ukey(reiser4_place_t *, reiser4_key_t *);
 extern errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 					reiser4_key_t *key);
 
-extern bool_t reiser4_item_branch(reiser4_place_t *place);
+extern bool_t reiser4_item_branch(reiser4_plug_t *plug);
 extern uint32_t reiser4_item_units(reiser4_place_t *place);
 
 

@@ -385,7 +385,7 @@ static errno_t stat40_print(place_t *place,
     
 	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=[%s] "
 			  "UNITS=1\n", place->plug->label, place->len,
-			  core->key_ops.print_key(&place->key, 0));
+			  core->key_ops.print(&place->key, 0));
 		
 	aal_stream_format(stream, "exts:\t\t%u\n",
 			  stat40_sdext_count(place));

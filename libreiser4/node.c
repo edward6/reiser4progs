@@ -231,7 +231,7 @@ static int reiser4_node_ack(reiser4_node_t *node,
 	if (reiser4_place_fetch(place))
 		return 0;
 
-	if (!reiser4_item_branch(place))
+	if (!reiser4_item_branch(place->plug))
 		return 0;
 
 	plug_call(place->plug->o.item_ops, read,
@@ -290,7 +290,7 @@ errno_t reiser4_node_realize(
 			if ((res = reiser4_place_fetch(parent)))
 				return res;
 
-			if (!reiser4_item_branch(parent))
+			if (!reiser4_item_branch(parent->plug))
 				continue;
 
 			for (j = 0; j < reiser4_item_units(parent); j++) {
@@ -616,7 +616,7 @@ errno_t reiser4_node_shift(
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
 
-		if (!reiser4_item_branch(&place))
+		if (!reiser4_item_branch(place.plug))
 			continue;
 
 		place.pos.unit = 0;
@@ -766,12 +766,12 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
 
-		if (reiser4_item_branch(&place))
+		if (reiser4_item_branch(place.plug))
 			break;
 	}
 
 	if (place.pos.item < items) {
-		if (!reiser4_item_branch(&place))
+		if (!reiser4_item_branch(place.plug))
 			return 0;
 	}
 
@@ -781,7 +781,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
 		
-		if (!reiser4_item_branch(&place))
+		if (!reiser4_item_branch(place.plug))
 			continue;
 		
 		plug_call(place.plug->o.item_ops, read,

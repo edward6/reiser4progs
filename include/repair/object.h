@@ -21,6 +21,7 @@ typedef enum repair_object_flag {
 
 extern errno_t repair_object_check_struct(reiser4_object_t *object,
 					  place_func_t place_func,
+					  region_func_t region_func,
 					  uint8_t mode, void *data);
 
 extern reiser4_object_t *repair_object_launch(reiser4_tree_t *tree, 

@@ -8,16 +8,18 @@
 
 
 /* Check the semantic structure of the object. Mark all items as CHECKED. */
-errno_t repair_object_check_struct(reiser4_object_t *object, 
-				   place_func_t place_func, 
+errno_t repair_object_check_struct(reiser4_object_t *object,
+				   place_func_t place_func,
+				   region_func_t region_func,
 				   uint8_t mode, void *data) 
 {
 	errno_t res;
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(object->entity->plug->o.object_ops, check_struct,
-			     object->entity, place_func, data, mode)) < 0)
+	if ((res = plug_call(object->entity->plug->o.object_ops, 
+			     check_struct, object->entity, place_func,
+			     region_func, data, mode)) < 0)
 		return res;
 	
 	repair_error_check(res, mode);

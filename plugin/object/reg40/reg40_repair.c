@@ -91,13 +91,29 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static errno_t reg40_ukey(place_t *place, key_entity_t *key) {
-	/* Fix SD's key if differs. */
+/* Fix place key if differs from @key. */
+static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key, 
+			  uint8_t mode) 
+{
+	object_info_t *info;
+	
+	aal_assert("vpf-1218", reg != NULL);
+	
+	info = &reg->obj.info;
 	
 	if (!key->plug->o.key_ops->compfull(key, &place->key))
 		return 0;
 	
-	return core->tree_ops.ukey(place, key);
+	aal_exception_error("Node (%llu), item(%u): the key [%s] of the item "
+			    "is wrong, %s [%s]. Plugin (%s).", place->con.blk,
+			    place->pos.unit, core->key_ops.print(&place->key, 0),
+			    mode == RM_BUILD ? "fixed to" : "should be", 
+			    core->key_ops.print(key, 0), reg->obj.plug->label);
+	
+	if (mode != RM_BUILD)
+		return RE_FATAL;
+	
+	return core->tree_ops.ukey(info->tree, place, key);
 }
 
 static errno_t reg40_check_stat(reg40_t *reg, uint64_t size, 
@@ -137,7 +153,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong mode "
 				    "(%u), %s (%u). Plugin (%s).", 
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print_key(&stat->key, P_SHORT),
+				    core->key_ops.print(&stat->key, P_SHORT),
 				    lw_hint.mode, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", lw_new.mode, stat->plug->label);
 		
@@ -154,7 +170,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong size "
 				    "(%llu), %s (%llu). Plugin (%s).",
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print_key(&stat->key, P_SHORT),
+				    core->key_ops.print(&stat->key, P_SHORT),
 				    lw_hint.size, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", lw_new.size, stat->plug->label);
 		
@@ -171,7 +187,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong bytes "
 				    "(%llu), %s (%llu). Plugin (%s).", 
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print_key(&stat->key, P_SHORT),
+				    core->key_ops.print(&stat->key, P_SHORT),
 				    unix_hint.bytes, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", bytes, stat->plug->label);
 		
@@ -205,7 +221,7 @@ static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	
 	aal_exception_error("Regular file [%s] does not have StatData "
 			    "item. %s Plugin %s.",
-			    core->key_ops.print_key(key, 0), mode == RM_BUILD ?
+			    core->key_ops.print(key, 0), mode == RM_BUILD ?
 			    "Creating a new one." : "", reg->obj.plug->label);
 	
 	if (mode != RM_BUILD)
@@ -222,22 +238,41 @@ static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	if ((res = reg40_create_stat(&reg->obj, pid))) {
 		aal_exception_error("Regular file [%s] failed to create "
 				    "StatData item. Plugin %s.",
-				    core->key_ops.print_key(key, 0),
+				    core->key_ops.print(key, 0),
 				    reg->obj.plug->label);
 	}
 	
 	return res;
 }
 
+typedef struct layout_hint {
+	object_entity_t *entity;
+	region_func_t region_func;
+	void *data;
+} layout_hint_t;
+
+static errno_t callback_layout(void *p, uint64_t start, uint64_t count, 
+			       void *data)
+{
+	layout_hint_t *hint = (layout_hint_t *)data;
+	place_t *place = (place_t *)p;
+
+	if (!start)
+		return 0;
+
+	return hint->region_func(hint->entity, start, count, hint->data);
+}
+
 errno_t reg40_check_struct(object_entity_t *object, 
-			   place_func_t register_func,
+			   place_func_t place_func,
+			   region_func_t region_func,
 			   uint8_t mode, void *data)
 {
 	uint64_t locality, objectid, ordering;
 	uint64_t size, bytes, offset, next;
 	reg40_t *reg = (reg40_t *)object;
 	object_info_t *info;
-	errno_t res = RE_OK;
+	errno_t res, result = RE_OK;
 	key_entity_t key;
 	lookup_t lookup;
 
@@ -278,16 +313,16 @@ errno_t reg40_check_struct(object_entity_t *object,
 		}
 	}
 	
-	if (register_func && register_func(object, &info->start, data))
-		/* Fails to register SD as an item of this file. */
-		return RE_FATAL;
+	/* Try to register SD as an item of this file. */
+	if (place_func && place_func(object, &info->start, data))
+		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = reg40_ukey(&info->start, &info->object))) {
+	if ((result |= reg40_ukey(reg, &info->start, &info->object, mode))) {
 		aal_exception_error("Node (%llu), item(%u): update of the "
 				    "item key failed.", info->start.con.blk,
 				    info->start.pos.unit);
-		return res;
+		return result;
 	}
 	
 	/* Build the start key of the body. */
@@ -323,26 +358,23 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 		/* If items was reached once, skip registering and fixing. */
 		if (next && next != offset) {
-			/* Try to register this item. */
-			if (register_func && register_func(object, &reg->body,
-							   data)) 
-			{
-				aal_exception_error("Node (%llu), item (%u): "
-						    "registering the item "
-						    "failed.", reg->body.con.blk,
-						    reg->body.pos.unit);
-
+			/* Try to register this item. Any item has a pointer 
+			   to objectid in the key, if it is shared between 2 
+			   objects, it should be already solved at relocation
+			   time. */
+			if (place_func && place_func(object, &reg->body, data))
 				return -EINVAL;
-			}
 
 			/* Fix item key if differs. */
-			if ((res = reg40_ukey(&reg->body, &key))) {
+			if ((result |= reg40_ukey(reg, &reg->body, 
+						  &key, mode)) < 0)
+			{
 				aal_exception_error("Node (%llu), item(%u): "
 						    "update of the item key "
 						    "failed.", reg->body.con.blk,
 						    reg->body.pos.unit);
 
-				return res;
+				return result;
 			}
 		} 
 
@@ -359,7 +391,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				aal_exception_error("The object [%s] failed to "
 						    "create the hole on offsets"
 						    " [%llu-%llu]. Plugin %s.",
-						    core->key_ops.print_key(&info->object, 0),
+						    core->key_ops.print(&info->object, 0),
 						    reg->offset, offset,
 						    reg->obj.plug->label);
 				return res;
@@ -377,6 +409,21 @@ errno_t reg40_check_struct(object_entity_t *object,
 		bytes += plug_call(reg->body.plug->o.item_ops, 
 				   bytes, &reg->body);
 		
+		/* Register object layout. */
+		if (region_func && reg->body.plug->o.item_ops->check_layout) {
+			layout_hint_t hint;
+			
+			hint.data = data;
+			hint.entity = object;
+			hint.region_func = region_func;
+			
+			if ((result |= plug_call(reg->body.plug->o.item_ops, 
+						 check_layout, &reg->body, 
+						 callback_layout, &hint, 
+						 mode)) < 0)
+				return result;
+		}
+		
 		/* Get the maxreal key of the found item and find next. */
 		if ((res = plug_call(reg->body.plug->o.item_ops, 
 				     maxreal_key, &reg->body, &key)))
@@ -392,8 +439,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* Fix the SD -- mode, lw and unix extentions. */
 	
-	return reg40_check_stat(reg, size, bytes, mode);
+	result |= reg40_check_stat(reg, size, bytes, mode);
+
+	return result;
 }
 
 #endif
-

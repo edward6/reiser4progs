@@ -259,14 +259,14 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 				        ( control->bm_unfm_tree->map[i] | 
 					  control->bm_unfm_out->map[i])) == 0);
 		
-		/* met is leaves, twigs and unfm which are not in the tree. */
-		control->bm_met->map[i] = ( ( control->bm_leaf->map[i] | 
-					      control->bm_twig->map[i] | 
-					      control->bm_unfm_out->map[i] | 
-					      control->bm_unfm_tree->map[i] ) 
-					   & ~(control->bm_used->map[i] ) );
+		/* met is leaves, twigs and unfm. */
+		control->bm_met->map[i] = (control->bm_leaf->map[i] | 
+					   control->bm_twig->map[i] | 
+					   control->bm_unfm_out->map[i] | 
+					   control->bm_unfm_tree->map[i]);
 		
-		/* Leave there only unused twigs, leaves. */
+		/* Leave there twigs, leaves, met which are not in the tree. */
+		control->bm_met->map[i] &= ~(control->bm_used->map[i]);
 		control->bm_twig->map[i] &= ~(control->bm_used->map[i]);
 		control->bm_leaf->map[i] &= ~(control->bm_used->map[i]);
 	}

@@ -42,28 +42,29 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 
 		start = et40_get_start(extent);
 		width = et40_get_width(extent);
+		
+		if (!start)
+			continue;
 
-		if (start) {
-			res = func(place, start, width, data);
+		if ((res = func(place, start, width, data)) < 0)
+			return res;
+		
+		if (!res)
+			continue;
+		
+		if (mode == RM_CHECK) {
+			result = RE_FIXABLE;
+		} else {
+			/* Zero the problem region. */
+			aal_exception_error("Node (%llu), item "
+					    "(%u): pointed region "
+					    "[%llu..%llu] is zeroed.", 
+					    place->con.blk, 
+					    place->pos.item, start, 
+					    start + width - 1);
 
-			if (res > 0) {
-				if (mode == RM_CHECK) {
-					result = RE_FIXABLE;
-				} else {
-					/* Zero the problem region. */
-					aal_exception_error("Node (%llu), item "
-							    "(%u): pointed region "
-							    "[%llu..%llu] is zeroed.", 
-							    place->con.blk, 
-							    place->pos.item, start, 
-							    start + width - 1);
-					
-					et40_set_start(extent, 0);
-					result = RE_FIXED;
-				}
-			} else if (res < 0) {
-				return res;
-			}
+			et40_set_start(extent, 0);
+			result = RE_FIXED;
 		}
 	}
 	

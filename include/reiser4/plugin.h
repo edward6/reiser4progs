@@ -639,7 +639,7 @@ struct reiser4_object_ops {
 	
 	/* Checks and recover the structure of the object. */
 	errno_t (*check_struct) (object_entity_t *, place_func_t, 
-				 void *, uint8_t);
+				 region_func_t, void *, uint8_t);
 	
 	/* Checks attach of the @object to the @parent. */
 	errno_t (*check_attach) (object_entity_t *, object_entity_t *, uint8_t);
@@ -777,7 +777,7 @@ struct reiser4_item_ops {
 	   to formatted node in the tree. If this method if not implemented,
 	   then item is assumed as not nodeptr one. All tree running operations
 	   like going from the root to leaves will use this function. */
-	int (*branch) (place_t *);
+	int (*branch) (void);
 	
 	/* Returns TRUE if instances of the plugin can contain data, not just
 	   tree index data. */
@@ -1332,7 +1332,7 @@ struct tree_ops {
 	uint64_t (*profile) (void *, char *);
 
 	/* Update the key in the place and the node itsef. */
-	errno_t (*ukey) (place_t *place, key_entity_t *key);
+	errno_t (*ukey) (void *tree, place_t *place, key_entity_t *key);
 #endif
 	/* Returns next and prev items respectively */
 	errno_t (*next) (void *, place_t *, place_t *);
@@ -1367,7 +1367,7 @@ typedef struct object_ops object_ops_t;
 #endif
 
 struct key_ops {
-	char *(*print_key) (key_entity_t *, uint16_t);
+	char *(*print) (key_entity_t *, uint16_t);
 };
 
 typedef struct key_ops key_ops_t;

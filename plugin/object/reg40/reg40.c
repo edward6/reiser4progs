@@ -790,7 +790,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 extern object_entity_t *reg40_realize(object_info_t *info);
 
 extern errno_t reg40_check_struct(object_entity_t *object,
-				  place_func_t register_func,
+				  place_func_t place_func,
+				  region_func_t region_func,
 				  void *data, uint8_t mode);
 
 #endif

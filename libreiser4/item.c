@@ -97,14 +97,13 @@ rid_t reiser4_item_type(reiser4_place_t *place) {
 #endif
 
 /* Returns TRUE if @place points to an internal item */
-bool_t reiser4_item_branch(reiser4_place_t *place) {
-	aal_assert("umka-1828", place != NULL);
-	aal_assert("umka-1829", place->plug != NULL);
+bool_t reiser4_item_branch(reiser4_plug_t *plug) {
+	aal_assert("umka-1829", plug != NULL);
 
-	if (!place->plug->o.item_ops->branch)
+	if (!plug->o.item_ops->branch)
 		return FALSE;
 
-	return place->plug->o.item_ops->branch((place_t *)place);
+	return plug->o.item_ops->branch();
 }
 
 /* Returns maximal possible key may exist in item at @place. If item's "get_key"

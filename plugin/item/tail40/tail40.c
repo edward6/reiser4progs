@@ -137,7 +137,7 @@ static errno_t tail40_print(place_t *place,
 
 	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=[%s] "
 			  "UNITS=%u\n", place->plug->label, place->len,
-			  core->key_ops.print_key(&place->key, 0), 
+			  core->key_ops.print(&place->key, 0), 
 			  place->len);
 		
 	return 0;
