@@ -37,24 +37,25 @@ reiser4_format_t *reiser4_format_open(
 	reiser4_fs_t *fs)	/* fs the format will be opened on */
 {
 	rid_t pid;
-	uint32_t blksize;
+	fs_desc_t desc;
 	reiser4_plug_t *plug;
 	reiser4_format_t *format;
 	
 	aal_assert("umka-104", fs != NULL);
 	aal_assert("umka-1700", fs->master != NULL);
     
-	/* Allocating memory for instance of disk-format */
+	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
     
 	format->fs = fs;
 	format->fs->format = format;
 
+	desc.device = fs->device;
 	pid = reiser4_master_get_format(fs->master);
-	blksize = reiser4_master_get_blksize(fs->master);
+	desc.blksize = reiser4_master_get_blksize(fs->master);
     
-	/* Finding needed disk-format plugin by its plugin id */
+	/* Finding needed disk-format plugin by its plugin id. */
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find disk-format plugin by "
 				    "its id 0x%x.", pid);
@@ -62,8 +63,8 @@ reiser4_format_t *reiser4_format_open(
 	}
     
 	/* Initializing disk-format entity by calling plugin */
-	if (!(format->entity = plug_call(plug->o.format_ops, open,
-					 fs->device, blksize)))
+	if (!(format->entity = plug_call(plug->o.format_ops,
+					 open, &desc)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
 				    plug->label);
@@ -81,11 +82,11 @@ reiser4_format_t *reiser4_format_open(
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
 	reiser4_fs_t *fs,	/* fs the format will be created on */
-	count_t len,		/* filesystem length in blocks */
-	uint16_t tail,		/* tail policy to be used */
+	count_t blocks,		/* filesystem length in blocks */
+	uint16_t policy,	/* tail policy to be used */
 	rid_t pid)		/* disk-format plugin id to be used */
 {
-	uint32_t blksize;
+	fs_desc_t desc;
 	reiser4_plug_t *plug;
 	reiser4_format_t *format;
 		
@@ -98,32 +99,32 @@ reiser4_format_t *reiser4_format_create(
 		return NULL;
 	}
     
-	/* Allocating memory */
+	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
 	format->fs = fs;
 	format->fs->format = format;
-	
-	blksize = reiser4_master_get_blksize(fs->master);
+
+	/* Initializing filesystem descriptor. */
+	desc.policy = policy;
+	desc.device = fs->device;
+	desc.blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Initializing entity of disk-format by means of calling "create"
 	   method from found plugin. Plugin "create" method will be creating all
 	   disk structures, namely, format-specific super block. */
-	if (!(format->entity = plug_call(plug->o.format_ops, create,
-					 fs->device, len, blksize, tail))) 
+	if (!(format->entity = plug_call(plug->o.format_ops,
+					 create, &desc, blocks))) 
 	{
-		aal_exception_error("Can't create disk-format %s on %s.", 
+		aal_exception_error("Can't create format %s on %s.",
 				    plug->label, fs->device->name);
     
-		goto error_free_format;
+		aal_free(format);
+		return NULL;
 	}
 	
 	return format;
-
- error_free_format:
-	aal_free(format);
-	return NULL;
 }
 
 /* Fetches format data to @stream. */
@@ -142,8 +143,7 @@ reiser4_format_t *reiser4_format_unpack(reiser4_fs_t *fs,
 					aal_stream_t *stream)
 {
 	rid_t pid;
-	uint32_t blksize;
-
+	fs_desc_t desc;
 	reiser4_plug_t *plug;
 	reiser4_format_t *format;
 	
@@ -165,11 +165,12 @@ reiser4_format_t *reiser4_format_unpack(reiser4_fs_t *fs,
 
 	format->fs = fs;
 	format->fs->format = format;
+
+	desc.device = fs->device;
+	desc.blksize = reiser4_master_get_blksize(fs->master);
 	
-	blksize = reiser4_master_get_blksize(fs->master);
-	
-	if (!(format->entity = plug_call(plug->o.format_ops, unpack,
-					 fs->device, blksize, stream)))
+	if (!(format->entity = plug_call(plug->o.format_ops,
+					 unpack, &desc, stream)))
 	{
 		aal_exception_error("Can't unpack disk-format.");
 		goto error_free_format;
@@ -215,32 +216,6 @@ errno_t reiser4_format_valid(
 	return plug_call(format->entity->plug->o.format_ops, 
 			 valid, format->entity);
 }
-
-/* Reopens disk-format on specified device */
-errno_t reiser4_format_reopen(
-	reiser4_format_t *format)	/* format to be reopened */
-{
-	uint32_t blksize;
-	reiser4_plug_t *plug;
-	
-	aal_assert("umka-428", format != NULL);
-
-	plug = format->entity->plug;
-	plug_call(plug->o.format_ops, close, format->entity);
-	
-	blksize = reiser4_master_get_blksize(format->fs->master);
-	
-	if (!(format->entity = plug_call(plug->o.format_ops, open,
-					 format->fs->device, blksize)))
-	{
-		aal_exception_fatal("Can't open disk-format %s.",
-				    plug->label);
-		return -EINVAL;
-	}
-	
-	return 0;
-}
-
 #endif
 
 /* Closes passed disk-format */

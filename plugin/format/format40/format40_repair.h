@@ -12,11 +12,10 @@
 extern errno_t format40_pack(generic_entity_t *entity,
 			      aal_stream_t *stream);
 
-extern generic_entity_t *format40_unpack(aal_device_t *device,
-					 uint32_t blksize,
-					 aal_stream_t *stream);
-
 extern errno_t format40_update(generic_entity_t *entity);
+
+extern generic_entity_t *format40_unpack(fs_desc_t *desc,
+					 aal_stream_t *stream);
 
 extern errno_t format40_check_struct(generic_entity_t *entity,
 				     uint8_t mode);

@@ -134,7 +134,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "blksize:\t%u\n",
 			  get_ms_blksize(SUPER(master)));
 
-	aal_stream_format(stream, "format:\t%x\n",
+	aal_stream_format(stream, "format:\t\t%x\n",
 			  reiser4_master_get_format(master));
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
@@ -180,15 +180,17 @@ static errno_t callback_guess_format(
 	void *data)		     /* needed plugin type */
 {
 	if (plug->id.type == FORMAT_PLUG_TYPE) {
+		fs_desc_t desc;
 		generic_entity_t *entity;
+
+		desc.device = (aal_device_t *)data;
+		desc.blksize = sysconf(_SC_PAGESIZE);
 		
 		if ((entity = plug_call(plug->o.format_ops,
-					open, (aal_device_t *)data,
-					sysconf(_SC_PAGESIZE))))
+					open, &desc)))
 		{
 			plug_call(plug->o.format_ops, close,
 				  entity);
-			
 			return 1;
 		}
 	}

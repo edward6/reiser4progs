@@ -169,13 +169,12 @@ static errno_t format40_super_open(format40_t *format) {
 	return res;
 }
 
-static generic_entity_t *format40_open(aal_device_t *device,
-				       uint32_t blksize)
-{
+static generic_entity_t *format40_open(fs_desc_t *desc) {
 	format40_t *format;
 
-	aal_assert("umka-393", device != NULL);
+	aal_assert("umka-393", desc != NULL);
 
+	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
@@ -183,10 +182,11 @@ static generic_entity_t *format40_open(aal_device_t *device,
 	format->dirty = 0;
 #endif
 
-	format->device = device;
-	format->blksize = blksize;
 	format->plug = &format40_plug;
-    
+	format->device = desc->device;
+	format->blksize = desc->blksize;
+
+	/* Initializing super block. */
 	if (format40_super_open(format)) {
 		aal_free(format);
 		return NULL;
@@ -231,44 +231,68 @@ static errno_t callback_clobber_block(void *entity, blk_t start,
 	return res;
 }
 
-/* This function should create super block and update all copies */
-static generic_entity_t *format40_create(aal_device_t *device, 
-					 uint64_t blocks,
-					 uint32_t blksize,
-					 uint16_t tail)
+/* Create format object instnace. Create on-disk format specific suber block
+   structures. Return format instance to caller. */
+static generic_entity_t *format40_create(fs_desc_t *desc,
+					 uint64_t blocks)
 {
+	blk_t start;
 	format40_t *format;
 	format40_super_t *super;
     
-	aal_assert("umka-395", device != NULL);
-    
+	aal_assert("umka-395", desc != NULL);
+	aal_assert("umka-2649", blocks > 0);
+
+	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
 	format->dirty = 1;
-	format->device = device;
-	format->blksize = blksize;
 	format->plug = &format40_plug;
+	format->device = desc->device;
+	format->blksize = desc->blksize;
 
+	/* Initializing super block fields. */
 	super = (format40_super_t *)&format->super;
-    
+
+	/* Setting up format40 magic. */
 	aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
 		   aal_strlen(FORMAT40_MAGIC));
 
-	set_sb_root_block(super, INVAL_BLK);
-	set_sb_block_count(super, blocks);
-	set_sb_tail_policy(super, tail);
-	set_sb_tree_height(super, 2);
+	/* Number of flushed is zero. */
 	set_sb_flushes(super, 0);
 
+	/* Tree height is 2 -- minimal possible tree height in reiser4. All
+	   needed nodes will be created later and this value will beused for
+	   create them correctly (with level set right). */
+	set_sb_tree_height(super, 2);
+
+	/* Filesystem available blocks is set to @blocks. */
+	set_sb_block_count(super, blocks);
+
+	/* Root node pointer is set to invalid block numeber, and thus, it
+	   shows, that filesyetem is flesh one, that is with not nodes. This
+	   value will be used by tree to behave correctly. */
+	set_sb_root_block(super, INVAL_BLK);
+
+	/* Setting up tail policy to passed @desc->policy value. */
+	set_sb_tail_policy(super, desc->policy);
+
+	/* Initializing fsck related fields. */
 	srandom(time(0));
 	set_sb_mkfs_id(super, random());
 
-	/* Clobbering skipped area */
+	/* Clobbering format skipped area in order to let mount to detect
+	   reiser4 correctly without specifying exact filesystem type. Skipped
+	   area is [0-15] blocks. */
+	start = MASTER_BLOCKNR(format->blksize);
+	
 	if (format40_skipped((generic_entity_t *)format,
 			     callback_clobber_block, NULL))
 	{
-		aal_exception_error("Can't clobber skipped area.");
+		aal_exception_error("Can't clobber format "
+				    "skipped area [%u-%llu].",
+				    0, start - 1);
 		aal_free(format);
 		return NULL;
 	}

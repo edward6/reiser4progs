@@ -154,21 +154,22 @@ errno_t format40_pack(generic_entity_t *entity,
 	return 0;
 }
 
-generic_entity_t *format40_unpack(aal_device_t *device,
-				  uint32_t blksize,
+generic_entity_t *format40_unpack(fs_desc_t *desc,
 				  aal_stream_t *stream)
 {
 	uint32_t size;
 	format40_t *format;
 	
+	aal_assert("umka-2650", desc != NULL);
 	aal_assert("umka-2603", stream != NULL);
 
+	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-	format->device = device;
-	format->blksize = blksize;
 	format->plug = &format40_plug;
+	format->device = desc->device;
+	format->blksize = desc->blksize;
 
 	/* Read size nad check for validness. */
 	aal_stream_read(stream, &size, sizeof(size));

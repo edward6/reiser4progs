@@ -500,9 +500,11 @@ struct object_hint {
 
 typedef struct object_hint object_hint_t;
 
+/* Type for region enumerating callback functions. */
 typedef errno_t (*region_func_t) (void *, uint64_t,
 				  uint64_t, void *);
 
+/* Function definitions for enumeration item metadata and data. */
 typedef errno_t (*place_func_t) (void *, place_t *, void *);
 typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
@@ -567,6 +569,15 @@ struct conv_hint {
 };
 
 typedef struct conv_hint conv_hint_t;
+
+/* Filesystem description. */
+struct fs_desc {
+	uint16_t policy;
+	uint32_t blksize;
+	aal_device_t *device;
+};
+
+typedef struct fs_desc fs_desc_t;
 
 struct reiser4_key_ops {
 	/* Cleans key up. Actually it just memsets it by zeros, but more smart
@@ -656,9 +667,9 @@ struct reiser4_object_ops {
 	errno_t (*update) (object_entity_t *, statdata_hint_t *);
 	
 	/* Creates new file with passed parent and object keys */
-	object_entity_t *(*create) (object_info_t *,
-				    object_hint_t *);
+	object_entity_t *(*create) (object_info_t *, object_hint_t *);
 
+	/* Delete file body and stat data if any. */
 	errno_t (*clobber) (object_entity_t *);
 
 	/* These methods change @nlink value of passed @entity */
@@ -1030,10 +1041,9 @@ struct reiser4_format_ops {
 	void (*set_flag) (generic_entity_t *, uint8_t);
 	void (*clr_flag) (generic_entity_t *, uint8_t);
 	
-	/* Called during filesystem creating. It forms format-specific super
+	/* Called durring filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
-	generic_entity_t *(*create) (aal_device_t *, uint64_t,
-				    uint32_t, uint16_t);
+	generic_entity_t *(*create) (fs_desc_t *, uint64_t);
 
 	/* Save format data to device. */
 	errno_t (*sync) (generic_entity_t *);
@@ -1044,9 +1054,7 @@ struct reiser4_format_ops {
 	void (*mkclean) (generic_entity_t *);
 
 	/* Format pack/unpack methods. */
-	generic_entity_t *(*unpack) (aal_device_t *, uint32_t,
-				     aal_stream_t *);
-	
+	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
 	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
 	
 	/* Update only fields which can be changed after journal replay in
@@ -1086,7 +1094,7 @@ struct reiser4_format_ops {
 #endif
 	/* Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format. */
-	generic_entity_t *(*open) (aal_device_t *, uint32_t);
+	generic_entity_t *(*open) (fs_desc_t *);
     
 	/* Closes opened or created previously filesystem. Frees all assosiated
 	   memory. */
