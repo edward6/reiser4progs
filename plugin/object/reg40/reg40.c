@@ -533,6 +533,7 @@ static reiser4_plugin_t reg40_plugin = {
 		.valid	    = NULL,
 		.lookup	    = NULL,
 		.follow     = NULL,
+		.remove     = NULL,
 		
 		.open	    = reg40_open,
 		.close	    = reg40_close,

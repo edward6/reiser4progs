@@ -422,7 +422,7 @@ errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
 	switch (object40_lookup(object, &hint->key, stop, place)) {
 	case LP_ABSENT:
 		if (object->core->tree_ops.insert(object->tree, place, hint)) {
-			aal_exception_error("Can't insert new item of object "
+			aal_exception_error("Can't insert new item/unit of object "
 					    "0x%llx into the tree.", objectid);
 			return -1;
 		}
@@ -432,7 +432,39 @@ errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
 		return -1;
 	case LP_FAILED:
 		aal_exception_error("Lookup is failed while trying to insert "
-				    "new item into object 0x%llx.", objectid);
+				    "new item/unit into object 0x%llx.", objectid);
+		return -1;
+	}
+
+	return 0;
+}
+
+errno_t object40_remove(object40_t *object, key_entity_t *key,
+			uint64_t count)
+{
+	place_t place;
+	roid_t objectid = object40_objectid(object);
+	
+	/*
+	  Making lookup in order to find the place the item/unit will be removed
+	  at.
+	*/
+	switch (object40_lookup(object, key, LEAF_LEVEL, &place)) {
+	case LP_ABSENT:
+		aal_exception_error("Can't find item/unit durring remove");
+		return -1;
+	case LP_PRESENT:
+		if (object->core->tree_ops.remove(object->tree, &place,
+						  (uint32_t)count))
+		{
+			aal_exception_error("Can't remove item/unit from "
+					    "object 0x%llx.", objectid);
+			return -1;
+		}
+	case LP_FAILED:
+		aal_exception_error("Lookup is failed while trying to "
+				    "remove new item/unit from object "
+				    "0x%llx.", objectid);
 		return -1;
 	}
 

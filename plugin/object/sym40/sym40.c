@@ -476,6 +476,7 @@ static reiser4_plugin_t sym40_plugin = {
 		.reset	    = NULL,
 		.offset	    = NULL,
 		.seek	    = NULL,
+		.remove     = NULL,
 		
 		.follow     = sym40_follow,
 		.open	    = sym40_open,

@@ -468,7 +468,15 @@ errno_t reiser4_file_remove(reiser4_file_t *file,
 		return -1;
 	}
 
-	/* FIXME-UMKA: Here also should be removing @entry from the @file */
+	if (file->entity->plugin->file_ops.remove) {
+		if (plugin_call(file->entity->plugin->file_ops,
+				remove, file->entity, &key))
+		{
+			aal_exception_error("Can't remove entry %s in %s.",
+					    entry, file->name);
+			return -1;
+		}
+	}
 	
 	if (reiser4_tree_lookup(file->fs->tree, &key, LEAF_LEVEL,
 				&place) != LP_PRESENT)

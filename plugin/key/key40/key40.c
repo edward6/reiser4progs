@@ -290,8 +290,8 @@ static errno_t key40_build_hash(key_entity_t *key,
 
 		if (len > OID_CHARS) {
 			/* 
-			   Does not fit into objectid, pack the second part of 
-			   the name into offset. 
+			  Does not fit into objectid, pack the second part of
+			  the name into offset.
 			*/
 			offset = key40_pack_string(name + OID_CHARS, 0);
 		}

@@ -647,6 +647,9 @@ struct reiser4_file_ops {
 	/* Truncates file at current offset onto passed units */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
+	/* Removes units at passed offset */
+	errno_t (*remove) (object_entity_t *, key_entity_t *);
+	
 	/*
 	  Function for going through all metadata blocks specfied file
 	  occupied. It is needed for accessing file's metadata.

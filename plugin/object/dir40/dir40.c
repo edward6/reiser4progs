@@ -547,6 +547,17 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	return dir40_truncate(entity, size);
 }
 
+static errno_t dir40_remove(object_entity_t *entity,
+			    key_entity_t *key)
+{
+	dir40_t *dir = (dir40_t *)entity;
+	
+	aal_assert("umka-1922", entity != NULL);
+	aal_assert("umka-1923", key != NULL);
+
+	return object40_remove(&dir->obj, key, 1);
+}
+
 /* Writes @n number of entries described by @buff to passed directory entity */
 static int32_t dir40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
@@ -752,6 +763,7 @@ static reiser4_plugin_t dir40_plugin = {
 		.link       = dir40_link,
 		.unlink     = dir40_unlink,
 		.truncate   = dir40_truncate,
+		.remove     = dir40_remove,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
@@ -760,6 +772,7 @@ static reiser4_plugin_t dir40_plugin = {
 		.link       = NULL,
 		.unlink     = NULL,
 		.truncate   = NULL,
+		.remove     = NULL,
 #endif
 		.follow     = NULL,
 		.valid	    = NULL,
