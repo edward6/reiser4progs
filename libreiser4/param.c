@@ -145,9 +145,7 @@ uint64_t reiser4_param_value(const char *name) {
 }
 
 /* Overrides plugin id by @value found by @name. */
-errno_t reiser4_param_override(const char *name,
-			       const char *value)
-{
+errno_t reiser4_param_override(const char *name, const char *value) {
 	reiser4_pid_t *pid;
 	reiser4_plug_t *plug;
 
@@ -172,4 +170,27 @@ errno_t reiser4_param_override(const char *name,
 	pid->value = plug->id.id;
 	return 0;
 }
+
+/* Overrides plugin id by @pid found by @name. */
+errno_t reiser4_param_set(const char *name, rid_t id) {
+	reiser4_pid_t *pid;
+	reiser4_plug_t *plug;
+
+	aal_assert("vpf-1509", name != NULL);
+
+	if (!(pid = reiser4_param_pid(name))) {
+		aal_error("Can't find param \"%s\".", name);
+		return -EINVAL;
+	}
+
+	if (!(plug = reiser4_factory_ifind(pid->type, id))) {
+		aal_error("Can't find plugin of the type %d by "
+			  "its id %u.", pid->type, id);
+		return -EINVAL;
+	}
+
+	pid->value = id;
+	return 0;
+}
+
 #endif

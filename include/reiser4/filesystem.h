@@ -43,6 +43,8 @@ extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 
 extern errno_t reiser4_fs_backup(reiser4_fs_t *fs, aal_stream_t *stream);
 
+extern errno_t reiser4_fs_init_params(reiser4_fs_t *fs);
+
 #endif
 
 #endif

@@ -48,11 +48,36 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_format_close;
 	}
 	
+	len = reiser4_format_get_len(repair->fs->format);
+
+	/* Block and oid allocator plugins are specified by format plugin 
+	 * unambiguously, so there is nothing to be checked here anymore. */
+	if (!(repair->fs->alloc = reiser4_alloc_open(repair->fs, len))) {
+		aal_fatal("Failed to open a block allocator.");
+		res = -EINVAL;
+		goto error_status_close;
+	}
+	
+	if ((error = reiser4_alloc_valid(repair->fs->alloc)) < 0)
+		goto error_alloc_close;
+	
+	if (error && repair->mode != RM_CHECK) {
+		aal_mess("Checksums will be fixed later.\n");
+	} else {
+		res |= error;
+	}
+	
+	if (!(repair->fs->oid = reiser4_oid_open(repair->fs))) {	
+		aal_fatal("Failed to open an object id allocator.");
+		res = -EINVAL;
+		goto error_alloc_close;
+	}
+
 	res |= repair_journal_open(repair->fs, journal_device, repair->mode);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the journal.");
-		goto error_status_close;
+		goto error_oid_close;
 	}
 	
 	res |= repair_journal_replay(repair->fs->journal, repair->fs->device);
@@ -69,37 +94,18 @@ errno_t repair_fs_open(repair_data_t *repair,
 			  "replaying.");
 		goto error_journal_close;
 	}
-
-	len = reiser4_format_get_len(repair->fs->format);
-
-	/* Block and oid allocator plugins are specified by format plugin 
-	 * unambiguously, so there is nothing to be checked here anymore. */
-	if (!(repair->fs->alloc = reiser4_alloc_open(repair->fs, len))) {
-		aal_fatal("Failed to open a block allocator.");
-		res = -EINVAL;
-		goto error_journal_close;
-	}
 	
-	if ((res |= error = reiser4_alloc_valid(repair->fs->alloc)) < 0)
-		goto error_alloc_close;
-	
-	if (error && repair->mode != RM_CHECK)
-		aal_mess("Checksums will be fixed later.\n");
-		
-	if (!(repair->fs->oid = reiser4_oid_open(repair->fs))) {	
-		aal_fatal("Failed to open an object id allocator.");
-		res = -EINVAL;
-		goto error_alloc_close;
-	}
-
 	if (!(repair->fs->tree = reiser4_tree_init(repair->fs))) {
 		res = -ENOMEM;
-		goto error_oid_close;
+		goto error_journal_close;
 	}
 		
-	
 	repair_error_count(repair, res);
 	return 0;
+
+error_journal_close:
+	reiser4_journal_close(repair->fs->journal);
+	repair->fs->journal = NULL;
 
  error_oid_close:
 	reiser4_tree_fini(repair->fs->tree);
@@ -107,10 +113,6 @@ errno_t repair_fs_open(repair_data_t *repair,
  error_alloc_close:
 	reiser4_alloc_close(repair->fs->alloc);
 	repair->fs->alloc = NULL;
-    
- error_journal_close:
-	reiser4_journal_close(repair->fs->journal);
-	repair->fs->journal = NULL;
 
  error_status_close:
 	reiser4_status_close(repair->fs->status);

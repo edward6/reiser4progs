@@ -10,7 +10,6 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 			      bool_t check)
 {
 #ifndef ENABLE_STAND_ALONE
-	uint64_t flags;
 	count_t blocks;
 	uint32_t blksize;
 #endif
@@ -45,15 +44,6 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		goto error_free_status;
 
 #ifndef ENABLE_STAND_ALONE
-	flags = plug_call(fs->format->entity->plug->o.format_ops,
-			  get_flags, fs->format->entity);
-	
-	if ((1 << REISER4_LARGE_KEYS) & flags) {
-		reiser4_param_override("key", "key_large");
-	} else {
-		reiser4_param_override("key", "key_short");
-	}
-	
 	if (check) {
 		if (reiser4_format_valid(fs->format))
 			goto error_free_format;
@@ -80,6 +70,9 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		if (reiser4_oid_valid(fs->oid))
 			goto error_free_oid;
 	}
+
+	if (reiser4_fs_init_params(fs))
+		goto error_free_oid;
 #endif
 	
 	if (!(fs->tree = reiser4_tree_init(fs)))
@@ -409,6 +402,25 @@ errno_t reiser4_fs_sync(
 		return res;
 
 	return reiser4_status_sync(fs->status);
+}
+
+/* Set all params default for the fs into profile. */
+errno_t reiser4_fs_init_params(reiser4_fs_t *fs) {
+	uint16_t flags, pid;
+	
+	flags = plug_call(fs->format->entity->plug->o.format_ops,
+			  get_flags, fs->format->entity);
+
+	/* Set the default fs key plugin in the profile. */
+	if ((1 << REISER4_LARGE_KEYS) & flags) {
+		reiser4_param_override("key", "key_large");
+	} else {
+		reiser4_param_override("key", "key_short");
+	}
+
+	pid = reiser4_format_get_policy(fs->format);
+	
+	return reiser4_param_set("policy", pid);
 }
 
 #endif

@@ -80,11 +80,8 @@ reiser4_format_t *reiser4_format_open(
 	}
     
 	/* Initializing disk-format entity by calling plugin */
-	if (!(format->entity = plug_call(plug->o.format_ops,
-					 open, &desc)))
-	{
-		aal_fatal("Can't open disk-format %s.",
-			  plug->label);
+	if (!(format->entity = plug_call(plug->o.format_ops, open, &desc))) {
+		aal_fatal("Can't open disk-format %s.",  plug->label);
 		goto error_free_format;
 	}
 
@@ -129,8 +126,8 @@ reiser4_format_t *reiser4_format_create(
 	desc.blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Initializing entity of disk-format by means of calling "create"
-	   method from found plugin. Plugin "create" method will be creating all
-	   disk structures, namely, format-specific super block. */
+	   method from found plugin. Plugin "create" method will be creating 
+	   all disk structures, namely, format-specific super block. */
 	if (!(format->entity = plug_call(plug->o.format_ops,
 					 create, &desc, blocks))) 
 	{

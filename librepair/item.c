@@ -81,7 +81,6 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 	
 	aal_assert("vpf-795", mode != RM_CHECK || 
 			      length == place->len);
-	aal_assert("vpf-796", length == place->len || res);
 	
 	return repair_item_check_fini(place, res, length);
 }

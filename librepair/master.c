@@ -46,10 +46,9 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		
 		/* Checks whether filesystem size is enough big. */
 		if (dev_len < (count_t)REISER4_FS_MIN_SIZE(blksize)) {
-			aal_error("The device '%s' of %llu blocks is "
-				  "too small for the %u block size "
-				  "fs.", fs->device->name, dev_len,
-				  REISER4_FS_MIN_SIZE(blksize));
+			aal_error("The device '%s' of %llu blocks is too small "
+				  "for the %u block size fs.", fs->device->name,
+				  dev_len, REISER4_FS_MIN_SIZE(blksize));
 			return -EINVAL;
 		}
 
@@ -60,8 +59,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		/* Create a new master SB. */
 		if (!(fs->master = reiser4_master_create(fs->device, blksize)))
 		{
-			aal_fatal("Failed to create a new master "
-				  "super block.");
+			aal_fatal("Failed to create a new master super block.");
 			return -EINVAL;
 		}
 

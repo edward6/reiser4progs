@@ -714,8 +714,8 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	return res;
 }
 
-/* Estimate the space needed for the insertion of the not overlapped part of the item,
-   overlapped part does not need any space. */
+/* Estimate the space needed for the insertion of the not overlapped part 
+   of the item, overlapped part does not need any space. */
 errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	uint32_t sunits, send;
 	uint32_t offset, pol;

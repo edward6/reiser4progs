@@ -21,7 +21,7 @@ typedef enum merge_flag {
 	ET40_TAIL	= 1 << 4
 } merge_flag_t;
 
-static int extent40_merge_units(reiser4_place_t *place) {
+static int extent40_merge_units(reiser4_place_t *place, int fix) {
 	uint32_t i, count, merged;
 	extent40_t *extent;
 
@@ -38,11 +38,14 @@ static int extent40_merge_units(reiser4_place_t *place) {
 			et40_set_width(extent - 1, et40_get_width(extent - 1)
 				       + et40_get_width(extent));
 
-			extent40_shrink(place, i, 1);
-			count--;
 			merged++;
-			extent--;
-			i--;
+			
+			if (fix) {
+				extent40_shrink(place, i, 1);
+				count--;
+				extent--;
+				i--;
+			}
 		}
 	}
 
@@ -93,7 +96,7 @@ errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func,
 			result = RE_FIXABLE;
 	}
 	
-	units = extent40_merge_units(place);
+	units = extent40_merge_units(place, mode != RM_CHECK);
 	
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
@@ -168,7 +171,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			res |= RE_FIXABLE;
 	}
 	
-	units = extent40_merge_units(place);
+	units = extent40_merge_units(place, mode != RM_CHECK);
 
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
@@ -441,7 +444,7 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	}
 	
 	/* Join mergable units within the @place. */
-	hint->len = extent40_merge_units(place) * sizeof(extent40_t);
+	hint->len = extent40_merge_units(place, 1) * sizeof(extent40_t);
 	
 	place_mkdirty(place);
 	
