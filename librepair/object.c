@@ -96,8 +96,7 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 /* Open the object on the base of given start @key */
 reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_object_t *parent,
-				       reiser4_key_t *key, 
-				       bool_t only)
+				       reiser4_key_t *key)
 {
 	reiser4_object_t *object;
 	reiser4_place_t place;
