@@ -147,7 +147,7 @@ static errno_t extent40_print(item_entity_t *item,
 				  (i < count - 1 ? " " : ""));
 	}
 	
-	aal_stream_format(stream, " ]");
+	aal_stream_format(stream, " ]\n");
     
 	return 0;
 }

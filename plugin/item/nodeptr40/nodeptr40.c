@@ -136,8 +136,9 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	}
 	
 	aal_stream_format(stream, " UNITS=1\n");
-	
-	aal_stream_format(stream, "[ %llu ]\n", np40_get_ptr(nodeptr));
+
+	aal_stream_format(stream, "[ %llu ]\n",
+			  np40_get_ptr(nodeptr));
 	
 	return 0;
 }

@@ -12,7 +12,6 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t callback_tree_pack(reiser4_tree_t *tree,
 				  reiser4_place_t *place,
 				  void *data)
@@ -22,7 +21,6 @@ static errno_t callback_tree_pack(reiser4_tree_t *tree,
 
 	return reiser4_tree_shrink(tree, place);
 }
-
 #endif
 
 static int callback_node_free(void *data) {
@@ -35,12 +33,10 @@ static int callback_node_free(void *data) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static int callback_node_sync(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	return reiser4_node_sync(node) == 0;
 }
-
 #endif
 
 static aal_list_t *callback_get_next(void *data) {
