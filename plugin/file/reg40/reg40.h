@@ -23,7 +23,6 @@ struct reg40 {
 
 	/* Current position in the directory */
 	uint64_t offset;
-	uint32_t local;
 };
 
 typedef struct reg40 reg40_t;

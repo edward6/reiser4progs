@@ -18,10 +18,10 @@ struct extent40 {
 
 typedef struct extent40 extent40_t;
 
-#define et40_get_start(et)	    aal_get_le64(et, start)
-#define et40_set_start(et, val)	    aal_set_le64(et, start, val)
+#define et40_get_start(et)	    aal_get_le64((et), start)
+#define et40_set_start(et, val)	    aal_set_le64((et), start, val)
 
-#define et40_get_width(et)	    aal_get_le64(et, width)
-#define et40_set_width(et, val)	    aal_set_le64(et, width, val)
+#define et40_get_width(et)	    aal_get_le64((et), width)
+#define et40_set_width(et, val)	    aal_set_le64((et), width, val)
 
 #endif

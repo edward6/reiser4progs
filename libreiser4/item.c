@@ -213,7 +213,9 @@ reiser4_plugin_t *reiser4_item_plugin(reiser4_coord_t *coord) {
 	return coord->entity.plugin;
 }
 
-errno_t reiser4_item_get_key(reiser4_coord_t *coord, reiser4_key_t *key) {
+errno_t reiser4_item_get_key(reiser4_coord_t *coord,
+			     reiser4_key_t *key)
+{
 	item_entity_t *item;
 	object_entity_t *entity;
 	

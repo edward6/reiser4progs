@@ -823,7 +823,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 
 static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	int32_t read;
-	char buff[4096];
+	char buff[/*4096*/256];
 	
 	if (reiser4_file_reset(file)) {
 		aal_exception_error("Can't reset file %s.", file->name);

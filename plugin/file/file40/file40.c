@@ -135,7 +135,7 @@ errno_t file40_init(file40_t *file, reiser4_key_t *key,
 }
 
 errno_t file40_realize(file40_t *file) {
-	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 	
 	aal_assert("umka-857", file != NULL, return -1);	
 
@@ -146,7 +146,7 @@ errno_t file40_realize(file40_t *file) {
 	if (file->statdata.node)
 		file->core->tree_ops.unlock(file->tree, &file->statdata);
 	
-	if (file->core->tree_ops.lookup(file->tree, &file->key, &level,
+	if (file->core->tree_ops.lookup(file->tree, &file->key, &stop,
 					&file->statdata) != PRESENT) 
 	{
 		aal_exception_error("Can't find stat data of file 0x%llx.", 
@@ -160,5 +160,35 @@ errno_t file40_realize(file40_t *file) {
 	
 	file->core->tree_ops.lock(file->tree, &file->statdata);
 	
+	return 0;
+}
+
+/*
+  Inserts passed item hint into the tree. After function is finished, place
+  contains the coord of the inserted item.
+*/
+errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
+		      reiser4_level_t *stop, reiser4_place_t *place)
+{
+	rpid_t objectid = file40_objectid(file);
+	
+	switch (file->core->tree_ops.lookup(file->tree, &hint->key,
+				      stop, place))
+	{
+	case PRESENT:
+		aal_exception_error("Key already exists in the tree.");
+		return -1;
+	case FAILED:
+		aal_exception_error("Lookup is failed while trying to insert "
+				    "new item into file 0x%llx.", objectid);
+		return -1;
+	}
+
+	if (file->core->tree_ops.insert(file->tree, place, hint)) {
+		aal_exception_error("Can't insert new item of file "
+				    "0x%llx into the tree.", objectid);
+		return -1;
+	}
+
 	return 0;
 }

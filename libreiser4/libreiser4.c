@@ -72,17 +72,30 @@ static int tree_lookup(
 	reiser4_place_t *place)	    /* result will be stored in */
 {
 	int lookup;
+	reiser4_coord_t *coord;
+	
 	aal_assert("umka-851", key != NULL, return -1);
 	aal_assert("umka-850", tree != NULL, return -1);
 	aal_assert("umka-852", place != NULL, return -1);
-    
+
 	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree, key, level,
 					  (reiser4_coord_t *)place)) == FAILED)
 		return lookup;
-
+	
+	coord = (reiser4_coord_t *)place;
+	
 	if (lookup == PRESENT) {
-		if (reiser4_item_get_key((reiser4_coord_t *)place, NULL))
-			return FAILED;
+		item_entity_t *item = &coord->entity;
+		object_entity_t *entity = coord->node->entity;
+		
+		if (plugin_call(return -1, entity->plugin->node_ops, 
+				get_key, entity, &coord->pos, &item->key))
+		{
+			aal_exception_error("Can't get item key.");
+			return -1;
+		}
+
+		item->key.plugin = reiser4_key_guess(item->key.body);
 	}
 
 	return lookup;

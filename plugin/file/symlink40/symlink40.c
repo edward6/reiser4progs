@@ -81,7 +81,6 @@ static object_entity_t *symlink40_open(const void *tree,
 static object_entity_t *symlink40_create(const void *tree, 
 					 reiser4_file_hint_t *hint) 
 {
-	int lookup;
 	roid_t objectid;
 	roid_t locality;
 	roid_t parent_locality;
@@ -156,29 +155,11 @@ static object_entity_t *symlink40_create(const void *tree,
 
 	stat_hint.hint = &stat;
 
-	if ((lookup = core->tree_ops.lookup(tree, &hint->object, &stop, &place)) == FAILED)
+	if (file40_insert(&symlink->file, &stat_hint, &stop, &place))
 		goto error_free_symlink;
 
-	if (lookup == PRESENT) {
-		aal_exception_error("Stat data key of file 0x%llx already exists in "
-				    "the tree.", objectid);
-		goto error_free_symlink;
-	}
-	
-	/* Calling balancing code in order to insert statdata item into the tree */
-	if (core->tree_ops.insert(tree, &place, &stat_hint)) {
-		aal_exception_error("Can't insert stat data item of file 0x%llx into "
-				    "the tree.", objectid);
-		goto error_free_symlink;
-	}
-    
-	/* Grabbing the stat data item */
-	if (file40_realize(&symlink->file)) {
-		aal_exception_error("Can't grab stat data of file 0x%llx.", 
-				    file40_objectid(&symlink->file));
-		goto error_free_symlink;
-	}
-    
+	aal_memcpy(&symlink->file.statdata, &place, sizeof(place));
+		
 	return (object_entity_t *)symlink;
 
  error_free_symlink:

@@ -168,8 +168,10 @@ static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
 	aal_stream_format(stream, "[ ");
 	
 	for (i = 0; i < count; i++) {
-		aal_stream_format(stream, "%llu(%llu)%s", et40_get_start(extent + i),
-			       et40_get_width(extent + i), (i < count - 1 ? " " : ""));
+		aal_stream_format(stream, "%llu(%llu)%s",
+				  et40_get_start(extent + i),
+				  et40_get_width(extent + i),
+				  (i < count - 1 ? " " : ""));
 	}
 	
 	aal_stream_format(stream, " ]");
@@ -312,33 +314,102 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 	return 1;
 }
 
+static uint32_t extent40_blocksize(item_entity_t *item) {
+	aal_device_t *device;
+
+	device = item->con.device;
+	return aal_device_get_bs(device);
+}
+
+static uint32_t extent40_unit(item_entity_t *item,
+			      uint32_t offset)
+{
+	uint32_t i;
+	uint32_t blocksize;
+	extent40_t *extent;
+
+	extent = extent40_body(item);
+	blocksize = extent40_blocksize(item);
+	
+	for (i = 0; i < extent40_units(item); i++, extent++) {
+		
+		if (offset < et40_get_width(extent) * blocksize)
+			return i;
+
+		offset -= et40_get_width(extent) * blocksize;
+	}
+
+	return i;
+}
+
+/* Reads @count bytes at @pos from passed extent item */
 static int32_t extent40_fetch(item_entity_t *item, void *buff,
 			      uint32_t pos, uint32_t count)
 {
 	uint32_t i, units;
+	uint32_t read = 0;
+	uint32_t blocksize;
+
+	reiser4_key_t key;
 	extent40_t *extent;
 	
-	reiser4_ptr_hint_t *ptr_hint;
+	aal_block_t *block;
+	aal_device_t *device;
 
 	aal_assert("umka-1421", item != NULL, return -1);
 	aal_assert("umka-1422", buff != NULL, return -1);
 	aal_assert("umka-1672", pos != ~0ul, return -1);
 
-	if (!(extent = extent40_body(item)))
-		return -1;
-
+	extent = extent40_body(item);
 	units = extent40_units(item);
-	ptr_hint = (reiser4_ptr_hint_t *)buff;
 
-	if (count > units - pos)
-		count = units - pos;
+	device = item->con.device;
+	blocksize = extent40_blocksize(item);
+
+	i = extent40_unit(item, pos);
 	
-	for (i = pos; i < pos + count; i++, ptr_hint++) {
-		ptr_hint->ptr = et40_get_start(extent + i);
-		ptr_hint->width = et40_get_width(extent + i);
+	for (; i < units && read < count; i++) {
+		blk_t blk;
+		uint64_t start, width;
+		uint32_t chunk, offset;
+
+		start = et40_get_start(extent + i);
+		width = et40_get_width(extent + i);
+
+		extent40_get_key(item, i, &key);
+
+		/* Calculating in-unit local offset */
+		offset = item->key.plugin->key_ops.get_offset(key.body) -
+			item->key.plugin->key_ops.get_offset(item->key.body);
+		
+		start += ((pos - offset) / blocksize);
+		
+		for (blk = start; blk < start + width && read < count; ) {
+
+			if (!(block = aal_block_open(device, blk))) {
+				aal_exception_error("Can't read block %llu. %s.",
+						    blk, device->error);
+				break;
+			}
+
+			offset = (pos % blocksize);
+			chunk = blocksize - offset;
+
+			if (chunk > count - read)
+				chunk = count - read;
+
+			aal_memcpy(buff, block->data + offset, chunk);
+					
+			aal_block_close(block);
+					
+			if ((offset + chunk) % blocksize == 0)
+				blk++;
+
+			read += chunk; buff += chunk;
+		}
 	}
 	
-	return i - pos;
+	return read;
 }
 
 #ifndef ENABLE_COMPACT

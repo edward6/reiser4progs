@@ -50,7 +50,7 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 		return -1;
 	}
 
-	coord->entity.pos = coord->pos.item;
+	coord->entity.pos = coord->pos;
 	coord->entity.len = plugin_call(return -1, entity->plugin->node_ops,
 					item_len, entity, &coord->pos);
 

@@ -24,6 +24,7 @@ static reiser4_core_t *core = NULL;
 
 static errno_t dir40_reset(object_entity_t *entity) {
 	reiser4_key_t key;
+	
 	dir40_t *dir = (dir40_t *)entity;
 	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
     
@@ -66,11 +67,11 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
 }
 
-static int dir40_next(object_entity_t *entity) {
+static int dir40_next(dir40_t *dir) {
 	reiser4_place_t right;
+
 	reiser4_plugin_t *this_plugin;
 	reiser4_plugin_t *right_plugin;
-	dir40_t *dir = (dir40_t *)entity;
 
 	/*
 	  Getting the right neighbour. While key40 is using, next direntry item
@@ -81,7 +82,8 @@ static int dir40_next(object_entity_t *entity) {
 
 	right_plugin = right.entity.plugin;
 	this_plugin = dir->body.entity.plugin;
-	
+
+	/* Checking if items are mergeable */
 	if (!plugin_equal(this_plugin, right_plugin))
 		return 0;
 	
@@ -93,48 +95,65 @@ static int dir40_next(object_entity_t *entity) {
 	file40_lock(&dir->file, &right);
 
 	dir->body = right;
-	return 1;
+	return PRESENT;
 }
 
 /* Reads n entries to passed buffer buff */
 static int32_t dir40_read(object_entity_t *entity, 
-			  void *buff, uint32_t count)
+			  void *buff, uint32_t n)
 {
-	uint32_t i, units;
+	dir40_t *dir;
+	uint64_t size;
+	uint32_t read;
+	uint32_t chunk;
+
 	item_entity_t *item;
 	reiser4_entry_hint_t *entry;
-    
-	dir40_t *dir = (dir40_t *)entity;
+
+	aal_assert("umka-844", entity != NULL, return -1);
+	aal_assert("umka-845", buff != NULL, return -1);
+
+	dir = (dir40_t *)entity;
+
+	if (file40_get_size(&dir->file.statdata, &size))
+		return -1;
+
+	if (size == 0)
+		return 0;
+
+/*	if (n > size - dir->offset)
+		n = size - dir->offset;*/
+	
 	entry = (reiser4_entry_hint_t *)buff;
 
-	aal_assert("umka-844", dir != NULL, return -1);
-	aal_assert("umka-845", entry != NULL, return -1);
-
-	item = &dir->body.entity;
-	
-	/* Getting the number of entries */
-	units = plugin_call(return -1, item->plugin->item_ops,
-			    units, item);
-
-	for (i = 0; i < count; i++) {
+	for (read = 0; read < n; read += chunk) {
+		uint32_t units;
 		
-		/* Check if we should get next item in right neighbour */
-		if (dir->body.pos.unit >= units) {
-			
-			if (dir40_next(entity) != PRESENT)
-				break;
-		}
-
-		/* Getting the next entry from the current direntry item */
 		item = &dir->body.entity;
+		
+		if ((chunk = n - read) == 0)
+			return read;
 
-		plugin_call(return -1, item->plugin->item_ops, fetch, item,
-			    entry++, dir->body.pos.unit++, 1);
+		units = plugin_call(return -1, item->plugin->item_ops,
+				    units, item);
+		
+		if (dir->body.pos.unit >= units) {
+			if (dir40_next(dir) != PRESENT)
+				return read;
+		}
+		
+		chunk = plugin_call(return -1, item->plugin->item_ops, fetch,
+				    item, entry, dir->body.pos.unit, chunk);
 
-		dir->offset++; 
+		if (chunk == 0)
+			return read;
+
+		entry += chunk;
+		dir->offset += chunk;
+		dir->body.pos.unit += chunk;
 	}
     
-	return i;
+	return read;
 }
 
 /* 
@@ -153,7 +172,7 @@ static int dir40_lookup(object_entity_t *entity,
 	aal_assert("umka-1119", key != NULL, return -1);
 	aal_assert("umka-1120", key->plugin != NULL, return -1);
 
-	/* Forming the directory key by passed @name*/
+	/* Forming the directory key by passed @name */
 	wanted.plugin = dir->file.key.plugin;
 	
 	plugin_call(return -1, wanted.plugin->key_ops, build_direntry,
@@ -183,7 +202,7 @@ static int dir40_lookup(object_entity_t *entity,
 			return 1;
 		}
 	
-		if (dir40_next(entity) != PRESENT)
+		if (dir40_next(dir) != PRESENT)
 			return 0;
 	}
     
@@ -231,39 +250,6 @@ static object_entity_t *dir40_open(const void *tree,
 }
 
 #ifndef ENABLE_COMPACT
-
-/*
-  Inserts passed item hint into the tree. After function is finished, place
-  contains the coord of the inserted item.
-*/
-static int dir40_insert(dir40_t *dir, reiser4_item_hint_t *hint,
-			reiser4_place_t *place)
-{
-	rpid_t objectid;
-	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
-
-	objectid = file40_objectid(&dir->file);
-	
-	switch (core->tree_ops.lookup(dir->file.tree, &hint->key,
-				      &stop, place))
-	{
-	case PRESENT:
-		aal_exception_error("Key already exists in the tree.");
-		return PRESENT;
-	case FAILED:
-		aal_exception_error("Lookup is failed while trying to insert "
-				    "new item into file 0x%llx.", objectid);
-		return FAILED;
-	}
-
-	if (core->tree_ops.insert(dir->file.tree, place, hint)) {
-		aal_exception_error("Can't insert new item of file "
-				    "0x%llx into the tree.", objectid);
-		return -1;
-	}
-
-	return 0;
-}
 
 static char *dir40_empty_dir[2] = { ".", ".." };
 
@@ -401,7 +387,7 @@ static object_entity_t *dir40_create(const void *tree,
 	stat_hint.hint = &stat;
 
 	/* Inserting stat data and body into the tree */
-	if (dir40_insert(dir, &stat_hint, &place))
+	if (file40_insert(&dir->file, &stat_hint, &stop, &place))
 		goto error_free_body;
 	
 	/* Saving stat data coord insert function has returned */
@@ -409,7 +395,7 @@ static object_entity_t *dir40_create(const void *tree,
 	dir->file.core->tree_ops.lock(dir->file.tree, &dir->file.statdata);
     
 	/* Inserting the direntry item into the tree */
-	if (dir40_insert(dir, &body_hint, &place))
+	if (file40_insert(&dir->file, &body_hint, &stop, &place))
 		goto error_free_body;
 	
 	/* Saving directory start in local body coord */
@@ -417,7 +403,6 @@ static object_entity_t *dir40_create(const void *tree,
 	dir->file.core->tree_ops.lock(dir->file.tree, &dir->body);
 	
 	aal_free(body.unit);
-    
 	return (object_entity_t *)dir;
 
  error_free_body:
@@ -433,6 +418,8 @@ static int32_t dir40_write(object_entity_t *entity,
 			   void *buff, uint32_t n) 
 {
 	uint32_t i;
+	uint64_t size;
+	
 	reiser4_place_t place;
 	reiser4_item_hint_t hint;
 	dir40_t *dir = (dir40_t *)entity;
@@ -473,14 +460,25 @@ static int32_t dir40_write(object_entity_t *entity,
     
 		hint.plugin = dir->body.entity.plugin;
 
-		if (dir40_insert(dir, &hint, &place)) {
+		if (file40_insert(&dir->file, &hint, &stop, &place)) {
 			aal_exception_error("Can't insert entry %s.", entry->name);
 			return -1;
 		}
 		
 		entry++;
 	}
-    
+
+	file40_realize(&dir->file);
+	
+	/* Updating size field */
+	if (file40_get_size(&dir->file.statdata, &size))
+		return -1;
+
+	size += n;
+
+	if (file40_set_size(&dir->file.statdata, &size))
+		return -1;
+	
 	aal_free(body_hint.unit);
 	return i;
 }
@@ -502,7 +500,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 		if ((res = func(entity, blk, data)))
 			return res;
 		
-		if (dir40_next(entity) != 1)
+		if (dir40_next(dir) != PRESENT)
 			break;
 			
 	}
@@ -527,7 +525,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = func(entity, &dir->body, data)))
 			return res;
 		
-		if (dir40_next(entity) != PRESENT)
+		if (dir40_next(dir) != PRESENT)
 			break;
 			
 	}

@@ -269,7 +269,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	
 	while (!(hint->flags & SF_MOVIP) && cur < direntry40_units(src_item)) {
 		
-		int check = (src_item->pos == hint->pos.item &&
+		int check = (src_item->pos.item == hint->pos.item &&
 			     hint->pos.unit != ~0ul);
 
 		/*

@@ -209,8 +209,8 @@ static int32_t tail40_fetch(item_entity_t *item, void *buff,
 static int tail40_lookup(item_entity_t *item, reiser4_key_t *key, 
 			 uint32_t *pos)
 {
-	uint32_t cur_offset;
-	uint32_t wan_offset;
+	uint32_t wanted;
+	uint32_t current;
     
 	reiser4_key_t curkey;
 	reiser4_key_t maxkey;
@@ -223,25 +223,26 @@ static int tail40_lookup(item_entity_t *item, reiser4_key_t *key,
 	tail40_max_poss_key(item, &maxkey);
 
 	if (plugin_call(return -1, key->plugin->key_ops, compare,
-			key->body, maxkey.body))
+			key->body, maxkey.body) > 0)
 	{
 		*pos = item->len;
 		return 0;
 	}
 
 	curkey.plugin = key->plugin;
+	
 	if (plugin_call(return -1, curkey.plugin->key_ops,
 			assign, curkey.body, item->key.body))
 		return -1;
 
-	cur_offset = plugin_call(return -1, key->plugin->key_ops,
-				 get_offset, curkey.body);
+	current = plugin_call(return -1, key->plugin->key_ops,
+			      get_offset, curkey.body);
     
-	wan_offset = plugin_call(return -1, key->plugin->key_ops,
-				 get_offset, key->body);
+	wanted = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, key->body);
     
-	if (wan_offset >= cur_offset && wan_offset < cur_offset + item->len) {
-		*pos = wan_offset - cur_offset;
+	if (wanted >= current && wanted < current + item->len) {
+		*pos = wanted - current;
 		return 1;
 	}
 

@@ -18,8 +18,8 @@
 
 #include "reg40.h"
 
-extern reiser4_plugin_t reg40_plugin;
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t reg40_plugin;
 
 static errno_t reg40_reset(object_entity_t *entity) {
 	uint64_t size;
@@ -54,28 +54,37 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	file40_lock(&reg->file, &reg->body);
 
 	reg->offset = 0;
-	reg->local = 0;
 
 	return 0;
 }
 
-static int reg40_next(object_entity_t *entity) {
-	int res;
+/* Updates body coord in correspond to file offset */
+static errno_t reg40_next(reg40_t *reg) {
+	errno_t res;
 	reiser4_key_t key;
-	reg40_t *reg = (reg40_t *)entity;
+	reiser4_place_t place;
+
 	reiser4_level_t stop = {LEAF_LEVEL, TWIG_LEVEL};
-	
+
 	key.plugin = reg->file.key.plugin;
 	
-	plugin_call(return -1, key.plugin->key_ops, build_generic, 
-		    key.body, KEY_FILEBODY_TYPE, file40_locality(&reg->file), 
+	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body,
+		    KEY_FILEBODY_TYPE, file40_locality(&reg->file), 
 		    file40_objectid(&reg->file), reg->offset);
 
         /* Unlocking the old body */
 	file40_unlock(&reg->file, &reg->body);
 
+	place = reg->body;
+	
 	/* Getting the next body item from the tree */
-	res = core->tree_ops.lookup(reg->file.tree, &key, &stop, &reg->body);
+	res = core->tree_ops.lookup(reg->file.tree, &key,
+				    &stop, &reg->body);
+
+	if (res != PRESENT) {
+		reg->body = place;
+		return res;
+	}
 
 	/* Locking new body or old one if lookup failed */
 	file40_lock(&reg->file, &reg->body);
@@ -88,11 +97,14 @@ static int32_t reg40_read(object_entity_t *entity,
 			  void *buff, uint32_t n)
 {
 	uint64_t size;
+	uint32_t offset;
+	item_entity_t *item;
 	uint32_t read, chunk;
+	
 	reg40_t *reg = (reg40_t *)entity;
 
-	aal_assert("umka-1182", entity != NULL, return 0);
 	aal_assert("umka-1183", buff != NULL, return 0);
+	aal_assert("umka-1182", entity != NULL, return 0);
 
 	if (file40_get_size(&reg->file.statdata, &size))
 		return -1;
@@ -103,109 +115,39 @@ static int32_t reg40_read(object_entity_t *entity,
 
 	if (n > size - reg->offset)
 		n = size - reg->offset;
-	
-	for (read = 0; read < n; ) {
-		item_entity_t *item;
 
+	/*
+	  Reading data from the file. As we do not know item types, we just
+	  call item's fetch method.
+	*/
+	for (read = 0; read < n; read += chunk) {
 		item = &reg->body.entity;
-
-		if (item->plugin->h.group == TAIL_ITEM) {
-			
-			/* Check if we need next item */
-			if (reg->local >= item->len) {
-				if (reg->offset >= size || reg40_next(entity) != 1)
-					break;
-			}
 		
-			/*
-			  Calculating the chunk of data to be read. If it is
-			  zero, we go away. Else fetching of data from the item
-			  will be performed.
-			*/
-			chunk = item->len - reg->local;
-
-			if (chunk > n - read)
-				chunk = n - read;
+		if (item->pos.unit == ~0ul)
+			item->pos.unit = 0;
 			
-			if (chunk == 0)
-				break;
+		if ((chunk = n - read) == 0)
+			return read;
 
-			plugin_call(return -1, item->plugin->item_ops, fetch,
-				    item, buff + read, reg->local, chunk);
-			
-			read += chunk;
-			reg->offset += chunk;
-			reg->local += chunk;
-		} else {
-			uint32_t units;
-			uint32_t blocksize;
-			reiser4_pos_t *pos;
-			
-			aal_block_t *block;
-			aal_device_t *device;
+		/* Getting item's key offset */
+		offset = plugin_call(return -1, item->key.plugin->key_ops,
+				     get_offset, item->key.body);
 
-			pos = &reg->body.pos;
-			
-			if (pos->unit == ~0ul)
-				pos->unit = 0;
+		/* Calculating in-item local offset */
+		offset = reg->offset - offset;
 
-			units = plugin_call(return -1, item->plugin->item_ops,
-					    units, item);
+		/* Calling body item's "fetch" method */
+		chunk = plugin_call(return -1, item->plugin->item_ops,
+				    fetch, item, buff, offset, chunk);
 
-			if (pos->unit >= units) {
-				if (reg->offset >= size || reg40_next(entity) != PRESENT)
-					break;
-			}
-			
-			device = item->con.device;
-			blocksize = aal_device_get_bs(device);
-			
-			for (; pos->unit < units && read < n; ) {
-				uint64_t blk;
-				reiser4_ptr_hint_t ptr;
+		if (chunk == 0)
+			return read;
+		
+		buff += chunk;
+		reg->offset += chunk;
 
-				if (plugin_call(return -1, item->plugin->item_ops,
-						fetch, item, &ptr, pos->unit, 1) != 1)
-				{
-					aal_exception_error("Can't fetch data from extent item. "
-							    "Pos %lu, count %lu.", pos->unit, 1);
-					return -1;
-				}
-
-				blk = ptr.ptr + (reg->local / blocksize);
-				
-				for (; blk < ptr.ptr + ptr.width && read < n; ) {
-					uint32_t offset;
-
-					if (!(block = aal_block_open(device, blk))) {
-						aal_exception_error("Can't read block %llu. %s.",
-								    blk, device->error);
-					}
-
-					offset = (reg->local % blocksize);
-
-					chunk = blocksize - offset;
-					chunk = (chunk <= n - read) ? chunk : n - read;
-
-					aal_memcpy(buff + read, block->data +
-						   offset, chunk);
-					
-					aal_block_close(block);
-					
-					read += chunk;
-					reg->local += chunk;
-					reg->offset += chunk;
-
-					if ((offset + chunk) % blocksize == 0)
-						blk++;
-				}
-
-				if (blk >= ptr.ptr + ptr.width) {
-					pos->unit++;
-					reg->local = 0;
-				}
-			}
-		}
+		/* Getting new body item by current file offset */
+		reg40_next(reg);
 	}
 
 	return read;
@@ -252,6 +194,9 @@ static object_entity_t *reg40_create(const void *tree,
 	reg40_t *reg;
 	reiser4_place_t place;
 	
+	roid_t parent_locality;
+	roid_t objectid, locality;
+
 	reiser4_plugin_t *stat_plugin;
     
 	reiser4_item_hint_t stat_hint;
@@ -260,11 +205,6 @@ static object_entity_t *reg40_create(const void *tree,
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
 
-	int lookup;
-	roid_t objectid;
-	roid_t locality;
-	roid_t parent_locality;
-
 	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 	
 	aal_assert("umka-1169", tree != NULL, return NULL);
@@ -272,6 +212,8 @@ static object_entity_t *reg40_create(const void *tree,
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
+
+	reg->offset = 0;
     
 	if (file40_init(&reg->file, &hint->object, &reg40_plugin, tree, core))
 		goto error_free_reg;
@@ -322,32 +264,11 @@ static object_entity_t *reg40_create(const void *tree,
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
 	stat_hint.hint = &stat;
-    
-	if ((lookup = core->tree_ops.lookup(tree, &hint->object, &stop, &place)) == FAILED)
+
+	if (file40_insert(&reg->file, &stat_hint, &stop, &place))
 		goto error_free_reg;
 
-	if (lookup == PRESENT) {
-		aal_exception_error("Stat data key of file 0x%llx already exists in "
-				    "the tree.", objectid);
-		goto error_free_reg;
-	}
-	
-	/* Calling balancing code in order to insert statdata item into the tree */
-	if (core->tree_ops.insert(tree, &place, &stat_hint)) {
-		aal_exception_error("Can't insert stat data item of file 0x%llx into "
-				    "the tree.", objectid);
-		goto error_free_reg;
-	}
-    
-	/* Grabbing the stat data item */
-	if (file40_realize(&reg->file)) {
-		aal_exception_error("Can't grab stat data of file 0x%llx.", 
-				    file40_objectid(&reg->file));
-		goto error_free_reg;
-	}
-
-	reg->local = 0;
-	reg->offset = 0;
+	aal_memcpy(&reg->file.statdata, &place, sizeof(place));
     
 	return (object_entity_t *)reg;
 
@@ -379,7 +300,7 @@ static int32_t reg40_write(object_entity_t *entity,
 }
 
 static errno_t reg40_layout(object_entity_t *entity,
-			    action_func_t action_func,
+			    action_func_t func,
 			    void *data)
 {
 	errno_t res;
@@ -388,7 +309,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1471", entity != NULL, return -1);
-	aal_assert("umka-1472", action_func != NULL, return -1);
+	aal_assert("umka-1472", func != NULL, return -1);
 
 	if (!reg->body.node)
 		return 0;
@@ -400,7 +321,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
 			blk_t blk = reg->body.entity.con.blk;
 
-			if ((res = action_func(entity, blk, data)))
+			if ((res = func(entity, blk, data)))
 				return res;
 
 			reg->offset += reg->body.entity.len;
@@ -430,7 +351,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 				}
 
 				for (blk = ptr.ptr; blk < ptr.ptr + ptr.width; blk++) {
-					if ((res = action_func(entity, blk, data)))
+					if ((res = func(entity, blk, data)))
 						return res;
 				}
 			
@@ -438,7 +359,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 			}
 		}
 		
-		if (reg->offset >= size || reg40_next(entity) != 1)
+		if (reg40_next(reg) != PRESENT)
 			break;
 			
 	}
@@ -447,7 +368,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 }
 
 static errno_t reg40_metadata(object_entity_t *entity,
-			      metadata_func_t metadata_func,
+			      metadata_func_t func,
 			      void *data)
 {
 	errno_t res;
@@ -456,9 +377,9 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1716", entity != NULL, return -1);
-	aal_assert("umka-1717", metadata_func != NULL, return -1);
+	aal_assert("umka-1717", func != NULL, return -1);
 
-	if ((res = metadata_func(entity, &reg->file.statdata, data)))
+	if ((res = func(entity, &reg->file.statdata, data)))
 		return res;
 
 	if (!reg->body.node)
@@ -468,7 +389,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		return -1;
 	
 	while (1) {
-		if ((res = metadata_func(entity, &reg->body, data)))
+		if ((res = func(entity, &reg->body, data)))
 			return res;
 
 		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
@@ -514,7 +435,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		}
 
 		/* Getting next file item. */
-		if (reg->offset >= size || reg40_next(entity) != 1)
+		if (reg->offset >= size || reg40_next(reg) != PRESENT)
 			break;
 			
 	}

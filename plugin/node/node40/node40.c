@@ -288,7 +288,7 @@ static errno_t node40_item(item_entity_t *item,
 	}
 	
 	/* Initializing item's pos, body pointer and length */
-	item->pos = pos;
+	item->pos.item = pos;
 	item->body = node40_ib_at(node, pos);
 	item->len = node40_item_len((object_entity_t *)node, &item_pos);
 
@@ -551,7 +551,7 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 
 	/* Updating left delimiting key */
 	if (pos->item == 0 && pos->unit == 0) {
-		ih = node40_ih_at(node, item.pos);
+		ih = node40_ih_at(node, item.pos.item);
 		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 	}
 
@@ -1071,7 +1071,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 		return -1;
 	
 	/* Updating source node fields */
-	pos.item = src_item.pos;
+	pos.item = src_item.pos.item;
 
 	/*
 	  We will remove src_item if it is empty and if the insert point is not
@@ -1088,11 +1088,11 @@ static errno_t node40_shift_units(node40_t *src_node,
 		  removed.
 		*/
 		if (!remove) {
-			ih = node40_ih_at(src_node, src_item.pos);
+			ih = node40_ih_at(src_node, src_item.pos.item);
 			aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
 		}
 	} else {
-		ih = node40_ih_at(dst_node, dst_item.pos);
+		ih = node40_ih_at(dst_node, dst_item.pos.item);
 		aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
 	}
 	
