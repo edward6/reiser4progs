@@ -3,6 +3,13 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* change code style in some place in reiser4progs (comments, etc).
+
+* plugin inheritance for objects.
+
+* rid of @level param in tree_lookup(), as it almost always looks 
+  for data on the leaf level.
+
 * atime updating when reading from file or directory.
 
 * extents support.

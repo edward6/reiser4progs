@@ -53,8 +53,10 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
-					 device, size, blk))) 
+					 device, size, blk)))
+	{
 		goto error_free_node;
+	}
 
 	node->blk = blk;
 	node->size = size;
