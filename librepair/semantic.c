@@ -446,7 +446,7 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-1037", sem != NULL);
 	
 	/* Objects w/out SD get recovered only when reached from the parent. */
-	if (place->plug->id.group != STATDATA_ITEM)
+	if (!reiser4_item_statdata(place))
 		return 0;
 		
 	/* If this item was checked already, skip it. */

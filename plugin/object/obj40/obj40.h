@@ -98,8 +98,15 @@ extern errno_t obj40_realize(obj40_t *obj,
 			     stat_func_t stat_func,
 			     key_func_t key_func);
 
-extern errno_t obj40_check_stat(obj40_t *obj,
-				stat_func_t stat_func);
+extern errno_t obj40_stat(obj40_t *obj,	stat_func_t stat_func);
+
+typedef void (*mode_func_t) (uint16_t *mode);
+typedef void (*nlink_func_t) (uint32_t *nlink);
+typedef void (*size_func_t) (uint64_t *sd_size, uint64_t counted_size);
+
+extern errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
+				mode_func_t mode_func, size_func_t size_func,
+				uint64_t size, uint64_t bytes, uint8_t mode);
 
 #endif
 extern uint64_t obj40_get_size(obj40_t *obj);

@@ -18,22 +18,31 @@ extern errno_t dir40_reset(object_entity_t *entity);
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
 
-/* Check SD extentions and that mode in LW extention is REGFILE. */
+#define dir40_zero_extentions(sd, mask)					\
+({									\
+	if ((mask = obj40_extmask(sd)) == MAX_UINT64)			\
+		return -EINVAL;						\
+									\
+	mask &= ~((uint64_t)(1 << SDEXT_UNIX_ID) | (1 << SDEXT_LW_ID) | \
+		  (1 << SDEXT_PLUG_ID));				\
+})
+
+static errno_t dir40_extentions(place_t *sd) {
+	uint64_t extmask;
+	
+	dir40_zero_extentions(sd, extmask);
+	
+	return extmask ? RE_FATAL : RE_OK;
+}
+
+/* Check SD extentions and that mode in LW extention is DIRFILE. */
 static errno_t callback_stat(place_t *sd) {
 	sdext_lw_hint_t lw_hint;
-	uint64_t mask, extmask;
 	errno_t res;
 	
-	/*  SD may contain LW and UNIX extentions only. 
-	    FIXME-VITALY: tail policy is not supported yet. */
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-	
-	if ((extmask = obj40_extmask(sd)) == MAX_UINT64)
-		return -EINVAL;
-	
-	if (mask != extmask)
-		return RE_FATAL;
-	
+	if ((res = dir40_extentions(sd)))
+		return res;
+
 	/* Check the mode in the LW extention. */
 	if ((res = obj40_read_ext(sd, SDEXT_LW_ID, &lw_hint)) < 0)
 		return res;
@@ -83,6 +92,25 @@ object_entity_t *dir40_realize(object_info_t *info) {
  error:
 	aal_free(dir);
 	return res < 0 ? INVAL_PTR : NULL;
+}
+
+static void dir40_one_nlink(uint32_t *nlink) {
+	*nlink = 1;
+}
+
+static void reg40_check_mode(uint16_t *mode) {
+	if (!S_ISDIR(*mode)) {
+		*mode &= ~S_IFMT;
+        	*mode |= S_IFDIR;
+	}
+}
+
+static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
+	/* FIXME-VITALY: This is not correct for extents as the last 
+	   block can be not used completely. Where to take the policy
+	   plugin to figure out if size is correct? */
+	if (*sd_size != counted_size)
+		*sd_size = counted_size;
 }
 
 errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent, 

@@ -13,7 +13,7 @@
 #include <repair/plugin.h>
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
-errno_t obj40_check_stat(obj40_t *obj, stat_func_t stat_func) {
+errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 	object_info_t *info;
 	errno_t res;
 
@@ -87,7 +87,103 @@ errno_t obj40_realize(obj40_t *obj, stat_func_t stat_func,
 	
 	/* @info->object is the key of SD for now and @info->start is the 
 	   result of tree lookup by @info->object -- skip objects w/out SD. */
-	return obj40_check_stat(obj, stat_func);
+	return obj40_stat(obj, stat_func);
+}
+
+errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func, 
+			 mode_func_t mode_func, size_func_t size_func,
+			 uint64_t size, uint64_t bytes, uint8_t mode)
+{
+	sdext_lw_hint_t lw_hint, lw_new;
+	sdext_unix_hint_t unix_hint;
+	errno_t res = RE_OK;
+	place_t *stat;
+	
+	aal_assert("vpf-1213", obj != NULL);
+	
+	stat = &obj->info.start;
+	
+	/* Update the SD place. */
+	if ((res = obj40_update(obj, stat)))
+		return res;
+	
+	/* Read LW extention. */
+	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
+		return res;
+	
+	/* Form the correct LW extention. */
+	lw_new = lw_hint;
+	nlink_func(&lw_new.nlink);
+	mode_func(&lw_new.mode);
+	
+	/* Check the mode in the LW extention. */
+	if (lw_new.mode != lw_hint.mode) {
+		aal_exception_error("Node (%llu), item (%u): StatData of "
+				    "the file [%s] has the wrong mode (%u),"
+				    "%s (%u). Plugin (%s).", 
+				    stat->con.blk, stat->pos.item, 
+				    core->key_ops.print(&stat->key, PO_INO),
+				    lw_hint.mode, mode == RM_CHECK ? 
+				    "Should be" : "Fixed to", lw_new.mode, 
+				    stat->plug->label);
+		
+		if (mode == RM_CHECK)
+			res = RE_FIXABLE;
+	}
+	
+	size_func(&lw_new.size, size);
+	
+	/* Check the size in the LW extention. */
+	if (lw_new.size != lw_hint.size) {
+		/* FIXME-VITALY: This is not correct for extents as the last 
+		   block can be not used completely. Where to take the policy
+		   plugin to figure out if size is correct? */
+		aal_exception_error("Node (%llu), item (%u): StatData of "
+				    "the file [%s] has the wrong size "
+				    "(%llu), %s (%llu). Plugin (%s).",
+				    stat->con.blk, stat->pos.item, 
+				    core->key_ops.print(&stat->key, PO_INO),
+				    lw_hint.size, mode == RM_CHECK ? 
+				    "Should be" : "Fixed to", lw_new.size, 
+				    stat->plug->label);
+		
+		if (mode == RM_CHECK)
+			res = RE_FIXABLE;
+	}
+	
+	if ((res |= obj40_read_ext(stat, SDEXT_UNIX_ID, &unix_hint)) < 0)
+		return res;
+	
+	/* Check the mode in the LW extention. */
+	if (unix_hint.bytes != bytes) {
+		aal_exception_error("Node (%llu), item (%u): StatData of "
+				    "the file [%s] has the wrong bytes "
+				    "(%llu), %s (%llu). Plugin (%s).", 
+				    stat->con.blk, stat->pos.item, 
+				    core->key_ops.print(&stat->key, PO_INO),
+				    unix_hint.bytes, mode == RM_CHECK ? 
+				    "Should be" : "Fixed to", bytes, 
+				    stat->plug->label);
+		
+		if (mode == RM_CHECK) {
+			unix_hint.bytes = bytes;
+			res = RE_FIXABLE;
+		}
+	}
+	
+	/* Fix r_dev field silently. */
+	if (unix_hint.rdev)
+		unix_hint.rdev = 0;
+
+	if (mode == RM_CHECK)
+		return res;
+	
+	if ((res = obj40_write_ext(stat, SDEXT_LW_ID, &unix_hint)) < 0)
+		return res;
+	
+	res |= obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
+	
+	return res;
 }
 
 #endif
