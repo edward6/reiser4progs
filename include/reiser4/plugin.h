@@ -515,9 +515,6 @@ struct entry_hint {
 	/* Tree coord entry lies at. Filled by dir plugin's lookup. */
 	place_t place;
 
-	/* Flags to be for new items. */
-	uint16_t item_flags;
-	
 	/* Entry key within the current directory */
 	key_entity_t offset;
 
@@ -633,9 +630,6 @@ struct trans_hint {
 
 	/* Max real key. Needed for extents only. Set by estimate. */
 	key_entity_t maxkey;
-
-	/* Flags to be used for creating new item. */
-	uint16_t item_flags;
 
 	/* Flags specific for the operation, set at prepare stage. */
 	uint16_t merge_flags;
