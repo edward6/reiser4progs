@@ -10,7 +10,7 @@
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
+#include <aux/bitmap.h>
 #include <reiser4/reiser4.h>
 
 struct repair_data {
@@ -55,19 +55,43 @@ typedef struct repair_data repair_data_t;
 
 struct repair_check {
     reiser4_format_t *format;
-    reiser4_alloc_t *a_control;
-    reiser4_key_t ld_key, rd_key;
     uint16_t options;
-    uint8_t level;
     uint64_t flags;
+    reiser4_bitmap_t *many_pointed_blocks;
+    union {
+	struct {
+	    uint8_t level;
+	    reiser4_bitmap_t *once_pointed;
+	    reiser4_bitmap_t *many_pointed;
+	    aal_list_t *nodes_path;
+	    aal_list_t *items_path;
+	} cut;
+	struct {
+	    reiser4_alloc_t *a_control;
+	    reiser4_oid_t *oid_control;
+	} scan;
+    } pass;
 };
 
 typedef struct repair_check repair_check_t;
 
-#define REPAIR_NOT_FIXED  0x1
+#define repair_cut_data(data)		(&data->pass.cut)
+#define repair_scan_data(data)		(&data->pass.scan)
+
+#define REPAIR_NOT_FIXED		0x1
 
 #define repair_set_flag(data, flag)	(aal_set_bit(flag, &data->flags))
-#define repair_test_flag(data, flag)	(aal_set_bit(flag, &data->flags))
+#define repair_test_flag(data, flag)	(aal_test_bit(flag, &data->flags))
+#define repair_clear_flag(data, flag)	(aal_clear_bit(flag, &data->flags))
+
+#define repair_cut_node_at(data, h)				    \
+    (h < aal_list_length(repair_cut_data(data)->nodes_path) ?	    \
+     aal_list_at(repair_cut_data(data)->nodes_path, h)->item :	    \
+     NULL)
+#define repair_cut_item_at(data, h)				    \
+    (h < aal_list_length(repair_cut_data(data)->items_path) ?	    \
+     aal_list_at(repair_cut_data(data)->items_path, h)->item :	    \
+     NULL)
 
 #endif
 
