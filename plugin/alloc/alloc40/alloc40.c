@@ -372,18 +372,18 @@ static errno_t alloc40_print(object_entity_t *entity,
 
 	alloc = (alloc40_t *)entity;
 
-	aal_stream_format(stream, "%s (%s)\n",
-			  alloc->plugin->h.label,
-			  alloc->plugin->h.desc);
+	aal_stream_format(stream, "plugin:\t\t%s\n",
+			  alloc->plugin->h.label);
 
-	aal_stream_format(stream, "Total blocks: %llu\n",
+	aal_stream_format(stream, "total blocks:\t%llu\n",
 			  alloc->bitmap->total);
 
-	aal_stream_format(stream, "Used blocks: %llu\n",
+	aal_stream_format(stream, "used blocks:\t%llu\n",
 			  alloc->bitmap->marked);
 
-	aal_stream_format(stream, "Free blocks: %llu\n",
-			  alloc->bitmap->total - alloc->bitmap->marked);
+	aal_stream_format(stream, "free blocks:\t%llu\n",
+			  alloc->bitmap->total -
+			  alloc->bitmap->marked);
 	
 	return 0;
 }
