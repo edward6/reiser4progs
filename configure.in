@@ -469,6 +469,8 @@ fi
 
 if test "x$no_unused_parameter" = xyes; then
     CFLAGS="$CFLAGS -Wno-unused-parameter"
+else
+    CFLAGS="$CFLAGS -Wno-unused"
 fi
 
 if test "x$redundant_decls" = xyes; then
