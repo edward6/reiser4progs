@@ -146,6 +146,14 @@ errno_t reiser4_tree_connect(
 	aal_assert("umka-561", parent != NULL);
 	aal_assert("umka-564", node != NULL);
 
+	if (node->blk == reiser4_tree_root(tree)) {
+		tree->root = node;
+		node->tree = tree;
+		return 0;
+	}
+
+	aal_assert("umka-2209", parent != NULL);
+	
 	/* Registering @child in @node children list */
 	if ((res = reiser4_node_connect(parent, node)))
 		return res;
@@ -266,29 +274,14 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
     
 	device = tree->fs->device;
 
-	/* Checking if we want load the root node */
-	if (blk == reiser4_tree_root(tree) && !tree->root) {
-
-		/* Attaching root node to tree->root */
-		if (!(tree->root = reiser4_node_open(device, blk))) {
-			aal_exception_error("Can't open root node "
-					    "%llu.", blk);
-			return NULL;
-		}
-
-		return tree->root;
-	}
-
 	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
 
 		if (!(node = reiser4_node_open(device, blk))) {
 			aal_exception_error("Can't open node %llu.", blk);
 			return NULL;
 		}
-		
-		node->tree = tree;
-		
-		if (parent && reiser4_tree_connect(tree, parent, node))
+
+		if (reiser4_tree_connect(tree, parent, node))
 			goto error_free_node;
 	} else {
 		/*
