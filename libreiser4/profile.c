@@ -30,6 +30,9 @@ reiser4_pid_t *reiser4_profile_pid(reiser4_profile_t *profile,
 	for (i = 0; i < (sizeof(profile->pid) / sizeof(reiser4_pid_t)); i++) {
 		reiser4_pid_t *pid = &profile->pid[i];
 
+		if (aal_strlen(pid->name) != aal_strlen(name))
+			continue;
+
 		if (!aal_strncmp(pid->name, name, aal_strlen(name)))
 			return pid;
 	}

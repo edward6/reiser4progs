@@ -863,6 +863,9 @@ lookup_t reiser4_tree_lookup(
 			if (res == ABSENT) {
 				reiser4_place_inc(place, whole);
 			}
+
+			if (!reiser4_place_valid(place))
+				return res;
 			
 			if (reiser4_place_fetch(place))
 				return FAILED;

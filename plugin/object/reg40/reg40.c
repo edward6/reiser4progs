@@ -172,18 +172,17 @@ static object_entity_t *reg40_open(object_info_t *info) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
-errno_t reg40_create_sd(obj40_t *obj, uint64_t sd) {
-	sdext_unix_hint_t unix_ext;
-	reiser4_plug_t *stat_plug;
-	create_hint_t stat_hint;
-	sdext_lw_hint_t lw_ext;
+errno_t reg40_create_sd(obj40_t *obj, rid_t pid) {
 	statdata_hint_t stat;
+	sdext_lw_hint_t lw_ext;
+	create_hint_t stat_hint;
+	reiser4_plug_t *stat_plug;
+	sdext_unix_hint_t unix_ext;
 	
 	/* Getting statdata plugin */
-	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, sd))) {
+	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find stat data item plugin "
-				    "by its id 0x%x.", sd);
+				    "by its id 0x%x.", pid);
 		return -EINVAL;
 	}
 

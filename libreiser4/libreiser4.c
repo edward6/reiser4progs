@@ -90,8 +90,7 @@ static errno_t tree_fetch(void *tree, place_t *place) {
 
 /* Returns TRUE if passed @place points to some real item in a node */
 static int tree_valid(void *tree, place_t *place) {
-	reiser4_place_t *p = (reiser4_place_t *)place;
-	return p->pos.item < reiser4_node_items(p->node);
+	return reiser4_place_valid((reiser4_place_t *)place);
 }
 
 /* Handler for requests for next item */

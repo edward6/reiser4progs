@@ -7,6 +7,13 @@
 
 #include <reiser4/reiser4.h>
 
+bool_t reiser4_place_valid(reiser4_place_t *place) {
+	aal_assert("umka-2367", place != NULL);
+	aal_assert("umka-2368", place->node != NULL);
+	
+	return place->pos.item < reiser4_node_items(place->node);
+}
+
 /* Makes passed @place pointing to the first unit of the first item */
 errno_t reiser4_place_first(reiser4_place_t *place) {
 	place->pos.item = 0;
