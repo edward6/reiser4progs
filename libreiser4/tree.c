@@ -522,7 +522,7 @@ static errno_t reiser4_tree_shift(reiser4_tree_t *tree, int direction,
 
     old = *coord;
     
-    while (1) {
+    while (reiser4_node_count(old.cache->node) > 1) {
 	
 	if (direction == LEFT) {
 	    reiser4_coord_init(&src, old.cache, 0, ~0ul);
@@ -545,9 +545,6 @@ static errno_t reiser4_tree_shift(reiser4_tree_t *tree, int direction,
 	if (reiser4_node_space(cache->node) < reiser4_item_len(&item) + overhead)
 	    return 0;
 	
-	if (reiser4_node_count(src.cache->node) == 1)
-	    return 0;
-
 	if (!mip) {
 	    if (direction == LEFT) {
 		if (coord->cache == old.cache && coord->pos.item == 0)
@@ -558,6 +555,9 @@ static errno_t reiser4_tree_shift(reiser4_tree_t *tree, int direction,
 		    return 0;
 	    }
 	}
+	
+	if (coord->cache == dst.cache)
+	    return 0;
 	
 	if (direction == LEFT) {
 	    if (coord->cache == old.cache) {
@@ -651,21 +651,31 @@ errno_t reiser4_tree_mkspace(
     
     for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
         reiser4_cache_t *cache;
-        reiser4_coord_t coord;
+        reiser4_coord_t save;
 	
         if (!(cache = reiser4_tree_allocate(tree, new->cache->level)))
 	   return -1;
 	
-        coord = *new;
+        save = *new;
 	    
         if (reiser4_tree_shift(tree, RIGHT, new, cache, 1))
 	   return -1;
 	
-        if ((not_enough = needed - reiser4_node_space(new->cache->node)) <= 0)
-	   return 0;
-
-	if ((not_enough = needed - reiser4_node_space(coord.cache->node)) <= 0)
-	    *new = coord;
+	if (reiser4_node_count(cache->node)) {
+		
+	    if (reiser4_tree_attach(tree, cache)) {
+		aal_exception_error("Can't attach node to the tree.");
+		reiser4_tree_release(tree, cache);
+		return -1;
+	    }
+	}
+	
+	not_enough = needed - reiser4_node_space(new->cache->node);
+	
+        if (not_enough > 0 && save.cache != new->cache) {
+	    *new = save;
+	    not_enough = needed - reiser4_node_space(new->cache->node);
+	}
     }
 
     return -(not_enough > 0);
@@ -744,9 +754,11 @@ errno_t reiser4_tree_insert(
 	return 0;
     }
     
-    if (reiser4_tree_mkspace(tree, coord, &insert, needed))
+    if (reiser4_tree_mkspace(tree, coord, &insert, needed)) {
+	aal_exception_error("Can't prepare space for isnert one more item.");
         return -1;
-
+    }
+    
     *coord = insert;
     
     if (reiser4_cache_insert(coord->cache, &coord->pos, hint)) {

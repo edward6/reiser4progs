@@ -394,7 +394,7 @@ static int direntry40_lookup(reiser4_item_t *item,
     if (plugin_call(return -1, key->plugin->key_ops,
 	compare, key->body, maxkey.body) > 0)
     {
-	*pos = direntry40_count(item) - 1;
+	*pos = direntry40_count(item);
 	return 0;
     }
     

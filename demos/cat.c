@@ -87,11 +87,14 @@ int main(int argc, char *argv[]) {
 	    }
 	    
 	    if (f) {
+		uint32_t bytes = 0;
 		aal_memset(buff, 0, 4096);
 		
 		while (read(f, buff, 4096)) {
+		    bytes += 4096;
 		    if (!reiser4_file_write(reg, buff, 4096)) {
-			aal_exception_error("Can't write next chunk of data.");
+			aal_exception_error("Can't write next chunk "
+			    "of data (%u).", bytes);
 			return 0;
 		    }
 		}

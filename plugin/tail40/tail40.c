@@ -32,11 +32,8 @@ static errno_t tail40_init(reiser4_item_t *item,
 static errno_t tail40_insert(reiser4_item_t *item, uint32_t pos, 
     reiser4_item_hint_t *hint)
 {
-    return -1;
-}
-
-static uint16_t tail40_remove(reiser4_item_t *item, uint32_t pos) {
-    return -1;
+    aal_memcpy(tail40_body(item) + pos, hint->data, hint->len);
+    return 0;
 }
 
 #endif
@@ -66,6 +63,49 @@ static errno_t tail40_maxkey(reiser4_item_t *item,
     return 0;
 }
 
+static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key, 
+    uint32_t *pos)
+{
+    uint32_t len;
+    uint32_t cur_offset;
+    uint32_t wan_offset;
+    
+    reiser4_key_t curkey;
+    reiser4_key_t maxkey;
+    
+    aal_assert("umka-1228", item != NULL, return -1);
+    aal_assert("umka-1229", key != NULL, return -1);
+    aal_assert("umka-1230", pos != NULL, return -1);
+
+    maxkey.plugin = key->plugin;
+    tail40_maxkey(item, &maxkey);
+
+    if (plugin_call(return -1, key->plugin->key_ops, compare,
+	key->body, maxkey.body))
+    {
+	*pos = core->item_ops.len(item);
+	return 0;
+    }
+
+    curkey.plugin = key->plugin;
+    core->item_ops.key(item, &curkey);
+    len = core->item_ops.len(item);
+    
+    cur_offset = plugin_call(return -1, key->plugin->key_ops,
+	get_offset, curkey.body);
+    
+    wan_offset = plugin_call(return -1, key->plugin->key_ops,
+	get_offset, key->body);
+    
+    if (wan_offset >= cur_offset && wan_offset < cur_offset + len) {
+	*pos = wan_offset - cur_offset;
+	return 1;
+    }
+
+    *pos = len;
+    return 0;
+}
+
 static reiser4_plugin_t tail40_plugin = {
     .item_ops = {
 	.h = {
@@ -80,16 +120,15 @@ static reiser4_plugin_t tail40_plugin = {
 #ifndef ENABLE_COMPACT
         .init	    = tail40_init,
         .insert	    = tail40_insert,
-        .remove	    = tail40_remove,
 #else
         .init	    = NULL,
         .insert	    = NULL,
-        .remove	    = NULL,
 #endif
         .maxkey	    = tail40_maxkey,
+        .lookup	    = tail40_lookup,
+        .remove	    = NULL,
         .estimate   = NULL,
         .check	    = NULL,
-        .lookup	    = NULL,
         .count	    = NULL,
         .valid	    = NULL,
         .print	    = NULL,

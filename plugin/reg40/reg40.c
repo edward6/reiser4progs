@@ -397,6 +397,8 @@ static int32_t reg40_write(reiser4_entity_t *entity,
     maxspace = is_extent ? core->tree_ops.blockspace(reg->tree) : 
 	core->tree_ops.nodespace(reg->tree);
 
+    maxspace /= 5;
+    
     /* 
 	FIXME-UMKA: Here also should be tail conversion code in the future. It 
 	will find the last tail if exists and convert it to the extent.
@@ -421,7 +423,8 @@ static int32_t reg40_write(reiser4_entity_t *entity,
 	    EXTENT_ITEM_TYPE ? 1 : 0);
 	
 	if (core->tree_ops.insert(reg->tree, &hint, level, &place)) {
-	    aal_exception_error("Can't insert body item to the thee.");
+	    aal_exception_error("Can't insert body item to the tree. "
+		"Wrote %u bytes.", wrote);
 	    return 0;
 	}
     

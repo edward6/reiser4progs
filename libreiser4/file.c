@@ -250,7 +250,7 @@ errno_t reiser4_file_truncate(
 /* Adds speficied entry into passed opened dir */
 errno_t reiser4_file_write(
     reiser4_file_t *file,	    /* file for writing */
-    char *buff,			    /* new entries buffer */
+    void *buff,			    /* new entries buffer */
     uint64_t n			    /* the number of entries to be created */
 ) {
     aal_assert("umka-862", file != NULL, return -1);
@@ -387,7 +387,7 @@ errno_t reiser4_file_reset(
 
 errno_t reiser4_file_read(
     reiser4_file_t *file,	    /* dir entry will be read from */
-    char *buff,			    /* entry pointer result will be stored in */
+    void *buff,			    /* entry pointer result will be stored in */
     uint64_t n
 ) {
     aal_assert("umka-860", file != NULL, return -1);
