@@ -6,6 +6,36 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2005-02-20
+	The 1.0.4 version.
+2005-02-19
+	A bugfix in file body convertion code.
+2005-02-17
+	Enable libminimal by default.
+	Do not configure empty utils(resizer, cpfs).
+2005-01-30
+	Some bug fixes in tree balancing, fs check, syncing code.
+2005-01-25
+	Some bug fixes in tree balancing code.
+2005-01-20
+	Bug fixes:
+	- in backup layout traverse code;
+	- in insert extent item-by-item code;
+2005-01-17
+	A way to recover fs metadata independently of the mkfs id is added.
+	Bug fixes:
+	- in repair code then a node has a pointer to itself;
+	- in not aligned access to different object on-disk data.
+2004-12-23
+	Bug fixes:
+	- in initializing object id fields in SB;
+	- in free blocks accounting;
+	- in journal unpack code.
+2004-12-12
+	Some bugfixes:
+	- in object/extent truncate code are fixed.
+	- in backup handling code is fixed.
+	- sware about libaal version correctly.
 2004-12-04
 	The version is 1.0.3
 2004-12-01

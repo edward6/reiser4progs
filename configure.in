@@ -15,7 +15,7 @@ AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [Define to the min interface ver
 
 LIBREISER4_MAJOR_VERSION=1
 LIBREISER4_MINOR_VERSION=0
-LIBREISER4_MICRO_VERSION=3
+LIBREISER4_MICRO_VERSION=4
 
 LIBREISER4_INTERFACE_AGE=0
 LIBREISER4_BINARY_AGE=0
@@ -330,6 +330,7 @@ AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_CHECK_HEADERS([printf.h errno.h fcntl.h mntent.h stdint.h stdlib.h \
 string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
+
 AC_CHECK_HEADERS([asm/unaligned.h])
 
 # Checks for typedefs, structures and compiler characteristics.
@@ -427,7 +428,7 @@ AC_CHECK_SIZEOF(off_t, 64, [
 ])
 
 OLD_LIBS="$LIBS"
-AC_CHECK_LIBAAL(aal, 1.0.3, ,exit)
+AC_CHECK_LIBAAL(aal, 1.0.4, ,exit)
 AAL_LIBS="$LIBS"
 LIBS="$OLD_LIBS"
 
@@ -435,7 +436,7 @@ AC_SUBST(AAL_LIBS)
 
 if test x$enable_libminimal = xyes; then
     	OLD_LIBS="$LIBS"
-    	AC_CHECK_LIBAAL(aal-minimal, 1.0.3, ,exit)
+    	AC_CHECK_LIBAAL(aal-minimal, 1.0.4, ,exit)
     	AAL_MINIMAL_LIBS="$LIBS"
     	LIBS="$OLD_LIBS"
 
