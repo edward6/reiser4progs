@@ -12,25 +12,32 @@
 static void fsck_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
 
-	fprintf(stderr, "Main options:\n"
-		"  --check                checks the consistency (default)\n"
-		"  --fix                  fixes minor corruptions\n"
-		"  --build-sb             rebuilds the super block\n"
-		"  --build-fs             rebuilds the filesystem\n"
-		"Extra options:\n"
-		"  -l, --logfile file     complains into the file\n"
-		"  -V, --version          prints the current version\n"
-		"  -?, -h, --help         prints program usage\n"
-		"  -n, --no-log           makes fsck to not complain\n"
-		"  -q, --quiet            suppresses the most of the progress\n"
-		"  -a, --auto\n"
-		"  -p, --preen            automatically checks the consistency\n"
-		"                         without any questions.\n"
-		"  -f, --force            forces checking even if the file system\n"
-		"                         seems clean\n"
-		"  -v, --verbose          makes fsck to be verbose\n"
-		"  -r                     ignored\n"
-		);
+	fprintf(stderr, 
+		"Fsck options:\n"
+		"  --check                       checks the consistency (default)\n"
+		"  --fix                         fixes minor corruptions\n"
+		"  --build-sb                    rebuilds the super block\n"
+		"  --build-fs                    rebuilds the filesystem\n"
+		"\n"
+		"  -L, --logfile file            complains into the file\n"
+		"  -n, --no-log                  makes fsck to not complain\n"
+		"  -a, --auto                    automatically checks the consistency\n"
+		"                                without any questions.\n"
+		"  -v, --verbose                 makes fsck to be verbose\n"
+		"  -r                            ignored\n"
+		"Plugins options:\n"
+		"  -p, --print-params            prints default params.\n"
+		"  -l, --print-plugins           prints all known plugins.\n"
+		"  -o, --override TYPE=PLUGIN    overrides the default plugin of the type\n"
+	        "                                \"TYPE\" by the plugin \"PLUGIN\".\n"
+		"Common options:\n"
+		"  -?, -h, --help                prints program usage.\n"
+		"  -V, --version                 prints current version.\n"
+		"  -q, --quiet                   forces checking filesystem without\n"
+		"                                any questions.\n"
+		"  -f, --force                   makes fsck to use whole disk, not block\n"
+		"                                device or mounted partition.\n"
+		"  -c, --cache N                 number of nodes in tree buffer cache\n");
 }
 
 #define WARNING \
@@ -98,34 +105,44 @@ static void fsck_init_streams(fsck_parse_t *data) {
 	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stdout);
 }
 
+enum fsck_mode {
+	RM_SHOW_PARM = RM_LAST,
+	RM_SHOW_PLUG = RM_LAST + 1
+};
+
 static errno_t fsck_init(fsck_parse_t *data, 
 			 struct aal_device_ops *ops, 
 			 int argc, char *argv[]) 
 {
 	static int mode = RM_CHECK, sb_mode = 0, fs_mode = 0;
 	FILE *stream = NULL;
+	char override[4096];
 	int option_index;
 	errno_t ret = 0;
+	uint32_t cache;
 	int c;
 
 	static struct option options[] = {
-		/* SB modes. */
+		/* FSCK modes. */
 		{"check", no_argument, &mode, RM_CHECK},
 		{"fix", no_argument, &mode, RM_FIX},
 		{"build-sb", no_argument, &sb_mode, RM_BUILD},
 		{"build-fs", no_argument, &fs_mode, RM_BUILD},
+		{"print-params", no_argument, &mode, RM_SHOW_PARM},
+		{"print-plugins", no_argument, &mode, RM_SHOW_PLUG},
 		/* Fsck hidden modes. */
 		{"rollback", no_argument, &mode, RM_BACK},
 		/* Fsck options */
-		{"logfile", required_argument, 0, 'l'},
+		{"logfile", required_argument, 0, 'L'},
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"quiet", no_argument, NULL, 'q'},
 		{"no-log", no_argument, NULL, 'n'},
 		{"auto", no_argument, NULL, 'a'},
-		{"preen", no_argument, NULL, 'p'},
 		{"force", no_argument, NULL, 'f'},
 		{"verbose", no_argument, NULL, 'v'},
+		{"cashe", required_argument, 0, 'c'},
+		{"override", required_argument, NULL, 'o'},
 		/* Fsck hidden options. */
 		{"passes-dump", required_argument, 0, 'U'},
 		{"backup", required_argument, 0, 'b'},
@@ -134,6 +151,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 	};
 
 	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
+	memset(override, 0, sizeof(override));
 	data->logfile = stderr;
 
 	if (argc < 2) {
@@ -141,14 +159,14 @@ static errno_t fsck_init(fsck_parse_t *data,
 		return USER_ERROR;
 	}
 
-	while ((c = getopt_long(argc, argv, "l:VhnqapfvU:b:r?dB:", 
+	while ((c = getopt_long(argc, argv, "L:VhnqafvU:b:r?dB:plo:c:", 
 				options, &option_index)) >= 0) 
 	{
 		switch (c) {
 		case 0:
 			/* Long options. */
 			break;
-		case 'l':
+		case 'L':
 			if ((stream = fopen(optarg, "w")) == NULL) {
 				aal_fatal("Cannot not open the "
 					  "logfile (%s).", optarg);
@@ -170,7 +188,6 @@ static errno_t fsck_init(fsck_parse_t *data,
 			aal_set_bit(&data->options, FSCK_OPT_FORCE);
 			break;
 		case 'a':
-		case 'p':
 			aal_set_bit(&data->options, FSCK_OPT_AUTO);
 			break;
 		case 'v':
@@ -196,7 +213,42 @@ static errno_t fsck_init(fsck_parse_t *data,
 		case 'B':
 			data->bitmap_file = optarg;
 			break;
+		case 'c':
+			if ((cache = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid cache value specified (%s).",
+					  optarg);
+				return USER_ERROR;
+			}
+
+			misc_mpressure_setup(cache);
+			break;
+		case 'l':
+			mode = RM_SHOW_PLUG;
+			break;
+		case 'p':
+			mode = RM_SHOW_PARM;
+			break;
+		case 'o':
+			aal_strncat(override, optarg, aal_strlen(optarg));
+			aal_strncat(override, ",", 1);
+			break;
 		}
+	}
+	
+	/* Initializing libreiser4 with factory sanity check */
+	if (libreiser4_init()) {
+		aal_fatal("Cannot initialize the libreiser4.");
+		goto oper_error;
+	}
+
+	if (mode == RM_SHOW_PARM) {
+		misc_param_print();
+		goto user_error;
+	}
+
+	if (mode == RM_SHOW_PLUG) {
+		misc_plugins_print();
+		goto user_error;
 	}
 
 	fsck_init_streams(data);
@@ -248,7 +300,16 @@ static errno_t fsck_init(fsck_parse_t *data,
 
 	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
 	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
-    
+
+	if (aal_strlen(override) > 0) {
+		override[aal_strlen(override) - 1] = '\0';
+
+		aal_mess("Overriding default params by \"%s\".", override);
+		
+		if (misc_param_override(override))
+			goto oper_error;
+	}
+	
 	return fsck_ask_confirmation(data, argv[optind]);
 	
  user_error:
@@ -447,12 +508,6 @@ int main(int argc, char *argv[]) {
 		goto free_device;
 	}
 	
-	/* Initializing libreiser4 with factory sanity check */
-	if ((res = libreiser4_init())) {
-		aal_fatal("Cannot initialize the libreiser4.");
-		goto free_device;
-	}
-	
 	/* SB_mode is specified, otherwise  */
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
 	repair.bitmap_file = parse_data.bitmap_file;
@@ -493,6 +548,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Report about the results. */
 	if (res < 0 || ex == OPER_ERROR) {
+		ex = OPER_ERROR;
 		aal_mess("Operational error occured while fscking.");
 		goto free_fsck;
 	} 

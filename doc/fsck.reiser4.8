@@ -26,22 +26,38 @@ is reiser4 filesystem check and repair program.
 .SH CHECK OPTIONS
 .TP
 .B --check
-consistency checking (default)
+the default action checks the consistency and reports, but does not repair any corruption that it finds. 
+This option may be used on a read-only file system mount.
 .TP
 .B --fix
-fixes what can be fixed without rebuilding.
+fixes minor corruptions that do not require rebuilding.
 .TP
 .B --build-sb
-fixes all super block corruptions.
+fixes all severe corruptions in super blocks, rebuilds super blocks from scratch if needed.
 .TP
 .B --build-fs
-fixes all fs corruptions, does not fix super block.
+fixes all severe fs corruptions, except super block ones; rebuilds reiser4 filesystem from the scratch if needed.
 .TP
-.B -l, --logfile
-complains into the logfile
+.B -L, --logfile
+makes fsck to report any corruption it finds to the specified logfile rather then on stderr.
 .TP
 .B -n, --no-log
-makes fsck do not complain.
+prevents fsck from reporting any kind of corruption.
+.TP
+.B -a, --auto
+automatically checks the file system without any questions
+.SH PLUGIN OPTIONS
+.TP
+.B -p, --print-params
+prints default parameters. This is the set of plugins used for each
+filesystem object (format, node, file, directories, hashes, etc.). If
+--override is specified, then prints modified parameters.
+.TP
+.B -l, --print-plugins
+prints all plugins libreiser4 know about.
+.TP
+.B -o, --override TYPE=PLUGIN, ...
+overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
 .SH COMMON OPTIONS
 .TP
 .B -V, --version
@@ -52,9 +68,6 @@ prints program help
 .TP
 .B -q, --quiet
 forces fsck to be working without any questions
-.TP
-.B -a, -p, --auto, --preen
-automatically checks the file system without any questions
 .TP
 .B -v, --verbose
 makes fsck to be verbose.

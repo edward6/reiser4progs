@@ -45,26 +45,26 @@ static void mkfs_print_usage(char *name) {
 		"FILE1 FILE2 ... [ size[K|M|G] ]\n", name);
     
 	fprintf(stderr, 
-		"Common options:\n"
-		"  -?, -h, --help                  prints program usage.\n"
-		"  -V, --version                   prints current version.\n"
-		"  -q, --quiet                     forces creating filesystem without\n"
-		"                                  any questions.\n"
-		"  -f, --force                     makes mkfs to use whole disk, not\n"
-		"                                  block device or mounted partition.\n"
 		"Mkfs options:\n"
-		"  -s, --lost-found                forces mkfs to create lost+found\n"
-		"                                  directory.\n"
-		"  -b, --block-size N              block size, 4096 by default, other\n"
-		"                                  are not supported at the moment.\n"
-		"  -U, --uuid UUID                 universally unique identifier.\n"
-		"  -L, --label LABEL               volume label lets to mount\n"
-		"                                  filesystem by its label.\n"
+		"  -s, --lost-found              forces mkfs to create lost+found\n"
+		"                                directory.\n"
+		"  -b, --block-size N            block size, 4096 by default, other\n"
+		"                                are not supported at the moment.\n"
+		"  -U, --uuid UUID               universally unique identifier.\n"
+		"  -L, --label LABEL             volume label lets to mount\n"
+		"                                filesystem by its label.\n"
 		"Plugins options:\n"
-		"  -p, --print-params              prints default params.\n"
-		"  -l, --print-plugins             prints all known plugins.\n"
-	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
-	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
+		"  -p, --print-params            prints default params.\n"
+		"  -l, --print-plugins           prints all known plugins.\n"
+	        "  -o, --override TYPE=PLUGIN    overrides the default plugin of the type\n"
+	        "                                \"TYPE\" by the plugin \"PLUGIN\".\n"
+		"Common options:\n"
+		"  -?, -h, --help                prints program usage.\n"
+		"  -V, --version                 prints current version.\n"
+		"  -q, --quiet                   forces creating filesystem without\n"
+		"                                any questions.\n"
+		"  -f, --force                   makes mkfs to use whole disk, not\n"
+		"                                block device or mounted partition.\n");
 }
 
 /* Initializes used by mkfs exception streams */

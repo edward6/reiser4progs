@@ -34,19 +34,18 @@ static void cpfs_print_usage(char *name) {
 		"SRC DST\n", name);
     
 	fprintf(stderr, 
-		"Common options:\n"
-		"  -?, -h, --help                  prints program usage.\n"
-		"  -V, --version                   prints current version.\n"
-		"  -q, --quiet                     forces acting without any questions.\n"
-		"  -f, --force                     makes cpfs to use whole disk, not\n"
-		"                                  block device or mounted partition.\n"
-		"  -c, --cache N                   number of nodes in tree cache,\n"
-		"                                  it affects many aspects of behavior\n"
 		"Plugins options:\n"
-		"  -p, --print-params              prints default params.\n"
-		"  -l, --known-plugins             prints known plugins.\n"
-	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
-	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
+		"  -p, --print-params            prints default params.\n"
+		"  -l, --known-plugins           prints known plugins.\n"
+	        "  -o, --override TYPE=PLUGIN    overrides the default plugin of the type\n"
+	        "                                \"TYPE\" by the plugin \"PLUGIN\".\n"
+		"Common options:\n"
+		"  -?, -h, --help                prints program usage.\n"
+		"  -V, --version                 prints current version.\n"
+		"  -q, --quiet                   forces acting without any questions.\n"
+		"  -f, --force                   makes cpfs to use whole disk, not\n"
+		"                                block device or mounted partition.\n"
+		"  -c, --cache N                 number of nodes in tree buffer cache\n");
 }
 
 /* Initializes used by mkfs exception streams */

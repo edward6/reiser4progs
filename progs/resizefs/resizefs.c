@@ -32,20 +32,19 @@ static void resizefs_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE size[K|M|G]\n", name);
     
 	fprintf(stderr, 
-		"Common options:\n"
-		"  -?, -h, --help                  prints program usage.\n"
-		"  -V, --version                   prints current version.\n"
-		"  -q, --quiet                     forces creating filesystem without\n"
-		"                                  any questions.\n"
-		"  -f, --force                     makes reiserer to use whole disk, not\n"
-		"                                  block device or mounted partition.\n"
-		"  -c, --cache N                   number of nodes in tree cache,\n"
-		"                                  it affects many aspects of behavior\n"
 		"Plugins options:\n"
-		"  -p, --print-params              prints default params.\n"
-		"  -l, --print-plugins             prints known plugins.\n"
-	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
-	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
+		"  -p, --print-params            prints default params.\n"
+		"  -l, --print-plugins           prints known plugins.\n"
+	        "  -o, --override TYPE=PLUGIN    overrides the default plugin of the type\n"
+	        "                                \"TYPE\" by the plugin \"PLUGIN\".\n"
+		"Common options:\n"
+		"  -?, -h, --help                prints program usage.\n"
+		"  -V, --version                 prints current version.\n"
+		"  -q, --quiet                   forces creating filesystem without\n"
+		"                                any questions.\n"
+		"  -f, --force                   makes resizer to use whole disk, not\n"
+		"                                block device or mounted partition.\n"
+		"  -c, --cache N                 number of nodes in tree byffer cache\n");
 }
 
 /* Initializes exception streams used by resizefs */
@@ -118,9 +117,7 @@ int main(int argc, char *argv[]) {
 			misc_mpressure_setup(cache);
 			break;
 		case 'o':
-			aal_strncat(override, optarg,
-				    aal_strlen(optarg));
-			
+			aal_strncat(override, optarg, aal_strlen(optarg));
 			aal_strncat(override, ",", 1);
 			break;
 		case '?':
