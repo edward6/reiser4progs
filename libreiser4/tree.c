@@ -184,12 +184,18 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 #ifndef ENABLE_COMPACT
 
 static errno_t callback_tree_mpressure(void *data, int result) {
-	aal_lru_t *lru = (aal_lru_t *)data;
+	reiser4_tree_t *tree = (reiser4_tree_t *)data;
 
-	if (!lru->adjust || !lru->list || !result)
+	if (!result)
 		return 0;
+
+	aal_mpressure_disable(tree->mpressure);
+
+	if (aal_lru_adjust(tree->lru))
+		return -1;
 	
-	return aal_lru_adjust(lru);
+	aal_mpressure_enable(tree->mpressure);
+	return 0;
 }
 
 #endif
@@ -203,7 +209,7 @@ static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
 	
 #ifndef ENABLE_COMPACT
 	tree->mpressure = aal_mpressure_handler_create(callback_tree_mpressure,
-						      "tree cache", tree->lru);
+						      "tree cache", (void *)tree);
 #else
 	tree->mpressure = NULL;
 #endif

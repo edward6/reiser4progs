@@ -1,5 +1,5 @@
 /*
-  lru.c -- list of recently used objects implementation.
+  lru.h -- list of recently used objects implementation.
   
   Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.

@@ -122,10 +122,10 @@ errno_t aal_lru_touch(aal_lru_t *lru, void *data) {
 
 		aal_list_append(lru->list, data);
 
-		if (prev && (prev = lru->ops->get_prev(prev->data)))
+		if (prev && (prev = lru->ops->get_prev(data)))
 			lru->ops->set_next(prev->data, lru->list->next);
 
-		if (next && (next = lru->ops->get_next(next->data)))
+		if (next && (next = lru->ops->get_next(data)))
 			lru->ops->set_prev(next->data, lru->list->next);
 	}
 
