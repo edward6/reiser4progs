@@ -594,66 +594,72 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 	return 0;
 }
 
-/* Mode modifying function. */
-int64_t node40_modify(node_entity_t *entity, pos_t *pos,
-		      trans_hint_t *hint, modyfy_func_t modify)
+/* Mode modifying fucntion. */
+static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
+                             trans_hint_t *hint, bool_t insert)
 {
-	void *ih;
-	int32_t len;
-	uint32_t pol;
-	int64_t write;
-	place_t place;
-	node40_t *node;
-
-	aal_assert("vpf-1369", modify != NULL);
-	
-	node = (node40_t *)entity;
-	len = hint->len + hint->overhead;
-    
-	/* Makes expand of the node new items will be inserted in */
-	if ((len > 0) && node40_expand(entity, pos, len, 1)) {
-		aal_exception_error("Node %llu: expand failed.", 
-				    node->block->nr);
-		return -EINVAL;
-	}
-
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, pos->item);
-
-	/* Updating item header if we want insert new item */
-	if (pos->unit == MAX_UINT32) {
-		ih_set_pid(ih, hint->plug->id.id, pol);
-
-		aal_memcpy(ih, hint->offset.body,
-			   key_size(pol));
-	}
-	
-	/* Preparing place for calling item plugin with them */
-	if (node40_fetch(entity, pos, &place)) {
-		aal_exception_error("Can't fetch item data.");
-		return -EINVAL;
-	}
-
-	/* Modifying data on the @place. */
-	if (!(write = modify(&place, hint)) < 0) {
-		aal_exception_error("Node %llu, item %u: failed to modify "
-				    "the item.", node->block->nr, pos->unit);
-		return write;
-	}
-
-	/* If some space got free, shrink the node. */
-	if ((len < 0) && node40_shrink(entity, pos, -len, 1)) {
-		aal_exception_error("Node %llu: shrink failed.", 
-				    node->block->nr);
-		return -EINVAL;
-	}
-
-	/* Updating item's key if we insert new item or if we 
-	   insert unit into leftmost postion. */
-	if (pos->unit == 0)
-		aal_memcpy(ih, place.key.body, key_size(pol));
-
-	return write;
+        void *ih;
+        uint32_t pol;
+        uint32_t len;
+        int64_t write;
+        place_t place;
+        node40_t *node;
+                                                                                              
+        node = (node40_t *)entity;
+        len = hint->len + hint->ohd;
+                                                                                              
+        /* Makes expand of the node new items will be inserted in */
+        if (node40_expand(entity, pos, len, 1)) {
+                aal_exception_error("Can't expand node for insert "
+                                    "item/unit.");
+                return -EINVAL;
+        }
+                                                                                              
+        pol = node40_key_pol(node);
+        ih = node40_ih_at(node, pos->item);
+                                                                                              
+        /* Updating item header if we want insert new item */
+        if (pos->unit == MAX_UINT32) {
+                ih_set_pid(ih, hint->plug->id.id, pol);
+                                                                                              
+                aal_memcpy(ih, hint->offset.body,
+                           key_size(pol));
+        }
+                                                                                              
+        /* Preparing place for calling item plugin with them */
+        if (node40_fetch(entity, pos, &place)) {
+                aal_exception_error("Can't fetch item data.");
+                return -EINVAL;
+        }
+                                                                                              
+        if (insert) {
+                /* Inserting units into @place */
+                if (!(write = plug_call(hint->plug->o.item_ops->object,
+                                        insert_units, &place, hint)) < 0)
+                {
+                        aal_exception_error("Can't insert unit to "
+                                            "node %llu.", node->block->nr);
+                        return write;
+                }
+        } else {
+                /* Writes data into @place */
+                if (!(write = plug_call(hint->plug->o.item_ops->object,
+                                        write_units, &place, hint)) < 0)
+                {
+                        aal_exception_error("Can't write data to "
+                                            "node %llu.", node->block->nr);
+                        return write;
+                                                                                              
+                        return write;
+                }
+        }
+                                                                                              
+        /* Updating item's key if we insert new item or if we insert unit into
+           leftmost postion. */
+        if (pos->unit == 0)
+                aal_memcpy(ih, place.key.body, key_size(pol));
+                                                                                              
+        return write;
 }
 
 static errno_t node40_insert(node_entity_t *entity,
@@ -1234,7 +1240,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		if (hint->units == 0)
 			return 0;
 
-		/* Prepare pos new item will be craeted at. */
+		/* Prepare pos new item will be created at. */
 		POS_INIT(&pos, (left_shift ? dst_items : 0), MAX_UINT32);
 	} else {
 		/* The same for case when we will not create new item, but will
@@ -1298,13 +1304,6 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   expand() function at it. */
 		if (node40_fetch(dst_entity, &pos, &dst_place))
 			return -EINVAL;
-
-		/* Setting item len to old len, that is zero, as it was just
-		   created. This is needed for correct work of shift_units()
-		   method of some items, which do not have "units" field and
-		   calculate the number of units by own len, like extent40
-		   does. */
-		dst_place.len = 0;
 	}
 
 	/* Shift units from @src_place to @dst_place. */
@@ -1357,7 +1356,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		}
 	} else {
 		/* Sources item will not be removed, because it is not yet
-		 * empty, it will be just shrinked by @hint->rest. */
+		   empty, it will be just shrinked by @hint->rest. */
 		pos.unit = 0;
 		len = hint->rest;
 	}
