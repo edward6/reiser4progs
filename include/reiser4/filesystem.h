@@ -254,6 +254,23 @@ struct reiser4_oid {
 
 typedef struct reiser4_oid reiser4_oid_t;
 
+struct reiser4_lru {
+	
+	/* The body of lru list */
+	aal_list_t *list;
+
+	/* The number of blocks to be freed on the next cache shrink */
+	uint32_t adjust;
+
+	/* The number of bytes of current process lie in swap */
+	uint32_t swaped;
+
+	/* Is lru djustable */
+	int adjustable;
+};
+
+typedef struct reiser4_lru reiser4_lru_t;
+
 /* Tree structure */
 struct reiser4_tree {
 
@@ -274,17 +291,7 @@ struct reiser4_tree {
 	  The list of joints present in tree cache sorted in recently used
 	  order. Thanks a lot to Nikita for this good idea.
 	*/
-	aal_list_t *lru;
-
-	/* Counter of nodes added since the last timer tick */
-	uint32_t shrink;
-	
-	/* Previous value of difference of vmsize and rss */
-	long vmsize_rss;
-
-	/* Flag which shows, that cache is shrinkable in principle. It means, we
-	 * able to get memory statistics from the /proc filesystem */
-	int shrinkable;
+	reiser4_lru_t lru;
 };
 
 /* Callback function type for opening node. */

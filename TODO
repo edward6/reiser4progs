@@ -24,3 +24,5 @@ reiser4progs/COPYING.
   --print-items option
 
 * pos.c where reiser4_pos_t relatited code should lie
+
+* move memory pressure mechanism to libaal
