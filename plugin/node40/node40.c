@@ -107,8 +107,10 @@ static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 
 static errno_t node40_close(object_entity_t *entity) {
 	aal_assert("umka-825", entity != NULL, return -1);
-    
+
+	aal_block_close(((node40_t *)entity)->block);
 	aal_free(entity);
+	
 	return 0;
 }
 

@@ -3,9 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* should we have reset method in object plugins? is call like
-  seek(obj, 0) will not be convenient enough?
-
 * should we split reiser4_fs_create and reiser4_fs_open onto separate
   functions?
 
@@ -18,8 +15,6 @@ reiser4progs/COPYING.
 
 * FIBMAP ioctl implementation in reiser4
 
-* improve tree fragmentation calculating speed by avoiding leaves open
-
 * human readable stat data mode field in debugfs.reiser4 --print-tree
   --print-items option
 
@@ -29,12 +24,10 @@ reiser4progs/COPYING.
 
 * print_block method for format, journal and block allocator plugins.
 
-* some bitops methods for big endiang byte order 
-
 * improve lru list for storing different objects in it
 
 * join reiser4_node_t and reiser4_joint_t
 
-* find out are we need big endiang bitops code. If no, remove it
+* find out do we need big endian bitops code. If no, remove it.
 
 * should we have print methods in format, alloc and oid in libreiser4?

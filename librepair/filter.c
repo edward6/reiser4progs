@@ -12,12 +12,12 @@
  * on it. It does nothing if REPAIR_BAD_POINTER is set and set this flag if 
  * node cannot be opeened. Returns error if any. */
 errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, 
-    void *data)
+    traverse_hint_t *hint)
 {
     errno_t res = 0;
     aal_device_t *device;
     reiser4_node_t *node;
-    repair_data_t *repair_data = data;
+    repair_data_t *repair_data = (repair_data_t *)hint->data;
 
     aal_assert("vpf-379", repair_data != NULL, return -1);
     aal_assert("vpf-432", joint != NULL, return -1);
@@ -46,18 +46,18 @@ error_free_node:
 /* Before callback for traverse. It checks node level, node consistency, and 
  * delimiting keys. If any check reveals a problem with the data consistency
  * it sets REPAIR_NOT_FIXED flag. */
-errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
+errno_t repair_filter_joint_check(reiser4_joint_t *joint, traverse_hint_t *hint) {
     repair_filter_data_t *filter_data;
     object_entity_t *entity;
     errno_t res = 0;
     
-    aal_assert("vpf-252", data  != NULL, return -1);
+    aal_assert("vpf-252", hint  != NULL, return -1);
     aal_assert("vpf-409", joint != NULL, return -1);
     aal_assert("vpf-410", joint->node != NULL, return -1);
     aal_assert("vpf-411", joint->node->entity != NULL, return -1);    
     aal_assert("vpf-412", joint->node->entity->plugin != NULL, return -1);
 
-    filter_data = repair_filter_data((repair_data_t *)data);
+    filter_data = repair_filter_data((repair_data_t *)hint->data);
     entity = joint->node->entity;
 
     /* Skip this check if level is not set (root node only). */
@@ -70,14 +70,14 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
 	res = 1;
     }
 
-    if (!res && (res = repair_joint_check(joint, data)) < 0)
+    if (!res && (res = repair_joint_check(joint, hint->data)) < 0)
 	return res;
 	
-    if (!res && (res = repair_joint_dkeys_check(joint, data)) < 0)
+    if (!res && (res = repair_joint_dkeys_check(joint, hint->data)) < 0)
 	return res;
 
     if (res > 0)
-	repair_set_flag((repair_data_t *)data, REPAIR_NOT_FIXED);
+	repair_set_flag((repair_data_t *)hint->data, REPAIR_NOT_FIXED);
 
     return res;
 }
@@ -85,9 +85,9 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
 /* Setup callback for traverse. Prepares essential information for a child of 
  * a node - level, mark node as used in the bm_formatted bitmap. If block was 
  * met already, set REPAIR_BAD_PTR flag. */
-errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
-    repair_data_t *repair_data = data;
+errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, traverse_hint_t *hint) {
     reiser4_ptr_hint_t ptr;
+    repair_data_t *repair_data = (repair_data_t *)hint->data;
 	
     aal_assert("vpf-255", repair_data != NULL, return -1);
     aal_assert("vpf-254", repair_data->format != NULL, return -1);
@@ -136,9 +136,9 @@ errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
  * callback and do some essential stuff after traversing through the child -
  * level, if REPAIR_NOT_FIXED flag is set - deletes the child pointer and 
  * mark the pointed block as unused in bm_formatted bitmap. */
-errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
-    repair_data_t *repair_data = data;
+errno_t repair_filter_update_traverse(reiser4_coord_t *coord, traverse_hint_t *hint) {
     reiser4_pos_t prev;
+    repair_data_t *repair_data = (repair_data_t *)hint->data;
     
     aal_assert("vpf-257", repair_data != NULL, return -1);
     aal_assert("vpf-434", coord != NULL, return -1);
@@ -172,8 +172,8 @@ errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
 /* After callback for traverse. Does needed stuff after traversing through all 
  * children - if no child left, set REPAIR_NOT_FIXED flag to forse deletion of 
  * the pointer to this block in update_traverse callback. */
-errno_t repair_filter_after_traverse(reiser4_joint_t *joint, void *data) {
-    repair_data_t *repair_data = data;
+errno_t repair_filter_after_traverse(reiser4_joint_t *joint, traverse_hint_t *hint) {
+    repair_data_t *repair_data = (repair_data_t *)hint->data;
      
     aal_assert("vpf-393", joint != NULL, return -1);
     aal_assert("vpf-394", joint->node != NULL, return -1);   

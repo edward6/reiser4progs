@@ -9,8 +9,8 @@
 #include <repair/librepair.h>
 
 /* To be removed when relable. */
-errno_t repair_scan_joint_check(reiser4_joint_t *joint, void *data) {
-    repair_data_t *repair_data = data;
+errno_t repair_scan_joint_check(reiser4_joint_t *joint, traverse_hint_t *hint) {
+    repair_data_t *repair_data = (repair_data_t *)hint->data;
 
     aal_assert("vpf-427", repair_data != NULL, return -1);
     aal_assert("vpf-428", joint != NULL, return -1);
@@ -26,8 +26,8 @@ errno_t repair_scan_joint_check(reiser4_joint_t *joint, void *data) {
     Zero extent pointers which point to an already used block. 
     Returns -1 if block is used already.
 */
-errno_t repair_scan_handle_pointers(reiser4_coord_t *coord, void *data) {
-    repair_data_t *repair_data = data;
+errno_t repair_scan_handle_pointers(reiser4_coord_t *coord, traverse_hint_t *hint) {
+    repair_data_t *repair_data = (repair_data_t *)hint->data;
     reiser4_ptr_hint_t ptr;
     int res;
  
