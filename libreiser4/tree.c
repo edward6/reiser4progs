@@ -625,7 +625,8 @@ lookup_t reiser4_tree_lookup(
 	uint8_t level,	        /* stop level for search */
 	reiser4_place_t *place)	/* place the found item to be stored */
 {
-	int result, deep;
+	uint8_t deep;
+	lookup_t res;
 	reiser4_place_t fake;
 	rpos_t pos = {0, ~0ul};
 
@@ -664,19 +665,19 @@ lookup_t reiser4_tree_lookup(
 		  Looking up for key inside node. Result of lookuping will be
 		  stored in &place->pos.
 		*/
-		if ((result = reiser4_node_lookup(node, key, &place->pos)) == -1)
-			return -1;
+		if ((res = reiser4_node_lookup(node, key, &place->pos)) == LP_FAILED)
+			return res;
 
 		/* Check if we should finish lookup because we reach stop level */
 		if (deep <= level) {
 
-			if (result == 1)
+			if (res == LP_PRESENT)
 				reiser4_place_realize(place);
 			
-			return result;
+			return res;
 		}
 		
-		if (result == 0 && place->pos.item > 0)
+		if (res == LP_ABSENT && place->pos.item > 0)
 			place->pos.item--;
 				
 		if (reiser4_place_realize(place)) {
@@ -687,7 +688,7 @@ lookup_t reiser4_tree_lookup(
 		}
 
 		if (!reiser4_item_branch(place))
-			return result;
+			return res;
 		
 		if (!(place->node = reiser4_tree_child(tree, place))) {
 			aal_exception_error("Can't load node by its nodeptr.");
