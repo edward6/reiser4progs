@@ -271,6 +271,9 @@ static errno_t tree_find_child_pos(reiser4_tree_t *tree,
 	return -EINVAL;
 
 out_correct_place:
+#else
+	if (reiser4_place_fetch(place))
+		return -EINVAL;
 #endif
 	if (reiser4_item_units(place) == 1)
 		place->pos.unit = MAX_UINT32;

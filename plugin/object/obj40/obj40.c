@@ -598,6 +598,9 @@ rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 #else
 		if (type == HASH_PLUG_TYPE)
 			pid = HASH_R5_ID;
+		
+		if (type == FIBRE_PLUG_TYPE)
+			pid = FIBRE_DOT_O_ID;
 #endif
 	}
 	

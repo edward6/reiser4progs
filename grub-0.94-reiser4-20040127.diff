@@ -195,7 +195,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude='*.*~' --exclude='*.m4' ./grub-0.94.orig/stage2/fsys_reiser4.c ./grub-0.94/stage2/fsys_reiser4.c
 --- ./grub-0.94.orig/stage2/fsys_reiser4.c	1970-01-01 03:00:00.000000000 +0300
 +++ ./grub-0.94/stage2/fsys_reiser4.c	2004-01-27 12:36:33.000000000 +0300
-@@ -0,0 +1,243 @@
+@@ -0,0 +1,245 @@
 +/* 
 + *  fsys_reiser4.c -- reiser4 filesystem support.
 + *  Copyright (C) 2001, 2002, 2003 Hans Reiser.
@@ -370,6 +370,8 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +
 +			aal_strncpy(entry, ch + 1, sizeof(entry));
 +			*(ch + 1) = '\0';
++		} else {
++			aal_memset(entry, 0, sizeof(entry));
 +		}
 +
 +		/* Open obejct by @dirname */
@@ -394,7 +396,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +		
 +		/* Reading opened directory in order to build completion
 +		   list. */
-+		while (reiser4_object_readdir(object, &entry_hint) == 0) {
++		while (reiser4_object_readdir(object, &entry_hint) > 0) {
 +			if (substring(entry, entry_hint.name) <= 0) {
 +
 +				if (print_possibilities > 0)
