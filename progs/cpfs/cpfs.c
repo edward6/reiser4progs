@@ -287,14 +287,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Creating destinatrion fs */
-	aal_strncpy(hint.uuid, reiser4_master_uuid(src_fs->master),
+	aal_strncpy(hint.uuid, reiser4_master_get_uuid(src_fs->master),
 		    sizeof(hint.uuid));
 	
-	aal_strncpy(hint.label, reiser4_master_label(src_fs->master),
+	aal_strncpy(hint.label, reiser4_master_get_label(src_fs->master),
 		    sizeof(hint.label));
 	
 	hint.blocks = reiser4_format_get_len(src_fs->format);
-	hint.blksize = reiser4_master_blksize(src_fs->master);
+	hint.blksize = reiser4_master_get_blksize(src_fs->master);
 	
 	/* Creating dst filesystem */
 	if (!(dst_fs = reiser4_fs_create(dst_device, &hint))) {

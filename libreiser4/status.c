@@ -35,13 +35,13 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	}
 
 	/* Copying master super block */
-	aal_memcpy(&status->status, block->data,
-		   sizeof(status->status));
+	aal_memcpy(STATUS(status), block->data,
+		   sizeof(*STATUS(status)));
 
 	aal_block_free(block);
     
 	/* Reiser4 master super block is not found on the device. */
-	if (aal_strncmp(status->status.ss_magic, REISER4_STATUS_MAGIC,
+	if (aal_strncmp(STATUS(status)->ss_magic, REISER4_STATUS_MAGIC,
 			aal_strlen(REISER4_STATUS_MAGIC)) != 0)
 	{
 		aal_exception_warn("Wrong magic is found in the "
@@ -69,8 +69,8 @@ reiser4_status_t *reiser4_status_create(aal_device_t *device,
 	status->device = device;
 	status->blksize = blksize;
 
-	aal_strncpy(status->status.ss_magic, REISER4_STATUS_MAGIC,
-		    sizeof(status->status.ss_magic));
+	aal_strncpy(STATUS(status)->ss_magic, REISER4_STATUS_MAGIC,
+		    sizeof(STATUS(status)->ss_magic));
 
 	return status;
 }
@@ -97,8 +97,8 @@ errno_t reiser4_status_sync(reiser4_status_t *status) {
 
 	aal_block_fill(block, 0);
 
-	aal_memcpy(block->data, &status->status,
-		   sizeof(status->status));
+	aal_memcpy(block->data, STATUS(status),
+		   sizeof(*STATUS(status)));
 	
 	/* Writing status block to device */
 	if ((res = aal_block_write(block))) {
@@ -140,17 +140,17 @@ errno_t reiser4_status_print(reiser4_status_t *status,
 			  REISER4_STATUS_BLOCK);
 	
 	aal_stream_format(stream, "magic:\t\t%s\n",
-			  status->status.ss_magic);
+			  STATUS(status)->ss_magic);
 	
 	aal_stream_format(stream, "status:\t\t%0xllx\n",
-			  get_ss_status(&status->status));
+			  get_ss_status(STATUS(status)));
 
 	aal_stream_format(stream, "extended:\t%0xllx\n",
-			  get_ss_extended(&status->status));
+			  get_ss_extended(STATUS(status)));
 
-	if (*status->status.ss_message != '\0') {
+	if (*status->ent.ss_message != '\0') {
 		aal_stream_format(stream, "message:\t%s\n",
-				  status->status.ss_message);
+				  STATUS(status)->ss_message);
 	} else {
 		aal_stream_format(stream, "message:\t<none>\n");
 	}

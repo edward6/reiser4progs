@@ -134,7 +134,7 @@ static uint32_t tree_blksize(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
 	
 	fs = ((reiser4_tree_t *)tree)->fs;
-	return reiser4_master_blksize(fs->master);
+	return reiser4_master_get_blksize(fs->master);
 }
 
 static uint32_t tree_maxspace(void *tree) {

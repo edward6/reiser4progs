@@ -13,11 +13,10 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk, bool_t check) {
 	aal_assert("vpf-708", fs != NULL);
 	aal_assert("umka-2355", fs->tree != NULL);
 	
-	blocksize = reiser4_master_blksize(fs->master);
+	blocksize = reiser4_master_get_blksize(fs->master);
 
 	if (!(node = reiser4_node_open(fs, blk)))
 		return NULL;
-	
 	
 	if (!check) return node;
 

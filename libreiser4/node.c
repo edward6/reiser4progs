@@ -143,7 +143,8 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 	aal_block_t *block;
 	aal_device_t *device;
         reiser4_node_t *node;
-	reiser4_plug_t *plug, *kplg;
+	reiser4_plug_t *plug;
+	reiser4_plug_t *kplg;
  
         aal_assert("umka-160", fs != NULL);
 	aal_assert("vpf-1315", fs->master != NULL);
@@ -151,7 +152,7 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 	
 	device = fs->device;
 	kplg = fs->tree->key.plug;
-	size = reiser4_master_blksize(fs->master);
+	size = reiser4_master_get_blksize(fs->master);
 	
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;

@@ -29,7 +29,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	if (reiser4_master_valid(fs->master))
 		goto error_free_master;
 
-	blksize = reiser4_master_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
 
 	if (!(fs->status = reiser4_status_open(device,
 					       blksize)))
@@ -270,16 +270,16 @@ reiser4_fs_t *reiser4_fs_create(
 	
 	fs->device = device;
 	
-	/* Creates master super block */
+	/* Create master super block */
 	format = reiser4_param_value("format");
 		
-	if (!(fs->master = reiser4_master_create(device, format,
-						 hint->blksize,
-						 hint->uuid,
-						 hint->label)))
-	{
+	if (!(fs->master = reiser4_master_create(device, hint->blksize)))
 		goto error_free_fs;
-	}
+
+	/* Setting up master super block */
+	reiser4_master_set_format(fs->master, format);
+	reiser4_master_set_uuid(fs->master, hint->uuid);
+	reiser4_master_set_label(fs->master, hint->label);
 
 	if (!(fs->status = reiser4_status_create(device,
 						 hint->blksize)))

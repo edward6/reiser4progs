@@ -239,7 +239,7 @@ reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 			}
 		}
 		
-		blksize = reiser4_master_blksize(tree->fs->master);
+		blksize = reiser4_master_get_blksize(tree->fs->master);
 
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
@@ -461,7 +461,7 @@ reiser4_node_t *reiser4_tree_alloc_node(
 	fake_blk = reiser4_fake_get();
 	pid = reiser4_param_value("node");
 
-	blksize = reiser4_master_blksize(tree->fs->master);
+	blksize = reiser4_master_get_blksize(tree->fs->master);
 	reiser4_format_set_free(tree->fs->format, free_blocks - 1);
 
 	/* Creating new node */
@@ -718,7 +718,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	units = plug_call(place->plug->o.item_ops,
 			  units, (place_t *)place);
 
-	blksize = reiser4_master_blksize(tree->fs->master);
+	blksize = reiser4_master_get_blksize(tree->fs->master);
 	
 	for (place->pos.unit = 0; place->pos.unit < units;
 	     place->pos.unit++)
@@ -2034,7 +2034,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 	}
 
 	reiser4_key_assign(&trans.offset, &place->key);
-	blksize = reiser4_master_blksize(tree->fs->master);
+	blksize = reiser4_master_get_blksize(tree->fs->master);
 
 	for (size = hint->size, hint->bytes = 0; size > 0;) {
 		int32_t conv;

@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_tree;
 	}
 	
-	fs_len /= (reiser4_master_blksize(fs->master) / 1024);
+	fs_len /= (reiser4_master_get_blksize(fs->master) / 1024);
 
 	if (reiser4_fs_resize(fs, fs_len)) {
 		aal_exception_error("Can't resize reiser4 on %s.",

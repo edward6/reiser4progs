@@ -6,7 +6,10 @@
 #ifndef REISER4_STATUS_H
 #define REISER4_STATUS_H
 
+#ifndef ENABLE_STAND_ALONE
 #include <reiser4/types.h>
+
+#define STATUS(status) (&status->ent)
 
 extern void reiser4_status_close(reiser4_status_t *status);
 extern errno_t reiser4_status_sync(reiser4_status_t *status);
@@ -23,5 +26,6 @@ extern reiser4_status_t *reiser4_status_open(aal_device_t *device,
 
 extern reiser4_status_t *reiser4_status_create(aal_device_t *device,
 					       uint32_t blksize);
+#endif
 
 #endif

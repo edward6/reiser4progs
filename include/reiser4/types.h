@@ -58,7 +58,7 @@ struct reiser4_master {
 	aal_device_t *device;
 
 	/* Loaded master data */
-	reiser4_master_sb_t super;
+	reiser4_master_sb_t ent;
 };
 
 typedef struct reiser4_fs reiser4_fs_t;
@@ -75,7 +75,7 @@ struct reiser4_status {
 	aal_device_t *device;
 
 	/* Loaded status data */
-	reiser4_status_sb_t status;
+	reiser4_status_sb_t ent;
 };
 
 typedef struct reiser4_status reiser4_status_t;

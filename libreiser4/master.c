@@ -36,10 +36,7 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 /* Forms master super block disk structure */
 reiser4_master_t *reiser4_master_create(
 	aal_device_t *device,	    /* device master will be created on */
-	rid_t format_pid,	    /* disk format plugin id to be used */
-	uint32_t blksize,	    /* blocksize to be used */
-	const char *uuid,	    /* uuid to be used */
-	const char *label)	    /* filesystem label to be used */
+	uint32_t blksize)	    /* blocksize to be used */
 {
 	reiser4_master_t *master;
     
@@ -53,26 +50,11 @@ reiser4_master_t *reiser4_master_create(
 	aal_strncpy(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
 		    sizeof(SUPER(master)->ms_magic));
     
-	/* Setting up uuid and label */
-	if (uuid) {
-		aal_strncpy(SUPER(master)->ms_uuid, uuid, 
-			    sizeof(SUPER(master)->ms_uuid));
-	}
-    
-	if (label) {
-		aal_strncpy(SUPER(master)->ms_label, label, 
-			    sizeof(SUPER(master)->ms_label));
-	}
-    
-	/* Setting up plugin id for used disk format plugin */
-	set_ms_format(SUPER(master), format_pid);
-
 	/* Setting up block filesystem used */
 	set_ms_blksize(SUPER(master), blksize);
 
 	master->dirty = TRUE;
 	master->device = device;
-	
 	return master;
 }
 
@@ -84,7 +66,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_assert("umka-1568", master != NULL);
 	aal_assert("umka-1569", stream != NULL);
 
-	blksize = reiser4_master_blksize(master);
+	blksize = reiser4_master_get_blksize(master);
 	
 	aal_stream_format(stream, "Master super block:\n");
 	
@@ -92,17 +74,17 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 			  (REISER4_MASTER_OFFSET / blksize));
 	
 	aal_stream_format(stream, "magic:\t\t%s\n",
-			  reiser4_master_magic(master));
+			  reiser4_master_get_magic(master));
 	
 	aal_stream_format(stream, "blksize:\t%u\n",
-			  reiser4_master_blksize(master));
+			  reiser4_master_get_blksize(master));
 
 	aal_stream_format(stream, "format:\t\t%x\n",
-			  reiser4_master_format(master));
+			  reiser4_master_get_format(master));
 
-	if (aal_strlen(reiser4_master_label(master))) {
+	if (*master->ent.ms_label != '\0') {
 		aal_stream_format(stream, "label:\t\t%s\n",
-				  reiser4_master_label(master));
+				  reiser4_master_get_label(master));
 	} else {
 		aal_stream_format(stream, "label:\t\t<none>\n");
 	}
@@ -120,9 +102,8 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 	aal_assert("vpf-1317", master != NULL);
 	aal_assert("vpf-1317", region_func != NULL);
 
-	blksize = reiser4_master_blksize(master);
+	blksize = reiser4_master_get_blksize(master);
 	blk = REISER4_MASTER_OFFSET / blksize;
-	
 	return region_func(master, blk, 1, data);
 }
 
@@ -278,29 +259,71 @@ void reiser4_master_close(reiser4_master_t *master) {
 	aal_free(master);
 }
 
-rid_t reiser4_master_format(reiser4_master_t *master) {
+rid_t reiser4_master_get_format(reiser4_master_t *master) {
 	aal_assert("umka-982", master != NULL);
 	return get_ms_format(SUPER(master));
 }
 
-uint32_t reiser4_master_blksize(reiser4_master_t *master) {
+uint32_t reiser4_master_get_blksize(reiser4_master_t *master) {
 	aal_assert("umka-983", master != NULL);
 	return get_ms_blksize(SUPER(master));
 }
 
 #ifndef ENABLE_STAND_ALONE
-char *reiser4_master_magic(reiser4_master_t *master) {
+char *reiser4_master_get_magic(reiser4_master_t *master) {
 	aal_assert("umka-982", master != NULL);
 	return SUPER(master)->ms_magic;
 }
 
-char *reiser4_master_uuid(reiser4_master_t *master) {
+char *reiser4_master_get_uuid(reiser4_master_t *master) {
 	aal_assert("umka-984", master != NULL);
 	return SUPER(master)->ms_uuid;
 }
 
-char *reiser4_master_label(reiser4_master_t *master) {
+char *reiser4_master_get_label(reiser4_master_t *master) {
 	aal_assert("umka-985", master != NULL);
 	return SUPER(master)->ms_label;
+}
+
+void reiser4_master_set_format(reiser4_master_t *master,
+			       rid_t format)
+{
+	aal_assert("umka-2496", master != NULL);
+	set_ms_format(SUPER(master), format);
+}
+
+void reiser4_master_set_blksize(reiser4_master_t *master,
+				uint32_t blksize)
+{
+	aal_assert("umka-2497", master != NULL);
+	set_ms_blksize(SUPER(master), blksize);
+}
+
+void reiser4_master_set_uuid(reiser4_master_t *master,
+			     char *uuid)
+{
+	aal_assert("umka-2498", master != NULL);
+
+	if (uuid) {
+		aal_strncpy(SUPER(master)->ms_uuid, uuid,
+			    sizeof(SUPER(master)->ms_uuid));
+	} else {
+		aal_memset(SUPER(master)->ms_uuid, 0,
+			   sizeof(SUPER(master)->ms_uuid));
+	}
+}
+
+void reiser4_master_set_label(reiser4_master_t *master,
+			      char *label)
+{
+	aal_assert("umka-2500", master != NULL);
+
+	if (label) {
+		aal_strncpy(SUPER(master)->ms_label, label,
+			    sizeof(SUPER(master)->ms_label));
+	} else {
+		aal_memset(SUPER(master)->ms_label, 0,
+			   sizeof(SUPER(master)->ms_label));
+	}
 }
 #endif

@@ -94,7 +94,7 @@ errno_t debugfs_print_block(
 		break;
 	}
 	
-	blksize = reiser4_master_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
 	
 	if (!(node = reiser4_node_open(fs, blk))) {
 		fprintf(stdout, "Block %llu is used, but it is not "

@@ -276,7 +276,7 @@ static errno_t stat_process_node(
 	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
 
 	level = reiser4_node_get_level(node);
-	blksize = reiser4_master_blksize(tree->fs->master);
+	blksize = reiser4_master_get_blksize(tree->fs->master);
 
 	if (stat_hint->gauge && stat_hint->formatted % 128 == 0)
 		aal_gauge_update(stat_hint->gauge, 0);

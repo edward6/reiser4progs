@@ -20,7 +20,7 @@ static int callback_bs_check (int64_t val, void * data) {
 /* Checks the opened master, builds a new one on the base of user profile if no 
    one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
-	uint16_t blocksize = 0;
+	uint16_t blksize = 0;
 	
 	aal_assert("vpf-730", fs != NULL);
 	aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
@@ -36,16 +36,21 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 					"(%s)?", fs->device->name) == EXCEPTION_NO)
 			return -EINVAL;
 		
-		blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL,
-					       "Which block size do you use?");
+		blksize = aal_ui_get_numeric(4096, callback_bs_check, NULL,
+					     "Which block size do you use?");
 		
 		/* FIXME-VITALY: What should be done with uuid and label? At 
 		   least not here as uuid and label seem to be on the wrong 
 		   place. Move them to specific SB. */
 		
 		/* Create a new master SB. */
-		fs->master = reiser4_master_create(fs->device, INVAL_PID,
-						   blocksize, NULL, NULL);
+		if (!(fs->master = reiser4_master_create(fs->device, blksize)))
+			return -ENOMEM;
+
+		reiser4_master_set_uuid(fs->master, NULL);
+		reiser4_master_set_label(fs->master, NULL);
+		reiser4_master_set_format(fs->master, INVAL_PID);
+		
 		if (!fs->master) {
 			aal_exception_fatal("Cannot create a new master super "
 					    "block.");
@@ -58,28 +63,31 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		/* Master SB was opened. Check it for validness. */
 		
 		/* Check the blocksize. */		
-		if (!aal_pow2(reiser4_master_blksize(fs->master))) {			
+		if (!aal_pow2(reiser4_master_get_blksize(fs->master))) {			
 			aal_exception_fatal("Invalid blocksize found in the "
 					    "master super block (%u).",
-					    reiser4_master_blksize(fs->master));
+					    reiser4_master_get_blksize(fs->master));
 			
 			if (mode != RM_BUILD)
 				return -EINVAL;
 			
-			blocksize = aal_ui_get_numeric(4096, callback_bs_check,
-						       NULL, "Which block size "
-						       "do you use?");
-			
-			set_ms_blksize(SUPER(fs->master), blocksize);
+			blksize = aal_ui_get_numeric(4096, callback_bs_check,
+						     NULL, "Which block size "
+						     "do you use?");
+
+			reiser4_master_set_blksize(fs->master, blksize);
 			reiser4_master_mkdirty(fs->master);
 		}
 	}
+
+	/* FIXME-UMKA->VITALY: This is not realy needed, as device block size
+	   does not mean filesystem block size. */
 	
 	/* Setting actual used block size from master super block */
-	if (aal_device_set_bs(fs->device, reiser4_master_blksize(fs->master))) {
+	if (aal_device_set_bs(fs->device, reiser4_master_get_blksize(fs->master))) {
 		aal_exception_fatal("Invalid block size was specified (%u). It "
-				    "must be power of two.", 
-				    reiser4_master_blksize(fs->master));
+				    "must be power of two.",
+				    reiser4_master_get_blksize(fs->master));
 		return -EINVAL;
 	}
 	
