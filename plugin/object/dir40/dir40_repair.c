@@ -522,7 +522,8 @@ errno_t dir40_form(object_entity_t *object) {
 
 	/* Init hash plugin in use if is not known yet. */
 	if (!dir->hash) {
-		dir->hash = obj40_plug_recognize(&dir->obj, HASH_PLUG_TYPE, 
+		dir->hash = obj40_plug_recognize(&dir->obj, 
+						 HASH_PLUG_TYPE, 
 						 "hash");
 
 		if (dir->hash == NULL) {

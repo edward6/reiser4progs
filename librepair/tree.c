@@ -258,7 +258,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	aal_assert("vpf-659", node != NULL);
 	
 	/* If there is no root in the tree yet, set it to @node. */
-	if (tree->root == NULL) {
+	if (reiser4_tree_fresh(tree)) {
 		reiser4_format_set_root(tree->fs->format, 
 					node_blocknr(node));
 		reiser4_tree_connect_node(tree, NULL, node);

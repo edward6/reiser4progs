@@ -304,8 +304,8 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	   cannot be recognized w/out SD. Used for for "/" and "lost+found" 
 	   recovery. */
 	
-	aal_error("The file [%s] does not have a StatData item. %s"
-		  "Plugin %s.", print_inode(obj->core, key), 
+	aal_error("The file [%s] does not have a StatData item.%s"
+		  " Plugin %s.", print_inode(obj->core, key), 
 		  mode == RM_BUILD ? " Creating a new one." :
 		  "",  obj->plug->label);
 
