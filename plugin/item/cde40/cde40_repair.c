@@ -833,8 +833,7 @@ errno_t cde40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *trans) {
 	trans->len = trans->count * en_size(pol) + offset -
 		cde_get_offset(src, src->pos.unit, pol);
 	
-	trans->overhead = (place->pos.unit == MAX_UINT32 && trans->len) ? 
-		cde40_overhead(place) : 0;
+	trans->overhead = cde40_overhead();
 
 	return 0;
 }
