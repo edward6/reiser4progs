@@ -78,7 +78,7 @@ static void debugfs_print_usage(char *name) {
 		"  -o, --print-oid-alloc     prints oid allocator data.\n"
 		"Measurement options:\n"
 		"  -N, --node-packing        measures avarage node packing.\n"
-		"  -T, --tree-frag           measures total tree fragmentation.\n"
+		"  -T, --tree-frag           measures tree fragmentation.\n"
 		"  -D, --data-frag           measures average files fragmentation.\n"
 		"  -F, --file-frag FILE      measures fragmentation of specified\n"
 		"                            file.\n"
