@@ -346,15 +346,30 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 }
 #endif
 
-rid_t obj40_pid(place_t *place) {
-	return plug_call(place->plug->o.item_ops,
-			 object_plug, place);
+/* Just returns a plugin for it @pid if specified; otherwise call obj40_pid. */
+reiser4_plug_t *obj40_plug(place_t *stat, rid_t type, char *name) {
+	rid_t pid = obj40_pid(stat, type, name);
+	
+	/* Obtain the plugin by id. */
+	return  pid == INVAL_PID ? NULL :
+		core->factory_ops.ifind(HASH_PLUG_TYPE, pid);
+}
+
+/* This function asks SD for the plugin of the type @type, if 
+   nothing found, it asks core for default one for the @type. */
+rid_t obj40_pid(place_t *stat, rid_t type, char *name) {
+	rid_t pid = plug_call(stat->plug->o.item_ops, plug, stat, type);
+	
+	/* If not specified yet, try to get defailt id. */
+	if (pid == INVAL_PID)
+		pid = core->profile_ops.value(name);
+	
+	return pid;
 }
 
 /*
-  Initializes object handle by plugin, key, core operations and opaque pointer
-  to tree file is going to be opened/created in.
-*/
+  Initializes object handle by plugin, key, core operations and 
+  opaque pointer to tree file is going to be opened/created in. */
 errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 		   reiser4_core_t *core, object_info_t *info)
 {

@@ -41,7 +41,8 @@ extern uint64_t obj40_ordering(obj40_t *obj);
 extern errno_t obj40_update(obj40_t *obj,
 			    place_t *place);
 
-extern rid_t obj40_pid(place_t *place);
+extern rid_t obj40_pid(place_t *stat, rid_t type, char *name);
+extern reiser4_plug_t *obj40_plug(place_t *stat, rid_t type, char *name);
 extern errno_t obj40_fini(obj40_t *obj);
 
 extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,

@@ -114,10 +114,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 			   region_func_t region_func,
 			   uint8_t mode, void *data)
 {
+	uint64_t locality, objectid, ordering;
 	uint64_t size, bytes, offset, next;
 	dir40_t *dir = (dir40_t *)object;
+	reiser4_plug_t *bplug;
 	object_info_t *info;
 	errno_t res = RE_OK;
+	key_entity_t key;
 	lookup_t lookup;
 	
 	aal_assert("vpf-1224", dir != NULL);
@@ -138,9 +141,71 @@ errno_t dir40_check_struct(object_entity_t *object,
 	if ((res |= obj40_ukey(&dir->obj, &info->start, &info->object, mode)))
 		return res;
 	
-	while (TRUE) {
-	}
+	/* Init hash plugin in use. */
+	if (!(dir->hash = obj40_plug(&info->start, HASH_PLUG_TYPE, "hash"))) {
+                aal_exception_error("Can't init hash plugin for directory %s. "
+				    "Plugin (%s).", print_ino(core, &info->object),
+				    dir40_plug.label);
+                return -EINVAL;
+        }
 
+	/* Init body plugin in use. */
+	if (!(bplug = obj40_plug(&info->start, ITEM_PLUG_TYPE, "direntry"))) {
+                aal_exception_error("Can't init hash plugin for directory %s. "
+				    "Plugin (%s).", print_ino(core, &info->object),
+				    dir40_plug.label);
+                return -EINVAL;
+        }
+	
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
+	
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
+
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
+
+	/* Build the start key of the body. */
+	plug_call(info->object.plug->o.key_ops, build_entry,
+		  &key, dir->hash, locality, objectid, ".");
+
+	size = 0; bytes = 0; 
+	
+	/* FIXME-VITALY: this probably should be changed. Now hash plug
+	   that is used is default, passed here from outside, or taken 
+	   from SD. Probably it would be better to do evth in vise versa 
+	   order -- choose the hash found among the entries most of the 
+	   times and correct hash plugin in SD. */
+	while (TRUE) {
+		if ((lookup = obj40_lookup(&dir->obj, &key, LEAF_LEVEL, 
+					   &dir->body)) == FAILED)
+			return -EINVAL;
+		
+		if (lookup == ABSENT) {
+			/* If place is invalid, no more items. */
+			if (!core->tree_ops.valid(info->tree, &dir->body))
+				break;
+			
+			/* Initializing item entity at @next place */
+			if ((res |= core->tree_ops.fetch(info->tree, &dir->body)))
+				return res;
+			
+			/* Check if this is an item of another object. */
+			if (plug_call(key.plug->o.key_ops, compshort, 
+				      &key, &dir->body.key))
+				break;
+		}
+		
+		/* Does the found item plugin match  */
+		if (dir->body.plug != bplug)
+			break;
+
+		
+	}
+	
+	/* Take care about "." */
+	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL))
 		res |= obj40_check_stat(&dir->obj, mode == RM_BUILD ?

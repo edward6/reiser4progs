@@ -134,7 +134,7 @@ static errno_t reg40_create_hole(reg40_t *reg, uint64_t offset) {
 	if ((res = reg40_put((object_entity_t *)reg, NULL, 0))) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
-				    core->key_ops.print(&info->object, PO_DEF),
+				    print_ino(core, &info->object),
 				    reg->offset, offset, reg->obj.plug->label);
 	}
 
@@ -172,6 +172,15 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if ((res = obj40_ukey(&reg->obj, &info->start, &info->object, mode)))
 		return res;
 	
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
+	
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
+
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
+
 	/* Build the start key of the body. */
 	plug_call(info->start.plug->o.key_ops, build_gener, &key,
 		  KEY_FILEBODY_TYPE, locality, ordering, objectid, 
@@ -235,8 +244,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			
 			aal_exception_error("The object [%s] has a break at "
 					    "[%llu-%llu] offsets. Plugin %s.",
-					    core->key_ops.print(&info->object,
-								PO_INO),
+					    print_ino(core, &info->object),
 					    reg->offset, offset,
 					    reg->obj.plug->label);
 			res |= RE_FATAL;

@@ -22,14 +22,15 @@ static errno_t reiser4_object_init(reiser4_object_t *object,
 	
 	place = object_start(object);
 	
-	if (!place->plug->o.item_ops->object_plug) {
+	if (!place->plug->o.item_ops->plug) {
 		/* FIXME-UMKA: Here we should try to understand what object
 		   plugin is by means of asking @parent. */
 		pid = INVAL_PID;
 	} else {
-		if ((pid = plug_call(place->plug->o.item_ops, object_plug,
-				     (place_t *)place)) == INVAL_PID)
-		{
+		pid = plug_call(place->plug->o.item_ops, plug, 
+				(place_t *)place, OBJECT_PLUG_TYPE);
+		
+		if (pid == INVAL_PID) {
 			aal_exception_error("Can't guess object plugin.");
 			return -EINVAL;
 		}

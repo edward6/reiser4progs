@@ -145,7 +145,7 @@ static reiser4_item_ops_t nodeptr40_ops = {
 #endif
 	.lookup		  = NULL,
 	.mergeable        = NULL,
-	.object_plug	  = NULL,
+	.plug		  = NULL,
 	.maxposs_key	  = NULL,
 	.get_key	  = NULL
 };

@@ -131,23 +131,6 @@ errno_t dir40_reset(object_entity_t *entity) {
 	return 0;
 }
 
-/* Trying to guess hash in use by stat data extention */
-static reiser4_plug_t *dir40_hash(object_entity_t *entity, rid_t pid) {
-	dir40_t *dir;
-	
-	dir = (dir40_t *)entity;
-	
-	if (pid == INVAL_PID) {
-		/* This function should inspect stat data extentions first. And
-		   only if they do not contain a convenient plugin extention
-		   (hash plugin), it should use some default hash plugin id. */
-		return core->factory_ops.ifind(HASH_PLUG_TYPE, HASH_R5_ID);
-	} else {
-		/* Getting hash plugin by its id */
-		return core->factory_ops.ifind(HASH_PLUG_TYPE, pid);
-	}
-}
-
 /* Switches current dir body item onto next one */
 static lookup_t dir40_next(object_entity_t *entity) {
 	dir40_t *dir;
@@ -396,8 +379,11 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 	
-	if (obj40_pid(&info->start) != dir40_plug.id.id)
+	if (obj40_pid(&info->start, OBJECT_PLUG_TYPE, "directory") != 
+	    dir40_plug.id.id)
+	{
 		return NULL;
+	}
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
@@ -406,7 +392,9 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	obj40_init(&dir->obj, &dir40_plug, core, info);
 
 	/* Guessing hash plugin basing on stat data */
-	if (!(dir->hash = dir40_hash((object_entity_t *)dir, INVAL_PID))) {
+	if (!(dir->hash = obj40_plug(STAT_PLACE(&dir->obj), 
+				     HASH_PLUG_TYPE, "hash"))) 
+	{
                 aal_exception_error("Can't guess hash plugin for directory "
 				    "%llx.", obj40_objectid(&dir->obj));
                 goto error_free_dir;
@@ -465,8 +453,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	obj40_init(&dir->obj, &dir40_plug, core, info);
 
 	/* Getting hash plugin */
-	if (!(dir->hash = dir40_hash((object_entity_t *)dir,
-				     hint->body.dir.hash)))
+	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUG_TYPE, 
+						  hint->body.dir.hash))) 
 	{
 		aal_exception_error("Can't find hash plugin by its "
 				    "id 0x%x.", hint->body.dir.hash);

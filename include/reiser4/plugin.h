@@ -782,7 +782,7 @@ struct reiser4_item_ops {
 	errno_t (*maxposs_key) (place_t *, key_entity_t *);
 
 	/* Get the plugin id of the specified type if stored in SD. */
-	rid_t (*object_plug) (place_t *);
+	rid_t (*plug) (place_t *, rid_t);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Get the max real key which is stored in the item */
@@ -1393,6 +1393,9 @@ struct reiser4_core {
 	key_ops_t key_ops;
 #endif
 };
+
+#define print_key(core, key) (core->key_ops.print(key, PO_DEF))
+#define print_ino(core, key) (core->key_ops.print(key, PO_INO))
 
 #define plug_equal(plug1, plug2)                                 \
         (plug1->id.group == plug2->id.group &&                   \

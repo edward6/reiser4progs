@@ -162,8 +162,11 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 
-	if (obj40_pid(&info->start) != reg40_plug.id.id)
+	if (obj40_pid(&info->start, OBJECT_PLUG_TYPE, "regular") != 
+	    reg40_plug.id.id)
+	{
 		return NULL;
+	}
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;

@@ -695,7 +695,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.set_key          = NULL,
 #endif
 	.branch           = NULL,
-	.object_plug	  = NULL,
+	.plug		  = NULL,
 
 	.read             = extent40_read,
 	.units	          = extent40_units,

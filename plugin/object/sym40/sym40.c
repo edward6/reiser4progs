@@ -25,8 +25,11 @@ object_entity_t *sym40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
    
-	if (obj40_pid(&info->start) != sym40_plug.id.id)
+	if (obj40_pid(&info->start, OBJECT_PLUG_TYPE, "symlink") != 
+	    sym40_plug.id.id)
+	{
 		return NULL;
+	}
 	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;

@@ -122,7 +122,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong mode (%u),"
 				    "%s (%u). Plugin (%s).", 
 				    stat->block->nr, stat->pos.item, 
-				    obj->core->key_ops.print(&stat->key, PO_INO),
+				    print_ino(obj->core, &stat->key),
 				    lw_hint.mode, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", lw_new.mode, 
 				    stat->plug->label);
@@ -142,7 +142,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong size "
 				    "(%llu), %s (%llu). Plugin (%s).",
 				    stat->block->nr, stat->pos.item, 
-				    obj->core->key_ops.print(&stat->key, PO_INO),
+				    print_ino(obj->core, &stat->key),
 				    lw_hint.size, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", lw_new.size, 
 				    stat->plug->label);
@@ -160,7 +160,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong bytes "
 				    "(%llu), %s (%llu). Plugin (%s).", 
 				    stat->block->nr, stat->pos.item, 
-				    obj->core->key_ops.print(&stat->key, PO_INO),
+				    print_ino(obj->core, &stat->key),
 				    unix_hint.bytes, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", bytes, 
 				    stat->plug->label);
@@ -203,10 +203,9 @@ errno_t obj40_ukey(obj40_t *obj, place_t *place,
 	aal_exception_error("Node (%llu), item(%u): the key [%s] of the "
 			    "item is wrong, %s [%s]. Plugin (%s).", 
 			    place->block->nr, place->pos.unit, 
-			    obj->core->key_ops.print(&place->key, PO_DEF),
+			    print_key(obj->core, &place->key),
 			    mode == RM_BUILD ? "fixed to" : "should be", 
-			    obj->core->key_ops.print(key, PO_DEF), 
-			    obj->plug->label);
+			    print_key(obj->core, key), obj->plug->label);
 	
 	if (mode != RM_BUILD)
 		return RE_FATAL;
@@ -236,7 +235,8 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	key = &obj->info.object;
 
 	/* Update the place of SD. */
-	lookup = core->tree_ops.lookup(obj->info.tree, key, LEAF_LEVEL, start);
+	lookup = obj->core->tree_ops.lookup(obj->info.tree, key, 
+					    LEAF_LEVEL, start);
 
 	if (lookup == FAILED)
 		return -EINVAL;
@@ -260,14 +260,14 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	   the special case and usually is not used as object plugin cannot 
 	   be realized w/out SD. Used for for "/" and "lost+found" recovery. */
 	aal_exception_error("The file [%s] does not have a StatData item. %s"
-			    "Plugin %s.", core->key_ops.print(key, PO_INO),
-			    mode == RM_BUILD ? " Creating a new one." : "",
-			    obj->plug->label);
+			    "Plugin %s.", print_ino(obj->core, key), 
+			    mode == RM_BUILD ? " Creating a new one." :
+			    "",  obj->plug->label);
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	pid = core->profile_ops.value("statdata");
+	pid = obj->core->profile_ops.value("statdata");
 	
 	if (pid == INVAL_PID)
 		return -EINVAL;
@@ -275,7 +275,7 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	if ((res = obj40_create_stat(obj, pid,  0, 0, nlink, fmode))) {
 		aal_exception_error("The file [%s] failed to create a "
 				    "StatData item. Plugin %s.", 
-				    core->key_ops.print(key, PO_INO),
+				    print_ino(obj->core, key),
 				    obj->plug->label);
 	}
 

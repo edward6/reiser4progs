@@ -961,7 +961,7 @@ static reiser4_item_ops_t cde_short_ops = {
 	.check_layout	   = NULL,
 #endif
 	.branch            = NULL,
-	.object_plug	   = NULL,
+	.plug		   = NULL,
 
 	.lookup		   = cde_short_lookup,
 	.units		   = cde_short_units,

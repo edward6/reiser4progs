@@ -401,7 +401,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.set_key          = NULL,
 	.check_layout     = NULL,
 #endif
-	.object_plug	  = NULL,
+	.plug		  = NULL,
 	.units	          = tail40_units,
 	.lookup	          = tail40_lookup,
 	.read	          = tail40_read,

@@ -393,7 +393,7 @@ static errno_t stat40_print(place_t *place,
 #endif
 
 /* Get the plugin id of the type @type if stored in SD. */
-static rid_t stat40_object_plug(place_t *place) {
+static rid_t stat40_plugid(place_t *place, rid_t type) {
 	create_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_hint;
@@ -406,29 +406,31 @@ static rid_t stat40_object_plug(place_t *place) {
 	 * order to find non-standard object plugin. And only if it is not
 	 * found, we should take a look to mode field of the lw extention. */
 
-	/* Preparing hint and mask */
-	hint.type_specific = &stat;
-	stat.ext[SDEXT_LW_ID] = &lw_hint;
-	
-	if (stat40_read(place, &hint, 0, 1) != 1)
-		return INVAL_PID;
+	if (type == OBJECT_PLUG_TYPE) {
+		/* Preparing hint and mask */
+		hint.type_specific = &stat;
+		stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-	if (S_ISLNK(lw_hint.mode))
-		return core->profile_ops.value("symlink");
-	else if (S_ISREG(lw_hint.mode))
-		return core->profile_ops.value("regular");
-	else if (S_ISDIR(lw_hint.mode))
-		return core->profile_ops.value("directory");
+		if (stat40_read(place, &hint, 0, 1) != 1)
+			return INVAL_PID;
+
+		if (S_ISLNK(lw_hint.mode))
+			return core->profile_ops.value("symlink");
+		else if (S_ISREG(lw_hint.mode))
+			return core->profile_ops.value("regular");
+		else if (S_ISDIR(lw_hint.mode))
+			return core->profile_ops.value("directory");
 #ifndef ENABLE_STAND_ALONE	
-	else if (S_ISCHR(lw_hint.mode))
-		return core->profile_ops.value("special");
-	else if (S_ISBLK(lw_hint.mode))
-		return core->profile_ops.value("special");
-	else if (S_ISFIFO(lw_hint.mode))
-		return core->profile_ops.value("special");
-	else if (S_ISSOCK(lw_hint.mode))
-		return core->profile_ops.value("special");
+		else if (S_ISCHR(lw_hint.mode))
+			return core->profile_ops.value("special");
+		else if (S_ISBLK(lw_hint.mode))
+			return core->profile_ops.value("special");
+		else if (S_ISFIFO(lw_hint.mode))
+			return core->profile_ops.value("special");
+		else if (S_ISSOCK(lw_hint.mode))
+			return core->profile_ops.value("special");
 #endif
+	}
 	return INVAL_PID;
 }
 
@@ -440,7 +442,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.copy             = stat40_copy,
 	.insert		  = stat40_insert,
 	.print		  = stat40_print,
-	.object_plug	  = stat40_object_plug,
+	.plug	          = stat40_plugid,
 	.check_struct     = stat40_check_struct,
 	.estimate_copy    = stat40_estimate_copy,
 	.estimate_insert  = stat40_estimate_insert,
