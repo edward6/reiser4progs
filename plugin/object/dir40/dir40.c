@@ -343,6 +343,7 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 
 	if (entry) {
 		aal_memset(entry, 0, sizeof(*entry));
+		
 		aal_memcpy(&entry->place, &dir->body,
 				   sizeof(reiser4_place_t));
 

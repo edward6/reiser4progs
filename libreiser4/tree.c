@@ -1520,9 +1520,8 @@ errno_t reiser4_collision_handler(reiser4_place_t *place,
 				  lookup_bias_t bias,
 				  lookup_t lookup)
 {
-	char *name;
-
 #ifndef ENABLE_STAND_ALONE
+	char *name;
 	entry_hint_t entry;
 	trans_hint_t trans;
 	reiser4_tree_t *tree;
@@ -1535,6 +1534,7 @@ errno_t reiser4_collision_handler(reiser4_place_t *place,
 	if (lookup != PRESENT)
 		return lookup;
 	
+#ifndef ENABLE_STAND_ALONE
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
@@ -1542,10 +1542,7 @@ errno_t reiser4_collision_handler(reiser4_place_t *place,
 	if (place->plug->id.group != DIRENTRY_ITEM)
 		return PRESENT;
 
-#ifndef ENABLE_STAND_ALONE
 	/* Key collisions handling. Sequentional search by name. */
-	place->key.adjust = 0;
-	
 	trans.count = 1;
 	trans.specific = &entry;
 	trans.place_func = NULL;
@@ -1553,6 +1550,7 @@ errno_t reiser4_collision_handler(reiser4_place_t *place,
 	trans.shift_flags = SF_DEFAULT;
 	
 	name = hint->data;
+	place->key.adjust = 0;
 	tree = (reiser4_tree_t *)place->node->tree;
 	
 	while (1) {

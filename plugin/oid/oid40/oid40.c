@@ -62,6 +62,7 @@ static generic_entity_t *oid40_create(generic_entity_t *format) {
 	/* Setting up next by OID40_RESERVED. It is needed because all oid less
 	   then OID40_RESERVED will be used for reiser4 insetrnal purposes. */
 	oid->used = 0;
+	oid->format = format;
 	oid->plug = &oid40_plug;
 	oid->next = OID40_RESERVED;
 
@@ -90,7 +91,10 @@ static errno_t oid40_sync(generic_entity_t *entity) {
 
 	/* Mark the format dirty. */
 	format = ((oid40_t *)entity)->format;
-	state = plug_call(format->plug->o.format_ops, get_state, format);
+	
+	state = plug_call(format->plug->o.format_ops,
+			  get_state, format);
+	
 	plug_call(format->plug->o.format_ops, set_state, 
 		  format, state | (1 << ENTITY_DIRTY));
 	

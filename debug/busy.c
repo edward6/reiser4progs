@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 
 	fs->tree->mpc_func = misc_mpressure_detect;
     
-//	misc_param_override("hash=deg_hash");
+	misc_param_override("hash=deg_hash");
 //	misc_param_override("policy=tails");
 		
 	if (!(fs->root = reiser4_object_open(fs->tree, "/", 1))) {

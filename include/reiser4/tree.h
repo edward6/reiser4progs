@@ -136,11 +136,6 @@ extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 				      tree_edge_func_t after_func,
 				      void *data);
 
-extern errno_t reiser4_collision_handler(reiser4_place_t *place,
-					 lookup_hint_t *hint,
-					 lookup_bias_t bias,
-					 lookup_t lookup);
-
 extern int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 				   trans_hint_t *hint, uint8_t level, 
 				   estimate_func_t estimate_func,
@@ -163,6 +158,11 @@ extern errno_t reiser4_tree_unload_node(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
 					 reiser4_node_t *node);
+
+extern errno_t reiser4_collision_handler(reiser4_place_t *place,
+					 lookup_hint_t *hint,
+					 lookup_bias_t bias,
+					 lookup_t lookup);
 
 extern reiser4_node_t *reiser4_tree_lookup_node(reiser4_tree_t *tree,
 						blk_t blk);
