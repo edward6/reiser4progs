@@ -164,26 +164,64 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 				 uint8_t mode) 
 {
 	reiser4_key_t key_max, dkey;
-	pos_t pos = {0, MAX_UINT32};
 	reiser4_place_t place;
-	errno_t res = 0;
-	int comp = 0;
+	errno_t res;
+	int comp;
 	
 	aal_assert("vpf-1281", tree != NULL);
 	aal_assert("vpf-248", node != NULL);
 	aal_assert("vpf-250", node->plug != NULL);
 	aal_assert("vpf-1280", node->tree != NULL);
 	
+	/* Initialize to the rightmost position. */
+	place.node = node;
+	place.pos.unit = MAX_UINT32;
+	place.pos.item = reiser4_node_items(node);
+	
+	/* Get the right delimiting key. */
+	if ((res = reiser4_tree_place_key(tree, &place, &dkey))) {
+		aal_error("Node (%llu): Failed to get the right "
+			  "delimiting key.", node_blocknr(node));
+		return res;
+	}
+
+	/* Move to the last item. */
+	place.pos.item--;
+	if ((res = reiser4_place_fetch(&place)) < 0) 
+		return res;
+
+	/* Get the maxreal key of the last item. */
+	if ((res = reiser4_item_maxreal_key(&place, &key_max)) < 0) {
+		aal_error("Node (%llu): Failed to get the max real "
+			  "key of the last item.", node_blocknr(node));
+		return res;
+	}
+	
+	/* Fatal error if the maxreal key greater than the right 
+	   delimiting key. */
+	if (reiser4_key_compfull(&key_max, &dkey) > 0) {
+		aal_error("Node (%llu): The last key [%s] in the node "
+			  "is greater then the right delimiting key "
+			  "[%s].", node_blocknr(node), 
+			  reiser4_print_key(&key_max, PO_DEFAULT),
+			  reiser4_print_key(&dkey, PO_DEFAULT));
+		return RE_FATAL;
+	}
+	
+	/* Get the left delimiting key. */
 	if ((res = repair_tree_parent_lkey(tree, node, &dkey))) {
 		aal_error("Node (%llu): Failed to get the left "
 			  "delimiting key.", node_blocknr(node));
 		return res;
 	}
-	
-	if ((res = reiser4_place_open(&place, node, &pos)))
+
+	/* Move to the 0-th item. */
+	place.pos.item = 0;
+	if ((res = reiser4_place_fetch(&place)))
 		return res;
 	
-	comp = reiser4_key_compfull(&dkey, &place.key);
+	if (!(comp = reiser4_key_compfull(&dkey, &place.key)))
+		return 0;
 	
 	/* Left delimiting key should match the left key in the node. */
 	if (comp > 0) {
@@ -196,61 +234,27 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		return RE_FATAL;
 	}
 	
-	while (comp < 0) {
-		/* It is legal to have the left key in the node much then its 
-		   left delimiting key - due to removing some items from the 
-		   node, for example. Fix the delemiting key if we have parent. */
-		if (node->p.node == NULL) 
-			break;
-		
-		aal_error("Node (%llu): The left delimiting key [%s] in the "
-			  "parent node (%llu), pos (%u/%u) does not match the "
-			  "first key [%s] in the node.%s", node_blocknr(node),
-			  reiser4_print_key(&place.key, PO_DEFAULT),
-			  node_blocknr(node->p.node), place.pos.item, 
-			  place.pos.unit, reiser4_print_key(&dkey, PO_DEFAULT),
-			  mode == RM_BUILD ? " Fixed." : "");
 
-		if (mode != RM_BUILD) {
-			res |= RE_FATAL;
-			break;
-		}
-		
-		if ((res = reiser4_tree_update_keys(tree, &node->p, &place.key)))
-			return res;
+	/* It is legal to have the left key in the node much then its left 
+	   delimiting key - due to removing some items from the node, for 
+	   example. Fix the delemiting key if we have parent. */
+	if (node->p.node == NULL) 
+		return 0;
 
-		break;
-	}
-	
-	place.pos.item = reiser4_node_items(node);
-	
-	if ((res |= reiser4_tree_place_key(tree, &place, &dkey))) {
-		aal_error("Node (%llu): Failed to get the right "
-			  "delimiting key.", node_blocknr(node));
-		return res;
-	}
-	
-	place.pos.item--;
-	
-	if ((res |= reiser4_place_fetch(&place)) < 0) 
-		return res;
-	
-	if ((res |= reiser4_item_maxreal_key(&place, &key_max)) < 0) {
-		aal_error("Node (%llu): Failed to get the max real "
-			  "key of the last item.", node_blocknr(node));
-		return res;
-	}
-	
-	if (reiser4_key_compfull(&key_max, &dkey) > 0) {
-		aal_error("Node (%llu): The last key [%s] in the node "
-			  "is greater then the right delimiting key "
-			  "[%s].", node_blocknr(node), 
-			  reiser4_print_key(&key_max, PO_DEFAULT),
-			  reiser4_print_key(&dkey, PO_DEFAULT));
+	aal_error("Node (%llu): The left delimiting key [%s] in the "
+		  "parent node (%llu), pos (%u/%u) does not match the "
+		  "first key [%s] in the node.%s", node_blocknr(node),
+		  reiser4_print_key(&place.key, PO_DEFAULT),
+		  node_blocknr(node->p.node), place.pos.item, 
+		  place.pos.unit, reiser4_print_key(&dkey, PO_DEFAULT),
+		  mode == RM_BUILD ? " Fixed." : "");
+
+	if (mode != RM_BUILD)
 		return RE_FATAL;
-	}
-	
-	return res;
+
+	/* Update the left delimiting key if if less than the key of the 0-th
+	   item in the node and this is BUILD mode. */
+	return reiser4_tree_update_keys(tree, &node->p, &place.key);
 }
 
 /* This function creates nodeptr item on the base of @node and insert it 
