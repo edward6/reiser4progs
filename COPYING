@@ -5,65 +5,8 @@ reiser4progs/COPYING.
 
 [LICENSING]
 
-Reiser4 progs is hereby licensed under the Anti-Plagiarism License.
-
-The Anti-Plagiarism License
-
-Pre-amble:
-
-At the time of writing (2004), distros commonly remove, diminish, or obscure
-the credits of original authors from many programs so as to ensure that the
-user has brand awareness primarily of the distro.  They have a strong
-marketing incentive to do so, and there is no shame shown by them in the act.
-This is a very real problem which has already affected many programs
-(e.g. KDE, ReiserFS, many others).  Western academia has a strong tradition of
-opposing plagiarism, and there are good societal reasons for ensuring that
-persons are known for what they have done with precision.  Individual users
-don't benefit as significantly from knowing who produced their software, and
-so one cannot say that there is a market demand for better credits that is
-sufficient to overpower the desire of the distros to be the only source users
-know of to turn to for all their needs.  While individuals may not be well
-motivated to ensure prominent and full crediting, society as a whole is.
-Crediting is a powerful incentive to produce good works, and many have written
-about the power of fame as a motivator for producing free software.  Society
-needs accuracy in its recognition of its contributors.
-
-The License: The Anti-plagiarism license is the Gnu Public License Version 2
-with the following modification: you may not modify, remove, or obscure any
-credits in the software unless your modification causes those credits to remain
-equally prominent and to retain their wording.  You are not required to display
-the credits if the computer has no effective display mechanism, or if you do not
-distribute the software to others.
-
-FAQ:
-
-Q: Will this license lead to ads?
-
-A: No, credits describe the contribution made to a project.  Ads describe a
-product someone wants you to buy.  Ads are not the same as credits, and their
-preservation is not protected by this license.
-
-Q: Can we the distro preserve the credits but send the credits to /dev/null.
-
-A: No.  How can you even ask such a question?
-
-Q: Can I change the font? Can I move the credits to a different moment in the
-user interaction to suit my installer?
-
-A: Yes, if you make sure the credits make an equally effective/frequent
-impression on the user.  If you have doubts about whether your changes are
-fair, be courteous and ask the author and you'll find that most authors are
-reasonable.
-
-Q: What in this license prevents persons from making their name display
-excessively annoyingly throughout the running of the program?  Isn't that a
-flaw in the license?
-
-A: The shovel doesn't stop the digger from creating a pit in the road that
-endangers other people.  The license is a tool.  Whether you make an ass out
-of yourself using it on the software you write is up to you.
-
-Reiser4 progs specific licensing details.
+Reiser4 is hereby licensed under the GNU General
+Public License version 2.
 
 Source code files that contain the phrase "licensing governed by
 COPYING" are "governed files" throughout this file.  Governed
@@ -94,5 +37,20 @@ it wrongly, and Richard Stallman agrees with me, when carefully read
 you can see that those restrictions on additional terms do not apply
 to the owner of the copyright, and my interpretation of this shall
 govern for this license.  
+
+Finally, nothing in this license shall be interpreted to allow you to
+fail to fairly credit me, or to remove my credits such as by creating
+a front end that hides my credits from the user or renaming mkreiser4
+to mkyourcompanyfs or even just make_filesystem, without my
+permission, unless you are an end user not redistributing to others.
+If you have doubts about how to properly do that, or about what is
+fair, ask.  (Last I spoke with him Richard was contemplating how best
+to address the fair crediting issue in the next GPL version.)
+
+Also, a clustering file system built to work on top of this file
+system shall be considered a derivative work for the purposes of
+interpreting the GPL license granted herein.  Plugins are also to be
+considered derivative works.  Share code or pay money, we give you the
+choice.
 
 [END LICENSING]
