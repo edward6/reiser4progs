@@ -642,12 +642,11 @@ struct reiser4_object_ops {
 	errno_t (*check_struct) (object_entity_t *, object_info_t *, 
 				 place_func_t, uint8_t, void *);
 	
-	/* Checks if this is a correct uplink of the object. */
-	errno_t (*check_backlink) (object_entity_t *, object_entity_t *, 
-				   entry_type_t, uint8_t);
+	/* Checks attach of the @object to the @parent. */
+	errno_t (*check_attach) (object_entity_t *, object_entity_t *, uint8_t);
 	
-	/* Realizes if the object can be of this plugin and can be recovered as
-	   a such. */
+	/* Realizes if the object can be of this plugin and can be 
+	   recovered as a such. */
 	object_entity_t *(*realize) (object_info_t *);
 
 #endif
