@@ -1137,8 +1137,6 @@ struct reiser4_alloc_ops {
 	/* Checks blocks allocator on validness */
 	errno_t (*valid) (generic_entity_t *);
 
-	errno_t (*check_struct) (generic_entity_t *, uint8_t);
-	    
 	/* Prints block allocator data */
 	errno_t (*print) (generic_entity_t *, aal_stream_t *,
 			  uint16_t);
@@ -1167,9 +1165,12 @@ struct reiser4_alloc_ops {
 	errno_t (*release) (generic_entity_t *, uint64_t,
 			    uint64_t);
 
-	/* Calls func for all block of the same area as blk is. */
-	errno_t (*related) (generic_entity_t *, blk_t,
-			    region_func_t, void *);
+	/* Calls func for all not relable regions. */
+	errno_t (*layout_bad) (generic_entity_t *, region_func_t, void *);
+	
+	/* Calls func for the region the blk lies in. */
+	errno_t (*region) (generic_entity_t *, blk_t,
+			   region_func_t, void *);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
