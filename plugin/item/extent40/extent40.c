@@ -13,7 +13,7 @@
 static reiser4_core_t *core = NULL;
 
 /* Returns blocksize of the device passed extent @item lies on */
-static uint32_t extent40_blocksize(item_entity_t *item) {
+uint32_t extent40_blocksize(item_entity_t *item) {
 	aal_assert("umka-2058", item != NULL);
 	return item->context.blocksize;
 }
@@ -35,8 +35,8 @@ uint32_t extent40_units(item_entity_t *item) {
 }
 
 /* Calculates extent size */
-static uint64_t extent40_offset(item_entity_t *item,
-				uint64_t pos)
+uint64_t extent40_offset(item_entity_t *item,
+			 uint64_t pos)
 {
 	uint32_t i, blocks = 0;
 	extent40_t *extent;
@@ -53,11 +53,11 @@ static uint64_t extent40_offset(item_entity_t *item,
 
 /* Gets the number of unit specified offset lies in */
 #ifndef ENABLE_STAND_ALONE
-static uint32_t extent40_unit(item_entity_t *item,
-			      uint64_t offset)
+uint32_t extent40_unit(item_entity_t *item,
+		       uint64_t offset)
 #else
-static uint32_t extent40_unit(item_entity_t *item,
-			      uint32_t offset)
+uint32_t extent40_unit(item_entity_t *item,
+		       uint32_t offset)
 #endif
 {
 	uint32_t i, width;
@@ -129,61 +129,6 @@ static int32_t extent40_remove(item_entity_t *item,
 	return 0;
 }
 
-/* Removes body between specified keys. */
-static int32_t extent40_shrink(item_entity_t *item, feel_hint_t *hint) {
-	uint64_t width;
-	uint32_t end_pos;
-	uint32_t start_pos;
-	uint32_t blocksize;
-	extent40_t *extent;
-	
-	aal_assert("vpf-935", item  != NULL);
-	aal_assert("vpf-936", hint != NULL);
-	
-	blocksize = extent40_blocksize(item);
-	
-	/* Transforming from the offset ot unit */
-	start_pos = extent40_unit(item, hint->start);	
-	
-	/* Transforming from the offset ot unit */
-	end_pos = extent40_unit(item, hint->start +
-				hint->count - 1);
-	
-	width = hint->start - extent40_offset(item, start_pos);
-	aal_assert("vpf-939", width % blocksize == 0);
-	
-	width /= blocksize;
-	
-	if (width) {
-
-                /* Not the whole first unit should be removed */
-		et40_set_width(extent40_body(item) +
-			       start_pos, width);
-		
-		start_pos++;
-	}
-	
-	/* End key is inclusive, so + 1 */
-	width = hint->start + hint->count -
-		extent40_offset(item, end_pos);
-	
-	aal_assert("vpf-939", width % blocksize == 0);
-	
-	width /= blocksize;
-	
-	extent = extent40_body(item) + end_pos;
-	
-	if (width != et40_get_width(extent)) {		
-		/* Not the whole first unit should be removed. */		
-		et40_set_start(extent, et40_get_start(extent) + width);
-		et40_set_width(extent, et40_get_width(extent) - width);
-		end_pos--;
-	}
-	
-	return extent40_remove(item, start_pos,
-			       end_pos - start_pos + 1);
-}
-
 /* Prints extent item into specified @stream */
 static errno_t extent40_print(item_entity_t *item,
 			      aal_stream_t *stream,
@@ -224,8 +169,8 @@ static errno_t extent40_print(item_entity_t *item,
 }
 
 /* Builds maximal real key in use for specified @item */
-static errno_t extent40_maxreal_key(item_entity_t *item,
-				    key_entity_t *key) 
+errno_t extent40_maxreal_key(item_entity_t *item,
+			     key_entity_t *key) 
 {
 	aal_assert("vpf-437", item != NULL);
 	aal_assert("vpf-438", key  != NULL);
@@ -235,8 +180,8 @@ static errno_t extent40_maxreal_key(item_entity_t *item,
 #endif
 
 /* Builds maximal possible key for the extent item */
-static errno_t extent40_maxposs_key(item_entity_t *item,
-				    key_entity_t *key) 
+errno_t extent40_maxposs_key(item_entity_t *item,
+			     key_entity_t *key) 
 {
 	aal_assert("umka-1211", item != NULL);
 	aal_assert("umka-1212", key != NULL);
@@ -248,9 +193,9 @@ static errno_t extent40_maxposs_key(item_entity_t *item,
   Performs lookup for specified @key inside the passed @item. Result of lookup
   will be stored in @pos.
 */
-static lookup_t extent40_lookup(item_entity_t *item,
-				key_entity_t *key,
-				uint32_t *pos)
+lookup_t extent40_lookup(item_entity_t *item,
+			 key_entity_t *key,
+			 uint32_t *pos)
 {
 	lookup_t res;
 	uint64_t offset;
@@ -526,50 +471,6 @@ static errno_t extent40_predict(item_entity_t *src_item,
 	return 0;
 }
 
-static errno_t extent40_feel(item_entity_t *item,
-			     key_entity_t *start,
-			     key_entity_t *end,
-			     feel_hint_t *hint)
-{
-	uint64_t start_byte, end_byte;
-	
-	aal_assert("umka-1997", item != NULL);
-	aal_assert("umka-1998", hint != NULL);
-
-	
-	/* Looking up the start byte */
-	if (common40_lookup(item, start, &start_byte, extent40_offset) 
-	    != LP_PRESENT)
-		return -EINVAL;
-	
-	/* Looking up the end byte */
-	if (common40_lookup(item, end, &end_byte, extent40_offset) 
-	    != LP_PRESENT)
-		return -EINVAL;
-
-	hint->start = start_byte;
-	hint->count = end_byte - start_byte + 1;
-	
-	/* Not implemented yet */
-
-	return -EINVAL;
-}
-
-static errno_t extent40_copy(item_entity_t *dst_item,
-			     uint32_t dst_pos,
-			     item_entity_t *src_item,
-			     uint32_t src_pos,
-			     key_entity_t *start,
-			     key_entity_t *end,
-			     feel_hint_t *hint)
-{
-	aal_assert("umka-2071", dst_item != NULL);
-	aal_assert("umka-2072", src_item != NULL);
-
-	/* Not implemented yet */
-	return -EINVAL;
-}
-
 static errno_t extent40_shift(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
@@ -624,30 +525,29 @@ extern errno_t extent40_layout_check(item_entity_t *item,
 
 extern errno_t extent40_check(item_entity_t *item, uint8_t mode);
 
+extern errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos, 
+			     item_entity_t *src, uint32_t src_pos, 
+			     copy_hint_t *hint);
+
+extern errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
+				  item_entity_t *src, uint32_t src_pos,
+				  copy_hint_t *hint);
 #endif
 
-static reiser4_item_ops_t extent40_ops = {
-#ifndef ENABLE_STAND_ALONE
 	.init	       = extent40_init,
 	.write         = extent40_write,
 	.copy          = extent40_copy,
 	.estimate      = extent40_estimate,
 	.remove	       = extent40_remove,
-	.shrink	       = extent40_shrink,
 	.print	       = extent40_print,
 	.predict       = extent40_predict,
 	.shift         = extent40_shift,
 	.layout        = extent40_layout,
 	.check	       = extent40_check,
-	.feel          = extent40_feel,
+	.feel_copy     = extent40_feel_copy,
 	.gap_key       = extent40_maxreal_key,
 	.maxreal_key   = extent40_maxreal_key,
 	.layout_check  = extent40_layout_check,
-		
-	.insert        = NULL,
-	.set_key       = NULL,
-#endif
-	.branch        = NULL,
 
 	.data	       = extent40_data,
 	.lookup	       = extent40_lookup,

@@ -59,10 +59,8 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t nodeptr40_rep(item_entity_t *dst_item,
-			     uint32_t dst_pos,
-			     item_entity_t *src_item,
-			     uint32_t src_pos)
+errno_t nodeptr40_rep(item_entity_t *dst_item, uint32_t dst_pos,
+		      item_entity_t *src_item, uint32_t src_pos)
 {
 	aal_assert("umka-2146", dst_item != NULL);
 	aal_assert("umka-2147", src_item != NULL);
@@ -71,41 +69,6 @@ static errno_t nodeptr40_rep(item_entity_t *dst_item,
 		   sizeof(nodeptr40_t));
 	
 	return 0;
-}
-
-static errno_t nodeptr40_feel(item_entity_t *item,
-			      key_entity_t *start,
-			      key_entity_t *end,
-			      feel_hint_t *hint)
-{
-	aal_assert("umka-2139", end != NULL);
-	aal_assert("umka-2137", item != NULL);
-	aal_assert("umka-2138", start != NULL);
-	aal_assert("umka-2140", hint != NULL);
-
-	hint->start = 0;
-	hint->count = 1;
-	hint->len = sizeof(nodeptr40_t);
-	
-	return 0;
-}
-
-static errno_t nodeptr40_copy(item_entity_t *dst_item,
-			      uint32_t dst_pos,
-			      item_entity_t *src_item,
-			      uint32_t src_pos,
-			      key_entity_t *start,
-			      key_entity_t *end,
-			      feel_hint_t *hint)
-{
-	aal_assert("umka-2141", end != NULL);
-	aal_assert("umka-2144", hint != NULL);
-	aal_assert("umka-2143", start != NULL);
-	aal_assert("umka-2142", dst_item != NULL);
-	aal_assert("umka-2145", src_item != NULL);
-	
-	return nodeptr40_rep(dst_item, dst_pos,
-			     src_item, src_pos);
 }
 
 /* Writes of the specified nodeptr into passed @item*/
@@ -186,8 +149,8 @@ extern errno_t nodeptr40_check(item_entity_t *item, uint8_t mode);
 static reiser4_item_ops_t nodeptr40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
 	.init		= nodeptr40_init,
-	.feel           = nodeptr40_feel,
-	.copy           = nodeptr40_copy,
+	.feel_copy	= NULL,
+	.copy           = NULL,
 	.insert         = nodeptr40_insert,
 	.estimate	= nodeptr40_estimate,
 	.print		= nodeptr40_print,
@@ -197,7 +160,6 @@ static reiser4_item_ops_t nodeptr40_ops = {
 
 	.write          = NULL,
 	.remove		= NULL,
-	.shrink		= NULL,
 
 	.shift          = NULL,
 	.predict        = NULL,

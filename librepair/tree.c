@@ -180,14 +180,86 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     return 0;
 }
 
+/* Copies item's data pointed by @src to @dst, from the key pointed by @src
+ * place though the @end one. After the coping @end key points to the data
+ * of the @src which has not being copied. */
+errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
+    reiser4_place_t *src, copy_hint_t *hint)
+{
+    reiser4_place_t old;
+    uint32_t needed;
+    errno_t res;
+	
+    aal_assert("vpf-948", tree != NULL); 
+    aal_assert("vpf-949", dst != NULL);
+    aal_assert("vpf-950", src != NULL);
+    aal_assert("vpf-951", hint != NULL);
+    
+    if (hint->src_count == 0)
+	return 0;
+    
+    if (reiser4_tree_fresh(tree)) {
+	aal_exception_error("Tree copy failed. Tree is empty.");
+	    return -EINVAL;
+    }
+
+    old = *dst;
+
+    if (hint->len_delta > 0) {
+	needed = hint->len_delta + (dst->pos.unit == ~0ul ? 
+	    reiser4_node_overhead(dst->node) : 0);
+
+	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
+	    aal_exception_error("Tree expand for coping failed.");
+	    return res;
+	}
+    }
+    
+    if ((res = repair_node_copy(dst->node, &dst->pos, src->node, 
+	&src->pos, hint))) 
+    {
+	aal_exception_error("Node copying failed from node %llu, item %u to "
+	    "node %llu, item %u one.", src->node->blk, src->pos.item, 
+	    dst->node->blk, dst->pos.unit);
+	
+	return res;
+    }
+    
+    if (reiser4_place_leftmost(dst) && dst->node->parent.node) {
+	reiser4_place_t p;
+
+	reiser4_place_init(&p, dst->node->parent.node, &dst->node->parent.pos);		
+	if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
+	    return res;
+    }
+    
+    if (dst->node != tree->root && !dst->node->parent.node) {		
+	if (!old.node->parent.node)
+	    reiser4_tree_growup(tree);
+	
+	if ((res = reiser4_tree_attach(tree, dst->node))) {
+	    aal_exception_error("Can't attach node %llu to the tree.", 
+		dst->node->blk);
+	    
+	    reiser4_tree_release(tree, dst->node);	    
+	    return res;
+	}
+    }
+    
+    return 0;
+}
+
 /* Insert the item into the tree overwriting an existent in the tree item 
  * if needed. Does not insert branches. */
 errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
-    reiser4_key_t end_key, max_real_key;
+    reiser4_key_t src_max, start_key;
     reiser4_place_t dst;
+    copy_hint_t hint;
     lookup_t lookup;
+    uint32_t src_units;
     errno_t ret;
     int res;
+    bool_t whole = 1;
 
     aal_assert("vpf-654", tree != NULL);
     aal_assert("vpf-655", src != NULL);
@@ -195,94 +267,103 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 
     if (reiser4_item_branch(src))
 	return -EINVAL;
-		
-    if ((ret = reiser4_item_maxreal_key(src, &max_real_key)))
-	return ret;
+    
+    src_units = reiser4_item_units(src);
+    reiser4_key_assign(&start_key, &src->item.key);
     
     while (1) {
-	if ((ret = reiser4_item_get_key(src, NULL))) {
-	    aal_exception_error("Node (%llu), item (%u), unit (%u): failed to "
-		"get the item key.", src->node->blk, src->pos.item, 
-		src->pos.unit);
-	    return ret;
-	}
+	lookup = reiser4_tree_lookup(tree, &start_key, LEAF_LEVEL, &dst);
 	
-	lookup = reiser4_tree_lookup(tree, &src->item.key, LEAF_LEVEL, &dst);
-	
-	switch (lookup) {
-	case LP_ABSENT:
-	    /* Start key does not exist in the tree. Prepare the insertion. */
-	    if (reiser4_place_rightmost(&dst)) {
-		if ((ret = repair_node_rd_key(dst.node, &end_key)))
-		    return ret;
-	    } else if ((ret = reiser4_item_get_key(&dst, &end_key)))
-		return ret;
+	/* Check if the whole item can be inserted at once. */
+	do {
+	    /* Item was checked once already. */
+	    if (!whole)
+		break;
 	    
-	    if (src->item.plugin->h.id == ITEM_EXTENT40_ID)
-		return 1;
-
-	    if ((ret = reiser4_tree_copy(tree, &dst, src, &end_key))) {
-		aal_exception_error("Tree Copy failed. Source: node (%llu), "
-		    "item (%u), unit (%u). Destination: node (%llu), items "
-		    "(%u), unit (%u). Key interval %k - %k.", src->node->blk, 
-		    src->pos.item, src->pos.unit, dst.node->blk, dst.pos.item,
-		    dst.pos.unit, &src->item.key, &end_key);
-		return ret;
+	    /* If lookup returns PRESENT or unit position is set */
+	    if (lookup == LP_PRESENT) {
+		whole = 0;
+		break;
 	    }
-	    break;
-	case LP_PRESENT:
-	    /* Start key exists in the tree. Prepare the overwriting. */
+
+	    /* If we are on the last position, insert the whole. */
+	    /* FIXME-VITALY: Lookup does not move to the right neighbour yet
+	     * if it exists. So right neighbour should be checked here. */
+	    if (dst.pos.item == reiser4_node_items(dst.node))
+		break;
+
+	    if ((res = reiser4_place_realize(&dst)))
+		return res;
 	    
-	    /* There are some item plugins which have gaps in keys between their 
-	     * units - like direntry40 - check that. Use the special method - 
-	     * item_ops->gap_key - which get the max real key stored continously 
-	     * from the key specified in the dst. */	    
+	    /* It is not possible to say here if these items are mergable 
+	     * or not(e.g. tail40 may get a hole here), so just insert a 
+	     * new item. */
+	    if (dst.pos.unit == reiser4_item_units(&dst)) {
+		dst.pos.item++;
+		dst.pos.unit = ~0ul;
+		break;
+	    } 
+	    
+	    if ((res = reiser4_item_get_key(&dst, NULL)))
+		return res;
+	    
+	    if ((res = reiser4_item_maxreal_key(src, &src_max)))
+		return res;
+
+	    if (reiser4_key_compare(&src_max, &dst.item.key) >= 0)
+		whole = 0;
+	} while (0);
+	
+	aal_memset(&hint, 0, sizeof(hint));
+	reiser4_key_assign(&hint.start, &start_key);
+	
+	if (whole) {
+	    hint.len_delta = src->item.len;
+	    hint.src_count = reiser4_item_units(src);
+	    hint.dst_count = 0;
+	    src->pos.unit = ~0ul;
+	} else {
+	    if ((res = reiser4_place_realize(&dst)))
+		return res;
+	    
 	    if (dst.item.plugin->h.id != src->item.plugin->h.id) {
 		/* FIXME: relocation code should be here. */
 		aal_exception_error("Tree Overwrite failed to overwrite items "
 		    "of different plugins. Source: node (%llu), item (%u), "
 		    "unit (%u). Destination: node (%llu), items (%u), unit "
-		    "(%u). Key interval %k - %k. Relocation is not supported "
-		    "yet.", src->node->blk, src->pos.item, src->pos.unit, 
-		    dst.node->blk, dst.pos.item, dst.pos.unit, &src->item.key,
-		    &end_key);
-		return -EINVAL;
-	    }
-	    
-	    if (src->item.plugin->h.id == ITEM_EXTENT40_ID)
-		return 1;
-		
-	    if ((ret = reiser4_item_gap_key(&dst, &end_key))) 
-		return ret;
-	    
-	    /* If the max_real_key is less than gap source key - overwrite 
-	     * until max_real_key. */
-	    res = reiser4_key_compare(&end_key, &max_real_key);
-	    if (res > 0)
-		end_key = max_real_key;
-	    
-	    if ((ret = reiser4_tree_overwrite(tree, &dst, src, &end_key))) {
-		aal_exception_error("Tree Overwrite failed. Source: node (%llu), "
-		    "item (%u), unit (%u). Destination: node (%llu), items "
-		    "(%u), unit (%u). Key interval %k - %k.", src->node->blk, 
+		    "(%u). Relocation is not supported yet.", src->node->blk, 
 		    src->pos.item, src->pos.unit, dst.node->blk, dst.pos.item, 
-		    dst.pos.unit, &src->item.key, &end_key);
-		return ret;
+		    dst.pos.unit);
+		return 0;
 	    }
-	    break;
-	default:
-	    return lookup;
+	    
+	    if ((res = reiser4_item_maxreal_key(&dst, &hint.end)))
+		return res;
+	    
+	    if ((res = repair_item_feel_copy(&dst, src, &hint)))
+		return res;
 	}
 	
-	/* Lookup by end_key. */
-	if (!src->item.plugin->o.item_ops->lookup)
+	if ((ret = repair_tree_copy(tree, &dst, src, &hint))) {
+	    aal_exception_error("Tree Copy failed. Source: node (%llu), "
+		"item (%u), unit (%u). Destination: node (%llu), items "
+		"(%u), unit (%u). Key interval %k - %k.", src->node->blk, 
+		src->pos.item, src->pos.unit, dst.node->blk, dst.pos.item,
+		dst.pos.unit, &hint.start, &hint.end);
+	    return ret;
+	}
+	
+	if (whole || !src->item.plugin->o.item_ops.lookup)
 	    break;
 	
-	res = src->item.plugin->o.item_ops->lookup(&src->item, &end_key, 
+	/* Lookup by end_key. */
+	res = src->item.plugin->o.item_ops.lookup(&src->item, &hint.end, 
 	    &src->pos.unit);
-	
+
 	if (src->pos.unit >= reiser4_item_units(src))
 	    break;
+	    
+	reiser4_key_assign(&start_key, &hint.end);
     }
 
     return 0;
