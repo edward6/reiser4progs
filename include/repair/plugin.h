@@ -21,14 +21,12 @@ typedef enum repair_mode {
 	RM_LAST		= 5
 } repair_mode_t;
 
-typedef enum repair_error {
-	/* Fixable errors were detected. */
-	RE_FIXABLE	= 1 << 32,
-	/* Fatal errors were detected. */
-	RE_FATAL	= 1 << 33,
-	/* For expansibility. */
-	RE_LAST		= 1 << 34,
-} repair_error_t;
+/* Fixable errors were detected. */
+#define RE_FIXABLE	((uint64_t)1 << 32)
+/* Fatal errors were detected. */
+#define RE_FATAL	((uint64_t)1 << 33)
+/* For expansibility. */
+#define RE_LAST		((uint64_t)1 << 34)
 
 #define repair_error_fatal(result)   ((result & RE_FATAL) || (result < 0))
 

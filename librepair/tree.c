@@ -212,7 +212,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 				    "not match the first key [%s] in the node."
 				    "%s", node_blocknr(node),
 				    reiser4_print_key(&place.key, PO_DEF),
-				    node_blocknr(node->p.node), 
+				    node_blocknr(node->p.node),
 				    place.pos.item, place.pos.unit, 
 				    reiser4_print_key(&dkey, PO_DEF),
 				    mode == RM_BUILD ? "Fixed." : "");

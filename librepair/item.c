@@ -7,7 +7,7 @@
 
 /* Checks if length has been changed, shrink the node if so. */
 static errno_t repair_item_check_fini(reiser4_place_t *place,
-				      repair_error_t result,
+				      errno_t result, 
 				      uint32_t old_len)
 {
 	errno_t res;
