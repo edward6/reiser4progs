@@ -15,8 +15,7 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk, bool_t check) {
 	
 	blocksize = reiser4_master_blksize(fs->master);
 
-	if (!(node = reiser4_node_open(fs->device, blocksize, blk, 
-				       fs->tree->key.plug)))
+	if (!(node = reiser4_node_open(fs, blk)))
 		return NULL;
 	
 	if (!check) return node;

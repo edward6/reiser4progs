@@ -505,12 +505,11 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	if (!(tree->root = repair_node_open(fd->repair->fs, root, 0)))
 		goto error;
 	
-	/* Check that the mkfs stamp in SB matches the root block's one. */
-	if (reiser4_format_get_stamp(format) == 
-	    reiser4_node_get_mstamp(tree->root))
-	{
-		*fd->check_node = TRUE;
-	}
+	/* If SB's mkfs id exists and matches the root node's one, 
+	   check the mkfs id of all nodes. */
+	*fd->check_node = (reiser4_format_get_stamp(format) && 
+			   (reiser4_format_get_stamp(format) ==
+			    reiser4_node_get_mstamp(tree->root)));
 	
 	if (reiser4_tree_connect(tree, NULL, tree->root))
 		goto error;

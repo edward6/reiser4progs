@@ -88,9 +88,7 @@ errno_t debugfs_print_block(
 	
 	blksize = reiser4_master_blksize(fs->master);
 	
-	if (!(node = reiser4_node_open(fs->device, blksize, blk,
-				       fs->tree->key.plug)))
-	{
+	if (!(node = reiser4_node_open(fs, blk))) {
 		fprintf(stdout, "Block %llu is used, but it is not "
 			"a formatted one.\n", blk);
 		return 0;

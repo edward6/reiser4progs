@@ -8,9 +8,7 @@
 
 #include <reiser4/types.h>
 
-extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
-					 uint32_t size, blk_t nr,
-					 reiser4_plug_t *kplg);
+extern reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr);
 
 #ifndef ENABLE_STAND_ALONE
 extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
