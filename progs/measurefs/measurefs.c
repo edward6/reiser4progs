@@ -555,6 +555,8 @@ static errno_t dfrag_open_node(
 	return -(*node == NULL);
 }
 
+#include <unistd.h>
+
 /*
   Processes leaf node in order to find all the stat data items which denote
   corresponding files and calculate file fragmentation for each of them.

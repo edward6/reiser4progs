@@ -123,8 +123,10 @@ void progs_print_wrap(void *stream, char *text) {
 
 	while ((word = aal_strsep(&text, " "))) {
 		if (!line || aal_strlen(line) + aal_strlen(word) > width) {
-			if (line)
+			if (line) {
 				list = aal_list_append(list, line);
+				list = aal_list_last(list);
+			}
 	    
 			line = aal_calloc(width + 1, 0);
 		}
@@ -162,7 +164,6 @@ void progs_print_wrap(void *stream, char *text) {
 }
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
-
 static char *progs_generator(char *text, int state) {
 	char *opt;
 	char s[80], s1[80];

@@ -68,7 +68,7 @@ void progs_gauge_percentage_handler(aal_gauge_t *gauge) {
 
 	sprintf(display, "%d%%", gauge->value);
 	fputs(display, stderr);
-		
+
 	for (i = 0; i < aal_strlen(display); i++)
 		fputc('\b', stderr);
 
