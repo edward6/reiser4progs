@@ -13,16 +13,20 @@
 #endif
 
 #include <reiser4/types.h>
-extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
-					  blk_t blk);
+
+extern void reiser4_fs_close(reiser4_fs_t *fs);
 
 extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 				     reiser4_profile_t *profile);
 
+#ifndef ENABLE_ALONE
+
+extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
+					  blk_t blk);
+
 extern errno_t reiser4_fs_layout(reiser4_fs_t *fs, block_func_t func, 
 				 void *data);
 
-#ifndef ENABLE_ALONE
 extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 				       char *uuid, char *label,
 				       reiser4_profile_t *profile,
@@ -32,11 +36,9 @@ extern errno_t reiser4_fs_clobber(aal_device_t *device);
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
 extern errno_t reiser4_fs_mark(reiser4_fs_t *fs);
 
-#endif
-
-extern void reiser4_fs_close(reiser4_fs_t *fs);
-
 extern errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs,
 				    reiser4_key_t *key);
+
+#endif
 
 #endif

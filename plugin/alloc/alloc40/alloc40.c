@@ -11,6 +11,8 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include "alloc40.h"
 
 #define ALLOC40_START (MASTER_OFFSET + (4096 * 2))
@@ -173,8 +175,6 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	return NULL;
 }
 
-#ifndef ENABLE_ALONE
-
 /* 
    Initializes new alloc40 instance, creates bitmap and return new instance to
    caller (block allocator in libreiser4). This function does almost the same as
@@ -324,8 +324,6 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 	return 0;
 }
 
-#endif
-
 /* Frees alloc40 instance and all helper structures like bitmap, crcmap, etc */
 static void alloc40_close(object_entity_t *entity) {
     
@@ -339,8 +337,6 @@ static void alloc40_close(object_entity_t *entity) {
 	aal_free(alloc->crc);
 	aal_free(alloc);
 }
-
-#ifndef ENABLE_ALONE
 
 /* Marks specified region as used in block allocator */
 static errno_t alloc40_occupy_region(object_entity_t *entity,
@@ -436,8 +432,6 @@ static errno_t alloc40_print(object_entity_t *entity,
 	
 	return 0;
 }
-
-#endif
 
 /* Returns free blocks count */
 static uint64_t alloc40_unused(object_entity_t *entity) {
@@ -574,7 +568,6 @@ static reiser4_plugin_t alloc40_plugin = {
 		.open		       = alloc40_open,
 		.close		       = alloc40_close,
 
-#ifndef ENABLE_ALONE
 		.create		       = alloc40_create,
 		.assign		       = alloc40_assign,
 		.sync		       = alloc40_sync,
@@ -584,16 +577,7 @@ static reiser4_plugin_t alloc40_plugin = {
 		.occupy_region	       = alloc40_occupy_region,
 		.allocate_region       = alloc40_allocate_region,
 		.release_region	       = alloc40_release_region,
-#else
-		.create		       = NULL,
-		.assign		       = NULL,
-		.sync		       = NULL,
-		.print		       = NULL,
-		.related_region        = NULL,
-		.occupy_region	       = NULL,
-		.allocate_region       = NULL,
-		.release_region	       = NULL,
-#endif
+
 		.used                  = alloc40_used,
 		.unused                = alloc40_unused,
 		.valid                 = alloc40_valid,
@@ -609,3 +593,5 @@ static reiser4_plugin_t *alloc40_start(reiser4_core_t *c) {
 }
 
 plugin_register(alloc40_start, NULL);
+
+#endif

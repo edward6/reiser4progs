@@ -9,6 +9,8 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include <reiser4/reiser4.h>
 
 /* 
@@ -82,8 +84,6 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 	return plugin_call(journal->entity->plugin->journal_ops,
 			   layout, journal->entity, func, data);
 }
-
-#ifndef ENABLE_ALONE
 
 static errno_t callback_action_mark(
 	object_entity_t *entity,	/* device for operating on */ 
@@ -211,8 +211,6 @@ errno_t reiser4_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) 
 			   print, journal->entity, stream, 0);
 }
 
-#endif
-
 /* Closes journal by means of freeing all assosiated memory */
 void reiser4_journal_close(
 	reiser4_journal_t *journal)	/* jouranl to be closed */
@@ -226,3 +224,6 @@ void reiser4_journal_close(
     
 	aal_free(journal);
 }
+
+#endif
+

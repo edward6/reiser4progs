@@ -11,26 +11,6 @@
 
 #include <reiser4/reiser4.h>
 
-/* Enumerates all filesystem areas (block alloc, journal, etc.) */
-errno_t reiser4_fs_layout(
-	reiser4_fs_t *fs,
-	block_func_t func, 
-	void *data)
-{
-	if (reiser4_format_skipped(fs->format, func, data))
-		return -1;
-	
-	if (reiser4_format_layout(fs->format, func, data))
-		return -1;
-
-	if (fs->journal) {
-		if (reiser4_journal_layout(fs->journal, func, data))
-			return -1;
-	}
-    
-	return reiser4_alloc_layout(fs->alloc, func, data);
-}
-
 /* 
    Opens filesysetm on specified host device and journal device. Replays the
    journal if "replay" flag is specified.
@@ -79,7 +59,9 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
     
 	if ((blocks = reiser4_format_get_len(fs->format)) == INVAL_BLK)
 		goto error_free_format;
-    
+
+#ifndef ENABLE_ALONE
+	
 	/* Initializes block allocator. See alloc.c for details */
 	if (!(fs->alloc = reiser4_alloc_open(fs, blocks)))
 		goto error_free_format;
@@ -87,19 +69,24 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (reiser4_alloc_valid(fs->alloc))
 		aal_exception_warn("Block allocator data seems corrupted.");
 	
+#endif
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_alloc;
   
 	if (reiser4_oid_valid(fs->oid))
 		goto error_free_oid;
-
+	
 	return fs;
 
  error_free_oid:
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
+
+#ifndef ENABLE_ALONE
 	reiser4_alloc_close(fs->alloc);
+#endif
+	
  error_free_format:
 	reiser4_format_close(fs->format);
  error_free_master:
@@ -109,6 +96,30 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
  error:
 	return NULL;
 }
+
+/* Close all filesystem's objects */
+void reiser4_fs_close(
+	reiser4_fs_t *fs)		/* filesystem to be closed */
+{
+    
+	aal_assert("umka-230", fs != NULL);
+
+	/* Closing the all filesystem objects */
+    
+	reiser4_oid_close(fs->oid);
+	
+#ifndef ENABLE_ALONE
+	reiser4_alloc_close(fs->alloc);
+#endif
+	
+	reiser4_format_close(fs->format);
+	reiser4_master_close(fs->master);
+
+	/* Freeing memory occupied by fs instance */
+	aal_free(fs);
+}
+
+#ifndef ENABLE_ALONE
 
 static errno_t callback_check_block(
 	object_entity_t *entity,
@@ -141,7 +152,25 @@ reiser4_owner_t reiser4_fs_belongs(
 	return O_UNKNOWN;
 }
 
-#ifndef ENABLE_ALONE
+/* Enumerates all filesystem areas (block alloc, journal, etc.) */
+errno_t reiser4_fs_layout(
+	reiser4_fs_t *fs,
+	block_func_t func, 
+	void *data)
+{
+	if (reiser4_format_skipped(fs->format, func, data))
+		return -1;
+	
+	if (reiser4_format_layout(fs->format, func, data))
+		return -1;
+
+	if (fs->journal) {
+		if (reiser4_journal_layout(fs->journal, func, data))
+			return -1;
+	}
+    
+	return reiser4_alloc_layout(fs->alloc, func, data);
+}
 
 /* Destroys reiser4 master super block */
 errno_t reiser4_fs_clobber(aal_device_t *device) {
@@ -307,26 +336,6 @@ errno_t reiser4_fs_sync(
 	return 0;
 }
 
-#endif
-
-/* Close all filesystem's objects */
-void reiser4_fs_close(
-	reiser4_fs_t *fs)		/* filesystem to be closed */
-{
-    
-	aal_assert("umka-230", fs != NULL);
-    
-	/* Closing the all filesystem objects */
-	reiser4_oid_close(fs->oid);
-    
-	reiser4_alloc_close(fs->alloc);
-	reiser4_format_close(fs->format);
-	reiser4_master_close(fs->master);
-
-	/* Freeing memory occupied by fs instance */
-	aal_free(fs);
-}
-
 /* Returns the key of the fake root parent */
 errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	roid_t root_locality;
@@ -342,3 +351,5 @@ errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE, 
 					 hyper_locality, root_locality, 0);
 }
+
+#endif

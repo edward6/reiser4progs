@@ -8,6 +8,8 @@
 #ifndef ALLOC40_H
 #define ALLOC40_H
 
+#ifndef ENABLE_ALONE
+
 #include <aal/aal.h>
 #include <aux/bitmap.h>
 #include <reiser4/plugin.h>
@@ -23,6 +25,8 @@ struct alloc40 {
 };
 
 typedef struct alloc40 alloc40_t;
+
+#endif
 
 #endif
 

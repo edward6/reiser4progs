@@ -129,6 +129,18 @@ static errno_t oid40_print(object_entity_t *entity,
 	return 0;
 }
 
+/* Returns number of free oids */
+static roid_t oid40_free(object_entity_t *entity) {
+	aal_assert("umka-961", entity != NULL);
+	return ~0ull - ((oid40_t *)entity)->next;
+}
+
+/* Returns number of used oids */
+static roid_t oid40_used(object_entity_t *entity) {
+	aal_assert("umka-530", entity != NULL);
+	return ((oid40_t *)entity)->used;
+}
+
 #endif
 
 /* Checks oid allocator for validness */
@@ -140,18 +152,6 @@ static errno_t oid40_valid(object_entity_t *entity) {
 		return -1;
 
 	return 0;
-}
-
-/* Returns number of free oids */
-static roid_t oid40_free(object_entity_t *entity) {
-	aal_assert("umka-961", entity != NULL);
-	return ~0ull - ((oid40_t *)entity)->next;
-}
-
-/* Returns number of used oids */
-static roid_t oid40_used(object_entity_t *entity) {
-	aal_assert("umka-530", entity != NULL);
-	return ((oid40_t *)entity)->used;
 }
 
 /* Returns the root parent locality */
@@ -191,6 +191,8 @@ static reiser4_plugin_t oid40_plugin = {
 		.release	= oid40_release,
 		.sync		= oid40_sync,
 		.print		= oid40_print,
+		.used		= oid40_used,
+		.free		= oid40_free,
 #else
 		.create		= NULL,
 		.next		= NULL,
@@ -198,10 +200,9 @@ static reiser4_plugin_t oid40_plugin = {
 		.release	= NULL,
 		.sync		= NULL,
 		.print		= NULL,
+		.used		= NULL,
+		.free		= NULL,
 #endif
-		.used		= oid40_used,
-		.free		= oid40_free,
-	
 		.root_locality	= oid40_root_locality,
 		.root_objectid	= oid40_root_objectid,
 		.hyper_locality	= oid40_hyper_locality

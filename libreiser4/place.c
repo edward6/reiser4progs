@@ -84,10 +84,13 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 	/* Initializing item context fields */
 	item->con.blk = place->node->blk;
 	item->con.device = place->node->device;
+
+#ifndef ENABLE_ALONE
 	
 	/* Initializing item enviromnent fields */
 	if (place->node->tree)
 		item->env.alloc = place->node->tree->fs->alloc->entity;
+#endif
 		
 	return 0;
 }

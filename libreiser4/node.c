@@ -66,6 +66,39 @@ errno_t reiser4_node_print(
 			   print, node->entity, stream, 0);
 }
 
+/*
+  Returns TRUE if node->pos points to the the right nodeptr in parent node and
+  FALSE otherwise.
+*/
+bool_t reiser4_node_actual(reiser4_node_t *node) {
+	reiser4_key_t lkey;
+	reiser4_place_t place;
+
+	aal_assert("umka-1942", node != NULL);
+	aal_assert("umka-1943", node->parent != NULL);
+
+	if (node->pos.item >= reiser4_node_items(node->parent))
+		return FALSE;
+	
+	/* Initializing item in parent node node->pos points to */
+	if (reiser4_place_open(&place, node->parent, &node->pos))
+		return FALSE;
+
+	if (reiser4_item_realize(&place))
+		return FALSE;
+
+	if (node->pos.unit >= reiser4_item_units(&place))
+		return FALSE;
+
+	/*
+	  If node->pos points to correct key, we will not do anything and just
+	  return. Node lookup will be called otherwise.
+	*/
+	reiser4_node_lkey(node, &lkey);
+	
+	return (reiser4_key_compare(&place.item.key, &lkey) == 0);
+}
+
 #endif
 
 struct guess_node {
@@ -76,7 +109,9 @@ struct guess_node {
 };
 
 /* Helper callback for comparing plugins durring searching needed one */
-static errno_t callback_guess_node(reiser4_plugin_t *plugin, void *data) {
+static errno_t callback_guess_node(reiser4_plugin_t *plugin,
+				   void *data)
+{
 	struct guess_node *guess = (struct guess_node *)data;
 
 	/* We are interested only in node plugins here */
@@ -129,7 +164,7 @@ reiser4_node_t *reiser4_node_open(
    
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
-   
+
 	if (!(node->entity = reiser4_node_guess(device, blk)))
 		goto error_free_node;
     
@@ -180,39 +215,6 @@ errno_t reiser4_node_lkey(
 		return -1;
 	
 	return 0;
-}
-
-/*
-  Returns TRUE if node->pos points to the the right nodeptr in parent node and
-  FALSE otherwise.
-*/
-bool_t reiser4_node_actual(reiser4_node_t *node) {
-	reiser4_key_t lkey;
-	reiser4_place_t place;
-
-	aal_assert("umka-1942", node != NULL);
-	aal_assert("umka-1943", node->parent != NULL);
-
-	if (node->pos.item >= reiser4_node_items(node->parent))
-		return FALSE;
-	
-	/* Initializing item in parent node node->pos points to */
-	if (reiser4_place_open(&place, node->parent, &node->pos))
-		return FALSE;
-
-	if (reiser4_item_realize(&place))
-		return FALSE;
-
-	if (node->pos.unit >= reiser4_item_units(&place))
-		return FALSE;
-
-	/*
-	  If node->pos points to correct key, we will not do anything and just
-	  return. Node lookup will be called otherwise.
-	*/
-	reiser4_node_lkey(node, &lkey);
-	
-	return (reiser4_key_compare(&place.item.key, &lkey) == 0);
 }
 
 /* Returns position of passed node in parent node */
@@ -422,6 +424,18 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 	return plugin_call(node->entity->plugin->node_ops, 
 			   items, node->entity);
 }
+/* Checks node for validness */
+errno_t reiser4_node_valid(
+	reiser4_node_t *node)	/* node to be checked */
+{
+	aal_assert("umka-123", node != NULL);
+    
+	return plugin_call(node->entity->plugin->node_ops, 
+			   valid, node->entity);
+}
+
+#ifndef ENABLE_ALONE
+
 /* Returns free space of specified node */
 uint16_t reiser4_node_space(reiser4_node_t *node) {
 	aal_assert("umka-455", node != NULL);
@@ -445,18 +459,6 @@ uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 	return plugin_call(node->entity->plugin->node_ops, 
 			   maxspace, node->entity);
 }
-
-/* Checks node for validness */
-errno_t reiser4_node_valid(
-	reiser4_node_t *node)	/* node to be checked */
-{
-	aal_assert("umka-123", node != NULL);
-    
-	return plugin_call(node->entity->plugin->node_ops, 
-			   valid, node->entity);
-}
-
-#ifndef ENABLE_ALONE
 
 /* Makes copy @count items from @src_node into @dst_node */
 errno_t reiser4_node_copy(reiser4_node_t *dst_node, rpos_t *dst_pos,

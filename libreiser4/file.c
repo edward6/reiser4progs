@@ -171,59 +171,6 @@ static errno_t reiser4_file_search(
 	return reiser4_file_stat(file);
 }
 
-/* This function opens file by its @place */
-reiser4_file_t *reiser4_file_begin(
-	reiser4_fs_t *fs,		/* fs object will be opened on */
-	reiser4_place_t *place)		/* statdata key of file to be opened */
-{
-	place_t *p;
-	reiser4_file_t *file;
-	reiser4_plugin_t *plugin;
-	
-	aal_assert("umka-1508", fs != NULL);
-	aal_assert("umka-1509", place != NULL);
-
-	if (!(file = aal_calloc(sizeof(*file), 0)))
-		return NULL;
-    
-	file->fs = fs;
-	
-	aal_memcpy(&file->place, place, sizeof(*place));
-	
-	if (reiser4_item_get_key(&file->place, &file->key)) {
-		aal_exception_error("Node (%llu), item (%u), unit(%u): Can't "
-				    "get item key.", place->node->blk, 
-				    place->pos.item, place->pos.unit);
-		goto error_free_file;
-	}
-
-#ifndef ENABLE_ALONE
-	reiser4_key_string(&file->key, file->name);
-#endif
-
-	/* Guessing file plugin */
-	if (!(plugin = reiser4_file_plugin(file))) {
-		aal_exception_error("Can't find file plugin for %s.",
-				    file->name);
-		goto error_free_file;
-	}
-
-	p = (place_t *)&file->place;
-		
-	if (!(file->entity = plugin_call(plugin->file_ops, open,
-					 fs->tree, p)))
-	{
-		aal_exception_error("Can't open %s.", file->name);
-		goto error_free_file;
-	}
-	
-	return file;
-	
- error_free_file:
-	aal_free(file);
-	return NULL;
-}
-
 /* This function opens file by its name */
 reiser4_file_t *reiser4_file_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
@@ -282,6 +229,57 @@ reiser4_file_t *reiser4_file_open(
 }
 
 #ifndef ENABLE_ALONE
+
+/* This function opens file by its @place */
+reiser4_file_t *reiser4_file_begin(
+	reiser4_fs_t *fs,		/* fs object will be opened on */
+	reiser4_place_t *place)		/* statdata key of file to be opened */
+{
+	place_t *p;
+	reiser4_file_t *file;
+	reiser4_plugin_t *plugin;
+	
+	aal_assert("umka-1508", fs != NULL);
+	aal_assert("umka-1509", place != NULL);
+
+	if (!(file = aal_calloc(sizeof(*file), 0)))
+		return NULL;
+    
+	file->fs = fs;
+	
+	aal_memcpy(&file->place, place, sizeof(*place));
+	
+	if (reiser4_item_get_key(&file->place, &file->key)) {
+		aal_exception_error("Node (%llu), item (%u), unit(%u): Can't "
+				    "get item key.", place->node->blk, 
+				    place->pos.item, place->pos.unit);
+		goto error_free_file;
+	}
+
+	reiser4_key_string(&file->key, file->name);
+
+	/* Guessing file plugin */
+	if (!(plugin = reiser4_file_plugin(file))) {
+		aal_exception_error("Can't find file plugin for %s.",
+				    file->name);
+		goto error_free_file;
+	}
+
+	p = (place_t *)&file->place;
+		
+	if (!(file->entity = plugin_call(plugin->file_ops, open,
+					 fs->tree, p)))
+	{
+		aal_exception_error("Can't open %s.", file->name);
+		goto error_free_file;
+	}
+	
+	return file;
+	
+ error_free_file:
+	aal_free(file);
+	return NULL;
+}
 
 errno_t reiser4_file_truncate(
 	reiser4_file_t *file,	            /* file for truncating */

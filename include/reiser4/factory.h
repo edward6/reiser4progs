@@ -15,7 +15,7 @@
 #include <reiser4/types.h>
 
 extern errno_t libreiser4_factory_init(void);
-extern void libreiser4_factory_done(void);
+extern void libreiser4_factory_fini(void);
 
 extern errno_t libreiser4_factory_foreach(reiser4_plugin_func_t func, 
 					  void *data);

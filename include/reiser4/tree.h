@@ -95,8 +95,6 @@ extern errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 				 reiser4_place_t *place,
 				 reiser4_key_t *key);
 
-#endif
-
 extern errno_t reiser4_tree_dig(reiser4_tree_t *tree,
 				reiser4_node_t *node,
 				traverse_hint_t *hint,
@@ -113,6 +111,8 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_setup_func_t setup_func,
 				     traverse_setup_func_t update_func,
 				     traverse_edge_func_t after_func);
+
+#endif
 
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 			       reiser4_key_t *key,

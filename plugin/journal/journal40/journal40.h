@@ -8,6 +8,8 @@
 #ifndef JOURNAL40_H
 #define JOURNAL40_h
 
+#ifndef ENABLE_ALONE
+
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
@@ -160,3 +162,4 @@ typedef errno_t (*journal40_sec_func_t) (object_entity_t *, aal_block_t *,
 
 #endif
 
+#endif

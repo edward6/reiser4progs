@@ -19,15 +19,6 @@
 extern reiser4_plugin_t format40_plugin;
 static reiser4_core_t *core = NULL;
 
-static uint64_t format40_begin(object_entity_t *entity) {
-	format40_t *format = (format40_t *)entity;
-	
-	aal_assert("vpf-462", format != NULL);
-	aal_assert("vpf-463", format->device != NULL);
-	
-	return FORMAT40_OFFSET / format->device->blocksize;
-}
-
 static uint64_t format40_get_root(object_entity_t *entity) {
 	format40_super_t *super;
     
@@ -73,6 +64,17 @@ static uint32_t format40_get_stamp(object_entity_t *entity) {
 	return get_sb_mkfs_id(super);
 }
 
+#ifndef ENABLE_ALONE
+
+static uint64_t format40_begin(object_entity_t *entity) {
+	format40_t *format = (format40_t *)entity;
+	
+	aal_assert("vpf-462", format != NULL);
+	aal_assert("vpf-463", format->device != NULL);
+	
+	return FORMAT40_OFFSET / format->device->blocksize;
+}
+
 static errno_t format40_skipped(object_entity_t *entity,
 				block_func_t func,
 				void *data) 
@@ -115,6 +117,8 @@ static errno_t format40_layout(object_entity_t *entity,
     
 	return 0;
 }
+
+#endif
 
 static errno_t format40_super_check(format40_super_t *super, 
 				    aal_device_t *device) 
@@ -292,6 +296,18 @@ static errno_t format40_sync(object_entity_t *entity) {
 	return 0;
 }
 
+static int format40_confirm(aal_device_t *device) {
+	aal_block_t *block;
+
+	aal_assert("umka-733", device != NULL);
+    
+	if (!(block = format40_super_open(device)))
+		return 0;
+	
+	aal_block_close(block);
+	return 1;
+}
+
 #endif
 
 static errno_t format40_valid(object_entity_t *entity) {
@@ -310,18 +326,6 @@ static void format40_close(object_entity_t *entity) {
     
 	aal_block_close(((format40_t *)entity)->block);
 	aal_free(entity);
-}
-
-static int format40_confirm(aal_device_t *device) {
-	aal_block_t *block;
-
-	aal_assert("umka-733", device != NULL);
-    
-	if (!(block = format40_super_open(device)))
-		return 0;
-	
-	aal_block_close(block);
-	return 1;
 }
 
 static void format40_oid(object_entity_t *entity, 
@@ -343,6 +347,12 @@ static const char *format40_name(object_entity_t *entity) {
 	return formats[0];
 }
 
+static rpid_t format40_oid_pid(object_entity_t *entity) {
+	return OID_REISER40_ID;
+}
+
+#ifndef ENABLE_ALONE
+
 static rpid_t format40_journal_pid(object_entity_t *entity) {
 	return JOURNAL_REISER40_ID;
 }
@@ -350,12 +360,6 @@ static rpid_t format40_journal_pid(object_entity_t *entity) {
 static rpid_t format40_alloc_pid(object_entity_t *entity) {
 	return ALLOC_REISER40_ID;
 }
-
-static rpid_t format40_oid_pid(object_entity_t *entity) {
-	return OID_REISER40_ID;
-}
-
-#ifndef ENABLE_ALONE
 
 static void format40_set_root(object_entity_t *entity, 
 			      uint64_t root) 
@@ -468,43 +472,48 @@ static reiser4_plugin_t format40_plugin = {
 		.sync		= format40_sync,
 		.create		= format40_create,
 		.print		= format40_print,
+		.layout	        = format40_layout,
+		.skipped        = format40_skipped,
+		.start		= format40_begin,
+		.confirm	= format40_confirm,
 #else
 		.check		= NULL,
 		.sync		= NULL,
 		.create		= NULL,
 		.print		= NULL,
+		.layout	        = NULL,
+		.skipped        = NULL,
+		.start		= NULL,
+		.confirm	= NULL,
 #endif
 		.oid	        = format40_oid,
 	
 		.close		= format40_close,
-		.confirm	= format40_confirm,
 		.name		= format40_name,
 
-		.start		= format40_begin,
 		.get_root	= format40_get_root,
 		.get_len	= format40_get_len,
 		.get_free	= format40_get_free,
 		.get_height	= format40_get_height,
 		.get_stamp	= format40_get_stamp,
 
-		.layout	        = format40_layout,
-		.skipped        = format40_skipped,
-	
 #ifndef ENABLE_ALONE
 		.set_root	= format40_set_root,
 		.set_len	= format40_set_len,
 		.set_free	= format40_set_free,
 		.set_height	= format40_set_height,
 		.set_stamp	= format40_set_stamp,
+		.journal_pid	= format40_journal_pid,
+		.alloc_pid	= format40_alloc_pid,
 #else
 		.set_root	= NULL,
 		.set_len	= NULL,
 		.set_free	= NULL,
 		.set_height	= NULL,
 		.set_stamp	= NULL,
+		.journal_pid	= NULL,
+		.alloc_pid	= NULL,
 #endif
-		.journal_pid	= format40_journal_pid,
-		.alloc_pid	= format40_alloc_pid,
 		.oid_pid	= format40_oid_pid
 	}
 };

@@ -21,17 +21,16 @@ extern lookup_t reiser4_file_lookup(reiser4_file_t *file,
 				    const char *name,
 				    reiser4_entry_hint_t *entry);
 
-extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs,
-					  reiser4_place_t *place);
-
 extern int32_t reiser4_file_read(reiser4_file_t *file, void *buff,
 				 uint64_t n);
 
 extern void reiser4_file_close(reiser4_file_t *file);
-
 extern errno_t reiser4_file_stat(reiser4_file_t *file);
 
 #ifndef ENABLE_ALONE
+
+extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs,
+					  reiser4_place_t *place);
 
 extern errno_t reiser4_file_print(reiser4_file_t *file,
 				  aal_stream_t *stream);

@@ -9,6 +9,8 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include "journal40.h"
 
 #define JOURNAL40_HEADER (4096 * 19)
@@ -130,8 +132,6 @@ static errno_t journal40_valid(object_entity_t *entity) {
     
 	return 0;
 }
-
-#ifndef ENABLE_ALONE
 
 static errno_t callback_alloc_journal(object_entity_t *entity,
 				      blk_t blk, void *data)
@@ -528,8 +528,6 @@ static errno_t journal40_print(object_entity_t *entity,
 	return 0;
 }
 
-#endif
-
 static void journal40_close(object_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
     
@@ -553,20 +551,11 @@ static reiser4_plugin_t journal40_plugin = {
 			.desc = "Default journal for reiserfs 4.0, ver. " VERSION,
 		},
 		.open	= journal40_open,
-		
-#ifndef ENABLE_ALONE
 		.create	= journal40_create,
 		.sync	= journal40_sync,
 		.replay = journal40_replay,
 		.print  = journal40_print,
 		.check  = journal40_check,
-#else
-		.create = NULL,
-		.sync	= NULL,
-		.replay = NULL,
-		.print  = NULL,
-		.check  = NULL,
-#endif
 		.layout = journal40_layout,
 		.valid	= journal40_valid,
 		.close	= journal40_close,
@@ -581,3 +570,4 @@ static reiser4_plugin_t *journal40_start(reiser4_core_t *c) {
 
 plugin_register(journal40_start, NULL);
 
+#endif

@@ -6,6 +6,8 @@
   reiser4progs/COPYING.
 */
 
+#ifndef ENABLE_ALONE
+
 #include <aux/bitmap.h>
 
 /* 
@@ -363,3 +365,5 @@ char *aux_bitmap_map(
 	aal_assert("umka-356", bitmap != NULL);
 	return bitmap->map;
 }
+
+#endif

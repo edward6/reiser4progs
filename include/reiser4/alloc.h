@@ -12,12 +12,12 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include <reiser4/types.h>
 
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 
 					   count_t count);
-
-#ifndef ENABLE_ALONE
 
 extern reiser4_alloc_t *reiser4_alloc_create(reiser4_fs_t *fs, 
 					     count_t count);
@@ -56,8 +56,6 @@ extern errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc,
 extern errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc, 
 					 aux_bitmap_t *bitmap);
 
-#endif
-
 extern void reiser4_alloc_close(reiser4_alloc_t *alloc);
 extern errno_t reiser4_alloc_valid(reiser4_alloc_t *alloc);
 
@@ -78,4 +76,7 @@ extern errno_t reiser4_alloc_related_region(reiser4_alloc_t *alloc,
 
 extern errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 				    block_func_t func, void *data);
+
+#endif
+
 #endif

@@ -177,25 +177,6 @@ static errno_t node40_get_key(object_entity_t *entity,
 	return 0;
 }
 
-/*
-  Retutns item overhead for this node format. Widely used in modification and
-  estimation routines.
-*/
-static uint16_t node40_overhead(object_entity_t *entity) {
-	return sizeof(item40_header_t);
-}
-
-/* Returns maximal size of item possible for passed node instance */
-static uint16_t node40_maxspace(object_entity_t *entity) {
-	node40_t *node = (node40_t *)entity;
-    
-	aal_assert("vpf-016", node != NULL);
-
-	/* Blocksize minus node header and minus item overhead */
-	return aal_block_size(node->block) - sizeof(node40_header_t) - 
-		sizeof(item40_header_t);
-}
-
 /* Gets item's body at passed @pos */
 static void *node40_item_body(object_entity_t *entity, 
 			      rpos_t *pos)
@@ -324,6 +305,31 @@ static errno_t node40_item(item_entity_t *item,
 }
 
 #ifndef ENABLE_ALONE
+
+/* Returns node free space */
+static uint16_t node40_space(object_entity_t *entity) {
+	aal_assert("vpf-020", entity != NULL);
+	return nh40_get_free_space((node40_t *)entity);
+}
+
+/*
+  Retutns item overhead for this node format. Widely used in modification and
+  estimation routines.
+*/
+static uint16_t node40_overhead(object_entity_t *entity) {
+	return sizeof(item40_header_t);
+}
+
+/* Returns maximal size of item possible for passed node instance */
+static uint16_t node40_maxspace(object_entity_t *entity) {
+	node40_t *node = (node40_t *)entity;
+    
+	aal_assert("vpf-016", node != NULL);
+
+	/* Blocksize minus node header and minus item overhead */
+	return aal_block_size(node->block) - sizeof(node40_header_t) - 
+		sizeof(item40_header_t);
+}
 
 /*
   Calculates size of a region denoted by @pos and @count. This is used by
@@ -836,26 +842,6 @@ static errno_t node40_shrink(object_entity_t *entity,
 
 extern errno_t node40_check(object_entity_t *entity);
 
-#endif
-
-/* Checks node for validness */
-static errno_t node40_valid(object_entity_t *entity) {
-	aal_assert("vpf-015", entity != NULL);
-    
-	if (node40_confirm(entity))
-		return -1;
-
-	return 0;
-}
-
-/* Returns node free space */
-static uint16_t node40_space(object_entity_t *entity) {
-	aal_assert("vpf-020", entity != NULL);
-	return nh40_get_free_space((node40_t *)entity);
-}
-
-#ifndef ENABLE_ALONE
-
 /* Returns node make stamp */
 static void node40_set_mstamp(object_entity_t *entity,
 			      uint32_t stamp)
@@ -966,6 +952,16 @@ static errno_t node40_print(object_entity_t *entity,
 }
 
 #endif
+
+/* Checks node for validness */
+static errno_t node40_valid(object_entity_t *entity) {
+	aal_assert("vpf-015", entity != NULL);
+    
+	if (node40_confirm(entity))
+		return -1;
+
+	return 0;
+}
 
 /* Helper callback for comparing two keys. This is used by node lookup */
 static inline int callback_comp_key(void *node, uint32_t pos,
@@ -1623,10 +1619,6 @@ static reiser4_plugin_t node40_plugin = {
 		.lookup		 = node40_lookup,
 		.items		 = node40_items,
 	
-		.overhead	 = node40_overhead,
-		.maxspace	 = node40_maxspace,
-		.space		 = node40_space,
-	
 		.get_key	 = node40_get_key,
 		.get_level	 = node40_get_level,
 		
@@ -1646,6 +1638,10 @@ static reiser4_plugin_t node40_plugin = {
 		.expand		 = node40_expand,
 		.copy            = node40_copy,
 
+		.overhead	 = node40_overhead,
+		.maxspace	 = node40_maxspace,
+		.space		 = node40_space,
+	
 		.set_key	 = node40_set_key,
 		.set_level       = node40_set_level,
 		.set_mstamp	 = node40_set_mstamp,
@@ -1662,6 +1658,10 @@ static reiser4_plugin_t node40_plugin = {
 		.shrink		 = NULL,
 		.expand		 = NULL,
 		.copy            = NULL,
+	
+		.overhead	 = NULL,
+		.maxspace	 = NULL,
+		.space		 = NULL,
 	
 		.set_key	 = NULL,
 		.set_level       = NULL,

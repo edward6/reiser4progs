@@ -41,7 +41,7 @@ libreiser4_static_la_CFLAGS  = @GENERIC_CFLAGS@
 if ENABLE_ALONE
 
 libreiser4_alone_la_LIBADD   = $(top_builddir)/libaal/libaal-alone.la \
-			       $(top_builddir)/libaux/libaux-static.la \
+			       $(top_builddir)/libaux/libaux-alone.la \
 			       $(top_builddir)/plugin/libreiser4-plugin-alone.la
 
 libreiser4_alone_la_SOURCES  = $(libreiser4_sources)

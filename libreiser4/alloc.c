@@ -9,6 +9,8 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include <reiser4/reiser4.h>
 
 /*
@@ -61,8 +63,6 @@ reiser4_alloc_t *reiser4_alloc_open(
 	aal_free(alloc);
 	return NULL;
 }
-
-#ifndef ENABLE_ALONE
 
 /* 
    Creates new block allocator. Initializes all structures, calles block
@@ -141,8 +141,6 @@ errno_t reiser4_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 			   print, alloc->entity, stream, 0);
 }
 
-#endif
-
 /* Close passed allocator instance */
 void reiser4_alloc_close(
 	reiser4_alloc_t *alloc)	/* allocator to be closed */
@@ -181,8 +179,6 @@ count_t reiser4_alloc_used(
 			   used, alloc->entity);
 }
 
-#ifndef ENABLE_ALONE
-
 /* Marks specified blocks as used */
 errno_t reiser4_alloc_occupy_region(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
@@ -220,8 +216,6 @@ count_t reiser4_alloc_allocate_region(
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   allocate_region, alloc->entity, start, count);
 }
-
-#endif
 
 errno_t reiser4_alloc_valid(
 	reiser4_alloc_t *alloc)	/* allocator to be checked */
@@ -353,3 +347,5 @@ errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc,
 
 	return 0;
 }
+
+#endif

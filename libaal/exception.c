@@ -142,7 +142,7 @@ aal_exception_option_t aal_exception_throw(
 
 	/* Forming exception message using passed format string and parameters */
 	va_start(arg_list, message);
-	aal_vsnprintf(exception->message, 4096, message, arg_list);
+	aal_vsnprintf(exception->message, 256, message, arg_list);
 	va_end(arg_list);
     
 	return aal_exception_actual_throw(exception);

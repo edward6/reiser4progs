@@ -175,16 +175,6 @@ errno_t reiser4_oid_print(reiser4_oid_t *oid, aal_stream_t *stream) {
 			   print, oid->entity, stream, 0);
 }
 
-#endif
-
-/* Checks specified oid allocator on validness */
-errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
-	aal_assert("umka-962", oid != NULL);
-    
-	return plugin_call(oid->entity->plugin->oid_ops, 
-			   valid, oid->entity);
-}
-
 /* Returns number of used oids from passed oid allocator */
 uint64_t reiser4_oid_used(reiser4_oid_t *oid) {
 	aal_assert("umka-527", oid != NULL);
@@ -199,6 +189,16 @@ uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   free, oid->entity);
+}
+
+#endif
+
+/* Checks specified oid allocator on validness */
+errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
+	aal_assert("umka-962", oid != NULL);
+    
+	return plugin_call(oid->entity->plugin->oid_ops, 
+			   valid, oid->entity);
 }
 
 /* Returns root parent locality from specified oid allocator */
@@ -224,4 +224,3 @@ roid_t reiser4_oid_root_objectid(reiser4_oid_t *oid) {
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   root_objectid,);
 }
-

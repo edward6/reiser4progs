@@ -12,12 +12,12 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include <reiser4/types.h>
 
 extern reiser4_journal_t *reiser4_journal_open(reiser4_fs_t *fs,
 					       aal_device_t *device);
-
-#ifndef ENABLE_ALONE
 
 extern errno_t reiser4_journal_mark(reiser4_journal_t *journal);
 
@@ -31,14 +31,14 @@ extern errno_t reiser4_journal_replay(reiser4_journal_t *journal);
 extern errno_t reiser4_journal_print(reiser4_journal_t *journal,
 				     aal_stream_t *stream);
 
-#endif
-
 extern void reiser4_journal_close(reiser4_journal_t *journal);
 extern errno_t reiser4_journal_valid(reiser4_journal_t *journal);
 
 extern errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
 				      block_func_t func,
 				      void *data);
+
+#endif
 
 #endif
 

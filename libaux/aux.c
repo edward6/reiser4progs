@@ -59,8 +59,8 @@ int aux_bin_search(
 errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
 		       aux_post_parse_t post_func, void *data)
 {
-	char track[4096];
-	char local[4096];
+	char track[256];
+	char local[256];
 
 	char *entry = NULL;
 	char *pointer = NULL;

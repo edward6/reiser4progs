@@ -47,8 +47,6 @@ libfooter_alone_la_SOURCES 	= footer.c
 
 libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
 			          format/format40/libformat40-alone.la \
-			          journal/journal40/libjournal40-alone.la \
-			          alloc/alloc40/liballoc40-alone.la \
 			          oid/oid40/liboid40-alone.la \
 			          node/node40/libnode40-alone.la \
 			          key/key40/libkey40-alone.la \
@@ -62,9 +60,6 @@ libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
 			          object/reg40/libreg40-alone.la \
 			          object/sym40/libsym40-alone.la \
 			          hash/r5_hash/libr5_hash-alone.la \
-			          hash/tea_hash/libtea_hash-alone.la \
-			          hash/rupasov_hash/librupasov_hash-alone.la \
-			          hash/fnv1_hash/libfnv1_hash-alone.la \
 			          sdext/sdext_unix/libsdext_unix-alone.la \
 			          sdext/sdext_lw/libsdext_lw-alone.la \
 			          sdext/sdext_lt/libsdext_lt-alone.la \
