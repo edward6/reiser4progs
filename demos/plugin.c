@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, device, 0))) {
+	if (!(fs = reiser4_fs_open(device, device))) {
 		aal_exception_error("Can't open filesystem on %s.", 
 				    aal_device_name(device));
 		goto error_free_device;

@@ -1039,7 +1039,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, device, 0))) {
+	if (!(fs = reiser4_fs_open(device, device))) {
 		aal_exception_error("Can't open reiser4 on %s", host_dev);
 		goto error_free_libreiser4;
 	}

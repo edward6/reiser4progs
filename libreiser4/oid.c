@@ -14,7 +14,7 @@
 
 /* Opens object allocator using start and end pointers */
 reiser4_oid_t *reiser4_oid_open(
-	reiser4_format_t *format)	    /* format oid allocated will be opened on */
+	reiser4_fs_t *fs)	    /* fs oid will be opened on */
 {
 	rpid_t pid;
 	reiser4_oid_t *oid;
@@ -23,13 +23,16 @@ reiser4_oid_t *reiser4_oid_open(
 	void *oid_start;
 	uint32_t oid_len;
 
-	aal_assert("umka-519", format != NULL, return NULL);
+	aal_assert("umka-1698", fs != NULL, return NULL);
+	aal_assert("umka-519", fs->format != NULL, return NULL);
 
 	/* Allocating memory needed for instance */
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
-    
-	if ((pid = reiser4_format_oid_pid(format)) == INVAL_PID) {
+
+	oid->fs = fs;
+	
+	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid oid allocator plugin id has been detected.");
 		goto error_free_oid;
 	}
@@ -41,12 +44,13 @@ reiser4_oid_t *reiser4_oid_open(
 		goto error_free_oid;
 	}
     
-	plugin_call(goto error_free_oid, format->entity->plugin->format_ops, 
-		    oid_area, format->entity, &oid_start, &oid_len);
+	plugin_call(goto error_free_oid, fs->format->entity->plugin->format_ops, 
+		    oid, fs->format->entity, &oid_start, &oid_len);
     
 	/* Initializing entity */
 	if (!(oid->entity = plugin_call(goto error_free_oid, 
-					plugin->oid_ops, open, oid_start, oid_len))) 
+					plugin->oid_ops, open,
+					oid_start, oid_len))) 
 	{
 		aal_exception_error("Can't open oid allocator %s.", plugin->h.label);
 		goto error_free_oid;
@@ -75,7 +79,7 @@ void reiser4_oid_close(
 
 /* Creates oid allocator in specified area */
 reiser4_oid_t *reiser4_oid_create(
-	reiser4_format_t *format)	/* format oid allocator will be oned on */
+	reiser4_fs_t *fs)	/* fs oid allocator will be oned on */
 {
 	rpid_t pid;
 	reiser4_oid_t *oid;
@@ -84,13 +88,14 @@ reiser4_oid_t *reiser4_oid_create(
 	void *oid_start;
 	uint32_t oid_len;
 	
-	aal_assert("umka-729", format != NULL, return NULL);
+	aal_assert("umka-729", fs != NULL, return NULL);
+	aal_assert("umka-1699", fs->format != NULL, return NULL);
 
 	/* Initializing instance */
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
    
-	if ((pid = reiser4_format_oid_pid(format)) == INVAL_PID) {
+	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid oid allocator plugin id "
 				    "has been detected.");
 		goto error_free_oid;
@@ -103,8 +108,8 @@ reiser4_oid_t *reiser4_oid_create(
 		goto error_free_oid;
 	}
     
-	plugin_call(goto error_free_oid, format->entity->plugin->format_ops, 
-		    oid_area, format->entity, &oid_start, &oid_len);
+	plugin_call(goto error_free_oid, fs->format->entity->plugin->format_ops, 
+		    oid, fs->format->entity, &oid_start, &oid_len);
     
 	/* Initializing entity */
 	if (!(oid->entity = plugin_call(goto error_free_oid, 

@@ -19,19 +19,22 @@
    "pid" disk-format plugin and that plugin makes all dirty work.
 */
 reiser4_format_t *reiser4_format_open(
-	aal_device_t *device,	/* device disk-format instance will be opened on */
-	rpid_t pid)		/* disk-format plugin id to be used */
+	reiser4_fs_t *fs)	/* fs the format will be opened on */
 {
+	rpid_t pid;
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-104", device != NULL, return NULL);
+	aal_assert("umka-104", fs != NULL, return NULL);
+	aal_assert("umka-1700", fs->master != NULL, return NULL);
     
 	/* Allocating memory for instance of disk-format */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
     
-	format->device = device;
+	format->fs = fs;
+
+	pid = reiser4_master_format(fs->master);
     
 	/* Finding needed disk-format plugin by its plugin id */
 	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid))) {
@@ -42,11 +45,13 @@ reiser4_format_t *reiser4_format_open(
     
 	/* Initializing disk-format entity by calling plugin */
 	if (!(format->entity = plugin_call(goto error_free_format, 
-					   plugin->format_ops, open, device)))
+					   plugin->format_ops, open,
+					   fs->device)))
 	{
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-				    "Can't open disk-format %s on %s.", plugin->h.label, 
-				    aal_device_name(device));
+				    "Can't open disk-format %s on %s.",
+				    plugin->h.label, 
+				    aal_device_name(fs->device));
 		goto error_free_format;
 	}
 
@@ -61,7 +66,7 @@ reiser4_format_t *reiser4_format_open(
 
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
-	aal_device_t *device,	/* device disk-format will be created on */
+	reiser4_fs_t *fs,	/* fs the format will be created on */
 	count_t len,		/* filesystem length in blocks */
 	uint16_t tail,		/* tail policy to be used */
 	rpid_t pid)		/* disk-format plugin id to be used */
@@ -69,7 +74,7 @@ reiser4_format_t *reiser4_format_create(
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
 		
-	aal_assert("umka-105", device != NULL, return NULL);
+	aal_assert("umka-105", fs != NULL, return NULL);
 
 	/* Getting needed plugin from plugin factory */
 	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid)))  {
@@ -82,7 +87,7 @@ reiser4_format_t *reiser4_format_create(
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-	format->device = device;
+	format->fs = fs;
 	
 	/* 
 	   Initializing entity of disk-format by means of calling "create" method 
@@ -91,10 +96,10 @@ reiser4_format_t *reiser4_format_create(
 	*/
 	if (!(format->entity = plugin_call(goto error_free_format,
 					   plugin->format_ops, create,
-					   device, len, tail))) 
+					   fs->device, len, tail))) 
 	{
 		aal_exception_error("Can't create disk-format %s on %s.", 
-				    plugin->h.label, aal_device_name(device));
+				    plugin->h.label, aal_device_name(fs->device));
     
 		goto error_free_format;
 	}
@@ -140,17 +145,14 @@ errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 reiser4_format_t *reiser4_format_reopen(
 	reiser4_format_t *format)	/* format to be reopened */
 {
-	rpid_t pid;
-	aal_device_t *device;
-	
+	reiser4_fs_t *fs;
+
 	aal_assert("umka-428", format != NULL, return NULL);
 
-	device = format->device;
-	pid = format->entity->plugin->h.id;
-	
+	fs = format->fs;
 	reiser4_format_close(format);
 	
-	return reiser4_format_open(device, pid);
+	return reiser4_format_open(fs);
 }
 
 /* Closes passed disk-format */
@@ -173,7 +175,7 @@ int reiser4_format_confirm(
 	aal_assert("umka-832", format != NULL, return 0);
 
 	return plugin_call(return 0, format->entity->plugin->format_ops, 
-			   confirm, format->device);
+			   confirm, format->fs->device);
 }
 
 /* Returns string described used disk-format */

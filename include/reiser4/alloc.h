@@ -15,12 +15,12 @@
 #include <aal/aal.h>
 #include <reiser4/filesystem.h>
 
-extern reiser4_alloc_t *reiser4_alloc_open(reiser4_format_t *format, 
+extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 
 					   count_t len);
 
 #ifndef ENABLE_COMPACT
 
-extern reiser4_alloc_t *reiser4_alloc_create(reiser4_format_t *format, 
+extern reiser4_alloc_t *reiser4_alloc_create(reiser4_fs_t *fs, 
 					     count_t len);
 
 extern errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, 

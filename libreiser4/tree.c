@@ -74,7 +74,7 @@ reiser4_node_t *reiser4_tree_allocate(
 		return NULL;
 	}
 
-	device = tree->fs->format->device;
+	device = tree->fs->device;
 	pid = tree->root->entity->plugin->h.id;
     
 	/* Creating new node */
@@ -120,7 +120,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree, blk_t blk) {
 
 	aal_assert("umka-1289", tree != NULL, return NULL);
     
-	device = tree->fs->format->device;
+	device = tree->fs->device;
     
 	if (!(node = reiser4_node_open(device, blk))) 
 		return NULL;
@@ -283,7 +283,6 @@ reiser4_tree_t *reiser4_tree_create(
 {
 	blk_t blk;
 	uint8_t level;
-	aal_device_t *device;
 	reiser4_tree_t *tree;
 
 	aal_assert("umka-741", fs != NULL, return NULL);
@@ -308,10 +307,9 @@ reiser4_tree_t *reiser4_tree_create(
 	}
 
 	level = reiser4_format_get_height(fs->format);
-	device = fs->format->device;
     
 	/* Creating root node */
-	if (!(tree->root = reiser4_node_create(device, blk,
+	if (!(tree->root = reiser4_node_create(fs->device, blk,
 					       profile->node, level)))
 	{
 		aal_exception_error("Can't create root node.");

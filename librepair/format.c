@@ -73,8 +73,10 @@ static errno_t repair_format_check(reiser4_format_t **format,
 	if (!(plugin = __choose_format(profile, host_device)))
 	    return -1;
 
+	/* FIXME-UMKA->VITALY: Here we need filesystem instance */
+	
 	/* Create the format with fake tail plugin. */
-	if (!(*format = reiser4_format_create(host_device, 0, INVAL_PID, 
+	if (!(*format = reiser4_format_create(NULL, 0, INVAL_PID, 
 	    plugin->h.id))) 
 	{
 	    aal_exception_fatal("Cannot create a filesystem of the format "
@@ -107,8 +109,11 @@ reiser4_format_t *repair_format_open(reiser4_master_t *master,
     
     host_device = master->block->device;
     
+    /* FIXME-UMKA->VITALY: Here we need filesystem instance */
+    
     /* Try to open the disk format. */
-    format = reiser4_format_open(host_device, reiser4_master_format(master));
+//    format = reiser4_format_open(hont_device, reiser4_master_format(master));
+    format = reiser4_format_open(NULL/* Here should be a filesystem instance */);
 
     /* Check the opened disk format or rebuild it if needed. */
     if (repair_format_check(&format, host_device, profile))

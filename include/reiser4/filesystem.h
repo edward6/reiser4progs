@@ -52,7 +52,6 @@ struct reiser4_master {
 };
 
 typedef struct reiser4_master reiser4_master_t;
-
 typedef struct reiser4_fs reiser4_fs_t;
 
 /* 
@@ -168,7 +167,7 @@ struct reiser4_node {
 	void *data;
 };
 
-/* Reiserfs object structure (file, dir) */
+/* Reiser4 object structure (file, dir) */
 struct reiser4_file {
 
 	/* Object entity. It is initialized by object plugin */
@@ -204,10 +203,8 @@ typedef enum reiser4_belong reiser4_belong_t;
 
 /* Reiser4 disk-format in-memory structure */
 struct reiser4_format {
-
-	/* Device filesystem opended on */
-	aal_device_t *device;
-    
+	reiser4_fs_t *fs;
+	
 	/* 
 	   Disk-format entity. It is initialized by disk-format plugin durring
 	   initialization.
@@ -219,6 +216,7 @@ typedef struct reiser4_format reiser4_format_t;
 
 /* Journal structure */
 struct reiser4_journal {
+	reiser4_fs_t *fs;
     
 	/* 
 	   Device journal opened on. In the case of standard journal this field
@@ -236,14 +234,17 @@ typedef struct reiser4_journal reiser4_journal_t;
 
 /* Block allocator structure */
 struct reiser4_alloc {
-	object_entity_t *entity;
+	reiser4_fs_t *fs;
+	
 	aux_bitmap_t *forbid;
+	object_entity_t *entity;
 };
 
 typedef struct reiser4_alloc reiser4_alloc_t;
 
 /* Oid allocator structure */
 struct reiser4_oid {
+	reiser4_fs_t *fs;
 	object_entity_t *entity;
 };
 
@@ -327,6 +328,9 @@ typedef errno_t (*traverse_setup_func_t) (reiser4_coord_t *, void *);
 /* Filesystem compound structure */
 struct reiser4_fs {
     
+	/* Device filesystem is opended/created on */
+	aal_device_t *device;
+    
 	/* Pointer to the master super block wrapp object */
 	reiser4_master_t *master;
 
@@ -354,20 +358,20 @@ struct reiser4_fs {
 
 /* Public functions */
 extern reiser4_fs_t *reiser4_fs_open(aal_device_t *host_device, 
-				     aal_device_t *journal_device, int replay);
+				     aal_device_t *journal_device);
 
 extern void reiser4_fs_close(reiser4_fs_t *fs);
 
 #ifndef ENABLE_COMPACT
 
-extern errno_t reiser4_fs_mark(reiser4_fs_t *fs, reiser4_alloc_t *alloc);
+extern errno_t reiser4_fs_mark(reiser4_fs_t *fs);
 
 extern reiser4_fs_t *reiser4_fs_create(reiser4_profile_t *profile,
 				       aal_device_t *host_device,
 				       size_t blocksize, const char *uuid, 
 				       const char *label, count_t len,
 				       aal_device_t *journal_device, 
-				       void *journal_params);
+				       void *journal_hint);
 
 extern errno_t reiser4_fs_clobber(aal_device_t *device);
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);

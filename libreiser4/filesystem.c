@@ -35,12 +35,13 @@ errno_t reiser4_fs_layout(
 */
 reiser4_fs_t *reiser4_fs_open(
 	aal_device_t *host_device,	    /* device filesystem will lie on */
-	aal_device_t *journal_device,       /* device journal will lie on */
-	int replay)			    /* flag that specify whether replaying is needed */
+	aal_device_t *journal_device)       /* device journal will lie on */
 {
-	count_t len;
-	reiser4_fs_t *fs;
 	rpid_t pid;
+	count_t len;
+	uint32_t blocksize;
+	
+	reiser4_fs_t *fs;
 
 	aal_assert("umka-148", host_device != NULL, return NULL);
 
@@ -48,25 +49,27 @@ reiser4_fs_t *reiser4_fs_open(
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 
+	fs->device = host_device;
+	
 	/* Reads master super block. See above for details */
 	if (!(fs->master = reiser4_master_open(host_device)))
 		goto error_free_fs;
     
 	if (reiser4_master_valid(fs->master))
 		goto error_free_master;
-    
+
+	blocksize = reiser4_master_blocksize(fs->master);
+		
 	/* Setting actual used block size from master super block */
-	if (aal_device_set_bs(host_device, reiser4_master_blocksize(fs->master))) {
-		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, "Invalid block "
-				    "size detected %u. It must be power of two.", 
-				    reiser4_master_blocksize(fs->master));
+	if (aal_device_set_bs(host_device, blocksize)) {
+		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
+				    "Invalid block size detected %u.",
+				    blocksize);
 		goto error_free_master;
 	}
     
 	/* Initializes used disk format. See format.c for details */
-	pid = reiser4_master_format(fs->master);
-
-	if (!(fs->format = reiser4_format_open(host_device, pid)))
+	if (!(fs->format = reiser4_format_open(fs)))
 		goto error_free_master;
 
 	if (reiser4_format_valid(fs->format))
@@ -76,7 +79,7 @@ reiser4_fs_t *reiser4_fs_open(
 		goto error_free_format;
     
 	/* Initializes block allocator. See alloc.c for details */
-	if (!(fs->alloc = reiser4_alloc_open(fs->format, len)))
+	if (!(fs->alloc = reiser4_alloc_open(fs, len)))
 		goto error_free_format;
 
 	if (reiser4_alloc_valid(fs->alloc))
@@ -89,46 +92,16 @@ reiser4_fs_t *reiser4_fs_open(
 		aal_device_set_bs(journal_device, reiser4_fs_blocksize(fs));
 
 		/* Initializing the journal. See  journal.c for details */
-		if (!(fs->journal = reiser4_journal_open(fs->format, journal_device)))
+		if (!(fs->journal = reiser4_journal_open(fs, journal_device)))
 			goto error_free_alloc;
     
 		if (reiser4_journal_valid(fs->journal))
 			goto error_free_journal;
 
-#ifndef ENABLE_COMPACT	
-		/* 
-		   Reopening super block after journal replaying. It is needed
-		   because journal may contain super block in unflushed
-		   transactions.
-		*/
-		if (replay) {
-			if (aal_device_readonly(fs->journal->device)) {
-				aal_exception_warn("Transactions can't be replayed on "
-						   "read only opened filesystem.");
-			}
-	    
-			if (reiser4_journal_replay(fs->journal)) {
-				aal_exception_error("Can't replay journal.");
-				goto error_free_journal;
-			}
-	    
-			/* 
-			   Reopening format in order to keep it up to date after
-			   journal replaying. Journal might contain super block
-			   ior master super block.
-			*/
-			if (!(fs->master = reiser4_master_reopen(fs->master)))
-				goto error_free_journal;
-	    
-			if (!(fs->format = reiser4_format_reopen(fs->format)))
-				goto error_free_journal;
-		}
-#endif
-
 	}
     
 	/* Initializes oid allocator */
-	if (!(fs->oid = reiser4_oid_open(fs->format)))
+	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_journal;
   
 	if (reiser4_oid_valid(fs->oid))
@@ -163,7 +136,7 @@ aal_device_t *reiser4_fs_host_device(reiser4_fs_t *fs) {
 	aal_assert("umka-970", fs != NULL, return NULL);
 	aal_assert("umka-971", fs->format != NULL, return NULL);
 
-	return fs->format->device;
+	return fs->device;
 }
 
 aal_device_t *reiser4_fs_journal_device(reiser4_fs_t *fs) {
@@ -233,11 +206,11 @@ static errno_t callback_action_mark(
 }
 
 /* Marks format area as used */
-errno_t reiser4_fs_mark(reiser4_fs_t *fs, reiser4_alloc_t *alloc) {
+errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 	aal_assert("umka-1139", fs != NULL, return -1);
-	aal_assert("umka-1684", alloc != NULL, return -1);
+	aal_assert("umka-1684", fs->alloc != NULL, return -1);
 	
-	return reiser4_fs_layout(fs, callback_action_mark, alloc);
+	return reiser4_fs_layout(fs, callback_action_mark, fs->alloc);
 }
 
 #define REISER4_MIN_SIZE 122
@@ -251,7 +224,7 @@ reiser4_fs_t *reiser4_fs_create(
 	const char *label,		/* label to be used */
 	count_t len,		        /* filesystem length in blocks */
 	aal_device_t *journal_device,   /* device journal will be lie on */
-	void *journal_params)	        /* journal params (most probably will be used for r3) */
+	void *journal_hint)	        /* journal params (most probably will be used for r3) */
 {
 	reiser4_fs_t *fs;
 	blk_t blk, master_offset;
@@ -290,30 +263,32 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 	
+	fs->device = host_device;
+	
 	/* Creates master super block */
 	if (!(fs->master = reiser4_master_create(host_device, profile->format, 
 						 blocksize, uuid, label)))
 		goto error_free_fs;
 
 	/* Creates disk format */
-	if (!(fs->format = reiser4_format_create(host_device, len, 
-						 profile->tail, profile->format)))
+	if (!(fs->format = reiser4_format_create(fs, len, profile->tail,
+						 profile->format)))
 		goto error_free_master;
 
 	/* Creates block allocator */
-	if (!(fs->alloc = reiser4_alloc_create(fs->format, len)))
+	if (!(fs->alloc = reiser4_alloc_create(fs, len)))
 		goto error_free_format;
 
 	/* Creates journal on journal device */
-	if (!(fs->journal = reiser4_journal_create(fs->format, journal_device,
-						   journal_params)))
+	if (!(fs->journal = reiser4_journal_create(fs, journal_device,
+						   journal_hint)))
 		goto error_free_alloc;
    
-	if (reiser4_fs_mark(fs, fs->alloc))
+	if (reiser4_fs_mark(fs))
 		goto error_free_journal;
     
 	/* Initializes oid allocator */
-	if (!(fs->oid = reiser4_oid_create(fs->format)))
+	if (!(fs->oid = reiser4_oid_create(fs)))
 		goto error_free_journal;
 
 	/* Creates tree */

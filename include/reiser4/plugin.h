@@ -892,7 +892,7 @@ struct reiser4_format_ops {
 	rpid_t (*oid_pid) (object_entity_t *);
 
 	/* Returns area where oid data lies */
-	void (*oid_area)(object_entity_t *, void **, uint32_t *);
+	void (*oid) (object_entity_t *, void **, uint32_t *);
 
 	errno_t (*layout) (object_entity_t *,
 			   action_func_t, void *);

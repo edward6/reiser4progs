@@ -19,7 +19,7 @@
 reiser4_master_t *reiser4_master_create(
 	aal_device_t *device,	    /* device master will be created on */
 	rpid_t format_pid,	    /* disk format plugin id to be used */
-	unsigned int blocksize,	    /* blocksize to be used */
+	uint32_t blocksize,	    /* blocksize to be used */
 	const char *uuid,	    /* uuid to be used */
 	const char *label)	    /* filesystem label to be used */
 {

@@ -18,7 +18,7 @@
 
 extern reiser4_master_t *reiser4_master_create(aal_device_t *device, 
 					       rpid_t format_pid,
-					       unsigned int blocksize,
+					       uint32_t blocksize,
 					       const char *uuid, 
 					       const char *label);
 

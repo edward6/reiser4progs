@@ -17,21 +17,25 @@
   all further operations.
 */
 reiser4_alloc_t *reiser4_alloc_open(
-	reiser4_format_t *format,	/* disk-format allocator is going to be opened on */
-	count_t len)			/* filesystem size in blocks */
+	reiser4_fs_t *fs,	/* fs allocator is going to be opened on */
+	count_t len)		/* filesystem size in blocks */
 {
 	rpid_t pid;
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-135", format != NULL, return NULL);
+	aal_assert("umka-135", fs != NULL, return NULL);
+	aal_assert("umka-135", fs->format != NULL, return NULL);
 
 	/* Initializing instance of block allocator */
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
-    
-	if ((pid = reiser4_format_alloc_pid(format)) == INVAL_PID) {
-		aal_exception_error("Invalid block allocator plugin id has been found.");
+
+	alloc->fs = fs;
+	
+	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
+		aal_exception_error("Invalid block allocator plugin id has "
+				    "been found.");
 		goto error_free_alloc;
 	}
     
@@ -45,7 +49,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	/* Calling "open" method from block allocator plugin */
 	if (!(alloc->entity = plugin_call(goto error_free_alloc, 
 					  plugin->alloc_ops, open,
-					  format->device, len)))
+					  fs->device, len)))
 	{
 		aal_exception_error("Can't initialize block allocator.");
 		goto error_free_alloc;
@@ -66,20 +70,21 @@ reiser4_alloc_t *reiser4_alloc_open(
    instance to caller.
 */
 reiser4_alloc_t *reiser4_alloc_create(
-	reiser4_format_t *format,   /* format block allocator is going to be created on */
+	reiser4_fs_t *fs,           /* fs block allocator is going to be created on */
 	count_t len)		    /* filesystem size in blocks */
 {
 	rpid_t pid;
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-726", format != NULL, return NULL);
+	aal_assert("umka-726", fs != NULL, return NULL);
+	aal_assert("umka-1694", fs->format != NULL, return NULL);
 
 	/* Allocating memory for the allocator instance */
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
-	if ((pid = reiser4_format_alloc_pid(format)) == INVAL_PID) {
+	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid block allocator plugin id "
 				    "has been found.");
 		goto error_free_alloc;
@@ -95,7 +100,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 	/* Query the block allocator plugin for creating allocator entity */
 	if (!(alloc->entity = plugin_call(goto error_free_alloc, 
 					  plugin->alloc_ops, create,
-					  format->device, len)))
+					  fs->device, len)))
 	{
 		aal_exception_error("Can't create block allocator.");
 		goto error_free_alloc;

@@ -172,7 +172,7 @@ static errno_t tree_unlock(
 
 static uint32_t tree_blockspace(const void *tree) {
 	aal_assert("umka-1220", tree != NULL, return 0);
-	return ((reiser4_tree_t *)tree)->fs->format->device->blocksize;
+	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
 }
 	
 static uint32_t tree_nodespace(const void *tree) {

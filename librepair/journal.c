@@ -29,13 +29,15 @@ reiser4_journal_t *repair_journal_open(reiser4_format_t *format,
     aal_assert("vpf-446", format != NULL, return NULL);
     aal_assert("vpf-476", journal_device != NULL, return NULL);
 
+    /* FIXME-UMKA->VITALY */
+    
     /* Try to open the journal. */
-    if ((journal = reiser4_journal_open(format, journal_device)) == NULL) {
+    if ((journal = reiser4_journal_open(NULL/* Here should be fs instance*/, journal_device)) == NULL) {
 	/* failed to open a journal. Build a new one. */
 	aal_exception_fatal("Failed to open a journal by its id (0x%x). "
 	    "Try to build a new one.", reiser4_format_journal_pid(format));
 	
-	if (!(journal = reiser4_journal_create(format, journal_device, NULL))) {
+	if (!(journal = reiser4_journal_create(NULL/* Here should be fs instance*/, journal_device, NULL))) {
 	    aal_exception_fatal("Cannot create a journal by its id (0x%x).", 
 		reiser4_format_journal_pid(format));
 	    return NULL;

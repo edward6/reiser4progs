@@ -17,16 +17,14 @@
 #include <reiser4/filesystem.h>
 
 extern reiser4_format_t *reiser4_format_reopen(reiser4_format_t *format);
-
-extern reiser4_format_t *reiser4_format_open(aal_device_t *device,
-					     rpid_t pid);
+extern reiser4_format_t *reiser4_format_open(reiser4_fs_t *fs);
 
 #ifndef ENABLE_COMPACT
 
 extern errno_t reiser4_format_sync(reiser4_format_t *format);
 
-extern reiser4_format_t *reiser4_format_create(aal_device_t *device,
-					       count_t len, uint16_t tail, rpid_t pid);
+extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs, count_t len,
+					       uint16_t tail, rpid_t pid);
 
 extern void reiser4_format_set_root(reiser4_format_t *format, 
 				    blk_t root);

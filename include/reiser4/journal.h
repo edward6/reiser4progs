@@ -16,17 +16,17 @@
 #include <reiser4/filesystem.h>
 #include <reiser4/plugin.h>
 
-extern reiser4_journal_t *reiser4_journal_open(reiser4_format_t *format,
+extern reiser4_journal_t *reiser4_journal_open(reiser4_fs_t *fs,
 					       aal_device_t *device);
 
 #ifndef ENABLE_COMPACT
 
-extern reiser4_journal_t *reiser4_journal_create(reiser4_format_t *format,
+extern reiser4_journal_t *reiser4_journal_create(reiser4_fs_t *fs,
 						 aal_device_t *device,
 						 void *hint);
 
 extern errno_t reiser4_journal_sync(reiser4_journal_t *journal);
-extern int reiser4_journal_replay(reiser4_journal_t *journal);
+extern errno_t reiser4_journal_replay(reiser4_journal_t *journal);
 
 extern errno_t reiser4_journal_print(reiser4_journal_t *journal,
 				     aal_stream_t *stream);

@@ -16,23 +16,24 @@
    opened journal.
 */
 reiser4_journal_t *reiser4_journal_open(
-	reiser4_format_t *format,	/* format journal will be opened on */
+	reiser4_fs_t *fs,	        /* fs journal will be opened on */
 	aal_device_t *device)	        /* device journal will be opened on */
 {
 	rpid_t pid;
-	reiser4_plugin_t *plugin;
-	reiser4_journal_t *journal;
-	
 	blk_t start;
 	count_t len;
 	
-	aal_assert("umka-095", format != NULL, return NULL);
+	reiser4_plugin_t *plugin;
+	reiser4_journal_t *journal;
+	
+	aal_assert("umka-095", fs != NULL, return NULL);
+	aal_assert("umka-1695", fs->format != NULL, return NULL);
 	
 	/* Allocating memory for jouranl instance */
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
-	if ((pid = reiser4_format_journal_pid(format)) == INVAL_PID) {
+	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid journal plugin id has been found.");
 		goto error_free_journal;
 	}
@@ -43,10 +44,11 @@ reiser4_journal_t *reiser4_journal_open(
 		goto error_free_journal;
 	}
     
+	journal->fs = fs;
 	journal->device = device;
 
-	start = reiser4_format_start(format);
-	len = reiser4_format_get_len(format);
+	start = reiser4_format_start(fs->format);
+	len = reiser4_format_get_len(fs->format);
 	
 	/* 
 	   Initializing journal entity by means of calling "open" method from
@@ -54,10 +56,12 @@ reiser4_journal_t *reiser4_journal_open(
 	*/
 	if (!(journal->entity = plugin_call(goto error_free_journal, 
 					    plugin->journal_ops, open,
-					    format->entity, device, start, len))) 
+					    fs->format->entity, device,
+					    start, len))) 
 	{
 		aal_exception_error("Can't open journal %s on %s.",
-				    plugin->h.label, aal_device_name(device));
+				    plugin->h.label,
+				    aal_device_name(fs->device));
 		goto error_free_journal;
 	}
 	
@@ -72,24 +76,25 @@ reiser4_journal_t *reiser4_journal_open(
 
 /* Creates journal on specified jopurnal. Returns initialized instance */
 reiser4_journal_t *reiser4_journal_create(
-	reiser4_format_t *format,	/* format journal will be opened on */
+	reiser4_fs_t *fs,	        /* fs journal will be opened on */
 	aal_device_t *device,	        /* device journal will be created on */
 	void *hint)		        /* journal params (opaque pointer) */
 {
 	rpid_t pid;
-	reiser4_plugin_t *plugin;
-	reiser4_journal_t *journal;
-
 	blk_t start;
 	count_t len;
 	
-	aal_assert("umka-095", format != NULL, return NULL);
+	reiser4_plugin_t *plugin;
+	reiser4_journal_t *journal;
+
+	aal_assert("umka-1697", fs != NULL, return NULL);
+	aal_assert("umka-1696", fs->format != NULL, return NULL);
 	
 	/* Allocating memory and finding plugin */
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
-	if ((pid = reiser4_format_journal_pid(format)) == INVAL_PID) {
+	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid journal plugin id has been found.");
 		goto error_free_journal;
 	}
@@ -99,15 +104,16 @@ reiser4_journal_t *reiser4_journal_create(
 		goto error_free_journal;
 	}
     
+	journal->fs = fs;
 	journal->device = device;
 	
-	start = reiser4_format_start(format);
-	len = reiser4_format_get_len(format);
+	start = reiser4_format_start(fs->format);
+	len = reiser4_format_get_len(fs->format);
 	
 	/* Initializing journal entity */
 	if (!(journal->entity = plugin_call(goto error_free_journal, 
 					    plugin->journal_ops, create,
-					    format->entity, device, start,
+					    fs->format->entity, device, start,
 					    len, hint))) 
 	{
 		aal_exception_error("Can't create journal %s on %s.",
@@ -135,11 +141,17 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 }
 
 /* Replays specified journal. Returns error code */
-int reiser4_journal_replay(
+errno_t reiser4_journal_replay(
 	reiser4_journal_t *journal)	/* journal to be replayed */
 {
 	aal_assert("umka-727", journal != NULL, return -1);
     
+	if (aal_device_readonly(journal->device)) {
+		aal_exception_warn("Transactions can't be replayed on "
+				   "read only opened filesystem.");
+		return -1;
+	}
+	
 	/* Calling plugin for actual replaying */
 	return plugin_call(return -1, journal->entity->plugin->journal_ops, 
 			   replay, journal->entity);

@@ -52,9 +52,10 @@ reiser4_node_t *repair_node_open(reiser4_format_t *format, blk_t blk) {
     reiser4_node_t *node;
 
     aal_assert("vpf-433", format != NULL, return NULL);
-    aal_assert("vpf-563", format->device != NULL, return NULL);
+//    aal_assert("vpf-563", format->device != NULL, return NULL);
 
-    if ((node = reiser4_node_open(format->device, blk)) == NULL)
+    /* FIXME-UMKA->VITALY */
+    if ((node = reiser4_node_open(NULL/* Device should be here */, blk)) == NULL)
 	return NULL;
 
     if (reiser4_format_get_make_stamp(format) != reiser4_node_get_make_stamp(node))

@@ -319,8 +319,8 @@ static int format40_confirm(aal_device_t *device) {
 	return 1;
 }
 
-static void format40_oid_area(object_entity_t *entity, 
-			      void **oid_start, uint32_t *oid_len) 
+static void format40_oid(object_entity_t *entity, 
+			 void **oid_start, uint32_t *oid_len) 
 {
 	format40_super_t *super;
     
@@ -467,7 +467,7 @@ static reiser4_plugin_t format40_plugin = {
 		.create		= NULL,
 		.print		= NULL,
 #endif
-		.oid_area	= format40_oid_area,
+		.oid	        = format40_oid,
 	
 		.close		= format40_close,
 		.confirm	= format40_confirm,
