@@ -54,8 +54,12 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	/* sd_size lt counted size, check if it is correct for extent. */
 	if (reg->body_plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
-		if (*sd_size + STAT_PLACE(obj)->node->block->size > counted_size)
+		if (*sd_size < counted_size &&
+		    *sd_size + STAT_PLACE(obj)->node->block->size > 
+		    counted_size)
+		{
 			return 0;
+		}
 	}
 	
 	/* SD size is not correct. */
@@ -494,8 +498,8 @@ next:
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL)) {
-		size = plug_call(reg->position.plug->o.key_ops, 
-				 get_offset, &reg->position);
+		hint.size = plug_call(reg->position.plug->o.key_ops, 
+				      get_offset, &reg->position);
 		
 		hint.mode = S_IFREG;
 		hint.must_exts = REG40_EXTS_MUST;
