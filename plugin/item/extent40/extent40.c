@@ -693,4 +693,4 @@ static reiser4_plugin_t *extent40_start(reiser4_core_t *c) {
 	return &extent40_plugin;
 }
 
-plugin_register(extent40_start, NULL);
+plugin_register(extent40, extent40_start, NULL);

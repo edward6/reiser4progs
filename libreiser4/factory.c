@@ -20,6 +20,7 @@
 
 /* This list contain all known libreiser4 plugins */
 aal_list_t *plugins;
+static int last = 0;
 
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 
@@ -535,11 +536,12 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 }
 #endif
 
-#if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
+#if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
 /* This function registers builtin plugin entry points */
 void register_builtin(plugin_init_t init, plugin_fini_t fini) {
-	static int last = 0;
-	
+	if (last >= MAX_BUILTINS)
+		last = 0;
+		
 	__builtins[last].init = init;
 	__builtins[last].fini = fini;
 

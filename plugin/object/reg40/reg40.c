@@ -554,4 +554,4 @@ static reiser4_plugin_t *reg40_start(reiser4_core_t *c) {
 	return &reg40_plugin;
 }
 
-plugin_register(reg40_start, NULL);
+plugin_register(reg40, reg40_start, NULL);

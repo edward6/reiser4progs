@@ -1905,5 +1905,5 @@ static reiser4_plugin_t *node40_start(reiser4_core_t *c) {
 	return &node40_plugin;
 }
 
-plugin_register(node40_start, NULL);
+plugin_register(node40, node40_start, NULL);
 

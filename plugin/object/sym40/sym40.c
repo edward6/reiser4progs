@@ -499,6 +499,6 @@ static reiser4_plugin_t *sym40_start(reiser4_core_t *c) {
 	return &sym40_plugin;
 }
 
-plugin_register(sym40_start, NULL);
+plugin_register(sym40, sym40_start, NULL);
 
 #endif

@@ -508,4 +508,4 @@ static reiser4_plugin_t *tail40_start(reiser4_core_t *c) {
 	return &tail40_plugin;
 }
 
-plugin_register(tail40_start, NULL);
+plugin_register(tail40, tail40_start, NULL);

@@ -94,6 +94,6 @@ static reiser4_plugin_t *sdext_symlink_start(reiser4_core_t *c) {
 	return &sdext_symlink_plugin;
 }
 
-plugin_register(sdext_symlink_start, NULL);
+plugin_register(sdext_symlink, sdext_symlink_start, NULL);
 
 #endif

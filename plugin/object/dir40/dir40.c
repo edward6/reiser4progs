@@ -992,5 +992,5 @@ static reiser4_plugin_t *dir40_start(reiser4_core_t *c) {
 	return &dir40_plugin;
 }
 
-plugin_register(dir40_start, NULL);
+plugin_register(dir40, dir40_start, NULL);
 

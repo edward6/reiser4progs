@@ -733,6 +733,6 @@ static reiser4_plugin_t *alloc40_start(reiser4_core_t *c) {
 	return &alloc40_plugin;
 }
 
-plugin_register(alloc40_start, NULL);
+plugin_register(alloc40, alloc40_start, NULL);
 
 #endif

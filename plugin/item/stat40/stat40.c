@@ -519,5 +519,5 @@ static reiser4_plugin_t *stat40_start(reiser4_core_t *c) {
 	return &stat40_plugin;
 }
 
-plugin_register(stat40_start, NULL);
+plugin_register(stat40, stat40_start, NULL);
 

@@ -156,5 +156,5 @@ static reiser4_plugin_t *sdext_lw_start(reiser4_core_t *c) {
 	return &sdext_lw_plugin;
 }
 
-plugin_register(sdext_lw_start, NULL);
+plugin_register(sdext_lw, sdext_lw_start, NULL);
 

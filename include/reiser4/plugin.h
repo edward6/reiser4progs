@@ -1393,18 +1393,20 @@ struct reiser4_core {
         ops.method(args)
 #endif
 
+#if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
+typedef void (*register_builtin_t) (plugin_init_t,
+				    plugin_fini_t);
+#endif
+
+
 /*
   Macro for registering a plugin in plugin factory. It accepts two pointers to
   functions. The first one is pointer to plugin init function and second - to
   plugin finalization function. The idea the same as in the linux kernel module
   support.
 */
-#if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
-
-typedef void (*register_builtin_t) (plugin_init_t,
-				    plugin_fini_t);
-
-#define plugin_register(i, f)			               \
+#if defined(ENABLE_MONOLITHIC)
+#define plugin_register(n, i, f)			       \
     extern register_builtin_t __register_builtin;              \
                                                                \
     static void __plugin_init(void)                            \
@@ -1413,9 +1415,16 @@ typedef void (*register_builtin_t) (plugin_init_t,
     static void __plugin_init(void) {                          \
 	    __register_builtin(i, f);                          \
     }
+
+#elif defined (ENABLE_STAND_ALONE)
+
+#define plugin_register(n, i, f)                               \
+    plugin_init_t __##n##_plugin_init = i;                     \
+    plugin_fini_t __##n##_plugin_fini = f
+
 #else
 
-#define plugin_register(i, f)			               \
+#define plugin_register(n, i, f)			       \
     plugin_init_t __plugin_init = i;                           \
     plugin_fini_t __plugin_fini = f
 

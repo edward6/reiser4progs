@@ -757,6 +757,6 @@ static reiser4_plugin_t *journal40_start(reiser4_core_t *c) {
 	return &journal40_plugin;
 }
 
-plugin_register(journal40_start, NULL);
+plugin_register(journal40, journal40_start, NULL);
 
 #endif

@@ -236,4 +236,4 @@ static reiser4_plugin_t *nodeptr40_start(reiser4_core_t *c) {
 	return &nodeptr40_plugin;
 }
 
-plugin_register(nodeptr40_start, NULL);
+plugin_register(nodeptr40, nodeptr40_start, NULL);

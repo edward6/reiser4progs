@@ -151,5 +151,5 @@ static reiser4_plugin_t *sdext_unix_start(reiser4_core_t *c) {
 	return &sdext_unix_plugin;
 }
 
-plugin_register(sdext_unix_start, NULL);
+plugin_register(sdext_unix, sdext_unix_start, NULL);
 

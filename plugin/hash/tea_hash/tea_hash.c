@@ -164,6 +164,6 @@ static reiser4_plugin_t *tea_hash_start(reiser4_core_t *c) {
 	return &tea_hash_plugin;
 }
 
-plugin_register(tea_hash_start, NULL);
+plugin_register(tea_hash, tea_hash_start, NULL);
 
 #endif

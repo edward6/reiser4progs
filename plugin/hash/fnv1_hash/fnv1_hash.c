@@ -43,6 +43,6 @@ static reiser4_plugin_t *fnv1_hash_start(reiser4_core_t *c) {
 	return &fnv1_hash_plugin;
 }
 
-plugin_register(fnv1_hash_start, NULL);
+plugin_register(fnv1_hash, fnv1_hash_start, NULL);
 
 #endif

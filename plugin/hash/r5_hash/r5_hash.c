@@ -44,6 +44,6 @@ static reiser4_plugin_t *r5_hash_start(reiser4_core_t *c) {
 	return &r5_hash_plugin;
 }
 
-plugin_register(r5_hash_start, NULL);
+plugin_register(r5_hash, r5_hash_start, NULL);
 
 #endif

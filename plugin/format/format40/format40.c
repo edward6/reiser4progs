@@ -561,5 +561,5 @@ static reiser4_plugin_t *format40_start(reiser4_core_t *c) {
 	return &format40_plugin;
 }
 
-plugin_register(format40_start, NULL);
+plugin_register(format40, format40_start, NULL);
 

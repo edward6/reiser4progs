@@ -245,5 +245,5 @@ static reiser4_plugin_t *oid40_start(reiser4_core_t *c) {
 	return &oid40_plugin;
 }
 
-plugin_register(oid40_start, NULL);
+plugin_register(oid40, oid40_start, NULL);
 

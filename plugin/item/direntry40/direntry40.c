@@ -1183,5 +1183,5 @@ static reiser4_plugin_t *direntry40_start(reiser4_core_t *c) {
 	return &direntry40_plugin;
 }
 
-plugin_register(direntry40_start, NULL);
+plugin_register(direntry40, direntry40_start, NULL);
 

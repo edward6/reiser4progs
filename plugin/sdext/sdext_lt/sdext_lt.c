@@ -35,7 +35,6 @@ static uint16_t sdext_lt_length(body_t *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t sdext_lt_init(body_t *body, 
 			     void *hint) 
 {
@@ -79,7 +78,6 @@ static errno_t sdext_lt_print(body_t *body,
 }
 
 extern errno_t sdext_lt_check(sdext_entity_t *sdext, uint8_t mode);
-
 #endif
 
 static reiser4_plugin_t sdext_lt_plugin = {
@@ -112,5 +110,5 @@ static reiser4_plugin_t *sdext_lt_start(reiser4_core_t *c) {
 	return &sdext_lt_plugin;
 }
 
-plugin_register(sdext_lt_start, NULL);
+plugin_register(sdext_lt, sdext_lt_start, NULL);
 
