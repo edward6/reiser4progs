@@ -52,7 +52,7 @@ void gauge_tree(aal_gauge_t *gauge) {
 	
 	fprintf(stderr, "Item (unit) of total items: ");
 	for(elem = hint->u.tree_hint.tree; elem; 
-	    elem = aal_list_next(elem)) 
+	    elem = elem->next) 
 	{
 	    tree = (repair_progress_tree_t *)elem->data;
 	    fprintf(stderr, "%s%u(%u) of %u", 

@@ -349,6 +349,11 @@ struct reiser4_tree {
 		/* Traps used opaque data  */
 		void *data;
 	} traps;
+
+#ifndef ENABLE_STAND_ALONE
+	/* Extents data is stored here */
+	aal_hash_table_t *data;
+#endif
 };
 
 #ifndef ENABLE_STAND_ALONE

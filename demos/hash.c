@@ -40,6 +40,9 @@ int main(int argc, char *argv[]) {
 				      (void *)(i * 100));
 	}
 
+	for (i = 1; i < 1000000; i++)
+		aal_hash_table_remove(table, (void *)i);
+	
 	aal_hash_table_free(table);
 	return 0;
 }
