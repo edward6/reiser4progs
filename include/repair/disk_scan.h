@@ -31,7 +31,8 @@ typedef struct repair_ds {
 	aux_bitmap_t *bm_twig;	/* Fount twigs. */
 
 	repair_ds_stat_t stat;
-	bool_t *check_node;
+	bool_t mkidok;
+	uint32_t mkid;
 } repair_ds_t;
 
 extern errno_t repair_disk_scan(repair_ds_t *ds);

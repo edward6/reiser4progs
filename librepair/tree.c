@@ -116,7 +116,7 @@ errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 
 reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, 
 				      reiser4_node_t *parent,
-				      blk_t blk, bool_t check)
+				      blk_t blk, uint32_t mkid)
 {
 	reiser4_node_t *node;
 	
@@ -127,11 +127,8 @@ reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree,
 		return NULL;
 
 	/* If @check, check the mkfs_id. */
-	if (check && reiser4_format_get_stamp(tree->fs->format) != 
-	    reiser4_node_get_mstamp(node))
-	{
+	if (mkid && mkid != reiser4_node_get_mstamp(node))
 		goto error_unload_node;
-	}
 
 	return node;
 	

@@ -233,7 +233,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	if (error) goto error;
 	
 	if (!(node = repair_tree_load_node(fd->repair->fs->tree, place->node, 
-					   blk, *fd->check_node))) 
+					   blk, fd->mkidok ? fd->mkid : 0)))
 	{
 		fsck_mess("Node (%llu): failed to open the node pointed by the "
 			  "node (%llu), item (%u), unit (%u) on the level (%u)."
@@ -447,6 +447,9 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
 		repair_filter_empty_node(fd, node->block->nr, 
 					 reiser4_node_get_level(node));
 		reiser4_node_mkclean(node);
+	} else if (!fd->mkidok && fd->mkid != reiser4_node_get_mstamp(node)) {
+		/* If mkfsid is a new one, set it to the node. */
+		reiser4_node_set_mstamp(node, fd->mkid);
 	}
 
 	fd->level++;
@@ -609,9 +612,10 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	}
 	
 	/* try to open the root node. */
-	if (!(tree->root = repair_tree_load_node(fd->repair->fs->tree, 
-						 NULL, root, 0)))
-	{
+	tree->root = repair_tree_load_node(fd->repair->fs->tree, NULL,
+					   root, fd->mkidok ? fd->mkid: 0);
+	
+	if (!tree->root) {
 		fsck_mess("Node (%llu): failed to open the root node. "
 			  "The whole filter pass is skipped.", root);
 		
@@ -619,13 +623,6 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	}
 	
 	repair_filter_read_node(fd, root, reiser4_node_get_level(tree->root));
-	
-	/* If SB's mkfs id exists and matches the root node's one, 
-	   check the mkfs id of all nodes. */
-	*fd->check_node = (reiser4_format_get_stamp(format) && 
-			   (reiser4_format_get_stamp(format) ==
-			    reiser4_node_get_mstamp(tree->root)));
-	
 	aal_gauge_touch(fd->gauge);
 
 	/* Cut the corrupted, unrecoverable parts of the tree off. */

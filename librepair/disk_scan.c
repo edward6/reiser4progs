@@ -92,8 +92,8 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		aal_gauge_set_value(gauge, ds->stat.read_nodes * 100 / total);
 		aal_gauge_touch(gauge);
 		
-		if (!(node = repair_node_open(ds->repair->fs->tree, 
-					      blk, *ds->check_node)))
+		if (!(node = repair_node_open(ds->repair->fs->tree, blk, 
+					      ds->mkidok ? ds->mkid : 0)))
 		{
 			blk++;
 			continue;
@@ -147,6 +147,10 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		
 		/* Zero all flags for all items. */
 		repair_node_clear_flags(node);
+
+		/* If mkfsid is a new one, set it to the node. */
+		if (!ds->mkidok && ds->mkid != reiser4_node_get_mstamp(node))
+			reiser4_node_set_mstamp(node, ds->mkid);
 
 	next:
 		reiser4_node_fini(node);

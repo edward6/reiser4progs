@@ -23,7 +23,8 @@ typedef struct repair_control {
 	
 	aux_bitmap_t *bm_alloc;
 
-	bool_t check_node;
+	bool_t mkidok;
+	uint32_t mkid;
 	uint64_t oid, files;
 } repair_control_t;
 
@@ -121,6 +122,7 @@ static errno_t cb_release(reiser4_alloc_t *alloc, uint64_t start,
 static errno_t repair_filter_prepare(repair_control_t *control, 
 				     repair_filter_t *filter) 
 {
+	reiser4_fs_t *fs;
 	uint64_t fs_len;
 	
 	aal_assert("vpf-592", filter != NULL);
@@ -129,11 +131,19 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	aal_assert("vpf-839", control->repair->fs != NULL);
 	
 	aal_memset(filter, 0, sizeof(*filter));    
-	filter->repair = control->repair;
-	filter->check_node = &control->check_node;
-	filter->stat.files = &control->files;
+	fs = control->repair->fs;
+
+	/* If backup has not been opened, do not check the mkfs id. */
+	control->mkid = reiser4_format_get_stamp(fs->format);
+	control->mkidok = fs->backup || 
+		control->repair->mode != RM_BUILD ? 1 : 0;
 	
-	fs_len = reiser4_format_get_len(control->repair->fs->format);
+	filter->repair = control->repair;
+	filter->stat.files = &control->files;
+	filter->mkidok = control->mkidok;
+	filter->mkid = control->mkid;
+	
+	fs_len = reiser4_format_get_len(fs->format);
 	
 	/* Allocate a bitmap of blocks belong to the format area - skipped, 
 	   super block, journal, bitmaps. */
@@ -144,17 +154,15 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	}
 	
 	/* Mark all format area block in the bm_used bitmap. */
-	if (reiser4_fs_layout(control->repair->fs, cb_format_mark,
-			      filter->bm_used)) 
-	{
+	if (reiser4_fs_layout(fs, cb_format_mark, filter->bm_used)) {
 		aal_error("Failed to mark the filesystem area as "
 			  "used in the bitmap.");
 		return -EINVAL;
 	}
 	
-	control->repair->fs->alloc->hook.alloc = cb_alloc;
-	control->repair->fs->alloc->hook.release = cb_release;
-	control->repair->fs->alloc->hook.data = control;
+	fs->alloc->hook.alloc = cb_alloc;
+	fs->alloc->hook.release = cb_release;
+	fs->alloc->hook.data = control;
 	
 	/* Allocate a bitmap of twig blocks in the tree. */
 	if (!(control->bm_twig = filter->bm_twig = aux_bitmap_create(fs_len))) {
@@ -225,8 +233,9 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	ds->bm_leaf = control->bm_leaf;
 	ds->bm_twig = control->bm_twig;
 	ds->bm_met = control->bm_met;
-	ds->check_node = &control->check_node;
 	ds->stat.files = &control->files;
+	ds->mkidok = control->mkidok;
+	ds->mkid = control->mkid;
 	
 	repair = ds->repair;
 	
@@ -477,10 +486,10 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 
 		if (control->repair->mode == RM_CHECK)
 			return 0;
-		
+	
 		if (!(bm_temp = aux_bitmap_clone(control->bm_alloc))) {
-			aal_error("Failed to allocate a backup of "
-				  "allocated blocks bitmap.");
+			aal_error("Failed to allocate a bitmap "
+				  "for allocated blocks.");
 			return -EINVAL;
 		}
 		
@@ -504,6 +513,7 @@ static errno_t repair_sem_fini(repair_control_t *control,
 	uint64_t fs_len;
 
 	control->oid = sem->stat.oid + 1;
+	control->files = sem->stat.reached_files;
 	
 	/* In the BUILD mode alloc was built on bm_used, nothing to do. */
 	if (control->repair->mode == RM_BUILD)
@@ -550,7 +560,7 @@ static errno_t repair_cleanup_prepare(repair_control_t *control,
 	
 	aal_memset(cleanup, 0, sizeof(*cleanup));
 	cleanup->repair = control->repair;    
-	
+
 	return 0;
 }
 
@@ -636,8 +646,40 @@ static errno_t repair_update(repair_control_t *control) {
 		}
 	}
 	
+	if (mode == RM_BUILD) {
+		/* Check the file count. Some files could be accounted more than
+		   once not in the BUILD mode. */
+		val = reiser4_oid_used(fs->oid);
+
+		if (control->files && control->files != val) {
+			fsck_mess("File count %llu is wrong. %s %llu.",
+				  val, mode != RM_BUILD ? "Should be" : 
+				  "Fixed to", control->files);
+
+			if (mode == RM_BUILD) {
+				plug_call(fs->oid->ent->plug->o.oid_ops, set_used,
+					  fs->oid->ent, control->files);
+			}
+
+			/* This is not a problem to live with wrong file count.
+			   
+			else {
+			   control->repair->fixable++;
+			}
+
+			*/
+		}
+	}
+
+	/* If there was no backup openned or some fields have been changed, 
+	   reopen the backup. */
+	if (!(fs->backup = repair_backup_reopen(fs))) {
+		aal_fatal("Failed to reopen backup.");
+		return -EINVAL;
+	}
+	
 	/* The tree height should be set correctly at the filter pass. */
-	/* FIXME: File count is not ready. What about flushes, mkfs_id? */
+	/* FIXME: What about flushes? */
 	
 	return 0;
 }

@@ -90,18 +90,8 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_journal_close;
 	}
 
-	if (!(fs->backup = repair_backup_reopen(fs))) {
-		aal_fatal("Failed to reopen backup.");
-		res = -EINVAL;
-		goto error_tree_close;
-	}
-	
 	repair_error_count(repair, res);
 	return 0;
-
- error_tree_close:
-	reiser4_tree_close(fs->tree);
-	fs->tree = NULL;
 
  error_journal_close:
 	reiser4_journal_close(fs->journal);

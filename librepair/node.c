@@ -6,7 +6,8 @@
 #include <repair/librepair.h>
 
 /* Opens the node if it has correct mkid stamp. */
-reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
+reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, uint32_t mkid)
+{
 	reiser4_node_t *node;
 	
 	aal_assert("vpf-708", tree != NULL);
@@ -15,11 +16,8 @@ reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) 
 		return NULL;
 	
 	/* Extra checks are needed. */
-	if (check && reiser4_format_get_stamp(tree->fs->format) != 
-	    reiser4_node_get_mstamp(node))
-	{
+	if (mkid && mkid != reiser4_node_get_mstamp(node))
 		goto error_node_free;
-	}
 	
 	return node;
 	

@@ -9,7 +9,7 @@
 #include <repair/repair.h>
 
 extern reiser4_node_t *repair_node_open(reiser4_tree_t *tree,
-					blk_t blk, bool_t check);
+					blk_t blk, uint32_t mkid);
 
 extern errno_t repair_node_check_level(reiser4_node_t *node,
 				       uint8_t mode);

@@ -56,7 +56,6 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	aal_assert("vpf-1170", object != NULL);
 	
 	oid = reiser4_key_get_objectid(&object->ent->object);
-	repair_semantic_register_oid(sem, oid);
 	
 	/* Check struct if not the BUILD mode, if the fake object or 
 	   if has not been checked yet. */
@@ -70,7 +69,11 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 						 sem->repair->mode, sem);
 		if (res < 0) return res;
 		
-		sem->stat.reached_files++;
+		if (!repair_error_fatal(res)) {
+			repair_semantic_register_oid(sem, oid);
+			sem->stat.reached_files++;
+		}
+
 		repair_error_count(sem->repair, res);
 	}
 	
@@ -519,6 +522,8 @@ static errno_t cb_tree_scan(reiser4_place_t *place, void *data) {
 	if (repair_error_fatal(res))
 		goto error_close_object;
 
+	sem->stat.lost_files++;
+	
 	/* Try to attach it somewhere -- at least to lost+found. */
 	if ((res = repair_semantic_uptraverse(sem, sem->lost, object)))
 		goto error_close_object;

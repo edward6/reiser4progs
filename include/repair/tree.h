@@ -18,8 +18,7 @@ extern errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 
 extern reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, 
 				     reiser4_node_t *parent,
-				     blk_t blk, 
-				     bool_t check);
+				     blk_t blk, uint32_t mkid);
 
 extern errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 
 					reiser4_node_t *node,

@@ -35,7 +35,8 @@ typedef struct repair_filter {
 				   to neither other bitmap due to corruption or
 				   just an internal one. */
 	repair_filter_stat_t stat;
-	bool_t *check_node;
+	bool_t mkidok;
+	uint32_t mkid;
 	uint64_t oid;
 
 	/* Private data. */
