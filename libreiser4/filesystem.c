@@ -64,7 +64,7 @@ reiser4_fs_t *reiser4_fs_open(
 	if (reiser4_alloc_valid(fs->alloc))
 		aal_exception_warn("Block allocator data seems to be corrupted.");
     
-	/* Jouranl device may be not specified. In this case it will not be opened */
+	/* Journal device may be not specified. In this case it will not be opened */
 	if (journal_device) {
 	    
 		/* Setting up block size in use for journal device */
@@ -84,14 +84,12 @@ reiser4_fs_t *reiser4_fs_open(
 		   transactions.
 		*/
 		if (replay) {
-			int trans_nr;
-	    
 			if (aal_device_readonly(fs->journal->device)) {
 				aal_exception_warn("Transactions can't be replayed on "
 						   "read only opened filesystem.");
 			}
 	    
-			if ((trans_nr = reiser4_journal_replay(fs->journal)) < 0) {
+			if (reiser4_journal_replay(fs->journal)) {
 				aal_exception_error("Can't replay journal.");
 				goto error_free_journal;
 			}
