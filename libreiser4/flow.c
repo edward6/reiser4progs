@@ -248,8 +248,12 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 				return res;
 		} else {
 			/* Release @place.node, as it got empty.  */
-			reiser4_tree_discard_node(tree, place.node);
-			place.node = NULL;
+			if (reiser4_node_locked(place.node)) {
+				place.node->flags |= NF_HEARD_BANSHEE;
+			} else {
+				reiser4_tree_discard_node(tree, place.node);
+				place.node = NULL;
+			}
 		}
 
 		/* Drying tree up in the case root node has only one item */
