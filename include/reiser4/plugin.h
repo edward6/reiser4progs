@@ -323,7 +323,7 @@ typedef errno_t (*region_func_t) (item_entity_t *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*place_func_t) (object_entity_t *, reiser4_place_t *, void *);
 
-typedef errno_t (*layout_func_t) (object_entity_t *, block_func_t, void *);
+typedef errno_t (*layout_func_t) (void *, block_func_t, void *);
 typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
 
 /* 
@@ -1133,7 +1133,7 @@ struct reiser4_journal_ops {
 			  uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
-	errno_t (*check) (object_entity_t *, layout_func_t);
+	errno_t (*check) (object_entity_t *, layout_func_t, void *);
 
 	/* Calls func for each block in block allocator */
 	errno_t (*layout) (object_entity_t *, block_func_t,
