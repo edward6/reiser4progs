@@ -3,10 +3,6 @@
    
    debugfs.c -- program for debugging reiser4 filesystem. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h> 
-#endif
-
 #include <fcntl.h>
 #include <getopt.h>
 #include <errno.h>

@@ -4,6 +4,11 @@
    print.c -- printing different reiser4 objects stuff. */
 
 #ifndef ENABLE_MINIMAL
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <reiser4/libreiser4.h>
 
 static aal_list_t *current = NULL;
