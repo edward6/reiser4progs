@@ -120,14 +120,19 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_object_t *object;
 	    
-			for (i = 0; i < 5000; i++) {
+			for (i = 0; i < 1; i++) {
 				aal_snprintf(name, 256, "file%d", i);
 
 				if (!(object = reiser4_object_create(fs, dir, &reg_hint)))
 					goto error_free_dir;
 
 				reiser4_object_link(dir, object, name);
-				reiser4_object_seek(object, 1);
+				
+				reiser4_object_write(object, "Test data", 9);
+				reiser4_object_seek(object, 4);
+				reiser4_object_write(object, "Test data", 9);
+				reiser4_object_seek(object, 4096);
+				
 				reiser4_object_close(object);
 			}
 		}

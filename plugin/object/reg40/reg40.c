@@ -231,9 +231,22 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 
 	stat_hint.type_specific = &stat;
 
-	/* Insert statdata item into the tree */
-	if (obj40_insert(&reg->obj, &stat_hint, LEAF_LEVEL, &reg->obj.statdata))
+	switch (obj40_lookup(&reg->obj, &stat_hint.key,
+			     LEAF_LEVEL, &reg->obj.statdata))
+	{
+	case FAILED:
+	case PRESENT:
 		goto error_free_reg;
+	default:
+		break;
+	}
+	
+	/* Insert statdata item into the tree */
+	if (obj40_insert(&reg->obj, &stat_hint,
+			 LEAF_LEVEL, &reg->obj.statdata))
+	{
+		goto error_free_reg;
+	}
 
 	aal_memcpy(place, &reg->obj.statdata, sizeof(*place));
 	obj40_lock(&reg->obj, &reg->obj.statdata);
@@ -362,7 +375,7 @@ static int32_t reg40_put(object_entity_t *entity,
 		hint.count = hint.len;
 		
 		hint.plugin = plugin;
-		hint.flags = HF_FORMATD;
+		hint.flags = HF_WRITE;
 		hint.type_specific = buff;
 
 		locality = obj40_locality(&reg->obj);
@@ -372,8 +385,19 @@ static int32_t reg40_put(object_entity_t *entity,
 			    build_generic, &hint.key, KEY_FILEBODY_TYPE,
 			    locality, objectid, reg->offset);
 	
-		if ((res = obj40_insert(&reg->obj, &hint, LEAF_LEVEL,
-					&place)))
+		switch (obj40_lookup(&reg->obj, &hint.key,
+				     LEAF_LEVEL, &place))
+		{
+		case FAILED:
+			aal_exception_error("Lookup is failed while "
+					    "writing file.");
+			return -EINVAL;
+		default:
+			break;
+		}
+	
+		if ((res = obj40_insert(&reg->obj, &hint,
+					LEAF_LEVEL, &place)))
 		{
 			return res;
 		}

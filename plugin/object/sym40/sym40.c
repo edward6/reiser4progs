@@ -149,6 +149,16 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 
 	stat_hint.type_specific = &stat;
 
+	switch (obj40_lookup(&sym->obj, &stat_hint.key,
+			     LEAF_LEVEL, &sym->obj.statdata))
+	{
+	case FAILED:
+	case PRESENT:
+		goto error_free_sym;
+	default:
+		break;
+	}
+	
 	/* Inserting stat data into the tree */
 	if (obj40_insert(&sym->obj, &stat_hint,
 			 LEAF_LEVEL, &sym->obj.statdata))

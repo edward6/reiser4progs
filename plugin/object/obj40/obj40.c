@@ -325,6 +325,14 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 }
 #endif
 
+#ifndef ENABLE_STAND_ALONE
+/* Changes nlink field in statdata by passed @value */
+errno_t obj40_link(obj40_t *obj, uint32_t value) {
+	uint32_t nlink = obj40_get_nlink(obj);
+	return obj40_set_nlink(obj, nlink + value);
+}
+#endif
+
 rid_t obj40_pid(item_entity_t *item) {
 	sdext_lw_hint_t lw_hint;
 
@@ -413,12 +421,6 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Changes nlink field in statdata by passed @value */
-errno_t obj40_link(obj40_t *obj, uint32_t value) {
-	/* Updating nlink field */
-	return obj40_set_nlink(obj, obj40_get_nlink(obj) + value);
-}
-
 /*
   Inserts passed item hint into the tree. After function is finished, place
   contains the place of the inserted item.
@@ -426,29 +428,13 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 		     uint8_t level, place_t *place)
 {
-	oid_t objectid = obj40_objectid(obj);
-
-	/*
-	  Making lookup in order to find place new item/unit will be inserted
-	  at. If item/unit already exists, or lookup failed, we throw an
-	  exception and return the error code.
-	*/
-	switch (obj40_lookup(obj, &hint->key, level, place)) {
-	case ABSENT:
-		if (obj->core->tree_ops.insert(obj->tree, place,
-					       level, hint))
-		{
-			aal_exception_error("Can't insert new "
-					    "item/unit of object "
-					    "0x%llx into the tree.",
-					    objectid);
-			return -EINVAL;
-		}
-		break;
-	case PRESENT:
-		aal_exception_error("Key already exists in the tree.");
-		return -EINVAL;
-	case FAILED:
+	if (obj->core->tree_ops.insert(obj->tree, place,
+				       level, hint))
+	{
+		aal_exception_error("Can't insert new "
+				    "item/unit of object "
+				    "0x%llx into the tree.",
+				    obj40_objectid(obj));
 		return -EINVAL;
 	}
 

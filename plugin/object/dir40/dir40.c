@@ -541,17 +541,45 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 
 	stat_hint.type_specific = &stat;
 
-	/* Inserting stat data and body into the tree */
-	if (obj40_insert(&dir->obj, &stat_hint, LEAF_LEVEL, &dir->obj.statdata))
+	/* Looking for place to insert directory stat data */
+	switch (obj40_lookup(&dir->obj, &stat_hint.key,
+			     LEAF_LEVEL, &dir->obj.statdata))
+	{
+	case FAILED:
+	case PRESENT:
 		goto error_free_body;
+	default:
+		break;
+	}
+	
+	/* Inserting stat data and body into the tree */
+	if (obj40_insert(&dir->obj, &stat_hint,
+			 LEAF_LEVEL, &dir->obj.statdata))
+	{
+		goto error_free_body;
+	}
 	
 	/* Saving stat data place insert function has returned */
 	aal_memcpy(place, &dir->obj.statdata, sizeof(*place));
 	obj40_lock(&dir->obj, &dir->obj.statdata);
-    
-	/* Inserting the direntry item into the tree */
-	if (obj40_insert(&dir->obj, &body_hint, LEAF_LEVEL, &dir->body))
+
+	/* Looking for place to insert directory body */
+	switch (obj40_lookup(&dir->obj, &body_hint.key,
+			     LEAF_LEVEL, &dir->body))
+	{
+	case FAILED:
+	case PRESENT:
 		goto error_free_body;
+	default:
+		break;
+	}
+	
+	/* Inserting the direntry item into the tree */
+	if (obj40_insert(&dir->obj, &body_hint,
+			 LEAF_LEVEL, &dir->body))
+	{
+		goto error_free_body;
+	}
 
 	obj40_lock(&dir->obj, &dir->body);
 	
@@ -787,9 +815,23 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	plugin_call(key->plugin->o.key_ops, assign, &entry->offset,
 		    &hint.key);
 
+	/* Looking for place to insert directory entry */
+	switch (obj40_lookup(&dir->obj, &hint.key,
+			     LEAF_LEVEL, &place))
+	{
+	case FAILED:
+	case PRESENT:
+		return -EINVAL;
+	default:
+		break;
+	}
+	
 	/* Inserting entry */
-	if ((res = obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place)))
+	if ((res = obj40_insert(&dir->obj, &hint,
+				LEAF_LEVEL, &place)))
+	{
 		return res;
+	}
 
 	/* Updating stat data place */
 	if ((res = obj40_stat(&dir->obj)))

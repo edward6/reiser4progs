@@ -482,7 +482,8 @@ typedef struct object_hint object_hint_t;
 */
 enum hint_flags {
 	HF_FORMATD    = 1 << 0,
-	HF_RAWDATA    = 1 << 1
+	HF_RAWDATA    = 1 << 1,
+	HF_WRITE      = 1 << 2
 };
 
 typedef enum hint_flags hint_flags_t;
