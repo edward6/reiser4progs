@@ -278,6 +278,9 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	if ((res = repair_node_check_struct(node, fd->repair->mode)) < 0)
 		return res;
 	
+	if ((res |= repair_node_check_level(node, fd->repair->mode)) < 0)
+		return res;
+	
 	if (reiser4_node_items(node) == 0) {
 		repair_filter_empty_node(fd, node_blocknr(node), level);
 		reiser4_node_mkclean(node);

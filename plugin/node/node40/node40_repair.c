@@ -182,6 +182,8 @@ static errno_t node40_item_check_array(reiser4_node_t *node, uint8_t mode) {
 		{
 			aal_error("Node (%llu), item (%u): Offset (%u) "
 				  "is wrong.", blk, i, offset);
+			
+			res |= (mode == RM_CHECK ? RE_FATAL : 0);
 		} else {
 			if ((mode == RM_BUILD) && (last_pos != i - 1)) {
 				/* Some items are to be deleted. */
@@ -521,26 +523,20 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 
 	/* Pack all item bodies. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
-		if (!node40_fetch(entity, pos, &place) &&
-		    place.plug->o.item_ops->repair->pack)
-		{
-			/* Pack item body relying on item plugin. */
+		if (node40_fetch(entity, pos, &place))
+			return -EINVAL;
+		
+		if (place.plug->o.item_ops->repair->pack) {
+			/* Pack body. */
 			if (plug_call(place.plug->o.item_ops->repair,
 				      pack, &place, stream))
 			{
 				return -EINVAL;
 			}
 		} else {
-			void *ib = node40_ib_at(entity, pos->item);
-			uint32_t len = node40_len(entity, &place.pos);
-			
-			/* FIXME-UMKA->VITALY: Pack whole body of item. Is this
-			   safe to rely here that item header has correct
-			   offset? Probably it makes sense to take care about
-			   offsets in node first before packing? Or probably we
-			   can check if node has incorrect items (offsets, ids,
-			   etc.) we should pack whole such a node as it is. */
-			aal_stream_write(stream, ib, len);
+			/* Do not pack body. */
+			aal_stream_write(stream, node40_ib_at(entity, pos->item),
+					 node40_len(entity, &place.pos));
 		}
 	}
 	
@@ -637,9 +633,9 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	nh_set_pid(entity, node40_plug.id.id);
 	
 	/* All items. */
+	num = nh_get_num_items(entity);
 	pos = &place.pos;
 	pos->unit = MAX_UINT32;
-	num = nh_get_num_items(entity);
 	
 	/* Unpack all item headers. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
@@ -652,9 +648,10 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 
 	/* Unpack all item bodies. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
-		if (!node40_fetch(entity, pos, &place) &&
-		    place.plug->o.item_ops->repair->unpack)
-		{
+		if (node40_fetch(entity, pos, &place))
+			return NULL;
+		
+		if (place.plug->o.item_ops->repair->unpack) {
 			/* Unpack body. */
 			if (plug_call(place.plug->o.item_ops->repair,
 				      unpack, &place, stream))

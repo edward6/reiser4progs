@@ -123,9 +123,14 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		if (!repair_tree_data_level(level))
 			goto next;
 		
-		res = repair_node_check_struct(node, ds->repair->mode);
+		if ((res = repair_node_check_struct(node, ds->repair->mode)) < 0)
+		{
+			reiser4_node_close(node);
+			goto error;
+		}
 		
-		if (res < 0) {
+		if ((res |= repair_node_check_level(node, ds->repair->mode)) < 0)
+		{
 			reiser4_node_close(node);
 			goto error;
 		}

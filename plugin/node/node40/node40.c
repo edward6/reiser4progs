@@ -281,6 +281,8 @@ errno_t node40_fetch(reiser4_node_t *entity,
 	if (!(plug = node40_core->factory_ops.ifind(ITEM_PLUG_TYPE,
 						    ih_get_pid(ih, pol))))
 	{
+		aal_error("Can't find item plugin by its id 0x%x.",
+			  ih_get_pid(ih, pol));
 		return -EINVAL;
 	}
 

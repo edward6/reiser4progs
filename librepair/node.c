@@ -58,20 +58,6 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 			goto error_remove_item;
 		} 
 		
-		/* Check that the item is legal for this node. If not, it 
-		   is not recoverable corruption for now. FIXME-VITALY: 
-		   how to recover valuable data from here? */
-		if (!repair_tree_legal_level(place.plug->id.group, 
-					     reiser4_node_get_level(node)))
-		{
-			aal_error("Node (%llu): Node level (%u) does not match "
-				  "to the item type (%s).", node_blocknr(node), 
-				  reiser4_node_get_level(node),
-				  place.plug->label);
-			
-			return RE_FATAL;
-		}
-		
 		reiser4_key_assign(&key, &place.key);
 
 		if ((ret = repair_key_check_struct(&key)) < 0)
@@ -158,13 +144,21 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	return res;
 }
 
-/*  Checks the node content. */
-errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
+errno_t repair_node_check_level(reiser4_node_t *node, uint8_t mode) {
+	reiser4_place_t place;
+	uint32_t count;
 	uint8_t level;
 	errno_t res;
+	pos_t *pos;
 	
 	aal_assert("vpf-494", node != NULL);
 	aal_assert("vpf-220", node->plug != NULL);
+	
+	level = reiser4_node_get_level(node);
+	count = reiser4_node_items(node);
+	place.node = node;
+	pos = &place.pos;
+	res = 0;
 	
 	level = reiser4_node_get_level(node);
 	
@@ -175,8 +169,38 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 		return RE_FATAL;
 	}
 
-	res = plug_call(node->plug->o.node_ops, check_struct, 
-			node, mode);
+	pos->unit = MAX_UINT32;
+	for (pos->item = 0; pos->item < count; pos->item++) {
+		/* Open the item, checking its plugin id. */
+		if ((res = reiser4_place_fetch(&place)))
+			return res;
+		
+		/* Check that the item is legal for this node. If not, it 
+		   is not recoverable corruption for now. FIXME-VITALY: 
+		   how to recover valuable data from here? */
+		if (!repair_tree_legal_level(place.plug->id.group, 
+					     reiser4_node_get_level(node)))
+		{
+			aal_error("Node (%llu): Node level (%u) does not match "
+				  "to the item type (%s).", node_blocknr(node), 
+				  reiser4_node_get_level(node),
+				  place.plug->label);
+			
+			return RE_FATAL;
+		}
+	}
+
+	return 0;
+}
+
+/*  Checks the node content. */
+errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
+	errno_t res;
+	
+	aal_assert("vpf-494", node != NULL);
+	aal_assert("vpf-220", node->plug != NULL);
+	
+	res = plug_call(node->plug->o.node_ops, check_struct, node, mode);
 	
 	if (repair_error_fatal(res))
 		return res;

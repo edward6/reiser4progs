@@ -29,24 +29,36 @@ static int extent40_merge_units(reiser4_place_t *place, int fix) {
 	count = extent40_units(place);
 	merged = 0;
 	
-	for (i = 1, extent++; i < count; i++, extent++) {
-		if ((et40_get_start(extent - 1) == 0 &&
-		     et40_get_start(extent) == 0) || 
-		    (et40_get_start(extent - 1) + et40_get_width(extent - 1)
-		     == et40_get_start(extent)))
-		{
+	for (i = 0, extent++; i < count; i++, extent++) {
+		bool_t merge = 0;
+
+		/* width == 0. */
+		if (!et40_get_width(extent))
+			goto shrink;
+
+		if (i == 0) continue;
+		
+		merge = (et40_get_start(extent - 1) == 0 &&
+			 et40_get_start(extent) == 0);
+		merge = (et40_get_start(extent - 1) + et40_get_width(extent - 1)
+			 == et40_get_start(extent)) || merge;
+		
+		if (!merge) continue;
+		
+	shrink:
+		merged++;
+	
+		if (!fix) continue;
+		
+		if (i) {
 			et40_set_width(extent - 1, et40_get_width(extent - 1)
 				       + et40_get_width(extent));
-
-			merged++;
-			
-			if (fix) {
-				extent40_shrink(place, i, 1);
-				count--;
-				extent--;
-				i--;
-			}
 		}
+		
+		extent40_shrink(place, i, 1);
+		count--;
+		extent--;
+		i--;
 	}
 
 	return merged;
@@ -72,7 +84,7 @@ errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func,
 		start = et40_get_start(extent);
 		width = et40_get_width(extent);
 		
-		if (!start || start == EXTENT_UNALLOC_UNIT)
+		if (!start || !width || start == EXTENT_UNALLOC_UNIT)
 			continue;
 
 		if ((res = func(place, start, width, data)) < 0)
