@@ -180,14 +180,13 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 	aal_assert("umka-1502", pos != NULL);
 	
 	units = extent40_units(place);
+	extent = extent40_body(place);
 
 	wanted = plug_call(key->plug->o.key_ops,
 			   get_offset, key);
 
 	offset = plug_call(key->plug->o.key_ops,
 			   get_offset, &place->key);
-
-	extent = extent40_body(place);
 	
 	for (i = 0; i < units; i++, extent++) {
 		offset += et40_get_width(extent) /

@@ -158,10 +158,13 @@ static int32_t dir40_next(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	/* Getting next directory item */
-	res = dcore->tree_ops.next(dir->obj.info.tree,
-				   &dir->body, &place);
+	if ((res = dcore->tree_ops.next(dir->obj.info.tree,
+					&dir->body, &place)))
+	{
+		return res;
+	}
 
-	if (res || !place.node || !dir40_belong(entity, &place)) {
+	if (!place.node || !dir40_belong(entity, &place)) {
 		uint64_t offset;
 		
 		/* Making offset pointed to nowhere in order to let know that

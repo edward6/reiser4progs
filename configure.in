@@ -155,7 +155,7 @@ AC_ARG_WITH(readline,
 )
 
 # Check for termcap
-if test "$with_readline" = yes; then
+if test "x$with_readline" = xyes; then
 	OLD_LIBS="$LIBS"
 	LIBS=""
 	AC_SEARCH_LIBS(tgetent, ncurses curses termcap termlib,
@@ -170,7 +170,7 @@ termcap could not be found which is required for the
 fi
 
 # Check for readline
-if test "$with_readline" = yes; then
+if test "x$with_readline" = xyes; then
     OLD_LIBS="$LIBS"
     LIBS=""
     AC_CHECK_LIB(readline, readline, ,
@@ -295,7 +295,7 @@ are required for the --with-uuid option.
     )
 fi
 
-if test "$with_readline" = yes; then
+if test "x$with_readline" = xyes; then
     AC_CHECK_HEADERS(readline/readline.h readline/history.h, ,
 	AC_MSG_WARN(
 The headers for GNU Readline could not be found which
@@ -314,7 +314,7 @@ string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
 AC_C_BIGENDIAN
 
 # Checks for library functions.
-if test "$with_readline" = yes; then
+if test "x$with_readline" = xyes; then
     OLD_LIBS="$LIBS"
     LIBS="$LIBS $PROGS_LIBS"
     AC_CHECK_FUNCS(rl_completion_matches)
@@ -345,7 +345,7 @@ AC_CACHE_CHECK([whether -falign-loops works], [falign_loop_flag], [
 # Checking for compiler warning options
 AC_CACHE_CHECK([whether -Wuninitialized works], [uninitialized], [
   saved_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="-Wuninitialized"
+  CPPFLAGS="-O1 -Wuninitialized"
   AC_TRY_COMPILE(, , [uninitialized=yes], [uninitialized=no])
   CPPFLAGS="$saved_CPPFLAGS"
 ])
@@ -363,6 +363,20 @@ AC_CACHE_CHECK([whether -Wredundant-decls works], [redundant_decls], [
   AC_TRY_COMPILE(, , [redundant_decls=yes], [redundant_decls=no])
   CPPFLAGS="$saved_CPPFLAGS"
 ])
+
+if test "x$with_readline" = xyes && test "x$redundant_decls" == xyes; then
+  saved_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="-Werror -Wredundant-decls"
+
+  AC_MSG_CHECKING(whether -Wredundant-decls works with readline.h)
+
+  AC_TRY_COMPILE([
+	#include <stdio.h> 
+	#include <readline/readline.h>
+  ], ,[redundant_decls=yes; AC_MSG_RESULT(yes)], 
+      [redundant_decls=no; AC_MSG_RESULT(no)])
+  CPPFLAGS="$saved_CPPFLAGS"
+fi
  
 # Force no alignment to save space.
 if test "x$falign_loop_flag" = xyes; then

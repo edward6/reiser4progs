@@ -739,7 +739,7 @@ struct reiser4_item_ops {
 	/* Inserts some amount of units described by passed hint into passed
 	   item. */
 	errno_t (*insert) (place_t *, uint32_t, insert_hint_t *);
-	
+
 	/* Removes specified unit from the item. */
 	errno_t (*remove) (place_t *, uint32_t, remove_hint_t *);
 	

@@ -174,11 +174,14 @@ static errno_t tail40_maxposs_key(place_t *place,
 static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key, 
 				  lookup_mod_t mode, uint32_t *pos)
 {
+	uint32_t units;
 	uint64_t offset, wanted;
 
-	aal_assert("umka-1228", place != NULL);
 	aal_assert("umka-1229", key != NULL);
 	aal_assert("umka-1230", pos != NULL);
+	aal_assert("umka-1228", place != NULL);
+
+	units = tail40_units(place);
 	
 	offset = plug_call(key->plug->o.key_ops,
 			   get_offset, &place->key);
@@ -187,13 +190,13 @@ static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key,
 			   get_offset, key);
 
 	if (wanted >= offset &&
-	    wanted < offset + tail40_units(place))
+	    wanted < offset + units)
 	{
 		*pos = wanted - offset;
 		return PRESENT;
 	}
 
-	*pos = tail40_units(place);
+	*pos = units;
 	return (mode == READ ? ABSENT : PRESENT);
 }
 
