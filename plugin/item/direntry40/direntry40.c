@@ -893,6 +893,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	for (i = 0; i < count; i++, entry++, entry_hint++) {
 		objid40_t *objid;
 		entryid40_t *entid;
+		
 		uint64_t oid, loc, off;
 
 		key_entity_t *hash;

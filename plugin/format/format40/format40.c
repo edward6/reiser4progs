@@ -16,52 +16,34 @@
 #  include <stdlib.h>
 #endif
 
-extern reiser4_plugin_t format40_plugin;
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t format40_plugin;
+
+#define SUPER(entity) (&((format40_t *)entity)->super)
 
 static uint64_t format40_get_root(object_entity_t *entity) {
-	format40_super_t *super;
-    
 	aal_assert("umka-400", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	return get_sb_root_block(super);
+	return get_sb_root_block(SUPER(entity));
 }
 
 static uint64_t format40_get_len(object_entity_t *entity) {
-	format40_super_t *super;
-    
 	aal_assert("umka-401", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	return get_sb_block_count(super);
+	return get_sb_block_count(SUPER(entity));
 }
 
 static uint64_t format40_get_free(object_entity_t *entity) {
-	format40_super_t *super;
-    
 	aal_assert("umka-402", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	return get_sb_free_blocks(super);
+	return get_sb_free_blocks(SUPER(entity));
 }
 
 static uint16_t format40_get_height(object_entity_t *entity) {
-	format40_super_t *super;
-    
 	aal_assert("umka-1123", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	return get_sb_tree_height(super);
+	return get_sb_tree_height(SUPER(entity));
 }
 
 static uint32_t format40_get_stamp(object_entity_t *entity) {
-	format40_super_t *super;
-    
 	aal_assert("umka-1122", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	return get_sb_mkfs_id(super);
+	return get_sb_mkfs_id(SUPER(entity));
 }
 
 static uint64_t format40_begin(object_entity_t *entity) {
@@ -128,18 +110,25 @@ static errno_t format40_super_check(format40_super_t *super,
     
 	if (get_sb_block_count(super) > dev_len) {
 		aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,
-				    "Superblock has an invalid block count %llu for device "
-				    "length %llu blocks.", get_sb_block_count(super), dev_len);
+				    "Superblock has an invalid block "
+				    "count %llu for device length %llu "
+				    "blocks.", get_sb_block_count(super),
+				    dev_len);
 		return -1;
 	}
     
 	offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
-	if (get_sb_root_block(super) < offset || get_sb_root_block(super) > dev_len) {
+
+	if (get_sb_root_block(super) < offset ||
+	    get_sb_root_block(super) > dev_len)
+	{
 		aal_exception_error(
-			"Superblock has an invalid root block %llu for device "
-			"length %llu blocks.", get_sb_root_block(super), dev_len);
+			"Superblock has an invalid root block %llu for "
+			"device length %llu blocks.", get_sb_root_block(super),
+			dev_len);
 		return -1;
 	}
+	
 	return 0;
 }
 
@@ -152,22 +141,30 @@ static aal_device_t *format40_device(object_entity_t *entity) {
 	return ((format40_t *)entity)->device;
 }
 
-static aal_block_t *format40_super_open(aal_device_t *device) {
+static errno_t format40_super_open(format40_t *format) {
 	blk_t offset;
+	errno_t res = 0;
 	aal_block_t *block;
     
-	offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
+	offset = (FORMAT40_OFFSET / format->device->blocksize);
 	
-	if (!(block = aal_block_open(device, offset))) {
+	if (!(block = aal_block_open(format->device, offset))) {
 		aal_exception_error("Can't read block %llu.",
 				    offset);
-		return NULL;
+		return -1;
 	}
 
-	if (!format40_magic((format40_super_t *)block->data))
-		return NULL;
-    
-	return block;
+	if (!format40_magic((format40_super_t *)block->data)) {
+		res = -1;
+		goto error_free_block;
+	}
+
+	aal_memcpy(&format->super, block->data,
+		   sizeof(format->super));
+
+ error_free_block:
+	aal_block_close(block);
+	return res;
 }
 
 static object_entity_t *format40_open(aal_device_t *device) {
@@ -181,15 +178,19 @@ static object_entity_t *format40_open(aal_device_t *device) {
 	format->device = device;
 	format->plugin = &format40_plugin;
     
-	if (!(format->block = format40_super_open(device)))
+	if (format40_super_open(format))
 		goto error_free_format;
     
 	return (object_entity_t *)format;
 
  error_free_format:
 	aal_free(format);
- error:
 	return NULL;
+}
+
+static void format40_close(object_entity_t *entity) {
+	aal_assert("umka-398", entity != NULL);
+	aal_free(entity);
 }
 
 #ifndef ENABLE_ALONE
@@ -208,8 +209,8 @@ static errno_t callback_clobber_block(object_entity_t *entity,
 	}
     
 	if (aal_block_sync(block)) {
-		aal_exception_error("Can't write block %llu to device. %s.", blk, 
-				    format->device->error);
+		aal_exception_error("Can't write block %llu to device. "
+				    "%s.", blk, format->device->error);
 		goto error_free_block;
 	}
     
@@ -223,9 +224,9 @@ static errno_t callback_clobber_block(object_entity_t *entity,
 
 /* This function should create super block and update all copies */
 static object_entity_t *format40_create(aal_device_t *device, 
-					 uint64_t blocks, uint16_t tail)
+					uint64_t blocks,
+					uint16_t tail)
 {
-	blk_t blk;
 	format40_t *format;
 	format40_super_t *super;
     
@@ -237,23 +238,16 @@ static object_entity_t *format40_create(aal_device_t *device,
 	format->device = device;
 	format->plugin = &format40_plugin;
 
-	if (!(format->block = aal_block_create(device, (FORMAT40_OFFSET / 
-							aal_device_get_bs(device)), 0))) 
-	{
-		aal_exception_error("Can't allocate superblock.");
-		goto error_free_format;
-	}
-    
-	super = (format40_super_t *)format->block->data;
+	super = (format40_super_t *)&format->super;
     
 	aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
 		   aal_strlen(FORMAT40_MAGIC));
 
 	set_sb_root_block(super, INVAL_BLK);
 	set_sb_block_count(super, blocks);
+	set_sb_tail_policy(super, tail);
 	set_sb_tree_height(super, 2);
 	set_sb_flushes(super, 0);
-	set_sb_tail_policy(super, tail);
 
 	srandom(time(0));
 	set_sb_mkfs_id(super, random());
@@ -263,49 +257,55 @@ static object_entity_t *format40_create(aal_device_t *device,
 			     callback_clobber_block, NULL))
 	{
 		aal_exception_error("Can't clobber skipped area.");
-		goto error_free_block;
+		goto error_free_format;
 	}
     
 	return (object_entity_t *)format;
 
- error_free_block:
-	aal_block_close(format->block);
  error_free_format:
 	aal_free(format);
- error:
 	return NULL;
 }
 
 /* This function should update all copies of the super block */
 static errno_t format40_sync(object_entity_t *entity) {
+	blk_t offset;
+	errno_t res = 0;
 	format40_t *format;
+	aal_block_t *block;
     
 	aal_assert("umka-394", entity != NULL);
    
 	format = (format40_t *)entity;
-    
-	if (aal_block_sync(format->block)) {
-		blk_t offset = aal_block_number(format->block);
-	
-		aal_exception_error("Can't write superblock to %llu. %s.", offset, 
-				    aal_device_error(format->device));
-	
+	offset = FORMAT40_OFFSET / format->device->blocksize;
+
+	if (!(block = aal_block_create(format->device, offset, 0)))
 		return -1;
+
+	aal_memcpy(block->data, &format->super,
+		   sizeof(format->super));
+	
+	if (aal_block_sync(block)) {
+		aal_exception_error("Can't write format40 super "
+				    "block to %llu. %s.", offset,
+				    format->device->error);
+		res = -1;
 	}
     
-	return 0;
+	aal_block_close(block);
+	return res;
 }
 
 static int format40_confirm(aal_device_t *device) {
-	aal_block_t *block;
+	object_entity_t *entity;
 
 	aal_assert("umka-733", device != NULL);
-    
-	if (!(block = format40_super_open(device)))
+
+	if (!(entity = format40_open(device)))
 		return 0;
-	
-	aal_block_close(block);
-	return 1;
+		
+	format40_close(entity);
+	return 0;
 }
 
 #endif
@@ -317,28 +317,20 @@ static errno_t format40_valid(object_entity_t *entity) {
     
 	format = (format40_t *)entity;
     
-	return format40_super_check(format40_super(format->block), 
+	return format40_super_check(SUPER(entity),
 				    format->device);
 }
 
-static void format40_close(object_entity_t *entity) {
-	aal_assert("umka-398", entity != NULL);
-    
-	aal_block_close(((format40_t *)entity)->block);
-	aal_free(entity);
-}
-
 static void format40_oid(object_entity_t *entity, 
-			 void **oid_start, uint32_t *oid_len) 
+			 void **oid_start,
+			 uint32_t *oid_len) 
 {
-	format40_super_t *super;
-    
 	aal_assert("umka-732", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-    
-	*oid_start = &super->sb_oid;
-	*oid_len = &super->sb_file_count - &super->sb_oid;
+	
+	*oid_start = &(SUPER(entity)->sb_oid);
+	
+	*oid_len = &(SUPER(entity)->sb_file_count) -
+		&(SUPER(entity)->sb_oid);
 }
 
 static const char *formats[] = {"format40"};
@@ -364,75 +356,58 @@ static rpid_t format40_alloc_pid(object_entity_t *entity) {
 static void format40_set_root(object_entity_t *entity, 
 			      uint64_t root) 
 {
-	format40_super_t *super;
-    
 	aal_assert("umka-403", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	set_sb_root_block(super, root);
+	set_sb_root_block(SUPER(entity), root);
 }
 
 static void format40_set_len(object_entity_t *entity, 
 			     uint64_t blocks) 
 {
-	format40_super_t *super;
-    
 	aal_assert("umka-404", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	set_sb_block_count(super, blocks);
+	set_sb_block_count(SUPER(entity), blocks);
 }
 
 static void format40_set_free(object_entity_t *entity, 
 			      uint64_t blocks) 
 {
-	format40_super_t *super;
-    
 	aal_assert("umka-405", entity != NULL);
-    
-	super = format40_super(((format40_t *)entity)->block);
-	set_sb_free_blocks(super, blocks);
+	set_sb_free_blocks(SUPER(entity), blocks);
 }
 
 static void format40_set_height(object_entity_t *entity, 
 				uint16_t height) 
 {
-	format40_super_t *super;
-    
 	aal_assert("umka-555", entity != NULL);
-
-	super = format40_super(((format40_t *)entity)->block);
-	set_sb_tree_height(super, height);
+	set_sb_tree_height(SUPER(entity), height);
 }
 
 static void format40_set_stamp(object_entity_t *entity, 
 			       uint32_t mkfsid) 
 {
-	format40_super_t *super;
-    
 	aal_assert("umka-1121", entity != NULL);
-
-	super = format40_super(((format40_t *)entity)->block);
-	set_sb_mkfs_id(super, mkfsid);
+	set_sb_mkfs_id(SUPER(entity), mkfsid);
 }
 
-errno_t format40_print(object_entity_t *entity, aal_stream_t *stream,
+errno_t format40_print(object_entity_t *entity,
+		       aal_stream_t *stream,
 		       uint16_t options) 
 {
-	aal_block_t *block;
+	format40_t *format;
 	format40_super_t *super;
     
 	aal_assert("vpf-246", entity != NULL);
 	aal_assert("umka-1290", stream != NULL);
-    
-	block = ((format40_t *)entity)->block;
-	super = format40_super(block);
+
+	format = (format40_t *)entity;
+	super = &format->super;
     
 	aal_stream_format(stream, "Format super block:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n", entity->plugin->h.label);
 	aal_stream_format(stream, "description:\t%s\n", entity->plugin->h.desc);
-	aal_stream_format(stream, "offset:\t\t%llu\n", aal_block_number(block));
+	
+	aal_stream_format(stream, "offset:\t\t%llu\n", FORMAT40_OFFSET /
+			  format->device->blocksize);
     
 	aal_stream_format(stream, "magic:\t\t%s\n", super->sb_magic);
 	aal_stream_format(stream, "flushes:\t%llu\n", get_sb_flushes(super));

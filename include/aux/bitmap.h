@@ -84,6 +84,8 @@ extern uint64_t aux_bitmap_calc_region_cleared(aux_bitmap_t *bitmap,
 					       uint64_t start,
 					       uint64_t count);
 
+extern errno_t aux_bitmap_resize(aux_bitmap_t *bitmap, uint64_t len);
+
 extern aux_bitmap_t *aux_bitmap_create(uint64_t len);
 extern aux_bitmap_t *aux_bitmap_clone(aux_bitmap_t *bitmap);
 

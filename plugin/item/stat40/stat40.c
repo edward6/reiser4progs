@@ -31,8 +31,8 @@ errno_t stat40_traverse(item_entity_t *item, stat40_ext_func_t func, void *data)
 	stat = stat40_body(item);
 	extmask = st40_get_extmask(stat);
 
-	sdext.body = item->body;
 	sdext.len = item->len;
+	sdext.body = item->body;
 	sdext.pos = sizeof(stat40_t);
 
 	/*
@@ -85,7 +85,8 @@ errno_t stat40_traverse(item_entity_t *item, stat40_ext_func_t func, void *data)
 }
 
 /* Callback for opening one extention */
-static errno_t callback_open_ext(sdext_entity_t *sdext, uint16_t extmask, 
+static errno_t callback_open_ext(sdext_entity_t *sdext,
+				 uint16_t extmask, 
 				 void *data)
 {
 	reiser4_statdata_hint_t *hint;
@@ -97,9 +98,10 @@ static errno_t callback_open_ext(sdext_entity_t *sdext, uint16_t extmask,
 
 	/* We load @ext if its hint present in item hint */
 	if (hint->ext[sdext->plugin->h.id]) {
-		/* Calling loading the corresponding statdata extention */
-		if (plugin_call(sdext->plugin->sdext_ops, open, 
-				sdext->body + sdext->pos, 
+		void *body = sdext->body + sdext->pos;
+		
+		/* Loading the corresponding statdata extention */
+		if (plugin_call(sdext->plugin->sdext_ops, open, body, 
 				hint->ext[sdext->plugin->h.id]))
 			return -1;
 	}
@@ -422,6 +424,7 @@ static errno_t stat40_print(item_entity_t *item,
 static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 	uint32_t pid;
 	uint64_t extmask;
+	
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 	reiser4_sdext_lw_hint_t lw_hint;

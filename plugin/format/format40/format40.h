@@ -38,8 +38,6 @@ struct format40_super {
 
 typedef struct format40_super format40_super_t;
 
-#define format40_super(block) ((format40_super_t *)block->data)
-
 #define get_sb_mkfs_id(sb)			aal_get_le32(sb, sb_mkfs_id)
 #define set_sb_mkfs_id(sb, val)			aal_set_le32(sb, sb_mkfs_id, val)
 
@@ -70,8 +68,8 @@ typedef struct format40_super format40_super_t;
 struct format40 {
 	reiser4_plugin_t *plugin;
 
-	aal_block_t *block;
 	aal_device_t *device;
+	format40_super_t super;
 };
 
 typedef struct format40 format40_t;

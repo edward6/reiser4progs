@@ -43,7 +43,7 @@ errno_t format40_check(object_entity_t *entity) {
     
     aal_assert("vpf-160", entity != NULL);
     
-    super = format40_super(format->block);
+    super = &format->super;
     
     /* Check the fs size. */
     if (aal_device_len(format->device) != get_sb_block_count(super)) {
