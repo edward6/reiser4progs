@@ -91,6 +91,7 @@ static reiser4_plugin_t sdext_lt_plugin = {
 #ifndef ENABLE_ALONE
 		.init	 = sdext_lt_init,
 		.print   = sdext_lt_print,
+		.check   = sdext_lt_check,
 #endif		
 		.length	 = sdext_lt_length
 	}

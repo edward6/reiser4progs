@@ -160,11 +160,9 @@ errno_t reiser4_tree_connect(
 				    node->blk);
 		return -1;
 	}
-#endif
-	
+
 	reiser4_node_lock(parent);
 
-#ifndef ENABLE_ALONE
 	if (tree->traps.connect) {
 		reiser4_place_t place;
 			
@@ -261,7 +259,9 @@ errno_t reiser4_tree_disconnect(
 		return 0;
 	}
 
+#ifndef ENABLE_ALONE
 	reiser4_node_unlock(parent);
+#endif
 	
 	return reiser4_node_disconnect(parent, node);
 }
@@ -433,7 +433,9 @@ reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
 	if (!node->parent)
 		return NULL;
 
+#ifndef ENABLE_ALONE
 	reiser4_node_lock(node);
+#endif
 	
 	if (!node->left) {
 		aal_assert("umka-1629", node->tree != NULL);
@@ -441,8 +443,11 @@ reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
 		if ((node->left = reiser4_tree_neighbour(tree, node, D_LEFT)))
 			node->left->right = node;
 	}
-	
+
+#ifndef ENABLE_ALONE
 	reiser4_node_unlock(node);
+#endif
+	
 	return node->left;
 }
 
@@ -456,7 +461,9 @@ reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
 	if (!node->parent)
 		return NULL;
     
+#ifndef ENABLE_ALONE
 	reiser4_node_lock(node);
+#endif
 	
 	if (!node->right) {
 		aal_assert("umka-1630", node->tree != NULL);
@@ -465,7 +472,10 @@ reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
 			node->right->left = node;
 	}
 
+#ifndef ENABLE_ALONE
 	reiser4_node_unlock(node);
+#endif
+	
 	return node->right;
 }
 

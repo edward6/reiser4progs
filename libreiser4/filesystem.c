@@ -34,7 +34,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		return NULL;
 
 	fs->device = device;
+	
+#ifndef ENABLE_ALONE
 	fs->profile = profile;
+#endif
 	
 	/* Reads master super block. See above for details */
 	if (!(fs->master = reiser4_master_open(device)))

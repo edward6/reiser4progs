@@ -829,6 +829,9 @@ struct reiser4_sdext_ops {
 
 	/* Prints stat data extention data into passed buffer */
 	errno_t (*print) (rbody_t *, aal_stream_t *, uint16_t);
+
+	/* Checks sd extention content. */
+	errno_t (*check) (sdext_entity_t *, uint8_t);
 #endif
 
 	/* Reads stat data extention data */
@@ -836,9 +839,6 @@ struct reiser4_sdext_ops {
 
 	/* Returns length of the extention */
 	uint16_t (*length) (rbody_t *);
-	
-	/* Checks sd extention content. */
-	errno_t (*check) (sdext_entity_t *, uint8_t);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
@@ -1315,15 +1315,15 @@ struct reiser4_core {
 		  plugins for modification purposes.
 		*/
 		errno_t (*remove) (void *, place_t *, uint32_t);
+
+		/* Lock control functions */
+		errno_t (*lock) (void *, place_t *);
+		errno_t (*unlock) (void *, place_t *);
 #endif
 	
 		/* Returns next and prev items respectively */
 		errno_t (*next) (void *, place_t *, place_t *);
 		errno_t (*prev) (void *, place_t *, place_t *);
-
-		/* Lock control functions */
-		errno_t (*lock) (void *, place_t *);
-		errno_t (*unlock) (void *, place_t *);
 	} tree_ops;
 };
 

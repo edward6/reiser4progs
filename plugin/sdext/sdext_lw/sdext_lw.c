@@ -137,6 +137,7 @@ static reiser4_plugin_t sdext_lw_plugin = {
 #ifndef ENABLE_ALONE
 		.init	 = sdext_lw_init,
 		.print   = sdext_lw_print,
+		.check   = sdext_lw_check,
 #endif		
 		.length	 = sdext_lw_length
 	}

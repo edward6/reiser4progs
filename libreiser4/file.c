@@ -206,7 +206,9 @@ reiser4_file_t *reiser4_file_open(
     
 	file->fs = fs;
 
+#ifndef ENABLE_ALONE
 	aal_strncpy(file->name, name, sizeof(file->name));
+#endif
 
 	reiser4_key_assign(&file->key, &fs->tree->key);
 	reiser4_key_assign(&file->dir, &fs->tree->key);

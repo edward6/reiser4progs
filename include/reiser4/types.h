@@ -78,8 +78,8 @@ typedef struct reiser4_pid reiser4_pid_t;
   the filesystem.
 */
 struct reiser4_profile {
-	char name[255];
-	char desc[255];
+	char name[10];
+	char desc[100];
 	reiser4_pid_t plugin[20];
 };
 
@@ -160,15 +160,16 @@ struct reiser4_node {
 	*/
 	object_entity_t *entity;
 
-	/* Some node flags (dirty, etc) */
-	node_flags_t flags;
-	
 	/* Device node lies on */
 	aal_device_t *device;
 
 	/* Block number node lies in */
 	blk_t blk;
 
+#ifndef ENABLE_ALONE
+	/* Some node flags (dirty, etc) */
+	uint32_t flags;
+	
 	/* Usage counter to prevent releasing used nodes */
 	int counter;
 	
@@ -177,6 +178,7 @@ struct reiser4_node {
 	  into the objects of our library for their own use.
 	*/
 	void *data;
+#endif
 };
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
@@ -197,6 +199,8 @@ struct reiser4_file {
 	/* Referrence to the filesystem file opened on */
 	reiser4_fs_t *fs;
 
+#ifndef ENABLE_ALONE
+	
 	/* Full file name */
 	char name[256];
 
@@ -205,6 +209,7 @@ struct reiser4_file {
 	  into the objects of our library for their own use.
 	*/
 	void *data;
+#endif
 };
 
 typedef struct reiser4_file reiser4_file_t;
@@ -332,12 +337,10 @@ struct reiser4_tree {
 	  order. Thanks a lot to Nikita for this good idea.
 	*/
 	aal_lru_t *lru;
-#endif
 
 	/* Tree operation control flags */
 	uint32_t flags;
-
-#ifndef ENABLE_ALONE
+	
 	/* Tree modification traps */
 	struct {
 		/* These traps will be called durring insert an item/unit */
@@ -424,6 +427,8 @@ struct reiser4_fs {
 	/* Pointer to the storage tree wrapper object */
 	reiser4_tree_t *tree;
 
+#ifndef ENABLE_ALONE
+	
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_file_t *root;
 
@@ -438,6 +443,7 @@ struct reiser4_fs {
 	  into the objects of our library for their own use.
 	*/
 	void *data;
+#endif
 };
 
 #endif

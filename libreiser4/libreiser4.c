@@ -236,6 +236,8 @@ static errno_t tree_prev(
 	return reiser4_item_realize((reiser4_place_t *)prev);
 }
 
+#ifndef ENABLE_ALONE
+
 static errno_t tree_lock(
 	void *tree,               /* tree for working on */
 	place_t *place)           /* place to make lock on */
@@ -261,8 +263,6 @@ static errno_t tree_unlock(
 	p = (reiser4_place_t *)place;
 	return reiser4_node_unlock(p->node);
 }
-
-#ifndef ENABLE_ALONE
 
 static uint32_t tree_blockspace(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
@@ -312,16 +312,17 @@ reiser4_core_t core = {
 		/* Returns prev item from the passed place */
 		.prev	    = tree_prev,
 
-		/* Makes look and unlock of node specified by place */
-		.lock       = tree_lock,
-		.unlock     = tree_unlock,
-
 #ifndef ENABLE_ALONE
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
 
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
+		
+		/* Makes look and unlock of node specified by place */
+		.lock       = tree_lock,
+		.unlock     = tree_unlock,
+		
 		.nodespace  = tree_nodespace,
 		.blockspace = tree_blockspace,
 #endif

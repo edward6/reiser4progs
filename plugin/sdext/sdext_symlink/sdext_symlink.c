@@ -57,6 +57,8 @@ static errno_t sdext_symlink_print(rbody_t *body, aal_stream_t *stream,
 	return 0;
 }
 
+extern errno_t sdext_symlink_check(sdext_entity_t *sdext, uint8_t mode);
+
 #endif
 
 static reiser4_plugin_t sdext_symlink_plugin = {
@@ -74,6 +76,7 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 #ifndef ENABLE_ALONE
 		.init	 = sdext_symlink_init,
 		.print   = sdext_symlink_print,
+		.check   = sdext_symlink_check,
 #endif		
 		.length	 = sdext_symlink_length
 	}

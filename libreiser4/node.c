@@ -171,7 +171,10 @@ reiser4_node_t *reiser4_node_open(
 	node->blk = blk;
 	node->device = device;
 
+#ifndef ENABLE_ALONE
 	reiser4_node_mkclean(node);
+#endif
+	
 	POS_INIT(&node->pos, 0, ~0ul);
 	
 	return node;
