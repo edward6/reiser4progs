@@ -857,6 +857,77 @@ errno_t reiser4_tree_mkspace(
 	return -(not_enough > 0);
 }
 
+errno_t reiser4_tree_split(
+	reiser4_tree_t *tree, 
+	reiser4_coord_t *coord, 
+	int level) 
+{
+	reiser4_node_t *node;
+	reiser4_pos_t pos = {0, 0};
+	int cur_level;
+	
+	aal_assert("vpf-672", tree != NULL, return -1);
+	aal_assert("vpf-673", coord != NULL, return -1);
+	aal_assert("vpf-674", level > 0, return -1);
+
+	cur_level = reiser4_node_level(coord->node);
+			
+	aal_assert("vpf-680", cur_level <= level, return -1);
+	
+	if (reiser4_coord_realize(coord))
+		return -1;
+
+	while (cur_level <= level) {
+		aal_assert("vpf-676", coord->node->parent != NULL, return -1);
+		
+		if (coord->pos.item != 0 || coord->pos.unit != 0 || 
+		    coord->pos.item != reiser4_node_items(coord->node) || 
+		    coord->pos.unit != reiser4_item_units(coord))
+		{
+			/* We are not on the border, split. */
+			if ((node = reiser4_tree_allocate(tree, cur_level)) == NULL) {
+				aal_exception_error("Tree failed to allocate a new node.");
+				return -1;
+			}
+    
+			/* set flush_id */
+			reiser4_node_set_flush_stamp(node, 
+				reiser4_node_get_flush_stamp(coord->node));
+    
+			if (reiser4_tree_shift(tree, coord, node, SF_RIGHT)) {
+				aal_exception_error("Tree failed to shift into a newly "
+						    "allocated node.");
+				goto error_free_node;
+			}
+		
+			aal_assert("vpf-640", reiser4_node_items(node) != 0, return -1);
+
+			if (reiser4_tree_attach(tree, node)) {
+				aal_exception_error("Tree failed to attach a newly allocated "
+						    "node to the tree.");
+				goto error_free_node;
+			}
+		
+		} else {
+			node = coord->node;
+			
+			if (reiser4_node_pos(node, NULL))
+				return -1;		
+		}
+		
+		if (reiser4_coord_open(coord, node->parent, &node->pos))
+			return -1;
+
+		cur_level--;
+	}
+	
+	return 0;
+	
+error_free_node:
+	reiser4_node_close(node);
+	return -1;
+}
+
 /* Inserts new item described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */

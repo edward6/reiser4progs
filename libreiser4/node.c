@@ -254,17 +254,17 @@ errno_t reiser4_node_pos(
 	reiser4_key_t parent_key;
     
 	aal_assert("umka-869", node != NULL, return -1);
-	aal_assert("umka-1266", pos != NULL, return -1);
-    
+ 
 	if (!node->parent)
 		return -1;
 
 	reiser4_node_lkey(node, &lkey);
     
-	if (reiser4_node_lookup(node->parent, &lkey, pos) != 1)
+	if (reiser4_node_lookup(node->parent, &lkey, &node->pos) != 1)
 		return -1;
 
-	node->pos = *pos;
+	if (pos != NULL)
+	    *pos = node->pos;
     
 	return 0;
 }
@@ -717,12 +717,12 @@ errno_t reiser4_node_valid(
 }
 
 uint8_t reiser4_node_level(
-	reiser4_node_t *node)	/* node to be checked */
+	reiser4_node_t *node)
 {
 	aal_assert("umka-1642", node != NULL, return -1);
     
 	return plugin_call(return -1, node->entity->plugin->node_ops, 
-			   get_level, node->entity);
+			   level, node->entity);
 }
 
 #ifndef ENABLE_COMPACT
@@ -1151,7 +1151,7 @@ errno_t reiser4_node_traverse(
 			goto error_after_func;
 		}
 
-		if (!(hint->objects & (1 << reiser4_item_type(&coord))))
+		if (!reiser4_item_nodeptr(&coord))
 			continue;
 
 		/* The loop though the units of the current item */

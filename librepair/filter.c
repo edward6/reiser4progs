@@ -37,19 +37,15 @@ static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk,
 static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     repair_data_t *rd = (repair_data_t *)data;
     repair_filter_t *fd;
-    object_entity_t *entity;    
     errno_t res = 0;
     uint16_t level;
     
     aal_assert("vpf-252", data  != NULL, return -1);
     aal_assert("vpf-409", node != NULL, return -1);
-    aal_assert("vpf-411", node->entity != NULL, return -1);    
-    aal_assert("vpf-412", node->entity->plugin != NULL, return -1);
 
     fd = repair_filter((repair_data_t *)data);
-    entity = node->entity;
 
-    level = plugin_call(return -1, entity->plugin->node_ops, get_level, entity);
+    level = reiser4_node_level(node); 
     
     /* Initialize the level for the root node before traverse. */
     if (!fd->level)
@@ -130,10 +126,8 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 	coord->pos = prev;
 	repair_clear_flag(rd, REPAIR_BAD_PTR);
     } else {
-        object_entity_t *entity = coord->node->entity;
 	/* Mark all twigs in the bm_twig bitmap. */
-	if (plugin_call(return -1, entity->plugin->node_ops, 
-	    get_level, entity) == TWIG_LEVEL) 
+	if (reiser4_node_level(coord->node) == TWIG_LEVEL) 
 	    aux_bitmap_mark(repair_filter(rd)->bm_twig, 
 		coord->node->blk);
     }
@@ -195,9 +189,6 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
 	aal_exception_error("Failed to allocate a bitmap for twig blocks.");
 	return -1;
     }
-    
-    /* Hint for objects to be traversed - node pointers only here. */
-    hint->objects = 1 << NODEPTR_ITEM;
     
     rd->flags = 0;
 
