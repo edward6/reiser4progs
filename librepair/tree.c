@@ -175,6 +175,31 @@ errno_t repair_tree_next_key(reiser4_tree_t *tree,
 	return 0;
 }
 
+node_t *repair_tree_load_node(reiser4_tree_t *tree, node_t *parent,
+			      blk_t blk, bool_t check)
+{
+	node_t *node;
+	
+	aal_assert("vpf-1500", tree != NULL);
+	aal_assert("vpf-1501", parent != NULL);
+	aal_assert("vpf-1502", tree->fs != NULL);
+	
+	if (!(node = reiser4_tree_load_node(tree, parent, blk)))
+		return NULL;
+
+	/* If @check, check the mkfs_id. */
+	if (check && reiser4_format_get_stamp(tree->fs->format) != 
+	    reiser4_node_get_mstamp(node))
+	{
+		goto error_unload_node;
+	}
+
+	return node;
+	
+ error_unload_node:
+	reiser4_tree_unload_node(tree, node);
+	return NULL;
+}
 
 /* Checks the delimiting keys of the node kept in the parent. */
 errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 

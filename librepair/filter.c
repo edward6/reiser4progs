@@ -199,8 +199,8 @@ static node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (error) goto error;
 	
-	if (!(node = repair_node_open(fd->repair->fs->tree, blk, 
-				      *fd->check_node)))
+	if (!(node = repair_tree_load_node(fd->repair->fs->tree, place->node, 
+					   blk, *fd->check_node))) 
 	{
 		aal_error("Node (%llu): failed to open the node pointed by the "
 			  "node (%llu), item (%u), unit (%u) on the level (%u)."
@@ -209,9 +209,6 @@ static node_t *repair_filter_node_open(reiser4_tree_t *tree,
 			  place->pos.unit, reiser4_node_get_level(place->node));
 		goto error;
 	}
-	
-	if (reiser4_tree_connect_node(tree, place->node, node))
-		goto error_close_node;
 	
 	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
 		fd->progress->state = PROGRESS_UPDATE;
@@ -226,9 +223,6 @@ static node_t *repair_filter_node_open(reiser4_tree_t *tree,
 
 	return node;
 	
- error_close_node:
-	reiser4_node_close(node);
-	return INVAL_PTR;
  error:
 	repair_filter_bad_ptr(fd);
 	return NULL;
@@ -573,10 +567,12 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	}
 	
 	/* try to open the root node. */
-	if (!(tree->root = repair_node_open(fd->repair->fs->tree, root, 0))) {
-		aal_error("Node (%llu): failed to open the "
-			  "root node. The whole filter pass "
-			  "is skipped.", root);
+	if (!(tree->root = repair_tree_load_node(fd->repair->fs->tree, 
+						 NULL, root, 0)))
+	{
+		aal_error("Node (%llu): failed to open the root node. "
+			  "The whole filter pass is skipped.", root);
+		
 		goto error;
 	}
 	
@@ -588,9 +584,6 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 			   (reiser4_format_get_stamp(format) ==
 			    reiser4_node_get_mstamp(tree->root)));
 	
-	if (reiser4_tree_connect_node(tree, NULL, tree->root))
-		goto error;
-
 	/* Cut the corrupted, unrecoverable parts of the tree off. */
 	res = reiser4_tree_trav_node(tree, tree->root,
 				     repair_filter_node_open,
