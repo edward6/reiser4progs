@@ -865,6 +865,7 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 	hint->len = 0;
 	hint->overhead = 0;
+	hint->insert_flags = 0;
 	unit_pos = place->pos.unit;
 	units = place->pos.unit == MAX_UINT32 ? 0 : extent40_units(place);
 
@@ -992,6 +993,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	uint64_t ins_off;
 	uint64_t uni_off;
 	uint64_t blk_off;
+	uint64_t total;
 	uint64_t start;
 	int64_t count;
 	int64_t bytes;
@@ -1027,7 +1029,8 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	max_off = plug_call(hint->maxkey.plug->o.key_ops,
 			    get_offset, &hint->maxkey);
 
-	count = max_off - ins_off;
+	total = max_off - ins_off;
+	count = total;
 
 	if (hint->insert_flags & ET40_OVERWRITE) {
 		/* If overwrite requires space, split the unit correctly. */
@@ -1138,7 +1141,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 			allocate = (start == EXTENT_UNALLOC_UNIT);
 		} else {
 			/* First unit or cannot merge with the last one. */
-			extent = extent40_body(place);
+			extent = extent40_body(place) + unit_pos;
 
 			/* If some data are being inserted, allocate some 
 			   blocks for them later. */
@@ -1169,11 +1172,13 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	/* Updating @key by unit key as it is changed. */
 	extent40_fetch_key(place, &key);
 
-	ins_off = plug_call(hint->offset.plug->o.key_ops,
-			    get_offset, &hint->offset);
-
 	extent = extent40_body(place) + place->pos.unit;
 	uni_off = plug_call(key.plug->o.key_ops, get_offset, &key);
+	
+	ins_off = plug_call(hint->offset.plug->o.key_ops,
+			    get_offset, &hint->offset);
+	
+	count = total;
 
 	/* Second stage -- writing data to allocated blocks. */
 	for ( ; count > 0; count -= size, ins_off += size) {
@@ -1229,7 +1234,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	}
 	
 	place_mkdirty(place);
-	return hint->count - count;
+	return total;
 }
 
 /* Calls @region_func for each block number extent points to. It is needed for

@@ -269,15 +269,15 @@ static errno_t reg40_convert(object_entity_t *entity,
 {
 	errno_t res;
 	reg40_t *reg;
-	uint64_t fsize;
 	conv_hint_t hint;
 
 	aal_assert("umka-2467", plug != NULL);
 	aal_assert("umka-2466", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	fsize = reg40_size(entity);
 
+	aal_memset(&hint, 0, sizeof(hint));
+	
 	/* Getting file data start key. We convert file starting from the zero
 	   offset until end is reached. */
 	plug_call(reg->position.plug->o.key_ops, assign,
@@ -287,11 +287,9 @@ static errno_t reg40_convert(object_entity_t *entity,
 		  &hint.offset, 0);
 	
 	/* Prepare convert hint. */
-	hint.chunk = 0;
-	hint.bytes = 0;
 	hint.plug = plug;
 
-	hint.count = fsize;
+	hint.count = MAX_UINT64;
 	hint.place_func = NULL;
 
 	/* Converting file data. */
@@ -399,7 +397,7 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t offset) {
 		  set_offset, &hint.offset, offset);
 
 	/* Removing data from the tree. */
-	hint.count = size - offset;
+	hint.count = MAX_UINT64;
 	hint.shift_flags = SF_DEFAULT;
 	hint.data = reg->obj.info.tree;
 	hint.plug = reg40_policy_plug(reg, offset);
@@ -482,22 +480,11 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 		return 0;
 
 	if (n > size) {
-		/* Converting body if needed. */
-		if ((res = reg40_check_body(entity, n))) {
-			aal_error("Can't perform tail conversion.");
-			return res;
-		}
-		
-		/* Inserting holes. */
-		if ((bytes = reg40_put(entity, NULL, n - size, NULL)) < 0)
-			return bytes;
-		
 		/* Updating stat data fields. */
 		if ((res = obj40_update(&reg->obj)))
 			return res;
 		
-		bytes += obj40_get_bytes(&reg->obj);
-		
+		bytes = obj40_get_bytes(&reg->obj);
 		return obj40_touch(&reg->obj, n, bytes);
 	} else {
 		/* Cutting items/units */

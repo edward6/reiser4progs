@@ -333,17 +333,14 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	conv_hint_t hint;
 
 	/* Set bytes, plug, offset and count in @hint */
-	hint.chunk = 0;
-	hint.bytes = 0;
+	aal_memset(&hint, 0, sizeof(hint));
 	hint.plug = src->plug;
-	hint.place_func = NULL;
 	
 	reiser4_key_assign(&hint.offset, &dst->key);
 	reiser4_key_set_offset(&hint.offset, 
 			       reiser4_key_get_offset(&src->key));
 
-	hint.count = plug_call(src->plug->o.item_ops->object,
-			       size, src);
+	hint.count = plug_call(src->plug->o.item_ops->object, size, src);
 
 	return reiser4_flow_convert(tree, &hint);
 }

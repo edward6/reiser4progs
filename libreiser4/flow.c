@@ -20,7 +20,11 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
-	
+
+#ifndef ENABLE_MINIMAL
+	hint->blocks = tree->blocks;
+#endif
+
 	for (total = 0, size = hint->count; size > 0; ) {
 		int32_t read;
 		reiser4_place_t place;
@@ -78,10 +82,6 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			/* Prepare hint for read */
 			hint->count = size;
 
-#ifndef ENABLE_MINIMAL
-			hint->blocks = tree->blocks;
-#endif
-			
 			/* Read data from the tree */
 			if ((read = plug_call(place.plug->o.item_ops->object,
 					      read_units, &place, hint)) < 0) 
@@ -132,6 +132,10 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
+
+#ifndef ENABLE_MINIMAL
+	hint->blocks = tree->blocks;
+#endif
 
 	/* Loop until desired number of bytes is written. */
 	for (total = bytes = 0, size = hint->count; size > 0;) {
@@ -204,6 +208,10 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	/* Setting up region func to release region callback. It is needed for
 	   releasing extent blocks. */
 	hint->region_func = cb_release_region;
+
+#ifndef ENABLE_MINIMAL
+	hint->blocks = tree->blocks;
+#endif
 
 	for (total = 0, size = hint->count; size > 0;
 	     size -= trunc, total += trunc)
@@ -386,7 +394,11 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 		trans.data = tree;
 		
 		if (conv == 0) {
-			/* If nothing was read, the hole will be inserted. */
+			/* If nothing was read, depending on hint->ins_hole flag
+			   the hole will be inserted or convertion is finished. */
+			if (!hint->ins_hole)
+				break;
+
 			trans.specific = NULL;
 		} else {
 			/* Trunc & insert only read @count bytes. */

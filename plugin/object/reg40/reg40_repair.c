@@ -366,6 +366,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	
 	aal_memset(&ops, 0, sizeof(ops));
 	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&conv, 0, sizeof(conv));
 	
 	if ((res = obj40_prepare_stat(&reg->obj, S_IFREG, mode)))
 		return res;
@@ -374,9 +375,8 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	if (func && func(&info->start, data))
 		return -EINVAL;
 	
-	aal_memset(&conv, 0, sizeof(conv));
-
 	conv.place_func = func;
+	conv.ins_hole = 1;
 	
 	/* Reg40 object (its SD item) has been opened or created. */
 	while (1) {

@@ -744,6 +744,11 @@ struct conv_hint {
 	/* Callback function caled onto each new created item during tail
 	   conversion. */
 	place_func_t place_func;
+
+	/* The flag if the hole should be inserted if there is nothing 
+	   to read. Could be useful for recovery when there could be a 
+	   gap between 2 items. */
+	bool_t ins_hole;
 };
 
 typedef struct conv_hint conv_hint_t;
