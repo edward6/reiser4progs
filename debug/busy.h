@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
@@ -22,6 +23,7 @@
 typedef struct busy_target {
 	reiser4_fs_t *fs;
 	char path[PATH_MAXLEN];
+	int64_t offset;
 } busy_target_t;
 
 typedef struct busy_ctx {
@@ -33,6 +35,8 @@ typedef struct busy_ctx {
 	int objtype;
 	uint32_t mode;
 	uint64_t rdev;
+	int64_t count;
+	uint32_t blksize;
 } busy_ctx_t;
 
 typedef errno_t (*cmd_handler_t) (busy_ctx_t *ctx);
@@ -54,6 +58,7 @@ extern errno_t stat_cmd(busy_ctx_t *ctx);
 extern errno_t create_cmd(busy_ctx_t *ctx);
 extern errno_t ln_cmd(busy_ctx_t *ctx);
 extern errno_t rm_cmd(busy_ctx_t *ctx);
+extern errno_t cp_cmd(busy_ctx_t *ctx);
 
 
 extern reiser4_object_t *busy_misc_open_parent(reiser4_tree_t *tree, 

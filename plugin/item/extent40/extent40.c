@@ -831,7 +831,7 @@ static aal_block_t *extent40_load_block(reiser4_place_t *place,
 	if (!(ins_key = aal_calloc(sizeof(*ins_key), 0)))
 		goto error_free_block;
 
-	aal_memcpy(ins_key, &key, sizeof(key));
+	aal_memcpy(ins_key, key, sizeof(*key));
 
 	/* Updating block in data cache. */
 	aal_hash_table_insert(blocks, ins_key, block);

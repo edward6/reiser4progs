@@ -4,7 +4,7 @@ noinst_PROGRAMS = busy
 
 INCLUDES	= -I$(top_srcdir)/include
 
-busy_SOURCES	= misc.c ls.c stat.c create.c ln.c rm.c busy.c
+busy_SOURCES	= misc.c ls.c stat.c create.c ln.c rm.c cp.c busy.c
 
 busy_LDFLAGS    = @PROGS_LDFLAGS@
 

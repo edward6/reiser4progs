@@ -464,13 +464,14 @@ static int64_t reg40_write(object_entity_t *entity,
 
 	/* Calculating new @bytes and updating stat data fields. */
 	bytes += obj40_get_bytes(&reg->obj);
-	return obj40_touch(&reg->obj, new_size, bytes);
+	if ((res = obj40_touch(&reg->obj, new_size, bytes)))
+		return res;
+	
+	return bytes;
 }
 
 /* Truncates file to passed size @n. */
-static errno_t reg40_truncate(object_entity_t *entity,
-			      uint64_t n)
-{
+static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 	errno_t res;
 	reg40_t *reg;
 	int64_t bytes;
@@ -502,7 +503,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		return obj40_touch(&reg->obj, n, bytes);
 	} else {
 		/* Cutting items/units */
-		if ((bytes = reg40_cut(entity, size - n)) < 0)
+		if ((bytes = reg40_cut(entity, n)) < 0)
 			return bytes;
 
 		/* Updating stat data fields. */

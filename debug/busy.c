@@ -52,7 +52,7 @@ busy_cmd_t tests[] = {
 	[7] = {
 		.name = "cp",
 		.options = "PATH PATH in_offset out_offset count blk_size",
-		.handler = NULL,
+		.handler = cp_cmd,
 		.ops_num = 6,
 	},
 	[8] = {
@@ -537,6 +537,38 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 		}
 
 		ctx->rdev |= num;
+	}
+	
+	if (ctx->testno == 7) {
+		/* Parse numbers given to the test "cp". */
+		ctx->in.offset = misc_str2long(params[4], 0);
+		ctx->out.offset = misc_str2long(params[5], 0);
+		ctx->count = misc_str2long(params[6], 0);
+		ctx->blksize = misc_str2long(params[7], 0);
+		
+		if (ctx->in.offset == INVAL_DIG || ctx->in.offset < 0) {
+			aal_error("Invalid input offset is spesified: '%s'.", 
+				  params[4]);
+			return 0x10;
+		}
+
+		if (ctx->out.offset == INVAL_DIG || ctx->out.offset < 0) {
+			aal_error("Invalid output offset is spesified: '%s'.", 
+				  params[5]);
+			return 0x10;
+		}
+
+		if (ctx->count == INVAL_DIG) {
+			aal_error("Invalid block count is spesified: '%s'.", 
+				  params[6]);
+			return 0x10;
+		}
+
+		if (ctx->blksize == INVAL_DIG || ctx->blksize <= 0) {
+			aal_error("Invalid block size is spesified: '%s'.", 
+				  params[7]);
+			return 0x10;
+		}
 	}
 	
 	return 0;
