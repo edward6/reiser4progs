@@ -670,19 +670,30 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	return 0;
 }
 
-static uint32_t direntry40_size(direntry40_t *direntry,
+static uint32_t direntry40_size(item_entity_t *item,
 				uint32_t pos, uint32_t count)
 {
-	uint32_t i;
-	entry40_t *entry;
-	uint32_t size = 0;
+	entry40_t *entry_end;
+	entry40_t *entry_start;
+	direntry40_t *direntry;
 
-	entry = direntry40_entry(direntry, pos);
+	if (count == 0)
+		return 0;
+	
+	direntry = direntry40_body(item);
+	entry_start = direntry40_entry(direntry, pos);
 
-	for (i = 0; i < count; i++, entry++)
-		size += direntry40_entry_len(direntry, entry);
+	if (pos + count < de40_get_count(direntry)) {
+		entry_end = direntry40_entry(direntry, pos + count);
 
-	return size;
+		return en40_get_offset(entry_end) -
+			en40_get_offset(entry_start);
+	} else {
+		entry_end = direntry40_entry(direntry, pos + count - 1);
+
+		return direntry40_entry_len(direntry, entry_end) +
+			(en40_get_offset(entry_end) - en40_get_offset(entry_start));
+	}
 }
 
 /* Shrinks direntry item in order to delete some entries */
@@ -699,8 +710,8 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	direntry40_t *direntry;
 	
 	direntry = direntry40_body(item);
-	
 	units = de40_get_count(direntry);
+	
 	aal_assert("umka-1681", pos < units);
 
 	if (pos + count > units)
@@ -713,14 +724,14 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	
 	/* Getting how many bytes should be moved before passed @pos */
 	first = (units - (pos + count)) * sizeof(entry40_t);
-	first += direntry40_size(direntry, 0, pos);
+	first += direntry40_size(item, 0, pos);
 
 	/* Getting how many bytes shopuld be moved after passed @pos. */
-	second = direntry40_size(direntry, pos + count,
+	second = direntry40_size(item, pos + count,
 				 units - (pos + count));
 
 	/* Calculating how many bytes will be moved out */
-	remove = direntry40_size(direntry, pos, count);
+	remove = direntry40_size(item, pos, count);
 
 	/* Moving headers and first part of bodies (before passed @pos) */
 	entry = direntry40_entry(direntry, pos);
@@ -760,7 +771,7 @@ static int32_t direntry40_shrink(item_entity_t *item,
 }
 
 /* Prepares direntry40 for insert new entries */
-static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
+static int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 				 uint32_t count, uint32_t len)
 {
 	void *src, *dst;
@@ -772,10 +783,13 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 	uint32_t headers;
 	uint32_t i, units;
 
+	direntry40_t *direntry;
+
 	aal_assert("umka-1724", len > 0);
 	aal_assert("umka-1724", count > 0);
-	aal_assert("umka-1723", direntry != NULL);
-	
+	aal_assert("umka-1723", item != NULL);
+
+	direntry = direntry40_body(item);
 	units = de40_get_count(direntry);
 	headers = count * sizeof(entry40_t);
 
@@ -799,10 +813,10 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 
 	/* Calculating length bytes to be moved before insert point */
 	first = (units - pos) * sizeof(entry40_t);
-	first += direntry40_size(direntry, 0, pos);
+	first += direntry40_size(item, 0, pos);
 	
 	/* Calculating length bytes to be moved after insert point */
-	second = direntry40_size(direntry, pos, units - pos);
+	second = direntry40_size(item, pos, units - pos);
 	
 	/* Updating offset of entries which lie before insert point */
 	entry = direntry40_entry(direntry, 0);
@@ -852,8 +866,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	aal_assert("umka-792", buff != NULL);
 	aal_assert("umka-897", pos != ~0ul);
 
-	if (!(direntry = direntry40_body(item)))
-		return -1;
+	direntry = direntry40_body(item);
 
 	hint = (reiser4_item_hint_t *)buff;
 	entry_hint = (reiser4_entry_hint_t *)hint->type_specific;
@@ -863,9 +876,9 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	  function direntry40_expand returns the offset of where new unit will
 	  be inserted.
 	*/
-	if ((offset = direntry40_expand(direntry, pos, count, hint->len)) <= 0) {
-		aal_exception_error("Can't expand direntry item at "
-				    "pos %u by %u entries.", pos, count);
+	if ((offset = direntry40_expand(item, pos, count, hint->len)) <= 0) {
+		aal_exception_error("Can't expand direntry item at pos "
+				    "%u by %u entries.", pos, count);
 		return -1;
 	}
 	
