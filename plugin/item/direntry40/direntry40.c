@@ -68,6 +68,8 @@ static inline int direntry40_entry_long(direntry40_t *direntry,
 	return (objectid & 0x0100000000000000ull) ? 1 : 0;
 }
 
+#ifndef ENABLE_ALONE
+
 /*
   Calculates entry length. This function is widely used in shift code and
   modification code.
@@ -98,6 +100,8 @@ static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
 	
 	return len;
 }
+
+#endif
 
 /* Extracts the part of entry name from the 64bits value it was packed to */
 static char *direntry40_unpack_string(uint64_t value, char *buff) {
@@ -247,7 +251,7 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	return i - pos;
 }
 
-static int direntry40_data() {
+static int direntry40_data(void) {
 	return 1;
 }
 

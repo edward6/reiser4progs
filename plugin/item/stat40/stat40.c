@@ -320,15 +320,19 @@ static rbody_t *stat40_sdext_body(item_entity_t *item,
 	return hint.body;
 }
 
-/* Helper structure for keeping track of presence of a stat data
- * extention */
+/*
+  Helper structure for keeping track of presence of a stat data
+  extention.
+*/
 struct present_hint {
 	int present;
 	uint8_t ext;
 };
 
-/* Callback for getting presence information for certain stat data
- * extention */
+/*
+  Callback for getting presence information for certain stat data
+  extention.
+*/
 static int callback_present_ext(uint8_t ext, reiser4_plugin_t *plugin,
 				uint16_t extmask, rbody_t *extbody,
 				void *data)
