@@ -170,8 +170,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "Should be" : "Fixed to", lw_new.mode, 
 				    stat->plug->label);
 		
-		if (mode == RM_CHECK)
-			res = RE_FIXABLE;
+		res = RE_FIXABLE;
 	}
 	
 	size_func(obj, &lw_new.size, size);
@@ -187,8 +186,12 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "Should be" : "Fixed to", lw_new.size, 
 				    stat->plug->label);
 		
-		if (mode == RM_CHECK)
-			res = RE_FIXABLE;
+		res = RE_FIXABLE;
+	}
+	
+	if (res && res != RM_CHECK)  {
+		res = obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
+		if (res) return res;
 	}
 	
 	if ((res |= obj40_read_ext(stat, SDEXT_UNIX_ID, &unix_hint)) < 0)
@@ -214,13 +217,12 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	}
 	*/
 	
-	if (mode == RM_CHECK)
-		return res;
+	if (res && res != RM_CHECK) {
+		res = obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
+		if (res) return res;
+	}
 	
-	if ((res = obj40_write_ext(stat, SDEXT_LW_ID, &unix_hint)))
-		return res;
-	
-	return obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
+	return 0;
 }
 
 /* Fix @place->key if differs from @key. */
