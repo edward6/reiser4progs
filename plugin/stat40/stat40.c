@@ -313,27 +313,6 @@ static int stat40_sdext_present(reiser4_item_t *item,
 	return hint.present;
 }
 
-/*static errno_t stat40_sdext_open(reiser4_item_t *item, 
-								 uint8_t bit, stat40_sdext_t *sdext)
-{
-    aal_assert("umka-1193", item != NULL, return -1);
-    aal_assert("umka-1194", sdext != NULL, return -1);
-
-    if (!stat40_sdext_present(item, bit)) {
-		aal_exception_error("Stat data extention 0x%x "
-							"is not present.", bit);
-		return -1;
-    }
-    
-    if (!(sdext->plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, bit))) {
-		aal_exception_error("Can't find stat data extention plugin "
-							"by its id %x.", bit);
-		return -1;
-    }
-    
-    return -((sdext->body = stat40_sdext_body(item, bit)) == NULL);
-}*/
-
 static errno_t stat40_print(reiser4_item_t *item,
 						   char *buff, uint32_t n,
 						   uint16_t options)
@@ -372,8 +351,6 @@ static reiser4_plugin_t stat40_plugin = {
 			.label = "stat40",
 			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 		},
-		.open       = stat40_open,
-		
 #ifndef ENABLE_COMPACT
         .init		= stat40_init,
         .estimate	= stat40_estimate,
@@ -389,15 +366,16 @@ static reiser4_plugin_t stat40_plugin = {
 #endif
         .lookup		= NULL,
 		.shift      = NULL,
+		.fetch      = NULL,
+		.update     = NULL,
 	    
+		.open       = stat40_open,
         .count		= stat40_count,
         .valid		= stat40_valid,
         .print		= stat40_print,
         
 		.max_poss_key	= stat40_max_poss_key,
-        .max_real_key   = stat40_max_poss_key,
-	
-		.specific = {}
+        .max_real_key   = stat40_max_poss_key
     }
 };
 

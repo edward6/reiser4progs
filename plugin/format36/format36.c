@@ -1,6 +1,6 @@
 /*
-    format36.c -- Disk-layout plugin for reiser3.6.x.
-    Copyright (C) 1996-2002 Hans Reiser.
+  format36.c -- Disk-layout plugin for reiser3.6.x.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -30,13 +30,13 @@ static int format36_magic(format36_super_t *super) {
 
     if (format36_35_magic(magic) || format36_36_magic(magic) || 
 	    format36_jr_magic(magic))
-	return 1;
+		return 1;
     
     return 0;
 }
 
 static errno_t format36_super_check(format36_super_t *super, 
-    aal_device_t *device) 
+									aal_device_t *device) 
 {
     blk_t dev_len;
     int is_journal_dev, is_journal_magic;
@@ -45,17 +45,17 @@ static errno_t format36_super_check(format36_super_t *super,
     is_journal_magic = format36_jr_magic(super->s_v1.sb_magic);
 
     if (is_journal_dev != is_journal_magic) {
-	aal_exception_throw(EXCEPTION_WARNING, EXCEPTION_IGNORE,
-	    "Journal relocation flags mismatch. Journal device: 0x%x, magic: %s.",
-	    get_jp_dev(get_sb_jp(super)), super->s_v1.sb_magic);
+		aal_exception_throw(EXCEPTION_WARNING, EXCEPTION_IGNORE,
+							"Journal relocation flags mismatch. Journal device: 0x%x, magic: %s.",
+							get_jp_dev(get_sb_jp(super)), super->s_v1.sb_magic);
     }
 
     dev_len = aal_device_len(device);
     if (get_sb_block_count(super) > dev_len) {
-	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,
-	    "Superblock has an invalid block count %llu for device "
-	    "length %llu blocks.", (blk_t)get_sb_block_count(super), dev_len);
-	return -1;
+		aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,
+							"Superblock has an invalid block count %llu for device "
+							"length %llu blocks.", (blk_t)get_sb_block_count(super), dev_len);
+		return -1;
     }
 
     return 0;
@@ -71,29 +71,29 @@ static aal_block_t *format36_super_open(aal_device_t *device) {
     aal_device_set_bs(device, DEFAULT_BLOCKSIZE);
     
     for (i = 0; super_offset[i] != -1; i++) {
-	if ((block = aal_block_open(device, super_offset[i]))) {
-	    super = (format36_super_t *)block->data;
+		if ((block = aal_block_open(device, super_offset[i]))) {
+			super = (format36_super_t *)block->data;
 			
-	    if (format36_magic(super)) {
-		if (aal_device_set_bs(device, get_sb_block_size(super))) {
-		    aal_block_close(block);
-		    continue;
-		}
+			if (format36_magic(super)) {
+				if (aal_device_set_bs(device, get_sb_block_size(super))) {
+					aal_block_close(block);
+					continue;
+				}
 				
-		if (format36_super_check(super, device)) {
-		    aal_block_close(block);
-		    continue;
+				if (format36_super_check(super, device)) {
+					aal_block_close(block);
+					continue;
+				}
+		
+				if (aal_device_set_bs(device, get_sb_block_size(super)))
+					return block;
+		
+			}
+			aal_block_close(block);
+		} else {
+			aal_exception_error("Can't read block %d. %s.", super_offset[i], 
+								aal_device_error(device));
 		}
-		
-		if (aal_device_set_bs(device, get_sb_block_size(super)))
-		    return block;
-		
-	    }
-	    aal_block_close(block);
-	} else {
-	    aal_exception_error("Can't read block %d. %s.", super_offset[i], 
-		aal_device_error(device));
-	}
     }
     return NULL;
 }
@@ -104,19 +104,19 @@ static reiser4_entity_t *format36_open(aal_device_t *device) {
     aal_assert("umka-380", device != NULL, return NULL);    
 	
     if (!(format = aal_calloc(sizeof(*format), 0)))
-	return NULL;
+		return NULL;
 		
     if (!(format->block = format36_super_open(device)))
-	goto error_free_format;
+		goto error_free_format;
 	
     format->device = device;
     format->plugin = &format36_plugin;
     
     return (reiser4_entity_t *)format;
 
-error_free_format:
+  error_free_format:
     aal_free(format);
-error:
+  error:
     return NULL;
 }
 
@@ -132,16 +132,16 @@ static errno_t format36_sync(reiser4_entity_t *entity) {
     
     if (aal_block_sync(format->block)) {
     	aal_exception_throw(EXCEPTION_WARNING, EXCEPTION_IGNORE,
-	    "Can't write superblock to block %llu. %s.", 
-	    aal_block_number(format->block), aal_device_error(format->device));
-	return -1;
+							"Can't write superblock to block %llu. %s.", 
+							aal_block_number(format->block), aal_device_error(format->device));
+		return -1;
     }
     
     return 0;
 }
 
 static reiser4_entity_t *format36_create(aal_device_t *device, 
-    uint64_t blocks, uint16_t tail)
+										 uint64_t blocks, uint16_t tail)
 {
     return NULL;
 }
@@ -169,7 +169,7 @@ static int format36_confirm(aal_device_t *device) {
     aal_assert("umka-385", device != NULL, return 0);
     
     if (!(block = format36_super_open(device)))
-	return 0;
+		return 0;
 	
     aal_block_close(block);
     return 1;
@@ -240,7 +240,7 @@ static void format36_set_root(reiser4_entity_t *entity, uint64_t root) {
 }
 
 static void format36_set_len(reiser4_entity_t *entity, 
-    uint64_t blocks)
+							 uint64_t blocks)
 {
     format36_super_t *super;
     
@@ -251,7 +251,7 @@ static void format36_set_len(reiser4_entity_t *entity,
 }
 
 static void format36_set_free(reiser4_entity_t *entity, 
-    uint64_t blocks) 
+							  uint64_t blocks) 
 {
     format36_super_t *super;
     
@@ -265,58 +265,58 @@ static void format36_set_free(reiser4_entity_t *entity,
 
 static reiser4_plugin_t format36_plugin = {
     .format_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = FORMAT_REISER40_ID,
-	    .group = 0,
-	    .type = FORMAT_PLUGIN_TYPE,
-	    .label = "format36",
-	    .desc = "Disk-format for reiserfs 3.6.x, ver. " VERSION,
-	},
-	.open		= format36_open,
-	.valid		= format36_valid,
-	.device		= NULL,
+		.h = {
+			.handle = NULL,
+			.id = FORMAT_REISER40_ID,
+			.group = 0,
+			.type = FORMAT_PLUGIN_TYPE,
+			.label = "format36",
+			.desc = "Disk-format for reiserfs 3.6.x, ver. " VERSION,
+		},
+		.open		= format36_open,
+		.valid		= format36_valid,
+		.device		= NULL,
 #ifndef ENABLE_COMPACT
-	.check		= NULL,
-	.sync		= format36_sync,
-	.create		= format36_create,
-	.print		= NULL,
-	.set_root	= format36_set_root,
-	.set_len	= format36_set_len,
-	.set_free	= format36_set_free,
-	.set_height	= NULL,
-	.set_stamp	= NULL,
+		.check		= NULL,
+		.sync		= format36_sync,
+		.create		= format36_create,
+		.print		= NULL,
+		.set_root	= format36_set_root,
+		.set_len	= format36_set_len,
+		.set_free	= format36_set_free,
+		.set_height	= NULL,
+		.set_stamp	= NULL,
 #else
-	.check		= NULL,
-	.sync		= NULL,
-	.create		= NULL,
-	.print		= NULL,
-	.set_root	= NULL,
-	.set_len	= NULL,
-	.set_free	= NULL,
-	.set_height	= NULL,
-	.set_stamp	= NULL,
+		.check		= NULL,
+		.sync		= NULL,
+		.create		= NULL,
+		.print		= NULL,
+		.set_root	= NULL,
+		.set_len	= NULL,
+		.set_free	= NULL,
+		.set_height	= NULL,
+		.set_stamp	= NULL,
 #endif
-	.close		= format36_close,
-	.confirm	= format36_confirm,
-	.name		= format36_name,
+		.close		= format36_close,
+		.confirm	= format36_confirm,
+		.name		= format36_name,
 
-	.get_root	= format36_get_root,
-	.get_len	= format36_get_len,
-	.get_free	= format36_get_free,
+		.get_root	= format36_get_root,
+		.get_len	= format36_get_len,
+		.get_free	= format36_get_free,
 	
-	.journal_pid	= format36_journal_pid,
-	.alloc_pid	= format36_alloc_pid,
-	.oid_pid	= format36_oid_pid,
+		.journal_pid	= format36_journal_pid,
+		.alloc_pid	= format36_alloc_pid,
+		.oid_pid	= format36_oid_pid,
 	
-	.skipped_layout	= NULL,
-	.format_layout	= NULL,
-	.journal_layout	= NULL,
-	.alloc_layout	= NULL,
+		.skipped_layout	= NULL,
+		.format_layout	= NULL,
+		.journal_layout	= NULL,
+		.alloc_layout	= NULL,
 	
-	.get_height	= NULL,
-	.get_stamp	= NULL,
-	.oid_area	= NULL
+		.get_height	= NULL,
+		.get_stamp	= NULL,
+		.oid_area	= NULL
     }
 };
 
@@ -326,4 +326,3 @@ static reiser4_plugin_t *format36_start(reiser4_core_t *c) {
 }
 
 plugin_register(format36_start);
-

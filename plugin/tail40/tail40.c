@@ -68,6 +68,13 @@ static errno_t tail40_max_real_key(reiser4_item_t *item,
     return 0;
 }
 
+static errno_t tail40_fetch(reiser4_item_t *item, uint32_t pos,
+						   void *buff, uint32_t count)
+{
+	aal_memcpy(buff, tail40_body(item) + pos, count);
+	return 0;
+}
+
 static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key, 
 						 uint32_t *pos)
 {
@@ -137,12 +144,13 @@ static reiser4_plugin_t tail40_plugin = {
         .valid		  = NULL,
         .print		  = NULL,
 		.shift        = NULL,
+		.update       = NULL,
 		
         .lookup		  = tail40_lookup,
+		.fetch        = tail40_fetch,
+		
         .max_poss_key = tail40_max_poss_key,
         .max_real_key = tail40_max_real_key,
-
-		.specific	= {}
     }
 };
 

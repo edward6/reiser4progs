@@ -315,13 +315,14 @@ int reiser4_tree_lookup(
     uint8_t level,		    /* stop level for search */
     reiser4_coord_t *coord)	/* coord of found item */
 {
-    blk_t target;
     int lookup, deep;
     
     reiser4_key_t lkey;
     reiser4_item_t item;
     reiser4_coord_t fake;
     reiser4_joint_t *parent;
+
+	reiser4_ptr_hint_t ptr;
 
     aal_assert("umka-742", key != NULL, return -1);
 
@@ -368,10 +369,11 @@ int reiser4_tree_lookup(
 		}
 	
 		/* Getting the node pointer from internal item */
-		target = plugin_call(return -1, item.plugin->item_ops.specific.ptr,
-							 get_ptr, &item);
+		if (plugin_call(return -1, item.plugin->item_ops,
+						fetch, &item, 0, &ptr, 1))
+			return -1;
 		
-		if (target == FAKE_BLK) {
+		if (ptr.ptr == FAKE_BLK) {
 			reiser4_node_t *node = coord->joint->node;
 
 			aal_exception_error("Can't get pointer from internal item %u, "
@@ -393,14 +395,14 @@ int reiser4_tree_lookup(
 			   Node was not found in the cache, we open it and attach to the 
 			   cache.
 			*/
-			if (!(coord->joint = reiser4_tree_load(tree, target))) {
-				aal_exception_error("Can't load node %llu durring lookup.", target);
+			if (!(coord->joint = reiser4_tree_load(tree, ptr.ptr))) {
+				aal_exception_error("Can't load node %llu durring lookup.", ptr.ptr);
 				return -1;
 			}
 
 			/* Registering node in tree cache */
 			if (reiser4_joint_attach(parent, coord->joint)) {
-				aal_exception_error("Can't attach the node %llu in the tree.", target);
+				aal_exception_error("Can't attach the node %llu in the tree.", ptr.ptr);
 				goto error_free_joint;
 			}
 		}
@@ -423,8 +425,8 @@ static errno_t reiser4_tree_attach(
     rpid_t id;
     int lookup;
     reiser4_coord_t coord;
+    reiser4_ptr_hint_t ptr;
     reiser4_item_hint_t hint;
-    reiser4_internal_hint_t internal_hint;
 
     aal_assert("umka-913", tree != NULL, return -1);
     aal_assert("umka-916", joint != NULL, return -1);
@@ -445,11 +447,11 @@ static errno_t reiser4_tree_attach(
 		return -1;
     }
 
-    aal_memset(&internal_hint, 0, sizeof(internal_hint));
-    internal_hint.ptr = aal_block_number(joint->node->block);
+    aal_memset(&ptr, 0, sizeof(ptr));
+    ptr.ptr = aal_block_number(joint->node->block);
 
     reiser4_node_lkey(joint->node, &hint.key);
-    hint.hint = &internal_hint;
+    hint.hint = &ptr;
 
     if (reiser4_tree_insert(tree, &hint, LEAF_LEVEL + 1, &coord)) {
         aal_exception_error("Can't insert internal item to the tree.");

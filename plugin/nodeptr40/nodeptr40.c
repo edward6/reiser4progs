@@ -25,21 +25,19 @@ static uint32_t nodeptr40_count(reiser4_item_t *item) {
 static errno_t nodeptr40_init(reiser4_item_t *item, 
 							  reiser4_item_hint_t *hint)
 {
-    nodeptr40_t *internal;
+    nodeptr40_t *nodeptr;
     
     aal_assert("vpf-063", item != NULL, return -1); 
     aal_assert("vpf-064", hint != NULL, return -1);
 
-    internal = nodeptr40_body(item);
-    
-    np40_set_ptr(internal, 
-				 ((reiser4_internal_hint_t *)hint->hint)->ptr);
+    nodeptr = nodeptr40_body(item);
+    np40_set_ptr(nodeptr,((reiser4_ptr_hint_t *)hint->hint)->ptr);
 	    
     return 0;
 }
 
-static errno_t nodeptr40_estimate(reiser4_item_t *item,
-								  uint32_t pos, reiser4_item_hint_t *hint) 
+static errno_t nodeptr40_estimate(reiser4_item_t *item, uint32_t pos,
+								  reiser4_item_hint_t *hint) 
 {
     aal_assert("vpf-068", hint != NULL, return -1);
     
@@ -47,7 +45,7 @@ static errno_t nodeptr40_estimate(reiser4_item_t *item,
     return 0;
 }
 
-static errno_t nodeptr40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
+/*static errno_t nodeptr40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
     nodeptr40_t *internal;
     
     aal_assert("umka-605", item != NULL, return -1);
@@ -57,7 +55,7 @@ static errno_t nodeptr40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
     np40_set_ptr(internal, ptr);
 
     return 0;
-}
+}*/
 
 extern errno_t nodeptr40_check(reiser4_item_t *item, 
 							   uint16_t options);
@@ -96,6 +94,40 @@ static errno_t nodeptr40_max_poss_key(reiser4_item_t *item,
 					   get_key, item->node, item->pos, key);
 }
 
+static errno_t nodeptr40_fetch(reiser4_item_t *item, uint32_t pos,
+							  void *buff, uint32_t count)
+{
+	nodeptr40_t *nodeptr;
+	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
+		
+	aal_assert("umka-1419", item != NULL, return -1);
+	aal_assert("umka-1420", buff != NULL, return -1);
+
+    nodeptr = nodeptr40_body(item);
+	hint->ptr = np40_get_ptr(nodeptr);
+	
+    return 0;
+}
+
+#ifndef ENABLE_COMPACT
+
+static errno_t nodeptr40_update(reiser4_item_t *item, uint32_t pos,
+							  void *buff, uint32_t count)
+{
+	nodeptr40_t *nodeptr;
+	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
+		
+	aal_assert("umka-1423", item != NULL, return -1);
+	aal_assert("umka-1424", buff != NULL, return -1);
+
+    nodeptr = nodeptr40_body(item);
+	np40_set_ptr(nodeptr, hint->ptr);
+	
+    return 0;
+}
+
+#endif
+
 static reiser4_plugin_t nodeptr40_plugin = {
     .item_ops = {
 		.h = {
@@ -108,10 +140,12 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		},
 #ifndef ENABLE_COMPACT	    
         .init		= nodeptr40_init,
+		.update     = nodeptr40_update,
         .estimate	= nodeptr40_estimate,
         .check		= nodeptr40_check,
 #else
         .init		= NULL,
+		.update     = NULL,
         .estimate	= NULL,
         .check		= NULL,
 #endif
@@ -124,22 +158,10 @@ static reiser4_plugin_t nodeptr40_plugin = {
 
         .print		= nodeptr40_print,
         .count		= nodeptr40_count,
+		.fetch       = nodeptr40_fetch,
 	
 		.max_poss_key	= nodeptr40_max_poss_key,
 		.max_real_key   = nodeptr40_max_poss_key,
-	
-    	.specific = {
-			.ptr = {
-				.get_ptr    = nodeptr40_get_ptr,
-#ifndef ENABLE_COMPACT
-				.set_ptr    = nodeptr40_set_ptr,
-#else
-				.set_ptr    = NULL,
-#endif
-				.get_width  = NULL,
-				.set_width  = NULL
-			}
-		}
     }
 };
 

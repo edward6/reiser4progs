@@ -24,17 +24,21 @@ static uint32_t direntry40_count(reiser4_item_t *item) {
     return de40_get_count(direntry);
 }
 
-static errno_t direntry40_entry(reiser4_item_t *item, 
-								uint32_t pos, reiser4_entry_hint_t *entry)
+static errno_t direntry40_fetch(reiser4_item_t *item, uint32_t pos,
+							   void *buff, uint32_t count)
 {
     entry40_t *en;
     uint32_t offset;
     
     objid40_t *objid;
     direntry40_t *direntry;
+	reiser4_entry_hint_t *entry;
     
     aal_assert("umka-866", item != NULL, return -1);
+	aal_assert("umka-1418", buff != NULL, return -1);
     
+	entry = (reiser4_entry_hint_t *)buff;
+	
     if (!(direntry = direntry40_body(item)))
 		return -1;
     
@@ -61,8 +65,8 @@ static errno_t direntry40_entry(reiser4_item_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t direntry40_estimate(reiser4_item_t *item, 
-								   uint32_t pos, reiser4_item_hint_t *hint) 
+static errno_t direntry40_estimate(reiser4_item_t *item, uint32_t pos,
+								   reiser4_item_hint_t *hint) 
 {
     int i;
     reiser4_direntry_hint_t *direntry_hint;
@@ -83,7 +87,7 @@ static errno_t direntry40_estimate(reiser4_item_t *item,
     return 0;
 }
 
-static uint32_t direntry40_entrylen(direntry40_t *direntry, 
+static uint32_t direntry40_unitlen(direntry40_t *direntry, 
 									uint32_t pos) 
 {
     char *name;
@@ -98,8 +102,8 @@ static uint32_t direntry40_entrylen(direntry40_t *direntry,
     return (aal_strlen(name) + sizeof(objid40_t) + 1);
 }
 
-static errno_t direntry40_insert(reiser4_item_t *item, 
-								 uint32_t pos, reiser4_item_hint_t *hint)
+static errno_t direntry40_insert(reiser4_item_t *item, uint32_t pos,
+								 reiser4_item_hint_t *hint)
 {
     uint32_t i, offset;
     uint32_t len_before = 0;
@@ -128,7 +132,7 @@ static errno_t direntry40_insert(reiser4_item_t *item,
 		} else {
 			offset = en40_get_offset(&direntry->entry[de40_get_count(direntry) - 1]);
 			offset += sizeof(entry40_t) + 
-				direntry40_entrylen(direntry, de40_get_count(direntry) - 1);
+				direntry40_unitlen(direntry, de40_get_count(direntry) - 1);
 		}
     } else {
 		offset = sizeof(direntry40_t) + 
@@ -142,10 +146,10 @@ static errno_t direntry40_insert(reiser4_item_t *item,
     len_before = (de40_get_count(direntry) - pos)*sizeof(entry40_t);
 	
     for (i = 0; i < pos; i++)
-		len_before += direntry40_entrylen(direntry, i);
+		len_before += direntry40_unitlen(direntry, i);
 	
     for (i = pos; i < de40_get_count(direntry); i++)
-		len_after += direntry40_entrylen(direntry, i);
+		len_after += direntry40_unitlen(direntry, i);
 	
     /* Updating offsets */
     for (i = 0; i < pos; i++) {
@@ -237,14 +241,14 @@ static uint16_t direntry40_remove(reiser4_item_t *item,
     head_len = offset - sizeof(entry40_t) -
 		(((char *)&direntry->entry[pos]) - ((char *)direntry));
 
-    rem_len = direntry40_entrylen(direntry, pos);
+    rem_len = direntry40_unitlen(direntry, pos);
 
     aal_memmove(&direntry->entry[pos], 
 				&direntry->entry[pos + 1], head_len);
 
     for (i = 0; i < pos; i++) {
-		en40_set_offset(&direntry->entry[i], 
-						en40_get_offset(&direntry->entry[i]) - sizeof(entry40_t));
+		en40_set_offset(&direntry->entry[i], en40_get_offset(&direntry->entry[i]) -
+						sizeof(entry40_t));
     }
     
     if (pos < (uint32_t)de40_get_count(direntry) - 1) {
@@ -253,10 +257,11 @@ static uint16_t direntry40_remove(reiser4_item_t *item,
 		offset = en40_get_offset(&direntry->entry[pos]);
 	
 		for (i = pos; i < (uint32_t)de40_get_count(direntry) - 1; i++)
-			foot_len += direntry40_entrylen(direntry, i);
+			foot_len += direntry40_unitlen(direntry, i);
 	
-		aal_memmove((((char *)direntry) + offset) - (sizeof(entry40_t) +
-													 rem_len), ((char *)direntry) + offset, foot_len);
+		aal_memmove((((char *)direntry) + offset) -
+					(sizeof(entry40_t) + rem_len),
+					((char *)direntry) + offset, foot_len);
 
 		for (i = pos; i < (uint32_t)de40_get_count(direntry) - 1; i++) {
 			en40_set_offset(&direntry->entry[i], 
@@ -302,8 +307,8 @@ static inline void *callback_get_entry(void *array,
 static inline int callback_comp_entry(
     reiser4_body_t *entryid,	/* entryid passed by binay search */
     reiser4_body_t *lookkey,	/* looked key */
-    void *data			/* user-specified data */
-	) {
+    void *data)			/* user-specified data */
+{
     reiser4_key_t entrykey;
     reiser4_plugin_t *plugin;
     reiser4_key_type_t type;
@@ -453,19 +458,15 @@ static reiser4_plugin_t direntry40_plugin = {
         .valid		= NULL,
 		.shift      = NULL,
 	    .open       = NULL,
+		.update     = NULL,
 		
         .print		= direntry40_print,
         .lookup		= direntry40_lookup,
         .count		= direntry40_count,
+		.fetch       = direntry40_fetch,
 		
         .max_poss_key	= direntry40_max_poss_key,
-        .max_real_key   = direntry40_max_real_key,
-	
-		.specific = {
-			.direntry = { 
-				.entry = direntry40_entry
-			}
-		}
+        .max_real_key   = direntry40_max_real_key
     }
 };
 

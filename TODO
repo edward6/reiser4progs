@@ -19,4 +19,4 @@ Copyright (C) 1996-2002 Hans Reiser
 * rewrite progs/libmisc/profile.c in order to be using the last chnages in plugin 
   header structure.
 
-* stat40 plugin probably should know nothing about its extentions.
+* add fetch and update functions into item.c

@@ -131,11 +131,14 @@ errno_t repair_filter_update_traverse(reiser4_joint_t *joint,
 	}
 	repair_clear_flag(check_data, REPAIR_NOT_FIXED);
     } else {
-	blk_t ptr = plugin_call(return -1, item->plugin->item_ops.specific.ptr,
-	    get_ptr, item);
+		reiser4_ptr_hint_t ptr;
+
+		if (plugin_call(return -1, item->plugin->item_ops,
+						fetch, item, 0, &ptr, 1))
+			return -1;
 	
 	/* Mark the child as a formatted block in the bitmap. */
-	aux_bitmap_clear(repair_cut_data(check_data)->formatted, ptr);
+	aux_bitmap_clear(repair_cut_data(check_data)->formatted, ptr.ptr);
     }
     
     return 0;

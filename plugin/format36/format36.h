@@ -1,6 +1,6 @@
 /*
-    format36.h -- disk-layout plugin for reiser3.6.x.
-    Copyright (C) 1996-2002 Hans Reiser.
+  format36.h -- disk-layout plugin for reiser3.6.x.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef FORMAT36_H
@@ -70,10 +70,10 @@ typedef struct format36 format36_t;
 
 #define format36_super(block)			((format36_super_t *)block->data)
 
-#define SUPER_V1_SIZE				(sizeof(format36_super_v1_t))
-#define SUPER_V2_SIZE				(sizeof(format36_super_t))
+#define SUPER_V1_SIZE				    (sizeof(format36_super_v1_t))
+#define SUPER_V2_SIZE				    (sizeof(format36_super_t))
 
-#define get_sb_jp(sb)				(&((sb)->s_v1.sb_journal))
+#define get_sb_jp(sb)				    (&((sb)->s_v1.sb_journal))
 
 #define get_sb_block_count(sb)			aal_get_le32(sb, s_v1.sb_block_count)
 #define set_sb_block_count(sb, val)		aal_set_le32(sb, s_v1.sb_block_count, val)
@@ -84,22 +84,22 @@ typedef struct format36 format36_t;
 #define get_sb_root_block(sb)			aal_get_le32(sb, s_v1.sb_root_block)
 #define set_sb_root_block(sb, val)		aal_set_le32(sb, s_v1.sb_root_block, val)
 
-#define get_sb_mount_id(sb)			aal_get_le32(sb, s_v1.sb_mountid)
+#define get_sb_mount_id(sb)			    aal_get_le32(sb, s_v1.sb_mountid)
 #define set_sb_mount_id(sb, val)		aal_set_le32(sb, s_v1.sb_mountid, val)
 
 #define get_sb_block_size(sb)			aal_get_le16(sb, s_v1.sb_block_size)
 #define set_sb_block_size(sb, val)		aal_set_le16(sb, s_v1.sb_block_size, val)
 
 #define get_sb_oid_max_size(sb)			aal_get_le16(sb, s_v1.sb_oid_max_size)
-#define set_sb_oid_max_size(sb, val)		aal_set_le16(sb, s_v1.sb_oid_max_size, val)
+#define set_sb_oid_max_size(sb, val)	aal_set_le16(sb, s_v1.sb_oid_max_size, val)
 
 #define get_sb_oid_cur_size(sb)			aal_get_le16(sb, s_v1.sb_oid_cur_size)
-#define set_sb_oid_cur_size(sb, val)		aal_set_le16(sb, s_v1.sb_oid_cur_size, val)
+#define set_sb_oid_cur_size(sb, val)	aal_set_le16(sb, s_v1.sb_oid_cur_size, val)
 
 #define get_sb_umount_state(sb)			aal_get_le16(sb, s_v1.sb_umount_state)
-#define set_sb_umount_state(sb, val)		aal_set_le16(sb, s_v1.sb_umount_state, val)
+#define set_sb_umount_state(sb, val)	aal_set_le16(sb, s_v1.sb_umount_state, val)
 
-#define get_sb_fs_state(sb)			aal_get_le16(sb, s_v1.sb_fs_state)
+#define get_sb_fs_state(sb)			    aal_get_le16(sb, s_v1.sb_fs_state)
 #define set_sb_fs_state(sb, val)		aal_set_le16(sb, s_v1.sb_fs_state, val)
 
 #define get_sb_hash_code(sb) 			aal_get_le32(sb, s_v1.sb_hash_function_code)
@@ -108,37 +108,37 @@ typedef struct format36 format36_t;
 #define get_sb_tree_height(sb)			aal_get_le16(sb, s_v1.sb_tree_height)
 #define set_sb_tree_height(sb, val)		aal_set_le16(sb, s_v1.sb_tree_height, val)
 
-#define get_sb_bmap_nr(sb)			aal_get_le16(sb, s_v1.sb_bmap_nr)
+#define get_sb_bmap_nr(sb)			    aal_get_le16(sb, s_v1.sb_bmap_nr)
 #define set_sb_bmap_nr(sb, val)			aal_set_le16(sb, s_v1.sb_bmap_nr, val)
 
-#define get_sb_format(sb)			aal_get_le16(sb, s_v1.sb_format)
+#define get_sb_format(sb)			    aal_get_le16(sb, s_v1.sb_format)
 #define set_sb_format(sb, val)			aal_set_le16(sb, s_v1.sb_format, val)
 
 #define get_sb_reserved_for_journal(sb)		aal_get_le16(sb, s_v1.sb_reserved_for_journal)
 #define set_sb_reserved_for_journal(sb,val)	aal_set_le16(sb, s_v1.sb_reserved_for_journal,val)
 
-#define get_jp_start(jp)			aal_get_le32(jp, jp_start)
+#define get_jp_start(jp)			    aal_get_le32(jp, jp_start)
 #define set_jp_start(jp, val)			aal_set_le32(jp, jp_start, val)
 
-#define get_jp_dev(jp)				aal_get_le32(jp, jp_dev)
-#define set_jp_dev(jp, val)			aal_set_le32(jp, jp_dev, val)
+#define get_jp_dev(jp)				    aal_get_le32(jp, jp_dev)
+#define set_jp_dev(jp, val)			    aal_set_le32(jp, jp_dev, val)
 
-#define get_jp_len(jp)				aal_get_le32(jp, jp_len)
-#define set_jp_len(jp, val)			aal_set_le32(jp, jp_len, val)
+#define get_jp_len(jp)				    aal_get_le32(jp, jp_len)
+#define set_jp_len(jp, val)			    aal_set_le32(jp, jp_len, val)
 
 #define get_jp_max_trans_len(jp)		aal_get_le32(jp, jp_trans_max)
-#define set_jp_max_trans_len(jp, val)		aal_set_le32(jp, jp_trans_max, val)
+#define set_jp_max_trans_len(jp, val)	aal_set_le32(jp, jp_trans_max, val)
 
-#define get_jp_magic(jp)			aal_get_le32(jp, jp_magic)
+#define get_jp_magic(jp)			    aal_get_le32(jp, jp_magic)
 #define set_jp_magic(jp,val)			aal_set_le32(jp, jp_magic, val)
 
 #define get_jp_max_batch(jp)			aal_get_le32(jp, jp_max_batch)
 #define set_jp_max_batch(jp,val)		aal_set_le32(jp, jp_max_batch, val)
 
 #define get_jp_max_commit_age(jp)		aal_get_le32(jp, jp_max_commit_age)
-#define set_jp_max_commit_age(jp, val)		aal_set_le32(jp, jp_max_commit_age, val)
+#define set_jp_max_commit_age(jp, val)	aal_set_le32(jp, jp_max_commit_age, val)
 
 #define get_jp_max_trans_age(jp)		aal_get_le32(jp, jp_max_trans_age)
-#define set_jp_max_trans_age(jp,val)		aal_set_le32(jp, jp_max_trans_age, val)
+#define set_jp_max_trans_age(jp,val)	aal_set_le32(jp, jp_max_trans_age, val)
 	
 #endif

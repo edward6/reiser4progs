@@ -1,6 +1,6 @@
 /*
-    r5_hash.c -- r5 hash.
-    Copyright (C) 1996-2002 Hans Reiser.
+  r5_hash.c -- r5 hash.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <reiser4/plugin.h>
@@ -10,9 +10,9 @@ uint64_t r5_hash_build(const unsigned char *name, uint32_t len) {
     uint64_t a = 0;
 	
     for (i = 0; i < len; i++) {
-	a += name[i] << 4;
-	a += name[i] >> 4;
-	a *= 11;
+		a += name[i] << 4;
+		a += name[i] >> 4;
+		a *= 11;
     }
     
     return a;
@@ -20,15 +20,15 @@ uint64_t r5_hash_build(const unsigned char *name, uint32_t len) {
 
 static reiser4_plugin_t r5_hash_plugin = {
     .hash_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = HASH_R5_ID,
-	    .group = 0,
-	    .type = HASH_PLUGIN_TYPE,
-	    .label = "r5_hash",
-	    .desc = "Implementation of r5 hash for reiserfs 4.0, ver. " VERSION,
-	},
-	.build = r5_hash_build
+		.h = {
+			.handle = NULL,
+			.id = HASH_R5_ID,
+			.group = 0,
+			.type = HASH_PLUGIN_TYPE,
+			.label = "r5_hash",
+			.desc = "Implementation of r5 hash for reiserfs 4.0, ver. " VERSION,
+		},
+		.build = r5_hash_build
     }
 };
 
@@ -37,4 +37,3 @@ static reiser4_plugin_t *r5_hash_start(reiser4_core_t *c) {
 }
 
 plugin_register(r5_hash_start);
-

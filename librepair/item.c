@@ -8,8 +8,8 @@
 errno_t repair_item_nptr_check(reiser4_node_t *node, 
     reiser4_item_t *item, repair_check_t *data) 
 {
-    blk_t ptr, next_blk;
-    count_t width;
+    blk_t next_blk;
+    reiser4_ptr_hint_t ptr;
     int res;
 
     aal_assert("vpf-368", node != NULL, return -1);
@@ -22,22 +22,20 @@ errno_t repair_item_nptr_check(reiser4_node_t *node,
 	FIXME-VITALY: This stuff should be tested carefully when functions 
 	return 0 as an error. 
     */
-    ptr = plugin_call(return -1, item->plugin->item_ops.specific.ptr,
-        get_ptr, item);
-	    
-    width = plugin_call(return -1, item->plugin->item_ops.specific.ptr,
-        get_width, item);
-
-    if (!ptr || (ptr >= reiser4_format_get_len(data->format)) || 
-	(width >= reiser4_format_get_len(data->format)) || 
-	(ptr + width >= reiser4_format_get_len(data->format))) 
+	if (plugin_call(return -1, item->plugin->item_ops, fetch,
+					item, 0, &ptr, 1))
+		return -1;
+	
+    if (!ptr.ptr || (ptr.ptr >= reiser4_format_get_len(data->format)) || 
+	(ptr.width >= reiser4_format_get_len(data->format)) || 
+	(ptr.ptr + ptr.width >= reiser4_format_get_len(data->format))) 
 	return 1;
 	
     /* Check if no any formatted blocks exists after ptr. */
-    if ((next_blk = aux_bitmap_find(repair_cut_data(data)->format_layout, ptr)) == 0)
+    if ((next_blk = aux_bitmap_find(repair_cut_data(data)->format_layout, ptr.ptr)) == 0)
         return 0;
     
-    if (next_blk >= ptr && next_blk < ptr + width) 
+    if (next_blk >= ptr.ptr && next_blk < ptr.ptr + ptr.width) 
 	return 1;
 
     return 0;

@@ -1,6 +1,6 @@
 /*
-    rupasov_hash.c -- rupasov hash.
-    Copyright (C) 1996-2002 Hans Reiser.
+  rupasov_hash.c -- rupasov hash.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <reiser4/plugin.h>
@@ -13,35 +13,35 @@ uint64_t rupasov_hash_build(const unsigned char *name, uint32_t len) {
     for (pow = 1, i = 1; i < len; i++) pow = pow * 10; 
 	
     if (len == 1) 
-	a = name[0] - 48;
+		a = name[0] - 48;
     else
-	a = (name[0] - 48) * pow;
+		a = (name[0] - 48) * pow;
 	
     for (i = 1; i < len; i++) {
-	c = name[i] - 48; 
+		c = name[i] - 48; 
 	
-	for (pow = 1, j = i; j < len - 1; j++) 
-	    pow = pow * 10;
+		for (pow = 1, j = i; j < len - 1; j++) 
+			pow = pow * 10;
 	
-	a = a + c * pow;
+		a = a + c * pow;
     }
 	
     for (; i < 40; i++) {
-	c = '0' - 48;
+		c = '0' - 48;
 	
-	for (pow = 1,j = i; j < len - 1; j++) 
-	    pow = pow * 10;
+		for (pow = 1,j = i; j < len - 1; j++) 
+			pow = pow * 10;
 	
-	a = a + c * pow;
+		a = a + c * pow;
     }
 	
     for (; i < 256; i++) {
-	c = i; 
+		c = i; 
 	
-	for (pow = 1, j = i; j < len - 1; j++) 
-	    pow = pow * 10;
+		for (pow = 1, j = i; j < len - 1; j++) 
+			pow = pow * 10;
 	
-	a = a + c * pow;
+		a = a + c * pow;
     }
 	
     a = a << 7;
@@ -50,15 +50,15 @@ uint64_t rupasov_hash_build(const unsigned char *name, uint32_t len) {
 
 static reiser4_plugin_t rupasov_hash_plugin = {
     .hash_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = HASH_RUPASOV_ID,
-	    .group = 0,
-	    .type = HASH_PLUGIN_TYPE,
-	    .label = "rupasov_hash",
-	    .desc = "Implementation of rupasov hash for reiserfs 4.0, ver. " VERSION,
-	},
-	.build = rupasov_hash_build
+		.h = {
+			.handle = NULL,
+			.id = HASH_RUPASOV_ID,
+			.group = 0,
+			.type = HASH_PLUGIN_TYPE,
+			.label = "rupasov_hash",
+			.desc = "Implementation of rupasov hash for reiserfs 4.0, ver. " VERSION,
+		},
+		.build = rupasov_hash_build
     }
 };
 

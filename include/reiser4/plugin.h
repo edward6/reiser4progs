@@ -249,11 +249,12 @@ typedef struct reiser4_item reiser4_item_t;
    on 3. 
 */
 
-struct reiser4_internal_hint {    
+struct reiser4_ptr_hint {    
     uint64_t ptr;
+	uint64_t width;
 };
 
-typedef struct reiser4_internal_hint reiser4_internal_hint_t;
+typedef struct reiser4_ptr_hint reiser4_ptr_hint_t;
 
 struct reiser4_sdext_unix_hint {
     uint32_t uid;
@@ -504,22 +505,6 @@ struct reiser4_file_ops {
 
 typedef struct reiser4_file_ops reiser4_file_ops_t;
 
-struct reiser4_direntry_ops {
-    errno_t (*entry) (reiser4_item_t *, uint32_t, reiser4_entry_hint_t *);
-};
-
-typedef struct reiser4_direntry_ops reiser4_direntry_ops_t;
-
-struct reiser4_ptr_ops {
-    uint64_t (*get_ptr) (reiser4_item_t *);
-    errno_t (*set_ptr) (reiser4_item_t *, uint64_t);
-    
-    uint64_t (*get_width) (reiser4_item_t *);
-    errno_t (*set_width) (reiser4_item_t *, uint64_t);
-};
-
-typedef struct reiser4_ptr_ops reiser4_ptr_ops_t;
-
 struct reiser4_item_ops {
     reiser4_plugin_header_t h;
 
@@ -535,6 +520,14 @@ struct reiser4_item_ops {
     
     /* Removes specified unit from the item. Returns released space */
     uint16_t (*remove) (reiser4_item_t *, uint32_t);
+
+	/* Reads passed amount of units from the item */
+	errno_t (*fetch) (reiser4_item_t *, uint32_t,
+					 void *, uint32_t);
+
+	/* Updates passed amount of units in the item */
+	errno_t (*update) (reiser4_item_t *, uint32_t,
+					 void *, uint32_t);
 
     /* Estimates item */
     errno_t (*estimate) (reiser4_item_t *, uint32_t, 
@@ -566,12 +559,6 @@ struct reiser4_item_ops {
 
     /* Checks the item structure. */
     errno_t (*check) (reiser4_item_t *, uint16_t);
-
-    /* Methods specific to particular type of item */
-    union {
-		reiser4_ptr_ops_t ptr;
-		reiser4_direntry_ops_t direntry;
-    } specific;
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;

@@ -81,19 +81,17 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    if ((res = repair_item_nptr_check(node, &item, data)) < 0) 
 		return -1;
 	    else {
-		blk_t ptr = plugin_call(return -1, 
-		    item.plugin->item_ops.specific.ptr,
-		    get_ptr, &item);
+		reiser4_ptr_hint_t hint;
+			
+		if (plugin_call(return -1, item.plugin->item_ops,
+						fetch, &item, 0, &hint, 1))
+			return -1;
 		
-		count_t width = plugin_call(return -1, 
-		    item.plugin->item_ops.specific.ptr,
-		    get_width, &item);
-		    
 		if (reiser4_item_nodeptr(&item)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad internal pointer (%llu/%llu). Removed.", 
 			aal_block_number(node->block), pos.item, pos.unit, 
-			ptr, width);
+			hint.ptr, 0);
 
 		    if (reiser4_node_remove(node, &pos))
 			return -1;
@@ -101,13 +99,14 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad extent pointer (%llu). Zeroed.", 
 			aal_block_number(node->block), pos.item, pos.unit, 
-			ptr, width);
+			hint.ptr, hint.width);
 
-		    plugin_call(return -1, item.plugin->item_ops.specific.ptr,
-			set_ptr, &item, 0);
-		    
-		    plugin_call(return -1, item.plugin->item_ops.specific.ptr,
-			set_width, &item, 0);
+			hint.ptr = 0;
+			hint.width = 0;
+			
+			if (plugin_call(return -1, item.plugin->item_ops,
+				update, &item, 0, &hint, 1))
+				return -1;
 		}
 	    }
 	} while (pos.unit--);	
@@ -405,19 +404,17 @@ errno_t repair_node_handle_pointers(reiser4_node_t *node, repair_check_t *data)
 	    continue;
 
 	for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
-	    count_t width;
-	    blk_t form_blk, used_blk, ptr;
+		reiser4_ptr_hint_t ptr;
+	    blk_t form_blk, used_blk;
 
-	    ptr = plugin_call(return -1, item.plugin->item_ops.specific.ptr,
-	        get_ptr, &item);
-	    
-	    width = plugin_call(return -1, item.plugin->item_ops.specific.ptr,
-	        get_width, &item);
-	    
+		if (plugin_call(return -1, item.plugin->item_ops, fetch,
+						&item, 0, &ptr, 1))
+			return -1;
+		
 	    aal_assert("vpf-387", 
-		(ptr < reiser4_format_get_len(data->format)) && 
-		(width < reiser4_format_get_len(data->format)) && 
-		(ptr + width < reiser4_format_get_len(data->format)), 
+		(ptr.ptr < reiser4_format_get_len(data->format)) && 
+		(ptr.width < reiser4_format_get_len(data->format)) && 
+		(ptr.ptr + ptr.width < reiser4_format_get_len(data->format)), 
 		return -1);
 	}
     }

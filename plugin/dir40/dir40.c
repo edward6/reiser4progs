@@ -41,6 +41,7 @@ static errno_t dir40_get_mode(reiser4_item_t *item, uint16_t *mode) {
 	reiser4_sdext_lw_hint_t lw_hint;
 
 	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
 	
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
@@ -202,8 +203,8 @@ static int32_t dir40_read(reiser4_entity_t *entity,
 		}
     
 		/* Getting next entry from the current direntry item */
-		if ((plugin_call(break, plugin->item_ops.specific.direntry, 
-						 entry, &dir->body, dir->place.pos.unit, entry)))
+		if ((plugin_call(break, plugin->item_ops, fetch, &dir->body,
+						 dir->place.pos.unit, entry, 1)))
 			break;
 
 		entry++;
@@ -247,8 +248,8 @@ static int dir40_lookup(reiser4_entity_t *entity,
 				roid_t locality;
 				reiser4_entry_hint_t entry;
 	    
-				if ((plugin_call(return -1, plugin->item_ops.specific.direntry, 
-								 entry, &dir->body, dir->place.pos.unit, &entry)))
+				if ((plugin_call(return -1, plugin->item_ops, fetch, &dir->body,
+								 dir->place.pos.unit, &entry, 1)))
 					return -1;
 
 				locality = plugin_call(return -1, key->plugin->key_ops,

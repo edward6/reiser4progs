@@ -669,17 +669,18 @@ errno_t reiser4_joint_traverse(
 			pos.unit = reiser4_item_count(&item) - 1;
 	    
 			do {
-				blk_t target;
+				reiser4_ptr_hint_t ptr;
 		
-				target = plugin_call(continue, item.plugin->item_ops.specific.ptr,
-									 get_ptr, &item);
+				if (plugin_call(continue, item.plugin->item_ops,
+								fetch, &item, 0, &ptr, 1))
+					goto error_after_func;
 		
-				if (target != FAKE_BLK) {
+				if (ptr.ptr != FAKE_BLK) {
 			
 					if (setup_func && (result = setup_func(joint, &item, data)))
 						goto error_after_func;
 	    
-					if ((result = open_func(&child, target, data)))
+					if ((result = open_func(&child, ptr.ptr, data)))
 						goto error_update_func;
 
 					if (child) {

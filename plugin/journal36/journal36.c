@@ -1,6 +1,6 @@
 /*
-    journal36.c -- journal plugin for reiser3.6.x.
-    Copyright (C) 1996-2002 Hans Reiser.
+  journal36.c -- journal plugin for reiser3.6.x.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include "journal36.h"
@@ -19,7 +19,7 @@ static reiser4_entity_t *journal36_open(reiser4_entity_t *format) {
     aal_assert("umka-406", format != NULL, return NULL);
     
     if (!(journal = aal_calloc(sizeof(*journal), 0)))
-	return NULL;
+		return NULL;
     
     journal->plugin = &journal36_plugin;
     
@@ -42,21 +42,21 @@ static errno_t journal36_replay(reiser4_entity_t *entity) {
 
 static reiser4_plugin_t journal36_plugin = {
     .journal_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = JOURNAL_REISER36_ID,
-	    .group = 0,
-	    .type = JOURNAL_PLUGIN_TYPE,
-	    .label = "journal36",
-	    .desc = "Default journal for reiserfs 3.6.x, ver. " VERSION,
-	},
-	.create = NULL, 
-	.open	= journal36_open,
-	.close	= journal36_close,
-	.sync	= journal36_sync,
-	.replay = journal36_replay,
-	.valid	= NULL,
-	.device = NULL
+		.h = {
+			.handle = NULL,
+			.id = JOURNAL_REISER36_ID,
+			.group = 0,
+			.type = JOURNAL_PLUGIN_TYPE,
+			.label = "journal36",
+			.desc = "Default journal for reiserfs 3.6.x, ver. " VERSION,
+		},
+		.create = NULL, 
+		.open	= journal36_open,
+		.close	= journal36_close,
+		.sync	= journal36_sync,
+		.replay = journal36_replay,
+		.valid	= NULL,
+		.device = NULL
     }
 };
 

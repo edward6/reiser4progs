@@ -1,6 +1,6 @@
 /*
-    key40.c -- reiser4 default key plugin.
-    Copyright (C) 1996-2002 Hans Reiser.
+  key40.c -- reiser4 default key plugin.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include "key40.h"
@@ -14,7 +14,7 @@ static const char *const minor_names[] = {
 
 const char *key40_m2n(key40_minor_t type) {
     if (type > KEY40_LAST_MINOR)
-	type = KEY40_LAST_MINOR;
+		type = KEY40_LAST_MINOR;
     
     return minor_names[type];
 }
@@ -53,7 +53,7 @@ static reiser4_key_type_t key40_m2t(key40_minor_t minor) {
 	    return KEY_FILEBODY_TYPE;
 	default:
 	    aal_exception_error("Invalid key minor has been "
-		"detected 0x%x.", minor);
+							"detected 0x%x.", minor);
 	    return 0xff;
     }
 }
@@ -75,18 +75,18 @@ static reiser4_body_t *key40_maximal(void) {
 }
 
 static int key40_compare_short(key40_t *key1, 
-    key40_t *key2) 
+							   key40_t *key2) 
 {
     int result;
 
     if ((result = k40_comp_el(key1, key2, 0)) != 0)
-	return result;
+		return result;
 
     return k40_comp_el(key1, key2, 1);
 }
 
 static int key40_compare(reiser4_body_t *body1, 
-    reiser4_body_t *body2) 
+						 reiser4_body_t *body2) 
 {
     int result;
     key40_t *key1, *key2;
@@ -98,13 +98,13 @@ static int key40_compare(reiser4_body_t *body1,
     key2 = (key40_t *)body2;
     
     if ((result = key40_compare_short(key1, key2)) != 0)
-	return result;
+		return result;
 
     return k40_comp_el(key1, key2, 2);
 }
 
 static errno_t key40_assign(reiser4_body_t *dst, 
-    reiser4_body_t *src)
+							reiser4_body_t *src)
 {
     aal_assert("umka-1110", dst != NULL, return -1);
     aal_assert("umka-1111", src != NULL, return -1);
@@ -123,17 +123,17 @@ static errno_t key40_valid(reiser4_body_t *body) {
     aal_assert("vpf-243", body != NULL, return -1);
 
     if (k40_get_minor((key40_t *)body) >= KEY40_LAST_MINOR)
-	return -1;
+		return -1;
         
     if ((k40_get_minor((key40_t *)body) == KEY40_FILENAME_MINOR && 
-	k40_get_band(body) == 1) || k40_get_band(body) == 0)
-	return 0;
+		 k40_get_band(body) == 1) || k40_get_band(body) == 0)
+		return 0;
 
     return -1;
 }
 
 static void key40_set_type(reiser4_body_t *body, 
-    reiser4_key_type_t type)
+						   reiser4_key_type_t type)
 {
     aal_assert("umka-634", body != NULL, return);
     k40_set_minor((key40_t *)body, key40_t2m(type));
@@ -145,7 +145,7 @@ static reiser4_key_type_t key40_get_type(reiser4_body_t *body) {
 }
 
 static void key40_set_locality(reiser4_body_t *body, 
-    roid_t locality) 
+							   roid_t locality) 
 {
     aal_assert("umka-636", body != NULL, return);
     k40_set_locality((key40_t *)body, (uint64_t)locality);
@@ -157,7 +157,7 @@ static roid_t key40_get_locality(reiser4_body_t *body) {
 }
     
 static void key40_set_objectid(reiser4_body_t *body, 
-    roid_t objectid) 
+							   roid_t objectid) 
 {
     aal_assert("umka-638", body != NULL, return);
     k40_set_objectid((key40_t *)body, (uint64_t)objectid);
@@ -169,7 +169,7 @@ static roid_t key40_get_objectid(reiser4_body_t *body) {
 }
 
 static void key40_set_offset(reiser4_body_t *body, 
-    uint64_t offset)
+							 uint64_t offset)
 {
     aal_assert("umka-640", body != NULL, return);
     k40_set_offset((key40_t *)body, offset);
@@ -181,7 +181,7 @@ static uint64_t key40_get_offset(reiser4_body_t *body) {
 }
 
 static void key40_set_hash(reiser4_body_t *body, 
-    uint64_t hash)
+						   uint64_t hash)
 {
     aal_assert("vpf-129", body != NULL, return);
     k40_set_hash((key40_t *)body, hash);
@@ -198,7 +198,7 @@ static void key40_clean(reiser4_body_t *body) {
 }
 
 static uint64_t key40_pack_string(const char *name, 
-    uint32_t start) 
+								  uint32_t start) 
 {
     unsigned i;
     uint64_t str;
@@ -216,7 +216,7 @@ static uint64_t key40_pack_string(const char *name,
 }
 
 static errno_t key40_build_hash(key40_t *key,
-    reiser4_plugin_t *hash_plugin, const char *name) 
+								reiser4_plugin_t *hash_plugin, const char *name) 
 {
     uint16_t len;
     roid_t objectid, offset;
@@ -228,28 +228,28 @@ static errno_t key40_build_hash(key40_t *key,
     len = aal_strlen(name);
     
     if (len == 1 && name[0] == '.')
-	return 0;
+		return 0;
     
     /* 
-        Not dot, pack the first part of the name into 
-        objectid.
+	   Not dot, pack the first part of the name into 
+	   objectid.
     */
     objectid = key40_pack_string(name, 1);
     
     if (len <= OID_CHARS + sizeof(uint64_t)) {
-	offset = 0ull;
+		offset = 0ull;
 
         if (len > OID_CHARS) {
-	    /* 
-		Does not fit into objectid, pack the second part of 
-		the name into offset. 
-	    */
-	    offset = key40_pack_string(name + OID_CHARS, 0);
-	}
+			/* 
+			   Does not fit into objectid, pack the second part of 
+			   the name into offset. 
+			*/
+			offset = key40_pack_string(name + OID_CHARS, 0);
+		}
     } else {
-	objectid = 0x0100000000000000ull;
-	offset = hash_plugin->hash_ops.build((const char *)(name + OID_CHARS),
-	    aal_strlen(name) - OID_CHARS);
+		objectid = 0x0100000000000000ull;
+		offset = hash_plugin->hash_ops.build((const char *)(name + OID_CHARS),
+											 aal_strlen(name) - OID_CHARS);
     }
     
     key40_set_objectid(key, objectid);
@@ -259,8 +259,8 @@ static errno_t key40_build_hash(key40_t *key,
 }
 
 static errno_t key40_build_direntry(reiser4_body_t *body, 
-    reiser4_plugin_t *hash_plugin, roid_t locality, 
-    roid_t objectid, const char *name) 
+									reiser4_plugin_t *hash_plugin, roid_t locality, 
+									roid_t objectid, const char *name) 
 {
     key40_t *key = (key40_t *)body;
     
@@ -279,7 +279,7 @@ static errno_t key40_build_direntry(reiser4_body_t *body,
 }
 
 static errno_t key40_build_entryid(reiser4_body_t *body, 
-    reiser4_plugin_t *hash_plugin, const char *name) 
+								   reiser4_plugin_t *hash_plugin, const char *name) 
 {
     key40_t key;    
     
@@ -295,8 +295,8 @@ static errno_t key40_build_entryid(reiser4_body_t *body,
 }
 
 static errno_t key40_build_generic(reiser4_body_t *body, 
-    reiser4_key_type_t type, roid_t locality, roid_t objectid, 
-    uint64_t offset) 
+								   reiser4_key_type_t type, roid_t locality, roid_t objectid, 
+								   uint64_t offset) 
 {
     key40_t *key = (key40_t *)body;
     
@@ -313,7 +313,7 @@ static errno_t key40_build_generic(reiser4_body_t *body,
 }
 
 static errno_t key40_build_objid(reiser4_body_t *body, 
-    reiser4_key_type_t type, roid_t locality, roid_t objectid)
+								 reiser4_key_type_t type, roid_t locality, roid_t objectid)
 {
     key40_t key;
     
@@ -332,48 +332,48 @@ static errno_t key40_build_objid(reiser4_body_t *body,
 }
 
 extern errno_t key40_print(reiser4_body_t *body, char *buff, 
-    uint32_t n, uint16_t options);
+						   uint32_t n, uint16_t options);
 
 static reiser4_plugin_t key40_plugin = {
     .key_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = KEY_REISER40_ID,
-	    .group = 0,
-	    .type = KEY_PLUGIN_TYPE,
-	    .label = "key40",
-	    .desc = "Key for reiserfs 4.0, ver. " VERSION,
-	},
+		.h = {
+			.handle = NULL,
+			.id = KEY_REISER40_ID,
+			.group = 0,
+			.type = KEY_PLUGIN_TYPE,
+			.label = "key40",
+			.desc = "Key for reiserfs 4.0, ver. " VERSION,
+		},
 	
-	.confirm	= key40_confirm,
-	.valid		= key40_valid,
-	.assign		= key40_assign,
-	.minimal	= key40_minimal,
-	.maximal	= key40_maximal,
-	.clean		= key40_clean,
-	.compare	= key40_compare,
-	.print		= key40_print,
+		.confirm	= key40_confirm,
+		.valid		= key40_valid,
+		.assign		= key40_assign,
+		.minimal	= key40_minimal,
+		.maximal	= key40_maximal,
+		.clean		= key40_clean,
+		.compare	= key40_compare,
+		.print		= key40_print,
 
-	.set_type	= key40_set_type,
-	.get_type	= key40_get_type,
+		.set_type	= key40_set_type,
+		.get_type	= key40_get_type,
 
-	.set_locality	= key40_set_locality,
-	.get_locality	= key40_get_locality,
+		.set_locality	= key40_set_locality,
+		.get_locality	= key40_get_locality,
 
-	.set_objectid	= key40_set_objectid,
-	.get_objectid	= key40_get_objectid,
+		.set_objectid	= key40_set_objectid,
+		.get_objectid	= key40_get_objectid,
 
-	.set_offset	= key40_set_offset,
-	.get_offset	= key40_get_offset,
+		.set_offset	= key40_set_offset,
+		.get_offset	= key40_get_offset,
 	
-	.set_hash	= key40_set_hash,
-	.get_hash	= key40_get_hash,
+		.set_hash	= key40_set_hash,
+		.get_hash	= key40_get_hash,
 	
-	.build_generic  = key40_build_generic,
-	.build_direntry = key40_build_direntry,
+		.build_generic  = key40_build_generic,
+		.build_direntry = key40_build_direntry,
 	
-	.build_objid	= key40_build_objid,
-	.build_entryid  = key40_build_entryid
+		.build_objid	= key40_build_objid,
+		.build_entryid  = key40_build_entryid
     }
 };
 

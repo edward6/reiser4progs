@@ -1,6 +1,6 @@
 /*
-    fnv1_hash.c -- fnv1 hash.
-    Copyright (C) 1996-2002 Hans Reiser.
+  fnv1_hash.c -- fnv1 hash implementation.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <reiser4/plugin.h>
@@ -11,23 +11,23 @@ static uint64_t fnv1_hash_build(const unsigned char *name, uint32_t len) {
     const uint64_t fnv_64_prime = 0x100000001b3ull;
 
     for(i = 0; i < len; i++) {
-	a *= fnv_64_prime;
-	a ^= (uint64_t)name[i];
+		a *= fnv_64_prime;
+		a ^= (uint64_t)name[i];
     }
     return a;
 }
 
 static reiser4_plugin_t fnv1_hash_plugin = {
     .hash_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = HASH_FNV1_ID,
-	    .group = 0,
-	    .type = HASH_PLUGIN_TYPE,
-	    .label = "fnv1_hash",
-	    .desc = "Implementation of fnv1 for reiserfs 4.0, ver. " VERSION,
-	},
-	.build = fnv1_hash_build
+		.h = {
+			.handle = NULL,
+			.id = HASH_FNV1_ID,
+			.group = 0,
+			.type = HASH_PLUGIN_TYPE,
+			.label = "fnv1_hash",
+			.desc = "Implementation of fnv1 for reiserfs 4.0, ver. " VERSION,
+		},
+		.build = fnv1_hash_build
     }
 };
 
