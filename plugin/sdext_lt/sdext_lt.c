@@ -1,0 +1,107 @@
+/*
+  sdext_lt.c -- large time stat data extention plugin.
+    
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  reiser4progs/COPYING.
+*/
+
+#include "sdext_lt.h"
+#include <aux/aux.h>
+
+static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t sdext_lt_plugin;
+
+static errno_t sdext_lt_init(reiser4_body_t *body, 
+			     void *hint) 
+{
+	sdext_lt_t *ext;
+	reiser4_sdext_lt_hint_t *sdext_lt;
+    
+	aal_assert("umka-1475", body != NULL, return -1);
+	aal_assert("umka-1476", hint != NULL, return -1);
+	
+	ext = (sdext_lt_t *)body;
+	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
+    
+	sdext_lt_set_atime(ext, sdext_lt->atime);
+	sdext_lt_set_mtime(ext, sdext_lt->mtime);
+	sdext_lt_set_ctime(ext, sdext_lt->ctime);
+
+	return 0;
+}
+
+static errno_t sdext_lt_open(reiser4_body_t *body, 
+			     void *hint) 
+{
+	sdext_lt_t *ext;
+	reiser4_sdext_lt_hint_t *sdext_lt;
+    
+	aal_assert("umka-1477", body != NULL, return -1);
+	aal_assert("umka-1478", hint != NULL, return -1);
+
+	ext = (sdext_lt_t *)body;
+	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
+    
+	sdext_lt->atime = sdext_lt_get_atime(ext);
+	sdext_lt->mtime = sdext_lt_get_mtime(ext);
+	sdext_lt->ctime = sdext_lt_get_ctime(ext);
+    
+	return 0;
+}
+
+static uint16_t sdext_lt_length(reiser4_body_t *body) {
+	return sizeof(sdext_lt_t);
+}
+
+#ifndef ENABLE_COMPACT
+
+static errno_t sdext_lt_print(reiser4_body_t *body,
+			      char *buff, uint32_t n,
+			      uint16_t options)
+{
+	sdext_lt_t *ext;
+	
+	aal_assert("umka-1479", body != NULL, return -1);
+	aal_assert("umka-1480", buff != NULL, return -1);
+
+	ext = (sdext_lt_t *)body;
+
+	aux_strncat(buff, n, "atime:\t\t%u\n", sdext_lt_get_atime(ext));
+	aux_strncat(buff, n, "mtime:\t\t%u\n", sdext_lt_get_mtime(ext));
+	aux_strncat(buff, n, "ctime:\t\t%u\n", sdext_lt_get_ctime(ext));
+	return 0;
+}
+
+#endif
+
+static reiser4_plugin_t sdext_lt_plugin = {
+	.sdext_ops = {
+		.h = {
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = SDEXT_LT_ID,
+				.group = 0,
+				.type = SDEXT_PLUGIN_TYPE
+			},
+			.label = "sdext_lt",
+			.desc = "Large times data extention for reiserfs 4.0, ver. " VERSION,
+		},
+		.init	 = sdext_lt_init,
+		.open	 = sdext_lt_open,
+		
+#ifndef ENABLE_COMPACT
+		.print   = sdext_lt_print,
+#else
+		.print   = NULL,
+#endif		
+		.length	 = sdext_lt_length
+	}
+};
+
+static reiser4_plugin_t *sdext_lt_start(reiser4_core_t *c) {
+	core = c;
+	return &sdext_lt_plugin;
+}
+
+plugin_register(sdext_lt_start, NULL);
+
