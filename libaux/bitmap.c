@@ -331,14 +331,6 @@ void aux_bitmap_invert(aux_bitmap_t *bitmap) {
 	bitmap->marked = bitmap->total - bitmap->marked;
 }
 
-/* Return bitmap's map (memory chunk, bits array lies in) for direct access */
-char *aux_bitmap_map(
-	aux_bitmap_t *bitmap)	    /* bitmap, the bit array will be obtained from */
-{
-	aal_assert("umka-356", bitmap != NULL);
-	return bitmap->map;
-}
-
 /* Packs the bitmap. */
 errno_t aux_bitmap_pack(aux_bitmap_t *bitmap, aal_stream_t *stream) {
 	uint64_t i, count;

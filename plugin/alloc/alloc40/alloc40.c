@@ -142,7 +142,7 @@ static errno_t cb_fetch_bitmap(void *entity, blk_t start,
 	}
 
 	size = alloc->blksize - CRC_SIZE;
-	map = aux_bitmap_map(alloc->bitmap);
+	map = alloc->bitmap->map;
 
 	offset = start / size / 8;
 	current = map + (size * offset);
@@ -155,8 +155,8 @@ static errno_t cb_fetch_bitmap(void *entity, blk_t start,
 	   block allocator instance. */
 	aal_memcpy(current, block.data + CRC_SIZE, chunk);
 
-	aal_memcpy(alloc->crc + (offset * CRC_SIZE),		   
-		   block.data, CRC_SIZE);
+	*((uint32_t *)(alloc->crc + (offset * CRC_SIZE))) = 
+		LE32_TO_CPU(*(uint32_t *)block.data);
 
  error_free_block:
 	aal_block_fini(&block);
@@ -316,7 +316,7 @@ static errno_t cb_sync_bitmap(void *entity, blk_t start,
 	aal_block_fill(&block, 0xff);
 
 	size = block.size - CRC_SIZE;
-	map = aux_bitmap_map(alloc->bitmap);
+	map = alloc->bitmap->map;
 	current = map + (size * (start / size / 8));
     
 	/* Copying the piece of bitmap map into allocated block to be saved */
@@ -344,7 +344,7 @@ static errno_t cb_sync_bitmap(void *entity, blk_t start,
 		adler = aal_adler32(current, chunk);
 	}
 	
-	aal_memcpy(block.data, &adler, sizeof(adler));
+	*((uint32_t *)block.data) = CPU_TO_LE32(adler);
 
 	/* Saving block onto device it was allocated on */
 	if ((res = aal_block_write(&block))) {
@@ -527,7 +527,7 @@ errno_t cb_valid_block(void *entity, blk_t start, count_t width, void *data) {
 	inval_func = (inval_func_t)data;
 	
 	size = alloc->blksize - CRC_SIZE;
-	map = aux_bitmap_map(alloc->bitmap);
+	map = alloc->bitmap->map;
     
 	/* Getting pointer to next bitmap portion */
 	offset = start / size / 8;

@@ -71,7 +71,7 @@ static errno_t cb_pack_bitmap(void *entity, blk_t start,
 	size = alloc->blksize - CRC_SIZE;
 	offset = start / size / 8;
 
-	map = aux_bitmap_map(alloc->bitmap);
+	map = alloc->bitmap->map;
 	current = map + (size * (start / size / 8));
 
 	if ((chunk = (map + alloc->bitmap->size) - current) > size)
@@ -103,7 +103,7 @@ static errno_t cb_unpack_bitmap(void *entity, blk_t start,
 	size = alloc->blksize - CRC_SIZE;
 	offset = start / size / 8;
 	
-	map = aux_bitmap_map(alloc->bitmap);
+	map = alloc->bitmap->map;
 	current = map + (size * (start / size / 8));
 
 	if ((chunk = (map + alloc->bitmap->size) - current) > size)
