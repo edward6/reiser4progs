@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     aal_list_t *devices = NULL;
     
     static struct option long_options[] = {
-	{"version", no_argument, NULL, 'v'},
+	{"version", no_argument, NULL, 'V'},
 	{"help", no_argument, NULL, 'h'},
 	{"profile", required_argument, NULL, 'e'},
 	{"force", no_argument, NULL, 'f'},
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     memset(label, 0, sizeof(label));
 
     /* Parsing parameters */    
-    while ((c = getopt_long_only(argc, argv, "uhve:qfKb:i:l:s", long_options, 
+    while ((c = getopt_long_only(argc, argv, "hVe:qfKb:i:l:s", long_options, 
 	(int *)0)) != EOF) 
     {
 	switch (c) {
@@ -206,11 +206,6 @@ int main(int argc, char *argv[]) {
 	goto error;
     }
     
-    /* 
-	Initializing libreiser4. We are using zero as tree cache limit. In this 
-	case, libreiser4 will set up it by itself. We do this because mkfs doesn't
-	need a big cache.
-    */
     if (libreiser4_init()) {
 	aal_exception_error("Can't initialize libreiser4.");
 	goto error;
@@ -348,7 +343,7 @@ int main(int argc, char *argv[]) {
 	    tree cache.
 	*/
 	if (reiser4_fs_sync(fs)) {
-	    aal_exception_error("üüCan't synchronize created filesystem.");
+	    aal_exception_error("Can't synchronize created filesystem.");
 	    goto error_free_fs;
 	}
 
@@ -357,7 +352,8 @@ int main(int argc, char *argv[]) {
 	aal_gauge_rename("Synchronizing %s", host_dev);
 	aal_gauge_start();
 	
-	/* Synchronizing device. If device we are using is a file_device 
+	/* 
+	    Synchronizing device. If device we are using is a file_device 
 	    (libaal/file.c), then function fsync will be called.
 	*/
 	if (aal_device_sync(device)) {

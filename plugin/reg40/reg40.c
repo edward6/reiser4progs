@@ -194,6 +194,7 @@ static errno_t reg40_next(reiser4_entity_t *entity) {
 	reg->place.pos.unit = 0;
 	return 0;
     }
+    
 error_set_context:
     *place = save_place;
     reg->body.plugin = save_plugin;
