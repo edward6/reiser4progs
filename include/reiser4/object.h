@@ -80,6 +80,23 @@ extern errno_t reiser4_object_layout(reiser4_object_t *object,
 
 extern errno_t reiser4_object_metadata(reiser4_object_t *object,
 				       place_func_t func, void *data);
+
+extern reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
+					    const char *name,
+					    reiser4_object_t *parent,
+					    reiser4_profile_t *profile);
+
+extern reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
+					    const char *name,
+					    reiser4_object_t *parent,
+					    reiser4_profile_t *profile);
+
+extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
+					    const char *name,
+					    const char *target,
+					    reiser4_object_t *parent,
+					    reiser4_profile_t *profile);
+
 #endif
 
 extern errno_t reiser4_object_reset(reiser4_object_t *object);

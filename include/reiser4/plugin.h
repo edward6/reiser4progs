@@ -443,6 +443,8 @@ struct entry_hint {
 
 typedef struct entry_hint entry_hint_t;
 
+#define SYMLINK_MAX_LEN 4096
+
 struct object_hint {
 	
 	rid_t statdata;
@@ -464,7 +466,7 @@ struct object_hint {
 		} reg;
 
 		/* Symlink data */
-		char sym[4096];
+		char sym[SYMLINK_MAX_LEN];
 	} body;
     
 	key_entity_t object; 
@@ -620,7 +622,9 @@ struct reiser4_object_ops {
 	  counting, etc.
 	*/
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
-
+	
+	/* Checks and recover the structure of the object. */
+	errno_t (*check_struct) (object_entity_t *, uint8_t);
 #endif
 	
 	/* Change current position to passed value */

@@ -7,25 +7,12 @@
 
 #include <repair/semantic.h>
 
-/* Open callback for traverse. Opens a node at passed blk, creates a node on it. */
-static errno_t repair_semantic_node_open(reiser4_node_t **node, blk_t blk,
-    void *data)
-{
-    repair_semantic_t *sem = (repair_semantic_t *)data;
-
-    aal_assert("vpf-1029", node != NULL);
-    aal_assert("vpf-1030", sem != NULL);
-    aal_assert("vpf-1031", sem->repair != NULL);
-    aal_assert("vpf-1032", sem->repair->fs != NULL);
-
-    *node = repair_node_open(sem->repair->fs, blk);
-
-    return *node == NULL ? -EINVAL : 0;
-}
-
 static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) {
     repair_semantic_t *sem;
-
+    reiser4_object_t *object;
+    errno_t res = 0;
+	
+    aal_assert("vpf-1059", place != NULL);
     aal_assert("vpf-1037", data != NULL);
     
     /* If this item cannot be the start of the object, skip it. */
@@ -39,11 +26,19 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
     sem = (repair_semantic_t *)data;
     
     /* Try to open it. */
-    if (reiser4_object_embody(sem->repair->fs, place))
+    if ((object = reiser4_object_embody(sem->repair->fs, place)) == NULL)
 	return 0;
-
-    /* This is really an object. */
     
+    /* This is really an object, check its structure. */
+    if ((res = repair_object_check_struct(object, sem->repair->mode))) {
+	aal_exception_error("Node %llu, item %u: Check of the object openned "
+	    "on the item failed.", place->node->blk, place->pos.item);
+	
+	reiser4_object_close(object);
+	return res;
+    }
+    
+    reiser4_object_close(object);    
     return 0;
 }
 
@@ -71,18 +66,27 @@ errno_t repair_semantic(repair_semantic_t *sem) {
     time(&sem->stat.time);
     
     fs = sem->repair->fs;
-
-    fs->tree->root = repair_node_open(fs, reiser4_format_get_root(fs->format));    
+    
+    if (reiser4_tree_fresh(fs->tree)) {
+	aal_exception_warn("No reiser4 metadata were found. Semantic pass is "
+	    "skipped.");
+	return 0;
+    }
+    
+    reiser4_tree_load_root(fs->tree);
+    
     if (fs->tree->root == NULL)
 	goto error_semantic_fini;
+    
+    /* Make sure that '/' and 'lost+found' exist. */
+
     
     hint.data = sem;
     hint.cleanup = 1;
 
     /* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-    res = reiser4_tree_down(fs->tree, fs->tree->root, &hint,
-	repair_semantic_node_open, repair_semantic_node_traverse,
-	NULL, NULL, NULL);
+    res = reiser4_tree_down(fs->tree, fs->tree->root, &hint, NULL, 
+	repair_semantic_node_traverse, NULL, NULL, NULL);
     
     if (res)
 	return res;

@@ -15,5 +15,6 @@
 #include <repair/repair.h>
 
 extern bool_t repair_object_can_begin(reiser4_place_t *place);
+extern errno_t repair_object_check_struct(reiser4_object_t *obj, uint8_t mode);
 
 #endif

@@ -680,4 +680,133 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 	return plugin_call(object->entity->plugin->o.object_ops,
 			   telldir, object->entity, offset);
 }
+
+/* Creates directory */
+reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
+				     const char *name,
+				     reiser4_object_t *parent,
+				     reiser4_profile_t *profile)
+{
+	reiser4_object_t *object;
+	object_hint_t hint;
+	rid_t directory;
+	
+	aal_assert("vpf-1053", fs != NULL);
+	aal_assert("vpf-1053", name != NULL || parent == NULL);
+	aal_assert("vpf-1053", profile != NULL);
+	
+	directory = reiser4_profile_value(profile, "directory");
+	
+	/* Preparing object hint */
+	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, directory);
+
+	if (!hint.plugin) {
+		aal_exception_error("Can't find dir plugin by its id "
+				    "0x%x.", directory);
+		return NULL;
+	}
+    
+	hint.statdata = reiser4_profile_value(profile, "statdata");
+	hint.body.dir.hash = reiser4_profile_value(profile, "hash");
+	hint.body.dir.direntry = reiser4_profile_value(profile, "direntry");
+
+	/* Creating directory by passed parameters */
+	if (!(object = reiser4_object_create(fs, parent, &hint)))
+		return NULL;
+
+	if (parent) {
+		if (reiser4_object_link(parent, object, name))
+			return NULL;
+	}
+
+	return object;
+}
+
+/* Creates file */
+reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
+				     const char *name,
+				     reiser4_object_t *parent,
+				     reiser4_profile_t *profile)
+{
+	reiser4_object_t *object;
+	object_hint_t hint;
+	rid_t regular;
+	
+	aal_assert("vpf-1054", fs != NULL);
+	aal_assert("vpf-1055", name != NULL || parent == NULL);
+	aal_assert("vpf-1056", profile != NULL);
+	
+	regular = reiser4_profile_value(profile, "regular");
+	
+	/* Preparing object hint */
+	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, regular);
+
+	if (!hint.plugin) {
+		aal_exception_error("Can't find dir plugin by its id "
+				    "0x%x.", regular);
+		return NULL;
+	}
+	
+	hint.statdata = reiser4_profile_value(profile, "statdata");
+	hint.body.reg.tail = reiser4_profile_value(profile, "tail");
+	hint.body.reg.extent = reiser4_profile_value(profile, "extent");
+	hint.body.reg.policy = reiser4_profile_value(profile, "policy");
+	
+	/* Creating directory by passed parameters */
+	if (!(object = reiser4_object_create(fs, parent, &hint)))
+		return NULL;
+
+	if (parent) {
+		if (reiser4_object_link(parent, object, name))
+			return NULL;
+	}
+
+	return object;
+}
+
+/* Creates symlink */
+reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
+		                     const char *name,
+		                     const char *target,
+				     reiser4_object_t *parent,
+				     reiser4_profile_t *profile)
+{
+	reiser4_object_t *object;	
+	object_hint_t hint;
+	rid_t symlink;
+	uint16_t len;
+	
+	aal_assert("vpf-1054", fs != NULL);
+	aal_assert("vpf-1055", name != NULL || parent == NULL);
+	aal_assert("vpf-1056", profile != NULL);
+	aal_assert("vpf-1057", target != NULL);
+	
+	symlink = reiser4_profile_value(profile, "symlink");
+	
+	/* Preparing object hint */
+	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, symlink);
+
+	if (!hint.plugin) {
+		aal_exception_error("Can't find dir plugin by its id "
+				    "0x%x.", symlink);
+		return NULL;
+	}
+	
+	hint.statdata = reiser4_profile_value(profile, "statdata");
+	
+	len = aal_strlen(target);
+	aal_strncpy(hint.body.sym, target, 
+		    len > SYMLINK_MAX_LEN ? SYMLINK_MAX_LEN : len);
+	
+	/* Creating directory by passed parameters */
+	if (!(object = reiser4_object_create(fs, parent, &hint)))
+		return NULL;
+
+	if (parent) {
+		if (reiser4_object_link(parent, object, name))
+			return NULL;
+	}
+	
+	return object;
+}
 #endif

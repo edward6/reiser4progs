@@ -16,3 +16,11 @@ bool_t repair_object_can_begin(reiser4_place_t *place) {
 
     return reiser4_key_get_offset(&place->item.key) == 0;
 }
+
+errno_t repair_object_check_struct(reiser4_object_t *obj, uint8_t mode) {
+    aal_assert("vpf-1044", obj != NULL);
+
+    return plugin_call(obj->entity->plugin->o.object_ops, check_struct, 
+	obj->entity, mode);
+}
+

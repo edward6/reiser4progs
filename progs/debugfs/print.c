@@ -16,23 +16,6 @@
 #include <stdio.h>
 #include "debugfs.h"
 
-/* Callback function used in traverse for opening the node */
-static errno_t tprint_open_node(
-	reiser4_node_t **node,      /* node to be opened */
-	blk_t blk,                  /* block node lies in */
-	void *data)		    /* traverse data */
-{
-	uint32_t blocksize;
-	reiser4_tree_t *tree;
-	aal_device_t *device;
-
-	tree = (reiser4_tree_t *)data;
-
-	device = tree->fs->device;
-	blocksize = reiser4_master_blksize(tree->fs->master);
-	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
-}
-
 /* Prints passed @node */
 static errno_t tprint_process_node(
 	reiser4_node_t *node,	    /* node to be printed */
@@ -136,8 +119,9 @@ errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 	hint.cleanup = 1;
 	hint.data = fs->tree;
 	
-	return reiser4_tree_traverse(fs->tree, &hint, tprint_open_node, 
-				     tprint_process_node, NULL, NULL, NULL);
+	return reiser4_tree_traverse(fs->tree, &hint, NULL, 
+				     tprint_process_node, 
+				     NULL, NULL, NULL);
 }
 
 /* Prints master super block */

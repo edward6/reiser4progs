@@ -86,6 +86,7 @@ typedef struct tfrag_hint tfrag_hint_t;
 
 /* Open node callback for calculating the tree fragmentation */
 static errno_t tfrag_open_node(
+	reiser4_tree_t *tree,	    /* tree being traveresed */
 	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* blk node lies in */
 	void *data)		    /* traverse hint */
@@ -281,20 +282,6 @@ struct tstat_hint {
 
 typedef struct tstat_hint tstat_hint_t;
 
-/* Open node for tree staticstics process */
-static errno_t stat_open_node(
-	reiser4_node_t **node,      /* node to be opened */
-	blk_t blk,                  /* block node lies in */
-	void *data)		    /* traverse data */
-{
-	uint32_t blocksize;
-	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
-	aal_device_t *device = stat_hint->tree->fs->device;
-
-	blocksize = reiser4_master_blksize(stat_hint->tree->fs->master);
-	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
-}
-
 /* Process one block belong to the item (extent or nodeptr) */
 static errno_t stat_process_item(
 	void *entity,		    /* item we traverse now */
@@ -417,9 +404,8 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	if (stat_hint.gauge)
 		aal_gauge_start(stat_hint.gauge);
 	
-	if ((res = reiser4_tree_traverse(fs->tree, &hint,
-					 stat_open_node,
-					 stat_process_node,
+	if ((res = reiser4_tree_traverse(fs->tree, &hint, NULL, 
+					 stat_process_node, 
 					 NULL, NULL, NULL)))
 		return res;
 
@@ -529,19 +515,6 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
  error_free_object:
 	reiser4_object_close(object);
 	return res;
-}
-
-static errno_t dfrag_open_node(
-	reiser4_node_t **node,      /* node to be opened */
-	blk_t blk,                  /* block node lies in */
-	void *data)		    /* traverse data */
-{
-	uint32_t blocksize;
-	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
-	aal_device_t *device = frag_hint->tree->fs->device;
-
-	blocksize = reiser4_master_blksize(frag_hint->tree->fs->master);
-	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
 /*
@@ -689,8 +662,8 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
 	
-	if ((res = reiser4_tree_traverse(fs->tree, &hint, dfrag_open_node,
-					 dfrag_process_node, dfrag_setup_node, 
+	if ((res = reiser4_tree_traverse(fs->tree, &hint, NULL, 
+					 dfrag_process_node, dfrag_setup_node,
 					 dfrag_update_node, NULL)))
 		return res;
 

@@ -372,7 +372,9 @@ struct traverse_hint {
 typedef struct traverse_hint traverse_hint_t;
 
 /* Callback function type for opening node. */
-typedef errno_t (*traverse_open_func_t) (reiser4_node_t **, blk_t, void *);
+typedef errno_t (*traverse_open_func_t) (reiser4_tree_t *, 
+					 reiser4_node_t **, 
+					 blk_t, void *);
 
 /* Callback function type for preparing per-node traverse data. */
 typedef errno_t (*traverse_edge_func_t) (reiser4_node_t *, void *);

@@ -26,8 +26,8 @@ typedef enum repair_error_filter {
 /* Open callback for traverse. It opens a node at passed blk. It does nothing 
  * if REPAIR_BAD_PTR is set and set this flag if node cannot be opeened. 
  * Returns error if any. */
-static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk, 
-    void *data)
+static errno_t repair_filter_node_open(reiser4_tree_t *tree, 
+    reiser4_node_t **node, blk_t blk, void *data)
 {
     repair_filter_t *fd = (repair_filter_t *)data;
 
@@ -445,13 +445,19 @@ errno_t repair_filter(repair_filter_t *fd) {
     aal_assert("vpf-814", fd->bm_leaf != NULL);
     aal_assert("vpf-814", fd->bm_twig != NULL);
     aal_assert("vpf-814", fd->bm_met != NULL);
-
-    fd->progress = &progress;
-    repair_filter_setup(fd);
     
     fs = fd->repair->fs;
     
-    res = repair_filter_node_open(&fs->tree->root, 
+    if (reiser4_tree_fresh(fs->tree)) {
+	aal_exception_warn("Reiser4 storage tree does not exist. Filter pass "
+	    "skipped.");
+	return 0;
+    }
+    
+    fd->progress = &progress;
+    repair_filter_setup(fd);
+    
+    res = repair_filter_node_open(fs->tree, &fs->tree->root, 
 	reiser4_format_get_root(fs->format), fd);
     
     if (res || fs->tree->root == NULL) 

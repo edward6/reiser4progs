@@ -51,6 +51,8 @@ extern void reiser4_tree_pack_set(reiser4_tree_t *tree,
 extern void reiser4_tree_pack_on(reiser4_tree_t *tree);
 extern void reiser4_tree_pack_off(reiser4_tree_t *tree);
 
+extern errno_t reiser4_tree_load_root(reiser4_tree_t *tree);
+
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 

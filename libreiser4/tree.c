@@ -22,7 +22,7 @@ static errno_t callback_tree_pack(reiser4_tree_t *tree,
 #endif
 
 /* Dealing with loading root node if it is not loaded yet */
-static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
+errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	blk_t root;
 	
 	aal_assert("umka-1870", tree != NULL);
@@ -2033,6 +2033,25 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
+static errno_t reiser4_tree_down_open(reiser4_tree_t *tree,
+				      reiser4_node_t **node,
+				      blk_t blk,			      
+				      void *data) 
+{
+	uint32_t blocksize;
+	errno_t res;
+	
+	aal_assert("vpf-1049", tree != NULL);
+	aal_assert("vpf-1050", node != NULL);
+	aal_assert("vpf-1051", tree->fs != NULL);
+	
+	blocksize = reiser4_master_blksize(tree->fs->master);
+	
+	*node = reiser4_node_open(tree->fs->device, blocksize, blk);
+	
+	return *node == NULL ? -EINVAL : 0;
+}
+
 errno_t reiser4_tree_down(
 	reiser4_tree_t *tree,                /* tree for traversing it */
 	reiser4_node_t *node,		     /* node which should be traversed */
@@ -2051,7 +2070,10 @@ errno_t reiser4_tree_down(
 	aal_assert("vpf-418", hint != NULL);
 	aal_assert("vpf-390", node != NULL);
 	aal_assert("umka-1935", tree != NULL);
-
+	
+	if (open_func == NULL)
+	    open_func = reiser4_tree_down_open;
+	
 	reiser4_node_lock(node);
 
 	if ((before_func && (res = before_func(node, hint->data))))
@@ -2098,12 +2120,10 @@ errno_t reiser4_tree_down(
 			  connect to the tree explicitly.
 			*/
 			if (!(child = reiser4_node_cbp(node, ptr.start))) {
-						
-				if (!open_func)
-					goto update;
-
+				res = open_func(tree, &child, ptr.start, hint->data);
+				
 				/* Opening the node by its @ptr */
-				if ((res = open_func(&child, ptr.start, hint->data)))
+				if (res)
 					goto error_update_func;
 
 				if (!child)

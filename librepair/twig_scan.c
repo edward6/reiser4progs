@@ -57,10 +57,10 @@ static errno_t callback_item_region_check(void *object, blk_t start,
     return 0;
 }
 
-/* Callback for the traverse which calls item_ops.layout_check method if layout 
+/* Callback for the traverse which calls item_ops.check_layout method if layout 
  * exists for all items which can contain data, not tree index data only. 
  * Shrink the node if item lenght is changed. */
-static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
+static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
     repair_ts_t *ts = (repair_ts_t *)data;
     reiser4_node_t *node;
     errno_t res;
@@ -74,7 +74,7 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     if (!reiser4_item_data(place->item.plugin))
 	return 0;
     
-    res = repair_item_layout_check(place, callback_item_region_check, 
+    res = repair_item_check_layout(place, callback_item_region_check, 
 	ts, ts->repair->mode);
     
     if (res < 0) 
@@ -183,7 +183,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 	}
 
 	/* Lookup the node. */	
-	if ((res = repair_node_traverse(node, callback_item_layout_check, ts)))
+	if ((res = repair_node_traverse(node, callback_item_check_layout, ts)))
 	    goto error_node_free;
 	
 	if (reiser4_node_isdirty(node))

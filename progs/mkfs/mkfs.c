@@ -74,48 +74,6 @@ static void mkfs_init(void) {
 		misc_exception_set_stream(ex, stderr);
 }
 
-/* Crates directory */
-static reiser4_object_t *mkfs_create_dir(reiser4_fs_t *fs,
-		                       const char *name,
-				       reiser4_object_t *parent,
-				       reiser4_profile_t *profile)
-{
-	pid_t hash;
-	pid_t statdata;
-	pid_t direntry;
-	pid_t directory;
-
-	object_hint_t hint;
-	reiser4_object_t *object;
-
-	directory = reiser4_profile_value(profile, "directory");
-	
-	/* Preparing object hint */
-	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, 
-					       directory);
-
-	if (!hint.plugin) {
-		aal_exception_error("Can't find dir plugin by its id "
-				    "0x%x.", directory);
-		return NULL;
-	}
-    
-	hint.statdata = reiser4_profile_value(profile, "statdata");
-	hint.body.dir.hash = reiser4_profile_value(profile, "hash");
-	hint.body.dir.direntry = reiser4_profile_value(profile, "direntry");
-
-	/* Creating directory by passed parameters */
-	if (!(object = reiser4_object_create(fs, parent, &hint)))
-		return NULL;
-
-	if (parent) {
-		if (reiser4_object_link(parent, object, name))
-			return NULL;
-	}
-
-	return object;
-}
-
 int main(int argc, char *argv[]) {
 	int c;
 	
@@ -431,7 +389,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_journal;
     
 		/* Creating root directory */
-		if (!(fs->root = mkfs_create_dir(fs, NULL, NULL, profile))) {
+		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL, profile))) {
 			aal_exception_error("Can't create filesystem root "
 					    "directory.");
 			goto error_free_tree;
@@ -441,8 +399,8 @@ int main(int argc, char *argv[]) {
 		if (flags & BF_LOST) {
 			reiser4_object_t *object;
 	    
-			if (!(object = mkfs_create_dir(fs, "lost+found",
-						       fs->root, profile)))
+			if (!(object = reiser4_dir_create(fs, "lost+found",
+							  fs->root, profile)))
 			{
 				aal_exception_error("Can't create lost+found "
 						    "directory.");

@@ -11,6 +11,7 @@
 #include <repair/twig_scan.h>
 #include <repair/add_missing.h>
 #include <repair/semantic.h>
+#include <repair/cleanup.h>
 
 typedef struct repair_control {
     repair_data_t *repair;
@@ -282,6 +283,24 @@ errno_t repair_sem_prepare(repair_control_t *control, repair_semantic_t *sem) {
     return 0;
 }
 
+static errno_t repair_cleanup_prepare(repair_control_t *control, 
+    repair_cleanup_t *cleanup) 
+{
+    uint64_t i;
+    
+    aal_assert("vpf-855", cleanup != NULL);
+    aal_assert("vpf-857", control != NULL);
+    aal_assert("vpf-859", control->repair != NULL);
+    aal_assert("vpf-861", control->repair->fs != NULL);
+    
+    aal_memset(cleanup, 0, sizeof(*cleanup));
+    
+    cleanup->repair = control->repair;    
+    cleanup->progress_handler = control->repair->progress_handler;
+    
+    return 0;
+}
+
 /* Debugging. */
 static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
     uint64_t fs_len;
@@ -344,6 +363,7 @@ errno_t repair_check(repair_data_t *repair) {
     repair_ts_t ts;
     repair_am_t am;
     repair_semantic_t sem;
+    repair_cleanup_t cleanup;
     errno_t res;
     
     aal_assert("vpf-852", repair != NULL);
@@ -398,6 +418,14 @@ errno_t repair_check(repair_data_t *repair) {
     if ((res = repair_semantic(&sem)))
 	goto error;
 
+    if (repair->mode == REPAIR_REBUILD) {
+	if ((res = repair_cleanup_prepare(&control, &cleanup)))
+	    goto error;
+
+	if ((res = repair_cleanup(&cleanup)))
+	    goto error;
+    }
+    
 error:
     repair_control_release(&control);
     

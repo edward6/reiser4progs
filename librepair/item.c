@@ -83,7 +83,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
  * if item length has been changed.
  *
  * Return values are described in repair_error_t, but REPAIR_FIXED. */
-errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) { 
+errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) { 
     uint32_t length;
     errno_t res;
     
@@ -107,16 +107,16 @@ errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) {
     return repair_item_check_fini(place, res, length, mode);
 }
 
-/* Calls the item layout_check method to check the layout of an item and shrink 
+/* Calls the item check_layout method to check the layout of an item and shrink 
  * the node if item length has been changed.
  *
  * Return values are described in repair_error_codes_t, but REPAIR_FIXED. */
-errno_t repair_item_layout_check(reiser4_place_t *place, 
+errno_t repair_item_check_layout(reiser4_place_t *place, 
     region_func_t func, void *data, uint8_t mode) 
 {
     uint32_t length;
     errno_t res;
-        
+    
     aal_assert("vpf-793", place != NULL);
     aal_assert("vpf-794", place->node != NULL);
 
