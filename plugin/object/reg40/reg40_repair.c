@@ -542,7 +542,10 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 				   items; there is probably a postponed 
 				   convertion needs to be finished. */
 				reg->body.plug = NULL;
-			} else if (reg->body.pos.unit != MAX_UINT32) {
+			} else if (plug_call(reg->position.plug->o.key_ops,
+					     compfull, &reg->position, 
+					     &reg->body.key) > 0)
+			{
 				/* If in the middle of the item, go to the 
 				   next. It may happen after the tail->extent
 				   convertion. */
@@ -586,17 +589,19 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			return -EINVAL;
 
 		
-		/* Count bytes if no conversion has been postponed. */
-		if (!hint.offset.plug) {
-			repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
-						  bytes, &reg->body);
-		}
+		/* If conversion is postponed, do not count bytes and do not 
+		   cure for holes. */
+		if (hint.offset.plug) 
+			goto next;
 		
+		repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
+					  bytes, &reg->body);
+
 		/* If we found not we looking for, insert the hole. */
 		if ((res |= reg40_hole_cure(object, &repair, func, mode)) < 0)
 			return res;
-
-	next:
+		
+next:
 		/* The limit is reached. */
 		if (repair.maxreal == MAX_UINT64)
 			break;
