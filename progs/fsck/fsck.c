@@ -138,8 +138,8 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		/* SB modes. */
 		{"check", no_argument, &mode, RM_CHECK},
 		{"fix", no_argument, &mode, RM_FIX},
-		{"build-sb", no_argument, &mode, RM_BUILD},
-		{"build-fs", no_argument, &mode, RM_BUILD},
+		{"build-sb", no_argument, &sb_mode, RM_BUILD},
+		{"build-fs", no_argument, &fs_mode, RM_BUILD},
 		/* Fsck hidden modes. */
 		{"rollback", no_argument, &mode, RM_BACK},
 		/* Fsck options */

@@ -198,7 +198,9 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	/* Allocate a bitmap of formatted blocks which cannot be pointed by 
 	   extents, which are not in the used nor twig not leaf bitmaps. */
-	if (!(control->bm_met = filter->bm_met = aux_bitmap_create(fs_len))) {
+	if (!(control->bm_met = filter->bm_met = 
+	      aux_bitmap_clone(filter->bm_used))) 
+	{
 		aal_exception_error("Failed to allocate a bitmap of blocks "
 				    "that are met on the filesystem.");
 		return -EINVAL;
