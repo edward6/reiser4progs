@@ -127,8 +127,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	if ((node = repair_node_open(rd->fs->format, blk)))
 	    continue;
 
-	level = plugin_call(goto error_node_close, 
-	    node->entity->plugin->node_ops, get_level, node->entity);
+	level = reiser4_node_level(node);
 
 	if (level != LEAF_LEVEL && level != TWIG_LEVEL) {
 	    aux_bitmap_mark(ds->bm_frmt, blk);

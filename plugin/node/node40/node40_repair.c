@@ -13,7 +13,7 @@
 
 extern errno_t node40_remove(object_entity_t *entity, reiser4_pos_t *pos);
 extern uint16_t node40_items(object_entity_t *entity);
-extern uint8_t node40_get_level(object_entity_t *entity);
+extern uint8_t node40_level(object_entity_t *entity);
 
 static uint16_t node40_get_offset_at(object_entity_t *entity, int pos) {
     node40_t *node = (node40_t *)entity;

@@ -13,6 +13,7 @@
 #include <reiser4/reiser4.h>
 #include <repair/repair.h>
 #include <repair/filesystem.h>
+#include <repair/tree.h>
 #include <repair/format.h>
 #include <repair/master.h>
 #include <repair/journal.h>
