@@ -708,7 +708,7 @@ static errno_t extent40_prep_write(place_t *place,
 
 	if (place->pos.unit == MAX_UINT32) {
 		/* Assigning maxkey to key of new created item */
-		plug_call(place->key.plug->o.key_ops,
+		plug_call(hint->offset.plug->o.key_ops,
 			  assign, &hint->maxkey, &hint->offset);
 		
 		/* Insert point is -1, thus, this is new item insert. So we
