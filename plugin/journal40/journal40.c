@@ -11,6 +11,9 @@
 
 extern reiser4_plugin_t journal40_plugin;
 
+typedef errno_t (*journal40_layout_func_t)(journal40_t *journal, aal_block_t *block, d64_t original);
+typedef errno_t (*journal40_update_func_t)(journal40_t *journal, aal_block_t *block);
+
 static reiser4_core_t *core = NULL;
 
 static errno_t journal40_hcheck(journal40_header_t *header) {
@@ -219,8 +222,41 @@ static errno_t journal40_sync(object_entity_t *entity) {
 	return 0;
 }
 
-static errno_t journal40_replay_transaction(journal40_t *journal, 
-					    aal_block_t *tx_block) 
+static errno_t callback_layout(journal40_t *journal, 
+			       aal_block_t *block,
+			       d64_t original) 
+{
+	aal_block_relocate(block, original);
+	    
+	if (aal_block_sync(block)) {
+		aal_exception_error("Can't write block %llu.", 
+				    aal_block_number(block));
+		
+		aal_block_close(block);
+		return -1;
+	}
+
+	return 0;
+}
+
+static errno_t callback_update(journal40_t *journal, 
+			       aal_block_t *block) 
+{	
+	journal40_footer_t *footer = (journal40_footer_t *)journal->footer->data;	
+	journal40_tx_header_t *tx_header = (journal40_tx_header_t *)block->data;
+	
+	/* Updating journal footer */
+	set_jf_last_flushed(footer, aal_block_number(block));
+	set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
+	set_jf_nr_files(footer, get_th_nr_files(tx_header));
+	set_jf_next_oid(footer, get_th_next_oid(tx_header));
+	
+	return 0;
+}
+static errno_t journal40_lr_layout(journal40_t *journal, 
+				   aal_block_t *tx_block,
+				   journal40_layout_func_t layout_func,
+				   journal40_update_func_t update_func)
 {
 	uint32_t total;
 	uint64_t log_blk;
@@ -229,7 +265,6 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 	aal_device_t *device;
 	aal_block_t *log_block;
 
-	journal40_footer_t *footer;
 	journal40_lr_header_t *lr_header;
 	journal40_tx_header_t *tx_header;
     
@@ -243,7 +278,10 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 	while (log_blk != end_blk) {
 		uint32_t i, capacity;
 		journal40_lr_entry_t *entry;
-	    
+
+		if (!layout_func)
+			break;
+		    
 		if (!(log_block = aal_block_open(device, log_blk))) {
 			aal_exception_error("Can't read block %llu while replaying "
 					    "the journal. %s.", log_blk, device->error);
@@ -273,16 +311,9 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 				return -1;
 			}
 
-			aal_block_relocate(block, get_le_original(entry));
-	    
-			if (aal_block_sync(block)) {
-				aal_exception_error("Can't write block %llu.", 
-						    aal_block_number(block));
-		
-				aal_block_close(block);
+			if (layout_func(journal, block, get_le_original(entry)))
 				return -1;
-			}
-	    
+			
 			aal_block_close(block);
 			entry++;
 		}
@@ -290,22 +321,21 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 		aal_block_close(log_block);
 
 	}
-	footer = (journal40_footer_t *)journal->footer->data;
+
+	if (update_func)
+		update_func(journal, tx_block);
 	
-	/* Updating journal footer */
-	set_jf_last_flushed(footer, aal_block_number(tx_block));
-	set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
-	set_jf_nr_files(footer, get_th_nr_files(tx_header));
-	set_jf_next_oid(footer, get_th_next_oid(tx_header));
-    
 	return 0;
 }
 
 /* 
-   Replays oldest transaction. Returns 1 if replayed, 0 if there are no not 
-   flushed transactions and -1 in the case of error.
+    Returns 0 if replayed, 1 if there is no any transaction to be flushed and 
+    -1 in the case of error.
 */
-static int format40_replay_oldest(journal40_t *journal) {
+static errno_t format40_tx_layout(journal40_t *journal, 
+				  journal40_layout_func_t layout_func,
+				  journal40_update_func_t update_func) 
+{
 	int ret;
 	uint64_t prev_tx;
 	uint64_t last_flushed_tx;
@@ -322,7 +352,7 @@ static int format40_replay_oldest(journal40_t *journal) {
     
 	/* Check if all transactions are replayed */
 	if (last_commited_tx == last_flushed_tx)
-		return 0;
+		return 1;
 
 	prev_tx = last_commited_tx;
     
@@ -350,18 +380,20 @@ static int format40_replay_oldest(journal40_t *journal) {
 		aal_block_close(tx_block);
 	}
     
-	ret = journal40_replay_transaction(journal, tx_block);
+	ret = journal40_lr_layout(journal, tx_block, layout_func, update_func);
+	
 	aal_block_close(tx_block);
 
-	return (ret == 0);
+	return ret;
 }
 
 static int journal40_replay(object_entity_t *entity) {
-	int ret, trans_nr = 0;
+	int trans_nr = 0;
     
 	aal_assert("umka-412", entity != NULL, return -1);
 
-	while ((ret = format40_replay_oldest((journal40_t *)entity)) == 1)
+	while (format40_tx_layout((journal40_t *)entity, callback_layout, 
+				  callback_update) == 0)
 		trans_nr++;
     
 	if (trans_nr)
