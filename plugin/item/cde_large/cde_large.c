@@ -975,7 +975,7 @@ lookup_t cde_large_lookup(place_t *place,
 		/* Making sure, that we have found right unit. This is needed
 		   because of possible key collition. We go to left until we
 		   find, that we found key smaller than passed one. */
-		for (i = *pos; i >= 0; i--) {
+		for (i = *pos - 1; i >= 0; i--) {
 			key_entity_t ekey;
 
 			/* Getting entry key */
@@ -983,9 +983,11 @@ lookup_t cde_large_lookup(place_t *place,
 
 			/* Comparing keys. We break the loop when keys as not
 			 * equal, that means, that we have found needed pos. */
-			if (plug_call(key->plug->o.key_ops, compfull,
-				      key, &ekey))
+			if (!plug_call(key->plug->o.key_ops,
+				      compfull, key, &ekey))
 			{
+				*pos = i;
+			} else {
 				return PRESENT;
 			}
 		}

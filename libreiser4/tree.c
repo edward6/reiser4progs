@@ -796,6 +796,50 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 	return reiser4_format_get_height(tree->fs->format);
 }
 
+#ifdef ENABLE_COLLISIONS
+static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
+				     reiser4_place_t *place)
+{
+	reiser4_key_t key;
+	reiser4_place_t walk;
+	
+	aal_assert("umka-2388", tree != NULL);
+	aal_assert("umka-2389", place != NULL);
+
+	if (reiser4_place_fetch(place))
+		return -EINVAL;
+
+	reiser4_key_assign(&key, &place->key);
+	aal_memcpy(&walk, place, sizeof(*place));
+	
+	while (walk.node) {
+		int32_t i, items;
+
+		for (i = walk.pos.item - 1; i >= 0; i--) {
+			POS_INIT(&walk.pos, i, MAX_UINT32);
+
+			if (reiser4_place_fetch(&walk))
+				return -EINVAL;
+
+			if (!reiser4_key_compare(&key, &walk.key)) {
+				aal_memcpy(place, &walk, sizeof(*place));
+			} else {
+				return 0;
+			}
+		}
+
+		reiser4_tree_neigh(tree, walk.node, D_LEFT);
+
+		if ((walk.node = walk.node->left)) {
+			items = reiser4_node_items(walk.node);
+			POS_INIT(&walk.pos, items - 1, MAX_UINT32);
+		}
+	}
+
+	return 0;
+}
+#endif
+
 /* Makes search in the tree by specified key. Fills passed place by places of
    found item. */
 lookup_t reiser4_tree_lookup(
@@ -811,8 +855,8 @@ lookup_t reiser4_tree_lookup(
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-2057", place != NULL);
 
-	/* We store @key in @wan. All consewuence code will use @wan. This is
-	   neede, because @key might point to @place->item.key in @place and
+	/* We store @key in @wan. All consequence code will use @wan. This is
+	   needed, because @key might point to @place->item.key in @place and
 	   will be corrupted durring lookup. */
 	reiser4_key_assign(&wan, key);
 
@@ -848,8 +892,13 @@ lookup_t reiser4_tree_lookup(
 		    res == FAILED)
 		{
 			/* Fetching item at @place if key is found */
-			if (res == PRESENT)
+			if (res == PRESENT) {
+#ifdef ENABLE_COLLISIONS
+				if (reiser4_tree_leftmost(tree, place))
+					return FAILED;
+#endif	
 				reiser4_place_fetch(place);
+			}
 			
 			return res;
 		}
