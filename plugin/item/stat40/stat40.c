@@ -21,21 +21,18 @@ errno_t stat40_traverse(item_entity_t *item,
 			void *data)
 {
 	uint16_t i;
-	uint16_t chunks;
-	uint16_t length;
-	uint16_t extmask;
-
+	uint16_t len;
 	stat40_t *stat;
 	sdext_entity_t sdext;
+
+	uint16_t chunks = 0;
+	uint16_t extmask = 0;
 
 	aal_assert("umka-1197", item != NULL);
 	aal_assert("umka-2059", ext_func != NULL);
     
 	stat = stat40_body(item);
 
-	chunks = 0;
-	extmask = 0;
-	
 	sdext.offset = 0;
 	sdext.body = item->body;
 
@@ -84,12 +81,12 @@ errno_t stat40_traverse(item_entity_t *item,
 		if ((res = ext_func(&sdext, extmask, data)))
 			return res;
 
-		length = plugin_call(sdext.plugin->sdext_ops, length, 
-				     sdext.body);
+		len = plugin_call(sdext.plugin->sdext_ops, length, 
+				  sdext.body);
 
 		/* Calculating the pointer to the next extention body */
-		sdext.body += length;
-		sdext.offset += length;
+		sdext.body += len;
+		sdext.offset += len;
 	}
     
 	return 0;
