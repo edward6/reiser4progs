@@ -175,7 +175,10 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
+
+#ifndef ENABLE_STAND_ALONE
 	reg->bplug = reg40_bplug(reg, 0);
+#endif
 
 	return (object_entity_t *)reg;
 }
