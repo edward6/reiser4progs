@@ -119,10 +119,12 @@ error_close_alloc:
     reiser4_alloc_close(fs->alloc);
     
 error_close_format:
-    reiser4_format_close(fs->format);
+    if (fs->format)
+	reiser4_format_close(fs->format);
     
 error_close_master:
-    reiser4_master_close(fs->master);
+    if (fs->master)
+	reiser4_master_close(fs->master);
 
 error_free_fs:
     aal_free(fs);
@@ -130,8 +132,7 @@ error_free_fs:
     return NULL;
 }
 
-errno_t repair_fs_sync(reiser4_fs_t *fs) 
-{
+errno_t repair_fs_sync(reiser4_fs_t *fs) {
     aal_assert("vpf-173", fs != NULL, return -1);
     
     /* Synchronizing block allocator */
@@ -158,8 +159,7 @@ errno_t repair_fs_sync(reiser4_fs_t *fs)
     Closes all filesystem's entities. Calls plugins' "done" routine for every 
     plugin and frees all assosiated memory. 
 */
-void repair_fs_close(reiser4_fs_t *fs) 
-{
+void repair_fs_close(reiser4_fs_t *fs) {
     aal_assert("vpf-174", fs != NULL, return);
 
     reiser4_oid_close(fs->oid);
