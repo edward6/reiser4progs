@@ -429,8 +429,9 @@ static errno_t node40_shrink(node40_t *node,
 		item40_header_t *end;
 	
 		/* Moving item bodies */
-		dst = node->block->data + offset;
-		src = node->block->data + offset + len;
+		src = node->block->data + offset + item_len;
+		dst = src - len;
+		
 		size = nh40_get_free_space_start(node) - offset - len;
 		
 		aal_memmove(dst, src, size);
@@ -859,19 +860,17 @@ static errno_t node40_merge_items(node40_t *src_node,
 
 	hint->items = 1;
 	hint->bytes = src_item.len;
-	hint->units = src_item.plugin->item_ops.count(&src_item);
+	hint->part = dst_item.len;
+
+	if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
+		return -1;
 
 	if (hint->bytes > nh40_get_free_space(dst_node))
 		return 0;
 
 	/* Expanding dst node to make room for units to be moved to it */
-	if (hint->flags & SF_LEFT) {
-		pos.item = dst_items - 1;
-		pos.unit = dst_item.plugin->item_ops.count(&dst_item);
-	} else {
-		pos.item = 0;
-		pos.unit = 0;
-	}
+	pos.unit = 0;
+	pos.item = dst_item.pos;
 
 	if (node40_expand(dst_node, &pos, hint->bytes)) {
 		aal_exception_error("Can't expand item for "
@@ -891,8 +890,10 @@ static errno_t node40_merge_items(node40_t *src_node,
 		return -1;
 
 	/* Updating item key */
-	ih = node40_ih_at(dst_node, pos.item);
-	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+	if (hint->flags & SF_RIGHT) {
+		ih = node40_ih_at(dst_node, pos.item);
+		aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+	}
 
 	/* Updating source node fields */
 	pos.unit = ~0ul;
@@ -951,12 +952,10 @@ static errno_t node40_predict_units(node40_t *src_node,
 	/* Calling predict method of the src and dst items */
 	if (!src_item.plugin->item_ops.predict)
 		return 0;
-	
+
 	if (mergeable) {
-		if (src_item.plugin->item_ops.predict(&src_item,
-						      &dst_item, hint))
+		if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
 			return -1;
-				
 	} else {
 		/*
 		  In the case items are not mergeable, we need count also item
@@ -1011,7 +1010,10 @@ static errno_t node40_shift_units(node40_t *src_node,
 	aal_memset(&dst_item, 0, sizeof(dst_item));
 
 	/* Initializing src item entity */
-	node40_item(&src_item, src_node, src_items - 1);
+	if (hint->flags & SF_LEFT)
+		node40_item(&src_item, src_node, 0);
+	else
+		node40_item(&src_item, src_node, src_items - 1);
 	
 	mergeable = dst_items > 0;
 	
@@ -1039,7 +1041,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 	if (mergeable) {
 		if (hint->flags & SF_LEFT) {
 			pos.item = dst_items - 1;
-			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
+			pos.unit = 0;
 		} else {
 			pos.item = 0;
 			pos.unit = 0;
@@ -1061,7 +1063,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 	} else {
 		if (hint->flags & SF_LEFT) {
 			pos.item = dst_items;
-			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
+			pos.unit = ~0ul;
 		} else {
 			pos.item = 0;
 			pos.unit = ~0ul;
@@ -1383,9 +1385,9 @@ static errno_t node40_shift(object_entity_t *entity,
 	hint->bytes = 0;
 	hint->items = 0;
 	merge = *hint;
-	
-	if (node40_merge_items(src_node, dst_node, &merge))
-		return -1;
+
+/*	if (node40_merge_items(src_node, dst_node, &merge))
+		return -1;*/
 	
 	flags = hint->flags;
 	

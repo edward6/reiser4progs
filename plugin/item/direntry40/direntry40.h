@@ -71,11 +71,11 @@ struct direntry40 {
 
 typedef struct direntry40 direntry40_t;
 
-#define de40_get_count(de)		    aal_get_le16(de, count)
-#define de40_set_count(de, val)		    aal_set_le16(de, count, val)
+#define de40_get_count(de)		    aal_get_le16((de), count)
+#define de40_set_count(de, val)		    aal_set_le16((de), count, val)
 
-#define en40_get_offset(en)		    aal_get_le16(en, offset)
-#define en40_set_offset(en, val)	    aal_set_le16(en, offset, val)
+#define en40_get_offset(en)		    aal_get_le16((en), offset)
+#define en40_set_offset(en, val)	    aal_set_le16((en), offset, val)
 
 #define de40_inc_count(de, val) \
         de40_set_count(de, (de40_get_count(de) + val))

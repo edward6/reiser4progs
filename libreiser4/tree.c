@@ -704,7 +704,7 @@ errno_t reiser4_tree_mkspace(
 			return -1;
 
 		save = *new;
-		
+
 		if (reiser4_tree_shift(tree, new, node, SF_RIGHT | SF_MOVIP))
 			return -1;
 	
