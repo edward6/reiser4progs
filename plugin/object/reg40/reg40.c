@@ -38,7 +38,7 @@ static lookup_t reg40_next(reg40_t *reg) {
 
 	/* Getting the next body item from the tree */
 	if ((res = obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				&place)) == LP_PRESENT)
+				&place)) == PRESENT)
 	{
 		obj40_relock(&reg->obj, &reg->body, &place);
 
@@ -103,7 +103,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	*/
 	for (read = 0; read < n; ) {
 
-		if (reg40_next(reg) != LP_PRESENT)
+		if (reg40_next(reg) != PRESENT)
 			break;
 
 		item = &reg->body.item;
@@ -374,7 +374,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 	while (reg->offset < size) {
 		item_entity_t *item;
 		
-		if (reg40_next(reg) != LP_PRESENT)
+		if (reg40_next(reg) != PRESENT)
 			break;
 		
 		item = &reg->body.item;
@@ -427,7 +427,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	while (reg->offset < size) {
 		item_entity_t *item;
 		
-		if (reg40_next(reg) != LP_PRESENT)
+		if (reg40_next(reg) != PRESENT)
 			break;
 		
 		item = &reg->body.item;

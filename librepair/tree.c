@@ -120,7 +120,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
     /* Key should not exist in the tree yet. */
     if ((lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL, &place)) 
-	!= LP_ABSENT)
+	!= ABSENT)
 	return lookup;
     
     /* If some node was found and it is not of higher level then the node being 
@@ -286,7 +286,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 	if ((res = reiser4_item_maxreal_key(src, &src_max)))
 	    return res;
 
-	if (lookup == LP_PRESENT) {
+	if (lookup == PRESENT) {
 	    /* If lookup returns PRESENT or unit position is set */
 	    whole = 0;
 	} else if (dst.pos.item == reiser4_node_items(dst.node)) {

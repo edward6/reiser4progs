@@ -72,8 +72,11 @@ static int32_t sym40_read(object_entity_t *entity,
 	if (!item->plugin->o.item_ops->read)
 		return -EINVAL;
 
-	if (item->plugin->o.item_ops->read(item, &hint, 0, 1) != 1)
+	if (plugin_call(item->plugin->o.item_ops,
+			read, item, &hint, 0, 1) != 1)
+	{
 		return -EINVAL;
+	}
 
 	return aal_strlen(buff);
 }
@@ -154,8 +157,11 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data into the tree */
-	if (obj40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, &sym->obj.statdata))
+	if (obj40_insert(&sym->obj, &stat_hint,
+			 LEAF_LEVEL, &sym->obj.statdata))
+	{
 		goto error_free_sym;
+	}
 
 	/* Saving statdata place and locking the node it lies in */
 	aal_memcpy(place, &sym->obj.statdata, sizeof(*place));
@@ -232,36 +238,29 @@ static errno_t sym40_layout(object_entity_t *entity,
 }
 #endif
 
-/* Returns plugin by its id */
-static reiser4_plugin_t *sym40_plug(sym40_t *sym, item_entity_t *item) {
-	return sym->obj.core->factory_ops.ifind(OBJECT_PLUGIN_TYPE,
-						obj40_pid(item));
-}
-
 static errno_t sym40_stat(sym40_t *sym) {
-	key_entity_t *key = STAT_KEY(&sym->obj);
-		
-	/* Performing lookup for statdata of current directory */
-	if (obj40_lookup(&sym->obj, key, LEAF_LEVEL,
-			 &sym->obj.statdata) != LP_PRESENT)
+	switch (obj40_lookup(&sym->obj, STAT_KEY(&sym->obj),
+			     LEAF_LEVEL, &sym->obj.statdata))
 	{
+	case PRESENT:
+		return 0;
+	default:
 		return -EINVAL;
 	}
-
-	return 0;
 }
 
 static errno_t sym40_init(sym40_t *sym) {
 	item_entity_t *item;
 	reiser4_plugin_t *plugin;
 
-	aal_assert("umka-2239", sym != NULL);
-
 	item = &sym->obj.statdata.item;
-	
+
 	/* Getting file plugin from @item */
-	if (!(plugin = sym40_plug(sym, item)))
+	if (!(plugin = sym->obj.core->factory_ops.ifind(
+		      OBJECT_PLUGIN_TYPE, obj40_pid(item))))
+	{
 		return -EINVAL;
+	}
 
 	/* Initializing parse current entity */
 	if (!(sym->current = plugin_call(plugin->o.object_ops,
@@ -361,7 +360,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 			  sym->current, entry, &entry_hint);
 
 	/* If entry found assign found key to object stat data key */
-	if (res == LP_PRESENT) {
+	if (res == PRESENT) {
 		res = plugin_call(item->key.plugin->o.key_ops,
 				  assign, STAT_KEY(&sym->obj),
 				  &entry_hint.object);

@@ -49,9 +49,9 @@ typedef struct pos pos_t;
 
 /* Lookup return values */
 enum lookup {
-	LP_PRESENT              = 1,
-	LP_ABSENT               = 0,
-	LP_FAILED               = -1
+	PRESENT                 = 1,
+	ABSENT                  = 0,
+	FAILED                  = -1
 };
 
 typedef enum lookup lookup_t;

@@ -735,42 +735,62 @@ lookup_t reiser4_tree_lookup(
 {
 	lookup_t res;
 	bool_t moved;
+	
 	uint32_t units;
+	reiser4_key_t wan;
 
 	aal_assert("umka-742", key != NULL);
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-2057", place != NULL);
 
+	/*
+	  Storing key into @wan. All consewuence code will use @wan. This is
+	  neede, because @key might point to @item->key in @place and will be
+	  corrupted durring lookup.
+	*/
+	reiser4_key_assign(&wan, key);
+
+	/* Initializing place by root node */
 	reiser4_place_assign(place, tree->root, 0, ~0ul);
 
-	/* Making sure that root exists */
+	/*
+	  Making sure that root exists. If not, getting out with @place
+	  initialized by NULL root.
+	*/
 	if (reiser4_tree_load_root(tree))
-		return LP_ABSENT;
-    
+		return ABSENT;
+
+	/*
+	  Reinitialziing @place by root node, as root exists and loaded. This is
+	  needed for code bellow.
+	*/
 	reiser4_place_assign(place, tree->root, 0, ~0ul);
-	
+
 	/* 
 	  Checking the case when wanted key is smaller than root one. This is
 	  the case, when somebody is trying go up of the root by ".." entry in
 	  root directory. If so, we initialize the key to be looked up by root
 	  key.
 	*/
-	if (reiser4_key_compare(key, &tree->key) < 0)
-		reiser4_key_assign(key, &tree->key);
+	if (reiser4_key_compare(&wan, &tree->key) < 0)
+		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
 		/* 
 		  Looking up for key inside node. Result of lookuping will be
 		  stored in &place->pos.
 		*/
-		res = reiser4_node_lookup(place->node, key, &place->pos);
+		res = reiser4_node_lookup(place->node, &wan, &place->pos);
 
-		/* Check if we should finish lookup because we reach stop level */
+		/*
+		  Check if we should finish lookup because we reach stop level
+		  or some error occured durring last node lookup.
+		*/
 		if (reiser4_node_get_level(place->node) <= level ||
-		    res == LP_FAILED)
+		    res == FAILED)
 		{
 			/* Realizing place if key is found */
-			if (res == LP_PRESENT)
+			if (res == PRESENT)
 				reiser4_place_realize(place);
 			
 			return res;
@@ -779,7 +799,7 @@ lookup_t reiser4_tree_lookup(
 		moved = FALSE;
 		
 		/* Position correcting for internal levels */
-		if (res == LP_ABSENT && place->pos.item != 0) {
+		if (res == ABSENT && place->pos.item != 0) {
 			if (place->pos.unit == ~0ul ||
 			    place->pos.unit == 0)
 			{
@@ -792,16 +812,22 @@ lookup_t reiser4_tree_lookup(
 			moved = TRUE;
 		}
 		
-		/* Initializing item at @place */
+		/*
+		  Initializing @place->item. This should be done before using
+		  any item methods.
+		*/
 		if (reiser4_place_realize(place))
-			return LP_FAILED;
+			return FAILED;
 		
 		units = reiser4_item_units(place);
 		
 		if (moved && place->pos.unit == ~0ul)
 			place->pos.unit = units - 1;
 		    
-		/* Checking is item at @place is nodeptr one */
+		/*
+		  Checking is item at @place is nodeptr one. If not, we correct
+		  position back.
+		*/
 		if (!reiser4_item_branch(place)) {
 			if (moved) {
 				if (place->pos.unit == units - 1) {
@@ -814,12 +840,12 @@ lookup_t reiser4_tree_lookup(
 			return res;
 		} 
 
-		/* Loading node by nodeptr item @place points to */
+		/* Loading node by its nodeptr item at @place */
 		if (!(place->node = reiser4_tree_child(tree, place)))
-			return LP_FAILED;
+			return FAILED;
 	}
     
-	return LP_ABSENT;
+	return ABSENT;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -916,7 +942,7 @@ errno_t reiser4_tree_attach(
 
 	/* Looking up for the insert point place */
 	if ((res = reiser4_tree_lookup(tree, &hint.key, level,
-				       &place)) != LP_ABSENT)
+				       &place)) != ABSENT)
 	{
 		aal_exception_error("Can't find position "
 				    "node to be attached.");
@@ -1507,7 +1533,7 @@ errno_t reiser4_tree_insert(
 		  @level variable.
 		*/
 		if (reiser4_tree_lookup(tree, &hint->key, level,
-					place) == LP_FAILED)
+					place) == FAILED)
 		{
 			aal_exception_error("Lookup failed after "
 					    "tree growed up to "

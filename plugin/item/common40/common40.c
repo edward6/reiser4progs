@@ -114,7 +114,7 @@ lookup_t common40_lookup(item_entity_t *item,
 	units = plugin_call(item->plugin->o.item_ops,
 			    units, item);
 	if (units == 0)
-		return LP_ABSENT;
+		return ABSENT;
 
 	size = trans_func ? trans_func(item, units) :
 		units;
@@ -123,7 +123,7 @@ lookup_t common40_lookup(item_entity_t *item,
 			compare, key, &maxkey) > 0)
 	{
 		*pos = size;
-		return LP_ABSENT;
+		return ABSENT;
 	}
 
 	offset = plugin_call(key->plugin->o.key_ops,
@@ -136,9 +136,9 @@ lookup_t common40_lookup(item_entity_t *item,
 	    wanted < offset + size)
 	{
 		*pos = wanted - offset;
-		return LP_PRESENT;
+		return PRESENT;
 	}
 
 	*pos = size;
-	return LP_ABSENT;
+	return ABSENT;
 }

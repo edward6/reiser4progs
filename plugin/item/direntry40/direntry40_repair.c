@@ -584,7 +584,7 @@ errno_t direntry40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
     units = direntry40_units(src);
 
     lookup = direntry40_lookup(src, &hint->end, &pos);
-    if (lookup == LP_FAILED)
+    if (lookup == FAILED)
 	return -EINVAL;
     
     direntry40_get_key(dst, dst_pos, &dst_key);
@@ -606,10 +606,10 @@ errno_t direntry40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	direntry40_get_key(src, next_pos, &hint->end);
 	lookup = direntry40_lookup(dst, &hint->end, &pos);
 	
-	if (lookup == LP_FAILED)
+	if (lookup == FAILED)
 	    return -EINVAL;
 
-	if (lookup == LP_ABSENT)
+	if (lookup == ABSENT)
 	    return 0;
 
 	next_pos++;

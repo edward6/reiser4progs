@@ -68,20 +68,22 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 /* Looks up for the object stat data place in tree */
 errno_t reiser4_object_stat(reiser4_object_t *object) {
 	errno_t res;
+	item_entity_t *item;
 
 	/* Performing lookup for statdata of current directory */
-	if (reiser4_tree_lookup(object->fs->tree, &object->key,
-				LEAF_LEVEL, &object->place) != LP_PRESENT) 
+	switch (reiser4_tree_lookup(object->fs->tree, &object->key,
+				    LEAF_LEVEL, &object->place))
 	{
-		/* Stat data is not found. getting out */
+	case PRESENT:
+		/* Initializing item at @object->place */
+		if ((res = reiser4_place_realize(&object->place)))
+			return res;
+
+		item = &object->place.item;
+		return reiser4_key_assign(&object->key, &item->key);
+	default:
 		return -EINVAL;
 	}
-
-	/* Initializing item at @object->place */
-	if ((res = reiser4_place_realize(&object->place)))
-		return res;
-
-	return reiser4_key_assign(&object->key, &object->place.item.key);
 }
 
 /* Callback function for finding statdata of the current directory */
@@ -154,7 +156,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	lookup = plugin_call(plugin->o.object_ops, lookup,
 			     object->entity, entry, &entry_hint);
 	
-	if (lookup == LP_PRESENT) {
+	if (lookup == PRESENT) {
 		res = reiser4_key_assign(&object->key,
 					 &entry_hint.object);
 	} else {
@@ -442,7 +444,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	aal_assert("umka-1918", name != NULL);
 
 	/* Getting child statdata key */
-	if (reiser4_object_lookup(object, name, &entry) != LP_PRESENT) {
+	if (reiser4_object_lookup(object, name, &entry) != PRESENT) {
 		aal_exception_error("Can't find entry %s in %s.",
 				    name, object->name);
 		return -EINVAL;
@@ -462,7 +464,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	/* Looking up for the victim statdata place */
 	if (reiser4_tree_lookup(object->fs->tree, &entry.object,
-				LEAF_LEVEL, &place) != LP_PRESENT)
+				LEAF_LEVEL, &place) != PRESENT)
 	{
 		aal_exception_error("Can't find stat data of %s/%s. "
 				    "Entry %s points to nowere.",
@@ -544,7 +546,7 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 	aal_assert("umka-1921", entry != NULL);
 
 	if (!object->entity->plugin->o.object_ops->lookup)
-		return LP_FAILED;
+		return FAILED;
 	
 	return plugin_call(object->entity->plugin->o.object_ops,
 			   lookup, object->entity, (char *)name,

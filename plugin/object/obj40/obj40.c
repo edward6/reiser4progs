@@ -304,8 +304,8 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 #ifdef ENABLE_SYMLINKS_SUPPORT
 /* Gets symlink from the stat data */
 errno_t obj40_get_sym(obj40_t *obj, char *data) {
-	item_entity_t *item;
 	create_hint_t hint;
+	item_entity_t *item;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -381,40 +381,32 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 errno_t obj40_stat(obj40_t *obj) {
 	lookup_t res;
 	key_entity_t key;
-	uint64_t objectid, locality;
 	
 	aal_assert("umka-1905", obj != NULL);
 
-	objectid = obj40_objectid(obj);
-	locality = obj40_locality(obj);
-	
 	key.plugin = obj->statdata.item.key.plugin;
 
-	plugin_call(key.plugin->o.key_ops, build_generic, &key,
-		    KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(key.plugin->o.key_ops, build_generic,
+		    &key, KEY_STATDATA_TYPE, obj40_locality(obj),
+		    obj40_objectid(obj), 0);
 
 	/* Unlocking old node if it exists */
 	if (obj->statdata.node != NULL)
 		obj40_unlock(obj, &obj->statdata);
 	
-	/*
-	  Requesting libreiser4 lookup in order to find stat data place in the
-	  tree.
-	*/
-	res = obj->core->tree_ops.lookup(obj->tree, &key,
-					 LEAF_LEVEL,
-					 &obj->statdata);
-
-	if (res != LP_PRESENT) {
+	/* Lookuing for stat data place by */
+	switch (obj->core->tree_ops.lookup(obj->tree, &key,
+					   LEAF_LEVEL,
+					   &obj->statdata))
+	{
+	case PRESENT:
+		obj40_lock(obj, &obj->statdata);
+		return 0;
+	default:
 		aal_exception_error("Can't find stat data of object "
-				    "0x%llx.", objectid);
+				    "0x%llx.", obj40_objectid(obj));
 		return -EINVAL;
 	}
-
-	/* Locking new node */
-	obj40_lock(obj, &obj->statdata);
-	
-	return 0;
 }
 
 /* Performs lookup and returns result to caller */
@@ -455,7 +447,7 @@ errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 	  exception and return the error code.
 	*/
 	switch (obj40_lookup(obj, &hint->key, level, place)) {
-	case LP_ABSENT:
+	case ABSENT:
 		if (obj->core->tree_ops.insert(obj->tree, place,
 					       level, hint))
 		{
@@ -466,10 +458,10 @@ errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 			return -EINVAL;
 		}
 		break;
-	case LP_PRESENT:
+	case PRESENT:
 		aal_exception_error("Key already exists in the tree.");
 		return -EINVAL;
-	case LP_FAILED:
+	case FAILED:
 		return -EINVAL;
 	}
 
@@ -487,10 +479,10 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 	  at.
 	*/
 	switch (obj40_lookup(obj, key, LEAF_LEVEL, &place)) {
-	case LP_ABSENT:
+	case ABSENT:
 		aal_exception_error("Can't find item/unit durring remove.");
 		return -EINVAL;
-	case LP_PRESENT:
+	case PRESENT:
 		if (obj->core->tree_ops.remove(obj->tree, &place,
 					       (uint32_t)count))
 		{
@@ -500,7 +492,7 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 		}
 		
 		break;
-	case LP_FAILED:
+	case FAILED:
 		return -EINVAL;
 	}
 

@@ -994,31 +994,29 @@ lookup_t direntry40_lookup(item_entity_t *item,
 	*/
 	if (plugin_call(key->plugin->o.key_ops, compare, key, &maxkey) > 0) {
 		*pos = direntry40_units(item);
-		return LP_ABSENT;
+		return ABSENT;
 	}
 
 	/* Comparing looked key with minimal one (that is with item key) */
 	if (plugin_call(key->plugin->o.key_ops, compare, &item->key, key) > 0) {
 		*pos = 0;
-		return LP_ABSENT;
+		return ABSENT;
 	}
 
 	/*
 	  Performing binary search inside the direntry in order to find position
 	  of the looked key.
 	*/
-	res = aux_bin_search(item->body, direntry40_units(item), key,
-			     callback_comp_entry, (void *)item, pos);
-
-	/*
-	  Position correcting for the case key was not found. It is needed for
-	  the case when we are going to insert new entry and searching the
-	  position of insertion.
-	*/
-	if (res == LP_FAILED)
-		return res;
-
-	return res;
+	switch (aux_bin_search(item->body, direntry40_units(item), key,
+			       callback_comp_entry, (void *)item, pos))
+	{
+	case 1:
+		return PRESENT;
+	case 0:
+		return ABSENT;
+	default:
+		return FAILED;
+	}
 }
 
 static reiser4_item_ops_t direntry40_ops = {

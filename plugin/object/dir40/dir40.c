@@ -52,7 +52,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	if (obj40_lookup(&dir->obj, offset, LEAF_LEVEL,
-			 &next) == LP_PRESENT)
+			 &next) == PRESENT)
 	{
 		obj40_relock(&dir->obj, &dir->body, &next);
 		aal_memcpy(&dir->body, &next, sizeof(dir->body));
@@ -132,7 +132,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	item = &dir->body.item;
 	
 	if (!dir40_mergeable(&next.item, item))
-		return LP_ABSENT;
+		return ABSENT;
 
 	obj40_relock(&dir->obj, &dir->body, &next);
 
@@ -149,7 +149,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	}
 #endif
 	
-	return LP_PRESENT;
+	return PRESENT;
 }
 
 /* Reads n entries to passed buffer buff */
@@ -216,8 +216,8 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	place_t next;
 	lookup_t res;
 	
-	item_entity_t *item;
 	key_entity_t wanted;
+	item_entity_t *item;
 
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1924", entry != NULL);
@@ -233,11 +233,11 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 		    &wanted, dir->hash, obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), name);
 
-	/* Performing tree lookup */
+	/* Looking for @wan */
 	res = obj40_lookup(&dir->obj, &wanted, LEAF_LEVEL, &next);
 
-	if (res != LP_PRESENT)
-		return LP_ABSENT;
+	if (res != PRESENT)
+		return res;
 
 	obj40_relock(&dir->obj, &dir->body, &next);
 	aal_memcpy(&dir->body, &next, sizeof(dir->body));
@@ -262,7 +262,7 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 				    "0x%llx:0x%llx.", dir->body.pos.unit,
 				    obj40_locality(&dir->obj),
 				    obj40_objectid(&dir->obj));
-		return LP_FAILED;
+		return FAILED;
 	}
 
 #ifndef ENABLE_STAND_ALONE
@@ -273,7 +273,7 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 #ifdef ENABLE_COLLISIONS_HANDLING
 	if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
 		aal_memcpy(&dir->offset, &wanted, sizeof(dir->offset));
-		return LP_PRESENT;
+		return PRESENT;
 	}
 
 	aal_exception_warn("Hash collision is detected between "
@@ -281,7 +281,7 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 			   "started.", entry->name, name);
 
 	if (!item->plugin->o.item_ops->units)
-		return LP_FAILED;
+		return FAILED;
 			
 	/* Sequentional search of the needed entry by its name */
 	for (; dir->body.pos.unit < item->plugin->o.item_ops->units(item);
@@ -294,18 +294,18 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 					    "from object 0x%llx.",
 					    dir->body.pos.unit,
 					    obj40_objectid(&dir->obj));
-			return LP_FAILED;
+			return FAILED;
 		}
 
 		if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
 			aal_memcpy(&dir->offset, &wanted, sizeof(dir->offset));
-			return LP_PRESENT;
+			return PRESENT;
 		}
 	}
 				
-	return LP_ABSENT;
+	return ABSENT;
 #else
-	return LP_PRESENT;
+	return PRESENT;
 #endif
 }
 
@@ -601,7 +601,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 		/* Looking for the last directory item */
 		if ((obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
-				  &place)) == LP_FAILED)
+				  &place)) == FAILED)
 		{
 			aal_exception_error("Lookup failed while searching "
 					    "the last directory item durring "
@@ -854,12 +854,16 @@ static errno_t dir40_layout(object_entity_t *entity,
 			if (res != 0)
 				return res;
 		} else {
-			if ((res = callback_item_data(item, item->context.blk,
+			blk_t blk = item->context.blk;
+			
+			if ((res = callback_item_data(item, blk,
 						      1, &hint)))
+			{
 				return res;
+			}
 		}
 		
-		if (dir40_next(entity) != LP_PRESENT)
+		if (dir40_next(entity) != PRESENT)
 			break;
 	}
     
@@ -888,7 +892,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = func(entity, &dir->body, data)))
 			return res;
 		
-		if (dir40_next(entity) != LP_PRESENT)
+		if (dir40_next(entity) != PRESENT)
 			break;
 	}
 	

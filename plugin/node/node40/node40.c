@@ -1064,11 +1064,11 @@ static lookup_t node40_lookup(object_entity_t *entity,
 			       key->plugin, &pos->item))
 	{
 	case 1:
-		return LP_PRESENT;
+		return PRESENT;
 	case 0:
-		return LP_ABSENT;
+		return ABSENT;
 	default:
-		return LP_FAILED;
+		return FAILED;
 	}
 }
 

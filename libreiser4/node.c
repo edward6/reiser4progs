@@ -278,7 +278,7 @@ errno_t reiser4_node_pbc(
         reiser4_node_lkey(node, &lkey);
                                                                                                    
         if (reiser4_node_lookup(place->node, &lkey,
-				&place->pos) == LP_PRESENT)
+				&place->pos) == PRESENT)
 	{
 #ifndef ENABLE_STAND_ALONE
 		if (reiser4_node_ack(node, place))
@@ -465,17 +465,17 @@ lookup_t reiser4_node_lookup(
 	res = plugin_call(node->entity->plugin->o.node_ops,
 			  lookup, node->entity, key, pos);
 
-	if (res != LP_ABSENT)
+	if (res != ABSENT)
 		return res;
 
 	if (pos->item == 0)
-		return LP_ABSENT;
+		return ABSENT;
 	
 	pos->item--;
 
 	/* Initializing item place points to */
 	if (reiser4_place_open(&place, node, pos))
-		return LP_FAILED;
+		return FAILED;
 
 	item = &place.item;
 
@@ -491,19 +491,21 @@ lookup_t reiser4_node_lookup(
 
 		if (reiser4_key_compare(key, &maxkey) > 0) {
 			pos->item++;
-			return LP_ABSENT;
+			return ABSENT;
 		}
 	}
 	
 	/* Calling lookup method of found item (most probably direntry item) */
-	if (item->plugin->o.item_ops->lookup)
-		return item->plugin->o.item_ops->lookup(item, key, &pos->unit);
+	if (item->plugin->o.item_ops->lookup) {
+		return plugin_call(item->plugin->o.item_ops,
+				   lookup, item, key, &pos->unit);
+	}
 	
 	/* Lookup isn't implemented where maxposs_key isn't implemented also. */
 	aal_assert("vpf-895", item->plugin->o.item_ops->maxposs_key == NULL);
 	pos->item++;
 
-	return LP_ABSENT;
+	return ABSENT;
 }
 
 /* Returns real item count in specified node */
