@@ -38,11 +38,9 @@ extern reiser4_node_t *reiser4_tree_nbr(reiser4_tree_t *tree,
 extern reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 					  reiser4_place_t *place);
 
-extern reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
-					 reiser4_node_t *node);
-
-extern reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
-					  reiser4_node_t *node);
+extern reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
+					 reiser4_node_t *node,
+					 aal_direction_t where);
 
 #ifndef ENABLE_STAND_ALONE
 extern void reiser4_tree_pack_handler(reiser4_tree_t *tree,

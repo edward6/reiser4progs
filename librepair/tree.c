@@ -172,8 +172,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	return res;
     }
     
-    reiser4_tree_right(tree, node);
-    reiser4_tree_left(tree, node);
+    reiser4_tree_ltrt(tree, node, D_LEFT);
+    reiser4_tree_ltrt(tree, node, D_RIGHT);
     
     return 0;
 }

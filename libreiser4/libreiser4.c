@@ -40,12 +40,8 @@ reiser4_abort_t libreiser4_get_abort(void) {
 }
 
 void libreiser4_set_abort(reiser4_abort_t func) {
-	if (!func)
-		abort_func = libreiser4_abort;
-	else
-		abort_func = func;
+	abort_func = func ? func : libreiser4_abort;
 }
-
 #endif
 
 /* 
@@ -63,11 +59,8 @@ static reiser4_plugin_t *factory_ifind(
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Handler for plugin finding requests from all plugins */
-static reiser4_plugin_t *factory_nfind(
-	const char *name)	    /* needed plugin name (label) */
-{
+static reiser4_plugin_t *factory_nfind(const char *name) {
 	return libreiser4_factory_nfind(name);
 }
 
@@ -99,7 +92,6 @@ static errno_t tree_remove(
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
 				   (reiser4_place_t *)place, count);
 }
-
 #endif
 
 /* Handler for lookup reqiests from the all plugin can arrive */
@@ -123,7 +115,6 @@ static lookup_t tree_lookup(
 		return res;
 	
 	if (res == LP_PRESENT) {
-		
 		item_entity_t *item = &p->item;
 		object_entity_t *entity = p->node->entity;
 		
@@ -148,7 +139,7 @@ static errno_t tree_realize(void *tree, place_t *place) {
 	if (reiser4_place_realize(p))
 		return -EINVAL;
 
-	return reiser4_item_get_key(p, NULL);
+	return reiser4_item_realize(p);
 }
 
 /* Handler for requests for next item */
@@ -165,29 +156,27 @@ static errno_t tree_next(
 
 	curr = (reiser4_place_t *)place;
 
-	if (curr->pos.item < reiser4_node_items(curr->node) - 1) {
-
+	if (reiser4_place_ltlast(curr)) {
 		reiser4_place_assign((reiser4_place_t *)next,
 				     curr->node, curr->pos.item + 1, ~0ul);
-
-		if (reiser4_place_realize((reiser4_place_t *)next))
-			return -EINVAL;
 	} else {
-		reiser4_tree_right((reiser4_tree_t *)tree, curr->node);
+		reiser4_tree_ltrt((reiser4_tree_t *)tree,
+				  curr->node, D_RIGHT);
 
 		if (!curr->node->right)
 			return -EINVAL;
-		
-		reiser4_place_assign((reiser4_place_t *)next,
-				     curr->node->right, 0, ~0ul);
 
-		if (reiser4_place_realize((reiser4_place_t *)next))
-			return -EINVAL;
+		((reiser4_place_t *)next)->node = curr->node->right;
+		reiser4_place_first((reiser4_place_t *)next);
 	}
+
+	if (reiser4_place_realize((reiser4_place_t *)next))
+		return -EINVAL;
 
 	return reiser4_item_realize((reiser4_place_t *)next);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Handler for requests for left neighbor */
 static errno_t tree_prev(
 	void *tree,	            /* opaque pointer to the tree */
@@ -202,32 +191,26 @@ static errno_t tree_prev(
 
 	curr = (reiser4_place_t *)place;
 
-	if (curr->pos.item > 0) {
-
+	if (reiser4_place_gtfirst(curr)) {
 		reiser4_place_assign((reiser4_place_t *)prev,
 				     curr->node, curr->pos.item - 1, ~0ul);
-
-		if (reiser4_place_realize((reiser4_place_t *)prev))
-			return -EINVAL;
 	} else {
-		uint32_t items;
-		
-		reiser4_tree_left((reiser4_tree_t *)tree, curr->node);
+		reiser4_tree_ltrt((reiser4_tree_t *)tree,
+				  curr->node, D_LEFT);
 
 		if (!curr->node->left)
 			return -EINVAL;
-		
-		items = reiser4_node_items(curr->node->left);
-			
-		reiser4_place_assign((reiser4_place_t *)prev,
-				     curr->node->left, items - 1, ~0ul);
 
-		if (reiser4_place_realize((reiser4_place_t *)prev))
-			return -EINVAL;
+		((reiser4_place_t *)prev)->node = curr->node->left;
+		reiser4_place_last((reiser4_place_t *)prev);
 	}
 
+	if (reiser4_place_realize((reiser4_place_t *)prev))
+		return -EINVAL;
+	
 	return reiser4_item_realize((reiser4_place_t *)prev);
 }
+#endif
 
 static errno_t tree_lock(
 	void *tree,               /* tree for working on */
@@ -260,7 +243,6 @@ static errno_t tree_unlock(
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static uint32_t tree_blocksize(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
 	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
@@ -276,7 +258,6 @@ static uint32_t tree_maxspace(void *tree) {
 	
 	return reiser4_node_maxspace(root);
 }
-
 #endif
 
 static errno_t tree_rootkey(void *tree, key_entity_t *key) {
@@ -296,8 +277,13 @@ reiser4_core_t core = {
 		/* Returns next item form the passed place */
 		.next	    = tree_next,
     
+#ifndef ENABLE_STAND_ALONE
 		/* Returns prev item from the passed place */
 		.prev	    = tree_prev,
+#else
+		/* Returns prev item from the passed place */
+		.prev	    = NULL,
+#endif
 
 #ifndef ENABLE_STAND_ALONE
 		/* Callback function for inserting items into the tree */
