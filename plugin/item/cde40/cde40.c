@@ -706,8 +706,7 @@ static errno_t cde40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	   it is the attempt to insert new directory item. In this case 
 	   we should also count item overhead, that is cde40 header which 
 	   contains the number of entries in item. */
-	hint->overhead = (place->pos.unit == MAX_UINT32 ?
-		     cde40_overhead() : 0);
+	hint->overhead = cde40_overhead();
 	
 	return 0;
 }
