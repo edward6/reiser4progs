@@ -134,26 +134,10 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	return res < 0 ? res : 0;
 }
 
-#if 0
-static errno_t dir40_belongs(dir40_t *dir) {
-	aal_assert("vpf-1245", dir != NULL);
-	
-	/* Check that the body place is valid. */
-	if (!dir40_core->tree_ops.valid(dir->obj.info.tree, &dir->body))
-		return RE_FATAL;
-
-	/* Fetching item info at @place */
-	if (obj40_fetch(&dir->obj, &dir->body))
-		return -EINVAL;
-
-	/* Does the body item belong to the current object. */
-	return plug_call(dir->body.key.plug->o.key_ops, compshort,
-			 &dir->body.key, &dir->position) ? RE_FATAL : 0;
-}
-#endif
-
 /* Search for the position for the read in the directory by @dir->position,
-   Returns ABSENT only if there is no more entries in the directory. */
+   Returns ABSENT only if there is no more entries in the directory. 
+   FIXME: This looks like dir40_update_body, probably one of them is 
+   redundant. */
 static lookup_t dir40_search(dir40_t *dir) {
 	uint32_t units, adjust;
 	lookup_t res;
@@ -171,7 +155,12 @@ static lookup_t dir40_search(dir40_t *dir) {
 	}
 	
 	/* No adjusting for the ABSENT result. */
-	if (res == ABSENT) adjust = 0;
+	if (res == ABSENT) {
+		if (!dir40_belong(dir, &dir->body))
+			return ABSENT;
+		
+		adjust = 0;
+	}
 	
 	units = plug_call(dir->body.plug->o.item_ops->balance,
 			  units, &dir->body);
@@ -188,17 +177,20 @@ static lookup_t dir40_search(dir40_t *dir) {
 				return res;
 			
 			/* No more items in the tree. */
-			if (res == ABSENT) return ABSENT;
-
+			if (res == ABSENT)
+				return ABSENT;
+			
 			/* Some item of the dir was found. */
-			if (!adjust) return PRESENT;
-				
+			if (adjust == 0) 
+				return PRESENT;
+
 			units = plug_call(dir->body.plug->o.item_ops->balance,
 					  units, &dir->body);
 
-		} else if (!adjust)
+		} else if (!adjust) {
 			/* We get here from above with PRESENT only. */
 			return PRESENT;
+		}
 				
 		if (dir40_fetch(dir, &temp))
 			return -EIO;
@@ -274,6 +266,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 	}
 
 	/* Take care about the ".". */
+	/* FIXME: Probably it should be different -- find an item by the key 
+	   and if it is of DIRENTRY group, take its plugin as bplug, fix it 
+	   in SD then. */
 	if ((res |= dir40_dot(dir, bplug, mode)) < 0)
 		return res;
 	
@@ -307,7 +302,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		/* Item can be of another plugin, but of the same group. 
 		   FIXME-VITALY: item of the same group but of another 
 		   plugin, it should be converted. */
-		/*if (dir->body.plug->id.group != DIRENTRY_ITEM) {*/
+		/*if (dir->body.plug->id.group != DIRENTRY_ITEM) */
 		if (dir->body.plug != bplug) {
 			aal_error("Directory [%s], plugin [%s], node [%llu], "
 				  "item [%u]: item of the illegal plugin [%s] "
@@ -317,7 +312,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				  dir->body.pos.item, dir->body.plug->label,
 				  mode == RM_BUILD ? " Removed." : "");
 
-			if (mode == RM_BUILD)
+			if (mode != RM_BUILD)
 				return RE_FATAL;
 			
 			hint.count = 1;
@@ -338,6 +333,27 @@ errno_t dir40_check_struct(object_entity_t *object,
 				  units, &dir->body);
 		
 		for (; pos->unit < units; pos->unit++) {
+			bool_t last = (pos->unit == units - 1);
+			
+			if (last) {
+				/* If we are handling the last unit, register 
+				   the item despite the result of handling.
+				   Any item has a pointer to objectid in the 
+				   key, if it is shared between 2 objects, it
+				   should be already solved at relocation time.
+				 */
+				if (place_func && place_func(&dir->body, data))
+					return -EINVAL;
+
+				/* Count size and bytes. */
+				size += plug_call(dir->body.plug->o.item_ops->object,
+						  size, &dir->body);
+
+				bytes += plug_call(dir->body.plug->o.item_ops->object,
+						   bytes, &dir->body);
+
+			}
+			
 			if ((res |= dir40_fetch(dir, &entry)) < 0)
 				return res;
 			
@@ -369,10 +385,18 @@ errno_t dir40_check_struct(object_entity_t *object,
 			}
 
 			hint.count = 1;
+			hint.shift_flags = SF_DEFAULT;
 
-			res |= obj40_remove(&dir->obj, &dir->body, &hint);
-			if (res < 0) return res;
-
+			if ((res |= obj40_remove(&dir->obj, &dir->body, 
+						 &hint)) < 0)
+				return res;
+			
+			/* Update accounting info after remove. */
+			if (last) {
+				size--;
+				bytes -= hint.bytes;
+			}
+			
 			/* Lookup it again. */
 			break;
 			
@@ -391,22 +415,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 				/* Key collision. */
 				dir->position.adjust++;
 			}
-		}
-		
-		if (pos->unit == units) {
-			/* Try to register the item if it has not been yet. Any 
-			   item has a pointer to objectid in the key, if it is 
-			   shared between 2 objects, it should be already solved 
-			   at relocation time. */
-			if (place_func && place_func(&dir->body, data))
-				return -EINVAL;
-
-			/* Count size and bytes. */
-			size += plug_call(dir->body.plug->o.item_ops->object, 
-					  size, &dir->body);
-
-			bytes += plug_call(dir->body.plug->o.item_ops->object, 
-					   bytes, &dir->body);
 		}
 		
 		/* Lookup for the last entry left in the tree with the 

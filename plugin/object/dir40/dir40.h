@@ -20,12 +20,6 @@ struct dir40 {
 	/* Current body item coord */
 	reiser4_place_t body;
 
-	/* Current position in the directory (key and adjust). Adjust is needed
-	   to work fine when key collitions take place. */
-#ifndef ENABLE_STAND_ALONE
-	uint32_t adjust;
-#endif
-
 	/* Current directory offset. */
 	reiser4_key_t position;
 
@@ -46,4 +40,5 @@ extern lookup_t dir40_lookup(object_entity_t *entity,
 
 extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
 extern int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place);
+
 #endif

@@ -28,7 +28,7 @@ static errno_t dir40_telldir(object_entity_t *entity,
 
 	/* Adjust is offset inside collided keys arrays and needed for
 	   positioning right in such a case. In normal case it is zero. */
-	position->adjust = dir->adjust;
+	position->adjust = dir->position.adjust;
 	
 	return 0;
 }
@@ -41,7 +41,7 @@ int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
 	   check this here. */
-	if (!obj40_valid_item(&dir->obj, place))
+	if (!obj40_valid_item(place))
 		return 0;
 
 	/* Fetching item info at @place. This is needed to make sue, that all
@@ -49,7 +49,7 @@ int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
 	   tree_lookup(), if it is sure, that place points to valid postion in
 	   node. This happen if lookup found a key. Otherwise it leaves place
 	   not initialized and caller is supoposed to take care about. */
-	if (obj40_fetch_item(&dir->obj, place))
+	if (obj40_fetch_item(place))
 		return 0;
 	
 	/* Must be the same plugin. */
@@ -57,8 +57,8 @@ int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
 		return 0;
 	
 	/* Is the place of the same object? */
-	return plug_call(dir->body.key.plug->o.key_ops, compshort,
-			 &dir->body.key, &place->key) ? 0 : 1;
+	return plug_call(dir->position.plug->o.key_ops, compshort,
+			 &dir->position, &place->key) ? 0 : 1;
 }
 
 /* Close directiry instance. */
@@ -84,7 +84,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	   @dir->adjust. Seekdir is accepting key, which might be got from
 	   telldir() function. So, adjust will be set too. */
 #ifndef ENABLE_STAND_ALONE
-	dir->adjust = position->adjust;
+	dir->position.adjust = position->adjust;
 #endif
 
 	/* Saving passed key to @dir->position. */
@@ -103,7 +103,7 @@ errno_t dir40_reset(object_entity_t *entity) {
 	/* Preparing key of the first entry in directory and set directory
 	   adjust to zero. */
 #ifndef ENABLE_STAND_ALONE
-	dir->adjust = 0;
+	dir->position.adjust = 0;
 #endif
 
 	/* Building key itself. */
@@ -202,7 +202,12 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 		/* Directory is over. */
 		if (!dir40_belong(dir, &dir->body))
 			return ABSENT;
-
+		
+		/* If ABSENT means there is no any dir item, check this again
+		   for the case key matches. */
+		if (dir->body.plug->id.group != DIRENTRY_ITEM)
+			return ABSENT;
+			
 		/* Checking if directory is over. */
 		units = plug_call(dir->body.plug->o.item_ops->balance,
 				  units, &dir->body);
@@ -214,7 +219,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 #ifndef ENABLE_STAND_ALONE
 	/* Adjusting current position by key's adjust. This is needed
 	   for working fine when key collisions take place. */
-	for (adjust = dir->adjust; adjust;) {
+	for (adjust = dir->position.adjust; adjust;) {
 		uint32_t off = adjust;
 
 		units = plug_call(dir->body.plug->o.item_ops->balance,
@@ -230,7 +235,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 				return res;
 
 			if (res == ABSENT)
-				return 0;
+				return ABSENT;
 		}
 	}
 #endif
@@ -309,7 +314,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 		if (!plug_call(temp.offset.plug->o.key_ops,
 			       compfull, &temp.offset, &dir->position))
 		{
-			temp.offset.adjust = dir->adjust + 1;
+			temp.offset.adjust = dir->position.adjust + 1;
 		} else {
 			temp.offset.adjust = 0;
 		}
@@ -764,7 +769,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 			     FIND_EXACT, &temp))
 	{
 	case ABSENT:
-		if ((res = obj40_fetch_item(&dir->obj, &temp.place)))
+		if ((res = obj40_fetch_item(&temp.place)))
 			return res;
 		
 		break;
@@ -843,8 +848,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 		if (!plug_call(dir->position.plug->o.key_ops,
 			       compfull, &dir->position, &temp.offset))
 		{
-			if (entry->offset.adjust < dir->adjust)
-				dir->adjust--;
+			if (entry->offset.adjust < dir->position.adjust)
+				dir->position.adjust--;
 		}
 		
 		break;

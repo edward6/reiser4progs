@@ -648,6 +648,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 	entry_hint_t entry;
 	reiser4_fs_t *fs;
 	errno_t res;
+	uint8_t len;
 
 	aal_assert("vpf-1252", sem != NULL);
 	aal_assert("vpf-1265", sem->root != NULL);
@@ -662,6 +663,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 	if (res == ABSENT) {
 		if ((res = repair_fs_lost_key(fs, &lost)))
 			return res;
+		
 		aal_error("No 'lost+found' entry found. "
 			  "Building a new object with the key %s.",
 			  reiser4_print_key(&lost, PO_INODE));
@@ -681,13 +683,30 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		return RE_FATAL;
 	}
 
-	if ((res = repair_semantic_object_check(sem, sem->root, sem->lost))) {
-		reiser4_object_close(sem->lost);
-		sem->lost = NULL;
-		return res;
+	if ((res = repair_semantic_object_check(sem, sem->root, sem->lost)))
+		goto error_close_lost;
+
+	len = aal_strlen(LOST_PREFIX);
+	
+	/* Remove all "lost_found_" names from "lost+found" directory. 
+	   This is needed to not have any special case later -- when 
+	   some object gets linked to "lost+found" it is not marked as 
+	   ATTCHED to relink it later to some another object having 
+	   the valid name if such is found. */
+	while (reiser4_object_readdir(sem->lost, &entry) > 0) {
+		if (aal_memcmp(entry.name, LOST_PREFIX, len)) 
+			continue;
+		
+		if (( res = reiser4_object_rem_entry(sem->lost, &entry)))
+			goto error_close_lost;
 	}
 	
 	return 0;
+	
+ error_close_lost:
+	reiser4_object_close(sem->lost);
+	sem->lost = NULL;
+	return res;
 }
 
 static void repair_semantic_setup(repair_semantic_t *sem) {

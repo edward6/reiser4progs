@@ -117,11 +117,11 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	}
 
 	/* If place is invalid, there is no items of the file. */
-	if (!obj40_valid_item(&reg->obj, &place))
+	if (!obj40_valid_item(&place))
 		return reg40_policy_plug(reg, 0);
 
 	/* Initializing item entity. */
-	if ((res = obj40_fetch_item(&reg->obj, &place)))
+	if ((res = obj40_fetch_item(&place)))
 		return NULL;
 
 	/* Check if this is an item of another object. */
@@ -188,11 +188,11 @@ static errno_t reg40_next(object_entity_t *object,
 
 	if (res == ABSENT) {
 		/* If place is invalid, no more reg40 items. */
-		if (!obj40_valid_item(&reg->obj, &reg->body))
+		if (!obj40_valid_item(&reg->body))
 			goto end;
 
 		/* Initializing item entity at @next place */
-		if ((res = obj40_fetch_item(&reg->obj, &reg->body)))
+		if ((res = obj40_fetch_item(&reg->body)))
 			return res;
 
 		/* Check if this is an item of another object. */
