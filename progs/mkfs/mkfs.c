@@ -355,7 +355,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!(flags & BF_QUIET) && aal_list_len(devices)) {
-		if (!(gauge = aal_gauge_create(GAUGE_SILENT, NULL)))
+		if (!(gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
+					       NULL, NULL, 0, NULL)))
 			goto error_free_libreiser4;
 	}
     
@@ -448,10 +449,9 @@ int main(int argc, char *argv[]) {
 		}
     
 		if (gauge) {
-			aal_gauge_rename(gauge, "Creating reiser4 on %s",
+			aal_gauge_rename(gauge, "Creating reiser4 on %s ... ",
 					 host_dev);
-
-			aal_gauge_start(gauge);
+			aal_gauge_touch(gauge);
 		}
 
 		/* Creating filesystem */
@@ -500,10 +500,9 @@ int main(int argc, char *argv[]) {
 			reiser4_object_close(object);
 		}
 	
-		if (gauge) {
+		if (gauge)
 			aal_gauge_done(gauge);
-		}
-	
+
 		/* Zeroing uuid in order to force mkfs to generate it on its own
 		   for next device form built device list. */
 		aal_memset(hint.uuid, 0, sizeof(hint.uuid));

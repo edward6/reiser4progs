@@ -25,9 +25,8 @@ typedef struct repair_am {
 	aux_bitmap_t *bm_twig;
 	aux_bitmap_t *bm_leaf;
 	
-	repair_progress_handler_t *progress_handler;    
-	repair_progress_t *progress;
 	repair_am_stat_t stat;
+	aal_gauge_t *gauge;
 } repair_am_t;
 
 extern errno_t repair_add_missing(repair_am_t *am);

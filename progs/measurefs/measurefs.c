@@ -155,8 +155,9 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 			return -EINVAL;
 		}
 
+		/* FIXME: touch eaery time. show once per second. */
 		if (frag_hint->gauge && pos.item == 0 && bogus++ % 128 == 0)
-			aal_gauge_update(frag_hint->gauge, 0);
+			aal_gauge_touch(frag_hint->gauge);
 		
 		/* Checking and calling item's layout method with function
 		   tfrag_process_item() as a function for handling one block the
@@ -185,8 +186,8 @@ static errno_t tree_frag_update_node(reiser4_tree_t *tree,
    traverse node, etc). Actual statistics collecting is performed in the passed
    callbacks and subcallbacks (for item traversing). */
 errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
-	errno_t res;
 	tree_frag_hint_t frag_hint;
+	errno_t res;
 
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
@@ -194,13 +195,12 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 		/* Initializing gauge, because it is a long process and user
 		   should be informed what the stage of the process is going at
 		   the moment. */
-		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
-							 NULL)))
-		{
+		frag_hint.gauge = 
+			aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
+					 NULL, NULL, 0, "Tree fragmentation "
+					 "... ");
+		if (!frag_hint.gauge)
 			return -ENOMEM;
-		}
-
-		aal_gauge_rename(frag_hint.gauge, "Tree fragmentation");
 	}
 	
 	/* Preparing serve structure, statistics will be stored in  */
@@ -208,7 +208,7 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	frag_hint.level = reiser4_tree_get_height(fs->tree);
 	
 	if (frag_hint.gauge)
-		aal_gauge_start(frag_hint.gauge);
+		aal_gauge_touch(frag_hint.gauge);
 
 	/* Calling tree traversal with callbacks for processing internal nodes
 	   and items in order to calculate tree fragmentation. */
@@ -221,10 +221,12 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	}
 
 	/* Printing results. */
-	if (frag_hint.gauge)
+	if (frag_hint.gauge) {
+		aal_gauge_done(frag_hint.gauge);
 		aal_gauge_free(frag_hint.gauge);
-	else
+	} else {
 		printf("Tree fragmentation: ");
+	}
 
 	printf("%.6f\n", frag_hint.total > 0 ?
 	       (double)frag_hint.bad / frag_hint.total : 0);
@@ -306,8 +308,9 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 
 	blksize = reiser4_master_get_blksize(tree->fs->master);
 
+	/* FIXME: touch eaery time. show once per second. */
 	if (stat_hint->gauge && stat_hint->formatted % 128 == 0)
-		aal_gauge_update(stat_hint->gauge, 0);
+		aal_gauge_touch(stat_hint->gauge);
 
 	formatted_used = blksize - reiser4_node_space(node);
 
@@ -402,26 +405,24 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 
 /* Entry point function for calculating tree statistics */
 errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
-	errno_t res;
-	uint32_t blksize;
 	tree_stat_hint_t stat_hint;
+	uint32_t blksize;
+	errno_t res;
 
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 
 	/* Creating gauge. */
 	if (!(flags & BF_QUIET)) {
-		if (!(stat_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
-							 NULL)))
-		{
+		stat_hint.gauge = 
+			aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
+					 NULL, NULL, 0, "Tree statistics ... ");
+		if (!stat_hint.gauge)
 			return -ENOMEM;
-		}
-
-		aal_gauge_rename(stat_hint.gauge, "Tree statistics");
 	}
 
 	/* Traversing tree with callbacks for calculating tree statistics. */
 	if (stat_hint.gauge)
-		aal_gauge_start(stat_hint.gauge);
+		aal_gauge_touch(stat_hint.gauge);
 
 	stat_hint.tree = fs->tree;
 	
@@ -432,6 +433,7 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	}
 
 	if (stat_hint.gauge) {
+		aal_gauge_done(stat_hint.gauge);
 		aal_gauge_free(stat_hint.gauge);
 		misc_wipe_line(stdout);
 	}
@@ -601,7 +603,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 		frag_hint->total = 0;
 
 		if (frag_hint->gauge && pos.item == 0)
-			aal_gauge_update(frag_hint->gauge, 0);
+			aal_gauge_touch(frag_hint->gauge);
 
 		/* Calling calculating the file fragmentation by emans of using
 		   the function we have seen abowe. */
@@ -648,38 +650,37 @@ static errno_t data_frag_update_node(reiser4_tree_t *tree,
 }
 
 /* Entry point function for data fragmentation. */
-errno_t measurefs_data_frag(reiser4_fs_t *fs,
-			    uint32_t flags)
-{
-	errno_t res;
+errno_t measurefs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	file_frag_hint_t frag_hint;
+	errno_t res;
 
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 
 	/* Create gauge. */
 	if (!(flags & BF_QUIET)) {
-		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
-							 NULL)))
-		{
+		frag_hint.gauge = 
+			aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
+					 NULL, NULL, 0, "Data fragmentation "
+					 "... ");
+		if (!frag_hint.gauge)
 			aal_fatal("Out of memory!");
 			return -ENOMEM;
-		}
-
-		aal_gauge_rename(frag_hint.gauge, "Data fragmentation");
 	}
 
 	frag_hint.flags = flags;
 	frag_hint.level = reiser4_tree_get_height(fs->tree);
 	
 	if (frag_hint.gauge)
-		aal_gauge_start(frag_hint.gauge);
+		aal_gauge_touch(frag_hint.gauge);
 	
 	if ((res = reiser4_tree_trav(fs->tree, NULL, data_frag_process_node,
 				     data_frag_update_node, NULL, &frag_hint)))
 		return res;
 
-	if (frag_hint.gauge)
+	if (frag_hint.gauge) {
+		aal_gauge_done(frag_hint.gauge);
 		aal_gauge_free(frag_hint.gauge);
+	}
 
 	if (frag_hint.flags & BF_SHOW_FILE || !frag_hint.gauge)
 		printf("Data fragmentation is: ");

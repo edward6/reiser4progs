@@ -8,34 +8,11 @@
 
 #include <repair/cleanup.h>
 
-static void repair_cleanup_setup(repair_cleanup_t *cleanup) {
-	aal_assert("vpf-1045", cleanup != NULL);
-
-	aal_memset(cleanup->progress, 0, sizeof(*cleanup->progress));
-	
-	if (!cleanup->progress_handler)
-		return;
-	
-	cleanup->progress->type = GAUGE_TREE;
-	cleanup->progress->text = "***** Cleanup Pass: cleaning "
-		"up the reiser4 storage tree.";
-	cleanup->progress->state = PROGRESS_STAT;
-	time(&cleanup->stat.time);
-	cleanup->progress_handler(cleanup->progress);
-	cleanup->progress->text = NULL;
-}
-
 static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	aal_stream_t stream;
 	char *time_str;
 	
 	aal_assert("vpf-1063", cleanup != NULL);
-	
-	if (!cleanup->progress_handler)
-		return;
-	
-	cleanup->progress->state = PROGRESS_STAT;
-	cleanup->progress_handler(cleanup->progress);
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
@@ -49,11 +26,7 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	time_str = ctime(&cleanup->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	aal_stream_format(&stream, time_str);
-	
-	cleanup->progress->state = PROGRESS_STAT;
-	cleanup->progress->text = (char *)stream.entity;
-	cleanup->progress_handler(cleanup->progress);
-	
+	aal_mess(stream.entity);
 	aal_stream_fini(&stream);
 }
 
@@ -76,15 +49,25 @@ static errno_t cb_free_extent(void *object, uint64_t start,
 	return 0;
 }
 
+
 static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	trans_hint_t hint;
+	int next_node;
 	errno_t res;
 
 	aal_assert("vpf-1425", place != NULL);
 	aal_assert("vpf-1426", cleanup != NULL);
 	aal_assert("vpf-1429", !reiser4_item_branch(place->plug));
 
+	next_node = (!cleanup->neigh.node || 
+		     place_blknr(&cleanup->neigh) != place_blknr(place));
+	
+	if (next_node) {
+		aal_gauge_set_data(cleanup->gauge, place);
+		aal_gauge_touch(cleanup->gauge);
+	}
+	
 	/* Clear checked items. */
 	if (reiser4_item_test_flag(place, OF_CHECKED)) {
 		reiser4_item_clear_flags(place);
@@ -93,10 +76,7 @@ static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 			goto next;
 		
 		/* Check if neighbour items are mergable. */
-		if (!cleanup->neigh.node || 
-		    place_blknr(&cleanup->neigh) != 
-		    place_blknr(place))
-		{
+		if (next_node) {
 			cleanup->neigh = *place;
 			cleanup->neigh.pos.item--;
 		
@@ -157,8 +137,9 @@ static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 	return res ? res : 1;
 }
 
+extern void cb_gauge_tree_percent(aal_gauge_t *gauge);
+
 errno_t repair_cleanup(repair_cleanup_t *cleanup) {
-	repair_progress_t progress;
 	errno_t res;
 	
 	aal_assert("vpf-1407", cleanup != NULL);
@@ -171,16 +152,27 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		return 0;
 	}
 	
-	cleanup->progress = &progress;
-	repair_cleanup_setup(cleanup);
-	
+	aal_mess("LOOKING FOR UNCONNECTED NODES");
+	cleanup->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
+					  cb_gauge_tree_percent, NULL, 500, NULL);
+	aal_gauge_set_value(cleanup->gauge, 0);
+	aal_gauge_touch(cleanup->gauge);
+	time(&cleanup->stat.time);
+
 	if ((res = repair_tree_scan(cleanup->repair->fs->tree, 
 				    cb_node_cleanup, cleanup)))
-		return res;
+		goto error;
 
+	aal_gauge_done(cleanup->gauge);
+	aal_gauge_free(cleanup->gauge);
 	repair_cleanup_update(cleanup);
 	reiser4_fs_sync(cleanup->repair->fs);
 	
 	return 0;
+	
+ error:
+	aal_gauge_done(cleanup->gauge);
+	aal_gauge_free(cleanup->gauge);
+	return res;
 }
 

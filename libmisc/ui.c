@@ -88,27 +88,20 @@ uint16_t misc_screen_width(void) {
 }
 
 void misc_wipe_line(void *stream) {
-	char *buff;
 	int i, width = misc_screen_width();
     
-	if (!(buff = aal_calloc(width + 1, 0)))
-		return;
-    
-	aal_strncat(buff, "\r", 1);
+	fprintf(stream, "\r");
 	for (i = 0; i < width - 2; i++)
-		aal_strncat(buff, " ", 1);
+		fprintf(stream, " ");
 
-	aal_strncat(buff, "\r", 1);
-
-	fprintf(stream, buff);
-	aal_free(buff);
+	fprintf(stream, "\r");
 }
 
 /* Constructs exception message */
 void misc_print_wrap(void *stream, char *text) {
-	char *word;
-	uint32_t line_width;
+	char *string, *word;
 	uint32_t screen_width;
+	uint32_t line_width;
 
 	if (!stream || !text)
 		return;
@@ -116,23 +109,26 @@ void misc_print_wrap(void *stream, char *text) {
 	if (!(screen_width = misc_screen_width()))
 		screen_width = 80;
 
-	for (line_width = 0; (word = aal_strsep(&text, " ")); ) {
-		if (line_width + aal_strlen(word) > screen_width) {
-			line_width = 0;
-			fprintf(stream, "\n");
-		}
-		
-		fprintf(stream, word);
+	for (line_width = 0; (string = aal_strsep(&text, "\n")); ) {
+		for (; (word = aal_strsep(&string, " ")); ) {
+			if (line_width + aal_strlen(word) > screen_width) {
+				fprintf(stream, "\n");
+				line_width = 0;
+			}
 
-		line_width += aal_strlen(word);
-		
-		if (line_width + 1 < screen_width) {
-			fprintf(stream, " ");
-			line_width++;
+			fprintf(stream, word);
+
+			line_width += aal_strlen(word);
+
+			if (line_width + 1 < screen_width) {
+				fprintf(stream, " ");
+				line_width++;
+			}
 		}
+
+		fprintf(stream, "\n");
+		line_width = 0;
 	}
-
-	fprintf(stream, "\n");
 }
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
@@ -269,7 +265,5 @@ static void _init(void) {
 	aal_ui_set_alpha_handler(misc_alpha_handler);
 
 	/* Setting up the gauges */
-	aal_gauge_set_handler(GAUGE_SILENT, misc_gauge_silent_handler);
-	aal_gauge_set_handler(GAUGE_INDICATOR, misc_gauge_indicator_handler);
-	aal_gauge_set_handler(GAUGE_PERCENTAGE, misc_gauge_percentage_handler);
+	aux_gauge_set_handler(misc_progress_handler, GT_PROGRESS);
 }

@@ -10,10 +10,7 @@
 #include <reiser4/libreiser4.h>
 #include <repair/plugin.h>
 #include <misc/gauge.h>
-
-#define GAUGE_TREE	GAUGE_LAST
-#define GAUGE_SEM	GAUGE_LAST + 1
-
+#if 0
 typedef enum repair_progress_state {
 	PROGRESS_START	= 0x1,
 	PROGRESS_UPDATE	= 0x2,
@@ -49,6 +46,7 @@ typedef struct repair_progress {
 
 /* Callback for repair passes to print the progress. */
 typedef errno_t (repair_progress_handler_t) (repair_progress_t *);
+#endif
 
 typedef struct repair_data {
 	reiser4_fs_t *fs;
@@ -61,7 +59,6 @@ typedef struct repair_data {
 	uint8_t debug_flag;
 
 	char *bitmap_file;
-	repair_progress_handler_t *progress_handler;
 } repair_data_t;
 
 extern errno_t repair_check(repair_data_t *repair);

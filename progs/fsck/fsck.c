@@ -147,6 +147,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 	};
 
 	fsck_init_streams();
+	aux_gauge_set_handler(misc_progress_handler, GT_PROGRESS);
 	memset(override, 0, sizeof(override));
 	data->logfile = stderr;
 
@@ -197,9 +198,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 			misc_print_banner(argv[0]);
 			goto user_error;
 		case 'q':
-			aal_gauge_set_handler(GAUGE_PERCENTAGE, NULL);
-			aal_gauge_set_handler(GAUGE_INDICATOR, NULL);
-			aal_gauge_set_handler(GAUGE_SILENT, NULL);
+			aux_gauge_set_handler(NULL, GT_PROGRESS);
 			break;
 		case 'r':
 			break;
@@ -310,8 +309,6 @@ static errno_t fsck_init(fsck_parse_t *data,
 		goto oper_error;
 	}
 
-	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
-	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
 	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, data->logfile);
 	return fsck_ask_confirmation(data, argv[optind]);
 	
@@ -412,7 +409,6 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	repair_error_count(repair, res);
 	
 	repair->fs->tree->mpc_func = misc_mpressure_detect;
-	repair->progress_handler = gauge_handler;    
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	

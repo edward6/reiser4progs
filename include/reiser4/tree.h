@@ -8,6 +8,8 @@
 
 #include <reiser4/types.h>
 
+#define REISER4_TREE_MAX_HEIGHT 10
+
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_adjust(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);

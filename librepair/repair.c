@@ -134,8 +134,6 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	filter->repair = control->repair;
 	filter->check_node = &control->check_node;
 	
-	filter->progress_handler = control->repair->progress_handler;
-	
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	/* Allocate a bitmap of blocks belong to the format area - skipped, 
@@ -231,8 +229,6 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	ds->bm_twig = control->bm_twig;
 	ds->bm_met = control->bm_met;
 	ds->check_node = &control->check_node;
-	
-	ds->progress_handler = control->repair->progress_handler;
 	
 	repair = ds->repair;
 	
@@ -360,8 +356,6 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts,
 	ts->bm_twig = control->bm_twig;
 	ts->bm_met = control->bm_met;
 	
-	ts->progress_handler = control->repair->progress_handler;
-	
 	if (control->bm_scan) {
 		/* If this is the twig scan that goes after disk_scan, 
 		   close scan bitmap. */
@@ -391,8 +385,6 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	am->bm_leaf = control->bm_leaf;
 	am->bm_twig = control->bm_twig;
 	am->bm_used = control->bm_used;
-	
-	am->progress_handler = control->repair->progress_handler;
 	
 	for (i = 0; i < control->bm_met->size; i++) {
 		/* Leave there twigs and leaves that are not in the tree. */
@@ -431,7 +423,6 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 	aal_memset(sem, 0, sizeof(*sem));
 	
 	sem->repair = control->repair;
-	sem->progress_handler = control->repair->progress_handler;
 	
 	aal_assert("vpf-1335", control->repair->mode != RM_BUILD ||
 		   !aux_bitmap_marked(control->bm_twig));
@@ -553,9 +544,7 @@ static errno_t repair_cleanup_prepare(repair_control_t *control,
 	aal_assert("vpf-861", control->repair->fs != NULL);
 	
 	aal_memset(cleanup, 0, sizeof(*cleanup));
-	
 	cleanup->repair = control->repair;    
-	cleanup->progress_handler = control->repair->progress_handler;
 	
 	return 0;
 }
@@ -587,8 +576,6 @@ static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 			  "blocks.");
 		return -EINVAL;
 	}
-	
-	am->progress_handler = control->repair->progress_handler;
 	
 	aux_bitmap_calc_marked(am->bm_twig);
 	aux_bitmap_calc_marked(am->bm_leaf);

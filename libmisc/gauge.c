@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include <aal/libaal.h>
 #include <misc/misc.h>
@@ -13,115 +14,105 @@
 
 aal_gauge_t *current_gauge = NULL;
 
+static int misc_gauge_time(aal_gauge_time_t *time) {
+	struct timeval t;
+	uint64_t usec;
+	
+	if (!time->gap) 
+		return 1;
+	
+	gettimeofday(&t, NULL);
+
+	usec = ((uint64_t)t.tv_sec * 1000000 + t.tv_usec) / 1000;
+	
+	if (usec < time->shown || 
+	    usec > time->shown + time->gap) 
+	{
+		time->shown = usec;
+		return 1;
+	}
+	
+	return 0;
+}
+
 static inline void misc_gauge_blit(void) {
 	static short bitc = 0;
 	static const char bits[] = "|/-\\";
 
-	putc(bits[bitc], stderr);
-	putc('\b', stderr);
-	fflush(stderr);
+	fprintf(stderr, "%c", bits[bitc]);
 	bitc++;
 	bitc %= GAUGE_BITS_SIZE;
 }
 
-/* This functions "draws" gauge header */
-static inline void misc_gauge_header(
-	const char *name,       /* gauge name */
-	int silent)             /* gauge type */
-{
+void misc_progress_handler(aal_gauge_t *gauge) {
+	if (!isatty(2))
+		return;
+
 	setlinebuf(stderr);
-    
-	if (name) {
-		fprintf(stderr, "\r%s%s", name,
-			silent ? "..." : ": ");
-	}
-}
 
-/* This function "draws" gauge footer */
-static inline void misc_gauge_footer(
-	const char *name,       /* footer name */
-	int silent)             /* gauge type */
-{
-	if (name)
-		fputs(name, stderr);
-}
-
-void misc_gauge_percentage_handler(aal_gauge_t *gauge) {
-	unsigned int i;
-	char display[10] = {0};
-	
-	if (!isatty(2))
-		return;
-	
-	if (gauge->state == GAUGE_PAUSED) {
-		misc_wipe_line(stderr);
-		fflush(stderr);
-		return;
-	}
-	
-	if (gauge->state == GAUGE_STARTED) {
-		current_gauge = gauge;
-		misc_gauge_header(gauge->name, 0);
+	if (gauge->state == GS_ACTIVE) {
+		/* Show gauge once per rate->time.interval. */
+		if (!misc_gauge_time(&gauge->time))
+			return;
 	}
 
-	sprintf(display, "%d%%", gauge->value);
-	fputs(display, stderr);
+	misc_wipe_line(stderr);
 
-	for (i = 0; i < aal_strlen(display); i++)
-		fputc('\b', stderr);
+	if (gauge->state == GS_PAUSE)
+		goto done;
 
-	if (gauge->state == GAUGE_DONE) {
+	if (gauge->label[0] != '\0')
+		fprintf(stderr, "\r%s", gauge->label);
+	
+	if (gauge->state == GS_DONE) {
 		current_gauge = NULL;
-		misc_gauge_footer("done\n", 0);
+		
+		if (gauge->label[0] != '\0')
+			fprintf(stderr, "done\n");
+
+		goto done;
 	}
-    
+
+	if (gauge->state == GS_START) {
+		current_gauge = gauge;
+		misc_gauge_time(&gauge->time);
+		goto done;
+	}
+
+	if (gauge->value_func)
+		gauge->value_func(gauge);
+	
+	if (gauge->value != -1) {
+		uint32_t width, count;
+		
+		width = misc_screen_width();
+		if (width < 10)
+			goto done;
+		
+		width -= 10;
+		
+		if (width > 50)
+			width = 50;
+		
+		fprintf(stderr, "[");
+		count = width * gauge->value / 100;
+		width -=  count;
+		while (count--) {
+			fprintf(stderr, "=");
+		}
+		
+		misc_gauge_blit();
+		
+		while(width--) {
+			fprintf(stderr, " ");
+		}
+		
+		fprintf(stderr, "] %lld%%", gauge->value);
+	} else {
+		misc_gauge_blit();
+	}
+
+ done:
 	fflush(stderr);
 }
 
-void misc_gauge_indicator_handler(aal_gauge_t *gauge) {
-	if (!isatty(2))
-		return;
-	
-	if (gauge->state == GAUGE_PAUSED) {
-		misc_wipe_line(stderr);
-		fflush(stderr);
-		return;
-	}
-	
-	if (gauge->state == GAUGE_STARTED) {
-		current_gauge = gauge;
-		misc_gauge_header(gauge->name, 0);
-	}
-
-	misc_gauge_blit();
-	
-	if (gauge->state == GAUGE_DONE) {
-		current_gauge = NULL;
-		misc_gauge_footer("done\n", 0);
-	}
-    
-	fflush(stderr);
-}
-
-void misc_gauge_silent_handler(aal_gauge_t *gauge) {
-	if (!isatty(2))
-		return;
-	
-	if (gauge->state == GAUGE_PAUSED) {
-		misc_wipe_line(stderr);
-		fflush(stderr);
-		return;
-	}
-	
-	if (gauge->state == GAUGE_STARTED) {
-		current_gauge = gauge;
-		misc_gauge_header(gauge->name, 1);
-	}
-
-	if (gauge->state == GAUGE_DONE) {
-		current_gauge = NULL;
-		misc_gauge_footer("done\n", 1);
-	}
-    
-	fflush(stderr);
-}

@@ -29,6 +29,38 @@ typedef enum repair_mark {
 	RM_CLEAR = 2
 } repair_mark_t;
 
+void cb_gauge_tree_percent(aal_gauge_t *gauge) {
+	uint32_t pos[REISER4_TREE_MAX_HEIGHT][2];
+	uint64_t amount, passed;
+	reiser4_place_t *place;
+	uint8_t i;
+	
+	if (!gauge || !gauge->data)
+		return;
+	
+	place = gauge->data;
+	
+	i = 0;
+	while (place->node) {
+		pos[i][0] = place->pos.item;
+		pos[i][1] = reiser4_node_items(place->node);
+		place = &place->node->p;
+		i++;
+	}
+	
+	passed = amount = 0;
+	
+	while (i) {
+		i--;
+		amount = amount ? amount * pos[i][1] : pos[i][1];
+		
+		if (passed) passed *= pos[i][1];
+		passed += pos[i][0];
+	}
+
+	aal_gauge_set_value(gauge, amount ? passed * 100 / amount : 0);
+}
+
 static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk, 
 				      uint8_t level, repair_mark_t mark)
 {
@@ -211,17 +243,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		goto error;
 	}
 	
-	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
-		fd->progress->state = PROGRESS_UPDATE;
-		fd->progress->u.tree.i_total = reiser4_node_items(place->node);
-		fd->progress->u.tree.u_total = reiser4_item_units(place);
-		fd->progress->u.tree.item = place->pos.item;
-		fd->progress->u.tree.unit = place->pos.unit;
-		fd->progress_handler(fd->progress);
-	}
-	
 	repair_filter_read_node(fd, blk, reiser4_node_get_level(node));
-
 	return node;
 	
  error:
@@ -238,6 +260,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	errno_t res = 0;
+	uint32_t items;
 	uint16_t level;
     
 	aal_assert("vpf-252", data  != NULL);
@@ -252,15 +275,6 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		fd->level = level;
 	else
 		fd->level--;
-	
-	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
-		fd->progress->state = PROGRESS_START;
-		fd->progress->u.tree.i_total = reiser4_node_items(node);
-		fd->progress->u.tree.u_total = 0;
-		fd->progress->u.tree.item = 0;
-		fd->progress->u.tree.unit = 0;
-		fd->progress_handler(fd->progress);
-	}
 
 	/* Check the level. */
 	if (fd->level != level) {
@@ -284,7 +298,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		if (res < 0) return res;
 	}
 	
-	if (reiser4_node_items(node) == 0) {
+	if ((items = reiser4_node_items(node)) == 0) {
 		repair_filter_empty_node(fd, node->block->nr, level);
 		reiser4_node_mkclean(node);
 		goto error;
@@ -313,15 +327,12 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	if (fd->repair->mode == RM_BUILD)
 		repair_node_clear_flags(node);
 	
+	aal_gauge_set_data(fd->gauge, &node->p);
+	aal_gauge_touch(fd->gauge);
+	
 	return 0;
  error:
-	if (fd->level != LEAF_LEVEL) {
-		fd->progress->state = PROGRESS_END;
-		fd->progress_handler(fd->progress);
-	}
-	
 	fd->level++;
-	
 	return RE_FATAL;
 }
 
@@ -423,31 +434,9 @@ static errno_t repair_filter_after_traverse(reiser4_tree_t *tree,
 					 reiser4_node_get_level(node));
 		reiser4_node_mkclean(node);
 	}
-	
-	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
-		fd->progress->state = PROGRESS_END;
-		fd->progress_handler(fd->progress);
-	}
-	
-	fd->level++;
-	
-	return 0;
-}
 
-/* Setup data (common and specific) before traverse through the tree. */
-static void repair_filter_setup(repair_filter_t *fd) {
-	aal_memset(fd->progress, 0, sizeof(*fd->progress));
-	
-	if (!fd->progress_handler)
-		return;
-	
-	fd->progress->type = GAUGE_TREE;
-	fd->progress->text = "***** Tree Traverse Pass: scanning the reiser4 "
-		"internal tree.";
-	fd->progress->state = PROGRESS_STAT;
-	time(&fd->stat.time);
-	fd->progress_handler(fd->progress);
-	fd->progress->text = NULL;
+	fd->level++;
+	return 0;
 }
 
 /* Does some update stuff after traverse through the internal tree - 
@@ -518,9 +507,6 @@ static void repair_filter_update(repair_filter_t *fd) {
 		}
 	}
 	
-	if (!fd->progress_handler)
-		return;
-
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	aal_stream_format(&stream, "\tRead nodes %llu\n", 
@@ -578,11 +564,7 @@ static void repair_filter_update(repair_filter_t *fd) {
 	time_str = ctime(&fd->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	aal_stream_format(&stream, time_str);
-
-	fd->progress->state = PROGRESS_STAT;
-	fd->progress->text = (char *)stream.entity;
-	fd->progress_handler(fd->progress);
-
+	aal_mess(stream.entity);
 	aal_stream_fini(&stream);
 }
 
@@ -626,6 +608,8 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 			   (reiser4_format_get_stamp(format) ==
 			    reiser4_node_get_mstamp(tree->root)));
 	
+	aal_gauge_touch(fd->gauge);
+
 	/* Cut the corrupted, unrecoverable parts of the tree off. */
 	res = reiser4_tree_trav_node(tree, tree->root,
 				     repair_filter_node_open,
@@ -633,6 +617,8 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 				     repair_filter_update_traverse,  
 				     repair_filter_after_traverse, fd);
 
+	aal_gauge_done(fd->gauge);
+	
 	return res < 0 ? res : 0;
  error:
 	repair_filter_bad_ptr(fd);
@@ -644,7 +630,6 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
    corrupted parts off, and fixing what can be fixed. Account all kind of 
    nodes in corresponding bitmaps. */
 errno_t repair_filter(repair_filter_t *fd) {
-	repair_progress_t progress;
 	errno_t res = 0;
 
 	aal_assert("vpf-536", fd != NULL);
@@ -653,12 +638,16 @@ errno_t repair_filter(repair_filter_t *fd) {
 	aal_assert("vpf-816", fd->repair->fs->tree != NULL);
 	aal_assert("vpf-815", fd->bm_used != NULL);
 
-	fd->progress = &progress;
-	repair_filter_setup(fd);
+	aal_mess("CHECKING REISER4 STORAGE TREE");
+	fd->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
+				     cb_gauge_tree_percent, NULL, 500, NULL);
+	time(&fd->stat.time);
 	
 	res = repair_filter_traverse(fd);
 	
+	aal_gauge_free(fd->gauge);
 	repair_filter_update(fd);
+	
 	if (fd->repair->mode != RM_CHECK)
 		reiser4_fs_sync(fd->repair->fs);
 	

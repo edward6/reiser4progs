@@ -20,10 +20,10 @@ typedef struct repair_cleanup_stat {
 typedef struct repair_cleanup {
 	repair_data_t *repair;
 	reiser4_place_t neigh;
-	
-	repair_progress_handler_t *progress_handler;
-	repair_progress_t *progress;
 	repair_cleanup_stat_t stat;
+	
+	aal_gauge_t *gauge;
+	reiser4_place_t *cur_place;
 } repair_cleanup_t;
 
 extern errno_t repair_cleanup(repair_cleanup_t *cleanup);

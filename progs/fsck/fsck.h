@@ -20,10 +20,10 @@
 #include <time.h>
 #include <sys/mman.h>
 
-#include "gauge.h"
 #include "backup.h"
 
 #include <aux/aux.h>
+#include <misc/misc.h>
 #include <repair/librepair.h>
 #include <reiser4/libreiser4.h>
 

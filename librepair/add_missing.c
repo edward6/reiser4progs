@@ -41,25 +41,6 @@ static errno_t cb_layout(reiser4_place_t *place, void *data) {
 			 place, cb_item_mark_region, data);
 }
 
-static void repair_add_missing_setup(repair_am_t *am) {
-	aal_assert("vpf-887", am != NULL);
-	
-	aal_memset(am->progress, 0, sizeof(*am->progress));
-	
-	if (!am->progress_handler)
-		return;
-	
-	am->progress->type = GAUGE_PERCENTAGE;
-	
-	am->progress->text = "***** AddMissing Pass: inserting unconnected "
-		"nodes into the tree.";
-	
-	am->progress->state = PROGRESS_START;
-	time(&am->stat.time);
-	am->progress_handler(am->progress);
-	am->progress->text = NULL;
-}
-
 static void repair_add_missing_update(repair_am_t *am) {
 	repair_am_stat_t *stat;
 	aal_stream_t stream;
@@ -67,19 +48,16 @@ static void repair_add_missing_update(repair_am_t *am) {
 	
 	aal_assert("vpf-886", am != NULL);
 	
-	if (!am->progress_handler)
-		return;
-	
 	stat = &am->stat;
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, by "
-			  "items %llu\n", stat->read_twigs, stat->by_twig,
+			  "item %llu\n", stat->read_twigs, stat->by_twig,
 			  stat->by_item_twigs);
-	    
+	
 	aal_stream_format(&stream, "\tLeaves: read %llu, inserted %llu, by "
-			  "items %llu\n", stat->read_leaves, stat->by_leaf, 
+			  "item %llu\n", stat->read_leaves, stat->by_leaf, 
 			  stat->by_item_leaves);
 
 	time_str = ctime(&am->stat.time);
@@ -89,11 +67,7 @@ static void repair_add_missing_update(repair_am_t *am) {
 	time_str = ctime(&am->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	aal_stream_format(&stream, time_str);
-	
-	am->progress->state = PROGRESS_STAT;
-	am->progress->text = (char *)stream.entity;
-	am->progress_handler(am->progress);
-	
+	aal_mess(stream.entity);
 	aal_stream_fini(&stream);
 }
 
@@ -160,12 +134,15 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 				      stat_bitmap_t *stat)
 {
 	reiser4_node_t *node;
+	uint64_t total;
 	errno_t res;
 	blk_t blk;
 	
 	aal_assert("vpf-1282", am != NULL);
 	aal_assert("vpf-1283", bitmap != NULL);
 	aal_assert("vpf-1284", stat != NULL);
+	
+	total = aux_bitmap_marked(bitmap);
 	
 	blk = 0;
 	/* Try to insert the whole twig/leaf at once. If it can be 
@@ -175,9 +152,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
 		node = reiser4_node_open(am->repair->fs->tree, blk);
 		stat->read++;
-
-		if (am->progress_handler)
-			am->progress_handler(am->progress);
+		aal_gauge_set_value(am->gauge, stat->read * 100 / total);
+		aal_gauge_touch(am->gauge);
 
 		if (node == NULL) {
 			aal_error("Add Missing pass failed to "
@@ -216,7 +192,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 			if (res) goto error_close_node;
 
 		} else {
-			/* uninsertable case - insert by items later. */
+			/* uninsertable case - insert by item later. */
 			reiser4_node_fini(node);
 		}
 		
@@ -236,6 +212,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 {
 	uint32_t count;
 	reiser4_node_t *node;
+	uint64_t total;
 	errno_t res;
 	blk_t blk;
 
@@ -243,6 +220,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 	aal_assert("vpf-1286", bitmap != NULL);
 	aal_assert("vpf-1287", stat != NULL);
 	
+	total = aux_bitmap_marked(bitmap);
 	blk = 0;
 	/* Insert extents from the twigs/all items from leaves which 
 	   are not in the tree yet item-by-item into the tree, overwrite
@@ -255,10 +233,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 		aal_assert("vpf-897", !aux_bitmap_test(am->bm_used, blk));
 
 		node = reiser4_node_open(am->repair->fs->tree, blk);
-
-		if (am->progress_handler)
-			am->progress_handler(am->progress);
-
+		
 		if (node == NULL) {
 			aal_error("Add Missing pass failed to "
 				  "open the node (%llu)", blk);
@@ -269,6 +244,8 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 		place.node = node;
 
 		stat->by_item++;
+		aal_gauge_set_value(am->gauge, stat->by_item * 100 / total);
+		aal_gauge_touch(am->gauge);
 
 		for (pos->item = 0; pos->item < count; pos->item++) {
 			pos->unit = MAX_UINT32;
@@ -303,7 +280,6 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 /* The pass inself, adds all the data which are not in the tree yet and which 
    were found on the partition during the previous passes. */
 errno_t repair_add_missing(repair_am_t *am) {
-	repair_progress_t progress;
 	aux_bitmap_t *bitmap;
 	stat_bitmap_t stat;
 	uint32_t bnum;
@@ -315,33 +291,29 @@ errno_t repair_add_missing(repair_am_t *am) {
 	aal_assert("vpf-848", am->bm_twig != NULL);
 	aal_assert("vpf-849", am->bm_leaf != NULL);
 	
-	am->progress = &progress;
-	
-	repair_add_missing_setup(am);
-	
+	aal_mess("INSERTING UNCONNECTED NODES");
+	am->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
+				     NULL, NULL, 500, NULL);
+	time(&am->stat.time);
 	
 	/* 2 loops - 1 for twigs, another for leaves. */
 	for (bnum = 0; bnum < 2; bnum++) {
 		if (bnum) {
 			bitmap = am->bm_leaf;
-			am->progress->text = "Inserting unconnected leaves: ";
-			am->progress->u.rate.total = 
-				aux_bitmap_marked(am->bm_leaf);
+			aal_gauge_rename(am->gauge, "3. Leaves: ");
 		} else {
 			bitmap = am->bm_twig;
-			am->progress->text = "Inserting unconnected twigs: ";
-			am->progress->u.rate.total = 
-				aux_bitmap_marked(am->bm_twig);
+			aal_gauge_rename(am->gauge, "1. Twigs: ");
 		}
 		
 		/* Debugging of item coping. */
 		if (am->repair->debug_flag) 
 			goto debug;
 		
-		am->progress->u.rate.done = 0;
-		am->progress->state = PROGRESS_UPDATE;
-		
 		aal_memset(&stat, 0, sizeof(stat));
+		
+		aal_gauge_set_value(am->gauge, 0);
+		aal_gauge_touch(am->gauge);
 		
 		if ((res = repair_am_nodes_insert(am, bitmap, &stat)))
 			goto error;
@@ -353,22 +325,20 @@ errno_t repair_add_missing(repair_am_t *am) {
 			am->stat.read_leaves = stat.read;
 			am->stat.by_leaf = stat.by_node;
 		}
+	
+		aal_gauge_done(am->gauge);
 	debug:
-		am->progress->u.rate.done = 0;
 		if (bnum) {
-			am->progress->text = "Inserting unconnected twigs "
-				"item-by-item: ";
-			am->progress->u.rate.total = 
-				aux_bitmap_marked(am->bm_leaf);
+			aal_gauge_rename(am->gauge, "4. Leaves by item: ");
 		} else {
-			am->progress->text = "Inserting unconnected leaves "
-				"item-by-item: ";
-			am->progress->u.rate.total = 
-				aux_bitmap_marked(am->bm_twig);
+			aal_gauge_rename(am->gauge, "2. Twigs by item: ");
 		} 
 		
 		aal_memset(&stat, 0, sizeof(stat));
 		
+		aal_gauge_set_value(am->gauge, 0);
+		aal_gauge_touch(am->gauge);
+
 		if ((res = repair_am_items_insert(am, bitmap, &stat)))
 			goto error;
 
@@ -376,19 +346,19 @@ errno_t repair_add_missing(repair_am_t *am) {
 			am->stat.by_item_leaves = stat.by_item;
 		else
 			am->stat.by_item_twigs = stat.by_item;
+		
+		aal_gauge_done(am->gauge);
 	}
 	
-	am->progress->state = PROGRESS_END;
-	if (am->progress_handler)
-		am->progress_handler(am->progress);
-
+	aal_gauge_free(am->gauge);
 	repair_add_missing_update(am);
 	reiser4_fs_sync(am->repair->fs);
 	
 	return 0;
 
  error:
-	
+	aal_gauge_done(am->gauge);
+	aal_gauge_free(am->gauge);
 	reiser4_fs_sync(am->repair->fs);
 	return res;
 }

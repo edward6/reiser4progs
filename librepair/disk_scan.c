@@ -16,38 +16,11 @@
 
 #include <repair/disk_scan.h>
 
-static void repair_disk_scan_setup(repair_ds_t *ds) {
-	aal_assert("vpf-883", ds != NULL);
-	
-	aal_memset(ds->progress, 0, sizeof(*ds->progress));
-	
-	if (!ds->progress_handler)
-		return;
-	
-	ds->progress->type = GAUGE_PERCENTAGE;
-	ds->progress->text = "***** DiskScan Pass: scanning the partition "
-		"for unconnected nodes.";
-	time(&ds->stat.time);
-	
-	ds->progress->state = PROGRESS_START;
-	ds->progress->u.rate.total = aux_bitmap_marked(ds->bm_scan);
-	ds->progress_handler(ds->progress);
-	
-	ds->progress->state = PROGRESS_UPDATE;
-	ds->progress->text = NULL;
-}
-
 static void repair_disk_scan_update(repair_ds_t *ds) {
 	aal_stream_t stream;
 	char *time_str;
 	
 	aal_assert("vpf-882", ds != NULL);
-	
-	if (!ds->progress_handler)
-		return;
-	
-	ds->progress->state = PROGRESS_END;
-	ds->progress_handler(ds->progress);
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
@@ -72,11 +45,7 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
 	time_str = ctime(&ds->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	aal_stream_format(&stream, time_str);
-	
-	ds->progress->state = PROGRESS_STAT;
-	ds->progress->text = (char *)stream.entity;
-	ds->progress_handler(ds->progress);
-	
+	aal_mess(stream.entity);
 	aal_stream_fini(&stream);
 }
 
@@ -85,9 +54,10 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
    tree index data only) then fix all corruptions within the node and save it
    for further insertion. */
 errno_t repair_disk_scan(repair_ds_t *ds) {
-	repair_progress_t progress;
 	reiser4_node_t *node;
+	aal_gauge_t *gauge;
 	errno_t res = 0;
+	uint64_t total;
 	uint8_t level;
 	blk_t blk = 0;
 	
@@ -99,19 +69,22 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 	aal_assert("vpf-820", ds->bm_scan != NULL);
 	aal_assert("vpf-820", ds->bm_met != NULL);    
 	
-	ds->progress = &progress;
-	
-	repair_disk_scan_setup(ds);
+	aal_mess("LOOKING FOR UNCONNECTED NODES");
+	gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
+				 NULL, NULL, 500, NULL);
+	aal_gauge_touch(gauge);
+	time(&ds->stat.time);
+
+	total = aux_bitmap_marked(ds->bm_scan);
 	
 	while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
-		if (ds->progress_handler)
-			ds->progress_handler(&progress);
-		
 		ds->stat.read_nodes++;
+		aal_gauge_set_value(gauge, ds->stat.read_nodes * 100 / total);
+		aal_gauge_touch(gauge);
 		
-		node = repair_node_open(ds->repair->fs->tree, blk, *ds->check_node);
-		
-		if (!node) {
+		if (!(node = repair_node_open(ds->repair->fs->tree, blk, 
+					      *ds->check_node))) 
+		{
 			blk++;
 			continue;
 		}
@@ -166,6 +139,8 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		blk++;
 	}
  error:
+	aal_gauge_done(gauge);
+	aal_gauge_free(gauge);
 	repair_disk_scan_update(ds);
 	return res;
 }

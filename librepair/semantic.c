@@ -726,6 +726,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 }
 
 static void repair_semantic_setup(repair_semantic_t *sem) {
+	/*
 	aal_memset(sem->progress, 0, sizeof(*sem->progress));
 
 	if (!sem->progress_handler)
@@ -738,6 +739,7 @@ static void repair_semantic_setup(repair_semantic_t *sem) {
 	time(&sem->stat.time);
 	sem->progress_handler(sem->progress);
 	sem->progress->text = NULL;
+	*/
 }
 
 static void repair_semantic_update(repair_semantic_t *sem) {
@@ -745,7 +747,7 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 	aal_stream_t stream;
 	char *time_str;
 
-	if (!sem->progress_handler)
+	//if (!sem->progress_handler)
 		return;
 	
 	stat = &sem->stat;
@@ -784,16 +786,15 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 	time_str = ctime(&sem->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	aal_stream_format(&stream, time_str);
-
+/*
 	sem->progress->state = PROGRESS_STAT;
 	sem->progress->text = (char *)stream.entity;
 	sem->progress_handler(sem->progress);
-
+*/
 	aal_stream_fini(&stream);
 }
 
 errno_t repair_semantic(repair_semantic_t *sem) {
-	repair_progress_t progress;
 	reiser4_tree_t *tree;
 	errno_t res = 0;
 	
@@ -801,7 +802,6 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	aal_assert("vpf-1026", sem->repair != NULL);
 	aal_assert("vpf-1027", sem->repair->fs != NULL);
 	aal_assert("vpf-1028", sem->repair->fs->tree != NULL);
-	
 	
 	tree = sem->repair->fs->tree;
 	
@@ -812,9 +812,9 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		goto error;
 	}
 	
-	sem->progress = &progress;
-	repair_semantic_setup(sem);
-	
+	aal_mess("CHECKING REISER4 SEMANTIC TREE");
+	time(&sem->stat.time);
+
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	

@@ -1,34 +1,28 @@
 /* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
-reiser4progs/COPYING.
+   reiser4progs/COPYING.
 
-gauge.h -- common for all progs gauge declarations. */
+   gauge.h -- common for all progs gauge declarations. */
 
 #ifndef AUX_GAUGE_H
 #define AUX_GAUGE_H
 
+#ifndef ENABLE_STAND_ALONE
 #include <aal/gauge.h>
 
-#define GAUGE_PERCENTAGE (0x0)
-#define GAUGE_INDICATOR  (0x1)
-#define GAUGE_SILENT     (0x2)
-#define GAUGE_LAST	 (0x3)
-
-struct aux_gauge_time {
-     struct timeval time;
-     struct timeval interval;
+enum aux_gauge_type {
+	GT_PROGRESS  = 0x0,
+	GT_LAST
 };
 
-typedef struct aux_gauge_time aux_gauge_time_t;
+typedef enum aux_gauge_type aux_gauge_type_t;
 
-struct aux_percentage {
-     /* Show it once per @time.interval seconds. */
-     aux_gauge_time_t time;
-     
-     /* Percent value. */
-     uint8_t value;
-};
+extern aal_gauge_handler_t aux_gauge_handlers[GT_LAST];
 
-typedef struct aux_percentage aux_percentage_t;
-typedef aux_gauge_time_t aux_indicator_t;
+extern aal_gauge_handler_t aux_gauge_get_handler(aux_gauge_type_t type);
+
+extern void aux_gauge_set_handler(aal_gauge_handler_t handler, 
+				  aux_gauge_type_t type);
+
+#endif
 
 #endif

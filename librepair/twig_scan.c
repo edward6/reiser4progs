@@ -91,39 +91,11 @@ static errno_t cb_check_layout(reiser4_place_t *place, void *data) {
 	return 0;
 }
 
-static void repair_twig_scan_setup(repair_ts_t *ts) {
-	aal_assert("vpf-884", ts != NULL);
-	
-	aal_memset(ts->progress, 0, sizeof(*ts->progress));
-
-	if (!ts->progress_handler)
-		return;
-	
-	ts->progress->type = GAUGE_PERCENTAGE;
-	ts->progress->text = "***** TwigScan Pass: checking extent pointers "
-		"of all twigs.";
-	
-	time(&ts->stat.time);
-	
-	ts->progress->state = PROGRESS_START;
-	ts->progress->u.rate.total = aux_bitmap_marked(ts->bm_twig);
-	ts->progress_handler(ts->progress);
-	
-	ts->progress->state = PROGRESS_UPDATE;
-	ts->progress->text = NULL;
-}
-
 static void repair_twig_scan_update(repair_ts_t *ts) {
 	aal_stream_t stream;
 	char *time_str;
 	
 	aal_assert("vpf-885", ts != NULL);
-	
-	if (!ts->progress_handler)
-		return;
-	
-	ts->progress->state = PROGRESS_END;
-	ts->progress_handler(ts->progress);
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	aal_stream_format(&stream, "\tRead twigs %llu\n", ts->stat.read_twigs);
@@ -149,48 +121,47 @@ static void repair_twig_scan_update(repair_ts_t *ts) {
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	
 	aal_stream_format(&stream, time_str);
-	
-	ts->progress->state = PROGRESS_STAT;
-	ts->progress->text = (char *)stream.entity;
-	ts->progress_handler(ts->progress);
-	
+	aal_mess(stream.entity);
 	aal_stream_fini(&stream);
-    
 }
 
 /* The pass itself, goes through all twigs, check block pointers which items 
    may have and account them in proper bitmaps. */
 errno_t repair_twig_scan(repair_ts_t *ts) {
-	repair_progress_t progress;
 	reiser4_node_t *node;
-	errno_t res = -1;
+	aal_gauge_t *gauge;
+	uint64_t total;
 	blk_t blk = 0;
+	errno_t res;
 	
 	aal_assert("vpf-533", ts != NULL);
 	aal_assert("vpf-534", ts->repair != NULL);
 	aal_assert("vpf-845", ts->repair->fs != NULL);
 	
-	ts->progress = &progress;
+	aal_mess("CHECKING EXTENT REGIONS.");
+	gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
+				 NULL, NULL, 500, NULL);
+	aal_gauge_touch(gauge);
+	time(&ts->stat.time);
 	
-	repair_twig_scan_setup(ts);
+	total = aux_bitmap_marked(ts->bm_twig);
 	
 	while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
 		ts->stat.read_twigs++;
-		if (ts->progress_handler)
-			ts->progress_handler(&progress);	
+		aal_gauge_set_value(gauge, ts->stat.read_twigs * 100 / total);
+		aal_gauge_touch(gauge);
 		
-		node = reiser4_node_open(ts->repair->fs->tree, blk);
-		
-		if (node == NULL) {
+		if (!(node = reiser4_node_open(ts->repair->fs->tree, blk))) {
 			aal_error("Twig scan pass failed to open "
 				  "the twig (%llu)", blk);
-			return -EINVAL;
+
+			res = -EINVAL;
+			goto error;
 		}
 		
 		/* Lookup the node. */	
-		res = reiser4_node_trav(node, cb_check_layout, ts);
-		
-		if (res) goto error_node_free;
+		if ((res = reiser4_node_trav(node, cb_check_layout, ts)))		
+			goto error_node_free;
 		
 		if (reiser4_node_isdirty(node))
 			ts->stat.fixed_twigs++;
@@ -201,16 +172,22 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		blk++;
 	}
 	
+	aal_gauge_done(gauge);
+	aal_gauge_free(gauge);
+	
 	repair_twig_scan_update(ts);
 
 	if (ts->repair->mode != RM_CHECK)
 		reiser4_fs_sync(ts->repair->fs);
-	
+
 	return 0;
 	
  error_node_free:
 	reiser4_node_close(node);
+ error:
+	aal_gauge_done(gauge);
+	aal_gauge_free(gauge);
 	repair_twig_scan_update(ts);
 
-	return -EINVAL;
+	return res;
 }

@@ -32,15 +32,16 @@ typedef struct repair_filter {
 	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes which does not get
 				   to neither other bitmap due to corruption or
 				   just an internal one. */
-	uint8_t level;
-	uint64_t flags;
-
-	repair_progress_handler_t *progress_handler;
-	repair_progress_t *progress;
 	repair_filter_stat_t stat;
-	
 	bool_t *check_node;
 	uint64_t oid;
+
+	/* Private data. */
+	reiser4_node_t *cur_node;
+	aal_gauge_t *gauge;
+	uint64_t flags;
+	uint8_t level;
+	
 } repair_filter_t;
 
 extern errno_t repair_filter(repair_filter_t *filter);

@@ -33,8 +33,6 @@ typedef struct repair_semantic {
 	reiser4_object_t *root;
 	reiser4_object_t *lost;
 	
-	repair_progress_handler_t *progress_handler;
-	repair_progress_t *progress;
 	repair_semantic_stat_t stat;
 } repair_semantic_t;
 

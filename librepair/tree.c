@@ -679,10 +679,11 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
 			
 			/* Go down to the child if branch. */
 			if ((res = reiser4_item_branch(place.plug))) {
-				place.node = 
-					reiser4_tree_child_node(tree, &place);
-				
-				if (!place.node) return -EIO;
+				if (!(place.node = 
+				      reiser4_tree_child_node(tree, &place)))
+				{
+					return -EIO;
+				}
 
 				count = reiser4_node_items(place.node);
 				place.pos.item = -1;

@@ -177,11 +177,6 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 	
-	if (!(flags & BF_QUIET)) {
-		if (!(gauge = aal_gauge_create(GAUGE_SILENT, NULL)))
-			goto error_free_libreiser4;
-	}
-    
 	/* Checking is passed device is a block device. If so, we check also is
 	   it whole drive or just a partition. If the device is not a block
 	   device, then we emmit exception and propose user to use -f flag to
@@ -277,13 +272,15 @@ int main(int argc, char *argv[]) {
 		{
 			goto error_free_dst_device;
 		}
-	}
-    
-	if (gauge) {
-		aal_gauge_rename(gauge, "Copying %s to %s",
-				 src_dev, dst_dev);
 
-		aal_gauge_start(gauge);
+		if (!(gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
+					       NULL, NULL, 0, "Copying %s to "
+					       "%s ... ", src_dev, dst_dev)))
+		{
+			goto error_free_libreiser4;
+		}
+		
+		aal_gauge_touch(gauge);
 	}
 
 	/* Opening source fs */
