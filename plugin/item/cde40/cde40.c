@@ -953,7 +953,7 @@ errno_t cde40_maxposs_key(reiser4_place_t *place,
 }
 
 /* Compare the given key with the entry at the given pos. */
-int cde40_comp_entry(reiser4_place_t *place, uint32_t pos, reiser4_key_t *key) {
+int cde40_comp_hash(reiser4_place_t *place, uint32_t pos, reiser4_key_t *key) {
 	reiser4_key_t curr;
 
 	cde40_get_hash(place, pos, &curr);
@@ -964,11 +964,11 @@ int cde40_comp_entry(reiser4_place_t *place, uint32_t pos, reiser4_key_t *key) {
 
 /* Helper function that is used by lookup method for 
    comparing given key with passed entry hash. */
-static int callback_comp_entry(void *array, uint32_t pos,
-			       void *key, void *data)
+static int callback_comp_hash(void *array, uint32_t pos,
+			      void *key, void *data)
 {
-	return cde40_comp_entry((reiser4_place_t *)data, pos, 
-				(reiser4_key_t *)key);
+	return cde40_comp_hash((reiser4_place_t *)data, pos, 
+			       (reiser4_key_t *)key);
 }
 
 /* Performs lookup inside cde item. Found position is stored in @pos. */
@@ -986,7 +986,7 @@ lookup_t cde40_lookup(reiser4_place_t *place,
 	/* Bin search within the cde item to get the position of 
 	   the wanted key. */
 	switch (aux_bin_search(place->body, cde40_units(place),
-			       hint->key, callback_comp_entry,
+			       hint->key, callback_comp_hash,
 			       place, &place->pos.unit))
 	{
 	case 1:
@@ -997,7 +997,7 @@ lookup_t cde40_lookup(reiser4_place_t *place,
 		for (i = place->pos.unit - 1; i >= 0; i--) {
 			/* Comparing keys. We break the loop when keys as not
 			   equal, that means, that we have found needed pos. */
-			if (!cde40_comp_entry(place, i, hint->key))
+			if (!cde40_comp_hash(place, i, hint->key))
 				place->pos.unit = i;
 			else
 				return PRESENT;

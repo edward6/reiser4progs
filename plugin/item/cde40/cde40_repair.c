@@ -711,6 +711,37 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	return res;
 }
 
+static int cde40_comp_entry(reiser4_place_t *place1, uint32_t pos1,
+			    reiser4_place_t *place2, uint32_t pos2)
+{
+	reiser4_key_t key1, key2;
+	char *name1, *name2;
+	int comp;
+	
+	cde40_get_hash(place1, pos1, &key1);
+	cde40_get_hash(place2, pos2, &key2);
+
+	/* Compare hashes. */
+	if ((comp = plug_call(key1.plug->o.key_ops, 
+			      compfull, &key1, &key2)))
+		return comp;
+
+	/* If equal, and names are hashed, compare names. */
+	if (!plug_call(key1.plug->o.key_ops, hashed, &key1) || 
+	    !plug_call(key2.plug->o.key_ops, hashed, &key2))
+	{
+		return 0;
+	}
+	
+	name1 = (char *)(cde40_objid(place1, pos1) + 
+			 ob_size(cde40_key_pol(place1)));
+
+	name2 = (char *)(cde40_objid(place2, pos2) + 
+			 ob_size(cde40_key_pol(place2)));
+
+	return aal_strcmp(name1, name2);
+}
+
 /* Estimate the space needed for the insertion of the not overlapped part 
    of the item, overlapped part does not need any space. */
 errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
@@ -728,16 +759,10 @@ errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit != MAX_UINT32 && 
 	    place->pos.unit != cde40_units(place)) 
 	{
-		/* Not the whole item to be inserted */
-		reiser4_key_t key;
-		
-		cde40_get_hash(place, place->pos.unit, &key);
-		
 		/* What is the last to be inserted? */
 		for (send = src->pos.unit; send < sunits; send++) {
-			/* FIXME-VITALY: this cde40_comp_entry should compare 
-			   not only key, but the name also <- key collision. */
-			if (cde40_comp_entry(src, send, &key) >= 0)
+			if (cde40_comp_entry(place, place->pos.unit, 
+					     src, send) <= 0)
 				break;
 		}
 	} else
@@ -760,7 +785,6 @@ errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	uint32_t dpos, dunits;
 	uint32_t spos, sunits;
-	reiser4_key_t key;
 	reiser4_place_t *src;
 	errno_t res;
 	
@@ -769,7 +793,6 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 
 	src = (reiser4_place_t *)hint->specific;
 	
-	cde40_get_hash(src, src->pos.unit, &key);
 	sunits = cde40_units(src);
 	
 	if (hint->count) {
@@ -797,9 +820,7 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 			if (spos >= sunits)
 				break;
 
-			cde40_get_hash(src, spos, &key);
-
-			if (cde40_comp_entry(place, dpos, &key))
+			if (cde40_comp_entry(place, dpos, src, spos))
 				break;
 		}
 	}

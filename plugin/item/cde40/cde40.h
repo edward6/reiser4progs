@@ -121,8 +121,8 @@ extern uint32_t cde40_regsize(reiser4_place_t *place, uint32_t pos,
 extern lookup_t cde40_lookup(reiser4_place_t *place,
 			     lookup_hint_t *hint, lookup_bias_t bias);
 
-extern int cde40_comp_entry(reiser4_place_t *place, uint32_t pos, 
-			    reiser4_key_t *key);
+extern int cde40_comp_hash(reiser4_place_t *place, uint32_t pos, 
+			   reiser4_key_t *key);
 
 extern uint16_t cde40_overhead();
 
