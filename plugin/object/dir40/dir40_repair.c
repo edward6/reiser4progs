@@ -460,13 +460,17 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		return RE_FATAL;
 	case ABSENT:
 		/* Not attached yet. */
-		aal_exception_error("Directory [%s], plugin [%s]: the object "
-				    "is not attached. %s [%s].", 
-				    print_inode(dir40_core, &object->info.object),
-				    dir40_plug.label, mode == RM_CHECK ? 
-				    "Reached from" : "Attaching to",
-				    print_inode(dir40_core, &parent->info.object));
-	
+		if (plug_call(object->info.object.plug->o.key_ops, compfull,
+			      &object->info.object, &parent->info.object))
+		{
+			aal_exception_error("Directory [%s], plugin [%s]: the "
+					    "object is not attached. %s [%s].",
+					    print_inode(dir40_core, &object->info.object),
+					    dir40_plug.label, mode == RM_CHECK ? 
+					    "Reached from" : "Attaching to",
+					    print_inode(dir40_core, &parent->info.object));
+		}
+		
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
 		

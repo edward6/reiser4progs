@@ -65,14 +65,11 @@ typedef errno_t (*stat_func_t) (place_t *);
 typedef void (*mode_func_t) (obj40_t *, uint16_t *);
 typedef void (*nlink_func_t) (obj40_t *, uint32_t *);
 
-typedef void (*size_func_t) (obj40_t *, uint64_t *,
-			     uint64_t);
+typedef void (*size_func_t) (obj40_t *, uint64_t *, uint64_t);
 
-extern errno_t obj40_write_ext(place_t *place, rid_t id,
-			       void *data);
+extern errno_t obj40_write_ext(place_t *place, rid_t id, void *data);
 
-extern errno_t obj40_touch(obj40_t *obj, uint64_t size,
-			   uint64_t bytes, uint32_t atime);
+extern errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes);
 
 extern uint64_t obj40_extmask(place_t *sd);
 extern uint16_t obj40_get_mode(obj40_t *obj);
@@ -87,26 +84,13 @@ extern errno_t obj40_link(obj40_t *obj);
 extern errno_t obj40_unlink(obj40_t *obj);
 extern uint32_t obj40_links(obj40_t *obj);
 
-extern errno_t obj40_inc_link(obj40_t *obj,
-			      uint32_t value);
-
-extern errno_t obj40_set_mode(obj40_t *obj,
-			      uint16_t mode);
-
-extern errno_t obj40_set_size(obj40_t *obj,
-			      uint64_t size);
-
-extern errno_t obj40_set_nlink(obj40_t *obj,
-			       uint32_t nlink);
-
-extern errno_t obj40_set_atime(obj40_t *obj,
-			       uint32_t atime);
-
-extern errno_t obj40_set_mtime(obj40_t *obj,
-			       uint32_t mtime);
-
-extern errno_t obj40_set_bytes(obj40_t *obj,
-			       uint64_t bytes);
+extern errno_t obj40_inc_link(obj40_t *obj, uint32_t value);
+extern errno_t obj40_set_mode(obj40_t *obj, uint16_t mode);
+extern errno_t obj40_set_size(obj40_t *obj, uint64_t size);
+extern errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink);
+extern errno_t obj40_set_atime(obj40_t *obj, uint32_t atime);
+extern errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime);
+extern errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes);
 
 extern errno_t obj40_layout(obj40_t *obj,
 			    region_func_t region_func,

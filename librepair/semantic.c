@@ -86,6 +86,11 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 	if (sem->repair->mode != RM_BUILD)
 		return res;
 	
+	/* Increment the link. */
+	if ((res = plug_call(object->entity->plug->o.object_ops, 
+			     link, object->entity)))
+		return res;
+
 	return repair_object_mark(object, OF_ATTACHED);
 }
 
@@ -119,11 +124,6 @@ static errno_t repair_semantic_link(repair_semantic_t *sem,
 	aal_assert("vpf-1180", object != NULL);
 	
 	if (name && (res = repair_semantic_add_entry(parent, object, name)))
-		return res;
-	
-	/* Increment the link. */
-	if ((res = plug_call(object->entity->plug->o.object_ops, 
-			     link, object->entity)))
 		return res;
 	
 	return repair_semantic_check_attach(sem, parent, object);
@@ -575,7 +575,7 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 	if (repair_error_fatal(res))
 		return res;
 	
-	if (!sem->repair->mode != RM_BUILD) {
+	if (sem->repair->mode != RM_BUILD) {
 		if (!parent) return 0;
 
 		return repair_semantic_check_attach(sem, parent, object);

@@ -802,6 +802,7 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 	}
 
 	hint->bytes = bytes;
+	hint->len = bytes;
 	hint->overhead = (pos == MAX_UINT32 ? cde40_overhead() : 0);
 	
 	return 0;

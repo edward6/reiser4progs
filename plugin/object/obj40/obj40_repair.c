@@ -156,8 +156,11 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	/* Form the correct LW extension. */
 	lw_new = lw_hint;
 	
-	if (nlink_func)
+	if (nlink_func) {
 		nlink_func(obj, &lw_new.nlink);
+		if (lw_new.nlink != lw_hint.nlink)
+			res = RE_FIXABLE;
+	}
 
 	mode_func(obj, &lw_new.mode);
 	

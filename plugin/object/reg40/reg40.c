@@ -4,7 +4,6 @@
    reg40.c -- reiser4 regular file plugin. */
 
 #ifndef ENABLE_STAND_ALONE
-#  include <time.h>
 #  include <unistd.h>
 #endif
 
@@ -340,8 +339,7 @@ static errno_t reg40_convert(object_entity_t *entity,
 		return res;
 
 	/* Updating stat data fields. */
-	return obj40_touch(&reg->obj, fsize,
-			   hint.bytes, time(NULL));
+	return obj40_touch(&reg->obj, fsize, hint.bytes);
 }
 
 /* Make sure, that file body is of particular plugin type, that depends on tail
@@ -501,8 +499,7 @@ static int64_t reg40_write(object_entity_t *entity,
 	/* Updating stat data fields */
 	bytes += obj40_get_bytes(&reg->obj) + res;
 
-	return obj40_touch(&reg->obj, size + n,
-			   bytes, time(NULL));
+	return obj40_touch(&reg->obj, size + n, bytes);
 }
 
 /* Truncates file to passed size @n. */
@@ -537,19 +534,16 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		
 		/* Updating stat data fields */
 		bytes += obj40_get_bytes(&reg->obj);
-		return obj40_touch(&reg->obj, n, bytes, time(NULL));
+		return obj40_touch(&reg->obj, n, bytes);
 	} else {
 		/* Cutting items/units */
-		if ((bytes = reg40_cut(entity,
-				       size - n)) < 0)
-		{
+		if ((bytes = reg40_cut(entity, size - n)) < 0)
 			return bytes;
-		}
 
 		/* Updating stat data fields */
 		bytes = obj40_get_bytes(&reg->obj) - bytes;
 
-		if ((res = obj40_touch(&reg->obj, n, bytes, time(NULL))))
+		if ((res = obj40_touch(&reg->obj, n, bytes)))
 			return res;
 
 		/* Converting body if needed. */

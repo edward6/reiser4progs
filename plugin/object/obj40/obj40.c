@@ -188,10 +188,8 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	return res < 0 ? res : 0;
 }
 
-/* Updates size, bytes and atime fielsds */
-errno_t obj40_touch(obj40_t *obj, uint64_t size,
-		    uint64_t bytes, uint32_t atime)
-{
+/* Updates size and bytes fielsds */
+errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
@@ -207,23 +205,15 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 			return res;
 	}
 
-	/* Updating atime and mtime */
-	if ((res = obj40_read_ext(STAT_PLACE(obj),
-				  SDEXT_UNIX_ID,
-				  &unix_hint)))
-	{
+	/* Updating bytes */
+	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint)))
 		return res;
-	}
 
 	/* Updating values and write unix extension back. */
 	unix_hint.rdev = 0;
-	unix_hint.atime = atime;
-	unix_hint.mtime = atime;
 	unix_hint.bytes = bytes;
 
-	return obj40_write_ext(STAT_PLACE(obj),
-			       SDEXT_UNIX_ID,
-			       &unix_hint);
+	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Writes one stat data extension. */
@@ -355,11 +345,8 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 uint32_t obj40_get_atime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj),
-			   SDEXT_UNIX_ID, &unix_hint))
-	{
+	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint))
 		return 0;
-	}
 	
 	return unix_hint.atime;
 }
@@ -369,7 +356,7 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj),
+	if ((res = obj40_read_ext(STAT_PLACE(obj), 
 				  SDEXT_UNIX_ID, &unix_hint)))
 	{
 		return res;
@@ -385,11 +372,8 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj),
-			   SDEXT_UNIX_ID, &unix_hint))
-	{
+	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint))
 		return 0;
-	}
 	
 	return unix_hint.mtime;
 }
@@ -399,7 +383,7 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj),
+	if ((res = obj40_read_ext(STAT_PLACE(obj), 
 				  SDEXT_UNIX_ID, &unix_hint)))
 	{
 		return res;
@@ -415,16 +399,13 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 uint64_t obj40_get_bytes(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj),
-			   SDEXT_UNIX_ID, &unix_hint))
-	{
+	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint))
 		return 0;
-	}
 	
 	return unix_hint.bytes;
 }
 
-/* Updates mtime field in the stat data */
+/* Updates bytes field in the stat data */
 errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;

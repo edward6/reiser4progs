@@ -4,7 +4,6 @@
    dir40.c -- reiser4 directory object plugin. */
 
 #ifndef ENABLE_STAND_ALONE
-#  include <time.h>
 #  include <unistd.h>
 #endif
 
@@ -841,7 +840,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	size = dir40_size(entity) + 1;
 	bytes = obj40_get_bytes(&dir->obj) + hint.bytes;
 	
-	return obj40_touch(&dir->obj, size, bytes, time(NULL));
+	return obj40_touch(&dir->obj, size, bytes);
 }
 
 /* Removing entry from the directory */
@@ -888,7 +887,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	size = dir40_size(entity) - 1;
 	bytes = obj40_get_bytes(&dir->obj) - hint.bytes;
 	
-	return obj40_touch(&dir->obj, size, bytes, time(NULL));
+	return obj40_touch(&dir->obj, size, bytes);
 }
 
 /* Directory enumerating related stuff.*/
