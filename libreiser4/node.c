@@ -1279,9 +1279,38 @@ errno_t reiser4_node_traverse(
 
 #endif
 
-uint32_t reiser4_node_stamp(reiser4_node_t *node) {
+uint32_t reiser4_node_get_make_stamp(reiser4_node_t *node) {
 	aal_assert("vpf-562", node != NULL, return 0);
 
-	return plugin_call(return 0, node->entity->plugin->node_ops, 
-			   get_stamp, node->entity);
+	
+	if (node->entity->plugin->node_ops.get_make_stamp)
+		return node->entity->plugin->node_ops.get_make_stamp(
+				node->entity);
+	
+	return 0;
+}
+
+void reiser4_node_set_make_stamp(reiser4_node_t *node, uint32_t stamp) {
+	aal_assert("vpf-646", node != NULL, return);
+
+	if (node->entity->plugin->node_ops.set_make_stamp)
+		node->entity->plugin->node_ops.set_make_stamp(node->entity, 
+							      stamp);
+}
+
+uint64_t reiser4_node_get_flush_stamp(reiser4_node_t *node) {
+	aal_assert("vpf-647", node != NULL, return 0);
+
+	if (node->entity->plugin->node_ops.get_flush_stamp)
+		node->entity->plugin->node_ops.get_flush_stamp(node->entity);
+
+	return 0;
+}
+
+void reiser4_node_set_flush_stamp(reiser4_node_t *node, uint64_t stamp) {
+	aal_assert("vpf-648", node != NULL, return);
+
+	if (node->entity->plugin->node_ops.get_flush_stamp)
+		node->entity->plugin->node_ops.set_flush_stamp(node->entity, 
+							       stamp);
 }

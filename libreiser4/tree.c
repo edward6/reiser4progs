@@ -81,9 +81,9 @@ reiser4_node_t *reiser4_tree_allocate(
 	if (!(node = reiser4_node_create(device, blk, pid, level)))
 		return NULL;
 
-	plugin_call(goto error_free_node, node->entity->plugin->node_ops,
-		    set_stamp, node->entity, reiser4_format_get_stamp(tree->fs->format));
-    
+	reiser4_node_set_make_stamp(node, 
+		reiser4_format_get_make_stamp(tree->fs->format));
+	
 	/* Setting up of the free blocks in format */
 	free = reiser4_alloc_free(tree->fs->alloc);
 	reiser4_format_set_free(tree->fs->format, free);
@@ -616,6 +616,9 @@ static errno_t reiser4_tree_grow(
 		return -1;
 	}
 
+	/* FIXME: How about the flush_id? Probably it does not matter here, 
+	 * that is important for leaves and twigs only. */
+	
 	tree->root->tree = tree;
 	
 	if (reiser4_tree_attach(tree, old_root)) {
@@ -733,12 +736,15 @@ errno_t reiser4_tree_mkspace(
 	
 		if (!(node = reiser4_tree_allocate(tree, level)))
 			return -1;
+		
+		reiser4_node_set_flush_stamp(node, 
+			reiser4_node_get_flush_stamp(coord->node));
 
 		save = *coord;
 
 		if (reiser4_tree_shift(tree, coord, node, SF_RIGHT | SF_MOVIP))
-			return -1;
-	
+			return -1;	
+		
 		/* Attaching new allocated node into the tree, if it is not empty */
 		if (reiser4_node_items(node) > 0) {
 
@@ -821,6 +827,9 @@ errno_t reiser4_tree_insert(
 				return -1;
 			}
 	
+			/* FIXME: What should flush_id be set to? Probably it does not 
+			 * matter for the empty tree. */
+			
 			if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
 	    
 				aal_exception_error("Can't insert an item into the node %llu.", 
@@ -850,18 +859,18 @@ errno_t reiser4_tree_insert(
 			      reiser4_node_overhead(coord->node) : 0);
 	
 	old = *coord;
-	
+		
+	if (tree->traps.preinsert) {
+		if ((res = tree->traps.preinsert(coord, hint, tree->traps.data)))
+			return res;
+	}
+
 	if (reiser4_tree_mkspace(tree, coord, needed)) {
 		aal_exception_error("Can't prepare space for insert "
 				    "one more item/unit.");
 		return -1;
 	}
     
-	if (tree->traps.preinsert) {
-		if ((res = tree->traps.preinsert(coord, hint, tree->traps.data)))
-			return res;
-	}
-
 	if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
 				    (coord->pos.unit == ~0ul ? "item" : "unit"),
