@@ -263,6 +263,7 @@ AC_OUTPUT([
     plugin/extent40/Makefile
     plugin/key40/Makefile
     plugin/file/Makefile
+    plugin/file/file40/Makefile
     plugin/file/dir40/Makefile
     plugin/file/reg40/Makefile
     plugin/file/symlink40/Makefile

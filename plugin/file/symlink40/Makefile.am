@@ -8,7 +8,8 @@ noinst_LTLIBRARIES	        = libsymlink40-static.la
 libsymlink40_static_la_SOURCES  = $(symlink40_sources)
 else
 lib_LTLIBRARIES		        = libsymlink40.la
-libsymlink40_la_LIBADD	        = $(top_builddir)/libaal/libaal.la
+libsymlink40_la_LIBADD	        = $(top_builddir)/libaal/libaal.la \
+				  $(top_builddir)/plugin/file/file40/libfile40-static.la
 libsymlink40_la_SOURCES	        = $(symlink40_sources)
 endif
 

@@ -10,7 +10,7 @@
 
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
-#include <plugin/file/file40.h>
+#include <plugin/file/file40/file40.h>
 
 /* Compaund directory structure */
 struct dir40 {

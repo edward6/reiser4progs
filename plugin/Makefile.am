@@ -21,6 +21,7 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          extent40/libextent40-static.la \
 			          stat40/libstat40-static.la \
 			          key40/libkey40-static.la \
+			          file/file40/libfile40-static.la \
 			          file/dir40/libdir40-static.la \
 			          file/reg40/libreg40-static.la \
 			          file/symlink40/libsymlink40-static.la \
