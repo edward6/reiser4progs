@@ -164,7 +164,9 @@ static lookup_t dir40_search(dir40_t *dir) {
 	/* Making tree_lookup() to find entry by key */
 	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
 				FIND_EXACT, &dir->body)) < 0)
+	{
 		return res;
+	}
 	
 	/* No adjusting for the ABSENT result. */
 	if (res == ABSENT) adjust = 0;

@@ -1512,6 +1512,13 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	
 	return res;
 }
+
+errno_t reiser4_collisions_handle(reiser4_place_t *place,
+				  lookup_hint_t *hint,
+				  lookup_bias_t bias)
+{
+	return 0;
+}
 #endif
 
 /* Makes search in the tree by specified @key. Fills passed place by data of

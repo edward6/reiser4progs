@@ -1130,7 +1130,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 				uni_offset += width * blksize;
 			}
 		} else {
-			aal_bug("umka-3072", block_offset >= max_offset);
+			aal_bug("umka-3072", "block_offset >= max_offset");
 		}
 
 		ins_offset += size;
