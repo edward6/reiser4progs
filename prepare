@@ -1,13 +1,16 @@
 #!/bin/bash
 
-echo "Running aclocal..."
+echo "aclocal ..."
 aclocal && (
-    echo "Running autoheader..."
+    echo "autoheader ..."
     autoheader && (
-	echo "Running autoconf..."
+	echo "autoconf ..."
 	autoconf && (
-	    echo "Running automake --add-missing..."
-	    automake --add-missing
+	    echo "libtoolize --automake --force ..."
+	    libtoolize --automake --force && (
+		echo "automake --add-missing"
+		automake --add-missing 
+	    )
 	)
     )
 )
