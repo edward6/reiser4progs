@@ -30,7 +30,7 @@ static int callback_tail_check(int64_t tail, void *data) {
     return 1;
 }
 
-errno_t format40_check(object_entity_t *entity, uint16_t options) {
+errno_t format40_check(object_entity_t *entity) {
     format40_super_t *super;
     format40_t *format = (format40_t *)entity;
     

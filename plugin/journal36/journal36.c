@@ -61,7 +61,8 @@ static reiser4_plugin_t journal36_plugin = {
 		.print  = NULL,
 		.create = NULL, 
 		.valid	= NULL,
-		.device = NULL
+		.device = NULL,
+		.check = NULL
 	}
 };
 

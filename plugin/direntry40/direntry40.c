@@ -310,8 +310,7 @@ static errno_t direntry40_print(item_entity_t *item, char *buff,
 	return 0;
 }
 
-extern errno_t direntry40_check(item_entity_t *item, 
-				uint16_t options);
+extern errno_t direntry40_check(item_entity_t *item);
 
 #endif
 

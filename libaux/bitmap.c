@@ -78,16 +78,14 @@ int aux_bitmap_test(
 void aux_bitmap_mark_range(
 	aux_bitmap_t *bitmap,	    /* bitmap range of bits to be marked in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* end bit of the range */
+	uint64_t end)		    /* end bit of the range, excluding */
 {
-	aal_assert("umka-336", bitmap != NULL, return);
-	aal_assert("vpf-458", end > start, return);
+	aal_assert("vpf-472", bitmap != NULL, return);
+	aal_assert("vpf-458", start < end, return);
 
 	aux_bitmap_range_check(bitmap, start, return);
+	aux_bitmap_range_check(bitmap, end, return);
 	
-	if (end >= bitmap->total)
-		end = bitmap->total - 1;
-	    
 	aal_set_bits(bitmap->map, start, end);
 	bitmap->marked += (end - start);
 }
@@ -99,21 +97,60 @@ void aux_bitmap_mark_range(
 void aux_bitmap_clear_range(
 	aux_bitmap_t *bitmap,	    /* bitmap range of blocks will be cleared in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* end bit of the range */
+	uint64_t end)		    /* end bit of the range, excluding */
 {
-	aal_assert("umka-337", bitmap != NULL, return);
-	aal_assert("vpf-459", start > end, return);
+	aal_assert("vpf-473", bitmap != NULL, return);
+	aal_assert("vpf-459", start < end, return);
 
 	aux_bitmap_range_check(bitmap, start, return);
-	
-	if (end >= bitmap->total)
-		end = bitmap->total - 1;
+	aux_bitmap_range_check(bitmap, end, return);
 	
 	aal_clear_bits(bitmap->map, start, end);
 	
 	bitmap->marked -= (end - start);
 }
 
+/* Tests if all bits of the interval [start,end) are cleared in the bitmap. */
+int aux_bitmap_test_range_cleared(
+	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
+	uint64_t start,		    /* start bit of the range */
+	uint64_t end)		    /* end bit of the range, excluding */
+{
+	blk_t next;
+	aal_assert("vpf-471", bitmap != NULL, return 0);
+	aal_assert("vpf-470", start < end, return 0);
+	
+	aux_bitmap_range_check(bitmap, start, return 0);
+	aux_bitmap_range_check(bitmap, end, return 0);
+	
+	next = aux_bitmap_find_marked(bitmap, start);
+
+	if (next >= start && next < end)
+		return 0;
+
+	return 1;
+}
+
+/* Tests if all bits of the interval [start,end) are marked in the bitmap. */
+int aux_bitmap_test_range_marked(
+	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
+	uint64_t start,		    /* start bit of the range */
+	uint64_t end)		    /* end bit of the range, excluding */
+{
+	blk_t next;
+	aal_assert("vpf-474", bitmap != NULL, return 0);
+	aal_assert("vpf-475", start < end, return 0);
+	
+	aux_bitmap_range_check(bitmap, start, return 0);
+	aux_bitmap_range_check(bitmap, end, return 0);
+	
+	next = aux_bitmap_find_cleared(bitmap, start);
+
+	if (next >= start && next < end)
+		return 0;
+
+	return 1;
+}
 /* Finds first cleared bit in bitmap, starting from passed "start" */
 uint64_t aux_bitmap_find_cleared(
 	aux_bitmap_t *bitmap,	    /* bitmap, clear bit will be searched in */

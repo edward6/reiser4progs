@@ -9,7 +9,7 @@
 
 #ifndef ENABLE_COMPACT
 
-errno_t stat40_check(item_entity_t *item, uint16_t options) {
+errno_t stat40_check(item_entity_t *item) {
     return 0;
 }
 

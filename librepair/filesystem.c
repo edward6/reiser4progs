@@ -6,25 +6,23 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_fs_check(reiser4_fs_t *fs) {
+/* FIXME-VITALY: This should be the tree method. */
+errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *repair_data) {
     traverse_hint_t hint;
-    repair_check_t data;
     reiser4_joint_t *joint = NULL;
     errno_t res = 0;
 
     aal_assert("vpf-180", fs != NULL, return -1);
     aal_assert("vpf-181", fs->format != NULL, return -1);
-    aal_assert("vpf-182", fs->format->device != NULL, return -1);
+    aal_assert("vpf-181", repair_data != NULL, return -1);
 
-    aal_memset(&data, 0, sizeof(data));
-
-    hint.data = &data;
+    hint.data = repair_data;
     
-    if (repair_filter_setup(fs, &hint))
+    if (repair_filter_setup(&hint))
 	return -1;    
 
     if ((res = repair_filter_joint_open(&joint, 
-	reiser4_format_get_root(fs->format), &data)) < 0) 
+	reiser4_format_get_root(fs->format), repair_data)) < 0)
 	return res;
  
     if (res == 0 && joint != NULL) {
@@ -34,14 +32,15 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 	    repair_filter_update_traverse,  repair_filter_after_traverse)) < 0)
 	    goto error_free_joint;
     } else 
-	repair_set_flag(&data, REPAIR_NOT_FIXED);
+	repair_set_flag(repair_data, REPAIR_NOT_FIXED);
 
-    if ((res = repair_filter_update(fs, &hint)))
+    if ((res = repair_filter_update(&hint)))
 	goto error_free_joint;
 
     if (reiser4_format_get_root(fs->format) != FAKE_BLK) {
-	if ((res = repair_scan_setup(fs, &data)))
-	    goto error_free_joint;
+	/* repair_data->pass.scan.(format_layout|used) are initialized from 
+	 * repair_data->pass.filter.(format_layout|formatted) due to repair_data->pass 
+	 * unit structure. */
 
 	/* Solve overlapped problem within the tree. */
 	if ((res = reiser4_joint_traverse(joint, &hint, repair_filter_joint_open,
@@ -53,7 +52,7 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 	reiser4_joint_close(joint);
 
 
-    
+ 
     return 0;
     
 error_free_joint:
@@ -63,23 +62,23 @@ error_free_joint:
     return res;
 }
 
-reiser4_fs_t *repair_fs_open(repair_data_t *data) {
+reiser4_fs_t *repair_fs_open(aal_device_t *host_device, 
+    reiser4_profile_t *profile) 
+{
     reiser4_fs_t *fs;
     void *oid_area_start, *oid_area_end;
 
-    aal_assert("vpf-159", data != NULL, return NULL);
-    aal_assert("vpf-172", data->host_device != NULL, return NULL);
-    
+    aal_assert("vpf-159", host_device != NULL, return NULL);
+    aal_assert("vpf-172", profile != NULL, return NULL);
+ 
     /* Allocating memory and initializing fields */
     if (!(fs = aal_calloc(sizeof(*fs), 0)))
 	return NULL;
-    
-    fs->data = data;
-    
-    if (repair_master_open(fs))
+
+    if ((fs->master = repair_master_open(host_device)) == NULL)
 	goto error_free_fs;
 	
-    if (repair_format_open(fs))
+    if ((fs->format = repair_format_open(fs->master, profile)) == NULL)
 	goto error_close_master;
     
     /* Block and oid allocator plugins are specified by format plugin unambiguously, 
@@ -96,35 +95,16 @@ reiser4_fs_t *repair_fs_open(repair_data_t *data) {
 	goto error_close_alloc;
     }
     
-    /* Open, replay and close the journal. */
-    aal_assert("vpf-444", data->journal_device != NULL, goto error_close_alloc);
-
-    if (repair_journal_open(fs))
-	goto error_close_oid;
-    
-    if (reiser4_journal_replay(fs->journal))
-	goto error_close_journal;
-
-    reiser4_journal_close(fs->journal);
-    
     return fs;
 
-error_close_journal:
-    reiser4_journal_close(fs->journal);
-    
-error_close_oid:
-    reiser4_oid_close(fs->oid);
-    
 error_close_alloc:
     reiser4_alloc_close(fs->alloc);
     
 error_close_format:
-    if (fs->format)
-	reiser4_format_close(fs->format);
+    reiser4_format_close(fs->format);
     
 error_close_master:
-    if (fs->master)
-	reiser4_master_close(fs->master);
+    reiser4_master_close(fs->master);
 
 error_free_fs:
     aal_free(fs);

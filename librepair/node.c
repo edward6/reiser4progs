@@ -6,7 +6,7 @@
 #include <repair/librepair.h>
 
 static errno_t repair_node_items_check(reiser4_node_t *node, 
-    repair_check_t *data) 
+    repair_data_t *data) 
 {
     reiser4_coord_t coord;
     reiser4_pos_t pos;
@@ -43,16 +43,17 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    return res;
 	}
 	
-	/* Check that the item is legal for this node. If not, it will be deleted 
-	 * in update traverse callback method. */
+	/* Check that the item is legal for this node. If not, it will be 
+	 * deleted in update traverse callback method. */
 	if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
 	    item_legal, node->entity, coord.entity.plugin)))
 	    return res;
 
 	/* Check the item structure. */
-	if ((res = plugin_call(return -1, coord.entity.plugin->item_ops, check, 
-	    &coord.entity, data->options))) 
-	    return res;
+	if (coord.entity.plugin->item_ops.check) {
+	    if ((res = coord.entity.plugin->item_ops.check(&coord.entity)))
+		return res;
+	}
 
 	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
 	    continue;
@@ -62,7 +63,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	     * obviously wrong. Or start block. Give a hint into 
 	     * repair_item_ptr_used_in_format which returns what is obviously 
 	     * wrong. */
-	    if ((res = repair_item_ptr_used_in_format(&coord, data)) < 0)  
+	    if ((res = repair_item_ptr_used_in_bitmap(&coord, 
+		data->bm_format_layout, data)) < 0)  
 		return res;
 	    else if ((res > 0) && repair_item_handle_ptr(&coord)) 
 		return -1;
@@ -72,8 +74,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     return 0;    
 }
 
-static errno_t repair_joint_ld_key(reiser4_joint_t *joint, 
-    reiser4_key_t *ld_key, repair_check_t *data) 
+static errno_t repair_joint_ld_key_fetch(reiser4_joint_t *joint, 
+    reiser4_key_t *ld_key, repair_data_t *data) 
 {
     reiser4_coord_t coord;
     errno_t res;
@@ -81,7 +83,6 @@ static errno_t repair_joint_ld_key(reiser4_joint_t *joint,
     aal_assert("vpf-393", joint != NULL, return -1);
     aal_assert("vpf-344", ld_key != NULL, return -1);
     aal_assert("vpf-407", ld_key->plugin != NULL, return -1);
-    aal_assert("vpf-345", data != NULL, return -1);
 
     if (joint->parent != NULL) {
         if ((res = reiser4_coord_open(&coord, joint->parent, CT_JOINT, &joint->pos)))
@@ -95,8 +96,27 @@ static errno_t repair_joint_ld_key(reiser4_joint_t *joint,
     return 0;
 }
 
+static errno_t repair_joint_ld_key_update(reiser4_joint_t *joint, 
+    reiser4_key_t *ld_key, repair_data_t *data) 
+{
+    reiser4_coord_t coord;
+    errno_t res;
+    
+    aal_assert("vpf-467", joint != NULL, return -1);
+    aal_assert("vpf-468", ld_key != NULL, return -1);
+    aal_assert("vpf-469", ld_key->plugin != NULL, return -1);
+
+    if (joint->parent == NULL)
+	return 0;
+
+    if ((res = reiser4_coord_open(&coord, joint->parent, CT_JOINT, &joint->pos)))
+	return res;
+
+    return reiser4_item_update(&coord, ld_key);
+}
+
 static errno_t repair_joint_rd_key(reiser4_joint_t *joint, 
-    reiser4_key_t *rd_key, repair_check_t *data)
+    reiser4_key_t *rd_key, repair_data_t *data)
 {
     reiser4_coord_t coord;
     reiser4_pos_t pos = {0, 0};
@@ -139,11 +159,12 @@ static errno_t repair_joint_rd_key(reiser4_joint_t *joint,
     supported? 
 */
 errno_t repair_joint_dkeys_check(reiser4_joint_t *joint, 
-    repair_check_t *data) 
+    repair_data_t *data) 
 {
     reiser4_coord_t coord;
     reiser4_key_t key, d_key;
     reiser4_pos_t pos = {0, ~0ul};
+    int res;
 
     aal_assert("vpf-248", joint != NULL, return -1);
     aal_assert("vpf-395", joint->node != NULL, return -1);
@@ -163,7 +184,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 
     key.plugin = d_key.plugin;
 
-    if (repair_joint_ld_key(joint, &d_key, data)) {
+    if (repair_joint_ld_key_fetch(joint, &d_key, data)) {
 	aal_exception_error("Node (%llu): Failed to get the left delimiting key.", 
 	    aal_block_number(joint->node->block));
 	return -1;
@@ -178,11 +199,30 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 	return -1;
     }
 
-    if (reiser4_key_compare(&d_key, &key) != 0) {
+    res = reiser4_key_compare(&d_key, &key);
+    
+    /* Left delimiting key should match the left key in the node. */
+    if (res > 0) {
+	/* The left delimiting key is much then the left key in the node - 
+	 * not legal */
 	aal_exception_error("Node (%llu): The first key %k is not equal to "
 	    "the left delimiting key %k.", aal_block_number(joint->node->block), 
 	    &key, &d_key);
 	return 1;
+    } else if (res < 0) {
+   	/* It is legal to have the left key in the node much then its left 
+	 * delimiting key - due to removing some items from the node, for 
+	 * example. Fix the delemiting key if we have parent. */
+	if (joint->parent != NULL) {
+	    aal_exception_error("Node (%llu): The left delimiting key %k in "
+		"the node (%llu), pos (%u/%u) mismatch the first key %k in the "
+		"node. Left delimiting key is fixed.", 
+		aal_block_number(joint->node->block), &key, 
+		aal_block_number(joint->parent->node->block), coord.pos.item, 
+		coord.pos.unit, &d_key);
+	    if (repair_joint_ld_key_update(joint, &d_key, data)) 
+		return -1;
+	}
     }
     
     if (repair_joint_rd_key(joint, &d_key, data)) {
@@ -217,7 +257,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 }
 
 static errno_t repair_node_keys_check(reiser4_node_t *node, 
-    repair_check_t *data) 
+    repair_data_t *data) 
 {
     reiser4_key_t key, prev_key;
     reiser4_pos_t pos = {0, ~0ul};
@@ -283,7 +323,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 
     Supposed to be run with repair_check.pass.filter structure initialized.
 */
-errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data) {
+errno_t repair_joint_check(reiser4_joint_t *joint, repair_data_t *data) {
     int res;
     
     aal_assert("vpf-183", data != NULL, return -1);
@@ -293,7 +333,7 @@ errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data) {
     aal_assert("vpf-220", joint->node->entity->plugin != NULL, return -1);
 
     if ((res = plugin_call(return -1, joint->node->entity->plugin->node_ops, 
-	check, joint->node->entity, data->options)))
+	check, joint->node->entity)))
 	return res;
 
     if ((res = repair_node_items_check(joint->node, data))) 

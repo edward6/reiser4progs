@@ -228,7 +228,7 @@ static uint16_t stat40_remove(item_entity_t *item,
 	return -1;
 }
 
-extern errno_t stat40_check(item_entity_t *, uint16_t);
+extern errno_t stat40_check(item_entity_t *);
 
 #endif
 

@@ -17,8 +17,7 @@ typedef errno_t (*journal40_handler_func_t)(object_entity_t *entity,
 					    aal_block_t *block, 
 					    d64_t original);
 
-typedef errno_t (*journal40_layout_func_t)(object_entity_t *entity,
-					   blk_t);
+typedef errno_t (*journal40_blk_func_t)(object_entity_t *entity, blk_t);
 
 static reiser4_core_t *core = NULL;
 
@@ -275,7 +274,7 @@ static errno_t journal40_update(journal40_t *journal) {
 	}
 
 	if (!(tx_block = aal_block_open(device, last_commited_tx))) {
-	    aal_exception_error("Can't read block %llu while replaying "
+	    aal_exception_error("Can't read block %llu while updating "
 		"the journal. %s.", last_commited_tx, device->error);
 	    return -1;
 	}
@@ -298,7 +297,7 @@ static errno_t journal40_update(journal40_t *journal) {
 }
 
 errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handler_func,
-    journal40_layout_func_t layout_func) 
+    journal40_blk_func_t layout_func, journal40_blk_func_t target_func) 
 {
 	int ret;
 	uint64_t prev_tx, log_blk;
@@ -332,7 +331,7 @@ errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handle
 			goto error_free_tx_list;
 
 		if (!(tx_block = aal_block_open(device, prev_tx))) {
-			aal_exception_error("Can't read block %llu while replaying "
+			aal_exception_error("Can't read block %llu while traversing "
 					    "the journal. %s.", prev_tx, device->error);
 			goto error_free_tx_list;
 		}
@@ -363,7 +362,7 @@ errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handle
 				goto error_free_tx_list;
 	    
 			if (!(log_block = aal_block_open(device, log_blk))) {
-				aal_exception_error("Can't read block %llu while replaying "
+				aal_exception_error("Can't read block %llu while traversing "
 						    "the journal. %s.", log_blk, device->error);
 				goto error_free_tx_list;
 			}
@@ -389,16 +388,16 @@ errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handle
 							get_le_wandered(entry)))
 						goto error_free_log_block;
 		    
-				if (layout_func((object_entity_t *)journal, 
-						get_le_original(entry)))
-					goto error_free_log_block;
+					if (target_func((object_entity_t *)journal, 
+							get_le_original(entry)))
+						goto error_free_log_block;
 				}
 		
 				wan_block = aal_block_open(device, get_le_wandered(entry));
 		
 				if (!wan_block) {
 					aal_exception_error("Can't read block %llu while "
-							    "replaying the journal. %s.", 
+							    "traversing the journal. %s.", 
 							    get_le_wandered(entry), 
 							    device->error);
 					goto error_free_log_block;
@@ -446,7 +445,7 @@ static errno_t journal40_replay(object_entity_t *entity) {
     
 	aal_assert("umka-412", entity != NULL, return -1);
 
-	if (journal40_traverse((journal40_t *)entity, callback_journal_handler, NULL))
+	if (journal40_traverse((journal40_t *)entity, callback_journal_handler, NULL, NULL))
 		return -1;
 
 	/* FIXME: super block has been left not updated. */
@@ -476,6 +475,8 @@ static void journal40_close(object_entity_t *entity) {
 	aal_free(journal);
 }
 
+extern errno_t journal40_check(object_entity_t *);
+
 static reiser4_plugin_t journal40_plugin = {
 	.journal_ops = {
 		.h = {
@@ -495,6 +496,7 @@ static reiser4_plugin_t journal40_plugin = {
 		.sync	= journal40_sync,
 		.replay = journal40_replay,
 		.print  = journal40_print,
+		.check  = journal40_check,
 #else
 		.create = NULL,
 		.sync	= NULL,

@@ -34,6 +34,10 @@ extern void aux_bitmap_mark_range(aux_bitmap_t *bitmap,
 				  uint64_t start, uint64_t end);
 extern void aux_bitmap_clear_range(aux_bitmap_t *bitmap, 
 				   uint64_t start, uint64_t end);
+int aux_bitmap_test_range_marked(aux_bitmap_t *bitmap,	uint64_t start,	
+				 uint64_t end);
+int aux_bitmap_test_range_cleared(aux_bitmap_t *bitmap,	uint64_t start,	
+				  uint64_t end);
 
 extern uint64_t aux_bitmap_find_marked(aux_bitmap_t *bitmap, uint64_t start);
 extern uint64_t aux_bitmap_find_cleared(aux_bitmap_t *bitmap, uint64_t start);

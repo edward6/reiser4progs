@@ -620,7 +620,7 @@ struct reiser4_item_ops {
 	uint32_t (*count) (item_entity_t *);
 
 	/* Checks the item structure. */
-	errno_t (*check) (item_entity_t *, uint16_t);
+	errno_t (*check) (item_entity_t *);
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
@@ -682,7 +682,7 @@ struct reiser4_node_ops {
 	int (*confirm) (object_entity_t *);
 
 	/*	Checks thoroughly the node structure and fixes what needed. */
-	errno_t (*check) (object_entity_t *, uint16_t);
+	errno_t (*check) (object_entity_t *);
 
 	/* Check node on validness */
 	errno_t (*valid) (object_entity_t *);
@@ -815,7 +815,7 @@ struct reiser4_format_ops {
 	errno_t (*valid) (object_entity_t *);
     
 	/* Checks thoroughly the format structure and fixes what needed. */
-	errno_t (*check) (object_entity_t *, uint16_t);
+	errno_t (*check) (object_entity_t *);
 
 	/* Prints all useful information about the format */
 	errno_t (*print) (object_entity_t *, char *, uint32_t, uint16_t);
@@ -837,6 +837,9 @@ struct reiser4_format_ops {
 	*/
 	const char *(*name) (object_entity_t *);
 
+	/* Gets the start of the filesystem. */
+	uint64_t (*start) (object_entity_t *);
+	
 	/* Gets/sets root block */
 	uint64_t (*get_root) (object_entity_t *);
 	void (*set_root) (object_entity_t *, uint64_t);
@@ -989,6 +992,8 @@ struct reiser4_journal_ops {
 	/* Prints journal content */
 	errno_t (*print) (object_entity_t *, char *, 
 			  uint32_t, uint16_t);
+	/* Checks thoroughly the journal structure. */
+	errno_t (*check) (object_entity_t *);
 };
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;

@@ -70,7 +70,7 @@ static errno_t direntry40_region_delete(reiser4_body_t *body, uint16_t start_pos
     return 0;
 }
 
-errno_t direntry40_check(item_entity_t *item, uint16_t options) {
+errno_t direntry40_check(item_entity_t *item) {
     direntry40_t *de;
     uint16_t offset, start_pos = 0;
     int i;

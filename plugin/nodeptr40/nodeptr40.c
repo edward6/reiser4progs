@@ -57,8 +57,6 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t nodeptr40_check(item_entity_t *item, uint16_t options);
-
 #endif
 
 static errno_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
@@ -108,17 +106,16 @@ static reiser4_plugin_t nodeptr40_plugin = {
 			.label = "nodeptr40",
 			.desc = "Node pointer item for reiserfs 4.0, ver. " VERSION,
 		},
+		.check = NULL,
 #ifndef ENABLE_COMPACT	    
 		.init		= nodeptr40_init,
 		.update         = nodeptr40_update,
 		.estimate	= nodeptr40_estimate,
-		.check		= nodeptr40_check,
 		.print		= nodeptr40_print,
 #else
 		.init		= NULL,
 		.update         = NULL,
 		.estimate	= NULL,
-		.check		= NULL,
 		.print		= NULL,
 #endif
 		.lookup		= NULL,

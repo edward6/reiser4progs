@@ -9,6 +9,16 @@
 
 #include <fsck.h>
 
+typedef struct fsck_parse {
+    reiser4_profile_t *profile;
+    uint16_t mode;
+    uint16_t options;
+
+    FILE *logfile;
+    aal_device_t *host_device;
+    aal_device_t *journal_device;    
+} fsck_parse_t;
+
 static void fsck_print_usage(char *name) {
     fprintf(stderr, "\nUsage: %s [ options ] FILE\n", name);
     
@@ -69,7 +79,7 @@ static void fsck_print_usage(char *name) {
   *************************************************************\n\
 \nWill check consistency of the filesystem on (%s).\n"
 
-static int fsck_ask_confirmation(repair_data_t *data, char *host_name) {    
+static int fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {    
     if (repair_mode(data) == REPAIR_CHECK) {
 	fprintf(stderr, CHECK_WARNING, host_name);
     } else if (repair_mode(data) == REPAIR_REBUILD) {
@@ -88,16 +98,16 @@ static int fsck_ask_confirmation(repair_data_t *data, char *host_name) {
     return NO_ERROR; 
 }
 
-static void fsck_init_streams(repair_data_t *data) {
-    progs_exception_set_stream(EXCEPTION_WARNING, stderr);
-    progs_exception_set_stream(EXCEPTION_INFORMATION, stderr);
-    progs_exception_set_stream(EXCEPTION_ERROR, stderr);
+static void fsck_init_streams(fsck_parse_t *data) {
+    progs_exception_set_stream(EXCEPTION_INFORMATION, 
+	repair_verbose(data) ? stderr : NULL);    
+    progs_exception_set_stream(EXCEPTION_ERROR, data->logfile);
+    progs_exception_set_stream(EXCEPTION_WARNING, data->logfile);
     progs_exception_set_stream(EXCEPTION_FATAL, stderr);
     progs_exception_set_stream(EXCEPTION_BUG, stderr);
-    data->logfile = NULL;
 }
 
-static int fsck_init(repair_data_t *data, int argc, char *argv[]) 
+static int fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
 {
     int c;
     char *str, *profile_label = NULL;
@@ -131,7 +141,8 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
     };
 
     data->profile = progs_profile_default();
-    fsck_init_streams(data);
+    progs_exception_set_stream(EXCEPTION_FATAL, stderr);
+    data->logfile = stderr;
 
     progs_print_banner(argv[0]);
     
@@ -148,16 +159,11 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 		if ((stream = fopen(optarg, "w")) == NULL)
 		    aal_exception_fatal("Cannot not open the logfile (%s).", 
 			optarg);
-		else {
-		    data->logfile = stream;
-		    progs_exception_set_stream(EXCEPTION_ERROR, stream);
-		    progs_exception_set_stream(EXCEPTION_WARNING, stream);
-		}
+		else 
+		    data->logfile = stream;		
 		break;
 	    case 'n':
-		progs_exception_set_stream(EXCEPTION_INFORMATION, NULL);
-		progs_exception_set_stream(EXCEPTION_WARNING, NULL);
-		progs_exception_set_stream(EXCEPTION_ERROR, NULL);
+		data->logfile = NULL;
 		break;
 	    case 'U':
 		break;
@@ -208,6 +214,9 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 		break;
 	}
     }
+
+    fsck_init_streams(data);
+    
     if (profile_label && !(data->profile = progs_profile_find(profile_label))) {
 	aal_exception_fatal("Cannot find the specified profile (%s).", 
 	    profile_label);
@@ -249,7 +258,7 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
     return fsck_ask_confirmation(data, argv[optind]);
 }
 
-int fsck_check_fs(reiser4_fs_t *fs) {
+int fsck_check_fs(reiser4_fs_t *fs, repair_data_t *data) {
     int retval;
     time_t t;
     
@@ -257,12 +266,7 @@ int fsck_check_fs(reiser4_fs_t *fs) {
     fprintf(stderr, "##########\nreiserfsck --check started at %s##########\n", 
 	ctime (&t));
  
-    if (!repair_read_only(repair_data(fs))) {
-	/* FIXME-VITALY: Journal needs to be replayed, when ready. */
-	
-    }
-
-    if ((retval = repair_fs_check(fs))) {
+    if ((retval = repair_fs_check(fs, data))) {
 	aal_exception_fatal("Filesystem check failed. File system needs to be "
 	    "rebuild.");
 	return OPER_ERROR;
@@ -281,32 +285,74 @@ int fsck_rollback() {
     return NO_ERROR;
 }
 
+static errno_t fsck_data_prepare(repair_data_t *repair_data, 
+    fsck_parse_t *parse_data, reiser4_format_t *format) 
+{
+    aal_assert("vpf-481", repair_data != NULL, return -1);
+    aal_assert("vpf-481", parse_data != NULL, return -1);
+        
+    repair_data->format = format;
+    repair_data->mode = parse_data->mode;
+    repair_data->options = parse_data->options;
+
+    /* Allocate a bitmap for blocks belonged to the format area - skipped, 
+     * super block, journal, bitmaps. */
+    if (!(repair_data->bm_format_layout = aux_bitmap_create(
+	reiser4_format_get_len(repair_data->format)))) 
+    {
+	aal_exception_error("Failed to allocate a bitmap for format layout.");
+	return -1;
+    }
+
+    /* Mark all format area block in the bm_format_layout bitmap. */
+    if (reiser4_format_layout(repair_data->format, callback_mark_format_block, 
+	repair_data->bm_format_layout)) 
+    {
+	aal_exception_error("Failed to mark all format blocks in the bitmap as "
+	    "unused.");
+	return -1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     int exit_code = NO_ERROR;
-    repair_data_t data;
+    fsck_parse_t data;
+    repair_data_t repair_data;
+    
     reiser4_fs_t *fs;
     uint16_t mask = 0;
     
     memset(&data, 0, sizeof(data));
+    memset(&repair_data, 0, sizeof(repair_data));
 
     /* Initializing libreiser4 with factory sanity check */
     if (libreiser4_init()) {
 	aal_exception_fatal("Cannot initialize the libreiser4.");
 	exit(OPER_ERROR);
     }
-   
+ 
     if (((exit_code = fsck_init(&data, argc, argv)) != NO_ERROR)) 
 	goto free_device;
 
-    if (!(fs = repair_fs_open(&data))) {
+ 
+    if (!(fs = repair_fs_open(data.host_device, data.profile))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
 	    aal_device_name(data.host_device));
 	goto free_device;
     }
 
+    fsck_data_prepare(&repair_data, &data, fs->format);
+
+    if (repair_journal_handle(fs->format, data.journal_device)) {
+	aal_exception_fatal("Failed to replay the journal.");
+	goto free_device;
+    }
+	
     switch (repair_mode(&data)) {
 	case REPAIR_CHECK:
-	    exit_code = fsck_check_fs(fs);
+	    exit_code = fsck_check_fs(fs, &repair_data);
 	    break;
 	default:
 	    aal_exception_fatal("Only check mode is supported yet.");

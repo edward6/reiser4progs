@@ -459,8 +459,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	return 0;
 }
 
-extern errno_t node40_check(object_entity_t *entity, 
-			    uint16_t options);
+extern errno_t node40_check(object_entity_t *entity);
 
 extern errno_t node40_item_legal(object_entity_t *entity, 
 				 reiser4_plugin_t *plugin);

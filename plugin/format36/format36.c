@@ -206,6 +206,15 @@ static rpid_t format36_oid_pid(object_entity_t *entity) {
 	return OID_REISER36_ID;
 }
 
+static uint64_t format36_start_at(object_entity_t *entity) {
+	format36_t *format = (format36_t *)entity;
+    
+	aal_assert("vpf-464", format != NULL, return FAKE_BLK);
+	aal_assert("vpf-465", format->device != NULL, return FAKE_BLK);
+    
+	return FORMAT36_OFFSET / format->device->blocksize;
+}
+
 static uint64_t format36_get_root(object_entity_t *entity) {
 	format36_super_t *super;
     
@@ -308,6 +317,7 @@ static reiser4_plugin_t format36_plugin = {
 		.confirm	= format36_confirm,
 		.name		= format36_name,
 
+		.start		= format36_start_at,
 		.get_root	= format36_get_root,
 		.get_len	= format36_get_len,
 		.get_free	= format36_get_free,

@@ -5,6 +5,7 @@
 
 #include <repair/librepair.h>
 
+/* Pointer to the block in coord is illegal. It sould be fixed or removed. */
 errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     reiser4_ptr_hint_t hint;
     reiser4_pos_t prev;
@@ -12,14 +13,14 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     aal_assert("vpf-416", coord != NULL, return -1);
     aal_assert("vpf-417", reiser4_coord_node(coord) != NULL, return -1);
     
+    /* Fetch the pointer from the coord. */
     if (plugin_call(return -1, coord->entity.plugin->item_ops,
 	fetch, &coord->entity, coord->pos.unit, &hint, 1))
 	return -1;
     
     if (hint.width == 1 && reiser4_item_extent(coord)) {
 	/* For one unit extent pointer we can just zero the start block 
-	 * number. */		    
-		    
+	 * number. */
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) is zeroed.", 
 	    aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
@@ -35,8 +36,9 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 	/* For many unit pointers there is no way to figure out what 
 	 * is broken - the start block of the width. 
 	 * Delete the unit if node pointer. 
-	 * Delete the item if extent pointer. */
-	
+	 * Delete the item if extent pointer. */	
+
+	/* Correct position to work with the whole item for extent items. */
 	if (reiser4_item_extent(coord))
 	    coord->pos.unit = ~0ul;
 
@@ -55,8 +57,10 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     return 0;
 }
 
+/* Blocks pointed by coord should not be used in bitmap. 
+ * Returns -1 if fatal error; 1 if not used; 0 - ok. */
 errno_t repair_item_ptr_used_in_bitmap(reiser4_coord_t *coord,
-    aux_bitmap_t *bitmap, repair_check_t *data)
+    aux_bitmap_t *bitmap, repair_data_t *data)
 {
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
@@ -72,19 +76,23 @@ errno_t repair_item_ptr_used_in_bitmap(reiser4_coord_t *coord,
 	&coord->entity, coord->pos.unit, &ptr, 1)))
 	return res;
 
-    aal_assert("vpf-414", ptr.width, return -1);
-    aal_assert("vpf-415", ptr.ptr || reiser4_item_extent(coord), return -1);
+    /* As it was written for scan pass, width cannot be 0 and ptr can be 0
+     * if extent item only. Other cases must be fixed at filter pass. */
+    if ((!ptr.ptr && reiser4_item_nodeptr(coord)) || !ptr.width) 
+	goto error;
 
+    if ((ptr.ptr >= reiser4_format_get_len(data->format)) || 
+	(ptr.width >= reiser4_format_get_len(data->format)) || 
+	(ptr.ptr >= reiser4_format_get_len(data->format) - ptr.width)) 
+	goto error;
+    
     if (!ptr.ptr)
 	return 0;
 
     /* Check that ptr does not point any used block. */
-    if ((next_blk = aux_bitmap_find_marked(bitmap, ptr.ptr)) == FAKE_BLK)
-	return 0;
-
-    if (next_blk >= ptr.ptr && next_blk < ptr.ptr + ptr.width)
+    if (!aux_bitmap_test_range_cleared(bitmap, ptr.ptr, ptr.ptr + ptr.width))
 	goto error;
-
+	
     return 0;
     
 error:
@@ -97,8 +105,11 @@ error:
     return 1;
 }
 
+/* Blocks pointed by coord should not be used in bitmap. 
+ * Returns -1 if fatal error; 1 if not used; 0 - ok. */
+/*
 errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord, 
-    repair_check_t *data) 
+    repair_data_t *data) 
 {
     int res;
     blk_t next_blk;
@@ -122,8 +133,8 @@ errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
 	(ptr.ptr >= reiser4_format_get_len(data->format) - ptr.width)) 
 	goto error;
     
-    /* Check if no any formatted block exists after ptr. */
-    /* FIXME-VITALY: should not depend on filter specific data. */
+    // Check if no any formatted block exists after ptr. 
+    // FIXME-VITALY: should not depend on filter specific data. 
     if ((next_blk = aux_bitmap_find_marked(
 	repair_filter_data(data)->bm_format_layout, ptr.ptr)) == FAKE_BLK)
         return 0;
@@ -142,4 +153,4 @@ error:
 	
     return 1;
 }
-
+*/

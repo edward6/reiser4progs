@@ -17,6 +17,15 @@ extern reiser4_plugin_t format40_plugin;
 
 static reiser4_core_t *core = NULL;
 
+static uint64_t format40_start_at(object_entity_t *entity) {
+	format40_t *format = (format40_t *)entity;
+	
+	aal_assert("vpf-462", format != NULL, return FAKE_BLK);
+	aal_assert("vpf-463", format->device != NULL, return FAKE_BLK);
+	
+	return FORMAT40_OFFSET / format->device->blocksize;
+}
+
 static uint64_t format40_get_root(object_entity_t *entity) {
 	format40_super_t *super;
     
@@ -481,8 +490,7 @@ errno_t format40_print(object_entity_t *entity, char *buff,
 	return 0;
 }
 
-extern errno_t format40_check(object_entity_t *entity, 
-			      uint16_t options);
+extern errno_t format40_check(object_entity_t *entity);
 
 #endif
 
@@ -517,7 +525,8 @@ static reiser4_plugin_t format40_plugin = {
 		.close		= format40_close,
 		.confirm	= format40_confirm,
 		.name		= format40_name,
-	
+
+		.start		= format40_start_at,
 		.get_root	= format40_get_root,
 		.get_len	= format40_get_len,
 		.get_free	= format40_get_free,

@@ -12,6 +12,6 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_master_open(reiser4_fs_t *fs);
+extern reiser4_master_t *repair_master_open(aal_device_t *host_device);
 
 #endif

@@ -21,7 +21,7 @@ extern errno_t repair_filter_update_traverse(reiser4_coord_t *, void *);
 extern errno_t repair_filter_after_traverse(reiser4_joint_t *, void *);
 
 /* Init and fini travserse for filter. */
-extern errno_t repair_filter_setup(reiser4_fs_t *, traverse_hint_t *);
-extern errno_t repair_filter_update(reiser4_fs_t *, traverse_hint_t *);
+extern errno_t repair_filter_setup(traverse_hint_t *);
+extern errno_t repair_filter_update(traverse_hint_t *);
 
 #endif

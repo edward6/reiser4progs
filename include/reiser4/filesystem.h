@@ -346,9 +346,6 @@ struct reiser4_fs {
 
 	/* Root file (by default directory) */
 	reiser4_file_t *root;
-
-	/* User-specified data (used by fsck) */
-	void *data;
 };
 
 /* Public functions */
