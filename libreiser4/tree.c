@@ -90,8 +90,8 @@ reiser4_node_t *reiser4_tree_allocate(
 
 	stamp = reiser4_node_get_flush_stamp(tree->root);
 	reiser4_node_set_flush_stamp(node, stamp);
-    
-	node->flags |= NF_DIRTY;
+
+	reiser4_node_mkdirty(node);
 	node->tree = tree;
 	
 	return node;
@@ -140,7 +140,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		}
 		
 		node->tree = tree;
-		node->flags &= ~NF_DIRTY;
+		reiser4_node_mkclean(node);
 
 		if (parent && reiser4_node_attach(parent, node))
 			return NULL;
@@ -693,7 +693,7 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 	reiser4_node_detach(old_root, tree->root);
 
 	/* Releasing old root */
-	old_root->flags &= ~NF_DIRTY;
+	reiser4_node_mkclean(old_root);
 	reiser4_tree_release(tree, old_root);
 
 	/* Setting up format tree-related fields */
@@ -824,7 +824,7 @@ errno_t reiser4_tree_mkspace(
 			if (reiser4_tree_detach(tree, save.node))
 				return -1;
 			
-			save.node->flags &= ~NF_DIRTY;
+			reiser4_node_mkclean(save.node);
 			reiser4_tree_release(tree, save.node);
 		}
 		
@@ -1137,13 +1137,12 @@ errno_t reiser4_tree_remove(
 
 				if (reiser4_node_items(right) == 0) {
 					reiser4_tree_detach(tree, right);
-
-					right->flags &= ~NF_DIRTY;
+					reiser4_node_mkclean(right);
 					reiser4_tree_release(tree, right);
 				}
 			}
 		} else {
-			coord->node->flags &= ~NF_DIRTY;
+			reiser4_node_mkclean(coord->node);
 			reiser4_tree_detach(tree, coord->node);
 			reiser4_tree_release(tree, coord->node);
 
@@ -1163,7 +1162,7 @@ errno_t reiser4_tree_remove(
 			  If node has became empty, then we shoudl release it
 			  and release block it is occupying in block allocator.
 			*/
-			coord->node->flags &= ~NF_DIRTY;
+			reiser4_node_mkclean(coord->node);
 			reiser4_tree_release(tree, coord->node);
 		}
 	}

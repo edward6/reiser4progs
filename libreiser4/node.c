@@ -156,16 +156,6 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL, return -1);
 	aal_assert("umka-903", node->entity != NULL, return -1);
     
-/*	if (node->flags & NF_DIRTY) {
-		aal_exception_warn("Destroing dirty node. Block %llu.",
-				   node->blk);
-	}
-
-	if (node->counter) {
-		aal_exception_warn("Destroing locked (%d) node. Block %llu.",
-				   node->counter, node->blk);
-	}*/
-
 	/* Closing children */
 	if (node->children) {
 		aal_list_t *walk;
@@ -206,6 +196,65 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_free(node);
 
 	return 0;
+}
+
+errno_t reiser4_node_release(reiser4_node_t *node) {
+	aal_assert("umka-1761", node != NULL, return -1);
+	aal_assert("umka-1762", node->entity != NULL, return -1);
+
+#ifndef ENABLE_COMPACT
+	
+	/* Closing children */
+	if (node->children) {
+		aal_list_t *walk;
+
+		for (walk = node->children; walk; ) {
+			aal_list_t *temp = aal_list_next(walk);
+			reiser4_node_release((reiser4_node_t *)walk->data);
+			walk = temp;
+		}
+
+		aal_list_free(node->children);
+		node->children = NULL;
+	}
+
+	if (reiser4_node_isdirty(node)) {
+		if (reiser4_node_sync(node)) {
+			aal_exception_error("Can't write node %llu.",
+					    node->blk);
+			return -1;
+		}
+	}
+	
+	/* Detaching node from the tree */
+	if (node->parent) {
+		reiser4_node_detach(node->parent, node);
+		node->parent = NULL;
+	}
+	
+	/* Uninitializing all fields */
+	if (node->left)
+		node->left->right = NULL;
+    
+	if (node->right)
+		node->right->left = NULL;
+    
+	node->left = NULL;
+	node->right = NULL;
+
+	/*
+	  Calling close method from the plugin in odrder to finilize own
+	  entity.
+	*/
+	plugin_call(return -1, node->entity->plugin->node_ops,
+		    close, node->entity);
+	    
+	aal_free(node);
+	
+	return 0;
+#else
+	return reiser4_node_close(node);
+#endif
 }
 
 /* Increaases lock counter to prevent releasing node from the tree. */
@@ -817,7 +866,7 @@ errno_t reiser4_node_shift(
 		if (reiser4_node_items(node) != 0 &&
 		    (hint->items > 0 || hint->units > 0))
 		{
-			node->flags |= NF_DIRTY;
+			reiser4_node_mkdirty(node);
 			
 			if (node->parent) {
 				if (reiser4_node_lkey(node, &lkey))
@@ -829,7 +878,7 @@ errno_t reiser4_node_shift(
 		}
 	} else {
 		if (hint->items > 0 || hint->units > 0) {
-			neig->flags |= NF_DIRTY;
+			reiser4_node_mkdirty(neig);
 			
 			if (neig->parent) {
 				if (reiser4_node_lkey(neig, &lkey))
@@ -910,7 +959,7 @@ errno_t reiser4_node_sync(
 	}
 
 	/* Synchronizing passed @node */
-	if (node->flags & NF_DIRTY) {
+	if (reiser4_node_isdirty(node)) {
 		
 		if (plugin_call(return -1, node->entity->plugin->node_ops,
 				sync, node->entity))
@@ -922,7 +971,7 @@ errno_t reiser4_node_sync(
 			return -1;
 		}
 
-		node->flags &= ~NF_DIRTY;
+		reiser4_node_mkclean(node);
 	}
     
 	return 0;
@@ -961,7 +1010,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 	if (reiser4_item_set_key(&coord, key))
 		return -1;
     
-	node->flags |= NF_DIRTY;
+	reiser4_node_mkdirty(node);
 	
 	return 0;
 }
@@ -1046,7 +1095,8 @@ errno_t reiser4_node_insert(
 		}
 	}
 
-	node->flags |= NF_DIRTY;
+	reiser4_node_mkdirty(node);
+	
 	return 0;
 }
 
@@ -1136,7 +1186,7 @@ errno_t reiser4_node_remove(
 		}
 	}
 
-	node->flags |= NF_DIRTY;
+	reiser4_node_mkdirty(node);
 	
 	return 0;
 }
