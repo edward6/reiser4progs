@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
     }
     
     if (flags == 0)
-	flags |= PF_TREE;
+	flags |= PF_SUPER;
     
     if (optind >= argc) {
 	debugfs_print_usage(argv[0]);
@@ -425,7 +425,7 @@ int main(int argc, char *argv[]) {
 	goto error_free_libreiser4;
     }
     
-    if (!aal_pow_of_two(flags) && !force) {
+    if (!aal_pow_of_two(flags) && !quiet) {
 	if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
 	    "Ambiguous print options has been detected. Continue?") == EXCEPTION_NO)
 	    goto error_free_fs;
