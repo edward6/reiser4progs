@@ -957,6 +957,10 @@ static bool_t node40_mergeable(place_t *src, place_t *dst) {
 }
 
 static bool_t node40_splitable(place_t *place) {
+	uint32_t units;
+	
+	/* Check if item has shift() and estimate_shift() method are
+	   implemented. */
 	if (!place->plug->o.item_ops->shift)
 		return FALSE;
 	
@@ -967,11 +971,14 @@ static bool_t node40_splitable(place_t *place) {
 	if (!place->plug->o.item_ops->units)
 		return FALSE;
 
-	/* Items that consist of one unit cannot be splitted */
-	if (place->plug->o.item_ops->units(place) <= 1)
-		return FALSE;
+	units = place->plug->o.item_ops->units(place);
+
+	/* Those item can be splitted that contains more than 1 unit or insert
+	   point lies behind the last unit. */
+	if (units > 1 || place->pos.unit >= units)
+		return TRUE;
 	
-	return TRUE;
+	return FALSE;
 }
 
 /* Merges border items of the src and dst nodes. The behavior depends on the

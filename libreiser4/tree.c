@@ -1883,7 +1883,6 @@ int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 	for (total = 0, size = hint->count; size > 0;) {
 		int32_t write;
 		uint32_t level;
-		uint64_t offset;
 		reiser4_place_t place;
 
 		hint->count = size;
@@ -1896,6 +1895,7 @@ int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 			return res;
 		}
 
+		/* Writing data to to tree */
 		level = reiser4_node_get_level(place.node);
 		
 		if ((write = reiser4_tree_write(tree, &place,
@@ -1910,11 +1910,10 @@ int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		/* Updating counters */
 		size -= write;
 		total += write;
-		hint->specific += write;
 		
-		/* Updating key */
-		offset = reiser4_key_get_offset(&hint->offset);
-		reiser4_key_set_offset(&hint->offset, offset + write);
+		/* Updating key and buffer pointer */
+		hint->specific += write;
+		reiser4_key_inc_offset(&hint->offset, write);
 	}
 
 	hint->specific = buff;
@@ -1938,16 +1937,19 @@ int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 	
 	for (total = 0, size = hint->count; size > 0; ) {
 		int32_t read;
-		uint64_t offset;
 		reiser4_place_t place;
 
 		/* Looking for the place to read */
 		if ((res = reiser4_tree_lookup(tree, &hint->offset,
 					       LEAF_LEVEL, FIND_EXACT,
-					       &place)) != PRESENT)
+					       &place)) < 0)
 		{
 			return res;
 		}
+
+		/* Data does not found */
+		if (res == ABSENT)
+			return -EIO;
 
 		/* Prepare hint for read */
 		hint->tree = tree;
@@ -1963,10 +1965,10 @@ int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 
 		size -= read;
 		total += read;
-		hint->specific += read;
 
-		offset = reiser4_key_get_offset(&hint->offset);
-		reiser4_key_set_offset(&hint->offset, offset + read);
+		/* Updating key and data buffer pointer */
+		hint->specific += read;
+		reiser4_key_inc_offset(&hint->offset, read);
 	}
 
 	hint->specific = buff;
@@ -2033,7 +2035,6 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		if ((res = reiser4_tree_truncate(tree, &hint)))
 			goto error_free_buff;
 		
-		hint.plug = plug;
 		hint.count = trans;
 		
 		/* Writing data to the tree */
@@ -2044,10 +2045,10 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 
 		aal_assert("umka-2477", (uint32_t)trans != hint.count);
 
+		reiser4_key_inc_offset(&hint.offset, trans);
+
 		size -= trans;
 		aal_free(buff);
-
-		reiser4_key_inc_offset(&hint.offset, trans);
 	}
 
 	return 0;
