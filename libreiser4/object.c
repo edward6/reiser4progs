@@ -469,11 +469,11 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		return res;
 	}
 
-	if ((res = plugin_call(object->entity->plugin->object_ops,
-			       link, object->entity)))
+	if ((res = plugin_call(child->entity->plugin->object_ops,
+			       link, child->entity)))
 	{
 		aal_exception_error("Can't link %s to %s.",
-				    name, object->name);
+				    name, child->name);
 		return res;
 	}
 
