@@ -371,7 +371,12 @@ static errno_t reg40_layout(object_entity_t *entity,
 	hint.func = block_func;
 		
 	while (reg->offset < size) {
-		item_entity_t *item = &reg->body.item;
+		item_entity_t *item;
+		
+		if (reg40_next(reg) != LP_PRESENT)
+			break;
+		
+		item = &reg->body.item;
 		
 		if (item->plugin->item_ops.layout) {
 			res = plugin_call(item->plugin->item_ops, layout,
@@ -390,9 +395,6 @@ static errno_t reg40_layout(object_entity_t *entity,
 		
 		reg->offset = plugin_call(key.plugin->key_ops,
 					  get_offset, &key) + 1;
-		
-		if (reg40_next(reg) != LP_PRESENT)
-			break;
 	}
 	
 	return 0;
@@ -422,7 +424,12 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		return 0;
 	
 	while (reg->offset < size) {
-		item_entity_t *item = &reg->body.item;
+		item_entity_t *item;
+		
+		if (reg40_next(reg) != LP_PRESENT)
+			break;
+		
+		item = &reg->body.item;
 			
 		if ((res = func(entity, &reg->body, data)))
 			return res;
@@ -432,8 +439,6 @@ static errno_t reg40_metadata(object_entity_t *entity,
 
 		reg->offset = plugin_call(key.plugin->key_ops,
 					  get_offset, &key) + 1;
-
-		reg40_next(reg);
 	}
 	
 	return 0;
