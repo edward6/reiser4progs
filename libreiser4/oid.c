@@ -227,7 +227,7 @@ uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
 			   free, oid->entity);
 }
 
-/* Checks specified oid allocator on validness */
+/* Checks specified oid allocator for validness */
 errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
 	aal_assert("umka-962", oid != NULL);
     
