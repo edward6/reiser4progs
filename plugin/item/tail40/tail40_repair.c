@@ -9,9 +9,8 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 
-errno_t tail40_merge_units(place_t *dst, place_t *src, 
-			   merge_hint_t *hint)
-{
+errno_t tail40_merge(place_t *place, trans_hint_t *hint) {
+/*
 	uint32_t dst_pos, src_pos;
 	
 	aal_assert("vpf-987", dst  != NULL);
@@ -22,14 +21,16 @@ errno_t tail40_merge_units(place_t *dst, place_t *src,
 	src_pos = src->pos.unit;
 	
 	aal_memcpy(tail40_body(dst) + dst_pos + hint->len_delta, 
-		   tail40_body(dst) + dst_pos, tail40_units(dst) - dst_pos);
-	
+		   tail40_body(dst) + dst_pos,
+		   tail40_units(dst) - dst_pos);
+
 	return tail40_copy(dst, dst_pos, src, src_pos, hint->src_count);
+*/
+	return 0;
 }
 
-errno_t tail40_prep_merge(place_t *dst, place_t *src, 
-			  merge_hint_t *hint)
-{
+errno_t tail40_prep_merge(place_t *place, trans_hint_t *hint) {
+/*
 	uint64_t src_offset, dst_max;
 	uint64_t src_max, src_end;
 	uint32_t dst_pos, src_pos;
@@ -43,7 +44,7 @@ errno_t tail40_prep_merge(place_t *dst, place_t *src,
 	dst_pos = dst->pos.unit;
 	src_pos = src->pos.unit;
 	
-	/* Getting src_offset, dst_offset, src_max and dst_max offsets. */
+	/ Getting src_offset, dst_offset, src_max and dst_max offsets.
 	if ((res = tail40_maxreal_key(dst, &key)))
 		return res;
 	
@@ -86,7 +87,7 @@ errno_t tail40_prep_merge(place_t *dst, place_t *src,
 	
 	plug_call(hint->end.plug->o.key_ops, set_offset, &hint->end, 
 		    src_offset + hint->src_count);
-	
+*/
 	return 0;
 }
 #endif

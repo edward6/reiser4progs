@@ -24,7 +24,8 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
     
 	sdext.offset = 0;
 	sdext.body = place->body;
-
+	sdext.sdlen = place->len;
+		
 	/* Loop though the all possible extensions and calling passed @ext_func
 	   for each of them if corresponing extension exists. */
 	for (i = 0; i < STAT40_EXTNR; i++) {
@@ -62,19 +63,17 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 			return 0;
 		}
 
-		/* Okay, extension is present, calling callback function for it
-		   and if result is not good, returning it to teh caller. */
+		len = plug_call(sdext.plug->o.sdext_ops, length, sdext.body);
+
+		/* Call the callback for every found extension. */
 		if ((res = ext_func(&sdext, extmask, data)))
 			return res;
-
-		len = plug_call(sdext.plug->o.sdext_ops, length, 
-				sdext.body);
 
 		/* Calculating the pointer to the next extension body */
 		sdext.body += len;
 		sdext.offset += len;
 	}
-    
+ 
 	return 0;
 }
 
@@ -284,7 +283,7 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2590", place != NULL);
 	aal_assert("umka-2591", hint != NULL);
 
-	hint->ohd = 0;
+	hint->overhead = 0;
 	hint->len = 0;
 	
 	extbody = (void *)place->body;
@@ -531,46 +530,48 @@ static rid_t stat40_object_plug(place_t *place, rid_t type) {
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.fuse             = NULL,
-	.prep_shift       = NULL,
-	.shift_units      = NULL,
-	.update_key       = NULL,
-	.maxreal_key      = NULL,
-	.mergeable        = NULL,
+	.fuse		  = NULL,
+	.prep_shift	  = NULL,
+	.shift_units	  = NULL,
+	.update_key	  = NULL,
+	.maxreal_key	  = NULL,
+	.mergeable	  = NULL,
 #endif
-	.lookup           = NULL,
+	.lookup		  = NULL,
 	.fetch_key	  = NULL,
-	.units            = stat40_units,
+
+	.units		  = stat40_units,
 	.maxposs_key	  = stat40_maxposs_key,
 };
 
 static item_object_ops_t object_ops = {
-	.read_units       = NULL,
+	.read_units	  = NULL,
 	
 #ifndef ENABLE_STAND_ALONE
-	.prep_write       = NULL,
-	.write_units      = NULL,
+	.prep_write	  = NULL,
+	.write_units	  = NULL,
 
-	.prep_insert      = stat40_prep_insert,
-	.insert_units     = stat40_insert_units,
-	.update_units     = stat40_update_units,
-	.remove_units     = stat40_remove_units,
+	.prep_insert	  = stat40_prep_insert,
+	.insert_units	  = stat40_insert_units,
+	.update_units	  = stat40_update_units,
+	.remove_units	  = stat40_remove_units,
 	
-	.trunc_units      = NULL,
-	.layout           = NULL,
+	.trunc_units	  = NULL,
+	.layout		  = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
 #endif
-	.fetch_units      = stat40_fetch_units,
-	.object_plug      = stat40_object_plug
+	.fetch_units	  = stat40_fetch_units,
+	.object_plug	  = stat40_object_plug
 };
 
 static item_repair_ops_t repair_ops = {
-#ifndef ENABLE_STAND_ALONE	
-	.prep_merge       = stat40_prep_merge,
-	.merge_units      = stat40_merge_units,
-	.check_struct     = stat40_check_struct,
-	.check_layout	  = NULL
+#ifndef ENABLE_STAND_ALONE
+	.check_struct	  = stat40_check_struct,
+	.check_layout	  = NULL,
+
+	.prep_merge	  = stat40_prep_merge,
+	.merge		  = stat40_merge
 #endif
 };
 
@@ -581,18 +582,18 @@ static item_debug_ops_t debug_ops = {
 };
 
 static item_tree_ops_t tree_ops = {
-	.down_link        = NULL,
+	.down_link	  = NULL,
 #ifndef ENABLE_STAND_ALONE
-	.update_link      = NULL
+	.update_link	  = NULL
 #endif
 };
 
 static reiser4_item_ops_t stat40_ops = {
-	.tree             = &tree_ops,
-	.debug            = &debug_ops,
-	.object           = &object_ops,
-	.repair           = &repair_ops,
-	.balance          = &balance_ops
+	.tree		  = &tree_ops,
+	.debug		  = &debug_ops,
+	.object		  = &object_ops,
+	.repair		  = &repair_ops,
+	.balance	  = &balance_ops
 };
 
 static reiser4_plug_t stat40_plug = {

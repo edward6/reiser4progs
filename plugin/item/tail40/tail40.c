@@ -435,7 +435,7 @@ static int64_t tail40_trunc_units(place_t *place,
 			       &place->key, NULL);
 	}
 	
-	hint->ohd = 0;
+	hint->overhead = 0;
 	hint->len = count;
 	hint->bytes = count;
 	
@@ -451,67 +451,67 @@ static uint64_t tail40_size(place_t *place) {
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.fuse             = NULL,
-	.update_key       = NULL,
-	.mergeable        = tail40_mergeable,
-	.maxreal_key      = tail40_maxreal_key,
-	.prep_shift       = tail40_prep_shift,
-	.shift_units      = tail40_shift_units,
+	.fuse		  = NULL,
+	.update_key	  = NULL,
+	.mergeable	  = tail40_mergeable,
+	.maxreal_key	  = tail40_maxreal_key,
+	.prep_shift	  = tail40_prep_shift,
+	.shift_units	  = tail40_shift_units,
 #endif
 	.units            = tail40_units,
-	.lookup           = tail40_lookup,
-	.fetch_key        = tail40_fetch_key,
-	.maxposs_key      = tail40_maxposs_key
+	.lookup		  = tail40_lookup,
+	.fetch_key	  = tail40_fetch_key,
+	.maxposs_key	  = tail40_maxposs_key
 };
 
 static item_object_ops_t object_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.size             = tail40_size,
-	.bytes            = tail40_size,
-	.prep_write       = tail40_prep_write,
-	.write_units      = tail40_write_units,
-	.trunc_units      = tail40_trunc_units,
+	.size		  = tail40_size,
+	.bytes		  = tail40_size,
+	.prep_write	  = tail40_prep_write,
+	.write_units	  = tail40_write_units,
+	.trunc_units	  = tail40_trunc_units,
 	
-	.prep_insert      = NULL,
-	.insert_units     = NULL,
-	.remove_units     = NULL,
-	.update_units     = NULL,
-	.layout	          = NULL,
+	.prep_insert	  = NULL,
+	.insert_units	  = NULL,
+	.remove_units	  = NULL,
+	.update_units	  = NULL,
+	.layout		  = NULL,
 #endif
-	.fetch_units      = NULL,
-	.object_plug      = NULL,
-	.read_units       = tail40_read_units
+	.fetch_units	  = NULL,
+	.object_plug	  = NULL,
+	.read_units	  = tail40_read_units
 };
 
 static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.prep_merge       = tail40_prep_merge,
-	.merge_units      = tail40_merge_units,
-	
 	.check_struct	  = NULL,
-	.check_layout     = NULL
+	.check_layout	  = NULL,
+
+	.prep_merge	  = tail40_prep_merge,
+	.merge		  = tail40_merge,
 #endif
 };
 
 static item_debug_ops_t debug_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.print	          = tail40_print
+	.print		  = tail40_print
 #endif
 };
 
 static item_tree_ops_t tree_ops = {
-	.down_link        = NULL,
+	.down_link	  = NULL,
 #ifndef ENABLE_STAND_ALONE
-	.update_link      = NULL
+	.update_link	  = NULL
 #endif
 };
 
 static reiser4_item_ops_t tail40_ops = {
-	.tree             = &tree_ops,
-	.debug            = &debug_ops,
-	.object           = &object_ops,
-	.repair           = &repair_ops,
-	.balance          = &balance_ops
+	.tree		  = &tree_ops,
+	.debug		  = &debug_ops,
+	.object		  = &object_ops,
+	.repair		  = &repair_ops,
+	.balance	  = &balance_ops
 };
 
 static reiser4_plug_t tail40_plug = {

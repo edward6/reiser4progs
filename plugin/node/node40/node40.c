@@ -594,24 +594,26 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 	return 0;
 }
 
-/* Mode modifying fucntion. */
-static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
-			     trans_hint_t *hint, bool_t insert)
+/* Mode modifying function. */
+int64_t node40_modify(node_entity_t *entity, pos_t *pos,
+		      trans_hint_t *hint, modyfy_func_t modify)
 {
 	void *ih;
+	int32_t len;
 	uint32_t pol;
-	uint32_t len;
 	int64_t write;
 	place_t place;
 	node40_t *node;
-    
+
+	aal_assert("vpf-1369", modify != NULL);
+	
 	node = (node40_t *)entity;
-	len = hint->len + hint->ohd;
+	len = hint->len + hint->overhead;
     
 	/* Makes expand of the node new items will be inserted in */
-	if (node40_expand(entity, pos, len, 1)) {
-		aal_exception_error("Can't expand node for insert "
-				    "item/unit.");
+	if ((len > 0) && node40_expand(entity, pos, len, 1)) {
+		aal_exception_error("Node %llu: expand failed.", 
+				    node->block->nr);
 		return -EINVAL;
 	}
 
@@ -632,28 +634,22 @@ static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 		return -EINVAL;
 	}
 
-	if (insert) {
-		/* Inserting units into @place */
-		if (!(write = plug_call(hint->plug->o.item_ops->object,
-					insert_units, &place, hint)) < 0)
-		{
-			aal_exception_error("Can't insert unit to "
-					    "node %llu.", node->block->nr);
-			return write;
-		}
-	} else {
-		/* Writes data into @place */
-		if (!(write = plug_call(hint->plug->o.item_ops->object,
-					write_units, &place, hint)) < 0)
-		{
-			aal_exception_error("Can't write data to "
-					    "node %llu.", node->block->nr);
-			return write;
-		}
+	/* Modifying data on the @place. */
+	if (!(write = modify(&place, hint)) < 0) {
+		aal_exception_error("Node %llu, item %u: failed to modify "
+				    "the item.", node->block->nr, pos->unit);
+		return write;
 	}
-	
-	/* Updating item's key if we insert new item or if we insert unit into
-	   leftmost postion. */
+
+	/* If some space got free, shrink the node. */
+	if ((len < 0) && node40_shrink(entity, pos, -len, 1)) {
+		aal_exception_error("Node %llu: shrink failed.", 
+				    node->block->nr);
+		return -EINVAL;
+	}
+
+	/* Updating item's key if we insert new item or if we 
+	   insert unit into leftmost postion. */
 	if (pos->unit == 0)
 		aal_memcpy(ih, place.key.body, key_size(pol));
 
@@ -667,7 +663,8 @@ static errno_t node40_insert(node_entity_t *entity,
 	aal_assert("umka-1814", hint != NULL);
 	aal_assert("umka-818", entity != NULL);
 
-	return node40_modify(entity, pos, hint, 1);
+	return node40_modify(entity, pos, hint, 
+			     hint->plug->o.item_ops->object->insert_units);
 }
 
 static int64_t node40_write(node_entity_t *entity,
@@ -677,7 +674,8 @@ static int64_t node40_write(node_entity_t *entity,
 	aal_assert("umka-2450", hint != NULL);
 	aal_assert("umka-2451", entity != NULL);
 
-	return node40_modify(entity, pos, hint, 0);
+	return node40_modify(entity, pos, hint, 
+			     hint->plug->o.item_ops->object->write_units);
 }
 
 /* Truncates node at @pos. Needed for tail conversion. */
@@ -708,7 +706,7 @@ static int64_t node40_trunc(node_entity_t *entity, pos_t *pos,
 		return count;
 	}
 
-	len = hint->ohd + hint->len;
+	len = hint->overhead + hint->len;
 	
 	/* Shrinking node and and update key. */
 	if (len > 0) {
@@ -770,7 +768,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		place.pos.unit = MAX_UINT32;
 	
 	if (place.pos.unit == MAX_UINT32) {
-		hint->ohd = 0;
+		hint->overhead = 0;
 		
 		if (!(hint->len = node40_size(node, &place.pos,
 					      hint->count)))
@@ -795,7 +793,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	}
 
 	/* Shrinking node by @len. */
-	len = hint->len + hint->ohd;
+	len = hint->len + hint->overhead;
 	
 	return node40_shrink(entity, &place.pos,
 			     len, hint->count);
