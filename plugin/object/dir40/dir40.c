@@ -424,7 +424,6 @@ static object_entity_t *dir40_open(object_info_t *info) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Creates dir40 instance and inserts few item in new directory described by
    passed @hint. */
 static object_entity_t *dir40_create(object_info_t *info,
@@ -754,13 +753,12 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	dir40_t *dir;
 	place_t place;
 	uint64_t size;
-	uint32_t atime;
+	uint64_t bytes;
 
 	key_entity_t *key;
 	create_hint_t hint;
 	
 	oid_t locality, objectid;
-	sdext_unix_hint_t unix_hint;
 
 	aal_assert("umka-844", entity != NULL);
 	aal_assert("umka-845", entry != NULL);
@@ -814,31 +812,12 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		return res;
 	}
 
-	/* Updating stat data place */
-	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
-		return -EINVAL;
+	size = dir40_size(entity) + 1;
+
+	bytes = obj40_get_bytes(&dir->obj) +
+		dir40_estimate(entity, entry);
 	
-	/* Updating stat data fields */
-	size = obj40_get_size(&dir->obj);
-
-	if ((res = obj40_set_size(&dir->obj, size + 1)))
-		return res;
-
-	if ((res = obj40_read_ext(STAT_PLACE(&dir->obj),
-				  SDEXT_UNIX_ID, 
-				  &unix_hint)))
-	{
-		return res;
-	}
-	
-	atime = time(NULL);
-
-	unix_hint.atime = atime;
-	unix_hint.mtime = atime;
-	unix_hint.bytes += dir40_estimate(entity, entry);
-
-	return obj40_write_ext(STAT_PLACE(&dir->obj),
-			       SDEXT_UNIX_ID, &unix_hint);
+	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
 /* Removing entry from the directory */
@@ -847,17 +826,14 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 {
 	errno_t res;
 	dir40_t *dir;
-	uint64_t size;
-	uint32_t units;
-	uint32_t atime;
-
-	entry_hint_t ent;
-
 	place_t place;
+	uint64_t size;
+	uint64_t bytes;
+	uint32_t units;
+	entry_hint_t ent;
 	key_entity_t *key;
 
 	oid_t locality, objectid;
-	sdext_unix_hint_t unix_hint;
 	
 	aal_assert("umka-1922", entity != NULL);
 	aal_assert("umka-1923", entry != NULL);
@@ -918,31 +894,12 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 			dir->unit--;
 	}
 
-	/* Updating stat data place */
-	if (obj40_update(&dir->obj, STAT_PLACE(&dir->obj)))
-		return -EINVAL;
-	
-	/* Updating size field */
-	size = obj40_get_size(&dir->obj);
+	size = dir40_size(entity) - 1;
 
-	if ((res = obj40_set_size(&dir->obj, size - 1)))
-		return res;
-
-	if ((res = obj40_read_ext(STAT_PLACE(&dir->obj),
-				  SDEXT_UNIX_ID, 
-				  &unix_hint)))
-	{
-		return res;
-	}
+	bytes = obj40_get_bytes(&dir->obj) -
+		dir40_estimate(entity, entry);
 	
-	atime = time(NULL);
-	
-	unix_hint.atime = atime;
-	unix_hint.mtime = atime;
-	unix_hint.bytes -= dir40_estimate(entity, entry);
-
-	return obj40_write_ext(STAT_PLACE(&dir->obj),
-			       SDEXT_UNIX_ID, &unix_hint);
+	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
 struct layout_hint {
