@@ -16,8 +16,8 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
     reiser4_node_t *child;
     errno_t res;
 
-    aal_assert("vpf-614", node != NULL, return -1);
-    aal_assert("vpf-615", key != NULL, return -1);
+    aal_assert("vpf-712", node != NULL, return -1);
+    aal_assert("vpf-713", key != NULL, return -1);
 
     coord.node = node;
     coord.pos.item = reiser4_node_items(node) - 1;
@@ -28,7 +28,7 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
 	    node->blk, coord.pos.item);
 	return -1;
     }
-    
+ 
     if (reiser4_item_nodeptr(&coord)) {
 	item_entity_t *item = &coord.item;
 	reiser4_ptr_hint_t ptr;
@@ -213,7 +213,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 		return -1;
 
 	    aal_assert("vpf-681", count > insert->pos.unit, return -1);
-	    
 
 	    count -= insert->pos.unit;
 	} else if (res > 0) {
@@ -223,7 +222,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 	     * units - like direntry40 - check that. Use the special method - 
 	     * item_ops.gap_key - which get the max real key stored continously 
 	     * from the key specified in the coord. */
-	    
+
 	    if (coord.item.plugin->h.id != insert->item.plugin->h.id) {
 		/* FIXME: relocation code should be here. */
 		aal_exception_error("Tree failed to overwrite items of "

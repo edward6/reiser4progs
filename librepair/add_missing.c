@@ -26,7 +26,6 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
 
 	/* All these blocks should not be used in the allocator and should be 
 	 * forbidden for allocation. Check it somehow first. */
-	aux_bitmap_mark_region(am->bm_used, ptr.ptr, ptr.width);
 	aux_bitmap_mark_region(am->bm_used, ptr.ptr, ptr.width);	
     }
     
@@ -139,7 +138,7 @@ errno_t repair_am_pass(repair_data_t *rd) {
 	    level = reiser4_node_level(node); 
 
 	    /* This block must contain twig/leaf. */
-	    aal_assert("vpf-544", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL), 
+	    aal_assert("vpf-709", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL), 
 		goto error_node_free);
 
 	    pos->unit = ~0ul;

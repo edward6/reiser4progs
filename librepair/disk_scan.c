@@ -50,7 +50,7 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
     blk_t i;
  
     aal_assert("vpf-511", rd != NULL, return -1);
-    aal_assert("vpf-511", rd->fs != NULL, return -1);
+    aal_assert("vpf-704", rd->fs != NULL, return -1);
     
     ds = repair_ds(rd);
     
@@ -119,7 +119,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
     uint8_t level;
     
     aal_assert("vpf-514", rd != NULL, return -1);
-    aal_assert("vpf-514", rd->fs != NULL, return -1);
+    aal_assert("vpf-705", rd->fs != NULL, return -1);
 
     ds = repair_ds(rd);
     
