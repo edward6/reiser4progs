@@ -764,7 +764,7 @@ struct reiser4_item_ops {
 	int32_t (*write) (place_t *, trans_hint_t *);
 
 	/* Cuts out some amount of data */
-	errno_t (*truncate) (place_t *, trans_hint_t *);
+	int64_t (*truncate) (place_t *, trans_hint_t *);
 
 	/* Removes specified unit from the item. */
 	errno_t (*remove) (place_t *, trans_hint_t *);
@@ -904,7 +904,7 @@ struct reiser4_node_ops {
 	int32_t (*write) (node_entity_t *, pos_t *,
 			  trans_hint_t *);
 
-	errno_t (*truncate) (node_entity_t *, pos_t *,
+	int64_t (*truncate) (node_entity_t *, pos_t *,
 			     trans_hint_t *);
 
 	/* Removes item/unit at specified pos */
