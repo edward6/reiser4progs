@@ -40,15 +40,17 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	aal_assert("vpf-1169", sem != NULL);
 	aal_assert("vpf-1170", object != NULL);
 	
-	if (sem->repair->mode != RM_BUILD || 
+	/* Check struct if not the BUILD mode, if the fake object or 
+	   if has not been checked yet. */
+	if (sem->repair->mode != RM_BUILD || !object_start(object)->node ||
 	    !repair_item_test_flag(object_start(object), OF_CHECKED)) 
 	{
-		res = repair_object_check_struct(object, 
-						 sem->repair->mode == RM_BUILD ?
-						 callback_register_item : NULL,
+		place_func_t place_func = sem->repair->mode == RM_BUILD ?
+			callback_register_item : NULL;
+		
+		res = repair_object_check_struct(object, place_func,
 						 sem->repair->mode, sem);
-		if (res < 0)
-			return res;
+		if (res < 0) return res;
 		
 		repair_error_count(sem->repair, res);
 	}
@@ -87,6 +89,11 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 			     link, object->entity)))
 		return res;
 
+	/* If @parent is "lost+found", do not mark as ATTACHED. */
+	if (sem->lost && !reiser4_key_compfull(&parent->info->object,
+					       &sem->lost->info->object))
+		return 0;
+
 	return repair_object_mark(object, OF_ATTACHED);
 }
 
@@ -108,49 +115,55 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	return res;
 }
 
-static errno_t repair_semantic_link(repair_semantic_t *sem, 
-				    reiser4_object_t *parent,
-				    reiser4_object_t *object,
-				    char *name)
+static errno_t repair_semantic_unlink(repair_semantic_t *sem, 
+				      reiser4_object_t *parent,
+				      reiser4_object_t *object)
+{
+	entry_hint_t entry;
+	
+	aal_assert("vpf-1336", sem != NULL);
+	aal_assert("vpf-1337", object != NULL);
+
+	if (!parent) {
+		/* If there is no parent, just detach the object. */
+		if (!object->entity->plug->o.object_ops->detach) 
+			return 0;
+
+		return plug_call(object->entity->plug->o.object_ops,  
+				 detach, object->entity, NULL);
+	}
+	
+	/* unlink from the parent. */
+	aal_strncpy(entry.name, object->name, sizeof(entry.name));
+	return reiser4_object_unlink(parent, &entry);
+}
+
+static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
+					 reiser4_object_t *parent,
+					 reiser4_object_t *object)
 {
 	errno_t res;
 
 	aal_assert("vpf-1178", sem != NULL);
 	aal_assert("vpf-1179", parent != NULL);
 	aal_assert("vpf-1180", object != NULL);
-	aal_assert("vpf-1404", name != NULL);
 	
-	if ((res = repair_semantic_add_entry(parent, object, name)))
-		return res;
-	
-	return repair_semantic_check_attach(sem, parent, object);
-}
-
-/* Link the @object to the "lost+found". */
-static errno_t repair_semantic_link_lost(repair_semantic_t *sem, 
-					 reiser4_object_t *object) 
-{
-	errno_t res;
-
-	aal_assert("vpf-1262", sem != NULL);
-	aal_assert("vpf-1263", object != NULL);
-	
-	/* Detach if possible. */
-	if (object->entity->plug->o.object_ops->detach) {
-		if ((res = plug_call(object->entity->plug->o.object_ops,
-				     detach, object->entity, NULL)))
-			return res;
-	}
-
 	/* Make the lost name. */
 	repair_semantic_lost_name(object, object->name);
 	
-	/* Link to "lost+found". */
-	if ((res = repair_semantic_link(sem, sem->lost, object, object->name)))
+	/* Detach if possible. */
+	if ((res = repair_semantic_unlink(sem, NULL, object)))
+		return res;
+	
+	/* Add the entry to the @parent. */
+	if ((res = repair_semantic_add_entry(parent, object, object->name)))
+		return res;
+	
+	/* Check the attach of the @object to the @parent. */
+	if ((res = repair_semantic_check_attach(sem, parent, object)))
 		return res;
 
-	/* Get the start place correct. */
-	return repair_object_clear(object, OF_ATTACHED);
+	return 0;
 }
 
 /* If the @object keeps the info about its parent, look for it and recover the
@@ -168,46 +181,46 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	aal_assert("vpf-1184", object != NULL);
 
 	if (!object->info->parent.plug)
-		goto error_link_lost;
+		return NULL;
 	
-	/* Must be found exact matched plugin. Ambigious plugins will 
-	   be recovered later on CLEANUP pass. */
 	if ((parent = repair_object_launch(object->info->tree, NULL, 
 					   &object->info->parent)) == INVAL_PTR)
 		return INVAL_PTR;
 	
 	if (parent == NULL)
-		goto error_link_lost;
+		goto error_object_detach;
 	
 	pstart = object_start(parent);
 	
 	/* If ATTACHING -- parent is in the loop, break it here. */
-	if (repair_item_test_flag(pstart, OF_ATTACHING))
-		goto error_link_lost;
+	if (repair_item_test_flag(pstart, OF_ATTACHING)) {
+		reiser4_object_close(parent);
+		goto error_object_detach;
+	}
 	
 	checked = repair_item_test_flag(pstart, OF_CHECKED);
 	
 	if (checked) {
-		/* Reached object was checked but the @object was not reached
-		   then --> there is no entry pointing to @object. Add_entry. */
-		repair_semantic_lost_name(object, object->name);
-		
-		if ((res = repair_semantic_link(sem, parent, object, 
-						object->name)))
-			goto error_parent_close;
-		
-		/* If linked to "lost+found", clear ATTACHED flag to be 
-		   able to relink if any valid link to it will be found. */
+		/* If parent is "lost+found" (already checked), 
+		   detach from it. */
 		if (!reiser4_key_compfull(&parent->info->object,
 					  &sem->lost->info->object))
 		{
-			if ((res = repair_object_clear(parent, OF_ATTACHED)))
-				return INVAL_PTR;
+			reiser4_object_close(parent);
+			goto error_object_detach;
 		}
-
+		
+		/* Init all needed info for the object. */
+		if ((res = repair_object_form(parent)))
+			goto error_parent_close;
+		
+		if ((res = repair_semantic_link_lost(sem, parent, object)))
+			goto error_parent_close;
+		
 		/* Parent was checked and traversed already, stop here to not 
 		   traverse it another time. */
 		reiser4_object_close(parent);
+		
 		return NULL;
 	}
 	
@@ -231,6 +244,10 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 		if ((res = repair_semantic_add_entry(parent, object, 
 						     object->name)))
 			goto error_parent_close;
+
+		/* Do not check attach here, as the pointer to parent 
+		   will be returned and it will be traversed, all attaches
+		   will be checked there. */
 	} else if (res < 0)
 		goto error_parent_close;
 	
@@ -245,17 +262,16 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	if ((res = repair_object_clear(object, OF_ATTACHING))) 
 		goto error_parent_close;
 	
-	if (!found)
-		return parent;
+	/* If nothing above the parent is found, return parent. */
+	if (!found) return parent;
 	
 	reiser4_object_close(parent);
+	
 	return found;
 	
- error_link_lost:
-	if ((res = repair_semantic_link_lost(sem, object)))
-		return INVAL_PTR;
-
-	return NULL;
+ error_object_detach:
+	/* Detach if possible. */
+	res = repair_semantic_unlink(sem, NULL, object);
 	
  error_parent_close:
 	reiser4_object_close(parent);
@@ -264,30 +280,8 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 }
 
 static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
+					  reiser4_object_t *parent,
 					  reiser4_object_t *object);
-
-static errno_t repair_semantic_unlink(repair_semantic_t *sem, 
-				      reiser4_object_t *parent,
-				      reiser4_object_t *object)
-{
-	entry_hint_t entry;
-	
-	aal_assert("vpf-1336", sem != NULL);
-	aal_assert("vpf-1337", object != NULL);
-
-	if (!parent) {
-		/* If there is no parent, just detach the object. */
-		if (!object->entity->plug->o.object_ops->detach) 
-			return 0;
-
-		return plug_call(object->entity->plug->o.object_ops,  detach,
-				 object->entity, NULL);
-	}
-	
-	/* unlink from the parent. */
-	aal_strncpy(entry.name, object->name, sizeof(entry.name));
-	return reiser4_object_unlink(parent, &entry);
-}
 
 static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent, 
 						  entry_hint_t *entry,
@@ -334,7 +328,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 
 	/* If @object is not attached yet, [ a) was just checked; b) is linked
 	   to "lost+found" ]. If not ATTACHED @object knows about its parent, 
-	   this parent matches @parent, otherwise do uptraverse() */
+	   this parent matches @parent, otherwise do uptraverse(). */
 	while (sem->repair->mode == RM_BUILD && !attached) {
 		/* If @object knows nothing about its parent, just attach 
 		   it to the @parent. */
@@ -350,24 +344,21 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		if (!checked) {
 			/* If @object was just checked, probably its real 
 			   parent can be found, figure it out. */
-			if ((res = repair_semantic_uptraverse(sem, object)))
-				goto error_close_object;
+			res = repair_semantic_uptraverse(sem, NULL, object);
 			
-			if ((res = repair_object_test(object, OF_ATTACHED)) < 0)
-				goto error_close_object;
-			
-			attached = res;
-		}
-		
-		if (!attached) {
-			/* If @object still is not attached [ a) was already 
-			   checked; b) not attached after uptraverse ] -- it is 
-			   linked to "lost+found". Unlink it from there. */
+			if (res) goto error_close_object;
+		} else {
+			/* If @object is checked and not attached, detach from
+			   the parent, if parent is "lost+found" -- unlink. */
+			int lost;
+
+			lost = !reiser4_key_compfull(&object->info->parent,
+						     &sem->lost->info->object);
 			
 			repair_semantic_lost_name(object, object->name);
 			
-			if ((res = repair_semantic_unlink(sem, !checked ? NULL :
-							  sem->lost, object)))
+			if ((res = repair_semantic_unlink(sem, lost ? sem->lost
+							  : 0, object)))
 				goto error_close_object;
 		}
 
@@ -384,11 +375,15 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		goto error_rem_entry;
 	}
 	
-	/* If object has been attached already -- it was traversed already. 
-	   close the object here to avoid another traversing. */
-	if (sem->repair->mode == RM_BUILD && attached) {
-		reiser4_object_close(object);
-		return NULL;
+	/* If object has been traversed already, close the object here 
+	   to avoid another traversing. */
+	if (sem->repair->mode == RM_BUILD) {
+		if (repair_item_test_flag(start, OF_TRAVERSED)) {
+			reiser4_object_close(object);
+			return NULL;
+		} else {
+			repair_item_set_flag(start, OF_TRAVERSED);
+		}
 	}
 	
 	return object;
@@ -412,36 +407,55 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-/* Try to get to the root of not yet ATTACHED subtree by info->parent keys, 
-   attach to the object pointed by that key or to "lost+found" and traverse
-   from there. */
+/* Uplink + traverse. Looking for the most upper parent of the @object; 
+   if found, link that parent to the "lost+found", if no parent of the 
+   @object is found, link @object to the @parent. If @parent is found,
+   traverse from there, if not, do not traverse from the @object. */
 static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
+					  reiser4_object_t *parent,
 					  reiser4_object_t *object)
 {
+	reiser4_object_t *o = NULL;
+	reiser4_object_t *p = NULL;
 	reiser4_object_t *upper;
-	errno_t res = 0;
+	errno_t res;
 	
 	aal_assert("vpf-1191", sem != NULL);
 	aal_assert("vpf-1192", object != NULL);
 
-	if ((upper = repair_semantic_uplink(sem, object)) == INVAL_PTR) {
-		reiser4_object_close(object);
+	if ((upper = repair_semantic_uplink(sem, object)) == INVAL_PTR)
 		return -EINVAL;
-	}
 	
 	if (upper) {
-		res = reiser4_object_traverse(upper, callback_object_traverse,
-					      sem);
+		o = upper;
+		p = sem->lost;
+	} else if (parent) {
+		o = object;
+		p = parent;
+	} 
+	
+	if (!o) return 0;
+	
+	/* Link @object to the @parent if not attached yet. */
+	if ((res = repair_object_test(o, OF_ATTACHED)) < 0)
+		goto error_close_upper;
 
-		reiser4_object_close(upper);
-	}
+	if (!res && (res = repair_semantic_link_lost(sem, p, o)))
+		goto error_close_upper;
+	
+	/* Traverse from the upper found object. */
+	res = reiser4_object_traverse(o, callback_object_traverse, sem);
 
+ error_close_upper:
+	
+	if (upper) reiser4_object_close(upper);
+	
 	return res;
 }
 
 static errno_t callback_node_traverse(place_t *place, void *data) {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
-	reiser4_object_t *object, *upper;
+	reiser4_object_t *object;
 	errno_t res;
 	
 	aal_assert("vpf-1171", place != NULL);
@@ -469,19 +483,12 @@ static errno_t callback_node_traverse(place_t *place, void *data) {
 		goto error_close_object;
 
 	/* Try to attach it somewhere -- at least to lost+found. */
-	if ((upper = repair_semantic_uplink(sem, object)) == INVAL_PTR) {
+	if ((res = repair_semantic_uptraverse(sem, sem->lost, object))) {
 		reiser4_object_close(object);
-		return -EINVAL;
+		return res;
 	}
 	
-	/* Traverse the found parent if any or the openned object. */
-	res = reiser4_object_traverse(upper ? upper : object, 
-				      callback_object_traverse, sem);
-	
 	reiser4_object_close(object);
-	
-	if (upper)
-		reiser4_object_close(upper);
 	
 	return res;
 	
@@ -565,6 +572,7 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 	
 	aal_assert("vpf-1266", sem != NULL);
 	aal_assert("vpf-1268", object != NULL);
+	aal_assert("vpf-1419", parent != NULL);
 	
 	/* Check the object. */
 	res = repair_semantic_check_struct(sem, object);
@@ -578,29 +586,23 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 		/* Check the attach before. */
 		res = repair_object_check_attach(parent, object, RM_FIX);
 		
-		if (res == 0)
-			break;
-		if (res < 0)
+		if (res < 0)  
 			return res;
+		else if (res == 0) 
+			break;
 		
 		/* Some problems found. Reattach it. */
-		
 		plug = object->entity->plug;
-		aal_assert("vpf-1405", plug->o.object_ops->detach != NULL);
 
 		aal_info("Object [%s]: detaching.", 
-			 reiser4_print_key(&object->info->object,
-					   PO_INODE));
+			 reiser4_print_key(&object->info->object, PO_INODE));
 		
-		if ((res = plug_call(object->entity->plug->o.object_ops,
-				     detach, object->entity, NULL)))
+		if ((res = repair_semantic_unlink(sem, NULL, object)))
 			return res;
 		
 		aal_info("Object [%s]: attaching to [%s].", 
-			 reiser4_print_key(&object->info->object,
-					   PO_INODE),
-			 reiser4_print_key(&object->info->parent,
-					   PO_INODE));
+			 reiser4_print_key(&object->info->object, PO_INODE),
+			 reiser4_print_key(&object->info->parent, PO_INODE));
 
 		break;
 	}
@@ -676,8 +678,6 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 }
 
 static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
-	uint8_t len = aal_strlen(LOST_PREFIX);
-	entry_hint_t entry;
 	reiser4_fs_t *fs;
 	errno_t res;
 
@@ -689,39 +689,18 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 	if ((res = repair_semantic_lost_prepare(sem)))
 		return res;
 
+	if (sem->lost) return 0;
+	
 	/* There is no "lost+found" entry in the "/". Create a new one. */
-	if (sem->lost == NULL) {
-		/* Create 'lost+found' directory. */
-		if (!(sem->lost = reiser4_dir_create(fs, sem->root,
-						     "lost+found")))
-		{
-			aal_error("Semantic pass failed: cannot "
-				  "create 'lost+found' directory.");
-			return -EINVAL;
-		}
-		
-		return 0;
+	if (!(sem->lost = reiser4_dir_create(fs, sem->root,
+					     "lost+found")))
+	{
+		aal_error("Semantic pass failed: cannot "
+			  "create 'lost+found' directory.");
+		return -EINVAL;
 	}
-	
-	/* Remove all "lost_found_" names from "lost+found" directory. 
-	   This is needed to not have any special case later -- when 
-	   some object gets linked to "lost+found" it is not marked as 
-	   ATTCHED to relink it later to some another object having 
-	   the valid name if such is found. */
-	while (reiser4_object_readdir(sem->lost, &entry) > 0) {
-		if (aal_memcmp(entry.name, LOST_PREFIX, len)) 
-			continue;
-		
-		if (( res = reiser4_object_rem_entry(sem->lost, &entry)))
-			goto error_close_lost;
-	}
-	
+
 	return 0;
-	
- error_close_lost:
-	reiser4_object_close(sem->lost);
-	sem->lost = NULL;
-	return res;
 }
 
 static void repair_semantic_setup(repair_semantic_t *sem) {
