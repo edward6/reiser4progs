@@ -565,8 +565,7 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	if ((res = reiser4_item_get_key(place, &dkey)))
 		return res;
 
-	if ((res = reiser4_item_maxreal_key((reiser4_place_t *)hint->specific,
-					    &end)))
+	if ((res = reiser4_item_maxreal_key((place_t *)hint->specific, &end)))
 		return res;
 	
 	/* If @end key is not less than the lookuped, items are overlapped. 
