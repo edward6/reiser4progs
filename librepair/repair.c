@@ -671,13 +671,6 @@ static errno_t repair_update(repair_control_t *control) {
 		}
 	}
 
-	/* If there was no backup openned or some fields have been changed, 
-	   reopen the backup. */
-	if (!(fs->backup = repair_backup_reopen(fs))) {
-		aal_fatal("Failed to reopen backup.");
-		return -EINVAL;
-	}
-	
 	/* The tree height should be set correctly at the filter pass. */
 	/* FIXME: What about flushes? */
 	

@@ -445,34 +445,48 @@ static errno_t fsck_check_init(repair_data_t *repair,
 
 static errno_t fsck_check_fini(repair_data_t *repair) {
 	reiser4_status_t *status;
-	uint64_t state = 0;
+	aal_device_t *device;
+	uint64_t state;
 	int flags;
 
 	aal_assert("vpf-1338", repair != NULL);
 	aal_assert("vpf-1339", repair->fs != NULL);
 	aal_assert("vpf-1340", repair->fs->status != NULL);
 	
-	if (repair->mode == RM_CHECK)
-		return 0;
+	device = repair->fs->device;
+	flags = device->flags;
 	
-	/* Fix the status block. */
-	if (repair->fatal)
-		state = FS_DAMAGED;
-	else if (repair->fixable)
-		state = FS_CORRUPTED;
-	
-	status = repair->fs->status;
-	flags = status->device->flags;
-	
-	repair_status_state(status, state);
-	
-	if (aal_device_reopen(status->device, status->device->blksize, O_RDWR))
+	if (aal_device_reopen(device, device->blksize, O_RDWR))
 		return -EIO;
 	
-	if (reiser4_status_sync(repair->fs->status))
-		return -EIO;
+	if (repair->mode == RM_CHECK) {
+		/* Fix the status block. */
+		status = repair->fs->status;
+		
+		if (repair->fatal)
+			state = FS_DAMAGED;
+		else if (repair->fixable)
+			state = FS_CORRUPTED;
+		else
+			state = 0;
 
-	if (aal_device_reopen(status->device, status->device->blksize, flags))
+		repair_status_state(status, state);
+	
+		if (reiser4_status_sync(repair->fs->status))
+			return -EIO;
+	}
+
+	/* If there was no backup openned or some fields have been changed, 
+	   reopen the backup. */
+	if (!(repair->fs->backup = repair_backup_reopen(repair->fs))) {
+		aal_fatal("Failed to reopen backup.");
+		return -EIO;
+	}
+
+	if (reiser4_backup_sync(repair->fs->backup))
+		return -EIO;
+	
+	if (aal_device_reopen(device, device->blksize, flags))
 		return -EIO;
 
 	return 0;
@@ -526,12 +540,14 @@ int main(int argc, char *argv[]) {
 		
 	stage = 1;
 	
-	if ((res = repair_check(&repair)) || (res = fsck_check_fini(&repair)))
+	if ((res = repair_check(&repair) < 0) || (res = fsck_check_fini(&repair)))
 		goto free_fs;
 
 	fsck_time("fsck.reiser4 finished at");
     
  free_fs:
+	
+	
 	fprintf(stderr, "Closing fs...");
 	reiser4_fs_close(repair.fs);
 	repair.fs = NULL;
