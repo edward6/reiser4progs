@@ -138,10 +138,6 @@ static int32_t cde_large_read(place_t *place, void *buff,
 	return count;
 }
 
-static int cde_large_data(place_t *place) {
-	return 1;
-}
-
 /* Returns TRUE if items are mergeable. That is if they belong to the same
    directory. This function is used in shift code from the node plugin in order
    to determine are two items may be merged or not. */
@@ -962,8 +958,10 @@ static reiser4_item_ops_t cde_large_ops = {
 	.check_struct	   = cde_large_check_struct,
 	.print		   = cde_large_print,
 	.shift             = cde_large_shift,
+	.size		   = cde_large_size,
+	.bytes		   = cde_large_bytes,
+
 	.maxreal_key       = cde_large_maxreal_key,
-	
 	.estimate_copy	   = cde_large_estimate_copy,
 	.estimate_shift    = cde_large_estimate_shift,
 	.estimate_insert   = cde_large_estimate_insert,
@@ -971,12 +969,9 @@ static reiser4_item_ops_t cde_large_ops = {
 	.set_key	   = NULL,
 	.layout		   = NULL,
 	.check_layout	   = NULL,
-	.get_plugid	   = NULL,
-	
-	.size		   = cde_large_size,
-	.bytes		   = cde_large_bytes,
 #endif
 	.branch            = NULL,
+	.object_plug	   = NULL,
 
 	.lookup		   = cde_large_lookup,
 	.units		   = cde_large_units,

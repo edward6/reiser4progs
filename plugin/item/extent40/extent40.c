@@ -84,10 +84,6 @@ static errno_t extent40_get_key(place_t *place, uint32_t pos,
 			      extent40_offset);
 }
 
-static int extent40_data(place_t *place) {
-	return 1;
-}
-
 #ifndef ENABLE_STAND_ALONE
 /* Removes @count byte from passed @place at @pos */
 static int32_t extent40_remove(place_t *place,
@@ -684,10 +680,11 @@ static reiser4_item_ops_t extent40_ops = {
 	.print	          = extent40_print,
 	.shift            = extent40_shift,
 	.layout           = extent40_layout,
-	.check_struct	  = extent40_check_struct,
+	.size		  = extent40_size,
+	.bytes		  = extent40_bytes,
 	.maxreal_key      = extent40_maxreal_key,
 	.check_layout     = extent40_check_layout,
-
+	.check_struct	  = extent40_check_struct,
 	.estimate_copy    = extent40_estimate_copy,
 	.estimate_shift   = extent40_estimate_shift,
 	.estimate_insert  = extent40_estimate_insert,
@@ -695,11 +692,9 @@ static reiser4_item_ops_t extent40_ops = {
 	.init	          = NULL,
 	.overhead         = NULL,
 	.set_key          = NULL,
-	.get_plugid	  = NULL,
-	.size		  = extent40_size,
-	.bytes		  = extent40_bytes,
 #endif
 	.branch           = NULL,
+	.object_plug	  = NULL,
 
 	.read             = extent40_read,
 	.units	          = extent40_units,

@@ -135,17 +135,15 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.shrink           = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
-	.overhead         = NULL,
-
-	.set_key	  = NULL,
-	.maxreal_key      = NULL,
-	.get_plugid	  = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
+	.overhead         = NULL,
+	.set_key	  = NULL,
+	.maxreal_key      = NULL,
 #endif
 	.lookup		  = NULL,
 	.mergeable        = NULL,
-
+	.object_plug	  = NULL,
 	.maxposs_key	  = NULL,
 	.get_key	  = NULL
 };

@@ -41,10 +41,6 @@ static int32_t tail40_read(place_t *place, void *buff,
 	return count;
 }
 
-static int tail40_data(place_t *place) {
-	return 1;
-}
-
 #ifndef ENABLE_STAND_ALONE
 /* Rewrites tail from passed @pos by data specifed by hint */
 static errno_t tail40_insert(place_t *place,
@@ -382,8 +378,10 @@ static reiser4_item_ops_t tail40_ops = {
 	.remove	          = tail40_remove,
 	.print	          = tail40_print,
 	.shift	          = tail40_shift,
+	.size             = tail40_size,
+	.bytes            = tail40_size,
+
 	.maxreal_key      = tail40_maxreal_key,
-	
 	.estimate_copy    = tail40_estimate_copy,
 	.estimate_shift   = tail40_estimate_shift,
 	.estimate_insert  = tail40_estimate_insert,
@@ -395,10 +393,8 @@ static reiser4_item_ops_t tail40_ops = {
 	.layout	          = NULL,
 	.set_key          = NULL,
 	.check_layout     = NULL,
-	.get_plugid	  = NULL,
-	.size             = tail40_size,
-	.bytes            = tail40_size,
 #endif
+	.object_plug	  = NULL,
 	.units	          = tail40_units,
 	.lookup	          = tail40_lookup,
 	.read	          = tail40_read,

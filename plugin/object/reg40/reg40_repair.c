@@ -237,7 +237,7 @@ static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	pid = core->tree_ops.profile(reg->obj.info.tree, "statdata");
+	pid = core->profile_ops.value("statdata");
 	
 	if (pid == INVAL_PID)
 		return -EINVAL;

@@ -137,10 +137,6 @@ static int32_t cde_short_read(place_t *place, void *buff,
 	return count;
 }
 
-static int cde_short_data(place_t *place) {
-	return 1;
-}
-
 /* Returns 1 if items are mergeable, 0 -- otherwise. That is if they belong to
    the same directory. This function is used in shift code from the node plugin
    in order to determine are two items may be merged or not. */
@@ -942,8 +938,10 @@ static reiser4_item_ops_t cde_short_ops = {
 	.check_struct	   = cde_short_check_struct,
 	.print		   = cde_short_print,
 	.shift             = cde_short_shift,
-	.maxreal_key       = cde_short_maxreal_key,
+	.size		   = cde_short_size,
+	.bytes		   = cde_short_bytes,
 	
+	.maxreal_key       = cde_short_maxreal_key,
 	.estimate_copy	   = cde_short_estimate_copy,
 	.estimate_shift    = cde_short_estimate_shift,
 	.estimate_insert   = cde_short_estimate_insert,
@@ -951,12 +949,9 @@ static reiser4_item_ops_t cde_short_ops = {
 	.set_key	   = NULL,
 	.layout		   = NULL,
 	.check_layout	   = NULL,
-	.get_plugid	   = NULL,
-	
-	.size		   = cde_short_size,
-	.bytes		   = cde_short_bytes,
 #endif
 	.branch            = NULL,
+	.object_plug	   = NULL,
 
 	.lookup		   = cde_short_lookup,
 	.units		   = cde_short_units,

@@ -5,6 +5,7 @@
 
 #include "stat40.h"
 #include <aux/aux.h>
+#include <sys/stat.h>
 
 static reiser4_core_t *core = NULL;
 
@@ -119,10 +120,6 @@ static int32_t stat40_read(place_t *place, void *buff,
 	if (stat40_traverse(place, callback_open_ext, buff))
 		return -EINVAL;
 
-	return 1;
-}
-
-static int stat40_data(place_t *place) {
 	return 1;
 }
 
@@ -393,14 +390,47 @@ static errno_t stat40_print(place_t *place,
 	return stat40_traverse(place, callback_print_ext, (void *)stream);
 }
 
+#endif
+
 /* Get the plugin id of the type @type if stored in SD. */
-static rid_t stat40_get_plugid(place_t *place,
-			       uint16_t type)
-{
+static rid_t stat40_object_plug(place_t *place) {
+	create_hint_t hint;
+	statdata_hint_t stat;
+	sdext_lw_hint_t lw_hint;
+	
 	aal_assert("vpf-1074", place != NULL);
+
+	aal_memset(&stat, 0, sizeof(stat));
+
+	/* FIXME-UMKA: Here should be stat data extentions inspected first in
+	 * order to find non-standard object plugin. And only if it is not
+	 * found, we should take a look to mode field of the lw extention. */
+
+	/* Preparing hint and mask */
+	hint.type_specific = &stat;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+	
+	if (stat40_read(place, &hint, 0, 1) != 1)
+		return INVAL_PID;
+
+	if (S_ISLNK(lw_hint.mode))
+		return core->profile_ops.value("symlink");
+	else if (S_ISREG(lw_hint.mode))
+		return core->profile_ops.value("regular");
+	else if (S_ISDIR(lw_hint.mode))
+		return core->profile_ops.value("directory");
+#ifndef ENABLE_STAND_ALONE	
+	else if (S_ISCHR(lw_hint.mode))
+		return core->profile_ops.value("special");
+	else if (S_ISBLK(lw_hint.mode))
+		return core->profile_ops.value("special");
+	else if (S_ISFIFO(lw_hint.mode))
+		return core->profile_ops.value("special");
+	else if (S_ISSOCK(lw_hint.mode))
+		return core->profile_ops.value("special");
+#endif
 	return INVAL_PID;
 }
-#endif
 
 static reiser4_item_ops_t stat40_ops = {
 	.read             = stat40_read,
@@ -409,8 +439,9 @@ static reiser4_item_ops_t stat40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.copy             = stat40_copy,
 	.insert		  = stat40_insert,
-	.check_struct     = stat40_check_struct,
 	.print		  = stat40_print,
+	.object_plug	  = stat40_object_plug,
+	.check_struct     = stat40_check_struct,
 	.estimate_copy    = stat40_estimate_copy,
 	.estimate_insert  = stat40_estimate_insert,
 
@@ -424,11 +455,10 @@ static reiser4_item_ops_t stat40_ops = {
 	.remove		  = NULL,
 	.shift            = NULL,
 	.set_key	  = NULL,
-	.check_layout	  = NULL,
-	.maxreal_key      = NULL,
-	.get_plugid	  = stat40_get_plugid,
 	.size		  = NULL,
 	.bytes		  = NULL,
+	.check_layout	  = NULL,
+	.maxreal_key      = NULL,
 #endif
 	.lookup		  = NULL,
 	.branch           = NULL,
