@@ -216,7 +216,7 @@ void reiser4_key_maximal(reiser4_key_t *key) {
 	aal_assert("vpf-186", key->plugin != NULL, return);
 
 	entity = plugin_call(key->plugin->key_ops, maximal,);
-	aal_memcpy(key, entity, sizeof(*entity));
+	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
 /* Returns the minimal possible key */
@@ -227,7 +227,7 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 	aal_assert("vpf-188", key->plugin != NULL, return);
 
 	entity = plugin_call(key->plugin->key_ops, minimal,);
-	aal_memcpy(key, entity, sizeof(*entity));
+	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
 #ifndef ENABLE_COMPACT

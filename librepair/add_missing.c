@@ -7,13 +7,13 @@
 #include <repair/librepair.h>
 
 static errno_t callback_item_mark_region(item_entity_t *item, blk_t start, 
-    /* blk_t end, */ void *data)
+    blk_t end, void *data)
 {
     aux_bitmap_t *bitmap = data;
     
     aal_assert("vpf-735", bitmap != NULL, return -1);
     
-    aux_bitmap_mark_region(bitmap, start, start + 1/* end */);
+    aux_bitmap_mark_region(bitmap, start, start + end);
 
     return 0;
 }

@@ -15,6 +15,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <aal/aal.h>
 
 static uint32_t swapped = 0;
