@@ -76,10 +76,10 @@ int main(int argc, char *argv[]) {
 		reiser4_file_hint_t dir_hint;
 	
 		dir_hint.plugin = fs->root->entity->plugin;
-		dir_hint.statdata_pid = ITEM_STATDATA40_ID;
+		dir_hint.statdata = ITEM_STATDATA40_ID;
 	
-		dir_hint.body.dir.direntry_pid = ITEM_CDE40_ID;
-		dir_hint.body.dir.hash_pid = HASH_R5_ID;
+		dir_hint.body.dir.hash = HASH_R5_ID;
+		dir_hint.body.dir.direntry = ITEM_CDE40_ID;
 	
 		{
 			int i;

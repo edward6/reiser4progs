@@ -398,26 +398,26 @@ struct reiser4_direntry_hint {
 typedef struct reiser4_direntry_hint reiser4_direntry_hint_t;
 
 struct reiser4_file_hint {
-	rpid_t statdata_pid;
+	rpid_t statdata;
 
 	/* Hint for a file body */
 	union {
-	
+
 		/* Plugin ids for the directory body */
 		struct {
-			rpid_t direntry_pid;
-			rpid_t hash_pid;
+			rpid_t direntry;
+			rpid_t hash;
 		} dir;
 	
 		/* Plugin id for the regular file body */
 		struct {
-			rpid_t tail_pid;
-			rpid_t extent_pid;
-		} file;
-	
-		struct {
-			char data[4096];
-		} symlink;
+			rpid_t tail;
+			rpid_t extent;
+			rpid_t policy;
+		} reg;
+
+		/* Symlink data */
+		char symlink[4096];
 		
 	} body;
     

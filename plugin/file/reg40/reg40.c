@@ -288,10 +288,10 @@ static object_entity_t *reg40_create(const void *tree,
 				      get_locality, hint->parent.body);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
-						    hint->statdata_pid)))
+						    hint->statdata)))
 	{
 		aal_exception_error("Can't find stat data item plugin by "
-				    "its id 0x%x.", hint->statdata_pid);
+				    "its id 0x%x.", hint->statdata);
 		goto error_free_reg;
 	}
     

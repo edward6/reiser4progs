@@ -114,10 +114,10 @@ static object_entity_t *symlink40_create(const void *tree,
 				      get_locality, hint->parent.body);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
-						    hint->statdata_pid)))
+						    hint->statdata)))
 	{
 		aal_exception_error("Can't find stat data item plugin by "
-				    "its id 0x%x.", hint->statdata_pid);
+				    "its id 0x%x.", hint->statdata);
 		goto error_free_symlink;
 	}
     
@@ -152,7 +152,7 @@ static object_entity_t *symlink40_create(const void *tree,
     
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
-	stat.ext[SDEXT_SYMLINK_ID] = hint->body.symlink.data;
+	stat.ext[SDEXT_SYMLINK_ID] = hint->body.symlink;
 
 	stat_hint.hint = &stat;
 
