@@ -333,6 +333,100 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	return 0;
 }
 
+/* Merge @dst item with @src one from the key pointed by @key through the 
+   @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
+static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
+				 place_t *src, reiser4_key_t *key)
+{
+	place_t old;
+	merge_hint_t hint;
+	uint32_t needed;
+	errno_t res;
+	
+	aal_assert("vpf-948", tree != NULL); 
+	aal_assert("vpf-949", dst != NULL);
+	aal_assert("vpf-950", src != NULL);
+	
+	if (reiser4_tree_fresh(tree)) {
+		aal_exception_error("Tree merge failed. Tree is empty.");
+		return -EINVAL;
+	}
+
+	if (dst->pos.unit == MAX_UINT32)
+		dst->pos.unit = 0;
+	
+	old = *dst;
+	
+	if (key) {
+		/* Prepare the hint for coping. */
+		aal_memset(&hint, 0, sizeof(hint));
+		reiser4_key_assign(&hint.start, key);
+		
+		if ((res = reiser4_item_maxreal_key(dst, &hint.end)))
+			return res;
+
+		if ((res = repair_item_estimate_merge(dst, src, &hint)))
+			return res;
+
+		if (hint.src_count == 0)
+			return 0;
+	}
+	
+	if (!key || hint.len_delta > 0) {
+		if (key)
+			needed = hint.len_delta;
+		else
+			needed = src->len;
+		
+		needed += (dst->pos.unit == MAX_UINT32 ? 
+			   reiser4_node_overhead(dst->node) : 0);
+		
+		res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT);
+		if (res) {
+			aal_exception_error("Tree expand for merging failed.");
+			return res;
+		}
+	}
+	
+	if ((res = repair_node_merge(dst->node, &dst->pos, src->node, 
+				    &src->pos, key ? &hint : NULL)))
+	{
+		aal_exception_error("Merging of the item [node %llu, item %u] "
+				    "with the item [node %llu, item %u] failed.",
+				    node_blocknr(dst->node), dst->pos.item,
+				    node_blocknr(src->node), src->pos.item); 
+		return res;
+	}
+	
+	if (reiser4_place_leftmost(dst) && dst->node->p.node) {
+		place_t p;
+		
+		reiser4_place_init(&p, dst->node->p.node, 
+				   &dst->node->p.pos);
+		
+		if ((res = reiser4_tree_update_key(tree, &p, &src->key)))
+			return res;
+	}
+	
+	if (dst->node != tree->root && !dst->node->p.node) {
+		if (!old.node->p.node)
+			reiser4_tree_growup(tree);
+		
+		if ((res = reiser4_tree_attach_node(tree, dst->node))) {
+			aal_exception_error("Can't attach node %llu to the "
+					    "tree.", node_blocknr(dst->node));
+
+			reiser4_node_mkclean(dst->node);
+			reiser4_tree_release_node(tree, dst->node);	    
+			return res;
+		}
+	}
+	
+	if (key) reiser4_key_assign(key, &hint.end);
+	
+	return 0;
+}
+
 /* Check that conversion is needed. */
 static bool_t repair_tree_should_conv(reiser4_tree_t *tree, 
 				      reiser4_plug_t *from,
