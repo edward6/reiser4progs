@@ -342,6 +342,26 @@ static errno_t tail40_shift(place_t *src_place,
 	return 0;
 }
 
+static errno_t tail40_remove(place_t *place, trans_hint_t *hint) {
+	aal_assert("umka-2453", place != NULL);
+	aal_assert("umka-2454", hint != NULL);
+
+	if (tail40_shrink(place, place->pos.unit,
+			  hint->count, hint->count))
+	{
+		return -EINVAL;
+	}
+
+	if (place->pos.unit == 0) {
+		tail40_get_key(place, &place->key);
+	}
+
+	hint->ohd = 0;
+	hint->len = hint->count;
+
+	return 0;
+}
+
 static uint64_t tail40_size(place_t *place) {
 	aal_assert("vpf-1210", place != NULL);
 	return place->len;
@@ -363,6 +383,7 @@ static reiser4_item_ops_t tail40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.merge	          = tail40_merge,
 	.write	          = tail40_write,
+	.remove	          = tail40_remove,
 	.mergeable        = tail40_mergeable,
 	.print	          = tail40_print,
 	.shift	          = tail40_shift,
@@ -380,7 +401,6 @@ static reiser4_item_ops_t tail40_ops = {
 	.insert	          = NULL,
 	.update           = NULL,
 	.init	          = NULL,
-	.remove	          = NULL,
 	.branch           = NULL,
 	.layout	          = NULL,
 	.set_key          = NULL,

@@ -703,7 +703,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		return -EINVAL;
 
 	/* Checking if we need remove whole item if it has not units anymore */
-	if (plug_call(place.plug->o.item_ops, units, &place) == 1)
+	if (plug_call(place.plug->o.item_ops, units, &place) == hint->count)
 		place.pos.unit = MAX_UINT32;
 	
 	if (place.pos.unit == MAX_UINT32) {
@@ -714,24 +714,29 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		{
 			return -EINVAL;
 		}
+		
 	} else {
-		/* Removing units from the item pointed by @pos */
-		if ((res = plug_call(place.plug->o.item_ops,
-				     remove, &place, hint)))
-		{
-			return res;
-		}
+		if (place.plug->o.item_ops->remove) {
+			/* Removing units from the item pointed by @pos */
+			if ((res = plug_call(place.plug->o.item_ops,
+					     remove, &place, hint)))
+			{
+				return res;
+			}
 
-                /* Updating items key if leftmost unit was changed */
-		if (place.pos.unit == 0) {
-			void *ih = node40_ih_at(node, place.pos.item);
-			aal_memcpy(ih, place.key.body, key_size(pol));
+			/* Updating items key if leftmost unit was changed */
+			if (place.pos.unit == 0) {
+				void *ih = node40_ih_at(node, place.pos.item);
+				aal_memcpy(ih, place.key.body, key_size(pol));
+			}
 		}
 	}
 
-	/* Releasing node space */
 	len = hint->len + hint->ohd;
-	return node40_shrink(entity, &place.pos, len, hint->count);
+
+	/* Shrinking node */
+	return node40_shrink(entity, &place.pos,
+			     len, hint->count);
 }
 
 /* Updates key at @pos by specified @key */

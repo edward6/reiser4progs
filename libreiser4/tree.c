@@ -1772,14 +1772,19 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
-/* Converts from tail to extent and back from extent to tail passed @place */
+/* Converts item at passed @place from tail to extent and back from extent to
+   tail. */
 errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			  reiser4_place_t *place,
 			  reiser4_plug_t *plug)
 {
 	errno_t res;
+	int32_t read;
 	uint32_t size;
-//	trans_hint_t hint;
+	uint32_t chunk;
+	uint64_t offset;
+
+	trans_hint_t hint;
 	key_entity_t maxkey;
 	
 	aal_assert("umka-2406", tree != NULL);
@@ -1792,14 +1797,77 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 	if (plug->id.group == place->plug->id.group)
 		return -EINVAL;
 
-	plug_call(place->plug->o.item_ops, maxreal_key,
-		  (place_t *)place, &maxkey);
+	reiser4_item_maxreal_key(place, &maxkey);
 
-	size = plug_call(maxkey.plug->o.key_ops,
-			 get_offset, &maxkey);
+	size = reiser4_key_get_offset(&maxkey) -
+		reiser4_key_get_offset(&place->key);
 
-	size -= plug_call(place->key.plug->o.key_ops,
-			  get_offset, &place->key);
+	offset = reiser4_key_get_offset(&maxkey) -
+		chunk;
+
+	for (; size > 0; size -= read, offset -= chunk) {
+		uint8_t level;
+		
+		if ((chunk = reiser4_node_maxspace(place->node)) > size)
+			chunk = size;
+	
+		/* Prepare key in order to find place to read from. This is key
+		   of the last byte of item minus maximal possible space in
+		   node. */
+		reiser4_key_assign(&hint.key, &place->key);
+		reiser4_key_set_offset(&hint.key, offset);
+
+		/* Loking for the place to read */
+		switch (reiser4_tree_lookup(tree, &hint.key,
+					    LEAF_LEVEL,
+					    READ, place))
+		{
+		case ABSENT:
+			return -EIO;
+		default:
+			break;
+		}
+
+		/* Prepare hint for read */
+		hint.tree = tree;
+		hint.count = chunk;
+		hint.offset = offset;
+		
+		if (!(hint.specific = aal_calloc(chunk, 0)))
+			return -ENOMEM;
+
+		/* Read data from the tree */
+		if (!(read = reiser4_tree_read(tree, place, &hint)))
+			return -EIO;
+
+		/* Remove daat from the tre */
+		if (reiser4_tree_remove(tree, place, &hint))
+			return -EIO;
+
+		/* Looking for place to write */
+		switch (reiser4_tree_lookup(tree, &hint.key,
+					    LEAF_LEVEL,
+					    READ, place))
+		{
+		case ABSENT:
+			return -EIO;
+		default:
+			break;
+		}
+
+		hint.plug = plug;
+		
+		/* Writing data to tree */
+		level = reiser4_node_get_level(place->node);
+		
+		if (!reiser4_tree_write(tree, place, &hint,
+					level))
+		{
+			return -EIO;
+		}
+		
+		aal_free(hint.specific);
+	}
 
 	return 0;
 }

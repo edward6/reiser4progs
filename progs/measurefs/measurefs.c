@@ -334,7 +334,7 @@ static errno_t stat_process_node(
 	
 	stat_hint->twigs += (level == TWIG_LEVEL);
 	stat_hint->leaves += (level == LEAF_LEVEL);
-	stat_hint->internals += (level > LEAF_LEVEL);
+	stat_hint->internals += (level > TWIG_LEVEL);
 
 	return 0;
 }
@@ -372,15 +372,20 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	}
 
 	/* Printing results */
+	printf("Packing statistics:\n");
 	printf("Formatted packing:%*.2f\n", 10, stat_hint.formatted_used);
-	printf("Leaves packing:%*.2f\n", 13, stat_hint.leaves_used);
-	printf("Internals packing:%*.2f\n\n", 10, stat_hint.internals_used);
+	printf("Internals packing:%*.2f\n", 10, stat_hint.internals_used);
+	printf("Leaves packing:%*.2f\n\n", 13, stat_hint.leaves_used);
 
+	printf("Count statistics:\n");
 	printf("Total nodes:%*llu\n", 16, stat_hint.nodes);
 	printf("Formatted nodes:%*llu\n", 12, stat_hint.formatted);
-	printf("Leaf nodes:%*llu\n", 17, stat_hint.leaves);
-	printf("Twig nodes:%*llu\n", 17, stat_hint.twigs);
 	printf("Internal nodes:%*llu\n", 13, stat_hint.internals);
+	printf("Twig nodes:%*llu\n", 17, stat_hint.twigs);
+	printf("Leaf nodes:%*llu\n", 17, stat_hint.leaves);
+	
+	printf("Unformatted nodes:%*llu\n", 10, stat_hint.nodes -
+	       stat_hint.formatted);
 	
 	return 0;
 }
@@ -540,7 +545,7 @@ static errno_t dfrag_process_node(
 			double curr_factor = frag_hint->files > 0 ?
 				(double)frag_hint->current / frag_hint->files : 0;
 			
-			aal_exception_info("Fragmentation for %s: %.6f [ %.6f ]",
+			aal_exception_mess("Fragmentation for %s: %.6f [ %.6f ]",
 					   object->name, file_factor, curr_factor);
 		}
 
