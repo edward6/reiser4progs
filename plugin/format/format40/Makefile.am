@@ -1,7 +1,7 @@
 includedir			= -I$(top_srcdir)/include
 libdir				= $(plugindir)
 
-format40_sources		= format40.c format40_repair.c format40.h
+format40_sources		= format40.c format40_repair.c format40.h format40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libformat40-static.la

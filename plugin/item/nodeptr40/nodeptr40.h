@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   nodeptr40.h -- reiser4 dafault internal item structures. */
+   nodeptr40.h -- reiser4 nodeptr item structures. */
 
 #ifndef NODEPTR40_H
 #define NODEPTR40_H
@@ -19,6 +19,5 @@ typedef struct nodeptr40 nodeptr40_t;
 
 #define np40_get_ptr(np)	aal_get_le64(np, ptr)
 #define np40_set_ptr(np, val)	aal_set_le64(np, ptr, val)
-
 #endif
 

@@ -1,7 +1,7 @@
 includedir		   = -I$(top_srcdir)/include
 libdir			   = $(plugindir)
 
-cde40_sources              = cde40.c cde40_repair.c cde40.h
+cde40_sources              = cde40.c cde40_repair.c cde40.h cde40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                = libcde40-static.la

@@ -1,7 +1,7 @@
 includedir			= -I$(top_srcdir)/include
 libdir				= $(plugindir)
 
-journal40_sources		= journal40.c journal40_repair.c journal40.h
+journal40_sources		= journal40.c journal40_repair.c journal40.h journal40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libjournal40-static.la

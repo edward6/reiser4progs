@@ -8,8 +8,6 @@
 #include "format40.h"
 #include <repair/plugin.h>
 
-extern void format40_mkdirty(generic_entity_t *entity);
-
 errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;

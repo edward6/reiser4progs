@@ -5,6 +5,7 @@
 
 #ifndef ENABLE_STAND_ALONE
 #include "journal40.h"
+#include "journal40_repair.h"
 
 extern reiser4_plug_t journal40_plug;
 
@@ -704,9 +705,6 @@ static void journal40_close(generic_entity_t *entity) {
 	aal_block_free(journal->footer);
 	aal_free(journal);
 }
-
-extern errno_t journal40_check_struct(generic_entity_t *,
-				      layout_func_t, void *);
 
 static reiser4_journal_ops_t journal40_ops = {
 	.open	  	= journal40_open,

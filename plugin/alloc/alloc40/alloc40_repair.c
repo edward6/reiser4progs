@@ -7,19 +7,6 @@
 #include "alloc40.h"
 #include <repair/plugin.h>
 
-extern errno_t callback_valid(object_entity_t *entity, 
-			      blk_t start, 
-			      count_t width, 
-			      void *data);
-
-extern errno_t alloc40_layout(object_entity_t *entity, 
-			      region_func_t func,
-			      void *data);
-
-extern int alloc40_occupied(generic_entity_t *entity, 
-			    uint64_t start, 
-			    uint64_t count);
-
 /* Call @func for all blocks which belong to the same bitmap block as passed
    @blk. It is needed for fsck. In the case it detremined that a block is not
    corresponds to its value in block allocator, it should check all the related
@@ -68,9 +55,8 @@ static errno_t callback_check_layout(void *entity, blk_t start,
 	return 0;
 }
 
-errno_t alloc40_layout_bad(object_entity_t *entity,
-			   region_func_t func,
-			   void *data)
+errno_t alloc40_layout_bad(generic_entity_t *entity,
+			   region_func_t func, void *data)
 {
 	struct alloc_hint hint;
 	

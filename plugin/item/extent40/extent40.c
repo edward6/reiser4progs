@@ -4,6 +4,7 @@
    extent40.c -- reiser4 default extent plugin. */
 
 #include "extent40.h"
+#include "extent40_repair.h"
 
 static reiser4_core_t *core = NULL;
 
@@ -1119,19 +1120,6 @@ static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 	
 	return 0;
 }
-
-extern errno_t extent40_check_struct(place_t *place,
-				     uint8_t mode);
-
-extern errno_t extent40_merge(place_t *dst, place_t *src, 
-			      merge_hint_t *hint);
-
-extern errno_t extent40_estimate_merge(place_t *dst, place_t *src,
-				       merge_hint_t *hint);
-
-extern errno_t extent40_check_layout(place_t *place,
-				     region_func_t region_func, 
-				     void *data, uint8_t mode);
 #endif
 
 static reiser4_item_ops_t extent40_ops = {
@@ -1147,6 +1135,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.layout           = extent40_layout,
 	.size		  = extent40_size,
 	.bytes		  = extent40_bytes,
+	
 	.maxreal_key      = extent40_maxreal_key,
 	.check_layout     = extent40_check_layout,
 	.check_struct	  = extent40_check_struct,

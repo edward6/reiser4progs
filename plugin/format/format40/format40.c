@@ -9,6 +9,7 @@
 #endif
 
 #include "format40.h"
+#include "format40_repair.h"
 
 extern reiser4_plug_t format40_plug;
 
@@ -493,11 +494,6 @@ errno_t format40_print(generic_entity_t *entity,
     
 	return 0;
 }
-
-extern errno_t format40_update(generic_entity_t *entity);
-
-extern errno_t format40_check_struct(generic_entity_t *entity,
-				     uint8_t mode);
 #endif
 
 static reiser4_format_ops_t format40_ops = {

@@ -1,7 +1,7 @@
 includedir		    = -I$(top_srcdir)/include
 libdir			    = $(plugindir)
 
-node40_sources              = node40.c node40_repair.c node40.h
+node40_sources              = node40.c node40_repair.c node40.h node40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS		    = libnode40-static.la

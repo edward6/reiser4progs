@@ -1,7 +1,7 @@
 includedir		    = -I$(top_srcdir)/include
 libdir			    = $(plugindir)
 
-tail40_sources		    = tail40.c tail40_repair.c
+tail40_sources		    = tail40.c tail40_repair.c tail40.h tail40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                 = libtail40-static.la

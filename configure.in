@@ -206,13 +206,13 @@ plugindir=$with_plugins
 AC_SUBST(plugindir)
 
 AC_ARG_ENABLE(Werror,
-    [  --disable-Werror         disable build with gcc -Werror ], ,
-	enable_Werror=yes
+    [  --enable-Werror          enable build with gcc -Werror ], ,
+	enable_Werror=no
 )
 
 AC_ARG_ENABLE(debug, 
-    [  --disable-debug          disable asserts and debug information ], , 
-	enable_debug=yes
+    [  --enable-debug           enable asserts and debug information ], , 
+	enable_debug=no
 )
 
 AC_ARG_ENABLE(stand_alone,

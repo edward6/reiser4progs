@@ -26,4 +26,5 @@ typedef struct stat40 stat40_t;
 #define st40_get_extmask(stat)		aal_get_le16(stat, extmask)
 #define st40_set_extmask(stat, val)	aal_set_le16(stat, extmask, val)
 
+extern errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data);
 #endif

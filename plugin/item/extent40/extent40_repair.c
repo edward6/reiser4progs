@@ -7,17 +7,6 @@
 #include "extent40.h"
 #include <repair/plugin.h>
 
-extern uint32_t extent40_units(place_t *place);
-
-extern errno_t extent40_maxreal_key(place_t *place,
-				    key_entity_t *key);
-
-extern uint64_t extent40_offset(place_t *place, uint64_t pos);
-extern uint32_t extent40_unit(place_t *place, uint64_t offset);
-
-extern lookup_t extent40_lookup(place_t *place, key_entity_t *key, 
-				bias_t bias);
-
 errno_t extent40_check_layout(place_t *place, region_func_t func, 
 			      void *data, uint8_t mode) 
 {

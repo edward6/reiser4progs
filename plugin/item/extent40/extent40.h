@@ -1,10 +1,10 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   extent40 -- resier4 default extent plugin. */
+   extent40.h -- reiser4 default extent plugin. */
 
-#ifndef EXTENT40
-#define EXTENT40
+#ifndef EXTENT40_H
+#define EXTENT40_H
 
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
@@ -16,6 +16,17 @@ struct extent40 {
 };
 
 typedef struct extent40 extent40_t;
+
+extern uint32_t extent40_units(place_t *place);
+
+extern errno_t extent40_maxreal_key(place_t *place,
+				    key_entity_t *key);
+
+extern uint64_t extent40_offset(place_t *place, uint32_t pos);
+extern uint32_t extent40_unit(place_t *place, uint64_t offset);
+
+extern lookup_t extent40_lookup(place_t *place, key_entity_t *key, 
+				bias_t bias);
 
 #define extent40_blksize(place) \
         ((place)->block->size)

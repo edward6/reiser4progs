@@ -65,34 +65,6 @@ struct entry_flags {
 /* Extention for repair_flag_t */
 #define REPAIR_SKIP	0
 
-extern reiser4_core_t *cde_core;
-    
-extern errno_t cde40_delete(place_t *place, uint32_t pos,
-			    trans_hint_t *hint);
-
-extern errno_t cde40_get_hash(place_t *place, uint32_t pos, 
-			      key_entity_t *key);
-
-extern lookup_t cde40_lookup(place_t *place, key_entity_t *key,
-			     bias_t bias);
-
-extern uint32_t cde40_regsize(place_t *place, uint32_t pos, 
-			      uint32_t count);
-
-extern uint32_t cde40_units(place_t *place);
-
-extern errno_t cde40_maxposs_key(place_t *place,
-				 key_entity_t *key);
-
-extern errno_t cde40_copy(place_t *dst_place, uint32_t dst_pos,
-			  place_t *src_place, uint32_t src_pos,
-			  uint32_t count);
-
-extern int32_t cde40_expand(place_t *place, uint32_t pos,
-			    uint32_t count, uint32_t len);
-
-extern inline uint32_t cde40_key_pol(place_t *place);
-
 /* Check the i-th offset of the unit body within the item. */
 static errno_t cde40_offset_check(place_t *place, uint32_t pos) {
 	uint32_t pol;
@@ -665,7 +637,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 			aal_exception_error("Node (%llu), item (%u): wrong key "
 					    "[%s] of the unit (%u).%s", 
 					    place->block->nr, place->pos.item,
-					    cde_core->key_ops.print(&key, PO_INO),
+					    cde40_core->key_ops.print(&key, PO_INO),
 					    i - 1, mode == RM_BUILD ? " Removed." 
 					    : "");
 			
@@ -694,7 +666,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 			aal_exception_error("Node (%llu), item (%u): wrong key "
 					    "[%s] of the unit (%u).%s", 
 					    place->block->nr, place->pos.item, 
-					    cde_core->key_ops.print(&key, PO_INO),
+					    cde40_core->key_ops.print(&key, PO_INO),
 					    i - 1, mode == RM_BUILD ? " Removed." 
 					    : "");
 			

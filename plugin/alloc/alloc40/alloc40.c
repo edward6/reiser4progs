@@ -7,6 +7,7 @@
 
 #ifndef ENABLE_STAND_ALONE
 #include "alloc40.h"
+#include "alloc40_repair.h"
 
 #define ALLOC40_BLOCKNR(blksize) \
         ((REISER4_MASTER_OFFSET / blksize) + 2)
@@ -42,8 +43,8 @@ extern reiser4_plug_t alloc40_plug;
 
    The above comment is applyed to the only aal_alder32 function. */
 
-#define ADLER_BASE (65521l)
 #define ADLER_NMAX (5552)
+#define ADLER_BASE (65521l)
 
 unsigned int aal_adler32(char *buff, unsigned int n) {
 	int k;
@@ -616,16 +617,19 @@ typedef void (*inval_func_t) (blk_t start, uint32_t ladler, uint32_t cadler);
 
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t callback_valid(void *entity, blk_t start, count_t width, void *data) {
+errno_t callback_valid(void *entity, blk_t start,
+		       count_t width, void *data)
+{
 	uint32_t chunk;
 	uint64_t offset;
 	alloc40_t *alloc;
 	uint32_t size, free;
 	char *current, *map;
 	uint32_t ladler, cadler;
-	inval_func_t func = (inval_func_t)data;
+	inval_func_t inval_func;
 
 	alloc = (alloc40_t *)entity;
+	inval_func = (inval_func_t)data;
 	size = alloc->blksize - CRC_SIZE;
 	map = aux_bitmap_map(alloc->bitmap);
     
@@ -655,9 +659,9 @@ errno_t callback_valid(void *entity, blk_t start, count_t width, void *data) {
 
 	/* If loaded checksum and calculated one are not equal, we have
 	   corrupted bitmap. */
-	if (ladler != cadler && func) {
-		func(start, ladler, cadler);
-		return ESTRUCT;
+	if (ladler != cadler && inval_func) {
+		inval_func(start, ladler, cadler);
+		return -ESTRUCT;
 	}
 
 	return 0;
@@ -675,16 +679,6 @@ errno_t alloc40_valid(generic_entity_t *entity) {
 	return alloc40_layout((generic_entity_t *)alloc, callback_valid, 
 			      callback_inval_warn);
 }
-
-extern errno_t alloc40_check_struct(generic_entity_t *entity,
-				    uint8_t mode);
-
-extern errno_t alloc40_region(generic_entity_t *entity, blk_t blk, 
-			      region_func_t func, void *data);
-
-extern errno_t alloc40_layout_bad(generic_entity_t *entity, 
-				  region_func_t func,
-				  void *data);
 
 static reiser4_alloc_ops_t alloc40_ops = {
 	.open           = alloc40_open,

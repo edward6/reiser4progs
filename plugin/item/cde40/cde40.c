@@ -4,8 +4,9 @@
    cde40.c -- reiser4 directory entry plugin. */
 
 #include "cde40.h"
+#include "cde40_repair.h"
 
-reiser4_core_t *cde_core = NULL;
+reiser4_core_t *cde40_core = NULL;
 
 inline uint32_t cde40_key_pol(place_t *place) {
 	return plug_call(place->key.plug->o.key_ops, bodysize);
@@ -359,7 +360,7 @@ static uint32_t cde40_shrink(place_t *place, uint32_t pos,
 		entry += en_size(pol);
 	}
 
-	/* We also move the rest of the data (after insert point) if needed */
+	/* We also move the rest of the data (after insert point) if needed. */
 	if (second > 0) {
 		void *src, *dst;
 
@@ -401,7 +402,7 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 
 	pol = cde40_key_pol(place);
 	units = cde_get_units(place);
-	headers = count * en_size(pol);
+	headers = (count * en_size(pol));
 
 	aal_assert("umka-1722", pos <= units);
 
@@ -830,7 +831,7 @@ static errno_t cde40_print(place_t *place, aal_stream_t *stream,
 
 	aal_stream_format(stream, "DIRENTRY PLUGIN=%s LEN=%u, KEY=[%s] "
 			  "UNITS=%u\n", place->plug->label, place->len, 
-			  cde_core->key_ops.print(&place->key, PO_DEF), 
+			  cde40_core->key_ops.print(&place->key, PO_DEF), 
 			  cde_get_units(place));
 		
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
@@ -888,14 +889,6 @@ static uint64_t cde40_bytes(place_t *place) {
 	aal_assert("vpf-1211", place != NULL);
 	return place->len - sizeof(uint16_t);
 }
-
-extern errno_t cde40_merge(place_t *dst, place_t *src, 
-			   merge_hint_t *hint);
-
-extern errno_t cde40_estimate_merge(place_t *dst, place_t *src,
-				    merge_hint_t *hint);
-
-extern errno_t cde40_check_struct(place_t *place, uint8_t mode);
 #endif
 
 /* Returns maximal possible key in the item. It is needed durring lookup and in
@@ -1041,7 +1034,7 @@ static reiser4_plug_t cde40_plug = {
 };
 
 static reiser4_plug_t *cde40_start(reiser4_core_t *c) {
-	cde_core = c;
+	cde40_core = c;
 	return &cde40_plug;
 }
 

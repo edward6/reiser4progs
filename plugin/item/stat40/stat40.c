@@ -4,7 +4,7 @@
    stat40.c -- reiser4 default stat data plugin. */
 
 #include "stat40.h"
-#include <aux/aux.h>
+#include "stat40_repair.h"
 #include <sys/stat.h>
 
 static reiser4_core_t *core = NULL;
@@ -32,6 +32,7 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 
 		if (i == 0 || ((i + 1) % 16 == 0)) {
 
+			/* Check if next pack exists. */
 			if (i > 0) {
 				if (!((1 << (i - chunks)) & extmask))
 					break;
@@ -201,17 +202,15 @@ static errno_t stat40_estimate_insert(place_t *place,
 	return 0;
 }
 
-/* This method writes the stat data extentions */
-static int64_t stat40_insert(place_t *place,
-			     trans_hint_t *hint)
+/* Function for modifying stat40. */
+static int64_t stat40_mod(place_t *place,
+			  trans_hint_t *hint,
+			  int insert)
 {
 	uint16_t i;
 	body_t *extbody;
 	statdata_hint_t *stat_hint;
     
-	aal_assert("vpf-076", place != NULL); 
-	aal_assert("vpf-075", hint != NULL);
-
 	extbody = (body_t *)place->body;
 	stat_hint = (statdata_hint_t *)hint->specific;
     
@@ -233,19 +232,21 @@ static int64_t stat40_insert(place_t *place,
 		   extention body pointer, in the case we are on bit dedicated
 		   to indicating if next extention exists or not. */
 		if (i % 16 == 0) {
-			uint16_t extmask;
+			if (insert) {
+				uint16_t extmask;
+			
+				/* Modifying extentions mask. */
+				extmask = ((stat_hint->extmask >> i) &
+					   0x000000000000ffff);
 
-			/* Initializing extmask */
-			extmask = ((stat_hint->extmask >> i) &
-				   0x000000000000ffff);
-
-			extmask |= st40_get_extmask((stat40_t *)extbody);
-			st40_set_extmask((stat40_t *)extbody, extmask);
+				extmask |= st40_get_extmask((stat40_t *)extbody);
+				st40_set_extmask((stat40_t *)extbody, extmask);
+			}
 			
 			extbody = (void *)extbody + sizeof(d16_t);
 		}
 
-		/* Getting extention plugin */
+		/* Getting extention plugin by extent number. */
 		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 					   "by its id 0x%x.", i);
@@ -267,14 +268,103 @@ static int64_t stat40_insert(place_t *place,
 	return 1;
 }
 
-extern errno_t stat40_check_struct(place_t *place,
-				   uint8_t mode);
+/* This method is for insert stat data extentions. */
+static int64_t stat40_insert(place_t *place,
+			     trans_hint_t *hint)
+{
+	aal_assert("vpf-076", place != NULL); 
+	aal_assert("vpf-075", hint != NULL);
 
-extern errno_t stat40_merge(place_t *dst, place_t *src, 
-			    merge_hint_t *hint);
+	return stat40_mod(place, hint, 1);
+}
 
-extern errno_t stat40_estimate_merge(place_t *dst, place_t *src, 
-				     merge_hint_t *hint);
+/* This method is for update stat data extentions. */
+static int64_t stat40_update(place_t *place,
+			     trans_hint_t *hint)
+{
+	aal_assert("umka-2588", place != NULL); 
+	aal_assert("umka-2589", hint != NULL);
+
+	return stat40_mod(place, hint, 0);
+}
+
+/* Removes stat data extentions marked in passed hint stat data extentions
+   mask. Needed for fsck. */
+static errno_t stat40_remove(place_t *place, trans_hint_t *hint) {
+	uint16_t i;
+	body_t *extbody;
+	uint16_t chunks = 0;
+	reiser4_plug_t *plug;
+	statdata_hint_t *stat_hint;
+		
+	aal_assert("umka-2590", place != NULL);
+	aal_assert("umka-2591", hint != NULL);
+
+	hint->ohd = 0;
+	hint->len = 0;
+	
+	extbody = (body_t *)place->body;
+	stat_hint = (statdata_hint_t *)hint->specific;
+
+	for (i = 0; i < STAT40_EXTNR; i++) {
+		uint16_t extsize;;
+		uint16_t old_extmask;
+		uint16_t new_extmask;
+
+		/* Check if we are on next extention mask. */
+		if (i == 0 || ((i + 1) % 16 == 0)) {
+			/* Getting current old mask. It is needed to calculate
+			   extbody correctly to shrink stat data. */
+			old_extmask = *((uint16_t *)extbody);
+
+			if (i > 0) {
+				if (!((1 << (i - chunks)) & old_extmask))
+					break;
+			}
+			
+			/* Clear the last bit in last mask */
+			if ((1 << (i - chunks)) & 0x2f) {
+				if (!(old_extmask & 0x8000))
+					old_extmask &= ~0x8000;
+			}
+
+			/* Calculating new extmask in order to update old
+			   one. */
+			new_extmask = old_extmask & ~(((stat_hint->extmask >> i) &
+						       0x000000000000ffff));
+
+			/* Update mask.*/
+			*((uint16_t *)extbody) = new_extmask;
+				
+			chunks++;
+			extbody += sizeof(d16_t);
+		}
+
+		/* Check if we're interested in this extention. */
+		if (!(((uint64_t)1 << i) & old_extmask))
+			continue;
+
+		/* Getting extention plugin by extent number. */
+		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
+			aal_exception_warn("Can't find stat data extention plugin "
+					   "by its id 0x%x.", i);
+			return -EINVAL;
+		}
+
+		extsize = plug_call(plug->o.sdext_ops, length, extbody);
+		
+		/* Moving the rest of stat data to left in odrer to keep stat
+		   data extention packed. */
+		aal_memmove(extbody, extbody + extsize, place->len -
+			    ((extbody + extsize) - place->body));
+		
+		/* Getting pointer to the next extention. It is evaluating as
+		   the previous pointer plus its size. */
+		extbody += extsize;
+	}
+	
+	return 0;
+}
 
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
@@ -463,7 +553,8 @@ static reiser4_item_ops_t stat40_ops = {
 	.init             = stat40_init,
 	.merge		  = stat40_merge,
 	.insert		  = stat40_insert,
-	.update		  = stat40_insert,
+	.update		  = stat40_update,
+	.remove		  = stat40_remove,
 	.print		  = stat40_print,
 	
 	.check_struct     = stat40_check_struct,
@@ -475,7 +566,6 @@ static reiser4_item_ops_t stat40_ops = {
 	
 	.overhead         = NULL,
 	.layout           = NULL,
-	.remove		  = NULL,
 	.shift            = NULL,
 	.write            = NULL,
 	.truncate         = NULL,

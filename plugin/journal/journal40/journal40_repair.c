@@ -53,8 +53,6 @@
 #include <repair/plugin.h>
 #include <aux/bitmap.h>
 
-extern void journal40_mkdirty(generic_entity_t *entity);
-
 /* Traverse flags. */
 #define TF_SAME_TXH_BREAK   1   /* break when current trans was reached. */
 #define TF_DATA_AREA_ONLY   2   /* check if block lies in data area only or in 
@@ -76,16 +74,6 @@ typedef struct journal40_check {
 	layout_func_t fs_layout;
 	void *layout;
 } journal40_check_t;
-
-extern errno_t journal40_traverse(journal40_t *, journal40_txh_func_t,
-				  journal40_han_func_t, journal40_sec_func_t, 
-				  void *);
-
-extern errno_t journal40_traverse_trans(journal40_t *, aal_block_t *, 
-					journal40_han_func_t, journal40_sec_func_t, 
-					void *);
-
-extern aal_device_t *journal40_device(generic_entity_t *entity);
 
 static char *blk_types[] = {
 	"Unknown",

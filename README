@@ -16,8 +16,8 @@ make install
 
 Configure script is accepting the following keys:
 
---disable-Werror               disable build with gcc -Werror (default=on)
---disable-debug                disable asserts debug information (default=on)
+--enable-Werror                enable build with gcc -Werror (default=on)
+--enable-debug                 enable asserts debug information (default=on)
 
 --enable-stand-alone           enable building stand alone library (default=off)
 

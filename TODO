@@ -21,7 +21,7 @@ reiser4progs/COPYING.
 
 * big digits stat data fields format change.
 
-* change balancing algorithm from the recursive to task oriented one
+* change balancing algorithm from recursive to task oriented one
   like kernel does.
 
 * online/offline resizer/repacker, manual page resizefs.

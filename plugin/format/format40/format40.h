@@ -1,12 +1,11 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   format40.h -- default disk-layout plugin implementation for reiser4. */
+   format40.h -- reiser4 disk-format plugin. */
 
 #ifndef FORMAT40_H
 #define FORMAT40_H
 
-#include <aux/aux.h>
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
@@ -38,6 +37,22 @@ struct format40_super {
 
 typedef struct format40_super format40_super_t;
 
+struct format40 {
+	reiser4_plug_t *plug;
+
+#ifndef ENABLE_STAND_ALONE
+	int dirty;
+#endif
+
+	uint32_t blksize;
+	aal_device_t *device;
+	format40_super_t super;
+};
+
+typedef struct format40 format40_t;
+
+extern void format40_mkdirty(generic_entity_t *entity);
+
 #define get_sb_mkfs_id(sb)			aal_get_le32(sb, sb_mkfs_id)
 #define set_sb_mkfs_id(sb, val)			aal_set_le32(sb, sb_mkfs_id, val)
 
@@ -67,19 +82,5 @@ typedef struct format40_super format40_super_t;
 
 #define get_sb_flags(sb)			aal_get_le64(sb, sb_flags)
 #define set_sb_flags(sb, val)		        aal_set_le64(sb, sb_flags, val)
-
-struct format40 {
-	reiser4_plug_t *plug;
-
-#ifndef ENABLE_STAND_ALONE
-	int dirty;
-#endif
-
-	uint32_t blksize;
-	aal_device_t *device;
-	format40_super_t super;
-};
-
-typedef struct format40 format40_t;
 
 #endif

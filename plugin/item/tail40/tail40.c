@@ -3,11 +3,12 @@
    
    tail40.c -- reiser4 default tail plugin. */
 
+#include "tail40.h"
+#include "tail40_repair.h"
+
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
-
-#define tail40_body(place) (place->body)
 
 static reiser4_core_t *core = NULL;
 
@@ -369,9 +370,8 @@ static errno_t tail40_remove(place_t *place, trans_hint_t *hint) {
 		return -EINVAL;
 	}
 
-	if (place->pos.unit == 0) {
+	if (place->pos.unit == 0)
 		tail40_get_key(place, &place->key);
-	}
 
 	hint->ohd = 0;
 	hint->len = hint->count;
@@ -425,12 +425,6 @@ static uint64_t tail40_size(place_t *place) {
 	aal_assert("vpf-1210", place != NULL);
 	return place->len;
 }
-
-extern errno_t tail40_merge(place_t *dst, place_t *src, 
-			    merge_hint_t *hint);
-
-extern errno_t tail40_estimate_merge(place_t *dst, place_t *src,
-				     merge_hint_t *hint);
 #endif
 
 static reiser4_item_ops_t tail40_ops = {

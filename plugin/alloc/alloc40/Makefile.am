@@ -1,7 +1,7 @@
 includedir		     = -I$(top_srcdir)/include
 libdir			     = $(plugindir)
 
-alloc40_sources		     = alloc40.c alloc40_repair.c alloc40.h
+alloc40_sources		     = alloc40.c alloc40_repair.c alloc40.h alloc40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                  = liballoc40-static.la

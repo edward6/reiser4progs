@@ -4,7 +4,7 @@
    journal40.h -- reiser4 default journal plugin. */
 
 #ifndef JOURNAL40_H
-#define JOURNAL40_h
+#define JOURNAL40_H
 
 #ifndef ENABLE_STAND_ALONE
 #include <aal/aal.h>
@@ -180,5 +180,21 @@ typedef errno_t (*journal40_han_func_t)    \
 #define JHEADER(block) \
         ((journal40_header_t *)block->data)
 #endif
+
+extern void journal40_mkdirty(generic_entity_t *entity);
+
+extern errno_t journal40_traverse(journal40_t *journal,
+				  journal40_txh_func_t txh_func,
+				  journal40_han_func_t han_func,
+				  journal40_sec_func_t sec_func,
+				  void *data);
+
+extern errno_t journal40_traverse_trans(journal40_t *journal,
+					aal_block_t *tx_block,
+					journal40_han_func_t han_func,
+					journal40_sec_func_t sec_func,
+					void *data);
+
+extern aal_device_t *journal40_device(generic_entity_t *entity);
 
 #endif

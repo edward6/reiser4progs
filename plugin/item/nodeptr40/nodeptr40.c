@@ -4,6 +4,7 @@
    nodeptr40.c -- reiser4 default node pointer item plugin. */
 
 #include "nodeptr40.h"
+#include "nodeptr40_repair.h"
 
 static reiser4_core_t *core = NULL;
 
@@ -101,14 +102,6 @@ static errno_t nodeptr40_print(place_t *place,
 	
 	return 0;
 }
-
-extern errno_t nodeptr40_check_struct(place_t *place,
-				      uint8_t mode);
-
-extern errno_t nodeptr40_check_layout(place_t *place,
-				      region_func_t func, 
-				      void *data, uint8_t mode);
-
 #endif
 
 static reiser4_item_ops_t nodeptr40_ops = {

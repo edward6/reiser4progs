@@ -1,7 +1,7 @@
 includedir		    = -I$(top_srcdir)/include
 libdir			    = $(plugindir)
 
-stat40_sources              = stat40.c stat40_repair.c stat40.h
+stat40_sources              = stat40.c stat40_repair.c stat40.h stat40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                 = libstat40-static.la

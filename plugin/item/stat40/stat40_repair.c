@@ -7,9 +7,6 @@
 #include "stat40.h"
 #include <repair/plugin.h>
 
-extern errno_t stat40_traverse(place_t *place, ext_func_t
-			       ext_func, void *data);
-
 struct pos_hint {
 	sdext_entity_t sdext;
 	uint8_t mode;

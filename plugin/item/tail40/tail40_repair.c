@@ -4,20 +4,10 @@
    tail40_repair.c -- reiser4 default tail plugin. */
 
 #ifndef ENABLE_STAND_ALONE
+#include "tail40.h"
 #include <repair/plugin.h>
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
-
-#define tail40_body(place) (place->body)
-
-extern uint32_t tail40_units(place_t *place);
-
-extern errno_t tail40_maxreal_key(place_t *place,
-				  key_entity_t *key);
-
-extern errno_t tail40_copy(place_t *dst_place, uint32_t dst_pos,
-			   place_t *src_place, uint32_t src_pos,
-			   uint32_t count);
 
 errno_t tail40_merge(place_t *dst, place_t *src, 
 		     merge_hint_t *hint)

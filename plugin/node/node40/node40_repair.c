@@ -9,28 +9,6 @@
 
 #define MIN_ITEM_LEN	1
 
-extern int node40_isdirty(node_entity_t *entity);
-extern void node40_mkdirty(node_entity_t *entity);
-extern void node40_mkclean(node_entity_t *entity);
-
-extern inline uint32_t node40_key_pol(node40_t *node);
-
-extern errno_t node40_remove(node_entity_t *entity,
-			     pos_t *pos, uint32_t count);
-
-extern errno_t node40_fetch(node_entity_t *entity,
-			    pos_t *pos, place_t *place);
-
-extern errno_t node40_expand(node_entity_t *entity, pos_t *pos,
-			     uint32_t len, uint32_t count);
-
-extern errno_t node40_shrink(node_entity_t *entity, pos_t *pos, 
-			     uint32_t len, uint32_t count);
-
-extern errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
-			   node_entity_t *src_entity, pos_t *src_pos, 
-			   uint32_t count);
-
 static void node40_set_offset_at(node40_t *node, int pos,
 				 uint16_t offset)
 {
@@ -53,7 +31,10 @@ static errno_t node40_region_delete(node40_t *node,
 	void *ih;
 	uint8_t i;
 	pos_t pos;
+
 	uint32_t pol;
+	uint32_t len;
+	uint32_t count;
      
 	aal_assert("vpf-201", node != NULL);
 	aal_assert("vpf-202", node->block != NULL);
@@ -71,12 +52,15 @@ static errno_t node40_region_delete(node40_t *node,
     
 	pos.unit = MAX_UINT32;
 	pos.item = start_pos - 1;
-    
-	if(node40_remove((node_entity_t *)node, &pos, end_pos - pos.item)) {
+
+	count = end_pos - pos.item;
+	len = node40_size(node, &pos, count);
+
+	if (node40_shrink((node_entity_t *)node, &pos, len, count)) {
 		aal_exception_bug("Node (%llu): Failed to delete the item (%d) "
 				  "of a region [%u..%u].", node->block->nr, 
 				  i - pos.item, start_pos, end_pos);
-		return -EINVAL;
+		return -EIO;
 	}
 	
 	return 0;    

@@ -5,8 +5,7 @@
 
 #ifndef ALLOC40_H
 #define ALLOC40_H
-
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include <aal/aal.h>
 #include <aux/bitmap.h>
@@ -27,7 +26,15 @@ struct alloc40 {
 
 typedef struct alloc40 alloc40_t;
 
-#endif
+extern errno_t callback_valid(void *entity, blk_t start,
+			      count_t width, void *data);
 
+extern int alloc40_occupied(generic_entity_t *entity, 
+			    uint64_t start, uint64_t count);
+
+extern errno_t alloc40_layout(generic_entity_t *entity,
+			      region_func_t region_func,
+			      void *data) ;
+#endif
 #endif
 

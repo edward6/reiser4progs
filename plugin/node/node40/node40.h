@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   node40.h -- reiser4 node for short keys. */
+   node40.h -- reiser4 node plugin structures. */
 
 #ifndef NODE40_H
 #define NODE40_H
@@ -54,6 +54,28 @@ struct node40_header {
 }  __attribute__((packed));
 
 typedef struct node40_header node40_header_t;  
+
+extern int node40_isdirty(node_entity_t *entity);
+extern void node40_mkdirty(node_entity_t *entity);
+extern void node40_mkclean(node_entity_t *entity);
+
+extern inline uint32_t node40_key_pol(node40_t *node);
+
+extern uint32_t node40_size(node40_t *node, pos_t *pos,
+			    uint32_t count);
+
+extern errno_t node40_fetch(node_entity_t *entity,
+			    pos_t *pos, place_t *place);
+
+extern errno_t node40_expand(node_entity_t *entity, pos_t *pos,
+			     uint32_t len, uint32_t count);
+
+extern errno_t node40_shrink(node_entity_t *entity, pos_t *pos, 
+			     uint32_t len, uint32_t count);
+
+extern errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
+			   node_entity_t *src_entity, pos_t *src_pos, 
+			   uint32_t count);
 
 #define	nh(block)                         \
         ((node40_header_t *)block->data)
