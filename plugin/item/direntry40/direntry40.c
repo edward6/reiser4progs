@@ -90,6 +90,17 @@ static int direntry40_mergeable(item_entity_t *item1,
 	return (locality1 == locality2);
 }
 
+static errno_t direntry40_shift(item_entity_t *item1, item_entity_t *item2,
+				uint32_t *pos, shift_hint_t *hint, shift_flags_t flags)
+{
+	aal_assert("umka-1586", item1 != NULL, return -1);
+	aal_assert("umka-1587", item2 != NULL, return -1);
+	aal_assert("umka-1589", hint != NULL, return -1);
+	aal_assert("umka-1588", pos != NULL, return -1);
+
+	return -1;
+}
+
 static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 				   reiser4_item_hint_t *hint) 
 {
@@ -497,6 +508,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.check		= direntry40_check,
 		.print		= direntry40_print,
 		.mergeable      = direntry40_mergeable,
+		.shift          = direntry40_shift,
 #else
 		.init		= NULL,
 		.estimate	= NULL,
@@ -505,9 +517,9 @@ static reiser4_plugin_t direntry40_plugin = {
 		.check		= NULL,
 		.print		= NULL,
 		.mergeable      = NULL,
+		.shift          = NULL,
 #endif
 		.valid		= NULL,
-		.shift          = NULL,
 		.open           = NULL,
 		.update         = NULL,
 		
