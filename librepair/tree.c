@@ -388,7 +388,7 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, reiser4_place_t *dst,
 		needed += (dst->pos.unit == MAX_UINT32 ? 
 			   reiser4_node_overhead(dst->node) : 0);
 		
-		res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT);
+		res = reiser4_tree_expand(tree, dst, needed, MSF_DEF);
 		if (res) {
 			aal_exception_error("Tree expand for merging failed.");
 			return res;
