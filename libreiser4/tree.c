@@ -5,6 +5,12 @@
 
 #include <reiser4/reiser4.h>
 
+extern errno_t callback_node_insert(reiser4_node_t *node, 
+				    pos_t *pos, trans_hint_t *hint);
+
+extern errno_t callback_node_write(reiser4_node_t *node, 
+				   pos_t *pos, trans_hint_t *hint);
+
 #ifndef ENABLE_STAND_ALONE
 /* Tree packing callback. Used for packing the tree, after delete items. This is
    needed for keeping tree in well packed state. */
@@ -2359,30 +2365,26 @@ errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 	return res;
 }
 
-/* Estimates how many bytes is needed to insert data described by @hint. Uses
-   item's estimate_insert() or estimate_write() for that. */
-static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
-				     reiser4_place_t *place,
-				     trans_hint_t *hint,
-				     bool_t insert)
+/* Estimates how many bytes is needed to insert data described by @hint. */
+static errno_t callback_estimate_insert(reiser4_place_t *place, 
+					trans_hint_t *hint) 
 {
-	aal_assert("umka-2438", tree != NULL);
 	aal_assert("umka-2440", hint != NULL);
 	aal_assert("umka-2439", place != NULL);
-	aal_assert("umka-2230", hint->plug != NULL);
 
-	hint->len = 0;
-	hint->ohd = 0;
+	return plug_call(hint->plug->o.item_ops, estimate_insert,
+			 (place_t *)place, hint);
+}
 
-	if (insert) {
-		return plug_call(hint->plug->o.item_ops,
-				 estimate_insert,
-				 (place_t *)place, hint);
-	} else {
-		return plug_call(hint->plug->o.item_ops,
-				 estimate_write,
-				 (place_t *)place, hint);
-	}
+/* Estimates how many bytes is needed to write data described by @hint. */
+static errno_t callback_estimate_write(reiser4_place_t *place, 
+				       trans_hint_t *hint) 
+{
+	aal_assert("umka-2440", hint != NULL);
+	aal_assert("umka-2439", place != NULL);
+
+	return plug_call(hint->plug->o.item_ops, estimate_write,
+			 (place_t *)place, hint);
 }
 
 /* Function for tree modifications. It is used for inserting data to tree (stat
@@ -2391,8 +2393,7 @@ static int64_t reiser4_tree_mod(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
 	trans_hint_t *hint,         /* item hint to be inserted */
-	uint8_t level,              /* level item/unit will be inserted on */
-	bool_t insert)              /* is this insert operation or write */
+	uint8_t level)              /* level item/unit will be inserted on */
 {
 	bool_t mode;
 	errno_t res;
@@ -2470,7 +2471,7 @@ static int64_t reiser4_tree_mod(
 	}
 	
 	/* Estimating item/unit to inserted.written to tree */
-	if ((res = reiser4_tree_estimate(tree, place, hint, insert)))
+	if ((res = tree->traps.estimate(place, hint)))
 		return res;
 	
 	/* Needed space to be prepared in tree */
@@ -2491,9 +2492,10 @@ static int64_t reiser4_tree_mod(
 	   if we tried to insert data. And normal case for writtig data, because
 	   we can write at least one byte. */
 	if ((uint32_t)space < needed) {
-		if (insert)
-			return -ENOSPC;
-
+		/* 
+		   FIXME-VITALY->UMKA: smth to be done with it.
+		   if (insert) return -ENOSPC; 
+		 */
 		hint->len = hint->count = space;
 	}
 
@@ -2502,13 +2504,13 @@ static int64_t reiser4_tree_mod(
 	   in order to get right space for @hint. That is because, estimated
 	   value depends on insert point. */
 	if (mode != (place->pos.unit == MAX_UINT32)) {
-		if ((res = reiser4_tree_estimate(tree, place, hint, insert)))
+		if ((res = tree->traps.estimate(place, hint)))
 			return res;
 	}
 
 	/* Inserting/writing data to node */
 	if ((write = reiser4_node_mod(place->node, &place->pos,
-				      hint, insert)) < 0)
+				      hint, tree->traps.modify)) < 0)
 	{
 		aal_exception_error("Can't insert data to node %llu.",
 				    node_blocknr(place->node));
@@ -2565,7 +2567,10 @@ errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 	aal_assert("umka-1644", place != NULL);
 	aal_assert("umka-1645", hint->plug != NULL);
 
-	return reiser4_tree_mod(tree, place, hint, level, 1);
+	tree->traps.estimate = callback_estimate_insert;
+	tree->traps.modify = callback_node_insert;
+
+	return reiser4_tree_mod(tree, place, hint, level);
 }
 
 /* Writes data to the tree */
@@ -2580,7 +2585,10 @@ int64_t reiser4_tree_write(reiser4_tree_t *tree,
 	aal_assert("umka-2443", place != NULL);
 	aal_assert("umka-2444", hint->plug != NULL);
 
-	return reiser4_tree_mod(tree, place, hint, level, 0);
+	tree->traps.estimate = callback_estimate_write;
+	tree->traps.modify = callback_node_write;
+	
+	return reiser4_tree_mod(tree, place, hint, level);
 }
 
 /* Removes item/unit at passed @place. This functions also perform so called

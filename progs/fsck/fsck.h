@@ -44,6 +44,7 @@ typedef struct fsck_parse {
     uint8_t sb_mode, fs_mode;
 
     FILE *logfile;
+    FILE *backup;
     aal_device_t *host_device;
     uint16_t options;
 } fsck_parse_t;

@@ -9,6 +9,11 @@
 
 #include <fsck.h>
 
+static FILE *backup = NULL;
+
+static errno_t fsck_write_backup(aal_device_t *device, void *buff, 
+				 blk_t block, count_t count);
+
 static void fsck_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
 
@@ -29,6 +34,7 @@ static void fsck_print_usage(char *name) {
 		"  -f, --force            forces checking even if the file system\n"
 		"                         seems clean\n"
 		"  -v, --verbose          makes fsck to be verbose\n"
+		"  -b | --backup file     backup blocks to the file before changes\n"
 		"  -r                     ignored\n");
 }
 
@@ -128,12 +134,12 @@ static void fsck_init_streams(fsck_parse_t *data) {
 	misc_exception_set_stream(EXCEPTION_BUG, stderr);
 }
 
-static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
-{
-	int c;
-	FILE *stream;
-	int option_index;
+static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) {
 	static int mode = RM_CHECK, sb_mode = 0, fs_mode = 0;
+	struct aal_device_ops fsck_ops = file_ops;
+	int option_index;
+	FILE *stream;
+	int c;
 
 	static struct option options[] = {
 		/* SB modes. */
@@ -155,7 +161,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		{"verbose", no_argument, NULL, 'v'},
 		/* Fsck hidden options. */
 		{"passes-dump", required_argument, 0, 'U'},
-		{"backup", required_argument, 0, 'R'},
+		{"backup", required_argument, 0, 'b'},
 		{0, 0, 0, 0}
 	};
 
@@ -168,7 +174,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		return USER_ERROR;
 	}
 
-	while ((c = getopt_long(argc, argv, "l:VhnqapfvU:R:r?d", 
+	while ((c = getopt_long(argc, argv, "l:VhnqapfvU:b:r?d", 
 				options, &option_index)) >= 0) 
 	{
 		switch (c) {
@@ -176,18 +182,28 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 			/* Long options. */
 			break;
 		case 'l':
-			if ((stream = fopen(optarg, "w")) == NULL)
+			if ((stream = fopen(optarg, "w")) == NULL) {
 				aal_exception_fatal("Cannot not open the "
 						    "logfile (%s).", optarg);
-			else 
-				data->logfile = stream;		
+				return OPER_ERROR;
+			} 
+			
+			data->logfile = stream;		
 			break;
 		case 'n':
 			data->logfile = NULL;
 			break;
 		case 'U':
 			break;
-		case 'R':
+		case 'b':
+			if ((backup = fopen(optarg, "w+")) == NULL) {
+				aal_exception_fatal("Cannot not open the "
+						    "backup file (%s).", optarg);
+				return OPER_ERROR;
+			}
+
+			fsck_ops.write = fsck_write_backup;
+			
 			break;
 		case 'f':
 			aal_set_bit(&data->options, FSCK_OPT_FORCE);
@@ -241,7 +257,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		}
 	}
     
-	if (!(data->host_device = aal_device_open(&file_ops, argv[optind], 
+	if (!(data->host_device = aal_device_open(&fsck_ops, argv[optind], 
 						  512, O_RDONLY))) 
 	{
 		aal_exception_fatal("Cannot open the partition (%s): %s.",
@@ -260,6 +276,14 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	return fsck_ask_confirmation(data, argv[optind]);
 }
 
+static void fsck_fini(fsck_parse_t *data) {
+	if (data->logfile != NULL)
+		fclose(data->logfile);
+
+	if (data->backup)
+		fclose(data->backup);
+}
+
 static void fsck_time(char *string) {
 	time_t t;
 
@@ -268,7 +292,7 @@ static void fsck_time(char *string) {
 }
 
 /* Open the fs and init the tree. */
-static errno_t fsck_prepare(repair_data_t *repair, aal_device_t *host) {
+static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 	aal_stream_t stream;
 	errno_t res;
 	
@@ -319,7 +343,7 @@ static errno_t fsck_prepare(repair_data_t *repair, aal_device_t *host) {
 	return -EINVAL;
 }
 
-static errno_t fsck_fini(repair_data_t *repair) {
+static errno_t fsck_check_fini(repair_data_t *repair) {
 	reiser4_status_t *status;
 	uint64_t state = 0;
 	int flags;
@@ -354,6 +378,15 @@ static errno_t fsck_fini(repair_data_t *repair) {
 	return 0;
 }
 
+static errno_t fsck_write_backup(
+	aal_device_t *device,	    /* file device, data will be wrote onto */
+	void *buff,		    /* buffer, data stored in */
+	blk_t block,		    /* start position for writing */
+	count_t count)
+{
+	return 0;
+}
+
 int main(int argc, char *argv[]) {
 	errno_t exit_code = NO_ERROR;
 	uint64_t df_fixable = 0;
@@ -379,7 +412,7 @@ int main(int argc, char *argv[]) {
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
 	repair.progress_handler = gauge_handler;    
 	
-	if ((res = fsck_prepare(&repair, parse_data.host_device)) || 
+	if ((res = fsck_check_init(&repair, parse_data.host_device)) || 
 	    repair.fatal)
 	{
 		goto free_libreiser4;
@@ -391,7 +424,7 @@ int main(int argc, char *argv[]) {
 	repair.mode = parse_data.fs_mode;
 	stage = 1;
 	
-	if ((res = repair_check(&repair)) || (res = fsck_fini(&repair)))
+	if ((res = repair_check(&repair)) || (res = fsck_check_fini(&repair)))
 		goto free_fs;
 
 	fsck_time("fsck.reiser4 finished at");
@@ -451,6 +484,8 @@ int main(int argc, char *argv[]) {
 		exit_code = FIXABLE_ERROR;
 	} else if (!df_fixable)
 		fprintf(stderr, "No corruption found.\n\n");
+	
+	fsck_fini(&parse_data);
 	
 	return exit_code;
 }

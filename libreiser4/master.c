@@ -139,12 +139,24 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "format plug id:\t%x\n",
 			  reiser4_master_get_format(master));
 
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+	if (*master->ent.ms_uuid != '\0') {
+		char uuid[256];
+		
+		uuid_unparse(reiser4_master_get_uuid(master), uuid);
+		aal_stream_format(stream, "uuid:\t\t%s\n", uuid);
+	} else {
+		aal_stream_format(stream, "uuid:\t\t<none>\n");
+	}
+#endif
+	
 	if (*master->ent.ms_label != '\0') {
 		aal_stream_format(stream, "label:\t\t%s\n",
 				  reiser4_master_get_label(master));
 	} else {
 		aal_stream_format(stream, "label:\t\t<none>\n");
 	}
+
 
 	return 0;
 }

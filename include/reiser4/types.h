@@ -282,6 +282,12 @@ typedef errno_t (*pack_func_t) (reiser4_tree_t *,
 				reiser4_place_t *,
 				void *);
 
+typedef errno_t (*estimate_func_t) (reiser4_place_t *place, 
+				    trans_hint_t *hint);
+
+typedef errno_t (*mod_func_t) (reiser4_node_t *node, 
+			       pos_t *pos, trans_hint_t *hint);
+
 enum tree_flags {
 	TF_PACK = 1 << 0
 };
@@ -327,6 +333,9 @@ struct reiser4_tree {
 		/* Pack callback related data. User may use it for setting some
 		   usefull data to it, and then use it in alternative pack(). */
 		void *data;
+
+		estimate_func_t estimate;
+		mod_func_t modify;
 #endif
 	} traps;
 

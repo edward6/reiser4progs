@@ -54,7 +54,7 @@ extern errno_t reiser4_node_unpack(reiser4_node_t *node,
 				   aal_stream_t *stream);
 
 extern int64_t reiser4_node_mod(reiser4_node_t *node, pos_t *pos,
-				trans_hint_t *hint, bool_t insert);
+				trans_hint_t *hint, mod_func_t modify);
 
 extern int64_t reiser4_node_write(reiser4_node_t *node,
 				  pos_t *pos, trans_hint_t *hint);

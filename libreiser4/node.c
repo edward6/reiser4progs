@@ -906,7 +906,7 @@ int64_t reiser4_node_mod(
 	reiser4_node_t *node,	         /* node item will be inserted in */
 	pos_t *pos,                      /* pos item will be inserted at */
 	trans_hint_t *hint,              /* item hint to be inserted */
-	bool_t insert)                   /* modifying mode (insert/write) */
+	mod_func_t modify)               /* modifying mode (insert/write) */
 {
 	errno_t res;
 	uint32_t len;
@@ -926,23 +926,10 @@ int64_t reiser4_node_mod(
 		return -EINVAL;
 	}
 
-	if (insert) {
-		/* Inserting new item or pasting unit into one existent item pointed by
-		   pos->item. */
-		if ((res = plug_call(node->entity->plug->o.node_ops,
-				     insert, node->entity, pos, hint)) < 0)
-		{
-			return res;
-		}
-	} else {
-		/* Writing data to node. */
-		if ((write = plug_call(node->entity->plug->o.node_ops,
-				       write, node->entity, pos, hint)) < 0)
-		{
-			return write;
-		}
-	}
-
+	/* Modifing the node with the given @hint. */
+	if ((res = modify(node, pos, hint)) < 0)
+		return res;
+	
 	if ((res = reiser4_node_uchild(node, pos))) {
 		aal_exception_error("Can't update child positions in "
 				    "node %llu.", node_blocknr(node));
@@ -952,14 +939,28 @@ int64_t reiser4_node_mod(
 	return write;
 }
 
+errno_t callback_node_insert(reiser4_node_t *node, 
+			     pos_t *pos, trans_hint_t *hint) 
+{
+	return  plug_call(node->entity->plug->o.node_ops,
+			  insert, node->entity, pos, hint);
+}
+
+errno_t callback_node_write(reiser4_node_t *node, 
+			    pos_t *pos, trans_hint_t *hint) 
+{
+	return  plug_call(node->entity->plug->o.node_ops,
+			  write, node->entity, pos, hint);
+}
+
 errno_t reiser4_node_insert(reiser4_node_t *node,
 			    pos_t *pos, trans_hint_t *hint)
 {
 	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-991", pos != NULL);
 	aal_assert("umka-992", hint != NULL);
-
-	return reiser4_node_mod(node, pos, hint, 1);
+	
+	return reiser4_node_mod(node, pos, hint, callback_node_insert);
 }
 
 int64_t reiser4_node_write(reiser4_node_t *node,
@@ -969,7 +970,7 @@ int64_t reiser4_node_write(reiser4_node_t *node,
 	aal_assert("umka-2446", pos != NULL);
 	aal_assert("umka-2447", hint != NULL);
 
-	return reiser4_node_mod(node, pos, hint, 0);
+	return reiser4_node_mod(node, pos, hint, callback_node_write);
 }
 
 int64_t reiser4_node_trunc(reiser4_node_t *node,
