@@ -46,9 +46,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 		    dir->hash, object40_locality(&dir->obj),
 		    object40_objectid(&dir->obj), ".");
 
-#ifndef ENABLE_ALONE
 	object40_unlock(&dir->obj, &dir->body);
-#endif
 	
 	/* Lookup for the first direntry item */
 	if (object40_lookup(&dir->obj, &key, LEAF_LEVEL,
@@ -57,15 +55,11 @@ static errno_t dir40_reset(object_entity_t *entity) {
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    object40_objectid(&dir->obj));
 		
-#ifndef ENABLE_ALONE
 		object40_lock(&dir->obj, &dir->body);
-#endif
 		return -1;
 	}
 
-#ifndef ENABLE_ALONE
 	object40_lock(&dir->obj, &dir->body);
-#endif
 
 	/* Initializing positions */
 	dir->offset = 0;
@@ -118,10 +112,8 @@ static lookup_t dir40_next(dir40_t *dir) {
 	if (!dir40_mergeable(&right.item, &dir->body.item))
 		return LP_ABSENT;
 	
-#ifndef ENABLE_ALONE
 	object40_unlock(&dir->obj, &dir->body);
 	object40_lock(&dir->obj, &right);
-#endif
 
 	dir->body = right;
 	dir->body.pos.unit = 0;
@@ -328,9 +320,7 @@ static object_entity_t *dir40_open(void *tree,
 	/* Copying statdata place and looking node it lies in */
 	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
 
-#ifndef ENABLE_ALONE
 	object40_lock(&dir->obj, &dir->obj.statdata);
-#endif
 	
 	/* Positioning to the first directory unit */
 	if (dir40_reset((object_entity_t *)dir)) {
@@ -538,17 +528,13 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	/* Saving stat data place insert function has returned */
 	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
 
-#ifndef ENABLE_ALONE
 	object40_lock(&dir->obj, &dir->obj.statdata);
-#endif
     
 	/* Inserting the direntry item into the tree */
 	if (object40_insert(&dir->obj, &body_hint, LEAF_LEVEL, &dir->body))
 		goto error_free_body;
 
-#ifndef ENABLE_ALONE
 	object40_lock(&dir->obj, &dir->body);
-#endif
 	
 	aal_free(body);
 
@@ -873,10 +859,8 @@ static void dir40_close(object_entity_t *entity) {
 	
 	aal_assert("umka-750", entity != NULL);
 
-#ifndef ENABLE_ALONE
 	object40_unlock(&dir->obj, &dir->obj.statdata);
 	object40_unlock(&dir->obj, &dir->body);
-#endif
 	
 	aal_free(entity);
 }

@@ -1316,11 +1316,11 @@ struct reiser4_core {
 		*/
 		errno_t (*remove) (void *, place_t *, uint32_t);
 
+#endif
 		/* Lock control functions */
 		errno_t (*lock) (void *, place_t *);
 		errno_t (*unlock) (void *, place_t *);
-#endif
-	
+		
 		/* Returns next and prev items respectively */
 		errno_t (*next) (void *, place_t *, place_t *);
 		errno_t (*prev) (void *, place_t *, place_t *);

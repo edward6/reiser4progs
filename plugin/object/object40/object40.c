@@ -34,8 +34,6 @@ roid_t object40_locality(object40_t *object) {
 			   get_locality, &object->key);
 }
 
-#ifndef ENABLE_ALONE
-
 /* Locks the node an item belong to file lies in */
 errno_t object40_lock(object40_t *object,
 		      place_t *place)
@@ -65,8 +63,6 @@ errno_t object40_unlock(object40_t *object,
 
 	return 0;
 }
-
-#endif
 
 static errno_t object40_read_lw(object40_t *object,
 				reiser4_sdext_lw_hint_t *lw_hint)
@@ -401,11 +397,9 @@ errno_t object40_stat(object40_t *object) {
 		    &object->key, KEY_STATDATA_TYPE, locality,
 		    objectid, 0);
 
-#ifndef ENABLE_ALONE
 	/* Unlocking old node */
 	if (object->statdata.node)
 		object40_unlock(object, &object->statdata);
-#endif
 	
 	/* Requesting libreiser4 lookup in order to find stat data position */
 	if (object->core->tree_ops.lookup(object->tree, &object->key, LEAF_LEVEL,
@@ -414,10 +408,8 @@ errno_t object40_stat(object40_t *object) {
 		aal_exception_error("Can't find stat data of object 0x%llx.", 
 				    objectid);
 
-#ifndef ENABLE_ALONE
 		if (object->statdata.node)
 			object40_lock(object, &object->statdata);
-#endif
 		
 		return -1;
 	}
@@ -425,10 +417,8 @@ errno_t object40_stat(object40_t *object) {
 	aal_memcpy(&object->key, &object->statdata.item.key,
 		   sizeof(object->key));
 	
-#ifndef ENABLE_ALONE
 	/* Locking new node */
 	object40_lock(object, &object->statdata);
-#endif
 	
 	return 0;
 }

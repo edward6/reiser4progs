@@ -69,9 +69,7 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 	/* Saving statdata place and locking the node it lies in */
 	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
 
-#ifndef ENABLE_ALONE
 	object40_lock(&sym->obj, &sym->obj.statdata);
-#endif
 
 	/* Initializing parent key from the root one */
 	sym->obj.core->tree_ops.rootkey(sym->obj.tree,
@@ -179,9 +177,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	/* Saving statdata place and locking the node it lies in */
 	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
 
-#ifndef ENABLE_ALONE
 	object40_lock(&sym->obj, &sym->obj.statdata);
-#endif
 		
 	if (parent) {
 		plugin_call(parent->plugin->file_ops, link,
@@ -448,11 +444,8 @@ static void sym40_close(object_entity_t *entity) {
 		
 	aal_assert("umka-1170", entity != NULL);
 
-#ifndef ENABLE_ALONE
 	/* Unlocking statdata and body */
 	object40_unlock(&sym->obj, &sym->obj.statdata);
-#endif
-	
 	aal_free(entity);
 }
 

@@ -53,9 +53,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 		    KEY_FILEBODY_TYPE, object40_locality(&reg->obj),
 		    object40_objectid(&reg->obj), 0);
 
-#ifndef ENABLE_ALONE
 	object40_unlock(&reg->obj, &reg->body);
-#endif
 
 	/*
 	  Perform lookup with instruction to stop on the leaf level. In the case
@@ -71,13 +69,11 @@ static errno_t reg40_reset(object_entity_t *entity) {
 		reg->body.node = NULL;
 	}
 	
-#ifndef ENABLE_ALONE
 	/*
 	  Locking node the current body lies in, due to prevent the throwing it
 	  out of tree cache.
 	*/
 	object40_lock(&reg->obj, &reg->body);
-#endif
 
 	reg->offset = 0;
 
@@ -97,10 +93,8 @@ static lookup_t reg40_next(reg40_t *reg) {
 		    KEY_FILEBODY_TYPE, object40_locality(&reg->obj), 
 		    object40_objectid(&reg->obj), reg->offset);
 
-#ifndef ENABLE_ALONE
         /* Unlocking the old body */
 	object40_unlock(&reg->obj, &reg->body);
-#endif
 
 	place = reg->body;
 	
@@ -116,10 +110,8 @@ static lookup_t reg40_next(reg40_t *reg) {
 		reg->body = place;
 	}
 
-#ifndef ENABLE_ALONE
 	/* Locking new body or old one if lookup failed */
 	object40_lock(&reg->obj, &reg->body);
-#endif
 	
 	return res;
 }
@@ -207,10 +199,7 @@ static object_entity_t *reg40_open(void *tree,
 
 	/* saving statdata place and looking the code it lies in */
 	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
-
-#ifndef ENABLE_ALONE
 	object40_lock(&reg->obj, &reg->obj.statdata);
-#endif
 
 	/* Position onto the first body item */
 	if (reg40_reset((object_entity_t *)reg)) {
@@ -313,10 +302,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 		goto error_free_reg;
 
 	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
-
-#ifndef ENABLE_ALONE
 	object40_lock(&reg->obj, &reg->obj.statdata);
-#endif
     
 	if (parent) {
 		plugin_call(parent->plugin->file_ops, link,
@@ -515,11 +501,9 @@ static void reg40_close(object_entity_t *entity) {
 		
 	aal_assert("umka-1170", entity != NULL);
 
-#ifndef ENABLE_ALONE
 	/* Unlocking statdata and body */
 	object40_unlock(&reg->obj, &reg->obj.statdata);
 	object40_unlock(&reg->obj, &reg->body);
-#endif
 	
 	aal_free(entity);
 }

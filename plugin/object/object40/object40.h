@@ -78,9 +78,9 @@ extern errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
 extern errno_t object40_remove(object40_t *object, key_entity_t *key,
 			       uint64_t count);
 
+#endif
+
 extern errno_t object40_lock(object40_t *object, place_t *place);
 extern errno_t object40_unlock(object40_t *object, place_t *place);
-
-#endif
 
 #endif

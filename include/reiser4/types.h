@@ -55,11 +55,11 @@ struct reiser4_master {
 	*/
 	bool_t native;
 
-	/*
-	  Block master super block lies in. It is used for loading/saving master
-	  super block in its place.
-	*/
-	aal_block_t *block;
+	/* Device master is opened on */
+	aal_device_t *device;
+
+	/* Loaded master super block */
+	reiser4_master_sb_t super;
 };
 
 typedef struct reiser4_fs reiser4_fs_t;
@@ -166,12 +166,12 @@ struct reiser4_node {
 	/* Block number node lies in */
 	blk_t blk;
 
+	/* Usage counter to prevent releasing used nodes */
+	signed counter;
+	
 #ifndef ENABLE_ALONE
 	/* Some node flags (dirty, etc) */
 	uint32_t flags;
-	
-	/* Usage counter to prevent releasing used nodes */
-	int counter;
 	
 	/*
 	  Applications using this library sometimes need to embed information
