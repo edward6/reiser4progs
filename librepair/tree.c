@@ -386,8 +386,8 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 						    "(%llu), item (%u). Key interval "
 						    "[%s] - [%s].", node_blocknr(src->node), 
 						    src->pos.item, node_blocknr(dst.node), 
-						    dst.pos.item,  reiser4_print_key(&hint.start, 0),
-						    reiser4_print_key(&hint.end, 0));
+						    dst.pos.item,  reiser4_print_key(&hint.start, PO_DEF),
+						    reiser4_print_key(&hint.end, PO_DEF));
 			} else {
 				aal_exception_error("Tree Copy failed: from the node "
 						    "(%llu), item (%u) to the node "

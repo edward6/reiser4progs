@@ -400,7 +400,7 @@ errno_t key_large_print(key_entity_t *key,
 	aal_assert("vpf-191", key != NULL);
 	aal_assert("umka-1548", stream != NULL);
 
-	if (options == PO_SHORT) {
+	if (options == PO_INO) {
 		aal_stream_format(stream, "%llx:%llx:%llx",
 				  key_large_get_locality(key),
 				  key_large_get_ordering(key),

@@ -757,7 +757,7 @@ static errno_t cde_short_print(place_t *place,
 	
 	aal_stream_format(stream, "DIRENTRY PLUGIN=%s LEN=%u, KEY=[%s] "
 			  "UNITS=%u\n", place->plug->label, place->len, 
-			  core->key_ops.print(&place->key, 0), 
+			  core->key_ops.print(&place->key, PO_DEF), 
 			  de_get_units(cde));
 		
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "

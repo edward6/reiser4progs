@@ -24,10 +24,13 @@ extern errno_t repair_object_check_struct(reiser4_object_t *object,
 					  region_func_t region_func,
 					  uint8_t mode, void *data);
 
-extern reiser4_object_t *repair_object_launch(reiser4_tree_t *tree, 
+extern reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
+					      reiser4_object_t *parent,
 					      reiser4_key_t *key,
 					      bool_t only);
-extern reiser4_object_t *repair_object_realize(reiser4_tree_t *tree, 
+
+extern reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
+					       reiser4_object_t *parent,
 					       reiser4_place_t *place);
 
 extern errno_t repair_object_check_attach(reiser4_object_t *object, 

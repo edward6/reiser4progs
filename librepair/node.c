@@ -228,8 +228,8 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 		aal_exception_error("Node (%llu): The first key [%s] is not "
 				    "equal to the left delimiting key [%s].",
 				    node_blocknr(node), 
-				    reiser4_print_key(&place.key, 0),
-				    reiser4_print_key(&d_key, 0));
+				    reiser4_print_key(&place.key, PO_DEF),
+				    reiser4_print_key(&d_key, PO_DEF));
 		return RE_FATAL;
 	} else if (res < 0) {
 		/* It is legal to have the left key in the node much then 
@@ -242,11 +242,11 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 					    "pos (%u/%u) mismatch the first key "
 					    "[%s] in the node. %s", 
 					    node_blocknr(node),
-					    reiser4_print_key(&place.key, 0),
+					    reiser4_print_key(&place.key, PO_DEF),
 					    node_blocknr(node->p.node), 
 					    place.pos.item,
 					    place.pos.unit, 
-					    reiser4_print_key(&d_key, 0),
+					    reiser4_print_key(&d_key, PO_DEF),
 					    mode == RM_BUILD ? 
 					    "Left delimiting key is fixed." : "");
 			
@@ -282,8 +282,8 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 		aal_exception_error("Node (%llu): The last key [%s] in the node "
 				    "is greater then the right delimiting key "
 				    "[%s].", node_blocknr(node), 
-				    reiser4_print_key(&key, 0),
-				    reiser4_print_key(&d_key, 0));
+				    reiser4_print_key(&key, PO_DEF),
+				    reiser4_print_key(&d_key, PO_DEF));
 		return -ESTRUCT;
 	}
 	
@@ -321,7 +321,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			aal_exception_error("Node (%llu): The key [%s] of the "
 					    "item (%u) is not valid. Item "
 					    "removed.", node_blocknr(node),
-					    reiser4_print_key(&key, 0),
+					    reiser4_print_key(&key, PO_DEF),
 					    pos->item);
 			
 			if ((res = reiser4_node_remove(node, pos, 1))) {

@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 			break;
 
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
-			     reiser4_print_key(&entry.object, 0),
+			     reiser4_print_key(&entry.object, PO_DEF),
 			     entry.name);
 
 		printf(buff);

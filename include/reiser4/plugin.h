@@ -205,8 +205,8 @@ enum key_type {
 typedef enum key_type key_type_t;
 
 enum print_options {
-	PO_SHORT                = 0x0,
-	PO_LARGE                = 0x1
+	PO_DEF			= 0x0,
+	PO_INO			= 0x1
 };
 
 typedef enum print_options print_options_t;

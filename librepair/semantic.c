@@ -10,7 +10,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 	uint8_t len;
 
 	len = aal_strlen(LOST_PREFIX);
-	key = reiser4_print_key(&object->info->object, PO_SHORT);
+	key = reiser4_print_key(&object->info->object, PO_INO);
 	
 	aal_memcpy(name, LOST_PREFIX, len);
 	aal_memcpy(name + len, key, aal_strlen(key));
@@ -210,7 +210,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	/* Must be point exact matched plugin. Ambigious plugins will 
 	   be recovered later on CLEANUP pass. */
-	if ((parent = repair_object_launch(object->info->tree, 
+	if ((parent = repair_object_launch(object->info->tree, NULL, 
 					   &object->info->parent, 
 					   TRUE)) == INVAL_PTR)
 		return INVAL_PTR;
@@ -330,7 +330,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		return NULL;
 
 	/* Try to realize unambiguously the object by the key. */
-	if ((object = repair_object_launch(parent->info->tree, &entry->object,
+	if ((object = repair_object_launch(parent->info->tree, 
+					   parent, &entry->object,
 					   TRUE)) == INVAL_PTR)
 		return INVAL_PTR;
 	
@@ -401,8 +402,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		aal_exception_error("Semantic traverse failed to remove the "
 				    "entry \"%s\" [%s] pointing to [%s].", 
 				    entry->name, 
-				    reiser4_print_key(&entry->offset, PO_SHORT),
-				    reiser4_print_key(&entry->object, PO_SHORT));
+				    reiser4_print_key(&entry->offset, PO_INO),
+				    reiser4_print_key(&entry->object, PO_INO));
 	}
 
  error_close_object:
@@ -453,7 +454,7 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 		return 0;
 	
 	/* Try to open the object by its SD. */
-	object = repair_object_realize(sem->repair->fs->tree, place);
+	object = repair_object_realize(sem->repair->fs->tree, NULL, place);
 	
 	if (object == NULL)
 		return 0;
@@ -529,7 +530,8 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 		return NULL;
 
 	/* Must be recovered with the most appropriate plugin. */
-	if ((object = repair_object_launch(sem->repair->fs->tree, &entry.object,
+	if ((object = repair_object_launch(sem->repair->fs->tree, 
+					   root, &entry.object, 
 					   FALSE)) == INVAL_PTR)
 		return INVAL_PTR;
 	
@@ -599,8 +601,9 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		return -EINVAL;
 	
 	/* Root dir must be recovered with the most appropriate plugin. */
-	if ((root = repair_object_launch(sem->repair->fs->tree, &fs->tree->key, 
-				    FALSE)) == INVAL_PTR)
+	if ((root = repair_object_launch(sem->repair->fs->tree, 
+					 NULL, &fs->tree->key, 
+					 FALSE)) == INVAL_PTR)
 		return -EINVAL;
 	
 	if (root) {

@@ -97,7 +97,7 @@ static errno_t nodeptr40_print(place_t *place,
 
 	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=[%s] UNITS=1 "
 			  "\n[%llu]\n", place->plug->label, place->len, 
-			  core->key_ops.print(&place->key, 0), 
+			  core->key_ops.print(&place->key, PO_DEF), 
 			  np40_get_ptr(nodeptr));
 	
 	return 0;

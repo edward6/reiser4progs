@@ -106,10 +106,12 @@ static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key,
 		return 0;
 	
 	aal_exception_error("Node (%llu), item(%u): the key [%s] of the item "
-			    "is wrong, %s [%s]. Plugin (%s).", place->con.blk,
-			    place->pos.unit, core->key_ops.print(&place->key, 0),
+			    "is wrong, %s [%s]. Plugin (%s).", 
+			    place->con.blk, place->pos.unit, 
+			    core->key_ops.print(&place->key, PO_DEF),
 			    mode == RM_BUILD ? "fixed to" : "should be", 
-			    core->key_ops.print(key, 0), reg->obj.plug->label);
+			    core->key_ops.print(key, PO_DEF), 
+			    reg->obj.plug->label);
 	
 	if (mode != RM_BUILD)
 		return RE_FATAL;
@@ -160,7 +162,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong mode "
 				    "(%u), %s (%u). Plugin (%s).", 
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_SHORT),
+				    core->key_ops.print(&stat->key, PO_INO),
 				    lw_hint.mode, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", lw_new.mode, stat->plug->label);
 		
@@ -177,7 +179,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong size "
 				    "(%llu), %s (%llu). Plugin (%s).",
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_SHORT),
+				    core->key_ops.print(&stat->key, PO_INO),
 				    lw_hint.size, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", lw_new.size, stat->plug->label);
 		
@@ -194,7 +196,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong bytes "
 				    "(%llu), %s (%llu). Plugin (%s).", 
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_SHORT),
+				    core->key_ops.print(&stat->key, PO_INO),
 				    unix_hint.bytes, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", bytes, stat->plug->label);
 		
@@ -227,9 +229,10 @@ static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	key = &reg->obj.info.object;
 	
 	aal_exception_error("Regular file [%s] does not have StatData "
-			    "item. %s Plugin %s.",
-			    core->key_ops.print(key, 0), mode == RM_BUILD ?
-			    "Creating a new one." : "", reg->obj.plug->label);
+			    "item. %s Plugin %s.", 
+			    core->key_ops.print(key, PO_DEF), 
+			    mode == RM_BUILD ? "Creating a new one." : "",
+			    reg->obj.plug->label);
 	
 	if (mode != RM_BUILD)
 		return RE_FATAL;
@@ -245,7 +248,7 @@ static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	if ((res = reg40_create_stat(&reg->obj, pid))) {
 		aal_exception_error("Regular file [%s] failed to create "
 				    "StatData item. Plugin %s.",
-				    core->key_ops.print(key, 0),
+				    core->key_ops.print(key, PO_DEF),
 				    reg->obj.plug->label);
 	}
 	
@@ -390,7 +393,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 							    "the hole at [%llu"
 							    "%llu] offsets. "
 							    "Plugin %s.",
-							    core->key_ops.print(&info->object, 0),
+							    core->key_ops.print(&info->object, PO_DEF),
 							    reg->offset, offset,
 							    reg->obj.plug->label);
 					return res;
@@ -403,7 +406,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 						    "has nothing at "
 						    "[%llu-%llu] "
 						    "offsets. Plugin %s.",
-						    core->key_ops.print(&info->object, 0),
+						    core->key_ops.print(&info->object, PO_DEF),
 						    reg->offset, offset,
 						    reg->obj.plug->label);
 				result |= RE_FATAL;

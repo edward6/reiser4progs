@@ -55,7 +55,7 @@ static errno_t debugfs_object_ls(reiser4_object_t *object) {
 			break;
 
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
-			     reiser4_print_key(&entry.object, 0),
+			     reiser4_print_key(&entry.object, PO_DEF),
 			     entry.name);
 
 		debugfs_print_buff(buff, aal_strlen(buff));
