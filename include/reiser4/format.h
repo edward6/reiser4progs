@@ -56,6 +56,7 @@ extern reiser4_format_t *reiser4_format_unpack(reiser4_fs_t *fs,
 					       aal_stream_t *stream);
 
 extern errno_t reiser4_format_valid(reiser4_format_t *format);
+extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
 extern rid_t reiser4_format_alloc_pid(reiser4_format_t *format);
 extern rid_t reiser4_format_journal_pid(reiser4_format_t *format);
 
@@ -65,7 +66,6 @@ extern count_t reiser4_format_get_free(reiser4_format_t *format);
 extern const char *reiser4_format_name(reiser4_format_t *format);
 extern uint32_t reiser4_format_get_stamp(reiser4_format_t *format);
 extern uint16_t reiser4_format_get_policy(reiser4_format_t *format);
-extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
 #endif
 
 extern void reiser4_format_close(reiser4_format_t *format);

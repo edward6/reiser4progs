@@ -266,9 +266,7 @@ const char *reiser4_format_name(
 	reiser4_format_t *format)	/* disk-format to be inspected */
 {
 	aal_assert("umka-111", format != NULL);
-	
-	return plug_call(format->entity->plug->o.format_ops,
-			 name, format->entity);
+	return format->entity->plug->label;
 }
 
 blk_t reiser4_format_start(reiser4_format_t *format) {

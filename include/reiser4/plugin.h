@@ -1096,9 +1096,6 @@ struct reiser4_format_ops {
 
 	/* Returns the device disk-format lies on */
 	aal_device_t *(*device) (generic_entity_t *);
-
-	/* Returns format string for this format. */
-	const char *(*name) (generic_entity_t *);
 #endif
 	/* Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format. */
@@ -1107,8 +1104,11 @@ struct reiser4_format_ops {
 	/* Closes opened or created previously filesystem. Frees all assosiated
 	   memory. */
 	void (*close) (generic_entity_t *);
-    
+
+	/* Get tree root block number from format. */
 	uint64_t (*get_root) (generic_entity_t *);
+
+	/* Get tree height from format. */
 	uint16_t (*get_height) (generic_entity_t *);
 
 #ifndef ENABLE_STAND_ALONE

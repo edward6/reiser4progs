@@ -340,12 +340,6 @@ static rid_t format40_oid_pid(generic_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
-static const char *formats[] = {"format40"};
-
-static const char *format40_name(generic_entity_t *entity) {
-	return formats[0];
-}
-
 static rid_t format40_journal_pid(generic_entity_t *entity) {
 	return JOURNAL_REISER40_ID;
 }
@@ -491,7 +485,7 @@ static reiser4_format_ops_t format40_ops = {
 	.layout	        = format40_layout,
 	.update		= format40_update,
 	.start		= format40_begin,
-	.name		= format40_name,
+	
 	.pack           = format40_pack,
 	.unpack         = format40_unpack,
 
