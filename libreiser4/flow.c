@@ -343,18 +343,27 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 	aal_memcpy(&trans.offset, &hint->offset, sizeof(trans.offset));
 
 	insert = hint->count;
-		
+	
+	/* Check if the start byte is not multiple by the block size. 
+	   Adjust if needed. */
+	conv = reiser4_key_get_offset(&trans.offset);
+	size = conv & (blksize - 1);
+	
+	if (size) {
+		reiser4_key_set_offset(&trans.offset, conv - size);
+		if (hint->count != MAX_UINT64)
+			insert += size;
+	}
+
 	/* Check if number of bytes to be converted is not multiple of block
 	   size. If so, have to round @hint->count up to blksize. */
-	if (hint->count != MAX_UINT64 && (hint->count & (blksize - 1)) != 0) {
-		hint->count += blksize -
-			(hint->count & (blksize - 1));
-	}
+	size = insert & (blksize - 1);
+	
+	if (hint->count != MAX_UINT64 && size)
+		insert += (blksize - size);
 	
 	/* Loop until @size bytes is converted. */
-	for (size = hint->count, hint->bytes = 0;
-	     size > 0; size -= conv, insert -= conv)
-	{
+	for (hint->bytes = 0; insert > 0; insert -= conv) {
 		/* Each convertion tick may be divided onto tree stages:
 
 		   (1) Read blksize bytes @trans hint.
@@ -368,7 +377,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 		*/
 		
 		/* Preparing buffer to read data to it. */
-		trans.count = blksize > size ? size : blksize;
+		trans.count = blksize > insert ? insert : blksize;
 
 		if (!(buff = aal_calloc(trans.count, 0)))
 			return -ENOMEM;
@@ -387,8 +396,10 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 		if (conv == 0) {
 			/* If nothing was read, depending on hint->ins_hole flag
 			   the hole will be inserted or convertion is finished. */
-			if (!hint->ins_hole)
-				break;
+			if (!hint->ins_hole) {
+				res = 0;
+				goto error_free_buff;
+			}
 
 			trans.specific = NULL;
 		} else {

@@ -325,19 +325,17 @@ static bool_t repair_tree_need_conv(reiser4_tree_t *tree,
 /* Prepare repair convertion and perform it. */
 static errno_t repair_tree_conv(reiser4_tree_t *tree, 
 				reiser4_place_t *dst,
-				reiser4_place_t *src) 
+				reiser4_plug_t *plug) 
 {
 	conv_hint_t hint;
 
 	/* Set bytes, plug, offset and count in @hint */
 	aal_memset(&hint, 0, sizeof(hint));
-	hint.plug = src->plug;
+	hint.plug = plug;
 	
 	aal_memcpy(&hint.offset, &dst->key, sizeof(dst->key));
-	reiser4_key_set_offset(&hint.offset, 
-			       reiser4_key_get_offset(&src->key));
-
-	hint.count = plug_call(src->plug->o.item_ops->object, size, src);
+	hint.count = plug_call(dst->plug->o.item_ops->object, size, dst);
+	hint.ins_hole = 1;
 
 	return reiser4_flow_convert(tree, &hint);
 }
@@ -528,7 +526,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 			}
 			
 			if (conv) {
-				res = repair_tree_conv(tree, &dst, src);
+				res = repair_tree_conv(tree, &dst, src->plug);
 				if (res) return res;
 
 				/* Repeat lookup after @dst conversion. */
