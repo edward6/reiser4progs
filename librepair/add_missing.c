@@ -6,29 +6,30 @@
 
 #include <repair/librepair.h>
 
+static errno_t callback_item_mark_region(item_entity_t *item, blk_t start, 
+    /* blk_t end, */ void *data)
+{
+    aux_bitmap_t *bitmap = data;
+    
+    aal_assert("vpf-735", bitmap != NULL, return -1);
+    
+    aux_bitmap_mark_region(bitmap, start, start + 1/* end */);
+
+    return 0;
+}
+
 static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
-    reiser4_ptr_hint_t ptr;
-    rpos_t *pos;
     repair_am_t *am = (repair_am_t *)data;
-    uint32_t units;
 
     aal_assert("vpf-649", coord != NULL, return -1);
     aal_assert("vpf-651", am != NULL, return -1);
     aal_assert("vpf-650", reiser4_item_extent(coord), return -1);
-
-    pos = &coord->pos;
-    units = reiser4_item_units(coord);
-
-    for (pos->unit = 0; pos->unit < units; pos->unit++) {
-	if (plugin_call(coord->item.plugin->item_ops,
-	    read, &coord->item, &ptr, coord->pos.unit, 1) != 1)
-	    return -1;
-
-	/* All these blocks should not be used in the allocator and should be 
-	 * forbidden for allocation. Check it somehow first. */
-	aux_bitmap_mark_region(am->bm_used, ptr.ptr, ptr.width);	
-    }
-    
+	
+    /* All these blocks should not be used in the allocator and should be 
+     * forbidden for allocation. Check it somehow first. */
+    if (plugin_call(coord->item.plugin->item_ops, layout, &coord->item, 
+	callback_item_mark_region, am->bm_used))
+	return -1;
     return 0;
 }
 
@@ -86,7 +87,8 @@ errno_t repair_am_pass(repair_data_t *rd) {
 	 * them w/out problem - it will be done instead of following item by 
 	 * item insertion. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-	    if ((node = repair_node_open(rd->fs->format, blk)) == NULL) {
+	    node = repair_node_open(rd->fs, blk);
+	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
 		return -1;
@@ -119,6 +121,7 @@ errno_t repair_am_pass(repair_data_t *rd) {
 	
 	    res = -1;
 	    reiser4_node_release(node);
+	    blk++;
 	}
 
 	blk = 0;
@@ -129,7 +132,8 @@ errno_t repair_am_pass(repair_data_t *rd) {
 	 * done on the base of flush_id. */
     
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-	    if ((node = repair_node_open(rd->fs->format, blk)) == NULL) {
+	    node = repair_node_open(rd->fs, blk);
+	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
 		return -1;
@@ -172,6 +176,8 @@ errno_t repair_am_pass(repair_data_t *rd) {
 	
 	    aux_bitmap_clear(bitmap, node->blk);
 	    reiser4_node_release(node);
+
+	    blk++;
 	}
 	
 	bitmap = am->bm_leaf;

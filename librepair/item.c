@@ -5,6 +5,36 @@
 
 #include <repair/librepair.h>
 
+/* Prepare coord for just a piece of item insertion. Return the number of 
+ * units to be splited. */
+uint32_t repair_item_split(
+    reiser4_coord_t *coord, 
+    reiser4_key_t *rd_key)  /* split to this right delimiting key */
+{    
+    reiser4_key_t key;
+    uint32_t unit = 0;
+
+    if (reiser4_item_utmost_key(coord, &key))
+	return -1;
+ 
+    /* rd_key greater then max real key - nothing to split. */
+    if (reiser4_key_compare(rd_key, &key) > 0) 
+	return reiser4_item_units(coord);
+ 
+    /* Split. Lookup method must be implemented in this case. */
+    if (plugin_call(coord->item.plugin->item_ops, lookup, 
+	&coord->item, rd_key, &unit) == -1) 
+    {
+	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
+	    coord->pos.item, coord->node->blk);
+	return -1;
+    }       
+   
+    return unit;
+}
+
+#if 0
+
 errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     reiser4_ptr_hint_t hint;
     rpos_t prev;
@@ -96,36 +126,6 @@ error:
 
     return 1;
 }
-
-/* Prepare coord for just a piece of item insertion. Return the number of 
- * units to be splited. */
-uint32_t repair_item_split(
-    reiser4_coord_t *coord, 
-    reiser4_key_t *rd_key)  /* split to this right delimiting key */
-{    
-    reiser4_key_t key;
-    uint32_t unit = 0;
-
-    if (reiser4_item_utmost_key(coord, &key))
-	return -1;
- 
-    /* rd_key greater then max real key - nothing to split. */
-    if (reiser4_key_compare(rd_key, &key) > 0) 
-	return reiser4_item_units(coord);
- 
-    /* Split. Lookup method must be implemented in this case. */
-    if (plugin_call(coord->item.plugin->item_ops, lookup, 
-	&coord->item, rd_key, &unit) == -1) 
-    {
-	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
-	    coord->pos.item, coord->node->blk);
-	return -1;
-    }       
-   
-    return unit;
-}
-
-#if 0
 
 /* Blocks pointed by coord should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
