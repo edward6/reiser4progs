@@ -577,11 +577,11 @@ static errno_t callback_merge(node_t *node, pos_t *pos, trans_hint_t *hint) {
 errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src, 
 			   region_func_t func, void *data)
 {
-	place_t dst;
 	trans_hint_t hint;
 	uint32_t scount;
 	uint8_t level;
 	errno_t res;
+	place_t dst;
 	
 	aal_assert("vpf-654", tree != NULL);
 	aal_assert("vpf-655", src != NULL);

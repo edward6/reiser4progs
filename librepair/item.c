@@ -55,8 +55,6 @@ errno_t repair_item_check_struct(place_t *place, uint8_t mode) {
 	aal_assert("vpf-789", mode != RM_CHECK || 
 			      length == place->len);
 	
-	aal_assert("vpf-767", length == place->len || res);
-	
 	return repair_item_check_fini(place, res, length);
 }
 

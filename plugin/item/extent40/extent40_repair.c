@@ -15,11 +15,39 @@ typedef enum merge_flag {
 	ET40_INSERT	= 1 << 1,
 	/* Add some units at the end. */
 	ET40_OVERWRITE	= 1 << 2,
-	/* There is no head left in the current dst unit while overwriting. */
+	/* There is a head left in the current dst unit while overwriting. */
 	ET40_HEAD	= 1 << 3,
 	/* There is a tail left in the current dst unit while overwriting. */
 	ET40_TAIL	= 1 << 4
 } merge_flag_t;
+
+static int extent40_merge_units(place_t *place) {
+	uint32_t i, count, merged;
+	extent40_t *extent;
+
+	extent = extent40_body(place);
+	count = extent40_units(place);
+	merged = 0;
+	
+	for (i = 1, extent++; i < count; i++, extent++) {
+		if ((et40_get_start(extent - 1) == 0 &&
+		     et40_get_start(extent) == 0) || 
+		    (et40_get_start(extent - 1) + et40_get_width(extent - 1)
+		     == et40_get_start(extent)))
+		{
+			et40_set_width(extent - 1, et40_get_width(extent - 1)
+				       + et40_get_width(extent));
+
+			extent40_shrink(place, i, 1);
+			count--;
+			merged++;
+			extent--;
+			i--;
+		}
+	}
+
+	return merged;
+}
 
 errno_t extent40_check_layout(place_t *place, region_func_t func, 
 			      void *data, uint8_t mode) 
@@ -63,6 +91,20 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 			place_mkdirty(place);
 		} else
 			result = RE_FIXABLE;
+	}
+	
+	units = extent40_merge_units(place);
+	
+	if (units) {
+		aal_error("Node (%llu), item (%u): %u mergable units were "
+			  "found in the extent40 unit.%s", place->block->nr,
+			  place->pos.item, units, mode == RM_CHECK ? "" : 
+			  " Fixed.");
+		
+		if (mode != RM_CHECK)
+			place->len -= (units * sizeof(extent40_t));
+		else 
+			result |= RE_FIXABLE;
 	}
 	
 	return result;
@@ -125,46 +167,21 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 			res |= RE_FIXABLE;
 	}
 	
+	units = extent40_merge_units(place);
+
+	if (units) {
+		aal_error("Node (%llu), item (%u): %u mergable units were "
+			  "found in the extent40 unit.%s", place->block->nr,
+			  place->pos.item, units, mode == RM_CHECK ? "" : 
+			  " Fixed.");
+		
+		if (mode != RM_CHECK)
+			place->len -= (units * sizeof(extent40_t));
+		else 
+			res |= RE_FIXABLE;
+	}
+	
 	return res;
-}
-
-static inline int extent40_join(place_t *dst, place_t *src, key_entity_t *key) {
-	uint64_t koffset, doffset, soffset;
-	uint32_t dpos, spos, dtail, stail;
-	extent40_t *dextent, *sextent;
-	
-	dextent = extent40_body(dst);
-	sextent = extent40_body(src);
-
-	koffset = plug_call(key->plug->o.key_ops, get_offset, key);
-	doffset = plug_call(dst->key.plug->o.key_ops, get_offset, &dst->key);
-	soffset = plug_call(src->key.plug->o.key_ops, get_offset, &src->key);
-	
-	if (koffset <= doffset || koffset <= soffset)
-		return 0;
-
-	doffset = koffset - doffset;
-	soffset = koffset - soffset;
-
-	dpos = extent40_unit(dst, doffset - 1);
-	spos = extent40_unit(src, soffset);
-
-	aal_assert("vpf-1379", dpos < extent40_units(dst));
-	aal_assert("vpf-1380", spos < extent40_units(src));
-
-	/* If both units are unallocated -- join them. */
-	if (!et40_get_start(dextent + dpos) && !et40_get_start(sextent + spos))
-		return 1;
-	
-	/* If just 1 unit is unallocated -- cannot join. */
-	if (!et40_get_start(dextent + dpos) || !et40_get_start(sextent + spos))
-		return 0;
-	
-	dtail = (doffset - extent40_offset(dst, dpos)) / extent40_blksize(dst);
-	stail = (soffset - extent40_offset(src, spos)) / extent40_blksize(src);
-
-	return et40_get_start(dextent + dpos) + dtail ==
-	       et40_get_start(sextent + spos) + stail;
 }
 
 static inline uint32_t extent40_head(place_t *place, 
@@ -363,7 +380,8 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 	/* If some tail should be cut off the current dst unit, set the 
 	   correct width there. */
 	if (hint->merge_flags & ET40_TAIL) {
-		/* Set the correct width. */
+		/* Set the correct width. Start is 0 because allocated 
+		   units are not overwritten. */
 		et40_set_start(dextent + dstart + count - 1, 0);
 		et40_set_width(dextent + dstart + count - 1, 
 			       et40_get_width(dextent + place->pos.unit) 
@@ -419,25 +437,7 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 	}
 	
 	/* Join mergable units within the @place. */
-	dextent = extent40_body(place);
-	count = extent40_units(place);
-	hint->len = 0;
-	
-	for (dstart = 1, dextent++; dstart < count; dstart++, dextent++) {
-		if (et40_get_start(dextent - 1) + et40_get_width(dextent - 1)
-		    == et40_get_start(dextent))
-		{
-			et40_set_width(dextent - 1, et40_get_width(dextent - 1)
-				       + et40_get_width(dextent));
-
-			extent40_shrink(place, dstart, 1);
-			count--;
-			hint->len--;
-		}
-	}
-	
-	/* Shrink the item when get back to caller. */
-	hint->len *= sizeof(extent40_t);
+	hint->len = extent40_merge_units(place) * sizeof(extent40_t);
 	
 	place_mkdirty(place);
 	
@@ -466,4 +466,5 @@ void extent40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
 	
 	aal_stream_format(stream, "]\n");
 }
+
 #endif

@@ -775,13 +775,8 @@ int64_t cde40_merge(place_t *place, trans_hint_t *hint) {
 	cde40_get_hash(src, src->pos.unit, &key);
 	sunits = cde40_units(src);
 	
-	/* FIXME-VITALY: this cde40_comp_entry should compare not only key, but 
-	   the name also <- key collision. */
-	if (place->pos.unit == MAX_UINT32 || 
-	    cde40_comp_entry(place, place->pos.unit, &key)) 
-	{
-		/* Expand @place item for coping and copy @hint->count units 
-		   there from @src. */
+	if (hint->count) {
+		/* Expand @place & copy @hint->count units there from @src. */
 		dpos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 		
 		if (place->pos.unit != MAX_UINT32) {
@@ -817,78 +812,6 @@ int64_t cde40_merge(place_t *place, trans_hint_t *hint) {
 	
 	return cde40_get_hash(src, spos, &hint->maxkey);
 }
-
-#if 0
-errno_t cde40_prep_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
-	uint32_t units, next_pos, pos;
-	uint32_t dst_pos, src_pos;
-	key_entity_t dst_key;
-	lookup_t lookup;
-	
-	aal_assert("vpf-957", dst  != NULL);
-	aal_assert("vpf-958", src  != NULL);
-	aal_assert("vpf-959", hint != NULL);
-	
-	dst_pos = dst->pos.unit;
-	src_pos = src->pos.unit;
-	units = cde40_units(src);
-	
-	if ((lookup = cde40_lookup(src, &hint->end, FIND_EXACT)) < 0)
-		return lookup;
-
-	pos = src->pos.unit;
-	
-	cde40_get_hash(dst, dst_pos, &dst_key);
-	
-	if ((lookup = cde40_lookup(src, &dst_key, FIND_EXACT)) < 0)
-		return lookup;
-
-	next_pos = src->pos.unit;
-	
-	if (pos < next_pos)
-		next_pos = pos;
-	
-	aal_assert("vpf-1015", next_pos >= src_pos);
-	
-	/* FIXME-VITALY: Key collisions are not supported yet. */
-	
-	hint->src_count = next_pos - src_pos;
-	hint->dst_count = 0;
-	hint->len_delta = (en_size(cde40_key_pol(dst)) * hint->src_count) +
-		cde40_regsize(src, src_pos, hint->src_count);
-	
-	while (next_pos < units) {
-		cde40_get_hash(src, next_pos, &hint->end);
-
-		if ((lookup = cde40_lookup(dst, &hint->end, FIND_EXACT)) < 0)
-			return lookup;
-
-		pos = dst->pos.unit;
-		
-		if (lookup == ABSENT)
-			return 0;
-		
-		next_pos++;
-	}
-	
-	cde40_maxposs_key(src, &hint->end);
-	return 0;
-}
-
-errno_t cde40_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
-	aal_assert("vpf-1014", dst != NULL);
-	aal_assert("vpf-1013", src != NULL);
-	aal_assert("vpf-1012", hint != NULL);
-	aal_assert("vpf-1011", hint->dst_count == 0);
-	
-	/* Preparing root for merging units into it */
-	cde40_expand(dst, dst->pos.unit, hint->src_count,
-		     hint->len_delta);
-	
-	return cde40_copy(dst, dst->pos.unit, src, src->pos.unit,
-			  hint->src_count);
-}
-#endif
 
 /* Prints cde item into passed @stream */
 void cde40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
@@ -939,4 +862,5 @@ void cde40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
 				  offset, locality, objectid);
 	}
 }
+
 #endif
