@@ -83,6 +83,7 @@ static errno_t nodeptr40_feel(item_entity_t *item,
 	aal_assert("umka-2138", start != NULL);
 	aal_assert("umka-2140", hint != NULL);
 
+	hint->start = 0;
 	hint->count = 1;
 	hint->len = sizeof(nodeptr40_t);
 	

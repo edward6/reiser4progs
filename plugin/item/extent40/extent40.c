@@ -130,38 +130,22 @@ static int32_t extent40_remove(item_entity_t *item,
 }
 
 /* Removes body between specified keys. */
-static int32_t extent40_shrink(item_entity_t *item,
-			       key_entity_t *start,
-			       key_entity_t *end)
-{
-	uint32_t start_pos, end_pos, count;
-	uint64_t start_byte, end_byte, width;
+static int32_t extent40_shrink(item_entity_t *item, feel_hint_t *hint) {
+	uint32_t start_pos, end_pos;
+	uint64_t width;
 	extent40_t *extent;
 	int32_t len = 0;
 	
 	aal_assert("vpf-935", item  != NULL);
-	aal_assert("vpf-936", start != NULL);
-	aal_assert("vpf-937", end   != NULL);
-	
-	/* Looking up the start byte */
-	if (common40_lookup(item, start, &start_byte, extent40_offset) 
-	    != LP_PRESENT)
-		return -EINVAL;
-	
-	/* Looking up the end byte */
-	if (common40_lookup(item, end, &end_byte, extent40_offset) 
-	    != LP_PRESENT)
-		return -EINVAL;
-	
-	aal_assert("vpf-938", end_byte >= start_byte);
+	aal_assert("vpf-936", hint != NULL);
 	
 	/* Transforming from the offset ot unit */
-	start_pos = extent40_unit(item, start_byte);	
+	start_pos = extent40_unit(item, hint->start);	
 	
 	/* Transforming from the offset ot unit */
-	end_pos = extent40_unit(item, end_byte);
+	end_pos = extent40_unit(item, hint->start + hint->count - 1);
 	
-	width = start_byte - extent40_offset(item, start_pos);
+	width = hint->start - extent40_offset(item, start_pos);
 	
 	aal_assert("vpf-939", width % extent40_blocksize(item) == 0);
 	
@@ -174,7 +158,7 @@ static int32_t extent40_shrink(item_entity_t *item,
 	}
 	
 	/* End key is inclusive, so + 1 */
-	width = end_byte - extent40_offset(item, end_pos) + 1;
+	width = hint->start + hint->count - extent40_offset(item, end_pos);
 	
 	aal_assert("vpf-939", width % extent40_blocksize(item) == 0);
 	
@@ -511,10 +495,27 @@ static errno_t extent40_feel(item_entity_t *item,
 			     key_entity_t *end,
 			     feel_hint_t *hint)
 {
+	uint64_t start_byte, end_byte;
+	
 	aal_assert("umka-1997", item != NULL);
 	aal_assert("umka-1998", hint != NULL);
 
+	
+	/* Looking up the start byte */
+	if (common40_lookup(item, start, &start_byte, extent40_offset) 
+	    != LP_PRESENT)
+		return -EINVAL;
+	
+	/* Looking up the end byte */
+	if (common40_lookup(item, end, &end_byte, extent40_offset) 
+	    != LP_PRESENT)
+		return -EINVAL;
+
+	hint->start = start_byte;
+	hint->count = end_byte - start_byte + 1;
+	
 	/* Not implemented yet */
+
 	return -EINVAL;
 }
 

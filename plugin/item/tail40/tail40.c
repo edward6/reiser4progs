@@ -72,8 +72,7 @@ static errno_t tail40_feel(item_entity_t *item,
 			   key_entity_t *end,
 			   feel_hint_t *hint)
 {
-	uint64_t end_offset;
-	uint64_t start_offset;
+	uint64_t start_offset, end_offset, offset;
 	
 	aal_assert("umka-2131", end != NULL);
 	aal_assert("umka-1995", item != NULL);
@@ -85,9 +84,14 @@ static errno_t tail40_feel(item_entity_t *item,
 	
 	start_offset = plugin_call(start->plugin->key_ops,
 				   get_offset, start);
-
+	
+	offset = plugin_call(end->plugin->key_ops,
+			     get_offset, &item->key);
+	
 	aal_assert("umka-2130", end_offset > start_offset);
+	aal_assert("vpf-942", start_offset >= offset);
 
+	hint->start = start_offset - offset;
 	hint->len = end_offset - start_offset + 1;
 	hint->count = end_offset - start_offset + 1;
 	
@@ -167,30 +171,11 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 }
 
 /* Removes the part of tail body between specified keys. */
-static int32_t tail40_shrink(item_entity_t *item, key_entity_t *start,
-			     key_entity_t *end)
-{
-	uint64_t offset, start_offset, end_offset;
-	void *src, *dst;
-	
+static int32_t tail40_shrink(item_entity_t *item, feel_hint_t *hint) {
 	aal_assert("vpf-930", item  != NULL);
-	aal_assert("vpf-931", start != NULL);
-	aal_assert("vpf-932", end   != NULL);
+	aal_assert("vpf-931", hint != NULL);
 	
-	offset = plugin_call(end->plugin->key_ops,
-			     get_offset, &item->key);
-	
-	end_offset = plugin_call(end->plugin->key_ops,
-				 get_offset, end);
-	
-	start_offset = plugin_call(start->plugin->key_ops,
-				   get_offset, start);
-
-	aal_assert("vpf-933", end_offset > start_offset);
-	aal_assert("vpf-934", start_offset > offset);
-	
-	return tail40_remove(item, start_offset - offset, 
-			     end_offset - start_offset);
+	return tail40_remove(item, hint->start, hint->count);
 }
 
 static errno_t tail40_init(item_entity_t *item) {

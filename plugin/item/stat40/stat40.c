@@ -444,6 +444,7 @@ static errno_t stat40_feel(item_entity_t *item,
 	aal_assert("umka-2151", item != NULL);
 	aal_assert("umka-2153", hint != NULL);
 
+	hint->start = 0;
 	hint->count = 1;
 	hint->len = item->len;
 	

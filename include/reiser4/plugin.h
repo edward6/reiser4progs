@@ -320,8 +320,9 @@ struct shift_hint {
 typedef struct shift_hint shift_hint_t;
 
 struct feel_hint {
+	uint64_t start;
+	uint64_t count;
 	uint32_t len;
-	uint32_t count;
 };
 
 typedef struct feel_hint feel_hint_t;
@@ -732,7 +733,7 @@ struct reiser4_item_ops {
 	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
 	
 	/* Removes item's content between the specified keys. */
-	int32_t (*shrink) (item_entity_t *, key_entity_t *, key_entity_t *);
+	int32_t (*shrink) (item_entity_t *, feel_hint_t *);
 	
 	/* Write method for filebody items */
 	int32_t (*write) (item_entity_t *, void *, uint32_t,

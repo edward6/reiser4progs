@@ -957,7 +957,7 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 		/* Remove evth between @start and @end keys. */
 		if (dst_item.plugin->item_ops.shrink) {
 			if ((res = dst_item.plugin->item_ops.shrink(
-					&dst_item, start, end)) <= 0)
+					&dst_item, dst_hint)) <= 0)
 			{
 				aal_exception_error("Node (%llu), item (%u): "
 						    "Can't shrink the item.", 

@@ -514,6 +514,8 @@ static errno_t direntry40_feel(item_entity_t *item,
 	if (direntry40_lookup(item, end, &end_pos) != LP_PRESENT)
 		return -EINVAL;
 	
+	hint->start = start_pos;
+	
 	/* end_key is inclusive, so + 1 */
 	hint->count = end_pos - start_pos + 1;
 
@@ -867,25 +869,11 @@ int32_t direntry40_remove(item_entity_t *item,
 	return len;
 }
 
-int32_t direntry40_shrink(item_entity_t *item, key_entity_t *start, 
-			  key_entity_t *end) 
-{
-	uint32_t start_pos, end_pos;
-	int32_t len;
-	
+int32_t direntry40_shrink(item_entity_t *item, feel_hint_t *hint) {
 	aal_assert("vpf-926", item != NULL);
-	aal_assert("vpf-927", start != NULL);
-	aal_assert("vpf-928", end != NULL);
+	aal_assert("vpf-927", hint != NULL);
 	
-	if (direntry40_lookup(item, start, &start_pos) != LP_PRESENT)
-		return -EINVAL;
-
-	if (direntry40_lookup(item, end, &end_pos) != LP_PRESENT)
-		return -EINVAL;
-	
-	aal_assert("vpf-929", end_pos >= start_pos);
-	
-	return direntry40_remove(item, start_pos, end_pos - start_pos + 1);
+	return direntry40_remove(item, hint->start, hint->count);
 }
 
 /* Prepares area new item will be created at */
