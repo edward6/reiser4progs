@@ -540,9 +540,6 @@ struct conv_hint {
 	/* New bytes value */
 	uint64_t bytes;
 
-	/* New size value */
-	uint64_t size;
-	
 	/* Bytes to be converted. */
 	uint64_t count;
 
