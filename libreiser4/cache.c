@@ -599,8 +599,6 @@ errno_t reiser4_cache_move(
 	    if (reiser4_node_lookup(dst_cache->parent->node, &ldkey, &dp) == -1)
 	        return -1;
 
-//	    dp.item--;
-	    
 	    if (reiser4_cache_set_key(dst_cache->parent, &dp, &ldkey))
 	        return -1;
 	}

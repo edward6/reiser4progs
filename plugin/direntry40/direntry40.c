@@ -367,37 +367,6 @@ static errno_t direntry40_maxkey(reiser4_item_t *item,
     return 0;
 }
 
-/*static errno_t direntry40_lastkey(reiser4_item_t *item,
-    reiser4_key_t *key)
-{
-    reiser4_key_type_t type;
-    reiser4_body_t *entryid;
-
-    uint64_t offset;
-    roid_t locality, objectid;
-
-    direntry40_maxkey(item, key);
-    
-    locality = plugin_call(return -1, key->plugin->key_ops, 
-	get_locality, key->body);
-
-    type = plugin_call(return -1, key->plugin->key_ops,
-        get_type, key->body);
-    
-    {
-	uint32_t pos = direntry40_count(item) - 1;
-	entryid = callback_get_entry(direntry40_body(item), pos, NULL);
-    }
-    
-    objectid = *((uint64_t *)entryid);
-    offset = *((uint64_t *)entryid + 1);
-
-    plugin_call(return -1, key->plugin->key_ops, build_generic, key->body, 
-	type, locality, objectid, offset);
-    
-    return 0;
-}*/
-
 static int direntry40_lookup(reiser4_item_t *item, 
     reiser4_key_t *key, uint32_t *pos)
 {
