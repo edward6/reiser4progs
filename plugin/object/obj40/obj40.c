@@ -583,9 +583,7 @@ errno_t obj40_unlink(obj40_t *obj) {
 inline errno_t obj40_init(obj40_t *obj, object_info_t *info, 
 			  reiser4_core_t *core)
 {
-#ifndef ENABLE_STAND_ALONE
 	uint8_t i;
-#endif
 	
 	aal_assert("umka-1574", obj != NULL);
 	aal_assert("umka-1757", info != NULL);
@@ -599,7 +597,6 @@ inline errno_t obj40_init(obj40_t *obj, object_info_t *info,
 			  STAT_KEY(obj), &info->object);
 	}
 
-#ifndef ENABLE_STAND_ALONE
 	/* Set missed plugins to opset from the fs global opset and build
 	   the mask of the specific plugins. */
 	for (i = 0; i < OPSET_LAST; i++) {
@@ -608,7 +605,6 @@ inline errno_t obj40_init(obj40_t *obj, object_info_t *info,
 		if (info->opset.plug[i] == NULL)
 			obj->info.opset.plug[i] = info->tree->opset[i];
 	}
-#endif
 	
 	return 0;
 }

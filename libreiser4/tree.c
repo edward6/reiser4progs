@@ -1034,10 +1034,10 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		goto error_free_nodes;
 	}
 
+#endif
 	/* Initializing the tpset. */
 	if (reiser4_pset_init(tree))
 		goto error_free_data;
-#endif
 
 	/* Building tree root key. It is used in tree lookup, etc. */
 	if (reiser4_fs_root_key(tree->fs, &tree->key)) {

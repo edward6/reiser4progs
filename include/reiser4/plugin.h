@@ -283,16 +283,18 @@ enum reiser4_opset_id {
 	OPSET_COMPRES		= 0xa,
 	
 	OPSET_STORE_LAST        = (OPSET_COMPRES + 1),
-		
+	
 	/* These are not stored on disk in the current implementation. */
 	OPSET_CREATE		= 0xb,
 	OPSET_MKDIR		= 0xc,
 	OPSET_SYMLINK		= 0xd,
 	OPSET_MKNODE		= 0xe,
 	
+#ifndef ENABLE_STAND_ALONE
 	OPSET_TAIL		= 0xf,
 	OPSET_EXTENT		= 0x10,
 	OPSET_ACL		= 0x11,
+#endif
 	OPSET_LAST
 };
 
@@ -312,7 +314,6 @@ struct generic_entity {
 
 typedef struct generic_entity generic_entity_t;
 
-#ifndef ENABLE_STAND_ALONE
 struct tree_entity {
 	/* Plugin SET. Set of plugins needed for the reiser4progs work.
 	   Consists of tree-specific plugins and object-specific plugins. */
@@ -321,9 +322,6 @@ struct tree_entity {
 };
 
 typedef struct tree_entity tree_entity_t;
-#else
-typedef void tree_entity_t;
-#endif
 
 typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
@@ -1720,15 +1718,17 @@ struct object_ops {
 typedef struct object_ops object_ops_t;
 #endif
 
-#ifndef ENABLE_STAND_ALONE
 struct pset_ops {
 	/* Obtains the plugin from the profile by its profile index. */
 	reiser4_plug_t *(*find) (rid_t, rid_t);
+#ifndef ENABLE_STAND_ALONE
 	void (*diff) (tree_entity_t *, reiser4_opset_t *);
+#endif
 };
 
 typedef struct pset_ops pset_ops_t;
 
+#ifndef ENABLE_STAND_ALONE
 struct key_ops {
 	char *(*print) (reiser4_key_t *, uint16_t);
 };
@@ -1749,11 +1749,8 @@ struct reiser4_core {
 	flow_ops_t flow_ops;
 	tree_ops_t tree_ops;
 	factory_ops_t factory_ops;
-	
-#ifndef ENABLE_STAND_ALONE
 	pset_ops_t pset_ops;
-#endif
-	
+
 #ifdef ENABLE_SYMLINKS
 	object_ops_t object_ops;
 #endif

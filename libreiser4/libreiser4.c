@@ -87,6 +87,10 @@ static errno_t tree_next_item(tree_entity_t *tree, reiser4_place_t *place,
 	return reiser4_tree_next_place((reiser4_tree_t *)tree, place, next);
 }
 
+static reiser4_plug_t *pset_find(rid_t member, rid_t id) {
+	return reiser4_opset_plug(member, id);
+}
+
 #ifndef ENABLE_STAND_ALONE
 static errno_t tree_update_key(tree_entity_t *tree, 
 			       reiser4_place_t *place,
@@ -101,10 +105,6 @@ static char *key_print(reiser4_key_t *key, uint16_t options) {
 
 static errno_t tree_convert(tree_entity_t *tree, conv_hint_t *hint) {
 	return reiser4_flow_convert((reiser4_tree_t *)tree, hint);
-}
-
-static reiser4_plug_t *pset_find(rid_t member, rid_t id) {
-	return reiser4_opset_plug(member, id);
 }
 
 static void pset_diff(tree_entity_t *tree, reiser4_opset_t *opset) {
@@ -198,12 +198,12 @@ reiser4_core_t core = {
 		/* search a plugin by its type and id. */
 		.ifind		= factory_ifind
 	},
-#ifndef ENABLE_STAND_ALONE
 	.pset_ops = {
 		.find		= pset_find,
+#ifndef ENABLE_STAND_ALONE
 		.diff		= pset_diff,
-	},
 #endif
+	},
 #ifdef ENABLE_SYMLINKS
 	.object_ops = {
 		.resolve	= object_resolve

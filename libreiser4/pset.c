@@ -118,6 +118,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #endif
 	},
 	
+#ifndef ENABLE_STAND_ALONE
 	/* Note, plugins below are not stored on-disk. */
 
 	/* The 4 plugins below needs to be splited -- for now they are used for
@@ -125,60 +126,47 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	   If the former ones are non-essential, the other 4 are essential. */
 	[OPSET_CREATE] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
 		.group = REG_OBJECT,
 		.prof = PROF_REG,
 		.ess = 1,
-#endif
 	},
 	[OPSET_MKDIR] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
 		.group = DIR_OBJECT,
 		.prof = PROF_DIR,
 		.ess = 1,
-#endif
 	},
 	[OPSET_SYMLINK] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
 		.group = SYM_OBJECT,
 		.prof = PROF_SYM,
 		.ess = 1,
-#endif
 	},
 	[OPSET_MKNODE] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
 		.group = SPL_OBJECT,
 		.prof = PROF_SPL,
 		.ess = 1,
-#endif
 	},
 	[OPSET_TAIL] = {
 		.type = ITEM_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
 		.group = TAIL_ITEM,
 		.prof = PROF_TAIL,
 		.ess = 1,
-#endif
 	},
 	[OPSET_EXTENT] = {
 		.type = ITEM_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
 		.group = EXTENT_ITEM,
 		.prof = PROF_EXTENT,
 		.ess = 1,
-#endif
 	},
 	[OPSET_ACL] = {
 		.type = INVAL_PID,
-#ifndef ENABLE_STAND_ALONE
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 0,
-#endif
 	}
+#endif
 };
 
 /* Returns NULL if @member is valid but there is no written plugins in the 
@@ -266,6 +254,8 @@ void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {
 	}
 }
 
+#endif
+
 errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	reiser4_plug_t *plug;
 	uint16_t flags;
@@ -290,6 +280,7 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	tree->ent.tpset[TPSET_KEY] = plug;
 
 	/* Init other tpset plugins. */
+#ifndef ENABLE_STAND_ALONE
 	tree->ent.tpset[TPSET_NODE] = reiser4_profile_plug(PROF_NODE);
 	tree->ent.tpset[TPSET_NODEPTR] = reiser4_profile_plug(PROF_NODEPTR);
 	
@@ -299,10 +290,52 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	tree->ent.opset[OPSET_MKDIR] = reiser4_profile_plug(PROF_DIR);
 	tree->ent.opset[OPSET_SYMLINK] = reiser4_profile_plug(PROF_SYM);
 	tree->ent.opset[OPSET_MKNODE] = reiser4_profile_plug(PROF_SPL);
+#else
+	if (!(tree->ent.tpset[TPSET_NODE] =
+	      reiser4_factory_ifind(NODE_PLUG_TYPE, NODE_REISER40_ID)))
+	{
+		aal_bug("vpf-1651", "Failed to find a plugin type (%u), id(%u)",
+			NODE_PLUG_TYPE, NODE_REISER40_ID);
+	}
+		
+	if (!(tree->ent.tpset[TPSET_NODEPTR] =
+	      reiser4_factory_ifind(ITEM_PLUG_TYPE, ITEM_NODEPTR40_ID)))
+	{
+		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
+			ITEM_PLUG_TYPE, ITEM_NODEPTR40_ID);
+	}
+
+	if (!(tree->ent.opset[OPSET_CREATE] =
+	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_REG40_ID)))
+	{
+		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
+			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
+	}
+
+	if (!(tree->ent.opset[OPSET_MKNODE] =
+	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_DIR40_ID)))
+	{
+		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
+			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
+	}
 	
+	if (!(tree->ent.opset[OPSET_SYMLINK] =
+	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_SYM40_ID)))
+	{
+		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
+			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
+	}
+	
+	if (!(tree->ent.opset[OPSET_MKNODE] =
+	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_SPL40_ID)))
+	{
+		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
+			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
+	}
+#endif
+
 	return 0;
 }
-#endif
 
 errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
 	reiser4_object_t *object;
@@ -328,19 +361,21 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
 		if (!check)
 			break;
 
-		if (!tree->ent.opset[i] && opset_prof[i].prof != INVAL_PID) {
+		if (!tree->ent.opset[i] && opset_prof[i].type != INVAL_PID) {
 			aal_error("The slot %u in the fs-global object "
 				  "plugin set is not initialized.", i);
 			return -EINVAL;
 		}
 	}
 
+#ifndef ENABLE_STAND_ALONE
 	/* Set others from the profile. */
 	for (; i < OPSET_LAST; i++) {
 		if (!tree->ent.opset[i] && opset_prof[i].prof != INVAL_PID)
 			tree->ent.opset[i] = reiser4_profile_plug(opset_prof[i].prof);
 	}
-	
+#endif
+
 	return 0;
 }
 
