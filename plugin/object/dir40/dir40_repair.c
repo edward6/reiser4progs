@@ -438,7 +438,7 @@ errno_t dir40_check_attach(object_entity_t *object,
 	entry.place_func = place_func;
 	entry.data = data;
 	
-	switch(lookup) {
+	switch (lookup) {
 	case PRESENT:
 		/* If the key matches the parent -- ok. */
 		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
