@@ -201,7 +201,7 @@ static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 	return reiser4_tree_connect_node(tree, NULL, node);
 }
 
-/* Dealing with allocating root node if it is not allocated yet */
+/* Dealing with allocating root node if it is not allocated yet. */
 static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 	node_t *root;
 	uint32_t height;
@@ -1223,8 +1223,8 @@ static errno_t callback_save_block( void *entry, void *data) {
 
 /* Packs one level at passed @node. Moves all items and units from right node
    to left neighbour node and so on until rightmost node is reached. */
-static errno_t reiser4_tree_pack_level(reiser4_tree_t *tree,
-				       node_t *node)
+static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
+					   node_t *node)
 {
 	errno_t res;
 	node_t *right;
@@ -1236,7 +1236,6 @@ static errno_t reiser4_tree_pack_level(reiser4_tree_t *tree,
 	while ((right = reiser4_tree_neigh_node(tree, node,
 						DIR_RIGHT)))
 	{
-		node_t *next;
 		place_t bogus;
 		uint32_t flags;
 
@@ -1247,17 +1246,11 @@ static errno_t reiser4_tree_pack_level(reiser4_tree_t *tree,
 		   allocate new nodes during shift. */
 		flags = (SF_ALLOW_LEFT | SF_ALLOW_MERGE);
 
-		/* Getting node next to @right. It is needed for setting @node
-		   to it for next time of loop if right will get empty after
-		   shift and will be discarded. */
-		next = reiser4_tree_neigh_node(tree, right,
-					       DIR_RIGHT);
-
-		/* Shift items andunits from @right to @node with @flags. */
+		/* Shift items and units from @right to @node with @flags. */
 		if ((res = reiser4_tree_shift(tree, &bogus,
 					      node, flags)))
 		{
-			aal_exception_error("Can't pack node "
+			aal_exception_error("Can't shift node "
 					    "%llu into left.",
 					    node_blocknr(right));
 			return res;
@@ -1269,23 +1262,7 @@ static errno_t reiser4_tree_pack_level(reiser4_tree_t *tree,
 			   structures (that is remove internal nodeptr item in
 			   parent node if any). */
 			reiser4_tree_discard_node(tree, right, 1);
-
-			/* If @next is null we get out of here, as we reached
-			   rightmost node. */
-			if (!next)
-				return 0;
-			
-			/* As @right get empty and will be discarded, we assign
-			   @node to node next to @right ascuired earlier. */
-			node = next;
 		} else {
-			/* Small speedup. If @next (that is @right's neighbours
-			   node) is null we won't to get it one more time. And
-			   this also means, that we reached rightmost node and
-			   can get out of here. */
-			if (!next)
-				return 0;
-			
 			/* Updating @node by @right in order to move control
 			   flow to right neighbour node and so on until
 			   rightmost one is reached. */
@@ -1298,7 +1275,7 @@ static errno_t reiser4_tree_pack_level(reiser4_tree_t *tree,
 
 /* Pack tree to make it more compact. Needed for fsck to pack tree after each
    pass and in the case of lack of disk space. */
-errno_t reiser4_tree_pack(reiser4_tree_t *tree) {
+errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 	errno_t res;
 	node_t *node;
 	uint8_t level;
@@ -1309,13 +1286,13 @@ errno_t reiser4_tree_pack(reiser4_tree_t *tree) {
 	node = tree->root;
 	
 	/* Loop through all levels of treeand pack eah of them by
-	   tree_pack_level() function. */
+	   tree_compress_level() function. */
 	for (level = reiser4_tree_get_height(tree);
 	     level >= LEAF_LEVEL; level--)
 	{
 		place_t place;
 
-		if ((res = reiser4_tree_pack_level(tree, node)))
+		if ((res = reiser4_tree_compress_level(tree, node)))
 			return res;
 
 		if (level > LEAF_LEVEL) {
@@ -1345,8 +1322,8 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	if (!tree->root)
 		return 0;
 
-	if ((res = reiser4_tree_pack(tree))) {
-		aal_exception_error("Can't pack tree during "
+	if ((res = reiser4_tree_compress(tree))) {
+		aal_exception_error("Can't compress tree during "
 				    "synchronizing.");
 		return res;
 	}
@@ -1911,7 +1888,6 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 
 	/* Updating left delimiting keys in the tree */
 	if (hint.control & SF_ALLOW_LEFT) {
-
 		/* Check if we need update key in insert part of tree. That is
 		   if source node is not empty and there was actually moved at
 		   least one item or unit. */
