@@ -29,7 +29,7 @@ object_entity_t *sym40_realize(object_info_t *info) {
 	
 	/* This is a SD item. It must be the sym SD. */
 	if (obj40_read_lw(&info->start, &lw_hint))
-		return NULL;
+		return INVAL_PTR;
 	
 	if (!S_ISLNK(lw_hint.mode))
 		return NULL;

@@ -21,14 +21,37 @@ static errno_t callback_type_file(uint16_t type) {
 	return type == KEY_FILEBODY_TYPE ? 0 : -EINVAL;
 }
 
+/* Build the key of the reg40 object body. */
+static errno_t callback_body(object_info_t *info, key_entity_t *key) {
+	uint64_t type, locality, objectid, ordering;
+	
+	type = plug_call(info->object.plug->o.key_ops,
+			 get_type, &info->object);
+	
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
+		
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
+	
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
+	
+	plug_call(info->object.plug->o.key_ops, build_gener, 
+		  key, type, locality, ordering, objectid, 0);
+	
+	return 0;
+}
+
 object_entity_t *reg40_realize(object_info_t *info) {
 	reg40_t *reg;
 	
-	if (obj40_realize(info, callback_mode_reg, callback_type_file))
-		return NULL;
+	if ((res = obj40_realize(info, callback_mode, callback_type, 
+				 callback_body)))
+		return res < 0 ? INVAL_PTR : NULL;
 	
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
-		return NULL;
+		return INVAL_PTR;
 	
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, NULL, core, info->tree);

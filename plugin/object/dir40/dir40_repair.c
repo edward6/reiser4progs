@@ -16,22 +16,40 @@ extern reiser4_plug_t dir40_plug;
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
 
-static errno_t callback_mode_dir(uint16_t mode) {
+static errno_t callback_mode(uint16_t mode) {
 	return S_ISDIR(mode) ? 0 : -EINVAL;
 }
 
-static errno_t callback_type_name(uint16_t type) {
+static errno_t callback_type(uint16_t type) {
 	return type == KEY_FILENAME_TYPE ? 0 : -EINVAL;
+}
+
+/* Build the key of the '.'. */
+static errno_t callback_body(object_info_t *info, key_entity_t *key) {
+	uint64_t locality, objectid;
+	
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
+		
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
+	
+	plug_call(info->object.plug->o.key_ops, build_entry, 
+		  key, NULL, locality, objectid, ".");
+
+	return 0;
 }
 
 object_entity_t *dir40_realize(object_info_t *info) {
 	dir40_t *dir;
+	errno_t res;
 	
-	if (obj40_realize(info, callback_mode_dir, callback_type_name))
-		return NULL;
-
+	if ((res = obj40_realize(info, callback_mode, callback_type, 
+				 callback_body)))
+		return res < 0 ? INVAL_PTR : NULL;
+	
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
-		return NULL;
+		return INVAL_PTR;
 	
 	/* Initializing file handle */
 	obj40_init(&dir->obj, &dir40_plug, NULL, core, info->tree);

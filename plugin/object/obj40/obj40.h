@@ -103,10 +103,12 @@ extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    uint32_t count);
 
 typedef bool_t (*realize_func_t) (uint16_t);
+typedef bool_t (*realize_func_body_t) (object_info_t *, key_entity_t *);
 
 extern errno_t obj40_realize(object_info_t *info, 
 			     realize_func_t mode_func, 
-			     realize_func_t type_func);
+			     realize_func_t type_func
+			     realize_func_body_t body_func);
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);

@@ -43,8 +43,8 @@ static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	/* Try to realize the object as an instance of this plugin. */
 	object->entity = plug_call(plug->o.object_ops, realize, 
 				   &object->info);
-
-	if (object->entity != NULL) {
+	
+	if (object->entity != NULL && object->entity != INVAL_PTR) {
 		plug_call(plug->o.object_ops, close,  object->entity);
 		return TRUE;
 	}
@@ -134,13 +134,13 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	object->info.tree = tree;
 	
 	aal_memcpy(reiser4_object_start(object), place, sizeof(*place));
-	reiser4_key_assign(&object->info.object, &object->info.start.key);
 	
 	libreiser4_factory_cfind(callback_object_realize, object, only);
 	
 	if (!object->entity)
 		goto error_close_object;
 	
+	reiser4_key_assign(&object->info.object, &object->info.start.key);
 	reiser4_key_string(&object->info.object, object->name);
 	
 	return object;

@@ -270,10 +270,11 @@ static errno_t key_large_build_hash(key_entity_t *key,
     
 	aal_assert("vpf-101", key != NULL);
 	aal_assert("vpf-102", name != NULL);
-	aal_assert("vpf-128", hash != NULL); 
     
 	if ((len = aal_strlen(name)) == 1 && name[0] == '.')
 		return 0;
+
+	aal_assert("vpf-128", hash != NULL); 
 
 	ordering = aux_pack_string(name, 1);
 
@@ -307,7 +308,7 @@ static errno_t key_large_build_hash(key_entity_t *key,
    creating entry keys. */
 static errno_t key_large_build_entry(key_entity_t *key,
 				     reiser4_plug_t *hash,
-				     uint64_t ordering,
+				     uint64_t locality,
 				     uint64_t objectid,
 				     char *name) 
 {
@@ -315,7 +316,6 @@ static errno_t key_large_build_entry(key_entity_t *key,
 	
 	aal_assert("vpf-140", key != NULL);
 	aal_assert("umka-667", name != NULL);
-	aal_assert("umka-1006", hash != NULL);
 
 	key_large_clean(key);
 	type = key_common_minor2type(KEY_FILENAME_MINOR);
