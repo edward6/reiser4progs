@@ -10,6 +10,5 @@
 #include <reiser4/plugin.h>
 
 extern errno_t stat40_check_struct(place_t *place, uint8_t mode);
-extern errno_t stat40_merge(place_t *place, trans_hint_t *hint);
-extern errno_t stat40_prep_merge(place_t *place, trans_hint_t *hint);
+
 #endif
