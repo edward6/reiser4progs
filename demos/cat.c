@@ -1,9 +1,7 @@
-/*
-  cat.c -- a demo program which works like standard cat utility.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   cat.c -- a demo program which works like standard cat utility. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

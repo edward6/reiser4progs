@@ -1,9 +1,7 @@
-/*
-  ls.c -- a demo program which works like standard ls utility.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   ls.c -- a demo program which works like standard ls utility. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -140,6 +138,8 @@ int main(int argc, char *argv[]) {
 	}
     
 	while (1) {
+		uint32_t len;
+		
 		aal_memset(buff, 0, sizeof(buff));
 
 		if (reiser4_object_readdir(dir, &entry) != 0)
@@ -147,7 +147,9 @@ int main(int argc, char *argv[]) {
 
 		reiser4_key_string(&entry.object, buff);
 
-		aal_snprintf(buff + aal_strlen(buff), sizeof(buff),
+		len = aal_strlen(buff);
+		
+		aal_snprintf(buff + len, sizeof(buff) - len,
 			     " %s\n", entry.name);
 
 		printf(buff);
