@@ -4,7 +4,6 @@
 */
 
 #include <repair/librepair.h>
-#include <reiser4/reiser4.h>
 
 static errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node, 
     reiser4_pos_t *pos)
@@ -29,17 +28,6 @@ static errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node,
 	    "the item (%u).",aal_block_number(node->block), pos->item);
 	return 1;
     }
-	    
-/*    if (!(item->body = plugin_call(return -1, node->entity->plugin->node_ops, 
-	item_body, node->entity, pos))) 
-    {
-	aal_exception_error("Node (%llu): Failed to get the item (%u) body.", 
-	    aal_block_number(node->block), pos->item);
-	return -1;
-    }
-
-    item->len = plugin_call(return -1, node->entity->plugin->node_ops, 
-	item_len, node->entity, pos);*/
 
     item->node = node->entity;
     item->pos = pos;
@@ -89,15 +77,91 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	if ((res = plugin_call(return -1, item.plugin->item_ops, check, 
 		&item, data->options))) 
 	    return res;
+	
+	if (reiser4_item_extent(&item) || reiser4_item_internal(&item)) {
+	    /* FIXME: check what happens if item/unit will be deleted. */
+	    for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
+		if (repair_item_nptr_check(&item, data))
+		    return -1;
+	    }
+	    pos.unit = ~0ul;
+	}
     }
     
     return 0;    
 }
 
+errno_t repair_node_ld_key(reiser4_key_t *ld_key, repair_check_t *data, 
+    uint8_t path_length) 
+{
+    reiser4_item_t *item;
+    
+    aal_assert("vpf-344", ld_key != NULL, return -1);
+    aal_assert("vpf-345", data != NULL, return -1);
+
+    item = repair_cut_item_at(data, path_length);
+    
+    aal_assert("vpf-346", item != NULL, return -1);
+    aal_assert("vpf-346", reiser4_item_internal(item), return -1);
+    /* 
+	FIXME-VITALY: This needs to be changed when we will work with multy units 
+	internal pointers.
+    */
+    if (path_length > 0)
+	return reiser4_node_get_key(repair_cut_node_at(data, path_length), item->pos, 
+	    ld_key);
+
+    reiser4_key_minimal(ld_key);
+    
+    return 0;
+}
+
+errno_t repair_node_rd_key(reiser4_key_t *rd_key, repair_check_t *data, 
+    uint8_t path_length)
+{
+    reiser4_item_t *item;
+    reiser4_pos_t pos;
+    
+    aal_assert("vpf-347", rd_key != NULL, return -1);
+    aal_assert("vpf-348", data != NULL, return -1);
+
+    item = repair_cut_item_at(data, path_length);
+    
+    aal_assert("vpf-349", item != NULL, return -1);
+    aal_assert("vpf-350", reiser4_item_internal(item), return -1);
+    /* 
+	FIXME-VITALY: This needs to be changed when we will work with multy units 
+	internal pointers.
+    */
+    if (path_length-- > 0) {
+	if (reiser4_node_count(repair_cut_node_at(data, path_length)) == 
+	    item->pos->item + 1)
+	{
+	    return repair_node_rd_key(rd_key, data, path_length);
+	} else {
+	    pos = *item->pos;
+	    pos.item++;
+	    return reiser4_node_get_key(repair_cut_node_at(data, path_length), &pos,
+		rd_key);
+	}
+    }
+
+    reiser4_key_maximal(rd_key);
+    
+    return 0;
+
+}
+
+/* 
+    FIXME-VITALY: Should this stuff be moved to plugin and how will 3.6 format be 
+    supported? 
+*/
 static errno_t repair_node_dkeys_check(reiser4_node_t *node, 
     repair_check_t *data) 
 {
-    reiser4_key_t key;
+    reiser4_key_t key, d_key;
+    reiser4_pos_t pos;
+    reiser4_item_t item;
 
     aal_assert("vpf-248", node != NULL, return -1);
     aal_assert("vpf-249", node->entity != NULL, return -1);
@@ -105,36 +169,55 @@ static errno_t repair_node_dkeys_check(reiser4_node_t *node,
     aal_assert("vpf-240", data != NULL, return -1);
     aal_assert("vpf-241", data->format != NULL, return -1);
 
-    reiser4_key_minimal(&key);
-    if (reiser4_key_compare(&data->ld_key, &key)) {
-	if (reiser4_node_lkey(node, &key)) {
-	    aal_exception_error("Node (%llu): Failed to get the left key.", 
-		aal_block_number(node->block));
-	    return 1;
-	}
+    if (repair_node_ld_key(&d_key, data, 
+	aal_list_length(repair_cut_data(data)->nodes_path))) 
+    {
+	aal_exception_error("Node (%llu): Failed to get the left delimiting key.", 
+	    aal_block_number(node->block));
+	return -1;
+    }
     
-	if (reiser4_key_compare(&data->ld_key, &key) != 0) {
-	    aal_exception_error("Node (%llu): The first key %k is not equal to "
-		"the left delimiting key %k.", &key, 
-		aal_block_number(node->block), &data->ld_key);
-	    return 1;
-	}
+    reiser4_pos_init(&pos, 0, ~0ul);
+    if (reiser4_node_get_key(node, &pos, &key)) {
+	aal_exception_error("Node (%llu): Failed to get the left key.",
+	    aal_block_number(node->block));
+	return -1;
     }
 
-    reiser4_key_maximal(&key);
-    if (reiser4_key_compare(&key, &data->ld_key)) {
-	if (reiser4_node_rkey(node, &key)) {
-	    aal_exception_error("Node (%llu): Failed to get the right key.", 
-		aal_block_number(node->block));
-	    return 1;
-	}
+    if (reiser4_key_compare(&d_key, &key) != 0) {
+	aal_exception_error("Node (%llu): The first key %k is not equal to "
+	    "the left delimiting key %k.", aal_block_number(node->block), &key,
+	    &d_key);
+	return 1;
+    }
     
-	if (reiser4_key_compare(&key, &data->rd_key) > 0) {
-	    aal_exception_error("Node (%llu): The last key %k is not equal to "
-		"the right delimiting key %k.", &key, 
-		aal_block_number(node->block), &data->ld_key);
-	    return 1;
-	}
+    if (repair_node_rd_key(&d_key, data, 
+	aal_list_length(repair_cut_data(data)->nodes_path))) 
+    {
+	aal_exception_error("Node (%llu): Failed to get the right delimiting "
+	    "key.", aal_block_number(node->block));
+	return -1;
+    }
+
+    reiser4_pos_init(&pos, reiser4_node_count(node) - 1, ~0ul);
+ 
+    if (repair_item_open(&item, node, &pos)) {
+	aal_exception_error("Node (%llu): Failed to open the item (%llu).",
+	    aal_block_number(node->block), pos.item);
+	return -1;
+    }
+    
+    if (reiser4_item_max_real_key(&item, &key)) {
+	aal_exception_error("Node (%llu): Failed to get the max real key of "
+	    "the last item.", aal_block_number(node->block));
+	return -1;
+    }
+    
+    if (reiser4_key_compare(&key, &d_key) < 0) {
+	aal_exception_error("Node (%llu): The last key %k in the node is less "
+	    "then the right delimiting key %k.", aal_block_number(node->block), 
+	    &key, &d_key);
+	return 1;
     }
 
     return 0;
@@ -148,16 +231,17 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
     errno_t res;
     
     aal_assert("vpf-258", node != NULL, return -1);
+    aal_assert("vpf-266", data != NULL, return -1);
     
     if (!(key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
 	KEY_REISER40_ID))) 
     {
-	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, 
-	    "Can't find key plugin by its id 0x%x.", KEY_REISER40_ID);
+	aal_exception_error("Can't find key plugin by its id 0x%x.", 
+	    KEY_REISER40_ID);
 	return -1;
     }
     
-    for (pos.item = 0; reiser4_node_count(node); pos.item++) {
+    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 	if (reiser4_node_get_key(node, &pos, &key)) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
 		"item (%u).", aal_block_number(node->block), pos.item);
@@ -197,7 +281,6 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
     Returns: 0 - OK; -1 - unrecoverable error; 1 - unrecoverable error;
 */
 errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
-    blk_t blk;
     int res;
     
     aal_assert("vpf-183", data != NULL, return -1);
@@ -206,16 +289,18 @@ errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
     aal_assert("vpf-193", node->entity != NULL, return -1);    
     aal_assert("vpf-220", node->entity->plugin != NULL, return -1);
 
-    if (data->level && node->entity->plugin->node_ops.get_level && 
+    /* Skip this check if level is not set. level is not set for the root node. */
+    if (repair_cut_data(data)->level && node->entity->plugin->node_ops.get_level && 
 	node->entity->plugin->node_ops.get_level(node->entity) != 
-	data->level) 
+	repair_cut_data(data)->level) 
     {
 	aal_exception_error("Level of the node (%u) is not correct, expected "
 	    "(%u)", node->entity->plugin->node_ops.get_level(node->entity), 
-	    data->level);
+	    repair_cut_data(data)->level);
 	return 1;
     }
 
+    /* FIXME-VITALY: This will be moved to scan pass.
     blk = aal_block_number(node->block);
     if ((res = reiser4_format_layout(data->format, callback_data_block_check, 
 	&blk))) 
@@ -224,15 +309,17 @@ errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
 	    "found in the tree.", aal_block_number(node->block));
 	return res;
     }
+    */
     
     /* Check if we met it already in the control allocator. */
+/*  FIXME-VITALY: This will be moved to scan pass.
     if (reiser4_alloc_test(data->a_control, aal_block_number(node->block))) 
     {
 	aal_exception_error("The node in the block (%llu) is used more then "
 	    "once in the tree.", aal_block_number(node->block));
 	return 1;
     }
-
+*/
     if ((res = plugin_call(return -1, node->entity->plugin->node_ops, check, 
 	node->entity, data->options)))
 	return res;
@@ -241,7 +328,7 @@ errno_t repair_node_check(reiser4_node_t *node, repair_check_t *data) {
 	return res;
     
     if ((res = repair_node_keys_check(node, data)))
-	    return res;
+	return res;
     
     if ((res = repair_node_dkeys_check(node, data)))
 	return res;
