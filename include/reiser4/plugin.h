@@ -324,13 +324,22 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
-struct feel_hint {
-	uint64_t start;
-	uint64_t count;
-	uint32_t len;
+struct copy_hint {	
+	uint32_t dst_count, src_count;
+	int32_t  len_delta;
+	
+	key_entity_t start, end;
+	
+	/* Used by extent40 feel and copy only. */
+	
+	/* Offset in blocks blocks in the start and end units of dst and src. */
+	uint64_t dst_head, src_head, dst_tail, src_tail;
+	
+	/* Should be dst head and tail splitted into 2 units while copying. */
+	bool_t head, tail;
 };
 
-typedef struct feel_hint feel_hint_t;
+typedef struct copy_hint copy_hint_t;
 
 typedef errno_t (*region_func_t) (void *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
@@ -715,13 +724,14 @@ struct reiser4_item_ops {
 	/* Prepares item body for working with it */
 	errno_t (*init) (item_entity_t *);
 
-	/* Copy related functions */
-	errno_t (*feel) (item_entity_t *, key_entity_t *, key_entity_t *, 
-			 feel_hint_t *);
-
+	/* Estimate copy operation */
+	errno_t (*feel_copy) (item_entity_t *, uint32_t, 
+			      item_entity_t *, uint32_t, 
+			      copy_hint_t *);
+	
 	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
-			 uint32_t, key_entity_t *, key_entity_t *,
-			 feel_hint_t *);
+			 uint32_t, copy_hint_t *);
+
 	/*
 	  Estimates item in order to find out how many bytes is needed for
 	  inserting one more unit.
@@ -736,9 +746,6 @@ struct reiser4_item_ops {
 	
 	/* Removes specified unit from the item. Returns released space */
 	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
-	
-	/* Removes item's content between the specified keys. */
-	int32_t (*shrink) (item_entity_t *, feel_hint_t *);
 	
 	/* Write method for filebody items */
 	int32_t (*write) (item_entity_t *, void *, uint32_t,
@@ -881,20 +888,15 @@ struct reiser4_node_ops {
 
 	/* Removes some amount of items/units */
 	errno_t (*cut) (object_entity_t *, pos_t *, pos_t *);
-    
+	
 	/* Shrinks node without calling any item methods */
 	errno_t (*shrink) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	errno_t (*copy) (object_entity_t *, pos_t *,
-			 object_entity_t *, pos_t *,
-			 key_entity_t *, key_entity_t *,
-			 feel_hint_t *);
-		
-	errno_t (*overwrite) (object_entity_t *, pos_t *,
-			      object_entity_t *, pos_t *,
-			      key_entity_t *, key_entity_t *,
-			      feel_hint_t *, feel_hint_t *);
+	/* Makes the copy of src data to dst place on the base of hint. */
+	errno_t (*copy) (object_entity_t *, pos_t *, 
+			 object_entity_t *, pos_t *, 
+			 copy_hint_t *);
 	
 	/* Expands node */
 	errno_t (*expand) (object_entity_t *, pos_t *,
