@@ -254,10 +254,10 @@ static int key_large_compfull(reiser4_key_t *key1,
 }
 
 /* Builds hash of the passed @name by means of using a hash plugin */
-static errno_t key_large_build_hash(reiser4_key_t *key,
-				    reiser4_plug_t *hash,
-				    reiser4_plug_t *fibre,
-				    char *name) 
+static void key_large_build_hash(reiser4_key_t *key,
+				 reiser4_plug_t *hash,
+				 reiser4_plug_t *fibre,
+				 char *name) 
 {
 	uint16_t len;
 	uint64_t offset;
@@ -265,7 +265,7 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
 	uint64_t ordering;
     
 	if ((len = aal_strlen(name)) == 1 && name[0] == '.')
-		return 0;
+		return;
 
 	aal_assert("vpf-128", hash != NULL); 
 	aal_assert("vpf-1568", fibre != NULL);
@@ -297,18 +297,16 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
 	key_large_set_ordering(key, ordering);
 	kl_set_objectid((key_large_t *)key->body, objectid);
 	key_large_set_offset(key, offset);
-
-	return 0;
 }
 
 /* Builds key by passed locality, objectid, and name. It is suitable for
    creating entry keys. */
-static errno_t key_large_build_hashed(reiser4_key_t *key,
-				      reiser4_plug_t *hash,
-				      reiser4_plug_t *fibre,
-				      uint64_t locality,
-				      uint64_t objectid,
-				      char *name) 
+static void key_large_build_hashed(reiser4_key_t *key,
+				   reiser4_plug_t *hash,
+				   reiser4_plug_t *fibre,
+				   uint64_t locality,
+				   uint64_t objectid,
+				   char *name) 
 {
 	key_type_t type;
 	
@@ -323,7 +321,7 @@ static errno_t key_large_build_hashed(reiser4_key_t *key,
 	kl_set_minor((key_large_t *)key->body,
 		      key_common_type2minor(type));
 	
-	return key_large_build_hash(key, hash, fibre, name);
+	key_large_build_hash(key, hash, fibre, name);
 }
 
 /* Builds generic key by all its components */

@@ -142,32 +142,6 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	return res;
 }
 
-static errno_t repair_semantic_unlink(repair_semantic_t *sem, 
-				      reiser4_object_t *parent,
-				      reiser4_object_t *object,
-				      char *name)
-{
-	entry_hint_t entry;
-	
-	aal_assert("vpf-1336", sem != NULL);
-	aal_assert("vpf-1337", object != NULL);
-
-	if (!parent) {
-		reiser4_plug_t *plug = object->ent->opset.plug[OPSET_OBJ];
-		
-		/* If there is no parent, just detach the object. */
-		if (!plug->o.object_ops->detach) 
-			return 0;
-
-		return plug_call(plug->o.object_ops, detach, 
-				 object->ent, NULL);
-	}
-	
-	/* unlink from the parent. */
-	aal_strncpy(entry.name, name, sizeof(entry.name));
-	return reiser4_object_unlink(parent, &entry);
-}
-
 static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
 					 reiser4_object_t *parent,
 					 reiser4_object_t *object)
@@ -183,7 +157,7 @@ static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
 	repair_semantic_lost_name(object, buff, REISER4_MAX_BLKSIZE);
 	
 	/* Detach if possible. */
-	if ((res = repair_semantic_unlink(sem, NULL, object, NULL)))
+	if ((res = reiser4_object_detach(object, NULL)))
 		return res;
 	
 	/* Add the entry to the @parent. */
@@ -309,7 +283,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
  error_object_detach:
 	/* Detach if possible. */
-	res = repair_semantic_unlink(sem, NULL, object, NULL);
+	res = reiser4_object_detach(object, NULL);
 	return res < 0 ? INVAL_PTR : NULL;
 	
  error_parent_close:
@@ -411,9 +385,11 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 			repair_semantic_lost_name(object, buff, 
 						  REISER4_MAX_BLKSIZE);
 			
-			if ((res = repair_semantic_unlink(sem, lost ? sem->lost
-							  : 0, object, buff)))
-				goto error_close_object;
+			res = lost ?
+				reiser4_object_unlink(sem->lost, buff):
+				reiser4_object_detach(object, NULL);
+			
+			if (res) goto error_close_object;
 		}
 
 		break;
@@ -639,7 +615,7 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 		fsck_mess("Object [%s]: detaching.", 
 			 reiser4_print_key(&object->ent->object, PO_INODE));
 		
-		if ((res = repair_semantic_unlink(sem, NULL, object, NULL)))
+		if ((res = reiser4_object_detach(object, NULL)))
 			return res;
 		
 		fsck_mess("Object [%s]: attaching to [%s].", 

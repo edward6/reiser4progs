@@ -49,17 +49,23 @@ extern errno_t reiser4_object_refresh(reiser4_object_t *object);
 extern errno_t reiser4_object_update(reiser4_object_t *object,
 				     stat_hint_t *hint);
 
-extern reiser4_object_t *reiser4_object_create(reiser4_tree_t *tree,
-					       entry_hint_t *entry,
+extern reiser4_object_t *reiser4_object_create(entry_hint_t *entry,
 					       object_hint_t *hint);
+
+extern errno_t reiser4_object_clobber(reiser4_object_t *object);
 
 extern errno_t reiser4_object_link(reiser4_object_t *object,
 				   reiser4_object_t *child,
 				   entry_hint_t *entry);
 
 extern errno_t reiser4_object_unlink(reiser4_object_t *object,
-				     entry_hint_t *entry);
+				     char *name);
 
+extern errno_t reiser4_object_attach(reiser4_object_t *object, 
+				     reiser4_object_t *parent);
+
+extern errno_t reiser4_object_detach(reiser4_object_t *object, 
+				     reiser4_object_t *parent);
 
 extern errno_t reiser4_object_layout(reiser4_object_t *object,
 				     region_func_t region_func,
@@ -95,6 +101,11 @@ extern int64_t reiser4_object_read(reiser4_object_t *object,
 
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
+
+extern errno_t reiser4_object_entry_prep(reiser4_tree_t *tree,
+					 reiser4_object_t *parent,
+					 entry_hint_t *entry,
+					 const char *name);
 
 extern reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 					    reiser4_object_t *parent,

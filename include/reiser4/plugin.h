@@ -843,8 +843,8 @@ struct reiser4_key_ops {
 
 	/* Builds key used for directory entries access. It uses name and hash
 	   plugin to build hash and put it to key offset component. */
-	errno_t (*build_hashed) (reiser4_key_t *, reiser4_plug_t *,
-				 reiser4_plug_t *, uint64_t, uint64_t, char *);
+	void (*build_hashed) (reiser4_key_t *, reiser4_plug_t *,
+			      reiser4_plug_t *, uint64_t, uint64_t, char *);
 	
 #ifndef ENABLE_MINIMAL
 	

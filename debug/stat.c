@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   stat.c -- a demo program which works similar to standard stat utility. */
+   stat.c -- a demo program that works similar to the standard stat utility. */
 
 #include "busy.h"
 

@@ -52,3 +52,9 @@ extern errno_t sym_test(busy_ctx_t *ctx);
 extern errno_t ls_cmd(busy_ctx_t *ctx);
 extern errno_t stat_cmd(busy_ctx_t *ctx);
 extern errno_t create_cmd(busy_ctx_t *ctx);
+extern errno_t ln_cmd(busy_ctx_t *ctx);
+extern errno_t rm_cmd(busy_ctx_t *ctx);
+
+
+extern reiser4_object_t *busy_misc_open_parent(reiser4_tree_t *tree, 
+					       char **path);

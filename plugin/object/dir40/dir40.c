@@ -255,6 +255,26 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 	return PRESENT;
 }
 
+#ifndef ENABLE_MINIMAL
+static void dir40_entry_type(entry_hint_t *entry) {
+	entry->type = ET_NAME;
+
+	if (aal_strlen(entry->name) == 1 &&
+	    !aal_strncmp(entry->name, ".", 1))
+	{
+		entry->type = ET_SPCL;
+	}
+
+	if (aal_strlen(entry->name) == 2 &&
+	    !aal_strncmp(entry->name, "..",2))
+	{
+		entry->type = ET_SPCL;
+	}
+}
+#else
+#define dir40_entry_type(entity) (0)
+#endif
+
 /* Reads one current directory entry to passed @entity hint. Returns count of
    read entries, zero for the case directory is over and nagtive values fopr
    errors. */
@@ -287,21 +307,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	   completely -- and what is not -- that needs some other special
 	   actions, e.g. check_attach for ".." (and even "..." if it is needed
 	   one day), etc. */
-#ifndef ENABLE_MINIMAL
-	entry->type = ET_NAME;
-		
-	if (aal_strlen(entry->name) == 1 &&
-	    !aal_strncmp(entry->name, ".", 1))
-	{
-		entry->type = ET_SPCL;
-	}
-
-	if (aal_strlen(entry->name) == 2 &&
-	    !aal_strncmp(entry->name, "..",2))
-	{
-		entry->type = ET_SPCL;
-	}
-#endif
+	dir40_entry_type(entry);
 
 	units = plug_call(dir->body.plug->o.item_ops->balance,
 			  units, &dir->body);
@@ -394,6 +400,8 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 		if (res == PRESENT) {
 			if (dir40_fetch(dir, entry))
 				return -EIO;
+
+			dir40_entry_type(entry);
 		}
 	}
 
@@ -618,65 +626,6 @@ static errno_t dir40_clobber(object_entity_t *entity) {
 	return obj40_clobber(&((dir40_t *)entity)->obj);
 }
 
-/* Attaches passed directory denoted by @entity to @parent object. */
-static errno_t dir40_attach(object_entity_t *entity,
-			    object_entity_t *parent)
-{
-	errno_t res;
-	dir40_t *dir;
-	entry_hint_t entry;
-	
-	aal_assert("umka-2289", entity != NULL);
-	aal_assert("umka-2359", parent != NULL);
-
-	dir = (dir40_t *)entity;
-
-	aal_memset(&entry, 0, sizeof(entry));
-	
-	aal_strncpy(entry.name, "..", sizeof(entry.name));
-
-	/* Adding ".." pointing to parent to @entity object. */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-		  assign, &entry.object, &parent->object);
-
-	if ((res = plug_call(entity->opset.plug[OPSET_OBJ]->o.object_ops,
-			     add_entry, entity, &entry)))
-	{
-		return res;
-	}
-
-	/* Increasing parent's @nlink by one */
-	return plug_call(parent->opset.plug[OPSET_OBJ]->o.object_ops, 
-			 link, parent);
-}
-
-/* Detaches @entity from @parent. */
-static errno_t dir40_detach(object_entity_t *entity,
-			    object_entity_t *parent)
-{
-	reiser4_plug_t *plug;
-	entry_hint_t entry;
-	dir40_t *dir;
-
-	aal_assert("umka-2291", entity != NULL);
-
-	dir = (dir40_t *)entity;
-
-	plug = entity->opset.plug[OPSET_OBJ];
-	
-	/* Removing ".." from child if it is found */
-	switch (plug_call(plug->o.object_ops, lookup, entity, "..", &entry)) {
-	case PRESENT:
-		return plug_call(plug->o.object_ops, rem_entry, entity, &entry);
-	default:
-		if (!parent) 
-			return 0;
-		
-		/* Decreasing parent's @nlink by one */
-		return plug_call(plug->o.object_ops, unlink, parent);
-	}
-}
-
 /* Return number of hard links. */
 static uint32_t dir40_links(object_entity_t *entity) {
 	dir40_t *dir;
@@ -723,11 +672,13 @@ static errno_t dir40_build_entry(object_entity_t *entity,
 	locality = obj40_locality(&dir->obj);
 	objectid = obj40_objectid(&dir->obj);
 	
-	return plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
-			 build_hashed, &entry->offset, 
-			 entity->opset.plug[OPSET_HASH],
-			 entity->opset.plug[OPSET_FIBRE], 
-			 locality, objectid, entry->name);
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
+		  build_hashed, &entry->offset, 
+		  entity->opset.plug[OPSET_HASH],
+		  entity->opset.plug[OPSET_FIBRE], 
+		  locality, objectid, entry->name);
+
+	return 0;
 }
 
 /* Add new entry to directory. */
@@ -853,6 +804,63 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	bytes = obj40_get_bytes(&dir->obj) - hint.bytes;
 	
 	return obj40_touch(&dir->obj, size, bytes);
+}
+
+/* Attaches passed directory denoted by @entity to @parent object. */
+static errno_t dir40_attach(object_entity_t *entity,
+			    object_entity_t *parent)
+{
+	errno_t res;
+	dir40_t *dir;
+	entry_hint_t entry;
+	
+	aal_assert("umka-2289", entity != NULL);
+	aal_assert("umka-2359", parent != NULL);
+
+	dir = (dir40_t *)entity;
+
+	aal_memset(&entry, 0, sizeof(entry));
+	
+	aal_strncpy(entry.name, "..", sizeof(entry.name));
+
+	/* Adding ".." pointing to parent to @entity object. */
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
+		  assign, &entry.object, &parent->object);
+
+	if ((res = dir40_add_entry(entity, &entry)))
+		return res;
+
+	/* Increasing parent's @nlink by one */
+	return plug_call(parent->opset.plug[OPSET_OBJ]->o.object_ops, 
+			 link, parent);
+}
+
+/* Detaches @entity from @parent. */
+static errno_t dir40_detach(object_entity_t *entity,
+			    object_entity_t *parent)
+{
+	reiser4_plug_t *pplug;
+	entry_hint_t entry;
+	dir40_t *dir;
+	errno_t res;
+
+	aal_assert("umka-2291", entity != NULL);
+
+	dir = (dir40_t *)entity;
+
+	pplug = parent->opset.plug[OPSET_OBJ];
+	
+	/* Removing ".." from child if it is found */
+	if (dir40_lookup(entity, "..", &entry) == PRESENT) {
+		if ((res = dir40_rem_entry(entity, &entry)))
+			return res;
+	}
+	
+	if (!parent) 
+		return 0;
+		
+	/* Decreasing parent's @nlink by one */
+	return plug_call(pplug->o.object_ops, unlink, parent);
 }
 
 /* Directory enumerating related stuff.*/

@@ -27,15 +27,15 @@ busy_cmd_t tests[] = {
 	},
 	[3] = {
 		.name = "ln-s",
-		.options = "PATH target",
+		.options = "PATH link_name",
 		.handler = create_cmd,
-		.ops_num = 1,
+		.ops_num = 2,
 	},
 	[4] = {
 		.name = "ln",
-		.options = "PATH target",
-		.handler = NULL,
-		.ops_num = 1,
+		.options = "PATH link_name",
+		.handler = ln_cmd,
+		.ops_num = 2,
 	},
 	[5] = {
 		.name = "ls",
@@ -46,7 +46,7 @@ busy_cmd_t tests[] = {
 	[6] = {
 		.name = "rm",
 		.options = "PATH",
-		.handler = NULL,
+		.handler = rm_cmd,
 		.ops_num = 1,
 	},
 	[7] = {

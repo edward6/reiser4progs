@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   ls.c -- a demo program which works similar like to standard ls utility. */
+   ls.c -- a demo program that works similar like to the standard ls utility. */
 
 #include "busy.h"
 

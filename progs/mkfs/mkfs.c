@@ -91,12 +91,13 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	hint.mode = 0;
 	reiser4_opset_profile(hint.info.opset.plug);
 	hint.info.opset.plug[OPSET_OBJ] = hint.info.opset.plug[OPSET_MKDIR];
+	hint.info.tree = (tree_entity_t *)fs->tree;
 
 	/* Preparing entry hint. */
 	entry.name[0] = '\0';
 	reiser4_key_assign(&entry.offset, &fs->tree->key);
 
-	return reiser4_object_create(fs->tree, &entry, &hint);
+	return reiser4_object_create(&entry, &hint);
 }
 
 int main(int argc, char *argv[]) {
