@@ -524,7 +524,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	res = plugin_call(child->entity->plugin->o.object_ops,
-			  link, child->entity);
+			  unlink, child->entity);
 	
 	reiser4_object_close(child);
 	
