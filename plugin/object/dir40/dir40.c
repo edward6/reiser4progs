@@ -191,7 +191,8 @@ static int32_t dir40_update(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	switch ((res = obj40_lookup(&dir->obj, &dir->offset,
-				    LEAF_LEVEL, EXACT, &dir->body)))
+				    LEAF_LEVEL, FIND_EXACT,
+				    &dir->body)))
 	{
 	case FAILED:
 		return -EINVAL;
@@ -446,7 +447,7 @@ static lookup_res_t dir40_search(object_entity_t *entity,
 lookup_res_t dir40_lookup(object_entity_t *entity,
 			  char *name, entry_hint_t *entry) 
 {
-	return dir40_search(entity, name, EXACT, entry);
+	return dir40_search(entity, name, FIND_EXACT, entry);
 }
 
 /* Initializing dir40 instance by stat data place, resetring directory be means
@@ -552,7 +553,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
-			     LEAF_LEVEL, CONV, &dir->body))
+			     LEAF_LEVEL, FIND_CONV,
+			     &dir->body))
 	{
 	case ABSENT:
 		/* Inserting the direntry item into the tree */
@@ -613,7 +615,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 		/* Looking for the last directory item */
 		switch ((obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
-				      EXACT, &place)))
+				      FIND_EXACT, &place)))
 		{
 		case FAILED:
 			return -EINVAL;
@@ -768,7 +770,9 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting place new entry will be inserted at */
-	switch (dir40_search(entity, entry->name, EXACT, &temp)) {
+	switch (dir40_search(entity, entry->name,
+			     FIND_EXACT, &temp))
+	{
 	case ABSENT:
 		if ((res = obj40_fetch(&dir->obj, &temp.place)))
 			return res;
@@ -824,7 +828,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Looking for place to insert directory entry */
-	switch (dir40_search(entity, entry->name, EXACT, &temp)) {
+	switch (dir40_search(entity, entry->name, FIND_EXACT, &temp)) {
 	case PRESENT:
 		hint.count = 1;
 		

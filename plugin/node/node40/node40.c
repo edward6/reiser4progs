@@ -279,7 +279,6 @@ errno_t node40_fetch(node_entity_t *entity,
 	place->pos = *pos;
 	place->block = node->block;
 	place->len = node40_len(entity, pos);
-	aal_memcpy(&place->pos, pos, sizeof(pos_t));
 	place->body = node40_ib_at(node, pos->item);
 
 	/* Getting item key */

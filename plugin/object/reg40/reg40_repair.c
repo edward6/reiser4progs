@@ -141,8 +141,11 @@ static reiser4_plug_t *reg40_bodyplug(reg40_t *reg) {
 	aal_memcpy(&key, &reg->offset, sizeof (key));
 	plug_call(key.plug->o.key_ops, set_offset, &key, MAX_UINT64);
 	
-	if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL, EXACT, &place)) == FAILED)
+	if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
+			  FIND_EXACT, &place)) == FAILED)
+	{
 		return NULL;
+	}
 
 	/* If place is invalid, there is no items of the file. */
 	if (!rcore->tree_ops.valid(reg->obj.info.tree, &place))

@@ -253,7 +253,7 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 	}
 
 	place->pos.unit = units - 1;
-	return (mode == CONV ? PRESENT : ABSENT);
+	return (mode == FIND_CONV ? PRESENT : ABSENT);
 }
 
 #ifndef ENABLE_STAND_ALONE

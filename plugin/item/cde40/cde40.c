@@ -984,7 +984,7 @@ lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
 #endif
 		return PRESENT;
 	case 0:
-		return (mode == CONV ? PRESENT : ABSENT);
+		return (mode == FIND_CONV ? PRESENT : ABSENT);
 	default:
 		return FAILED;
 	}

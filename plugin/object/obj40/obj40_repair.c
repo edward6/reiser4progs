@@ -257,7 +257,7 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 
 	/* Update the place of SD. */
 	switch ((lookup = obj40_lookup(obj, key, LEAF_LEVEL,
-				       EXACT, start)))
+				       FIND_EXACT, start)))
 	{
 	case PRESENT:
 		if ((res = stat_func(start))) {

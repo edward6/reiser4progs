@@ -273,7 +273,7 @@ errno_t reiser4_node_realize(
         reiser4_node_lkey(node, &lkey);
                                                                                                    
 	/* Getting position by means of using node lookup */
-        if (reiser4_node_lookup(parent->node, &lkey, EXACT,
+        if (reiser4_node_lookup(parent->node, &lkey, FIND_EXACT,
 				&parent->pos) == PRESENT)
 	{
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
@@ -502,7 +502,7 @@ lookup_res_t reiser4_node_lookup(
 			return res;
 		}
 
-		if (mode == CONV) {
+		if (mode == FIND_CONV) {
 			pos->item++;
 			return ABSENT;
 		}

@@ -1083,7 +1083,7 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 			if (walk.plug->o.item_ops->lookup) {
 				switch (plug_call(walk.plug->o.item_ops,
 						  lookup, (place_t *)&walk,
-						  key, EXACT))
+						  key, FIND_EXACT))
 				{
 				case PRESENT:
 					aal_memcpy(place, &walk,
@@ -1159,12 +1159,12 @@ lookup_res_t reiser4_tree_lookup(
 		    
 	while (1) {
 		uint32_t curr = reiser4_node_get_level(place->node);
+		lookup_mod_t actual_mode = (curr > level ? FIND_EXACT : mode);
 		
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
 		res = reiser4_node_lookup(place->node, &wan,
-					  (curr > level ? EXACT : mode),
-					  &place->pos);
+					  actual_mode, &place->pos);
 
 		/* Check if we should finish lookup because we reach stop level
 		   or some error occured durring last node lookup. */
@@ -1283,7 +1283,8 @@ errno_t reiser4_tree_attach(
 
 	/* Looking up for the insert point place */
 	switch ((res = reiser4_tree_lookup(tree, &hint.key,
-					   level, CONV, &place)))
+					   level, FIND_CONV,
+					   &place)))
 	{
 	case FAILED:
 		aal_exception_error("Lookup is failed durring "
@@ -1825,9 +1826,8 @@ errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 			hint->count = size;
 			
 		/* Looking for place to write */
-		switch (reiser4_tree_lookup(tree, &hint->key,
-					    LEAF_LEVEL, CONV,
-					    &place))
+		switch (reiser4_tree_lookup(tree, &hint->key, LEAF_LEVEL,
+					    FIND_CONV, &place))
 		{
 		case FAILED:
 			return -EIO;
@@ -1909,9 +1909,8 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		reiser4_key_set_offset(&hint.key, offset);
 
 		/* Looking for the place to read */
-		switch (reiser4_tree_lookup(tree, &hint.key,
-					    LEAF_LEVEL,
-					    EXACT, place))
+		switch (reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL,
+					    FIND_EXACT, place))
 		{
 		case ABSENT:
 			return -EIO;
@@ -2017,7 +2016,7 @@ static int32_t reiser4_tree_mod(
 		   is growed up. It is needed because we want to insert item 
 		   into the node of the given @level. */
 		if (reiser4_tree_lookup(tree, &hint->key, level,
-					CONV, place) == FAILED)
+					FIND_CONV, place) == FAILED)
 		{
 			aal_exception_error("Lookup failed after "
 					    "tree growed up to "

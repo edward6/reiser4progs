@@ -59,7 +59,8 @@ errno_t reg40_update(object_entity_t *entity) {
 	
 	/* Getting the next body item from the tree */
 	switch (obj40_lookup(&reg->obj, &reg->offset,
-			     LEAF_LEVEL, EXACT, &reg->body))
+			     LEAF_LEVEL, FIND_EXACT,
+			     &reg->body))
 	{
 	case PRESENT:
 		return 0;
@@ -327,9 +328,8 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 		place_t place;
 		uint32_t size;
 
-		switch (obj40_lookup(&reg->obj, &key,
-				     LEAF_LEVEL, EXACT,
-				     &place))
+		switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
+				     FIND_EXACT, &place))
 		{
 		case PRESENT:
 			break;
@@ -362,6 +362,7 @@ errno_t reg40_conv_body(object_entity_t *entity, uint64_t new_size) {
 	
 	aal_assert("umka-2395", entity != NULL);
 
+	return 0;
 	reg = (reg40_t *)entity;
 	
 	/* There is nothing to convert */
@@ -414,7 +415,8 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 
 		/* Lookup place data will be inserted at */
 		switch (obj40_lookup(&reg->obj, &hint.key,
-				     LEAF_LEVEL, CONV, &reg->body))
+				     LEAF_LEVEL, FIND_CONV,
+				     &reg->body))
 		{
 		case PRESENT:
 			hint.offset = reg40_offset(entity);
@@ -484,7 +486,7 @@ static int32_t reg40_cut(object_entity_t *entity,
 
 		/* Making lookup for last item. */
 		if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				  EXACT, &place) != PRESENT))
+				  FIND_EXACT, &place) != PRESENT))
 		{
 			return -EINVAL;
 		}

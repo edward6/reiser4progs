@@ -268,8 +268,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_node_lkey(node, &hint.key);
 	
 	/* Key should not exist in the tree yet. */
-	lookup = reiser4_tree_lookup(tree, &hint.key,
-				     LEAF_LEVEL, EXACT, &place);
+	lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL,
+				     FIND_EXACT, &place);
 
 	if (lookup != ABSENT)
 		return lookup == FAILED ? -EINVAL : -ESTRUCT;
@@ -514,7 +514,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	
 	while (1) {
 		switch (reiser4_tree_lookup(tree, &key, LEAF_LEVEL,
-					    EXACT, &dst))
+					    FIND_EXACT, &dst))
 		{
 		case PRESENT:
 			/* Whole data can not be inserted */
@@ -629,7 +629,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		
 		/* Lookup by end_key. */
 		if (src->plug->o.item_ops->lookup((place_t *)src, &key, 
-						  EXACT) == FAILED)
+						  FIND_EXACT) == FAILED)
 			return -EINVAL;
 		
 		if (src->pos.unit >= scount)

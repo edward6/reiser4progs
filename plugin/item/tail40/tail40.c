@@ -77,36 +77,37 @@ static errno_t tail40_estimate_write(place_t *place,
 static int32_t tail40_write(place_t *place,
 			    trans_hint_t *hint)
 {
-	uint32_t count;
+	uint32_t count, pos;
 	
 	aal_assert("umka-1677", hint != NULL);
 	aal_assert("umka-1678", place != NULL);
 
 	count = hint->count;
+        pos = place->pos.unit;
 	
-	if (count > place->len - hint->offset)
-		count = place->len - hint->offset;
+	if (count > place->len - pos)
+		count = place->len - pos;
 
 	/* Checking if we insert hole */
 	if (hint->specific) {
 		/* Copying new data into place */
-		aal_memcpy(place->body + hint->offset,
+		aal_memcpy(place->body + pos,
 			   hint->specific, count);
 	} else {
 		/* Making hole of size @count */
-		aal_memset(place->body + hint->offset,
+		aal_memset(place->body + pos,
 			   0, count);
 	}
 
 	/* Updating the key */
-	if (hint->offset == 0) {
+	if (pos == 0) {
 		body40_get_key(place, 0,
 			       &place->key, NULL);
 	}
 
 	hint->bytes = count;
 	place_mkdirty(place);
-	
+                                                                                       
 	return count;
 }
 
@@ -165,7 +166,7 @@ static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key,
 	}
 
 	place->pos.unit = units;
-	return (mode == CONV ? PRESENT : ABSENT);
+	return (mode == FIND_CONV ? PRESENT : ABSENT);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -300,6 +301,8 @@ static errno_t tail40_shift(place_t *src_place,
 			    place_t *dst_place,
 			    shift_hint_t *hint)
 {
+	uint64_t offset;
+	
 	aal_assert("umka-1665", src_place != NULL);
 	aal_assert("umka-1666", dst_place != NULL);
 	aal_assert("umka-1667", hint != NULL);
@@ -315,11 +318,14 @@ static errno_t tail40_shift(place_t *src_place,
 			      hint->rest);
 
 		/* Updating item's key by the first unit key */
-		body40_get_key(src_place, hint->rest,
-			       &src_place->key, NULL);
+		offset = plug_call(src_place->key.plug->o.key_ops,
+				   get_offset, &src_place->key);
+
+		plug_call(src_place->key.plug->o.key_ops,
+			  set_offset, &src_place->key,
+			  offset + hint->rest);
 	} else {
 		uint32_t pos;
-		uint64_t offset;
 		
 		tail40_expand(dst_place, 0, hint->units,
 			      hint->rest);
@@ -329,18 +335,12 @@ static errno_t tail40_shift(place_t *src_place,
 		tail40_copy(dst_place, 0, src_place, pos, hint->rest);
 		tail40_shrink(src_place, pos, hint->units, hint->rest);
 
-		/* Updating item's key by the first unit key */
-		body40_get_key(dst_place, 0, &dst_place->key, NULL);
-
 		offset = plug_call(dst_place->key.plug->o.key_ops,
 				   get_offset, &dst_place->key);
-
-		aal_assert("umka-2282", offset >= hint->rest);
 		
-		offset -= hint->rest;
-
 		plug_call(dst_place->key.plug->o.key_ops,
-			  set_offset, &dst_place->key, offset);
+			  set_offset, &dst_place->key,
+			  offset - hint->rest);
 	}
 	
 	return 0;
