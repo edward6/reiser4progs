@@ -318,7 +318,8 @@ static errno_t node40_expand(node40_t *node, rpos_t *pos,
 	int is_range;
 	int is_insert;
 
-	uint32_t i, item, items;
+	uint32_t item;
+	uint32_t items;
 	uint32_t offset;
 	uint32_t headers;
 	item40_header_t *ih;
@@ -349,8 +350,8 @@ static errno_t node40_expand(node40_t *node, rpos_t *pos,
 	  data moving and offset upadting.
 	*/
 	if (item < items) {
-		uint32_t size;
 		void *src, *dst;
+		uint32_t i, size;
 
 		offset = ih40_get_offset(ih);
 
@@ -513,7 +514,7 @@ static errno_t node40_shrink(object_entity_t *entity, rpos_t *pos,
 
 /*
   Calculates size of a region denoted by @pos and @count. This is used by
-  node40_copy, node40_delete, etc.
+  node40_copy, node40_remove, etc.
 */
 static uint32_t node40_size(node40_t *node, rpos_t *pos, uint32_t count) {
 	int is_range;
@@ -602,48 +603,10 @@ static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
 	return 0;
 }
 
-/* Deletes items or units from teh node */
-static errno_t node40_delete(node40_t *node, rpos_t *pos,
-			     uint32_t count)
-{
-	int is_range;
-	uint32_t len;
-	
-	item40_header_t *cur;
-	item40_header_t *end;
-
-	aal_assert("umka-1803", node != NULL, return -1);
-	aal_assert("umka-1804", pos != NULL, return -1);
-		
-	if (pos->unit == ~0ul) {
-		if (!(len = node40_size(node, pos, count)))
-			return -1;
-	} else {
-		item_entity_t item;
-		
-		if (node40_item(&item, node, pos))
-			return -1;
-			
-		/*
-		  The number of bytes will be removed from the item. Node will
-		  be shrinked by this value.
-		*/
-		len = item.plugin->item_ops.remove(&item, pos->unit, count);
-
-		/* Updating items key if leftmost unit was changed */
-		if (pos->unit == 0) {
-			item40_header_t *ih = node40_ih_at(node, pos->item);
-			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
-		}
-		
-	}
-
-	return node40_shrink((object_entity_t *)node, pos, len, count);
-}
 
 /* Inserts item described by hint structure into node */
-static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
-			     reiser4_item_hint_t *hint) 
+static errno_t node40_insert(object_entity_t *entity,
+			     rpos_t *pos, reiser4_item_hint_t *hint)
 {
 	node40_t *node;
 	item_entity_t item;
@@ -651,10 +614,11 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
     
 	aal_assert("vpf-119", pos != NULL, return -1);
 	aal_assert("umka-818", entity != NULL, return -1);
+	aal_assert("umka-1814", hint != NULL, return -1);
     
 	node = (node40_t *)entity;
 	
-	/* Makes expand of the node new item will be inaserted to */
+	/* Makes expand of the node new items will be inserted in */
 	if (node40_expand(node, pos, hint->len, 1))
 		return -1;
 
@@ -688,10 +652,10 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 			return -1;
 
 		return plugin_call(hint->plugin->item_ops, insert, &item,
-				   hint, 0);
+				   hint, 0, hint->count);
 	} else {
 		if (plugin_call(hint->plugin->item_ops, insert, &item,
-				hint, pos->unit))
+				hint, pos->unit, hint->count))
 		{
 			/* Was unable to insert new unit */
 			return -1;
@@ -710,7 +674,7 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 
 /* This function removes item/unit from the node at specified @pos */
 errno_t node40_remove(object_entity_t *entity, 
-		      rpos_t *pos) 
+		      rpos_t *pos, uint32_t count) 
 {
 	uint32_t len;
 	node40_t *node;
@@ -720,16 +684,18 @@ errno_t node40_remove(object_entity_t *entity,
 
 	node = (node40_t *)entity;
 	
-	if (pos->unit == ~0ul)
-		len = node40_item_len(entity, pos);
-	else {
+	if (pos->unit == ~0ul) {
+		if (!(len = node40_size(node, pos, count)))
+			return -1;
+	} else {
 		item_entity_t item;
 
 		if (node40_item(&item, node, pos))
 			return -1;
-		
+
+		/* Removing units from the item ;pointed by pos */
 		len = plugin_call(item.plugin->item_ops, remove, &item,
-				  pos->unit, 1);
+				  pos->unit, count);
 
                 /* Updating items key if leftmost unit was changed */
 		if (pos->unit == 0) {
@@ -738,13 +704,12 @@ errno_t node40_remove(object_entity_t *entity,
 		}
 	}
 	
-	return node40_shrink(entity, pos, len, 1);
+	return node40_shrink(node, pos, len, count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
 static errno_t node40_cut(object_entity_t *entity,
-			  rpos_t *start,
-			  rpos_t *end)
+			  rpos_t *start, rpos_t *end)
 {
 	node40_t *node;
 	uint32_t units;
@@ -774,7 +739,7 @@ static errno_t node40_cut(object_entity_t *entity,
 				return -1;
 				
 			units = item.plugin->item_ops.units(&item);
-			if (node40_delete(node, &pos, units - start->unit))
+			if (node40_remove(entity, &pos, units - start->unit))
 				return -1;
 			if (start->unit == 0)
 				begin--;
@@ -788,7 +753,7 @@ static errno_t node40_cut(object_entity_t *entity,
 				
 			units = item.plugin->item_ops.units(&item);
 
-			if (node40_delete(node, &pos, units - end->unit))
+			if (node40_remove(entity, &pos, end->unit))
 				return -1;
 			if (end->unit >= units)
 				count++;
@@ -797,11 +762,11 @@ static errno_t node40_cut(object_entity_t *entity,
 		if (count > 0) {
                         /*
 			  Removing some amount of whole items from the node. If
-			  previous node40_delete produced empty edge items, they
-			  will eb removed too.
+			  previous node40_remove produced empty edge items, they
+			  will be removed too.
 			*/
 			rpos_init(&pos, begin, ~0ul);
-			if (node40_delete(node, &pos, count))
+			if (node40_remove(entity, &pos, count))
 				return -1;
 		}
 	} else {
@@ -809,7 +774,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		aal_assert("umka-1794", start->unit != ~0ul, return -1);
 		pos = *start;
 		count = end->unit - start->unit;
-		if (node40_delete(node, &pos, count))
+		if (node40_remove(entity, &pos, count))
 			return -1;
 
 		if (node40_item(&item, node, &pos))
@@ -966,7 +931,7 @@ static errno_t node40_print(object_entity_t *entity,
 
 /* 
   This checks the level constrains like no internal and extent items at leaf
-  level or no statdata items at internal level.  Returns 0 is legal, 1 - not,
+  level or no statdata items at internal level. Returns 0 is legal, 1 - not,
   -1 - error.
 */
 errno_t node40_item_legal(object_entity_t *entity,
@@ -994,7 +959,7 @@ errno_t node40_item_legal(object_entity_t *entity,
 
 #endif
 
-/* Helper callback for comparing two keys. Thios is used by node lookup */
+/* Helper callback for comparing two keys. This is used by node lookup */
 static inline int callback_comp_key(void *node, uint32_t pos,
 				    void *key2, void *data)
 {
@@ -1050,14 +1015,34 @@ static int node40_lookup(object_entity_t *entity,
 #ifndef ENABLE_COMPACT
 
 /* Checks if two item entities are mergeable */
-static int node40_mergeable(item_entity_t *item1,
+static bool_t node40_mergeable(item_entity_t *item1,
 			    item_entity_t *item2)
 {
 	if (!plugin_equal(item1->plugin, item2->plugin))
-		return 0;
+		return FALSE;
 
-	return item1->plugin->item_ops.mergeable &&
-		item1->plugin->item_ops.mergeable(item1, item2);
+	if (!item1->plugin->item_ops.mergeable)
+		return FALSE;
+	
+	return item1->plugin->item_ops.mergeable(item1, item2);
+}
+
+static bool_t node40_shiftable(item_entity_t *item) {
+	if (!item->plugin->item_ops.predict)
+		return FALSE;
+
+	if (!item->plugin->item_ops.shift)
+		return FALSE;
+	
+	/* We can't shift units from items with one unit */
+	if (!item->plugin->item_ops.units)
+		return FALSE;
+
+	/* Items that consist of one unit cannot be splitted */
+	if (item->plugin->item_ops.units(item) <= 1)
+		return FALSE;
+	
+	return TRUE;
 }
 
 /*
@@ -1119,18 +1104,7 @@ static errno_t node40_merge(node40_t *src_node,
 	  Items that do not implement predict and shift methods cannot be
 	  splitted.
 	*/
-	if (!src_item.plugin->item_ops.predict)
-		return 0;
-
-	if (!src_item.plugin->item_ops.shift)
-		return 0;
-	
-	/* We can't shift units from items with one unit */
-	if (!src_item.plugin->item_ops.units)
-		return 0;
-
-	/* Items that consist of one unit cannot be splitted */
-	if (src_item.plugin->item_ops.units(&src_item) <= 1)
+	if (!node40_shiftable(&src_item))
 		return 0;
 	
 	/* Checking if items are mergeable */
@@ -1214,7 +1188,7 @@ static errno_t node40_merge(node40_t *src_node,
 			return -1;
 		}
 
-		/* Setting up new item fiedls */
+		/* Setting up new item fields */
 		ih = node40_ih_at(dst_node, pos.item);
 		ih40_set_pid(ih, src_item.plugin->h.id);
 		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
