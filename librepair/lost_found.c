@@ -65,7 +65,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 static errno_t repair_lost_found_object_check(reiser4_place_t *place, 
 					      void *data) 
 {
-	reiser4_object_t parent, object;
+	reiser4_object_t object, *parent;
 	repair_lost_found_t *lf;
 	errno_t res = 0;
 	bool_t checked;
@@ -75,6 +75,10 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	
 	checked = repair_item_test_flag(place, ITEM_CHECKED);
 	
+	lf = (repair_lost_found_t *)data;
+	
+	repair_object_init(&object, lf->repair->fs->tree, place, NULL, NULL);
+
 	/* CHECKED items belong to objects with StatData or reached from its parent. 
 	   For the former, wait for their StatDatas. For the later, they are CHECKED 
 	   and REACHABLE -- nothing to do anymore. So continue only for not CHECKED 
@@ -86,13 +90,15 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		
 		if (repair_item_test_flag(place, ITEM_REACHABLE))
 			return 0;
-	}
-	
-	lf = (repair_lost_found_t *)data;    
-	
-	repair_object_init(&object, lf->repair->fs->tree, place, NULL, NULL);
-	
-	if (!checked) {
+
+		/* CHECKED and not REACHABLE StatData item. */
+		if ((res = repair_object_launch(&object))) {
+			aal_exception_error("Node %llu, item %u: failed to open an "
+					    "object pointed by %k.", place->node->blk, 
+					    place->pos.item, &place->item.key);
+			return res;
+		}
+	} else {
 		reiser4_plugin_t *plugin;
 		
 		/* Some not CHECKED item. Try to realize the plugin. */
@@ -111,90 +117,56 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 					    plugin->h.label);
 			return res;
 		}
-	} else {
-		/* CHECKED and not REACHABLE StatData item. */
-		if ((res = repair_object_launch(&object))) {
-			aal_exception_error("Node %llu, item %u: failed to open an "
-					    "object pointed by %k.", place->node->blk, 
-					    place->pos.item, &place->item.key);
-			return res;
-		}
-	}
+	} 
 	
 	aal_memmove(object.name + 10, object.name, OBJECT_NAME_SIZE - 10);
 	aal_memcpy(object.name, "lost_name_", 10);
 	
-	/* Object is openned and if it stores its parent somewhere it was obtained 
-	   to @object.info.parent, try to link the object to its parent or if it 
+	/* Object is openned and if it keeps its parent it put it into 
+	   @object.info.parent at , try to link the object to its parent or if it 
 	   fails link it to to the "lost+found". */
 	if (object.info.parent.plugin) {
-		repair_object_init(&parent, object.info.tree, NULL, 
+		if (!(parent = aal_calloc(sizeof(*parent), 0)))
+			goto error_close_object;
+		
+		repair_object_init(parent, object.info.tree, NULL, 
 				   &object.info.parent, &object.info.object);
 		
-		if (!reiser4_object_stat(&parent) && !reiser4_object_guess(&parent)) {
-			/* Parent found by parent pointer. */
-			res = reiser4_object_link(&parent, &object, object.name);
-			
-			if (res) {
-				aal_exception_error("Node %llu, item %u: failed to "
-						    "link the object pointed by %k "
-						    "to the object pointed by %k.",
-						    place->node->blk, place->pos.item, 
-						    &place->item.key, 
-						    &parent.info.object);
-				goto error_close_parent;
-			}
-			
-			/* Check the uplink - '..' in directories. */
-			res = repair_object_check_link(&object, &parent, 
-						       lf->repair->mode);
-			
-			if (res) {
-				aal_exception_error("Node %llu, item %u: failed to "
-						    "check the link of the object "
-						    "pointed by %k to the object "
-						    "pointed by %k.", 
-						    place->node->blk, 
-						    place->pos.item,
-						    &place->item.key, 
-						    &parent.info.object);
-				goto error_close_parent;
-			}
-			
-			repair_item_set_flag(reiser4_object_start(&object), 
-					     ITEM_CHECKED);
-			
-			plugin_call(parent.entity->plugin->o.object_ops, close, 
-				    parent.entity);
-		} else {
-			/* No parent found by parent pointer. */
-			res = reiser4_object_link(lf->lost, &object, object.name);
-			
-			if (res) {
-				aal_exception_error("Node %llu, item %u: failed to "
-						    "link the object pointed by %k "
-						    "to the object pointed by %k.",
-						    place->node->blk, place->pos.item, 
-						    &place->item.key, 
-						    &lf->lost->info.object);
-				goto error_close_object;
-			}
-			
-			if ((res = repair_object_check_link(&object, lf->lost, 
-							    lf->repair->mode))) 
-			{
-				aal_exception_error("Node %llu, item %u: failed to "
-						    "check the link of the object "
-						    "pointed by %k to the object "
-						    "pointed by %k.", 
-						    place->node->blk, 
-						    place->pos.item,
-						    &place->item.key, 
-						    &lf->lost->info.object);
-					goto error_close_object;
-			}
+		/* If there is no parent found, zero parent object to link to 
+		   lost+found later. */
+		if (reiser4_object_stat(parent) || reiser4_object_guess(parent)) {
+			aal_free(parent);
+			parent = lf->lost;
 		}
+	} else
+		parent = lf->lost;
+	
+	res = reiser4_object_link(parent, &object, object.name);
+	
+	if (res) {
+		aal_exception_error("Node %llu, item %u: failed to link the object "
+				    "pointed by %k to the object pointed by %k.",
+				    place->node->blk, place->pos.item, 
+				    &place->item.key, &parent->info.object);
+		goto error_close_parent;
 	}
+	
+	/* Check the uplink - '..' in directories. */
+	res = repair_object_check_link(&object, parent, lf->repair->mode);
+
+	if (res) {
+		aal_exception_error("Node %llu, item %u: failed to check the link "
+				    "of the object pointed by %k to the object "
+				    "pointed by %k.", place->node->blk, 
+				    place->pos.item, &place->item.key, 
+				    &parent->info.object);
+		goto error_close_parent;
+	}
+
+	repair_item_set_flag(reiser4_object_start(&object), 
+			     ITEM_CHECKED);
+
+	reiser4_object_close(parent);
 	
 	if ((res = repair_object_traverse(&object, callback_object_open, lf)))
 		goto error_close_object;
@@ -207,8 +179,8 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	return 0;
 	
  error_close_parent:
-	plugin_call(parent.entity->plugin->o.object_ops, close, parent.entity);
-	
+	reiser4_object_close(parent);
+
  error_close_object:
 	plugin_call(object.entity->plugin->o.object_ops, close, object.entity);
 	

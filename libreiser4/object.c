@@ -30,8 +30,7 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 	  and @place. If it fails, we will continue lookup.
 	*/
 	object->entity = plugin_call(plugin->o.object_ops, open,
-				     &object->info.start,
-				     (void *)object->info.tree);
+				     &object->info);
 	
 	if (object->entity != NULL) {	
 		plugin_call(plugin->o.object_ops, close,
@@ -61,8 +60,7 @@ errno_t reiser4_object_guess(reiser4_object_t *object) {
 		return -EINVAL;
 	
 	object->entity = plugin_call(plugin->o.object_ops, open,
-				     &object->info.start,
-				     (void *)object->info.tree);
+				     &object->info);
 	
 	return object->entity != NULL ? 0 : -EINVAL;
 }

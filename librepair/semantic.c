@@ -10,7 +10,6 @@ errno_t callback_check_struct(object_entity_t *object, place_t *place, void *dat
 	aal_assert("vpf-1114", object != NULL);
 	aal_assert("vpf-1115", place != NULL);
 	aal_assert("vpf-1116", place->node != NULL);
-	aal_assert("vpf-1117", data != NULL);
 	
 	repair_item_set_flag((reiser4_place_t *)place, ITEM_CHECKED);
 	
@@ -72,7 +71,10 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 						    &entry->object);
 			}
 			
-			res = 0;
+			/* Do no do down in traverse for fatal errors. */
+			if (res != REPAIR_FATAL)
+				res = 0;
+			
 			goto error_close_object;
 		}
 	}
@@ -90,7 +92,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	} 
 	
 	if (checked) 
-		goto error_close_object;
+		reiser4_object_close(*object);
 	
 	return 0;
 	

@@ -655,7 +655,7 @@ struct reiser4_object_ops {
 	errno_t (*seek) (object_entity_t *, uint64_t);
 	
 	/* Opens file with specified key */
-	object_entity_t *(*open) (place_t *, void *);
+	object_entity_t *(*open) (object_info_t *);
 
 	/* Closes previously opened or created directory */
 	void (*close) (object_entity_t *);

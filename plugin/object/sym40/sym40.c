@@ -19,28 +19,28 @@ static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sym40_plugin;
 
 /* Opens symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_open(place_t *place, void *tree) {
+static object_entity_t *sym40_open(object_info_t *info) {
 	sym40_t *sym;
 
-	aal_assert("umka-1163", tree != NULL);
-	aal_assert("umka-1164", place != NULL);
+	aal_assert("umka-1163", info != NULL);
+	aal_assert("umka-1164", info->tree != NULL);
  	
-	if (place->item.plugin->h.group != STATDATA_ITEM)
+	if (info->start.item.plugin->h.group != STATDATA_ITEM)
 		return NULL;
    
-	if (obj40_pid(&place->item) != sym40_plugin.h.id)
+	if (obj40_pid(&info->start.item) != sym40_plugin.h.id)
 		return NULL;
 	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 
 	/* Initalizing file handle */
-	obj40_init(&sym->obj, &sym40_plugin,
-		   &place->item.key, core, tree);
+	obj40_init(&sym->obj, &sym40_plugin, &info->start.item.key, 
+		   core, info->tree);
 
 	/* Initialziing statdata place */
-	aal_memcpy(&sym->obj.statdata, place,
-		   sizeof(*place));
+	aal_memcpy(&sym->obj.statdata, &info->start,
+		   sizeof(info->start));
 	
 	obj40_lock(&sym->obj, &sym->obj.statdata);
 	

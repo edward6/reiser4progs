@@ -155,16 +155,16 @@ static reiser4_plugin_t *reg40_bplug(reg40_t *reg,
 #endif
 
 /* Opening reg40 by statdata place passed in @place */
-static object_entity_t *reg40_open(place_t *place, void *tree) {
+static object_entity_t *reg40_open(object_info_t *info) {
 	reg40_t *reg;
 
-	aal_assert("umka-1163", tree != NULL);
-	aal_assert("umka-1164", place != NULL);
+	aal_assert("umka-1163", info != NULL);
+	aal_assert("umka-1164", info->tree != NULL);
     	
-	if (place->item.plugin->h.group != STATDATA_ITEM)
+	if (info->start.item.plugin->h.group != STATDATA_ITEM)
 		return NULL;
 
-	if (obj40_pid(&place->item) != reg40_plugin.h.id)
+	if (obj40_pid(&info->start.item) != reg40_plugin.h.id)
 		return NULL;
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
@@ -172,11 +172,11 @@ static object_entity_t *reg40_open(place_t *place, void *tree) {
 
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plugin,
-		   &place->item.key, core, tree);
+		   &info->start.item.key, core, info->tree);
 
 	/* Initialziing statdata place */
-	aal_memcpy(&reg->obj.statdata, place,
-		   sizeof(*place));
+	aal_memcpy(&reg->obj.statdata, &info->start,
+		   sizeof(info->start));
 	
 	obj40_lock(&reg->obj, &reg->obj.statdata);
 

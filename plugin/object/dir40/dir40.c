@@ -367,24 +367,24 @@ static lookup_t dir40_lookup(object_entity_t *entity,
   Initializing dir40 instance by stat data place, resetring directory be means
   of using dir40_reset function and return instance to caller.
 */
-static object_entity_t *dir40_open(place_t *place, void *tree) {
+static object_entity_t *dir40_open(object_info_t *info) {
 	dir40_t *dir;
 
-	aal_assert("umka-836", tree != NULL);
-	aal_assert("umka-837", place != NULL);
+	aal_assert("umka-836", info != NULL);
+	aal_assert("umka-837", info->tree != NULL);
 	
-	if (place->item.plugin->h.group != STATDATA_ITEM)
+	if (info->start.item.plugin->h.group != STATDATA_ITEM)
 		return NULL;
 	
-	if (obj40_pid(&place->item) != dir40_plugin.h.id)
+	if (obj40_pid(&info->start.item) != dir40_plugin.h.id)
 		return NULL;
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 
 	/* Initializing obj handle for the directory */
-	obj40_init(&dir->obj, &dir40_plugin,
-		   &place->item.key, core, tree);
+	obj40_init(&dir->obj, &dir40_plugin, &info->start.item.key, 
+		   core, info->tree);
 
 	/* Guessing hash plugin basing on stat data */
 	if (!(dir->hash = dir40_guess(dir))) {
@@ -394,8 +394,8 @@ static object_entity_t *dir40_open(place_t *place, void *tree) {
         }
 
 	/* Initialziing statdata place */
-	aal_memcpy(&dir->obj.statdata, place,
-		   sizeof(*place));
+	aal_memcpy(&dir->obj.statdata, &info->start,
+		   sizeof(info->start));
 	
 	obj40_lock(&dir->obj, &dir->obj.statdata);
 	
