@@ -27,6 +27,9 @@ struct sym40 {
 
 	/* Parent key */
 	key_entity_t parent;
+
+	/* Parsing related stuff */
+	object_entity_t *current;
 };
 
 typedef struct sym40 sym40_t;

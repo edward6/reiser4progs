@@ -17,36 +17,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sym40_plugin;
 
-/* Reads @n bytes to passed buffer @buff */
-static int32_t sym40_read(object_entity_t *entity, 
-			  void *buff, uint32_t n)
-{
-	create_hint_t hint;
-	item_entity_t *item;
-	statdata_hint_t stat;
-
-	sym40_t *sym = (sym40_t *)entity;
-
-	aal_assert("umka-1570", entity != NULL);
-	aal_assert("umka-1571", buff != NULL);
-
-	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&stat, 0, sizeof(stat));
-
-	hint.type_specific = &stat;
-	stat.ext[SDEXT_SYMLINK_ID] = buff;
-
-	item = &sym->obj.statdata.item;
-
-	if (!item->plugin->o.item_ops->read)
-		return -EINVAL;
-
-	if (item->plugin->o.item_ops->read(item, &hint, 0, 1) != 1)
-		return -EINVAL;
-
-	return aal_strlen(buff);
-}
-
 /* Opens symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_open(void *tree, place_t *place) {
 	sym40_t *sym;
@@ -78,6 +48,36 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Reads @n bytes to passed buffer @buff */
+static int32_t sym40_read(object_entity_t *entity, 
+			  void *buff, uint32_t n)
+{
+	create_hint_t hint;
+	item_entity_t *item;
+	statdata_hint_t stat;
+
+	sym40_t *sym = (sym40_t *)entity;
+
+	aal_assert("umka-1570", entity != NULL);
+	aal_assert("umka-1571", buff != NULL);
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+
+	hint.type_specific = &stat;
+	stat.ext[SDEXT_SYMLINK_ID] = buff;
+
+	item = &sym->obj.statdata.item;
+
+	if (!item->plugin->o.item_ops->read)
+		return -EINVAL;
+
+	if (item->plugin->o.item_ops->read(item, &hint, 0, 1) != 1)
+		return -EINVAL;
+
+	return aal_strlen(buff);
+}
+
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 				     object_hint_t *hint, place_t *place)
@@ -251,113 +251,126 @@ static errno_t sym40_stat(sym40_t *sym) {
 	return 0;
 }
 
-/* Callback function for searching statdata item while parsing symlink */
-static errno_t callback_find_statdata(char *track, char *entry,
-				      void *data)
-{
-	errno_t res;
-	sym40_t *sym;
-	
+static errno_t sym40_init(sym40_t *sym) {
 	item_entity_t *item;
-	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 
-	sym = (sym40_t *)data;
+	aal_assert("umka-2239", sym != NULL);
+
 	item = &sym->obj.statdata.item;
 	
-	/* Updating stat data place by key */
+	/* Getting file plugin from @item */
+	if (!(plugin = sym40_plug(sym, item)))
+		return -EINVAL;
+
+	/* Initializing parse current entity */
+	if (!(sym->current = plugin_call(plugin->o.object_ops,
+					 open, sym->obj.tree,
+					 &sym->obj.statdata)))
+	{
+		return -EINVAL;
+	}
+	
+	return 0;
+}
+
+static void sym40_fini(sym40_t *sym) {
+	aal_assert("umka-2237", sym != NULL);
+
+	plugin_call(sym->current->plugin->o.object_ops,
+		    close, sym->current);
+	
+	sym->current = NULL;
+}
+
+/* Callback function for searching statdata item while parsing symlink */
+static errno_t callback_find_statdata(char *track, char *entry, void *data) {
+	errno_t res;
+
+	reiser4_plugin_t *plugin;
+	sym40_t *sym = (sym40_t *)data;
+	
+	/* Updating stat data place */
 	if ((res = sym40_stat(sym)))
 		return res;
 
-	/* Getting file plugin */
-	if (!(plugin = sym40_plug(sym, item))) {
-		aal_exception_error("Can't find plugin "
-				    "for %s.", track);
-		return -EINVAL;
-	}
+	/* Initializing current entity */
+	if ((res = sym40_init(sym)))
+		return res;
 
-	/* Nested symlinks handling. Method "follow" should be implemented */
+	plugin = sym->current->plugin;
+		
+	/* Nested symlinks handling */
 	if (plugin->o.object_ops->follow) {
-		if (!(entity = plugin_call(plugin->o.object_ops,
-					   open, sym->obj.tree,
-					   &sym->obj.statdata)))
+		/*
+		  Calling follow() method if any of the opened current object.
+		  This is needed for handling case, symlink has another symlink
+		  as a part.
+		*/
+		if ((res = plugin_call(plugin->o.object_ops,
+				       follow, sym->current,
+				       STAT_KEY(&sym->obj))))
 		{
-			aal_exception_error("Can't open %s.", track);
-			return -EINVAL;
+			aal_exception_error("Can't follow %s.",
+					    track);
+			goto error_fini;
 		}
 
-		if ((res = plugin_call(plugin->o.object_ops, follow,
-				       entity, STAT_KEY(&sym->obj))))
-		{
-			aal_exception_error("Can't follow %s.", track);
-			goto error_free_entity;
-		}
-
-		plugin_call(plugin->o.object_ops, close, entity);
+		/*
+		  As new stat dat key is found by follow(), we reinitialize
+		  object at it.
+		*/
+		sym40_fini(sym);
 
 		if ((res = sym40_stat(sym)))
 			return res;
+
+		if ((res = sym40_init(sym)))
+			return res;
 	}
-	
+
+	/* Saving key to parent key */
 	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
 		    assign, &sym->parent, STAT_KEY(&sym->obj));
 
 	return 0;
 	
- error_free_entity:
-	plugin_call(plugin->o.object_ops, close, entity);
+ error_fini:
+	sym40_fini(sym);
 	return res;
 }
 
-/* Callback for searching entry inside current directory */
+/* Callback for searching entry inside current opened object */
 static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
 	errno_t res;
 	sym40_t *sym;
-	
-	item_entity_t *item;
-	object_entity_t *entity;
 
+	item_entity_t *item;
 	entry_hint_t entry_hint;
 	reiser4_plugin_t *plugin;
 	
 	sym = (sym40_t *)data;
+	
+	plugin = sym->current->plugin;
 	item = &sym->obj.statdata.item;
 
-	/* Getting file plugin */
-	if (!(plugin = sym40_plug(sym, item))) {
-		aal_exception_error("Can't find plugin "
-				    "for %s.", track);
-		return -EINVAL;
-	}
-
-	/* Opening currect diretory */
-	if (!(entity = plugin_call(plugin->o.object_ops,
-				   open, sym->obj.tree,
-				   &sym->obj.statdata)))
-	{
-		return -EINVAL;
-	}
-
 	/* Looking up for @enrty in current directory */
-	if ((res = plugin_call(plugin->o.object_ops, lookup, entity,
-			       entry, &entry_hint) != LP_PRESENT))
-	{
-		aal_exception_error("Can't find %s.", track);
-		goto error_free_entity;
+	res = plugin_call(plugin->o.object_ops, lookup,
+			  sym->current, entry, &entry_hint);
+
+	/* If entry found assign found key to object stat data key */
+	if (res == LP_PRESENT) {
+		res = plugin_call(item->key.plugin->o.key_ops,
+				  assign, STAT_KEY(&sym->obj),
+				  &entry_hint.object);
+	} else {
+		aal_exception_error("Can't find %s.", entry);
+		res = -EINVAL;
 	}
 
-	plugin_call(plugin->o.object_ops, close, entity);
-
-	/* Assign found key to symlink's object stat data key */
-	plugin_call(item->key.plugin->o.key_ops, assign,
-		    STAT_KEY(&sym->obj), &entry_hint.object);
-	
-	return 0;
-
- error_free_entity:
-	plugin_call(plugin->o.object_ops, close, entity);
+	sym40_fini(sym);
 	return res;
 }
 
@@ -396,8 +409,10 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    STAT_KEY(&sym->obj), &sym->parent);
 	}
 
+	sym->current = NULL;
+	
 	if (!(res = aux_parse_path(path, callback_find_statdata,
-				  callback_find_entry, (void *)entity)))
+				  callback_find_entry, (void *)sym)))
 	{
 		plugin_call(plugin->o.key_ops, assign, key,
 			    STAT_KEY(&sym->obj));
@@ -437,11 +452,16 @@ static reiser4_object_ops_t sym40_ops = {
 	.readdir      = NULL,
 	.telldir      = NULL,
 	.seekdir      = NULL,
-		
-	.follow       = sym40_follow,
+
+#ifndef ENABLE_SYMLINKS_SUPPORT
+	.read	      = sym40_read,
+#else
+	.read	      = NULL,
+#endif
+	
 	.open	      = sym40_open,
 	.close	      = sym40_close,
-	.read	      = sym40_read
+	.follow       = sym40_follow
 };
 
 static reiser4_plugin_t sym40_plugin = {
