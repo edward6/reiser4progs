@@ -10,7 +10,7 @@ reiser4progs/COPYING.
   device. This is needed for using less space and especially important
   in fsck when tail <--> extent convertion is running.
 
-* implement key collisions working code in tree_lookup().
+* implement key collisions handling in tree_lookup().
 
 * remove one of reiser4_key_t and key_entity_t.
 

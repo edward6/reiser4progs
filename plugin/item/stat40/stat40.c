@@ -435,7 +435,9 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 {
 	int print_mask;
 	uint16_t length;
-	aal_stream_t *stream = (aal_stream_t *)data;
+	aal_stream_t *stream;
+
+	stream = (aal_stream_t *)data;
 
 	print_mask = (sdext->plug->id.id == 0 ||
 		      (sdext->plug->id.id + 1) % 16 == 0);

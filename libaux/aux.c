@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   aux.c -- miscellaneous useful code. */  
+   aux.c -- miscellaneous code. */  
 
 #include <aux/aux.h>
 
@@ -51,24 +51,30 @@ int aux_bin_search(
 	return 0;
 }
 
-/* Parse standard unix path function */
+#ifndef ENABLE_STAND_ALONE
+#define MAX_PATH 1024
+#else
+#define MAX_PATH 256
+#endif
+
+/* Parse standard unix path. It uses two callback functions for notifying user
+   what stage of parse is going on. */
 errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		       aux_post_entry_t post_func, void *data)
 {
-#ifndef ENABLE_STAND_ALONE
-	char track[256] = {0};
-#endif
-	
-	char local[256];
 	char *entry = NULL;
 	char *pointer = NULL;
+	char local[MAX_PATH] = {0};
+	
+#ifndef ENABLE_STAND_ALONE
+	char track[MAX_PATH] = {0};
+#endif
 
-	aal_strncpy(local, path,
-		    sizeof(local));
-	
-	pointer = local[0] != '/' ?
-		&local[0] : &local[1];
-	
+	/* Initializing local variable path is stored in. */
+	aal_strncpy(local, path, sizeof(local));
+	pointer = local[0] != '/' ? &local[0] : &local[1];
+
+	/* Loop until local is finished parse. */
 	while (1) {
 		errno_t res;
 
@@ -86,7 +92,10 @@ errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		if ((res = pre_func(NULL, entry, data)))
 			return res;
 #endif
-    
+
+		/* Using strsep() for parsing path with delimiting char
+		   "/". This probably may be improved with bias do not use
+		   hardcoded "/" and use some macro instead. */
 		if (!(entry = aal_strsep(&pointer, "/")))
 			break;
 

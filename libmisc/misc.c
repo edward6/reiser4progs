@@ -123,16 +123,23 @@ errno_t misc_dev_mounted(
 		return -EINVAL;
 	}
     
-	/* Going to check /proc/mounts */
+	/* Check /proc/mounts file. */
 	if (!(mnt = setmntent("/proc/mounts", "r")))
 		return -EINVAL;
-    
+
+	/* Loop until all entries are looked. */
 	while ((ent = getmntent(mnt))) {
+		/* Getting stat information and check if this is device we are
+		   interested in to check. */
 		if (stat(ent->mnt_fsname, &mnt_st) == 0) {
 			if (mnt_st.st_rdev == giv_st.st_rdev) {
 				char *token;
-		
-				while (mode && (token = aal_strsep((char **)&mode, ","))) {
+
+				/* Okay, we have found needed device, now we
+				   check mount options. */
+				while (mode &&
+				       (token = aal_strsep((char **)&mode, ",")))
+				{
 					if (!hasmntopt(ent, token))
 						goto error_free_mnt;
 				}
