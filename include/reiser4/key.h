@@ -12,6 +12,9 @@
 
 #include <reiser4/types.h>
 
+extern void reiser4_key_free(reiser4_key_t *key);
+extern reiser4_key_t *reiser4_key_clone(reiser4_key_t *key);
+
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_key_string(reiser4_key_t *key,
 				  char *buff);

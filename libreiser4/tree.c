@@ -504,7 +504,18 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	return reiser4_format_get_root(tree->fs->format);
 }
 
-#ifndef ENABLE_STAND_ALONE
+/* Extents hash table related functions */
+static int callback_foreach_func(const void *entry, void *data) {
+	aal_hash_node_t *node;
+
+	node = (aal_hash_node_t *)entry;
+	
+	reiser4_key_free((reiser4_key_t *)node->key);
+	aal_block_free((aal_block_t *)node->value);
+	
+	return 0;
+}
+
 static uint64_t callback_hash_func(const void *k) {
 	reiser4_key_t *key;
 	
@@ -521,7 +532,6 @@ static int callback_comp_func(const void *k1,
 	return reiser4_key_compare((reiser4_key_t *)k1,
 				   (reiser4_key_t *)k2);
 }
-#endif
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
@@ -539,13 +549,11 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 	tree->fs->tree = tree;
 	tree->mpc_func = mpc_func;
 
-#ifndef ENABLE_STAND_ALONE
 	if (!(tree->data = aal_hash_table_alloc(callback_hash_func,
 						callback_comp_func)))
 	{
 		goto error_free_tree;
 	}
-#endif
 
 	/* Building the tree root key */
 	if (reiser4_tree_key(tree)) {
@@ -562,9 +570,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 	return tree;
 
  error_free_data:
-#ifndef ENABLE_STAND_ALONE
 	aal_hash_table_free(tree->data);
-#endif
  error_free_tree:
 	aal_free(tree);
 	return NULL;
@@ -582,10 +588,11 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	reiser4_tree_collapse(tree);
 	tree->fs->tree = NULL;
 	
-#ifndef ENABLE_STAND_ALONE
 	/* Freeing tree data (extents) */
+	aal_hash_table_foreach(tree->data,
+			       callback_foreach_func, NULL);
+
 	aal_hash_table_free(tree->data);
-#endif
 	
 	/* Freeing the tree */
 	aal_free(tree);

@@ -306,10 +306,8 @@ struct reiser4_tree {
 		void *data;
 	} traps;
 
-#ifndef ENABLE_STAND_ALONE
-	/* Extents data is stored here */
+	/* Extents data stored here */
 	aal_hash_table_t *data;
-#endif
 };
 
 #ifndef ENABLE_STAND_ALONE

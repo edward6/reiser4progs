@@ -5,6 +5,22 @@
 
 #include <reiser4/reiser4.h>
 
+reiser4_key_t *reiser4_key_clone(reiser4_key_t *key) {
+	reiser4_key_t *clone;
+	
+	aal_assert("umka-2358", key != NULL);
+
+	if (!(clone = aal_calloc(sizeof(*key), 0)))
+		return NULL;
+
+	reiser4_key_assign(clone, key);
+	return clone;
+}
+
+void reiser4_key_free(reiser4_key_t *key) {
+	aal_free(key);
+}
+
 /* Compares two keys in plugin independent manner by means of using one of
    passed keys plugin. */
 int reiser4_key_compare(
