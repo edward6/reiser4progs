@@ -1,4 +1,4 @@
-noinst_PROGRAMS = list ls cat plugin
+noinst_PROGRAMS = list hash ls cat plugin
 
 INCLUDES	= -I$(top_srcdir)/include
 
@@ -6,8 +6,13 @@ list_SOURCES	= list.c
 
 list_CFLAGS	= @GENERIC_CFLAGS@
 
-list_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
-	          $(PROGS_LIBS)
+list_LDADD 	= -laal
+
+hash_SOURCES	= hash.c
+
+hash_CFLAGS	= @GENERIC_CFLAGS@
+
+hash_LDADD 	= -laal
 
 ls_SOURCES	= ls.c
 

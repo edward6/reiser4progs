@@ -293,7 +293,7 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	return obj40_remove(&reg->obj, STAT_KEY(&reg->obj), 1);
 }
 
-/* 
+/*
   Returns plugin (tail or extent) for next write operation basing on passed size
   to be writen. This function will be using tail policy plugin for find out what
   next item should be writen.

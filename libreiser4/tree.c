@@ -453,6 +453,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	return NULL;
 }
 
+/* Unload node and releasing it in block allocator */
 errno_t reiser4_tree_release(reiser4_tree_t *tree,
 			     reiser4_node_t *node)
 {
@@ -578,7 +579,7 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Allocates node pointer items and fake nodes */
+/* Allocates node pointer items and unallocated nodes */
 static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 				    reiser4_node_t *node)
 {
@@ -615,7 +616,7 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 				/*
 				  Check if node dirty and not fake one, we will
 				  move it to new location in order to keep tree
-				  in yet more ordered state.
+				  in more well ordered state.
 				*/
 				if (!is_fake_blk(child->blk) &&
 				    reiser4_node_isdirty(child))

@@ -1,14 +1,12 @@
 /*
-  list.c -- small list example.
+  list.c -- small list using example.
 
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
-#include <aal/aal.h>
-#include <reiser4/reiser4.h>
-
 #include <stdio.h>
+#include <aal/aal.h>
 
 int main(int argc, char *argv[]) {
 	aal_list_t *list = NULL;
