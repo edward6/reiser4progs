@@ -531,10 +531,6 @@ errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream) {
 	aal_stream_write(stream, &entity->block->nr,
 			 sizeof(entity->block->nr));
 
-	/* Write node size. */
-	aal_stream_write(stream, &entity->block->size,
-			 sizeof(entity->block->size));
-	
 	/* Write node raw data. */
 	aal_stream_write(stream, entity->block->data,
 			 entity->block->size);
@@ -546,7 +542,6 @@ node_entity_t *node40_unpack(aal_block_t *block,
 			     reiser4_plug_t *kplug,
 			     aal_stream_t *stream)
 {
-	uint32_t size;
 	node40_t *node;
 	
 	aal_assert("umka-2597", block != NULL);
@@ -560,23 +555,11 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	node->block = block;
 	node->plug = &node40_plug;
 	
-	aal_stream_read(stream, &size, sizeof(size));
-
-	if (size != node->block->size) {
-		aal_exception_error("Invalid node size %u "
-				    "is detected.", size);
-		goto error_free_node;
-	}
-	
 	/* Read node raw data. */
 	aal_stream_read(stream, node->block->data,
 			node->block->size);
 
 	node->state |= (1 << ENTITY_DIRTY);
 	return (node_entity_t *)node;
-
- error_free_node:
-	aal_free(node);
-	return NULL;
 }
 #endif

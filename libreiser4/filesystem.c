@@ -392,6 +392,7 @@ errno_t reiser4_fs_sync(
 	return reiser4_status_sync(fs->status);
 }
 
+/* Pack passed @fs to @stream. */
 errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	blk_t blk;
 	count_t len;
@@ -453,6 +454,7 @@ errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	return 0;
 }
 
+/* Unpack filesystem from @stream to @device. */
 reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 				aal_stream_t *stream)
 {
