@@ -47,6 +47,16 @@ static int64_t tree_write(void *tree, trans_hint_t *hint) {
 	return reiser4_tree_write_flow(t, hint);
 }
 
+static int64_t tree_trunc(void *tree, trans_hint_t *hint) {
+	reiser4_tree_t *t;
+
+	aal_assert("umka-2525", tree != NULL);
+	aal_assert("umka-2526", hint != NULL);
+	
+	t = (reiser4_tree_t *)tree;
+	return reiser4_tree_trunc_flow(t, hint);
+}
+
 /* Handler for item removing requests from the all plugins */
 static errno_t tree_remove(
 	void *tree,	            /* opaque pointer to the tree */
@@ -225,6 +235,9 @@ reiser4_core_t core = {
 
 		/* Callback for writting data to tree. */
 		.write	    = tree_write,
+
+		/* Callback for truncating data in tree. */
+		.trunc	    = tree_trunc,
 
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,

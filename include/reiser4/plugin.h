@@ -1374,6 +1374,9 @@ struct tree_ops {
 
 	/* Writes data to tree */
 	int64_t (*write) (void *, trans_hint_t *);
+
+	/* Truncates data from tree */
+	int64_t (*trunc) (void *, trans_hint_t *);
 	
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */

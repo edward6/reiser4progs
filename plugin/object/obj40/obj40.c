@@ -501,6 +501,11 @@ int64_t obj40_write(obj40_t *obj, trans_hint_t *hint) {
 	return obj->core->tree_ops.write(obj->info.tree, hint);
 }
 
+/* Truncates data in tree */
+int64_t obj40_trunc(obj40_t *obj, trans_hint_t *hint) {
+	return obj->core->tree_ops.trunc(obj->info.tree, hint);
+}
+
 /* Inserts passed item hint into the tree. After function is finished, place
    contains the place of the inserted item. */
 errno_t obj40_insert(obj40_t *obj, place_t *place,

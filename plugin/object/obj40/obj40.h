@@ -118,6 +118,7 @@ extern errno_t obj40_insert(obj40_t *obj, place_t *place,
 
 extern int64_t obj40_conv(obj40_t *obj, conv_hint_t *hint);
 extern int64_t obj40_write(obj40_t *obj, trans_hint_t *hint);
+extern int64_t obj40_trunc(obj40_t *obj, trans_hint_t *hint);
 
 extern errno_t obj40_fix_key(obj40_t *obj, place_t *place, 
 			     key_entity_t *key, uint8_t mode);

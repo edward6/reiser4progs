@@ -402,57 +402,28 @@ static int64_t reg40_cut(object_entity_t *entity,
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
-
-	int64_t bytes = 0;
 	trans_hint_t hint;
 	
 	reg = (reg40_t *)entity;
 	size = reg40_size(entity);
 
-	while (n > 0) {
-		place_t place;
-		key_entity_t key;
-
-		/* Preparing key of the last unit of last item. It is needed to
-		   find last item and remove it (or some its part) from the the
-		   tree. */
-		plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
-			  assign, &key, &reg->offset);
+	/* Preparing key of the last unit of last item. It is needed to find
+	   last item and remove it (or some its part) from the the tree. */
+	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
+		  assign, &hint.offset, &reg->offset);
 		
-		plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
-			  set_offset, &key, size - 1);
+	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
+		  set_offset, &hint.offset, n);
 
-		/* Making lookup for last item. */
-		if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				  FIND_EXACT, &place) != PRESENT))
-		{
-			return -EINVAL;
-		}
+	/* Removing read data from the tree. */
+	hint.count = size - n;
+	hint.data = reg->obj.info.tree;
+	hint.plug = reg40_policy_plug(reg, n);
 
-		/* Check if we should remove whole item at @place or just some
-		   units from it. */
-		if (place.len <= n) {
-			hint.count = 1;
-			place.pos.unit = MAX_UINT32;
-			
-			if ((res = obj40_remove(&reg->obj, &place, &hint)))
-				return res;
+	if ((res = obj40_trunc(&reg->obj, &hint)) < 0)
+		return res;
 
-			n -= place.len;
-			bytes += hint.len;
-			size -= place.len;
-		} else {
-			hint.count = n;
-			place.pos.unit = place.len - n;
-
-			if ((res = obj40_remove(&reg->obj, &place, &hint)))
-				return res;
-
-			bytes += hint.len;
-		}
-	}
-
-	return bytes;
+	return hint.bytes;
 }
 
 /* Writes "n" bytes from "buff" to passed file */
@@ -508,24 +479,21 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	reg40_t *reg;
 	int64_t bytes;
 	uint64_t size;
-	uint64_t offset;
 
 	reg = (reg40_t *)entity;
-	
 	size = reg40_size(entity);
-	offset = reg40_offset(entity);
 
 	if (size == n)
 		return 0;
 
-	/* Converting body. */
-	if (reg40_check_body(entity, n)) {
-		aal_exception_error("Can't perform tail "
-				    "conversion.");
-		return -EINVAL;
-	}
-		
 	if (n > size) {
+		/* Converting body. */
+		if (reg40_check_body(entity, n)) {
+			aal_exception_error("Can't perform tail "
+					    "conversion.");
+			return -EINVAL;
+		}
+		
 		/* Inserting holes */
 		if ((bytes = reg40_put(entity, NULL,
 				       n - size)) < 0)
@@ -535,6 +503,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		
 		/* Updating stat data fields */
 		bytes += obj40_get_bytes(&reg->obj);
+		return obj40_touch(&reg->obj, n, bytes, time(NULL));
 	} else {
 		/* Cutting items/units */
 		if ((bytes = reg40_cut(entity,
@@ -545,11 +514,19 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 		/* Updating stat data fields */
 		bytes = obj40_get_bytes(&reg->obj) - bytes;
-	}
 
-	/* Updating offset */
-	reg40_seek(entity, n);
-	return obj40_touch(&reg->obj, n, bytes, time(NULL));
+		if (obj40_touch(&reg->obj, n, bytes, time(NULL)))
+			return -EIO;
+
+		/* Converting body. */
+		if (reg40_check_body(entity, n)) {
+			aal_exception_error("Can't perform tail "
+					    "conversion.");
+			return -EINVAL;
+		}
+
+		return 0;
+	}
 }
 
 /* Removes all file items. */

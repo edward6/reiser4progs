@@ -1905,6 +1905,14 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
+/* Releases passed region in block allocator. This is used in tail convertion */
+static errno_t callback_region_func(void *entity, uint64_t start,
+				    uint64_t width, void *data)
+{
+	reiser4_tree_t *tree = (reiser4_tree_t *)data;
+	return reiser4_alloc_release(tree->fs->alloc, start, width);
+}
+
 int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				trans_hint_t *hint)
 {
@@ -1994,20 +2002,37 @@ int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 			return res;
 		}
 
-		/* Data does not found. */
-		if (res == ABSENT)
-			return total;
+		/* Data does not found. This may mean, that we have hole in tree
+		   between keys. */
+		if (res == ABSENT) {
+			uint64_t next_offset;
+			uint64_t look_offset;
+			
+			/* Here we suppose, that @place points to next item,
+			   just behind the hole. */
+			if ((res = reiser4_place_fetch(&place)))
+				return res;
 
-		/* Prepare hint for read */
-		hint->tree = tree;
-		hint->count = size;
-		
-		/* Read data from the tree */
-		if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {
-			return read;
+			next_offset = reiser4_key_get_offset(&place.key);
+			look_offset = reiser4_key_get_offset(&hint->offset);
+			
+			read = (next_offset - look_offset > size ? size :
+				next_offset - look_offset);
+
+			/* Making holes in buffer */
+			aal_memset(hint->specific, 0, read);
 		} else {
-			if (read == 0)
-				break;
+			/* Prepare hint for read */
+			hint->tree = tree;
+			hint->count = size;
+		
+			/* Read data from the tree */
+			if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {
+				return read;
+			} else {
+				if (read == 0)
+					break;
+			}
 		}
 
 		size -= read;
@@ -2040,6 +2065,10 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 
 	reiser4_key_assign(&key, &hint->offset);
 
+	/* Setting up region func to release region callback. It is needed for
+	   releasing extent blocks. */
+	hint->region_func = callback_region_func;
+
 	for (total = 0, size = hint->count; size > 0;
 	     size -= trunc, total += trunc)
 	{
@@ -2052,9 +2081,26 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 			return res;
 		}
 
-		/* Nothing found by @hint->key */
-		if (res == ABSENT)
-			return total;
+		/* Nothing found by @hint->offset. This means, that tree has a
+		   hole between keys. We will handle this, as it is needed for
+		   fsck. */
+		if (res == ABSENT) {
+			uint64_t next_offset;
+			uint64_t look_offset;
+
+			/* Emulating truncating unexistent item. */
+			if ((res = reiser4_place_fetch(&place)))
+				return res;
+
+			next_offset = reiser4_key_get_offset(&place.key);
+			look_offset = reiser4_key_get_offset(&hint->offset);
+			
+			trunc = (next_offset - look_offset > size ? size :
+				 next_offset - look_offset);
+
+			reiser4_key_inc_offset(&hint->offset, trunc);
+			continue;
+		}
 
 		hint->count = size;
 
@@ -2122,14 +2168,6 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 	return total;
 }
 
-/* Releases passed region in block allocator. This is used in tail convertion */
-errno_t callback_region_func(void *entity, uint64_t start,
-			     uint64_t width, void *data)
-{
-	reiser4_tree_t *tree = (reiser4_tree_t *)data;
-	return reiser4_alloc_release(tree->fs->alloc, start, width);
-}
-
 /* Converts item at passed @place from tail to extent and back from extent to
    tail. */
 errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
@@ -2169,11 +2207,8 @@ errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 			goto error_free_buff;
 		}
 		
-		/* Setting up blocks remove hook. */
-		trans.data = tree;
-		trans.region_func = callback_region_func;
-		
 		/* Removing read data from the tree. */
+		trans.data = tree;
 		trans.count = conv;
 		trans.plug = hint->plug;
 
