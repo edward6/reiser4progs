@@ -5,10 +5,7 @@
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
+#ifdef ENABLE_SYMLINKS_SUPPORT
 #ifndef ENABLE_STAND_ALONE
 
 #include <reiser4/plugin.h>
@@ -36,4 +33,4 @@ errno_t sdext_symlink_check(sdext_entity_t *sdext, uint8_t mode) {
 }
 
 #endif
-
+#endif
