@@ -29,13 +29,6 @@ errno_t reiser4_item_estimate(
 	aal_assert("umka-541", hint != NULL);
 	aal_assert("umka-2230", hint->plug != NULL);
 
-	if (place->pos.unit != MAX_UINT32) {
-		errno_t res;
-		
-		if ((res = reiser4_place_fetch(place)))
-			return res;
-	}
-
 	/* Getting item/unit to be inserted body length and overhead (header
 	   length). This is needed for correct space preparing by tree. */
 	hint->len = 0;

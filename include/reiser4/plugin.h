@@ -502,16 +502,15 @@ struct insert_hint {
 
 	/* Used for insert extent data */
 	uint32_t offset;
+
+	/* Max offset in target item. */
+	uint32_t maxoff;
 	
 	/* Count of units to be inserted into the tree */
 	uint16_t count;
 
 	/* The key of item/unit to be inserted */
 	key_entity_t key;
-
-	/* Max real item key. Filled by item estimate and need for item insert
-	   method. */
-	key_entity_t maxkey;
 
 	/* Plugin to be used for working with item */
 	reiser4_plug_t *plug;

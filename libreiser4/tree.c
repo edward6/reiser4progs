@@ -943,7 +943,7 @@ lookup_t reiser4_tree_lookup(
 			return FAILED;
 		    
 		/* Checking is item at @place is nodeptr one. If not, we correct
-		   position back. */
+		   posision back. */
 		if (!reiser4_item_branch(place->plug)) {
 
 			/* Correcting position back if item is not a branch */
