@@ -248,8 +248,8 @@ typedef struct reiser4_oid reiser4_oid_t;
 typedef errno_t (*estimate_func_t) (reiser4_place_t *place, 
 				    trans_hint_t *hint);
 
-typedef errno_t (*modify_func_t) (reiser4_node_t *node, pos_t *pos,
-				  trans_hint_t *hint);
+typedef errno_t (*modify_func_t) (reiser4_node_t *node,
+				  pos_t *pos, trans_hint_t *hint);
 #endif
 
 typedef int (*mpc_func_t) (reiser4_tree_t *);
@@ -282,6 +282,10 @@ struct reiser4_tree {
 	   some day, we need it just to make tree code more flexible and avoid
 	   to use any kind of hardcoding. */
 	uint32_t bottom;
+
+	/* Saved nodeptr plugin is stored here. This is needed for speedup
+	   attaching new nodes to tree. */
+	reiser4_plug_t *nodeptr;
 #endif
 	
 	/* Formatted nodes hash table. */

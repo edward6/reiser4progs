@@ -222,7 +222,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 
 	/* Initializing tail policy plugin. */
 	if (!(reg->policy = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE,
-						     hint->body.reg.policy)))
+						          hint->body.reg.policy)))
 	{
 		aal_error("Can't find tail policy plugin by "
 			  "its id 0x%x.", hint->body.reg.policy);

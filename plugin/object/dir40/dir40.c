@@ -471,7 +471,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	/* Getting hash plugin */
 	if (!(dir->hash = dir40_core->factory_ops.ifind(HASH_PLUG_TYPE, 
-						   hint->body.dir.hash))) 
+							hint->body.dir.hash))) 
 	{
 		aal_error("Can't find hash plugin by its "
 			  "id 0x%x.", hint->body.dir.hash);

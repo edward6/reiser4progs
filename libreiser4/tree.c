@@ -77,9 +77,7 @@ errno_t reiser4_tree_unlock_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 	    (node->flags & NF_HEARD_BANSHEE))
 	{
 		/* Check if we should detach node from tree first. */
-		if (reiser4_tree_root_node(tree, node) ||
-		    node->p.node != NULL)
-		{
+		if (reiser4_tree_attached_node(tree, node)) {
 			if ((res = reiser4_tree_detach_node(tree, node,
 							    SF_DEFAULT)))
 			{
@@ -705,35 +703,15 @@ static reiser4_node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
 	return place.node;
 }
 
-/* Gets left or right neighbour nodes. */
-reiser4_node_t *reiser4_tree_neig_node(reiser4_tree_t *tree,
-				       reiser4_node_t *node, 
-				       uint32_t where)
-{
-	aal_assert("umka-2219", node != NULL);
-	aal_assert("umka-1859", tree != NULL);
-
-	/* Parent is not present. This is root node -- no neighbors.  */
-	if (!node->p.node)
-		return NULL;
-
-	if (where == DIR_LEFT && node->left)
-		return node->left;
-
-	if (where == DIR_RIGHT && node->right)
-		return node->right;
-
-	return reiser4_tree_ltrt_node(tree, node, where);
-}
-
 static errno_t reiser4_tree_adjust_place(reiser4_tree_t *tree, 
 					 reiser4_place_t *place, 
 					 reiser4_place_t *next) 
 {
 	/* Check if we have to get right neighbour node. */
 	if (place->pos.item >= reiser4_node_items(place->node)) {
+		
 		/* Load the right neighbour. */
-		reiser4_tree_neig_node(tree, place->node, DIR_RIGHT);
+		reiser4_tree_ltrt_node(tree, place->node, DIR_RIGHT);
 
 		if (place->node->right) {
 			/* The right neighbour exists. */
@@ -1016,6 +994,10 @@ inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	reiser4_tree_t *tree;
 
+#ifndef ENABLE_STAND_ALONE
+	rid_t pid;
+#endif
+
 	aal_assert("umka-737", fs != NULL);
 
 	/* Allocating memory for tree instance */
@@ -1028,6 +1010,15 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 #ifndef ENABLE_STAND_ALONE
 	tree->bottom = TWIG_LEVEL;
+
+	/* Initializing nodeptr plugin to be used for attaching new nodes to
+	   tree.*/
+	pid = reiser4_param_value("nodeptr");
+	
+	if (!(tree->nodeptr = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
+		aal_error("Can't find nodeptr plugin by its id 0x%x.", pid);
+		goto error_free_tree;
+	}
 #endif
 	
 	/* Initializing hash table for storing loaded formatted nodes in it. */
@@ -1531,7 +1522,7 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 	aal_assert("umka-3010", node != NULL);
 
 	/* Loop until rightmost node is reached. */
-	while ((right = reiser4_tree_neig_node(tree, node, DIR_RIGHT))) {
+	while ((right = reiser4_tree_ltrt_node(tree, node, DIR_RIGHT))) {
 		uint32_t flags;
 		reiser4_place_t bogus;
 
@@ -1675,22 +1666,23 @@ lookup_t reiser4_tree_collision(reiser4_tree_t *tree,
 				reiser4_place_t *place,
 				coll_hint_t *hint)
 {
-	lookup_t lookup = PRESENT;
-	uint32_t units, unit;
 	uint32_t adjust = 0;
-	
+	uint32_t units, unit;
+	lookup_t lookup = PRESENT;
+
+	aal_assert("umka-3130", tree != NULL);
 	aal_assert("vpf-1522", place != NULL);
 	
-	if (hint == NULL) return PRESENT;
+	if (hint == NULL)
+		return PRESENT;
 	
 	/* If type does not match, there is no collision found. */
 	if (place->plug->id.group != hint->type)
 		return PRESENT;
 
-	/* Key collisions handling. Sequentional search by name. */
-	
+	/* Key collisions handling. Sequentional search by name. */	
 	while (1) {
-		units = plug_call(place->plug->o.item_ops->balance, units, place);
+		units = reiser4_item_units(place);
 
 		if (place->pos.unit != MAX_UINT32 && place->pos.unit >= units) {
 			reiser4_place_t temp;
@@ -1720,6 +1712,7 @@ lookup_t reiser4_tree_collision(reiser4_tree_t *tree,
 	}
 	
 	place->key.adjust = adjust;
+	
 	return PRESENT;
 }
 
@@ -1784,7 +1777,7 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
                                                                                      
                 /* Getting left neighbour node. */
                 reiser4_node_lock(place->node);
-                reiser4_tree_neig_node(tree, walk.node, DIR_LEFT);
+                reiser4_tree_ltrt_node(tree, walk.node, DIR_LEFT);
                 reiser4_node_unlock(place->node);
                                                                                      
                 /* Initializing @walk by neighbour node and last item. */
@@ -1970,15 +1963,31 @@ errno_t reiser4_tree_update_keys(reiser4_tree_t *tree,
 	reiser4_key_assign(&place->key, key);
 
 	/* Check if we should update keys on higher levels of tree. */
-	if (reiser4_place_leftmost(place) && place->node->p.node != NULL) {
+	if (reiser4_place_leftmost(place) && place->node->p.node) {
 		reiser4_place_t *parent = &place->node->p;
 		
 		if ((res = reiser4_tree_update_keys(tree, parent, key)))
 			return res;
 	}
 
-	/* Actuall key updating in @place->node. */
+	/* Actual key updating in @place->node. */
 	return reiser4_node_update_key(place->node, &place->pos, key);
+}
+
+/* Returns 1 for attached node and 0 otherwise. */
+bool_t reiser4_tree_attached_node(reiser4_tree_t *tree,
+				  reiser4_node_t *node)
+{
+	aal_assert("umka-3128", tree != NULL);
+	aal_assert("umka-3129", node != NULL);
+
+	if (reiser4_tree_fresh(tree))
+		return 0;
+
+	if (reiser4_tree_root_node(tree, node))
+		return 1;
+
+	return (node->p.node != NULL && node->tree == tree);
 }
 
 /* This function inserts new nodeptr item to the tree and in such way attaches
@@ -1986,38 +1995,31 @@ errno_t reiser4_tree_update_keys(reiser4_tree_t *tree,
 errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 				 reiser4_place_t *place, uint32_t flags)
 {
-	rid_t pid;
 	errno_t res;
 	uint8_t level;
-	
 	ptr_hint_t ptr;
-	trans_hint_t thint;
+	trans_hint_t hint;
 
 	aal_assert("umka-913", tree != NULL);
 	aal_assert("umka-916", node != NULL);
 	aal_assert("umka-3104", place != NULL);
+	aal_assert("umka-3131", tree->nodeptr != NULL);
 
-	/* Preparing nodeptr item hint. */
-	thint.count = 1;
-	thint.specific = &ptr;
-	thint.place_func = NULL;
-	thint.region_func = NULL;
-	thint.shift_flags = flags;
+	hint.count = 1;
+	hint.specific = &ptr;
+	hint.place_func = NULL;
+	hint.region_func = NULL;
+	hint.shift_flags = flags;
+	hint.plug = tree->nodeptr;
 
 	ptr.width = 1;
 	ptr.start = node_blocknr(node);
-	pid = reiser4_param_value("nodeptr");
-
+	
 	level = reiser4_node_get_level(node) + 1;
-	reiser4_node_leftmost_key(node, &thint.offset);
-
-	if (!(thint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_error("Can't find item plugin by its id 0x%x.", pid);
-		return -EINVAL;
-	}
+	reiser4_node_leftmost_key(node, &hint.offset);
 
 	/* Inserting node ptr into tree. */
-	if ((res = reiser4_tree_insert(tree, place, &thint, level)) < 0) {
+	if ((res = reiser4_tree_insert(tree, place, &hint, level)) < 0) {
 		aal_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}
@@ -2029,8 +2031,8 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 		return res;
 	}
 
-	/* This is needed to update sibling links, as new attached node may be
-	   inserted between two nodes, that has established sibling links and
+	/* This is needed to update sibling pointers, as new attached node may
+	   be inserted between two nodes, that has established sibling links and
 	   they should be changed. */
 	reiser4_tree_ltrt_node(tree, node, DIR_LEFT);
 	reiser4_tree_ltrt_node(tree, node, DIR_RIGHT);
@@ -2358,6 +2360,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	aal_assert("umka-929", tree != NULL);
 	aal_assert("umka-766", place != NULL);
+	
 	aal_assert("umka-3064", place->node != NULL);
 	aal_assert("vpf-1543", needed <= reiser4_node_maxspace(place->node));
 
@@ -2373,7 +2376,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	/* Shifting data into left neighbour if it exists and left shift
 	   allowing flag is specified. */
 	if ((SF_ALLOW_LEFT & flags) && 
-	    reiser4_tree_neig_node(tree, place->node, DIR_LEFT)) 
+	    reiser4_tree_ltrt_node(tree, place->node, DIR_LEFT)) 
 	{
 		if ((res = tree_shift_todir(tree, place, flags, DIR_LEFT)))
 			return res;
@@ -2385,7 +2388,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	/* Shifting data into right neighbour if it exists and right shift
 	   allowing flag is specified. */
 	if ((SF_ALLOW_RIGHT & flags) && 
-	    reiser4_tree_neig_node(tree, place->node, DIR_RIGHT)) 
+	    reiser4_tree_ltrt_node(tree, place->node, DIR_RIGHT)) 
 	{
 		if ((res = tree_shift_todir(tree, place, flags, DIR_RIGHT)))
 			return res;
@@ -2534,7 +2537,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, reiser4_place_t *place) {
 	/* Packing node in order to keep the tree in well packed state
 	   anyway. Here we will shift data from the target node to its left
 	   neighbour node. */
-	if ((left = reiser4_tree_neig_node(tree, place->node, DIR_LEFT))) {
+	if ((left = reiser4_tree_ltrt_node(tree, place->node, DIR_LEFT))) {
 		if ((res = reiser4_tree_shift(tree, place, left, flags))) {
 			aal_error("Can't pack node %llu into left.",
 				  node_blocknr(place->node));
@@ -2545,7 +2548,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, reiser4_place_t *place) {
 	if (reiser4_node_items(place->node) > 0) {
 		/* Shifting the data from the right neigbour node into the
 		   target node. */
-		if ((right = reiser4_tree_neig_node(tree, place->node,
+		if ((right = reiser4_tree_ltrt_node(tree, place->node,
 						    DIR_RIGHT)))
 		{
 			reiser4_place_t bogus;
@@ -3045,7 +3048,7 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_place_t *place,
 			reiser4_place_t parent;
 
 			/* Updating parent keys. */
-			reiser4_node_leftmost_key(place->node, &lkey);
+			reiser4_item_get_key(place, &lkey);
 			reiser4_place_dup(&parent, &place->node->p);
 			
 			if ((res = reiser4_tree_update_keys(tree, &parent, 
