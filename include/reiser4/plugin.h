@@ -746,21 +746,20 @@ struct reiser4_item_ops {
 
 	/* Copies some amount of units from @src_item to @dst_item with partial
 	   overwritting. */
-	errno_t (*merge) (place_t *, place_t *,
-			  merge_hint_t *);
+	errno_t (*merge) (place_t *, place_t *, merge_hint_t *);
 
 	/* Checks the item structure. */
 	errno_t (*check_struct) (place_t *, uint8_t);
 	
+	/* Does some specific actions if a block the item points to is wrong. */
+	errno_t (*check_layout) (place_t *, region_func_t,
+				 void *, uint8_t);
+
 	/* Prints item into specified buffer */
 	errno_t (*print) (place_t *, aal_stream_t *, uint16_t);
 
 	/* Goes through all blocks item points to. */
 	errno_t (*layout) (place_t *, region_func_t, void *);
-
-	/* Does some specific actions if a block the item points to is wrong. */
-	errno_t (*check_layout) (place_t *, region_func_t,
-				 void *, uint8_t);
 
 	/* Set the key of a particular unit of the item. */
 	errno_t (*set_key) (place_t *, key_entity_t *);
@@ -771,6 +770,12 @@ struct reiser4_item_ops {
 	/* Gets the amount of bytes data item keeps takes on the disk. */
 	uint64_t (*bytes) (place_t *place);
 #endif
+	
+	/* Returns TRUE is specified item is a nodeptr one. That is, it points
+	   to formatted node in the tree. If this method if not implemented,
+	   then item is assumed as not nodeptr one. All tree running operations
+	   like going from the root to leaves will use this function. */
+	int (*branch) (void);
 	
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
 	int (*mergeable) (place_t *, place_t *);
@@ -786,12 +791,6 @@ struct reiser4_item_ops {
 	lookup_res_t (*lookup) (place_t *, key_entity_t *,
 				lookup_mod_t);
 
-	/* Returns TRUE is specified item is a nodeptr one. That is, it points
-	   to formatted node in the tree. If this method if not implemented,
-	   then item is assumed as not nodeptr one. All tree running operations
-	   like going from the root to leaves will use this function. */
-	int (*branch) (void);
-	
 	/* Get the key of a particular unit of the item. */
 	errno_t (*get_key) (place_t *, key_entity_t *);
 

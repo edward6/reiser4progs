@@ -16,5 +16,4 @@ inline blk_t reiser4_fake_get(void) {
 inline int reiser4_fake_ack(blk_t blk) {
 	return (blk & REISER4_FAKE_BLOCKNR_MASK) ? 1 : 0;
 }
-
 #endif

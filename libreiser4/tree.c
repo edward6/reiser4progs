@@ -574,6 +574,60 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_free(tree);
 }
 
+#ifndef ENABLE_STAND_ALONE
+/* Allocates nodeptr item */
+static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
+					  reiser4_place_t *place)
+{
+	ptr_hint_t ptr;
+	uint32_t i, units;
+	insert_hint_t hint;
+	reiser4_node_t *child;
+	
+	units = plug_call(place->plug->o.item_ops,
+			  units, (place_t *)place);
+					
+	for (i = 0; i < units; i++) {
+		plug_call(place->plug->o.item_ops, read,
+			  (place_t *)place, &ptr, i, 1);
+
+		if (!reiser4_fake_ack(ptr.start))
+			continue;
+
+		if (!(child = reiser4_node_child(place->node,
+						 ptr.start)))
+		{
+			aal_exception_error("Can't find child "
+					    "node by pointer %llu.",
+					    ptr.start);
+			return -EINVAL;
+		}
+					
+		aal_memset(&hint, 0, sizeof(hint));
+
+		/* If @child is fake one it needs to be allocated here and its
+		   nodeptr should be updated. */
+		if (!reiser4_alloc_allocate(tree->fs->alloc,
+					    &ptr.start, 1))
+		{
+			return -ENOSPC;
+		}
+
+		/* Preparing node pointer hint to be used */
+		ptr.width = 1;
+		hint.specific = &ptr;
+
+		plug_call(place->plug->o.item_ops, insert,
+			  (place_t *)place, &hint);
+					
+		/* Assigning node to new node blk */
+		reiser4_node_move(child, ptr.start);
+	}
+
+	return 0;
+}
+#endif
+
 /* Flushes some part of tree cache to device starting from passed @node */
 errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 			    reiser4_node_t *node,
@@ -611,10 +665,9 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 		/* Allocating all children nodes if we are on internal level */
 		if (reiser4_node_get_level(node) > LEAF_LEVEL) {
 			uint32_t i;
-
+			
+			/* Going though the all items in node */
 			for (i = 0; i < reiser4_node_items(node); i++) {
-				ptr_hint_t ptr;
-				insert_hint_t hint;
 				reiser4_place_t place;
 
 				reiser4_place_assign(&place, node,
@@ -624,41 +677,8 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 					return res;
 
 				if (place.plug->id.group == NODEPTR_ITEM) {
-					plug_call(place.plug->o.item_ops, read,
-						  (place_t *)&place, &ptr, 0, 1);
-
-					if (!reiser4_fake_ack(ptr.start))
-						continue;
-
-					if (!(child = reiser4_node_child(node,
-									 ptr.start)))
-					{
-						aal_exception_error("Can't find child "
-								    "node by pointer %llu.",
-								    ptr.start);
+					if (reiser4_tree_alloc_nodeptr(tree, &place))
 						return -EINVAL;
-					}
-					
-					aal_memset(&hint, 0, sizeof(hint));
-
-					/* If @child is fake one it needs to be
-					   allocated here and its nodeptr should
-					   be updated. */
-					if (!reiser4_alloc_allocate(tree->fs->alloc,
-								    &ptr.start, 1))
-					{
-						return -ENOSPC;
-					}
-
-					/* Preparing node pointer hint to be used */
-					ptr.width = 1;
-					hint.specific = &ptr;
-
-					plug_call(place.plug->o.item_ops, insert,
-						  (place_t *)&place, &hint);
-					
-					/* Assigning node to new node blk */
-					reiser4_node_move(child, ptr.start);
 				} else {
 					/* Extents will be allocated here */
 				}
