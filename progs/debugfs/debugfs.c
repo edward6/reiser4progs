@@ -886,15 +886,6 @@ struct fprint_hint {
 
 typedef struct fprint_hint fprint_hint_t;
 
-static char *groups[6] = {
-	"STATDATA",
-	"NODEPTR",
-	"DIRENTRY",
-	"TAIL",
-	"EXTENT",
-	"PERMISSION"
-};
-
 static errno_t fprint_process_blk(
 	object_entity_t *entity,   /* file to be inspected */
 	reiser4_place_t *place,    /* next file block */
@@ -916,9 +907,6 @@ static errno_t fprint_process_blk(
 		}
 	} else {
 		aal_stream_t stream;
-		item_entity_t *item;
-		
-		item = &coord->entity;
 		aal_stream_init(&stream);
 
 		if (reiser4_item_print(coord, &stream)) {
