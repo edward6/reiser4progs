@@ -925,9 +925,9 @@ errno_t reiser4_node_shift(
 		reiser4_ptr_hint_t ptr;
 
 		if (hint->control & SF_LEFT)
-			rpos_init(&ppos, items - i - 1, ~0ul);
+			POS_INIT(&ppos, items - i - 1, ~0ul);
 		else 
-			rpos_init(&ppos, i, ~0ul);
+			POS_INIT(&ppos, i, ~0ul);
 
 		if (reiser4_coord_open(&coord, neig, &ppos))
 			return -1;
@@ -1062,28 +1062,15 @@ errno_t reiser4_node_insert(
 		}
 	}
 
-	/* Inserting item into the node */
+#ifdef ENABLE_DEBUG
 	if (!hint->data) {
-		/* 
-		   Estimate the size that will be spent for item. This should be
-		   done if item->data not installed.
-		*/
-		if (hint->len == 0) {
-			reiser4_coord_t coord;
-	    
-			reiser4_coord_init(&coord, node, pos);
-			
-			if (reiser4_item_estimate(&coord, hint)) {
-				aal_exception_error("Can't estimate space that "
-						    "item being inserted will consume.");
-				return -1;
-			}
-		}
+		aal_assert("umka-1837", hint->len != 0, return -1);
 	} else {
 		aal_assert("umka-761", hint->len > 0 && 
 			   hint->len < reiser4_node_maxspace(node), return -1);
 	}
-    
+#endif
+	
 	/* Checking if item length is gretter then free space in node */
 	if (hint->len + (pos->unit == ~0ul ? reiser4_node_overhead(node) : 0) >
 	    reiser4_node_space(node))

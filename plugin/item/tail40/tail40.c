@@ -59,15 +59,19 @@ static int32_t tail40_read(item_entity_t *item, void *buff,
 static int32_t tail40_write(item_entity_t *item, void *buff,
 			    uint32_t pos, uint32_t count)
 {
+	reiser4_item_hint_t *hint;
+	
 	aal_assert("umka-1677", buff != NULL, return -1);
 	aal_assert("umka-1678", item != NULL, return -1);
 	aal_assert("umka-1679", pos < item->len, return -1);
+
+	hint = (reiser4_item_hint_t *)buff;
 	
 	if (count > item->len - pos)
 		count = item->len - pos;
 	
-	/* Copying new data into freed place */
-	aal_memcpy(item->body + pos, buff, count);
+	/* Copying new data into place */
+	aal_memcpy(item->body + pos, hint->hint, count);
 
 	/* Updating the key */
 	if (pos == 0) {

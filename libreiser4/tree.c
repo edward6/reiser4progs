@@ -998,6 +998,20 @@ errno_t reiser4_tree_insert(
 	aal_assert("umka-1644", coord != NULL, return -1);
 	aal_assert("umka-1645", hint->plugin != NULL, return -1);
 
+	/*
+	  Initializing hint context and enviromnent fields. This should be done
+	  before estimate is called, because it may use these fields.
+	*/
+	hint->con.blk = coord->node->blk;
+	hint->con.device = tree->fs->device;
+	
+	hint->env.oid = tree->fs->oid->entity;
+	hint->env.alloc = tree->fs->alloc->entity;
+	
+	/* Estimating item in order to insert it into found node */
+	if (reiser4_item_estimate(coord, hint))
+		return -1;
+    
 	/* This is the special case. The tree doesn't contain any nodes */
 	if (reiser4_node_items(tree->root) == 0) {
 		int twig_legal;
@@ -1011,7 +1025,7 @@ errno_t reiser4_tree_insert(
 		  only empty root exists.
 		*/
 		if (twig_legal) {
-			rpos_init(&coord->pos, 0, ~0ul);
+			POS_INIT(&coord->pos, 0, ~0ul);
 			
 			if (!(coord->node = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
 				aal_exception_error("Can't allocate new leaf node.");
@@ -1038,10 +1052,6 @@ errno_t reiser4_tree_insert(
 		}
 	}
 
-	/* Estimating item in order to insert it into found node */
-	if (reiser4_item_estimate(coord, hint))
-		return -1;
-    
 	/* Needed space is estimated space plugs item overhead */
 	needed = hint->len + (coord->pos.unit == ~0ul ? 
 			      reiser4_node_overhead(coord->node) : 0);

@@ -10,12 +10,12 @@
 
 #include <aal/aal.h>
 
-#define LEAF_LEVEL	    (1)
-#define TWIG_LEVEL	    (LEAF_LEVEL + 1)
+#define LEAF_LEVEL	        (1)
+#define TWIG_LEVEL	        (LEAF_LEVEL + 1)
 
-#define MASTER_MAGIC	    ("R4Sb")
-#define MASTER_OFFSET	    (65536)
-#define BLOCKSIZE           (4096)
+#define MASTER_MAGIC	        ("R4Sb")
+#define MASTER_OFFSET	        (65536)
+#define BLOCKSIZE               (4096)
 
 /* 
   Defining the types for disk structures. All types like f32_t are fake ones
@@ -38,7 +38,7 @@ struct rpos {
 
 typedef struct rpos rpos_t;
 
-#define rpos_init(p, i, u) \
+#define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
 
 enum reiser4_plugin_type {
@@ -121,67 +121,64 @@ enum reiser4_hash_plugin_id {
 typedef enum reiser4_hash_plugin_id reiser4_hash_plugin_id_t;
 
 enum reiser4_tail_plugin_id {
-	TAIL_NEVER_ID		 = 0x0,
-	TAIL_SUPPRESS_ID	 = 0x1,
-	TAIL_FOURK_ID		 = 0x2,
-	TAIL_ALWAYS_ID		 = 0x3,
-	TAIL_SMART_ID		 = 0x4,
-	TAIL_LAST_ID		 = 0x5
+	TAIL_NEVER_ID		= 0x0,
+	TAIL_SUPPRESS_ID	= 0x1,
+	TAIL_FOURK_ID		= 0x2,
+	TAIL_ALWAYS_ID		= 0x3,
+	TAIL_SMART_ID		= 0x4,
+	TAIL_LAST_ID		= 0x5
 };
 
 enum reiser4_perm_plugin_id {
-	PERM_RWX_ID		 = 0x0
+	PERM_RWX_ID		= 0x0
 };
 
 enum reiser4_sdext_plugin_id {
-	SDEXT_LW_ID	         = 0x0,
-	SDEXT_UNIX_ID		 = 0x1,
-	SDEXT_LT_ID              = 0x2,
-	SDEXT_SYMLINK_ID	 = 0x3,
-	SDEXT_PLUGIN_ID		 = 0x4,
-	SDEXT_GEN_FLAGS_ID       = 0x5,
-	SDEXT_CAPS_ID            = 0x6,
-	SDEXT_LARGE_TIMES_ID     = 0x7,
+	SDEXT_LW_ID	        = 0x0,
+	SDEXT_UNIX_ID		= 0x1,
+	SDEXT_LT_ID             = 0x2,
+	SDEXT_SYMLINK_ID	= 0x3,
+	SDEXT_PLUGIN_ID		= 0x4,
+	SDEXT_GEN_FLAGS_ID      = 0x5,
+	SDEXT_CAPS_ID           = 0x6,
+	SDEXT_LARGE_TIMES_ID    = 0x7,
 	SDEXT_LAST
 };
 
 enum reiser4_format_plugin_id {
-	FORMAT_REISER40_ID	 = 0x0,
-	FORMAT_REISER36_ID	 = 0x1
+	FORMAT_REISER40_ID	= 0x0,
+	FORMAT_REISER36_ID	= 0x1
 };
 
 enum reiser4_oid_plugin_id {
-	OID_REISER40_ID		 = 0x0,
-	OID_REISER36_ID		 = 0x1
+	OID_REISER40_ID		= 0x0,
+	OID_REISER36_ID		= 0x1
 };
 
 enum reiser4_alloc_plugin_id {
-	ALLOC_REISER40_ID	 = 0x0,
-	ALLOC_REISER36_ID	 = 0x1
+	ALLOC_REISER40_ID	= 0x0,
+	ALLOC_REISER36_ID	= 0x1
 };
 
 enum reiser4_journal_plugin_id {
-	JOURNAL_REISER40_ID	 = 0x0,
-	JOURNAL_REISER36_ID	 = 0x1
+	JOURNAL_REISER40_ID	= 0x0,
+	JOURNAL_REISER36_ID	= 0x1
 };
 
 enum reiser4_key_plugin_id {
-	KEY_REISER40_ID		 = 0x0,
-	KEY_REISER36_ID		 = 0x1
+	KEY_REISER40_ID		= 0x0,
+	KEY_REISER36_ID		= 0x1
 };
 
 typedef union reiser4_plugin reiser4_plugin_t;
 
-#define PRESENT       0x1
-#define ABSENT        0x0
-#define FAILED        -1
+#define PRESENT                 0x1
+#define ABSENT                  0x0
+#define FAILED                  -1
 
-#define INVAL_PID     0xffff
+#define INVAL_PID               0xffff
 
-/* 
-   Maximal possible key size. It is used for creating temporary keys by
-   declaring array of uint8_t elements KEY_SIZE long.
-*/
+/* Maximal possible key size in 8 byte elements */
 #define KEY_SIZE 3
 
 struct key_entity {
@@ -191,20 +188,21 @@ struct key_entity {
 
 typedef struct key_entity key_entity_t;
 
-#define KEY_FILENAME_TYPE   0x0
-#define KEY_STATDATA_TYPE   0x1
-#define KEY_ATTRNAME_TYPE   0x2
-#define KEY_ATTRBODY_TYPE   0x3
-#define KEY_FILEBODY_TYPE   0x4
-#define KEY_LAST_TYPE	    0x5
+enum key_type {
+	KEY_FILENAME_TYPE       = 0x0,
+	KEY_STATDATA_TYPE       = 0x1,
+	KEY_ATTRNAME_TYPE       = 0x2,
+	KEY_ATTRBODY_TYPE       = 0x3,
+	KEY_FILEBODY_TYPE       = 0x4,
+	KEY_LAST_TYPE	        = 0x5
+};
 
-typedef uint32_t key_type_t;
+typedef enum key_type key_type_t;
 
 /*
-  Type for describing inside the library the objects created by plugins
-  themselves and which also have plugin. For example, node, format, alloc,
-  etc. The pointer of this type will be passed to list plugins for working with
-  them.
+  Type for describing reiser4 objects (like node, block allocator, etc) inside
+  the library, created by plugins themselves and which also have the our plugin
+  referrence.
 */
 struct object_entity {
 	reiser4_plugin_t *plugin;
@@ -214,17 +212,25 @@ typedef struct object_entity object_entity_t;
 
 struct item_context {
 
-	/* Block number of node item lies in */
+	/* Block number of the node item lies in */
 	blk_t blk;
 
 	/* Device item's node lies on */
 	aal_device_t *device;
-
-	/* Block allocator */
-	object_entity_t *alloc;
 };
 
 typedef struct item_context item_context_t;
+
+/*
+  Item enviromnent which contains referrences to block allocator and oid
+  allocator.
+*/
+struct item_envirom {
+	object_entity_t *oid;
+	object_entity_t *alloc;
+};
+
+typedef struct item_envirom item_envirom_t;
 
 /*
   Type for describing an item. The pointer of this type will be passed to the
@@ -239,7 +245,9 @@ struct item_entity {
 	rbody_t *body;
 	
 	key_entity_t key;
+
 	item_context_t con;
+	item_envirom_t env;
 };
 
 typedef struct item_entity item_entity_t;
@@ -463,6 +471,14 @@ struct reiser4_item_hint {
 	/* The key of item */
 	key_entity_t key;
 
+	/*
+	  Item context and item enviromnent. They are used for access some
+	  filesystem wide entities like block allocator durring item
+	  estimating.
+	*/
+	item_context_t con;
+	item_envirom_t env;
+	
 	/* Plugin to be used for working with item */
 	reiser4_plugin_t *plugin;
 };

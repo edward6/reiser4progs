@@ -900,7 +900,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 
 		eid40_set_offset(entryid, off);
 
-		/* Creating stat data key ,entry points to */
+		/* Creating stat data key of the object, entry will point to */
 		object = &entry_hint->object;
 
 		loc = plugin_call(object->plugin->key_ops,

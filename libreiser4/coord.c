@@ -54,14 +54,22 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 		return -1;
 	}
 
+	/* Initializing item entity fields */
 	item->pos = coord->pos;
 	
 	item->len = plugin_call(entity->plugin->node_ops, item_len,
 				entity, &coord->pos);
 
+	/* Initializing item context fields */
 	item->con.blk = reiser4_coord_block(coord);
 	item->con.device = reiser4_coord_device(coord);
 	
+	/* Initializing item enviromnent fields */
+	if (coord->node->tree) {
+		item->env.oid = coord->node->tree->fs->oid->entity;
+		item->env.alloc = coord->node->tree->fs->alloc->entity;
+	}
+		
 	return 0;
 }
 

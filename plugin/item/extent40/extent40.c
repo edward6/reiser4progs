@@ -1,12 +1,11 @@
 /*
   extent40.c -- reiser4 default extent plugin.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
 #include "extent40.h"
-#include <aux/aux.h>
 
 static reiser4_core_t *core = NULL;
 
@@ -33,9 +32,8 @@ uint32_t extent40_units(item_entity_t *item) {
 
 /* Calculates extent size */
 static uint64_t extent40_size(item_entity_t *item) {
-	uint32_t i;
 	extent40_t *extent;
-	uint32_t blocks = 0;
+	uint32_t i, blocks = 0;
     
 	aal_assert("umka-1583", item != NULL, return -1);
 
@@ -83,7 +81,7 @@ static errno_t extent40_unit_key(item_entity_t *item,
 
 /*
   Builds unit key like the previous function, but the difference is that key
-  offset will be set up to the passed offet. So it can be not at the start of
+  offset will be set up to the passed offset. So, it can be not at the start of
   an extent unit.
 */
 static errno_t extent40_get_key(item_entity_t *item,
@@ -106,13 +104,6 @@ static errno_t extent40_get_key(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t extent40_estimate(item_entity_t *item, void *buff,
-				 uint32_t pos, uint32_t count)
-{
-	/* Sorry, not implemented yet */
-	return -1;
-}
-
 static errno_t extent40_init(item_entity_t *item) {
 	aal_assert("umka-1669", item != NULL, return -1);
 	
@@ -120,46 +111,23 @@ static errno_t extent40_init(item_entity_t *item) {
 	return 0;
 }
 
-/*
-  Removes the numebr of extent units denoted by @count from the specified extent
-  @item.
-*/
+/* Removes @count byte from passed @item at @pos */
 static int32_t extent40_remove(item_entity_t *item,
 			       uint32_t pos,
 			       uint32_t count)
 {
-	uint32_t units;
-	void *src, *dst;
-	extent40_t *extent;
+
+	aal_assert("umka-1834", item != NULL, return -1);
+
+	/* FIXME-UMKA: Here will be extent shrinking code */
 	
-	aal_assert("umka-1658", item != NULL, return 0);
-	aal_assert("umka-1657", pos != ~0ul, return 0);
-
-	if (!(extent = extent40_body(item)))
-		return -1;
-
-	units = extent40_units(item);
-	aal_assert("umka-1660", pos < units, return -1);
-
-	if (count > units - pos)
-		count = units - pos;
-
-	/* Shrinking the item */
-	if (pos + count < units - 1) {
-		dst = extent + pos;
-		src = extent + pos + count;
-
-		aal_memmove(dst, src, item->len -
-			    ((pos + count) * sizeof(extent40_t)));
-	}
-
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
-		if (extent40_get_key(item, 0, &item->key))
+		if (extent40_unit_key(item, 0, &item->key))
 			return -1;
 	}
 	
-	return (count * sizeof(extent40_t));
+	return -1;
 }
 
 /* Prints extent item into specified @stream */
@@ -423,9 +391,60 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+static errno_t extent40_estimate(item_entity_t *item, void *buff,
+				 uint32_t pos, uint32_t count)
+{
+	reiser4_item_hint_t *hint;
+
+	aal_assert("umka-1836", buff != NULL, return -1);
+	
+	hint = (reiser4_item_hint_t *)buff;
+	
+	return 0;
+}
+
+/*
+  Tries to write @count bytes of data from @buff at @pos. Returns the number of
+  bytes realy written.
+*/
 static int32_t extent40_write(item_entity_t *item, void *buff,
 			      uint32_t pos, uint32_t count)
 {
+	uint64_t size;
+	uint32_t unit;
+	uint32_t blocksize;
+
+	extent40_t *extent;
+	aal_device_t *device;
+	
+	aal_assert("umka-1832", item != NULL, return -1);
+	aal_assert("umka-1833", buff != NULL, return -1);
+
+	device = item->con.device;
+	extent = extent40_body(item);
+	blocksize = device->blocksize;
+	
+	size = extent40_size(item);
+	unit = extent40_unit(item, pos);
+
+	/* Checking if we should insert holes */
+	if (pos >= size && pos - size >= blocksize) {
+		uint32_t width;
+
+		width = ((pos - size) + (blocksize - 1)) /
+			blocksize;
+			
+		et40_set_start(extent + unit, 0);
+		et40_set_width(extent + unit, width);
+	} else {
+	}
+	
+        /* Updating the key */
+	if (pos == 0) {
+		if (extent40_unit_key(item, 0, &item->key))
+			return -1;
+	}
+	
 	return 0;
 }
 
@@ -635,7 +654,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.shift         = NULL,
 		.layout        = NULL,
 		.gap_key       = NULL,
-		
 		.layout_check  = NULL,
 #endif
 		.insert	       = NULL,

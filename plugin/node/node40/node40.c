@@ -602,8 +602,8 @@ static errno_t node40_rep(node40_t *dst_node, rpos_t *dst_pos,
 }
 
 /* Inserts item described by hint structure into node */
-static errno_t node40_insert(object_entity_t *entity,
-			     rpos_t *pos, reiser4_item_hint_t *hint)
+static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
+			     reiser4_item_hint_t *hint)
 {
 	node40_t *node;
 	item_entity_t item;
@@ -762,7 +762,7 @@ static errno_t node40_cut(object_entity_t *entity,
 			  previous node40_remove produced empty edge items, they
 			  will be removed too.
 			*/
-			rpos_init(&pos, begin, ~0ul);
+			POS_INIT(&pos, begin, ~0ul);
 			
 			if (node40_remove(entity, &pos, count))
 				return -1;
@@ -1120,8 +1120,8 @@ static errno_t node40_merge(node40_t *src_node,
 	  Initializing items to be examaned by the predict method of
 	  corresponding item plugin.
 	*/
-	rpos_init(&pos, (hint->control & SF_LEFT ? 0 :
-			 src_items - 1), ~0ul);
+	POS_INIT(&pos, (hint->control & SF_LEFT ? 0 :
+			src_items - 1), ~0ul);
 	
 	if (node40_item(&src_item, src_node, &pos))
 		return -1;
@@ -1137,8 +1137,8 @@ static errno_t node40_merge(node40_t *src_node,
 	hint->create = (dst_items == 0);
 
 	if (dst_items > 0) {
-		rpos_init(&pos, (hint->control & SF_LEFT ?
-				 dst_items - 1 : 0), ~0ul);
+		POS_INIT(&pos, (hint->control & SF_LEFT ?
+				dst_items - 1 : 0), ~0ul);
 		
 		if (node40_item(&dst_item, dst_node, &pos))
 			return -1;
@@ -1205,8 +1205,8 @@ static errno_t node40_merge(node40_t *src_node,
 	if (hint->create) {
 		
 		/* Expanding dst node with creating new item */
-		rpos_init(&pos, (hint->control & SF_LEFT ?
-				 dst_items : 0), ~0ul);
+		POS_INIT(&pos, (hint->control & SF_LEFT ?
+				dst_items : 0), ~0ul);
 		
 		if (node40_grow(dst_node, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand node for "
@@ -1234,8 +1234,8 @@ static errno_t node40_merge(node40_t *src_node,
 		  hint->rest. So, we will call node40_grow with unit component
 		  not equal ~0ul.
 		*/
-		rpos_init(&pos, (hint->control & SF_LEFT ?
-				 dst_items - 1 : 0), 0);
+		POS_INIT(&pos, (hint->control & SF_LEFT ?
+				dst_items - 1 : 0), 0);
 
 		if (node40_grow(dst_node, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand item for "
@@ -1377,7 +1377,7 @@ static errno_t node40_transfuse(node40_t *src_node,
 					  If unit component if zero, we can
 					  shift whole item pointed by pos.
 					*/
-					rpos_init(&pos, 0, ~0ul);
+					POS_INIT(&pos, 0, ~0ul);
 					
 					if (node40_item(&item, src_node, &pos))
 						return -1;
@@ -1467,11 +1467,11 @@ static errno_t node40_transfuse(node40_t *src_node,
 	src_items = nh40_get_num_items(src_node);
 
 	if (hint->control & SF_LEFT) {
-		rpos_init(&src_pos, 0, ~0ul);
-		rpos_init(&dst_pos, dst_items, ~0ul);
+		POS_INIT(&src_pos, 0, ~0ul);
+		POS_INIT(&dst_pos, dst_items, ~0ul);
 	} else {
-		rpos_init(&dst_pos, 0, ~0ul);
-		rpos_init(&src_pos, src_items - hint->items, ~0ul);
+		POS_INIT(&dst_pos, 0, ~0ul);
+		POS_INIT(&src_pos, src_items - hint->items, ~0ul);
 	}
 	
 	/*
@@ -1541,12 +1541,12 @@ static errno_t node40_shift(object_entity_t *entity,
 	merge.rest = node40_space(neigh);
 
 	/*
-	  Merges border items without ability create new item in dst node. This
-	  is needed for avoiding the case when a node will contains the two
-	  neighbour items which are mergeable. That would be not optimal space
-	  usage and might also led to some unstable behavior of the code which
-	  assume that next mergeable item lies in the neighbour node, not in the
-	  neighbour position (directory read and lookup code).
+	  Merges border items without ability to create the new item in dst
+	  node. This is needed for avoiding the case when a node will contain
+	  two neighbour items which are mergeable. That would be not optimal
+	  space usaging and might also led to some unstable behavior of the code
+	  which assume that next mergeable item lies in the neighbour node, not
+	  in the neighbour position (directory read and lookup code).
 	*/
 	if (node40_merge(src_node, dst_node, &merge)) {
 		aal_exception_error("Can't merge nodes %llu and %llu.",
