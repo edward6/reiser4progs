@@ -316,6 +316,10 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 
 			if (mode != RM_BUILD) {
+				/* If not the BUILD mode, continue with the 
+				   entry key, not the correct one. */
+				plug_call(key.plug->o.key_ops, assign,
+					  &key, &entry.offset);
 				res |= RE_FATAL;
 				goto next;
 			}
