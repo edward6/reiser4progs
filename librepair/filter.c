@@ -507,17 +507,21 @@ static void repair_filter_update(repair_filter_t *fd) {
 
 	/* Check the tree height. */
 	height = reiser4_format_get_height(fd->repair->fs->format);
-	fd->level--;
-	if (height != fd->level) {
-		fsck_mess("The tree height %u found in the format is wrong. "
-			 "%s %u.", height, fd->repair->mode == RM_CHECK ? 
-			 "Should be" : "Fixed to", fd->level);
+	
+	if (fd->level) {
+		fd->level--;
 
-		if (fd->repair->mode == RM_CHECK) {
-			fd->repair->fixable++;
-		} else {
-			reiser4_format_set_height(fd->repair->fs->format, 
-						  fd->level);
+		if (height != fd->level) {
+			fsck_mess("The tree height %u found in the format is "
+				  "wrong. %s %u.", height, fd->repair->mode == 
+				  RM_CHECK ? "Should be":"Fixed to", fd->level);
+
+			if (fd->repair->mode == RM_CHECK) {
+				fd->repair->fixable++;
+			} else {
+				reiser4_format_set_height(fd->repair->fs->format,
+							  fd->level);
+			}
 		}
 	}
 	
