@@ -32,7 +32,8 @@ enum print_flags {
 	PF_ALLOC    = 1 << 2,
 	PF_OID	    = 1 << 3,
 	PF_TREE	    = 1 << 4,
-	PF_BLOCK    = 1 << 5
+	PF_BLOCK    = 1 << 5,
+	PF_FILE     = 1 << 6
 };
 
 typedef enum print_flags print_flags_t;
@@ -75,6 +76,7 @@ static void debugfs_print_usage(char *name) {
 		"  -b, --print-block-alloc   prints block allocator data.\n"
 		"  -o, --print-oid-alloc     prints oid allocator data.\n"
 		"  -n, --print-block N       prints block by its number.\n"
+		"  -i, --print-file FILE     prints all metadata blocks file occupies.\n"
 		"Measurement options:\n"
 		"  -S, --tree-stat           measures some tree characteristics\n"
 		"                            (node packing, etc).\n"
@@ -100,8 +102,6 @@ static void debugfs_init(void) {
 	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
 		progs_exception_set_stream(ex, stderr);
 }
-
-#include <stdio.h>
 
 static errno_t debugfs_print_stream(aal_stream_t *stream) {
 	int len = stream->size;
@@ -663,7 +663,7 @@ static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 	aal_gauge_start(gauge);
 	
 	if (reiser4_file_layout(file, ffrag_process_blk, &frag_hint)) {
-		aal_exception_error("Can't enumerate blocks occupied by %s",
+		aal_exception_error("Can't enumerate data blocks occupied by %s",
 				    filename);
 		goto error_free_gauge;
 	}
@@ -734,7 +734,7 @@ static errno_t dfrag_process_node(
 		bogus %= 16;
 	
 		if (reiser4_file_layout(file, ffrag_process_blk, data)) {
-			aal_exception_error("Can't enumerate blocks occupied by %s",
+			aal_exception_error("Can't enumerate data blocks occupied by %s",
 					    file->name);
 			
 			reiser4_file_close(file);
@@ -864,6 +864,35 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	return res;
 }
 
+static errno_t fprint_process_blk(
+	object_entity_t *entity,   /* file to be inspected */
+	blk_t blk,                 /* next file block */
+	void *data)                /* user-specified data */
+{
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
+	return debugfs_print_block(fs, blk);
+}
+
+static errno_t debugfs_print_file(reiser4_fs_t *fs,
+				  char *filename)
+{
+	errno_t res = 0;
+	reiser4_file_t *file;
+	
+	if (!(file = reiser4_file_open(fs, filename)))
+		return -1;
+
+	if (reiser4_file_metadata(file, fprint_process_blk, fs)) {
+		aal_exception_error("Can't enumerate metadata "
+				    "blocks occupied by %s",
+				    file->name);
+		res = -1;
+	}
+
+	reiser4_file_close(file);
+	return res;
+}
+
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -874,6 +903,7 @@ int main(int argc, char *argv[]) {
 	char *ls_filename = NULL;
 	char *cat_filename = NULL;
 	char *frag_filename = NULL;
+	char *print_filename = NULL;
 	char *profile_label = "smart40";
     
 	reiser4_fs_t *fs;
@@ -895,6 +925,7 @@ int main(int argc, char *argv[]) {
 		{"print-block-alloc", no_argument, NULL, 'b'},
 		{"print-oid-alloc", no_argument, NULL, 'o'},
 		{"print-block", required_argument, NULL, 'n'},
+		{"print-file", required_argument, NULL, 'i'},
 		{"tree-stat", no_argument, NULL, 'S'},
 		{"tree-frag", no_argument, NULL, 'T'},
 		{"file-frag", required_argument, NULL, 'F'},
@@ -913,7 +944,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtbojTDpSF:c:l:n:",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtbojTDpSF:c:l:n:i:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -953,6 +984,10 @@ int main(int argc, char *argv[]) {
 			
 			break;
 		}
+		case 'i':
+			print_flags |= PF_FILE;
+			print_filename = optarg;
+			break;
 		case 'S':
 			behav_flags |= BF_TSTAT;
 			break;
@@ -1146,6 +1181,11 @@ int main(int argc, char *argv[]) {
 
 	if (print_flags & PF_BLOCK) {
 		if (debugfs_print_block(fs, blocknr))
+			goto error_free_fs;
+	}
+    
+	if (print_flags & PF_FILE) {
+		if (debugfs_print_file(fs, print_filename))
 			goto error_free_fs;
 	}
     

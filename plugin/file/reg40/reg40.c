@@ -384,6 +384,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 {
 	errno_t res;
 	uint64_t size;
+	
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1471", entity != NULL, return -1);
@@ -437,6 +438,96 @@ static errno_t reg40_layout(object_entity_t *entity,
 			}
 		}
 		
+		if (reg->offset >= size || reg40_next(entity) != 1)
+			break;
+			
+	}
+	
+	return 0;
+}
+
+static errno_t reg40_metadata(object_entity_t *entity,
+			      action_func_t action_func,
+			      void *data)
+{
+	errno_t res;
+	uint64_t size;
+	blk_t blk, old = 0;
+
+	reg40_t *reg = (reg40_t *)entity;
+	
+	aal_assert("umka-1716", entity != NULL, return -1);
+	aal_assert("umka-1717", action_func != NULL, return -1);
+
+	blk = reg->file.statdata.entity.con.blk;
+	
+	if ((res = action_func(entity, blk, data)))
+		return res;
+
+	if (!reg->body.node)
+		return 0;
+	
+	if (file40_get_size(&reg->file.statdata, &size))
+		return -1;
+	
+	while (1) {
+		blk = reg->body.entity.con.blk;
+
+		/*
+		  Checking if current block number is the same as the previous
+		  one.
+		*/
+		if (blk == old)
+			continue;
+		
+		if ((res = action_func(entity, blk, data)))
+			return res;
+
+		old = blk;
+
+		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
+			/*
+			  Updating file offset by tail length. It is needed for
+			  reg40_next function. It will find next item of the
+			  file.
+			*/
+			reg->offset += reg->body.entity.len;
+		} else {
+			uint32_t units;
+			uint32_t blocksize;
+			reiser4_ptr_hint_t ptr;
+
+			/*
+			  Updating file offset by all extent units width
+			  multiplied by blocksize.
+			*/
+			
+			reiser4_pos_t pos = reg->body.pos;
+
+			units = plugin_call(return -1, reg->body.entity.plugin->item_ops,
+					    units, &reg->body.entity);
+
+			blocksize = reg->body.entity.con.device->blocksize;
+
+			if (pos.unit == ~0ul)
+				pos.unit = 0;
+			
+			for (; pos.unit < units; pos.unit++) {
+				uint64_t blk;
+				
+				if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
+						fetch, &reg->body.entity, &ptr, pos.unit, 1) != 1)
+				{
+					aal_exception_error("Can't fetch data from extent item. "
+							    "Pos %lu, count %lu.", pos.unit, 1);
+					return -1;
+				}
+
+				reg->offset += ptr.width * blocksize;
+			}
+		}
+
+		/* Getting next file item. */
 		if (reg->offset >= size || reg40_next(entity) != 1)
 			break;
 			
@@ -509,11 +600,13 @@ static reiser4_plugin_t reg40_plugin = {
 		.write	    = reg40_write,
 		.truncate   = reg40_truncate,
 		.layout     = reg40_layout,
+		.metadata   = reg40_metadata,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
 		.truncate   = NULL,
 		.layout     = NULL,
+		.metadata   = NULL,
 #endif
 		.valid	    = NULL,
 		.lookup	    = NULL,

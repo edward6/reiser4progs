@@ -18,9 +18,6 @@ reiser4progs/COPYING.
 
 * big digits storing stat data fields format change
 
-* --print-file option in debugfs for printing nodes
-  specified file lies in.
-
 * update parent directory fields (nlink, etc) when creating file or
   directories.
 

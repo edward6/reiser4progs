@@ -582,7 +582,16 @@ struct reiser4_file_ops {
 	/* Truncates file to passed length */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
-	/* Function for going throught all blocks specfied file occupied */
+	/*
+	  Function for going throught all metadata blocks specfied file
+	  occupied.
+	*/
+	errno_t (*metadata) (object_entity_t *, action_func_t, void *);
+	
+	/*
+	  Function for going throught the all data blocks specfied file
+	  occupied.
+	*/
 	errno_t (*layout) (object_entity_t *, action_func_t, void *);
 };
 

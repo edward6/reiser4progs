@@ -443,3 +443,18 @@ errno_t reiser4_file_layout(
 						     action_func, data);
 }
 
+errno_t reiser4_file_metadata(
+	reiser4_file_t *file,       /* file we working with */
+	action_func_t action_func,  /* layout callback */
+	void *data)                 /* user-spaecified data */
+{
+	aal_assert("umka-1714", file != NULL, return -1);
+	aal_assert("umka-1715", action_func != NULL, return -1);
+
+	if (!file->entity->plugin->file_ops.metadata)
+		return 0;
+	
+	return file->entity->plugin->file_ops.metadata(file->entity,
+						       action_func, data);
+}
+

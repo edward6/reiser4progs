@@ -540,6 +540,26 @@ static errno_t dir40_layout(object_entity_t *entity,
 	return 0;
 }
 
+static errno_t dir40_metadata(object_entity_t *entity,
+			      action_func_t action_func,
+			      void *data)
+{
+	blk_t blk;
+	errno_t res;
+
+	dir40_t *dir = (dir40_t *)entity;
+	
+	aal_assert("umka-1712", entity != NULL, return -1);
+	aal_assert("umka-1713", action_func != NULL, return -1);
+	
+	blk = dir->file.statdata.entity.con.blk;
+
+	if ((res = action_func(entity, blk, data)))
+		return res;
+
+	return dir40_layout(entity, action_func, data);
+}
+
 #endif
 
 static void dir40_close(object_entity_t *entity) {
@@ -610,11 +630,13 @@ static reiser4_plugin_t dir40_plugin = {
 		.write	    = dir40_write,
 		.truncate   = dir40_truncate,
 		.layout     = dir40_layout,
+		.metadata   = dir40_metadata,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
 		.truncate   = NULL,
 		.layout     = NULL,
+		.metadata   = NULL,
 #endif
 		.valid	    = NULL,
 		
