@@ -1,0 +1,114 @@
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   spl40_repair.c -- reiser4 special files plugin repair code. */
+
+#ifndef ENABLE_STAND_ALONE
+#include "spl40.h"
+#include "repair/plugin.h"
+
+#define spl40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
+
+static errno_t spl40_extentions(place_t *stat) {
+	uint64_t extmask;
+	
+	extmask = obj40_extmask(stat);
+	
+	/* Check that there is no one unknown extention. */
+	/*
+	if (extmask & ~(sym40_exts | 1 << SDEXT_PLUG_ID))
+		return RE_FATAL;
+	*/
+	/* Check that LW and UNIX extentions exist. */
+	return ((extmask & spl40_exts) == spl40_exts) ? 0 : RE_FATAL;
+}
+
+/* Check SD extentions and that mode in LW extention is DIRFILE. */
+static errno_t callback_stat(place_t *stat) {
+	sdext_lw_hint_t lw_hint;
+	errno_t res;
+	
+	if ((res = spl40_extentions(stat)))
+		return res;
+
+	/* Check the mode in the LW extention. */
+	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
+		return res;
+	
+	return S_ISLNK(lw_hint.mode) ? 0 : RE_FATAL;
+}
+
+object_entity_t *spl40_recognize(object_info_t *info) {
+	spl40_t *spl;
+	errno_t res;
+	
+	aal_assert("vpf-1356", info != NULL);
+	
+	if (!(spl = aal_calloc(sizeof(*spl), 0)))
+		return INVAL_PTR;
+	
+	/* Initializing file handle */
+	obj40_init(&spl->obj, &spl40_plug, spl40_core, info);
+	
+	if ((res = obj40_recognize(&spl->obj, callback_stat)))
+		goto error;
+	
+	return (object_entity_t *)spl;
+ error:
+	aal_free(spl);
+	return res < 0 ? INVAL_PTR : NULL;
+}
+
+static void spl40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
+	*nlink = 0;
+}
+
+static void spl40_check_mode(obj40_t *obj, uint16_t *mode) {
+	if (!S_ISDIR(*mode)) {
+		*mode &= ~S_IFMT;
+		/* FIXME-VITALY: put the correct mode here. */
+        	*mode |= 0;
+	}
+}
+
+static void spl40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t size) {
+	if (*sd_size != size)
+		*sd_size = size;
+}
+
+errno_t spl40_check_struct(object_entity_t *object,
+			   place_func_t place_func,
+			   void *data, uint8_t mode)
+{
+	spl40_t *spl = (spl40_t *)object;
+	errno_t res;
+	
+	aal_assert("vpf-1357", spl != NULL);
+	aal_assert("vpf-1358", spl->obj.info.tree != NULL);
+	aal_assert("vpf-1359", spl->obj.info.object.plug != NULL);
+
+	if ((res = obj40_launch_stat(&spl->obj, spl40_extentions, 
+				     spl40_exts, 1, S_IFLNK, mode)))
+	{
+		return res;
+	}
+	
+	/* Try to register SD as an item of this file. */
+	if (place_func && place_func(object, &spl->obj.info.start, data))
+		return -EINVAL;
+	
+	/* Fix SD's key if differs. */
+	if ((res = obj40_fix_key(&spl->obj, &spl->obj.info.start,
+				 &spl->obj.info.object, mode)))
+	{
+		return res;
+	}
+	
+	/* Fix the SD, if no fatal corruptions were found. */
+	return obj40_check_stat(&spl->obj, mode == RM_BUILD ? 
+				spl40_zero_nlink : NULL,
+				spl40_check_mode, 
+				spl40_check_size, 0, 0, mode);
+}
+
+#endif
