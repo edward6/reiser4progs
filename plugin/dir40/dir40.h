@@ -11,38 +11,38 @@
 
 /* Compaund directory structure */
 struct dir40 {
-    reiser4_plugin_t *plugin;
+	reiser4_plugin_t *plugin;
     
-    /* 
-	   Poiter to the instance of internal libreiser4 tree, dir opened on 
-	   stored here for lookup and modiying purposes. It is passed by reiser4 
+	/* 
+	   Poiter to the instance of internal libreiser4 tree, dir opened on
+	   stored here for lookup and modiying purposes. It is passed by reiser4
 	   library durring initialization of the directory instance.
-    */
-    const void *tree;
+	*/
+	const void *tree;
 
-    /* 
+	/* 
 	   The key of stat data (or just first item if stat data doesn't exists) 
 	   for this directory.
-    */
-    reiser4_key_t key;
+	*/
+	reiser4_key_t key;
 
-    /* Coords of stat data are stored here */
-    reiser4_place_t place;
+	/* Coords of stat data are stored here */
+	reiser4_place_t place;
 
-    /* 
-	   Statdata item of the dir. It is used for passing it to statdata plugin 
-	   in order to get or set someone field.
-    */
-    reiser4_item_t statdata;
+	/* 
+	   Statdata item of the dir. It is used for passing it to statdata
+	   plugin in order to get or set someone field.
+	*/
+	reiser4_item_t statdata;
 
-    /* Current body item */
-    reiser4_item_t body;
+	/* Current body item */
+	reiser4_item_t body;
     
-    /* Current position in the directory */
-    uint32_t offset;
+	/* Current position in the directory */
+	uint32_t offset;
 
-    /* Hash plugin in use */
-    reiser4_plugin_t *hash;
+	/* Hash plugin in use */
+	reiser4_plugin_t *hash;
 };
 
 typedef struct dir40 dir40_t;

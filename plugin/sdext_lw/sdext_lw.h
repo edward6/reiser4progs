@@ -1,6 +1,6 @@
 /*
-    sdext_lw.h -- stat data plugin, that implements base stat data fields.
-    Copyright 1996-2002 (C) Hans Reiser.
+  sdext_lw.h -- stat data plugin, that implements base stat data fields.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #ifndef SDEXT_LW_H
@@ -10,9 +10,9 @@
 #include <reiser4/plugin.h>
 
 struct sdext_lw {
-    d16_t mode;
-    d32_t nlink;
-    d64_t size;
+	d16_t mode;
+	d32_t nlink;
+	d64_t size;
 } __attribute__((packed));
 
 typedef struct sdext_lw sdext_lw_t;

@@ -1,6 +1,6 @@
 /*
-    node40.h -- reiser4 default node structures.
-    Copyright (C) 1996-2002 Hans Reiser.
+  node40.h -- reiser4 default node structures.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef NODE40_H
@@ -20,15 +20,15 @@
 #define NODE40_TWIG	2
 
 struct node40 {
-    reiser4_plugin_t *plugin;
-    aal_block_t *block;
+	reiser4_plugin_t *plugin;
+	aal_block_t *block;
 };
 
 typedef struct node40 node40_t;
 
 struct node40_flush {
-    d32_t mkfs_id;
-    d64_t flush_id;
+	d32_t mkfs_id;
+	d64_t flush_id;
 };
 
 typedef struct node40_flush node40_flush_t;
@@ -36,26 +36,26 @@ typedef struct node40_flush node40_flush_t;
 /* Format of node header for node40 */
 struct node40_header {
 
-    /* The node common header */
-    reiser4_node_header_t h;
+	/* The node common header */
+	reiser4_node_header_t h;
     
-    /* The number of items */
-    d16_t num_items;
+	/* The number of items */
+	d16_t num_items;
     
-    /* Node free space */
-    d16_t free_space;
+	/* Node free space */
+	d16_t free_space;
 
-    /* Free space start */
-    d16_t free_space_start;
+	/* Free space start */
+	d16_t free_space_start;
 
-    /* Node40 magic 0x52344653 */
-    d32_t magic;
+	/* Node40 magic 0x52344653 */
+	d32_t magic;
     
-    /* Node level (is not used in libreiser4) */
-    d8_t level;
+	/* Node level (is not used in libreiser4) */
+	d8_t level;
 
-    /* Node flush stamp */
-    node40_flush_t flush;
+	/* Node flush stamp */
+	node40_flush_t flush;
 };
 
 typedef struct node40_header node40_header_t;  
@@ -84,18 +84,18 @@ typedef struct node40_header node40_header_t;
 #define nh40_get_mkfs_id(header)		aal_get_le32(header, flush.mkfs_id)
 
 union key40 {
-    d64_t el[3];
-    int pad;
+	d64_t el[3];
+	int pad;
 };
 
 typedef union key40 key40_t;
 
 struct item40_header {
-    key40_t key;
+	key40_t key;
     
-    d16_t offset;
-    d16_t len;
-    d16_t pid;
+	d16_t offset;
+	d16_t len;
+	d16_t pid;
 };
 
 typedef struct item40_header item40_header_t;
@@ -113,8 +113,8 @@ extern inline item40_header_t *node40_ih_at(aal_block_t *block, int pos);
 extern inline void *node40_ib_at(aal_block_t *block, int pos);
 
 static uint16_t node40_free_space_end(aal_block_t *block) {
-    return aal_block_size(block) - nh40_get_num_items(nh40(block)) * 
-	sizeof(item40_header_t);
+	return aal_block_size(block) - nh40_get_num_items(nh40(block)) * 
+		sizeof(item40_header_t);
 }
 
 #endif

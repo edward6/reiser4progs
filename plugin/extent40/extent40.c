@@ -9,100 +9,100 @@ static reiser4_core_t *core = NULL;
 
 static extent40_t *extent40_body(reiser4_item_t *item) {
 
-    if (item == NULL)
+	if (item == NULL)
 		return NULL;
     
-    return (extent40_t *)plugin_call(return NULL, item->node->plugin->node_ops, 
-									 item_body, item->node, item->pos);
+	return (extent40_t *)plugin_call(return NULL, item->node->plugin->node_ops, 
+					 item_body, item->node, item->pos);
 }
 
 static uint32_t extent40_count(reiser4_item_t *item) {
 
-    if (item == NULL) 
+	if (item == NULL) 
 		return 0;
     
-    return plugin_call(return 0, item->node->plugin->node_ops, 
-					   item_len, item->node, item->pos) / sizeof(extent40_t);
+	return plugin_call(return 0, item->node->plugin->node_ops, 
+			   item_len, item->node, item->pos) / sizeof(extent40_t);
 }
 
 #ifndef ENABLE_COMPACT
 
 static errno_t extent40_init(reiser4_item_t *item, 
-							 reiser4_item_hint_t *hint)
+			     reiser4_item_hint_t *hint)
 {
-    aal_assert("umka-1202", item != NULL, return -1); 
-    aal_assert("umka-1203", hint != NULL, return -1);
-    aal_assert("umka-1204", hint->data != NULL, return -1);
+	aal_assert("umka-1202", item != NULL, return -1); 
+	aal_assert("umka-1203", hint != NULL, return -1);
+	aal_assert("umka-1204", hint->data != NULL, return -1);
     
-    return 0;
+	return 0;
 }
 
 static errno_t extent40_insert(reiser4_item_t *item, uint32_t pos, 
-							   reiser4_item_hint_t *hint)
+			       reiser4_item_hint_t *hint)
 {
-    return -1;
+	return -1;
 }
 
 static uint16_t extent40_remove(reiser4_item_t *item, uint32_t pos) {
-    return -1;
+	return -1;
 }
 
 #endif
 
 static errno_t extent40_print(reiser4_item_t *item, char *buff, 
-							  uint32_t n, uint16_t options) 
+			      uint32_t n, uint16_t options) 
 {
-    extent40_t *extent;
-    uint16_t i, count;
+	extent40_t *extent;
+	uint16_t i, count;
     
-    aal_assert("umka-1205", item != NULL, return -1);
-    aal_assert("umka-1206", buff != NULL, return -1);
+	aal_assert("umka-1205", item != NULL, return -1);
+	aal_assert("umka-1206", buff != NULL, return -1);
 
-    extent = extent40_body(item);
-    count = extent40_count(item);
+	extent = extent40_body(item);
+	count = extent40_count(item);
 
-    for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++) {
 		int len = aal_snprintf(buff, n, "%llu( %llu )%s", et40_get_start(extent + i),
-							   et40_get_width(extent + i), (i < count - 1 ? ", " : ""));
+				       et40_get_width(extent + i), (i < count - 1 ? ", " : ""));
 		buff += len;
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 static errno_t extent40_max_poss_key(reiser4_item_t *item,
-									 reiser4_key_t *key) 
+				     reiser4_key_t *key) 
 {
-    uint64_t offset;
-    reiser4_body_t *maxkey;
+	uint64_t offset;
+	reiser4_body_t *maxkey;
     
-    aal_assert("umka-1211", item != NULL, return -1);
-    aal_assert("umka-1212", key != NULL, return -1);
+	aal_assert("umka-1211", item != NULL, return -1);
+	aal_assert("umka-1212", key != NULL, return -1);
 
-    if (plugin_call(return 0, item->node->plugin->node_ops,
-					get_key, item->node, item->pos, key))
+	if (plugin_call(return 0, item->node->plugin->node_ops,
+			get_key, item->node, item->pos, key))
 		return -1;
     
-    maxkey = plugin_call(return -1, key->plugin->key_ops,
-						 maximal,);
+	maxkey = plugin_call(return -1, key->plugin->key_ops,
+			     maximal,);
     
-    offset = plugin_call(return -1, key->plugin->key_ops,
-						 get_offset, maxkey);
+	offset = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, maxkey);
     
-    plugin_call(return -1, key->plugin->key_ops, set_offset, 
-				key->body, offset);
+	plugin_call(return -1, key->plugin->key_ops, set_offset, 
+		    key->body, offset);
 
-    return 0;
+	return 0;
 }
 
 static errno_t extent40_max_real_key(reiser4_item_t *item,
-									 reiser4_key_t *key) 
+				     reiser4_key_t *key) 
 {
-    return 0;
+	return 0;
 }
 
 static errno_t extent40_fetch(reiser4_item_t *item, uint32_t pos,
-							 void *buff, uint32_t count)
+			      void *buff, uint32_t count)
 {
 	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
 	
@@ -118,7 +118,7 @@ static errno_t extent40_fetch(reiser4_item_t *item, uint32_t pos,
 #ifndef ENABLE_COMPACT
 
 static errno_t extent40_update(reiser4_item_t *item, uint32_t pos,
-							  void *buff, uint32_t count)
+			       void *buff, uint32_t count)
 {
 	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
 	
@@ -134,7 +134,7 @@ static errno_t extent40_update(reiser4_item_t *item, uint32_t pos,
 #endif
 
 static reiser4_plugin_t extent40_plugin = {
-    .item_ops = {
+	.item_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
@@ -147,35 +147,35 @@ static reiser4_plugin_t extent40_plugin = {
 		},
 		
 #ifndef ENABLE_COMPACT
-        .init		  = extent40_init,
+		.init		  = extent40_init,
 		.update       = extent40_update,
-        .insert		  = extent40_insert,
-        .remove		  = extent40_remove,
+		.insert		  = extent40_insert,
+		.remove		  = extent40_remove,
 #else
-        .init		  = NULL,
+		.init		  = NULL,
 		.update       = NULL,
-        .insert		  = NULL,
-        .remove		  = NULL,
+		.insert		  = NULL,
+		.remove		  = NULL,
 #endif
-        .estimate	  = NULL,
-        .check		  = NULL,
-        .lookup		  = NULL,
-        .valid		  = NULL,
+		.estimate	  = NULL,
+		.check		  = NULL,
+		.lookup		  = NULL,
+		.valid		  = NULL,
 		.shift        = NULL,
 		.open         = NULL,
 
-        .count		  = extent40_count,
-        .print		  = extent40_print,
+		.count		  = extent40_count,
+		.print		  = extent40_print,
 		.fetch         = extent40_fetch,
 		
-        .max_poss_key = extent40_max_poss_key,
-        .max_real_key = extent40_max_real_key,
-    }
+		.max_poss_key = extent40_max_poss_key,
+		.max_real_key = extent40_max_real_key,
+	}
 };
 
 static reiser4_plugin_t *extent40_start(reiser4_core_t *c) {
-    core = c;
-    return &extent40_plugin;
+	core = c;
+	return &extent40_plugin;
 }
 
 plugin_register(extent40_start, NULL);

@@ -10,14 +10,14 @@
 #include <reiser4/plugin.h>
 
 struct journal36 {
-    reiser4_plugin_t *plugin;
-    aal_block_t *header;
+	reiser4_plugin_t *plugin;
+	aal_block_t *header;
 };
 
 typedef struct journal36 journal36_t;
 
 struct journal36_header {
-    char jh_unused[100];
+	char jh_unused[100];
 };
 
 typedef struct journal36_header journal36_header_t;

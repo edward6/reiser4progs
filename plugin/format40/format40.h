@@ -17,20 +17,20 @@
 #define FORMAT40_OFFSET	    (65536 + 4096)
 
 struct format40_super {
-    d64_t sb_block_count;
-    d64_t sb_free_blocks;
-    d64_t sb_root_block;
-    d64_t sb_oid;
-    d64_t sb_file_count;
-    d64_t sb_flushes;
+	d64_t sb_block_count;
+	d64_t sb_free_blocks;
+	d64_t sb_root_block;
+	d64_t sb_oid;
+	d64_t sb_file_count;
+	d64_t sb_flushes;
     
-    d32_t sb_mkfs_id;
-    char sb_magic[16];
+	d32_t sb_mkfs_id;
+	char sb_magic[16];
 
-    d16_t sb_tree_height;
-    d16_t sb_tail_policy;
+	d16_t sb_tree_height;
+	d16_t sb_tail_policy;
 
-    char sb_unused[440];
+	char sb_unused[440];
 };
 
 typedef struct format40_super format40_super_t;
@@ -65,10 +65,10 @@ typedef struct format40_super format40_super_t;
 #define set_sb_tree_height(sb, val)		aal_set_le16(sb, sb_tree_height, val)
 
 struct format40 {
-    reiser4_plugin_t *plugin;
+	reiser4_plugin_t *plugin;
 
-    aal_block_t *block;
-    aal_device_t *device;
+	aal_block_t *block;
+	aal_device_t *device;
 };
 
 typedef struct format40 format40_t;

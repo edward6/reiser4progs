@@ -1,7 +1,7 @@
 /*
-    sdext_unix.h -- stat data exception plugin, that implements unix stat data 
-    fields.
-    Copyright 1996-2002 (C) Hans Reiser.
+  sdext_unix.h -- stat data exception plugin, that implements unix stat data 
+  fields.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #ifndef SDEXT_UNIX_H
@@ -11,13 +11,13 @@
 #include <reiser4/plugin.h>
 
 struct sdext_unix {
-    d32_t uid;
-    d32_t gid;
-    d32_t atime;
-    d32_t mtime;
-    d32_t ctime;
-    d32_t rdev;
-    d64_t bytes;
+	d32_t uid;
+	d32_t gid;
+	d32_t atime;
+	d32_t mtime;
+	d32_t ctime;
+	d32_t rdev;
+	d64_t bytes;
 } __attribute__((packed));
 
 typedef struct sdext_unix sdext_unix_t;

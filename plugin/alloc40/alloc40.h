@@ -11,12 +11,12 @@
 #include <reiser4/plugin.h>
 
 struct alloc40 {
-    reiser4_plugin_t *plugin;
+	reiser4_plugin_t *plugin;
 	
-    aux_bitmap_t *bitmap;
-    reiser4_entity_t *format;
+	aux_bitmap_t *bitmap;
+	reiser4_entity_t *format;
 
-    char *crc;
+	char *crc;
 };
 
 typedef struct alloc40 alloc40_t;

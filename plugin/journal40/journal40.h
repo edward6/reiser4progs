@@ -10,19 +10,19 @@
 #include <reiser4/plugin.h>
 
 struct journal40 {
-    reiser4_plugin_t *plugin;
-    reiser4_entity_t *format;
+	reiser4_plugin_t *plugin;
+	reiser4_entity_t *format;
  
-    aal_device_t *device;
+	aal_device_t *device;
 
-    aal_block_t *header;
-    aal_block_t *footer;
+	aal_block_t *header;
+	aal_block_t *footer;
 };
 
 typedef struct journal40 journal40_t;
 
 struct journal40_header {
-    d64_t jh_last_commited;
+	d64_t jh_last_commited;
 };
 
 typedef struct journal40_header journal40_header_t;
@@ -31,11 +31,11 @@ typedef struct journal40_header journal40_header_t;
 #define set_jh_last_commited(jh, val)		aal_set_le64(jh, jh_last_commited, val)
 
 struct journal40_footer {
-    d64_t jf_last_flushed;
+	d64_t jf_last_flushed;
 
-    d64_t jf_free_blocks;
-    d64_t jf_nr_files;
-    d64_t jf_next_oid;
+	d64_t jf_free_blocks;
+	d64_t jf_nr_files;
+	d64_t jf_next_oid;
 };
 
 typedef struct journal40_footer journal40_footer_t;
@@ -59,17 +59,17 @@ typedef struct journal40_footer journal40_footer_t;
 #define LGR_MAGIC_SIZE 8
 
 struct journal40_tx_header {
-    char magic[TXH_MAGIC_SIZE];
+	char magic[TXH_MAGIC_SIZE];
     
-    d64_t th_id;
-    d32_t th_total;
-    d32_t th_padding;
-    d64_t th_prev_tx;
-    d64_t th_next_block;
+	d64_t th_id;
+	d32_t th_total;
+	d32_t th_padding;
+	d64_t th_prev_tx;
+	d64_t th_next_block;
 
-    d64_t th_free_blocks;
-    d64_t th_nr_files;
-    d64_t th_next_oid;
+	d64_t th_free_blocks;
+	d64_t th_nr_files;
+	d64_t th_next_oid;
 };
 
 typedef struct journal40_tx_header journal40_tx_header_t;
@@ -96,11 +96,11 @@ typedef struct journal40_tx_header journal40_tx_header_t;
 #define set_th_next_oid(th, val)		aal_set_le64(th, th_next_oid, val)
 
 struct journal40_lr_header {
-    char magic[LGR_MAGIC_SIZE];
-    d64_t lh_id;
-    d32_t lh_total;
-    d32_t lh_serial;
-    d64_t lh_next_block;
+	char magic[LGR_MAGIC_SIZE];
+	d64_t lh_id;
+	d32_t lh_total;
+	d32_t lh_serial;
+	d64_t lh_next_block;
 };
 
 typedef struct journal40_lr_header journal40_lr_header_t;
@@ -118,8 +118,8 @@ typedef struct journal40_lr_header journal40_lr_header_t;
 #define set_lh_next_block(lh, val)		aal_set_le64(lh, lh_next_block, val)
 
 struct journal40_lr_entry {
-    d64_t le_original;
-    d64_t le_wandered;
+	d64_t le_original;
+	d64_t le_wandered;
 };
 
 typedef struct journal40_lr_entry journal40_lr_entry_t;

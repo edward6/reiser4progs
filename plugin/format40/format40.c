@@ -15,48 +15,48 @@ extern reiser4_plugin_t format40_plugin;
 static reiser4_core_t *core = NULL;
 
 static uint64_t format40_get_root(reiser4_entity_t *entity) {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-400", entity != NULL, return FAKE_BLK);
+	aal_assert("umka-400", entity != NULL, return FAKE_BLK);
     
-    super = format40_super(((format40_t *)entity)->block);
-    return get_sb_root_block(super);
+	super = format40_super(((format40_t *)entity)->block);
+	return get_sb_root_block(super);
 }
 
 static uint64_t format40_get_len(reiser4_entity_t *entity) {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-401", entity != NULL, return FAKE_BLK);
+	aal_assert("umka-401", entity != NULL, return FAKE_BLK);
     
-    super = format40_super(((format40_t *)entity)->block);
-    return get_sb_block_count(super);
+	super = format40_super(((format40_t *)entity)->block);
+	return get_sb_block_count(super);
 }
 
 static uint64_t format40_get_free(reiser4_entity_t *entity) {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-402", entity != NULL, return FAKE_BLK);
+	aal_assert("umka-402", entity != NULL, return FAKE_BLK);
     
-    super = format40_super(((format40_t *)entity)->block);
-    return get_sb_free_blocks(super);
+	super = format40_super(((format40_t *)entity)->block);
+	return get_sb_free_blocks(super);
 }
 
 static uint16_t format40_get_height(reiser4_entity_t *entity) {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-1123", entity != NULL, return 0);
+	aal_assert("umka-1123", entity != NULL, return 0);
     
-    super = format40_super(((format40_t *)entity)->block);
-    return get_sb_tree_height(super);
+	super = format40_super(((format40_t *)entity)->block);
+	return get_sb_tree_height(super);
 }
 
 static uint32_t format40_get_stamp(reiser4_entity_t *entity) {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-1122", entity != NULL, return 0);
+	aal_assert("umka-1122", entity != NULL, return 0);
     
-    super = format40_super(((format40_t *)entity)->block);
-    return get_sb_mkfs_id(super);
+	super = format40_super(((format40_t *)entity)->block);
+	return get_sb_mkfs_id(super);
 }
 
 #define FORMAT40_JHEADER (4096 * 19)
@@ -64,25 +64,25 @@ static uint32_t format40_get_stamp(reiser4_entity_t *entity) {
 
 /* This function describes journal layout in format40 */
 static errno_t format40_journal_layout(reiser4_entity_t *entity,
-									   reiser4_action_func_t action_func, void *data)
+				       reiser4_action_func_t action_func, void *data)
 {
-    blk_t blk;
-    format40_t *format = (format40_t *)entity;
+	blk_t blk;
+	format40_t *format = (format40_t *)entity;
     
-    aal_assert("umka-1040", format != NULL, return -1);
-    aal_assert("umka-1041", action_func != NULL, return -1);
+	aal_assert("umka-1040", format != NULL, return -1);
+	aal_assert("umka-1041", action_func != NULL, return -1);
     
-    blk = FORMAT40_JHEADER / aal_device_get_bs(format->device);
+	blk = FORMAT40_JHEADER / aal_device_get_bs(format->device);
     
-    if (action_func((reiser4_entity_t *)format, blk, data))
+	if (action_func((reiser4_entity_t *)format, blk, data))
 		return -1;
     
-    blk = FORMAT40_JFOOTER / aal_device_get_bs(format->device);
+	blk = FORMAT40_JFOOTER / aal_device_get_bs(format->device);
     
-    if (action_func((reiser4_entity_t *)format, blk, data))
+	if (action_func((reiser4_entity_t *)format, blk, data))
 		return -1;
 
-    return 0;
+	return 0;
 }
 
 #define FORMAT40_ALLOC (MASTER_OFFSET + (4096 * 2))
@@ -90,372 +90,372 @@ static errno_t format40_journal_layout(reiser4_entity_t *entity,
 #define CRC_SIZE 4
 
 static errno_t format40_alloc_layout(reiser4_entity_t *entity,
-									 reiser4_action_func_t action_func, void *data) 
+				     reiser4_action_func_t action_func, void *data) 
 {
-    count_t bpb;
-    blk_t blk, start;
-    format40_t *format = (format40_t *)entity;
+	count_t bpb;
+	blk_t blk, start;
+	format40_t *format = (format40_t *)entity;
 	
-    aal_assert("umka-347", entity != NULL, return -1);
-    aal_assert("umka-348", action_func != NULL, return -1);
+	aal_assert("umka-347", entity != NULL, return -1);
+	aal_assert("umka-348", action_func != NULL, return -1);
 
-    bpb = (aal_device_get_bs(format->device) - CRC_SIZE) * 8;
-    start = FORMAT40_ALLOC / aal_device_get_bs(format->device);
+	bpb = (aal_device_get_bs(format->device) - CRC_SIZE) * 8;
+	start = FORMAT40_ALLOC / aal_device_get_bs(format->device);
     
-    for (blk = start; blk < format40_get_len(entity);
-		 blk = (blk / bpb + 1) * bpb) 
-		{
-			if (action_func((reiser4_entity_t *)format, blk, data))
-				return -1;
-		}
+	for (blk = start; blk < format40_get_len(entity);
+	     blk = (blk / bpb + 1) * bpb) 
+	{
+		if (action_func((reiser4_entity_t *)format, blk, data))
+			return -1;
+	}
     
-    return 0;
+	return 0;
 }
 
 static errno_t format40_skipped_layout(reiser4_entity_t *entity,
-									   reiser4_action_func_t action_func, void *data) 
+				       reiser4_action_func_t action_func, void *data) 
 {
-    blk_t blk, offset;
-    format40_t *format = (format40_t *)entity;
+	blk_t blk, offset;
+	format40_t *format = (format40_t *)entity;
         
-    aal_assert("umka-1085", entity != NULL, return -1);
-    aal_assert("umka-1086", action_func != NULL, return -1);
+	aal_assert("umka-1085", entity != NULL, return -1);
+	aal_assert("umka-1086", action_func != NULL, return -1);
     
-    offset = MASTER_OFFSET / format->device->blocksize;
+	offset = MASTER_OFFSET / format->device->blocksize;
     
-    for (blk = 0; blk < offset; blk++) {
+	for (blk = 0; blk < offset; blk++) {
 		if (action_func((reiser4_entity_t *)format, blk, data))
 			return -1;
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 static errno_t format40_format_layout(reiser4_entity_t *entity,
-									  reiser4_action_func_t action_func, void *data) 
+				      reiser4_action_func_t action_func, void *data) 
 {
-    blk_t blk, offset;
-    format40_t *format = (format40_t *)entity;
+	blk_t blk, offset;
+	format40_t *format = (format40_t *)entity;
         
-    aal_assert("umka-1042", entity != NULL, return -1);
-    aal_assert("umka-1043", action_func != NULL, return -1);
+	aal_assert("umka-1042", entity != NULL, return -1);
+	aal_assert("umka-1043", action_func != NULL, return -1);
     
-    blk = MASTER_OFFSET / format->device->blocksize;
-    offset = FORMAT40_OFFSET / format->device->blocksize;
+	blk = MASTER_OFFSET / format->device->blocksize;
+	offset = FORMAT40_OFFSET / format->device->blocksize;
     
-    for (; blk <= offset; blk++) {
+	for (; blk <= offset; blk++) {
 		if (action_func((reiser4_entity_t *)format, blk, data))
 			return -1;
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 static errno_t format40_super_check(format40_super_t *super, 
-									aal_device_t *device) 
+				    aal_device_t *device) 
 {
-    blk_t offset;
-    blk_t dev_len = aal_device_len(device);
+	blk_t offset;
+	blk_t dev_len = aal_device_len(device);
     
-    if (get_sb_block_count(super) > dev_len) {
+	if (get_sb_block_count(super) > dev_len) {
 		aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,
-							"Superblock has an invalid block count %llu for device "
-							"length %llu blocks.", get_sb_block_count(super), dev_len);
+				    "Superblock has an invalid block count %llu for device "
+				    "length %llu blocks.", get_sb_block_count(super), dev_len);
 		return -1;
-    }
+	}
     
-    offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
-    if (get_sb_root_block(super) < offset || get_sb_root_block(super) > dev_len) {
+	offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
+	if (get_sb_root_block(super) < offset || get_sb_root_block(super) > dev_len) {
 		aal_exception_error(
 			"Superblock has an invalid root block %llu for device "
 			"length %llu blocks.", get_sb_root_block(super), dev_len);
 		return -1;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static int format40_magic(format40_super_t *super) {
-    return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
-					   aal_strlen(FORMAT40_MAGIC)) == 0;
+	return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
+			   aal_strlen(FORMAT40_MAGIC)) == 0;
 }
 
 static aal_device_t *format40_device(reiser4_entity_t *entity) {
-    return ((format40_t *)entity)->device;
+	return ((format40_t *)entity)->device;
 }
 
 static aal_block_t *format40_super_open(aal_device_t *device) {
-    blk_t offset;
-    aal_block_t *block;
+	blk_t offset;
+	aal_block_t *block;
     
-    offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
+	offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
 	
-    if (!(block = aal_block_open(device, offset))) {
+	if (!(block = aal_block_open(device, offset))) {
 		aal_exception_error("Can't read block %llu. %s.", offset, 
-							aal_device_error(device));
+				    aal_device_error(device));
 		return NULL;
-    }
+	}
 
-    if (!format40_magic((format40_super_t *)block->data))
+	if (!format40_magic((format40_super_t *)block->data))
 		return NULL;
     
-    return block;
+	return block;
 }
 
 static reiser4_entity_t *format40_open(aal_device_t *device) {
-    format40_t *format;
+	format40_t *format;
 
-    aal_assert("umka-393", device != NULL, return NULL);
+	aal_assert("umka-393", device != NULL, return NULL);
 
-    if (!(format = aal_calloc(sizeof(*format), 0)))
+	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-    format->device = device;
-    format->plugin = &format40_plugin;
+	format->device = device;
+	format->plugin = &format40_plugin;
     
-    if (!(format->block = format40_super_open(device)))
+	if (!(format->block = format40_super_open(device)))
 		goto error_free_format;
     
-    return (reiser4_entity_t *)format;
+	return (reiser4_entity_t *)format;
 
-  error_free_format:
-    aal_free(format);
-  error:
-    return NULL;
+ error_free_format:
+	aal_free(format);
+ error:
+	return NULL;
 }
 
 #ifndef ENABLE_COMPACT
 
 static errno_t callback_clobber_block(reiser4_entity_t *entity, 
-									  blk_t blk, void *data) 
+				      blk_t blk, void *data) 
 {
-    aal_block_t *block;
-    format40_t *format;
+	aal_block_t *block;
+	format40_t *format;
 
-    format = (format40_t *)entity;
+	format = (format40_t *)entity;
     
-    if (!(block = aal_block_create(format->device, blk, 0))) {
+	if (!(block = aal_block_create(format->device, blk, 0))) {
 		aal_exception_error("Can't clobber block %llu.", blk);
 		return -1;
-    }
+	}
     
-    if (aal_block_sync(block)) {
+	if (aal_block_sync(block)) {
 		aal_exception_error("Can't write block %llu to device. %s.", blk, 
-							format->device->error);
+				    format->device->error);
 		goto error_free_block;
-    }
+	}
     
-    aal_block_close(block);
-    return 0;
+	aal_block_close(block);
+	return 0;
     
-  error_free_block:
-    aal_block_close(block);
-    return -1;
+ error_free_block:
+	aal_block_close(block);
+	return -1;
 }
 
 /* This function should create super block and update all copies */
 static reiser4_entity_t *format40_create(aal_device_t *device, 
-										 uint64_t blocks, uint16_t tail)
+					 uint64_t blocks, uint16_t tail)
 {
-    blk_t blk;
-    format40_t *format;
-    format40_super_t *super;
+	blk_t blk;
+	format40_t *format;
+	format40_super_t *super;
     
-    aal_assert("umka-395", device != NULL, return NULL);
+	aal_assert("umka-395", device != NULL, return NULL);
     
-    if (!(format = aal_calloc(sizeof(*format), 0)))
+	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
     
-    format->device = device;
-    format->plugin = &format40_plugin;
+	format->device = device;
+	format->plugin = &format40_plugin;
 
-    if (!(format->block = aal_block_create(device, (FORMAT40_OFFSET / 
-													aal_device_get_bs(device)), 0))) 
-		{
-			aal_exception_error("Can't allocate superblock.");
-			goto error_free_format;
-		}
+	if (!(format->block = aal_block_create(device, (FORMAT40_OFFSET / 
+							aal_device_get_bs(device)), 0))) 
+	{
+		aal_exception_error("Can't allocate superblock.");
+		goto error_free_format;
+	}
     
-    super = (format40_super_t *)format->block->data;
+	super = (format40_super_t *)format->block->data;
     
-    aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
-			   aal_strlen(FORMAT40_MAGIC));
+	aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
+		   aal_strlen(FORMAT40_MAGIC));
 
-    set_sb_block_count(super, blocks);
-    set_sb_tree_height(super, 2);
-    set_sb_flushes(super, 0);
-    set_sb_tail_policy(super, tail);
+	set_sb_block_count(super, blocks);
+	set_sb_tree_height(super, 2);
+	set_sb_flushes(super, 0);
+	set_sb_tail_policy(super, tail);
 
-    srandom(time(0));
-    set_sb_mkfs_id(super, random());
+	srandom(time(0));
+	set_sb_mkfs_id(super, random());
 
-    /* Clobbering skipped area */
-    if (format40_skipped_layout((reiser4_entity_t *)format, 
-								callback_clobber_block, NULL))
-		{
-			aal_exception_error("Can't clobber skipped area.");
-			goto error_free_block;
-		}
+	/* Clobbering skipped area */
+	if (format40_skipped_layout((reiser4_entity_t *)format, 
+				    callback_clobber_block, NULL))
+	{
+		aal_exception_error("Can't clobber skipped area.");
+		goto error_free_block;
+	}
     
-    return (reiser4_entity_t *)format;
+	return (reiser4_entity_t *)format;
 
-  error_free_block:
-    aal_block_close(format->block);
-  error_free_format:
-    aal_free(format);
-  error:
-    return NULL;
+ error_free_block:
+	aal_block_close(format->block);
+ error_free_format:
+	aal_free(format);
+ error:
+	return NULL;
 }
 
 /* This function should update all copies of the super block */
 static errno_t format40_sync(reiser4_entity_t *entity) {
-    format40_t *format;
+	format40_t *format;
     
-    aal_assert("umka-394", entity != NULL, return -1); 
+	aal_assert("umka-394", entity != NULL, return -1); 
    
-    format = (format40_t *)entity;
+	format = (format40_t *)entity;
     
-    if (aal_block_sync(format->block)) {
+	if (aal_block_sync(format->block)) {
 		blk_t offset = aal_block_number(format->block);
 	
 		aal_exception_error("Can't write superblock to %llu. %s.", offset, 
-							aal_device_error(format->device));
+				    aal_device_error(format->device));
 	
 		return -1;
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 #endif
 
 static errno_t format40_valid(reiser4_entity_t *entity) {
-    format40_t *format;
+	format40_t *format;
     
-    aal_assert("umka-397", entity != NULL, return -1);
+	aal_assert("umka-397", entity != NULL, return -1);
     
-    format = (format40_t *)entity;
+	format = (format40_t *)entity;
     
-    return format40_super_check(format40_super(format->block), 
-								format->device);
+	return format40_super_check(format40_super(format->block), 
+				    format->device);
 }
 
 static void format40_close(reiser4_entity_t *entity) {
-    aal_assert("umka-398", entity != NULL, return);
+	aal_assert("umka-398", entity != NULL, return);
     
-    aal_block_close(((format40_t *)entity)->block);
-    aal_free(entity);
+	aal_block_close(((format40_t *)entity)->block);
+	aal_free(entity);
 }
 
 static int format40_confirm(aal_device_t *device) {
-    aal_block_t *block;
+	aal_block_t *block;
 
-    aal_assert("umka-733", device != NULL, return 0);
+	aal_assert("umka-733", device != NULL, return 0);
     
-    if (!(block = format40_super_open(device)))
+	if (!(block = format40_super_open(device)))
 		return 0;
 	
-    aal_block_close(block);
-    return 1;
+	aal_block_close(block);
+	return 1;
 }
 
 static void format40_oid_area(reiser4_entity_t *entity, 
-							  void **oid_start, uint32_t *oid_len) 
+			      void **oid_start, uint32_t *oid_len) 
 {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-732", entity != NULL, return);
+	aal_assert("umka-732", entity != NULL, return);
     
-    super = format40_super(((format40_t *)entity)->block);
+	super = format40_super(((format40_t *)entity)->block);
     
-    *oid_start = &super->sb_oid;
-    *oid_len = &super->sb_file_count - &super->sb_oid;
+	*oid_start = &super->sb_oid;
+	*oid_len = &super->sb_file_count - &super->sb_oid;
 }
 
 static const char *formats[] = {"4.0"};
 
 static const char *format40_name(reiser4_entity_t *entity) {
-    return formats[0];
+	return formats[0];
 }
 
 static rpid_t format40_journal_pid(reiser4_entity_t *entity) {
-    return JOURNAL_REISER40_ID;
+	return JOURNAL_REISER40_ID;
 }
 
 static rpid_t format40_alloc_pid(reiser4_entity_t *entity) {
-    return ALLOC_REISER40_ID;
+	return ALLOC_REISER40_ID;
 }
 
 static rpid_t format40_oid_pid(reiser4_entity_t *entity) {
-    return OID_REISER40_ID;
+	return OID_REISER40_ID;
 }
 
 #ifndef ENABLE_COMPACT
 
 static void format40_set_root(reiser4_entity_t *entity, 
-							  uint64_t root) 
+			      uint64_t root) 
 {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-403", entity != NULL, return);
+	aal_assert("umka-403", entity != NULL, return);
     
-    super = format40_super(((format40_t *)entity)->block);
-    set_sb_root_block(super, root);
+	super = format40_super(((format40_t *)entity)->block);
+	set_sb_root_block(super, root);
 }
 
 static void format40_set_len(reiser4_entity_t *entity, 
-							 uint64_t blocks) 
+			     uint64_t blocks) 
 {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-404", entity != NULL, return);
+	aal_assert("umka-404", entity != NULL, return);
     
-    super = format40_super(((format40_t *)entity)->block);
-    set_sb_block_count(super, blocks);
+	super = format40_super(((format40_t *)entity)->block);
+	set_sb_block_count(super, blocks);
 }
 
 static void format40_set_free(reiser4_entity_t *entity, 
-							  uint64_t blocks) 
+			      uint64_t blocks) 
 {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-405", entity != NULL, return);
+	aal_assert("umka-405", entity != NULL, return);
     
-    super = format40_super(((format40_t *)entity)->block);
-    set_sb_free_blocks(super, blocks);
+	super = format40_super(((format40_t *)entity)->block);
+	set_sb_free_blocks(super, blocks);
 }
 
 static void format40_set_height(reiser4_entity_t *entity, 
-								uint16_t height) 
+				uint16_t height) 
 {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-555", entity != NULL, return);
+	aal_assert("umka-555", entity != NULL, return);
 
-    super = format40_super(((format40_t *)entity)->block);
-    set_sb_tree_height(super, height);
+	super = format40_super(((format40_t *)entity)->block);
+	set_sb_tree_height(super, height);
 }
 
 static void format40_set_stamp(reiser4_entity_t *entity, 
-							   uint32_t mkfsid) 
+			       uint32_t mkfsid) 
 {
-    format40_super_t *super;
+	format40_super_t *super;
     
-    aal_assert("umka-1121", entity != NULL, return);
+	aal_assert("umka-1121", entity != NULL, return);
 
-    super = format40_super(((format40_t *)entity)->block);
-    set_sb_mkfs_id(super, mkfsid);
+	super = format40_super(((format40_t *)entity)->block);
+	set_sb_mkfs_id(super, mkfsid);
 }
 
 extern errno_t format40_check(reiser4_entity_t *entity, 
-							  uint16_t options);
+			      uint16_t options);
 
 extern errno_t format40_print(reiser4_entity_t *entity, 
-							  char *buff, uint32_t n, uint16_t options);
+			      char *buff, uint32_t n, uint16_t options);
 
 #endif
 
 static reiser4_plugin_t format40_plugin = {
-    .format_ops = {
+	.format_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
@@ -513,12 +513,12 @@ static reiser4_plugin_t format40_plugin = {
 		.journal_pid	= format40_journal_pid,
 		.alloc_pid	= format40_alloc_pid,
 		.oid_pid	= format40_oid_pid
-    }
+	}
 };
 
 static reiser4_plugin_t *format40_start(reiser4_core_t *c) {
-    core = c;
-    return &format40_plugin;
+	core = c;
+	return &format40_plugin;
 }
 
 plugin_register(format40_start, NULL);

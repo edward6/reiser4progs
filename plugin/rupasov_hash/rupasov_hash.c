@@ -6,50 +6,50 @@
 #include <reiser4/plugin.h>
 
 uint64_t rupasov_hash_build(const unsigned char *name, uint32_t len) {
-    uint32_t j, pow;
-    uint32_t i;
-    uint64_t a, c;
+	uint32_t j, pow;
+	uint32_t i;
+	uint64_t a, c;
 	
-    for (pow = 1, i = 1; i < len; i++) pow = pow * 10; 
+	for (pow = 1, i = 1; i < len; i++) pow = pow * 10; 
 	
-    if (len == 1) 
+	if (len == 1) 
 		a = name[0] - 48;
-    else
+	else
 		a = (name[0] - 48) * pow;
 	
-    for (i = 1; i < len; i++) {
+	for (i = 1; i < len; i++) {
 		c = name[i] - 48; 
 	
 		for (pow = 1, j = i; j < len - 1; j++) 
 			pow = pow * 10;
 	
 		a = a + c * pow;
-    }
+	}
 	
-    for (; i < 40; i++) {
+	for (; i < 40; i++) {
 		c = '0' - 48;
 	
 		for (pow = 1,j = i; j < len - 1; j++) 
 			pow = pow * 10;
 	
 		a = a + c * pow;
-    }
+	}
 	
-    for (; i < 256; i++) {
+	for (; i < 256; i++) {
 		c = i; 
 	
 		for (pow = 1, j = i; j < len - 1; j++) 
 			pow = pow * 10;
 	
 		a = a + c * pow;
-    }
+	}
 	
-    a = a << 7;
-    return a;
+	a = a << 7;
+	return a;
 }
 
 static reiser4_plugin_t rupasov_hash_plugin = {
-    .hash_ops = {
+	.hash_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
@@ -61,11 +61,11 @@ static reiser4_plugin_t rupasov_hash_plugin = {
 			.desc = "Implementation of rupasov hash for reiserfs 4.0, ver. " VERSION,
 		},
 		.build = rupasov_hash_build
-    }
+	}
 };
 
 static reiser4_plugin_t *rupasov_hash_start(reiser4_core_t *c) {
-    return &rupasov_hash_plugin;
+	return &rupasov_hash_plugin;
 }
 
 plugin_register(rupasov_hash_start, NULL);

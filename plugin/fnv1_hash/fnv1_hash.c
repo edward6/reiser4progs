@@ -6,19 +6,19 @@
 #include <reiser4/plugin.h>
 
 static uint64_t fnv1_hash_build(const unsigned char *name, uint32_t len) {
-    uint32_t i;
-    uint64_t a = 0xcbf29ce484222325ull;
-    const uint64_t fnv_64_prime = 0x100000001b3ull;
+	uint32_t i;
+	uint64_t a = 0xcbf29ce484222325ull;
+	const uint64_t fnv_64_prime = 0x100000001b3ull;
 
-    for(i = 0; i < len; i++) {
+	for(i = 0; i < len; i++) {
 		a *= fnv_64_prime;
 		a ^= (uint64_t)name[i];
-    }
-    return a;
+	}
+	return a;
 }
 
 static reiser4_plugin_t fnv1_hash_plugin = {
-    .hash_ops = {
+	.hash_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
@@ -30,11 +30,11 @@ static reiser4_plugin_t fnv1_hash_plugin = {
 			.desc = "Implementation of fnv1 for reiserfs 4.0, ver. " VERSION,
 		},
 		.build = fnv1_hash_build
-    }
+	}
 };
 
 static reiser4_plugin_t *fnv1_hash_start(reiser4_core_t *c) {
-    return &fnv1_hash_plugin;
+	return &fnv1_hash_plugin;
 }
 
 plugin_register(fnv1_hash_start, NULL);

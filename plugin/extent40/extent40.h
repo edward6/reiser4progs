@@ -1,6 +1,6 @@
 /*
-    extent40 -- resier4 default extent plugin.
-    Copyright (C) 1996-2002 Hans Reiser.
+  extent40 -- resier4 default extent plugin.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef EXTENT40
@@ -10,8 +10,8 @@
 #include <reiser4/plugin.h>
 
 struct extent40 {
-    blk_t start;
-    count_t width;
+	blk_t start;
+	count_t width;
 };
 
 typedef struct extent40 extent40_t;

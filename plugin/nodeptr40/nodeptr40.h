@@ -1,6 +1,6 @@
 /*
-    nodeptr40.h -- reiser4 dafault internal item structures.
-    Copyright (C) 1996-2002 Hans Reiser.
+  nodeptr40.h -- reiser4 dafault internal item structures.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef NODEPTR40_H
@@ -14,7 +14,7 @@
 #include <reiser4/plugin.h>
 
 struct nodeptr40 {
-    d64_t ptr;
+	d64_t ptr;
 };
 
 typedef struct nodeptr40 nodeptr40_t;

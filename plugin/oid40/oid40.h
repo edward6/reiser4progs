@@ -16,13 +16,13 @@
 #define OID40_RESERVED			(1 << 16)
 
 struct oid40 {
-    reiser4_plugin_t *plugin;
+	reiser4_plugin_t *plugin;
 
-    const void *start;
-    uint32_t len;
+	const void *start;
+	uint32_t len;
 
-    uint64_t next;
-    uint64_t used;
+	uint64_t next;
+	uint64_t used;
 };
 
 typedef struct oid40 oid40_t;

@@ -1,6 +1,6 @@
 /*
-    direntry40.h -- reiser4 default directory structures.
-    Copyright (C) 1996-2002 Hans Reiser.
+  direntry40.h -- reiser4 default directory structures.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef DIRENTRY40_H
@@ -15,21 +15,21 @@
 #include <reiser4/plugin.h>
 
 /*
-    The direntry40 structure is as the following:
-   +-------------------------------+-------------------------------------------------+
-   |           Unit Headers        |                     Units.                      |
-   +-------------------------------+-------------------------------------------------+
-   |                               |                      |   |                      |
-   |count|entry40[0]|...|entry40[N]|objid40[0]|name[0]'\0'|...|objid40[N]|name[N]'\0'|
-   |                               |                      |   |                      |
-   +-------------------------------+-------------------------------------------------+
+  The direntry40 structure is as the following:
+  +-------------------------------+-------------------------------------------------+
+  |           Unit Headers        |                     Units.                      |
+  +-------------------------------+-------------------------------------------------+
+  |                               |                      |   |                      |
+  |count|entry40[0]|...|entry40[N]|objid40[0]|name[0]'\0'|...|objid40[N]|name[N]'\0'|
+  |                               |                      |   |                      |
+  +-------------------------------+-------------------------------------------------+
 
 */
 
 /* Part of the key, the object, an entry points to. */
 struct objid40 {
-    d8_t locality[sizeof(d64_t)];
-    d8_t objectid[sizeof(d64_t)];
+	d8_t locality[sizeof(d64_t)];
+	d8_t objectid[sizeof(d64_t)];
 };
 
 typedef struct objid40 objid40_t;
@@ -43,8 +43,8 @@ typedef struct objid40 objid40_t;
 
 /* Part of the key, describing the entry. */
 struct entryid40 {
-    d8_t objectid[sizeof(uint64_t)];	    
-    d8_t offset[sizeof(uint64_t)];
+	d8_t objectid[sizeof(uint64_t)];	    
+	d8_t offset[sizeof(uint64_t)];
 };
 
 typedef struct entryid40 entryid40_t;
@@ -56,15 +56,15 @@ typedef struct entryid40 entryid40_t;
 #define eid_set_offset(eid, val)	    (*(d64_t *)eid->offset) = CPU_TO_LE64(val)
 
 struct entry40 {
-    entryid40_t entryid;		    /* Unit's part of key - hash for key40 */
-    d16_t offset;			    /* Offset within the direntry40 item. */
+	entryid40_t entryid;		    /* unit's part of key - hash for key40 */
+	d16_t offset;			    /* offset within the direntry40 item. */
 };
 
 typedef struct entry40 entry40_t;
 
 struct direntry40 {
-    d16_t count;			    /* Unit count. */
-    entry40_t entry[0];			    /* Unit headers. */
+	d16_t count;			    /* unit count. */
+	entry40_t entry[0];		    /* unit headers. */
 };
 
 typedef struct direntry40 direntry40_t;

@@ -10,38 +10,38 @@ extern reiser4_plugin_t journal36_plugin;
 static reiser4_core_t *core = NULL;
 
 static errno_t journal36_header_check(journal36_header_t *header) {
-    return 0;
+	return 0;
 }
 
 static reiser4_entity_t *journal36_open(reiser4_entity_t *format) {
-    journal36_t *journal;
+	journal36_t *journal;
 
-    aal_assert("umka-406", format != NULL, return NULL);
+	aal_assert("umka-406", format != NULL, return NULL);
     
-    if (!(journal = aal_calloc(sizeof(*journal), 0)))
+	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
     
-    journal->plugin = &journal36_plugin;
+	journal->plugin = &journal36_plugin;
     
-    return (reiser4_entity_t *)journal;
+	return (reiser4_entity_t *)journal;
 }
 
 static errno_t journal36_sync(reiser4_entity_t *entity) {
-    aal_assert("umka-407", entity != NULL, return -1);
-    return -1;
+	aal_assert("umka-407", entity != NULL, return -1);
+	return -1;
 }
 
 static void journal36_close(reiser4_entity_t *entity) {
-    aal_assert("umka-408", entity != NULL, return);
-    aal_free(entity);
+	aal_assert("umka-408", entity != NULL, return);
+	aal_free(entity);
 }
 
 static errno_t journal36_replay(reiser4_entity_t *entity) {
-    return 0;
+	return 0;
 }
 
 static reiser4_plugin_t journal36_plugin = {
-    .journal_ops = {
+	.journal_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
@@ -59,12 +59,12 @@ static reiser4_plugin_t journal36_plugin = {
 		.replay = journal36_replay,
 		.valid	= NULL,
 		.device = NULL
-    }
+	}
 };
 
 static reiser4_plugin_t *journal36_start(reiser4_core_t *c) {
-    core = c;
-    return &journal36_plugin;
+	core = c;
+	return &journal36_plugin;
 }
 
 plugin_register(journal36_start, NULL);

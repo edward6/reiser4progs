@@ -6,20 +6,20 @@
 #include <reiser4/plugin.h>
 
 uint64_t r5_hash_build(const unsigned char *name, uint32_t len) {
-    uint32_t i;
-    uint64_t a = 0;
+	uint32_t i;
+	uint64_t a = 0;
 	
-    for (i = 0; i < len; i++) {
+	for (i = 0; i < len; i++) {
 		a += name[i] << 4;
 		a += name[i] >> 4;
 		a *= 11;
-    }
+	}
     
-    return a;
+	return a;
 }
 
 static reiser4_plugin_t r5_hash_plugin = {
-    .hash_ops = {
+	.hash_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
@@ -31,11 +31,11 @@ static reiser4_plugin_t r5_hash_plugin = {
 			.desc = "Implementation of r5 hash for reiserfs 4.0, ver. " VERSION,
 		},
 		.build = r5_hash_build
-    }
+	}
 };
 
 static reiser4_plugin_t *r5_hash_start(reiser4_core_t *c) {
-    return &r5_hash_plugin;
+	return &r5_hash_plugin;
 }
 
 plugin_register(r5_hash_start, NULL);

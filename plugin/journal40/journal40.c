@@ -14,239 +14,239 @@ extern reiser4_plugin_t journal40_plugin;
 static reiser4_core_t *core = NULL;
 
 static errno_t journal40_hcheck(journal40_header_t *header) {
-    aal_assert("umka-515", header != NULL, return -1);
-    return 0;
+	aal_assert("umka-515", header != NULL, return -1);
+	return 0;
 }
 
 static errno_t journal40_fcheck(journal40_footer_t *footer) {
-    aal_assert("umka-516", footer != NULL, return -1);
-    return 0;
+	aal_assert("umka-516", footer != NULL, return -1);
+	return 0;
 }
 
 static errno_t callback_fetch_journal(reiser4_entity_t *format, 
-									  blk_t blk, void *data)
+				      blk_t blk, void *data)
 {
-    aal_device_t *device;
-    journal40_t *journal = (journal40_t *)data;
+	aal_device_t *device;
+	journal40_t *journal = (journal40_t *)data;
 
-    device = plugin_call(return -1, format->plugin->format_ops, 
-						 device, format);
+	device = plugin_call(return -1, format->plugin->format_ops, 
+			     device, format);
     
-    if (!device) {
+	if (!device) {
 		aal_exception_error("Invalid device has been detected.");
 		return -1;
-    }
+	}
 
-    if (!journal->header) {
+	if (!journal->header) {
 		if (!(journal->header = aal_block_open(device, blk))) {
 			aal_exception_error("Can't read journal header from block %llu. %s.", 
-								blk, device->error);
+					    blk, device->error);
 			return -1;
 		}
-    } else {
+	} else {
 		if (!(journal->footer = aal_block_open(device, blk))) {
 			aal_exception_error("Can't read journal footer from block %llu. %s.", 
-								blk, device->error);
+					    blk, device->error);
 			return -1;
 		}
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 static aal_device_t *journal40_device(reiser4_entity_t *entity) {
-    return ((journal40_t *)entity)->device;
+	return ((journal40_t *)entity)->device;
 }
 
 static reiser4_entity_t *journal40_open(reiser4_entity_t *format) {
-    journal40_t *journal;
-    reiser4_layout_func_t layout;
+	journal40_t *journal;
+	reiser4_layout_func_t layout;
 
-    aal_assert("umka-409", format != NULL, return NULL);
+	aal_assert("umka-409", format != NULL, return NULL);
     
-    if (!(journal = aal_calloc(sizeof(*journal), 0)))
+	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
-    journal->format = format;
-    journal->plugin = &journal40_plugin;
+	journal->format = format;
+	journal->plugin = &journal40_plugin;
     
-    if (!(layout = format->plugin->format_ops.journal_layout)) {
+	if (!(layout = format->plugin->format_ops.journal_layout)) {
 		aal_exception_error("Method \"journal_layout\" doesn't implemented "
-							"in format plugin.");
+				    "in format plugin.");
 		goto error_free_journal;
-    }
+	}
     
-    if (layout(format, callback_fetch_journal, journal)) {
+	if (layout(format, callback_fetch_journal, journal)) {
 		aal_exception_error("Can't load journal metadata.");
 		goto error_free_journal;
-    }
+	}
     
-    return (reiser4_entity_t *)journal;
+	return (reiser4_entity_t *)journal;
 
-  error_free_journal:
-    aal_free(journal);
-  error:
-    return NULL;
+ error_free_journal:
+	aal_free(journal);
+ error:
+	return NULL;
 }
 
 static errno_t journal40_valid(reiser4_entity_t *entity) {
-    journal40_t *journal = (journal40_t *)entity;
+	journal40_t *journal = (journal40_t *)entity;
     
-    aal_assert("umka-965", journal != NULL, return -1);
+	aal_assert("umka-965", journal != NULL, return -1);
     
-    if (journal40_hcheck(journal->header->data))
+	if (journal40_hcheck(journal->header->data))
 		return -1;
 	
-    if (journal40_fcheck(journal->footer->data))
+	if (journal40_fcheck(journal->footer->data))
 		return -1;
     
-    return 0;
+	return 0;
 }
 
 #ifndef ENABLE_COMPACT
 
 static errno_t callback_alloc_journal(reiser4_entity_t *format,
-									  blk_t blk, void *data)
+				      blk_t blk, void *data)
 {
-    aal_device_t *device;
-    journal40_t *journal = (journal40_t *)data;
+	aal_device_t *device;
+	journal40_t *journal = (journal40_t *)data;
 
-    device = plugin_call(return -1, format->plugin->format_ops, 
-						 device, format);
+	device = plugin_call(return -1, format->plugin->format_ops, 
+			     device, format);
     
-    if (!device) {
+	if (!device) {
 		aal_exception_error("Invalid device has been detected.");
 		return -1;
-    }
+	}
     
-    if (!journal->header) {
+	if (!journal->header) {
 		if (!(journal->header = aal_block_create(device, blk, 0))) {
 			aal_exception_error("Can't alloc journal header on block %llu.", blk);
 			return -1;
 		}
-    } else {
+	} else {
 		if (!(journal->footer = aal_block_create(device, blk, 0))) {
 			aal_exception_error("Can't alloc journal footer on block %llu.", blk);
 			return -1;
 		}
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 static reiser4_entity_t *journal40_create(reiser4_entity_t *format,
-										  void *params) 
+					  void *params) 
 {
-    journal40_t *journal;
-    reiser4_layout_func_t layout;
+	journal40_t *journal;
+	reiser4_layout_func_t layout;
     
-    aal_assert("umka-1057", format != NULL, return NULL);
+	aal_assert("umka-1057", format != NULL, return NULL);
     
-    if (!(journal = aal_calloc(sizeof(*journal), 0)))
+	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
     
-    journal->format = format;
-    journal->plugin = &journal40_plugin;
+	journal->format = format;
+	journal->plugin = &journal40_plugin;
     
-    if (!(layout = format->plugin->format_ops.journal_layout)) {
+	if (!(layout = format->plugin->format_ops.journal_layout)) {
 		aal_exception_error("Method \"journal_layout\" doesn't "
-							"implemented in format plugin.");
+				    "implemented in format plugin.");
 		goto error_free_journal;
-    }
+	}
     
-    if (layout(format, callback_alloc_journal, journal)) {
+	if (layout(format, callback_alloc_journal, journal)) {
 		aal_exception_error("Can't load journal metadata.");
 		goto error_free_journal;
-    }
+	}
     
-    return (reiser4_entity_t *)journal;
+	return (reiser4_entity_t *)journal;
 
-  error_free_header:
-    aal_block_close(journal->header);
-  error_free_journal:
-    aal_free(journal);
-  error:
-    return NULL;
+ error_free_header:
+	aal_block_close(journal->header);
+ error_free_journal:
+	aal_free(journal);
+ error:
+	return NULL;
 }
 
 static errno_t callback_flush_journal(reiser4_entity_t *format,
-									  blk_t blk, void *data)
+				      blk_t blk, void *data)
 {
-    aal_device_t *device;
-    journal40_t *journal = (journal40_t *)data;
+	aal_device_t *device;
+	journal40_t *journal = (journal40_t *)data;
 
-    device = plugin_call(return -1, format->plugin->format_ops, 
-						 device, format);
+	device = plugin_call(return -1, format->plugin->format_ops, 
+			     device, format);
     
-    if (!device) {
+	if (!device) {
 		aal_exception_error("Invalid device has been detected.");
 		return -1;
-    }
+	}
     
-    if (blk == aal_block_number(journal->header)) {
+	if (blk == aal_block_number(journal->header)) {
 		if (aal_block_sync(journal->header)) {
 			aal_exception_error("Can't write journal header to block %llu. %s.", 
-								blk, device->error);
+					    blk, device->error);
 			return -1;
 		}
-    } else {
+	} else {
 		if (aal_block_sync(journal->footer)) {
 			aal_exception_error("Can't write journal footer to block %llu. %s.", 
-								blk, device->error);
+					    blk, device->error);
 			return -1;
 		}
-    }
+	}
     
-    return 0;
+	return 0;
 }
 static errno_t journal40_sync(reiser4_entity_t *entity) {
-    reiser4_layout_func_t layout;
-    journal40_t *journal = (journal40_t *)entity;
+	reiser4_layout_func_t layout;
+	journal40_t *journal = (journal40_t *)entity;
 
-    aal_assert("umka-410", journal != NULL, return -1);
+	aal_assert("umka-410", journal != NULL, return -1);
     
-    if (!(layout = journal->format->plugin->format_ops.journal_layout)) {
+	if (!(layout = journal->format->plugin->format_ops.journal_layout)) {
 		aal_exception_error(
 			"Method \"journal_layout\" doesn't implemented in format plugin.");
 		return -1;
-    }
+	}
     
-    if (layout(journal->format, callback_flush_journal, journal)) {
+	if (layout(journal->format, callback_flush_journal, journal)) {
 		aal_exception_error("Can't load journal metadata.");
 		return -1;
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 static errno_t journal40_replay_transaction(journal40_t *journal, 
-											aal_block_t *tx_block) 
+					    aal_block_t *tx_block) 
 {
-    uint32_t total;
-    uint64_t log_blk;
-    uint32_t end_blk;
+	uint32_t total;
+	uint64_t log_blk;
+	uint32_t end_blk;
     
-    aal_device_t *device;
-    aal_block_t *log_block;
+	aal_device_t *device;
+	aal_block_t *log_block;
 
-    journal40_footer_t *footer;
-    journal40_lr_header_t *lr_header;
-    journal40_tx_header_t *tx_header;
+	journal40_footer_t *footer;
+	journal40_lr_header_t *lr_header;
+	journal40_tx_header_t *tx_header;
     
-    device = journal->device;
-    tx_header = (journal40_tx_header_t *)tx_block->data;
+	device = journal->device;
+	tx_header = (journal40_tx_header_t *)tx_block->data;
     
-    end_blk = aal_block_number(tx_block);
-    log_blk = get_th_next_block(tx_header);
-    total = get_th_total(tx_header);
+	end_blk = aal_block_number(tx_block);
+	log_blk = get_th_next_block(tx_header);
+	total = get_th_total(tx_header);
     
-    while (log_blk != end_blk) {
+	while (log_blk != end_blk) {
 		uint32_t i, capacity;
 		journal40_lr_entry_t *entry;
 	    
 		if (!(log_block = aal_block_open(device, log_blk))) {
 			aal_exception_error("Can't read block %llu while replaying "
-								"the journal. %s.", log_blk, device->error);
+					    "the journal. %s.", log_blk, device->error);
 			return -1;
 		}
 
@@ -268,7 +268,8 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 	    
 			if (!block) {
 				aal_exception_error("Can't read block %llu while replaying "
-									"the journal. %s.", get_le_wandered(entry), device->error);
+						    "the journal. %s.", get_le_wandered(entry),
+						    device->error);
 				return -1;
 			}
 
@@ -276,7 +277,7 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 	    
 			if (aal_block_sync(block)) {
 				aal_exception_error("Can't write block %llu.", 
-									aal_block_number(block));
+						    aal_block_number(block));
 		
 				aal_block_close(block);
 				return -1;
@@ -295,9 +296,9 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 		set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
 		set_jf_nr_files(footer, get_th_nr_files(tx_header));
 		set_jf_next_oid(footer, get_th_next_oid(tx_header));
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 /* 
@@ -305,32 +306,32 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
    flushed transactions and -1 in the case of error.
 */
 static int format40_replay_oldest(journal40_t *journal) {
-    int ret;
-    uint64_t prev_tx;
-    uint64_t last_flushed_tx;
-    uint64_t last_commited_tx;
+	int ret;
+	uint64_t prev_tx;
+	uint64_t last_flushed_tx;
+	uint64_t last_commited_tx;
 
-    aal_block_t *tx_block;
-    journal40_tx_header_t *tx_header;
+	aal_block_t *tx_block;
+	journal40_tx_header_t *tx_header;
     
-    last_commited_tx = 
+	last_commited_tx = 
 		get_jh_last_commited((journal40_header_t *)journal->header->data);
     
-    last_flushed_tx = 
+	last_flushed_tx = 
 		get_jf_last_flushed((journal40_footer_t *)journal->footer->data);
     
-    /* Check if all transactions are replayed */
-    if (last_commited_tx == last_flushed_tx)
+	/* Check if all transactions are replayed */
+	if (last_commited_tx == last_flushed_tx)
 		return 0;
 
-    prev_tx = last_commited_tx;
+	prev_tx = last_commited_tx;
     
-    /* Searching for oldest not flushed transaction */
-    while (1) {
+	/* Searching for oldest not flushed transaction */
+	while (1) {
 
 		if (!(tx_block = aal_block_open(journal->device, prev_tx))) {
 			aal_exception_error("Can't read block %llu while replaying "
-								"the journal. %s.", prev_tx, journal->device->error);
+					    "the journal. %s.", prev_tx, journal->device->error);
 			return -1;
 		}
 	
@@ -347,42 +348,42 @@ static int format40_replay_oldest(journal40_t *journal) {
 			break;
 
 		aal_block_close(tx_block);
-    }
+	}
     
-    ret = journal40_replay_transaction(journal, tx_block);
-    aal_block_close(tx_block);
+	ret = journal40_replay_transaction(journal, tx_block);
+	aal_block_close(tx_block);
 
-    return (ret == 0);
+	return (ret == 0);
 }
 
 static int journal40_replay(reiser4_entity_t *entity) {
-    int ret, trans_nr = 0;
+	int ret, trans_nr = 0;
     
-    aal_assert("umka-412", entity != NULL, return -1);
+	aal_assert("umka-412", entity != NULL, return -1);
 
-    while ((ret = format40_replay_oldest((journal40_t *)entity)) == 1)
+	while ((ret = format40_replay_oldest((journal40_t *)entity)) == 1)
 		trans_nr++;
     
-    if (trans_nr)
+	if (trans_nr)
 		journal40_sync(entity);
     
-    return trans_nr;
+	return trans_nr;
 }
 
 #endif
 
 static void journal40_close(reiser4_entity_t *entity) {
-    journal40_t *journal = (journal40_t *)entity;
+	journal40_t *journal = (journal40_t *)entity;
     
-    aal_assert("umka-411", entity != NULL, return);
+	aal_assert("umka-411", entity != NULL, return);
 
-    aal_block_close(journal->header);
-    aal_block_close(journal->footer);
-    aal_free(journal);
+	aal_block_close(journal->header);
+	aal_block_close(journal->footer);
+	aal_free(journal);
 }
 
 static reiser4_plugin_t journal40_plugin = {
-    .journal_ops = {
+	.journal_ops = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
@@ -406,12 +407,12 @@ static reiser4_plugin_t journal40_plugin = {
 		.valid	= journal40_valid,
 		.close	= journal40_close,
 		.device = journal40_device
-    }
+	}
 };
 
 static reiser4_plugin_t *journal40_start(reiser4_core_t *c) {
-    core = c;
-    return &journal40_plugin;
+	core = c;
+	return &journal40_plugin;
 }
 
 plugin_register(journal40_start, NULL);
