@@ -53,11 +53,10 @@ static errno_t callback_ptr_handler(reiser4_coord_t *coord, void *data) {
     return 0;
 }
 
-static errno_t repair_ts_setup(traverse_hint_t *hint, repair_data_t *rd) {
+static errno_t repair_ts_setup(repair_data_t *rd) {
     repair_ts_t *ts;
     uint32_t i;
     
-    aal_assert("vpf-526", hint != NULL, return -1);
     aal_assert("vpf-565", rd != NULL, return -1);
     
     ts = repair_ts(rd);
@@ -68,10 +67,6 @@ static errno_t repair_ts_setup(traverse_hint_t *hint, repair_data_t *rd) {
     aal_assert("vpf-570", ts->bm_met != NULL, return -1);
     aal_assert("vpf-571", ts->bm_unfm_tree != NULL, return -1);
 
-    hint->data = rd;
-    hint->objects = 1 << EXTENT_ITEM;
-    hint->cleanup = 1;
- 
     /* Build the map of blocks which cannot be pointed by extent. */
     for (i = 0; i < ts->bm_met->size; i++) {
 	/* bm_met is bm_frmt | bm_used | bm_leaf | bm_twig */
@@ -124,7 +119,6 @@ static errno_t repair_ts_update(repair_data_t *rd) {
 errno_t repair_ts_pass(repair_data_t *rd) {
     reiser4_node_t *node;
     object_entity_t *entity;
-    traverse_hint_t hint;
     repair_ts_t *ts;
     errno_t res;
     blk_t blk = 0;
@@ -134,7 +128,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     
     ts = repair_ts(rd);
     
-    if (repair_ts_setup(&hint, rd))
+    if (repair_ts_setup(rd))
 	return -1;
 
     /* There were found overlapped extents. Look through twigs, build list of
@@ -149,13 +143,12 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 	entity = node->entity;
 	
 	/* This block must contain twig. */
-	aal_assert("vpf-544", plugin_call(goto error_node_free, 
-	    entity->plugin->node_ops, get_level, entity) == TWIG_LEVEL, 
+	aal_assert("vpf-544", reiser4_node_level(node) == TWIG_LEVEL, 
 	    goto error_node_free);
 
 	/* Lookup the node. */	
-	if ((res = reiser4_node_traverse(node, &hint, NULL, NULL,
-	    callback_ptr_handler, NULL, NULL)))
+	if ((res = repair_node_traverse(node, 1 << EXTENT_ITEM, 
+	    callback_ptr_handler, rd)))
 	    goto error_node_free;
 
 	if (!node->counter)
@@ -385,4 +378,6 @@ static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list,
     
     return 0;
 }
+
 #endif
+
