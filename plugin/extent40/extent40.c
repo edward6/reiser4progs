@@ -79,6 +79,13 @@ static errno_t extent40_max_poss_key(reiser4_item_t *item,
 
     return 0;
 }
+
+static errno_t extent40_max_real_key(reiser4_item_t *item,
+    reiser4_key_t *key) 
+{
+    return 0;
+}
+
 static reiser4_plugin_t extent40_plugin = {
     .item_ops = {
 	.h = {
@@ -106,6 +113,7 @@ static reiser4_plugin_t extent40_plugin = {
         .valid		= NULL,
         .max_poss_key	= extent40_max_poss_key,
         .print		= extent40_print,
+        .max_real_key   = extent40_max_real_key,
 
 	.specific	= {}
     }
