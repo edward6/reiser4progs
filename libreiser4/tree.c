@@ -501,6 +501,8 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 static errno_t reiser4_tree_ldroot(reiser4_tree_t *tree) {
 	blk_t root;
 	
+	aal_assert("umka-1870", tree != NULL);
+	
 	if (tree->root)
 		return 0;
 
@@ -516,6 +518,8 @@ static errno_t reiser4_tree_ldroot(reiser4_tree_t *tree) {
 
 /* Dealing with allocating root node if it is not allocated yet */
 static errno_t reiser4_tree_alroot(reiser4_tree_t *tree) {
+	aal_assert("umka-1869", tree != NULL);
+	
 	if (tree->root)
 		return 0;
 
@@ -528,6 +532,24 @@ static errno_t reiser4_tree_alroot(reiser4_tree_t *tree) {
 	reiser4_format_set_root(tree->fs->format, tree->root->blk);
 	tree->root->tree = tree;
 	
+	return 0;
+}
+
+static errno_t reiser4_tree_asroot(reiser4_tree_t *tree,
+				   reiser4_node_t *node)
+{
+	uint32_t level;
+	
+	aal_assert("umka-1867", tree != NULL);
+	aal_assert("umka-1868", node != NULL);
+
+	tree->root = node;
+	node->tree = tree;
+
+	level = reiser4_node_get_level(node);
+	reiser4_format_set_height(tree->fs->format, level);
+	reiser4_format_set_root(tree->fs->format, tree->root->blk);
+
 	return 0;
 }
 
@@ -703,17 +725,33 @@ errno_t reiser4_tree_attach(
 	  If so, we are taking care about it here.
 	*/
 	if (reiser4_format_get_root(tree->fs->format) == INVAL_BLK) {
-		
-		if (reiser4_tree_alroot(tree))
-			return -1;
 
-		coord.node = tree->root;
-		POS_INIT(&coord.pos, 0, ~0ul);
+		if (reiser4_node_get_level(node) == LEAF_LEVEL) {
+			if (reiser4_tree_alroot(tree))
+				return -1;
+
+			coord.node = tree->root;
+			POS_INIT(&coord.pos, 0, ~0ul);
 		
-		if (reiser4_node_insert(coord.node, &coord.pos, &hint))
-			return -1;
+			if (reiser4_node_insert(coord.node, &coord.pos, &hint))
+				return -1;
 		
-		reiser4_node_set_level(coord.node, level);
+			reiser4_node_set_level(coord.node, level);
+
+			/*
+			  Attaching node to insert point node. We should attach formatted nodes
+			  only.
+			*/
+			if (reiser4_tree_connect(tree, coord.node, node)) {
+				aal_exception_error("Can't attach the node %llu to the tree.", 
+						    node->blk);
+				return -1;
+			}
+		} else {
+			if (reiser4_tree_asroot(tree, node))
+				return -1;
+		}
+		
 		return 0;
 	} else {
 		if (reiser4_tree_ldroot(tree))
