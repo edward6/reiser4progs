@@ -3,10 +3,6 @@
    
    dir40.c -- reiser4 default directory object plugin. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <unistd.h>
@@ -14,7 +10,7 @@
 
 #include "dir40.h"
 
-extern reiser4_plugin_t dir40_plugin;
+extern reiser4_plug_t dir40_plug;
 
 /* Gets size from the object stat data */
 static uint64_t dir40_size(object_entity_t *entity) {
@@ -50,12 +46,9 @@ static errno_t dir40_telldir(object_entity_t *entity,
 static int dir40_mergeable(object_entity_t *entity,
 			   place_t *place)
 {
-	dir40_t *dir;
-	item_entity_t *item;
-	
-	dir = (dir40_t *)entity;
+	dir40_t *dir = (dir40_t *)entity;
 
-	/* Checking if item component in @item->pos is valid one */
+	/* Checking if item component in @place->pos is valid one */
 	if (!core->tree_ops.valid(dir->obj.tree, place))
 		return 0;
 
@@ -63,16 +56,14 @@ static int dir40_mergeable(object_entity_t *entity,
 	if (core->tree_ops.realize(dir->obj.tree, place))
 		return 0;
 	
-	item = &dir->body.item;
-	
 	/* Checking if item plugins are mergeable */
-	if (!plugin_equal(item->plugin, place->item.plugin))
+	if (!plug_equal(dir->body.plug, place->plug))
 		return 0;
 
 	/* Calling item mergeable() method in order to determine if they are
 	   mergeable. */
-	return plugin_call(item->plugin->o.item_ops,
-			   mergeable, item, &place->item);
+	return plug_call(dir->body.plug->o.item_ops,
+			 mergeable, &dir->body, place);
 }
 
 static errno_t dir40_seekdir(object_entity_t *entity,
@@ -102,8 +93,8 @@ static errno_t dir40_seekdir(object_entity_t *entity,
                 if (core->tree_ops.realize(dir->obj.tree, &next))
                         return -EINVAL;
                                                                                     
-                locality = plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
-                                       get_locality, &next.item.key);
+                locality = plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
+				     get_locality, &next.key);
                                                                                     
                 /* Items are not mergeable */
                 if (locality != obj40_objectid(&dir->obj))
@@ -141,16 +132,16 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	/* Preparing key of the first entry in directory */
-	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
-		    build_entry, &key, dir->hash,
-		    obj40_locality(&dir->obj),
-		    obj40_objectid(&dir->obj), ".");
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
+		  build_entry, &key, dir->hash,
+		  obj40_locality(&dir->obj),
+		  obj40_objectid(&dir->obj), ".");
 
 	return dir40_seekdir(entity, &key);
 }
 
 /* Trying to guess hash in use by stat data extention */
-static reiser4_plugin_t *dir40_hash(object_entity_t *entity, rid_t pid) {
+static reiser4_plug_t *dir40_hash(object_entity_t *entity, rid_t pid) {
 	dir40_t *dir;
 	
 	dir = (dir40_t *)entity;
@@ -159,10 +150,10 @@ static reiser4_plugin_t *dir40_hash(object_entity_t *entity, rid_t pid) {
 		/* This function should inspect stat data extentions first. And
 		   only if they do not contain a convenient plugin extention
 		   (hash plugin), it should use some default hash plugin id. */
-		return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
+		return core->factory_ops.ifind(HASH_PLUG_TYPE, HASH_R5_ID);
 	} else {
 		/* Getting hash plugin by its id */
-		return core->factory_ops.ifind(HASH_PLUGIN_TYPE, pid);
+		return core->factory_ops.ifind(HASH_PLUG_TYPE, pid);
 	}
 }
 
@@ -171,11 +162,11 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	dir40_t *dir;
 	place_t next;
 
-	entry_hint_t entry;
-
 #ifndef ENABLE_STAND_ALONE
-	item_entity_t *item;
+	place_t *place;
 #endif
+
+	entry_hint_t entry;
 
 	aal_assert("umka-2063", entity != NULL);
 	
@@ -195,11 +186,11 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	aal_memcpy(&dir->body, &next, sizeof(next));
 	
 #ifndef ENABLE_STAND_ALONE
-	item = &dir->body.item;
+	place = &dir->body;
 	
 	/* Updating current position by entry offset key */
-	if (plugin_call(item->plugin->o.item_ops, read,
-			item, &entry, dir->unit, 1) == 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &entry, dir->unit, 1) == 1)
 	{
 		aal_memcpy(&dir->offset, &entry.offset,
 			   sizeof(dir->offset));
@@ -215,27 +206,27 @@ static errno_t dir40_readdir(object_entity_t *entity,
 {
 	dir40_t *dir;
 	uint32_t units;
-	item_entity_t *item;
+	place_t *place;
 
 	aal_assert("umka-844", entity != NULL);
 	aal_assert("umka-845", entry != NULL);
 
 	dir = (dir40_t *)entity;
-	item = &dir->body.item;
+	place = &dir->body;
 
 	/* Getting directory size from statdata item */
 	if (dir40_size(entity) == 0)
 		return -EINVAL;
 
-	units = plugin_call(item->plugin->o.item_ops,
-			    units, item);
+	units = plug_call(place->plug->o.item_ops,
+			  units, place);
 
 	if (dir->unit >= units)
 		return -EINVAL;
 
 	/* Reading piece of data */
-	if (plugin_call(item->plugin->o.item_ops, read,
-			item, entry, dir->unit, 1) == 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, entry, dir->unit, 1) == 1)
 	{
 #ifndef ENABLE_STAND_ALONE
 		entry->type = ET_NAME;
@@ -263,8 +254,8 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		else {
 			entry_hint_t ent;
 			
-			if (plugin_call(item->plugin->o.item_ops, read,
-					item, &ent, dir->unit, 1) != 1)
+			if (plug_call(place->plug->o.item_ops, read,
+				      place, &ent, dir->unit, 1) != 1)
 			{
 				return -EINVAL;
 			}
@@ -292,8 +283,8 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	oid_t locality;
 	oid_t objectid;
 
+	place_t *place;
 	key_entity_t key;
-	item_entity_t *item;
 
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1117", entity != NULL);
@@ -305,8 +296,8 @@ lookup_t dir40_lookup(object_entity_t *entity,
 
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
-	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops, build_entry,
-		    &key, dir->hash, locality, objectid, name);
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
+		  &key, dir->hash, locality, objectid, name);
 
 	/* Looking for @wan */
 	switch ((res = obj40_lookup(&dir->obj, &key,
@@ -324,8 +315,8 @@ lookup_t dir40_lookup(object_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 	if (entry) {
-		plugin_call(key.plugin->o.key_ops, assign,
-			    &dir->offset, &entry->offset);
+		plug_call(key.plug->o.key_ops, assign,
+			  &dir->offset, &entry->offset);
 	}
 #endif
 
@@ -339,16 +330,16 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	if (entry == NULL)
 		return PRESENT;
 
-	item = &dir->body.item;
+	place = &dir->body;
 
 	/* If needed entry is found, we fetch it into local buffer and get stat
 	   data key of the object it points to from it. This key will be used
 	   for searching next entry in passed path and so on. */
-	entry->object.plugin = key.plugin;
-	entry->offset.plugin = key.plugin;
+	entry->object.plug = key.plug;
+	entry->offset.plug = key.plug;
 	
-	if (plugin_call(item->plugin->o.item_ops, read,
-			item, entry, dir->unit, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, entry, dir->unit, 1) != 1)
 	{
 		aal_exception_error("Can't read %lu entry from "
 				    "object 0x%llx.", dir->unit,
@@ -366,15 +357,15 @@ lookup_t dir40_lookup(object_entity_t *entity,
 			   "%s and %s. Sequentional search is "
 			   "started.", entry->name, name);
 
-	if (!item->plugin->o.item_ops->units)
+	if (!place->plug->o.item_ops->units)
 		return FAILED;
 			
 	/* Sequentional search of the needed entry by its name */
-	for (; dir->unit < item->plugin->o.item_ops->units(item);
+	for (; dir->unit < place->plug->o.item_ops->units(place);
 	     dir->unit++)
 	{
-		if (plugin_call(item->plugin->o.item_ops, read,
-				item, entry, dir->unit, 1) != 1)
+		if (plug_call(place->plug->o.item_ops, read,
+			      place, entry, dir->unit, 1) != 1)
 		{
 			aal_exception_error("Can't read %lu entry "
 					    "from object 0x%llx.",
@@ -402,17 +393,17 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	aal_assert("umka-836", info != NULL);
 	aal_assert("umka-837", info->tree != NULL);
 	
-	if (info->start.item.plugin->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 	
-	if (obj40_pid(&info->start.item) != dir40_plugin.id.id)
+	if (obj40_pid(&info->start) != dir40_plug.id.id)
 		return NULL;
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 
 	/* Initializing obj handle for the directory */
-	obj40_init(&dir->obj, &dir40_plugin, &info->start.item.key, 
+	obj40_init(&dir->obj, &dir40_plug, &info->start.key, 
 		   core, info->tree);
 
 	/* Guessing hash plugin basing on stat data */
@@ -459,8 +450,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	oid_t objectid, locality;
 	sdext_unix_hint_t unix_ext;
 	
-	reiser4_plugin_t *stat_plugin;
-	reiser4_plugin_t *body_plugin;
+	reiser4_plug_t *stat_plug;
+	reiser4_plug_t *body_plug;
     
 	aal_assert("umka-835", info != NULL);
 	aal_assert("umka-1739", hint != NULL);
@@ -470,22 +461,22 @@ static object_entity_t *dir40_create(object_info_t *info,
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops,
-			       get_locality, &info->object);
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
 	
-	objectid = plugin_call(info->object.plugin->o.key_ops,
-			       get_objectid, &info->object);
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
 
-	ordering = plugin_call(info->object.plugin->o.key_ops,
-			       get_ordering, &info->object);
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->object.plugin->o.key_ops, build_gener,
-		    &info->object, KEY_STATDATA_TYPE, locality,
-		    ordering, objectid, 0);
+	plug_call(info->object.plug->o.key_ops, build_gener,
+		  &info->object, KEY_STATDATA_TYPE, locality,
+		  ordering, objectid, 0);
 
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plugin, &info->object,
+	obj40_init(&dir->obj, &dir40_plug, &info->object,
 		   core, info->tree);
 
 	/* Getting hash plugin */
@@ -498,8 +489,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	}
 
 	/* Getting item plugins for statdata and body */
-	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
-						    hint->statdata)))
+	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
+						  hint->statdata)))
 	{
 		aal_exception_error("Can't find stat data item plugin "
 				    "by its id 0x%x.", hint->statdata);
@@ -507,8 +498,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_dir;
 	}
    
-	if (!(body_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
-						    hint->body.dir.direntry)))
+	if (!(body_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
+						  hint->body.dir.direntry)))
 	{
 		aal_exception_error("Can't find direntry item plugin by "
 				    "its id 0x%x.", hint->body.dir.direntry);
@@ -522,11 +513,11 @@ static object_entity_t *dir40_create(object_info_t *info,
 	   data item hint, because we will need size of direntry item durring
 	   stat data initialization. */
    	body_hint.count = 1;
+	body_hint.plug = body_plug;
 	body_hint.flags = HF_FORMATD;
-	body_hint.plugin = body_plugin;
 	
-	plugin_call(info->object.plugin->o.key_ops, build_entry,
-		    &body_hint.key, dir->hash, locality, objectid, ".");
+	plug_call(info->object.plug->o.key_ops, build_entry,
+		  &body_hint.key, dir->hash, locality, objectid, ".");
 
 	if (!(body = aal_calloc(body_hint.count * sizeof(*body), 0)))
 		goto error_free_dir;
@@ -538,24 +529,24 @@ static object_entity_t *dir40_create(object_info_t *info,
 	aal_strncpy(entry->name, ".", 1);
 
 	/* Building key for the statdata of object new entry will point to. */
-	plugin_call(info->object.plugin->o.key_ops, build_gener,
-		    &entry->object, KEY_STATDATA_TYPE, locality,
-		    ordering, objectid, 0);
+	plug_call(info->object.plug->o.key_ops, build_gener,
+		  &entry->object, KEY_STATDATA_TYPE, locality,
+		  ordering, objectid, 0);
 
 	/* Building key for the hash new entry will have */
-	plugin_call(info->object.plugin->o.key_ops, build_entry,
-		    &entry->offset, dir->hash, locality, objectid,
-		    entry->name);
+	plug_call(info->object.plug->o.key_ops, build_entry,
+		  &entry->offset, dir->hash, locality, objectid,
+		  entry->name);
 	
 	body_hint.type_specific = body;
 
 	/* Initializing stat data hint */
 	stat_hint.count = 1;
+	stat_hint.plug = stat_plug;
 	stat_hint.flags = HF_FORMATD;
-	stat_hint.plugin = stat_plugin;
     
-	plugin_call(info->object.plugin->o.key_ops, assign,
-		    &stat_hint.key, &info->object);
+	plug_call(info->object.plug->o.key_ops, assign,
+		  &stat_hint.key, &info->object);
     
 	/* Initializing stat data item hint. It uses unix extention and light
 	   weight one. So we set up the mask in corresponding maner. */
@@ -579,8 +570,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	/* Estimating body item and setting up "bytes" field from the unix
 	   extetion. */
-	if (plugin_call(body_plugin->o.item_ops, estimate_insert,
-			NULL, &body_hint, MAX_UINT32))
+	if (plug_call(body_plug->o.item_ops, estimate_insert,
+		      NULL, &body_hint, MAX_UINT32))
 	{
 		aal_exception_error("Can't estimate directory item.");
 		goto error_free_body;
@@ -638,9 +629,9 @@ static object_entity_t *dir40_create(object_info_t *info,
 	}
 
 	/* Initializing @dir->offset by key of the "." entry */
-	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
-		    build_entry, &dir->offset, dir->hash,
-		    locality, objectid, ".");
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
+		  build_entry, &dir->offset, dir->hash,
+		  locality, objectid, ".");
 	
 	obj40_lock(&dir->obj, &dir->body);
 	aal_free(body);
@@ -672,8 +663,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	/* Getting maximal possible key form directory item. We will use it for
 	   removing last item and so on util directro contains no items. Thanks
 	   to Nikita for this idea. */
-	plugin_call(dir->body.item.plugin->o.item_ops,
-		    maxposs_key, &dir->body.item, &key);
+	plug_call(dir->body.plug->o.item_ops, maxposs_key, &dir->body, &key);
 
 	while (1) {
 		place_t place;
@@ -730,11 +720,11 @@ static errno_t dir40_attach(object_entity_t *entity,
 
 	if (dir40_lookup(entity, entry.name, NULL) == ABSENT) {
 		/* Adding ".." to child */
-		plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
-			    assign, &entry.object, STAT_KEY(&par->obj));
+		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
+			  assign, &entry.object, STAT_KEY(&par->obj));
 
-		if ((res = plugin_call(entity->plugin->o.object_ops,
-				       add_entry, entity, &entry)))
+		if ((res = plug_call(entity->plug->o.object_ops,
+				     add_entry, entity, &entry)))
 		{
 			return res;
 		}
@@ -742,8 +732,8 @@ static errno_t dir40_attach(object_entity_t *entity,
 
 	if (parent) {
 		/* Increasing parent's @nlink by one */
-		return plugin_call(parent->plugin->o.object_ops,
-				   link, parent);
+		return plug_call(parent->plug->o.object_ops,
+				 link, parent);
 	}
 
 	return 0;
@@ -761,12 +751,12 @@ static errno_t dir40_detach(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Removing ".." from child if it is found */
-	switch (plugin_call(entity->plugin->o.object_ops,
-			    lookup, entity, "..", &entry))
+	switch (plug_call(entity->plug->o.object_ops,
+			  lookup, entity, "..", &entry))
 	{
 	case PRESENT:
-		plugin_call(entity->plugin->o.object_ops,
-			    rem_entry, entity, &entry);
+		plug_call(entity->plug->o.object_ops,
+			  rem_entry, entity, &entry);
 
 	default:
 		break;
@@ -774,8 +764,8 @@ static errno_t dir40_detach(object_entity_t *entity,
 
 	if (parent) {
 		/* Decreasing parent's @nlink by one */
-		return plugin_call(parent->plugin->o.object_ops,
-				   unlink, parent);
+		return plug_call(parent->plug->o.object_ops,
+				 unlink, parent);
 	}
 
 	return 0;
@@ -826,10 +816,10 @@ static uint32_t dir40_estimate(object_entity_t *entity,
 	hint.count = 1;
 	hint.flags = HF_FORMATD;
 	hint.type_specific = entry;
-	hint.plugin = dir->body.item.plugin;
-	hint.key.plugin = STAT_KEY(&dir->obj)->plugin;
+	hint.plug = dir->body.plug;
+	hint.key.plug = STAT_KEY(&dir->obj)->plug;
 
-	if (plugin_call(hint.plugin->o.item_ops,
+	if (plug_call(hint.plug->o.item_ops,
 			estimate_insert, NULL, &hint, 0))
 	{
 		aal_exception_error("Can't estimate directory "
@@ -846,7 +836,7 @@ static errno_t dir40_update(object_entity_t *entity) {
 	key_entity_t *key;
 	
 	dir = (dir40_t *)entity;
-	key = &dir->body.item.key;
+	key = &dir->body.key;
 	
 	/* Looking for stat data place by */
 	switch (obj40_lookup(&dir->obj, key,
@@ -875,9 +865,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	uint32_t atime;
 
 	key_entity_t *key;
-	item_entity_t *item;
-	
 	create_hint_t hint;
+	
 	oid_t locality, objectid;
 	sdext_unix_hint_t unix_hint;
 
@@ -891,18 +880,18 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	
 	hint.count = 1;
 	hint.flags = HF_FORMATD;
+	hint.plug = dir->body.plug;
 	hint.type_specific = (void *)entry;
-	hint.plugin = dir->body.item.plugin;
 
 	/* Building key of the new entry */
 	locality = obj40_locality(&dir->obj);
 	objectid = obj40_objectid(&dir->obj);
 	
-	plugin_call(key->plugin->o.key_ops, build_entry, &hint.key,
-		    dir->hash, locality, objectid, entry->name);
+	plug_call(key->plug->o.key_ops, build_entry, &hint.key,
+		  dir->hash, locality, objectid, entry->name);
 	
-	plugin_call(key->plugin->o.key_ops, assign, &entry->offset,
-		    &hint.key);
+	plug_call(key->plug->o.key_ops, assign, &entry->offset,
+		  &hint.key);
 
 	/* Looking for place to insert directory entry */
 	switch (obj40_lookup(&dir->obj, &hint.key,
@@ -939,9 +928,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
-	item = &dir->obj.statdata.item;
-	
-	if ((res = obj40_read_unix(item, &unix_hint)))
+	if ((res = obj40_read_unix(&dir->obj.statdata, &unix_hint)))
 		return res;
 	
 	atime = time(NULL);
@@ -950,7 +937,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes += dir40_estimate(entity, entry);
 
-	if ((res = obj40_write_unix(item, &unix_hint)))
+	if ((res = obj40_write_unix(&dir->obj.statdata, &unix_hint)))
 		return res;
 
 	/* Updating body place */
@@ -971,7 +958,6 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 
 	place_t place;
 	key_entity_t *key;
-	item_entity_t *item;
 
 	oid_t locality, objectid;
 	sdext_unix_hint_t unix_hint;
@@ -986,9 +972,9 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	locality = obj40_locality(&dir->obj);
 	objectid = obj40_objectid(&dir->obj);
 	
-	plugin_call(key->plugin->o.key_ops, build_entry,
-		    &entry->offset, dir->hash, locality,
-		    objectid, entry->name);
+	plug_call(key->plug->o.key_ops, build_entry,
+		  &entry->offset, dir->hash, locality,
+		  objectid, entry->name);
 
 	/* Looking for place to insert directory entry */
 	switch (obj40_lookup(&dir->obj, &entry->offset,
@@ -1007,10 +993,9 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 
 	/* Updating directory body  */
 	dir40_update(entity);
-	item = &dir->body.item;
 	
-	units = plugin_call(item->plugin->o.item_ops,
-			    units, item);
+	units = plug_call(dir->body.plug->o.item_ops,
+			  units, &dir->body);
 
 	/* Getting next direntry item */
 	if (dir->unit >= units)
@@ -1018,8 +1003,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	else {
 		if (place.pos.unit == dir->unit) {
 			/* Updating current position by entry offset key */
-			if (plugin_call(item->plugin->o.item_ops, read,
-					item, &ent, dir->unit, 1) == 1)
+			if (plug_call(dir->body.plug->o.item_ops, read,
+				      &dir->body, &ent, dir->unit, 1) == 1)
 			{
 				aal_memcpy(&dir->offset, &ent.offset,
 					   sizeof(dir->offset));
@@ -1034,15 +1019,13 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
 	
-	item = &dir->obj.statdata.item;
-	
 	/* Updating size field */
 	size = obj40_get_size(&dir->obj);
 
 	if ((res = obj40_set_size(&dir->obj, size - 1)))
 		return res;
 
-	if ((res = obj40_read_unix(item, &unix_hint)))
+	if ((res = obj40_read_unix(&dir->obj.statdata, &unix_hint)))
 		return res;
 	
 	atime = time(NULL);
@@ -1051,12 +1034,12 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes -= dir40_estimate(entity, entry);
 
-	return obj40_write_unix(item, &unix_hint);
+	return obj40_write_unix(&dir->obj.statdata, &unix_hint);
 }
 
 struct layout_hint {
 	object_entity_t *entity;
-	block_func_t func;
+	block_func_t block_func;
 	void *data;
 };
 
@@ -1068,12 +1051,15 @@ static errno_t callback_item_data(void *object, uint64_t start,
 	blk_t blk;
 	errno_t res;
 
+	place_t *place = (place_t *)object;
 	layout_hint_t *hint = (layout_hint_t *)data;
-	item_entity_t *item = (item_entity_t *)object;
 
 	for (blk = start; blk < start + count; blk++) {
-		if ((res = hint->func(hint->entity, blk, hint->data)))
+		if ((res = hint->block_func(hint->entity, blk,
+					    hint->data)))
+		{
 			return res;
+		}
 	}
 
 	return 0;
@@ -1094,25 +1080,23 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	hint.data = data;
 	hint.entity = entity;
-	hint.func = block_func;
+	hint.block_func = block_func;
 
 	dir = (dir40_t *)entity;
 	
 	while (1) {
-		item_entity_t *item = &dir->body.item;
+		place_t *place = &dir->body;
 		
-		if (item->plugin->o.item_ops->layout) {
+		if (place->plug->o.item_ops->layout) {
 			
 			/* Calling item's layout method */
-			if ((res = plugin_call(item->plugin->o.item_ops, layout,
-					       item, callback_item_data, &hint)))
+			if ((res = plug_call(place->plug->o.item_ops, layout,
+					     place, callback_item_data, &hint)))
 			{
 				return res;
 			}
 		} else {
-			blk_t blk = item->context.blk;
-			
-			if ((res = callback_item_data(item, blk,
+			if ((res = callback_item_data(place, place->con.blk,
 						      1, &hint)))
 			{
 				return res;
@@ -1211,9 +1195,9 @@ static reiser4_object_ops_t dir40_ops = {
 #endif
 };
 
-reiser4_plugin_t dir40_plugin = {
+reiser4_plug_t dir40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OBJECT_DIRTORY40_ID, DIRTORY_OBJECT, OBJECT_PLUGIN_TYPE},
+	.id    = {OBJECT_DIRTORY40_ID, DIRTORY_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "dir40",
 	.desc  = "Compound directory for reiser4, ver. " VERSION,
@@ -1223,9 +1207,9 @@ reiser4_plugin_t dir40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *dir40_start(reiser4_core_t *c) {
+static reiser4_plug_t *dir40_start(reiser4_core_t *c) {
 	core = c;
-	return &dir40_plugin;
+	return &dir40_plug;
 }
 
-plugin_register(dir40, dir40_start, NULL);
+plug_register(dir40, dir40_start, NULL);

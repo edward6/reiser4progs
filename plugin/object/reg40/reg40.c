@@ -14,7 +14,7 @@
 
 #include "reg40.h"
 
-extern reiser4_plugin_t reg40_plugin;
+extern reiser4_plug_t reg40_plug;
 
 static errno_t reg40_truncate(object_entity_t *entity,
 			      uint64_t n);
@@ -43,10 +43,10 @@ static lookup_t reg40_next(reg40_t *reg) {
 	aal_assert("umka-1161", reg != NULL);
 	
 	/* Building key to be searched by current offset */
-	plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops, build_gener,
-		    &key, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
-		    obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
-		    reg->offset);
+	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops, build_gener,
+		  &key, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
+		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
+		  reg->offset);
 
 	/* Getting the next body item from the tree */
 	if ((res = obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
@@ -58,8 +58,8 @@ static lookup_t reg40_next(reg40_t *reg) {
 		aal_memcpy(&reg->body, &place,
 			   sizeof(reg->body));
 
-		if (reg->body.item.pos.unit == MAX_UINT32)
-			reg->body.item.pos.unit = 0;
+		if (reg->body.pos.unit == MAX_UINT32)
+			reg->body.pos.unit = 0;
 	}
 
 	return res;
@@ -89,7 +89,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	uint32_t offset;
 #endif
 	
-	item_entity_t *item;
+	place_t *place;
 	uint32_t read, chunk;
 
 	aal_assert("umka-1183", buff != NULL);
@@ -113,17 +113,16 @@ static int32_t reg40_read(object_entity_t *entity,
 		if (reg40_next(reg) != PRESENT)
 			break;
 
-		item = &reg->body.item;
-		
+		place = &reg->body;
 		chunk = n - read;
 
 		/* Calculating in-item offset */
-		offset = reg->offset - plugin_call(item->key.plugin->o.key_ops,
-						   get_offset, &item->key);
+		offset = reg->offset - plug_call(place->key.plug->o.key_ops,
+						 get_offset, &place->key);
 
 		/* Calling body item's read() method */
-		chunk = plugin_call(item->plugin->o.item_ops, read,
-				    item, buff, offset, chunk);
+		chunk = plug_call(place->plug->o.item_ops, read,
+				  place, buff, offset, chunk);
 
 		aal_assert("umka-2216", chunk > 0);
 		
@@ -138,13 +137,13 @@ static int32_t reg40_read(object_entity_t *entity,
 /* Returns plugin (tail or extent) for next write operation basing on passed
    size to be writen. This function will be using tail policy plugin for find
    out what next item should be writen. */
-static reiser4_plugin_t *reg40_bplug(reg40_t *reg,
-				     uint32_t size)
+static reiser4_plug_t *reg40_bplug(reg40_t *reg,
+				   uint32_t size)
 {
 	if (reg->body.node)
-		return reg->body.item.plugin;
+		return reg->body.plug;
 			
-	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
+	return core->factory_ops.ifind(ITEM_PLUG_TYPE,
 				       ITEM_TAIL40_ID);
 }
 #endif
@@ -156,18 +155,18 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	aal_assert("umka-1163", info != NULL);
 	aal_assert("umka-1164", info->tree != NULL);
     	
-	if (info->start.item.plugin->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 
-	if (obj40_pid(&info->start.item) != reg40_plugin.id.id)
+	if (obj40_pid(&info->start) != reg40_plug.id.id)
 		return NULL;
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plugin,
-		   &info->start.item.key, core, info->tree);
+	obj40_init(&reg->obj, &reg40_plug,
+		   &info->start.key, core, info->tree);
 
 	/* Initialziing statdata place */
 	aal_memcpy(&reg->obj.statdata, &info->start,
@@ -201,7 +200,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 	oid_t objectid, locality;
 	sdext_unix_hint_t unix_ext;
 	
-	reiser4_plugin_t *stat_plugin;
+	reiser4_plug_t *stat_plug;
 	
 	aal_assert("umka-1169", info != NULL);
 	aal_assert("vpf-1093",  info->tree != NULL);
@@ -213,27 +212,27 @@ static object_entity_t *reg40_create(object_info_t *info,
 	reg->offset = 0;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops,
-			       get_locality, &info->object);
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
 	
-	objectid = plugin_call(info->object.plugin->o.key_ops,
-			       get_objectid, &info->object);
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
 
-	ordering = plugin_call(info->object.plugin->o.key_ops,
-			       get_ordering, &info->object);
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->object.plugin->o.key_ops, build_gener,
-		    &info->object, KEY_STATDATA_TYPE, locality,
-		    ordering, objectid, 0);
+	plug_call(info->object.plug->o.key_ops, build_gener,
+		  &info->object, KEY_STATDATA_TYPE, locality,
+		  ordering, objectid, 0);
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plugin, &info->object,
+	obj40_init(&reg->obj, &reg40_plug, &info->object,
 		   core, info->tree);
 	
 	/* Getting statdata plugin */
-	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
-						    hint->statdata)))
+	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
+						  hint->statdata)))
 	{
 		aal_exception_error("Can't find stat data item plugin by "
 				    "its id 0x%x.", hint->statdata);
@@ -243,11 +242,11 @@ static object_entity_t *reg40_create(object_info_t *info,
 	/* Initializing the stat data hint */
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 
-	stat_hint.plugin = stat_plugin;
+	stat_hint.plug = stat_plug;
 	stat_hint.flags = HF_FORMATD;
 
-	plugin_call(info->object.plugin->o.key_ops, assign, 
-		    &stat_hint.key, &info->object);
+	plug_call(info->object.plug->o.key_ops, assign, 
+		  &stat_hint.key, &info->object);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
@@ -348,6 +347,7 @@ static int32_t reg40_put(object_entity_t *entity,
 {
 	errno_t res;
 	reg40_t *reg;
+	place_t *place;
 	
 	uint64_t size;
 	uint32_t atime;
@@ -355,7 +355,6 @@ static int32_t reg40_put(object_entity_t *entity,
 	uint32_t written;
 	uint32_t maxspace;
 
-	item_entity_t *item;
 	sdext_unix_hint_t unix_hint;
 
 	reg = (reg40_t *)entity;
@@ -366,15 +365,15 @@ static int32_t reg40_put(object_entity_t *entity,
 		lookup_t lookup;
 
 		create_hint_t hint;
-		reiser4_plugin_t *plugin;
+		reiser4_plug_t *plug;
 
 		/* Preparing @hint->key */
-		plugin = STAT_KEY(&reg->obj)->plugin;
+		plug = STAT_KEY(&reg->obj)->plug;
 		
-		plugin_call(plugin->o.key_ops, build_gener, &hint.key,
-			    KEY_FILEBODY_TYPE,obj40_locality(&reg->obj),
-			    obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
-			    reg->offset);
+		plug_call(plug->o.key_ops, build_gener, &hint.key,
+			  KEY_FILEBODY_TYPE,obj40_locality(&reg->obj),
+			  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
+			  reg->offset);
 
 		/* Setting up @hint */
 		hint.count = n - written;
@@ -383,7 +382,7 @@ static int32_t reg40_put(object_entity_t *entity,
 			hint.count = maxspace;
 		
 		hint.flags = HF_FORMATD;
-		hint.plugin = reg->bplug;
+		hint.plug = reg->bplug;
 		hint.type_specific = buff;
 		
 		/* Lookup place data will be inserted at */
@@ -404,11 +403,11 @@ static int32_t reg40_put(object_entity_t *entity,
 			uint64_t offset;
 			key_entity_t maxreal_key;
 
-			plugin_call(place.item.plugin->o.item_ops,
-				    maxreal_key, &place.item, &maxreal_key);
+			plug_call(place.plug->o.item_ops,
+				  maxreal_key, &place, &maxreal_key);
 
-			offset = plugin_call(hint.key.plugin->o.key_ops,
-					     get_offset, &maxreal_key);
+			offset = plug_call(hint.key.plug->o.key_ops,
+					   get_offset, &maxreal_key);
 
 			/* Rewritting only tails' last part */
 			if (reg->offset + hint.count > offset + 1)
@@ -445,9 +444,9 @@ static int32_t reg40_put(object_entity_t *entity,
 			return res;
 	}
 	
-	item = &reg->obj.statdata.item;
+	place = &reg->obj.statdata;
 	
-	if ((res = obj40_read_unix(item, &unix_hint)))
+	if ((res = obj40_read_unix(place, &unix_hint)))
 		return res;
 	
 	atime = time(NULL);
@@ -458,7 +457,7 @@ static int32_t reg40_put(object_entity_t *entity,
 	if (reg->offset > unix_hint.bytes)
 		unix_hint.bytes = reg->offset;
 
-	if ((res = obj40_write_unix(item, &unix_hint)))
+	if ((res = obj40_write_unix(place, &unix_hint)))
 		return res;
 	
 	return written;
@@ -535,12 +534,12 @@ static errno_t reg40_cut(object_entity_t *entity) {
 		place_t place;
 		key_entity_t key;
 
-		key.plugin = STAT_KEY(&reg->obj)->plugin;
+		key.plug = STAT_KEY(&reg->obj)->plug;
 		
-		plugin_call(key.plugin->o.key_ops, build_gener, &key,
-			    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
-			    obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
-			    size - 1);
+		plug_call(key.plug->o.key_ops, build_gener, &key,
+			  KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
+			  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
+			  size - 1);
 		
 		if (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
 				 &place) != PRESENT)
@@ -552,7 +551,7 @@ static errno_t reg40_cut(object_entity_t *entity) {
 			return -EINVAL;
 
 		/* Check if we can remove whole item at @place */
-		if (place.item.len <= cut) {
+		if (place.len <= cut) {
 			if (core->tree_ops.remove(reg->obj.tree,
 						  &place, 1))
 			{
@@ -562,10 +561,10 @@ static errno_t reg40_cut(object_entity_t *entity) {
 				return -EINVAL;
 			}
 
-			cut -= place.item.len;
-			size -= place.item.len;
+			cut -= place.len;
+			size -= place.len;
 		} else {
-			place.pos.unit = place.item.len - cut;
+			place.pos.unit = place.len - cut;
 
 			if (core->tree_ops.remove(reg->obj.tree,
 						  &place, cut))
@@ -671,7 +670,7 @@ static errno_t reg40_clobber(object_entity_t *entity) {
 
 struct layout_hint {
 	object_entity_t *entity;
-	block_func_t func;
+	block_func_t block_func;
 	void *data;
 };
 
@@ -683,11 +682,11 @@ static errno_t callback_item_data(void *object, uint64_t start,
 	blk_t blk;
 	errno_t res;
 	
+	place_t *place = (place_t *)object;
 	layout_hint_t *hint = (layout_hint_t *)data;
-	item_entity_t *item = (item_entity_t *)object;
 
 	for (blk = start; blk < start + count; blk++) {
-		if ((res = hint->func(hint->entity, blk, hint->data)))
+		if ((res = hint->block_func(hint->entity, blk, hint->data)))
 			return res;
 	}
 
@@ -716,35 +715,35 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 	hint.data = data;
 	hint.entity = entity;
-	hint.func = block_func;
+	hint.block_func = block_func;
 		
 	while (reg->offset < size) {
-		item_entity_t *item;
+		place_t *place;
 		
 		if (reg40_next(reg) != PRESENT)
 			break;
 		
-		item = &reg->body.item;
+		place = &reg->body;
 		
-		if (item->plugin->o.item_ops->layout) {
-			if ((res = plugin_call(item->plugin->o.item_ops, layout,
-					       item, callback_item_data, &hint)))
+		if (place->plug->o.item_ops->layout) {
+			if ((res = plug_call(place->plug->o.item_ops, layout,
+					     place, callback_item_data, &hint)))
 			{
 				return res;
 			}
 		} else {
-			if ((res = callback_item_data(item, item->context.blk,
+			if ((res = callback_item_data(place, place->con.blk,
 						      1, &hint)))
 			{
 				return res;
 			}
 		}
 		
-		plugin_call(item->plugin->o.item_ops, maxreal_key,
-			    item, &key);
+		plug_call(place->plug->o.item_ops, maxreal_key,
+			  place, &key);
 		
-		reg->offset = plugin_call(key.plugin->o.key_ops,
-					  get_offset, &key) + 1;
+		reg->offset = plug_call(key.plug->o.key_ops,
+					get_offset, &key) + 1;
 	}
 	
 	return 0;
@@ -753,7 +752,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 /* Implements reg40 metadata function. It traverses items belong to the file and
    needed for calculating fragmentation, printing, etc. */
 static errno_t reg40_metadata(object_entity_t *entity,
-			      place_func_t func,
+			      place_func_t place_func,
 			      void *data)
 {
 	errno_t res;
@@ -763,30 +762,30 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1716", entity != NULL);
-	aal_assert("umka-1717", func != NULL);
+	aal_assert("umka-1717", place_func != NULL);
 
-	if ((res = func(entity, &reg->obj.statdata, data)))
+	if ((res = place_func(entity, &reg->obj.statdata, data)))
 		return res;
 
 	if ((size = reg40_size(entity)) == 0)
 		return 0;
 	
 	while (reg->offset < size) {
-		item_entity_t *item;
+		place_t *place;
 		
 		if (reg40_next(reg) != PRESENT)
 			break;
 		
-		item = &reg->body.item;
+		place = &reg->body;
 			
-		if ((res = func(entity, &reg->body, data)))
+		if ((res = place_func(entity, &reg->body, data)))
 			return res;
 
-		plugin_call(item->plugin->o.item_ops, maxreal_key,
-			    item, &key);
+		plug_call(place->plug->o.item_ops, maxreal_key,
+			  place, &key);
 
-		reg->offset = plugin_call(key.plugin->o.key_ops,
-					  get_offset, &key) + 1;
+		reg->offset = plug_call(key.plug->o.key_ops,
+					get_offset, &key) + 1;
 	}
 	
 	return 0;
@@ -863,9 +862,9 @@ static reiser4_object_ops_t reg40_ops = {
 	.read	        = reg40_read,
 };
 
-reiser4_plugin_t reg40_plugin = {
+reiser4_plug_t reg40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OBJECT_FILE40_ID, FILE_OBJECT, OBJECT_PLUGIN_TYPE},
+	.id    = {OBJECT_FILE40_ID, FILE_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "reg40",
 	.desc  = "Regular file for reiser4, ver. " VERSION,
@@ -875,9 +874,9 @@ reiser4_plugin_t reg40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *reg40_start(reiser4_core_t *c) {
+static reiser4_plug_t *reg40_start(reiser4_core_t *c) {
 	core = c;
-	return &reg40_plugin;
+	return &reg40_plug;
 }
 
-plugin_register(reg40, reg40_start, NULL);
+plug_register(reg40, reg40_start, NULL);

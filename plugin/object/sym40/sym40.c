@@ -13,7 +13,7 @@
 
 #include "sym40.h"
 
-extern reiser4_plugin_t sym40_plugin;
+extern reiser4_plug_t sym40_plug;
 
 /* Opens symlink and returns initialized instance to the caller */
 object_entity_t *sym40_open(object_info_t *info) {
@@ -22,17 +22,17 @@ object_entity_t *sym40_open(object_info_t *info) {
 	aal_assert("umka-1163", info != NULL);
 	aal_assert("umka-1164", info->tree != NULL);
  	
-	if (info->start.item.plugin->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
    
-	if (obj40_pid(&info->start.item) != sym40_plugin.id.id)
+	if (obj40_pid(&info->start) != sym40_plug.id.id)
 		return NULL;
 	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 
 	/* Initalizing file handle */
-	obj40_init(&sym->obj, &sym40_plugin, &info->start.item.key, 
+	obj40_init(&sym->obj, &sym40_plug, &info->start.key, 
 		   core, info->tree);
 
 	/* Initialziing statdata place */
@@ -49,8 +49,8 @@ object_entity_t *sym40_open(object_info_t *info) {
 static int32_t sym40_read(object_entity_t *entity, 
 			  void *buff, uint32_t n)
 {
+	place_t *place;
 	create_hint_t hint;
-	item_entity_t *item;
 	statdata_hint_t stat;
 
 	sym40_t *sym = (sym40_t *)entity;
@@ -64,13 +64,13 @@ static int32_t sym40_read(object_entity_t *entity,
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
-	item = &sym->obj.statdata.item;
+	place = &sym->obj.statdata;
 
-	if (!item->plugin->o.item_ops->read)
+	if (!place->plug->o.item_ops->read)
 		return -EINVAL;
 
-	if (plugin_call(item->plugin->o.item_ops,
-			read, item, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops,
+		      read, place, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
 	}
@@ -91,7 +91,7 @@ static object_entity_t *sym40_create(object_info_t *info,
 	sdext_lw_hint_t lw_ext;
 	sdext_unix_hint_t unix_ext;
 	
-	reiser4_plugin_t *stat_plugin;
+	reiser4_plug_t *stat_plug;
 	
 	aal_assert("umka-1741", info != NULL);
 	aal_assert("vpf-1094",  info->tree != NULL);
@@ -101,27 +101,27 @@ static object_entity_t *sym40_create(object_info_t *info,
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops,
-			       get_locality, &info->object);
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
 	
-	objectid = plugin_call(info->object.plugin->o.key_ops,
-			       get_objectid, &info->object);
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
 	
-	ordering = plugin_call(info->object.plugin->o.key_ops,
-			       get_ordering, &info->object);
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(info->object.plugin->o.key_ops, build_gener, 
-		    &info->object, KEY_STATDATA_TYPE, locality,
-		    ordering, objectid, 0);
+	plug_call(info->object.plug->o.key_ops, build_gener, 
+		  &info->object, KEY_STATDATA_TYPE, locality,
+		  ordering, objectid, 0);
 	
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plugin, &info->object,
+	obj40_init(&sym->obj, &sym40_plug, &info->object,
 		   core, info->tree);
 	
 	/* Getting statdata plugin */
-	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
-						    hint->statdata)))
+	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
+						  hint->statdata)))
 	{
 		aal_exception_error("Can't find stat data item plugin by "
 				    "its id 0x%x.", hint->statdata);
@@ -131,12 +131,12 @@ static object_entity_t *sym40_create(object_info_t *info,
 	/* Initializing the stat data hint */
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 
+	stat_hint.plug = stat_plug;
 	stat_hint.flags = HF_FORMATD;
-	stat_hint.plugin = stat_plugin;
-	stat_hint.key.plugin = info->object.plugin;
+	stat_hint.key.plug = info->object.plug;
 	
-	plugin_call(info->object.plugin->o.key_ops, assign,
-		    &stat_hint.key, &info->object);
+	plug_call(info->object.plug->o.key_ops, assign,
+		  &stat_hint.key, &info->object);
     
 	/* Initializing stat data item hint. Here we set up the extentions mask
 	   to unix extention, light weight and symlink ones. */
@@ -236,16 +236,16 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 
 /* Calls function @func for each symlink item (statdata only) */
 static errno_t sym40_metadata(object_entity_t *entity,
-			      place_func_t func,
+			      place_func_t place_func,
 			      void *data)
 {
 	sym40_t *sym;
 
-	aal_assert("umka-1719", func != NULL);
 	aal_assert("umka-1718", entity != NULL);
+	aal_assert("umka-1719", place_func != NULL);
 
 	sym = (sym40_t *)entity;
-	return func(entity, &sym->obj.statdata, data);
+	return place_func(entity, &sym->obj.statdata, data);
 }
 
 /* Calls function @func for each block symlink items lie in */
@@ -260,7 +260,7 @@ static errno_t sym40_layout(object_entity_t *entity,
 	aal_assert("umka-1720", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	blk = sym->obj.statdata.item.context.blk;
+	blk = sym->obj.statdata.con.blk;
 		
 	return block_func(entity, blk, data);
 }
@@ -346,9 +346,9 @@ static reiser4_object_ops_t sym40_ops = {
 	.follow         = sym40_follow
 };
 
-static reiser4_plugin_t sym40_plugin = {
+static reiser4_plug_t sym40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OBJECT_SYMLINK40_ID, SYMLINK_OBJECT, OBJECT_PLUGIN_TYPE},
+	.id    = {OBJECT_SYMLINK40_ID, SYMLINK_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sym40",
 	.desc  = "Symlink plugin for reiser4, ver. " VERSION,
@@ -358,10 +358,10 @@ static reiser4_plugin_t sym40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *sym40_start(reiser4_core_t *c) {
+static reiser4_plug_t *sym40_start(reiser4_core_t *c) {
 	core = c;
-	return &sym40_plugin;
+	return &sym40_plug;
 }
 
-plugin_register(sym40, sym40_start, NULL);
+plug_register(sym40, sym40_start, NULL);
 #endif
