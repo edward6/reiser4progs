@@ -1008,13 +1008,13 @@ static errno_t extent40_prep_shift(place_t *src_place,
 		return 0;
 	}
 	
-	if (hint->control & MSF_LEFT) {
+	if (hint->control & SF_LEFT_SHIFT) {
 		uint32_t left;
 
 		/* Check if we need to update insert point at all. If not, we
 		   only rely on @hint->rest in that, how many units may be
 		   shifted out to neighbour item. */
-		if (hint->control & MSF_IPUPDT) {
+		if (hint->control & SF_UPDATE_POINT) {
 
 			left = hint->pos.unit * sizeof(extent40_t);
 			
@@ -1023,8 +1023,8 @@ static errno_t extent40_prep_shift(place_t *src_place,
 
 			hint->pos.unit -= hint->rest / sizeof(extent40_t);
 
-			if (hint->pos.unit == 0 && hint->control & MSF_IPMOVE) {
-				hint->result |= MSF_IPMOVE;
+			if (hint->pos.unit == 0 && hint->control & SF_MOVE_POINT) {
+				hint->result |= SF_MOVE_POINT;
 
 				if (dst_place) {
 					hint->pos.unit = (dst_place->len + hint->rest) /
@@ -1038,7 +1038,7 @@ static errno_t extent40_prep_shift(place_t *src_place,
 		uint32_t right;
 
 		/* The same check as abowe, but for right shift */
-		if (hint->control & MSF_IPUPDT) {
+		if (hint->control & SF_UPDATE_POINT) {
 
 			/* Check is it is possible to move something into right
 			   neighbour item. */
@@ -1049,18 +1049,18 @@ static errno_t extent40_prep_shift(place_t *src_place,
 				if (hint->rest > right)
 					hint->rest = right;
 
-				if (hint->control & MSF_IPMOVE &&
+				if (hint->control & SF_MOVE_POINT &&
 				    hint->pos.unit == ((src_place->len - hint->rest) /
 						       sizeof(extent40_t)))
 				{
-					hint->result |= MSF_IPMOVE;
+					hint->result |= SF_MOVE_POINT;
 					hint->pos.unit = 0;
 				}
 			} else {
 				/* There is noning to move, update insert point,
 				   flags and out. */
-				if (hint->control & MSF_IPMOVE) {
-					hint->result |= MSF_IPMOVE;
+				if (hint->control & SF_MOVE_POINT) {
+					hint->result |= SF_MOVE_POINT;
 					hint->pos.unit = 0;
 				}
 
@@ -1079,7 +1079,7 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 	aal_assert("umka-1706", src_place != NULL);
 	aal_assert("umka-1707", dst_place != NULL);
 
-	if (hint->control & MSF_LEFT) {
+	if (hint->control & SF_LEFT_SHIFT) {
 		
 		/* Preparing space in @dst_place */
 		extent40_expand(dst_place, extent40_number_units(dst_place),

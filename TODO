@@ -4,15 +4,13 @@ Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
 * probably we should perform tail convertion by chunks of more than
-  4096 bytes?
+  4096 bytes long? Then what chunk size should be used?
 
 * should we introduce two stat data related methods 
   something like load_sd() and save_sd() like kernel does?
 
 * cleanups in item modify and access methods. Do we realy need fetch()
   and update()?
-
-* cleanup item plugins interface.
 
 * fix tree_copy(). It should be able to copy extents too.
 

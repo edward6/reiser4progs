@@ -715,7 +715,7 @@ errno_t reiser4_node_shift(
 		reiser4_place_t place;
 
 		/* Initializing the place we will start from. */
-		if (hint->control & MSF_LEFT) {
+		if (hint->control & SF_LEFT_SHIFT) {
 			reiser4_place_assign(&place, neig,
 					     items - i - 1,
 					     MAX_UINT32);
@@ -761,7 +761,7 @@ errno_t reiser4_node_shift(
 	}
 
 	/* Updating children positions in both nodes */
-	if (hint->control & MSF_LEFT) {
+	if (hint->control & SF_LEFT_SHIFT) {
 		pos_t pos;
 
 		/* Updating neighbour starting from the first moved item */

@@ -1023,7 +1023,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* We can't split the first and last items if they lie in position
 	   insert point points to. */
-	if (hint->control & MSF_LEFT) {
+	if (hint->control & SF_LEFT_SHIFT) {
  		if (hint->pos.item == 0 &&
 		    hint->pos.unit == MAX_UINT32)
 		{
@@ -1039,7 +1039,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 	/* Initializing items to be examined by the estimate_shift() method of
 	   corresponding item plugin. */
-	POS_INIT(&pos, (hint->control & MSF_LEFT ? 0 :
+	POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ? 0 :
 			src_items - 1), MAX_UINT32);
 	
 	if (node40_fetch(src_entity, &pos, &src_place))
@@ -1052,7 +1052,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* Checking if items are mergeable */
 	if (dst_items > 0) {
-		POS_INIT(&pos, (hint->control & MSF_LEFT ?
+		POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ?
 				dst_items - 1 : 0), MAX_UINT32);
 		
 		if (node40_fetch(dst_entity, &pos, &dst_place))
@@ -1066,7 +1066,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		if (ih_get_flags(src_ih, pol) != ih_get_flags(dst_ih, pol))
 			return 0;
 		
-		if (hint->control & MSF_LEFT) {
+		if (hint->control & SF_LEFT_SHIFT) {
 			hint->create = !node40_mergeable(&dst_place,
 							 &src_place);
 		} else {
@@ -1084,10 +1084,12 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	if (hint->create) {
 		uint32_t overhead;
 		
-		/* If items are not mergeable and we are in merge mode, we
-		   will not create new item in dst node. This mode is needed for
-		   mergeing mergeable items when they lie in the same node. */
-		if (hint->control & MSF_MERGE)
+		/* If items are not mergeable and we are in merge mode, we will
+		   not create new item in dst node. This mode is needed for
+		   mergeing mergeable items when they lie in different nodes.
+		   And it prevents creating two mergeable items in the same
+		   node. */
+		if (hint->control & SF_MERGE_BORDER)
 			return 0;
 
 		/* Getting node overhead in order to substract it from
@@ -1110,10 +1112,12 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* Updating item component of insert point if it was moved into
 		   neighbour item. */
-		if (hint->control & MSF_IPUPDT && hint->result & MSF_IPMOVE) {
+		if (hint->control & SF_UPDATE_POINT &&
+		    hint->result & SF_MOVE_POINT)
+		{
 			hint->pos.item = 0;
 			
-			if (hint->control & MSF_LEFT)
+			if (hint->control & SF_LEFT_SHIFT)
 				hint->pos.item = dst_items;
 		}
 	} else {
@@ -1125,10 +1129,12 @@ static errno_t node40_unite(node_entity_t *src_entity,
 			return -EINVAL;
 		}
 
-		if (hint->control & MSF_IPUPDT && hint->result & MSF_IPMOVE) {
+		if (hint->control & SF_UPDATE_POINT &&
+		    hint->result & SF_MOVE_POINT)
+		{
 			hint->pos.item = 0;
 
-			if (hint->control & MSF_LEFT)
+			if (hint->control & SF_LEFT_SHIFT)
 				hint->pos.item = dst_items - 1;
 		}
 	}
@@ -1141,7 +1147,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	if (hint->create) {
 		/* Expanding dst node with creating new item we will shift units
 		   to it. */
-		POS_INIT(&pos, (hint->control & MSF_LEFT ?
+		POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ?
 				dst_items : 0), MAX_UINT32);
 		
 		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
@@ -1180,7 +1186,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   the dst node. We just need to expand existent dst item by
 		   hint->rest. So, we will call expand() with unit component not
 		   equal MAX_UINT32. */
-		POS_INIT(&pos, (hint->control & MSF_LEFT ?
+		POS_INIT(&pos, (hint->control & SF_LEFT_SHIFT ?
 				dst_items - 1 : 0), 0);
 
 		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
@@ -1208,10 +1214,10 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	/* We will remove src item if it has became empty and insert point is
 	   not points it, that is next insert will not be dealing with it. */
 	remove = ((hint->rest == src_place.len || units == 0) &&
-		  (hint->result & MSF_IPMOVE || pos.item != hint->pos.item));
+		  (hint->result & SF_MOVE_POINT || pos.item != hint->pos.item));
 	
 	/* Updating item's keys. */
-	if (hint->control & MSF_LEFT) {
+	if (hint->control & SF_LEFT_SHIFT) {
 		/* We do not need to update key of the src item which is going
 		   to be removed. */
 		if (!remove) {
@@ -1232,13 +1238,17 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* As item will be removed, we should update item pos in hint
 		   properly. */
-		if (hint->control & MSF_IPUPDT && pos.item < hint->pos.item)
+		if (hint->control & SF_UPDATE_POINT &&
+		    pos.item < hint->pos.item)
+		{
 			hint->pos.item--;
+		}
 	} else {
 		pos.unit = 0;
 		len = hint->rest;
 	}
 
+	/* Shrining node by @len. */
 	return node40_shrink(src_entity, &pos, len, 1);
 }
 
@@ -1271,7 +1281,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 	space = node40_space(dst_entity);
 	end = node40_ih_at(src_node, src_items - 1);
 
-	if (hint->control & MSF_LEFT) {
+	if (hint->control & SF_LEFT_SHIFT) {
 		cur = node40_ih_at(src_node, 0);
 	} else {
 		cur = node40_ih_at(src_node, src_items - 1);
@@ -1281,10 +1291,10 @@ static errno_t node40_predict(node_entity_t *src_entity,
 	   insert point is shifted out to neighbour node. */
 	flags = hint->control;
 	
-	while (!(hint->result & MSF_IPMOVE) && src_items > 0) {
+	while (!(hint->result & SF_MOVE_POINT) && src_items > 0) {
 		uint32_t len;
 
-		if (!(flags & MSF_IPMOVE) && (flags & MSF_RIGHT)) {
+		if (!(flags & SF_MOVE_POINT) && (flags & SF_RIGHT_SHIFT)) {
 			if (hint->pos.item >= src_items)
 				break;
 		}
@@ -1303,10 +1313,9 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		if (space < len + node40_overhead(dst_entity))
 			break;
 
-		if (flags & MSF_IPUPDT) {
-			
+		if (flags & SF_UPDATE_POINT) {
 			/* Updating insert position */
-			if (flags & MSF_LEFT) {
+			if (flags & SF_LEFT_SHIFT) {
 				if (hint->pos.item == 0) {
 					pos_t pos;
 					place_t place;
@@ -1327,14 +1336,14 @@ static errno_t node40_predict(node_entity_t *src_entity,
 
 					/* Breaking if insert point reach the
 					   end of node. */
-					if (flags & MSF_IPMOVE &&
+					if (flags & SF_MOVE_POINT &&
 					    (hint->pos.unit == MAX_UINT32 ||
 					     hint->pos.unit >= units - 1))
 					{
 						/* If we are permitted to move
 						   insetr point to the neigbour,
 						   we doing it. */
-						hint->result |= MSF_IPMOVE;
+						hint->result |= SF_MOVE_POINT;
 						hint->pos.item = dst_items;
 					} else
 						break;
@@ -1349,11 +1358,11 @@ static errno_t node40_predict(node_entity_t *src_entity,
 				
 					if (hint->pos.item == src_items - 1) {
 
-						if (flags & MSF_IPMOVE &&
+						if (flags & SF_MOVE_POINT &&
 						    (hint->pos.unit == MAX_UINT32 ||
 						     hint->pos.unit == 0))
 						{
-							hint->result |= MSF_IPMOVE;
+							hint->result |= SF_MOVE_POINT;
 							hint->pos.item = 0;
 						} else {
 							if (hint->pos.unit != MAX_UINT32)
@@ -1364,8 +1373,8 @@ static errno_t node40_predict(node_entity_t *src_entity,
 						   existent item. So we should
 						   just update hint and break
 						   the loop. */
-						if (flags & MSF_IPMOVE) {
-							hint->result |= MSF_IPMOVE;
+						if (flags & SF_MOVE_POINT) {
+							hint->result |= SF_MOVE_POINT;
 							hint->pos.item = 0;
 						}
 						
@@ -1381,7 +1390,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		src_items--; dst_items++;
 		
 		space -= (len + node40_overhead(dst_entity));
-		cur += (flags & MSF_LEFT ? -ih_size(pol) : ih_size(pol));
+		cur += (flags & SF_LEFT_SHIFT ? -ih_size(pol) : ih_size(pol));
 	}
 
 	/* After number of whole items was estimated, all free space will be
@@ -1416,7 +1425,10 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 	dst_items = node40_items(dst_entity);
 	src_items = node40_items(src_entity);
 
-	if (hint->control & MSF_LEFT) {
+	/* Initializing src and dst positions, we will used them for moving
+	   items. They are initialized in different way for left and right
+	   shift. */
+	if (hint->control & SF_LEFT_SHIFT) {
 		POS_INIT(&src_pos, 0, MAX_UINT32);
 		POS_INIT(&dst_pos, dst_items, MAX_UINT32);
 	} else {
@@ -1426,32 +1438,43 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 			 MAX_UINT32);
 	}
 	
-	/* Expanding dst node in order to making room for new items and update
+	/* Expanding dst node in order to make room for new items and update
 	   node header. */
-	if (node40_expand(dst_entity, &dst_pos, hint->bytes,
-			      hint->items))
+	if ((res = node40_expand(dst_entity, &dst_pos,
+				 hint->bytes, hint->items)))
 	{
-		return -EINVAL;
+		return res;
 	}
 		
 	/* Copying items from src node to dst one */
-	if (node40_copy(dst_entity, &dst_pos, src_entity,
-			&src_pos, hint->items))
+	if ((res = node40_copy(dst_entity, &dst_pos, src_entity,
+			       &src_pos, hint->items)))
 	{
-		return -EINVAL;
+		return res;
 	}
 
-	/* Shrinking source node after items are copied from it to dst node. */
-	if (node40_shrink(src_entity, &src_pos, hint->bytes,
-			      hint->items))
-	{
-		return -EINVAL;
-	}
-	
-	return 0;
+	/* Shrinking source node after items are copied from it into dst
+	   node. */
+	return node40_shrink(src_entity, &src_pos, hint->bytes,
+			     hint->items);
 }
 
-/* Performs shift of items and units from @entity to @neighb */
+/* Performs shift of items and units from @src_entity to @dst_entity.
+
+   Shift is performed in three passes:
+
+   (1) This pass is supposed to merge two border items in @src_entity and
+   @dst_entity if they are mergeable at all. This is needed to prevent creation
+   of mergeable items in the same node durring balancing.
+
+   (2) Second pass is supposed to move as many whole items from @src_entity to
+   @dst_entity as possible. That is exactly how many how does @dst_entity free
+   space allow. This is actually main job of shift() function.
+
+   (3) And finally third pass should again merge two border items in @src_entity
+   and @dst_entity after some number of whole items was moved to @dst_entity. It
+   is needed to use the rest of space remaining after whole items shift in
+   second pass. */
 static errno_t node40_shift(node_entity_t *src_entity,
 			    node_entity_t *dst_entity,
 			    shift_hint_t *hint)
@@ -1467,69 +1490,68 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
 
+	/* First pass is merge border items. Thus, SF_MERGE_BORDER flags is set
+	   in order to let unite() function know, what we want it perform for
+	   us. */
 	merge = *hint;
-	
-	/* First of all we should try to merge boundary items if they are
-	   mergeable. This work is performed by unit shift methods with the
-	   special shift flags MSF_MERGE. It will forbid creating the new item
-	   if boundary items are not mergeable. */
-	merge.control |= MSF_MERGE;
+	merge.control |= SF_MERGE_BORDER;
 	merge.rest = node40_space(dst_entity);
 	
-	/* Merges passed nodes with no creating new item in the @dst_node. This
-	   is needed for avoiding the case when a node will contain two
-	   neighbour items which are mergeable. That would be not optimal space
-	   usage and might also led to some unstable behavior of the code which
-	   assume that next mergeable item lies in the neighbour node, not the
-	   next to it (directory read and lookup code). */
 	if ((res = node40_unite(src_entity, dst_entity, &merge))) {
 		aal_exception_error("Can't merge two nodes durring "
 				    "node shift operation.");
 		return res;
 	}
 
+	/* Saving merge result, that is insert point and flags. */
 	hint->pos = merge.pos;
 	hint->result = merge.result;
 
-	if (hint->result & MSF_IPMOVE)
-		goto out_update_hint;
+	/* Check if insert point is moved to @dst_entity. If so then shift is
+	   finished. */
+	if (hint->result & SF_MOVE_POINT) {
+		hint->units = merge.units;
+		return 0;
+	}
 
-	/* Moving some amount of whole items from @src_node to @dst_node */
+	/* Second pass is started here. Moving some amount of whole items from
+	   @src_entity to @dst_entity. */
 	if ((res = node40_transfuse(src_entity, dst_entity, hint))) {
 		aal_exception_error("Can't transfuse two nodes "
 				    "durring node shift operation.");
 		return res;
 	}
 
-	/* Checking if insert point was not moved into the corresponding
-	   neighbour. */
-	if (hint->result & MSF_IPMOVE)
-		goto out_update_hint;
+	/* Checking if insert point was moved into @dst_entity. If so then shift
+	   gets out. */
+	if (hint->result & SF_MOVE_POINT) {
+		hint->units = 0;
+		return 0;
+	}
 
-	/* Merges border items with ability to create new item in the dst node.
-	   Here our objective is to shift into neighbour node as many units as
-	   possible. */
+	/* Third pass is started here. Merges border items with ability to
+	   create new item in the @dst_entity. Here our objective is to shift
+	   into neighbour node as many units as possible and thus, to fill it
+	   up. */
 	if ((res = node40_unite(src_entity, dst_entity, hint))) {
 		aal_exception_error("Can't merge two nodes durring "
 				    "node shift operation.");
 		return res;
 	}
 
-	/* The case when insert point is moved to the neighbour node, but
-	   nothing was shifted because old insert point was at last item and
-	   last unit.  Thus, insert unit request should be converted into insert
-	   item one by means of clearing unit component of the insert point in
-	   shift hint. */
-	if (hint->control & MSF_IPUPDT &&
-	    hint->result & MSF_IPMOVE &&
+	/* Here is handling the case when insert point is moved to the
+	   @dst_entity, but nothing was actually shifted because old insert
+	   point was at rightmost node position (last item unexistent unit).
+	   Thus, we should set insert point unit component to MAX_UINT32 and
+	   thus, to let code on higher abstraction levels know, that unit insert
+	   operation should be converted to item insert (create) one. */
+	if (hint->control & SF_UPDATE_POINT &&
+	    hint->result & SF_MOVE_POINT &&
 	    hint->units == 0 && hint->create)
 	{
 		hint->pos.unit = MAX_UINT32;
 	}
 
- out_update_hint:
-	hint->units += merge.units;
-	hint->items += merge.items;
 	return 0;
 }
 #endif

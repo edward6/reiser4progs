@@ -500,21 +500,21 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 
 	flags = hint->control;
 	
-	curr = (hint->control & MSF_LEFT ? 0 : src_units - 1);
+	curr = (hint->control & SF_LEFT_SHIFT ? 0 : src_units - 1);
 	
 	check = (src_place->pos.item == hint->pos.item &&
 		 hint->pos.unit != MAX_UINT32);
 
-	while (!(hint->result & MSF_IPMOVE) &&
+	while (!(hint->result & SF_MOVE_POINT) &&
 	       curr < cde40_number_units(src_place))
 	{
 
 		/* Check if we should update unit pos. we will update it if we
 		   are at insert point and unit pos is not MAX_UINT32. */
-		if (check && (flags & MSF_IPUPDT)) {
+		if (check && (flags & SF_UPDATE_POINT)) {
 			
-			if (!(flags & MSF_IPMOVE)) {
-				if (flags & MSF_LEFT) {
+			if (!(flags & SF_MOVE_POINT)) {
+				if (flags & SF_LEFT_SHIFT) {
 					if (hint->pos.unit == 0)
 						break;
 				} else {
@@ -534,14 +534,14 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 		/* Updating unit pos. We will do so in the case item component
 		   of insert point is the same as current item has and unit
 		   component is not MAX_UINT32. */
-		if (check && (flags & MSF_IPUPDT)) {
-			if (flags & MSF_LEFT) {
+		if (check && (flags & SF_UPDATE_POINT)) {
+			if (flags & SF_LEFT_SHIFT) {
 				/* Insert point is near to be moved into left
 				   neighbour. Checking if we are permitted to do
 				   so and updating insert point. */
 				if (hint->pos.unit == 0) {
-					if (flags & MSF_IPMOVE) {
-						hint->result |= MSF_IPMOVE;
+					if (flags & SF_MOVE_POINT) {
+						hint->result |= SF_MOVE_POINT;
 						hint->pos.unit = dst_units;
 					} else
 						break;
@@ -555,15 +555,15 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 					   and updating unit component of insert
 					   point int hint. */
 					if (hint->pos.unit == src_units - 1) {
-						if (flags & MSF_IPMOVE) {
-							hint->result |= MSF_IPMOVE;
+						if (flags & SF_MOVE_POINT) {
+							hint->result |= SF_MOVE_POINT;
 							hint->pos.unit = 0;
 						} else {
 							break;
 						}
 					} else {
-						if (flags & MSF_IPMOVE) {
-							hint->result |= MSF_IPMOVE;
+						if (flags & SF_MOVE_POINT) {
+							hint->result |= SF_MOVE_POINT;
 							hint->pos.unit = 0;
 						}
 						
@@ -579,7 +579,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 		dst_units++;
 		hint->units++;
 
-		curr += (flags & MSF_LEFT ? 1 : -1);
+		curr += (flags & SF_LEFT_SHIFT ? 1 : -1);
 		space -= (len + en_size(pol));
 	}
 
@@ -607,7 +607,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	if (dst_place->pos.unit == MAX_UINT32)
 		hint->rest -= cde40_overhead(src_place);
 	
-	if (hint->control & MSF_LEFT) {
+	if (hint->control & SF_LEFT_SHIFT) {
 		src_pos = 0;
 		dst_pos = cde_get_units(dst_place);
 	} else {
@@ -629,7 +629,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 
 	/* Updating item key by first cde key */
 	if (cde_get_units(src_place) > 0 &&
-	    hint->control & MSF_LEFT)
+	    hint->control & SF_LEFT_SHIFT)
 	{
 		cde40_get_hash(src_place, 0,
 			       &src_place->key);

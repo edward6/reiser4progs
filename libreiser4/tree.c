@@ -1625,11 +1625,11 @@ errno_t reiser4_tree_shift(
 
 	/* Check if insert point was moved to neighbour node. If so, assign
 	   neightbour node to insert point coord. */
-	if (hint.result & MSF_IPMOVE)
+	if (hint.result & SF_MOVE_POINT)
 		place->node = neig;
 
 	/* Updating left delimiting keys in the tree */
-	if (hint.control & MSF_LEFT) {
+	if (hint.control & SF_LEFT_SHIFT) {
 
 		/* Check if we need update key in insert part of tree. That is
 		   if source node is not empty and there was actually moved at
@@ -1776,13 +1776,13 @@ int32_t reiser4_tree_expand(
 	}
 
 	/* Shifting data into left neighbour if it exists */
-	if ((MSF_LEFT & flags) &&
+	if ((SF_LEFT_SHIFT & flags) &&
 	    (left = reiser4_tree_neigh_node(tree, place->node, D_LEFT)))
 	{
 
 		/* Shift items from @place to @left neighbour. */
 		if ((res = reiser4_tree_shift(tree, place, left,
-					      MSF_LEFT | MSF_IPUPDT)))
+					      SF_LEFT_SHIFT | SF_UPDATE_POINT)))
 		{
 			return res;
 		}
@@ -1799,13 +1799,13 @@ int32_t reiser4_tree_expand(
 	}
 
 	/* Shifting data into right neighbour if it exists */
-	if ((MSF_RIGHT & flags) &&
+	if ((SF_RIGHT_SHIFT & flags) &&
 	    (right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT)))
 	{
 
 		/* Shift items from @place to @right neighbour. */
 		if ((res = reiser4_tree_shift(tree, place, right,
-					      MSF_RIGHT | MSF_IPUPDT)))
+					      SF_RIGHT_SHIFT | SF_UPDATE_POINT)))
 		{
 			return res;
 		}
@@ -1824,7 +1824,7 @@ int32_t reiser4_tree_expand(
 
 	/* Check if we allowed to allocate new nodes if there still not enough
 	   of space for insert @needed bytes of data to tree. */
-	if (!(MSF_ALLOC & flags)) {
+	if (!(SF_ALLOW_ALLOC & flags)) {
 		enough = reiser4_node_space(place->node);
 		
 		if (place->pos.unit == MAX_UINT32)
@@ -1851,13 +1851,13 @@ int32_t reiser4_tree_expand(
 			return -ENOSPC;
 
 		/* Setting up shift flags */
-		flags = MSF_RIGHT | MSF_IPUPDT;
+		flags = SF_RIGHT_SHIFT | SF_UPDATE_POINT;
 
 		/* We will allow to move insert point to neighbour node if we
 		   are at first iteration in this loop or if place points behind
 		   the last unit of last item in current node. */
 		if (alloc == 0 || !reiser4_place_ltlast(place))
-			flags |= MSF_IPMOVE;
+			flags |= SF_MOVE_POINT;
 
 		/* Shift data from @place to @node. Updating @place by new
 		   insert point. */
@@ -1908,7 +1908,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	   neighbour node. */
 	if ((left = reiser4_tree_neigh_node(tree, place->node, D_LEFT))) {
 	    
-		if ((res = reiser4_tree_shift(tree, place, left, MSF_LEFT))) {
+		if ((res = reiser4_tree_shift(tree, place, left, SF_LEFT_SHIFT))) {
 			aal_exception_error("Can't pack node %llu into left.",
 					    node_blocknr(place->node));
 			return res;
@@ -1925,7 +1925,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	    
 			if ((res = reiser4_tree_shift(tree, &bogus,
 						      place->node,
-						      MSF_LEFT)))
+						      SF_LEFT_SHIFT)))
 			{
 				aal_exception_error("Can't pack node "
 						    "%llu into left.",
@@ -1994,7 +1994,8 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 
 			/* Perform shift. */
 			if ((res = reiser4_tree_shift(tree, place, node,
-						      MSF_RIGHT | MSF_IPUPDT)))
+						      SF_RIGHT_SHIFT |
+						      SF_UPDATE_POINT)))
 			{
 				aal_exception_error("Tree failed to shift "
 						    "into a newly "
@@ -2467,7 +2468,7 @@ int64_t reiser4_tree_modify(
 	mode = (place->pos.unit == MAX_UINT32);
 
 	/* Preparing space in tree. */
-	if ((space = reiser4_tree_expand(tree, place, needed, MSF_DEF)) < 0) {
+	if ((space = reiser4_tree_expand(tree, place, needed, SF_DEFAULT)) < 0) {
 		aal_exception_error("Can't prepare space in tree.");
 		return space;
 	}

@@ -268,33 +268,32 @@ struct sdext_entity {
 typedef struct sdext_entity sdext_entity_t;
 
 /* Shift flags control shift process */
-enum mkspace_flags {
+enum shift_flags {
+	/* Perform shift from the passed node to the left neighbour node. */
+	SF_LEFT_SHIFT    = 1 << 0,
 
-	/* Perform shift from the passed node to the left neighbour node */
-	MSF_LEFT    = 1 << 0,
-
-	/* Perform shift from the passed node to the right neighbour node */
-	MSF_RIGHT   = 1 << 1,
+	/* Perform shift from the passed node to the right neighbour node. */
+	SF_RIGHT_SHIFT   = 1 << 1,
 
 	/* Allows to move insert point to the corresponding neighbour node while
 	   performing shift. */
-	MSF_IPMOVE  = 1 << 2,
+	SF_MOVE_POINT    = 1 << 2,
 
-	/* Allows update insert point while performing shift */
-	MSF_IPUPDT  = 1 << 3,
+	/* Allows to update insert point while performing shift. */
+	SF_UPDATE_POINT  = 1 << 3,
 
-	/* Forces do not create new items while performing the shift of
-	   units. Units from the source item may be moved into an item if the
-	   items are mergeable. */
-	MSF_MERGE = 1 << 4,
+	/* Forces do not create new items while performing shift of units. Units
+	   from the source node may be moved into destination one if there are
+	   two mergeable item. */
+	SF_MERGE_BORDER  = 1 << 4,
 
 	/* Should be new nodes allocated durring make space or not */
-	MSF_ALLOC = 1 << 5
+	SF_ALLOW_ALLOC   = 1 << 5
 };
 
 typedef enum mkspace_flags mkspace_flags_t;
 
-#define MSF_DEF (MSF_LEFT | MSF_RIGHT | MSF_ALLOC)
+#define SF_DEFAULT (SF_LEFT_SHIFT | SF_RIGHT_SHIFT | SF_ALLOW_ALLOC)
 
 struct shift_hint {
 	/* Flag which shows that we need create an item before we will move
@@ -349,32 +348,7 @@ struct merge_hint {
 
 typedef struct merge_hint merge_hint_t;
 
-/* To create a new item or to insert into the item we need to perform the
-   following operations:
-    
-   (1) Create the description of the data being inserted.
-   (2) Ask item plugin how much space is needed for the data, described in 1.
-   
-   (3) Prepare needed space for data being inserted.
-   
-   (4) Ask item plugin to create an item (to paste into the item) on the base of
-   description from 1.
-
-   For such purposes we have:
-    
-   (1) Fixed description structures for all item types (statdata, direntry,
-   nodeptr, etc).
-    
-   (2) Estimate item method which gets place of where to insert into (NULL or
-   unit == -1 for insertion, otherwise it is pasting) and data description from
-   1.
-   
-   (3) Insert node methods prepare needed space and call create/paste item
-   methods if data description is specified.
-    
-   (4) Create/Paste item methods if data description has not beed specified on
-   3.
-*/
+/* Different hints used for gringing data to/from corresponding objects. */
 struct ptr_hint {    
 	uint64_t start;
 	uint64_t width;
