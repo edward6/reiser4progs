@@ -275,7 +275,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 			/* Calculating local offset and chunk to be read */
 			local = (pos % blocksize);
 
-			if ((chunk = blocksize - offset) > count)
+			if ((chunk = blocksize - local) > count)
 				chunk = count;
 
 			aal_memcpy(buff, block->data + local, chunk);
@@ -284,7 +284,9 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 			if ((local + chunk) % blocksize == 0)
 				blk++;
 
-			count -= chunk; buff += chunk;
+			pos += chunk;
+			buff += chunk;
+			count -= chunk;
 		}
 	}
 	
