@@ -17,7 +17,8 @@
 struct aal_block {
 	int flags;
 	void *data;
-	uint64_t offset;
+
+	blk_t blk;
 	aal_device_t *device;
 };
 

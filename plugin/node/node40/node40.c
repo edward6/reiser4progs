@@ -243,9 +243,9 @@ static errno_t node40_item(item_entity_t *item,
 	item_pos.unit = ~0ul;
 	item_pos.item = pos;
 	
-	item->context.node = (object_entity_t *)node;
-	item->context.device = node->block->device;
-	item->context.blk = aal_block_number(node->block);
+	item->con.node = (object_entity_t *)node;
+	item->con.device = node->block->device;
+	item->con.blk = aal_block_number(node->block);
 
 	pid = node40_item_pid((object_entity_t *)node, &item_pos);
 	

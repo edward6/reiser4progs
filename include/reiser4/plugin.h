@@ -230,12 +230,11 @@ typedef struct item_context item_context_t;
  * all item plugins. */
 struct item_entity {
 	reiser4_plugin_t *plugin;
+
 	reiser4_key_t key;
-
 	uint32_t len, pos;
+	item_context_t con;
 	reiser4_body_t *body;
-
-	item_context_t context;
 };
 
 typedef struct item_entity item_entity_t;

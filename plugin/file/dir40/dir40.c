@@ -475,7 +475,7 @@ static errno_t dir40_layout(object_entity_t *entity, file_action_func_t func,
 	aal_assert("umka-1474", func != NULL, return -1);
 
 	while (1) {
-		blk_t blk = dir->body.entity.context.blk;
+		blk_t blk = dir->body.entity.con.blk;
 		
 		if ((res = func(entity, blk, data)))
 			return res;

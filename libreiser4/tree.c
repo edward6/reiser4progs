@@ -186,7 +186,7 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 
 static errno_t callback_tree_mpressure(void *data, int result) {
 	reiser4_tree_t *tree = (reiser4_tree_t *)data;
-
+	
 	if (!result)
 		return 0;
 

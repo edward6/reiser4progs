@@ -33,7 +33,7 @@ aal_block_t *aal_block_create(
 	if (!(block->data = aal_calloc(aal_device_get_bs(device), c)))
 		goto error_free_block;
 	
-	block->offset = (aal_device_get_bs(device) * blk);
+	block->blk = blk;
 	aal_block_mkdirty(block);
 	
 	return block;
@@ -70,7 +70,7 @@ aal_block_t *aal_block_open(
 	/* 
 	   Mark block as clean. It means, block will not be realy wrote onto
 	   device when aal_block_write method will be called, since block was
-	   not chnaged.
+	   not changed.
 	*/
 	aal_block_mkclean(block);
     
@@ -119,27 +119,12 @@ errno_t aal_block_sync(
 	return error;
 }
 
-/*
-  Returns block number of specified block. Block stores own location as offset
-  from the device start in bytes. This ability was introduced to avoid
-  additional activities (for instance, loops for update block number) which
-  should be performed on opened blocks in the case device has been changed its
-  blocksize. It will be used for converting reiserfs from one block size to
-  another.
-*/
+/*  Returns block number of specified block */
 blk_t aal_block_number(
 	aal_block_t *block)		/* block, position will be obtained from */
 {
 	aal_assert("umka-448", block != NULL, return FAKE_BLK);
-   
-	/* 
-	   Here we are using shifting for calculating block position because
-	   block position is 64-bit number. And gcc is using for multipling and
-	   dividing such numbers a special internal function that is not
-	   available in allone mode.
-	*/
-	return (blk_t)(block->offset >> 
-		       aal_log2(aal_device_get_bs(block->device)));
+	return block->blk;
 }
 
 /* Sets block number */
@@ -155,14 +140,7 @@ void aal_block_relocate(
 		return;
 	}
     
-	/* 
-	   Here we are using shifting for calculating block position because
-	   block position is 64-bit number. And gcc is using for multipling and
-	   dividing such numbers a special internal function that is not
-	   available in allone mode.
-	*/
-	block->offset = (uint64_t)(blk << 
-				   aal_log2(aal_device_get_bs(block->device)));
+	block->blk = blk;
 }
 
 uint32_t aal_block_size(aal_block_t *block) {
@@ -179,4 +157,3 @@ void aal_block_close(
 	aal_free(block->data);
 	aal_free(block);
 }
-

@@ -24,7 +24,7 @@ aal_device_t *reiser4_coord_device(reiser4_coord_t *coord) {
 errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	rpid_t pid;
 	reiser4_key_t *key;
-	item_context_t *context;
+	item_context_t *con;
 	object_entity_t *entity;
 	
         aal_assert("umka-1459", coord != NULL, return -1);
@@ -65,11 +65,11 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	key->plugin = reiser4_key_guess(key->body);
 	aal_assert("umka-1406", key->plugin != NULL, return -1);
 
-	context = &coord->entity.context;
+	con = &coord->entity.con;
 	
-	context->node = coord->node->entity;
-	context->blk = reiser4_coord_blk(coord);
-	context->device = reiser4_coord_device(coord);
+	con->node = coord->node->entity;
+	con->blk = reiser4_coord_blk(coord);
+	con->device = reiser4_coord_device(coord);
 	
 	return 0;
 }

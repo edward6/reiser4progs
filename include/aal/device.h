@@ -42,8 +42,10 @@ struct aal_device_ops;
 */
 struct aal_device {
 	int flags;
+
 	void *data;
 	void *entity;
+
 	uint16_t blocksize;
 	char name[256], error[256];
 	struct aal_device_ops *ops;
