@@ -15,8 +15,8 @@
 #include <reiser4/plugin.h>
 #include <reiser4/filesystem.h>
 
-extern reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs);
 extern void reiser4_tree_close(reiser4_tree_t *tree);
+extern reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs);
 
 #ifndef ENABLE_COMPACT
 
@@ -32,9 +32,6 @@ extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_item_hint_t *hi
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_key_t *key,
 				   uint8_t level);
 
-extern errno_t reiser4_tree_move(reiser4_tree_t *tree, reiser4_coord_t *dst,
-				 reiser4_coord_t *src);
-
 extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree, reiser4_coord_t *old,
 				    reiser4_coord_t *new, uint32_t needed);
 
@@ -44,14 +41,12 @@ extern int reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 			       reiser4_level_t *level, reiser4_coord_t *coord);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
-extern reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
+extern reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree);
 
-extern reiser4_joint_t *reiser4_tree_allocate(reiser4_tree_t *tree, uint8_t level);
-extern void reiser4_tree_release(reiser4_tree_t *tree, reiser4_joint_t *joint);
-extern reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, blk_t blk);
-
-extern errno_t reiser4_tree_collector(reiser4_tree_t *tree);
+extern reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree, blk_t blk);
+extern void reiser4_tree_release(reiser4_tree_t *tree, reiser4_node_t *node);
+extern reiser4_node_t *reiser4_tree_allocate(reiser4_tree_t *tree, uint8_t level);
 
 #endif
 

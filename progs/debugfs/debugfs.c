@@ -110,20 +110,20 @@ struct tree_print_hint {
 };
 
 /* Callback function used in traverse for opening the node */
-static errno_t common_open_joint(
-	reiser4_joint_t **joint,    /* joint to be opened */
+static errno_t debugfs_open_node(
+	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
 	struct tree_print_hint *print_hint =
 		(struct tree_print_hint *)data;
 
-	*joint = reiser4_tree_load(print_hint->tree, blk);
-	return -(*joint == NULL);
+	*node = reiser4_tree_load(print_hint->tree, blk);
+	return -(*node == NULL);
 }
 
-static errno_t debugfs_print_joint(
-	reiser4_joint_t *joint,	    /* joint to be printed */
+static errno_t debugfs_print_node(
+	reiser4_node_t *node,	    /* node to be printed */
 	void *data)		    /* traverse data */
 {	
 	aal_stream_t stream;
@@ -133,7 +133,7 @@ static errno_t debugfs_print_joint(
 
 	aal_stream_init(&stream);
 
-	if (reiser4_node_print(joint->node, &stream, print_hint->flags & PF_ITEMS))
+	if (reiser4_node_print(node, &stream, print_hint->flags & PF_ITEMS))
 		goto error_free_stream;
 
 	printf((char *)stream.data);
@@ -154,8 +154,8 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs, print_flags_t flags) {
 	hint.data = &print_hint;
 	hint.cleanup = 1;
 	
-	reiser4_joint_traverse(fs->tree->root, &hint, common_open_joint, 
-			       debugfs_print_joint, NULL, NULL, NULL);
+	reiser4_node_traverse(fs->tree->root, &hint, debugfs_open_node, 
+			      debugfs_print_node, NULL, NULL, NULL);
     
 	printf("\n");
     
@@ -264,32 +264,31 @@ struct tree_frag_hint {
 	count_t internals;
 };
 
-static errno_t frag_open_joint(
-	reiser4_joint_t **joint,    /* joint to be opened */
+static errno_t frag_open_node(
+	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* blk node lies in */
 	void *data)		    /* traverse hint */
 {	
 	struct tree_frag_hint *frag_hint =
 		(struct tree_frag_hint *)data;
 
-	*joint = NULL;
+	*node = NULL;
 
 	aal_assert("umka-1556", frag_hint->level > 0, return -1);
 	
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 	
-	*joint = reiser4_tree_load(frag_hint->tree, blk);
-	return -(*joint == NULL);
+	*node = reiser4_tree_load(frag_hint->tree, blk);
+	return -(*node == NULL);
 }
 
 static errno_t callback_tree_frag(
-	reiser4_joint_t *joint,	   /* joint to be estimated */
-	void *data)	   /* user-specified data */
+	reiser4_node_t *node,	   /* node to be estimated */
+	void *data)	           /* user-specified data */
 {
 	reiser4_pos_t pos;
-	reiser4_node_t *node = joint->node;
-	
+
 	struct tree_frag_hint *frag_hint =
 		(struct tree_frag_hint *)data;
 
@@ -307,7 +306,7 @@ static errno_t callback_tree_frag(
 		reiser4_coord_t coord;
 		reiser4_ptr_hint_t ptr;
 
-		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+		if (reiser4_coord_open(&coord, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
 			return -1;
@@ -369,7 +368,7 @@ static errno_t callback_update_frag(reiser4_coord_t *coord, void *data) {
 static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
-	reiser4_joint_t *root;
+	reiser4_node_t *root;
 	
 	struct tree_frag_hint frag_hint;
 
@@ -384,10 +383,10 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	frag_hint.total = 0;
 	frag_hint.gauge = gauge;
 	frag_hint.tree = fs->tree;
-	frag_hint.curr = root->node->blk;
-	frag_hint.level = plugin_call(return -1, 
-	    fs->tree->root->node->entity->plugin->node_ops, get_level, 
-	    fs->tree->root->node->entity);
+	frag_hint.curr = root->blk;
+
+	frag_hint.level = plugin_call(return -1, root->entity->plugin->node_ops,
+				      get_level, root->entity);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -397,9 +396,8 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 
 	aal_gauge_start(gauge);
 	
-	reiser4_joint_traverse(fs->tree->root, &hint, frag_open_joint,
-			       callback_tree_frag, callback_setup_frag, 
-			       callback_update_frag, NULL);
+	reiser4_node_traverse(root, &hint, frag_open_node, callback_tree_frag,
+			      callback_setup_frag, callback_update_frag, NULL);
 
 	aal_gauge_free(gauge);
 
@@ -428,15 +426,14 @@ struct node_pack_hint {
 };
 
 static errno_t callback_node_packing(
-	reiser4_joint_t *joint,	    /* joint to be inspected */
+	reiser4_node_t *node,	    /* node to be inspected */
 	void *data)		    /* traverse data */
 {
 	uint8_t level;
-	uint32_t formatted_used;
-	uint32_t leaves_used;
-	uint32_t internals_used;
 	aal_device_t *device;
-	reiser4_node_t *node = joint->node;
+	uint32_t leaves_used;
+	uint32_t formatted_used;
+	uint32_t internals_used;
 	
 	struct node_pack_hint *pack_hint =
 		(struct node_pack_hint *)data;
@@ -447,10 +444,11 @@ static errno_t callback_node_packing(
 	if (pack_hint->formatted % 128 == 0)
 		aal_gauge_update(pack_hint->gauge, 0);
 
-	device = joint->node->device;
-	formatted_used = aal_device_get_bs(device) - reiser4_node_space(joint->node);
+	device = node->device;
+	formatted_used = aal_device_get_bs(device) - reiser4_node_space(node);
 
-	pack_hint->formatted_used = (formatted_used + (pack_hint->formatted_used * pack_hint->formatted)) /
+	pack_hint->formatted_used =
+		(formatted_used + (pack_hint->formatted_used * pack_hint->formatted)) /
 		(pack_hint->formatted + 1);
 
 	if (level > LEAF_LEVEL) {
@@ -460,7 +458,7 @@ static errno_t callback_node_packing(
 		reiser4_pos_t pos = {~0ul, ~0ul};
 		
 		internals_used = aal_device_get_bs(device) -
-			reiser4_node_space(joint->node);
+			reiser4_node_space(node);
 		
 		pack_hint->internals_used =
 			(internals_used + (pack_hint->internals_used * pack_hint->internals)) /
@@ -469,7 +467,7 @@ static errno_t callback_node_packing(
 		for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 			reiser4_coord_t coord;
 
-			if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+			if (reiser4_coord_open(&coord, node, &pos)) {
 				aal_exception_error("Can't open item %u in node %llu.", 
 						    pos.item, node->blk);
 				return -1;
@@ -495,7 +493,7 @@ static errno_t callback_node_packing(
 		}
 	} else {
 		leaves_used = aal_device_get_bs(device) -
-			reiser4_node_space(joint->node);
+			reiser4_node_space(node);
 
 		pack_hint->leaves_used =
 			(leaves_used + (pack_hint->leaves_used * pack_hint->leaves)) /
@@ -535,8 +533,8 @@ static errno_t debugfs_node_packing(reiser4_fs_t *fs) {
 
 	aal_gauge_start(gauge);
 	
-	reiser4_joint_traverse(fs->tree->root, &hint, common_open_joint,
-			       callback_node_packing, NULL, NULL, NULL);
+	reiser4_node_traverse(fs->tree->root, &hint, debugfs_open_node,
+			      callback_node_packing, NULL, NULL, NULL);
 
 	aal_gauge_free(gauge);
 
@@ -638,11 +636,10 @@ static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 }
 
 static errno_t callback_data_frag(
-	reiser4_joint_t *joint,  /* node to be inspected */
-	void *data)   /* traverse hint */
+	reiser4_node_t *node,       /* node to be inspected */
+	void *data)                 /* traverse hint */
 {
 	reiser4_pos_t pos;
-	reiser4_node_t *node = joint->node;
 	static int bogus = 0;
 
 	struct file_frag_hint *frag_hint =
@@ -657,7 +654,7 @@ static errno_t callback_data_frag(
 		reiser4_file_t *file;
 		reiser4_coord_t coord;
 
-		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+		if (reiser4_coord_open(&coord, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
 			return -1;
@@ -723,9 +720,9 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, behav_flags_t flags) {
 
 	aal_gauge_start(gauge);
 	
-	reiser4_joint_traverse(fs->tree->root, &hint, common_open_joint,
-			       callback_data_frag, callback_setup_frag, 
-			       callback_update_frag, NULL);
+	reiser4_node_traverse(fs->tree->root, &hint, debugfs_open_node,
+			      callback_data_frag, callback_setup_frag, 
+			      callback_update_frag, NULL);
 
 	aal_gauge_free(gauge);
 
@@ -795,7 +792,7 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk,
 				   print_flags_t flags)
 {
 	errno_t res = 0;
-	reiser4_joint_t *joint;
+	reiser4_node_t *node;
 	struct traverse_hint hint;
 	struct tree_print_hint print_hint;
 
@@ -827,7 +824,7 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk,
 	
 	aal_exception_disable();
 	
-	if (!(joint = reiser4_tree_load(fs->tree, blk))) {
+	if (!(node = reiser4_tree_load(fs->tree, blk))) {
 		aal_exception_enable();
 		aal_exception_info("Node %llu is not a formated node.", blk);
 		return 0;
@@ -840,8 +837,8 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk,
 
 	hint.data = &print_hint;
 		
-	res = debugfs_print_joint(joint, &hint);
-	reiser4_joint_close(joint);
+	res = debugfs_print_node(node, &hint);
+	reiser4_node_close(node);
 	
 	return res;
 }

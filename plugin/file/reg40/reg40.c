@@ -44,7 +44,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	file40_unlock(&reg->file, &reg->body);
 	
 	if (core->tree_ops.lookup(reg->file.tree, &key, &level, &reg->body) != 1)
-		reg->body.data = NULL;
+		reg->body.node = NULL;
 	
 	/*
 	  Locking node the current body lies in, due to prevent the throwing
@@ -93,7 +93,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	aal_assert("umka-1183", buff != NULL, return 0);
 
 	/* There is no any data in file */
-	if (!reg->body.data)
+	if (!reg->body.node)
 		return 0;
     
 	if (file40_get_size(&reg->file.statdata, &size))
@@ -362,7 +362,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 	aal_assert("umka-1471", entity != NULL, return -1);
 	aal_assert("umka-1472", func != NULL, return -1);
 
-	if (!reg->body.data)
+	if (!reg->body.node)
 		return 0;
 
 	if (file40_get_size(&reg->file.statdata, &size))

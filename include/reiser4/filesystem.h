@@ -101,93 +101,67 @@ typedef struct reiser4_profile reiser4_profile_t;
 typedef struct reiser4_tree reiser4_tree_t;
 typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_coord reiser4_coord_t;
-typedef struct reiser4_joint reiser4_joint_t;
-
-enum coord_context {
-	CT_RAW    = 0x0,
-	CT_ENTITY = 0x1,
-	CT_NODE   = 0x2,
-	CT_JOINT  = 0x3
-};
-
-typedef enum coord_context coord_context_t;
 
 struct reiser4_coord {
-	/* Coord may used in any context (with node, joint, etc) */
-	union {
-		void *data;
-		
-		reiser4_node_t *node;
-		reiser4_joint_t *joint;
-		object_entity_t *entity;
-	} u;
-
-	/* Coord context flag */
-	coord_context_t context;
-
-	/* Pos inside used entity */
+	reiser4_node_t *node;
 	reiser4_pos_t pos;
-
-	/* Item entity needed for working with item plugin */
+	
 	item_entity_t entity;
 };
 
-enum joint_flags {
-	JF_DIRTY = 1 << 0
+enum node_flags {
+	NF_DIRTY = 1 << 0
 };
 
-typedef enum joint_flags joint_flags_t;
+typedef enum node_flags node_flags_t;
 
-/* The personalization of on-disk node in libreiser4 internal tree */
-struct reiser4_joint {
-	
-	/* Reference to parent node */
-	reiser4_joint_t *parent;
+struct lru_link {
+
+	/* Pointers to next and prev items in lru list */
+	aal_list_t *prev;
+	aal_list_t *next;
+};
+
+typedef struct lru_link lru_link_t;
+
+/* Reiser4 in-memory node structure */
+struct reiser4_node {
+	/* Lru related fields */
+	lru_link_t lru;
 
 	/* Position in parent node */
 	reiser4_pos_t pos;
-
+	
 	/* List of children */
 	aal_list_t *children;
 	
 	/* Reference to the tree */
 	reiser4_tree_t *tree;
-    
-	/* Pointer to the node */
-	reiser4_node_t *node;
-
+	
+	/* Reference to parent node */
+	reiser4_node_t *parent;
+	
 	/* Reference to left neighbour */
-	reiser4_joint_t *left;
+	reiser4_node_t *left;
 
 	/* Refernce to right neighbour */
-	reiser4_joint_t *right;
-
-	/* Some flags (dirty, etc) */
-	joint_flags_t flags;
-
-	/* Pointers to next and prev items in lru list */
-	aal_list_t *prev;
-	aal_list_t *next;
-
-	/* Usage counter */
-	int counter;
+	reiser4_node_t *right;
 	
-	/* User specified data */
-	void *data;
-};
-
-/* Reiser4 in-memory node structure */
-struct reiser4_node {
-
-	/* Node entity. This field is uinitializied by node plugin */
+	/* Node entity. */
 	object_entity_t *entity;
 
+	/* Some flags (dirty, etc) */
+	node_flags_t flags;
+	
 	/* Device node lies on */
 	aal_device_t *device;
 
 	/* Block number node lies in */
 	blk_t blk;
 
+	/* Usage counter to prevent releasing used node */
+	int counter;
+	
 	/* Some per-node user-specified data */
 	void *data;
 };
@@ -303,13 +277,13 @@ struct reiser4_tree {
 	   and always exists. All other nodes are loaded on demand and flushed
 	   at memory presure event.
 	*/
-	reiser4_joint_t *root;
+	reiser4_node_t *root;
 
 	/* Tree root key */
 	reiser4_key_t key;
 
 	/*
-	  The list of joints present in tree cache sorted in recently used
+	  The list of nodes present in tree cache sorted in recently used
 	  order. Thanks a lot to Nikita for this good idea.
 	*/
 	reiser4_lru_t lru;
@@ -331,13 +305,13 @@ struct traverse_hint {
 typedef struct traverse_hint traverse_hint_t;
 
 /* Callback function type for opening node. */
-typedef errno_t (*reiser4_open_func_t) (reiser4_joint_t **, blk_t, void *);
+typedef errno_t (*traverse_open_func_t) (reiser4_node_t **, blk_t, void *);
 
 /* Callback function type for preparing per-node traverse data. */
-typedef errno_t (*reiser4_edge_func_t) (reiser4_joint_t *, void *);
+typedef errno_t (*traverse_edge_func_t) (reiser4_node_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*reiser4_setup_func_t) (reiser4_coord_t *, void *);
+typedef errno_t (*traverse_setup_func_t) (reiser4_coord_t *, void *);
 
 /* Filesystem compound structure */
 struct reiser4_fs {

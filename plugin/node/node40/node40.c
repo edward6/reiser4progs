@@ -929,6 +929,7 @@ static errno_t node40_predict_items(node40_t *src_node,
 	
 	/* Predicting how many whole item may be shifted */
 	while (items > 0) {
+		
 		/* Getting length of current item */
 		if (cur == end)
 			len = nh40_get_free_space_start(src_node) -

@@ -20,7 +20,7 @@
 
 errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	aal_list_t *curr;
-	reiser4_joint_t *joint;
+	reiser4_node_t *node;
 	
 	aal_assert("umka-1519", lru != NULL, return -1);
 
@@ -36,18 +36,18 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	aal_mpressure_disable(lru->mpressure);
 	
 	while (curr && lru->adjust > 0) {
-		joint = (reiser4_joint_t *)curr->data;
+		node = (reiser4_node_t *)curr->data;
 		curr = curr->prev;
 		
-		if (joint->counter == 0) {
+		if (node->counter == 0) {
 			
-			if (!joint->parent || joint->children)
+			if (!node->parent || node->children)
 				continue;
 
-/*			if (joint->flags & JF_DIRTY)
-				reiser4_joint_sync(joint);*/
+/*			if (node->flags & NF_DIRTY)
+				reiser4_node_sync(node);*/
 			
-			reiser4_joint_close(joint);
+			reiser4_node_close(node);
 		}
 	}
 	
@@ -93,57 +93,57 @@ void reiser4_lru_fini(reiser4_lru_t *lru) {
 		aal_list_free(lru->list);
 }
 
-errno_t reiser4_lru_attach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
-	reiser4_joint_t *next, *prev;
+errno_t reiser4_lru_attach(reiser4_lru_t *lru, reiser4_node_t *node) {
+	reiser4_node_t *next, *prev;
 	
 	aal_assert("umka-1525", lru != NULL, return -1);
-	aal_assert("umka-1526", joint != NULL, return -1);
+	aal_assert("umka-1526", node != NULL, return -1);
 
 	if (aal_mpressure_check())
 		return -1;
 	
-	joint->prev = lru->list;
-	joint->next = lru->list ? lru->list->next : NULL;
+	node->lru.prev = lru->list;
+	node->lru.next = lru->list ? lru->list->next : NULL;
 
-	lru->list = aal_list_append(lru->list, joint);
+	lru->list = aal_list_append(lru->list, node);
 	lru->adjust++;
 
-	if (joint->prev) {
-		prev = (reiser4_joint_t *)joint->prev->data;
-		prev->next = lru->list->next;
+	if (node->lru.prev) {
+		prev = (reiser4_node_t *)node->lru.prev->data;
+		prev->lru.next = lru->list->next;
 	}
 
-	if (joint->next) {
-		next = (reiser4_joint_t *)joint->next->data;
-		next->prev = lru->list->next;
+	if (node->lru.next) {
+		next = (reiser4_node_t *)node->lru.next->data;
+		next->lru.prev = lru->list->next;
 	}
 
 	return 0;
 }
 
-errno_t reiser4_lru_detach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
-	reiser4_joint_t *next, *prev;
+errno_t reiser4_lru_detach(reiser4_lru_t *lru, reiser4_node_t *node) {
+	reiser4_node_t *next, *prev;
 	
 	aal_assert("umka-1528", lru != NULL, return -1);
-	aal_assert("umka-1527", joint != NULL, return -1);
+	aal_assert("umka-1527", node != NULL, return -1);
 
-	if (!joint->prev && joint->next)
+	if (!node->lru.prev && node->lru.next)
 		return 0;
 	
-	if (joint->prev) {
-		prev = (reiser4_joint_t *)joint->prev->data;
-		prev->next = joint->next;
+	if (node->lru.prev) {
+		prev = (reiser4_node_t *)node->lru.prev->data;
+		prev->lru.next = node->lru.next;
 	}
 	
-	if (joint->next) {
-		next = (reiser4_joint_t *)joint->next->data;
-		next->prev = joint->prev;
+	if (node->lru.next) {
+		next = (reiser4_node_t *)node->lru.next->data;
+		next->lru.prev = node->lru.prev;
 	}
 	
-	if (joint->prev)
-		aal_list_remove(joint->prev, joint);
+	if (node->lru.prev)
+		aal_list_remove(node->lru.prev, node);
 	else
-		lru->list = aal_list_remove(lru->list, joint);
+		lru->list = aal_list_remove(lru->list, node);
 
 	if (lru->adjust > 0)
 		lru->adjust--;
@@ -151,36 +151,36 @@ errno_t reiser4_lru_detach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	return 0;
 }
 
-errno_t reiser4_lru_touch(reiser4_lru_t *lru, reiser4_joint_t *joint) {
-	reiser4_joint_t *next, *prev;
+errno_t reiser4_lru_touch(reiser4_lru_t *lru, reiser4_node_t *node) {
+	reiser4_node_t *next, *prev;
 	
 	aal_assert("umka-1529", lru != NULL, return -1);
-	aal_assert("umka-1530", joint != NULL, return -1);
+	aal_assert("umka-1530", node != NULL, return -1);
 
-	if (lru->list && joint->prev) {
-		prev = (reiser4_joint_t *)joint->prev->data;
-		prev->next = joint->next;
+	if (lru->list && node->lru.prev) {
+		prev = (reiser4_node_t *)node->lru.prev->data;
+		prev->lru.next = node->lru.next;
 
-		if (joint->next) {
-			next = (reiser4_joint_t *)joint->next->data;
-			next->prev = joint->prev;
+		if (node->lru.next) {
+			next = (reiser4_node_t *)node->lru.next->data;
+			next->lru.prev = node->lru.prev;
 		}
 		
-		aal_list_remove(joint->prev, joint);
+		aal_list_remove(node->lru.prev, node);
 
-		joint->prev = lru->list;
-		joint->next = lru->list->next;
+		node->lru.prev = lru->list;
+		node->lru.next = lru->list->next;
 
-		aal_list_append(lru->list, joint);
+		aal_list_append(lru->list, node);
 
-		if (joint->prev) {
-			prev = (reiser4_joint_t *)joint->prev->data;
-			prev->next = lru->list->next;
+		if (node->lru.prev) {
+			prev = (reiser4_node_t *)node->lru.prev->data;
+			prev->lru.next = lru->list->next;
 		}
 
-		if (joint->next) {
-			next = (reiser4_joint_t *)joint->next->data;
-			next->prev = lru->list->next;
+		if (node->lru.next) {
+			next = (reiser4_node_t *)node->lru.next->data;
+			next->lru.prev = lru->list->next;
 		}
 	}
 

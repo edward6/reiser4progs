@@ -2,13 +2,14 @@ includedir		     = -I$(top_srcdir)/include
 
 libreiser4_sources	     = libreiser4.c filesystem.c format.c journal.c \
 			       alloc.c oid.c factory.c node.c tree.c key.c \
-			       file.c coord.c master.c item.c joint.c lru.c
+			       file.c coord.c master.c item.c lru.c
 
 lib_LTLIBRARIES		     = libreiser4.la
 
 noinst_LTLIBRARIES	     = libreiser4-static.la 
 
-libreiser4_la_LDFLAGS	     = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) -release $(LT_RELEASE)
+libreiser4_la_LDFLAGS	     = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+			       -release $(LT_RELEASE)
 
 if ENABLE_MONOLITHIC
 libreiser4_la_LIBADD	     = $(top_builddir)/libaal/libaal.la \

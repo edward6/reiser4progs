@@ -233,7 +233,7 @@ errno_t reiser4_item_update(reiser4_coord_t *coord, reiser4_key_t *key) {
 	aal_assert("umka-1403", coord != NULL, return -1);
 	aal_assert("umka-1404", key != NULL, return -1);
 
-	if (!(entity = reiser4_coord_entity(coord)))
+	if (!(entity = coord->node->entity))
 		return -1;
 	
 	return plugin_call(return -1, entity->plugin->node_ops, 

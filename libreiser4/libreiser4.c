@@ -86,7 +86,6 @@ static errno_t tree_right(
 	reiser4_place_t *right)	    /* right neighbour will be here */
 {
 	reiser4_pos_t pos;
-	reiser4_joint_t *joint;
 	reiser4_coord_t *coord;
     
 	aal_assert("umka-867", tree != NULL, return -1);
@@ -95,21 +94,14 @@ static errno_t tree_right(
 
 	coord = (reiser4_coord_t *)place;
 		
-	if (coord->context != CT_JOINT) {
-		aal_exception_error("Passed place has invalid context.");
-		return -1;
-	}
-    
-	joint = (reiser4_joint_t *)place->data;
-
-	if (!reiser4_joint_right(joint))
+	if (!reiser4_node_right(coord->node))
 		return -1;
     
 	pos.unit = 0;
 	pos.item = 0;
 	
-	return reiser4_coord_open((reiser4_coord_t *)right, joint->right,
-				  CT_JOINT, &pos);
+	return reiser4_coord_open((reiser4_coord_t *)right,
+				  coord->node->right, &pos);
 }
 
 /* Handler for requests for left neighbor */
@@ -119,7 +111,6 @@ static errno_t tree_left(
 	reiser4_place_t *left)	    /* left neighbour will be here */
 {
 	reiser4_pos_t pos;
-	reiser4_joint_t *joint;
 	reiser4_coord_t *coord;
 	
 	aal_assert("umka-867", tree != NULL, return -1);
@@ -128,21 +119,14 @@ static errno_t tree_left(
 
 	coord = (reiser4_coord_t *)place;
 	
-	if (coord->context != CT_JOINT) {
-		aal_exception_error("Passed place has invalid context.");
-		return -1;
-	}
-	
-	joint = (reiser4_joint_t *)place->data;
-    
-	if (!reiser4_joint_left(joint))
+	if (!reiser4_node_left(coord->node))
 		return -1;
 	
 	pos.unit = 0;
-	pos.item = reiser4_node_count(joint->left->node) - 1;
+	pos.item = reiser4_node_count(coord->node->left) - 1;
 	
 	return reiser4_coord_open((reiser4_coord_t *)left,
-				  joint->left, CT_JOINT, &pos);
+				  coord->node->left, &pos);
 }
 
 static errno_t tree_lock(
@@ -155,13 +139,7 @@ static errno_t tree_lock(
 	aal_assert("umka-1512", place != NULL, return -1);
 
 	coord = (reiser4_coord_t *)place;
-
-	if (coord->context != CT_JOINT) {
-		aal_exception_error("Passed place has invalid context.");
-		return -1;
-	}
-	
-	return reiser4_joint_lock(coord->u.joint);
+	return reiser4_node_lock(coord->node);
 }
 
 static errno_t tree_unlock(
@@ -174,13 +152,7 @@ static errno_t tree_unlock(
 	aal_assert("umka-1514", place != NULL, return -1);
 
 	coord = (reiser4_coord_t *)place;
-
-	if (coord->context != CT_JOINT) {
-		aal_exception_error("Passed place has invalid context.");
-		return -1;
-	}
-	
-	return reiser4_joint_unlock(coord->u.joint);
+	return reiser4_node_unlock(coord->node);
 }
 
 static uint32_t tree_blockspace(const void *tree) {
@@ -189,29 +161,12 @@ static uint32_t tree_blockspace(const void *tree) {
 }
 	
 static uint32_t tree_nodespace(const void *tree) {
-	reiser4_node_t *node;
+	reiser4_node_t *root;
     
 	aal_assert("umka-1220", tree != NULL, return 0);
 
-	node = ((reiser4_tree_t *)tree)->root->node;
-	return reiser4_node_maxspace(node) - reiser4_node_overhead(node);
-}
-
-static errno_t item_open (item_entity_t *item,
-			  object_entity_t *entity,
-			  reiser4_pos_t *pos)
-{
-	reiser4_coord_t coord;
-	
-	aal_assert("umka-1539", item != NULL, return -1);
-	aal_assert("umka-1540", entity != NULL, return -1);
-	aal_assert("umka-1541", pos != NULL, return -1);
-
-	if (reiser4_coord_open(&coord, (void *)entity, CT_ENTITY, pos))
-		return -1;
-
-	aal_memcpy(item, &coord.entity, sizeof(*item));
-	return 0;
+	root = ((reiser4_tree_t *)tree)->root;
+	return reiser4_node_maxspace(root) - reiser4_node_overhead(root);
 }
 
 reiser4_core_t core = {
@@ -254,10 +209,6 @@ reiser4_core_t core = {
 #endif
 		.nodespace  = tree_nodespace,
 		.blockspace = tree_blockspace
-	},
-
-	.item_ops = {
-		.open       = item_open
 	}
 };
 

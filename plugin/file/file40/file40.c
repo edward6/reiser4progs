@@ -33,7 +33,7 @@ roid_t file40_locality(file40_t *file) {
 }
 
 errno_t file40_lock(file40_t *file, reiser4_place_t *place) {
-	if (place->data)
+	if (place->node)
 		return file->core->tree_ops.lock(file->tree, place);
 
 	return 0;
@@ -41,7 +41,7 @@ errno_t file40_lock(file40_t *file, reiser4_place_t *place) {
 
 errno_t file40_unlock(file40_t *file, reiser4_place_t *place) {
 	
-	if (place->data)
+	if (place->node)
 		return file->core->tree_ops.unlock(file->tree, place);
 
 	return 0;
@@ -143,7 +143,7 @@ errno_t file40_realize(file40_t *file) {
 		    file->key.body, KEY_STATDATA_TYPE, file40_locality(file), 
 		    file40_objectid(file), 0);
 
-	if (file->statdata.data)
+	if (file->statdata.node)
 		file->core->tree_ops.unlock(file->tree, &file->statdata);
 	
 	if (file->core->tree_ops.lookup(file->tree, &file->key, &level,
@@ -152,7 +152,7 @@ errno_t file40_realize(file40_t *file) {
 		aal_exception_error("Can't find stat data of file 0x%llx.", 
 				    file40_objectid(file));
 
-		if (file->statdata.data)
+		if (file->statdata.node)
 			file->core->tree_ops.lock(file->tree, &file->statdata);
 		
 		return -1;

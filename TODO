@@ -26,3 +26,5 @@ reiser4progs/COPYING.
 * changes in aal_list_find_custom and aal_list_insert_sorted
 
 * few disk-format changes (direntry format, big digits storing in stat data)
+
+* move some part of tree_shift method to node API
