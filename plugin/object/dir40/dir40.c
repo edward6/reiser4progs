@@ -271,7 +271,7 @@ static void dir40_entry_type(entry_hint_t *entry) {
 	}
 }
 #else
-#define dir40_entry_type(entity) (0)
+#define dir40_entry_type(entity) do{;} while(0)
 #endif
 
 /* Reads one current directory entry to passed @entity hint. Returns count of
