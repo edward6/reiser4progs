@@ -753,14 +753,12 @@ static errno_t dir40_detach(object_entity_t *entity,
 			    object_entity_t *parent)
 {
 	errno_t res;
-	dir40_t *dir, *par;
+	dir40_t *dir;
 	entry_hint_t entry;
 
 	aal_assert("umka-2291", entity != NULL);
-	aal_assert("umka-2292", parent != NULL);
 
 	dir = (dir40_t *)entity;
-	par = (dir40_t *)parent;
 
 	/* Removing ".." from child if it is found */
 	switch (plugin_call(entity->plugin->o.object_ops,
@@ -1191,7 +1189,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.seek		= NULL,
 	.write		= NULL,
 	.check_struct	= NULL,
-	.check_backlink	= NULL,
+	.check_attach	= NULL,
 	
 #endif
 	.follow		= NULL,
