@@ -181,10 +181,7 @@ errno_t reiser4_tree_connect(
 	}
 	
 	/* Attaching new node into tree's lru list */
-	if ((res = aal_lru_attach(tree->lru, (void *)node)))
-		return res;
-	
-	return res;
+	return aal_lru_attach(tree->lru, (void *)node);
 }
 
 /*
@@ -312,12 +309,8 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 	aal_assert("umka-1842", node != NULL);
 
 	/* Disconnecting node from its parent */
-	if ((parent = node->parent.node)) {
-		res = reiser4_tree_disconnect(tree, parent, node);
-
-		if (res != 0)
-			return res;
-	}
+	if ((parent = node->parent.node))
+		reiser4_tree_disconnect(tree, parent, node);
 
 	/* Freeing the node */
 	return reiser4_node_close(node);
@@ -426,8 +419,8 @@ reiser4_node_t *reiser4_tree_nbr(reiser4_tree_t *tree,
 reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
 				  reiser4_node_t *node)
 {
-	aal_assert("umka-1859", tree != NULL);
 	aal_assert("umka-776", node != NULL);
+	aal_assert("umka-1859", tree != NULL);
 
 	/* Parent is not present. The root node. */
 	if (!node->parent.node)
@@ -437,9 +430,7 @@ reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
 	
 	if (!node->left) {
 		aal_assert("umka-1629", node->tree != NULL);
-
-		if ((node->left = reiser4_tree_nbr(tree, node, D_LEFT)))
-			node->left->right = node;
+		reiser4_tree_nbr(tree, node, D_LEFT);
 	}
 
 	reiser4_node_unlock(node);
@@ -461,9 +452,7 @@ reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
 	
 	if (!node->right) {
 		aal_assert("umka-1630", node->tree != NULL);
-
-		if ((node->right = reiser4_tree_nbr(tree, node, D_RIGHT)))
-			node->right->left = node;
+		reiser4_tree_nbr(tree, node, D_RIGHT);
 	}
 
 	reiser4_node_unlock(node);
@@ -523,7 +512,6 @@ reiser4_node_t *reiser4_tree_alloc(
  error_free_node:
 	reiser4_node_close(node);
 	return NULL;
-
 }
 
 errno_t reiser4_tree_release(reiser4_tree_t *tree,
@@ -546,15 +534,9 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 }
 #endif
 
-/*
-  Builds the tree root key. It is used for lookups and other as init key. This
-  method id needed because of root key in reiser3 and reiser4 has a diffrent
-  locality and object id values.
-*/
-static errno_t reiser4_tree_key(
-	reiser4_tree_t *tree,	/* tree to be used */
-	rid_t pid)	        /* key plugin in use */
-{
+/* Builds root key and stores it in passed @tree instance */
+static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
+	rid_t pid;
 	reiser4_oid_t *oid;
 	oid_t objectid, locality;
 	reiser4_plugin_t *plugin;
@@ -564,6 +546,11 @@ static errno_t reiser4_tree_key(
 	aal_assert("umka-1092", tree->fs->oid != NULL);
     
 	oid = tree->fs->oid;
+	pid = KEY_REISER40_ID;
+	
+#ifndef ENABLE_STAND_ALONE
+	pid = reiser4_profile_value(tree->fs->profile, "key");
+#endif
     
 	/* Finding needed key plugin by its identifier */
 	if (!(plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, pid))) {
@@ -618,7 +605,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	tree->fs->tree = tree;
 
 	/* Building the tree root key */
-	if (reiser4_tree_key(tree, KEY_REISER40_ID)) {
+	if (reiser4_tree_key(tree)) {
 		aal_exception_error("Can't build the tree root key.");
 		goto error_free_tree;
 	}
@@ -764,19 +751,18 @@ lookup_t reiser4_tree_lookup(
 	reiser4_place_t *place)	/* place the found item to be stored */
 {
 	lookup_t res;
-	pos_t pos = {0, ~0ul};
 
 	aal_assert("umka-742", key != NULL);
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-2057", place != NULL);
 
-	reiser4_place_init(place, tree->root, &pos);
+	reiser4_place_assign(place, tree->root, 0, ~0ul);
 
 	/* Making sure that root exists */
 	if (reiser4_tree_load_root(tree))
 		return LP_ABSENT;
     
-	reiser4_place_init(place, tree->root, &pos);
+	reiser4_place_assign(place, tree->root, 0, ~0ul);
 	
 	/* 
 	  Checking the case when wanted key is smaller than root one. This is
