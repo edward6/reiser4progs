@@ -7,10 +7,6 @@
 #  include <config.h> 
 #endif
 
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-#  include <uuid/uuid.h>
-#endif
-
 #include <fcntl.h>
 #include <getopt.h>
 #include <errno.h>

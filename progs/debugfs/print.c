@@ -176,21 +176,6 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	if ((res = reiser4_master_print(fs->master, &stream)))
 		return res;
 
-	/* If reiser4progs supports uuid (if it was found durring building),
-	   then it will also print uuid stored in master super block. */
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	{
-		char uuid[37];
-
-		if (aal_strlen(reiser4_master_get_uuid(fs->master)))
-			uuid_unparse(reiser4_master_get_uuid(fs->master), uuid);
-		else
-			aal_strncpy(uuid, "<none>", sizeof(uuid));
-		
-		aal_stream_format(&stream, "uuid:\t\t%s\n", uuid);
-	}
-#endif
-
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
 	

@@ -4,7 +4,7 @@ debugfs_reiser4_SOURCES	 = debugfs.c debugfs.h print.c print.h browse.c \
 
 debugfs_reiser4_LDADD 	 = $(top_builddir)/libreiser4/libreiser4.la \
 			   $(top_builddir)/libmisc/libmisc.la \
-			   $(UUID_LIBS) $(PROGS_LIBS)
+			   $(PROGS_LIBS)
 
 debugfs_reiser4_CFLAGS   = @GENERIC_CFLAGS@
 
