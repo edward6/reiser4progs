@@ -1,9 +1,7 @@
-/*
-  obj40.h -- reiser4 file plugins common structures.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   obj40.h -- reiser4 file plugins common structures. */
 
 #ifndef OBJ40_H
 #define OBJ40_H
@@ -21,10 +19,8 @@ static reiser4_core_t *core = NULL;
 
 struct obj40 {
 
-	/*
-	  File plugin refference. Should be first field due to be castable to
-	  object_entity_t
-	*/
+	/* File plugin refference. Should be first field due to be castable to
+	   object_entity_t */
 	reiser4_plugin_t *plugin;
     
 	/* Stat data coord stored here */
@@ -33,11 +29,9 @@ struct obj40 {
 	/* Core operations pointer */
 	reiser4_core_t *core;
 
-	/* 
-	  Pointer to the instance of internal libreiser4 tree, file opened on
-	  stored here for lookup and modiying purposes. It is passed by reiser4
-	  library durring initialization of the file instance.
-	*/
+	/* Pointer to the instance of internal libreiser4 tree, file opened on
+	   stored here for lookup and modiying purposes. It is passed by reiser4
+	   library durring initialization of the file instance. */
 	void *tree;
 };
 

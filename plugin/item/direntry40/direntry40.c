@@ -1,9 +1,7 @@
-/*
-  direntry40.c -- reiser4 default direntry plugin.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   direntry40.c -- reiser4 default direntry plugin. */
 
 #include "direntry40.h"
 
@@ -30,10 +28,8 @@ static void direntry40_get_obj(item_entity_t *item,
 	aal_memcpy(key->body, objid, sizeof(*objid));
 }
 
-/*
-  Builds full key by entry components. It is needed for updating keys after
-  shift, insert, etc. Also library requires unit keys sometims.
-*/
+/* Builds full key by entry components. It is needed for updating keys after
+   shift, insert, etc. Also library requires unit keys sometims. */
 errno_t direntry40_get_key(item_entity_t *item,
 			   uint32_t pos,
 			   key_entity_t *key)
@@ -70,10 +66,8 @@ static char *direntry40_get_name(item_entity_t *item,
 
 	direntry40_get_key(item, pos, &key);
 
-        /*
-	  If name is long, we just copy it from the area after
-	  objectid. Otherwise we extract it from the entry hash.
-	*/
+        /* If name is long, we just copy it from the area after
+	   objectid. Otherwise we extract it from the entry hash. */
 	if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
 		name = (char *)((direntry40_objid(item, pos)) + 1);
 		aal_strncpy(buff, name, len);
@@ -101,10 +95,8 @@ static char *direntry40_get_name(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Calculates entry length. This function is widely used in shift code and
-  modification code.
-*/
+/* Calculates entry length. This function is widely used in shift code and
+   modification code. */
 static uint32_t direntry40_get_len(item_entity_t *item,
 				   uint32_t pos)
 {
@@ -117,12 +109,10 @@ static uint32_t direntry40_get_len(item_entity_t *item,
 	/* Getting entry key */
 	direntry40_get_key(item, pos, &key);
 	
-	/*
-	  If entry contains long name it is stored just after objectid.
-	  Otherwise, entry name is stored in objectid and offset of the
-	  entry. This trick saves a lot of space in directories, because the
-	  average name is shorter than 15 symbols.
-	*/
+	/* If entry contains long name it is stored just after objectid.
+	   Otherwise, entry name is stored in objectid and offset of the
+	   entry. This trick saves a lot of space in directories, because the
+	   average name is shorter than 15 symbols. */
 	if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
 		objid_t *objid = direntry40_objid(item, pos);
 		len += aal_strlen((char *)(objid + 1)) + 1;
@@ -176,21 +166,17 @@ static int direntry40_data(void) {
 	return 1;
 }
 
-/*
-  Returns TRUE if items are mergeable. That is if they belong to the same
-  directory. This function is used in shift code from the node plugin in order
-  to determine are two items may be merged or not.
-*/
+/* Returns TRUE if items are mergeable. That is if they belong to the same
+   directory. This function is used in shift code from the node plugin in order
+   to determine are two items may be merged or not. */
 static int direntry40_mergeable(item_entity_t *item1,
 				item_entity_t *item2)
 {
 	aal_assert("umka-1581", item1 != NULL);
 	aal_assert("umka-1582", item2 != NULL);
 
-	/*
-	  Items mergeable if they have the same locality, that is oid of the
-	  directory they belong to.
-	*/
+	/* Items mergeable if they have the same locality, that is oid of the
+	   directory they belong to. */
 	return (plugin_call(item1->key.plugin->o.key_ops,
 			    get_locality, &item1->key) ==
 		plugin_call(item1->key.plugin->o.key_ops,
@@ -202,10 +188,8 @@ static uint16_t direntry40_overhead(item_entity_t *item) {
 	return sizeof(direntry40_t);
 }
 
-/*
-  Estimates how much bytes will be needed to prepare in node in odrer to make
-  room for inserting new entries.
-*/
+/* Estimates how much bytes will be needed to prepare in node in odrer to make
+   room for inserting new entries. */
 static errno_t direntry40_estimate_insert(item_entity_t *item,
 					  create_hint_t *hint,
 					  uint32_t pos)
@@ -222,27 +206,21 @@ static errno_t direntry40_estimate_insert(item_entity_t *item,
 	for (i = 0; i < hint->count; i++, entry++) {
 		hint->len += sizeof(objid_t);
 
-		/*
-		  Calling key plugin for in odrer to find out is passed name is
-		  long one or not.
-		*/
+		/* Calling key plugin for in odrer to find out is passed name is
+		   long one or not. */
 		if (plugin_call(hint->key.plugin->o.key_ops,
 				tall, &entry->offset))
 		{
-			/*
-			  Okay, name is long, so we need add its length to
-			  estimated length.
-			*/
+			/* Okay, name is long, so we need add its length to
+			   estimated length. */
 			hint->len += aal_strlen(entry->name) + 1;
 		}
 	}
 
-	/*
-	  If the pos we are going to insert new units is ~0ul, we assume it is
-	  the attempt to insert new directory item. In this case we should also
-	  count item overhead, that is direntry40 header which contains the
-	  number of entries in item.
-	*/
+	/* If the pos we are going to insert new units is ~0ul, we assume it is
+	   the attempt to insert new directory item. In this case we should also
+	   count item overhead, that is direntry40 header which contains the
+	   number of entries in item. */
 	if (pos == ~0ul)
 		hint->len += direntry40_overhead(item);
     
@@ -344,10 +322,8 @@ errno_t direntry40_rep(item_entity_t *dst_item, uint32_t dst_pos,
 	/* Updating direntry count field */
 	de40_inc_units(dst_direntry, count);
 
-	/*
-	  Updating item key by unit key if the first unit was changed. It is
-	  needed for correct updating left delimiting keys.
-	*/
+	/* Updating item key by unit key if the first unit waqs changed. It is
+	   needed for correct updating left delimiting keys. */
 	if (dst_pos == 0)
 		direntry40_get_key(dst_item, 0, &dst_item->key);
 	
@@ -455,10 +431,8 @@ uint32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 
 	aal_assert("umka-1722", pos <= units);
 
-	/*
-	  Getting the offset of the place new entries will be inserted at. It
-	  will be used later in this function.
-	*/
+	/* Getting the offset of the place new entries will be inserted at. It
+	   will be used later in this function. */
 	if (units > 0) {
 		if (pos < units) {
 			entry = &direntry->entry[pos];
@@ -512,10 +486,8 @@ uint32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 	return offset;
 }
 
-/*
-  Predicts how many entries and bytes can be shifted from the @src_item to
-  @dst_item. The behavior of the function depends on the passed @hint.
-*/
+/* Predicts how many entries and bytes can be shifted from the @src_item to
+   @dst_item. The behavior of the function depends on the passed @hint. */
 static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 					 item_entity_t *dst_item,
 					 shift_hint_t *hint)
@@ -535,10 +507,8 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 
 	space = hint->rest;
 
-	/*
-	  If hint's create flag is present, we need to create new direntry item,
-	  so we should count its overhead.
-	*/
+	/* If hint's create flag is present, we need to create new direntry
+	   item, so we should count its overhead. */
 	if (hint->create) {
 		if (space < sizeof(direntry40_t))
 			return 0;
@@ -557,10 +527,8 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 	       curr < direntry40_units(src_item))
 	{
 
-		/*
-		  Check if we should update unit pos. we will update it if we
-		  are at insert point and unit pos is not ~0ul.
-		*/
+		/* Check if we should update unit pos. we will update it if we
+		   are at insert point and unit pos is not ~0ul. */
 		if (check && (flags & SF_UPTIP)) {
 			
 			if (!(flags & SF_MOVIP)) {
@@ -574,28 +542,22 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 			}
 		}
 
-		/*
-		  Check is we have enough free space for shifting one more unit
-		  from src item to dst item.
-		*/
+		/* Check is we have enough free space for shifting one more unit
+		   from src item to dst item. */
 		len = direntry40_get_len(src_item, curr);
 
 		if (space < len + sizeof(entry40_t))
 			break;
 
-		/*
-		  Updating unit pos. We will do so in the case item component
-		  of insert point is the same as current item has and unit
-		  component is not ~0ul.
-		*/
+		/* Updating unit pos. We will do so in the case item component
+		   of insert point is the same as current item has and unit
+		   component is not ~0ul. */
 		if (check && (flags & SF_UPTIP)) {
 			if (flags & SF_LEFT) {
 
-				/*
-				  Insert point is near to be moved into left
-				  neighbour. Checking if we are permitted to do
-				  so and updating insert point.
-				*/
+				/* Insert point is near to be moved into left
+				   neighbour. Checking if we are permitted to do
+				   so and updating insert point. */
 				if (hint->pos.unit == 0) {
 					if (flags & SF_MOVIP) {
 						hint->result |= SF_MOVIP;
@@ -607,12 +569,10 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 			} else {
 				if (hint->pos.unit >= src_units - 1) {
 
-					/*
-					  Insert point is near to be shifted in
-					  right neighbour. Checking permissions
-					  and updating unit component of insert
-					  point int hint.
-					*/
+					/* Insert point is near to be shifted in
+					   right neighbour. Checking permissions
+					   and updating unit component of insert
+					   point int hint. */
 					if (hint->pos.unit == src_units - 1) {
 						if (flags & SF_MOVIP) {
 							hint->result |= SF_MOVIP;
@@ -630,10 +590,8 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 			}
 		}
 
-		/*
-		  Updating unit number counters and some local variables needed
-		  for controlling predicting main cycle.
-		*/
+		/* Updating unit number counters and some local variables needed
+		   for controlling predicting main cycle. */
 		src_units--;
 		dst_units++;
 		hint->units++;
@@ -642,10 +600,8 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 		space -= (len + sizeof(entry40_t));
 	}
 
-	/*
-	  Updating @hint->rest. It is needed for unit shifting. This value is
-	  number of bytes to be moved from @src_item to @dst_item.
-	*/
+	/* Updating @hint->rest. It is needed for unit shifting. This value is
+	   number of bytes to be moved from @src_item to @dst_item. */
 	if (hint->units > 0)
 		hint->rest -= space;
 	
@@ -720,11 +676,9 @@ static errno_t direntry40_insert(item_entity_t *item,
 	direntry = direntry40_body(item);
 	entry_hint = (entry_hint_t *)hint->type_specific;
 
-	/*
-	  Expanding direntry in order to prepare the room for new entries. The
-	  function direntry40_expand returns the offset of where new unit will
-	  be inserted at.
-	*/
+	/* Expanding direntry in order to prepare the room for new entries. The
+	   function direntry40_expand returns the offset of where new unit will
+	   be inserted at. */
 	offset = direntry40_expand(item, pos, hint->count,
 				   hint->len);
 	
@@ -781,10 +735,8 @@ static errno_t direntry40_insert(item_entity_t *item,
 	
 	de40_inc_units(direntry, hint->count);
 	
-	/*
-	  Updating item key by unit key if the first unit was changed. It is
-	  needed for correct updating left delimiting keys.
-	*/
+	/* Updating item key by unit key if the first unit was changed. It is
+	   needed for correct updating left delimiting keys. */
 	if (pos == 0)
 		direntry40_get_key(item, 0, &item->key);
     
@@ -914,10 +866,8 @@ extern errno_t direntry40_estimate_copy(item_entity_t *dst,
 					copy_hint_t *hint);
 #endif
 
-/*
-  Returns maximal possible key in direntry item. It is needed for lookuping
-  needed entry by entry key.
-*/
+/* Returns maximal possible key in direntry item. It is needed for lookuping
+   needed entry by entry key. */
 errno_t direntry40_maxposs_key(item_entity_t *item, 
 			       key_entity_t *key) 
 {
@@ -943,10 +893,8 @@ errno_t direntry40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
-/* 
-   Helper function that is used by lookup method for comparing given key with
-   passed entry hash.
-*/
+/* Helper function that is used by lookup method for comparing given key with
+   passed entry hash. */
 static int callback_comp_entry(void *array, uint32_t pos,
 			       void *key, void *data)
 {
@@ -975,10 +923,8 @@ lookup_t direntry40_lookup(item_entity_t *item,
 	/* Getting maximal possible key */
 	direntry40_maxposs_key(item, &maxkey);
 
-	/*
-	  If looked key is greater that maximal possible one then we going out
-	  and return FALSE, that is the key not found.
-	*/
+	/* If looked key is greater that maximal possible one then we going out
+	   and return FALSE, that is the key not found. */
 	if (plugin_call(key->plugin->o.key_ops, compare, key, &maxkey) > 0) {
 		*pos = direntry40_units(item);
 		return ABSENT;
@@ -990,10 +936,8 @@ lookup_t direntry40_lookup(item_entity_t *item,
 		return ABSENT;
 	}
 
-	/*
-	  Performing binary search inside the direntry in order to find position
-	  of the looked key.
-	*/
+	/* Performing binary search inside the direntry in order to find
+	   position of the looked key. */
 	switch (aux_bin_search(item->body, direntry40_units(item), key,
 			       callback_comp_entry, (void *)item, pos))
 	{

@@ -1,9 +1,7 @@
-/*
-  stat40.h -- reiser4 default stat data structures.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   stat40.h -- reiser4 default stat data structures. */
 
 #ifndef STAT40_H
 #define STAT40_H

@@ -1,9 +1,7 @@
-/*
-  rupasov_hash.c -- rupasov hash.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   rupasov_hash.c -- rupasov hash. */
 
 #ifdef ENABLE_RUPASOV_HASH
 

@@ -1,9 +1,7 @@
-/*
-  node40.h -- reiser4 default node structures.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   node40.h -- reiser4 default node structures. */
 
 #ifndef NODE40_H
 #define NODE40_H

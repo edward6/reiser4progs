@@ -1,9 +1,7 @@
-/*
-  direntry40.h -- reiser4 default directory structures.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   direntry40.h -- reiser4 default directory structures. */
 
 #ifndef DIRENTRY40_H
 #define DIRENTRY40_H
@@ -18,17 +16,14 @@
 
 #define direntry40_body(item) ((direntry40_t *)item->body)
 
-/*
-  The direntry40 structure is as the following:
-  +-------------------------------+-------------------------------------------------+
-  |           Unit Headers        |                     Units.                      |
-  +-------------------------------+-------------------------------------------------+
-  |                               |                      |   |                      |
-  |count|entry40[0]|...|entry40[N]|objid40[0]|name[0]'\0'|...|objid40[N]|name[N]'\0'|
-  |                               |                      |   |                      |
-  +-------------------------------+-------------------------------------------------+
-
-*/
+/* The direntry40 structure is as the following:
+   +-------------------------------+-------------------------------------------------+
+   |           Unit Headers        |                     Units.                      |
+   +-------------------------------+-------------------------------------------------+
+   |                               |                      |   |                      |
+   |count|entry40[0]|...|entry40[N]|objid40[0]|name[0]'\0'|...|objid40[N]|name[N]'\0'|
+   |                               |                      |   |                      |
+   +-------------------------------+-------------------------------------------------+ */
 
 /* Part of the key, the object, an entry points to */
 struct objid {

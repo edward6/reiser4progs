@@ -1,17 +1,13 @@
-/*
-  body40.c -- file body item plugins common code.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   body40.c -- file body item plugins common code. */
 
 #include <reiser4/plugin.h>
 #include "body40.h"
 
-/*
-  Builds the key of the unit at @pos and stores it inside passed @key
-  variable. It is needed for updating item key after shifting, etc.
-*/
+/* Builds the key of the unit at @pos and stores it inside passed @key
+   variable. It is needed for updating item key after shifting, etc. */
 errno_t body40_get_key(item_entity_t *item,
 		       uint32_t pos,
 		       key_entity_t *key,

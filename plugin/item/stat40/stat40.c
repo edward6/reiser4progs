@@ -1,19 +1,16 @@
-/*
-  stat40.c -- reiser4 default stat data plugin.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   stat40.c -- reiser4 default stat data plugin. */
 
 #include "stat40.h"
 #include <aux/aux.h>
 
 static reiser4_core_t *core = NULL;
 
-/*
-  The function which implements stat40 layout pass. This function is used for
-  all statdata extention-related actions. For example for opening, of counting.
-*/
+/* The function which implements stat40 layout pass. This function is used for
+   all statdata extention-related actions. For example for opening, of
+   counting. */
 errno_t stat40_traverse(item_entity_t *item,
 			stat40_ext_func_t ext_func,
 			void *data)
@@ -30,10 +27,8 @@ errno_t stat40_traverse(item_entity_t *item,
 	sdext.offset = 0;
 	sdext.body = item->body;
 
-	/*
-	  Loop though the all possible extentions and calling passed @ext_func
-	  for each of them if corresponing extention exists.
-	*/
+	/* Loop though the all possible extentions and calling passed @ext_func
+	   for each of them if corresponing extention exists. */
 	for (i = 0; i < STAT40_EXTNR; i++) {
 		errno_t res;
 
@@ -68,10 +63,8 @@ errno_t stat40_traverse(item_entity_t *item,
 			return 0;
 		}
 
-		/*
-		  Okay, extention is present, calling callback function for it
-		  and if result is not good, returning it to teh caller.
-		*/
+		/* Okay, extention is present, calling callback function for it
+		   and if result is not good, returning it to teh caller. */
 		if ((res = ext_func(&sdext, extmask, data)))
 			return res;
 
@@ -93,11 +86,9 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	create_hint_t *hint;
 	statdata_hint_t *stat_hint;
 
-	/*
-	  Method open is not defined, this probably means, we only interested in
-	  symlink's length method in order to reach other symlinks body. So, we
-	  retrun 0 here.
-	*/
+	/* Method open is not defined, this probably means, we only interested
+	   in symlink's length method in order to reach other symlinks body. So,
+	   we retrun 0 here. */
 	if (!sdext->plugin->o.sdext_ops->open)
 		return 0;
 	
@@ -136,10 +127,8 @@ static int stat40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Estimates how many bytes will be needed for creating statdata item described
-  by passed @hint at passed @pos.
-*/
+/* Estimates how many bytes will be needed for creating statdata item described
+   by passed @hint at passed @pos. */
 static errno_t stat40_estimate_insert(item_entity_t *item,
 				      create_hint_t *hint,
 				      uint32_t pos)
@@ -168,10 +157,9 @@ static errno_t stat40_estimate_insert(item_entity_t *item,
 
 		aal_assert("vpf-773", stat_hint->ext[i] != NULL);
 		
-		/*
-		  If we are on the extention which is multiple of 16 (each mask
-		  has 16 bits) then we add to hint's len the size of next mask.
-		*/
+		/* If we are on the extention which is multiple of 16 (each mask
+		   has 16 bits) then we add to hint's len the size of next
+		   mask. */
 		if ((i + 1) % 16 == 0) {
 			hint->len += sizeof(d16_t);
 			continue;
@@ -184,10 +172,8 @@ static errno_t stat40_estimate_insert(item_entity_t *item,
 			continue;
 		}
 
-		/*
-		  Calculating length of the corresponding extention and add it
-		  to the estimated value.
-		*/
+		/* Calculating length of the corresponding extention and add it
+		   to the estimated value. */
 		hint->len += plugin_call(plugin->o.sdext_ops,
 					 length, stat_hint->ext[i]);
 	}
@@ -220,15 +206,13 @@ static errno_t stat40_insert(item_entity_t *item,
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
 	    
-		/* 
-		   Stat data contains 16 bit mask of extentions used in it. The
+		/* Stat data contains 16 bit mask of extentions used in it. The
 		   first 15 bits of the mask denote the first 15 extentions in
 		   the stat data. And the bit number is the stat data extention
 		   plugin id. If the last bit turned on, then one more 16 bit
 		   mask present and so on. So, we should add sizeof(mask) to
 		   extention body pointer, in the case we are on bit dedicated
-		   to indicating if next extention exists or not.
-		*/
+		   to indicating if next extention exists or not. */
 		if (i % 16 == 0) {
 			uint16_t extmask;
 
@@ -252,10 +236,8 @@ static errno_t stat40_insert(item_entity_t *item,
 				    stat_hint->ext[i]);
 		}
 	
-		/* 
-		   Getting pointer to the next extention. It is evaluating as
-		   the previous pointer plus its size.
-		*/
+		/* Getting pointer to the next extention. It is evaluating as
+		   the previous pointer plus its size. */
 		extbody += plugin_call(plugin->o.sdext_ops, length,
 				       extbody);
 	}
@@ -278,12 +260,10 @@ extern errno_t stat40_estimate_copy(item_entity_t *dst,
 				    copy_hint_t *hint);
 #endif
 
-/*
-  This function returns unit count. This value must be 1 if item has not
-  units. It is because balancing code assumes that if item has more than one
-  unit the it may be shifted out. That is because w ecan't return the number of
-  extentions here. Extentions are the statdata private bussiness.
-*/
+/* This function returns unit count. This value must be 1 if item has not
+   units. It is because balancing code assumes that if item has more than one
+   unit the it may be shifted out. That is because w ecan't return the number of
+   extentions here. Extentions are the statdata private bussiness. */
 static uint32_t stat40_units(item_entity_t *item) {
 	return 1;
 }
@@ -320,10 +300,7 @@ static body_t *stat40_sdext_body(item_entity_t *item,
 	return hint.body;
 }
 
-/*
-  Helper structure for keeping track of presence of a stat data
-  extention.
-*/
+/* Helper structure for keeping track of presence of a stat data extention. */
 struct present_hint {
 	int present;
 	uint8_t ext;
@@ -331,10 +308,7 @@ struct present_hint {
 
 typedef struct present_hint present_hint_t;
 
-/*
-  Callback for getting presence information for certain stat data
-  extention.
-*/
+/* Callback for getting presence information for certain stat data extention. */
 static errno_t callback_present_ext(sdext_entity_t *sdext,
 				    uint16_t extmask, 
 				    void *data)

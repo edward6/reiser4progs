@@ -1,9 +1,7 @@
-/*
-  r5_hash.c -- r5 hash implementation.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   r5_hash.c -- r5 hash implementation. */
 
 #ifdef ENABLE_R5_HASH
 

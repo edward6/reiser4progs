@@ -1,9 +1,7 @@
-/*
-  body40.h -- file body item plugins common code.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   body40.h -- file body item plugins common code. */
 
 #ifndef BODY40_H
 #define BODY40_H

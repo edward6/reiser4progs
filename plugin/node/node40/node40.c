@@ -1,9 +1,7 @@
-/*
-  node40.c -- reiser4 default node plugin.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   node40.c -- reiser4 default node plugin. */
 
 #include "node40.h"
 
@@ -85,10 +83,8 @@ uint16_t node40_free_space_end(node40_t *node) {
 		sizeof(item40_header_t);
 }
 
-/*
-  Creates node40 entity on specified device and block number. This can be used
-  later for working with all node methods.
-*/
+/* Creates node40 entity on specified device and block number. This can be used
+   later for working with all node methods. */
 static object_entity_t *node40_init(aal_device_t *device,
 				    uint32_t size, blk_t blk)
 {
@@ -219,10 +215,8 @@ static int node40_confirm(object_entity_t *entity) {
 	return (nh40_get_magic((node40_t *)entity) == NODE40_MAGIC);
 }
 
-/*
-  Returns item number in passed node entity. Used for any loops through the all
-  node items.
-*/
+/* Returns item number in passed node entity. Used for any loops through the all
+   node items. */
 uint16_t node40_items(object_entity_t *entity) {
 	aal_assert("vpf-018", entity != NULL);
 	aal_assert("umka-2021", node40_loaded(entity));
@@ -262,12 +256,11 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	aal_assert("umka-942", pos != NULL);
 	aal_assert("umka-2024", node40_loaded(entity));
 
-	/*
-	  Item length is calculated as next item body offset minus current item
-	  offset. If we are on the last item then we use free space start for
-	  that. We use this way, because reiser4 kernel code does not set item's
-	  length correctly. And they are rather reserved for future using.
-	*/
+	/* Item length is calculated as next item body offset minus current item
+	   offset. If we are on the last item then we use free space start for
+	   that. We use this way, because reiser4 kernel code does not set
+	   item's length correctly. And they are rather reserved for future
+	   using. */
 	ih = node40_ih_at((node40_t *)entity, pos->item);
 
 	if (pos->item == (uint32_t)(node40_items(entity) - 1)) {
@@ -278,11 +271,9 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
 
-/*
-  Initializes item entity in order to pass it to an item plugin routine. If unit
-  component of pos is set up the function will initialize item's key from the
-  unit one.
-*/
+/* Initializes item entity in order to pass it to an item plugin routine. If
+   unit component of pos is set up the function will initialize item's key from
+   the unit one. */
 static errno_t node40_get_item(object_entity_t *entity,
 			       pos_t *pos, item_entity_t *item)
 {
@@ -352,10 +343,8 @@ static uint16_t node40_space(object_entity_t *entity) {
 	return nh40_get_free_space((node40_t *)entity);
 }
 
-/*
-  Retutns item overhead for this node format. Widely used in modification and
-  estimation routines.
-*/
+/* Retutns item overhead for this node format. Widely used in modification and
+   estimation routines. */
 static uint16_t node40_overhead(object_entity_t *entity) {
 	return sizeof(item40_header_t);
 }
@@ -366,18 +355,14 @@ static uint16_t node40_maxspace(object_entity_t *entity) {
     
 	aal_assert("vpf-016", node != NULL);
 
-	/*
-	  Maximal space is node size minus node header and minus item
-	  overhead.
-	*/
+	/* Maximal space is node size minus node header and minus item
+	   overhead. */
 	return node->size - sizeof(node40_header_t) -
 		sizeof(item40_header_t);
 }
 
-/*
-  Calculates size of a region denoted by @pos and @count. This is used by
-  node40_rep(), node40_remove(), etc.
-*/
+/* Calculates size of a region denoted by @pos and @count. This is used by
+   node40_rep(), node40_remove(), etc. */
 static uint32_t node40_size(node40_t *node, pos_t *pos,
 			    uint32_t count)
 {
@@ -401,10 +386,8 @@ static uint32_t node40_size(node40_t *node, pos_t *pos,
 	return len - ih40_get_offset(cur);
 }
 
-/*
-  Makes expand passed @node by @len in odrer to make room for insert new
-  items/units. This function is used by insert and shift methods.
-*/
+/* Makes expand passed @node by @len in odrer to make room for insert new
+   items/units. This function is used by insert and shift methods. */
 errno_t node40_expand(object_entity_t *entity, pos_t *pos,
 		      uint32_t len, uint32_t count)
 {
@@ -440,10 +423,8 @@ errno_t node40_expand(object_entity_t *entity, pos_t *pos,
 	item = pos->item + !is_insert;
 	ih = node40_ih_at(node, item);
 
-	/*
-	  If item pos is inside the range [0..count - 1], we should perform the
-	  data moving and offset upadting.
-	*/
+	/* If item pos is inside the range [0..count - 1], we should perform the
+	   data moving and offset upadting. */
 	if (item < items) {
 		void *src, *dst;
 		uint32_t i, size;
@@ -462,10 +443,8 @@ errno_t node40_expand(object_entity_t *entity, pos_t *pos,
 		for (i = 0; i < items - item; i++, ih--) 
 			ih40_inc_offset(ih, len);
 
-		/*
-		  If this is the insert new item mode, we should prepare the
-		  room for new item header and set it up.
-		*/
+		/* If this is the insert new item mode, we should prepare the
+		   room for new item header and set it up. */
 		if (is_insert) {
 			src = node40_ih_at(node, items - 1);
 
@@ -502,10 +481,8 @@ errno_t node40_expand(object_entity_t *entity, pos_t *pos,
 	return 0;
 }
 
-/*
-  General node40 cutting function. It is used from shift, remove, etc. It
-  removes an amount of items specified by @count and shrinks node. 
-*/
+/* General node40 cutting function. It is used from shift, remove, etc. It
+   removes an amount of items specified by @count and shrinks node. */
 errno_t node40_shrink(object_entity_t *entity, pos_t *pos,
 		      uint32_t len, uint32_t count)
 {
@@ -730,10 +707,8 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			return res;
 	}
 	
-	/*
-	  Updating item's key if we insert new item or if we insert unit
-	  into leftmost postion.
-	*/
+	/* Updating item's key if we insert new item or if we insert unit into
+	   leftmost postion. */
 	if (pos->unit == 0) {
 		aal_memcpy(&ih->key, item.key.body,
 			   sizeof(ih->key));
@@ -846,11 +821,9 @@ static errno_t node40_cut(object_entity_t *entity,
 		}
 			
 		if (count > 0) {
-                        /*
-			  Removing some amount of whole items from the node. If
-			  previous node40_remove produced empty edge items, they
-			  will be removed too.
-			*/
+                        /* Removing some amount of whole items from the node. If
+			   previous node40_remove produced empty edge items,
+			   they will be removed too. */
 			POS_INIT(&pos, begin, ~0ul);
 			
 			if (node40_remove(entity, &pos, count))
@@ -1040,12 +1013,10 @@ static int callback_comp_key(void *node, uint32_t pos,
 	aal_assert("umka-567", key2 != NULL);
 	aal_assert("umka-656", data != NULL);
 
-	/*
-	  FIXME-UMKA: Here we should avoid memcpy of the key body in order to
-	  keep good performance in tree operations. probably we should introduce
-	  new key compare method which operates on memory pointer key body lies
-	  in.
-	*/
+	/* FIXME-UMKA: Here we should avoid memcpy of the key body in order to
+	   keep good performance in tree operations. probably we should
+	   introduce new key compare method which operates on memory pointer key
+	   body lies in. */
 	body = &node40_ih_at((node40_t *)node, pos)->key;
 	aal_memcpy(key1.body, body, sizeof(key1.body));
 
@@ -1053,10 +1024,8 @@ static int callback_comp_key(void *node, uint32_t pos,
 			   compare, &key1, key2);
 }
 
-/*
-  Makes search inside the specified node @entity for @key and stores the result
-  into @pos. This function returns 1 if key is found and 0 otherwise.
-*/
+/* Makes search inside the specified node @entity for @key and stores the result
+   into @pos. This function returns 1 if key is found and 0 otherwise. */
 static lookup_t node40_lookup(object_entity_t *entity, 
 			      key_entity_t *key,
 			      pos_t *pos)
@@ -1205,10 +1174,8 @@ static errno_t node40_fuse(object_entity_t *src_entity,
 	return res;
 }
 
-/*
-  Merges border items of the src and dst nodes. The behavior depends on the
-  passed hint pointer.
-*/
+/* Merges border items of the src and dst nodes. The behavior depends on the
+   passed hint pointer. */
 static errno_t node40_merge(object_entity_t *src_entity,
 			    object_entity_t *dst_entity, 
 			    shift_hint_t *hint)
@@ -1242,10 +1209,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	if (src_items == 0 || hint->rest == 0)
 		return 0;
 	
-	/*
-	  We can't split the first and last items if they lie in position insert
-	  point points to.
-	*/
+	/* We can't split the first and last items if they lie in position
+	   insert point points to. */
 	if (hint->control & SF_LEFT) {
  		if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
 			return 0;
@@ -1254,20 +1219,16 @@ static errno_t node40_merge(object_entity_t *src_entity,
 			return 0;
 	}
 
-	/*
-	  Initializing items to be examined by the estimate_shift() method of
-	  corresponding item plugin.
-	*/
+	/* Initializing items to be examined by the estimate_shift() method of
+	   corresponding item plugin. */
 	POS_INIT(&pos, (hint->control & SF_LEFT ? 0 :
 			src_items - 1), ~0ul);
 	
 	if (node40_item(src_entity, &pos, &src_item))
 		return -EINVAL;
 
-	/*
-	  Items that do not implement predict and shift methods cannot be
-	  splitted.
-	*/
+	/* Items that do not implement predict and shift methods cannot be
+	   splitted. */
 	if (!node40_splitable(&src_item))
 		return 0;
 	
@@ -1286,29 +1247,23 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	} else
 		hint->create = 1;
 
-	/*
-	  Calling item's "predict" method in order to estimate how many units
-	  may be shifted out. This method also updates unit component of insert
-	  point position. After this function is finish @hint->rest will contain
-	  real number of bytes to be shifted into neighbour item.
-	*/
+	/* Calling item's predict() method in order to estimate how many units
+	   may be shifted out. This method also updates unit component of insert
+	   point position. After this function is finish @hint->rest will
+	   contain real number of bytes to be shifted into neighbour item. */
 	if (hint->create) {
 		uint32_t overhead;
 
-		/*
-		  If items are not mergeable and we are in "merge" mode, we will
-		  not create new item in dst node. This mode is needed for
-		  mergeing mergeable items when they lie in the same node.
-		*/
+		/* If items are not mergeable and we are in merge mode, we
+		   will not create new item in dst node. This mode is needed for
+		   mergeing mergeable items when they lie in the same node. */
 		if (hint->control & SF_MERGE)
 			return 0;
 		
 		overhead = node40_overhead(dst_entity);
 		
-		/*
-		  In the case items are not mergeable, we need count also item
-		  overhead, because new item will be created.
-		*/
+		/* In the case items are not mergeable, we need count also item
+		   overhead, because new item will be created. */
 		if (hint->rest < overhead)
 			return 0;
 
@@ -1321,11 +1276,9 @@ static errno_t node40_merge(object_entity_t *src_entity,
 			return -EINVAL;
 		}
 
-		/*
-		  Updating item component of the insert point if it was moved
-		  into neighbour item. In the case of creating new item and left
-		  merge item pos will be equal to dst_items.
-		*/
+		/* Updating item component of the insert point if it was moved
+		   into neighbour item. In the case of creating new item and
+		   left merge item pos will be equal to dst_items. */
 		if (hint->control & SF_UPTIP && hint->result & SF_MOVIP) {
 			hint->pos.item = (hint->control & SF_LEFT ?
 					  dst_items : 0);
@@ -1369,31 +1322,25 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		aal_memcpy(&ih->key, src_item.key.body,
 			   sizeof(ih->key));
 
-		/*
-		  Initializing dst item after it was created by node40_expand()
-		  function.
-		*/
+		/* Initializing dst item after it was created by node40_expand()
+		   function. */
 		if (node40_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
 
 		if (dst_item.plugin->o.item_ops->init)
 			dst_item.plugin->o.item_ops->init(&dst_item);
 
-		/*
-		  Setting item len to old len, that is zero, as it was just
-		  created. This is needed for correct work of shift() method of
-		  some items, which do not have "units" field and calculate the
-		  number of units by own len, like extent40 does. This is
-		  because, extent40 has all units of the same length.
-		*/
+		/* Setting item len to old len, that is zero, as it was just
+		   created. This is needed for correct work of shift() method of
+		   some items, which do not have "units" field and calculate the
+		   number of units by own len, like extent40 does. This is
+		   because, extent40 has all units of the same length. */
 		dst_item.len = 0;
 	} else {
-		/*
-		  Items are mergeable, so we do not need to create new item in
-		  the dst node. We just need to expand existent dst item by
-		  hint->rest. So, we will call node40_expand() with unit
-		  component not equal ~0ul.
-		*/
+		/* Items are mergeable, so we do not need to create new item in
+		   the dst node. We just need to expand existent dst item by
+		   hint->rest. So, we will call node40_expand() with unit
+		   component not equal ~0ul. */
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items - 1 : 0), 0);
 
@@ -1411,10 +1358,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 				       overhead, &src_item);
 	}
 
-	/*
-	  As @hint->rest is number of bytes units occupy, we decrease it by item
-	  overhead.
-	*/
+	/* As @hint->rest is number of bytes units occupy, we decrease it by
+	   item overhead. */
 	if (hint->create)
 		hint->rest -= overhead;
 	
@@ -1428,19 +1373,15 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	/* Updating source node fields */
 	pos.item = src_item.pos.item;
 
-	/*
-	  We will remove src_item if it has became empty and insert point is not
-	  points it.
-	*/
+	/* We will remove src_item if it has became empty and insert point is
+	   not points it. */
 	remove = (hint->rest == (src_item.len - overhead) &&
 		  (hint->result & SF_MOVIP || pos.item != hint->pos.item));
 	
 	/* Updating item's keys */
 	if (hint->control & SF_LEFT) {
-		/*
-		  We do not need update key of the src item which is going to be
-		  removed.
-		*/
+		/* We do not need update key of the src item which is going to
+		   be removed. */
 		if (!remove) {
 			ih = node40_ih_at(src_node, src_item.pos.item);
 
@@ -1455,18 +1396,14 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	}
 	
 	if (remove) {
-		/*
-		  Like node40_expand() does, node40_shrink() will remove pointed
-		  item if unit component is ~0ul and shrink the item pointed by
-		  pos if unit component is not ~0ul.
-		*/
+		/* Like node40_expand() does, node40_shrink() will remove
+		   pointed item if unit component is ~0ul and shrink the item
+		   pointed by pos if unit component is not ~0ul. */
 		pos.unit = ~0ul;
 		len = src_item.len;
 
-		/*
-		  As item will be removed, we should update item pos in hint
-		  properly.
-		*/
+		/* As item will be removed, we should update item pos in hint
+		   properly. */
 		if (hint->control & SF_UPTIP && pos.item < hint->pos.item)
 			hint->pos.item--;
 	} else {
@@ -1477,10 +1414,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	return node40_shrink(src_entity, &pos, len, 1);
 }
 
-/*
-  Predicts how many whole item may be shifted from @src_entity to
-  @dst_entity.
-*/
+/* Predicts how many whole item may be shifted from @src_entity to
+   @dst_entity. */
 static errno_t node40_predict(object_entity_t *src_entity,
 			      object_entity_t *dst_entity, 
 			      shift_hint_t *hint)
@@ -1513,10 +1448,8 @@ static errno_t node40_predict(object_entity_t *src_entity,
 	cur = (hint->control & SF_LEFT ?
 	       node40_ih_at(src_node, 0) : end);
 	
-	/*
-	  Estimating will be finished if @src_items value is exhausted or insert
-	  point is shifted out to neighbour node.
-	*/
+	/* Estimating will be finished if @src_items value is exhausted or
+	   insert point is shifted out to neighbour node. */
 	flags = hint->control;
 	
 	while (!(hint->result & SF_MOVIP) && src_items > 0) {
@@ -1531,10 +1464,8 @@ static errno_t node40_predict(object_entity_t *src_entity,
 		len = (cur == end ? nh40_get_free_space_start(src_node) :
 		       ih40_get_offset(cur - 1)) - ih40_get_offset(cur);
 		
-		/*
-		  We go out if there is no enough free space to shift one more
-		  whole item.
-		*/
+		/* We go out if there is no enough free space to shift one more
+		   whole item. */
 		if (space < len + node40_overhead(dst_entity))
 			break;
 
@@ -1547,10 +1478,8 @@ static errno_t node40_predict(object_entity_t *src_entity,
 					uint32_t units;
 					item_entity_t item;
 
-					/*
-					  If unit component if zero, we can
-					  shift whole item pointed by pos.
-					*/
+					/* If unit component if zero, we can
+					   shift whole item pointed by pos. */
 					POS_INIT(&pos, 0, ~0ul);
 					
 					if (node40_item(src_entity, &pos, &item))
@@ -1561,19 +1490,15 @@ static errno_t node40_predict(object_entity_t *src_entity,
 				
 					units = item.plugin->o.item_ops->units(&item);
 
-					/*
-					  Breaking if insert point reach the end
-					  of node.
-					*/
+					/* Breaking if insert point reach the
+					   end of node. */
 					if (flags & SF_MOVIP &&
 					    (hint->pos.unit == ~0ul ||
 					     hint->pos.unit >= units - 1))
 					{
-						/*
-						  If we are permitted to move
-						  insetr point to the neigbour,
-						  we doing it.
-						*/
+						/* If we are permitted to move
+						   insetr point to the neigbour,
+						   we doing it. */
 						hint->result |= SF_MOVIP;
 						hint->pos.item = dst_items;
 					} else
@@ -1582,10 +1507,8 @@ static errno_t node40_predict(object_entity_t *src_entity,
 				} else
 					hint->pos.item--;
 			} else {
-				/*
-				  Checking if insert point reach the end of
-				  node. Hint is updated here.
-				*/
+				/* Checking if insert point reach the end of
+				   node. Hint is updated here. */
 				if (hint->pos.item >= src_items - 1) {
 				
 					if (hint->pos.item == src_items - 1) {
@@ -1601,12 +1524,10 @@ static errno_t node40_predict(object_entity_t *src_entity,
 								break;
 						}
 					} else {
-						/*
-						  Insert point at the unexistent
-						  item at the end of node. So we
-						  just update hint and breaking
-						  the loop.
-						*/
+						/* Insert point at the
+						   unexistent item at the end of
+						   node. So we just update hint
+						   and breaking the loop. */
 						if (flags & SF_MOVIP) {
 							hint->result |= SF_MOVIP;
 							hint->pos.item = 0;
@@ -1626,10 +1547,8 @@ static errno_t node40_predict(object_entity_t *src_entity,
 		space -= (len + node40_overhead(dst_entity));
 	}
 
-	/*
-	  After number of whole items was estimated, all free space will be
-	  used for estimating how many units may be shifted.
-	*/
+	/* After number of whole items was estimated, all free space will be
+	   used for estimating how many units may be shifted. */
 	hint->rest = space;
 
 	return 0;
@@ -1669,10 +1588,8 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 		POS_INIT(&src_pos, src_items - hint->items, ~0ul);
 	}
 	
-	/*
-	  Expanding dst node in order to making room for new items and
-	  update node header.
-	*/
+	/* Expanding dst node in order to making room for new items and update
+	   node header. */
 	if (node40_expand(dst_entity, &dst_pos, hint->bytes,
 			  hint->items))
 	{
@@ -1686,10 +1603,7 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 		return -EINVAL;
 	}
 
-	/*
-	  Shrinking source node after items are copied from it to dst
-	  node.
-	*/
+	/* Shrinking source node after items are copied from it to dst node. */
 	if (node40_shrink(src_entity, &src_pos, hint->bytes,
 			  hint->items))
 	{
@@ -1720,23 +1634,19 @@ static errno_t node40_shift(object_entity_t *src_entity,
 
 	merge = *hint;
 	
-	/*
-	  First of all we should try to merge boundary items if they are
-	  mergeable. This work is performed by unit shift methods with the
-	  special shift flags SF_MERGE. It will forbid creating the new item if
-	  boundary items are not mergeable.
-	*/
+	/* First of all we should try to merge boundary items if they are
+	   mergeable. This work is performed by unit shift methods with the
+	   special shift flags SF_MERGE. It will forbid creating the new item if
+	   boundary items are not mergeable. */
 	merge.control |= SF_MERGE;
 	merge.rest = node40_space(dst_entity);
 	
-	/*
-	  Merges nodes without ability to create the new item in the
-	  @dst_node. This is needed for avoiding the case when a node will
-	  contain two neighbour items which are mergeable. That would be not
-	  optimal space usage and might also led to some unstable behavior of
-	  the code which assume that next mergeable item lies in the neighbour
-	  node, not the next to it (directory read and lookup code).
-	*/
+	/* Merges nodes without ability to create the new item in the
+	   @dst_node. This is needed for avoiding the case when a node will
+	   contain two neighbour items which are mergeable. That would be not
+	   optimal space usage and might also led to some unstable behavior of
+	   the code which assume that next mergeable item lies in the neighbour
+	   node, not the next to it (directory read and lookup code). */
 	if ((res = node40_merge(src_entity, dst_entity, &merge))) {
 		aal_exception_error("Can't merge two nodes durring "
 				    "node shift operation.");
@@ -1756,30 +1666,25 @@ static errno_t node40_shift(object_entity_t *src_entity,
 		return res;
 	}
 
-	/*
-	  Checking if insert point was not moved into the corresponding
-	  neighbour.
-	*/
+	/* Checking if insert point was not moved into the corresponding
+	   neighbour. */
 	if (hint->result & SF_MOVIP)
 		goto out_update_hint;
 
-	/*
-	  Merges border items with ability to create new item in the dst node.
-	  Here our objective is to shift into neighbour node as many units as
-	  possible.
-	*/
+	/* Merges border items with ability to create new item in the dst node.
+	   Here our objective is to shift into neighbour node as many units as
+	   possible. */
 	if ((res = node40_merge(src_entity, dst_entity, hint))) {
 		aal_exception_error("Can't merge two nodes durring "
 				    "node shift operation.");
 		return res;
 	}
 
-	/*
-	  The case when insert point is moved to the neighbour node, but nothing
-	  was shifted because old insert point was at last item and last unit.
-	  Thus, insert unit request should be converted into insert item one by
-	  means of clearing unit component of the insert point in shift hint.
-	*/
+	/* The case when insert point is moved to the neighbour node, but
+	   nothing was shifted because old insert point was at last item and
+	   last unit.  Thus, insert unit request should be converted into insert
+	   item one by means of clearing unit component of the insert point in
+	   shift hint. */
 	if (hint->control & SF_UPTIP &&
 	    hint->result & SF_MOVIP &&
 	    hint->units == 0 && hint->create)
@@ -1805,7 +1710,8 @@ extern bool_t node40_test_flag(object_entity_t *entity,
 			       uint32_t pos, 
 			       uint16_t flag);
 
-extern errno_t node40_check(object_entity_t *entity, uint8_t mode);
+extern errno_t node40_check(object_entity_t *entity,
+			    uint8_t mode);
 
 extern errno_t node40_copy(object_entity_t *dst_entity,
 			   pos_t *dst_pos, 

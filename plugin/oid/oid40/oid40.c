@@ -1,10 +1,8 @@
-/*
-  oid40.c -- reiser4 default oid allocator plugin. It operates on passed memory
-  area inside of the loaded superblock.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   oid40.c -- reiser4 default oid allocator plugin. It operates on passed memory
+   area inside of the loaded superblock. */
 
 #ifndef ENABLE_STAND_ALONE
 #include "oid40.h"
@@ -26,10 +24,8 @@ static void oid40_mkclean(object_entity_t *entity) {
 	((oid40_t *)entity)->dirty = 0;
 }
 
-/*
-  Initializies oid allocator instance and loads its data (namely next oid, used
-  oids, etc).
-*/
+/* Initializies oid allocator instance and loads its data (namely next oid, used
+   oids, etc). */
 static object_entity_t *oid40_open(void *start, 
 				   uint32_t len) 
 {
@@ -68,10 +64,8 @@ static object_entity_t *oid40_create(void *start,
 	oid->len = len;
 	oid->start = start;
 
-	/*
-	  Setting up next by OID40_RESERVED. It is needed because all oid less
-	  then OID40_RESERVED will be used for reiser4 insetrnal purposes.
-	*/
+	/* Setting up next by OID40_RESERVED. It is needed because all oid less
+	   then OID40_RESERVED will be used for reiser4 insetrnal purposes. */
 	oid->next = OID40_RESERVED;
 	oid->used = 0;
     

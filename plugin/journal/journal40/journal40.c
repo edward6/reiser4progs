@@ -1,9 +1,7 @@
-/*
-  journal40.c -- reiser4 default journal plugin.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   journal40.c -- reiser4 default journal plugin. */
 
 #ifndef ENABLE_STAND_ALONE
 
@@ -320,10 +318,8 @@ static errno_t journal40_update(journal40_t *journal) {
 	return 0;
 }
 
-/*
-  Makes traverses of one transaction. This is used for transactions replaying,
-  checking, etc.
-*/
+/* Makes traverses of one transaction. This is used for transactions replaying,
+   checking, etc. */
 errno_t journal40_traverse_trans(
 	journal40_t *journal,                   /* journal object to be traversed */
 	aal_block_t *tx_block,                  /* trans header of a transaction */
@@ -346,10 +342,8 @@ errno_t journal40_traverse_trans(
 	
 	while (log_blk != aal_block_number(tx_block)) {
 		
-		/*
-		  FIXME-VITALY->UMKA: There should be a check that the log_blk
-		  is not one of the LGR's of the same transaction. return 1.
-		*/
+		/* FIXME-VITALY->UMKA: There should be a check that the log_blk
+		   is not one of the LGR's of the same transaction. return 1. */
 	    
 		if (sec_func && (res = sec_func((object_entity_t *)journal, 
 						tx_block, log_blk, JB_LGR,
@@ -432,14 +426,12 @@ errno_t journal40_traverse_trans(
 	return res;	
 }
 
-/*
-  Journal traverse method. Finds the oldest transaction first, then goes through
-  each transaction from the oldest to the earliest.
+/* Journal traverse method. Finds the oldest transaction first, then goes
+   through each transaction from the oldest to the earliest.
   
-  Return codes:
-  0   everything okay
-  < 0 some error (-ESTRUCT, -EIO, etc)
-*/
+   Return codes:
+   0   everything okay
+   < 0 some error (-ESTRUCT, -EIO, etc). */
 errno_t journal40_traverse(
 	journal40_t *journal,                   /* journal object to be traversed */
 	journal40_txh_func_t txh_func,          /* TxH block callback */
@@ -475,10 +467,8 @@ errno_t journal40_traverse(
 
 	while (txh_blk != last_flushed_tx) {
 		
-		/*
-		  FIXME-VITALY->UMKA: There should be a check that the txh_blk
-		  is not one of the TxH's we have met already. return 1.
-		*/
+		/* FIXME-VITALY->UMKA: There should be a check that the txh_blk
+		   is not one of the TxH's we have met already. return 1. */
 		if (txh_func && (res = txh_func((object_entity_t *)journal, 
 						txh_blk, data)))
 			goto error_free_tx_list;

@@ -1,9 +1,7 @@
-/*
-  sdext_lt.h -- stat data plugin, that implements large time storage.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   sdext_lt.h -- stat data plugin, that implements large time storage. */
 
 #ifndef SDEXT_LT_H
 #define SDEXT_LT_H

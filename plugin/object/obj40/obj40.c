@@ -1,9 +1,7 @@
-/*
-  obj40.c -- reiser4 file 40 plugins common code.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   obj40.c -- reiser4 file 40 plugins common code. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -100,10 +98,8 @@ uint64_t obj40_get_size(obj40_t *obj) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Writes light weight stat data extention from passed @lw_hint into @obj stat
-  data item.
-*/
+/* Writes light weight stat data extention from passed @lw_hint into @obj stat
+  data item. */
 errno_t obj40_write_lw(item_entity_t *item,
 		       sdext_lw_hint_t *lw_hint)
 {
@@ -339,11 +335,9 @@ rid_t obj40_pid(item_entity_t *item) {
 	if (obj40_read_lw(item, &lw_hint))
 		return INVAL_PID;
 
-	/*
-	  FIXME-UMKA: Here also should be discovering the stat data extentions
-	  in order to try find not standard file plugin first. Then if it is not
-	  found, detect it by mode field in sdext_lw extention.
-	*/
+	/* FIXME-UMKA: Here also should be discovering the stat data extentions
+	   in order to try find not standard file plugin first. Then if it is
+	   not found, detect it by mode field in sdext_lw extention. */
 	
 	if (S_ISLNK(lw_hint.mode))
 		return OBJECT_SYMLINK40_ID;

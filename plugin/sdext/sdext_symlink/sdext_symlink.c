@@ -1,9 +1,7 @@
-/*
-  sdext_symlink.c -- symlink stat data extention plugin.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   sdext_symlink.c -- symlink stat data extention plugin. */
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
 #include <reiser4/plugin.h>

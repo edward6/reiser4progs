@@ -1,9 +1,7 @@
-/*
-  key40.h -- reiser4 default key structures.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   key40.h -- reiser4 default key structures. */
 
 #ifndef KEY40_H
 #define KEY40_H
@@ -121,10 +119,8 @@ static inline int k40_comp_el(void *k1, void *k2, int off) {
 	return (e1 < e2 ? -1 : (e1 == e2 ? 0 : 1));
 }
 
-/* 
-   Macro to define key40 getter and setter functions for field F with type T. It
-   is used for minimize code.
-*/
+/* Macro to define key40 getter and setter functions for field F with type T. It
+   is used for minimize code. */
 								    
 #define KEY40_FIELD_HANDLER(L, U, T)				    \
 static inline T k40_get_##L (const key40_t *key) {                  \

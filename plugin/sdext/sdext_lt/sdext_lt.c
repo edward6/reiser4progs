@@ -1,9 +1,7 @@
-/*
-  sdext_lt.c -- large time stat data extention plugin.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   sdext_lt.c -- large time stat data extention plugin. */
 
 #include "sdext_lt.h"
 

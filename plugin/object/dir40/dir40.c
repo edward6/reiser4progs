@@ -1,9 +1,7 @@
-/*
-  dir40.c -- reiser4 default directory object plugin.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   dir40.c -- reiser4 default directory object plugin. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -71,10 +69,8 @@ static int dir40_mergeable(object_entity_t *entity,
 	if (!plugin_equal(item->plugin, place->item.plugin))
 		return 0;
 
-	/*
-	  Calling item's mergeable method in order to determine if they are
-	  mergeable.
-	*/
+	/* Calling item mergeable() method in order to determine if they are
+	   mergeable. */
 	return plugin_call(item->plugin->o.item_ops,
 			   mergeable, item, &place->item);
 }
@@ -153,11 +149,9 @@ static errno_t dir40_reset(object_entity_t *entity) {
 
 /* Trying to guess hash in use by stat data extention */
 static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
-	/* 
-	  This function should inspect stat data extentions first. And only if
-	  they do not contain a convenient plugin extention (hash plugin), it
-	  should use some default hash plugin id.
-	*/
+	/* This function should inspect stat data extentions first. And only if
+	   they do not contain a convenient plugin extention (hash plugin), it
+	   should use some default hash plugin id. */
 	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
 }
 
@@ -256,10 +250,8 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	return -EINVAL;
 }
 
-/* 
-  Makes lookup in directory by name. Fills passed buff by found entry fields
-  (offset key, object key, etc).
-*/
+/* Makes lookup in directory by name. Fills passed buff by found entry fields
+   (offset key, object key, etc). */
 static lookup_t dir40_lookup(object_entity_t *entity,
 			     char *name,
 			     entry_hint_t *entry) 
@@ -277,10 +269,8 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	/*
-	  Preparing key to be used for lookup. It is generating from the
-	  directory oid, locality and name by menas of using hash plugin.
-	*/
+	/* Preparing key to be used for lookup. It is generating from the
+	   directory oid, locality and name by menas of using hash plugin. */
 	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops, build_entry,
 		    &wanted, dir->hash, obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), name);
@@ -299,11 +289,9 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 		
 	item = &dir->body.item;
 	
-	/*
-	  If needed entry is found, we fetch it into local buffer and get stat
-	  data key of the object it points to from it. This key will be used for
-	  searching next entry in passed path and so on.
-	*/
+	/* If needed entry is found, we fetch it into local buffer and get stat
+	   data key of the object it points to from it. This key will be used
+	   for searching next entry in passed path and so on. */
 	entry->object.plugin = wanted.plugin;
 	entry->offset.plugin = wanted.plugin;
 	
@@ -361,10 +349,8 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 #endif
 }
 
-/*
-  Initializing dir40 instance by stat data place, resetring directory be means
-  of using dir40_reset function and return instance to caller.
-*/
+/* Initializing dir40 instance by stat data place, resetring directory be means
+   of using dir40_reset function and return instance to caller. */
 static object_entity_t *dir40_open(object_info_t *info) {
 	dir40_t *dir;
 
@@ -409,10 +395,8 @@ static object_entity_t *dir40_open(object_info_t *info) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Creates dir40 instance and inserts few item in new directory described by
-  passed @hint.
-*/
+/* Creates dir40 instance and inserts few item in new directory described by
+   passed @hint. */
 static object_entity_t *dir40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
@@ -484,11 +468,9 @@ static object_entity_t *dir40_create(object_info_t *info,
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
-	/* 
-	  Initializing direntry item hint. This should be done before the stat
-	  data item hint, because we will need size of direntry item durring
-	  stat data initialization.
-	*/
+	/* Initializing direntry item hint. This should be done before the stat
+	   data item hint, because we will need size of direntry item durring
+	   stat data initialization. */
    	body_hint.count = 1;
 	body_hint.flags = HF_FORMATD;
 	body_hint.plugin = body_plugin;
@@ -501,16 +483,11 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	entry = body;
 	
-	/*
-	  Preparing hint for the empty directory. It consists only "." for
-	  unlinked directories.
-	*/
+	/* Preparing hint for the empty directory. It consists only "." for
+	   unlinked directories. */
 	aal_strncpy(entry->name, ".", 1);
 
-	/*
-	  Building key for the statdata of object new entry will point
-	  to.
-	*/
+	/* Building key for the statdata of object new entry will point to. */
 	plugin_call(info->object.plugin->o.key_ops, build_generic,
 		    &entry->object, KEY_STATDATA_TYPE, locality,
 		    objectid, 0);
@@ -530,17 +507,13 @@ static object_entity_t *dir40_create(object_info_t *info,
 	plugin_call(info->object.plugin->o.key_ops, assign,
 		    &stat_hint.key, &info->object);
     
-	/*
-	  Initializing stat data item hint. It uses unix extention and light
-	  weight one. So we set up the mask in corresponding maner.
-	*/
+	/* Initializing stat data item hint. It uses unix extention and light
+	   weight one. So we set up the mask in corresponding maner. */
 	stat.extmask = (1 << SDEXT_UNIX_ID) | (1 << SDEXT_LW_ID);
 
-	/*
-	  Light weight hint initializing. New directory will have two links on
-	  it, because of dot entry which points onto directory itself and entry
-	  in parent directory, which points to this new directory.
-	*/
+	/* Light weight hint initializing. New directory will have two links on
+	   it, because of dot entry which points onto directory itself and entry
+	   in parent directory, which points to this new directory. */
 
 	lw_ext.nlink = 1;
 	lw_ext.mode = S_IFDIR | 0755;
@@ -555,10 +528,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	unix_ext.mtime = unix_ext.atime;
 	unix_ext.ctime = unix_ext.atime;
 
-	/*
-	  Estimating body item and setting up "bytes" field from the unix
-	  extetion.
-	*/
+	/* Estimating body item and setting up "bytes" field from the unix
+	   extetion. */
 	if (plugin_call(body_plugin->o.item_ops, estimate_insert,
 			NULL, &body_hint, ~0ul))
 	{
@@ -644,11 +615,9 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	/* Releasing current body item */
 	obj40_relock(&dir->obj, &dir->body, NULL);
 	
-	/*
-	  Getting maxiaml possible key form directory item. We will use it for
-	  removing last item and so on util directro contains no items. Thanks
-	  to Nikita for this idea.
-	*/
+	/* Getting maxiaml possible key form directory item. We will use it for
+	   removing last item and so on util directro contains no items. Thanks
+	   to Nikita for this idea. */
 	plugin_call(dir->body.item.plugin->o.item_ops,
 		    maxposs_key, &dir->body.item, &key);
 
@@ -986,10 +955,8 @@ static errno_t callback_item_data(void *object, uint64_t start,
 	return 0;
 }
 
-/*
-  Layout function implementation. It is needed for printing, fragmentation
-  calculating, etc.
-*/
+/* Layout function implementation. It is needed for printing, fragmentation
+   calculating, etc. */
 static errno_t dir40_layout(object_entity_t *entity,
 			    block_func_t block_func,
 			    void *data)
@@ -1035,11 +1002,9 @@ static errno_t dir40_layout(object_entity_t *entity,
 	return 0;
 }
 
-/*
-  Metadata function implementation. It traverses all directory items and calls
-  @func for each of them. It is needed for printing, fragmentation calculating,
-  etc.
-*/
+/* Metadata function implementation. It traverses all directory items and calls
+   @func for each of them. It is needed for printing, fragmentation calculating,
+   etc. */
 static errno_t dir40_metadata(object_entity_t *entity,
 			      place_func_t func,
 			      void *data)
@@ -1068,10 +1033,8 @@ extern errno_t dir40_realize (object_info_t *);
 
 #endif
 
-/*
-  Freeing dir40 instance. That is unlocking nodes current statdata and body lie
-  in and freeing all occpied memory.
-*/
+/* Freeing dir40 instance. That is unlocking nodes current statdata and body lie
+   in and freeing all occpied memory. */
 static void dir40_close(object_entity_t *entity) {
 	dir40_t *dir = (dir40_t *)entity;
 	

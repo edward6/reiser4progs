@@ -1,9 +1,7 @@
-/*
-  key40.c -- reiser4 default key plugin.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   key40.c -- reiser4 default key plugin. */
 
 #include "key40.h"
 
@@ -202,10 +200,8 @@ static int key40_compare_short(key_entity_t *key1,
 			   (key40_t *)key2->body, 1);
 }
 
-/*
-  Compares two passed keys. Returns -1 if key1 lesser than key2, 0 if keys are
-  equal and 1 if key1 is bigger then key2.
-*/
+/* Compares two passed keys. Returns -1 if key1 lesser than key2, 0 if keys are
+   equal and 1 if key1 is bigger then key2. */
 static int key40_compare(key_entity_t *key1, 
 			 key_entity_t *key2) 
 {
@@ -248,10 +244,8 @@ static errno_t key40_build_hash(key_entity_t *key,
 		offset = 0ull;
 
 		if (len > OID_CHARS) {
-			/* 
-			  Does not fit into objectid, pack the second part of
-			  the name into offset.
-			*/
+			/* Does not fit into objectid, pack the second part of
+			   the name into offset. */
 			offset = aux_pack_string((char *)name + OID_CHARS, 0);
 		}
 	} else {
@@ -264,11 +258,9 @@ static errno_t key40_build_hash(key_entity_t *key,
 				     aal_strlen(name) - OID_CHARS);
 	}
 
-	/*
-	  Objectid must occupie 60 bits. If it takes more, then we have broken
-	  key, or objectid allocator reached this value, that impossible in near
-	  future and apprentry denotes bug in object allocator.
-	*/
+	/* Objectid must occupie 60 bits. If it takes more, then we have broken
+	   key, or objectid allocator reached this value, that impossible in
+	   near future and apprentry denotes bug in object allocator. */
 	aal_assert("umka-1499", !(objectid & ~KEY40_OBJECTID_MASK));
 
 	/* Setting up objectid and offset */
@@ -278,10 +270,8 @@ static errno_t key40_build_hash(key_entity_t *key,
 	return 0;
 }
 
-/*
-  Builds key by passed locality, objectid, and name. It is suitable for
-  creating entry keys.
-*/
+/* Builds key by passed locality, objectid, and name. It is suitable for
+   creating entry keys. */
 static errno_t key40_build_entry(key_entity_t *key,
 				 reiser4_plugin_t *hash,
 				 uint64_t locality,

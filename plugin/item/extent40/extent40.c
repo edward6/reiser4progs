@@ -1,9 +1,7 @@
-/*
-  extent40.c -- reiser4 default extent plugin.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   extent40.c -- reiser4 default extent plugin. */
 
 #include "extent40.h"
 
@@ -81,10 +79,8 @@ uint32_t extent40_unit(item_entity_t *item,
         return i;
 }
 
-/*
-  Builds the key of the unit at @pos and stores it inside passed @key
-  variable. It is needed for updating item key after shifting, etc.
-*/
+/* Builds the key of the unit at @pos and stores it inside passed @key
+   variable. It is needed for updating item key after shifting, etc. */
 static errno_t extent40_get_key(item_entity_t *item,
 				uint32_t pos, 
 				key_entity_t *key)
@@ -192,10 +188,8 @@ errno_t extent40_maxposs_key(item_entity_t *item,
 	return body40_maxposs_key(item, key);
 }
 
-/*
-  Performs lookup for specified @key inside the passed @item. Result of lookup
-  will be stored in @pos.
-*/
+/* Performs lookup for specified @key inside the passed @item. Result of lookup
+   will be stored in @pos. */
 lookup_t extent40_lookup(item_entity_t *item,
 			 key_entity_t *key,
 			 uint32_t *pos)
@@ -217,10 +211,8 @@ lookup_t extent40_lookup(item_entity_t *item,
 	return res;
 }
 
-/*
-  Reads @count bytes of extent data from the extent item at passed @pos into
-  specified @buff.
-*/
+/* Reads @count bytes of extent data from the extent item at passed @pos into
+   specified @buff. */
 static int32_t extent40_read(item_entity_t *item, void *buff,
 			     uint32_t pos, uint32_t count)
 {
@@ -241,13 +233,11 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	{
 		uint32_t blkchunk;
 		
-		/*
-		  Here offset is 32 bit value for stand alone mode and
-		  apparently code will not be working well with files larger
-		  than 4Gb. We can't merely use here uint64_t due to build mode
-		  that is without gcc built-in functions like __udivdi3 and
-		  __umoddi3 dedicated for working with 64 bit digits.
-		*/
+		/* Here offset is 32 bit value for stand alone mode and
+		   apparently code will not be working well with files larger
+		   than 4Gb. We can't merely use here uint64_t due to build mode
+		   that is without gcc built-in functions like __udivdi3 and
+		   __umoddi3 dedicated for working with 64 bit digits. */
 		
 #ifndef ENABLE_STAND_ALONE
 		uint64_t blk, start;
@@ -340,10 +330,8 @@ static errno_t extent40_estimate_insert(item_entity_t *item,
 	return 0;
 }
 
-/*
-  Calls @func for each block number extent points to. It is needed for
-  calculating fragmentation, etc.
-*/
+/* Calls @func for each block number extent points to. It is needed for
+   calculating fragmentation, etc. */
 static errno_t extent40_layout(item_entity_t *item,
 			       region_func_t region_func,
 			       void *data)
@@ -391,11 +379,9 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 	if (hint->control & SF_LEFT) {
 		uint32_t left;
 
-		/*
-		  Check if we need to update insert point at all. If not, we
-		  only rely on @hint->rest in that, how many units may be
-		  shifted out to neighbour item.
-		*/
+		/* Check if we need to update insert point at all. If not, we
+		   only rely on @hint->rest in that, how many units may be
+		   shifted out to neighbour item. */
 		if (hint->control & SF_UPTIP) {
 
 			left = hint->pos.unit * sizeof(extent40_t);
@@ -422,10 +408,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 		/* The same check as abowe, but for right shift */
 		if (hint->control & SF_UPTIP) {
 
-			/*
-			  Check is it is possible to move something into right
-			  neighbour item.
-			*/
+			/* Check is it is possible to move something into right
+			   neighbour item. */
 			if (hint->pos.unit * sizeof(extent40_t) < src_item->len) {
 				right = src_item->len -
 					(hint->pos.unit * sizeof(extent40_t));
@@ -441,10 +425,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 					hint->pos.unit = 0;
 				}
 			} else {
-				/*
-				  There is noning to move, update insert point,
-				  flags and out.
-				*/
+				/* There is noning to move, update insert point,
+				   flags and out. */
 				if (hint->control & SF_MOVIP) {
 					hint->result |= SF_MOVIP;
 					hint->pos.unit = 0;

@@ -1,9 +1,7 @@
-/*
-  nodeptr40.h -- reiser4 dafault internal item structures.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   nodeptr40.h -- reiser4 dafault internal item structures. */
 
 #ifndef NODEPTR40_H
 #define NODEPTR40_H

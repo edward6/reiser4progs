@@ -1,9 +1,7 @@
-/*
-  journal40.h -- reiser4 default journal plugin.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   journal40.h -- reiser4 default journal plugin. */
 
 #ifndef JOURNAL40_H
 #define JOURNAL40_h

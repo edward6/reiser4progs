@@ -1,9 +1,7 @@
-/*
-  sym40.c -- reiser4 symlink file plugin.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   sym40.c -- reiser4 symlink file plugin. */
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
 
@@ -137,10 +135,8 @@ static object_entity_t *sym40_create(object_info_t *info,
 	plugin_call(info->object.plugin->o.key_ops, assign,
 		    &stat_hint.key, &info->object);
     
-	/*
-	  Initializing stat data item hint. Here we set up the extentions mask
-	  to unix extention, light weight and symlink ones.
-	*/
+	/* Initializing stat data item hint. Here we set up the extentions mask
+	   to unix extention, light weight and symlink ones. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
 		1 << SDEXT_SYMLINK_ID;
 
@@ -270,11 +266,9 @@ extern errno_t sym40_realize(object_info_t *info);
 
 #endif
 
-/*
-  This function reads symlink and parses it by means of using aux_parse_path
-  with applying corresponding callback fucntions for searching stat data and
-  searchig entry. It returns stat data key of the object symlink points to.
-*/
+/* This function reads symlink and parses it by means of using aux_parse_path
+   with applying corresponding callback fucntions for searching stat data and
+   searchig entry. It returns stat data key of the object symlink points to. */
 static errno_t sym40_follow(object_entity_t *entity,
 			    key_entity_t *from,
 			    key_entity_t *key)

@@ -1,9 +1,7 @@
-/*
-  tail40.c -- reiser4 default tail plugin.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   tail40.c -- reiser4 default tail plugin. */
 
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
@@ -76,12 +74,10 @@ static errno_t tail40_insert(item_entity_t *item,
 	return 0;
 }
 
-/*
-  Estimates how many byte need to write @hint->count into the tree. This
-  function considers also, that tail item is not expandable one. That is, if
-  insert pos point inside the item body, it will not be splitted, but rewritten
-  instead.
-*/
+/* Estimates how many byte need to write @hint->count into the tree. This
+   function considers also, that tail item is not expandable one. That is, if
+   insert pos point inside the item body, it will not be splitted, but rewritten
+   instead. */
 static errno_t tail40_estimate_insert(item_entity_t *item,
 				      create_hint_t *hint,
 				      uint32_t pos)
@@ -217,10 +213,8 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 		/* Can we update insert point? */
 		if (hint->control & SF_UPTIP) {
 
-			/*
-			  Correcting @hint->rest. It should contains number of
-			  bytes we realy can move out.
-			*/
+			/* Correcting @hint->rest. It should contains number of
+			   bytes we realy can move out. */
 			if (hint->rest > hint->pos.unit)
 				hint->rest = hint->pos.unit;
 
@@ -243,19 +237,15 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 			if (hint->pos.unit < src_item->len) {
 				right = src_item->len - hint->pos.unit;
 
-				/*
-				  Insert point inside item and we can move
-				  something.
-				*/
+				/* Insert point inside item and we can move
+				   something. */
 				if (hint->rest > right)
 					hint->rest = right;
 
 				hint->pos.unit += hint->rest;
 
-				/*
-				  Updating insert point to first position in
-				  neighbour item.
-				*/
+				/* Updating insert point to first position in
+				   neighbour item. */
 				if (hint->pos.unit == src_item->len &&
 				    hint->control & SF_MOVIP)
 				{
@@ -263,10 +253,8 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 					hint->pos.unit = 0;
 				}
 			} else {
-				/*
-				  Updating insert point to first position in
-				  neighbour item.
-				*/
+				/* Updating insert point to first position in
+				   neighbour item. */
 				if (hint->control & SF_MOVIP) {
 					hint->result |= SF_MOVIP;
 					hint->pos.unit = 0;

@@ -1,9 +1,7 @@
-/*
-  tea_hash.c -- tea hash implementation.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   tea_hash.c -- tea hash implementation. */
 
 #ifdef ENABLE_TEA_HASH
 

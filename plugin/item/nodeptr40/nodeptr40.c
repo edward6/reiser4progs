@@ -1,16 +1,12 @@
-/*
-  nodeptr40.c -- reiser4 default node pointer item plugin.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   nodeptr40.c -- reiser4 default node pointer item plugin. */
 
 #include "nodeptr40.h"
 
-/*
-  Returns the number of units in nodeptr. As nodeptr40 has not units and thus
-  cannot be splitted by balancing, it has one unit.
-*/
+/* Returns the number of units in nodeptr. As nodeptr40 has not units and thus
+   cannot be splitted by balancing, it has one unit. */
 static uint32_t nodeptr40_units(item_entity_t *item) {
 	return 1;
 }
@@ -39,10 +35,8 @@ static int nodeptr40_branch(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Layout implementation for nodeptr40. It calls @geion_func for each block
-  nodeptr points to.
-*/
+/* Layout implementation for nodeptr40. It calls @geion_func for each block
+   nodeptr points to. */
 static errno_t nodeptr40_layout(item_entity_t *item,
 				region_func_t region_func,
 				void *data)
@@ -116,7 +110,8 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t nodeptr40_check_struct(item_entity_t *item, uint8_t mode);
+extern errno_t nodeptr40_check_struct(item_entity_t *item,
+				      uint8_t mode);
 
 extern errno_t nodeptr40_check_layout(item_entity_t *item,
 				      region_func_t func, 

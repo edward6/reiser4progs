@@ -1,9 +1,7 @@
-/*
-  oid40.h -- reiser4 default oid allocator structures.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   oid40.h -- reiser4 default oid allocator structures. */
 
 #ifndef OID40_H
 #define OID40_H

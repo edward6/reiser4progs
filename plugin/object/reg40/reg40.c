@@ -1,9 +1,7 @@
-/*
-  reg40.c -- reiser4 default regular file plugin.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   reg40.c -- reiser4 default regular file plugin. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -65,10 +63,8 @@ static lookup_t reg40_next(reg40_t *reg) {
 	return res;
 }
 
-/*
-  Resets file position. That is it searches first body item and sets file's
-  offset to zero.
-*/
+/* Resets file position. That is it searches first body item and sets file's
+   offset to zero. */
 static errno_t reg40_reset(object_entity_t *entity) {
 	aal_assert("umka-1963", entity != NULL);
 
@@ -137,11 +133,9 @@ static int32_t reg40_read(object_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Returns plugin (tail or extent) for next write operation basing on passed size
-  to be writen. This function will be using tail policy plugin for find out what
-  next item should be writen.
-*/
+/* Returns plugin (tail or extent) for next write operation basing on passed
+   size to be writen. This function will be using tail policy plugin for find
+   out what next item should be writen. */
 static reiser4_plugin_t *reg40_bplug(reg40_t *reg,
 				     uint32_t size)
 {
@@ -393,11 +387,9 @@ static int32_t reg40_put(object_entity_t *entity,
 			return -EINVAL;
 		}
 
-		/*
-		  Checking if we need write chunk by chunk n odrer to rewrite
-		  tail correctly in the case we write tail, that overlaps two
-		  neighbour tails by key.
-		*/
+		/* Checking if we need write chunk by chunk n odrer to rewrite
+		   tail correctly in the case we write tail, that overlaps two
+		   neighbour tails by key. */
 		if (lookup == PRESENT) {
 			uint64_t offset;
 			key_entity_t maxreal_key;
@@ -435,11 +427,9 @@ static int32_t reg40_put(object_entity_t *entity,
 	/* Updating stat data fields */
 	size = obj40_get_size(&reg->obj);
 
-	/*
-	  Updating size if new file offset is further than size. This means,
-	  that file realy got some data additionaly, not only got rewtittem
-	  something.
-	*/
+	/* Updating size if new file offset is further than size. This means,
+	   that file realy got some data additionaly, not only got rewtittem
+	   something. */
 	if (reg->offset > size) {
 		if ((res = obj40_set_size(&reg->obj, reg->offset)))
 			return res;
@@ -640,10 +630,8 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 	obj40_set_size(&reg->obj, n);
 
-	/*
-	  In the sace of tails bytes should be the same as size field in
-	  stat data.
-	*/
+	/* In the sace of tails bytes should be the same as size field in stat
+	   data. */
 	obj40_set_bytes(&reg->obj, n);
 	
 	return 0;
@@ -695,10 +683,8 @@ static errno_t callback_item_data(void *object, uint64_t start,
 	return 0;
 }
 
-/*
-  Implements reg40 layout function. It traverses all blocks belong to the file
-  and needed for calculating fragmentation, printing, etc.
-*/
+/* Implements reg40 layout function. It traverses all blocks belong to the file
+   and needed for calculating fragmentation, printing, etc. */
 static errno_t reg40_layout(object_entity_t *entity,
 			    block_func_t block_func,
 			    void *data)
@@ -753,10 +739,8 @@ static errno_t reg40_layout(object_entity_t *entity,
 	return 0;
 }
 
-/*
-  Implements reg40 metadata function. It traverses items belong to the file and
-  needed for calculating fragmentation, printing, etc.
-*/
+/* Implements reg40 metadata function. It traverses items belong to the file and
+   needed for calculating fragmentation, printing, etc. */
 static errno_t reg40_metadata(object_entity_t *entity,
 			      place_func_t func,
 			      void *data)
