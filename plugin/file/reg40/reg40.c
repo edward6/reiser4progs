@@ -86,27 +86,28 @@ static int32_t reg40_read(object_entity_t *entity,
 			  void *buff, uint32_t n)
 {
 	uint64_t size;
-	uint32_t read;
+	uint32_t read, chunk;
 	reg40_t *reg = (reg40_t *)entity;
 
 	aal_assert("umka-1182", entity != NULL, return 0);
 	aal_assert("umka-1183", buff != NULL, return 0);
 
-	/* There is no any data in file */
-	if (!reg->body.node)
-		return 0;
-    
 	if (file40_get_size(&reg->file.statdata, &size))
 		return -1;
 
-	if (size == 0)
+	/* The file has not data at all */
+	if (size == 0 || !reg->body.node)
 		return 0;
+
+	if (n > size - reg->offset)
+		n = size - reg->offset;
 	
 	for (read = 0; read < n; ) {
-		item_entity_t *item = &reg->body.entity;
+		item_entity_t *item;
+
+		item = &reg->body.entity;
 
 		if (item->plugin->h.group == TAIL_ITEM) {
-			uint32_t chunk;
 			
 			/* Check if we need next item */
 			if (reg->local >= item->len) {
@@ -122,7 +123,8 @@ static int32_t reg40_read(object_entity_t *entity,
 			chunk = (item->len - reg->local) > n - read ?
 				n - read : (item->len - reg->local);
 			
-			if (!chunk) break;
+			if (chunk == 0)
+				break;
 	
 			if (plugin_call(return -1, item->plugin->item_ops, fetch,
 					item, buff + read, reg->local, chunk) != (int32_t)chunk)
@@ -139,12 +141,13 @@ static int32_t reg40_read(object_entity_t *entity,
 		} else {
 			uint32_t units;
 			uint32_t blocksize;
+			reiser4_pos_t *pos;
 			
 			aal_block_t *block;
 			aal_device_t *device;
-			
-			reiser4_pos_t *pos = &reg->body.pos;
 
+			pos = &reg->body.pos;
+			
 			if (pos->unit == ~0ul)
 				pos->unit = 0;
 
@@ -152,7 +155,7 @@ static int32_t reg40_read(object_entity_t *entity,
 					    units, item);
 
 			if (pos->unit >= units) {
-				if (reg->offset >= size || reg40_next(entity) != 1)
+				if (reg->offset >= size || reg40_next(entity) != PRESENT)
 					break;
 			}
 			
@@ -174,7 +177,7 @@ static int32_t reg40_read(object_entity_t *entity,
 				blk = ptr.ptr + (reg->local / blocksize);
 				
 				for (; blk < ptr.ptr + ptr.width && read < n; ) {
-					uint32_t chunk, offset;
+					uint32_t offset;
 
 					if (!(block = aal_block_open(device, blk))) {
 						aal_exception_error("Can't read block %llu. %s.",
@@ -182,10 +185,13 @@ static int32_t reg40_read(object_entity_t *entity,
 					}
 
 					offset = (reg->local % blocksize);
+
 					chunk = blocksize - offset;
 					chunk = (chunk <= n - read) ? chunk : n - read;
+
+					aal_memcpy(buff + read, block->data +
+						   offset, chunk);
 					
-					aal_memcpy(buff + read, block->data + offset, chunk);
 					aal_block_close(block);
 					
 					read += chunk;
@@ -208,26 +214,25 @@ static int32_t reg40_read(object_entity_t *entity,
 }
 
 static object_entity_t *reg40_open(const void *tree, 
-				   reiser4_key_t *object) 
+				   reiser4_place_t *place) 
 {
 	reg40_t *reg;
+	reiser4_key_t *pkey;
 
 	aal_assert("umka-1163", tree != NULL, return NULL);
-	aal_assert("umka-1164", object != NULL, return NULL);
-	aal_assert("umka-1165", object->plugin != NULL, return NULL);
+	aal_assert("umka-1164", place != NULL, return NULL);
     
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
-	if (file40_init(&reg->file, object, &reg40_plugin, tree, core))
+	pkey = &place->entity.key;
+	
+	if (file40_init(&reg->file, pkey, &reg40_plugin, tree, core))
 		goto error_free_reg;
 	
-	if (file40_realize(&reg->file)) {
-		aal_exception_error("Can't grab stat data of the file "
-				    "0x%llx.", file40_objectid(&reg->file));
-		goto error_free_reg;
-	}
-    
+	aal_memcpy(&reg->file.statdata, place, sizeof(*place));
+	reg->file.core->tree_ops.lock(tree, &reg->file.statdata);
+	
 	if (reg40_reset((object_entity_t *)reg)) {
 		aal_exception_error("Can't reset file 0x%llx.", 
 				    file40_objectid(&reg->file));

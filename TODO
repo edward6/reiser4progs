@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* print_item method in node plugin.
+
 * --print-journal and --print-alloc options in debugfs.
 
 * something like "print_block" method for format, journal and block
@@ -30,6 +32,8 @@ reiser4progs/COPYING.
 
 * return value from the all low level plugin functions should be raised 
   up to the libreiser4 level.
+
+* debug tree remove functions.
 
 * add overwriting ability to balancing code.
 

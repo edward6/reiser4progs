@@ -572,7 +572,7 @@ struct reiser4_file_ops {
 				    reiser4_key_t *, reiser4_file_hint_t *); 
     
 	/* Opens a file with specified key */
-	object_entity_t *(*open) (const void *, reiser4_key_t *);
+	object_entity_t *(*open) (const void *, reiser4_place_t *);
 
 	/* Conforms file plugin in use */
 	int (*confirm) (reiser4_place_t *);

@@ -106,9 +106,9 @@ static void debugfs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
-static errno_t debugfs_print_stream(aal_stream_t *stream) {
-	void *ptr = stream->data;
-	int len = stream->size - 1;
+static errno_t debugfs_print_buff(void *buff, uint64_t size) {
+	int len = size;
+	void *ptr = buff;
 
 	while (len > 0) {
 		int written;
@@ -125,6 +125,10 @@ static errno_t debugfs_print_stream(aal_stream_t *stream) {
 	}
 
 	return 0;
+}
+
+static errno_t debugfs_print_stream(aal_stream_t *stream) {
+	return debugfs_print_buff(stream->data, stream->size - 1);
 }
 
 /* Callback function used in traverse for opening the node */
@@ -818,6 +822,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 }
 
 static errno_t debugfs_file_cat(reiser4_file_t *file) {
+	int32_t read;
 	char buff[4096];
 	
 	if (reiser4_file_reset(file)) {
@@ -828,10 +833,10 @@ static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (!reiser4_file_read(file, buff, sizeof(buff)))
+		if (!(read = reiser4_file_read(file, buff, sizeof(buff))))
 			break;
 
-		write(1, buff, sizeof(buff));
+		debugfs_print_buff(buff, read);
 	}
 
 	return 0;

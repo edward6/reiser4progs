@@ -1062,6 +1062,7 @@ errno_t reiser4_tree_remove(
 
 		/* Drying tree up in the case root node has only one item */
 		if (coord->node && coord->node == tree->root) {
+			
 			if (reiser4_node_items(tree->root) == 1)
 				reiser4_tree_dryup(tree);
 		}

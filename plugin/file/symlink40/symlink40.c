@@ -50,25 +50,24 @@ static int32_t symlink40_read(object_entity_t *entity,
 }
 
 static object_entity_t *symlink40_open(const void *tree, 
-				       reiser4_key_t *object) 
+				       reiser4_place_t *place) 
 {
+	reiser4_key_t *pkey;
 	symlink40_t *symlink;
 
 	aal_assert("umka-1163", tree != NULL, return NULL);
-	aal_assert("umka-1164", object != NULL, return NULL);
-	aal_assert("umka-1165", object->plugin != NULL, return NULL);
+	aal_assert("umka-1164", place != NULL, return NULL);
     
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
 
-	if (file40_init(&symlink->file, object, &symlink40_plugin, tree, core))
+	pkey = &place->entity.key;
+		
+	if (file40_init(&symlink->file, pkey, &symlink40_plugin, tree, core))
 		goto error_free_symlink;
 	
-	if (file40_realize(&symlink->file)) {
-		aal_exception_error("Can't grab stat data of the file "
-				    "0x%llx.", file40_objectid(&symlink->file));
-		goto error_free_symlink;
-	}
+	aal_memcpy(&symlink->file.statdata, place, sizeof(*place));
+	symlink->file.core->tree_ops.lock(tree, &symlink->file.statdata);
     
 	return (object_entity_t *)symlink;
 

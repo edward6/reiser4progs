@@ -46,7 +46,6 @@ static errno_t reiser4_file_realize(
 {
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
-	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
 
 	char track[4096], path[4096];
 	char *pointer = NULL, *entryname = NULL;
@@ -65,16 +64,25 @@ static errno_t reiser4_file_realize(
 	pointer = path[0] == '/' ? &path[1] : &path[0];
 
 	while (1) {
+		reiser4_place_t *place;
+		reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
+		
 		reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 		reiser4_key_set_offset(&file->key, 0);
 	
 		if (reiser4_tree_lookup(file->fs->tree, &file->key, 
-					&level, &file->coord) != 1) 
+					&stop, &file->coord) != PRESENT) 
 		{
 			aal_exception_error("Can't find stat data of directory %s.", track);
 			return -1;
 		}
 	
+		if (reiser4_coord_realize(&file->coord))
+			return -1;
+
+		if (reiser4_item_get_key(&file->coord, &file->key))
+			return -1;
+    
 		if (!(entryname = aal_strsep(&pointer, "/")))
 			break;
 		
@@ -88,9 +96,11 @@ static errno_t reiser4_file_realize(
 					    "parent of %s.", track);
 			return -1;
 		}
-	
+
+		place = (reiser4_place_t *)&file->coord;
+		
 		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
-					   file->fs->tree, &file->key)))
+					   file->fs->tree, place)))
 		{
 			aal_exception_error("Can't open parent of directory %s.", track);
 			return -1;
@@ -112,7 +122,7 @@ static errno_t reiser4_file_realize(
 		plugin_call(return -1, plugin->file_ops, close, entity);
 		track[aal_strlen(track)] = '/';
 	}
-    
+
 	return 0;
 }
 
@@ -122,6 +132,7 @@ reiser4_file_t *reiser4_file_begin(
 	reiser4_coord_t *coord)		/* statdata key of file to be opened */
 {
 	reiser4_file_t *file;
+	reiser4_place_t *place;
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1508", fs != NULL, return NULL);
@@ -131,7 +142,7 @@ reiser4_file_t *reiser4_file_begin(
 		return NULL;
     
 	file->fs = fs;
-	file->coord = *coord;
+	aal_memcpy(&file->coord, coord, sizeof(coord));
 	
 	if (reiser4_item_get_key(coord, &file->key)) {
 		aal_exception_error("Node (%llu), item (%u), unit(%u): Can't "
@@ -140,31 +151,19 @@ reiser4_file_t *reiser4_file_begin(
 		goto error_free_file;
 	}
 	
-#ifndef ENABLE_COMPACT
-	{
-		aal_stream_t stream;
-		aal_stream_init(&stream);
-		
-		reiser4_key_print(&file->key, &stream);
-		
-		aal_strncpy(file->name, (char *)stream.data,
-			    sizeof(file->name));
-		
-		aal_stream_fini(&stream);
-	}
-#else
-	aal_snprintf(file->name, sizeof(file->name), "%llx",
-		     reiser4_key_objectid(&file->key));
-#endif
+	aal_snprintf(file->name, sizeof(file->name), "file %llx",
+		     reiser4_key_get_objectid(&file->key));
 	
 	if (!(plugin = reiser4_file_guess(&file->coord))) {
 		aal_exception_error("Can't find file plugin for %s.",
 				    file->name);
 		goto error_free_file;
 	}
-    
+
+	place = (reiser4_place_t *)&file->coord;
+		
 	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
-					 open, fs->tree, &file->key)))
+					 open, fs->tree, place)))
 	{
 		aal_exception_error("Can't open %s.", file->name);
 		goto error_free_file;
@@ -182,8 +181,9 @@ reiser4_file_t *reiser4_file_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
 	const char *name)		/* name of file to be opened */
 {
+	reiser4_key_t *key;
 	reiser4_file_t *file;
-	reiser4_key_t *root_key;
+	reiser4_place_t *place;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-678", fs != NULL, return NULL);
@@ -201,13 +201,14 @@ reiser4_file_t *reiser4_file_open(
 	file->fs = fs;
 	aal_strncpy(file->name, name, sizeof(file->name));
 
-	root_key = &fs->tree->key;
-	reiser4_key_init(&file->key, root_key->plugin, root_key->body);
+	key = &fs->tree->key;
+	reiser4_key_init(&file->key, key->plugin, key->body);
     
 	/* 
-	   Getting file's stat data key by means of parsing its path. I assume
-	   that name is absolute name. So, user, who will call this method
-	   should convert name previously into absolute one by getcwd function.
+	   Getting the file's stat data key by means of parsing its path. I
+	   assume, that name is absolute name. So, user, who will call this
+	   method should convert name previously into absolute one by getcwd
+	   function.
 	*/
 	if (reiser4_file_realize(file, name)) {
 		aal_exception_error("Can't find file %s.", name);
@@ -219,8 +220,10 @@ reiser4_file_t *reiser4_file_open(
 		goto error_free_file;
 	}
     
+	place = (reiser4_place_t *)&file->coord;
+	
 	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
-					 open, fs->tree, &file->key)))
+					 open, fs->tree, place)))
 	{
 		aal_exception_error("Can't open %s.", name);
 		goto error_free_file;
@@ -393,7 +396,7 @@ errno_t reiser4_file_reset(
 			   reset, file->entity);
 }
 
-errno_t reiser4_file_read(
+int32_t reiser4_file_read(
 	reiser4_file_t *file,	    /* dir entry will be read from */
 	void *buff,		    /* buffer result will be stored in */
 	uint64_t n)                 /* buffer size */

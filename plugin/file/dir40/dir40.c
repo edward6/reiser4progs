@@ -31,6 +31,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
     
 	/* Preparing key of the first entry in directory */
 	key.plugin = dir->file.key.plugin;
+	
 	plugin_call(return -1, key.plugin->key_ops, build_direntry, key.body, dir->hash,
 		    file40_locality(&dir->file), file40_objectid(&dir->file), ".");
 
@@ -69,7 +70,10 @@ static int dir40_next(object_entity_t *entity) {
 	reiser4_plugin_t *right_plugin;
 	dir40_t *dir = (dir40_t *)entity;
 
-	/* Getting the right neighbour */
+	/*
+	  Getting the right neighbour. While key40 is using, next direntry item
+	  will lie in the right neighbour node.
+	*/
 	if (core->tree_ops.right(dir->file.tree, &dir->body, &right))
 		return 0;
 
@@ -92,7 +96,7 @@ static int dir40_next(object_entity_t *entity) {
 
 /* Reads n entries to passed buffer buff */
 static int32_t dir40_read(object_entity_t *entity, 
-			  void *buff, uint32_t n)
+			  void *buff, uint32_t count)
 {
 	uint32_t i, units;
 	item_entity_t *item;
@@ -113,7 +117,7 @@ static int32_t dir40_read(object_entity_t *entity,
 	if (units == 0)
 		return 0;
 	
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < count; i++) {
 		
 		/* Check if we should get next item in right neighbour */
 		if (dir->body.pos.unit >= units && dir40_next(entity) != 1)
@@ -185,33 +189,31 @@ static int dir40_lookup(object_entity_t *entity,
 }
 
 static object_entity_t *dir40_open(const void *tree, 
-				   reiser4_key_t *object) 
+				   reiser4_place_t *place) 
 {
 	dir40_t *dir;
+	reiser4_key_t *pkey;
 
 	aal_assert("umka-836", tree != NULL, return NULL);
-	aal_assert("umka-837", object != NULL, return NULL);
-	aal_assert("umka-838", object->plugin != NULL, return NULL);
+	aal_assert("umka-837", place != NULL, return NULL);
     
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 
-	if (file40_init(&dir->file, object, &dir40_plugin, tree, core))
+	pkey = &place->entity.key;
+	
+	if (file40_init(&dir->file, pkey, &dir40_plugin, tree, core))
 		goto error_free_dir;
 
 	if (!(dir->hash = dir40_guess(dir))) {
-                aal_exception_error("Can't guess hash plugin for directory %llx.",
-                                    file40_objectid(&dir->file));
+                aal_exception_error("Can't guess hash plugin for directory "
+				    "%llx.", file40_objectid(&dir->file));
                 goto error_free_dir;
         }
-  
-	/* Grabbing stat data */
-	if (file40_realize(&dir->file)) {
-		aal_exception_error("Can't grab stat data of directory 0x%llx.", 
-				    file40_objectid(&dir->file));
-		goto error_free_dir;
-	}
 
+	aal_memcpy(&dir->file.statdata, place, sizeof(*place));
+	dir->file.core->tree_ops.lock(tree, &dir->file.statdata);
+	
 	/* Positioning to the first directory unit */
 	if (dir40_reset((object_entity_t *)dir)) {
 		aal_exception_error("Can't reset directory 0x%llx.", 
