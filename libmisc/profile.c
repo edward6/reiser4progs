@@ -48,15 +48,12 @@ errno_t misc_profile_override(char *override) {
 }
 
 void misc_profile_print(void) {
-	uint32_t i, pids;
+	uint32_t i;
 	reiser4_plug_t *plug;
 
 	printf("Default profile\n");
 
-	pids = sizeof(default_profile.pid) /
-		sizeof(reiser4_pid_t);
-	
-	for (i = 0; i < pids; i++) {
+	for (i = 0; i < PROFILE_PLUGS; i++) {
 		uint32_t width;
 		reiser4_pid_t *pid;
 
@@ -69,8 +66,8 @@ void misc_profile_print(void) {
 			printf("%s:%*s\"%s\"\n", pid->name, width - 1,
 			       " ", plug->label);
 		} else {
-			printf("%s:%*s\"0x%llx\"\n", pid->name, width - 1,
-			       " ", pid->value);
+			printf("%s:%*s\"absent (id: 0x%llx)\"\n", pid->name,
+			       width - 1, " ", pid->value);
 		}
 	}
 	

@@ -109,14 +109,11 @@ reiser4_profile_t default_profile = {
 #endif
 
 reiser4_pid_t *reiser4_profile_pid(const char *type) {
-	unsigned i, pids;
+	uint32_t i;
 
 	aal_assert("umka-1877", type != NULL);
 
-	pids = sizeof(default_profile.pid) /
-		sizeof(reiser4_pid_t);
-	
-	for (i = 0; i < pids; i++) {
+	for (i = 0; i < PROFILE_PLUGS; i++) {
 		reiser4_pid_t *pid = &default_profile.pid[i];
 
 		if (aal_strlen(pid->name) != aal_strlen(type))
