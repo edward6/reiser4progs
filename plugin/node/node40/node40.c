@@ -1037,9 +1037,23 @@ static lookup_t node40_lookup(object_entity_t *entity,
 static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
 			   uint32_t count, write_hint_t *hint)
 {
-	aal_assert("umka-1991", hint != NULL);
+	rid_t pid;
+	errno_t res;
+	
 	aal_assert("umka-1989", pos != NULL);
+	aal_assert("umka-1991", hint != NULL);
 	aal_assert("umka-1987", entity != NULL);
+
+	hint->pos = *pos;
+	
+	pid = node40_item_pid(entity, pos);
+
+	/* Calling item feel method to fill @hint fields */
+	if (!(hint->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid)))
+		return -EINVAL;
+	
+	if ((res = node40_get_key(entity, pos, &hint->key)))
+		return res;
 	
 	if (pos->unit == ~0ul) {
 		pos_t p = *pos;
@@ -1063,20 +1077,25 @@ static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
 		hint->body_data = node40_item_body(entity, pos);
 		return 0;
 	} else {
-		rid_t pid;
 		item_entity_t item;
 	
-		pid = node40_item_pid(entity, pos);
-		
-		if (!(hint->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid)))
-			return -EINVAL;
-
-		if (!hint->plugin->item_ops.feel)
-			return -EINVAL;
-
 		if (node40_item(&item, (node40_t *)entity, pos))
 			return -EINVAL;
 		
+		/*
+		  If feel() is not implemented we suppose we want copy item
+		  which has not units. In this case we initialize hint as
+		  pointer to item body with item len.
+		*/
+		if (!hint->plugin->item_ops.feel) {
+			hint->header_len = 0;
+			hint->header_data = NULL;
+
+			hint->body_len = item.len;
+			hint->header_data = item.body;
+			return 0;
+		}
+
 		return hint->plugin->item_ops.feel(&item, pos->unit,
 						   count, hint);
 	}

@@ -248,12 +248,6 @@ static int direntry40_mergeable(item_entity_t *item1,
 
 #ifndef ENABLE_ALONE
 
-static errno_t direntry40_feel(item_entity_t *item, uint32_t pos,
-			       uint32_t count, write_hint_t *hint)
-{
-	return 0;
-}
-
 /*
   Estimates how much bytes will be needed to prepare in node in odrer to make
   room for inserting new entries.
@@ -950,6 +944,32 @@ int32_t direntry40_remove(item_entity_t *item,
 		direntry40_get_key(item, 0, &item->key);
 
 	return len;
+}
+
+static errno_t direntry40_feel(item_entity_t *item, uint32_t pos,
+			       uint32_t count, write_hint_t *hint)
+{
+	uint32_t units;
+	direntry40_t *direntry;
+	
+	aal_assert("umka-1992", item != NULL);
+	aal_assert("umka-1993", hint != NULL);
+
+	units = direntry40_units(item);
+	aal_assert("umka-1994", pos < units);
+		
+	direntry = direntry40_body(item);
+
+	if (pos + count >= units)
+		count = units - pos;
+	
+	hint->header_data = &direntry->entry[pos];
+	hint->header_len = sizeof(entry40_t) * count;
+	
+	hint->body_len = direntry40_size(item, pos, count);
+	hint->body_data = item->body + direntry->entry[pos].offset;
+
+	return 0;
 }
 
 /* Prepares area new item will be created at */

@@ -54,6 +54,16 @@ reiser4_node_t *reiser4_node_create(
 	return NULL;
 }
 
+errno_t reiser4_node_feel(reiser4_node_t *node, pos_t *pos,
+			  uint32_t count, write_hint_t *hint)
+{
+	aal_assert("umka-1999", node != NULL);
+	aal_assert("umka-2000", node != NULL);
+
+	return plugin_call(node->entity->plugin->node_ops,
+			   feel, node->entity, pos, count, hint);
+}
+
 /* Prints passed @node to the specified @stream */
 errno_t reiser4_node_print(
 	reiser4_node_t *node,   /* node to be printed */

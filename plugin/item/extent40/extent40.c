@@ -729,6 +729,21 @@ static errno_t extent40_shift(item_entity_t *src_item,
 	return 0;
 }
 
+static errno_t extent40_feel(item_entity_t *item, uint32_t pos,
+			     uint32_t count, write_hint_t *hint)
+{
+	aal_assert("umka-1997", item != NULL);
+	aal_assert("umka-1998", hint != NULL);
+
+	hint->header_len = 0;
+	hint->header_data = NULL;
+
+	hint->body_len = sizeof(extent40_t) * count;
+	hint->body_data = (extent40_t *)item->body + pos;
+
+	return 0;
+}
+
 extern errno_t extent40_check(item_entity_t *item, uint8_t mode);
 
 #endif
@@ -754,9 +769,9 @@ static reiser4_plugin_t extent40_plugin = {
 		.shift         = extent40_shift,
 		.layout        = extent40_layout,
 		.check	       = extent40_check,
+		.feel          = extent40_feel,
 		.layout_check  = extent40_layout_check,
 
-		.feel          = NULL,
 		.insert	       = NULL,
 		.set_key       = NULL,
 #endif

@@ -326,14 +326,14 @@ typedef struct shift_hint shift_hint_t;
 
 /* This struct is used for writing data from the one place to another */
 struct write_hint {
-	key_entity_t key;
-	
 	void *header_data;
 	uint32_t header_len;
 
 	void *body_data;
 	uint32_t body_len;
 	
+	pos_t pos;
+	key_entity_t key;
 	reiser4_plugin_t *plugin;
 };
 

@@ -381,6 +381,21 @@ static errno_t tail40_shift(item_entity_t *src_item,
 	return 0;
 }
 
+static errno_t tail40_feel(item_entity_t *item, uint32_t pos,
+			   uint32_t count, write_hint_t *hint)
+{
+	aal_assert("umka-1995", item != NULL);
+	aal_assert("umka-1996", hint != NULL);
+
+	hint->header_len = 0;
+	hint->header_data = NULL;
+
+	hint->body_len = count;
+	hint->body_data = item->body + pos;
+
+	return 0;
+}
+
 #endif
 
 static reiser4_plugin_t tail40_plugin = {
@@ -401,12 +416,12 @@ static reiser4_plugin_t tail40_plugin = {
 		.print	        = tail40_print,
 		.predict        = tail40_predict,
 		.shift	        = tail40_shift,		
+		.feel           = tail40_feel,
 		.insert	        = NULL,
 		.check	        = NULL,
 		.estimate       = NULL,
 		.set_key        = NULL,
 		.layout	        = NULL,
-		.feel           = NULL,
 		.layout_check   = NULL,
 #endif
 		.valid	        = NULL,
