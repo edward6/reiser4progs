@@ -463,7 +463,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	body_hint.count = 1;
 
 	if (!(body_hint.entry = aal_calloc(sizeof(*entry), 0)))
-		return 0;
+		return -1;
     
 	hint.hint = &body_hint;
   
@@ -487,7 +487,11 @@ static int32_t dir40_write(object_entity_t *entity,
 		/* Inserting the entry to the tree */
 		if ((lookup = core->tree_ops.lookup(dir->file.tree, &hint.key,
 						    &level, &place)) == FAILED)
-			break;
+		{
+			aal_exception_error("Lookup failed while trying to "
+					    "insert entry %s.", entry->name);
+			return -1;
+		}
 
 		if (lookup == PRESENT) {
 			aal_exception_error("Entry key already exists in "

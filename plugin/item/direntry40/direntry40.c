@@ -205,13 +205,17 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	hint->flags &= ~SF_MOVIP;
 	
 	while (!(hint->flags & SF_MOVIP) && cur < direntry40_units(src_item)) {
-			
+
 		len = direntry40_unit_len(direntry, cur);
 
 		if (space < len + sizeof(entry40_t))
 			break;
 
-		if (src_item->pos == 0 && hint->pos.unit != ~0ul) {
+		/*
+		  Check if we should update unit pos. we will update it if we
+		  are at insert point and unit pos is not ~0ul.
+		*/
+		if (src_item->pos == hint->pos.item && hint->pos.unit != ~0ul) {
 			
 			if (!(flags & SF_MOVIP)) {
 				if (flags & SF_LEFT) {
@@ -244,7 +248,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		dst_units++;
 		hint->units++;
 
-		cur += (flags & SF_LEFT ? -1 : 1);
+		cur += (flags & SF_LEFT ? 1 : -1);
 		space -= (len + sizeof(entry40_t));
 	}
 
@@ -324,9 +328,10 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		/* Copyings entry bodies */
 		src = (void *)src_direntry + en40_get_offset((entry40_t *)src);
 
-		dst = (void *)dst_direntry + sizeof(direntry40_t) +
-			((dst_units + hint->units) * sizeof(entry40_t));
-			
+		entry = direntry40_entry(dst_direntry, dst_units - 1);
+		dst = (void *)dst_direntry + en40_get_offset(entry) +
+			direntry40_unit_len(dst_direntry, dst_units - 1);
+		
 		size = hint->part - (hint->units * sizeof(entry40_t));
 
 		/* FIXME-UMKA: Is this enough reliable? */
@@ -341,7 +346,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			
 		for (i = 0; i < hint->units; i++, entry++) {
 			en40_set_offset(entry, offset);
-			offset += direntry40_unit_len(dst_direntry, i);
+			offset += direntry40_unit_len(dst_direntry, dst_units + i);
 		}
 
 		if (src_units > hint->units) {

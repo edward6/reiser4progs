@@ -171,7 +171,7 @@ typedef union reiser4_plugin reiser4_plugin_t;
 
 #define PRESENT       0x1
 #define ABSENT        0x0
-#define FAILED        0xffff
+#define FAILED        -1
 
 #define INVAL_PID     0xffff
 

@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 				aal_snprintf(name, 256, "testdir%d", i);
 
 				if (!(file = reiser4_file_create(fs, &dir_hint, dir, name)))
-					break;
+					goto error_free_dir;
 				
 				reiser4_file_close(file);
 			}
