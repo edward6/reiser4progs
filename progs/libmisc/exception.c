@@ -62,8 +62,8 @@ static aal_exception_option_t progs_exception_oneof(
 }
 
 /* Constructs exception message */
-static void progs_exception_print_wrap(
-	aal_exception_t *exception)
+static void progs_exception_print_wrap(aal_exception_t *exception,
+				       void *stream)
 {
 	char buff[4096];
 
@@ -77,7 +77,7 @@ static void progs_exception_print_wrap(
 	aal_strncat(buff, exception->message, 
 		    aal_strlen(exception->message));
 
-	progs_print_wrap(stderr, buff);
+	progs_print_wrap(stream, buff);
 }
 
 /* 
@@ -153,7 +153,7 @@ aal_exception_option_t progs_exception_handler(
 			progs_wipe_line(stream);
 	}
 
-	progs_exception_print_wrap(exception);
+	progs_exception_print_wrap(exception, stream);
     
 	if (progs_exception_option_count(exception->options, 0) == 1)
 		return exception->options;
