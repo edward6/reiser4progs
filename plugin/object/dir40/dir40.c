@@ -375,37 +375,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 		units = plug_call(dir->body.plug->o.item_ops,
 				  units, &dir->body);
 
-		if (dir->body.pos.unit < units) {
-
-			if (dir40_fetch(entity, &temp))
-				return FAILED;
-
-			if (entry) {
-				aal_memcpy(&entry->place, &temp.place,
-					   sizeof(temp.place));
-			}
-
-			comp = dir40_compent(temp.name, name);
-			
-			if (comp < 0) {
-				dir->body.pos.unit++;
-
-				if (entry) {
-					entry->offset.adjust++;
-					entry->place.pos.unit++;
-				}
-				
-			} else if (comp > 0) {
-				return ABSENT;
-			} else {
-				if (entry) {
-					aal_memcpy(entry, &temp,
-						   sizeof(temp));
-				}
-				
-				return PRESENT;
-			}
-		} else {
+		if (dir->body.pos.unit >= units) {
 			switch (dir40_next(entity)) {
 			case 1:
 				break;
@@ -415,9 +385,36 @@ lookup_t dir40_lookup(object_entity_t *entity,
 				return FAILED;
 			}
 		}
+		
+		if (dir40_fetch(entity, &temp))
+			return FAILED;
+
+		if (entry) {
+			aal_memcpy(&entry->place, &temp.place,
+				   sizeof(temp.place));
+		}
+
+		comp = dir40_compent(temp.name, name);
+			
+		if (comp < 0) {
+			dir->body.pos.unit++;
+
+			if (entry) {
+				entry->offset.adjust++;
+				entry->place.pos.unit++;
+			}
+				
+		} else if (comp > 0) {
+			return ABSENT;
+		} else {
+			if (entry) {
+				aal_memcpy(entry, &temp,
+					   sizeof(temp));
+			}
+				
+			return PRESENT;
+		}
 	}
-	
-	return ABSENT;
 #else
 	/* Fetching found entry to passed @entry */
 	if (entry && dir40_fetch(entity, entry))

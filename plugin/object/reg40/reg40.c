@@ -485,12 +485,9 @@ static int32_t reg40_cut(object_entity_t *entity,
 			  set_offset, &key, size - 1);
 
 		/* Making lookup for last item. */
-		switch (obj40_lookup(&reg->obj, &key,
-				     LEAF_LEVEL, &place))
+		if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
+				  &place) != PRESENT)
 		{
-		case PRESENT:
-			break;
-		default:
 			return -EINVAL;
 		}
 
