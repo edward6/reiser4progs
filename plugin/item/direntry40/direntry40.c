@@ -203,7 +203,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		if (space < len + sizeof(entry40_t))
 			break;
 
-		if (hint->pos.unit != ~0ul) {
+		if (src_item->pos == 0 && hint->pos.unit != ~0ul) {
 			
 			if (!(flags & SF_MOVIP)) {
 				if (flags & SF_LEFT) {

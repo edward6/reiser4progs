@@ -195,6 +195,7 @@ static errno_t callback_tree_mpressure(void *data, int result) {
 		return -1;
 	
 	aal_mpressure_enable(tree->mpressure);
+	
 	return 0;
 }
 
@@ -657,14 +658,14 @@ errno_t reiser4_tree_mkspace(
 		return 0;
 
 	/* Shifting data into left neighbour if it exists */
-	if ((left = reiser4_node_left(new->node))) {
+/*	if ((left = reiser4_node_left(new->node))) {
 	    
 		if (reiser4_tree_shift(tree, new, left, SF_LEFT))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(new->node)) <= 0)
 			return 0;
-	}
+	}*/
 
 	/* Shifting data into right neighbour if it exists */
 	if ((right = reiser4_node_right(new->node))) {
