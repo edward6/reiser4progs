@@ -1406,7 +1406,7 @@ struct tree_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
 	   by all object plugins (dir, file, etc) */
-	errno_t (*insert) (void *, place_t *,
+	int64_t (*insert) (void *, place_t *,
 			   trans_hint_t *, uint8_t);
 
 	/* Writes data to tree */

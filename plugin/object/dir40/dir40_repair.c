@@ -125,7 +125,9 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	aal_strncpy(entry.name, ".", 1);
 	body_hint.specific = &entry;
-	return obj40_insert(&dir->obj, &dir->body, &body_hint, LEAF_LEVEL);
+	res = obj40_insert(&dir->obj, &dir->body, &body_hint, LEAF_LEVEL);
+
+	return res < 0 ? res : 0;
 }
 
 #if 0

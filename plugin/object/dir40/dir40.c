@@ -587,7 +587,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	case ABSENT:
 		/* Inserting the direntry body item into the tree. */
 		if (obj40_insert(&dir->obj, &dir->body,
-				 &body_hint, LEAF_LEVEL))
+				 &body_hint, LEAF_LEVEL) < 0)
 		{
 			goto error_free_dir;
 		}
@@ -831,7 +831,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 
 	/* Inserting entry described by @hint to tree at @temp.place */
 	if ((res = obj40_insert(&dir->obj, &temp.place,
-				&hint, LEAF_LEVEL)))
+				&hint, LEAF_LEVEL)) < 0)
 	{
 		return res;
 	}

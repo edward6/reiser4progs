@@ -22,7 +22,7 @@ static reiser4_plug_t *factory_nfind(char *name) {
 }
 
 /* Handler for item insert requests from the all plugins */
-static errno_t tree_insert(
+static int64_t tree_insert(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* insertion point will be saved here */
 	trans_hint_t *hint,         /* item hint to be inserted into tree */

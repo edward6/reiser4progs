@@ -69,7 +69,7 @@ extern void reiser4_tree_set_height(reiser4_tree_t *tree,
 extern void reiser4_tree_pack_set(reiser4_tree_t *tree,
 				  pack_func_t func);
 
-extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
+extern int64_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
 				   trans_hint_t *hint,
 				   uint8_t level);

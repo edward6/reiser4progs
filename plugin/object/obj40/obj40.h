@@ -122,7 +122,7 @@ extern errno_t obj40_recognize(obj40_t *obj,
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    trans_hint_t *hint);
 
-extern errno_t obj40_insert(obj40_t *obj, place_t *place,
+extern int64_t obj40_insert(obj40_t *obj, place_t *place,
 			    trans_hint_t *hint, uint8_t level);
 
 extern int64_t obj40_conv(obj40_t *obj, conv_hint_t *hint);

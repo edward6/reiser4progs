@@ -115,7 +115,8 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 			  uint64_t size, uint64_t bytes, uint64_t rdev,
 			  uint32_t nlink, uint16_t mode, char *path)
 {
-	lookup_t res;
+	int64_t res;
+	lookup_t lookup;
 	trans_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_ext;
@@ -172,17 +173,19 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	switch ((res = obj40_lookup(obj, &hint.offset, LEAF_LEVEL,
-				    FIND_CONV, STAT_PLACE(obj))))
+	switch ((lookup = obj40_lookup(obj, &hint.offset, LEAF_LEVEL,
+				       FIND_CONV, STAT_PLACE(obj))))
 	{
 	case ABSENT:
 		break;
 	default:
-		return res;
+		return lookup;
 	}
 	
 	/* Insert stat data to tree */
-	return obj40_insert(obj, STAT_PLACE(obj), &hint, LEAF_LEVEL);
+	res = obj40_insert(obj, STAT_PLACE(obj), &hint, LEAF_LEVEL);
+
+	return res < 0 ? res : 0;
 }
 
 /* Updates size, bytes and atime fielsds */
@@ -642,7 +645,7 @@ int64_t obj40_trunc(obj40_t *obj, trans_hint_t *hint) {
 
 /* Inserts passed item hint into the tree. After function is finished, place
    contains the place of the inserted item. */
-errno_t obj40_insert(obj40_t *obj, place_t *place,
+int64_t obj40_insert(obj40_t *obj, place_t *place,
 		     trans_hint_t *hint, uint8_t level)
 {
 	return obj->core->tree_ops.insert(obj->info.tree,

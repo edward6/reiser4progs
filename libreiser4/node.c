@@ -902,17 +902,17 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 }
 
 /* Node modifying fucntion. */
-int64_t reiser4_node_mod(
+int64_t reiser4_node_modify(
 	reiser4_node_t *node,	         /* node item will be inserted in */
 	pos_t *pos,                      /* pos item will be inserted at */
 	trans_hint_t *hint,              /* item hint to be inserted */
-	mod_func_t modify)               /* modifying mode (insert/write) */
+	modify_func_t modify)		 /* modifying mode (insert/write) */
 {
 	errno_t res;
 	uint32_t len;
+	int64_t write;
 	uint32_t needed;
-	int32_t write = 0;
-    
+ 
 	len = hint->len + hint->ohd;
 
 	needed = len + (pos->unit == MAX_UINT32 ?
@@ -927,8 +927,8 @@ int64_t reiser4_node_mod(
 	}
 
 	/* Modifing the node with the given @hint. */
-	if ((res = modify(node, pos, hint)) < 0)
-		return res;
+	if ((write = modify(node, pos, hint)) < 0)
+		return write;
 	
 	if ((res = reiser4_node_uchild(node, pos))) {
 		aal_exception_error("Can't update child positions in "
@@ -960,7 +960,7 @@ errno_t reiser4_node_insert(reiser4_node_t *node,
 	aal_assert("umka-991", pos != NULL);
 	aal_assert("umka-992", hint != NULL);
 	
-	return reiser4_node_mod(node, pos, hint, callback_node_insert);
+	return reiser4_node_modify(node, pos, hint, callback_node_insert);
 }
 
 int64_t reiser4_node_write(reiser4_node_t *node,
@@ -970,7 +970,7 @@ int64_t reiser4_node_write(reiser4_node_t *node,
 	aal_assert("umka-2446", pos != NULL);
 	aal_assert("umka-2447", hint != NULL);
 
-	return reiser4_node_mod(node, pos, hint, callback_node_write);
+	return reiser4_node_modify(node, pos, hint, callback_node_write);
 }
 
 int64_t reiser4_node_trunc(reiser4_node_t *node,
