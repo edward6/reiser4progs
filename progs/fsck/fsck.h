@@ -1,7 +1,7 @@
-/*
-    fsck.h -- fsck structure declarations.
-    Copyright (C) 1996-2002 Hans Reiser.
-*/
+/* Copyright (C) 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+
+   fsck.h -- fsck structure declarations. */
 
 #ifndef FSCK_H
 #define FSCK_H

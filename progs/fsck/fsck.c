@@ -1,4 +1,5 @@
-/* Copyright (C) 1996-2002 Hans Reiser.
+/* Copyright (C) 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
    fsck.c -- reiser4 filesystem checking and recovering program. */
 

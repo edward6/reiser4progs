@@ -1,7 +1,7 @@
-/*
-    gauge.h -- fsck gauge declarations.
-    Copyright (C) 1996-2002 Hans Reiser.
-*/
+/* Copyright (C) 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+
+   gauge.h -- fsck gauge declarations. */
 
 #ifndef FSCK_GAUGE_H
 #define FSCK_GAUGE_H
