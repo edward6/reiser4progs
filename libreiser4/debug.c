@@ -34,8 +34,8 @@ void reiser4_print_format(reiser4_format_t *format,
 
 	aal_stream_init(&stream, NULL, &file_stream);
 
-	plug_call(format->entity->plug->o.format_ops,
-		  print, format->entity, &stream, options);
+	plug_call(format->ent->plug->o.format_ops,
+		  print, format->ent, &stream, options);
 	
 	aal_stream_fini(&stream);
 }

@@ -625,8 +625,8 @@ static errno_t repair_update(repair_control_t *control) {
 		}
 
 		if (mode != RM_CHECK) {
-			plug_call(fs->oid->entity->plug->o.oid_ops, set_next,
-				  fs->oid->entity, control->oid);
+			plug_call(fs->oid->ent->plug->o.oid_ops, set_next,
+				  fs->oid->ent, control->oid);
 		} else {
 			control->repair->fixable++;
 		}

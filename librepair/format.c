@@ -22,9 +22,9 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	rid_t pid;
 
 	/* Format was opened or detected. Check it and fix it. */
-	if (fs->format->entity->plug->o.format_ops->check_struct) {
-		res = plug_call(fs->format->entity->plug->o.format_ops,
-				check_struct, fs->format->entity, 
+	if (fs->format->ent->plug->o.format_ops->check_struct) {
+		res = plug_call(fs->format->ent->plug->o.format_ops,
+				check_struct, fs->format->ent, 
 				mode);
 
 		if (repair_error_fatal(res))
@@ -104,8 +104,8 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		bool_t large;
 		
 		defplug = reiser4_profile_plug(PROF_KEY);
-		flags = plug_call(fs->format->entity->plug->o.format_ops,
-				  get_flags, fs->format->entity);
+		flags = plug_call(fs->format->ent->plug->o.format_ops,
+				  get_flags, fs->format->ent);
 
 		large = flags & (1 << REISER4_LARGE_KEYS);
 
@@ -126,8 +126,8 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			else
 				flags |= (1 << REISER4_LARGE_KEYS);
 
-			plug_call(fs->format->entity->plug->o.format_ops, 
-				  set_flags, fs->format->entity, flags);
+			plug_call(fs->format->ent->plug->o.format_ops, 
+				  set_flags, fs->format->ent, flags);
 		}
 	}
 	
@@ -266,10 +266,10 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 errno_t repair_format_update(reiser4_format_t *format) {
 	aal_assert("vpf-829", format != NULL);
 
-	if (format->entity->plug->o.format_ops->update == NULL)
+	if (format->ent->plug->o.format_ops->update == NULL)
 		return 0;
     
-	return format->entity->plug->o.format_ops->update(format->entity);
+	return format->ent->plug->o.format_ops->update(format->ent);
 }
 
 /* Fetches format data to @stream. */
@@ -277,8 +277,8 @@ errno_t repair_format_pack(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-2604", format != NULL);
 	aal_assert("umka-2605", stream != NULL);
 
-	return plug_call(format->entity->plug->o.format_ops,
-			 pack, format->entity, stream);
+	return plug_call(format->ent->plug->o.format_ops,
+			 pack, format->ent, stream);
 }
 
 /* Prints @format to passed @stream */
@@ -286,8 +286,8 @@ void repair_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-1560", format != NULL);
 	aal_assert("umka-1561", stream != NULL);
 
-	plug_call(format->entity->plug->o.format_ops,
-		  print, format->entity, stream, 0);
+	plug_call(format->ent->plug->o.format_ops,
+		  print, format->ent, stream, 0);
 }
 
 /* Loads format data from @stream to format entity. */
@@ -322,8 +322,8 @@ reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	desc.device = fs->device;
 	desc.blksize = reiser4_master_get_blksize(fs->master);
 	
-	if (!(format->entity = plug_call(plug->o.format_ops,
-					 unpack, &desc, stream)))
+	if (!(format->ent = plug_call(plug->o.format_ops,
+				      unpack, &desc, stream)))
 	{
 		aal_error("Can't unpack disk-format.");
 		goto error_free_format;

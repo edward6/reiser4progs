@@ -862,7 +862,7 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	reiser4_format_set_free(format, free_blocks - 1);
 
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree, tree->entity.tpset[TPSET_NODE], 
+	if (!(node = reiser4_node_create(tree, tree->ent.tpset[TPSET_NODE],
 					 blk, level))) 
 	{
 		aal_error("Can't initialize new fake node.");
@@ -2013,7 +2013,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	hint.place_func = NULL;
 	hint.region_func = NULL;
 	hint.shift_flags = flags;
-	hint.plug = tree->entity.tpset[TPSET_NODEPTR];
+	hint.plug = tree->ent.tpset[TPSET_NODEPTR];
 
 	ptr.width = 1;
 	ptr.start = node->block->nr;

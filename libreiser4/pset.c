@@ -97,13 +97,13 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 	
-	aal_memcpy(tree->entity.opset, object->entity->opset, 
+	aal_memcpy(tree->ent.opset, object->ent->opset, 
 		   sizeof(reiser4_plug_t *) * OPSET_LAST);
 	
 	/* Check that all 'on-disk' plugins are obtained, set others 
 	   from the profile.  */
 	for (i = 0; i < OPSET_STORE_LAST; i++) {
-		if (i != 1 && !tree->entity.opset[i]) {
+		if (i != 1 && !tree->ent.opset[i]) {
 			aal_error("The slot %u in the fs-global object "
 				  "plugin set is not initialized.", i);
 			goto error;
@@ -111,8 +111,8 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree) {
 	}
 
 	for (i = OPSET_STORE_LAST; i < OPSET_LAST; i++) {
-		if (!tree->entity.opset[i]) {
-			tree->entity.opset[i] = (opset_prof[i] == INVAL_PID) ?
+		if (!tree->ent.opset[i]) {
+			tree->ent.opset[i] = (opset_prof[i] == INVAL_PID) ?
 				NULL : reiser4_profile_plug(opset_prof[i]);
 		}
 	}
@@ -136,8 +136,8 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	aal_assert("vpf-1610", tree->fs->format != NULL);
 
 	/* Init the key plugin. */
-	flags = plug_call(tree->fs->format->entity->plug->o.format_ops,
-			  get_flags, tree->fs->format->entity);
+	flags = plug_call(tree->fs->format->ent->plug->o.format_ops,
+			  get_flags, tree->fs->format->ent);
 
 	/* Hardcoded plugin names for 2 cases. */
 	name = ((1 << REISER4_LARGE_KEYS) & flags)? "key_large" : "key_short";
@@ -154,18 +154,18 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 
-	tree->entity.tpset[TPSET_KEY] = plug;
+	tree->ent.tpset[TPSET_KEY] = plug;
 
 	/* Init other tpset plugins. */
-	tree->entity.tpset[TPSET_NODE] = reiser4_profile_plug(PROF_NODE);
-	tree->entity.tpset[TPSET_NODEPTR] = reiser4_profile_plug(PROF_NODEPTR);
+	tree->ent.tpset[TPSET_NODE] = reiser4_profile_plug(PROF_NODE);
+	tree->ent.tpset[TPSET_NODEPTR] = reiser4_profile_plug(PROF_NODEPTR);
 	
 	/* These plugins should be initialized at the tree init. Later they can 
 	   be reinitialized with the root directory pset r anything else. */
-	tree->entity.opset[OPSET_CREATE] = reiser4_profile_plug(PROF_REG);
-	tree->entity.opset[OPSET_MKDIR] = reiser4_profile_plug(PROF_DIR);
-	tree->entity.opset[OPSET_SYMLINK] = reiser4_profile_plug(PROF_SYM);
-	tree->entity.opset[OPSET_MKNODE] = reiser4_profile_plug(PROF_SPL);
+	tree->ent.opset[OPSET_CREATE] = reiser4_profile_plug(PROF_REG);
+	tree->ent.opset[OPSET_MKDIR] = reiser4_profile_plug(PROF_DIR);
+	tree->ent.opset[OPSET_SYMLINK] = reiser4_profile_plug(PROF_SYM);
+	tree->ent.opset[OPSET_MKNODE] = reiser4_profile_plug(PROF_SPL);
 	
 	return 0;
 }

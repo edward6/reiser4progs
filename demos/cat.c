@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 	if (!(reg = reiser4_semantic_open(fs->tree, argv[2], 1)))
 		goto error_free_fs;
 
-	if (reg->entity->opset[OPSET_OBJ]->id.group != REG_OBJECT) {
+	if (reg->ent->opset[OPSET_OBJ]->id.group != REG_OBJECT) {
 		aal_error("File %s is not a regular file.",
 			  argv[2]);
 		goto error_free_reg;

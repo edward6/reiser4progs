@@ -11,8 +11,8 @@ bool_t reiser4_oid_isdirty(reiser4_oid_t *oid) {
 	
 	aal_assert("umka-2660", oid != NULL);
 
-	state = plug_call(oid->entity->plug->o.oid_ops,
-			  get_state, oid->entity);
+	state = plug_call(oid->ent->plug->o.oid_ops,
+			  get_state, oid->ent);
 	
 	return (state & (1 << ENTITY_DIRTY));
 }
@@ -22,13 +22,13 @@ void reiser4_oid_mkdirty(reiser4_oid_t *oid) {
 	
 	aal_assert("umka-2659", oid != NULL);
 
-	state = plug_call(oid->entity->plug->o.oid_ops,
-			  get_state, oid->entity);
+	state = plug_call(oid->ent->plug->o.oid_ops,
+			  get_state, oid->ent);
 
 	state |= (1 << ENTITY_DIRTY);
 	
-	plug_call(oid->entity->plug->o.oid_ops,
-		  set_state, oid->entity, state);
+	plug_call(oid->ent->plug->o.oid_ops,
+		  set_state, oid->ent, state);
 }
 
 void reiser4_oid_mkclean(reiser4_oid_t *oid) {
@@ -36,13 +36,13 @@ void reiser4_oid_mkclean(reiser4_oid_t *oid) {
 	
 	aal_assert("umka-2658", oid != NULL);
 
-	state = plug_call(oid->entity->plug->o.oid_ops,
-			  get_state, oid->entity);
+	state = plug_call(oid->ent->plug->o.oid_ops,
+			  get_state, oid->ent);
 
 	state &= ~(1 << ENTITY_DIRTY);
 	
-	plug_call(oid->entity->plug->o.oid_ops,
-		  set_state, oid->entity, state);
+	plug_call(oid->ent->plug->o.oid_ops,
+		  set_state, oid->ent, state);
 }
 
 /* Opens object allocator using start and end pointers */
@@ -77,8 +77,8 @@ reiser4_oid_t *reiser4_oid_open(
 	}
     
 	/* Initializing oid allocator entity. */
-	if (!(oid->entity = plug_call(plug->o.oid_ops, open,
-				      fs->format->entity))) 
+	if (!(oid->ent = plug_call(plug->o.oid_ops, open,
+				   fs->format->ent))) 
 	{
 		aal_error("Can't open oid allocator %s.",
 			  plug->label);
@@ -100,8 +100,8 @@ void reiser4_oid_close(
 	
 	oid->fs->oid = NULL;
 	
-	plug_call(oid->entity->plug->o.oid_ops, 
-		  close, oid->entity);
+	plug_call(oid->ent->plug->o.oid_ops, 
+		  close, oid->ent);
     
 	aal_free(oid);
 }
@@ -138,8 +138,8 @@ reiser4_oid_t *reiser4_oid_create(
 	}
     
 	/* Initializing oid allocator entity. */
-	if (!(oid->entity = plug_call(plug->o.oid_ops, create,
-				      fs->format->entity)))
+	if (!(oid->ent = plug_call(plug->o.oid_ops, create,
+				   fs->format->ent)))
 	{
 		aal_error("Can't create oid allocator %s.", 
 			  plug->label);
@@ -160,27 +160,27 @@ errno_t reiser4_oid_layout(reiser4_oid_t *oid,
 {
 	aal_assert("umka-2198", oid != NULL);
 
-	if (!oid->entity->plug->o.oid_ops->layout)
+	if (!oid->ent->plug->o.oid_ops->layout)
 		return 0;
 
-	return plug_call(oid->entity->plug->o.oid_ops,
-			 layout, oid->entity, region_func, data);
+	return plug_call(oid->ent->plug->o.oid_ops,
+			 layout, oid->ent, region_func, data);
 }
 
 /* Returns next object id from specified oid allocator */
 oid_t reiser4_oid_lost_objectid(reiser4_oid_t *oid) {
 	aal_assert("umka-1108", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 lost_objectid, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 lost_objectid, oid->ent);
 }
 
 /* Returns free object id from specified oid allocator */
 oid_t reiser4_oid_allocate(reiser4_oid_t *oid) {
 	aal_assert("umka-522", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 allocate, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 allocate, oid->ent);
 }
 
 /* Releases passed objectid */
@@ -190,8 +190,8 @@ void reiser4_oid_release(
 {
 	aal_assert("umka-525", oid != NULL);
     
-	plug_call(oid->entity->plug->o.oid_ops, 
-		  release, oid->entity, id);
+	plug_call(oid->ent->plug->o.oid_ops, 
+		  release, oid->ent, id);
 }
 
 /* Synchronizes specified oid allocator */
@@ -201,55 +201,55 @@ errno_t reiser4_oid_sync(reiser4_oid_t *oid) {
 	if (!reiser4_oid_isdirty(oid))
 		return 0;
 
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 sync, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 sync, oid->ent);
 }
 
 /* Returns number of used oids from passed oid allocator */
 uint64_t reiser4_oid_used(reiser4_oid_t *oid) {
 	aal_assert("umka-527", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 get_used, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 get_used, oid->ent);
 }
 
 /* Returns number of free oids from passed oid allocator */
 uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
 	aal_assert("umka-527", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 free, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 free, oid->ent);
 }
 
 /* Returns the first not used oid from passed oid allocator */
 uint64_t reiser4_oid_next(reiser4_oid_t *oid) {
 	aal_assert("umka-527", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 get_next, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 get_next, oid->ent);
 }
 
 /* Checks specified oid allocator for validness */
 errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
 	aal_assert("umka-962", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 valid, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 valid, oid->ent);
 }
 
 /* Returns root parent objectid from specified oid allocator */
 oid_t reiser4_oid_root_locality(reiser4_oid_t *oid) {
 	aal_assert("umka-746", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 root_locality, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 root_locality, oid->ent);
 }
 
 /* Returns root objectid from specified oid allocator */
 oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid) {
 	aal_assert("umka-747", oid != NULL);
     
-	return plug_call(oid->entity->plug->o.oid_ops, 
-			 root_objectid, oid->entity);
+	return plug_call(oid->ent->plug->o.oid_ops, 
+			 root_objectid, oid->ent);
 }
 #endif

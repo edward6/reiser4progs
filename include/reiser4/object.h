@@ -112,7 +112,7 @@ extern errno_t reiser4_object_traverse(reiser4_object_t *object,
 				       void *data);
 #endif
 
-#define object_start(object) (&(object)->entity->start)
+#define object_start(object) (&(object)->ent->start)
 extern errno_t reiser4_object_reset(reiser4_object_t *object);
 extern uint32_t reiser4_object_offset(reiser4_object_t *object);
 

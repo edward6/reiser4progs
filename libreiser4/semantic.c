@@ -9,7 +9,7 @@
 struct resolve {
 	bool_t follow;
 	object_info_t info;
-	object_entity_t *entity;
+	object_entity_t *ent;
 };
 
 typedef struct resolve resolve_t;
@@ -49,8 +49,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	}
 
 	/* Trying to recognize the object at @place. */
-	if (!(resol->entity = reiser4_object_recognize(&resol->info)) || 
-	    (resol->entity == INVAL_PTR))
+	if (!(resol->ent = reiser4_object_recognize(&resol->info)) || 
+	    (resol->ent == INVAL_PTR))
 	{
 		aal_error("Can't open object %s.", track);
 		return -EINVAL;
@@ -66,11 +66,11 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	
 		/* Calling object's follow() in order to get stat data key of
 		   the object that current object points to. */
-		res = plug_call(plug->o.object_ops, follow, resol->entity,
+		res = plug_call(plug->o.object_ops, follow, resol->ent,
 				&resol->info.parent, &resol->info.object);
 
 	        /* Close current object. */
-		plug_call(plug->o.object_ops, close, resol->entity);
+		plug_call(plug->o.object_ops, close, resol->ent);
 
 		/* Symlink cannot be followed. */
 		if (res != 0) {
@@ -92,8 +92,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 		/* Initializing the object entity @resol->info.start points
 		   to. */
-		if (!(resol->entity = plug_call(plug->o.object_ops,
-						open, &resol->info)))
+		if (!(resol->ent = plug_call(plug->o.object_ops,
+					     open, &resol->info)))
 		{
 			aal_error("Can't open object %s.", track);
 			return -EINVAL;
@@ -115,16 +115,16 @@ static errno_t callback_find_entry(char *track, char *name,
 	resol = (resolve_t *)data;
 
 	/* Looking up for @entry in current directory */
-	if ((res = plug_call(resol->entity->opset[OPSET_OBJ]->o.object_ops,
-			     lookup, resol->entity, name, &entry)) < 0)
+	if ((res = plug_call(resol->ent->opset[OPSET_OBJ]->o.object_ops,
+			     lookup, resol->ent, name, &entry)) < 0)
 	{
 		return res;
 	} else {
 		if (res != PRESENT) {
 			aal_error("Can't find %s.", track);
 			
-			plug_call(resol->entity->opset[OPSET_OBJ]->o.object_ops,
-				  close, resol->entity);
+			plug_call(resol->ent->opset[OPSET_OBJ]->o.object_ops,
+				  close, resol->ent);
 			return -EINVAL;
 		}
 	}
@@ -138,8 +138,8 @@ static errno_t callback_find_entry(char *track, char *name,
 			   &entry.object);
 
 	/* Close current object. */
-	plug_call(resol->entity->opset[OPSET_OBJ]->o.object_ops,
-		  close, resol->entity);
+	plug_call(resol->ent->opset[OPSET_OBJ]->o.object_ops,
+		  close, resol->ent);
 	
 	return 0;
 }
@@ -174,7 +174,7 @@ object_entity_t *reiser4_semantic_resolve(reiser4_tree_t *tree, char *path,
 		return NULL;
 	}
 
-	return resol.entity;
+	return resol.ent;
 }
 
 /* This function opens object by its name */
@@ -195,16 +195,16 @@ reiser4_object_t *reiser4_semantic_open(
 		return NULL;
     
 	/* Semantic resolve of @path. */
-	if (!(object->entity = reiser4_semantic_resolve(tree, path,
-							&tree->key,
-							follow)))
+	if (!(object->ent = reiser4_semantic_resolve(tree, path,
+						     &tree->key,
+						     follow)))
 	{
 		goto error_free_object;
 	}
 	
 	/* Initializing object name. It is stat data key as string. */
 #ifndef ENABLE_STAND_ALONE
-	name = reiser4_print_key(&object->entity->object, PO_INODE);
+	name = reiser4_print_key(&object->ent->object, PO_INODE);
 	aal_strncpy(object->name, name, sizeof(object->name));
 #endif
 

@@ -120,7 +120,7 @@ static uint64_t tree_slink_locality(tree_entity_t *tree) {
 	aal_assert("vpf-1580", t->fs != NULL);
 	aal_assert("vpf-1581", t->fs->oid != NULL);
 	
-	return plug_call(t->fs->oid->entity->plug->o.oid_ops, 
+	return plug_call(t->fs->oid->ent->plug->o.oid_ops, 
 			 slink_locality);
 }
 #endif

@@ -130,7 +130,7 @@ typedef struct reiser4_tree reiser4_tree_t;
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
 struct reiser4_object {
 	/* Object entity. It is initialized by object plugin */
-	object_entity_t *entity;
+	object_entity_t *ent;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Full file name or printed key */
@@ -144,7 +144,7 @@ struct reiser4_object {
 
 typedef struct reiser4_object reiser4_object_t;
 
-#define objplug(object) (object->entity->opset[OPSET_OBJ])
+#define objplug(object) (object->ent->opset[OPSET_OBJ])
 
 /* Calback types used in object code. */
 typedef object_entity_t *(*object_init_t) (object_info_t *);
@@ -174,7 +174,7 @@ struct reiser4_format {
 	
 	/* Disk-format entity. It is initialized by disk-format plugin during
 	   initialization. */
-	generic_entity_t *entity;
+	generic_entity_t *ent;
 };
 
 typedef struct reiser4_format reiser4_format_t;
@@ -191,7 +191,7 @@ struct reiser4_journal {
 	aal_device_t *device;
 
 	/* Journal entity. Initializied by plugin */
-	generic_entity_t *entity;
+	generic_entity_t *ent;
 };
 
 typedef struct reiser4_journal reiser4_journal_t;
@@ -204,7 +204,7 @@ typedef errno_t (*hook_alloc_t) (reiser4_alloc_t *,
 /* Block allocator structure */
 struct reiser4_alloc {
 	reiser4_fs_t *fs;
-	generic_entity_t *entity;
+	generic_entity_t *ent;
 
 	struct {
 		hook_alloc_t alloc;
@@ -218,7 +218,7 @@ struct reiser4_alloc {
 /* Oid allocator structure */
 struct reiser4_oid {
 	reiser4_fs_t *fs;
-	generic_entity_t *entity;
+	generic_entity_t *ent;
 };
 
 typedef struct reiser4_oid reiser4_oid_t;
@@ -235,7 +235,7 @@ typedef int (*mpc_func_t) (reiser4_tree_t *);
 
 /* Tree structure. */
 struct reiser4_tree {
-	tree_entity_t entity;
+	tree_entity_t ent;
 	
 	/* Flag that shows, that tree adjusting is running now and should not be
 	   called again until this flag is turned off. */

@@ -27,8 +27,8 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 	aal_assert("vpf-460", journal != NULL);
 	aal_assert("vpf-736", journal->fs != NULL);
 	
-	return plug_call(journal->entity->plug->o.journal_ops, 
-			 check_struct, journal->entity, 
+	return plug_call(journal->ent->plug->o.journal_ops, 
+			 check_struct, journal->ent, 
 			 callback_journal_check, journal->fs);
 }
 
@@ -94,14 +94,14 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 void repair_journal_invalidate(reiser4_journal_t *journal) {
 	aal_assert("vpf-1555", journal != NULL);
 
-	plug_call(journal->entity->plug->o.journal_ops,
-		  invalidate, journal->entity);
+	plug_call(journal->ent->plug->o.journal_ops,
+		  invalidate, journal->ent);
 }
 
 void repair_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
 	aal_assert("umka-1564", journal != NULL);
 	aal_assert("umka-1565", stream != NULL);
 
-	plug_call(journal->entity->plug->o.journal_ops,
-		  print, journal->entity, stream, 0);
+	plug_call(journal->ent->plug->o.journal_ops,
+		  print, journal->ent, stream, 0);
 }

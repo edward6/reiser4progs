@@ -10,7 +10,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 	uint8_t len;
 
 	len = aal_strlen(LOST_PREFIX);
-	key = reiser4_print_key(&object->entity->object, PO_INODE);
+	key = reiser4_print_key(&object->ent->object, PO_INODE);
 	
 	aal_memcpy(name, LOST_PREFIX, len);
 	aal_memcpy(name + len, key, aal_strlen(key));
@@ -46,7 +46,7 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	aal_assert("vpf-1169", sem != NULL);
 	aal_assert("vpf-1170", object != NULL);
 	
-	oid = reiser4_key_get_objectid(&object->entity->object);
+	oid = reiser4_key_get_objectid(&object->ent->object);
 	repair_semantic_register_oid(sem, oid);
 	
 	/* Check struct if not the BUILD mode, if the fake object or 
@@ -99,13 +99,13 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 		return res;
 	
 	/* Increment the link. */
-	if ((res = plug_call(object->entity->opset[OPSET_OBJ]->o.object_ops,
-			     link, object->entity)))
+	if ((res = plug_call(object->ent->opset[OPSET_OBJ]->o.object_ops,
+			     link, object->ent)))
 		return res;
 
 	/* If @parent is "lost+found", do not mark as ATTACHED. */
-	if (sem->lost && !reiser4_key_compfull(&parent->entity->object,
-					       &sem->lost->entity->object))
+	if (sem->lost && !reiser4_key_compfull(&parent->ent->object,
+					       &sem->lost->ent->object))
 		return 0;
 
 	return repair_object_mark(object, OF_ATTACHED);
@@ -121,7 +121,7 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	aal_memset(&entry, 0, sizeof(entry));
 	
 	aal_strncpy(entry.name, name, sizeof(entry.name));
-	reiser4_key_assign(&entry.object, &object->entity->object);
+	reiser4_key_assign(&entry.object, &object->ent->object);
 	entry.place_func = callback_register_item;
 	entry.data = NULL;
 	
@@ -142,14 +142,14 @@ static errno_t repair_semantic_unlink(repair_semantic_t *sem,
 	aal_assert("vpf-1337", object != NULL);
 
 	if (!parent) {
-		reiser4_plug_t *plug = object->entity->opset[OPSET_OBJ];
+		reiser4_plug_t *plug = object->ent->opset[OPSET_OBJ];
 		
 		/* If there is no parent, just detach the object. */
 		if (!plug->o.object_ops->detach) 
 			return 0;
 
 		return plug_call(plug->o.object_ops, detach, 
-				 object->entity, NULL);
+				 object->ent, NULL);
 	}
 	
 	/* unlink from the parent. */
@@ -199,11 +199,11 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	aal_assert("vpf-1184", object != NULL);
 
-	if (!object->entity->parent.plug)
+	if (!object->ent->parent.plug)
 		return NULL;
 	
-	parent = repair_object_obtain((reiser4_tree_t *)object->entity->tree,
-				      NULL, &object->entity->parent);
+	parent = repair_object_obtain((reiser4_tree_t *)object->ent->tree,
+				      NULL, &object->ent->parent);
 	
 	if (parent == INVAL_PTR)
 		return INVAL_PTR;
@@ -224,8 +224,8 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	if (checked) {
 		/* If parent is "lost+found" (already checked), 
 		   detach from it. */
-		if (!reiser4_key_compfull(&parent->entity->object,
-					  &sem->lost->entity->object))
+		if (!reiser4_key_compfull(&parent->ent->object,
+					  &sem->lost->ent->object))
 		{
 			reiser4_object_close(parent);
 			goto error_object_detach;
@@ -253,7 +253,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	/* Check that parent has a link to the object. */
 	while ((res = reiser4_object_readdir(parent, &entry)) > 0) {
-		if (reiser4_key_compfull(&object->entity->object,
+		if (reiser4_key_compfull(&object->ent->object,
 					 &entry.object))
 			break;
 	}
@@ -323,7 +323,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		return NULL;
 
 	/* Try to recognize the object by the key. */
-	object = repair_object_obtain((reiser4_tree_t *)parent->entity->tree,
+	object = repair_object_obtain((reiser4_tree_t *)parent->ent->tree,
 				      parent, &entry->object);
 	
 	if (object == INVAL_PTR)
@@ -359,13 +359,13 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	while (sem->repair->mode == RM_BUILD && !attached) {
 		/* If @object knows nothing about its parent, just attach 
 		   it to the @parent. */
-		if (!object->entity->parent.plug)
+		if (!object->ent->parent.plug)
 			break;
 		
 		/* If parent of the @object matches @parent, just 
 		   check_attach. */
-		if (!reiser4_key_compfull(&object->entity->parent, 
-					  &parent->entity->object))
+		if (!reiser4_key_compfull(&object->ent->parent, 
+					  &parent->ent->object))
 			break;
 		
 		if (!checked) {
@@ -379,8 +379,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 			   the parent, if parent is "lost+found" -- unlink. */
 			int lost;
 
-			lost = !reiser4_key_compfull(&object->entity->parent,
-						     &sem->lost->entity->object);
+			lost = !reiser4_key_compfull(&object->ent->parent,
+						     &sem->lost->ent->object);
 			
 			repair_semantic_lost_name(object, object->name);
 			
@@ -545,13 +545,13 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	
 	if (object) {
 		/* Check that the object was recognized by the dir plugin. */
-		if (object->entity->opset[OPSET_OBJ]->id.group == DIR_OBJECT)
+		if (object->ent->opset[OPSET_OBJ]->id.group == DIR_OBJECT)
 			return object;
 
 		aal_error("The directory [%s] is recognized by the "
 			  "%s plugin which is not a directory one.", 
 			  reiser4_print_key(key, PO_INODE), 
-			  object->entity->opset[OPSET_OBJ]->label);
+			  object->ent->opset[OPSET_OBJ]->label);
 		
 		reiser4_object_close(object);
 	} else {
@@ -607,14 +607,14 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 			break;
 		
 		aal_info("Object [%s]: detaching.", 
-			 reiser4_print_key(&object->entity->object, PO_INODE));
+			 reiser4_print_key(&object->ent->object, PO_INODE));
 		
 		if ((res = repair_semantic_unlink(sem, NULL, object)))
 			return res;
 		
 		aal_info("Object [%s]: attaching to [%s].", 
-			 reiser4_print_key(&object->entity->object, PO_INODE),
-			 reiser4_print_key(&object->entity->parent, PO_INODE));
+			 reiser4_print_key(&object->ent->object, PO_INODE),
+			 reiser4_print_key(&object->ent->parent, PO_INODE));
 
 		break;
 	}

@@ -16,18 +16,18 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(object->entity->opset[OPSET_OBJ]->o.object_ops,
-			     check_struct, object->entity, place_func, 
+	if ((res = plug_call(object->ent->opset[OPSET_OBJ]->o.object_ops,
+			     check_struct, object->ent, place_func, 
 			     data, mode)) < 0)
 		return res;
 	
 	aal_assert("vpf-1195", mode != RM_BUILD ||
 			      !(res & RE_FATAL));
 	
-	reiser4_key_assign(&object->entity->object, &object->entity->start.key);
+	reiser4_key_assign(&object->ent->object, &object_start(object)->key);
 
 	aal_strncpy(object->name, 
-		    reiser4_print_key(&object->entity->object, PO_INODE),
+		    reiser4_print_key(&object->ent->object, PO_INODE),
 		    sizeof(object->name));
 	
 	return res;
@@ -78,15 +78,15 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	reiser4_key_assign(&info.object, key);
 
 	if (parent) {
-		reiser4_key_assign(&info.parent, &parent->entity->object);
+		reiser4_key_assign(&info.parent, &parent->ent->object);
 	}
 	
 	/* Create the fake object. */
-	if (!(object->entity = plug_call(opset[OPSET_OBJ]->o.object_ops, 
-					 fake, &info)))
+	if (!(object->ent = plug_call(opset[OPSET_OBJ]->o.object_ops, 
+				      fake, &info)))
 		goto error_close_object;
 	
-	name = reiser4_print_key(&object->entity->object, PO_INODE);
+	name = reiser4_print_key(&object->ent->object, PO_INODE);
 	aal_strncpy(object->name, name, sizeof(object->name));
 
 	return object;
@@ -129,17 +129,17 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1188", object != NULL);
-	aal_assert("vpf-1098", object->entity != NULL);
+	aal_assert("vpf-1098", object->ent != NULL);
 	aal_assert("vpf-1099", parent != NULL);
-	aal_assert("vpf-1100", parent->entity != NULL);
+	aal_assert("vpf-1100", parent->ent != NULL);
 	
-	plug = object->entity->opset[OPSET_OBJ];
+	plug = object->ent->opset[OPSET_OBJ];
 	
 	if (!plug->o.object_ops->check_attach)
 		return 0;
 	
-	return plug_call(plug->o.object_ops, check_attach, object->entity, 
-			 parent->entity, place_func, data, mode);
+	return plug_call(plug->o.object_ops, check_attach, object->ent, 
+			 parent->ent, place_func, data, mode);
 }
 
 errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
@@ -197,21 +197,21 @@ errno_t repair_object_refresh(reiser4_object_t *object) {
 	
 	aal_assert("vpf-1271", object != NULL);
 
-	plug = object->entity->opset[OPSET_OBJ];
+	plug = object->ent->opset[OPSET_OBJ];
 	
 	if (!plug->o.object_ops->lookup)
 		return 0;
 
 	switch (plug_call(plug->o.object_ops, lookup, 
-			  object->entity, "..", &entry))
+			  object->ent, "..", &entry))
 	{
 	case ABSENT:
-		aal_memset(&object->entity->parent, 0, 
-			   sizeof(object->entity->parent));
+		aal_memset(&object->ent->parent, 0, 
+			   sizeof(object->ent->parent));
 		break;
 	case PRESENT:
 		plug_call(entry.object.plug->o.key_ops, assign,
-			  &object->entity->parent, &entry.object);
+			  &object->ent->parent, &entry.object);
 		break;
 	default:
 		return -EINVAL;

@@ -303,11 +303,11 @@ reiser4_fs_t *reiser4_fs_create(
 	key = reiser4_profile_plug(PROF_KEY);
 	
 	if (key->id.id == KEY_LARGE_ID) {
-		plug_call(fs->format->entity->plug->o.format_ops, set_flags,
-			  fs->format->entity, (1 << REISER4_LARGE_KEYS));
+		plug_call(fs->format->ent->plug->o.format_ops, set_flags,
+			  fs->format->ent, (1 << REISER4_LARGE_KEYS));
 	} else {
-		plug_call(fs->format->entity->plug->o.format_ops,
-			  set_flags, fs->format->entity, 0);
+		plug_call(fs->format->ent->plug->o.format_ops,
+			  set_flags, fs->format->ent, 0);
 	}
 
 	/* Creates block allocator */
@@ -427,7 +427,7 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 	aal_assert("umka-1949", fs != NULL);
 	aal_assert("umka-1950", key != NULL);
 
-	key->plug = fs->tree->entity.tpset[TPSET_KEY];
+	key->plug = fs->tree->ent.tpset[TPSET_KEY];
 	
 #ifndef ENABLE_STAND_ALONE
 	locality = reiser4_oid_root_locality(fs->oid);
