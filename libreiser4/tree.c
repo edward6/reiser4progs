@@ -2863,7 +2863,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	} else {
 		/* Checking if we still have less space than needed. This is
 		   ENOSPC case if we tried to insert data. */
-		if ((uint32_t)space < hint->len + hint->overhead)
+		if (space < hint->len)
 			return -ENOSPC;
 	}
 

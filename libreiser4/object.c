@@ -165,6 +165,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 
 	/* Initializing stat data hint. And namely extension mask of extension
 	   slot we are interested in. Size lies in light weight extension. */
+	aal_memset(&hint, 0, sizeof(hint));
 
 	/* FIXME-UMKA: Why object (on API abstraction level) knows, that size
 	   lies in LW extension? What if someone will move it to another one? */
