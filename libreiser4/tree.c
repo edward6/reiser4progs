@@ -1459,7 +1459,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		    !(place->pos.item + 1 == reiser4_node_items(place->node) &&
 		      place->pos.unit == reiser4_item_units(place)))
 		{
-			/* We are not on the border, split. */
+			/* We are not on the border, split */
 			if ((node = reiser4_tree_alloc(tree, curr)) == NULL) {
 				aal_exception_error("Tree failed to allocate "
 						    "a new node.");
@@ -1467,15 +1467,20 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			}
     
 			if ((res = reiser4_tree_shift(tree, place, node,
-						      SF_RIGHT)))
+						      SF_RIGHT | SF_UPTIP)))
 			{
 				aal_exception_error("Tree failed to shift "
 						    "into a newly "
 						    "allocated node.");
 				goto error_free_node;
 			}
-		
+
+			if (!place->node->parent.node)
+				reiser4_tree_growup(tree);
+			
 			if ((res = reiser4_tree_attach(tree, node))) {
+				reiser4_tree_release(tree, node);
+				
 				aal_exception_error("Tree failed to attach "
 						    "a newly allocated "
 						    "node to the tree.");
