@@ -332,7 +332,7 @@ static errno_t tfrag_process_node(
 		
 	pos.unit = ~0ul;
 	
-	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 		int64_t delta;
 		reiser4_coord_t coord;
 		reiser4_ptr_hint_t ptr;
@@ -344,7 +344,7 @@ static errno_t tfrag_process_node(
 		}
 
 		if (reiser4_item_extent(&coord)) {
-			for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+			for (pos.unit = 0; pos.unit < reiser4_item_units(&coord); pos.unit++) {
 				if (plugin_call(continue, coord.entity.plugin->item_ops,
 						fetch, &coord.entity, pos.unit, &ptr, 1))
 					return -1;
@@ -488,7 +488,7 @@ static errno_t stat_process_node(
 	stat_hint->formatted_used /= (stat_hint->formatted + 1);
 
 	if (level > LEAF_LEVEL) {
-		uint32_t count;
+		uint32_t units;
 		item_entity_t *item;
 		reiser4_coord_t coord;
 		reiser4_pos_t pos = {~0ul, ~0ul};
@@ -501,7 +501,7 @@ static errno_t stat_process_node(
 
 		stat_hint->internals_used /= (stat_hint->internals + 1);
 
-		for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+		for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 			reiser4_coord_t coord;
 
 			if (reiser4_coord_open(&coord, node, &pos)) {
@@ -515,10 +515,10 @@ static errno_t stat_process_node(
 
 			item = &coord.entity;
 				
-			count = plugin_call(return -1, item->plugin->item_ops,
-					    count, item);
+			units = plugin_call(return -1, item->plugin->item_ops,
+					    units, item);
 
-			for (pos.unit = 0; pos.unit < count; pos.unit++) {
+			for (pos.unit = 0; pos.unit < units; pos.unit++) {
 				reiser4_ptr_hint_t ptr;
 				
 				if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
@@ -696,7 +696,7 @@ static errno_t dfrag_process_node(
 	
 	pos.unit = ~0ul;
 
-	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 		reiser4_file_t *file;
 		reiser4_coord_t coord;
 

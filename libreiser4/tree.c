@@ -426,8 +426,6 @@ int reiser4_tree_lookup(
 		item_entity_t *item;
 		reiser4_node_t *node = coord->node;
 	
-		aal_assert("umka-1632", deep >= level->top, return -1);
-		
 		/* 
 		  Looking up for key inside node. Result of lookuping will be
 		  stored in &coord->pos.
@@ -435,7 +433,7 @@ int reiser4_tree_lookup(
 		if ((lookup = reiser4_node_lookup(node, key, &coord->pos)) == -1)
 			return -1;
 
-		if (reiser4_node_count(node) == 0)
+		if (reiser4_node_items(node) == 0)
 			return lookup;
 
 		/* Check if we should finish lookup because we reach stop level */
@@ -520,9 +518,11 @@ int reiser4_tree_lookup(
 /* This function inserts nodeptr item to the tree */
 errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
-	reiser4_node_t *node,       /* child to attached */
-	uint8_t level)
+	reiser4_node_t *node)       /* child to attached */
 {
+	int lookup;
+
+	reiser4_level_t stop;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
@@ -534,7 +534,7 @@ errno_t reiser4_tree_attach(
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&ptr, 0, sizeof(ptr));
 
-	hint.u.hint = &ptr;
+	hint.hint = &ptr;
 	ptr.ptr = node->blk;
 
 	reiser4_node_lkey(node, &hint.key);
@@ -548,7 +548,34 @@ errno_t reiser4_tree_attach(
 		return -1;
 	}
 
-	if (reiser4_tree_insert(tree, &hint, level, &coord)) {
+	stop.top = reiser4_node_level(node) + 1;
+	stop.bottom = stop.top;
+	
+	/* Looking up for the insert coord */
+	if ((lookup = reiser4_tree_lookup(tree, &hint.key, &stop, &coord))) {
+		aal_stream_t stream = EMPTY_STREAM;
+		
+		switch (lookup) {
+		case PRESENT:
+			reiser4_key_print(&hint.key, &stream);
+			
+			aal_exception_error("Can't attach node %llu. Its left delimiting "
+					    "key %s already exists in tree.", node->blk,
+					    stream.data);
+		
+			aal_stream_fini(&stream);
+			return -1;
+		case FAILED:
+			reiser4_key_print(&hint.key, &stream);
+		
+			aal_exception_error("Lookup of key %s failed.", stream.data);
+			aal_stream_fini(&stream);
+		
+			return -1;
+		}
+	}
+
+	if (reiser4_tree_insert(tree, &coord, &hint)) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return -1;
 	}
@@ -584,7 +611,7 @@ static errno_t reiser4_tree_grow(
 
 	tree->root->tree = tree;
 	
-	if (reiser4_tree_attach(tree, old_root, tree_height)) {
+	if (reiser4_tree_attach(tree, old_root)) {
 		aal_exception_error("Can't attach old root to the tree.");
 		goto error_free_root;
 	}
@@ -632,28 +659,24 @@ errno_t reiser4_tree_shift(
 
 errno_t reiser4_tree_mkspace(
 	reiser4_tree_t *tree,	    /* tree pointer function operates on */
-	reiser4_coord_t *old,	    /* old coord of insertion point */
-	reiser4_coord_t *new,	    /* new coord will be stored here */
+	reiser4_coord_t *coord,	    /* coord of insertion point */
 	uint32_t needed)	    /* amount of space that should be freed */
 {
 	int alloc;
 	uint32_t max_space;
 	int32_t not_enough;
 
+	reiser4_coord_t old;
 	reiser4_node_t *left;
 	reiser4_node_t *right;
-	reiser4_node_t *parent;
 
-	aal_assert("umka-759", old != NULL, return -1);
-	aal_assert("umka-766", new != NULL, return -1);
+	aal_assert("umka-766", coord != NULL, return -1);
 	aal_assert("umka-929", tree != NULL, return -1);
-
-	*new = *old;
 
 	if (needed == 0)
 		return 0;
     
-	max_space = reiser4_node_maxspace(old->node);
+	max_space = reiser4_node_maxspace(coord->node);
 	
 	/* 
 	   Checking if item hint to be inserted to tree has length more than 
@@ -665,88 +688,89 @@ errno_t reiser4_tree_mkspace(
 		return -1;
 	}
     
-	if ((not_enough = needed  - reiser4_node_space(old->node)) <= 0)
+	if ((not_enough = needed  - reiser4_node_space(coord->node)) <= 0)
 		return 0;
 
+	old = *coord;
+	
 	/* Shifting data into left neighbour if it exists */
-	if ((left = reiser4_node_left(new->node))) {
+	if ((left = reiser4_node_left(coord->node))) {
 	    
-		if (reiser4_tree_shift(tree, new, left, SF_LEFT))
+		if (reiser4_tree_shift(tree, coord, left, SF_LEFT))
 			return -1;
 	
-		if ((not_enough = needed - reiser4_node_space(new->node)) <= 0)
+		if ((not_enough = needed - reiser4_node_space(coord->node)) <= 0)
 			return 0;
 	}
 
 	/* Shifting data into right neighbour if it exists */
-	if ((right = reiser4_node_right(new->node))) {
+	if ((right = reiser4_node_right(coord->node))) {
 	    
-		if (reiser4_tree_shift(tree, new, right, SF_RIGHT))
+		if (reiser4_tree_shift(tree, coord, right, SF_RIGHT))
 			return -1;
 	
-		if ((not_enough = needed - reiser4_node_space(new->node)) <= 0)
+		if ((not_enough = needed - reiser4_node_space(coord->node)) <= 0)
 			return 0;
 	}
     
 	/*
 	  Here we still have not enough free space for inserting item/unit into
-	  the tree. Allocating new noe and trying to shift data into it.
+	  the tree. Allocating new node and trying to shift data into it.
 	*/
 	for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
 		uint8_t level;
 		reiser4_coord_t save;
 		reiser4_node_t *node;
 	
-		level = reiser4_node_level(new->node);
+		level = reiser4_node_level(coord->node);
 	
 		if (!(node = reiser4_tree_allocate(tree, level)))
 			return -1;
 
-		save = *new;
+		save = *coord;
 
-		if (reiser4_tree_shift(tree, new, node, SF_RIGHT | SF_MOVIP))
+		if (reiser4_tree_shift(tree, coord, node, SF_RIGHT | SF_MOVIP))
 			return -1;
 	
 		/* Attaching new allocated node into the tree, if it is not empty */
-		if (reiser4_node_count(node)) {
+		if (reiser4_node_items(node) > 0) {
 
 			/* Growing the tree */
-			if (!old->node->parent)
+			if (!old.node->parent)
 				reiser4_tree_grow(tree);
 			
 			/* Attaching new node to the tree */
-			if (reiser4_tree_attach(tree, node, level + 1)) {
+			if (reiser4_tree_attach(tree, node)) {
 				aal_exception_error("Can't attach node to the tree.");
 				reiser4_tree_release(tree, node);
 				return -1;
 			}
 		}
 	
-		not_enough = needed - reiser4_node_space(new->node);
+		not_enough = needed - reiser4_node_space(coord->node);
 	
 		/* Checking if the old have enough free space after shifting */
-		if (not_enough > 0 && save.node != new->node &&
-		    new->pos.unit == ~0ul)
+		if (not_enough > 0 && save.node != coord->node &&
+		    coord->pos.unit == ~0ul)
 		{
-			*new = save;
-			not_enough = needed - reiser4_node_space(new->node);
+			*coord = save;
+			not_enough = needed - reiser4_node_space(coord->node);
 		}
 	}
 
 	/*
-	  Releasing old node, because it becames empty as result of data
+	  Releasing old node, because it becamed empty as result of data
 	  shifting.
 	*/
-	if (new->node != old->node && reiser4_node_count(old->node) == 0) {
-		old->node->flags &= ~NF_DIRTY;
+	if (coord->node != old.node && reiser4_node_items(old.node) == 0) {
+		old.node->flags &= ~NF_DIRTY;
 
-		if (old->node->parent) {
-			if (reiser4_node_remove(old->node->parent, &old->node->pos))
+		if (old.node->parent) {
+			if (reiser4_node_remove(old.node->parent, &old.node->pos))
 				return -1;
 		}
 
-		reiser4_tree_release(tree, old->node);
-		old->node = NULL;
+		reiser4_tree_release(tree, old.node);
 	}
 	
 	return -(not_enough > 0);
@@ -755,42 +779,58 @@ errno_t reiser4_tree_mkspace(
 /* Inserts new item described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
-	reiser4_item_hint_t *hint,  /* item hint to be inserted */
-	uint8_t level,		    /* level insertion will be performed on */
-	reiser4_coord_t *coord)	    /* coord item or unit inserted at */
+	reiser4_coord_t *coord,	    /* coord item or unit inserted at */
+	reiser4_item_hint_t *hint)  /* item hint to be inserted */
 {
-	int lookup;
 	uint32_t needed;
-
 	reiser4_key_t *key;
-	reiser4_coord_t fake;
-	reiser4_coord_t insert;
+	reiser4_coord_t old;
 	
-	reiser4_level_t stop = {level, level};
-
 	aal_assert("umka-779", tree != NULL, return -1);
 	aal_assert("umka-779", hint != NULL, return -1);
-  
-	if (!coord) coord = &fake;
-    
-	key = (reiser4_key_t *)&hint->key;
+	
+	aal_assert("umka-1644", coord != NULL, return -1);
+	aal_assert("umka-1645", hint->plugin != NULL, return -1);
 
-	/* Looking up for target node */
-	if ((lookup = reiser4_tree_lookup(tree, key, &stop, coord)) == -1)
-		return -1;
+	/* This is the special case. The tree doesn't contain any nodes */
+	if (reiser4_node_items(tree->root) == 0) {
+		int twig_legal;
 
-	/* Passed key already exists in the tree */
-	if (lookup == 1) {
-		aal_stream_t stream;
+		twig_legal = plugin_call(return -1, tree->root->entity->plugin->node_ops,
+					 item_legal, tree->root->entity, hint->plugin);
 
-		aal_stream_init(&stream);
-		reiser4_key_print(key, &stream);
-			
-		aal_exception_error("Key %s already exists in tree.",
-				    stream.data);
+		/*
+		  Checking if we are trying to insert an item to illegal level.
+		  If soo, we're considering that this is the special case when
+		  only empty root exists.
+		*/
+		if (twig_legal) {
+			coord->pos.item = 0;
+			coord->pos.unit = ~0ul;
 		
-		aal_stream_fini(&stream);
-		return -1;
+			if (!(coord->node = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
+				aal_exception_error("Can't allocate new leaf node.");
+				return -1;
+			}
+	
+			if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
+	    
+				aal_exception_error("Can't insert an item into the node %llu.", 
+						    coord->node->blk);
+	    
+				reiser4_tree_release(tree, coord->node);
+				return -1;
+			}
+	
+			if (reiser4_tree_attach(tree, coord->node)) {
+				aal_exception_error("Can't attach node to the tree.");
+			
+				reiser4_tree_release(tree, coord->node);
+				return -1;
+			}
+	
+			return 0;
+		}
 	}
 
 	/* Estimating item in order to insert it into found node */
@@ -798,82 +838,50 @@ errno_t reiser4_tree_insert(
 		return -1;
     
 	/* Needed space is estimated space plugs item overhead */
-	needed = hint->u.len + (coord->pos.unit == ~0ul ? 
-				reiser4_node_overhead(coord->node) : 0);
-   
-	/* This is the special case. The tree doesn't contain any nodes */
-	if (level == LEAF_LEVEL && !tree->root->children) {
-		reiser4_node_t *node;
-		reiser4_pos_t pos = {0, ~0ul};
-	
-		if (!(node = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
-			aal_exception_error("Can't allocate new leaf node.");
-			return -1;
-		}
+	needed = hint->len + (coord->pos.unit == ~0ul ? 
+			      reiser4_node_overhead(coord->node) : 0);
 
-		/* Updating coord by just allocated leaf */
-		reiser4_coord_init(coord, node, &pos);
+	old = *coord;
 	
-		if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
-	    
-			aal_exception_error("Can't insert an item into the node %llu.", 
-					    coord->node->blk);
-	    
-			reiser4_tree_release(tree, node);
-			return -1;
-		}
-	
-		if (reiser4_tree_attach(tree, node, level + 1)) {
-			aal_exception_error("Can't attach node to the tree.");
-			
-			reiser4_tree_release(tree, node);
-			return -1;
-		}
-	
-		return 0;
-	}
-
-	if (reiser4_tree_mkspace(tree, coord, &insert, needed)) {
+	if (reiser4_tree_mkspace(tree, coord, needed)) {
 		aal_exception_error("Can't prepare space for insert "
-				    "one more item.");
+				    "one more item/unit.");
 		return -1;
 	}
     
 	if (tree->preinsert) {
-		if (!tree->preinsert(&insert, hint))
+		if (!tree->preinsert(coord, hint))
 			return -1;
 	}
 
-	if (reiser4_node_insert(insert.node, &insert.pos, hint)) {
+	if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
-				    (insert.pos.unit == ~0ul ? "item" : "unit"),
-				    insert.node->blk);
+				    (coord->pos.unit == ~0ul ? "item" : "unit"),
+				    coord->node->blk);
 		return -1;
 	}
 
 	/* 
-	   If make space function allocate new node, we should attach it to the
-	   tree. Also, here we should handle the spacial case, when tree root
+	   If make space function allocates new node, we should attach it to the
+	   tree. Also, here we should handle the special case, when tree root
 	   should be changed.
 	*/
-	if (insert.node != tree->root && !insert.node->parent) {
+	if (coord->node != tree->root && !coord->node->parent) {
 
 		/* Growing the tree */
-		if (!coord->node->parent)
+		if (!old.node->parent)
 			reiser4_tree_grow(tree);
 	
 		/* Attaching new node to the tree */
-		if (reiser4_tree_attach(tree, insert.node, level + 1)) {
+		if (reiser4_tree_attach(tree, coord->node)) {
 			aal_exception_error("Can't attach node to the tree.");
-			reiser4_tree_release(tree, insert.node);
+			reiser4_tree_release(tree, coord->node);
 			return -1;
 		}
 	}
     
-	*coord = insert;
-
 	if (tree->pstinsert) {
-		if (!tree->pstinsert(&insert, hint))
+		if (!tree->pstinsert(coord, hint))
 			return -1;
 	}
     
@@ -883,43 +891,21 @@ errno_t reiser4_tree_insert(
 /* Removes item by specified key */
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	/* tree item will be removed from */
-	reiser4_key_t *key,	/* key item will be found by */
-	uint8_t level)		/* the level removing will be performed on */
+	reiser4_coord_t *coord)	/* coord item will be removed at */
 {
-	int lookup;
-	reiser4_coord_t coord;
-	reiser4_level_t stop = {level, level};
-    
 	aal_assert("umka-1018", tree != NULL, return -1);
-	aal_assert("umka-1019", key != NULL, return -1);
-    
-	/* Looking up for target */
-	if ((lookup = reiser4_tree_lookup(tree, key, &stop, &coord)) == -1)
-		return -1;
-
-	if (lookup == 0) {
-		aal_stream_t stream;
-
-		aal_stream_init(&stream);
-		reiser4_key_print(key, &stream);
-			
-		aal_exception_error("Key %s is not found in tree.",
-				    stream.data);
-		
-		aal_stream_fini(&stream);
-		return -1;
-	}
+	aal_assert("umka-1019", coord != NULL, return -1);
     
 	if (tree->preremove) {
-		if (!tree->preremove(&coord, key))
+		if (!tree->preremove(coord))
 			return -1;
 	}
 	
-	if (reiser4_node_remove(coord.node, &coord.pos))
+	if (reiser4_node_remove(coord->node, &coord->pos))
 		return -1;
 
 	if (tree->pstremove) {
-		if (!tree->pstremove(&coord, key))
+		if (!tree->pstremove(coord))
 			return -1;
 	}
 	

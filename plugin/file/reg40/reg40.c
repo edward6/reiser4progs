@@ -129,7 +129,7 @@ static int32_t reg40_read(object_entity_t *entity,
 			reg->offset += chunk;
 			reg->local += chunk;
 		} else {
-			uint32_t count;
+			uint32_t units;
 			uint32_t blocksize;
 			
 			aal_block_t *block;
@@ -140,10 +140,10 @@ static int32_t reg40_read(object_entity_t *entity,
 			if (pos->unit == ~0ul)
 				pos->unit = 0;
 
-			count = plugin_call(return -1, item->plugin->item_ops,
-					    count, item);
+			units = plugin_call(return -1, item->plugin->item_ops,
+					    units, item);
 
-			if (pos->unit >= count) {
+			if (pos->unit >= units) {
 				if (reg->offset >= size || reg40_next(entity) != 1)
 					break;
 			}
@@ -151,7 +151,7 @@ static int32_t reg40_read(object_entity_t *entity,
 			device = item->con.device;
 			blocksize = aal_device_get_bs(device);
 			
-			for (; pos->unit < count && read < n; ) {
+			for (; pos->unit < units && read < n; ) {
 				uint64_t blk;
 				reiser4_ptr_hint_t ptr;
 				
@@ -237,6 +237,8 @@ static object_entity_t *reg40_create(const void *tree,
 				     reiser4_file_hint_t *hint) 
 {
 	reg40_t *reg;
+	reiser4_place_t place;
+	
 	reiser4_plugin_t *stat_plugin;
     
 	reiser4_item_hint_t stat_hint;
@@ -244,11 +246,14 @@ static object_entity_t *reg40_create(const void *tree,
     
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
-    
+
+	int lookup;
 	roid_t objectid;
 	roid_t locality;
 	roid_t parent_locality;
 
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	
 	aal_assert("umka-1166", parent != NULL, return NULL);
 	aal_assert("umka-1167", object != NULL, return NULL);
 	aal_assert("umka-1168", object->plugin != NULL, return NULL);
@@ -304,11 +309,20 @@ static object_entity_t *reg40_create(const void *tree,
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
-	stat_hint.u.hint = &stat;
+	stat_hint.hint = &stat;
     
+	if ((lookup = core->tree_ops.lookup(tree, object, &level, &place)) == FAILED)
+		goto error_free_reg;
+
+	if (lookup == PRESENT) {
+		aal_exception_error("Stat data key of file 0x%llx already exists in "
+				    "the tree.", objectid);
+		goto error_free_reg;
+	}
+	
 	/* Calling balancing code in order to insert statdata item into the tree */
-	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
-		aal_exception_error("Can't insert stat data item of object 0x%llx into "
+	if (core->tree_ops.insert(tree, &place, &stat_hint)) {
+		aal_exception_error("Can't insert stat data item of file 0x%llx into "
 				    "the tree.", objectid);
 		goto error_free_reg;
 	}
@@ -377,20 +391,20 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 
 			reg->offset += reg->body.entity.len;
 		} else {
-			uint32_t count;
+			uint32_t units;
 			uint32_t blocksize;
 			reiser4_ptr_hint_t ptr;
 			reiser4_pos_t pos = reg->body.pos;
 
-			count = plugin_call(return -1, reg->body.entity.plugin->item_ops,
-					    count, &reg->body.entity);
+			units = plugin_call(return -1, reg->body.entity.plugin->item_ops,
+					    units, &reg->body.entity);
 
 			blocksize = reg->body.entity.con.device->blocksize;
 
 			if (pos.unit == ~0ul)
 				pos.unit = 0;
 			
-			for (; pos.unit < count; pos.unit++) {
+			for (; pos.unit < units; pos.unit++) {
 				uint64_t blk;
 				
 				if (plugin_call(return -1, reg->body.entity.plugin->item_ops,

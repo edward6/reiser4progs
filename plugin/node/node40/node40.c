@@ -147,7 +147,7 @@ static int node40_confirm(object_entity_t *entity) {
   Returns item number in passed node entity. Used for any loops through the all
   node items.
 */
-uint16_t node40_count(object_entity_t *entity) {
+uint16_t node40_items(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-018", node != NULL, return 0);
@@ -246,7 +246,7 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	ih = node40_ih_at(node, pos->item);
 	free_space_start = nh40_get_free_space_start(node);
 
-	if (pos->item == (uint32_t)(node40_count(entity) - 1))
+	if (pos->item == (uint32_t)(node40_items(entity) - 1))
 		return free_space_start - ih40_get_offset(ih);
 
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
@@ -478,11 +478,11 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	aal_assert("umka-818", node != NULL, return -1);
 	aal_assert("umka-908", pos->unit == ~0ul, return -1);
     
-	if (!hint->u.data)
+	if (!hint->data)
 		aal_assert("umka-712", hint->key.plugin != NULL, return -1);
 
 	/* Makes expand of the node new item will be inaserted to */
-	if (node40_expand(node, pos, hint->u.len))
+	if (node40_expand(node, pos, hint->len))
 		return -1;
 
 	/* Updating item header of the new item */
@@ -496,9 +496,9 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	  If item hint contains some data, we just copy it and going out. This
 	  mode probably will be used by fsck.
 	*/
-	if (hint->u.data) {
+	if (hint->data) {
 		aal_memcpy(node40_ib_at(node, pos->item), 
-			   hint->u.data, hint->u.len);
+			   hint->data, hint->len);
 		return 0;
 	}
 
@@ -524,7 +524,7 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 	aal_assert("vpf-120", pos != NULL && pos->unit != ~0ul, return -1);
 
 	/* Expanding item at @pos to insert new unit(s) into it */
-	if (node40_expand(node, pos, hint->u.len))
+	if (node40_expand(node, pos, hint->len))
 		return -1;
 
 	/* Initilizing item entity to pass it to item plugin */
@@ -610,9 +610,6 @@ static errno_t node40_cut(object_entity_t *entity,
 
 extern errno_t node40_check(object_entity_t *entity);
 
-extern errno_t node40_item_legal(object_entity_t *entity, 
-				 reiser4_plugin_t *plugin);
-    
 #endif
 
 /* Checks node for validness */
@@ -705,12 +702,12 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, "
 			  "items=%u, space=%u\n", levels[level],
 			  aal_block_number(node->block), level,
-			  node40_count(entity), node40_space(entity));
+			  node40_items(entity), node40_space(entity));
 	
 	pos.unit = ~0ul;
 
 	/* Loop through the all items */
-	for (pos.item = 0; pos.item < node40_count(entity); pos.item++) {
+	for (pos.item = 0; pos.item < node40_items(entity); pos.item++) {
 
 		if (node40_item(&item, node, pos.item)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
@@ -737,6 +734,34 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 		aal_stream_format(stream, "\n");
 	}
 	
+	return 0;
+}
+
+/* 
+  This checks the level constrains like no internal and extent items at leaf
+  level or no statdata items at internal level.  Returns 0 is legal, 1 - not,
+  -1 - error.
+*/
+errno_t node40_item_legal(object_entity_t *entity,
+			  reiser4_plugin_t *plugin)
+{
+	uint8_t level;
+	node40_t *node = (node40_t *)entity;
+
+	aal_assert("vpf-225", node != NULL, return -1);
+	aal_assert("vpf-237", plugin != NULL, return -1);
+    
+	level = node40_get_level(entity);
+    
+	if (plugin->h.group == NODEPTR_ITEM) {
+		if (level == NODE40_LEAF)
+			return 1;
+	} else if (plugin->h.group == EXTENT_ITEM) {
+		if (level != NODE40_TWIG)
+			return 1;
+	} else if (level != NODE40_LEAF) 
+		return 1;
+    
 	return 0;
 }
 
@@ -770,7 +795,7 @@ static int node40_lookup(object_entity_t *entity,
 {
 	int lookup; 
 	int64_t item;
-	uint32_t count;
+	uint32_t items;
 
 	node40_t *node = (node40_t *)entity;
     
@@ -780,10 +805,10 @@ static int node40_lookup(object_entity_t *entity,
 	aal_assert("umka-478", pos != NULL, return -1);
 	aal_assert("umka-470", node != NULL, return -1);
 
-	count = nh40_get_num_items(node);
+	items = nh40_get_num_items(node);
 
 	/* Calling binsearch with local callbacks in order to find needed key */
-	if ((lookup = aux_binsearch(node, count, key->body, callback_get_key, 
+	if ((lookup = aux_binsearch(node, items, key->body, callback_get_key, 
 				    callback_comp_key, key->plugin, &item)) != -1)
 		pos->item = item;
 
@@ -1035,10 +1060,10 @@ static errno_t node40_shift_units(node40_t *src_node,
 	}
 	
 	/* We can't shift units from items with one unit */
-	if (!src_item.plugin->item_ops.count)
+	if (!src_item.plugin->item_ops.units)
 		return 0;
 	
-	if (src_item.plugin->item_ops.count(&src_item) <= 1)
+	if (src_item.plugin->item_ops.units(&src_item) <= 1)
 		return 0;
 	
 	/*
@@ -1172,10 +1197,10 @@ static errno_t node40_predict_items(node40_t *src_node,
 
 				node40_item(&item, src_node, 0);
 
-				if (!item.plugin->item_ops.count)
+				if (!item.plugin->item_ops.units)
 					return -1;
 				
-				units = item.plugin->item_ops.count(&item);
+				units = item.plugin->item_ops.units(&item);
 
 				/*
 				  Breaking if insert point reach the end of
@@ -1391,8 +1416,8 @@ static errno_t node40_shift(object_entity_t *entity,
 	hint->items = 0;
 	merge = *hint;
 
-	if (node40_merge_items(src_node, dst_node, &merge))
-		return -1;
+/*	if (node40_merge_items(src_node, dst_node, &merge))
+		return -1;*/
 	
 	flags = hint->flags;
 	
@@ -1456,7 +1481,7 @@ static reiser4_plugin_t node40_plugin = {
 		.valid		= node40_valid,
 	
 		.lookup		= node40_lookup,
-		.count		= node40_count,
+		.items		= node40_items,
 	
 		.overhead	= node40_overhead,
 		.maxspace	= node40_maxspace,

@@ -13,7 +13,7 @@
 
 /* Returns count of units in item. If count method is not implemented,
  * it returns 1 */
-uint32_t reiser4_item_count(reiser4_coord_t *coord) {
+uint32_t reiser4_item_units(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("umka-1030", coord != NULL, return 0);
@@ -21,8 +21,8 @@ uint32_t reiser4_item_count(reiser4_coord_t *coord) {
 	item = &coord->entity;
 	aal_assert("umka-1448", item->plugin != NULL, return 0);
 	
-	if (item->plugin->item_ops.count)
-		return item->plugin->item_ops.count(item);
+	if (item->plugin->item_ops.units)
+		return item->plugin->item_ops.units(item);
 
 	return 1;
 }
@@ -65,7 +65,7 @@ errno_t reiser4_item_estimate(
 		   hint->plugin != NULL, return -1);
    
 	/* Here hint has been already set for the 3rd case */
-	if (hint->u.data != NULL)
+	if (hint->data != NULL)
 		return 0;
     
 	/* Estimate for the 2nd and for the 4th cases */

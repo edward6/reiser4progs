@@ -276,7 +276,7 @@ errno_t reiser4_node_nkey(
 		if (!(parent = node->parent))
 			return -1;
 	
-		if (pos.item == reiser4_node_count(parent) - 1) {
+		if (pos.item == reiser4_node_items(parent) - 1) {
 
 			if (!parent->parent)
 				return -1;
@@ -331,7 +331,7 @@ static inline int callback_comp_key(
 
 	node = (reiser4_node_t *)item;
 
-	if (reiser4_node_count(node) == 0)
+	if (reiser4_node_items(node) == 0)
 		return -1;
 	
 	reiser4_node_lkey(node, &lkey);
@@ -480,7 +480,7 @@ static reiser4_node_t *reiser4_node_fnn(
 			return NULL;
 
 		found = (direction == D_LEFT ? (pos.item > 0) :
-			 (pos.item < reiser4_node_count(node->parent) - 1));
+			 (pos.item < reiser4_node_items(node->parent) - 1));
 
 		level++;
 		node = node->parent;
@@ -512,7 +512,7 @@ static reiser4_node_t *reiser4_node_fnn(
 		node = child;
 
 		pos.item = (direction == D_LEFT ?
-			    reiser4_node_count(node) - 1 : 0);
+			    reiser4_node_items(node) - 1 : 0);
 	}
 
 	if (direction == D_LEFT) {
@@ -658,7 +658,7 @@ int reiser4_node_lookup(
 	pos->item = 0;
 	pos->unit = ~0ul;
 
-	if (reiser4_node_count(node) == 0)
+	if (reiser4_node_items(node) == 0)
 		return 0;
    
 	/* Calling node plugin */
@@ -712,11 +712,11 @@ int reiser4_node_lookup(
 }
 
 /* Returns real item count in specified node */
-uint32_t reiser4_node_count(reiser4_node_t *node) {
+uint32_t reiser4_node_items(reiser4_node_t *node) {
 	aal_assert("umka-453", node != NULL, return 0);
     
 	return plugin_call(return 0, node->entity->plugin->node_ops, 
-			   count, node->entity);
+			   items, node->entity);
 }
 /* Returns free space of specified node */
 uint16_t reiser4_node_space(reiser4_node_t *node) {
@@ -782,7 +782,7 @@ errno_t reiser4_node_shift(
 	aal_assert("umka-1226", neig != NULL, return -1);
 	aal_assert("umka-1227", hint != NULL, return -1);
     
-	aal_assert("umka-1258", reiser4_node_count(node) > 0, return -1);
+	aal_assert("umka-1258", reiser4_node_items(node) > 0, return -1);
 
 	/*
 	  Saving node position in parent. It will be used bellow for updating
@@ -818,7 +818,7 @@ errno_t reiser4_node_shift(
 	/* Updating left delimiting keys in the tree */
 	if (hint->flags & SF_LEFT) {
 		
-		if (reiser4_node_count(node) != 0 &&
+		if (reiser4_node_items(node) != 0 &&
 		    (hint->items > 0 || hint->units > 0))
 		{
 			node->flags |= NF_DIRTY;
@@ -850,7 +850,7 @@ errno_t reiser4_node_shift(
 		return 0;
 
 	/* Updating children lists in node and its neighbour */
-	items = reiser4_node_count(neig);
+	items = reiser4_node_items(neig);
 	
 	for (i = 0; i < hint->items; i++) {
 		reiser4_coord_t coord;
@@ -940,7 +940,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 	aal_assert("umka-1000", pos != NULL, return -1);
 	aal_assert("umka-1001", key != NULL, return -1);
     
-	aal_assert("umka-1002", reiser4_node_count(node) > 0, return -1);
+	aal_assert("umka-1002", reiser4_node_items(node) > 0, return -1);
 
 	if (pos->item == 0 && (pos->unit == ~0ul || pos->unit == 0)) {
 		if (node->parent) {
@@ -988,12 +988,12 @@ errno_t reiser4_node_insert(
 	}
 
 	/* Inserting item into the node */
-	if (!hint->u.data) {
+	if (!hint->data) {
 		/* 
 		   Estimate the size that will be spent for item. This should be
 		   done if item->data not installed.
 		*/
-		if (hint->u.len == 0) {
+		if (hint->len == 0) {
 			reiser4_coord_t coord;
 	    
 			if (reiser4_coord_init(&coord, node, pos))
@@ -1006,18 +1006,19 @@ errno_t reiser4_node_insert(
 			}
 		}
 	} else {
-		aal_assert("umka-761", hint->u.len > 0 && 
-			   hint->u.len < reiser4_node_maxspace(node), return -1);
+		aal_assert("umka-761", hint->len > 0 && 
+			   hint->len < reiser4_node_maxspace(node), return -1);
 	}
     
 	/* Checking if item length is gretter then free space in node */
-	if (hint->u.len + (pos->unit == ~0ul ? reiser4_node_overhead(node) : 0) >
+	if (hint->len + (pos->unit == ~0ul ? reiser4_node_overhead(node) : 0) >
 	    reiser4_node_space(node))
 	{
 		char *target = (pos->unit == ~0ul ? "item" : "unit");
+		
 		aal_exception_error("There is no space to insert the %s of (%u) "
 				    "size in the node (%llu).", target, 
-				    hint->u.len, node->blk);
+				    hint->len, node->blk);
 		return -1;
 	}
 
@@ -1101,7 +1102,7 @@ errno_t reiser4_node_remove(
 			return -1;
 		}
 
-		if (reiser4_item_count(&coord) > 1) {
+		if (reiser4_item_units(&coord) > 1) {
 			return plugin_call(return -1, node->entity->plugin->node_ops, 
 					   cut, node->entity, pos);
 		} else {
@@ -1115,7 +1116,7 @@ errno_t reiser4_node_remove(
 		reiser4_node_t *parent = node->parent;
 	
 		if (parent) {
-			if (reiser4_node_count(node) > 0) {
+			if (reiser4_node_items(node) > 0) {
 				reiser4_key_t lkey;
 
 				reiser4_node_lkey(node, &lkey);
@@ -1161,7 +1162,7 @@ errno_t reiser4_node_traverse(
 	if ((before_func && (result = before_func(node, hint->data))))
 		goto error;
 
-	for (pos->item = 0; pos->item < reiser4_node_count(node); pos->item++) {
+	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
 		pos->unit = ~0ul; 
 
 		/*
@@ -1178,7 +1179,7 @@ errno_t reiser4_node_traverse(
 			continue;
 
 		/* The loop though the units of the current item */
-		for (pos->unit = 0; pos->unit < reiser4_item_count(&coord); pos->unit++) {
+		for (pos->unit = 0; pos->unit < reiser4_item_units(&coord); pos->unit++) {
 			reiser4_ptr_hint_t ptr;
 
 			/* Fetching node ptr */

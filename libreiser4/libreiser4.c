@@ -39,27 +39,27 @@ static reiser4_plugin_t *factory_nfind(
 /* Handler for item insert requests from the all plugins */
 static errno_t tree_insert(
 	const void *tree,	    /* opaque pointer to the tree */
-	reiser4_item_hint_t *item,  /* item hint to be inserted into tree */
-	uint8_t level,		    /* insert level */
-	reiser4_place_t *place)	    /* insertion point will be saved here */
+	reiser4_place_t *place,	    /* insertion point will be saved here */
+	reiser4_item_hint_t *item)  /* item hint to be inserted into tree */
 {
 	aal_assert("umka-846", tree != NULL, return -1);
 	aal_assert("umka-847", item != NULL, return -1);
+	aal_assert("umka-1643", place != NULL, return -1);
     
-	return reiser4_tree_insert((reiser4_tree_t *)tree, item, 
-				   level, (reiser4_coord_t *)place);
+	return reiser4_tree_insert((reiser4_tree_t *)tree,
+				   (reiser4_coord_t *)place, item);
 }
 
 /* Handler for item removing requests from the all plugins */
 static errno_t tree_remove(
 	const void *tree,	    /* opaque pointer to the tree */
-	reiser4_key_t *key,	    /* key of the item to be removerd */
-	uint8_t level)              /* stop level */
+	reiser4_place_t *place)	    /* coord of the item to be removerd */
 {
 	aal_assert("umka-848", tree != NULL, return -1);
-	aal_assert("umka-849", key != NULL, return -1);
+	aal_assert("umka-849", place != NULL, return -1);
     
-	return reiser4_tree_remove((reiser4_tree_t *)tree, key, level);
+	return reiser4_tree_remove((reiser4_tree_t *)tree,
+				   (reiser4_coord_t *)place);
 }
 
 #endif
@@ -123,7 +123,7 @@ static errno_t tree_left(
 		return -1;
 	
 	pos.unit = 0;
-	pos.item = reiser4_node_count(coord->node->left) - 1;
+	pos.item = reiser4_node_items(coord->node->left) - 1;
 	
 	return reiser4_coord_open((reiser4_coord_t *)left,
 				  coord->node->left, &pos);

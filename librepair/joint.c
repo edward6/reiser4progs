@@ -36,7 +36,7 @@ static errno_t repair_joint_items_check(reiser4_node_t *node,
     aal_assert("vpf-231", node->entity->plugin != NULL, return -1);
     aal_assert("vpf-529", bm_used != NULL, return -1);
 
-    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+    for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 	pos.unit = ~0ul;
 	
 	/* Open the item, checking its plugin id. */
@@ -76,7 +76,7 @@ static errno_t repair_joint_items_check(reiser4_node_t *node,
 	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
 	    continue;
 
-	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+	for (pos.unit = 0; pos.unit < reiser4_item_units(&coord); pos.unit++) {
 	    /* FIXME-VITALY: Improve it later - it could be just width to be
 	     * obviously wrong. Or start block. Give a hint into 
 	     * repair_item_ptr_unused which returns what is obviously 
@@ -156,7 +156,7 @@ static errno_t repair_joint_rd_key(reiser4_node_t *node,
 	/* If this is the last position in the parent, call the method 
 	 * recursevely for the parent. Get the right delimiting key 
 	 * otherwise. */
-	if (reiser4_node_count(node->parent) == coord.pos.item + 1) {
+	if (reiser4_node_items(node->parent) == coord.pos.item + 1) {
 	    return repair_joint_rd_key(node->parent, rd_key, data);
 	} else {
 	    pos.item = coord.pos.item + 1;
@@ -245,7 +245,7 @@ errno_t repair_joint_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 	return -1;
     }
 
-    pos.item = reiser4_node_count(node) - 1;
+    pos.item = reiser4_node_items(node) - 1;
     pos.unit = ~0ul;
  
     if (reiser4_coord_open(&coord, node, &pos)) {
@@ -285,7 +285,7 @@ static errno_t repair_joint_keys_check(reiser4_node_t *node) {
 	return -1;
     }
 
-    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+    for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 	reiser4_coord_t coord;
 
 	if (reiser4_coord_open(&coord, node, &pos))
@@ -350,7 +350,7 @@ errno_t repair_joint_check(reiser4_node_t *node, aux_bitmap_t *bm_used) {
     if ((res = repair_joint_keys_check(node)))
 	return res;
  
-    if (reiser4_node_count(node) == 0)
+    if (reiser4_node_items(node) == 0)
 	return 1;
 
     return 0;

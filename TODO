@@ -39,4 +39,4 @@ reiser4progs/COPYING.
   directories.
 
 * symlinks and special files browsing in debugfs.
-* creating extents
+* creating extents code in extent40 plugin.

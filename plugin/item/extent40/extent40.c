@@ -14,7 +14,7 @@ static extent40_t *extent40_body(item_entity_t *item) {
 	return (extent40_t *)item->body;
 }
 
-static uint32_t extent40_count(item_entity_t *item) {
+static uint32_t extent40_units(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL, return 0);
 
 	if (item->len % sizeof(extent40_t) != 0) {
@@ -33,7 +33,7 @@ static errno_t extent40_init(item_entity_t *item,
 {
 	aal_assert("umka-1202", item != NULL, return -1); 
 	aal_assert("umka-1203", hint != NULL, return -1);
-	aal_assert("umka-1204", hint->u.data != NULL, return -1);
+	aal_assert("umka-1204", hint->data != NULL, return -1);
     
 	return 0;
 }
@@ -58,7 +58,7 @@ static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
 	aal_assert("umka-1206", stream != NULL, return -1);
 
 	extent = extent40_body(item);
-	count = extent40_count(item);
+	count = extent40_units(item);
 
 	aal_stream_format(stream, "[ ");
 	
@@ -81,7 +81,7 @@ static uint64_t extent40_size(item_entity_t *item) {
 
 	extent = extent40_body(item);
 	
-	for (i = 0; i < extent40_count(item); i++)
+	for (i = 0; i < extent40_units(item); i++)
 		blocks += et40_get_width(extent + i);
     
 	return (blocks * aal_device_get_bs(item->con.device));
@@ -136,7 +136,7 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	aal_assert("vpf-440", blocksize != 0, return -1);
 	
 	/* Key offset + for all units { width * blocksize } */
-	for (i = 0; i < extent40_count(item); i++) {
+	for (i = 0; i < extent40_units(item); i++) {
 		delta = et40_get_width(extent40_body(item) + i);
 		
 		aal_assert("vpf-439", delta < ((uint64_t)-1) / 102400, return -1);
@@ -172,7 +172,7 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 	if (extent40_max_poss_key(item, &maxkey))
 		return -1;
 
-	if (!(count = extent40_count(item)))
+	if (!(count = extent40_units(item)))
 		return -1;
 	
 	if (plugin_call(return -1, key->plugin->key_ops,
@@ -319,7 +319,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.predict       = NULL,
 
 		.lookup	       = extent40_lookup,
-		.count	       = extent40_count,
+		.units	       = extent40_units,
 		.fetch         = extent40_fetch,
 		
 		.max_poss_key = extent40_max_poss_key,

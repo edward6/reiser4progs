@@ -38,7 +38,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.u.hint = &stat;
+	hint.hint = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
 	item = &symlink->file.statdata.entity;
@@ -85,6 +85,8 @@ static object_entity_t *symlink40_create(const void *tree,
 					 reiser4_file_hint_t *hint) 
 {
 	symlink40_t *symlink;
+	
+	reiser4_place_t place;
 	reiser4_plugin_t *stat_plugin;
     
 	reiser4_statdata_hint_t stat;
@@ -93,10 +95,13 @@ static object_entity_t *symlink40_create(const void *tree,
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
     
+	int lookup;
 	roid_t objectid;
 	roid_t locality;
 	roid_t parent_locality;
 
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	
 	aal_assert("umka-1166", parent != NULL, return NULL);
 	aal_assert("umka-1167", object != NULL, return NULL);
 	aal_assert("umka-1168", object->plugin != NULL, return NULL);
@@ -131,7 +136,8 @@ static object_entity_t *symlink40_create(const void *tree,
 		    stat_hint.key.body, object->body);
     
 	/* Initializing stat data item hint. */
-	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID;
+	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
+		1 << SDEXT_SYMLINK_ID;
     
 	lw_ext.mode = S_IFLNK | 0755;
 	lw_ext.nlink = 2;
@@ -153,11 +159,20 @@ static object_entity_t *symlink40_create(const void *tree,
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 	stat.ext[SDEXT_SYMLINK_ID] = hint->body.symlink.data;
 
-	stat_hint.u.hint = &stat;
-    
+	stat_hint.hint = &stat;
+
+	if ((lookup = core->tree_ops.lookup(tree, object, &level, &place)) == FAILED)
+		goto error_free_symlink;
+
+	if (lookup == PRESENT) {
+		aal_exception_error("Stat data key of file 0x%llx already exists in "
+				    "the tree.", objectid);
+		goto error_free_symlink;
+	}
+	
 	/* Calling balancing code in order to insert statdata item into the tree */
-	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
-		aal_exception_error("Can't insert stat data item of object 0x%llx into "
+	if (core->tree_ops.insert(tree, &place, &stat_hint)) {
+		aal_exception_error("Can't insert stat data item of file 0x%llx into "
 				    "the tree.", objectid);
 		goto error_free_symlink;
 	}

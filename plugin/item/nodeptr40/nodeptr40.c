@@ -13,7 +13,7 @@ static nodeptr40_t *nodeptr40_body(item_entity_t *item) {
 	return (nodeptr40_t *)item->body;
 }
 
-static uint32_t nodeptr40_count(item_entity_t *item) {
+static uint32_t nodeptr40_units(item_entity_t *item) {
 	return 1;
 }
 
@@ -28,7 +28,7 @@ static errno_t nodeptr40_init(item_entity_t *item,
 	aal_assert("vpf-064", hint != NULL, return -1);
 
 	nodeptr = nodeptr40_body(item);
-	np40_set_ptr(nodeptr,((reiser4_ptr_hint_t *)hint->u.hint)->ptr);
+	np40_set_ptr(nodeptr,((reiser4_ptr_hint_t *)hint->hint)->ptr);
 	    
 	return 0;
 }
@@ -38,7 +38,7 @@ static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
 {
 	aal_assert("vpf-068", hint != NULL, return -1);
     
-	hint->u.len = sizeof(nodeptr40_t);
+	hint->len = sizeof(nodeptr40_t);
 	return 0;
 }
 
@@ -125,7 +125,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.shift          = NULL,
 		.predict        = NULL,
 
-		.count		= nodeptr40_count,
+		.units		= nodeptr40_units,
 		.fetch          = nodeptr40_fetch,
 	
 		.max_poss_key	= NULL,

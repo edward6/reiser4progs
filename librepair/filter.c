@@ -151,7 +151,7 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
     aal_assert("vpf-393", node != NULL, return -1);
     aal_assert("vpf-256", repair_data != NULL, return -1);    
 
-    if (reiser4_node_count(node) == 0)
+    if (reiser4_node_items(node) == 0)
 	repair_set_flag(repair_data, REPAIR_BAD_PTR);
     /* FIXME-VITALY: else - sync the node */
 

@@ -81,7 +81,7 @@ static int callback_open(uint8_t ext, uint16_t extmask,
 	reiser4_plugin_t *plugin;
 	reiser4_statdata_hint_t *hint;
 
-	hint = ((reiser4_item_hint_t *)data)->u.hint;
+	hint = ((reiser4_item_hint_t *)data)->hint;
 
 	/* Reading mask into hint */
 	if ((ext + 1) % 16 == 0) {
@@ -127,7 +127,7 @@ static errno_t stat40_init(item_entity_t *item,
 	aal_assert("vpf-075", hint != NULL, return -1);
     
 	extbody = (reiser4_body_t *)stat40_body(item);
-	stat_hint = (reiser4_statdata_hint_t *)hint->u.hint;
+	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
 	if (!stat_hint->extmask)
 		return 0;
@@ -183,8 +183,8 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
     
 	aal_assert("vpf-074", hint != NULL, return -1);
 
-	hint->u.len = sizeof(stat40_t);
-	stat_hint = (reiser4_statdata_hint_t *)hint->u.hint;
+	hint->len = sizeof(stat40_t);
+	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
 	if (!stat_hint->extmask)
 		return 0;
@@ -197,7 +197,7 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 			continue;
 	
 		if ((i + 1) % 16 == 0) {
-			hint->u.len += sizeof(d16_t);
+			hint->len += sizeof(d16_t);
 			continue;
 		}
 	
@@ -207,7 +207,7 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 			continue;
 		}
 	
-		hint->u.len += plugin_call(return -1, plugin->sdext_ops, 
+		hint->len += plugin_call(return -1, plugin->sdext_ops, 
 					 length, stat_hint->ext[i]);
 	}
 	
@@ -215,8 +215,8 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 }
 
 /* This method inserts the stat data extentions */
-static errno_t stat40_insert(item_entity_t *item, 
-			     uint32_t pos, reiser4_item_hint_t *hint)
+static errno_t stat40_insert(item_entity_t *item, uint32_t pos,
+			     reiser4_item_hint_t *hint)
 {
 	return -1;
 }
@@ -239,7 +239,7 @@ static errno_t stat40_valid(item_entity_t *item) {
 }
 
 /* This function returns stat data extention count */
-static uint32_t stat40_count(item_entity_t *item) {
+static uint32_t stat40_units(item_entity_t *item) {
 	return 1;
 }
 
@@ -393,7 +393,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.predict        = NULL,
 		
 		.open           = stat40_open,
-		.count		= stat40_count,
+		.units		= stat40_units,
 		.valid		= stat40_valid,
         
 		.max_poss_key	= NULL,

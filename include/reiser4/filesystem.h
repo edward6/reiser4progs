@@ -250,8 +250,8 @@ typedef struct reiser4_oid reiser4_oid_t;
 typedef int (*preinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *);
 typedef int (*pstinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *);
 
-typedef int (*preremove_func_t) (reiser4_coord_t *, reiser4_key_t *);
-typedef int (*pstremove_func_t) (reiser4_coord_t *, reiser4_key_t *);
+typedef int (*preremove_func_t) (reiser4_coord_t *);
+typedef int (*pstremove_func_t) (reiser4_coord_t *);
 
 /* Tree structure */
 struct reiser4_tree {

@@ -169,7 +169,11 @@ enum reiser4_key_plugin_id {
 
 typedef union reiser4_plugin reiser4_plugin_t;
 
-#define INVAL_PID (0xffff)
+#define PRESENT       0x1
+#define ABSENT        0x0
+#define FAILED        0xffff
+
+#define INVAL_PID     0xffff
 
 /* 
    Maximal possible key size. It is used for creating temporary keys by
@@ -401,23 +405,21 @@ typedef struct reiser4_file_hint reiser4_file_hint_t;
    a pointer to data to be copied.
 */ 
 struct reiser4_item_hint {
-	union {
-		/*
-		  This is pointer to already formated item body. It is useful
-		  for item copying, replacing, etc. This will be used by fsck
-		  probably.
-		*/
-		void *data;
+	/*
+	  This is pointer to already formated item body. It is useful
+	  for item copying, replacing, etc. This will be used by fsck
+	  probably.
+	*/
+	void *data;
 
-		/* Length of the data field */
-		uint16_t len;
+	/* Length of the data field */
+	uint16_t len;
     
-		/*
-		  This is pointer to hint which describes item. It is widely
-		  used for creating an item.
-		*/
-		void *hint;
-	} u;
+	/*
+	  This is pointer to hint which describes item. It is widely
+	  used for creating an item.
+	*/
+	void *hint;
     
 	/* The key of item */
 	reiser4_key_t key;
@@ -637,7 +639,7 @@ struct reiser4_item_ops {
 	errno_t (*max_real_key) (item_entity_t *, reiser4_key_t *);
     
 	/* Returns unit count */
-	uint32_t (*count) (item_entity_t *);
+	uint32_t (*units) (item_entity_t *);
 
 	/* Checks the item structure. */
 	errno_t (*check) (item_entity_t *);
@@ -710,7 +712,7 @@ struct reiser4_node_ops {
 	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
     
 	/* Returns item count */
-	uint16_t (*count) (object_entity_t *);
+	uint16_t (*items) (object_entity_t *);
     
 	/* Returns item's overhead */
 	uint16_t (*overhead) (object_entity_t *);
@@ -1094,14 +1096,14 @@ struct reiser4_core {
 		   Inserts item/unit in the tree by calling reiser4_tree_insert
 		   function, used by all object plugins (dir, file, etc)
 		*/
-		errno_t (*insert)(const void *, reiser4_item_hint_t *, uint8_t, 
-				  reiser4_place_t *);
+		errno_t (*insert)(const void *, reiser4_place_t *,
+				  reiser4_item_hint_t *);
     
 		/*
 		  Removes item/unit from the tree. It is used in all object
 		  plugins for modification purposes.
 		*/
-		errno_t (*remove)(const void *, reiser4_key_t *, uint8_t);
+		errno_t (*remove)(const void *, reiser4_place_t *);
 	
 		/* Returns right and left neighbour respectively */
 		errno_t (*right) (const void *, reiser4_place_t *, reiser4_place_t *);

@@ -21,9 +21,9 @@ static errno_t tail40_insert(item_entity_t *item, uint32_t pos,
 {
 	aal_assert("umka-1172", item != NULL, return -1); 
 	aal_assert("umka-1173", hint != NULL, return -1);
-	aal_assert("umka-1178", hint->u.data != NULL, return -1);
+	aal_assert("umka-1178", hint->data != NULL, return -1);
     
-	aal_memcpy(tail40_body(item) + pos, hint->u.data, hint->u.len);
+	aal_memcpy(tail40_body(item) + pos, hint->data, hint->len);
 	return 0;
 }
 
@@ -142,7 +142,7 @@ static int tail40_lookup(item_entity_t *item, reiser4_key_t *key,
 	return 0;
 }
 
-static uint32_t tail40_count(item_entity_t *item) {
+static uint32_t tail40_units(item_entity_t *item) {
 	return item->len;
 }
 
@@ -230,7 +230,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.shift         = NULL,
 		.predict       = NULL,
 		
-		.count	       = tail40_count,
+		.units	       = tail40_units,
 		.lookup	       = tail40_lookup,
 		.fetch         = tail40_fetch,
 		

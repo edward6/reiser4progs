@@ -91,7 +91,7 @@ extern reiser4_node_t *reiser4_node_right(reiser4_node_t *node);
 
 extern int reiser4_node_confirm(reiser4_node_t *node);
 extern errno_t reiser4_node_valid(reiser4_node_t *node);
-extern uint32_t reiser4_node_count(reiser4_node_t *node);
+extern uint32_t reiser4_node_items(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
 extern uint16_t reiser4_node_maxspace(reiser4_node_t *node);

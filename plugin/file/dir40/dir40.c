@@ -37,8 +37,10 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	file40_unlock(&dir->file, &dir->body);
 	
 	if (core->tree_ops.lookup(dir->file.tree, &key, &level, &dir->body) != 1) {
+		
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    file40_objectid(&dir->file));
+		
 		file40_lock(&dir->file, &dir->body);
 		return -1;
 	}
@@ -92,7 +94,7 @@ static int dir40_next(object_entity_t *entity) {
 static int32_t dir40_read(object_entity_t *entity, 
 			  void *buff, uint32_t n)
 {
-	uint32_t i, count;
+	uint32_t i, units;
 	item_entity_t *item;
 	reiser4_entry_hint_t *entry;
     
@@ -105,12 +107,14 @@ static int32_t dir40_read(object_entity_t *entity,
 	item = &dir->body.entity;
 	
 	/* Getting the number of entries */
-	if (!(count = plugin_call(return -1, item->plugin->item_ops, count, item)))
+	if (!(units = plugin_call(return -1, item->plugin->item_ops,
+				  units, item)))
 		return -1;
     
 	for (i = 0; i < n; i++) {
+		
 		/* Check if we should get next item in right neighbour */
-		if (dir->body.pos.unit >= count && dir40_next(entity) != 1)
+		if (dir->body.pos.unit >= units && dir40_next(entity) != 1)
 			break;
 
 		item = &dir->body.entity;
@@ -227,8 +231,8 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 				     reiser4_key_t *object, reiser4_file_hint_t *hint) 
 {
 	dir40_t *dir;
+	reiser4_place_t place;
     
-	rpid_t body_pid;
 	reiser4_statdata_hint_t stat;
 	reiser4_direntry_hint_t body;
 	reiser4_item_hint_t stat_hint;
@@ -236,13 +240,17 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
    
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
-    
+
+	int lookup;
+	rpid_t body_pid;
 	roid_t parent_locality;
 	roid_t objectid, locality;
 
 	reiser4_plugin_t *stat_plugin;
 	reiser4_plugin_t *body_plugin;
     
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	
 	aal_assert("umka-835", tree != NULL, return NULL);
 	aal_assert("umka-743", parent != NULL, return NULL);
 	aal_assert("umka-744", object != NULL, return NULL);
@@ -327,7 +335,7 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 		    build_entryid, &body.entry[1].entryid, dir->hash,
 		    body.entry[1].name);
     
-	body_hint.u.hint = &body;
+	body_hint.hint = &body;
 
 	/* Initializing stat data hint */
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
@@ -359,25 +367,45 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 		goto error_free_body;
 	}
     
-	unix_ext.bytes = body_hint.u.len;
+	unix_ext.bytes = body_hint.len;
     
 	aal_memset(&stat.ext, 0, sizeof(stat.ext));
     
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
-	stat_hint.u.hint = &stat;
+	stat_hint.hint = &stat;
     
 	/* Calling balancing code in order to insert statdata item into the tree */
-	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
-		aal_exception_error("Can't insert stat data item of object 0x%llx "
+	if ((lookup = core->tree_ops.lookup(tree, &stat_hint.key,
+					    &level, &place)) == FAILED)
+		goto error_free_body;
+
+	if (lookup == PRESENT) {
+		aal_exception_error("Stat data key of file 0x%llx already exists in "
+				    "the tree.", objectid);
+		goto error_free_body;
+	}
+	
+	if (core->tree_ops.insert(tree, &place, &stat_hint)) {
+		aal_exception_error("Can't insert stat data item of file 0x%llx "
 				    "into the tree.", objectid);
 		goto error_free_body;
 	}
     
 	/* Inserting the direntry item into the tree */
-	if (core->tree_ops.insert(tree, &body_hint, LEAF_LEVEL, NULL)) {
-		aal_exception_error("Can't insert direntry item of object 0x%llx "
+	if ((lookup = core->tree_ops.lookup(tree, &body_hint.key,
+					    &level, &place)) == FAILED)
+		goto error_free_body;
+
+	if (lookup == PRESENT) {
+		aal_exception_error("Body key of file 0x%llx already exists in "
+				    "the tree.", objectid);
+		goto error_free_body;
+	}
+	
+	if (core->tree_ops.insert(tree, &place, &body_hint)) {
+		aal_exception_error("Can't insert direntry item of file 0x%llx "
 				    "into the tree.", objectid);
 		goto error_free_body;
 	}
@@ -416,13 +444,15 @@ static int32_t dir40_write(object_entity_t *entity,
 			   void *buff, uint32_t n) 
 {
 	uint64_t i;
+	int lookup;
 
+	reiser4_place_t place;
 	reiser4_item_hint_t hint;
 	dir40_t *dir = (dir40_t *)entity;
 	reiser4_direntry_hint_t body_hint;
     
-	reiser4_entry_hint_t *entry = 
-		(reiser4_entry_hint_t *)buff;
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+	reiser4_entry_hint_t *entry = (reiser4_entry_hint_t *)buff;
     
 	aal_assert("umka-844", dir != NULL, return -1);
 	aal_assert("umka-845", entry != NULL, return -1);
@@ -435,7 +465,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	if (!(body_hint.entry = aal_calloc(sizeof(*entry), 0)))
 		return 0;
     
-	hint.u.hint = &body_hint;
+	hint.hint = &body_hint;
   
 	for (i = 0; i < n; i++) {
 		plugin_call(break, dir->file.key.plugin->key_ops, build_objid,
@@ -452,11 +482,20 @@ static int32_t dir40_write(object_entity_t *entity,
 			    hint.key.body, dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);
     
-		hint.u.len = 0;
 		hint.plugin = dir->body.entity.plugin;
 
 		/* Inserting the entry to the tree */
-		if (core->tree_ops.insert(dir->file.tree, &hint, LEAF_LEVEL, NULL)) {
+		if ((lookup = core->tree_ops.lookup(dir->file.tree, &hint.key,
+						    &level, &place)) == FAILED)
+			break;
+
+		if (lookup == PRESENT) {
+			aal_exception_error("Entry key already exists in "
+					    "the tree.");
+			break;
+		}
+		
+		if (core->tree_ops.insert(dir->file.tree, &place, &hint)) {
 			aal_exception_error("Can't add entry %s to the tree.", 
 					    entry->name);
 			
