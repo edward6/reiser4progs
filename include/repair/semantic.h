@@ -12,6 +12,9 @@
 
 /* Statistics gathered during the pass. */
 typedef struct repair_semantic_stat {
+	uint64_t dirs, files, syms, spcls;
+	uint64_t ldirs, lfiles, lsyms, lspcls;
+	uint64_t shared, rm_entries, broken;
 	time_t time;
 } repair_semantic_stat_t;
 

@@ -717,11 +717,60 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 	return res;
 }
 
+static void repair_semantic_setup(repair_semantic_t *sem) {
+	aal_memset(sem->progress, 0, sizeof(*sem->progress));
+	sem->progress->type = PROGRESS_TREE;
+	sem->progress->title = "***** Semantic Traverse Pass: reiser4 semantic "
+		"tree recovering.";
+	sem->progress->text = "";
+	time(&sem->stat.time);
+}
+
+static void repair_semantic_update(repair_semantic_t *sem) {
+	repair_semantic_stat_t *stat;
+	aal_stream_t stream;
+	char *time_str;
+
+	if (!sem->progress_handler)
+		return;
+	
+	stat = &sem->stat;
+	aal_stream_init(&stream);
+	
+	aal_stream_format(&stream, "\tObject found:\n");
+	aal_stream_format(&stream, "\tDirectories %llu, Files %llu, Symlinks "
+			  "%llu, Special %llu\n", stat->dirs, stat->files, 
+			  stat->syms, stat->spcls);
+	aal_stream_format(&stream, "\tLost&found of them:\n");
+	aal_stream_format(&stream, "\tDirectories %llu, Files %llu, Symlinks "
+			  "%llu, Special %llu\n", stat->ldirs, stat->lfiles, 
+			  stat->lsyms, stat->lspcls);
+	aal_stream_format(&stream, "\tObjects relocated to another object id "
+			  "%llu\n",stat->shared);
+	aal_stream_format(&stream, "\tRemoved names pointing to nowhere %llu\n",
+			  stat->rm_entries);
+	aal_stream_format(&stream, "\tUnrecoverable objects found %llu", 
+			  stat->broken);
+	
+	time_str = ctime(&sem->stat.time);
+	time_str[aal_strlen(time_str) - 1] = '\0';
+	aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
+	time(&sem->stat.time);
+	time_str = ctime(&sem->stat.time);
+	time_str[aal_strlen(time_str) - 1] = '\0';
+	aal_stream_format(&stream, time_str);
+
+	sem->progress->state = PROGRESS_STAT;
+	sem->progress->text = (char *)stream.data;
+	sem->progress_handler(sem->progress);
+
+	aal_stream_fini(&stream);
+}
 
 errno_t repair_semantic(repair_semantic_t *sem) {
 	repair_progress_t progress;
 	reiser4_tree_t *tree;
-	errno_t res;
+	errno_t res = 0;
 	
 	aal_assert("vpf-1025", sem != NULL);
 	aal_assert("vpf-1026", sem->repair != NULL);
@@ -729,29 +778,26 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	aal_assert("vpf-1028", sem->repair->fs->tree != NULL);
 	
 	sem->progress = &progress;
-	aal_memset(sem->progress, 0, sizeof(*sem->progress));
-	sem->progress->type = PROGRESS_TREE;
-	sem->progress->title = "***** Semantic Traverse Pass: reiser4 semantic "
-		"tree recovering.";
-	sem->progress->text = "";
-	time(&sem->stat.time);
+	repair_semantic_setup(sem);
 	
 	tree = sem->repair->fs->tree;
 	
 	if (reiser4_tree_fresh(tree)) {
 		aal_exception_warn("No reiser4 metadata were found. Semantic "
 				   "pass is skipped.");
-		return 0;
+		goto error;
 	}
 	
 	reiser4_tree_lroot(tree);
 	
-	if (tree->root == NULL)
-		return -EINVAL;
+	if (tree->root == NULL) {
+		res = -EINVAL;
+		goto error;
+	}
 	
 	/* Open "/" directory. */
 	if ((res = repair_semantic_root_prepare(sem)))
-		return res;
+		goto error;
 	
 	/* Open "lost+found" directory in BUILD mode. */
 	if (sem->repair->mode == RM_BUILD) {
@@ -769,15 +815,22 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	
 	/* Connect lost objects to their parents -- if parents can be 
 	   identified -- or to "lost+found". */
-	return reiser4_tree_down(tree, tree->root, NULL, 
-				 repair_semantic_node_traverse,
-				 NULL, NULL, sem);
+	if ((res = reiser4_tree_down(tree, tree->root, NULL, 
+				     repair_semantic_node_traverse,
+				     NULL, NULL, sem)))
+		goto error_close_lost;
+	
  error_close_lost:
 	reiser4_object_close(sem->lost);
 	sem->lost = NULL;
  error_close_root:
 	reiser4_object_close(sem->root);
 	sem->root = NULL;
+ error:
+	repair_semantic_update(sem);	
+	reiser4_tree_collapse(sem->repair->fs->tree);
+	sem->repair->fs->tree->root = NULL;
+	
 	return res < 0 ? res : 0;
 }
 

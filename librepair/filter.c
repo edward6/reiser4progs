@@ -488,70 +488,71 @@ static void repair_filter_update(repair_filter_t *fd,
 		stat->good_nodes++;
 	}
 
-	if (fd->progress_handler) {
-		aal_stream_init(&stream);
-		aal_stream_format(&stream, "\tRead nodes %llu\n", 
-				  stat->read_nodes);
-		aal_stream_format(&stream, "\tNodes left in the tree %llu\n",
-				  stat->good_nodes);
-		
-		aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of "
-				  "them %llu\n", stat->good_leaves, 
-				  stat->good_twigs);
-	
-		if (stat->fixed_nodes) {
-			aal_stream_format(&stream, "\tCorrected nodes %llu\n",
-					  stat->fixed_nodes);
-			aal_stream_format(&stream, "\t\tLeaves of them %llu, "
-					  "Twigs of them %llu\n", 
-					  stat->fixed_leaves,
-					  stat->fixed_twigs);
-		}
-		
-		if (fd->stat.bad_nodes) {
-			aal_stream_format(&stream, "\t%s of them %llu\n", 
-					  fd->repair->mode == RM_BUILD ? 
-					  "Emptied" : "Broken", 
-					  fd->stat.bad_nodes);
-			
-			aal_stream_format(&stream, "\t\tLeaves of them %llu, "
-					  "Twigs of them %llu\n", 
-					  fd->stat.bad_leaves,
-					  fd->stat.bad_twigs);
-		}
-		
-		if (fd->stat.bad_dk_nodes) {
-			aal_stream_format(&stream, "\tNodes with wrong "
-					  "delimiting keys %llu\n",
-					  fd->stat.bad_dk_nodes);
-			
-			aal_stream_format(&stream, "\t\tLeaves of them %llu, "
-					  "Twigs of them %llu\n", 
-					  fd->stat.bad_dk_leaves, 
-					  fd->stat.bad_dk_twigs);
-		}
-		
-		if (fd->stat.bad_ptrs) {
-			aal_stream_format(&stream, "\t%s node pointers %llu\n",
-					  fd->repair->mode == RM_BUILD ?
-					  "Zeroed" : "Invalid", 
-					  fd->stat.bad_ptrs);
-		}
-		
-		time_str = ctime(&fd->stat.time);
-		time_str[aal_strlen(time_str) - 1] = '\0';
-		aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
-		time(&fd->stat.time);
-		time_str = ctime(&fd->stat.time);
-		time_str[aal_strlen(time_str) - 1] = '\0';
-		aal_stream_format(&stream, time_str);
-	
-		fd->progress->state = PROGRESS_STAT;
-		fd->progress->text = (char *)stream.data;
-		fd->progress_handler(fd->progress);
-	
-		aal_stream_fini(&stream);
+	if (!fd->progress_handler)
+		return;
+
+	aal_stream_init(&stream);
+	aal_stream_format(&stream, "\tRead nodes %llu\n", 
+			  stat->read_nodes);
+	aal_stream_format(&stream, "\tNodes left in the tree %llu\n",
+			  stat->good_nodes);
+
+	aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of "
+			  "them %llu\n", stat->good_leaves, 
+			  stat->good_twigs);
+
+	if (stat->fixed_nodes) {
+		aal_stream_format(&stream, "\tCorrected nodes %llu\n",
+				  stat->fixed_nodes);
+		aal_stream_format(&stream, "\t\tLeaves of them %llu, "
+				  "Twigs of them %llu\n", 
+				  stat->fixed_leaves,
+				  stat->fixed_twigs);
 	}
+
+	if (fd->stat.bad_nodes) {
+		aal_stream_format(&stream, "\t%s of them %llu\n", 
+				  fd->repair->mode == RM_BUILD ? 
+				  "Emptied" : "Broken", 
+				  fd->stat.bad_nodes);
+
+		aal_stream_format(&stream, "\t\tLeaves of them %llu, "
+				  "Twigs of them %llu\n", 
+				  fd->stat.bad_leaves,
+				  fd->stat.bad_twigs);
+	}
+
+	if (fd->stat.bad_dk_nodes) {
+		aal_stream_format(&stream, "\tNodes with wrong "
+				  "delimiting keys %llu\n",
+				  fd->stat.bad_dk_nodes);
+
+		aal_stream_format(&stream, "\t\tLeaves of them %llu, "
+				  "Twigs of them %llu\n", 
+				  fd->stat.bad_dk_leaves, 
+				  fd->stat.bad_dk_twigs);
+	}
+
+	if (fd->stat.bad_ptrs) {
+		aal_stream_format(&stream, "\t%s node pointers %llu\n",
+				  fd->repair->mode == RM_BUILD ?
+				  "Zeroed" : "Invalid", 
+				  fd->stat.bad_ptrs);
+	}
+
+	time_str = ctime(&fd->stat.time);
+	time_str[aal_strlen(time_str) - 1] = '\0';
+	aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
+	time(&fd->stat.time);
+	time_str = ctime(&fd->stat.time);
+	time_str[aal_strlen(time_str) - 1] = '\0';
+	aal_stream_format(&stream, time_str);
+
+	fd->progress->state = PROGRESS_STAT;
+	fd->progress->text = (char *)stream.data;
+	fd->progress_handler(fd->progress);
+
+	aal_stream_fini(&stream);
 }
 
 /* The pass itself - goes through the existent tree trying to filter all 
