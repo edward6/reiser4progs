@@ -6,7 +6,7 @@
 #ifndef CDE40_REPAIR_H
 #define CDE40_REPAIR_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 extern errno_t cde40_merge(reiser4_place_t *place,

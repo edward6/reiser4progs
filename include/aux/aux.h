@@ -6,7 +6,7 @@
 #ifndef AUX_H
 #define AUX_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 
 /* Path parsing stuff */
 typedef errno_t (*aux_pre_entry_t) (char *, char *, void *);

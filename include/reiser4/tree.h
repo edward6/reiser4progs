@@ -159,10 +159,10 @@ extern errno_t reiser4_tree_unload_node(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
 					 reiser4_node_t *node);
 
-extern errno_t reiser4_collision_handler(reiser4_place_t *place,
-					 lookup_hint_t *hint,
-					 lookup_bias_t bias,
-					 lookup_t lookup);
+extern lookup_t reiser4_collision_handler(reiser4_place_t *place,
+					  lookup_hint_t *hint,
+					  lookup_bias_t bias,
+					  lookup_t lookup);
 
 extern reiser4_node_t *reiser4_tree_lookup_node(reiser4_tree_t *tree,
 						blk_t blk);

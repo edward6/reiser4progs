@@ -6,7 +6,7 @@
 #ifndef NODEPTR40_H
 #define NODEPTR40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 struct nodeptr40 {

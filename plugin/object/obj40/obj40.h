@@ -6,7 +6,7 @@
 #ifndef OBJ40_H
 #define OBJ40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 #define STAT_KEY(o) \

@@ -1443,8 +1443,6 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 	return 0;
 }
 
-/* Pack tree to make it more compact. Needed for fsck to pack tree after each
-   pass and in the case of lack of disk space. */
 errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 	errno_t res;
 	reiser4_node_t *node;
@@ -1452,11 +1450,8 @@ errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 
 	aal_assert("umka-3000", tree != NULL);
 
-	/* We start from root node. */
 	node = tree->root;
 	
-	/* Loop through all levels of treeand pack eah of them by
-	   tree_compress_level() function. */
 	for (level = reiser4_tree_get_height(tree);
 	     level >= LEAF_LEVEL; level--)
 	{
@@ -1515,10 +1510,10 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 #endif
 
 /* Correct passed @place according to handle key collisions. */
-errno_t reiser4_collision_handler(reiser4_place_t *place,
-				  lookup_hint_t *hint,
-				  lookup_bias_t bias,
-				  lookup_t lookup)
+lookup_t reiser4_collision_handler(reiser4_place_t *place,
+				   lookup_hint_t *hint,
+				   lookup_bias_t bias,
+				   lookup_t lookup)
 {
 #ifndef ENABLE_STAND_ALONE
 	char *name;
@@ -1527,8 +1522,8 @@ errno_t reiser4_collision_handler(reiser4_place_t *place,
 	reiser4_tree_t *tree;
 #endif
 
-	aal_assert("vpf-1522", place != NULL);
 	aal_assert("vpf-1523", hint != NULL);
+	aal_assert("vpf-1522", place != NULL);
 	aal_assert("vpf-1524", hint->data != NULL);
 	
 	if (lookup != PRESENT)
@@ -1686,7 +1681,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		if (!(place->node = reiser4_tree_child_node(tree, place)))
 			return -EIO;
 	}
-    
+	
 	res = ABSENT;
 	
  correct:
@@ -2593,7 +2588,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		
 		/* Getting new place item/unit will be inserted at after tree is
 		   growed up. It is needed because we want to insert item into
-		   the node of the given @level bu after tree_growup() and thus
+		   the node of the given @level but after tree_growup() and thus
 		   rebalancing we need to get correct position where to insert
 		   item. */
 		lhint.level = level;

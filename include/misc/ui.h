@@ -6,7 +6,7 @@
 #ifndef MISC_UI_H
 #define MISC_UI_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 
 extern uint16_t misc_screen_width(void);
 extern void misc_print_banner(char *name);

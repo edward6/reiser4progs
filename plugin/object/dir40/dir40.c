@@ -127,8 +127,9 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 		return -EIO;
 	}
 
-	/* Copying entry place */
-	aal_memcpy(&entry->place, &dir->body, sizeof(reiser4_place_t));
+	/* Copying entry place. */
+	aal_memcpy(&entry->place, &dir->body,
+		   sizeof(reiser4_place_t));
 
 	return 0;
 }
@@ -345,7 +346,10 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 		aal_memset(entry, 0, sizeof(*entry));
 		
 		aal_memcpy(&entry->place, &dir->body,
-				   sizeof(reiser4_place_t));
+			   sizeof(reiser4_place_t));
+
+		aal_memcpy(&entry->offset, &dir->body.key,
+			   sizeof(reiser4_key_t));
 
 		if (res == PRESENT) {
 			if (dir40_fetch(dir, entry))

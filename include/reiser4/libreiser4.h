@@ -10,8 +10,7 @@
 extern "C" {
 #endif
 
-#include <aal/aal.h>
-	
+#include <aal/libaal.h>
 #include <reiser4/types.h>
 #include <reiser4/filesystem.h>
 #include <reiser4/format.h>

@@ -6,7 +6,7 @@
 #ifndef REISER4_PLUGIN_H
 #define REISER4_PLUGIN_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 
 /* Leaf and twig levels. */
 #define LEAF_LEVEL	        1

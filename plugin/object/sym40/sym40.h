@@ -12,7 +12,7 @@
 #  include <limits.h>
 #endif
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/aux.h>
 #include <sys/stat.h>
 

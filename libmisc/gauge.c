@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <misc/misc.h>
 
 #define GAUGE_BITS_SIZE 4

@@ -7,7 +7,7 @@
 #define ALLOC40_H
 #ifndef ENABLE_STAND_ALONE
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/bitmap.h>
 #include <reiser4/plugin.h>
 

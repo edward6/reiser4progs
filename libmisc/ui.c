@@ -6,7 +6,7 @@
 #include <pty.h>
 #include <stdio.h>
 #include <string.h>
-#include <aal/aal.h>
+#include <aal/libaal.h>
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

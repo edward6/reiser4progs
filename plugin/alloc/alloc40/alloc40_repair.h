@@ -6,7 +6,7 @@
 #ifndef ALLOC40_REPAIR_H
 #define ALLOC40_REPAIR_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 extern errno_t alloc40_pack(generic_entity_t *entity,

@@ -6,7 +6,7 @@
 #ifndef NODE40_REPAIR_H
 #define NODE40_REPAIR_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 extern errno_t node40_pack(reiser4_node_t *entity,

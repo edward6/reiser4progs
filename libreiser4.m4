@@ -18,8 +18,8 @@ dnl save LIBS
 saved_LIBS="$LIBS"
 
 dnl Check for headers and library
-AC_CHECK_HEADER(reiser4/reiser4.h, ,
-    [AC_MSG_ERROR([<reiser4/reiser4.h> not found; install reiser4progs])] 
+AC_CHECK_HEADER(reiser4/libreiser4.h, ,
+    [AC_MSG_ERROR([<reiser4/libreiser4.h> not found; install reiser4progs])] 
 $3)
 
 AC_CHECK_LIB(reiser4, reiser4_fs_open, ,
@@ -45,7 +45,7 @@ dnl Compare MINIMUM-VERSION with libreiser4 version
 AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 int main() {
     int major, minor, micro;

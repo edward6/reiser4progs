@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <misc/misc.h>
 
 /* This function returns number of specified turned on options */

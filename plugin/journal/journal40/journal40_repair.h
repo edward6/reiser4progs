@@ -8,7 +8,7 @@
 
 #ifndef ENABLE_STAND_ALONE
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 extern errno_t journal40_check_struct(generic_entity_t *entity,

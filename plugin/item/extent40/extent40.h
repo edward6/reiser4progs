@@ -6,7 +6,7 @@
 #ifndef EXTENT40_H
 #define EXTENT40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 

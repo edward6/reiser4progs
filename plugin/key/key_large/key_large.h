@@ -6,7 +6,7 @@
 #ifndef KEY_LARGE_H
 #define KEY_LARGE_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 #include "plugin/key/key_common/key_common.h"

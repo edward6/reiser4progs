@@ -6,7 +6,7 @@
 #ifndef KEY_SHORT_H
 #define KEY_SHORT_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/aux.h>
 
 #include <reiser4/plugin.h>

@@ -6,7 +6,7 @@
 #ifndef CDE40_H
 #define CDE40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 

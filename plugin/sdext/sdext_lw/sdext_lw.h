@@ -6,7 +6,7 @@
 #ifndef SDEXT_LW_H
 #define SDEXT_LW_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 struct sdext_lw {

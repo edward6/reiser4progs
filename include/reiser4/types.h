@@ -6,13 +6,12 @@
 #ifndef REISER4_TYPES_H
 #define REISER4_TYPES_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/bitmap.h>
 #include <reiser4/plugin.h>
 
-/* Minimal block number needed for a reiser4 filesystem: 
-   Master, Format40, Bitmap, JHeader, JFooter, Status, 
-   Backup, Twig, Leaf + skipped ones. */
+/* Minimal block number needed for a reiser4 filesystem: Master, Format40,
+   Bitmap, JHeader, JFooter, Status, Backup, Twig, Leaf + skipped ones. */
 #define REISER4_FS_MIN_SIZE(blksize) \
 	(9 + REISER4_MASTER_OFFSET / blksize)
 

@@ -6,7 +6,7 @@
 #ifndef SPL40_REPAIR_H
 #define SPL40_REPAIR_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 extern object_entity_t *spl40_recognize(object_info_t *info);

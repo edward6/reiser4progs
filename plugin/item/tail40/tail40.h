@@ -6,7 +6,7 @@
 #ifndef TAIL40_H
 #define TAIL40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 #define tail40_body(place) (place->body)

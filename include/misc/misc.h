@@ -6,7 +6,7 @@
 #ifndef MISC_H
 #define MISC_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <misc/misc.h>
 #include <linux/major.h>
 

@@ -6,7 +6,7 @@
 #ifndef REG40_H
 #define REG40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <sys/stat.h>
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>

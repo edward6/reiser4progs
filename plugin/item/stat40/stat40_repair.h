@@ -6,7 +6,7 @@
 #ifndef STAT40_REPAIR_H
 #define STAT40_REPAIR_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 extern errno_t stat40_check_struct(reiser4_place_t *place,

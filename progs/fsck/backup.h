@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/bitmap.h>
 
 #define BACKUP_MAGIC "_RollBackFileForReiser4FSCK"

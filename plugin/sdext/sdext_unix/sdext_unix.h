@@ -7,7 +7,7 @@
 #ifndef SDEXT_UNIX_H
 #define SDEXT_UNIX_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 struct sdext_unix {

@@ -51,8 +51,8 @@ http://www.namesys.com/snapshots])]
 $4)
 
 # Check for headers and library
-AC_CHECK_HEADER(aal/aal.h, ,
-    	[AC_MSG_ERROR([<aal/aal.h> not found])] 
+AC_CHECK_HEADER(aal/libaal.h, ,
+    	[AC_MSG_ERROR([<aal/libaal.h> not found])] 
 $4)
 
 AC_MSG_CHECKING(for lib$1 version = $2)
@@ -73,7 +73,7 @@ libaal_config_micro_version=`echo $2 | \
 AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
-#include <aal/aal.h>
+#include <aal/libaal.h>
 
 int main() {
     	const char *version;    

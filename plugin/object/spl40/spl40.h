@@ -6,7 +6,7 @@
 #ifndef SPL40_H
 #define SPL40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <aux/aux.h>
 #include <sys/stat.h>
 

@@ -6,7 +6,7 @@
 #ifndef STAT40_H
 #define STAT40_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 /* Macro for getting stat data body from item */

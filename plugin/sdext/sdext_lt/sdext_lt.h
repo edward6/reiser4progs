@@ -6,7 +6,7 @@
 #ifndef SDEXT_LT_H
 #define SDEXT_LT_H
 
-#include <aal/aal.h>
+#include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
 struct sdext_lt {
