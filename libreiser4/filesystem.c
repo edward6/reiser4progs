@@ -375,7 +375,10 @@ errno_t reiser4_fs_sync(
 	if ((res = reiser4_format_sync(fs->format)))
 		return res;
 
-	return reiser4_master_sync(fs->master);
+	if ((res = reiser4_master_sync(fs->master)))
+		return res;
+
+	return reiser4_status_sync(fs->status);
 }
 
 /* Returns the key of the fake root parent */

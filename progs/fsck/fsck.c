@@ -226,15 +226,53 @@ static void fsck_time(char *string) {
 	fprintf(stderr, "\n***** %s %s\n", string, ctime (&t));
 }
 
+static errno_t fsck_start(repair_data_t *repair) {
+	aal_stream_t stream;
+	
+	aal_stream_init(&stream);
+	reiser4_master_print(repair->fs->master, &stream);
+	aal_stream_format(&stream, "\n");
+	reiser4_format_print(repair->fs->format, &stream);
+	aal_stream_format(&stream, "\n");
+    
+	fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s", 
+		repair->fs->device->name, (char *)stream.data);
+
+	if (!(repair->fs->tree = reiser4_tree_init(repair->fs, 
+						   misc_mpressure_detect)))
+	{
+		aal_exception_fatal("Cannot open the filesystem on (%s).", 
+				    repair->fs->device->name);
+		return -EINVAL;
+	}
+	
+	aal_stream_fini(&stream);
+	
+	return 0;
+}
+
+static errno_t fsck_end(repair_data_t *repair) {
+	uint64_t state = 0;
+	
+	aal_assert("vpf-1338", repair != NULL);
+	aal_assert("vpf-1339", repair->fs != NULL);
+	aal_assert("vpf-1340", repair->fs->status != NULL);
+	
+	if (repair->fatal)
+		state = FS_DAMAGED;
+	else if (repair->fixable)
+		state = FS_CORRUPTED;
+	
+	return repair_status_state(repair->fs->status, state);
+}
+
 int main(int argc, char *argv[]) {
 	errno_t exit_code = NO_ERROR;
 	fsck_parse_t parse_data;
 	repair_data_t repair;
-	aal_stream_t stream;
  
 	memset(&parse_data, 0, sizeof(parse_data));
 	memset(&repair, 0, sizeof(repair));
-	aal_stream_init(&stream);
 
 	if ((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)
 		exit(exit_code);
@@ -267,35 +305,18 @@ int main(int argc, char *argv[]) {
 	
 		goto free_libreiser4;
 	}
-     
-	reiser4_master_print(repair.fs->master, &stream);
-	aal_stream_format(&stream, "\n");
-	reiser4_format_print(repair.fs->format, &stream);
-	aal_stream_format(&stream, "\n");
-    
-	fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s", 
-		parse_data.host_device->name, (char *)stream.data);
-
-	if (!(repair.fs->tree = reiser4_tree_init(repair.fs,
-						  misc_mpressure_detect)))
-	{
-		aal_exception_fatal("Cannot open the filesystem on (%s).", 
-				    parse_data.host_device->name);
+	
+	if (fsck_start(&repair) || repair_check(&repair) || fsck_end(&repair)) {
 		exit_code = OPER_ERROR;
 		goto free_fs;
 	}
 
-	if (repair_check(&repair)) {
-		exit_code = OPER_ERROR;
-		goto free_tree;
-	}
-
 	fsck_time("fsck.reiser4 finished at");
     
- free_tree:
-	reiser4_tree_close(repair.fs->tree);
-
  free_fs:
+	if (repair.fs->tree)
+		reiser4_tree_close(repair.fs->tree);
+	
 	fprintf(stderr, "Closing fs ...");
 	repair_fs_close(repair.fs);
 	repair.fs = NULL;
@@ -330,8 +351,6 @@ int main(int argc, char *argv[]) {
 	} else
 		aal_exception_mess("\nFinished not successfully.");
     
-	aal_stream_init(&stream);
-
 	return exit_code;
 }
 

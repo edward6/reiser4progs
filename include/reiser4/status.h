@@ -11,6 +11,14 @@
 
 #define STATUS(status) (&status->ent)
 
+typedef enum reiser4_state {
+	FS_OK		= 0,
+	FS_CORRUPTED	= 1 << 0,
+	FS_DAMAGED	= 1 << 1,
+	FS_DESTROYED	= 1 << 2,
+	FS_IO		= 1 << 3
+} reiser4_state_t;
+
 extern void reiser4_status_close(reiser4_status_t *status);
 extern errno_t reiser4_status_sync(reiser4_status_t *status);
 

@@ -47,11 +47,13 @@ struct reiser4_status_sb {
 
 typedef struct reiser4_status_sb reiser4_status_sb_t;
 
-#define get_ss_status(ss)        aal_get_le64(ss, ss_status)         
-#define set_ss_status(ss, val)   aal_set_le64(ss, ss_status, val)         
+#define get_ss_status(ss)		aal_get_le64(ss, ss_status)
+#define set_ss_status(ss, val)		aal_set_le64(ss, ss_status, val)
 
-#define get_ss_extended(ss)      aal_get_le64(ss, ss_extended)         
-#define set_ss_extended(ss, val) aal_set_le64(ss, ss_extended, val)
+#define get_ss_extended(ss)		aal_get_le64(ss, ss_extended)
+#define set_ss_extended(ss, val)	aal_set_le64(ss, ss_extended, val)
+
+#define ss_stack(ss, n)			LE64_TO_CPU(ss->ss_stack[n])
 
 struct reiser4_master {
 	/* Flag for marking master dirty */

@@ -585,7 +585,7 @@ static errno_t repair_update(repair_control_t *control) {
 	if (control->repair->mode == RM_CHECK)
 		return 0;
 	
-	return repair_status_clear(control->repair->fs->status);
+	return 0;
 }
 
 static void repair_control_release(repair_control_t *control) {

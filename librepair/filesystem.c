@@ -29,11 +29,13 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_fs_free;
 	}
 
+	/* FIXME-VITALY: if status has io flag set and there is no bad
+	   block file given to fsck -- do not continue -- when bad block 
+	   support will be written. */
 	if ((res = repair_status_open(repair->fs, repair->mode))) {
 		aal_exception_fatal("Failed to open the status block.");
 		goto error_master_close;
 	}
-	
 	
 	if ((res = repair_format_open(repair->fs, repair->mode))) {
 		aal_exception_fatal("Failed to open the format.");

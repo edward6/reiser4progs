@@ -35,8 +35,7 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	}
 
 	/* Copying master super block */
-	aal_memcpy(STATUS(status), block->data,
-		   sizeof(*STATUS(status)));
+	aal_memcpy(STATUS(status), block->data, sizeof(*STATUS(status)));
 
 	aal_block_free(block);
     
@@ -46,6 +45,8 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	{
 		aal_exception_warn("Wrong magic is found in the "
 				   "filesystem status block.");
+		
+		goto error_free_status;
 	}
     
 	return status;
@@ -131,30 +132,72 @@ errno_t reiser4_status_layout(reiser4_status_t *status,
 errno_t reiser4_status_print(reiser4_status_t *status,
 			     aal_stream_t *stream)
 {
+	uint64_t state, extended;
+	int i;
+	
 	aal_assert("umka-2493", status != NULL);
 	aal_assert("umka-2494", stream != NULL);
 
-	aal_stream_format(stream, "Status block:\n");
-
-	aal_stream_format(stream, "offset:\t\t%lu\n",
+	aal_stream_format(stream, "Status block (%lu):\n", 
 			  REISER4_STATUS_BLOCK);
-	
-	aal_stream_format(stream, "magic:\t\t%s\n",
-			  STATUS(status)->ss_magic);
-	
-	aal_stream_format(stream, "status:\t\t%0xllx\n",
-			  get_ss_status(STATUS(status)));
 
-	aal_stream_format(stream, "extended:\t%0xllx\n",
-			  get_ss_extended(STATUS(status)));
+	state = get_ss_status(STATUS(status));
+	extended = get_ss_extended(STATUS(status));
 
-	if (*status->ent.ss_message != '\0') {
-		aal_stream_format(stream, "message:\t%s\n",
-				  STATUS(status)->ss_message);
-	} else {
-		aal_stream_format(stream, "message:\t<none>\n");
+	if (!state) {
+		aal_stream_format(stream, "\tfs marked consistent\n");
+		return 0;
+	}
+	
+	if (state & FS_CORRUPTED) {
+		aal_stream_format(stream, "\tfs marked corruped\n");
+		state &= ~FS_CORRUPTED;
 	}
 
+	if (state & (1 << FS_DAMAGED)) {
+		aal_stream_format(stream, "\tfs marked damaged\n");
+		state &= ~FS_DAMAGED;
+	}
+
+	if (state & FS_DESTROYED) {
+		aal_stream_format(stream, "\tfs marked destroyed\n");
+		state &= ~FS_DESTROYED;
+	}
+
+	if (state & FS_IO) {
+		aal_stream_format(stream, "\tfs marked having io "
+				  "problems\n");
+		state &= ~FS_IO;
+	}
+
+	if (state) {
+		aal_stream_format(stream, "\tsome unknown status "
+				  "flags found: %0xllx\n", state);
+	}
+
+	if (extended) {
+		aal_stream_format(stream, "\textended status: %0xllx\n",
+				  get_ss_extended(STATUS(status)));
+	}
+	
+	if (*status->ent.ss_message != '\0') {
+		aal_stream_format(stream, "Status message:\t%s\n",
+				  STATUS(status)->ss_message);
+	} 
+	
+	if (!STATUS(status)->ss_stack[0])
+		return 0;
+	
+	aal_stream_format(stream, "Status backtrace:\n");
+	
+	for (i = 0; i < SS_STACK_SIZE; i++) {
+		if (!ss_stack(STATUS(status), i)) {
+			aal_stream_format(stream, "\t%d: 0xllx\n", i, 
+					  STATUS(status)->ss_stack[i]);
+		}
+	}
+	
 	return 0;
 }
+
 #endif
