@@ -11,7 +11,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     reiser4_pos_t prev;
 
     aal_assert("vpf-416", coord != NULL, return -1);
-    aal_assert("vpf-417", reiser4_coord_node(coord) != NULL, return -1);
+    aal_assert("vpf-417", coord->node != NULL, return -1);
     
     /* Fetch the pointer from the coord. */
     if (plugin_call(return -1, coord->entity.plugin->item_ops,
@@ -47,7 +47,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 	    hint.ptr, hint.width);
 
 	repair_coord_left_pos_save(coord, &prev);
-	if (reiser4_node_remove(reiser4_coord_node(coord), &coord->pos))
+	if (reiser4_node_remove(coord->node, &coord->pos))
 	    return -1;		    
 		    
 	coord->pos = prev;

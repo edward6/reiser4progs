@@ -5,12 +5,12 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_coord_open(reiser4_coord_t *coord, void *data, 
-    coord_context_t context, reiser4_pos_t *pos)
+errno_t repair_coord_open(reiser4_coord_t *coord, reiser4_node_t *node, 
+    reiser4_pos_t *pos)
 {
     /* FIXME-VITALY: There will be a fix for plugin ids in a future here. */
     
-    return reiser4_coord_open(coord, data, context, pos);
+    return reiser4_coord_open(coord, node, pos);
 }
 
 

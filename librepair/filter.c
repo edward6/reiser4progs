@@ -12,19 +12,19 @@
 /* Open callback for traverse. It opens a node at passed blk, creates a joint 
  * on it. It does nothing if REPAIR_BAD_POINTER is set and set this flag if 
  * node cannot be opeened. Returns error if any. */
-static errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, 
+static errno_t repair_filter_joint_open(reiser4_node_t **node, blk_t blk, 
     void *data)
 {
     repair_data_t *repair_data = (repair_data_t *)data;
 
     aal_assert("vpf-379", repair_data != NULL, return -1);
-    aal_assert("vpf-432", joint != NULL, return -1);
+    aal_assert("vpf-432", node != NULL, return -1);
     aal_assert("vpf-433", repair_data->format != NULL, return -1);
 
     if (repair_test_flag(repair_data, REPAIR_BAD_PTR))
 	return 0;
 
-    if ((*joint = repair_joint_open(repair_data->format, blk)) == NULL) 
+    if ((*node = repair_joint_open(repair_data->format, blk)) == NULL) 
 	repair_set_flag(repair_data, REPAIR_BAD_PTR);    
 
     return 0;
@@ -33,7 +33,7 @@ static errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk,
 /* Before callback for traverse. It checks node level, node consistency, and 
  * delimiting keys. If any check reveals a problem with the data consistency
  * it sets REPAIR_BAD_PTR flag. */
-static errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
+static errno_t repair_filter_joint_check(reiser4_node_t *node, void *data) {
     repair_data_t *rd = (repair_data_t *)data;
     repair_filter_t *fd;
     object_entity_t *entity;    
@@ -41,13 +41,12 @@ static errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
     uint16_t level;
     
     aal_assert("vpf-252", data  != NULL, return -1);
-    aal_assert("vpf-409", joint != NULL, return -1);
-    aal_assert("vpf-410", joint->node != NULL, return -1);
-    aal_assert("vpf-411", joint->node->entity != NULL, return -1);    
-    aal_assert("vpf-412", joint->node->entity->plugin != NULL, return -1);
+    aal_assert("vpf-409", node != NULL, return -1);
+    aal_assert("vpf-411", node->entity != NULL, return -1);    
+    aal_assert("vpf-412", node->entity->plugin != NULL, return -1);
 
     fd = repair_filter((repair_data_t *)data);
-    entity = joint->node->entity;
+    entity = node->entity;
 
     level = plugin_call(return -1, entity->plugin->node_ops, get_level, entity);
     
@@ -62,10 +61,10 @@ static errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
 	res = 1;
     }
 
-    if (!res && (res = repair_joint_check(joint, fd->bm_used)) < 0)
+    if (!res && (res = repair_joint_check(node, fd->bm_used)) < 0)
 	return res;
 	
-    if (!res && (res = repair_joint_dkeys_check(joint, data)) < 0)
+    if (!res && (res = repair_joint_dkeys_check(node, data)) < 0)
 	return res;
 
     if (res > 0)
@@ -122,19 +121,20 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 	
 	/* The node corruption was not fixed - delete the internal item. */
 	repair_coord_left_pos_save(coord, &prev);
-	if (reiser4_node_remove(reiser4_coord_node(coord), &coord->pos)) {
+	if (reiser4_node_remove(coord->node, &coord->pos)) {
 	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
-		reiser4_coord_blk(coord), coord->pos.item, coord->pos.unit);
+		coord->node->blk, coord->pos.item, coord->pos.unit);
 	    return -1;
 	}
 	coord->pos = prev;
 	repair_clear_flag(rd, REPAIR_BAD_PTR);
     } else {
+        object_entity_t *entity = coord->node->entity;
 	/* Mark all twigs in the bm_twig bitmap. */
-	if (plugin_call(return -1, reiser4_coord_entity(coord)->plugin->node_ops, 
-	    get_level, reiser4_coord_entity(coord)) == TWIG_LEVEL) 
+	if (plugin_call(return -1, entity->plugin->node_ops, 
+	    get_level, entity) == TWIG_LEVEL) 
 	    aux_bitmap_mark(repair_filter(rd)->bm_twig, 
-		reiser4_coord_blk(coord));
+		coord->node->blk);
     }
     
     repair_filter(rd)->level++;
@@ -145,14 +145,13 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 /* After callback for traverse. Does needed stuff after traversing through all 
  * children - if no child left, set REPAIR_BAD_PTR flag to force deletion of 
  * the pointer to this block in update_traverse callback. */
-static errno_t repair_filter_after_traverse(reiser4_joint_t *joint, void *data) {
+static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
     repair_data_t *repair_data = (repair_data_t *)data;
      
-    aal_assert("vpf-393", joint != NULL, return -1);
-    aal_assert("vpf-394", joint->node != NULL, return -1);   
+    aal_assert("vpf-393", node != NULL, return -1);
     aal_assert("vpf-256", repair_data != NULL, return -1);    
 
-    if (reiser4_node_count(joint->node) == 0)
+    if (reiser4_node_count(node) == 0)
 	repair_set_flag(repair_data, REPAIR_BAD_PTR);
     /* FIXME-VITALY: else - sync the node */
 
@@ -239,7 +238,7 @@ static errno_t repair_filter_update(traverse_hint_t *hint) {
 
 errno_t repair_filter_pass(repair_data_t *rd) {
     traverse_hint_t hint;
-    reiser4_joint_t *joint = NULL;
+    reiser4_node_t *node = NULL;
     errno_t res;
 
     aal_assert("vpf-536", rd != NULL, return -1);
@@ -247,17 +246,17 @@ errno_t repair_filter_pass(repair_data_t *rd) {
     if (repair_filter_setup(&hint, rd))
 	return -1;
 
-    if ((res = repair_filter_joint_open(&joint, 
+    if ((res = repair_filter_joint_open(&node, 
 	reiser4_format_get_root(rd->format), rd)) < 0)
 	return res;
     
-    if (res == 0 && joint != NULL) {
+    if (res == 0 && node != NULL) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-	res = reiser4_joint_traverse(joint, &hint, repair_filter_joint_open,
+	res = reiser4_node_traverse(node, &hint, repair_filter_joint_open,
 	    repair_filter_joint_check,	    repair_filter_setup_traverse,  
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
-	reiser4_joint_close(joint);
+	reiser4_node_close(node);
 
 	if (res < 0)
 	    return res;
