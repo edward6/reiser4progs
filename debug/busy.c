@@ -123,7 +123,7 @@ static void busy_print_usage(void) {
 	for (i = 0; i < TESTS_COUNT; i++)
 		fprintf(stderr, "\t%s %s\n", tests[i].name, tests[i].options);
 		
-	fprintf(stderr, "\nPATH = {device:path || !path}\n");
+	fprintf(stderr, "\nPATH = {device:path || ^path}\n");
 	fprintf(stderr, "when working with reiser4 fs on 'device' and others "
 		"respectively.\n\n");
 }
@@ -400,7 +400,7 @@ static errno_t busy_path_parse(busy_target_t *target, char *path) {
 	i = 0;
 	len = aal_strlen(path);
 	
-	if (path[0] != '!') {
+	if (path[0] != '^') {
 		for (i = 0; i < 256 && i < len; i++) {
 			if (path[i] == ':')
 				break;
@@ -419,6 +419,8 @@ static errno_t busy_path_parse(busy_target_t *target, char *path) {
 			return -EINVAL;
 
 		path += i + 1;
+	} else {
+		path++;
 	}
 	
 	target->path[0] = 0;
@@ -494,7 +496,10 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 	    ctx->testno == 11) 
 	{
 		/* The second parameter is NAME. */
-		aal_strncpy(ctx->out.path, params[3], PATH_MAXLEN - 1);
+		if (busy_path_parse(&ctx->out, params[3])) {
+			busy_ctx_fini(ctx);
+			return 0x8;
+		}
 	}
 
 	ctx->objtype = busy_set_objtype(ctx->testno);
