@@ -863,14 +863,15 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 
 	/* Allocate new unit stage. Here we will set new unit up. */
 	if (ins_offset + hint->count <= max_offset) {
-		uint64_t unit_size;
-		
 		/* Writing inside item. Here we should handle the case of
 		   overwriting hole units. */
 		extent = extent40_body(place) + unit_pos;
-		unit_size = et40_get_width(extent) * blksize;
 		
 		if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
+			uint64_t unit_size;
+		
+			unit_size = et40_get_width(extent) * blksize;
+			
 			/* We will allocate new unit if we write data to hole
 			   and data size less than @unit_size. */
 			if (hint->specific && hint->count < unit_size) {

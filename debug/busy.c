@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 //		file = fopen("/home/umka/tmp/out", "r");
 
 //		while (!feof(file)) {
-		for (i = 0; i < 500000; i++) {
+		for (i = 0; i < 20/*500000*/; i++) {
                         int j, count;
 //			char part[256];
 
