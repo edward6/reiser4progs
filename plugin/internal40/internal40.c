@@ -83,6 +83,16 @@ static blk_t internal40_get_ptr(reiser4_item_t *item) {
     return it40_get_ptr(internal);
 }
 
+static errno_t internal40_maxkey(reiser4_item_t *item,
+    reiser4_key_t *key) 
+{
+    aal_assert("umka-1207", item != NULL, return -1);
+    aal_assert("umka-1208", key != NULL, return -1);
+
+    return plugin_call(return 0, item->node->plugin->node_ops,
+	get_key, item->node, item->pos, key);
+}
+
 static reiser4_plugin_t internal40_plugin = {
     .item_ops = {
 	.h = {
@@ -104,12 +114,12 @@ static reiser4_plugin_t internal40_plugin = {
         .check	    = NULL,
 #endif
         .lookup	    = NULL,
-        .maxkey	    = NULL,
         .valid	    = NULL,
         .insert	    = NULL,
         .count	    = NULL,
         .remove	    = NULL,
-	    
+
+	.maxkey	    = internal40_maxkey,
         .print	    = internal40_print,
 	
     	.specific = {

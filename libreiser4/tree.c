@@ -338,18 +338,17 @@ int reiser4_tree_lookup(
     deep = reiser4_tree_height(tree);
     reiser4_coord_init(coord, tree->cache, 0, ~0ul);
     
+    /* 
+        Check for the case when looked key smaller than root key. This is 
+        the case, when somebody is trying to go up of the root by ".." entry
+        of root directory.
+    */
+    if (reiser4_key_compare(key, &tree->key) < 0)
+        *key = tree->key;
+		    
     while (1) {
-	reiser4_key_t k;
 	reiser4_node_t *node;
 
-	/* 
-	    Check for the case when looked key smaller than root key. This is 
-	    the case, when somebody is trying to go up of the root by ".." entry
-	    of root directory.
-	*/
-	if (reiser4_key_compare(key, &tree->key) < 0)
-	    *key = tree->key;
-		    
 	node = coord->cache->node;
 	
 	/* 
@@ -470,7 +469,7 @@ static errno_t reiser4_tree_attach(
 	    reiser4_key_get_objectid(&ldkey), reiser4_key_get_offset(&ldkey));
 	return -1;
     }
-    
+
     if (reiser4_cache_insert(coord.cache, &coord.pos, &hint)) {
         aal_exception_error("Can't insert internal item to the tree.");
 	return -1;
@@ -816,7 +815,9 @@ errno_t reiser4_tree_insert(
 ) {
     uint32_t needed;
     int lookup, level;
+    
     reiser4_key_t *key;
+    reiser4_item_t item;
 
     aal_assert("umka-779", tree != NULL, return -1);
     aal_assert("umka-779", hint != NULL, return -1);
@@ -847,17 +848,13 @@ errno_t reiser4_tree_insert(
 	Correcting unit position in the case lookup was called for pasting unit 
 	into existent item, not for inserting new item.
     */
-    coord->pos.unit += (coord->pos.unit != ~0ul ? 1 : 0);
+//    coord->pos.unit += (coord->pos.unit != ~0ul ? 1 : 0);
     
     /* Estimating item in order to insert it into found node */
-    {
-	reiser4_item_t item;
+    reiser4_item_init(&item, coord->cache->node, &coord->pos);
 	
-	reiser4_item_init(&item, coord->cache->node, &coord->pos);
-	
-	if (reiser4_item_estimate(&item, hint))
-	    return -1;
-    }
+    if (reiser4_item_estimate(&item, hint))
+        return -1;
     
     /* Needed space is estimated space plugs item overhead */
     needed = hint->len + (coord->pos.unit == ~0ul ? 

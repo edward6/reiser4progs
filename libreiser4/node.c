@@ -15,7 +15,7 @@
 /* Creates node on specified device and block and with spcified key plugin */
 reiser4_node_t *reiser4_node_create(
     aal_block_t *block,		/* block new node will be created on */
-    rpid_t pid,		/* node plugin id to be used */
+    rpid_t pid,			/* node plugin id to be used */
     uint8_t level		/* node level */
 ) {
     reiser4_node_t *node;
@@ -339,10 +339,12 @@ int reiser4_node_lookup(
 	We are on the position where key is less then wanted. Key could lies 
 	within the item or after the item.
     */
-    reiser4_node_get_key(node, pos, &maxkey);
-    
     if (item.plugin->item_ops.maxkey) {
-	    
+	
+	/* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
+	maxkey.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
+	    KEY_REISER40_ID);
+	
 	if (item.plugin->item_ops.maxkey(&item, &maxkey) == -1) {
 	    aal_exception_error("Getting max key of the item %d "
 		"in the node %llu failed.", pos->item, 
@@ -350,13 +352,12 @@ int reiser4_node_lookup(
 	    return -1;
 	}
 	
+	if (reiser4_key_compare(key, &maxkey) > 0) {
+	    pos->item++;
+	    return 0;
+	}
     }
 
-    if (reiser4_key_compare(key, &maxkey) > 0) {
-        pos->item++;
-        return 0;
-    }
-    
     /* Calling lookup method of found item (most probably direntry item) */
     if (!item.plugin->item_ops.lookup)
 	return 0;

@@ -260,6 +260,16 @@ static errno_t stat40_set_mode(reiser4_item_t *item,
 
 #endif
 
+static errno_t stat40_maxkey(reiser4_item_t *item,
+    reiser4_key_t *key) 
+{
+    aal_assert("umka-1207", item != NULL, return -1);
+    aal_assert("umka-1208", key != NULL, return -1);
+
+    return plugin_call(return 0, item->node->plugin->node_ops,
+	get_key, item->node, item->pos, key);
+}
+
 static reiser4_plugin_t stat40_plugin = {
     .item_ops = {
 	.h = {
@@ -284,10 +294,10 @@ static reiser4_plugin_t stat40_plugin = {
         .remove	    = NULL,
         .check	    = NULL,
 #endif
-        .maxkey	    = NULL,
         .lookup	    = NULL,
         .print	    = NULL,
 	    
+        .maxkey	    = stat40_maxkey,
         .count	    = stat40_count,
         .valid	    = stat40_valid,
 	

@@ -1,7 +1,7 @@
 includedir		    = -I$(top_srcdir)/include
 libdir			    = $(plugindir)
 
-extent40_sources	    = extent40.c
+extent40_sources	    = extent40.c extent40.h
 
 lib_LTLIBRARIES		    = libextent40.la
 noinst_LTLIBRARIES	    = libextent40-static.la

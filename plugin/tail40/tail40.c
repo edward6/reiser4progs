@@ -41,6 +41,31 @@ static uint16_t tail40_remove(reiser4_item_t *item, uint32_t pos) {
 
 #endif
 
+static errno_t tail40_maxkey(reiser4_item_t *item,
+    reiser4_key_t *key) 
+{
+    uint64_t offset;
+    reiser4_body_t *maxkey;
+    
+    aal_assert("umka-1209", item != NULL, return -1);
+    aal_assert("umka-1210", key != NULL, return -1);
+
+    if (plugin_call(return 0, item->node->plugin->node_ops,
+	    get_key, item->node, item->pos, key))
+	return -1;
+    
+    maxkey = plugin_call(return -1, key->plugin->key_ops,
+	maximal,);
+    
+    offset = plugin_call(return -1, key->plugin->key_ops,
+	get_offset, maxkey);
+    
+    plugin_call(return -1, key->plugin->key_ops, set_offset, 
+	key->body, offset);
+
+    return 0;
+}
+
 static reiser4_plugin_t tail40_plugin = {
     .item_ops = {
 	.h = {
@@ -61,9 +86,9 @@ static reiser4_plugin_t tail40_plugin = {
         .insert	    = NULL,
         .remove	    = NULL,
 #endif
+        .maxkey	    = tail40_maxkey,
         .estimate   = NULL,
         .check	    = NULL,
-        .maxkey	    = NULL,
         .lookup	    = NULL,
         .count	    = NULL,
         .valid	    = NULL,
