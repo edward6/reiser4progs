@@ -23,4 +23,8 @@ struct spl40 {
 };
 
 typedef struct spl40 spl40_t;
+
+extern reiser4_plug_t spl40_plug;
+extern reiser4_core_t *spl40_core;
+
 #endif

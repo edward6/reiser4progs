@@ -5,8 +5,8 @@
 
 #ifdef ENABLE_SPECIAL
 #include "spl40.h"
+#include "spl40_repair.h"
 
-extern reiser4_plug_t spl40_plug;
 reiser4_core_t *spl40_core = NULL;
 
 /* Opens special file and returns initialized instance to the caller */
@@ -172,6 +172,8 @@ static reiser4_object_ops_t spl40_ops = {
 	.links          = spl40_links,
 	.clobber        = spl40_clobber,
 	.update         = spl40_update,
+	.check_struct	= spl40_check_struct,
+	.recognize	= spl40_recognize,
 
 	.layout         = NULL,
 	.form		= NULL,
@@ -185,6 +187,7 @@ static reiser4_object_ops_t spl40_ops = {
 	.attach         = NULL,
 	.detach         = NULL,
 	
+	.form		= NULL,
 	.fake		= NULL,
 	.check_attach 	= NULL,
 #endif

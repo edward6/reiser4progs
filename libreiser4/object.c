@@ -198,7 +198,7 @@ reiser4_object_t *reiser4_object_guess(
 	aal_memcpy(&object->info->start, place, sizeof(*place));
 
 	/* Calling @init_func. It returns zero for success. */
-	if (!(res = init_func(object, parent)))
+	if ((res = init_func(object, parent)))
 		goto error_free_object;
 
 	object->info = &object->entity->info;

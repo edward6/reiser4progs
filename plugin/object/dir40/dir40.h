@@ -46,4 +46,3 @@ extern lookup_t dir40_lookup(object_entity_t *entity,
 
 extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
 #endif
-

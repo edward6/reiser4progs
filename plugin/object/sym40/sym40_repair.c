@@ -62,8 +62,8 @@ object_entity_t *sym40_recognize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static void sym40_one_nlink(obj40_t *obj, uint32_t *nlink) {
-	*nlink = 1;
+static void sym40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
+	*nlink = 0;
 }
 
 static void sym40_check_mode(obj40_t *obj, uint16_t *mode) {
@@ -73,9 +73,9 @@ static void sym40_check_mode(obj40_t *obj, uint16_t *mode) {
 	}
 }
 
-static void sym40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t counted_size) {
-	if (*sd_size != counted_size)
-		*sd_size = counted_size;
+static void sym40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t size) {
+	if (*sd_size != size)
+		*sd_size = size;
 }
 
 errno_t sym40_check_struct(object_entity_t *object,
@@ -107,14 +107,13 @@ errno_t sym40_check_struct(object_entity_t *object,
 		return res;
 	}
 	
-	/* Updating atime and mtime */
 	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
 				  SDEXT_SYMLINK_ID, path)))
 		return res;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	return obj40_check_stat(&sym->obj, mode == RM_BUILD ? 
-				sym40_one_nlink : NULL,
+				sym40_zero_nlink : NULL,
 				sym40_check_mode, 
 				sym40_check_size, 
 				aal_strlen(path), 0, mode);

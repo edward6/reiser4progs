@@ -1,7 +1,7 @@
 includedir	 	    = -I$(top_srcdir)/include
 libdir			    = $(plugindir)
 
-spl40_sources	            = spl40.c spl40.h
+spl40_sources	            = spl40.c spl40.h spl40_repair.c spl40_repair.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                 = libspl40-static.la
