@@ -9,22 +9,23 @@
 
 #include <repair/librepair.h>
 
-/* Open callback for traverse. It opens a node at passed blk, creates a joint 
+/* Open callback for traverse. It opens a node at passed blk, creates a node 
  * on it. It does nothing if REPAIR_BAD_POINTER is set and set this flag if 
  * node cannot be opeened. Returns error if any. */
-static errno_t repair_filter_joint_open(reiser4_node_t **node, blk_t blk, 
+static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk, 
     void *data)
 {
     repair_data_t *repair_data = (repair_data_t *)data;
 
     aal_assert("vpf-379", repair_data != NULL, return -1);
     aal_assert("vpf-432", node != NULL, return -1);
-    aal_assert("vpf-433", repair_data->format != NULL, return -1);
+    aal_assert("vpf-433", repair_data->fs != NULL, return -1);
+    aal_assert("vpf-591", repair_data->fs->format != NULL, return -1);
 
     if (repair_test_flag(repair_data, REPAIR_BAD_PTR))
 	return 0;
 
-    if ((*node = repair_joint_open(repair_data->format, blk)) == NULL) 
+    if ((*node = repair_node_open(repair_data->fs->format, blk)) == NULL) 
 	repair_set_flag(repair_data, REPAIR_BAD_PTR);    
 
     return 0;
@@ -33,7 +34,7 @@ static errno_t repair_filter_joint_open(reiser4_node_t **node, blk_t blk,
 /* Before callback for traverse. It checks node level, node consistency, and 
  * delimiting keys. If any check reveals a problem with the data consistency
  * it sets REPAIR_BAD_PTR flag. */
-static errno_t repair_filter_joint_check(reiser4_node_t *node, void *data) {
+static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     repair_data_t *rd = (repair_data_t *)data;
     repair_filter_t *fd;
     object_entity_t *entity;    
@@ -61,10 +62,10 @@ static errno_t repair_filter_joint_check(reiser4_node_t *node, void *data) {
 	res = 1;
     }
 
-    if (!res && (res = repair_joint_check(node, fd->bm_used)) < 0)
+    if (!res && (res = repair_node_check(node, fd->bm_used)) < 0)
 	return res;
 	
-    if (!res && (res = repair_joint_dkeys_check(node, data)) < 0)
+    if (!res && (res = repair_node_dkeys_check(node, data)) < 0)
 	return res;
 
     if (res > 0)
@@ -90,7 +91,7 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
 	return -1;
     }
 
-    /* The validness of this pointer must be checked at joint_check time. */
+    /* The validness of this pointer must be checked at node_check time. */
     aux_bitmap_mark_range(fd->bm_used, ptr.ptr, ptr.ptr + ptr.width);
 
     fd->level--;
@@ -164,6 +165,7 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     
     aal_assert("vpf-420", hint != NULL, return -1);
     aal_assert("vpf-423", rd != NULL, return -1);
+    aal_assert("vpf-592", rd->fs != NULL, return -1);
 
     hint->data = rd;
     hint->cleanup = 1;
@@ -171,14 +173,14 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     /* Allocate a bitmap for blocks belonged to the format area - skipped, 
      * super block, journal, bitmaps. */
     if (!(repair_filter(rd)->bm_used = aux_bitmap_create(
-	reiser4_format_get_len(rd->format)))) 
+	reiser4_format_get_len(rd->fs->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for format layout.");
 	return -1;
     }
 
     /* Mark all format area block in the bm_used bitmap. */
-    if (reiser4_format_layout(rd->format, callback_mark_format_block, 
+    if (reiser4_format_layout(rd->fs->format, callback_mark_format_block, 
 	repair_filter(rd)->bm_used)) 
     {
 	aal_exception_error("Failed to mark all format blocks in the bitmap as "
@@ -188,7 +190,7 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     
     /* Allocate a bitmap for twig blocks in the tree. */
     if (!(repair_filter(rd)->bm_twig = aux_bitmap_create(
-	reiser4_format_get_len(rd->format)))) 
+	reiser4_format_get_len(rd->fs->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for twig blocks.");
 	return -1;
@@ -201,13 +203,13 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
 
     /* Check the root pointer to be valid block. */
     if (aux_bitmap_test(repair_filter(rd)->bm_used, 
-	reiser4_format_get_root(rd->format))) 
+	reiser4_format_get_root(rd->fs->format))) 
 	/* This block is from format area. */
 	repair_set_flag(rd, REPAIR_BAD_PTR);
     else	
 	/* We meet the block for the first time. */
 	aux_bitmap_mark(repair_filter(rd)->bm_used, 
-	    reiser4_format_get_root(rd->format));
+	    reiser4_format_get_root(rd->fs->format));
  
     return 0;
 }
@@ -225,12 +227,12 @@ static errno_t repair_filter_update(traverse_hint_t *hint) {
     rd = hint->data;
     
     if (repair_test_flag(rd, REPAIR_BAD_PTR)) {
-	reiser4_format_set_root(rd->format, INVAL_BLK);
+	reiser4_format_set_root(rd->fs->format, INVAL_BLK);
 	repair_clear_flag(rd, REPAIR_BAD_PTR);
     } else {
 	/* Mark the root block as a formatted block in the bitmap. */
 	aux_bitmap_mark(repair_filter(rd)->bm_used, 
-	    reiser4_format_get_root(rd->format));
+	    reiser4_format_get_root(rd->fs->format));
     }
 
     return 0;
@@ -246,14 +248,14 @@ errno_t repair_filter_pass(repair_data_t *rd) {
     if (repair_filter_setup(&hint, rd))
 	return -1;
 
-    if ((res = repair_filter_joint_open(&node, 
-	reiser4_format_get_root(rd->format), rd)) < 0)
+    if ((res = repair_filter_node_open(&node, 
+	reiser4_format_get_root(rd->fs->format), rd)) < 0)
 	return res;
     
     if (res == 0 && node != NULL) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-	res = reiser4_node_traverse(node, &hint, repair_filter_joint_open,
-	    repair_filter_joint_check,	    repair_filter_setup_traverse,  
+	res = reiser4_node_traverse(node, &hint, repair_filter_node_open,
+	    repair_filter_node_check,	    repair_filter_setup_traverse,  
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
 	reiser4_node_close(node);
