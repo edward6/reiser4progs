@@ -66,29 +66,34 @@ uint8_t reiser4_tree_get_height(reiser4_tree_t *tree) {
 
 /* Dealing with loading root node if it is not loaded yet */
 errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
-	blk_t rootblk;
+	blk_t root_blk;
 	
 	aal_assert("umka-1870", tree != NULL);
 
 	if (tree->root)
 		return 0;
 
+	/* Checking if tree contains some nodes at all. It does not contain them
+	   just after creation. The is root blk in format is set to
+	   INVAL_BLK. */
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_tree_fresh(tree))
 		return -EINVAL;
 #endif
-	
-	rootblk = reiser4_tree_get_root(tree);
+
+	/* Getting root node and loading it. */
+	root_blk = reiser4_tree_get_root(tree);
 	
 	if (!(tree->root = reiser4_tree_load_node(tree, NULL,
-						  rootblk)))
+						  root_blk)))
 	{
 		aal_exception_error("Can't load root node %llu.",
-				    rootblk);
-		return -EINVAL;
+				    root_blk);
+		return -EIO;
 	}
-    
-	tree->root->tree = tree;	
+
+	tree->root->tree = tree;
+	
 	return 0;
 }
 
@@ -107,7 +112,7 @@ static bool_t reiser4_tree_root_node(reiser4_tree_t *tree,
 static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 					reiser4_node_t *node)
 {
-	blk_t rootblk;
+	blk_t root_blk;
 	uint32_t level;
 	
 	aal_assert("umka-1867", tree != NULL);
@@ -120,8 +125,8 @@ static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 	level = reiser4_node_get_level(node);
 	reiser4_tree_set_height(tree, level);
 
-	rootblk = node_blocknr(tree->root);
-	reiser4_tree_set_root(tree, rootblk);
+	root_blk = node_blocknr(tree->root);
+	reiser4_tree_set_root(tree, root_blk);
 
 	return 0;
 }
@@ -1294,6 +1299,7 @@ int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 		/* Data does not found. This may mean, that we have hole in tree
 		   between keys. */
 		if (res == ABSENT) {
+			uint64_t hole_size;
 			uint64_t next_offset;
 			uint64_t look_offset;
 			
@@ -1304,9 +1310,9 @@ int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 
 			next_offset = reiser4_key_get_offset(&place.key);
 			look_offset = reiser4_key_get_offset(&hint->offset);
-			
-			read = (next_offset - look_offset > size ? size :
-				next_offset - look_offset);
+
+			hole_size = next_offset - look_offset;
+			read = (hole_size > size ? size : hole_size);
 
 			/* Making holes in buffer */
 			aal_memset(hint->specific, 0, read);
@@ -1846,6 +1852,7 @@ int32_t reiser4_tree_expand(
 		}
 	}
 
+	/* Return value of free space in insert point node. */
 	enough = reiser4_node_space(place->node);
 		
 	if (place->pos.unit == MAX_UINT32)
@@ -2147,6 +2154,7 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 		   hole between keys. We will handle this, as it is needed for
 		   fsck. */
 		if (res == ABSENT) {
+			uint64_t hole_size;
 			uint64_t next_offset;
 			uint64_t look_offset;
 
@@ -2156,9 +2164,9 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 
 			next_offset = reiser4_key_get_offset(&place.key);
 			look_offset = reiser4_key_get_offset(&hint->offset);
-			
-			trunc = (next_offset - look_offset > size ? size :
-				 next_offset - look_offset);
+
+			hole_size = next_offset - look_offset;
+			trunc = (hole_size > size ? size : hole_size);
 
 			reiser4_key_inc_offset(&hint->offset, trunc);
 			continue;
@@ -2496,7 +2504,7 @@ static int64_t reiser4_tree_mod(
 }
 
 /* Fetches data from the @tree to passed @hint */
-int32_t reiser4_tree_fetch(reiser4_tree_t *tree,
+int64_t reiser4_tree_fetch(reiser4_tree_t *tree,
 			   reiser4_place_t *place,
 			   trans_hint_t *hint)
 {
