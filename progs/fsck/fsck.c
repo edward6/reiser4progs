@@ -327,15 +327,6 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 	
 	aal_stream_fini(&stream);
 	
-	/* Init the tree on the openned fs. */
-	if (!(repair->fs->tree = reiser4_tree_init(repair->fs, 
-						   misc_mpressure_detect)))
-	{
-		aal_exception_fatal("Failed to initialize the tree on the "
-				    "openned fs.");
-		goto error_free_fs;
-	}
-	
 	if (repair->mode != RM_CHECK) {
 		aal_device_t *device = repair->fs->device;
 		
@@ -344,11 +335,6 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 	}
 	
 	return 0;
-	
- error_free_fs:
-	repair_fs_close(repair->fs);
-	repair->fs = NULL;
-	return -EINVAL;
 }
 
 static errno_t fsck_check_fini(repair_data_t *repair) {
