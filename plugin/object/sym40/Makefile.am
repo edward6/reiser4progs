@@ -12,7 +12,7 @@ else
 STATIC_LIBS                 =
 lib_LTLIBRARIES		    = libsym40.la
 libsym40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
-			      $(top_builddir)/plugin/object/object40/libobject40-static.la
+			      $(top_builddir)/plugin/object/obj40/libobj40-static.la
 libsym40_la_SOURCES	    = $(sym40_sources)
 libsym40_la_LDFLAGS	    = @PLUGIN_LDFLAGS@
 libsym40_la_CFLAGS          = @GENERIC_CFLAGS@

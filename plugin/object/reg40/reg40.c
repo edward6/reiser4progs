@@ -25,9 +25,9 @@ static uint64_t reg40_size(object_entity_t *entity) {
 	reg = (reg40_t *)entity;
 	
 	/* Getting stat data item place */
-	object40_stat(&reg->obj);
+	obj40_stat(&reg->obj);
 	
-	return object40_get_size(&reg->obj);
+	return obj40_get_size(&reg->obj);
 }
 
 /* Updates body place in correspond to file offset */
@@ -42,20 +42,20 @@ static lookup_t reg40_next(reg40_t *reg) {
 	key.plugin = reg->obj.key.plugin;
 	
 	plugin_call(key.plugin->key_ops, build_generic, &key,
-		    KEY_FILEBODY_TYPE, object40_locality(&reg->obj), 
-		    object40_objectid(&reg->obj), reg->offset);
+		    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
+		    obj40_objectid(&reg->obj), reg->offset);
 
 	/* Getting the next body item from the tree */
-	if ((res = object40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				   &place)) == LP_PRESENT)
+	if ((res = obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
+				&place)) == LP_PRESENT)
 	{
 		/* Unlocking old location */
 		if (reg->body.node != NULL)
-			object40_unlock(&reg->obj, &reg->body);
+			obj40_unlock(&reg->obj, &reg->body);
 
 		/* Locking new location */
 		reg->body = place;
-		object40_lock(&reg->obj, &reg->body);
+		obj40_lock(&reg->obj, &reg->body);
 	}
 
 	return res;
@@ -155,17 +155,17 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 	key = &place->item.key;
 
 	/* Initializing file handle */
-	if (object40_init(&reg->obj, &reg40_plugin, key, core, tree))
+	if (obj40_init(&reg->obj, &reg40_plugin, key, core, tree))
 		goto error_free_reg;
 
 	/* Saving statdata place and looking the code it lies in */
 	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
-	object40_lock(&reg->obj, &reg->obj.statdata);
+	obj40_lock(&reg->obj, &reg->obj.statdata);
 
 	/* Position onto the first body item */
 	if (reg40_reset((object_entity_t *)reg)) {
 		aal_exception_error("Can't reset file 0x%llx.", 
-				    object40_objectid(&reg->obj));
+				    obj40_objectid(&reg->obj));
 		goto error_free_reg;
 	}
     
@@ -206,11 +206,11 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	reg->offset = 0;
 
 	/* Initializing file handle */
-	if (object40_init(&reg->obj, &reg40_plugin, &hint->object, core, tree))
+	if (obj40_init(&reg->obj, &reg40_plugin, &hint->object, core, tree))
 		goto error_free_reg;
 	
-	locality = object40_locality(&reg->obj);
-    	objectid = object40_objectid(&reg->obj);
+	locality = obj40_locality(&reg->obj);
+    	objectid = obj40_objectid(&reg->obj);
 
 	parent_locality = plugin_call(hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
@@ -259,11 +259,11 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	stat_hint.type_specific = &stat;
 
 	/* Insert statdata item into the tree */
-	if (object40_insert(&reg->obj, &stat_hint, LEAF_LEVEL, place))
+	if (obj40_insert(&reg->obj, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_reg;
 
 	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
-	object40_lock(&reg->obj, &reg->obj.statdata);
+	obj40_lock(&reg->obj, &reg->obj.statdata);
     
 	if (parent) {
 		plugin_call(parent->plugin->file_ops, link,
@@ -285,7 +285,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 static errno_t reg40_link(object_entity_t *entity) {
 	aal_assert("umka-1912", entity != NULL);
-	return object40_link(&((reg40_t *)entity)->obj, 1);
+	return obj40_link(&((reg40_t *)entity)->obj, 1);
 }
 
 static errno_t reg40_unlink(object_entity_t *entity) {
@@ -296,30 +296,30 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 
 	reg = (reg40_t *)entity;
 	
-	if (object40_stat(&reg->obj))
+	if (obj40_stat(&reg->obj))
 		return -1;
 
-	if (object40_link(&reg->obj, -1))
+	if (obj40_link(&reg->obj, -1))
 		return -1;
 
-	if (object40_get_nlink(&reg->obj) > 0)
+	if (obj40_get_nlink(&reg->obj) > 0)
 		return 0;
 	
 	/* Removing file when nlink became zero */
 	if (reg40_reset(entity))
 		return -1;
 	
-	size = object40_get_size(&reg->obj);
+	size = obj40_get_size(&reg->obj);
 
 	aal_assert("umka-1913", size > 0);
 	
 	if (reg40_truncate(entity, size))
 		return -1;
 
-	if (object40_stat(&reg->obj))
+	if (obj40_stat(&reg->obj))
 		return -1;
 
-	return object40_remove(&reg->obj, &reg->obj.key, 1);
+	return obj40_remove(&reg->obj, &reg->obj.key, 1);
 }
 
 /* 
@@ -467,10 +467,10 @@ static void reg40_close(object_entity_t *entity) {
 
 	/* Unlocking statdata and body */
 	if (reg->obj.statdata.node != NULL)
-		object40_unlock(&reg->obj, &reg->obj.statdata);
+		obj40_unlock(&reg->obj, &reg->obj.statdata);
 
 	if (reg->body.node != NULL)
-		object40_unlock(&reg->obj, &reg->body);
+		obj40_unlock(&reg->obj, &reg->body);
 	
 	aal_free(entity);
 }

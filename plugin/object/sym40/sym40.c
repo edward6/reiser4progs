@@ -63,13 +63,12 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 	key = &place->item.key;
 
 	/* Initalizing file handle */
-	if (object40_init(&sym->obj, &sym40_plugin, key, core, tree))
+	if (obj40_init(&sym->obj, &sym40_plugin, key, core, tree))
 		goto error_free_sym;
 
 	/* Saving statdata place and locking the node it lies in */
 	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
-
-	object40_lock(&sym->obj, &sym->obj.statdata);
+	obj40_lock(&sym->obj, &sym->obj.statdata);
 
 	/* Initializing parent key from the root one */
 	sym->obj.core->tree_ops.rootkey(sym->obj.tree,
@@ -109,15 +108,15 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 		return NULL;
 
 	/* Inizializes file handle */
-	object40_init(&sym->obj, &sym40_plugin, &hint->object, 
-		      core, tree);
+	obj40_init(&sym->obj, &sym40_plugin, &hint->object, 
+		   core, tree);
 	
 	/* Initializing parent key from the parent field of passed @hint */
 	plugin_call(hint->object.plugin->key_ops, assign,
 		    &sym->parent, &hint->parent);
 	
-	locality = object40_locality(&sym->obj);
-	objectid = object40_objectid(&sym->obj);
+	locality = obj40_locality(&sym->obj);
+	objectid = obj40_objectid(&sym->obj);
 
 	parent_locality = plugin_call(hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
@@ -171,13 +170,13 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data into the tree */
-	if (object40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, place))
+	if (obj40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_sym;
 
 	/* Saving statdata place and locking the node it lies in */
 	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
 
-	object40_lock(&sym->obj, &sym->obj.statdata);
+	obj40_lock(&sym->obj, &sym->obj.statdata);
 		
 	if (parent) {
 		plugin_call(parent->plugin->file_ops, link,
@@ -193,7 +192,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 
 static errno_t sym40_link(object_entity_t *entity) {
 	aal_assert("umka-1915", entity != NULL);
-	return object40_link(&((sym40_t *)entity)->obj, 1);
+	return obj40_link(&((sym40_t *)entity)->obj, 1);
 }
 
 static errno_t sym40_unlink(object_entity_t *entity) {
@@ -203,17 +202,17 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 
 	sym = (sym40_t *)entity;
 	
-	if (object40_stat(&sym->obj))
+	if (obj40_stat(&sym->obj))
 		return -1;
 
-	if (object40_link(&sym->obj, -1))
+	if (obj40_link(&sym->obj, -1))
 		return -1;
 
-	if (object40_get_nlink(&sym->obj) > 0)
+	if (obj40_get_nlink(&sym->obj) > 0)
 		return 0;
 	
 	/* Removing file when nlink became zero */
-	return object40_remove(&sym->obj, &sym->obj.key, 1);
+	return obj40_remove(&sym->obj, &sym->obj.key, 1);
 }
 
 /* Writes "n" bytes from "buff" to passed file. */
@@ -231,10 +230,10 @@ static int32_t sym40_write(object_entity_t *entity,
 	*/
 	sym = (sym40_t *)entity;
 
-	if (object40_stat(&sym->obj))
+	if (obj40_stat(&sym->obj))
 		return -1;
 	
-	return object40_set_sym(&sym->obj, buff);
+	return obj40_set_sym(&sym->obj, buff);
 }
 
 /* Calls function @func for each symlink item (statdata only) */
@@ -294,8 +293,8 @@ static errno_t callback_find_statdata(char *track,
 	plugin_call(key->plugin->key_ops, set_offset, key, 0);
 
 	/* Performing lookup for statdata of current directory */
-	if (object40_lookup(&sym->obj, key, LEAF_LEVEL,
-			    &sym->obj.statdata) != LP_PRESENT)
+	if (obj40_lookup(&sym->obj, key, LEAF_LEVEL,
+			 &sym->obj.statdata) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
@@ -416,7 +415,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 	sym = (sym40_t *)entity;
 	aal_memset(path, 0, sizeof(path));
 	
-	if (object40_get_sym(&sym->obj, path))
+	if (obj40_get_sym(&sym->obj, path))
 		return -1;
 
 	plugin = sym->obj.key.plugin;
@@ -452,7 +451,9 @@ static void sym40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
-	object40_unlock(&sym->obj, &sym->obj.statdata);
+	if (sym->obj.statdata.node != NULL)
+		obj40_unlock(&sym->obj, &sym->obj.statdata);
+	
 	aal_free(entity);
 }
 
