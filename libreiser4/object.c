@@ -155,24 +155,24 @@ static errno_t callback_find_statdata(char *track, char *entry,
 }
 
 /* Callback function for finding passed @entry inside the current directory */
-static errno_t callback_find_entry(char *track, char *entry,
+static errno_t callback_find_entry(char *track, char *name,
 				   void *data)
 {
 	errno_t res;
 	lookup_t lookup;
 	
-	entry_hint_t entry_hint;
+	entry_hint_t entry;
 	reiser4_object_t *object;
 
 	object = (reiser4_object_t *)data;
 
 	/* Looking up for @entry in current directory */
 	lookup = plugin_call(object->entity->plugin->o.object_ops,
-			     lookup, object->entity, entry, &entry_hint);
+			     lookup, object->entity, name, &entry);
 	
 	if (lookup == PRESENT) {
 		res = reiser4_key_assign(&object->info.object,
-					 &entry_hint.object);
+					 &entry.object);
 	} else {
 		aal_exception_error("Can't find %s.", track);
 		res = -EINVAL;

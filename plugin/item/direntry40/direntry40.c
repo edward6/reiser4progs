@@ -211,15 +211,15 @@ static errno_t direntry40_estimate_insert(item_entity_t *item,
 					  uint32_t pos)
 {
 	uint32_t i;
-	entry_hint_t *entry_hint;
+	entry_hint_t *entry;
 	    
 	aal_assert("vpf-095", hint != NULL);
 	aal_assert("umka-2229", hint->count > 0);
     
-	entry_hint = (entry_hint_t *)hint->type_specific;
+	entry = (entry_hint_t *)hint->type_specific;
 	hint->len = hint->count * sizeof(entry40_t);
     
-	for (i = 0; i < hint->count; i++, entry_hint++) {
+	for (i = 0; i < hint->count; i++, entry++) {
 		hint->len += sizeof(objid_t);
 
 		/*
@@ -227,13 +227,13 @@ static errno_t direntry40_estimate_insert(item_entity_t *item,
 		  long one or not.
 		*/
 		if (plugin_call(hint->key.plugin->o.key_ops,
-				tall, &entry_hint->offset))
+				tall, &entry->offset))
 		{
 			/*
 			  Okay, name is long, so we need add its length to
 			  estimated length.
 			*/
-			hint->len += aal_strlen(entry_hint->name) + 1;
+			hint->len += aal_strlen(entry->name) + 1;
 		}
 	}
 
