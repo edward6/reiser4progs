@@ -105,12 +105,13 @@ enum reiser4_perm_plugin_id {
 };
 
 enum reiser4_sdext_plugin_id {
-    SDEXT_UNIX_ID		= 0x0,
-    SDEXT_SYMLINK_ID		= 0x1,
-    SDEXT_PLUGIN_ID		= 0x2,
-    SDEXT_GEN_AND_FLAGS_ID	= 0x3,
-    SDEXT_CAPABILITIES_ID	= 0x4,
-    SDEXT_LARGE_TIMES_ID	= 0x5
+    SDEXT_LW_ID			= 0x0,
+    SDEXT_UNIX_ID		= 0x1,
+    SDEXT_SYMLINK_ID		= 0x2,
+    SDEXT_PLUGIN_ID		= 0x3,
+    SDEXT_GEN_AND_FLAGS_ID	= 0x4,
+    SDEXT_CAPABILITIES_ID	= 0x5,
+    SDEXT_LARGE_TIMES_ID	= 0x6
 };
 
 enum reiser4_format_plugin_id {
@@ -223,11 +224,16 @@ struct reiser4_sdext_unix_hint {
 
 typedef struct reiser4_sdext_unix_hint reiser4_sdext_unix_hint_t;
 
-/* These fields should be changed to what proper description of needed extentions */
-struct reiser4_statdata_hint {
+struct reiser4_sdext_lw_hint {
     uint16_t mode;
     uint32_t nlink;
     uint64_t size;
+};
+
+typedef struct reiser4_sdext_lw_hint reiser4_sdext_lw_hint_t;
+
+/* These fields should be changed to what proper description of needed extentions */
+struct reiser4_statdata_hint {
     uint64_t extmask;
     
     /* Stat data extention hints */
@@ -438,10 +444,10 @@ struct reiser4_file_ops {
     int (*lookup) (reiser4_entity_t *, char *, reiser4_key_t *);
     
     /* Reads the data from file to passed buffer */
-    uint64_t (*read) (reiser4_entity_t *, char *, uint64_t);
+    int32_t (*read) (reiser4_entity_t *, char *, uint32_t);
     
     /* Writes the data to file from passed buffer */
-    uint64_t (*write) (reiser4_entity_t *, char *, uint64_t);
+    int32_t (*write) (reiser4_entity_t *, char *, uint32_t);
 
     /* Truncates file to passed length */
     errno_t (*truncate) (reiser4_entity_t *, uint64_t);
