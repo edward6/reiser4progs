@@ -25,10 +25,10 @@
     
     This function may return anything. This is may be bytes, blocks, etc.
 */
+#define FAKE_BLK (~0ull)
+
 typedef uint64_t blk_t;
 typedef uint64_t count_t;
-
-#define FAKE_BLK (~0ull)
 
 struct aal_device_ops;
 

@@ -1,4 +1,4 @@
-SUBDIRS 			= format40 journal40 alloc40 node40 stat40 direntry40 internal40 \
+SUBDIRS 			= format40 journal40 alloc40 node40 stat40 direntry40 nodeptr40 \
 				  oid40 key40 dir40 format36 journal36 alloc36 r5_hash tea_hash \
 				  rupasov_hash fnv1_hash sdext_unix tail40 sdext_lw extent40 reg40
 
@@ -13,7 +13,7 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          alloc40/liballoc40-static.la \
 			          oid40/liboid40-static.la \
 			          node40/libnode40-static.la \
-			          internal40/libinternal40-static.la \
+			          nodeptr40/libnodeptr40-static.la \
 			          direntry40/libdirentry40-static.la \
 			          tail40/libtail40-static.la \
 			          extent40/libextent40-static.la \
