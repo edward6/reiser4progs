@@ -120,17 +120,24 @@ static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
 	   levels know that some extent region is released and perform some
 	   actions like release blocks in block allocator, etc. */
 	if (hint->region_func) {
-		uint32_t i;
+		uint32_t i, start;
 		extent40_t *extent;
 
 		extent = extent40_body(place) + pos;
 			
 		for (i = pos; i < pos + hint->count; i++, extent++) {
-			if (et40_get_start(extent) == 0)
+			errno_t res;
+			
+			start = et40_get_start(extent);
+
+			if (start == EXTENT_UNALLOC_UNIT || 
+			    start == EXTENT_HOLE_UNIT)
 				continue;
 			
-			hint->region_func(place, et40_get_start(extent),
-					  et40_get_width(extent), hint->data);
+			if ((res = hint->region_func(place, start,
+						     et40_get_width(extent), 
+						     hint->data)))
+				return res;
 		}
 	}
 
@@ -202,6 +209,7 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	   means, that @count is over. */
 	for (size = count; size > 0; ) {
 		uint32_t i;
+		uint32_t start;
 		uint32_t width;
 		uint32_t remove;
 
@@ -228,18 +236,23 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 				  &key, (offset + blksize));
 		}
 		
+		start = et40_get_start(extent);
+		
 		/* Calling region remove notification function. */
-		if (et40_get_start(extent)) {
-			hint->region_func(place, et40_get_start(extent),
-					  remove, hint->data);
+		if (start != EXTENT_HOLE_UNIT && start != EXTENT_UNALLOC_UNIT) {
+			errno_t res;
+			
+			if ((res = hint->region_func(place, start, remove, 
+						     hint->data)))
+				return res;
 		}
 
 		hint->bytes += remove * blksize;
 		
 		/* Check if we remove whole unit. */
 		if (remove < width) {
-			if (et40_get_start(extent) != EXTENT_HOLE_UNIT &&
-			    et40_get_start(extent) != EXTENT_UNALLOC_UNIT)
+			if (start != EXTENT_HOLE_UNIT &&
+			    start != EXTENT_UNALLOC_UNIT)
 			{
 				et40_inc_start(extent, remove);
 			}
@@ -1193,12 +1206,14 @@ static errno_t extent40_layout(reiser4_place_t *place,
 		uint64_t start;
 		uint64_t width;
 
-		if (!(start = et40_get_start(extent)))
+		start = et40_get_start(extent);
+
+		if (start == EXTENT_UNALLOC_UNIT || start == EXTENT_HOLE_UNIT)
 			continue;
 		
 		width = et40_get_width(extent);
 		
-		if (start && (res = region_func(place, start, width, data)))
+		if ((res = region_func(place, start, width, data)))
 			return res;
 	}
 			

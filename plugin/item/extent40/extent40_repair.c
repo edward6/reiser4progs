@@ -84,8 +84,12 @@ errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func,
 		start = et40_get_start(extent);
 		width = et40_get_width(extent);
 		
-		if (!start || !width || start == EXTENT_UNALLOC_UNIT)
+		if (start == EXTENT_HOLE_UNIT || 
+		    start == EXTENT_UNALLOC_UNIT || 
+		    width == 0)
+		{
 			continue;
+		}
 
 		if ((res = func(place, start, width, data)) < 0)
 			return res;
@@ -449,14 +453,18 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		dextent -= (hint->count - 1);
 		
 		for (i = 0; i < hint->count; i++, dextent++) {
-			if (!(dstart = et40_get_start(dextent)))
+			dstart = et40_get_start(dextent);
+			
+			if (dstart == EXTENT_UNALLOC_UNIT || 
+			    dstart == EXTENT_HOLE_UNIT)
+			{
 				continue;
+			}
 			
-			res = hint->region_func(place, dstart,
-						et40_get_width(dextent), 
-						hint->data);
-			
-			if (res) return res;
+			if ((res = hint->region_func(place, dstart,
+						     et40_get_width(dextent),
+						     hint->data)))
+				return res;
 		}
 	}
 	
