@@ -162,6 +162,23 @@ static errno_t tree_prev(
 }
 #endif
 
+static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
+	return aal_hash_table_lookup(t->data, key);
+}
+
+static errno_t tree_set_data(void *tree, key_entity_t *key,
+			      aal_block_t *block)
+{
+	reiser4_key_t *k;
+	reiser4_tree_t *t;
+
+	k = reiser4_key_clone(key);
+	t = (reiser4_tree_t *)tree;
+	
+	return aal_hash_table_insert(t->data, k, block);
+}
+
 static errno_t tree_lock(
 	void *tree,               /* tree for working on */
 	place_t *place)           /* place to make lock on */
@@ -278,9 +295,14 @@ reiser4_core_t core = {
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
 		
-		.maxspace  = tree_maxspace,
-		.blksize   = tree_blksize,
+		.maxspace   = tree_maxspace,
+		.blksize    = tree_blksize,
 #endif
+
+		/* Data related functions */
+		.get_data   = tree_get_data,
+		.set_data   = tree_set_data,
+		
 		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,
 		.unlock     = tree_unlock,
