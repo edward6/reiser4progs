@@ -57,18 +57,9 @@ static lookup_t reg40_next(reg40_t *reg) {
   offset to zero.
 */
 static errno_t reg40_reset(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-    
-	aal_assert("umka-1963", reg != NULL);
+	aal_assert("umka-1963", entity != NULL);
 
-	reg->offset = 0;
-
-	if (reg40_size(entity) == 0)
-		return 0;
-
-	if (reg40_next(reg) != LP_PRESENT)
-		return -EINVAL;
-	
+	((reg40_t *)entity)->offset = 0;
 	return 0;
 }
 
