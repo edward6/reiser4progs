@@ -3,17 +3,19 @@
     librepair/object.c - Object consystency recovery code. */
 
 #include <repair/object.h>
+#include <repair/item.h>
 
 /* Check the semantic structure of the object. Mark all items as CHECKED. */
 errno_t repair_object_check_struct(reiser4_object_t *object, 
 				   reiser4_plugin_t *plugin, 
-				   uint8_t mode) 
+				   place_func_t func,
+				   uint8_t mode, void *data) 
 {
 	aal_assert("vpf-1044", object != NULL);
 	aal_assert("vpf-1044", plugin != NULL);
 	
 	object->entity = plugin_call(plugin->o.object_ops, check_struct, 
-				     &object->info, mode);
+				     &object->info, func, mode, data);
 	
 	if (object->entity == NULL)
 		return -EINVAL;
@@ -43,7 +45,7 @@ inline void repair_object_init(reiser4_object_t *object,
 	object->info.tree = tree;
 	
 	if (place)
-		aal_memcpy(&object->info.start, place, sizeof(*place));
+		aal_memcpy(reiser4_object_start(object), place, sizeof(*place));
 	
 	if (parent)
 		aal_memcpy(&object->info.parent, parent, sizeof(*parent));
@@ -84,7 +86,7 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
 		lookup = reiser4_tree_lookup(object->info.tree, 
 					     &object->info.object, 
 					     LEAF_LEVEL, 
-					     (reiser4_place_t *)&object->info.start);
+					     reiser4_object_start(object));
 		
 		if (lookup == FAILED)
 			return NULL;
@@ -100,11 +102,11 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
 			break;
 		
 		/* The start of the object seems to be found, is it SD? */
-		if (reiser4_place_realize((reiser4_place_t *)&object->info.start))
+		if (reiser4_place_realize((reiser4_object_start(object))))
 			return NULL;
 		
 		/* If it is stat data, try to get object plugin from it. */
-		if (!reiser4_item_statdata((reiser4_place_t *)&object->info.start))
+		if (!reiser4_item_statdata((reiser4_object_start(object))))
 			break;
 		
 		plugin = object->info.start.item.plugin;
@@ -145,14 +147,14 @@ errno_t repair_object_traverse(reiser4_object_t *object, traverse_func_t func,
 	aal_assert("vpf-1103", func != NULL);
 	
 	while (reiser4_object_readdir(object, &entry)) {
-		reiser4_object_t *child;
+		reiser4_object_t *child = NULL;
 		
 		/* Some entry was read. Try to detect the object of the paticular 
 		   plugin pointed by this entry. */	
-		if ((res = func(object, &child, &entry, data)) < 0)
+		if ((res = func(object, &child, &entry, data)))
 			return res;
 		
-		if (res > 0)
+		if (child == NULL)
 			continue;
 		
 		if ((res = repair_object_traverse(child, func, data)))
@@ -174,6 +176,8 @@ errno_t repair_object_check_link(reiser4_object_t *object,
 	aal_assert("vpf-1098", object->entity != NULL);
 	aal_assert("vpf-1099", parent != NULL);
 	aal_assert("vpf-1100", parent->entity != NULL);
+	
+	repair_item_set_flag(reiser4_object_start(object), ITEM_REACHABLE);
 	
 	return plugin_call(object->entity->plugin->o.object_ops, check_link, 
 			   object->entity, parent->entity, mode);

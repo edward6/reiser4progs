@@ -107,4 +107,6 @@ extern uint32_t reiser4_object_offset(reiser4_object_t *object);
 
 extern bool_t reiser4_object_can_begin(reiser4_place_t *place);
 
+#define reiser4_object_start(object) ((reiser4_place_t *)&(object)->info.start)
+
 #endif

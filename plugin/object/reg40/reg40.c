@@ -155,7 +155,7 @@ static reiser4_plugin_t *reg40_bplug(reg40_t *reg,
 #endif
 
 /* Opening reg40 by statdata place passed in @place */
-static object_entity_t *reg40_open(void *tree, place_t *place) {
+static object_entity_t *reg40_open(place_t *place, void *tree) {
 	reg40_t *reg;
 
 	aal_assert("umka-1163", tree != NULL);

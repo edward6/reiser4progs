@@ -247,7 +247,7 @@ errno_t reiser4_node_lkey(
   needed for node_pbc() function.
 */
 static int reiser4_node_ack(reiser4_node_t *node,
-				reiser4_place_t *place)
+			    reiser4_place_t *place)
 {
 	ptr_hint_t ptr;
 	

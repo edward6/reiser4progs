@@ -430,24 +430,3 @@ errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos,
 			   dst_pos, src->entity, src_pos, hint);
 }
 
-void repair_node_set_flag(reiser4_node_t *node, uint32_t pos, uint16_t flag) {
-	aal_assert("vpf-1041", node != NULL);
-	
-	plugin_call(node->entity->plugin->o.node_ops, set_flag, 
-		    node->entity, pos, flag);
-}
-
-void repair_node_clear_flag(reiser4_node_t *node, uint32_t pos, uint16_t flag) {
-	aal_assert("vpf-1042", node != NULL);
-	
-	plugin_call(node->entity->plugin->o.node_ops, clear_flag, 
-		    node->entity, pos, flag);
-}
-
-bool_t repair_node_test_flag(reiser4_node_t *node, uint32_t pos, uint16_t flag) {
-	aal_assert("vpf-1043", node != NULL);
-	
-	return plugin_call(node->entity->plugin->o.node_ops, test_flag, 
-			   node->entity, pos, flag);
-}
-

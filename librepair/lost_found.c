@@ -4,6 +4,9 @@
 
 #include <repair/lost_found.h>
 
+/* Use the semantic pass callback. */
+extern errno_t callback_check_struct(object_entity_t *object, place_t *place, void *data);
+
 static errno_t callback_object_open(reiser4_object_t *parent, 
 				    reiser4_object_t **object, 
 				    entry_hint_t *entry, void *data)
@@ -31,7 +34,8 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 		return -EINVAL;
 	}
 	
-	res = repair_object_check_struct(*object, plugin, lf->repair->mode);
+	res = repair_object_check_struct(*object, plugin, callback_check_struct, 
+					 lf->repair->mode, lf);
 	
 	if (res > 0) {
 		errno_t result;
@@ -69,7 +73,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	aal_assert("vpf-1059", place != NULL);
 	aal_assert("vpf-1037", data != NULL);
 	
-	checked = repair_node_test_flag(place->node, place->pos.item, ITEM_CHECKED);
+	checked = repair_item_test_flag(place, ITEM_CHECKED);
 	
 	/* CHECKED items belong to objects with StatData or reached from its parent. 
 	   For the former, wait for their StatDatas. For the later, they are CHECKED 
@@ -80,8 +84,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		if (!reiser4_item_statdata(place))
 			return 0;
 		
-		if (repair_node_test_flag(place->node, place->pos.item, 
-					  ITEM_REACHABLE))
+		if (repair_item_test_flag(place, ITEM_REACHABLE))
 			return 0;
 	}
 	
@@ -98,7 +101,8 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		
 		/* This is really an object, check its structure. */
 		if ((res = repair_object_check_struct(&object, plugin, 
-						      lf->repair->mode))) 
+						      callback_check_struct,
+						      lf->repair->mode, lf)))
 		{
 			aal_exception_error("Node %llu, item %u: structure check "
 					    "of the object pointed by %k failed. "
@@ -157,8 +161,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 				goto error_close_parent;
 			}
 			
-			repair_node_set_flag(object.info.start.node, 
-					     object.info.start.pos.item, 
+			repair_item_set_flag(reiser4_object_start(&object), 
 					     ITEM_CHECKED);
 			
 			plugin_call(parent.entity->plugin->o.object_ops, close, 

@@ -343,7 +343,7 @@ static lookup_t dir40_lookup(object_entity_t *entity,
   Initializing dir40 instance by stat data place, resetring directory be means
   of using dir40_reset function and return instance to caller.
 */
-static object_entity_t *dir40_open(void *tree, place_t *place) {
+static object_entity_t *dir40_open(place_t *place, void *tree) {
 	dir40_t *dir;
 
 	aal_assert("umka-836", tree != NULL);

@@ -4,13 +4,27 @@
 
 #include <repair/semantic.h>
 
+/* Callback for repair_object_check_struct which is called at semantic and lost+found 
+   passes. Mark the passed item as CHECKED. */
+errno_t callback_check_struct(object_entity_t *object, place_t *place, void *data) {
+	aal_assert("vpf-1114", object != NULL);
+	aal_assert("vpf-1115", place != NULL);
+	aal_assert("vpf-1116", place->node != NULL);
+	aal_assert("vpf-1117", data != NULL);
+	
+	repair_item_set_flag((reiser4_place_t *)place, ITEM_CHECKED);
+	
+	return 0;
+}
+
 static errno_t callback_object_open(reiser4_object_t *parent, 
 				    reiser4_object_t **object, 
 				    entry_hint_t *entry, void *data)
 {
 	reiser4_plugin_t *plugin;
 	repair_semantic_t *sem;
-	errno_t res;
+	errno_t res = 0;
+	int checked;
 	
 	aal_assert("vpf-1101", parent != NULL);
 	aal_assert("vpf-1102", entry != NULL);
@@ -31,41 +45,52 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 		return -EINVAL;
 	}
 	
-	res = repair_object_check_struct(*object, plugin, sem->repair->mode);
+	checked = repair_item_test_flag(reiser4_object_start(*object), ITEM_CHECKED);
 	
-	if (res > 0) {
-		errno_t result;
+	/* Object->start contains the first item of the object. Do not check it if 
+	   checked already. */
+	if (!checked) {
+		/* The realized object has not been checked yet. */
+		res = repair_object_check_struct(*object, plugin, 
+						 callback_check_struct, 
+						 sem->repair->mode, sem);
 		
-		if ((result = reiser4_object_rem_entry(parent, entry))) {
-			aal_exception_error("Semantic traverse failed to remove the "
-					    "entry %k (%s) pointing to %k.", 
-					    &entry->offset, entry->name,
-					    &entry->object);
-			return result;
+		if (res < 0) {
+			aal_exception_error("Check of the object pointed by %k from "
+					    "the %k (%s) failed.", &entry->object, 
+					    &entry->offset, entry->name);
+			
+			goto error_close_object;
+		} else if (res) {
+			/* FIXME: different actions in different modes. 
+			   Account fixable corruptions here. */
+			
+			if ((res = reiser4_object_rem_entry(parent, entry))) {
+				aal_exception_error("Semantic traverse failed to remove "
+						    "the entry %k (%s) pointing to %k.", 
+						    &entry->offset, entry->name,
+						    &entry->object);
+			}
+			
+			res = 0;
+			goto error_close_object;
 		}
-		
-		goto error_close_object;
-	} else if (res < 0) {
-		aal_exception_error("Check of the object pointed by %k from the "
-				    "%k (%s) failed.", &entry->object, &entry->offset, 
-				    entry->name);
-		
-		goto error_close_object;
 	}
 	
 	/* Check the uplink - '..' in directories. */
-	res = repair_object_check_link(*object, parent, sem->repair->mode);
-	
-	if (res) {
+	if ((res = repair_object_check_link(*object, parent, sem->repair->mode))) {
 		aal_exception_error("Node %llu, item %u: failed to check the link of the"
 				    " object pointed by %k to the object pointed by %k.",
-				    ((reiser4_node_t *)(*object)->info.start.node)->blk,
+				    reiser4_object_start(*object)->node->blk,
 				    (*object)->info.start.pos.item, 
 				    &((*object)->info.object),
 				    &parent->info.object);
 		
 		goto error_close_object;
-	}
+	} 
+	
+	if (checked) 
+		goto error_close_object;
 	
 	return 0;
 	
@@ -89,7 +114,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 		return 0;
 	
 	/* If this item was checked already, skip it. */
-	if (repair_node_test_flag(place->node, place->pos.item, ITEM_CHECKED))
+	if (repair_item_test_flag(place, ITEM_CHECKED))
 		return 0;
 	
 	sem = (repair_semantic_t *)data;
@@ -101,7 +126,8 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 		return 0;
 	
 	/* This is really an object, check its structure. */
-	res = repair_object_check_struct(&object, plugin, sem->repair->mode);
+	res = repair_object_check_struct(&object, plugin, callback_check_struct, 
+					 sem->repair->mode, sem);
 	
 	if (res){
 		aal_exception_error("Node %llu, item %u: structure check of the "
@@ -186,9 +212,6 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	res = reiser4_tree_down(fs->tree, fs->tree->root, &hint, NULL, 
 				repair_semantic_node_traverse, NULL, NULL, NULL);
 	
-	if (res)
-		return res;
-	
-	return 0;
+	return res;
 }
 

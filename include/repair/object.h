@@ -27,7 +27,8 @@ extern inline void repair_object_init(reiser4_object_t *object,
 
 extern errno_t repair_object_check_struct(reiser4_object_t *object, 
 					  reiser4_plugin_t *plugin, 
-					  uint8_t mode);
+					  place_func_t func,
+					  uint8_t mode, void *data);
 
 extern errno_t repair_object_check_link(reiser4_object_t *object, 
 					reiser4_object_t *parent, 

@@ -17,7 +17,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	
 	cleanup = (repair_cleanup_t *)data;
 	
-	if (!repair_node_test_flag(place->node, place->pos.item, ITEM_CHECKED)) {
+	if (!repair_item_test_flag(place, ITEM_CHECKED)) {
 		/* Not checked item does not belong to any object, remove it. */	
 		if ((res = reiser4_node_remove(place->node, &place->pos, 1))) {
 			aal_exception_bug("Node (%llu): Failed to delete the item (%d).",
@@ -31,10 +31,10 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		return 0;	
 	} else {
 		/* Checked item belongs to some object, clear the flag. */	
-		repair_node_clear_flag(place->node, place->pos.item, ITEM_CHECKED);
+		repair_item_clear_flag(place, ITEM_CHECKED);
 	}
 	
-	if (!repair_node_test_flag(place->node, place->pos.item, ITEM_REACHABLE)) {
+	if (!repair_item_test_flag(place, ITEM_REACHABLE)) {
 		/* Try to open an object. */
 		if (reiser4_object_can_begin(place) == FALSE)
 			return 0;
@@ -56,7 +56,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		cleanup->stat.linked++;
 	} else {	
 		/* Reachable, clear the flag. */
-		repair_node_clear_flag(place->node, place->pos.item, ITEM_REACHABLE);
+		repair_item_clear_flag(place, ITEM_REACHABLE);
 	}
 	
 	return res;

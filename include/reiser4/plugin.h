@@ -637,7 +637,8 @@ struct reiser4_object_ops {
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
 	/* Checks and recover the structure of the object. */
-	object_entity_t *(*check_struct) (object_info_t *, uint8_t);
+	object_entity_t *(*check_struct) (object_info_t *, place_func_t, 
+					  uint8_t, void *);
 	
 	/* Checks and recover the up link of the object. */
 	errno_t (*check_link) (object_entity_t *, object_entity_t *, uint8_t);
@@ -654,7 +655,7 @@ struct reiser4_object_ops {
 	errno_t (*seek) (object_entity_t *, uint64_t);
 	
 	/* Opens file with specified key */
-	object_entity_t *(*open) (void *, place_t *);
+	object_entity_t *(*open) (place_t *, void *);
 
 	/* Closes previously opened or created directory */
 	void (*close) (object_entity_t *);

@@ -31,8 +31,8 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 	  and @place. If it fails, we will continue lookup.
 	*/
 	object->entity = plugin_call(plugin->o.object_ops, open,
-				     (void *)object->info.tree,
-				     (void *)&object->info.start);
+				     &object->info.start,
+				     (void *)object->info.tree);
 	
 	if (object->entity != NULL) {	
 	    plugin_call(plugin->o.object_ops, close, object->entity);
@@ -59,8 +59,8 @@ errno_t reiser4_object_guess(reiser4_object_t *object) {
 		return -EINVAL;
 	
 	object->entity = plugin_call(plugin->o.object_ops, open,
-				     (void *)object->info.tree, 
-				     (void *)&object->info.start);
+				     &object->info.start,
+				     (void *)object->info.tree);
 	
 	return object->entity != NULL ? 0 : -EINVAL;
 }
@@ -75,17 +75,16 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 /* Looks up for the object stat data place in tree */
 errno_t reiser4_object_stat(reiser4_object_t *object) {
 	object_info_t *info = &object->info;
-	switch (reiser4_tree_lookup(object->info.tree, 
-				    &info->object,
-				    LEAF_LEVEL, 
-				    (reiser4_place_t *)&info->start))
+	
+	switch (reiser4_tree_lookup(info->tree, &info->object,
+				    LEAF_LEVEL, reiser4_object_start(object)))
 	{
 	case PRESENT:
 		/* Initializing item at @object->place */
-		if (reiser4_place_realize((reiser4_place_t *)&info->start))
+		if (reiser4_place_realize(reiser4_object_start(object)))
 			return -EINVAL;
 
-		reiser4_key_assign(&object->info.object, &info->start.item.key);
+		reiser4_key_assign(&info->object, &info->start.item.key);
 		return 0;
 	default:
 		return -EINVAL;
@@ -263,7 +262,7 @@ reiser4_object_t *reiser4_object_launch(
     
 	object->info.tree = tree;
 	
-	aal_memcpy(&object->info.start, place, sizeof(*place));
+	aal_memcpy(reiser4_object_start(object), place, sizeof(*place));
 	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
 	
 #ifndef ENABLE_STAND_ALONE

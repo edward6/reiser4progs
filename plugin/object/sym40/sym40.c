@@ -19,7 +19,7 @@ static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sym40_plugin;
 
 /* Opens symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_open(void *tree, place_t *place) {
+static object_entity_t *sym40_open(place_t *place, void *tree) {
 	sym40_t *sym;
 
 	aal_assert("umka-1163", tree != NULL);
