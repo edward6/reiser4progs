@@ -27,7 +27,7 @@ extern errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 extern errno_t reiser4_item_update_link(reiser4_place_t *place,
 					blk_t blk);
 
-uint16_t reiser4_item_overhead(reiser4_plug_t *plug);
+extern uint16_t reiser4_item_overhead(reiser4_plug_t *plug);
 #endif
 
 extern uint32_t reiser4_item_units(reiser4_place_t *place);

@@ -2070,9 +2070,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	if (place->pos.unit == MAX_UINT32)
 		needed += overhead;
 
-	/* Check if there is enough space in insert point node. If so 
-	   -- do nothing but exit. Here is also check if node is empty. 
-	   Then we exit too and return available space in it. */
+	/* Check if there is enough space in insert point node. If so -- do
+	   nothing but exit. Here is also check if node is empty. Then we exit
+	   too and return available space in it. */
 	if ((enough = reiser4_node_space(place->node) - needed) >= 0 ||
 	    reiser4_node_items(place->node) == 0)
 	{
