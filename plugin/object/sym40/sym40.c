@@ -200,6 +200,9 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 
 	sym = (sym40_t *)entity;
 	
+	if (object40_stat(&sym->obj))
+		return -1;
+
 	if (object40_link(&sym->obj, -1))
 		return -1;
 
@@ -207,9 +210,6 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 		return 0;
 	
 	/* Removing file when nlink became zero */
-	if (object40_stat(&sym->obj))
-		return -1;
-
 	return object40_remove(&sym->obj, &sym->obj.key, 1);
 }
 
