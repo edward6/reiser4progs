@@ -381,14 +381,6 @@ static errno_t node40_expand(node40_t *node, rpos_t *pos,
 	return 0;
 }
 
-/* makes copy of @count items from the src node to dst one */
-static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
-			   node40_t *dst_node, rpos_t *dst_pos,
-			   uint32_t count)
-{
-	return -1;
-}
-
 /*
   General node40 cutting function. It is used frim shift, remove, etc. It
   removes an amount of items specified by @count and shrinks node. If unit
