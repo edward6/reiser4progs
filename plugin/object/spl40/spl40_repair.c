@@ -95,13 +95,15 @@ errno_t spl40_check_struct(object_entity_t *object,
 		return res;
 	
 	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(object, &spl->obj.info.start, data))
+	if (place_func && place_func(&spl->obj.info.start, data))
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
 	if ((res = obj40_fix_key(&spl->obj, &spl->obj.info.start,
 				 &spl->obj.info.object, mode)))
+	{
 		return res;
+	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	return obj40_check_stat(&spl->obj, mode == RM_BUILD ? 

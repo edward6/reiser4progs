@@ -234,7 +234,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return res;
 	
 	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(object, &info->start, data))
+	if (place_func && place_func(&info->start, data))
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
@@ -328,7 +328,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		   item has a pointer to objectid in the key, if it is 
 		   shared between 2 objects, it should be already solved 
 		   at relocation time. */
-		if (place_func && place_func(object, &dir->body, data))
+		if (place_func && place_func(&dir->body, data))
 			return -EINVAL;
 		
 		/* Count size and bytes. */

@@ -687,7 +687,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 			return 0;
 
 		/* Calling per-place callback function */
-		if ((res = place_func(entity, &reg->body, data)))
+		if ((res = place_func(&reg->body, data)))
 			return res;
 
 		/* Getting current item max real key inside, in order to know

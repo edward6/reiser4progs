@@ -37,6 +37,31 @@ uint8_t node40_get_level(node_entity_t *entity) {
 	return nh_get_level((node40_t *)entity);
 }
 
+static node_entity_t *node40_prepare(aal_block_t *block, 
+				     reiser4_plug_t *kplug) 
+{
+	node40_t *node;
+	
+	aal_assert("umka-2376", kplug != NULL);
+	aal_assert("umka-2375", block != NULL);
+	
+	if (!(node = aal_calloc(sizeof(*node), 0)))
+		return NULL;
+
+	node->kplug = kplug;
+	node->block = block;
+	node->plug = &node40_plug;
+
+	/* Making node dirty if block it is supposed to work with is dirty. */
+	if (block->dirty) {
+		node40_mkdirty((node_entity_t *)node);
+	} else {
+		node40_mkclean((node_entity_t *)node);
+	}
+	
+	return (node_entity_t *)node;
+}
+
 #ifndef ENABLE_STAND_ALONE
 /* Functions for making node dirty, cleann and for check if it is dirty. This is
    used in all node modifying functions, etc. */
@@ -109,34 +134,8 @@ static errno_t node40_clone(node_entity_t *src_entity,
 	return 0;
 }
 
-static node_entity_t *node40_prepare(aal_block_t *block, 
-				     reiser4_plug_t *kplug) 
-{
-	node40_t *node;
-	
-	aal_assert("umka-2376", kplug != NULL);
-	aal_assert("umka-2375", block != NULL);
-	
-	if (!(node = aal_calloc(sizeof(*node), 0)))
-		return NULL;
-
-	node->kplug = kplug;
-	node->block = block;
-
-	node->plug = &node40_plug;
-
-	/* Making node dirty if block it is supposed to work with is dirty. */
-	if (block->dirty) {
-		node40_mkdirty((node_entity_t *)node);
-	} else {
-		node40_mkclean((node_entity_t *)node);
-	}
-	
-	return (node_entity_t *)node;
-}
-
-/* Initializes node of the given @level on the @block with key plugin @kplug. 
-   Returns initialized node instance. */
+/* Initializes node of the given @level on the @block with key plugin
+   @kplug. Returns initialized node instance. */
 static node_entity_t *node40_init(aal_block_t *block, uint8_t level,
 				  reiser4_plug_t *kplug)
 {
@@ -269,9 +268,11 @@ uint16_t node40_len(node_entity_t *entity, pos_t *pos) {
 }
 
 
-/* Open the node on the given @block with the given key plugin @kplug. 
-   Returns initialized node instance. */
-static node_entity_t *node40_open(aal_block_t *block, reiser4_plug_t *kplug) {
+/* Open the node on the given @block with the given key plugin @kplug. Returns
+   initialized node instance. */
+static node_entity_t *node40_open(aal_block_t *block,
+				  reiser4_plug_t *kplug)
+{
 	node40_t *node;
 	
 	aal_assert("vpf-1415", kplug != NULL);
@@ -678,8 +679,9 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 	pol = node40_key_pol(node);
         ih = node40_ih_at(node, pos->item);
         
-	/* Updating item header if we want insert new item. */
+	/* Updating item header if we want to insert new item. */
         if (pos->unit == MAX_UINT32) {
+		ih_set_flags(ih, 0, pol);
                 ih_set_pid(ih, hint->plug->id.id, pol);
                 
 		aal_memcpy(ih, hint->offset.body,
@@ -688,21 +690,23 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         
 	/* Preparing place for calling item plugin with them. */
         if (node40_fetch(entity, pos, &place)) {
-                aal_error("Can't fetch item data.");
+                aal_error("Can't fetch item data. Node %llu, "
+			  "item %u.", node->block->nr, pos->item);
                 return -EINVAL;
         }
 
 	/* Inserting units into @place. */
 	if ((write = modify_func(&place, hint)) < 0) {
 		aal_error("Can't insert unit to node %llu, item %u.",
-				    node->block->nr, place.pos.item);
+			  node->block->nr, place.pos.item);
 		return write;
 	}
         
 	/* Updating item's key if we insert new item or if we insert unit into
            leftmost postion. */
-        if (pos->unit == 0)
+        if (pos->unit == 0) {
                 aal_memcpy(ih, place.key.body, key_size(pol));
+	}
         
 	return write;
 }
@@ -710,23 +714,27 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 static errno_t node40_insert(node_entity_t *entity,
 			     pos_t *pos, trans_hint_t *hint)
 {
+	modyfy_func_t ins_func;
+	
 	aal_assert("umka-2448", pos != NULL);
 	aal_assert("umka-1814", hint != NULL);
 	aal_assert("umka-818", entity != NULL);
 
-	return node40_modify(entity, pos, hint, 
-			     hint->plug->o.item_ops->object->insert_units);
+	ins_func = hint->plug->o.item_ops->object->insert_units;
+	return node40_modify(entity, pos, hint, ins_func);
 }
 
 static int64_t node40_write(node_entity_t *entity,
 			    pos_t *pos, trans_hint_t *hint)
 {
+	modyfy_func_t write_func;
+
 	aal_assert("umka-2449", pos != NULL);
 	aal_assert("umka-2450", hint != NULL);
 	aal_assert("umka-2451", entity != NULL);
 
-	return node40_modify(entity, pos, hint, 
-			     hint->plug->o.item_ops->object->write_units);
+	write_func = hint->plug->o.item_ops->object->write_units;
+	return node40_modify(entity, pos, hint, write_func);
 }
 
 /* Truncates node at @pos. Needed for tail conversion. */
@@ -1672,7 +1680,6 @@ static errno_t node40_shift(node_entity_t *src_entity,
 
 static reiser4_node_ops_t node40_ops = {
 	.open		= node40_open,
-	.init		= node40_init,
 	.fini		= node40_fini,
 	.lookup		= node40_lookup,
 	.fetch          = node40_fetch,
@@ -1682,6 +1689,7 @@ static reiser4_node_ops_t node40_ops = {
 	.get_level	= node40_get_level,
 		
 #ifndef ENABLE_STAND_ALONE
+	.init		= node40_init,
 	.move		= node40_move,
 	.clone          = node40_clone,
 	.sync           = node40_sync,

@@ -2495,7 +2495,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 
 	/* Calling @hint->place_func if any. */
 	if (hint->place_func && place->pos.unit == MAX_UINT32) {
-		if ((res = hint->place_func(NULL, place, hint)))
+		if ((res = hint->place_func(place, hint)))
 			return res;
 	}
 

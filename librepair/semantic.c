@@ -17,8 +17,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 }
 
 /* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */
-static errno_t callback_register_item(void *object, place_t *place, void *data)
-{
+static errno_t callback_register_item(place_t *place, void *data) {
         aal_assert("vpf-1115", place != NULL);
          
         if (repair_item_test_flag(place, OF_CHECKED)) {

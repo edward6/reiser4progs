@@ -464,7 +464,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return res;
 
 	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(object, &info->start, data))
+	if (place_func && place_func(&info->start, data))
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
@@ -484,7 +484,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* Get the reg file smart tail policy. */
 	if (!(repair.smart = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
-							    TAIL_SMART_ID)))
+							   TAIL_SMART_ID)))
 	{
 		aal_error("Failed to find the 'smart' tail policy plugin.");
 		return -EINVAL;
@@ -563,12 +563,14 @@ errno_t reg40_check_struct(object_entity_t *object,
 		/* Try to register this item. Any item has a pointer to 
 		   objectid in the key, if it is shared between 2 objects, 
 		   it should be already solved at relocation  time. */
-		if (place_func && place_func(object, &reg->body, data))
+		if (place_func && place_func(&reg->body, data))
 			return -EINVAL;
 
 		if ((result = obj40_fix_key(&reg->obj, &reg->body, 
 					    &reg->position, mode)))
+		{
 			return result;
+		}
 
 		/* If we found not we looking for, insert the hole. */
 		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)

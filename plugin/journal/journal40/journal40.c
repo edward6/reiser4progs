@@ -211,7 +211,7 @@ static errno_t journal40_sync(generic_entity_t *entity) {
 
 	aal_assert("umka-410", entity != NULL);
 
-	if ((res = journal40_layout(entity, callback_sync_journal, NULL)))
+	if ((res = journal40_layout(entity, callback_sync_journal, entity)))
 		return res;
 	
 	((journal40_t *)entity)->state &= ~(1 << ENTITY_DIRTY);

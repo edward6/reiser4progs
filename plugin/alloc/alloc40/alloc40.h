@@ -29,8 +29,8 @@ typedef struct alloc40 alloc40_t;
 
 extern reiser4_plug_t alloc40_plug;
 
-extern errno_t callback_valid(void *entity, blk_t start,
-			      count_t width, void *data);
+extern errno_t callback_valid_block(void *entity, blk_t start,
+				    count_t width, void *data);
 
 extern int alloc40_occupied(generic_entity_t *entity, 
 			    uint64_t start, uint64_t count);

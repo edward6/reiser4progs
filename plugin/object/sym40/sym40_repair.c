@@ -97,7 +97,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 	}
 	
 	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(object, &sym->obj.info.start, data))
+	if (place_func && place_func(&sym->obj.info.start, data))
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
@@ -109,7 +109,9 @@ errno_t sym40_check_struct(object_entity_t *object,
 	
 	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
 				  SDEXT_SYMLINK_ID, path)))
+	{
 		return res;
+	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	return obj40_check_stat(&sym->obj, mode == RM_BUILD ? 

@@ -1008,7 +1008,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	/* Loop until all items are enumerated. */
 	while (1) {
 		/* Calling callback function. */
-		if ((res = place_func(entity, &dir->body, data)))
+		if ((res = place_func(&dir->body, data)))
 			return res;
 
 		/* Getting next item. */

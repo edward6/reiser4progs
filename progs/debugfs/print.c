@@ -275,7 +275,6 @@ typedef struct fprint_hint fprint_hint_t;
 
 /* Prints item at passed @place */
 static errno_t fprint_process_place(
-	void *entity,              /* file to be inspected */
 	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
@@ -311,15 +310,16 @@ errno_t debugfs_print_file(
 		repair_object_print(object, &stream);
 		aal_stream_fini(&stream);
 	} else {
+		place_func_t place_func;
+		
 		hint.old = 0;
 		hint.data = fs;
 		hint.flags = flags;
 
-		if ((res = reiser4_object_metadata(object, fprint_process_place,
-						   &hint)))
-		{
-			aal_error("Can't print object %s metadata.",
-				  object->name);
+		place_func = fprint_process_place;
+		
+		if ((res = reiser4_object_metadata(object, place_func, &hint))) {
+			aal_error("Can't print object %s metadata.", object->name);
 		}
 	}
 

@@ -211,17 +211,13 @@ errno_t repair_object_form(reiser4_object_t *object) {
 }
 
 /* Helper function for printing passed @place into @stream. */
-static errno_t callback_print_place(void *entity, place_t *place,
-				    void *data)
-{
+static errno_t callback_print_place(place_t *place, void *data) {
 	errno_t res;
-	
 	aal_stream_t *stream = (aal_stream_t *)data;
 	
 	if ((res = repair_item_print(place, stream))) {
-		aal_error("Can't print item %u in "
-			  "node %llu.", place->pos.item,
-			  node_blocknr(place->node));
+		aal_error("Can't print item %u in node %llu.",
+			  place->pos.item, node_blocknr(place->node));
 		return res;
 	}
 		

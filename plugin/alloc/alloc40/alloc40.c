@@ -100,11 +100,13 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	bpb = (alloc->blksize - CRC_SIZE) * 8;
 	start = ALLOC40_BLOCKNR(alloc->blksize);
 
-	/* Loop though the all bitmap blocks */
+	/* Loop though the all bitmap blocks. */
 	for (blk = start; blk < start + alloc->bitmap->total;
 	     blk = ((blk / bpb) + 1) * bpb) 
 	{
-		if ((res |= region_func(entity, blk, 1, data)) < 0)
+		/* FIXME-UMKA->VITALY: Here was construction like res |=
+		   region_func(). Is it corect, that I have removed it? */
+		if ((res = region_func(entity, blk, 1, data)) < 0)
 			return res;
 	}
     
@@ -125,8 +127,6 @@ static errno_t callback_fetch_bitmap(void *entity, blk_t start,
 	char *current, *map;
 	uint32_t size, chunk, free;
     
-	aal_assert("umka-1053", entity != NULL);
-
 	alloc = (alloc40_t *)entity;
 
 	if ((res = aal_block_init(&block, alloc->device,
@@ -304,8 +304,6 @@ static errno_t callback_sync_bitmap(void *entity, blk_t start,
 	char *current, *map; 
 	uint32_t size, adler, chunk;
 	
-	aal_assert("umka-1055", entity != NULL);
-
 	alloc = (alloc40_t *)entity;
 	
 	/* Allocating new block and filling it by 0xff bytes (all bits are
@@ -507,26 +505,32 @@ static int alloc40_available(generic_entity_t *entity,
 				      start, count, 0);
 }
 
-static void callback_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
+static void callback_inval_warn(blk_t start, uint32_t ladler,
+				uint32_t cadler)
+{
 	aal_warn("Checksum missmatch in bitmap block %llu. Checksum "
 		 "is 0x%x, should be 0x%x.", start, ladler, cadler);
 }
 
-typedef void (*inval_func_t) (blk_t start, uint32_t ladler, uint32_t cadler);
+typedef void (*inval_func_t) (blk_t, uint32_t, uint32_t);
 
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t callback_valid(void *entity, blk_t start, count_t width, void *data) {
+errno_t callback_valid_block(void *entity, blk_t start,
+			     count_t width, void *data)
+{
 	uint32_t chunk;
 	uint64_t offset;
 	alloc40_t *alloc;
+	
 	uint32_t size, free;
 	char *current, *map;
-	uint32_t ladler, cadler;
 	inval_func_t inval_func;
+	uint32_t ladler, cadler;
 
 	alloc = (alloc40_t *)entity;
 	inval_func = (inval_func_t)data;
+	
 	size = alloc->blksize - CRC_SIZE;
 	map = aux_bitmap_map(alloc->bitmap);
     
@@ -573,15 +577,16 @@ errno_t alloc40_valid(generic_entity_t *entity) {
 
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
-	return alloc40_layout((generic_entity_t *)alloc, callback_valid, 
+	return alloc40_layout((generic_entity_t *)alloc,
+			      callback_valid_block,
 			      callback_inval_warn);
 }
 
 /* Call @func for all blocks which belong to the same bitmap block as passed
    @blk. It is needed for fsck. In the case it detremined that a block is not
    corresponds to its value in block allocator, it should check all the related
-   (neighbour) blocks which are described by one bitmap block (4096 - CRC_SIZE).
-*/
+   (neighbour) blocks which are described by one bitmap block (4096 -
+   CRC_SIZE).*/
 errno_t alloc40_region(generic_entity_t *entity, blk_t blk, 
 		       region_func_t region_func, void *data) 
 {

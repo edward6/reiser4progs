@@ -479,7 +479,7 @@ errno_t obj40_metadata(obj40_t *obj, place_func_t place_func,
 	if ((res = obj40_update(obj)))
 		return res;
 
-	return place_func(obj, STAT_PLACE(obj), data);
+	return place_func(STAT_PLACE(obj), data);
 }
 
 uint32_t obj40_links(obj40_t *obj) {
