@@ -80,6 +80,14 @@ struct reiser4_place {
 	item_entity_t item;
 };
 
+#ifndef ENABLE_STAND_ALONE
+enum node_flags {
+	NF_FOREIGN  = 1 << 0
+};
+
+typedef enum node_flags node_flags_t;
+#endif
+
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
 	
@@ -120,6 +128,8 @@ struct reiser4_node {
 	signed counter;
 	
 #ifndef ENABLE_STAND_ALONE
+	node_flags_t flags;
+	
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;

@@ -567,7 +567,7 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	/* Flushing tree cache */
 	reiser4_tree_sync(tree);
 #endif
-	
+
 	tree->fs->tree = NULL;
 	
 #ifndef ENABLE_STAND_ALONE
@@ -595,6 +595,8 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 	if (reiser4_node_isdirty(node)) {
 		blk_t number;
 
+		/* Requesting block allocator to allocate the real block number
+		   for fake allocated node. */
 		if (is_fake_blk(node->blk)) {
 			if (!reiser4_alloc_allocate(tree->fs->alloc,
 						    &number, 1))
@@ -602,9 +604,11 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 				return -ENOSPC;
 			}
 
+			/* Assigning new block number to @node */
 			reiser4_node_move(node, number);
 		}
-		
+
+		/* Allocating all children nodes if we are on internal level */
 		if (reiser4_node_get_level(node) > LEAF_LEVEL &&
 		    node->children != NULL)
 		{
@@ -630,7 +634,7 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 					continue;
 
 				/* If @child is fake one it needs to be
-				   qallocated here and its nodeptr should be
+				   allocated here and its nodeptr should be
 				   updated. */
 				if (!reiser4_alloc_allocate(tree->fs->alloc,
 							    &number, 1))
@@ -648,8 +652,9 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 		}
 	}
 
-	/* Walking through the list of children and calling tree_flush()
-	   function for each node. */
+	/* Walking through the list of children and calling tree_prepare()
+	   function for each node. This leads to recursive allocating the whole
+	   tree cache. */
 	if (node->children) {
 		aal_list_foreach_forward(node->children, walk) {
 			child = (reiser4_node_t *)walk->data;
@@ -688,6 +693,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	return reiser4_tree_collapse(tree, tree->root);
 }
 
+/* Returns TRUE if tree has not root node allocated */
 bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
 	aal_assert("umka-1930", tree != NULL);
 	aal_assert("umka-2210", tree->fs != NULL);
@@ -719,7 +725,7 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 	aal_assert("umka-1934", node != NULL);
 	aal_assert("umka-2264", walk_func != NULL);
 	
-	/* Closing children */
+	/* Walking though the children list of @node */
 	if (node->children) {
 		reiser4_node_t *child;
 		aal_list_t *walk, *next;
@@ -727,7 +733,8 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 		for (walk = node->children; walk; walk = next) {
 			next = walk->next;
 			child = (reiser4_node_t *)walk->data;
-			
+
+			/* Making recursive call to tree_walk() */
 			if ((res = reiser4_tree_walk(tree, child,
 						     walk_func)))
 			{
@@ -736,7 +743,7 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 		}
 	}
 
-	/* Throwing out @node from the cache and releasing it */
+	/* Calling @walk_func for @node */
 	return walk_func(tree, node);
 }
 
@@ -770,6 +777,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 				 callback_check_node);
 }
 
+/* Returns current tree height */
 uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 	aal_assert("umka-1065", tree != NULL);
 	aal_assert("umka-1284", tree->fs != NULL);
