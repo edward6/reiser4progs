@@ -1455,10 +1455,11 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 	aal_assert("umka-2115", tree != NULL);
 	aal_assert("umka-2118", start != NULL);
 
-	/*
-	  FIXME-UMKA: Here should be stuff for handling the situation when tree
-	  is empty, like tree_insert() does.
-	*/
+	if (reiser4_tree_fresh(tree)) {
+		aal_exception_error("Can't copy item/units to "
+				    "empty tree.");
+		return -EINVAL;
+	}
 	
 	if ((res = reiser4_item_feel(src, start, end, &hint)))
 		return res;

@@ -45,7 +45,6 @@ extern reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
 					  reiser4_node_t *node);
 
 #ifndef ENABLE_STAND_ALONE
-
 extern void reiser4_tree_pack_handler(reiser4_tree_t *tree,
 				      pack_func_t func);
 
