@@ -402,21 +402,15 @@ errno_t libreiser4_factory_init(void) {
 
 /* Finalizes plugin factory, by means of unloading the all plugins */
 void libreiser4_factory_fini(void) {
-	aal_list_t *walk;
-	plugin_class_t *class;
+	aal_list_t *walk, *next;
 
 	aal_assert("umka-335", plugins != NULL);
-    
+
 	/* Unloading all registered plugins */
-	for (walk = aal_list_last(plugins); walk; ) {
-		aal_list_t *temp;
-		reiser4_plugin_t *plugin;
-		
-		temp = walk->prev;
-		plugin = (reiser4_plugin_t *)walk->data;
-		
-		libreiser4_factory_unload(plugin);
-		walk = temp;
+	for (walk = plugins; walk; ) {
+		next = walk->next;
+		libreiser4_factory_unload((reiser4_plugin_t *)walk->data);
+		walk = next;
 	}
 	
 	registered = 0;

@@ -10,8 +10,6 @@
 
 static reiser4_core_t *core = NULL;
 
-#define stat40_body(item) ((stat40_t *)item->body)
-
 /*
   The function which implements stat40 layout pass. This function is used for
   all statdata extention-related actions. For example for opening, of counting.
@@ -90,14 +88,13 @@ errno_t stat40_traverse(item_entity_t *item,
 
 /* Callback for opening one extention */
 static errno_t callback_open_ext(sdext_entity_t *sdext,
-				 uint16_t extmask, 
-				 void *data)
+				 uint16_t extmask, void *data)
 {
 	create_hint_t *hint;
 	statdata_hint_t *stat_hint;
 
 	/*
-	  Method open is not defined, this probebly means, we only interested in
+	  Method open is not defined, this probably means, we only interested in
 	  symlink's length method in order to reach other symlinks body. So, we
 	  retrun 0 here.
 	*/
@@ -108,10 +105,9 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	stat_hint = hint->type_specific;
 
 	/* Reading mask into hint */
-	stat_hint->extmask |= ((uint64_t)1 <<
-			       sdext->plugin->h.id);
+	stat_hint->extmask |= ((uint64_t)1 << sdext->plugin->h.id);
 
-	/* We load @ext if its hint present in item hint */
+	/* We load @ext if its hint present in @stat_hint */
 	if (stat_hint->ext[sdext->plugin->h.id]) {
 		void *sdext_hint = stat_hint->ext[sdext->plugin->h.id]; 
 
@@ -126,13 +122,11 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 static int32_t stat40_read(item_entity_t *item, void *buff,
 			   uint32_t pos, uint32_t count)
 {
-	errno_t res;
-	
 	aal_assert("umka-1414", item != NULL);
 	aal_assert("umka-1415", buff != NULL);
 
-	if ((res = stat40_traverse(item, callback_open_ext, buff)))
-		return res;
+	if (stat40_traverse(item, callback_open_ext, buff))
+		return -EINVAL;
 
 	return 1;
 }

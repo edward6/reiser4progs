@@ -727,9 +727,6 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 			
 			walk = next;
 		}
-
-		aal_list_free(node->children);
-		node->children = NULL;
 	}
 
 	/* Throwing out @node from the cache and releasing it */

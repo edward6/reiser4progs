@@ -157,21 +157,17 @@ static aal_device_t *format40_device(object_entity_t *entity) {
 
 static int format40_magic(format40_super_t *super) {
 	return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
-			   aal_strlen(FORMAT40_MAGIC)) == 0;
+			   sizeof(super->sb_magic)) == 0;
 }
 
 static errno_t format40_super_open(format40_t *format) {
-	blk_t offset;
 	errno_t res = 0;
 	aal_block_t *block;
     
-	offset = (FORMAT40_OFFSET / format->blocksize);
-	
-	if (!(block = aal_block_read(format->device,
-				     format->blocksize, offset)))
+	if (!(block = aal_block_read(format->device, format->blocksize,
+				     (FORMAT40_OFFSET / format->blocksize))))
 	{
-		aal_exception_error("Can't read block %llu.",
-				    offset);
+		aal_exception_error("Can't read format40 super block.");
 		return -EIO;
 	}
 

@@ -15,8 +15,12 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
+/* Macro for getting stat data body from item */
+#define stat40_body(item) ((stat40_t *)item->body)
+
 /* Type for stat40 layout callback function */
-typedef int (*stat40_ext_func_t) (sdext_entity_t *, uint16_t, void *);
+typedef int (*stat40_ext_func_t) (sdext_entity_t *,
+				  uint16_t, void *);
 
 struct stat40 {
 	d16_t extmask;
