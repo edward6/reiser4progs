@@ -62,8 +62,7 @@ lookup_t reg40_update_body(object_entity_t *entity) {
 	
 	/* Getting the next body item from the tree */
 	return obj40_find_item(&reg->obj, &reg->position, 
-			       FIND_EXACT, NULL, NULL,
-			       &reg->body);
+			       FIND_EXACT, NULL, NULL, &reg->body);
 }
 
 /* Resets file position. As fire position is stored inside @reg->position, it

@@ -580,9 +580,7 @@ errno_t obj40_unlink(obj40_t *obj) {
 
 /* Initializes object handle by plugin, key, core operations and opaque pointer
    to tree file is going to be opened/created in. */
-inline errno_t obj40_init(obj40_t *obj, object_info_t *info, 
-			  reiser4_core_t *core)
-{
+errno_t obj40_init(obj40_t *obj, object_info_t *info, reiser4_core_t *core) {
 	uint8_t i;
 	
 	aal_assert("umka-1574", obj != NULL);

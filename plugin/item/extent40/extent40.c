@@ -1402,8 +1402,8 @@ static item_object_ops_t object_ops = {
 	.fetch_units	  = extent40_fetch_units
 };
 
-static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
+static item_repair_ops_t repair_ops = {
 	.check_layout	  = extent40_check_layout,
 	.check_struct	  = extent40_check_struct,
 	
@@ -1412,14 +1412,12 @@ static item_repair_ops_t repair_ops = {
 
 	.pack		  = NULL,
 	.unpack		  = NULL
-#endif
 };
 
 static item_debug_ops_t debug_ops = {
-#ifndef ENABLE_STAND_ALONE
 	.print		  = extent40_print,
-#endif
 };
+#endif
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
@@ -1430,10 +1428,12 @@ static item_tree_ops_t tree_ops = {
 
 static reiser4_item_ops_t extent40_ops = {
 	.tree		  = &tree_ops,
-	.debug		  = &debug_ops,
 	.object		  = &object_ops,
+	.balance	  = &balance_ops,
+#ifndef ENABLE_STAND_ALONE
 	.repair		  = &repair_ops,
-	.balance	  = &balance_ops
+	.debug		  = &debug_ops,
+#endif
 };
 
 static reiser4_plug_t extent40_plug = {

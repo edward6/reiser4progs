@@ -54,12 +54,9 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	if ((res = dir40_reset((object_entity_t *)dir)))
 		return res;
 	
-	if ((res = obj40_find_item(&dir->obj, &dir->position,  
-				   FIND_CONV, NULL, NULL,
-				   &dir->body)) < 0)
-	{
+	if ((res = obj40_find_item(&dir->obj, &dir->position, FIND_CONV, 
+				   NULL, NULL, &dir->body)) < 0)
 		return res;
-	}
 
 	if (res == PRESENT)
 		return 0;

@@ -35,11 +35,13 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 
 	aal_assert("umka-1268", tree != NULL);
 	aal_assert("vpf-1596", plug != NULL);
+	aal_assert("vpf-1654", tree->fs != NULL);
+	aal_assert("vpf-1655", tree->fs->device != NULL);
     
 	/* Getting tree tree device and blksize in use to use them for creating
 	   new node. */
 	size = reiser4_tree_get_blksize(tree);
-	device = reiser4_tree_get_device(tree);
+	device = tree->fs->device;
 
 	/* Allocate new node of @size at @nr. */
 	if (!(block = aal_block_alloc(device, size, nr)))
@@ -129,10 +131,12 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
         reiser4_node_t *node;
  
         aal_assert("umka-160", tree != NULL);
+        aal_assert("vpf-1652", tree->fs != NULL);
+        aal_assert("vpf-1653", tree->fs->device != NULL);
 
 	/* Getting tree characteristics needed for open node. */
 	size = reiser4_tree_get_blksize(tree);
-	device = reiser4_tree_get_device(tree);
+	device = tree->fs->device;
 	
 	/* Load block at @nr, that node lie in. */
 	if (!(block = aal_block_load(device, size, nr))) {

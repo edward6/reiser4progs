@@ -324,6 +324,7 @@ static uint32_t cde40_shrink(reiser4_place_t *place,
 
 	aal_assert("vpf-1561", place != NULL);
 
+	pol = cde40_key_pol(place);
 	units = cde_get_units(place);
 
 	aal_assert("vpf-1562", pos < units);
@@ -1108,14 +1109,12 @@ static item_object_ops_t object_ops = {
 	.read_units	  = NULL
 };
 
-static item_debug_ops_t debug_ops = {
 #ifndef ENABLE_STAND_ALONE
+static item_debug_ops_t debug_ops = {
 	.print		  = cde40_print
-#endif
 };
 
 static item_repair_ops_t repair_ops = {
-#ifndef ENABLE_STAND_ALONE
 	.check_struct	  = cde40_check_struct,
 	.check_layout	  = NULL,
 
@@ -1124,8 +1123,8 @@ static item_repair_ops_t repair_ops = {
 
 	.pack		  = NULL,
 	.unpack		  = NULL
-#endif
 };
+#endif
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
@@ -1136,10 +1135,12 @@ static item_tree_ops_t tree_ops = {
 
 static reiser4_item_ops_t cde40_ops = {
 	.tree		  = &tree_ops,
-	.debug		  = &debug_ops,
 	.object		  = &object_ops,
+	.balance	  = &balance_ops,
+#ifndef ENABLE_STAND_ALONE
 	.repair		  = &repair_ops,
-	.balance	  = &balance_ops
+	.debug		  = &debug_ops
+#endif
 };
 
 static reiser4_plug_t cde40_plug = {

@@ -83,7 +83,9 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 #endif
 			
 			/* Read data from the tree */
-			if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {
+			if ((read = plug_call(place.plug->o.item_ops->object,
+					      read_units, &place, hint)) < 0) 
+			{
 				return read;
 			} else {
 				if (read == 0)

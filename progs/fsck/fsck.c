@@ -352,10 +352,10 @@ static errno_t fsck_check_init(repair_data_t *repair,
 			       uint8_t fs_mode) 
 {
 	aal_stream_t stream;
+	int flags = 0;
 	int reop = 0;
 	count_t len;
 	errno_t res;
-	int flags;
 	
 	fprintf(stderr, "***** Opening the fs.\n");
 	

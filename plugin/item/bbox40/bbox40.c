@@ -79,7 +79,6 @@ static errno_t bbox40_remove_units(reiser4_place_t *place,
 
 	return 0;
 }
-#endif
 
 static errno_t bbox40_fetch_units(reiser4_place_t *place,
 				  trans_hint_t *hint)
@@ -108,6 +107,7 @@ static errno_t bbox40_fetch_units(reiser4_place_t *place,
 
 	return 0;
 }
+#endif
 
 
 static item_balance_ops_t balance_ops = {
@@ -123,7 +123,6 @@ static item_balance_ops_t balance_ops = {
 	.lookup		  = NULL,
 	.fetch_key	  = NULL,
 	.maxposs_key	  = NULL,
-	
 	.units            = bbox40_units
 };
 
@@ -141,14 +140,16 @@ static item_object_ops_t object_ops = {
 	.insert_units	  = bbox40_insert_units,
 	.remove_units	  = bbox40_remove_units,
 	.update_units	  = NULL,
-	.layout		  = NULL,
-#endif
 	.fetch_units	  = bbox40_fetch_units,
+	.layout		  = NULL,
+#else
+	.fetch_units	  = NULL,
+#endif
 	.read_units	  = NULL
 };
 
-static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
+static item_repair_ops_t repair_ops = {
 	.check_struct	  = bbox40_check_struct,
 	.check_layout	  = NULL,
 
@@ -157,14 +158,12 @@ static item_repair_ops_t repair_ops = {
 
 	.pack		  = NULL,
 	.unpack		  = NULL
-#endif
 };
 
 static item_debug_ops_t debug_ops = {
-#ifndef ENABLE_STAND_ALONE
 	.print		  = bbox40_print
-#endif
 };
+#endif
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
@@ -175,10 +174,12 @@ static item_tree_ops_t tree_ops = {
 
 static reiser4_item_ops_t bbox40_ops = {
 	.tree		  = &tree_ops,
-	.debug		  = &debug_ops,
 	.object		  = &object_ops,
+	.balance	  = &balance_ops,
+#ifndef ENABLE_STAND_ALONE
 	.repair		  = &repair_ops,
-	.balance	  = &balance_ops
+	.debug		  = &debug_ops
+#endif
 };
 
 static reiser4_plug_t bbox40_plug = {

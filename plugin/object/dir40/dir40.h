@@ -24,6 +24,8 @@ struct dir40 {
 typedef struct dir40 dir40_t;
 
 extern reiser4_plug_t dir40_plug;
+
+#ifndef ENABLE_STAND_ALONE
 extern reiser4_core_t *dir40_core;
 
 extern lookup_t dir40_next(dir40_t *dir, int first);
@@ -35,5 +37,5 @@ extern lookup_t dir40_lookup(object_entity_t *entity,
 extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
 
 extern lookup_t dir40_update_body(object_entity_t *entity, int check_group);
-
+#endif
 #endif

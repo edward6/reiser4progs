@@ -242,7 +242,9 @@ typedef enum reiser4_fibre_plug_id reiser4_fibre_plug_id_t;
 struct reiser4_key {
 	reiser4_plug_t *plug;
 	d64_t body[4];
+#ifndef ENABLE_STAND_ALONE
 	uint32_t adjust;
+#endif
 };
 
 typedef struct reiser4_key reiser4_key_t;
@@ -624,21 +626,24 @@ struct entry_hint {
 	reiser4_key_t object;
 
 	/* Entry type (name or special), filled by readdir */
-	entry_type_t type;
+	uint8_t type;
 
 	/* Name of entry */
 	char name[256];
 
+#ifndef ENABLE_STAND_ALONE
 	/* Hook called onto each create item during write flow. */
 	place_func_t place_func;
 
 	/* Related opaque data. May be used for passing something to
 	   region_func() and place_func(). */
 	void *data;
+#endif
 };
 
 typedef struct entry_hint entry_hint_t;
 
+#ifndef ENABLE_STAND_ALONE
 enum slink_type {
 	SL_UNLINK,   /* safe-link for unlink */
 	SL_TRUNCATE, /* safe-link for truncate */
@@ -660,6 +665,7 @@ struct slink_hint {
 };
 
 typedef struct slink_hint slink_hint_t;
+#endif
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. This is used for all tree modification purposes like
@@ -1077,8 +1083,8 @@ struct item_object_ops {
 
 typedef struct item_object_ops item_object_ops_t;
 
-struct item_repair_ops {
 #ifndef ENABLE_STAND_ALONE
+struct item_repair_ops {
 	/* Estimate merge operation. */
 	errno_t (*prep_merge) (reiser4_place_t *, trans_hint_t *);
 
@@ -1095,17 +1101,17 @@ struct item_repair_ops {
 
 	errno_t (*pack) (reiser4_place_t *, aal_stream_t *);
 	errno_t (*unpack) (reiser4_place_t *, aal_stream_t *);
-#endif
 };
+#endif
 
 typedef struct item_repair_ops item_repair_ops_t;
 
-struct item_debug_ops {
 #ifndef ENABLE_STAND_ALONE
+struct item_debug_ops {
 	/* Prints item into specified buffer. */
 	void (*print) (reiser4_place_t *, aal_stream_t *, uint16_t);
-#endif
 };
+#endif
 
 typedef struct item_debug_ops item_debug_ops_t;
 
@@ -1123,10 +1129,12 @@ typedef struct item_tree_ops item_tree_ops_t;
 
 struct reiser4_item_ops {
 	item_tree_ops_t *tree;
-	item_debug_ops_t *debug;
 	item_object_ops_t *object;
-	item_repair_ops_t *repair;
 	item_balance_ops_t *balance;
+#ifndef ENABLE_STAND_ALONE
+	item_debug_ops_t *debug;
+	item_repair_ops_t *repair;
+#endif
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
@@ -1591,8 +1599,8 @@ typedef struct plug_class plug_class_t;
 struct plug_ident {
 	/* Plugin id, type and group. */
 	rid_t id;
-	rid_t group;
-	rid_t type;
+	uint8_t group;
+	uint8_t type;
 };
 
 typedef struct plug_ident plug_ident_t;

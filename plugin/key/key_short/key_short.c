@@ -30,7 +30,10 @@ static errno_t key_short_assign(reiser4_key_t *dst,
 	aal_assert("umka-1111", src != NULL);
 
 	dst->plug = src->plug;
+	
+#ifndef ENABLE_STAND_ALONE
 	dst->adjust = src->adjust;
+#endif
 
 	aal_memcpy(dst->body, src->body,
 		   sizeof(key_short_t));

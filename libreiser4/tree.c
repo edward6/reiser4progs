@@ -5,15 +5,6 @@
 
 #include <reiser4/libreiser4.h>
 
-/* Fetches data from passed @tree to passed @hint */
-int64_t reiser4_tree_fetch(reiser4_tree_t *tree,
-			   reiser4_place_t *place,
-			   trans_hint_t *hint)
-{
-	return plug_call(place->plug->o.item_ops->object,
-			 fetch_units, place, hint);
-}
-
 /* Return current fs blksize, which may be used in tree. */
 uint32_t reiser4_tree_get_blksize(reiser4_tree_t *tree) {
 	aal_assert("umka-2579", tree != NULL);
@@ -21,13 +12,6 @@ uint32_t reiser4_tree_get_blksize(reiser4_tree_t *tree) {
 	aal_assert("umka-2581", tree->fs->master != NULL);
 
 	return reiser4_master_get_blksize(tree->fs->master);
-}
-
-aal_device_t *reiser4_tree_get_device(reiser4_tree_t *tree) {
-	aal_assert("umka-2582", tree != NULL);
-	aal_assert("umka-2583", tree->fs != NULL);
-
-	return tree->fs->device;
 }
 
 /* Returns TRUE if passed @node is tree root node. */
@@ -957,6 +941,14 @@ static int callback_blocks_comp_func(void *key1, void *key2,
 				    (reiser4_key_t *)key2);
 }
 
+/* Returns level in tree particular item should be inserted at. */
+inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
+					  reiser4_plug_t *plug)
+{
+	return (plug->id.group == TAIL_ITEM) ?
+		LEAF_LEVEL : TWIG_LEVEL;
+}
+
 #endif
 
 /* Helpher function for freeing keys in @tree->nodes hash table during its
@@ -981,14 +973,6 @@ static int callback_nodes_comp_func(void *key1, void *key2,
 		return 1;
 
 	return 0;
-}
-
-/* Returns level in tree particular item should be inserted at. */
-inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
-					  reiser4_plug_t *plug)
-{
-	return (plug->id.group == TAIL_ITEM) ?
-		LEAF_LEVEL : TWIG_LEVEL;
 }
 
 #define TREE_NODES_TABLE_SIZE (512)
@@ -1857,14 +1841,6 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	}
 	
 	restore_and_exit(ABSENT);
-}
-
-/* Reads data from the @tree from @place to passed @hint */
-int64_t reiser4_tree_read(reiser4_tree_t *tree, reiser4_place_t *place,
-			  trans_hint_t *hint)
-{
-	return plug_call(place->plug->o.item_ops->object,
-			 read_units, place, hint);
 }
 
 #ifndef ENABLE_STAND_ALONE

@@ -12,7 +12,6 @@
 
 reiser4_core_t *dir40_core = NULL;
 
-#ifndef ENABLE_STAND_ALONE
 /* Return current position in directory into passed @offset. */
 static errno_t dir40_telldir(object_entity_t *entity,
 			     reiser4_key_t *position)
@@ -26,13 +25,14 @@ static errno_t dir40_telldir(object_entity_t *entity,
 	plug_call(dir->position.plug->o.key_ops,
 		  assign, position, &dir->position);
 
+#ifndef ENABLE_STAND_ALONE
 	/* Adjust is offset inside collided keys arrays and needed for
 	   positioning right in such a case. In normal case it is zero. */
 	position->adjust = dir->position.adjust;
+#endif
 	
 	return 0;
 }
-#endif
 
 /* Close directiry instance. */
 static void dir40_close(object_entity_t *entity) {
@@ -346,8 +346,10 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 {
 	dir40_t *dir;
 	lookup_t res;
+#ifndef ENABLE_STAND_ALONE
 	coll_hint_t hint;
 	coll_func_t func;
+#endif
 
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1117", entity != NULL);
@@ -370,7 +372,12 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 #endif
 	
 	if ((res = obj40_find_item(&dir->obj, &dir->body.key, bias, 
-				   func, &hint, &dir->body)) < 0)
+#ifndef ENABLE_STAND_ALONE
+				   func, &hint,
+#else
+				   NULL, NULL,
+#endif
+				   &dir->body)) < 0)
 	{
 		return res;
 	}
@@ -1021,12 +1028,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.lookup		= dir40_lookup,
 	.seekdir	= dir40_seekdir,
 	.readdir	= dir40_readdir,
-
-#ifndef ENABLE_STAND_ALONE
 	.telldir	= dir40_telldir,
-#else
-	.telldir	= NULL
-#endif
 };
 
 reiser4_plug_t dir40_plug = {

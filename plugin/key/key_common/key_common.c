@@ -9,14 +9,18 @@
 static reiser4_key_t minimal_key = {
 	.plug = NULL,
 	.body = {0ull, 0ull, 0ull, 0ull},
+#ifndef ENABLE_STAND_ALONE
 	.adjust = 0
+#endif
 };
 
 /* Maximal possible key */
 static reiser4_key_t maximal_key = {
 	.plug = NULL,
 	.body = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64},
+#ifndef ENABLE_STAND_ALONE
 	.adjust = 0
+#endif
 };
 
 /* Translates key type from libreiser4 type to key_common one */

@@ -261,8 +261,10 @@ reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree,
 	reiser4_plug_t *plug;
 	aal_device_t *device;
 	
-	aal_assert("umka-2624", tree != NULL);
 	aal_assert("umka-2625", stream != NULL);
+	aal_assert("umka-2624", tree != NULL);
+	aal_assert("vpf-1656", tree->fs != NULL);
+	aal_assert("vpf-1657", tree->fs->device != NULL);
 
 	if (aal_stream_read(stream, &pid, sizeof(pid)) != sizeof(pid))
 		goto error_eostream;
@@ -278,7 +280,7 @@ reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree,
 	}
 
 	size = reiser4_tree_get_blksize(tree);
-	device = reiser4_tree_get_device(tree);
+	device = tree->fs->device;
 
 	/* Allocate new node of @size at @nr. */
 	if (!(block = aal_block_alloc(device, size, blk)))
