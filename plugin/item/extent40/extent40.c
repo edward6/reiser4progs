@@ -173,8 +173,7 @@ errno_t extent40_maxreal_key(item_entity_t *item,
 	aal_assert("vpf-437", item != NULL);
 	aal_assert("vpf-438", key  != NULL);
 
-	return body40_maxreal_key(item, key,
-				    extent40_offset);
+	return body40_maxreal_key(item, key, extent40_offset);
 }
 #endif
 
