@@ -269,6 +269,9 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 			pos->item++;
 			return ABSENT;
 		}
+	} else {
+		if (pos->unit == MAX_UINT32)
+			pos->unit = 0;
 	}
 
 	return res;

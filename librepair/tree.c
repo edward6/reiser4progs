@@ -348,36 +348,6 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	return reiser4_flow_convert(tree, &hint);
 }
 
-/* Copy @src item data over the @dst from the key pointed by @key through the
-   @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
-errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
-				reiser4_place_t *src, reiser4_key_t *key)
-{
-	reiser4_key_t dmax;
-	trans_hint_t hint;
-	errno_t res;
-	
-	aal_assert("vpf-1298", tree != NULL);
-	aal_assert("vpf-1299", dst != NULL);
-	aal_assert("vpf-1300", src != NULL);
-
-	aal_memset(&hint, 0, sizeof(hint));
-	reiser4_key_assign(&hint.offset, key);
-	
-	/* FIXME-VITALY: some hint fields need to be initialized by item 
-	   estimate_insert methods--count, offset, etc. I should just 
-	   initialize start and end keys. For now I calculate it here. */
-	hint.plug = dst->plug;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
-	hint.shift_flags = SF_DEFAULT;
-	
-	if ((res = reiser4_item_maxreal_key(dst, &dmax)))
-		return res;
-	
-	return 0;
-}
-
 /* Lookup for the correct @place place by the @start key in the @tree. */
 static errno_t repair_tree_lookup(reiser4_tree_t *tree, 
 				  reiser4_place_t *dst,
@@ -387,8 +357,8 @@ static errno_t repair_tree_lookup(reiser4_tree_t *tree,
 	reiser4_key_t dkey, end;
 	lookup_hint_t lhint;
 	reiser4_place_t prev;
-
 	errno_t res;
+	int skip = 0;
 	
 	aal_assert("vpf-1364", tree  != NULL);
 	aal_assert("vpf-1365", dst != NULL);
@@ -412,6 +382,8 @@ static errno_t repair_tree_lookup(reiser4_tree_t *tree,
 		/* Step to right. */
 		reiser4_place_inc(dst, 1);
 
+	aal_memset(&prev, 0, sizeof(prev));
+	
 	if (reiser4_place_rightmost(dst)) {
 		prev = *dst;
 
@@ -427,27 +399,26 @@ static errno_t repair_tree_lookup(reiser4_tree_t *tree,
 		
 		/* No right node. */
 		if (!dst->node)
-			goto finish;
-	} else {
-		aal_memset(&prev, 0, sizeof(prev));
+			skip = 1;
+	} 
+
+	if (skip == 0) {
+		/* Get the current key of the @dst. */
+		if (reiser4_place_fetch(dst))
+			return -EIO;
+
+		if ((res = reiser4_item_get_key(dst, &dkey)))
+			return res;
+
+		if ((res = reiser4_item_maxreal_key(src, &end)))
+			return res;
+
+		/* If @end key is not less than the lookuped, items are overlapped. 
+		   Othewise move to the previous pos. */
+		if ((res = reiser4_key_compfull(&end, &dkey)) >= 0) 
+			return PRESENT;
 	}
 
-	/* Get the current key of the @dst. */
-	if (reiser4_place_fetch(dst))
-		return -EIO;
-
-	if ((res = reiser4_item_get_key(dst, &dkey)))
-		return res;
-
-	if ((res = reiser4_item_maxreal_key(src, &end)))
-		return res;
-	
-	/* If @end key is not less than the lookuped, items are overlapped. 
-	   Othewise move to the previous pos. */
-	if ((res = reiser4_key_compfull(&end, &dkey)) >= 0) 
-		return PRESENT;
-
- finish:
 	if (prev.node)
 		*dst = prev;
 
@@ -555,7 +526,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 		}
 
 		/* Insert_raw can insert the whole item (!dst.plug) or if dst &
-		   src items are of the same plugin. Call tree_copy otherwise. */
+		   src items are of the same plugin. */
 		if ((dst.plug && plug_equal(dst.plug, src->plug)) || !dst.plug)
 		{
 			res = reiser4_tree_modify(tree, &dst, &hint, level,
@@ -576,10 +547,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 				  reiser4_print_key(&src->key, PO_DEFAULT),
 				  place_blknr(src), src->pos.item);
 
-			/* FIXME: Copying must exist for tail->extent.
-			if ((res = repair_tree_copy(tree, &dst, src, &key)))
-				return res;
-			*/
 			return RE_FATAL;
 		}
 

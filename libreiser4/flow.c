@@ -163,9 +163,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 						hint, level)) < 0)
 		{
 			return write;
-		} else {
-			if (write == 0)
-				break;
+		} else if (write == 0) {
+			break;
 		}
 
 		/* Updating counters */

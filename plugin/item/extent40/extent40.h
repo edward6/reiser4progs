@@ -10,6 +10,17 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 
+typedef enum insert_flag {
+	/* Add some units at the end. */
+	ET40_OVERWRITE	= 1 << 0,
+	/* There is a head left in the current dst unit while overwriting. */
+	ET40_HEAD	= 1 << 1,
+	/* There is a tail left in the current dst unit while overwriting. */
+	ET40_TAIL	= 1 << 2,
+	/* Join new unit and existent one. */
+	ET40_JOIN	= 1 << 3
+} insert_flag_t;
+
 struct extent40 {
 	d64_t start;
 	d64_t width;

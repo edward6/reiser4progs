@@ -8,19 +8,6 @@
 #include "extent40.h"
 #include <repair/plugin.h>
 
-typedef enum insert_raw_flag {
-	/* Add an item. */
-	ET40_ADD	= 1 << 0,
-	/* Add some units at the beginning. */
-	ET40_INSERT	= 1 << 1,
-	/* Add some units at the end. */
-	ET40_OVERWRITE	= 1 << 2,
-	/* There is a head left in the current dst unit while overwriting. */
-	ET40_HEAD	= 1 << 3,
-	/* There is a tail left in the current dst unit while overwriting. */
-	ET40_TAIL	= 1 << 4
-} insert_raw_flag_t;
-
 static int extent40_join_units(reiser4_place_t *place, int fix) {
 	uint32_t i, count, joint;
 	extent40_t *extent;
@@ -228,8 +215,8 @@ static inline uint32_t extent40_head(reiser4_place_t *place,
 errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	extent40_t *sextent, *dextent;
 	int32_t send, sunits;
-	uint64_t offset;
 	reiser4_place_t *src;
+	uint64_t offset;
 	
 	aal_assert("vpf-1372", place != NULL);
 	aal_assert("vpf-1373", hint != NULL);

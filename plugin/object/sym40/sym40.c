@@ -91,7 +91,7 @@ static object_entity_t *sym40_create(object_hint_t *hint) {
 	len = aal_strlen(hint->name);
 
 	/* Create symlink sta data item. */
-	if (obj40_create_stat(&sym->obj, len, len, 0, 0, S_IFLNK, hint->name))
+	if (obj40_create_stat(&sym->obj, len, 0, 0, 0, S_IFLNK, hint->name))
 		goto error_free_sym;
 
 	return (object_entity_t *)sym;
