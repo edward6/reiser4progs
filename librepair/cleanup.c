@@ -238,6 +238,9 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		lookup_t lookup;
 		place_t place;
 		
+		/* FIXME-VITALY: this is not key-collision-safe. To solve it on 
+		   the next item should be set flag NEXT. */
+		
 		/* Lookup the @key. */
 		if ((lookup = reiser4_tree_lookup(tree, &key,  LEAF_LEVEL,
 						  FIND_EXACT, &place)) < 0)

@@ -129,9 +129,7 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	
 	if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
 			  FIND_EXACT, &place)) < 0)
-	{
 		return NULL;
-	}
 
 	/* If place is invalid, there is no items of the file. */
 	if (!reg40_core->tree_ops.valid(reg->obj.info.tree, &place))
@@ -141,14 +139,18 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	if ((res = reg40_core->tree_ops.fetch(reg->obj.info.tree, &place)))
 		return NULL;
 
+	/* Check if this is an item of another object. */
+	if (plug_call(reg->position.plug->o.key_ops, compshort,
+		      &reg->position, &place.key))
+		return reg40_policy_plug(reg, 0);
+
 	/* Get the maxreal key of the found item and find next. */
 	if ((res = plug_call(place.plug->o.item_ops->balance,
 			     maxreal_key, &place, &key)))
-	{
 		return NULL;
-	}
 
 	offset = plug_call(key.plug->o.key_ops, get_offset, &key);
+	
 	return reg40_policy_plug(reg, offset);
 }
 

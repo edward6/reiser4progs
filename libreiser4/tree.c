@@ -1395,7 +1395,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 	if (!tree->root)
 		return 0;
-	
+
 	/* Flushing formatted nodes starting from root node with memory pressure
 	   flag set to 0, that is do not check memory presure, and save
 	   everything. */

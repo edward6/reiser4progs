@@ -570,8 +570,13 @@ static errno_t repair_update(repair_control_t *control) {
 static void repair_control_release(repair_control_t *control) {
 	aal_assert("vpf-738", control != NULL);
 
-	if (control->bm_used)
+	if (control->bm_used) {
 		aux_bitmap_close(control->bm_used);
+		
+		control->repair->fs->alloc->hook.alloc = NULL;
+		control->repair->fs->alloc->hook.release = NULL;
+		control->repair->fs->alloc->hook.data = NULL;
+	}
 	if (control->bm_leaf)
 		aux_bitmap_close(control->bm_leaf);
 	if (control->bm_twig)

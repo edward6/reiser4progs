@@ -252,8 +252,6 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	aal_assert("vpf-252", data  != NULL);
 	aal_assert("vpf-409", node != NULL);
     
-	fd->stat.read_nodes++;
-	    
 	level = reiser4_node_get_level(node); 
     
 	/* Initialize the level for the root node before traverse. */
@@ -341,6 +339,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	node_t *node;
+	errno_t res;
 	blk_t blk;
     
 	aal_assert("vpf-257", fd != NULL);
@@ -378,6 +377,18 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 				    "skipped.");
 	}
 	
+	/* In the case of an error the node should be closed as it should 
+	   be disconnected from the parent -- it may happen that another 
+	   parent has a pointer to it. */
+	if ((node = reiser4_tree_lookup_node(tree, blk))) {
+		if ((res = reiser4_tree_disconnect_node(tree, node)))
+			return -EINVAL;
+		
+		if ((res = reiser4_node_close(node)))
+			return res;
+	}
+
+	
 	if (fd->repair->mode == RM_BUILD) {
 		pos_t prev;
 		trans_hint_t hint;
@@ -389,14 +400,9 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 
 		hint.count = 1;
 		
-		if ((node = reiser4_tree_lookup_node(tree, blk)) && 
-		    reiser4_tree_disconnect_node(tree, node)) 
-		{
-			return -EINVAL;
-		}
-
-		if (reiser4_node_remove(place->node, &place->pos, &hint))
-			return -EINVAL;
+		res = reiser4_node_remove(place->node, &place->pos, &hint);
+		
+		if (res) return -EINVAL;
 
 		place->pos = prev;
 	} 
