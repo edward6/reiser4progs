@@ -916,6 +916,43 @@ static uint64_t cde40_bytes(reiser4_place_t *place) {
 	aal_assert("vpf-1211", place != NULL);
 	return (place->len - sizeof(uint16_t));
 }
+
+lookup_t cde40_collision(reiser4_place_t *place, coll_hint_t *hint) {
+	reiser4_key_t hash;
+	uint32_t units;
+	char name[256];
+	
+	aal_assert("vpf-1548", place != NULL);
+	aal_assert("vpf-1549", hint != NULL);
+	aal_assert("vpf-1549", hint->type == DIRENTRY_ITEM);
+
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
+	
+	units = cde40_units(place);
+	
+	if (place->pos.unit >= units)
+		return ABSENT;
+	
+	cde40_get_hash(place, place->pos.unit, &hash);
+	
+	for (; place->pos.unit < units; place->pos.unit++) {
+		/* Compare the key first. If differs, there is no match. */
+		if (cde40_comp_hash(place, place->pos.item, &hash))
+			return ABSENT;
+
+		/* Key matches, comp the name. It may happen only with not 
+		   packed names. */
+		cde40_get_name(place, place->pos.item, name, 256);
+
+		if (!aal_strcmp(name, hint->specific))
+			return PRESENT;
+
+		/* Names are not sorted. Continue. */
+	}
+	
+	return ABSENT;
+}
 #endif
 
 /* Returns maximal possible key in passed item. It is needed during lookup and
@@ -1019,6 +1056,7 @@ static item_balance_ops_t balance_ops = {
 	.shift_units	  = cde40_shift_units,
         .maxreal_key	  = cde40_maxreal_key,
 	.update_key	  = cde40_update_key,
+	.collision	  = cde40_collision,
 #endif
 	.units		  = cde40_units,
 	.lookup		  = cde40_lookup,
@@ -1033,11 +1071,11 @@ static item_object_ops_t object_ops = {
 	.prep_insert	  = cde40_prep_insert,
 	.insert_units	  = cde40_insert_units,
 	.remove_units	  = cde40_remove_units,
-
+	
 	.size		  = cde40_size,
 	.bytes		  = cde40_bytes,
 	.overhead	  = cde40_overhead,
-		 
+	 
 	.update_units	  = NULL,
 	.prep_write	  = NULL,
 	.write_units	  = NULL,

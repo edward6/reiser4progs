@@ -328,7 +328,8 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 {
 	dir40_t *dir;
 	lookup_t res;
-	correct_func_t chandler;
+	coll_hint_t hint;
+	coll_func_t func;
 
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1117", entity != NULL);
@@ -341,11 +342,16 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 		  &dir->body.key, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), name);
 
-	chandler = dir40_core->tree_ops.collision;
+#ifndef ENABLE_STAND_ALONE
+	func = dir40_core->tree_ops.collision;
+	hint.type = DIRENTRY_ITEM;
+	hint.specific = name;
+#else
+	chandler = NULL;
+#endif
 	
-	if ((res = obj40_find_item(&dir->obj, &dir->body.key, 
-				   bias, chandler, name,
-				   &dir->body)) < 0)
+	if ((res = obj40_find_item(&dir->obj, &dir->body.key, bias, 
+				   func, &hint, &dir->body)) < 0)
 	{
 		return res;
 	}

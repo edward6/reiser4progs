@@ -42,6 +42,8 @@ extern void reiser4_item_dup_flags(reiser4_place_t *place,
 
 extern uint16_t reiser4_item_get_flags(reiser4_place_t *place);
 
+extern lookup_t reiser4_item_collision(reiser4_place_t *place, 
+				       coll_hint_t *hint);
 #endif
 
 extern uint32_t reiser4_item_units(reiser4_place_t *place);

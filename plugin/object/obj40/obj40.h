@@ -47,8 +47,8 @@ extern errno_t obj40_fetch_item(obj40_t *obj,
 				reiser4_place_t *place);
 
 extern lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
-				lookup_bias_t bias, correct_func_t func,
-				void *data, reiser4_place_t *place);
+				lookup_bias_t bias, coll_func_t func,
+				coll_hint_t *hint, reiser4_place_t *place);
 
 extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type,
 				  char *name);

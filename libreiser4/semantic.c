@@ -30,7 +30,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	place = &resol->info.start;
 
 	hint.level = LEAF_LEVEL;
-	hint.correct_func = NULL;
+	hint.collision = NULL;
 	hint.key = &resol->info.object;
 	tree = (reiser4_tree_t *)resol->info.tree;
 

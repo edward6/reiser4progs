@@ -665,6 +665,13 @@ struct conv_hint {
 
 typedef struct conv_hint conv_hint_t;
 
+struct coll_hint {
+	int type;
+	void *specific;
+};
+
+typedef struct coll_hint coll_hint_t;
+
 /* Lookup bias. */
 enum lookup_bias {
 	FIND_EXACT              = 1,
@@ -675,10 +682,7 @@ typedef enum lookup_bias lookup_bias_t;
 
 typedef struct lookup_hint lookup_hint_t;
 
-typedef lookup_t (*correct_func_t) (reiser4_place_t *,
-				    lookup_hint_t *,
-				    lookup_bias_t,
-				    lookup_t);
+typedef lookup_t (*coll_func_t) (void *, reiser4_place_t *, coll_hint_t *);
 
 /* Hint to be used when looking for data in tree. */
 struct lookup_hint {
@@ -688,12 +692,14 @@ struct lookup_hint {
 	/* Tree level lookup should stop on. */
 	uint8_t level;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Function for modifying position during lookup in some way needed by
 	   caller. Key collisions may be handler though this. */
-	correct_func_t correct_func;
+	coll_func_t collision;
 
 	/* Data needed by @lookup_func. */
-	void *data;
+	coll_hint_t *hint;
+#endif
 };
 
 /* Filesystem description. */
@@ -925,6 +931,9 @@ struct item_balance_ops {
 	
 	/* Get the max real key which is stored in the item. */
 	errno_t (*maxreal_key) (reiser4_place_t *, reiser4_key_t *);
+
+	/* Collision handler item method. */
+	lookup_t (*collision) (reiser4_place_t *, coll_hint_t *);
 #endif
 
 	/* Get the key of a particular unit of the item. */
@@ -1567,11 +1576,11 @@ struct tree_ops {
 	lookup_t (*lookup) (void *, lookup_hint_t *, lookup_bias_t,
 			    reiser4_place_t *);
 
+#ifndef ENABLE_STAND_ALONE
 	/* Collisions handler. It takes start place and looks for actual data in
 	   collided array. */
-	lookup_t (*collision) (reiser4_place_t *, lookup_hint_t *hint,
-			       lookup_bias_t bias, lookup_t lookup);
-#ifndef ENABLE_STAND_ALONE
+	lookup_t (*collision) (void *, reiser4_place_t *, coll_hint_t *);
+	
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
 	   by all object plugins (dir, file, etc). */
 	int64_t (*insert) (void *, reiser4_place_t *,
