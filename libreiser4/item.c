@@ -16,16 +16,21 @@
   it returns 1.
 */
 uint32_t reiser4_item_units(reiser4_place_t *place) {
+	uint32_t units;
 	item_entity_t *item;
 	
 	aal_assert("umka-1030", place != NULL);
 
 	item = &place->item;
 	aal_assert("umka-1448", item->plugin != NULL);
-	
-	if (item->plugin->item_ops.units)
-		return item->plugin->item_ops.units(item);
 
+	if (item->plugin->item_ops.units) {
+		units = item->plugin->item_ops.units(item);
+
+		aal_assert("umka-1883", units > 0);
+		return units
+	}
+	
 	return 1;
 }
 

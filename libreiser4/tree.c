@@ -1645,9 +1645,9 @@ errno_t reiser4_tree_cut(
 }
 
 /*
-  Switch on/off flag which say should tree pack itself after remove
-  operations. It is needed because all operations like this should be under
-  control.
+  Switches on/off flag, which displays should tree pack itself after remove
+  operations or not. It is needed because all operations like this should be
+  under control.
 */
 void reiser4_tree_enable_pack(reiser4_tree_t *tree) {
 	aal_assert("umka-1881", tree != NULL);
