@@ -199,5 +199,4 @@ errno_t reiser4_status_print(reiser4_status_t *status,
 	
 	return 0;
 }
-
 #endif
