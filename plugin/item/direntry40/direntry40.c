@@ -52,7 +52,7 @@ static errno_t direntry40_unit_key(item_entity_t *item,
 	aal_assert("umka-1607", item != NULL, return -1);
 	aal_assert("umka-1605", item->body != NULL, return -1);
 	
-	entry = direntry40_entry(direntry40_body(item), 0);
+	entry = direntry40_entry(direntry40_body(item), unit_pos);
 
 	locality = plugin_call(return -1, item->key.plugin->key_ops,
 			       get_locality, item->key.body);
