@@ -282,6 +282,12 @@ typedef errno_t (*detach_func_t) (reiser4_tree_t *,
 				  reiser4_place_t *,
 				  reiser4_node_t *, void *);
 
+enum tree_flags {
+	TF_PACK = 1 << 0
+};
+
+typedef enum tree_flags tree_flags_t;
+
 /* Tree structure */
 struct reiser4_tree {
 
@@ -303,6 +309,9 @@ struct reiser4_tree {
 	  order. Thanks a lot to Nikita for this good idea.
 	*/
 	aal_lru_t *lru;
+
+	/* Tree operation control flags */
+	uint32_t flags;
 
 	/* Tree modification traps */
 	struct {

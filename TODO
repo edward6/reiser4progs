@@ -11,6 +11,9 @@ reiser4progs/COPYING.
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
 
+* add limits to balancing code (limit on moved items, units and 
+  bytes)
+
 * --print-journal option handling code in debugfs.
 
 * --print-block-alloc should also be able to print bitmap, not just

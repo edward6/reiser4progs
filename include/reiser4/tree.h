@@ -37,6 +37,9 @@ extern reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
 
 #ifndef ENABLE_ALONE
 
+extern void reiser4_tree_enable_pack(reiser4_tree_t *tree);
+extern void reiser4_tree_disable_pack(reiser4_tree_t *tree);
+
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_grow(reiser4_tree_t *tree);

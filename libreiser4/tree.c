@@ -450,7 +450,8 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		aal_exception_error("Can't initialize tree cache lru list.");
 		goto error_free_tree;
 	}
-	
+
+	reiser4_tree_enable_pack(tree);
 	return tree;
 
  error_free_tree:
@@ -1643,12 +1644,29 @@ errno_t reiser4_tree_cut(
 	return 0;
 }
 
+/*
+  Switch on/off flag which say should tree pack itself after remove
+  operations. It is needed because all operations like this should be under
+  control.
+*/
+void reiser4_tree_enable_pack(reiser4_tree_t *tree) {
+	aal_assert("umka-1881", tree != NULL);
+	tree->flags |= TF_PACK;
+}
+
+void reiser4_tree_disable_pack(reiser4_tree_t *tree) {
+	aal_assert("umka-1882", tree != NULL);
+	tree->flags &= ~TF_PACK;
+}
+
 /* Removes item by specified key */
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	  /* tree item will be removed from */
 	reiser4_place_t *place,   /* place the item will be removed at */
 	uint32_t count)
 {
+	int update;
+	rpos_t ppos;
 	errno_t res;
 
 	/* Calling "pre_remove" handler if it is defined */
@@ -1658,31 +1676,31 @@ errno_t reiser4_tree_remove(
 			return res;
 	}
 
-	/* Removing item/unit and updating parent keys */
-	{
-		rpos_t ppos;
-		int update = reiser4_place_leftmost(place);
+	/*
+	  Getting position in parent node. It is needed for updating key in it
+	  after node_remove is finished.
+	*/
+	update = reiser4_place_leftmost(place);
 	
-		if (update && place->node->parent) {
-			if (reiser4_node_pos(place->node, &ppos))
-				return -1;
-		}
-		
-		/* Removing iten/unit from the node */
-		if (reiser4_node_remove(place->node, &place->pos, count))
+	if (update && place->node->parent) {
+		if (reiser4_node_pos(place->node, &ppos))
 			return -1;
+	}
+		
+	/* Removing iten/unit from the node */
+	if (reiser4_node_remove(place->node, &place->pos, count))
+		return -1;
 
-		/* Updating left deleimiting key in all parent nodes */
-		if (update && place->node->parent) {
-			if (reiser4_node_items(place->node) > 0) {
+	/* Updating left deleimiting key in all parent nodes */
+	if (update && place->node->parent) {
+		if (reiser4_node_items(place->node) > 0) {
 
-				reiser4_key_t lkey;
-				reiser4_node_lkey(place->node, &lkey);
+			reiser4_key_t lkey;
+			reiser4_node_lkey(place->node, &lkey);
 				
-				if (reiser4_node_ukey(place->node->parent,
-						      &ppos, &lkey))
-					return -1;
-			}
+			if (reiser4_node_ukey(place->node->parent,
+					      &ppos, &lkey))
+				return -1;
 		}
 	}
 	
@@ -1691,8 +1709,10 @@ errno_t reiser4_tree_remove(
 	  pack the tree about it.
 	*/
 	if (reiser4_node_items(place->node) > 0) {
-		if (reiser4_tree_shrink(tree, place))
-			return -1;
+		if (tree->flags & TF_PACK) {
+			if (reiser4_tree_shrink(tree, place))
+				return -1;
+		}
 	} else {
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach(tree, place->node);
