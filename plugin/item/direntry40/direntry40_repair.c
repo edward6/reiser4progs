@@ -65,12 +65,12 @@ static errno_t direntry40_offset_check(item_entity_t *item, uint32_t pos) {
     direntry40_t *de = direntry40_body(item);
     uint32_t offset, limit;
     
-    aal_assert("vpf-752", item->len >= de40_len_min(pos + 1));
+    if (item->len < de40_len_min(pos + 1))
+	return 1;
     
     offset = OFFSET(de, pos);
     
     /* There must be enough space for the entry in the item. */
-    /* FIXME-BUG: offset can be == item->len - 2 * ENTRY_LEN_MIN(S_NAME) */
     if (offset != item->len - ENTRY_LEN_MIN(S_NAME) && 
 	offset != item->len - 2 * ENTRY_LEN_MIN(S_NAME) && 
 	offset > item->len - ENTRY_LEN_MIN(L_NAME))
@@ -106,8 +106,8 @@ static uint32_t direntry40_count_estimate(item_entity_t *item, uint32_t pos) {
 
     return pos == 0 ?
 	(offset - sizeof(direntry40_t)) / sizeof(entry40_t) :
-        (offset - pos * sizeof(objid_t) - sizeof(direntry40_t)) / 
-	    sizeof(entry40_t);
+        ((offset - pos * sizeof(objid_t) - sizeof(direntry40_t)) / 
+	    sizeof(entry40_t)) - 1;
 }
 
 /* Check that 2 neighbour offsets look coorect. */
@@ -354,7 +354,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     uint8_t mode) 
 {
     direntry40_t *de = direntry40_body(item);
-    uint32_t count, e_count, offset, i, last;
+    uint32_t count, e_count, i, last;
     errno_t res = REPAIR_OK;
     
     aal_assert("vpf-757", flags != NULL);
@@ -372,40 +372,48 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	return REPAIR_FATAL;
     }
     
-    /* The last offset is correct, but the last entity was not checked yet. */
-    offset = direntry40_name_end(item->body, OFFSET(de, last) + sizeof(objid_t),
-	item->len);
+    count = --last;
 
-    /* If the last unit is valid also, count is the last + 1. */
-    count = last;
-        
+    /* Last is the last valid offset. If the last unit is valid also, count is 
+     * the last + 1. */
+    if (OFFSET(de, last) + sizeof(objid_t) == item->len)
+	count++;
+    else if (OFFSET(de, last) + sizeof(objid_t) < item->len) {
+	uint32_t offset;
+	
+	/* The last offset is correct,but the last entity is not checked yet. */
+	offset = direntry40_name_end(item->body, OFFSET(de, last) + 
+	    sizeof(objid_t), item->len);
+	if (offset == item->len - 1)
+	    count++;
+    }
+    
+    /* Count is the amount of recovered elements. */
+    
     /* Find the first relable. */
     for (i = 0; i < count && !aux_bitmap_test(flags, R(i)); i++) {}
 
     /* Estimate the amount of units on the base of the first R element. */
     e_count = direntry40_count_estimate(item, i);
     
-    /* count estimated for the first relable must be less then count found on
-     * the base of the last valid offset. */
+    /* Estimated count must be less then count found on the base of the last 
+     * valid offset. */
     aal_assert("vpf-765", e_count >= count);
     
-    if (offset == item->len - 1) {
-	count++;
-	/* If there is enough space for another entry header, set its offset 
-	 * to the item length. */
-	if (e_count > count && mode == REPAIR_REBUILD)
-	    en40_set_offset(&de->entry[count], item->len);
-    } 
-    
+    /* If there is enough space for another entry header, and the last entry is 
+     * valid also, set count unit offset to the item length. */
+    if (e_count > count && last != count && mode == REPAIR_REBUILD)
+	en40_set_offset(&de->entry[count], item->len);
+ 	
+    if (count == last) 
+	/* Last unit is not valid. */
+	item->len = OFFSET(de, last);
+   
     if (i) {
-	/* First offset is not relable. */
+	/* Some first offset are not relable. Consider count as the correct 
+	 * count and set the first offset just after the last unit.*/
 	e_count = count;
-	if (count == last) 
-	    /* Last unit is not valid. */
-	    item->len = OFFSET(de, last);
 
-	/* First few units should be deleted - set the first offset just after 
-	 * the last unit. */
 	if (mode == REPAIR_REBUILD)
 	    en40_set_offset(&de->entry[0], sizeof(direntry40_t) + 
 		sizeof(entry40_t) * count);
@@ -420,11 +428,30 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	if (mode == REPAIR_CHECK)
 	    res |= REPAIR_FIXABLE;
 	else {
-	    de40_set_units(de, count);
+	    de40_set_units(de, e_count);
 	    res |= REPAIR_FIXED;
 	}
     }
 
+    if (count != e_count) {
+	/* Estimated count is greater then the recovered count, in other words there 
+	 * are some last unit headers should be removed. */
+	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
+	    " to be a valid entries. %s", item->context.blk, item->pos.item, 
+	    count, e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
+	
+	if (mode == REPAIR_REBUILD) {
+	    if (direntry40_remove(item, count, e_count - count) < 0) {
+		aal_exception_error("Node %llu, item %u: remove of the unit "
+		    "(%u), count (%u) failed.", item->context.blk, 
+		    item->pos.item, count, e_count - count);
+		return -EINVAL;
+	    }
+	    res |= REPAIR_FIXED;
+	} else
+	    res |= REPAIR_FATAL;
+    }
+    
     if (i) {
 	/* Some first units should be removed. */
 	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
@@ -441,24 +468,8 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	    res |= REPAIR_FIXED;
 	} else
 	    res |= REPAIR_FATAL;
-    } else if (e_count != count) {
-	/* Some last units should be removed. */
-	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
-	    " to be a valid entries. %s", item->context.blk, item->pos.item, 
-	    count, e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
-	
-	if (mode == REPAIR_REBUILD) {
-	    if (direntry40_remove(item, count, e_count - count) < 0) {
-		aal_exception_error("Node %llu, item %u: remove of the unit "
-		    "(%u), count (%u) failed.", item->context.blk, 
-		    item->pos.item, count, e_count - count);
-		return -EINVAL;
-	    }
-	    res |= REPAIR_FIXED;
-	} else
-	    res |= REPAIR_FATAL;
-    }
-
+    } 
+    
     /* First and the last units are ok. Remove all not relable units in the 
      * midle of the item. */
     last = ~0ul;
