@@ -822,10 +822,8 @@ errno_t reiser4_node_insert(
 	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-991", pos != NULL);
 	aal_assert("umka-992", hint != NULL);
-	aal_assert("umka-1957", hint->len > 0);
 
-	if (!(len = hint->len + hint->ohd))
-		return -EINVAL;
+	len = hint->len + hint->ohd;
 
 	needed = len + (pos->unit == MAX_UINT32 ?
 			reiser4_node_overhead(node) : 0);

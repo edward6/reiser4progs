@@ -1512,6 +1512,26 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
+/* Converts from tail to extent and back from extent to tail passed @place */
+errno_t reiser4_tree_convert(reiser4_tree_t *tree,
+			     reiser4_place_t *place,
+			     reiser4_plug_t *plug)
+{
+	errno_t res;
+	
+	aal_assert("umka-2406", tree != NULL);
+	aal_assert("umka-2407", place != NULL);
+	aal_assert("umka-2408", plug != NULL);
+
+	if ((res = reiser4_place_fetch(place)))
+		return res;
+
+	if (plug_equal(plug, place->plug))
+		return 0;
+
+	return 0;
+}
+
 /* Inserts new item/unit described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */

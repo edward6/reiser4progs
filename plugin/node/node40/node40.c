@@ -603,8 +603,7 @@ static errno_t node40_insert(node_entity_t *entity,
 	aal_assert("umka-1814", hint != NULL);
 	aal_assert("umka-818", entity != NULL);
 
-	if (!(len = hint->len + hint->ohd))
-		return -EINVAL;
+	len = hint->len + hint->ohd;
     
 	/* Makes expand of the node new items will be inserted in */
 	if (node40_expand(entity, pos, len, 1)) {
