@@ -3,7 +3,7 @@ SEMANTIC & LOST+FOUND.
 Term. 
 
 Base item - having this item plugin knows how to reach all other items. 
-I the current implementation only compound directoty items which do not 
+In the current implementation only compound directory items that do not 
 have '.' and '..' are not base items.
 
 Idea.
@@ -12,62 +12,64 @@ All objects are considered as lost initially. Just check that root dir
 exists before the start. Then for any not CHECKED item try to recover 
 the object, reach its parent and recover the whole subtree.
 
-If it is not possible to recover the object on the base of the item 
-(it is not a base item of the object) skip it for now. It can be done
-later by trying to recover somebody's child or parent - than we have 
-a pointer to the StatData or some other item but which is a base item 
-of the object.
+If it is not possible to recover the object OBJ1 given its item, that is
+not a base item, skip it for now. This (recovering) can be done later by
+trying to recover OBJ1's child or parent---then we have a pointer to the
+StatData of OBJ1 or some other item which is a base item of the object
+OBJ1.
 
 Object inherits its properties from the parent so if plugin of the 
-object is ambiguous, then try to reach the parent and its parent untill
+object is ambiguous, then try to reach the parent and its parent until
 plugin become unambiguous. If this fails, wait for reaching this object
 from some other object when the plugin will be figured out. If it fails 
-also, link it to LOST+FOUND and recover with default plugin.
+also, link it to LOST+FOUND and recover with the default plugin.
 
 Algorithm.
 
 1. Semantic pass.
-(a) Object body recovery on the base of unCHECKED item or the key of 
+(a) Object body recovery given an unCHECKED item or the key of 
     some base item.
   - If object plugin is detected, recover the object body, all items 
     get marked as CHECKED.
-  - If the object was found on the base of some child and that child 
+  - If the object was found through some child and that child 
     can provide its key (key of SD) recover the link to the child.
   - If child is checked, mark it REACHABLE, nlink++, othewise do 
-    neither.
+    nothing.
 (b) Child-parent link recovery, independent of the (a) recovery result.
-  - If parent pointer can be get, do (a) for it.
-  - Do (b) for parent pointer.
-  - If some object reachable from the root is reached, link to it.
-    If some object with parent pointer to nowhere is reached link it 
+  - If parent pointer can be obtained, do (a) for parent, and, if parent
+    recovered successfully add link from parent to child, if missing.
+  - Do (b) for the parent.
+  - If we reach already connected (see (c) below) object---link to it.
+  - If some object with parent pointer pointing to nowhere is reached link it 
     to LOST+FOUND.
-    If some object without parent pointer is reached, do not link it 
+  - If some object without parent pointer is reached, do not link it 
     at all to not inherit some wrong/default properties. We might reach
     this object from some parent yet.
-(c) Run Semantic Recursive Traverse Pass from the reached at (b) object
-    down untill we reach ambiguous objects. Ambiguous objects can be 
+(c) Run Semantic Recursive Traverse Pass from the object reached at (b)
+    downward until we reach ambiguous objects (ones for which we cannot
+    identify object plugin unambiguously). Ambiguous objects can be
     reached from an object linked to some parent which do not have a 
-    pointer to the parent, so root directory cannot be reached than.
-    Objects which have parent pointer which does not match the current 
-    parent, are checked, makred CHECKED, nlink++, but not REACHED, and 
-    their subtrees are checked untill ambiguous objects are reached.
+    pointer to the parent, so that root directory cannot be reached.
+    Objects that have parent pointer that does not match the current 
+    parent, are checked, marked CHECKED, nlink++, but not REACHED, and 
+    their subtrees are checked until ambiguous objects are reached.
 
 2. Semantic pass cleanup.
-Semantic Recursive Traverse Pass from the root, eliminate all UNREACHED
-objects, ambiguous objects and recover property inheritance. If some 
-object with a root pointer which does not match the current parent found,
-skip it - inheritance does not work here.
+Do Semantic Recursive Traverse Pass from the root, eliminate all UNREACHED
+objects, ambiguous objects, and recover property inheritance. If some 
+object with a parent pointer which does not match the current parent found,
+skip it---inheritance does not work here.
 
 Result.
-Everything what was linked to some objects or to LOST+FOUND was recovered
-with all their subtrees. There left some recovered unREACHED objects,with
+Everything that was linked to some objects or to LOST+FOUND was recovered
+with all their subtrees. There are some recovered unREACHED objects left, with
 their subtrees limited by ambiguous objects from the bottom, & unrecovered
 unREACHED objects:
 (a) objects which do not keep parent pointer and pointers from above to 
     them are lost or are in ambiguous objects.
-(b) ambiguous objects with parent pointer but root cannot be reached.
-(c) recovered objects with parent pointer to ambiguous existent object
-    which is (a) or path above is limited by (a).
+(b) ambiguous objects with parent pointer but not reachable from the root.
+(c) recovered objects with parent pointer pointing to the ambiguous
+    existent object which is (a) or upward path is limited by (a).
 
 3. Lost & found pass.  
 (a) Take an unREACHABLE object
