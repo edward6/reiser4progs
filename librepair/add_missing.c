@@ -124,6 +124,7 @@ static errno_t repair_am_node_prepare(repair_am_t *am, node_t *node) {
 		hint.count = 1;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
+		hint.shift_flags = SF_DEFAULT;
 
 		if ((res = reiser4_node_remove(place.node, &place.pos, &hint)))
 			return res;

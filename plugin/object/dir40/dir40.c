@@ -118,6 +118,7 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	hint.specific = entry;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
+	hint.shift_flags = SF_DEFAULT;
 
 	/* Reading entry to passed @entry */
 	if (plug_call(dir->body.plug->o.item_ops->object,
@@ -586,6 +587,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	body_hint.specific = &entry;
 	body_hint.place_func = NULL;
 	body_hint.region_func = NULL;
+	body_hint.shift_flags = SF_DEFAULT;
 	
 	dir40_reset((object_entity_t *)dir);
 	
@@ -675,6 +677,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		hint.count = 1;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
+		hint.shift_flags = SF_DEFAULT;
 		
 		/* Removing item from the tree */
 		if ((res = obj40_remove(&dir->obj, &place, &hint)))
@@ -846,6 +849,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	hint.region_func = NULL;
 	hint.plug = temp.place.plug;
 	hint.specific = (void *)entry;
+	hint.shift_flags = SF_DEFAULT;
 
 	/* Building key of the new entry and hint's one */
 	dir40_build_entry(entity, entry);
@@ -896,6 +900,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 		hint.count = 1;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
+		hint.shift_flags = SF_DEFAULT;
 		
 		/* Removing one unit from directory */
 		if ((res = obj40_remove(&dir->obj, &temp.place, &hint)))

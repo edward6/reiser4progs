@@ -862,7 +862,14 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			
 			/* Checking if we write data or holes. */
 			if (hint->specific && max_offset) {
-				extent = extent40_body(place) + place->pos.unit - 1;
+
+				if (place->pos.unit >= units) {
+					extent = extent40_body(place) +
+						place->pos.unit - 1;
+				} else {
+					extent = extent40_body(place) +
+						place->pos.unit;
+				}
 
 				/* Setting up new units. */
 				if (et40_get_start(extent) != EXTENT_UNALLOC_UNIT) {

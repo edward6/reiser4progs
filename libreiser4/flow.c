@@ -337,6 +337,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 
 		trans.count = conv;
 		trans.plug = hint->plug;
+		trans.shift_flags = SF_DEFAULT;
 		trans.place_func = hint->place_func;
 		
 		/* Third stage -- writing data back to tree with new item plugin

@@ -630,7 +630,10 @@ struct trans_hint {
 	key_entity_t maxkey;
 
 	/* Flags specific for the operation, set at prepare stage. */
-	uint16_t flags;
+	uint16_t merge_flags;
+
+	/* Shift flags for shift operation. */
+	uint32_t shift_flags;
 	
 	/* Count of handled blocks in the first and the last extent unit. */
 	uint64_t head, tail;

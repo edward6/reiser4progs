@@ -31,6 +31,7 @@ static errno_t repair_cleanup_check(place_t *place, void *data) {
 		/* FIXME-UMKA->VITALY: Here @hint->region_func should be set
 		   correctly in order to notify about extent region remove. */
 		hint.region_func = NULL;
+		hint.shift_flags = SF_DEFAULT;
 		
 		res = reiser4_node_remove(place->node, &place->pos, &hint);
 		if (res) return res;
@@ -328,6 +329,7 @@ static errno_t callback_node_cleanup(place_t *place, void *data) {
 	hint.place_func = NULL;
 	hint.region_func = callback_free_extent;
 	hint.data = cleanup;
+	hint.shift_flags = SF_DEFAULT;
 
 	/* Remove not checked item. */
 	res = reiser4_tree_remove(cleanup->repair->fs->tree, place, &hint);

@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fixes in extent allocation code.
+
 * implement more sophisticated memory pressure detect code.
   Probably it should take into account memory available at the moment
   of start and calculate numberof blocks in cache.

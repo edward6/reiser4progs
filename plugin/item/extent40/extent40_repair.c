@@ -212,7 +212,7 @@ errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
 	/* Get the head within the first @src unit. */
 	hint->head = extent40_head(src, src->pos.unit, &hint->offset);
 	hint->tail = 0;
-	hint->flags = 0;
+	hint->merge_flags = 0;
 
 	if (place->pos.unit == extent40_units(place) || 
 	    place->pos.unit == MAX_UINT32)
@@ -232,7 +232,7 @@ errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
 			extent40_head(src, send, &place->key);
 	} else if (!et40_get_start(dextent) && et40_get_start(sextent)) {
 		/* Estimate the overwrite. */
-		hint->flags |= ET40_OVERWRITE;
+		hint->merge_flags |= ET40_OVERWRITE;
 
 		/* Overwrite through the next dst unit key. */
 		offset += extent40_offset(place, place->pos.unit + 1);
@@ -248,11 +248,11 @@ errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
 		} else {
 			send = sunits - 1;
 			hint->tail = 0;
-			hint->flags |= ET40_TAIL;
+			hint->merge_flags |= ET40_TAIL;
 		}
 		
 		if (extent40_head(place, place->pos.unit, &hint->offset))
-			hint->flags |= ET40_HEAD;
+			hint->merge_flags |= ET40_HEAD;
 	} 
 	
 	hint->overhead = 0;
@@ -261,9 +261,9 @@ errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
 	hint->count = send + 1 - src->pos.unit;
 	hint->len = hint->count;
 	
-	if (hint->flags & ET40_OVERWRITE) {
-		hint->len += (hint->flags & ET40_TAIL ? 1 : 0)
-			- (hint->flags & ET40_HEAD ? 0 : 1);
+	if (hint->merge_flags & ET40_OVERWRITE) {
+		hint->len += (hint->merge_flags & ET40_TAIL ? 1 : 0)
+			- (hint->merge_flags & ET40_HEAD ? 0 : 1);
 	}
 	
 	hint->len *= sizeof(extent40_t);
@@ -288,7 +288,7 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 
 	dstart = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 	sstart = src->pos.unit == MAX_UINT32 ? 0 : src->pos.unit;
-	dstart += (hint->flags & ET40_HEAD ? 1 : 0);
+	dstart += (hint->merge_flags & ET40_HEAD ? 1 : 0);
 	
 	/* Set the maxkey of the passed operation. */
 	plug_call(src->key.plug->o.key_ops, assign, &hint->maxkey, 
@@ -338,8 +338,8 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 	offset = plug_call(hint->offset.plug->o.key_ops,
 			   get_offset, &hint->offset);
 
-	count = hint->count + (hint->flags & ET40_TAIL ? 1 : 0)
-		- (hint->flags & ET40_HEAD ? 0 : 1);
+	count = hint->count + (hint->merge_flags & ET40_TAIL ? 1 : 0)
+		- (hint->merge_flags & ET40_HEAD ? 0 : 1);
 
 	/* Set the maxkey offset correctly. */
 	offset += extent40_offset(src, src->pos.unit + hint->count);
@@ -347,12 +347,12 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 	plug_call(hint->offset.plug->o.key_ops, set_offset, 
 		  &hint->maxkey, offset);
 
-	if (hint->flags & ET40_TAIL) {
+	if (hint->merge_flags & ET40_TAIL) {
 		/* Get the amount of blocks to be left in the head. */
 		tail = extent40_head(place, place->pos.unit, &hint->maxkey);
 	}
 	
-	if (hint->flags & ET40_HEAD) {
+	if (hint->merge_flags & ET40_HEAD) {
 		/* Get the amount of blocks to be left in the tail. */
 		head = extent40_head(place, place->pos.unit, &hint->offset);
 	}
@@ -362,7 +362,7 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 
 	/* If some tail should be cut off the current dst unit, set the 
 	   correct width there. */
-	if (hint->flags & ET40_TAIL) {
+	if (hint->merge_flags & ET40_TAIL) {
 		/* Set the correct width. */
 		et40_set_start(dextent + dstart + count - 1, 0);
 		et40_set_width(dextent + dstart + count - 1, 
@@ -375,7 +375,7 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 
 	/* If some head should be left in the current dst unit, set the 
 	   correct width there. */
-	if (hint->flags & ET40_HEAD) {
+	if (hint->merge_flags & ET40_HEAD) {
 		/* Get the amount of blocks to be left. */
 
 		/* Fix the current dst unit. */

@@ -1059,6 +1059,11 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		hint.place_func = NULL;
 		hint.region_func = NULL;
 
+		/* We force balancing use these flags with disables left shift
+		   in order to not affect to items/units left of insert point,
+		   as we allocate items/units from left to right. */
+		hint.shift_flags = (SF_DEFAULT & SF_ALLOW_LEFT);
+
 		if (plug_call(place->plug->o.item_ops->object,
 			      fetch_units, place, &hint) != 1)
 		{
@@ -1083,7 +1088,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		{
 			blk_t blk;
 			uint32_t i;
-			uint32_t units;
+			int first_time = 1;
 			aal_block_t *block;
 			
 			/* Trying to allocate @ptr.width blocks. */
@@ -1093,12 +1098,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				return -ENOSPC;
 			}
 
-			units = plug_call(place->plug->o.item_ops->balance,
-					  units, place);
-
-			/* Check if we should update existent unit or insert new
-			   one. */
-			if (place->pos.unit < units) {
+			if (first_time) {
 				/* Updating extent unit at @place->pos.unit. */
 				if (plug_call(place->plug->o.item_ops->object,
 					      update_units, place, &hint) != 1)
@@ -1125,7 +1125,6 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
                                 /* Updating @place by insert point, as it might
 				   be moved due to balancing. */
 				*place = iplace;
-				place->pos.unit--;
 
 				/* Updating key by allocated blocks in order to
 				   keep it in correspondence to right data
@@ -1138,6 +1137,8 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 				units++;
 			}
+
+			first_time = 0;
 
 			/* Moving data blocks to right places, saving them and
 			   releasing from the cache. */
@@ -1293,12 +1294,6 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree, node_t *node) {
 					reiser4_node_unlock(node);
 					return res;
 				}
-
-				/* FIXME-UMKA: There are possible bugs. During
-				   extent allocation balancing is possible and
-				   some numberof items and units will be shifted
-				   out to neighbour nodes and current loop will
-				   not be able to go on correctly. */
 			}
 		}
 		
@@ -1774,6 +1769,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	hint.specific = &ptr;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
+	hint.shift_flags = SF_DEFAULT;
 
 	ptr.width = 1;
 	ptr.start = node_blocknr(node);
@@ -1850,6 +1846,7 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 		hint.count = 1;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
+		hint.shift_flags = SF_DEFAULT;
 
 		/* Removing nodeptr item/unit at @parent. */
 		return reiser4_tree_remove(tree, &parent, &hint);
@@ -2673,7 +2670,9 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	}
 
 	/* Preparing space in tree. */
-	if ((space = reiser4_tree_expand(tree, place, needed, SF_DEFAULT)) < 0) {
+	if ((space = reiser4_tree_expand(tree, place, needed,
+					 hint->shift_flags)) < 0)
+	{
 		aal_error("Can't prepare space in tree. No space left?");
 
 		if (old.node) {
