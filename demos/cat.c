@@ -71,6 +71,16 @@ int main(int argc, char *argv[]) {
 				    argv[2]);
 		goto error_free_reg;
 	}
+
+	{
+		reiser4_plug_t *plug;
+
+		plug = reiser4_factory_ifind(ITEM_PLUG_TYPE,
+					     ITEM_TAIL40_ID);
+
+		plug_call(reg->entity->plug->o.object_ops,
+			  convert, reg->entity, plug);
+	}
 	
 	while (1) {
 		int32_t read;

@@ -478,6 +478,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.remove		  = NULL,
 	.shift            = NULL,
 	.write            = NULL,
+	.cutout           = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
 	.set_key	  = NULL,

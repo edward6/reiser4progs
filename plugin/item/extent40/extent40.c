@@ -109,6 +109,66 @@ static errno_t extent40_remove(place_t *place,
 	return 0;
 }
 
+static errno_t extent40_cutout(place_t *place, trans_hint_t *hint) {
+	uint32_t pos;
+	uint64_t offset;
+	key_entity_t key;
+	extent40_t *extent;
+	
+	aal_assert("umka-2458", place != NULL);
+	aal_assert("umka-2461", hint != NULL);
+
+	hint->ohd = 0;
+	pos = place->pos.unit;
+	extent = extent40_body(place) + pos;
+
+	if (et40_get_width(extent) > 1) {
+		uint32_t blksize;
+		uint32_t i, width;
+		
+		blksize = extent40_blksize(place);
+		
+		/* Removing data from the cache */
+		plug_call(place->key.plug->o.key_ops,
+			  assign, &key, &place->key);
+
+		offset = plug_call(key.plug->o.key_ops,
+				   get_offset, &key);
+
+		plug_call(key.plug->o.key_ops, set_offset,
+			  &key, offset + hint->offset);
+
+		width = (hint->count / blksize);
+		
+		for (i = 0; i < width; i++) {
+			core->tree_ops.rem_data(hint->tree, &key);
+			
+			offset = plug_call(key.plug->o.key_ops,
+					   get_offset, &key);
+
+			plug_call(key.plug->o.key_ops, set_offset,
+				  &key, offset * blksize);
+		}
+
+		/* Making extent unit shorter */
+		et40_inc_start(extent, width);
+		et40_dec_width(extent, width);
+		
+		hint->len = 0;
+	} else {
+		hint->len = sizeof(extent40_t);
+	}
+
+	offset = plug_call(place->key.plug->o.key_ops,
+			   get_offset, &place->key);
+		
+	plug_call(place->key.plug->o.key_ops, set_offset,
+		  &place->key, offset + hint->count);
+
+	hint->bytes = hint->len + hint->ohd;
+	return 0;
+}
+
 /* Prints extent item into specified @stream */
 static errno_t extent40_print(place_t *place,
 			      aal_stream_t *stream,
@@ -183,7 +243,7 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 			   get_offset, &place->key);
 	
 	for (i = 0; i < units; i++, extent++) {
-		offset += et40_get_width(extent) /
+		offset += et40_get_width(extent) *
 			extent40_blksize(place);
 
 		if (offset > wanted) {
@@ -931,7 +991,8 @@ static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 }
 
 static uint64_t extent40_size(place_t *place) {
-	return extent40_offset(place, extent40_units(place));
+	uint32_t units = extent40_units(place);
+	return extent40_offset(place, units);
 }
 
 static uint64_t extent40_bytes(place_t *place) {
@@ -975,6 +1036,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.update           = extent40_update,
 	.insert           = extent40_insert,
 	.write            = extent40_write,
+	.cutout           = extent40_cutout,
 	.print	          = extent40_print,
 	.shift            = extent40_shift,
 	.layout           = extent40_layout,

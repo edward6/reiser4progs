@@ -638,6 +638,9 @@ struct reiser4_object_ops {
 	   occupies. It is needed for the purposes like data fragmentation
 	   measuring, etc. */
 	errno_t (*layout) (object_entity_t *, region_func_t, void *);
+
+	/* Converts file body to item denoted by @plug */
+	errno_t (*convert) (object_entity_t *, reiser4_plug_t *plug);
 	
 	/* Checks and recover the structure of the object. */
 	errno_t (*check_struct) (object_entity_t *, place_func_t, 
@@ -729,7 +732,10 @@ struct reiser4_item_ops {
 
 	/* Writes data to item */
 	int32_t (*write) (place_t *, trans_hint_t *);
-	
+
+	/* Cuts out some amount of data */
+	errno_t (*cutout) (place_t *, trans_hint_t *);
+
 	/* Removes specified unit from the item. */
 	errno_t (*remove) (place_t *, trans_hint_t *);
 
@@ -867,6 +873,9 @@ struct reiser4_node_ops {
 	/* Writes data to the node */
 	errno_t (*write) (node_entity_t *, pos_t *,
 			  trans_hint_t *);
+
+	errno_t (*cutout) (node_entity_t *, pos_t *,
+			   trans_hint_t *);
     
 	/* Removes item/unit at specified pos */
 	errno_t (*remove) (node_entity_t *, pos_t *,
@@ -1347,6 +1356,9 @@ struct tree_ops {
 	
 	errno_t (*put_data) (void *, key_entity_t *,
 			     aal_block_t *);
+
+	/* Removes data from the cache */
+	errno_t (*rem_data) (void *, key_entity_t *);
 	
 	/* Update the key in the place and the node itsef. */
 	errno_t (*ukey) (void *, place_t *, key_entity_t *);

@@ -1772,17 +1772,77 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
+errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
+				trans_hint_t *hint)
+{
+	uint32_t chunk;
+	uint32_t towrite;
+	reiser4_place_t place;
+
+	chunk = reiser4_master_blksize(tree->fs->master);
+	
+	if (hint->plug->id.group == TAIL_ITEM) {
+		chunk = reiser4_node_maxspace(tree->root);
+	}
+	
+	for (towrite = hint->count; towrite > 0;) {
+		errno_t res;
+		uint32_t level;
+		uint64_t offset;
+
+		hint->count = chunk;
+
+		if (hint->count > towrite)
+			hint->count = towrite;
+			
+		/* Looking for place to write */
+		switch (reiser4_tree_lookup(tree, &hint->key,
+					    LEAF_LEVEL, INST,
+					    &place))
+		{
+		case FAILED:
+			return -EIO;
+		default:
+			break;
+		}
+
+		level = reiser4_node_get_level(place.node);
+		
+		/* Writing one chunk of data @hint->count bytes of length to the
+		   tree. */
+		if ((res = reiser4_tree_write(tree, &place,
+					      hint, level)))
+		{
+			return res;
+		}
+
+		/* Updating key */
+		offset = reiser4_key_get_offset(&hint->key);
+		
+		reiser4_key_set_offset(&hint->key, offset +
+				       hint->count);
+
+		/* Updating counters */
+		towrite -= hint->count;
+		hint->specific += hint->count;
+	}
+
+	return 0;
+}
+
 /* Converts item at passed @place from tail to extent and back from extent to
    tail. */
 errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			  reiser4_place_t *place,
 			  reiser4_plug_t *plug)
 {
+	char *buff;
 	errno_t res;
 	int32_t read;
 	uint32_t size;
 	uint32_t chunk;
 	uint64_t offset;
+	uint32_t blksize;
 
 	trans_hint_t hint;
 	key_entity_t maxkey;
@@ -1795,20 +1855,25 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		return res;
 	
 	if (plug->id.group == place->plug->id.group)
-		return -EINVAL;
+		return 0;
 
 	reiser4_item_maxreal_key(place, &maxkey);
 
-	size = reiser4_key_get_offset(&maxkey) -
+	size = reiser4_key_get_offset(&maxkey) + 1 -
 		reiser4_key_get_offset(&place->key);
 
-	offset = reiser4_key_get_offset(&maxkey) -
-		chunk;
-
-	for (; size > 0; size -= read, offset -= chunk) {
-		uint8_t level;
+	blksize = reiser4_master_blksize(tree->fs->master);
 		
-		if ((chunk = reiser4_node_maxspace(place->node)) > size)
+	for (offset = 0; size > 0; size -= read,
+		     offset += chunk)
+	{
+		chunk = blksize;
+		
+		if (size % blksize != 0) {
+			chunk = (size % blksize);
+		}
+		
+		if (chunk > size)
 			chunk = size;
 	
 		/* Prepare key in order to find place to read from. This is key
@@ -1817,7 +1882,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		reiser4_key_assign(&hint.key, &place->key);
 		reiser4_key_set_offset(&hint.key, offset);
 
-		/* Loking for the place to read */
+		/* Looking for the place to read */
 		switch (reiser4_tree_lookup(tree, &hint.key,
 					    LEAF_LEVEL,
 					    READ, place))
@@ -1833,43 +1898,37 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		hint.count = chunk;
 		hint.offset = offset;
 		
-		if (!(hint.specific = aal_calloc(chunk, 0)))
+		if (!(buff = aal_calloc(chunk, 0)))
 			return -ENOMEM;
 
+		hint.specific = buff;
+
 		/* Read data from the tree */
-		if (!(read = reiser4_tree_read(tree, place, &hint)))
-			return -EIO;
+		if (!(read = reiser4_tree_read(tree, place, &hint))) {
+			res = -EIO;
+			goto error_free_buff;
+		}
 
-		/* Remove daat from the tre */
-		if (reiser4_tree_remove(tree, place, &hint))
-			return -EIO;
-
-		/* Looking for place to write */
-		switch (reiser4_tree_lookup(tree, &hint.key,
-					    LEAF_LEVEL,
-					    READ, place))
-		{
-		case ABSENT:
-			return -EIO;
-		default:
-			break;
+		/* Remove data from the tree */
+		if (reiser4_tree_cutout(tree, place, &hint)) {
+			res = -EIO;
+			goto error_free_buff;
 		}
 
 		hint.plug = plug;
 		
-		/* Writing data to tree */
-		level = reiser4_node_get_level(place->node);
+		/* Writing data to the tree */
+		if ((res = reiser4_tree_write_flow(tree, &hint)))
+			goto error_free_buff;
 		
-		if (!reiser4_tree_write(tree, place, &hint,
-					level))
-		{
-			return -EIO;
-		}
-		
-		aal_free(hint.specific);
+		aal_free(buff);
 	}
 
 	return 0;
+	
+ error_free_buff:
+	aal_free(buff);
+	return res;
 }
 
 static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
@@ -2112,6 +2171,69 @@ errno_t reiser4_tree_write(reiser4_tree_t *tree,
 	aal_assert("umka-2444", hint->plug != NULL);
 
 	return reiser4_tree_mod(tree, place, hint, level, 0);
+}
+
+errno_t reiser4_tree_cutout(reiser4_tree_t *tree,
+			    reiser4_place_t *place,
+			    trans_hint_t *hint)
+{
+	errno_t res;
+	
+	if (plug_call(place->node->entity->plug->o.node_ops,
+		      cutout, place->node->entity, &place->pos,
+		      hint))
+	{
+		return -EIO;
+	}
+
+	/* Updating left deleimiting key in all parent nodes */
+	if (reiser4_place_leftmost(place) &&
+	    place->node->p.node)
+	{
+
+		/* If node became empty it will be detached from the tree, so
+		   updating is not needed and impossible, because it has no
+		   items. */
+		if (reiser4_node_items(place->node) > 0) {
+			reiser4_place_t p;
+			reiser4_key_t lkey;
+
+			/* Updating parent keys */
+			reiser4_node_lkey(place->node, &lkey);
+				
+			reiser4_place_init(&p, place->node->p.node,
+					   &place->node->p.pos);
+
+			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
+				return res;
+		}
+	}
+	
+	/* Checking if the node became empty. If so, we release it, otherwise we
+	   pack the tree about it. */
+	if (reiser4_node_items(place->node) > 0) {
+		if ((tree->flags & TF_PACK) && tree->traps.pack) {
+			if ((res = tree->traps.pack(tree, place, tree->traps.data)))
+				return res;
+		}
+	} else {
+		/* Detaching node from the tree, because it became empty */
+		reiser4_node_mkclean(place->node);
+		reiser4_tree_detach(tree, place->node);
+
+		/* Freeing node and updating place node component in order to
+		   let user know that node do not exist any longer. */
+		reiser4_tree_release(tree, place->node);
+		place->node = NULL;
+	}
+
+	/* Drying tree up in the case root node has only one item */
+	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+		if ((res = reiser4_tree_dryout(tree)))
+			return res;
+	}
+
+	return 0;
 }
 
 /* Removes item/unit at passed @place. This functions also perform so called

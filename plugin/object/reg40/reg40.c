@@ -309,28 +309,54 @@ reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint64_t new_size) {
 	}
 }
 
-/* Makes extent2tail conversion */
-static errno_t reg40_extent2tail(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-
-	if (reg->body.plug->id.group == TAIL_ITEM)
-		return -EINVAL;
-	
-	return 0;
-}
-
-/* Makes tail2extent conversion */
-static errno_t reg40_tail2extent(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-	
-	if (reg->body.plug->id.group == EXTENT_ITEM)
-		return -EINVAL;
-	
-	return 0;
-}
-
 /* Makes tail2extent and extent2tail conversion */
-errno_t reg40_convert(object_entity_t *entity, uint64_t new_size) {
+errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
+	reg40_t *reg;
+	uint64_t offset;
+	key_entity_t key;
+
+	aal_assert("umka-2467", plug != NULL);
+	aal_assert("umka-2466", entity != NULL);
+	
+	reg = (reg40_t *)entity;
+	
+	plug_call(reg->offset.plug->o.key_ops,
+		  assign, &key, &reg->offset);
+	
+	for (offset = 0; offset < reg40_size(entity); ) {
+		place_t place;
+		uint32_t size;
+
+		switch (obj40_lookup(&reg->obj, &key,
+				     LEAF_LEVEL, READ,
+				     &place))
+		{
+		case PRESENT:
+			break;
+		default:
+			return -EINVAL;
+		}
+		
+		size = plug_call(place.plug->o.item_ops,
+				 size, &place);
+
+		if (rcore->tree_ops.conv(reg->obj.info.tree,
+					 &place, plug))
+		{
+			return -EIO;
+		}
+	
+		offset = size + plug_call(key.plug->o.key_ops,
+					  get_offset, &key);
+
+		plug_call(key.plug->o.key_ops, set_offset,
+			  &key, offset);
+	}
+
+	return 0;
+}
+
+errno_t reg40_conv_body(object_entity_t *entity, uint64_t new_size) {
 	reg40_t *reg;
 	reiser4_plug_t *bplug;
 	
@@ -343,7 +369,7 @@ errno_t reg40_convert(object_entity_t *entity, uint64_t new_size) {
 		return 0;
 	
 	if (!(bplug = reg40_bplug(entity, new_size))) {
-		aal_exception_error("Can't get enw body plugin.");
+		aal_exception_error("Can't get new body plugin.");
 		return -EINVAL;
 	}
 
@@ -352,12 +378,7 @@ errno_t reg40_convert(object_entity_t *entity, uint64_t new_size) {
 	if (plug_equal(bplug, reg->body.plug))
 		return 0;
 
-	/* New plugin is tail one. Converting to extents */
-	if (bplug->id.group == TAIL_ITEM)
-		return reg40_extent2tail(entity);
-
-	/* New plugin is extent one. Converting to tails */
-	return reg40_tail2extent(entity);
+	return reg40_convert(entity, bplug);
 }
 
 /* Writes passed data to the file. Returns amount of data written to the
@@ -537,7 +558,7 @@ static int32_t reg40_write(object_entity_t *entity,
 	size = reg40_size(entity);
 	offset = reg40_offset(entity);
 
-	if (reg40_convert(entity, size + n)) {
+	if (reg40_conv_body(entity, size + n)) {
 		aal_exception_error("Can't perform tail "
 				    "conversion.");
 		return -EINVAL;
@@ -583,7 +604,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		return 0;
 
 	/* Converting body */
-	if (reg40_convert(entity, n)) {
+	if (reg40_conv_body(entity, n)) {
 		aal_exception_error("Can't perform tail "
 				    "conversion.");
 		return -EINVAL;
@@ -785,6 +806,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.truncate       = reg40_truncate,
 	.layout         = reg40_layout,
 	.metadata       = reg40_metadata,
+	.convert        = reg40_convert,
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,
 	.links          = reg40_links,

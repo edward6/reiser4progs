@@ -648,7 +648,7 @@ static errno_t node40_mod(node_entity_t *entity, pos_t *pos,
 		if (!(res = plug_call(hint->plug->o.item_ops,
 				      write, &place, hint)))
 		{
-			aal_exception_error("Can't insert unit to "
+			aal_exception_error("Can't write data to "
 					    "node %llu.", node->block->nr);
 			return res;
 		}
@@ -683,6 +683,54 @@ static errno_t node40_write(node_entity_t *entity,
 	return node40_mod(entity, pos, hint, 0);
 }
 
+errno_t node40_cutout(node_entity_t *entity, pos_t *pos,
+		      trans_hint_t *hint)
+{
+	void *ih;
+	errno_t res;
+	uint32_t pol;
+	uint32_t len;
+	place_t place;
+	node40_t *node;
+	
+	aal_assert("umka-2462", pos != NULL);
+	aal_assert("umka-2463", entity != NULL);
+
+	node = (node40_t *)entity;
+
+	if (node40_fetch(entity, pos, &place))
+		return -EINVAL;
+
+	if (place.plug->o.item_ops->cutout) {
+		if ((res = plug_call(place.plug->o.item_ops,
+				     cutout, &place, hint)))
+		{
+			return res;
+		}
+	}
+
+	/* Updating items key */
+	pol = node40_key_pol(node);
+	ih = node40_ih_at(node, place.pos.item);
+	aal_memcpy(ih, place.key.body, key_size(pol));
+	
+	/* Shrinking node */
+	len = hint->ohd + hint->len;
+	
+	if (node40_shrink(entity, &place.pos,
+			  len, hint->count))
+	{
+		return -EIO;
+	}
+
+	place.pos.unit = MAX_UINT32;
+	
+	if (node40_size(node, &place.pos, 1) == 0)
+		return node40_shrink(entity, &place.pos, 0, 1);
+
+	return 0;
+}
+
 /* This function removes item/unit from the node at specified @pos */
 errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		      trans_hint_t *hint) 
@@ -692,6 +740,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	uint32_t len;
 	place_t place;
 	node40_t *node;
+	uint32_t units;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
@@ -702,9 +751,14 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
-	/* Checking if we need remove whole item if it has not units anymore */
-	if (plug_call(place.plug->o.item_ops, units, &place) == hint->count)
+	/* Checking if we have to remove whole item as it will has not units
+	   after removing. */
+	units = plug_call(place.plug->o.item_ops,
+			  units, &place);
+	
+	if (units == hint->count) {
 		place.pos.unit = MAX_UINT32;
+	}
 	
 	if (place.pos.unit == MAX_UINT32) {
 		hint->ohd = 0;
@@ -1489,6 +1543,7 @@ static reiser4_node_ops_t node40_ops = {
 	
 	.insert		= node40_insert,
 	.write		= node40_write,
+	.cutout         = node40_cutout,
 	.remove		= node40_remove,
 	.print		= node40_print,
 	.shift		= node40_shift,

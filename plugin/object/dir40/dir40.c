@@ -996,6 +996,7 @@ static reiser4_object_ops_t dir40_ops = {
 	
 	.seek		= NULL,
 	.write		= NULL,
+	.convert        = NULL,
 	
 	.fake		= dir40_fake,
 	.check_struct	= dir40_check_struct,

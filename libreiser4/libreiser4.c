@@ -133,21 +133,22 @@ static errno_t tree_next(
 }
 
 #ifndef ENABLE_STAND_ALONE
-static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return aal_hash_table_lookup(t->data, key);
-}
-
 static errno_t tree_put_data(void *tree, key_entity_t *key,
 			     aal_block_t *block)
 {
-	reiser4_key_t *k;
-	reiser4_tree_t *t;
-
-	k = reiser4_key_clone(key);
-	t = (reiser4_tree_t *)tree;
-	
+	reiser4_key_t *k = reiser4_key_clone(key);
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return aal_hash_table_insert(t->data, k, block);
+}
+
+static errno_t tree_rem_data(void *tree, key_entity_t *key) {
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
+	return aal_hash_table_remove(t->data, key);
+}
+
+static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
+	return aal_hash_table_lookup(t->data, key);
 }
 
 static uint32_t tree_blksize(void *tree) {
@@ -263,6 +264,7 @@ reiser4_core_t core = {
 		/* Data related functions */
 		.get_data   = tree_get_data,
 		.put_data   = tree_put_data,
+		.rem_data   = tree_rem_data,
 
 		/*Convertion to another item plugin. */
 		.conv	    = tree_conv

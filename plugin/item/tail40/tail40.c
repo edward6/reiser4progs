@@ -103,7 +103,7 @@ static int32_t tail40_write(place_t *place,
 	hint->bytes = count;
 	place_mkdirty(place);
 	
-	return 0;
+	return hint->count;
 }
 
 static errno_t tail40_print(place_t *place, aal_stream_t *stream,
@@ -380,6 +380,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.lookup	          = tail40_lookup,
 	.get_key          = tail40_get_key,
 	.maxposs_key      = tail40_maxposs_key,
+	
 #ifndef ENABLE_STAND_ALONE
 	.merge	          = tail40_merge,
 	.write	          = tail40_write,
@@ -399,6 +400,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.estimate_insert  = NULL,
 	.overhead         = NULL,
 	.insert	          = NULL,
+	.cutout           = NULL,
 	.update           = NULL,
 	.init	          = NULL,
 	.branch           = NULL,
