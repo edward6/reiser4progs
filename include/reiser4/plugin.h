@@ -231,9 +231,7 @@ struct item_entity {
 	body_t *body;
 	
 	key_entity_t key;
-	
 	item_context_t context;
-	object_entity_t *alloc;
 };
 
 typedef struct item_entity item_entity_t;
@@ -498,13 +496,6 @@ struct create_hint {
 	/* The key of item */
 	key_entity_t key;
 
-	/*
-	  Item context and item enviromnent. They are used for access some
-	  filesystem wide entities like block allocator durring item estimating.
-	*/
-	item_context_t context;
-	object_entity_t *alloc;
-	
 	/* Plugin to be used for working with item */
 	reiser4_plugin_t *plugin;
 };

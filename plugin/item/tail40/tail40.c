@@ -71,7 +71,10 @@ static errno_t tail40_copy(item_entity_t *dst_item,
 	aal_assert("umka-2075", dst_item != NULL);
 	aal_assert("umka-2076", src_item != NULL);
 
-	return -EINVAL;
+	aal_memcpy(dst_item->body + dst_pos,
+		   src_item->body + src_pos, count);
+	
+	return 0;
 }
 
 /* Rewrites tail from passed @pos by data specifed by hint */
@@ -115,8 +118,10 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 
 	if (pos + count < item->len - 1) {
 		src = item->body + pos;
-		dst = item->body + pos + count;
-		aal_memmove(dst, src, item->len - (pos + count));
+		dst = src + count;
+
+		aal_memmove(dst, src, item->len -
+			    (pos + count));
 	}
 
 	/* Updating the key */

@@ -1430,22 +1430,6 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return res;
 }
 
-static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
-				     reiser4_place_t *place,
-				     create_hint_t *hint)
-{
-	/*
-	  Initializing hint context and enviromnent fields. This should be done
-	  before estimate is called, because it may use these fields.
-	*/
-	hint->context.blk = place->node->blk;
-	hint->context.device = tree->fs->device;
-	hint->alloc = tree->fs->alloc->entity;
-	
-	/* Estimating item in order to insert it into found node */
-	return reiser4_item_estimate(place, hint);
-}
-
 /* This will be removed soon */
 errno_t reiser4_tree_write(reiser4_tree_t *tree,
 			   reiser4_place_t *src,
@@ -1495,7 +1479,7 @@ errno_t reiser4_tree_insert(
 		
 		POS_INIT(&place->pos, 0, ~0ul);
 		
-		if ((res = reiser4_tree_estimate(tree, place, hint)))
+		if ((res = reiser4_item_estimate(place, hint)))
 			return res;
 		
 		if ((res = reiser4_node_insert(place->node, &place->pos, hint))) {
@@ -1553,7 +1537,7 @@ errno_t reiser4_tree_insert(
 		}
 	}
 
-	if ((res = reiser4_tree_estimate(tree, place, hint)))
+	if ((res = reiser4_item_estimate(place, hint)))
 		return res;
 	
 	/* Needed space is estimated space plugs item overhead */

@@ -88,10 +88,10 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 	item->context.blk = place->node->blk;
 	item->context.device = place->node->device;
 
-#ifndef ENABLE_STAND_ALONE
+/*#ifndef ENABLE_STAND_ALONE
 	if (place->node->tree)
 		item->alloc = place->node->tree->fs->alloc->entity;
-#endif
+#endif*/
 
 	return 0;
 }
