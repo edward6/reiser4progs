@@ -168,7 +168,7 @@ static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
 }
 
 static errno_t tree_set_data(void *tree, key_entity_t *key,
-			      aal_block_t *block)
+			     aal_block_t *block)
 {
 	reiser4_key_t *k;
 	reiser4_tree_t *t;

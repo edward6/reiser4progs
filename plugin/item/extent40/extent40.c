@@ -5,6 +5,8 @@
 
 #include "extent40.h"
 
+static reiser4_core_t *core = NULL;
+
 /* Returns number of units in passed extent @place */
 uint32_t extent40_units(place_t *place) {
 	aal_assert("umka-1446", place != NULL);
@@ -343,10 +345,74 @@ static errno_t extent40_insert(place_t *place,
 			       create_hint_t *hint,
 			       uint32_t pos)
 {
+	uint32_t blksize;
+	key_entity_t key;
+	aal_block_t *block;
+	extent40_t *extent;
+
+	uint32_t count;
+	uint64_t unit_offset;
+	uint64_t block_offset;
+	
 	aal_assert("umka-2357", hint != NULL);
 	aal_assert("umka-2356", place != NULL);
+
+	count = hint->count;
+	blksize = extent40_blksize(place);
 	
-	return -EINVAL;
+	/* Forming extent unit */
+	if (hint->len != 0) {
+		extent = extent40_body(place) + pos;
+
+		et40_set_start(extent, 1);
+		et40_set_width(extent, (count - 1) /
+			       blksize + 1);
+	}
+	
+	/* Getting offset of block data will be written in. */
+	extent40_get_key(place, pos, &key);
+
+	unit_offset = plug_call(key.plug->o.key_ops,
+				get_offset, &key);
+
+	block_offset = (unit_offset + hint->offset) -
+		(unit_offset & (blksize - 1));
+
+	while (count > 0) {
+		uint32_t size;
+		
+		/* Preparing key for getting data by it */
+		plug_call(key.plug->o.key_ops, set_offset,
+			  &key, block_offset);
+
+		/* Setting up data block */
+		if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
+			if (!(block = aal_block_create(place->con.device,
+						       blksize, 0, 0)))
+			{
+				return -ENOMEM;
+			}
+
+			core->tree_ops.set_data(hint->tree, &key, block);
+		}
+
+		/* Writting data to @block */
+		size = blksize;
+
+		if ((hint->offset % blksize) != 0)
+			size -= (hint->offset % blksize);
+		
+		if (size > count)
+			size = count;
+		
+		aal_memcpy(block->data + (hint->offset % blksize),
+			   hint->type_specific, size);
+
+		count -= size;
+		block_offset += blksize;
+	}
+	
+	return 0;
 }
 
 /* Calls @region_func for each block number extent points to. It is needed for
@@ -644,6 +710,7 @@ static reiser4_plug_t extent40_plug = {
 };
 
 static reiser4_plug_t *extent40_start(reiser4_core_t *c) {
+	core = c;
 	return &extent40_plug;
 }
 

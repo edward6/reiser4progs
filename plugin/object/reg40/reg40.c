@@ -34,6 +34,19 @@ static uint64_t reg40_size(object_entity_t *entity) {
 	return obj40_get_size(&reg->obj);
 }
 
+#ifndef ENABLE_STAND_ALONE
+/* Returns plugin (tail or extent) for next write operation basing on passed
+   @size -- new file size. This function will use tail policy plugin for find
+   out what next item should be writen. */
+static reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint32_t size) {
+	/* FIXME-UMKA: Here will be tail policy plugin calling in odrer to
+	   determine what body plugin should be used when file size has reached
+	   passed @size. */
+	return core->factory_ops.ifind(ITEM_PLUG_TYPE,
+				       ITEM_EXTENT40_ID);
+}
+#endif
+
 /* Updates body place in correspond to file offset */
 static lookup_t reg40_next(reg40_t *reg) {
 	lookup_t res;
@@ -141,21 +154,6 @@ static int32_t reg40_read(object_entity_t *entity,
 	return read;
 }
 
-#ifndef ENABLE_STAND_ALONE
-/* Returns plugin (tail or extent) for next write operation basing on passed
-   size to be writen. This function will be using tail policy plugin for find
-   out what next item should be writen. */
-static reiser4_plug_t *reg40_bplug(reg40_t *reg,
-				   uint32_t size)
-{
-	if (reg->body.node)
-		return reg->body.plug;
-			
-	return core->factory_ops.ifind(ITEM_PLUG_TYPE,
-				       ITEM_TAIL40_ID);
-}
-#endif
-
 /* Opening reg40 by statdata place passed in @place */
 static object_entity_t *reg40_open(object_info_t *info) {
 	reg40_t *reg;
@@ -183,7 +181,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	reg40_reset((object_entity_t *)reg);
 
 #ifndef ENABLE_STAND_ALONE
-	reg->bplug = reg40_bplug(reg, 0);
+	reg->bplug = reg40_bplug((object_entity_t *)reg, 0);
 #endif
 
 	return (object_entity_t *)reg;
@@ -296,7 +294,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 
 	aal_memcpy(&info->start, STAT_ITEM(&reg->obj), sizeof(info->start));
 	
-	reg->bplug = reg40_bplug(reg, 0);
+	reg->bplug = reg40_bplug((object_entity_t *)reg, 0);
 	return (object_entity_t *)reg;
 
  error_free_reg:
@@ -374,8 +372,12 @@ static int32_t reg40_put(object_entity_t *entity,
 	
 	for (written = 0; written < n; ) {
 		place_t place;
+		uint32_t level;
+		uint64_t offset;
+
 		create_hint_t hint;
 		reiser4_plug_t *plug;
+		key_entity_t maxreal_key;
 
 		/* Preparing @hint->key */
 		plug = STAT_KEY(&reg->obj)->plug;
@@ -391,44 +393,51 @@ static int32_t reg40_put(object_entity_t *entity,
 		if (hint.count > maxspace)
 			hint.count = maxspace;
 		
-		hint.plug = reg->bplug;
 		hint.type_specific = buff;
-		
+		hint.plug = reg40_bplug(entity, reg->offset + n);
+
+		/* Extent related fields */
+		hint.offset = 0;
+		hint.tree = reg->obj.info.tree;
+
+		level = hint.plug->id.group == EXTENT_ITEM ?
+			LEAF_LEVEL + 1 : LEAF_LEVEL;
+
 		/* Lookup place data will be inserted at */
 		switch (obj40_lookup(&reg->obj, &hint.key,
 				     LEAF_LEVEL, &place))
 		{
 		case FAILED:
-			aal_exception_error("Lookup is failed while "
-					    "writing file.");
-			return -EINVAL;
-		case PRESENT: {
-			/* Checking if we need write chunk by chunk in odrer to
-			   rewrite tail correctly in the case we write the tail,
-			   that overlaps two neighbour tails by key. */
-			uint64_t offset;
-			key_entity_t maxreal_key;
+			return -EIO;
+		case PRESENT:
+			if (hint.plug->id.group == TAIL_ITEM) {
+				/* Checking if we need write chunk by chunk in
+				   odrer to rewrite tail correctly in the case
+				   we write the tail, that overlaps two
+				   neighbour tails by key. */
+				plug_call(place.plug->o.item_ops, maxreal_key,
+					  &place, &maxreal_key);
 
-			plug_call(place.plug->o.item_ops,
-				  maxreal_key, &place, &maxreal_key);
+				offset = plug_call(hint.key.plug->o.key_ops,
+						   get_offset, &maxreal_key);
 
-			offset = plug_call(hint.key.plug->o.key_ops,
-					   get_offset, &maxreal_key);
-
-			/* Rewritting only tails' last part */
-			if (reg->offset + hint.count > offset + 1)
-				hint.count = (offset + 1) - reg->offset;
-		}
+				/* Rewritting only tails' last part */
+				if (reg->offset + hint.count > offset + 1)
+					hint.count = (offset + 1) - reg->offset;
+			} else {
+				hint.offset = plug_call(hint.key.plug->o.key_ops,
+							get_offset, &hint.key);
+			
+				hint.offset -= plug_call(place.key.plug->o.key_ops,
+							 get_offset, &place.key);
+			}
 		default:
 			break;
 		}
 
 		/* Inserting data to the tree */
-		if ((res = obj40_insert(&reg->obj, &hint,
-					LEAF_LEVEL, &place)))
-		{
+		if ((res = obj40_insert(&reg->obj, &hint, level, &place)))
 			return res;
-		}
 
 		aal_memcpy(&reg->body, &place, sizeof(reg->body));
 

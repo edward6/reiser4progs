@@ -94,6 +94,13 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	return (place->pos.item == items - 1 && 
 		place->pos.unit == units);
 }
+
+void reiser4_place_inc(reiser4_place_t *place) {
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.item++;
+	else
+		place->pos.unit++;
+}
 #endif
 
 /* Initializes all item-related fields */

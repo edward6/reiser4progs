@@ -26,10 +26,10 @@ struct obj40 {
 	/* Core operations pointer */
 	reiser4_core_t *core;
 	
-	/* Info about the object, SD place, object and parent keys and 
-	   pointer to the instance of internal libreiser4 tree also for 
-	   modiying purposes. It is passed by reiser4 library durring 
-	   initialization of the file instance. */
+	/* Info about the object, SD place, object and parent keys and pointer
+	   to the instance of internal libreiser4 tree also for modiying
+	   purposes. It is passed by reiser4 library durring initialization of
+	   the file instance. */
 	object_info_t info;
 };
 
@@ -50,10 +50,13 @@ extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 
 extern errno_t obj40_fini(obj40_t *obj);
 
-extern errno_t obj40_read_ext(place_t *place, rid_t id, void *data);
+extern errno_t obj40_read_ext(place_t *place,
+			      rid_t id, void *data);
 
 #ifndef ENABLE_STAND_ALONE
-extern errno_t obj40_write_ext(place_t *place, rid_t id, void *data);
+extern errno_t obj40_write_ext(place_t *place,
+			       rid_t id, void *data);
+
 extern uint64_t obj40_extmask(place_t *sd);
 
 extern uint16_t obj40_get_mode(obj40_t *obj);

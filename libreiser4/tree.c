@@ -1197,15 +1197,6 @@ static bool_t enough_by_space(reiser4_tree_t *tree,
 	return FALSE;
 }
 
-/* Enough space condition check function for extents on twig level */
-static bool_t enough_by_place(reiser4_tree_t *tree,
-			      reiser4_place_t *place,
-			      uint32_t needed)
-{
-	return reiser4_place_leftmost(place) ||
-		reiser4_place_rightmost(place);
-}
-
 /* Makes space in tree to insert @needed bytes of data (item/unit) */
 errno_t reiser4_tree_expand(
 	reiser4_tree_t *tree,	    /* tree pointer function operates on */
@@ -1444,7 +1435,11 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		} else
 			node = place->node;
 		
-		reiser4_place_init(place, node->p.node, &node->p.pos);
+		reiser4_place_init(place, node->p.node,
+				   &node->p.pos);
+
+		reiser4_place_inc(place);
+		
 		curr++;
 	}
 	
