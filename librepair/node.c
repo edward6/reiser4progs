@@ -80,7 +80,7 @@ static errno_t repair_joint_ld_key_fetch(reiser4_joint_t *joint,
     reiser4_coord_t coord;
     errno_t res;
     
-    aal_assert("vpf-393", joint != NULL, return -1);
+    aal_assert("vpf-501", joint != NULL, return -1);
     aal_assert("vpf-344", ld_key != NULL, return -1);
     aal_assert("vpf-407", ld_key->plugin != NULL, return -1);
 
@@ -122,7 +122,7 @@ static errno_t repair_joint_rd_key(reiser4_joint_t *joint,
     reiser4_pos_t pos = {0, 0};
     errno_t res;
     
-    aal_assert("vpf-394", joint != NULL, return -1);
+    aal_assert("vpf-502", joint != NULL, return -1);
     aal_assert("vpf-347", rd_key != NULL, return -1);
     aal_assert("vpf-408", rd_key->plugin != NULL, return -1);
     aal_assert("vpf-348", data != NULL, return -1);
@@ -328,7 +328,7 @@ errno_t repair_joint_check(reiser4_joint_t *joint, repair_data_t *data) {
     
     aal_assert("vpf-183", data != NULL, return -1);
     aal_assert("vpf-192", joint != NULL, return -1);
-    aal_assert("vpf-192", joint->node != NULL, return -1);
+    aal_assert("vpf-494", joint->node != NULL, return -1);
     aal_assert("vpf-193", joint->node->entity != NULL, return -1);    
     aal_assert("vpf-220", joint->node->entity->plugin != NULL, return -1);
 

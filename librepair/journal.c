@@ -7,37 +7,51 @@
 
 static errno_t repair_journal_check(reiser4_journal_t *journal) {
     aal_assert("vpf-460", journal != NULL, return -1);
-    
-    return plugin_call(return -1, journal->entity->plugin->journal_ops, check, 
-	journal->entity);
+   
+    if (plugin_call(return -1, journal->entity->plugin->journal_ops, check, 
+	journal->entity))
+    {
+	aal_exception_error("Failed to recover the journal (%s) on (%s).", 
+	    journal->entity->plugin->h.label, aal_device_name(journal->device));
+	return -1;
+    }
+	    
+    return 0;	    
 }
 
-static reiser4_journal_t *repair_journal_open(reiser4_format_t *format, 
+reiser4_journal_t *repair_journal_open(reiser4_format_t *format, 
     aal_device_t *journal_device) 
 {
-    reiser4_journal_t *journal;
-    errno_t res;
+    reiser4_journal_t *journal = NULL;
 
     aal_assert("vpf-446", format != NULL, return NULL);
     aal_assert("vpf-476", journal_device != NULL, return NULL);
 
     /* Try to open the journal. */
     if ((journal = reiser4_journal_open(format, journal_device)) == NULL) {
-	aal_exception_fatal("Failed to open a journal.");
-	return NULL;
-    }
+	/* failed to open a journal. Build a new one. */
+	aal_exception_fatal("Failed to open a journal by its id (0x%x). "
+	    "Try to build a new one.", reiser4_format_journal_pid(format));
 	
-    /* Check the structure of the opened journal. */
+	if (!(journal = reiser4_journal_create(format, journal_device, NULL))) {
+	    aal_exception_fatal("Cannot create a journal by its id (0x%x).", 
+		reiser4_format_journal_pid(format));
+	    return NULL;
+	}
+    }
+    
+    aal_assert("vpf-482", journal != NULL, goto error);
+    
+    /* Check the structure of the opened journal or rebuild it if needed. */
     if (repair_journal_check(journal))
 	goto error_close_journal;
-	    
+    
     return journal;
     
 error_close_journal:
     reiser4_journal_close(journal);
-    
+error:
     return NULL;
-
 }
 
 /* Open, replay, close journal. */

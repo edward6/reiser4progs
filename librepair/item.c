@@ -66,9 +66,9 @@ errno_t repair_item_ptr_used_in_bitmap(reiser4_coord_t *coord,
     reiser4_ptr_hint_t ptr;
     int res;
 
-    aal_assert("vpf-396", coord != NULL, return -1);
+    aal_assert("vpf-500", coord != NULL, return -1);
     aal_assert("vpf-397", data != NULL, return -1);
-    aal_assert("vpf-272", 
+    aal_assert("vpf-497", 
 	reiser4_item_nodeptr(coord) || reiser4_item_extent(coord), 
 	return -1);
 
@@ -118,7 +118,7 @@ errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
     aal_assert("vpf-270", coord != NULL, return -1);
     aal_assert("vpf-271", data != NULL, return -1);
     aal_assert("vpf-272", data->format != NULL, return -1);
-    aal_assert("vpf-272", reiser4_item_nodeptr(coord) || reiser4_item_extent(coord), 
+    aal_assert("vpf-496", reiser4_item_nodeptr(coord) || reiser4_item_extent(coord), 
 	return -1);
 
     if (plugin_call(return -1, coord->entity.plugin->item_ops, fetch,

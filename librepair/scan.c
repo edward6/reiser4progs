@@ -73,8 +73,8 @@ errno_t repair_scan_handle_pointers(reiser4_coord_t *coord, void *data) {
 errno_t repair_scan_node_check(reiser4_joint_t *joint, void *data) {
     traverse_hint_t hint;
 
-    aal_assert("vpf-384", joint != NULL, return -1);
-    aal_assert("vpf-385", data != NULL, return -1);
+    aal_assert("vpf-498", joint != NULL, return -1);
+    aal_assert("vpf-499", data != NULL, return -1);
     
     hint.objects = 1 << EXTENT_ITEM;
     hint.data = data;

@@ -14,7 +14,7 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *repair_data) {
 
     aal_assert("vpf-180", fs != NULL, return -1);
     aal_assert("vpf-181", fs->format != NULL, return -1);
-    aal_assert("vpf-181", repair_data != NULL, return -1);
+    aal_assert("vpf-493", repair_data != NULL, return -1);
 
     hint.data = repair_data;
     

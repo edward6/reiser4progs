@@ -52,6 +52,11 @@ typedef struct journal40_footer journal40_footer_t;
 #define get_jf_next_oid(jf)			aal_get_le64(jf, jf_next_oid)
 #define set_jf_next_oid(jf, val)		aal_set_le64(jf, jf_next_oid, val)
 
+#define TXH 1
+#define LGR 2
+#define WAN 3
+#define ORG 4
+
 #define TXH_MAGIC "TxMagic4"
 #define LGR_MAGIC "LogMagc4"
 
@@ -129,6 +134,8 @@ typedef struct journal40_lr_entry journal40_lr_entry_t;
 
 #define get_le_wandered(le)			aal_get_le64(le, le_wandered)
 #define set_le_wandered(le, val)		aal_set_le64(le, le_wandered, val)
+
+
 
 #endif
 

@@ -33,7 +33,7 @@ reiser4_journal_t *reiser4_journal_open(
 		aal_exception_error("Invalid journal plugin id has been found.");
 		goto error_free_journal;
 	}
-    
+ 
 	/* Getting plugin by its id from plugin factory */
 	if (!(plugin = libreiser4_factory_ifind(JOURNAL_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find journal plugin by its id 0x%x.", pid);

@@ -79,7 +79,6 @@ static errno_t repair_master_check(reiser4_master_t **master, aal_device_t *host
 
 reiser4_master_t *repair_master_open(aal_device_t *host_device) {
     reiser4_master_t *master = NULL;
-    int res;
     
     aal_assert("vpf-399", host_device != NULL, return NULL);
     
@@ -90,7 +89,7 @@ reiser4_master_t *repair_master_open(aal_device_t *host_device) {
     if (repair_master_check(&master, host_device))
 	goto error_free_master;
     
-    aal_assert("vpf-477", master != NULL, res = -1; goto error);
+    aal_assert("vpf-477", master != NULL, goto error);
     
     return master;
     

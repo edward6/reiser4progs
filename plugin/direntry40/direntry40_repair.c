@@ -20,7 +20,7 @@ static errno_t direntry40_count_check(item_entity_t *item) {
     uint16_t count_error, count;
 
     aal_assert("vpf-268", item != NULL, return -1);
-    aal_assert("vpf-268", item->body != NULL, return -1);
+    aal_assert("vpf-495", item->body != NULL, return -1);
     
     if (!(de = direntry40_body(item)))
 	return -1;

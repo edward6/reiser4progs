@@ -289,7 +289,7 @@ static errno_t fsck_data_prepare(repair_data_t *repair_data,
     fsck_parse_t *parse_data, reiser4_format_t *format) 
 {
     aal_assert("vpf-481", repair_data != NULL, return -1);
-    aal_assert("vpf-481", parse_data != NULL, return -1);
+    aal_assert("vpf-505", parse_data != NULL, return -1);
         
     repair_data->format = format;
     repair_data->mode = parse_data->mode;
