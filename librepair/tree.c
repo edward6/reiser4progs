@@ -371,7 +371,6 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	hint.count = 1;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
-	hint.tree = tree;
 	hint.shift_flags = SF_DEFAULT;
 	
 	ptr.start = node_blocknr(node);
@@ -475,7 +474,6 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 	/* FIXME-VITALY: some hint fields need to be initialized by item 
 	   estimate_insert methods--count, offset, etc. I should just 
 	   initialize start and end keys. For now I calculate it here. */
-	hint.tree = tree;
 	hint.plug = dst->plug;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
@@ -605,7 +603,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	/* Init the src maxreal key. */
 	
 	aal_memset(&hint, 0, sizeof(hint));
-	hint.tree = tree;
 	hint.specific = src;
 	hint.plug = src->plug;
 	hint.place_func = NULL;

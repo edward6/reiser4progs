@@ -58,8 +58,11 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			aal_memset(hint->specific, 0, read);
 		} else {
 			/* Prepare hint for read */
-			hint->tree = tree;
 			hint->count = size;
+
+#ifndef ENABLE_STAND_ALONE
+			hint->blocks = tree->data;
+#endif
 			
 			/* Read data from the tree */
 			if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {
@@ -118,6 +121,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		reiser4_place_t place;
 
 		hint->count = size;
+		hint->data = tree->data;
+		
 		lhint.level = LEAF_LEVEL;
 		lhint.key = &hint->offset;
 		lhint.correct_func = NULL;

@@ -583,9 +583,6 @@ typedef struct entry_hint entry_hint_t;
    into the tree. This is used for all tree modification purposes like
    insertitem, or write some file data. */ 
 struct trans_hint {
-	/* The storage tree instance. */
-	void *tree;
-
 	/* Overhead of data to be inserted. This is needed for the case when we
 	   insert directory item and tree should know how much space should be
 	   prepared in the tree (ohd + len), but we don't need overhead for
@@ -619,6 +616,9 @@ struct trans_hint {
 	
 	/* Count of handled blocks in the first and the last extent unit. */
 	uint64_t head, tail;
+
+	/* Hash table unformatted blocks lie in. Needed for extent code. */
+	aal_hash_table_t *blocks;
 	
 	/* Plugin to be used for working with item. */
 	reiser4_plug_t *plug;
@@ -1578,16 +1578,6 @@ struct tree_ops {
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
 	errno_t (*remove) (void *, reiser4_place_t *, trans_hint_t *);
-
-	/* Function for setting unformatted blocks data. */
-	errno_t (*put_data) (void *, reiser4_key_t *,
-			     aal_block_t *);
-
-	/* Function for removing unformatted blocks data. */
-	errno_t (*rem_data) (void *, reiser4_key_t *);
-
-	/* Function for getting unformatted blocks data. */
-	aal_block_t *(*get_data) (void *, reiser4_key_t *);
 	
 	/* Update the key in the place and the node itsef. */
 	errno_t (*update_key) (void *, reiser4_place_t *, reiser4_key_t *);

@@ -214,8 +214,7 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		
 			/* Removing unit data from the cache */
 			for (i = 0; i < remove; i++) {
-				extent40_core->tree_ops.rem_data(hint->tree,
-								 &key);
+				aal_hash_table_remove(hint->blocks, &key);
 			
 				offset = plug_call(key.plug->o.key_ops,
 						   get_offset, &key);
@@ -418,9 +417,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 					  &key, block_offset);
 
 				/* Getting block from the cache. */
-				if (!(block = extent40_core->tree_ops.get_data(hint->tree,
-									       &key)))
-				{
+				if (!(block = aal_hash_table_lookup(hint->blocks, &key))) {
 					/* If block is not found in cache, we
 					   read it and put to cache. */
 					aal_device_t *device = extent40_device(place);
@@ -430,9 +427,8 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 					{
 						return -EIO;
 					}
-					
-					extent40_core->tree_ops.put_data(hint->tree,
-									 &key, block);
+
+					aal_hash_table_insert(hint->blocks, &key, block);
 				}
 
 				/* Copying data from found (loaded) block to
@@ -1019,8 +1015,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 					if (!(block = aal_block_alloc(device, blksize, 0)))
 						return -ENOMEM;
 
-					extent40_core->tree_ops.put_data(hint->tree,
-									 &key, block);
+					aal_hash_table_insert(hint->blocks, &key, block);
 
 					/* Updating @hint->bytes field by blksize, as
 					   new block is allocated. */
@@ -1076,9 +1071,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 			} else {
 				/* Getting data block by offset key. Block
 				   should be get before modifying it. */
-				if (!(block = extent40_core->tree_ops.get_data(hint->tree,
-									       &key)))
-				{
+				if (!(block = aal_hash_table_lookup(hint->blocks, &key))) {
 					blk_t blk;
 				
 					if (et40_get_start(extent) == EXTENT_UNALLOC_UNIT) {
@@ -1100,8 +1093,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 					}
 
 					/* Updating block in data cache. */
-					extent40_core->tree_ops.put_data(hint->tree,
-									 &key, block);
+					aal_hash_table_insert(hint->blocks, &key, block);
 				}
 
 				/* Writting data to @block. */

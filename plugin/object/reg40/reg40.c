@@ -103,7 +103,6 @@ static int64_t reg40_read(object_entity_t *entity,
 	hint.specific = buff;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
-	hint.tree = reg->obj.info.tree;
 
 	/* Initializing offset data must be read from. This is current file
 	   offset, so we use @reg->position. */
@@ -394,7 +393,7 @@ static errno_t reg40_check_body(object_entity_t *entity,
 /* Writes passed data to the file. Returns amount of data on disk, that is
    @bytes value, which should be counted in stat data. */
 int64_t reg40_put(object_entity_t *entity, void *buff, 
-		  uint64_t n, place_func_t func) 
+		  uint64_t n, place_func_t place_func) 
 {
 	reg40_t *reg;
 	int64_t written;
@@ -410,10 +409,9 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 	hint.count = n;
 
 	hint.specific = buff;
-	hint.place_func = func;
 	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
-	hint.tree = reg->obj.info.tree;
+	hint.place_func = place_func;
 	
 	plug_call(reg->position.plug->o.key_ops,
 		  assign, &hint.offset, &reg->position);
