@@ -1772,3 +1772,10 @@ libaal/libaal_static_la-file.lo
 libaal/libaal_static_la-gauge.lo
 libaal/libaal_static_la-list.lo
 libaal/libaal_static_la-lru.lo
+config.h.in
+demos/.deps/hash-hash.Po
+demos/hash
+include/reiser4/.plugin.h.swp
+libaux/.deps/libaux_alone_la-aux.Plo
+libaux/.deps/libaux_alone_la-bitmap.Plo
+libaux/.deps/libaux_static_la-aux.Plo
