@@ -7,32 +7,6 @@
 #include "alloc40.h"
 #include <repair/plugin.h>
 
-/* Call @func for all blocks which belong to the same bitmap block as passed
-   @blk. It is needed for fsck. In the case it detremined that a block is not
-   corresponds to its value in block allocator, it should check all the related
-   (neighbour) blocks which are described by one bitmap block (4096 - CRC_SIZE).
-*/
-errno_t alloc40_region(generic_entity_t *entity, blk_t blk, 
-		       region_func_t region_func, void *data) 
-{
-	uint64_t size;
-	alloc40_t *alloc;
-    
-	aal_assert("vpf-554", entity != NULL);
-	aal_assert("umka-1746", region_func != NULL);
-    
-	alloc = (alloc40_t *)entity;
-    
-	aal_assert("vpf-710", alloc->bitmap != NULL);
-	aal_assert("vpf-711", alloc->device != NULL);
-    
-	size = alloc->blksize - CRC_SIZE;
-    
-	/* Loop though the all blocks one bitmap block describes and calling
-	   passed @region_func for each of them. */   
-	return region_func(entity, (blk / size) * size, size, data);
-}
-
 struct alloc_hint {
 	region_func_t region_func;
 	void *data;

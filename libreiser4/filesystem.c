@@ -178,6 +178,9 @@ reiser4_owner_t reiser4_fs_belongs(
 	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk))
 		return O_ALLOC;
 
+	if (reiser4_backup_layout(fs, callback_check_block, &blk))
+		return O_BACKUP;
+	
 	return O_UNKNOWN;
 }
 
@@ -210,7 +213,10 @@ errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 	if ((res = reiser4_status_layout(fs->status, region_func, data)))
 		return res;
 
-	return reiser4_alloc_layout(fs->alloc, region_func, data);
+	if ((res = reiser4_alloc_layout(fs->alloc, region_func, data)))
+		return res;
+
+	return reiser4_backup_layout(fs, region_func, data);
 }
 
 static errno_t callback_mark_block(void *entity, blk_t start,
@@ -311,9 +317,12 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_oid;
 	
+	if (!(fs->backup = reiser4_backup_create(fs)))
+		goto error_free_tree;
+	
 	if (reiser4_fs_layout(fs, callback_mark_block, fs->alloc)) {
 		aal_error("Can't mark filesystem blocks used.");
-		goto error_free_tree;
+		goto error_free_backup;
 	}
 
 	free = reiser4_alloc_free(fs->alloc);
@@ -321,6 +330,8 @@ reiser4_fs_t *reiser4_fs_create(
 
 	return fs;
 
+ error_free_backup:
+	reiser4_backup_close(fs->backup);
  error_free_tree:
 	reiser4_tree_fini(fs->tree);
  error_free_oid:
@@ -336,6 +347,20 @@ reiser4_fs_t *reiser4_fs_create(
  error_free_fs:
 	aal_free(fs);
 	return NULL;
+}
+
+/* Backup the fs -- save all permanent info about the fs info the memory stream
+   to be backed up somewhere on the fs. */
+errno_t reiser4_fs_backup(reiser4_fs_t *fs, aal_stream_t *stream) {
+	errno_t res;
+
+	aal_assert("vpf-1392", fs != NULL);
+	aal_assert("vpf-1393", stream != NULL);
+
+	if ((res = reiser4_master_backup(fs->master, stream)))
+		return res;
+
+	return reiser4_format_backup(fs->format, stream);
 }
 
 /* Resizes passed open @fs by passed @blocks */
@@ -415,6 +440,11 @@ errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	if ((res = reiser4_status_pack(fs->status, stream)))
 		return res;
 	
+	aal_stream_write(stream, BACKUP_PACK_SIGN, 4);
+	
+	if ((res = reiser4_backup_pack(fs, stream)))
+		return res;
+	
 	len = reiser4_format_get_len(fs->format);
 
 	/* Loop though the all data blocks, check if they belong to tree and if
@@ -468,8 +498,7 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	fs->device = device;
 
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_error("Can't unpack master super "
-			  "block. Stream is over?");
+		aal_error("Can't unpack master super block. Stream is over?");
 		goto error_free_fs;
 	}
 
@@ -483,8 +512,7 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		goto error_free_fs;
 
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_error("Can't unpack format super "
-			  "block. Stream is over?");
+		aal_error("Can't unpack format super block. Stream is over?");
 		goto error_free_master;
 	}
 
@@ -524,8 +552,7 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		goto error_free_oid;
 			
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_error("Can't unpack block "
-			  "allocator. Stream is over?");
+		aal_error("Can't unpack block allocator. Stream is over?");
 		goto error_free_tree;
 	}
 
@@ -539,8 +566,7 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		goto error_free_tree;
 			
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_error("Can't unpack status "
-			  "block. Stream is over?");
+		aal_error("Can't unpack status block. Stream is over?");
 		goto error_free_alloc;
 	}
 
@@ -552,6 +578,34 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 
 	if (!(fs->status = reiser4_status_unpack(device, bs, stream)))
 		goto error_free_alloc;
+
+	if (aal_stream_read(stream, &sign, 4) != 4) {
+		aal_error("Can't unpack backup blocks. Stream is over?");
+		goto error_free_status;
+	}
+
+	if (aal_strncmp(sign, BACKUP_PACK_SIGN, 4)) {
+		aal_error("Invalid backup blocks sign %s is "
+			  "detected in stream.", sign);
+		goto error_free_status;
+	}
+
+	if (reiser4_backup_unpack(fs, stream))
+		goto error_free_status;
+
+	if (aal_stream_read(stream, &sign, 4) != 4) {
+		aal_error("Can't unpack backup blocks. Stream is over?");
+		goto error_free_status;
+	}
+
+	if (aal_strncmp(sign, BACKUP_PACK_SIGN, 4)) {
+		aal_error("Invalid backup blocks sign %s is "
+			  "detected in stream.", sign);
+		goto error_free_status;
+	}
+
+	if (reiser4_backup_unpack(fs, stream))
+		goto error_free_status;
 
 	while (1) {
 		node_t *node;
@@ -575,7 +629,7 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 			reiser4_node_close(node);
 		} else {
 			aal_error("Invalid object %s is detected in stream. "
-				  "Node is expacted.", sign);
+				  "Node is expected.", sign);
 			goto error_free_fs;
 		}
 	}

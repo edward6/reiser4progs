@@ -61,6 +61,9 @@ extern errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 				    region_func_t region_func,
 				    void *data);
 
+extern errno_t reiser4_alloc_region(reiser4_alloc_t *alloc, blk_t blk,
+				    region_func_t func, void *data);
+
 #endif
 
 #endif

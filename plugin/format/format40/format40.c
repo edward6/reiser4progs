@@ -291,6 +291,21 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	return (generic_entity_t *)format;
 }
 
+/* Saves all important permenent info about format40 to be backuped 
+   somewhere on the fs. */
+static errno_t format40_backup(generic_entity_t *entity, aal_stream_t *stream) {
+	aal_assert("vpf-1396", entity != NULL);
+	aal_assert("vpf-1397", stream != NULL);
+	
+	aal_stream_write(stream, &SUPER(entity)->sb_mkfs_id, 
+			 sizeof(SUPER(entity)->sb_mkfs_id));
+	
+	/* Probably not default plugin ids will be added here also 
+	   in the future. */
+	
+	return 0;
+}
+
 /* This function should update all copies of the super block */
 static errno_t format40_sync(generic_entity_t *entity) {
 	errno_t res;
@@ -492,6 +507,7 @@ static reiser4_format_ops_t format40_ops = {
 	.valid		= format40_valid,
 	.sync		= format40_sync,
 	.create		= format40_create,
+	.backup		= format40_backup,
 	.print		= format40_print,
 	.layout	        = format40_layout,
 	.update		= format40_update,

@@ -128,6 +128,11 @@ errno_t debugfs_print_block(
 		fprintf(stdout, "Block %llu belongs to block "
 			"allocator metadata.\n", blk);
 		return 0;
+	case O_BACKUP:
+		fprintf(stdout, "Block %llu belongs to the fs "
+			"metadata backup.\n", blk);
+		return 0;
+
 	default:
 		break;
 	}

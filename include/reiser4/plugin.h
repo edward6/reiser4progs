@@ -1163,6 +1163,10 @@ struct reiser4_format_ops {
 	   block, initializes plugins and calls their create method. */
 	generic_entity_t *(*create) (fs_desc_t *, uint64_t);
 
+	/* Save the important permanent info about the format into the stream 
+	   to be backuped on the fs. */
+	errno_t (*backup) (generic_entity_t *, aal_stream_t *);
+	
 	/* Save format data to device. */
 	errno_t (*sync) (generic_entity_t *);
 

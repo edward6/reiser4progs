@@ -60,6 +60,15 @@ reiser4_master_t *reiser4_master_create(
 	return master;
 }
 
+errno_t reiser4_master_backup(reiser4_master_t *master, aal_stream_t *stream) {
+	aal_assert("vpf-1388", master != NULL);
+	aal_assert("vpf-1389", stream != NULL);
+
+	aal_stream_write(stream, &master->ent, sizeof(master->ent));
+	
+	return 0;
+}
+
 errno_t reiser4_master_pack(reiser4_master_t *master,
 			    aal_stream_t *stream)
 {
@@ -405,4 +414,5 @@ void reiser4_master_set_label(reiser4_master_t *master,
 			   sizeof(SUPER(master)->ms_label));
 	}
 }
+
 #endif

@@ -19,6 +19,8 @@
 
 #define SUPER(entity) (&((format40_t *)entity)->super)
 
+#define MAGIC_SIZE 16
+	
 struct format40_super {
 	d64_t sb_block_count;
 	d64_t sb_free_blocks;
@@ -28,7 +30,7 @@ struct format40_super {
 	d64_t sb_flushes;
     
 	d32_t sb_mkfs_id;
-	char sb_magic[16];
+	char sb_magic[MAGIC_SIZE];
 
 	d16_t sb_tree_height;
 	d16_t sb_tail_policy;

@@ -2,8 +2,8 @@ includedir		     = -I$(top_srcdir)/include
 
 libreiser4_sources	     = libreiser4.c filesystem.c format.c journal.c alloc.c \
 			       oid.c factory.c node.c tree.c key.c object.c place.c \
-		 	       master.c status.c item.c param.c fake.c print.c semantic.c \
-			       flow.c debug.c
+			       master.c status.c backup.c item.c param.c fake.c \
+			       print.c semantic.c flow.c debug.c
 
 if ENABLE_STAND_ALONE
 ALONE_LIBS                   = libreiser4-alone.la

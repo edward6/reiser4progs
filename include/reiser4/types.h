@@ -75,6 +75,15 @@ typedef struct reiser4_status_sb reiser4_status_sb_t;
 
 #define ss_stack(ss, n)			LE64_TO_CPU(ss->ss_stack[n])
 
+typedef struct reiser4_fs reiser4_fs_t;
+
+struct reiser4_backup {
+	reiser4_fs_t *fs;
+	aal_stream_t *stream;
+};
+
+typedef struct reiser4_backup reiser4_backup_t;
+
 enum reiser4_state {
 	FS_OK		= 0,
 	FS_CORRUPTED	= 1 << 0,
@@ -96,7 +105,6 @@ struct reiser4_master {
 	reiser4_master_sb_t ent;
 };
 
-typedef struct reiser4_fs reiser4_fs_t;
 typedef struct reiser4_master reiser4_master_t;
 
 struct reiser4_status {
@@ -176,7 +184,8 @@ enum reiser4_owner {
 	O_ALLOC    = 1 << 3,
 	O_OID      = 1 << 4,
 	O_STATUS   = 1 << 5,
-	O_UNKNOWN  = 1 << 6
+	O_BACKUP   = 1 << 6,
+	O_UNKNOWN  = 1 << 7
 };
 
 typedef enum reiser4_owner reiser4_owner_t;
@@ -322,6 +331,9 @@ struct reiser4_fs {
 
 	/* Filesystem status block. */
 	reiser4_status_t *status;
+	
+	/* Filesystem backup. */
+	reiser4_backup_t *backup;
 #endif
 
 	/* Pointer to the oid allocator in use */

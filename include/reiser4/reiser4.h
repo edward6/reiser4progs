@@ -17,6 +17,7 @@ extern "C" {
 #include <reiser4/journal.h>
 #include <reiser4/alloc.h>
 #include <reiser4/oid.h>
+#include <reiser4/backup.h>
 #include <reiser4/plugin.h>
 #include <reiser4/tree.h>
 #include <reiser4/flow.h>

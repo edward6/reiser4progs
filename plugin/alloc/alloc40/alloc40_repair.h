@@ -18,9 +18,6 @@ extern generic_entity_t *alloc40_unpack(fs_desc_t *desc3,
 extern errno_t alloc40_check_struct(generic_entity_t *entity,
 				    uint8_t mode);
 
-extern errno_t alloc40_region(generic_entity_t *entity, blk_t blk, 
-			      region_func_t func, void *data);
-
 extern errno_t alloc40_layout_bad(generic_entity_t *entity,
 				  region_func_t region_func,
 				  void *data);

@@ -90,11 +90,8 @@ errno_t reiser4_status_sync(reiser4_status_t *status) {
 	blksize = status->blksize;
 	offset = REISER4_STATUS_BLOCK;
 
-	if (!(block = aal_block_alloc(status->device,
-				      blksize, offset)))
-	{
+	if (!(block = aal_block_alloc(status->device, blksize, offset)))
 		return -ENOMEM;
-	}
 
 	aal_block_fill(block, 0);
 

@@ -21,6 +21,9 @@ extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       uint16_t policy,
 					       rid_t pid);
 
+extern errno_t reiser4_format_backup(reiser4_format_t *format,
+				     aal_stream_t *stream);
+
 extern errno_t reiser4_format_layout(reiser4_format_t *format, 
 				     region_func_t func,
 				     void *data);

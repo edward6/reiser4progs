@@ -37,7 +37,7 @@ extern int alloc40_occupied(generic_entity_t *entity,
 
 extern errno_t alloc40_layout(generic_entity_t *entity,
 			      region_func_t region_func,
-			      void *data) ;
-#endif
-#endif
+			      void *data);
 
+#endif
+#endif

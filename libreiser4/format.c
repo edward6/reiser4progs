@@ -145,6 +145,16 @@ reiser4_format_t *reiser4_format_create(
 	return format;
 }
 
+errno_t reiser4_format_backup(reiser4_format_t *format,
+			      aal_stream_t *stream) 
+{
+	aal_assert("vpf-1390", format != NULL);
+	aal_assert("vpf-1391", stream != NULL);
+
+	return plug_call(format->entity->plug->o.format_ops,
+			 backup, format->entity, stream);
+}
+
 /* Fetches format data to @stream. */
 errno_t reiser4_format_pack(reiser4_format_t *format,
 			    aal_stream_t *stream)

@@ -378,4 +378,14 @@ errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 			 layout, alloc->entity, region_func,
 			 data);
 }
+
+errno_t reiser4_alloc_region(reiser4_alloc_t *alloc, blk_t blk, 
+			     region_func_t func, void *data)
+{
+	aal_assert("vpf-557", alloc != NULL);
+	
+	return plug_call(alloc->entity->plug->o.alloc_ops, region, 
+			 alloc->entity, blk, func, data);
+}
+
 #endif

@@ -294,9 +294,9 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		   allocator. Looks like the bitmap block of the allocator 
 		   has not been synced on disk. Scan through all its blocks. */
 		if (~control->bm_alloc->map[i] & control->bm_met->map[i]) {
-			repair_alloc_region(repair->fs->alloc, i * 8,
-					    callback_region_mark, 
-					    control);
+			reiser4_alloc_region(repair->fs->alloc, i * 8,
+					     callback_region_mark, 
+					     control);
 		} else {
 			control->bm_scan->map[i] |= control->bm_alloc->map[i]
 				& ~control->bm_met->map[i];
