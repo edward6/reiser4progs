@@ -149,58 +149,72 @@ static errno_t tree_realize(void *tree, place_t *place) {
 	return reiser4_item_get_key(p, NULL);
 }
 
-/* Handler for requests for right neighbor */
-static errno_t tree_right(
+/* Handler for requests for next item */
+static errno_t tree_next(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,             /* coord of node */
-	place_t *right)	            /* right neighbour will be here */
+	place_t *next)	            /* next item will be stored here */
 {
-	rpos_t pos;
-	reiser4_place_t *p;
+	reiser4_place_t *curr;
     
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
-	aal_assert("umka-1491", right != NULL);
+	aal_assert("umka-1491", next != NULL);
 
-	p = (reiser4_place_t *)place;
+	curr = (reiser4_place_t *)place;
+
+	if (curr->pos.item < reiser4_node_items(curr->node) - 1) {
+
+		reiser4_place_assign((reiser4_place_t *)next,
+				     curr->node, curr->pos.item + 1, ~0ul);
+
+		if (reiser4_place_realize((reiser4_place_t *)next))
+			return -1;
+	} else {
+		reiser4_tree_right((reiser4_tree_t *)tree, curr->node);
 		
-	if (!reiser4_tree_right((reiser4_tree_t *)tree, p->node))
-		return -1;
+		reiser4_place_assign((reiser4_place_t *)next,
+				     curr->node->right, 0, ~0ul);
 
-	POS_INIT(&pos, 0, ~0ul);
-	
-	if (reiser4_place_open((reiser4_place_t *)right,
-			       p->node->right, &pos))
-		return -1;
+		if (reiser4_place_realize((reiser4_place_t *)next))
+			return -1;
+	}
 
-	return reiser4_item_get_key((reiser4_place_t *)right, NULL);
+	return reiser4_item_realize((reiser4_place_t *)next);
 }
 
 /* Handler for requests for left neighbor */
-static errno_t tree_left(
+static errno_t tree_prev(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,             /* coord of node */
-	place_t *left)              /* left neighbour will be here */
+	place_t *prev)              /* left neighbour will be here */
 {
-	rpos_t pos;
-	reiser4_place_t *p;
+	reiser4_place_t *curr;
 	
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
-	aal_assert("umka-1492", left != NULL);
+	aal_assert("umka-1492", prev != NULL);
 
-	p = (reiser4_place_t *)place;
-	
-	if (!reiser4_tree_left((reiser4_tree_t *)tree, p->node))
-		return -1;
+	curr = (reiser4_place_t *)place;
 
-	POS_INIT(&pos, reiser4_node_items(p->node->left) - 1, ~0ul);
-	
-	if (reiser4_place_open((reiser4_place_t *)left,
-			       p->node->left, &pos))
-		return -1;
+	if (curr->pos.item < reiser4_node_items(curr->node) - 1) {
 
-	return reiser4_item_get_key((reiser4_place_t *)left, NULL);
+		reiser4_place_assign((reiser4_place_t *)prev,
+				     curr->node, curr->pos.item + 1, ~0ul);
+
+		if (reiser4_place_realize((reiser4_place_t *)prev))
+			return -1;
+	} else {
+		reiser4_tree_left((reiser4_tree_t *)tree, curr->node);
+		
+		reiser4_place_assign((reiser4_place_t *)prev,
+				     curr->node->left, 0, ~0ul);
+
+		if (reiser4_place_realize((reiser4_place_t *)prev))
+			return -1;
+	}
+
+	return reiser4_item_realize((reiser4_place_t *)prev);
 }
 
 static errno_t tree_lock(
@@ -267,11 +281,11 @@ reiser4_core_t core = {
 		/* This one for initializing an item at place */
 		.realize    = tree_realize,
 
-		/* Returns right neighbour of passed place */
-		.right	    = tree_right,
+		/* Returns next item form the passed place */
+		.next	    = tree_next,
     
-		/* Returns left neighbour of passed place */
-		.left	    = tree_left,
+		/* Returns prev item from the passed place */
+		.prev	    = tree_prev,
 
 		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,

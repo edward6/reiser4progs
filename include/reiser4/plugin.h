@@ -1245,9 +1245,9 @@ struct reiser4_core {
 		*/
 		errno_t (*remove) (void *, place_t *, uint32_t);
 	
-		/* Returns right and left neighbour respectively */
-		errno_t (*right) (void *, place_t *, place_t *);
-		errno_t (*left) (void *, place_t *, place_t *);
+		/* Returns next and prev items respectively */
+		errno_t (*next) (void *, place_t *, place_t *);
+		errno_t (*prev) (void *, place_t *, place_t *);
 
 		errno_t (*lock) (void *, place_t *);
 		errno_t (*unlock) (void *, place_t *);

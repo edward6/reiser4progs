@@ -267,6 +267,10 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 	return 0;
 }
 
+errno_t reiser4_item_realize(reiser4_place_t *place) {
+	return reiser4_item_get_key(place, NULL);
+}
+
 #ifndef ENABLE_ALONE
 
 /* Updates item key in node and in place->item.key field */

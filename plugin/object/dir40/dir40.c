@@ -60,9 +60,9 @@ static errno_t dir40_reset(object_entity_t *entity) {
 /* Trying to guess hash in use by stat data extention */
 static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 	/* 
-	   FIXME-UMKA: This function should inspect stat data extentions
-	   first. And only if they do not contain a convenient plugin extention
-	   (hash plugin), it should use some default hash plugin id.
+	  FIXME-UMKA: This function should inspect stat data extentions
+	  first. And only if they do not contain a convenient plugin extention
+	  (hash plugin), it should use some default hash plugin id.
 	*/
 	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
 }
@@ -94,15 +94,8 @@ static lookup_t dir40_next(dir40_t *dir) {
 	reiser4_plugin_t *this_plugin;
 	reiser4_plugin_t *right_plugin;
 
-	/*
-	  Getting the right neighbour node of the node current item lies
-	  in. While key40 is in use, next direntry item will lie in the right
-	  neighbour node. Probably we should do here like reg40_next does. And
-	  namely do not access right neighbour, but rather perform lookup with
-	  current hash plus one and then check if found item is mergeable with
-	  current one or not.
-	*/
-	if (core->tree_ops.right(dir->obj.tree, &dir->body, &right))
+	/* Getting next directory item */
+	if (core->tree_ops.next(dir->obj.tree, &dir->body, &right))
 		return LP_ABSENT;
 
 	if (!dir40_mergeable(&right.item, &dir->body.item))
@@ -511,6 +504,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	return NULL;
 }
 
+/* Removes all directory body items */
 static errno_t dir40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {

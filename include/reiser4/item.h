@@ -14,6 +14,8 @@
 
 #include <reiser4/types.h>
 
+extern errno_t reiser4_item_realize(reiser4_place_t *place);
+
 extern errno_t reiser4_item_get_key(reiser4_place_t *place,
 				    reiser4_key_t *key);
 
