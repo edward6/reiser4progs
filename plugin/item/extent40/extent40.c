@@ -241,8 +241,6 @@ static int32_t extent40_read(place_t *place, void *buff,
 			sec = (blk * (blksize / secsize)) +
 				(blklocal / secsize);
 
-			/* FIXME-UMKA: Here also should be holes handling */
-
 			/* Loop though one block (4096) */
 			while (blkchunk > 0) {
 				uint32_t secchunk;
@@ -392,9 +390,11 @@ static errno_t extent40_insert(place_t *place,
 		
 		if (size > count)
 			size = count;
-		
-		aal_memcpy(block->data + (hint->offset % blksize),
-			   hint->type_specific, size);
+
+		if (hint->type_specific) {
+			aal_memcpy(block->data + (hint->offset % blksize),
+				   hint->type_specific, size);
+		}
 
 		count -= size;
 		block_offset += blksize;

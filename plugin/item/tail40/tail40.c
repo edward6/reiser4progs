@@ -83,10 +83,16 @@ static errno_t tail40_insert(place_t *place,
 	
 	if (count > place->len - pos)
 		count = place->len - pos;
-	
-	/* Copying new data into place */
-	aal_memcpy(place->body + pos,
-		   hint->type_specific, count);
+
+	/* Checking if we insert hole */
+	if (hint->type_specific) {
+		/* Copying new data into place */
+		aal_memcpy(place->body + pos,
+			   hint->type_specific, count);
+	} else {
+		/* Making hole of size @count */
+		aal_memset(place->body + pos, 0, count);
+	}
 
 	/* Updating the key */
 	if (pos == 0) {

@@ -350,6 +350,7 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 				if (reg->offset + hint.count > offset + 1)
 					hint.count = (offset + 1) - reg->offset;
 			} else {
+				/* Initializing offset from unit start */
 				hint.offset = plug_call(hint.key.plug->o.key_ops,
 							get_offset, &hint.key);
 			
@@ -360,6 +361,7 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 			break;
 		}
 
+		/* Setting up target level */
 		level = hint.plug->id.group == EXTENT_ITEM ?
 			LEAF_LEVEL + 1 : LEAF_LEVEL;
 

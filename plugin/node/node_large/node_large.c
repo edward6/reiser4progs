@@ -120,6 +120,9 @@ errno_t node_large_fetch(node_entity_t *entity,
 	
 	/* Initializing item's plugin */
 	pid = ih_get_pid(node_large_ih_at(node, pos->item));
+
+	if (pid == ITEM_CDE_SHORT_ID)
+		pid = ITEM_CDE_LARGE_ID;
 	
 	if (!(place->plug = core->factory_ops.pfind(ITEM_PLUG_TYPE,
 						    pid, LARGE)))
@@ -469,7 +472,12 @@ static errno_t node_large_insert(node_entity_t *entity, pos_t *pos,
 
 	/* Updating item header if we want insert new item */
 	if (pos->unit == MAX_UINT32) {
-		ih_set_pid(ih, hint->plug->id.id);
+		
+		/* FIXME-UMKA: Hardcoded item pid */
+		if (hint->plug->id.id == ITEM_CDE_LARGE_ID)
+			ih_set_pid(ih, ITEM_CDE_SHORT_ID);
+		else
+			ih_set_pid(ih, hint->plug->id.id);
 
 		aal_memcpy(&ih->key, hint->key.body,
 			   sizeof(ih->key));

@@ -338,7 +338,7 @@ int main(int argc, char *argv[]) {
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_exception_yesno("Reiser4 going to be "
+			if (aal_exception_yesno("Reiser4 is going to be "
 						"created on %s.",
 						host_dev) == EXCEPTION_NO)
 			{
