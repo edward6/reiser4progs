@@ -54,8 +54,13 @@ static lookup_t reg40_next(reg40_t *reg) {
 			obj40_unlock(&reg->obj, &reg->body);
 
 		/* Locking new location */
-		reg->body = place;
+		aal_memcpy(&reg->body, &place,
+			   sizeof(reg->body));
+		
 		obj40_lock(&reg->obj, &reg->body);
+
+		if (reg->body.item.pos.unit == ~0ul)
+			reg->body.item.pos.unit = 0;
 	}
 
 	return res;
@@ -75,7 +80,10 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	if (reg40_size(entity) == 0)
 		return 0;
 
-	return -(reg40_next(reg) != LP_PRESENT);
+	if (reg40_next(reg) != LP_PRESENT)
+		return -EINVAL;
+	
+	return 0;
 }
 
 /* Reads @n bytes to passed buffer @buff */
@@ -112,11 +120,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	for (read = 0; read < n; ) {
 		item = &reg->body.item;
 		
-		if (item->pos.unit == ~0ul)
-			item->pos.unit = 0;
-			
-		if ((chunk = n - read) == 0)
-			break;
+		chunk = n - read;
 
 		/* Getting item's key offset */
 		offset = plugin_call(item->key.plugin->key_ops,
