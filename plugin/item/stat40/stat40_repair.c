@@ -128,11 +128,8 @@ errno_t stat40_print(place_t *place, aal_stream_t *stream,
 	aal_assert("umka-1407", place != NULL);
 	aal_assert("umka-1408", stream != NULL);
     
-	aal_stream_format(stream, "STATDATA PLUGIN=%s, LEN=%u, KEY=[%s], "
-			  "UNITS=1\n", place->plug->label, place->len,
-			  stat40_core->key_ops.print(&place->key, PO_DEFAULT));
-		
-	aal_stream_format(stream, "exts:\t\t%u\n", stat40_sdext_count(place));
+	aal_stream_format(stream, "UNITS=1\nexts:\t\t%u\n", 
+			  stat40_sdext_count(place));
 	
 	return stat40_traverse(place, callback_print_ext, &sdext,
 			       (void *)stream);

@@ -81,17 +81,4 @@ errno_t tail40_unpack(place_t *place, aal_stream_t *stream) {
 	return 0;
 }
 
-/* Print tail item at @place to passed @stream. */
-errno_t tail40_print(place_t *place, aal_stream_t *stream,
-		     uint16_t options)
-{
-	aal_assert("umka-1489", place != NULL);
-	aal_assert("umka-1490", stream != NULL);
-
-	aal_stream_format(stream, "TAIL PLUGIN=%s, LEN=%u, KEY=[%s]\n",
-			  place->plug->label, place->len,
-			  tail40_core->key_ops.print(&place->key,
-						     PO_DEFAULT));
-	return 0;
-}
 #endif

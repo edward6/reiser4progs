@@ -400,9 +400,7 @@ errno_t extent40_print(place_t *place,
 	extent = extent40_body(place);
 	count = extent40_units(place);
 
-	aal_stream_format(stream, "EXTENT PLUGIN=%s, LEN=%u, KEY=[%s], "
-			  "UNITS=%u\n[", place->plug->label, place->len,
-			  extent40_core->key_ops.print(&place->key, PO_DEFAULT), count);
+	aal_stream_format(stream, "UNITS=%u\n[", count);
 		
 	for (i = 0; i < count; i++) {
 		aal_stream_format(stream, "%llu(%llu)%s",

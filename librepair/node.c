@@ -53,9 +53,9 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 			trans_hint_t hint;
 			
 			aal_error("Node (%llu): Failed to open the "
-				  "item (%u). %s", node_blocknr(node),
+				  "item (%u).%s", node_blocknr(node),
 				  pos->item, mode == RM_BUILD ? 
-				  "Removed." : "");
+				  " Removed." : "");
 			
 			if (mode != RM_BUILD) {
 				res |= RE_FATAL;

@@ -647,6 +647,7 @@ errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 		     uint32_t start, uint32_t count, uint16_t options) 
 {
 	void *ih;
+	char *key;
 	pos_t pos;
 	uint8_t level;
 	uint32_t last, pol;	
@@ -691,23 +692,24 @@ errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 			return -EINVAL;
 		
 		ih = node40_ih_at(node, pos.item);
-		aal_stream_format(stream, "#%u, OFF %u: ", pos.item, 
-				  ih_get_offset(ih, pol));
+		key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
 		
+		aal_stream_format(stream, "#%u, %s (%s): [%s] OFF %u, "
+				  "LEN=%u, flags=0x%x ", pos.item, 
+				  reiser4_igname[place.plug->id.group],
+				  place.plug->label, key, 
+				  ih_get_offset(ih, pol),
+				  place.len, ih_get_flags(ih, pol));
+
 		/* Printing item by means of calling item print method if it is
 		   implemented. If it is not, then print common item information
 		   like key, len, etc. */
 		if (place.plug->o.item_ops->debug->print) {
 			if (plug_call(place.plug->o.item_ops->debug,
 				      print, &place, stream, options))
-			{
 				return -EINVAL;
-			}
 		} else {
-			char *key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
-			
-			aal_stream_format(stream, "PLUGIN: %s LEN=%u, KEY=[%s]\n",
-					  place.plug->label, place.len, key);
+			aal_stream_format(stream, "\n");
 		}
 	}
 	

@@ -19,16 +19,13 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 /* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */
 static errno_t callback_register_item(void *object, place_t *place, void *data)
 {
-        aal_assert("vpf-1114", object != NULL);
         aal_assert("vpf-1115", place != NULL);
          
         if (repair_item_test_flag(place, OF_CHECKED)) {
                 aal_error("Node (%llu), item (%u): item registering "
-			  "failed--it belongs to another object "
-			  "already. Plugin (%s).",
-			  place->block->nr, place->pos.unit,
-			  ((object_entity_t *)object)->plug->label);
-                return 1;
+			  "failed, it belongs to another object already.",
+			  place->block->nr, place->pos.item);
+                return -EINVAL;
         }
          
         repair_item_set_flag(place, OF_CHECKED);

@@ -57,11 +57,7 @@ errno_t nodeptr40_print(place_t *place, aal_stream_t *stream,
     
 	nodeptr = nodeptr40_body(place);
 
-	aal_stream_format(stream, "NODEPTR PLUGIN=%s, LEN=%u, "
-			  "KEY=[%s], UNITS=1\n[%llu]\n",
-			  place->plug->label, place->len, 
-			  nodeptr40_core->key_ops.print(&place->key,
-							PO_DEFAULT), 
+	aal_stream_format(stream, "UNITS=1\n[%llu]\n", 
 			  np40_get_ptr(nodeptr));
 	
 	return 0;

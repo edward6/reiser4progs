@@ -268,7 +268,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	/* Skip this check if level is not set (root node only). */
 	if (fd->level != level) {
 		aal_error("Level (%u) of the node (%llu) doesn't match the "
-			  "expected one (%u).%s", level, node_blocknr(node), 
+			  "expected one (%u). %s", level, node_blocknr(node), 
 			  fd->level, fd->repair->mode == RM_BUILD ? 
 			  "Removed." : "The whole subtree is skipped.");
 		
@@ -352,7 +352,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 
 	if ((fd->flags & RE_FATAL) || (fd->flags & RE_EMPTY)) {
 		aal_error("Node (%llu): the node is %s. Pointed from "
-			  "the node (%llu), item (%u), unit (%u).%s",
+			  "the node (%llu), item (%u), unit (%u). %s",
 			  blk, fd->flags & RE_EMPTY ? "empty" :
 			  fd->repair->mode == RM_BUILD ? "unrecoverable" : 
 			  "broken", node_blocknr(place->node), place->pos.item,

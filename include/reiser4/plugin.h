@@ -135,6 +135,8 @@ enum reiser4_item_group {
 
 typedef enum reiser4_item_group reiser4_item_group_t;
 
+extern const char *reiser4_igname[];
+
 /* Known node plugin ids. */
 enum reiser4_node_plug_id {
 	NODE_REISER40_ID        = 0x0,

@@ -200,7 +200,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 			  reiser4_print_key(&place.key, PO_DEFAULT),
 			  node_blocknr(node->p.node), place.pos.item, 
 			  place.pos.unit, reiser4_print_key(&dkey, PO_DEFAULT),
-			  mode == RM_BUILD ? "Fixed." : "");
+			  mode == RM_BUILD ? " Fixed." : "");
 
 		if (mode != RM_BUILD) {
 			res |= RE_FATAL;
@@ -319,8 +319,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	pid = reiser4_param_value("nodeptr");
 	
 	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_error("Can't find item plugin by its id 0x%x.", 
-			  pid);
+		aal_error("Can't find item plugin by its id 0x%x.", pid);
 		return -EINVAL;
 	}
 	

@@ -491,7 +491,7 @@ static item_repair_ops_t repair_ops = {
 
 static item_debug_ops_t debug_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.print		  = tail40_print
+	.print		  = NULL
 #endif
 };
 

@@ -471,6 +471,7 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 	if (insert) {
                 /* Setting up the fields of new item */
 		ih_set_offset(ih, offset, pol);
+		ih_set_flags(ih, 0, pol);
 
 		/* Setting up node header */
 		nh_inc_num_items(node, count);
@@ -673,19 +674,19 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
                 aal_error("Can't expand node for insert item/unit.");
                 return -EINVAL;
         }
-                                                                                              
-        pol = node40_key_pol(node);
+        
+	pol = node40_key_pol(node);
         ih = node40_ih_at(node, pos->item);
-                                                                                              
-        /* Updating item header if we want insert new item. */
+        
+	/* Updating item header if we want insert new item. */
         if (pos->unit == MAX_UINT32) {
                 ih_set_pid(ih, hint->plug->id.id, pol);
-                                                                                              
-                aal_memcpy(ih, hint->offset.body,
+                
+		aal_memcpy(ih, hint->offset.body,
                            key_size(pol));
         }
-                                                                                              
-        /* Preparing place for calling item plugin with them. */
+        
+	/* Preparing place for calling item plugin with them. */
         if (node40_fetch(entity, pos, &place)) {
                 aal_error("Can't fetch item data.");
                 return -EINVAL;
@@ -697,13 +698,13 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 				    node->block->nr, place.pos.item);
 		return write;
 	}
-                                                                                              
-        /* Updating item's key if we insert new item or if we insert unit into
+        
+	/* Updating item's key if we insert new item or if we insert unit into
            leftmost postion. */
         if (pos->unit == 0)
                 aal_memcpy(ih, place.key.body, key_size(pol));
-                                                                                              
-        return write;
+        
+	return write;
 }
 
 static errno_t node40_insert(node_entity_t *entity,

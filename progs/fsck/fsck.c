@@ -130,6 +130,7 @@ static void fsck_init_streams(fsck_parse_t *data) {
 	
 	misc_exception_set_stream(EXCEPTION_ERROR, data->logfile);
 	misc_exception_set_stream(EXCEPTION_WARNING, data->logfile);
+	misc_exception_set_stream(EXCEPTION_MESSAGE, stdout);
 	misc_exception_set_stream(EXCEPTION_FATAL, stderr);
 	misc_exception_set_stream(EXCEPTION_BUG, stderr);
 }

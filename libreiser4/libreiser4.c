@@ -6,6 +6,17 @@
 
 #include <reiser4/libreiser4.h>
 
+#ifndef ENABLE_STAND_ALONE
+const char *reiser4_igname[] = {
+	"SD",
+	"NPTR",
+	"DENTRY",
+	"TAIL",
+	"EXTENT",
+	"PERM"
+};
+#endif
+
 /* Handler for plugin lookup requests from all plugins */
 static reiser4_plug_t *factory_ifind(
 	rid_t type,		    /* needed type of plugin*/
