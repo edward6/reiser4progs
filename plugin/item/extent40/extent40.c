@@ -233,8 +233,11 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		
 		/* Check if we remove whole unit. */
 		if (remove < width) {
-			if (et40_get_start(extent) != EXTENT_HOLE_UNIT)
+			if (et40_get_start(extent) != EXTENT_HOLE_UNIT &&
+			    et40_get_start(extent) != EXTENT_UNALLOC_UNIT)
+			{
 				et40_inc_start(extent, remove);
+			}
 			
 			et40_dec_width(extent, remove);
 			hint->bytes += remove * blksize;
@@ -259,7 +262,9 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	}
 
 	/* Updating key if it makes sense. */
-	if (place->pos.unit == 0 && size >= esize) {
+	count = count / blksize * blksize;
+	
+	if (place->pos.unit == 0 && count) {
 		offset = plug_call(place->key.plug->o.key_ops,
 				   get_offset, &place->key);
 		
