@@ -230,136 +230,13 @@ static errno_t sym40_layout(object_entity_t *entity,
 }
 #endif
 
-static errno_t sym40_stat(sym40_t *sym) {
-	switch (obj40_lookup(&sym->obj, STAT_KEY(&sym->obj),
-			     LEAF_LEVEL, &sym->obj.statdata))
-	{
-	case PRESENT:
-		return 0;
-	default:
-		return -EINVAL;
-	}
-}
-
-static errno_t sym40_init(sym40_t *sym) {
-	item_entity_t *item;
-	reiser4_plugin_t *plugin;
-
-	item = &sym->obj.statdata.item;
-
-	if (!(plugin = sym->obj.core->factory_ops.ifind(
-		      OBJECT_PLUGIN_TYPE, obj40_pid(item))))
-	{
-		return -EINVAL;
-	}
-
-	if (!(sym->current = plugin_call(plugin->o.object_ops,
-					 open, sym->obj.tree,
-					 &sym->obj.statdata)))
-	{
-		return -EINVAL;
-	}
-	
-	return 0;
-}
-
-static void sym40_fini(sym40_t *sym) {
-	aal_assert("umka-2237", sym != NULL);
-
-	plugin_call(sym->current->plugin->o.object_ops,
-		    close, sym->current);
-	
-	sym->current = NULL;
-}
-
-/* Callback function for searching statdata item while parsing symlink */
-static errno_t callback_find_statdata(char *track, char *entry, void *data) {
-	errno_t res;
-	sym40_t *sym;
-	
-	sym = (sym40_t *)data;
-	
-	/* Updating stat data place */
-	if ((res = sym40_stat(sym)))
-		return res;
-
-	/* Initializing current entity */
-	if ((res = sym40_init(sym)))
-		return res;
-
-	/* Nested symlinks handling */
-	if (sym->current->plugin->o.object_ops->follow) {
-		/*
-		  Calling follow() method if any of the opened current object.
-		  This is needed for handling case, symlink has another symlink
-		  as a part.
-		*/
-		if ((res = plugin_call(sym->current->plugin->o.object_ops,
-				       follow, sym->current, &sym->parent,
-				       STAT_KEY(&sym->obj))))
-		{
-			aal_exception_error("Can't follow %s.", track);
-			goto error_fini;
-		}
-
-		/*
-		  As new stat dat key is found by follow(), we reinitialize
-		  object at it.
-		*/
-		sym40_fini(sym);
-
-		if ((res = sym40_stat(sym)))
-			return res;
-
-		if ((res = sym40_init(sym)))
-			return res;
-	}
-
-	/* Saving key to parent key */
-	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
-		    assign, &sym->parent, STAT_KEY(&sym->obj));
-
-	return 0;
-	
- error_fini:
-	sym40_fini(sym);
-	return res;
-}
-
-/* Callback for searching entry inside current opened object */
-static errno_t callback_find_entry(char *track, char *entry,
-				   void *data)
-{
-	entry_hint_t entry_hint;
-	errno_t res; sym40_t *sym;
-	
-	sym = (sym40_t *)data;
-
-	/* Looking up for @enrty in current directory */
-	res = plugin_call(sym->current->plugin->o.object_ops,
-			  lookup, sym->current, entry, &entry_hint);
-
-	/* If entry found assign found key to object stat data key */
-	if (res == PRESENT) {
-		res = plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
-				  assign, STAT_KEY(&sym->obj),
-				  &entry_hint.object);
-	} else {
-		aal_exception_error("Can't find %s.", entry);
-		res = -EINVAL;
-	}
-
-	sym40_fini(sym);
-	return res;
-}
-
 /*
   This function reads symlink and parses it by means of using aux_parse_path
   with applying corresponding callback fucntions for searching stat data and
   searchig entry. It returns stat data key of the object symlink points to.
 */
 static errno_t sym40_follow(object_entity_t *entity,
-			    key_entity_t *current,
+			    key_entity_t *from,
 			    key_entity_t *key)
 {
 	errno_t res;
@@ -375,24 +252,9 @@ static errno_t sym40_follow(object_entity_t *entity,
 	if ((res = obj40_get_sym(&sym->obj, path)))
 		return res;
 
-	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
-		    assign, STAT_KEY(&sym->obj), current);
-
-	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
-		    assign, &sym->parent, STAT_KEY(&sym->obj));
-
-	sym->current = NULL;
-	
-	if (!(res = aux_parse_path(path, callback_find_statdata,
-				  callback_find_entry, (void *)sym)))
-	{
-		sym40_fini(sym);
-		
-		plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
-			    assign, key, STAT_KEY(&sym->obj));
-        }
-
-	return res;
+	return sym->obj.core->object_ops.resolve(sym->obj.tree,
+						 &sym->obj.statdata,
+						 path, from, key);
 }
 
 /* Releases passed @entity */

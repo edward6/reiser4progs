@@ -24,12 +24,6 @@ struct sym40 {
 	  stuff for statdata handling.
 	*/
 	obj40_t obj;
-
-	/* Parent key */
-	key_entity_t parent;
-
-	/* Parsing related stuff */
-	object_entity_t *current;
 };
 
 typedef struct sym40 sym40_t;

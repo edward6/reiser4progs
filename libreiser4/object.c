@@ -42,6 +42,13 @@ static bool_t callback_guess_object(reiser4_plugin_t *plugin,
 	return FALSE;
 }
 
+uint64_t reiser4_object_size(reiser4_object_t *object) {
+	aal_assert("umka-1961", object != NULL);
+
+	return plugin_call(object->entity->plugin->o.object_ops,
+			   size, object->entity);
+}
+
 /* This function is trying to detect object plugin */
 static errno_t reiser4_object_init(reiser4_object_t *object) {
 	
@@ -55,14 +62,8 @@ static errno_t reiser4_object_init(reiser4_object_t *object) {
 static void reiser4_object_fini(reiser4_object_t *object) {
 	plugin_call(object->entity->plugin->o.object_ops,
 		    close, object->entity);
+	
 	object->entity = NULL;
-}
-
-uint64_t reiser4_object_size(reiser4_object_t *object) {
-	aal_assert("umka-1961", object != NULL);
-
-	return plugin_call(object->entity->plugin->o.object_ops,
-			   size, object->entity);
 }
 
 /* Looks up for the object stat data place in tree */
@@ -176,11 +177,13 @@ static errno_t callback_find_entry(char *track, char *entry,
 }
 
 errno_t reiser4_object_resolve(reiser4_object_t *object,
-			       char *filename,
-			       reiser4_key_t *from)
+			       char *filename)
 {
-	reiser4_key_assign(&object->key, from);
-
+	aal_assert("umka-2246", object != NULL);
+	aal_assert("umka-2247", filename != NULL);
+	
+	object->follow = TRUE;
+	
 	/* 
 	  Parsing path and looking for object's stat data. We assume, that name
 	  is absolute one. So, user, who calls this method should convert name
@@ -220,10 +223,14 @@ reiser4_object_t *reiser4_object_open(
 #endif
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
-	reiser4_key_assign(&object->parent, &fs->tree->key);
+	reiser4_key_assign(&object->parent,
+			   &fs->tree->key);
 #endif
 
-	if (reiser4_object_resolve(object, filename, &fs->tree->key))
+	/* Resolving path, starting from the root */
+	reiser4_key_assign(&object->key, &fs->tree->key);
+	
+	if (reiser4_object_resolve(object, filename))
 		goto error_free_object;
 
 	return object;
@@ -233,9 +240,9 @@ reiser4_object_t *reiser4_object_open(
 	return NULL;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifdef ENABLE_SYMLINKS_SUPPORT
 /* This function opens object by its @place */
-reiser4_object_t *reiser4_object_access(
+reiser4_object_t *reiser4_object_embody(
 	reiser4_fs_t *fs,               /* fs object will be opened on */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
 {
@@ -250,7 +257,10 @@ reiser4_object_t *reiser4_object_access(
     
 	object->fs = fs;
 	
+#ifndef ENABLE_STAND_ALONE
 	reiser4_key_string(&object->key, object->name);
+#endif
+	
 	aal_memcpy(&object->place, place, sizeof(*place));
 	reiser4_key_assign(&object->key, &object->place.item.key);
 
@@ -263,7 +273,9 @@ reiser4_object_t *reiser4_object_access(
 	aal_free(object);
 	return NULL;
 }
+#endif
 
+#ifndef ENABLE_STAND_ALONE
 errno_t reiser4_object_truncate(
 	reiser4_object_t *object,           /* object for truncating */
 	uint64_t n)			    /* the number of entries */
@@ -489,7 +501,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	/* Opening victim statdata by found place */
-	if (!(child = reiser4_object_access(object->fs, &place))) {
+	if (!(child = reiser4_object_embody(object->fs, &place))) {
 		aal_exception_error("Can't open %s/%s.",
 				    object->name, name);
 		return -EINVAL;

@@ -205,6 +205,37 @@ static uint32_t tree_maxspace(void *tree) {
 }
 #endif
 
+#ifdef ENABLE_SYMLINKS_SUPPORT
+static errno_t object_resolve(void *tree, place_t *place, char *filename,
+			      key_entity_t *from, key_entity_t *key)
+{
+	errno_t res;
+	reiser4_tree_t *t;
+	reiser4_place_t *p;
+	reiser4_object_t *o;
+	
+	t = (reiser4_tree_t *)tree;
+	p = (reiser4_place_t *)place;
+
+	if (!(o = reiser4_object_embody(t->fs, p)))
+		return -EINVAL;
+
+	/* Setting up the key resolve will start from */
+	reiser4_key_assign(&o->key, from);
+
+	/* Resolving symlink */
+	if ((res = reiser4_object_resolve(o, filename)))
+		goto error_free_object;
+
+	/* Assigning found key to passed @key */
+	reiser4_key_assign(key, &o->key);
+
+ error_free_object:
+	reiser4_object_close(o);
+	return res;
+}
+#endif
+
 reiser4_core_t core = {
 	.tree_ops = {
 	
@@ -253,7 +284,12 @@ reiser4_core_t core = {
 		*/
 		.nfind = factory_nfind
 #endif
+	},
+#ifdef ENABLE_SYMLINKS_SUPPORT
+	.object_ops = {
+		.resolve = object_resolve
 	}
+#endif
 };
 
 /* Returns libreiser4 max supported interface version */

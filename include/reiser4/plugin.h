@@ -1358,12 +1358,24 @@ struct factory_ops {
 
 typedef struct factory_ops factory_ops_t;
 
+#ifdef ENABLE_SYMLINKS_SUPPORT
+struct object_ops {
+	errno_t (*resolve) (void *, place_t *, char *,
+			    key_entity_t *, key_entity_t *);
+};
+
+typedef struct object_ops object_ops_t;
+#endif
+
 /* 
   This structure is passed to all plugins in initialization time and used for
   access libreiser4 factories.
 */
 struct reiser4_core {
 	tree_ops_t tree_ops;
+#ifdef ENABLE_SYMLINKS_SUPPORT
+	object_ops_t object_ops;
+#endif
 	factory_ops_t factory_ops;
 };
 

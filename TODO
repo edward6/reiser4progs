@@ -19,3 +19,4 @@ reiser4progs/COPYING.
   like kernel does.
 
 * online/offline resizer/repacker.
+* introduce some kind of reiser4_errnum for all libreiser4 operations.

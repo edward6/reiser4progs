@@ -14,6 +14,9 @@
 #define STAT_KEY(o) \
         (&((o)->statdata.item.key))
 
+#define STAT_ITEM(o) \
+        (&((o)->statdata.item))
+
 struct obj40 {
 
 	/*

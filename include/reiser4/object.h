@@ -15,14 +15,18 @@ extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
 					     bool_t follow);
 
 extern errno_t reiser4_object_resolve(reiser4_object_t *object,
-				      char *filename,
-				      reiser4_key_t *from);
+				      char *filename);
 
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint32_t n);
 
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
+
+#ifdef ENABLE_SYMLINKS_SUPPORT
+extern reiser4_object_t *reiser4_object_embody(reiser4_fs_t *fs,
+					       reiser4_place_t *place);
+#endif
 
 extern void reiser4_object_close(reiser4_object_t *object);
 extern errno_t reiser4_object_stat(reiser4_object_t *object);
@@ -44,9 +48,6 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 
 extern errno_t reiser4_object_seek(reiser4_object_t *object,
 				   uint32_t offset);
-
-extern reiser4_object_t *reiser4_object_access(reiser4_fs_t *fs,
-					       reiser4_place_t *place);
 
 extern reiser4_object_t *reiser4_object_create(reiser4_fs_t *fs,
 					       reiser4_object_t *parent,
