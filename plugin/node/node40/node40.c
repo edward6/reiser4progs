@@ -355,8 +355,9 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	int is_cut;
 	int is_range;
     
+	uint32_t offset;
+	uint32_t item_len;
 	item40_header_t *ih;
-	uint16_t offset, ihlen;
         
 	aal_assert("umka-958", node != NULL, return -1);
 	aal_assert("umka-959", pos != NULL, return -1);
@@ -369,9 +370,9 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	ih = node40_ih_at(node, pos->item);
     
 	offset = ih40_get_offset(ih);
-	ihlen = node40_item_len((object_entity_t *)node, pos);
+	item_len = node40_item_len((object_entity_t *)node, pos);
 
-	if ((offset + ihlen) < nh40_get_free_space_start(node)) {
+	if ((offset + item_len) < nh40_get_free_space_start(node)) {
 		item40_header_t *cur;
 		item40_header_t *end;
 	
@@ -770,7 +771,7 @@ static errno_t node40_predict_units(node40_t *src_node,
 			return -1;
 				
 	} else {
-		hint->part -= sizeof(item40_header_t);
+		hint->part -= node40_overhead((object_entity_t *)dst_node);
 		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
 			return -1;
 	}
@@ -895,8 +896,10 @@ static errno_t node40_shift_units(node40_t *src_node,
 	ih40_dec_len(ih, hint->part);
 
 	/* Updating source node fields */
-	nh40_inc_free_space(src_node, hint->part);
-	nh40_dec_free_space_start(src_node, hint->part);
+	pos.unit = 0;
+	pos.item = src_item.pos;
+	
+	node40_shrink(src_node, &pos, hint->part);
 
 	return 0;
 }
@@ -908,6 +911,7 @@ static errno_t node40_predict_items(node40_t *src_node,
 	uint32_t len;
 	uint32_t space;
 
+	uint32_t overhead;
 	uint32_t src_items;
 	uint32_t dst_items;
 
@@ -931,9 +935,10 @@ static errno_t node40_predict_items(node40_t *src_node,
 
 	flags = hint->flags;
 	hint->flags &= ~SF_MOVIP;
-	
 	hint->bytes = 0;
-	
+
+	overhead = node40_overhead((object_entity_t *)dst_node);
+
 	/* Predicting how many whole item may be shifted */
 	while (src_items > 0 && !(hint->flags & SF_MOVIP)) {
 
@@ -943,19 +948,22 @@ static errno_t node40_predict_items(node40_t *src_node,
 		}
 		
 		/* Getting length of current item */
-		if (cur == end)
+		len = (cur == end ? nh40_get_free_space_start(src_node) :
+		       ih40_get_offset(cur - 1)) - ih40_get_offset(cur);
+		
+/*		if (cur == end)
 			len = nh40_get_free_space_start(src_node) -
 				ih40_get_offset(cur);
 		else {
 			len = ih40_get_offset(cur - 1) -
 				ih40_get_offset(cur);
-		}
+		}*/
 
 		/*
 		  We go out if there is no enough free space to shift one more
 		  whole item.
 		*/
-		if (space < (len + sizeof(item40_header_t)))
+		if (space < len + overhead)
 			break;
 
 		/* Updating insert position */
@@ -1013,7 +1021,7 @@ static errno_t node40_predict_items(node40_t *src_node,
 		hint->items++;
 		hint->bytes += len;
 
-		space -= (len + sizeof(item40_header_t));
+		space -= (len + overhead);
 		cur += (flags & SF_LEFT ? -1 : 1);
 	}
 	
