@@ -253,10 +253,15 @@ static errno_t stat_process_item(
 	uint64_t width,             /* region count */
 	void *data)                 /* one of blk item points to */
 {
+	reiser4_place_t *place;
 	tstat_hint_t *stat_hint;
 
+	place = (reiser4_place_t *)entity;
 	stat_hint = (tstat_hint_t *)data;
-	stat_hint->nodes += width;
+
+	if (!reiser4_item_branch(place->plug))
+		stat_hint->nodes += width;
+	
 	return 0;
 }
 
