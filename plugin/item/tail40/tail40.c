@@ -283,7 +283,9 @@ static int tail40_lookup(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static int tail40_mergeable(item_entity_t *item1, item_entity_t *item2) {
+static int tail40_mergeable(item_entity_t *item1,
+			    item_entity_t *item2)
+{
 	reiser4_plugin_t *plugin;
 	uint64_t offset1, offset2;
 	roid_t objectid1, objectid2;

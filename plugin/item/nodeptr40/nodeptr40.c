@@ -11,12 +11,17 @@ static reiser4_core_t *core = NULL;
 
 #define nodeptr40_body(item) ((nodeptr40_t *)item->body)
 
+/*
+  Returns the number of units in nodeptr. As nodeptr40 has not units and thus
+  cannot be splitted by balancing, it has one unit.
+*/
 static uint32_t nodeptr40_units(item_entity_t *item) {
 	return 1;
 }
 
 #ifndef ENABLE_COMPACT
 
+/* Initializes the area nodeptr will lie in */
 static errno_t nodeptr40_init(item_entity_t *item) {
 	aal_assert("umka-1671", item != NULL, return -1);
 	
@@ -24,6 +29,7 @@ static errno_t nodeptr40_init(item_entity_t *item) {
 	return 0;
 }
 
+/* Inserts new nodeptr described by passed @buff */
 static errno_t nodeptr40_insert(item_entity_t *item,
 				void *buff, uint32_t pos)
 {
@@ -45,6 +51,7 @@ static errno_t nodeptr40_insert(item_entity_t *item,
 	return 0;
 }
 
+/* Estimates how many bytes is needed for creating new nodeptr */
 static errno_t nodeptr40_estimate(item_entity_t *item,
 				  void *buff, uint32_t pos) 
 {
@@ -58,6 +65,7 @@ static errno_t nodeptr40_estimate(item_entity_t *item,
 	return 0;
 }
 
+/* Prints passed nodeptr into @stream */
 static errno_t nodeptr40_print(item_entity_t *item,
 			       aal_stream_t *stream,
 			       uint16_t options) 
@@ -85,6 +93,7 @@ static errno_t nodeptr40_print(item_entity_t *item,
 
 #endif
 
+/* Reads nodeptr into passed buff */
 static int32_t nodeptr40_fetch(item_entity_t *item, void *buff,
 			       uint32_t pos, uint32_t count)
 {
@@ -105,21 +114,29 @@ static int32_t nodeptr40_fetch(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+/*
+  Layout implementation for nodeptr40. It calls @func for each block nodeptr
+  points to.
+*/
 static errno_t nodeptr40_layout(item_entity_t *item,
 				data_func_t func,
 				void *data)
 {
 	errno_t res;
+	nodeptr40_t *nodeptr;
 	
 	aal_assert("umka-1749", item != NULL, return -1);
 	aal_assert("umka-1750", func != NULL, return -1);
 
-	if ((res = func(item, item->con.blk, data)))
+	nodeptr = nodeptr40_body(item);
+	
+	if ((res = func(item, np40_get_ptr(nodeptr), data)))
 		return res;
 
 	return 0;
 }
 
+/* Makes update of the specified nodeptr */
 static int32_t nodeptr40_update(item_entity_t *item, void *buff,
 				uint32_t pos, uint32_t count)
 {
