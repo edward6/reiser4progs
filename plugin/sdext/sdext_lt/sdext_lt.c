@@ -5,6 +5,8 @@
   reiser4progs/COPYING.
 */
 
+#ifndef ENABLE_STAND_ALONE
+
 #include "sdext_lt.h"
 #include <aux/aux.h>
 
@@ -34,7 +36,6 @@ static uint16_t sdext_lt_length(body_t *body) {
 	return sizeof(sdext_lt_t);
 }
 
-#ifndef ENABLE_STAND_ALONE
 static errno_t sdext_lt_init(body_t *body, 
 			     void *hint) 
 {
@@ -81,7 +82,6 @@ static errno_t sdext_lt_print(body_t *body,
 }
 
 extern errno_t sdext_lt_check(sdext_entity_t *sdext, uint8_t mode);
-#endif
 
 static reiser4_plugin_t sdext_lt_plugin = {
 	.sdext_ops = {
@@ -91,19 +91,13 @@ static reiser4_plugin_t sdext_lt_plugin = {
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_lt",
-#ifndef ENABLE_STAND_ALONE
-			.desc = "Large times stat data extention for reiser4, ver. " VERSION
-#else
-			.desc = ""
-#endif
+			.desc = "Large times stat data extention "
+			"for reiser4, ver. " VERSION
 		},
 		.open	 = sdext_lt_open,
-		
-#ifndef ENABLE_STAND_ALONE
 		.init	 = sdext_lt_init,
 		.print   = sdext_lt_print,
 		.check   = sdext_lt_check,
-#endif		
 		.length	 = sdext_lt_length
 	}
 };
@@ -114,4 +108,4 @@ static reiser4_plugin_t *sdext_lt_start(reiser4_core_t *c) {
 }
 
 plugin_register(sdext_lt, sdext_lt_start, NULL);
-
+#endif

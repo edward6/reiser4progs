@@ -10,7 +10,7 @@
 #include <aux/aux.h>
 
 #ifndef ENABLE_STAND_ALONE
-#  include <sys/stat.h>
+#include <sys/stat.h>
 #endif
 
 static reiser4_core_t *core = NULL;
@@ -40,7 +40,6 @@ static uint16_t sdext_lw_length(body_t *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t sdext_lw_init(body_t *body, 
 			     void *hint) 
 {
@@ -127,7 +126,6 @@ static errno_t sdext_lw_print(body_t *body, aal_stream_t *stream,
 
 extern errno_t sdext_lw_check(sdext_entity_t *sdext,
 			      uint8_t mode);
-
 #endif
 
 static reiser4_plugin_t sdext_lw_plugin = {

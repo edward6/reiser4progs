@@ -89,7 +89,7 @@ static int32_t reg40_read(object_entity_t *entity,
 		return -EINVAL;
 	
 	/* The file has not data or nothing can be read */
-	if (!reg->body.node || reg->offset == size)
+	if (reg->offset == size)
 		return 0;
 
 	if (n > size - reg->offset)
@@ -285,7 +285,6 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 		return res;
 	
 	size = obj40_get_size(&reg->obj);
-
 	aal_assert("umka-1913", size > 0);
 	
 	if ((res = reg40_truncate(entity, size)))

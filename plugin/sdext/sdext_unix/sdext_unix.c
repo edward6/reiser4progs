@@ -8,13 +8,8 @@
 
 #ifndef ENABLE_STAND_ALONE
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
-#endif
-
 #include <time.h>
 #include <sys/types.h>
-#endif
 
 #include <aux/aux.h>
 #include "sdext_unix.h"
@@ -49,7 +44,6 @@ static uint16_t sdext_unix_length(body_t *body) {
 	return sizeof(sdext_unix_t);
 }
 
-#ifndef ENABLE_STAND_ALONE
 static errno_t sdext_unix_init(body_t *body, 
 			       void *hint) 
 {
@@ -119,8 +113,6 @@ static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 extern errno_t sdext_unix_check(sdext_entity_t *sdext,
 				uint8_t mode);
 
-#endif
-
 static reiser4_plugin_t sdext_unix_plugin = {
 	.sdext_ops = {
 		.h = {
@@ -129,19 +121,12 @@ static reiser4_plugin_t sdext_unix_plugin = {
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_unix",
-#ifndef ENABLE_STAND_ALONE
 			.desc = "Unix stat data extention for reiser4, ver. " VERSION
-#else
-			.desc = ""
-#endif
 		},
 		.open	 = sdext_unix_open,
-		
-#ifndef ENABLE_STAND_ALONE
 		.init	 = sdext_unix_init,
 		.print   = sdext_unix_print,
 		.check   = sdext_unix_check,
-#endif
 		.length	 = sdext_unix_length
 	}
 };
@@ -152,4 +137,4 @@ static reiser4_plugin_t *sdext_unix_start(reiser4_core_t *c) {
 }
 
 plugin_register(sdext_unix, sdext_unix_start, NULL);
-
+#endif
