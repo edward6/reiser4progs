@@ -41,6 +41,9 @@ extern reiser4_node_t *reiser4_tree_neigh_node(reiser4_tree_t *tree,
 					       reiser4_node_t *node,
 					       aal_direction_t where);
 
+extern int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
+				      trans_hint_t *hint);
+
 #ifndef ENABLE_STAND_ALONE
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
@@ -85,9 +88,6 @@ extern errno_t reiser4_tree_trav(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 				      conv_hint_t *hint);
-
-extern int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
-				      trans_hint_t *hint);
 
 extern int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				       trans_hint_t *hint);

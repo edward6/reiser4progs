@@ -224,8 +224,8 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 }
 
 /* Fix @place->key if differs from @key. */
-errno_t obj40_ukey(obj40_t *obj, place_t *place, 
-		   key_entity_t *key, uint8_t mode) 
+errno_t obj40_fix_key(obj40_t *obj, place_t *place, 
+		      key_entity_t *key, uint8_t mode) 
 {
 	errno_t res;
 	

@@ -37,20 +37,14 @@ static errno_t tree_insert(
 				   hint, level);
 }
 
-/* Handler for write data to the tree */
-static int64_t tree_write(
-	void *tree,	            /* opaque pointer to the tree */
-	place_t *place,	            /* insertion point will be saved here */
-	trans_hint_t *hint,         /* item hint to be inserted into tree */
-	uint8_t level)              /* target level */
-{
-	aal_assert("umka-846", tree != NULL);
-	aal_assert("umka-847", hint != NULL);
-	aal_assert("umka-1643", place != NULL);
+static int64_t tree_write(void *tree, trans_hint_t *hint) {
+	reiser4_tree_t *t;
 
-	return reiser4_tree_write((reiser4_tree_t *)tree,
-				  (reiser4_place_t *)place,
-				  hint, level);
+	aal_assert("umka-2506", tree != NULL);
+	aal_assert("umka-2507", hint != NULL);
+	
+	t = (reiser4_tree_t *)tree;
+	return reiser4_tree_write_flow(t, hint);
 }
 
 /* Handler for item removing requests from the all plugins */
@@ -86,6 +80,16 @@ static lookup_t tree_lookup(
 	
 	return reiser4_tree_lookup((reiser4_tree_t *)tree,
 				   key, level, bias, p);
+}
+
+static int64_t tree_read(void *tree, trans_hint_t *hint) {
+	reiser4_tree_t *t;
+
+	aal_assert("umka-2509", tree != NULL);
+	aal_assert("umka-2510", hint != NULL);
+	
+	t = (reiser4_tree_t *)tree;
+	return reiser4_tree_read_flow(t, hint);
 }
 
 /* Initializes item at passed @place */
@@ -135,17 +139,6 @@ static uint32_t tree_blksize(void *tree) {
 	
 	fs = ((reiser4_tree_t *)tree)->fs;
 	return reiser4_master_get_blksize(fs->master);
-}
-
-static uint32_t tree_maxspace(void *tree) {
-	reiser4_node_t *root;
-    
-	aal_assert("umka-1220", tree != NULL);
-	
-	if (!(root = ((reiser4_tree_t *)tree)->root))
-		return 0;
-	
-	return reiser4_node_maxspace(root);
 }
 
 static errno_t tree_ukey(void *tree, place_t *place,
@@ -214,6 +207,9 @@ reiser4_core_t core = {
 		/* This one for lookuping the tree */
 		.lookup	    = tree_lookup,
 
+		/* Reads data from the tree. */
+		.read	    = tree_read,
+		
 		/* This one for initializing an item at place */
 		.fetch      = tree_fetch,
 
@@ -227,15 +223,14 @@ reiser4_core_t core = {
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
 
+		/* Callback for writting data to tree. */
 		.write	    = tree_write,
 
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
-		
-		.maxspace   = tree_maxspace,
 		.blksize    = tree_blksize,
 
-		/* Update the key in the place and the node itsef. */
+		/* Update the key in the place and the node itself. */
 		.ukey       = tree_ukey,
 
 		/* Data related functions */

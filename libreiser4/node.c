@@ -916,6 +916,17 @@ int64_t reiser4_node_write(reiser4_node_t *node,
 	return reiser4_node_mod(node, pos, hint, 0);
 }
 
+int64_t reiser4_node_trunc(reiser4_node_t *node,
+			   pos_t *pos, trans_hint_t *hint)
+{
+	aal_assert("umka-2503", node != NULL);
+	aal_assert("umka-2504", pos != NULL);
+	aal_assert("umka-2505", hint != NULL);
+	
+	return plug_call(node->entity->plug->o.node_ops,
+			 truncate, node->entity, pos, hint);
+}
+
 /* Deletes item or unit from cached node. Keeps track of changes of the left
    delimiting key. */
 errno_t reiser4_node_remove(

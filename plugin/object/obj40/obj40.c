@@ -486,7 +486,21 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 					  level, bias, place);
 }
 
+/* Reads data from the tree to passed @hint. */
+int64_t obj40_read(obj40_t *obj, trans_hint_t *hint) {
+	return obj->core->tree_ops.read(obj->info.tree, hint);
+}
+
 #ifndef ENABLE_STAND_ALONE
+int64_t obj40_conv(obj40_t *obj, conv_hint_t *hint) {
+	return obj->core->tree_ops.conv(obj->info.tree, hint);
+}
+
+/* Writes data to tree */
+int64_t obj40_write(obj40_t *obj, trans_hint_t *hint) {
+	return obj->core->tree_ops.write(obj->info.tree, hint);
+}
+
 /* Inserts passed item hint into the tree. After function is finished, place
    contains the place of the inserted item. */
 errno_t obj40_insert(obj40_t *obj, place_t *place,
@@ -494,14 +508,6 @@ errno_t obj40_insert(obj40_t *obj, place_t *place,
 {
 	return obj->core->tree_ops.insert(obj->info.tree,
 					  place, hint, level);
-}
-
-/* Writes data to tree */
-int32_t obj40_write(obj40_t *obj, place_t *place,
-		    trans_hint_t *hint, uint8_t level)
-{
-	return obj->core->tree_ops.write(obj->info.tree,
-					 place, hint, level);
 }
 
 /* Removes item/unit by @key */

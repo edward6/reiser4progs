@@ -1350,15 +1350,15 @@ struct tree_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Returns blocksize in passed tree */
 	uint32_t (*blksize) (void *);
-	
-	/* Returns maximal available space in a node */
-	uint32_t (*maxspace) (void *);
 #endif
 	
 	/* Makes lookup in the tree in order to know where say stat data item of
-	   a file really lies. It is used in all object plugins. */
-	lookup_t (*lookup) (void *, key_entity_t *, uint8_t,
-			    bias_t, place_t *);
+	   a file realy lies. It is used in all object plugins. */
+	lookup_t (*lookup) (void *, key_entity_t *,
+			    uint8_t, bias_t, place_t *);
+
+	/* Reads data from the tree. */
+	int64_t (*read) (void *, trans_hint_t *);
 
 	/* Initializes all item fields in passed place */
 	errno_t (*fetch) (void *, place_t *);
@@ -1372,10 +1372,9 @@ struct tree_ops {
 	errno_t (*insert) (void *, place_t *,
 			   trans_hint_t *, uint8_t);
 
-	/* Writes some data to tree */
-	int64_t (*write) (void *, place_t *,
-			  trans_hint_t *, uint8_t);
-    
+	/* Writes data to tree */
+	int64_t (*write) (void *, trans_hint_t *);
+	
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
 	errno_t (*remove) (void *, place_t *, trans_hint_t *);

@@ -53,6 +53,9 @@ extern int64_t reiser4_node_mod(reiser4_node_t *node, pos_t *pos,
 extern int64_t reiser4_node_write(reiser4_node_t *node,
 				  pos_t *pos, trans_hint_t *hint);
 
+extern int64_t reiser4_node_trunc(reiser4_node_t *node,
+				  pos_t *pos, trans_hint_t *hint);
+
 extern errno_t reiser4_node_insert(reiser4_node_t *node,
    				   pos_t *pos, trans_hint_t *hint);
 

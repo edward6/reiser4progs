@@ -1824,11 +1824,9 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	
 	while (curr < level) {
 		aal_assert("vpf-676", place->node->p.node != NULL);
-		
-		if (!(place->pos.item == 0 && place->pos.unit == 0) && 
-		    !(place->pos.item == reiser4_node_items(place->node)) && 
-		    !(place->pos.item + 1 == reiser4_node_items(place->node) &&
-		      place->pos.unit == reiser4_item_units(place)))
+
+		if (!reiser4_place_leftmost(place) &&
+		    !reiser4_place_rightmost(place))
 		{
 			/* We are not on the border, split */
 			if (!(node = reiser4_tree_alloc_node(tree, curr))) {
@@ -1858,12 +1856,24 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 						    "node durring split opeartion.");
 				goto error_free_node;
 			}
-		
+			reiser4_place_init(place, node->p.node, &node->p.pos);
 		} else {
 			node = place->node;
+
+			if (reiser4_place_rightmost(place)) {
+				bool_t whole;
+				
+				reiser4_place_init(place, node->p.node,
+						   &node->p.pos);
+				
+				whole = (place->pos.unit == MAX_UINT32);
+				reiser4_place_inc(place, whole);
+			} else {
+				reiser4_place_init(place, node->p.node,
+						   &node->p.pos);
+			}
 		}
-		
-		reiser4_place_init(place, node->p.node, &node->p.pos);
+
 		curr++;
 	}
 	
@@ -1945,7 +1955,10 @@ int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		bytes += hint->bytes;
 		
 		/* Updating key and buffer pointer */
-		hint->specific += write;
+		if (hint->specific) {
+			hint->specific += write;
+		}
+		
 		reiser4_key_inc_offset(&hint->offset, write);
 	}
 
@@ -1981,9 +1994,9 @@ int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 			return res;
 		}
 
-		/* Data does not found */
+		/* Data does not found. */
 		if (res == ABSENT)
-			return -EIO;
+			return total;
 
 		/* Prepare hint for read */
 		hint->tree = tree;
@@ -2008,6 +2021,104 @@ int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 	hint->specific = buff;
 	reiser4_key_assign(&hint->offset, &key);
 	
+	return total;
+}
+
+/* Truncates item @hint->offset point to by value stored in @hint->count. This
+   is used durring tail conversion. */
+int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
+				trans_hint_t *hint)
+{
+	errno_t res;
+	int64_t trunc;
+	uint32_t size;
+	uint64_t total;
+	key_entity_t key;
+
+	aal_assert("umka-2475", tree != NULL);
+	aal_assert("umka-2476", hint != NULL);
+
+	reiser4_key_assign(&key, &hint->offset);
+
+	for (total = 0, size = hint->count; size > 0;
+	     size -= trunc, total += trunc)
+	{
+		reiser4_place_t place;
+		
+		if ((res = reiser4_tree_lookup(tree, &hint->offset,
+					       LEAF_LEVEL, FIND_EXACT,
+					       &place)) < 0)
+		{
+			return res;
+		}
+
+		/* Nothing found by @hint->key */
+		if (res == ABSENT)
+			return total;
+
+		hint->count = size;
+
+		/* Calling node truncate method. */
+		if ((trunc = reiser4_node_trunc(place.node, &place.pos,
+						hint)) < 0)
+		{
+			return trunc;
+		}
+		
+		/* Updating left delimiting keys in all parent nodes */
+		if (reiser4_place_leftmost(&place) &&
+		    place.node->p.node)
+		{
+
+			/* If node became empty it will be detached from the
+			   tree, so updating is not needed and impossible,
+			   because it has no items. */
+			if (reiser4_node_items(place.node) > 0) {
+				reiser4_place_t p;
+				reiser4_key_t lkey;
+
+				/* Updating parent keys */
+				reiser4_node_lkey(place.node, &lkey);
+				
+				reiser4_place_init(&p, place.node->p.node,
+						   &place.node->p.pos);
+
+				if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
+					return res;
+			}
+		}
+	
+		/* Checking if the node became empty. If so, we release it. */
+		if (reiser4_node_items(place.node) > 0) {
+			if ((tree->flags & TF_PACK) && tree->traps.pack) {
+				if ((res = tree->traps.pack(tree, &place,
+							    tree->traps.data)))
+				{
+					return res;
+				}
+			}
+		} else {
+			/* Detaching node from the tree, because it became
+			   empty. */
+			reiser4_node_mkclean(place.node);
+			reiser4_tree_detach_node(tree, place.node);
+
+			/* Freeing node and updating place node component in
+			   order to let user know that node do not exist any
+			   longer. */
+			reiser4_tree_release_node(tree, place.node);
+		}
+
+		/* Drying tree up in the case root node has only one item */
+		if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree))	{
+			if ((res = reiser4_tree_dryout(tree)))
+				return res;
+		}
+
+		reiser4_key_inc_offset(&hint->offset, trunc);
+	}
+
+	reiser4_key_assign(&hint->offset, &key);
 	return total;
 }
 
@@ -2324,105 +2435,6 @@ int64_t reiser4_tree_write(reiser4_tree_t *tree,
 	aal_assert("umka-2444", hint->plug != NULL);
 
 	return reiser4_tree_mod(tree, place, hint, level, 0);
-}
-
-/* Truncates item @hint->offset point to by value stored in @hint->count. This
-   is used durring tail conversion. */
-int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
-				trans_hint_t *hint)
-{
-	errno_t res;
-	int64_t trunc;
-	uint32_t size;
-	uint64_t total;
-	key_entity_t key;
-
-	aal_assert("umka-2475", tree != NULL);
-	aal_assert("umka-2476", hint != NULL);
-
-	reiser4_key_assign(&key, &hint->offset);
-
-	for (total = 0, size = hint->count; size > 0;
-	     size -= trunc, total += trunc)
-	{
-		reiser4_place_t place;
-		
-		if ((res = reiser4_tree_lookup(tree, &hint->offset,
-					       LEAF_LEVEL, FIND_EXACT,
-					       &place)) < 0)
-		{
-			return res;
-		}
-
-		/* Nothing found by @hint->key */
-		if (res == ABSENT)
-			return total;
-
-		hint->count = size;
-
-		/* Calling node truncate method. */
-		if ((trunc = plug_call(place.node->entity->plug->o.node_ops,
-				       truncate, place.node->entity, &place.pos,
-				       hint)) < 0)
-		{
-			return trunc;
-		}
-
-		/* Updating left delimiting keys in all parent nodes */
-		if (reiser4_place_leftmost(&place) &&
-		    place.node->p.node)
-		{
-
-			/* If node became empty it will be detached from the
-			   tree, so updating is not needed and impossible,
-			   because it has no items. */
-			if (reiser4_node_items(place.node) > 0) {
-				reiser4_place_t p;
-				reiser4_key_t lkey;
-
-				/* Updating parent keys */
-				reiser4_node_lkey(place.node, &lkey);
-				
-				reiser4_place_init(&p, place.node->p.node,
-						   &place.node->p.pos);
-
-				if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
-					return res;
-			}
-		}
-	
-		/* Checking if the node became empty. If so, we release it. */
-		if (reiser4_node_items(place.node) > 0) {
-			if ((tree->flags & TF_PACK) && tree->traps.pack) {
-				if ((res = tree->traps.pack(tree, &place,
-							    tree->traps.data)))
-				{
-					return res;
-				}
-			}
-		} else {
-			/* Detaching node from the tree, because it became
-			   empty. */
-			reiser4_node_mkclean(place.node);
-			reiser4_tree_detach_node(tree, place.node);
-
-			/* Freeing node and updating place node component in
-			   order to let user know that node do not exist any
-			   longer. */
-			reiser4_tree_release_node(tree, place.node);
-		}
-
-		/* Drying tree up in the case root node has only one item */
-		if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree))	{
-			if ((res = reiser4_tree_dryout(tree)))
-				return res;
-		}
-
-		reiser4_key_inc_offset(&hint->offset, trunc);
-	}
-
-	reiser4_key_assign(&hint->offset, &key);
-	return total;
 }
 
 /* Removes item/unit at passed @place. This functions also perform so called

@@ -105,9 +105,11 @@ errno_t sym40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = obj40_ukey(&sym->obj, &sym->obj.info.start,
-			      &sym->obj.info.object, mode)))
+	if ((res = obj40_fix_key(&sym->obj, &sym->obj.info.start,
+				 &sym->obj.info.object, mode)))
+	{
 		return res;
+	}
 	
 	/* Updating atime and mtime */
 	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),

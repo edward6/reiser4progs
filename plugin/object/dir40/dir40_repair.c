@@ -189,7 +189,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = obj40_ukey(&dir->obj, &info->start, &info->object, mode)) < 0)
+	if ((res = obj40_fix_key(&dir->obj, &info->start, &info->object, mode)) < 0)
 		return res;
 	
 	/* Init hash plugin in use. */

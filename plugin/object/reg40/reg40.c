@@ -77,63 +77,46 @@ errno_t reg40_reset(object_entity_t *entity) {
 	return 0;
 }
 
-/* Reads @n bytes to passed buffer @buff */
+/* Reads @n bytes to passed buffer @buff. */
 static int64_t reg40_read(object_entity_t *entity, 
 			  void *buff, uint64_t n)
 {
-	errno_t res;
 	reg40_t *reg;
-	uint32_t read;
+	int64_t read;
 	uint64_t fsize;
+	trans_hint_t hint;
 
-	aal_assert("umka-1183", buff != NULL);
-	aal_assert("umka-1182", entity != NULL);
-
+	aal_assert("umka-2511", buff != NULL);
+	aal_assert("umka-2512", entity != NULL);
+	
 	reg = (reg40_t *)entity;
 	fsize = reg40_size(entity);
 
-	for (read = 0; read < n && reg40_offset(entity) < fsize;) {
-		int32_t chunk;
-		trans_hint_t hint;
+	/* Preparing hint to be used for calling read with it. */ 
+	hint.count = n;
+	hint.specific = buff;
+	hint.tree = reg->obj.info.tree;
+	
+	plug_call(reg->offset.plug->o.key_ops,
+		  assign, &hint.offset, &reg->offset);
 
-		/* Update body place. Check for error. */
-		if ((res = reg40_update(entity)) < 0)
-			return res;
-		else {
-			/* Check if file stream is over. */
-			if (res == ABSENT)
-				return 0;
-		}
+	/* Correcting numebr of bytes to be read. It cannot be more then file
+	   size value from stat data. That it is needed for reading extents,
+	   where we can't udnerstand real data size without stat datasaved
+	   value. */
+	if (reg40_offset(entity) + hint.count > fsize)
+		hint.count = fsize - reg40_offset(entity);
 
-		/* Initializing trans hint */
-		plug_call(reg->offset.plug->o.key_ops, assign,
-			  &hint.offset, &reg->offset);
+	/* Reading data from the tree. */
+	if ((read = obj40_read(&reg->obj, &hint)) < 0)
+		return read;
 
-		hint.specific = buff;
-		hint.count = n - read;
-
-		/* Calcilating chunk size to read. */
-		if (reg40_offset(entity) + hint.count > fsize)
-			hint.count = fsize - reg40_offset(entity);
-			
-		hint.tree = reg->obj.info.tree;
-
-		/* Calling body item's read() method */
-		if ((chunk = plug_call(reg->body.plug->o.item_ops,
-				       read, &reg->body, &hint)) < 0)
-		{
-			return chunk;
-		} else {
-			if (chunk == 0)
-				return 0;
-		}
-
-		buff += chunk; read += chunk;
-		
-		/* Updating offset */
-		reg40_seek(entity, reg40_offset(entity) + chunk);
+	/* Updating file offset if needed. */
+	if (read > 0) {
+		uint64_t new_offset = reg40_offset(entity) + read;
+		reg40_seek(entity, new_offset);
 	}
-
+	
 	return read;
 }
 
@@ -274,14 +257,10 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	return obj40_link(&reg->obj, -1);
 }
 
-static uint32_t reg40_chunk(reg40_t *reg) {
-	return rcore->tree_ops.maxspace(reg->obj.info.tree);
-}
-
 /* Returns plugin (tail or extent) for next write operation basing on passed
    @size -- new file size. This function will use tail policy plugin for find
    out what next item should be writen. */
-reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size) {
+reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 	aal_assert("umka-2394", reg != NULL);
 	aal_assert("umka-2393", reg->policy != NULL);
 
@@ -304,6 +283,7 @@ reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size) {
 errno_t reg40_convert(object_entity_t *entity, 
 		      reiser4_plug_t *plug) 
 {
+	errno_t res;
 	reg40_t *reg;
 	uint64_t fsize;
 	conv_hint_t hint;
@@ -327,11 +307,8 @@ errno_t reg40_convert(object_entity_t *entity,
 	hint.count = fsize;
 
 	/* Converting file data. */
-	if (rcore->tree_ops.conv(reg->obj.info.tree,
-				 &hint))
-	{
-		return -EIO;
-	}
+	if ((res = obj40_conv(&reg->obj, &hint)))
+		return res;
 
 	/* Updating stat data fields. */
 	return obj40_touch(&reg->obj, fsize,
@@ -343,107 +320,90 @@ static errno_t reg40_check_body(object_entity_t *entity,
 {
 	reg40_t *reg;
 	uint64_t fsize;
-	reiser4_plug_t *bplug;
+
+	reiser4_plug_t *body_plug;
+	reiser4_plug_t *policy_plug;
 	
 	aal_assert("umka-2395", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	
 	fsize = reg40_size(entity);
 	
 	/* There is nothing to convert */
 	if (!fsize || !new_size)
 		return 0;
-	
-	if (!(bplug = reg40_bplug(reg, new_size))) {
+
+	/* Getting policy plugin. It will be used for new file body items and
+	   old body items will be converted to. */
+	if (!(policy_plug = reg40_policy_plug(reg, new_size))) {
 		aal_exception_error("Can't get body plugin "
 				    "for new file size %llu.",
 				    new_size);
 		return -EINVAL;
 	}
 
+	/* Getting old file body plugin. This is needed for comparing with
+	   policy plugin. */
+	if (!(body_plug = reg40_policy_plug(reg, fsize))) {
+		aal_exception_error("Can't get body plugin "
+				    "for old file size %llu.",
+				    fsize);
+		return -EIO;
+	}
+		
 	/* Comparing new plugin and old one. If they are the same, conversion if
 	   not needed. */
-	if (plug_equal(bplug, reg->body.plug))
+	if (plug_equal(policy_plug, body_plug))
 		return 0;
 
-	return reg40_convert(entity, bplug);
+	return reg40_convert(entity, policy_plug);
 }
 
 /* Writes passed data to the file. Returns amount of data written to the
    tree. That is if we insert tail, we will have the same as passed data
    size. In the case of insert an extent, we will have its meta data size. */
-int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
+int64_t reg40_put(object_entity_t *entity, void *buff, uint64_t n) {
 	reg40_t *reg;
-	int32_t bytes;
-	uint32_t written;
-	uint32_t maxspace;
+	uint64_t offset;
+	int64_t written;
+	trans_hint_t hint;
 
 	reg = (reg40_t *)entity;
-	maxspace = reg40_chunk(reg);
+
+	/* Preparing hint to be used for calling write metrhod. */
+	hint.bytes = 0;
+	hint.count = n;
 	
-	for (bytes = 0, written = 0; written < n; ) {
-		lookup_t res;
-		int32_t write;
-		uint32_t level;
-		trans_hint_t hint;
+	hint.specific = buff;
+	hint.tree = reg->obj.info.tree;
+	
+	plug_call(reg->offset.plug->o.key_ops,
+		  assign, &hint.offset, &reg->offset);
 
-		/* Preparing hint key */
-		plug_call(reg->offset.plug->o.key_ops,
-			  assign, &hint.offset, &reg->offset);
+	/* Getting file plugin for new offset. */
+	offset = reg40_offset(entity) + n;
+	
+	if (!(hint.plug = reg40_policy_plug(reg, offset)))
+		return -EINVAL;
 
-		/* Setting up @hint */
-		if ((hint.count = n - written) > maxspace)
-			hint.count = maxspace;
+	/* Write data to tree. */
+	if ((written = obj40_write(&reg->obj, &hint)) < 0)
+		return written;
 
-		/* Preparing insert hint */
-		hint.specific = buff;
-		hint.tree = reg->obj.info.tree;
-		hint.plug = reg40_bplug(reg, reg40_offset(entity) + n);
-
-		/* Lookup place data will be inserted at */
-		if ((res = obj40_lookup(&reg->obj, &hint.offset,
-					LEAF_LEVEL, FIND_CONV,
-					&reg->body) < 0))
-		{
-			return res;
-		}
-
-		/* Setting up target level */
-		level = hint.plug->id.group == EXTENT_ITEM ?
-			LEAF_LEVEL + 1 : LEAF_LEVEL;
-
-		/* Inserting data to the tree */
-		if ((write = obj40_write(&reg->obj, &reg->body,
-					 &hint, level)) < 0)
-		{
-			return write;
-		}
-
-		reg40_seek(entity, reg40_offset(entity) + write);
-
-		/* @buff may be NULL for inserting holes */
-		if (buff) {
-			buff += write;
-		}
-
-		bytes += hint.bytes;
-
-		/* Updating counters and offset */
-		written += write;
-	}
-
-	return bytes;
+	/* Updating file offset. */
+	reg40_seek(entity, reg40_offset(entity) + written);
+	
+	return hint.bytes;
 }
 
-static int32_t reg40_cut(object_entity_t *entity,
-			 uint32_t n)
+static int64_t reg40_cut(object_entity_t *entity,
+			 uint64_t n)
 {
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
 
-	int32_t bytes = 0;
+	int64_t bytes = 0;
 	trans_hint_t hint;
 	
 	reg = (reg40_t *)entity;
@@ -499,10 +459,10 @@ static int32_t reg40_cut(object_entity_t *entity,
 static int64_t reg40_write(object_entity_t *entity, 
 			   void *buff, uint64_t n) 
 {
-	int32_t res;
+	int64_t res;
 	reg40_t *reg;
 
-	int32_t bytes;
+	int64_t bytes;
 	uint64_t size;
 	uint64_t offset;
 	
@@ -546,7 +506,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
 	reg40_t *reg;
-	int32_t bytes;
+	int64_t bytes;
 	uint64_t size;
 	uint64_t offset;
 
@@ -575,7 +535,6 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		
 		/* Updating stat data fields */
 		bytes += obj40_get_bytes(&reg->obj);
-		return obj40_touch(&reg->obj, n, bytes, time(NULL));
 	} else {
 		/* Cutting items/units */
 		if ((bytes = reg40_cut(entity,
@@ -586,11 +545,11 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 		/* Updating stat data fields */
 		bytes = obj40_get_bytes(&reg->obj) - bytes;
-		return obj40_touch(&reg->obj, n, bytes, time(NULL));
 	}
 
 	/* Updating offset */
 	reg40_seek(entity, n);
+	return obj40_touch(&reg->obj, n, bytes, time(NULL));
 }
 
 /* Removes all file items. */

@@ -19,7 +19,8 @@ extern lookup_t reg40_update(object_entity_t *entity);
 extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
 
-extern reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size);
+extern reiser4_plug_t *reg40_policy_plug(reg40_t *reg,
+					 uint64_t new_size);
 
 extern errno_t reg40_convert(object_entity_t *entity, 
 			     reiser4_plug_t *plug, 
@@ -116,7 +117,7 @@ static void reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 		return;
 	
 	/* sd_size lt counted size, check if it is correct for extent. */
-	plug = reg40_bplug(reg, counted_size);
+	plug = reg40_policy_plug(reg, counted_size);
 
 	if (plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
@@ -151,7 +152,7 @@ static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 }
 
 /* Lookup for the end byte and find out the body plug for such a size. */
-static reiser4_plug_t *reg40_bodyplug(reg40_t *reg) {
+static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	key_entity_t key;
 	uint64_t offset;
 	place_t place;
@@ -171,7 +172,7 @@ static reiser4_plug_t *reg40_bodyplug(reg40_t *reg) {
 
 	/* If place is invalid, there is no items of the file. */
 	if (!rcore->tree_ops.valid(reg->obj.info.tree, &place))
-		return reg40_bplug(reg, 0);
+		return reg40_policy_plug(reg, 0);
 
 	/* Initializing item entity. */
 	if ((res = rcore->tree_ops.fetch(reg->obj.info.tree, &place)))
@@ -183,8 +184,7 @@ static reiser4_plug_t *reg40_bodyplug(reg40_t *reg) {
 		return NULL;
 
 	offset = plug_call(key.plug->o.key_ops, get_offset, &key);
-
-	return reg40_bplug(reg, offset);
+	return reg40_policy_plug(reg, offset);
 }
 
 static errno_t reg40_check_ikey(reg40_t *reg) {	
@@ -233,7 +233,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = obj40_ukey(&reg->obj, &info->start, &info->object, mode)))
+	if ((res = obj40_fix_key(&reg->obj, &info->start, &info->object, mode)))
 		return res;
 	
 	/* Get the reg file tail policy. */
@@ -271,7 +271,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	}
 	
 	/* Get the maxreal file byte and find out what body plug to use. */
-	if (!(bplug = reg40_bodyplug(reg)))
+	if (!(bplug = reg40_body_plug(reg)))
 		return -EINVAL;
 		
 	size = bytes = next = 0;
@@ -459,9 +459,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 			next = 0;
 		
 		/* Fix item key if differs. */
-		if ((res |= obj40_ukey(&reg->obj, &reg->body, 
-				       &reg->offset, mode)) < 0)
+		if ((res |= obj40_fix_key(&reg->obj, &reg->body, 
+					  &reg->offset, mode)) < 0)
+		{
 			return res;
+		}
 
 		/* Count size and bytes. */
 		size += plug_call(reg->body.plug->o.item_ops, 

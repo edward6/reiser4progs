@@ -118,6 +118,7 @@ int main(int argc, char *argv[]) {
 
 		reg_hint.body.reg.tail = ITEM_TAIL40_ID;
 		reg_hint.body.reg.extent = ITEM_EXTENT40_ID;
+//		reg_hint.body.reg.policy = TAIL_ALWAYS_ID;
 //		reg_hint.body.reg.policy = TAIL_NEVER_ID;
 		reg_hint.body.reg.policy = TAIL_SMART_ID;
 
@@ -139,8 +140,12 @@ int main(int argc, char *argv[]) {
 					continue;
 
 				for (j = 0; j < 2049; j++) {
-					reiser4_object_write(object, name,
-							     aal_strlen(name));
+					if (reiser4_object_write(object, name,
+								 aal_strlen(name)) < 0)
+					{
+						aal_exception_error("Can't write data "
+								    "to file %s.", name);
+					}
 				}
 				
 				reiser4_object_close(object);
