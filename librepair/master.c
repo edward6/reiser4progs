@@ -94,7 +94,8 @@ errno_t repair_master_open(reiser4_fs_t *fs) {
     return 0;
     
 error_free_master:
-    reiser4_master_close(fs->master);
+    if (fs->master)
+	reiser4_master_close(fs->master);
     
     return res;
 }

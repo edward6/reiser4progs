@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include <sys/stat.h>
+//#include <asm/ioctl.h>
 #include <sys/ioctl.h>
 
 /* Function for saving last error message into device assosiated buffer */
@@ -193,15 +194,31 @@ static count_t file_len(
     
 #ifdef BLKGETSIZE64
     
-	if (ioctl(*((int *)device->entity), BLKGETSIZE64, &size) >= 0)
-		return (count_t)(size / device->blocksize);
+	if (ioctl(*((int *)device->entity), BLKGETSIZE64, &size) >= 0) {
+		uint32_t block_count;
+		
+		size = (size / 4096) * 4096 / device->blocksize;
+		block_count = size;
+		
+		if ((uint64_t)block_count != size) {
+			aal_exception_fatal("The partition size is too big.");
+			return FAKE_BLK;
+		}
+		
+		return (count_t)block_count;
+	}
     
 #endif
 
 #ifdef BLKGETSIZE    
-    
-	if (ioctl(*((int *)device->entity), BLKGETSIZE, &size) >= 0)
-		return (count_t)(size / (device->blocksize / 512));
+	{
+		unsigned long l_size;
+		
+		if (ioctl(*((int *)device->entity), BLKGETSIZE, &l_size) >= 0) {
+			size = l_size;
+			return (count_t)((size * 512 / 4096) * 4096 / device->blocksize);
+		}
+	}
     
 #endif
     

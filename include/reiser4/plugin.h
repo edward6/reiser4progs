@@ -679,7 +679,7 @@ struct reiser4_node_ops {
 		      reiser4_pos_t *pos, shift_flags_t);
     
 	/* Confirms that given block contains valid node of requested format */
-	int (*confirm) (aal_block_t *);
+	int (*confirm) (object_entity_t *);
 
 	/*	Checks thoroughly the node structure and fixes what needed. */
 	errno_t (*check) (object_entity_t *, uint16_t);

@@ -448,7 +448,8 @@ static errno_t journal40_replay(object_entity_t *entity) {
 
 	if (journal40_traverse((journal40_t *)entity, callback_journal_handler, NULL))
 		return -1;
-	
+
+	/* FIXME: super block has been left not updated. */
 	journal40_update((journal40_t *)entity);
 
 	return 0;

@@ -12,14 +12,18 @@ extern reiser4_plugin_t node40_plugin;
 static reiser4_core_t *core = NULL;
 
 /* Returns item header by pos */
-inline item40_header_t *node40_ih_at(aal_block_t *block, int pos) {
+inline item40_header_t *node40_ih_at(object_entity_t *entity, int pos) {
+	aal_block_t *block = ((node40_t *)entity)->block;
+	
 	return ((item40_header_t *)(block->data + aal_block_size(block))) - 
 		pos - 1;
 }
 
 /* Retutrns item body by pos */
-inline void *node40_ib_at(aal_block_t *block, int pos) {
-	return block->data + ih40_get_offset(node40_ih_at(block, pos));
+inline void *node40_ib_at(object_entity_t *entity, int pos) {
+	aal_block_t *block = ((node40_t *)entity)->block;
+	
+	return block->data + ih40_get_offset(node40_ih_at(entity, pos));
 }
 
 #ifndef ENABLE_COMPACT
@@ -38,17 +42,17 @@ static object_entity_t *node40_create(aal_block_t *block,
 	node->plugin = &node40_plugin;
     
 	/* Plugin setup was moved here because we should support reiser3 */
-	nh40_set_pid(nh40(node->block), NODE_REISER40_ID);
+	nh40_set_pid(node, NODE_REISER40_ID);
 
-	nh40_set_free_space(nh40(node->block), 
+	nh40_set_free_space(node, 
 			    aal_block_size(node->block) - sizeof(node40_header_t));
     
-	nh40_set_free_space_start(nh40(node->block), 
+	nh40_set_free_space_start(node, 
 				  sizeof(node40_header_t));
    
-	nh40_set_level(nh40(node->block), level);
-	nh40_set_magic(nh40(node->block), NODE40_MAGIC);
-	nh40_set_num_items(nh40(node->block), 0);
+	nh40_set_level(node, level);
+	nh40_set_magic(node, NODE40_MAGIC);
+	nh40_set_num_items(node, 0);
 
 	return (object_entity_t *)node;
 }
@@ -59,7 +63,7 @@ static rpid_t node40_pid(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-827", node != NULL, return FAKE_PLUGIN);
-	return nh40_get_pid(nh40(node->block));
+	return nh40_get_pid(node);
 } 
 
 static object_entity_t *node40_open(aal_block_t *block) {
@@ -73,9 +77,9 @@ static object_entity_t *node40_open(aal_block_t *block) {
 	node->block = block;
 	node->plugin = &node40_plugin;
     
-	if (nh40_get_pid(nh40(node->block)) != NODE_REISER40_ID) {
+	if (nh40_get_pid(node) != NODE_REISER40_ID) {
 		aal_exception_error("Plugin id (%u) does not match current plugin id (%u).", 
-				    nh40_get_pid(nh40(node->block)), NODE_REISER40_ID);
+				    nh40_get_pid(node), NODE_REISER40_ID);
 		goto error_free_node;
 	}
 
@@ -97,9 +101,9 @@ static errno_t node40_close(object_entity_t *entity) {
   Confirms that passed node corresponds current plugin. This is something like 
   "probe" method.
 */
-static int node40_confirm(aal_block_t *block) {
-	aal_assert("vpf-014", block != NULL, return 0);
-	return -(nh40_get_magic(nh40(block)) != NODE40_MAGIC);
+static int node40_confirm(object_entity_t *entity) {
+	aal_assert("vpf-014", entity != NULL, return 0);
+	return -(nh40_get_magic(((node40_t *)entity)) != NODE40_MAGIC);
 }
 
 /* Returns item number in given block. Used for any loops through all items */
@@ -107,7 +111,7 @@ uint16_t node40_count(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-018", node != NULL, return 0);
-	return nh40_get_num_items(nh40(node->block));
+	return nh40_get_num_items(node);
 }
 
 static errno_t node40_get_key(object_entity_t *entity, 
@@ -120,9 +124,9 @@ static errno_t node40_get_key(object_entity_t *entity,
 	aal_assert("umka-939", pos != NULL, return -1);
 
 	aal_assert("umka-810", pos->item < 
-		   nh40_get_num_items(nh40(node->block)), return -1);
+		   nh40_get_num_items(node), return -1);
     
-	aal_memcpy(key->body, &(node40_ih_at(node->block, pos->item)->key), 
+	aal_memcpy(key->body, &(node40_ih_at(entity, pos->item)->key), 
 		   sizeof(key40_t));
     
 	return 0;
@@ -138,9 +142,9 @@ static void *node40_item_body(object_entity_t *entity,
 	aal_assert("umka-940", pos != NULL, return NULL);
 
 	aal_assert("umka-814", pos->item < 
-		   nh40_get_num_items(nh40(node->block)), return NULL);
+		   nh40_get_num_items(node), return NULL);
     
-	return node40_ib_at(node->block, pos->item);
+	return node40_ib_at(entity, pos->item);
 }
 
 /*
@@ -170,9 +174,9 @@ static rpid_t node40_item_pid(object_entity_t *entity,
 	aal_assert("umka-941", pos != NULL, return FAKE_PLUGIN);
 
 	aal_assert("umka-815", pos->item < 
-		   nh40_get_num_items(nh40(node->block)), return 0);
+		   nh40_get_num_items(node), return 0);
     
-	return ih40_get_pid(node40_ih_at(node->block, pos->item));
+	return ih40_get_pid(node40_ih_at(entity, pos->item));
 }
 
 /* Returns length of item at pos */
@@ -187,11 +191,11 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	aal_assert("umka-942", pos != NULL, return 0);
     
 	aal_assert("umka-815", pos->item < 
-		   nh40_get_num_items(nh40(node->block)), return 0);
+		   nh40_get_num_items(node), return 0);
     
-	ih = node40_ih_at(node->block, pos->item);
+	ih = node40_ih_at(entity, pos->item);
 
-	free_space_start = nh40_get_free_space_start(nh40(node->block));
+	free_space_start = nh40_get_free_space_start(node);
     
 	return (int)pos->item == node40_count(entity) - 1 ? 
 		(int)free_space_start - ih40_get_offset(ih) : 
@@ -211,7 +215,7 @@ static void node40_item_init(object_entity_t *entity, reiser4_pos_t *pos,
 	
 	item->pos = pos->item;
 	item->len = node40_item_len(entity, pos);
-	item->body = node40_ib_at(node->block, pos->item);
+	item->body = node40_ib_at(entity, pos->item);
 }
 
 #ifndef ENABLE_COMPACT
@@ -228,16 +232,15 @@ static errno_t node40_expand(node40_t *node,
 	int is_range;
 
 	item40_header_t *ih;
-	node40_header_t *nh;
 
 	aal_assert("umka-817", node != NULL, return -1);
 	aal_assert("vpf-006", pos != NULL, return -1);
 	aal_assert("vpf-007", hint != NULL, return -1);
 
-	is_space = (nh40_get_free_space(nh40(node->block)) >= 
+	is_space = (nh40_get_free_space(node) >= 
 		    hint->len + (pos->unit == ~0ul ? sizeof(item40_header_t) : 0));
     
-	is_range = (pos->item <= nh40_get_num_items(nh40(node->block)));
+	is_range = (pos->item <= nh40_get_num_items(node));
     
 	aal_assert("vpf-026", is_space, return -1);
 	aal_assert("vpf-027", is_range, return -1);
@@ -245,34 +248,33 @@ static errno_t node40_expand(node40_t *node,
 	is_insert = (pos->unit == ~0ul);
 	item_pos = pos->item + !is_insert;
     
-	nh = nh40(node->block);
-	ih = node40_ih_at(node->block, item_pos);
+	ih = node40_ih_at((object_entity_t *)node, item_pos);
     
-	if (item_pos < nh40_get_num_items(nh)) {
+	if (item_pos < nh40_get_num_items(node)) {
 		offset = ih40_get_offset(ih);
 
 		aal_memmove(node->block->data + offset + hint->len, 
-			    node->block->data + offset, nh40_get_free_space_start(nh) - offset);
+			    node->block->data + offset, nh40_get_free_space_start(node) - offset);
 	
-		for (i = item_pos; i < nh40_get_num_items(nh); i++, ih--) 
+		for (i = item_pos; i < nh40_get_num_items(node); i++, ih--) 
 			ih40_set_offset(ih, ih40_get_offset(ih) + hint->len);
 
 		if (is_insert) {
 			aal_memmove(ih, ih + 1, sizeof(item40_header_t) * 
-				    (nh40_get_num_items(nh) - item_pos));
+				    (nh40_get_num_items(node) - item_pos));
 		}
 
-		ih += (nh40_get_num_items(nh) - item_pos);
+		ih += (nh40_get_num_items(node) - item_pos);
 	} else
-		offset = nh40_get_free_space_start(nh);
+		offset = nh40_get_free_space_start(node);
     
-	nh40_set_free_space(nh, nh40_get_free_space(nh) - 
+	nh40_set_free_space(node, nh40_get_free_space(node) - 
 			    (hint->len + (is_insert ? sizeof(item40_header_t) : 0)));
     
-	nh40_set_free_space_start(nh, nh40_get_free_space_start(nh) + hint->len);
+	nh40_set_free_space_start(node, nh40_get_free_space_start(node) + hint->len);
     
 	if (!is_insert) {
-		ih = node40_ih_at(node->block, pos->item);
+		ih = node40_ih_at((object_entity_t *)node, pos->item);
 		ih40_set_len(ih, ih40_get_len(ih) + hint->len);
 		return 0;
 	}
@@ -291,7 +293,6 @@ static errno_t node40_insert(object_entity_t *entity,
 			     reiser4_pos_t *pos, reiser4_item_hint_t *hint) 
 { 
 	item_entity_t item;
-	node40_header_t *nh;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-818", node != NULL, return -1);
@@ -304,11 +305,10 @@ static errno_t node40_insert(object_entity_t *entity,
 	if (node40_expand(node, pos, hint))
 		return -1;
 
-	nh = nh40(node->block);
-	nh40_set_num_items(nh, nh40_get_num_items(nh) + 1);
+	nh40_set_num_items(node, nh40_get_num_items(node) + 1);
     
 	if (hint->data) {
-		aal_memcpy(node40_ib_at(node->block, pos->item), 
+		aal_memcpy(node40_ib_at(entity, pos->item), 
 			   hint->data, hint->len);
 
 		return 0;
@@ -347,25 +347,23 @@ static errno_t node40_shrink(node40_t *node,
 	int is_move;
 	int is_cut;
     
-	node40_header_t *nh;
 	item40_header_t *ih;
 	uint16_t offset, ihlen;
         
 	aal_assert("umka-958", node != NULL, return -1);
 	aal_assert("umka-959", pos != NULL, return -1);
 
-	is_range = (pos->item < nh40_get_num_items(nh40(node->block)));
+	is_range = (pos->item < nh40_get_num_items(node));
 	aal_assert("umka-960", is_range, return -1);
     
 	is_cut = (pos->unit != ~0ul);
     
-	nh = nh40(node->block);
-	ih = node40_ih_at(node->block, pos->item);
+	ih = node40_ih_at((object_entity_t *)node, pos->item);
     
 	offset = ih40_get_offset(ih);
 	ihlen = node40_item_len((object_entity_t *)node, pos);
 
-	is_move = ((offset + ihlen) < nh40_get_free_space_start(nh));
+	is_move = ((offset + ihlen) < nh40_get_free_space_start(node));
     
 	if (is_move) {
 		item40_header_t *cur;
@@ -373,10 +371,10 @@ static errno_t node40_shrink(node40_t *node,
 	
 		/* Moving the item bodies */
 		aal_memmove(node->block->data + offset, node->block->data + 
-			    offset + len, nh40_get_free_space_start(nh) - offset - len);
+			    offset + len, nh40_get_free_space_start(node) - offset - len);
     
 		/* Updating offsets */
-		end = node40_ih_at(node->block, nh40_get_num_items(nh) - 1);
+		end = node40_ih_at((object_entity_t *)node, nh40_get_num_items(node) - 1);
 
 		for (cur = ih - 1; cur >= end; cur--)
 			ih40_set_offset(cur, ih40_get_offset(cur) - len);
@@ -386,7 +384,7 @@ static errno_t node40_shrink(node40_t *node,
 			aal_memmove(end + 1, end, ((void *)ih) - ((void *)end));
 	}
 	
-	nh40_set_free_space_start(nh, nh40_get_free_space_start(nh) - len);
+	nh40_set_free_space_start(node, nh40_get_free_space_start(node) - len);
     
 	return 0;
 }
@@ -400,23 +398,21 @@ errno_t node40_remove(object_entity_t *entity,
 {
 	uint16_t len;
 	item40_header_t *ih;
-	node40_header_t *nh;
 	node40_t *node = (node40_t *)entity;
 
 	aal_assert("umka-986", node != NULL, return -1);
 	aal_assert("umka-987", pos != NULL, return -1);
     
-	nh = nh40(node->block);
-	ih = node40_ih_at(node->block, pos->item);
+	ih = node40_ih_at(entity, pos->item);
 	len = node40_item_len((object_entity_t *)node, pos);
 
 	/* Removing either item or unit, depending on pos */
 	if (node40_shrink(node, pos, len))
 		return -1;
 	
-	nh40_set_num_items(nh, nh40_get_num_items(nh) - 1);
+	nh40_set_num_items(node, nh40_get_num_items(node) - 1);
 
-	nh40_set_free_space(nh, nh40_get_free_space(nh) + len +
+	nh40_set_free_space(node, nh40_get_free_space(node) + len +
 			    sizeof(item40_header_t));
 	
 	return 0;
@@ -429,7 +425,6 @@ static errno_t node40_cut(object_entity_t *entity,
 	uint16_t len;
     
 	item40_header_t *ih;
-	node40_header_t *nh;
     
 	item_entity_t item;
 	reiser4_plugin_t *plugin;
@@ -438,8 +433,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	aal_assert("umka-988", node != NULL, return -1);
 	aal_assert("umka-989", pos != NULL, return -1);
     
-	nh = nh40(node->block);
-	ih = node40_ih_at(node->block, pos->item);
+	ih = node40_ih_at(entity, pos->item);
     
 	if ((pid = ih40_get_pid(ih)) == FAKE_PLUGIN)
 		return -1;
@@ -460,7 +454,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		return -1;
 	
 	ih40_set_len(ih, node40_item_len((object_entity_t *)node, pos) - len);
-	nh40_set_free_space(nh, nh40_get_free_space(nh) + len);
+	nh40_set_free_space(node, nh40_get_free_space(node) + len);
 
 	return 0;
 }
@@ -474,11 +468,9 @@ extern errno_t node40_item_legal(object_entity_t *entity,
 #endif
 
 static errno_t node40_valid(object_entity_t *entity) {
-	node40_t *node = (node40_t *)entity;
+	aal_assert("vpf-015", entity != NULL, return -1);
     
-	aal_assert("vpf-015", node != NULL, return -1);
-    
-	if (node40_confirm(node->block))
+	if (node40_confirm(entity))
 		return -1;
 
 	return 0;
@@ -489,7 +481,7 @@ static uint16_t node40_space(object_entity_t *entity) {
     
 	aal_assert("vpf-020", node != NULL, return 0);
     
-	return nh40_get_free_space(nh40(node->block));
+	return nh40_get_free_space(node);
 }
 
 #ifndef ENABLE_COMPACT
@@ -506,23 +498,23 @@ static errno_t node40_set_key(object_entity_t *entity,
 	aal_assert("umka-944", pos != NULL, return -1);
     
 	aal_assert("umka-811", pos->item < 
-		   nh40_get_num_items(nh40(node->block)), return -1);
+		   nh40_get_num_items(node), return -1);
 
 	plugin_call(return -1, key->plugin->key_ops, assign,
-		    &(node40_ih_at(node->block, pos->item)->key), key->body);
+		    &(node40_ih_at(entity, pos->item)->key), key->body);
     
 	return 0;
 }
 
 static errno_t node40_set_level(object_entity_t *entity, uint8_t level) {
 	aal_assert("umka-1115", entity != NULL, return -1);
-	nh40_set_level(nh40(((node40_t *)entity)->block), level);
+	nh40_set_level(((node40_t *)entity), level);
 	return 0;
 }
 
 static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	aal_assert("umka-1126", entity != NULL, return -1);
-	nh40_set_mkfs_id(nh40(((node40_t *)entity)->block), stamp);
+	nh40_set_mkfs_id(((node40_t *)entity), stamp);
 	return 0;
 }
 
@@ -544,10 +536,7 @@ static errno_t node40_print(object_entity_t *entity, char *buff,
 static inline void *callback_get_key(void *node, 
 				     uint32_t pos, void *data)
 {
-	item40_header_t *ih = 
-		node40_ih_at(((node40_t *)node)->block, pos);
-
-	return &ih->key;
+	return &node40_ih_at((object_entity_t *)node, pos)->key;
 }
 
 static inline int callback_comp_key(void *key1,
@@ -576,7 +565,7 @@ static int node40_lookup(object_entity_t *entity,
 	aal_assert("umka-478", pos != NULL, return -1);
 	aal_assert("umka-470", node != NULL, return -1);
 
-	count = nh40_get_num_items(nh40(node->block));
+	count = nh40_get_num_items(node);
     
 	if ((lookup = aux_binsearch(node, count, key->body, callback_get_key, 
 				    callback_comp_key, key->plugin, &item)) != -1)
@@ -587,12 +576,12 @@ static int node40_lookup(object_entity_t *entity,
 
 uint8_t node40_get_level(object_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL, return 0);
-	return nh40_get_level(nh40(((node40_t *)entity)->block));
+	return nh40_get_level(((node40_t *)entity));
 }
 
 static uint32_t node40_get_stamp(object_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL, return -1);
-	return nh40_get_mkfs_id(nh40(((node40_t *)entity)->block));
+	return nh40_get_mkfs_id(((node40_t *)entity));
 }
 
 #ifndef ENABLE_COMPACT
@@ -613,27 +602,26 @@ typedef struct node40_estimate node40_estimate_t;
 
 static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
 	uint32_t len, space;
-	node40_header_t *nh;
 	item40_header_t *end;
 	item40_header_t *cur;
 	item40_header_t *ins;
 	item40_header_t *start;
 
-	nh = nh40(estimate->src->block);
 	space = node40_space((object_entity_t *)estimate->dst);
-	ins = node40_ih_at(estimate->src->block, estimate->pos->item);
+	ins = node40_ih_at((object_entity_t *)estimate->src, estimate->pos->item);
 
-	start = node40_ih_at(estimate->src->block, 0);
-	end = node40_ih_at(estimate->src->block, nh40_get_num_items(nh) - 1);
+	start = node40_ih_at((object_entity_t *)estimate->src, 0);
+	end = node40_ih_at((object_entity_t *)estimate->src, 
+			   nh40_get_num_items(estimate->src) - 1);
 	cur = (estimate->flags & SF_LEFT ? start : end);
 
 	/* Checking if insert point is at end of node */
-	if ((int)estimate->pos->item > nh40_get_num_items(nh) - 1)
+	if ((int)estimate->pos->item > nh40_get_num_items(estimate->src) - 1)
 		return 0;
 
 	while (1) {
-		len = (cur == end ? nh40_get_free_space_start(nh) - ih40_get_offset(cur) : 
-		       ih40_get_offset(cur) - ih40_get_offset(cur + 1));
+		len = (cur == end ? nh40_get_free_space_start(estimate->src) - 
+		       ih40_get_offset(cur) : ih40_get_offset(cur) - ih40_get_offset(cur + 1));
 
 		if (!(estimate->flags & SF_MOVIP)) {
 			if (cur == ins)
