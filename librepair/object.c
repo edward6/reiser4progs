@@ -128,8 +128,9 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	if (parent)
 	   	info.parent = parent->info->object;
 
-	if ((plug = libreiser4_factory_cfind(callback_object_realize,
-					     &info, only)) == NULL)
+	plug = reiser4_factory_cfind(callback_object_realize, &info);
+	
+	if (plug == NULL)
 		goto error_close_object;
 
 	object->entity = plug_call(plug->o.object_ops, realize, &info);
