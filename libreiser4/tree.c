@@ -462,7 +462,7 @@ int reiser4_tree_lookup(
 		
 		/* Getting the node pointer from internal item */
 		if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-				pos.unit, &ptr, 1))
+				coord->pos.unit, &ptr, 1))
 			return -1;
 		
 		if (ptr.ptr == INVAL_BLK) {
@@ -566,9 +566,9 @@ errno_t reiser4_tree_attach(
 			    into the tree and key may exists in the tree already. The exception 
 			    should not be thrown here.
 			*/
-			aal_exception_error("Can't attach node %llu. Its left delimiting "
-					    "key %s already exists in tree.", node->blk,
-					    stream.data);
+			aal_exception_error("Left delimiting key %s of node %llu "
+					    "already exists in tree.", stream.data,
+					    node->blk);
 		
 			aal_stream_fini(&stream);
 			return lookup;
@@ -701,14 +701,14 @@ errno_t reiser4_tree_mkspace(
 	old = *coord;
 	
 	/* Shifting data into left neighbour if it exists */
-	if ((left = reiser4_node_left(coord->node))) {
+/*	if ((left = reiser4_node_left(coord->node))) {
 	    
 		if (reiser4_tree_shift(tree, coord, left, SF_LEFT))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(coord->node)) <= 0)
 			return 0;
-	}
+	}*/
 
 	/* Shifting data into right neighbour if it exists */
 	if ((right = reiser4_node_right(coord->node))) {
