@@ -98,7 +98,11 @@ static int32_t reg40_read(object_entity_t *entity,
 	if (size == 0 || !reg->body.node)
 		return 0;
 
-	if (reg->offset >= size)
+	/* Nothing can be read */
+	if (reg->offset == size)
+		return 0;
+
+	if (reg->offset > size)
 		return -1;
 	
 	if (n > size - reg->offset)
@@ -521,7 +525,7 @@ static reiser4_plugin_t reg40_plugin = {
 		.valid	      = NULL,
 		.lookup	      = NULL,
 		.follow       = NULL,
-		.read_entry   = NULL,
+		.readdir      = NULL,
 		
 		.open	      = reg40_open,
 		.close	      = reg40_close,

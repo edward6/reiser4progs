@@ -125,8 +125,8 @@ static lookup_t dir40_next(dir40_t *dir) {
 }
 
 /* Reads n entries to passed buffer buff */
-static errno_t dir40_read_entry(object_entity_t *entity, 
-				reiser4_entry_hint_t *entry)
+static errno_t dir40_readdir(object_entity_t *entity, 
+			     reiser4_entry_hint_t *entry)
 {
 	dir40_t *dir;
 	uint64_t size;
@@ -894,7 +894,7 @@ static reiser4_plugin_t dir40_plugin = {
 		.lookup	      = dir40_lookup,
 		.offset	      = dir40_offset,
 		.size	      = dir40_size,
-		.read_entry   = dir40_read_entry,
+		.readdir      = dir40_readdir,
 	}
 };
 

@@ -330,7 +330,10 @@ errno_t reiser4_object_add_entry(
 {
 	aal_assert("umka-1975", object != NULL);
 	aal_assert("umka-1976", object->entity != NULL);
-    
+
+	if (!object->entity->plugin->object_ops.add_entry)
+		return -1;
+	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   add_entry, object->entity, entry);
 }
@@ -343,6 +346,9 @@ errno_t reiser4_object_rem_entry(
 	aal_assert("umka-1977", object != NULL);
 	aal_assert("umka-1978", object->entity != NULL);
     
+	if (!object->entity->plugin->object_ops.rem_entry)
+		return -1;
+	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   rem_entry, object->entity, entry);
 }
@@ -356,6 +362,9 @@ int32_t reiser4_object_write(
 	aal_assert("umka-862", object != NULL);
 	aal_assert("umka-863", object->entity != NULL);
     
+	if (!object->entity->plugin->object_ops.write)
+		return -1;
+	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   write, object->entity, buff, n);
 }
@@ -647,19 +656,25 @@ int32_t reiser4_object_read(
 	aal_assert("umka-860", object != NULL);
 	aal_assert("umka-861", object->entity != NULL);
 
+	if (!object->entity->plugin->object_ops.read)
+		return -1;
+	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   read, object->entity, buff, n);
 }
 
 /* Reads entry at current @object offset to passed @entry hint */
-errno_t reiser4_object_read_entry(reiser4_object_t *object,
-				reiser4_entry_hint_t *entry)
+errno_t reiser4_object_readdir(reiser4_object_t *object,
+			       reiser4_entry_hint_t *entry)
 {
 	aal_assert("umka-1973", object != NULL);
 	aal_assert("umka-1974", entry != NULL);
 
+	if (!object->entity->plugin->object_ops.readdir)
+		return -1;
+	
 	return plugin_call(object->entity->plugin->object_ops, 
-			   read_entry, object->entity, entry);
+			   readdir, object->entity, entry);
 }
 
 
@@ -682,6 +697,9 @@ errno_t reiser4_object_seek(
 	aal_assert("umka-1129", object != NULL);
 	aal_assert("umka-1153", object->entity != NULL);
     
+	if (!object->entity->plugin->object_ops.seek)
+		return -1;
+	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   seek, object->entity, offset);
 }

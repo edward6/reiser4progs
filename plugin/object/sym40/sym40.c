@@ -475,6 +475,7 @@ static reiser4_plugin_t sym40_plugin = {
 		.metadata     = sym40_metadata,
 		.link         = sym40_link,
 		.unlink       = sym40_unlink,
+		
 		.truncate     = NULL,
 		.rem_entry    = NULL,
 		.add_entry    = NULL,
@@ -485,7 +486,7 @@ static reiser4_plugin_t sym40_plugin = {
 		.offset	      = NULL,
 		.seek	      = NULL,
 		.size         = NULL,
-		.read_entry   = NULL,
+		.readdir      = NULL,
 		
 		.follow       = sym40_follow,
 		.open	      = sym40_open,

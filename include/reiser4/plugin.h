@@ -698,8 +698,8 @@ struct reiser4_object_ops {
 	int32_t (*read) (object_entity_t *, void *, uint32_t);
 
 	/* Directory read method */
-	errno_t (*read_entry) (object_entity_t *,
-			       reiser4_entry_hint_t *);
+	errno_t (*readdir) (object_entity_t *,
+			    reiser4_entry_hint_t *);
 };
 
 typedef struct reiser4_object_ops reiser4_object_ops_t;

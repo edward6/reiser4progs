@@ -17,15 +17,15 @@
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint64_t n);
 
+extern errno_t reiser4_object_readdir(reiser4_object_t *object,
+				      reiser4_entry_hint_t *entry);
+
 extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
 					     const char *name);
 
 extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 				      const char *name,
 				      reiser4_entry_hint_t *entry);
-
-extern errno_t reiser4_object_read_entry(reiser4_object_t *object,
-					 reiser4_entry_hint_t *entry);
 
 extern void reiser4_object_close(reiser4_object_t *object);
 extern errno_t reiser4_object_stat(reiser4_object_t *object);

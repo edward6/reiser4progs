@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (reiser4_object_read_entry(dir, &entry) != 0)
+		if (reiser4_object_readdir(dir, &entry) != 0)
 			break;
 
 		reiser4_key_string(&entry.object, buff);
