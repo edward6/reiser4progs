@@ -659,18 +659,21 @@ static errno_t extent40_estimate_write(place_t *place,
 	aal_assert("umka-2425", place != NULL);
 
 	if (place->pos.unit == MAX_UINT32) {
+		/* Assigning maxkey to key of new created item */
 		plug_call(place->key.plug->o.key_ops,
-			  assign, &hint->maxkey, &place->key);
+			  assign, &hint->maxkey, &hint->offset);
 		
-		/* Insert point is MAX_UINT32, thus, this is new item insert. So
-		   we reserve space for one extent unit. */
+		/* Insert point is -1, thus, this is new item insert. So we
+		   reserve space for one extent unit. */
 		hint->len = sizeof(extent40_t);
 	} else {
 		uint64_t ins_offset;
 		uint64_t max_offset;
-		
+
+		/* Getting maximal real key */
 		extent40_maxreal_key(place, &hint->maxkey);
 
+		/* Getting insert pos */
 		ins_offset = plug_call(hint->offset.plug->o.key_ops,
 				       get_offset, &hint->offset);
 
@@ -739,6 +742,8 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2357", hint != NULL);
 	aal_assert("umka-2356", place != NULL);
 
+	/* Correcting insert point, as it may point to -1 (create new item) and
+	   behind last unit (adding data at the end of item). */
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
@@ -747,6 +752,7 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit > units)
 		place->pos.unit = units - 1;
 
+	/* Calculating insert unit offset and insert offset */
 	extent40_get_key(place, &key);
 	blksize = extent40_blksize(place);
 
@@ -756,11 +762,13 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	ins_offset = plug_call(hint->offset.plug->o.key_ops,
 			       get_offset, &hint->offset);
 
+	/* Main loop until all data is written */
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
 		uint64_t max_offset;
-		
+
+		/* Calculating size to be written this time. */
 		if ((size = count) > blksize - (ins_offset % blksize))
 			size = blksize - (ins_offset % blksize);
 		
