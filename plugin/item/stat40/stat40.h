@@ -18,6 +18,7 @@ typedef errno_t (*ext_func_t) (sdext_entity_t *,
 
 extern errno_t stat40_traverse(place_t *place,
 			       ext_func_t ext_func,
+			       sdext_entity_t *sdext,
 			       void *data);
 
 struct stat40 {

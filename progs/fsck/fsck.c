@@ -134,9 +134,11 @@ static void fsck_init_streams(fsck_parse_t *data) {
 	misc_exception_set_stream(EXCEPTION_BUG, stderr);
 }
 
-static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) {
+static errno_t fsck_init(fsck_parse_t *data, 
+			 struct aal_device_ops *ops, 
+			 int argc, char *argv[]) 
+{
 	static int mode = RM_CHECK, sb_mode = 0, fs_mode = 0;
-	struct aal_device_ops fsck_ops = file_ops;
 	int option_index;
 	FILE *stream;
 	int c;
@@ -202,7 +204,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) {
 				return OPER_ERROR;
 			}
 
-			fsck_ops.write = fsck_write_backup;
+			ops->write = fsck_write_backup;
 			
 			break;
 		case 'f':
@@ -257,7 +259,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) {
 		}
 	}
     
-	if (!(data->host_device = aal_device_open(&fsck_ops, argv[optind], 
+	if (!(data->host_device = aal_device_open(ops, argv[optind], 
 						  512, O_RDONLY))) 
 	{
 		aal_exception_fatal("Cannot open the partition (%s): %s.",
@@ -382,7 +384,8 @@ static errno_t fsck_write_backup(
 }
 
 int main(int argc, char *argv[]) {
-	errno_t exit_code = NO_ERROR;
+	struct aal_device_ops fsck_ops = file_ops;
+	errno_t ex = NO_ERROR;
 	uint64_t df_fixable = 0;
 	fsck_parse_t parse_data;
 	repair_data_t repair;
@@ -392,8 +395,8 @@ int main(int argc, char *argv[]) {
 	memset(&parse_data, 0, sizeof(parse_data));
 	memset(&repair, 0, sizeof(repair));
 
-	if ((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)
-		exit(exit_code);
+	if ((ex = fsck_init(&parse_data, &fsck_ops, argc, argv)) != NO_ERROR)
+		exit(ex);
     
 	/* Initializing libreiser4 with factory sanity check */
 	if ((res = libreiser4_init())) {
@@ -425,8 +428,6 @@ int main(int argc, char *argv[]) {
     
  free_fs:
 	fprintf(stderr, "Closing fs...");
-	reiser4_tree_close(repair.fs->tree);
-	repair.fs->tree = NULL;
 	repair_fs_close(repair.fs);
 	repair.fs = NULL;
 	fprintf(stderr, "done\n");
@@ -439,7 +440,7 @@ int main(int argc, char *argv[]) {
 		if (aal_device_sync(parse_data.host_device)) {
 			aal_exception_fatal("Cannot synchronize the device (%s).", 
 					    parse_data.host_device->name);
-			exit_code = OPER_ERROR;
+			ex = OPER_ERROR;
 		}
 		aal_device_close(parse_data.host_device);
 	}
@@ -458,7 +459,7 @@ int main(int argc, char *argv[]) {
 			"the SuperBlock. Run with --fix option to fix them.\n",
 			df_fixable);
 		
-		exit_code = FIXABLE_ERROR;
+		ex = FIXABLE_ERROR;
 	}
 
 	if (repair.fatal) {
@@ -468,19 +469,19 @@ int main(int argc, char *argv[]) {
 			stage ? "FileSystem" : "SuperBlock", 
 			stage ? "--build-fs" : "--build-sb");
 		
-		exit_code = stage ? FATAL_ERROR : FATAL_SB_ERROR;
+		ex = stage ? FATAL_ERROR : FATAL_SB_ERROR;
 	} else if (repair.fixable) {
 		/* Some fixable corruptions in filesystem. */
 		fprintf(stderr, "%llu fixable corruptions were detected in "
 			"the FileSystem. Run with --fix option to fix them.\n",
 			repair.fixable);
 		
-		exit_code = FIXABLE_ERROR;
+		ex = FIXABLE_ERROR;
 	} else if (!df_fixable)
 		fprintf(stderr, "No corruption found.\n\n");
 	
 	fsck_fini(&parse_data);
 	
-	return exit_code;
+	return ex;
 }
 

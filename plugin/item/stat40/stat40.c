@@ -12,19 +12,20 @@ static reiser4_core_t *core = NULL;
 /* The function which implements stat40 layout pass. This function is used for
    all statdata extension-related actions. For example for reading, or
    counting. */
-errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
+errno_t stat40_traverse(place_t *place, ext_func_t ext_func, 
+			sdext_entity_t *sdext, void *data) 
+{
 	uint16_t i, len;
 	uint16_t chunks = 0;
 	uint16_t extmask = 0;
 
-	sdext_entity_t sdext;
-
 	aal_assert("umka-1197", place != NULL);
 	aal_assert("umka-2059", ext_func != NULL);
+	aal_assert("vpf-1386",  sdext != NULL);
     
-	sdext.offset = 0;
-	sdext.body = place->body;
-	sdext.sdlen = place->len;
+	sdext->offset = 0;
+	sdext->body = place->body;
+	sdext->sdlen = place->len;
 		
 	/* Loop though the all possible extensions and calling passed @ext_func
 	   for each of them if corresponing extension exists. */
@@ -39,7 +40,7 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 					break;
 			}
 			
-			extmask = *((uint16_t *)sdext.body);
+			extmask = *((uint16_t *)sdext->body);
 
 			/* Clear the last bit in last mask */
 			if ((1 << (i - chunks)) & 0x2f) {
@@ -48,8 +49,8 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 			}
 
 			chunks++;
-			sdext.body += sizeof(d16_t);
-			sdext.offset += sizeof(d16_t);
+			sdext->body += sizeof(d16_t);
+			sdext->offset += sizeof(d16_t);
 		}
 
 		/* If extension is not present, we going to the next one */
@@ -57,21 +58,21 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 			continue;
 
 		/* Getting extension plugin from the plugin factory */
-		if (!(sdext.plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
+		if (!(sdext->plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extension plugin "
 					   "by its id 0x%x.", i);
 			return 0;
 		}
 
-		len = plug_call(sdext.plug->o.sdext_ops, length, sdext.body);
+		len = plug_call(sdext->plug->o.sdext_ops, length, sdext->body);
 
 		/* Call the callback for every found extension. */
-		if ((res = ext_func(&sdext, extmask, data)))
+		if ((res = ext_func(sdext, extmask, data)))
 			return res;
 
 		/* Calculating the pointer to the next extension body */
-		sdext.body += len;
-		sdext.offset += len;
+		sdext->body += len;
+		sdext->offset += len;
 	}
  
 	return 0;
@@ -110,10 +111,12 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 
 /* Fetches whole statdata item with extensions into passed @buff */
 static int64_t stat40_fetch_units(place_t *place, trans_hint_t *hint) {
+	sdext_entity_t sdext;
+
 	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
 
-	if (stat40_traverse(place, callback_open_ext, hint))
+	if (stat40_traverse(place, callback_open_ext, &sdext, hint))
 		return -EINVAL;
 
 	return 1;
@@ -372,8 +375,9 @@ static errno_t callback_body_ext(sdext_entity_t *sdext,
 /* Finds extension body by number of bit in 64bits mask */
 void *stat40_sdext_body(place_t *place, uint8_t bit) {
 	struct body_hint hint = {NULL, bit};
+	sdext_entity_t sdext;
 
-	if (stat40_traverse(place, callback_body_ext, &hint) < 0)
+	if (stat40_traverse(place, callback_body_ext, &sdext, &hint) < 0)
 		return NULL;
 	
 	return hint.body;
@@ -401,8 +405,9 @@ static errno_t callback_present_ext(sdext_entity_t *sdext,
 /* Determines if passed extension denoted by @bit present in statdata item */
 int stat40_sdext_present(place_t *place, uint8_t bit) {
 	present_hint_t hint = {0, bit};
+	sdext_entity_t sdext;
 
-	if (!stat40_traverse(place, callback_present_ext, &hint) < 0)
+	if (!stat40_traverse(place, callback_present_ext, &sdext, &hint) < 0)
 		return 0;
 
 	return hint.present;
@@ -419,9 +424,10 @@ static errno_t callback_count_ext(sdext_entity_t *sdext,
 
 /* This function returns stat data extension count */
 static uint32_t stat40_sdext_count(place_t *place) {
+	sdext_entity_t sdext;
         uint32_t count = 0;
 
-        if (stat40_traverse(place, callback_count_ext, &count) < 0)
+        if (stat40_traverse(place, callback_count_ext, &sdext, &count) < 0)
                 return 0;
 
         return count;
@@ -468,6 +474,8 @@ static errno_t stat40_print(place_t *place,
 			    aal_stream_t *stream,
 			    uint16_t options)
 {
+	sdext_entity_t sdext;
+
 	aal_assert("umka-1407", place != NULL);
 	aal_assert("umka-1408", stream != NULL);
     
@@ -476,7 +484,9 @@ static errno_t stat40_print(place_t *place,
 			  core->key_ops.print(&place->key, PO_DEFAULT));
 		
 	aal_stream_format(stream, "exts:\t\t%u\n", stat40_sdext_count(place));
-	return stat40_traverse(place, callback_print_ext, (void *)stream);
+	
+	return stat40_traverse(place, callback_print_ext, 
+			       &sdext, (void *)stream);
 }
 #endif
 

@@ -86,13 +86,13 @@ errno_t repair_fs_open(repair_data_t *repair,
 	if (error && repair->mode != RM_CHECK)
 		aal_exception_mess("Checksums will be fixed later.\n");
 		
-	if ((repair->fs->oid = reiser4_oid_open(repair->fs)) == NULL) {	
+	if (!(repair->fs->oid = reiser4_oid_open(repair->fs))) {	
 		aal_exception_fatal("Failed to open an object id allocator.");
 		res = -EINVAL;
 		goto error_alloc_close;
 	}
 
-	if ((repair->fs->tree = reiser4_tree_init(repair->fs))) {
+	if (!(repair->fs->tree = reiser4_tree_init(repair->fs))) {
 		res = -ENOMEM;
 		goto error_oid_close;
 	}
