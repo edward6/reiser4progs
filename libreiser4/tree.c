@@ -60,14 +60,61 @@ static lru_ops_t lru_ops = {
 	.set_prev = callback_set_prev
 };
 
-/* Unloads passed @node from the tree */
-errno_t reiser4_tree_unload(reiser4_tree_t *tree,
-			    reiser4_node_t *node)
+/*
+  Registers passed node in tree and connects left and right neighbour
+  nodes. This function do not do any modifications.
+*/
+errno_t reiser4_tree_connect(
+	reiser4_tree_t *tree,    /* tree instance */
+	reiser4_node_t *parent,	 /* node child will be connected to */
+	reiser4_node_t *node)	 /* child node to be attached */
 {
-	aal_assert("umka-1840", tree != NULL);
-	aal_assert("umka-1842", node != NULL);
+	aal_assert("umka-1857", tree != NULL);
+	aal_assert("umka-561", parent != NULL);
+	aal_assert("umka-564", node != NULL);
+
+	/* Registering @child in @node children list */
+	if (reiser4_node_connect(parent, node))
+		return -1;
+
+	/*
+	  Getting neighbours. This should be done after reiser4_node_connect is
+	  done and parent assigned.
+	*/
+	node->left = reiser4_tree_neighbour(tree, node, D_LEFT);
+	node->right = reiser4_tree_neighbour(tree, node, D_RIGHT);
+
+	if (tree->traps.connect) {
+		errno_t res;
+		reiser4_coord_t coord;
+			
+		if (reiser4_coord_open(&coord, parent, &node->pos))
+			return -1;
+			
+		if ((res = tree->traps.connect(tree, &coord, node,
+					       tree->traps.data)))
+			return res;
+	}
 	
-	if (tree->traps.attach) {
+	return 0;
+}
+
+/*
+  Remove specified child from the node children list. Updates all neighbour
+  pointers and parent pointer.
+*/
+errno_t reiser4_tree_disconnect(
+	reiser4_tree_t *tree,    /* tree instance */
+	reiser4_node_t *parent,	 /* node child will be detached from */
+	reiser4_node_t *node)	 /* pointer to child to be deleted */
+{
+	aal_list_t *next;
+	
+	aal_assert("umka-1858", tree != NULL);
+	aal_assert("umka-562", parent != NULL);
+	aal_assert("umka-563", node != NULL);
+
+	if (tree->traps.disconnect) {
 		errno_t res;
 		reiser4_coord_t coord;
 		reiser4_node_t *parent;
@@ -76,16 +123,26 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 			if (reiser4_coord_open(&coord, parent, &node->pos))
 				return -1;
 			
-			if ((res = tree->traps.attach(tree, &coord, node,
-						      tree->traps.data)))
+			if ((res = tree->traps.disconnect(tree, &coord, node,
+							  tree->traps.data)))
 				return res;
 		}
 	}
+	
+	if (node->left) {
+		node->left->right = NULL;
+		node->left = NULL;
+	}
+	
+	if (node->right) {
+		node->right->left = NULL;
+		node->right = NULL;
+	}
 
-	return reiser4_node_close(node);
+	return reiser4_node_disconnect(parent, node);
 }
 
-/* Loads node and attaches it into the tree */
+/* Loads node and connects it into the tree */
 reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 				  reiser4_node_t *parent,
 				  blk_t blk)
@@ -97,10 +154,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
     
 	device = tree->fs->device;
 
-	if (parent)
-		node = reiser4_node_cbp(parent, blk);
-
-	if (!node) {
+	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
 		
 		if (!(node = reiser4_node_open(device, blk))) {
 			aal_exception_error("Can't read block %llu. %s.",
@@ -108,22 +162,11 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 			return NULL;
 		}
 		
-		node->tree = tree;
 		reiser4_node_mkclean(node);
-
-		if (parent && reiser4_node_attach(parent, node))
+		node->tree = tree;
+		
+		if (parent && reiser4_tree_connect(tree, parent, node))
 			goto error_free_node;
-
-		if (tree->traps.attach) {
-			reiser4_coord_t coord;
-			
-			if (reiser4_coord_open(&coord, parent, &node->pos))
-				goto error_free_node;
-			
-			if (tree->traps.attach(tree, &coord, node,
-					       tree->traps.data))
-				goto error_free_node;
-		}
 	}
 	
 	return node;
@@ -131,6 +174,132 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
  error_free_node:
 	reiser4_node_close(node);
 	return NULL;
+}
+
+/* Unloads passed @node from the tree */
+errno_t reiser4_tree_unload(reiser4_tree_t *tree,
+			    reiser4_node_t *node)
+{
+	aal_assert("umka-1840", tree != NULL);
+	aal_assert("umka-1842", node != NULL);
+	
+	if (node->parent) {
+		if (reiser4_tree_disconnect(tree, node->parent, node))
+			return -1;
+	}
+	
+	return reiser4_node_close(node);
+}
+
+/* Finds both left and right neighbours and connects them into the tree */
+reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
+				       reiser4_node_t *node,
+				       aal_direction_t where)
+{
+	int found = 0;
+	uint32_t orig;
+	uint32_t level;
+
+	rpos_t pos;
+	reiser4_node_t *old;
+	reiser4_node_t *child;
+	reiser4_coord_t coord;
+	reiser4_ptr_hint_t ptr;
+
+	old = node;
+	level = orig = reiser4_node_level(node);
+
+	while (node->parent && !found) {
+		
+		if (reiser4_node_pos(node, &pos))
+			return NULL;
+
+		found = (where == D_LEFT ? (pos.item > 0) :
+			 (pos.item < reiser4_node_items(node->parent) - 1));
+
+		level++;
+		node = node->parent;
+	}
+
+	if (!found)
+		return NULL;
+	
+	pos.item += (where == D_LEFT ? -1 : 1);
+	
+	while (level > orig) {
+		if (reiser4_coord_open(&coord, node, &pos))
+			return NULL;
+
+		/* Checking if item is a branch of tree */
+		if (!reiser4_item_branch(&coord))
+			return node;
+			
+		plugin_call(coord.item.plugin->item_ops, read,
+			    &coord.item, &ptr, 0, 1);
+
+		/* Checking item for validness */
+		if (ptr.ptr == INVAL_BLK)
+			return NULL;
+
+		if (!(child = reiser4_tree_load(tree, node, ptr.ptr)))
+			return NULL;
+
+		level--;
+		node = child;
+
+		pos.item = (where == D_LEFT ?
+			    reiser4_node_items(node) - 1 : 0);
+	}
+
+	if (where == D_LEFT) {
+		old->left = node;
+		node->right = old;
+	} else {
+		old->right = node;
+		node->left = old;
+	}
+	
+	return node;
+}
+
+/* 
+  This function raises up to the tree the left neighbour node. This is used by
+  reiser4_tree_expand function.
+*/
+reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
+				  reiser4_node_t *node)
+{
+	aal_assert("umka-1859", tree != NULL);
+	aal_assert("umka-776", node != NULL);
+
+	/* Parent is not present. The root node. */
+	if (!node->parent)
+		return NULL;
+
+	if (!node->left) {
+		aal_assert("umka-1629", node->tree != NULL);
+		node->left = reiser4_tree_neighbour(tree, node, D_LEFT);
+	}
+
+	return node->left;
+}
+
+/* The same as previous function, but for right neighbour. */
+reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
+				   reiser4_node_t *node)
+{
+	aal_assert("umka-1860", tree != NULL);
+	aal_assert("umka-1510", node != NULL);
+
+	if (!node->parent)
+		return NULL;
+    
+	if (!node->right) {
+		aal_assert("umka-1630", node->tree != NULL);
+		node->right = reiser4_tree_neighbour(tree, node, D_RIGHT);
+	}
+    
+	return node->right;
 }
 
 #ifndef ENABLE_ALONE
@@ -615,16 +784,10 @@ errno_t reiser4_tree_attach(
 	  Attaching node to insert point node. We should attach formatted nodes
 	  only.
 	*/
-	if (reiser4_node_attach(coord.node, node)) {
+	if (reiser4_tree_connect(tree, coord.node, node)) {
 		aal_exception_error("Can't attach the node %llu to the tree.", 
 				    node->blk);
 		return -1;
-	}
-
-	if (tree->traps.attach) {
-		if ((res = tree->traps.attach(tree, &coord, node,
-					      tree->traps.data)))
-			return res;
 	}
 
 	return 0;
@@ -645,17 +808,11 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 
 	reiser4_coord_init(&coord, parent, &node->pos);
 	
-	if (tree->traps.detach) {
-		if ((res = tree->traps.detach(tree, &coord, node,
-					      tree->traps.data)))
-			return res;
-	}
-	
 	/* Removing item/unit from the parent node */
 	if (reiser4_tree_remove(tree, &coord, 1))
 		return -1;
 
-	reiser4_node_detach(parent, node);
+	reiser4_tree_disconnect(tree, parent, node);
 			
 	return 0;
 }
@@ -732,7 +889,7 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 		return -1;
 
 	tree->root = (reiser4_node_t *)children->data;
-	reiser4_node_detach(old_root, tree->root);
+	reiser4_tree_disconnect(tree, old_root, tree->root);
 
 	/* Releasing old root */
 	reiser4_node_mkclean(old_root);
@@ -865,9 +1022,9 @@ errno_t reiser4_tree_shift(
 			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
 				continue;
 
-			reiser4_node_unregister(node, child);
+			reiser4_node_disconnect(node, child);
 
-			if (reiser4_node_register(neig, child))
+			if (reiser4_node_connect(neig, child))
 				return -1;
 		}
 
@@ -913,7 +1070,7 @@ errno_t reiser4_tree_expand(
 	old = *coord;
 	
 	/* Shifting data into left neighbour if it exists */
-	if ((left = reiser4_node_left(coord->node))) {
+	if ((left = reiser4_tree_left(tree, coord->node))) {
 	    
 		if (reiser4_tree_shift(tree, coord, left, SF_LEFT | SF_UPTIP))
 			return -1;
@@ -923,7 +1080,7 @@ errno_t reiser4_tree_expand(
 	}
 
 	/* Shifting data into right neighbour if it exists */
-	if ((right = reiser4_node_right(coord->node))) {
+	if ((right = reiser4_tree_right(tree, coord->node))) {
 	    
 		if (reiser4_tree_shift(tree, coord, right, SF_RIGHT | SF_UPTIP))
 			return -1;
@@ -1010,7 +1167,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	  anyway. Here we will shift data from the target node to its left
 	  neighbour node.
 	*/
-	if ((left = reiser4_node_left(coord->node))) {
+	if ((left = reiser4_tree_left(tree, coord->node))) {
 	    
 		if (reiser4_tree_shift(tree, coord, left, SF_LEFT)) {
 			aal_exception_error("Can't pack node %llu into left.",
@@ -1024,7 +1181,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 		  Shifting the data from the right neigbour node into the target
 		  node.
 		*/
-		if ((right = reiser4_node_right(coord->node))) {
+		if ((right = reiser4_tree_right(tree, coord->node))) {
 				
 			reiser4_coord_t bogus;
 			reiser4_coord_assign(&bogus, right);
@@ -1327,10 +1484,10 @@ errno_t reiser4_tree_cut(
 		return -1;
 	}
 	
-	neig = reiser4_node_right(start->node);
+	neig = reiser4_tree_right(tree, start->node);
 	
 	while (neig && neig != end->node)
-		neig = reiser4_node_right(neig);
+		neig = reiser4_tree_right(tree, neig);
 
 	if (neig != end->node) {
 		aal_exception_error("End node is not reachable from the start corod.");

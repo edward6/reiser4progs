@@ -90,17 +90,11 @@ extern reiser4_node_t *reiser4_node_cbk(reiser4_node_t *node,
 extern reiser4_node_t *reiser4_node_cbp(reiser4_node_t *node,
 					blk_t blk);
 
-extern errno_t reiser4_node_attach(reiser4_node_t *node,
-				   reiser4_node_t *child);
-
-extern void reiser4_node_detach(reiser4_node_t *node,
-				reiser4_node_t *child);
-
-extern errno_t reiser4_node_register(reiser4_node_t *node,
-				     reiser4_node_t *child);
-
-extern void reiser4_node_unregister(reiser4_node_t *node,
+extern errno_t reiser4_node_connect(reiser4_node_t *node,
 				    reiser4_node_t *child);
+
+extern errno_t reiser4_node_disconnect(reiser4_node_t *node,
+				       reiser4_node_t *child);
 
 extern int reiser4_node_lookup(reiser4_node_t *node,
 			       reiser4_key_t *key,
@@ -111,18 +105,12 @@ extern errno_t reiser4_node_unlock(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
 extern errno_t reiser4_node_release(reiser4_node_t *node);
 
-extern reiser4_node_t *reiser4_node_left(reiser4_node_t *node);
-extern reiser4_node_t *reiser4_node_right(reiser4_node_t *node);
-
 extern bool_t reiser4_node_confirm(reiser4_node_t *node);
 extern errno_t reiser4_node_valid(reiser4_node_t *node);
 extern uint32_t reiser4_node_items(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
 extern uint16_t reiser4_node_maxspace(reiser4_node_t *node);
-
-extern reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node, 
-					      aal_direction_t where);
 
 extern uint32_t reiser4_node_get_make_stamp(reiser4_node_t *node);
 

@@ -17,6 +17,24 @@
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 extern reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs);
 
+extern errno_t reiser4_tree_connect(reiser4_tree_t *tree,
+				     reiser4_node_t *parent,
+				     reiser4_node_t *node);
+
+extern errno_t reiser4_tree_disconnect(reiser4_tree_t *tree,
+				       reiser4_node_t *parent,
+				       reiser4_node_t *node);
+
+extern reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
+					      reiser4_node_t *node,
+					      aal_direction_t where);
+
+extern reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
+					 reiser4_node_t *node);
+
+extern reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
+					  reiser4_node_t *node);
+
 #ifndef ENABLE_ALONE
 
 extern reiser4_tree_t *reiser4_tree_create(reiser4_fs_t *fs, 

@@ -166,7 +166,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     }
 
     /* Setting needed links between nodes in the tree cashe. */
-    if (reiser4_node_attach(coord.node, node)) {
+    if (reiser4_tree_connect(tree, coord.node, node)) {
 	aal_exception_error("Can't attach the node %llu in tree cache.", 
 	    node->blk);
 	return -1;

@@ -130,7 +130,7 @@ static errno_t debugfs_print_buff(void *buff, uint64_t size) {
 	return 0;
 }
 
-static errno_t debugfs_attach_handler(reiser4_tree_t *tree,
+static errno_t debugfs_connect_handler(reiser4_tree_t *tree,
 				      reiser4_coord_t *coord,
 				      reiser4_node_t *node,
 				      void *data)
@@ -140,6 +140,14 @@ static errno_t debugfs_attach_handler(reiser4_tree_t *tree,
 			return aal_lru_adjust(tree->lru);
 	}
 	
+	return 0;
+}
+
+static errno_t debugfs_disconnect_handler(reiser4_tree_t *tree,
+					  reiser4_coord_t *coord,
+					  reiser4_node_t *node,
+					  void *data)
+{
 	return 0;
 }
 
@@ -1320,7 +1328,8 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_open(fs)))
 		goto error_free_fs;
     
-	fs->tree->traps.attach = debugfs_attach_handler;
+	fs->tree->traps.connect = debugfs_connect_handler;
+	fs->tree->traps.disconnect = debugfs_disconnect_handler;
 	
 	/*
 	  Check if few print options specified. If so, and --quiet flay was not

@@ -335,8 +335,8 @@ struct reiser4_tree {
 		remove_func_t pre_remove;
 		remove_func_t post_remove;
 
-		attach_func_t attach;
-		detach_func_t detach;
+		attach_func_t connect;
+		detach_func_t disconnect;
 
 		/* Traps used opaque data  */
 		void *data;

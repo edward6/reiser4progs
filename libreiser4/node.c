@@ -163,7 +163,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 
 	/* Detaching node from the tree */
 	if (node->parent) {
-		reiser4_node_detach(node->parent, node);
+		reiser4_node_disconnect(node->parent, node);
 		node->parent = NULL;
 	}
 	
@@ -218,7 +218,7 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 	
 	/* Detaching node from the tree */
 	if (node->parent) {
-		reiser4_node_detach(node->parent, node);
+		reiser4_node_disconnect(node->parent, node);
 		node->parent = NULL;
 	}
 	
@@ -396,8 +396,8 @@ static int callback_comp_node(
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
-errno_t reiser4_node_register(reiser4_node_t *node,
-			      reiser4_node_t *child)
+errno_t reiser4_node_connect(reiser4_node_t *node,
+			     reiser4_node_t *child)
 {
 	aal_list_t *current;
 
@@ -427,14 +427,15 @@ errno_t reiser4_node_register(reiser4_node_t *node,
 	return 0;
 }
 
-void reiser4_node_unregister(
+/* Removes passed @child from children list of @node */
+errno_t reiser4_node_disconnect(
 	reiser4_node_t *node,	/* node child will be detached from */
 	reiser4_node_t *child)	/* pointer to child to be deleted */
 {
 	aal_list_t *next;
 	
 	if (!node->children)
-		return;
+		return -1;
     
 	child->parent = NULL;
     
@@ -445,173 +446,9 @@ void reiser4_node_unregister(
 		node->children = next;
 
 	if (node->tree && aal_lru_detach(node->tree->lru, (void *)child))
-		aal_exception_warn("Can't detach node from tree lru.");
-}
-
-reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
-				       aal_direction_t where)
-{
-	int found = 0;
-	uint32_t orig;
-	uint32_t level;
-
-	rpos_t pos;
-	reiser4_node_t *old;
-	reiser4_node_t *child;
-	reiser4_coord_t coord;
-	reiser4_ptr_hint_t ptr;
-
-	old = node;
-	level = orig = reiser4_node_level(node);
-
-	while (node->parent && !found) {
-		
-		if (reiser4_node_pos(node, &pos))
-			return NULL;
-
-		found = (where == D_LEFT ? (pos.item > 0) :
-			 (pos.item < reiser4_node_items(node->parent) - 1));
-
-		level++;
-		node = node->parent;
-	}
-
-	if (!found)
-		return NULL;
-	
-	pos.item += (where == D_LEFT ? -1 : 1);
-	
-	while (level > orig) {
-		if (reiser4_coord_open(&coord, node, &pos))
-			return NULL;
-
-		/* Checking if item is a branch of tree */
-		if (!reiser4_item_branch(&coord))
-			return node;
-			
-		plugin_call(coord.item.plugin->item_ops, read,
-			    &coord.item, &ptr, 0, 1);
-
-		/* Checking item for validness */
-		if (ptr.ptr == INVAL_BLK)
-			return NULL;
-
-		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
-			aal_device_t *device = node->device;
-			
-			if (!(child = reiser4_node_open(device, ptr.ptr))) {
-				aal_exception_error("Can't read block %llu. %s.",
-						    ptr.ptr, device->error);
-				return NULL;
-			}
-
-			if (reiser4_node_register(node, child))
-				return NULL;
-		}
-
-		level--;
-		node = child;
-
-		pos.item = (where == D_LEFT ?
-			    reiser4_node_items(node) - 1 : 0);
-	}
-
-	if (where == D_LEFT) {
-		old->left = node;
-		node->right = old;
-	} else {
-		old->right = node;
-		node->left = old;
-	}
-	
-	return node;
-}
-
-/* 
-   This function raises up to the tree the left neighbour node. This is used by
-   reiser4_tree_expand function.
-*/
-reiser4_node_t *reiser4_node_left(
-	reiser4_node_t *node)	/* node for working with */
-{
-	aal_assert("umka-776", node != NULL);
-
-	/* Parent is not present. The root node. */
-	if (!node->parent)
-		return NULL;
-
-	if (!node->left) {
-		aal_assert("umka-1629", node->tree != NULL);
-		node->left = reiser4_node_neighbour(node, D_LEFT);
-	}
-
-	return node->left;
-}
-
-/* The same as previous function, but for right neighbour. */
-reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
-	aal_assert("umka-1510", node != NULL);
-
-	if (!node->parent)
-		return NULL;
-    
-	if (!node->right) {
-		aal_assert("umka-1630", node->tree != NULL);
-		node->right = reiser4_node_neighbour(node, D_RIGHT);
-	}
-    
-	return node->right;
-}
-
-/*
-  Connects child into sorted children list of specified node. Sets up the both
-  neighbours and parent pointer.
-*/
-errno_t reiser4_node_attach(
-	reiser4_node_t *node,	       /* node child will be connected to */
-	reiser4_node_t *child)	       /* child node to be attached */
-{
-	aal_assert("umka-561", node != NULL);
-	aal_assert("umka-564", child != NULL);
-
-	/* Registering @child in @node children list */
-	if (reiser4_node_register(node, child))
 		return -1;
 
-	/*
-	  Getting neighbours. This should be done after reiser4_node_register is
-	  done ans parent assigned.
-	*/
-	child->left = reiser4_node_neighbour(child, D_LEFT);
-	child->right = reiser4_node_neighbour(child, D_RIGHT);
-	
 	return 0;
-}
-
-/*
-  Remove specified childern from the node. Updates all neighbour pointers and
-  parent pointer.
-*/
-void reiser4_node_detach(
-	reiser4_node_t *node,	/* node child will be detached from */
-	reiser4_node_t *child)	/* pointer to child to be deleted */
-{
-	aal_list_t *next;
-	
-	aal_assert("umka-562", node != NULL);
-	aal_assert("umka-563", child != NULL);
-
-	if (child->left) {
-		child->left->right = NULL;
-		child->left = NULL;
-	}
-	
-	if (child->right) {
-		child->right->left = NULL;
-		child->right = NULL;
-	}
-
-	reiser4_node_unregister(node, child);
 }
 
 bool_t reiser4_node_confirm(reiser4_node_t *node) {
@@ -622,8 +459,8 @@ bool_t reiser4_node_confirm(reiser4_node_t *node) {
 }
 
 /* 
-   This function makes search inside specified node for passed key. Position
-   will eb stored in passed @pos.
+  This function makes search inside specified node for passed key. Position will
+  eb stored in passed @pos.
 */
 int reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
@@ -887,8 +724,8 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 }
 
 /* 
-   Inserts item or unit into node. Keeps track of changes of the left delimiting
-   keys in all parent nodes.
+  Inserts item or unit into node. Keeps track of changes of the left delimiting
+  keys in all parent nodes.
 */
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	            /* node item will be inserted in */
@@ -1005,8 +842,8 @@ errno_t reiser4_node_cut(
 }
 
 /* 
-   Deletes item or unit from cached node. Keeps track of changes of the left
-   delimiting key.
+  Deletes item or unit from cached node. Keeps track of changes of the left
+  delimiting key.
 */
 errno_t reiser4_node_remove(
 	reiser4_node_t *node,	            /* node item will be removed from */
@@ -1036,20 +873,6 @@ errno_t reiser4_node_remove(
 	if (reiser4_coord_open(&coord, node, pos))
 		return -1;
 
-	/* 
-	   Updating list of childrens of modified node in the case we modifying
-	   an internal node.
-	*/
-	if (node->children) {
-		reiser4_node_t *child;
-
-		if (reiser4_item_get_key(&coord, NULL))
-			return -1;
-
-		if ((child = reiser4_node_cbk(node, &coord.item.key)))
-			reiser4_node_detach(node, child);
-	}
-
 	/*
 	  Removing item or unit. We assume that we are going to remove unit if
 	  unit component is setted up.
@@ -1072,8 +895,8 @@ errno_t reiser4_node_remove(
 				return -1;
 		} else {
 			/* 
-			   Removing cached node from the tree in the case it has
-			   not items anymore.
+			  Removing cached node from the tree in the case it has
+			  not items anymore.
 			*/
 			if (reiser4_node_remove(node->parent, &ppos, 1))
 				return -1;
@@ -1151,7 +974,7 @@ errno_t reiser4_node_traverse(
 
 					child->data = (void *)1;
 					
-					if (reiser4_node_attach(node, child))
+					if (reiser4_node_connect(node, child))
 						goto error_free_child;
 				}
 

@@ -164,7 +164,7 @@ static errno_t tree_right(
 
 	coord = (reiser4_coord_t *)place;
 		
-	if (!reiser4_node_right(coord->node))
+	if (!reiser4_tree_right((reiser4_tree_t *)tree, coord->node))
 		return -1;
 
 	POS_INIT(&pos, 0, ~0ul);
@@ -191,7 +191,7 @@ static errno_t tree_left(
 
 	coord = (reiser4_coord_t *)place;
 	
-	if (!reiser4_node_left(coord->node))
+	if (!reiser4_tree_left((reiser4_tree_t *)tree, coord->node))
 		return -1;
 
 	POS_INIT(&pos, reiser4_node_items(coord->node->left) - 1, ~0ul);
