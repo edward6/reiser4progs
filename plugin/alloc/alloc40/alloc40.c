@@ -336,17 +336,6 @@ static void alloc40_close(object_entity_t *entity) {
 
 	aal_free(alloc->crc);
 	aal_free(alloc);
-/*
-  Call @func for all blocks which belong to the same bitmap block as passed
-  @blk. It is needed for fsck. In the case it detremined that a block is not
-  corresponds to its value in block allocator, it should check all the related
-  (neighbour) blocks which are described by one bitmap block (4096 - CRC_SIZE).
-*/
-
-	/*
-	  Loop though the all blocks one bitmap block describes and calling
-	  passed @func for each of them.
-	*/
 }
 
 #ifndef ENABLE_COMPACT

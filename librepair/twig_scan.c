@@ -63,8 +63,8 @@ static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
 	    callback_item_region_check, data);
 	if (len > 0) {
 	    /* shrink the node. */
-	    if ((res = plugin_call(return -1, node->entity->plugin->node_ops,
-		    shrink, node->entity, &coord->pos, len)))
+	    if ((res = plugin_call(node->entity->plugin->node_ops,
+		    shrink, node->entity, &coord->pos, len, 1)))
 	    {
 		aal_exception_bug("Node (%llu), pos (%u, %u), len (%u): Failed "
 		    "to shrink the node on (%u) bytes.", node->blk, 

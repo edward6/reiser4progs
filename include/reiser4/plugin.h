@@ -802,7 +802,7 @@ struct reiser4_node_ops {
 	errno_t (*cut) (object_entity_t *, rpos_t *, rpos_t *);
     
 	/* Item at the pos get smaller on size bytes, shrink the node */
-	errno_t (*shrink) (object_entity_t *, reiser4_pos_t *, uint32_t size);
+	errno_t (*shrink) (object_entity_t *, rpos_t *, uint32_t, uint32_t);
 	
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (object_entity_t *, rpos_t *, key_entity_t *);

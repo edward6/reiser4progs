@@ -146,13 +146,13 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    continue;
 
 	if (coord.item.plugin->item_ops.layout_check) {
-	    len = plugin_call(return -1, coord.item.plugin->item_ops, 
+	    len = plugin_call(coord.item.plugin->item_ops, 
 		layout_check, &coord.item, callback_item_region_check, bm_used);
 
 	    if (len > 0) {
 		/* shrink the node */
-		if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
-		    shrink, node->entity, pos, len)))
+		if ((res = plugin_call(node->entity->plugin->node_ops, 
+		    shrink, node->entity, pos, len, 1)))
 		{
 		    aal_exception_bug("Node (%llu), item (%llu), len (%u): Failed "
 			"to shrink the node on (%u) bytes.", node->blk, pos->item,

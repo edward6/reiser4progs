@@ -366,7 +366,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 		} else if ((res = callback_item_data(item, item->con.blk, &hint)))
 		    return res;
 		
-			    item, &key);
+		plugin_call(item->plugin->item_ops, max_real_key, item, &key);
 		
 		reg->offset = plugin_call(key.plugin->key_ops,
 					  get_offset, &key) + 1;

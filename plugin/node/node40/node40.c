@@ -314,12 +314,11 @@ static errno_t node40_item(item_entity_t *item,
 static errno_t node40_expand(node40_t *node, rpos_t *pos,
 			     uint32_t len, uint32_t count)
 {
-	int i, item;
 	int is_space;
 	int is_range;
 	int is_insert;
 
-	uint32_t items;
+	uint32_t i, item, items;
 	uint32_t offset;
 	uint32_t headers;
 	item40_header_t *ih;
@@ -639,7 +638,7 @@ static errno_t node40_delete(node40_t *node, rpos_t *pos,
 		
 	}
 
-	return node40_shrink(node, pos, len, count);
+	return node40_shrink((object_entity_t *)node, pos, len, count);
 }
 
 /* Inserts item described by hint structure into node */
@@ -739,7 +738,7 @@ errno_t node40_remove(object_entity_t *entity,
 		}
 	}
 	
-	return node40_shrink(node, pos, len, 1);
+	return node40_shrink(entity, pos, len, 1);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
@@ -820,7 +819,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		if (!(units = item.plugin->item_ops.units(&item))) {
 			pos.unit = ~0ul;
 
-			if (node40_shrink(node, &pos, item.len, 1))
+			if (node40_shrink(entity, &pos, item.len, 1))
 				return -1;
 		}
 	}
@@ -1501,7 +1500,7 @@ static errno_t node40_transfuse(node40_t *src_node,
 	  Shrinking source node after items are copied from it to dst
 	  node.
 	*/
-	if (node40_shrink(src_node, &src_pos, hint->bytes,
+	if (node40_shrink((object_entity_t *)src_node, &src_pos, hint->bytes,
 			  hint->items))
 	{
 		aal_exception_error("Can't shrink node "
@@ -1643,7 +1642,7 @@ static reiser4_plugin_t node40_plugin = {
 		.set_make_stamp	 = node40_set_make_stamp,
 		.set_flush_stamp = node40_set_flush_stamp,
 	
-		.shrink		= node40_shrink,
+		.shrink		 = node40_shrink,
 		.item_legal	 = node40_item_legal,
 #else
 		.create		 = NULL,
