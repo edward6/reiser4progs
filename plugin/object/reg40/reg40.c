@@ -109,6 +109,10 @@ static int32_t reg40_read(object_entity_t *entity,
 	  item's read method.
 	*/
 	for (read = 0; read < n; ) {
+
+		if (reg40_next(reg) != LP_PRESENT)
+			break;
+
 		item = &reg->body.item;
 		
 		chunk = n - read;
@@ -126,10 +130,6 @@ static int32_t reg40_read(object_entity_t *entity,
 		buff += chunk;
 		read += chunk;
 		reg->offset += chunk;
-
-		/* Getting new body item by current file offset */
-		if ((res = reg40_next(reg)) != LP_PRESENT)
-			break;
 	}
 
 	return read;
@@ -447,7 +447,6 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	
 	return 0;
 }
-
 #endif
 
 static errno_t reg40_seek(object_entity_t *entity, 
@@ -456,8 +455,6 @@ static errno_t reg40_seek(object_entity_t *entity,
 	aal_assert("umka-1968", entity != NULL);
 
 	((reg40_t *)entity)->offset = offset;
-	reg40_next((reg40_t *)entity);
-	
 	return 0;
 }
 
