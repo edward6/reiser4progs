@@ -73,15 +73,22 @@ static key_entity_t *key40_maximal(void) {
 }
 
 /* Compares two first components of the pased keys (locality and objectid) */
-static int key40_compare_short(key40_t *key1, 
-			       key40_t *key2) 
+static int key40_compare_short(key_entity_t *key1, 
+			       key_entity_t *key2) 
 {
-	int result;
+	int res;
 
-	if ((result = k40_comp_el(key1, key2, 0)) != 0)
-		return result;
+	aal_assert("umka-2217", key1 != NULL);
+	aal_assert("umka-2218", key2 != NULL);
+	
+	if ((res = k40_comp_el((key40_t *)key1->body,
+			       (key40_t *)key2->body, 0)) != 0)
+	{
+		return res;
+	}
 
-	return k40_comp_el(key1, key2, 1);
+	return k40_comp_el((key40_t *)key1->body,
+			   (key40_t *)key2->body, 1);
 }
 
 /*
@@ -91,19 +98,16 @@ static int key40_compare_short(key40_t *key1,
 static int key40_compare(key_entity_t *key1, 
 			 key_entity_t *key2) 
 {
-	int result;
-	key40_t *body1, *body2;
+	int res;
 
 	aal_assert("vpf-135", key1 != NULL);
 	aal_assert("vpf-136", key2 != NULL);
     
-	body1 = (key40_t *)key1->body;
-	body2 = (key40_t *)key2->body;
-    
-	if ((result = key40_compare_short(body1, body2)) != 0)
-		return result;
+	if ((res = key40_compare_short(key1, key2)) != 0)
+		return res;
 
-	return k40_comp_el(body1, body2, 2);
+	return k40_comp_el((key40_t *)key1->body,
+			   (key40_t *)key2->body, 2);
 }
 
 /* Assigns src key to dst one  */
@@ -123,12 +127,8 @@ static errno_t key40_assign(key_entity_t *dst,
 
 /* Checks if passed key is realy key40 one */
 static int key40_confirm(key_entity_t *key) {
-	key40_minor_t minor;
-	
 	aal_assert("vpf-137", key != NULL);
-	minor = k40_get_minor((key40_t *)key->body);
-
-	return minor < KEY40_LAST_MINOR;
+	return k40_get_minor((key40_t *)key->body) < KEY40_LAST_MINOR;
 }
 
 /* Sets up key type */
@@ -252,12 +252,11 @@ static errno_t key40_build_hash(key_entity_t *key,
 	} else {
 
 		/* Build hash by means of using hash plugin */
-		if (!hash->hash_ops.build)
-			return -EINVAL;
-		
 		objectid |= 0x0100000000000000ull;
-		offset = hash->hash_ops.build((const char *)(name + OID_CHARS),
-						aal_strlen(name) - OID_CHARS);
+		
+		offset = plugin_call(hash->hash_ops, build,
+				     (const char *)(name + OID_CHARS),
+				     aal_strlen(name) - OID_CHARS);
 	}
 
 	/*
@@ -411,38 +410,39 @@ static reiser4_plugin_t key40_plugin = {
 #endif
 		},
 	
-		.confirm	= key40_confirm,
-		.assign		= key40_assign,
-		.minimal	= key40_minimal,
-		.maximal	= key40_maximal,
-		.clean		= key40_clean,
+		.tall              = key40_tall,
+		.confirm	   = key40_confirm,
+		.assign		   = key40_assign,
+		.minimal	   = key40_minimal,
+		.maximal	   = key40_maximal,
+		.clean		   = key40_clean,
 
-		.compare	= key40_compare,
-		.tall           = key40_tall,
+		.compare	   = key40_compare,
+		.compare_short	   = key40_compare_short,
 		
 #ifndef ENABLE_STAND_ALONE
-		.valid		= key40_valid,
-		.print		= key40_print,
+		.valid		   = key40_valid,
+		.print		   = key40_print,
 
-		.set_hash	= key40_set_hash,
-		.get_hash	= key40_get_hash,
+		.set_hash	   = key40_set_hash,
+		.get_hash	   = key40_get_hash,
 #endif
 		
-		.set_type	= key40_set_type,
-		.get_type	= key40_get_type,
+		.set_type	   = key40_set_type,
+		.get_type	   = key40_get_type,
 
-		.set_locality	= key40_set_locality,
-		.get_locality	= key40_get_locality,
+		.set_locality	   = key40_set_locality,
+		.get_locality	   = key40_get_locality,
 
-		.set_objectid	= key40_set_objectid,
-		.get_objectid	= key40_get_objectid,
+		.set_objectid	   = key40_set_objectid,
+		.get_objectid	   = key40_get_objectid,
 
-		.set_offset	= key40_set_offset,
-		.get_offset	= key40_get_offset,
+		.set_offset	   = key40_set_offset,
+		.get_offset	   = key40_get_offset,
 	
-		.build_short    = key40_build_short,
-		.build_entry    = key40_build_entry,
-		.build_generic  = key40_build_generic
+		.build_short       = key40_build_short,
+		.build_entry       = key40_build_entry,
+		.build_generic     = key40_build_generic
 	}
 };
 

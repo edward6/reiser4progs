@@ -159,7 +159,7 @@ static uint32_t direntry40_units(item_entity_t *item) {
 static int32_t direntry40_read(item_entity_t *item, void *buff,
 			       uint32_t pos, uint32_t count)
 {
-	uint32_t i;
+	uint32_t i, units;
 	entry_hint_t *hint;
     
 	aal_assert("umka-866", item != NULL);
@@ -173,9 +173,13 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	hint->object.plugin = item->key.plugin;
 	hint->offset.plugin = item->key.plugin;
 
+#ifndef ENABLE_STAND_ALONE
+	units = direntry40_units(item);
+	
 	/* Check if count is valid one */
-	if (count > direntry40_units(item) - pos)
-		count = direntry40_units(item) - pos;
+	if (count > units - pos)
+		count = units - pos;
+#endif
 
 	for (i = pos; i < pos + count; i++, hint++) {
 		direntry40_get_obj(item, i, &hint->object);
@@ -183,7 +187,7 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 		direntry40_get_name(item, i, hint->name);
 	}
     
-	return i - pos;
+	return count;
 }
 
 static int direntry40_data(void) {

@@ -118,15 +118,10 @@ static int32_t reg40_read(object_entity_t *entity,
 						   get_offset, &item->key);
 
 		/* Calling body item's "read" method */
-		if ((chunk = plugin_call(item->plugin->item_ops, read,
-					 item, buff, offset, chunk)) <= 0)
-		{
-			aal_exception_error("Can't read %lu bytes from "
-					    "%s item at offset %lu.",
-					    chunk, item->plugin->h.label,
-					    offset);
-			break;
-		}
+		chunk = plugin_call(item->plugin->item_ops, read,
+				    item, buff, offset, chunk);
+
+		aal_assert("umka-2216", chunk > 0);
 		
 		buff += chunk;
 		read += chunk;

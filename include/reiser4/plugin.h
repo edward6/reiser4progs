@@ -567,6 +567,9 @@ struct reiser4_key_ops {
 	/* Compares two keys by comparing its all components */
 	int (*compare) (key_entity_t *, key_entity_t *);
 
+	/* Compares two keys by comparing its all components */
+	int (*compare_short) (key_entity_t *, key_entity_t *);
+	
 	/* Functions for determining is key long */
 	int (*tall) (key_entity_t *);
 

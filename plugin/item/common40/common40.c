@@ -57,7 +57,6 @@ errno_t common40_maxposs_key(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Returns max real key inside passed @item */
 errno_t common40_maxreal_key(item_entity_t *item,
 			     key_entity_t *key,
@@ -88,45 +87,13 @@ errno_t common40_maxreal_key(item_entity_t *item,
 int common40_mergeable(item_entity_t *item1,
 		       item_entity_t *item2)
 {
-	uint64_t maxreal, offset;
-
 	key_entity_t maxreal_key;
-	reiser4_plugin_t *plugin;
-	oid_t objectid1, objectid2;
-	
-	plugin = item1->key.plugin;
-	
-	objectid1 = plugin_call(plugin->key_ops, get_locality,
-				&item1->key);
-	
-	objectid2 = plugin_call(plugin->key_ops, get_locality,
-				&item2->key);
-
-	if (objectid1 != objectid2)
-		return 0;
-	
-	objectid1 = plugin_call(plugin->key_ops, get_objectid,
-				&item1->key);
-	
-	objectid2 = plugin_call(plugin->key_ops, get_objectid,
-				&item2->key);
-
-	if (objectid1 != objectid2)
-		return 0;
 
 	plugin_call(item1->plugin->item_ops, maxreal_key,
 		    item1, &maxreal_key);
-		
-	maxreal = plugin_call(plugin->key_ops, get_offset,
-			      &maxreal_key);
-	
-	offset = plugin_call(plugin->key_ops, get_offset,
-			     &item2->key);
 
-	if (maxreal != offset)
-		return 0;
-	
-	return 1;
+	return !plugin_call(item1->key.plugin->key_ops,
+			    compare, &maxreal_key, &item2->key);
 }
 #endif
 

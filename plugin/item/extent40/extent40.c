@@ -217,23 +217,17 @@ static lookup_t extent40_lookup(item_entity_t *item,
 static int32_t extent40_read(item_entity_t *item, void *buff,
 			     uint32_t pos, uint32_t count)
 {
-	uint32_t i;
-
+	uint32_t read, i;
 	key_entity_t key;
-	extent40_t *extent;
 	uint32_t blocksize;
-	
-	aal_block_t *block;
-	uint32_t read = count;
 
 	aal_assert("umka-1421", item != NULL);
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != ~0ul);
 
-	extent = extent40_body(item);
-	blocksize = extent40_blocksize(item);
+	blocksize = item->context.device->blocksize;
 
-	for (i = extent40_unit(item, pos);
+	for (read = count, i = extent40_unit(item, pos);
 	     i < extent40_units(item) && count > 0; i++)
 	{
 		uint32_t chunk;
@@ -265,17 +259,17 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		offset -= plugin_call(item->key.plugin->key_ops,
 				      get_offset, &item->key);
 
-		start = et40_get_start(extent + i) +
+		start = blk = et40_get_start(extent40_body(item) + i) +
 			((pos - offset) / blocksize);
 
-		for (blk = start; blk < start + et40_get_width(extent + i) &&
-			     count > 0; )
+		while (blk < start + et40_get_width(extent40_body(item) + i) &&
+		       count > 0)
 		{
 			uint32_t local;
+			aal_block_t *block;
 			
 			if (!(block = aal_block_read(item->context.device, blk))) {
-				aal_exception_error("Can't read block "
-						    "%llu.", blk);
+				aal_exception_error("Can't read block %llu.", blk);
 				return -EIO;
 			}
 

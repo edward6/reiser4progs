@@ -168,7 +168,7 @@ reiser4_node_t *reiser4_node_open(
  
         node->blk = blk;
         node->device = device;
- 
+
         if (reiser4_node_guess(node))
                 goto error_free_node;
      
@@ -222,7 +222,7 @@ errno_t reiser4_node_lkey(
 #ifndef ENABLE_STAND_ALONE
 /*
   Checking if passed @place has nodeptr that points onto passed @node. This is
-  needed for node_pbp() function.
+  needed for node_pbc() function.
 */
 static int reiser4_node_ack(reiser4_node_t *node,
 				reiser4_place_t *place)
@@ -456,9 +456,6 @@ lookup_t reiser4_node_lookup(
 
 	POS_INIT(pos, 0, ~0ul);
 
-	if (reiser4_node_items(node) == 0)
-		return LP_ABSENT;
-	
 	/* Calling node plugin */
 	res = plugin_call(node->entity->plugin->node_ops,
 			  lookup, node->entity, key, pos);
@@ -485,8 +482,7 @@ lookup_t reiser4_node_lookup(
 	if (item->plugin->item_ops.maxposs_key) {
 
 		/* Maxposs_key is impemented */
-		if (reiser4_item_maxposs_key(&place, &maxkey))
-			return LP_FAILED;
+		reiser4_item_maxposs_key(&place, &maxkey);
 
 		if (reiser4_key_compare(key, &maxkey) > 0) {
 			pos->item++;
@@ -501,12 +497,12 @@ lookup_t reiser4_node_lookup(
 						    &pos->unit);
 
 		if (res == LP_ABSENT) {
-		    if (pos->unit == ~0ul || 
-			pos->unit == reiser4_item_units(&place))
-		    {
-			pos->unit = ~0ul;
-			pos->item++;
-		    } 
+			if (pos->unit == ~0ul || 
+			    pos->unit == reiser4_item_units(&place))
+			{
+				pos->unit = ~0ul;
+				pos->item++;
+			} 
 		}
 
 		return res;
@@ -528,7 +524,6 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /*
   Sets up hint by means of uinitializing its fields by item body, item len and
   if pos points to unit, the set up units related fields.

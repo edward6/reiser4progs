@@ -37,8 +37,10 @@ static int32_t tail40_read(item_entity_t *item, void *buff,
 	aal_assert("umka-1674", buff != NULL);
 	aal_assert("umka-1675", pos < item->len);
 
+#ifndef ENABLE_STAND_ALONE
 	if (count > item->len - pos)
 		count = item->len - pos;
+#endif
 	
 	aal_memcpy(buff, item->body + pos, count);
 	
