@@ -11,7 +11,7 @@ errno_t callback_check_struct(object_entity_t *object, place_t *place,
 	aal_assert("vpf-1114", object != NULL);
 	aal_assert("vpf-1115", place != NULL);
 	
-	repair_item_set_flag((reiser4_place_t *)place, ITEM_CHECKED);
+	repair_item_set_flag((reiser4_place_t *)place, OF_CHECKED);
 	
 	return 0;
 }
@@ -69,7 +69,7 @@ reiser4_object_t *repair_semantic_open_child(reiser4_object_t *parent,
 	}
 	
 	start = reiser4_object_start(object);
-	checked = repair_item_test_flag(start, ITEM_CHECKED);
+	checked = repair_item_test_flag(start, OF_CHECKED);
 	
 	if (!checked) {
 		/* The openned object has not been checked yet. */
@@ -102,7 +102,7 @@ reiser4_object_t *repair_semantic_open_child(reiser4_object_t *parent,
 		goto error_close_object;
 	
 	if (repair->mode == REPAIR_REBUILD && entry->type == ET_NAME)
-		repair_item_set_flag(start, ITEM_REACHABLE);
+		repair_item_set_flag(start, OF_HAS_NAME);
 
 	/* The object was chacked before, skip the traversing of its subtree. */
 	if (checked) {
@@ -185,7 +185,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 	*/
 
 	/* If this item was checked already, skip it. */
-	if (repair_item_test_flag(place, ITEM_CHECKED))
+	if (repair_item_test_flag(place, OF_CHECKED))
 		return 0;
 	
 	/* Try to realize unambiguously the object by the place. */
@@ -209,7 +209,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 		goto error_close_object;
 	
 	/* The whole reachable subtree must be recovered for now and marked as 
-	   REACHABLE. */
+	   HAS_NAME. */
 	
 	reiser4_object_close(object);
 

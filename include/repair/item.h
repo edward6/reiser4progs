@@ -21,11 +21,6 @@ extern errno_t repair_item_estimate_copy(reiser4_place_t *dst,
 					 reiser4_place_t *src, 
 					 copy_hint_t *hint);
 
-typedef enum repair_item_flag {
-	ITEM_REACHABLE  = 0x1,
-	ITEM_CHECKED    = 0x2,
-	ITEM_LAST_FLAG  = 0x3
-} repair_item_flag_t;
 
 void repair_item_set_flag(reiser4_place_t *place, uint16_t flag);
 void repair_item_clear_flag(reiser4_place_t *place, uint16_t flag);

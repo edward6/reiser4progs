@@ -50,8 +50,8 @@ static errno_t callback_object_check_link(reiser4_object_t *object,
 	
 	start = reiser4_object_start(object);	
 	
-	/* If REACHABLE, skip it as objects linked to L&F are not marked as such. */
-	if (repair_item_test_flag(start, ITEM_REACHABLE))
+	/* If HAS_NAME, skip it as objects linked to L&F are not marked as such. */
+	if (repair_item_test_flag(start, OF_HAS_NAME))
 		goto error;
 	
 	/* If lookup cannot find the object in L&F, nothing to unlink. */
@@ -134,10 +134,10 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	lf = (repair_lost_found_t *)data;
 	
 	/* If the object the item belongs to was reached already, skip it. */
-	if (repair_item_test_flag(place, ITEM_REACHABLE))
+	if (repair_item_test_flag(place, OF_HAS_NAME))
 		return 0;
 	
-	if (repair_item_test_flag(place, ITEM_CHECKED)) {
+	if (repair_item_test_flag(place, OF_CHECKED)) {
 		/* If the object the item belongs to was chacked already, its 
 		   object plugin must be realized unambiguously. */
 		if (!(object = repair_object_realize(lf->repair->fs->tree,
@@ -182,7 +182,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	
 	/* If '..' is valid, then the parent<->object link was recovered during 
 	   traversing. Othewise, link the object to "lost+found". */
-	if (!repair_item_test_flag(start, ITEM_REACHABLE)) {
+	if (!repair_item_test_flag(start, OF_HAS_NAME)) {
 		if ((res = reiser4_object_link(lf->lost, object, object->name))) {
 			aal_exception_error("Node %llu, item %u: failed to link "
 					    "the object pointed by %k to the "
@@ -196,7 +196,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	}
 		
 	/* The whole reachable subtree must be recovered for now and marked as 
-	   REACHABLE. */
+	   HAS_NAME. */
 	
 	reiser4_object_close(object);
 	return 0;

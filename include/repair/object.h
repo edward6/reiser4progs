@@ -11,6 +11,12 @@
 
 #include <repair/repair.h>
 
+typedef enum repair_object_flag {
+	OF_HAS_NAME	= 0x1,
+	OF_CHECKED	= 0x2,
+	OF_LAST		= 0x3
+} repair_object_flag_t;
+
 typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *parent, 
 						 entry_hint_t *entry, 
 						 void *data);
