@@ -47,7 +47,7 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 				    "the object pointed by %s failed. "
 				    "Plugin %s.", start->node->number,
 				    start->pos.item, object->name,
-				    object->entity->plugin->label);
+				    object->entity->plug->label);
 	} else if (res & REPAIR_FATAL) {
 		if (sem->repair->mode != REPAIR_REBUILD)
 			sem->repair->fatal++;
@@ -78,22 +78,22 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 				    "of the object pointed by %s failed. "
 				    "Plugin %s.", start->node->number,
 				    start->pos.item, object->name,
-				    object->entity->plugin->label);
+				    object->entity->plug->label);
 		return res;
 	}
 	
 	/* If parent pointed does not exists in the object or matches the 
 	   parent mark as ATTACHED. */
 	if (sem->repair->mode == REPAIR_REBUILD && 
-	    (object->info.parent.plugin == NULL ||
+	    (object->info.parent.plug == NULL ||
 	     !reiser4_key_compare(&object->info.parent, &parent->info.object)))
 	{
 		repair_item_set_flag(start, OF_ATTACHED);
 	}
 		
 	/* Increment the link. */
-	return plugin_call(object->entity->plugin->o.object_ops, link, 
-			   object->entity);
+	return plug_call(object->entity->plug->o.object_ops, link, 
+			 object->entity);
 }
 
 static errno_t repair_semantic_add_entry(reiser4_object_t *parent, 
@@ -144,7 +144,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	aal_assert("vpf-1184", object != NULL);
 
-	if (!object->info.parent.plugin)
+	if (!object->info.parent.plug)
 		return NULL;
 	
 	parent = repair_object_launch(object->info.tree, &object->info.parent);
@@ -230,9 +230,9 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	return parent;
 	
  error_object_detach:
-	if (object->entity->plugin->o.object_ops->detach) {
-		if (plugin_call(object->entity->plugin->o.object_ops,
-				detach, object->entity, NULL))
+	if (object->entity->plug->o.object_ops->detach) {
+		if (plug_call(object->entity->plug->o.object_ops,
+			      detach, object->entity, NULL))
 			return INVAL_PTR;
 	}
 	return NULL;
@@ -284,7 +284,6 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		goto error_rem_entry;
 	else if (repair_error_fatal(res))
 		goto error_close_object;
-	
 	/* If object knows about the object it was attached to, check_struct 
 	   has saved it into the info->parent key. Check that this parent 
 	   matches the given @parent, otherwise try to get the pointed parent
@@ -435,7 +434,7 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 
 errno_t repair_semantic(repair_semantic_t *sem) {
 	repair_progress_t progress;
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	reiser4_object_t *root;
 	reiser4_fs_t *fs;
 	errno_t res;
