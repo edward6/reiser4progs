@@ -68,7 +68,7 @@ static reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint64_t size) {
 #endif
 
 /* Updates body place in correspond to file offset */
-static errno_t reg40_update(object_entity_t *entity) {
+errno_t reg40_update(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 
 	aal_assert("umka-1161", entity != NULL);

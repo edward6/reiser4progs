@@ -183,8 +183,8 @@ static errno_t dir40_next(object_entity_t *entity) {
 }
 
 /* Reads one entry from passed @entity */
-static errno_t dir40_readdir(object_entity_t *entity, 
-			     entry_hint_t *entry)
+errno_t dir40_readdir(object_entity_t *entity, 
+		      entry_hint_t *entry)
 {
 	errno_t res;
 	dir40_t *dir;
@@ -568,18 +568,15 @@ static errno_t dir40_attach(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	aal_strncpy(entry.name, "..", 2);
 
-	if (dir40_lookup(entity, entry.name, NULL) == ABSENT) {
-		/* Adding ".." to child */
-		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-			  assign, &entry.object, &parent->info.object);
+	/* Adding ".." to child */
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
+		  assign, &entry.object, &parent->info.object);
 
-		if ((res = plug_call(entity->plug->o.object_ops,
-				     add_entry, entity, &entry)))
-		{
-			return res;
-		}
-	} else
-		return -EINVAL;
+	if ((res = plug_call(entity->plug->o.object_ops,
+			     add_entry, entity, &entry)))
+	{
+		return res;
+	}
 
 	/* Increasing parent's @nlink by one */
 	return plug_call(parent->plug->o.object_ops, link, parent);
@@ -656,7 +653,9 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 }
 
 /* Estimates directory operations (add_entry, rem_entry) */
-uint32_t dir40_estimate(object_entity_t *entity, entry_hint_t *entry) {
+uint32_t dir40_estimate(object_entity_t *entity,
+			entry_hint_t *entry)
+{
 	create_hint_t hint;
 	dir40_t *dir = (dir40_t *)entity;
 	
@@ -692,6 +691,10 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
+	/* Making sure, that entry is not already in directory */
+	if (dir40_lookup(entity, entry->name, NULL) != ABSENT)
+		return -EINVAL;
+	
 	if ((res = dir40_update(entity)))
 		return res;
 	

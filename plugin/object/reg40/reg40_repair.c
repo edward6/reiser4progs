@@ -18,9 +18,9 @@ extern errno_t reg40_seek(object_entity_t *entity,
 			  uint64_t offset);
 
 extern uint64_t reg40_offset(object_entity_t *entity);
-
+extern errno_t reg40_update(object_entity_t *entity);
 extern errno_t reg40_reset(object_entity_t *entity);
-extern lookup_t reg40_next(reg40_t *reg);
+
 extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
 
@@ -82,8 +82,11 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
-	if ((res = obj40_realize(&reg->obj, callback_stat, callback_key)))
+	if ((res = obj40_realize(&reg->obj, callback_stat,
+				 callback_key)))
+	{
 		goto error;
+	}
 	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
@@ -133,14 +136,16 @@ static void reg40_zero_nlink(uint32_t *nlink) {
 
 static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 	object_info_t *info = &reg->obj.info;
+	uint64_t offset;
 	errno_t res;
 
+	offset = reg40_offset((object_entity_t *)reg);
+	
 	if ((res = reg40_put((object_entity_t *)reg, NULL, len))) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
 				    print_ino(core, &info->object),
-				    reg40_offset((object_entity_t *)reg),
-				    offset, reg->obj.plug->label);
+				    offset, offset + len, reg->obj.plug->label);
 	}
 
 	return res;
@@ -176,20 +181,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if ((res = obj40_ukey(&reg->obj, &info->start, &info->object, mode)))
 		return res;
 	
-	/* Build the start key of the body. */
-	plug_call(info->start.plug->o.key_ops, build_gener, 
-		  &key,  KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
-		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
-		  reg40_offset(object));
-	
 	size = 0; bytes = 0; next = 0;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
-		if ((lookup = reg40_next(reg)) == FAILED)
-			return -EINVAL;
-
-		if (lookup == ABSENT) {
+		if (reg40_update(object)) {
 			/* If place is invalid, no more reg40 items. */
 			if (!core->tree_ops.valid(info->tree, &reg->body))
 				break;
@@ -199,15 +195,15 @@ errno_t reg40_check_struct(object_entity_t *object,
 				return res;
 			
 			/* Check if this is an item of another object. */
-			if (plug_call(key.plug->o.key_ops, compshort, 
-				      &key, &reg->body.key))
+			if (plug_call(reg->offset.plug->o.key_ops, compshort, 
+				      &reg->offset, &reg->body.key))
+			{
 				break;
+			}
 		}
 		
-		reg->bplug = reg->body.plug;
-		
-		offset = plug_call(key.plug->o.key_ops, get_offset, 
-				   &reg->body.key);
+		offset = plug_call(reg->body.key.plug->o.key_ops,
+				   get_offset, &reg->body.key);
 		
 		/* If items was reached once, skip registering and fixing. */
 		if (!next || next != offset) {
@@ -226,8 +222,10 @@ errno_t reg40_check_struct(object_entity_t *object,
 				next = offset;
 				
 				if ((res |= reg40_create_hole(reg, offset - 
-							      reg->offset)))
+							      reg40_offset(object))))
+				{
 					return res;
+				}
 				
 				/* Scan and register created items. */
 				continue;
@@ -244,12 +242,14 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 		/* Fix item key if differs. */
 		if ((res |= obj40_ukey(&reg->obj, &reg->body, 
-				       &key, mode)) < 0)
+				       &reg->offset, mode)) < 0)
+		{
 			return res;
+		}
 
 		/* Count size and bytes. */
 		size += plug_call(reg->body.plug->o.item_ops, 
-					  size, &reg->body);
+				  size, &reg->body);
 		
 		bytes += plug_call(reg->body.plug->o.item_ops, 
 				   bytes, &reg->body);
