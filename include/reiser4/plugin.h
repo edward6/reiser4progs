@@ -1004,7 +1004,6 @@ struct reiser4_sdext_ops {
 	/* Checks sd extension content. */
 	errno_t (*check_struct) (sdext_entity_t *, uint8_t);
 #endif
-
 	/* Reads stat data extension data. */
 	errno_t (*open) (void *, void *);
 
@@ -1189,12 +1188,12 @@ struct reiser4_format_ops {
 	/* Prints all useful information about the format */
 	errno_t (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
     
-	void (*set_root) (generic_entity_t *, uint64_t);
 	void (*set_len) (generic_entity_t *, uint64_t);
-	void (*set_height) (generic_entity_t *, uint16_t);
+	void (*set_root) (generic_entity_t *, uint64_t);
 	void (*set_free) (generic_entity_t *, uint64_t);
 	void (*set_stamp) (generic_entity_t *, uint32_t);
 	void (*set_policy) (generic_entity_t *, uint16_t);
+	void (*set_height) (generic_entity_t *, uint16_t);
 
 	/* Return plugin ids for journal, block allocator, and oid allocator
 	   components. */
@@ -1444,8 +1443,8 @@ struct plug_class {
 	/* Plugin finalization routine. */
 	plug_fini_t fini;
 
-	/* Plugin location (filename of library plugin (for instance
-	   /usr/lib/reiser4/libstat40.so) and address for built-in ones). */
+	/* Plugin location. Filename of library plugin (for instance
+	   /usr/lib/reiser4/libstat40.so) or address for built-in ones. */
 	char location[1024];
 #endif
 };
@@ -1641,7 +1640,6 @@ struct reiser4_core {
 #if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
 typedef void (*register_builtin_t) (plug_init_t, plug_fini_t);
 #endif
-
 
 /* Macro for registering a plugin in plugin factory. It accepts two pointers to
    functions. The first one is pointer to plugin init function and second - to

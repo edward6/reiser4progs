@@ -1520,7 +1520,7 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 /* This function forces tree to grow by one level and sets it up after the
    growing. This occures when after next balancing root node needs to accept new
    nodeptr item, but has not free space enough.  */
-errno_t reiser4_tree_growup(
+errno_t reiser4_tree_grow_up(
 	reiser4_tree_t *tree)	/* tree to be growed up */
 {
 	errno_t res;
@@ -1561,7 +1561,7 @@ errno_t reiser4_tree_growup(
 
 /* Decreases tree height by one level. This occurs when tree gets singular (root
    has one nodeptr item) after one of removals. */
-errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
+errno_t reiser4_tree_dry_out(reiser4_tree_t *tree) {
 	errno_t res;
 	place_t place;
 	node_t *new_root;
@@ -1713,7 +1713,7 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 	if (reiser4_tree_root_node(tree, left)) {
 		/* Growing the tree in the case we splitted the root
 		   node. Root node has not parent. */
-		if ((res = reiser4_tree_growup(tree)))
+		if ((res = reiser4_tree_grow_up(tree)))
 			return res;
 	} else {
 		/* Releasing old node, because it got empty as result of data
@@ -1961,7 +1961,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 
 	/* Drying tree up in the case root node has only one item */
 	if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree)) {
-		if ((res = reiser4_tree_dryout(tree)))
+		if ((res = reiser4_tree_dry_out(tree)))
 			return res;
 	}
 
@@ -2017,9 +2017,9 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				goto error_free_node;
 			}
 
-			/* Check if we should growup the tree */
+			/* Check if we should grow up the tree */
 			if (reiser4_tree_root_node(tree, place->node)) {
-				if ((res = reiser4_tree_growup(tree)))
+				if ((res = reiser4_tree_grow_up(tree)))
 					return res;
 			}
 
@@ -2272,7 +2272,7 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 
 		/* Drying tree up in the case root node has only one item */
 		if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree))	{
-			if ((res = reiser4_tree_dryout(tree)))
+			if ((res = reiser4_tree_dry_out(tree)))
 				return res;
 		}
 
@@ -2436,13 +2436,13 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 			return -EINVAL;
 		
 		while (level > reiser4_tree_get_height(tree)) {
-			if (reiser4_tree_growup(tree))
+			if (reiser4_tree_grow_up(tree))
 				return -EINVAL;
 		}
 
 		/* Getting new place item/unit will be inserted at after tree is
 		   growed up. It is needed because we want to insert item into
-		   the node of the given @level bu after tree_growup() and thus
+		   the node of the given @level bu after tree_grow_up() and thus
 		   rebalancing we need to get correct position where to insert
 		   item. */
 		if ((res = reiser4_tree_lookup(tree, &hint->offset, level,
@@ -2565,7 +2565,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	   should be changed. */
 	if (place->node != tree->root && !place->node->p.node) {
 		if (old.node && reiser4_tree_root_node(tree, old.node)) {
-			if (reiser4_tree_growup(tree))
+			if (reiser4_tree_grow_up(tree))
 				return -EINVAL;
 		}
 		
@@ -2673,7 +2673,7 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 
 	/* Drying tree up in the case root node has only one item */
 	if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree)) {
-		if ((res = reiser4_tree_dryout(tree)))
+		if ((res = reiser4_tree_dry_out(tree)))
 			return res;
 	}
 	

@@ -5,10 +5,10 @@ reiser4progs/COPYING.
 
 * change R4Sb magic to Reiser4Sb both in progs and in kernel code.
 
-* implement tree_pack() function, which will pack treeon leaf level in
-  order to make it well packed and thus occupied less nodes on device. 
-  This is needed for using less space and especially important in fsck
-  when tail <--> extent convertion is running.
+* implement tree_pack() function, which will pack tree on leaf level
+  in order to make it well packed and thus occupied less nodes on
+  device. This is needed for using less space and especially important
+  in fsck when tail <--> extent convertion is running.
 
 * implement key collisions working code in tree_lookup().
 

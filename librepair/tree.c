@@ -410,7 +410,7 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
 	
 	if (dst->node != tree->root && !dst->node->p.node) {
 		if (!old.node->p.node)
-			reiser4_tree_growup(tree);
+			reiser4_tree_grow_up(tree);
 		
 		if ((res = reiser4_tree_attach_node(tree, dst->node))) {
 			aal_exception_error("Can't attach node %llu to the "

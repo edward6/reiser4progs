@@ -49,8 +49,8 @@ extern node_t *reiser4_tree_neigh_node(reiser4_tree_t *tree,
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
-extern errno_t reiser4_tree_growup(reiser4_tree_t *tree);
-extern errno_t reiser4_tree_dryout(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_grow_up(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_dry_out(reiser4_tree_t *tree);
 
 extern void reiser4_tree_pack_on(reiser4_tree_t *tree);
 extern void reiser4_tree_pack_off(reiser4_tree_t *tree);
