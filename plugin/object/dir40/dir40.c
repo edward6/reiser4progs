@@ -605,30 +605,23 @@ static errno_t dir40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
 	errno_t res;
-	uint64_t offset;
-	uint64_t objectid;
-	
+	dir40_t *dir;
 	key_entity_t key;
-	key_entity_t *maxkey;
-
-	dir40_t *dir = (dir40_t *)entity;
 
 	aal_assert("umka-1925", entity != NULL);
 
-	key.plugin = STAT_KEY(&dir->obj)->plugin;
+	dir = (dir40_t *)entity;
 
-	/*
-	  Generating last item key by means of using maximal one (Nikita's
-	  idea). So, we remove whole directory starting from the last item step
-	  by step.
-	*/
-	maxkey = plugin_call(key.plugin->o.key_ops, maximal);
-	offset = plugin_call(key.plugin->o.key_ops, get_offset, maxkey);
-	objectid = plugin_call(key.plugin->o.key_ops, get_objectid, maxkey);
+	/* Releasing current body item */
+	obj40_relock(&dir->obj, &dir->body, NULL);
 	
-	plugin_call(key.plugin->o.key_ops, build_generic, &key,
-		    KEY_FILENAME_TYPE, obj40_objectid(&dir->obj),
-		    objectid, offset);
+	/*
+	  Getting maxiaml possible key form directory item. We will use it for
+	  removing last item and so on util directro contains no items. Thanks
+	  to Nikita for this idea.
+	*/
+	plugin_call(dir->body.item.plugin->o.item_ops,
+		    maxposs_key, &dir->body.item, &key);
 
 	while (1) {
 		place_t place;
@@ -637,13 +630,12 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		if ((obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
 				  &place)) == FAILED)
 		{
-			aal_exception_error("Lookup failed while searching "
-					    "the last directory item durring "
-					    "truncate the directory 0x%llx.",
-					    obj40_objectid(&dir->obj));
 			return -EINVAL;
 		}
 
+		if (core->tree_ops.realize(dir->obj.tree, &place))
+			return -EINVAL;
+		
 		/* Checking if found item belongs this directory */
 		if (!dir40_mergeable(&dir->body.item, &place.item))
 			return 0;
@@ -652,9 +644,6 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		if ((res = dir->obj.core->tree_ops.remove(dir->obj.tree,
 							  &place, 1)))
 		{
-			aal_exception_error("Can't remove directory item "
-					    "from directory 0x%llx.",
-					    obj40_objectid(&dir->obj));
 			return res;
 		}
 	}

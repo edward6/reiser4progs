@@ -113,13 +113,14 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 	aal_assert("umka-1661", item != NULL);
 	aal_assert("umka-1663", pos < item->len);
 
-	if (pos + count < item->len) {
-		src = item->body + pos;
-		dst = src + count;
-
-		aal_memmove(dst, src, item->len -
-			    (pos + count));
-	}
+	if (pos + count > item->len)
+		count = item->len - pos;
+			
+	src = item->body + pos;
+	dst = src + count;
+	
+	aal_memmove(dst, src, item->len -
+		    (pos + count));
 
 	/* Updating the key */
 	if (pos == 0) {

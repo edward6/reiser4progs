@@ -214,6 +214,7 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
 errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
+	aal_assert("umka-2285", node->counter == 0);
 
 	reiser4_node_unload(node);
 	

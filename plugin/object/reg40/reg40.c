@@ -19,6 +19,10 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t reg40_plugin;
 
+static errno_t reg40_truncate(object_entity_t *entity,
+			      uint64_t n);
+
+
 static uint64_t reg40_size(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 
@@ -285,13 +289,6 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	return NULL;
 }
 
-static errno_t reg40_truncate(object_entity_t *entity,
-			      uint64_t n)
-{
-	/* Not implemented yet */
-	return -EINVAL;
-}
-
 static errno_t reg40_link(object_entity_t *entity) {
 	reg40_t *reg;
 	
@@ -369,10 +366,11 @@ static int32_t reg40_put(object_entity_t *entity,
 		create_hint_t hint;
 
 		/* Preparing @hint->key */
-		plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops,
-			    build_generic, &hint.key, KEY_FILEBODY_TYPE,
-			    obj40_locality(&reg->obj), obj40_objectid(&reg->obj),
-			    reg->offset);
+		hint.key.plugin = STAT_KEY(&reg->obj)->plugin;
+		
+		plugin_call(hint.key.plugin->o.key_ops, build_generic, &hint.key,
+			    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
+			    obj40_objectid(&reg->obj), reg->offset);
 
 		/* Setting up @hint */
 		hint.count = n - written;
@@ -528,6 +526,43 @@ static int32_t reg40_write(object_entity_t *entity,
 	if ((res = reg40_put(entity, buff, n)) < 0)
 		return res;
 	
+	return res;
+}
+
+static errno_t reg40_truncate(object_entity_t *entity,
+			      uint64_t n)
+{
+	errno_t res;
+	reg40_t *reg;
+	uint64_t size;
+	uint64_t offset;
+
+	reg = (reg40_t *)entity;
+	
+	/* Updating stat data place */
+	if ((res = obj40_stat(&reg->obj)))
+		return res;
+	
+	/* Getting file size */
+	size = obj40_get_size(&reg->obj);
+
+	if (n == size)
+		return 0;
+
+	/* Saving current file offset */
+	offset = reg->offset;
+		
+	/* Checking if truncate will increase file size */
+	if (n > size) {
+		reg->offset = n;
+		
+		if ((res = reg40_holes(entity)))
+			goto error_restore_offset;
+	} else {
+	}
+
+ error_restore_offset:
+	reg->offset = offset;
 	return res;
 }
 

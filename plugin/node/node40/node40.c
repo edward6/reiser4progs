@@ -1331,8 +1331,6 @@ static errno_t node40_merge(object_entity_t *src_entity,
 			hint->pos.item = (hint->control & SF_LEFT ?
 					  dst_items : 0);
 		}
-		
-		hint->items++;
 	} else {
 		if (plugin_call(src_item.plugin->o.item_ops,
 				estimate_shift, &src_item,
@@ -1363,6 +1361,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 			return -EINVAL;
 		}
 
+		hint->items++;
+		
 		/* Setting up new item fields */
 		ih = node40_ih_at(dst_node, pos.item);
 		ih40_set_pid(ih, src_item.plugin->h.id);
