@@ -127,7 +127,8 @@ static errno_t key40_assign(key_entity_t *dst,
 /* Checks if passed key is realy key40 one */
 static int key40_confirm(key_entity_t *key) {
 	aal_assert("vpf-137", key != NULL);
-	return k40_get_minor((key40_t *)key->body) < KEY40_LAST_MINOR;
+	return k40_get_minor(
+		(key40_t *)key->body) < KEY40_LAST_MINOR;
 }
 
 /* Sets up key type */
@@ -229,9 +230,7 @@ static errno_t key40_build_hash(key_entity_t *key,
 	aal_assert("vpf-102", name != NULL);
 	aal_assert("vpf-128", hash != NULL); 
     
-	len = aal_strlen(name);
-    
-	if (len == 1 && name[0] == '.')
+	if ((len = aal_strlen(name)) == 1 && name[0] == '.')
 		return 0;
     
 	/* Not dot, pack the first part of the name into objectid */
@@ -245,8 +244,7 @@ static errno_t key40_build_hash(key_entity_t *key,
 			  Does not fit into objectid, pack the second part of
 			  the name into offset.
 			*/
-			offset = aux_pack_string((char *)name +
-						 OID_CHARS, 0);
+			offset = aux_pack_string((char *)name + OID_CHARS, 0);
 		}
 	} else {
 
@@ -302,19 +300,22 @@ static errno_t key40_build_generic(key_entity_t *key,
 				   uint64_t objectid,
 				   uint64_t offset)
 {
-	key40_t *body;
-
 	aal_assert("vpf-141", key != NULL);
 
 	key40_clean(key);
-    
-	body = (key40_t *)key->body;
-	
 	key->plugin = &key40_plugin;
-	k40_set_locality(body, locality);
-	k40_set_objectid(body, objectid);
-	k40_set_minor(body, key40_type2minor(type));
-	k40_set_offset(body, offset);
+	
+	k40_set_locality((key40_t *)key->body,
+			 locality);
+	
+	k40_set_objectid((key40_t *)key->body,
+			 objectid);
+
+	k40_set_minor((key40_t *)key->body,
+		      key40_type2minor(type));
+	
+	k40_set_offset((key40_t *)key->body,
+		       offset);
 
 	return 0;
 }
@@ -323,22 +324,20 @@ static errno_t key40_build_short(key_entity_t *key,
 				 uint64_t locality,
 				 uint64_t objectid)
 {
-	key40_t *body;
-
 	aal_assert("umka-1960", key != NULL);
 
 	key40_clean(key);
-    
-	body = (key40_t *)key->body;
-
 	key->plugin = &key40_plugin;
-	k40_set_locality(body, (locality & KEY40_LOCALITY_MASK) >>
+	
+	k40_set_locality((key40_t *)key->body,
+			 (locality & KEY40_LOCALITY_MASK) >>
 			 KEY40_LOCALITY_SHIFT);
 
-	k40_set_minor(body, (locality & KEY40_TYPE_MASK));
+	k40_set_minor((key40_t *)key->body,
+		      (locality & KEY40_TYPE_MASK));
 
-	k40_set_offset(body, 0);
-	k40_set_objectid(body, objectid);
+	k40_set_offset((key40_t *)key->body, 0);
+	k40_set_objectid((key40_t *)key->body, objectid);
 
 	return 0;
 }

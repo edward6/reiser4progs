@@ -11,8 +11,9 @@
 
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 #  include <dlfcn.h>
-#  include <dirent.h>
 #  include <errno.h>
+#  include <dirent.h>
+#  include <limits.h>
 #  include <sys/types.h>
 #endif
 
@@ -335,25 +336,32 @@ errno_t libreiser4_factory_init(void) {
                                                                                                 
         /* Getting plugins filenames */
         while ((ent = readdir(dir))) {
-                char name[256]; /* FIXME-GREEN->UMKA, this should be PATH_MAX and promally not allocated on stack */
-                                                                                                
-		/* FIXME-GREEN->UMKA: do strlen() only once, otherwise this is quite a demonstration on how to convert linear
-		   algorythm into quadratic one */
-                if (aal_strlen(ent->d_name) <= 2)
-                        continue;
-                                                                                                
-                if (ent->d_name[aal_strlen(ent->d_name) - 2] != 's' ||
-                    ent->d_name[aal_strlen(ent->d_name) - 1] != 'o')
-                        continue;
-                                                                                                
-                aal_memset(name, 0, sizeof(name));
+		uint32_t len;
+                char *name;
 
-                aal_snprintf(name, sizeof(name), "%s/%s",
+                if ((len = aal_strlen(ent->d_name)) <= 3)
+                        continue;
+                                                                                                
+                if (ent->d_name[len - 3] != '.' ||
+		    ent->d_name[len - 2] != 's' ||
+                    ent->d_name[len - 1] != 'o')
+		{
+                        continue;
+		}
+
+		if (!(name = aal_calloc(_POSIX_PATH_MAX + 1, 0)))
+			return -ENOMEM;
+
+                aal_snprintf(name, _POSIX_PATH_MAX, "%s/%s",
 			     PLUGIN_DIR, ent->d_name);
                                                                                                 
-                /* Loading plugin*/
-                if (libreiser4_factory_load(name))
-                        continue;
+                /* Loading plugin at @name */
+                if (libreiser4_factory_load(name)) {
+			aal_free(name);
+			continue;
+		}
+		
+		aal_free(name);
         }
                                                                                                 
         closedir(dir);
@@ -467,10 +475,8 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 static int callback_match_name(reiser4_plugin_t *plugin,
 			       walk_desc_t *desc)
 {
-	/* FIXME-GREEN->UMKA: lack of aal_strcmp() implementation makes you code in such an
-	   unoptimal way and calculating lenght of desc->name twice */
 	return aal_strncmp(plugin->h.label, desc->name,
-			   aal_strlen(desc->name));
+			   sizeof(plugin->h.label));
 }
 
 /* Makes search for plugin by name */
