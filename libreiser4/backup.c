@@ -87,14 +87,18 @@ void reiser4_backup_sync(reiser4_backup_t *backup) {
 	aal_block_free(block);
 }
 
-static errno_t cb_region_last(void *object, blk_t blk, 
-			      uint64_t count, void *data) 
+static errno_t cb_region(void *object, blk_t blk,
+			 uint64_t count, void *data)
 {
-	*((blk_t *)data) = count == 1 ? 0 :
-		blk + count - 1;
+	/* FIXME: This is hardcoded knowledge that bitmap block lies in the 
+	   first block of the region. */
+	*((blk_t *)data) = (count == 1) ? 0 :blk + 1;
 
 	return 0;
 }
+
+/* Put backup copies into the power of (3/2) block numbers. */
+#define BACKUP_EXP_LAYOUT(blk)		((blk * 3) >> 1)
 
 /* Backup is saved in REISER4_BACKUPS_MAX blocks spreaded across the fs 
    aligned by the next bitmap block.
@@ -105,28 +109,36 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 			      region_func_t region_func,
 			      void *data)
 {
+	count_t len, blksize;
+	blk_t copy, prev, blk;
 	errno_t res;
-	count_t len;
-	count_t delta;
-	blk_t prev = 0;
-	blk_t blk, copy;
 	
 	aal_assert("vpf-1399", fs != NULL);
 	aal_assert("vpf-1400", region_func != NULL);
 
 	len = reiser4_format_get_len(fs->format);
-	delta = len / (REISER4_BACKUPS_MAX + 1);
+	blksize = reiser4_master_get_blksize(fs->master);
+	prev = 0;
+	blk = 2;
 	
-	for (blk = delta - 1; blk < len; blk += delta) {
-		reiser4_alloc_region(fs->alloc, blk, cb_region_last, &copy);
+	while (1) {
+		blk = BACKUP_EXP_LAYOUT(blk);
 
-		/* If copy == 0 -- it is not possible to have the last copy 
-		   on this fs as the last block is the allocator one. If the 
-		   blk number for the copy is the same as the previous one, 
-		   skip another copy as fs is pretty small. */
-		if (!copy || copy == prev)
+		if (blk <= prev)
 			continue;
 
+		if (blk > len) 
+			return 0;
+
+		reiser4_alloc_region(fs->alloc, blk, cb_region, &copy);
+
+		if (copy < REISER4_BACKUP_START(blksize)) 
+			copy = REISER4_BACKUP_START(blksize);
+
+		if (copy <= prev)
+			continue;
+
+		aal_mess("backup block #%llu.", copy);
 		if ((res = region_func(fs, copy, 1, data)))
 			return res;
 
