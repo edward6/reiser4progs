@@ -25,7 +25,7 @@ struct journal40 {
 	aal_device_t *device;
 
 	/* Format instance */
-	object_entity_t *format;
+	generic_entity_t *format;
 
 	/* Filesystem blocksize */
 	uint32_t blksize;
@@ -164,14 +164,14 @@ typedef enum journal40_block journal40_block_t;
 #define set_le_wandered(le, val)		aal_set_le64(le, le_wandered, val)
 
 typedef errno_t (*journal40_txh_func_t)    \
-        (object_entity_t *, blk_t, void *);
+        (generic_entity_t *, blk_t, void *);
 
 typedef errno_t (*journal40_sec_func_t)    \
-        (object_entity_t *, aal_block_t *, \
+        (generic_entity_t *, aal_block_t *, \
 	 blk_t, journal40_block_t, void *);
 
 typedef errno_t (*journal40_han_func_t)    \
-        (object_entity_t *, aal_block_t *, \
+        (generic_entity_t *, aal_block_t *, \
 	 blk_t, void *);
 
 #define JFOOTER(block) \

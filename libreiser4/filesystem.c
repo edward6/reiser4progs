@@ -125,9 +125,8 @@ void reiser4_fs_close(
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_check_block(
-	object_entity_t *entity,
-	uint64_t blk, void *data)
+static errno_t callback_check_block(void *entity, uint64_t blk,
+				    void *data)
 {
 	return -(blk == *(uint64_t *)data);
 }
@@ -202,13 +201,10 @@ errno_t reiser4_fs_clobber(aal_device_t *device) {
 	return reiser4_master_clobber(device);
 }
 
-static errno_t callback_action_mark(
-	object_entity_t *entity,	/* device for operating on */ 
-	blk_t blk,			/* block number to be marked */
-	void *data)			/* pointer to block allocator */
+static errno_t callback_action_mark(void *entity, blk_t blk,
+				    void *data)
 {
-	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
-	return reiser4_alloc_occupy(alloc, blk, 1);
+	return reiser4_alloc_occupy((reiser4_alloc_t *)data, blk, 1);
 }
 
 /* Marks filesystem area as used */

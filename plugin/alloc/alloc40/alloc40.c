@@ -71,17 +71,17 @@ unsigned int aal_adler32(char *buff, unsigned int n) {
 	return (s2 << 16) | s1;
 }
 
-static int alloc40_isdirty(object_entity_t *entity) {
+static int alloc40_isdirty(generic_entity_t *entity) {
 	aal_assert("umka-2084", entity != NULL);
 	return ((alloc40_t *)entity)->dirty;
 }
 
-static void alloc40_mkdirty(object_entity_t *entity) {
+static void alloc40_mkdirty(generic_entity_t *entity) {
 	aal_assert("umka-2085", entity != NULL);
 	((alloc40_t *)entity)->dirty = 1;
 }
 
-static void alloc40_mkclean(object_entity_t *entity) {
+static void alloc40_mkclean(generic_entity_t *entity) {
 	aal_assert("umka-2086", entity != NULL);
 	((alloc40_t *)entity)->dirty = 0;
 }
@@ -91,7 +91,7 @@ static void alloc40_mkclean(object_entity_t *entity) {
    corresponds to its value in block allocator, it should check all the related
    (neighbour) blocks which are described by one bitmap block (4096 -
    CRC_SIZE). */
-errno_t alloc40_related(object_entity_t *entity, blk_t blk, 
+errno_t alloc40_related(generic_entity_t *entity, blk_t blk, 
 			region_func_t region_func, void *data) 
 {
 	uint64_t size;
@@ -115,7 +115,7 @@ errno_t alloc40_related(object_entity_t *entity, blk_t blk,
 
 /* Calls func for each block allocator block. This function is used in all block
    block allocator operations like load, save, etc. */
-errno_t alloc40_layout(object_entity_t *entity,
+errno_t alloc40_layout(generic_entity_t *entity,
 		       block_func_t block_func,
 		       void *data) 
 {
@@ -154,8 +154,8 @@ errno_t alloc40_layout(object_entity_t *entity,
    saves it in allocator checksums area. Actually this function is callback one
    which is called by alloc40_layout function in order to load all bitmap map
    from the device. See alloc40_open for details. */
-static errno_t callback_fetch_bitmap(object_entity_t *entity, 
-				     uint64_t blk, void *data)
+static errno_t callback_fetch_bitmap(void *entity, uint64_t blk,
+				     void *data)
 {
 	errno_t res;
 	uint64_t offset;
@@ -205,7 +205,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 /* Initializing block allocator instance and loads bitmap into it from the
    passed @device. This functions is implementation of alloc_ops.open plugin
    method. */
-static object_entity_t *alloc40_open(aal_device_t *device,
+static generic_entity_t *alloc40_open(aal_device_t *device,
 				     uint64_t len,
 				     uint32_t blksize)
 {
@@ -243,7 +243,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 
 	/* Calling alloc40_layout method with callback_fetch_bitmap callback for
 	   loading all the bitmap blocks. */
-	if (alloc40_layout((object_entity_t *)alloc,
+	if (alloc40_layout((generic_entity_t *)alloc,
 			   callback_fetch_bitmap, alloc))
 	{
 		aal_exception_error("Can't load ondisk bitmap.");
@@ -253,7 +253,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	/* Updating bitmap counters (free blocks, etc) */
 	aux_bitmap_calc_marked(alloc->bitmap);
     
-	return (object_entity_t *)alloc;
+	return (generic_entity_t *)alloc;
 
  error_free_bitmap:
 	aux_bitmap_close(alloc->bitmap);
@@ -266,7 +266,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
    caller (block allocator in libreiser4). This function does almost the same as
    alloc40_open. The difference is that it does not load bitmap from the passed
    device. */
-static object_entity_t *alloc40_create(aal_device_t *device,
+static generic_entity_t *alloc40_create(aal_device_t *device,
 				       uint64_t len, uint32_t blksize)
 {
 	alloc40_t *alloc;
@@ -294,7 +294,7 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 	alloc->blksize = blksize;
 	alloc->plug = &alloc40_plug;
     
-	return (object_entity_t *)alloc;
+	return (generic_entity_t *)alloc;
 
  error_free_bitmap:
 	aux_bitmap_close(alloc->bitmap);
@@ -304,7 +304,7 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 }
 
 /* Assignes passed bitmap pointed by @data to block allocator bitmap */
-static errno_t alloc40_assign(object_entity_t *entity, void *data) {
+static errno_t alloc40_assign(generic_entity_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
 
@@ -322,7 +322,7 @@ static errno_t alloc40_assign(object_entity_t *entity, void *data) {
 	return 0;
 }
 
-static errno_t alloc40_extract(object_entity_t *entity, void *data) {
+static errno_t alloc40_extract(generic_entity_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
 
@@ -339,8 +339,8 @@ static errno_t alloc40_extract(object_entity_t *entity, void *data) {
 }
 
 /* Callback for saving one bitmap block onto device */
-static errno_t callback_sync_bitmap(object_entity_t *entity, 
-				    uint64_t blk, void *data)
+static errno_t callback_sync_bitmap(void *entity, uint64_t blk,
+				    void *data)
 {
 	errno_t res;
 	alloc40_t *alloc;
@@ -406,7 +406,7 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 }
 
 /* Saves alloc40 data (bitmap in fact) to device */
-static errno_t alloc40_sync(object_entity_t *entity) {
+static errno_t alloc40_sync(generic_entity_t *entity) {
 	errno_t res = 0;
 	alloc40_t *alloc;
 
@@ -417,7 +417,7 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 
 	/* Calling "layout" function for saving all bitmap blocks to device
 	   block allocator lies on. */
-	if ((res = alloc40_layout((object_entity_t *)alloc,
+	if ((res = alloc40_layout((generic_entity_t *)alloc,
 				  callback_sync_bitmap, alloc)))
 	{
 		aal_exception_error("Can't save bitmap.");
@@ -429,7 +429,7 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 }
 
 /* Frees alloc40 instance and all helper structures like bitmap, crcmap, etc */
-static void alloc40_close(object_entity_t *entity) {
+static void alloc40_close(generic_entity_t *entity) {
     
 	alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -443,7 +443,7 @@ static void alloc40_close(object_entity_t *entity) {
 }
 
 /* Marks specified region as used in block allocator */
-static errno_t alloc40_occupy(object_entity_t *entity,
+static errno_t alloc40_occupy(generic_entity_t *entity,
 			      uint64_t start, uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
@@ -458,7 +458,7 @@ static errno_t alloc40_occupy(object_entity_t *entity,
 }
 
 /* Marks specified region as free in blockallocator bitmap */
-static errno_t alloc40_release(object_entity_t *entity,
+static errno_t alloc40_release(generic_entity_t *entity,
 			       uint64_t start, uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
@@ -476,7 +476,7 @@ static errno_t alloc40_release(object_entity_t *entity,
    block of the found free area is stored in @start. Actual found number of
    blocks is retured to caller. This function is mostly needed for handling
    extent allocation. */
-static uint64_t alloc40_allocate(object_entity_t *entity,
+static uint64_t alloc40_allocate(generic_entity_t *entity,
 				 uint64_t *start, uint64_t count)
 {
 	uint64_t found;
@@ -506,8 +506,8 @@ static uint64_t alloc40_allocate(object_entity_t *entity,
 	return found;
 }
 
-static errno_t callback_print_bitmap(object_entity_t *entity, 
-				     uint64_t blk, void *data)
+static errno_t callback_print_bitmap(void *entity, uint64_t blk,
+				     void *data)
 {
 	uint32_t size;
 	uint64_t offset;
@@ -529,7 +529,7 @@ static errno_t callback_print_bitmap(object_entity_t *entity,
 }
 
 /* Handler for "print" method */
-static errno_t alloc40_print(object_entity_t *entity,
+static errno_t alloc40_print(generic_entity_t *entity,
 			     aal_stream_t *stream,
 			     uint16_t options)
 {
@@ -565,7 +565,7 @@ static errno_t alloc40_print(object_entity_t *entity,
 	aal_stream_format(stream, "-------------------------\n");
 
 	/* Calling alloc40_layout() in order to print all block checksums */
-	if ((res = alloc40_layout((object_entity_t *)alloc,
+	if ((res = alloc40_layout((generic_entity_t *)alloc,
 				  callback_print_bitmap, stream)))
 	{
 		aal_exception_error("Can't print bitmap.");
@@ -598,7 +598,7 @@ static errno_t alloc40_print(object_entity_t *entity,
 }
 
 /* Returns free blocks count */
-static uint64_t alloc40_free(object_entity_t *entity) {
+static uint64_t alloc40_free(generic_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-376", alloc != NULL);
@@ -608,7 +608,7 @@ static uint64_t alloc40_free(object_entity_t *entity) {
 }
 
 /* Returns used blocks count */
-static uint64_t alloc40_used(object_entity_t *entity) {
+static uint64_t alloc40_used(generic_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-378", alloc != NULL);
@@ -618,7 +618,7 @@ static uint64_t alloc40_used(object_entity_t *entity) {
 }
 
 /* Checks whether specified blocks are used */
-static int alloc40_occupied(object_entity_t *entity,
+static int alloc40_occupied(generic_entity_t *entity,
 			    uint64_t start,
 			    uint64_t count) 
 {
@@ -632,7 +632,7 @@ static int alloc40_occupied(object_entity_t *entity,
 }
 
 /* Checks whether specified blocks are unused */
-static int alloc40_available(object_entity_t *entity,
+static int alloc40_available(generic_entity_t *entity,
 			     uint64_t start, 
 			     uint64_t count) 
 {
@@ -647,8 +647,8 @@ static int alloc40_available(object_entity_t *entity,
 
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t callback_check_bitmap(object_entity_t *entity, 
-			      uint64_t blk, void *data)
+errno_t callback_check_bitmap(void *entity, uint64_t blk,
+			      void *data)
 {
 	uint32_t chunk;
 	uint64_t offset;
@@ -702,7 +702,7 @@ errno_t callback_check_bitmap(object_entity_t *entity,
 }
 
 /* Checks allocator on validness  */
-errno_t alloc40_valid(object_entity_t *entity) {
+errno_t alloc40_valid(generic_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-963", alloc != NULL);
@@ -710,11 +710,12 @@ errno_t alloc40_valid(object_entity_t *entity) {
 
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
-	return alloc40_layout((object_entity_t *)alloc,
+	return alloc40_layout((generic_entity_t *)alloc,
 			      callback_check_bitmap, alloc);
 }
 
-extern errno_t alloc40_check_struct(object_entity_t *entity, uint8_t mode);
+extern errno_t alloc40_check_struct(generic_entity_t *entity,
+				    uint8_t mode);
 
 static reiser4_alloc_ops_t alloc40_ops = {
 	.open           = alloc40_open,

@@ -238,11 +238,12 @@ typedef struct fprint_hint fprint_hint_t;
 
 /* Prints item at passed @place */
 static errno_t fprint_process_place(
-	object_entity_t *entity,   /* file to be inspected */
+	void *entity,              /* file to be inspected */
 	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
 	errno_t res;
+	
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 	reiser4_place_t *p = (reiser4_place_t *)place;
 

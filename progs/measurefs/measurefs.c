@@ -405,7 +405,7 @@ typedef struct ffrag_hint ffrag_hint_t;
 /* Callback function for processing one block belong to the fiel we are
    traversing. */
 static errno_t ffrag_process_blk(
-	object_entity_t *entity,   /* file to be inspected */
+	void *entity,              /* file to be inspected */
 	blk_t blk,                 /* next file block */
 	void *data)                /* user-specified data */
 {
@@ -503,7 +503,7 @@ static errno_t dfrag_process_node(
 		}
 
 		/* Opening object by its stat data item denoded by @place */
-		if (!(object = reiser4_object_realize(tree, &place)))
+		if (!(object = reiser4_object_realize(tree, NULL, &place)))
 			continue;
 
 		/* Initializing per-file counters */

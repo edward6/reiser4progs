@@ -26,7 +26,7 @@ extern errno_t alloc40_layout(object_entity_t *entity, block_func_t func,
 extern errno_t alloc40_related(object_entity_t *entity, blk_t blk, 
 			       region_func_t func, void *data);
 
-static errno_t callback_check_layout(object_entity_t *entity, uint64_t blk, 
+static errno_t callback_check_layout(void *entity, uint64_t blk, 
 				     void *data) 
 {
 	struct alloc_hint *hint = (struct alloc_hint *)data;

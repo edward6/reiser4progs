@@ -18,17 +18,17 @@ extern reiser4_plug_t format40_plug;
 
 #define SUPER(entity) (&((format40_t *)entity)->super)
 
-static uint64_t format40_get_root(object_entity_t *entity) {
+static uint64_t format40_get_root(generic_entity_t *entity) {
 	aal_assert("umka-400", entity != NULL);
 	return get_sb_root_block(SUPER(entity));
 }
 
-static uint16_t format40_get_height(object_entity_t *entity) {
+static uint16_t format40_get_height(generic_entity_t *entity) {
 	aal_assert("umka-1123", entity != NULL);
 	return get_sb_tree_height(SUPER(entity));
 }
 
-static int format40_get_flag(object_entity_t *entity,
+static int format40_get_flag(generic_entity_t *entity,
 			     uint8_t flag)
 {
 	uint64_t flags;
@@ -40,27 +40,27 @@ static int format40_get_flag(object_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-static uint64_t format40_get_len(object_entity_t *entity) {
+static uint64_t format40_get_len(generic_entity_t *entity) {
 	aal_assert("umka-401", entity != NULL);
 	return get_sb_block_count(SUPER(entity));
 }
 
-static uint64_t format40_get_free(object_entity_t *entity) {
+static uint64_t format40_get_free(generic_entity_t *entity) {
 	aal_assert("umka-402", entity != NULL);
 	return get_sb_free_blocks(SUPER(entity));
 }
 
-static uint32_t format40_get_stamp(object_entity_t *entity) {
+static uint32_t format40_get_stamp(generic_entity_t *entity) {
 	aal_assert("umka-1122", entity != NULL);
 	return get_sb_mkfs_id(SUPER(entity));
 }
 
-static uint16_t format40_get_policy(object_entity_t *entity) {
+static uint16_t format40_get_policy(generic_entity_t *entity) {
 	aal_assert("vpf-831", entity != NULL);
 	return get_sb_tail_policy(SUPER(entity));
 }
 
-static uint64_t format40_begin(object_entity_t *entity) {
+static uint64_t format40_begin(generic_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
 	aal_assert("vpf-462", format != NULL);
@@ -69,59 +69,61 @@ static uint64_t format40_begin(object_entity_t *entity) {
 	return FORMAT40_OFFSET / format->blksize;
 }
 
-static int format40_isdirty(object_entity_t *entity) {
+static int format40_isdirty(generic_entity_t *entity) {
 	aal_assert("umka-2078", entity != NULL);
 	return ((format40_t *)entity)->dirty;
 }
 
-static void format40_mkdirty(object_entity_t *entity) {
+static void format40_mkdirty(generic_entity_t *entity) {
 	aal_assert("umka-2079", entity != NULL);
 	((format40_t *)entity)->dirty = 1;
 }
 
-static void format40_mkclean(object_entity_t *entity) {
+static void format40_mkclean(generic_entity_t *entity) {
 	aal_assert("umka-2080", entity != NULL);
 	((format40_t *)entity)->dirty = 0;
 }
 
-static errno_t format40_skipped(object_entity_t *entity,
-				block_func_t func,
+static errno_t format40_skipped(generic_entity_t *entity,
+				block_func_t block_func,
 				void *data) 
 {
 	blk_t blk, offset;
-	format40_t *format = (format40_t *)entity;
+	format40_t *format;
         
-	aal_assert("umka-1086", func != NULL);
 	aal_assert("umka-1085", entity != NULL);
+	aal_assert("umka-1086", block_func != NULL);
     
+	format = (format40_t *)entity;
 	offset = REISER4_MASTER_OFFSET / format->blksize;
     
 	for (blk = 0; blk < offset; blk++) {
 		errno_t res;
 		
-		if ((res = func(entity, blk, data)))
+		if ((res = block_func(entity, blk, data)))
 			return res;
 	}
     
 	return 0;
 }
 
-static errno_t format40_layout(object_entity_t *entity,
-			       block_func_t func,
+static errno_t format40_layout(generic_entity_t *entity,
+			       block_func_t block_func,
 			       void *data) 
 {
 	errno_t res;
 	blk_t blk, offset;
-	format40_t *format = (format40_t *)entity;
+	format40_t *format;
         
 	aal_assert("umka-1042", entity != NULL);
-	aal_assert("umka-1043", func != NULL);
+	aal_assert("umka-1043", block_func != NULL);
     
-	blk = REISER4_MASTER_OFFSET / format->blksize;
+	format = (format40_t *)entity;
 	offset = FORMAT40_OFFSET / format->blksize;
+	blk = REISER4_MASTER_OFFSET / format->blksize;
     
 	for (; blk <= offset; blk++) {
-		if ((res = func(entity, blk, data)))
+		if ((res = block_func(entity, blk, data)))
 			return res;
 	}
     
@@ -159,7 +161,7 @@ static errno_t format40_super_check(format40_t *format,
 	return 0;
 }
 
-static aal_device_t *format40_device(object_entity_t *entity) {
+static aal_device_t *format40_device(generic_entity_t *entity) {
 	return ((format40_t *)entity)->device;
 }
 #endif
@@ -198,7 +200,7 @@ static errno_t format40_super_open(format40_t *format) {
 	return res;
 }
 
-static object_entity_t *format40_open(aal_device_t *device,
+static generic_entity_t *format40_open(aal_device_t *device,
 				      uint32_t blksize)
 {
 	format40_t *format;
@@ -219,26 +221,26 @@ static object_entity_t *format40_open(aal_device_t *device,
 	if (format40_super_open(format))
 		goto error_free_format;
     
-	return (object_entity_t *)format;
+	return (generic_entity_t *)format;
 
  error_free_format:
 	aal_free(format);
 	return NULL;
 }
 
-static void format40_close(object_entity_t *entity) {
+static void format40_close(generic_entity_t *entity) {
 	aal_assert("umka-398", entity != NULL);
 	aal_free(entity);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_clobber_block(object_entity_t *entity, 
-				      blk_t blk, void *data) 
+static errno_t callback_clobber_block(void *entity, blk_t blk,
+				      void *data) 
 {
 	errno_t res;
 	aal_block_t block;
 	format40_t *format;
-
+	
 	format = (format40_t *)entity;
 
 	if ((res = aal_block_init(&block, format->device,
@@ -255,10 +257,10 @@ static errno_t callback_clobber_block(object_entity_t *entity,
 }
 
 /* This function should create super block and update all copies */
-static object_entity_t *format40_create(aal_device_t *device, 
-					uint64_t blocks,
-					uint32_t blksize,
-					uint16_t tail)
+static generic_entity_t *format40_create(aal_device_t *device, 
+					 uint64_t blocks,
+					 uint32_t blksize,
+					 uint16_t tail)
 {
 	format40_t *format;
 	format40_super_t *super;
@@ -288,14 +290,14 @@ static object_entity_t *format40_create(aal_device_t *device,
 	set_sb_mkfs_id(super, random());
 
 	/* Clobbering skipped area */
-	if (format40_skipped((object_entity_t *)format, 
+	if (format40_skipped((generic_entity_t *)format,
 			     callback_clobber_block, NULL))
 	{
 		aal_exception_error("Can't clobber skipped area.");
 		goto error_free_format;
 	}
     
-	return (object_entity_t *)format;
+	return (generic_entity_t *)format;
 
  error_free_format:
 	aal_free(format);
@@ -303,7 +305,7 @@ static object_entity_t *format40_create(aal_device_t *device,
 }
 
 /* This function should update all copies of the super block */
-static errno_t format40_sync(object_entity_t *entity) {
+static errno_t format40_sync(generic_entity_t *entity) {
 	errno_t res;
 	blk_t offset;
 	aal_block_t block;
@@ -331,7 +333,7 @@ static errno_t format40_sync(object_entity_t *entity) {
 }
 
 static int format40_confirm(aal_device_t *device) {
-	object_entity_t *entity;
+	generic_entity_t *entity;
 
 	aal_assert("umka-733", device != NULL);
 
@@ -342,7 +344,7 @@ static int format40_confirm(aal_device_t *device) {
 	return 0;
 }
 
-static errno_t format40_valid(object_entity_t *entity) {
+static errno_t format40_valid(generic_entity_t *entity) {
 	format40_t *format;
     
 	aal_assert("umka-397", entity != NULL);
@@ -353,7 +355,7 @@ static errno_t format40_valid(object_entity_t *entity) {
 
 #endif
 
-static void format40_oid(object_entity_t *entity, 
+static void format40_oid(generic_entity_t *entity, 
 			 void **oid_start,
 			 uint32_t *oid_len) 
 {
@@ -365,26 +367,26 @@ static void format40_oid(object_entity_t *entity,
 		&(SUPER(entity)->sb_oid);
 }
 
-static rid_t format40_oid_pid(object_entity_t *entity) {
+static rid_t format40_oid_pid(generic_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
 #ifndef ENABLE_STAND_ALONE
 static const char *formats[] = {"format40"};
 
-static const char *format40_name(object_entity_t *entity) {
+static const char *format40_name(generic_entity_t *entity) {
 	return formats[0];
 }
 
-static rid_t format40_journal_pid(object_entity_t *entity) {
+static rid_t format40_journal_pid(generic_entity_t *entity) {
 	return JOURNAL_REISER40_ID;
 }
 
-static rid_t format40_alloc_pid(object_entity_t *entity) {
+static rid_t format40_alloc_pid(generic_entity_t *entity) {
 	return ALLOC_REISER40_ID;
 }
 
-static void format40_set_root(object_entity_t *entity, 
+static void format40_set_root(generic_entity_t *entity, 
 			      uint64_t root) 
 {
 	aal_assert("umka-403", entity != NULL);
@@ -393,7 +395,7 @@ static void format40_set_root(object_entity_t *entity,
 	set_sb_root_block(SUPER(entity), root);
 }
 
-static void format40_set_len(object_entity_t *entity, 
+static void format40_set_len(generic_entity_t *entity, 
 			     uint64_t blocks) 
 {
 	aal_assert("umka-404", entity != NULL);
@@ -402,7 +404,7 @@ static void format40_set_len(object_entity_t *entity,
 	set_sb_block_count(SUPER(entity), blocks);
 }
 
-static void format40_set_free(object_entity_t *entity, 
+static void format40_set_free(generic_entity_t *entity, 
 			      uint64_t blocks) 
 {
 	aal_assert("umka-405", entity != NULL);
@@ -411,7 +413,7 @@ static void format40_set_free(object_entity_t *entity,
 	set_sb_free_blocks(SUPER(entity), blocks);
 }
 
-static void format40_set_height(object_entity_t *entity, 
+static void format40_set_height(generic_entity_t *entity, 
 				uint16_t height) 
 {
 	aal_assert("umka-555", entity != NULL);
@@ -420,7 +422,7 @@ static void format40_set_height(object_entity_t *entity,
 	set_sb_tree_height(SUPER(entity), height);
 }
 
-static int format40_tst_flag(object_entity_t *entity, 
+static int format40_tst_flag(generic_entity_t *entity, 
 			     uint8_t flag) 
 {
 	format40_t *format;
@@ -431,7 +433,7 @@ static int format40_tst_flag(object_entity_t *entity,
 	return aal_test_bit(&format->super.sb_flags, flag);
 }
 
-static void format40_set_flag(object_entity_t *entity, 
+static void format40_set_flag(generic_entity_t *entity, 
 			      uint8_t flag) 
 {
 	format40_t *format;
@@ -443,7 +445,7 @@ static void format40_set_flag(object_entity_t *entity,
 	format->dirty = 1;
 }
 
-static void format40_clr_flag(object_entity_t *entity, 
+static void format40_clr_flag(generic_entity_t *entity, 
 			      uint8_t flag) 
 {
 	format40_t *format;
@@ -455,7 +457,7 @@ static void format40_clr_flag(object_entity_t *entity,
 	format->dirty = 1;
 }
 
-static void format40_set_stamp(object_entity_t *entity, 
+static void format40_set_stamp(generic_entity_t *entity, 
 			       uint32_t mkfsid) 
 {
 	aal_assert("umka-1121", entity != NULL);
@@ -464,7 +466,7 @@ static void format40_set_stamp(object_entity_t *entity,
 	set_sb_mkfs_id(SUPER(entity), mkfsid);
 }
 
-static void format40_set_policy(object_entity_t *entity, 
+static void format40_set_policy(generic_entity_t *entity, 
 			       uint16_t tail)
 {
 	aal_assert("vpf-830", entity != NULL);
@@ -473,7 +475,7 @@ static void format40_set_policy(object_entity_t *entity,
 	set_sb_tail_policy(SUPER(entity), tail);
 }
 
-errno_t format40_print(object_entity_t *entity,
+errno_t format40_print(generic_entity_t *entity,
 		       aal_stream_t *stream,
 		       uint16_t options) 
 {
@@ -538,9 +540,10 @@ errno_t format40_print(object_entity_t *entity,
 	return 0;
 }
 
-extern errno_t format40_update(object_entity_t *entity);
+extern errno_t format40_update(generic_entity_t *entity);
 
-extern errno_t format40_check_struct(object_entity_t *entity, uint8_t mode);
+extern errno_t format40_check_struct(generic_entity_t *entity,
+				     uint8_t mode);
 #endif
 
 static reiser4_format_ops_t format40_ops = {

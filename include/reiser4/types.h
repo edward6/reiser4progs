@@ -108,7 +108,7 @@ struct reiser4_node {
 	   links among nodes in memory tree cache. */
 	reiser4_node_t *left;
 
-	/* Refernce to right neighbour. It is used for establishing silbing
+	/* Reference to right neighbour. It is used for establishing silbing
 	   links among nodes in memory tree cache. */
 	reiser4_node_t *right;
 	
@@ -133,15 +133,16 @@ struct reiser4_node {
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
 struct reiser4_object {
+	/* Tree reference */
+	reiser4_tree_t *tree;
+	
+	/* Object info pointer */
+	object_info_t *info;
+	
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *entity;
 
-	/* Object info (keys, etc) */
-	object_info_t info;
-	bool_t follow;
-
 #ifndef ENABLE_STAND_ALONE
-	
 	/* Full file name or printed key */
 	char name[OBJECT_NAME_SIZE];
 
@@ -149,6 +150,9 @@ struct reiser4_object {
 	   into the objects of our library for their own use. */
 	void *data;
 #endif
+
+	/* Should be symlinks resolved or not. */
+	bool_t follow;
 };
 
 typedef struct reiser4_object reiser4_object_t;
@@ -173,7 +177,7 @@ struct reiser4_format {
 	
 	/* Disk-format entity. It is initialized by disk-format plugin durring
 	   initialization. */
-	object_entity_t *entity;
+	generic_entity_t *entity;
 };
 
 typedef struct reiser4_format reiser4_format_t;
@@ -190,7 +194,7 @@ struct reiser4_journal {
 	aal_device_t *device;
 
 	/* Journal entity. Initializied by plugin */
-	object_entity_t *entity;
+	generic_entity_t *entity;
 };
 
 typedef struct reiser4_journal reiser4_journal_t;
@@ -200,7 +204,7 @@ struct reiser4_alloc {
 	reiser4_fs_t *fs;
 	
 	aux_bitmap_t *forbid;
-	object_entity_t *entity;
+	generic_entity_t *entity;
 };
 
 typedef struct reiser4_alloc reiser4_alloc_t;
@@ -209,7 +213,7 @@ typedef struct reiser4_alloc reiser4_alloc_t;
 /* Oid allocator structure */
 struct reiser4_oid {
 	reiser4_fs_t *fs;
-	object_entity_t *entity;
+	generic_entity_t *entity;
 };
 
 typedef struct reiser4_oid reiser4_oid_t;

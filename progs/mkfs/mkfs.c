@@ -369,7 +369,10 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Linking root to itself */
-		reiser4_object_link(fs->root, fs->root, NULL);
+		if (reiser4_object_link(fs->root, fs->root, NULL)) {
+			aal_exception_error("Can't link root directory "
+					    "to itself.");
+		}
 	
 		/* Creating lost+found directory */
 		if (flags & BF_LOST) {

@@ -238,7 +238,7 @@ oid_t reiser4_oid_root_locality(reiser4_oid_t *oid) {
 	aal_assert("umka-746", oid != NULL);
     
 	return plug_call(oid->entity->plug->o.oid_ops, 
-			 root_locality);
+			 root_locality, oid->entity);
 }
 
 /* Returns root objectid from specified oid allocator */
@@ -246,6 +246,6 @@ oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid) {
 	aal_assert("umka-747", oid != NULL);
     
 	return plug_call(oid->entity->plug->o.oid_ops, 
-			 root_objectid);
+			 root_objectid, oid->entity);
 }
 #endif

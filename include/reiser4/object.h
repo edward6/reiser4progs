@@ -23,6 +23,7 @@ extern errno_t reiser4_object_resolve(reiser4_object_t *object,
 				      char *filename, bool_t follow);
 
 extern reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree,
+						reiser4_object_t *parent,
 						reiser4_place_t *place);
 
 extern reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
@@ -37,6 +38,10 @@ extern errno_t reiser4_object_seek(reiser4_object_t *object,
 				   uint32_t offset);
 
 #ifndef ENABLE_STAND_ALONE
+extern reiser4_object_t *reiser4_object_create(reiser4_tree_t *tree,
+					       reiser4_object_t *parent,
+					       object_hint_t *hint);
+
 extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
 				      reiser4_key_t *offset);
 
@@ -49,10 +54,6 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 
 extern errno_t reiser4_object_seek(reiser4_object_t *object,
 				   uint32_t offset);
-
-extern reiser4_object_t *reiser4_object_create(reiser4_fs_t *fs,
-					       reiser4_object_t *parent,
-					       object_hint_t *hint);
 
 extern errno_t reiser4_object_print(reiser4_object_t *object,
 				    aal_stream_t *stream);
@@ -112,7 +113,7 @@ extern errno_t reiser4_object_traverse(reiser4_object_t *object,
 extern errno_t reiser4_object_reset(reiser4_object_t *object);
 extern uint32_t reiser4_object_offset(reiser4_object_t *object);
 
-#define reiser4_object_start(object) \
-        ((reiser4_place_t *)&(object)->info.start)
+#define object_start(object) \
+        ((reiser4_place_t *)&(object)->info->start)
 
 #endif

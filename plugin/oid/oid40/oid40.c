@@ -9,24 +9,24 @@
 
 extern reiser4_plug_t oid40_plug;
 
-static int oid40_isdirty(object_entity_t *entity) {
+static int oid40_isdirty(generic_entity_t *entity) {
 	aal_assert("umka-2088", entity != NULL);
 	return ((oid40_t *)entity)->dirty;
 }
 
-static void oid40_mkdirty(object_entity_t *entity) {
+static void oid40_mkdirty(generic_entity_t *entity) {
 	aal_assert("umka-2089", entity != NULL);
 	((oid40_t *)entity)->dirty = 1;
 }
 
-static void oid40_mkclean(object_entity_t *entity) {
+static void oid40_mkclean(generic_entity_t *entity) {
 	aal_assert("umka-2090", entity != NULL);
 	((oid40_t *)entity)->dirty = 0;
 }
 
 /* Initializies oid allocator instance and loads its data (namely next oid, used
    oids, etc). */
-static object_entity_t *oid40_open(void *start, 
+static generic_entity_t *oid40_open(void *start, 
 				   uint32_t len) 
 {
 	oid40_t *oid;
@@ -43,16 +43,16 @@ static object_entity_t *oid40_open(void *start,
 	oid->next = oid40_get_next(start);
 	oid->used = oid40_get_used(start);
     
-	return (object_entity_t *)oid;
+	return (generic_entity_t *)oid;
 }
 
-static void oid40_close(object_entity_t *entity) {
+static void oid40_close(generic_entity_t *entity) {
 	aal_assert("umka-510", entity != NULL);
 	aal_free(entity);
 }
 
 /* Initializes oid allocator instance and return it to the caller */
-static object_entity_t *oid40_create(void *start, 
+static generic_entity_t *oid40_create(void *start, 
 				     uint32_t len) 
 {
 	oid40_t *oid;
@@ -73,11 +73,11 @@ static object_entity_t *oid40_create(void *start,
 	oid40_set_next(start, oid->next);
 	oid40_set_used(start, oid->used);
     
-	return (object_entity_t *)oid;
+	return (generic_entity_t *)oid;
 }
 
 /* Updating next and used values in oid allocator dedicated area */
-static errno_t oid40_sync(object_entity_t *entity) {
+static errno_t oid40_sync(generic_entity_t *entity) {
 	aal_assert("umka-1016", entity != NULL);
     
 	oid40_set_next(((oid40_t *)entity)->start, 
@@ -90,13 +90,13 @@ static errno_t oid40_sync(object_entity_t *entity) {
 }
 
 /* Returns next oid to be used */
-static oid_t oid40_next(object_entity_t *entity) {
+static oid_t oid40_next(generic_entity_t *entity) {
 	aal_assert("umka-1109", entity != NULL);
 	return ((oid40_t *)entity)->next;
 }
 
 /* Returns free oid and marks it as used */
-static oid_t oid40_allocate(object_entity_t *entity) {
+static oid_t oid40_allocate(generic_entity_t *entity) {
 	aal_assert("umka-513", entity != NULL);
 
 	((oid40_t *)entity)->next++;
@@ -107,7 +107,7 @@ static oid_t oid40_allocate(object_entity_t *entity) {
 }
 
 /* Releases passed oid */
-static void oid40_release(object_entity_t *entity, 
+static void oid40_release(generic_entity_t *entity, 
 			  oid_t oid)
 {
 	aal_assert("umka-528", entity != NULL);
@@ -117,7 +117,7 @@ static void oid40_release(object_entity_t *entity,
 }
 
 /* Prints oid allocator data into passed @stream */
-static errno_t oid40_print(object_entity_t *entity,
+static errno_t oid40_print(generic_entity_t *entity,
 			   aal_stream_t *stream,
 			   uint16_t options)
 {
@@ -138,19 +138,19 @@ static errno_t oid40_print(object_entity_t *entity,
 }
 
 /* Returns number of free oids */
-static oid_t oid40_free(object_entity_t *entity) {
+static oid_t oid40_free(generic_entity_t *entity) {
 	aal_assert("umka-961", entity != NULL);
 	return MAX_UINT64 - ((oid40_t *)entity)->next;
 }
 
 /* Returns number of used oids */
-static oid_t oid40_used(object_entity_t *entity) {
+static oid_t oid40_used(generic_entity_t *entity) {
 	aal_assert("umka-530", entity != NULL);
 	return ((oid40_t *)entity)->used;
 }
 
 /* Checks oid allocator for validness */
-static errno_t oid40_valid(object_entity_t *entity) {
+static errno_t oid40_valid(generic_entity_t *entity) {
 	aal_assert("umka-966", entity != NULL);
 
 	/* Next oid should not be less than the root locality */
@@ -161,12 +161,12 @@ static errno_t oid40_valid(object_entity_t *entity) {
 }
 
 /* Returns root locality */
-static oid_t oid40_root_locality(void) {
+static oid_t oid40_root_locality(generic_entity_t *entity) {
 	return OID40_ROOT_LOCALITY;
 }
 
 /* Returns root oid */
-static oid_t oid40_root_objectid(void) {
+static oid_t oid40_root_objectid(generic_entity_t *entity) {
 	return OID40_ROOT_OBJECTID;
 }
 

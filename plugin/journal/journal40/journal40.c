@@ -12,22 +12,22 @@
 
 extern reiser4_plug_t journal40_plug;
 
-static int journal40_isdirty(object_entity_t *entity) {
+static int journal40_isdirty(generic_entity_t *entity) {
 	aal_assert("umka-2081", entity != NULL);
 	return ((journal40_t *)entity)->dirty;
 }
 
-static void journal40_mkdirty(object_entity_t *entity) {
+static void journal40_mkdirty(generic_entity_t *entity) {
 	aal_assert("umka-2082", entity != NULL);
 	((journal40_t *)entity)->dirty = 1;
 }
 
-static void journal40_mkclean(object_entity_t *entity) {
+static void journal40_mkclean(generic_entity_t *entity) {
 	aal_assert("umka-2083", entity != NULL);
 	((journal40_t *)entity)->dirty = 0;
 }
 
-static errno_t journal40_layout(object_entity_t *entity,
+static errno_t journal40_layout(generic_entity_t *entity,
 				block_func_t block_func,
 				void *data)
 {
@@ -63,13 +63,13 @@ static errno_t journal40_fcheck(journal40_footer_t *footer) {
 	return 0;
 }
 
-aal_device_t *journal40_device(object_entity_t *entity) {
+aal_device_t *journal40_device(generic_entity_t *entity) {
 	aal_assert("vpf-455", entity != NULL);
 	return ((journal40_t *)entity)->device;
 }
 
-static errno_t callback_fetch_journal(object_entity_t *entity, 
-				      blk_t blk, void *data)
+static errno_t callback_fetch_journal(void *entity, blk_t blk,
+				      void *data)
 {
 	uint32_t blksize;
 	aal_device_t *device;
@@ -99,10 +99,10 @@ static errno_t callback_fetch_journal(object_entity_t *entity,
 	return 0;
 }
 
-static object_entity_t *journal40_open(object_entity_t *format,
-				       aal_device_t *device,
-				       uint64_t start, uint64_t len,
-				       uint32_t blksize)
+static generic_entity_t *journal40_open(generic_entity_t *format,
+					aal_device_t *device,
+					uint64_t start, uint64_t len,
+					uint32_t blksize)
 {
 	journal40_t *journal;
 
@@ -121,21 +121,21 @@ static object_entity_t *journal40_open(object_entity_t *format,
 	journal->area.start = start;
 	journal->area.len = len;
 
-	if (journal40_layout((object_entity_t *)journal,
+	if (journal40_layout((generic_entity_t *)journal,
 			     callback_fetch_journal, journal))
 	{
 		aal_exception_error("Can't load journal metadata.");
 		goto error_free_journal;
 	}
 
-	return (object_entity_t *)journal;
+	return (generic_entity_t *)journal;
 
  error_free_journal:
 	aal_free(journal);
 	return NULL;
 }
 
-static errno_t journal40_valid(object_entity_t *entity) {
+static errno_t journal40_valid(generic_entity_t *entity) {
 	errno_t res;
 	journal40_t *journal;
     
@@ -149,15 +149,14 @@ static errno_t journal40_valid(object_entity_t *entity) {
 	return journal40_fcheck(journal->footer->data);
 }
 
-static errno_t callback_alloc_journal(object_entity_t *entity,
-				      blk_t blk, void *data)
+static errno_t callback_alloc_journal(void *entity, blk_t blk,
+				      void *data)
 {
 	uint32_t blksize;
 	aal_device_t *device;
 	journal40_t *journal;
 
 	journal = (journal40_t *)entity;
-
 	device = journal->device;
 	blksize = journal->blksize;
 	
@@ -182,7 +181,7 @@ static errno_t callback_alloc_journal(object_entity_t *entity,
 	return 0;
 }
 
-static object_entity_t *journal40_create(object_entity_t *format,
+static generic_entity_t *journal40_create(generic_entity_t *format,
 					 aal_device_t *device,
 					 uint64_t start, uint64_t len,
 					 uint32_t blksize, void *hint)
@@ -204,22 +203,22 @@ static object_entity_t *journal40_create(object_entity_t *format,
 	journal->area.start = start;
 	journal->area.len = len;
     
-	if (journal40_layout((object_entity_t *)journal,
+	if (journal40_layout((generic_entity_t *)journal,
 			     callback_alloc_journal, journal))
 	{
 		aal_exception_error("Can't load journal metadata.");
 		goto error_free_journal;
 	}
     
-	return (object_entity_t *)journal;
+	return (generic_entity_t *)journal;
 
  error_free_journal:
 	aal_free(journal);
 	return NULL;
 }
 
-static errno_t callback_sync_journal(object_entity_t *entity,
-				     blk_t blk, void *data)
+static errno_t callback_sync_journal(void *entity, blk_t blk,
+				     void *data)
 {
 	aal_device_t *device;
 	journal40_t *journal;
@@ -247,7 +246,7 @@ static errno_t callback_sync_journal(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t journal40_sync(object_entity_t *entity) {
+static errno_t journal40_sync(generic_entity_t *entity) {
 	errno_t res;
 
 	aal_assert("umka-410", entity != NULL);
@@ -349,7 +348,7 @@ errno_t journal40_traverse_trans(
 		/* FIXME-VITALY->UMKA: There should be a check that the log_blk
 		   is not one of the LGR's of the same transaction. return 1. */
 	    
-		if (sec_func && (res = sec_func((object_entity_t *)journal, 
+		if (sec_func && (res = sec_func((generic_entity_t *)journal, 
 						tx_block, log_blk, JB_LGR,
 						data)))
 		{
@@ -386,13 +385,13 @@ errno_t journal40_traverse_trans(
 				break;
 
 			if (sec_func) {
-				if ((res = sec_func((object_entity_t *)journal, tx_block, 
+				if ((res = sec_func((generic_entity_t *)journal, tx_block, 
 						    get_le_wandered(entry), JB_WAN, data)))
 				{
 					goto error_free_log_block;
 				}
 		    
-				if ((res = sec_func((object_entity_t *)journal, tx_block,
+				if ((res = sec_func((generic_entity_t *)journal, tx_block,
 						    get_le_original(entry), JB_ORG, data)))
 				{
 					goto error_free_log_block;
@@ -411,7 +410,7 @@ errno_t journal40_traverse_trans(
 					goto error_free_log_block;
 				}
 
-				if ((res = han_func((object_entity_t *)journal, wan_block, 
+				if ((res = han_func((generic_entity_t *)journal, wan_block, 
 						    get_le_original(entry), data)))
 				{
 					goto error_free_wandered;
@@ -478,7 +477,7 @@ errno_t journal40_traverse(
 		
 		/* FIXME-VITALY->UMKA: There should be a check that the txh_blk
 		   is not one of the TxH's we have met already. return 1. */
-		if (txh_func && (res = txh_func((object_entity_t *)journal, 
+		if (txh_func && (res = txh_func((generic_entity_t *)journal, 
 						txh_blk, data)))
 			goto error_free_tx_list;
 	    
@@ -536,7 +535,7 @@ errno_t journal40_traverse(
 	return res;
 }
 
-static errno_t callback_replay_handler(object_entity_t *entity,
+static errno_t callback_replay_handler(generic_entity_t *entity,
 				       aal_block_t *block,
 				       d64_t orig, void *data) 
 {
@@ -558,7 +557,7 @@ static errno_t callback_replay_handler(object_entity_t *entity,
 }
 
 /* Makes journal replay */
-static errno_t journal40_replay(object_entity_t *entity) {
+static errno_t journal40_replay(generic_entity_t *entity) {
 	errno_t res;
 
 	aal_assert("umka-412", entity != NULL);
@@ -585,7 +584,7 @@ static void extract_string(char *stor, char *orig, uint32_t max) {
 	aal_memcpy(stor, orig, i);
 }
 
-static errno_t callback_print_txh(object_entity_t *entity,
+static errno_t callback_print_txh(generic_entity_t *entity,
 				  blk_t blk, void *data)
 {
 	aal_block_t *block;
@@ -644,7 +643,7 @@ static errno_t callback_print_txh(object_entity_t *entity,
 }
 
 /* Printing pair (wandered and original) blocks */
-static errno_t callback_print_par(object_entity_t *entity,
+static errno_t callback_print_par(generic_entity_t *entity,
 				  aal_block_t *block,
 				  blk_t orig, void *data)
 {
@@ -654,7 +653,7 @@ static errno_t callback_print_par(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t callback_print_lgr(object_entity_t *entity,
+static errno_t callback_print_lgr(generic_entity_t *entity,
 				  aal_block_t *block, blk_t blk,
 				  journal40_block_t bel, void *data)
 {
@@ -692,7 +691,7 @@ static errno_t callback_print_lgr(object_entity_t *entity,
 }
 
 /* Prints journal structures into passed @stream */
-static errno_t journal40_print(object_entity_t *entity,
+static errno_t journal40_print(generic_entity_t *entity,
 			       aal_stream_t *stream, 
 			       uint16_t options)
 {
@@ -746,7 +745,7 @@ static errno_t journal40_print(object_entity_t *entity,
 }
 
 /* Releases the journal */
-static void journal40_close(object_entity_t *entity) {
+static void journal40_close(generic_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
     
 	aal_assert("umka-411", entity != NULL);
@@ -756,7 +755,7 @@ static void journal40_close(object_entity_t *entity) {
 	aal_free(journal);
 }
 
-extern errno_t journal40_check_struct(object_entity_t *,
+extern errno_t journal40_check_struct(generic_entity_t *,
 				      layout_func_t, void *);
 
 static reiser4_journal_ops_t journal40_ops = {

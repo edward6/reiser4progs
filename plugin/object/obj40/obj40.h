@@ -18,19 +18,18 @@ static reiser4_core_t *core = NULL;
         (&((o)->info.start))
 
 struct obj40 {
-
 	/* File plugin refference. Should be first field due to be castable to
 	   object_entity_t */
 	reiser4_plug_t *plug;
     
-	/* Core operations pointer */
-	reiser4_core_t *core;
-	
 	/* Info about the object, SD place, object and parent keys and pointer
 	   to the instance of internal libreiser4 tree also for modiying
 	   purposes. It is passed by reiser4 library durring initialization of
 	   the file instance. */
 	object_info_t info;
+
+	/* Core operations pointer */
+	reiser4_core_t *core;
 };
 
 typedef struct obj40 obj40_t;
@@ -43,14 +42,13 @@ extern errno_t obj40_update(obj40_t *obj,
 			    place_t *place);
 
 extern rid_t obj40_pid(place_t *place);
-
-extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
-			  reiser4_core_t *core, object_info_t *info);
+extern errno_t obj40_fini(obj40_t *obj);
 
 extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 			     uint8_t level, place_t *place);
 
-extern errno_t obj40_fini(obj40_t *obj);
+extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
+			  reiser4_core_t *core, object_info_t *info);
 
 extern errno_t obj40_read_ext(place_t *place,
 			      rid_t id, void *data);
@@ -93,15 +91,16 @@ extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    uint32_t count);
 
-typedef errno_t (*realize_stat_func_t) (place_t *);
-typedef errno_t (*realize_key_func_t) (obj40_t *);
+typedef errno_t (*key_func_t) (obj40_t *);
+typedef errno_t (*stat_func_t) (place_t *);
 
-extern errno_t obj40_check_stat(obj40_t *obj, realize_stat_func_t stat_func);
+extern errno_t obj40_realize(obj40_t *obj,
+			     stat_func_t stat_func,
+			     key_func_t key_func);
 
-extern errno_t obj40_realize(obj40_t *obj, realize_stat_func_t stat_func,
-			     realize_key_func_t key_func);
+extern errno_t obj40_check_stat(obj40_t *obj,
+				stat_func_t stat_func);
 
 #endif
-
 extern uint64_t obj40_get_size(obj40_t *obj);
 #endif

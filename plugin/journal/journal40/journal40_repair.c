@@ -88,7 +88,7 @@ extern errno_t journal40_traverse_trans(journal40_t *, aal_block_t *,
 					journal40_han_func_t, journal40_sec_func_t, 
 					void *);
 
-extern aal_device_t *journal40_device(object_entity_t *entity);
+extern aal_device_t *journal40_device(generic_entity_t *entity);
 
 static char *blk_types[] = {
 	"Unknown",
@@ -106,8 +106,7 @@ static char *__blk_type_name(journal40_block_t blk_type) {
 }
 
 /* Callback for format.layout. Returns 1 for all fotmat blocks. */
-static errno_t callback_check_format_block(object_entity_t *format, 
-					   blk_t blk,  
+static errno_t callback_check_format_block(void *entity, blk_t blk,
 					   void *data)
 {
 	return blk == *(blk_t *)data;
@@ -138,7 +137,7 @@ static errno_t journal40_blk_format_check(journal40_t *journal, blk_t blk,
    block number equals to wanted blk. Set found_type then to TxH. Returns 1 
    when traverse should be stopped, zeroes found_type if no satisfied 
    transaction was found. */
-static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk, 
+static errno_t callback_find_txh_blk(generic_entity_t *entity, blk_t blk, 
 				     void *data) 
 {
 	journal40_check_t *check_data = (journal40_check_t *)data;
@@ -164,7 +163,7 @@ static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk,
 /* Secondary (not TxH) blocks callback for nested traverses. Should find the 
    transaction which contains block number equal to wanted blk. Set wanted_blk 
    to TxH block number and found_type to the type of found blk. */
-static errno_t callback_find_sec_blk(object_entity_t *entity, 
+static errno_t callback_find_sec_blk(generic_entity_t *entity, 
 				     aal_block_t *txh_block, 
 				     blk_t blk, 
 				     journal40_block_t blk_type, 
@@ -184,7 +183,7 @@ static errno_t callback_find_sec_blk(object_entity_t *entity,
 /* TxH callback for traverse. Returns 1 if blk is a block out of format bound 
    or of format area or is met more then once. data->cur_txh = 0 all the way
    here to explain the traverse caller that the whole journal is invalid. */
-static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk, 
+static errno_t callback_journal_txh_check(generic_entity_t *entity, blk_t blk, 
 					  void *data) 
 {
 	journal40_t *journal = (journal40_t *)entity;
@@ -217,7 +216,7 @@ static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk,
 
 /* Secondary blocks callback for traverse. Does all the work described above for 
    all block types except TxH. */
-static errno_t callback_journal_sec_check(object_entity_t *entity, 
+static errno_t callback_journal_sec_check(generic_entity_t *entity, 
 					  aal_block_t *txh_block, 
 					  blk_t blk, 
 					  journal40_block_t blk_type, 
@@ -415,7 +414,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	return 0;
 }
 
-errno_t journal40_check_struct(object_entity_t *entity, 
+errno_t journal40_check_struct(generic_entity_t *entity, 
 			       layout_func_t fs_layout, 
 			       void *layout)
 {
@@ -470,7 +469,7 @@ errno_t journal40_check_struct(object_entity_t *entity,
 			
 			/* data.cur_txh is the oldest problem transaction. 
 			   Set the last_committed to the previous one. */
-			device = journal40_device((object_entity_t *)journal);
+			device = journal40_device((generic_entity_t *)journal);
 			
 			if (device == NULL) {
 				aal_exception_error("Invalid device has been "
