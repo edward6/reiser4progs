@@ -361,7 +361,7 @@ free_device:
     if (data.host_device)
 	aal_device_close(data.host_device);
 free_libreiser4:
-    libreiser4_done();
+    libreiser4_fini();
 
     return exit_code;
 }

@@ -21,6 +21,7 @@
   This macro was introdused to decrease source code by removing a lot of common
   pieces and replace them by just one line of macro.
 */
+#ifndef ENABLE_ALONE
 #define aal_device_check_routine(device, routine, action)		         \
     do {								         \
 	    if (!device->ops->routine) {					 \
@@ -29,6 +30,9 @@
 	        action;							         \
 	    }								         \
     } while (0)
+#else
+#define aal_device_check_routine(device, routine, action)
+#endif
 
 /*
   Initializes device instance, checks and sets all device attributes (blocksize,
@@ -44,6 +48,7 @@ aal_device_t *aal_device_open(
 
 	aal_assert("umka-429", ops != NULL);
     
+#ifndef ENABLE_ALONE
 	/* Rough check for blocksize validness */
 	if (!aal_pow_of_two(blocksize)) {
 		aal_exception_error("Block size %u isn't power "
@@ -56,7 +61,8 @@ aal_device_t *aal_device_open(
 				    "512 bytes.");
 		return NULL;
 	}	
-    
+#endif
+	
 	/* Allocating memory for device instance and initializing all fields */
 	if (!(device = (aal_device_t *)aal_calloc(sizeof(*device), 0)))
 		return NULL;
@@ -76,6 +82,8 @@ aal_device_t *aal_device_open(
 	return NULL;
 }
 
+#ifndef ENABLE_ALONE
+
 errno_t aal_device_reopen(
 	aal_device_t *device,       /* device for reopening */
 	uint32_t blocksize,         /* block size device is working with */
@@ -91,6 +99,72 @@ errno_t aal_device_reopen(
 bool_t aal_device_readonly(aal_device_t *device) {
 	aal_assert("umka-1291", device != NULL);
 	return ((device->flags & 7) == O_RDONLY) ? TRUE : FALSE;
+}
+
+/* 
+  Performs write operation on specified device. Actualy it calls corresponding
+  operation (write) from assosiated with device operations. Returns error code,
+  see aal.h for more detailed description of errno_t.
+*/
+errno_t aal_device_write(
+	aal_device_t *device,	/* device instance we will write into */
+	void *buff,		/* buffer with data to be wrote */
+	blk_t block,		/* block we will write to */
+	count_t count)		/* number of blocks to be wrote */
+{
+	aal_assert("umka-434", device != NULL);
+	aal_assert("umka-435", buff != NULL);
+	
+	aal_device_check_routine(device, write, return -1);
+	return device->ops->write(device, buff, block, count);
+}
+
+/* 
+  Performs sync operation on specified device. Actualy it calls corresponding
+  operation (sync) from assosiated with device operations. Returns error code,
+  see aal.h for more detailed description of errno_t.
+*/
+errno_t aal_device_sync(
+	aal_device_t *device)	/* device instance that will be synchronized */
+{
+	aal_assert("umka-436", device != NULL);
+    
+	aal_device_check_routine(device, sync, return -1);
+	return device->ops->sync(device);
+}
+
+/* 
+  Compares two devices. Returns TRUE for equal devices and FALSE for different
+  ones. This function is needed in order to be aware is host device user has
+  specified corresponds journal one. And in some other cases.
+*/
+bool_t aal_device_equals(
+	aal_device_t *device1,	/* first device for comparing */
+	aal_device_t *device2)	/* second one */
+{
+	aal_assert("umka-438", device1 != NULL);
+	aal_assert("umka-439", device2 != NULL);
+	
+	aal_device_check_routine(device1, equals, return 0);
+	return device1->ops->equals(device1, device2);
+}
+
+/* Returns device name. For standard file it is file name */
+char *aal_device_name(
+	aal_device_t *device)	/* device, name will be obtained from */
+{
+	aal_assert("umka-442", device != NULL);
+	return device->name;
+}
+
+#endif
+
+/* Returns last error occured on device */
+char *aal_device_error(
+	aal_device_t *device)	/* device error description will be obtailed from */
+{
+	aal_assert("umka-752", device != NULL);
+	return device->error;
 }
 
 /* Closes device. Frees all assosiated memory */
@@ -153,60 +227,12 @@ errno_t aal_device_read(
 	return device->ops->read(device, buff, block, count);
 }
 
-/* 
-  Performs write operation on specified device. Actualy it calls corresponding
-  operation (write) from assosiated with device operations. Returns error code,
-  see aal.h for more detailed description of errno_t.
-*/
-errno_t aal_device_write(
-	aal_device_t *device,	/* device instance we will write into */
-	void *buff,		/* buffer with data to be wrote */
-	blk_t block,		/* block we will write to */
-	count_t count)		/* number of blocks to be wrote */
-{
-	aal_assert("umka-434", device != NULL);
-	aal_assert("umka-435", buff != NULL);
-	
-	aal_device_check_routine(device, write, return -1);
-	return device->ops->write(device, buff, block, count);
-}
-
-/* 
-  Performs sync operation on specified device. Actualy it calls corresponding
-  operation (sync) from assosiated with device operations. Returns error code,
-  see aal.h for more detailed description of errno_t.
-*/
-errno_t aal_device_sync(
-	aal_device_t *device)	/* device instance that will be synchronized */
-{
-	aal_assert("umka-436", device != NULL);
-    
-	aal_device_check_routine(device, sync, return -1);
-	return device->ops->sync(device);
-}
-
 /* Returns flags, device was opened with */
 int aal_device_flags(
 	aal_device_t *device)	/* device instance flags will be obtained from */
 {
 	aal_assert("umka-437", device != NULL);
 	return device->flags;
-}
-
-/* 
-  Compares two devices. Returns TRUE for equal devices and FALSE for different
-  ones. This function is needed in order to be aware is host device user has
-  specified corresponds journal one. And in some other cases.
-*/
-bool_t aal_device_equals(
-	aal_device_t *device1,	/* first device for comparing */
-	aal_device_t *device2)	/* second one */
-{
-	aal_assert("umka-438", device1 != NULL);
-	aal_assert("umka-439", device2 != NULL);
-	
-	aal_device_check_routine(device1, equals, return 0);
-	return device1->ops->equals(device1, device2);
 }
 
 /* Returns device length in blocks */
@@ -217,20 +243,4 @@ count_t aal_device_len(
 
 	aal_device_check_routine(device, len, return INVAL_BLK);
 	return device->ops->len(device);
-}
-
-/* Returns device name. For standard file it is file name */
-char *aal_device_name(
-	aal_device_t *device)	/* device, name will be obtained from */
-{
-	aal_assert("umka-442", device != NULL);
-	return device->name;
-}
-
-/* Returns last error occured on device */
-char *aal_device_error(
-	aal_device_t *device)	/* device error description will be obtailed from */
-{
-	aal_assert("umka-752", device != NULL);
-	return device->error;
 }

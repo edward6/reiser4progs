@@ -8,6 +8,8 @@
 #ifndef AAL_UI_H
 #define AAL_UI_H
 
+#ifndef ENABLE_ALONE
+
 #include <aal/types.h>
 
 typedef int (*aal_check_numeric_func_t) (int64_t, void *);
@@ -33,6 +35,8 @@ extern aal_alpha_func_t aal_ui_get_alpha_handler(void);
 extern char *aal_ui_get_alpha(char *defvalue, 
 			      aal_check_alpha_func_t check_func,
 			      void *, const char *format, ...);
+
+#endif
 
 #endif
 

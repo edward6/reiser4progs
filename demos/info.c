@@ -29,7 +29,7 @@ static void info_print_plugin(reiser4_plugin_t *plugin) {
 static void info_print_fs(reiser4_fs_t *fs) {
 	reiser4_plugin_t *plugin;
 
-	fprintf(stderr, "\nreiserfs %s, block size %u, blocks: %llu, used: %llu, free: %llu.\n\n", 
+	fprintf(stderr, "\nreiser4 %s, block size %u, blocks: %llu, used: %llu, free: %llu.\n\n", 
 		reiser4_fs_name(fs), reiser4_fs_blocksize(fs), 
 		reiser4_format_get_len(fs->format), reiser4_alloc_used(fs->alloc), 
 		reiser4_alloc_free(fs->alloc));
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
 	reiser4_file_close(fs->root);
     
 	reiser4_fs_close(fs);
-	libreiser4_done();
+	libreiser4_fini();
 	aal_device_close(device);
 
 	return 0;
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
  error_free_device:
 	aal_device_close(device);
  error_free_libreiser4:
-	libreiser4_done();
+	libreiser4_fini();
  error:
     
 #endif

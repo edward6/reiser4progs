@@ -133,7 +133,7 @@ aal_exception_option_t aal_exception_throw(
 		goto error_no_memory;
 
 	/* Allocating memory for exception message */
-	if (!(exception->message = (char*)aal_calloc(4096, 0)))
+	if (!(exception->message = (char*)aal_calloc(256, 0)))
 		goto error_no_memory;
 
 	/* Initializing exception instance by passed params */

@@ -13,8 +13,6 @@
 
 #ifdef ENABLE_ALONE
 
-#include <stdarg.h>
-
 enum format_modifier {
 	mod_empty,
 	mod_long,

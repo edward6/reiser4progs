@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
 
 	if (behav_flags & BF_PLUGS) {
 		progs_plugin_list();
-		libreiser4_done();
+		libreiser4_fini();
 		return 0;
 	}
 	
@@ -503,7 +503,7 @@ int main(int argc, char *argv[]) {
 	   Deinitializing libreiser4. At the moment only plugins are unloading 
 	   durrign this.
 	*/
-	libreiser4_done();
+	libreiser4_fini();
     
 	return NO_ERROR;
 
@@ -514,7 +514,7 @@ int main(int argc, char *argv[]) {
  error_free_device:
 	aal_device_close(device);
  error_free_libreiser4:
-	libreiser4_done();
+	libreiser4_fini();
  error:
 	return OPER_ERROR;
 }

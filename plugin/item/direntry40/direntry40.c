@@ -708,6 +708,8 @@ static int32_t direntry40_shrink(item_entity_t *item,
 
 	entry40_t *entry;
 	direntry40_t *direntry;
+
+	aal_assert("umka-1959", item != NULL);
 	
 	direntry = direntry40_body(item);
 	units = de40_get_count(direntry);
@@ -874,7 +876,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	/*
 	  Expanding direntry in order to prepare the room for new entries. The
 	  function direntry40_expand returns the offset of where new unit will
-	  be inserted.
+	  be inserted at.
 	*/
 	if ((offset = direntry40_expand(item, pos, count, hint->len)) <= 0) {
 		aal_exception_error("Can't expand direntry item at pos "

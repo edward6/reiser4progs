@@ -5,6 +5,8 @@
   reiser4progs/COPYING.
 */  
 
+#ifndef ENABLE_ALONE
+
 #include <aal/aal.h>
 
 aal_stream_t *aal_stream_create(void) {
@@ -111,3 +113,5 @@ int aal_stream_format(aal_stream_t *stream, const char *format, ...) {
 	
 	return len;
 }
+
+#endif

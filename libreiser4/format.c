@@ -50,8 +50,7 @@ reiser4_format_t *reiser4_format_open(
 	{
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
 				    "Can't open disk-format %s on %s.",
-				    plugin->h.label, 
-				    aal_device_name(fs->device));
+				    plugin->h.label, fs->device->name);
 		goto error_free_format;
 	}
 

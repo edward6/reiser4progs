@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 	
 	reiser4_fs_close(fs);
     
-	libreiser4_done();
+	libreiser4_fini();
 	aal_device_close(device);
     
 	return 0;
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
  error_free_device:
 	aal_device_close(device);
  error_free_libreiser4:
-	libreiser4_done();
+	libreiser4_fini();
 	return 0xff;
 }
 

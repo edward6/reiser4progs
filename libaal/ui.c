@@ -5,6 +5,8 @@
   reiser4progs/COPYING.
 */
 
+#ifndef ENABLE_ALONE
+
 #include <aal/aal.h>
 
 static aal_numeric_func_t numeric_handler = NULL;
@@ -65,3 +67,4 @@ char *aal_ui_get_alpha(char *defvalue,
 	return alpha_handler(buff, defvalue, check_func, data);
 }
 
+#endif

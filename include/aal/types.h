@@ -12,10 +12,52 @@
 #  include <config.h>
 #endif
 
-#if !defined(__GNUC__) && (defined(__sparc__) || defined(__sparcv9))
-#  include <sys/int_types.h>
+#ifndef __int8_t_defined
+# define __int8_t_defined
+typedef signed char             int8_t;
+typedef short int               int16_t;
+typedef int                     int32_t;
+__extension__
+typedef long long int           int64_t;
+#endif
+ 
+/* Unsigned.  */
+typedef unsigned char           uint8_t;
+typedef unsigned short int      uint16_t;
+#ifndef __uint32_t_defined
+typedef unsigned int            uint32_t;
+# define __uint32_t_defined
+#endif
+__extension__
+typedef unsigned long long int  uint64_t;
+
+#ifndef ENABLE_ALONE
+#  include <stdarg.h>
 #else
-#  include <stdint.h>
+
+/*
+  Types and macros for working with variable length params. They are needed
+  because we don't want use gcc builtins in alone mode for achive as small
+  binary size as possible.
+*/
+
+#if !defined(_VA_LIST_) && !defined(_VA_LIST) && !defined(__VA_LIST)
+typedef char *va_list;
+#endif
+
+#undef va_arg
+#undef va_end
+#undef va_start
+
+#define va_end(ap)       \
+        do {} while(0);
+
+#define va_start(ap, p)  \
+        (ap = (char *)(&(p)+1))
+
+#define va_arg(ap, type) \
+        ((type *)(ap += sizeof(type)))[-1]
+
 #endif
 
 /*
@@ -41,22 +83,6 @@
 
 #if !defined(TRUE)
 #  define TRUE 1
-#endif
-
-/* 
-  Macro for checking the format string in situations like this:
-
-  aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, "Operation %d failed.",
-                      "open");
-
-  As aal_exception_throw is declared with this macro, compiller in the comile
-  time will make warning about incorrect format string.
-*/
-#ifdef __GNUC__
-#  define __aal_check_format__(style, format, start) \
-       __attribute__((__format__(style, format, start)))
-#else
-#  define __aal_check_format__(style, format, start)
 #endif
 
 /* Simple type for direction denoting */

@@ -8,6 +8,8 @@
 #ifndef AAL_LRU_H
 #define AAL_LRU_H
 
+#ifndef ENABLE_ALONE
+
 #include <aal/types.h>
 
 extern void aal_lru_free(aal_lru_t *lru);
@@ -20,5 +22,7 @@ extern void aal_lru_fini(aal_lru_t *lru);
 extern errno_t aal_lru_attach(aal_lru_t *lru, void *data);
 extern errno_t aal_lru_detach(aal_lru_t *lru, void *data);
 extern errno_t aal_lru_touch(aal_lru_t *lru, void *data);
+
+#endif
 
 #endif

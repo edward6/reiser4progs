@@ -365,6 +365,6 @@ errno_t libreiser4_init(void) {
 }
 
 /* Finalizes libreiser4 */
-void libreiser4_done(void) {
+void libreiser4_fini(void) {
 	libreiser4_factory_done();
 }

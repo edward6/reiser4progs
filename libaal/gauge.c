@@ -26,9 +26,8 @@
 #endif
 
 #ifndef ENABLE_ALONE
-#  include <stdio.h>
-#endif
 
+#include <stdio.h>
 #include <aal/aal.h>
 
 /* Gauge creating function */
@@ -55,10 +54,8 @@ aal_gauge_t *aal_gauge_create(
 	gauge->handler = handler;
 	gauge->state = GAUGE_STARTED;
 
-#ifndef ENABLE_ALONE
 	if (type == GAUGE_INDICATOR)
 		setlinebuf(stderr);
-#endif
     
 	return gauge;
 }
@@ -168,3 +165,5 @@ void aal_gauge_free(aal_gauge_t *gauge) {
 	aal_assert("umka-890", gauge != NULL);
 	aal_free(gauge);
 }
+
+#endif

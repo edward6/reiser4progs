@@ -16,8 +16,6 @@
 #  include <config.h>
 #endif
 
-#include <stdarg.h>
-
 #include "types.h"
 #include "device.h"
 #include "file.h"

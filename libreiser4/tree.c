@@ -25,6 +25,8 @@ static inline errno_t callback_tree_pack(reiser4_tree_t *tree,
 
 #endif
 
+#ifndef ENABLE_ALONE
+
 static int callback_node_free(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	
@@ -34,14 +36,10 @@ static int callback_node_free(void *data) {
 	return reiser4_tree_unload(node->tree, node) == 0;
 }
 
-#ifndef ENABLE_ALONE
-
 static int callback_node_sync(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	return reiser4_node_sync(node) == 0;
 }
-
-#endif
 
 static aal_list_t *callback_get_next(void *data) {
 	return ((reiser4_node_t *)data)->lru_link.next;
@@ -61,18 +59,14 @@ static void callback_set_prev(void *data, aal_list_t *prev) {
 		
 static lru_ops_t lru_ops = {
 	.free     = callback_node_free,
-	
-#ifndef ENABLE_ALONE
 	.sync     = callback_node_sync,
-#else
-	.sync     = NULL,
-#endif
-
 	.get_next = callback_get_next,
 	.set_next = callback_set_next,
 	.get_prev = callback_get_prev,
 	.set_prev = callback_set_prev
 };
+
+#endif
 
 /* Dealing with loading root node if it is not loaded yet */
 static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
@@ -162,14 +156,16 @@ errno_t reiser4_tree_connect(
 		return res;
 
 	node->tree = tree;
-	
+
+#ifndef ENABLE_ALONE
 	/* Attaching new node into tree's lru list */
 	if (aal_lru_attach(tree->lru, (void *)node)) {
 		aal_exception_error("Can't attach node %llu to tree LRU.",
 				    node->blk);
 		return -1;
 	}
-
+#endif
+	
 	reiser4_node_lock(parent);
 	
 	if (tree->traps.connect) {
@@ -249,10 +245,13 @@ errno_t reiser4_tree_disconnect(
 		node->right = NULL;
 	}
 
+#ifndef ENABLE_ALONE
+	
 	/* Detaching node from the global tree LRU list */
 	if (aal_lru_detach(tree->lru, (void *)node))
 		return -1;
-
+#endif
+	
 	/*
 	  If parent is not exist, then we consider the @node is root and do not
 	  do any unlock and disconnect from the parent.
@@ -299,6 +298,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		if (parent && reiser4_tree_connect(tree, parent, node))
 			goto error_free_node;
 	} else {
+#ifndef ENABLE_ALONE		
 		/*
 		  Touching node in LRU list in odrer to let it know that we
 		  access it and in such maner move to the head of list.
@@ -309,6 +309,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 					    "tree cache.");
 			return NULL;
 		}
+#endif
 	}
 	
 	return node;
@@ -592,7 +593,9 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 
 void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_assert("umka-1531", tree != NULL);
+#ifndef ENABLE_ALONE
 	aal_lru_free(tree->lru);
+#endif
 }
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
@@ -614,12 +617,12 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		goto error_free_tree;
 	}
     
+#ifndef ENABLE_ALONE
 	if (!(tree->lru = aal_lru_create(&lru_ops))) {
 		aal_exception_error("Can't initialize tree cache lru list.");
 		goto error_free_tree;
 	}
 
-#ifndef ENABLE_ALONE
 	reiser4_tree_pack_on(tree);
 	tree->traps.pack = callback_tree_pack;
 #endif

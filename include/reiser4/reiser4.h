@@ -32,7 +32,7 @@ extern "C" {
 #include "profile.h"
 #include "print.h"
 
-extern void libreiser4_done(void);
+extern void libreiser4_fini(void);
 extern errno_t libreiser4_init(void);
 
 extern const char *libreiser4_version(void);

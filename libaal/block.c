@@ -77,6 +77,8 @@ aal_block_t *aal_block_open(
 	return block;
 }
 
+#ifndef ENABLE_ALONE
+
 /* Makes reread of specified block */
 errno_t aal_block_reopen(
 	aal_block_t *block, 	/* block to be reread */
@@ -116,14 +118,6 @@ errno_t aal_block_sync(
 	return error;
 }
 
-/*  Returns block number of specified block */
-blk_t aal_block_number(
-	aal_block_t *block)		/* block, position will be obtained from */
-{
-	aal_assert("umka-448", block != NULL);
-	return block->blk;
-}
-
 /* Sets block number */
 void aal_block_relocate(
 	aal_block_t *block,		/* block, position will be set to */
@@ -138,6 +132,16 @@ void aal_block_relocate(
 	}
     
 	block->blk = blk;
+}
+
+#endif
+
+/*  Returns block number of specified block */
+blk_t aal_block_number(
+	aal_block_t *block)		/* block, position will be obtained from */
+{
+	aal_assert("umka-448", block != NULL);
+	return block->blk;
 }
 
 uint32_t aal_block_size(aal_block_t *block) {

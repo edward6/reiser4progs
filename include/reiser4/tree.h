@@ -116,7 +116,7 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 			       reiser4_key_t *key,
-			       uint8_t stop,
+			       uint8_t level,
 			       reiser4_place_t *place);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);

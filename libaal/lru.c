@@ -9,6 +9,8 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include <aal/aal.h>
 
 errno_t aal_lru_adjust(aal_lru_t *lru) {
@@ -110,3 +112,5 @@ errno_t aal_lru_touch(aal_lru_t *lru, void *data) {
 	aal_lru_detach(lru, data);
 	return aal_lru_attach(lru, data);
 }
+
+#endif

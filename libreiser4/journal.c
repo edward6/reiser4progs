@@ -61,8 +61,7 @@ reiser4_journal_t *reiser4_journal_open(
 					    start, len))) 
 	{
 		aal_exception_error("Can't open journal %s on %s.",
-				    plugin->h.label,
-				    aal_device_name(fs->device));
+				    plugin->h.label, fs->device->name);
 		goto error_free_journal;
 	}
 	

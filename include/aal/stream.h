@@ -8,12 +8,18 @@
 #ifndef AAL_STREAM_H
 #define AAL_STREAM_H
 
+#ifndef ENABLE_ALONE
+
 #include <aal/types.h>
 
 extern aal_stream_t *aal_stream_create(void);
+
 extern void aal_stream_fini(aal_stream_t *stream);
+
 extern void aal_stream_close(aal_stream_t *stream);
+
 extern errno_t aal_stream_init(aal_stream_t *stream);
+
 extern void aal_stream_reset(aal_stream_t *stream);
 
 extern int aal_stream_write(aal_stream_t *stream,
@@ -23,7 +29,8 @@ extern int aal_stream_read(aal_stream_t *stream,
 			   void *buff, int size);
 
 extern int aal_stream_format(aal_stream_t *stream,
-			     const char *format, ...)
-                             __aal_check_format__(printf, 2, 3);
+			     const char *format, ...);
+
+#endif
 
 #endif
