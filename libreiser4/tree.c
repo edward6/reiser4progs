@@ -899,6 +899,9 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	return reiser4_fs_root_key(tree->fs, &tree->key);
 }
 
+#define TREE_NODES_TABLE_SIZE (512)
+#define TREE_BLOCKS_TABLE_SIZE (512)
+
 /* Initializes tree instance on passed filesystem and return it to caller. Then
    it may be used for modifying tree, making lookup, etc. */
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
@@ -919,7 +922,8 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 #endif
 	
 	/* Initializing hash table for storing loaded formatted nodes in it. */
-	if (!(tree->nodes = aal_hash_table_create(512, callback_nodes_hash_func,
+	if (!(tree->nodes = aal_hash_table_create(TREE_NODES_TABLE_SIZE,
+						  callback_nodes_hash_func,
 						  callback_nodes_comp_func,
 						  callback_nodes_keyrem_func,
 						  NULL)))
@@ -931,7 +935,8 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	/* Initializing hash table for storing loaded unformatted blocks in
 	   it. This uses all callbacks we described above for getting hash
 	   values, lookup, etc. */
-	if (!(tree->blocks = aal_hash_table_create(512, callback_blocks_hash_func,
+	if (!(tree->blocks = aal_hash_table_create(TREE_BLOCKS_TABLE_SIZE,
+						   callback_blocks_hash_func,
 						   callback_blocks_comp_func,
 						   callback_blocks_keyrem_func,
 						   callback_blocks_valrem_func)))
@@ -1012,8 +1017,8 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 					  reiser4_place_t *place)
 {
-	reiser4_node_t *node;
 	uint32_t units;
+	reiser4_node_t *node;
 
 	units = reiser4_item_units(place);
 
@@ -1205,6 +1210,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
 static errno_t callback_tree_adjust(reiser4_place_t *place, void *data) {
 	blk_t blk;
 	uint32_t j;
@@ -1212,13 +1218,13 @@ static errno_t callback_tree_adjust(reiser4_place_t *place, void *data) {
 	reiser4_tree_t *tree;
 	reiser4_node_t *child;
 
-	/* It is not good, that we reference here to particular item group. 
-	   But, we have to do so, considering, that this is up tree to know 
-	   about items type in it. Probably this is why tree should be plugin 
-	   too to handle things like this in more flexible manner. */
+	/* It is not good, that we reference here to particular item group. But,
+	   we have to do so, considering, that this is up to tree to know about
+	   items type in it. Probably this is why tree should be plugin too to
+	   handle things like this in more flexible manner. */
 
 	tree = (reiser4_tree_t *)place->node->tree;
-	
+
 	if (place->plug->id.group == EXTENT_ITEM) {
 		/* Allocating unallocated extent item at @place. */
 		if ((res = reiser4_tree_alloc_extent(tree, place)))
@@ -1229,7 +1235,7 @@ static errno_t callback_tree_adjust(reiser4_place_t *place, void *data) {
 	   be handled. */
 	if (!reiser4_item_branch(place->plug))
 		return 0;
-	
+
 	/* Allocating unallocated nodeptr item at @place. */
 	if ((res = reiser4_tree_alloc_nodeptr(tree, place)))
 		return res;
@@ -1251,6 +1257,7 @@ static errno_t callback_tree_adjust(reiser4_place_t *place, void *data) {
 
 	return 0;
 }
+#endif
 
 /* Flushes some part of tree cache (recursively) to device starting from passed
    @node. This function is used for allocating part of tree and flusing it to
@@ -1289,14 +1296,10 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 		}
 	}
 
-	/* Allocating all children nodes if we are up on
-	   @tree->bottom. */
+	/* Allocating all children nodes if we are up on @tree->bottom. */
 	if (reiser4_node_get_level(node) >= tree->bottom) {
-		
 		reiser4_node_lock(node);
-		
 		res = reiser4_node_trav(node, callback_tree_adjust, NULL);
-		
 		reiser4_node_unlock(node);
 		
 		if (res) return res;
