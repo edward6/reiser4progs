@@ -135,8 +135,11 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 
 	/* If backup has not been opened, do not check the mkfs id. */
 	control->mkid = reiser4_format_get_stamp(fs->format);
-	control->mkidok = fs->backup || 
-		control->repair->mode != RM_BUILD ? 1 : 0;
+	
+	if (!(control->repair->flags & (1 << REPAIR_NO_MKID))) {
+		control->mkidok = fs->backup || 
+			control->repair->mode != RM_BUILD ? 1 : 0;
+	}
 	
 	filter->repair = control->repair;
 	filter->stat.files = &control->files;

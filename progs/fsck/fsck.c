@@ -147,6 +147,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{"backup", required_argument, 0, 'b'},
 		{"bitmap", required_argument, 0, 'B'},
 		{"unused", no_argument, NULL, 'u'},
+		{"oldfs", no_argument, NULL, 'O'},
 		{0, 0, 0, 0}
 	};
 
@@ -160,7 +161,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		return USER_ERROR;
 	}
 
-	while ((c = getopt_long(argc, argv, "L:VhnqafU:b:r?dB:plo:c:uy", 
+	while ((c = getopt_long(argc, argv, "L:VhnqafU:b:r?dB:plo:c:uyO", 
 				options, &option_index)) >= 0) 
 	{
 		switch (c) {
@@ -233,6 +234,9 @@ static errno_t fsck_init(fsck_parse_t *data,
 			break;
 		case 'u':
 			aal_set_bit(&data->options, FSCK_OPT_WHOLE);
+			break;
+		case 'O':
+			aal_set_bit(&data->options, FSCK_OPT_OLD);
 			break;
 		}
 	}
@@ -528,6 +532,8 @@ int main(int argc, char *argv[]) {
 	repair.flags = 
 		fsck_opt(&parse_data, FSCK_OPT_DEBUG) << REPAIR_DEBUG |
 		fsck_opt(&parse_data, FSCK_OPT_WHOLE) << REPAIR_WHOLE |
+		fsck_opt(&parse_data, FSCK_OPT_OLD) << REPAIR_WHOLE |
+		fsck_opt(&parse_data, FSCK_OPT_OLD) << REPAIR_NO_MKID |
 		fsck_opt(&parse_data, FSCK_OPT_YES) << REPAIR_YES;
 		
 	repair.bitmap_file = parse_data.bitmap_file;
