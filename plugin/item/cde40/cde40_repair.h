@@ -13,7 +13,7 @@ extern errno_t cde40_merge(reiser4_place_t *place,
 			   trans_hint_t *hint);
 
 extern errno_t cde40_check_struct(reiser4_place_t *place,
-				  uint8_t mode);
+				  repair_hint_t *hint);
 
 extern errno_t cde40_prep_merge(reiser4_place_t *place,
 				trans_hint_t *hint);

@@ -8,7 +8,7 @@
 #include <repair/plugin.h>
 #include "bbox40_repair.h"
 
-errno_t bbox40_check_struct(reiser4_place_t *place, uint8_t mode) {
+errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	uint64_t type;
 	uint8_t size;
 	

@@ -7,8 +7,8 @@
 #include "nodeptr40.h"
 #include <repair/plugin.h>
 
-errno_t nodeptr40_check_layout(reiser4_place_t *place, region_func_t region_func, 
-			       void *data, uint8_t mode) 
+errno_t nodeptr40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
+			       region_func_t region_func, void *data) 
 {
 	nodeptr40_t *nodeptr;
 	blk_t blk;
@@ -25,11 +25,11 @@ errno_t nodeptr40_check_layout(reiser4_place_t *place, region_func_t region_func
 	if (res > 0) {
 		aal_error("Node (%llu), item (%u): wrong pointer to "
 			  "the block %llu.%s", place_blknr(place),
-			  place->pos.item, blk, mode == RM_BUILD ?
+			  place->pos.item, blk, hint->mode == RM_BUILD ?
 			  " Removed." : "");
 
-		if (mode == RM_BUILD) {
-			place->len = 0;
+		if (hint->mode == RM_BUILD) {
+			hint->len = place->len;
 			return 0;
 		}
 		
@@ -41,7 +41,7 @@ errno_t nodeptr40_check_layout(reiser4_place_t *place, region_func_t region_func
 	return 0;
 }
 
-errno_t nodeptr40_check_struct(reiser4_place_t *place, uint8_t mode) {
+errno_t nodeptr40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	aal_assert("vpf-751", place != NULL);
 	return place->len != sizeof(nodeptr40_t) ? RE_FATAL : 0;
 }

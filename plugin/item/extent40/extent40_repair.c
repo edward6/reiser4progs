@@ -64,8 +64,8 @@ static int extent40_join_units(reiser4_place_t *place, int fix) {
 	return joint;
 }
 
-errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func, 
-			      void *data, uint8_t mode) 
+errno_t extent40_check_layout(reiser4_place_t *place, repair_hint_t *hint, 
+			      region_func_t func, void *data)
 {
 	extent40_t *extent;
 	uint32_t i, units;
@@ -102,26 +102,26 @@ errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func,
 			  place_blknr(place), place->pos.item, i, 
 			  res == RE_FATAL? "out of the fs," : 
 			  "to the already used blocks, ", start,
-			  start + width - 1, mode != RM_CHECK ? 
+			  start + width - 1, hint->mode != RM_CHECK ? 
 			  " Zeroed." : "");
 
-		if (mode != RM_CHECK) {
+		if (hint->mode != RM_CHECK) {
 			et40_set_start(extent, 0);
 			place_mkdirty(place);
 		} else
 			result = RE_FIXABLE;
 	}
 	
-	units = extent40_join_units(place, mode != RM_CHECK);
+	units = extent40_join_units(place, hint->mode != RM_CHECK);
 	
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
 			  "found in the extent40 unit.%s", place_blknr(place),
-			  place->pos.item, units, mode == RM_CHECK ? "" : 
+			  place->pos.item, units, hint->mode == RM_CHECK ? "" : 
 			  " Fixed.");
 		
-		if (mode != RM_CHECK)
-			place->len -= (units * sizeof(extent40_t));
+		if (hint->mode != RM_CHECK)
+			hint->len += (units * sizeof(extent40_t));
 		else 
 			result |= RE_FIXABLE;
 	}
@@ -129,7 +129,7 @@ errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func,
 	return result;
 }
 
-errno_t extent40_check_struct(reiser4_place_t *place, uint8_t mode) {
+errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	extent40_t *extent;
 	uint32_t i, units;
 	errno_t res = 0;
@@ -175,25 +175,25 @@ errno_t extent40_check_struct(reiser4_place_t *place, uint8_t mode) {
 
 		aal_error("Node (%llu), item (%u), unit (%u): unallocated unit "
 			  "is found.%s", place_blknr(place), place->pos.item, 
-			  i, mode == RM_CHECK ? "" : "Zeroed.");
+			  i, hint->mode == RM_CHECK ? "" : "Zeroed.");
 		
-		if (mode != RM_CHECK) {
+		if (hint->mode != RM_CHECK) {
 			et40_set_start(extent, 0);
 			place_mkdirty(place);
 		} else 
 			res |= RE_FIXABLE;
 	}
 	
-	units = extent40_join_units(place, mode != RM_CHECK);
+	units = extent40_join_units(place, hint->mode != RM_CHECK);
 
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
 			  "found in the extent40 unit.%s", place_blknr(place),
-			  place->pos.item, units, mode == RM_CHECK ? "" : 
+			  place->pos.item, units, hint->mode == RM_CHECK ? "" : 
 			  " Fixed.");
 		
-		if (mode != RM_CHECK)
-			place->len -= (units * sizeof(extent40_t));
+		if (hint->mode != RM_CHECK)
+			hint->len += (units * sizeof(extent40_t));
 		else 
 			res |= RE_FIXABLE;
 	}

@@ -10,7 +10,8 @@
 
 extern reiser4_core_t *bbox40_core;
 
-extern errno_t bbox40_check_struct(reiser4_place_t *place, uint8_t mode);
+extern errno_t bbox40_check_struct(reiser4_place_t *place, 
+				   repair_hint_t *hint);
 
 extern void bbox40_print(reiser4_place_t *place, 
 			 aal_stream_t *stream,

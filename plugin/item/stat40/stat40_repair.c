@@ -65,16 +65,16 @@ static errno_t callback_fix_mask(stat_entity_t *stat,
 	return 0;
 }
 
-errno_t stat40_check_struct(reiser4_place_t *place, uint8_t mode) {
-	repair_stat_hint_t hint;
+errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
+	repair_stat_hint_t stat;
 	errno_t res;
 	
 	aal_assert("vpf-775", place != NULL);
 	
-	aal_memset(&hint, 0, sizeof(hint));
-	hint.mode = mode;
+	aal_memset(&stat, 0, sizeof(stat));
+	stat.mode = hint->mode;
 	
-	if ((res = stat40_traverse(place, callback_check_ext, &hint)) < 0)
+	if ((res = stat40_traverse(place, callback_check_ext, &stat)) < 0)
 		return res;
 	
 	if (res) {
@@ -85,33 +85,33 @@ errno_t stat40_check_struct(reiser4_place_t *place, uint8_t mode) {
 		return RE_FATAL;
 	}
 	
-	if (hint.len < place->len) {
+	if (stat.len < place->len) {
 		aal_error("Node (%llu), item (%u): item has the "
 			  "wrong length (%u). Should be (%llu). %s",
 			  place_blknr(place), place->pos.item, 
-			  place->len, hint.len, mode == RM_BUILD ? 
+			  place->len, stat.len, hint->mode == RM_BUILD ? 
 			  "Fixed." : "");
 		
-		if (mode != RM_BUILD)
+		if (hint->mode != RM_BUILD)
 			return RE_FATAL;
 		
-		place->len = hint.len;
+		hint->len = place->len - stat.len;
 		place_mkdirty(place);
 	}
 	
 	/* Check the extention mask. */
-	if (hint.extmask != hint.goodmask) {
+	if (stat.extmask != stat.goodmask) {
 		aal_error("Node (%llu), item (%u): item has the wrong "
 			  "extention mask (%llu). Should be (%llu). %s",
 			  place_blknr(place), place->pos.item,
-			  hint.extmask, hint.goodmask,
-			  mode == RM_CHECK ? "" : "Fixed.");
+			  stat.extmask, stat.goodmask,
+			  hint->mode == RM_CHECK ? "" : "Fixed.");
 		
-		if (mode == RM_CHECK)
+		if (hint->mode == RM_CHECK)
 			return RE_FIXABLE;
 
 		if ((res = stat40_traverse(place, callback_fix_mask, 
-					   &hint.goodmask)) < 0)
+					   &stat.goodmask)) < 0)
 			return res;
 
 		place_mkdirty(place);

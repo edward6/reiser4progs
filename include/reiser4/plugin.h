@@ -784,6 +784,13 @@ struct lookup_hint {
 #endif
 };
 
+struct repair_hint {
+	int64_t len;
+	uint8_t mode;
+};
+
+typedef struct repair_hint repair_hint_t;
+
 /* Filesystem description. */
 struct fs_desc {
 	reiser4_plug_t *policy;
@@ -1080,11 +1087,11 @@ struct item_repair_ops {
 	errno_t (*merge) (reiser4_place_t *, trans_hint_t *);
 
 	/* Checks the item structure. */
-	errno_t (*check_struct) (reiser4_place_t *, uint8_t);
+	errno_t (*check_struct) (reiser4_place_t *, repair_hint_t *);
 	
 	/* Does some specific actions if a block the item points to is wrong. */
-	errno_t (*check_layout) (reiser4_place_t *, region_func_t,
-				 void *, uint8_t);
+	errno_t (*check_layout) (reiser4_place_t *, repair_hint_t *,
+				 region_func_t, void *);
 
 	errno_t (*pack) (reiser4_place_t *, aal_stream_t *);
 	errno_t (*unpack) (reiser4_place_t *, aal_stream_t *);

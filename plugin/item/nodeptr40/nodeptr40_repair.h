@@ -14,9 +14,10 @@ extern void nodeptr40_print(reiser4_place_t *place,
 			    uint16_t options);
 
 extern errno_t nodeptr40_check_struct(reiser4_place_t *place,
-				      uint8_t mode);
+				      repair_hint_t *hint);
 
 extern errno_t nodeptr40_check_layout(reiser4_place_t *place,
+				      repair_hint_t *hint, 
 				      region_func_t func, 
-				      void *data, uint8_t mode);
+				      void *data);
 #endif

@@ -10,7 +10,7 @@
 #include <reiser4/plugin.h>
 
 extern errno_t stat40_check_struct(reiser4_place_t *place,
-				   uint8_t mode);
+				   repair_hint_t *hint);
 
 extern void stat40_print(reiser4_place_t *place, 
 			 aal_stream_t *stream, 

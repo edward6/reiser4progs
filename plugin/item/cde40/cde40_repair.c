@@ -385,8 +385,9 @@ static errno_t cde40_offsets_range_check(reiser4_place_t *place,
 	return res;
 }
 
-static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
-			    uint8_t mode)
+static errno_t cde40_filter(reiser4_place_t *place, 
+			    struct entry_flags *flags,
+			    repair_hint_t *hint)
 {
 	uint32_t i, last;
 	uint32_t e_count;
@@ -447,7 +448,10 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 	 * valid offset. */
 	aal_assert("vpf-765", e_count >= flags->count);
 	
-	if (last != flags->count && e_count > flags->count && mode == RM_BUILD) {
+	if (last != flags->count && 
+	    e_count > flags->count && 
+	    hint->mode == RM_BUILD) 
+	{
 		/* If there is enough space for another entry header, set 
 		   @count unit offset to the item length to remove item 
 		   headers correctly later. */
@@ -458,7 +462,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		/* Some first offset are not relable. Consider count as 
 		   the correct count and set the first offset just after 
 		   the last unit.*/
-		if (mode == RM_BUILD) {
+		if (hint->mode == RM_BUILD) {
 			cde_set_offset(place, 0, sizeof(cde40_t) + 
 				   en_size(pol) * flags->count, pol);
 			place_mkdirty(place);
@@ -470,9 +474,9 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 			  "is not correct. Should be (%u). %s",
 			  place_blknr(place),  place->pos.item,
 			  cde_get_units(place), e_count, 
-			  mode == RM_CHECK ? "" : "Fixed.");
+			  hint->mode == RM_CHECK ? "" : "Fixed.");
 		
-		if (mode == RM_CHECK) {
+		if (hint->mode == RM_CHECK) {
 			res |= RE_FIXABLE;
 		} else {
 			cde_set_units(place, e_count);
@@ -486,12 +490,12 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		aal_error("Node %llu, item %u: entries [%u..%u] look "
 			  "corrupted. %s", place_blknr(place),
 			  place->pos.item, flags->count, e_count - 1, 
-			  mode == RM_BUILD ? "Removed." : "");
+			  hint->mode == RM_BUILD ? "Removed." : "");
 		
-		if (mode == RM_BUILD) {
-			place->len -= cde40_cut(place, flags->count, 
-						e_count - flags->count, 
-						place->len);
+		if (hint->mode == RM_BUILD) {
+			hint->len += cde40_cut(place, flags->count, 
+					       e_count - flags->count, 
+					       place->len);
 			
 			place_mkdirty(place);
 		} else {
@@ -504,10 +508,10 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		aal_error("Node %llu, item %u: entries [%u..%u] look "
 			  " corrupted. %s", place_blknr(place), 
 			  place->pos.item, 0, i - 1, 
-			  mode == RM_BUILD ? "Removed." : "");
+			  hint->mode == RM_BUILD ? "Removed." : "");
 		
-		if (mode == RM_BUILD) {
-			place->len -= cde40_cut(place, 0, i, place->len);
+		if (hint->mode == RM_BUILD) {
+			hint->len += cde40_cut(place, 0, i, place->len);
 
 			place_mkdirty(place);
 			
@@ -538,17 +542,17 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 			aal_error("Node %llu, item %u: entries "
 				  "[%u..%u] look corrupted. %s", 
 				  place_blknr(place), place->pos.item,
-				  last, i - 1, mode == RM_BUILD ? 
+				  last, i - 1, hint->mode == RM_BUILD ? 
 				  "Removed." : "");
 
-			if (mode != RM_BUILD) {
+			if (hint->mode != RM_BUILD) {
 				res |= RE_FATAL;
 				last = MAX_UINT32;
 				continue;
 			}
 			
-			place->len -= cde40_cut(place, last, i - last, 
-						place->len);
+			hint->len += cde40_cut(place, last, i - last, 
+					       place->len);
 
 			place_mkdirty(place);
 			
@@ -564,7 +568,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 	return res;
 }
 
-errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
+errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	static reiser4_key_t pkey, ckey;
 	struct entry_flags flags;
 	uint32_t pol;
@@ -572,6 +576,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	int i;
 	
 	aal_assert("vpf-267", place != NULL);
+	aal_assert("vpf-1641", hint != NULL);
 
 	pol = cde40_key_pol(place);
 	
@@ -588,12 +593,12 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	/* map consists of bit pairs - [not relable -R, relable - R] */
 	flags.elem = aal_calloc(flags.count, 0);
 	
-	res |= cde40_offsets_range_check(place, &flags, mode);
+	res |= cde40_offsets_range_check(place, &flags, hint->mode);
 	
 	if (res) goto error;
 	
 	/* Filter units with relable offsets from others. */
-	res |= cde40_filter(place, &flags, mode);
+	res |= cde40_filter(place, &flags, hint);
 
 	aal_free(flags.elem);
 	
@@ -605,12 +610,12 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	   item is thrown away if smth wrong, to be improved later. */
 	for (i = 1; i <= flags.count; i++) {
 		reiser4_key_t key;
-		trans_hint_t hint;
+		trans_hint_t trans;
 		uint32_t offset;
 		
 		cde40_get_hash(place, i - 1, &key);
 
-		offset = i == flags.count ? place->len : 
+		offset = i == flags.count ? place->len - hint->len: 
 			cde_get_offset(place, i, pol);
 		
 		if (cde_get_offset(place, i - 1, pol) + ob_size(pol) == offset){
@@ -624,20 +629,21 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 				  "[%s] of the unit (%u).%s", 
 				  place_blknr(place), place->pos.item,
 				  cde40_core->key_ops.print(&key, PO_INODE),
-				  i - 1, mode == RM_BUILD ? " Removed." : "");
+				  i - 1, hint->mode == RM_BUILD ? 
+				  " Removed." : "");
 			
-			if (mode != RM_BUILD) {
+			if (hint->mode != RM_BUILD) {
 				res |= RE_FATAL;
 				continue;
 			}
 
 			/* Remove the entry. */
-			hint.count = 1;
+			trans.count = 1;
 
-			if ((res |= cde40_delete(place, i - 1, &hint)) < 0)
+			if ((res |= cde40_delete(place, i - 1, &trans)) < 0)
 				return res;
 
-			place->len -= hint.len;
+			hint->len += trans.len;
 			flags.count--;
 			i--;
 			continue;
@@ -652,20 +658,21 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 				  "[%s] of the unit (%u).%s", 
 				  place_blknr(place), place->pos.item,
 				  cde40_core->key_ops.print(&key, PO_INODE),
-				  i - 1, mode == RM_BUILD ? " Removed." : "");
+				  i - 1, hint->mode == RM_BUILD ? 
+				  " Removed." : "");
 			
-			if (mode != RM_BUILD) {
+			if (hint->mode != RM_BUILD) {
 				res |= RE_FATAL;
 				continue;
 			}
 			
 			/* Remove the entry. */
-			hint.count = 1;
+			trans.count = 1;
 
-			if ((res |= cde40_delete(place, i - 1, &hint)) < 0)
+			if ((res |= cde40_delete(place, i - 1, &trans)) < 0)
 				return res;
 
-			place->len -= hint.len;
+			hint->len += trans.len;
 			flags.count--;
 			i--;
 			continue;
@@ -705,7 +712,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			  place_blknr(place), place->pos.item,
 			  cde40_core->key_ops.print(&place->key, PO_INODE),
 			  cde40_core->key_ops.print(&ckey, PO_INODE),
-			  mode == RM_BUILD ? " Fixed." : "");
+			  hint->mode == RM_BUILD ? " Fixed." : "");
 		res |= RE_FATAL;
 	}
 	
@@ -749,15 +756,15 @@ static int cde40_comp_entry(reiser4_place_t *place1, uint32_t pos1,
 
 /* Estimate the space needed for the insertion of the not overlapped part 
    of the item, overlapped part does not need any space. */
-errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
+errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *trans) {
 	uint32_t sunits, send;
 	uint32_t offset, pol;
 	reiser4_place_t *src;
 
 	aal_assert("vpf-957", place != NULL);
-	aal_assert("vpf-959", hint != NULL);
+	aal_assert("vpf-959", trans != NULL);
 
-	src = (reiser4_place_t *)hint->specific;
+	src = (reiser4_place_t *)trans->specific;
 	sunits = cde40_units(src);
 	pol = cde40_key_pol(place);
 
@@ -773,46 +780,47 @@ errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	} else
 		send = sunits;
 
-	hint->bytes = 0;
-	hint->count = send - src->pos.unit;
+	trans->bytes = 0;
+	trans->count = send - src->pos.unit;
 	offset = send == sunits ? src->len : cde_get_offset(src, send, pol);
 	
 	/* Len to be inserted is the size of header + item bodies. */
-	hint->len = hint->count * en_size(pol) + offset -
+	trans->len = trans->count * en_size(pol) + offset -
 		cde_get_offset(src, src->pos.unit, pol);
 	
-	hint->overhead = (place->pos.unit == MAX_UINT32 && hint->len) ? 
+	trans->overhead = (place->pos.unit == MAX_UINT32 && trans->len) ? 
 		cde40_overhead(place) : 0;
 
 	return 0;
 }
 
-int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
+int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *trans) {
 	uint32_t dpos, dunits;
 	uint32_t spos, sunits;
 	reiser4_place_t *src;
 	errno_t res;
 	
 	aal_assert("vpf-1370", place != NULL);
-	aal_assert("vpf-1371", hint != NULL);
+	aal_assert("vpf-1371", trans != NULL);
 
-	src = (reiser4_place_t *)hint->specific;
+	src = (reiser4_place_t *)trans->specific;
 	
 	sunits = cde40_units(src);
 	
-	if (hint->count) {
-		/* Expand @place & copy @hint->count units there from @src. */
+	if (trans->count) {
+		/* Expand @place & copy @trans->count units there from @src. */
 		dpos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 		
 		if (place->pos.unit != MAX_UINT32)
-			cde40_expand(place, dpos, hint->count, hint->len);
+			cde40_expand(place, dpos, trans->count, trans->len);
 		else
 			cde_set_units(place, 0);
 		
-		res = cde40_copy(place, dpos, src, src->pos.unit, hint->count);
-		if (res) return res;
+		if ((res = cde40_copy(place, dpos, src, src->pos.unit, 
+				      trans->count)))
+			return res;
 
-		spos = src->pos.unit + hint->count;
+		spos = src->pos.unit + trans->count;
 
 		place_mkdirty(place);
 	} else {
@@ -831,15 +839,15 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	}
 	
 	/* Update the item key. */
-	if (place->pos.unit == 0 && hint->count) {
+	if (place->pos.unit == 0 && trans->count) {
 		plug_call(place->key.plug->o.key_ops, assign,
-			  &place->key, &hint->offset);
+			  &place->key, &trans->offset);
 	}
 	
 	if (spos == sunits)
-		return cde40_maxposs_key(src, &hint->maxkey);
+		return cde40_maxposs_key(src, &trans->maxkey);
 	
-	return cde40_get_hash(src, spos, &hint->maxkey);
+	return cde40_get_hash(src, spos, &trans->maxkey);
 }
 
 #define PRINT_NAME_LIMIT 38
