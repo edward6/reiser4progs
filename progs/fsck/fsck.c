@@ -263,7 +263,7 @@ void fsck_time(char *string) {
     time_t t;
 
     time(&t);
-    fprintf(stderr, "#####%s %s#####\n", string, ctime (&t));
+    fprintf(stderr, "\n======== %s %s\n", string, ctime (&t));
 }
 
 int main(int argc, char *argv[]) {
@@ -321,10 +321,12 @@ int main(int argc, char *argv[]) {
     
 free_tree:
     reiser4_tree_close(repair.fs->tree);
+    repair.fs->tree = NULL;
 
 free_fs:
-    fprintf(stderr, "Synchronizing fs ...");
+    fprintf(stderr, "Closing fs ...");
     reiser4_fs_close(repair.fs);
+    repair.fs = NULL;
     fprintf(stderr, "done\n");
     
 free_libreiser4:
@@ -332,25 +334,27 @@ free_libreiser4:
     
 free_device:
     if (parse_data.host_device) {
-	fprintf(stderr, "Synchronizing device ...");
+	fprintf(stderr, "Closing device (%s) ...", 
+	    aal_device_name(parse_data.host_device));
+	
 	if (aal_device_sync(parse_data.host_device)) {
 	    aal_exception_fatal("Cannot synchronize the device (%s).", 
 		aal_device_name(parse_data.host_device));
 	    exit_code = OPER_ERROR;
 	}
-	fprintf(stderr, "done\n");
 	aal_device_close(parse_data.host_device);
+	fprintf(stderr, "done\n");
     }
     
     /* Report about the results. */
     if (exit_code == 0) {
 	if (repair.fatal) {
-	    fprintf(stderr, "%llu fatal corruptions were detected. Run in "
-		"--repair mode to fix them.", repair.fatal);
+	    fprintf(stderr, "\n%llu fatal corruptions were detected. Run in "
+		"--repair mode to fix them.\n", repair.fatal);
 	    exit_code = FATAL_ERROR;
 	} else if (repair.fixable) {
-	    fprintf(stderr, "%llu fixable corruptions were detected. Run in "
-		"--fixable mode to fix them.", repair.fixable);
+	    fprintf(stderr, "\n%llu fixable corruptions were detected. Run in "
+		"--fixable mode to fix them.\n", repair.fixable);
 	    exit_code = FIXABLE_ERROR;
 	}
     }
