@@ -55,6 +55,7 @@ typedef struct repair_data {
     
 	uint64_t fatal;
 	uint64_t fixable;
+	uint64_t sb_fixable;
 
 	uint8_t mode;
 	uint8_t debug_flag;

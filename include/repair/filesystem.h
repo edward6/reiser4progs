@@ -14,6 +14,8 @@ extern errno_t repair_fs_open(repair_data_t *repair,
 			      aal_device_t *host_device,
 			      aal_device_t *journal_device);
 
+extern errno_t repair_fs_valid(repair_data_t *fs);
+
 extern void repair_fs_close(reiser4_fs_t *fs);
 
 extern errno_t repair_fs_pack(reiser4_fs_t *fs, 

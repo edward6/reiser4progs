@@ -282,7 +282,9 @@ static void fsck_time(char *string) {
 /* Open the fs and init the tree. */
 static errno_t fsck_check_init(repair_data_t *repair, 
 			       aal_device_t *host, 
-			       FILE *backup) 
+			       FILE *backup,
+			       uint8_t sb_mode,
+			       uint8_t fs_mode) 
 {
 	aal_stream_t stream;
 	count_t len;
@@ -290,6 +292,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	
 	fprintf(stderr, "***** Openning the fs.\n");
 	
+	repair->mode = sb_mode;
 	if ((res = repair_fs_open(repair, host, host)))
 		return res;
 
@@ -300,6 +303,14 @@ static errno_t fsck_check_init(repair_data_t *repair,
 		return res;
 	}
 
+	repair->sb_fixable = repair->fixable;
+	repair->fixable = 0;
+	repair->mode = fs_mode;
+
+	/* Check the openned fs. */
+	if ((res = repair_fs_valid(repair)) < 0)
+		goto error_close_fs;
+	
 	repair->fs->tree->mpc_func = misc_mpressure_detect;
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
@@ -403,7 +414,6 @@ int main(int argc, char *argv[]) {
 	}
 	
 	/* SB_mode is specified, otherwise  */
-	repair.mode = parse_data.sb_mode;
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
 	repair.progress_handler = gauge_handler;    
 	repair.bitmap_file = parse_data.bitmap_file;
@@ -416,16 +426,13 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if ((res = fsck_check_init(&repair, device, parse_data.backup)))
+	if ((res = fsck_check_init(&repair, device, parse_data.backup, 
+				   parse_data.sb_mode, parse_data.fs_mode)))
 		goto free_libreiser4;
 	
 	if (repair.fatal) 
 		goto free_libreiser4;
 		
-	df_fixable = repair.fixable;
-	repair.fixable = 0;
-	
-	repair.mode = parse_data.fs_mode;
 	stage = 1;
 	
 	if ((res = repair_check(&repair)) || (res = fsck_check_fini(&repair)))
@@ -463,11 +470,11 @@ int main(int argc, char *argv[]) {
 	if (parse_data.fs_mode == RM_BACK)
 		goto free_fsck;
 	
-	if (df_fixable) {
+	if (repair.sb_fixable) {
 		/* No fatal corruptions in SB, but some fixable ones. */
 		fprintf(stderr, "%llu fixable corruptions were detected in "
 			"the SuperBlock. Run with --fix option to fix them.\n",
-			df_fixable);
+			repair.sb_fixable);
 		
 		ex = FIXABLE_ERROR;
 	}
@@ -487,7 +494,7 @@ int main(int argc, char *argv[]) {
 			repair.fixable);
 		
 		ex = FIXABLE_ERROR;
-	} else if (!df_fixable)
+	} else if (!repair.sb_fixable)
 		fprintf(stderr, "No corruption found.\n\n");
 
  free_fsck:

@@ -76,21 +76,6 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 			res |= RE_FIXABLE;
 	}
 	
-	/* Check the root block number. */
-	if (get_sb_root_block(super) >= get_sb_block_count(super) || 
-	    get_sb_root_block(super) <= FORMAT40_BLOCKNR(format->blksize))
-	{
-		aal_error("Invalid root block number (%llu) found in "
-			  "the superblock.", get_sb_root_block(super));
-		
-		if (get_sb_root_block(super) != INVAL_BLK) {
-			if (mode != RM_BUILD)
-				res |= RE_FATAL;
-			else 
-				set_sb_root_block(super, INVAL_BLK);
-		}
-	}
-	
 	return res;
 }
 

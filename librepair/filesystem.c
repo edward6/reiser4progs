@@ -12,7 +12,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 		       aal_device_t *host_device,
 		       aal_device_t *journal_device)
 {
-	errno_t res = 0, error;
+	errno_t res = 0;
 	uint64_t len;
 
 	aal_assert("vpf-851", repair != NULL);
@@ -56,15 +56,6 @@ errno_t repair_fs_open(repair_data_t *repair,
 		aal_fatal("Failed to open a block allocator.");
 		res = -EINVAL;
 		goto error_status_close;
-	}
-	
-	if ((error = reiser4_alloc_valid(repair->fs->alloc)) < 0)
-		goto error_alloc_close;
-	
-	if (error && repair->mode != RM_CHECK) {
-		aal_mess("Checksums will be fixed later.\n");
-	} else {
-		res |= error;
 	}
 	
 	if (!(repair->fs->oid = reiser4_oid_open(repair->fs))) {	
@@ -132,6 +123,23 @@ error_journal_close:
 
 	repair_error_count(repair, res);
 	return res < 0 ? res : 0;
+}
+
+errno_t repair_fs_valid(repair_data_t *repair) {
+	errno_t res;
+	
+	if (!(res = reiser4_alloc_valid(repair->fs->alloc)))
+		return 0;
+	
+	if (res != -ESTRUCT) 
+		return res;
+
+	if (repair->mode != RM_CHECK) {
+		aal_mess("Checksums will be fixed later.\n");
+		return 0;
+	}
+		
+	return RE_FIXABLE;
 }
 
 /* Close the journal and the filesystem. */
