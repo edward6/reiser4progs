@@ -116,121 +116,7 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-errno_t reg40_check_stat(place_t *sd, uint8_t mode) {
-
-#if 0
-	errno_t res;
-	
-	if (mode == RM_BUILD) {
-		/* Check that SD is of this file. Relocate if not. */
-		if ((res = reg40_realize_sd(sd, RM_REALIZE)) < 0)
-			return res;
-		
-		if (res & RE_FATAL) {
-			aal_exception_fatal("Relocation is not ready yet.");
-			return res;
-		}
-
-		/* SD seems to be of this plugin. Register. */
-		res = register_func(object, &info->start, data);
-
-		if (res < 0)
-			return res;
-		else if (res) {
-			/* Relocate. */
-			aal_exception_fatal("Relocation is not "
-					    "ready yet.")
-				return res;
-		}
-
-		/* Fix SD if needed. */
-		if ((res = reg40_check_sd(sd, RM_REALIZE)) < 0)
-			return res;
-
-		if ((res & RE_FIXABLE) && 
-		    reg40_check_sd(sd, mode))
-		{
-			aal_exception_fatal("Check SD must be "
-					    "successful.");
-			return -EINVAL;
-		}
-	} else {
-		res = reg40_check_sd(sd, mode)
-	}
-
-	if ((res = reg40_check_sd(sd, RM_REALIZE)) < 0)
-		return res;
-
-	if (res & RE_FATAL) 
-		/* Fix SD. */
-		if ((res = obj40_read_ext(&info->start,
-					  SDEXT_LW_ID,
-					  &lw_hint)))
-			return res;
-
-	aal_assert("vpf-1128: Relocation is not ready "
-		   "yet.", callback_mode(lw_hint.mode));
-#endif
-	return 0;
-}
-
-#if 0
-/* Check that SD may contain LW and UNIX extentions only. Fix the mode 
-   if wrong. FIXME-VITALY: tail policy is not supported yet as PLUG_ID 
-   extention, is not ready. */
-static errno_t reg40_realize_sd(place_t *sd, uint8_t mode) {
-	sdext_lw_hint_t lw_hint;
-	uint64_t mask, extmask;
-	
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-	
-	if ((extmask = obj40_extmask(sd)) == MAX_UINT64)
-		return -EINVAL;
-	
-	/* FIXME-VITALY: Check PLUG extention here also. */
-	if (extmask != mask) {
-		if (mode != RM_REALIZE) {
-			aal_exception_error("Node (%llu), item (%u): statdata "
-					    "has unknown set of extentions "
-					    "(0x%llx), should be (0x%llx). "
-					    "Plugin (%s)", sd->con.blk, 
-					    sd->pos.item, stat.extmask,
-					    mask, sd->plug->label);
-		}
-		
-		return RE_FATAL;
-	}
-		
-	/* Check the mode in the LW extention. */
-	if ((res = obj40_read_ext(sd, SDEXT_LW_ID, &lw_hint)) < 0)
-		return res;
-	
-	if (S_ISREG(lw_hint.mode))
-		return 0;
-
-	/* Mode is wrong, fix it if not CHECK mode. */
-	if (mode == RM_REALIZE)
-		return RE_FATAL;
-	
-	aal_exception_error("Node (%llu), item (%u): statdata has wrong mode "
-			    "(%o). Plugin (%s)", sd->con.blk, sd->pos.item,
-			    lw_hint.mode, sd->plug->label);
-	
-	if (mode == RM_CHECK)
-		return RE_FIXABLE;
-	
-	lw_hint.mode &= ~S_IFMT;
-        lw_hint.mode |= S_IFREG;
-	
-	aal_exception_error("Node (%llu), item (%u): statdata mode is fixed "
-			    "to (%o). Plugin (%s)", sd->con.blk, sd->pos.item,
-			    lw_hint.mode, sd->plug->label);
-	
-	return obj40_write_ext(sd, SDEXT_LW_ID, &lw_ext);
-}
-#endif
-
-inline errno_t reg40_check_key(place_t *place, key_entity_t *key) {
+static errno_t reg40_check_key(place_t *place, key_entity_t *key) {
 	/* Fix SD's key if differs. */
 	if (key->plug->o.key_ops->compfull(key, &place->key))
 		return core->tree_ops.ukey(place, key);
@@ -238,11 +124,53 @@ inline errno_t reg40_check_key(place_t *place, key_entity_t *key) {
 	return 0;
 }
 
+static errno_t reg40_check_stat(place_t *stat, sdext_lw_hint_t *lw_hint, 
+				uint64_t bytes, uint8_t mode) 
+{
+	errno_t res;
+
+	if ((res = reg40_check_mode(stat, mode)))
+		return res;
+	
+	return RE_OK;
+}
+
+static errno_t reg40_recreate_stat(reg40_t *reg) {
+	key_entity_t *key;
+	uint64_t pid;
+	errno_t res;
+	
+	key = &reg->obj.info.object;
+	
+	aal_exception_error("Regular file [%s] does not have StatData "
+			    "item. Creating a new one.Plugin %s.",
+			    core->tree_ops.print_key(key), 
+			    reg->obj.plug->label);
+	
+	pid = core->tree_ops.profile(reg->obj.info.tree, "statdata");
+	
+	if (pid == INVAL_PID)
+		return -EINVAL;
+	
+	/* SD not found, create a new one. Special case and not used in 
+	   reg40. Usualy objects w/out SD are skipped as they just fail 
+	   to realize themselves. */
+	if ((res = reg40_create_stat(&reg->obj, pid))) {
+		aal_exception_error("Regular file [%s] failed to create "
+				    "StatData item. Plugin %s.",
+				    core->tree_ops.print_key(key),
+				    reg->obj.plug->label);
+	}
+	
+	return res;
+}
+
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t register_func,
 			   uint8_t mode, void *data)
 {
 	uint64_t locality, objectid, ordering;
+	uint64_t bytes, offset, next;
 	reg40_t *reg = (reg40_t *)object;
 	sdext_lw_hint_t lw_hint;
 	object_info_t *info;
@@ -263,28 +191,35 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if (lookup == FAILED)
 		return -EINVAL;
 	
-	/* It must be correct SD. Fix it if needed. */
 	if (lookup == ABSENT) {
-		
-		/* Check if found place is our SD with some broken key. */
+		/* If SD is not correct. Create a new one. */
 		res = obj40_check_stat(&reg->obj, reg40_check_extentions);
-		
-		/*  */
-		if (res > 0) {
-			uint64_t pid;
-			
-			pid = core->tree_ops.profile(info->tree, "statdata");
-			
-			if (pid == INVAL_PID)
-				return -EINVAL;
-			
-			/* SD not found, create a new one. Special case and not
-			   used in reg40. Usualy objects w/out SD are skipped as
-			   they just fail to realize themselves. */
-			if ((res = reg40_create_stat(&reg->obj, pid)))
-				return res;
-		} else if (res < 0)
+
+		if (res < 0)
 			return res;
+		
+		if (res) {
+			if ((res = reg40_recreate_stat(reg)))
+				return res;
+		}
+	} else {
+		/* If SD is not correct. Fix it if needed. */
+		uint64_t mask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
+		uint64_t extmask;
+		
+		if ((extmask = obj40_extmask(&info->start)) == MAX_UINT64)
+			return -EINVAL;
+		
+		if (extmask != mask) {
+			aal_exception_error("Node (%llu), item (%u): statdata "
+					    "has unknown set of extentions "
+					    "(0x%llx), should be (0x%llx). "
+					    "Plugin (%s)", info->start.con.blk, 
+					    info->start.pos.item, 
+					    obj40_extmask(&info->start), mask,
+					    info->start.plug->label);
+			return RE_FATAL;
+		}
 	}
 	
 	if (register_func && register_func(object, &info->start, data))
@@ -292,8 +227,12 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return RE_FATAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = reg40_check_key(&info->start, &info->object)))
+	if ((res = reg40_check_key(&info->start, &info->object))) {
+		aal_exception_error("Node (%llu), item(%u): update of the "
+				    "item key failed.", info->start.con.blk,
+				    info->start.pos.unit);
 		return res;
+	}
 	
 	/* Build the start key of the body. */
 	plug_call(info->start.plug->o.key_ops, build_gener, &key,
@@ -301,6 +240,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		  reg->offset);
 	
 	aal_memset(&lw_hint, 0, sizeof(lw_hint));
+	next = 0;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
@@ -309,7 +249,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			return -EINVAL;
 
 		if (lookup == ABSENT) {
-			/* If place is invalid, then no more reg40 body items exists. */
+			/* If place is invalid, no more reg40 items. */
 			if (!core->tree_ops.valid(info->tree, &reg->body))
 				break;
 			
@@ -323,44 +263,74 @@ errno_t reg40_check_struct(object_entity_t *object,
 				break;
 		}
 		
-		/* Try to register this item. */
-		if (register_func && register_func(object, &reg->body, data))
-			break;
+		offset = plug_call(key.plug->o.key_ops, get_offset, 
+				   &reg->body.key);
 		
-		/* Fix item key if differs. */
-		if ((res = reg40_check_key(&reg->body, &key)))
-			return res;
-		
+		/* If items was reached once, skip registering and fixing. */
+		if (next && next != offset) {
+			/* Try to register this item. */
+			if (register_func && register_func(object, &reg->body,
+							   data)) 
+			{
+				aal_exception_error("Node (%llu), item (%u): "
+						    "registering the item "
+						    "failed.", reg->body.con.blk,
+						    reg->body.pos.unit);
+
+				return -EINVAL;
+			}
+
+			/* Fix item key if differs. */
+			if ((res = reg40_check_key(&reg->body, &key))) {
+				aal_exception_error("Node (%llu), item(%u): "
+						    "update of the item key "
+						    "failed.", reg->body.con.blk,
+						    reg->body.pos.unit);
+
+				return res;
+			}
+		} 
+
 		reg->bplug = reg->body.plug;
 		
-		/* Insert the hole if needed. */
-		reg->offset = plug_call(key.plug->o.key_ops, get_offset, 
-					&reg->body.key);
+		/* If we found not we looking foe, insert the hole. */
+		if (reg->offset != offset) {
+			/* Save the offset -- this item is registered once. */
+			next = offset;
+			
+			/* This should work correctly with extents and 
+			   put there flags for newly inserted items. */
+			if ((res = reg40_holes(object)))
+				return res;
+			
+			/* Scan through all just created holes. */
+			continue;
+		} else
+			next = 0;
 		
-		if ((res = reg40_holes(object)))
-			return res;
+		/* Count size and bytes. */
+		lw_hint.size += plug_call(reg->body.plug->o.item_ops, 
+					  size, &reg->body);
+		
+		bytes += plug_call(reg->body.plug->o.item_ops, 
+				   bytes, &reg->body);
 		
 		/* Get the maxreal key of the found item and find next. */
 		if ((res = plug_call(reg->body.plug->o.item_ops, 
 				     maxreal_key, &reg->body, &key)))
 			return res;
-
+		
 		reg->offset = plug_call(key.plug->o.key_ops, 
 					get_offset, &key) + 1;
+		
+		/* Build the start key of the body. */
+		plug_call(info->start.plug->o.key_ops, set_offset, 
+			  &key, reg->offset);
 	}
 	
 	/* Fix the SD -- mode, lw and unix extentions. */
 	
-	res = reg40_check_mode(&info->start, mode);
-	
-	if (repair_error_fatal(res))
-		return res;
-	
-	return 0;
-
- error_free_reg:
-
-	return -EINVAL;
+	return reg40_check_stat(&info->start, &lw_hint, bytes, mode);
 }
 
 #endif

@@ -199,9 +199,7 @@ static errno_t cde_short_estimate_insert(place_t *place,
 }
 
 /* Calculates the size of @count units in passed @place at passed @pos */
-uint32_t cde_short_size(place_t *place, uint32_t pos,
-			uint32_t count)
-{
+uint32_t cde_short_size_units(place_t *place, uint32_t pos, uint32_t count) {
 	cde_short_t *cde;
 	uint32_t size = 0;
 	entry_t *entry_end;
@@ -253,7 +251,7 @@ errno_t cde_short_rep(place_t *dst_place, uint32_t dst_pos,
 	aal_assert("umka-2077", dst_pos <= dst_units);
 	
 	/* Getting offset of body in dst place */
-	offset = cde_short_size(dst_place, 0, dst_pos);
+	offset = cde_short_size_units(dst_place, 0, dst_pos);
 	
 	/* Copying entry headers */
 	src = (void *)src_cde + sizeof(cde_short_t) +
@@ -272,7 +270,7 @@ errno_t cde_short_rep(place_t *dst_place, uint32_t dst_pos,
 	dst = (void *)dst_cde + sizeof(cde_short_t) +
 		(dst_units * sizeof(entry_t)) + headers + offset;
 
-	size = cde_short_size(src_place, src_pos, count);
+	size = cde_short_size_units(src_place, src_pos, count);
 	
 	aal_memcpy(dst, src, size);
 
@@ -332,14 +330,14 @@ static uint32_t cde_short_shrink(place_t *place, uint32_t pos,
 	first = (units - (pos + count)) *
 		sizeof(entry_t);
 	
-	first += cde_short_size(place, 0, pos);
+	first += cde_short_size_units(place, 0, pos);
 
 	/* Getting how many bytes should be moved after passed @pos */
-	second = cde_short_size(place, pos + count,
-				units - (pos + count));
+	second = cde_short_size_units(place, pos + count,
+				      units - (pos + count));
 
 	/* Calculating how many bytes will be moved out */
-	remove = cde_short_size(place, pos, count);
+	remove = cde_short_size_units(place, pos, count);
 
 	/* Moving headers and first part of bodies (before passed @pos) */
 	entry = &cde->entry[pos];
@@ -415,10 +413,10 @@ uint32_t cde_short_expand(place_t *place, uint32_t pos,
 
 	/* Calculating length bytes to be moved before insert point */
 	first = (units - pos) * sizeof(entry_t);
-	first += cde_short_size(place, 0, pos);
+	first += cde_short_size_units(place, 0, pos);
 	
 	/* Calculating length bytes to be moved after insert point */
-	second = cde_short_size(place, pos, units - pos);
+	second = cde_short_size_units(place, pos, units - pos);
 	
 	/* Updating offset of entries which lie before insert point */
 	entry = &cde->entry[0];
@@ -717,7 +715,7 @@ int32_t cde_short_remove(place_t *place, uint32_t pos,
 	aal_assert("umka-934", place != NULL);
 
 	len = count * sizeof(entry_t);
-	len += cde_short_size(place, pos, count);
+	len += cde_short_size_units(place, pos, count);
 	
 	/* Shrinking cde */
 	cde_short_shrink(place, pos, count, 0);
@@ -820,6 +818,16 @@ static errno_t cde_short_maxreal_key(place_t *place,
 
 	units = cde_short_units(place);
 	return cde_short_get_key(place, units - 1, key);
+}
+
+static uint64_t cde_short_size(place_t *place) {
+	return cde_short_units(place);
+}
+
+static uint64_t cde_short_bytes(place_t *place) {
+	aal_assert("vpf-1211", place != NULL);
+	
+	return place->len;
 }
 
 extern errno_t cde_short_copy(place_t *dst,
@@ -949,6 +957,9 @@ static reiser4_item_ops_t cde_short_ops = {
 	.layout		   = NULL,
 	.check_layout	   = NULL,
 	.get_plugid	   = NULL,
+	
+	.size		   = cde_short_size,
+	.bytes		   = cde_short_bytes,
 #endif
 	.branch            = NULL,
 

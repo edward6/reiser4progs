@@ -69,8 +69,8 @@ extern errno_t cde_large_get_key(place_t *place, uint32_t pos,
 extern lookup_t cde_large_lookup(place_t *place, key_entity_t *key,
 				 uint32_t *pos);
 
-extern uint32_t cde_large_size(place_t *place, uint32_t pos, 
-			       uint32_t count);
+extern uint32_t cde_large_size_units(place_t *place, uint32_t pos, 
+				     uint32_t count);
 
 extern uint32_t cde_large_units(place_t *place);
 
@@ -660,7 +660,7 @@ errno_t cde_large_estimate_copy(place_t *dst, uint32_t dst_pos,
 	hint->src_count = next_pos - src_pos;
 	hint->dst_count = 0;
 	hint->len_delta = (sizeof(entry_t) * hint->src_count) +
-		cde_large_size(src, src_pos, hint->src_count);
+		cde_large_size_units(src, src_pos, hint->src_count);
 	
 	while (next_pos < units) {
 		cde_large_get_key(src, next_pos, &hint->end);

@@ -407,7 +407,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 							 &hint.end, 
 							 &src->pos.unit);
 		
-		if (src->pos.unit >= reiser4_item_units(src))
+		if (src->pos.unit >= src_units)
 			break;
 		
 		reiser4_key_assign(&start_key, &hint.end);

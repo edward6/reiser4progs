@@ -69,8 +69,8 @@ extern errno_t cde_short_get_key(place_t *place, uint32_t pos,
 extern lookup_t cde_short_lookup(place_t *place, key_entity_t *key,
 				 uint32_t *pos);
 
-extern uint32_t cde_short_size(place_t *place, uint32_t pos, 
-			       uint32_t count);
+extern uint32_t cde_short_size_units(place_t *place, uint32_t pos, 
+				     uint32_t count);
 
 extern uint32_t cde_short_units(place_t *place);
 extern errno_t cde_short_maxposs_key(place_t *place, key_entity_t *key);
@@ -659,7 +659,7 @@ errno_t cde_short_estimate_copy(place_t *dst, uint32_t dst_pos,
 	hint->src_count = next_pos - src_pos;
 	hint->dst_count = 0;
 	hint->len_delta = (sizeof(entry_t) * hint->src_count) +
-		cde_short_size(src, src_pos, hint->src_count);
+		cde_short_size_units(src, src_pos, hint->src_count);
 	
 	while (next_pos < units) {
 		cde_short_get_key(src, next_pos, &hint->end);

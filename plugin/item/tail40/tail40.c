@@ -357,6 +357,12 @@ static errno_t tail40_shift(place_t *src_place,
 	return 0;
 }
 
+static uint64_t tail40_size(place_t *place) {
+	aal_assert("vpf-1210", place != NULL);
+	
+	return place->len;
+}
+
 extern errno_t tail40_copy(place_t *dst,
 			   uint32_t dst_pos, 
 			   place_t *src,
@@ -394,6 +400,8 @@ static reiser4_item_ops_t tail40_ops = {
 	.set_key          = NULL,
 	.check_layout     = NULL,
 	.get_plugid	  = NULL,
+	.size             = tail40_size,
+	.bytes            = tail40_size,
 #endif
 	.units	          = tail40_units,
 	.lookup	          = tail40_lookup,
@@ -405,7 +413,6 @@ static reiser4_item_ops_t tail40_ops = {
 #else
 	.mergeable        = NULL,
 #endif
-		
 	.get_key          = tail40_get_key,
 	.maxposs_key      = tail40_maxposs_key
 };

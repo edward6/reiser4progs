@@ -642,6 +642,28 @@ static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 	return 0;
 }
 
+static uint64_t extent40_size(place_t *place) {
+	return extent40_offset(place, extent40_units(place));
+}
+
+static uint64_t extent40_bytes(place_t *place) {
+	extent40_t *extent;
+	uint32_t i, blocks = 0;
+    
+	aal_assert("umka-2204", place != NULL);
+	
+	extent = extent40_body(place);
+	
+	/* Count only valuable units. */
+	for (i = 0; i < extent40_units(place); i++, extent++) {
+		if (et40_get_start(extent))
+			blocks += et40_get_width(extent);
+	}
+    
+	return blocks * extent40_blksize(place);
+
+}
+
 extern errno_t extent40_check_struct(place_t *place,
 				     uint8_t mode);
 
@@ -683,6 +705,8 @@ static reiser4_item_ops_t extent40_ops = {
 	.overhead         = NULL,
 	.set_key          = NULL,
 	.get_plugid	  = NULL,
+	.size		  = extent40_size,
+	.bytes		  = extent40_bytes,
 #endif
 	.branch           = NULL,
 

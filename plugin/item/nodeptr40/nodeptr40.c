@@ -147,6 +147,8 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.set_key	  = NULL,
 	.maxreal_key      = NULL,
 	.get_plugid	  = NULL,
+	.size		  = NULL,
+	.bytes		  = NULL,
 #endif
 	.data		  = NULL,
 	.lookup		  = NULL,

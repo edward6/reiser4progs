@@ -746,6 +746,12 @@ struct reiser4_item_ops {
 
 	/* Set the key of a particular unit of the item. */
 	errno_t (*set_key) (place_t *, uint32_t, key_entity_t *);
+
+	/* Gets the size of the data item keeps. */
+	uint64_t (*size) (place_t *place);
+	
+	/* Gets the amount of bytes data item keeps takes on the disk. */
+	uint64_t (*bytes) (place_t *place);
 #endif
 	
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
@@ -1321,6 +1327,9 @@ struct tree_ops {
 
 	/* Update the key in the place and the node itsef. */
 	errno_t (*ukey) (place_t *place, key_entity_t *key);
+
+	/* Print wrappers. */
+	char *(*print_key) (key_entity_t *);
 #endif
 	/* Returns next and prev items respectively */
 	errno_t (*next) (void *, place_t *, place_t *);

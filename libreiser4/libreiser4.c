@@ -218,6 +218,10 @@ static errno_t tree_ukey(place_t *place, key_entity_t *key) {
 				 (reiser4_key_t *)key);
 }
 
+static char *tree_print_key(key_entity_t *key) {
+	return reiser4_print_key((reiser4_key_t *)key);
+}
+
 #endif
 
 #ifdef ENABLE_SYMLINKS
@@ -295,7 +299,10 @@ reiser4_core_t core = {
 
 		/* Data related functions */
 		.get_data   = tree_get_data,
-		.set_data   = tree_set_data
+		.set_data   = tree_set_data,
+		
+		/* Print methods. */
+		.print_key  = tree_print_key
 #endif
 	},
 	.factory_ops = {

@@ -436,6 +436,8 @@ static reiser4_item_ops_t stat40_ops = {
 	.check_layout	  = NULL,
 	.maxreal_key      = NULL,
 	.get_plugid	  = stat40_get_plugid,
+	.size		  = NULL,
+	.bytes		  = NULL,
 #endif
 	.lookup		  = NULL,
 	.branch           = NULL,
