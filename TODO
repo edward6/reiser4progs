@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* atime updating when reading from file or directory.
+
 * extents support.
 
 * make flush in libreiser4 more flexible. It should be able to flush

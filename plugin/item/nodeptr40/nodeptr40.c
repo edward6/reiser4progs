@@ -78,9 +78,8 @@ static errno_t nodeptr40_insert(item_entity_t *item,
 
 /* Estimates how many bytes is needed for creating new nodeptr */
 static errno_t nodeptr40_estimate_insert(item_entity_t *item,
-					 uint32_t pos,
-					 uint32_t count,
-					 create_hint_t *hint) 
+					 create_hint_t *hint,
+					 uint32_t pos)
 {
 	aal_assert("vpf-068", hint != NULL);
 

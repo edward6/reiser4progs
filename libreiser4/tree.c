@@ -971,15 +971,9 @@ errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 	if (reiser4_place_leftmost(place)) {
 		
 		if (place->node->parent.node) {
-			reiser4_place_t p;
-
-			reiser4_place_init(&p, place->node->parent.node,
-					   &place->pos);
+			reiser4_place_t *p = &place->node->parent;
 			
-			if ((res = reiser4_node_pbc(place->node, &p.pos)))
-				return res;
-	    
-			if ((res = reiser4_tree_ukey(tree, &p, key)))
+			if ((res = reiser4_tree_ukey(tree, p, key)))
 				return res;
 		}
 	}
@@ -1506,15 +1500,19 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			if ((res = reiser4_tree_attach(tree, node))) {
 				reiser4_tree_release(tree, node);
 				
-				aal_exception_error("Tree failed to attach "
-						    "a newly allocated "
-						    "node to the tree.");
+				aal_exception_error("Tree is failed to attach "
+						    "node durring split opeartion.");
 				goto error_free_node;
 			}
 		
 		} else {
 			node = place->node;
-			
+
+			/*
+			  FIXME-UMKA->VITALY: Probably this is not necessary
+			  here, as it is guarantied, that @node->parent is
+			  always uptodate.
+			*/
 			if ((res = reiser4_node_pbc(node, NULL)))
 				return res;
 		}

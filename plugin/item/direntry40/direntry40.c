@@ -208,20 +208,19 @@ static uint16_t direntry40_overhead(item_entity_t *item) {
   room for inserting new entries.
 */
 static errno_t direntry40_estimate_insert(item_entity_t *item,
-					  uint32_t pos,
-					  uint32_t count,
-					  create_hint_t *hint) 
+					  create_hint_t *hint,
+					  uint32_t pos)
 {
 	uint32_t i;
 	entry_hint_t *entry_hint;
 	    
-	aal_assert("umka-2229", count > 0);
 	aal_assert("vpf-095", hint != NULL);
+	aal_assert("umka-2229", hint->count > 0);
     
 	entry_hint = (entry_hint_t *)hint->type_specific;
-	hint->len = count * sizeof(entry40_t);
+	hint->len = hint->count * sizeof(entry40_t);
     
-	for (i = 0; i < count; i++, entry_hint++) {
+	for (i = 0; i < hint->count; i++, entry_hint++) {
 		hint->len += sizeof(objid_t);
 
 		/*

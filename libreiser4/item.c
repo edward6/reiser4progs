@@ -76,14 +76,17 @@ errno_t reiser4_item_estimate(
 	  Method estimate_insert() may be not implemented as it is not needed in
 	  some cases like tail item case.
 	*/
-	if (!hint->plugin->o.item_ops->estimate_insert) {
-		aal_assert("umka-2276", hint->len != 0);
+	if (!hint->plugin->o.item_ops->estimate_insert)
 		return 0;
-	} else {
-		return plugin_call(hint->plugin->o.item_ops,
-				   estimate_insert, &place->item,
-				   place->pos.unit, hint->count, hint);
+
+	if (place->pos.unit != ~0ul) {
+		if ((res = reiser4_place_realize(place)))
+			return res;
 	}
+
+	return plugin_call(hint->plugin->o.item_ops,
+			   estimate_insert, &place->item,
+			   hint, place->pos.unit);
 }
 
 /* Prints passed @place into passed @buff */

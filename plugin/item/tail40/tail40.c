@@ -58,7 +58,7 @@ static errno_t tail40_insert(item_entity_t *item,
 	aal_assert("umka-1678", item != NULL);
 	aal_assert("umka-1679", pos < item->len);
 
-	count = hint->len;
+	count = hint->count;
 	
 	if (count > item->len - pos)
 		count = item->len - pos;
@@ -73,6 +73,28 @@ static errno_t tail40_insert(item_entity_t *item,
 			return -EINVAL;
 	}
 
+	return 0;
+}
+
+static errno_t tail40_estimate_insert(item_entity_t *item,
+				      create_hint_t *hint,
+				      uint32_t pos)
+{
+	aal_assert("umka-1836", hint != NULL);
+
+	if (pos == ~0ul)
+		hint->len = hint->count;
+	else {
+		uint32_t right;
+
+		aal_assert("umka-2284", item != NULL);
+		
+		right = item->len - pos;
+
+		hint->len = right >= hint->count ? 0 :
+			hint->count;
+	}
+	
 	return 0;
 }
 
@@ -369,7 +391,7 @@ static reiser4_item_ops_t tail40_ops = {
 	
 	.estimate_copy    = tail40_estimate_copy,
 	.estimate_shift   = tail40_estimate_shift,
-	.estimate_insert  = NULL,
+	.estimate_insert  = tail40_estimate_insert,
 	
 	.overhead         = NULL,
 	.check	          = NULL,

@@ -421,6 +421,9 @@ errno_t node40_expand(object_entity_t *entity, pos_t *pos,
 	aal_assert("umka-817", entity != NULL);
 
 	node = (node40_t *)entity;
+
+	if (len == 0)
+		return 0;
 	
 	/* Checks for input validness */
 	is_insert = (pos->unit == ~0ul);

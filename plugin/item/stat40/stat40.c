@@ -141,9 +141,8 @@ static int stat40_data(void) {
   by passed @hint at passed @pos.
 */
 static errno_t stat40_estimate_insert(item_entity_t *item,
-				      uint32_t pos,
-				      uint32_t count,
-				      create_hint_t *hint) 
+				      create_hint_t *hint,
+				      uint32_t pos)
 {
 	uint16_t i;
 	statdata_hint_t *stat_hint;

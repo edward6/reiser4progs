@@ -331,9 +331,8 @@ static int extent40_mergeable(item_entity_t *item1,
 }
 
 static errno_t extent40_estimate_insert(item_entity_t *item,
-					uint32_t pos,
-					uint32_t count,
-					create_hint_t *hint)
+					create_hint_t *hint,
+					uint32_t pos)
 {
 	aal_assert("umka-1836", hint != NULL);
 

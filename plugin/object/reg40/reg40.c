@@ -364,15 +364,14 @@ static int32_t reg40_put(object_entity_t *entity,
 	for (written = 0; written < n; ) {
 		errno_t res;
 		place_t place;
+		
 		oid_t locality;
 		oid_t objectid;
 
-		hint.len = n - written;
+		hint.count = n - written;
 		
-		if (hint.len > maxspace)
-			hint.len = maxspace;
-		
-		hint.count = hint.len;
+		if (hint.count > maxspace)
+			hint.count = maxspace;
 		
 		hint.flags = HF_FORMATD;
 		hint.plugin = reg->bplug;
@@ -405,9 +404,9 @@ static int32_t reg40_put(object_entity_t *entity,
 		obj40_relock(&reg->obj, &reg->body, &place);
 		aal_memcpy(&reg->body, &place, sizeof(reg->body));
 
-		buff += hint.len;
-		written += hint.len;
-		reg->offset += hint.len;
+		buff += hint.count;
+		written += hint.count;
+		reg->offset += hint.count;
 	}
 	
 	/* Updating stat data place */
@@ -417,9 +416,19 @@ static int32_t reg40_put(object_entity_t *entity,
 	/* Updating stat data fields */
 	size = obj40_get_size(&reg->obj);
 
-	if ((res = obj40_set_size(&reg->obj, size + written)))
-		return res;
-
+	/*
+	  Updating size if new file offset is further than size. This means,
+	  that file realy got some data additionaly, not only got rewtittem
+	  something.
+	*/
+	if (reg->offset > size) {
+		if ((res = obj40_set_size(&reg->obj,
+					  size + written)))
+		{
+			return res;
+		}
+	}
+	
 	item = &reg->obj.statdata.item;
 	
 	if ((res = obj40_read_unix(item, &unix_hint)))
@@ -429,7 +438,9 @@ static int32_t reg40_put(object_entity_t *entity,
 	
 	unix_hint.atime = atime;
 	unix_hint.mtime = atime;
-	unix_hint.bytes += written;
+
+	if (reg->offset > size)
+		unix_hint.bytes += written;
 
 	if ((res = obj40_write_unix(item, &unix_hint)))
 		return res;
@@ -642,10 +653,6 @@ static void reg40_close(object_entity_t *entity) {
 		
 	aal_assert("umka-1170", entity != NULL);
 
-#ifndef ENABLE_STAND_ALONE
-	reg40_holes(entity);
-#endif
-	
 	/* Unlocking statdata and body */
 	obj40_relock(&reg->obj, &reg->obj.statdata, NULL);
 

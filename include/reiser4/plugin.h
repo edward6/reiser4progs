@@ -685,8 +685,8 @@ struct reiser4_item_ops {
 				  copy_hint_t *);
 
 	/* Estimates insert operation */
-	errno_t (*estimate_insert) (item_entity_t *, uint32_t,
-				    uint32_t, create_hint_t *);
+	errno_t (*estimate_insert) (item_entity_t *, create_hint_t *,
+				    uint32_t);
 
 	/* Predicts the shift parameters (units, bytes, etc) */
 	errno_t (*estimate_shift) (item_entity_t *, item_entity_t *,
