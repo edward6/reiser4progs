@@ -9,7 +9,7 @@
 
 #ifndef ENABLE_STAND_ALONE
 #ifdef ENABLE_SYMLINKS
-errno_t sdext_symlink_check_struct(stat_entity_t *stat, uint8_t mode) {
+errno_t sdext_symlink_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	uint32_t offset;
 	
 	aal_assert("vpf-779", stat != NULL);

@@ -8,22 +8,24 @@
 reiser4_core_t *sdext_plugid_core = NULL;
 
 uint16_t sdext_plugid_length(stat_entity_t *stat, void *hint) {
+	uint8_t count = 0;
+	
 	/* If hint is given, count its pset. */
 	if (hint) {
 		sdext_plugid_hint_t *h = (sdext_plugid_hint_t *)hint;
-		uint8_t count = 0;
 		uint8_t i;
 
 		for (i = 0; i < OPSET_STORE_LAST; i++)
-			count += (h->pset[i]) ? 1 : 0;
+			count += ((h->pset[i]) ? 1 : 0);
+	} else {
+		sdext_plugid_t *plugid = (sdext_plugid_t *)stat_body(stat);
 		
-		return sizeof(sdext_plugid_slot_t) * count +
-			sizeof(sdext_plugid_t);
+		count = sdext_plugid_get_count(plugid);
 	}
 	
 	/* Count on-disk pset. */
-	return sizeof(sdext_plugid_t) + sizeof(sdext_plugid_slot_t) *
-		sdext_plugid_get_count((sdext_plugid_t *)stat_body(stat));
+	return sizeof(sdext_plugid_slot_t) * count + 
+		(count ? sizeof(sdext_plugid_t) : 0);	
 }
 
 static errno_t sdext_plugid_open(stat_entity_t *stat, void *hint) {
@@ -56,6 +58,14 @@ static errno_t sdext_plugid_open(stat_entity_t *stat, void *hint) {
 		/* Obtain the plugin by the id. */
 		h->pset[mem] = sdext_plugid_core->pset_ops.find(mem, id);
 		
+		if (h->pset[mem] == INVAL_PTR) {
+			aal_error("Failed to find a plugin of the opset "
+				  "member (%u), id (%u).", mem, id);
+			return -EIO;
+		}
+		
+		/* If the plugin is valid but cannot be found, set INVAL_PTR
+		   into the opset. */
 		if (!h->pset[mem])
 			h->pset[mem] = INVAL_PTR;
 	}
@@ -96,7 +106,7 @@ static errno_t sdext_plugid_init(stat_entity_t *stat, void *hint) {
 }
 
 extern errno_t sdext_plugid_check_struct(stat_entity_t *stat, 
-					 uint8_t mode);
+					 repair_hint_t *hint);
 
 extern void sdext_plugid_print(stat_entity_t *stat, 
 			       aal_stream_t *stream, 

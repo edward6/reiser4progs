@@ -1141,7 +1141,7 @@ struct reiser4_sdext_ops {
 	void (*print) (stat_entity_t *, aal_stream_t *, uint16_t);
 
 	/* Checks sd extension content. */
-	errno_t (*check_struct) (stat_entity_t *, uint8_t);
+	errno_t (*check_struct) (stat_entity_t *, repair_hint_t *);
 #endif
 	/* Reads stat data extension data. */
 	errno_t (*open) (stat_entity_t *, void *);

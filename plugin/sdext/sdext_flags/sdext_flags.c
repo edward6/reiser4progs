@@ -46,7 +46,7 @@ extern void sdext_flags_print(stat_entity_t *stat,
 			      uint16_t options);
 
 extern errno_t sdext_flags_check_struct(stat_entity_t *stat,
-					uint8_t mode);
+					repair_hint_t *hint);
 #endif
 
 static reiser4_sdext_ops_t sdext_flags_ops = {

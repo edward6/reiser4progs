@@ -8,10 +8,10 @@
 #include <repair/plugin.h>
 
 typedef struct repair_stat_hint {
+	repair_hint_t *repair;
 	uint64_t extmask;
 	uint64_t goodmask;
 	uint64_t len;
-	uint8_t mode;
 } repair_stat_hint_t;
 
 static errno_t callback_check_ext(stat_entity_t *stat, 
@@ -20,6 +20,7 @@ static errno_t callback_check_ext(stat_entity_t *stat,
 {
 	repair_stat_hint_t *hint = (repair_stat_hint_t *)data;
 	uint8_t chunk;
+	uint32_t len;
 	
 	/* Set read extmask. */
 	if (!stat->ext_plug) {
@@ -39,13 +40,24 @@ static errno_t callback_check_ext(stat_entity_t *stat,
 		errno_t res;
 		
 		if ((res = plug_call(stat->ext_plug->o.sdext_ops,
-				     check_struct, stat, hint->mode)))
+				     check_struct, stat, hint->repair)))
 			return res;
 	}
 
-	hint->len += plug_call(stat->ext_plug->o.sdext_ops, 
-			       length, stat, NULL);
+	len = plug_call(stat->ext_plug->o.sdext_ops, length, stat, NULL);
+	hint->len += len;
 
+	/* Some part of the extention was removed. Shrink the item. */
+	if (hint->repair->len) {
+		uint32_t oldlen = len + hint->repair->len;
+		
+		aal_memmove(stat_body(stat) + len, stat_body(stat) + oldlen,
+			    stat->place->len - stat->offset - oldlen);
+		
+		place_mkdirty(stat->place);
+		hint->repair->len = 0;
+	}
+	
 	return 0;
 }
 
@@ -72,7 +84,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	aal_assert("vpf-775", place != NULL);
 	
 	aal_memset(&stat, 0, sizeof(stat));
-	stat.mode = hint->mode;
+	stat.repair = hint;
 	
 	if ((res = stat40_traverse(place, callback_check_ext, &stat)) < 0)
 		return res;
@@ -85,12 +97,12 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		return RE_FATAL;
 	}
 	
-	if (stat.len < place->len) {
+	if (stat.len + hint->len < place->len) {
 		aal_error("Node (%llu), item (%u): item has the "
 			  "wrong length (%u). Should be (%llu). %s",
 			  place_blknr(place), place->pos.item, 
-			  place->len, stat.len, hint->mode == RM_BUILD ? 
-			  "Fixed." : "");
+			  place->len, stat.len + hint->len, 
+			  hint->mode == RM_BUILD ? "Fixed." : "");
 		
 		if (hint->mode != RM_BUILD)
 			return RE_FATAL;

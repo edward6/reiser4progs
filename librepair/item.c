@@ -27,7 +27,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
    repair_error_t. */
 errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	repair_hint_t hint;
-	errno_t res, ret;
+	errno_t res;
 	
 	aal_assert("vpf-791", place != NULL);
 	aal_assert("vpf-792", place->node != NULL);
@@ -39,13 +39,13 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	hint.mode = mode;
 	
 	if ((res = plug_call(place->plug->o.item_ops->repair,
-			     check_struct, place, &hint)) < 0)
+			     check_struct, place, &hint)))
 		return res;
 	
-	if (hint.len && (ret = repair_item_check_fini(place, &hint)))
-		return ret;
+	if (!hint.len)
+		return 0;
 	
-	return res;
+	return repair_item_check_fini(place, &hint);
 }
 
 /* Calls the item check_layout method to check the layout of an item and 
@@ -55,7 +55,7 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 				 void *data, uint8_t mode) 
 {
 	repair_hint_t hint;
-	errno_t res, ret;
+	errno_t res;
 	
 	aal_assert("vpf-793", place != NULL);
 	aal_assert("vpf-794", place->node != NULL);
@@ -70,10 +70,10 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 			     place, &hint, func, data)) < 0)
 		return res;
 	
-	if (hint.len && (ret = repair_item_check_fini(place, &hint)))
-		return ret;
-
-	return res;
+	if (!hint.len)
+		return 0;
+	
+	return repair_item_check_fini(place, &hint);
 }
 
 /* Prints passed @place into passed @buff */

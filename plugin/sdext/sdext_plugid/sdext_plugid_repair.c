@@ -13,25 +13,27 @@ char *opset_name[OPSET_STORE_LAST] = {
 	[OPSET_PERM] =	  "permission",
 	[OPSET_POLICY] =  "formatting",
 	[OPSET_HASH] =	  "hash      ",
-	[OPSET_FIBRE] =   "fibre     ",
+	[OPSET_FIBRE] =   "fibration ",
 	[OPSET_STAT] =	  "statdata  ",
-	[OPSET_DENTRY] =  "dir entry ",
+	[OPSET_DENTRY] =  "direntry  ",
 	[OPSET_CRYPTO] =  "crypto    ",
 	[OPSET_DIGEST] =  "digest    ",
 	[OPSET_COMPRES] = "compress  "
 };
 
-errno_t sdext_plugid_check_struct(stat_entity_t *stat, uint8_t mode) {
+errno_t sdext_plugid_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	sdext_plugid_hint_t plugs;
+	int8_t i, count, remove;
 	sdext_plugid_t *ext;
 	uint64_t mask = 0;
-	uint8_t i, count;
-//	errno_t res = 0;
+	uint32_t len;
+	void *dst;
 	
 	ext = (sdext_plugid_t *)stat_body(stat);
 	count = sdext_plugid_get_count(ext);
+	len = sdext_plugid_length(stat, NULL);
 	
-	if (stat->offset + sdext_plugid_length(stat, NULL) < stat->place->len) {
+	if (stat->offset + len < stat->place->len) {
 		aal_error("Node (%llu), item (%u): does not look like a "
 			  "valid plugid extention: wrong count of plugins "
 			  "detected (%u).", place_blknr(stat->place),
@@ -40,7 +42,8 @@ errno_t sdext_plugid_check_struct(stat_entity_t *stat, uint8_t mode) {
 	}
 	    
 	aal_memset(&plugs, 0, sizeof(plugs));
-
+	remove = 0;
+	
 	for (i = 0; i < count; i++) {
 		rid_t mem, id;
 
@@ -54,22 +57,38 @@ errno_t sdext_plugid_check_struct(stat_entity_t *stat, uint8_t mode) {
 				  place_blknr(stat->place), 
 				  stat->place->pos.item, i, mem);
 
-			aal_set_bit(&mask, mem);
-		} else if (plugs.pset[i]) {
+			aal_set_bit(&mask, i);
+			remove++;
+		} else if (plugs.pset[mem]) {
 			/* Was met already. */
-			aal_error("Node (%llu), item (%u): the opset member "
-				  "(%u) is encountered more then once.",
-				  place_blknr(stat->place), 
-				  stat->place->pos.item, mem);
+			aal_error("Node (%llu), item (%u): the slot (%u) "
+				  "contains the opset member (%s) that was "
+				  "met already.", place_blknr(stat->place), 
+				  stat->place->pos.item, i, opset_name[mem]);
 
-			aal_set_bit(&mask, mem);
+			aal_set_bit(&mask, i);
+			remove++;
 		} else {
 			/* Obtain the plugin. */
 			plugs.pset[mem] = 
 				sdext_plugid_core->pset_ops.find(mem, id);
 
-			if (!plugs.pset[mem]) {
+			/* Check if the member is valid. */
+			if (plugs.pset[mem] == INVAL_PTR) {
+				aal_error("Node (%llu), item (%u): the slot "
+					  "(%u) contains the invalid opset "
+					  "member (%s), id (%u).",
+					  place_blknr(stat->place), 
+					  stat->place->pos.item, i, 
+					  opset_name[mem], id);
 				
+				aal_set_bit(&mask, i);
+				remove++;
+			} else if (!plugs.pset[mem]) {
+				/* For those members where no one plugin is 
+				   written, set INVAL_PTR to avoid meeting it 
+				   another time. */
+				plugs.pset[mem] = INVAL_PTR;
 			}
 		}
 	}
@@ -78,12 +97,34 @@ errno_t sdext_plugid_check_struct(stat_entity_t *stat, uint8_t mode) {
 		return 0;
 	
 	/* Some broken slots are found. */
-	if (mode != RM_BUILD)
+	if (hint->mode != RM_BUILD)
 		return RE_FATAL;
 
+	if (remove == count) {
+		aal_error("Node (%llu), item (%u): no slot left. Does "
+			  "not look like a valid (%s) statdata extention.",
+			  place_blknr(stat->place), stat->place->pos.item,
+			  stat->ext_plug->label);
+		return RE_FATAL;
+	}
+	
 	/* Removing broken slots. */
-	aal_warn("Node (%llu), item (%u): removing broken slots.",
-		 place_blknr(stat->place), stat->place->pos.item);
+	aal_error("Node (%llu), item (%u): removing broken slots.",
+		  place_blknr(stat->place), stat->place->pos.item);
+	
+	dst = stat_body(stat) + sizeof(sdext_plugid_t) + 
+		(count - 1) * (sizeof(sdext_plugid_slot_t));
+	
+	for (i = count - 1; i >= 0; i--, dst -= sizeof(sdext_plugid_slot_t)) {
+		if (!aal_test_bit(&mask, i))
+			continue;
+
+		aal_memmove(dst, dst + sizeof(sdext_plugid_slot_t),
+			    len - (dst - (void *)stat_body(stat)) - 
+			    sizeof(sdext_plugid_slot_t));
+	}
+	
+	hint->len = remove * sizeof(sdext_plugid_slot_t);
 	
 	return 0;
 }
@@ -115,7 +156,7 @@ void sdext_plugid_print(stat_entity_t *stat,
 		aal_stream_format(stream, "    %s : id = %u",
 				  opset_name[mem], id);
 
-		if (plug) 
+		if (plug && plug != INVAL_PTR) 
 			aal_stream_format(stream, " (%s)\n", plug->label);
 		else
 			aal_stream_format(stream, "\n");

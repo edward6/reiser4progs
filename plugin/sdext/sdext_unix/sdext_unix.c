@@ -57,7 +57,7 @@ static errno_t sdext_unix_init(stat_entity_t *stat, void *hint) {
 }
 
 extern errno_t sdext_unix_check_struct(stat_entity_t *stat, 
-				       uint8_t mode);
+				       repair_hint_t *hint);
 
 extern void sdext_unix_print(stat_entity_t *stat, 
 			     aal_stream_t *stream, 

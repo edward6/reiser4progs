@@ -49,7 +49,7 @@ static errno_t sdext_lw_init(stat_entity_t *stat, void *hint) {
 }
 
 extern errno_t sdext_lw_check_struct(stat_entity_t *stat, 
-				     uint8_t mode);
+				     repair_hint_t *hint);
 
 extern void sdext_lw_print(stat_entity_t *stat, 
 			   aal_stream_t *stream, 

@@ -7,7 +7,7 @@
 #include "sdext_lt.h"
 #include <repair/plugin.h>
 
-errno_t sdext_lt_check_struct(stat_entity_t *stat, uint8_t mode) {
+errno_t sdext_lt_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	aal_assert("vpf-776", stat != NULL);
 	aal_assert("vpf-782", stat->ext_plug != NULL);
 	

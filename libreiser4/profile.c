@@ -74,7 +74,7 @@ reiser4_profile_t defprof = {
 			.id = ITEM_ACL40_ID,
 		},
 		[PROF_PERM] = {
-			.name  = "perm",
+			.name  = "permission",
 			.type  = PERM_PLUG_TYPE,
 			.id = PERM_RWX_ID,
 		},
@@ -104,12 +104,12 @@ reiser4_profile_t defprof = {
 			.id = HASH_R5_ID,
 		},
 		[PROF_FIBRE] = {
-			.name  = "fibre",
+			.name  = "fibration",
 			.type  = FIBRE_PLUG_TYPE,
 			.id = FIBRE_DOT_O_ID,
 		},
 		[PROF_POLICY] = {
-			.name  = "policy",
+			.name  = "formatting",
 			.type  = POLICY_PLUG_TYPE,
 			.id = TAIL_SMART_ID,
 		}
@@ -196,8 +196,9 @@ inline reiser4_plug_t *reiser4_profile_plug(rid_t id) {
 	if (!(plug = reiser4_factory_ifind(defprof.pid[id].type, 
 					   defprof.pid[id].id)))
 	{
-		aal_bug("vpf-1607", "Cannot find the enquired plugin "
-			"from the reiser4progs profile, slot #%u.", id);
+		aal_bug("vpf-1607", "Failed to find a plugin from the "
+			"reiser4porgs profile, type (%s), id(%u)",
+			defprof.pid[id].name, defprof.pid[id].id);
 	}
 	
 	return plug;
