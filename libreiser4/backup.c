@@ -218,6 +218,9 @@ errno_t reiser4_backup_layout_body(reiser4_alloc_t *alloc,
 		if (copy < REISER4_BACKUP_START(blksize)) 
 			copy = REISER4_BACKUP_START(blksize);
 
+		if (blk > len)
+			return 0;
+
 		if (copy <= prev)
 			continue;
 
