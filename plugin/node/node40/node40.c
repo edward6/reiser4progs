@@ -84,14 +84,6 @@ static errno_t node40_sync(object_entity_t *entity) {
 
 #endif
 
-/* Returns node plugin id */
-static rpid_t node40_pid(object_entity_t *entity) {
-	node40_t *node = (node40_t *)entity;
-    
-	aal_assert("umka-827", node != NULL, return INVAL_PID);
-	return nh40_get_pid(node);
-} 
-
 /* Opens node on passed device and block number */
 static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 	node40_t *node;
@@ -133,7 +125,7 @@ static errno_t node40_close(object_entity_t *entity) {
 /* Confirms that passed node corresponds current plugin */
 static int node40_confirm(object_entity_t *entity) {
 	aal_assert("vpf-014", entity != NULL, return 0);
-	return (nh40_get_magic(((node40_t *)entity)) == NODE40_MAGIC);
+	return (nh40_get_magic((node40_t *)entity) == NODE40_MAGIC);
 }
 
 /*
@@ -297,10 +289,11 @@ static errno_t node40_item(item_entity_t *item,
 #ifndef ENABLE_COMPACT
 
 /*
-  Makes expand passed node by passed @len in odrer to insert new item/unit into
-  it. This function is used by insert, paste and shift methods.
+  Makes expand passed @node by @len in odrer to insert item/unit into it. This
+  function is used by insert and shift methods.
 */
-static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
+static errno_t node40_expand(node40_t *node,
+			     reiser4_pos_t *pos,
 			     uint32_t size)
 {
 	int is_space;
@@ -387,17 +380,90 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	return 0;
 }
 
-static int32_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
-			     uint32_t count, int shrink_item)
+/*
+  Makes shrink the @node by passed @len after item/unit was removed. This
+  function is called from remove and shift methods.
+*/
+static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
+			     uint32_t size) 
 {
-	void *src, *dst;
+	int is_range;
+    
+	uint32_t len;
+	uint32_t offset;
 	
+	item40_header_t *ih;
+
+	aal_assert("umka-958", node != NULL, return -1);
+	aal_assert("umka-959", pos != NULL, return -1);
+
+	is_range = (pos->item < nh40_get_num_items(node));
+	aal_assert("umka-960", is_range, return -1);
+    
+	ih = node40_ih_at(node, pos->item);
+    
+	offset = ih40_get_offset(ih);
+	len = node40_item_len((object_entity_t *)node, pos);
+
+	/*
+	  Checking if we should perform any data moving due to we remove
+	  item/units inside the range 0 ... items - 1
+	*/
+	if ((offset + len) < nh40_get_free_space_start(node)) {
+		uint32_t move;
+		void *src, *dst;
+		
+		item40_header_t *cur;
+		item40_header_t *end;
+
+		/* Preparing data to be moved and moving it */
+		src = node->block->data + offset + len;
+		dst = node->block->data + offset + len - size;
+		move = nh40_get_free_space_start(node) - offset - len;
+		
+		aal_memmove(dst, src, move);
+
+		/* Updating item offsets */
+		end = node40_ih_at(node, nh40_get_num_items(node) - 1);
+
+		for (cur = ih - 1; cur >= end; cur--)
+			ih40_dec_offset(cur, size);
+
+		/*
+		  Moving item headers in the case we remove an item (pos->unit
+		  equals ~0ul).
+		*/
+		if (pos->unit == ~0ul) {
+			move = (void *)ih - (void *)end;
+			aal_memmove(end + 1, end, move);
+		}
+	}
+
+	/* Updating node and item fields */
+	if (pos->unit != ~0ul)
+		ih40_dec_len(ih, size);
+
+	nh40_dec_free_space_start(node, size);
+	nh40_inc_free_space(node, size);
+
+	if (pos->unit == ~0ul) {
+		nh40_dec_num_items(node, 1);
+		nh40_inc_free_space(node, sizeof(item40_header_t));
+	}
+    
+	return 0;
+}
+
+static int32_t node40_delete(node40_t *node, reiser4_pos_t *pos,
+			     uint32_t count)
+{
 	uint32_t size;
 	uint32_t headers;
 	uint32_t i, items;
 	item_entity_t item;
 	uint32_t len, offset;
 
+	void *src, *dst;
 	int is_range, is_items;
 	item40_header_t *cur, *end;
 	
@@ -406,30 +472,33 @@ static int32_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
 	aal_assert("umka-1792", count > 0, return -1);
 
 	items = nh40_get_num_items(node);
+
 	is_range = (pos->item < items);
-	
 	aal_assert("umka-960", is_range, return -1);
 
 	is_items = pos->unit == ~0ul;
 		
-	if (shrink_item && pos->unit == ~0ul) {
+	if (pos->unit != ~0ul) {
+		uint32_t units;
 		
 		if (node40_item(&item, node, pos->item))
 			return -1;
 
-		/* Whole item will be removed */
-		if (plugin_call(item.plugin->item_ops, units, &item)) {
-			is_items = 1;
+		/*
+		  Whole item will be removed because it contains less units than
+		  we are going to remove from it.
+		*/
+		units = plugin_call(item.plugin->item_ops, units, &item);
+
+		if ((is_items = (units <= count)))
 			count = 1;
-		}
 	}
-	
-	end = node40_ih_at(node, items - 1);
 	
 	if (is_items) {
 		is_range = (is_range && pos->item + count <= items);
 		aal_assert("umka-1793", is_range, return -1);
 
+		end = node40_ih_at(node, items - 1);
 		cur = node40_ih_at(node, pos->item);
 
 		/* Calculating how much bytes will be removed */
@@ -467,18 +536,39 @@ static int32_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
 
 		return len + headers;
 	} else {
-		if (shrink_item) {
-			/*
-			  The number of bytes were removed from the item. Node
-			  will be shrinked by this value.
-			*/
-			len = item.plugin->item_ops.shrink(&item, pos->unit,
-							   count);
-		} else
-			/* Item length. Node will be shrinked by this value */
-			len = node40_item_len((object_entity_t *)node, pos);
+		item40_header_t *ih;
+		uint32_t ilen, offset;
+		
+		if (node40_item(&item, node, pos->item))
+			return -1;
 			
+		/*
+		  The number of bytes were removed from the item. Node
+		  will be shrinked by this value.
+		*/
+		len = item.plugin->item_ops.remove(&item, pos->unit,
+						   count);
+
+		ih = node40_ih_at(node, pos->item);
+		ih40_dec_len(ih, len);
+
+		/* Updating left delimiting key */
+		if (pos->item == 0 && pos->unit == 0)
+			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+		
+		ilen = node40_item_len((object_entity_t *)node, pos);
+
+		/* Moving item bodies */
+		src = node40_ib_at(node, pos->item) + ilen;
+		dst = node40_ib_at(node, pos->item) + ilen - len;
+
+		offset = ih40_get_offset(node40_ih_at(node, pos->item));
+		size = nh40_get_free_space_start(node) - offset - len;
+		
+		aal_memmove(dst, src, size);
+		
 		/* Updating header offsets */
+		end = node40_ih_at(node, items - 1);
 		cur = node40_ih_at(node, pos->item) - 1;
 		
 		for (; cur >= end; cur--)
@@ -491,106 +581,36 @@ static int32_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
 	}
 }
 
-/* Makes shrink node by passed @len after item/unit was removed */
-static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
-			      uint32_t size) 
-{
-	int is_range;
-    
-	uint32_t len;
-	uint32_t offset;
-	
-	item40_header_t *ih;
-
-	/* Checking input for validness */
-	aal_assert("umka-958", node != NULL, return -1);
-	aal_assert("umka-959", pos != NULL, return -1);
-
-	is_range = (pos->item < nh40_get_num_items(node));
-	aal_assert("umka-960", is_range, return -1);
-    
-	ih = node40_ih_at(node, pos->item);
-    
-	offset = ih40_get_offset(ih);
-	len = node40_item_len((object_entity_t *)node, pos);
-
-	/*
-	  If we are going to remove not the last item, we do need update item
-	  bodies and their offsets.
-	*/
-	if ((offset + len) < nh40_get_free_space_start(node)) {
-		uint32_t tomove;
-		void *src, *dst;
-		
-		item40_header_t *cur;
-		item40_header_t *end;
-	
-		/* Moving item bodies */
-		src = node->block->data + offset + len;
-		dst = src - size;
-		
-		tomove = nh40_get_free_space_start(node) -
-			offset - len;
-		
-		aal_memmove(dst, src, tomove);
-    
-		/* Updating item offsets after bodies moving */
-		end = node40_ih_at(node, nh40_get_num_items(node) - 1);
-
-		for (cur = ih - 1; cur >= end; cur--)
-			ih40_dec_offset(cur, size);
-	
-		/* Moving item headers if this is the item remove case */
-		if (pos->unit == ~0ul)
-			aal_memmove(end + 1, end, (void *)ih - (void *)end);
-	}
-
-	/* Updating item header in the case of cutting */
-	if (pos->unit != ~0ul)
-		ih40_dec_len(ih, size);
-
-	/* Updating node header */
-	nh40_dec_free_space_start(node, size);
-	nh40_inc_free_space(node, size);
-
-	/*
-	  Increasing free space by item overhead in the case of removing whole
-	  item from the node. Here we also update of num items field.
-	*/
-	if (pos->unit == ~0ul) {
-		nh40_dec_num_items(node, 1);
-		nh40_inc_free_space(node, sizeof(item40_header_t));
-	}
-    
-	return 0;
-}
-
 /* Inserts item described by hint structure into node */
-static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
+static errno_t node40_insert(object_entity_t *entity,
+			     reiser4_pos_t *pos,
 			     reiser4_item_hint_t *hint) 
 {
+	node40_t *node;
 	item_entity_t item;
 	item40_header_t *ih;
-	
-	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-119", pos != NULL, return -1);
-	aal_assert("umka-818", node != NULL, return -1);
-	aal_assert("umka-908", pos->unit == ~0ul, return -1);
+	aal_assert("umka-818", entity != NULL, return -1);
     
-	if (!hint->data) {
-		aal_assert("umka-712", hint->key.plugin != NULL,
-			   return -1);
-	}
-
+	node = (node40_t *)entity;
+	
 	/* Makes expand of the node new item will be inaserted to */
 	if (node40_expand(node, pos, hint->len))
 		return -1;
 
-	/* Updating item header of the new item */
 	ih = node40_ih_at(node, pos->item);
-	ih40_set_pid(ih, hint->plugin->h.id);
-	aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
+
+	/* Updating item header plugin id if we insert new item */
+	if (pos->unit == ~0ul)
+		ih40_set_pid(ih, hint->plugin->h.id);
+
+	/*
+	  Updating item's key if we insert new item or if we insert unit into
+	  leftmost postion.
+	*/
+	if (pos->unit == ~0ul || (pos->item == 0 && pos->unit == 0))
+		aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
 
 	/*
 	  If item hint contains some data, we just copy it and going out. This
@@ -607,117 +627,129 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 		return -1;
 
 	/* Calling item plugin to perform initializing the item. */
-	if (plugin_call(hint->plugin->item_ops, init, &item))
-		return -1;
+	if (pos->unit == ~0ul) {
+		if (plugin_call(hint->plugin->item_ops, init, &item))
+			return -1;
 
-	return plugin_call(hint->plugin->item_ops, insert, &item, hint, 0);
-}
-
-/* Inserts a unit into item described by hint structure. */
-static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
-			    reiser4_item_hint_t *hint) 
-{
-	item_entity_t item;
-	item40_header_t *ih;
-	
-	node40_t *node = (node40_t *)entity;
-    
-	aal_assert("umka-1017", node != NULL, return -1);
-	aal_assert("vpf-120", pos != NULL && pos->unit != ~0ul, return -1);
-
-	/* Expanding item at @pos to insert new unit(s) into it */
-	if (node40_expand(node, pos, hint->len))
-		return -1;
-
-	/* Initilizing item entity to pass it to item plugin */
-	if (node40_item(&item, node, pos->item))
-		return -1;
-
-	/* Calling insert method of the item plugin */
-	if (plugin_call(hint->plugin->item_ops, insert, &item, hint, pos->unit))
-		return 0;
-
-	/* Updating left delimiting key */
-	if (pos->item == 0 && pos->unit == 0) {
-		ih = node40_ih_at(node, item.pos.item);
-		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+		pos->unit = 0;
 	}
 
-	return 0;
+	return plugin_call(hint->plugin->item_ops, insert, &item,
+			   hint, pos->unit);
 }
 
-/* Removes items/units starting from the @start and ending at the @end */
-errno_t node40_delete(object_entity_t *entity, reiser4_pos_t *start,
-		      reiser4_pos_t *end)
-{
-	aal_assert("umka-1788", entity != NULL, return -1);
-	aal_assert("umka-1789", start != NULL, return -1);
-	aal_assert("umka-1790", end != NULL, return -1);
-
-	/* Check if there some amount of whole items can be removed */
-	if (start->item != end->item) {
-		
-	} else {
-
-	}
-
-	return 0;
-}
-
-/* This function removes item from the node at specified @pos */
+/* This function removes item/unit from the node at specified @pos */
 errno_t node40_remove(object_entity_t *entity, 
 		      reiser4_pos_t *pos) 
 {
 	uint32_t len;
-
+	node40_t *node;
+	
 	aal_assert("umka-986", entity != NULL, return -1);
 	aal_assert("umka-987", pos != NULL, return -1);
-    
-	len = node40_item_len(entity, pos);
 
-	/* Removing item or unit, depending on @pos */
-	if (node40_shrink((node40_t *)entity, pos, len))
-		return -1;
+	node = (node40_t *)entity;
 	
-	return 0;
+	if (pos->unit == ~0ul) {
+		len = node40_item_len(entity, pos);
+		return node40_shrink(node, pos, len);
+	} else {
+		item_entity_t item;
+		item40_header_t *ih;
+
+		ih = node40_ih_at(node, pos->item);
+
+		node40_item(&item, node, pos->item);
+		
+		len = plugin_call(item.plugin->item_ops, remove, &item,
+				  pos->unit, 1);
+
+		if (node40_shrink(node, pos, len))
+			return -1;
+
+		if (pos->item == 0 && pos->unit == 0)
+			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+
+		return 0;
+	}
 }
 
-/* Cut the unit at specified @pos */
-static errno_t node40_cut(object_entity_t *entity, 
-			  reiser4_pos_t *pos)
+/* Removes items/units starting from the @start and ending at the @end */
+static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
+			  reiser4_pos_t *end)
 {
-	uint32_t len;
 	node40_t *node;
-
-	item_entity_t item;
-	item40_header_t *ih;
+	uint32_t count;
+	reiser4_pos_t pos;
 	
-	aal_assert("umka-988", entity != NULL, return -1);
-	aal_assert("umka-989", pos != NULL, return -1);
-    
+	aal_assert("umka-1788", entity != NULL, return -1);
+	aal_assert("umka-1789", start != NULL, return -1);
+	aal_assert("umka-1790", end != NULL, return -1);
+
 	node = (node40_t *)entity;
-	ih = node40_ih_at(node, pos->item);
+		
+	/* Check if there some amount of whole items can be removed */
+	if (start->item != end->item) {
+		
+		if (end->item - start->item > 1) {
+			item_entity_t item;
 
-	/* Initializing item entity */
-	if (node40_item(&item, node, pos->item))
-		return -1;
+			/* Removing units inside start item */
+			if (start->unit != ~0ul) {
+				pos.unit = start->unit;
+				pos.item = start->item;
 
-	/*
-	  Removing unit at pos->unit. This function returns how much bytes were
-	  released by removing. It is needed for correct shrinking the node
-	  after operation complete.
-	*/
-	if (!(len = plugin_call(item.plugin->item_ops, remove, &item,
-				pos->unit, 1)))
-		return -1;
+				if (node40_item(&item, node, pos.item))
+					return -1;
+				
+				count = item.plugin->item_ops.units(&item) -
+					start->unit;
 
-	/* Shrinking node by @len */
-	if (node40_shrink(node, pos, len))
-		return -1;
+				if (node40_delete(node, &pos, count) < 0)
+					return -1;
 
-	/* Updating left delimiting key */
-	if (pos->item == 0 && pos->unit == 0)
-		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+				/*
+				  FIXME-UMKA: Here we should check if fucntion
+				  shrink deleted the item because it deleted all
+				  its units.
+				*/
+			}
+			
+			/* Removing units inside end item */
+			if (end->unit != ~0ul) {
+				pos.unit = end->unit;
+				pos.item = end->item;
+
+				if (node40_item(&item, node, pos.item))
+					return -1;
+				
+				count = item.plugin->item_ops.units(&item) -
+					end->unit;
+
+				if (node40_delete(node, &pos, count) < 0)
+					return -1;
+			}
+			
+			/* Removing some amount of whole items */
+			pos.unit = ~0ul;
+			pos.item = start->item + 1;
+			count = end->item - start->item + 1;
+
+			if (node40_delete(node, &pos, count) < 0)
+				return -1;
+		}
+	} else {
+		aal_assert("umka-1795", end->unit != ~0ul, return -1);
+		aal_assert("umka-1794", start->unit != ~0ul, return -1);
+		
+		pos.unit = start->unit;
+		pos.item = start->item;
+
+		count = end->unit - start->unit;
+
+		if (node40_delete(node, &pos, count) < 0)
+			return -1;
+	}
 
 	return 0;
 }
@@ -738,40 +770,37 @@ static errno_t node40_valid(object_entity_t *entity) {
 
 /* Returns node free space */
 static uint16_t node40_space(object_entity_t *entity) {
-	node40_t *node = (node40_t *)entity;
-    
-	aal_assert("vpf-020", node != NULL, return 0);
-    
-	return nh40_get_free_space(node);
+	aal_assert("vpf-020", entity != NULL, return 0);
+	return nh40_get_free_space((node40_t *)entity);
 }
 
 /* Returns node level */
 uint8_t node40_level(object_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL, return 0);
-	return nh40_get_level(((node40_t *)entity));
+	return nh40_get_level((node40_t *)entity);
 }
 
 /* Returns node make stamp */
 static uint32_t node40_get_make_stamp(object_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL, return -1);
-	return nh40_get_mkfs_id(((node40_t *)entity));
+	return nh40_get_mkfs_id((node40_t *)entity);
 }
 
 /* Returns node make stamp */
 static void node40_set_make_stamp(object_entity_t *entity, uint32_t stamp) {
 	aal_assert("vpf-644", entity != NULL, return);
-	nh40_set_mkfs_id(((node40_t *)entity), stamp);
+	nh40_set_mkfs_id((node40_t *)entity, stamp);
 }
 
 /* Returns node flush stamp */
 static uint64_t node40_get_flush_stamp(object_entity_t *entity) {
 	aal_assert("vpf-645", entity != NULL, return -1);
-	return nh40_get_flush_id(((node40_t *)entity));
+	return nh40_get_flush_id((node40_t *)entity);
 }
 /* Returns node flush stamp */
 static void node40_set_flush_stamp(object_entity_t *entity, uint64_t stamp) {
 	aal_assert("vpf-643", entity != NULL, return);
-	nh40_set_flush_id(((node40_t *)entity), stamp);
+	nh40_set_flush_id((node40_t *)entity, stamp);
 }
 
 #ifndef ENABLE_COMPACT
@@ -1082,7 +1111,7 @@ static errno_t node40_merge(node40_t *src_node,
 			hint->pos.item = hint->flags & SF_LEFT ? dst_items - 1 : 0;
 	}
 
-	/* Shift code */
+	/* Shift code starting here */
 	if (hint->units == 0)
 		return 0;
 	
@@ -1587,62 +1616,59 @@ static reiser4_plugin_t node40_plugin = {
 			.label = "node40",
 			.desc = "Node for reiserfs 4.0, ver. " VERSION,
 		},
-		.open		= node40_open,
-		.close		= node40_close,
+		
+		.open		 = node40_open,
+		.close		 = node40_close,
 	
-		.confirm	= node40_confirm,
-		.valid		= node40_valid,
+		.confirm	 = node40_confirm,
+		.valid		 = node40_valid,
 	
-		.lookup		= node40_lookup,
-		.items		= node40_items,
+		.lookup		 = node40_lookup,
+		.items		 = node40_items,
 	
-		.overhead	= node40_overhead,
-		.maxspace	= node40_maxspace,
-		.space		= node40_space,
-		.pid		= node40_pid,
+		.overhead	 = node40_overhead,
+		.maxspace	 = node40_maxspace,
+		.space		 = node40_space,
 	
-		.get_key	= node40_get_key,
-		.level		= node40_level,
-		.get_make_stamp	= node40_get_make_stamp,
-		.get_flush_stamp= node40_get_flush_stamp,
+		.get_key	 = node40_get_key,
+		.level		 = node40_level,
+		
+		.get_make_stamp	 = node40_get_make_stamp,
+		.get_flush_stamp = node40_get_flush_stamp,
 	
 #ifndef ENABLE_COMPACT
-		.create		= node40_create,
-		.sync           = node40_sync,
-		.insert		= node40_insert,
-		.remove		= node40_remove,
-		.delete         = node40_delete,
-		.paste		= node40_paste,
-		.cut		= node40_cut,
-		.check		= node40_check,
-		.print		= node40_print,
-		.shift		= node40_shift,
+		.create		 = node40_create,
+		.sync            = node40_sync,
+		.insert		 = node40_insert,
+		.remove		 = node40_remove,
+		.cut             = node40_cut,
+		.check		 = node40_check,
+		.print		 = node40_print,
+		.shift		 = node40_shift,
 
-		.set_key	= node40_set_key,
-		.set_make_stamp	= node40_set_make_stamp,
-		.set_flush_stamp= node40_set_flush_stamp,
+		.set_key	 = node40_set_key,
+		.set_make_stamp	 = node40_set_make_stamp,
+		.set_flush_stamp = node40_set_flush_stamp,
 	
-		.item_legal	= node40_item_legal,
+		.item_legal	 = node40_item_legal,
 #else
-		.create		= NULL,
-		.sync           = NULL,
-		.insert		= NULL,
-		.remove		= NULL,
-		.delete         = NULL,
-		.paste		= NULL,
-		.cut		= NULL,
-		.check		= NULL,
-		.print		= NULL,
-		.shift		= NULL,
+		.create		 = NULL,
+		.sync            = NULL,
+		.insert		 = NULL,
+		.remove		 = NULL,
+		.cut             = NULL,
+		.check		 = NULL,
+		.print		 = NULL,
+		.shift		 = NULL,
 	
-		.set_key	= NULL,
-		.set_stamp	= NULL,
+		.set_key	 = NULL,
+		.set_stamp	 = NULL,
 	
-		.item_legal	= NULL,
+		.item_legal	 = NULL,
 #endif
-		.item_len	= node40_item_len,
-		.item_body	= node40_item_body,
-		.item_pid	= node40_item_pid
+		.item_len	 = node40_item_len,
+		.item_body	 = node40_item_body,
+		.item_pid	 = node40_item_pid
 	}
 };
 

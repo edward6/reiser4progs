@@ -1148,7 +1148,7 @@ errno_t reiser4_tree_pack(reiser4_tree_t *tree,
   Cuts some amount of items or units from the tree. Updates internal keys and
   children list.
 */
-errno_t reiser4_tree_delete(
+errno_t reiser4_tree_cut(
 	reiser4_tree_t *tree,     /* tree for working with */
 	reiser4_coord_t *start,   /* coord of the start */
 	reiser4_coord_t *end)     /* coord of the end */
@@ -1207,7 +1207,7 @@ errno_t reiser4_tree_delete(
 		/* Removing items/units from the start node */
 		pos.item = reiser4_node_items(start->node);
 			
-		if (reiser4_node_delete(start->node, &start->pos, &pos))
+		if (reiser4_node_cut(start->node, &start->pos, &pos))
 			return -1;
 		
 		if (reiser4_node_items(start->node) > 0) {
@@ -1222,7 +1222,7 @@ errno_t reiser4_tree_delete(
 		/* Removing from the end node */
 		pos.item = 0;
 		
-		if (reiser4_node_delete(end->node, &pos, &end->pos))
+		if (reiser4_node_cut(end->node, &pos, &end->pos))
 			return -1;
 
 		if (reiser4_node_items(end->node) > 0) {
@@ -1235,7 +1235,7 @@ errno_t reiser4_tree_delete(
 		}
 
 	} else {
-		if (reiser4_node_delete(start->node, &start->pos, &end->pos))
+		if (reiser4_node_cut(start->node, &start->pos, &end->pos))
 			return -1;
 
 		if (reiser4_node_items(start->node) > 0) {

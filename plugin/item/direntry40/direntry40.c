@@ -777,35 +777,6 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	return (remove + headers);
 }
 
-/* Removes @count entries at @pos from passed @item */
-static int32_t direntry40_remove(item_entity_t *item,
-				 uint32_t pos,
-				 uint32_t count)
-{
-	uint32_t len;
-	direntry40_t *direntry;
-    
-	aal_assert("umka-934", item != NULL, return -1);
-
-	if (!(direntry = direntry40_body(item)))
-		return -1;
-
-	/* Shrinking direntry */
-	if ((len = direntry40_shrink(item, pos, count)) <= 0) {
-		aal_exception_error("Can't shrink direntry at pos "
-				    "%u by %u entries.", pos, count);
-		return -1;
-	}
-
-	/* Updating item key */
-	if (pos == 0 && de40_get_count(direntry) > 0) {
-		if (direntry40_get_key(item, 0, &item->key))
-			return -1;
-	}
-
-	return len;
-}
-
 /* Prepares direntry40 for insert new entries */
 static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 				 uint32_t count, uint32_t len)
@@ -994,6 +965,35 @@ static errno_t direntry40_insert(item_entity_t *item,
 	}
     
 	return 0;
+}
+
+/* Removes @count entries at @pos from passed @item */
+static int32_t direntry40_remove(item_entity_t *item,
+				 uint32_t pos,
+				 uint32_t count)
+{
+	uint32_t len;
+	direntry40_t *direntry;
+    
+	aal_assert("umka-934", item != NULL, return -1);
+
+	if (!(direntry = direntry40_body(item)))
+		return -1;
+
+	/* Shrinking direntry */
+	if ((len = direntry40_shrink(item, pos, count)) <= 0) {
+		aal_exception_error("Can't shrink direntry at pos "
+				    "%u by %u entries.", pos, count);
+		return -1;
+	}
+
+	/* Updating item key */
+	if (pos == 0 && de40_get_count(direntry) > 0) {
+		if (direntry40_get_key(item, 0, &item->key))
+			return -1;
+	}
+
+	return len;
 }
 
 /* Prepares area new item will be created at */
@@ -1216,7 +1216,6 @@ static reiser4_plugin_t direntry40_plugin = {
 		.init		= direntry40_init,
 		.insert		= direntry40_insert,
 		.remove		= direntry40_remove,
-		.shrink		= direntry40_shrink,
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
 		.print		= direntry40_print,
@@ -1230,7 +1229,6 @@ static reiser4_plugin_t direntry40_plugin = {
 		.estimate	= NULL,
 		.insert		= NULL,
 		.remove		= NULL,
-		.shrink		= NULL,
 		.check		= NULL,
 		.print		= NULL,
 		.mergeable      = NULL,

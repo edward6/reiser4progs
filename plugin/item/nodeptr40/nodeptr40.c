@@ -182,7 +182,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.print		= NULL,
 		.layout         = NULL,
 #endif
-		.shrink         = NULL,
 		.belongs        = NULL,
 		.lookup		= NULL,
 		.valid		= NULL,

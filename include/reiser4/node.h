@@ -49,9 +49,9 @@ extern errno_t reiser4_node_write(reiser4_node_t *dst_node,
 				  reiser4_pos_t *src_pos,
 				  uint32_t count);
 
-extern errno_t reiser4_node_delete(reiser4_node_t *node,
-				   reiser4_pos_t *start,
-				   reiser4_pos_t *end);
+extern errno_t reiser4_node_cut(reiser4_node_t *node,
+				reiser4_pos_t *start,
+				reiser4_pos_t *end);
 
 extern errno_t reiser4_node_shift(reiser4_node_t *node,
 				  reiser4_node_t *neig,

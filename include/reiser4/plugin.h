@@ -646,9 +646,6 @@ struct reiser4_item_ops {
 	int32_t (*remove) (item_entity_t *, uint32_t,
 			   uint32_t);
 
-	/* Shrinks item at @pos by @count */
-	int32_t (*shrink) (item_entity_t *, uint32_t, uint32_t);
-	
 	/* Inserts unit described by passed hint into the item */
 	errno_t (*insert) (item_entity_t *, void *, uint32_t);
 	
@@ -779,9 +776,6 @@ struct reiser4_node_ops {
 	/* Returns free space in the node */
 	uint16_t (*space) (object_entity_t *);
 
-	/* Gets node's plugin id */
-	uint16_t (*pid) (object_entity_t *);
-    
 	/* 
 	   Makes lookup inside node by specified key. Returns TRUE in the case
 	   exact match was found and FALSE otherwise.
@@ -797,16 +791,9 @@ struct reiser4_node_ops {
 	errno_t (*remove) (object_entity_t *, reiser4_pos_t *);
     
 	/* Removes some amount of items/units */
-	errno_t (*delete) (object_entity_t *, reiser4_pos_t *,
-			   reiser4_pos_t *);
+	errno_t (*cut) (object_entity_t *, reiser4_pos_t *,
+			reiser4_pos_t *);
 	
-	/* Pastes units at specified pos */
-	errno_t (*paste) (object_entity_t *, reiser4_pos_t *, 
-			  reiser4_item_hint_t *);
-    
-	/* Removes unit at specified pos */
-	errno_t (*cut) (object_entity_t *, reiser4_pos_t *);
-    
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (object_entity_t *, reiser4_pos_t *, 
 			    key_entity_t *);

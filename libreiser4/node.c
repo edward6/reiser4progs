@@ -1057,15 +1057,9 @@ errno_t reiser4_node_insert(
 	   Inserting new item or passting unit into one existent item pointed by
 	   pos->item.
 	*/
-	if (pos->unit == ~0ul) {
-		if ((ret = plugin_call(node->entity->plugin->node_ops, 
-				       insert, node->entity, pos, hint)) != 0)
-			return ret;
-	} else {
-		if ((ret = plugin_call(node->entity->plugin->node_ops, 
-				       paste, node->entity, pos, hint)) != 0)
-			return ret;
-	}
+	if ((ret = plugin_call(node->entity->plugin->node_ops, 
+			       insert, node->entity, pos, hint)) != 0)
+		return ret;
 	
 	/* Updating ldkey in parent node */
 	if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
@@ -1092,7 +1086,7 @@ errno_t reiser4_node_write(
 }
 
 /* Removes some amount of item/units */
-errno_t reiser4_node_delete(
+errno_t reiser4_node_cut(
 	reiser4_node_t *node,	            /* node item will be removed from */
 	reiser4_pos_t *start,		    /* start item will be removed at */
 	reiser4_pos_t *end)		    /* end item will be removed at */
@@ -1101,7 +1095,7 @@ errno_t reiser4_node_delete(
 	aal_assert("umka-1786", start != NULL, return -1);
 	aal_assert("umka-1787", end != NULL, return -1);
 	
-	return plugin_call(node->entity->plugin->node_ops, delete,
+	return plugin_call(node->entity->plugin->node_ops, cut,
 			   node->entity, start, end);
 }
 
@@ -1154,23 +1148,8 @@ errno_t reiser4_node_remove(
 	  Removing item or unit. We assume that we are going to remove unit if
 	  unit component is setted up.
 	*/
-	if (pos->unit == ~0ul) {
-		return plugin_call(node->entity->plugin->node_ops, 
-				   remove, node->entity, pos);
-	} else {
-
-		/*
-		  In the case we remove the last unit from an item, we should
-		  also remove item itself.
-		*/
-		if (reiser4_item_units(&coord) > 1) {
-			return plugin_call(node->entity->plugin->node_ops, 
-					   cut, node->entity, pos);
-		} else {
-			return plugin_call(node->entity->plugin->node_ops, 
-					   remove, node->entity, pos);
-		}
-	}
+	if (plugin_call(node->entity->plugin->node_ops, remove, node->entity, pos))
+		return -1;
 
 	/* Updating left deleimiting key in all parent nodes */
 	if (update && node->parent) {

@@ -39,8 +39,8 @@ extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *coord,
 extern errno_t reiser4_tree_write(reiser4_tree_t *tree, reiser4_coord_t *dst,
 				  reiser4_coord_t *src, uint32_t count);
 
-extern errno_t reiser4_tree_delete(reiser4_tree_t *tree, reiser4_coord_t *start,
-				   reiser4_coord_t *end);
+extern errno_t reiser4_tree_cut(reiser4_tree_t *tree, reiser4_coord_t *start,
+				reiser4_coord_t *end);
 
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_coord_t *coord);
 
