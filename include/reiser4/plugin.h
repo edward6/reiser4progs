@@ -425,6 +425,7 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
+#if 0
 /* Merge hint. It is used in merging two items in repair code. Merge is process
    of fusing two items, which are overlapped by keys. */
 struct merge_hint {	
@@ -447,6 +448,7 @@ struct merge_hint {
 };
 
 typedef struct merge_hint merge_hint_t;
+#endif
 
 /* Different hints used for getting data to/from corresponding objects. */
 struct ptr_hint {    
@@ -599,7 +601,7 @@ struct trans_hint {
 	   insert directory item and tree should know how much space should be
 	   prepared in the tree (ohd + len), but we don't need overhead for
 	   updating stat data bytes field. Set by estimate. */
-	uint32_t ohd;
+	uint32_t overhead;
 	
 	/* Length of the data to be inserted/removed. Set by estimate. */
 	int32_t len;
@@ -622,6 +624,12 @@ struct trans_hint {
 	/* Max real key. Needed for extents only. Set by estimate. */
 	key_entity_t maxkey;
 
+	/* Flags specific for the operation, set at prepare stage. */
+	uint16_t flags;
+	
+	/* Count of handled blocks in the first and the last extent unit. */
+	uint64_t head, tail;
+	
 	/* Plugin to be used for working with item */
 	reiser4_plug_t *plug;
 
@@ -882,10 +890,11 @@ struct item_balance_ops {
 
 	/* Set the key of a particular unit of the item. */
 	errno_t (*update_key) (place_t *, key_entity_t *);
-		
+	
 	/* Get the max real key which is stored in the item. */
 	errno_t (*maxreal_key) (place_t *, key_entity_t *);
 #endif
+
 	/* Get the key of a particular unit of the item. */
 	errno_t (*fetch_key) (place_t *, key_entity_t *);
 
@@ -944,11 +953,11 @@ typedef struct item_object_ops item_object_ops_t;
 struct item_repair_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Estimate merge operation. */
-	errno_t (*prep_merge) (place_t *, place_t *, merge_hint_t *);
+	errno_t (*prep_merge) (place_t *, trans_hint_t *);
 
 	/* Copies some amount of units from @src to @dst with partial
 	   overwritting. */
-	errno_t (*merge_units) (place_t *, place_t *, merge_hint_t *);
+	errno_t (*merge) (place_t *, trans_hint_t *);
 
 	/* Checks the item structure. */
 	errno_t (*check_struct) (place_t *, uint8_t);
@@ -1078,8 +1087,7 @@ struct reiser4_node_ops {
 	/* Merge 2 items -- insert/overwrite @src_entity parts to
 	   @dst_entity. */
 	errno_t (*merge) (node_entity_t *, pos_t *, 
-			  node_entity_t *, pos_t *, 
-			  merge_hint_t *);
+			  trans_hint_t *);
 
 	/* Copies items from @src_entity to @dst_entity. */
 	errno_t (*copy) (node_entity_t *, pos_t *,
