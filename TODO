@@ -3,9 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* should we split reiser4_fs_create and reiser4_fs_open onto separate
-  functions?
-
 * shift method for item plugins.
 
 * --print-journal and --print-alloc options in debugfs.

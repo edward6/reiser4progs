@@ -342,8 +342,8 @@ int main(int argc, char *argv[]) {
 		aal_gauge_start(gauge);
 
 		/* Creating filesystem */
-		if (!(fs = reiser4_fs_create(profile, device, uuid, label,
-					     fs_len, device, NULL))) 
+		if (!(fs = reiser4_fs_create(device, uuid, label, fs_len,
+					     profile, device, NULL))) 
 		{
 			aal_exception_error("Can't create filesystem on %s.", 
 					    aal_device_name(device));

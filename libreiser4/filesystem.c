@@ -217,11 +217,10 @@ errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 
 /* Creates filesystem on specified host and journal devices */
 reiser4_fs_t *reiser4_fs_create(
-	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
 	aal_device_t *host_device,	/* device filesystem will be lie on */
-	char *uuid,		        /* uuid to be used */
-	char *label,		        /* label to be used */
+	char *uuid, char *label,        /* uuid and label to be used */
 	count_t len,		        /* filesystem length in blocks */
+	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
 	aal_device_t *journal_device,   /* device journal will be lie on */
 	void *journal_hint)	        /* journal params (most probably will be used for r3) */
 {

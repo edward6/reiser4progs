@@ -1486,7 +1486,7 @@ static errno_t node40_shift(object_entity_t *entity,
 	if (node40_shift_units(src_node, dst_node, hint))
 		return -1;
 
-	if (hint->flags & SF_MOVIP && node40_items(neighb) == 0)
+	if (hint->flags & SF_MOVIP && hint->units == 0 && hint->create)
 		hint->pos.unit = ~0ul;
 
 	/* Updating shift hint by merging results. */
