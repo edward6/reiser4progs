@@ -38,7 +38,6 @@ int main(int argc, char *argv[]) {
 	aal_device_t *device;
 
 	reiser4_file_t *reg;
-	reiser4_entry_hint_t entry;
 
 #ifndef ENABLE_COMPACT    
     
