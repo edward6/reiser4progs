@@ -229,11 +229,10 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		
 		blksize = reiser4_master_blksize(tree->fs->master);
 
-		if (!parent) {
-			pid = tree->fs->key == LARGE ? NODE_LARGE_ID :
-				NODE_SHORT_ID;
-		} else {
+		if (parent) {
 			pid = parent->entity->plugin->id.id;
+		} else {
+			pid = reiser4_format_node_pid(tree->fs->format);
 		}
 		
 		/* Node is not loaded yet. Loading it and connecting to @parent
@@ -405,10 +404,9 @@ reiser4_node_t *reiser4_tree_alloc(
 		reiser4_tree_adjust(tree, tree->root, 1);
 	
 	reiser4_format_set_free(tree->fs->format, free - 1);
+
 	blocksize = reiser4_master_blksize(tree->fs->master);
-	
-	pid = tree->fs->key == LARGE ? NODE_LARGE_ID :
-		NODE_SHORT_ID;
+	pid = reiser4_profile_value(tree->fs->profile, "node");
     
 	/* Creating new node */
 	if (!(node = reiser4_node_init(tree->fs->device, blocksize,
@@ -476,9 +474,7 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	aal_assert("umka-1091", tree->fs != NULL);
 	aal_assert("umka-1092", tree->fs->oid != NULL);
 
-	/* FIXME-UMKA: This probably should be moved to profile or somewhere
-	   else. But profile is not available in stand alone mode. */
-	pid = (tree->fs->key == LARGE) ? KEY_LARGE_ID : KEY_SHORT_ID;
+	pid = reiser4_format_key_pid(tree->fs->format);
 
 	/* Finding needed key plugin by its identifier */
 	if (!(tree->key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE,
@@ -756,7 +752,6 @@ bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
 
 	return (reiser4_format_get_root(tree->fs->format) == INVAL_BLK);
 }
-
 #endif
 
 /* Unloads all tree nodes */
@@ -953,11 +948,10 @@ errno_t reiser4_tree_attach(
 	hint.type_specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);
-
 	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
 
-	if (!(hint.plugin = libreiser4_factory_ifind(
-		      ITEM_PLUGIN_TYPE, pid)))
+	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE,
+						     pid)))
 	{
 		aal_exception_error("Can't find item plugin by "
 				    "its id 0x%x.", pid);
@@ -967,12 +961,19 @@ errno_t reiser4_tree_attach(
 	level = reiser4_node_get_level(node) + 1;
 
 	/* Looking up for the insert point place */
-	if ((res = reiser4_tree_lookup(tree, &hint.key, level,
-				       &place)) != ABSENT)
+	switch ((res = reiser4_tree_lookup(tree, &hint.key,
+					   level, &place)))
 	{
+	case ABSENT:
 		aal_exception_error("Can't attach node. Key already "
 				    "exists in tree.");
 		return -EINVAL;
+	case FAILED:
+		aal_exception_error("Lookup is failed durring attach "
+				    "new node.");
+		return -EINVAL;
+	defaul:
+		break;
 	}
 
 	/* Inserting node pointer into tree */
@@ -982,8 +983,7 @@ errno_t reiser4_tree_attach(
 		return res;
 	}
 
-	/* Attaching node to insert point node. We should attach formatted nodes
-	   only. */
+	/* Attaching node to insert point node. */
 	if ((res = reiser4_tree_connect(tree, place.node, node))) {
 		aal_exception_error("Can't attach the node %llu to "
 				    "the tree.", node->number);
@@ -1475,7 +1475,7 @@ errno_t reiser4_tree_insert(
 	/* Checking if tree is fresh one, thus, it does not have the root
 	   node. If so, we allocate new node of the requested level, insert
 	   item/unit into it and then attach it into the empty tree by means of
-	   using reiser4_tree_attach function. This function will take care
+	   using reiser4_tree_attach() function. This function will take care
 	   about another things which should be done for keeping reiser4 tree in
 	   tact and namely alloate new root and insert one nodeptr item into
 	   it. */

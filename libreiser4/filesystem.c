@@ -378,7 +378,9 @@ errno_t reiser4_fs_sync(
 }
 
 /* Returns the key of the fake root parent */
-errno_t reiser4_fs_root_key(reiser4_fs_t *fs, reiser4_key_t *key) {
+errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
+			    reiser4_key_t *key)
+{
 	oid_t locality;
 	oid_t objectid;
 	
@@ -396,5 +398,4 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	return reiser4_key_build_gener(key, KEY_STATDATA_TYPE,
 				       locality, 0, objectid, 0);
 }
-
 #endif

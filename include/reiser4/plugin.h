@@ -1353,7 +1353,7 @@ struct factory_ops {
 
 typedef struct factory_ops factory_ops_t;
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 struct object_ops {
 	errno_t (*resolve) (void *, place_t *, char *,
 			    key_entity_t *, key_entity_t *);
@@ -1368,7 +1368,7 @@ struct reiser4_core {
 	tree_ops_t tree_ops;
 	
 	factory_ops_t factory_ops;
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 	object_ops_t object_ops;
 #endif
 };

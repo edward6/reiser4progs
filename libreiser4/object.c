@@ -805,9 +805,9 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 				     reiser4_object_t *parent,
 				     reiser4_profile_t *profile)
 {
-	reiser4_object_t *object;
-	object_hint_t hint;
 	rid_t regular;
+	object_hint_t hint;
+	reiser4_object_t *object;
 	
 	aal_assert("vpf-1054", fs != NULL);
 	aal_assert("vpf-1055", name != NULL || parent == NULL);

@@ -56,7 +56,7 @@ extern errno_t obj40_fini(obj40_t *obj);
 extern errno_t obj40_read_lw(item_entity_t *item,
 			     sdext_lw_hint_t *lw_hint);
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 extern errno_t obj40_get_sym(obj40_t *obj, char *data);
 #endif
 
