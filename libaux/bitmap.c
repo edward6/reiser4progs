@@ -29,7 +29,7 @@ void aux_bitmap_mark(
 	aux_bitmap_t *bitmap,	    /* bitmap instance passed bit will be marked in */
 	uint64_t bit)		    /* bit to be marked */
 {
-	aal_assert("umka-336", bitmap != NULL, return);
+	aal_assert("umka-336", bitmap != NULL);
 
 	aux_bitmap_bound_check(bitmap, bit, return);
 	
@@ -48,7 +48,7 @@ void aux_bitmap_clear(
 	aux_bitmap_t *bitmap,	    /* bitmap, passed blk will be marked in */
 	uint64_t bit)		    /* bit to be cleared */
 {
-	aal_assert("umka-337", bitmap != NULL, return);
+	aal_assert("umka-337", bitmap != NULL);
 	aux_bitmap_bound_check(bitmap, bit, return);
 	
 	if (!aal_test_bit(bitmap->map, bit))
@@ -60,7 +60,7 @@ void aux_bitmap_clear(
 
 /* Mark all bits, set marked block counter to total. */
 void aux_bitmap_mark_all(aux_bitmap_t *bitmap) {
-	aal_assert("vpf-572", bitmap != NULL, return);
+	aal_assert("vpf-572", bitmap != NULL);
 
 	aal_memset(bitmap->map, 0xff, bitmap->size);
 	bitmap->marked = bitmap->total;
@@ -68,7 +68,7 @@ void aux_bitmap_mark_all(aux_bitmap_t *bitmap) {
 
 /* Clear all bits, set marked block counter to 0. */
 void aux_bitmap_clear_all(aux_bitmap_t *bitmap) {
-	aal_assert("vpf-573", bitmap != NULL, return);
+	aal_assert("vpf-573", bitmap != NULL);
 
 	aal_memset(bitmap->map, 0, bitmap->size);
 	bitmap->marked = 0;
@@ -82,7 +82,7 @@ int aux_bitmap_test(
 	aux_bitmap_t *bitmap,	    /* bitmap, passed blk will be tested */
 	uint64_t bit)		    /* bit to be tested */
 {
-	aal_assert("umka-338", bitmap != NULL, return 0);
+	aal_assert("umka-338", bitmap != NULL);
 	
 	aux_bitmap_bound_check(bitmap, bit, return 0);
 	return aal_test_bit(bitmap->map, bit);
@@ -97,7 +97,7 @@ void aux_bitmap_mark_region(
 	uint64_t start,		    /* start bit of the region */
 	uint64_t count)		    /* bit count to be marked */
 {
-	aal_assert("vpf-472", bitmap != NULL, return);
+	aal_assert("vpf-472", bitmap != NULL);
 
 	aux_bitmap_bound_check(bitmap, start, return);
 	aux_bitmap_bound_check(bitmap, start + count - 1, return);
@@ -115,7 +115,7 @@ void aux_bitmap_clear_region(
 	uint64_t start,		    /* start bit of the range */
 	uint64_t count)		    /* bit count to be clean */
 {
-	aal_assert("vpf-473", bitmap != NULL, return);
+	aal_assert("vpf-473", bitmap != NULL);
 
 	aux_bitmap_bound_check(bitmap, start, return);
 	aux_bitmap_bound_check(bitmap, start + count - 1, return);
@@ -132,7 +132,7 @@ bool_t aux_bitmap_test_region_marked(
 {
 	blk_t next;
 	
-	aal_assert("vpf-474", bitmap != NULL, return FALSE);
+	aal_assert("vpf-474", bitmap != NULL);
 	
 	aux_bitmap_bound_check(bitmap, start, return FALSE);
 	aux_bitmap_bound_check(bitmap, start + count - 1, return FALSE);
@@ -152,7 +152,7 @@ uint64_t aux_bitmap_find_cleared(
 {
 	uint64_t bit;
 	
-	aal_assert("umka-339", bitmap != NULL, return INVAL_BLK);
+	aal_assert("umka-339", bitmap != NULL);
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 
 	bit = aal_find_next_zero_bit(bitmap->map,
@@ -171,9 +171,9 @@ uint64_t aux_bitmap_find_marked(
 {
 	uint64_t bit;
 	
-	aal_assert("vpf-457", bitmap != NULL, return INVAL_BLK);
-	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
+	aal_assert("vpf-457", bitmap != NULL);
 
+	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 	bit = aal_find_next_set_bit(bitmap->map, bitmap->total, start);
 
 	if (bit >= bitmap->total)
@@ -193,8 +193,8 @@ bool_t aux_bitmap_test_region_cleared(
 {
 	blk_t next;
 	
-	aal_assert("vpf-471", bitmap != NULL, return FALSE);
-	aal_assert("vpf-728", count > 0, return FALSE);
+	aal_assert("vpf-471", bitmap != NULL);
+	aal_assert("vpf-728", count > 0);
 	
 	aux_bitmap_bound_check(bitmap, start, return FALSE);
 	aux_bitmap_bound_check(bitmap, start + count - 1, return FALSE);
@@ -213,7 +213,7 @@ uint64_t aux_bitmap_find_region_cleared(
 	uint64_t *start,	    /* start of clean region will be stored */
 	uint64_t count)             /* blocks requested */
 {
-	aal_assert("umka-1772", bitmap != NULL, return -1);
+	aal_assert("umka-1772", bitmap != NULL);
 
 	return aal_find_zero_bits(bitmap->map, bitmap->total,
 				  start, count);
@@ -224,7 +224,7 @@ uint64_t aux_bitmap_find_region_marked(
 	uint64_t *start,	    /* start of clean region will be stored */
 	uint64_t count)             /* blocks requested */
 {
-	aal_assert("umka-1773", bitmap != NULL, return -1);
+	aal_assert("umka-1773", bitmap != NULL);
 
 	return aal_find_set_bits(bitmap->map, bitmap->total,
 				 start, count);
@@ -244,7 +244,7 @@ static uint64_t aux_bitmap_calc(
 {
 	uint64_t i, bits = 0;
 	
-	aal_assert("umka-340", bitmap != NULL, return INVAL_BLK);
+	aal_assert("umka-340", bitmap != NULL);
 	
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 	aux_bitmap_bound_check(bitmap, start + count - 1, return INVAL_BLK);
@@ -295,7 +295,7 @@ uint64_t aux_bitmap_calc_cleared(
 uint64_t aux_bitmap_marked(
 	aux_bitmap_t *bitmap)	/* bitmap marked block number will be obtained from */
 {
-	aal_assert("umka-343", bitmap != NULL, return INVAL_BLK);
+	aal_assert("umka-343", bitmap != NULL);
 	return bitmap->marked;
 }
 
@@ -303,7 +303,7 @@ uint64_t aux_bitmap_marked(
 uint64_t aux_bitmap_cleared(
 	aux_bitmap_t *bitmap)	/* bitmap unsuded blocks will be obtained from */
 {
-	aal_assert("umka-344", bitmap != NULL, return INVAL_BLK);
+	aal_assert("umka-344", bitmap != NULL);
 	return bitmap->total - bitmap->marked;
 }
 
@@ -334,7 +334,7 @@ aux_bitmap_t *aux_bitmap_clone(
 {
 	aux_bitmap_t *clone;
 
-	aal_assert("umka-358", bitmap != NULL, return NULL);
+	aal_assert("umka-358", bitmap != NULL);
 
 	if (!(clone = aux_bitmap_create(bitmap->total)))
 		return NULL;
@@ -349,8 +349,8 @@ aux_bitmap_t *aux_bitmap_clone(
 void aux_bitmap_close(
 	aux_bitmap_t *bitmap)	    /* bitmap to be closed */
 {
-	aal_assert("umka-354", bitmap != NULL, return);
-	aal_assert("umka-1082", bitmap->map != NULL, return);
+	aal_assert("umka-354", bitmap != NULL);
+	aal_assert("umka-1082", bitmap->map != NULL);
 	
 	aal_free(bitmap->map);
 	aal_free(bitmap);
@@ -360,6 +360,6 @@ void aux_bitmap_close(
 char *aux_bitmap_map(
 	aux_bitmap_t *bitmap)	    /* bitmap, the bit array will be obtained from */
 {
-	aal_assert("umka-356", bitmap != NULL, return NULL);
+	aal_assert("umka-356", bitmap != NULL);
 	return bitmap->map;
 }

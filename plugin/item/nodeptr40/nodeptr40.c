@@ -24,8 +24,8 @@ static int32_t nodeptr40_read(item_entity_t *item, void *buff,
 	nodeptr40_t *nodeptr;
 	reiser4_ptr_hint_t *ptr_hint;
 		
-	aal_assert("umka-1419", item != NULL, return -1);
-	aal_assert("umka-1420", buff != NULL, return -1);
+	aal_assert("umka-1419", item != NULL);
+	aal_assert("umka-1420", buff != NULL);
 
 	nodeptr = nodeptr40_body(item);
 	ptr_hint = (reiser4_ptr_hint_t *)buff;
@@ -51,8 +51,8 @@ static int32_t nodeptr40_write(item_entity_t *item, void *buff,
 	reiser4_item_hint_t *hint;
 	reiser4_ptr_hint_t *ptr_hint;
 		
-	aal_assert("umka-1423", item != NULL, return -1);
-	aal_assert("umka-1424", buff != NULL, return -1);
+	aal_assert("umka-1423", item != NULL);
+	aal_assert("umka-1424", buff != NULL);
 
 	nodeptr = nodeptr40_body(item);
 	
@@ -66,7 +66,7 @@ static int32_t nodeptr40_write(item_entity_t *item, void *buff,
 
 /* Initializes the area nodeptr will lie in */
 static errno_t nodeptr40_init(item_entity_t *item) {
-	aal_assert("umka-1671", item != NULL, return -1);
+	aal_assert("umka-1671", item != NULL);
 	
 	aal_memset(item->body, 0, item->len);
 	return 0;
@@ -78,7 +78,7 @@ static errno_t nodeptr40_estimate(item_entity_t *item, void *buff,
 {
 	reiser4_item_hint_t *hint;
 	
-	aal_assert("vpf-068", buff != NULL, return -1);
+	aal_assert("vpf-068", buff != NULL);
     
 	hint = (reiser4_item_hint_t *)buff;
 	hint->len = sizeof(nodeptr40_t);
@@ -93,8 +93,8 @@ static errno_t nodeptr40_print(item_entity_t *item,
 {
 	nodeptr40_t *nodeptr;
 	
-	aal_assert("umka-544", item != NULL, return -1);
-	aal_assert("umka-545", stream != NULL, return -1);
+	aal_assert("umka-544", item != NULL);
+	aal_assert("umka-545", stream != NULL);
     
 	nodeptr = nodeptr40_body(item);
 
@@ -123,9 +123,9 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 	errno_t res;
 	nodeptr40_t *nodeptr;
 	
-	aal_assert("umka-1749", item != NULL, return -1);
-	aal_assert("vpf-718",   item->body != NULL, return -1);
-	aal_assert("umka-1750", func != NULL, return -1);
+	aal_assert("umka-1749", item != NULL);
+	aal_assert("umka-1750", func != NULL);
+	aal_assert("vpf-718",   item->body != NULL);
 
 	if ((res = func(item, np40_get_ptr(nodeptr40_body(item)), 1, data)))
 		return res;

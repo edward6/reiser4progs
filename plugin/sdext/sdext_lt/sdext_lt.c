@@ -17,8 +17,8 @@ static errno_t sdext_lt_init(rbody_t *body,
 	sdext_lt_t *ext;
 	reiser4_sdext_lt_hint_t *sdext_lt;
     
-	aal_assert("umka-1475", body != NULL, return -1);
-	aal_assert("umka-1476", hint != NULL, return -1);
+	aal_assert("umka-1475", body != NULL);
+	aal_assert("umka-1476", hint != NULL);
 	
 	ext = (sdext_lt_t *)body;
 	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
@@ -36,8 +36,8 @@ static errno_t sdext_lt_open(rbody_t *body,
 	sdext_lt_t *ext;
 	reiser4_sdext_lt_hint_t *sdext_lt;
     
-	aal_assert("umka-1477", body != NULL, return -1);
-	aal_assert("umka-1478", hint != NULL, return -1);
+	aal_assert("umka-1477", body != NULL);
+	aal_assert("umka-1478", hint != NULL);
 
 	ext = (sdext_lt_t *)body;
 	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
@@ -60,8 +60,8 @@ static errno_t sdext_lt_print(rbody_t *body, aal_stream_t *stream,
 {
 	sdext_lt_t *ext;
 	
-	aal_assert("umka-1479", body != NULL, return -1);
-	aal_assert("umka-1480", stream != NULL, return -1);
+	aal_assert("umka-1479", body != NULL);
+	aal_assert("umka-1480", stream != NULL);
 
 	ext = (sdext_lt_t *)body;
 

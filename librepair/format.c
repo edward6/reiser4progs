@@ -22,8 +22,8 @@ static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile,
 {
     reiser4_plugin_t *plugin = NULL;
    
-    aal_assert("vpf-167", profile != NULL, return NULL);
-    aal_assert("vpf-169", host_device != NULL, return NULL);
+    aal_assert("vpf-167", profile != NULL);
+    aal_assert("vpf-169", host_device != NULL);
     
     if (!(plugin = reiser4_master_guess(host_device))) {
 	/* Format was not detected on the partition. */
@@ -61,9 +61,9 @@ static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile)
 {
     reiser4_plugin_t *plugin = NULL;
 
-    aal_assert("vpf-165", fs != NULL, return -1);
-    aal_assert("vpf-171", fs->device != NULL, return -1);
-    aal_assert("vpf-166", fs->format != NULL || profile != NULL, return -1);
+    aal_assert("vpf-165", fs != NULL);
+    aal_assert("vpf-171", fs->device != NULL);
+    aal_assert("vpf-166", fs->format != NULL || profile != NULL);
 
     if (fs->format == NULL) {
 	/* Format was not opened. */
@@ -96,7 +96,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile)
 }
 
 errno_t repair_format_open(reiser4_fs_t *fs, reiser4_profile_t *profile) {
-    aal_assert("vpf-398", fs != NULL, return -1);
+    aal_assert("vpf-398", fs != NULL);
 
     /* Try to open the disk format. */
     fs->format = reiser4_format_open(fs);
@@ -119,8 +119,8 @@ error_format_close:
 void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
     aal_stream_t stream;
 
-    aal_assert("vpf-245", fs != NULL, return);
-    aal_assert("vpf-175", fs->format != NULL, return);
+    aal_assert("vpf-245", fs != NULL);
+    aal_assert("vpf-175", fs->format != NULL);
 
     if (!file)
 	return;

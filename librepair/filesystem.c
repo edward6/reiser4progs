@@ -12,8 +12,8 @@
 errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *rd) {
     errno_t res;
 
-    aal_assert("vpf-180", fs != NULL, return -1);
-    aal_assert("vpf-493", rd != NULL, return -1);
+    aal_assert("vpf-180", fs != NULL);
+    aal_assert("vpf-493", rd != NULL);
 
     if ((res = repair_filter_pass(rd)))
 	return res;
@@ -36,8 +36,8 @@ reiser4_fs_t *repair_fs_open(aal_device_t *host_device,
     reiser4_fs_t *fs;
     void *oid_area_start, *oid_area_end;
 
-    aal_assert("vpf-159", host_device != NULL, return NULL);
-    aal_assert("vpf-172", profile != NULL, return NULL);
+    aal_assert("vpf-159", host_device != NULL);
+    aal_assert("vpf-172", profile != NULL);
  
     /* Allocating memory and initializing fields */
     if (!(fs = aal_calloc(sizeof(*fs), 0)))
@@ -83,7 +83,7 @@ error_fs_free:
 }
 
 errno_t repair_fs_sync(reiser4_fs_t *fs) {
-    aal_assert("vpf-173", fs != NULL, return -1);
+    aal_assert("vpf-173", fs != NULL);
     
     /* Synchronizing block allocator */
     if (reiser4_alloc_sync(fs->alloc))
@@ -110,7 +110,7 @@ errno_t repair_fs_sync(reiser4_fs_t *fs) {
     plugin and frees all assosiated memory. 
 */
 void repair_fs_close(reiser4_fs_t *fs) {
-    aal_assert("vpf-174", fs != NULL, return);
+    aal_assert("vpf-174", fs != NULL);
 
     reiser4_oid_close(fs->oid);
 

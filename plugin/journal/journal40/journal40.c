@@ -24,8 +24,8 @@ static errno_t journal40_layout(object_entity_t *entity,
 	blk_t blk;
 	journal40_t *journal;
 
-	aal_assert("umka-1040", entity != NULL, return -1);
-	aal_assert("umka-1041", func != NULL, return -1);
+	aal_assert("umka-1040", entity != NULL);
+	aal_assert("umka-1041", func != NULL);
     
 	journal = (journal40_t *)entity;
 	
@@ -43,17 +43,17 @@ static errno_t journal40_layout(object_entity_t *entity,
 }
 
 static errno_t journal40_hcheck(journal40_header_t *header) {
-	aal_assert("umka-515", header != NULL, return -1);
+	aal_assert("umka-515", header != NULL);
 	return 0;
 }
 
 static errno_t journal40_fcheck(journal40_footer_t *footer) {
-	aal_assert("umka-516", footer != NULL, return -1);
+	aal_assert("umka-516", footer != NULL);
 	return 0;
 }
 
 aal_device_t *journal40_device(object_entity_t *entity) {
-	aal_assert("vpf-455", entity != NULL, return NULL);
+	aal_assert("vpf-455", entity != NULL);
 	return ((journal40_t *)entity)->device;
 }
 
@@ -89,8 +89,8 @@ static object_entity_t *journal40_open(object_entity_t *format,
 {
 	journal40_t *journal;
 
-	aal_assert("umka-409", device != NULL, return NULL);
-	aal_assert("umka-1692", format != NULL, return NULL);
+	aal_assert("umka-409", device != NULL);
+	aal_assert("umka-1692", format != NULL);
     
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
@@ -120,7 +120,7 @@ static object_entity_t *journal40_open(object_entity_t *format,
 static errno_t journal40_valid(object_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
     
-	aal_assert("umka-965", journal != NULL, return -1);
+	aal_assert("umka-965", journal != NULL);
     
 	if (journal40_hcheck(journal->header->data))
 		return -1;
@@ -165,8 +165,8 @@ static object_entity_t *journal40_create(object_entity_t *format,
 {
 	journal40_t *journal;
     
-	aal_assert("umka-1057", device != NULL, return NULL);
-	aal_assert("umka-1691", format != NULL, return NULL);
+	aal_assert("umka-1057", device != NULL);
+	aal_assert("umka-1691", format != NULL);
     
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
@@ -221,7 +221,7 @@ static errno_t callback_sync_journal(object_entity_t *entity,
 static errno_t journal40_sync(object_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
 
-	aal_assert("umka-410", journal != NULL, return -1);
+	aal_assert("umka-410", journal != NULL);
     
 	if (journal40_layout(entity, callback_sync_journal, journal)) {
 		aal_exception_error("Can't load journal metadata.");
@@ -257,12 +257,12 @@ static errno_t journal40_update(journal40_t *journal) {
 	journal40_tx_header_t *tx_header;
 	uint64_t last_commited_tx, last_flushed_tx;
 
-	aal_assert("vpf-450", journal != NULL, return -1);
-	aal_assert("vpf-451", journal->footer != NULL, return -1);
-	aal_assert("vpf-452", journal->footer->data != NULL, return -1);
-	aal_assert("vpf-453", journal->header != NULL, return -1);
-	aal_assert("vpf-504", journal->header->data != NULL, return -1);
-	aal_assert("vpf-454", journal->device != NULL, return -1);
+	aal_assert("vpf-450", journal != NULL);
+	aal_assert("vpf-451", journal->footer != NULL);
+	aal_assert("vpf-452", journal->footer->data != NULL);
+	aal_assert("vpf-453", journal->header != NULL);
+	aal_assert("vpf-504", journal->header->data != NULL);
+	aal_assert("vpf-454", journal->device != NULL);
 
 	footer = (journal40_footer_t *)journal->footer->data;	
 	header = (journal40_header_t *)journal->header->data;
@@ -431,9 +431,9 @@ errno_t journal40_traverse(
 	journal40_header_t *jheader;
 	journal40_footer_t *jfooter;
     
-	aal_assert("vpf-448", journal != NULL, return -1);
-	aal_assert("vpf-487", journal->header != NULL, return -1);
-	aal_assert("vpf-488", journal->header->data != NULL, return -1);
+	aal_assert("vpf-448", journal != NULL);
+	aal_assert("vpf-487", journal->header != NULL);
+	aal_assert("vpf-488", journal->header->data != NULL);
 
 	jheader = (journal40_header_t *)journal->header->data;
 	jfooter = (journal40_footer_t *)journal->footer->data;
@@ -505,7 +505,7 @@ errno_t journal40_traverse(
 static errno_t journal40_replay(object_entity_t *entity) {
 	int trans_nr = 0;
     
-	aal_assert("umka-412", entity != NULL, return -1);
+	aal_assert("umka-412", entity != NULL);
 
 	if (journal40_traverse((journal40_t *)entity,
 			       callback_journal_handler, 
@@ -522,8 +522,8 @@ static errno_t journal40_print(object_entity_t *entity,
 			       aal_stream_t *stream, 
 			       uint16_t options)
 {
-	aal_assert("umka-1465", entity != NULL, return -1);
-	aal_assert("umka-1466", stream != NULL, return -1);
+	aal_assert("umka-1465", entity != NULL);
+	aal_assert("umka-1466", stream != NULL);
 
 	return 0;
 }
@@ -533,7 +533,7 @@ static errno_t journal40_print(object_entity_t *entity,
 static void journal40_close(object_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
     
-	aal_assert("umka-411", entity != NULL, return);
+	aal_assert("umka-411", entity != NULL);
 
 	aal_block_close(journal->header);
 	aal_block_close(journal->footer);

@@ -12,14 +12,14 @@ static errno_t callback_fs_check(void *layout, block_func_t func,
 {
     reiser4_fs_t *fs = (reiser4_fs_t *)layout;
     
-    aal_assert("vpf-737", fs != NULL, return -1);
+    aal_assert("vpf-737", fs != NULL);
 
     return reiser4_fs_layout(fs, func, data);
 }
 
 static errno_t repair_journal_check(reiser4_journal_t *journal) {
-    aal_assert("vpf-460", journal != NULL, return -1);
-    aal_assert("vpf-736", journal->fs != NULL, return -1);
+    aal_assert("vpf-460", journal != NULL);
+    aal_assert("vpf-736", journal->fs != NULL);
 
     if (plugin_call(journal->entity->plugin->journal_ops, check, 
 	journal->entity, callback_fs_check, journal->fs)) 
@@ -33,9 +33,9 @@ static errno_t repair_journal_check(reiser4_journal_t *journal) {
 }
 
 errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device) {
-    aal_assert("vpf-445", fs != NULL, return -1);
-    aal_assert("vpf-446", fs->format != NULL, return -1);
-    aal_assert("vpf-476", journal_device != NULL, return -1);
+    aal_assert("vpf-445", fs != NULL);
+    aal_assert("vpf-446", fs->format != NULL);
+    aal_assert("vpf-476", journal_device != NULL);
 
     /* Try to open the journal. */
     if ((fs->journal = reiser4_journal_open(fs, journal_device)) == NULL) {

@@ -119,8 +119,8 @@ static errno_t callback_check_format_block(object_entity_t *format, blk_t blk,
 static int journal40_blk_format_check(journal40_t *journal, blk_t blk, 
     journal40_check_t *data) 
 {
-    aal_assert("vpf-490", journal != NULL, return -1);
-    aal_assert("vpf-492", data != NULL, return -1);
+    aal_assert("vpf-490", journal != NULL);
+    aal_assert("vpf-492", data != NULL);
 
     /* blk is out of format bound */
     if (blk >= journal->area.start + journal->area.len || 
@@ -189,8 +189,8 @@ static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk,
     journal40_check_t *check_data = (journal40_check_t *)data;
     errno_t ret;
 
-    aal_assert("vpf-461", journal != NULL, return -1);
-    aal_assert("vpf-491", check_data != NULL, return -1);
+    aal_assert("vpf-461", journal != NULL);
+    aal_assert("vpf-491", check_data != NULL);
 
     check_data->flags = 1 << TF_DATA_AREA_ONLY;
     
@@ -222,10 +222,10 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
     journal40_check_t *check_data = (journal40_check_t *)data;
     errno_t ret;
 
-    aal_assert("vpf-461", journal != NULL, return -1);
-    aal_assert("vpf-491", check_data != NULL, return -1);
-    aal_assert("vpf-506", txh_block != NULL, return -1);
-    aal_assert("vpf-507", txh_block->device != NULL, return -1);    
+    aal_assert("vpf-461", journal != NULL);
+    aal_assert("vpf-491", check_data != NULL);
+    aal_assert("vpf-506", txh_block != NULL);
+    aal_assert("vpf-507", txh_block->device != NULL);
 
     /* If we start working with a new trans, zero the current trans bitmap. */
     if (check_data->cur_txh != aal_block_number(txh_block)) {
@@ -386,8 +386,8 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
     journal40_check_t data;
     journal40_t *journal = (journal40_t *)entity;
     
-    aal_assert("vpf-447", journal != NULL, return -1);
-    aal_assert("vpf-733", fs_layout != NULL, return -1);
+    aal_assert("vpf-447", journal != NULL);
+    aal_assert("vpf-733", fs_layout != NULL);
 
     aal_memset(&data, 0, sizeof(data));
     

@@ -297,9 +297,9 @@ static int fsck_rollback() {
 static errno_t fsck_data_prepare(repair_data_t *rd, 
     fsck_parse_t *parse_data, reiser4_fs_t *fs) 
 {
-    aal_assert("vpf-481", rd != NULL, return -1);
-    aal_assert("vpf-505", parse_data != NULL, return -1);
-    aal_assert("vpf-513", fs != NULL, return -1);
+    aal_assert("vpf-481", rd != NULL);
+    aal_assert("vpf-505", parse_data != NULL);
+    aal_assert("vpf-513", fs != NULL);
  
     rd->fs = fs;
     aal_set_bit(&rd->options, parse_data->mode);

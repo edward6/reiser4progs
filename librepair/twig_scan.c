@@ -22,15 +22,14 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
     repair_ts_t *ts;
     int res;
 
-    aal_assert("vpf-385", rd != NULL, return -1);
-    aal_assert("vpf-567", rd->pass.ts.bm_met != NULL, return -1);
+    aal_assert("vpf-385", rd != NULL);
+    aal_assert("vpf-567", rd->pass.ts.bm_met != NULL);
     
     ts = repair_ts(rd);
 
     /* This must be fixed at the first pass. */
     aal_assert("vpf-387", start < ts->bm_met->total && 
-	count <= ts->bm_met->total && start <= ts->bm_met->total - count, 
-	return -1);
+	count <= ts->bm_met->total && start <= ts->bm_met->total - count);
 
     if (!start)
 	return 0;
@@ -56,8 +55,8 @@ static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
     int32_t len;
     int res;
  
-    aal_assert("vpf-384", coord != NULL, return -1);
-    aal_assert("vpf-727", coord->node != NULL, return -1);
+    aal_assert("vpf-384", coord != NULL);
+    aal_assert("vpf-727", coord->node != NULL);
 
     node = coord->node;
     
@@ -81,7 +80,7 @@ static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
 }
 
 static void repair_twig_scan_release(repair_data_t *rd) {
-    aal_assert("vpf-741", rd != NULL, return);
+    aal_assert("vpf-741", rd != NULL);
 
     if (repair_ts(rd)->bm_used)
 	aux_bitmap_close(repair_ts(rd)->bm_used);
@@ -101,25 +100,23 @@ static errno_t repair_twig_scan_setup(repair_data_t *rd) {
     repair_ts_t *ts;
     uint32_t i;
     
-    aal_assert("vpf-565", rd != NULL, return -1);
+    aal_assert("vpf-565", rd != NULL);
     
     ts = repair_ts(rd);
     
-    aal_assert("vpf-566", ts->bm_used != NULL, return -1);
-    aal_assert("vpf-568", ts->bm_twig != NULL, return -1);
-    aal_assert("vpf-569", ts->bm_leaf != NULL, return -1);
-    aal_assert("vpf-570", ts->bm_met != NULL, return -1);
-    aal_assert("vpf-571", ts->bm_unfm_tree != NULL, return -1);
+    aal_assert("vpf-566", ts->bm_used != NULL);
+    aal_assert("vpf-568", ts->bm_twig != NULL);
+    aal_assert("vpf-569", ts->bm_leaf != NULL);
+    aal_assert("vpf-570", ts->bm_met != NULL);
+    aal_assert("vpf-571", ts->bm_unfm_tree != NULL);
 
     /* Build the map of blocks which cannot be pointed by extent. */
     for (i = 0; i < ts->bm_met->size; i++) {
 	/* Leaf and Twig maps has nothing common. */
-	aal_assert("vpf-696", (ts->bm_leaf->map[i] & ts->bm_twig->map[i]) == 0, 
-	    return -1);
+	aal_assert("vpf-696", (ts->bm_leaf->map[i] & ts->bm_twig->map[i]) == 0);
 
 	/* Leaf and Twig maps has nothing common. */
-	aal_assert("vpf-698", (ts->bm_used->map[i] & ts->bm_leaf->map[i]) == 0, 
-	    return -1);
+	aal_assert("vpf-698", (ts->bm_used->map[i] & ts->bm_leaf->map[i]) == 0);
 
 	/* bm_met is bm_frmt | bm_used | bm_leaf | bm_twig */
 	ts->bm_met->map[i] |= (ts->bm_used->map[i] | ts->bm_twig->map[i] | 
@@ -148,18 +145,16 @@ static errno_t repair_twig_scan_update(repair_data_t *rd) {
     repair_ts_t *ts;
     uint32_t i;
  
-    aal_assert("vpf-577", rd != NULL, return -1);
-    aal_assert("vpf-593", rd->fs != NULL, return -1);
+    aal_assert("vpf-577", rd != NULL);
+    aal_assert("vpf-593", rd->fs != NULL);
 
     ts = repair_ts(rd);
  
     for (i = 0; i < ts->bm_met->size; i++) {
 	aal_assert("vpf-576", (ts->bm_met->map[i] & 
-	    (ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i])) == 0, 
-	    return -1);
+	    (ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i])) == 0);
 
-	aal_assert("vpf-717", (ts->bm_used->map[i] & ts->bm_twig->map[i]) == 0, 
-	    return -1);
+	aal_assert("vpf-717", (ts->bm_used->map[i] & ts->bm_twig->map[i]) == 0);
 
 	/* Let met will be leaves, twigs and unfm which are not in the tree. */
 	ts->bm_met->map[i] = ts->bm_leaf->map[i] | ts->bm_twig->map[i] | 
@@ -186,8 +181,8 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
     errno_t res = -1;
     blk_t blk = 0;
 
-    aal_assert("vpf-533", rd != NULL, return -1);
-    aal_assert("vpf-534", rd->fs != NULL, return -1);
+    aal_assert("vpf-533", rd != NULL);
+    aal_assert("vpf-534", rd->fs != NULL);
     
     ts = repair_ts(rd);
     
@@ -207,7 +202,7 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
 	entity = node->entity;
 	
 	/* This block must contain twig. */
-	aal_assert("vpf-544", reiser4_node_level(node) == TWIG_LEVEL,return -1);
+	aal_assert("vpf-544", reiser4_node_level(node) == TWIG_LEVEL);
 
 	/* Lookup the node. */	
 	if ((res = repair_node_traverse(node, 1 << EXTENT_ITEM, 
@@ -268,10 +263,10 @@ static errno_t repair_ts_ovrl_add(reiser4_coord_t *coord, repair_data_t *rd) {
     aal_list_t *list;
     repair_ts_t *ts;
     
-    aal_assert("vpf-520", coord != NULL, return -1);
-    aal_assert("vpf-521", rd != NULL, return -1);
-    aal_assert("vpf-524", rd->alloc != NULL, return -1);
-    aal_assert("vpf-525", rd->alloc->entity != NULL, return -1);
+    aal_assert("vpf-520", coord != NULL);
+    aal_assert("vpf-521", rd != NULL);
+    aal_assert("vpf-524", rd->alloc != NULL);
+    aal_assert("vpf-525", rd->alloc->entity != NULL);
 
     if (!(node = coord->node)) {
 	aal_exception_fatal("Failed to get the node from the coord, but "
@@ -316,8 +311,8 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
     repair_ovrl_t *l_ovrl, *r_ovrl, *max_conflict = NULL;
     blk_t r_bound;
     
-    aal_assert("vpf-552", ovrl_list != NULL, return -1);
-    aal_assert("vpf-553", *ovrl_list != NULL, return -1);
+    aal_assert("vpf-552", ovrl_list != NULL);
+    aal_assert("vpf-553", *ovrl_list != NULL);
    
     /* Calculate the initial conflics into ovrl_coord's */
     for (left = aal_list_first(*ovrl_list); left != NULL; left = left->next) {
@@ -413,17 +408,16 @@ static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list,
     repair_ovrl_region_t *region;
     repair_ovrl_coord_t *oc;
 
-    aal_assert("vpf-548", ovrl_list != NULL, return -1);
-    aal_assert("vpf-549", *ovrl_list != NULL, return -1);
+    aal_assert("vpf-548", ovrl_list != NULL);
+    aal_assert("vpf-549", *ovrl_list != NULL);
 
     // If we had bad unfm blocks we should not get 0-length overlapped extent list.
-    aal_assert("vpf-550", aal_list_length(*ovrl_list) != 0, return -1);    
+    aal_assert("vpf-550", aal_list_length(*ovrl_list) != 0);    
     
     while (*ovrl_list != NULL) {
 	region = (repair_ovrl_region_t *)aal_list_first(*ovrl_list)->data;
 
-	aal_assert("vpf-551", aal_list_length(region->extents) != 0, 
-	    return -1);
+	aal_assert("vpf-551", aal_list_length(region->extents) != 0);
 
 	if (func(region))
 	    return -1;

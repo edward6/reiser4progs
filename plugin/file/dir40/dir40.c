@@ -24,7 +24,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	dir40_t *dir;
 	key_entity_t key;
     
-	aal_assert("umka-864", entity != NULL, return -1);
+	aal_assert("umka-864", entity != NULL);
     
 	dir = (dir40_t *)entity;
 	
@@ -127,8 +127,8 @@ static int32_t dir40_read(object_entity_t *entity,
 	item_entity_t *item;
 	reiser4_entry_hint_t *entry;
 
-	aal_assert("umka-844", entity != NULL, return -1);
-	aal_assert("umka-845", buff != NULL, return -1);
+	aal_assert("umka-844", entity != NULL);
+	aal_assert("umka-845", buff != NULL);
 
 	dir = (dir40_t *)entity;
 
@@ -194,11 +194,11 @@ static int dir40_lookup(object_entity_t *entity,
 	key_entity_t wanted;
 	dir40_t *dir = (dir40_t *)entity;
     
-	aal_assert("umka-1117", entity != NULL, return -1);
-	aal_assert("umka-1118", name != NULL, return -1);
+	aal_assert("umka-1117", entity != NULL);
+	aal_assert("umka-1118", name != NULL);
 
-	aal_assert("umka-1119", key != NULL, return -1);
-	aal_assert("umka-1120", key->plugin != NULL, return -1);
+	aal_assert("umka-1119", key != NULL);
+	aal_assert("umka-1120", key->plugin != NULL);
 
 	/*
 	  Preparing key to be used for lookup. It is generating from the
@@ -251,8 +251,8 @@ static object_entity_t *dir40_open(void *tree,
 	dir40_t *dir;
 	key_entity_t *key;
 
-	aal_assert("umka-836", tree != NULL, return NULL);
-	aal_assert("umka-837", place != NULL, return NULL);
+	aal_assert("umka-836", tree != NULL);
+	aal_assert("umka-837", place != NULL);
     
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
@@ -296,9 +296,7 @@ static char *dir40_empty_dir[2] = { ".", ".." };
   Creates dir40 instance and inserts few item in new directory described by
   passed @hint.
 */
-static object_entity_t *dir40_create(void *tree,
-				     reiser4_file_hint_t *hint) 
-{
+static object_entity_t *dir40_create(void *tree, reiser4_file_hint_t *hint) {
 	uint32_t i;
 	dir40_t *dir;
 
@@ -318,8 +316,8 @@ static object_entity_t *dir40_create(void *tree,
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
 	
-	aal_assert("umka-835", tree != NULL, return NULL);
-	aal_assert("umka-1739", hint != NULL, return NULL);
+	aal_assert("umka-835", tree != NULL);
+	aal_assert("umka-1739", hint != NULL);
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
@@ -511,8 +509,8 @@ static int32_t dir40_write(object_entity_t *entity,
 	reiser4_entry_hint_t *entry;
 	dir40_t *dir = (dir40_t *)entity;
     
-	aal_assert("umka-844", dir != NULL, return -1);
-	aal_assert("umka-845", buff != NULL, return -1);
+	aal_assert("umka-844", dir != NULL);
+	aal_assert("umka-845", buff != NULL);
    
 	key = &dir->file.key;
 	entry = (reiser4_entry_hint_t *)buff;
@@ -593,8 +591,8 @@ static errno_t dir40_layout(object_entity_t *entity,
 	dir40_t *dir;
 	layout_hint_t hint;
 
-	aal_assert("umka-1473", entity != NULL, return -1);
-	aal_assert("umka-1474", func != NULL, return -1);
+	aal_assert("umka-1473", entity != NULL);
+	aal_assert("umka-1474", func != NULL);
 
 	hint.func = func;
 	hint.data = data;
@@ -634,8 +632,8 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	errno_t res = 0;
 	dir40_t *dir = (dir40_t *)entity;
 	
-	aal_assert("umka-1712", entity != NULL, return -1);
-	aal_assert("umka-1713", func != NULL, return -1);
+	aal_assert("umka-1712", entity != NULL);
+	aal_assert("umka-1713", func != NULL);
 	
 	if ((res = func(entity, &dir->file.statdata, data)))
 		return res;
@@ -661,7 +659,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 static void dir40_close(object_entity_t *entity) {
 	dir40_t *dir = (dir40_t *)entity;
 	
-	aal_assert("umka-750", entity != NULL, return);
+	aal_assert("umka-750", entity != NULL);
 
 	file40_unlock(&dir->file, &dir->file.statdata);
 	file40_unlock(&dir->file, &dir->body);
@@ -670,7 +668,7 @@ static void dir40_close(object_entity_t *entity) {
 }
 
 static uint64_t dir40_offset(object_entity_t *entity) {
-	aal_assert("umka-874", entity != NULL, return 0);
+	aal_assert("umka-874", entity != NULL);
 	return ((dir40_t *)entity)->offset;
 }
 

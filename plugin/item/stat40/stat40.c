@@ -33,7 +33,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 	rbody_t *extbody;
 	reiser4_plugin_t *plugin;
 
-	aal_assert("umka-1197", item != NULL, return -1);
+	aal_assert("umka-1197", item != NULL);
     
 	stat = stat40_body(item);
 	extmask = st40_get_extmask(stat);
@@ -119,8 +119,8 @@ static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
 static int32_t stat40_read(item_entity_t *item, void *buff,
 			   uint32_t pos, uint32_t count)
 {
-	aal_assert("umka-1414", item != NULL, return -1);
-	aal_assert("umka-1415", buff != NULL, return -1);
+	aal_assert("umka-1414", item != NULL);
+	aal_assert("umka-1415", buff != NULL);
 
 	if (stat40_traverse(item, callback_open_ext, buff))
 		return -1;
@@ -132,7 +132,7 @@ static int32_t stat40_read(item_entity_t *item, void *buff,
 
 /* Prepares item area */
 static errno_t stat40_init(item_entity_t *item) {
-	aal_assert("umka-1670", item != NULL, return -1);
+	aal_assert("umka-1670", item != NULL);
 	
 	aal_memset(item->body, 0, item->len);
 	return 0;
@@ -149,7 +149,7 @@ static errno_t stat40_estimate(item_entity_t *item, void *buff,
 	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
     
-	aal_assert("vpf-074", buff != NULL, return -1);
+	aal_assert("vpf-074", buff != NULL);
 
 	hint = (reiser4_item_hint_t *)buff;
 	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
@@ -207,8 +207,8 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
     
-	aal_assert("vpf-076", item != NULL, return -1); 
-	aal_assert("vpf-075", buff != NULL, return -1);
+	aal_assert("vpf-076", item != NULL); 
+	aal_assert("vpf-075", buff != NULL);
 
 	extbody = (rbody_t *)item->body;
 
@@ -272,7 +272,7 @@ extern errno_t stat40_check(item_entity_t *);
 
 /* Here we probably should check all stat data extention masks */
 static errno_t stat40_valid(item_entity_t *item) {
-	aal_assert("umka-1007", item != NULL, return -1);
+	aal_assert("umka-1007", item != NULL);
 	return 0;
 }
 
@@ -390,8 +390,8 @@ static errno_t stat40_print(item_entity_t *item,
 			    aal_stream_t *stream,
 			    uint16_t options)
 {
-	aal_assert("umka-1407", item != NULL, return -1);
-	aal_assert("umka-1408", stream != NULL, return -1);
+	aal_assert("umka-1407", item != NULL);
+	aal_assert("umka-1408", stream != NULL);
     
 	aal_stream_format(stream, "STATDATA: len=%u, KEY: ", item->len);
 		

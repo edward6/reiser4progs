@@ -152,8 +152,8 @@ static errno_t reiser4_file_lookup(
 	reiser4_file_t *file,	    /* file lookup will be performed in */
 	char *name)	            /* name to be parsed */
 {
-	aal_assert("umka-682", file != NULL, return -1);
-	aal_assert("umka-681", name != NULL, return -1);
+	aal_assert("umka-682", file != NULL);
+	aal_assert("umka-681", name != NULL);
 
 	/*
 	  Parsing path and finding actual stat data key. I've said actual,
@@ -179,8 +179,8 @@ reiser4_file_t *reiser4_file_begin(
 	reiser4_place_t *place;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-1508", fs != NULL, return NULL);
-	aal_assert("umka-1509", coord != NULL, return NULL);
+	aal_assert("umka-1508", fs != NULL);
+	aal_assert("umka-1509", coord != NULL);
 
 	if (!(file = aal_calloc(sizeof(*file), 0)))
 		return NULL;
@@ -231,8 +231,8 @@ reiser4_file_t *reiser4_file_open(
 	reiser4_place_t *place;
 	reiser4_plugin_t *plugin;
     
-	aal_assert("umka-678", fs != NULL, return NULL);
-	aal_assert("umka-789", name != NULL, return NULL);
+	aal_assert("umka-678", fs != NULL);
+	aal_assert("umka-789", name != NULL);
 
 	if (!fs->tree) {
 		aal_exception_error("Can't created file without "
@@ -285,8 +285,8 @@ errno_t reiser4_file_truncate(
 	reiser4_file_t *file,	            /* file for truncating */
 	uint64_t n)			    /* the number of entries */
 {
-	aal_assert("umka-1154", file != NULL, return -1);
-	aal_assert("umka-1155", file->entity != NULL, return -1);
+	aal_assert("umka-1154", file != NULL);
+	aal_assert("umka-1155", file->entity != NULL);
     
 	return plugin_call(file->entity->plugin->file_ops, 
 			   truncate, file->entity, n);
@@ -298,8 +298,8 @@ int32_t reiser4_file_write(
 	void *buff,			    /* new entries buffer */
 	uint64_t n)			    /* the number of entries to be created */
 {
-	aal_assert("umka-862", file != NULL, return -1);
-	aal_assert("umka-863", file->entity != NULL, return -1);
+	aal_assert("umka-862", file != NULL);
+	aal_assert("umka-863", file->entity != NULL);
     
 	return plugin_call(file->entity->plugin->file_ops, 
 			   write, file->entity, buff, n);
@@ -317,9 +317,9 @@ reiser4_file_t *reiser4_file_create(
     
 	roid_t objectid, locality;
     
-	aal_assert("umka-790", fs != NULL, return NULL);
-	aal_assert("umka-1128", hint != NULL, return NULL);
-	aal_assert("umka-1152", name != NULL, return NULL);
+	aal_assert("umka-790", fs != NULL);
+	aal_assert("umka-1128", hint != NULL);
+	aal_assert("umka-1152", name != NULL);
 
 	if (!fs->tree) {
 		aal_exception_error("Can't created file without "
@@ -345,7 +345,15 @@ reiser4_file_t *reiser4_file_create(
 	/* Initializing fileds and preparing keys */
 	file->fs = fs;
 
-	aal_strncpy(file->name, name, sizeof(file->name));
+	if (parent) {
+		aal_strncat(file->name, parent->name, sizeof(file->name));
+
+		if (file->name[aal_strlen(file->name) - 1] != '/')
+			aal_strncat(file->name, "/", sizeof(file->name));
+		
+		aal_strncat(file->name, name, sizeof(file->name));
+	} else
+		aal_strncpy(file->name, name, sizeof(file->name));
     
 	/* 
 	   This is a special case. In the case parent is NULL, we are trying to
@@ -353,7 +361,7 @@ reiser4_file_t *reiser4_file_create(
 	*/
 	if (parent) {
 		reiser4_key_assign(&hint->parent, &parent->key);
-		objectid = reiser4_oid_allocate(parent->fs->oid);
+		objectid = reiser4_oid_allocate(fs->oid);
 	} else {
 		roid_t root_locality = reiser4_oid_root_locality(fs->oid);
 		roid_t hyper_locality = reiser4_oid_hyper_locality(fs->oid);
@@ -390,7 +398,7 @@ reiser4_file_t *reiser4_file_create(
 		reiser4_key_assign(&entry.object, &hint->object);
 		aal_strncpy(entry.name, (char *)name, sizeof(entry.name));
 
-		if (reiser4_file_write(parent, (char *)&entry, 1) != 1) {
+		if (reiser4_file_write(parent, &entry, 1) != 1) {
 			aal_exception_error("Can't add entry %s.", name);
 			goto error_free_file;
 		}
@@ -442,8 +450,8 @@ errno_t reiser4_file_print(reiser4_file_t *file, aal_stream_t *stream) {
 void reiser4_file_close(
 	reiser4_file_t *file)	    /* file to be closed */
 {
-	aal_assert("umka-680", file != NULL, return);
-	aal_assert("umka-1149", file->entity != NULL, return);
+	aal_assert("umka-680", file != NULL);
+	aal_assert("umka-1149", file->entity != NULL);
 
 	plugin_call(file->entity->plugin->file_ops,
 		    close, file->entity);
@@ -456,8 +464,8 @@ void reiser4_file_close(
 errno_t reiser4_file_reset(
 	reiser4_file_t *file)	    /* dir to be rewinded */
 {
-	aal_assert("umka-842", file != NULL, return -1);
-	aal_assert("umka-843", file->entity != NULL, return -1);
+	aal_assert("umka-842", file != NULL);
+	aal_assert("umka-843", file->entity != NULL);
 
 	return plugin_call(file->entity->plugin->file_ops, 
 			   reset, file->entity);
@@ -468,8 +476,8 @@ int32_t reiser4_file_read(
 	void *buff,		    /* buffer result will be stored in */
 	uint64_t n)                 /* buffer size */
 {
-	aal_assert("umka-860", file != NULL, return -1);
-	aal_assert("umka-861", file->entity != NULL, return -1);
+	aal_assert("umka-860", file != NULL);
+	aal_assert("umka-861", file->entity != NULL);
 
 	return plugin_call(file->entity->plugin->file_ops, 
 			   read, file->entity, buff, n);
@@ -479,8 +487,8 @@ int32_t reiser4_file_read(
 uint32_t reiser4_file_offset(
 	reiser4_file_t *file)	    /* dir position will be obtained from */
 {
-	aal_assert("umka-875", file != NULL, return -1);
-	aal_assert("umka-876", file->entity != NULL, return -1);
+	aal_assert("umka-875", file != NULL);
+	aal_assert("umka-876", file->entity != NULL);
 
 	return plugin_call(file->entity->plugin->file_ops, 
 			   offset, file->entity);
@@ -491,8 +499,8 @@ errno_t reiser4_file_seek(
 	reiser4_file_t *file,	    /* file where position shopuld be chnaged */
 	uint32_t offset)	    /* offset for seeking */
 {
-	aal_assert("umka-1129", file != NULL, return -1);
-	aal_assert("umka-1153", file->entity != NULL, return -1);
+	aal_assert("umka-1129", file != NULL);
+	aal_assert("umka-1153", file->entity != NULL);
     
 	return plugin_call(file->entity->plugin->file_ops, 
 			   seek, file->entity, offset);
@@ -503,8 +511,8 @@ errno_t reiser4_file_layout(
 	block_func_t func,          /* layout callback */
 	void *data)                 /* user-spaecified data */
 {
-	aal_assert("umka-1469", file != NULL, return -1);
-	aal_assert("umka-1470", func != NULL, return -1);
+	aal_assert("umka-1469", file != NULL);
+	aal_assert("umka-1470", func != NULL);
 
 	if (!file->entity->plugin->file_ops.layout)
 		return 0;
@@ -518,8 +526,8 @@ errno_t reiser4_file_metadata(
 	place_func_t func,          /* metadata layout callback */
 	void *data)                 /* user-spaecified data */
 {
-	aal_assert("umka-1714", file != NULL, return -1);
-	aal_assert("umka-1715", func != NULL, return -1);
+	aal_assert("umka-1714", file != NULL);
+	aal_assert("umka-1715", func != NULL);
 
 	if (!file->entity->plugin->file_ops.metadata)
 		return 0;

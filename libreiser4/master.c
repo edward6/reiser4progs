@@ -26,7 +26,7 @@ reiser4_master_t *reiser4_master_create(
 	blk_t offset;
 	reiser4_master_t *master;
     
-	aal_assert("umka-981", device != NULL, return NULL);
+	aal_assert("umka-981", device != NULL);
     
 	/* Allocating the memory for master super block struct */
 	if (!(master = aal_calloc(sizeof(*master), 0)))
@@ -71,7 +71,7 @@ reiser4_master_t *reiser4_master_create(
 
 /* This function checks master super block for validness */
 errno_t reiser4_master_valid(reiser4_master_t *master) {
-	aal_assert("umka-898", master != NULL, return -1);
+	aal_assert("umka-898", master != NULL);
 	return 0;
 }
 
@@ -95,8 +95,8 @@ reiser4_plugin_t *reiser4_master_guess(aal_device_t *device) {
 errno_t reiser4_master_print(reiser4_master_t *master,
 			     aal_stream_t *stream)
 {
-	aal_assert("umka-1568", master != NULL, return -1);
-	aal_assert("umka-1569", stream != NULL, return -1);
+	aal_assert("umka-1568", master != NULL);
+	aal_assert("umka-1569", stream != NULL);
 	
 	aal_stream_format(stream, "offset:\t\t%llu\n",
 			  aal_block_number(master->block));
@@ -124,7 +124,7 @@ int reiser4_master_confirm(aal_device_t *device) {
 	aal_block_t *block;
 	reiser4_master_super_t *super;
     
-	aal_assert("umka-901", device != NULL, return 0);
+	aal_assert("umka-901", device != NULL);
     
 	offset = (blk_t)(MASTER_OFFSET / BLOCKSIZE);
 
@@ -167,7 +167,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	blk_t offset;
 	reiser4_master_t *master;
     
-	aal_assert("umka-143", device != NULL, return NULL);
+	aal_assert("umka-143", device != NULL);
     
 	if (!(master = aal_calloc(sizeof(*master), 0)))
 		return NULL;
@@ -230,7 +230,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master) {
 	aal_device_t *device;
 	
-	aal_assert("umka-1576", master != NULL, return NULL);
+	aal_assert("umka-1576", master != NULL);
 
 	device = master->block->device;
 	reiser4_master_close(master);
@@ -244,7 +244,7 @@ reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master) {
 errno_t reiser4_master_sync(
 	reiser4_master_t *master)	    /* master to be saved */
 {
-	aal_assert("umka-145", master != NULL, return -1);
+	aal_assert("umka-145", master != NULL);
     
 	/* The check if opened filesystem is native reiser4 one */
 	if (!master->native)
@@ -265,33 +265,33 @@ errno_t reiser4_master_sync(
 
 /* Frees master super block occupied memory */
 void reiser4_master_close(reiser4_master_t *master) {
-	aal_assert("umka-1506", master != NULL, return);
+	aal_assert("umka-1506", master != NULL);
 	
 	aal_block_close(master->block);
 	aal_free(master);
 }
 
 char *reiser4_master_magic(reiser4_master_t *master) {
-	aal_assert("umka-982", master != NULL, return NULL);
+	aal_assert("umka-982", master != NULL);
 	return master->super->mr_magic;
 }
 
 rpid_t reiser4_master_format(reiser4_master_t *master) {
-	aal_assert("umka-982", master != NULL, return INVAL_PID);
+	aal_assert("umka-982", master != NULL);
 	return get_mr_format_id(master->super);
 }
 
 uint32_t reiser4_master_blocksize(reiser4_master_t *master) {
-	aal_assert("umka-983", master != NULL, return 0);
+	aal_assert("umka-983", master != NULL);
 	return get_mr_blocksize(master->super);
 }
 
 char *reiser4_master_uuid(reiser4_master_t *master) {
-	aal_assert("umka-984", master != NULL, return 0);
+	aal_assert("umka-984", master != NULL);
 	return master->super->mr_uuid;
 }
 
 char *reiser4_master_label(reiser4_master_t *master) {
-	aal_assert("umka-985", master != NULL, return 0);
+	aal_assert("umka-985", master != NULL);
 	return master->super->mr_label;
 }

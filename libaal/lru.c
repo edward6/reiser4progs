@@ -15,7 +15,7 @@ errno_t aal_lru_adjust(aal_lru_t *lru) {
 	void *data;
 	aal_list_t *walk;
 	
-	aal_assert("umka-1519", lru != NULL, return -1);
+	aal_assert("umka-1519", lru != NULL);
 
 	if (!(walk = aal_list_last(lru->list)))
 		return 0;
@@ -45,7 +45,7 @@ aal_lru_t *aal_lru_create(lru_ops_t *ops) {
 }
 
 void aal_lru_free(aal_lru_t *lru) {
-	aal_assert("umka-1531", lru != NULL, return);
+	aal_assert("umka-1531", lru != NULL);
 
 	if (lru->list)
 		aal_list_free(lru->list);
@@ -56,8 +56,8 @@ void aal_lru_free(aal_lru_t *lru) {
 errno_t aal_lru_attach(aal_lru_t *lru, void *data) {
 	aal_list_t *prev, *next;
 	
-	aal_assert("umka-1525", lru != NULL, return -1);
-	aal_assert("umka-1526", data != NULL, return -1);
+	aal_assert("umka-1525", lru != NULL);
+	aal_assert("umka-1526", data != NULL);
 
 	lru->ops->set_prev(data, lru->list);
 	lru->ops->set_next(data, lru->list ? lru->list->next : NULL);
@@ -78,8 +78,8 @@ errno_t aal_lru_attach(aal_lru_t *lru, void *data) {
 errno_t aal_lru_detach(aal_lru_t *lru, void *data) {
 	aal_list_t *next, *prev;
 	
-	aal_assert("umka-1528", lru != NULL, return -1);
-	aal_assert("umka-1527", data != NULL, return -1);
+	aal_assert("umka-1528", lru != NULL);
+	aal_assert("umka-1527", data != NULL);
 
 	next = lru->ops->get_next(data);
 	prev = lru->ops->get_prev(data);
@@ -104,8 +104,8 @@ errno_t aal_lru_detach(aal_lru_t *lru, void *data) {
 errno_t aal_lru_touch(aal_lru_t *lru, void *data) {
 	aal_list_t *next, *prev;
 	
-	aal_assert("umka-1529", lru != NULL, return -1);
-	aal_assert("umka-1530", data != NULL, return -1);
+	aal_assert("umka-1529", lru != NULL);
+	aal_assert("umka-1530", data != NULL);
 
 	aal_lru_detach(lru, data);
 	return aal_lru_attach(lru, data);

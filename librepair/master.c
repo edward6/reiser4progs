@@ -23,8 +23,8 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
     int error = 0;
     reiser4_plugin_t *plugin;
 
-    aal_assert("vpf-730", fs != NULL, return -1);
-    aal_assert("vpf-161", fs->master != NULL || fs->device != NULL, return -1);
+    aal_assert("vpf-730", fs != NULL);
+    aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
  
     if (fs->master == NULL) {
 	/* Master SB was not opened. Create a new one. */
@@ -78,8 +78,8 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 }
 
 errno_t repair_master_open(reiser4_fs_t *fs) {
-    aal_assert("vpf-399", fs != NULL, return -1);
-    aal_assert("vpf-729", fs->device != NULL, return -1);
+    aal_assert("vpf-399", fs != NULL);
+    aal_assert("vpf-729", fs->device != NULL);
 
     /* Try to open master. */
     fs->master = reiser4_master_open(fs->device);

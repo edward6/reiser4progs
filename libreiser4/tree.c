@@ -64,8 +64,8 @@ static lru_ops_t lru_ops = {
 errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 			    reiser4_node_t *node)
 {
-	aal_assert("umka-1840", tree != NULL, return -1);
-	aal_assert("umka-1842", node != NULL, return -1);
+	aal_assert("umka-1840", tree != NULL);
+	aal_assert("umka-1842", node != NULL);
 	
 	if (tree->traps.attach) {
 		errno_t res;
@@ -93,7 +93,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 	aal_device_t *device;
 	reiser4_node_t *node = NULL;
 
-	aal_assert("umka-1289", tree != NULL, return NULL);
+	aal_assert("umka-1289", tree != NULL);
     
 	device = tree->fs->device;
 
@@ -147,7 +147,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	reiser4_node_t *node;
 	aal_device_t *device;
     
-	aal_assert("umka-756", tree != NULL, return NULL);
+	aal_assert("umka-756", tree != NULL);
     
 	/* Allocating the block */
 	if (!reiser4_alloc_allocate_region(tree->fs->alloc, &blk, 1)) {
@@ -188,8 +188,8 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 {
 	blk_t free;
 	
-	aal_assert("umka-1841", tree != NULL, return -1);
-	aal_assert("umka-917", node != NULL, return -1);
+	aal_assert("umka-1841", tree != NULL);
+	aal_assert("umka-917", node != NULL);
 
     	/* Sets up the free blocks in block allocator */
 	free = reiser4_alloc_free(tree->fs->alloc);
@@ -214,9 +214,9 @@ static errno_t reiser4_tree_key(
 	roid_t objectid, locality;
 	reiser4_plugin_t *plugin;
     
-	aal_assert("umka-1090", tree != NULL, return -1);
-	aal_assert("umka-1091", tree->fs != NULL, return -1);
-	aal_assert("umka-1092", tree->fs->oid != NULL, return -1);
+	aal_assert("umka-1090", tree != NULL);
+	aal_assert("umka-1091", tree->fs != NULL);
+	aal_assert("umka-1092", tree->fs->oid != NULL);
     
 	oid = tree->fs->oid;
     
@@ -243,7 +243,7 @@ static errno_t reiser4_tree_key(
 
 /* Returns tree root block number */
 blk_t reiser4_tree_root(reiser4_tree_t *tree) {
-	aal_assert("umka-738", tree != NULL, return INVAL_BLK);
+	aal_assert("umka-738", tree != NULL);
 	return tree->root->blk;
 }
 
@@ -265,7 +265,7 @@ static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
 }
 
 void reiser4_tree_fini(reiser4_tree_t *tree) {
-	aal_assert("umka-1531", tree != NULL, return);
+	aal_assert("umka-1531", tree != NULL);
 	aal_lru_free(tree->lru);
 }
 
@@ -274,7 +274,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	blk_t tree_root;
 	reiser4_tree_t *tree;
 
-	aal_assert("umka-737", fs != NULL, return NULL);
+	aal_assert("umka-737", fs != NULL);
 
 	/* Allocating memory for the tree instance */
 	if (!(tree = aal_calloc(sizeof(*tree), 0)))
@@ -316,8 +316,8 @@ reiser4_tree_t *reiser4_tree_create(
 	uint8_t level;
 	reiser4_tree_t *tree;
 
-	aal_assert("umka-741", fs != NULL, return NULL);
-	aal_assert("umka-749", profile != NULL, return NULL);
+	aal_assert("umka-741", fs != NULL);
+	aal_assert("umka-749", profile != NULL);
 
 	/* Allocating memory needed for tree instance */
 	if (!(tree = aal_calloc(sizeof(*tree), 0)))
@@ -373,7 +373,7 @@ reiser4_tree_t *reiser4_tree_create(
 errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
 	aal_list_t *list;
     
-	aal_assert("umka-573", tree != NULL, return -1);
+	aal_assert("umka-573", tree != NULL);
 
 	reiser4_tree_sync(tree);
     
@@ -394,7 +394,7 @@ errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
 
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
-	aal_assert("umka-560", tree != NULL, return -1);
+	aal_assert("umka-560", tree != NULL);
 	return reiser4_node_sync(tree->root);
 }
 
@@ -402,7 +402,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 /* Closes specified tree (frees all assosiated memory) */
 void reiser4_tree_close(reiser4_tree_t *tree) {
-	aal_assert("umka-134", tree != NULL, return);
+	aal_assert("umka-134", tree != NULL);
 
 	/* Freeing tree cashe and tree itself*/
 	reiser4_node_close(tree->root);
@@ -412,9 +412,9 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 }
 
 uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
-	aal_assert("umka-1065", tree != NULL, return 0);
-	aal_assert("umka-1284", tree->fs != NULL, return 0);
-	aal_assert("umka-1285", tree->fs->format != NULL, return 0);
+	aal_assert("umka-1065", tree != NULL);
+	aal_assert("umka-1284", tree->fs != NULL);
+	aal_assert("umka-1285", tree->fs->format != NULL);
 
 	return reiser4_format_get_height(tree->fs->format);
 }
@@ -436,8 +436,8 @@ int reiser4_tree_lookup(
 	rpos_t pos = {0, ~0ul};
 	reiser4_node_t *parent = NULL;
 
-	aal_assert("umka-1760", tree != NULL, return -1);
-	aal_assert("umka-742", key != NULL, return -1);
+	aal_assert("umka-1760", tree != NULL);
+	aal_assert("umka-742", key != NULL);
 
 	if (!coord)
 		coord = &fake;
@@ -546,9 +546,9 @@ errno_t reiser4_tree_attach(
 	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
 
-	aal_assert("umka-913", tree != NULL, return -1);
-	aal_assert("umka-916", node != NULL, return -1);
-	aal_assert("umka-1703", reiser4_node_items(node) > 0, return -1);
+	aal_assert("umka-913", tree != NULL);
+	aal_assert("umka-916", node != NULL);
+	aal_assert("umka-1703", reiser4_node_items(node) > 0);
     
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
@@ -631,8 +631,8 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	reiser4_coord_t coord;
 	reiser4_node_t *parent;
 	
-	aal_assert("umka-1726", tree != NULL, return -1);
-	aal_assert("umka-1727", node != NULL, return -1);
+	aal_assert("umka-1726", tree != NULL);
+	aal_assert("umka-1727", node != NULL);
 
 	if (!(parent = node->parent))
 		return 0;
@@ -661,14 +661,13 @@ errno_t reiser4_tree_grow(
 	uint8_t tree_height;
 	reiser4_node_t *old_root;
 
-	aal_assert("umka-1701", tree != NULL, return -1);
-	aal_assert("umka-1736", tree->root != NULL, return -1);
+	aal_assert("umka-1701", tree != NULL);
+	aal_assert("umka-1736", tree->root != NULL);
 	
 	if (!(old_root = tree->root))
 		return -1;
 	
-	aal_assert("umka-1702", reiser4_node_items(old_root) > 0,
-		   return -1);
+	aal_assert("umka-1702", reiser4_node_items(old_root) > 0);
 	
 	tree_height = reiser4_tree_height(tree);
     
@@ -708,8 +707,8 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 	uint32_t tree_height;
 	reiser4_node_t *old_root;
 
-	aal_assert("umka-1731", tree != NULL, return -1);
-	aal_assert("umka-1737", tree->root != NULL, return -1);
+	aal_assert("umka-1731", tree != NULL);
+	aal_assert("umka-1737", tree->root != NULL);
 
 	tree_height = reiser4_tree_height(tree);
 
@@ -721,8 +720,7 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 		return -1;
 
 	children = old_root->children;
-	
-	aal_assert("umka-1735", children != NULL, return -1);
+	aal_assert("umka-1735", children != NULL);
 	
 	if (reiser4_node_items(old_root) > 1)
 		return -1;
@@ -757,16 +755,15 @@ errno_t reiser4_tree_shift(
 	shift_hint_t hint;
 	reiser4_node_t *node;
 
-	aal_assert("umka-1225", tree != NULL, return -1);
-	aal_assert("umka-1226", coord != NULL, return -1);
-	aal_assert("umka-1227", neig != NULL, return -1);
+	aal_assert("umka-1225", tree != NULL);
+	aal_assert("umka-1226", coord != NULL);
+	aal_assert("umka-1227", neig != NULL);
     
 	aal_memset(&hint, 0, sizeof(hint));
-	
-	hint.control = flags;
-	hint.pos = coord->pos;
 
 	node = coord->node;
+	hint.control = flags;
+	hint.pos = coord->pos;
 	
 	/*
 	  Saving node position in parent. It will be used bellow for updating
@@ -839,10 +836,7 @@ errno_t reiser4_tree_shift(
 	
 	for (i = 0; i < hint.items; i++) {
 		uint32_t units;
-		
 		reiser4_coord_t coord;
-		reiser4_node_t *child;
-		reiser4_ptr_hint_t ptr;
 
 		POS_INIT(&pos, (hint.control & SF_LEFT) ?
 			 items - i - 1 : i, ~0ul);
@@ -856,6 +850,8 @@ errno_t reiser4_tree_shift(
 			continue;
 
 		for (pos.unit = 0; pos.unit < units; pos.unit++) {
+			reiser4_node_t *child;
+			reiser4_ptr_hint_t ptr;
 			
 			plugin_call(coord.item.plugin->item_ops,
 				    read, &coord.item, &ptr, pos.unit, 1);
@@ -887,8 +883,8 @@ errno_t reiser4_tree_expand(
 	reiser4_node_t *left;
 	reiser4_node_t *right;
 
-	aal_assert("umka-766", coord != NULL, return -1);
-	aal_assert("umka-929", tree != NULL, return -1);
+	aal_assert("umka-766", coord != NULL);
+	aal_assert("umka-929", tree != NULL);
 
 	if (needed == 0)
 		return 0;
@@ -1000,8 +996,8 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 {
 	reiser4_node_t *left, *right;
 
-	aal_assert("umka-1784", tree != NULL, return -1);
-	aal_assert("umka-1783", coord != NULL, return -1);
+	aal_assert("umka-1784", tree != NULL);
+	aal_assert("umka-1783", coord != NULL);
 	
 	/*
 	  Packing node in order to keep the tree in well packed state
@@ -1067,19 +1063,18 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	reiser4_node_t *node;
 	rpos_t pos = {0, 0};
 	
-	aal_assert("vpf-672", tree != NULL, return -1);
-	aal_assert("vpf-673", coord != NULL, return -1);
-	aal_assert("vpf-674", level > 0, return -1);
+	aal_assert("vpf-672", tree != NULL);
+	aal_assert("vpf-673", coord != NULL);
+	aal_assert("vpf-674", level > 0);
 
 	cur_level = reiser4_node_level(coord->node);
-			
-	aal_assert("vpf-680", cur_level <= level, return -1);
+	aal_assert("vpf-680", cur_level <= level);
 	
 	if (reiser4_coord_realize(coord))
 		return -1;
 
 	while (cur_level <= level) {
-		aal_assert("vpf-676", coord->node->parent != NULL, return -1);
+		aal_assert("vpf-676", coord->node->parent != NULL);
 		
 		if (coord->pos.item != 0 || coord->pos.unit != 0 || 
 		    coord->pos.item != reiser4_node_items(coord->node) || 
@@ -1141,11 +1136,11 @@ errno_t reiser4_tree_insert(
 	reiser4_key_t *key;
 	reiser4_coord_t old;
 
-	aal_assert("umka-779", tree != NULL, return -1);
-	aal_assert("umka-779", hint != NULL, return -1);
+	aal_assert("umka-779", tree != NULL);
+	aal_assert("umka-779", hint != NULL);
 	
-	aal_assert("umka-1644", coord != NULL, return -1);
-	aal_assert("umka-1645", hint->plugin != NULL, return -1);
+	aal_assert("umka-1644", coord != NULL);
+	aal_assert("umka-1645", hint->plugin != NULL);
 
 	/*
 	  Initializing hint context and enviromnent fields. This should be done
@@ -1267,6 +1262,12 @@ errno_t reiser4_tree_insert(
 		}
 	}
     
+	if (reiser4_coord_realize(coord))
+		return -1;
+
+	if (reiser4_item_get_key(coord, NULL))
+		return -1;
+	
 	if (tree->traps.post_insert) {
 		bool_t res;
 		
@@ -1288,9 +1289,9 @@ errno_t reiser4_tree_write(
 	reiser4_coord_t *src,       /* coord to be inserted. */
 	uint32_t count)		    /* number of units to be inserted. */
 {
-	aal_assert("vpf-683", tree != NULL, return -1);
-	aal_assert("vpf-684", dst != NULL, return -1);
-	aal_assert("vpf-685", src != NULL, return -1);
+	aal_assert("vpf-683", tree != NULL);
+	aal_assert("vpf-684", dst != NULL);
+	aal_assert("vpf-685", src != NULL);
 	
 	return 0;
 }
@@ -1300,15 +1301,15 @@ errno_t reiser4_tree_write(
   children list.
 */
 errno_t reiser4_tree_cut(
-	reiser4_tree_t *tree,     /* tree for working with */
-	reiser4_coord_t *start,   /* coord of the start */
-	reiser4_coord_t *end)     /* coord of the end */
+	reiser4_tree_t *tree,       /* tree for working with */
+	reiser4_coord_t *start,     /* coord of the start */
+	reiser4_coord_t *end)       /* coord of the end */
 {
 	reiser4_node_t *neig;
 
-	aal_assert("umka-1018", tree != NULL, return -1);
-	aal_assert("umka-1725", start != NULL, return -1);
-	aal_assert("umka-1782", end != NULL, return -1);
+	aal_assert("umka-1018", tree != NULL);
+	aal_assert("umka-1725", start != NULL);
+	aal_assert("umka-1782", end != NULL);
 
 	/*
 	  Getting nodes neighbour links to be connected. Also we check here is
@@ -1466,7 +1467,7 @@ errno_t reiser4_tree_traverse(
 	traverse_setup_func_t update_func,   /* callback to be called after a child */
 	traverse_edge_func_t after_func)     /* callback to be called at the end */
 {
-	aal_assert("umka-1768", tree != NULL, return -1);
+	aal_assert("umka-1768", tree != NULL);
 
 	return reiser4_node_traverse(tree->root, hint, open_func, before_func,
 				     setup_func, update_func, after_func);

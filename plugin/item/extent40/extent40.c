@@ -19,7 +19,7 @@ static uint32_t extent40_blocksize(item_entity_t *item) {
 
 /* Returns number of units in passed extent @item */
 uint32_t extent40_units(item_entity_t *item) {
-	aal_assert("umka-1446", item != NULL, return 0);
+	aal_assert("umka-1446", item != NULL);
 
 	if (item->len % sizeof(extent40_t) != 0) {
 		aal_exception_error("Invalid item size detected. Node %llu, "
@@ -35,7 +35,7 @@ static uint64_t extent40_size(item_entity_t *item) {
 	extent40_t *extent;
 	uint32_t i, blocks = 0;
     
-	aal_assert("umka-1583", item != NULL, return -1);
+	aal_assert("umka-1583", item != NULL);
 
 	extent = extent40_body(item);
 	
@@ -57,11 +57,9 @@ static errno_t extent40_unit_key(item_entity_t *item,
 	extent40_t *extent;
 	uint64_t offset, blocksize;
 	
-	aal_assert("vpf-622", item != NULL, return -1);
-	aal_assert("vpf-623", key != NULL, return -1);
-	
-	aal_assert("vpf-625", pos <  extent40_units(item),
-		   return -1);
+	aal_assert("vpf-622", item != NULL);
+	aal_assert("vpf-623", key != NULL);
+	aal_assert("vpf-625", pos <  extent40_units(item));
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 		
@@ -88,11 +86,9 @@ static errno_t extent40_get_key(item_entity_t *item,
 				uint32_t offset, 
 				key_entity_t *key) 
 {
-	aal_assert("vpf-714", item != NULL, return -1);
-	aal_assert("vpf-715", key != NULL, return -1);
-
-	aal_assert("vpf-716", offset < extent40_size(item),
-		   return -1);
+	aal_assert("vpf-714", item != NULL);
+	aal_assert("vpf-715", key != NULL);
+	aal_assert("vpf-716", offset < extent40_size(item));
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 		
@@ -105,7 +101,7 @@ static errno_t extent40_get_key(item_entity_t *item,
 #ifndef ENABLE_COMPACT
 
 static errno_t extent40_init(item_entity_t *item) {
-	aal_assert("umka-1669", item != NULL, return -1);
+	aal_assert("umka-1669", item != NULL);
 	
 	aal_memset(item->body, 0, item->len);
 	return 0;
@@ -117,7 +113,7 @@ static int32_t extent40_remove(item_entity_t *item,
 			       uint32_t count)
 {
 
-	aal_assert("umka-1834", item != NULL, return -1);
+	aal_assert("umka-1834", item != NULL);
 
 	/* FIXME-UMKA: Here will be extent shrinking code */
 	
@@ -138,8 +134,8 @@ static errno_t extent40_print(item_entity_t *item,
 	uint32_t i, count;
 	extent40_t *extent;
     
-	aal_assert("umka-1205", item != NULL, return -1);
-	aal_assert("umka-1206", stream != NULL, return -1);
+	aal_assert("umka-1205", item != NULL);
+	aal_assert("umka-1206", stream != NULL);
 
 	extent = extent40_body(item);
 	count = extent40_units(item);
@@ -180,8 +176,8 @@ static errno_t extent40_maxposs_key(item_entity_t *item,
 	uint64_t offset;
 	key_entity_t *maxkey;
     
-	aal_assert("umka-1211", item != NULL, return -1);
-	aal_assert("umka-1212", key != NULL, return -1);
+	aal_assert("umka-1211", item != NULL);
+	aal_assert("umka-1212", key != NULL);
 
 	key->plugin = item->key.plugin;
 	
@@ -203,8 +199,8 @@ static errno_t extent40_utmost_key(item_entity_t *item,
 	uint32_t i, blocksize;
 	uint64_t delta, offset;
 	
-	aal_assert("vpf-437", item != NULL, return -1);
-	aal_assert("vpf-438", key  != NULL, return -1);
+	aal_assert("vpf-437", item != NULL);
+	aal_assert("vpf-438", key  != NULL);
 
 	key->plugin = item->key.plugin;
 	
@@ -219,14 +215,10 @@ static errno_t extent40_utmost_key(item_entity_t *item,
 	/* Key offset + for all units { width * blocksize } */
 	for (i = 0; i < extent40_units(item); i++) {
 		delta = et40_get_width(extent40_body(item) + i);
-		
-		aal_assert("vpf-439", delta < ((uint64_t) - 1) / 102400, 
-			   return -1);
+		aal_assert("vpf-439", delta < ((uint64_t) - 1) / 102400);
 
 		delta *= blocksize;
-		
-		aal_assert("vpf-503", offset < ((uint64_t) - 1) - delta, 
-			   return -1);
+		aal_assert("vpf-503", offset < ((uint64_t) - 1) - delta);
 		
 		offset += delta;
 	}
@@ -251,9 +243,9 @@ static int extent40_lookup(item_entity_t *item,
 	key_entity_t maxkey;
 	uint64_t offset, lookuped;
 
-	aal_assert("umka-1500", item != NULL, return -1);
-	aal_assert("umka-1501", key  != NULL, return -1);
-	aal_assert("umka-1502", pos != NULL, return -1);
+	aal_assert("umka-1500", item != NULL);
+	aal_assert("umka-1501", key  != NULL);
+	aal_assert("umka-1502", pos != NULL);
 	
 	if (!(extent = extent40_body(item)))
 		return -1;
@@ -326,9 +318,9 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	aal_block_t *block;
 	aal_device_t *device;
 
-	aal_assert("umka-1421", item != NULL, return -1);
-	aal_assert("umka-1422", buff != NULL, return -1);
-	aal_assert("umka-1672", pos != ~0ul, return -1);
+	aal_assert("umka-1421", item != NULL);
+	aal_assert("umka-1422", buff != NULL);
+	aal_assert("umka-1672", pos != ~0ul);
 
 	extent = extent40_body(item);
 	units = extent40_units(item);
@@ -480,10 +472,10 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 	aal_list_t *list = NULL;
 	reiser4_item_hint_t *hint;
 
-	aal_assert("umka-1836", buff != NULL, return -1);
+	aal_assert("umka-1836", buff != NULL);
 	
 	hint = (reiser4_item_hint_t *)buff;
-	aal_assert("umka-1838", hint->env.alloc != NULL, return -1);
+	aal_assert("umka-1838", hint->env.alloc != NULL);
 	
 	size = extent40_size(item);
 	blocksize = item->con.device->blocksize;
@@ -531,11 +523,11 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 	aal_device_t *device;
 	reiser4_item_hint_t *hint;
 	
-	aal_assert("umka-1832", item != NULL, return -1);
-	aal_assert("umka-1833", buff != NULL, return -1);
+	aal_assert("umka-1832", item != NULL);
+	aal_assert("umka-1833", buff != NULL);
 
 	hint = (reiser4_item_hint_t *)buff;
-	aal_assert("umka-1838", hint->env.alloc != NULL, return -1);
+	aal_assert("umka-1838", hint->env.alloc != NULL);
 	
 	device = item->con.device;
 	extent = extent40_body(item);
@@ -579,8 +571,8 @@ static errno_t extent40_layout(item_entity_t *item,
 	uint32_t i, units;
 	extent40_t *extent;
 	
-	aal_assert("umka-1747", item != NULL, return -1);
-	aal_assert("umka-1748", func != NULL, return -1);
+	aal_assert("umka-1747", item != NULL);
+	aal_assert("umka-1748", func != NULL);
 
 	extent = extent40_body(item);
 	units = extent40_units(item);
@@ -606,8 +598,8 @@ static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	roid_t objectid1, objectid2;
 	roid_t locality1, locality2;
 	
-	aal_assert("umka-1581", item1 != NULL, return -1);
-	aal_assert("umka-1582", item2 != NULL, return -1);
+	aal_assert("umka-1581", item1 != NULL);
+	aal_assert("umka-1582", item2 != NULL);
 
 	plugin = item1->key.plugin;
 	
@@ -639,8 +631,8 @@ static errno_t extent40_predict(item_entity_t *src_item,
 {
 	uint32_t space;
 	
-	aal_assert("umka-1704", src_item != NULL, return -1);
-	aal_assert("umka-1705", dst_item != NULL, return -1);
+	aal_assert("umka-1704", src_item != NULL);
+	aal_assert("umka-1705", dst_item != NULL);
 
 	space = hint->rest;
 		
@@ -696,9 +688,9 @@ static errno_t extent40_shift(item_entity_t *src_item,
 	uint32_t len;
 	void *src, *dst;
 	
-	aal_assert("umka-1706", src_item != NULL, return -1);
-	aal_assert("umka-1707", dst_item != NULL, return -1);
-	aal_assert("umka-1708", hint != NULL, return -1);
+	aal_assert("umka-1706", src_item != NULL);
+	aal_assert("umka-1707", dst_item != NULL);
+	aal_assert("umka-1708", hint != NULL);
 
 	len = dst_item->len > hint->rest ? dst_item->len - hint->rest :
 		dst_item->len;

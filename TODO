@@ -60,3 +60,4 @@ reiser4progs/COPYING.
   instead of pointer to the unit hint array?
 
 * should reiser4_node_neighbour and friends be moved into tree.c?
+* rename symlink40 into sym40 everywhere is sources.

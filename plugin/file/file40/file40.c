@@ -20,7 +20,7 @@
 
 /* Returns file's oid */
 roid_t file40_objectid(file40_t *file) {
-	aal_assert("umka-839", file != NULL, return 0);
+	aal_assert("umka-839", file != NULL);
     
 	return plugin_call(file->key.plugin->key_ops, 
 			   get_objectid, &file->key);
@@ -28,7 +28,7 @@ roid_t file40_objectid(file40_t *file) {
 
 /* Returns file's locality  */
 roid_t file40_locality(file40_t *file) {
-	aal_assert("umka-839", file != NULL, return 0);
+	aal_assert("umka-839", file != NULL);
     
 	return plugin_call(file->key.plugin->key_ops, 
 			   get_locality, &file->key);
@@ -233,9 +233,9 @@ errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
 		    key_entity_t *key, reiser4_core_t *core,
 		    void *tree)
 {
-	aal_assert("umka-1574", file != NULL, return -1);
-	aal_assert("umka-1756", plugin != NULL, return -1);
-	aal_assert("umka-1757", tree != NULL, return -1);
+	aal_assert("umka-1574", file != NULL);
+	aal_assert("umka-1756", plugin != NULL);
+	aal_assert("umka-1757", tree != NULL);
 
 	file->tree = tree;
 	file->core = core;
@@ -249,7 +249,7 @@ errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
 
 /* Performs lookup for the file's stat data */
 errno_t file40_stat(file40_t *file) {
-	aal_assert("umka-857", file != NULL, return -1);	
+	aal_assert("umka-857", file != NULL);
 
 	plugin_call(file->key.plugin->key_ops, build_generic,
 		    &file->key, KEY_STATDATA_TYPE, file40_locality(file),

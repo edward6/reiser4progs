@@ -25,8 +25,8 @@ reiser4_format_t *reiser4_format_open(
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-104", fs != NULL, return NULL);
-	aal_assert("umka-1700", fs->master != NULL, return NULL);
+	aal_assert("umka-104", fs != NULL);
+	aal_assert("umka-1700", fs->master != NULL);
     
 	/* Allocating memory for instance of disk-format */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
@@ -73,7 +73,7 @@ reiser4_format_t *reiser4_format_create(
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
 		
-	aal_assert("umka-105", fs != NULL, return NULL);
+	aal_assert("umka-105", fs != NULL);
 
 	/* Getting needed plugin from plugin factory */
 	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid)))  {
@@ -113,7 +113,7 @@ reiser4_format_t *reiser4_format_create(
 errno_t reiser4_format_sync(
 	reiser4_format_t *format)	/* disk-format to be saved */
 {
-	aal_assert("umka-107", format != NULL, return -1);
+	aal_assert("umka-107", format != NULL);
     
 	return plugin_call(format->entity->plugin->format_ops,
 			   sync, format->entity);
@@ -123,15 +123,15 @@ errno_t reiser4_format_sync(
 errno_t reiser4_format_valid(
 	reiser4_format_t *format)	/* format to be checked */
 {
-	aal_assert("umka-829", format != NULL, return -1);
+	aal_assert("umka-829", format != NULL);
 
 	return plugin_call(format->entity->plugin->format_ops, 
 			   valid, format->entity);
 }
 
 errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
-	aal_assert("umka-1560", format != NULL, return -1);
-	aal_assert("umka-1561", stream != NULL, return -1);
+	aal_assert("umka-1560", format != NULL);
+	aal_assert("umka-1561", stream != NULL);
 
 	return plugin_call(format->entity->plugin->format_ops,
 			   print, format->entity, stream, 0);
@@ -145,7 +145,7 @@ reiser4_format_t *reiser4_format_reopen(
 {
 	reiser4_fs_t *fs;
 
-	aal_assert("umka-428", format != NULL, return NULL);
+	aal_assert("umka-428", format != NULL);
 
 	fs = format->fs;
 	reiser4_format_close(format);
@@ -157,7 +157,7 @@ reiser4_format_t *reiser4_format_reopen(
 void reiser4_format_close(
 	reiser4_format_t *format)	/* format to be closed */
 {
-	aal_assert("umka-1505", format != NULL, return);
+	aal_assert("umka-1505", format != NULL);
    
 	plugin_call(format->entity->plugin->format_ops,
 		    close, format->entity);
@@ -170,7 +170,7 @@ void reiser4_format_close(
 int reiser4_format_confirm(
 	reiser4_format_t *format)	/* format to be checked */
 {
-	aal_assert("umka-832", format != NULL, return 0);
+	aal_assert("umka-832", format != NULL);
 
 	return plugin_call(format->entity->plugin->format_ops, 
 			   confirm, format->fs->device);
@@ -180,7 +180,7 @@ int reiser4_format_confirm(
 const char *reiser4_format_name(
 	reiser4_format_t *format)	/* disk-format to be inspected */
 {
-	aal_assert("umka-111", format != NULL, return NULL);
+	aal_assert("umka-111", format != NULL);
 	
 	return plugin_call(format->entity->plugin->format_ops,
 			   name, format->entity);
@@ -190,14 +190,14 @@ const char *reiser4_format_name(
 blk_t reiser4_format_get_root(
 	reiser4_format_t *format)	/* format to be used */
 {
-	aal_assert("umka-113", format != NULL, return INVAL_BLK);
+	aal_assert("umka-113", format != NULL);
 
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_root, format->entity);
 }
 
 blk_t reiser4_format_start(reiser4_format_t *format) {
-	aal_assert("umka-1693", format != NULL, return INVAL_BLK);
+	aal_assert("umka-1693", format != NULL);
 	
 	return plugin_call(format->entity->plugin->format_ops, 
 			   start, format->entity);
@@ -207,7 +207,7 @@ blk_t reiser4_format_start(reiser4_format_t *format) {
 count_t reiser4_format_get_len(
 	reiser4_format_t *format)	/* disk-format to be inspected */
 {
-	aal_assert("umka-360", format != NULL, return INVAL_BLK);
+	aal_assert("umka-360", format != NULL);
     
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_len, format->entity);
@@ -217,7 +217,7 @@ count_t reiser4_format_get_len(
 count_t reiser4_format_get_free(
 	reiser4_format_t *format)	/* format to be used */
 {
-	aal_assert("umka-426", format != NULL, return INVAL_BLK);
+	aal_assert("umka-426", format != NULL);
     
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_free, format->entity);
@@ -227,7 +227,7 @@ count_t reiser4_format_get_free(
 uint16_t reiser4_format_get_height(
 	reiser4_format_t *format)	/* format to be inspected */
 {
-	aal_assert("umka-557", format != NULL, return 0);
+	aal_assert("umka-557", format != NULL);
     
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_height, format->entity);
@@ -237,7 +237,7 @@ uint16_t reiser4_format_get_height(
 uint32_t reiser4_format_get_make_stamp(
 	reiser4_format_t *format)	/* format to be inspected */
 {
-	aal_assert("umka-1124", format != NULL, return 0);
+	aal_assert("umka-1124", format != NULL);
     
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_stamp, format->entity);
@@ -250,7 +250,7 @@ void reiser4_format_set_root(
 	reiser4_format_t *format,	/* format new root blocks will be set in */
 	blk_t root)			/* new root block */
 {
-	aal_assert("umka-420", format != NULL, return);
+	aal_assert("umka-420", format != NULL);
 
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_root, format->entity, root);
@@ -261,7 +261,7 @@ void reiser4_format_set_len(
 	reiser4_format_t *format,	/* format instance to be used */
 	count_t blocks)		        /* new length in blocks */
 {
-	aal_assert("umka-422", format != NULL, return);
+	aal_assert("umka-422", format != NULL);
     
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_len, format->entity, blocks);
@@ -272,7 +272,7 @@ void reiser4_format_set_free(
 	reiser4_format_t *format,	/* format to be used */
 	count_t blocks)		        /* new free block count */
 {
-	aal_assert("umka-424", format != NULL, return);
+	aal_assert("umka-424", format != NULL);
     
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_free, format->entity, blocks);
@@ -283,7 +283,7 @@ void reiser4_format_set_height(
 	reiser4_format_t *format,	/* format to be used */
 	uint8_t height)		        /* new tree height */
 {
-	aal_assert("umka-559", format != NULL, return);
+	aal_assert("umka-559", format != NULL);
     
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_height, format->entity, height);
@@ -294,7 +294,7 @@ void reiser4_format_set_make_stamp(
 	reiser4_format_t *format,	/* format to be used */
 	uint32_t stamp)		        /* new tree height */
 {
-	aal_assert("umka-1125", format != NULL, return);
+	aal_assert("umka-1125", format != NULL);
     
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_stamp, format->entity, stamp);
@@ -306,7 +306,7 @@ void reiser4_format_set_make_stamp(
 rpid_t reiser4_format_journal_pid(
 	reiser4_format_t *format)	/* disk-format journal pid will be obtained from */
 {
-	aal_assert("umka-115", format != NULL, return INVAL_PID);
+	aal_assert("umka-115", format != NULL);
 	
 	return plugin_call(format->entity->plugin->format_ops, 
 			   journal_pid, format->entity);
@@ -316,7 +316,7 @@ rpid_t reiser4_format_journal_pid(
 rpid_t reiser4_format_alloc_pid(
 	reiser4_format_t *format)	/* disk-format allocator pid will be obtained from */
 {
-	aal_assert("umka-117", format != NULL, return INVAL_PID);
+	aal_assert("umka-117", format != NULL);
 	
 	return plugin_call(format->entity->plugin->format_ops, 
 			   alloc_pid, format->entity);
@@ -326,7 +326,7 @@ rpid_t reiser4_format_alloc_pid(
 rpid_t reiser4_format_oid_pid(
 	reiser4_format_t *format)	/* disk-format oid allocator pid will be obtained from */
 {
-	aal_assert("umka-491", format != NULL, return INVAL_PID);
+	aal_assert("umka-491", format != NULL);
 	
 	return plugin_call(format->entity->plugin->format_ops, 
 			   oid_pid, format->entity);
@@ -336,8 +336,8 @@ errno_t reiser4_format_skipped(reiser4_format_t *format,
 			       block_func_t func,
 			       void *data)
 {
-	aal_assert("umka-1083", format != NULL, return -1);
-	aal_assert("umka-1084", func != NULL, return -1);
+	aal_assert("umka-1083", format != NULL);
+	aal_assert("umka-1084", func != NULL);
 
 	return plugin_call(format->entity->plugin->format_ops,
 			   skipped, format->entity, func, data);
@@ -347,8 +347,8 @@ errno_t reiser4_format_layout(reiser4_format_t *format,
 			      block_func_t func,
 			      void *data)
 {
-	aal_assert("umka-1076", format != NULL, return -1);
-	aal_assert("umka-1077", func != NULL, return -1);
+	aal_assert("umka-1076", format != NULL);
+	aal_assert("umka-1077", func != NULL);
 
 	return plugin_call(format->entity->plugin->format_ops,
 			   layout, format->entity, func, data);

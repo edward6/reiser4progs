@@ -26,8 +26,8 @@ reiser4_journal_t *reiser4_journal_open(
 	reiser4_plugin_t *plugin;
 	reiser4_journal_t *journal;
 	
-	aal_assert("umka-095", fs != NULL, return NULL);
-	aal_assert("umka-1695", fs->format != NULL, return NULL);
+	aal_assert("umka-095", fs != NULL);
+	aal_assert("umka-1695", fs->format != NULL);
 	
 	/* Allocating memory for jouranl instance */
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
@@ -86,8 +86,8 @@ reiser4_journal_t *reiser4_journal_create(
 	reiser4_plugin_t *plugin;
 	reiser4_journal_t *journal;
 
-	aal_assert("umka-1697", fs != NULL, return NULL);
-	aal_assert("umka-1696", fs->format != NULL, return NULL);
+	aal_assert("umka-1697", fs != NULL);
+	aal_assert("umka-1696", fs->format != NULL);
 	
 	/* Allocating memory and finding plugin */
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
@@ -131,8 +131,8 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 			       block_func_t func,
 			       void *data)
 {
-	aal_assert("umka-1078", journal != NULL, return -1);
-	aal_assert("umka-1079", func != NULL, return -1);
+	aal_assert("umka-1078", journal != NULL);
+	aal_assert("umka-1079", func != NULL);
 
 	return plugin_call(journal->entity->plugin->journal_ops,
 			   layout, journal->entity, func, data);
@@ -142,7 +142,7 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 errno_t reiser4_journal_replay(
 	reiser4_journal_t *journal)	/* journal to be replayed */
 {
-	aal_assert("umka-727", journal != NULL, return -1);
+	aal_assert("umka-727", journal != NULL);
     
 	if (aal_device_readonly(journal->device)) {
 		aal_exception_warn("Transactions can't be replayed on "
@@ -159,7 +159,7 @@ errno_t reiser4_journal_replay(
 errno_t reiser4_journal_sync(
 	reiser4_journal_t *journal)	/* journal to be saved */
 {
-	aal_assert("umka-100", journal != NULL, return -1);
+	aal_assert("umka-100", journal != NULL);
 
 	return plugin_call(journal->entity->plugin->journal_ops, 
 			   sync, journal->entity);
@@ -169,15 +169,15 @@ errno_t reiser4_journal_sync(
 errno_t reiser4_journal_valid(
 	reiser4_journal_t *journal)  /* jouranl to eb checked */
 {
-	aal_assert("umka-830", journal != NULL, return -1);
+	aal_assert("umka-830", journal != NULL);
 
 	return plugin_call(journal->entity->plugin->journal_ops, 
 			   valid, journal->entity);
 }
 
 errno_t reiser4_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
-	aal_assert("umka-1564", journal != NULL, return -1);
-	aal_assert("umka-1565", stream != NULL, return -1);
+	aal_assert("umka-1564", journal != NULL);
+	aal_assert("umka-1565", stream != NULL);
 
 	return plugin_call(journal->entity->plugin->journal_ops,
 			   print, journal->entity, stream, 0);
@@ -189,7 +189,7 @@ errno_t reiser4_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) 
 void reiser4_journal_close(
 	reiser4_journal_t *journal)	/* jouranl to be closed */
 {
-	aal_assert("umka-102", journal != NULL, return);
+	aal_assert("umka-102", journal != NULL);
     
 	plugin_call(journal->entity->plugin->journal_ops, 
 		    close, journal->entity);

@@ -16,8 +16,8 @@ int32_t extent40_layout_check(item_entity_t *item, region_func_t func,
     uint32_t i, units;
     extent40_t *extent;
 	
-    aal_assert("vpf-724", item != NULL, return -1);
-    aal_assert("vpf-725", func != NULL, return -1);
+    aal_assert("vpf-724", item != NULL);
+    aal_assert("vpf-725", func != NULL);
 
     extent = extent40_body(item);
     units = extent40_units(item);

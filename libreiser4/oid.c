@@ -23,8 +23,8 @@ reiser4_oid_t *reiser4_oid_open(
 	void *oid_start;
 	uint32_t oid_len;
 
-	aal_assert("umka-1698", fs != NULL, return NULL);
-	aal_assert("umka-519", fs->format != NULL, return NULL);
+	aal_assert("umka-1698", fs != NULL);
+	aal_assert("umka-519", fs->format != NULL);
 
 	/* Allocating memory needed for instance */
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
@@ -66,7 +66,7 @@ reiser4_oid_t *reiser4_oid_open(
 void reiser4_oid_close(
 	reiser4_oid_t *oid)		/* oid allocator instance to be closed */
 {
-	aal_assert("umka-1507", oid != NULL, return);
+	aal_assert("umka-1507", oid != NULL);
 	
 	plugin_call(oid->entity->plugin->oid_ops, 
 		    close, oid->entity);
@@ -87,8 +87,8 @@ reiser4_oid_t *reiser4_oid_create(
 	void *oid_start;
 	uint32_t oid_len;
 	
-	aal_assert("umka-729", fs != NULL, return NULL);
-	aal_assert("umka-1699", fs->format != NULL, return NULL);
+	aal_assert("umka-729", fs != NULL);
+	aal_assert("umka-1699", fs->format != NULL);
 
 	/* Initializing instance */
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
@@ -128,7 +128,7 @@ reiser4_oid_t *reiser4_oid_create(
 
 /* Returns next object id from specified oid allocator */
 roid_t reiser4_oid_next(reiser4_oid_t *oid) {
-	aal_assert("umka-1108", oid != NULL, return 0);
+	aal_assert("umka-1108", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   next, oid->entity);
@@ -136,7 +136,7 @@ roid_t reiser4_oid_next(reiser4_oid_t *oid) {
 
 /* Returns free object id from specified oid allocator */
 roid_t reiser4_oid_allocate(reiser4_oid_t *oid) {
-	aal_assert("umka-522", oid != NULL, return 0);
+	aal_assert("umka-522", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   allocate, oid->entity);
@@ -147,7 +147,7 @@ void reiser4_oid_release(
 	reiser4_oid_t *oid,	/* oid allocator to be used */
 	roid_t id)		/* object id to be released */
 {
-	aal_assert("umka-525", oid != NULL, return);
+	aal_assert("umka-525", oid != NULL);
     
 	plugin_call(oid->entity->plugin->oid_ops, 
 		    release, oid->entity, id);
@@ -155,7 +155,7 @@ void reiser4_oid_release(
 
 /* Checks specified oid allocator on validness */
 errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
-	aal_assert("umka-962", oid != NULL, return -1);
+	aal_assert("umka-962", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   valid, oid->entity);
@@ -163,15 +163,15 @@ errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
 
 /* Synchronizes specified oid allocator */
 errno_t reiser4_oid_sync(reiser4_oid_t *oid) {
-	aal_assert("umka-735", oid != NULL, return -1);
+	aal_assert("umka-735", oid != NULL);
 
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   sync, oid->entity);
 }
 
 errno_t reiser4_oid_print(reiser4_oid_t *oid, aal_stream_t *stream) {
-	aal_assert("umka-1562", oid != NULL, return -1);
-	aal_assert("umka-1563", stream != NULL, return -1);
+	aal_assert("umka-1562", oid != NULL);
+	aal_assert("umka-1563", stream != NULL);
 
 	return plugin_call(oid->entity->plugin->oid_ops,
 			   print, oid->entity, stream, 0);
@@ -181,7 +181,7 @@ errno_t reiser4_oid_print(reiser4_oid_t *oid, aal_stream_t *stream) {
 
 /* Returns number of used oids from passed oid allocator */
 uint64_t reiser4_oid_used(reiser4_oid_t *oid) {
-	aal_assert("umka-527", oid != NULL, return 0);
+	aal_assert("umka-527", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   used, oid->entity);
@@ -189,7 +189,7 @@ uint64_t reiser4_oid_used(reiser4_oid_t *oid) {
 
 /* Returns number of free oids from passed oid allocator */
 uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
-	aal_assert("umka-527", oid != NULL, return 0);
+	aal_assert("umka-527", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   free, oid->entity);
@@ -197,7 +197,7 @@ uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
 
 /* Returns root parent locality from specified oid allocator */
 roid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid) {
-	aal_assert("umka-745", oid != NULL, return 0);
+	aal_assert("umka-745", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   hyper_locality,);
@@ -205,7 +205,7 @@ roid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid) {
 
 /* Returns root parent objectid from specified oid allocator */
 roid_t reiser4_oid_root_locality(reiser4_oid_t *oid) {
-	aal_assert("umka-746", oid != NULL, return 0);
+	aal_assert("umka-746", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   root_locality,);
@@ -213,7 +213,7 @@ roid_t reiser4_oid_root_locality(reiser4_oid_t *oid) {
 
 /* Returns root objectid from specified oid allocator */
 roid_t reiser4_oid_root_objectid(reiser4_oid_t *oid) {
-	aal_assert("umka-747", oid != NULL, return 0);
+	aal_assert("umka-747", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   root_objectid,);

@@ -29,8 +29,8 @@ static int32_t symlink40_read(object_entity_t *entity,
 
 	symlink40_t *symlink = (symlink40_t *)entity;
 
-	aal_assert("umka-1570", entity != NULL, return 0);
-	aal_assert("umka-1571", buff != NULL, return 0);
+	aal_assert("umka-1570", entity != NULL);
+	aal_assert("umka-1571", buff != NULL);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
@@ -56,8 +56,8 @@ static object_entity_t *symlink40_open(void *tree,
 	key_entity_t *key;
 	symlink40_t *symlink;
 
-	aal_assert("umka-1163", tree != NULL, return NULL);
-	aal_assert("umka-1164", place != NULL, return NULL);
+	aal_assert("umka-1163", tree != NULL);
+	aal_assert("umka-1164", place != NULL);
     
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
@@ -103,8 +103,8 @@ static object_entity_t *symlink40_create(void *tree,
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
 	
-	aal_assert("umka-1741", tree != NULL, return NULL);
-	aal_assert("umka-1740", hint != NULL, return NULL);
+	aal_assert("umka-1741", tree != NULL);
+	aal_assert("umka-1740", hint != NULL);
 
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
@@ -191,8 +191,8 @@ static int32_t symlink40_write(object_entity_t *entity,
 {
 	symlink40_t *symlink;
 
-	aal_assert("umka-1777", buff != NULL, return -1);
-	aal_assert("umka-1776", entity != NULL, return -1);
+	aal_assert("umka-1777", buff != NULL);
+	aal_assert("umka-1776", entity != NULL);
 
 	/*
 	  FIXME-UMKA: What about expanding node (and stat data item) first. What
@@ -209,8 +209,8 @@ static errno_t symlink40_metadata(object_entity_t *entity,
 {
 	symlink40_t *symlink;
 
-	aal_assert("umka-1719", func != NULL, return -1);
-	aal_assert("umka-1718", entity != NULL, return -1);
+	aal_assert("umka-1719", func != NULL);
+	aal_assert("umka-1718", entity != NULL);
 
 	symlink = (symlink40_t *)entity;
 	return func(entity, &symlink->file.statdata, data);
@@ -224,8 +224,8 @@ static errno_t symlink40_layout(object_entity_t *entity,
 	blk_t blk;
 	symlink40_t *symlink;
 
-	aal_assert("umka-1721", func != NULL, return -1);
-	aal_assert("umka-1720", entity != NULL, return -1);
+	aal_assert("umka-1721", func != NULL);
+	aal_assert("umka-1720", entity != NULL);
 
 	symlink = (symlink40_t *)entity;
 	blk = symlink->file.statdata.item.con.blk;
@@ -368,8 +368,8 @@ static errno_t symlink40_follow(object_entity_t *entity,
 	symlink40_t *symlink;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-1774", entity != NULL, return -1);
-	aal_assert("umka-1775", key != NULL, return -1);
+	aal_assert("umka-1774", entity != NULL);
+	aal_assert("umka-1775", key != NULL);
 
 	symlink = (symlink40_t *)entity;
 	aal_memset(path, 0, sizeof(path));
@@ -406,7 +406,7 @@ static errno_t symlink40_follow(object_entity_t *entity,
 static void symlink40_close(object_entity_t *entity) {
 	symlink40_t *symlink = (symlink40_t *)entity;
 		
-	aal_assert("umka-1170", entity != NULL, return);
+	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
 	file40_unlock(&symlink->file, &symlink->file.statdata);

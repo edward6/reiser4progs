@@ -162,7 +162,7 @@ static char *direntry40_entry_name(direntry40_t *direntry,
 static uint32_t direntry40_units(item_entity_t *item) {
 	direntry40_t *direntry;
     
-	aal_assert("umka-865", item != NULL, return 0);
+	aal_assert("umka-865", item != NULL);
 
 	direntry = direntry40_body(item);
 	return de40_get_count(direntry);
@@ -184,14 +184,14 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	entry40_t *entry;
 	direntry40_t *direntry;
 
-	aal_assert("umka-1606", key != NULL, return -1);
-	aal_assert("umka-1607", item != NULL, return -1);
-	aal_assert("umka-1605", item->body != NULL, return -1);
+	aal_assert("umka-1606", key != NULL);
+	aal_assert("umka-1607", item != NULL);
+	aal_assert("umka-1605", item->body != NULL);
 
 	direntry = direntry40_body(item);
 	units = direntry40_units(item);
 	
-	aal_assert("umka-1647", pos < units, return -1);
+	aal_assert("umka-1647", pos < units);
 	entry = direntry40_entry(direntry40_body(item), pos);
 
 	/* Getting item key params */
@@ -221,18 +221,18 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	direntry40_t *direntry;
 	reiser4_entry_hint_t *hint;
     
-	aal_assert("umka-866", item != NULL, return -1);
-	aal_assert("umka-1418", buff != NULL, return -1);
+	aal_assert("umka-866", item != NULL);
+	aal_assert("umka-1418", buff != NULL);
     
 	hint = (reiser4_entry_hint_t *)buff;
 	
-	aal_assert("umka-1599", hint != NULL, return -1);
+	aal_assert("umka-1599", hint != NULL);
 	
 	if (!(direntry = direntry40_body(item)))
 		return -1;
 
-	aal_assert("umka-1608", direntry != NULL, return 0);
-	aal_assert("umka-1598", pos < de40_get_count(direntry), return -1);
+	aal_assert("umka-1608", direntry != NULL);
+	aal_assert("umka-1598", pos < de40_get_count(direntry));
 
 	if (count > direntry40_units(item) - pos)
 		count = direntry40_units(item) - pos;
@@ -264,8 +264,8 @@ static int direntry40_mergeable(item_entity_t *item1,
 	reiser4_plugin_t *plugin;
 	roid_t locality1, locality2;
 	
-	aal_assert("umka-1581", item1 != NULL, return -1);
-	aal_assert("umka-1582", item2 != NULL, return -1);
+	aal_assert("umka-1581", item1 != NULL);
+	aal_assert("umka-1582", item2 != NULL);
 
 	plugin = item1->key.plugin;
 
@@ -290,7 +290,7 @@ static errno_t direntry40_estimate(item_entity_t *item, void *buff,
 	reiser4_item_hint_t *hint;
 	reiser4_entry_hint_t *entry_hint;
 	    
-	aal_assert("vpf-095", buff != NULL, return -1);
+	aal_assert("vpf-095", buff != NULL);
     
 	hint = (reiser4_item_hint_t *)buff;
 	entry_hint = (reiser4_entry_hint_t *)hint->hint;
@@ -333,8 +333,8 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	entry40_t *entry;
 	direntry40_t *direntry;
 	
-	aal_assert("umka-1591", src_item != NULL, return 0);
-	aal_assert("umka-1592", hint != NULL, return 0);
+	aal_assert("umka-1591", src_item != NULL);
+	aal_assert("umka-1592", hint != NULL);
 
 	src_units = direntry40_units(src_item);
 	dst_units = dst_item ? direntry40_units(dst_item) : 0;
@@ -478,9 +478,9 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	direntry40_t *dst_direntry;
 	uint32_t src_units, dst_units;
 	
-	aal_assert("umka-1586", src_item != NULL, return -1);
-	aal_assert("umka-1587", dst_item != NULL, return -1);
-	aal_assert("umka-1589", hint != NULL, return -1);
+	aal_assert("umka-1586", src_item != NULL);
+	aal_assert("umka-1587", dst_item != NULL);
+	aal_assert("umka-1589", hint != NULL);
 
 	if (!(src_direntry = direntry40_body(src_item)))
 		return -1;
@@ -491,7 +491,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	src_units = de40_get_count(src_direntry);
 	dst_units = de40_get_count(dst_direntry);
 	
-	aal_assert("umka-1604", src_units >= hint->units, return -1);
+	aal_assert("umka-1604", src_units >= hint->units);
 
 	headers = hint->units * sizeof(entry40_t);
 	hint->rest -= (hint->create ? sizeof(direntry40_t) : 0);
@@ -688,7 +688,7 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	direntry = direntry40_body(item);
 	
 	units = de40_get_count(direntry);
-	aal_assert("umka-1681", pos < units, return -1);
+	aal_assert("umka-1681", pos < units);
 
 	if (pos + count > units)
 		count = units - pos;
@@ -770,14 +770,14 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 	uint32_t after = 0;
 	uint32_t before = 0;
 
-	aal_assert("umka-1724", len > 0, return -1);
-	aal_assert("umka-1724", count > 0, return -1);
-	aal_assert("umka-1723", direntry != NULL, return -1);
+	aal_assert("umka-1724", len > 0);
+	aal_assert("umka-1724", count > 0);
+	aal_assert("umka-1723", direntry != NULL);
 	
 	units = de40_get_count(direntry);
 	headers = count * sizeof(entry40_t);
 
-	aal_assert("umka-1722", pos <= units, return -1);
+	aal_assert("umka-1722", pos <= units);
 
 	/*
 	  Getting the offset of the place new entries will be inserted at. It
@@ -849,9 +849,9 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	reiser4_item_hint_t *hint;
 	reiser4_entry_hint_t *entry_hint;
     
-	aal_assert("umka-791", item != NULL, return -1);
-	aal_assert("umka-792", buff != NULL, return -1);
-	aal_assert("umka-897", pos != ~0ul, return -1);
+	aal_assert("umka-791", item != NULL);
+	aal_assert("umka-792", buff != NULL);
+	aal_assert("umka-897", pos != ~0ul);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
@@ -955,7 +955,7 @@ static int32_t direntry40_remove(item_entity_t *item,
 	uint32_t len;
 	direntry40_t *direntry;
     
-	aal_assert("umka-934", item != NULL, return -1);
+	aal_assert("umka-934", item != NULL);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
@@ -978,7 +978,7 @@ static int32_t direntry40_remove(item_entity_t *item,
 
 /* Prepares area new item will be created at */
 static errno_t direntry40_init(item_entity_t *item) {
-	aal_assert("umka-1010", item != NULL, return -1);
+	aal_assert("umka-1010", item != NULL);
 	
 	aal_memset(item->body, 0, item->len);
 	return 0;
@@ -996,8 +996,8 @@ static errno_t direntry40_print(item_entity_t *item,
 	uint64_t objid, offset;
 	uint64_t locality, objectid;
 	
-	aal_assert("umka-548", item != NULL, return -1);
-	aal_assert("umka-549", stream != NULL, return -1);
+	aal_assert("umka-548", item != NULL);
+	aal_assert("umka-549", stream != NULL);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
@@ -1051,9 +1051,9 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 	
 	key_entity_t *maxkey;
 
-	aal_assert("umka-1648", item != NULL, return -1);
-	aal_assert("umka-1649", key != NULL, return -1);
-	aal_assert("umka-716", key->plugin != NULL, return -1);
+	aal_assert("umka-1649", key != NULL);
+	aal_assert("umka-1648", item != NULL);
+	aal_assert("umka-716", key->plugin != NULL);
 
 	plugin_call(key->plugin->key_ops, assign, key, &item->key);
 
@@ -1075,15 +1075,15 @@ static errno_t direntry40_utmost_key(item_entity_t *item,
 	uint32_t units;
 	direntry40_t *direntry;
 	
-	aal_assert("umka-1650", item != NULL, return -1);
-	aal_assert("umka-1651", key != NULL, return -1);
-	aal_assert("umka-716", key->plugin != NULL, return -1);
-	aal_assert("umka-1652", item->body != NULL, return -1);
+	aal_assert("umka-1651", key != NULL);
+	aal_assert("umka-1650", item != NULL);
+	aal_assert("umka-716", key->plugin != NULL);
+	aal_assert("umka-1652", item->body != NULL);
 
 	direntry = direntry40_body(item);
 	units = de40_get_count(direntry);
 	
-	aal_assert("umka-1653", units > 0, return -1);
+	aal_assert("umka-1653", units > 0);
 	return direntry40_get_key(item, units - 1, key);
 }
 
@@ -1119,11 +1119,11 @@ static int direntry40_lookup(item_entity_t *item,
 	direntry40_t *direntry;
 	key_entity_t maxkey, minkey;
 
-	aal_assert("umka-610", key != NULL, return -1);
-	aal_assert("umka-717", key->plugin != NULL, return -1);
+	aal_assert("umka-610", key != NULL);
+	aal_assert("umka-717", key->plugin != NULL);
     
-	aal_assert("umka-609", item != NULL, return -1);
-	aal_assert("umka-629", pos != NULL, return -1);
+	aal_assert("umka-609", item != NULL);
+	aal_assert("umka-629", pos != NULL);
     
 	if (!(direntry = direntry40_body(item)))
 		return -1;

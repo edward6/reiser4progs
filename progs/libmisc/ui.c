@@ -46,8 +46,8 @@ char *progs_readline(
 {
 	char *line;
     
-	aal_assert("umka-1021", prompt != NULL, return NULL);
-	aal_assert("umka-1536", stream != NULL, return NULL);
+	aal_assert("umka-1021", prompt != NULL);
+	aal_assert("umka-1536", stream != NULL);
     
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 	rl_instream = stdin;
@@ -212,7 +212,7 @@ static char *progs_alpha_handler(
 	char *line;
 	char buff[255];
     
-	aal_assert("umka-1133", prompt != NULL, return NULL);
+	aal_assert("umka-1133", prompt != NULL);
     
 	aal_memset(buff, 0, sizeof(buff));
 	aal_snprintf(buff, sizeof(buff), "%s [%s]: ", prompt, defvalue);
@@ -239,7 +239,7 @@ static int64_t progs_numeric_handler(
 	char buff[255];
 	int64_t value = 0;
     
-	aal_assert("umka-1132", prompt != NULL, return ~0ll);
+	aal_assert("umka-1132", prompt != NULL);
     
 	aal_memset(buff, 0, sizeof(buff));
     

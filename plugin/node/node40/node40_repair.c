@@ -45,10 +45,10 @@ static errno_t node40_region_delete(object_entity_t *entity,
     item40_header_t *ih;
     node40_t *node = (node40_t *)entity;
      
-    aal_assert("vpf-201", node != NULL, return -1);
-    aal_assert("vpf-202", node->block != NULL, return -1);
-    aal_assert("vpf-213", start_pos <= end_pos, return -1);
-    aal_assert("vpf-214", end_pos <= node40_items(entity), return -1);
+    aal_assert("vpf-201", node != NULL);
+    aal_assert("vpf-202", node->block != NULL);
+    aal_assert("vpf-213", start_pos <= end_pos);
+    aal_assert("vpf-214", end_pos <= node40_items(entity));
     
     ih = node40_ih_at(node, start_pos);
     for (i = start_pos; i <= end_pos; i++, ih--) {
@@ -85,8 +85,8 @@ static int node40_item_array_check(object_entity_t *entity) {
     int64_t start_pos, end_pos;
     node40_t *node = (node40_t *)entity;    
     
-    aal_assert("vpf-208", node != NULL, return -1);
-    aal_assert("vpf-209", node->block != NULL, return -1);
+    aal_assert("vpf-208", node != NULL);
+    aal_assert("vpf-209", node->block != NULL);
 
     blk = aal_block_number(node->block);
     
@@ -182,9 +182,9 @@ static int node40_item_array_check(object_entity_t *entity) {
 static errno_t node40_item_count_check(object_entity_t *entity) {
     node40_t *node = (node40_t *)entity;
 
-    aal_assert("vpf-199", node != NULL, return -1);
-    aal_assert("vpf-200", node->block != NULL, return -1);
-    aal_assert("vpf-247", node->block->device != NULL, return -1);
+    aal_assert("vpf-199", node != NULL);
+    aal_assert("vpf-200", node->block != NULL);
+    aal_assert("vpf-247", node->block->device != NULL);
 
     if (node40_items(entity) > 
 	(aal_device_get_bs(node->block->device) - sizeof(node40_header_t)) / 
@@ -215,7 +215,7 @@ static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
 errno_t node40_check(object_entity_t *entity, uint16_t options) {
     node40_t *node = (node40_t *)entity;
     
-    aal_assert("vpf-194", node != NULL, return -1);
+    aal_assert("vpf-194", node != NULL);
  
     /* Check the count of items */
     if (node40_item_count_check(entity))

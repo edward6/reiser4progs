@@ -24,11 +24,11 @@ static errno_t tail40_get_key(item_entity_t *item,
 {
 	uint32_t units;
 
-	aal_assert("vpf-626", item != NULL, return -1);
-	aal_assert("vpf-627", key != NULL, return -1);
+	aal_assert("vpf-626", item != NULL);
+	aal_assert("vpf-627", key != NULL);
 
 	units = tail40_units(item);
-	aal_assert("vpf-628", offset < units, return -1);
+	aal_assert("vpf-628", offset < units);
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 
@@ -41,9 +41,9 @@ static errno_t tail40_get_key(item_entity_t *item,
 static int32_t tail40_read(item_entity_t *item, void *buff,
 			   uint32_t pos, uint32_t count)
 {
-	aal_assert("umka-1673", item != NULL, return -1);
-	aal_assert("umka-1674", buff != NULL, return -1);
-	aal_assert("umka-1675", pos < item->len, return -1);
+	aal_assert("umka-1673", item != NULL);
+	aal_assert("umka-1674", buff != NULL);
+	aal_assert("umka-1675", pos < item->len);
 
 	if (count > item->len - pos)
 		count = item->len - pos;
@@ -61,9 +61,9 @@ static int32_t tail40_write(item_entity_t *item, void *buff,
 {
 	reiser4_item_hint_t *hint;
 	
-	aal_assert("umka-1677", buff != NULL, return -1);
-	aal_assert("umka-1678", item != NULL, return -1);
-	aal_assert("umka-1679", pos < item->len, return -1);
+	aal_assert("umka-1677", buff != NULL);
+	aal_assert("umka-1678", item != NULL);
+	aal_assert("umka-1679", pos < item->len);
 
 	hint = (reiser4_item_hint_t *)buff;
 	
@@ -88,8 +88,8 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 {
 	void *src, *dst;
 	
-	aal_assert("umka-1661", item != NULL, return -1);
-	aal_assert("umka-1663", pos < item->len, return -1);
+	aal_assert("umka-1661", item != NULL);
+	aal_assert("umka-1663", pos < item->len);
 
 	if (count > item->len - pos)
 		count = item->len - pos;
@@ -110,17 +110,18 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 }
 
 static errno_t tail40_init(item_entity_t *item) {
-	aal_assert("umka-1668", item != NULL, return -1);
+	aal_assert("umka-1668", item != NULL);
 	
 	aal_memset(item->body, 0, item->len);
 	return 0;
 }
 
-static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,
+static errno_t tail40_print(item_entity_t *item,
+			    aal_stream_t *stream,
 			    uint16_t options)
 {
-	aal_assert("umka-1489", item != NULL, return -1);
-	aal_assert("umka-1490", stream != NULL, return -1);
+	aal_assert("umka-1489", item != NULL);
+	aal_assert("umka-1490", stream != NULL);
 
 	aal_stream_format(stream, "TAIL: len=%u, KEY: ", item->len);
 		
@@ -144,8 +145,8 @@ static errno_t tail40_maxposs_key(item_entity_t *item,
 	uint64_t offset;
 	key_entity_t *maxkey;
     
-	aal_assert("umka-1209", item != NULL, return -1);
-	aal_assert("umka-1210", key != NULL, return -1);
+	aal_assert("umka-1209", item != NULL);
+	aal_assert("umka-1210", key != NULL);
 
 	key->plugin = item->key.plugin;
 		
@@ -165,8 +166,8 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 {
 	uint64_t offset;
 
-	aal_assert("vpf-442", item != NULL, return -1);
-	aal_assert("vpf-443", key != NULL, return -1);
+	aal_assert("vpf-442", item != NULL);
+	aal_assert("vpf-443", key != NULL);
 
 	key->plugin = item->key.plugin;
 	
@@ -191,9 +192,9 @@ static int tail40_lookup(item_entity_t *item,
 	key_entity_t curkey;
 	key_entity_t maxkey;
     
-	aal_assert("umka-1228", item != NULL, return -1);
-	aal_assert("umka-1229", key != NULL, return -1);
-	aal_assert("umka-1230", pos != NULL, return -1);
+	aal_assert("umka-1228", item != NULL);
+	aal_assert("umka-1229", key != NULL);
+	aal_assert("umka-1230", pos != NULL);
 
 	maxkey.plugin = key->plugin;
 	
@@ -231,8 +232,8 @@ static int tail40_mergeable(item_entity_t *item1,
 	roid_t objectid1, objectid2;
 	roid_t locality1, locality2;
 	
-	aal_assert("umka-1584", item1 != NULL, return -1);
-	aal_assert("umka-1585", item2 != NULL, return -1);
+	aal_assert("umka-1584", item1 != NULL);
+	aal_assert("umka-1585", item2 != NULL);
 
 	plugin = item1->key.plugin;
 		
@@ -264,8 +265,8 @@ static errno_t tail40_predict(item_entity_t *src_item,
 {
 	uint32_t space;
 	
-	aal_assert("umka-1664", src_item != NULL, return -1);
-	aal_assert("umka-1690", dst_item != NULL, return -1);
+	aal_assert("umka-1664", src_item != NULL);
+	aal_assert("umka-1690", dst_item != NULL);
 
 	space = hint->rest;
 		
@@ -317,9 +318,9 @@ static errno_t tail40_shift(item_entity_t *src_item,
 	uint32_t len;
 	void *src, *dst;
 	
-	aal_assert("umka-1665", src_item != NULL, return -1);
-	aal_assert("umka-1666", dst_item != NULL, return -1);
-	aal_assert("umka-1667", hint != NULL, return -1);
+	aal_assert("umka-1665", src_item != NULL);
+	aal_assert("umka-1666", dst_item != NULL);
+	aal_assert("umka-1667", hint != NULL);
 
 	len = dst_item->len > hint->rest ? dst_item->len - hint->rest :
 		dst_item->len;

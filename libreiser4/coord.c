@@ -11,12 +11,12 @@
 #include <reiser4/reiser4.h>
 
 blk_t reiser4_coord_block(reiser4_coord_t *coord) {
-	aal_assert("umka-1445", coord != NULL, return INVAL_BLK);
+	aal_assert("umka-1445", coord != NULL);
 	return coord->node->blk;
 }
 
 aal_device_t *reiser4_coord_device(reiser4_coord_t *coord) {
-	aal_assert("umka-1553", coord != NULL, return NULL);
+	aal_assert("umka-1553", coord != NULL);
 	return coord->node->device;
 }
 
@@ -27,7 +27,7 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	object_entity_t *entity;
 	
-        aal_assert("umka-1459", coord != NULL, return -1);
+        aal_assert("umka-1459", coord != NULL);
 
 	entity = coord->node->entity;
 	
@@ -79,8 +79,8 @@ errno_t reiser4_coord_init(
 	reiser4_node_t *node,	 /* the first component of coord */
 	rpos_t *pos)	         /* coord pos component */
 {
-	aal_assert("umka-795", coord != NULL, return -1);
-	aal_assert("umka-1728", node != NULL, return -1);
+	aal_assert("umka-795", coord != NULL);
+	aal_assert("umka-1728", node != NULL);
     
 	coord->node = node;
 
@@ -96,7 +96,7 @@ errno_t reiser4_coord_open(
 	reiser4_node_t *node,	 /* the first component of coord */
 	rpos_t *pos)	         /* coord pos component */
 {
-        aal_assert("umka-1435", coord != NULL, return -1);
+        aal_assert("umka-1435", coord != NULL);
 
 	if (reiser4_coord_init(coord, node, pos))
 		return -1;
@@ -108,9 +108,8 @@ errno_t reiser4_coord_assign(
 	reiser4_coord_t *coord,	 /* coord to be initialized */
 	reiser4_node_t *node)	 /* the node to be assigned */
 {
-        aal_assert("umka-1730", coord != NULL, return -1);
+        aal_assert("umka-1730", coord != NULL);
 	
 	aal_memset(coord, 0, sizeof(*coord));
-	
 	return reiser4_coord_init(coord, node, NULL);
 }

@@ -75,9 +75,9 @@ static errno_t tree_insert(
 	reiser4_place_t *place,	    /* insertion point will be saved here */
 	reiser4_item_hint_t *item)  /* item hint to be inserted into tree */
 {
-	aal_assert("umka-846", tree != NULL, return -1);
-	aal_assert("umka-847", item != NULL, return -1);
-	aal_assert("umka-1643", place != NULL, return -1);
+	aal_assert("umka-846", tree != NULL);
+	aal_assert("umka-847", item != NULL);
+	aal_assert("umka-1643", place != NULL);
     
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
 				   (reiser4_coord_t *)place, item);
@@ -89,8 +89,8 @@ static errno_t tree_remove(
 	reiser4_place_t *place,	    /* coord of the item to be removerd */
 	uint32_t count)
 {
-	aal_assert("umka-848", tree != NULL, return -1);
-	aal_assert("umka-849", place != NULL, return -1);
+	aal_assert("umka-848", tree != NULL);
+	aal_assert("umka-849", place != NULL);
     
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
 				   (reiser4_coord_t *)place, count);
@@ -108,9 +108,9 @@ static int tree_lookup(
 	int lookup;
 	reiser4_coord_t *coord;
 	
-	aal_assert("umka-851", key != NULL, return -1);
-	aal_assert("umka-850", tree != NULL, return -1);
-	aal_assert("umka-852", place != NULL, return -1);
+	aal_assert("umka-851", key != NULL);
+	aal_assert("umka-850", tree != NULL);
+	aal_assert("umka-852", place != NULL);
 
 	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree, key, stop,
 					  (reiser4_coord_t *)place)) == FAILED)
@@ -158,9 +158,9 @@ static errno_t tree_right(
 	rpos_t pos;
 	reiser4_coord_t *coord;
     
-	aal_assert("umka-867", tree != NULL, return -1);
-	aal_assert("umka-868", place != NULL, return -1);
-	aal_assert("umka-1491", right != NULL, return -1);
+	aal_assert("umka-867", tree != NULL);
+	aal_assert("umka-868", place != NULL);
+	aal_assert("umka-1491", right != NULL);
 
 	coord = (reiser4_coord_t *)place;
 		
@@ -185,9 +185,9 @@ static errno_t tree_left(
 	rpos_t pos;
 	reiser4_coord_t *coord;
 	
-	aal_assert("umka-867", tree != NULL, return -1);
-	aal_assert("umka-868", place != NULL, return -1);
-	aal_assert("umka-1492", left != NULL, return -1);
+	aal_assert("umka-867", tree != NULL);
+	aal_assert("umka-868", place != NULL);
+	aal_assert("umka-1492", left != NULL);
 
 	coord = (reiser4_coord_t *)place;
 	
@@ -209,8 +209,8 @@ static errno_t tree_lock(
 {
 	reiser4_coord_t *coord;
 	
-	aal_assert("umka-1511", tree != NULL, return -1);
-	aal_assert("umka-1512", place != NULL, return -1);
+	aal_assert("umka-1511", tree != NULL);
+	aal_assert("umka-1512", place != NULL);
 
 	coord = (reiser4_coord_t *)place;
 	return reiser4_node_lock(coord->node);
@@ -222,22 +222,22 @@ static errno_t tree_unlock(
 {
 	reiser4_coord_t *coord;
 	
-	aal_assert("umka-1513", tree != NULL, return -1);
-	aal_assert("umka-1514", place != NULL, return -1);
+	aal_assert("umka-1513", tree != NULL);
+	aal_assert("umka-1514", place != NULL);
 
 	coord = (reiser4_coord_t *)place;
 	return reiser4_node_unlock(coord->node);
 }
 
 static uint32_t tree_blockspace(void *tree) {
-	aal_assert("umka-1220", tree != NULL, return 0);
+	aal_assert("umka-1220", tree != NULL);
 	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
 }
 	
 static uint32_t tree_nodespace(void *tree) {
 	reiser4_node_t *root;
     
-	aal_assert("umka-1220", tree != NULL, return 0);
+	aal_assert("umka-1220", tree != NULL);
 
 	root = ((reiser4_tree_t *)tree)->root;
 	return reiser4_node_maxspace(root) - reiser4_node_overhead(root);

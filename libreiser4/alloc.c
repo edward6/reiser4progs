@@ -24,8 +24,8 @@ reiser4_alloc_t *reiser4_alloc_open(
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-135", fs != NULL, return NULL);
-	aal_assert("umka-135", fs->format != NULL, return NULL);
+	aal_assert("umka-135", fs != NULL);
+	aal_assert("umka-135", fs->format != NULL);
 
 	/* Initializing instance of block allocator */
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
@@ -76,8 +76,8 @@ reiser4_alloc_t *reiser4_alloc_create(
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-726", fs != NULL, return NULL);
-	aal_assert("umka-1694", fs->format != NULL, return NULL);
+	aal_assert("umka-726", fs != NULL);
+	aal_assert("umka-1694", fs->format != NULL);
 
 	/* Allocating memory for the allocator instance */
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
@@ -112,7 +112,8 @@ reiser4_alloc_t *reiser4_alloc_create(
 }
 
 errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, aux_bitmap_t *bitmap) {
-	aal_assert("vpf-582", alloc != NULL && bitmap != NULL, return -1);
+	aal_assert("vpf-582", alloc != NULL);
+	aal_assert("umka-1848", bitmap != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   assign, alloc->entity, bitmap);
@@ -122,15 +123,15 @@ errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, aux_bitmap_t *bitmap) {
 errno_t reiser4_alloc_sync(
 	reiser4_alloc_t *alloc)	/* allocator to be syncked */
 {
-	aal_assert("umka-139", alloc != NULL, return -1);
+	aal_assert("umka-139", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   sync, alloc->entity);
 }
 
 errno_t reiser4_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
-	aal_assert("umka-1566", alloc != NULL, return -1);
-	aal_assert("umka-1567", stream != NULL, return -1);
+	aal_assert("umka-1566", alloc != NULL);
+	aal_assert("umka-1567", stream != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops,
 			   print, alloc->entity, stream, 0);
@@ -142,7 +143,7 @@ errno_t reiser4_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 void reiser4_alloc_close(
 	reiser4_alloc_t *alloc)	/* allocator to be closed */
 {
-	aal_assert("umka-1504", alloc != NULL, return);
+	aal_assert("umka-1504", alloc != NULL);
 
 	/* Calling the plugin for close its internal instance properly */
 	plugin_call(alloc->entity->plugin->alloc_ops, 
@@ -158,7 +159,7 @@ void reiser4_alloc_close(
 count_t reiser4_alloc_free(
 	reiser4_alloc_t *alloc)	/* allocator to be realeased */
 {
-	aal_assert("umka-362", alloc != NULL, return INVAL_BLK);
+	aal_assert("umka-362", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   free, alloc->entity);
@@ -168,7 +169,7 @@ count_t reiser4_alloc_free(
 count_t reiser4_alloc_used(
 	reiser4_alloc_t *alloc)	/* allocator used blocks will be obtained from */
 {
-	aal_assert("umka-499", alloc != NULL, return INVAL_BLK);
+	aal_assert("umka-499", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   used, alloc->entity);
@@ -182,7 +183,7 @@ errno_t reiser4_alloc_occupy_region(
 	blk_t start, 		/* start block to be marked */
 	count_t count)		/* count to be marked */
 {
-	aal_assert("umka-501", alloc != NULL, return -1);
+	aal_assert("umka-501", alloc != NULL);
 
 	plugin_call(alloc->entity->plugin->alloc_ops, 
 		    occupy_region, alloc->entity, start, count);
@@ -196,7 +197,7 @@ errno_t reiser4_alloc_release_region(
 	blk_t start, 		/* start block to be deallocated */
 	count_t count)		/* count of blocks to be deallocated */
 {
-	aal_assert("umka-503", alloc != NULL, return -1);
+	aal_assert("umka-503", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   release_region, alloc->entity, start, count);
@@ -208,7 +209,7 @@ count_t reiser4_alloc_allocate_region(
 	blk_t *start,           /* start block */
 	count_t count)          /* requested block count */
 {
-	aal_assert("umka-505", alloc != NULL, return -1);
+	aal_assert("umka-505", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   allocate_region, alloc->entity, start, count);
@@ -217,7 +218,7 @@ count_t reiser4_alloc_allocate_region(
 errno_t reiser4_alloc_valid(
 	reiser4_alloc_t *alloc)	/* allocator to be checked */
 {
-	aal_assert("umka-833", alloc != NULL, return -1);
+	aal_assert("umka-833", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   valid, alloc->entity);
@@ -231,7 +232,7 @@ bool_t reiser4_alloc_used_region(
 	blk_t start, 		/* start block to be tested (used or not) */
 	count_t count)		/* count of blocks to be tested */
 {
-	aal_assert("umka-662", alloc != NULL, return 0);
+	aal_assert("umka-662", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   used_region, alloc->entity, start, count);
@@ -243,7 +244,7 @@ bool_t reiser4_alloc_unused_region(
 	blk_t start, 		/* start block to be tested (used or not) */
 	count_t count)		/* count of blocks to be tested */
 {
-	aal_assert("umka-662", alloc != NULL, return 0);
+	aal_assert("umka-662", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   unused_region, alloc->entity, start, count);
@@ -253,8 +254,8 @@ errno_t reiser4_alloc_related_region(reiser4_alloc_t *alloc,
 				     blk_t blk, block_func_t func, 
 				     void *data)
 {
-	aal_assert("vpf-557", alloc != NULL, return 0);
-	aal_assert("umka-1685", func != NULL, return 0);
+	aal_assert("vpf-557", alloc != NULL);
+	aal_assert("umka-1685", func != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   related_region, alloc->entity, blk, func, data);
@@ -264,8 +265,8 @@ errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 			     block_func_t func,
 			     void *data)
 {
-	aal_assert("umka-1080", alloc != NULL, return -1);
-	aal_assert("umka-1081", func != NULL, return -1);
+	aal_assert("umka-1080", alloc != NULL);
+	aal_assert("umka-1081", func != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops,
 			   layout, alloc->entity, func, data);
@@ -275,7 +276,7 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
 			     blk_t start,
 			     count_t count) 
 {
-	aal_assert("vpf-584", alloc != NULL, return -1);
+	aal_assert("vpf-584", alloc != NULL);
 
 	if (!alloc->forbid) {
 		count_t free = reiser4_alloc_free(alloc);
@@ -291,7 +292,7 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
 errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc,
 			     blk_t start, count_t count) 
 {
-	aal_assert("vpf-585", alloc != NULL, return -1);
+	aal_assert("vpf-585", alloc != NULL);
 	
 	if (alloc->forbid) {
 		aux_bitmap_clear_region(alloc->forbid, start, count);
@@ -305,7 +306,8 @@ errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc,
 {
 	uint32_t i;
 
-	aal_assert("vpf-583", alloc != NULL && bitmap != NULL, return -1);
+	aal_assert("vpf-583", alloc != NULL);
+	aal_assert("umka-1849", bitmap != NULL);
 
 	if (!alloc->forbid) {
 		count_t free = reiser4_alloc_free(alloc);
@@ -315,8 +317,9 @@ errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc,
 	}
 
 	aal_assert("vpf-589", alloc->forbid->size == bitmap->size &&
-		   alloc->forbid->total == bitmap->total, return -1);
-	
+		   alloc->forbid->total == bitmap->total);
+
+	/* FIXME-UMKA: This should be optimized */
 	for (i = 0; i < alloc->forbid->size; i++)
 		alloc->forbid->map[i] |= bitmap->map[i];
 	
@@ -328,13 +331,14 @@ errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc,
 {
 	uint32_t i;
 
-	aal_assert("vpf-587", alloc != NULL && bitmap != NULL, return -1);
+	aal_assert("vpf-587", alloc != NULL);
+	aal_assert("umka-1850", bitmap != NULL);
 	
 	if (!alloc->forbid) 
 		return 0;
 
 	aal_assert("vpf-590", alloc->forbid->size == bitmap->size &&
-		   alloc->forbid->total == bitmap->total, return -1);
+		   alloc->forbid->total == bitmap->total);
 	
 	for (i = 0; i < alloc->forbid->size; i++)
 		alloc->forbid->map[i] &= ~bitmap->map[i];

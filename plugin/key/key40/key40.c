@@ -108,8 +108,8 @@ static int key40_compare(key_entity_t *key1,
 	int result;
 	key40_t *body1, *body2;
 
-	aal_assert("vpf-135", key1 != NULL, return -1);
-	aal_assert("vpf-136", key2 != NULL, return -1);
+	aal_assert("vpf-135", key1 != NULL);
+	aal_assert("vpf-136", key2 != NULL);
     
 	body1 = (key40_t *)key1->body;
 	body2 = (key40_t *)key2->body;
@@ -124,8 +124,8 @@ static int key40_compare(key_entity_t *key1,
 static errno_t key40_assign(key_entity_t *dst,
 			    key_entity_t *src)
 {
-	aal_assert("umka-1110", dst != NULL, return -1);
-	aal_assert("umka-1111", src != NULL, return -1);
+	aal_assert("umka-1110", dst != NULL);
+	aal_assert("umka-1111", src != NULL);
 
 	if (src->plugin && dst->plugin) {
 		if (dst->plugin->h.id != src->plugin->h.id)
@@ -142,7 +142,7 @@ static errno_t key40_assign(key_entity_t *dst,
 static int key40_confirm(key_entity_t *key) {
 	key40_minor_t minor;
 	
-	aal_assert("vpf-137", key != NULL, return -1);
+	aal_assert("vpf-137", key != NULL);
 	minor = k40_get_minor((key40_t *)key->body);
 
 	return minor < KEY40_LAST_MINOR;
@@ -153,7 +153,7 @@ static errno_t key40_valid(key_entity_t *key) {
 	uint8_t band;
 	key40_minor_t minor;
 	
-	aal_assert("vpf-243", key != NULL, return -1);
+	aal_assert("vpf-243", key != NULL);
 
 	if (!key40_confirm(key))
 		return -1;
@@ -171,27 +171,31 @@ static errno_t key40_valid(key_entity_t *key) {
 static void key40_set_type(key_entity_t *key, 
 			   key_type_t type)
 {
-	aal_assert("umka-634", key != NULL, return);
-	k40_set_minor((key40_t *)key->body, key40_type2minor(type));
+	aal_assert("umka-634", key != NULL);
+
+	k40_set_minor((key40_t *)key->body,
+		      key40_type2minor(type));
 }
 
 /* Returns key type */
 static key_type_t key40_get_type(key_entity_t *key) {
-	aal_assert("umka-635", key != NULL, return 0);
-	return key40_minor2type(k40_get_minor((key40_t *)key->body));
+	aal_assert("umka-635", key != NULL);
+
+	return key40_minor2type(
+		k40_get_minor((key40_t *)key->body));
 }
 
 /* Sets up key locality */
 static void key40_set_locality(key_entity_t *key, 
 			       uint64_t locality) 
 {
-	aal_assert("umka-636", key != NULL, return);
+	aal_assert("umka-636", key != NULL);
 	k40_set_locality((key40_t *)key->body, locality);
 }
 
 /* Returns key locality */
 static uint64_t key40_get_locality(key_entity_t *key) {
-	aal_assert("umka-637", key != NULL, return 0);
+	aal_assert("umka-637", key != NULL);
 	return k40_get_locality((key40_t *)key->body);
 }
 
@@ -199,13 +203,13 @@ static uint64_t key40_get_locality(key_entity_t *key) {
 static void key40_set_objectid(key_entity_t *key, 
 			       uint64_t objectid) 
 {
-	aal_assert("umka-638", key != NULL, return);
+	aal_assert("umka-638", key != NULL);
 	k40_set_objectid((key40_t *)key->body, objectid);
 }
 
 /* Returns key objectid */
 static uint64_t key40_get_objectid(key_entity_t *key) {
-	aal_assert("umka-639", key != NULL, return 0);
+	aal_assert("umka-639", key != NULL);
 	return k40_get_objectid((key40_t *)key->body);
 }
 
@@ -213,13 +217,13 @@ static uint64_t key40_get_objectid(key_entity_t *key) {
 static void key40_set_offset(key_entity_t *key, 
 			     uint64_t offset)
 {
-	aal_assert("umka-640", key != NULL, return);
+	aal_assert("umka-640", key != NULL);
 	k40_set_offset((key40_t *)key->body, offset);
 }
 
 /* Returns key offset */
 static uint64_t key40_get_offset(key_entity_t *key) {
-	aal_assert("umka-641", key != NULL, return 0);
+	aal_assert("umka-641", key != NULL);
 	return k40_get_offset((key40_t *)key->body);
 }
 
@@ -227,19 +231,19 @@ static uint64_t key40_get_offset(key_entity_t *key) {
 static void key40_set_hash(key_entity_t *key, 
 			   uint64_t hash)
 {
-	aal_assert("vpf-129", key != NULL, return);
+	aal_assert("vpf-129", key != NULL);
 	k40_set_hash((key40_t *)key->body, hash);
 }
 
 /* Returns key offset */
 static uint64_t key40_get_hash(key_entity_t *key) {
-	aal_assert("vpf-130", key != NULL, return 0);
+	aal_assert("vpf-130", key != NULL);
 	return k40_get_hash((key40_t *)key->body);
 }
 
 /* Cleans key body */
 static void key40_clean(key_entity_t *key) {
-	aal_assert("vpf-139", key != NULL, return);
+	aal_assert("vpf-139", key != NULL);
 	aal_memset(key->body, 0, sizeof(key40_t));
 }
 
@@ -269,9 +273,9 @@ static errno_t key40_build_hash(key_entity_t *key,
 	uint16_t len;
 	uint64_t objectid, offset;
     
-	aal_assert("vpf-101", key != NULL, return -1);
-	aal_assert("vpf-102", name != NULL, return -1);
-	aal_assert("vpf-128", hash != NULL, return -1); 
+	aal_assert("vpf-101", key != NULL);
+	aal_assert("vpf-102", name != NULL);
+	aal_assert("vpf-128", hash != NULL); 
     
 	len = aal_strlen(name);
     
@@ -307,7 +311,7 @@ static errno_t key40_build_hash(key_entity_t *key,
 	  key, or objectid allocator reached this value, that impossible in near
 	  future and apprentry denotes bug in object allocator.
 	*/
-	aal_assert("umka-1499", !(objectid & ~KEY40_OBJECTID_MASK), return -1);
+	aal_assert("umka-1499", !(objectid & ~KEY40_OBJECTID_MASK));
 
 	/* Setting up objectid and offset */
 	key40_set_objectid(key, objectid);
@@ -326,9 +330,9 @@ static errno_t key40_build_entry(key_entity_t *key,
 				 uint64_t objectid,
 				 const char *name) 
 {
-	aal_assert("vpf-140", key != NULL, return -1);
-	aal_assert("umka-667", name != NULL, return -1);
-	aal_assert("umka-1006", hash != NULL, return -1);
+	aal_assert("vpf-140", key != NULL);
+	aal_assert("umka-667", name != NULL);
+	aal_assert("umka-1006", hash != NULL);
 
 	key40_clean(key);
 
@@ -347,7 +351,7 @@ static errno_t key40_build_generic(key_entity_t *key,
 {
 	key40_t *body;
 
-	aal_assert("vpf-141", key != NULL, return -1);
+	aal_assert("vpf-141", key != NULL);
 
 	key40_clean(key);
     
@@ -368,8 +372,8 @@ errno_t key40_print(key_entity_t *key,
 		    aal_stream_t *stream,
 		    uint16_t options) 
 {
-	aal_assert("vpf-191", key != NULL, return -1);
-	aal_assert("umka-1548", stream != NULL, return -1);
+	aal_assert("vpf-191", key != NULL);
+	aal_assert("umka-1548", stream != NULL);
 
 	aal_stream_format(stream, "[ key40 %llx:%x:%llx:%llx %s ]",
 			  key40_get_locality(key), key40_get_type(key),

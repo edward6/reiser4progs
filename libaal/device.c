@@ -42,7 +42,7 @@ aal_device_t *aal_device_open(
 {
 	aal_device_t *device;
 
-	aal_assert("umka-429", ops != NULL, return NULL);
+	aal_assert("umka-429", ops != NULL);
     
 	/* Rough check for blocksize validness */
 	if (!aal_pow_of_two(blocksize)) {
@@ -89,7 +89,7 @@ errno_t aal_device_reopen(
 }
 
 bool_t aal_device_readonly(aal_device_t *device) {
-	aal_assert("umka-1291", device != NULL, return -1);
+	aal_assert("umka-1291", device != NULL);
 	return ((device->flags & 7) == O_RDONLY) ? TRUE : FALSE;
 }
 
@@ -97,7 +97,7 @@ bool_t aal_device_readonly(aal_device_t *device) {
 void aal_device_close(
 	aal_device_t *device)	/* device to be closed */
 {
-	aal_assert("umka-430", device != NULL, return);
+	aal_assert("umka-430", device != NULL);
 
 	device->ops->close(device);
 	aal_free(device);
@@ -111,7 +111,7 @@ errno_t aal_device_set_bs(
 	aal_device_t *device,	/* device to be set with passed blocksize */
 	uint32_t blocksize)	/* new blocksize value */
 {
-	aal_assert("umka-431", device != NULL, return -1);
+	aal_assert("umka-431", device != NULL);
 	
 	if (!aal_pow_of_two(blocksize)) {
 		aal_exception_error("Block size %u isn't power of two.", blocksize);
@@ -132,7 +132,7 @@ errno_t aal_device_set_bs(
 uint32_t aal_device_get_bs(
 	aal_device_t *device)	/* device instance blocksize will be received from */
 {
-	aal_assert("umka-432", device != NULL, return 0);
+	aal_assert("umka-432", device != NULL);
 	return device->blocksize;
 }
 
@@ -147,7 +147,7 @@ errno_t aal_device_read(
 	blk_t block,		/* block number to be read from */
 	count_t count)		/* count of blocks to be read */
 {
-	aal_assert("umka-433", device != NULL, return -1);
+	aal_assert("umka-433", device != NULL);
 
 	aal_device_check_routine(device, read, return -1);
 	return device->ops->read(device, buff, block, count);
@@ -164,8 +164,8 @@ errno_t aal_device_write(
 	blk_t block,		/* block we will write to */
 	count_t count)		/* number of blocks to be wrote */
 {
-	aal_assert("umka-434", device != NULL, return -1);
-	aal_assert("umka-435", buff != NULL, return -1);
+	aal_assert("umka-434", device != NULL);
+	aal_assert("umka-435", buff != NULL);
 	
 	aal_device_check_routine(device, write, return -1);
 	return device->ops->write(device, buff, block, count);
@@ -179,7 +179,7 @@ errno_t aal_device_write(
 errno_t aal_device_sync(
 	aal_device_t *device)	/* device instance that will be synchronized */
 {
-	aal_assert("umka-436", device != NULL, return -1);
+	aal_assert("umka-436", device != NULL);
     
 	aal_device_check_routine(device, sync, return -1);
 	return device->ops->sync(device);
@@ -189,7 +189,7 @@ errno_t aal_device_sync(
 int aal_device_flags(
 	aal_device_t *device)	/* device instance flags will be obtained from */
 {
-	aal_assert("umka-437", device != NULL, return -1);
+	aal_assert("umka-437", device != NULL);
 	return device->flags;
 }
 
@@ -202,8 +202,8 @@ bool_t aal_device_equals(
 	aal_device_t *device1,	/* first device for comparing */
 	aal_device_t *device2)	/* second one */
 {
-	aal_assert("umka-438", device1 != NULL, return 0);
-	aal_assert("umka-439", device2 != NULL, return 0);
+	aal_assert("umka-438", device1 != NULL);
+	aal_assert("umka-439", device2 != NULL);
 	
 	aal_device_check_routine(device1, equals, return 0);
 	return device1->ops->equals(device1, device2);
@@ -213,7 +213,7 @@ bool_t aal_device_equals(
 count_t aal_device_len(
 	aal_device_t *device)	/* device, length in blocks will be obtained from */
 {
-	aal_assert("vpf-216", device != NULL, return INVAL_BLK);
+	aal_assert("vpf-216", device != NULL);
 
 	aal_device_check_routine(device, len, return INVAL_BLK);
 	return device->ops->len(device);
@@ -223,7 +223,7 @@ count_t aal_device_len(
 char *aal_device_name(
 	aal_device_t *device)	/* device, name will be obtained from */
 {
-	aal_assert("umka-442", device != NULL, return NULL);
+	aal_assert("umka-442", device != NULL);
 	return device->name;
 }
 
@@ -231,6 +231,6 @@ char *aal_device_name(
 char *aal_device_error(
 	aal_device_t *device)	/* device error description will be obtailed from */
 {
-	aal_assert("umka-752", device != NULL, return NULL);
+	aal_assert("umka-752", device != NULL);
 	return device->error;
 }

@@ -16,8 +16,8 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
     reiser4_node_t *child;
     errno_t res;
 
-    aal_assert("vpf-712", node != NULL, return -1);
-    aal_assert("vpf-713", key != NULL, return -1);
+    aal_assert("vpf-712", node != NULL);
+    aal_assert("vpf-713", key != NULL);
 
     coord.node = node;
     coord.pos.item = reiser4_node_items(node) - 1;
@@ -107,8 +107,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     uint32_t level;
     int lookup;
 
-    aal_assert("vpf-658", tree != NULL, return -1);
-    aal_assert("vpf-659", node != NULL, return -1);
+    aal_assert("vpf-658", tree != NULL);
+    aal_assert("vpf-659", node != NULL);
 
     /* Stop at the same level to be able to split the found node and insert 
      * the passed node between its parts. */
@@ -182,10 +182,10 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
     errno_t res;
     uint32_t count;
 
-    aal_assert("vpf-654", tree != NULL, return -1);
-    aal_assert("vpf-655", insert != NULL, return -1);
-    aal_assert("vpf-657", insert->node != NULL, return -1);
-    aal_assert("vpf-656", insert->node->tree != NULL, return -1);
+    aal_assert("vpf-654", tree != NULL);
+    aal_assert("vpf-655", insert != NULL);
+    aal_assert("vpf-657", insert->node != NULL);
+    aal_assert("vpf-656", insert->node->tree != NULL);
 
     insert->pos.unit = 0;
     while (insert->pos.unit < reiser4_item_units(insert)) {
@@ -213,7 +213,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 	    if ((count = repair_item_split(insert, &dst_key)) == (uint32_t)-1)
 		return -1;
 
-	    aal_assert("vpf-681", count > insert->pos.unit, return -1);
+	    aal_assert("vpf-681", count > insert->pos.unit);
 
 	    count -= insert->pos.unit;
 	} else if (res > 0) {
@@ -244,7 +244,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 		if ((count = repair_item_split(insert, &dst_key)) == (uint32_t)-1)
 		    return -1;
 
-		aal_assert("vpf-682", count > insert->pos.unit, return -1);
+		aal_assert("vpf-682", count > insert->pos.unit);
 
 		count -= insert->pos.unit;
 	    }
@@ -284,8 +284,8 @@ static errno_t repair_tree_fits(reiser4_coord_t *coord,
     reiser4_key_t key;
     uint32_t items, units;    
 
-    aal_assert("vpf-596", coord != NULL, return -1);
-    aal_assert("vpf-660", coord->node != NULL, return -1);
+    aal_assert("vpf-596", coord != NULL);
+    aal_assert("vpf-660", coord->node != NULL);
     
     if (coord->pos.item == items) {
 	if (repair_node_rd_key(coord->node, &key))
@@ -297,8 +297,7 @@ static errno_t repair_tree_fits(reiser4_coord_t *coord,
 	    return -1;
 	}
 
-	aal_assert("vpf-671", coord->pos.unit < reiser4_item_units(coord), 
-	    return -1);
+	aal_assert("vpf-671", coord->pos.unit < reiser4_item_units(coord));
 	
 	if (reiser4_item_get_key(coord, &key)) {
 	    aal_exception_error("Node (%llu): failed to get the item key "
@@ -320,9 +319,9 @@ static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_coord_t *coord) {
     reiser4_node_t *node;
     uint32_t level;
     
-    aal_assert("vpf-665", coord != NULL, return -1);
-    aal_assert("vpf-666", coord->node != NULL, return -1);
-    aal_assert("vpf-667", coord->node->tree != NULL, return -1);
+    aal_assert("vpf-665", coord != NULL);
+    aal_assert("vpf-666", coord->node != NULL);
+    aal_assert("vpf-667", coord->node->tree != NULL);
 
     if ((coord->pos.item == 0 && coord->pos.unit == 0) || 
 	(coord->pos.item == reiser4_node_items(coord->node)))
@@ -350,7 +349,7 @@ static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_coord_t *coord) {
 	goto error_node_free;
     }
 	    
-    aal_assert("vpf-640", reiser4_node_items(node) != 0, return -1);
+    aal_assert("vpf-640", reiser4_node_items(node) != 0);
 
     if (reiser4_tree_attach(tree, node)) {
 	aal_exception_error("Tree failed to attach a newly allocated "
@@ -375,7 +374,7 @@ error_node_free:
 	// needed, otherwise - split the child to 2 parts and insert the new 
 	// node between them. 
 
-	aal_assert("vpf-663", level == stop.top, return -1);
+	aal_assert("vpf-663", level == stop.top);
 
 	if ((coord.pos.item != 0 || coord.pos.unit != 0) && 
 	    (coord.pos.item != reiser4_node_items(coord.node))) 
@@ -395,7 +394,7 @@ error_node_free:
 	    }
 
 	    aal_assert("vpf-664", 
-		reiser4_node_get_level(coord.node) == stop.top, return -1);
+		reiser4_node_get_level(coord.node) == stop.top);
 	} else {
 	    // Correct coord to point to parent. 
 	    if (reiser4_node_pos(coord.node, &coord.pos)) 
@@ -403,7 +402,7 @@ error_node_free:
 
 	    coord.node = coord.node->parent;
 
-	    aal_assert("vpf-662", coord.node != NULL, return -1);
+	    aal_assert("vpf-662", coord.node != NULL);
 	}
     } else {
 	// Nothing to do - there is no one leaf yet, we found the position in 

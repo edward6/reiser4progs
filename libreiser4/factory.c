@@ -85,8 +85,8 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
 reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle) {
 	reiser4_plugin_t *plugin;
     
-	aal_assert("umka-259", handle != NULL, return NULL);
-	aal_assert("umka-1429", handle->init != NULL, return NULL);
+	aal_assert("umka-259", handle != NULL);
+	aal_assert("umka-1429", handle->init != NULL);
     
 	if (!(plugin = handle->init(&core))) {
 		aal_exception_error("Can't initialiaze plugin %s.",
@@ -102,7 +102,7 @@ errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
 	errno_t ret = 0;
 	reiser4_plugin_t *plugin;
     
-	aal_assert("umka-1428", handle != NULL, return -1);
+	aal_assert("umka-1428", handle != NULL);
     
 	if (handle->fini && (ret = handle->fini(&core))) {
 		aal_exception_warn("Plugin %s finished with error %d.",
@@ -144,8 +144,8 @@ errno_t libreiser4_plugin_open(const char *name,
 {
 	void *addr;
 	
-	aal_assert("umka-260", name != NULL, return -1);
-	aal_assert("umka-1430", handle != NULL, return -1);
+	aal_assert("umka-260", name != NULL);
+	aal_assert("umka-1430", handle != NULL);
     
 	aal_memset(handle, 0, sizeof(*handle));
 	
@@ -182,7 +182,7 @@ errno_t libreiser4_plugin_open(const char *name,
 void libreiser4_plugin_close(plugin_handle_t *handle) {
 	plugin_handle_t local;
 	
-	aal_assert("umka-158", handle != NULL, return);
+	aal_assert("umka-158", handle != NULL);
 
 	/*
 	  Here we copy handle of the previously loaded library into address
@@ -204,7 +204,7 @@ errno_t libreiser4_factory_load(char *name) {
 	plugin_handle_t handle;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-1495", name != NULL, return -1);
+	aal_assert("umka-1495", name != NULL);
 
 	/* Open plugin and prepare its handle */
 	if ((res = libreiser4_plugin_open(name, &handle)))
@@ -243,8 +243,8 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 			       plugin_handle_t *handle)
 {
 
-	aal_assert("umka-1431", entry != NULL, return -1);
-	aal_assert("umka-1432", handle != NULL, return -1);
+	aal_assert("umka-1431", entry != NULL);
+	aal_assert("umka-1432", handle != NULL);
 
 	aal_memset(handle, 0, sizeof(*handle));
 	
@@ -260,7 +260,7 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 
 /* Closes built-in plugins */
 void libreiser4_plugin_close(plugin_handle_t *handle) {
-	aal_assert("umka-1433", handle != NULL, return);
+	aal_assert("umka-1433", handle != NULL);
 	aal_memset(handle, 0, sizeof(*handle));
 }
 
@@ -274,7 +274,7 @@ errno_t libreiser4_factory_load(unsigned long *entry) {
 	plugin_handle_t handle;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-1497", entry != NULL, return -1);
+	aal_assert("umka-1497", entry != NULL);
 	
 	if ((res = libreiser4_plugin_open(entry, &handle)))
 		return res;
@@ -305,7 +305,7 @@ errno_t libreiser4_factory_load(unsigned long *entry) {
 errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 	plugin_handle_t *handle;
 	
-	aal_assert("umka-1496", plugin != NULL, return -1);
+	aal_assert("umka-1496", plugin != NULL);
 	
 	handle = &plugin->h.handle;
 	libreiser4_plugin_fini(handle);
@@ -330,7 +330,7 @@ errno_t libreiser4_factory_init(void) {
 	extern unsigned long __plugin_end;
 #endif	
 
-	aal_assert("umka-159", plugins == NULL, return -1);
+	aal_assert("umka-159", plugins == NULL);
 
 #if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
 	if (!(dir = opendir(PLUGIN_DIR))) {
@@ -395,7 +395,7 @@ void libreiser4_factory_done(void) {
 	aal_list_t *walk;
 	plugin_handle_t *handle;
 
-	aal_assert("umka-335", plugins != NULL, return);
+	aal_assert("umka-335", plugins != NULL);
     
 	/* Unloading all registered plugins */
 	for (walk = aal_list_last(plugins); walk; ) {
@@ -417,7 +417,7 @@ reiser4_plugin_t *libreiser4_factory_ifind(
 	aal_list_t *found;
 	walk_desc_t desc;
 
-	aal_assert("umka-155", plugins != NULL, return NULL);    
+	aal_assert("umka-155", plugins != NULL);    
 	
 	desc.type = type;
 	desc.id = id;
@@ -436,7 +436,7 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 	aal_list_t *found;
 	walk_desc_t desc;
 
-	aal_assert("vpf-156", name != NULL, return NULL);    
+	aal_assert("vpf-156", name != NULL);    
        
 	desc.type = type;
 	desc.name = name;
@@ -454,8 +454,8 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 {
 	aal_list_t *walk = NULL;
 
-	aal_assert("umka-899", func != NULL, return NULL);    
-	aal_assert("umka-155", plugins != NULL, return NULL);    
+	aal_assert("umka-899", func != NULL);    
+	aal_assert("umka-155", plugins != NULL);    
 	
 	aal_list_foreach_forward(walk, plugins) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
@@ -478,7 +478,7 @@ errno_t libreiser4_factory_foreach(
 	errno_t res = 0;
 	aal_list_t *walk;
     
-	aal_assert("umka-479", func != NULL, return -1);
+	aal_assert("umka-479", func != NULL);
 
 	aal_list_foreach_forward(walk, plugins) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;

@@ -18,8 +18,6 @@
 
 /* (*(__u32 *)"R4FS") */
 #define NODE40_MAGIC	0x52344653
-#define NODE40_LEAF	1
-#define NODE40_TWIG	2
 
 struct node40 {
 	reiser4_plugin_t *plugin;

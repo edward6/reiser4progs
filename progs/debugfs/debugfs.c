@@ -255,7 +255,7 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 	
-	aal_assert("umka-1299", fs != NULL, return -1);
+	aal_assert("umka-1299", fs != NULL);
 
 	aal_stream_init(&stream);
 		
@@ -383,7 +383,7 @@ static errno_t tfrag_open_node(
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 	aal_device_t *device = frag_hint->tree->fs->device;
 
-	aal_assert("umka-1556", frag_hint->level > 0, return -1);
+	aal_assert("umka-1556", frag_hint->level > 0);
 	
 	*node = NULL;
 

@@ -20,8 +20,8 @@ static reiser4_core_t *core = NULL;
 static uint64_t format40_begin(object_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
-	aal_assert("vpf-462", format != NULL, return INVAL_BLK);
-	aal_assert("vpf-463", format->device != NULL, return INVAL_BLK);
+	aal_assert("vpf-462", format != NULL);
+	aal_assert("vpf-463", format->device != NULL);
 	
 	return FORMAT40_OFFSET / format->device->blocksize;
 }
@@ -29,7 +29,7 @@ static uint64_t format40_begin(object_entity_t *entity) {
 static uint64_t format40_get_root(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-400", entity != NULL, return INVAL_BLK);
+	aal_assert("umka-400", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_root_block(super);
@@ -38,7 +38,7 @@ static uint64_t format40_get_root(object_entity_t *entity) {
 static uint64_t format40_get_len(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-401", entity != NULL, return INVAL_BLK);
+	aal_assert("umka-401", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_block_count(super);
@@ -47,7 +47,7 @@ static uint64_t format40_get_len(object_entity_t *entity) {
 static uint64_t format40_get_free(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-402", entity != NULL, return INVAL_BLK);
+	aal_assert("umka-402", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_free_blocks(super);
@@ -56,7 +56,7 @@ static uint64_t format40_get_free(object_entity_t *entity) {
 static uint16_t format40_get_height(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-1123", entity != NULL, return 0);
+	aal_assert("umka-1123", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_tree_height(super);
@@ -65,7 +65,7 @@ static uint16_t format40_get_height(object_entity_t *entity) {
 static uint32_t format40_get_stamp(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-1122", entity != NULL, return 0);
+	aal_assert("umka-1122", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_mkfs_id(super);
@@ -78,8 +78,8 @@ static errno_t format40_skipped(object_entity_t *entity,
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
         
-	aal_assert("umka-1086", func != NULL, return -1);
-	aal_assert("umka-1085", entity != NULL, return -1);
+	aal_assert("umka-1086", func != NULL);
+	aal_assert("umka-1085", entity != NULL);
     
 	offset = MASTER_OFFSET / format->device->blocksize;
     
@@ -100,8 +100,8 @@ static errno_t format40_layout(object_entity_t *entity,
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
         
-	aal_assert("umka-1042", entity != NULL, return -1);
-	aal_assert("umka-1043", func != NULL, return -1);
+	aal_assert("umka-1042", entity != NULL);
+	aal_assert("umka-1043", func != NULL);
     
 	blk = MASTER_OFFSET / format->device->blocksize;
 	offset = FORMAT40_OFFSET / format->device->blocksize;
@@ -167,7 +167,7 @@ static aal_block_t *format40_super_open(aal_device_t *device) {
 static object_entity_t *format40_open(aal_device_t *device) {
 	format40_t *format;
 
-	aal_assert("umka-393", device != NULL, return NULL);
+	aal_assert("umka-393", device != NULL);
 
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
@@ -223,7 +223,7 @@ static object_entity_t *format40_create(aal_device_t *device,
 	format40_t *format;
 	format40_super_t *super;
     
-	aal_assert("umka-395", device != NULL, return NULL);
+	aal_assert("umka-395", device != NULL);
     
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
@@ -273,7 +273,7 @@ static object_entity_t *format40_create(aal_device_t *device,
 static errno_t format40_sync(object_entity_t *entity) {
 	format40_t *format;
     
-	aal_assert("umka-394", entity != NULL, return -1); 
+	aal_assert("umka-394", entity != NULL);
    
 	format = (format40_t *)entity;
     
@@ -294,7 +294,7 @@ static errno_t format40_sync(object_entity_t *entity) {
 static errno_t format40_valid(object_entity_t *entity) {
 	format40_t *format;
     
-	aal_assert("umka-397", entity != NULL, return -1);
+	aal_assert("umka-397", entity != NULL);
     
 	format = (format40_t *)entity;
     
@@ -303,7 +303,7 @@ static errno_t format40_valid(object_entity_t *entity) {
 }
 
 static void format40_close(object_entity_t *entity) {
-	aal_assert("umka-398", entity != NULL, return);
+	aal_assert("umka-398", entity != NULL);
     
 	aal_block_close(((format40_t *)entity)->block);
 	aal_free(entity);
@@ -312,7 +312,7 @@ static void format40_close(object_entity_t *entity) {
 static int format40_confirm(aal_device_t *device) {
 	aal_block_t *block;
 
-	aal_assert("umka-733", device != NULL, return 0);
+	aal_assert("umka-733", device != NULL);
     
 	if (!(block = format40_super_open(device)))
 		return 0;
@@ -326,7 +326,7 @@ static void format40_oid(object_entity_t *entity,
 {
 	format40_super_t *super;
     
-	aal_assert("umka-732", entity != NULL, return);
+	aal_assert("umka-732", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
     
@@ -359,7 +359,7 @@ static void format40_set_root(object_entity_t *entity,
 {
 	format40_super_t *super;
     
-	aal_assert("umka-403", entity != NULL, return);
+	aal_assert("umka-403", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	set_sb_root_block(super, root);
@@ -370,7 +370,7 @@ static void format40_set_len(object_entity_t *entity,
 {
 	format40_super_t *super;
     
-	aal_assert("umka-404", entity != NULL, return);
+	aal_assert("umka-404", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	set_sb_block_count(super, blocks);
@@ -381,7 +381,7 @@ static void format40_set_free(object_entity_t *entity,
 {
 	format40_super_t *super;
     
-	aal_assert("umka-405", entity != NULL, return);
+	aal_assert("umka-405", entity != NULL);
     
 	super = format40_super(((format40_t *)entity)->block);
 	set_sb_free_blocks(super, blocks);
@@ -392,7 +392,7 @@ static void format40_set_height(object_entity_t *entity,
 {
 	format40_super_t *super;
     
-	aal_assert("umka-555", entity != NULL, return);
+	aal_assert("umka-555", entity != NULL);
 
 	super = format40_super(((format40_t *)entity)->block);
 	set_sb_tree_height(super, height);
@@ -403,7 +403,7 @@ static void format40_set_stamp(object_entity_t *entity,
 {
 	format40_super_t *super;
     
-	aal_assert("umka-1121", entity != NULL, return);
+	aal_assert("umka-1121", entity != NULL);
 
 	super = format40_super(((format40_t *)entity)->block);
 	set_sb_mkfs_id(super, mkfsid);
@@ -415,8 +415,8 @@ errno_t format40_print(object_entity_t *entity, aal_stream_t *stream,
 	aal_block_t *block;
 	format40_super_t *super;
     
-	aal_assert("vpf-246", entity != NULL, return -1);
-	aal_assert("umka-1290", stream != NULL, return -1);
+	aal_assert("vpf-246", entity != NULL);
+	aal_assert("umka-1290", stream != NULL);
     
 	block = ((format40_t *)entity)->block;
 	super = format40_super(block);

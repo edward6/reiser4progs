@@ -294,4 +294,6 @@ struct aal_stream {
 
 typedef struct aal_stream aal_stream_t;
 
+typedef void (*assert_handler_t) (char *, int, char *, char *, int, char *);
+
 #endif

@@ -25,13 +25,13 @@ errno_t alloc40_related_region(object_entity_t *entity, blk_t blk,
     alloc40_t *alloc;
     aal_device_t *device;
     
-    aal_assert("vpf-554", entity != NULL, return -1);
-    aal_assert("umka-1746", func != NULL, return -1);
+    aal_assert("vpf-554", entity != NULL);
+    aal_assert("umka-1746", func != NULL);
 
     alloc = (alloc40_t *)entity;
 	
-    aal_assert("vpf-710", alloc->bitmap != NULL, return -1);
-    aal_assert("vpf-711", alloc->device != NULL, return -1);
+    aal_assert("vpf-710", alloc->bitmap != NULL);
+    aal_assert("vpf-711", alloc->device != NULL);
 	
     size = aal_device_get_bs(alloc->device) - CRC_SIZE;
  	

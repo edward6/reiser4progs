@@ -23,10 +23,10 @@ static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk,
 {
     repair_data_t *rd = (repair_data_t *)data;
 
-    aal_assert("vpf-379", rd != NULL, return -1);
-    aal_assert("vpf-432", node != NULL, return -1);
-    aal_assert("vpf-433", rd->fs != NULL, return -1);
-    aal_assert("vpf-591", rd->fs->format != NULL, return -1);
+    aal_assert("vpf-379", rd != NULL);
+    aal_assert("vpf-432", node != NULL);
+    aal_assert("vpf-433", rd->fs != NULL);
+    aal_assert("vpf-591", rd->fs->format != NULL);
 
     if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR))
 	return 0;
@@ -46,8 +46,8 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     errno_t res = 0;
     uint16_t level;
     
-    aal_assert("vpf-252", data  != NULL, return -1);
-    aal_assert("vpf-409", node != NULL, return -1);
+    aal_assert("vpf-252", data  != NULL);
+    aal_assert("vpf-409", node != NULL);
 
     fd = repair_filter((repair_data_t *)data);
 
@@ -84,9 +84,9 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
     repair_filter_t *fd;
     reiser4_ptr_hint_t ptr;
 
-    aal_assert("vpf-255", data != NULL, return -1);
-    aal_assert("vpf-531", coord != NULL, return -1);
-    aal_assert("vpf-703", reiser4_item_nodeptr(coord), return -1);
+    aal_assert("vpf-255", data != NULL);
+    aal_assert("vpf-531", coord != NULL);
+    aal_assert("vpf-703", reiser4_item_nodeptr(coord));
 
     fd = repair_filter((repair_data_t *)data);
     if (plugin_call(coord->item.plugin->item_ops, read, 
@@ -112,8 +112,8 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
     rpos_t prev;
     repair_data_t *rd = (repair_data_t *)data;
     
-    aal_assert("vpf-257", rd != NULL, return -1);
-    aal_assert("vpf-434", coord != NULL, return -1);
+    aal_assert("vpf-257", rd != NULL);
+    aal_assert("vpf-434", coord != NULL);
     
     if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR)) {
 	reiser4_ptr_hint_t ptr;
@@ -152,8 +152,8 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
     repair_data_t *rd = (repair_data_t *)data;
      
-    aal_assert("vpf-393", node != NULL, return -1);
-    aal_assert("vpf-256", rd != NULL, return -1);    
+    aal_assert("vpf-393", node != NULL);
+    aal_assert("vpf-256", rd != NULL);    
 
     if (reiser4_node_items(node) == 0)
 	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
@@ -163,7 +163,7 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
 }
 
 static void repair_filter_release(repair_data_t *rd) {
-    aal_assert("vpf-738", rd != NULL, return);
+    aal_assert("vpf-738", rd != NULL);
 
     if (repair_filter(rd)->bm_used)
 	aux_bitmap_close(repair_filter(rd)->bm_used);
@@ -176,9 +176,9 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     reiser4_ptr_hint_t ptr;
     blk_t root;
     
-    aal_assert("vpf-420", hint != NULL, return -1);
-    aal_assert("vpf-423", rd != NULL, return -1);
-    aal_assert("vpf-592", rd->fs != NULL, return -1);
+    aal_assert("vpf-420", hint != NULL);
+    aal_assert("vpf-423", rd != NULL);
+    aal_assert("vpf-592", rd->fs != NULL);
 
     hint->data = rd;
     hint->cleanup = 1;
@@ -242,8 +242,8 @@ error:
 static errno_t repair_filter_update(traverse_hint_t *hint) {
     repair_data_t *rd;
 
-    aal_assert("vpf-421", hint != NULL, return -1);
-    aal_assert("vpf-422", hint->data != NULL, return -1);
+    aal_assert("vpf-421", hint != NULL);
+    aal_assert("vpf-422", hint->data != NULL);
     
     rd = hint->data;
     
@@ -264,7 +264,7 @@ errno_t repair_filter_pass(repair_data_t *rd) {
     reiser4_node_t *node = NULL;
     errno_t res = -1;
 
-    aal_assert("vpf-536", rd != NULL, return -1);
+    aal_assert("vpf-536", rd != NULL);
 
     if (repair_filter_setup(&hint, rd))
 	return -1;

@@ -38,7 +38,7 @@ static object_entity_t *oid40_open(const void *start,
 }
 
 static void oid40_close(object_entity_t *entity) {
-	aal_assert("umka-510", entity != NULL, return);
+	aal_assert("umka-510", entity != NULL);
 	aal_free(entity);
 }
 
@@ -73,7 +73,7 @@ static object_entity_t *oid40_create(const void *start,
 
 /* Updating next and used values in oid allocator dedicated area */
 static errno_t oid40_sync(object_entity_t *entity) {
-	aal_assert("umka-1016", entity != NULL, return -1);
+	aal_assert("umka-1016", entity != NULL);
     
 	oid40_set_next(((oid40_t *)entity)->start, 
 		       ((oid40_t *)entity)->next);
@@ -86,13 +86,13 @@ static errno_t oid40_sync(object_entity_t *entity) {
 
 /* Returns next oid to be used */
 static roid_t oid40_next(object_entity_t *entity) {
-	aal_assert("umka-1109", entity != NULL, return 0);
+	aal_assert("umka-1109", entity != NULL);
 	return ((oid40_t *)entity)->next;
 }
 
 /* Returns free oid and marks it as used */
 static roid_t oid40_allocate(object_entity_t *entity) {
-	aal_assert("umka-513", entity != NULL, return 0);
+	aal_assert("umka-513", entity != NULL);
 
 	((oid40_t *)entity)->next++;
 	((oid40_t *)entity)->used++;
@@ -104,7 +104,7 @@ static roid_t oid40_allocate(object_entity_t *entity) {
 static void oid40_release(object_entity_t *entity, 
 			  roid_t oid)
 {
-	aal_assert("umka-528", entity != NULL, return);
+	aal_assert("umka-528", entity != NULL);
 	((oid40_t *)entity)->used--;
 }
 
@@ -113,8 +113,8 @@ static errno_t oid40_print(object_entity_t *entity,
 			   aal_stream_t *stream,
 			   uint16_t options)
 {
-	aal_assert("umka-1303", entity != NULL, return -1);
-	aal_assert("umka-1304", stream != NULL, return -1);
+	aal_assert("umka-1303", entity != NULL);
+	aal_assert("umka-1304", stream != NULL);
 
 	aal_stream_format(stream, "Oid allocator:\n");
 	
@@ -133,7 +133,7 @@ static errno_t oid40_print(object_entity_t *entity,
 
 /* Checks oid allocator for validness */
 static errno_t oid40_valid(object_entity_t *entity) {
-	aal_assert("umka-966", entity != NULL, return -1);
+	aal_assert("umka-966", entity != NULL);
 
 	/* Next oid should not be lesser than the root parent locality */
 	if (((oid40_t *)entity)->next < OID40_HYPER_LOCALITY)
@@ -144,13 +144,13 @@ static errno_t oid40_valid(object_entity_t *entity) {
 
 /* Returns number of free oids */
 static roid_t oid40_free(object_entity_t *entity) {
-	aal_assert("umka-961", entity != NULL, return 0);
+	aal_assert("umka-961", entity != NULL);
 	return ~0ull - ((oid40_t *)entity)->next;
 }
 
 /* Returns number of used oids */
 static roid_t oid40_used(object_entity_t *entity) {
-	aal_assert("umka-530", entity != NULL, return 0);
+	aal_assert("umka-530", entity != NULL);
 	return ((oid40_t *)entity)->used;
 }
 

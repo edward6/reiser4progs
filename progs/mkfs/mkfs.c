@@ -77,10 +77,6 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, reiser4_profile_t *prof
 {
 	reiser4_file_hint_t hint;
 
-	aal_assert("umka-1255", fs != NULL, return NULL);
-	aal_assert("umka-1256", profile != NULL, return NULL);
-	aal_assert("umka-1257", name != NULL, return NULL);
-    
 	/* Preparing object hint */
 	hint.plugin = libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
 					       profile->file.dirtory);
@@ -363,8 +359,8 @@ int main(int argc, char *argv[]) {
 		if (flags & BF_LOST) {
 			reiser4_file_t *object;
 	    
-			if (!(object = mkfs_create_dir(fs, profile, 
-						       fs->root, "lost+found"))) 
+			if (!(object = mkfs_create_dir(fs, profile, fs->root,
+						       "lost+found"))) 
 			{
 				aal_exception_error("Can't create lost+found "
 						    "directory.");

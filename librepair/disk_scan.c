@@ -30,10 +30,10 @@ static errno_t callback_blk_mark(object_entity_t *entity, blk_t blk, void *data)
 {
     struct ds_alloc_region *region = (struct ds_alloc_region *)data;
     
-    aal_assert("vpf-561", region != NULL, return -1);
-    aal_assert("vpf-556", region->bm_used != NULL, return -1);
-    aal_assert("vpf-558", region->bm_scan != NULL, return -1);
-    aal_assert("vpf-560", entity != NULL, return -1);
+    aal_assert("vpf-561", region != NULL);
+    aal_assert("vpf-556", region->bm_used != NULL);
+    aal_assert("vpf-558", region->bm_scan != NULL);
+    aal_assert("vpf-560", entity != NULL);
 
     /* FIXME: what do we need this line for? */
     /* plugin_call(return -1, entity->plugin->alloc_ops, mark, entity, blk); */
@@ -45,7 +45,7 @@ static errno_t callback_blk_mark(object_entity_t *entity, blk_t blk, void *data)
 }
 
 static void repair_disk_scan_release(repair_data_t *rd) {
-    aal_assert("vpf-740", rd != NULL, return);
+    aal_assert("vpf-740", rd != NULL);
     
     if (repair_ds(rd)->bm_used)
 	aux_bitmap_close(repair_ds(rd)->bm_used);
@@ -67,12 +67,12 @@ static errno_t repair_disk_scan_setup(repair_data_t *rd) {
     blk_t i;
     uint64_t fs_len;
  
-    aal_assert("vpf-511", rd != NULL, return -1);
-    aal_assert("vpf-704", rd->fs != NULL, return -1);
+    aal_assert("vpf-511", rd != NULL);
+    aal_assert("vpf-704", rd->fs != NULL);
     
     ds = repair_ds(rd);
     
-    aal_assert("vpf-633", ds->bm_used != NULL, return -1);
+    aal_assert("vpf-633", ds->bm_used != NULL);
     
     format = rd->fs->format;
 
@@ -109,7 +109,7 @@ static errno_t repair_disk_scan_setup(repair_data_t *rd) {
 	
 	/* If block is marked in twig, then it is marked in used. */
 	aal_assert("vpf-693", (!aux_bitmap_test(ds->bm_twig, i) || 
-	    aux_bitmap_test(ds->bm_used, i)), return -1);
+	    aux_bitmap_test(ds->bm_used, i)));
 
 	if (aux_bitmap_test(ds->bm_used, i) && 
 	    reiser4_alloc_unused_region(rd->fs->alloc, i, 1)) 
@@ -143,20 +143,20 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
     errno_t res;
     uint8_t level;
     
-    aal_assert("vpf-514", rd != NULL, return -1);
-    aal_assert("vpf-705", rd->fs != NULL, return -1);
+    aal_assert("vpf-514", rd != NULL);
+    aal_assert("vpf-705", rd->fs != NULL);
 
     ds = repair_ds(rd);
     
-    aal_assert("vpf-515", ds->bm_used != NULL, return -1);
-    aal_assert("vpf-516", ds->bm_twig != NULL, return -1);
+    aal_assert("vpf-515", ds->bm_used != NULL);
+    aal_assert("vpf-516", ds->bm_twig != NULL);
 
     if (repair_disk_scan_setup(rd))
 	return -1;
 
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
-	aal_assert("vpf-694", !aux_bitmap_test(ds->bm_used, blk), return -1);
-	aal_assert("vpf-695", !aux_bitmap_test(ds->bm_twig, blk), return -1);
+	aal_assert("vpf-694", !aux_bitmap_test(ds->bm_used, blk));
+	aal_assert("vpf-695", !aux_bitmap_test(ds->bm_twig, blk));
 	
 	node = repair_node_open(rd->fs, blk);
 	if (node == NULL)

@@ -43,7 +43,7 @@ reiser4_fs_t *reiser4_fs_open(
 	
 	reiser4_fs_t *fs;
 
-	aal_assert("umka-148", host_device != NULL, return NULL);
+	aal_assert("umka-148", host_device != NULL);
 
 	/* Allocating memory and initializing fields */
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
@@ -133,14 +133,14 @@ reiser4_fs_t *reiser4_fs_open(
 }
 
 aal_device_t *reiser4_fs_host_device(reiser4_fs_t *fs) {
-	aal_assert("umka-970", fs != NULL, return NULL);
-	aal_assert("umka-971", fs->format != NULL, return NULL);
+	aal_assert("umka-970", fs != NULL);
+	aal_assert("umka-971", fs->format != NULL);
 
 	return fs->device;
 }
 
 aal_device_t *reiser4_fs_journal_device(reiser4_fs_t *fs) {
-	aal_assert("umka-972", fs != NULL, return NULL);
+	aal_assert("umka-972", fs != NULL);
 
 	return (fs->journal ? fs->journal->device : NULL);
 }
@@ -156,7 +156,7 @@ reiser4_owner_t reiser4_fs_belongs(
 	reiser4_fs_t *fs,
 	blk_t blk)
 {
-	aal_assert("umka-1534", fs != NULL, return -1);
+	aal_assert("umka-1534", fs != NULL);
 
 	if (reiser4_format_skipped(fs->format, callback_check_block, &blk) != 0)
 		return O_SKIPPED;
@@ -180,7 +180,7 @@ errno_t reiser4_fs_clobber(aal_device_t *device) {
 	blk_t blk;
 	aal_block_t *block;
     
-	aal_assert("umka-1273", device != NULL, return -1);
+	aal_assert("umka-1273", device != NULL);
 
 	blk = (MASTER_OFFSET / device->blocksize);
 		
@@ -207,8 +207,8 @@ static errno_t callback_action_mark(
 
 /* Marks format area as used */
 errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
-	aal_assert("umka-1139", fs != NULL, return -1);
-	aal_assert("umka-1684", fs->alloc != NULL, return -1);
+	aal_assert("umka-1139", fs != NULL);
+	aal_assert("umka-1684", fs->alloc != NULL);
 	
 	return reiser4_fs_layout(fs, callback_action_mark, fs->alloc);
 }
@@ -232,9 +232,9 @@ reiser4_fs_t *reiser4_fs_create(
     
 	reiser4_file_hint_t root_hint;
 
-	aal_assert("umka-149", host_device != NULL, return NULL);
-	aal_assert("umka-150", journal_device != NULL, return NULL);
-	aal_assert("vpf-113", profile != NULL, return NULL);
+	aal_assert("umka-149", host_device != NULL);
+	aal_assert("umka-150", journal_device != NULL);
+	aal_assert("vpf-113", profile != NULL);
 
 	blocksize = host_device->blocksize;
 	
@@ -323,7 +323,7 @@ reiser4_fs_t *reiser4_fs_create(
 errno_t reiser4_fs_sync(
 	reiser4_fs_t *fs)		/* fs instance to be synchronized */
 {
-	aal_assert("umka-231", fs != NULL, return -1);
+	aal_assert("umka-231", fs != NULL);
    
 	/* Synchronizing the tree */
 	if (reiser4_tree_sync(fs->tree))
@@ -360,7 +360,7 @@ void reiser4_fs_close(
 	reiser4_fs_t *fs)		/* filesystem to be closed */
 {
     
-	aal_assert("umka-230", fs != NULL, return);
+	aal_assert("umka-230", fs != NULL);
     
 	/* Closong the all filesystem objects */
 	reiser4_tree_close(fs->tree);
@@ -388,8 +388,8 @@ const char *reiser4_fs_name(
 rpid_t reiser4_fs_format_pid(
 	reiser4_fs_t *fs)		/* fs disk format pid will be obtained from */
 {
-	aal_assert("umka-151", fs != NULL, return INVAL_PID);
-	aal_assert("umka-152", fs->master != NULL, return INVAL_PID);
+	aal_assert("umka-151", fs != NULL);
+	aal_assert("umka-152", fs->master != NULL);
 
 	return reiser4_master_format(fs->master);
 }
@@ -398,8 +398,8 @@ rpid_t reiser4_fs_format_pid(
 uint16_t reiser4_fs_blocksize(
 	reiser4_fs_t *fs)		/* fs blocksize will be obtained from */
 {
-	aal_assert("umka-153", fs != NULL, return 0);
-	aal_assert("umka-154", fs->master != NULL, return 0);
+	aal_assert("umka-153", fs != NULL);
+	aal_assert("umka-154", fs->master != NULL);
     
 	return reiser4_master_blocksize(fs->master);
 }

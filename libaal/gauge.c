@@ -40,9 +40,9 @@ aal_gauge_t *aal_gauge_create(
 {
 	aal_gauge_t *gauge;
 	
-	aal_assert("umka-889", name != NULL, return NULL);
-	aal_assert("umka-889", handler != NULL, return NULL);
-	aal_assert("umka-889", type <= GAUGE_SILENT, return NULL);
+	aal_assert("umka-889", name != NULL);
+	aal_assert("umka-889", handler != NULL);
+	aal_assert("umka-889", type <= GAUGE_SILENT);
     
 	if (!(gauge = aal_calloc(sizeof(*gauge), 0)))
 		return NULL;
@@ -65,7 +65,7 @@ aal_gauge_t *aal_gauge_create(
 
 /* Resets gauge */
 void aal_gauge_reset(aal_gauge_t *gauge) {
-	aal_assert("umka-894", gauge != NULL, return);
+	aal_assert("umka-894", gauge != NULL);
 
 	gauge->value = 0;
 	gauge->state = GAUGE_STARTED;
@@ -73,7 +73,7 @@ void aal_gauge_reset(aal_gauge_t *gauge) {
 
 /* Resets gauge and forces it to redraw itself */
 void aal_gauge_start(aal_gauge_t *gauge) {
-	aal_assert("umka-892", gauge != NULL, return);
+	aal_assert("umka-892", gauge != NULL);
 
 	aal_gauge_reset(gauge);
 	aal_gauge_touch(gauge);
@@ -103,8 +103,11 @@ void aal_gauge_resume(aal_gauge_t *gauge) {
 void aal_gauge_done(aal_gauge_t *gauge) {
 	if (!gauge) return;
     
-	if (gauge->state == GAUGE_RUNNING || gauge->state == GAUGE_STARTED)
+	if (gauge->state == GAUGE_RUNNING ||
+	    gauge->state == GAUGE_STARTED)
+	{
 		aal_gauge_change(gauge, GAUGE_DONE);
+	}
 }
 
 void aal_gauge_pause(aal_gauge_t *gauge) {
@@ -116,7 +119,7 @@ void aal_gauge_pause(aal_gauge_t *gauge) {
 
 /* Updates gauge value */
 void aal_gauge_update(aal_gauge_t *gauge, uint32_t value) {
-	aal_assert("umka-895", gauge != NULL, return);
+	aal_assert("umka-895", gauge != NULL);
 
 	gauge->value = value;
 
@@ -127,11 +130,13 @@ void aal_gauge_update(aal_gauge_t *gauge, uint32_t value) {
 }
 
 /* Renames gauge */
-void aal_gauge_rename(aal_gauge_t *gauge, const char *name, ...) {
+void aal_gauge_rename(aal_gauge_t *gauge,
+		      const char *name, ...)
+{
 	int len;
 	va_list arg_list;
 	
-	aal_assert("umka-896", gauge != NULL, return);
+	aal_assert("umka-896", gauge != NULL);
     
 	if (!name) return;
     
@@ -150,7 +155,7 @@ void aal_gauge_rename(aal_gauge_t *gauge, const char *name, ...) {
 
 /* Calls gauge handler */
 void aal_gauge_touch(aal_gauge_t *gauge) {
-	aal_assert("umka-891", gauge != NULL, return);
+	aal_assert("umka-891", gauge != NULL);
     
 	if (!gauge->handler)
 		return;
@@ -160,6 +165,6 @@ void aal_gauge_touch(aal_gauge_t *gauge) {
 
 /* Frees gauge */
 void aal_gauge_free(aal_gauge_t *gauge) {
-	aal_assert("umka-890", gauge != NULL, return);
+	aal_assert("umka-890", gauge != NULL);
 	aal_free(gauge);
 }

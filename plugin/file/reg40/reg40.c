@@ -28,7 +28,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	uint64_t size;
 	key_entity_t key;
     
-	aal_assert("umka-1161", entity != NULL, return -1);
+	aal_assert("umka-1161", entity != NULL);
 
 	reg = (reg40_t *)entity;
 	
@@ -114,8 +114,8 @@ static int32_t reg40_read(object_entity_t *entity,
 	
 	reg40_t *reg = (reg40_t *)entity;
 
-	aal_assert("umka-1183", buff != NULL, return 0);
-	aal_assert("umka-1182", entity != NULL, return 0);
+	aal_assert("umka-1183", buff != NULL);
+	aal_assert("umka-1182", entity != NULL);
 
 	size = file40_get_size(&reg->file);
 
@@ -170,8 +170,8 @@ static object_entity_t *reg40_open(void *tree,
 	reg40_t *reg;
 	key_entity_t *key;
 
-	aal_assert("umka-1163", tree != NULL, return NULL);
-	aal_assert("umka-1164", place != NULL, return NULL);
+	aal_assert("umka-1163", tree != NULL);
+	aal_assert("umka-1164", place != NULL);
     
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
@@ -220,8 +220,8 @@ static object_entity_t *reg40_create(void *tree,
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
 	
-	aal_assert("umka-1169", tree != NULL, return NULL);
-	aal_assert("umka-1738", hint != NULL, return NULL);
+	aal_assert("umka-1169", tree != NULL);
+	aal_assert("umka-1738", hint != NULL);
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
@@ -352,8 +352,8 @@ static errno_t reg40_layout(object_entity_t *entity,
 	key_entity_t key;
 	layout_hint_t hint;
 	
-	aal_assert("umka-1471", entity != NULL, return -1);
-	aal_assert("umka-1472", func != NULL, return -1);
+	aal_assert("umka-1471", entity != NULL);
+	aal_assert("umka-1472", func != NULL);
 
 	reg = (reg40_t *)entity;
 	
@@ -403,8 +403,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	
 	reg40_t *reg = (reg40_t *)entity;
 	
-	aal_assert("umka-1716", entity != NULL, return -1);
-	aal_assert("umka-1717", func != NULL, return -1);
+	aal_assert("umka-1716", entity != NULL);
+	aal_assert("umka-1717", func != NULL);
 
 	if ((res = func(entity, &reg->file.statdata, data)))
 		return res;
@@ -435,7 +435,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 static void reg40_close(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 		
-	aal_assert("umka-1170", entity != NULL, return);
+	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
 	file40_unlock(&reg->file, &reg->file.statdata);
@@ -445,7 +445,7 @@ static void reg40_close(object_entity_t *entity) {
 }
 
 static uint64_t reg40_offset(object_entity_t *entity) {
-	aal_assert("umka-1159", entity != NULL, return 0);
+	aal_assert("umka-1159", entity != NULL);
 	return ((reg40_t *)entity)->offset;
 }
 

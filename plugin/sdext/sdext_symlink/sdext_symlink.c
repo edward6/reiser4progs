@@ -16,8 +16,8 @@ static errno_t sdext_symlink_init(rbody_t *body,
 {
 	char *data;
 	
-	aal_assert("umka-1481", body != NULL, return -1);
-	aal_assert("umka-1482", hint != NULL, return -1);
+	aal_assert("umka-1481", body != NULL);
+	aal_assert("umka-1482", hint != NULL);
 
 	data = (char *)hint;
 	aal_memcpy((char *)body, data, aal_strlen(data));
@@ -29,8 +29,8 @@ static errno_t sdext_symlink_open(rbody_t *body,
 {
 	char *data;
 	
-	aal_assert("umka-1483", body != NULL, return -1);
-	aal_assert("umka-1484", hint != NULL, return -1);
+	aal_assert("umka-1483", body != NULL);
+	aal_assert("umka-1484", hint != NULL);
 
 	data = (char *)body;
 	
@@ -39,7 +39,7 @@ static errno_t sdext_symlink_open(rbody_t *body,
 }
 
 static uint16_t sdext_symlink_length(rbody_t *body) {
-	aal_assert("umka-1488", body != NULL, return 0);
+	aal_assert("umka-1488", body != NULL);
 	return aal_strlen((char *)body);
 }
 
@@ -48,8 +48,8 @@ static uint16_t sdext_symlink_length(rbody_t *body) {
 static errno_t sdext_symlink_print(rbody_t *body, aal_stream_t *stream,
 			      uint16_t options)
 {
-	aal_assert("umka-1485", body != NULL, return -1);
-	aal_assert("umka-1486", stream != NULL, return -1);
+	aal_assert("umka-1485", body != NULL);
+	aal_assert("umka-1486", stream != NULL);
 
 	aal_stream_format(stream, "len:\t\t%u\n", aal_strlen((char *)body));
 	aal_stream_format(stream, "value:\t\t\"%s\"\n", (char *)body);

@@ -34,8 +34,8 @@ static errno_t alloc40_layout(object_entity_t *entity,
 	blk_t blk, start;
 	uint32_t blocksize;
 	
-	aal_assert("umka-347", entity != NULL, return -1);
-	aal_assert("umka-348", func != NULL, return -1);
+	aal_assert("umka-347", entity != NULL);
+	aal_assert("umka-348", func != NULL);
 
 	alloc = (alloc40_t *)entity;
 	blocksize = aal_device_get_bs(alloc->device);
@@ -76,7 +76,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	uint32_t size, chunk, free;
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-1053", entity != NULL, return -1);
+	aal_assert("umka-1053", entity != NULL);
 
 	/* Opening block bitmap lies in */
 	if (!(block = aal_block_open(alloc->device, blk))) {
@@ -122,8 +122,8 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	alloc40_t *alloc;
 	uint32_t blocksize, crcsize;
     
-	aal_assert("umka-364", device != NULL, return NULL);
-	aal_assert("umka-1682", len > 0, return NULL);
+	aal_assert("umka-364", device != NULL);
+	aal_assert("umka-1682", len > 0);
 
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
@@ -185,8 +185,8 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 	alloc40_t *alloc;
 	uint32_t blocksize, crcsize;
 
-	aal_assert("umka-365", device != NULL, return NULL);
-	aal_assert("umka-1683", device != NULL, return NULL);
+	aal_assert("umka-365", device != NULL);
+	aal_assert("umka-1683", device != NULL);
 	
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
@@ -219,11 +219,11 @@ static errno_t alloc40_assign(object_entity_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
 
-	aal_assert("vpf-580", alloc != NULL, return -1);
-	aal_assert("vpf-579", bitmap != NULL, return -1);
+	aal_assert("vpf-580", alloc != NULL);
+	aal_assert("vpf-579", bitmap != NULL);
 	
 	aal_assert("vpf-581", alloc->bitmap->total == bitmap->total && 
-		alloc->bitmap->size == bitmap->size, return -1);
+		alloc->bitmap->size == bitmap->size);
 
 	aal_memcpy(alloc->bitmap->map, bitmap->map, bitmap->size);
 	alloc->bitmap->marked = bitmap->marked;
@@ -241,7 +241,7 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
     
 	alloc40_t *alloc = (alloc40_t *)entity;
 	
-	aal_assert("umka-1055", alloc != NULL, return -1);
+	aal_assert("umka-1055", alloc != NULL);
 
 	/*
 	  Allocating new block and filling it by 0xff bytes (all bits are turned
@@ -305,8 +305,8 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 static errno_t alloc40_sync(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
-	aal_assert("umka-366", alloc != NULL, return -1);
-	aal_assert("umka-367", alloc->bitmap != NULL, return -1);
+	aal_assert("umka-366", alloc != NULL);
+	aal_assert("umka-367", alloc->bitmap != NULL);
 
 	/*
 	  Calling "layout" function for saving all bitmap blocks to device
@@ -329,8 +329,8 @@ static void alloc40_close(object_entity_t *entity) {
     
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-368", alloc != NULL, return);
-	aal_assert("umka-369", alloc->bitmap != NULL, return);
+	aal_assert("umka-368", alloc != NULL);
+	aal_assert("umka-369", alloc->bitmap != NULL);
 
 	aux_bitmap_close(alloc->bitmap);
 
@@ -346,8 +346,8 @@ static errno_t alloc40_occupy_region(object_entity_t *entity,
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-370", alloc != NULL, return -1);
-	aal_assert("umka-371", alloc->bitmap != NULL, return -1);
+	aal_assert("umka-370", alloc != NULL);
+	aal_assert("umka-371", alloc->bitmap != NULL);
     
 	aux_bitmap_mark_region(alloc->bitmap, start, count);
 	return 0;
@@ -359,8 +359,8 @@ static errno_t alloc40_release_region(object_entity_t *entity,
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-372", alloc != NULL, return -1);
-	aal_assert("umka-373", alloc->bitmap != NULL, return -1);
+	aal_assert("umka-372", alloc != NULL);
+	aal_assert("umka-373", alloc->bitmap != NULL);
     
 	aux_bitmap_clear_region(alloc->bitmap, start, count);
 	return 0;
@@ -380,9 +380,9 @@ static uint64_t alloc40_allocate_region(object_entity_t *entity,
 	
 	alloc = (alloc40_t *)entity;
 	
-	aal_assert("umka-374", alloc != NULL, return -1);
-	aal_assert("umka-1771", start != NULL, return -1);
-	aal_assert("umka-375", alloc->bitmap != NULL, return -1);
+	aal_assert("umka-374", alloc != NULL);
+	aal_assert("umka-1771", start != NULL);
+	aal_assert("umka-375", alloc->bitmap != NULL);
 
 	/* Calling bitmap for gettign free area from it */
 	found = aux_bitmap_find_region_cleared(alloc->bitmap,
@@ -408,8 +408,8 @@ static errno_t alloc40_print(object_entity_t *entity,
 {
 	alloc40_t *alloc;
 	
-	aal_assert("umka-1778", entity != NULL, return -1);
-	aal_assert("umka-1779", stream != NULL, return -1);
+	aal_assert("umka-1778", entity != NULL);
+	aal_assert("umka-1779", stream != NULL);
 
 	alloc = (alloc40_t *)entity;
 
@@ -441,8 +441,8 @@ static errno_t alloc40_print(object_entity_t *entity,
 static uint64_t alloc40_free(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
-	aal_assert("umka-376", alloc != NULL, return INVAL_BLK);
-	aal_assert("umka-377", alloc->bitmap != NULL, return INVAL_BLK);
+	aal_assert("umka-376", alloc != NULL);
+	aal_assert("umka-377", alloc->bitmap != NULL);
     
 	return aux_bitmap_cleared(alloc->bitmap);
 }
@@ -451,8 +451,8 @@ static uint64_t alloc40_free(object_entity_t *entity) {
 static uint64_t alloc40_used(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-378", alloc != NULL, return INVAL_BLK);
-	aal_assert("umka-379", alloc->bitmap != NULL, return INVAL_BLK);
+	aal_assert("umka-378", alloc != NULL);
+	aal_assert("umka-379", alloc->bitmap != NULL);
 
 	return aux_bitmap_marked(alloc->bitmap);
 }
@@ -463,8 +463,8 @@ static int alloc40_used_region(object_entity_t *entity,
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-663", alloc != NULL, return -1);
-	aal_assert("umka-664", alloc->bitmap != NULL, return -1);
+	aal_assert("umka-663", alloc != NULL);
+	aal_assert("umka-664", alloc->bitmap != NULL);
 
 	return aux_bitmap_test_region_marked(alloc->bitmap,
 					     start, count);
@@ -477,8 +477,8 @@ static int alloc40_unused_region(object_entity_t *entity,
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("vpf-700", alloc != NULL, return -1);
-	aal_assert("vpf-701", alloc->bitmap != NULL, return -1);
+	aal_assert("vpf-700", alloc != NULL);
+	aal_assert("vpf-701", alloc->bitmap != NULL);
 
 	return aux_bitmap_test_region_cleared(alloc->bitmap,
 					      start, count);
@@ -543,8 +543,8 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 errno_t alloc40_valid(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
-	aal_assert("umka-963", alloc != NULL, return -1);
-	aal_assert("umka-964", alloc->bitmap != NULL, return -1);
+	aal_assert("umka-963", alloc != NULL);
+	aal_assert("umka-964", alloc->bitmap != NULL);
 
 	/*
 	  Calling layout function for traversing all the bitmap blocks with

@@ -12,10 +12,10 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
 {
     aux_bitmap_t *bitmap = data;
     
-    aal_assert("vpf-722", item != NULL, return -1);
-    aal_assert("vpf-723", bitmap != NULL, return -1);
+    aal_assert("vpf-722", item != NULL);
+    aal_assert("vpf-723", bitmap != NULL);
     aal_assert("vpf-726", start < bitmap->total && count <= bitmap->total && 
-	start <= bitmap->total - count, return -1);
+	start <= bitmap->total - count);
     
     if (!aux_bitmap_test_region_cleared(bitmap, start, count)) {
 	aal_exception_error("Node (%llu), item (%u), unit (%u): points to some "
@@ -34,9 +34,9 @@ static errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_k
     reiser4_coord_t coord;
     errno_t res;
 
-    aal_assert("vpf-614", parent != NULL, return -1);
-    aal_assert("vpf-615", key != NULL, return -1);
-    aal_assert("vpf-616", parent->item.plugin != NULL, return -1);
+    aal_assert("vpf-614", parent != NULL);
+    aal_assert("vpf-615", key != NULL);
+    aal_assert("vpf-616", parent->item.plugin != NULL);
 
     if (reiser4_item_nodeptr(parent)) {
 	item_entity_t *item = &parent->item;
@@ -75,7 +75,7 @@ error_child_close:
 reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
     reiser4_node_t *node;
 
-    aal_assert("vpf-708", fs != NULL, return NULL);
+    aal_assert("vpf-708", fs != NULL);
 
     if ((node = reiser4_node_open(fs->device, blk)) == NULL)
 	return NULL;
@@ -99,10 +99,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     int32_t len;
     int res;
 
-    aal_assert("vpf-229", node != NULL, return -1);
-    aal_assert("vpf-230", node->entity != NULL, return -1);
-    aal_assert("vpf-231", node->entity->plugin != NULL, return -1);
-    aal_assert("vpf-529", bm_used != NULL, return -1);
+    aal_assert("vpf-229", node != NULL);
+    aal_assert("vpf-230", node->entity != NULL);
+    aal_assert("vpf-231", node->entity->plugin != NULL);
+    aal_assert("vpf-529", bm_used != NULL);
 
     coord.node = node;
     count = reiser4_node_items(node);
@@ -176,9 +176,9 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
     reiser4_coord_t coord;
     errno_t res;
 
-    aal_assert("vpf-501", node != NULL, return -1);
-    aal_assert("vpf-344", ld_key != NULL, return -1);
-    aal_assert("vpf-407", ld_key->plugin != NULL, return -1);
+    aal_assert("vpf-501", node != NULL);
+    aal_assert("vpf-344", ld_key != NULL);
+    aal_assert("vpf-407", ld_key->plugin != NULL);
 
     if (node->parent != NULL) {
         if ((res = reiser4_coord_open(&coord, node->parent, &node->pos)))
@@ -198,9 +198,9 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     reiser4_coord_t coord;
     errno_t res;
     
-    aal_assert("vpf-467", node != NULL, return -1);
-    aal_assert("vpf-468", ld_key != NULL, return -1);
-    aal_assert("vpf-469", ld_key->plugin != NULL, return -1);
+    aal_assert("vpf-467", node != NULL);
+    aal_assert("vpf-468", ld_key != NULL);
+    aal_assert("vpf-469", ld_key->plugin != NULL);
 
     if (node->parent == NULL)
 	return 0;
@@ -215,9 +215,9 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     reiser4_coord_t coord;
     errno_t res;
     
-    aal_assert("vpf-502", node != NULL, return -1);
-    aal_assert("vpf-347", rd_key != NULL, return -1);
-    aal_assert("vpf-408", rd_key->plugin != NULL, return -1);
+    aal_assert("vpf-502", node != NULL);
+    aal_assert("vpf-347", rd_key != NULL);
+    aal_assert("vpf-408", rd_key->plugin != NULL);
 
     if (node->parent != NULL) {
 	/* Take the right delimiting key from the parent. */
@@ -265,10 +265,10 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
     rpos_t *pos = &coord.pos;
     int res;
 
-    aal_assert("vpf-248", node != NULL, return -1);
-    aal_assert("vpf-249", node->entity != NULL, return -1);
-    aal_assert("vpf-250", node->entity->plugin != NULL, return -1);
-    aal_assert("vpf-240", data != NULL, return -1);
+    aal_assert("vpf-248", node != NULL);
+    aal_assert("vpf-249", node->entity != NULL);
+    aal_assert("vpf-250", node->entity->plugin != NULL);
+    aal_assert("vpf-240", data != NULL);
 
     /* FIXME-VITALY: Fixed plugin id is used for key. */
     if (!(d_key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
@@ -360,7 +360,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
     uint32_t count;
     errno_t res;
     
-    aal_assert("vpf-258", node != NULL, return -1);
+    aal_assert("vpf-258", node != NULL);
     
     coord.node = node;
     count = reiser4_node_items(node);
@@ -417,9 +417,9 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
 errno_t repair_node_check(reiser4_node_t *node, aux_bitmap_t *bm_used) {
     int res;
     
-    aal_assert("vpf-494", node != NULL, return -1);
-    aal_assert("vpf-193", node->entity != NULL, return -1);    
-    aal_assert("vpf-220", node->entity->plugin != NULL, return -1);
+    aal_assert("vpf-494", node != NULL);
+    aal_assert("vpf-193", node->entity != NULL);    
+    aal_assert("vpf-220", node->entity->plugin != NULL);
 
     if ((res = plugin_call(node->entity->plugin->node_ops, 
 	check, node->entity)))

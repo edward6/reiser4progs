@@ -13,7 +13,7 @@ static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start,
 {
     aux_bitmap_t *bitmap = data;
     
-    aal_assert("vpf-735", bitmap != NULL, return -1);
+    aal_assert("vpf-735", bitmap != NULL);
     
     if (start != 0)
 	aux_bitmap_mark_region(bitmap, start, count);
@@ -24,9 +24,9 @@ static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start,
 static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
     repair_am_t *am = (repair_am_t *)data;
 
-    aal_assert("vpf-649", coord != NULL, return -1);
-    aal_assert("vpf-651", am != NULL, return -1);
-    aal_assert("vpf-650", reiser4_item_extent(coord), return -1);
+    aal_assert("vpf-649", coord != NULL);
+    aal_assert("vpf-651", am != NULL);
+    aal_assert("vpf-650", reiser4_item_extent(coord));
 	
     /* All these blocks should not be used in the allocator and should be 
      * forbidden for allocation. Check it somehow first. */
@@ -37,7 +37,7 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
 }
 
 static void repair_add_missing_release(repair_data_t *rd) {
-    aal_assert("vpf-739", rd != NULL, return);
+    aal_assert("vpf-739", rd != NULL);
 
     if (repair_am(rd)->bm_used)
 	aux_bitmap_close(repair_am(rd)->bm_used);
@@ -50,9 +50,9 @@ static void repair_add_missing_release(repair_data_t *rd) {
 }
 
 static errno_t repair_add_missing_setup(repair_data_t *rd) {
-    aal_assert("vpf-594", rd != NULL, return -1);
-    aal_assert("vpf-618", rd->fs != NULL, return -1);
-    aal_assert("vpf-619", rd->fs->format != NULL, return -1);
+    aal_assert("vpf-594", rd != NULL);
+    aal_assert("vpf-618", rd->fs != NULL);
+    aal_assert("vpf-619", rd->fs->format != NULL);
     
     if (reiser4_format_get_root(rd->fs->format) == INVAL_BLK) {
 	/* Trere is no any tree yet.  */
@@ -88,7 +88,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
     errno_t res = -1;
     blk_t blk;
     
-    aal_assert("vpf-595", rd != NULL, return -1);
+    aal_assert("vpf-595", rd != NULL);
 
     am = repair_am(rd);
 
@@ -118,8 +118,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	    level = reiser4_node_level(node); 
 
 	    /* This block must contain twig/leaf. */
-	    aal_assert("vpf-638", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL), 
-		return -1);
+	    aal_assert("vpf-638", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL));
 
 	    res = repair_tree_attach(tree, node);
 
@@ -163,15 +162,14 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	    level = reiser4_node_level(node); 
 
 	    /* This block must contain twig/leaf. */
-	    aal_assert("vpf-709", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL), 
-		return -1);
+	    aal_assert("vpf-709", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL));
 
 	    pos->unit = ~0ul;
 	    items = reiser4_node_items(node);
 	    coord.node = node;
 
 	    for (pos->item = 0; pos->item < items; pos->item++) {
-		aal_assert("vpf-636", pos->unit == ~0ul, return -1);
+		aal_assert("vpf-636", pos->unit == ~0ul);
 
 		if (reiser4_coord_realize(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u): cannot open "
@@ -181,8 +179,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 		}
 	 
 		if (i == 0) {
-		    aal_assert("vpf-637", reiser4_item_extent(&coord), 
-			return -1);
+		    aal_assert("vpf-637", reiser4_item_extent(&coord));
 		}
 
 

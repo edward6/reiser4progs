@@ -38,7 +38,7 @@ errno_t format40_check(object_entity_t *entity) {
     long int result;
     int error, n = 0;
     
-    aal_assert("vpf-160", entity != NULL, return -1);
+    aal_assert("vpf-160", entity != NULL);
     
     super = format40_super(format->block);
     

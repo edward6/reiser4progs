@@ -23,7 +23,7 @@ aal_block_t *aal_block_create(
 {
 	aal_block_t *block;
 
-	aal_assert("umka-443", device != NULL, return NULL);
+	aal_assert("umka-443", device != NULL);
     
 	if (!(block = (aal_block_t *)aal_calloc(sizeof(*block), 0)))
 		return NULL;
@@ -55,7 +55,7 @@ aal_block_t *aal_block_open(
 {
 	aal_block_t *block;
 
-	aal_assert("umka-444", device != NULL, return NULL);
+	aal_assert("umka-444", device != NULL);
 
 	/* Allocating new block at passed position blk */    
 	if (!(block = aal_block_create(device, blk, 0)))
@@ -83,8 +83,8 @@ errno_t aal_block_reopen(
 	aal_device_t *device,	/* device, new block should be reread from */
 	blk_t blk)	        /* block number for rereading */
 {
-	aal_assert("umka-631", block != NULL, return -1);
-	aal_assert("umka-632", device != NULL, return -1);
+	aal_assert("umka-631", block != NULL);
+	aal_assert("umka-632", device != NULL);
 
 	if (aal_device_read(device, block->data, blk, 1))
 		return -1;
@@ -106,7 +106,7 @@ errno_t aal_block_sync(
 	errno_t error;
 	blk_t blk;
 
-	aal_assert("umka-446", block != NULL, return -1);
+	aal_assert("umka-446", block != NULL);
 
 	blk = aal_block_number(block);
     
@@ -120,7 +120,7 @@ errno_t aal_block_sync(
 blk_t aal_block_number(
 	aal_block_t *block)		/* block, position will be obtained from */
 {
-	aal_assert("umka-448", block != NULL, return INVAL_BLK);
+	aal_assert("umka-448", block != NULL);
 	return block->blk;
 }
 
@@ -129,7 +129,7 @@ void aal_block_relocate(
 	aal_block_t *block,		/* block, position will be set to */
 	blk_t blk)			/* position for setting up */
 {
-	aal_assert("umka-450", block != NULL, return);
+	aal_assert("umka-450", block != NULL);
 
 	/* Checking for passed block validness */
 	if (blk > aal_device_len(block->device)) {
@@ -141,7 +141,7 @@ void aal_block_relocate(
 }
 
 uint32_t aal_block_size(aal_block_t *block) {
-	aal_assert("umka-1049", block != NULL, return 0);
+	aal_assert("umka-1049", block != NULL);
 	return block->device->blocksize;
 }
 
@@ -149,7 +149,7 @@ uint32_t aal_block_size(aal_block_t *block) {
 void aal_block_close(
 	aal_block_t *block)		/* block to be released */
 {
-	aal_assert("umka-451", block != NULL, return);
+	aal_assert("umka-451", block != NULL);
 	
 	aal_free(block->data);
 	aal_free(block);

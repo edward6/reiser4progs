@@ -14,7 +14,7 @@ int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func,
     blk_t blk;
     int res;
 	
-    aal_assert("vpf-721", item != NULL, return -1);
+    aal_assert("vpf-721", item != NULL);
 
     nodeptr = nodeptr40_body(item);
 

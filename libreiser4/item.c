@@ -18,10 +18,10 @@
 uint32_t reiser4_item_units(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
-	aal_assert("umka-1030", coord != NULL, return 0);
+	aal_assert("umka-1030", coord != NULL);
 
 	item = &coord->item;
-	aal_assert("umka-1448", item->plugin != NULL, return 0);
+	aal_assert("umka-1448", item->plugin != NULL);
 	
 	if (item->plugin->item_ops.units)
 		return item->plugin->item_ops.units(item);
@@ -59,12 +59,12 @@ errno_t reiser4_item_estimate(
 	reiser4_coord_t *coord,	   /* item we will work with */
 	reiser4_item_hint_t *hint) /* item hint to be estimated */
 {
-	aal_assert("vpf-106", coord != NULL, return -1);
-	aal_assert("umka-541", hint != NULL, return -1);
+	aal_assert("vpf-106", coord != NULL);
+	aal_assert("umka-541", hint != NULL);
 
 	/* We must have hint->plugin initialized for the 2nd case */
 	aal_assert("vpf-118", coord->pos.unit != ~0ul || 
-		   hint->plugin != NULL, return -1);
+		   hint->plugin != NULL);
    
 	/* Here hint has been already set for the 3rd case */
 	if (hint->data != NULL)
@@ -97,11 +97,11 @@ errno_t reiser4_item_print(
 {
 	item_entity_t *item;
 	
-	aal_assert("umka-1297", coord != NULL, return -1);
-	aal_assert("umka-1550", stream != NULL, return -1);
+	aal_assert("umka-1297", coord != NULL);
+	aal_assert("umka-1550", stream != NULL);
 
 	item = &coord->item;
-	aal_assert("umka-1449", item->plugin != NULL, return -1);
+	aal_assert("umka-1449", item->plugin != NULL);
 
 	if (!item->plugin->item_ops.print) {
 		aal_exception_warn("Method \"print\" is not implemented in %s.",
@@ -115,7 +115,7 @@ errno_t reiser4_item_print(
 #endif
 
 bool_t reiser4_item_filebody(reiser4_coord_t *coord) {
-	aal_assert("umka-1098", coord != NULL, return 0);
+	aal_assert("umka-1098", coord != NULL);
 
 	if (reiser4_item_get_key(coord, NULL))
 		return FALSE;
@@ -124,7 +124,7 @@ bool_t reiser4_item_filebody(reiser4_coord_t *coord) {
 }
 
 bool_t reiser4_item_statdata(reiser4_coord_t *coord) {
-	aal_assert("umka-1831", coord != NULL, return 0);
+	aal_assert("umka-1831", coord != NULL);
 
 	if (reiser4_item_get_key(coord, NULL))
 		return FALSE;
@@ -133,7 +133,7 @@ bool_t reiser4_item_statdata(reiser4_coord_t *coord) {
 }
 
 bool_t reiser4_item_filename(reiser4_coord_t *coord) {
-	aal_assert("umka-1830", coord != NULL, return 0);
+	aal_assert("umka-1830", coord != NULL);
 
 	if (reiser4_item_get_key(coord, NULL))
 		return FALSE;
@@ -144,10 +144,10 @@ bool_t reiser4_item_filename(reiser4_coord_t *coord) {
 bool_t reiser4_item_extent(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
-	aal_assert("vpf-238", coord != NULL, return 0);
+	aal_assert("vpf-238", coord != NULL);
 
 	item = &coord->item;
-	aal_assert("umka-1452", item->plugin != NULL, return 0);
+	aal_assert("umka-1452", item->plugin != NULL);
 	
 	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.group == EXTENT_ITEM;
@@ -156,10 +156,10 @@ bool_t reiser4_item_extent(reiser4_coord_t *coord) {
 bool_t reiser4_item_nodeptr(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
-	aal_assert("vpf-042", coord != NULL, return 0);
+	aal_assert("vpf-042", coord != NULL);
 
 	item = &coord->item;
-	aal_assert("umka-1455", item->plugin != NULL, return 0);
+	aal_assert("umka-1455", item->plugin != NULL);
 	
 	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.group == NODEPTR_ITEM;
@@ -169,10 +169,10 @@ bool_t reiser4_item_nodeptr(reiser4_coord_t *coord) {
 bool_t reiser4_item_branch(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
-	aal_assert("umka-1828", coord != NULL, return 0);
+	aal_assert("umka-1828", coord != NULL);
 
 	item = &coord->item;
-	aal_assert("umka-1829", item->plugin != NULL, return 0);
+	aal_assert("umka-1829", item->plugin != NULL);
 
 	if (!item->plugin->item_ops.branch)
 		return FALSE;
@@ -184,10 +184,10 @@ bool_t reiser4_item_branch(reiser4_coord_t *coord) {
 rpid_t reiser4_item_type(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
-	aal_assert("vpf-424", coord != NULL, return 0);
+	aal_assert("vpf-424", coord != NULL);
 
 	item = &coord->item;
-	aal_assert("vpf-425", item->plugin != NULL, return 0);
+	aal_assert("vpf-425", item->plugin != NULL);
 	
 	if (item->plugin->h.type != ITEM_PLUGIN_TYPE)
 		return LAST_ITEM;
@@ -200,10 +200,10 @@ rpid_t reiser4_item_type(reiser4_coord_t *coord) {
 uint32_t reiser4_item_len(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
-	aal_assert("umka-760", coord != NULL, return 0);
+	aal_assert("umka-760", coord != NULL);
 
 	item = &coord->item;
-	aal_assert("umka-1460", item->plugin != NULL, return 0);
+	aal_assert("umka-1460", item->plugin != NULL);
 	
 	return item->len;
 }
@@ -212,17 +212,17 @@ uint32_t reiser4_item_len(reiser4_coord_t *coord) {
 rbody_t *reiser4_item_body(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
-	aal_assert("umka-554", coord != NULL, return NULL);
+	aal_assert("umka-554", coord != NULL);
     
 	item = &coord->item;
-	aal_assert("umka-1461", item->plugin != NULL, return 0);
+	aal_assert("umka-1461", item->plugin != NULL);
 	
 	return item->body;
 }
 
 /* Returns item plugin in use */
 reiser4_plugin_t *reiser4_item_plugin(reiser4_coord_t *coord) {
-	aal_assert("umka-755", coord != NULL, return NULL);
+	aal_assert("umka-755", coord != NULL);
 	return coord->item.plugin;
 }
 
@@ -233,14 +233,14 @@ errno_t reiser4_item_get_key(reiser4_coord_t *coord,
 	item_entity_t *item;
 	object_entity_t *entity;
 	
-	aal_assert("umka-1215", coord != NULL, return -1);
+	aal_assert("umka-1215", coord != NULL);
 
 	item = &coord->item;
 
 	if (!(entity = coord->node->entity))
 		return -1;
 
-	aal_assert("umka-1462", item->plugin != NULL, return -1);
+	aal_assert("umka-1462", item->plugin != NULL);
 
 	if (plugin_call(entity->plugin->node_ops, get_key, entity,
 			&coord->pos, &item->key))
@@ -272,8 +272,8 @@ errno_t reiser4_item_set_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *item;
 	object_entity_t *entity;
 	
-	aal_assert("umka-1403", coord != NULL, return -1);
-	aal_assert("umka-1404", key != NULL, return -1);
+	aal_assert("umka-1404", key != NULL);
+	aal_assert("umka-1403", coord != NULL);
 
 	item = &coord->item;
 	
@@ -300,11 +300,11 @@ errno_t reiser4_item_set_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 errno_t reiser4_item_maxposs_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *entity;
 	
-	aal_assert("umka-1269", coord != NULL, return -1);
-	aal_assert("umka-1270", key != NULL, return -1);
+	aal_assert("umka-1269", coord != NULL);
+	aal_assert("umka-1270", key != NULL);
 
 	entity = &coord->item;
-	aal_assert("umka-1456", entity->plugin != NULL, return 0);
+	aal_assert("umka-1456", entity->plugin != NULL);
 		
 	if (reiser4_item_get_key(coord, key))
 		return -1;
@@ -319,11 +319,11 @@ errno_t reiser4_item_maxposs_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 errno_t reiser4_item_utmost_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *entity;
 	
-	aal_assert("vpf-351", coord != NULL, return -1);
-	aal_assert("vpf-352", key != NULL, return -1);
+	aal_assert("vpf-351", coord != NULL);
+	aal_assert("vpf-352", key != NULL);
     
 	entity = &coord->item;
-	aal_assert("umka-1457", entity->plugin != NULL, return 0);
+	aal_assert("umka-1457", entity->plugin != NULL);
 
 	if (reiser4_item_get_key(coord, key))
 		return -1;
@@ -338,14 +338,14 @@ errno_t reiser4_item_utmost_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 errno_t reiser4_item_gap_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *entity;
 	
-	aal_assert("vpf-691", coord != NULL, return -1);
-	aal_assert("vpf-688", key != NULL, return -1);
+	aal_assert("vpf-691", coord != NULL);
+	aal_assert("vpf-688", key != NULL);
 	
 	entity = &coord->item;
-	aal_assert("vpf-692", coord->item.plugin != NULL, return 0);
+	aal_assert("vpf-692", coord->item.plugin != NULL);
 	
 	if (reiser4_item_get_key(coord, key))
-	    return -1;
+		return -1;
 
 	if (entity->plugin->item_ops.gap_key) 
 		return entity->plugin->item_ops.gap_key(entity, key);

@@ -98,16 +98,16 @@ typedef enum {
 static inline uint64_t k40_get_el(const key40_t *key,
 				  key40_field_t off)
 {
-	aal_assert("vpf-029", key != NULL,  return 0);
-	aal_assert("vpf-030", off < KEY40_LAST_INDEX, return 0);
+	aal_assert("vpf-029", key != NULL);
+	aal_assert("vpf-030", off < KEY40_LAST_INDEX);
 	return LE64_TO_CPU(key->el[off]);
 }
 
 static inline void k40_set_el(key40_t *key,
 			      key40_field_t off, uint64_t value)
 {
-	aal_assert("vpf-031", key != NULL, return);
-	aal_assert("vpf-032", off < KEY40_LAST_INDEX, return);
+	aal_assert("vpf-031", key != NULL);
+	aal_assert("vpf-032", off < KEY40_LAST_INDEX);
 	key->el[off] = CPU_TO_LE64(value);
 }
 
@@ -127,8 +127,8 @@ static inline int k40_comp_el(void *k1, void *k2, int off) {
 */
 								    
 #define key40_field_handler(L, U, T)				    \
-static inline T k40_get_##L (const key40_t *key) {		    \
-        aal_assert("vpf-036", key != NULL, return 0);		    \
+static inline T k40_get_##L (const key40_t *key) {                  \
+        aal_assert("vpf-036", key != NULL);                         \
         return (T) ((k40_get_el(key, KEY40_##U##_INDEX) &	    \
 	    KEY40_##U##_MASK) >> KEY40_##U##_SHIFT);		    \
 }								    \
@@ -136,14 +136,14 @@ static inline T k40_get_##L (const key40_t *key) {		    \
 static inline void k40_set_##L(key40_t *key, T loc) {		    \
         uint64_t el;						    \
 								    \
-        aal_assert("vpf-033", key != NULL, return);		    \
+        aal_assert("vpf-033", key != NULL);                         \
 								    \
         el = k40_get_el(key, KEY40_##U##_INDEX);		    \
 								    \
         el &= ~KEY40_##U##_MASK;				    \
 								    \
         aal_assert("vpf-034", ((loc << KEY40_##U##_SHIFT) &	    \
-                ~KEY40_##U##_MASK) == 0, return);		    \
+                ~KEY40_##U##_MASK) == 0);                           \
 								    \
         el |= (loc << KEY40_##U##_SHIFT);			    \
         k40_set_el(key, KEY40_##U##_INDEX, el);			    \

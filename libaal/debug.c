@@ -15,29 +15,53 @@
 
 #include <aal/aal.h>
 
+#ifndef ENABLE_COMPACT
+#  include <unistd.h>
+#endif
+
+static void default_assert_handler(char *hint, int cond, char *text,
+				   char *file, int line, char *func)
+{
+	/* 
+	   Actual exception throwing. Messages will contain hint for owner,
+	   file, line and function assertion was failed in.
+	*/ 
+	aal_exception_bug("%s: Assertion (%s) at %s:%d in function %s() failed.",
+			  hint, text, file, line, func);
+	
+#ifndef ENABLE_COMPACT
+	exit(-1);
+#endif
+}
+
+static assert_handler_t assert_handler = default_assert_handler;
+
+assert_handler_t aal_assert_get_handler(void) {
+	return assert_handler;
+}
+
+void aal_assert_set_handler(assert_handler_t handler) {
+	if (!handler)
+		handler = default_assert_handler;
+	
+	assert_handler = handler;
+}
+
 /* 
    This function is used to provide asserts via exceptions. It is used by macro
    aal_assert().
 */
-int __assert(
+void __assert(
 	char *hint,	     /* person owner of assert */
 	int cond,	     /* condition of assertion */
 	char *text,	     /* text of the assertion */
 	char *file,	     /* source file assertion was failed in */
 	int line,	     /* line of code assertion was failed in */
-	char *function)      /* function in code assertion was failed in */
+	char *func)          /* function in code assertion was failed in */
 {
-	/* Checking the condition */
-	if (cond) 
-		return 1;
-
-	/* 
-	   Actual exception throwing. Messages will contain hint for owner,
-	   file, line and function assertion was failed in.
-	*/ 
-	return (aal_exception_throw(EXCEPTION_BUG, EXCEPTION_IGNORE | EXCEPTION_CANCEL,
-				    "%s: Assertion (%s) at %s:%d in function %s() failed.",
-				    hint, text, file, line, function) == EXCEPTION_IGNORE);
+	/* Checking the condition and assert handler validness */
+	if (!cond && assert_handler)
+		assert_handler(hint, cond, text, file, line, func);
 }
 
 #endif

@@ -112,7 +112,7 @@ reiser4_profile_t *progs_profile_find(
 {
 	unsigned i;
     
-	aal_assert("vpf-104", profile != NULL, return NULL);
+	aal_assert("vpf-104", profile != NULL);
     
 	for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++) {
 		char *label = profiles[i].label;
@@ -189,7 +189,7 @@ static char *progs_plugin_name[] = {
 static rpid_t *progs_profile_field(reiser4_profile_t *profile, 
 				   progs_plugin_type_t type) 
 {
-	aal_assert("umka-920", profile != NULL, return NULL);
+	aal_assert("umka-920", profile != NULL);
     
 	if (type >= PROGS_LAST_PLUGIN) 
 		return NULL;
@@ -289,7 +289,7 @@ static reiser4_plugin_type_t progs_profile_it2pt(progs_plugin_type_t type) {
 }
 
 static progs_plugin_type_t progs_profile_name2it(const char *name) {
-	aal_assert("umka-921", name != NULL, return 0xffff);
+	aal_assert("umka-921", name != NULL);
 
 	if (!aal_strncmp(name, "NODE", 4))
 		return PROGS_NODE_PLUGIN;
@@ -345,9 +345,9 @@ errno_t progs_profile_override(reiser4_profile_t *profile,
 	reiser4_plugin_type_t pt;
 	reiser4_plugin_t *plugin;
 
-	aal_assert("umka-922", profile != NULL, return -1);
-	aal_assert("umka-923", type != NULL, return -1);
-	aal_assert("umka-924", name != NULL, return -1);
+	aal_assert("umka-922", profile != NULL);
+	aal_assert("umka-923", type != NULL);
+	aal_assert("umka-924", name != NULL);
        	
 	if ((it = progs_profile_name2it(type)) == 0xffff) {
 		aal_exception_error("Can't find plugin type \"%s\".", type);
@@ -377,7 +377,7 @@ void progs_profile_print(reiser4_profile_t *profile) {
 	int i;
 	reiser4_plugin_t *plugin;
 
-	aal_assert("umka-925", profile != NULL, return);
+	aal_assert("umka-925", profile != NULL);
 	
 	printf("Profile %s:\n", profile->label);
 	

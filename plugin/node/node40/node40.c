@@ -40,12 +40,12 @@ inline uint16_t node40_free_space_end(node40_t *node) {
 #ifndef ENABLE_COMPACT
 
 /* Creates node40 entity on specified device and block with specified level */
-static object_entity_t *node40_create(aal_device_t *device, blk_t blk, 
-				      uint8_t level)
+static object_entity_t *node40_create(aal_device_t *device,
+				      blk_t blk, uint8_t level)
 {
 	node40_t *node;
     
-	aal_assert("umka-806", device != NULL, return NULL);
+	aal_assert("umka-806", device != NULL);
 
 	/* Allocating memory for the entity */
 	if (!(node = aal_calloc(sizeof(*node), 0)))
@@ -78,7 +78,7 @@ static object_entity_t *node40_create(aal_device_t *device, blk_t blk,
 
 /* Saves node to device */
 static errno_t node40_sync(object_entity_t *entity) {
-	aal_assert("umka-1552", entity != NULL, return -1);
+	aal_assert("umka-1552", entity != NULL);
 	return aal_block_sync(((node40_t *)entity)->block);
 }
 
@@ -88,7 +88,7 @@ static errno_t node40_sync(object_entity_t *entity) {
 static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 	node40_t *node;
     
-	aal_assert("umka-807", device != NULL, return NULL);
+	aal_assert("umka-807", device != NULL);
 
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
@@ -111,10 +111,10 @@ static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 static errno_t node40_close(object_entity_t *entity) {
 	aal_block_t *block;
 	
-	aal_assert("umka-825", entity != NULL, return -1);
+	aal_assert("umka-825", entity != NULL);
 
 	block = ((node40_t *)entity)->block;
-	aal_assert("umka-1578", block != NULL, return -1);
+	aal_assert("umka-1578", block != NULL);
 
 	aal_block_close(block);
 	aal_free(entity);
@@ -124,7 +124,7 @@ static errno_t node40_close(object_entity_t *entity) {
 
 /* Confirms that passed node corresponds current plugin */
 static int node40_confirm(object_entity_t *entity) {
-	aal_assert("vpf-014", entity != NULL, return 0);
+	aal_assert("vpf-014", entity != NULL);
 	return (nh40_get_magic((node40_t *)entity) == NODE40_MAGIC);
 }
 
@@ -135,7 +135,7 @@ static int node40_confirm(object_entity_t *entity) {
 uint16_t node40_items(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("vpf-018", node != NULL, return 0);
+	aal_assert("vpf-018", node != NULL);
 	return nh40_get_num_items(node);
 }
 
@@ -146,12 +146,12 @@ static errno_t node40_get_key(object_entity_t *entity,
 	uint32_t items;
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("umka-821", key != NULL, return -1);
-	aal_assert("umka-939", pos != NULL, return -1);
-	aal_assert("vpf-009", node != NULL, return -1);
+	aal_assert("umka-821", key != NULL);
+	aal_assert("umka-939", pos != NULL);
+	aal_assert("vpf-009", node != NULL);
 
 	items = nh40_get_num_items(node);
-	aal_assert("umka-810", pos->item < items, return -1);
+	aal_assert("umka-810", pos->item < items);
     
 	aal_memcpy(key->body, &(node40_ih_at(node, pos->item)->key), 
 		   sizeof(key40_t));
@@ -171,7 +171,7 @@ static uint16_t node40_overhead(object_entity_t *entity) {
 static uint16_t node40_maxspace(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("vpf-016", node != NULL, return 0);
+	aal_assert("vpf-016", node != NULL);
 
 	/* Blocksize minus node header and minus item overhead */
 	return aal_block_size(node->block) - sizeof(node40_header_t) - 
@@ -185,11 +185,11 @@ static void *node40_item_body(object_entity_t *entity,
 	uint32_t items;
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("vpf-040", node != NULL, return NULL);
-	aal_assert("umka-940", pos != NULL, return NULL);
+	aal_assert("vpf-040", node != NULL);
+	aal_assert("umka-940", pos != NULL);
 
 	items = nh40_get_num_items(node);
-	aal_assert("umka-814", pos->item < items, return NULL);
+	aal_assert("umka-814", pos->item < items);
     
 	return node40_ib_at(node, pos->item);
 }
@@ -201,11 +201,11 @@ static rpid_t node40_item_pid(object_entity_t *entity,
 	int is_range;
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("vpf-039", node != NULL, return INVAL_PID);
-	aal_assert("umka-941", pos != NULL, return INVAL_PID);
+	aal_assert("vpf-039", node != NULL);
+	aal_assert("umka-941", pos != NULL);
 
 	is_range = pos->item < nh40_get_num_items(node);
-	aal_assert("umka-815", is_range, return INVAL_PID);
+	aal_assert("umka-815", is_range);
     
 	return ih40_get_pid(node40_ih_at(node, pos->item));
 }
@@ -218,11 +218,11 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	item40_header_t *ih;
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("vpf-037", node != NULL, return 0);
-	aal_assert("umka-942", pos != NULL, return 0);
+	aal_assert("vpf-037", node != NULL);
+	aal_assert("umka-942", pos != NULL);
 
 	is_range = pos->item < nh40_get_num_items(node);
-	aal_assert("umka-815", is_range, return 0);
+	aal_assert("umka-815", is_range);
 
 	/*
 	  Item length is next item body offset minus current item offset. If we
@@ -250,12 +250,12 @@ static errno_t node40_item(item_entity_t *item,
 	rpid_t pid;
 	int is_range;
 
-	aal_assert("umka-1602", item != NULL, return -1);
-	aal_assert("umka-1631", node != NULL, return -1);
-	aal_assert("umka-1813", pos != NULL, return -1);
+	aal_assert("umka-1602", item != NULL);
+	aal_assert("umka-1631", node != NULL);
+	aal_assert("umka-1813", pos != NULL);
 
 	is_range = pos->item < nh40_get_num_items(node);
-	aal_assert("umka-1812", is_range, return -1);
+	aal_assert("umka-1812", is_range);
 	
 	/* Initializes item's context (device, block number, etc) */
 	item->con.device = node->block->device;
@@ -324,8 +324,8 @@ static errno_t node40_grow(node40_t *node, rpos_t *pos,
 	uint32_t headers;
 	item40_header_t *ih;
 
-	aal_assert("umka-817", node != NULL, return -1);
-	aal_assert("vpf-006", pos != NULL, return -1);
+	aal_assert("umka-817", node != NULL);
+	aal_assert("vpf-006", pos != NULL);
 
 	/* Checks for input validness */
 	is_insert = (pos->unit == ~0ul);
@@ -338,8 +338,8 @@ static errno_t node40_grow(node40_t *node, rpos_t *pos,
     
 	is_range = (pos->item <= items);
     
-	aal_assert("vpf-026", is_space, return -1);
-	aal_assert("vpf-027", is_range, return -1);
+	aal_assert("vpf-026", is_space);
+	aal_assert("vpf-027", is_range);
 
 	/* Getting real pos of the item to be updated */
 	item = pos->item + !is_insert;
@@ -429,18 +429,18 @@ static errno_t node40_cutout(node40_t *node, rpos_t *pos,
 	item40_header_t *cur;
 	item40_header_t *end;
 
-	aal_assert("umka-1798", node != NULL, return -1);
-	aal_assert("umka-1799", pos != NULL, return -1);
-	aal_assert("umka-1800", count > 0, return -1);
+	aal_assert("umka-1798", node != NULL);
+	aal_assert("umka-1799", pos != NULL);
+	aal_assert("umka-1800", count > 0);
 
 	items = nh40_get_num_items(node);
 
 	is_range = (pos->item < items);
-	aal_assert("umka-1801", is_range, return -1);
+	aal_assert("umka-1801", is_range);
 
 	if (pos->unit == ~0ul) {
 		is_range = (is_range && pos->item + count <= items);
-		aal_assert("umka-1802", is_range, return -1);
+		aal_assert("umka-1802", is_range);
 
 		end = node40_ih_at(node, items - 1);
 		headers = count * sizeof(item40_header_t);
@@ -523,9 +523,9 @@ static uint32_t node40_size(node40_t *node, rpos_t *pos, uint32_t count) {
 	item40_header_t *end;
 
 	items = nh40_get_num_items(node);
+
 	is_range = (pos->item + count <= items);
-	
-	aal_assert("umka-1811", is_range, return 0);
+	aal_assert("umka-1811", is_range);
 	
 	end = node40_ih_at(node, items - 1);
 	cur = node40_ih_at(node, pos->item);
@@ -609,9 +609,9 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 	item_entity_t item;
 	item40_header_t *ih;
     
-	aal_assert("vpf-119", pos != NULL, return -1);
-	aal_assert("umka-818", entity != NULL, return -1);
-	aal_assert("umka-1814", hint != NULL, return -1);
+	aal_assert("vpf-119", pos != NULL);
+	aal_assert("umka-818", entity != NULL);
+	aal_assert("umka-1814", hint != NULL);
     
 	node = (node40_t *)entity;
 	
@@ -666,8 +666,8 @@ errno_t node40_remove(object_entity_t *entity,
 	uint32_t len;
 	node40_t *node;
 	
-	aal_assert("umka-986", entity != NULL, return -1);
-	aal_assert("umka-987", pos != NULL, return -1);
+	aal_assert("umka-986", entity != NULL);
+	aal_assert("umka-987", pos != NULL);
 
 	node = (node40_t *)entity;
 	
@@ -707,9 +707,9 @@ static errno_t node40_cut(object_entity_t *entity,
 	rpos_t pos;
 	item_entity_t item;
 	
-	aal_assert("umka-1788", entity != NULL, return -1);
-	aal_assert("umka-1789", start != NULL, return -1);
-	aal_assert("umka-1790", end != NULL, return -1);
+	aal_assert("umka-1788", entity != NULL);
+	aal_assert("umka-1789", start != NULL);
+	aal_assert("umka-1790", end != NULL);
 
 	node = (node40_t *)entity;
 		
@@ -758,8 +758,8 @@ static errno_t node40_cut(object_entity_t *entity,
 				return -1;
 		}
 	} else {
-		aal_assert("umka-1795", end->unit != ~0ul, return -1);
-		aal_assert("umka-1794", start->unit != ~0ul, return -1);
+		aal_assert("umka-1795", end->unit != ~0ul);
+		aal_assert("umka-1794", start->unit != ~0ul);
 		
 		pos = *start;
 		count = end->unit - start->unit;
@@ -814,7 +814,7 @@ extern errno_t node40_check(object_entity_t *entity);
 
 /* Checks node for validness */
 static errno_t node40_valid(object_entity_t *entity) {
-	aal_assert("vpf-015", entity != NULL, return -1);
+	aal_assert("vpf-015", entity != NULL);
     
 	if (node40_confirm(entity))
 		return -1;
@@ -824,36 +824,36 @@ static errno_t node40_valid(object_entity_t *entity) {
 
 /* Returns node free space */
 static uint16_t node40_space(object_entity_t *entity) {
-	aal_assert("vpf-020", entity != NULL, return 0);
+	aal_assert("vpf-020", entity != NULL);
 	return nh40_get_free_space((node40_t *)entity);
 }
 
 /* Returns node level */
 uint8_t node40_level(object_entity_t *entity) {
-	aal_assert("umka-1116", entity != NULL, return 0);
+	aal_assert("umka-1116", entity != NULL);
 	return nh40_get_level((node40_t *)entity);
 }
 
 /* Returns node make stamp */
 static uint32_t node40_get_make_stamp(object_entity_t *entity) {
-	aal_assert("umka-1127", entity != NULL, return -1);
+	aal_assert("umka-1127", entity != NULL);
 	return nh40_get_mkfs_id((node40_t *)entity);
 }
 
 /* Returns node make stamp */
 static void node40_set_make_stamp(object_entity_t *entity, uint32_t stamp) {
-	aal_assert("vpf-644", entity != NULL, return);
+	aal_assert("vpf-644", entity != NULL);
 	nh40_set_mkfs_id((node40_t *)entity, stamp);
 }
 
 /* Returns node flush stamp */
 static uint64_t node40_get_flush_stamp(object_entity_t *entity) {
-	aal_assert("vpf-645", entity != NULL, return -1);
+	aal_assert("vpf-645", entity != NULL);
 	return nh40_get_flush_id((node40_t *)entity);
 }
 /* Returns node flush stamp */
 static void node40_set_flush_stamp(object_entity_t *entity, uint64_t stamp) {
-	aal_assert("vpf-643", entity != NULL, return);
+	aal_assert("vpf-643", entity != NULL);
 	nh40_set_flush_id((node40_t *)entity, stamp);
 }
 
@@ -868,14 +868,14 @@ static errno_t node40_set_key(object_entity_t *entity,
 	node40_t *node = (node40_t *)entity;
 
 	/* Checking input on validness */
-	aal_assert("umka-819", key != NULL, return -1);
-	aal_assert("umka-820", key->plugin != NULL, return -1);
+	aal_assert("umka-819", key != NULL);
+	aal_assert("umka-820", key->plugin != NULL);
     
-	aal_assert("umka-809", node != NULL, return -1);
-	aal_assert("umka-944", pos != NULL, return -1);
+	aal_assert("umka-809", node != NULL);
+	aal_assert("umka-944", pos != NULL);
 
 	items = nh40_get_num_items(node);
-	aal_assert("umka-811", pos->item < items, return -1);
+	aal_assert("umka-811", pos->item < items);
 
 	/* Calling key plugin assign method */
 	aal_memcpy(&(node40_ih_at(node, pos->item)->key), key->body,
@@ -889,7 +889,7 @@ static errno_t node40_set_stamp(
 	object_entity_t *entity,
 	uint32_t stamp)
 {
-	aal_assert("umka-1126", entity != NULL, return -1);
+	aal_assert("umka-1126", entity != NULL);
 
 	nh40_set_mkfs_id(((node40_t *)entity), stamp);
 	return 0;
@@ -906,11 +906,11 @@ static errno_t node40_print(object_entity_t *entity,
 
 	node40_t *node = (node40_t *)entity;
 	
-	aal_assert("vpf-023", entity != NULL, return -1);
-	aal_assert("umka-457", stream != NULL, return -1);
+	aal_assert("vpf-023", entity != NULL);
+	aal_assert("umka-457", stream != NULL);
 
 	level = node40_level(entity);
-	aal_assert("umka-1580", level > 0, return -1);
+	aal_assert("umka-1580", level > 0);
 
 	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, "
 			  "items=%u, space=%u\n", levels[level],
@@ -956,18 +956,18 @@ errno_t node40_item_legal(object_entity_t *entity,
 	uint8_t level;
 	node40_t *node = (node40_t *)entity;
 
-	aal_assert("vpf-225", node != NULL, return -1);
-	aal_assert("vpf-237", plugin != NULL, return -1);
+	aal_assert("vpf-225", node != NULL);
+	aal_assert("vpf-237", plugin != NULL);
     
 	level = node40_level(entity);
     
 	if (plugin->h.group == NODEPTR_ITEM) {
-		if (level == NODE40_LEAF)
+		if (level == LEAF_LEVEL)
 			return 1;
 	} else if (plugin->h.group == EXTENT_ITEM) {
-		if (level != NODE40_TWIG)
+		if (level != TWIG_LEVEL)
 			return 1;
-	} else if (level != NODE40_LEAF) 
+	} else if (level != LEAF_LEVEL) 
 		return 1;
     
 	return 0;
@@ -983,9 +983,9 @@ static inline int callback_comp_key(void *node, uint32_t pos,
 	key_entity_t key1;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-566", node != NULL, return -1);
-	aal_assert("umka-567", key2 != NULL, return -1);
-	aal_assert("umka-656", data != NULL, return -1);
+	aal_assert("umka-566", node != NULL);
+	aal_assert("umka-567", key2 != NULL);
+	aal_assert("umka-656", data != NULL);
 
 	/*
 	  FIXME-UMKA: Here we should avoid memcpy of the key body in order to
@@ -1011,11 +1011,11 @@ static int node40_lookup(object_entity_t *entity,
 	uint32_t items;
 	node40_t *node;
 
-	aal_assert("umka-472", key != NULL, return -1);
-	aal_assert("umka-714", key->plugin != NULL, return -1);
+	aal_assert("umka-472", key != NULL);
+	aal_assert("umka-714", key->plugin != NULL);
     
-	aal_assert("umka-478", pos != NULL, return -1);
-	aal_assert("umka-470", entity != NULL, return -1);
+	aal_assert("umka-478", pos != NULL);
+	aal_assert("umka-470", entity != NULL);
 
 	node = (node40_t *)entity;
 	items = nh40_get_num_items(node);
@@ -1081,9 +1081,9 @@ static errno_t node40_merge(node40_t *src_node,
 	item_entity_t src_item;
 	item_entity_t dst_item;
 
-	aal_assert("umka-1624", hint != NULL, return -1);
-	aal_assert("umka-1622", src_node != NULL, return -1);
-	aal_assert("umka-1623", dst_node != NULL, return -1);
+	aal_assert("umka-1624", hint != NULL);
+	aal_assert("umka-1622", src_node != NULL);
+	aal_assert("umka-1623", dst_node != NULL);
 	
 	src_items = nh40_get_num_items(src_node);
 	dst_items = nh40_get_num_items(dst_node);
@@ -1316,9 +1316,9 @@ static errno_t node40_transfuse(node40_t *src_node,
 	item40_header_t *cur;
 	item40_header_t *end;
 
-	aal_assert("umka-1620", hint != NULL, return -1);
-	aal_assert("umka-1621", src_node != NULL, return -1);
-	aal_assert("umka-1619", dst_node != NULL, return -1);
+	aal_assert("umka-1620", hint != NULL);
+	aal_assert("umka-1621", src_node != NULL);
+	aal_assert("umka-1619", dst_node != NULL);
 	
 	if (!(src_items = nh40_get_num_items(src_node)))
 		return 0;
