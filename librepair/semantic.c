@@ -5,15 +5,23 @@
 
 #include <repair/semantic.h>
 
-static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
+static void repair_semantic_lost_name(reiser4_object_t *object, 
+				      char *name, int namelen) 
+{
+	uint8_t len1, len2;
 	char *key;
-	uint8_t len;
 
-	len = aal_strlen(LOST_PREFIX);
+	len1 = aal_strlen(LOST_PREFIX);
 	key = reiser4_print_key(&object->ent->object, PO_INODE);
 	
-	aal_memcpy(name, LOST_PREFIX, len);
-	aal_memcpy(name + len, key, aal_strlen(key));
+	len2 = aal_strlen(key);
+	
+	if (len1 + len2 >= namelen)
+		len2 = namelen - len1 - 1;
+		
+	aal_memcpy(name, LOST_PREFIX, len1);
+	aal_memcpy(name + len1, key, len2);
+	name[len1 + len2] = 0;
 }
 
 /* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */
@@ -172,7 +180,7 @@ static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
 	aal_assert("vpf-1180", object != NULL);
 	
 	/* Make the lost name. */
-	repair_semantic_lost_name(object, buff);
+	repair_semantic_lost_name(object, buff, REISER4_MAX_BLKSIZE);
 	
 	/* Detach if possible. */
 	if ((res = repair_semantic_unlink(sem, NULL, object, NULL)))
@@ -271,7 +279,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 		char buff[REISER4_MAX_BLKSIZE];
 		
 		/* EOF was reached. Add entry to the parent. */
-		repair_semantic_lost_name(object, buff);
+		repair_semantic_lost_name(object, buff, REISER4_MAX_BLKSIZE);
 		if ((res = repair_semantic_add_entry(parent, object, buff)))
 			goto error_parent_close;
 
@@ -400,7 +408,8 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 			lost = !reiser4_key_compfull(&object->ent->parent,
 						     &sem->lost->ent->object);
 			
-			repair_semantic_lost_name(object, buff);
+			repair_semantic_lost_name(object, buff, 
+						  REISER4_MAX_BLKSIZE);
 			
 			if ((res = repair_semantic_unlink(sem, lost ? sem->lost
 							  : 0, object, buff)))

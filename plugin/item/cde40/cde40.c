@@ -586,26 +586,17 @@ static errno_t cde40_prep_shift(reiser4_place_t *src_place, reiser4_place_t *dst
 					hint->pos.unit--;
 				}
 			} else {
-				if (hint->pos.unit >= src_units - 1) {
+				if (hint->pos.unit >= src_units) {
 					/* Insert point is near to be shifted in
 					   right neighbour. Checking permissions
 					   and updating unit component of insert
 					   point int hint. */
-					if (hint->pos.unit == src_units - 1) {
-						if (flags & SF_MOVE_POINT) {
-							hint->result |= SF_MOVE_POINT;
-							hint->pos.unit = 0;
-						} else {
-							break;
-						}
-					} else {
-						if (flags & SF_MOVE_POINT) {
-							hint->result |= SF_MOVE_POINT;
-							hint->pos.unit = 0;
-						}
-						
-						break;
+					if (flags & SF_MOVE_POINT) {
+						hint->result |= SF_MOVE_POINT;
+						hint->pos.unit = 0;
 					}
+
+					break;
 				}
 			}
 		}
