@@ -50,8 +50,8 @@
 
 #ifndef ENABLE_STAND_ALONE
 #include "journal40.h"
-#include <repair/plugin.h>
 #include <aux/bitmap.h>
+#include <repair/plugin.h>
 
 /* Traverse flags. */
 #define TF_SAME_TXH_BREAK   1   /* break when current trans was reached. */
@@ -296,12 +296,10 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 							 check_data);
 				
 				if (ret != -ESTRUCT) {
-					aal_exception_bug("Traverse which should "
+					aal_exception_bug("Traverse failed to "
 							  "find a transaction the "
 							  "block (%llu) was met for "
-							  "the first time returned "
-							  "the unexpected value (%d).", 
-							  blk, ret);
+							  "the first time.", blk);
 					return ret;
 				}
 				
@@ -335,11 +333,9 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_exception_bug("Traverse which should find a "
+				aal_exception_bug("Traverse failed to find a "
 						  "transaction the block (%llu) was "
-						  "met for the first time returned "
-						  "the unexpected value (%d).", blk, 
-						  ret);
+						  "met for the first time.", blk);
 				return ret;
 			}
 			
@@ -371,11 +367,9 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 NULL, NULL, check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_exception_bug("Traverse which should find a "
+				aal_exception_bug("Traverse failed to find a "
 						  "transaction the block (%llu) was "
-						  "met for the first time returned "
-						  "the unexpected value (%d).", blk, 
-						  ret);
+						  "met for the first time.", blk);
 				return ret;
 			}
 			

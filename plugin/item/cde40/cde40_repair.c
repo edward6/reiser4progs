@@ -605,8 +605,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 	
 	res |= cde40_offsets_range_check(place, &flags, mode);
 	
-	if (repair_error_exists(res))
-		goto error;
+	if (res) goto error;
 	
 	/* Filter units with relable offsets from others. */
 	res |= cde40_filter(place, &flags, mode);

@@ -33,7 +33,7 @@ typedef struct repair_filter {
 				   to neither other bitmap due to corruption or
 				   just an internal one. */
 	uint8_t level;
-	uint8_t flags;
+	uint64_t flags;
 
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;

@@ -34,11 +34,10 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 	
 	aal_memset(&hint, 0, sizeof(struct pos_hint));
 	
-	res = stat40_traverse(place, callback_check_ext, &hint);
-	
-	if (res < 0) 
+	if ((res = stat40_traverse(place, callback_check_ext, &hint)) < 0)
 		return res;
-	else if (res > 0 || !hint.sdext.plug) {
+	
+	if (res || !hint.sdext.plug) {
 		aal_exception_error("Node (%llu), item (%u): does not look like a "
 				    "valid stat data.", place->block->nr, 
 				    place->pos.item);

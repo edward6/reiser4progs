@@ -372,10 +372,8 @@ errno_t node40_check_struct(node_entity_t *entity, uint8_t mode) {
 	aal_assert("vpf-194", node != NULL);
 	
 	/* Check the content of the node40 header. */
-	res = node40_count_check(node, mode);
-	
-	/* Count is wrong and not recoverable on the base of free space end. */
-	if (repair_error_exists(res)) {
+	if ((res = node40_count_check(node, mode))) {
+		/* Count is wrong and not recoverable on the base of free space end. */
 		if (mode != RM_BUILD)
 			return res;
 		

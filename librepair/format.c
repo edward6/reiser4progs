@@ -105,8 +105,6 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			     check_struct, fs->format->entity, mode)) < 0)
 		return res;
 	
-	repair_error_check(res, mode);
-	
 	if (repair_error_fatal(res))
 		return res;
 	

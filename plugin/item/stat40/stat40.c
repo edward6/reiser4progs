@@ -308,8 +308,8 @@ static errno_t stat40_remove(place_t *place, trans_hint_t *hint) {
 
 	for (i = 0; i < STAT40_EXTNR; i++) {
 		uint16_t extsize;;
-		uint16_t old_extmask;
 		uint16_t new_extmask;
+		uint16_t old_extmask = 0;
 
 		/* Check if we are on next extention mask. */
 		if (i == 0 || ((i + 1) % 16 == 0)) {

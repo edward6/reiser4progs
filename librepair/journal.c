@@ -21,20 +21,12 @@ static errno_t callback_fs_check(void *layout, region_func_t func, void *data) {
 
 /* Checks the opened journal. */
 static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
-	errno_t res;
-	
 	aal_assert("vpf-460", journal != NULL);
 	aal_assert("vpf-736", journal->fs != NULL);
 	
-	if ((res = plug_call(journal->entity->plug->o.journal_ops, 
-			     check_struct, journal->entity, 
-			     callback_fs_check, journal->fs)) < 0)
-		return res;
-
-	/* All journal corruption must be fixed at once they are detected. */
-	repair_error_check(res, RM_BUILD);
-	
-	return res;
+	return plug_call(journal->entity->plug->o.journal_ops, 
+			 check_struct, journal->entity, 
+			 callback_fs_check, journal->fs);
 }
 /* Open the journal and check it. */
 errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
@@ -80,9 +72,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 		}
 	} else {    
 		/* Check the structure of the opened journal or rebuild it if needed. */
-		res = repair_journal_check_struct(fs->journal);
-		
-		if (repair_error_exists(res))
+		if ((res = repair_journal_check_struct(fs->journal)))
 			goto error_journal_close;
 	}
 	
@@ -97,14 +87,10 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 
 errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) {
 	int j_flags, flags;
-	errno_t res = 0;
 	
 	aal_assert("vpf-906", journal != NULL);
 	aal_assert("vpf-907", journal->device != NULL);
 	aal_assert("vpf-908", device != NULL);
-	
-	if (repair_error_exists(res))
-		return res;
 	
 	j_flags = journal->device->flags;
 	flags = device->flags;

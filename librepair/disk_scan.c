@@ -132,7 +132,7 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		
 		aal_assert("vpf-812", (res & ~RE_FATAL) == 0);
 		
-		if (repair_error_exists(res) || reiser4_node_items(node) == 0)
+		if (res || reiser4_node_items(node) == 0)
 			goto next;
 		
 		ds->stat.good_nodes++;

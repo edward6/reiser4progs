@@ -13,15 +13,12 @@
 static errno_t callback_item_region_check(void *object, blk_t start, 
 					  uint64_t count, void *data) 
 {
-	reiser4_place_t *place = (reiser4_place_t *)object;
 	repair_ts_t *ts = (repair_ts_t *)data;
-	blk_t blocknr;
+	errno_t res = 0;
 	
 	aal_assert("vpf-385", ts != NULL);
 	aal_assert("vpf-567", ts->bm_met != NULL);
 
-	blocknr = node_blocknr(place->node);
-		
 	/* This must be fixed at the first pass. */
 	if (start >= ts->bm_met->total || 
 	    count > ts->bm_met->total ||

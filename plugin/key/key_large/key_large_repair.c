@@ -5,7 +5,7 @@
 
 #ifdef ENABLE_LARGE_KEYS
 #include "key_large.h"
-#include <repair/repair.h>
+#include <repair/plugin.h>
 
 extern key_type_t key_large_get_type(key_entity_t *key);
 extern void key_large_set_locality(key_entity_t *key, key_type_t type);

@@ -36,40 +36,6 @@ static errno_t callback_register_item(void *object, place_t *place, void *data)
         return 0;
 }
 
-#if 0
-/* Callback for repair_object_check_struct. Register blocks of object layout. 
-   All these blocks are marked used here, not on twig_scan pass, because it's
-   easy to write regular file plugin objects of which will share some blocks.
-   In this case this callback should take one parameter more--kind of region
-   to be registered--REGION_SHARED. Not needed for now. */
-static errno_t callback_register_region(void *o, uint64_t start, 
-					uint64_t count, void *data)
-{
-	repair_semantic_t *sem = (repair_semantic_t *)data;
-	object_entity_t *object = (object_entity_t *)o;
-	
-	aal_assert("vpf-1114", object != NULL);
-	aal_assert("vpf-1217", data != NULL);
-	
-	if (sem->repair->mode == RM_CHECK) {
-		/* Check if the region is legal. */
-		if (start >= sem->bm_used->total || 
-		    count > sem->bm_used->total  || 
-		    start >= sem->bm_used->total - count)
-		{
-			return RE_FATAL;
-		}
-	}
-	
-	if (!aux_bitmap_test_region(sem->bm_used, start, count, 0))
-		return RE_FIXABLE;
-	
-	aux_bitmap_mark_region(sem->bm_used, start, count);
-	
-	return 0;
-}
-#endif
-
 static errno_t repair_semantic_check_struct(repair_semantic_t *sem, 
 					    reiser4_object_t *object) 
 {

@@ -100,8 +100,8 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 	trans.specific = hint;
 
 	/* Updating stat data. */
-	if (!plug_call(STAT_PLACE(obj)->plug->o.item_ops,
-		       update, STAT_PLACE(obj), &trans))
+	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops,
+		      update, STAT_PLACE(obj), &trans) <= 0)
 	{
 		return -EIO;
 	}
@@ -242,8 +242,8 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 
 	stat.ext[id] = data;
 
-	if (!plug_call(place->plug->o.item_ops,
-		       update, place, &hint))
+	if (plug_call(place->plug->o.item_ops,
+		      update, place, &hint) <= 0)
 	{
 		return -EIO;
 	}

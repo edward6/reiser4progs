@@ -10,6 +10,8 @@
 #include <time.h>
 #include <repair/librepair.h>
 
+#define LOST_PREFIX "lost_name_"
+
 /* Statistics gathered during the pass. */
 typedef struct repair_semantic_stat {
 	uint64_t dirs, files, syms, spcls;

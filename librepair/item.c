@@ -16,7 +16,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 	if (place->len == 0)
 		return RE_FATAL;
 	
-	if (old_len == place->len || repair_error_exists(result))
+	if (old_len == place->len || result)
 		return result;
 	
 	aal_assert("vpf-768", old_len > place->len);
@@ -51,8 +51,6 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	if (res < 0)
 		return res;
 	
-	repair_error_check(res, mode);
-	
 	aal_assert("vpf-789", mode != RM_CHECK || 
 			      length == place->len);
 	
@@ -81,7 +79,6 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 	res = place->plug->o.item_ops->check_layout((place_t *)place, func,
 						    data, mode);
 	
-	repair_error_check(res, mode);
 	aal_assert("vpf-795", mode != RM_CHECK || 
 			      length == place->len);
 	aal_assert("vpf-796", length == place->len || res);

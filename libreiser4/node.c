@@ -677,6 +677,7 @@ errno_t reiser4_node_shift(
 			ptr_hint_t ptr;
 			trans_hint_t hint;
 			reiser4_node_t *child;
+			reiser4_place_t *p = &place;
 
 			/* Getting nodeptr and looking for the cached child by
 			   using it. */
@@ -684,7 +685,7 @@ errno_t reiser4_node_shift(
 			hint.specific = &ptr;
 
 			if (plug_call(place.plug->o.item_ops, fetch,
-				      (place_t *)&place, &hint) < 0)
+				      (place_t *)p, &hint) < 0)
 			{
 				return -EIO;
 			}
