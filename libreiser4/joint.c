@@ -2,7 +2,7 @@
   joint.c -- the personalisation of the reiser4 on-disk node. The libreiser4
   internal in-memory tree consists of reiser4_joint_t structures.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

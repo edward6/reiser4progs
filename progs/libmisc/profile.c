@@ -1,7 +1,7 @@
 /*
   profile.c -- methods for working with profiles in reiser4 programs.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

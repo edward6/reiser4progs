@@ -7,4 +7,4 @@
 
 #define BANNER					  \
     "Copyright (C) 2001, 2002 by Hans Reiser, "	  \
-    "licencing governed by reiser4progs/COPYING."
+    "licensing governed by reiser4progs/COPYING."

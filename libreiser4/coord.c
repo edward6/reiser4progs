@@ -4,7 +4,7 @@
   contains pointer to node where needed unit or item lies, item position and
   unit position in specified item.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

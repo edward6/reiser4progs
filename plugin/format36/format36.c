@@ -1,7 +1,7 @@
 /*
   format36.c -- Disk-layout plugin for reiser3.6.x.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

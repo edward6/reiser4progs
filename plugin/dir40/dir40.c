@@ -1,7 +1,7 @@
 /*
   dir40.c -- reiser4 default directory object plugin.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

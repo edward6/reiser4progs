@@ -2,7 +2,7 @@
   exception.c -- exceptions handling functions. Exception mechanism is used in
   order to provide unified interface for error handling.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
