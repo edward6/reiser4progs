@@ -777,7 +777,9 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		dpos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 		
 		if (place->pos.unit != MAX_UINT32)
-			cde40_expand(place, dpos, hint->count, hint->len);	
+			cde40_expand(place, dpos, hint->count, hint->len);
+		else
+			cde_set_units(place, 0);
 		
 		res = cde40_copy(place, dpos, src, src->pos.unit, hint->count);
 		if (res) return res;
@@ -832,6 +834,14 @@ void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options)
 		void *objid = cde40_objid(place, i);
 		void *entry = cde40_entry(place, i);
 
+		if (objid >= place->body + place->len || 
+		    entry >= place->body + place->len)
+		{
+			aal_stream_format(stream, "Broken entry array "
+					  "detected\n.");
+			break;
+		}
+		
 		cde40_get_name(place, i, name, sizeof(name));
 
 		/* Cutting name by 16 symbols */

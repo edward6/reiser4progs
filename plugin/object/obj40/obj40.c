@@ -639,6 +639,8 @@ errno_t obj40_update(obj40_t *obj) {
 	{
 	case PRESENT:
 		return 0;
+	case ABSENT:
+		return -EIO;
 	default:
 		return res;
 	}

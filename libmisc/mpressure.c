@@ -10,7 +10,7 @@
 
 #include <reiser4/libreiser4.h>
 
-static uint32_t watermark = 512;
+static uint32_t watermark = 5120;
 
 void misc_mpressure_setup(uint32_t value) {
 	watermark = value;

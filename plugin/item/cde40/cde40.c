@@ -599,7 +599,8 @@ static errno_t cde40_prep_shift(reiser4_place_t *src_place, reiser4_place_t *dst
 }
 
 /* Makes shift of the entries from the @src_place to the @dst_place. */
-static errno_t cde40_shift_units(reiser4_place_t *src_place, reiser4_place_t *dst_place,
+static errno_t cde40_shift_units(reiser4_place_t *src_place, 
+				 reiser4_place_t *dst_place,
 				 shift_hint_t *hint)
 {
 	uint32_t src_pos, dst_pos;
@@ -829,17 +830,67 @@ static errno_t cde40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 static int32_t cde40_fuse(reiser4_place_t *left_place, 
 			  reiser4_place_t *right_place) 
 {
+	void *buf;
+	void *entry;
+	uint32_t pol;
+	uint32_t size;
+	uint32_t offset;
+	uint32_t i, units;
+	
 	aal_assert("umka-2687", left_place != NULL);
 	aal_assert("umka-2689", right_place != NULL);
+	
+	pol = cde40_key_pol(left_place);
+	
+	units = cde_get_units(left_place);
+	
+	/* Right entry headers to be copied to buffer. */
+	size = cde_get_units(right_place) * en_size(pol);
+	
+	/* Offset of left entry bodies. */
+	offset = sizeof(cde40_t) + cde_get_units(left_place) * en_size(pol);
 
 	/* Set the correct amount of units. */
 	cde_inc_units(left_place, cde_get_units(right_place));
 	
 	/* Eliminating right item header and return header size as space
 	   released as result of fuse. */
-	aal_memmove(right_place->body, right_place->body + sizeof(cde40_t), 
+	aal_memmove(right_place->body, 
+		    right_place->body + sizeof(cde40_t), 
 		    right_place->len - sizeof(cde40_t));
 
+	/* Allocate the buffer for the right entry headers and copy them. */
+	buf = aal_malloc(size);
+	aal_memcpy(buf, right_place->body, size);
+	
+	/* Move left item bodies to the right. */
+	aal_memmove(left_place->body + offset + size, 
+		    left_place->body + offset, 
+		    left_place->len - offset);
+	
+	/* Copy the right entry headers to the freed space in the left item. */
+	aal_memcpy(left_place->body + offset, buf, size);
+
+	aal_free(buf);
+	
+	offset = size;
+	entry = cde40_entry(left_place, 0);
+	
+	/* Update left offsets. */
+	for (i = 0; i < units; i++) {
+		en_inc_offset(entry, offset, pol);
+		entry += en_size(pol);
+	}
+	
+	offset = left_place->len - sizeof(cde40_t);
+	entry = cde40_entry(left_place, units);
+	
+	/* Update right offsets. */
+	for (i = units; i < cde_get_units(left_place); i++) {
+		en_inc_offset(entry, offset, pol);
+		entry += en_size(pol);
+	}
+	
 	return sizeof(cde40_t);
 }
 

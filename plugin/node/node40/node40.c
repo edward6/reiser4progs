@@ -492,11 +492,8 @@ errno_t node40_shrink(reiser4_node_t *entity, pos_t *pos,
 		ih = node40_ih_at(entity, pos->item);
 		
 		/* Moving item bodies */
-		src = node40_ib_at(entity, pos->item) +
-			ilen;
-		
-		dst = (node40_ib_at(entity, pos->item) +
-		       ilen) - len;
+		src = node40_ib_at(entity, pos->item) + ilen;
+		dst = src - len;
 
 		size = nh_get_free_space_start(entity) -
 			ih_get_offset(ih, pol) - ilen;
