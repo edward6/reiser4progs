@@ -1,7 +1,7 @@
 includedir	 	    = -I$(top_srcdir)/include
 libdir			    = $(plugindir)
 
-sym40_sources	            = sym40.c sym40.h
+sym40_sources	            = sym40.c sym40_repair.c sym40.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                 = libsym40-static.la

@@ -15,7 +15,6 @@
 
 #include "sym40.h"
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sym40_plugin;
 
 /* Opens symlink and returns initialized instance to the caller */

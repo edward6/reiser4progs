@@ -16,7 +16,6 @@
 
 #include "dir40.h"
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t dir40_plugin;
 
 /* Gets size from the object stat data */

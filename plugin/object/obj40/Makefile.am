@@ -1,6 +1,6 @@
 includedir		      = -I$(top_srcdir)/include
 
-obj40_sources                 = obj40.c obj40.h
+obj40_sources                 = obj40.c obj40_repair.c obj40.h
 
 libobj40_static_la_SOURCES    = $(obj40_sources)
 libobj40_static_la_CFLAGS     = @GENERIC_CFLAGS@

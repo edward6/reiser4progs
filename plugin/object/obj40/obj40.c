@@ -1,5 +1,5 @@
 /*
-  obj40.c -- reiser4 file plugins common code.
+  obj40.c -- reiser4 file 40 plugins common code.
 
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.

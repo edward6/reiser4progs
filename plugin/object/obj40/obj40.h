@@ -11,6 +11,8 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
+static reiser4_core_t *core = NULL;
+
 #define STAT_KEY(o) \
         (&((o)->statdata.item.key))
 
@@ -103,6 +105,12 @@ extern errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 
 extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 			    uint8_t level, place_t *place);
+
+typedef bool_t (*realize_mode_t) (uint16_t);
+
+extern errno_t obj40_realize(object_info_t *info, 
+			     realize_mode_t mode_func, 
+			     key_type_t type);
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);

@@ -75,35 +75,31 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin, void *data) {
    object->info.place must be valid or object->info.object and object->info.parent 
    keys. */
 reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
-	lookup_t lookup = PRESENT;
-	rid_t pid = INVAL_PID;
+	reiser4_plugin_t *plugin;
+	lookup_t lookup;
+	rid_t pid;
 	
 	aal_assert("vpf-1083", object != NULL); 
 	aal_assert("vpf-1084", object->info.tree != NULL); 
 	
-	if (object->info.okey.plugin != NULL) {
-		/* Realize by specified key, looking up its start place. */
-		lookup = reiser4_tree_lookup(object->info.tree, 
-					     &object->info.okey, 
-					     LEAF_LEVEL, 
-					     reiser4_object_start(object));
-		
-		if (lookup == FAILED)
-			return NULL;
-		
-		/* Even if SD is lost, recognize plugin method will return 0 with 
-		   specified key only if key matches the start key of the object. */
-	}
-	
 	do {
-		reiser4_plugin_t *plugin;
-		
-		if (lookup != PRESENT)
-			break;
-		
-		/* The start of the object seems to be found, is it SD? */
-		if (reiser4_place_realize((reiser4_object_start(object))))
-			return NULL;
+		/* Realize by specified key, looking up its start place. */
+		if (object->info.okey.plugin != NULL) {
+			lookup = reiser4_tree_lookup(object->info.tree, 
+						     &object->info.okey, 
+						     LEAF_LEVEL, 
+						     reiser4_object_start(object));
+			
+			if (lookup == FAILED)
+				return NULL;
+			
+			if (lookup != PRESENT)
+				break;
+			
+			/* The start of the object seems to be found, is it SD? */
+			if (reiser4_place_realize((reiser4_object_start(object))))
+				return NULL;
+		}
 		
 		/* If it is stat data, try to get object plugin from it. */
 		if (!reiser4_item_statdata((reiser4_object_start(object))))
@@ -112,12 +108,12 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
 		plugin = object->info.start.item.plugin;
 		
 		/* This is an SD found, try to get object plugin id from it. */
-		if (plugin->o.item_ops->get_plugid) {
-			pid = plugin->o.item_ops->get_plugid(&object->info.start.item, 
-							     OBJECT_PLUGIN_TYPE);
-		}
+		if (!plugin->o.item_ops->get_plugid)
+			break;
 		
-		/* Try to realize the object with this plugin. */
+		pid = plugin->o.item_ops->get_plugid(&object->info.start.item, 
+						     OBJECT_PLUGIN_TYPE);
+		
 		if (pid == INVAL_PID)
 			break;
 		
@@ -125,7 +121,7 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
 		if (!(plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, pid)))
 			break;
 		
-		/* Ask the plugin if it realizes the object or not. */
+		/* Try to realize the object with this plugin. */
 		if (!plugin_call(plugin->o.object_ops, realize, &object->info))
 			return plugin;
 	} while (FALSE);
@@ -145,7 +141,7 @@ errno_t repair_object_traverse(reiser4_object_t *object, traverse_func_t func,
 	aal_assert("vpf-1092", object->info.tree != NULL);
 	aal_assert("vpf-1103", func != NULL);
 	
-	while (reiser4_object_readdir(object, &entry)) {
+	while (!reiser4_object_readdir(object, &entry)) {
 		reiser4_object_t *child = NULL;
 		
 		/* Some entry was read. Try to detect the object of the paticular 

@@ -71,44 +71,6 @@ static key_entity_t *key40_maximal(void) {
 	return &maximal_key;
 }
 
-/* Compares two first components of the pased keys (locality and objectid) */
-static int key40_compare_short(key_entity_t *key1, 
-			       key_entity_t *key2) 
-{
-	int res;
-
-	aal_assert("umka-2217", key1 != NULL);
-	aal_assert("umka-2218", key2 != NULL);
-	
-	if ((res = k40_comp_el((key40_t *)key1->body,
-			       (key40_t *)key2->body, 0)) != 0)
-	{
-		return res;
-	}
-
-	return k40_comp_el((key40_t *)key1->body,
-			   (key40_t *)key2->body, 1);
-}
-
-/*
-  Compares two passed keys. Returns -1 if key1 lesser than key2, 0 if keys are
-  equal and 1 if key1 is bigger then key2.
-*/
-static int key40_compare(key_entity_t *key1, 
-			 key_entity_t *key2) 
-{
-	int res;
-
-	aal_assert("vpf-135", key1 != NULL);
-	aal_assert("vpf-136", key2 != NULL);
-    
-	if ((res = key40_compare_short(key1, key2)) != 0)
-		return res;
-
-	return k40_comp_el((key40_t *)key1->body,
-			   (key40_t *)key2->body, 2);
-}
-
 /* Assigns src key to dst one  */
 static errno_t key40_assign(key_entity_t *dst,
 			    key_entity_t *src)
@@ -216,6 +178,47 @@ static void key40_clean(key_entity_t *key) {
 static int key40_tall(key_entity_t *key) {
 	uint64_t objectid = key40_get_objectid(key);
 	return (objectid & 0x0100000000000000ull) ? 1 : 0;
+}
+
+/* Compares two first components of the pased keys (locality and objectid) */
+static int key40_compare_short(key_entity_t *key1, 
+			       key_entity_t *key2) 
+{
+	int res;
+
+	aal_assert("umka-2217", key1 != NULL);
+	aal_assert("umka-2218", key2 != NULL);
+	
+	if ((res = k40_comp_el((key40_t *)key1->body,
+			       (key40_t *)key2->body, 0)) != 0)
+	{
+		return res;
+	}
+	
+	if (key40_get_type(key1) == KEY_FILENAME_TYPE)
+		return 0;
+	
+	return k40_comp_el((key40_t *)key1->body,
+			   (key40_t *)key2->body, 1);
+}
+
+/*
+  Compares two passed keys. Returns -1 if key1 lesser than key2, 0 if keys are
+  equal and 1 if key1 is bigger then key2.
+*/
+static int key40_compare(key_entity_t *key1, 
+			 key_entity_t *key2) 
+{
+	int res;
+
+	aal_assert("vpf-135", key1 != NULL);
+	aal_assert("vpf-136", key2 != NULL);
+    
+	if ((res = key40_compare_short(key1, key2)) != 0)
+		return res;
+
+	return k40_comp_el((key40_t *)key1->body,
+			   (key40_t *)key2->body, 2);
 }
 
 /* Builds hash of the passed @name by means of using a hash plugin */

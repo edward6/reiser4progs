@@ -16,7 +16,6 @@
 
 #include "reg40.h"
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t reg40_plugin;
 
 static errno_t reg40_truncate(object_entity_t *entity,
@@ -703,6 +702,9 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	
 	return 0;
 }
+
+extern errno_t reg40_realize (object_info_t *);
+
 #endif
 
 static errno_t reg40_seek(object_entity_t *entity, 
@@ -746,6 +748,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.add_entry    = NULL,
 	.rem_entry    = NULL,
 	.check_struct = NULL,
+	.realize      = reg40_realize,
 #endif
 	.lookup	      = NULL,
 	.follow       = NULL,
