@@ -20,8 +20,8 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
     units = reiser4_item_units(coord);
 
     for (pos->unit = 0; pos->unit < units; pos->unit++) {
-	if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	    fetch, &coord->entity, &ptr, coord->pos.unit, 1) != 1)
+	if (plugin_call(return -1, coord->item.plugin->item_ops,
+	    fetch, &coord->item, &ptr, coord->pos.unit, 1) != 1)
 	    return -1;
 
 	aux_bitmap_mark_range(am->bm_used, ptr.ptr, ptr.width);

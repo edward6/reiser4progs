@@ -332,6 +332,27 @@ static int extent40_lookup(item_entity_t *item,
 	return 0;
 }
 
+static uint32_t extent40_unit(item_entity_t *item,
+			      uint32_t offset)
+{
+	uint32_t i;
+	uint32_t blocksize;
+	extent40_t *extent;
+
+	extent = extent40_body(item);
+	blocksize = extent40_blocksize(item);
+	
+	for (i = 0; i < extent40_units(item); i++, extent++) {
+		
+		if (offset < et40_get_width(extent) * blocksize)
+			return i;
+
+		offset -= et40_get_width(extent) * blocksize;
+	}
+
+	return i;
+}
+
 static int32_t extent40_fetch(item_entity_t *item, void *buff,
 			      uint32_t pos, uint32_t count)
 {
