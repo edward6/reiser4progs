@@ -18,7 +18,7 @@
 */
 reiser4_alloc_t *reiser4_alloc_open(
 	reiser4_fs_t *fs,	/* fs allocator is going to be opened on */
-	count_t len)		/* filesystem size in blocks */
+	count_t count)		/* filesystem size in blocks */
 {
 	rpid_t pid;
 	reiser4_alloc_t *alloc;
@@ -49,7 +49,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	/* Calling "open" method from block allocator plugin */
 	if (!(alloc->entity = plugin_call(goto error_free_alloc, 
 					  plugin->alloc_ops, open,
-					  fs->device, len)))
+					  fs->device, count)))
 	{
 		aal_exception_error("Can't initialize block allocator.");
 		goto error_free_alloc;
@@ -71,7 +71,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 */
 reiser4_alloc_t *reiser4_alloc_create(
 	reiser4_fs_t *fs,           /* fs block allocator is going to be created on */
-	count_t len)		    /* filesystem size in blocks */
+	count_t count)		    /* filesystem size in blocks */
 {
 	rpid_t pid;
 	reiser4_alloc_t *alloc;
@@ -100,7 +100,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 	/* Query the block allocator plugin for creating allocator entity */
 	if (!(alloc->entity = plugin_call(goto error_free_alloc, 
 					  plugin->alloc_ops, create,
-					  fs->device, len)))
+					  fs->device, count)))
 	{
 		aal_exception_error("Can't create block allocator.");
 		goto error_free_alloc;
@@ -181,13 +181,13 @@ count_t reiser4_alloc_used(
 /* Marks specified blocks as used */
 errno_t reiser4_alloc_mark(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
-	blk_t blk, 		/* start block to be marked */
-	uint64_t count)		/* count to be marked */
+	blk_t start, 		/* start block to be marked */
+	count_t count)		/* count to be marked */
 {
 	aal_assert("umka-501", alloc != NULL, return -1);
 
 	plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
-		    mark, alloc->entity, blk, blk + count);
+		    mark, alloc->entity, start, count);
 
 	return 0;
 }
@@ -195,25 +195,25 @@ errno_t reiser4_alloc_mark(
 /* Deallocs specified blocks */
 errno_t reiser4_alloc_release(
 	reiser4_alloc_t *alloc,	/* allocator for wiorking with */
-	blk_t blk, 		/* start block to be deallocated */
-	uint64_t count)		/* count of blocks to be deallocated */
+	blk_t start, 		/* start block to be deallocated */
+	count_t count)		/* count of blocks to be deallocated */
 {
 	aal_assert("umka-503", alloc != NULL, return -1);
 
-	plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
-		    release, alloc->entity, blk, blk + count);
-
-	return 0;
+	return plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
+			   release, alloc->entity, start, count);
 }
 
 /* Makes request to plugin for allocating block */
-blk_t reiser4_alloc_allocate(
-	reiser4_alloc_t *alloc)	/* allocator for working with */
+errno_t reiser4_alloc_allocate(
+	reiser4_alloc_t *alloc, /* allocator for working with */
+	blk_t *start,           /* start block */
+	count_t *count)	        /* number of blocks */
 {
-	aal_assert("umka-505", alloc != NULL, return INVAL_BLK);
+	aal_assert("umka-505", alloc != NULL, return -1);
 
-	return plugin_call(return INVAL_BLK, alloc->entity->plugin->alloc_ops, 
-			   allocate, alloc->entity);
+	return plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
+			   allocate, alloc->entity, start, count);
 }
 
 errno_t reiser4_alloc_valid(
@@ -228,34 +228,33 @@ errno_t reiser4_alloc_valid(
 #endif
 
 /* Returns TRUE if specified blocks used. */
-int reiser4_alloc_used_range(
+int reiser4_alloc_region_used(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
-	blk_t blk, 		/* start block to be tested (used or not) */
-	uint64_t count)		/* count of blocks to be tested */
+	blk_t start, 		/* start block to be tested (used or not) */
+	count_t count)		/* count of blocks to be tested */
 {
 	aal_assert("umka-662", alloc != NULL, return 0);
 
 	return plugin_call(return 0, alloc->entity->plugin->alloc_ops, 
-			   used_range, alloc->entity, blk, blk + count);
+			   region_used, alloc->entity, start, count);
 }
 
 /* Returns TRUE if specified blocks unused. */
-int reiser4_alloc_unused_range(
+int reiser4_alloc_region_unused(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
-	blk_t blk, 		/* start block to be tested (used or not) */
-	uint64_t count)		/* count of blocks to be tested */
+	blk_t start, 		/* start block to be tested (used or not) */
+	count_t count)		/* count of blocks to be tested */
 {
 	aal_assert("umka-662", alloc != NULL, return 0);
 
 	return plugin_call(return 0, alloc->entity->plugin->alloc_ops, 
-			   unused_range, alloc->entity, blk, blk + count);
+			   region_unused, alloc->entity, start, count);
 }
 
-errno_t reiser4_alloc_region(
-	reiser4_alloc_t *alloc,
-	blk_t blk,
-	block_func_t func, 
-	void *data)
+errno_t reiser4_alloc_region(reiser4_alloc_t *alloc,
+			     blk_t blk,
+			     block_func_t func, 
+			     void *data)
 {
 	aal_assert("vpf-557", alloc != NULL, return 0);
 	aal_assert("umka-1685", func != NULL, return 0);
@@ -277,7 +276,8 @@ errno_t reiser4_alloc_layout(
 }
 
 errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
-			     blk_t blk, uint64_t count) 
+			     blk_t start,
+			     count_t count) 
 {
 	aal_assert("vpf-584", alloc != NULL, return -1);
 
@@ -286,24 +286,26 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
 						  reiser4_alloc_used(alloc));
 	}
 	
-	aux_bitmap_mark_range(alloc->forbid, blk, blk + count);
+	aux_bitmap_mark_region(alloc->forbid, start, start + count);
 	
 	return 0;	
 }
 
 errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc,
-			     blk_t blk, uint64_t count) 
+			     blk_t start, count_t count) 
 {
 	aal_assert("vpf-585", alloc != NULL, return -1);
 	
-	if (alloc->forbid)
-		aux_bitmap_clear_range(alloc->forbid, blk, blk + count);
+	if (alloc->forbid) {
+		aux_bitmap_clear_region(alloc->forbid, start,
+					start + count);
+	}
 	
 	return 0;
 }
 
 errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc, 
-	aux_bitmap_t *bitmap) 
+				  aux_bitmap_t *bitmap) 
 {
 	uint32_t i;
 
@@ -330,7 +332,7 @@ errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc,
 	aal_assert("vpf-587", alloc != NULL && bitmap != NULL, return -1);
 	
 	if (!alloc->forbid) 
-	    return 0;
+		return 0;
 
 	aal_assert("vpf-590", alloc->forbid->size == bitmap->size &&
 		   alloc->forbid->total == bitmap->total, return -1);

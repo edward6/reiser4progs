@@ -68,7 +68,7 @@ reiser4_node_t *reiser4_tree_allocate(
 	aal_assert("umka-756", tree != NULL, return NULL);
     
 	/* Allocating the block */
-	if ((blk = reiser4_alloc_allocate(tree->fs->alloc)) == INVAL_BLK) {
+	if (reiser4_alloc_allocate(tree->fs->alloc, &blk, NULL)) {
 		aal_exception_error("Can't allocate block for new node. "
 				    "No space left?");
 		return NULL;
@@ -313,7 +313,7 @@ reiser4_tree_t *reiser4_tree_create(
 	}
     
 	/* Getting free block from block allocator for place root block in it */
-	if ((blk = reiser4_alloc_allocate(fs->alloc)) == INVAL_BLK) {
+	if (reiser4_alloc_allocate(fs->alloc, &blk, NULL)) {
 		aal_exception_error("Can't allocate block for the root node.");
 		goto error_free_tree;
 	}
@@ -1062,8 +1062,9 @@ errno_t reiser4_tree_insert(
 }
 
 /* 
-    The method should insert/overwrite the specified src_coord to the dst_coord 
+    The method should insert/overwrite the specified src_coord to the dst_coord
     from count units started at src_coord->pos.unit.
+    
     scr_coord->pos.unit is set to the start of what should be inserted.
     count is amount of units to be inserted.
     dst_coord->pos.unit != ~0ul - item_ops.write does there.

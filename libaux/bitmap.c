@@ -94,7 +94,7 @@ int aux_bitmap_test(
    Checks whether passed range of blocks is inside of bitmap and marks
    blocks. This function also increses marked block counter.
 */
-void aux_bitmap_mark_range(
+void aux_bitmap_mark_region(
 	aux_bitmap_t *bitmap,	    /* bitmap range of bits to be marked in */
 	uint64_t start,		    /* start bit of the range */
 	uint64_t end)		    /* bit count to be marked */
@@ -112,7 +112,7 @@ void aux_bitmap_mark_range(
    Checks whether passed range of blocks is inside of bitmap and clears
    blocks. This function also descreases marked block counter.
 */
-void aux_bitmap_clear_range(
+void aux_bitmap_clear_region(
 	aux_bitmap_t *bitmap,	    /* bitmap range of blocks will be cleared in */
 	uint64_t start,		    /* start bit of the range */
 	uint64_t end)		    /* bit count to be clean */
@@ -128,7 +128,7 @@ void aux_bitmap_clear_range(
 }
 
 /* Tests if all bits of the interval [start,end) are cleared in the bitmap. */
-int aux_bitmap_test_range_cleared(
+int aux_bitmap_test_region_cleared(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
 	uint64_t start,		    /* start bit of the range */
 	uint64_t end)		    /* bit count to be clean */
@@ -148,7 +148,7 @@ int aux_bitmap_test_range_cleared(
 }
 
 /* Tests if all bits of the interval [start,end) are marked in the bitmap. */
-int aux_bitmap_test_range_marked(
+int aux_bitmap_test_region_marked(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
 	uint64_t start,		    /* start bit of the range */
 	uint64_t end)		    /* bit count to be marked */
@@ -174,7 +174,6 @@ uint64_t aux_bitmap_find_cleared(
 	uint64_t bit;
 	
 	aal_assert("umka-339", bitmap != NULL, return INVAL_BLK);
-	
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 
 	bit = aal_find_next_zero_bit(bitmap->map, bitmap->total, start);
@@ -193,7 +192,6 @@ uint64_t aux_bitmap_find_marked(
 	uint64_t bit;
 	
 	aal_assert("vpf-457", bitmap != NULL, return INVAL_BLK);
-	
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 
 	bit = aal_find_next_set_bit(bitmap->map, bitmap->total, start);
@@ -229,6 +227,27 @@ static uint64_t aux_bitmap_calc(
 	return bits;
 }
 
+/* 
+   Yet another wrapper. It counts the number of marked/cleared blocks in specified
+   region.
+*/
+uint64_t aux_bitmap_calc_region_marked(
+	aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
+	uint64_t start,		/* start bit (block) */
+	uint64_t end)		/* end bit (block) */
+{
+	return aux_bitmap_calc(bitmap, start, end, 1);
+}
+
+/* The same as previous one */
+uint64_t aux_bitmap_calc_region_cleared(
+	aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
+	uint64_t start,	        /* start bit */
+	uint64_t end)		/* end bit */
+{
+	return aux_bitmap_calc(bitmap, start, end, 0);
+}
+
 /* Public wrapper for previous function */
 uint64_t aux_bitmap_calc_marked(
 	aux_bitmap_t *bitmap)	 /* bitmap, calculating will be performed in */
@@ -242,27 +261,6 @@ uint64_t aux_bitmap_calc_cleared(
 	aux_bitmap_t *bitmap)	 /* bitmap, calculating will be performed in */
 {
 	return aux_bitmap_calc(bitmap, 0, bitmap->total, 0);
-}
-
-/* 
-   Yet another wrapper. It counts the number of marked/cleared blocks in specified
-   region.
-*/
-uint64_t aux_bitmap_calc_marked_in_area(
-	aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
-	uint64_t start,		/* start bit (block) */
-	uint64_t end)		/* end bit (block) */
-{
-	return aux_bitmap_calc(bitmap, start, end, 1);
-}
-
-/* The same as previous one */
-uint64_t aux_bitmap_calc_cleared_in_area(
-	aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
-	uint64_t start,	        /* start bit */
-	uint64_t end)		/* end bit */
-{
-	return aux_bitmap_calc(bitmap, start, end, 0);
 }
 
 /* Retuns stored value of marked blocks from specified bitmap */

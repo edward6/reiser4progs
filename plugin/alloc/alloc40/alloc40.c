@@ -309,48 +309,57 @@ static void alloc40_close(object_entity_t *entity) {
 #ifndef ENABLE_COMPACT
 
 /* Marks specified block as used in its own bitmap */
-static void alloc40_mark(object_entity_t *entity, uint64_t blk, uint64_t count) 
+static void alloc40_mark(object_entity_t *entity,
+			 uint64_t start,
+			 uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-370", alloc != NULL, return);
 	aal_assert("umka-371", alloc->bitmap != NULL, return);
     
-	aux_bitmap_mark_range(alloc->bitmap, blk, count);
+	aux_bitmap_mark_region(alloc->bitmap, start, count);
 }
 
 /* Marks "blk" as free */
-static void alloc40_release(object_entity_t *entity, uint64_t blk, 
-	uint64_t count) 
+static errno_t alloc40_release(object_entity_t *entity,
+			    uint64_t start, 
+			    uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-372", alloc != NULL, return);
-	aal_assert("umka-373", alloc->bitmap != NULL, return);
+	aal_assert("umka-372", alloc != NULL, return -1);
+	aal_assert("umka-373", alloc->bitmap != NULL, return -1);
     
-	aux_bitmap_clear_range(alloc->bitmap, blk, count);
+	aux_bitmap_clear_region(alloc->bitmap, start, start + count);
+	return 0;
 }
 
 /* Finds first free block in bitmap and returns it to caller */
-static uint64_t alloc40_allocate(object_entity_t *entity) {
-	blk_t blk;
-	alloc40_t *alloc = (alloc40_t *)entity;
+static errno_t alloc40_allocate(object_entity_t *entity,
+				uint64_t *start,
+				uint64_t *count)
+{
+	alloc40_t *alloc;
+	alloc = (alloc40_t *)entity;
+	
+	aal_assert("umka-374", alloc != NULL, return -1);
+	aal_assert("umka-1771", start != NULL, return -1);
+	aal_assert("umka-375", alloc->bitmap != NULL, return -1);
+	
+	if ((*start = aux_bitmap_find_cleared(alloc->bitmap, 0)) == INVAL_BLK)
+		return -1;
     
-	aal_assert("umka-374", alloc != NULL, return INVAL_BLK);
-	aal_assert("umka-375", alloc->bitmap != NULL, return INVAL_BLK);
-    
-	/* 
-	   It is possible to implement here more smart allocation algorithm. For
-	   instance, it may look for contiguous areas.
-	*/
-	if ((blk = aux_bitmap_find_cleared(alloc->bitmap, 0)) == INVAL_BLK)
-		return INVAL_BLK;
-    
-	aux_bitmap_mark(alloc->bitmap, blk);
-	return blk;
+	aux_bitmap_mark(alloc->bitmap, *start);
+
+	if (count)
+		*count = 1;
+	
+	return 0;
 }
 
-static errno_t alloc40_print(object_entity_t *entity, aal_stream_t *stream,
+static errno_t alloc40_print(object_entity_t *entity,
+			     aal_stream_t *stream,
 			     uint16_t options)
 {
 	aal_assert("umka-1467", entity != NULL, return -1);
@@ -383,28 +392,33 @@ static uint64_t alloc40_used(object_entity_t *entity) {
 }
 
 /* Checks whether specified blocks are used or not */
-static int alloc40_used_range(object_entity_t *entity, uint64_t blk, 
-	uint64_t count) 
+static int alloc40_region_used(object_entity_t *entity,
+			       uint64_t start, 
+			       uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-663", alloc != NULL, return -1);
 	aal_assert("umka-664", alloc->bitmap != NULL, return -1);
 
-	return aux_bitmap_test_range_marked(alloc->bitmap, blk, count);
+	return aux_bitmap_test_region_marked(alloc->bitmap, start,
+					     start + count);
 }
 
 /* Checks whether specified blocks are unused or not */
-static int alloc40_unused_range(object_entity_t *entity, uint64_t blk, 
-	uint64_t count) 
+static int alloc40_region_unused(object_entity_t *entity,
+				 uint64_t start, 
+				 uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("vpf-700", alloc != NULL, return -1);
 	aal_assert("vpf-701", alloc->bitmap != NULL, return -1);
 
-	return aux_bitmap_test_range_cleared(alloc->bitmap, blk, count);
+	return aux_bitmap_test_region_cleared(alloc->bitmap, start,
+					      start + count);
 }
+
 static errno_t callback_check_bitmap(object_entity_t *entity, 
 				     uint64_t blk, void *data)
 {
@@ -442,8 +456,8 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 		cadler = aal_adler32(current, chunk);
 
 	/* 
-	   If loaded checksum and calculated are not equal, then we have corrupted 
-	   bitmap.
+	   If loaded checksum and calculated one are not equal, we have
+	   corrupted bitmap.
 	*/
 	if (ladler != cadler) {
 		aal_exception_warn("Checksum missmatch in bitmap block %llu. "
@@ -503,8 +517,8 @@ static reiser4_plugin_t alloc40_plugin = {
 		.print		= NULL,
 		.region	        = NULL,
 #endif
-		.used_range	= alloc40_used_range,
-		.unused_range	= alloc40_unused_range,
+		.region_used	= alloc40_region_used,
+		.region_unused	= alloc40_region_unused,
 		.free		= alloc40_free,
 		.used		= alloc40_used,
 		.valid		= alloc40_valid,

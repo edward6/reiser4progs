@@ -26,8 +26,8 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
 
 	/* All these blocks should not be used in the allocator and should be 
 	 * forbidden for allocation. Check it somehow first. */
-	aux_bitmap_mark_range(am->bm_used, ptr.ptr, ptr.width);
-	aux_bitmap_mark_range(am->bm_used, ptr.ptr, ptr.width);	
+	aux_bitmap_mark_region(am->bm_used, ptr.ptr, ptr.width);
+	aux_bitmap_mark_region(am->bm_used, ptr.ptr, ptr.width);	
     }
     
     return 0;

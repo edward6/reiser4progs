@@ -88,7 +88,7 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
     }
 
     /* The validness of this pointer must be checked at node_check time. */
-    aux_bitmap_mark_range(fd->bm_used, ptr.ptr, ptr.ptr + ptr.width);
+    aux_bitmap_mark_region(fd->bm_used, ptr.ptr, ptr.ptr + ptr.width);
 
     fd->level--;
  

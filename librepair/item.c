@@ -82,7 +82,7 @@ errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
 	return 0;
 
     /* Check that ptr does not point any used block. */
-    if (!aux_bitmap_test_range_cleared(bitmap, ptr.ptr, ptr.ptr + ptr.width))
+    if (!aux_bitmap_test_region_cleared(bitmap, ptr.ptr, ptr.ptr + ptr.width))
 	goto error;
 	
     return 0;

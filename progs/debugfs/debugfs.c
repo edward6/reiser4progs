@@ -170,7 +170,7 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	reiser4_node_t *node;
 	struct traverse_hint hint;
 
-	if (!reiser4_alloc_used_range(fs->alloc, blk, 1)) {
+	if (!reiser4_alloc_region_used(fs->alloc, blk, 1)) {
 		aal_exception_info("Block %llu is not belong to "
 				   "filesystem.", blk);
 		return 0;

@@ -210,8 +210,15 @@ struct object_entity {
 typedef struct object_entity object_entity_t;
 
 struct item_context {
+
+	/* Block number of node item lies in */
 	blk_t blk;
+
+	/* Device item's node lies on */
 	aal_device_t *device;
+
+	/* Block allocator */
+	object_entity_t *alloc;
 };
 
 typedef struct item_context item_context_t;
@@ -1007,16 +1014,16 @@ struct reiser4_alloc_ops {
 	void (*mark) (object_entity_t *, uint64_t, uint64_t);
 
 	/* Checks if passed range of blocks used */
-	int (*used_range) (object_entity_t *, uint64_t, uint64_t);
+	int (*region_used) (object_entity_t *, uint64_t, uint64_t);
     	
 	/* Checks if passed range of blocks unused */
-	int (*unused_range) (object_entity_t *, uint64_t, uint64_t);
+	int (*region_unused) (object_entity_t *, uint64_t, uint64_t);
 
 	/* Allocates one block */
-	uint64_t (*allocate) (object_entity_t *);
+	errno_t (*allocate) (object_entity_t *, uint64_t *, uint64_t *);
 
 	/* Deallocates passed blocks */
-	void (*release) (object_entity_t *, uint64_t, uint64_t);
+	errno_t (*release) (object_entity_t *, uint64_t, uint64_t);
 
 	/* Returns number of used blocks */
 	uint64_t (*used) (object_entity_t *);

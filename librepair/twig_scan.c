@@ -46,9 +46,9 @@ static errno_t callback_ptr_handler(reiser4_coord_t *coord, void *data) {
     else if ((res > 0) && repair_item_handle_ptr(coord)) 
 	return -1;
     else if (aux_bitmap_test(ts->bm_used, coord->node->blk))
-	aux_bitmap_mark_range(ts->bm_unfm_tree, ptr.ptr, ptr.ptr + ptr.width);
+	aux_bitmap_mark_region(ts->bm_unfm_tree, ptr.ptr, ptr.ptr + ptr.width);
     else
-	aux_bitmap_mark_range(ts->bm_unfm_out, ptr.ptr, ptr.ptr + ptr.width);
+	aux_bitmap_mark_region(ts->bm_unfm_out, ptr.ptr, ptr.ptr + ptr.width);
 	
     return 0;
 }

@@ -107,6 +107,24 @@ static errno_t extent40_estimate(item_entity_t *item,
 	return -1;
 }
 
+static int32_t extent40_write(item_entity_t *item, void *buff,
+			      uint32_t offset, uint32_t count)
+{
+	uint32_t blocks;
+	uint32_t blocksize;
+	object_entity_t *alloc;
+
+	aal_assert("umka-1769", item != NULL, return -1);
+	aal_assert("umka-1770", buff != NULL, return -1);
+	
+	blocksize = extent40_blocksize(item);
+	blocks = (count / blocksize) + 1;
+
+	alloc = item->con.alloc;
+
+	return count;
+}
+
 static errno_t extent40_insert(item_entity_t *item,
 			       reiser4_item_hint_t *hint,
 			       uint32_t pos)
