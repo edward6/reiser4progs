@@ -215,12 +215,15 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		    return ret;
 	    } else if ((ret = reiser4_item_get_key(&dst, &end_key)))
 		return ret;
+	    
+	    if (src->item.plugin->h.id == ITEM_EXTENT40_ID)
+		return 1;
 
 	    if ((ret = reiser4_tree_copy(tree, &dst, src, &end_key))) {
 		aal_exception_error("Tree Copy failed. Source: node (%llu), "
 		    "item (%u), unit (%u). Destination: node (%llu), items "
 		    "(%u), unit (%u). Key interval %k - %k.", src->node->blk, 
-		    src->pos.item, src->pos.unit, dst.pos.item, dst.pos.unit, 
+		    src->pos.item, src->pos.unit, dst.node->blk, dst.pos.item,
 		    dst.pos.unit, &src->item.key, &end_key);
 		return ret;
 	    }
@@ -239,11 +242,14 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		    "unit (%u). Destination: node (%llu), items (%u), unit "
 		    "(%u). Key interval %k - %k. Relocation is not supported "
 		    "yet.", src->node->blk, src->pos.item, src->pos.unit, 
-		    dst.pos.item, dst.pos.unit, dst.pos.unit, &src->item.key, 
+		    dst.node->blk, dst.pos.item, dst.pos.unit, &src->item.key,
 		    &end_key);
 		return -EINVAL;
 	    }
 	    
+	    if (src->item.plugin->h.id == ITEM_EXTENT40_ID)
+		return 1;
+		
 	    if ((ret = reiser4_item_gap_key(&dst, &end_key))) 
 		return ret;
 	    
@@ -257,8 +263,8 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		aal_exception_error("Tree Overwrite failed. Source: node (%llu), "
 		    "item (%u), unit (%u). Destination: node (%llu), items "
 		    "(%u), unit (%u). Key interval %k - %k.", src->node->blk, 
-		    src->pos.item, src->pos.unit, dst.pos.item, 
-		    dst.pos.unit, dst.pos.unit, &src->item.key, &end_key);
+		    src->pos.item, src->pos.unit, dst.node->blk, dst.pos.item, 
+		    dst.pos.unit, &src->item.key, &end_key);
 		return ret;
 	    }
 	    break;

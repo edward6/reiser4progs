@@ -47,8 +47,15 @@ static void repair_add_missing_setup(repair_am_t *am) {
     
     aal_memset(am->progress, 0, sizeof(*am->progress));
     am->progress->type = PROGRESS_RATE;
+
     am->progress->title = "***** AddMissing Pass: inserting unconnected nodes "
 	"into the tree.";
+	
+    am->progress->state = PROGRESS_START;
+	
+    if (am->progress_handler)
+	am->progress_handler(am->progress);
+
     time(&am->stat.time);
 }
 
@@ -60,7 +67,10 @@ static void repair_add_missing_update(repair_am_t *am) {
 
     if (!am->progress_handler)
 	return;
-	
+	    
+    am->progress->state = PROGRESS_END;
+    am->progress_handler(am->progress);    
+
     aal_stream_init(&stream);
     
     aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, by items "
@@ -107,11 +117,13 @@ errno_t repair_add_missing(repair_am_t *am) {
     am->progress = &progress;
     
     repair_add_missing_setup(am);
-   
+    
+    
     /* 2 loops - 1 for twigs, another for leaves. */
     for (i = 0; i < 2; i++) {
 	blk = 0;
 	
+	am->progress->u.rate.done = 0;
 	if (i == 0) {
 	    bitmap = am->bm_twig;
 	    am->progress->text = "Inserting unconnected twigs: ";
@@ -122,10 +134,6 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
 	}
 	
-	am->progress->state = PROGRESS_START;
-	if (am->progress_handler)
-	    am->progress_handler(am->progress);
-	
 	am->progress->state = PROGRESS_UPDATE;
  
        	/* Try to insert the whole twig/leaf at once. If found twig/leaf could 
@@ -134,6 +142,9 @@ errno_t repair_add_missing(repair_am_t *am) {
 	 * item insertion. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
 	    node = repair_node_open(am->repair->fs, blk);
+	    
+	    aal_assert("vpf-896", !reiser4_alloc_occupied(am->repair->fs->alloc, 
+		blk, 1));
 	    
 	    if (i == 0)
 		am->stat.read_twigs++;
@@ -216,30 +227,24 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    blk++;
 	}
 
-	am->progress->state = PROGRESS_END;
-	am->progress_handler(am->progress);
-	
 	blk = 0;
+	am->progress->u.rate.done = 0;
 	if (i == 0) {
 	    am->progress->text = "Inserting unconnected leaves item-by-item: ";
 	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_twig);
-	    am->progress->u.rate.done = 0;
 	} else {
 	    am->progress->text = "Inserting unconnected twigs item-by-item: ";
 	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
-	    am->progress->u.rate.done = 0;
 	}
-	
-	am->progress->state = PROGRESS_START;
-	am->progress_handler(am->progress);
-
-	am->progress->state = PROGRESS_UPDATE;
 	
 	/* Insert extents from the twigs/all items from leaves which are not in 
 	 * the tree yet item-by-item into the tree, overwrite existent data 
 	 * which is in the tree already if needed. FIXME: overwriting should be 
 	 * done on the base of flush_id. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
+	    aal_assert("vpf-897", !reiser4_alloc_occupied(am->repair->fs->alloc, 
+		blk, 1));
+
 	    node = repair_node_open(am->repair->fs, blk);
 	    
 	    if (am->progress_handler)
@@ -265,7 +270,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 		    goto error_node_close;
 		}
 	 
-		if ((res = repair_tree_insert(am->repair->fs->tree, &place)))
+		if ((res = repair_tree_insert(am->repair->fs->tree, &place)) < 0)
 		    goto error_node_close;
 
 		if (i == 0)
@@ -273,8 +278,10 @@ errno_t repair_add_missing(repair_am_t *am) {
 		else
 		    am->stat.by_item_leaves++;
 		
-		if ((res = callback_layout(&place, am->repair->fs->alloc)))
-		    goto error_node_close;
+		if (res == 0) {
+		    if ((res = callback_layout(&place, am->repair->fs->alloc)))
+			goto error_node_close;
+		}
 	    }
 	
 	    aux_bitmap_clear(bitmap, node->blk);
@@ -283,12 +290,9 @@ errno_t repair_add_missing(repair_am_t *am) {
 
 	    blk++;
 	}
-
-	am->progress->state = PROGRESS_END;
-	am->progress_handler(am->progress);
     }
 
-    repair_add_missing(am);
+    repair_add_missing_update(am);
     return 0;
 
 error_node_close:
@@ -297,9 +301,9 @@ error_node_close:
 error_progress_close:
     
     am->progress->state = PROGRESS_END;
-    am->progress_handler(am->progress);
+    if (am->progress_handler)
+	am->progress_handler(am->progress);
 
     return res;
 }
-
 

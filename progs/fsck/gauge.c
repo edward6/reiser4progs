@@ -134,7 +134,8 @@ static errno_t progress_start(repair_progress_t *progress) {
     if (progress->data == NULL) {
 	int gauge_type;
 	
-	fprintf(stderr, "%s\n", progress->title);
+	if (progress->title)
+	    fprintf(stderr, "%s\n", progress->title);
 
 	gauge_type = progress->type == PROGRESS_SILENT ? GAUGE_INDICATOR :
 		 progress->type == PROGRESS_RATE ? GAUGE_PERCENTAGE :

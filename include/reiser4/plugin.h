@@ -322,9 +322,6 @@ typedef struct shift_hint shift_hint_t;
 struct copy_hint {
 	uint32_t len;
 	uint32_t count;
-	
-	key_entity_t key;
-	reiser4_plugin_t *plugin;
 };
 
 typedef struct copy_hint copy_hint_t;

@@ -87,8 +87,8 @@ static errno_t tail40_feel(item_entity_t *item,
 
 	aal_assert("umka-2130", end_offset > start_offset);
 
-	hint->len = end_offset - start_offset;
-	hint->count = end_offset - start_offset;
+	hint->len = end_offset - start_offset + 1;
+	hint->count = end_offset - start_offset + 1;
 	
 	return 0;
 }
