@@ -616,6 +616,7 @@ static reiser4_node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
 	aal_assert("umka-2214", node != NULL);
 
 	reiser4_place_assign(&place, node, 0, MAX_UINT32);
+	
         if (!(level = reiser4_tree_neig_place(tree, &place, where)))
                 return NULL;
 
@@ -1214,6 +1215,8 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Runs through the node in @place and calls tree_adjust_node() for all
+   children. */
 static errno_t callback_tree_adjust(reiser4_place_t *place, void *data) {
 	blk_t blk;
 	uint32_t j;
@@ -1718,25 +1721,29 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
 }
 #endif
 
+#define restore_and_exit(dst, src, res)		\
+	do {dst = src; return res;} while (0)
+
 /* Makes search in the tree by specified @key. Fills passed place by data of
    found item. That is body pointer, plugin, etc. */
 lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 			     lookup_bias_t bias, reiser4_place_t *place)
 {
 	lookup_t res;
-	reiser4_key_t wan;
+	reiser4_key_t *saved;
+	reiser4_key_t wanted;
 
 	aal_assert("umka-742", hint != NULL);
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-2057", place != NULL);
 	aal_assert("umka-3088", hint->key != NULL);
 
-	/* We store @key in @wan. All consequence code will use @wan. This is
-	   needed, because @key might point to @place->item.key in @place and
-	   will be corrupted during lookup. */
-	reiser4_key_assign(&wan, hint->key);
+	/* We store @key in @wanted. All consequence code will use @wan. This is
+	   needed, because @key might point to @place->key in @place and will be
+	   corrupted during lookup. */
+	reiser4_key_assign(&wanted, hint->key);
 	aal_memset(place, 0, sizeof(*place));
-	
+
 #ifndef ENABLE_STAND_ALONE
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */
@@ -1753,22 +1760,28 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	}
 #endif
 
+	/* Setting hint->key to stored local key in order to keep not corrupted
+	   if it points to @place->key and will be chnaged after @place is
+	   modified. It will be restored after lookup is finished. */
+	saved = hint->key;
+	hint->key = &wanted;
+	
 	/* Checking the case when wanted key is smaller than root one. This is
 	   the case, when somebody is trying go up of the root by ".." entry in
 	   root directory. If so, we initialize the key to be looked up by root
 	   key. */
-	if (reiser4_key_compfull(&wan, &tree->key) < 0)
-		reiser4_key_assign(&wan, &tree->key);
+	if (reiser4_key_compfull(&wanted, &tree->key) < 0)
+		reiser4_key_assign(&wanted, &tree->key);
 		    
 	while (1) {
-		uint32_t clevel = reiser4_node_get_level(place->node);
-		lookup_bias_t cbias = (clevel > hint->level ? 
-				       FIND_EXACT : bias);
+		uint32_t clevel;
+		lookup_bias_t cbias;
 
+		clevel = reiser4_node_get_level(place->node);
+		cbias = (clevel > hint->level ? FIND_EXACT : bias);
+		
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
-		hint->key = &wan;
-
 		res = reiser4_node_lookup(place->node, hint,
 					  cbias, &place->pos);
 
@@ -1777,12 +1790,15 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		if (clevel <= hint->level || res < 0) {
 			if (res == PRESENT) {
 #ifndef ENABLE_STAND_ALONE
-				if (reiser4_tree_collision_start(tree, place, &wan))
-					return -EIO;
+				if (reiser4_tree_collision_start(tree, place,
+								 &wanted))
+				{
+					restore_and_exit(hint->key, saved, -EIO);
+				}
 #endif
 				/* Fetching item at @place if key is found */
 				if (reiser4_place_fetch(place))
-					return -EIO;
+					restore_and_exit(hint->key, saved, -EIO);
 			}
 			
 			goto correct;
@@ -1796,7 +1812,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		}
 		
 		if (reiser4_place_fetch(place))
-			return -EIO;
+			restore_and_exit(hint->key, saved, -EIO);
 
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   posision back. */
@@ -1805,7 +1821,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 
 		/* Loading node by its nodeptr item at @place. */
 		if (!(place->node = reiser4_tree_child_node(tree, place)))
-			return -EIO;
+			restore_and_exit(hint->key, saved, -EIO);
 	}
 	
 	res = ABSENT;
@@ -1813,11 +1829,11 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
  correct:
 #ifndef ENABLE_STAND_ALONE
 	/* Correcting found pos if the corresponding callback is specified. */
-	if (hint->correct_func) {
-		return hint->correct_func(place, hint, bias, res);
-	}
+	if (hint->correct_func)
+		res = hint->correct_func(place, hint, bias, res);
 #endif
 
+	hint->key = saved;
 	return res;
 }
 
