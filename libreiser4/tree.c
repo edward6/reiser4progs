@@ -1839,6 +1839,9 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 	   by tree_disconnect_node(). */
 	parent = node->p;
 
+	if (!parent.node)
+		return 0;
+	
 	/* Disconnecting @node from tree. This should be done before removing
 	   nodeptr item in parent, as parent may get empty and we will unable to
 	   release it as it is locked by connect @node. */
@@ -2082,9 +2085,6 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 
 	aal_assert("umka-3064", place->node != NULL);
 
-	aal_assert("umka-3054", needed <=
-		   reiser4_node_maxspace(place->node));
-	
 	if (reiser4_tree_fresh(tree))
 		return -EINVAL;
 
