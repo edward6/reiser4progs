@@ -159,14 +159,20 @@ static int callback_comp_func(void *key1, void *key2,
 	reiser4_factory_load(&class);               \
 }
 
+#ifndef ENABLE_STAND_ALONE
+#  define PLUGINS_TABLE_SIZE 100
+#else
+#  define PLUGINS_TABLE_SIZE 25
+#endif
+	
 /* Initializes all built-in plugins. Other kinds of plugins are not supported
    for now.  */
 errno_t reiser4_factory_init(void) {
-
 	aal_assert("umka-3013", plugins == NULL);
-	
+
 	/* Init plugin hash table. */
-	if (!(plugins = aal_hash_table_create(100, callback_hash_func,
+	if (!(plugins = aal_hash_table_create(PLUGINS_TABLE_SIZE,
+					      callback_hash_func,
 					      callback_comp_func,
 					      NULL, NULL)))
 	{

@@ -5,9 +5,8 @@ reiser4progs/COPYING.
 
 * handle holes overwriting in extent write code.
 
-* implement more sophisticated memory pressure detect code.
-  Probably it should take into account memory available at the moment
-  of start and calculate numberof blocks in cache.
+* find out how much tree cache size affects performance of tree
+  operations.
 
 * remove hardcoded hash table sizes for formatted nodes and
   unformatted ones. Probably it should depend on memory pressure nodes

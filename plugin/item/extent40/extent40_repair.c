@@ -368,11 +368,17 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	if (hint->merge_flags & ET40_TAIL) {
 		/* Get the amount of blocks to be left in the head. */
 		tail = extent40_head(place, place->pos.unit, &hint->maxkey);
+	} else {
+		/* FIXME-UMKA->VITALY: @tail was not initialized. */
+		tail = 0;
 	}
 	
 	if (hint->merge_flags & ET40_HEAD) {
 		/* Get the amount of blocks to be left in the tail. */
 		head = extent40_head(place, place->pos.unit, &hint->offset);
+	} else {
+		/* FIXME-UMKA->VITALY: @head was not initialized. */
+		head = 0;
 	}
 	
 	/* Expanding extent item at @place */
@@ -413,6 +419,7 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	if (hint->head) {
 		et40_set_start(dextent, et40_get_start(dextent) + 
 			       hint->head);
+		
 		et40_set_width(dextent, et40_get_width(dextent) - 
 			       hint->head);
 	}

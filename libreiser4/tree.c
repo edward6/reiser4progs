@@ -6,7 +6,8 @@
 #include <reiser4/libreiser4.h>
 
 /* Fetches data from passed @tree to passed @hint */
-int64_t reiser4_tree_fetch(reiser4_tree_t *tree, reiser4_place_t *place,
+int64_t reiser4_tree_fetch(reiser4_tree_t *tree,
+			   reiser4_place_t *place,
 			   trans_hint_t *hint)
 {
 	return plug_call(place->plug->o.item_ops->object,
@@ -283,10 +284,12 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	if (tree->root)
 		return 0;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Check if tree contains some nodes at all. It does not contain them
 	   just after creation. The is root blk in format is set to INVAL_BLK.*/
 	if (reiser4_tree_fresh(tree))
 		return -EINVAL;
+#endif
 
 	/* Getting root node and loading it. */
 	root_blk = reiser4_tree_get_root(tree);
@@ -1597,6 +1600,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 	   will be corrupted during lookup. */
 	reiser4_key_assign(&wan, key);
 
+#ifndef ENABLE_STAND_ALONE
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */
 	if (reiser4_tree_fresh(tree)) {
@@ -1604,12 +1608,15 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 				     0, MAX_UINT32);
 		return ABSENT;
 	} else {
+#endif
 		if ((res = reiser4_tree_load_root(tree)) < 0)
 			return res;
 		
 		reiser4_place_assign(place, tree->root,
 				     0, MAX_UINT32);
+#ifndef ENABLE_STAND_ALONE
 	}
+#endif
 
 	/* Checking the case when wanted key is smaller than root one. This is
 	   the case, when somebody is trying go up of the root by ".." entry in
