@@ -46,7 +46,7 @@ dnl Check for libuuid
 if test "$with_uuid" = yes; then
     OLD_LIBS="$LIBS"
     LIBS="$LIBS $PROGS_LDADD"
-    AC_CHECK_LIB(uuid, uuid_generate
+    AC_CHECK_LIB(uuid, uuid_generate,
 	PROGS_LDADD="$PROGS_LDADD -luuid"
 	AC_DEFINE(HAVE_LIBUUID),
 	AC_MSG_WARN(
