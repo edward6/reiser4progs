@@ -188,7 +188,7 @@ typedef struct reiser4_plugin reiser4_plugin_t;
 
 struct key_entity {
 	reiser4_plugin_t *plugin;
-	uint64_t body[KEY_SIZE];
+	d64_t body[KEY_SIZE];
 };
 
 typedef struct key_entity key_entity_t;
