@@ -975,21 +975,48 @@ errno_t reiser4_tree_remove(
 						    coord->node->blk);
 				return -1;
 			}
-		}
-
-		/*
-		  Shifting the data from the right neigbour node into the target
-		  node.
-		*/
-		if ((right = reiser4_node_right(coord->node))) {
-			reiser4_coord_t bogus;
-
-			reiser4_coord_assign(&bogus, right);
+			
+			/*
+			  Shifting the data from the right neigbour node into
+			  the target node.
+			*/
+			if ((right = reiser4_node_right(coord->node))) {
+				reiser4_coord_t bogus;
+				reiser4_coord_assign(&bogus, right);
 	    
-			if (reiser4_tree_shift(tree, &bogus, coord->node, SF_LEFT)) {
-				aal_exception_error("Can't pack node %llu into left.",
-						    right->blk);
-				return -1;
+				if (reiser4_tree_shift(tree, &bogus,
+						       coord->node, SF_LEFT))
+				{
+					aal_exception_error("Can't pack node %llu "
+							    "into left.", right->blk);
+					return -1;
+				}
+			}
+		} else {
+			int shift;
+
+			/*
+			  This is a case when target node has not left
+			  neighbour. And we try to shift right neighbour into
+			  target node and then right neighbour of the right
+			  neigbour node into its right rightbour.
+			*/
+			right = reiser4_node_right(coord->node);
+
+			for (shift = 0; shift < 2 && right; shift++) {
+				reiser4_coord_t bogus;
+				reiser4_coord_assign(&bogus, right);
+	    
+				if (reiser4_tree_shift(tree, &bogus,
+						       coord->node, SF_LEFT))
+				{
+					aal_exception_error("Can't pack node %llu "
+							    "into left.", right->blk);
+					return -1;
+				}
+
+				reiser4_coord_assign(coord, right);
+				right = reiser4_node_right(coord->node);
 			}
 		}
 	} else {
