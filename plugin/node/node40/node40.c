@@ -15,7 +15,7 @@ inline uint32_t node40_key_pol(node40_t *node) {
 
 /* Return item header void pointer by pos. As node40 is able to work with
    different item types (short keys, large ones), we do not use item struct at
-   all. But preffer to use raw pointers along with macros for working with
+   all. But prefer to use raw pointers along with macros for working with
    them. */
 void *node40_ih_at(node40_t *node, uint32_t pos) {
 	void *ih = node->block->data + node->block->size;

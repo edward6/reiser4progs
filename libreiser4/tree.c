@@ -293,7 +293,7 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 		   parent. */
 		tree->root = node;
 	} else if (parent) {
-		/* Assigning parent, locking it asit is refferenced by
+		/* Assigning parent, locking it asit is referenced by
 		   @node->p.node and updating @node->p.pos. */
 		node->p.node = parent;
 
@@ -369,9 +369,6 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree, node_t *node) {
 			continue;
 
 		for (j = 0; j < reiser4_item_units(&place); j++) {
-			/* Getting node by its nodeptr. If it is loaded, we call
-			   tree_adjust_node() recursively in order to allocate
-			   children. */
 			place.pos.unit = j;
 			
 			blk = reiser4_item_down_link(&place);
@@ -1152,28 +1149,27 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree, node_t *node) {
 			if ((res = reiser4_place_fetch(&place)))
 				return res;
 
-			/* It is not good, that we refference here to
-			   particular item group. But, we have to do so,
-			   considering, that this is up tree to know
-			   about items type in it. Probably this is why
-			   tree should be plugin too to handle things
-			   like this in more flexible manner. */
+			/* It is not good, that we reference here to particular
+			   item group. But, we have to do so, considering, that
+			   this is up tree to know about items type in
+			   it. Probably this is why tree should be plugin too to
+			   handle things like this in more flexible manner. */
 			if (place.plug->id.group == NODEPTR_ITEM) {
 				blk_t blk;
 				uint32_t j;
 				node_t *child;
 				
-				/* Allocating unallocated nodeptr item
-				   at @place. */
+				/* Allocating unallocated nodeptr item at
+				   @place. */
 				if ((res = reiser4_tree_alloc_nodeptr(tree, &place)))
 					return res;
 
 				for (j = 0; j < reiser4_item_units(&place); j++) {
-					/* Getting child node by its
-					   nodeptr. If child is loaded,
-					   we call tree_adjust_node()
-					   onit recursively in order to
-					   allocate it and its items. */
+					/* Getting child node by its nodeptr. If
+					   child is loaded, we call
+					   tree_adjust_node() onit recursively
+					   in order to allocate it and its
+					   items. */
 					place.pos.unit = j;
 			
 					blk = reiser4_item_down_link(&place);
@@ -1199,13 +1195,14 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree, node_t *node) {
 #endif
 
 	/* If node is locked, that is not a leaf or it is used by someone, it
-	   cannot be released, and thus, it does not make sense to save it to
-	   device. */
+	   cannot be released, and thus, it does not make the sense to save it
+	   to device too. */
 	if (reiser4_node_locked(node))
 		return 0;
 	
 #ifndef ENABLE_STAND_ALONE
-	/* Okay, node is allocated now and ready to be saved to device. */
+	/* Okay, node is fully allocated now and ready to be saved to device if
+	   it is dirty. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
 		aal_error("Can't write node %llu.", node_blocknr(node));
 		return -EIO;

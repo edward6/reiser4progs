@@ -16,7 +16,7 @@
         (&((o)->info.start))
 
 struct obj40 {
-	/* File plugin refference. Should be first field due to be castable to
+	/* File plugin reference. Should be first field due to be castable to
 	   object_entity_t */
 	reiser4_plug_t *plug;
     

@@ -687,7 +687,7 @@ struct reiser4_key_ops {
 	/* Compares two keys by comparing its all components. This function
 	   accepts not key entities, but key bodies. This is needed in order to
 	   avoid memory copying in some cases. For instance when we look into
-	   node and try to find position by key, we preffer pass to comraw()
+	   node and try to find position by key, we prefer to pass to comraw()
 	   pointers to key bodies, than to copy tjem to new created key
 	   entities. */
 	int (*compraw) (void *, void *);

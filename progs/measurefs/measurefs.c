@@ -340,8 +340,8 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 		stat_hint->branches_used /= (stat_hint->branches + 1);
 	}
 
-	/* Loop though all node items and calling item->layout() method
-	   in odrer to calculate all blocks item refferences.*/
+	/* Loop though all node items and calling item->layout() method in odrer
+	   to calculate all blocks item references.*/
 	for (pos.item = 0; pos.item < reiser4_node_items(node);
 	     pos.item++)
 	{
@@ -355,8 +355,8 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 			return res;
 		}
 
-		/* Calculating item count. This probably should be done
-		   in more item type independant manner. */
+		/* Calculating item count. This probably should be done in more
+		   item type independant manner. */
 		stat_hint->items++;
 
 		switch (place.plug->id.group) {
@@ -377,8 +377,8 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 			break;
 		}
 
-		/* Calling layout() method with callback for counting
-		   refferenced blocks. */
+		/* Calling layout() method with callback for counting referenced
+		   blocks. */
 		if (!place.plug->o.item_ops->object->layout)
 			continue;
 
