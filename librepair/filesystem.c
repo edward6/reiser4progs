@@ -48,7 +48,6 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_format_close;
 	}
 	
-
 	res |= repair_alloc_open(repair->fs, repair->mode);
 
 	if (repair_error_fatal(res)) {

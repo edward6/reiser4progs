@@ -14,6 +14,19 @@ static int callback_check_count(int64_t val, void *data) {
 	return reiser4_fs_check_len(fs, val) ? 0 : 1;
 }
 
+static int callback_check_plugname(char *name, void *data) {
+	reiser4_plug_t **plug = (reiser4_plug_t **)data;
+	
+	if (!name) return 0;
+	
+	*plug = reiser4_factory_nfind(name);
+	if ((*plug)->id.type != KEY_PLUG_TYPE)
+		*plug = NULL;
+	
+	return *plug ? 1 : 0;
+}
+
+
 static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	count_t dev_len, fs_len;
 	reiser4_plug_t *defplug;
@@ -221,10 +234,36 @@ static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
 			aal_warn("The format '%s' was created on '%s'.",
 				 plug->label, fs->device->name);
 		}
-
-		reiser4_format_set_stamp(fs->format, 0);
+	
 		reiser4_master_set_format(fs->master, plug->id.id);
 		reiser4_master_mkdirty(fs->master);
+		
+		/* Set the key plugin correctly, ask user if needed. */
+		defplug = reiser4_profile_plug(PROF_KEY);
+		
+		if (!reiser4_profile_overridden(PROF_KEY)) {
+			char buff[256];
+			
+			aal_memset(buff, 0, sizeof(buff));
+			aal_memcpy(buff, defplug->label, 
+				   aal_strlen(defplug->label));
+			
+			aal_ui_get_alpha(buff, callback_check_plugname,
+					 &plug, "Enter the key plugin name");
+		}
+
+		if (!plug) plug = defplug;
+			
+		if (plug->id.id == KEY_LARGE_ID) {
+			plug_call(fs->format->ent->plug->o.format_ops, 
+				  set_flags, fs->format->ent, 
+				  (1 << REISER4_LARGE_KEYS));
+		} else {
+			plug_call(fs->format->ent->plug->o.format_ops,
+				  set_flags, fs->format->ent, 0);
+		}
+		
+		reiser4_format_set_stamp(fs->format, 0);
 		reiser4_format_mkdirty(fs->format);
 	}
 

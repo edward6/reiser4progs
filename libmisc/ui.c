@@ -178,8 +178,8 @@ aal_list_t *misc_get_variant(void) {
 #endif
 
 /* Common alpha handler. Params are the same as in numeric handler */
-static char *misc_alpha_handler(
-	const char *prompt, char *defvalue, 
+static void misc_alpha_handler(
+	const char *prompt, char *defvalue,
 	aal_check_alpha_func_t check_func, 
 	void *data)
 {
@@ -192,14 +192,16 @@ static char *misc_alpha_handler(
 	aal_snprintf(buff, sizeof(buff), "%s [%s]: ", prompt, defvalue);
     
 	while (1) {
-		if (aal_strlen((line = misc_readline(buff, stderr))) == 0) 
-			return defvalue;
+		if (aal_strlen((line = misc_readline(buff, stderr))) == 0) {
+			if (!check_func || check_func(defvalue, data))
+				return;
+		}
 
 		if (!check_func || check_func(line, data))
 			break;
 	}
-    
-	return line; 
+
+	aal_memcpy(defvalue, line, aal_strlen(line));
 }
 
 /* Common for all misc ui get numeric handler */
