@@ -713,7 +713,7 @@ static int64_t node40_truncate(node_entity_t *entity, pos_t *pos,
 
 	/* Updating key if it makes sence, that is we has not truncated whole
 	   item. */
-	if (place.len > hint->len + hint->ohd) {
+	if (hint->len + hint->ohd < place.len) {
 		pol = node40_key_pol(node);
 		ih = node40_ih_at(node, place.pos.item);
 		aal_memcpy(ih, place.key.body, key_size(pol));
@@ -871,10 +871,11 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 	
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
-		if (pos.item)
+/*		if (pos.item) {
 			aal_stream_format(stream, "----------------------------"
 					  "------------------------------------"
 					  "--------------\n");
+		}*/
 
 		if (node40_fetch(entity, &pos, &place))
 			return -EINVAL;
@@ -898,7 +899,9 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 
 	}
 
-	aal_stream_format(stream, "\n");
+	aal_stream_format(stream, "----------------------------"
+			  "------------------------------------"
+			  "--------------\n");
 	return 0;
 }
 #endif
