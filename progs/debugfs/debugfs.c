@@ -345,30 +345,21 @@ static errno_t debugfs_calc_joint(
 				fetch, &coord.entity, 0, &ptr, 1))
 			return -1;
 
-		if (reiser4_item_nodeptr(&coord)) {
-			delta = hint->curr - ptr.ptr;
+		delta = hint->curr - ptr.ptr;
 
-			if (labs(delta) > 1) {
-				hint->bad += labs(delta);
-				hint->total += labs(delta);
-			} else
-				hint->total++;
-			
-			hint->curr = ptr.ptr;
-		} else {
-			if (ptr.ptr == 0)
-				continue;
-			
-			delta = hint->curr - ptr.ptr;
-			
-			if (labs(delta) > 1) {
-				hint->bad += labs(delta);
-				hint->total += labs(delta);
-			} else
-				hint->total++;
+		if (ptr.ptr == 0)
+			continue;
+		
+		if (labs(delta) > 1) {
+			hint->bad += labs(delta);
+			hint->total += labs(delta);
+		} else
+			hint->total++;
 
-			hint->curr = ptr.ptr + ptr.width;
-		}
+		hint->curr = ptr.ptr;
+		
+		if (reiser4_item_extent(&coord))
+			hint->curr += ptr.width;
 	}
 	
 	return 0;
