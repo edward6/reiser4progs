@@ -13,11 +13,11 @@
 
 extern reiser4_plug_t reg40_plug;
 
-static errno_t callback_mode_reg(uint16_t mode) {
+static errno_t callback_mode(uint16_t mode) {
 	return S_ISREG(mode) ? 0 : -EINVAL;
 }
 
-static errno_t callback_type_file(uint16_t type) {
+static errno_t callback_type(uint16_t type) {
 	return type == KEY_FILEBODY_TYPE ? 0 : -EINVAL;
 }
 
@@ -45,6 +45,7 @@ static errno_t callback_body(object_info_t *info, key_entity_t *key) {
 
 object_entity_t *reg40_realize(object_info_t *info) {
 	reg40_t *reg;
+	errno_t res;
 	
 	if ((res = obj40_realize(info, callback_mode, callback_type, 
 				 callback_body)))

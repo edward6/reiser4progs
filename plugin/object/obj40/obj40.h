@@ -107,7 +107,7 @@ typedef bool_t (*realize_func_body_t) (object_info_t *, key_entity_t *);
 
 extern errno_t obj40_realize(object_info_t *info, 
 			     realize_func_t mode_func, 
-			     realize_func_t type_func
+			     realize_func_t type_func,
 			     realize_func_body_t body_func);
 #endif
 

@@ -10,6 +10,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "obj40.h"
+#include <repair/plugin.h>
 
 /* The plugin tries to realize the object: detects the SD, body items */
 errno_t obj40_realize(object_info_t *info, 
@@ -67,7 +68,7 @@ errno_t obj40_realize(object_info_t *info,
 		
 		/* Start item pointed by @info->object key cannot be found 
 		   -- build the body key and try to find object body. */
-		if ((res = next_func(info, &key)))
+		if ((res = body_func(info, &key)))
 			return res;
 		
 		lookup = core->tree_ops.lookup(info->tree, &key, 

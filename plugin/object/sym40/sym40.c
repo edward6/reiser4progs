@@ -316,7 +316,6 @@ static reiser4_object_ops_t sym40_ops = {
 	.link           = sym40_link,
 	.unlink         = sym40_unlink,
 	.links          = sym40_links,
-	.realize        = sym40_realize,
 	.clobber        = sym40_clobber,
 		
 	.seek	        = NULL,
@@ -324,10 +323,12 @@ static reiser4_object_ops_t sym40_ops = {
 	.truncate       = NULL,
 	.rem_entry      = NULL,
 	.add_entry      = NULL,
-	.check_struct   = NULL,
-	.check_attach 	= NULL,
 	.attach         = NULL,
 	.detach         = NULL,
+	
+	.realize        = sym40_realize,
+	.check_struct   = NULL,
+	.check_attach 	= NULL,
 #endif
 	.lookup	        = NULL,
 	.reset	        = NULL,

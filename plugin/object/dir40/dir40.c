@@ -729,7 +729,8 @@ static errno_t dir40_attach(object_entity_t *entity,
 		{
 			return res;
 		}
-	}
+	} else
+		return -EINVAL;
 
 	if (parent) {
 		/* Increasing parent's @nlink by one */
@@ -1140,6 +1141,10 @@ static errno_t dir40_metadata(object_entity_t *entity,
 }
 
 extern object_entity_t *dir40_realize(object_info_t *info);
+
+extern errno_t dir40_check_attach(object_entity_t *object, 
+				  object_entity_t *parent, 
+				  uint8_t mode);
 #endif
 
 /* Freeing dir40 instance. That is unlocking nodes current statdata and body lie
@@ -1175,7 +1180,7 @@ static reiser4_object_ops_t dir40_ops = {
 	
 	.realize	= dir40_realize,
 	.check_struct	= NULL,
-	.check_attach	= NULL,
+	.check_attach	= dir40_check_attach,
 #endif
 	.follow		= NULL,
 	.read		= NULL,

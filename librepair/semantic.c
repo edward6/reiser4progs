@@ -469,7 +469,7 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 	if (object == NULL) {
 		/* Remove the entry from "/". */
 		if ((res = reiser4_object_rem_entry(root, &entry)))
-			return res;
+			return INVAL_PTR;
 
 		return NULL;
 	}

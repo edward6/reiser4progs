@@ -833,15 +833,16 @@ static reiser4_object_ops_t reg40_ops = {
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,
 	.links          = reg40_links,
-	.realize        = reg40_realize,
 	.clobber        = reg40_clobber,
-	.check_struct   = reg40_check_struct,
-
-	.check_attach 	= NULL,
+	
 	.add_entry      = NULL,
 	.rem_entry      = NULL,
 	.attach         = NULL,
 	.detach         = NULL,
+	
+	.realize        = reg40_realize,
+	.check_struct   = reg40_check_struct,
+	.check_attach 	= NULL,
 #endif
 	.lookup	        = NULL,
 	.follow         = NULL,
