@@ -18,6 +18,7 @@
 
 #include "file40.h"
 
+/* Returns file's oid */
 roid_t file40_objectid(file40_t *file) {
 	aal_assert("umka-839", file != NULL, return 0);
     
@@ -25,6 +26,7 @@ roid_t file40_objectid(file40_t *file) {
 			   get_objectid, &file->key);
 }
 
+/* Returns file's locality  */
 roid_t file40_locality(file40_t *file) {
 	aal_assert("umka-839", file != NULL, return 0);
     
@@ -32,6 +34,7 @@ roid_t file40_locality(file40_t *file) {
 			   get_locality, &file->key);
 }
 
+/* Locks the node an item belong to file lies in */
 errno_t file40_lock(file40_t *file, reiser4_place_t *place) {
 	if (place->node)
 		return file->core->tree_ops.lock(file->tree, place);
@@ -39,6 +42,7 @@ errno_t file40_lock(file40_t *file, reiser4_place_t *place) {
 	return 0;
 }
 
+/* Unlocks the node an item belong to file lies in */
 errno_t file40_unlock(file40_t *file, reiser4_place_t *place) {
 	
 	if (place->node)
@@ -56,12 +60,14 @@ uint16_t file40_get_mode(file40_t *file) {
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
-	
+
+	/* Preparing hint and mask */
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 	item = &file->statdata.item;
 
+	/* Calling statdata open method if it exists */
 	if (!item->plugin->item_ops.open)
 		return 0;
 
@@ -73,6 +79,7 @@ uint16_t file40_get_mode(file40_t *file) {
 	return lw_hint.mode;
 }
 
+/* Updates mode field in statdata */
 errno_t file40_set_mode(file40_t *file, uint16_t mode) {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
@@ -214,6 +221,10 @@ errno_t file40_set_symlink(file40_t *file, char *data) {
 	return 0;
 }
 
+/*
+  Initializes file handle by plugin, key, core operations and opaque pointer to
+  tree file is going to be opened/created in.
+*/
 errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
 		    key_entity_t *key, reiser4_core_t *core,
 		    void *tree)
@@ -232,7 +243,8 @@ errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
 			   &file->key, key);
 }
 
-errno_t file40_realize(file40_t *file) {
+/* Performs lookup for the file's stat data */
+errno_t file40_stat(file40_t *file) {
 	aal_assert("umka-857", file != NULL, return -1);	
 
 	plugin_call(return -1, file->key.plugin->key_ops, build_generic, 
