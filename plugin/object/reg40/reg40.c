@@ -207,31 +207,11 @@ static object_entity_t *reg40_create(object_info_t *info,
 	/* Initializing file handle. */
 	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
 
-	/* Getting tail policy plugin id. */
-	if (hint->body.reg.policy == INVAL_PID) {
-		/* Getting default tail policy from param if passed hint
-		   contains no valid tail policy plugin id. */
-		hint->body.reg.policy = 
-			reg40_core->profile_ops.value(PROF_POLICY);
-
-		if (hint->body.reg.policy == INVAL_PID) {
-			aal_error("Invalid default tail policy "
-				  "plugin id has been detected.");
-			goto error_free_reg;
-		}
-	}
-
 	/* Initializing tail policy plugin. */
-	if (!(reg->policy = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE,
-						          hint->body.reg.policy)))
-	{
-		aal_error("Can't find tail policy plugin by "
-			  "its id 0x%x.", hint->body.reg.policy);
-		goto error_free_reg;
-	}
+	reg->policy = hint->prof.type.reg.policy;
 
 	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if (obj40_create_stat(&reg->obj, hint->label.statdata,
+	if (obj40_create_stat(&reg->obj, hint->prof.statdata,
 			      0, 0, 0, 0, S_IFREG, NULL))
 	{
 		goto error_free_reg;

@@ -864,7 +864,7 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	reiser4_format_set_free(format, free_blocks - 1);
 
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree, blk, plug->id.id, level))) {
+	if (!(node = reiser4_node_create(tree, plug, blk, level))) {
 		aal_error("Can't initialize new fake node.");
 		return NULL;
 	}

@@ -17,9 +17,9 @@ extern void reiser4_format_mkclean(reiser4_format_t *format);
 extern bool_t reiser4_format_isdirty(reiser4_format_t *format);
 
 extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
-					       count_t blocks,
-					       uint16_t policy,
-					       rid_t pid);
+					       reiser4_plug_t *plug,
+					       reiser4_plug_t *policy,
+					       count_t blocks);
 
 extern errno_t reiser4_format_backup(reiser4_format_t *format,
 				     aal_stream_t *stream);

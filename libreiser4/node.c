@@ -24,24 +24,18 @@ void reiser4_node_mkclean(reiser4_node_t *node) {
 
 /* Creates new node at block @nr on @tree with @level and with plugin @pid. Uses
    tree instance for accessing block size and key plugin in use. */
-reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
-				    rid_t pid, uint8_t level)
+reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree, 
+				    reiser4_plug_t *plug,
+				    blk_t nr, uint8_t level)
 {
 	uint32_t size;
 	aal_block_t *block;
 	reiser4_node_t *node;
-	reiser4_plug_t *plug;
 	aal_device_t *device;
 
 	aal_assert("umka-1268", tree != NULL);
+	aal_assert("vpf-1596", plug != NULL);
     
-	/* Finding the node plugin by its id */
-	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_error("Can't find node plugin by its id 0x%x.",
-			  pid);
-		return NULL;
-	}
-
 	/* Getting tree tree device and blksize in use to use them for creating
 	   new node. */
 	size = reiser4_tree_get_blksize(tree);

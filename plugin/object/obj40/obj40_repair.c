@@ -13,18 +13,16 @@
    FIXME: similar to obj40_plug. Eliminate it when plugin extention is ready. */
 reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, rid_t index) {
 	reiser4_plug_t *plug;
-	rid_t pid;
 	
 	aal_assert("vpf-1237", obj != NULL);
 	aal_assert("vpf-1238", STAT_PLACE(obj)->plug != NULL);
 	
-	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
-			object_plug, STAT_PLACE(obj), type);
+	plug = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+			 object_plug, STAT_PLACE(obj), type);
 	
 	/* If id found, try to find the plugin. */
-	if (pid != INVAL_PID) {
-		if ((plug = obj->core->factory_ops.ifind(type, pid)) != NULL)
-			return plug;
+	if (plug != INVAL_PTR && plug != NULL) {
+		return plug;
 
 		/* FIXME-VITALY: This is probably wrong -- if there is a hash
 		   plugin in SD saved, that means that it is not standard and
@@ -34,10 +32,7 @@ reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, rid_t index) {
 	
 	/* Id either is not kept in SD or has not been found, 
 	   obtain the default one. */
-	if ((pid = obj->core->profile_ops.value(index)) == INVAL_PID)
-		return NULL;
-	
-	return obj->core->factory_ops.ifind(type, pid);
+	return obj->core->profile_ops.plug(index);
 }
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
@@ -464,10 +459,10 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 
 errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	reiser4_place_t *start;
+	reiser4_plug_t *plug;
 	trans_hint_t trans;
 	reiser4_key_t *key;
 	lookup_t lookup;
-	uint64_t pid;
 	errno_t res;
 
 	aal_assert("vpf-1225", obj != NULL);
@@ -516,9 +511,9 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	pid = obj->core->profile_ops.value(PROF_STATDATA);
+	plug = obj->core->profile_ops.plug(PROF_STATDATA);
 
-	if ((res = obj40_create_stat(obj, pid, 0, 0, 0, 0, objmode, 
+	if ((res = obj40_create_stat(obj, plug, 0, 0, 0, 0, objmode, 
 				     objmode == S_IFLNK ? "FAKE_LINK" : NULL)))
 	{
 		aal_error("The file [%s] failed to create a StatData item. "

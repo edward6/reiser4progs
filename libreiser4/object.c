@@ -390,7 +390,7 @@ reiser4_object_t *reiser4_object_create(
 	
 	aal_assert("umka-790", tree != NULL);
 	aal_assert("umka-1128", hint != NULL);
-	aal_assert("umka-1917", hint->plug != NULL);
+	aal_assert("umka-1917", hint->prof.object != NULL);
 
 	/* Allocating the memory for object instance */
 	if (!(object = aal_calloc(sizeof(*object), 0)))
@@ -400,7 +400,7 @@ reiser4_object_t *reiser4_object_create(
 	reiser4_object_maintain(tree, entry, hint, &info);
 
 	/* Calling object plugin to create its body in the tree */
-	if (!(object->entity = plug_call(hint->plug->o.object_ops,
+	if (!(object->entity = plug_call(hint->prof.object->o.object_ops,
 					 create, &info, hint)))
 	{
 		goto error_free_object;
@@ -805,25 +805,20 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 {
 	entry_hint_t entry;
 	object_hint_t hint;
-	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1053", fs != NULL);
 	
 	/* Preparing object hint */
-	hint.plug = reiser4_profile_plug(PROF_DIR);
+	hint.prof.object = reiser4_profile_plug(PROF_DIR);
 
 	/* Preparing directory label. */
-	hint.label.mode = 0;
-	plug = reiser4_profile_plug(PROF_STATDATA);
-	hint.label.statdata = plug->id.id;
+	hint.mode = 0;
+	hint.prof.statdata = reiser4_profile_plug(PROF_STATDATA);
 	
 	/* Preparing directory body. */
-	plug = reiser4_profile_plug(PROF_HASH);
-	hint.body.dir.hash = plug->id.id;
-	plug = reiser4_profile_plug(PROF_FIBRE);
-	hint.body.dir.fibre = plug->id.id;
-	plug = reiser4_profile_plug(PROF_DIRENTRY);
-	hint.body.dir.direntry = plug->id.id;
+	hint.prof.type.dir.hash = reiser4_profile_plug(PROF_HASH);
+	hint.prof.type.dir.fibre = reiser4_profile_plug(PROF_FIBRE);
+	hint.prof.type.dir.direntry = reiser4_profile_plug(PROF_DIRENTRY);
 	
 	hint.parent = (parent ? &parent->info->object : NULL);
 
@@ -845,25 +840,20 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 {
 	entry_hint_t entry;
 	object_hint_t hint;
-	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1054", fs != NULL);
 	
 	/* Preparing object hint */
-	hint.plug = reiser4_profile_plug(PROF_REG);
+	hint.prof.object = reiser4_profile_plug(PROF_REG);
 
 	/* Preparing label fields. */
-	hint.label.mode = 0;
-	plug = reiser4_profile_plug(PROF_STATDATA);
-	hint.label.statdata = plug->id.id;
+	hint.mode = 0;
+	hint.prof.statdata = reiser4_profile_plug(PROF_STATDATA);
 
 	/* Preparing body fields. */
-	plug = reiser4_profile_plug(PROF_TAIL);
-	hint.body.reg.tail = plug->id.id;
-	plug = reiser4_profile_plug(PROF_EXTENT);
-	hint.body.reg.extent = plug->id.id;
-	plug = reiser4_profile_plug(PROF_POLICY);
-	hint.body.reg.policy = plug->id.id;
+	hint.prof.type.reg.tail = reiser4_profile_plug(PROF_TAIL);
+	hint.prof.type.reg.extent = reiser4_profile_plug(PROF_EXTENT);
+	hint.prof.type.reg.policy = reiser4_profile_plug(PROF_POLICY);
 	
 	hint.parent = (parent ? &parent->info->object : NULL);
 	
@@ -885,21 +875,19 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 {
 	entry_hint_t entry;
 	object_hint_t hint;
-	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1186", fs != NULL);
 	aal_assert("vpf-1057", target != NULL);
 	
 	/* Preparing object hint */
-	hint.plug = reiser4_profile_plug(PROF_SYM);
+	hint.prof.object = reiser4_profile_plug(PROF_SYM);
 
 	/* Preparing label fields. */
-	hint.label.mode = 0;
-	plug = reiser4_profile_plug(PROF_STATDATA);
-	hint.label.statdata = plug->id.id;
+	hint.mode = 0;
+	hint.prof.statdata = reiser4_profile_plug(PROF_STATDATA);
 
 	/* Preparing body fields. */
-	hint.body.sym = (char *)target;
+	hint.body.sym.name = (char *)target;
 	hint.parent = (parent ? &parent->info->object : NULL);
 	
 	if (name) {
@@ -921,18 +909,16 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 {
 	entry_hint_t entry;
 	object_hint_t hint;
-	reiser4_plug_t *plug;
 	
 	aal_assert("umka-2534", fs != NULL);
 	aal_assert("umka-2535", rdev != 0);
 	
 	/* Preparing object hint. */
-	hint.plug = reiser4_profile_plug(PROF_SPL);
+	hint.prof.object = reiser4_profile_plug(PROF_SPL);
 
 	/* Preparing label fields. */
-	hint.label.mode = mode;
-	plug = reiser4_profile_plug(PROF_STATDATA);
-	hint.label.statdata = plug->id.id;
+	hint.mode = mode;
+	hint.prof.statdata = reiser4_profile_plug(PROF_STATDATA);
 
 	/* Preparing body fields. */
 	hint.body.spl.rdev = rdev;

@@ -100,11 +100,11 @@ static object_entity_t *sym40_create(object_info_t *info,
 	/* Inizializes symlink file handle. */
 	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 
-	len = aal_strlen(hint->body.sym);
+	len = aal_strlen(hint->body.sym.name);
 
 	/* Create symlink sta data item. */
-	if (obj40_create_stat(&sym->obj, hint->label.statdata,
-			      len, len, 0, 0, S_IFLNK, hint->body.sym))
+	if (obj40_create_stat(&sym->obj, hint->prof.statdata, len, 
+			      len, 0, 0, S_IFLNK, hint->body.sym.name))
 	{
 		goto error_free_sym;
 	}

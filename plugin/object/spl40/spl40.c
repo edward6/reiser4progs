@@ -72,9 +72,9 @@ static object_entity_t *spl40_create(object_info_t *info,
 	/* Inizializes file handle */
 	obj40_init(&spl->obj, &spl40_plug, spl40_core, info);
 
-	if (obj40_create_stat(&spl->obj, hint->label.statdata,
+	if (obj40_create_stat(&spl->obj, hint->prof.statdata,
 			      0, 0, hint->body.spl.rdev,
-			      0, hint->label.mode, NULL))
+			      0, hint->mode, NULL))
 	{
 		goto error_free_spl;
 	}

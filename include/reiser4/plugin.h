@@ -547,33 +547,12 @@ typedef enum entry_type entry_type_t;
    plugin to create appropriate object by it. */
 struct object_hint {
 
-	/* Stat data related fields. */
-	struct {
-		/* Additional mode to be masked to stat data mode. This is
-		   needed for special files, but mat be used somewhere else. */
-		uint32_t mode;
-		
-		/* Stata plugin id. */
-		rid_t statdata;
-	} label;
+	/* Additional mode to be masked to stat data mode. This is
+	   needed for special files, but mat be used somewhere else. */
+	uint32_t mode;
 
 	/* Hint for a file body */
 	union {
-
-		/* Plugin ids for the directory body */
-		struct {
-			rid_t hash;
-			rid_t fibre;
-			rid_t direntry;
-		} dir;
-	
-		/* Plugin id for the regular file body */
-		struct {
-			rid_t tail;
-			rid_t extent;
-			rid_t policy;
-		} reg;
-
 		/* rdev field for special file. Nevertheless, it is stored
 		   inside special file stat data field, we put it to @body
 		   definition, because it is the special file essence. */
@@ -582,12 +561,35 @@ struct object_hint {
 		} spl;
 
 		/* Symlink data */
-		char *sym;
+		struct {
+			char *name;
+		} sym;
 	} body;
     
-	/* The plugin in use */
-	reiser4_plug_t *plug;
+	struct {
+		/* The object plugin. */
+		reiser4_plug_t *object;
 
+		/* Stata plugin. */
+		reiser4_plug_t *statdata;
+
+		union {
+			/* Plugins for a directory file. */
+			struct {
+				reiser4_plug_t *hash;
+				reiser4_plug_t *fibre;
+				reiser4_plug_t *direntry;
+			} dir;
+
+			/* Plugins for a regular file. */
+			struct {
+				reiser4_plug_t *tail;
+				reiser4_plug_t *extent;
+				reiser4_plug_t *policy;
+			} reg;
+		} type;
+	} prof;
+	
 	/* Parent object key. */
 	reiser4_key_t *parent;
 };
@@ -788,7 +790,7 @@ struct lookup_hint {
 
 /* Filesystem description. */
 struct fs_desc {
-	uint16_t policy;
+	reiser4_plug_t *policy;
 	uint32_t blksize;
 	aal_device_t *device;
 };
@@ -1031,7 +1033,7 @@ typedef struct item_balance_ops item_balance_ops_t;
 
 struct item_object_ops {
 	/* Get plugin id of specified type if stored in stat data item. */
-	rid_t (*object_plug) (reiser4_place_t *, rid_t);
+	reiser4_plug_t *(*object_plug) (reiser4_place_t *, rid_t);
 		
 	/* Reads passed amount of bytes from the item. */
 	int64_t (*read_units) (reiser4_place_t *, trans_hint_t *);
@@ -1724,7 +1726,7 @@ typedef struct object_ops object_ops_t;
 #ifndef ENABLE_STAND_ALONE
 struct profile_ops {
 	/* Obtains the profile value by its name. */
-	rid_t (*value) (rid_t index);
+	reiser4_plug_t *(*plug) (rid_t index);
 };
 
 typedef struct profile_ops profile_ops_t;

@@ -112,10 +112,8 @@ static errno_t tree_convert(void *tree, conv_hint_t *hint) {
 	return reiser4_flow_convert(t, hint);
 }
 
-static rid_t profile_value(rid_t index) {
-	reiser4_plug_t *plug;
-	plug = reiser4_profile_plug(index);
-	return plug->id.id;
+static reiser4_plug_t *profile_plug(rid_t index) {
+	return reiser4_profile_plug(index);
 }
 
 static int item_mergeable(reiser4_place_t *place1,
@@ -214,7 +212,7 @@ reiser4_core_t core = {
 	},
 #ifndef ENABLE_STAND_ALONE
 	.profile_ops = {
-		.value = profile_value
+		.plug = profile_plug
 	},
 #endif
 #ifdef ENABLE_SYMLINKS

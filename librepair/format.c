@@ -210,8 +210,7 @@ static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
 		policy = reiser4_profile_plug(PROF_POLICY);
 
 		/* Create the format from the scratch. */
-		fs->format = reiser4_format_create(fs, 0, policy->id.id,
-						   plug->id.id);
+		fs->format = reiser4_format_create(fs, plug, policy, 0);
 
 		if (!fs->format) {
 			aal_fatal("Failed to create a filesystem "

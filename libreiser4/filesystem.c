@@ -293,9 +293,8 @@ reiser4_fs_t *reiser4_fs_create(
 	policy = reiser4_profile_plug(PROF_POLICY);
 	
 	/* Creates disk format. */
-	if (!(fs->format = reiser4_format_create(fs, hint->blocks, 
-						 policy->id.id,
-						 format->id.id)))
+	if (!(fs->format = reiser4_format_create(fs, format, policy, 
+						 hint->blocks)))
 	{
 		goto error_free_status;
 	}

@@ -96,23 +96,16 @@ reiser4_format_t *reiser4_format_open(
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
 	reiser4_fs_t *fs,	/* fs the format will be created on */
-	count_t blocks,		/* filesystem length in blocks */
-	uint16_t policy,	/* tail policy to be used */
-	rid_t pid)		/* disk-format plugin id to be used */
+	reiser4_plug_t *plug,	/* disk-format plugin id to be used */
+	reiser4_plug_t *policy,	/* tail policy to be used */
+	count_t blocks)		/* filesystem length in blocks */
 {
 	fs_desc_t desc;
-	reiser4_plug_t *plug;
 	reiser4_format_t *format;
 		
 	aal_assert("umka-105", fs != NULL);
+	aal_assert("vpf-1595", plug != NULL);
 
-	/* Getting needed plugin from plugin factory */
-	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {
-		aal_error("Can't find disk-format plugin by "
-			  "its id 0x%x.", pid);
-		return NULL;
-	}
-    
 	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;

@@ -133,7 +133,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 	reiser4_plug_t *bplug;
 	object_info_t *info;
 	entry_hint_t entry;
-	rid_t pid;
 	
 	errno_t res;
 	
@@ -179,17 +178,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 	/* FIXME-VITALY: take it from SD first. But of which type -- there is 
 	   only ITEM_TYPE for now. */
-	if ((pid = dir40_core->profile_ops.value(PROF_DIRENTRY)) == INVAL_PID) {
-		aal_error("Failed to get a plugid for direntry from "
-			  "the params.");
-		return -EINVAL;
-	}
-	
-	if ((bplug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) == NULL) {
-		aal_error("Failed to find direntry plugin by "
-			  "the id %d.", pid);
-                 return -EINVAL;
-	}
+	bplug = dir40_core->profile_ops.plug(PROF_DIRENTRY);
 
 	/* Take care about the ".". */
 	/* FIXME: Probably it should be different -- find an item by the key 

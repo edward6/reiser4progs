@@ -268,7 +268,7 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	set_sb_root_block(super, INVAL_BLK);
 
 	/* Setting up tail policy to passed @desc->policy value. */
-	set_sb_tail_policy(super, desc->policy);
+	set_sb_tail_policy(super, desc->policy->id.id);
 
 	/* Initializing fsck related fields. */
 	srandom(time(0));

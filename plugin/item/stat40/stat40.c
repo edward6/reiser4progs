@@ -434,10 +434,13 @@ int stat40_sdext_present(reiser4_place_t *place, uint8_t bit) {
 #endif
 
 /* Get the plugin id of the type @type if stored in SD. */
-static rid_t stat40_object_plug(reiser4_place_t *place, rid_t type) {
-	trans_hint_t hint;
-	statdata_hint_t stat;
+static reiser4_plug_t *stat40_object_plug(reiser4_place_t *place, rid_t type) {
 	sdext_lw_hint_t lw_hint;
+	statdata_hint_t stat;
+	trans_hint_t hint;
+#ifdef ENABLE_STAND_ALONE
+	rid_t pid;
+#endif
 	
 	aal_assert("vpf-1074", place != NULL);
 
@@ -451,34 +454,40 @@ static rid_t stat40_object_plug(reiser4_place_t *place, rid_t type) {
 		stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 		if (stat40_fetch_units(place, &hint) != 1)
-			return INVAL_PID;
+			return INVAL_PTR;
 
 #ifndef ENABLE_STAND_ALONE	
 		if (S_ISLNK(lw_hint.mode))
-			return stat40_core->profile_ops.value(PROF_SYM);
+			return stat40_core->profile_ops.plug(PROF_SYM);
 		else if (S_ISREG(lw_hint.mode))
-			return stat40_core->profile_ops.value(PROF_REG);
+			return stat40_core->profile_ops.plug(PROF_REG);
 		else if (S_ISDIR(lw_hint.mode))
-			return stat40_core->profile_ops.value(PROF_DIR);
+			return stat40_core->profile_ops.plug(PROF_DIR);
 		else if (S_ISCHR(lw_hint.mode))
-			return stat40_core->profile_ops.value(PROF_SPL);
+			return stat40_core->profile_ops.plug(PROF_SPL);
 		else if (S_ISBLK(lw_hint.mode))
-			return stat40_core->profile_ops.value(PROF_SPL);
+			return stat40_core->profile_ops.plug(PROF_SPL);
 		else if (S_ISFIFO(lw_hint.mode))
-			return stat40_core->profile_ops.value(PROF_SPL);
+			return stat40_core->profile_ops.plug(PROF_SPL);
 		else if (S_ISSOCK(lw_hint.mode))
-			return stat40_core->profile_ops.value(PROF_SPL);
+			return stat40_core->profile_ops.plug(PROF_SPL);
 #else
 		if (S_ISLNK(lw_hint.mode))
-			return OBJECT_SYM40_ID;
+			pid = OBJECT_SYM40_ID;
 		else if (S_ISREG(lw_hint.mode))
-			return OBJECT_REG40_ID;
+			pid = OBJECT_REG40_ID;
 		else if (S_ISDIR(lw_hint.mode))
-			return OBJECT_DIR40_ID;
+			pid = OBJECT_DIR40_ID;
+		else
+			pid = INVAL_PID;
+
+		if (pid != INVAL_PID)
+			return stat40_core->factory_ops.ifind(OBJECT_PLUG_TYPE,
+							      pid);
 #endif
 	}
 	
-	return INVAL_PID;
+	return NULL;
 }
 
 static item_balance_ops_t balance_ops = {

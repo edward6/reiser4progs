@@ -153,31 +153,23 @@ static errno_t callback_find_entry(char *track, char *name,
 reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
 				      reiser4_place_t *place)
 {
-	rid_t pid;
 	reiser4_plug_t *plug;
 	
 	aal_assert("umka-2576", tree != NULL);
 	aal_assert("umka-2577", place != NULL);
 	
-	if (!place->plug->o.item_ops->object->object_plug) {
+	if (place->plug->o.item_ops->object->object_plug) {
+		plug = plug_call(place->plug->o.item_ops->object,
+				 object_plug, place, OBJECT_PLUG_TYPE);
+		
+		if (plug != INVAL_PTR && plug != NULL)
+			return plug;
+	} else {
 		/* FIXME-UMKA: Here we should try to understand what object
 		   plugin is by means of asking object parent or root. */
-		pid = INVAL_PID;
-	} else {
-		pid = plug_call(place->plug->o.item_ops->object,
-				object_plug, place, OBJECT_PLUG_TYPE);
-		
-		if (pid == INVAL_PID)
-			return NULL;
 	}
-
-	if (!(plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid))) {
-		aal_error("Can't find object plugin by its "
-			  "id 0x%x.", pid);
-		return NULL;
-	}
-
-	return plug;
+	
+	return NULL;
 }
 
 /* Resolves @path and stores key of stat data into @sdkey */

@@ -26,8 +26,8 @@ extern errno_t callback_node_write(reiser4_node_t *node, pos_t *pos,
 				   trans_hint_t *hint);
 
 extern reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
-				   blk_t nr, rid_t pid,
-				   uint8_t level);
+					   reiser4_plug_t *plug,
+					   blk_t nr, uint8_t level);
 
 extern errno_t reiser4_node_trav(reiser4_node_t *node,
 				 place_func_t func,

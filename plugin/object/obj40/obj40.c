@@ -182,9 +182,9 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 
 /* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
-errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t size, 
-			  uint64_t bytes, uint64_t rdev, uint32_t nlink, 
-			  uint16_t mode, char *path)
+errno_t obj40_create_stat(obj40_t *obj, reiser4_plug_t *statdata, 
+			  uint64_t size, uint64_t bytes, uint64_t rdev, 
+			  uint32_t nlink, uint16_t mode, char *path)
 {
 	int64_t res;
 	lookup_t lookup;
@@ -193,14 +193,13 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t size,
 	sdext_lw_hint_t lw_ext;
 	sdext_unix_hint_t unix_ext;
 	
+	aal_assert("vpf-1592", obj != NULL);
+	aal_assert("vpf-1593", statdata != NULL);
+	
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting statdata plugin */
-	if (!(hint.plug = obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_error("Can't find stat data item plugin by "
-			  "its id 0x%x.", pid);
-		return -EIO;
-	}
+	hint.plug = statdata;
 
 	hint.count = 1;
 	hint.place_func = NULL;
@@ -594,42 +593,54 @@ errno_t obj40_unlink(obj40_t *obj) {
 }
 #endif
 
-/* Obtains the plugin of the plugid returned by obj40_pid(). */
-reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, rid_t index) {
-	rid_t pid = obj40_pid(obj, type, index);
-
-	/* Obtain the plugin by id. */
-	if (pid == INVAL_PID)
-		return NULL;
-	
-	return obj->core->factory_ops.ifind(type, pid);
-}
-
-/* Obtains plugid of the type @type from the SD if it is kept there, othewise
+/* Obtains plug of the type @type from the SD if it is kept there, othewise
    obtains the default one from the params. */
-rid_t obj40_pid(obj40_t *obj, rid_t type, rid_t index) {
-	rid_t pid;
+reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, rid_t index) {
+	reiser4_plug_t *plug;
+#ifdef ENABLE_STAND_ALONE
+	rid_t pid = INVAL_PID;
+#endif
 	
 	aal_assert("vpf-1235", obj != NULL);
 	aal_assert("vpf-1236", STAT_PLACE(obj)->plug != NULL);
 	
-	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
-			object_plug, STAT_PLACE(obj), type);
+	if ((plug = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+			      object_plug, STAT_PLACE(obj), type)) == INVAL_PTR)
+		return INVAL_PTR;
 
-	/* If nothing found in SD, obtain the default one. */
-	if (pid == INVAL_PID) {
-#ifndef ENABLE_STAND_ALONE
-		pid = obj->core->profile_ops.value(index);
-#else
-		if (type == HASH_PLUG_TYPE)
-			pid = HASH_R5_ID;
-		
-		if (type == FIBRE_PLUG_TYPE)
-			pid = FIBRE_DOT_O_ID;
-#endif
-	}
+	if (plug != NULL)
+		return plug;
 	
-	return pid;
+	/* If nothing found in SD, obtain the default one. */
+#ifndef ENABLE_STAND_ALONE
+	plug = obj->core->profile_ops.plug(index);
+#else
+	if (type == HASH_PLUG_TYPE)
+		pid = HASH_R5_ID;
+
+	if (type == FIBRE_PLUG_TYPE)
+		pid = FIBRE_DOT_O_ID;
+
+	if (pid != INVAL_PID)
+		plug = obj->core->factory_ops.ifind(type, pid);
+	else 
+		aal_bug("vpf-1594", "Nothing but hash and fibre "
+			"plugin requests are expected.");
+#endif
+
+	return plug;
+}
+
+/* Obtains the plugid of the plugin type @type returned by obj40_plug(). */
+rid_t obj40_pid(obj40_t *obj, rid_t type, rid_t index) {
+	reiser4_plug_t *plug;
+	
+	plug = obj40_plug(obj, type, index);
+	
+	if (plug == INVAL_PTR || plug == NULL)
+		return INVAL_PID;
+
+	return plug->id.id;
 }
 
 /*

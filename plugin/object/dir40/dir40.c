@@ -474,11 +474,9 @@ static uint64_t dir40_size(object_entity_t *entity) {
 static object_entity_t *dir40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
-	rid_t pid;
 	dir40_t *dir;
 	entry_hint_t entry;
 	trans_hint_t body_hint;
-	reiser4_plug_t *body_plug;
     
 	aal_assert("umka-835", info != NULL);
 	aal_assert("umka-1739", hint != NULL);
@@ -490,40 +488,17 @@ static object_entity_t *dir40_create(object_info_t *info,
 	/* Initializing obj handle. */
 	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
 
-	/* Getting hash plugin */
-	if (!(dir->hash = dir40_core->factory_ops.ifind(HASH_PLUG_TYPE, 
-							hint->body.dir.hash))) 
-	{
-		aal_error("Can't find hash plugin by its "
-			  "id 0x%x.", hint->body.dir.hash);
-		goto error_free_dir;
-	}
+	/* Setting hash, firbre plugins. */
+	dir->hash = hint->prof.type.dir.hash;
+	dir->fibre = hint->prof.type.dir.fibre; 
 
-	/* Getting fibration plugin */
-	if (!(dir->fibre = dir40_core->factory_ops.ifind(FIBRE_PLUG_TYPE, 
-							 hint->body.dir.fibre))) 
-	{
-		aal_error("Can't find fibration plugin by its "
-			  "id 0x%x.", hint->body.dir.fibre);
-		goto error_free_dir;
-	}
-
-	/* Initializing body plugin. */
-	pid = hint->body.dir.direntry;
-	
-	if (!(body_plug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_error("Can't find direntry item plugin by "
-			  "its id 0x%x.", pid);
-		goto error_free_dir;
-	}
-    
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
 	/* Initializing direntry item hint. This should be done before the stat
 	   data item hint, because we will need size of direntry item during
 	   stat data initialization. */
    	body_hint.count = 1;
-	body_hint.plug = body_plug;
+	body_hint.plug = hint->prof.type.dir.direntry;
 	
 	plug_call(info->object.plug->o.key_ops, 
 		  build_hashed, &body_hint.offset, dir->hash, 
@@ -567,8 +542,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	}
 
 	/* Create stat data item. */
-	if (obj40_create_stat(&dir->obj, hint->label.statdata, 
-			      1, body_hint.len, 0, 1, S_IFDIR, NULL))
+	if (obj40_create_stat(&dir->obj, hint->prof.statdata, 1, 
+			      body_hint.len, 0, 1, S_IFDIR, NULL))
 	{
 	
 		/* Removing body item. */	

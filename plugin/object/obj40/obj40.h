@@ -114,10 +114,9 @@ extern int64_t obj40_write(obj40_t *obj, trans_hint_t *hint);
 extern int64_t obj40_convert(obj40_t *obj, conv_hint_t *hint);
 extern int64_t obj40_truncate(obj40_t *obj, trans_hint_t *hint);
 
-extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
-				 uint64_t size, uint64_t bytes, 
-				 uint64_t rdev, uint32_t nlink, 
-				 uint16_t mode, char *path);
+extern errno_t obj40_create_stat(obj40_t *obj, reiser4_plug_t *statdata,
+				 uint64_t size, uint64_t bytes, uint64_t rdev,
+				 uint32_t nlink, uint16_t mode, char *path);
 
 #endif
 #endif
