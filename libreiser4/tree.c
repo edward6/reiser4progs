@@ -126,7 +126,6 @@ errno_t reiser4_tree_connect(
 	if (tree->traps.connect) {
 		reiser4_place_t place;
 			
-		/* FIXME-GREEN->UMKA: error exit path abd parent is not unlocked */
 		if ((res = reiser4_place_open(&place, parent,
 					      &node->parent.pos)))
 			return res;
@@ -144,7 +143,6 @@ errno_t reiser4_tree_connect(
 	}
 #endif
 
-	/* FIXME-GREEN->UMKA: Probably same stuff here, need to unlock the parent if connect was unsuccesful */
 	return res;
 }
 
@@ -164,18 +162,10 @@ errno_t reiser4_tree_disconnect(
 
 #ifndef ENABLE_STAND_ALONE
 	if (tree->traps.disconnect) {
-		reiser4_place_t place;
 
-		/* FIXME-GREEN->UMKA: Looks like place is uninitialized yet, so you cannot use it like this. */
-		if (place.node && parent) {
-			reiser4_place_init(&place, parent,
-					   &node->parent.pos);
-
-			if ((res = reiser4_place_realize(&place)))
+		if (node->parent.node) {
+			if ((res = reiser4_place_realize(&node->parent)))
 				return res;
-		} else {
-			reiser4_place_assign(&place, NULL,
-					     0, ~0ul);
 		}
 
 		/*
@@ -184,7 +174,7 @@ errno_t reiser4_tree_disconnect(
 		*/
 		reiser4_node_lock(node);
 		
-		res = tree->traps.disconnect(tree, &place, node,
+		res = tree->traps.disconnect(tree, &node->parent, node,
 					     tree->traps.data);
 		
 		reiser4_node_unlock(node);
