@@ -9,11 +9,11 @@
 #  include <config.h>
 #endif
 
+#include <sys/stat.h>
+
 #ifndef ENABLE_COMPACT
-#  include <sys/stat.h>
-#  include <sys/types.h>
-#  include <unistd.h>
 #  include <time.h>
+#  include <unistd.h>
 #endif
 
 #include "dir40.h"

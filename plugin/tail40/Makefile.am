@@ -3,15 +3,18 @@ libdir			    = $(plugindir)
 
 tail40_sources		    = tail40.c
 
-lib_LTLIBRARIES		    = libtail40.la
+if ENABLE_MONOLITHIC
 noinst_LTLIBRARIES	    = libtail40-static.la
+
+libtail40_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
+libtail40_static_la_SOURCES = $(tail40_sources)
+else
+lib_LTLIBRARIES		    = libtail40.la
 
 libtail40_la_LIBADD	    = 
 libtail40_la_LDFLAGS	    = $(PLUGIN_LDFLAGS)
 libtail40_la_SOURCES	    = $(tail40_sources)
-
-libtail40_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
-libtail40_static_la_SOURCES = $(tail40_sources)
+endif
 
 INCLUDES = $(includedir)
 

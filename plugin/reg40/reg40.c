@@ -9,11 +9,11 @@
 #  include <config.h>
 #endif
 
+#include <sys/stat.h>
+
 #ifndef ENABLE_COMPACT
-#  include <sys/stat.h>
-#  include <sys/types.h>
-#  include <unistd.h>
 #  include <time.h>
+#  include <unistd.h>
 #endif
 
 #include "reg40.h"
@@ -202,12 +202,14 @@ static int32_t reg40_read(object_entity_t *entity,
 		item_entity_t *item = &reg->body.entity;
 
 		if (item->plugin->h.sign.group == TAIL_ITEM) {
+			
 			/* Check if we need next item */
 			if (reg->body.pos.unit >= item->len && reg40_next(entity) != 1)
 				break;
 
-			/* Calculating the chunk of data to be read. If it is zero, we
-			 * go away. Else fetching of data from the item will be performed */
+			/* Calculating the chunk of data to be read. If it is
+			 * zero, we go away. Else fetching of data from the item
+			 * will be performed */
 			chunk = (item->len - reg->body.pos.unit) > n - read ?
 				n - read : (item->len - reg->body.pos.unit);
 			
@@ -216,7 +218,8 @@ static int32_t reg40_read(object_entity_t *entity,
 			plugin_call(return -1, item->plugin->item_ops, fetch,
 				    item, reg->body.pos.unit, buff + read, chunk);
 		} else {
-			/* FIXME-UMKA: Reading data from extent item will be here. */
+			/* FIXME-UMKA: Reading data from extent item will be
+			 * here */
 			break;
 		}
 		

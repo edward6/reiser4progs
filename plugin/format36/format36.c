@@ -273,7 +273,7 @@ static reiser4_plugin_t format36_plugin = {
 		.h = {
 			.handle = { "", NULL, NULL, NULL },
 			.sign   = {
-				.id = FORMAT_REISER40_ID,
+				.id = FORMAT_REISER36_ID,
 				.group = 0,
 				.type = FORMAT_PLUGIN_TYPE
 			},
@@ -298,7 +298,6 @@ static reiser4_plugin_t format36_plugin = {
 		.check		= NULL,
 		.sync		= NULL,
 		.create		= NULL,
-		.print		= NULL,
 		.set_root	= NULL,
 		.set_len	= NULL,
 		.set_free	= NULL,

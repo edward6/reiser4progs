@@ -5,6 +5,7 @@ SUBDIRS 			= format40 journal40 alloc40 node40 stat40 direntry40 nodeptr40 \
 
 noinst_LTLIBRARIES	     	= libheader.la libfooter.la libreiser4-plugin.la
 
+if ENABLE_MONOLITHIC
 libheader_la_SOURCES 		= header.c
 libfooter_la_SOURCES 		= footer.c
 
@@ -31,5 +32,11 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          sdext_lt/libsdext_lt-static.la \
 			          sdext_symlink/libsdext_symlink-static.la \
 			          libfooter.la
+else
+libheader_la_SOURCES 		= 
+libfooter_la_SOURCES 		= 
+
+libreiser4_plugin_la_LIBADD	=
+endif
 
 libreiser4_plugin_la_SOURCES	=

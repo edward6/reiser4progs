@@ -92,23 +92,23 @@ errno_t libreiser4_plugin_file_load(const char *name,
 	aal_memset(handle, 0, sizeof(*handle));
 	
 	/* Loading specified plugin filename */
-	if (!(handle.data = dlopen(name, RTLD_NOW))) {
+	if (!(handle->data = dlopen(name, RTLD_NOW))) {
 		aal_exception_error("Can't load plugin %s. %s.", 
 				    name, dlerror());
-		return NULL;
+		return -1;
 	}
 
 	aal_strncpy(handle->name, name, sizeof(handle->name));
 
 	/* Getting plugin init function */
-	if (!(addr = find_symbol(handle->data, "__plugin_init", name)))
-		goto ereor_free_handle;
+	if (!(addr = find_symbol(handle->data, "__plugin_init", (char *)name)))
+		goto error_free_handle;
     
 	handle->init = *((reiser4_plugin_init_t *)addr);
 
 	/* Getting plugin fini function */
-	if (!(addr = find_symbol(handle->data, "__plugin_fini", name)))
-		goto ereor_free_handle;
+	if (!(addr = find_symbol(handle->data, "__plugin_fini", (char *)name)))
+		goto error_free_handle;
     
 	handle->fini = *((reiser4_plugin_fini_t *)addr);
 
@@ -121,10 +121,16 @@ errno_t libreiser4_plugin_file_load(const char *name,
 }
 
 void libreiser4_plugin_file_uload(plugin_handle_t *handle) {
-	aal_assert("umka-158", handle != NULL, return);
+	plugin_handle_t local;
 	
-	dlclose(handle->data);
-	aal_memset(handle, 0, sizeof(*handle));
+	aal_assert("umka-158", handle != NULL, return);
+
+	/*
+	  Here we copy handle of the previously loaded library into address
+	  space of the main process.
+	*/
+	local = *handle;
+	dlclose(local.data);
 }
 
 #else
@@ -251,11 +257,14 @@ void libreiser4_factory_done(void) {
 #else
 		libreiser4_plugin_entry_uload(handle);
 #endif
+		aal_list_remove(plugins, walk->data);
 		walk = temp;
 	}
 	
 	plugins = NULL;
 }
+
+//errno_t
 
 static int callback_match_coord(reiser4_plugin_t *plugin,
 				walk_desc_t *desc)
