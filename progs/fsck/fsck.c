@@ -314,6 +314,8 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 		return res;
 	}
 
+	repair->fs->tree->mpc_func = misc_mpressure_detect;
+	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	repair_master_print(repair->fs->master, &stream, 
