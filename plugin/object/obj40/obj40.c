@@ -333,7 +333,8 @@ rid_t obj40_pid(item_entity_t *item) {
 
 	/*
 	  FIXME-UMKA: Here also should be discovering the stat data extentions
-	  on order to find out not standard file plugin in it.
+	  in order to try find not standard file plugin first. Then if it is not
+	  found, detect it by mode field in sdext_lw extention.
 	*/
 	
 	if (S_ISLNK(lw_hint.mode))
@@ -381,8 +382,6 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 
 /* Performs lookup for the object's stat data */
 errno_t obj40_stat(obj40_t *obj) {
-	lookup_t res;
-	
 	aal_assert("umka-1905", obj != NULL);
 
 	/* Unlocking old node if it exists */
@@ -416,14 +415,13 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 #ifndef ENABLE_STAND_ALONE
 /* Changes nlink field in statdata by passed @value */
 errno_t obj40_link(obj40_t *obj, uint32_t value) {
-	uint32_t nlink;
-	
+
+	/* Updating stat data place */
 	if (obj40_stat(obj))
 		return -EINVAL;
-	
-	nlink = obj40_get_nlink(obj);
-	
-	return obj40_set_nlink(obj, nlink + value);
+
+	/* Updating nlink field */
+	return obj40_set_nlink(obj, obj40_get_nlink(obj) + value);
 }
 
 /*

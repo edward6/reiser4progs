@@ -39,8 +39,8 @@ errno_t direntry40_get_key(item_entity_t *item,
 			   uint32_t pos,
 			   key_entity_t *key)
 {
-	oid_t locality;
 	entry40_t *entry;
+	oid_t dir_objectid;
 
 	aal_assert("umka-1606", key != NULL);
 	aal_assert("umka-1607", item != NULL);
@@ -49,12 +49,12 @@ errno_t direntry40_get_key(item_entity_t *item,
 	entry = &direntry40_body(item)->entry[pos];
 
 	/* Getting item key params */
-	locality = plugin_call(item->key.plugin->o.key_ops,
-			       get_locality, &item->key);
+	dir_objectid = plugin_call(item->key.plugin->o.key_ops,
+				   get_locality, &item->key);
 
 	/* Building the full key from entry at @pos */
 	plugin_call(item->key.plugin->o.key_ops, build_generic,
-		    key, KEY_FILENAME_TYPE, locality,
+		    key, KEY_FILENAME_TYPE, dir_objectid,
 		    ha40_get_objectid(&entry->hash),
 		    ha40_get_offset(&entry->hash));
 
@@ -178,9 +178,9 @@ static int direntry40_data(void) {
 }
 
 /*
-  Returns TRUE is two items are mergeable. That is if they have the same plugin
-  id and belong to the same directory. This function is used in balancing from
-  the node plugin in order to determine are two items need to be merged or not.
+  Returns TRUE if items are mergeable. That is if they belong to the same
+  directory. This function is used in shift code from the node plugin in order
+  to determine are two items may be merged or not.
 */
 static int direntry40_mergeable(item_entity_t *item1,
 				item_entity_t *item2)

@@ -10,7 +10,7 @@
 
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
-#include <plugin/item/common40/common40.h>
+#include <plugin/item/body40/body40.h>
 
 struct extent40 {
 	blk_t start;

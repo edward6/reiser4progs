@@ -712,9 +712,8 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 	
 	/* Closing children */
 	if (node->children) {
-		aal_list_t *walk;
-		aal_list_t *next;
 		reiser4_node_t *child;
+		aal_list_t *walk, *next;
 
 		for (walk = node->children; walk; ) {
 			next = walk->next;
@@ -796,8 +795,8 @@ lookup_t reiser4_tree_lookup(
 
 	/*
 	  We store @key in @wan. All consewuence code will use @wan. This is
-	  neede, because @key might point to @item->key in @place and will be
-	  corrupted durring lookup.
+	  neede, because @key might point to @place->item.key in @place and will
+	  be corrupted durring lookup.
 	*/
 	reiser4_key_assign(&wan, key);
 

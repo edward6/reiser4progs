@@ -92,7 +92,7 @@ static errno_t extent40_get_key(item_entity_t *item,
 	aal_assert("vpf-622", item != NULL);
 	aal_assert("vpf-623", key != NULL);
 
-	return common40_get_key(item, pos, key,
+	return body40_get_key(item, pos, key,
 				(trans_func_t)extent40_offset);
 }
 
@@ -177,7 +177,7 @@ errno_t extent40_maxreal_key(item_entity_t *item,
 	aal_assert("vpf-437", item != NULL);
 	aal_assert("vpf-438", key  != NULL);
 
-	return common40_maxreal_key(item, key,
+	return body40_maxreal_key(item, key,
 				    extent40_offset);
 }
 #endif
@@ -189,7 +189,7 @@ errno_t extent40_maxposs_key(item_entity_t *item,
 	aal_assert("umka-1211", item != NULL);
 	aal_assert("umka-1212", key != NULL);
 
-	return common40_maxposs_key(item, key);
+	return body40_maxposs_key(item, key);
 }
 
 /*
@@ -207,8 +207,8 @@ lookup_t extent40_lookup(item_entity_t *item,
 	aal_assert("umka-1501", key  != NULL);
 	aal_assert("umka-1502", pos != NULL);
 	
-	/* Using common40_lookup() getting position by key */
-	res = common40_lookup(item, key, &offset,
+	/* Using body40_lookup() getting position by key */
+	res = body40_lookup(item, key, &offset,
 			      (trans_func_t)extent40_offset);
 
 	/* Transforming from the offset ot unit */
@@ -327,7 +327,7 @@ static int extent40_mergeable(item_entity_t *item1,
 	aal_assert("umka-2199", item1 != NULL);
 	aal_assert("umka-2200", item2 != NULL);
 
-	return common40_mergeable(item1, item2);
+	return body40_mergeable(item1, item2);
 }
 
 static errno_t extent40_estimate_insert(item_entity_t *item,

@@ -449,7 +449,7 @@ AC_OUTPUT([
     plugin/key/Makefile
     plugin/key/key40/Makefile
     plugin/item/Makefile
-    plugin/item/common40/Makefile
+    plugin/item/body40/Makefile
     plugin/item/nodeptr40/Makefile
     plugin/item/stat40/Makefile
     plugin/item/direntry40/Makefile

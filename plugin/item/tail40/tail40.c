@@ -7,7 +7,7 @@
 
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
-#include <plugin/item/common40/common40.h>
+#include <plugin/item/body40/body40.h>
 
 #define tail40_body(item) (item->body)
 
@@ -25,7 +25,7 @@ errno_t tail40_get_key(item_entity_t *item,
 	aal_assert("vpf-627", key != NULL);
 	aal_assert("vpf-628", pos < tail40_units(item));
 
-	return common40_get_key(item, pos, key, NULL);
+	return body40_get_key(item, pos, key, NULL);
 }
 
 static int32_t tail40_read(item_entity_t *item, void *buff,
@@ -131,7 +131,7 @@ errno_t tail40_maxreal_key(item_entity_t *item,
 	aal_assert("vpf-442", item != NULL);
 	aal_assert("vpf-443", key != NULL);
 
-	return common40_maxreal_key(item, key, NULL);
+	return body40_maxreal_key(item, key, NULL);
 }
 #endif
 
@@ -141,7 +141,7 @@ static errno_t tail40_maxposs_key(item_entity_t *item,
 	aal_assert("umka-1209", item != NULL);
 	aal_assert("umka-1210", key != NULL);
 
-	return common40_maxposs_key(item, key);
+	return body40_maxposs_key(item, key);
 }
 
 static lookup_t tail40_lookup(item_entity_t *item,
@@ -155,7 +155,7 @@ static lookup_t tail40_lookup(item_entity_t *item,
 	aal_assert("umka-1229", key != NULL);
 	aal_assert("umka-1230", pos != NULL);
 
-	res = common40_lookup(item, key, &offset, NULL);
+	res = body40_lookup(item, key, &offset, NULL);
 
 	*pos = offset;
 	return res;
@@ -168,7 +168,7 @@ static int tail40_mergeable(item_entity_t *item1,
 	aal_assert("umka-2201", item1 != NULL);
 	aal_assert("umka-2202", item2 != NULL);
 
-	return common40_mergeable(item1, item2);
+	return body40_mergeable(item1, item2);
 }
 
 /* Estimates how many bytes may be shifted into neighbour item */

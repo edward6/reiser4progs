@@ -11,7 +11,7 @@ libextent40_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 STATIC_LIBS                   = 
 lib_LTLIBRARIES		      = libextent40.la
-libextent40_la_LIBADD	      = $(top_builddir)/plugin/item/common40/libcommon40-static.la \
+libextent40_la_LIBADD	      = $(top_builddir)/plugin/item/body40/libbody40-static.la \
 				@AAL_LIBS@
 
 libextent40_la_SOURCES	      = $(extent40_sources)
