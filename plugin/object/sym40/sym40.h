@@ -1,0 +1,34 @@
+/*
+  sym40.h -- reiser4 symlink plugin structures.
+
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+  reiser4progs/COPYING.
+*/
+
+#ifndef SYM40_H
+#define SYM40_H
+
+#include <aal/aal.h>
+#include <aux/aux.h>
+#include <sys/stat.h>
+#include <reiser4/plugin.h>
+#include <plugin/object/object40/object40.h>
+
+/* Compaund directory structure */
+struct sym40 {
+
+	/*
+	  Common file fiedls (statdata, etc). As symlink40 has nothing but
+	  statdata only, this structure has only file handler, which contains
+	  stuff for statdata handling.
+	*/
+	object40_t file;
+
+	/* Parent key */
+	key_entity_t parent;
+};
+
+typedef struct sym40 sym40_t;
+
+#endif
+
