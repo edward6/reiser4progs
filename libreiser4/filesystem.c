@@ -24,7 +24,6 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	count_t blocks;
 #endif
 	reiser4_fs_t *fs;
-	uint32_t blocksize;
 
 	aal_assert("umka-148", device != NULL);
 	aal_assert("umka-1866", profile != NULL);
@@ -48,15 +47,6 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		goto error_free_master;
 #endif
 
-	blocksize = reiser4_master_blocksize(fs->master);
-		
-	/* Setting actual used block size from master super block */
-	if (aal_device_set_bs(device, blocksize)) {
-		aal_exception_error("Invalid block size detected %u.",
-				    blocksize);
-		goto error_free_master;
-	}
-    
 	/* Initializes used disk format. See format.c for details */
 	if (!(fs->format = reiser4_format_open(fs)))
 		goto error_free_master;
@@ -208,22 +198,22 @@ errno_t reiser4_fs_layout(
 /* Destroys reiser4 master super block */
 errno_t reiser4_fs_clobber(aal_device_t *device) {
 	blk_t blk;
+	uint32_t blocksize;
 	aal_block_t *block;
     
 	aal_assert("umka-1273", device != NULL);
 
-	blk = (MASTER_OFFSET / device->blocksize);
+	blocksize = REISER4_BLKSIZE;
+	blk = (MASTER_OFFSET / blocksize);
 		
-	if (!(block = aal_block_create(device, blk, 0)))
-		return -EINVAL;
-
-	if (aal_block_write(block)) {
-		aal_exception_error("Can't write block %llu.",
-				    aal_block_number(block));
-		return -EINVAL;
+	if (!(block = aal_block_create(device,
+				       blocksize,
+				       blk, 0)))
+	{
+		return -ENOMEM;
 	}
 
-	return 0;
+	return aal_block_write(block);
 }
 
 static errno_t callback_action_mark(
@@ -250,21 +240,20 @@ errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
 	char *uuid, char *label,        /* uuid and label to be used */
-	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
+	reiser4_profile_t *profile,	/* profile to be used for filesystem */
+	uint32_t blocksize,             /* block size to be used */
 	count_t blocks)		        /* filesystem length in blocks */
 {
 	rid_t policy;
 	rid_t format;
-	
-	reiser4_fs_t *fs;
-	uint32_t blocksize;
 
+	count_t dev_len;
+	reiser4_fs_t *fs;
+
+	aal_assert("umka-1854", blocks > 0);
 	aal_assert("umka-149", device != NULL);
 	aal_assert("vpf-113", profile != NULL);
-	aal_assert("umka-1854", blocks > 0);
 
-	blocksize = device->blocksize;
-	
 	/* Makes check for validness of specified block size value */
 	if (!aal_pow2(blocksize)) {
 		aal_exception_error("Invalid block size %u. It must be "
@@ -272,11 +261,13 @@ reiser4_fs_t *reiser4_fs_create(
 		return NULL;
 	}
 
-	if (blocks > aal_device_len(device)) {
+	dev_len = aal_device_len(device) /
+		(blocksize / device->blocksize);
+	
+	if (blocks > dev_len) {
 		aal_exception_error("Device %s is too small (%llu) for "
 				    "filesystem %u blocks long.",
-				    aal_device_name(device),
-				    aal_device_len(device), blocks);
+				    aal_device_name(device), dev_len, blocks);
 		return NULL;
 	}
     
@@ -299,9 +290,12 @@ reiser4_fs_t *reiser4_fs_create(
 	if ((format = reiser4_profile_value(profile, "format")) == INVAL_PID)
 		return NULL;
 		
-	if (!(fs->master = reiser4_master_create(device, format, blocksize,
+	if (!(fs->master = reiser4_master_create(device, format,
+						 blocksize,
 						 uuid, label)))
+	{
 		goto error_free_fs;
+	}
 
 	/* Getting tail polity from the passed profile */
 	if ((policy = reiser4_profile_value(profile, "policy")) == INVAL_PID)

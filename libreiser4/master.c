@@ -110,7 +110,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_assert("umka-1568", master != NULL);
 	aal_assert("umka-1569", stream != NULL);
 
-	blocksize = master->device->blocksize;
+	blocksize = reiser4_master_blocksize(master);
 	
 	aal_stream_format(stream, "Master super block:\n");
 	
@@ -140,17 +140,16 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 int reiser4_master_confirm(aal_device_t *device) {
 	blk_t offset;
 	aal_block_t *block;
+	uint32_t blocksize;
 	reiser4_master_sb_t *super;
     
 	aal_assert("umka-901", device != NULL);
-    
-	offset = (blk_t)(MASTER_OFFSET / REISER4_BLKSIZE);
 
-	/* Setting up default block size (4096) to used device */
-	aal_device_set_bs(device, REISER4_BLKSIZE);
+	blocksize = device->blocksize;
+	offset = (blk_t)(MASTER_OFFSET / blocksize);
     
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(device, offset))) {
+	if (!(block = aal_block_read(device, blocksize, offset))) {
 		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		return 0;
@@ -159,32 +158,20 @@ int reiser4_master_confirm(aal_device_t *device) {
 	super = (reiser4_master_sb_t *)block->data;
 
 	if (aal_strncmp(super->ms_magic, MASTER_MAGIC, 4) == 0) {
-		uint32_t blocksize = get_ms_blocksize(super);
-			
-		if (aal_device_set_bs(device, blocksize)) {
-			aal_exception_fatal("Invalid block size detected %u.",
-					    blocksize);
-			goto error_free_block;
-		}
-	
 		aal_block_free(block);
 		return 1;
 	}
     
 	aal_block_free(block);
 	return 0;
-    
- error_free_block:
-	aal_block_free(block);
-	return 0;
 }
-
 #endif
 
 /* Reads master super block from disk */
 reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	blk_t offset;
 	aal_block_t *block;
+	uint32_t blocksize;
 	reiser4_master_t *master;
     
 	aal_assert("umka-143", device != NULL);
@@ -195,13 +182,11 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	master->dirty = FALSE;
 	master->device = device;
 	
-	offset = (blk_t)(MASTER_OFFSET / REISER4_BLKSIZE);
+	blocksize = device->blocksize;
+	offset = (blk_t)(MASTER_OFFSET / blocksize);
 
-	/* Setting up default block size (4096) to used device */
-	aal_device_set_bs(device, REISER4_BLKSIZE);
-    
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(device, offset))) {
+	if (!(block = aal_block_read(device, blocksize, offset))) {
 		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		goto error_free_master;
@@ -259,18 +244,21 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Rereads master super block from the device */
 errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	blk_t offset;
+	uint32_t blocksize;
 	aal_block_t *block;
 	
 	aal_assert("umka-1576", master != NULL);
 
-	offset = (blk_t)(MASTER_OFFSET / REISER4_BLKSIZE);
+	blocksize = master->device->blocksize;
+	offset = (blk_t)(MASTER_OFFSET / blocksize);
 	
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(master->device, offset))) {
+	if (!(block = aal_block_read(master->device,
+				     blocksize, offset)))
+	{
 		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		return -EIO;
@@ -279,7 +267,7 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	/* Copying master super block */
 	aal_memcpy(SUPER(master), block->data,
 		   sizeof(*SUPER(master)));
-
+	
 	aal_block_free(block);
 	
 	return 0;
@@ -291,6 +279,7 @@ errno_t reiser4_master_sync(
 {
 	errno_t res;
 	blk_t offset;
+	uint32_t blocksize;
 	aal_block_t *block;
 	aal_assert("umka-145", master != NULL);
     
@@ -301,10 +290,14 @@ errno_t reiser4_master_sync(
 	if (master->dirty == FALSE)
 		return 0;
 	
-	offset = MASTER_OFFSET / master->device->blocksize;
+	blocksize = master->device->blocksize;
+	offset = MASTER_OFFSET / blocksize;
 
-	if (!(block = aal_block_create(master->device, offset, 0)))
+	if (!(block = aal_block_create(master->device,
+				       blocksize, offset, 0)))
+	{
 		return -ENOMEM;
+	}
 
 	aal_memcpy(block->data, SUPER(master),
 		   sizeof(*SUPER(master)));
@@ -324,7 +317,6 @@ errno_t reiser4_master_sync(
 	aal_block_free(block);
 	return res;
 }
-
 #endif
 
 /* Frees master super block occupied memory */

@@ -44,6 +44,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	count_t count)		/* filesystem size in blocks */
 {
 	rid_t pid;
+	uint32_t blocksize;
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	
@@ -70,9 +71,11 @@ reiser4_alloc_t *reiser4_alloc_open(
 		goto error_free_alloc;
 	}
     
+	blocksize = reiser4_master_blocksize(fs->master);
+	
 	/* Calling "open" method from block allocator plugin */
 	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, open,
-					  fs->device, count)))
+					  fs->device, count, blocksize)))
 	{
 		aal_exception_error("Can't initialize block allocator.");
 		goto error_free_alloc;
@@ -95,6 +98,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 	count_t count)		    /* filesystem size in blocks */
 {
 	rid_t pid;
+	uint32_t blocksize;
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	
@@ -121,9 +125,11 @@ reiser4_alloc_t *reiser4_alloc_create(
 		goto error_free_alloc;
 	}
     
+	blocksize = reiser4_master_blocksize(fs->master);
+	
 	/* Query the block allocator plugin for creating allocator entity */
 	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, create,
-					  fs->device, count)))
+					  fs->device, count, blocksize)))
 	{
 		aal_exception_error("Can't create block allocator.");
 		goto error_free_alloc;

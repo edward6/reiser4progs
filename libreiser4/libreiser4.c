@@ -213,8 +213,12 @@ static errno_t tree_unlock(
 
 #ifndef ENABLE_STAND_ALONE
 static uint32_t tree_blocksize(void *tree) {
+	reiser4_fs_t *fs;
+	
 	aal_assert("umka-1220", tree != NULL);
-	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
+	
+	fs = ((reiser4_tree_t *)tree)->fs;
+	return reiser4_master_blocksize(fs->master);
 }
 
 static uint32_t tree_maxspace(void *tree) {

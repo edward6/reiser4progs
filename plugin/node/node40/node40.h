@@ -27,7 +27,8 @@ struct node40 {
 #ifndef ENABLE_STAND_ALONE
 	int dirty;
 #endif
-	
+
+	uint32_t size;
 	aal_block_t *block;
 	aal_device_t *device;
 };

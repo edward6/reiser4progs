@@ -31,7 +31,7 @@ extern errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 				       char *uuid, char *label,
 				       reiser4_profile_t *profile,
-				       count_t blocks);
+				       uint32_t blocksize, count_t blocks);
 
 extern errno_t reiser4_fs_resize(reiser4_fs_t *fs,
 				 count_t blocks);

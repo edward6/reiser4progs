@@ -15,7 +15,7 @@ static reiser4_core_t *core = NULL;
 /* Returns blocksize of the device passed extent @item lies on */
 static uint32_t extent40_blocksize(item_entity_t *item) {
 	aal_assert("umka-2058", item != NULL);
-	return item->context.device->blocksize;
+	return item->context.blocksize;
 }
 
 /* Returns number of units in passed extent @item */
@@ -279,11 +279,13 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	uint32_t read, i;
 	key_entity_t key;
 	uint32_t blocksize;
+	aal_device_t *device;
 
 	aal_assert("umka-1421", item != NULL);
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != ~0ul);
 
+	device = item->context.device;
 	blocksize = extent40_blocksize(item);
 
 	for (read = count, i = extent40_unit(item, pos);
@@ -292,8 +294,8 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		uint32_t chunk;
 		
 		/*
-		  FIXME-UMKA: Here offset is 32 bit value for stand alone mode
-		  and apparently code will not be working well with files larger
+		  Here offset is 32 bit value for stand alone mode and
+		  apparently code will not be working well with files larger
 		  than 4Gb. We can't merely use here uint64_t due to build mode
 		  that is without gcc built-in functions like __udivdi3 and
 		  __umoddi3 dedicated for working with 64 bit digits.
@@ -323,29 +325,52 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		while (blk < start + et40_get_width(extent40_body(item) + i) &&
 		       count > 0)
 		{
+			blk_t dev_blk;
 			uint32_t local;
 			aal_block_t *block;
-			
-			if (!(block = aal_block_read(item->context.device, blk))) {
-				aal_exception_error("Can't read block %llu.", blk);
-				return -EIO;
-			}
 
-			/* Calculating local offset and chunk to be read */
 			local = (pos % blocksize);
-
+			
 			if ((chunk = blocksize - local) > count)
 				chunk = count;
 
-			aal_memcpy(buff, block->data + local, chunk);
-			aal_block_free(block);
-					
-			if ((local + chunk) % blocksize == 0)
-				blk++;
+			dev_blk = (blk * (blocksize / device->blocksize)) +
+				(local / device->blocksize);
 
-			pos += chunk;
-			buff += chunk;
-			count -= chunk;
+			while (chunk > 0) {
+				uint32_t n, l;
+				
+				if (!(block = aal_block_read(device,
+							     device->blocksize,
+							     dev_blk)))
+				{
+					aal_exception_error("Can't read device "
+							    "block %llu.", 
+							    dev_blk);
+					return -EIO;
+				}
+
+				l = (local % device->blocksize);
+				
+				if ((n = device->blocksize - l) > chunk)
+					n = chunk;
+					
+				aal_memcpy(buff, block->data + l, n);
+				
+				aal_block_free(block);
+
+				if ((l + n) % device->blocksize == 0)
+					dev_blk++;
+					
+				pos += n;
+				buff += n;
+				chunk -= n;
+				local += n;
+				count -= n;
+			}
+					
+			if (local % blocksize == 0)
+				blk++;
 		}
 	}
 	

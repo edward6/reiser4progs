@@ -29,6 +29,9 @@ struct journal40 {
 	/* Format instance */
 	object_entity_t *format;
 
+	/* Filesystem blocksize */
+	uint32_t blocksize;
+
 	journal40_area_t area;
 	
 	/* Journal header and footer */

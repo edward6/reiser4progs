@@ -37,7 +37,9 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
 	    &ptr, place.pos.unit, 1) != 1 || ptr.start == INVAL_BLK)
 	    return -EINVAL;
 
-	if (!(child = reiser4_node_open(place.node->device, ptr.start))) 
+	/* FIXME-UMKA->VITALY: Here block size should be tacken from master
+	 * super block */
+	if (!(child = reiser4_node_open(place.node->device, REISER4_BLKSIZE, ptr.start))) 
 	    return -EINVAL;
 	
 	res = repair_node_max_real_key(child, key);
@@ -52,11 +54,14 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
 
 /* Opens the node if it has correct mkid stamp. */
 reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
+    uint32_t blocksize;
     reiser4_node_t *node;
 
     aal_assert("vpf-708", fs != NULL);
 
-    if ((node = reiser4_node_open(fs->device, blk)) == NULL)
+    blocksize = reiser4_master_blocksize(fs->master);
+    
+    if ((node = reiser4_node_open(fs->device, blocksize, blk)) == NULL)
 	return NULL;
 
     if (reiser4_format_get_stamp(fs->format) != reiser4_node_get_mstamp(node))

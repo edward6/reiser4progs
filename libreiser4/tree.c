@@ -269,12 +269,15 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 
 	/* Checking if node in the local cache of @parent */
 	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
+		uint32_t blocksize;
 
+		blocksize = reiser4_master_blocksize(tree->fs->master);
+		
 		/*
 		  Node is not loaded. Loading it and connecting to @parent
 		  cache.
 		*/
-		if (!(node = reiser4_node_open(device, blk))) {
+		if (!(node = reiser4_node_open(device, blocksize, blk))) {
 			aal_exception_error("Can't open node %llu.", blk);
 			return NULL;
 		}
@@ -446,6 +449,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	blk_t blk;
 	rid_t pid;
 
+	uint32_t blocksize;
 	uint32_t free, stamp;
 	reiser4_node_t *node;
 	aal_device_t *device;
@@ -460,12 +464,13 @@ reiser4_node_t *reiser4_tree_alloc(
 	}
 
 	device = tree->fs->device;
-
+	blocksize = reiser4_master_blocksize(tree->fs->master);
+	
 	/* Getting node plugin id from the profile */
 	pid = reiser4_profile_value(tree->fs->profile, "node");
     
 	/* Creating new node */
-	if (!(node = reiser4_node_init(device, blk, pid)))
+	if (!(node = reiser4_node_init(device, blocksize, blk, pid)))
 		return NULL;
 
 	if (reiser4_node_form(node, level))

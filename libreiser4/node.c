@@ -32,7 +32,8 @@ void reiser4_node_mkclean(reiser4_node_t *node) {
 #endif
 
 reiser4_node_t *reiser4_node_init(aal_device_t *device,
-				  blk_t blk, rid_t pid)
+				  uint32_t size, blk_t blk,
+				  rid_t pid)
 {
 	reiser4_node_t *node;
 	reiser4_plugin_t *plugin;
@@ -49,16 +50,18 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 				    "0x%x.", pid);
 		goto error_free_node;
 	}
-    
+
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
-					 device, blk))) 
+					 device, size, blk))) 
 		goto error_free_node;
 
 	node->blk = blk;
+	node->size = size;
 	node->device = device;
-
-	reiser4_place_assign(&node->parent, NULL, 0, ~0ul);
+	
+	reiser4_place_assign(&node->parent,
+			     NULL, 0, ~0ul);
 	
 	return node;
 
@@ -114,19 +117,19 @@ errno_t reiser4_node_print(
   to open it or not.
 */
 static int callback_guess_node(reiser4_plugin_t *plugin,
-				   void *data)
+			       void *data)
 {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 
 	/* We are interested only in node plugins here */
 	if (plugin->h.type == NODE_PLUGIN_TYPE) {
-
 		/*
 		  Requesting block supposed to be a correct node to be opened
 		  and confirmed about its format.
 		*/
 		if (!(node->entity = plugin_call(plugin->o.node_ops, init,
-						 node->device, node->blk)))
+						 node->device, node->size,
+						 node->blk)))
 			return 0;
 
 		if (plugin_call(plugin->o.node_ops, load, node->entity))
@@ -155,9 +158,9 @@ static errno_t reiser4_node_guess(reiser4_node_t *node) {
 }
 
 /* Opens node on specified device and block number */
-reiser4_node_t *reiser4_node_open(
-        aal_device_t *device,            /* device node will be opened on */
-        blk_t blk)                       /* block number node will be opened on */
+reiser4_node_t *reiser4_node_open(aal_device_t *device,
+				  uint32_t size,
+				  blk_t blk)
 {
         reiser4_node_t *node;
  
@@ -167,6 +170,7 @@ reiser4_node_t *reiser4_node_open(
                 return NULL;
  
         node->blk = blk;
+	node->size = size;
         node->device = device;
 
         if (reiser4_node_guess(node))

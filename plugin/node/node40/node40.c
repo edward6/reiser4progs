@@ -93,7 +93,7 @@ uint16_t node40_free_space_end(node40_t *node) {
   later for working with all node methods.
 */
 static object_entity_t *node40_init(aal_device_t *device,
-				    blk_t blk)
+				    uint32_t size, blk_t blk)
 {
 	node40_t *node;
     
@@ -104,9 +104,12 @@ static object_entity_t *node40_init(aal_device_t *device,
 		return NULL;
 
 	node->blk = blk;
+	
 #ifndef ENABLE_STAND_ALONE
 	node->dirty = 0;
 #endif
+	
+	node->size = size;
 	node->device = device;
 	node->plugin = &node40_plugin;
 
@@ -118,15 +121,18 @@ static object_entity_t *node40_init(aal_device_t *device,
 static errno_t node40_form(object_entity_t *entity,
 			   uint8_t level)
 {
-	uint32_t free_space;
+	uint32_t header_size;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-2013", entity != NULL);
 
 	if (node->block == NULL) {
 		if (!(node->block = aal_block_create(node->device,
+						     node->size,
 						     node->blk, 0)))
+		{
 			return -ENOMEM;
+		}
 	}
 
 	nh40_set_num_items(node, 0);
@@ -134,11 +140,10 @@ static errno_t node40_form(object_entity_t *entity,
 	nh40_set_magic(node, NODE40_MAGIC);
 	nh40_set_pid(node, NODE_REISER40_ID);
 
-	free_space = node->device->blocksize -
-		sizeof(node40_header_t);
+	header_size = sizeof(node40_header_t);
 	
-	nh40_set_free_space(node, free_space);
-	nh40_set_free_space_start(node, sizeof(node40_header_t));
+	nh40_set_free_space_start(node, header_size);
+	nh40_set_free_space(node, node->size - header_size);
 
 	node->dirty = 1;
 	return 0;
@@ -154,8 +159,11 @@ static errno_t node40_load(object_entity_t *entity) {
 		return 0;
 
 	if (!(node->block = aal_block_read(node->device,
+					   node->size,
 					   node->blk)))
+	{
 		return -EIO;
+	}
 
 #ifndef ENABLE_STAND_ALONE
 	node->dirty = 0;
@@ -285,6 +293,7 @@ static errno_t node40_get_item(object_entity_t *entity,
 		   nh40_get_num_items(node));
 	
 	/* Initializes item's context (device, block number, etc) */
+	item->context.blocksize = node->size;
 	item->context.device = node->block->device;
 	item->context.blk = aal_block_number(node->block);
 
@@ -344,8 +353,8 @@ static errno_t node40_item(object_entity_t *entity,
 			{
 				aal_exception_error("Can't get unit key. Node "
 						    "%llu, item %lu, unit %lu.",
-						    node->block->blk, pos->item,
-						    pos->unit);
+						    node->block->number,
+						    pos->item, pos->unit);
 				return -EINVAL;
 			}
 		}
@@ -376,8 +385,11 @@ static uint16_t node40_maxspace(object_entity_t *entity) {
     
 	aal_assert("vpf-016", node != NULL);
 
-	/* Blocksize minus node header and minus item overhead */
-	return aal_block_size(node->block) - sizeof(node40_header_t) - 
+	/*
+	  Maximal space is node size minus node header and minus item
+	  overhead.
+	*/
+	return node->size - sizeof(node40_header_t) -
 		sizeof(item40_header_t);
 }
 
@@ -965,7 +977,7 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 			{
 				aal_exception_error("Node (%llu), item (%u): "
 						    "Can't shrink the item.", 
-						    dst_node->block->blk,
+						    dst_node->block->number,
 						    dst_pos->item);
 			}
 		}
@@ -1003,8 +1015,8 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 	{
 		aal_exception_error("Can't copy units from "
 				    "node %llu to node %llu.",
-				    src_node->block->blk,
-				    dst_node->block->blk);
+				    src_node->block->number,
+				    dst_node->block->number);
 		return res;
 	}
 
@@ -1720,7 +1732,7 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 			hint->items))
 	{
 		aal_exception_error("Can't expand node %llu durring "
-				    "shift.", dst_node->block->blk);
+				    "shift.", dst_node->block->number);
 		return -EINVAL;
 	}
 		
@@ -1730,8 +1742,8 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 	{
 		aal_exception_error("Can't copy items from node "
 				    "%llu to node %llu, durring "
-				    "shift", src_node->block->blk,
-				    dst_node->block->blk);
+				    "shift", src_node->block->number,
+				    dst_node->block->number);
 		return -EINVAL;
 	}
 
@@ -1744,7 +1756,7 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 	{
 		aal_exception_error("Can't shrink node "
 				    "%llu durring shift.",
-				    src_node->block->blk);
+				    src_node->block->number);
 		return -EINVAL;
 	}
 	
@@ -1796,7 +1808,8 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	*/
 	if (node40_merge(src_entity, dst_entity, &merge)) {
 		aal_exception_error("Can't merge nodes %llu and %llu.",
-				    src_node->block->blk, dst_node->block->blk);
+				    src_node->block->number,
+				    dst_node->block->number);
 		return -EINVAL;
 	}
 
@@ -1810,7 +1823,8 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	/* Transfusing items from src node to dst one */
 	if (node40_transfuse(src_entity, dst_entity, hint)) {
 		aal_exception_error("Can't transfuse nodes %llu and %llu. ",
-				    src_node->block->blk, dst_node->block->blk);
+				    src_node->block->number,
+				    dst_node->block->number);
 		return -EINVAL;
 	}
 
@@ -1828,7 +1842,8 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	*/
 	if (node40_merge(src_entity, dst_entity, hint)) {
 		aal_exception_error("Can't merge nodes %llu and %llu.",
-				    src_node->block->blk, dst_node->block->blk);
+				    src_node->block->number,
+				    dst_node->block->number);
 		return -EINVAL;
 	}
 

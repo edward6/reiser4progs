@@ -21,7 +21,8 @@ struct alloc40 {
 	
 	int dirty;
 	char *crc;
-	
+
+	uint32_t blocksize;
 	aal_device_t *device;
 	aux_bitmap_t *bitmap;
 };

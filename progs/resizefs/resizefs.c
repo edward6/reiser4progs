@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device with file_ops and default blocksize */
 	if (!(device = aal_device_open(&file_ops, host_dev,
-				       REISER4_BLKSIZE, O_RDONLY)))
+				       REISER4_SECSIZE, O_RDONLY)))
 	{
 		aal_exception_error("Can't open %s. %s.", host_dev,
 				    strerror(errno));

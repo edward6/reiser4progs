@@ -45,6 +45,7 @@ reiser4_format_t *reiser4_format_open(
 	reiser4_fs_t *fs)	/* fs the format will be opened on */
 {
 	rid_t pid;
+	uint32_t blocksize;
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
 	
@@ -59,6 +60,7 @@ reiser4_format_t *reiser4_format_open(
 	format->fs->format = format;
 
 	pid = reiser4_master_format(fs->master);
+	blocksize = reiser4_master_blocksize(fs->master);
     
 	/* Finding needed disk-format plugin by its plugin id */
 	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid))) {
@@ -69,7 +71,7 @@ reiser4_format_t *reiser4_format_open(
     
 	/* Initializing disk-format entity by calling plugin */
 	if (!(format->entity = plugin_call(plugin->o.format_ops, open,
-					   fs->device)))
+					   fs->device, blocksize)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
 				    plugin->h.label);
@@ -92,6 +94,7 @@ reiser4_format_t *reiser4_format_create(
 	uint16_t tail,		/* tail policy to be used */
 	rid_t pid)		/* disk-format plugin id to be used */
 {
+	uint32_t blocksize;
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
 		
@@ -111,13 +114,15 @@ reiser4_format_t *reiser4_format_create(
 	format->fs = fs;
 	format->fs->format = format;
 	
+	blocksize = reiser4_master_blocksize(fs->master);
+	
 	/* 
 	   Initializing entity of disk-format by means of calling "create" method 
 	   from found plugin. Plugin "create" method will be creating all disk
 	   structures, namely, format-specific super block.
 	*/
 	if (!(format->entity = plugin_call(plugin->o.format_ops, create,
-					   fs->device, len, tail))) 
+					   fs->device, len, blocksize, tail))) 
 	{
 		aal_exception_error("Can't create disk-format %s on %s.", 
 				    plugin->h.label, aal_device_name(fs->device));
@@ -176,16 +181,18 @@ errno_t reiser4_format_valid(
 errno_t reiser4_format_reopen(
 	reiser4_format_t *format)	/* format to be reopened */
 {
+	uint32_t blocksize;
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-428", format != NULL);
 
 	plugin = format->entity->plugin;
-	
 	plugin_call(plugin->o.format_ops, close, format->entity);
 	
+	blocksize = reiser4_master_blocksize(format->fs->master);
+	
 	if (!(format->entity = plugin_call(plugin->o.format_ops, open,
-					   format->fs->device)))
+					   format->fs->device, blocksize)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
 				    plugin->h.label);
@@ -207,8 +214,7 @@ void reiser4_format_close(
 	
 	plugin_call(format->entity->plugin->o.format_ops,
 		    close, format->entity);
-    
- error_free_format:    
+
 	aal_free(format);
 }
 

@@ -71,7 +71,8 @@ struct format40 {
 #ifndef ENABLE_STAND_ALONE
 	int dirty;
 #endif
-	
+
+	uint32_t blocksize;
 	aal_device_t *device;
 	format40_super_t super;
 };

@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	if (!(device = aal_device_open(&file_ops, argv[1], 
-		REISER4_BLKSIZE, O_RDWR))) 
+		REISER4_SECSIZE, O_RDWR))) 
 	{
 		aal_exception_error("Can't open device %s.", argv[1]);
 		goto error_free_libreiser4;

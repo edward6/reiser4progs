@@ -21,11 +21,15 @@ static errno_t tprint_open_node(
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
-	reiser4_tree_t *tree = (reiser4_tree_t *)data;
-	aal_device_t *device = tree->fs->device;
+	uint32_t blocksize;
+	reiser4_tree_t *tree;
+	aal_device_t *device;
 
-	*node = reiser4_node_open(device, blk);
-	return -(*node == NULL);
+	tree = (reiser4_tree_t *)data;
+
+	device = tree->fs->device;
+	blocksize = reiser4_master_blocksize(tree->fs->master);
+	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
 /* Prints passed @node */
@@ -63,6 +67,7 @@ errno_t debugfs_print_block(
 {
 	errno_t res;
 	count_t blocks;
+	uint32_t blocksize;
 	aal_device_t *device;
 	reiser4_node_t *node;
 
@@ -102,12 +107,13 @@ errno_t debugfs_print_block(
 	}
 	
 	device = fs->device;
+	blocksize = reiser4_master_blocksize(fs->master);
 
 	/*
 	  If passed @blk points to a formatted node then open it and print
 	  using print_process_node listed abowe.
 	*/
-	if (!(node = reiser4_node_open(device, blk))) {
+	if (!(node = reiser4_node_open(device, blocksize, blk))) {
 		aal_exception_info("Block %llu is not a formatted "
 				   "one.", blk);
 		return 0;

@@ -20,6 +20,7 @@
 #define MASTER_MAGIC	        ("R4Sb")
 #define MASTER_OFFSET	        (65536)
 
+#define REISER4_SECSIZE         (512)
 #define REISER4_BLKSIZE         (4096)
 
 /* 
@@ -213,6 +214,7 @@ typedef struct object_entity object_entity_t;
 
 struct item_context {
 	blk_t blk;
+	uint32_t blocksize;
  	aal_device_t *device; 
 };
 
@@ -916,7 +918,7 @@ struct reiser4_node_ops {
 
 	/* Cerates node entity */
 	object_entity_t *(*init) (aal_device_t *,
-				  blk_t);
+				  uint32_t, blk_t);
 	
 	/* Loads data block node lies in */
 	errno_t (*load) (object_entity_t *);
@@ -965,12 +967,9 @@ struct reiser4_format_ops {
 	   Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method.
 	*/
-	object_entity_t *(*create) (aal_device_t *, uint64_t, uint16_t);
+	object_entity_t *(*create) (aal_device_t *, uint64_t,
+				    uint32_t, uint16_t);
 	
-	/*
-	  Called during filesystem syncing. It calls method sync for every
-	  "child" plugin (block allocator, journal, etc).
-	*/
 	errno_t (*sync) (object_entity_t *);
 	
 	int (*isdirty) (object_entity_t *);
@@ -1029,7 +1028,7 @@ struct reiser4_format_ops {
 	   Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format.
 	*/
-	object_entity_t *(*open) (aal_device_t *);
+	object_entity_t *(*open) (aal_device_t *, uint32_t);
     
 	/*
 	  Closes opened or created previously filesystem. Frees all assosiated
@@ -1116,10 +1115,12 @@ typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 #ifndef ENABLE_STAND_ALONE
 struct reiser4_alloc_ops {
 	/* Creates block allocator */
-	object_entity_t *(*create) (aal_device_t *, uint64_t);
+	object_entity_t *(*create) (aal_device_t *,
+				    uint64_t, uint32_t);
 
 	/* Opens block allocator */
-	object_entity_t *(*open) (aal_device_t *, uint64_t);
+	object_entity_t *(*open) (aal_device_t *,
+				  uint64_t, uint32_t);
 
 	/* Closes blcok allocator */
 	void (*close) (object_entity_t *);
@@ -1185,11 +1186,11 @@ typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
 struct reiser4_journal_ops {
 	/* Opens journal on specified device */
 	object_entity_t *(*open) (object_entity_t *, aal_device_t *,
-				  uint64_t, uint64_t);
+				  uint64_t, uint64_t, uint32_t);
 
 	/* Creates journal on specified device */
 	object_entity_t *(*create) (object_entity_t *, aal_device_t *,
-				    uint64_t, uint64_t, void *);
+				    uint64_t, uint64_t, uint32_t, void *);
 
 	/* Returns the device journal lies on */
 	aal_device_t *(*device) (object_entity_t *);

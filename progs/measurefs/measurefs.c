@@ -107,7 +107,8 @@ static errno_t tfrag_open_node(
 	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* blk node lies in */
 	void *data)		    /* traverse hint */
-{	
+{
+	uint32_t blocksize;
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 	aal_device_t *device = frag_hint->tree->fs->device;
 
@@ -118,9 +119,9 @@ static errno_t tfrag_open_node(
 	/* As we do not need traverse leaf level at all, we going out here */
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
-	
-	*node = reiser4_node_open(device, blk);
-	return -(*node == NULL);
+
+	blocksize = reiser4_master_blocksize(frag_hint->tree->fs->master);
+	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
 static errno_t tfrag_process_item(
@@ -304,11 +305,12 @@ static errno_t stat_open_node(
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
+	uint32_t blocksize;
 	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
 	aal_device_t *device = stat_hint->tree->fs->device;
 
-	*node = reiser4_node_open(device, blk);
-	return -(*node == NULL);
+	blocksize = reiser4_master_blocksize(stat_hint->tree->fs->master);
+	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
 /* Process one block belong to the item (extent or nodeptr) */
@@ -552,11 +554,12 @@ static errno_t dfrag_open_node(
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
+	uint32_t blocksize;
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 	aal_device_t *device = frag_hint->tree->fs->device;
 
-	*node = reiser4_node_open(device, blk);
-	return -(*node == NULL);
+	blocksize = reiser4_master_blocksize(frag_hint->tree->fs->master);
+	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
 /*
@@ -897,7 +900,7 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device with file_ops and default blocksize */
 	if (!(device = aal_device_open(&file_ops, host_dev,
-				       REISER4_BLKSIZE, O_RDONLY)))
+				       REISER4_SECSIZE, O_RDONLY)))
 	{
 		aal_exception_error("Can't open %s. %s.", host_dev,
 				    strerror(errno));

@@ -147,6 +147,9 @@ struct reiser4_node {
 	*/
 	object_entity_t *entity;
 
+	/* Node size */
+	uint32_t size;
+
 	/* Device node lies on */
 	aal_device_t *device;
 

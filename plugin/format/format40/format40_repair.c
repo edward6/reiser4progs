@@ -98,9 +98,9 @@ errno_t format40_update(object_entity_t *entity) {
     aal_assert("vpf-828", format != NULL);
     aal_assert("vpf-828", format->device != NULL);
     
-    blk = (FORMAT40_OFFSET / format->device->blocksize);
+    blk = (FORMAT40_OFFSET / format->blocksize);
     
-    if (!(block = aal_block_read(format->device, blk))) {
+    if (!(block = aal_block_read(format->device, format->blocksize, blk))) {
 	aal_exception_error("Failed to read the block (%llu).", blk);
 	return -EIO;
     }

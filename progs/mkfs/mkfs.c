@@ -372,7 +372,9 @@ int main(int argc, char *argv[]) {
 			uuid_generate(uuid);
 #endif
 		/* Opening device */
-		if (!(device = aal_device_open(&file_ops, host_dev, blocksize, O_RDWR))) {
+		if (!(device = aal_device_open(&file_ops, host_dev, 
+		      REISER4_SECSIZE, O_RDWR))) 
+		{
 			char *error = strerror(errno);
 	
 			aal_exception_error("Can't open %s. %s.", host_dev, error);
@@ -408,9 +410,12 @@ int main(int argc, char *argv[]) {
 			aal_gauge_start(gauge);
 		}
 
+		fs_len = fs_len / (blocksize / device->blocksize);
+
 		/* Creating filesystem */
 		if (!(fs = reiser4_fs_create(device, uuid, label,
-					     profile, fs_len))) 
+					     profile, blocksize,
+					     fs_len))) 
 		{
 			aal_exception_error("Can't create filesystem on %s.", 
 					    aal_device_name(device));

@@ -69,6 +69,7 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 	if (examined == plugin)
 		return 0;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Check plugins labels */
 	if (!aal_strncmp(examined->h.label, plugin->h.label,
 			 PLUGIN_MAX_LABEL))
@@ -78,7 +79,8 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 				    plugin->h.class.name);
 		return -EINVAL;
 	}
-
+#endif
+	
 	/* Check plugin group */
 	if (examined->h.group >= LAST_ITEM) {
 		aal_exception_error("Plugin %s has invalid group id "

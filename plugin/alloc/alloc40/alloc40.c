@@ -110,7 +110,7 @@ errno_t alloc40_related(object_entity_t *entity, blk_t blk,
 	aal_assert("vpf-710", alloc->bitmap != NULL);
 	aal_assert("vpf-711", alloc->device != NULL);
     
-	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
+	size = alloc->blocksize - CRC_SIZE;
     
 	/*
 	  Loop though the all blocks one bitmap block describes and calling
@@ -136,7 +136,7 @@ errno_t alloc40_layout(object_entity_t *entity,
 	aal_assert("umka-348", block_func != NULL);
 
 	alloc = (alloc40_t *)entity;
-	blocksize = aal_device_get_bs(alloc->device);
+	blocksize = alloc->blocksize;
 
 	/*
 	  Calculating block-per-bitmap value. I mean the number of blocks one
@@ -178,20 +178,25 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	aal_assert("umka-1053", entity != NULL);
 
 	/* Opening block bitmap lies in */
-	if (!(block = aal_block_read(alloc->device, blk))) {
-		aal_exception_error("Can't read bitmap block %llu. %s.", 
-				    blk, alloc->device->error);
+	if (!(block = aal_block_read(alloc->device,
+				     alloc->blocksize, blk)))
+	{
+		aal_exception_error("Can't read bitmap block "
+				    "%llu. %s.", blk,
+				    alloc->device->error);
 		return -EIO;
 	}
 
+	size = alloc->blocksize - CRC_SIZE;
 	start = aux_bitmap_map(alloc->bitmap);
-	size = aal_block_size(block) - CRC_SIZE;
 
 	offset = blk / size / 8;
 	current = start + (size * offset);
 
 	/* Calculating where and how many bytes will be copied */
-	free = (start + alloc->bitmap->size) - current;
+	free = (start + alloc->bitmap->size) -
+		current;
+	
 	chunk = free > size ? size : free;
 
 	/*
@@ -212,10 +217,12 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
   @device. This functions is implementation of alloc_ops.open plugin method.
 */
 static object_entity_t *alloc40_open(aal_device_t *device,
-				     uint64_t len)
+				     uint64_t len,
+				     uint32_t blocksize)
 {
 	alloc40_t *alloc;
-	uint32_t blocksize, crcsize;
+	uint32_t crcsize;
+	uint32_t mapsize;
     
 	aal_assert("umka-364", device != NULL);
 	aal_assert("umka-1682", len > 0);
@@ -228,7 +235,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	  filesystem lies in. In other words it is the filesystem size. This
 	  value is the same as partition size sometimes.
 	*/
-	blocksize = aal_device_get_bs(device) - CRC_SIZE;
+	mapsize = blocksize - CRC_SIZE;
     
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
 		goto error_free_alloc;
@@ -236,14 +243,15 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	alloc->dirty = 0;
 
 	/* Calulating crc array size */
-	crcsize = ((alloc->bitmap->size + blocksize - 1) /
-		   blocksize) * CRC_SIZE;
+	crcsize = ((alloc->bitmap->size + mapsize - 1) /
+		   mapsize) * CRC_SIZE;
 
 	/* Allocating crc array */
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
     
 	alloc->device = device;
+	alloc->blocksize = blocksize;
 	alloc->plugin = &alloc40_plugin;
 
 	/*
@@ -266,7 +274,6 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	aux_bitmap_close(alloc->bitmap);
  error_free_alloc:
 	aal_free(alloc);
- error:
 	return NULL;
 }
 
@@ -277,10 +284,12 @@ static object_entity_t *alloc40_open(aal_device_t *device,
    device.
 */
 static object_entity_t *alloc40_create(aal_device_t *device,
-				       uint64_t len) 
+				       uint64_t len,
+				       uint32_t blocksize)
 {
 	alloc40_t *alloc;
-	uint32_t blocksize, crcsize;
+	uint32_t mapsize;
+	uint32_t crcsize;
 
 	aal_assert("umka-365", device != NULL);
 	aal_assert("umka-1683", device != NULL);
@@ -288,18 +297,19 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
-	blocksize = aal_device_get_bs(device) - CRC_SIZE;
+	mapsize = blocksize - CRC_SIZE;
     
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
 		goto error_free_alloc;
   
-	crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;
+	crcsize = (alloc->bitmap->size / mapsize) * CRC_SIZE;
     
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
     
 	alloc->dirty = 1;
 	alloc->device = device;
+	alloc->blocksize = blocksize;
 	alloc->plugin = &alloc40_plugin;
     
 	return (object_entity_t *)alloc;
@@ -308,7 +318,6 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 	aux_bitmap_close(alloc->bitmap);
  error_free_alloc:
 	aal_free(alloc);
- error:
 	return NULL;
 }
 
@@ -323,8 +332,7 @@ static errno_t alloc40_assign(object_entity_t *entity, void *data) {
 	aal_assert("vpf-581", alloc->bitmap->total == bitmap->total);
 	aal_assert("umka-2087", alloc->bitmap->size == bitmap->size);
 
-	aal_memcpy(alloc->bitmap->map, bitmap->map,
-		   bitmap->size);
+	aal_memcpy(alloc->bitmap->map, bitmap->map, bitmap->size);
 	
 	alloc->bitmap->marked = bitmap->marked;
 	alloc->dirty = 1;
@@ -342,10 +350,9 @@ static errno_t alloc40_extract(object_entity_t *entity, void *data) {
 	aal_assert("umka-2158", alloc->bitmap->total == bitmap->total);
 	aal_assert("umka-2159", alloc->bitmap->size == bitmap->size);
 
-	aal_memcpy(bitmap->map, alloc->bitmap->map,
-		   bitmap->size);
-	
+	aal_memcpy(bitmap->map, alloc->bitmap->map, bitmap->size);
 	bitmap->marked = alloc->bitmap->marked;
+	
 	return 0;
 }
 
@@ -354,22 +361,27 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 				    uint64_t blk, void *data)
 {
 	errno_t res = 0;
+	alloc40_t *alloc;
 	aal_block_t *block;
 	char *current, *start; 
 	uint32_t size, adler, chunk;
-    
-	alloc40_t *alloc = (alloc40_t *)entity;
 	
-	aal_assert("umka-1055", alloc != NULL);
+	aal_assert("umka-1055", entity != NULL);
 
+	alloc = (alloc40_t *)entity;
+	
 	/*
 	  Allocating new block and filling it by 0xff bytes (all bits are turned
 	  on). This is needed in order to make the rest of last block filled by
 	  0xff istead of 0x00 as it might be by default.
 	*/
-	if (!(block = aal_block_create(alloc->device, blk, 0xff))) {
-		aal_exception_error("Can't allocate bitmap block %llu. %s.", 
-				    blk, alloc->device->error);
+	if (!(block = aal_block_create(alloc->device,
+				       alloc->blocksize,
+				       blk, 0xff)))
+	{
+		aal_exception_error("Can't allocate bitmap "
+				    "block %llu. %s.", blk,
+				    alloc->device->error);
 		return -ENOMEM;
 	}
 
@@ -421,9 +433,11 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 
 /* Saves alloc40 data (bitmap in fact) to device */
 static errno_t alloc40_sync(object_entity_t *entity) {
-	errno_t res;
-	alloc40_t *alloc = (alloc40_t *)entity;
+	errno_t res = 0;
+	alloc40_t *alloc;
 
+	alloc = (alloc40_t *)entity;
+	
 	aal_assert("umka-366", alloc != NULL);
 	aal_assert("umka-367", alloc->bitmap != NULL);
 
@@ -439,8 +453,7 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 	}
 
 	alloc->dirty = 0;
-	
-	return 0;
+	return res;
 }
 
 /* Frees alloc40 instance and all helper structures like bitmap, crcmap, etc */
@@ -537,7 +550,7 @@ static errno_t callback_print_bitmap(object_entity_t *entity,
 	alloc = (alloc40_t *)entity;
 	stream = (aal_stream_t *)data;
 
-	size = alloc->device->blocksize - CRC_SIZE;
+	size = alloc->blocksize - CRC_SIZE;
 	
 	offset = blk / size / 8;
 	
@@ -673,15 +686,16 @@ static int alloc40_available(object_entity_t *entity,
 errno_t callback_check_bitmap(object_entity_t *entity, 
 			      uint64_t blk, void *data)
 {
-	char *current, *start;
-
+	uint32_t chunk;
 	uint64_t offset;
+	alloc40_t *alloc;
 	uint32_t size, free;
-	uint32_t ladler, cadler, chunk;
-	alloc40_t *alloc = (alloc40_t *)entity;
+	char *current, *start;
+	uint32_t ladler, cadler;
     
+	alloc = (alloc40_t *)entity;
+	size = alloc->blocksize - CRC_SIZE;
 	start = aux_bitmap_map(alloc->bitmap);
-	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
     
 	/* Getting pointer to next bitmap portion */
 	offset = blk / size / 8;
