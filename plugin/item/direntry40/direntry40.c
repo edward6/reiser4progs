@@ -63,6 +63,39 @@ static errno_t direntry40_fetch(item_entity_t *item, uint32_t pos,
 
 #ifndef ENABLE_COMPACT
 
+static int direntry40_mergeable(item_entity_t *item1,
+				item_entity_t *item2)
+{
+	reiser4_plugin_t *plugin;
+	roid_t locality1, locality2;
+	
+	aal_assert("umka-1581", item1 != NULL, return -1);
+	aal_assert("umka-1582", item2 != NULL, return -1);
+
+	if (item1->plugin->h.sign.group != item2->plugin->h.sign.group)
+		return 0;
+	
+	if (item1->plugin->h.sign.id != item2->plugin->h.sign.id)
+		return 0;
+	
+	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
+	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
+					       KEY_REISER40_ID)))
+	{
+		aal_exception_error("Can't find key plugin by its id 0x%x",
+				    KEY_REISER40_ID);
+		return -1;
+	}
+	
+	locality1 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &item1->key);
+
+	locality2 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &item2->key);
+
+	return (locality1 == locality2);
+}
+
 static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 				   reiser4_item_hint_t *hint) 
 {
@@ -469,6 +502,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
 		.print		= direntry40_print,
+		.mergeable      = direntry40_mergeable,
 #else
 		.init		= NULL,
 		.estimate	= NULL,
@@ -476,6 +510,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.remove		= NULL,
 		.check		= NULL,
 		.print		= NULL,
+		.mergeable      = NULL,
 #endif
 		.valid		= NULL,
 		.shift          = NULL,

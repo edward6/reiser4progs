@@ -62,44 +62,25 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 }
 
 static int dir40_next(object_entity_t *entity) {
-	roid_t curr_locality;
-	roid_t next_locality;
-
 	reiser4_place_t right;
+	reiser4_plugin_t *plugin;
 	dir40_t *dir = (dir40_t *)entity;
 
 	/* Getting the right neighbour */
 	if (core->tree_ops.right(dir->file.tree, &dir->body, &right))
 		return 0;
 
-	/* Checking if they have the same plugin id */
-	if (right.entity.plugin->h.sign.type != dir->body.entity.plugin->h.sign.type)
+	plugin = dir->body.entity.plugin;
+	
+	if (!plugin_call(return 0, plugin->item_ops, mergeable,
+			 &right.entity, &dir->body.entity))
 		return 0;
 	
-	if (right.entity.plugin->h.sign.id != dir->body.entity.plugin->h.sign.id)
-		return 0;
+	file40_unlock(&dir->file, &dir->body);
+	file40_lock(&dir->file, &right);
 
-	/*
-	  Getting locality of the current and right nodes in order yot determine
-	  are they mergeable or not.
-	*/
-	curr_locality = plugin_call(return -1, dir->file.key.plugin->key_ops,
-				    get_locality, dir->body.entity.key.body);
-	
-	next_locality = plugin_call(return -1, dir->file.key.plugin->key_ops,
-				    get_locality, right.entity.key.body);
-	
-	/* Checking if items are mergeable */
-	if (curr_locality == next_locality) {
-		
-		file40_unlock(&dir->file, &dir->body);
-		file40_lock(&dir->file, &right);
-
-		dir->body = right;
-		return 1;
-	}
-	
-	return 0;
+	dir->body = right;
+	return 1;
 }
 
 /* Reads n entries to passed buffer buff */

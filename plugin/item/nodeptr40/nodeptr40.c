@@ -123,6 +123,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.remove		= NULL,
 		.shift          = NULL,
 		.open           = NULL,
+		.mergeable      = NULL,
 
 		.count		= nodeptr40_count,
 		.fetch          = nodeptr40_fetch,

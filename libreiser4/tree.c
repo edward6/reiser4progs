@@ -587,7 +587,7 @@ errno_t reiser4_tree_shift(
 	/* Updating leaf delimiting keys in the tree */
 	if (flags & SF_LEFT) {
 		if (reiser4_node_count(coord->u.joint->node) != 0 &&
-		    hint.items > 0)
+		    (hint.items > 0 || hint.units > 0))
 		{
 			coord->u.joint->flags |= JF_DIRTY;
 			
@@ -600,7 +600,7 @@ errno_t reiser4_tree_shift(
 			}
 		}
 	} else {
-		if (hint.items > 0) {
+		if (hint.items > 0 || hint.units > 0) {
 			joint->flags |= JF_DIRTY;
 			
 			if (joint->parent) {

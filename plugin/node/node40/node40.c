@@ -755,28 +755,6 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 	return 0;
 }
 
-static int node40_mergeable(item40_header_t *ih1, item40_header_t *ih2) {
-	reiser4_plugin_t *plugin;
-	roid_t locality1, locality2;
-
-	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
-	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
-					       KEY_REISER40_ID)))
-	{
-		aal_exception_error("Can't find key plugin by its id 0x%x",
-				    KEY_REISER40_ID);
-		return -1;
-	}
-	
-	locality1 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &ih1->key);
-
-	locality2 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &ih2->key);
-
-	return (ih1->pid == ih2->pid && locality1 == locality2);
-}
-
 static errno_t node40_shift(object_entity_t *entity, object_entity_t *target, 
 			    reiser4_pos_t *pos, shift_hint_t *hint, shift_flags_t flags)
 {
@@ -940,37 +918,74 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 	    nh40_get_free_space(estimate.dst))
 	{
 		int mergeable;
+		reiser4_plugin_t *plugin;
+		reiser4_pos_t src_pos = {0, ~0ul};
+		reiser4_pos_t dst_pos = {0, ~0ul};
 		item40_header_t *src_ih, *dst_ih;
+
+		item_entity_t src_item;
+		item_entity_t dst_item;
 
 		src_items = nh40_get_num_items(estimate.src);
 		dst_items = nh40_get_num_items(estimate.dst);
 
 		/* Getting border items from the both nodes */
 		if (flags & SF_LEFT) {
+			src_pos.item = 0;
+			dst_pos.item = dst_items - 1;
+			
 			src_ih = node40_ih_at(estimate.src, 0);
 			dst_ih = node40_ih_at(estimate.dst, dst_items - 1);
 		} else {
+			src_pos.item = src_items - 1;
+			dst_pos.item = 0;
+			
 			src_ih = node40_ih_at(estimate.src, src_items - 1);
 			dst_ih = node40_ih_at(estimate.dst, 0);
 		}
 
-		if ((mergeable = node40_mergeable(src_ih, dst_ih)) < 0)
-			return -1;
+		/*
+		  Preparing item entities to be passed to item shift
+		  method.
+		*/
+		node40_item_init((object_entity_t *)estimate.src,
+				 &src_pos, &src_item);
+			
+		node40_item_init((object_entity_t *)estimate.dst,
+				 &dst_pos, &dst_item);
+
+		mergeable = src_item.plugin->item_ops.mergeable &&
+			src_item.plugin->item_ops.mergeable(&src_item, &dst_item);
+
+		if (!(plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, src_ih->pid))) {
+			aal_exception_error("Can't find item plugin by its id 0x%x",
+					    src_ih->pid);
+			return 0;
+		}
 		
 		/* Checking if items are mergeable */
 		if (mergeable) {
-			/*
-			  Preparing item entities to be passed to item shift
-			  method.
-			*/
+			if (plugin_call(return -1, plugin->item_ops, shift,
+					&dst_item, &src_item, &pos->unit,
+					hint, flags))
+				return -1;
 		} else {
 			/*
-			  Here we should perform some kind of splitting the
-			  border item of the source node onto two parts. First
-			  part will stay in the source node, and another one
-			  will be moved to neighbour node. Also here needed
-			  space should be prepared in the neighbour node.
+			  Checking if we have the case when items have realy
+			  different nature. Or them have the same type, but
+			  belong to the different objects (different files).
 			*/
+			if (src_item.plugin->h.sign.group !=
+			    dst_item.plugin->h.sign.group)
+			{
+				/*
+				  Here we should perform some kind of splitting
+				  the border item of the source node onto two
+				  parts. The first part will stay in the source
+				  node, and another one will be moved to
+				  neighbour node.
+				*/
+			}
 		}
 	}
 

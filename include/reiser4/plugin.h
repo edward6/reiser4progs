@@ -37,6 +37,7 @@ struct shift_hint {
 	int ipmoved;
 
 	uint32_t items;
+	uint32_t units;
 	uint32_t bytes;
 };
 
@@ -615,8 +616,11 @@ struct reiser4_item_ops {
 		       uint32_t *);
 
 	/* Performs shift of units from passed @src item to @dst item */
-	int (*shift) (item_entity_t *, item_entity_t *,
-		      uint32_t *, shift_flags_t);
+	errno_t (*shift) (item_entity_t *, item_entity_t *,
+			  uint32_t *, shift_hint_t *, shift_flags_t);
+
+	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
+	int (*mergeable) (item_entity_t *, item_entity_t *);
 	
 	/* Prints item into specified buffer */
 	errno_t (*print) (item_entity_t *, aal_stream_t *, uint16_t);

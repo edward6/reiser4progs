@@ -386,6 +386,7 @@ static reiser4_plugin_t stat40_plugin = {
 		
 		.fetch          = NULL,
 		.update         = NULL,
+		.mergeable      = NULL,
 	    
 		.open           = stat40_open,
 		.count		= stat40_count,
