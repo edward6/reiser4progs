@@ -8,7 +8,6 @@
 #include "node40.h"
 
 extern reiser4_plugin_t node40_plugin;
-
 static reiser4_core_t *core = NULL;
 
 /* Names of levels nodes lie on. It is used for node40_print function */
@@ -489,8 +488,10 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	aal_assert("umka-818", node != NULL, return -1);
 	aal_assert("umka-908", pos->unit == ~0ul, return -1);
     
-	if (!hint->data)
-		aal_assert("umka-712", hint->key.plugin != NULL, return -1);
+	if (!hint->data) {
+		aal_assert("umka-712", hint->key.plugin != NULL,
+			   return -1);
+	}
 
 	/* Makes expand of the node new item will be inaserted to */
 	if (node40_expand(node, pos, hint->len))

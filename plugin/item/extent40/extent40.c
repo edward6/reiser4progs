@@ -409,10 +409,56 @@ static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	return 1;
 }
 
+/* Estimates how many bytes may be shifted into neighbour item */
 static errno_t extent40_predict(item_entity_t *src_item,
 				item_entity_t *dst_item,
 				shift_hint_t *hint)
 {
+	uint32_t space;
+	
+	aal_assert("umka-1704", src_item != NULL, return -1);
+	aal_assert("umka-1705", dst_item != NULL, return -1);
+
+	space = hint->rest;
+		
+	if (hint->flags & SF_LEFT) {
+
+		if (hint->rest > hint->pos.unit * sizeof(extent40_t))
+			hint->rest = hint->pos.unit * sizeof(extent40_t);
+
+		hint->pos.unit -= hint->rest / sizeof(extent40_t);
+		
+		if (hint->pos.unit == 0 && hint->flags & SF_MOVIP) {
+			hint->pos.unit = (dst_item->len + hint->rest) /
+				sizeof(extent40_t);
+		}
+	} else {
+		uint32_t right;
+
+		if (src_item->len > hint->pos.unit * sizeof(extent40_t)) {
+
+			right = src_item->len -
+				(hint->pos.unit * sizeof(extent40_t));
+		
+			if (hint->rest > right)
+				hint->rest = right;
+
+			hint->pos.unit += hint->rest / sizeof(extent40_t);
+			
+			if (hint->flags & SF_MOVIP &&
+			    hint->pos.unit == (src_item->len / sizeof(extent40_t)))
+			{
+				hint->pos.unit = 0;
+			}
+		} else {
+			
+			if (hint->flags & SF_MOVIP)
+				hint->pos.unit = 0;
+
+			hint->rest = 0;
+		}
+	}
+
 	return 0;
 }
 
@@ -420,6 +466,47 @@ static errno_t extent40_shift(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
 {
+	uint32_t len;
+	void *src, *dst;
+	
+	aal_assert("umka-1706", src_item != NULL, return -1);
+	aal_assert("umka-1707", dst_item != NULL, return -1);
+	aal_assert("umka-1708", hint != NULL, return -1);
+
+	len = dst_item->len > hint->rest ? dst_item->len - hint->rest :
+		dst_item->len;
+
+	if (hint->flags & SF_LEFT) {
+		
+		/* Copying data from the src tail item to dst one */
+		aal_memcpy(dst_item->body + len, src_item->body,
+			   hint->rest);
+
+		/* Moving src tail data at the start of tail item body */
+		src = src_item->body + hint->rest;
+		dst = src - hint->rest;
+		
+		aal_memmove(dst, src, src_item->len - hint->rest);
+
+		/* Updating item's key by the first unit key */
+		if (extent40_unit_key(src_item, 0, &src_item->key))
+			return -1;
+	} else {
+		/* Moving dst tail body into right place */
+		src = dst_item->body;
+		dst = src + hint->rest;
+		
+		aal_memmove(dst, src, len);
+
+		/* Copying data from src item to dst one */
+		aal_memcpy(dst_item->body, src_item->body +
+			   src_item->len, hint->rest);
+
+		/* Updating item's key by the first unit key */
+		if (extent40_unit_key(dst_item, 0, &dst_item->key))
+			return -1;
+	}
+	
 	return 0;
 }
 
