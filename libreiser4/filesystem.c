@@ -138,9 +138,9 @@ reiser4_owner_t reiser4_fs_belongs(
 	return O_UNKNOWN;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
-/* Destroys reiser4 super block */
+/* Destroys reiser4 master super block */
 errno_t reiser4_fs_clobber(aal_device_t *device) {
 	blk_t blk;
 	aal_block_t *block;

@@ -62,7 +62,7 @@ reiser4_format_t *reiser4_format_open(
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
@@ -247,7 +247,7 @@ uint32_t reiser4_format_get_make_stamp(
 			   get_stamp, format->entity);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Sets new root block */
 void reiser4_format_set_root(

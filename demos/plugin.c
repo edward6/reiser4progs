@@ -10,13 +10,11 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
-#  include <stdio.h>
-#  include <fcntl.h>
-#  include <unistd.h>
-#  include <sys/types.h>
-#  include <sys/stat.h>
-#endif
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
@@ -37,8 +35,6 @@ int main(int argc, char *argv[]) {
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 
-#ifndef ENABLE_COMPACT    
-    
 	if (argc < 2) {
 		plugin_print_usage();
 		return 0xfe;
@@ -64,7 +60,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_device;
 	}
 
-	/* Here will be some code */
+	/* Sorry, not finished yet! */
 	
 	reiser4_fs_close(fs);
     
@@ -79,8 +75,5 @@ int main(int argc, char *argv[]) {
 	aal_device_close(device);
  error_free_libreiser4:
 	libreiser4_done();
-    
-#endif
-	return 0xff;
 }
 

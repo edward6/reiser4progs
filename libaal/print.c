@@ -11,7 +11,7 @@
 
 #include <aal/aal.h>
 
-#ifdef ENABLE_COMPACT
+#ifdef ENABLE_ALONE
 
 #include <stdarg.h>
 

@@ -29,7 +29,7 @@ uint32_t reiser4_item_units(reiser4_coord_t *coord) {
 	return 1;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /*
   We can estimate size for insertion and for pasting of hint->data (to be
@@ -265,7 +265,7 @@ errno_t reiser4_item_get_key(reiser4_coord_t *coord,
 	return 0;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Updates item key in node and in coord->item.key field */
 errno_t reiser4_item_set_key(reiser4_coord_t *coord, reiser4_key_t *key) {

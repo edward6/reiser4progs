@@ -10,7 +10,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <printf.h>
 #  include <stdlib.h>
 #endif
@@ -28,7 +28,7 @@ reiser4_abort_t abort_func = libreiser4_abort;
 static void libreiser4_abort(char *message) {
 	aal_exception_fatal(message);
 	
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 	exit(-1);
 #endif
 }
@@ -67,7 +67,7 @@ static reiser4_plugin_t *factory_nfind(
 	return libreiser4_factory_nfind(type, name);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Handler for item insert requests from the all plugins */
 static errno_t tree_insert(
@@ -277,7 +277,7 @@ reiser4_core_t core = {
 		.lock       = tree_lock,
 		.unlock     = tree_unlock,
 
-#ifndef ENABLE_COMPACT	
+#ifndef ENABLE_ALONE
 		/* Installing callback function for inserting items into the
 		 * tree */
 		.insert	    = tree_insert,
@@ -310,7 +310,7 @@ const char *libreiser4_version(void) {
 	return VERSION;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Support for the %k occurences in the formated messages */
 #define PA_REISER4_KEY  (PA_LAST)
@@ -355,7 +355,7 @@ errno_t libreiser4_init(void) {
 		return -1;
 	}
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 	register_printf_function('k', print_key, arginfo_k);
 #endif
     

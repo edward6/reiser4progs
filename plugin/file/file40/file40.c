@@ -11,7 +11,7 @@
 
 #include <sys/stat.h>
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <time.h>
 #  include <unistd.h>
 #endif

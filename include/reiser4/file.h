@@ -25,7 +25,7 @@ extern int32_t reiser4_file_read(reiser4_file_t *file, void *buff,
 
 extern void reiser4_file_close(reiser4_file_t *file);
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 extern errno_t reiser4_file_print(reiser4_file_t *file,
 				  aal_stream_t *stream);

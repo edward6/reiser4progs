@@ -77,7 +77,7 @@ void reiser4_oid_close(
 	aal_free(oid);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Creates oid allocator in specified area */
 reiser4_oid_t *reiser4_oid_create(

@@ -25,7 +25,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <stdio.h>
 #endif
 
@@ -55,7 +55,7 @@ aal_gauge_t *aal_gauge_create(
 	gauge->handler = handler;
 	gauge->state = GAUGE_STARTED;
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 	if (type == GAUGE_INDICATOR)
 		setlinebuf(stderr);
 #endif

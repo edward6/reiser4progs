@@ -53,7 +53,7 @@ static int32_t tail40_read(item_entity_t *item, void *buff,
 	return count;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Rewrites tail from passed @pos by data specifed by hint */
 static int32_t tail40_write(item_entity_t *item, void *buff,
@@ -222,7 +222,7 @@ static int tail40_lookup(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static int tail40_mergeable(item_entity_t *item1,
 			    item_entity_t *item2)
@@ -372,7 +372,7 @@ static reiser4_plugin_t tail40_plugin = {
 			.desc = "Tail item for reiserfs 4.0, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.init	        = tail40_init,
 		.write	        = tail40_write,
 		.remove	        = tail40_remove,

@@ -17,7 +17,7 @@
 extern reiser4_journal_t *reiser4_journal_open(reiser4_fs_t *fs,
 					       aal_device_t *device);
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 extern errno_t reiser4_journal_mark(reiser4_journal_t *journal);
 

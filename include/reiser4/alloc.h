@@ -17,7 +17,7 @@
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 
 					   count_t count);
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 extern reiser4_alloc_t *reiser4_alloc_create(reiser4_fs_t *fs, 
 					     count_t count);

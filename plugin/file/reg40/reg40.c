@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <time.h>
 #  include <unistd.h>
 #endif
@@ -200,7 +200,7 @@ static object_entity_t *reg40_open(void *tree,
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Creating the file described by pased @hint */
 static object_entity_t *reg40_create(void *tree, 
@@ -466,7 +466,7 @@ static reiser4_plugin_t reg40_plugin = {
 			.desc = "Regular file for reiserfs 4.0, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.create	    = reg40_create,
 		.write	    = reg40_write,
 		.truncate   = reg40_truncate,

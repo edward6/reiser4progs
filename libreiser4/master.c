@@ -13,7 +13,7 @@
 
 #define SUPER(master) ((reiser4_master_sb_t *)master->block->data)
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Forms master super block disk structure */
 reiser4_master_t *reiser4_master_create(
@@ -195,7 +195,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 		   should call the function which detectes used format on the
 		   device.
 		*/
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		{
 			reiser4_plugin_t *plugin;
 	    
@@ -241,7 +241,7 @@ reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master) {
 	return reiser4_master_open(device);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Saves master super block to device. */
 errno_t reiser4_master_sync(

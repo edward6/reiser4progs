@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef DEVICE_H
-#define DEVICE_H
+#ifndef AAL_DEVICE_H
+#define AAL_DEVICE_H
 
 #include <aal/types.h>
 

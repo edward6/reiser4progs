@@ -8,8 +8,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef STRING_H
-#define STRING_H
+#ifndef AAL_STRING_H
+#define AAL_STRING_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -17,7 +17,7 @@
 
 #include <aal/types.h>
 
-#ifdef ENABLE_COMPACT
+#ifdef ENABLE_ALONE
 
 #define aal_memmove aal_memcpy
 
@@ -55,7 +55,7 @@ extern char *aal_strsep(char **stringp, const char *delim);
 #define aal_strrchr strrchr
 #define aal_strsep  strsep
 
-#endif	/* ENABLE_COMPACT */
+#endif	/* ENABLE_ALONE */
 
 extern char *aal_strndup(const char *s, uint32_t n);
 

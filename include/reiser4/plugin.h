@@ -1263,7 +1263,7 @@ struct reiser4_core {
   __plugin_init and __plugin_fini, which may be accepted durring plugin init by
   means of using dl* functions.
 */
-#if defined(ENABLE_COMPACT) || defined(ENABLE_MONOLITHIC)
+#if defined(ENABLE_ALONE) || defined(ENABLE_MONOLITHIC)
 
 #define plugin_register(init, fini)			       \
     static reiser4_plugin_init_t __plugin_init		       \

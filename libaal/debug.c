@@ -15,7 +15,7 @@
 
 #include <aal/aal.h>
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <unistd.h>
 #endif
 
@@ -23,13 +23,13 @@ static void default_assert_handler(char *hint, int cond, char *text,
 				   char *file, int line, char *func)
 {
 	/* 
-	   Actual exception throwing. Messages will contain hint for owner,
-	   file, line and function assertion was failed in.
+	  Actual exception throwing. Messages will contain hint for owner, file,
+	  line and function assertion was failed in.
 	*/ 
 	aal_exception_bug("%s: Assertion (%s) at %s:%d in function %s() failed.",
 			  hint, text, file, line, func);
 	
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 	exit(-1);
 #endif
 }

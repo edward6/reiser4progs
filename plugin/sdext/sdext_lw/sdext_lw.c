@@ -9,7 +9,7 @@
 #include "sdext_lw.h"
 #include <aux/aux.h>
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <sys/stat.h>
 #endif
 
@@ -58,7 +58,7 @@ static uint16_t sdext_lw_length(rbody_t *body) {
 	return sizeof(sdext_lw_t);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static char sdext_lw_file_type(uint16_t mode) {
 	if (S_ISDIR(mode))
@@ -133,7 +133,7 @@ static reiser4_plugin_t sdext_lw_plugin = {
 		.init	 = sdext_lw_init,
 		.open	 = sdext_lw_open,
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.print   = sdext_lw_print,
 #else
 		.print   = NULL,

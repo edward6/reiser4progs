@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <time.h>
 #  include <unistd.h>
 #endif
@@ -288,7 +288,7 @@ static object_entity_t *dir40_open(void *tree,
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static char *dir40_empty_dir[2] = { ".", ".." };
 
@@ -683,7 +683,7 @@ static reiser4_plugin_t dir40_plugin = {
 			.desc = "Compound directory for reiserfs 4.0, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.create	    = dir40_create,
 		.write	    = dir40_write,
 		.layout     = dir40_layout,

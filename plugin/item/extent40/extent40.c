@@ -98,7 +98,7 @@ static errno_t extent40_get_key(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static errno_t extent40_init(item_entity_t *item) {
 	aal_assert("umka-1669", item != NULL);
@@ -382,7 +382,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	return read;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Deallocates all extent units described by passed @list */
 static errno_t extent40_deallocate(item_entity_t *item,
@@ -742,7 +742,7 @@ static reiser4_plugin_t extent40_plugin = {
 			.desc = "Extent item for reiserfs 4.0, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.init	       = extent40_init,
 		.write         = extent40_write,
 		.estimate      = extent40_estimate,

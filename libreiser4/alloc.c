@@ -62,7 +62,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* 
    Creates new block allocator. Initializes all structures, calles block
@@ -181,7 +181,7 @@ count_t reiser4_alloc_used(
 			   used, alloc->entity);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Marks specified blocks as used */
 errno_t reiser4_alloc_occupy_region(

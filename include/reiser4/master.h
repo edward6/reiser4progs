@@ -14,7 +14,7 @@
 
 #include <reiser4/types.h>
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 extern reiser4_master_t *reiser4_master_create(aal_device_t *device, 
 					       rpid_t format_pid,

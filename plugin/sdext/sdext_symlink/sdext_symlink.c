@@ -43,7 +43,7 @@ static uint16_t sdext_symlink_length(rbody_t *body) {
 	return aal_strlen((char *)body);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static errno_t sdext_symlink_print(rbody_t *body, aal_stream_t *stream,
 			      uint16_t options)
@@ -72,7 +72,7 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 		.init	 = sdext_symlink_init,
 		.open	 = sdext_symlink_open,
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.print   = sdext_symlink_print,
 #else
 		.print   = NULL,

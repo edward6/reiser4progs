@@ -131,7 +131,7 @@ static errno_t journal40_valid(object_entity_t *entity) {
 	return 0;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static errno_t callback_alloc_journal(object_entity_t *entity,
 				      blk_t blk, void *data)
@@ -554,7 +554,7 @@ static reiser4_plugin_t journal40_plugin = {
 		},
 		.open	= journal40_open,
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.create	= journal40_create,
 		.sync	= journal40_sync,
 		.replay = journal40_replay,

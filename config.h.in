@@ -1,7 +1,7 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
 /* */
-#undef ENABLE_COMPACT
+#undef ENABLE_ALONE
 
 /* */
 #undef ENABLE_DEBUG

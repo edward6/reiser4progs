@@ -12,7 +12,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 #include <aal/types.h>
 extern struct aal_device_ops file_ops;

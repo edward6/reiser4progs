@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
 #  include <dlfcn.h>
 #  include <dirent.h>
 #  include <errno.h>
@@ -114,7 +114,7 @@ errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
 
 extern reiser4_abort_t abort_func;
 
-#if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
 
 /*
   Helper function for searcking for the needed symbol inside loaded dynamic
@@ -321,7 +321,7 @@ errno_t libreiser4_factory_init(void) {
 	plugin_handle_t handle;
 	reiser4_plugin_t *plugin;
 	
-#if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
 	DIR *dir;
 	struct dirent *ent;
 #else
@@ -332,7 +332,7 @@ errno_t libreiser4_factory_init(void) {
 
 	aal_assert("umka-159", plugins == NULL);
 
-#if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
 	if (!(dir = opendir(PLUGIN_DIR))) {
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
 				    "Can't open directory %s.", PLUGIN_DIR);
@@ -378,7 +378,7 @@ errno_t libreiser4_factory_init(void) {
 	}
 #endif
 	if (aal_list_length(plugins) == 0) {
-#if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
 		aal_exception_error("There are no any valid plugins found in %s.",
 				    PLUGIN_DIR);
 #else

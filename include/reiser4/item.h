@@ -17,7 +17,7 @@
 extern errno_t reiser4_item_get_key(reiser4_coord_t *coord,
 				    reiser4_key_t *key);
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 extern errno_t reiser4_item_set_key(reiser4_coord_t *coord,
 				    reiser4_key_t *key);

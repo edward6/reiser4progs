@@ -251,7 +251,7 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	return i - pos;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /*
   Returns TRUE is two items are mergeable. That is if they have the same plugin
@@ -1192,7 +1192,7 @@ static reiser4_plugin_t direntry40_plugin = {
 			.desc = "Compound direntry for reiserfs 4.0, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_COMPACT	    
+#ifndef ENABLE_ALONE	    
 		.init		= direntry40_init,
 		.write		= direntry40_write,
 		.remove		= direntry40_remove,

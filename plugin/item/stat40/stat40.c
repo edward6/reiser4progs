@@ -128,7 +128,7 @@ static int32_t stat40_read(item_entity_t *item, void *buff,
 	return 1;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Prepares item area */
 static errno_t stat40_init(item_entity_t *item) {
@@ -346,7 +346,7 @@ static int stat40_sdext_present(item_entity_t *item,
 	return hint.present;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Callback for counting the number of stat data extentions in use */
 static int callback_count_ext(uint8_t ext, reiser4_plugin_t *plugin,
@@ -474,7 +474,7 @@ static reiser4_plugin_t stat40_plugin = {
 			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.estimate	= stat40_estimate,
 		.write		= stat40_write,
 		.init		= stat40_init,

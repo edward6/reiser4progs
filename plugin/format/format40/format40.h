@@ -12,6 +12,7 @@
 #  include <config.h>
 #endif
 
+#include <aux/aux.h>
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 

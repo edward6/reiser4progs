@@ -12,7 +12,7 @@
 #  include <config.h>
 #endif
 
-#ifdef ENABLE_COMPACT
+#ifdef ENABLE_ALONE
 
 extern int aal_vsnprintf(char *buff, unsigned int n, const char *format, 
 			 va_list arg_list);

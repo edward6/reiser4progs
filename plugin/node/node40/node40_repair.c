@@ -7,7 +7,7 @@
 
 #include "node40.h"
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 #define INVALID_U16	0xffff
 

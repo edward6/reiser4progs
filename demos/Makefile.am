@@ -1,3 +1,5 @@
+ifndef ENABLE_ALONE
+
 noinst_PROGRAMS = list ls cat plugin
 
 list_SOURCES	= list.c
@@ -33,3 +35,4 @@ plugin_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 
 INCLUDES	= -I$(top_srcdir)/include -I$(top_srcdir)/progs/include
 
+#endif

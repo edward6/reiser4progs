@@ -20,7 +20,7 @@ static int callback_node_free(void *data) {
 	return reiser4_node_close(node) == 0;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static int callback_node_sync(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
@@ -48,7 +48,7 @@ static void callback_set_prev(void *data, aal_list_t *prev) {
 static lru_ops_t lru_ops = {
 	.free     = callback_node_free,
 	
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 	.sync     = callback_node_sync,
 #else
 	.sync     = NULL,
@@ -133,7 +133,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Requests block allocator for new block and creates empty node in it */
 reiser4_node_t *reiser4_tree_alloc(
@@ -306,7 +306,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Creates new balanced tree on specified filesystem */
 reiser4_tree_t *reiser4_tree_create(
@@ -539,7 +539,7 @@ int reiser4_tree_lookup(
 	return -1;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* This function inserts nodeptr item to the tree */
 errno_t reiser4_tree_attach(

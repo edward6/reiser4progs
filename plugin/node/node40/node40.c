@@ -37,7 +37,7 @@ inline uint16_t node40_free_space_end(node40_t *node) {
 	return aal_block_size(node->block) - items * sizeof(item40_header_t);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Creates node40 entity on specified device and block with specified level */
 static object_entity_t *node40_create(aal_device_t *device,
@@ -305,7 +305,7 @@ static errno_t node40_item(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /*
   Makes expand passed @node by @len in odrer to make room for insert new
@@ -857,7 +857,7 @@ static void node40_set_flush_stamp(object_entity_t *entity, uint64_t stamp) {
 	nh40_set_flush_id((node40_t *)entity, stamp);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Updates key at @pos by specified @key */
 static errno_t node40_set_key(object_entity_t *entity, 
@@ -1028,7 +1028,7 @@ static int node40_lookup(object_entity_t *entity,
 	return result;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Checks if two item entities are mergeable */
 static bool_t node40_mergeable(item_entity_t *item1,
@@ -1629,7 +1629,7 @@ static reiser4_plugin_t node40_plugin = {
 		.get_make_stamp	 = node40_get_make_stamp,
 		.get_flush_stamp = node40_get_flush_stamp,
 	
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.create		 = node40_create,
 		.sync            = node40_sync,
 		.insert		 = node40_insert,

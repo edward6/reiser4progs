@@ -8,7 +8,7 @@
 
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Creates node instance based on passed device and block number */
 reiser4_node_t *reiser4_node_create(
@@ -192,7 +192,7 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 	aal_assert("umka-1761", node != NULL);
 	aal_assert("umka-1762", node->entity != NULL);
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 	
 	/* Closing children */
 	if (node->children) {
@@ -464,10 +464,12 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 	uint32_t level;
 
 	rpos_t pos;
+	reiser4_node_t *old;
 	reiser4_node_t *child;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
-	
+
+	old = node;
 	level = orig = reiser4_node_level(node);
 
 	while (node->parent && !found) {
@@ -522,24 +524,6 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 			    reiser4_node_items(node) - 1 : 0);
 	}
 
-	return node;
-}
-
-/* Finds specified neighbour node */
-static reiser4_node_t *reiser4_node_fnn(reiser4_node_t *node,
-					aal_direction_t where)
-{	
-	uint32_t level;
-	reiser4_node_t *old = node;
-	
-	level = reiser4_node_level(node);
-	
-	if (!(node = reiser4_node_neighbour(node, where)))
-		return NULL;
-	
-	if (level != reiser4_node_level(node))
-		return NULL;
-	
 	if (where == D_LEFT) {
 		old->left = node;
 		node->right = old;
@@ -566,7 +550,7 @@ reiser4_node_t *reiser4_node_left(
 
 	if (!node->left) {
 		aal_assert("umka-1629", node->tree != NULL);
-		node->left = reiser4_node_fnn(node, D_LEFT);
+		node->left = reiser4_node_neighbour(node, D_LEFT);
 	}
 
 	return node->left;
@@ -581,7 +565,7 @@ reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
     
 	if (!node->right) {
 		aal_assert("umka-1630", node->tree != NULL);
-		node->right = reiser4_node_fnn(node, D_RIGHT);
+		node->right = reiser4_node_neighbour(node, D_RIGHT);
 	}
     
 	return node->right;
@@ -606,8 +590,8 @@ errno_t reiser4_node_attach(
 	  Getting neighbours. This should be done after reiser4_node_register is
 	  done ans parent assigned.
 	*/
-	child->left = reiser4_node_fnn(child, D_LEFT);
-	child->right = reiser4_node_fnn(child, D_RIGHT);
+	child->left = reiser4_node_neighbour(child, D_LEFT);
+	child->right = reiser4_node_neighbour(child, D_RIGHT);
 	
 	return 0;
 }
@@ -758,6 +742,7 @@ errno_t reiser4_node_valid(
 			   valid, node->entity);
 }
 
+/* Returns node level */
 uint8_t reiser4_node_level(
 	reiser4_node_t *node)
 {
@@ -767,7 +752,7 @@ uint8_t reiser4_node_level(
 			   level, node->entity);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Makes copy @count items from @src_node into @dst_node */
 errno_t reiser4_node_copy(reiser4_node_t *dst_node, rpos_t *dst_pos,

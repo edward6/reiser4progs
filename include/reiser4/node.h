@@ -19,7 +19,7 @@ extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
 
 extern uint8_t reiser4_node_level(reiser4_node_t *node);
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
 					   blk_t blk, rpid_t pid,

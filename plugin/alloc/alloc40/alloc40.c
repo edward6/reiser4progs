@@ -171,7 +171,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* 
    Initializes new alloc40 instance, creates bitmap and return new instance to
@@ -338,7 +338,7 @@ static void alloc40_close(object_entity_t *entity) {
 	aal_free(alloc);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Marks specified region as used in block allocator */
 static errno_t alloc40_occupy_region(object_entity_t *entity,
@@ -571,7 +571,7 @@ static reiser4_plugin_t alloc40_plugin = {
 		.open		       = alloc40_open,
 		.close		       = alloc40_close,
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.create		       = alloc40_create,
 		.assign		       = alloc40_assign,
 		.sync		       = alloc40_sync,

@@ -53,7 +53,7 @@ static uint16_t sdext_lt_length(rbody_t *body) {
 	return sizeof(sdext_lt_t);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static errno_t sdext_lt_print(rbody_t *body, aal_stream_t *stream,
 			      uint16_t options)
@@ -87,7 +87,7 @@ static reiser4_plugin_t sdext_lt_plugin = {
 		.init	 = sdext_lt_init,
 		.open	 = sdext_lt_open,
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.print   = sdext_lt_print,
 #else
 		.print   = NULL,

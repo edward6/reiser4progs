@@ -40,7 +40,7 @@ static int nodeptr40_branch(item_entity_t *item) {
 	return 1;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Writes of the specified nodeptr into passed @item*/
 static int32_t nodeptr40_write(item_entity_t *item, void *buff,
@@ -151,7 +151,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		},
 		.check = NULL,
 		
-#ifndef ENABLE_COMPACT	    
+#ifndef ENABLE_ALONE	    
 		.init		= nodeptr40_init,
 		.write          = nodeptr40_write,
 		.estimate	= nodeptr40_estimate,

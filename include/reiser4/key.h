@@ -14,6 +14,10 @@
 
 #include <reiser4/types.h>
 
+#ifndef ENABLE_ALONE
+extern errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream);
+#endif
+
 extern int reiser4_key_compare(reiser4_key_t *key1, reiser4_key_t *key2);
 extern errno_t reiser4_key_assign(reiser4_key_t *dst, reiser4_key_t *src);
 
@@ -44,11 +48,5 @@ extern errno_t reiser4_key_guess(reiser4_key_t *key);
 extern void reiser4_key_maximal(reiser4_key_t *key);
 extern void reiser4_key_minimal(reiser4_key_t *key);
 extern void reiser4_key_clean(reiser4_key_t *key);
-
-#ifndef ENABLE_COMPACT
-
-extern errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream);
-
-#endif
 
 #endif

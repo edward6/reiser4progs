@@ -365,7 +365,7 @@ static errno_t key40_build_generic(key_entity_t *key,
 	return 0;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Prints key into passed stream */
 errno_t key40_print(key_entity_t *key,
@@ -404,7 +404,7 @@ static reiser4_plugin_t key40_plugin = {
 		.clean		= key40_clean,
 		.compare	= key40_compare,
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.print		= key40_print,
 #else
 		.print		= NULL,

@@ -17,7 +17,7 @@
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 extern reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs);
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 extern reiser4_tree_t *reiser4_tree_create(reiser4_fs_t *fs, 
 					   reiser4_profile_t *profile);

@@ -279,7 +279,7 @@ reiser4_file_t *reiser4_file_open(
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 errno_t reiser4_file_truncate(
 	reiser4_file_t *file,	            /* file for truncating */

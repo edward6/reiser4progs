@@ -42,7 +42,7 @@ static void oid40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Initializes oid allocator instance and return it to the caller */
 static object_entity_t *oid40_create(const void *start, 
@@ -184,7 +184,7 @@ static reiser4_plugin_t oid40_plugin = {
 		.close		= oid40_close,
 		.valid		= oid40_valid,
 		
-#ifndef ENABLE_COMPACT	
+#ifndef ENABLE_ALONE	
 		.create		= oid40_create,
 		.next		= oid40_next,
 		.allocate	= oid40_allocate,

@@ -73,7 +73,7 @@ reiser4_journal_t *reiser4_journal_open(
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 static errno_t callback_action_mark(
 	object_entity_t *entity,	/* device for operating on */ 

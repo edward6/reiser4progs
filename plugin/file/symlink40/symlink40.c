@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 #  include <time.h>
 #  include <unistd.h>
 #endif
@@ -83,7 +83,7 @@ static object_entity_t *symlink40_open(void *tree,
 	return NULL;
 }
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *symlink40_create(void *tree, 
@@ -425,7 +425,7 @@ static reiser4_plugin_t symlink40_plugin = {
 			.desc = "Symlink for reiserfs 4.0, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 		.create	    = symlink40_create,
 		.write	    = symlink40_write,
 		.layout     = symlink40_layout,

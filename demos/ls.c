@@ -9,10 +9,8 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
-#  include <stdio.h>
-#  include <fcntl.h>
-#endif
+#include <stdio.h>
+#include <fcntl.h>
 
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
@@ -36,8 +34,6 @@ int main(int argc, char *argv[]) {
 	reiser4_file_t *dir;
 	reiser4_entry_hint_t entry;
 
-#ifndef ENABLE_COMPACT    
-    
 	if (argc < 3) {
 		ls_print_usage();
 		return 0xfe;
@@ -144,8 +140,5 @@ int main(int argc, char *argv[]) {
 	aal_device_close(device);
  error_free_libreiser4:
 	libreiser4_done();
-    
-#endif
-	return 0xff;
 }
 

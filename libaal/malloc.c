@@ -16,7 +16,7 @@
   handlers as NULL, because application that is use libreiser4 and libaal must
   set it up.
 */
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
 
 #include <stdlib.h>
 
@@ -33,12 +33,12 @@ static aal_free_handler_t free_handler = NULL;
 #endif
 
 /* 
-   Sets new handler for malloc function. This is useful for alone mode, because
-   all application which are working in alone mode (without libc, probably in
-   real mode of processor, etc) have own memory allocation factory. That factory
-   usualy operates on some static memory heap. And all allocation function just
-   mark some piece of heap as used. And all deallocation function marks
-   corresponding piece as unused.
+  Sets new handler for malloc function. This is useful for alone mode, because
+  all application which are working in alone mode (without libc, probably in
+  real mode of processor, etc) have own memory allocation factory. That factory
+  usualy operates on some static memory heap. And all allocation function just
+  mark some piece of heap as used. And all deallocation function marks
+  corresponding piece as unused.
 */
 void aal_malloc_set_handler(
 	aal_malloc_handler_t handler)  /* new handler to be set */
@@ -61,9 +61,9 @@ void *aal_malloc(
 	void *mem;
 
 	/* 
-	   We are using simple printf function instead of exception, because
-	   exception initialization is needed correctly worked memory allocation
-	   handler.
+	  We are using simple printf function instead of exception, because
+	  exception initialization is needed correctly worked memory allocation
+	  handler.
 	*/
 	if (!malloc_handler)
 		return NULL;
@@ -89,8 +89,8 @@ void *aal_calloc(
 }
 
 /* 
-   Sets new handler for "realloc" operation. The same as in malloc case. See
-   above for details.
+  Sets new handler for "realloc" operation. The same as in malloc case. See
+  above for details.
 */
 void aal_realloc_set_handler(
 	aal_realloc_handler_t handler)   /* new handler for realloc */
