@@ -55,33 +55,52 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 {
 	dir40_t *dir;
 	place_t next;
+	lookup_t res;
 	
 	aal_assert("umka-1983", entity != NULL);
 	aal_assert("umka-1984", offset != NULL);
 
 	dir = (dir40_t *)entity;
 
-	if (obj40_lookup(&dir->obj, offset, LEAF_LEVEL,
-			 &next) == PRESENT)
+	if ((res = obj40_lookup(&dir->obj, offset, LEAF_LEVEL,
+				&next) == FAILED))
 	{
-		obj40_relock(&dir->obj, &dir->body, &next);
-		aal_memcpy(&dir->body, &next, sizeof(dir->body));
-
-#ifndef ENABLE_STAND_ALONE
-		aal_memcpy(&dir->offset, offset, sizeof(*offset));
-#endif
-		
-		if (dir->body.pos.unit == ~0ul)
-			dir->body.pos.unit = 0;
-
-		return 0;
+		return -EINVAL;
 	}
 
-	return -EINVAL;
+#ifndef ENABLE_STAND_ALONE
+	if (res == ABSENT) {
+		uint64_t locality;
+
+		/* Initializing item entity at @next place */
+		if (core->tree_ops.realize(dir->obj.tree, &next))
+			return -EINVAL;
+
+		locality = plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
+				       get_locality, &next.item.key);
+
+		/* Items are not mergeable */
+		if (locality != obj40_objectid(&dir->obj))
+			return -EINVAL;
+	}
+#endif
+		
+	obj40_relock(&dir->obj, &dir->body, &next);
+	aal_memcpy(&dir->body, &next, sizeof(dir->body));
+
+#ifndef ENABLE_STAND_ALONE
+	aal_memcpy(&dir->offset, offset, sizeof(*offset));
+#endif
+		
+	if (dir->body.pos.unit == ~0ul)
+		dir->body.pos.unit = 0;
+
+	return 0;
 }
 
 /* Resets internal direntry position at zero */
 static errno_t dir40_reset(object_entity_t *entity) {
+	errno_t res;
 	dir40_t *dir;
 	key_entity_t key;
     
@@ -354,7 +373,9 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 	obj40_lock(&dir->obj, &dir->obj.statdata);
 	
 	/* Positioning to the first directory unit */
-	dir40_reset((object_entity_t *)dir);
+	if (dir40_reset((object_entity_t *)dir))
+		goto error_free_dir;
+	
 	return (object_entity_t *)dir;
 
  error_free_dir:
