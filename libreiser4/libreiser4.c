@@ -245,7 +245,7 @@ reiser4_core_t core = {
 		/* This one for initializing an item at place */
 		.realize    = tree_realize,
 
-		/* Returns next item form the passed place */
+		/* Returns next item from the passed place */
 		.next	    = tree_next,
     
 #ifndef ENABLE_STAND_ALONE
