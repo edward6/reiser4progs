@@ -13,7 +13,7 @@
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
 
-/* Compaund directory structure */
+/* Regular file structure */
 struct reg40 {
 
 	/* Common fields (statdata, etc) */

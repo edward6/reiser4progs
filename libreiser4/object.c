@@ -13,7 +13,7 @@
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
-/* Helper callback for probing paased @plugin */
+/* Helper callback for probing passed @plugin */
 static int callback_guess_object(reiser4_plugin_t *plugin,
 				     void *data)
 {
@@ -42,7 +42,7 @@ static int callback_guess_object(reiser4_plugin_t *plugin,
 	return 0;
 }
 
-/* This function is trying to detect node plugin */
+/* This function is trying to detect object plugin */
 static errno_t reiser4_object_guess(reiser4_object_t *object) {
 	
 	/* Finding object plugin by its id */

@@ -185,7 +185,7 @@ struct reiser4_object {
 
 #ifndef ENABLE_STAND_ALONE
 	
-	/* Full file name */
+	/* Full file name or printed key */
 	char name[256];
 
 	/*
