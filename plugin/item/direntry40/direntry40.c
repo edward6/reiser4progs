@@ -278,30 +278,32 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 				    "is not implemented yet!");
 		return -1;
 	} else {
-		uint32_t i;
+		uint32_t i, len;
 
 		if (dst_units > 0) {
 
+			len = dst_item->len - hint->part;
+			
 			/* Moving entry headers of dst direntry */
 			src = (void *)dst_direntry + sizeof(direntry40_t);
 			dst = src + (hint->units * sizeof(entry40_t));
-			size = dst_item->len - sizeof(direntry40_t);
+			size = len - sizeof(direntry40_t);
+
+			aal_memmove(dst, src, size);
 
 			/* Updating offsets of dst direntry */
-			entry = (entry40_t *)src;
+			entry = (entry40_t *)dst;
 
 			for (i = 0; i < dst_units; i++, entry++)
 				en40_inc_offset(entry, hint->part);
 			
-			aal_memmove(dst, src, size);
-
 			/* Moving entry bodies of dst direntry */
-			src = src + (dst_units*sizeof(entry40_t));
+			src = dst + (dst_units * sizeof(entry40_t));
 
 			dst = src + (hint->part - (hint->units *
 						   sizeof(entry40_t)));
 				
-			size -= dst_units*sizeof(entry40_t);
+			size -= (dst_units * sizeof(entry40_t));
 			
 			aal_memmove(dst, src, size);
 		}

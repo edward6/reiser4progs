@@ -143,7 +143,7 @@ struct item40_header {
 typedef struct item40_header item40_header_t;
 
 #define ih40_get_offset(ih)	  aal_get_le16(ih, offset)
-#define ih40_set_offset(ih, val)  aal_set_le16(ih, offset, val)
+#define ih40_set_offset(ih, val)  aal_set_le16(ih, offset, val);
 
 #define ih40_inc_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) + val))
 #define ih40_dec_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) - val))

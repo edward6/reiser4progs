@@ -132,25 +132,25 @@ extern inline void k40_set_##L(key40_t *key, T loc);
 								    
 #define DEFINE_KEY40_FIELD(L, U, T)				    \
 static inline T k40_get_##L (const key40_t *key) {		    \
-    aal_assert("vpf-036", key != NULL, return 0);		    \
-    return (T) ((k40_get_el(key, KEY40_##U##_INDEX) &		    \
-	KEY40_##U##_MASK) >> KEY40_##U##_SHIFT);		    \
+        aal_assert("vpf-036", key != NULL, return 0);		    \
+        return (T) ((k40_get_el(key, KEY40_##U##_INDEX) &	    \
+	    KEY40_##U##_MASK) >> KEY40_##U##_SHIFT);		    \
 }								    \
 								    \
 static inline void k40_set_##L(key40_t *key, T loc) {		    \
-    uint64_t el;						    \
+        uint64_t el;						    \
 								    \
-    aal_assert("vpf-033", key != NULL, return);			    \
+        aal_assert("vpf-033", key != NULL, return);		    \
 								    \
-    el = k40_get_el(key, KEY40_##U##_INDEX);			    \
+        el = k40_get_el(key, KEY40_##U##_INDEX);		    \
 								    \
-    el &= ~KEY40_##U##_MASK;					    \
+        el &= ~KEY40_##U##_MASK;				    \
 								    \
-    aal_assert("vpf-034", ((loc << KEY40_##U##_SHIFT) &		    \
-        ~KEY40_##U##_MASK) == 0, return);			    \
+        aal_assert("vpf-034", ((loc << KEY40_##U##_SHIFT) &	    \
+                ~KEY40_##U##_MASK) == 0, return);		    \
 								    \
-    el |= (loc << KEY40_##U##_SHIFT);				    \
-    k40_set_el(key, KEY40_##U##_INDEX, el);			    \
+        el |= (loc << KEY40_##U##_SHIFT);			    \
+        k40_set_el(key, KEY40_##U##_INDEX, el);			    \
 }
 
 DEFINE_KEY40_FIELD(locality, LOCALITY, uint64_t);

@@ -1095,10 +1095,10 @@ static errno_t node40_shift_units(node40_t *src_node,
 	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
 
 	/* Updating source node fields */
-	nh40_dec_free_space_start(src_node, hint->part);
-	nh40_inc_free_space(src_node, hint->part);
+	pos.unit = 0;
+	pos.item = src_item.pos;
 
-	return 0;
+	return node40_shrink(src_node, &pos, hint->part);
 }
 
 /*

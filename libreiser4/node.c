@@ -1184,7 +1184,7 @@ errno_t reiser4_node_traverse(
 				if (!open_func)
 					goto update;
 
-				if (!(child = reiser4_node_cbk(node, &coord.entity.key))) {
+				if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
 						
 					if ((result = open_func(&child, ptr.ptr, hint->data)))
 						goto error_update_func;
