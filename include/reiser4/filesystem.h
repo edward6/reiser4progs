@@ -284,6 +284,12 @@ struct reiser4_tree {
 
 	preremove_func_t preremove;
 	pstremove_func_t pstremove;
+
+	/* Tree related plugin ids */
+	struct {
+		rpid_t key;
+		rpid_t nodeptr;
+	} profile;
 };
 
 struct traverse_hint {

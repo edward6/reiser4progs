@@ -218,6 +218,13 @@ static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
 #else
 	tree->mpressure = NULL;
 #endif
+
+	/*
+	  FIXME-UMKA: here should not be hardcoded plugin ids. Probably we
+	  should get the mfrom the fs instance.
+	*/
+	tree->profile.key = KEY_REISER40_ID;
+	tree->profile.nodeptr = ITEM_NODEPTR40_ID;
 	
 	return 0;
 }
@@ -462,7 +469,8 @@ int reiser4_tree_lookup(
 		
 		if (ptr.ptr == INVAL_BLK) {
 			aal_exception_error("Can't get pointer from nodeptr item %u, "
-					    "node %llu.", coord->pos.item, coord->node->blk);
+					    "node %llu.", coord->pos.item,
+					    coord->node->blk);
 			return -1;
 		}
 	
@@ -515,43 +523,42 @@ errno_t reiser4_tree_attach(
 	reiser4_node_t *node,       /* child to attached */
 	uint8_t level)
 {
-	rpid_t id;
-	int lookup;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
+
+	reiser4_pos_t pos = {0, ~0ul};
 
 	aal_assert("umka-913", tree != NULL, return -1);
 	aal_assert("umka-916", node != NULL, return -1);
     
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
-	
-	/* 
-	   FIXME-UMKA: Hardcoded nodeptr item id. Here should be getting nodeptr
-	   item plugin id from parent. In the case parent doesn't exist, it should
-	   be got from filesystem default profile.
-	*/
-	id = ITEM_NODEPTR40_ID;
-
-	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, id))) {
-		aal_exception_error("Can't find nodeptr item plugin "
-				    "by its id 0x%x.", id);
-		return -1;
-	}
-
 	aal_memset(&ptr, 0, sizeof(ptr));
+
+	hint.hint = &ptr;
 	ptr.ptr = node->blk;
 
 	reiser4_node_lkey(node, &hint.key);
-	hint.hint = &ptr;
+
+	hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE,
+					       tree->profile.nodeptr);
+	
+	if (!hint.plugin) {
+		aal_exception_error("Can't find item plugin by its id 0x%x.",
+				    tree->profile.nodeptr);
+		return -1;
+	}
 
 	if (reiser4_tree_insert(tree, &hint, level, &coord)) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return -1;
 	}
 
-	/* Attaching node to insert point node */
+	/*
+	  Attaching node to insert point node. We should attach formatted nodes
+	  only.
+	*/
 	if (reiser4_node_attach(coord.node, node)) {
 		aal_exception_error("Can't attach the node %llu in tree cache.", 
 				    node->blk);
