@@ -289,10 +289,11 @@ static object_entity_t *dir40_create(void *tree,
 	roid_t parent_locality;
 	roid_t objectid, locality;
 
+	reiser4_entry_hint_t *body;
+	reiser4_entry_hint_t *entry;
 	reiser4_statdata_hint_t stat;
-	reiser4_direntry_hint_t body;
-	reiser4_item_hint_t stat_hint;
 	reiser4_item_hint_t body_hint;
+	reiser4_item_hint_t stat_hint;
    
 	reiser4_plugin_t *stat_plugin;
 	reiser4_plugin_t *body_plugin;
@@ -354,20 +355,21 @@ static object_entity_t *dir40_create(void *tree,
 	*/
 	body_hint.plugin = body_plugin;
 	body_hint.key.plugin = hint->object.plugin; 
-   
-	body.count = sizeof(dir40_empty_dir) / sizeof(char *);
+   	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
 	plugin_call(hint->object.plugin->key_ops, build_entry, &body_hint.key,
 		    dir->hash, locality, objectid, ".");
 
-	if (!(body.unit = aal_calloc(body.count * sizeof(*body.unit), 0)))
+	if (!(body = aal_calloc(body_hint.count * sizeof(*body), 0)))
 		goto error_free_dir;
 
+	entry = body;
+	
 	/*
 	  Preparing hint for the empty directory. It consists of two entries:
 	  dot and dotdot.
 	*/
-	for (i = 0; i < body.count; i++) {
+	for (i = 0; i < body_hint.count; i++, entry++) {
 		char *name;
 		uint64_t loc, oid;
 
@@ -382,29 +384,29 @@ static object_entity_t *dir40_create(void *tree,
 		/* Preparing entry hints */
 		name = dir40_empty_dir[i];
 		
-		aal_strncpy(body.unit[i].name, name, aal_strlen(name));
+		aal_strncpy(entry->name, name, aal_strlen(name));
 
 		/*
 		  Building key for the statdata of object new entry will point
 		  to.
 		*/
-		body.unit[i].object.plugin = hint->object.plugin;
+		entry->object.plugin = hint->object.plugin;
 
 		plugin_call(hint->object.plugin->key_ops, build_generic,
-			    &body.unit[i].object, KEY_STATDATA_TYPE,
-			    loc, oid, 0);
+			    &entry->object, KEY_STATDATA_TYPE, loc, oid, 0);
 
 		/* Building key for the hash new entry will have */
-		body.unit[i].offset.plugin = hint->object.plugin;
+		entry->offset.plugin = hint->object.plugin;
 		
 		plugin_call(hint->object.plugin->key_ops, build_entry,
-			    &body.unit[i].offset, dir->hash, file40_locality(&dir->file),
-			    file40_objectid(&dir->file), body.unit[i].name);
+			    &entry->offset, dir->hash, file40_locality(&dir->file),
+			    file40_objectid(&dir->file), name);
 	}
 	
-	body_hint.hint = &body;
+	body_hint.hint = body;
 
 	/* Initializing stat data hint */
+	stat_hint.count = 1;
 	stat_hint.plugin = stat_plugin;
 	stat_hint.key.plugin = hint->object.plugin;
     
@@ -423,8 +425,8 @@ static object_entity_t *dir40_create(void *tree,
 	  in parent directory, which points to this new directory.
 	*/
 	lw_ext.nlink = 2;
-	lw_ext.size = body.count;
 	lw_ext.mode = S_IFDIR | 0755;
+	lw_ext.size = body_hint.count;
 
 	/* Unix extention hint initializing */
 	unix_ext.rdev = 0;
@@ -438,7 +440,7 @@ static object_entity_t *dir40_create(void *tree,
 	  Estimating body item and setting up "bytes" field from the unix
 	  extetion.
 	*/
-	if (plugin_call(body_plugin->item_ops, estimate, NULL, &body_hint, ~0ul)) {
+	if (plugin_call(body_plugin->item_ops, estimate, NULL, &body_hint, ~0ul, 1)) {
 		aal_exception_error("Can't estimate directory item.");
 		goto error_free_body;
 	}
@@ -468,74 +470,64 @@ static object_entity_t *dir40_create(void *tree,
 	aal_memcpy(&dir->body, &place, sizeof(place));
 	file40_lock(&dir->file, &dir->body);
 	
-	aal_free(body.unit);
+	aal_free(body);
 	return (object_entity_t *)dir;
 
  error_free_body:
-	aal_free(body.unit);
+	aal_free(body);
  error_free_dir:
 	aal_free(dir);
  error:
 	return NULL;
 }
 
-/* Adds n entries from buff to passed entity */
+/* Writes @n number of entries described by @buff to passed directory entity */
 static int32_t dir40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
 	uint32_t i;
 	uint64_t size;
-	
+
+	key_entity_t *key;
 	reiser4_place_t place;
 	reiser4_item_hint_t hint;
 	reiser4_entry_hint_t *entry;
 	dir40_t *dir = (dir40_t *)entity;
-	reiser4_direntry_hint_t body_hint;
     
 	aal_assert("umka-844", dir != NULL, return -1);
 	aal_assert("umka-845", buff != NULL, return -1);
    
+	key = &dir->file.key;
 	entry = (reiser4_entry_hint_t *)buff;
 	
 	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
-	body_hint.count = 1;
+	hint.count = 1;
+	hint.key.plugin = key->plugin;
+	hint.plugin = dir->body.item.plugin;
 
-	if (!(body_hint.unit = aal_calloc(sizeof(*entry), 0)))
-		return -1;
-    
-	hint.hint = &body_hint;
-
-	/* Loop until told amount of bytes will be writen */
-	for (i = 0; i < n; i++) {
-		key_entity_t *key = &dir->file.key;
-		
-		hint.key.plugin = key->plugin;
-		hint.plugin = dir->body.item.plugin;
-
-		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
+	/* Loop until told number of entries is written */
+	for (i = 0; i < n; i++, entry++) {
+		hint.hint = (void *)entry;
 
 		/* Building key of the new entry */
 		plugin_call(key->plugin->key_ops, build_entry, &hint.key,
 			    dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);
-
-		body_hint.unit[0].offset.plugin = key->plugin;
+	
+		entry->offset.plugin = key->plugin;
 			
-		plugin_call(key->plugin->key_ops, assign,
-			    &body_hint.unit[0].offset, &hint.key);
+		plugin_call(key->plugin->key_ops, assign, &entry->offset,
+			    &hint.key);
 
-		/* Inserting it into tree */
+		/* Inserting entry */
 		if (file40_insert(&dir->file, &hint, LEAF_LEVEL, &place)) {
 			aal_exception_error("Can't insert entry %s.",
 					    entry->name);
 			return -1;
 		}
-		
-		entry++;
 	}
-
+	
 	/* Updating size field in stat data */
 	if (file40_stat(&dir->file))
 		return -1;
@@ -544,8 +536,6 @@ static int32_t dir40_write(object_entity_t *entity,
 
 	if (file40_set_size(&dir->file, size + n))
 		return -1;
-	
-	aal_free(body_hint.unit);
 	
 	return i;
 }

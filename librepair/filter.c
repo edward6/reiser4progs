@@ -119,7 +119,7 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 	
 	/* The node corruption was not fixed - delete the internal item. */
 	repair_coord_left_pos_save(coord, &prev);
-	if (reiser4_node_remove(coord->node, &coord->pos)) {
+	if (reiser4_node_remove(coord->node, &coord->pos, 1)) {
 	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
 		coord->node->blk, coord->pos.item, coord->pos.unit);
 	    return -1;

@@ -406,13 +406,6 @@ struct reiser4_entry_hint {
 
 typedef struct reiser4_entry_hint reiser4_entry_hint_t;
 
-struct reiser4_direntry_hint {
-	uint32_t count;
-	reiser4_entry_hint_t *unit;
-};
-
-typedef struct reiser4_direntry_hint reiser4_direntry_hint_t;
-
 struct reiser4_file_hint {
 	rpid_t statdata;
 
@@ -447,8 +440,8 @@ struct reiser4_file_hint {
 typedef struct reiser4_file_hint reiser4_file_hint_t;
 
 /* 
-   Create item or paste into item on the base of this structure. Here "data" is
-   a pointer to data to be copied.
+  Create item or paste into item on the base of this structure. Here "data" is a
+  pointer to data to be copied.
 */ 
 struct reiser4_item_hint {
 	/*
@@ -465,6 +458,7 @@ struct reiser4_item_hint {
 	  used for creating an item.
 	*/
 	void *hint;
+	uint16_t count;
     
 	/* The key of item */
 	key_entity_t key;
@@ -659,10 +653,12 @@ struct reiser4_item_ops {
 			   uint32_t);
 
 	/* Inserts unit described by passed hint into the item */
-	errno_t (*insert) (item_entity_t *, void *, uint32_t);
+	errno_t (*insert) (item_entity_t *, void *, uint32_t,
+			   uint32_t);
 	
 	/* Estimates item */
-	errno_t (*estimate) (item_entity_t *, void *, uint32_t);
+	errno_t (*estimate) (item_entity_t *, void *, uint32_t,
+			     uint32_t);
     
 	/* Checks item for validness */
 	errno_t (*valid) (item_entity_t *);
@@ -779,7 +775,8 @@ struct reiser4_node_ops {
 	errno_t (*valid) (object_entity_t *);
 
 	/* Prints node into given buffer */
-	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *,
+			  uint16_t);
     
 	/* Returns item count */
 	uint16_t (*items) (object_entity_t *);
@@ -804,7 +801,7 @@ struct reiser4_node_ops {
 	errno_t (*insert) (object_entity_t *, rpos_t *, reiser4_item_hint_t *);
     
 	/* Removes item/unit at specified pos */
-	errno_t (*remove) (object_entity_t *, rpos_t *);
+	errno_t (*remove) (object_entity_t *, rpos_t *, uint32_t);
 
 	/* Removes some amount of items/units */
 	errno_t (*cut) (object_entity_t *, rpos_t *, rpos_t *);
@@ -1182,14 +1179,13 @@ struct reiser4_core {
 		   Inserts item/unit in the tree by calling reiser4_tree_insert
 		   function, used by all object plugins (dir, file, etc)
 		*/
-		errno_t (*insert)(void *, reiser4_place_t *,
-				  reiser4_item_hint_t *);
+		errno_t (*insert)(void *, reiser4_place_t *, reiser4_item_hint_t *);
     
 		/*
 		  Removes item/unit from the tree. It is used in all object
 		  plugins for modification purposes.
 		*/
-		errno_t (*remove)(void *, reiser4_place_t *);
+		errno_t (*remove)(void *, reiser4_place_t *, uint32_t);
 	
 		/* Returns right and left neighbour respectively */
 		errno_t (*right) (void *, reiser4_place_t *, reiser4_place_t *);

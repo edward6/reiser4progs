@@ -114,7 +114,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		aal_exception_error("Node (%llu): Failed to open the item (%u)."
 		    " Removed.", node->blk, pos->item);
 	    
-		if (reiser4_node_remove(node, pos)) {
+		if (reiser4_node_remove(node, pos, 1)) {
 		    aal_exception_bug("Node (%llu): Failed to delete the item "
 			"(%d).", node->blk, pos->item);
 		    return -1;
@@ -373,7 +373,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
 	    aal_exception_error("Node (%llu): The key %k of the item (%u) is "
 		"not valid. Item removed.", node->blk, &key, pos->item);
 	    
-	    if (reiser4_node_remove(node, pos)) {
+	    if (reiser4_node_remove(node, pos, 1)) {
 		aal_exception_bug("Node (%llu): Failed to delete the item "
 		    "(%d).", node->blk, pos->item);
 		return -1;

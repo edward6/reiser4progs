@@ -171,7 +171,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 		}
 		
 		if (!reiser4_item_extent(&coord)) {
-		    if (reiser4_node_remove(coord.node, pos)) {
+		    if (reiser4_node_remove(coord.node, pos, 1)) {
 			aal_exception_error("Node (%llu), item (%u): failed to "
 			    "remove the item.", node->blk, pos->item);
 			goto error_node_release;
