@@ -16,7 +16,7 @@
 extern reiser4_plugin_t sym40_plugin;
 
 /* Opens symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_open(object_info_t *info) {
+object_entity_t *sym40_open(object_info_t *info) {
 	sym40_t *sym;
 
 	aal_assert("umka-1163", info != NULL);
@@ -262,7 +262,7 @@ static errno_t sym40_layout(object_entity_t *entity,
 	return block_func(entity, blk, data);
 }
 
-extern errno_t sym40_realize(object_info_t *info);
+extern object_entity_t *sym40_realize(object_info_t *info);
 
 #endif
 
