@@ -309,8 +309,8 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
     
 	ih40_set_offset(ih, offset);
-	ih40_set_pid(ih, hint->plugin->h.sign.id);
 	ih40_set_len(ih, hint->len);
+	ih40_set_pid(ih, hint->plugin->h.sign.id);
     
 	return 0;
 }
@@ -397,7 +397,8 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	
 		/* Moving the item bodies */
 		aal_memmove(node->block->data + offset, node->block->data + 
-			    offset + len, nh40_get_free_space_start(node) - offset - len);
+			    offset + len, nh40_get_free_space_start(node) -
+			    offset - len);
     
 		/* Updating offsets */
 		end = node40_ih_at(node, nh40_get_num_items(node) - 1);
@@ -415,10 +416,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	return 0;
 }
 
-/* 
-   This function removes item from the node at specified pos. Do not try to
-   understand it. This is impossible. But it works correctly.
-*/
+/* This function removes item from the node at specified pos */
 errno_t node40_remove(object_entity_t *entity, 
 		      reiser4_pos_t *pos) 
 {
@@ -463,7 +461,8 @@ static errno_t node40_cut(object_entity_t *entity,
 		return -1;
 	
 	if (!(plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
+		aal_exception_error("Can't find item plugin by its "
+				    "id 0x%x.", pid);
 		return -1;
 	}
     
@@ -551,6 +550,24 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	return 0;
 }
 
+static char *levels[6] = {
+	"LEAF",
+	"LEAF",
+	"INTERNAL",
+	"INTERNAL",
+	"INTERNAL",
+	"INTERNAL"
+};
+
+static char *groups[6] = {
+	"STATDATA ITEM",
+	"NODEPTR ITEM",
+	"DIRENTRY ITEM",
+	"TAIL ITEM",
+	"EXTENT ITEM",
+	"PERMISSN ITEM",
+};
+
 /* 
    Prepare text node description and push it into specied buffer. Caller should
    decide what it should do with filled buffer.
@@ -568,11 +585,12 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 	aal_assert("umka-457", stream != NULL, return -1);
 
 	level = node40_get_level(entity);
+	aal_assert("umka-1580", level > 0, return -1);
 
 	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, "
-			  "items=%u, space=%u\n", level > LEAF_LEVEL ?
-			  "INTERNAL" : "LEAF", aal_block_number(node->block),
-			  level, node40_count(entity), node40_space(entity));
+			  "items=%u, space=%u\n", levels[level],
+			  aal_block_number(node->block), level,
+			  node40_count(entity), node40_space(entity));
 	
 	pos.unit = ~0ul;
 	
@@ -585,28 +603,15 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 		}
 
 		aal_stream_format(stream, "(%u) ", pos.item);
-		
-		if (item.plugin->h.sign.group == STATDATA_ITEM)
-			aal_stream_format(stream, "STATDATA ITEM");
-		else if (item.plugin->h.sign.group == DIRENTRY_ITEM)
-			aal_stream_format(stream, "DIRENTRY ITEM");
-		else if (item.plugin->h.sign.group == TAIL_ITEM)
-			aal_stream_format(stream, "TAIL ITEM");
-		else if (item.plugin->h.sign.group == NODEPTR_ITEM)
-			aal_stream_format(stream, "NODEPTR ITEM");
-		else if (item.plugin->h.sign.group == EXTENT_ITEM)
-			aal_stream_format(stream, "EXTENT ITEM");
-		else
-			aal_stream_format(stream, "UNKNOWN ITEM");
-	    
+		aal_stream_format(stream, groups[item.plugin->h.sign.group]);
 		aal_stream_format(stream, ": len=%u, KEY: ", item.len);
 		
 		if (plugin_call(return -1, item.key.plugin->key_ops, print,
 				&item.key.body, stream, options))
 			return -1;
 	
-		aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n", item.plugin->h.sign.id,
-			    item.plugin->h.label);
+		aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
+				  item.plugin->h.sign.id, item.plugin->h.label);
 
 		if (level > LEAF_LEVEL || options) {
 			
@@ -667,7 +672,7 @@ static int node40_lookup(object_entity_t *entity,
 #ifndef ENABLE_COMPACT
 
 struct node40_estimate {
-	int move_ip;
+	int ipmoved;
 	
 	node40_t *src;
 	node40_t *dst;
@@ -721,7 +726,7 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 		if (estimate->flags & SF_LEFT) {
 			if (node == estimate->src) {
 				if (estimate->pos->item == 0) {
-					estimate->move_ip = 1;
+					estimate->ipmoved = 1;
 					estimate->pos->item = dst_items;
 					node = estimate->dst;
 				} else
@@ -731,7 +736,7 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 			if (node == estimate->src) {
 				if (estimate->pos->item >= src_items - 1) {
 					if (estimate->pos->item > src_items - 1) {
-						estimate->move_ip = 1;
+						estimate->ipmoved = 1;
 						estimate->pos->item = 0;
 						node = estimate->dst;
 						break;
@@ -751,6 +756,9 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 		dst_space -= (len + sizeof(item40_header_t));
 
 		cur += (estimate->flags & SF_LEFT ? -1 : 1);
+
+		if (node != estimate->src)
+			break;
 	}
 	
 	estimate->part = dst_space;
@@ -758,8 +766,8 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 	return 0;
 }
 
-static int node40_shift(object_entity_t *entity, object_entity_t *target, 
-			reiser4_pos_t *pos, shift_flags_t flags)
+static errno_t node40_shift(object_entity_t *entity, object_entity_t *target, 
+			    reiser4_pos_t *pos, shift_hint_t *hint, shift_flags_t flags)
 {
 	uint32_t i;
 	void *dst, *src;
@@ -772,6 +780,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	aal_assert("umka-1305", entity != NULL, return -1);
 	aal_assert("umka-1306", target != NULL, return -1);
 	aal_assert("umka-1307", pos != NULL, return -1);
+	aal_assert("umka-1579", hint != NULL, return -1);
 
 	aal_memset(&estimate, 0, sizeof(estimate));
     
@@ -791,9 +800,13 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		return -1;
 	}
 
+	hint->items = estimate.items;
+	hint->bytes = estimate.bytes;
+	hint->ipmoved = estimate.ipmoved;
+	
 	/* Nothing may be shifted */
 	if (estimate.items == 0)
-		return estimate.move_ip;
+		return 0;
 	
 	dst_items = nh40_get_num_items(estimate.dst);
 	src_items = nh40_get_num_items(estimate.src);
@@ -826,6 +839,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 			uint32_t offset = nh40_get_free_space_start(estimate.dst);
 			ih40_set_offset(ih, offset + (offset - ih40_get_offset(ih)));
 		}
+		
 	} else {
 		/* Preparing space for moving item headers in destination
 		 * node */
@@ -860,7 +874,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		/* Copying item bodies */
 		ih = node40_ih_at(estimate.src, src_items - estimate.items);
 		src = estimate.src->block->data + ih40_get_offset(ih);
-		dst = node40_ib_at(estimate.dst, 0);
+		dst = estimate.dst->block->data + sizeof(node40_header_t);
 
 		aal_memcpy(dst, src, estimate.bytes);
 	}
@@ -880,10 +894,11 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	  destination node, we should try to shift units from the last item to
 	  first item of destination node.
 	*/
-	if (estimate.part > 0) {
+	if (estimate.part > 0 && !estimate.ipmoved) {
+		/* FIXME-UMKA: Here will be shifting of units */
 	}
 
-	return estimate.move_ip;
+	return 0;
 }
 
 #endif

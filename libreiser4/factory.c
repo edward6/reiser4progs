@@ -58,6 +58,12 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
 		return -1;
 	}
 
+	if (examined->h.sign.group >= LAST_ITEM) {
+		aal_exception_error("Plugin %s has invalid group id 0x%x.",
+				    examined->h.handle.name, examined->h.sign.group);
+		return -1;
+	}
+	
 	if (examined->h.sign.group == plugin->h.sign.group &&
 	    examined->h.sign.id == plugin->h.sign.id &&
 	    examined->h.sign.type == plugin->h.sign.type)

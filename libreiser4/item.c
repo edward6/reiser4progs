@@ -178,10 +178,10 @@ rpid_t reiser4_item_type(reiser4_coord_t *coord) {
 	aal_assert("vpf-425", item->plugin != NULL, return 0);
 	
 	if (item->plugin->h.sign.type != ITEM_PLUGIN_TYPE)
-		return UNKNOWN_ITEM;
+		return LAST_ITEM;
 		
-	return (item->plugin->h.sign.group < UNKNOWN_ITEM ?
-		item->plugin->h.sign.group : UNKNOWN_ITEM);
+	return (item->plugin->h.sign.group < LAST_ITEM ?
+		item->plugin->h.sign.group : LAST_ITEM);
 }
 
 uint32_t reiser4_item_len(reiser4_coord_t *coord) {

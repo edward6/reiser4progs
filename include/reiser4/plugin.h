@@ -33,6 +33,15 @@ enum shift_flags {
 
 typedef enum shift_flags shift_flags_t;
 
+struct shift_hint {
+	int ipmoved;
+
+	uint32_t items;
+	uint32_t bytes;
+};
+
+typedef struct shift_hint shift_hint_t;
+
 /* 
    Defining types for disk structures. All types like f32_t are fake types
    needed to avoid gcc-2.95.x bug with typedef of aligned types.
@@ -106,7 +115,7 @@ enum reiser4_item_group {
 	TAIL_ITEM		= 0x3,
 	EXTENT_ITEM		= 0x4,
 	PERMISSN_ITEM		= 0x5,
-	UNKNOWN_ITEM
+	LAST_ITEM
 };
 
 typedef enum reiser4_item_group reiser4_item_group_t;
@@ -675,12 +684,9 @@ struct reiser4_node_ops {
 	/* Saves node onto device */
 	errno_t (*sync) (object_entity_t *);
 	
-	/* 
-	   Performs shift of items and units. Returns 1 if move point shifted to
-	   passed node, 0 if not shifted and -1 in the case of error.
-	*/
-	int (*shift) (object_entity_t *, object_entity_t *, 
-		      reiser4_pos_t *pos, shift_flags_t);
+	/* Performs shift of items and units */
+	errno_t (*shift) (object_entity_t *, object_entity_t *, 
+			  reiser4_pos_t *pos, shift_hint_t *, shift_flags_t);
     
 	/* Confirms that given block contains valid node of requested format */
 	int (*confirm) (object_entity_t *);

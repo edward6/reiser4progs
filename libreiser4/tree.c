@@ -541,10 +541,12 @@ static errno_t reiser4_tree_shift(
 	reiser4_coord_t src, dst;
 
 	int retval;
+	shift_hint_t hint;
 	reiser4_pos_t ldpos;
 	reiser4_key_t ldkey;
 	shift_flags_t flags = 0;
 	reiser4_coord_t ldcoord;
+	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-1225", tree != NULL, return -1);
 	aal_assert("umka-1226", coord != NULL, return -1);
@@ -572,20 +574,25 @@ static errno_t reiser4_tree_shift(
 		}
 	}
 
-	retval = plugin_call(return -1, joint->node->entity->plugin->node_ops,
-			      shift, old.u.joint->node->entity, joint->node->entity,
-			      &coord->pos, flags);
+	plugin = joint->node->entity->plugin;
+	
+	retval = plugin_call(return -1, plugin->node_ops,
+			     shift, old.u.joint->node->entity,
+			     joint->node->entity, &coord->pos,
+			     &hint, flags);
 
 	if (retval < 0)
 		return retval;
 
-	if (retval)
+	if (hint.ipmoved)
 		coord->u.joint = joint;
 
 	if (direction == D_LEFT) {
 		reiser4_pos_t pos = {0, ~0ul};
 		
-		if (reiser4_node_count(old.u.joint->node) == 0 && old.u.joint->parent) {
+		if (reiser4_node_count(old.u.joint->node) != 0 &&
+		    old.u.joint->parent && hint.items > 0)
+		{
 			if (reiser4_coord_open(&ldcoord, old.u.joint, CT_JOINT, &pos))
 				return -1;
 
@@ -598,7 +605,7 @@ static errno_t reiser4_tree_shift(
 	} else {
 		reiser4_pos_t pos = {0, ~0ul};
 		
-		if (joint->parent) {
+		if (joint->parent && hint.items > 0) {
 			if (reiser4_coord_open(&ldcoord, joint, CT_JOINT, &pos))
 				return -1;
 
@@ -884,8 +891,7 @@ errno_t reiser4_tree_insert(
 	}
     
 	if (reiser4_tree_mkspace(tree, coord, &insert, needed)) {
-		aal_exception_error("Can't prepare space for isnert one more item. "
-				    "No space left on device?");
+		aal_exception_error("Can't prepare space for insert one more item.");
 		return -1;
 	}
     
