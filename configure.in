@@ -51,7 +51,7 @@ if test "$with_uuid" = yes; then
 	AC_MSG_WARN(
 libuuid could not be found which is required for the --with-uuid
 	)
-	$with_uuid=no
+	with_uuid=no
     )
     UUID_LIBS="$LIBS"
     LIBS="$OLD_LIBS"

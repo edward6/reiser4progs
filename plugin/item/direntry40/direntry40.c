@@ -550,6 +550,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 			offset = en40_get_offset(entry) + headers;
 		} else {
 			entry = direntry40_entry(direntry, units - 1);
+			
 			offset = en40_get_offset(entry) + sizeof(entry40_t) +
 				direntry40_entry_len(direntry, entry);
 		}
