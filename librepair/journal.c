@@ -1,6 +1,6 @@
-/* librepair/journal.c - methods are needed for the work with broken reiser4 journals.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   librepair/journal.c - methods are needed for the work with broken reiser4 journals. */
 
 #include <repair/librepair.h>
 #include <fcntl.h>

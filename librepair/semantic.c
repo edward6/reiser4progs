@@ -1,5 +1,6 @@
-/* repair/semantic.c -- semantic pass recovery code.
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+   
+   repair/semantic.c -- semantic pass recovery code. */
 
 #include <repair/semantic.h>
 

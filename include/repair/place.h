@@ -1,6 +1,6 @@
-/* repair/place.h -- common structures and methods for place handling.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/place.h -- common structures and methods for place handling. */
 
 #ifndef REPAIR_COORD_H
 #define REPAIR_COORD_H

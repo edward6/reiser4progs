@@ -1,6 +1,6 @@
-/* librepair/node.c - methods are needed for node recovery.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   librepair/node.c - methods are needed for node recovery. */
 
 #include <repair/librepair.h>
 

@@ -1,6 +1,6 @@
-/* stat40_repair.c -- reiser4 default stat data plugin.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   stat40_repair.c -- reiser4 default stat data plugin. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

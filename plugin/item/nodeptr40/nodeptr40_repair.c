@@ -1,6 +1,6 @@
-/* nodeptr40_repair.c -- repair default node pointer item plugin methods.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   nodeptr40_repair.c -- repair default node pointer item plugin methods. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

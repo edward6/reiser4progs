@@ -1,6 +1,6 @@
-/* alloc.h -- repair block allocator functions.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   alloc.h -- repair block allocator functions. */
 
 #ifndef REPAIR_ALLOC_H
 #define REPAIR_ALLOC_H

@@ -1,6 +1,6 @@
-/* alloc40_repair.c -- repair default block allocator plugin methods.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   alloc40_repair.c -- repair default block allocator plugin methods. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

@@ -1,10 +1,6 @@
-/*
-  sdext_unix.c -- stat data exception plugin, that implements unix stat data
-  fields.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+   
+   sdext_unix.c -- stat data exception plugin, that implements unix stat data fields. */
 
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>

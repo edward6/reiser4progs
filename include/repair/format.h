@@ -1,6 +1,6 @@
-/*  repair/format.h -- reiserfs filesystem recovery structures and macros.
+/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
     
-    Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+    repair/format.h -- reiserfs filesystem recovery structures and macros. */
 
 #ifndef REPAIR_FORMAT_H
 #define REPAIR_FORMAT_H

@@ -1,9 +1,9 @@
-/*  cleanup.c -- repair/cleanup.c -- cleanup pass recovery code.
+/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
     
-    Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
-
-/* The pass is intended for cleanuping the storage reiser4 tree from garbage and 
-   linking not reachable objects to 'lost+found' directory. */
+    cleanup.c -- repair/cleanup.c -- cleanup pass recovery code.
+    
+    The pass is intended for cleanuping the storage reiser4 tree from garbage and 
+    linking not reachable objects to 'lost+found' directory. */
 
 #include <repair/cleanup.h>
 

@@ -1,7 +1,7 @@
-/* librepair/filesystem.c - methods are needed mostly by fsck for work with broken 
-   filesystems.
-
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+   
+   librepair/filesystem.c - methods are needed mostly by fsck for work with broken 
+   filesystems. */
 
 #include <repair/librepair.h>
 

@@ -1,6 +1,6 @@
-/* librepair/master.c - methods are needed for work with broken master super block.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   librepair/master.c - methods are needed for work with broken master super block. */
 
 #include <repair/librepair.h>
 

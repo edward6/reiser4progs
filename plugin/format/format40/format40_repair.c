@@ -1,7 +1,7 @@
-/* format40_repair.c -- repair methods for the default disk-layout plugin for 
-   reiserfs 4.0.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   format40_repair.c -- repair methods for the default disk-layout plugin for 
+   reiserfs 4.0. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

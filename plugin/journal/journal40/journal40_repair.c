@@ -1,18 +1,8 @@
-/* journal40.c -- reiser4 default journal plugin.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   journal40.c -- reiser4 default journal plugin.
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
-#ifndef ENABLE_STAND_ALONE
-
-#include "journal40.h"
-#include <repair/plugin.h>
-#include <aux/bitmap.h>
-
-/* Journal check description:
+   Journal check description:
    a. no one block can point before the master sb and after the end of a 
       partition.
    b. TxH, LGR, wandered blocks
@@ -56,6 +46,16 @@
         current transaction (do not forget to check the current). 
 
    FIXME-VITALY: For now II.4.5. and III.5. - cut to the previous transaction. */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#ifndef ENABLE_STAND_ALONE
+
+#include "journal40.h"
+#include <repair/plugin.h>
+#include <aux/bitmap.h>
 
 /* Traverse flags. */
 #define TF_SAME_TXH_BREAK   1   /* break when current trans was reached. */

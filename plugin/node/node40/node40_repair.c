@@ -1,6 +1,6 @@
-/* node40_repair.c -- reiser4 default node plugin.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   node40_repair.c -- reiser4 default node plugin. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

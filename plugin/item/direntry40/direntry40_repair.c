@@ -1,4 +1,6 @@
-/* direntry40_repair.c -- reiser4 default direntry plugin.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+   
+   direntry40_repair.c -- reiser4 default direntry plugin.
    
    Description:
    1) If offset is obviously wrong (no space for direntry40_t,entry40_t's, 
@@ -19,9 +21,7 @@
    8) Remove all units with not R offsets.
    9) Remove the space between the last entry40_t and the first R offset.
    10)Remove the space between the end of the last entry and the end of 
-   the item.
-
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   the item. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

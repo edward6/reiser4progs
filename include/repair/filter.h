@@ -1,6 +1,6 @@
-/* repair/filter.h -- the structures and methods needed for fsck pass1.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/filter.h -- the structures and methods needed for fsck pass1. */
 
 #ifndef REPAIR_FILTER_H
 #define REPAIR_FILTER_H

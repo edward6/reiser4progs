@@ -1,6 +1,6 @@
-/* extent40_repare.c -- repair dafault extent plugin methods.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   extent40_repare.c -- repair dafault extent plugin methods. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

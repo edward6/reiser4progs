@@ -1,6 +1,6 @@
-/* repair/repair.h -- the common structures and methods for recovery.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/repair.h -- the common structures and methods for recovery. */
 
 #ifndef REPAIR_H
 #define REPAIR_H

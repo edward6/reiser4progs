@@ -1,8 +1,8 @@
-/*  librepair/twig_scan.c - methods are needed for the second fsck pass. 
-    Description: fsck on this pass zeroes extent pointers which point to an already 
-    used block. Builds a map of used blocks.
+/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
     
-    Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+    librepair/twig_scan.c - methods are needed for the second fsck pass. 
+    Description: fsck on this pass zeroes extent pointers which point to an already 
+    used block. Builds a map of used blocks. */
 
 #include <repair/twig_scan.h>
 

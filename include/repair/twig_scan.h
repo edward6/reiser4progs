@@ -1,6 +1,6 @@
-/* repair/twig_scan.h -- common structures and methods for the second fsck pass.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/twig_scan.h -- common structures and methods for the second fsck pass. */
 
 #ifndef REPAIR_SCAN_H
 #define REPAIR_SCAN_H

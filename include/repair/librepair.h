@@ -1,6 +1,6 @@
-/* repair/librepair.h -- the central recovery include file.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/librepair.h -- the central recovery include file. */
 
 #ifndef LIBREPAIR_H
 #define LIBREPAIR_H

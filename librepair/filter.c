@@ -1,11 +1,11 @@
-/* librepair/filter.c - Filter pass of file system recovery.
-    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
-
-/* The filter pass filters corrupted parts of a reiser4 tree out, repairs all 
-   recoverable corruptions, builds a map of all used blocks, but extents format + 
-   formatted nodes). Extents are left not checked as there is no enough information 
-   for their proper check. */
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+   
+   librepair/filter.c - Filter pass of file system recovery.
+   
+   The filter pass filters corrupted parts of a reiser4 tree out, repairs all 
+   recoverable corruptions and builds a map of all used blocks, but extents 
+   format + formatted nodes). Extents are left not checked as there is no enough
+   information for their proper check. */
 
 #include <repair/filter.h>
 

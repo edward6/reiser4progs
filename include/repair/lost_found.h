@@ -1,6 +1,6 @@
-/* repair/filter.h -- the structures and methods needed for lost&found pass of fsck.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/filter.h -- the structures and methods needed for lost&found pass of fsck. */
 
 #ifndef REPAIR_LOST_FOUND_H
 #define REPAIR_LOST_FOUNS_H

@@ -1,5 +1,6 @@
-/* librepair/repair.c - control methods for broken filesystem recovery.
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+   
+   librepair/repair.c - control methods for broken filesystem recovery. */
 
 #include <repair/librepair.h>
 #include <repair/filter.h>

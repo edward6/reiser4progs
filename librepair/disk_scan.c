@@ -1,10 +1,10 @@
-/*  librepair/disk_scan.c - Disk scan pass of reiser4 filesystem recovery.
-
-    Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
-
-/* The disk_scan pass scans the blocks which are specified in the bm_scan bitmap, all 
-   formatted blocks marks in bm_map bitmap, all found leaves in bm_leaf, all found 
-   twigs in bm_twig.
+/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+    
+    librepair/disk_scan.c - Disk scan pass of reiser4 filesystem recovery. 
+    
+    The disk_scan pass scans the blocks which are specified in the bm_scan bitmap, 
+    all formatted blocks marks in bm_map bitmap, all found leaves in bm_leaf, all 
+    found twigs in bm_twig.
 
     After filter pass:
     - some extent units may points to formatted blocks;

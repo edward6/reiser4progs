@@ -1,6 +1,6 @@
-/* repair/semantic.h -- the structures and methods needed for semantic pass of fsck.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/semantic.h -- the structures and methods needed for semantic pass of fsck. */
 
 #ifndef REPAIR_SEM_H
 #define REPAIR_SEM_H

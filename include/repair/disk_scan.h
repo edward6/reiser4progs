@@ -1,7 +1,6 @@
-/* repair/disk_scan.h -- the structures and methods needed for the second 
-   pass of fsck.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/disk_scan.h -- the structures and methods needed for the second pass of fsck. */
 
 #ifndef REPAIR_DS_H
 #define REPAIR_DS_H

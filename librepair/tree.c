@@ -1,5 +1,6 @@
-/* tree.c -- repair/tree.c -- tree auxiliary code.
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+   
+   tree.c -- repair/tree.c -- tree auxiliary code. */
 
 #include <repair/librepair.h>
 

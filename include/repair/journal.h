@@ -1,6 +1,6 @@
-/* repair/journal.h -- reiserfs journal recovery structures and macros.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/journal.h -- reiserfs journal recovery structures and macros. */
 
 #ifndef REPAIR_JOURNAL_H
 #define REPAIR_JOURNAL_H

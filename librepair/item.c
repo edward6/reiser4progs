@@ -1,6 +1,6 @@
-/* librepair/item.c -- common repair item functions.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   librepair/item.c -- common repair item functions. */
 
 #include <repair/librepair.h>
 

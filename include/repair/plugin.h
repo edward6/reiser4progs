@@ -1,6 +1,6 @@
-/* repair/plugin.h - reiser4 plugins repair code known types and macros.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/plugin.h - reiser4 plugins repair code known types and macros. */
 
 #ifndef REPAIR_PLUGIN_H
 #define REPAIR_PLUGIN_H

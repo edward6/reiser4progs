@@ -1,6 +1,6 @@
-/* repair/lost_found.c -- lost&found pass recovery code.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/lost_found.c -- lost&found pass recovery code. */
 
 #include <repair/lost_found.h>
 

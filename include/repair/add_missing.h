@@ -1,7 +1,7 @@
-/* repair/add_missing.h -- the common structures and methods for insertion leaves
-   and extent item from twigs unconnected from the tree.
+/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
    
-   Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING. */
+   repair/add_missing.h -- the common structures and methods for insertion leaves
+   and extent item from twigs unconnected from the tree. */
 
 #ifndef ADD_MISSING_H
 #define ADD_MISSING_H
