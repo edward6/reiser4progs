@@ -33,7 +33,7 @@ static void cat_init(void) {
 }
 
 int main(int argc, char *argv[]) {
-	char buff[4097];
+	char buff[4096];
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
 		if (!reiser4_file_read(reg, buff, sizeof(buff) - 1))
 			break;
 
-		printf("%s", buff);
+		write(1, buff, sizeof(buff));
 	}
     
 	reiser4_file_close(reg);

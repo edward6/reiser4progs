@@ -587,7 +587,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs) {
 }
 
 static errno_t debugfs_file_cat(reiser4_file_t *file) {
-	char buff[4097];
+	char buff[4096];
 	
 	if (reiser4_file_reset(file)) {
 		aal_exception_error("Can't reset file %s.", file->name);
@@ -597,10 +597,10 @@ static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (!reiser4_file_read(file, buff, sizeof(buff) - 1))
+		if (!reiser4_file_read(file, buff, sizeof(buff)))
 			break;
 
-		printf(buff);
+		write(1, buff, sizeof(buff));
 	}
 
 	return 0;

@@ -262,13 +262,13 @@ static int64_t progs_numeric_handler(
 void progs_print_banner(char *name) {
 	char *banner;
    
-	printf("%s %s\n", name, VERSION);
+	fprintf(stderr, "%s %s\n", name, VERSION);
     
 	if (!(banner = aal_calloc(255, 0)))
 		return;
     
 	aal_snprintf(banner, 255, BANNER);
-	progs_print_wrap(stdout, banner);
+	progs_print_wrap(stderr, banner);
 	printf("\n");
 	aal_free(banner);
 }
