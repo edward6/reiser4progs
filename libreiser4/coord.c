@@ -11,7 +11,7 @@
 #include <reiser4/reiser4.h>
 
 blk_t reiser4_coord_blk(reiser4_coord_t *coord) {
-	aal_assert("umka-1445", coord != NULL, return FAKE_BLK);
+	aal_assert("umka-1445", coord != NULL, return INVAL_BLK);
 	return coord->node->blk;
 }
 
@@ -32,7 +32,7 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	entity = coord->node->entity;
 	
 	if ((pid = plugin_call(return -1, entity->plugin->node_ops,
-			       item_pid, entity, &coord->pos)) == FAKE_PLUGIN)
+			       item_pid, entity, &coord->pos)) == INVAL_PID)
 	{
 		aal_exception_error("Invalid item plugin id has been detected.");
 		return -1;
@@ -66,8 +66,6 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	aal_assert("umka-1406", key->plugin != NULL, return -1);
 
 	con = &coord->entity.con;
-	
-//	con->node = coord->node->entity;
 	con->blk = reiser4_coord_blk(coord);
 	con->device = reiser4_coord_device(coord);
 	

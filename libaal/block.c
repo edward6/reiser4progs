@@ -123,7 +123,7 @@ errno_t aal_block_sync(
 blk_t aal_block_number(
 	aal_block_t *block)		/* block, position will be obtained from */
 {
-	aal_assert("umka-448", block != NULL, return FAKE_BLK);
+	aal_assert("umka-448", block != NULL, return INVAL_BLK);
 	return block->blk;
 }
 

@@ -54,7 +54,7 @@ reiser4_fs_t *reiser4_fs_open(
 	if (reiser4_format_valid(fs->format))
 		goto error_free_format;
     
-	if ((len = reiser4_format_get_len(fs->format)) == FAKE_BLK)
+	if ((len = reiser4_format_get_len(fs->format)) == INVAL_BLK)
 		goto error_free_format;
     
 	/* Initializes block allocator. See alloc.c for details */
@@ -346,8 +346,8 @@ const char *reiser4_fs_name(
 rpid_t reiser4_fs_format_pid(
 	reiser4_fs_t *fs)		/* fs disk format pid will be obtained from */
 {
-	aal_assert("umka-151", fs != NULL, return FAKE_PLUGIN);
-	aal_assert("umka-152", fs->master != NULL, return FAKE_PLUGIN);
+	aal_assert("umka-151", fs != NULL, return INVAL_PID);
+	aal_assert("umka-152", fs->master != NULL, return INVAL_PID);
 
 	return reiser4_master_format(fs->master);
 }

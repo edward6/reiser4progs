@@ -42,7 +42,7 @@ static errno_t repair_master_check(reiser4_master_t **master, aal_device_t *host
 	*/
 	
 	/* Create a new master SB. */
-	if (!(*master = reiser4_master_create(host_device, FAKE_PLUGIN, 
+	if (!(*master = reiser4_master_create(host_device, INVAL_PID, 
 	    blocksize, NULL, NULL))) 
 	{
 	    aal_exception_fatal("Cannot create a new master super block.");

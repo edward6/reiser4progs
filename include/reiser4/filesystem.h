@@ -246,25 +246,12 @@ struct reiser4_oid {
 
 typedef struct reiser4_oid reiser4_oid_t;
 
-struct reiser4_lru {
-	
-	/* The body of lru list */
-	aal_list_t *list;
+/* Tree modification trap typedefs */
+typedef int (*preinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *);
+typedef int (*pstinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *);
 
-	/* The number of blocks to be freed on the next cache shrink */
-	uint32_t adjust;
-
-	/* Is lru djustable */
-	int adjustable;
-
-	/* Memory pressure handler handle */
-	void *mpressure;
-
-	/* Some usefull data */
-	void *data;
-};
-
-typedef struct reiser4_lru reiser4_lru_t;
+typedef int (*preremove_func_t) (reiser4_coord_t *, reiser4_key_t *);
+typedef int (*pstremove_func_t) (reiser4_coord_t *, reiser4_key_t *);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -290,6 +277,13 @@ struct reiser4_tree {
 
 	/* Memory pressure handler */
 	void *mpressure;
+
+	/* Tree modification traps */
+	preinsert_func_t preinsert;
+	pstinsert_func_t pstinsert;
+
+	preremove_func_t preremove;
+	pstremove_func_t pstremove;
 };
 
 struct traverse_hint {

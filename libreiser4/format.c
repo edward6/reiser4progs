@@ -230,9 +230,9 @@ const char *reiser4_format_name(
 blk_t reiser4_format_get_root(
 	reiser4_format_t *format)	/* format to be used */
 {
-	aal_assert("umka-113", format != NULL, return FAKE_BLK);
+	aal_assert("umka-113", format != NULL, return INVAL_BLK);
 
-	return plugin_call(return FAKE_BLK, format->entity->plugin->format_ops, 
+	return plugin_call(return INVAL_BLK, format->entity->plugin->format_ops, 
 			   get_root, format->entity);
 }
 
@@ -240,9 +240,9 @@ blk_t reiser4_format_get_root(
 count_t reiser4_format_get_len(
 	reiser4_format_t *format)	/* disk-format to be inspected */
 {
-	aal_assert("umka-360", format != NULL, return FAKE_BLK);
+	aal_assert("umka-360", format != NULL, return INVAL_BLK);
     
-	return plugin_call(return FAKE_BLK, format->entity->plugin->format_ops, 
+	return plugin_call(return INVAL_BLK, format->entity->plugin->format_ops, 
 			   get_len, format->entity);
 }
 
@@ -250,9 +250,9 @@ count_t reiser4_format_get_len(
 count_t reiser4_format_get_free(
 	reiser4_format_t *format)	/* format to be used */
 {
-	aal_assert("umka-426", format != NULL, return FAKE_BLK);
+	aal_assert("umka-426", format != NULL, return INVAL_BLK);
     
-	return plugin_call(return FAKE_BLK, format->entity->plugin->format_ops, 
+	return plugin_call(return INVAL_BLK, format->entity->plugin->format_ops, 
 			   get_free, format->entity);
 }
 
@@ -339,7 +339,7 @@ void reiser4_format_set_stamp(
 rpid_t reiser4_format_journal_pid(
 	reiser4_format_t *format)	/* disk-format journal pid will be obtained from */
 {
-	aal_assert("umka-115", format != NULL, return FAKE_PLUGIN);
+	aal_assert("umka-115", format != NULL, return INVAL_PID);
 	
 	return plugin_call(return -1, format->entity->plugin->format_ops, 
 			   journal_pid, format->entity);
@@ -349,7 +349,7 @@ rpid_t reiser4_format_journal_pid(
 rpid_t reiser4_format_alloc_pid(
 	reiser4_format_t *format)	/* disk-format allocator pid will be obtained from */
 {
-	aal_assert("umka-117", format != NULL, return FAKE_PLUGIN);
+	aal_assert("umka-117", format != NULL, return INVAL_PID);
 	
 	return plugin_call(return -1, format->entity->plugin->format_ops, 
 			   alloc_pid, format->entity);
@@ -359,7 +359,7 @@ rpid_t reiser4_format_alloc_pid(
 rpid_t reiser4_format_oid_pid(
 	reiser4_format_t *format)	/* disk-format oid allocator pid will be obtained from */
 {
-	aal_assert("umka-491", format != NULL, return FAKE_PLUGIN);
+	aal_assert("umka-491", format != NULL, return INVAL_PID);
 	
 	return plugin_call(return -1, format->entity->plugin->format_ops, 
 			   oid_pid, format->entity);

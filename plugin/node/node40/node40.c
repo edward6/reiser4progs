@@ -95,7 +95,7 @@ static errno_t node40_sync(object_entity_t *entity) {
 static rpid_t node40_pid(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("umka-827", node != NULL, return FAKE_PLUGIN);
+	aal_assert("umka-827", node != NULL, return INVAL_PID);
 	return nh40_get_pid(node);
 } 
 
@@ -214,8 +214,8 @@ static rpid_t node40_item_pid(object_entity_t *entity,
 {
 	node40_t *node = (node40_t *)entity;
     
-	aal_assert("vpf-039", node != NULL, return FAKE_PLUGIN);
-	aal_assert("umka-941", pos != NULL, return FAKE_PLUGIN);
+	aal_assert("vpf-039", node != NULL, return INVAL_PID);
+	aal_assert("umka-941", pos != NULL, return INVAL_PID);
 
 	aal_assert("umka-815", pos->item < 
 		   nh40_get_num_items(node), return 0);

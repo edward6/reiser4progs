@@ -310,15 +310,15 @@ static uint64_t alloc40_allocate(object_entity_t *entity) {
 	blk_t blk;
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-374", alloc != NULL, return FAKE_BLK);
-	aal_assert("umka-375", alloc->bitmap != NULL, return FAKE_BLK);
+	aal_assert("umka-374", alloc != NULL, return INVAL_BLK);
+	aal_assert("umka-375", alloc->bitmap != NULL, return INVAL_BLK);
     
 	/* 
 	   It is possible to implement here more smart allocation algorithm. For
 	   instance, it may look for contiguous areas.
 	*/
-	if ((blk = aux_bitmap_find_cleared(alloc->bitmap, 0)) == FAKE_BLK)
-		return FAKE_BLK;
+	if ((blk = aux_bitmap_find_cleared(alloc->bitmap, 0)) == INVAL_BLK)
+		return INVAL_BLK;
     
 	aux_bitmap_mark(alloc->bitmap, blk);
 	return blk;
@@ -340,8 +340,8 @@ static errno_t alloc40_print(object_entity_t *entity, aal_stream_t *stream,
 static uint64_t alloc40_free(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
-	aal_assert("umka-376", alloc != NULL, return FAKE_BLK);
-	aal_assert("umka-377", alloc->bitmap != NULL, return FAKE_BLK);
+	aal_assert("umka-376", alloc != NULL, return INVAL_BLK);
+	aal_assert("umka-377", alloc->bitmap != NULL, return INVAL_BLK);
     
 	return aux_bitmap_cleared(alloc->bitmap);
 }
@@ -350,8 +350,8 @@ static uint64_t alloc40_free(object_entity_t *entity) {
 static uint64_t alloc40_used(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-378", alloc != NULL, return FAKE_BLK);
-	aal_assert("umka-379", alloc->bitmap != NULL, return FAKE_BLK);
+	aal_assert("umka-378", alloc != NULL, return INVAL_BLK);
+	aal_assert("umka-379", alloc->bitmap != NULL, return INVAL_BLK);
 
 	return aux_bitmap_marked(alloc->bitmap);
 }

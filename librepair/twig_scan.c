@@ -118,7 +118,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 
     /* There were found overlapped extents. Look through twigs, build list of
      * extents for each problem region. */ 
-    while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != FAKE_BLK) {
+    while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
 	aal_assert("vpf-426", aux_bitmap_test(ts->bm_used, blk), return -1);
 	
 	if ((node = repair_joint_open(rd->format, blk)) == NULL) {

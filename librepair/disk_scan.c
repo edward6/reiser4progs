@@ -119,7 +119,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
     if (repair_ds_setup(rd))
 	return -1;
 
-    while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != FAKE_BLK) {
+    while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
 	if ((node = repair_joint_open(rd->format, blk)))
 	    continue;
 

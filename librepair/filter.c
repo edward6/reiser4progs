@@ -225,7 +225,7 @@ static errno_t repair_filter_update(traverse_hint_t *hint) {
     rd = hint->data;
     
     if (repair_test_flag(rd, REPAIR_BAD_PTR)) {
-	reiser4_format_set_root(rd->format, FAKE_BLK);
+	reiser4_format_set_root(rd->format, INVAL_BLK);
 	repair_clear_flag(rd, REPAIR_BAD_PTR);
     } else {
 	/* Mark the root block as a formatted block in the bitmap. */

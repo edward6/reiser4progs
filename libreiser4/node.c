@@ -258,15 +258,25 @@ errno_t reiser4_node_nkey(
 	if (reiser4_node_pos(node, &pos))
 		return -1;
     
-	/* Checking for position */
 	if (direction == D_LEFT) {
-		if (pos.item == 0) 
+		reiser4_node_t *parent;
+	
+		if (!(parent = node->parent))
+			return -1;
+		
+		if (pos.item == 0) {
+			
+			if (!parent->parent)
+				return -1;
+			
+			return reiser4_node_nkey(parent->parent, direction, key);
+		}
+	} else {
+		reiser4_node_t *parent;
+
+		if (!(parent = node->parent))
 			return -1;
 	
-	} else {
-		reiser4_node_t *parent = node->parent;
-	
-		/* Checking and processing the special case called "shaft" */
 		if (pos.item == reiser4_node_count(parent) - 1) {
 
 			if (!parent->parent)
@@ -463,6 +473,12 @@ reiser4_node_t *reiser4_node_cbp(
 	return child;
 }
 
+/*static reiser4_node_t *reiser4_node_fln(reiser4_node_t *node) {
+	uint32_t level;
+
+	level = plugin_call(return );
+}*/
+
 /*
   Helper callback function for comparing two nodes durring registering the new
   child.
@@ -491,6 +507,7 @@ errno_t reiser4_node_attach(
 	reiser4_node_t *node,	       /* node child will be connected to */
 	reiser4_node_t *child)	       /* child node to be attached */
 {
+	aal_list_t *current;
 	reiser4_node_t *left;
 	reiser4_node_t *right;
 	reiser4_key_t key, lkey;
@@ -499,14 +516,16 @@ errno_t reiser4_node_attach(
 	aal_assert("umka-564", child != NULL, return -1);
 
 	/* Inserting new child into children list */
-	node->children = aal_list_insert_sorted(node->children, child,
-						callback_comp_node, NULL);
+	if (!node->children) {
+		current = aal_list_insert_sorted(node->children, child,
+						 callback_comp_node, NULL);
+	} else {
+		current = aal_list_insert_sorted(node->children, child,
+						 callback_comp_node, NULL);
+	}
 
-	left = node->children->prev ? 
-		node->children->prev->data : NULL;
-    
-	right = node->children->next ? 
-		node->children->next->data : NULL;
+	left = current->prev ? current->prev->data : NULL;
+    	right = current->next ? current->next->data : NULL;
     
 	child->parent = node;
 
@@ -516,15 +535,12 @@ errno_t reiser4_node_attach(
 				    child->blk, node->blk);
 		return -1;
 	}
-    
-	child->tree = node->tree;
-    
+
 	/* Setting up neighbours */
 	if (left) {
 	
 		reiser4_node_lkey(left, &lkey);
 	    
-		/* Getting left neighbour key */
 		if (!reiser4_node_nkey(child, D_LEFT, &key))
 			child->left = (reiser4_key_compare(&key, &lkey) == 0 ? left : NULL);
     
@@ -536,7 +552,6 @@ errno_t reiser4_node_attach(
 	
 		reiser4_node_lkey(right, &lkey);
 	
-		/* Getting right neighbour key */
 		if (!reiser4_node_nkey(child, D_RIGHT, &key))
 			child->right = (reiser4_key_compare(&key, &lkey) == 0 ? right : NULL);
 
@@ -544,9 +559,10 @@ errno_t reiser4_node_attach(
 			child->right->left = child;
 	}
 
-	node->children = aal_list_first(node->children);
+	if (!current->prev)
+		node->children = current;
 
-	/* Attacking new node into trees lru list */
+	/* Attaching new node into tree's lru list */
 	if (node->tree && aal_lru_attach(node->tree->lru, (void *)child))
 		aal_exception_warn("Can't attach node to tree lru.");
 	
@@ -561,6 +577,8 @@ void reiser4_node_detach(
 	reiser4_node_t *node,	/* node child will be detached from */
 	reiser4_node_t *child)	/* pointer to child to be deleted */
 {
+	aal_list_t *next;
+	
 	aal_assert("umka-562", node != NULL, return);
 	aal_assert("umka-563", child != NULL, return);
 
@@ -576,12 +594,14 @@ void reiser4_node_detach(
 		child->right->left = NULL;
 		child->right = NULL;
 	}
-	
-	child->tree = NULL;
+
 	child->parent = NULL;
     
 	/* Updating node children list */
-	node->children = aal_list_remove(node->children, child);
+	next = aal_list_remove(node->children, child);
+	
+	if (!next || !next->prev)
+		node->children = next;
 
 	if (node->tree && aal_lru_detach(node->tree->lru, (void *)child))
 		aal_exception_warn("Can't detach node from tree lru.");
@@ -1133,7 +1153,7 @@ errno_t reiser4_node_traverse(
 					fetch, &coord.entity, pos->unit, &ptr, 1))
 				goto error_after_func;
 		
-			if (ptr.ptr != FAKE_BLK && ptr.ptr != 0) {
+			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {
 				child = NULL;
 					
 				if (setup_func && (result = setup_func(&coord, hint->data)))

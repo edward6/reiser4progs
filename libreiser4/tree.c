@@ -61,13 +61,14 @@ reiser4_node_t *reiser4_tree_allocate(
 	blk_t blk;
 	rpid_t pid;
 
+	uint32_t free;
 	reiser4_node_t *node;
 	aal_device_t *device;
     
 	aal_assert("umka-756", tree != NULL, return NULL);
     
 	/* Allocating the block */
-	if ((blk = reiser4_alloc_allocate(tree->fs->alloc)) == FAKE_BLK) {
+	if ((blk = reiser4_alloc_allocate(tree->fs->alloc)) == INVAL_BLK) {
 		aal_exception_error("Can't allocate block for new node. "
 				    "No space left?");
 		return NULL;
@@ -84,10 +85,11 @@ reiser4_node_t *reiser4_tree_allocate(
 		    set_stamp, node->entity, reiser4_format_get_stamp(tree->fs->format));
     
 	/* Setting up of the free blocks in format */
-	reiser4_format_set_free(tree->fs->format, 
-				reiser4_alloc_free(tree->fs->alloc));
+	free = reiser4_alloc_free(tree->fs->alloc);
+	reiser4_format_set_free(tree->fs->format, free);
     
 	node->flags |= NF_DIRTY;
+	node->tree = tree;
 	
 	return node;
     
@@ -123,6 +125,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree, blk_t blk) {
 	if (!(node = reiser4_node_open(device, blk))) 
 		return NULL;
 	    
+	node->tree = tree;
 	node->flags &= ~NF_DIRTY;
 	
 	return node;
@@ -178,7 +181,7 @@ static errno_t reiser4_tree_build_key(
 
 /* Returns tree root block number */
 blk_t reiser4_tree_root(reiser4_tree_t *tree) {
-	aal_assert("umka-738", tree != NULL, return FAKE_BLK);
+	aal_assert("umka-738", tree != NULL, return INVAL_BLK);
 	return tree->root->blk;
 }
 
@@ -248,7 +251,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	}
     
 	/* Opening root node */
-	if ((tree_root = reiser4_format_get_root(fs->format)) == FAKE_BLK)
+	if ((tree_root = reiser4_format_get_root(fs->format)) == INVAL_BLK)
 		goto error_free_tree;
 	
 	if (!(tree->root = reiser4_tree_load(tree, tree_root)))
@@ -292,7 +295,7 @@ reiser4_tree_t *reiser4_tree_create(
 	}
     
 	/* Getting free block from block allocator for place root block in it */
-	if ((blk = reiser4_alloc_allocate(fs->alloc)) == FAKE_BLK) {
+	if ((blk = reiser4_alloc_allocate(fs->alloc)) == INVAL_BLK) {
 		aal_exception_error("Can't allocate block for the root node.");
 		goto error_free_tree;
 	}
@@ -416,6 +419,8 @@ int reiser4_tree_lookup(
 		item_entity_t *item;
 		reiser4_node_t *node = coord->node;
 	
+		aal_assert("umka-1632", deep >= level->top, return -1);
+		
 		/* 
 		  Looking up for key inside node. Result of lookuping will be
 		  stored in &coord->pos.
@@ -455,10 +460,9 @@ int reiser4_tree_lookup(
 				pos.unit, &ptr, 1))
 			return -1;
 		
-		if (ptr.ptr == FAKE_BLK) {
-			blk_t blk = reiser4_coord_blk(coord);
+		if (ptr.ptr == INVAL_BLK) {
 			aal_exception_error("Can't get pointer from nodeptr item %u, "
-					    "node %llu.", coord->pos.item, blk);
+					    "node %llu.", coord->pos.item, coord->node->blk);
 			return -1;
 		}
 	
@@ -472,7 +476,7 @@ int reiser4_tree_lookup(
 		*/
 		parent->counter++;
 		
-		if (!(coord->node = reiser4_node_cbk(parent, &item->key))) {
+		if (!(coord->node = reiser4_node_cbp(parent, ptr.ptr))) {
 			/* 
 			   Node was not found in the cache, we open it and
 			   attach to the cache.
@@ -701,7 +705,12 @@ errno_t reiser4_tree_mkspace(
 	
 		/* Attaching new allocated node into the tree, if it is not empty */
 		if (reiser4_node_count(node)) {
-		
+
+			/* Growing the tree */
+			if (!old->node->parent)
+				reiser4_tree_grow(tree);
+			
+			/* Attaching new node to the tree */
 			if (reiser4_tree_attach(tree, node, level + 1)) {
 				aal_exception_error("Can't attach node to the tree.");
 				reiser4_tree_release(tree, node);
@@ -743,7 +752,7 @@ errno_t reiser4_tree_mkspace(
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_item_hint_t *hint,  /* item hint to be inserted */
-	uint8_t level,		    /* target level insertion will be performed on */
+	uint8_t level,		    /* level insertion will be performed on */
 	reiser4_coord_t *coord)	    /* coord item or unit inserted at */
 {
 	int lookup;
@@ -826,6 +835,11 @@ errno_t reiser4_tree_insert(
 		return -1;
 	}
     
+	if (tree->preinsert) {
+		if (!tree->preinsert(&insert, hint))
+			return -1;
+	}
+	
 	if (reiser4_node_insert(insert.node, &insert.pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
 				    (insert.pos.unit == ~0ul ? "item" : "unit"),
@@ -839,10 +853,12 @@ errno_t reiser4_tree_insert(
 	   should be changed.
 	*/
 	if (insert.node != tree->root && !insert.node->parent) {
-	
+
+		/* Growing the tree */
 		if (!coord->node->parent)
 			reiser4_tree_grow(tree);
 	
+		/* Attaching new node to the tree */
 		if (reiser4_tree_attach(tree, insert.node, level + 1)) {
 			aal_exception_error("Can't attach node to the tree.");
 			reiser4_tree_release(tree, insert.node);
@@ -851,6 +867,11 @@ errno_t reiser4_tree_insert(
 	}
     
 	*coord = insert;
+
+	if (tree->pstinsert) {
+		if (!tree->pstinsert(&insert, hint))
+			return -1;
+	}
     
 	return 0;
 }
@@ -885,9 +906,19 @@ errno_t reiser4_tree_remove(
 		return -1;
 	}
     
+	if (tree->preremove) {
+		if (!tree->preremove(&coord, key))
+			return -1;
+	}
+	
 	if (reiser4_node_remove(coord.node, &coord.pos))
 		return -1;
 
+	if (tree->pstremove) {
+		if (!tree->pstremove(&coord, key))
+			return -1;
+	}
+	
 	/*
 	  FIXME-UMKA: Here should be also checking if we need descrease tree
 	  height.

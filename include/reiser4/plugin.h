@@ -169,7 +169,7 @@ enum reiser4_key_plugin_id {
 
 typedef union reiser4_plugin reiser4_plugin_t;
 
-#define FAKE_PLUGIN (0xffff)
+#define INVAL_PID (0xffff)
 
 /* 
    Maximal possible key size. It is used for creating temporary keys by

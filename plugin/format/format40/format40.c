@@ -20,8 +20,8 @@ static reiser4_core_t *core = NULL;
 static uint64_t format40_start_at(object_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
-	aal_assert("vpf-462", format != NULL, return FAKE_BLK);
-	aal_assert("vpf-463", format->device != NULL, return FAKE_BLK);
+	aal_assert("vpf-462", format != NULL, return INVAL_BLK);
+	aal_assert("vpf-463", format->device != NULL, return INVAL_BLK);
 	
 	return FORMAT40_OFFSET / format->device->blocksize;
 }
@@ -29,7 +29,7 @@ static uint64_t format40_start_at(object_entity_t *entity) {
 static uint64_t format40_get_root(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-400", entity != NULL, return FAKE_BLK);
+	aal_assert("umka-400", entity != NULL, return INVAL_BLK);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_root_block(super);
@@ -38,7 +38,7 @@ static uint64_t format40_get_root(object_entity_t *entity) {
 static uint64_t format40_get_len(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-401", entity != NULL, return FAKE_BLK);
+	aal_assert("umka-401", entity != NULL, return INVAL_BLK);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_block_count(super);
@@ -47,7 +47,7 @@ static uint64_t format40_get_len(object_entity_t *entity) {
 static uint64_t format40_get_free(object_entity_t *entity) {
 	format40_super_t *super;
     
-	aal_assert("umka-402", entity != NULL, return FAKE_BLK);
+	aal_assert("umka-402", entity != NULL, return INVAL_BLK);
     
 	super = format40_super(((format40_t *)entity)->block);
 	return get_sb_free_blocks(super);

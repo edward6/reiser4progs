@@ -30,7 +30,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
     
-	if ((pid = reiser4_format_alloc_pid(format)) == FAKE_PLUGIN) {
+	if ((pid = reiser4_format_alloc_pid(format)) == INVAL_PID) {
 		aal_exception_error("Invalid block allocator plugin id has been found.");
 		goto error_free_alloc;
 	}
@@ -78,7 +78,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
-	if ((pid = reiser4_format_alloc_pid(format)) == FAKE_PLUGIN) {
+	if ((pid = reiser4_format_alloc_pid(format)) == INVAL_PID) {
 		aal_exception_error("Invalid block allocator plugin id "
 				    "has been found.");
 		goto error_free_alloc;
@@ -143,9 +143,9 @@ void reiser4_alloc_close(
 count_t reiser4_alloc_free(
 	reiser4_alloc_t *alloc)	/* allocator to be realeased */
 {
-	aal_assert("umka-362", alloc != NULL, return FAKE_BLK);
+	aal_assert("umka-362", alloc != NULL, return INVAL_BLK);
 
-	return plugin_call(return FAKE_BLK, alloc->entity->plugin->alloc_ops, 
+	return plugin_call(return INVAL_BLK, alloc->entity->plugin->alloc_ops, 
 			   free, alloc->entity);
 }
 
@@ -153,9 +153,9 @@ count_t reiser4_alloc_free(
 count_t reiser4_alloc_used(
 	reiser4_alloc_t *alloc)	/* allocator used blocks will be obtained from */
 {
-	aal_assert("umka-499", alloc != NULL, return FAKE_BLK);
+	aal_assert("umka-499", alloc != NULL, return INVAL_BLK);
 
-	return plugin_call(return FAKE_BLK, alloc->entity->plugin->alloc_ops, 
+	return plugin_call(return INVAL_BLK, alloc->entity->plugin->alloc_ops, 
 			   used, alloc->entity);
 }
 
@@ -191,9 +191,9 @@ errno_t reiser4_alloc_release(
 blk_t reiser4_alloc_allocate(
 	reiser4_alloc_t *alloc)	/* allocator for working with */
 {
-	aal_assert("umka-505", alloc != NULL, return FAKE_BLK);
+	aal_assert("umka-505", alloc != NULL, return INVAL_BLK);
 
-	return plugin_call(return FAKE_BLK, alloc->entity->plugin->alloc_ops, 
+	return plugin_call(return INVAL_BLK, alloc->entity->plugin->alloc_ops, 
 			   allocate, alloc->entity);
 }
 

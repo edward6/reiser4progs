@@ -190,7 +190,7 @@ static count_t file_len(
 	off_t max_off = 0;
 
 	if (!device) 
-		return FAKE_BLK;
+		return INVAL_BLK;
     
 #ifdef BLKGETSIZE64
     
@@ -202,7 +202,7 @@ static count_t file_len(
 		
 		if ((uint64_t)block_count != size) {
 			aal_exception_fatal("The partition size is too big.");
-			return FAKE_BLK;
+			return INVAL_BLK;
 		}
 		
 		return (count_t)block_count;
@@ -226,7 +226,7 @@ static count_t file_len(
 			     0, SEEK_END)) == (off_t)-1) 
 	{
 		save_error(device);
-		return FAKE_BLK;
+		return INVAL_BLK;
 	}
     
 	return (count_t)(max_off / device->blocksize);

@@ -74,7 +74,7 @@ static errno_t repair_format_check(reiser4_format_t **format,
 	    return -1;
 
 	/* Create the format with fake tail plugin. */
-	if (!(*format = reiser4_format_create(host_device, 0, FAKE_PLUGIN, 
+	if (!(*format = reiser4_format_create(host_device, 0, INVAL_PID, 
 	    plugin->h.sign.id))) 
 	{
 	    aal_exception_fatal("Cannot create a filesystem of the format "

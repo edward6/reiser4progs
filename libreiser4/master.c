@@ -279,7 +279,7 @@ char *reiser4_master_magic(reiser4_master_t *master) {
 }
 
 rpid_t reiser4_master_format(reiser4_master_t *master) {
-	aal_assert("umka-982", master != NULL, return FAKE_PLUGIN);
+	aal_assert("umka-982", master != NULL, return INVAL_PID);
 	return get_mr_format_id(master->super);
 }
 

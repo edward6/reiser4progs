@@ -130,7 +130,7 @@ errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
     // Check if no any formatted block exists after ptr. 
     // FIXME-VITALY: should not depend on filter specific data. 
     if ((next_blk = aux_bitmap_find_marked(
-	repair_filter_data(data)->bm_format, ptr.ptr)) == FAKE_BLK)
+	repair_filter_data(data)->bm_format, ptr.ptr)) == INVAL_BLK)
         return 0;
     
     if (next_blk >= ptr.ptr && next_blk < ptr.ptr + ptr.width) 

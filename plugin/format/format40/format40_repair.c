@@ -73,13 +73,13 @@ errno_t format40_check(object_entity_t *entity) {
     
     /* Check the root block number. */
     if (get_sb_root_block(super) > get_sb_block_count(super)) {
-	if (get_sb_root_block(super) == FAKE_BLK) {
+	if (get_sb_root_block(super) == INVAL_BLK) {
 	    aal_exception_error("FAKE root block number (%llu) found in the "
 		"superblock.", get_sb_root_block(super));
 	} else {
 	    aal_exception_error("Invalid root block (%llu) found in the superblock."
 		" Set to FAKE blocknumber.", get_sb_root_block(super));
-	    set_sb_root_block(super, FAKE_BLK);
+	    set_sb_root_block(super, INVAL_BLK);
 	}
     }
     
