@@ -8,8 +8,6 @@
 
 #include <repair/repair.h>
 
-typedef errno_t (*node_func_t) (reiser4_place_t *, void *);
-
 extern reiser4_node_t *repair_node_open(reiser4_tree_t *tree,
 					blk_t blk, bool_t check);
 
@@ -18,10 +16,6 @@ extern errno_t repair_node_check_level(reiser4_node_t *node,
 
 extern errno_t repair_node_check_struct(reiser4_node_t *node,
 					uint8_t mode);
-
-extern errno_t repair_reiser4_node_traverse(reiser4_node_t *node,
-					    node_func_t func,
-					    void *data);
 
 extern errno_t repair_node_clear_flags(reiser4_node_t *node);
 

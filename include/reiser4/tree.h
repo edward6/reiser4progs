@@ -114,9 +114,6 @@ extern errno_t reiser4_tree_load_root(reiser4_tree_t *tree);
 extern reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					       uint8_t level);
 
-extern errno_t reiser4_tree_lock_node(reiser4_tree_t *tree,
-				      reiser4_node_t *node);
-
 extern errno_t reiser4_tree_unlock_node(reiser4_tree_t *tree,
 					reiser4_node_t *node);
 

@@ -52,6 +52,10 @@ int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
 	if (obj40_fetch_item(&dir->obj, place))
 		return 0;
 	
+	/* Must be the same plugin. */
+	if (!plug_equal(dir->body.plug, place->plug))
+		return 0;
+	
 	/* Is the place of the same object? */
 	return plug_call(dir->body.key.plug->o.key_ops, compshort,
 			 &dir->body.key, &place->key) ? 0 : 1;

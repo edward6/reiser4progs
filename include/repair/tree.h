@@ -36,10 +36,8 @@ extern errno_t repair_tree_insert(reiser4_tree_t *tree,
 extern errno_t repair_tree_attach(reiser4_tree_t *tree,
 				  reiser4_node_t *node);
 
-extern bool_t repair_tree_legal_level(reiser4_item_group_t group,
-				      uint8_t level);
-
 extern bool_t repair_tree_data_level(uint8_t level);
+extern bool_t repair_tree_legal_level(reiser4_plug_t *plug, uint8_t level);
 
 extern errno_t repair_tree_scan(reiser4_tree_t *tree, 
 				place_func_t func, 

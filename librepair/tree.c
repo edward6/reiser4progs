@@ -7,13 +7,11 @@
 
 /* This function returns TRUE if passed item @group corresponds to passed 
    @level Hardcoded method, valid for the current tree imprementation only. */
-bool_t repair_tree_legal_level(reiser4_item_group_t group,
-			       uint8_t level)
-{
-	if (group == NODEPTR_ITEM)
+bool_t repair_tree_legal_level(reiser4_plug_t *plug, uint8_t level) {
+	if (reiser4_item_branch(plug))
 		return level != LEAF_LEVEL;
 	
-	if (group == EXTENT_ITEM)
+	if (plug->id.group == EXTENT_ITEM)
 		return level == TWIG_LEVEL;
 	
 	return level == LEAF_LEVEL;
@@ -27,7 +25,7 @@ static errno_t callback_data_level(reiser4_plug_t *plug, void *data) {
 	if (plug->id.type != ITEM_PLUG_TYPE)
 		return 0;
 	
-	if (!repair_tree_legal_level(plug->id.group, *level))
+	if (!repair_tree_legal_level(plug, *level))
 		return 0;
 	
 	return !reiser4_item_branch(plug);
@@ -82,6 +80,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 		res = repair_tree_maxreal_key(tree, child, key);
 		
 		reiser4_node_unlock(child);
+		
 		if (reiser4_node_close(child))
 			return -EINVAL;
 	} else 
@@ -334,15 +333,11 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 		return lookup;
 	}
 	
-	/* If some node was found and it is not of higher level then the node
-	   being attached, try to split nodes to be able to attach the node as a
-	   whole. */
-	level = reiser4_node_get_level(node) + 1;
-    
-	if (place.node != NULL && reiser4_node_get_level(place.node) < level) {
+	/* Check that the node does not overlapped anything by keys. */
+	if (place.node != NULL) {
 		/* Check by keys that the whole node can be attached. */
 		if (reiser4_place_right(&place))
-			reiser4_place_inc(&place, 0);
+			reiser4_place_inc(&place, 1);
 		
 		if (reiser4_place_rightmost(&place)) {
 			res = repair_tree_parent_rkey(tree, place.node, &key);
@@ -383,6 +378,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 		return -EINVAL;
 	}
 	
+	level = reiser4_node_get_level(node) + 1;
 	if ((res = reiser4_tree_insert(tree, &place, &hint, level)) < 0) {
 		aal_error("Can't insert nodeptr item to the tree.");
 		return res;
@@ -427,7 +423,7 @@ static bool_t repair_tree_need_conv(reiser4_tree_t *tree,
 		return 1;
 
 	/* EXTENT->TAIL conversion is not needed. */
-	if (from->id.group == TAIL_ITEM && to->id.group == EXTENT_ITEM)
+	if (from->id.group == EXTENT_ITEM && to->id.group == TAIL_ITEM)
 		return 0;
 	
 	/* Other kind of conversions are impossible. */
@@ -649,9 +645,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 					  "%llu, item %u]. Skip insertion.",
 					  node_blocknr(dst.node), dst.pos.item,
 					  dst.plug->label,
-					  reiser4_print_key(&dst.key, PO_INODE),
+					  reiser4_print_key(&dst.key, PO_DEFAULT),
 					  src->plug->label,
-					  reiser4_print_key(&src->key, PO_INODE),
+					  reiser4_print_key(&src->key, PO_DEFAULT),
 					  node_blocknr(src->node), src->pos.item);
 
 				   return 0;
@@ -678,13 +674,13 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 				  "insertion.", 
 				  node_blocknr(dst.node), dst.pos.item,
 				  dst.plug->label, 
-				  reiser4_print_key(&dst.key, PO_INODE),
+				  reiser4_print_key(&dst.key, PO_DEFAULT),
 				  src->plug->label,
-				  reiser4_print_key(&src->key, PO_INODE),
+				  reiser4_print_key(&src->key, PO_DEFAULT),
 				  node_blocknr(src->node), 
 				  src->pos.item);
 
-			/*
+			/* FIXME: Copying must exist for tail->extent.
 			if ((res = repair_tree_copy(tree, &dst, src, &key)))
 				return res;
 			*/

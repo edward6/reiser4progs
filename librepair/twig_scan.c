@@ -188,7 +188,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		}
 		
 		/* Lookup the node. */	
-		res = repair_reiser4_node_traverse(node, callback_check_layout, ts);
+		res = reiser4_node_trav(node, callback_check_layout, ts);
 		
 		if (res) goto error_node_free;
 		

@@ -66,6 +66,32 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
 	aal_block_free(block);
 	return NULL;
 }
+
+/* Traverse through all items of the gived node. */
+errno_t reiser4_node_trav(reiser4_node_t *node, place_func_t func, void *data) {
+	reiser4_place_t place;
+	pos_t *pos = &place.pos;
+	errno_t res;
+	
+	aal_assert("vpf-744", node != NULL);
+	
+	pos->unit = MAX_UINT32;
+	
+	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
+		if ((res = reiser4_place_open(&place, node, pos))) {
+			aal_error("Node (%llu), item (%u): failed to "
+				  "open the item by its place.", 
+				  node_blocknr(node), pos->item);
+			return res;
+		}
+		
+		if ((res = func(&place, data)))
+			return res;
+	}
+	
+	return 0;
+}
+
 #endif
 
 /* Functions for lock/unlock @node. They are used to prevent releasing node from

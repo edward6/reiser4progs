@@ -111,10 +111,17 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 						     &place->pos)))
 				return res;
 			
+			/*
+			aal_mess("Node (%llu), items (%u, %u): fuse items "
+				 "[%s], [%s].", node_blocknr(place->node), 
+				 cleanup->neigh.pos.item, place->pos.item,
+				 reiser4_print_key(&cleanup->neigh.key, PO_DEFAULT),
+				 reiser4_print_key(&place->key, PO_DEFAULT));
+			*/
+
 			place->pos.item--;
 			
-			aal_memset(&cleanup->neigh, 0, 
-				   sizeof(cleanup->neigh));
+			aal_memset(&cleanup->neigh, 0, sizeof(cleanup->neigh));
 			return 0;
 		} 
 		
@@ -133,6 +140,12 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 	hint.region_func = callback_free_extent;
 	hint.data = cleanup;
 	hint.shift_flags = SF_DEFAULT;
+
+	/*
+	aal_mess("Node (%llu), item (%u): remove not used '%s' item [%s].",
+		 node_blocknr(place->node), place->pos.item, place->plug->label,
+		 reiser4_print_key(&place->key, PO_DEFAULT));
+	*/
 
 	/* Remove not checked item. */
 	res = reiser4_tree_remove(cleanup->repair->fs->tree, place, &hint);

@@ -204,12 +204,10 @@ static errno_t reg40_next(object_entity_t *object,
 		{
 			reiser4_place_t next;
 
-			if ((res = reg40_core->tree_ops.next_item(info->tree, 
+			if ((res = reg40_core->tree_ops.next_item(info->tree,
 								  &reg->body, 
 								  &next)))
-			{
 				return res;
-			}
 
 			/* If this was the last item in the tree, 
 			   evth is handled. */

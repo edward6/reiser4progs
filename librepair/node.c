@@ -178,7 +178,7 @@ errno_t repair_node_check_level(reiser4_node_t *node, uint8_t mode) {
 		/* Check that the item is legal for this node. If not, it 
 		   is not recoverable corruption for now. FIXME-VITALY: 
 		   how to recover valuable data from here? */
-		if (!repair_tree_legal_level(place.plug->id.group, 
+		if (!repair_tree_legal_level(place.plug, 
 					     reiser4_node_get_level(node)))
 		{
 			aal_error("Node (%llu): Node level (%u) does not match "
@@ -208,33 +208,6 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	res |= repair_node_items_check(node, mode);
 	
 	return res;
-}
-
-/* Traverse through all items of the gived node. */
-errno_t repair_reiser4_node_traverse(reiser4_node_t *node, node_func_t func, 
-			     void *data)
-{
-	reiser4_place_t place;
-	pos_t *pos = &place.pos;
-	errno_t res;
-	
-	aal_assert("vpf-744", node != NULL);
-	
-	pos->unit = MAX_UINT32;
-	
-	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
-		if ((res = reiser4_place_open(&place, node, pos))) {
-			aal_error("Node (%llu), item (%u): failed to "
-				  "open the item by its place.", 
-				  node_blocknr(node), pos->item);
-			return res;
-		}
-		
-		if ((res = func(&place, data)))
-			return res;
-	}
-	
-	return 0;
 }
 
 errno_t repair_node_clear_flags(reiser4_node_t *node) {

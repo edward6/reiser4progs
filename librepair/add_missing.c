@@ -212,7 +212,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 
 			stat->by_node++;
 
-			res = repair_reiser4_node_traverse(node, callback_layout, am);
+			res = reiser4_node_trav(node, callback_layout, am);
 			if (res) goto error_close_node;
 
 		} else {
