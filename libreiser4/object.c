@@ -779,7 +779,13 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
     
 	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
 	hint.body.dir.hash = reiser4_profile_value(fs->profile, "hash");
-	hint.body.dir.direntry = reiser4_format_key_pid(fs->format);
+
+	if (fs->key == LARGE)
+		hint.body.dir.direntry = ITEM_CDE_LARGE_ID;
+	else
+		hint.body.dir.direntry = ITEM_CDE_SHORT_ID;
+
+//	hint.body.dir.direntry = reiser4_profile_value(fs->profile, "cde");
 
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs, parent, &hint)))

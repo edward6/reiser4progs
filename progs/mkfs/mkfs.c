@@ -29,8 +29,7 @@ enum mkfs_behav_flags {
 	BF_FORCE   = 1 << 0,
 	BF_QUIET   = 1 << 1,
 	BF_PLUGS   = 1 << 2,
-	BF_LOST    = 1 << 3,
-	BF_SHORT   = 1 << 4
+	BF_LOST    = 1 << 3
 };
 
 typedef enum mkfs_behav_flags mkfs_behav_flags_t;
@@ -49,8 +48,7 @@ static void mkfs_print_usage(char *name) {
 		"  -f, --force                     makes mkfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"Mkfs options:\n"
-		"  -k, --short-keys                forces mkfs to use short keys, that is\n"
-		"                                  with no ordering component used.\n"
+		"  -k, --keys=LARGE|SHORT          key length to be used.\n"
 		"  -s, --lost-found                forces mkfs to create lost+found\n"
 		"                                  directory.\n"
 		"  -b, --block-size N              block size, 4096 by default, other\n"
@@ -99,7 +97,7 @@ int main(int argc, char *argv[]) {
 		{"label", required_argument, NULL, 'l'},
 		{"uuid", required_argument, NULL, 'i'},
 		{"lost-found", required_argument, NULL, 's'},
-		{"short-keys", required_argument, NULL, 'k'},
+		{"keys", required_argument, NULL, 'k'},
 		{"known-plugins", no_argument, NULL, 'P'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
@@ -121,7 +119,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPo:k",
+	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPo:k:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -144,7 +142,19 @@ int main(int argc, char *argv[]) {
 			flags |= BF_LOST;
 			break;
 		case 'k':
-			flags |= BF_SHORT;
+			if (aal_strlen(optarg) == aal_strlen("LARGE") &&
+			    !aal_strncmp(optarg, "LARGE", aal_strlen(optarg)))
+			{
+				hint.key = LARGE;
+			} else if (aal_strlen(optarg) == aal_strlen("SHORT") &&
+				   !aal_strncmp(optarg, "SHORT", aal_strlen(optarg)))
+			{
+				hint.key = SHORT;
+			} else {
+				aal_exception_warn("Invalid key policy %s. Large keys "
+						   "will be used by default.", optarg);
+			}
+
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -349,9 +359,6 @@ int main(int argc, char *argv[]) {
 			aal_gauge_start(gauge);
 		}
 
-		if (flags & BF_SHORT)
-			hint.key = SHORT;
-
 		/* Creating filesystem */
 		if (!(fs = reiser4_fs_create(device, &hint))) {
 			aal_exception_error("Can't create filesystem on %s.", 
@@ -382,7 +389,7 @@ int main(int argc, char *argv[]) {
 			reiser4_object_t *object;
 	    
 			if (!(object = reiser4_dir_create(fs, fs->root, "lost+found"))) {
-				aal_exception_error("Can't create lost+found directory.");
+				aal_exception_error("Can't create \"/lost+found\" directory.");
 				goto error_free_root;
 			}
 	    
@@ -401,7 +408,7 @@ int main(int argc, char *argv[]) {
 		aal_memset(hint.uuid, 0, sizeof(hint.uuid));
 
 		/* Zeroing out label, because all filesystems cannot have the
-		 * same label. */
+		   same label. */
 		aal_memset(hint.label, 0, sizeof(hint.label));
 
 		/* Zeroing fs_len in order to force mkfs on next turn to calc
