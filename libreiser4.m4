@@ -74,7 +74,7 @@ int main() {
             "equal to %d.%d.%d.\n", $libreiser4_config_major_version, 
 	    $libreiser4_config_minor_version, $libreiser4_config_micro_version);
 
-	printf("You can get it at http://www.namesys.com/pub/reiser4progs\n");
+	printf("You can get it at ftp://ftp.namesys.com/pub/reiser4progs\n");
 	return 1;
     }
 }
@@ -92,4 +92,3 @@ dnl Execute ACTION-IF-FOUND
 $2
 
 ])
-

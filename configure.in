@@ -15,7 +15,7 @@ AH_TEMPLATE([HAVE_LIBREADLINE], [Define for enable libreadline using.])
 
 LIBREISER4_MAJOR_VERSION=0
 LIBREISER4_MINOR_VERSION=4
-LIBREISER4_MICRO_VERSION=3
+LIBREISER4_MICRO_VERSION=4
 
 LIBREISER4_INTERFACE_AGE=0
 LIBREISER4_BINARY_AGE=0
@@ -108,7 +108,7 @@ int main() {
 	$libaal_config_major_version, $libaal_config_minor_version, 
 	$libaal_config_micro_version);
 
-    printf("You can get it at http://www.namesys.com/pub/libaal\n");
+    printf("You can get it at ftp://ftp.namesys.com/pub/libaal\n");
     return 1;
 }
 ], 
@@ -337,7 +337,7 @@ AC_SUBST(LIBREISER4_LIBS)
 
 OLD_LIBS="$LIBS"
 LIBS=""
-AC_CHECK_LIBAAL(aal, $LIBREISER4_VERSION, ,exit)
+AC_CHECK_LIBAAL(aal, 0.4.3, ,exit)
 AAL_LIBS="$LIBS"
 LIBS="$OLD_LIBS"
 
@@ -347,7 +347,7 @@ if test x$enable_stand_alone = xyes; then
 
     OLD_LIBS="$LIBS"
     LIBS=""
-    AC_CHECK_LIBAAL(aal-alone, $LIBREISER4_VERSION, ,exit)
+    AC_CHECK_LIBAAL(aal-alone, 0.4.3, ,exit)
     AAL_ALONE_LIBS="$LIBS"
     LIBS="$OLD_LIBS"
 
