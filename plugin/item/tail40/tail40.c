@@ -27,6 +27,17 @@ static errno_t tail40_insert(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
+static uint16_t tail40_remove(item_entity_t *item, uint32_t pos) {
+	aal_assert("umka-1661", item != NULL, return -1);
+	aal_assert("umka-1662", pos != ~0ul, return -1);
+	aal_assert("umka-1663", pos < item->len, return -1);
+
+	aal_memmove(item->body, item->body + 1,
+		    item->len - pos - 1);
+	
+	return 1;
+}
+
 static errno_t tail40_init(item_entity_t *item, 
 			   reiser4_item_hint_t *hint)
 {
@@ -181,15 +192,8 @@ static int tail40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	aal_assert("umka-1584", item1 != NULL, return -1);
 	aal_assert("umka-1585", item2 != NULL, return -1);
 
-	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
-	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
-					       KEY_REISER40_ID)))
-	{
-		aal_exception_error("Can't find key plugin by its id 0x%x",
-				    KEY_REISER40_ID);
-		return -1;
-	}
-	
+	plugin = item1->key.plugin;
+		
 	locality1 = plugin_call(return -1, plugin->key_ops,
 				get_locality, &item1->key);
 
@@ -236,16 +240,17 @@ static reiser4_plugin_t tail40_plugin = {
 #ifndef ENABLE_COMPACT
 		.init	       = tail40_init,
 		.insert	       = tail40_insert,
+		.remove	       = tail40_remove,
 		.print	       = tail40_print,
 		.mergeable     = tail40_mergeable,
 #else
 		.init	       = NULL,
 		.insert	       = NULL,
+		.remove	       = NULL,
 		.print	       = NULL,
 		.mergeable     = NULL,
 #endif
 		.open          = NULL,
-		.remove	       = NULL,
 		.estimate      = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,

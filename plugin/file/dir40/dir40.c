@@ -310,30 +310,30 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 		    build_direntry, body_hint.key.body, dir->hash,
 		    locality, objectid, ".");
 
-	if (!(body.entry = aal_calloc(body.count*sizeof(*body.entry), 0)))
+	if (!(body.unit = aal_calloc(body.count * sizeof(*body.unit), 0)))
 		goto error_free_dir;
     
 	/* Preparing dot entry */
-	body.entry[0].name = ".";
+	body.unit[0].name = ".";
     
 	plugin_call(goto error_free_body, object->plugin->key_ops,
-		    build_objid, &body.entry[0].objid, KEY_STATDATA_TYPE,
+		    build_objid, &body.unit[0].objid, KEY_STATDATA_TYPE,
 		    locality, objectid);
 	
 	plugin_call(goto error_free_body, object->plugin->key_ops,
-		    build_entryid, &body.entry[0].entryid, dir->hash,
-		    body.entry[0].name);
+		    build_entryid, &body.unit[0].entryid, dir->hash,
+		    body.unit[0].name);
     
 	/* Preparing dot-dot entry */
-	body.entry[1].name = "..";
+	body.unit[1].name = "..";
     
 	plugin_call(goto error_free_body, object->plugin->key_ops,
-		    build_objid, &body.entry[1].objid, KEY_STATDATA_TYPE,
+		    build_objid, &body.unit[1].objid, KEY_STATDATA_TYPE,
 		    parent_locality, locality);
 	
 	plugin_call(goto error_free_body, object->plugin->key_ops,
-		    build_entryid, &body.entry[1].entryid, dir->hash,
-		    body.entry[1].name);
+		    build_entryid, &body.unit[1].entryid, dir->hash,
+		    body.unit[1].name);
     
 	body_hint.hint = &body;
 
@@ -422,12 +422,12 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 		goto error_free_body;
 	}
 
-	aal_free(body.entry);
+	aal_free(body.unit);
     
 	return (object_entity_t *)dir;
 
  error_free_body:
-	aal_free(body.entry);
+	aal_free(body.unit);
  error_free_dir:
 	aal_free(dir);
  error:
@@ -462,7 +462,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	
 	body_hint.count = 1;
 
-	if (!(body_hint.entry = aal_calloc(sizeof(*entry), 0)))
+	if (!(body_hint.unit = aal_calloc(sizeof(*entry), 0)))
 		return -1;
     
 	hint.hint = &body_hint;
@@ -475,7 +475,7 @@ static int32_t dir40_write(object_entity_t *entity,
 		plugin_call(break, dir->file.key.plugin->key_ops, build_entryid,
 			    &entry->entryid, dir->hash, entry->name);
     
-		aal_memcpy(&body_hint.entry[0], entry, sizeof(*entry));
+		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
     
 		hint.key.plugin = dir->file.key.plugin;
 		plugin_call(break, hint.key.plugin->key_ops, build_direntry,
@@ -509,7 +509,7 @@ static int32_t dir40_write(object_entity_t *entity,
 		entry++;
 	}
     
-	aal_free(body_hint.entry);
+	aal_free(body_hint.unit);
 	return i;
 }
 

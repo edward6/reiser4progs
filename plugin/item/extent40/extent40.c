@@ -26,26 +26,116 @@ static uint32_t extent40_units(item_entity_t *item) {
 	return item->len / sizeof(extent40_t);
 }
 
-#ifndef ENABLE_COMPACT
-
-static errno_t extent40_init(item_entity_t *item, 
-			     reiser4_item_hint_t *hint)
+static errno_t extent40_unit_key(item_entity_t *item, uint32_t pos, 
+	reiser4_key_t *key) 
 {
-	aal_assert("umka-1202", item != NULL, return -1); 
-	aal_assert("umka-1203", hint != NULL, return -1);
-	aal_assert("umka-1204", hint->data != NULL, return -1);
-    
+	uint32_t i;
+	uint16_t count;
+	extent40_t *extent;
+	uint64_t offset, blocksize;
+	
+	aal_assert("vpf-622", item != NULL, return -1);
+	aal_assert("vpf-623", key != NULL, return -1);
+	
+	count = extent40_units(item);
+
+	aal_assert("vpf-625", pos < count, return -1);
+	
+	extent = extent40_body(item);
+	blocksize = item->con.device->blocksize;
+
+	aal_memcpy(key, &item->key, sizeof(*key));
+		
+	offset = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, key->body);
+
+	for (i = 0; i < pos; i++)
+		offset += et40_get_width(extent + i) * blocksize;
+
+	plugin_call(return -1, key->plugin->key_ops, set_offset, 
+		    key->body, offset);
+	
 	return 0;
 }
+
+#ifndef ENABLE_COMPACT
 
 static errno_t extent40_insert(item_entity_t *item, uint32_t pos, 
 			       reiser4_item_hint_t *hint)
 {
-	return -1;
+	void *src, *dst;
+	uint32_t i, units;
+	extent40_t *extent;
+	reiser4_extent_hint_t *extent_hint;
+	
+	aal_assert("umka-1202", item != NULL, return -1); 
+	aal_assert("umka-1203", hint != NULL, return -1);
+	aal_assert("umka-1656", pos != ~0ul, return -1);
+
+	aal_assert("umka-1204", hint->data != NULL, return -1);
+	aal_assert("umka-1655", item->body != NULL, return -1);
+
+	if (!(extent = extent40_body(item)))
+		return -1;
+
+	/* Preparing space for new extent units */
+	if ((units = extent40_units(item))) {
+		src = extent + pos;
+		
+		dst = src + extent_hint->count * sizeof(extent40_t);
+	
+		aal_memmove(dst, src, (units - pos) * sizeof(extent40_t));
+	}
+
+	extent += pos;
+	extent_hint = (reiser4_extent_hint_t *)hint->hint;
+	
+	for (i = 0; i < extent_hint->count; i++, extent++) {
+		et40_set_start(extent, extent_hint->unit[0].ptr);
+		et40_set_width(extent, extent_hint->unit[0].width);
+	}
+
+	/* Updating item's key by key of the first unit */
+	if (pos == 0) {
+		if (extent40_unit_key(item, 0, &item->key))
+			return -1;
+	}
+	
+	return 0;
+}
+
+static errno_t extent40_init(item_entity_t *item, 
+			     reiser4_item_hint_t *hint)
+{
+	aal_memset(item->body, 0, item->len);
+	return extent40_insert(item, 0, hint);
 }
 
 static uint16_t extent40_remove(item_entity_t *item, uint32_t pos) {
-	return -1;
+	uint32_t units;
+	void *src, *dst;
+	extent40_t *extent;
+	
+	aal_assert("umka-1658", item != NULL, return 0);
+	aal_assert("umka-1659", item->body != NULL, return 0);
+	aal_assert("umka-1657", pos != ~0ul, return 0);
+
+	if (!(extent = extent40_body(item)))
+		return -1;
+
+	units = extent40_units(item);
+	
+	aal_assert("umka-1660", pos < units, return -1);
+
+	if (pos < units) {
+		dst = extent + pos;
+		src = extent + pos + 1;
+		
+		aal_memmove(dst, src, (units - pos - 1) *
+			    sizeof(extent40_t));
+	}
+		
+	return sizeof(extent40_t);
 }
 
 static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
@@ -156,38 +246,6 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	return 0;	
 }
 
-static errno_t extent40_unit_key(item_entity_t *item, uint32_t pos, 
-	reiser4_key_t *key) 
-{
-	uint32_t i;
-	uint16_t count;
-	extent40_t *extent;
-	uint64_t offset, blocksize;
-	
-	aal_assert("vpf-622", item != NULL, return -1);
-	aal_assert("vpf-623", key != NULL, return -1);
-	
-	count = extent40_units(item);
-
-	aal_assert("vpf-625", pos < count, return -1);
-	
-	extent = extent40_body(item);
-	blocksize = item->con.device->blocksize;
-
-	aal_memcpy(key, &item->key, sizeof(*key));
-		
-	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key->body);
-
-	for (i = 0; i < pos; i++)
-		offset += et40_get_width(extent + i) * blocksize;
-
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key->body, offset);
-	
-	return 0;
-}
-
 static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 			     uint32_t *pos)
 {
@@ -242,13 +300,17 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 static errno_t extent40_fetch(item_entity_t *item, uint32_t pos,
 			      void *buff, uint32_t count)
 {
+	extent40_t *extent;
 	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
 	
 	aal_assert("umka-1421", item != NULL, return -1);
 	aal_assert("umka-1422", buff != NULL, return -1);
 
-	hint->ptr = et40_get_start(extent40_body(item) + pos);
-	hint->width = et40_get_width(extent40_body(item) + pos);
+	if (!(extent = extent40_body(item)))
+		return -1;
+	
+	hint->ptr = et40_get_start(extent + pos);
+	hint->width = et40_get_width(extent + pos);
 	
 	return 0;
 }
@@ -258,13 +320,17 @@ static errno_t extent40_fetch(item_entity_t *item, uint32_t pos,
 static errno_t extent40_update(item_entity_t *item, uint32_t pos,
 			       void *buff, uint32_t count)
 {
+	extent40_t *extent;
 	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
 	
 	aal_assert("umka-1425", item != NULL, return -1);
 	aal_assert("umka-1426", buff != NULL, return -1);
 
-	et40_set_start(extent40_body(item) + pos, hint->ptr);
-	et40_set_width(extent40_body(item) + pos, hint->width);
+	if (!(extent = extent40_body(item)))
+		return -1;
+	
+	et40_set_start(extent + pos, hint->ptr);
+	et40_set_width(extent + pos, hint->width);
 	
 	return 0;
 }
@@ -278,14 +344,7 @@ static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	aal_assert("umka-1581", item1 != NULL, return -1);
 	aal_assert("umka-1582", item2 != NULL, return -1);
 
-	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
-	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
-					       KEY_REISER40_ID)))
-	{
-		aal_exception_error("Can't find key plugin by its id 0x%x",
-				    KEY_REISER40_ID);
-		return -1;
-	}
+	plugin = item1->key.plugin;
 	
 	locality1 = plugin_call(return -1, plugin->key_ops,
 				get_locality, &item1->key);

@@ -233,8 +233,7 @@ int reiser4_alloc_test(
 }
 
 errno_t reiser4_alloc_region_layout(
-	reiser4_alloc_t *alloc, 
-	blk_t blk, 
+	reiser4_alloc_t *alloc, blk_t blk, 
 	alloc_layout_func_t func, 
 	void *data)
 {
@@ -279,7 +278,7 @@ errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc,
 			      reiser4_alloc_used(alloc));
 
 	aal_assert("vpf-589", alloc->forbid->size == bitmap->size &&
-			      alloc->forbid->total == bitmap->total, return -1);
+		   alloc->forbid->total == bitmap->total, return -1);
 	
 	for (i = 0; i < alloc->forbid->size; i++)
 		alloc->forbid->map[i] |= bitmap->map[i];
@@ -298,7 +297,7 @@ errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc,
 	    return 0;
 
 	aal_assert("vpf-590", alloc->forbid->size == bitmap->size &&
-			      alloc->forbid->total == bitmap->total, return -1);
+		   alloc->forbid->total == bitmap->total, return -1);
 	
 	for (i = 0; i < alloc->forbid->size; i++)
 		alloc->forbid->map[i] &= ~bitmap->map[i];

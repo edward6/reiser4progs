@@ -308,6 +308,13 @@ struct reiser4_ptr_hint {
 
 typedef struct reiser4_ptr_hint reiser4_ptr_hint_t;
 
+struct reiser4_extent_hint {
+	uint16_t count;
+	reiser4_ptr_hint_t *unit;
+};
+
+typedef struct reiser4_extent_hint reiser4_extent_hint_t;
+
 struct reiser4_sdext_unix_hint {
 	uint32_t uid;
 	uint32_t gid;
@@ -370,7 +377,7 @@ typedef struct reiser4_entry_hint reiser4_entry_hint_t;
 
 struct reiser4_direntry_hint {
 	uint16_t count;
-	reiser4_entry_hint_t *entry;
+	reiser4_entry_hint_t *unit;
 };
 
 typedef struct reiser4_direntry_hint reiser4_direntry_hint_t;

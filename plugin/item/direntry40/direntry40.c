@@ -133,14 +133,7 @@ static int direntry40_mergeable(item_entity_t *item1,
 	aal_assert("umka-1581", item1 != NULL, return -1);
 	aal_assert("umka-1582", item2 != NULL, return -1);
 
-	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
-	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
-					       KEY_REISER40_ID)))
-	{
-		aal_exception_error("Can't find key plugin by its id 0x%x",
-				    KEY_REISER40_ID);
-		return -1;
-	}
+	plugin = item1->key.plugin;
 	
 	locality1 = plugin_call(return -1, plugin->key_ops,
 				get_locality, &item1->key);
@@ -163,7 +156,7 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 	hint->len = direntry_hint->count * sizeof(entry40_t);
     
 	for (i = 0; i < direntry_hint->count; i++) {
-		hint->len += aal_strlen(direntry_hint->entry[i].name) + 
+		hint->len += aal_strlen(direntry_hint->unit[i].name) + 
 			sizeof(objid40_t) + 1;
 	}
 
@@ -511,7 +504,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
     
 	entry40_t *entry;
 	direntry40_t *direntry;
-	reiser4_direntry_hint_t *dh;
+	reiser4_direntry_hint_t *dehint;
     
 	aal_assert("umka-791", item != NULL, return -1);
 	aal_assert("umka-792", hint != NULL, return -1);
@@ -521,13 +514,13 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	if (!(direntry = direntry40_body(item)))
 		return -1;
     
-	dh = (reiser4_direntry_hint_t *)hint->hint;
+	dehint = (reiser4_direntry_hint_t *)hint->hint;
     
 	if (pos > de40_get_count(direntry))
 		return -1;
 
 	units = de40_get_count(direntry);
-	headers = dh->count * sizeof(entry40_t);
+	headers = dehint->count * sizeof(entry40_t);
 		
 	/* Getting offset of new entry body will be created at */
 	if (units > 0) {
@@ -571,35 +564,41 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	/* Moving unit headers headers */
 	if (len_before) {
 		src = &direntry->entry[pos];
-		dst = &direntry->entry[pos] + dh->count;
+
+		dst = &direntry->entry[pos] +
+			dehint->count;
 		
 		aal_memmove(dst, src, len_before);
 	}
     
 	/* Updating direntry count field */
-	de40_inc_count(direntry, dh->count);
+	de40_inc_count(direntry, dehint->count);
 
 	/* Creating new entries */
-	for (i = 0; i < dh->count; i++) {
-		uint32_t len = aal_strlen(dh->entry[i].name);
+	for (i = 0; i < dehint->count; i++) {
+		uint32_t len = aal_strlen(dehint->unit[i].name);
 		entry40_t *entry = direntry40_entry(direntry, pos + i);
 		objid40_t *objid = (objid40_t *)((void *)direntry + offset);
 		
 		en40_set_offset(entry, offset);
 
-		aal_memcpy(&entry->entryid, &dh->entry[i].entryid,
+		aal_memcpy(&entry->entryid, &dehint->unit[i].entryid,
 			   sizeof(entryid40_t));
 	
-		aal_memcpy(objid, &dh->entry[i].objid, sizeof(objid40_t));
+		aal_memcpy(objid, &dehint->unit[i].objid, sizeof(objid40_t));
 
 		aal_memcpy((void *)direntry + offset + sizeof(objid40_t),
-			   dh->entry[i].name, len);
+			   dehint->unit[i].name, len);
 
 		offset += len + sizeof(objid40_t);
 		*((char *)(direntry) + offset) = '\0';
 		offset++;
 	}
-    
+
+	/*
+	  Updating item key by unit key if the first unit was chnaged. It is
+	  needed for corrent updating left delimiting keys.
+	*/
 	if (pos == 0) {
 		if (direntry40_unit_key(item, 0, &item->key))
 			return -1;
