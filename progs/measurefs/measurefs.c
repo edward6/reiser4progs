@@ -269,6 +269,7 @@ static errno_t stat_process_node(
 	void *data)		    /* traverse data */
 {
 	uint8_t level;
+	uint32_t blksize;
 	aal_device_t *device;
 	uint32_t leaves_used;
 	uint32_t formatted_used;
@@ -277,14 +278,13 @@ static errno_t stat_process_node(
 	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
 
 	level = reiser4_node_get_level(node);
+	blksize = reiser4_master_blksize(tree->fs->master);
 
 	if (stat_hint->gauge && stat_hint->formatted % 128 == 0)
 		aal_gauge_update(stat_hint->gauge, 0);
 
 	device = tree->fs->device;
-	
-	formatted_used = aal_device_get_bs(device) -
-		reiser4_node_space(node);
+	formatted_used = blksize - reiser4_node_space(node);
 
 	stat_hint->formatted_used = formatted_used +
 		(stat_hint->formatted_used * stat_hint->formatted);
@@ -296,8 +296,7 @@ static errno_t stat_process_node(
 	if (level > LEAF_LEVEL) {
 		pos_t pos = {MAX_UINT32, MAX_UINT32};
 		
-		internals_used = aal_device_get_bs(device) -
-			reiser4_node_space(node);
+		internals_used = blksize - reiser4_node_space(node);
 		
 		stat_hint->internals_used = internals_used +
 			(stat_hint->internals_used * stat_hint->internals);
@@ -323,8 +322,7 @@ static errno_t stat_process_node(
 				  (place_t *)&place, stat_process_item, data);
 		}
 	} else {
-		leaves_used = aal_device_get_bs(device) -
-			reiser4_node_space(node);
+		leaves_used = blksize - reiser4_node_space(node);
 
 		stat_hint->leaves_used = leaves_used +
 			(stat_hint->leaves_used * stat_hint->leaves);
@@ -332,12 +330,12 @@ static errno_t stat_process_node(
 		stat_hint->leaves_used /= (stat_hint->leaves + 1);
 	}
 	
-	stat_hint->leaves += (level == LEAF_LEVEL);
-	stat_hint->twigs += (level == TWIG_LEVEL);
-	stat_hint->internals += (level > LEAF_LEVEL);
-
 	stat_hint->nodes++;
 	stat_hint->formatted++;
+	
+	stat_hint->twigs += (level == TWIG_LEVEL);
+	stat_hint->leaves += (level == LEAF_LEVEL);
+	stat_hint->internals += (level > LEAF_LEVEL);
 
 	return 0;
 }
@@ -720,8 +718,12 @@ int main(int argc, char *argv[]) {
 	if (flags & BF_PLUGS)
 		misc_plugins_print();
 
-	if (optind >= argc)
+	if (optind >= argc) {
+		if (!(flags & BF_PROF) && !(flags & BF_PLUGS))
+			measurefs_print_usage(argv[0]);
+			
 		goto error_free_libreiser4;
+	}
 	
 	host_dev = argv[optind];
     
