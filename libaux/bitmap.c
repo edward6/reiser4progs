@@ -254,18 +254,6 @@ aux_bitmap_t *aux_bitmap_create(uint64_t len) {
 	return bitmap;
 }
 
-errno_t aux_bitmap_resize(aux_bitmap_t *bitmap,
-			  uint64_t len)
-{
-	aal_assert("umka-1962", bitmap != NULL);
-	
-	bitmap->total = len;
-	bitmap->size = (len + 7) / 8;
-
-	return aal_realloc((void *)&bitmap->map,
-			   bitmap->size);
-}
-
 /* Makes clone of specified bitmap. Returns it to caller */
 aux_bitmap_t *aux_bitmap_clone(
 	aux_bitmap_t *bitmap)	    /* bitmap clone of which will be created */

@@ -8,7 +8,6 @@
 #define AUX_BITMAP_H
 
 #ifndef ENABLE_STAND_ALONE
-
 #include <aal/aal.h>
 
 /* Bitmap structure. It contains: pointer to device instance bitmap opened on,
@@ -67,15 +66,11 @@ extern uint64_t aux_bitmap_calc_cleared(aux_bitmap_t *bitmap);
 extern uint64_t aux_bitmap_marked(aux_bitmap_t *bitmap);
 extern uint64_t aux_bitmap_cleared(aux_bitmap_t *bitmap);
 
-extern errno_t aux_bitmap_resize(aux_bitmap_t *bitmap,
-				 uint64_t len);
-
 extern aux_bitmap_t *aux_bitmap_create(uint64_t len);
 extern aux_bitmap_t *aux_bitmap_clone(aux_bitmap_t *bitmap);
 
 extern void aux_bitmap_close(aux_bitmap_t *bitmap);
 extern char *aux_bitmap_map(aux_bitmap_t *bitmap);
-
 #endif
 
 #endif

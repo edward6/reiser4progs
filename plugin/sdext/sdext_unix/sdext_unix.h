@@ -39,8 +39,8 @@ typedef struct sdext_unix sdext_unix_t;
 #define sdext_unix_get_ctime(ux)	aal_get_le32(ux, ctime)
 #define sdext_unix_set_ctime(ux, val)	aal_set_le32(ux, ctime, val)
 
-#define sdext_unix_get_rdev(ux)	        aal_get_le32(ux, u.rdev)
-#define sdext_unix_set_rdev(ux, val)	aal_set_le32(ux, u.rdev, val)
+#define sdext_unix_get_rdev(ux)	        aal_get_le64(ux, u.rdev)
+#define sdext_unix_set_rdev(ux, val)	aal_set_le64(ux, u.rdev, val)
 
 #define sdext_unix_get_bytes(ux)	aal_get_le64(ux, u.bytes)
 #define sdext_unix_set_bytes(ux, val)	aal_set_le64(ux, u.bytes, val)

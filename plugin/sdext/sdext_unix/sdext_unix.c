@@ -96,7 +96,7 @@ static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 	aal_stream_format(stream, "ctime:\t\t%s",
 			  ctime(&ctm));
 
-	aal_stream_format(stream, "rdev:\t\t%u\n",
+	aal_stream_format(stream, "rdev:\t\t%llu\n",
 			  sdext_unix_get_rdev(ext));
 	
 	aal_stream_format(stream, "bytes:\t\t%llu\n",
