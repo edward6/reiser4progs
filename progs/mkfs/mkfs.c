@@ -94,8 +94,8 @@ static reiser4_object_t *mkfs_create_dir(reiser4_fs_t *fs,
 					       directory);
 
 	if (!hint.plugin) {
-		aal_exception_error("Can't find dir plugin by its id 0x%x.", 
-				    directory);
+		aal_exception_error("Can't find dir plugin by its id "
+				    "0x%x.", directory);
 		return NULL;
 	}
     

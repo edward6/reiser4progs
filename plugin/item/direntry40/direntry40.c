@@ -986,7 +986,7 @@ static errno_t direntry40_print(item_entity_t *item,
 				uint16_t options) 
 {
 	char name[256];
-	uint32_t i, width;
+	uint32_t i, namewidth;
 	direntry40_t *direntry;
 	uint64_t locality, objectid;
 	
@@ -1006,9 +1006,17 @@ static errno_t direntry40_print(item_entity_t *item,
 			  item->plugin->h.id,
 			  item->plugin->h.label);
 	
-	aal_stream_format(stream, "units:\t\t%u\n",
+	aal_stream_format(stream, "units %u\n\n",
 			  de40_get_units(direntry));
 
+	aal_stream_format(stream, "NR%*s NAME%*s OFFSET HASH%*s "
+			  "SDKEY%*s\n", 1, " ", 17, " ", 29, " ",
+			  13, " ");
+	
+	aal_stream_format(stream, "----------------------------"
+			  "------------------------------------"
+			  "---------------------\n");
+	
 	/* Loop though the all entries */
 	for (i = 0; i < de40_get_units(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
@@ -1019,14 +1027,13 @@ static errno_t direntry40_print(item_entity_t *item,
 		locality = ob40_get_locality(objid);
 		objectid = ob40_get_objectid(objid);
 		
-		width = 30 > aal_strlen(name) ? 30 -
+		namewidth = 20 > aal_strlen(name) ? 20 -
 			aal_strlen(name) + 1 : 1;
-		
-		aal_stream_format(stream, "%.7llx:%.7llx\t%s%*s"
-				  "%.16llx:%.16llx\n", locality,
-				  objectid, name, width, " ",
-				  ha40_get_objectid(&entry->hash),
-				  ha40_get_offset(&entry->hash));
+
+		aal_stream_format(stream, "%*d %s%*s %u   %.16llx:%.16llx "
+				  "[ %.7llx:%.7llx ]\n", 3, i, name, namewidth, " ",
+				  entry->offset, ha40_get_objectid(&entry->hash),
+				  ha40_get_offset(&entry->hash), locality, objectid);
 	}
 
 	return 0;
