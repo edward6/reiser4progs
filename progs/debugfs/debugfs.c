@@ -335,7 +335,7 @@ int main(int argc, char *argv[]) {
 		   corruptions, but this also avoid prining usaful pack 
 		   errors. */
 		error = misc_exception_get_stream(EXCEPTION_ERROR);
-		//misc_exception_set_stream(EXCEPTION_ERROR, NULL);
+		misc_exception_set_stream(EXCEPTION_ERROR, NULL);
 		if (repair_fs_pack(fs, &stream)) {
 			aal_error("Can't pack filesystem.");
 			goto error_free_journal;
