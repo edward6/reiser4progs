@@ -308,7 +308,7 @@ static errno_t stat40_remove(place_t *place, trans_hint_t *hint) {
 	stat_hint = (statdata_hint_t *)hint->specific;
 
 	for (i = 0; i < STAT40_EXTNR; i++) {
-		uint16_t extsize;;
+		uint16_t extsize;
 		uint16_t new_extmask;
 		uint16_t old_extmask = 0;
 

@@ -187,10 +187,8 @@ static reiser4_object_ops_t spl40_ops = {
 	.attach         = NULL,
 	.detach         = NULL,
 	
-	.form		= NULL,
 	.fake		= NULL,
 	.check_attach 	= NULL,
-	.check_struct 	= NULL,
 #endif
 	.lookup	        = NULL,
 	.reset	        = NULL,
