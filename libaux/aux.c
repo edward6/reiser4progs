@@ -58,25 +58,14 @@ int aux_bin_search(
 }
 
 /* Parse standard unix path function */
-errno_t aux_parse_path(const char *path, aux_pre_entry_t pre_func,
+errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		       aux_post_entry_t post_func, void *data)
 {
 	char track[256];
-	char local[256];
-
 	char *entry = NULL;
-	char *pointer = NULL;
 
 	aal_memset(track, 0, sizeof(track));
-	aal_memset(local, 0, sizeof(local));
-
-	aal_strncpy(local, path, sizeof(local));
 	
-	if (local[0] != '.' || local[0] == '/')
-		track[aal_strlen(track)] = '/';
-  
-	pointer = (local[0] == '/' ? &local[1] : &local[0]);
-
 	while (1) {
 		errno_t res;
 		uint32_t len;
@@ -89,7 +78,7 @@ errno_t aux_parse_path(const char *path, aux_pre_entry_t pre_func,
 		if ((res = pre_func(track, entry, data)))
 			return res;
     
-		if (!(entry = aal_strsep(&pointer, "/")))
+		if (!(entry = aal_strsep(&path, "/")))
 			return 0;
 
 		if (!aal_strlen(entry))

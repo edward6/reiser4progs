@@ -175,18 +175,18 @@ static errno_t callback_find_entry(char *track, char *entry,
 */
 static errno_t reiser4_object_search(
 	reiser4_object_t *object,   /* object lookup will be performed in */
-	const char *name)           /* name to be parsed */
+	char *path)                 /* name to be parsed */
 {
 	errno_t res;
 	
 	aal_assert("umka-682", object != NULL);
-	aal_assert("umka-681", name != NULL);
+	aal_assert("umka-681", path != NULL);
 
 	/*
 	  Parsing path and finding actual stat data key. I've said actual,
 	  because there may be a symlink.
 	*/
-	if ((res = aux_parse_path(name, callback_find_statdata,
+	if ((res = aux_parse_path(path, callback_find_statdata,
 				  callback_find_entry, object)))
 		return res;
 
@@ -200,19 +200,17 @@ static errno_t reiser4_object_search(
 /* This function opens object by its name */
 reiser4_object_t *reiser4_object_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
-	const char *name)               /* name of object to be opened */
+	char *path)                     /* name of object to be opened */
 {
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-678", fs != NULL);
-	aal_assert("umka-789", name != NULL);
+	aal_assert("umka-789", path != NULL);
 
 	if (!fs->tree) {
-#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Can't open object without "
 				    "the tree being initialized.");
-#endif
 		return NULL;
 	}
     
@@ -222,7 +220,7 @@ reiser4_object_t *reiser4_object_open(
 	object->fs = fs;
 
 #ifndef ENABLE_STAND_ALONE
-	aal_strncpy(object->name, name, sizeof(object->name));
+	aal_strncpy(object->name, path, sizeof(object->name));
 #endif
 
 	reiser4_key_assign(&object->key, &fs->tree->key);
@@ -232,12 +230,12 @@ reiser4_object_t *reiser4_object_open(
 	  is absolute one. So, user, who calls this method should convert name
 	  previously into absolute one by means of using getcwd function.
 	*/
-	if (reiser4_object_search(object, name))
+	if (reiser4_object_search(object, path))
 		goto error_free_object;
     
 	if (reiser4_object_guess(object)) {
 		aal_exception_error("Can't find object plugin "
-				    "for %s.", name);
+				    "for %s.", path);
 		goto error_free_object;
 	}
     
