@@ -165,7 +165,7 @@ static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key,
 	}
 
 	place->pos.unit = units;
-	return (mode == READ ? ABSENT : PRESENT);
+	return (mode == CONV ? PRESENT : ABSENT);
 }
 
 #ifndef ENABLE_STAND_ALONE

@@ -67,7 +67,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 	object_info_t *info = object->info;
 
 	switch (reiser4_tree_lookup(object->tree, &info->object,
-				    LEAF_LEVEL, READ,
+				    LEAF_LEVEL, EXACT,
 				    object_start(object)))
 	{
 	case PRESENT:
@@ -317,7 +317,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 	aal_assert("vpf-1185", key != NULL);
 	
 	switch (reiser4_tree_lookup(tree, key, LEAF_LEVEL,
-				    READ, &place))
+				    EXACT, &place))
 	{
 	case PRESENT:
 		/* The key must point to the start of the object. */
@@ -551,7 +551,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	/* Looking up for the victim statdata place */
 	if (reiser4_tree_lookup(object->info->tree, &entry.object,
-				LEAF_LEVEL, READ, &place) != PRESENT)
+				LEAF_LEVEL, EXACT, &place) != PRESENT)
 	{
 		aal_exception_error("Can't find an item pointed by %s. "
 				    "Entry %s/%s points to nowere.",

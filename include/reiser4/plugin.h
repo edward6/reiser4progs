@@ -46,8 +46,8 @@ enum lookup_res {
 typedef enum lookup_res lookup_res_t;
 
 enum lookup_mod {
-	INST                      = 1,
-	READ                      = 2
+	EXACT                   = 1,
+	CONV                    = 2
 };
 
 typedef enum lookup_mod lookup_mod_t;

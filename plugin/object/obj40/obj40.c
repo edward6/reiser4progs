@@ -124,8 +124,8 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	if (obj40_lookup(obj, &hint.key, LEAF_LEVEL, 
-			 INST, STAT_PLACE(obj)) != ABSENT)
+	if (obj40_lookup(obj, &hint.key, LEAF_LEVEL, CONV,
+			 STAT_PLACE(obj)) != ABSENT)
 	{
 		return -EINVAL;
 	}
@@ -459,7 +459,7 @@ errno_t obj40_update(obj40_t *obj) {
 		
 	/* Looking for stat data place by */
 	switch (obj40_lookup(obj, &STAT_PLACE(obj)->key,
-			     LEAF_LEVEL, READ, STAT_PLACE(obj)))
+			     LEAF_LEVEL, EXACT, STAT_PLACE(obj)))
 	{
 	case PRESENT:
 		return 0;
