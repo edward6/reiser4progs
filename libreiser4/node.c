@@ -318,68 +318,6 @@ errno_t reiser4_node_pos(
 	return 0;
 }
 
-/* 
-   This function raises up to the tree the left neighbour node. This is used by
-   mkspace function in tree.c
-*/
-reiser4_node_t *reiser4_node_left(
-	reiser4_node_t *node)	/* node for working with */
-{
-	reiser4_key_t key;
-
-	/* 
-	   Initializing stop level for tree lookup function. Here tree lookup
-	   function is used as instrument for reflecting the part of tree into
-	   libreiser4 tree cache.  So, connecting to the stop level for lookup
-	   we need to map the part of the tree from the root (tree height) to
-	   the level of passed node, because we should make sure, that needed
-	   neighbour will be mapped into cache and will be accesible by
-	   node->left or node->right pointers.
-	*/
-	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
-    
-	aal_assert("umka-776", node != NULL, return NULL);
-
-	/* Parent is not present. The root node. */
-	if (!node->parent)
-		return NULL;
-    
-	/*
-	  Attaching left neighbour into the tree. Here we take its key and
-	  perform lookup. We use lookup because it attaches all nodes belong to
-	  search path and settups them neighbours pointers.
-	*/
-	if (!node->left) {
-		aal_assert("umka-1629", node->tree != NULL, return NULL);
-		
-		if (reiser4_node_nkey(node, D_LEFT, &key) == 0)
-			reiser4_tree_lookup(node->tree, &key, &level, NULL);
-	}
-
-	return node->left;
-}
-
-/* The same as previous function, but for right neighbour. */
-reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
-	reiser4_key_t key;
-
-	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
-    
-	aal_assert("umka-1510", node != NULL, return NULL);
-
-	if (!node->parent)
-		return NULL;
-    
-	if (!node->right) {
-		aal_assert("umka-1630", node->tree != NULL, return NULL);
-		
-		if (reiser4_node_nkey(node, D_RIGHT, &key) == 0)
-			reiser4_tree_lookup(node->tree, &key, &level, NULL);
-	}
-    
-	return node->right;
-}
-
 /*
   Helper callback function for comparing two keys durring registering the new
   child.
@@ -473,12 +411,6 @@ reiser4_node_t *reiser4_node_cbp(
 	return child;
 }
 
-/*static reiser4_node_t *reiser4_node_fln(reiser4_node_t *node) {
-	uint32_t level;
-
-	level = plugin_call(return );
-}*/
-
 /*
   Helper callback function for comparing two nodes durring registering the new
   child.
@@ -499,34 +431,14 @@ static int callback_comp_node(
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
-/*
-  Connects child into sorted children list of specified node. Sets up the both
-  neighbours and parent pointer.
-*/
-errno_t reiser4_node_attach(
-	reiser4_node_t *node,	       /* node child will be connected to */
-	reiser4_node_t *child)	       /* child node to be attached */
+static errno_t reiser4_node_register(reiser4_node_t *node,
+				     reiser4_node_t *child)
 {
 	aal_list_t *current;
-	reiser4_node_t *left;
-	reiser4_node_t *right;
-	reiser4_key_t key, lkey;
-    
-	aal_assert("umka-561", node != NULL, return -1);
-	aal_assert("umka-564", child != NULL, return -1);
-
-	/* Inserting new child into children list */
-	if (!node->children) {
-		current = aal_list_insert_sorted(node->children, child,
-						 callback_comp_node, NULL);
-	} else {
-		current = aal_list_insert_sorted(node->children, child,
-						 callback_comp_node, NULL);
-	}
-
-	left = current->prev ? current->prev->data : NULL;
-    	right = current->next ? current->next->data : NULL;
-    
+	
+	current = aal_list_insert_sorted(node->children, child,
+					 callback_comp_node, NULL);
+	
 	child->parent = node;
 
 	/* Checking tree validness and updating node parent pos */
@@ -536,35 +448,160 @@ errno_t reiser4_node_attach(
 		return -1;
 	}
 
-	/* Setting up neighbours */
-	if (left) {
-	
-		reiser4_node_lkey(left, &lkey);
-	    
-		if (!reiser4_node_nkey(child, D_LEFT, &key))
-			child->left = (reiser4_key_compare(&key, &lkey) == 0 ? left : NULL);
-    
-		if (child->left)
-			child->left->right = child;
-	}
-   
-	if (right) {
-	
-		reiser4_node_lkey(right, &lkey);
-	
-		if (!reiser4_node_nkey(child, D_RIGHT, &key))
-			child->right = (reiser4_key_compare(&key, &lkey) == 0 ? right : NULL);
-
-		if (child->right)
-			child->right->left = child;
-	}
-
 	if (!current->prev)
 		node->children = current;
 
 	/* Attaching new node into tree's lru list */
 	if (node->tree && aal_lru_attach(node->tree->lru, (void *)child))
 		aal_exception_warn("Can't attach node to tree lru.");
+
+	return 0;
+}
+
+static reiser4_node_t *reiser4_node_fnn(
+	reiser4_node_t *node,
+	direction_t direction)
+{
+	uint32_t stop;
+	uint32_t level;
+
+	reiser4_pos_t pos;
+	reiser4_node_t *child;
+	reiser4_coord_t coord;
+	reiser4_ptr_hint_t ptr;
+	reiser4_node_t *old = node;
+	
+	stop = plugin_call(return NULL, node->entity->plugin->node_ops,
+			   get_level, node->entity);
+	
+	while (node->parent) {
+		int found;
+			
+		if (reiser4_node_pos(node, &pos))
+			return NULL;
+
+		found = (direction == D_LEFT ? (pos.item > 0) :
+			 (pos.item < reiser4_node_count(node->parent) - 1));
+		
+		if (found) {
+			pos.item += (direction == D_LEFT ? -1 : 1);
+			
+			if (reiser4_coord_open(&coord, node->parent, &pos))
+				return NULL;
+
+			if (!reiser4_item_nodeptr(&coord))
+				return NULL;
+			
+			plugin_call(return NULL, coord.entity.plugin->item_ops,
+				    fetch, &coord.entity, 0, &ptr, 1);
+
+			if (!(child = reiser4_node_cbp(node->parent, ptr.ptr))) {
+				child = reiser4_tree_load(node->parent->tree, ptr.ptr);
+
+				if (reiser4_node_register(node->parent, child))
+					return NULL;
+			}
+
+			node = child;
+			goto found;
+		} else
+			node = node->parent;
+	}
+
+	if (pos.item == (direction == D_LEFT ? 0 : reiser4_node_count(node) - 1))
+		return NULL;
+
+	pos.item += (direction == D_LEFT ? -1 : 1);
+	
+	level = plugin_call(return NULL, node->entity->plugin->node_ops,
+			    get_level, node->entity);
+	
+	while (level > stop) {
+		if (reiser4_coord_open(&coord, node, &pos))
+			return NULL;
+
+		if (!reiser4_item_nodeptr(&coord))
+			return NULL;
+			
+		plugin_call(return NULL, coord.entity.plugin->item_ops,
+			    fetch, &coord.entity, 0, &ptr, 1);
+
+		if (!(child = reiser4_node_cbp(node->parent, ptr.ptr))) {
+			child = reiser4_tree_load(node->parent->tree, ptr.ptr);
+
+			if (reiser4_node_register(node->parent, child))
+				return NULL;
+		}
+			
+		node = child;
+		
+		level--;
+	}
+
+ found:
+	if (direction == D_LEFT) {
+		old->left = node;
+		node->right = old;
+	} else {
+		old->right = node;
+		node->left = old;
+	}
+	
+	return node;
+}
+
+/* 
+   This function raises up to the tree the left neighbour node. This is used by
+   mkspace function in tree.c
+*/
+reiser4_node_t *reiser4_node_left(
+	reiser4_node_t *node)	/* node for working with */
+{
+	aal_assert("umka-776", node != NULL, return NULL);
+
+	/* Parent is not present. The root node. */
+	if (!node->parent)
+		return NULL;
+
+	if (!node->left) {
+		aal_assert("umka-1629", node->tree != NULL, return NULL);
+		node->left = reiser4_node_fnn(node, D_LEFT);
+	}
+
+	return node->left;
+}
+
+/* The same as previous function, but for right neighbour. */
+reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
+	aal_assert("umka-1510", node != NULL, return NULL);
+
+	if (!node->parent)
+		return NULL;
+    
+	if (!node->right) {
+		aal_assert("umka-1630", node->tree != NULL, return NULL);
+		node->right = reiser4_node_fnn(node, D_RIGHT);
+	}
+    
+	return node->right;
+}
+
+/*
+  Connects child into sorted children list of specified node. Sets up the both
+  neighbours and parent pointer.
+*/
+errno_t reiser4_node_attach(
+	reiser4_node_t *node,	       /* node child will be connected to */
+	reiser4_node_t *child)	       /* child node to be attached */
+{
+	aal_assert("umka-561", node != NULL, return -1);
+	aal_assert("umka-564", child != NULL, return -1);
+
+	if (reiser4_node_register(node, child))
+		return -1;
+	
+	child->left = reiser4_node_fnn(child, D_LEFT);
+	child->right = reiser4_node_fnn(child, D_RIGHT);
 	
 	return 0;
 }
@@ -907,16 +944,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
     
 	aal_assert("umka-1002", reiser4_node_count(node) > 0, return -1);
 
-	if (reiser4_coord_open(&coord, node, pos))
-		return -1;
-
-	if (reiser4_item_update(&coord, key))
-		return -1;
-    
-	if (pos->item == 0 &&
-	    (pos->unit == ~0ul || pos->unit == 0))
-	{
-	
+	if (pos->item == 0 && (pos->unit == ~0ul || pos->unit == 0)) {
 		if (node->parent) {
 			if (reiser4_node_pos(node, &ppos))
 				return -1;
@@ -926,7 +954,14 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 		}
 	}
     
+	if (reiser4_coord_open(&coord, node, pos))
+		return -1;
+
+	if (reiser4_item_update(&coord, key))
+		return -1;
+    
 	node->flags |= NF_DIRTY;
+	
 	return 0;
 }
 
