@@ -20,6 +20,10 @@
 #define MB (KB * KB)
 #define GB (KB * MB)
 
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+#  include <uuid/uuid.h>
+#endif
+
 /* Converts passed @sqtr into long long value. In the case of error, INVAL_DIG
    will be returned. */
 long long misc_str2long(const char *str, int base) {
@@ -165,4 +169,10 @@ void misc_plugins_print(void) {
 	printf("Known plugins:\n");
 	reiser4_factory_foreach(callback_print_plug, NULL);
 	printf("\n");
+}
+
+void misc_uuid_unparse(const char *uuid, char *string) {
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+	uuid_unparse(uuid, string);
+#endif
 }

@@ -7,10 +7,6 @@
 #  include <config.h> 
 #endif
 
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-#  include <uuid/uuid.h>
-#endif
-
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -173,7 +169,8 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 
 	aal_stream_init(&stream, stdout, &file_stream);
 		
-	if ((res = reiser4_master_print(fs->master, &stream)))
+	if ((res = reiser4_master_print(fs->master, &stream, 
+					misc_uuid_unparse)))
 		return res;
 
 	aal_stream_format(&stream, "\n");

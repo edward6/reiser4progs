@@ -11,10 +11,6 @@
    1 - key on *pos found exact key on *pos position; 
    0 - exact key has not been found. key of *pos < then wanted. */
 
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-#  include <uuid/uuid.h>
-#endif
-
 int aux_bin_search(
 	void *array,		        /* pointer to array for search in */
 	uint32_t count,		        /* array length */
@@ -150,10 +146,3 @@ char *aux_unpack_string(uint64_t value,
 	*buff = '\0';
 	return buff; 
 }
-
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-void aux_uuid_unparse(char *uuid, char *string) {
-	uuid_unparse(uuid, string);
-}
-#endif
-

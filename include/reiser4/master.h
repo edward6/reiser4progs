@@ -23,8 +23,11 @@ extern errno_t reiser4_master_pack(reiser4_master_t *master,
 extern reiser4_master_t *reiser4_master_unpack(aal_device_t *device,
 					       aal_stream_t *stream);
 
+typedef void (*uuid_unparse_t) (char *uuid, char *string);
+
 extern errno_t reiser4_master_print(reiser4_master_t *master,
-				    aal_stream_t *stream);
+				    aal_stream_t *stream,
+				    uuid_unparse_t unparse);
 
 extern errno_t reiser4_master_layout(reiser4_master_t *master, 
 				     region_func_t region_func,

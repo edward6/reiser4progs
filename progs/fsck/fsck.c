@@ -291,6 +291,12 @@ static void fsck_time(char *string) {
 	fprintf(stderr, "***** %s %s", string, ctime (&t));
 }
 
+static void callback_uuid_unparse(char *uuid, char *string) {
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+	uuid_unparse(uuid, string);
+#endif
+}
+
 /* Open the fs and init the tree. */
 static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 	aal_stream_t stream;
@@ -310,7 +316,8 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
-	reiser4_master_print(repair->fs->master, &stream);
+	reiser4_master_print(repair->fs->master, &stream, 
+			     callback_uuid_unparse);
 	aal_stream_format(&stream, "\n");
 	reiser4_format_print(repair->fs->format, &stream);
 	aal_stream_format(&stream, "\n");

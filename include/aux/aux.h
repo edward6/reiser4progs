@@ -24,9 +24,4 @@ extern int aux_bin_search(void *array, uint32_t count, void *needle,
 extern uint64_t aux_pack_string(char *buff, uint32_t start);
 extern char *aux_unpack_string(uint64_t value, char *buff);
 
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-extern void aux_uuid_unparse(char *uuid, char *string);
 #endif
-
-#endif
-
