@@ -125,7 +125,8 @@ static errno_t progress_start(repair_progress_t *progress) {
 		 progress->type == PROGRESS_TREE  ? GAUGE_TREE :
 		 progress->type;
 	
-	gauge = aal_gauge_create(gauge_type, progress->header, NULL);
+	gauge = aal_gauge_create(gauge_type, NULL);
+	aal_gauge_rename(gauge, progress->header);
 	
 	if (!gauge) return -ENOMEM;
 

@@ -243,12 +243,13 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 		  the moment.
 		*/
 		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
-							 "Tree fragmentation",
 							 NULL)))
 		{
 			aal_exception_fatal("Out of memory!");
 			return -ENOMEM;
 		}
+
+		aal_gauge_rename(frag_hint.gauge, "Tree fragmentation");
 	}
 	
 	/* Preparing serve structure, statistics will be stored in  */
@@ -415,12 +416,13 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	
 	if (!(flags & F_QUIET)) {
 		if (!(stat_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
-							 "Tree statistics",
 							 NULL)))
 		{
 			aal_exception_fatal("Out of memory!");
 			return -ENOMEM;
 		}
+
+		aal_gauge_rename(stat_hint.gauge, "Tree statistics");
 	}
 
 	stat_hint.tree = fs->tree;
@@ -683,12 +685,13 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	
 	if (!(flags & F_QUIET)) {
 		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
-							 "Data fragmentation",
 							 NULL)))
 		{
 			aal_exception_fatal("Out of memory!");
 			return -ENOMEM;
 		}
+
+		aal_gauge_rename(frag_hint.gauge, "Data fragmentation");
 	}
 
 	frag_hint.flags = flags;

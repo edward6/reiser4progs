@@ -324,7 +324,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!(flags & BF_QUIET)) {
-		if (!(gauge = aal_gauge_create(GAUGE_SILENT, "", NULL)))
+		if (!(gauge = aal_gauge_create(GAUGE_SILENT, NULL)))
 			goto error_free_libreiser4;
 	}
     

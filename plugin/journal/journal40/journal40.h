@@ -162,13 +162,16 @@ typedef enum journal40_bel journal40_bel_t;
 #define get_le_wandered(le)			aal_get_le64(le, le_wandered)
 #define set_le_wandered(le, val)		aal_set_le64(le, le_wandered, val)
 
-typedef errno_t (*journal40_txh_func_t) (object_entity_t *, blk_t, void *);
+typedef errno_t (*journal40_txh_func_t)    \
+        (object_entity_t *, blk_t, void *);
 
-typedef errno_t (*journal40_sec_func_t) (object_entity_t *, aal_block_t *, 
-					 blk_t, journal40_bel_t, void *);
+typedef errno_t (*journal40_sec_func_t)    \
+        (object_entity_t *, aal_block_t *, \
+	 blk_t, journal40_bel_t, void *);
 
-typedef errno_t (*journal40_han_func_t) (object_entity_t *, aal_block_t *, 
-					 blk_t, void *);
+typedef errno_t (*journal40_han_func_t)    \
+        (object_entity_t *, aal_block_t *, \
+	 blk_t, void *);
 
 #define JFOOTER(block) \
         ((journal40_footer_t *)block->data)
