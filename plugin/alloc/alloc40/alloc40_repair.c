@@ -13,6 +13,12 @@
 
 #include "alloc40.h"
 
+extern errno_t callback_check_bitmap(object_entity_t *entity, uint64_t blk, 
+    void *data);
+
+extern errno_t alloc40_layout(object_entity_t *entity, block_func_t func,
+    void *data);
+
 /*
   Call @func for all blocks which belong to the same bitmap block as passed
   @blk. It is needed for fsck. In the case it detremined that a block is not
@@ -39,6 +45,38 @@ errno_t alloc40_related_region(object_entity_t *entity, blk_t blk,
     /* Loop though the all blocks one bitmap block describes and calling
      * passed @func for each of them. */   
     return func(entity, (blk/size) * size, size, data);
+}
+
+static errno_t callback_check_layout(object_entity_t *entity, uint64_t blk, 
+    void *data) 
+{
+    alloc40_t *alloc = (alloc40_t *)entity;
+    uint32_t size, offset;
+    errno_t res;
+
+    res = callback_check_bitmap(entity, blk, data);
+    
+    if (res == -EINVAL) {
+	/* Data are corrupted. */
+	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
+	offset = (blk / size / 8) * size;	
+	aux_bitmap_mark_region(alloc->bitmap, offset, size);	
+    }
+    
+    return res;
+}
+
+errno_t alloc40_check(object_entity_t *entity, uint8_t mode) {
+    alloc40_t *alloc = (alloc40_t *)entity;
+
+    aal_assert("vpf-865", alloc != NULL);
+    aal_assert("vpf-866", alloc->bitmap != NULL);
+
+    /* Calling layout function for traversing all the bitmap blocks with
+       checking callback function.
+    */
+    return alloc40_layout(entity, callback_check_layout, NULL);
+
 }
 
 #endif

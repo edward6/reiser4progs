@@ -18,6 +18,7 @@
 #include <repair/filesystem.h>
 #include <repair/tree.h>
 #include <repair/format.h>
+#include <repair/alloc.h>
 #include <repair/master.h>
 #include <repair/journal.h>
 #include <repair/node.h>

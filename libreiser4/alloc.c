@@ -276,17 +276,6 @@ bool_t reiser4_alloc_unused_region(
 			   unused_region, alloc->entity, start, count);
 }
 
-errno_t reiser4_alloc_related_region(reiser4_alloc_t *alloc,
-				     blk_t blk, region_func_t func, 
-				     void *data)
-{
-	aal_assert("vpf-557", alloc != NULL);
-	aal_assert("umka-1685", func != NULL);
-
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
-			   related_region, alloc->entity, blk, func, data);
-}
-
 errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc, 
 			     block_func_t func,
 			     void *data)

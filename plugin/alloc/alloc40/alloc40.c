@@ -27,9 +27,9 @@ extern errno_t alloc40_related_region(object_entity_t *entity, blk_t blk,
   Calls func for each block allocator block. This function is used in all block
   block allocator operations like load, save, etc.
 */
-static errno_t alloc40_layout(object_entity_t *entity,
-			      block_func_t func,
-			      void *data) 
+errno_t alloc40_layout(object_entity_t *entity,
+		       block_func_t func,
+		       void *data) 
 {
 	count_t bpb;
 	alloc40_t *alloc;
@@ -481,8 +481,8 @@ static int alloc40_unused_region(object_entity_t *entity,
   Callback function for checking one bitmap block on validness. Here we just
   calculate actual checksum and compare it with loaded one.
 */
-static errno_t callback_check_bitmap(object_entity_t *entity, 
-				     uint64_t blk, void *data)
+errno_t callback_check_bitmap(object_entity_t *entity, 
+			      uint64_t blk, void *data)
 {
 	char *current, *start;
 
@@ -531,6 +531,10 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 		return -EINVAL;
 	}
 
+	/* 
+	   FIXME: Probably the check that the bitmap bit is set should be here 
+	   also. 
+	*/
 	return 0;
 }
 

@@ -62,6 +62,11 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
 	goto error_format_close;
     }
 
+    if ((error = repair_alloc_check(repair->fs->alloc, repair->mode))) {
+	aal_exception_fatal("Failed to check a block allocator.");
+	goto error_alloc_close;
+    }
+	
     if ((repair->fs->oid = reiser4_oid_open(repair->fs)) == NULL) {	
 	aal_exception_fatal("Failed to open an object id allocator.");
 	error = -EINVAL;

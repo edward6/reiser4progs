@@ -158,7 +158,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	if (aux_bitmap_test(ds->bm_met, i) && 
 	    reiser4_alloc_unused_region(control->repair->fs->alloc, i, 1)) 
 	{
-	    reiser4_alloc_related_region(control->repair->fs->alloc, i, 
+	    repair_alloc_related_region(control->repair->fs->alloc, i, 
 		callback_region_mark, ds);
 	}
 
