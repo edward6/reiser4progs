@@ -1,6 +1,8 @@
 /*
   format36.c -- Disk-layout plugin for reiser3.6.x.
-  Copyright (C) 1996-2002 Hans Reiser.
+  
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -46,15 +48,18 @@ static errno_t format36_super_check(format36_super_t *super,
 
 	if (is_journal_dev != is_journal_magic) {
 		aal_exception_throw(EXCEPTION_WARNING, EXCEPTION_IGNORE,
-				    "Journal relocation flags mismatch. Journal device: 0x%x, magic: %s.",
-				    get_jp_dev(get_sb_jp(super)), super->s_v1.sb_magic);
+				    "Journal relocation flags mismatch. Journal "
+				    "device: 0x%x, magic: %s.",
+				    get_jp_dev(get_sb_jp(super)),
+				    super->s_v1.sb_magic);
 	}
 
 	dev_len = aal_device_len(device);
 	if (get_sb_block_count(super) > dev_len) {
 		aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,
-				    "Superblock has an invalid block count %llu for device "
-				    "length %llu blocks.", (blk_t)get_sb_block_count(super), dev_len);
+				    "Superblock has an invalid block count %llu "
+				    "for device length %llu blocks.",
+				    (blk_t)get_sb_block_count(super), dev_len);
 		return -1;
 	}
 

@@ -2,7 +2,8 @@
   sdext_lw.c -- light weight stat data extention plugin, that implements base
   stat data fields.
     
-  Copyright 1996-2002 (C) Hans Reiser.
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include "sdext_lw.h"

@@ -1,7 +1,9 @@
 /*
-  list.h -- double-linked list implementation. It is used for plugins cache,
-  for tree cache, etc.
-  Copyright (C) 1996 - 2002 Hans Reiser.
+  list.h -- double-linked list implementation. It is used for plugins cache, for
+  tree cache, etc.
+    
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef LIST_H

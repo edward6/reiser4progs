@@ -1,6 +1,8 @@
 /*
   factory.c -- reiser4 plugin factory implementation.
-  Copyright (C) 1996-2002 Hans Reiser.
+  
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifdef HAVE_CONFIG_H

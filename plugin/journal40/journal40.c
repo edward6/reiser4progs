@@ -1,6 +1,8 @@
 /*
   journal40.c -- reiser4 default journal plugin.
-  Copyright (C) 1996-2002 Hans Reiser.
+
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -11,8 +13,11 @@
 
 extern reiser4_plugin_t journal40_plugin;
 
-typedef errno_t (*journal40_layout_func_t)(journal40_t *journal, aal_block_t *block, d64_t original);
-typedef errno_t (*journal40_update_func_t)(journal40_t *journal, aal_block_t *block);
+typedef errno_t (*journal40_layout_func_t)(journal40_t *journal,
+					   aal_block_t *block, d64_t original);
+
+typedef errno_t (*journal40_update_func_t)(journal40_t *journal,
+					   aal_block_t *block);
 
 static reiser4_core_t *core = NULL;
 
@@ -42,14 +47,14 @@ static errno_t callback_fetch_journal(object_entity_t *format,
 
 	if (!journal->header) {
 		if (!(journal->header = aal_block_open(device, blk))) {
-			aal_exception_error("Can't read journal header from block %llu. %s.", 
-					    blk, device->error);
+			aal_exception_error("Can't read journal header from "
+					    "block %llu. %s.", blk, device->error);
 			return -1;
 		}
 	} else {
 		if (!(journal->footer = aal_block_open(device, blk))) {
-			aal_exception_error("Can't read journal footer from block %llu. %s.", 
-					    blk, device->error);
+			aal_exception_error("Can't read journal footer from "
+					    "block %llu. %s.", blk, device->error);
 			return -1;
 		}
 	}
@@ -124,12 +129,14 @@ static errno_t callback_alloc_journal(object_entity_t *format,
     
 	if (!journal->header) {
 		if (!(journal->header = aal_block_create(device, blk, 0))) {
-			aal_exception_error("Can't alloc journal header on block %llu.", blk);
+			aal_exception_error("Can't alloc journal "
+					    "header on block %llu.", blk);
 			return -1;
 		}
 	} else {
 		if (!(journal->footer = aal_block_create(device, blk, 0))) {
-			aal_exception_error("Can't alloc journal footer on block %llu.", blk);
+			aal_exception_error("Can't alloc journal footer "
+					    "on block %llu.", blk);
 			return -1;
 		}
 	}
@@ -202,6 +209,7 @@ static errno_t callback_sync_journal(object_entity_t *format,
     
 	return 0;
 }
+
 static errno_t journal40_sync(object_entity_t *entity) {
 	reiser4_layout_func_t layout;
 	journal40_t *journal = (journal40_t *)entity;
@@ -253,6 +261,7 @@ static errno_t callback_update(journal40_t *journal,
 	
 	return 0;
 }
+
 static errno_t journal40_lr_layout(journal40_t *journal, 
 				   aal_block_t *tx_block,
 				   journal40_layout_func_t layout_func,
@@ -361,14 +370,16 @@ static errno_t format40_tx_layout(journal40_t *journal,
 
 		if (!(tx_block = aal_block_open(journal->device, prev_tx))) {
 			aal_exception_error("Can't read block %llu while replaying "
-					    "the journal. %s.", prev_tx, journal->device->error);
+					    "the journal. %s.", prev_tx,
+					    journal->device->error);
 			return -1;
 		}
 	
 		tx_header = (journal40_tx_header_t *)tx_block->data;
 
 		if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
-			aal_exception_error("Invalid transaction header has been detected.");
+			aal_exception_error("Invalid transaction header has "
+					    "been detected.");
 			return -1;
 		}
 	

@@ -1,17 +1,10 @@
-noinst_PROGRAMS = list info ls cat
+noinst_PROGRAMS = list ls cat
 
 list_SOURCES	= list.c
 
 list_LDFLAGS	= $(PROGS_LDFLAGS)
 
 list_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la
-
-info_SOURCES	= info.c
-
-info_LDFLAGS	= $(PROGS_LDFLAGS)
-
-info_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
-	          $(top_builddir)/progs/libmisc/libmisc.la
 
 ls_SOURCES	= ls.c
 

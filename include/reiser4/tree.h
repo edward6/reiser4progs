@@ -1,6 +1,8 @@
 /*
   tree.h -- reiser4 balanced tree functions.
-  Copyright (C) 1996-2002 Hans Reiser.
+
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef TREE_H

@@ -2,7 +2,8 @@
   bitmap.c -- bitmap functions. Bitmap is used by bitmap-based block allocator
   plugin.
   
-  Copyright (C) 1996-2002 Hans Reiser.
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include <aux/bitmap.h>

@@ -1,8 +1,10 @@
 /*
   format.c -- disk format common code. This code is wrapper for disk-format
-  plugin. It is used by filesystem code (filesystem.c) for working with 
+  plugin. It is used by filesystem code (filesystem.c) for working with
   different disk-format plugins in independent maner.
-  Copyright (C) 1996-2002 Hans Reiser.
+  
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifdef HAVE_CONFIG_H

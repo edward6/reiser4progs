@@ -1,9 +1,8 @@
 /*
-  print.h -- printing and formating strings functions. They are used for
-  independent from mode (alone or standard) string printing into some error
-  console (stderr for standard mode and "int 0x10" for alone mode).
+  print.h -- printing and formating strings functions.
 
-  Copyright (C) 1996-2002 Hans Reiser.
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef PRINT_H

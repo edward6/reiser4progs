@@ -60,11 +60,14 @@ prints the oid allocator data.
 .TP
 .B -T, --total-fragmentation
 measures total tree fragmentation. The result is fragmentation factor
-- value from 0 (minimal fragmentation) to 1 (maximal one).
+- value from 0.00 (minimal fragmentation) to 1.00 (maximal one). Most
+probably, this factor may affect sequential read performance.
 .TP
 .B -F, --files-fragmentation
-measures average files fragmentation. The result is fragmentation factor
-- value from 0 (minimal fragmentation) to 1 (maximal one).
+measures average files fragmentation. It means, that fragmentation of
+each file in filesystem will be measured separately and results will
+be avaraged. The result is fragmentation factor - value from 0.00
+(minimal fragmentation) to 1.00 (maximal one).
 .SH PLUGIN OPTIONS
 .TP
 .B -e, --profile PROFILE
@@ -79,4 +82,3 @@ Report bugs to <umka@namesys.com>, <reiserfs-list@namesys.com>
 .BR libreiser4 (8)
 .SH AUTHOR
 This manual page was written by Yury Umanets <umka@namesys.com>
-

@@ -3,7 +3,8 @@
   macro is better for performance than to use functions which are determining
   the translation kind in the run time.
     
-  Copyright (C) 1996-2002 Hans Reiser
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef ENDIAN_H

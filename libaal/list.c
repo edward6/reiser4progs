@@ -3,7 +3,9 @@
   used for storing plugins, nodes, etc. And there is a lot of documentation
   related to double-linked lists desing and purposes. So, I won't describe it
   one more time.
-  Copyright (C) 1996-2002 Hans Reiser.
+    
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include <aal/aal.h>

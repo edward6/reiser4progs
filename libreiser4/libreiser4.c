@@ -1,6 +1,8 @@
 /*
   libreiser4.c -- version control functions and library initialization code.
-  Copyright (C) 1996-2002 Hans Reiser
+  
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include <reiser4/reiser4.h>

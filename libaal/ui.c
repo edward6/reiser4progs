@@ -1,6 +1,8 @@
 /*
   ui.c -- callback function for using them for asking user to enter something.
-  Copyright 1996-2002 (C) Hans Reiser.
+    
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include <aal/aal.h>

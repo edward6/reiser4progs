@@ -3,8 +3,9 @@
   tree element position in the tree. The instance of structure reiser4_coord_t
   contains pointer to node where needed unit or item lies, item position and
   unit position in specified item.
-
-  Copyright (C) 1996-2002 Hans Reiser.
+  
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include <reiser4/reiser4.h>

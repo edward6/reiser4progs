@@ -1,6 +1,8 @@
 /*
-  mkfs.c -- program to create reiser4 filesystem.
-  Copyright (C) 1996-2002 Hans Reiser.
+  mkfs.c -- program for creating reiser4 filesystem.
+
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifdef HAVE_CONFIG_H

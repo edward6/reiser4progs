@@ -1,7 +1,9 @@
 /*
-  bitmap.h -- bitmap functions. Bitmap is used by block allocator plugin
-  and fsck program. See libmisc/bitmap.c for more details.
-  Copyright (C) 1996-2002 Hans Reiser.
+  bitmap.h -- bitmap functions. Bitmap is used by block allocator plugin and
+  fsck program. See libmisc/bitmap.c for more details.
+
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef BITMAP_H

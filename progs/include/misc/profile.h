@@ -1,6 +1,8 @@
 /*
-    profile.h -- headers of methods for working with profiles in reiser4 programs.
-    Copyright (C) 1996-2002 Hans Reiser.
+  profile.h -- headers of methods for working with profiles in reiser4 programs.
+
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef PROGS_PROFILE_H
@@ -19,6 +21,6 @@ extern reiser4_profile_t *progs_profile_default();
 extern reiser4_profile_t *progs_profile_find(const char *profile);
 
 extern errno_t progs_profile_override(reiser4_profile_t *profile, 
-    const char *type, const char *name);
+				      const char *type, const char *name);
 
 #endif

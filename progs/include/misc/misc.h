@@ -1,6 +1,8 @@
 /*
   misc.h -- reiser4progs common include.
-  Copyright (C) 1996-2002 Hans Reiser.
+
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef REISER4_MISC_H

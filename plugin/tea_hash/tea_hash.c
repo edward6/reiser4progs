@@ -1,6 +1,8 @@
 /*
-  tea_hash.c -- tea hash.
-  Copyright (C) 1996-2002 Hans Reiser.
+  tea_hash.c -- tea hash implementation.
+    
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include <reiser4/plugin.h>

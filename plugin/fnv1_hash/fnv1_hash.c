@@ -1,6 +1,8 @@
 /*
   fnv1_hash.c -- fnv1 hash implementation.
-  Copyright (C) 1996-2002 Hans Reiser.
+  
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #include <reiser4/plugin.h>

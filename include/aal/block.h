@@ -1,6 +1,8 @@
 /*
   block.h -- block functions.
-  Copyright 1996-2002 (C) Hans Reiser.
+    
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef BLOCK_H
