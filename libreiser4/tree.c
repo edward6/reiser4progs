@@ -792,6 +792,7 @@ errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 
 	aal_memcpy(next, place, sizeof(*place));
 	next->pos.item++;
+	next->pos.unit = 0;
 	
 	if (reiser4_tree_adjust_place(tree, next, next))
 		return -EINVAL;
