@@ -571,7 +571,6 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 	errno_t res;
 	
 	aal_assert("vpf-1266", sem != NULL);
-	aal_assert("vpf-1267", parent != NULL);
 	aal_assert("vpf-1268", object != NULL);
 	
 	/* Check the object. */
@@ -586,6 +585,9 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 				     detach, object->entity, NULL)))
 			return res;
 	}
+	
+	if (!parent)
+		return 0;
 	
 	res = repair_semantic_link(sem, parent, object, NULL);
 	
@@ -657,7 +659,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		return 0;
 	}
 	
-	if ((res = repair_semantic_dir_prepare(sem, sem->root, sem->lost))) {
+	if ((res = repair_semantic_dir_prepare(sem, NULL, sem->lost))) {
 		reiser4_object_close(sem->lost);
 		sem->lost = NULL;
 		return res;
