@@ -816,8 +816,8 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 		int32_t i, items;
 
 		for (i = walk.pos.item - 1; i >= 0; i--) {
-			POS_INIT(&walk.pos, i, MAX_UINT32);
-
+			walk.pos.item = i;
+			
 			if (reiser4_place_fetch(&walk))
 				return -EINVAL;
 
@@ -894,8 +894,12 @@ lookup_t reiser4_tree_lookup(
 			/* Fetching item at @place if key is found */
 			if (res == PRESENT) {
 #ifdef ENABLE_COLLISIONS
-				if (reiser4_tree_leftmost(tree, place))
+				if (place->pos.unit > 0 &&
+				    place->pos.unit < MAX_UINT32 &&
+				    reiser4_tree_leftmost(tree, place))
+				{
 					return FAILED;
+				}
 #endif	
 				reiser4_place_fetch(place);
 			}
@@ -1294,6 +1298,7 @@ errno_t reiser4_tree_expand(
 	  the tree. Allocating new node and trying to shift data into it.
 	*/
 	for (alloc = 0; !enough && (alloc < 2); alloc++) {
+		int root;
 		uint8_t level;
 		shift_flags_t flags;
 		reiser4_place_t save;
@@ -1317,21 +1322,8 @@ errno_t reiser4_tree_expand(
 		if ((res = reiser4_tree_shift(tree, place, node, flags)))
 			return res;
 
-		/* Attaching new allocated node into the tree, if it is not
-		   empty */
-		if (reiser4_node_items(node) > 0) {
-
-			/* Growing the tree in the case we splitted the root
-			   node. Root node has not parent. */
-			if (reiser4_tree_root(tree) == node_blocknr(old.node))
-				reiser4_tree_growup(tree);
-			
-			/* Attaching new node to the tree */
-			if ((res = reiser4_tree_attach(tree, node))) {
-				reiser4_tree_release(tree, node);
-				return res;
-			}
-		}
+		/* Do we operate on root node? */
+		root = (reiser4_tree_root(tree) == node_blocknr(old.node));
 		
 		/* Releasing old node, because it got empty as result of data
 		   shifting. */
@@ -1343,6 +1335,22 @@ errno_t reiser4_tree_expand(
 			reiser4_tree_release(tree, save.node);
 		}
 
+		/* Attaching new allocated node into the tree, if it is not
+		   empty */
+		if (reiser4_node_items(node) > 0) {
+
+			/* Growing the tree in the case we splitted the root
+			   node. Root node has not parent. */
+			if (root)
+				reiser4_tree_growup(tree);
+			
+			/* Attaching new node to the tree */
+			if ((res = reiser4_tree_attach(tree, node))) {
+				reiser4_tree_release(tree, node);
+				return res;
+			}
+		}
+		
 		enough = (needed <= reiser4_node_space(place->node));
 	}
 

@@ -56,7 +56,7 @@ static int dir40_belongs(object_entity_t *entity,
 	dir40_t *dir = (dir40_t *)entity;
 
 	/* Checking if item component in @place->pos is valid one. This is
-	   needed because tre_lookup() does not fetch item data at place if it
+	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
 	   check this here. */
 	if (!core->tree_ops.valid(dir->obj.info.tree, place))
@@ -132,10 +132,10 @@ static errno_t dir40_fetch(object_entity_t *entity,
 	uint32_t pos;
 	dir40_t *dir;
 
-
 	dir = (dir40_t *)entity;
 	pos = dir->body.pos.unit;
-	
+
+	/* Reading entry to passed @entry */
 	if (plug_call(dir->body.plug->o.item_ops, read,
 		      &dir->body, entry, pos, 1) != 1)
 	{
@@ -262,7 +262,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	   directory oid, locality and name by menas of using hash plugin. */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
 		  &dir->body.key, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), name);
+		  obj40_objectid(&dir->obj), name/*"file0"*/);
 
 	/* Making tree_lookup() to find entry by key */
 	switch ((res = obj40_lookup(&dir->obj, &dir->body.key,
@@ -679,7 +679,6 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	place_t place;
 	uint64_t size;
 	uint64_t bytes;
-	
 	create_hint_t hint;
 
 	aal_assert("umka-844", entity != NULL);
@@ -703,7 +702,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	/* Building key of the new entry */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
 		  &hint.key, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), entry->name);
+		  obj40_objectid(&dir->obj), entry->name/*"file0"*/);
 	
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, assign,
 		  &entry->offset, &hint.key);

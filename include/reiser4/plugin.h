@@ -436,10 +436,10 @@ enum entry_type {
 
 typedef enum entry_type entry_type_t;
 
-#define ET_BACKLINK(link, back)  ((link >> 1) == (back >> 1) && link != back)
+#define ET_BACKLINK(link, back) \
+        ((link >> 1) == (back >> 1) && link != back)
 
 struct entry_hint {
-
 	/* Entry key within the current directory */
 	key_entity_t offset;
 

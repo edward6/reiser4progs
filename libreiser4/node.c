@@ -440,10 +440,13 @@ lookup_t reiser4_node_lookup(
 	POS_INIT(pos, 0, MAX_UINT32);
 
 	/* Calling node plugin lookup method */
-	if ((res = plug_call(node->entity->plug->o.node_ops, lookup,
-			     node->entity, key, pos)) == FAILED)
+	switch ((res = plug_call(node->entity->plug->o.node_ops,
+				 lookup, node->entity, key, pos)))
 	{
-		return FAILED;
+	case FAILED:
+		return res;
+	default:
+		break;
 	}
 
 	if (res == ABSENT) {
@@ -482,10 +485,12 @@ lookup_t reiser4_node_lookup(
 		pos->item++;
 		return ABSENT;
 	} else {
-		/* If item is found by its key, that means, that we can set unit
-		   component to 0. This is neede to avoid creating mergeable
-		   item (for instance tails) in the same node. */
-		pos->unit = 0;
+		/* Calling lookup method of found item */
+		if (place.plug->o.item_ops->lookup) {
+			return plug_call(place.plug->o.item_ops, lookup,
+					 (place_t *)&place, key, &pos->unit);
+		}
+		
 		return PRESENT;
 	}
 
