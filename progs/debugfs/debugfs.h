@@ -1,5 +1,5 @@
 /*
-  debugfs.h -- debugs types and functions.
+  debugfs.h -- debugs used functions.
 
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -12,31 +12,15 @@
 #  include <config.h> 
 #endif
 
-enum print_flags {
-	PF_SUPER    = 1 << 0,
-	PF_JOURNAL  = 1 << 1,
-	PF_ALLOC    = 1 << 2,
-	PF_OID	    = 1 << 3,
-	PF_TREE	    = 1 << 4,
-	PF_BLOCK    = 1 << 5,
-	PF_FILE     = 1 << 6,
-	PF_SITEMS   = 1 << 7
-};
+#include <misc/misc.h>
+#include <reiser4/reiser4.h>
 
-typedef enum print_flags print_flags_t;
+#include "types.h"
+#include "browse.h"
+#include "print.h"
+#include "measure.h"
 
-enum behav_flags {
-	BF_FORCE    = 1 << 0,
-	BF_QUIET    = 1 << 1,
-	BF_TFRAG    = 1 << 2,
-	BF_FFRAG    = 1 << 3,
-	BF_TSTAT    = 1 << 4,
-	BF_DFRAG    = 1 << 5,
-	BF_SEACH    = 1 << 6,
-	BF_LS       = 1 << 7,
-	BF_CAT      = 1 << 8
-};
-
-typedef enum behav_flags behav_flags_t;
+extern errno_t debugfs_print_stream(aal_stream_t *stream);
+extern errno_t debugfs_print_buff(void *buff, uint32_t size);
 
 #endif

@@ -1,10 +1,11 @@
-sbin_PROGRAMS 		= debugfs.reiser4
-debugfs_reiser4_SOURCES	= debugfs.c debugfs.h
+sbin_PROGRAMS 		 = debugfs.reiser4
+debugfs_reiser4_SOURCES	 = debugfs.c debugfs.h print.c print.h measure.c \
+			   measure.h browse.c browse.h
 
-debugfs_reiser4_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
-			  $(top_builddir)/progs/libmisc/libmisc.la \
-			  $(UUID_LIBS) $(PROGS_LIBS)
+debugfs_reiser4_LDADD 	 = $(top_builddir)/libreiser4/libreiser4.la \
+			   $(top_builddir)/progs/libmisc/libmisc.la \
+			   $(UUID_LIBS) $(PROGS_LIBS)
 			  
-debugfs_reiser4_LDFLAGS = $(PROGS_LDFLAGS)
+debugfs_reiser4_LDFLAGS  = $(PROGS_LDFLAGS)
 
-INCLUDES		= -I$(top_srcdir)/include -I$(top_srcdir)/progs/include
+INCLUDES		 = -I$(top_srcdir)/include -I$(top_srcdir)/progs/include
