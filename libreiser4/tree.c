@@ -595,12 +595,11 @@ static int reiser4_tree_neig_place(reiser4_tree_t *tree,
 	if (!found)
 		return 0;
 	
-	/* Position correcting. */
-	if (where == DIR_LEFT)
-		reiser4_place_dec(place, 0);
-	else
-		reiser4_place_inc(place, 0);
-	
+	/* Position correcting. We do not use place_inc() and place_dec() here,
+	   because they are not accessible in stand alone mode and we do not
+	   want to make it accessible because here is one place only and they
+	   are quite big. */
+	place->pos.item += (where == DIR_LEFT ? -1 : 1);
 	return level;
 }
 
@@ -1742,6 +1741,15 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	   needed, because @key might point to @place->key in @place and will be
 	   corrupted during lookup. */
 	reiser4_key_assign(&wanted, hint->key);
+
+	/* Setting hint->key to stored local key in order to keep not corrupted
+	   if it points to @place->key and will be chnaged after @place is
+	   modified. It will be restored after lookup is finished. */
+	saved = hint->key;
+	hint->key = &wanted;
+
+	/* Zeroing place just of rcase it was not initialized before to prevent
+	   having some garbage in it. */
 	aal_memset(place, 0, sizeof(*place));
 
 #ifndef ENABLE_STAND_ALONE
@@ -1760,12 +1768,6 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	}
 #endif
 
-	/* Setting hint->key to stored local key in order to keep not corrupted
-	   if it points to @place->key and will be chnaged after @place is
-	   modified. It will be restored after lookup is finished. */
-	saved = hint->key;
-	hint->key = &wanted;
-	
 	/* Checking the case when wanted key is smaller than root one. This is
 	   the case, when somebody is trying go up of the root by ".." entry in
 	   root directory. If so, we initialize the key to be looked up by root
@@ -2906,14 +2908,24 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 
 		/* Prepare parent place for new created node. */
 		if (old.node) {
-			reiser4_place_dup(&aplace, &old.node->p);
-			aplace.pos.item++;
+			if (level < reiser4_node_get_level(old.node)) {
+				/* If level lookup gave us is higher level, this
+				   means, that new leaf node was allocated we
+				   use loouped place to atta this new leaf to
+				   at. */
+				reiser4_place_dup(&aplace, &old);
+			} else {
+				reiser4_place_dup(&aplace, &old.node->p);
+				aplace.pos.item++;
+			}
 		} else {
 			reiser4_place_assign(&aplace, tree->root,
 					     0, MAX_UINT32);
 		}
 
-		if (old.node && reiser4_tree_root_node(tree, old.node)) {
+		/* Check if we insert something in root node and tree was not
+		   empty before insert is called. */
+		if (old.node && level == reiser4_tree_get_height(tree)) {
 			reiser4_node_lock(place->node);
 
 			if ((res = reiser4_tree_growup(tree))) {

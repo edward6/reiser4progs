@@ -1080,6 +1080,8 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 			if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
 				/* FIXME-UMKA: Handling holes will be here
 				   later. */
+				aal_bug("umka-3110", "Holes overwriting is "
+					"not implemented yet!");
 			} else {
 				/* Getting data block by offset key. Block
 				   should be get before modifying it. */
