@@ -184,6 +184,9 @@ static int stat40_layout(reiser4_item_t *item,
 		if (!(ret = perext_func(i, extmask, extbody, data)))
 			return ret;
 
+		if (!((1 << i) & extmask))
+			continue;
+		
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 							   "by its id 0x%x.", i);
