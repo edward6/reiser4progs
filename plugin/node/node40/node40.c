@@ -1,25 +1,29 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   node40.c -- reiser4 default node plugin. */
+   node40.c -- reiser4 node plugin functions. */
 
 #include "node40.h"
 
 extern reiser4_plug_t node40_plug;
 static reiser4_core_t *core = NULL;
 
+/* Return current node key policy (key size in fact). */
 inline uint32_t node40_key_pol(node40_t *node) {
 	return plug_call(node->kplug->o.key_ops, bodysize);
 }
 
-/* Returns item header by pos */
+/* Return item header void pointer by pos. As node40 is able to work with
+   different item types (short keys, large ones), we do not use item struct at
+   all. But preffer to use raw pointers along with macros for working with
+   them. */
 void *node40_ih_at(node40_t *node, uint32_t pos) {
 	void *ih = node->block->data + node->block->size;
 	uint32_t size = ih_size(node40_key_pol(node));
 	return (ih - (size * (pos + 1)));
 }
 
-/* Retutrns item body by pos */
+/* Retutrn item body by pos */
 void *node40_ib_at(node40_t *node, uint32_t pos) {
 	void *ih = node40_ih_at(node, pos);
 
@@ -28,6 +32,7 @@ void *node40_ib_at(node40_t *node, uint32_t pos) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Functions for dirtying nodes. */
 int node40_isdirty(node_entity_t *entity) {
 	aal_assert("umka-2091", entity != NULL);
 	return ((node40_t *)entity)->block->dirty;
@@ -44,25 +49,26 @@ void node40_mkclean(node_entity_t *entity) {
 }
 #endif
 
-/* Returns node level */
+/* Returns node level field. */
 static uint8_t node40_get_level(node_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL);
 	return nh_get_level((node40_t *)entity);
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Returns node make stamp */
+/* Returns node mkfs stamp. */
 static uint32_t node40_get_mstamp(node_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL);
 	return nh_get_mkfs_id((node40_t *)entity);
 }
 
-/* Returns node flush stamp */
+/* Returns node flush stamp. */
 static uint64_t node40_get_fstamp(node_entity_t *entity) {
 	aal_assert("vpf-645", entity != NULL);
 	return nh_get_flush_id((node40_t *)entity);
 }
 
+/* Makes clone of @src_entity node in @dst_node. */
 static errno_t node40_clone(node_entity_t *src_entity,
 			    node_entity_t *dst_entity)
 {
@@ -76,6 +82,8 @@ static errno_t node40_clone(node_entity_t *src_entity,
 	return 0;
 }
 
+/* Makes fresh node. That is sets numebr of items to zero, and reinitializes all
+   other fields of node header. */
 static errno_t node40_fresh(node_entity_t *entity,
 			    uint8_t level)
 {
@@ -111,6 +119,7 @@ static errno_t node40_sync(node_entity_t *entity) {
 	return 0;
 }
 
+/* Moves node to passed @blk. */
 static void node40_move(node_entity_t *entity, blk_t nr) {
 	aal_block_t *block;
 	
@@ -164,6 +173,7 @@ static void node40_set_fstamp(node_entity_t *entity,
 	nh_set_flush_id((node40_t *)entity, stamp);
 }
 
+/* Set new node level to @level. */
 static void node40_set_level(node_entity_t *entity,
 			     uint8_t level)
 {
@@ -201,6 +211,8 @@ static uint16_t node40_len(node_entity_t *entity,
 	}
 }
 
+/* Initializes node and on @block with key plugin @kplug. Returns initialized
+   node instance. */
 static node_entity_t *node40_init(aal_block_t *block,
 				  reiser4_plug_t *kplug)
 {
@@ -244,9 +256,7 @@ static errno_t node40_get_key(node_entity_t *entity,
 	return 0;
 }
 
-/* Initializes item entity in order to pass it to an item plugin routine. If
-   unit component of pos is set up the function will initialize item's key from
-   the unit one. */
+/* Initializes @place at @pos. Fetches all item fields. */
 errno_t node40_fetch(node_entity_t *entity,
 		     pos_t *pos, place_t *place)
 {
