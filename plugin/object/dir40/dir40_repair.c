@@ -111,11 +111,11 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	aal_exception_error("Directory [%s]: The entry \".\" is not found.%s "
 			    "Plugin (%s).", print_ino(dcore, &info->object), 
-			    mode == RM_BUILD ? " Inserts a new one." : "", 
+			    mode != RM_CHECK ? " Inserts a new one." : "", 
 			    dir->obj.plug->label);
 	
-	if (mode != RM_BUILD)
-		return RE_FATAL;
+	if (mode == RM_CHECK)
+		return RE_FIXABLE;
 	
 	/* Absent. Add a new ".". Take it from the profile for now.
 	   FIXME-VITALY: It can be stored in SD also, but it is not 
@@ -192,7 +192,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = obj40_ukey(&dir->obj, &info->start, &info->object, mode)))
+	if ((res = obj40_ukey(&dir->obj, &info->start, &info->object, mode)) < 0)
 		return res;
 	
 	/* Init hash plugin in use. */
@@ -218,7 +218,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	}
 
 	/* Take case about the ".". */
-	if ((res = dir40_dot(dir, bplug, mode)) < 0)
+	if ((res |= dir40_dot(dir, bplug, mode)) < 0)
 		return res;
 	
 	size = 0; bytes = 0; 
@@ -282,7 +282,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 
 			if (mode != RM_BUILD) {
-				res |= RE_FATAL;
+				res |= RE_FIXABLE;
 				continue;
 			}
 
