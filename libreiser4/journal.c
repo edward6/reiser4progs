@@ -175,7 +175,7 @@ errno_t reiser4_journal_replay(
 	if (aal_device_readonly(journal->device)) {
 		aal_exception_warn("Transactions can't be replayed on "
 				   "read only opened filesystem.");
-		return -1;
+		return -EINVAL;
 	}
 	
 	/* Calling plugin for actual replaying */

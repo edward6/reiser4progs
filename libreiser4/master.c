@@ -264,7 +264,7 @@ errno_t reiser4_master_sync(
 	offset = MASTER_OFFSET / master->device->blocksize;
 
 	if (!(block = aal_block_create(master->device, offset, 0)))
-		return -1;
+		return -ENOMEM;
 
 	aal_memcpy(block->data, SUPER(master),
 		   sizeof(*SUPER(master)));

@@ -92,7 +92,7 @@ static errno_t callback_guess_node(reiser4_plugin_t *plugin,
 		*/
 		if (!(guess->entity = plugin_call(plugin->node_ops, open,
 						  guess->device, guess->blk)))
-			return -1;
+			return -EINVAL;
 
 		if (plugin_call(plugin->node_ops, confirm, guess->entity))
 			return 1;
@@ -212,7 +212,7 @@ errno_t reiser4_node_pos(
 	if (pos)
 		*pos = node->parent.pos;
     
-	return res == LP_PRESENT ? 0 : -1;
+	return res == LP_PRESENT ? 0 : -EINVAL;
 }
 
 static inline int callback_comp_blk(
@@ -315,7 +315,7 @@ errno_t reiser4_node_disconnect(
 	aal_list_t *next;
 	
 	if (!node->children)
-		return -1;
+		return -EINVAL;
     
 	child->parent.node = NULL;
     
@@ -768,7 +768,7 @@ errno_t reiser4_node_insert(
 		aal_exception_error("There is no space to insert new "
 				    "item/unit of (%u) size in the node "
 				    "(%llu).", hint->len, node->blk);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* 
@@ -785,18 +785,6 @@ errno_t reiser4_node_insert(
 		return res;
 	
 	return 0;
-}
-
-/* Inserts/overwrites some amount of items/units */
-errno_t reiser4_node_write(
-	reiser4_node_t *dst_node,        /* destination node */
-	pos_t *dst_pos,                 /* destination pos */
-	reiser4_node_t *src_node,        /* source node */
-	pos_t *src_pos,                 /* source pos */
-	uint32_t count)
-{
-	aal_exception_error("Sorry, not implemented yet!");
-	return -1;
 }
 
 /* Removes some amount of item/units */

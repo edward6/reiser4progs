@@ -103,7 +103,7 @@ static int32_t reg40_read(object_entity_t *entity,
 		return 0;
 
 	if (reg->offset > size)
-		return -1;
+		return -EINVAL;
 	
 	if (n > size - reg->offset)
 		n = size - reg->offset;
@@ -285,7 +285,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 static errno_t reg40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
-	return -1;
+	return -EINVAL;
 }
 
 static errno_t reg40_link(object_entity_t *entity) {
@@ -294,6 +294,7 @@ static errno_t reg40_link(object_entity_t *entity) {
 }
 
 static errno_t reg40_unlink(object_entity_t *entity) {
+	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
 	
@@ -301,28 +302,28 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 
 	reg = (reg40_t *)entity;
 	
-	if (obj40_stat(&reg->obj))
-		return -1;
+	if ((res = obj40_stat(&reg->obj)))
+		return res;
 
-	if (obj40_link(&reg->obj, -1))
-		return -1;
+	if ((res = obj40_link(&reg->obj, -1)))
+		return res;
 
 	if (obj40_get_nlink(&reg->obj) > 0)
 		return 0;
 	
 	/* Removing file when nlink became zero */
-	if (reg40_reset(entity))
-		return -1;
+	if ((res = reg40_reset(entity)))
+		return res;
 	
 	size = obj40_get_size(&reg->obj);
 
 	aal_assert("umka-1913", size > 0);
 	
-	if (reg40_truncate(entity, size))
-		return -1;
+	if ((res = reg40_truncate(entity, size)))
+		return res;
 
-	if (obj40_stat(&reg->obj))
-		return -1;
+	if ((res = obj40_stat(&reg->obj)))
+		return res;
 
 	return obj40_remove(&reg->obj, &reg->obj.key, 1);
 }
@@ -332,8 +333,11 @@ static errno_t reg40_unlink(object_entity_t *entity) {
   to be writen. This function will be using tail policy plugin for find out what
   next item should be writen.
 */
-static reiser4_plugin_t *reg40_policy(reg40_t *reg, uint32_t size) {
-	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE, ITEM_TAIL40_ID);
+static reiser4_plugin_t *reg40_policy(reg40_t *reg,
+				      uint32_t size)
+{
+	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
+				       ITEM_TAIL40_ID);
 }
 
 /* Writes "n" bytes from "buff" to passed file. */

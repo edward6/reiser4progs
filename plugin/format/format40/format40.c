@@ -83,6 +83,7 @@ static errno_t format40_layout(object_entity_t *entity,
 			       block_func_t func,
 			       void *data) 
 {
+	errno_t res;
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
         
@@ -93,8 +94,8 @@ static errno_t format40_layout(object_entity_t *entity,
 	offset = FORMAT40_OFFSET / format->device->blocksize;
     
 	for (; blk <= offset; blk++) {
-		if (func(entity, blk, data))
-			return -1;
+		if ((res = func(entity, blk, data)))
+			return res;
 	}
     
 	return 0;
@@ -109,12 +110,11 @@ static errno_t format40_super_check(format40_super_t *super,
 	blk_t dev_len = aal_device_len(device);
     
 	if (get_sb_block_count(super) > dev_len) {
-		aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,
-				    "Superblock has an invalid block "
+		aal_exception_error("Superblock has an invalid block "
 				    "count %llu for device length %llu "
 				    "blocks.", get_sb_block_count(super),
 				    dev_len);
-		return -1;
+		return -EINVAL;
 	}
     
 	offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
@@ -122,11 +122,10 @@ static errno_t format40_super_check(format40_super_t *super,
 	if (get_sb_root_block(super) < offset ||
 	    get_sb_root_block(super) > dev_len)
 	{
-		aal_exception_error(
-			"Superblock has an invalid root block %llu for "
-			"device length %llu blocks.", get_sb_root_block(super),
-			dev_len);
-		return -1;
+		aal_exception_error("Superblock has an invalid root block "
+				    "%llu for device length %llu blocks.",
+				    get_sb_root_block(super), dev_len);
+		return -EINVAL;
 	}
 	
 	return 0;
@@ -151,11 +150,11 @@ static errno_t format40_super_open(format40_t *format) {
 	if (!(block = aal_block_open(format->device, offset))) {
 		aal_exception_error("Can't read block %llu.",
 				    offset);
-		return -1;
+		return -EIO;
 	}
 
 	if (!format40_magic((format40_super_t *)block->data)) {
-		res = -1;
+		res = -EINVAL;
 		goto error_free_block;
 	}
 
@@ -198,6 +197,7 @@ static void format40_close(object_entity_t *entity) {
 static errno_t callback_clobber_block(object_entity_t *entity, 
 				      blk_t blk, void *data) 
 {
+	errno_t res = 0;
 	aal_block_t *block;
 	format40_t *format;
 
@@ -205,21 +205,17 @@ static errno_t callback_clobber_block(object_entity_t *entity,
     
 	if (!(block = aal_block_create(format->device, blk, 0))) {
 		aal_exception_error("Can't clobber block %llu.", blk);
-		return -1;
+		return -ENOMEM;
 	}
     
 	if (aal_block_sync(block)) {
 		aal_exception_error("Can't write block %llu to device. "
 				    "%s.", blk, format->device->error);
-		goto error_free_block;
+		res = -EIO;
 	}
     
 	aal_block_close(block);
-	return 0;
-    
- error_free_block:
-	aal_block_close(block);
-	return -1;
+	return res;
 }
 
 /* This function should create super block and update all copies */
@@ -280,7 +276,7 @@ static errno_t format40_sync(object_entity_t *entity) {
 	offset = FORMAT40_OFFSET / format->device->blocksize;
 
 	if (!(block = aal_block_create(format->device, offset, 0)))
-		return -1;
+		return -ENOMEM;
 
 	aal_memcpy(block->data, &format->super,
 		   sizeof(format->super));
@@ -289,7 +285,7 @@ static errno_t format40_sync(object_entity_t *entity) {
 		aal_exception_error("Can't write format40 super "
 				    "block to %llu. %s.", offset,
 				    format->device->error);
-		res = -1;
+		res = -EIO;
 	}
     
 	aal_block_close(block);
@@ -392,6 +388,7 @@ errno_t format40_print(object_entity_t *entity,
 		       aal_stream_t *stream,
 		       uint16_t options) 
 {
+	blk_t offset;
 	format40_t *format;
 	format40_super_t *super;
     
@@ -403,23 +400,46 @@ errno_t format40_print(object_entity_t *entity,
     
 	aal_stream_format(stream, "Format super block:\n");
 	
-	aal_stream_format(stream, "plugin:\t\t%s\n", entity->plugin->h.label);
-	aal_stream_format(stream, "description:\t%s\n", entity->plugin->h.desc);
+	aal_stream_format(stream, "plugin:\t\t%s\n",
+			  entity->plugin->h.label);
 	
-	aal_stream_format(stream, "offset:\t\t%lu\n", (FORMAT40_OFFSET /
-						       format->device->blocksize));
+	aal_stream_format(stream, "description:\t%s\n",
+			  entity->plugin->h.desc);
+
+	offset = (FORMAT40_OFFSET / format->device->blocksize);
+	
+	aal_stream_format(stream, "offset:\t\t%lu\n",
+			  offset);
     
-	aal_stream_format(stream, "magic:\t\t%s\n", super->sb_magic);
-	aal_stream_format(stream, "flushes:\t%llu\n", get_sb_flushes(super));
-	aal_stream_format(stream, "stamp:\t\t0x%x\n", get_sb_mkfs_id(super));
+	aal_stream_format(stream, "magic:\t\t%s\n",
+			  super->sb_magic);
+	
+	aal_stream_format(stream, "flushes:\t%llu\n",
+			  get_sb_flushes(super));
+	
+	aal_stream_format(stream, "stamp:\t\t0x%x\n",
+			  get_sb_mkfs_id(super));
     
-	aal_stream_format(stream, "length:\t\t%llu\n",get_sb_block_count(super));
-	aal_stream_format(stream, "free blocks:\t%llu\n", get_sb_free_blocks(super));
-	aal_stream_format(stream, "root block:\t%llu\n", get_sb_root_block(super));
-	aal_stream_format(stream, "tail policy:\t%u\n", get_sb_tail_policy(super));
-	aal_stream_format(stream, "next oid:\t0x%llx\n", get_sb_oid(super));
-	aal_stream_format(stream, "file count:\t%llu\n", get_sb_file_count(super));
-	aal_stream_format(stream, "tree height:\t%u\n", get_sb_tree_height(super));
+	aal_stream_format(stream, "length:\t\t%llu\n",
+			  get_sb_block_count(super));
+	
+	aal_stream_format(stream, "free blocks:\t%llu\n",
+			  get_sb_free_blocks(super));
+	
+	aal_stream_format(stream, "root block:\t%llu\n",
+			  get_sb_root_block(super));
+	
+	aal_stream_format(stream, "tail policy:\t%u\n",
+			  get_sb_tail_policy(super));
+	
+	aal_stream_format(stream, "next oid:\t0x%llx\n",
+			  get_sb_oid(super));
+	
+	aal_stream_format(stream, "file count:\t%llu\n",
+			  get_sb_file_count(super));
+	
+	aal_stream_format(stream, "tree height:\t%u\n",
+			  get_sb_tree_height(super));
     
 	return 0;
 }

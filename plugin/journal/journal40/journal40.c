@@ -24,24 +24,25 @@ static errno_t journal40_layout(object_entity_t *entity,
 				void *data)
 {
 	blk_t blk;
+	errno_t res;
+	
+	uint32_t blocksize;
 	journal40_t *journal;
 
 	aal_assert("umka-1040", entity != NULL);
 	aal_assert("umka-1041", func != NULL);
     
 	journal = (journal40_t *)entity;
+	blocksize = journal->device->blocksize;
 	
-	blk = JOURNAL40_HEADER / aal_device_get_bs(journal->device);
+	blk = JOURNAL40_HEADER / blocksize;
     
-	if (func(entity, blk, data))
-		return -1;
+	if ((res = func(entity, blk, data)))
+		return res;
     
-	blk = JOURNAL40_FOOTER / aal_device_get_bs(journal->device);
+	blk = JOURNAL40_FOOTER / blocksize;
     
-	if (func(entity, blk, data))
-		return -1;
-
-	return 0;
+	return func(entity, blk, data);
 }
 
 static errno_t journal40_hcheck(journal40_header_t *header) {
@@ -70,15 +71,17 @@ static errno_t callback_fetch_journal(object_entity_t *entity,
 		
 	if (!journal->header) {
 		if (!(journal->header = aal_block_open(device, blk))) {
-			aal_exception_error("Can't read journal header from "
-					    "block %llu. %s.", blk, device->error);
-			return -1;
+			aal_exception_error("Can't read journal header "
+					    "from block %llu. %s.", blk,
+					    device->error);
+			return -EIO;
 		}
 	} else {
 		if (!(journal->footer = aal_block_open(device, blk))) {
-			aal_exception_error("Can't read journal footer from "
-					    "block %llu. %s.", blk, device->error);
-			return -1;
+			aal_exception_error("Can't read journal footer "
+					    "from block %llu. %s.", blk,
+					    device->error);
+			return -EIO;
 		}
 	}
     
@@ -115,22 +118,19 @@ static object_entity_t *journal40_open(object_entity_t *format,
 
  error_free_journal:
 	aal_free(journal);
- error:
 	return NULL;
 }
 
 static errno_t journal40_valid(object_entity_t *entity) {
+	errno_t res;
 	journal40_t *journal = (journal40_t *)entity;
     
 	aal_assert("umka-965", journal != NULL);
     
-	if (journal40_hcheck(journal->header->data))
-		return -1;
+	if ((res = journal40_hcheck(journal->header->data)))
+		return res;
 	
-	if (journal40_fcheck(journal->footer->data))
-		return -1;
-    
-	return 0;
+	return journal40_fcheck(journal->footer->data);
 }
 
 static errno_t callback_alloc_journal(object_entity_t *entity,
@@ -145,13 +145,13 @@ static errno_t callback_alloc_journal(object_entity_t *entity,
 		if (!(journal->header = aal_block_create(device, blk, 0))) {
 			aal_exception_error("Can't alloc journal "
 					    "header on block %llu.", blk);
-			return -1;
+			return -ENOMEM;
 		}
 	} else {
 		if (!(journal->footer = aal_block_create(device, blk, 0))) {
 			aal_exception_error("Can't alloc journal footer "
 					    "on block %llu.", blk);
-			return -1;
+			return -ENOMEM;
 		}
 	}
     
@@ -203,15 +203,17 @@ static errno_t callback_sync_journal(object_entity_t *entity,
 
 	if (blk == aal_block_number(journal->header)) {
 		if (aal_block_sync(journal->header)) {
-			aal_exception_error("Can't write journal header to block "
-					    "%llu. %s.", blk, device->error);
-			return -1;
+			aal_exception_error("Can't write journal "
+					    "header to block %llu. "
+					    "%s.", blk, device->error);
+			return -EIO;
 		}
 	} else {
 		if (aal_block_sync(journal->footer)) {
-			aal_exception_error("Can't write journal footer to block "
-					    "%llu. %s.", blk, device->error);
-			return -1;
+			aal_exception_error("Can't write journal "
+					    "footer to block %llu. "
+					    "%s.", blk, device->error);
+			return -EIO;
 		}
 	}
     
@@ -219,16 +221,8 @@ static errno_t callback_sync_journal(object_entity_t *entity,
 }
 
 static errno_t journal40_sync(object_entity_t *entity) {
-	journal40_t *journal = (journal40_t *)entity;
-
-	aal_assert("umka-410", journal != NULL);
-    
-	if (journal40_layout(entity, callback_sync_journal, journal)) {
-		aal_exception_error("Can't load journal metadata.");
-		return -1;
-	}
-    
-	return 0;
+	aal_assert("umka-410", entity != NULL);
+	return journal40_layout(entity, callback_sync_journal, entity);
 }
 
 static errno_t callback_journal_handler(object_entity_t *entity,
@@ -243,7 +237,7 @@ static errno_t callback_journal_handler(object_entity_t *entity,
 				    aal_block_number(block));
 		
 		aal_block_close(block);
-		return -1;
+		return -EIO;
 	}
 
 	return 0;
@@ -277,8 +271,9 @@ static errno_t journal40_update(journal40_t *journal) {
 
 	if (!(tx_block = aal_block_open(device, last_commited_tx))) {
 		aal_exception_error("Can't read block %llu while updating "
-				    "the journal. %s.", last_commited_tx, device->error);
-		return -1;
+				    "the journal. %s.", last_commited_tx,
+				    device->error);
+		return -EIO;
 	}
 	
 	tx_header = (journal40_tx_header_t *)tx_block->data;
@@ -286,7 +281,7 @@ static errno_t journal40_update(journal40_t *journal) {
 	if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
 		aal_exception_error("Invalid transaction header has "
 				    "been detected.");
-		return -1;
+		return -EINVAL;
 	}
 	
 	/* Updating journal footer */
@@ -306,7 +301,7 @@ errno_t journal40_traverse_trans(
 	journal40_sec_func_t sec_func,		/* secondary blocks callback */
 	void *data) 
 {
-	errno_t ret;
+	errno_t res;
 	uint64_t log_blk;
 	uint32_t i, capacity;
 	aal_device_t *device;
@@ -326,7 +321,7 @@ errno_t journal40_traverse_trans(
 		  is not one of the LGR's of the same transaction. return 1.
 		*/
 	    
-		if (sec_func && (ret = sec_func((object_entity_t *)journal, 
+		if (sec_func && (res = sec_func((object_entity_t *)journal, 
 						tx_block, log_blk, LGR, data)))
 			goto error;
 	    
@@ -334,17 +329,22 @@ errno_t journal40_traverse_trans(
 			aal_exception_error("Can't read block %llu while "
 					    "traversing the journal. %s.", 
 					    log_blk, device->error);
-			ret = -1;
+			res = -EIO;
 			goto error;
 		}
 
 		lr_header = (journal40_lr_header_t *)log_block->data;
 		log_blk = get_lh_next_block(lr_header);
 
+		/*
+		  FIXME-UMKA->VITALY: What about return value here? Do you need
+		  exactly one? What does it mean? May thios code be adopted to
+		  current schema (EINVAL, etc)? May be -ESTRUCT is good one?
+		*/
 		if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
 			aal_exception_error("Invalid log record header has been"
 					    " detected.");
-			ret = 1;
+			res = 1;
 			goto error;
 		}
 
@@ -358,11 +358,11 @@ errno_t journal40_traverse_trans(
 				break;
 
 			if (sec_func) {
-				if ((ret = sec_func((object_entity_t *)journal, tx_block, 
+				if ((res = sec_func((object_entity_t *)journal, tx_block, 
 						    get_le_wandered(entry), WAN, data)))
 					goto error_free_log_block;
 		    
-				if ((ret = sec_func((object_entity_t *)journal, tx_block,
+				if ((res = sec_func((object_entity_t *)journal, tx_block,
 						    get_le_original(entry), ORG, data)))
 					goto error_free_log_block;
 			}
@@ -375,11 +375,11 @@ errno_t journal40_traverse_trans(
 							    "traversing the journal. %s.",
 							    get_le_wandered(entry), 
 							    device->error);
-					ret = -1;
+					res = -EIO;
 					goto error_free_log_block;
 				}
 
-				if ((ret = handler_func((object_entity_t *)journal, wan_block, 
+				if ((res = handler_func((object_entity_t *)journal, wan_block, 
 							get_le_original(entry), data)))
 					goto error_free_wandered;
 
@@ -399,17 +399,17 @@ errno_t journal40_traverse_trans(
  error_free_log_block:
 	aal_block_close(log_block);
  error:
-	return ret;	
+	return res;	
 }
 
 /*
   Journal traverse method. Finds the oldest transaction first, then goes through
   each transaction from the oldest to the earliest.
   
-  Returns:
-  0:  everything okay
-  1:  for bad journal structure; 
-  -1: fatal error
+  Return codes:
+  0        everything okay;
+  1        for bad journal structure; 
+  -EINVAL  fatal error;
 */
 errno_t journal40_traverse(
 	journal40_t *journal,			/* journal object to be traversed */
@@ -418,7 +418,7 @@ errno_t journal40_traverse(
 	journal40_sec_func_t sec_func,		/* secondary blocks callback */
 	void *data)				/* opaque data for traverse callbacks. */ 
 {
-	errno_t ret;
+	errno_t res;
 	uint64_t txh_blk;
 	aal_device_t *device;
 	uint64_t last_flushed_tx;
@@ -450,15 +450,14 @@ errno_t journal40_traverse(
 		  FIXME-VITALY->UMKA: There should be a check that the txh_blk
 		  is not one of the TxH's we have met already. return 1.
 		*/
-	    
-		if (txh_func && (ret = txh_func((object_entity_t *)journal, 
+		if (txh_func && (res = txh_func((object_entity_t *)journal, 
 						txh_blk, data)))
 			goto error_free_tx_list;
 	    
 		if (!(tx_block = aal_block_open(device, txh_blk))) {
 			aal_exception_error("Can't read block %llu while traversing "
 					    "the journal. %s.", txh_blk, device->error);
-			ret = -1;
+			res = -EINVAL;
 			goto error_free_tx_list;
 		}
 	
@@ -466,7 +465,7 @@ errno_t journal40_traverse(
 
 		if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
 			aal_exception_error("Invalid transaction header has been detected.");
-			ret = 1;
+			res = 1;
 			goto error_free_tx_list;
 		}
 
@@ -479,7 +478,8 @@ errno_t journal40_traverse(
 		/* The last valid unreplayed transction */
 		tx_block = (aal_block_t *)aal_list_last(tx_list)->data;
 		
-		if ((ret = journal40_traverse_trans(journal, tx_block, handler_func, 
+		if ((res = journal40_traverse_trans(journal, tx_block,
+						    handler_func, 
 						    sec_func, data)))
 			goto error_free_tx_list;
 	
@@ -491,7 +491,7 @@ errno_t journal40_traverse(
 
  error_free_tx_list:
 	
-	/* Close all from the list */;
+	/* Close all from the list */
 	while(tx_list != NULL) {
 		tx_block = (aal_block_t *)aal_list_first(tx_list)->data;
 	
@@ -499,23 +499,20 @@ errno_t journal40_traverse(
 		aal_block_close(tx_block);
 	}
     
-	return ret;
+	return res;
 }
 
 static errno_t journal40_replay(object_entity_t *entity) {
-	int trans_nr = 0;
-    
+	errno_t res;
 	aal_assert("umka-412", entity != NULL);
 
-	if (journal40_traverse((journal40_t *)entity,
-			       callback_journal_handler, 
-			       NULL, NULL, NULL))
-		return -1;
+	if ((res = journal40_traverse((journal40_t *)entity,
+				      callback_journal_handler, 
+				      NULL, NULL, NULL)))
+		return res;
 
 	/* FIXME-UMKA: Super block has been left not updated. */
-	journal40_update((journal40_t *)entity);
-
-	return 0;
+	return journal40_update((journal40_t *)entity);
 }
 
 static errno_t journal40_print(object_entity_t *entity,

@@ -129,7 +129,8 @@ static errno_t key40_assign(key_entity_t *dst,
 
 	dst->plugin = src->plugin;
 
-	aal_memcpy(dst->body, src->body, sizeof(key40_t));
+	aal_memcpy(dst->body, src->body,
+		   sizeof(key40_t));
 	
 	return 0;
 }
@@ -160,7 +161,7 @@ static errno_t key40_valid(key_entity_t *key) {
 	if ((minor == KEY40_FILENAME_MINOR && band == 1) || band == 0)
 		return 0;
 
-	return -1;
+	return -EINVAL;
 }
 
 /* Sets up key type */
@@ -283,7 +284,7 @@ static errno_t key40_build_hash(key_entity_t *key,
 
 		/* Build hash by means of using hash plugin */
 		if (!hash->hash_ops.build)
-			return -1;
+			return -EINVAL;
 		
 		objectid |= 0x0100000000000000ull;
 		offset = hash->hash_ops.build((const char *)(name + OID_CHARS),

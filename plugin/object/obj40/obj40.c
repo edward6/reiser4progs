@@ -69,9 +69,12 @@ static errno_t obj40_read_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
 
 	/* Calling statdata open method if it exists */
 	if (!item->plugin->item_ops.read)
-		return -1;
+		return -EINVAL;
 
-	return -(item->plugin->item_ops.read(item, &hint, 0, 1) != 1);
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+		return -EINVAL;
+	
+	return 0;
 }
 
 #ifndef ENABLE_ALONE
@@ -96,9 +99,12 @@ static errno_t obj40_write_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
 	if (!item->plugin->item_ops.write)
-		return -1;
+		return -EINVAL;
 
-	return -(item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
+	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1)
+		return -EINVAL;
+	
+	return 0;
 }
 
 #endif
@@ -120,9 +126,12 @@ static errno_t obj40_read_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hin
 
 	/* Calling statdata open method if it exists */
 	if (!item->plugin->item_ops.read)
-		return -1;
+		return -EINVAL;
 
-	return -(item->plugin->item_ops.read(item, &hint, 0, 1) != 1);
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+		return -EINVAL;
+
+	return 0;
 }
 
 #ifndef ENABLE_ALONE
@@ -144,9 +153,12 @@ static errno_t obj40_write_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hi
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
 	if (!item->plugin->item_ops.write)
-		return -1;
+		return -EINVAL;
 
-	return -(item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
+	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1)
+		return -EINVAL;
+	
+	return 0;
 }
 
 #endif
@@ -165,13 +177,13 @@ uint16_t obj40_get_mode(obj40_t *obj) {
 
 /* Updates mode field in statdata */
 errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
+	errno_t res;
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(obj, &lw_hint))
-		return -1;
+	if ((res = obj40_read_lw(obj, &lw_hint)))
+		return res;
 
 	lw_hint.mode = mode;
-
 	return obj40_write_lw(obj, &lw_hint);
 }
 
@@ -191,13 +203,13 @@ uint64_t obj40_get_size(obj40_t *obj) {
 
 /* Updates size field in the stat data */
 errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
+	errno_t res;
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(obj, &lw_hint))
-		return -1;
+	if ((res = obj40_read_lw(obj, &lw_hint)))
+		return res;
 
 	lw_hint.size = size;
-
 	return obj40_write_lw(obj, &lw_hint);
 }
 
@@ -217,13 +229,13 @@ uint32_t obj40_get_nlink(obj40_t *obj) {
 
 /* Updates nlink field in the stat data */
 errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
+	errno_t res;
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(obj, &lw_hint))
-		return -1;
+	if ((res = obj40_read_lw(obj, &lw_hint)))
+		return res;
 
 	lw_hint.nlink = nlink;
-
 	return obj40_write_lw(obj, &lw_hint);
 }
 
@@ -243,13 +255,13 @@ uint32_t obj40_get_atime(obj40_t *obj) {
 
 /* Updates atime field in the stat data */
 errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
+	errno_t res;
 	reiser4_sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_unix(obj, &unix_hint))
-		return -1;
+	if ((res = obj40_read_unix(obj, &unix_hint)))
+		return res;
 
 	unix_hint.atime = atime;
-
 	return obj40_write_unix(obj, &unix_hint);
 }
 
@@ -269,13 +281,13 @@ uint32_t obj40_get_mtime(obj40_t *obj) {
 
 /* Updates mtime field in the stat data */
 errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
+	errno_t res;
 	reiser4_sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_unix(obj, &unix_hint))
-		return -1;
+	if ((res = obj40_read_unix(obj, &unix_hint)))
+		return res;
 
 	unix_hint.mtime = mtime;
-
 	return obj40_write_unix(obj, &unix_hint);
 }
 
@@ -296,12 +308,10 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 	item = &obj->statdata.item;
 
 	if (!item->plugin->item_ops.read)
-		return -1;
+		return -EINVAL;
 
-	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
-		aal_exception_error("Can't open statdata item.");
-		return -1;
-	}
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+		return -EINVAL;
 
 	return 0;
 }
@@ -323,12 +333,10 @@ errno_t obj40_set_sym(obj40_t *obj, char *data) {
 	item = &obj->statdata.item;
 
 	if (!item->plugin->item_ops.write)
-		return -1;
+		return -EINVAL;
 
-	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1) {
-		aal_exception_error("Can't update symlink.");
-		return -1;
-	}
+	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1)
+		return -EINVAL;
 
 	return 0;
 }
@@ -387,7 +395,7 @@ errno_t obj40_stat(obj40_t *obj) {
 				    "0x%llx.", objectid);
 		
 		obj->statdata.node = NULL;
-		return -1;
+		return -EINVAL;
 	}
 
 	aal_memcpy(&obj->key, &obj->statdata.item.key,
@@ -395,7 +403,6 @@ errno_t obj40_stat(obj40_t *obj) {
 	
 	/* Locking new node */
 	obj40_lock(obj, &obj->statdata);
-	
 	return 0;
 }
 
@@ -441,14 +448,14 @@ errno_t obj40_insert(obj40_t *obj, reiser4_item_hint_t *hint,
 		if (obj->core->tree_ops.insert(obj->tree, place, hint)) {
 			aal_exception_error("Can't insert new item/unit of object "
 					    "0x%llx into the tree.", objectid);
-			return -1;
+			return -EINVAL;
 		}
 		break;
 	case LP_PRESENT:
 		aal_exception_error("Key already exists in the tree.");
-		return -1;
+		return -EINVAL;
 	case LP_FAILED:
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;
@@ -467,19 +474,19 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 	switch (obj40_lookup(obj, key, LEAF_LEVEL, &place)) {
 	case LP_ABSENT:
 		aal_exception_error("Can't find item/unit durring remove.");
-		return -1;
+		return -EINVAL;
 	case LP_PRESENT:
 		if (obj->core->tree_ops.remove(obj->tree, &place,
 					       (uint32_t)count))
 		{
 			aal_exception_error("Can't remove item/unit from "
 					    "object 0x%llx.", objectid);
-			return -1;
+			return -EINVAL;
 		}
 		
 		break;
 	case LP_FAILED:
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;

@@ -32,8 +32,11 @@ static errno_t tail40_get_key(item_entity_t *item,
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 
-	offset += plugin_call(key->plugin->key_ops, get_offset, key);
-	plugin_call(key->plugin->key_ops, set_offset, key, offset);
+	offset += plugin_call(key->plugin->key_ops,
+			      get_offset, key);
+	
+	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset);
 
 	return 0;
 }
@@ -53,7 +56,7 @@ static int32_t tail40_read(item_entity_t *item, void *buff,
 	return count;
 }
 
-static int tail40_data() {
+static int tail40_data(void) {
 	return 1;
 }
 
@@ -80,7 +83,7 @@ static int32_t tail40_write(item_entity_t *item, void *buff,
 	/* Updating the key */
 	if (pos == 0) {
 		if (tail40_get_key(item, 0, &item->key))
-			return -1;
+			return -EINVAL;
 	}
 
 	return count;
@@ -107,7 +110,7 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 	/* Updating the key */
 	if (pos == 0) {
 		if (tail40_get_key(item, 0, &item->key))
-			return -1;
+			return -EINVAL;
 	}
 	
 	return count;
@@ -127,11 +130,12 @@ static errno_t tail40_print(item_entity_t *item,
 	aal_assert("umka-1489", item != NULL);
 	aal_assert("umka-1490", stream != NULL);
 
-	aal_stream_format(stream, "TAIL: len=%u, KEY: ", item->len);
+	aal_stream_format(stream, "TAIL: len=%u, KEY: ",
+			  item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
-			stream, options))
-		return -1;
+	if (plugin_call(item->key.plugin->key_ops, print,
+			&item->key, stream, options))
+		return -EINVAL;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
 			  item->plugin->h.id, item->plugin->h.label);
@@ -155,12 +159,16 @@ static errno_t tail40_maxposs_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 		
 	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -1;
+		return -EINVAL;
 	
-	maxkey = plugin_call(key->plugin->key_ops, maximal,);
-	offset = plugin_call(key->plugin->key_ops, get_offset, maxkey);
+	maxkey = plugin_call(key->plugin->key_ops,
+			     maximal,);
+	
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, maxkey);
     
-	plugin_call(key->plugin->key_ops, set_offset, key, offset);
+	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset);
 
 	return 0;
 }
@@ -176,12 +184,13 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 	
 	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -1;
+		return -EINVAL;
 
-	offset = plugin_call(key->plugin->key_ops, get_offset, key);
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, key);
 	
-	plugin_call(key->plugin->key_ops, set_offset, key,
-		    offset + item->len - 1);
+	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset + item->len - 1);
 	
 	return 0;
 }
@@ -352,7 +361,7 @@ static errno_t tail40_shift(item_entity_t *src_item,
 
 		/* Updating item's key by the first unit key */
 		if (tail40_get_key(src_item, 0, &src_item->key))
-			return -1;
+			return -EINVAL;
 	} else {
 		/* Moving dst tail body into right place */
 		src = dst_item->body;
@@ -366,7 +375,7 @@ static errno_t tail40_shift(item_entity_t *src_item,
 
 		/* Updating item's key by the first unit key */
 		if (tail40_get_key(dst_item, 0, &dst_item->key))
-			return -1;
+			return -EINVAL;
 	}
 	
 	return 0;

@@ -9,7 +9,7 @@ reiser4progs/COPYING.
 
 * implement reiser4_tree_write function needed for fsck.
 
-* solve the problem with that item plugins cannot rely on item.len 
+* solve the problem with that, the item plugins cannot rely on item.len 
   due to its changing by the node plugin before calling item plugin.
 
 * insert an extent among internal items may require perform shift and
@@ -44,6 +44,4 @@ reiser4progs/COPYING.
 
 * should we move out all bitmap's and alloc's functions which do not work 
   with regions and rename the rest in more simple maner (without region)?
-
-* FIBMAP ioctl implementation in reiser4.
 

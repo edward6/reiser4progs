@@ -57,7 +57,7 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 	{
 		aal_exception_error("Invalid item plugin id has been "
 				    "detected.");
-		return -1;
+		return -EINVAL;
 	}
 
 	item = &place->item;
@@ -65,14 +65,14 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 	if (!(item->plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id "
 				    "0x%x.", pid);
-		return -1;
+		return -EINVAL;
 	}
 
 	if (!(item->body = plugin_call(entity->plugin->node_ops, item_body,
 				       entity, &place->pos)))
 	{
 		aal_exception_error("Can't get item body.");
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Initializing item entity fields */

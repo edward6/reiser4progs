@@ -47,7 +47,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 				LEAF_LEVEL, &object->place) != LP_PRESENT) 
 	{
 		/* Stat data is not found. getting us out */
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Initializing item at @object->place */
@@ -80,7 +80,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	if (!(plugin = reiser4_object_plugin(object))) {
 		aal_exception_error("Can't find object plugin for %s.",
 				    track);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Symlinks handling. Method "follow" should be implemented */
@@ -94,10 +94,12 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		{
 			aal_exception_error("Can't open parent of %s.",
 					    track);
-			return -1;
+			return -EINVAL;
 		}
 
-		if (plugin->object_ops.follow(entity, &object->key)) {
+		if ((res = plugin->object_ops.follow(entity,
+						     &object->key)))
+		{
 			aal_exception_error("Can't follow %s.", track);
 			goto error_free_entity;
 		}
@@ -111,7 +113,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
  error_free_entity:
 	plugin_call(plugin->object_ops, close, entity);
-	return -1;
+	return res;
 }
 
 /* Callback function for finding passed @entry inside the current directory */
@@ -136,7 +138,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	if (!(plugin = reiser4_object_plugin(object))) {
 		aal_exception_error("Can't find object plugin for %s.",
 				    track);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Opening currect directory */
@@ -147,7 +149,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	{
 		aal_exception_error("Can't open parent of directory "
 				    "%s.", track);
-		return -1;
+		return -EINVAL;
 	}
 
 	aal_memset(&entry_hint, 0, sizeof(entry_hint));
@@ -167,7 +169,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	
  error_free_entity:
 	plugin_call(plugin->object_ops, close, entity);
-	return -1;
+	return -EINVAL;
 }
 
 /* 
@@ -332,7 +334,7 @@ errno_t reiser4_object_add_entry(
 	aal_assert("umka-1976", object->entity != NULL);
 
 	if (!object->entity->plugin->object_ops.add_entry)
-		return -1;
+		return -EINVAL;
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   add_entry, object->entity, entry);
@@ -347,7 +349,7 @@ errno_t reiser4_object_rem_entry(
 	aal_assert("umka-1978", object->entity != NULL);
     
 	if (!object->entity->plugin->object_ops.rem_entry)
-		return -1;
+		return -EINVAL;
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   rem_entry, object->entity, entry);
@@ -363,7 +365,7 @@ int32_t reiser4_object_write(
 	aal_assert("umka-863", object->entity != NULL);
     
 	if (!object->entity->plugin->object_ops.write)
-		return -1;
+		return -EINVAL;
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   write, object->entity, buff, n);
@@ -511,7 +513,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	if (reiser4_object_lookup(object, name, &entry) != LP_PRESENT) {
 		aal_exception_error("Can't find entry %s in %s.",
 				    name, object->name);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Removing entry */
@@ -533,14 +535,14 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 		aal_exception_error("Can't find stat data of %s/%s. "
 				    "Entry %s points to nowere.",
 				    object->name, name, name);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Opening victim statdata by found place */
 	if (!(child = reiser4_object_begin(object->fs, &place))) {
 		aal_exception_error("Can't open %s/%s.",
 				    object->name, name);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Increasing unlink value */
@@ -657,7 +659,7 @@ int32_t reiser4_object_read(
 	aal_assert("umka-861", object->entity != NULL);
 
 	if (!object->entity->plugin->object_ops.read)
-		return -1;
+		return -EINVAL;
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   read, object->entity, buff, n);
@@ -683,7 +685,7 @@ errno_t reiser4_object_seek(
 	aal_assert("umka-1153", object->entity != NULL);
     
 	if (!object->entity->plugin->object_ops.seek)
-		return -1;
+		return -EINVAL;
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   seek, object->entity, offset);
@@ -697,7 +699,7 @@ errno_t reiser4_object_readdir(reiser4_object_t *object,
 	aal_assert("umka-1974", entry != NULL);
 
 	if (!object->entity->plugin->object_ops.readdir)
-		return -1;
+		return -EINVAL;
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   readdir, object->entity, entry);
@@ -711,7 +713,7 @@ errno_t reiser4_object_seekdir(reiser4_object_t *object,
 	aal_assert("umka-1980", offset != NULL);
 
 	if (!object->entity->plugin->object_ops.seekdir)
-		return -1;
+		return -EINVAL;
 
 	return plugin_call(object->entity->plugin->object_ops,
 			   seekdir, object->entity, offset);
@@ -725,7 +727,7 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 	aal_assert("umka-1982", offset != NULL);
 
 	if (!object->entity->plugin->object_ops.telldir)
-		return -1;
+		return -EINVAL;
 
 	return plugin_call(object->entity->plugin->object_ops,
 			   telldir, object->entity, offset);

@@ -171,14 +171,14 @@ errno_t reiser4_fs_layout(
 	void *data)
 {
 	if (reiser4_format_skipped(fs->format, func, data))
-		return -1;
+		return -EINVAL;
 	
 	if (reiser4_format_layout(fs->format, func, data))
-		return -1;
+		return -EINVAL;
 
 	if (fs->journal) {
 		if (reiser4_journal_layout(fs->journal, func, data))
-			return -1;
+			return -EINVAL;
 	}
     
 	return reiser4_alloc_layout(fs->alloc, func, data);
@@ -194,12 +194,12 @@ errno_t reiser4_fs_clobber(aal_device_t *device) {
 	blk = (MASTER_OFFSET / device->blocksize);
 		
 	if (!(block = aal_block_create(device, blk, 0)))
-		return -1;
+		return -EINVAL;
 
 	if (aal_block_sync(block)) {
 		aal_exception_error("Can't write block %llu.",
 				    aal_block_number(block));
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;
@@ -219,7 +219,8 @@ errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 	aal_assert("umka-1139", fs != NULL);
 	aal_assert("umka-1684", fs->alloc != NULL);
 	
-	return reiser4_fs_layout(fs, callback_action_mark, fs->alloc);
+	return reiser4_fs_layout(fs, callback_action_mark,
+				 fs->alloc);
 }
 
 #define REISER4_MIN_SIZE 122

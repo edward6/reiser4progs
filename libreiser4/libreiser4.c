@@ -153,7 +153,7 @@ static errno_t tree_realize(void *tree, place_t *place) {
 	reiser4_place_t *p = (reiser4_place_t *)place;
 	
 	if (reiser4_place_realize(p))
-		return -1;
+		return -EINVAL;
 
 	return reiser4_item_get_key(p, NULL);
 }
@@ -178,18 +178,18 @@ static errno_t tree_next(
 				     curr->node, curr->pos.item + 1, ~0ul);
 
 		if (reiser4_place_realize((reiser4_place_t *)next))
-			return -1;
+			return -EINVAL;
 	} else {
 		reiser4_tree_right((reiser4_tree_t *)tree, curr->node);
 
 		if (!curr->node->right)
-			return -1;
+			return -EINVAL;
 		
 		reiser4_place_assign((reiser4_place_t *)next,
 				     curr->node->right, 0, ~0ul);
 
 		if (reiser4_place_realize((reiser4_place_t *)next))
-			return -1;
+			return -EINVAL;
 	}
 
 	return reiser4_item_realize((reiser4_place_t *)next);
@@ -215,14 +215,14 @@ static errno_t tree_prev(
 				     curr->node, curr->pos.item - 1, ~0ul);
 
 		if (reiser4_place_realize((reiser4_place_t *)prev))
-			return -1;
+			return -EINVAL;
 	} else {
 		uint32_t items;
 		
 		reiser4_tree_left((reiser4_tree_t *)tree, curr->node);
 
 		if (!curr->node->left)
-			return -1;
+			return -EINVAL;
 		
 		items = reiser4_node_items(curr->node->left);
 			
@@ -230,7 +230,7 @@ static errno_t tree_prev(
 				     curr->node->left, items - 1, ~0ul);
 
 		if (reiser4_place_realize((reiser4_place_t *)prev))
-			return -1;
+			return -EINVAL;
 	}
 
 	return reiser4_item_realize((reiser4_place_t *)prev);
@@ -364,7 +364,7 @@ const char *libreiser4_version(void) {
 errno_t libreiser4_init(void) {
 	if (libreiser4_factory_init()) {
 		aal_exception_fatal("Can't initialize plugin factory.");
-		return -1;
+		return -EINVAL;
 	}
 
 #ifndef ENABLE_ALONE
@@ -378,7 +378,7 @@ errno_t libreiser4_init(void) {
 	
  error_free_factory:
 	libreiser4_factory_fini();
-	return -1;
+	return -EINVAL;
 }
 
 /* Finalizes libreiser4 */

@@ -74,12 +74,12 @@ static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 		return 0;
 
 	if (reiser4_tree_fresh(tree))
-		return -1;
+		return -EINVAL;
 	
 	root = reiser4_format_get_root(tree->fs->format);
 	
 	if (!(tree->root = reiser4_tree_load(tree, NULL, root)))
-		return -1;
+		return -EINVAL;
     
 	tree->root->tree = tree;
 	
@@ -122,10 +122,10 @@ static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 		return 0;
 
 	if (!reiser4_tree_fresh(tree))
-		return -1;
+		return -EINVAL;
 	
 	if (!(root = reiser4_tree_alloc(tree, reiser4_tree_height(tree))))
-		return -1;
+		return -ENOSPC;
 
 	return reiser4_tree_assign_root(tree, root);
 }
@@ -281,10 +281,14 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 	device = tree->fs->device;
 
 	/* Checking if we want load the root node */
-	if (blk == reiser4_tree_root(tree)) {
+	if (blk == reiser4_tree_root(tree) && !tree->root) {
 
-		if (reiser4_tree_load_root(tree))
+		/* Attaching root node to tree->root */
+		if (!(tree->root = reiser4_node_open(device, blk))) {
+			aal_exception_error("Can't open root node "
+					    "%llu.", blk);
 			return NULL;
+		}
 
 		return tree->root;
 	}
@@ -382,16 +386,22 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 	old = node;
 	level = orig = reiser4_node_get_level(node);
 
+	/*
+	  Going up to the level wher corresponding neighbour node may be
+	  obtained by its nodeptr item.
+	*/
 	while (node->parent.node && !found) {
+		uint32_t parent_items;
 		
 		if (reiser4_node_pos(node, &pos))
 			return NULL;
 
+		parent_items = reiser4_node_items(node->parent.node);
+		
 		found = (where == D_LEFT ? (pos.item > 0) :
-			 (pos.item < reiser4_node_items(node->parent.node) - 1));
+			 (pos.item < parent_items - 1));
 
 		node = node->parent.node;
-		
 		level++;
 	}
 
@@ -399,7 +409,8 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 		return NULL;
 	
 	pos.item += (where == D_LEFT ? -1 : 1);
-	
+
+	/* Going down to the level of @node */
 	while (level > orig) {
 		reiser4_place_init(&place, node, &pos);
 		
@@ -412,6 +423,7 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 		level--;
 	}
 
+	/* Setting up neightbour links */
 	if (where == D_LEFT) {
 		old->left = node;
 		node->right = old;
@@ -532,7 +544,8 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	aal_assert("umka-1841", tree != NULL);
 	aal_assert("umka-917", node != NULL);
 
-    	/* Sets up the free blocks in block allocator */
+	reiser4_node_mkclean(node);
+	
 	free = reiser4_alloc_unused(tree->fs->alloc);
 
 	reiser4_alloc_release_region(tree->fs->alloc,
@@ -540,7 +553,6 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	
 	reiser4_format_set_free(tree->fs->format, free);
 
-	reiser4_node_mkclean(node);
 	return reiser4_tree_unload(tree, node);
 }
 
@@ -569,7 +581,7 @@ static errno_t reiser4_tree_key(
 	if (!(plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find key plugin by its "
 				    "id 0x%x.", pid);
-		return -1;
+		return -EINVAL;
 	}
     
 	/* Getting root directory attributes from oid allocator */
@@ -593,14 +605,15 @@ static errno_t reiser4_tree_key(
 blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	aal_assert("umka-738", tree != NULL);
 
-	if (tree->root)
-		return tree->root->blk;
+	if (!tree->fs || !tree->fs->format)
+		return INVAL_BLK;
 
-	return INVAL_BLK;
+	return reiser4_format_get_root(tree->fs->format);
 }
 
 void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_assert("umka-1531", tree != NULL);
+	
 #ifndef ENABLE_ALONE
 	aal_lru_free(tree->lru);
 #endif
@@ -787,10 +800,10 @@ lookup_t reiser4_tree_lookup(
 	reiser4_place_init(place, tree->root, &pos);
 	
 	/* 
-	  Checking the case when wanted key smaller than root key. This is the
-	  case, when somebody is trying go up of the root by ".." entry in root
-	  directory. If so, we initialize key to be looked up by root stored in
-	  tree key.
+	  Checking the case when wanted key is smaller than root one. This is
+	  the case, when somebody is trying go up of the root by ".." entry in
+	  root directory. If so, we initialize the key to be looked up by root
+	  key.
 	*/
 	if (reiser4_key_compare(key, &tree->key) < 0)
 		*key = tree->key;
@@ -936,7 +949,7 @@ errno_t reiser4_tree_attach(
 	{
 		aal_exception_error("Can't find item plugin by "
 				    "its id 0x%x.", pid);
-		return -1;
+		return -EINVAL;
 	}
 
 	level = reiser4_node_get_level(node) + 1;
@@ -1015,13 +1028,13 @@ errno_t reiser4_tree_growup(
 		return res;
 	
 	if (!(old_root = tree->root))
-		return -1;
+		return -EINVAL;
 	
 	height = reiser4_tree_height(tree);
     
 	/* Allocating new root node */
 	if (!(tree->root = reiser4_tree_alloc(tree, height + 1))) {
-		aal_exception_error("Can't allocate new root node.");
+		res = -ENOSPC;
 		goto error_old_root;
 	}
 
@@ -1035,7 +1048,7 @@ errno_t reiser4_tree_growup(
 				  height + 1);
 	
 	if (reiser4_tree_attach(tree, old_root)) {
-		aal_exception_error("Can't attach old root to the tree.");
+		res = -EINVAL;
 		goto error_free_root;
 	}
 
@@ -1046,7 +1059,7 @@ errno_t reiser4_tree_growup(
 
  error_old_root:
 	tree->root = old_root;
-	return -1;
+	return res;
 }
 
 /* Decreases tree height by one level */
@@ -1062,12 +1075,12 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	aal_assert("umka-1737", tree->root != NULL);
 
 	if (reiser4_tree_fresh(tree))
-		return -1;
+		return -EINVAL;
 	
 	height = reiser4_tree_height(tree);
 
 	if (reiser4_tree_minimal(tree))
-		return -1;
+		return -EINVAL;
 
 	/* Rasing up the root node if it exists */
 	if ((res = reiser4_tree_load_root(tree)))
@@ -1077,7 +1090,7 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	
 	/* Check if we can dry tree out safely */
 	if (reiser4_node_items(root) > 1)
-		return -1;
+		return -EINVAL;
 
 	/* Getting new root as the first child of the old root node */
 	reiser4_place_assign(&place, root, 0, 0);
@@ -1085,7 +1098,7 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	if (!(child = reiser4_tree_child(tree, &place))) {
 		aal_exception_error("Can't load new root durring "
 				    "drying tree out.");
-		return -1;
+		return -EINVAL;
 	}
 
 	aal_assert("umka-1929", root->counter > 1);
@@ -1208,7 +1221,7 @@ errno_t reiser4_tree_expand(
 	if (needed > max_space) {
 		aal_exception_error("Item size is too big. Maximal possible "
 				    "item can be %u bytes long.", max_space);
-		return -1;
+		return -EINVAL;
 	}
     
 	if ((not_enough = needed  - reiser4_node_space(place->node)) <= 0)
@@ -1238,8 +1251,8 @@ errno_t reiser4_tree_expand(
 			return 0;
 	}
 
-	if (!(SF_ALLOC & flags))
-		return -(not_enough > 0);
+	if (!(SF_ALLOC & flags) && not_enough > 0)
+		return -ENOSPC;
 	
 	/*
 	  Here we still have not enough free space for inserting item/unit into
@@ -1254,7 +1267,7 @@ errno_t reiser4_tree_expand(
 		level = reiser4_node_get_level(place->node);
 	
 		if (!(node = reiser4_tree_alloc(tree, level)))
-			return -1;
+			return -ENOSPC;
 		
 		flags = SF_RIGHT | SF_UPTIP;
 
@@ -1302,7 +1315,10 @@ errno_t reiser4_tree_expand(
 		not_enough = needed - reiser4_node_space(place->node);
 	}
 
-	return -(not_enough > 0);
+	if (not_enough > 0)
+		return -ENOSPC;
+	
+	return 0;
 }
 
 /* Packs node in @place by means of using shift into/from neighbours */
@@ -1404,17 +1420,19 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			if ((node = reiser4_tree_alloc(tree, curr)) == NULL) {
 				aal_exception_error("Tree failed to allocate "
 						    "a new node.");
-				return -1;
+				return -EINVAL;
 			}
     
-			if (reiser4_tree_shift(tree, place, node, SF_RIGHT)) {
+			if ((res = reiser4_tree_shift(tree, place, node,
+						      SF_RIGHT)))
+			{
 				aal_exception_error("Tree failed to shift "
 						    "into a newly "
 						    "allocated node.");
 				goto error_free_node;
 			}
 		
-			if (reiser4_tree_attach(tree, node)) {
+			if ((res = reiser4_tree_attach(tree, node))) {
 				aal_exception_error("Tree failed to attach "
 						    "a newly allocated "
 						    "node to the tree.");
@@ -1439,7 +1457,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	
  error_free_node:
 	reiser4_node_close(node);
-	return -1;
+	return res;
 }
 
 static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
@@ -1494,7 +1512,7 @@ errno_t reiser4_tree_insert(
 		}
 		
 		if (!(place->node = reiser4_tree_alloc(tree, level)))
-			return -1;
+			return -EINVAL;
 		
 		POS_INIT(&place->pos, 0, ~0ul);
 		
@@ -1539,7 +1557,7 @@ errno_t reiser4_tree_insert(
 						    "tree growed up to "
 						    "requested level %d.",
 						    level);
-				return -1;
+				return -EINVAL;
 			}
 		}
 
@@ -1550,7 +1568,7 @@ errno_t reiser4_tree_insert(
 			  for insert to it.
 			*/
 			if (!(place->node = reiser4_tree_alloc(tree, level)))
-				return -1;
+				return -ENOSPC;
 
 			POS_INIT(&place->pos, 0, ~0ul);
 		}
@@ -1738,7 +1756,7 @@ errno_t reiser4_tree_cut(
 	if (node != end->node) {
 		aal_exception_error("End place is not reachable from the"
 				    "start one durring cutting the tree.");
-		return -1;
+		return -EINVAL;
 	}
 
 	if (start->node != end->node) {
@@ -2058,7 +2076,10 @@ errno_t reiser4_tree_down(
 				continue;
 			
 			if (setup_func && (res = setup_func(&place, hint->data))) {
-				if (res < 0) goto error_after_func; else continue;
+				if (res < 0)
+					goto error_after_func;
+				else
+					continue;
 			}
 
 			/*

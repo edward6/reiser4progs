@@ -48,24 +48,30 @@ static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
 }
 
 /* Helper callback for checking plugin validness */
-static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
+static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
+				     void *data)
+{
 	reiser4_plugin_t *examined = (reiser4_plugin_t *)data;
 
 	if (examined == plugin)
 		return 0;
 
 	/* Check plugins labels */
-	if (!aal_strncmp(examined->h.label, plugin->h.label, PLUGIN_MAX_LABEL)) {
-		aal_exception_error("Plugin %s has the same label as %s.",
-				   examined->h.handle.name, plugin->h.handle.name);
-		return -1;
+	if (!aal_strncmp(examined->h.label, plugin->h.label,
+			 PLUGIN_MAX_LABEL))
+	{
+		aal_exception_error("Plugin %s has the same label "
+				    "as %s.", examined->h.handle.name,
+				    plugin->h.handle.name);
+		return -EINVAL;
 	}
 
 	/* Check plugin group */
 	if (examined->h.group >= LAST_ITEM) {
-		aal_exception_error("Plugin %s has invalid group id 0x%x.",
-				    examined->h.handle.name, examined->h.group);
-		return -1;
+		aal_exception_error("Plugin %s has invalid group id "
+				    "0x%x.", examined->h.handle.name,
+				    examined->h.group);
+		return -EINVAL;
 	}
 
 	/* Check plugin place */
@@ -73,9 +79,10 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
 	    examined->h.id == plugin->h.id &&
 	    examined->h.type == plugin->h.type)
 	{
-		aal_exception_error("Plugin %s has the same sign as %s.",
-				    examined->h.handle.name, plugin->h.handle.name);
-		return -1;
+		aal_exception_error("Plugin %s has the same sign as "
+				    "%s.", examined->h.handle.name,
+				    plugin->h.handle.name);
+		return -EINVAL;
 	}
 
 	return 0;
@@ -220,7 +227,7 @@ errno_t libreiser4_factory_load(char *name) {
 	  initializing too).
 	*/
 	if (!(plugin = libreiser4_plugin_init(&handle)))
-		return -1;
+		return -EINVAL;
 
 	/* Checking pluign for validness (the same ids, etc) */
 	plugin->h.handle = handle;
@@ -290,7 +297,7 @@ errno_t libreiser4_factory_load(unsigned long *entry) {
 		return res;
 
 	if (!(plugin = libreiser4_plugin_init(&handle)))
-		return -1;
+		return -EINVAL;
 
 	plugin->h.handle = handle;
 	
@@ -348,7 +355,7 @@ errno_t libreiser4_factory_init(void) {
 	if (!(dir = opendir(PLUGIN_DIR))) {
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
 				    "Can't open directory %s.", PLUGIN_DIR);
-		return -1;
+		return -EINVAL;
 	}
 	
 	/* Getting plugins filenames */
@@ -396,7 +403,7 @@ errno_t libreiser4_factory_init(void) {
 #else
 		aal_exception_error("There are no any built-in plugins found.");
 #endif
-		return -1;
+		return -EINVAL;
 	}
 	
 	return 0;

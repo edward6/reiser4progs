@@ -149,7 +149,7 @@ static errno_t oid40_valid(object_entity_t *entity) {
 
 	/* Next oid should not be lesser than the root parent locality */
 	if (((oid40_t *)entity)->next < OID40_HYPER_LOCALITY)
-		return -1;
+		return -EINVAL;
 
 	return 0;
 }

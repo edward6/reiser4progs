@@ -458,11 +458,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	aal_assert("umka-1587", dst_item != NULL);
 	aal_assert("umka-1589", hint != NULL);
 
-	if (!(src_direntry = direntry40_body(src_item)))
-		return -1;
-	
-	if (!(dst_direntry = direntry40_body(dst_item)))
-		return -1;
+	src_direntry = direntry40_body(src_item);
+	dst_direntry = direntry40_body(dst_item);
 
 	src_units = de40_get_units(src_direntry);
 	dst_units = de40_get_units(dst_direntry);
@@ -855,11 +852,8 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	  function direntry40_expand returns the offset of where new unit will
 	  be inserted at.
 	*/
-	if ((offset = direntry40_expand(item, pos, count, hint->len)) <= 0) {
-		aal_exception_error("Can't expand direntry item at pos "
-				    "%u by %u entries.", pos, count);
-		return -1;
-	}
+	if ((offset = direntry40_expand(item, pos, count, hint->len)) <= 0)
+		return -EINVAL;
 	
 	/* Creating new entries */
 	entry = &direntry->entry[pos];
@@ -939,15 +933,11 @@ int32_t direntry40_remove(item_entity_t *item,
     
 	aal_assert("umka-934", item != NULL);
 
-	if (!(direntry = direntry40_body(item)))
-		return -1;
+	direntry = direntry40_body(item);
 
 	/* Shrinking direntry */
-	if ((len = direntry40_shrink(item, pos, count)) <= 0) {
-		aal_exception_error("Can't shrink direntry at pos "
-				    "%u by %u entries.", pos, count);
-		return -1;
-	}
+	if ((len = direntry40_shrink(item, pos, count)) <= 0)
+		return -EINVAL;
 
 	/* Updating item key */
 	if (pos == 0 && de40_get_units(direntry) > 0)
@@ -984,7 +974,7 @@ static errno_t direntry40_print(item_entity_t *item,
 		
 	if (plugin_call(item->key.plugin->key_ops, print,
 			&item->key, stream, options))
-		return -1;
+		return -EINVAL;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
 			  item->plugin->h.id,
@@ -1036,15 +1026,23 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 	aal_assert("umka-1648", item != NULL);
 	aal_assert("umka-716", key->plugin != NULL);
 
-	plugin_call(key->plugin->key_ops, assign, key, &item->key);
+	plugin_call(key->plugin->key_ops, assign, key,
+		    &item->key);
 
-	maxkey = plugin_call(key->plugin->key_ops, maximal,);
+	maxkey = plugin_call(key->plugin->key_ops,
+			     maximal,);
     
-	objectid = plugin_call(key->plugin->key_ops, get_objectid, maxkey);
-    	offset = plugin_call(key->plugin->key_ops, get_offset, maxkey);
+	objectid = plugin_call(key->plugin->key_ops,
+			       get_objectid, maxkey);
+	
+    	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, maxkey);
 
-    	plugin_call(key->plugin->key_ops, set_objectid, key, objectid);
-	plugin_call(key->plugin->key_ops, set_offset, key, offset);
+    	plugin_call(key->plugin->key_ops, set_objectid,
+		    key, objectid);
+	
+	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset);
     
 	return 0;
 }

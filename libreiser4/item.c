@@ -111,7 +111,7 @@ errno_t reiser4_item_print(
 	aal_assert("umka-1449", item->plugin != NULL);
 
 	if (!item->plugin->item_ops.print)
-		return -1;
+		return -EINVAL;
 	
 	return item->plugin->item_ops.print(item, stream, 0);
 }
@@ -219,7 +219,7 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 	item = &place->item;
 
 	if (!(entity = place->node->entity))
-		return -1;
+		return -EINVAL;
 
 	aal_assert("umka-1462", item->plugin != NULL);
 
@@ -265,7 +265,7 @@ errno_t reiser4_item_set_key(reiser4_place_t *place,
 	item = &place->item;
 	
 	if (!(entity = place->node->entity))
-		return -1;
+		return -EINVAL;
 
 	aal_memcpy(&item->key, key, sizeof(*key));
 	

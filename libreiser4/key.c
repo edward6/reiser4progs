@@ -27,8 +27,11 @@ errno_t reiser4_key_guess(reiser4_key_t *key) {
 
 	key->plugin = libreiser4_factory_cfind(callback_guess_key,
 					       (void *)key);
+
+	if (key->plugin == NULL)
+		return -EINVAL;
 	
-	return -(key->plugin == NULL);
+	return 0;
 }
 
 /* 
@@ -256,7 +259,7 @@ errno_t reiser4_key_string(reiser4_key_t *key, char *buff) {
 
  error_free_stream:
 	aal_stream_fini(&stream);
-	return -1;
+	return -EINVAL;
 }
 
 #endif

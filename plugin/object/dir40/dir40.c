@@ -76,7 +76,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	}
 
 	dir->body.node = NULL;
-	return -1;
+	return -EINVAL;
 }
 
 /* Resets internal direntry position at zero */
@@ -177,13 +177,13 @@ static errno_t dir40_readdir(object_entity_t *entity,
 
 	/* Getting size from teh statdata */
 	if ((size = dir40_size(entity)) == 0)
-		return -1;
+		return -EINVAL;
 
 	units = plugin_call(item->plugin->item_ops,
 			    units, item);
 
 	if (dir->body.pos.unit >= units)
-		return -1;
+		return -EINVAL;
 	
 	/* Reading piece of data */
 	if (plugin_call(item->plugin->item_ops, read, item,
@@ -199,7 +199,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		return 0;
 	}
 
-	return -1;
+	return -EINVAL;
 }
 
 /* 
@@ -611,7 +611,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 					    "the last directory item durring "
 					    "truncate the directory 0x%llx.",
 					    obj40_objectid(&dir->obj));
-			return -1;
+			return -EINVAL;
 		}
 
 		/* Checking if found item belongs this directory */
@@ -718,6 +718,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 static errno_t dir40_add_entry(object_entity_t *entity, 
 			       reiser4_entry_hint_t *entry)
 {
+	errno_t res;
 	uint64_t size;
 	uint32_t atime;
 
@@ -751,28 +752,28 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		    &hint.key);
 
 	/* Inserting entry */
-	if (obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place)) {
+	if ((res = obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place))) {
 		aal_exception_error("Can't insert entry %s.",
 				    entry->name);
-		return -1;
+		return res;
 	}
 	
 	/* Updating size field in stat data */
-	if (obj40_stat(&dir->obj))
-		return -1;
+	if ((res = obj40_stat(&dir->obj)))
+		return res;
 	
 	size = obj40_get_size(&dir->obj);
 
-	if (obj40_set_size(&dir->obj, size + 1))
-		return -1;
+	if ((res = obj40_set_size(&dir->obj, size + 1)))
+		return res;
 
 	atime = time(NULL);
 	
-	if (obj40_set_atime(&dir->obj, atime))
-		return -1;
+	if ((res = obj40_set_atime(&dir->obj, atime)))
+		return res;
 
-	if (obj40_set_mtime(&dir->obj, atime))
-		return -1;
+	if ((res = obj40_set_mtime(&dir->obj, atime)))
+		return res;
 
 	return 0;
 }

@@ -41,10 +41,10 @@ static int32_t sym40_read(object_entity_t *entity,
 	item = &sym->obj.statdata.item;
 
 	if (!item->plugin->item_ops.read)
-		return -1;
+		return -EINVAL;
 
 	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
-		return -1;
+		return -EINVAL;
 
 	return aal_strlen(buff);
 }
@@ -196,17 +196,18 @@ static errno_t sym40_link(object_entity_t *entity) {
 }
 
 static errno_t sym40_unlink(object_entity_t *entity) {
+	errno_t res;
 	sym40_t *sym;
 	
 	aal_assert("umka-1914", entity != NULL);
 
 	sym = (sym40_t *)entity;
 	
-	if (obj40_stat(&sym->obj))
-		return -1;
+	if ((res = obj40_stat(&sym->obj)))
+		return res;
 
-	if (obj40_link(&sym->obj, -1))
-		return -1;
+	if ((res = obj40_link(&sym->obj, -1)))
+		return res;
 
 	if (obj40_get_nlink(&sym->obj) > 0)
 		return 0;
@@ -219,6 +220,7 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 static int32_t sym40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
+	errno_t res;
 	sym40_t *sym;
 
 	aal_assert("umka-1777", buff != NULL);
@@ -230,8 +232,8 @@ static int32_t sym40_write(object_entity_t *entity,
 	*/
 	sym = (sym40_t *)entity;
 
-	if (obj40_stat(&sym->obj))
-		return -1;
+	if ((res = obj40_stat(&sym->obj)))
+		return res;
 	
 	return obj40_set_sym(&sym->obj, buff);
 }
@@ -289,7 +291,9 @@ static errno_t callback_find_statdata(char *track,
 	item = &sym->obj.statdata.item;
 		
 	/* Setting up the file key */
-	plugin_call(key->plugin->key_ops, set_type, key, KEY_STATDATA_TYPE);
+	plugin_call(key->plugin->key_ops, set_type, key,
+		    KEY_STATDATA_TYPE);
+	
 	plugin_call(key->plugin->key_ops, set_offset, key, 0);
 
 	/* Performing lookup for statdata of current directory */
@@ -298,18 +302,18 @@ static errno_t callback_find_statdata(char *track,
 	{
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
-		return -1;
+		return -EINVAL;
 	}
 
 	if (sym->obj.core->tree_ops.realize(sym->obj.tree,
 					    &sym->obj.statdata))
-		return -1;
+		return -EINVAL;
 	
 	/* Getting file plugin */
 	if (!(plugin = item->plugin->item_ops.belongs(item))) {
 		aal_exception_error("Can't find file plugin for %s.",
 				    track);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Symlinks handling. Method "follow" should be implemented */
@@ -320,7 +324,7 @@ static errno_t callback_find_statdata(char *track,
 		{
 			aal_exception_error("Can't open parent of directory "
 					    "%s.", track);
-			return -1;
+			return -EINVAL;
 		}
 
 		if (plugin->object_ops.follow(entity, &sym->obj.key)) {
@@ -338,7 +342,7 @@ static errno_t callback_find_statdata(char *track,
 
  error_free_entity:
 	plugin_call(plugin->object_ops, close, entity);
-	return -1;
+	return -EINVAL;
 }
 
 /* Callback for searching entry inside current directory */
@@ -361,7 +365,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	if (!(plugin = item->plugin->item_ops.belongs(item))) {
 		aal_exception_error("Can't find file plugin for %s.",
 				    track);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Opening currect diretory */
@@ -370,7 +374,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	{
 		aal_exception_error("Can't open parent of directory "
 				    "%s.", track);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Looking up for @enrty in current directory */
@@ -391,7 +395,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	
  error_free_entity:
 	plugin_call(plugin->object_ops, close, entity);
-	return -1;
+	return -EINVAL;
 
 }
 
@@ -415,8 +419,8 @@ static errno_t sym40_follow(object_entity_t *entity,
 	sym = (sym40_t *)entity;
 	aal_memset(path, 0, sizeof(path));
 	
-	if (obj40_get_sym(&sym->obj, path))
-		return -1;
+	if ((res = obj40_get_sym(&sym->obj, path)))
+		return res;
 
 	plugin = sym->obj.key.plugin;
 		

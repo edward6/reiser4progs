@@ -119,11 +119,12 @@ static errno_t nodeptr40_print(item_entity_t *item,
     
 	nodeptr = nodeptr40_body(item);
 
-	aal_stream_format(stream, "NODEPTR: len=%u, KEY: ", item->len);
+	aal_stream_format(stream, "NODEPTR: len=%u, KEY: ",
+			  item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
-			stream, options))
-		return -1;
+	if (plugin_call(item->key.plugin->key_ops, print,
+			&item->key, stream, options))
+		return -EINVAL;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
 			  item->plugin->h.id, item->plugin->h.label);
@@ -133,7 +134,8 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
+extern errno_t nodeptr40_layout_check(item_entity_t *item,
+				      region_func_t func, 
 				      void *data, uint8_t mode);
 
 extern errno_t nodeptr40_check(item_entity_t *item, uint8_t mode);

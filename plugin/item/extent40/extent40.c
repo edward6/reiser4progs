@@ -79,31 +79,6 @@ static errno_t extent40_get_key(item_entity_t *item,
 	return 0;
 }
 
-/*
-  Builds unit key like the previous function, but the difference is that key
-  offset will be set up to the passed offset. So, it can be not at the start of
-  an extent unit.
-*/
-/*static errno_t extent40_unit_key(item_entity_t *item,
-				 uint32_t offset,
-				 key_entity_t *key)
-{
-        aal_assert("vpf-714", item != NULL);
-        aal_assert("vpf-715", key != NULL);
-        aal_assert("vpf-716", offset < extent40_size(item));
-                                                                                                   
-	plugin_call(item->key.plugin->key_ops, assign,
-		    key, &item->key);
-                                                                                                   
-        offset += plugin_call(key->plugin->key_ops,
-			      get_offset, key);
-	
-        plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset);
-                                                                                                   
-        return 0;
-}*/
-                                                                                                   
 static int extent40_data(void) {
 	return 1;
 }
@@ -130,10 +105,10 @@ static int32_t extent40_remove(item_entity_t *item,
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
 		if (extent40_get_key(item, 0, &item->key))
-			return -1;
+			return -EINVAL;
 	}
 	
-	return -1;
+	return 0;
 }
 
 /* Prints extent item into specified @stream */
@@ -150,11 +125,12 @@ static errno_t extent40_print(item_entity_t *item,
 	extent = extent40_body(item);
 	count = extent40_units(item);
 
-	aal_stream_format(stream, "EXTENT: len=%u, KEY: ", item->len);
+	aal_stream_format(stream, "EXTENT: len=%u, KEY: ",
+			  item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
-			stream, options))
-		return -1;
+	if (plugin_call(item->key.plugin->key_ops, print,
+			&item->key, stream, options))
+		return -EINVAL;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
 			  item->plugin->h.id, item->plugin->h.label);
@@ -192,12 +168,16 @@ static errno_t extent40_maxposs_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 	
 	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -1;
+		return -EINVAL;
     
-	maxkey = plugin_call(key->plugin->key_ops, maximal,);
+	maxkey = plugin_call(key->plugin->key_ops,
+			     maximal,);
     
-	offset = plugin_call(key->plugin->key_ops, get_offset, maxkey);
-    	plugin_call(key->plugin->key_ops, set_offset, key, offset);
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, maxkey);
+	
+    	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset);
 
 	return 0;
 }
@@ -215,10 +195,10 @@ static errno_t extent40_utmost_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 	
 	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -1;
+		return -EINVAL;
 			
 	if ((offset = plugin_call(key->plugin->key_ops, get_offset, key)))
-		return -1;
+		return -EINVAL;
 	
 	blocksize = extent40_blocksize(item);
 
@@ -354,7 +334,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		width = et40_get_width(extent + i);
 
 		if (extent40_get_key(item, i, &key))
-			return -1;
+			return -EINVAL;
 
 		/* Calculating in-unit local offset */
 		offset = plugin_call(item->key.plugin->key_ops,
@@ -370,7 +350,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 			if (!(block = aal_block_open(device, blk))) {
 				aal_exception_error("Can't read block %llu.",
 						    blk);
-				return -1;
+				return -EIO;
 			}
 
 			/* Calculating in-block offset and chunk to be read */
@@ -395,7 +375,9 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 }
 
 /* Checks if two extent items are mergeable */
-static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
+static int extent40_mergeable(item_entity_t *item1,
+			      item_entity_t *item2)
+{
 	reiser4_plugin_t *plugin;
 	uint64_t offset1, offset2;
 	oid_t objectid1, objectid2;
@@ -491,14 +473,10 @@ static aal_list_t *extent40_allocate(item_entity_t *item,
 					 &ptr->ptr, blocks);
 
 		if (ptr->width == 0) {
-			aal_exception_error("There is no free space enough to "
-					    "allocate %lu blocks.", blocks);
-
 			if (list)
 				extent40_deallocate(item, list);
 			
 			aal_free(ptr);
-			
 			return NULL;
 		}
 
@@ -554,7 +532,7 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 	  here we need it because we need know how many units will be write.
 	*/
 	if (!(list = extent40_allocate(item, blocks)))
-		return -1;
+		return -ENOSPC;
 
 	hint->data = (void *)list;
 	hint->len = sizeof(extent40_t) * aal_list_length(list);
@@ -608,7 +586,7 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
         /* Updating the key */
 	if (pos == 0) {
 		if (extent40_get_key(item, 0, &item->key))
-			return -1;
+			return -EINVAL;
 	}
 	
 	return 0;
@@ -731,7 +709,7 @@ static errno_t extent40_shift(item_entity_t *src_item,
 
 		/* Updating item's key by the first unit key */
 		if (extent40_get_key(src_item, 0, &src_item->key))
-			return -1;
+			return -EINVAL;
 	} else {
 		/* Moving dst tail body into right place */
 		src = dst_item->body;
@@ -745,7 +723,7 @@ static errno_t extent40_shift(item_entity_t *src_item,
 
 		/* Updating item's key by the first unit key */
 		if (extent40_get_key(dst_item, 0, &dst_item->key))
-			return -1;
+			return -EINVAL;
 	}
 	
 	return 0;

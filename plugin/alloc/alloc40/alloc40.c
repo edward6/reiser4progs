@@ -85,7 +85,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	if (!(block = aal_block_open(alloc->device, blk))) {
 		aal_exception_error("Can't read bitmap block %llu. %s.", 
 				    blk, alloc->device->error);
-		return -1;
+		return -EIO;
 	}
 
 	start = aux_bitmap_map(alloc->bitmap);
@@ -109,10 +109,6 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	
 	aal_block_close(block);
 	return 0;
-    
- error_free_block:
-	aal_block_close(block);
-	return -1;
 }
 
 /*
@@ -156,7 +152,9 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	  Calling alloc40_layout method with callback_fetch_bitmap callback for
 	  loading all the bitmap blocks.
 	*/
-	if (alloc40_layout((object_entity_t *)alloc, callback_fetch_bitmap, alloc)) {
+	if (alloc40_layout((object_entity_t *)alloc,
+			   callback_fetch_bitmap, alloc))
+	{
 		aal_exception_error("Can't load ondisk bitmap.");
 		goto error_free_bitmap;
 	}
@@ -236,6 +234,7 @@ static errno_t alloc40_assign(object_entity_t *entity, void *data) {
 static errno_t callback_sync_bitmap(object_entity_t *entity, 
 				    uint64_t blk, void *data)
 {
+	errno_t res = 0;
 	aal_block_t *block;
 	char *current, *start; 
 	uint32_t size, adler, chunk;
@@ -251,7 +250,7 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 	if (!(block = aal_block_create(alloc->device, blk, 0xff))) {
 		aal_exception_error("Can't read bitmap block %llu. %s.", 
 				    blk, alloc->device->error);
-		return -1;
+		return -ENOMEM;
 	}
 
 	start = aux_bitmap_map(alloc->bitmap);
@@ -266,15 +265,17 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 	aal_memcpy(block->data + CRC_SIZE, current, chunk);
 
 	/*
-	  Calculating adler crc checksum and updating it in block to be
+	  Calculating adler crc checksum and updating it in the block to be
 	  saved. For the last block we are calculating it only for significant
 	  patr of bitmap.
 	*/
 	if (chunk < size) {
 		void *fake;
 
-		if (!(fake = aal_calloc(size, 0xff)))
+		if (!(fake = aal_calloc(size, 0xff))) {
+			res = -ENOMEM;
 			goto error_free_block;
+		}
 
 		aal_memcpy(fake, current, chunk);
 		adler = aal_adler32(fake, size);
@@ -287,23 +288,20 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 
 	/* Saving block onto device it was allocated on */
 	if (aal_block_sync(block)) {
-		aal_exception_error("Can't write bitmap block %llu. %s.", 
-				    blk, alloc->device->error);
-	
+		aal_exception_error("Can't write bitmap block %llu. "
+				    "%s.", blk, alloc->device->error);
+		res = -EIO;
 		goto error_free_block;
 	}
 
-	aal_block_close(block);
-    
-	return 0;
-    
  error_free_block:
 	aal_block_close(block);
-	return -1;
+	return res;
 }
 
 /* Saves alloc40 data (bitmap in fact) to device */
 static errno_t alloc40_sync(object_entity_t *entity) {
+	errno_t res;
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-366", alloc != NULL);
@@ -313,11 +311,11 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 	  Calling "layout" function for saving all bitmap blocks to device
 	  block allocator lies on.
 	*/
-	if (alloc40_layout((object_entity_t *)alloc,
-			   callback_sync_bitmap, alloc))
+	if ((res = alloc40_layout((object_entity_t *)alloc,
+				  callback_sync_bitmap, alloc)))
 	{
 		aal_exception_error("Can't save bitmap.");
-		return -1;
+		return res;
 	}
     
 	return 0;
@@ -511,7 +509,7 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 		void *fake;
 
 		if (!(fake = aal_calloc(size, 0xff)))
-			return -1;
+			return -ENOMEM;
 
 		aal_memcpy(fake, current, chunk);
 		cadler = aal_adler32(fake, size);
@@ -525,11 +523,12 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 	   corrupted bitmap.
 	*/
 	if (ladler != cadler) {
-		aal_exception_warn("Checksum missmatch in bitmap block %llu. "
-				    "Checksum is 0x%x, should be 0x%x.", blk, 
-				    ladler, cadler);
+		aal_exception_warn("Checksum missmatch in bitmap "
+				   "block %llu. Checksum is 0x%x, "
+				   "should be 0x%x.", blk, ladler,
+				   cadler);
 	
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;
@@ -546,11 +545,8 @@ errno_t alloc40_valid(object_entity_t *entity) {
 	  Calling layout function for traversing all the bitmap blocks with
 	  checking callback function.
 	*/
-	if (alloc40_layout((object_entity_t *)alloc,
-			   callback_check_bitmap, alloc))
-		return -1;
-
-	return 0;
+	return alloc40_layout((object_entity_t *)alloc,
+			      callback_check_bitmap, alloc);
 }
 
 /* Prepare alloc40 plugin by menas of filling it with abowe alloc40 methods */
