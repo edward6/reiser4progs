@@ -401,74 +401,13 @@ errno_t node40_corrupt(node_entity_t *entity, uint16_t options) {
 	return 0;
 }
 
-errno_t node40_merge(node_entity_t *dst, pos_t *dst_pos, 
-		     node_entity_t *src, pos_t *src_pos, 
-		     merge_hint_t *hint) 
-{
-	place_t dst_place, src_place;
-	node40_t *dst_node, *src_node;
-	errno_t res;
-	void *ih;
+int64_t node40_merge(node_entity_t *entity, pos_t *pos, trans_hint_t *hint) {
+	aal_assert("vpf-965",  entity != NULL);
+	aal_assert("vpf-966",  pos != NULL);
+	aal_assert("vpf-1368", hint != NULL);
 	
-	aal_assert("vpf-965",  dst != NULL);
-	aal_assert("vpf-966",  src != NULL);
-	
-	dst_node = (node40_t *)dst;
-	src_node = (node40_t *)src;
-	
-	if (hint && hint->src_count == 0)
-		return 0;
-	
-	if (node40_fetch(src, src_pos, &src_place))
-		return -EINVAL;
-	
-	/* If the whole @src item is to be inserted */
-	if (!hint) {
-		/* Expand the node if needed. */
-		if (node40_expand(dst, dst_pos, src_place.len, 1))
-			return -EINVAL;
-
-		return node40_copy(dst, dst_pos, src, src_pos, 1);
-	}
-	
-	if (hint->len_delta > 0) {
-		if (node40_expand(dst, dst_pos, hint->len_delta, 1))
-			return -EINVAL;
-	} 
-	
-	/* Just a part of src item being copied, gets merged with dst item. */
-	if (node40_fetch(src, src_pos, &src_place))
-		return -EINVAL;
-	
-	/* If not the whole item, realize the dst item. */
-	if (node40_fetch(dst, dst_pos, &dst_place))
-		return -EINVAL;
-	
-	if ((res = plug_call(src_place.plug->o.item_ops->repair,
-			     merge_units, &dst_place, &src_place, hint)))
-	{
-		aal_exception_error("Can't merge units from node %llu to node %llu.",
-				    src_node->block->nr, dst_node->block->nr);
-		return res;
-	}
-	
-	if (hint->len_delta < 0) {
-		/* Shrink the node if needed. */
-		if (node40_shrink(dst, dst_pos, -hint->len_delta, 1))
-			return -EINVAL;
-	}
-    	
-	/* Updating item's key if we insert new item or if we insert unit into 
-	   leftmost postion. */
-	if (dst_pos->unit == 0) {
-		ih = node40_ih_at(dst_node, dst_pos->item);
-
-		aal_memcpy(ih, dst_place.key.body,
-			   key_size(node40_key_pol(dst_node)));
-	}
-
-	dst_node->state |= (1 << ENTITY_DIRTY);
-	return 0;
+	return node40_modify(entity, pos, hint, 
+			     hint->plug->o.item_ops->repair->merge);
 }
 
 void node40_set_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
