@@ -130,7 +130,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	body_hint.count = 1;
 	body_hint.plug = bplug;
 	
-	aal_memcpy(&body_hint.key, &dir->offset, sizeof(dir->offset));
+	aal_memcpy(&body_hint.offset, &dir->offset, sizeof(dir->offset));
 	aal_memcpy(&entry.offset,  &dir->offset, sizeof(dir->offset));
 	aal_memcpy(&entry.object,  &dir->obj.info.object, sizeof(entry.object));
 	

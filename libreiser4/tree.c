@@ -594,6 +594,8 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	/* Flushing tree cache */
 	reiser4_tree_sync(tree);
 #endif
+
+	/* Releasing all loaded formetted nodes and tree itself */
 	reiser4_tree_close(tree);
 }
 
@@ -601,9 +603,11 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("vpf-1316", tree != NULL);
 
+	/* Releasing loaded formatted nodes */
 	reiser4_tree_collapse(tree);
 	tree->fs->tree = NULL;
-	
+
+	/* Releasing data cache */
 #ifndef ENABLE_STAND_ALONE
 	aal_hash_table_free(tree->data);
 #endif
@@ -697,6 +701,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		uint64_t width;
 		uint64_t blocks;
 		uint64_t offset;
+		key_entity_t key;
 
 		hint.count = 1;
 		hint.specific = &ptr;
@@ -708,16 +713,24 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		}
 
 		/* Check if we have accessed unallocated extent */
-		if (ptr.start != 1)
+		if (ptr.start != EXTENT_UNALLOC_UNIT)
 			continue;
 
+		/* Getting unit key */
+		plug_call(place->plug->o.item_ops, get_key,
+			  (place_t *)place, &key);
+
+		/* Checking if some data assigned to this unit. */
+		if (!aal_hash_table_lookup(tree->data, &key))
+			continue;
+
+		/* Loop until all units get allocated */
 		for (blocks = 0, width = ptr.width;
 		     width > 0; width -= ptr.width)
 		{
 			blk_t blk;
 			uint32_t i;
 			int first = 1;
-			key_entity_t key;
 			aal_block_t *block;
 			
 			/* Trying to allocate @ptr.width blocks. */
@@ -729,9 +742,6 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				return -ENOSPC;
 			}
 
-			plug_call(place->plug->o.item_ops, get_key,
-				  (place_t *)place, &key);
-			
 			if (first) {
 				/* Updating extent item data */
 				if (plug_call(place->plug->o.item_ops, update,
@@ -780,8 +790,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 			{
 				/* Getting data block by @key */
 				block = aal_hash_table_lookup(tree->data, &key);
-
-				aal_assert("umka-2452", block != NULL);
+				aal_assert("umka-2469", block != NULL);
 
 				/* Moving block tro @blk */
 				aal_block_move(block, tree->fs->device, blk);
@@ -1276,7 +1285,7 @@ errno_t reiser4_tree_attach(
 	nodeptr_hint.width = 1;
 	nodeptr_hint.start = node_blocknr(node);
 
-	reiser4_node_lkey(node, &hint.key);
+	reiser4_node_lkey(node, &hint.offset);
 	pid = reiser4_param_value("nodeptr");
 
 	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE,
@@ -1290,7 +1299,7 @@ errno_t reiser4_tree_attach(
 	level = reiser4_node_get_level(node) + 1;
 
 	/* Looking up for the insert point place */
-	switch ((res = reiser4_tree_lookup(tree, &hint.key,
+	switch ((res = reiser4_tree_lookup(tree, &hint.offset,
 					   level, FIND_CONV,
 					   &place)))
 	{
@@ -1834,8 +1843,8 @@ errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 			hint->count = size;
 			
 		/* Looking for place to write */
-		switch (reiser4_tree_lookup(tree, &hint->key, LEAF_LEVEL,
-					    FIND_CONV, &place))
+		switch (reiser4_tree_lookup(tree, &hint->offset,
+					    LEAF_LEVEL, FIND_CONV, &place))
 		{
 		case FAILED:
 			return -EIO;
@@ -1857,8 +1866,8 @@ errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		hint->specific += write;
 		
 		/* Updating key */
-		offset = reiser4_key_get_offset(&hint->key);
-		reiser4_key_set_offset(&hint->key, offset + write);
+		offset = reiser4_key_get_offset(&hint->offset);
+		reiser4_key_set_offset(&hint->offset, offset + write);
 	}
 
 	return 0;
@@ -1913,11 +1922,11 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		/* Prepare key in order to find place to read from. This is key
 		   of the last byte of item minus maximal possible space in
 		   node. */
-		reiser4_key_assign(&hint.key, &place->key);
-		reiser4_key_set_offset(&hint.key, offset);
+		reiser4_key_assign(&hint.offset, &place->key);
+		reiser4_key_set_offset(&hint.offset, offset);
 
 		/* Looking for the place to read */
-		switch (reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL,
+		switch (reiser4_tree_lookup(tree, &hint.offset, LEAF_LEVEL,
 					    FIND_EXACT, place))
 		{
 		case ABSENT:
@@ -1929,7 +1938,6 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		/* Prepare hint for read */
 		hint.tree = tree;
 		hint.count = chunk;
-		hint.offset = offset;
 		
 		if (!(buff = aal_calloc(chunk, 0)))
 			return -ENOMEM;
@@ -2023,7 +2031,7 @@ static int32_t reiser4_tree_mod(
 		/* Getting new place item/unit will be inserted at after tree 
 		   is growed up. It is needed because we want to insert item 
 		   into the node of the given @level. */
-		if (reiser4_tree_lookup(tree, &hint->key, level,
+		if (reiser4_tree_lookup(tree, &hint->offset, level,
 					FIND_CONV, place) == FAILED)
 		{
 			aal_exception_error("Lookup failed after "
@@ -2110,7 +2118,7 @@ static int32_t reiser4_tree_mod(
 		
 		if (parent->node) {
 			if ((res = reiser4_tree_ukey(tree, parent,
-						     &hint->key)))
+						     &hint->offset)))
 			{
 				return res;
 			}

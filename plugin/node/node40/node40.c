@@ -618,7 +618,7 @@ static int32_t node40_mod(node_entity_t *entity, pos_t *pos,
 	if (pos->unit == MAX_UINT32) {
 		ih_set_pid(ih, hint->plug->id.id, pol);
 
-		aal_memcpy(ih, hint->key.body,
+		aal_memcpy(ih, hint->offset.body,
 			   key_size(pol));
 	}
 	

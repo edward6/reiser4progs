@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_object_t *object;
 	    
-			for (i = 0; i < 1; i++) {
+			for (i = 0; i < 5000; i++) {
 				aal_snprintf(name, 256, "file name%d", i);
 
 				if (!(object = reiser4_object_create(fs->tree, dir,
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 				if (reiser4_object_link(dir, object, name))
 					continue;
 
-				for (j = 0; j < 2049; j++) {
+				for (j = 0; j < 1/*2049*/; j++) {
 					reiser4_object_write(object, name,
 							     aal_strlen(name));
 				}

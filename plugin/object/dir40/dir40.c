@@ -535,7 +535,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	body_hint.plug = body_plug;
 	
 	plug_call(info->object.plug->o.key_ops, build_entry,
-		  &body_hint.key, dir->hash, obj40_locality(&dir->obj),
+		  &body_hint.offset, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), ".");
 
 	/* Preparing hint for the empty directory. It consists only "." for
@@ -548,14 +548,13 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	/* Initializing entry hash key. */
 	plug_call(info->object.plug->o.key_ops, assign,
-		  &entry.offset, &body_hint.key);
+		  &entry.offset, &body_hint.offset);
 
 	body_hint.specific = &entry;
 	
         /* Looking for place to insert directory body */
-	switch (obj40_lookup(&dir->obj, &body_hint.key,
-			     LEAF_LEVEL, FIND_CONV,
-			     &dir->body))
+	switch (obj40_lookup(&dir->obj, &body_hint.offset,
+			     LEAF_LEVEL, FIND_CONV, &dir->body))
 	{
 	case ABSENT:
 		/* Inserting the direntry item into the tree */
@@ -797,8 +796,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		  obj40_objectid(&dir->obj), entry->name);
 
 	/* Copying key to @hint */
-	plug_call(entry->offset.plug->o.key_ops, assign, &hint.key,
-		  &entry->offset);
+	plug_call(entry->offset.plug->o.key_ops, assign,
+		  &hint.offset, &entry->offset);
 
 	/* Inserting entry described by @hint to tree at @temp.place */
 	if ((res = obj40_insert(&dir->obj, &temp.place,

@@ -85,7 +85,6 @@ static int32_t reg40_read(object_entity_t *entity,
 	reg40_t *reg;
 	uint64_t size;
 	uint32_t read;
-	uint32_t chunk;
 
 	aal_assert("umka-1183", buff != NULL);
 	aal_assert("umka-1182", entity != NULL);
@@ -94,7 +93,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	size = reg40_size(entity);
 
 	for (read = 0; read < n; ) {
-		uint64_t offset;
+		int32_t chunk;
 		trans_hint_t hint;
 
 		/* Update body place. Check for error. */
@@ -105,17 +104,12 @@ static int32_t reg40_read(object_entity_t *entity,
 		if (res == ABSENT)
 			return 0;
 
-		chunk = n - read;
+		/* Initializing trans hint */
+		plug_call(reg->offset.plug->o.key_ops, assign,
+			  &hint.offset, &reg->offset);
 
-		/* Calculating in-item offset */
-		offset = reg40_offset(entity);
-
-		offset -= plug_call(reg->body.key.plug->o.key_ops,
-				    get_offset, &reg->body.key);
-
-		hint.count = chunk;
-		hint.offset = offset;
 		hint.specific = buff;
+		hint.count = n - read;
 		hint.tree = reg->obj.info.tree;
 
 		/* Calling body item's read() method */
@@ -125,12 +119,10 @@ static int32_t reg40_read(object_entity_t *entity,
 			return chunk;
 		}
 
+		buff += chunk; read += chunk;
+		
 		/* Updating offset */
 		reg40_seek(entity, reg40_offset(entity) + chunk);
-
-		/* Updating local counter and @buff */
-		buff += chunk;
-		read += chunk;
 	}
 
 	return read;
@@ -388,38 +380,29 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 	for (bytes = 0, written = 0; written < n; ) {
 		int32_t write;
 		uint32_t level;
+		
+		lookup_res_t res;
 		trans_hint_t hint;
 
 		/* Preparing hint key */
 		plug_call(reg->offset.plug->o.key_ops,
-			  assign, &hint.key, &reg->offset);
+			  assign, &hint.offset, &reg->offset);
 
 		/* Setting up @hint */
 		if ((hint.count = n - written) > maxspace)
 			hint.count = maxspace;
 
 		/* Preparing insert hint */
-		hint.offset = 0;
 		hint.specific = buff;
 		hint.tree = reg->obj.info.tree;
 		hint.plug = reg40_bplug(entity, reg40_offset(entity) + n);
 
 		/* Lookup place data will be inserted at */
-		switch (obj40_lookup(&reg->obj, &hint.key,
-				     LEAF_LEVEL, FIND_CONV,
-				     &reg->body))
+		if ((res = obj40_lookup(&reg->obj, &hint.offset,
+					LEAF_LEVEL, FIND_CONV,
+					&reg->body) < 0))
 		{
-		case PRESENT:
-			hint.offset = reg40_offset(entity);
-			
-			hint.offset -= plug_call(hint.key.plug->o.key_ops,
-						 get_offset, &reg->body.key);
-			
-			break;
-		case FAILED:
-			return -EIO;
-		default:
-			break;
+			return res;
 		}
 
 		/* Setting up target level */

@@ -38,7 +38,8 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 		start = et40_get_start(extent);
 		width = et40_get_width(extent);
 		
-		if (!start || start == UNALLOC_UNIT) continue;
+		if (!start || start == EXTENT_UNALLOC_UNIT)
+			continue;
 
 		if ((res = func(place, start, width, data)) < 0)
 			return res;
@@ -81,7 +82,7 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 		if (!(start = et40_get_start(extent)))
 			continue;
 		
-		if (start != UNALLOC_UNIT)
+		if (start != EXTENT_UNALLOC_UNIT)
 			continue;
 
 		aal_exception_error("Node (%llu), unit (%u): unallocated "

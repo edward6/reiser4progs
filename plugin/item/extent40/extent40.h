@@ -10,9 +10,6 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 
-#define SPARSE_UNIT 0
-#define UNALLOC_UNIT 1
-
 struct extent40 {
 	d64_t start;
 	d64_t width;

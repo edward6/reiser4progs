@@ -643,7 +643,7 @@ static errno_t cde40_estimate_insert(place_t *place,
 
 	entry = (entry_hint_t *)hint->specific;
 	
-	pol = plug_call(hint->key.plug->o.key_ops,
+	pol = plug_call(hint->offset.plug->o.key_ops,
 			bodysize);
 	
 	hint->len = (hint->count * en_size(pol));
@@ -653,7 +653,7 @@ static errno_t cde40_estimate_insert(place_t *place,
 
 		/* Calling key plugin for in odrer to find out is passed name is
 		   long one or not. */
-		if (plug_call(hint->key.plug->o.key_ops,
+		if (plug_call(hint->offset.plug->o.key_ops,
 			      hashed, &entry->offset))
 		{
 			/* Okay, name is long, so we need add its length to

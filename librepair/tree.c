@@ -265,11 +265,12 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&ptr, 0, sizeof(ptr));
 	
-	reiser4_node_lkey(node, &hint.key);
+	reiser4_node_lkey(node, &hint.offset);
 	
 	/* Key should not exist in the tree yet. */
-	lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL,
-				     FIND_EXACT, &place);
+	lookup = reiser4_tree_lookup(tree, &hint.offset,
+				     LEAF_LEVEL, FIND_EXACT,
+				     &place);
 
 	if (lookup != ABSENT)
 		return lookup == FAILED ? -EINVAL : -ESTRUCT;
@@ -309,7 +310,6 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	
 	hint.specific = &ptr;
 	hint.count = 1;
-	hint.offset = 0;
 	hint.tree = tree;
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;
@@ -474,7 +474,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 	aal_assert("vpf-1300", src != NULL);
 
 	aal_memset(&hint, 0, sizeof(hint));
-	reiser4_key_assign(&hint.key, key);
+	reiser4_key_assign(&hint.offset, key);
 	
 	/* FIXME-VITALY: some hint fields need to be initialized by item 
 	   estimate_insert methods--count, offset, etc. I should just 

@@ -36,12 +36,15 @@ static int32_t tail40_read(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-1673", place != NULL);
 
 	count = hint->count;
+
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
 	
-	if (hint->offset + hint->count > place->len)
-		count = place->len - hint->offset;
+	if (place->pos.unit + hint->count > place->len)
+		count = place->len - place->pos.unit;
 			
 	aal_memcpy(hint->specific, place->body +
-		   hint->offset, count);
+		   place->pos.unit, count);
 	
 	return count;
 }

@@ -92,7 +92,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.count = 1;
 	
 	plug_call(obj->info.object.plug->o.key_ops, assign, 
-		  &hint.key, &obj->info.object);
+		  &hint.offset, &obj->info.object);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = mask;
@@ -124,7 +124,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	switch (obj40_lookup(obj, &hint.key, LEAF_LEVEL,
+	switch (obj40_lookup(obj, &hint.offset, LEAF_LEVEL,
 			     FIND_CONV, STAT_PLACE(obj)))
 	{
 	case ABSENT:

@@ -17,6 +17,9 @@
 #define REISER4_ROOT_LOCALITY   (0x29)
 #define REISER4_ROOT_OBJECTID   (0x2a)
 
+#define EXTENT_SPARSE_UNIT      (0)
+#define EXTENT_UNALLOC_UNIT     (1)
+
 /* Defining the types for disk structures. All types like f32_t are fake ones
    needed to avoid gcc-2.95.x bug with typedef of aligned types. */
 typedef uint8_t  f8_t;  typedef f8_t  d8_t  __attribute__((aligned(1)));
@@ -330,8 +333,8 @@ struct merge_hint {
 	
 	key_entity_t start, end;
 	
-	/* Fields bellow are only related to extent estimate_merge() and 
-	   merge() operations. */
+	/* Fields bellow are only related to extent estimate_merge() and merge()
+	   operations. */
 	
 	/* Offset in blocks in the start and end units of dst and src */
 	uint64_t dst_tail, src_tail;
@@ -504,17 +507,14 @@ struct trans_hint {
 	/* Tree insert is going to be in */
 	void *tree;
 
-	/* Used for insert extent data */
-	uint64_t offset;
-
-	/* Max offset in target item. */
-	uint64_t maxoff;
-	
 	/* Count of units to be inserted into the tree */
 	uint32_t count;
 
 	/* The key of item/unit to be inserted */
-	key_entity_t key;
+	key_entity_t offset;
+
+	/* Max real key */
+	key_entity_t maxkey;
 
 	/* Plugin to be used for working with item */
 	reiser4_plug_t *plug;

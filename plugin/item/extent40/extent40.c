@@ -127,19 +127,12 @@ static errno_t extent40_cutout(place_t *place, trans_hint_t *hint) {
 		uint32_t i, width;
 		
 		blksize = extent40_blksize(place);
+		width = (hint->count / blksize);
+
+		plug_call(hint->offset.plug->o.key_ops,
+			  assign, &key, &hint->offset);
 		
 		/* Removing data from the cache */
-		plug_call(place->key.plug->o.key_ops,
-			  assign, &key, &place->key);
-
-		offset = plug_call(key.plug->o.key_ops,
-				   get_offset, &key);
-
-		plug_call(key.plug->o.key_ops, set_offset,
-			  &key, offset + hint->offset);
-
-		width = (hint->count / blksize);
-		
 		for (i = 0; i < width; i++) {
 			core->tree_ops.rem_data(hint->tree, &key);
 			
@@ -147,7 +140,7 @@ static errno_t extent40_cutout(place_t *place, trans_hint_t *hint) {
 					   get_offset, &key);
 
 			plug_call(key.plug->o.key_ops, set_offset,
-				  &key, offset * blksize);
+				  &key, (offset * blksize));
 		}
 
 		/* Making extent unit shorter */
@@ -252,7 +245,7 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 		}
 	}
 
-	place->pos.unit = units - 1;
+	place->pos.unit = units;
 	return (mode == FIND_CONV ? PRESENT : ABSENT);
 }
 
@@ -267,27 +260,29 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 	
 	key_entity_t key;
 	aal_block_t *block;
-	
+
+	uint64_t rel_offset;
 	uint64_t read_offset;
 	uint64_t block_offset;
 
 	aal_assert("umka-1421", place != NULL);
 	aal_assert("umka-1422", buff != NULL);
 
-	if (place->pos.unit == MAX_UINT32)
-		place->pos.unit = 0;
-
 	count = hint->count;
 	buff = hint->specific;
 	
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
+
 	extent40_get_key(place, &key);
 	blksize = extent40_blksize(place);
 
 	/* Initializing read offset */
-	read_offset = plug_call(key.plug->o.key_ops,
-				get_offset, &key);
+	read_offset = plug_call(hint->offset.plug->o.key_ops,
+				get_offset, &hint->offset);
 
-	read_offset += hint->offset;
+	rel_offset = read_offset - plug_call(key.plug->o.key_ops,
+					     get_offset, &key);
 
 	/* Loop through the units until needed amount of data is read or extent
 	   item is over. */
@@ -303,12 +298,12 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 		
 		/* Calculating start block for read */
 		start = blk = et40_get_start(extent40_body(place) + i) +
-			((hint->offset - extent40_offset(place, i)) / blksize);
+			(rel_offset / blksize);
 
 		/* Handle hole */
-		if (start == 0) {
-			aal_memset(buff, 0, size);
+		if (start == EXTENT_SPARSE_UNIT) {
 			count -= size;
+			aal_memset(buff, 0, size);
 		} else {
 			extent40_t *extent = extent40_body(place);
 
@@ -371,17 +366,21 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 	void *buff;
 	uint32_t count;
-	uint64_t offset;
 	uint32_t read, i;
 	uint32_t blksize;
 	uint32_t secsize;
+
+	key_entity_t key;
+	uint64_t rel_offset;
+	uint64_t read_offset;
 
 	aal_assert("umka-1421", place != NULL);
 	aal_assert("umka-1422", buff != NULL);
 
 	count = hint->count;
-	offset = hint->offset;
 	buff = hint->specific;
+	
+	extent40_get_key(place, &key);
 	
 	blksize = extent40_blksize(place);
 	secsize = extent40_secsize(place);
@@ -389,6 +388,12 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
+	read_offset = plug_call(hint->offset.plug->o.key_ops,
+				get_offset, &hint->offset);
+	
+	rel_offset = read_offset - plug_call(key.plug->o.key_ops,
+					     get_offset, &key);
+	
 	for (read = count, i = place->pos.unit;
 	     i < extent40_units(place) && count > 0; i++)
 	{
@@ -397,7 +402,7 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 
 		/* Calculating start block for read */
 		start = blk = et40_get_start(extent40_body(place) + i) +
-			((offset - extent40_offset(place, i)) / blksize);
+			(rel_offset / blksize);
 
 		/* Loop though the extent blocks */
 		while (blk < start + et40_get_width(extent40_body(place) + i) &&
@@ -406,7 +411,7 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 			blk_t sec;
 			uint32_t blklocal;
 
-			blklocal = (offset % blksize);
+			blklocal = (rel_offset % blksize);
 			
 			if ((blkchunk = blksize - blklocal) > count)
 				blkchunk = count;
@@ -445,7 +450,7 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 					
 				buff += secchunk;
 				count -= secchunk;
-				offset += secchunk;
+				rel_offset += secchunk;
 
 				blkchunk -= secchunk;
 				blklocal += secchunk;
@@ -615,43 +620,56 @@ static errno_t extent40_estimate_write(place_t *place,
 	aal_assert("umka-2425", place != NULL);
 
 	if (place->pos.unit == MAX_UINT32) {
-		hint->maxoff = 0;
+		plug_call(place->key.plug->o.key_ops,
+			  assign, &hint->maxkey, &place->key);
+		
+		/* Insert point is MAX_UINT32, thus, this is new item insert. So
+		   we reserve space for one extent unit. */
 		hint->len = sizeof(extent40_t);
 	} else {
-		uint32_t offset;
-		key_entity_t key;
-		key_entity_t maxkey;
+		uint64_t ins_offset;
+		uint64_t max_offset;
+		
+		extent40_maxreal_key(place, &hint->maxkey);
 
-		extent40_get_key(place, &key);
-		extent40_maxreal_key(place, &maxkey);
+		ins_offset = plug_call(hint->offset.plug->o.key_ops,
+				       get_offset, &hint->offset);
 
-		hint->maxoff = plug_call(maxkey.plug->o.key_ops,
-					 get_offset, &maxkey) + 1;
-
-		offset = plug_call(key.plug->o.key_ops, get_offset,
-				   &key);
-
-		/* Check if insert offset plus data length will not fit to max
-		   real offset. */
-		if (offset + hint->offset + hint->count > hint->maxoff) {
+		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+				       get_offset, &hint->maxkey);
+		
+		/* Checking if insert key lies behind the insert point item
+		   data. If so, we will perform further checks. */
+		if (ins_offset + hint->count > max_offset) {
 			uint32_t blksize = extent40_blksize(place);
-			
-			extent40_t *extent = extent40_body(place) +
-				place->pos.unit;
 
-			if (et40_get_start(extent) != UNALLOC_UNIT) {
+			/* Getting last unit in order to check if we can expand
+			   it and just add data to it. */
+			extent40_t *extent = extent40_body(place) +
+				(extent40_units(place) - 1);
+
+			/* Check if last unit is allocated already */
+			if (et40_get_start(extent) != EXTENT_UNALLOC_UNIT) {
+				/* Unit is allocated, so we cannot mix it with
+				   new data and thus reserve one more extent
+				   unit for it in the case we write actual data,
+				   not a hole. */
 				if (hint->specific) {
 					hint->len = sizeof(extent40_t);
 				} else {
+					/* Checking if hole size is more than
+					   block size. */
 					if (hint->count >= blksize &&
-					    et40_get_start(extent) != SPARSE_UNIT)
+					    et40_get_start(extent) != EXTENT_SPARSE_UNIT)
 					{
 						hint->len = sizeof(extent40_t);
 					}
 				}
 			} else {
+				/* Unit is not allocated, so we need only check
+				   for holes. */
 				if (!hint->specific && hint->count >= blksize &&
-				    et40_get_start(extent) != SPARSE_UNIT)
+				    et40_get_start(extent) != EXTENT_SPARSE_UNIT)
 				{
 					hint->len = sizeof(extent40_t);
 				}
@@ -664,11 +682,13 @@ static errno_t extent40_estimate_write(place_t *place,
 
 /* Writes data to @place */
 static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
+	uint32_t units;
 	uint32_t blksize;
+	
 	key_entity_t key;
 	aal_block_t *block;
 	extent40_t *extent;
-	
+
 	uint64_t ins_offset;
 	uint64_t uni_offset;
 	uint32_t count, size;
@@ -680,20 +700,25 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
+	units = extent40_units(place);
+	
+	if (place->pos.unit > units)
+		place->pos.unit = units - 1;
+
 	extent40_get_key(place, &key);
 	blksize = extent40_blksize(place);
 
 	uni_offset = plug_call(key.plug->o.key_ops,
 			       get_offset, &key);
 	
-	ins_offset = plug_call(place->key.plug->o.key_ops,
-			       get_offset, &place->key);
-
-	ins_offset += hint->offset;
+	ins_offset = plug_call(hint->offset.plug->o.key_ops,
+			       get_offset, &hint->offset);
 
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
+		uint64_t max_offset;
+		
 		if ((size = count) > blksize - (ins_offset % blksize))
 			size = blksize - (ins_offset % blksize);
 		
@@ -703,13 +728,15 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 		/* Preparing key for getting data by it */
 		plug_call(key.plug->o.key_ops, set_offset, &key, block_offset);
 
+		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+				       get_offset, &hint->maxkey);
+
 		/* Checking if we write data inside item */
-		if (block_offset < hint->maxoff) {
+		if (block_offset < max_offset) {
 			blk_t blk;
 
 			/* Getting data block by offset key */
 			if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
-
 				/* This is the case, when data cache does not
 				   contain needed block, we have load it before
 				   modifying it. */
@@ -742,16 +769,16 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 			extent = extent40_body(place) + place->pos.unit;
 
 			/* Checking if we write data or holes */
-			if (hint->specific && hint->maxoff) {
+			if (hint->specific && max_offset) {
 				uint64_t start = et40_get_start(extent);
 
 				/* Setting up new units. */
-				if (start != UNALLOC_UNIT) {
+				if (start != EXTENT_UNALLOC_UNIT) {
 					/* Previous unit is allocated one, thus
 					   we cannot just enlarge it and need to
 					   set up new unit. */
 					et40_set_start(extent + 1,
-						       UNALLOC_UNIT);
+						       EXTENT_UNALLOC_UNIT);
 					
 					et40_set_width(extent + 1, 1);
 				} else {
@@ -762,10 +789,11 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 
 				/* Updating counters */
 				hint->bytes += blksize;
-				hint->maxoff += blksize;
+				max_offset += blksize;
 			} else {
-				if (hint->maxoff)
+				if (max_offset > 0) {
 					extent++;
+				}
 					
 				/* This is the case when we write holes */
 				if (!hint->specific &&
@@ -781,20 +809,20 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 							(blksize - 1));
 
 					et40_set_start(extent,
-						       SPARSE_UNIT);
+						       EXTENT_SPARSE_UNIT);
 
 					width = (size / blksize);
 					et40_set_width(extent, width);
 				} else {
 					/* Setting up new unallocated unit */
 					et40_set_start(extent,
-						       UNALLOC_UNIT);
+						       EXTENT_UNALLOC_UNIT);
 						
 					et40_set_width(extent, 1);
 					hint->bytes += blksize;
 				}
 				
-				hint->maxoff += blksize;
+				max_offset += blksize;
 			}
 		}
 
