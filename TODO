@@ -5,11 +5,9 @@ reiser4progs/COPYING.
 
 * implement key collisions working code in tree_lookup().
 
-* comments in debugsfs and measurefs. 
-
 * remove reiser4_key_t and key_entity_t. Add just key_t.
 
-* comment stat data extention plugins.
+* comment debugsfs and measurefs. 
 
 * move plugin directory to libreiser4 directory. Maintain own plugin
   directory in librepair. Move all repair code from libreiser4/plugin/*

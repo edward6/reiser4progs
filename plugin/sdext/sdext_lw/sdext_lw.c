@@ -11,9 +11,8 @@
 #include "sdext_lw.h"
 #include <aux/aux.h>
 
-static errno_t sdext_lw_open(void *body, 
-			     void *hint) 
-{
+/* Loads extention to passed @hint */
+static errno_t sdext_lw_open(void *body, void *hint) {
 	sdext_lw_t *ext;
 	sdext_lw_hint_t *sdext_lw;
     
@@ -35,6 +34,7 @@ static uint16_t sdext_lw_length(void *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Saves all extention fields from passed @hint to @body. */
 static errno_t sdext_lw_init(void *body, 
 			     void *hint) 
 {
@@ -57,6 +57,7 @@ static errno_t sdext_lw_init(void *body,
 	return 0;
 }
 
+/* Mode parse stuff. */
 static char sdext_lw_file_type(uint16_t mode) {
 	if (S_ISDIR(mode))
 		return 'd';
@@ -93,6 +94,7 @@ static void sdext_lw_parse_mode(uint16_t mode, char *str) {
 	str[10] = '\0';
 }
 
+/* Print extention to passed @stream. */
 static errno_t sdext_lw_print(void *body, aal_stream_t *stream,
 			      uint16_t options)
 {

@@ -5,14 +5,14 @@
 
 #include "sdext_lt.h"
 
+/* Stat data extention length. */
 static uint16_t sdext_lt_length(void *body) {
 	return sizeof(sdext_lt_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_lt_open(void *body, 
-			     void *hint) 
-{
+/* Loads all extention fields to passed @hint. */
+static errno_t sdext_lt_open(void *body, void *hint) {
 	sdext_lt_t *ext;
 	sdext_lt_hint_t *sdext_lt;
     
@@ -29,9 +29,8 @@ static errno_t sdext_lt_open(void *body,
 	return 0;
 }
 
-static errno_t sdext_lt_init(void *body, 
-			     void *hint)
-{
+/* Saves all fields to passed extention @body. */
+static errno_t sdext_lt_init(void *body, void *hint) {
 	sdext_lt_hint_t *sdext_lt;
     
 	aal_assert("umka-1475", body != NULL);
@@ -51,6 +50,7 @@ static errno_t sdext_lt_init(void *body,
 	return 0;
 }
 
+/* Prints extention into passed @stream. */
 static errno_t sdext_lt_print(void *body,
 			      aal_stream_t *stream,
 			      uint16_t options)

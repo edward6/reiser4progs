@@ -191,7 +191,7 @@ enum reiser4_key_plug_id {
 typedef struct reiser4_plug reiser4_plug_t;
 
 #define INVAL_PTR	        ((void *)-1)
-#define INVAL_PID	        0xff
+#define INVAL_PID	        ((rid_t)~0)
 
 struct key_entity {
 	reiser4_plug_t *plug;
