@@ -318,6 +318,9 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 	/* Initializing key to be used for walking though the all file items. */
 	plug_call(reg->offset.plug->o.key_ops,
 		  assign, &key, &reg->offset);
+
+	plug_call(reg->offset.plug->o.key_ops,
+		  set_offset, &key, 0);
 	
 	for (bytes = 0, offset = 0; offset < fsize;) {
 		place_t place;
@@ -330,15 +333,15 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 		case PRESENT:
 			break;
 		default:
-			return -EINVAL;
+			return -EIO;
 		}
 		
 		/* Calculating right item size */
 		size = plug_call(place.plug->o.item_ops,
 				 size, &place);
 
-		if (reg40_offset(entity) + size > fsize)
-			size = fsize - reg40_offset(entity);
+		if (offset + size > fsize)
+			size = fsize - offset;
 
 		/* Prepare convert hint. */
 		hint.bytes = 0;
@@ -381,7 +384,6 @@ errno_t reg40_convert_body(object_entity_t *entity, uint64_t new_size) {
 	
 	aal_assert("umka-2395", entity != NULL);
 
-	return 0;
 	reg = (reg40_t *)entity;
 	
 	/* There is nothing to convert */
