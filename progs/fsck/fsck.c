@@ -544,7 +544,7 @@ int main(int argc, char *argv[]) {
 	/* Report about the results. */
 	if (res < 0 || ex == OPER_ERROR) {
 		ex = OPER_ERROR;
-		aal_mess("Operational error occured while fscking.");
+		fprintf(stderr, "Operational error occured while fscking.\n");
 		goto free_fsck;
 	} 
 	
@@ -563,7 +563,9 @@ int main(int argc, char *argv[]) {
 	if (repair.fatal) {
 		/* Some fatal corruptions in disk format or filesystem. */
 		if (parse_data.fs_mode == RM_BUILD) {
-			fprintf(stderr, "Failed to build the reiser4 filesystem.\n");
+			/* Only if no metadata are found. */
+			fprintf(stderr, "NO REISER4 METADATA WERE FOUND. "
+				"FS RECOVERY IS NOT POSSIBLE.\n");
 		} else {
 			fprintf(stderr, "%llu fatal corruptions were detected in %s. "
 				"Run with %s option to fix them.\n", repair.fatal, 
@@ -582,12 +584,14 @@ int main(int argc, char *argv[]) {
 		if (parse_data.fs_mode != RM_CHECK && 
 		    aal_test_bit(&parse_data.options, FSCK_OPT_RO))
 		{
-			aal_mess("\nThe filesystem was mounted RO. It is "
-				 "better to umount and mount it again.");
+			fprintf(stderr, "\nThe filesystem was mounted RO. It is "
+				"better to umount and mount it again.\n");
 		}
 		
-		aal_mess("FS is consistent.\n");
+		fprintf(stderr, "FS is consistent.\n");
 	}
+	
+	fprintf(stderr, "\n");
 
  free_fsck:
 	fsck_fini(&parse_data);

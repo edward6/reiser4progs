@@ -731,30 +731,34 @@ errno_t repair_check(repair_data_t *repair) {
 		repair_ts_fini(&control);
 	}
 
-	if (repair->mode != RM_BUILD && repair->fatal) {
+	if (repair->fatal) {
 		aal_warn("Fatal corruptions were found. "
 			 "Semantic pass is skipped.");
-	} else {
-		/* Check the semantic reiser4 tree. */
-		if ((res = repair_sem_prepare(&control, &sem)))
-			goto error;
-
-		if ((res = repair_semantic(&sem)))
-			goto error;
-
-		if ((res = repair_sem_fini(&control, &sem)))
-			goto error;
-	}
-		
-	if (repair->mode == RM_BUILD && !repair->fatal) {
-		/* Throw the garbage away. */
-		if ((res = repair_cleanup_prepare(&control, &cleanup)))
-			goto error;
-		
-		if ((res = repair_cleanup(&cleanup)))
-			goto error;
-	}
+		goto update;
+	} 
 	
+	/* Check the semantic reiser4 tree. */
+	if ((res = repair_sem_prepare(&control, &sem)))
+		goto error;
+
+	if ((res = repair_semantic(&sem)))
+		goto error;
+
+	if ((res = repair_sem_fini(&control, &sem)))
+		goto error;
+
+	if (repair->mode != RM_BUILD || repair->fatal) 
+		goto update;
+
+	/* Throw the garbage away. */
+	if ((res = repair_cleanup_prepare(&control, &cleanup)))
+		goto error;
+
+	if ((res = repair_cleanup(&cleanup)))
+		goto error;
+
+	
+ update:
 	/* Update SB data */
 	if (!repair->fatal && (res = repair_update(&control))) 
 		goto error;

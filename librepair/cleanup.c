@@ -147,7 +147,7 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	aal_assert("vpf-1407", cleanup->repair->fs != NULL);
 	
 	if (reiser4_tree_fresh(cleanup->repair->fs->tree)) {
-		aal_warn("No reiser4 metadata were found. Cleanup "
+		aal_fatal("No reiser4 metadata were found. Cleanup "
 			 "pass is skipped.");
 		return 0;
 	}

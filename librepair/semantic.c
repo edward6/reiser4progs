@@ -805,8 +805,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	tree = sem->repair->fs->tree;
 	
 	if (reiser4_tree_fresh(tree)) {
-		aal_warn("No reiser4 metadata were found. Semantic "
-			 "pass is skipped.");
+		aal_fatal("No reiser4 metadata were found. "
+			  "Semantic pass is skipped.");
 		sem->repair->fatal++;
 		goto error;
 	}
