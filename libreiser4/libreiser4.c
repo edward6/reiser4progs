@@ -166,17 +166,7 @@ static errno_t object_resolve(void *tree, char *path,
    in otder to let them ability access libreiser4 methods such as insert or
    remove an item from the tree. */
 reiser4_core_t core = {
-	.tree_ops = {
-	
-		/* Installing "valid" callback */
-		.valid      = tree_valid,
-
-		/* This one for initializing an item at place */
-		.fetch      = tree_fetch,
-
-		/* This one for lookuping the tree */
-		.lookup	    = tree_lookup,
-
+	.flow_ops = {
 		/* Reads data from the tree. */
 		.read	    = tree_read,
 		
@@ -188,8 +178,21 @@ reiser4_core_t core = {
 		.convert    = tree_convert,
 		
 		/* Callback for writting data to tree. */
-		.write	    = tree_write,
+		.write	    = tree_write
+#endif
+	},
+	.tree_ops = {
+	
+		/* Installing "valid" callback */
+		.valid      = tree_valid,
 
+		/* This one for initializing an item at place */
+		.fetch      = tree_fetch,
+
+		/* This one for lookuping the tree */
+		.lookup	    = tree_lookup,
+
+#ifndef ENABLE_STAND_ALONE
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
 
@@ -200,9 +203,9 @@ reiser4_core_t core = {
 		.update_key = tree_update_key,
 
 		/* Data related functions */
-		.get_data   = tree_get_data,
 		.put_data   = tree_put_data,
 		.rem_data   = tree_rem_data,
+		.get_data   = tree_get_data,
 #endif
 		/* Returns next item from the passed place */
 		.next	    = tree_next

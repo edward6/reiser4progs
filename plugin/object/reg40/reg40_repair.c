@@ -547,7 +547,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		/* If result != 0 -- convertion is needed if smth was prepared. */
 		if (result && hint.offset.plug) {
 			if (mode == RM_BUILD) {
-				result = reg40_core->tree_ops.convert(info->tree,
+				result = reg40_core->flow_ops.convert(info->tree,
 								      &hint);
 
 				if (result) return result;

@@ -209,8 +209,8 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 	uint32_t i;
 #endif
 	
-	reiser4_place_t *parent;
         reiser4_key_t lkey;
+	reiser4_place_t *parent;
     
 	aal_assert("umka-869", node != NULL);
 	aal_assert("umka-1941", node->p.node != NULL);
@@ -221,7 +221,7 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 	/* Checking if we are in position already */
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_tree_node_ack(node, parent))
-		goto out_parent_fetch;
+		goto out_correct_place;
 #endif
 
         reiser4_node_leftmost_key(node, &lkey);
@@ -232,7 +232,7 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 	{
 #ifndef ENABLE_STAND_ALONE
 		if (reiser4_tree_node_ack(node, parent))
-			goto out_parent_fetch;
+			goto out_correct_place;
 #endif
 	}
 
@@ -257,17 +257,14 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 			blk = reiser4_item_down_link(parent);
 				
 			if (blk == node_blocknr(node))
-				goto out_parent_fetch;
+				goto out_correct_place;
 		}
 	}
 
 	return -EINVAL;
 
-out_parent_fetch:
+out_correct_place:
 #endif
-	if (reiser4_place_fetch(parent))
-		return -EINVAL;
-
 	if (reiser4_item_units(parent) == 1)
 		parent->pos.unit = MAX_UINT32;
 
@@ -425,7 +422,9 @@ errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 
 #ifndef ENABLE_STAND_ALONE
 /* Updates all internal node loaded children positions in parent. */
-static errno_t reiser4_tree_update_node(reiser4_tree_t *tree, reiser4_node_t *node) {
+static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
+					reiser4_node_t *node)
+{
 	uint32_t i;
 	errno_t res;
 
@@ -675,7 +674,8 @@ reiser4_node_t *reiser4_tree_neig_node(reiser4_tree_t *tree,
    passed @place. Needed for moving though the tree node by node, for instance
    in directory read code. */
 errno_t reiser4_tree_next_node(reiser4_tree_t *tree, 
-			       reiser4_place_t *place, reiser4_place_t *next)
+			       reiser4_place_t *place,
+			       reiser4_place_t *next)
 {
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
@@ -706,7 +706,7 @@ errno_t reiser4_tree_next_node(reiser4_tree_t *tree,
 #ifndef ENABLE_STAND_ALONE
 /* Requests block allocator for new block and creates empty node in it. */
 reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
-				uint8_t level)
+					uint8_t level)
 {
 	blk_t blk;
 	rid_t pid;

@@ -626,22 +626,22 @@ lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
 
 /* Reads data from the tree to passed @hint. */
 int64_t obj40_read(obj40_t *obj, trans_hint_t *hint) {
-	return obj->core->tree_ops.read(obj->info.tree, hint);
+	return obj->core->flow_ops.read(obj->info.tree, hint);
 }
 
 #ifndef ENABLE_STAND_ALONE
 int64_t obj40_convert(obj40_t *obj, conv_hint_t *hint) {
-	return obj->core->tree_ops.convert(obj->info.tree, hint);
+	return obj->core->flow_ops.convert(obj->info.tree, hint);
 }
 
 /* Writes data to tree */
 int64_t obj40_write(obj40_t *obj, trans_hint_t *hint) {
-	return obj->core->tree_ops.write(obj->info.tree, hint);
+	return obj->core->flow_ops.write(obj->info.tree, hint);
 }
 
 /* Truncates data in tree */
 int64_t obj40_truncate(obj40_t *obj, trans_hint_t *hint) {
-	return obj->core->tree_ops.truncate(obj->info.tree, hint);
+	return obj->core->flow_ops.truncate(obj->info.tree, hint);
 }
 
 /* Inserts passed item hint into the tree. After function is finished, place

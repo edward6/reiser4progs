@@ -1514,6 +1514,24 @@ struct reiser4_plug {
 #define place_isdirty(place) \
         ((place)->node->block->dirty)
 
+struct flow_ops {
+	/* Reads data from the tree. */
+	int64_t (*read) (void *, trans_hint_t *);
+
+#ifndef ENABLE_STAND_ALONE
+	/* Writes data to tree. */
+	int64_t (*write) (void *, trans_hint_t *);
+
+	/* Truncates data from tree. */
+	int64_t (*truncate) (void *, trans_hint_t *);
+	
+	/* Convert some particular place to another plugin. */
+	errno_t (*convert) (void *, conv_hint_t *);
+#endif
+};
+
+typedef struct flow_ops flow_ops_t;
+
 struct tree_ops {
 	/* Checks if passed @place points to some real item inside a node. */
 	int (*valid) (void *, reiser4_place_t *);
@@ -1526,19 +1544,7 @@ struct tree_ops {
 	lookup_t (*lookup) (void *, reiser4_key_t *,
 			    uint8_t, bias_t, reiser4_place_t *);
 
-	/* Reads data from the tree. */
-	int64_t (*read) (void *, trans_hint_t *);
-
 #ifndef ENABLE_STAND_ALONE
-	/* Truncates data from tree. */
-	int64_t (*truncate) (void *, trans_hint_t *);
-	
-	/* Convert some particular place to another plugin. */
-	errno_t (*convert) (void *, conv_hint_t *);
-	
-	/* Writes data to tree. */
-	int64_t (*write) (void *, trans_hint_t *);
-
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
 	   by all object plugins (dir, file, etc). */
 	int64_t (*insert) (void *, reiser4_place_t *,
@@ -1548,14 +1554,15 @@ struct tree_ops {
 	   modification purposes. */
 	errno_t (*remove) (void *, reiser4_place_t *, trans_hint_t *);
 
-	/* Functions for getting/setting extent data. */
-	aal_block_t *(*get_data) (void *, reiser4_key_t *);
-	
+	/* Function for setting unformatted blocks data. */
 	errno_t (*put_data) (void *, reiser4_key_t *,
 			     aal_block_t *);
 
-	/* Removes data from the cache */
+	/* Function for removing unformatted blocks data. */
 	errno_t (*rem_data) (void *, reiser4_key_t *);
+
+	/* Function for getting unformatted blocks data. */
+	aal_block_t *(*get_data) (void *, reiser4_key_t *);
 	
 	/* Update the key in the place and the node itsef. */
 	errno_t (*update_key) (void *, reiser4_place_t *, reiser4_key_t *);
@@ -1613,6 +1620,7 @@ typedef struct item_ops item_ops_t;
 /* This structure is passed to all plugins in initialization time and used for
    access libreiser4 factories. */
 struct reiser4_core {
+	flow_ops_t flow_ops;
 	tree_ops_t tree_ops;
 	factory_ops_t factory_ops;
 	
