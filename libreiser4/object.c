@@ -378,7 +378,7 @@ void reiser4_object_create_base(
 
 /* Creates new object on specified filesystem */
 reiser4_object_t *reiser4_object_create(
-	reiser4_fs_t *fs,		     /* fs obejct will be created on */
+	reiser4_fs_t *fs,		     /* fs object will be created on */
 	reiser4_object_t *parent,            /* parent object */
 	object_hint_t *hint)                 /* object hint */
 {

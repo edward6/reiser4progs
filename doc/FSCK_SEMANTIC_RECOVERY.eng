@@ -1,0 +1,92 @@
+SEMANTIC & LOST+FOUND.
+
+Term. 
+
+Base item - having this item plugin knows how to reach all other items. 
+I the current implementation only compound directoty items which do not 
+have '.' and '..' are not base items.
+
+Idea.
+
+All objects are considered as lost initially. Just check that root dir 
+exists before the start. Then for any not CHECKED item try to recover 
+the object, reach its parent and recover the whole subtree.
+
+If it is not possible to recover the object on the base of the item 
+(it is not a base item of the object) skip it for now. It can be done
+later by trying to recover somebody's child or parent - than we have 
+a pointer to the StatData or some other item but which is a base item 
+of the object.
+
+Object inherits its properties from the parent so if plugin of the 
+object is ambiguous, then try to reach the parent and its parent untill
+plugin become unambiguous. If this fails, wait for reaching this object
+from some other object when the plugin will be figured out. If it fails 
+also, link it to LOST+FOUND and recover with default plugin.
+
+Algorithm.
+
+1. Semantic pass.
+(a) Object body recovery on the base of unCHECKED item or the key of 
+    some base item.
+  - If object plugin is detected, recover the object body, all items 
+    get marked as CHECKED.
+  - If the object was found on the base of some child and that child 
+    can provide its key (key of SD) recover the link to the child.
+  - If child is checked, mark it REACHABLE, nlink++, othewise do 
+    neither.
+(b) Child-parent link recovery, independent of the (a) recovery result.
+  - If parent pointer can be get, do (a) for it.
+  - Do (b) for parent pointer.
+  - If some object reachable from the root is reached, link to it.
+    If some object with parent pointer to nowhere is reached link it 
+    to LOST+FOUND.
+    If some object without parent pointer is reached, do not link it 
+    at all to not inherit some wrong/default properties. We might reach
+    this object from some parent yet.
+(c) Run Semantic Recursive Traverse Pass from the reached at (b) object
+    down untill we reach ambiguous objects. Ambiguous objects can be 
+    reached from an object linked to some parent which do not have a 
+    pointer to the parent, so root directory cannot be reached than.
+    Objects which have parent pointer which does not match the current 
+    parent, are checked, makred CHECKED, nlink++, but not REACHED, and 
+    their subtrees are checked untill ambiguous objects are reached.
+
+2. Semantic pass cleanup.
+Semantic Recursive Traverse Pass from the root, eliminate all UNREACHED
+objects, ambiguous objects and recover property inheritance. If some 
+object with a root pointer which does not match the current parent found,
+skip it - inheritance does not work here.
+
+Result.
+Everything what was linked to some objects or to LOST+FOUND was recovered
+with all their subtrees. There left some recovered unREACHED objects,with
+their subtrees limited by ambiguous objects from the bottom, & unrecovered
+unREACHED objects:
+(a) objects which do not keep parent pointer and pointers from above to 
+    them are lost or are in ambiguous objects.
+(b) ambiguous objects with parent pointer but root cannot be reached.
+(c) recovered objects with parent pointer to ambiguous existent object
+    which is (a) or path above is limited by (a).
+
+3. Lost & found pass.  
+(a) Take an unREACHABLE object
+(b) If the it does not keep a parent pointer, link it to LOST+FOUND.
+    If it does keep a parent pointer and that parent can be found, get 
+    the upper reachable parent pointer (which should be unREACHABLE also)
+    and link it to LOST+FOUND.
+(b) If it was found by some child, recover the link to the child.
+(c) Recover the object linked to LOST+FOUND by default
+(d) Recover the link to the child on the base of which this object was 
+    reached.
+(e) Recover the whole subtree of the linked object. For each child which
+    does not keep a parent pointer check that it is not linked to 
+    LOST+FOUND, othewise unlink it from their.
+
+4. Lost+Found Cleanup pass.
+Similar to 2 for LOST+FOUND dir only. 
+
+There should not be any unCHECKED and unREACHABLE stuff now. Otherwise 
+it can be cleaned later on FSCK CLEANUP PASS. Well, I hope that there is 
+no need in this another pass.
+
