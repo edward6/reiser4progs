@@ -210,6 +210,8 @@ static errno_t callback_region_mark(void *object, blk_t blk,
 	return 0;
 }
 
+#if 0
+/* FIXME-UMKA->VITALY: This is not used. */
 static errno_t callback_layout_bad(void *object, blk_t blk, 
 				   uint64_t count, void *data) 
 {
@@ -221,6 +223,7 @@ static errno_t callback_layout_bad(void *object, blk_t blk,
 
 	return 0;
 }
+#endif
 
 /* Setup the pass to be performed - create 2 new bitmaps for blocks to be 
    scanned, leaves, and formatted blocks which cannot be pointed by nodeptr's 
