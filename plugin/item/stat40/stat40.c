@@ -497,6 +497,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.write          = NULL,
 		.layout         = NULL,
 		.remove		= NULL,
+		.shrink		= NULL,
 		.shift          = NULL,
 		.predict        = NULL,
 		.set_key	= NULL,

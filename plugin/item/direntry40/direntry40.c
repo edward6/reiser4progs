@@ -541,7 +541,7 @@ static errno_t direntry40_copy(item_entity_t *dst_item,
 }
 
 /* Shrinks direntry item in order to delete some entries */
-static int32_t direntry40_shrink(item_entity_t *item,
+static int32_t direntry40_cut(item_entity_t *item,
 				 uint32_t pos, uint32_t count)
 {
 	uint32_t first;
@@ -736,7 +736,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	direntry40_rep(dst_item, dst_pos, src_item,
 		       src_pos, hint->units);
 
-	direntry40_shrink(src_item, src_pos, hint->units);
+	direntry40_cut(src_item, src_pos, hint->units);
 	de40_dec_units(src_direntry, hint->units);
 
 	/* Updating item key by first direntry key */
@@ -855,16 +855,37 @@ int32_t direntry40_remove(item_entity_t *item,
 	aal_assert("umka-934", item != NULL);
 
 	/* Shrinking direntry */
-	if ((len = direntry40_shrink(item, pos, count)) <= 0)
+	if ((len = direntry40_cut(item, pos, count)) <= 0)
 		return -EINVAL;
 
-	de40_inc_units(direntry40_body(item), count);
+	de40_dec_units(direntry40_body(item), count);
 	
 	/* Updating item key */
 	if (pos == 0 && direntry40_units(item) > 0)
 		direntry40_get_key(item, 0, &item->key);
 
 	return len;
+}
+
+int32_t direntry40_shrink(item_entity_t *item, key_entity_t *start, 
+			  key_entity_t *end) 
+{
+	uint32_t start_pos, end_pos;
+	int32_t len;
+	
+	aal_assert("vpf-926", item != NULL);
+	aal_assert("vpf-927", start != NULL);
+	aal_assert("vpf-928", end != NULL);
+	
+	if (direntry40_lookup(item, start, &start_pos) != LP_PRESENT)
+		return -EINVAL;
+
+	if (direntry40_lookup(item, end, &end_pos) != LP_PRESENT)
+		return -EINVAL;
+	
+	aal_assert("vpf-929", end_pos >= start_pos);
+	
+	return direntry40_remove(item, start_pos, end_pos - start_pos + 1);
 }
 
 /* Prepares area new item will be created at */
@@ -1076,6 +1097,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.copy		= direntry40_copy,
 		.insert		= direntry40_insert,
 		.remove		= direntry40_remove,
+		.shrink		= direntry40_shrink,
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
 		.print		= direntry40_print,

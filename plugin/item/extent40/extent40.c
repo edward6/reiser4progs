@@ -39,15 +39,16 @@ static uint64_t extent40_offset(item_entity_t *item,
 				uint64_t pos)
 {
 	uint32_t i, blocks = 0;
+	extent40_t *extent;
     
 	aal_assert("umka-2204", item != NULL);
 	
-	for (i = 0; i < pos; i++) {
-		extent40_t *extent = extent40_body(item);
+	extent = extent40_body(item);
+	
+	for (i = 0; i < pos; i++)
 		blocks += et40_get_width(extent + i);
-	}
     
-	return (blocks * item->context.device->blocksize);
+	return blocks * extent40_blocksize(item);
 }
 
 /* Gets the number of unit specified offset lies in */
@@ -59,14 +60,12 @@ static uint32_t extent40_unit(item_entity_t *item,
 			      uint32_t offset)
 #endif
 {
-	uint32_t i;
+	uint32_t i, width;
 	extent40_t *extent;
 
 	extent = extent40_body(item);
 	
 	for (i = 0; i < extent40_units(item); i++) {
-		uint32_t width;
-
 		width = et40_get_width(extent + i) *
 			extent40_blocksize(item);
 		
@@ -112,10 +111,15 @@ static int32_t extent40_remove(item_entity_t *item,
 			       uint32_t count)
 {
 
-	aal_assert("umka-1834", item != NULL);
+	aal_assert("vpf-941", item != NULL);
+	aal_assert("vpf-940", pos < extent40_units(item));
 
-	/* FIXME-UMKA: Not implemented yet */
-	
+	if (pos + count < extent40_units(item)) {
+		aal_memmove(extent40_body(item) + pos, 
+			    extent40_body(item) + pos + count,
+			    item->len - (pos + count) * sizeof(extent40_t));
+	}
+		
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
 		if (extent40_get_key(item, 0, &item->key))
@@ -123,6 +127,69 @@ static int32_t extent40_remove(item_entity_t *item,
 	}
 	
 	return 0;
+}
+
+/* Removes body between specified keys. */
+static int32_t extent40_shrink(item_entity_t *item,
+			       key_entity_t *start,
+			       key_entity_t *end)
+{
+	uint32_t start_pos, end_pos, count;
+	uint64_t start_byte, end_byte, width;
+	extent40_t *extent;
+	int32_t len = 0;
+	
+	aal_assert("vpf-935", item  != NULL);
+	aal_assert("vpf-936", start != NULL);
+	aal_assert("vpf-937", end   != NULL);
+	
+	/* Looking up the start byte */
+	if (common40_lookup(item, start, &start_byte, extent40_offset) 
+	    != LP_PRESENT)
+		return -EINVAL;
+	
+	/* Looking up the end byte */
+	if (common40_lookup(item, end, &end_byte, extent40_offset) 
+	    != LP_PRESENT)
+		return -EINVAL;
+	
+	aal_assert("vpf-938", end_byte >= start_byte);
+	
+	/* Transforming from the offset ot unit */
+	start_pos = extent40_unit(item, start_byte);	
+	
+	/* Transforming from the offset ot unit */
+	end_pos = extent40_unit(item, end_byte);
+	
+	width = start_byte - extent40_offset(item, start_pos);
+	
+	aal_assert("vpf-939", width % extent40_blocksize(item) == 0);
+	
+	width /= extent40_blocksize(item);
+	
+	if (width) {
+		/* Not the whole first unit should be removed. */
+		et40_set_width(extent40_body(item) + start_pos, width);
+		start_pos++;
+	}
+	
+	/* End key is inclusive, so + 1 */
+	width = end_byte - extent40_offset(item, end_pos) + 1;
+	
+	aal_assert("vpf-939", width % extent40_blocksize(item) == 0);
+	
+	width /= extent40_blocksize(item);
+	
+	extent = extent40_body(item) + end_pos;
+	
+	if (width != et40_get_width(extent)) {		
+		/* Not the whole first unit should be removed. */		
+		et40_set_start(extent, et40_get_start(extent) + width);
+		et40_set_width(extent, et40_get_width(extent) - width);
+		end_pos--;
+	}
+	
+	return extent40_remove(item, start_pos, end_pos - start_pos + 1);
 }
 
 /* Prints extent item into specified @stream */
@@ -225,7 +292,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != ~0ul);
 
-	blocksize = item->context.device->blocksize;
+	blocksize = extent40_blocksize(item);
 
 	for (read = count, i = extent40_unit(item, pos);
 	     i < extent40_units(item) && count > 0; i++)
@@ -543,6 +610,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.copy          = extent40_copy,
 		.estimate      = extent40_estimate,
 		.remove	       = extent40_remove,
+		.shrink	       = extent40_shrink,
 		.print	       = extent40_print,
 		.predict       = extent40_predict,
 		.shift         = extent40_shift,

@@ -149,10 +149,7 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 	aal_assert("umka-1661", item != NULL);
 	aal_assert("umka-1663", pos < item->len);
 
-	if (count > item->len - pos)
-		count = item->len - pos;
-
-	if (pos + count < item->len - 1) {
+	if (pos + count < item->len) {
 		src = item->body + pos;
 		dst = src + count;
 
@@ -167,6 +164,33 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 	}
 	
 	return count;
+}
+
+/* Removes the part of tail body between specified keys. */
+static int32_t tail40_shrink(item_entity_t *item, key_entity_t *start,
+			     key_entity_t *end)
+{
+	uint64_t offset, start_offset, end_offset;
+	void *src, *dst;
+	
+	aal_assert("vpf-930", item  != NULL);
+	aal_assert("vpf-931", start != NULL);
+	aal_assert("vpf-932", end   != NULL);
+	
+	offset = plugin_call(end->plugin->key_ops,
+			     get_offset, &item->key);
+	
+	end_offset = plugin_call(end->plugin->key_ops,
+				 get_offset, end);
+	
+	start_offset = plugin_call(start->plugin->key_ops,
+				   get_offset, start);
+
+	aal_assert("vpf-933", end_offset > start_offset);
+	aal_assert("vpf-934", start_offset > offset);
+	
+	return tail40_remove(item, start_offset - offset, 
+			     end_offset - start_offset);
 }
 
 static errno_t tail40_init(item_entity_t *item) {
@@ -365,6 +389,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.copy	        = tail40_copy,
 		.write	        = tail40_write,
 		.remove	        = tail40_remove,
+		.shrink	        = tail40_shrink,
 		.print	        = tail40_print,
 		.predict        = tail40_predict,
 		.shift	        = tail40_shift,		

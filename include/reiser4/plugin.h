@@ -726,12 +726,13 @@ struct reiser4_item_ops {
 	  Inserts some amount of units described by passed hint into passed
 	  item.
 	*/
-	errno_t (*insert) (item_entity_t *, create_hint_t *,
-			   uint32_t);
+	errno_t (*insert) (item_entity_t *, create_hint_t *, uint32_t);
 	
 	/* Removes specified unit from the item. Returns released space */
-	int32_t (*remove) (item_entity_t *, uint32_t,
-			   uint32_t);
+	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
+	
+	/* Removes item's content between the specified keys. */
+	int32_t (*shrink) (item_entity_t *, key_entity_t *, key_entity_t *);
 	
 	/* Write method for filebody items */
 	int32_t (*write) (item_entity_t *, void *, uint32_t,
