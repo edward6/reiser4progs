@@ -2410,7 +2410,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 
 	/* Preparing space in tree. */
 	if ((space = reiser4_tree_expand(tree, place, needed, SF_DEFAULT)) < 0) {
-		aal_error("Can't prepare space in tree.");
+		aal_error("Can't prepare space in tree. No space left?");
 		return space;
 	}
 
