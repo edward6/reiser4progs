@@ -584,14 +584,17 @@ errno_t reiser4_tree_shift(
 	if (retval < 0)
 		return retval;
 
-	/* Updating coords joint if insertion point was moved to neighbour */
-	if (hint.flags & SF_MOVIP) {
-		coord->pos = hint.pos;
-		coord->u.joint = joint;
-	}
-
 	/* Updating leaf delimiting keys in the tree */
 	if (flags & SF_LEFT) {
+		/*
+		  Updating coords joint if insertion point was moved to
+		  neighbour.
+		*/
+		coord->pos = hint.pos;
+
+		if (hint.flags & SF_MOVIP)
+			coord->u.joint = joint;
+		
 		if (reiser4_node_count(coord->u.joint->node) != 0 &&
 		    (hint.items > 0 || hint.units > 0))
 		{
@@ -606,6 +609,15 @@ errno_t reiser4_tree_shift(
 			}
 		}
 	} else {
+		/*
+		  Updating coords joint if insertion point was moved to
+		  neighbour.
+		*/
+		if (hint.flags & SF_MOVIP) {
+			coord->pos = hint.pos;
+			coord->u.joint = joint;
+		}
+
 		if (hint.items > 0 || hint.units > 0) {
 			joint->flags |= JF_DIRTY;
 			
@@ -661,14 +673,14 @@ errno_t reiser4_tree_mkspace(
 		return 0;
 
 	/* Shifting data into left neighbour if it exists */
-	if ((left = reiser4_joint_left(new->u.joint))) {
+/*	if ((left = reiser4_joint_left(new->u.joint))) {
 	    
 		if (reiser4_tree_shift(tree, new, left, SF_LEFT))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(new->u.joint->node)) <= 0)
 			return 0;
-	}
+	}*/
 
 	/* Shifting data into right neighbour if it exists */
 	if ((right = reiser4_joint_right(new->u.joint))) {
@@ -821,7 +833,7 @@ errno_t reiser4_tree_insert(
 	
 		return 0;
 	}
-    
+
 	if (reiser4_tree_mkspace(tree, coord, &insert, needed)) {
 		aal_exception_error("Can't prepare space for insert one more item.");
 		return -1;
@@ -873,10 +885,15 @@ errno_t reiser4_tree_remove(
 		return -1;
 
 	if (lookup == 0) {
-		aal_exception_error(
-			"Key (0x%llx:0x%x:0x%llx:0x%llx) doesn't found in tree.", 
-			reiser4_key_get_locality(key), reiser4_key_get_type(key),
-			reiser4_key_get_objectid(key), reiser4_key_get_offset(key));
+		aal_stream_t stream;
+
+		aal_stream_init(&stream);
+		reiser4_key_print(key, &stream);
+			
+		aal_exception_error("Key %s is not found in tree.",
+				    stream.data);
+		
+		aal_stream_fini(&stream);
 		return -1;
 	}
     

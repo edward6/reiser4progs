@@ -537,7 +537,7 @@ static uint16_t direntry40_remove(item_entity_t *item,
 		offset = en40_get_offset(&direntry->entry[pos]);
 	
 		foot_len = 0;
-		for (i = pos; i < de40_get_count(direntry) - 1; i++)
+		for (i = pos; i < (uint32_t)(de40_get_count(direntry) - 1); i++)
 			foot_len += direntry40_unitlen(direntry, i);
 
 		src = (void *)direntry + offset;
@@ -545,7 +545,7 @@ static uint16_t direntry40_remove(item_entity_t *item,
 		
 		aal_memmove(dst, src, foot_len);
 
-		for (i = pos; i < de40_get_count(direntry) - 1; i++)
+		for (i = pos; i < (uint32_t)(de40_get_count(direntry) - 1); i++)
 			en40_dec_offset(&direntry->entry[i], dec_len);
 	}
     
