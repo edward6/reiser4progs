@@ -204,8 +204,8 @@ static errno_t tail40_prep_shift(place_t *src_place,
 	
 	/* Check if we have to check if insert point should be staying inside
 	   @src_place. Otherwise, we want to shift everything. */
-	if (!(src_place->pos.item == hint->pos.item &&
-	      hint->pos.unit != MAX_UINT32))
+	if (src_place->pos.item != hint->pos.item ||
+	    hint->pos.unit == MAX_UINT32)
 	{
 		if (hint->units_bytes > src_place->len)
 			hint->units_bytes = src_place->len;
@@ -234,12 +234,14 @@ static errno_t tail40_prep_shift(place_t *src_place,
 				hint->pos.unit = hint->units_bytes +
 					(dst_place ? dst_place->len : 0);
 			}
+		} else {
+			if (hint->units_bytes > src_place->len)
+				hint->units_bytes = src_place->len;
 		}
 	} else {
 		uint32_t right;
 
 		if (hint->control & SF_UPDATE_POINT) {
-			
 			/* Is insert point inside item? */
 			if (hint->pos.unit < src_place->len) {
 				right = src_place->len - hint->pos.unit;
@@ -253,7 +255,7 @@ static errno_t tail40_prep_shift(place_t *src_place,
 
 				/* Updating insert point to first position in
 				   neighbour item. */
-				if (hint->pos.unit == src_place->len &&
+				if (hint->pos.unit >= src_place->len &&
 				    hint->control & SF_MOVE_POINT)
 				{
 					hint->result |= SF_MOVE_POINT;
@@ -269,6 +271,9 @@ static errno_t tail40_prep_shift(place_t *src_place,
 
 				hint->units_bytes = 0;
 			}
+		} else {
+			if (hint->units_bytes > src_place->len)
+				hint->units_bytes = src_place->len;
 		}
 	}
 
@@ -317,10 +322,14 @@ static uint32_t tail40_shrink(place_t *place, uint32_t pos,
 			      uint32_t count, uint32_t len)
 {
 	if (pos < place->len) {
-		aal_memmove(place->body + pos,
-			    place->body + pos + count,
-			    place->len - (pos + count));
+		uint32_t size;
+		void *src, *dst;
 
+		dst = place->body + pos;
+		src = place->body + pos + count;
+		size = place->len - (pos + count);
+		
+		aal_memmove(dst, src, size);
 		place_mkdirty(place);
 	}
 
