@@ -1,5 +1,5 @@
 /*
-  tree.c -- reiser4 tree code.
+  tree.c -- reiser4 tree related code.
   
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -78,8 +78,8 @@ static lru_ops_t lru_ops = {
 reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 				   reiser4_place_t *place)
 {
-	reiser4_node_t *node;
 	reiser4_ptr_hint_t ptr;
+	reiser4_node_t *node = NULL;
 	
 	aal_assert("umka-1889", tree != NULL);
 	aal_assert("umka-1890", place != NULL);
@@ -100,14 +100,11 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 	if (ptr.ptr == INVAL_BLK)
 		goto error_unlock_place;
 	
-	if (!(node = reiser4_tree_load(tree, place->node, ptr.ptr)))
-		goto error_unlock_place;
-
-	return node;
+	node = reiser4_tree_load(tree, place->node, ptr.ptr);
 
  error_unlock_place:
 	reiser4_node_unlock(place->node);
-	return NULL;
+	return node;
 }
 
 /*
@@ -119,14 +116,18 @@ errno_t reiser4_tree_connect(
 	reiser4_node_t *parent,	 /* node child will be connected to */
 	reiser4_node_t *node)	 /* child node to be attached */
 {
+	errno_t res = 0;
+	
 	aal_assert("umka-1857", tree != NULL);
 	aal_assert("umka-561", parent != NULL);
 	aal_assert("umka-564", node != NULL);
 
 	/* Registering @child in @node children list */
-	if (reiser4_node_connect(parent, node))
-		return -1;
+	if ((res = reiser4_node_connect(parent, node)))
+		return res;
 
+	reiser4_node_lock(node);
+	
 	/*
 	  Getting neighbours. This should be done after reiser4_node_connect is
 	  done and parent assigned.
@@ -135,18 +136,18 @@ errno_t reiser4_tree_connect(
 	node->right = reiser4_tree_neighbour(tree, node, D_RIGHT);
 
 	if (tree->traps.connect) {
-		errno_t res;
 		reiser4_place_t place;
 			
 		if (reiser4_place_open(&place, parent, &node->pos))
-			return -1;
+			goto error_unlock_node;
 			
-		if ((res = tree->traps.connect(tree, &place, node,
-					       tree->traps.data)))
-			return res;
+		res = tree->traps.connect(tree, &place, node,
+					  tree->traps.data);
 	}
 	
-	return 0;
+ error_unlock_node:
+	reiser4_node_unlock(node);
+	return res;
 }
 
 /*
