@@ -168,7 +168,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		callback_region_mark, ds);
 	}
 
-	if (reiser4_alloc_available(control->repair->fs->alloc, i, 1) && 
+	if (reiser4_alloc_occupied(control->repair->fs->alloc, i, 1) && 
 	    !aux_bitmap_test(ds->bm_met, i))
 	    aux_bitmap_mark(ds->bm_scan, i);
     }
