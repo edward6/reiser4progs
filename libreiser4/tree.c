@@ -101,10 +101,8 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	/* Checking if tree contains some nodes at all. It does not contain them
 	   just after creation. The is root blk in format is set to
 	   INVAL_BLK. */
-#ifndef ENABLE_STAND_ALONE
 	if (reiser4_tree_fresh(tree))
 		return -EINVAL;
-#endif
 
 	/* Getting root node and loading it. */
 	root_blk = reiser4_tree_get_root(tree);
@@ -1117,6 +1115,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	
 	return res;
 }
+#endif
 
 /* Returns 1 if tree has not root node and 0 otherwise. Tree has not root just
    after format instance is craeted and tree is initialized on fs with it. And
@@ -1125,7 +1124,6 @@ bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
 	aal_assert("umka-1930", tree != NULL);
 	return (reiser4_tree_get_root(tree) == INVAL_BLK);
 }
-#endif
 
 /* Unloads all tree nodes from memory. Used in tree_collapse(). */
 errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
@@ -1229,11 +1227,14 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */
-	if (reiser4_tree_load_root(tree)) {
+	if (reiser4_tree_fresh(tree)) {
 		reiser4_place_assign(place, NULL,
 				     0, MAX_UINT32);
 		return ABSENT;
 	} else {
+		if ((res = reiser4_tree_load_root(tree)) < 0)
+			return res;
+		
 		reiser4_place_assign(place, tree->root,
 				     0, MAX_UINT32);
 	}

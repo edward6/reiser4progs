@@ -10,6 +10,7 @@
 
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
 extern void reiser4_tree_close(reiser4_tree_t *tree);
+extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 
 extern int64_t reiser4_tree_read(reiser4_tree_t *tree,
 				 place_t *place,
@@ -47,7 +48,6 @@ extern node_t *reiser4_tree_neigh_node(reiser4_tree_t *tree,
 				       node_t *node, aal_direction_t where);
 
 #ifndef ENABLE_STAND_ALONE
-extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_growup(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_dryout(reiser4_tree_t *tree);
@@ -102,9 +102,9 @@ extern errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 				   place_t *place);
 
 extern int32_t reiser4_tree_expand(reiser4_tree_t *tree,
-				 place_t *place,
-				 uint32_t needed,
-				 uint32_t flags);
+				   place_t *place,
+				   uint32_t needed,
+				   uint32_t flags);
 
 extern errno_t reiser4_tree_update_key(reiser4_tree_t *tree,
 				       place_t *place,

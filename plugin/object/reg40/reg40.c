@@ -295,7 +295,7 @@ reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 	   from stat data, as for tails and extents plugin type is the same and
 	   namely ITEM_PLUG_TYPE. */
 	
-	/* Calling tail policy plugin to detect body plugin */
+	/* Calling tail policy plugin to detect body plugin. */
 	if (plug_call(reg->policy->o.policy_ops, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */

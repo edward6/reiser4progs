@@ -719,6 +719,15 @@ struct reiser4_object_ops {
 	errno_t (*stat) (object_entity_t *, statdata_hint_t *);
 
 #ifndef ENABLE_STAND_ALONE
+	/* These methods change @nlink value of passed @entity */
+	errno_t (*link) (object_entity_t *);
+	errno_t (*unlink) (object_entity_t *);
+	uint32_t (*links) (object_entity_t *);
+
+	/* Establish parent child relationchip */
+	errno_t (*attach) (object_entity_t *, object_entity_t *);
+	errno_t (*detach) (object_entity_t *, object_entity_t *);
+
 	/* Updates object stat data from passed hint. */
 	errno_t (*update) (object_entity_t *, statdata_hint_t *);
 	
@@ -727,18 +736,6 @@ struct reiser4_object_ops {
 
 	/* Delete file body and stat data if any. */
 	errno_t (*clobber) (object_entity_t *);
-
-	/* These methods change @nlink value of passed @entity */
-	errno_t (*link) (object_entity_t *);
-	errno_t (*unlink) (object_entity_t *);
-	uint32_t (*links) (object_entity_t *);
-
-	/* Establish parent child relationchip */
-	errno_t (*attach) (object_entity_t *,
-			   object_entity_t *);
-	
-	errno_t (*detach) (object_entity_t *,
-			   object_entity_t *);
 
 	/* Writes the data to file from passed buffer */
 	int64_t (*write) (object_entity_t *, void *, uint64_t);
