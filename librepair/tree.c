@@ -7,6 +7,47 @@
 
 #include <repair/librepair.h>
 
+/*
+  This function returns TRUE if passed item @group corresponds to passed @level
+  Hardcoded method, valid for the current tree imprementation only.
+*/
+bool_t repair_tree_legal_level(reiser4_item_group_t group,
+			       uint8_t level)
+{
+    if (group == NODEPTR_ITEM) {
+	if (level == LEAF_LEVEL)
+	    return FALSE;
+    } else if (group == EXTENT_ITEM) {
+	if (level != TWIG_LEVEL)
+	    return FALSE;
+    } else
+	return level == LEAF_LEVEL;
+
+    return TRUE;
+}
+
+static errno_t callback_data_level(reiser4_plugin_t *plugin,
+    void *data)
+{
+    uint8_t *level = (uint8_t *)data;
+
+    aal_assert("vpf-746", data != NULL);
+
+    if (!repair_tree_legal_level(plugin->h.group, *level))
+	return 0;
+
+    return reiser4_item_data(plugin);
+}
+
+bool_t repair_tree_data_level(uint8_t level) {
+
+    if (level == 0)
+	return FALSE;
+	
+    return (libreiser4_factory_cfind(callback_data_level,
+	&level) != NULL);
+}
+
 /* Get the max real key existed in the tree. Go down through all right-most 
  * child to get it. */
 static errno_t repair_tree_max_real_key(reiser4_node_t *node, 
