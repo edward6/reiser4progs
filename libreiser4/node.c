@@ -777,6 +777,26 @@ uint8_t reiser4_node_level(
 
 #ifndef ENABLE_COMPACT
 
+errno_t reiser4_node_expand(reiser4_node_t *node,
+			    rpos_t *pos, uint32_t len)
+{
+	aal_assert("umka-1815", node != NULL, return -1);
+	aal_assert("umka-1816", pos != NULL, return -1);
+
+	return plugin_call(node->entity->plugin->node_ops, expand,
+			   node->entity, pos, len);
+}
+
+errno_t reiser4_node_shrink(reiser4_node_t *node,
+			    rpos_t *pos, uint32_t len)
+{
+	aal_assert("umka-1817", node != NULL, return -1);
+	aal_assert("umka-1818", pos != NULL, return -1);
+
+	return plugin_call(node->entity->plugin->node_ops, shrink,
+			   node->entity, pos, len);
+}
+
 /*
   Makes shift of some amount of items and units into passed neighbour. Shift
   direction and other flags are passed by @hint. Returns operation error code.

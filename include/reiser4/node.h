@@ -54,6 +54,12 @@ extern errno_t reiser4_node_cut(reiser4_node_t *node,
 				rpos_t *start,
 				rpos_t *end);
 
+extern errno_t reiser4_node_expand(reiser4_node_t *node,
+				   rpos_t *pos, uint32_t len);
+
+extern errno_t reiser4_node_shrink(reiser4_node_t *node,
+				   rpos_t *pos, uint32_t len);
+
 extern errno_t reiser4_node_shift(reiser4_node_t *node,
 				  reiser4_node_t *neig,
 				  shift_hint_t *hint);

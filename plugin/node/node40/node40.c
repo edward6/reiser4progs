@@ -311,8 +311,8 @@ static errno_t node40_item(item_entity_t *item,
   Makes expand passed @node by @len in odrer to make room for insert new
   items/units. This function is used by insert and shift methods.
 */
-static errno_t node40_expand(node40_t *node, rpos_t *pos,
-			     uint32_t len, uint32_t count)
+static errno_t node40_grow(node40_t *node, rpos_t *pos,
+			   uint32_t len, uint32_t count)
 {
 	int is_space;
 	int is_range;
@@ -414,8 +414,8 @@ static errno_t node40_expand(node40_t *node, rpos_t *pos,
   component of pos is specified, then it will shrink specified by @pos->item
   node by specified @len.
 */
-static errno_t node40_shrink(object_entity_t *entity, rpos_t *pos,
-			     uint32_t len, uint32_t count)
+static errno_t node40_cutdown(node40_t *node, rpos_t *pos,
+			      uint32_t len, uint32_t count)
 {
 	int is_range;
 	
@@ -429,8 +429,6 @@ static errno_t node40_shrink(object_entity_t *entity, rpos_t *pos,
 	item40_header_t *cur;
 	item40_header_t *end;
 
-	node40_t *node = (node40_t *)entity;
-	
 	aal_assert("umka-1798", node != NULL, return -1);
 	aal_assert("umka-1799", pos != NULL, return -1);
 	aal_assert("umka-1800", count > 0, return -1);
@@ -603,7 +601,6 @@ static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
 	return 0;
 }
 
-
 /* Inserts item described by hint structure into node */
 static errno_t node40_insert(object_entity_t *entity,
 			     rpos_t *pos, reiser4_item_hint_t *hint)
@@ -619,7 +616,7 @@ static errno_t node40_insert(object_entity_t *entity,
 	node = (node40_t *)entity;
 	
 	/* Makes expand of the node new items will be inserted in */
-	if (node40_expand(node, pos, hint->len, 1))
+	if (node40_grow(node, pos, hint->len, 1))
 		return -1;
 
 	ih = node40_ih_at(node, pos->item);
@@ -704,7 +701,7 @@ errno_t node40_remove(object_entity_t *entity,
 		}
 	}
 	
-	return node40_shrink(node, pos, len, count);
+	return node40_cutdown(node, pos, len, count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
@@ -766,14 +763,17 @@ static errno_t node40_cut(object_entity_t *entity,
 			  will be removed too.
 			*/
 			rpos_init(&pos, begin, ~0ul);
+			
 			if (node40_remove(entity, &pos, count))
 				return -1;
 		}
 	} else {
 		aal_assert("umka-1795", end->unit != ~0ul, return -1);
 		aal_assert("umka-1794", start->unit != ~0ul, return -1);
+		
 		pos = *start;
 		count = end->unit - start->unit;
+		
 		if (node40_remove(entity, &pos, count))
 			return -1;
 
@@ -784,12 +784,24 @@ static errno_t node40_cut(object_entity_t *entity,
 		if (!(units = item.plugin->item_ops.units(&item))) {
 			pos.unit = ~0ul;
 
-			if (node40_shrink(entity, &pos, item.len, 1))
+			if (node40_cutdown(node, &pos, item.len, 1))
 				return -1;
 		}
 	}
 
 	return 0;
+}
+
+static errno_t node40_expand(object_entity_t *entity,
+			     rpos_t *pos, uint32_t len)
+{
+	return -1;
+}
+
+static errno_t node40_shrink(object_entity_t *entity,
+			     rpos_t *pos, uint32_t len)
+{
+	return -1;
 }
 
 extern errno_t node40_check(object_entity_t *entity);
@@ -1182,7 +1194,7 @@ static errno_t node40_merge(node40_t *src_node,
 		rpos_init(&pos, (hint->control & SF_LEFT ?
 				 dst_items : 0), ~0ul);
 		
-		if (node40_expand(dst_node, &pos, hint->rest, 1)) {
+		if (node40_grow(dst_node, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand node for "
 					    "shifting units into it.");
 			return -1;
@@ -1194,7 +1206,7 @@ static errno_t node40_merge(node40_t *src_node,
 		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
 
 		/*
-		  Initializing dst item after it was created by node40_expand
+		  Initializing dst item after it was created by node40_grow
 		  function.
 		*/
 		if (node40_item(&dst_item, dst_node, &pos))
@@ -1205,13 +1217,13 @@ static errno_t node40_merge(node40_t *src_node,
 		/*
 		  Items are mergeable, so we do not need to create new item in
 		  the dst node. We just need to expand existent dst item by
-		  hint->rest. So, we will call node40_expand with unit component
+		  hint->rest. So, we will call node40_grow with unit component
 		  not equal ~0ul.
 		*/
 		rpos_init(&pos, (hint->control & SF_LEFT ?
 				 dst_items - 1 : 0), 0);
 
-		if (node40_expand(dst_node, &pos, hint->rest, 1)) {
+		if (node40_grow(dst_node, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand item for "
 					    "shifting units into it.");
 			return -1;
@@ -1256,7 +1268,7 @@ static errno_t node40_merge(node40_t *src_node,
 	
 	if (remove) {
 		/*
-		  Like to node40_expand, node40_shrink will remove pointed item
+		  Like to node40_grow, node40_cutdown will remove pointed item
 		  if unit component is ~0ul and shrink pointed by pos item if
 		  unit is not ~0ul.
 		*/
@@ -1274,11 +1286,11 @@ static errno_t node40_merge(node40_t *src_node,
 		len = hint->rest;
 	}
 
-	return node40_shrink((object_entity_t *)src_node, &pos, len, 1);
+	return node40_cutdown(src_node, &pos, len, 1);
 }
 
 /*
-  Estimatuing how many whole items may be shifted from the src node to dst
+  Estimating how many whole items may be shifted from the src node to dst
   one. Then shifting estimated items. This function is used from node40_shift.
 */
 static errno_t node40_transfuse(node40_t *src_node,
@@ -1452,7 +1464,7 @@ static errno_t node40_transfuse(node40_t *src_node,
 	  Expanding dst node in order to making room for new items and
 	  update node header.
 	*/
-	if (node40_expand(dst_node, &dst_pos, hint->bytes,
+	if (node40_grow(dst_node, &dst_pos, hint->bytes,
 			  hint->items))
 	{
 		aal_exception_error("Can't expand node %llu durring "
@@ -1475,8 +1487,8 @@ static errno_t node40_transfuse(node40_t *src_node,
 	  Shrinking source node after items are copied from it to dst
 	  node.
 	*/
-	if (node40_shrink((object_entity_t *)src_node, &src_pos, hint->bytes,
-			  hint->items))
+	if (node40_cutdown(src_node, &src_pos, hint->bytes,
+			   hint->items))
 	{
 		aal_exception_error("Can't shrink node "
 				    "%llu durring shift.",
@@ -1622,6 +1634,7 @@ static reiser4_plugin_t node40_plugin = {
 		.check		 = node40_check,
 		.print		 = node40_print,
 		.shift		 = node40_shift,
+		.expand		 = node40_expand,
 
 		.set_key	 = node40_set_key,
 		.set_make_stamp	 = node40_set_make_stamp,
@@ -1638,11 +1651,12 @@ static reiser4_plugin_t node40_plugin = {
 		.check		 = NULL,
 		.print		 = NULL,
 		.shift		 = NULL,
+		.shrink		 = NULL,
+		.expand		 = NULL,
 	
 		.set_key	 = NULL,
 		.set_stamp	 = NULL,
 	
-		.shrink		 = NULL,
 		.item_legal	 = NULL,
 #endif
 		.item_len	 = node40_item_len,
