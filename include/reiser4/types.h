@@ -74,7 +74,7 @@ struct reiser4_profile {
 	char desc[255];
     
 	rpid_t node;
-
+	
 	struct {
 		rpid_t regular;
 		rpid_t dirtory;
@@ -103,7 +103,6 @@ struct reiser4_profile {
 	rpid_t alloc;
 	rpid_t journal;
 	rpid_t key;
-
 	uint64_t sdext;
 };
 
@@ -341,13 +340,6 @@ struct reiser4_tree {
 		/* Traps used opaque data  */
 		void *data;
 	} traps;
-
-	/* Tree related plugin ids */
-	struct {
-		rpid_t node;
-		rpid_t key;
-		rpid_t nodeptr;
-	} profile;
 };
 
 struct traverse_hint {
@@ -399,6 +391,12 @@ struct reiser4_fs {
 
 	/* Root file (by default directory) */
 	reiser4_file_t *root;
+
+	/*
+	  Default profile. All plugin ids which cannot be obtained anywhere (for
+	  instance, in parent node or directory) will be taken from this profile.
+	*/
+	reiser4_profile_t *profile;
 
 	/*
 	  Applications using this library sometimes need to embed information

@@ -35,7 +35,9 @@ errno_t reiser4_fs_layout(
    Opens filesysetm on specified host device and journal device. Replays the
    journal if "replay" flag is specified.
 */
-reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
+reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
+			      reiser4_profile_t *profile)
+{
 	rpid_t pid;
 	count_t blocks;
 	uint32_t blocksize;
@@ -43,12 +45,14 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	reiser4_fs_t *fs;
 
 	aal_assert("umka-148", device != NULL);
+	aal_assert("umka-1866", profile != NULL);
 
 	/* Allocating memory and initializing fields */
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 
 	fs->device = device;
+	fs->profile = profile;
 	
 	/* Reads master super block. See above for details */
 	if (!(fs->master = reiser4_master_open(device)))
@@ -229,6 +233,7 @@ reiser4_fs_t *reiser4_fs_create(
 		return NULL;
 	
 	fs->device = device;
+	fs->profile = profile;
 	
 	/* Creates master super block */
 	if (!(fs->master = reiser4_master_create(device, profile->format, 

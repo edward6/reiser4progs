@@ -326,7 +326,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	}
 
 	device = tree->fs->device;
-	pid = tree->profile.node;
+	pid = tree->fs->profile->node;
     
 	/* Creating new node */
 	if (!(node = reiser4_node_create(device, blk, pid, level)))
@@ -422,31 +422,13 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	return INVAL_BLK;
 }
 
-static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
-
-	if (!(tree->lru = aal_lru_create(&lru_ops))) {
-		aal_exception_error("Can't initialize tree cache lru list.");
-		return -1;
-	}
-	
-	/*
-	  FIXME-UMKA: here should not be hardcoded plugin ids. Probably we
-	  should get the mfrom the fs instance.
-	*/
-	tree->profile.key = KEY_REISER40_ID;
-	tree->profile.node = NODE_REISER40_ID;
-	tree->profile.nodeptr = ITEM_NODEPTR40_ID;
-	
-	return 0;
-}
-
 void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_assert("umka-1531", tree != NULL);
 	aal_lru_free(tree->lru);
 }
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
-reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
+reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	reiser4_tree_t *tree;
 
 	aal_assert("umka-737", fs != NULL);
@@ -464,8 +446,11 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 		goto error_free_tree;
 	}
     
-	reiser4_tree_init(tree);
-    
+	if (!(tree->lru = aal_lru_create(&lru_ops))) {
+		aal_exception_error("Can't initialize tree cache lru list.");
+		goto error_free_tree;
+	}
+	
 	return tree;
 
  error_free_tree:
@@ -474,65 +459,6 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 }
 
 #ifndef ENABLE_ALONE
-
-/* Creates new balanced tree on specified filesystem */
-reiser4_tree_t *reiser4_tree_create(
-	reiser4_fs_t *fs,		    /* fs new tree will be created on */
-	reiser4_profile_t *profile)	    /* profile to be used */
-{
-	reiser4_tree_t *tree;
-
-	aal_assert("umka-741", fs != NULL);
-	aal_assert("umka-749", profile != NULL);
-
-	/* Allocating memory needed for tree instance */
-	if (!(tree = aal_calloc(sizeof(*tree), 0)))
-		return NULL;
-
-	tree->fs = fs;
-	tree->fs->tree = tree;
-    
-	/* Building the tree root key */
-	if (reiser4_tree_key(tree, profile->key)) {
-		aal_exception_error("Can't build the tree root key.");
-		goto error_free_tree;
-	}
-    
-	reiser4_tree_init(tree);
-	return tree;
-
- error_free_tree:
-	aal_free(tree);
-	return NULL;
-}
-
-/* 
-   Saves whole cached tree and removes all nodes except root node from the
-   cache.
-*/
-errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
-	aal_list_t *list;
-    
-	aal_assert("umka-573", tree != NULL);
-
-	reiser4_tree_sync(tree);
-
-	if (tree->root) {
-		list = tree->root->children ? 
-			aal_list_first(tree->root->children) : NULL;
-    
-		if (list) {
-			aal_list_t *walk;
-	
-			aal_list_foreach_forward(walk, list)
-				reiser4_node_close((reiser4_node_t *)walk->data);
-	
-			tree->root->children = NULL;
-		}
-	}
-
-	return 0;
-}
 
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
@@ -739,6 +665,7 @@ errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
 	reiser4_node_t *node)       /* child to attached */
 {
+	rpid_t pid;
 	errno_t res;
 	uint8_t level;
 	
@@ -762,12 +689,10 @@ errno_t reiser4_tree_attach(
 
 	reiser4_node_lkey(node, &hint.key);
 
-	hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE,
-					       tree->profile.nodeptr);
-	
-	if (!hint.plugin) {
-		aal_exception_error("Can't find item plugin by its id 0x%x.",
-				    tree->profile.nodeptr);
+	pid = tree->fs->profile->item.nodeptr;
+
+	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
+		aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
 		return -1;
 	}
 
@@ -1388,6 +1313,10 @@ errno_t reiser4_tree_insert(
 		if (reiser4_tree_alroot(tree))
 			return -1;
 
+		/*
+		  FIXME-UMKA: This does not satisfy the case when we should
+		  insert a nodeptr item into the tree when it is empty.
+		*/
 		if (!(coord->node = reiser4_tree_alloc(tree, LEAF_LEVEL)))
 			return -1;
 		
@@ -1424,8 +1353,8 @@ errno_t reiser4_tree_insert(
 	}
 
 	/*
-	  Saving mode of insert (insert new item, paste units into an existsent
-	  item) before making space for new inset/unit.
+	  Saving mode of insert (insert new item, paste units to the existent
+	  one) before making space for new inset/unit.
 	*/
 	mode = (coord->pos.unit == ~0ul);
 	
@@ -1438,12 +1367,9 @@ errno_t reiser4_tree_insert(
 	/*
 	  As position after making space is generaly changing, we check is mode
 	  of insert was changed or not. If so, we should perform estimate one
-	  more time. This is because, estimated value depends on insert mode. In
-	  the case we are going to insert new item, we should count also
-	  internal item overhead.
+	  more time. That is because, estimated value depends on insert mode.
 	*/
 	if (mode != (coord->pos.unit == ~0ul)) {
-		
 		if (reiser4_item_estimate(coord, hint))
 			return -1;
 	}

@@ -53,13 +53,13 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device))) {
+	if (!(fs = reiser4_fs_open(device, progs_profile_find("smart40")))) {
 		aal_exception_error("Can't open filesystem on %s.", 
 				    aal_device_name(device));
 		goto error_free_device;
 	}
     
-	if (!(fs->tree = reiser4_tree_open(fs)))
+	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
 	if (!(fs->root = reiser4_file_open(fs, "/"))) {

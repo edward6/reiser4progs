@@ -56,13 +56,13 @@ static errno_t repair_add_missing_setup(repair_data_t *rd) {
     
     if (reiser4_format_get_root(rd->fs->format) == INVAL_BLK) {
 	/* Trere is no any tree yet.  */
-	if (!(rd->fs->tree = reiser4_tree_create(rd->fs, rd->profile))) {
+	if (!(rd->fs->tree = reiser4_tree_init(rd->fs))) {
 	    aal_exception_fatal("Failed to create the tree of the fs.");
 	    goto error;
 	}
     } else {
 	/* There is some tree already. */
-	if (!(rd->fs->tree = reiser4_tree_open(rd->fs))) {
+	if (!(rd->fs->tree = reiser4_tree_init(rd->fs))) {
 	    aal_exception_fatal("Failed to open the tree of the fs.");
 	    goto error;
 	}

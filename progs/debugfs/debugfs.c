@@ -1320,12 +1320,12 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Open file system on the device */
-	if (!(fs = reiser4_fs_open(device))) {
+	if (!(fs = reiser4_fs_open(device, profile))) {
 		aal_exception_error("Can't open reiser4 on %s", host_dev);
 		goto error_free_libreiser4;
 	}
 
-	if (!(fs->tree = reiser4_tree_open(fs)))
+	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
 	fs->tree->traps.connect = debugfs_connect_handler;

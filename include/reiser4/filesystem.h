@@ -17,6 +17,9 @@
 extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
 					  blk_t blk);
 
+extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
+				     reiser4_profile_t *profile);
+
 extern errno_t reiser4_fs_layout(reiser4_fs_t *fs, block_func_t func, 
 				 void *data);
 
@@ -33,7 +36,6 @@ extern errno_t reiser4_fs_mark(reiser4_fs_t *fs);
 
 #endif
 
-extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device); 
 extern void reiser4_fs_close(reiser4_fs_t *fs);
 
 #endif
