@@ -7,8 +7,6 @@ reiser4progs/COPYING.
   libaal is not found, how to build libreiser4-alone in order to use 
   it with GNU GRUB, configure options etc.
 
-* fix building on last gcc
-
 * add option to measurefs, which will introduce some kind of filter 
   for file fragmentation calculating.
 

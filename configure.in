@@ -306,6 +306,22 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_STAT
 AC_CHECK_FUNCS([register_printf_function statfs getmntent hasmntopt memset strerror strtol time])
 
+# The options -falign-* are supported by gcc 3.0 or later.
+# Probably it is sufficient to only check for -falign-loops.
+AC_CACHE_CHECK([whether -falign-loops works], [falign_loop_flag], [
+  saved_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="-falign-loops=1"
+  AC_TRY_COMPILE(, , [falign_loop_flag=yes], [falign_loop_flag=no])
+  CPPFLAGS="$saved_CPPFLAGS"
+])
+ 
+# Force no alignment to save space.
+if test "x$falign_loop_flag" = xyes; then
+  ALIGN_FLAGS="-falign-jumps=1 -falign-loops=1 -falign-functions=1"
+else
+  ALIGN_FLAGS="-malign-jumps=1 -malign-loops=1 -malign-functions=1"
+fi
+
 dnl Check for libdl, if we are doing dynamic loading
 if test x$enable_monolithic = xno; then
     OLD_LIBS="$LIBS"
@@ -367,12 +383,12 @@ if test x$enable_stand_alone = xyes; then
 
     ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $COLLISION_HANDLING_CFLAGS \
 $PLUGINS_CHECK_CFLAGS $SYMLINKS_SUPPORT_CFLAGS $R5_HASH_CFLAGS $FNV1_HASH_CFLAGS \
-$RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS -fno-builtin -malign-jumps=1 -malign-loops=1 \
--malign-functions=1"
+$RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS $ALIGN_FLAGS"
 fi
 
 GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_COLLISIONS_HANDLING -DENABLE_PLUGINS_CHECK \
--DENABLE_SYMLINKS_SUPPORT -DENABLE_R5_HASH -DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH -DENABLE_TEA_HASH"
+-DENABLE_SYMLINKS_SUPPORT -DENABLE_R5_HASH -DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH \
+-DENABLE_TEA_HASH"
 
 if test x$enable_debug = xyes; then
     GENERIC_CFLAGS="$GENERIC_CFLAGS -O0 -g"
