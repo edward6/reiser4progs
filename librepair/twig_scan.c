@@ -29,7 +29,7 @@ static errno_t callback_ptr_handler(reiser4_coord_t *coord, void *data) {
     aal_assert("vpf-567", ts->bm_met != NULL, return -1);
  
     if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	fetch, &coord->entity, coord->pos.unit, &ptr, 1) != 1)
+	fetch, &coord->entity, &ptr, coord->pos.unit, 1) != 1)
 	return -1;
 
     /* This must be fixed at the first pass. */

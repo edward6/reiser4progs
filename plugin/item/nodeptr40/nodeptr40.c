@@ -24,16 +24,22 @@ static errno_t nodeptr40_init(item_entity_t *item) {
 	return 0;
 }
 
-static errno_t nodeptr40_insert(item_entity_t *item, uint32_t pos,
-				reiser4_item_hint_t *hint)
+static errno_t nodeptr40_insert(item_entity_t *item, void *buff,
+				uint32_t pos)
 {
 	nodeptr40_t *nodeptr;
+	reiser4_item_hint_t *hint;
+	reiser4_ptr_hint_t *ptr_hint;
     
 	aal_assert("vpf-063", item != NULL, return -1); 
-	aal_assert("vpf-064", hint != NULL, return -1);
+	aal_assert("vpf-064", buff != NULL, return -1);
 
 	nodeptr = nodeptr40_body(item);
-	np40_set_ptr(nodeptr,((reiser4_ptr_hint_t *)hint->hint)->ptr);
+
+	hint = (reiser4_item_hint_t *)buff;
+	ptr_hint = (reiser4_ptr_hint_t *)hint->hint;
+
+	np40_set_ptr(nodeptr,ptr_hint->ptr);
 	    
 	return 0;
 }
@@ -63,37 +69,39 @@ static errno_t nodeptr40_print(item_entity_t *item, aal_stream_t *stream,
 
 #endif
 
-static int32_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
-			       void *buff, uint32_t count)
+static int32_t nodeptr40_fetch(item_entity_t *item, void *buff,
+			       uint32_t pos, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
-	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
+	reiser4_ptr_hint_t *ptr_hint;
 		
 	aal_assert("umka-1419", item != NULL, return -1);
 	aal_assert("umka-1420", buff != NULL, return -1);
 
 	nodeptr = nodeptr40_body(item);
+	ptr_hint = (reiser4_ptr_hint_t *)buff;
 	
-	hint->ptr = np40_get_ptr(nodeptr);
-	hint->width = 1;
+	ptr_hint->width = 1;
+	ptr_hint->ptr = np40_get_ptr(nodeptr);
 	
 	return 1;
 }
 
 #ifndef ENABLE_COMPACT
 
-static int32_t nodeptr40_update(item_entity_t *item, uint32_t pos,
-				void *buff, uint32_t count)
+static int32_t nodeptr40_update(item_entity_t *item, void *buff,
+				uint32_t pos, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
-	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
+	reiser4_ptr_hint_t *ptr_hint;
 		
 	aal_assert("umka-1423", item != NULL, return -1);
 	aal_assert("umka-1424", buff != NULL, return -1);
 
 	nodeptr = nodeptr40_body(item);
-	np40_set_ptr(nodeptr, hint->ptr);
+	ptr_hint = (reiser4_ptr_hint_t *)buff;
 	
+	np40_set_ptr(nodeptr, ptr_hint->ptr);
 	return 1;
 }
 

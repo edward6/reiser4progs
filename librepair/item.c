@@ -14,7 +14,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     
     /* Fetch the pointer from the coord. */
     if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	fetch, &coord->entity, coord->pos.unit, &hint, 1) != 1)
+	fetch, &coord->entity, &hint, coord->pos.unit, 1) != 1)
 	return -1;
     
     if (hint.width == 1 && reiser4_item_extent(coord)) {
@@ -28,7 +28,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 	hint.ptr = 0;
 
 	if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	    update, &coord->entity, coord->pos.unit, &hint, 1))
+	    update, &coord->entity, &hint, coord->pos.unit, 1))
 	    return -1;	    
     } else {
 	/* For many unit pointers there is no way to figure out what 
@@ -68,7 +68,7 @@ errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
 	reiser4_item_extent(coord), return -1);
 
     if ((res = plugin_call(return -1, coord->entity.plugin->item_ops, fetch, 
-	&coord->entity, coord->pos.unit, &ptr, 1)) != 1)
+	&coord->entity, &ptr, coord->pos.unit, 1)) != 1)
 	return res;
 
     /* Ptr can be 0 if extent item only. Width cannot be 0. */

@@ -10,13 +10,13 @@
 static reiser4_core_t *core = NULL;
 
 static inline objid40_t *direntry40_unit(direntry40_t *direntry, 
-				  uint32_t pos)
+					 uint32_t pos)
 {
 	return (objid40_t *)((void *)direntry + direntry->entry[pos].offset);
 }
 
 static inline entry40_t *direntry40_entry(direntry40_t *direntry, 
-				  uint32_t pos)
+					  uint32_t pos)
 {
 	return &direntry->entry[pos];
 }
@@ -80,12 +80,13 @@ static uint32_t direntry40_units(item_entity_t *item) {
 	return de40_get_count(direntry);
 }
 
-static int32_t direntry40_fetch(item_entity_t *item, uint32_t pos,
-				void *buff, uint32_t count)
+static int32_t direntry40_fetch(item_entity_t *item, void *buff,
+				uint32_t pos, uint32_t count)
 {
 	uint32_t i;
 	entry40_t *entry;
 	objid40_t *objid;
+
 	direntry40_t *direntry;
 	reiser4_entry_hint_t *hint;
     
@@ -146,7 +147,7 @@ static int direntry40_mergeable(item_entity_t *item1,
 static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 				   reiser4_item_hint_t *hint) 
 {
-	int i;
+	uint32_t i;
 	reiser4_direntry_hint_t *direntry_hint;
 	    
 	aal_assert("vpf-095", hint != NULL, return -1);
@@ -506,8 +507,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	return 0;
 }
 
-static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
-				 reiser4_item_hint_t *hint)
+static errno_t direntry40_insert(item_entity_t *item, void *buff,
+				 uint32_t pos)
 {
 	uint32_t units;
 	void *src, *dst;
@@ -520,6 +521,8 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
     
 	entry40_t *entry;
 	direntry40_t *direntry;
+
+	reiser4_item_hint_t *hint;
 	reiser4_direntry_hint_t *dehint;
     
 	aal_assert("umka-791", item != NULL, return -1);
@@ -530,6 +533,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	if (!(direntry = direntry40_body(item)))
 		return -1;
     
+	hint = (reiser4_item_hint_t *)buff;
 	dehint = (reiser4_direntry_hint_t *)hint->hint;
     
 	if (pos > de40_get_count(direntry))
@@ -592,11 +596,12 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	de40_inc_count(direntry, dehint->count);
 
 	/* Creating new entries */
-	for (i = 0; i < dehint->count; i++) {
-		uint32_t len = aal_strlen(dehint->unit[i].name);
-		entry40_t *entry = direntry40_entry(direntry, pos + i);
-		objid40_t *objid = (objid40_t *)((void *)direntry + offset);
+	entry = direntry40_entry(direntry, pos);
 		
+	for (i = 0; i < dehint->count; i++, entry++) {
+		uint32_t len = aal_strlen(dehint->unit[i].name);
+		objid40_t *objid = (objid40_t *)((void *)direntry + offset);
+
 		en40_set_offset(entry, offset);
 
 		aal_memcpy(&entry->entryid, &dehint->unit[i].entryid,
@@ -631,8 +636,12 @@ static errno_t direntry40_init(item_entity_t *item) {
 	return 0;
 }
 
-static uint16_t direntry40_remove(item_entity_t *item, 
-				  uint32_t pos)
+/*
+  FIXME-UMKA: This function should be able to remove more than one entry from
+  specified item.
+*/
+static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
+				 uint32_t count)
 {
 	void *src, *dst;
 	uint16_t unit_len;
@@ -643,18 +652,17 @@ static uint16_t direntry40_remove(item_entity_t *item,
 	entry40_t *entry;
 	direntry40_t *direntry;
     
-	aal_assert("umka-934", item != NULL, return 0);
+	aal_assert("umka-934", item != NULL, return -1);
+	aal_assert("umka-1681", pos < de40_get_count(direntry), return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
-    
-	if (pos >= de40_get_count(direntry))
-		return 0;
 
-	offset = en40_get_offset(&direntry->entry[pos]);
+	entry = direntry40_entry(direntry, pos);
+	offset = en40_get_offset(entry);
     
 	head_len = offset - sizeof(entry40_t) -
-		(((void *)&direntry->entry[pos]) - ((void *)direntry));
+		((void *)entry - (void *)direntry);
 
 	unit_len = direntry40_unit_len(direntry, pos);
 
@@ -665,7 +673,7 @@ static uint16_t direntry40_remove(item_entity_t *item,
 		en40_dec_offset(&direntry->entry[i], sizeof(entry40_t));
     
 	if (pos < (uint32_t)de40_get_count(direntry) - 1) {
-		uint32_t dec_len = sizeof(entry40_t) + unit_len;
+		uint32_t dec = sizeof(entry40_t) + unit_len;
 		offset = en40_get_offset(&direntry->entry[pos]);
 	
 		foot_len = 0;
@@ -673,12 +681,12 @@ static uint16_t direntry40_remove(item_entity_t *item,
 			foot_len += direntry40_unit_len(direntry, i);
 
 		src = (void *)direntry + offset;
-		dst = ((void *)direntry + offset) - dec_len;
+		dst = ((void *)direntry + offset) - dec;
 		
 		aal_memmove(dst, src, foot_len);
 
 		for (i = pos; i < (uint32_t)(de40_get_count(direntry) - 1); i++)
-			en40_dec_offset(&direntry->entry[i], dec_len);
+			en40_dec_offset(&direntry->entry[i], dec);
 	}
     
 	de40_dec_count(direntry, 1);

@@ -509,7 +509,7 @@ static reiser4_node_t *reiser4_node_fnn(
 			return NULL;
 			
 		plugin_call(return NULL, coord.entity.plugin->item_ops,
-			    fetch, &coord.entity, 0, &ptr, 1);
+			    fetch, &coord.entity, &ptr, 0, 1);
 
 		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
 			child = reiser4_tree_load(node->tree, ptr.ptr);
@@ -884,7 +884,7 @@ errno_t reiser4_node_shift(
 			continue;
 			
 		plugin_call(return -1, coord.entity.plugin->item_ops,
-			    fetch, &coord.entity, 0, &ptr, 1);
+			    fetch, &coord.entity, &ptr, 0, 1);
 			
 		if (!(child = reiser4_node_cbp(node, ptr.ptr)))
 			continue;
@@ -1197,7 +1197,7 @@ errno_t reiser4_node_traverse(
 
 			/* Fetching node ptr */
 			plugin_call(continue, coord.entity.plugin->item_ops,
-				    fetch, &coord.entity, pos->unit, &ptr, 1);
+				    fetch, &coord.entity, &ptr, pos->unit, 1);
 		
 			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {
 				child = NULL;

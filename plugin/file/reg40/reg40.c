@@ -125,7 +125,7 @@ static int32_t reg40_read(object_entity_t *entity,
 			if (!chunk) break;
 	
 			if (plugin_call(return -1, item->plugin->item_ops, fetch,
-					item, reg->local, buff + read, chunk) != (int32_t)chunk)
+					item, buff + read, reg->local, chunk) != (int32_t)chunk)
 			{
 				aal_exception_error("Can't fetch data from tail item. "
 						    "Pos %lu, count %lu.", reg->local,
@@ -164,7 +164,7 @@ static int32_t reg40_read(object_entity_t *entity,
 				reiser4_ptr_hint_t ptr;
 
 				if (plugin_call(return -1, item->plugin->item_ops,
-						fetch, item, pos->unit, &ptr, 1) != 1)
+						fetch, item, &ptr, pos->unit, 1) != 1)
 				{
 					aal_exception_error("Can't fetch data from extent item. "
 							    "Pos %lu, count %lu.", pos->unit, 1);
@@ -420,7 +420,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 				uint64_t blk;
 				
 				if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
-						fetch, &reg->body.entity, pos.unit, &ptr, 1) != 1)
+						fetch, &reg->body.entity, &ptr, pos.unit, 1) != 1)
 				{
 					aal_exception_error("Can't fetch data from extent item. "
 							    "Pos %lu, count %lu.", pos.unit, 1);

@@ -160,21 +160,21 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 }
 
 /* This method inserts the stat data extentions */
-static errno_t stat40_insert(item_entity_t *item, uint32_t pos,
-			     reiser4_item_hint_t *hint)
+static errno_t stat40_insert(item_entity_t *item, void *buff,
+			     uint32_t pos)
 {
 	uint8_t i;
 	reiser4_body_t *extbody;
+	
+	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-076", item != NULL, return -1); 
-	aal_assert("vpf-075", hint != NULL, return -1);
+	aal_assert("vpf-075", buff != NULL, return -1);
 
-	/*
-	  FIXME-UMKA: Should this function insert extentions like for exmple
-	  direntry does?
-	*/
-	extbody = (reiser4_body_t *)stat40_body(item);
+	extbody = (reiser4_body_t *)item->body;
+
+	hint = (reiser4_item_hint_t *)buff;
 	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
 	if (!stat_hint->extmask)
@@ -225,13 +225,6 @@ static errno_t stat40_insert(item_entity_t *item, uint32_t pos,
 	}
     
 	return 0;
-}
-
-/* This method deletes the stat data extentions */
-static uint16_t stat40_remove(item_entity_t *item, 
-			      uint32_t pos)
-{
-	return -1;
 }
 
 extern errno_t stat40_check(item_entity_t *);
@@ -376,20 +369,19 @@ static reiser4_plugin_t stat40_plugin = {
 			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 		},
 #ifndef ENABLE_COMPACT
-		.init		= stat40_init,
 		.estimate	= stat40_estimate,
 		.insert		= stat40_insert,
-		.remove		= stat40_remove,
+		.init		= stat40_init,
 		.check		= stat40_check,
 		.print		= stat40_print,
 #else
-		.init		= NULL,
 		.estimate	= NULL,
 		.insert		= NULL,
-		.remove		= NULL,
+		.init		= NULL,
 		.check		= NULL,
 		.print		= NULL,
 #endif
+		.remove		= NULL,
 		.lookup		= NULL,
 		.fetch          = NULL,
 		.update         = NULL,

@@ -314,8 +314,7 @@ static errno_t node40_item(item_entity_t *item,
   Makes expand passed node by passed @len in odrer to insert new item/unit into
   it. This function is used by insert, paste and shift methods.
 */
-static errno_t node40_expand(node40_t *node,
-			     reiser4_pos_t *pos,
+static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 			     uint32_t size)
 {
 	int is_space;
@@ -517,12 +516,11 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 		return -1;
 
 	/* Calling item plugin to perform initializing the item. */
-	if (plugin_call(return -1, hint->plugin->item_ops,
-			init, &item))
+	if (plugin_call(return -1, hint->plugin->item_ops, init, &item))
 		return -1;
 
 	return plugin_call(return -1, hint->plugin->item_ops,
-			   insert, &item, 0, hint);
+			   insert, &item, hint, 0);
 }
 
 /* Inserts a unit into item described by hint structure. */
@@ -547,7 +545,7 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 
 	/* Calling insert method of the item plugin */
 	if (plugin_call(return -1, hint->plugin->item_ops, 
-			insert, &item, pos->unit, hint))
+			insert, &item, hint, pos->unit))
 		return 0;
 
 	/* Updating left delimiting key */
@@ -606,7 +604,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	  after operation complete.
 	*/
 	if (!(len = plugin_call(return -1, item.plugin->item_ops,
-				remove, &item, pos->unit)))
+				remove, &item, pos->unit, 1)))
 		return -1;
 
 	/* Shrinking node by @len */

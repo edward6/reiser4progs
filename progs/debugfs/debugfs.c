@@ -347,7 +347,7 @@ static errno_t tfrag_process_node(
 			for (pos.unit = 0; pos.unit < reiser4_item_units(&coord); pos.unit++) {
 				
 				plugin_call(continue, coord.entity.plugin->item_ops,
-					    fetch, &coord.entity, pos.unit, &ptr, 1);
+					    fetch, &coord.entity, &ptr, pos.unit, 1);
 
 				if (ptr.ptr == 0)
 					continue;
@@ -362,7 +362,7 @@ static errno_t tfrag_process_node(
 			}
 		} else {
 			plugin_call(continue, coord.entity.plugin->item_ops,
-				    fetch, &coord.entity, pos.unit, &ptr, 1);
+				    fetch, &coord.entity, &ptr, pos.unit, 1);
 
 			delta = frag_hint->curr - ptr.ptr;
 
@@ -517,7 +517,7 @@ static errno_t stat_process_node(
 				reiser4_ptr_hint_t ptr;
 				
 				plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-					    pos.unit, &ptr, 1);
+					    &ptr, pos.unit, 1);
 
 				stat_hint->nodes += ptr.width;
 			}

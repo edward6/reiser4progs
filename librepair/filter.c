@@ -85,7 +85,7 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
 
     fd = repair_filter((repair_data_t *)data);
     if (plugin_call(return -1, coord->entity.plugin->item_ops, fetch, 
-	&coord->entity, coord->pos.unit, &ptr, 1) != 1) 
+	&coord->entity, &ptr, coord->pos.unit, 1) != 1) 
     {
 	aal_exception_fatal("Failed to fetch the item pointer.");
 	return -1;
@@ -115,7 +115,7 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 	
 	/* Clear pointed block in the formatted bitmap. */
 	if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	    fetch, &coord->entity, coord->pos.unit, &ptr, 1) != 1)
+	    fetch, &coord->entity, &ptr, coord->pos.unit, 1) != 1)
 	    return -1;
 	
 	aux_bitmap_clear(repair_filter(rd)->bm_used, ptr.ptr);

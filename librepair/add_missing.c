@@ -99,7 +99,7 @@ static errno_t callback_preinsert(reiser4_coord_t *coord,
 	return 1;
     
     if (plugin_call(return -1, neigh.entity.plugin->item_ops, fetch, 
-	&neigh.entity, neigh.pos.unit, &ptr, 1) != 1 || ptr.ptr == INVAL_BLK)
+	&neigh.entity, &ptr, neigh.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
 	return -1;
     
     if (!(neigh.node = reiser4_node_open(neigh.node->device, ptr.ptr))) 
@@ -198,7 +198,7 @@ static errno_t callback_pstinsert(reiser4_coord_t *coord,
 
 	    for (i = 0; i < units; i++) {
 		if (plugin_call(return -1, coord->entity.plugin->item_ops,
-		    fetch, &coord->entity, coord->pos.unit, &ptr, 1) != 1)
+		    fetch, &coord->entity, &ptr, coord->pos.unit, 1) != 1)
 		    return -1;
 
 		aux_bitmap_mark_range(am->bm_used, ptr.ptr, ptr.width);

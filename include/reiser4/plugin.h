@@ -320,13 +320,6 @@ struct reiser4_ptr_hint {
 
 typedef struct reiser4_ptr_hint reiser4_ptr_hint_t;
 
-struct reiser4_tail_hint {
-	void *data;
-	uint16_t len;
-};
-
-typedef struct reiser4_tail_hint reiser4_tail_hint_t;
-
 struct reiser4_sdext_unix_hint {
 	uint32_t uid;
 	uint32_t gid;
@@ -388,7 +381,7 @@ struct reiser4_entry_hint {
 typedef struct reiser4_entry_hint reiser4_entry_hint_t;
 
 struct reiser4_direntry_hint {
-	uint16_t count;
+	uint32_t count;
 	reiser4_entry_hint_t *unit;
 };
 
@@ -617,19 +610,19 @@ struct reiser4_item_ops {
 	errno_t (*open) (item_entity_t *, reiser4_item_hint_t *);
 	
 	/* Inserts unit described by passed hint into the item */
-	errno_t (*insert) (item_entity_t *, uint32_t, 
-			   reiser4_item_hint_t *);
+	int32_t (*insert) (item_entity_t *, void *, uint32_t);
     
-	/* Removes specified unit from the item. Returns released space */
-	uint16_t (*remove) (item_entity_t *, uint32_t);
-
 	/* Reads passed amount of units from the item. */
-	int32_t (*fetch) (item_entity_t *, uint32_t,
-			  void *, uint32_t);
+	int32_t (*fetch) (item_entity_t *, void *, uint32_t,
+			  uint32_t);
 
 	/* Updates passed amount of units in the item */
-	int32_t (*update) (item_entity_t *, uint32_t,
-			   void *, uint32_t);
+	int32_t (*update) (item_entity_t *, void *, uint32_t,
+			   uint32_t);
+
+	/* Removes specified unit from the item. Returns released space */
+	int32_t (*remove) (item_entity_t *, uint32_t,
+			   uint32_t);
 
 	/* Estimates item */
 	errno_t (*estimate) (item_entity_t *, uint32_t, 

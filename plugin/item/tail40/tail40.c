@@ -12,10 +12,12 @@ static reiser4_core_t *core = NULL;
 
 #define tail40_body(item) (item->body)
 
+/* Returns tail length */
 static uint32_t tail40_units(item_entity_t *item) {
 	return item->len;
 }
 
+/* Returns the key of the specified unit */
 static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos, 
 	reiser4_key_t *key) 
 {
@@ -42,16 +44,19 @@ static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos,
 
 #ifndef ENABLE_COMPACT
 
-static int32_t tail40_update(item_entity_t *item, uint32_t pos,
-			     void *buff, uint32_t count)
+/* Rewrites tail from passed @pos by data specifed by hint */
+static int32_t tail40_update(item_entity_t *item, void *buff,
+			     uint32_t pos, uint32_t count)
 {
-	uint32_t update = count;
-
-	if (item->len - pos < update)
-		update = item->len - pos;
+	aal_assert("umka-1677", buff != NULL, return -1);
+	aal_assert("umka-1678", item != NULL, return -1);
+	aal_assert("umka-1679", pos < item.len, return -1);
+	
+	if (count > item->len - pos)
+		count = item->len - pos;
 	
 	/* Copying new data into freed place */
-	aal_memcpy(item->body + pos, buff, update);
+	aal_memcpy(item->body + pos, buff, count);
 
 	/* Updating the key */
 	if (pos == 0) {
@@ -59,32 +64,32 @@ static int32_t tail40_update(item_entity_t *item, uint32_t pos,
 			return -1;
 	}
 
-	return update;
+	return count;
 }
 
-static errno_t tail40_insert(item_entity_t *item, uint32_t pos, 
-			     reiser4_item_hint_t *hint)
+/* Inserts tail data into specified tail */
+static errno_t tail40_insert(item_entity_t *item, void *buff,
+			     uint32_t pos)
 {
-	uint32_t size;
+	uint32_t len;
 	void *src, *dst;
-	reiser4_tail_hint_t *tail_hint;
+	reiser4_item_hint_t *hint;
 	
 	aal_assert("umka-1172", item != NULL, return -1); 
-	aal_assert("umka-1173", hint != NULL, return -1);
-	aal_assert("umka-1178", hint->hint != NULL, return -1);
+	aal_assert("umka-1178", buff != NULL, return -1);
 
-	tail_hint = (reiser4_tail_hint_t *)hint->hint;
-
+	hint = (reiser4_item_hint_t *)buff;
+	len = item->len - hint->len;
+		
 	/* Prepare the room for new data */
-	src = item->body + pos;
-	dst = src + tail_hint->len;
-	
-	size = item->len - tail_hint->len - pos;
-
-	aal_memmove(dst, src, size);
+	if (pos < len - 1) {
+		src = item->body + pos;
+		dst = item->body + pos + hint->len;
+		aal_memmove(dst, src, len - pos);
+	}
 
 	/* Copying new data into freed place */
-	aal_memcpy(item->body + pos, tail_hint->data, tail_hint->len);
+	aal_memcpy(item->body + pos, hint->data, hint->len);
 
 	/* Updating the key */
 	if (pos == 0) {
@@ -95,13 +100,23 @@ static errno_t tail40_insert(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static uint16_t tail40_remove(item_entity_t *item, uint32_t pos) {
+/* Removes the part of tail body */
+static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
+			     uint32_t count)
+{
+	void *src, *dst;
+	
 	aal_assert("umka-1661", item != NULL, return -1);
-	aal_assert("umka-1662", pos != ~0ul, return -1);
 	aal_assert("umka-1663", pos < item->len, return -1);
 
-	aal_memmove(item->body, item->body + 1,
-		    item->len - pos - 1);
+	if (count > item->len - pos)
+		count = item->len - pos;
+
+	if (pos + count < item->len - 1) {
+		src = item->body + pos;
+		dst = item->body + pos + count;
+		aal_memmove(dst, src, item->len - (pos + count));
+	}
 
 	/* Updating the key */
 	if (pos == 0) {
@@ -109,7 +124,7 @@ static uint16_t tail40_remove(item_entity_t *item, uint32_t pos) {
 			return -1;
 	}
 	
-	return 1;
+	return count;
 }
 
 static errno_t tail40_init(item_entity_t *item) {
@@ -139,7 +154,6 @@ static errno_t tail40_max_poss_key(item_entity_t *item,
     
 	aal_assert("umka-1209", item != NULL, return -1);
 	aal_assert("umka-1210", key != NULL, return -1);
-
 
 	if (plugin_call(return -1, key->plugin->key_ops,
 			assign, key->body, item->key.body))
@@ -178,19 +192,19 @@ static errno_t tail40_max_real_key(item_entity_t *item,
 	return 0;
 }
 
-static int32_t tail40_fetch(item_entity_t *item, uint32_t pos,
-			    void *buff, uint32_t count)
+static int32_t tail40_fetch(item_entity_t *item, void *buff,
+			    uint32_t pos, uint32_t count)
 {
-	uint32_t read;
-	
 	aal_assert("umka-1673", item != NULL, return -1);
-	aal_assert("umka-1674", item->body != NULL, return -1);
+	aal_assert("umka-1674", buff != NULL, return -1);
 	aal_assert("umka-1675", pos < item->len, return -1);
 
-	read = count > item->len - pos ? item->len - pos : count;
+	if (count > item->len - pos)
+		count = item->len - pos;
 	
-	aal_memcpy(buff, item->body + pos, read);
-	return read;
+	aal_memcpy(buff, item->body + pos, count);
+	
+	return count;
 }
 
 static int tail40_lookup(item_entity_t *item, reiser4_key_t *key, 

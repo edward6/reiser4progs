@@ -123,7 +123,7 @@ static int32_t dir40_read(object_entity_t *entity,
 
 		/* Getting next entry from the current direntry item */
 		plugin_call(break, item->plugin->item_ops, fetch, item,
-			    dir->body.pos.unit, entry++, 1);
+			    entry++, dir->body.pos.unit, 1);
 
 		dir->offset++; 
 		dir->body.pos.unit++; 
@@ -164,7 +164,7 @@ static int dir40_lookup(object_entity_t *entity,
 			reiser4_entry_hint_t entry;
 
 			if (plugin_call(return -1, item->plugin->item_ops, fetch,
-					item, dir->body.pos.unit, &entry, 1))
+					item, &entry, dir->body.pos.unit, 1))
 				return -1;
 
 			locality = plugin_call(return -1, key->plugin->key_ops,
