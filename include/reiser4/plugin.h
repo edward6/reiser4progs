@@ -431,7 +431,8 @@ struct entry_hint {
 typedef struct entry_hint entry_hint_t;
 
 struct object_hint {
-	
+
+	/* Stata plugin id */
 	rid_t statdata;
 
 	/* Hint for a file body */
@@ -483,12 +484,15 @@ struct create_hint {
 	/* This is opaque pointer to item type specific information */
 	void *type_specific;
 
+	/* Tree insert is going to be in */
+	void *tree;
+
+	/* Used for insert extent data */
+	uint32_t offset;
+	
 	/* Count of units to be inserted into the tree */
 	uint16_t count;
 
-	/* Used for inserting data to extent items */
-	uint32_t offset;
-    
 	/* The key of item/unit to be inserted */
 	key_entity_t key;
 
@@ -1305,6 +1309,11 @@ struct tree_ops {
 	   modification purposes. */
 	errno_t (*remove) (void *, place_t *, uint32_t);
 
+	/* Functions for getting/setting extent data */
+	aal_block_t *(*get_data) (void *, key_entity_t *);
+	errno_t (*set_data) (void *, key_entity_t *,
+			     aal_block_t *);
+	
 #endif
 	/* Lock control functions */
 	errno_t (*lock) (void *, place_t *);
