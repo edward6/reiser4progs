@@ -389,6 +389,11 @@ static errno_t callback_file_fragmentation(object_entity_t *entity,
 	aal_block_t *block = reiser4_coord_block(coord);
 
 	aal_gauge_touch(hint->gauge);
+
+	if (hint->curr == 0) {
+		hint->curr = aal_block_number(block);
+		return 0;
+	}
 	
 	delta = hint->curr - aal_block_number(block);
 
@@ -396,6 +401,8 @@ static errno_t callback_file_fragmentation(object_entity_t *entity,
 		hint->bad++;
 
 	hint->total++;
+
+	hint->curr = aal_block_number(block);
 
 	return 0;
 }
@@ -419,7 +426,6 @@ static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
 	hint.gauge = gauge;
 
 	block = reiser4_coord_block(&file->coord);
-	hint.curr = aal_block_number(block);
 
 	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
 	aal_gauge_start(gauge);
