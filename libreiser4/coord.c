@@ -10,70 +10,16 @@
 
 #include <reiser4/reiser4.h>
 
-/* Returns entity from passed @coord */
-object_entity_t *reiser4_coord_entity(reiser4_coord_t *coord) {
-	aal_assert("umka-1434", coord != NULL, return NULL);
-	
-	switch (coord->context) {
-	case CT_ENTITY:
-		return coord->u.entity;
-	case CT_NODE:
-		return coord->u.node->entity;
-	case CT_JOINT:
-		return coord->u.joint->node->entity;
-	case CT_RAW:
-		return coord->u.data;
-	default:
-		return NULL;
-	}
-}
-
 blk_t reiser4_coord_blk(reiser4_coord_t *coord) {
 	aal_assert("umka-1445", coord != NULL, return FAKE_BLK);
-	
-	switch (coord->context) {
-	case CT_NODE:
-		return coord->u.node->blk;
-	case CT_JOINT:
-		return coord->u.joint->node->blk;
-	default:
-		return FAKE_BLK;
-	}
+	return coord->node->blk;
 }
 
 aal_device_t *reiser4_coord_device(reiser4_coord_t *coord) {
 	aal_assert("umka-1553", coord != NULL, return NULL);
-	
-	switch (coord->context) {
-	case CT_NODE:
-		return coord->u.node->device;
-	case CT_JOINT:
-		return coord->u.joint->node->device;
-	default:
-		return NULL;
-	}
+	return coord->node->device;
 }
 
-/* Returns node coord points to */
-reiser4_node_t *reiser4_coord_node(reiser4_coord_t *coord) {
-	aal_assert("umka-1463", coord != NULL, return NULL);
-	
-	switch (coord->context) {
-	case CT_NODE:
-		return coord->u.node;
-	case CT_JOINT:
-		return coord->u.joint->node;
-	default:
-		return NULL;
-	}
-}
-
-/* Returns joint coord points to */
-reiser4_joint_t *reiser4_coord_joint(reiser4_coord_t *coord) {
-	aal_assert("vpf-541", coord != NULL, return NULL);
-	
-	return coord->context == CT_JOINT ? coord->u.joint : NULL;
-}
 /* Initializes all item-related fields */
 errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	rpid_t pid;
@@ -83,10 +29,7 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	
         aal_assert("umka-1459", coord != NULL, return -1);
 
-	if (!(entity = reiser4_coord_entity(coord))) {
-		aal_exception_error("Invalid coord context. Can't get coord entity.");
-		return -1;
-	}
+	entity = coord->node->entity;
 	
 	if ((pid = plugin_call(return -1, entity->plugin->node_ops,
 			       item_pid, entity, &coord->pos)) == FAKE_PLUGIN)
@@ -123,9 +66,10 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	aal_assert("umka-1406", key->plugin != NULL, return -1);
 
 	context = &coord->entity.context;
+	
+	context->node = coord->node->entity;
 	context->blk = reiser4_coord_blk(coord);
 	context->device = reiser4_coord_device(coord);
-	context->node = reiser4_coord_entity(coord);
 	
 	return 0;
 }
@@ -133,13 +77,12 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 /* Initializes coord and its item related fields */
 errno_t reiser4_coord_open(
 	reiser4_coord_t *coord,	 /* coord to be initialized */
-	void *data,	         /* the first component of coord */
-	coord_context_t context, /* coord context */
+	reiser4_node_t *node,	 /* the first component of coord */
 	reiser4_pos_t *pos)	 /* coord pos component */
 {
         aal_assert("umka-1435", coord != NULL, return -1);
 
-	if (reiser4_coord_init(coord, data, context, pos))
+	if (reiser4_coord_init(coord, node, pos))
 		return -1;
 	
 	return reiser4_coord_realize(coord);
@@ -148,14 +91,12 @@ errno_t reiser4_coord_open(
 /* This function initializes passed coord by specified params */
 errno_t reiser4_coord_init(
 	reiser4_coord_t *coord,	 /* coord to be initialized */
-	void *data,	         /* the first component of coord */
-	coord_context_t context, /* coord context */
+	reiser4_node_t *node,	 /* the first component of coord */
 	reiser4_pos_t *pos)	 /* coord pos component */
 {
 	aal_assert("umka-795", coord != NULL, return -1);
     
-	coord->u.data = data;
-	coord->context = context;
+	coord->node = node;
 	coord->pos = *pos;
 
 	return 0;
