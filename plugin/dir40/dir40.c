@@ -473,10 +473,15 @@ static reiser4_entity_t *dir40_create(const void *tree,
     unix_ext.ctime = time(NULL);
     unix_ext.rdev = 0;
 
-    unix_ext.bytes = plugin_call(goto error_free_dir, 
-	dir->direntry.plugin->item_ops, estimate, ~0ul, 
-	&direntry_hint);
-
+    if (plugin_call(goto error_free_dir, dir->direntry.plugin->item_ops, 
+	estimate, ~0ul, &direntry_hint))
+    {
+	aal_exception_error("Can't estimate directory item.");
+	goto error_free_dir;
+    }
+    
+    unix_ext.bytes = direntry_hint.len;
+    
     aal_memset(&stat.extentions, 0, sizeof(stat.extentions));
     
     stat.extentions.count = 2;

@@ -355,6 +355,8 @@ static reiser4_entity_t *reg40_create(const void *tree,
     /* Taken space, should be changed by write */
     unix_ext.bytes = 0;
 
+    aal_memset(&stat.extentions, 0, sizeof(stat.extentions));
+    
     stat.extentions.count = 2;
     stat.extentions.hint[0] = &lw_ext;
     stat.extentions.hint[1] = &unix_ext;
