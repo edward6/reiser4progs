@@ -21,32 +21,32 @@ typedef enum merge_flag {
 	ET40_TAIL	= 1 << 4
 } merge_flag_t;
 
-static int extent40_merge_units(reiser4_place_t *place, int fix) {
-	uint32_t i, count, merged;
+static int extent40_join_units(reiser4_place_t *place, int fix) {
+	uint32_t i, count, joint;
 	extent40_t *extent;
 
 	extent = extent40_body(place);
 	count = extent40_units(place);
-	merged = 0;
+	joint = 0;
 	
-	for (i = 0, extent++; i < count; i++, extent++) {
-		bool_t merge = 0;
+	for (i = 0; i < count; i++, extent++) {
+		bool_t join = 0;
 
 		/* width == 0. */
 		if (!et40_get_width(extent))
 			goto shrink;
 
 		if (i == 0) continue;
+	
+		join = (et40_get_start(extent - 1) == 0 &&
+			et40_get_start(extent) == 0);
+		join = (et40_get_start(extent - 1) + et40_get_width(extent - 1)
+			== et40_get_start(extent)) || join;
 		
-		merge = (et40_get_start(extent - 1) == 0 &&
-			 et40_get_start(extent) == 0);
-		merge = (et40_get_start(extent - 1) + et40_get_width(extent - 1)
-			 == et40_get_start(extent)) || merge;
-		
-		if (!merge) continue;
+		if (!join) continue;
 		
 	shrink:
-		merged++;
+		joint++;
 	
 		if (!fix) continue;
 		
@@ -61,7 +61,7 @@ static int extent40_merge_units(reiser4_place_t *place, int fix) {
 		i--;
 	}
 
-	return merged;
+	return joint;
 }
 
 errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func, 
@@ -108,7 +108,7 @@ errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func,
 			result = RE_FIXABLE;
 	}
 	
-	units = extent40_merge_units(place, mode != RM_CHECK);
+	units = extent40_join_units(place, mode != RM_CHECK);
 	
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
@@ -183,7 +183,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			res |= RE_FIXABLE;
 	}
 	
-	units = extent40_merge_units(place, mode != RM_CHECK);
+	units = extent40_join_units(place, mode != RM_CHECK);
 
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
@@ -461,7 +461,7 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	}
 	
 	/* Join mergable units within the @place. */
-	hint->len = extent40_merge_units(place, 1) * sizeof(extent40_t);
+	hint->len = extent40_join_units(place, 1) * sizeof(extent40_t);
 	
 	place_mkdirty(place);
 	

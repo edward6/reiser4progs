@@ -394,9 +394,7 @@ static errno_t reg40_check_body(object_entity_t *entity,
 
 /* Writes passed data to the file. Returns amount of data on disk, that is
    @bytes value, which should be counted in stat data. */
-int64_t reg40_put(object_entity_t *entity, void *buff,
-		  uint64_t n)
-{
+int64_t reg40_put(object_entity_t *entity, void *buff, uint64_t n) {
 	reg40_t *reg;
 	int64_t written;
 	trans_hint_t hint;

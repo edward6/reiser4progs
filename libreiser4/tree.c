@@ -1531,7 +1531,8 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	   needed, because @key might point to @place->item.key in @place and
 	   will be corrupted during lookup. */
 	reiser4_key_assign(&wan, hint->key);
-
+	aal_memset(place, 0, sizeof(*place));
+	
 #ifndef ENABLE_STAND_ALONE
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */

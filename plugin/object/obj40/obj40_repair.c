@@ -166,14 +166,12 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Check the mode in the LW extension. */
 	if (lw_new.mode != lw_hint.mode) {
-		aal_error("Node (%llu), item (%u): StatData of "
-			  "the file [%s] has the wrong mode (%u),"
-			  "%s (%u). Plugin (%s).", 
+		aal_error("Node (%llu), item (%u): StatData of the file [%s] "
+			  "has the wrong mode (%u), %s (%u). Plugin (%s).",
 			  stat->node->block->nr, stat->pos.item, 
 			  print_inode(obj->core, &stat->key),
-			  lw_hint.mode, mode == RM_CHECK ? 
-			  "Should be" : "Fixed to", lw_new.mode, 
-			  stat->plug->label);
+			  lw_hint.mode, mode == RM_CHECK ? "Should be" : 
+			  "Fixed to", lw_new.mode, stat->plug->label);
 		
 		res = RE_FIXABLE;
 	}
@@ -235,10 +233,9 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 	if (!key->plug->o.key_ops->compfull(key, &place->key))
 		return 0;
 	
-	aal_error("Node (%llu), item(%u): the key [%s] of the "
-		  "item is wrong, %s [%s]. Plugin (%s).", 
-		  place->node->block->nr, place->pos.unit, 
-		  print_key(obj->core, &place->key),
+	aal_error("Node (%llu), item(%u): the key [%s] of the item is "
+		  "wrong, %s [%s]. Plugin (%s).", place->node->block->nr,
+		  place->pos.unit, print_key(obj->core, &place->key),
 		  mode == RM_BUILD ? "fixed to" : "should be", 
 		  print_key(obj->core, key), obj->plug->label);
 	

@@ -547,7 +547,12 @@ errno_t reg40_check_struct(object_entity_t *object,
 					  : "");
 
 				reg->body.plug = NULL;
-			} else {			
+			} else if (reg->body.pos.unit != MAX_UINT32) {
+				/* If in the middle of the item, go to the 
+				   next. It may happen after the tail->extent
+				   convertion. */
+				goto next;
+			} else {
 				/* Prepare the convertion if needed. */
 				if (!plug_equal(reg->body.plug, repair.bplug))
 					result = reg40_conv_prepare(reg, &hint, 
@@ -585,9 +590,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if (place_func && place_func(&reg->body, data))
 			return -EINVAL;
 
-		/* If we found not we looking for, insert the hole. */
-		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
-			return res;
 		
 		/* Count bytes if no conversion has been postponed. */
 		if (!hint.offset.plug) {
@@ -595,6 +597,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 						  bytes, &reg->body);
 		}
 		
+		/* If we found not we looking for, insert the hole. */
+		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
+			return res;
 
 	next:
 		/* Find the next after the maxreal key. */

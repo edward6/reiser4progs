@@ -754,13 +754,12 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
                 /* FIXME-VITALY: This is not key-collision-safe. */
 		hint.key = &key;
 		hint.level = LEAF_LEVEL;
+		hint.correct_func = NULL;
 
                 /* Lookup the key. */
-                if ((lookup = reiser4_tree_lookup(tree, &hint,
-						  FIND_EXACT, &place)) < 0)
-		{
+                if ((lookup = reiser4_tree_lookup(tree, &hint, FIND_EXACT, 
+						  &place)) < 0)
                         return lookup;
-		}
 
 		pos = &place.pos;
 
@@ -777,6 +776,7 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
 
 				count = reiser4_node_items(place.node);
 				place.pos.item = -1;
+				
 				continue;
 			}
 			

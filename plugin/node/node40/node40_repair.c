@@ -649,7 +649,7 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	/* Unpack all item bodies. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
 		if (node40_fetch(entity, pos, &place))
-			return NULL;
+			goto error_free;
 		
 		if (place.plug->o.item_ops->repair->unpack) {
 			/* Unpack body. */
@@ -673,7 +673,8 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
  error_free_entity:
 	aal_error("Can't unpack the node (%llu). "
 		  "Stream is over?", block->nr);
-	
+
+ error_free:
 	aal_free(entity);
 	return NULL;
 }

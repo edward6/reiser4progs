@@ -457,13 +457,11 @@ static void repair_filter_update(repair_filter_t *fd) {
 	reiser4_format_t *format;
 	aal_stream_t stream;
 	char *time_str;
-	reiser4_node_t *root;
 	
 	aal_assert("vpf-421", fd != NULL);
 	
 	stat = &fd->stat;
 	format = fd->repair->fs->format;
-	root = fd->repair->fs->tree->root;
 	
 	if (fd->flags) {
 		aal_error("Root node (%llu): the node is %s. %s",
@@ -475,7 +473,14 @@ static void repair_filter_update(repair_filter_t *fd) {
 			  "The whole subtree is skipped.");
 		
 		if (fd->repair->mode == RM_BUILD) {
+			reiser4_node_t *root;
+			
+			root = fd->repair->fs->tree->root;
+			
+			reiser4_node_fini(root);
+			
 			reiser4_format_set_root(format, INVAL_BLK);
+			fd->repair->fs->tree->root = NULL;
 			fd->repair->fatal--;
 		}
 	}
