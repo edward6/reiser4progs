@@ -211,8 +211,20 @@ static errno_t callback_flush_bitmap(object_entity_t *format,
 		(int)size : (int)((start + alloc->bitmap->size) - current);
 
 	aal_memcpy(block->data + CRC_SIZE, current, chunk);
-    
-	adler = aal_adler32(current, chunk);
+
+	if (chunk < size) {
+		void *fake;
+
+		if (!(fake = aal_calloc(size, 0)))
+			goto error_free_block;
+
+		aal_memcpy(fake, current, chunk);
+		adler = aal_adler32(current, chunk);
+		
+		aal_free(fake);
+	} else
+		adler = aal_adler32(current, chunk);
+	
 	aal_memcpy(block->data, &adler, sizeof(adler));
     
 	if (aal_block_sync(block)) {
@@ -388,8 +400,19 @@ static errno_t callback_check_bitmap(object_entity_t *format,
     
 	/* Calculating adler checksumm for piece of bitmap */
 	chunk = free > size ? size : free;
-    
-	cadler = aal_adler32(current, chunk);
+
+	if (chunk < size) {
+		void *fake;
+
+		if (!(fake = aal_calloc(size, 0)))
+			return -1;
+
+		aal_memcpy(fake, current, chunk);
+		cadler = aal_adler32(current, chunk);
+		
+		aal_free(fake);
+	} else
+		cadler = aal_adler32(current, chunk);
 
 	/* 
 	   If loaded checksum and calculated are not equal, then we have corrupted 

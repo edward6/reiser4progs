@@ -527,7 +527,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	return i;
 }
 
-static errno_t dir40_layout(object_entity_t *entity, file_layout_func_t func,
+static errno_t dir40_layout(object_entity_t *entity, file_action_func_t func,
 			    void *data)
 {
 	errno_t res;

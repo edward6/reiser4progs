@@ -138,6 +138,7 @@ reiser4_file_t *reiser4_file_open(
 		return NULL;
     
 	file->fs = fs;
+	aal_strncpy(file->name, name, sizeof(file->name));
 
 	root_key = &fs->tree->key;
 	reiser4_key_init(&file->key, root_key->plugin, root_key->body);
@@ -235,6 +236,8 @@ reiser4_file_t *reiser4_file_create(
 
 	/* Initializing fileds and preparing keys */
 	file->fs = fs;
+
+	aal_strncpy(file->name, name, sizeof(file->name));
     
 	/* 
 	   This is a special case. In the case parent is NULL, we are trying to
@@ -365,7 +368,7 @@ errno_t reiser4_file_seek(
 
 errno_t reiser4_file_layout(
 	reiser4_file_t *file,       /* file we working with */
-	file_layout_func_t func,    /* layout callback */
+	file_action_func_t func,    /* layout callback */
 	void *data)                 /* user-spaecified data */
 {
 	aal_assert("umka-1469", file != NULL, return -1);

@@ -43,23 +43,23 @@ static void mkfs_print_usage(char *name) {
     
 	fprintf(stderr, 
 		"Common options:\n"
-		"  -?, -h | --help               prints program usage.\n"
-		"  -V, --version                 prints current version.\n"
-		"  -q, --quiet                   forces creating filesystem without\n"
-		"                                any questions.\n"
-		"  -f, --force                   makes mkfs to use whole disk, not\n"
-		"                                block device or mounted partition.\n"
-		"  -s, --lost-found              forces mkfs to create lost+found\n"
-		"                                directory.\n"
-		"  -b, --block-size N            block size, 4096 by default,\n"
-		"                                other are not supported at the moment.\n"
-		"  -l, --label LABEL             volume label lets to mount\n"
-		"                                filesystem by its label.\n"
-		"  -i, --uuid UUID               universally unique identifier.\n"
+		"  -?, -h, --help            prints program usage.\n"
+		"  -V, --version             prints current version.\n"
+		"  -q, --quiet               forces creating filesystem without\n"
+		"                            any questions.\n"
+		"  -f, --force               makes mkfs to use whole disk, not\n"
+		"                            block device or mounted partition.\n"
+		"  -s, --lost-found          forces mkfs to create lost+found\n"
+		"                            directory.\n"
+		"  -b, --block-size N        block size, 4096 by default, other\n"
+		"                            are not supported at the moment.\n"
+		"  -i, --uuid UUID           universally unique identifier.\n"
+		"  -l, --label LABEL         volume label lets to mount\n"
+		"                            filesystem by its label.\n"
 		"Plugins options:\n"
-		"  -e, --profile PROFILE         profile to be used.\n"
-		"  -P, --known-plugins           prints known plugins.\n"
-		"  -K, --known-profiles          prints known profiles.\n");
+		"  -e, --profile PROFILE     profile to be used.\n"
+		"  -P, --known-plugins       prints known plugins.\n"
+		"  -K, --known-profiles      prints known profiles.\n");
 }
 
 /* Initializes used by mkfs exception streams */

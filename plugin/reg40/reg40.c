@@ -476,11 +476,11 @@ static int32_t reg40_write(object_entity_t *entity,
 	return wrote;
 }
 
-static errno_t reg40_layout(object_entity_t *entity, file_layout_func_t func,
+static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 			    void *data)
 {
 	errno_t res;
-	int64_t size;
+	uint64_t size;
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1471", entity != NULL, return -1);

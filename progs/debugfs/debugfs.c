@@ -43,7 +43,9 @@ enum debugfs_behav_flags {
 	BF_TFRAG    = 1 << 2,
 	BF_DFRAG    = 1 << 3,
 	BF_FFRAG    = 1 << 4,
-	BF_NPACK    = 1 << 5
+	BF_NPACK    = 1 << 5,
+	BF_LS       = 1 << 6,
+	BF_CAT      = 1 << 7
 };
 
 typedef enum debugfs_behav_flags debugfs_behav_flags_t;
@@ -54,29 +56,35 @@ static void debugfs_print_usage(char *name) {
     
 	fprintf(stderr, 
 		"Common options:\n"
-		"  -?, -h, --help                 prints program usage.\n"
-		"  -V, --version                  prints current version.\n"
-		"  -q, --quiet                    forces creating filesystem without\n"
-		"                                 any questions.\n"
-		"  -f, --force                    makes debugfs to use whole disk, not\n"
-		"                                 block device or mounted partition.\n"
+		"  -?, -h, --help            prints program usage.\n"
+		"  -V, --version             prints current version.\n"
+		"  -q, --quiet               forces creating filesystem without\n"
+		"                            any questions.\n"
+		"  -f, --force               makes debugfs to use whole disk, not\n"
+		"                            block device or mounted partition.\n"
+		"Browsing options:\n"
+		"  -l, --ls FILE             browses passed file like standard\n"
+		"                            ls program.\n"
+		"  -c, --cat FILE            browses passed file like standard\n"
+		"                            cat program.\n"
 		"Print options:\n"
-		"  -i, --print-items              forces debugfs.reiser4 to print items\n"
-		"                                 content if --print-tree is specified.\n"
-		"  -t, --print-tree               prints the whole tree.\n"
-		"  -j, --print-journal            prints journal.\n"
-		"  -s, --print-super              prints the both super blocks (default).\n"
-		"  -b, --print-block-alloc        prints block allocator data.\n"
-		"  -o, --print-oid-alloc          prints oid allocator data.\n"
+		"  -i, --print-items         forces debugfs.reiser4 to print\n"
+		"                            items content if --print-tree was\n"
+		"                            specified.\n"
+		"  -t, --print-tree          prints the whole tree.\n"
+		"  -j, --print-journal       prints journal.\n"
+		"  -s, --print-super         prints the both super blocks.\n"
+		"  -b, --print-block-alloc   prints block allocator data.\n"
+		"  -o, --print-oid-alloc     prints oid allocator data.\n"
 		"Measurement options:\n"
-		"  -N, --node-packing             measures avarage node packing factor.\n"
-		"  -T, --tree-fragmentation       measures total tree fragmentation.\n"
-		"  -D, --data-fragmentation       measures average files fragmentation.\n"
-		"  -F, --file-fragmentation FILE  measures fragmentation of the specified\n"
-		"                                 file.\n"
+		"  -N, --node-packing        measures avarage node packing.\n"
+		"  -T, --tree-frag           measures total tree fragmentation.\n"
+		"  -D, --data-frag           measures average files fragmentation.\n"
+		"  -F, --file-frag FILE      measures fragmentation of specified\n"
+		"                            file.\n"
 		"Plugins options:\n"
-		"  -e, --profile PROFILE          profile to be used.\n"
-		"  -K, --known-profiles           prints known profiles.\n");
+		"  -e, --profile PROFILE     profile to be used.\n"
+		"  -K, --known-profiles      prints known profiles.\n");
 }
 
 /* Initializes used by debugfs exception streams */
@@ -470,6 +478,66 @@ static errno_t debugfs_data_fragmentation(reiser4_fs_t *fs) {
 	return -1;
 }
 
+static errno_t debugfs_file_cat(reiser4_file_t *file) {
+	char buff[4096];
+	
+	if (reiser4_file_reset(file)) {
+		aal_exception_error("Can't reset file %s.", file->name);
+		return -1;
+	}
+	
+	while (1) {
+		aal_memset(buff, 0, sizeof(buff));
+
+		if (!reiser4_file_read(file, buff, sizeof(buff)))
+			break;
+
+		printf(buff);
+	}
+
+	return 0;
+}
+
+static errno_t debugfs_file_ls(reiser4_file_t *file) {
+	reiser4_entry_hint_t entry;
+	
+	if (reiser4_file_reset(file)) {
+		aal_exception_error("Can't reset file %s.", file->name);
+		return -1;
+	}
+	
+	while (reiser4_file_read(file, &entry, 1)) {
+		printf("[%llx:%llx] %s\n", (entry.objid.locality >> 4), 
+		       entry.objid.objectid, entry.name);
+	}
+	
+	return 0;
+}
+
+static errno_t debugfs_ls(reiser4_fs_t *fs, char *filename) {
+	errno_t res = 0;
+	reiser4_file_t *file;
+	
+	if (!(file = reiser4_file_open(fs, filename)))
+		return -1;
+
+	if (file->entity->plugin->h.sign.group == REGULAR_FILE)
+		debugfs_file_cat(file);
+	else if (file->entity->plugin->h.sign.group == DIRTORY_FILE) {
+		res = debugfs_file_ls(file);
+	} else {
+		aal_exception_info("Sorry, browing special files and symlinks "
+				   "is not implemented yet.");
+	}
+	
+	reiser4_file_close(file);
+	return res;
+}
+
+static errno_t debugfs_cat(reiser4_fs_t *fs, char *filename) {
+	return -1;
+}
+
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -477,7 +545,9 @@ int main(int argc, char *argv[]) {
 	debugfs_behav_flags_t behav_flags = 0;
     
 	char *host_dev;
-	char *filename = NULL;
+	char *ls_filename = NULL;
+	char *cat_filename = NULL;
+	char *frag_filename = NULL;
 	char *profile_label = "smart40";
     
 	reiser4_fs_t *fs;
@@ -489,6 +559,8 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"profile", required_argument, NULL, 'e'},
 		{"force", no_argument, NULL, 'f'},
+		{"ls", required_argument, NULL, 'l'},
+		{"cat", required_argument, NULL, 'c'},
 		{"print-items", no_argument, NULL, 'i'},
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
@@ -512,7 +584,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDNF:",
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDNF:c:l:",
 				     long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -552,13 +624,17 @@ int main(int argc, char *argv[]) {
 		case 'D':
 			behav_flags |= BF_DFRAG;
 			break;
+		case 'c':
+			behav_flags |= BF_CAT;
+			cat_filename = optarg;
+			break;
+		case 'l':
+			behav_flags |= BF_LS;
+			ls_filename = optarg;
+			break;
 		case 'F':
 			behav_flags |= BF_FFRAG;
-			if (aal_strlen((filename = optarg)) == 0) {
-				aal_exception_error("File name is required for "
-						    "--file-fragmentation option.");
-				return USER_ERROR;
-			}
+			frag_filename = optarg;
 			break;
 		case 'f':
 			behav_flags |= BF_FORCE;
@@ -675,13 +751,25 @@ int main(int argc, char *argv[]) {
 	}
 
 	if ((behav_flags & BF_FFRAG)) {
-		if (debugfs_file_fragmentation(fs, filename))
+		if (debugfs_file_fragmentation(fs, frag_filename))
 			goto error_free_fs;
 		print_flags = 0;
 	}
 	
 	if ((behav_flags & BF_NPACK)) {
 		if (debugfs_node_packing(fs))
+			goto error_free_fs;
+		print_flags = 0;
+	}
+	
+	if ((behav_flags & BF_LS)) {
+		if (debugfs_ls(fs, ls_filename))
+			goto error_free_fs;
+		print_flags = 0;
+	}
+	
+	if ((behav_flags & BF_CAT)) {
+		if (debugfs_cat(fs, cat_filename))
 			goto error_free_fs;
 		print_flags = 0;
 	}

@@ -25,7 +25,7 @@ extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs, reiser4_file_hint_t
 extern errno_t reiser4_file_write(reiser4_file_t *file, void *buff, uint64_t n);
 extern errno_t reiser4_file_truncate(reiser4_file_t *file, uint64_t n);
 
-extern errno_t reiser4_file_layout(reiser4_file_t *file, file_layout_func_t func,
+extern errno_t reiser4_file_layout(reiser4_file_t *file, file_action_func_t func,
 				   void *data);
 
 #endif

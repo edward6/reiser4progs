@@ -247,7 +247,8 @@ typedef errno_t (*format_layout_func_t) (object_entity_t *, format_action_func_t
 					 void *);
 
 /* Type for file layout callback function */
-typedef errno_t (*file_layout_func_t) (object_entity_t *, uint64_t, void *);
+typedef errno_t (*file_action_func_t) (object_entity_t *, uint64_t, void *);
+typedef errno_t (*file_layout_func_t) (object_entity_t *, file_action_func_t, void *);
 
 /* 
    To create a new item or to insert into the item we need to perform the
@@ -561,7 +562,7 @@ struct reiser4_file_ops {
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
 	/* Function for going throught all blocks specfied file occupied */
-	errno_t (*layout) (object_entity_t *, file_layout_func_t, void *);
+	file_layout_func_t layout;
 };
 
 typedef struct reiser4_file_ops reiser4_file_ops_t;

@@ -183,6 +183,9 @@ struct reiser4_file {
     
 	/* Referrence to the filesystem object opened on */
 	reiser4_fs_t *fs;
+
+	/* Full file name */
+	char name[256];
 };
 
 typedef struct reiser4_file reiser4_file_t;
