@@ -110,6 +110,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 			.desc = "Node pointer item for reiserfs 4.0, ver. " VERSION,
 		},
 		.check = NULL,
+		
 #ifndef ENABLE_COMPACT	    
 		.init		= nodeptr40_init,
 		.insert		= nodeptr40_insert,

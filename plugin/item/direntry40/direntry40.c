@@ -344,7 +344,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		
 		if (dst_units > 0) {
 
-			/* Moving entry headers of dst direntry */
+			/* Moving entry bodies of dst direntry */
 			src = (void *)dst_direntry + sizeof(direntry40_t) +
 				(dst_units * sizeof(entry40_t));
 			
