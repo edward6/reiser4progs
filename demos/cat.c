@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
-	if (!(reg = reiser4_object_open(fs, argv[2])))
+	if (!(reg = reiser4_object_open(fs, argv[2], TRUE)))
 		goto error_free_tree;
 
 	if (reg->entity->plugin->h.group != FILE_OBJECT) {

@@ -64,12 +64,12 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
-	if (!(fs->root = reiser4_object_open(fs, "/"))) {
+	if (!(fs->root = reiser4_object_open(fs, "/", TRUE))) {
 		aal_exception_error("Can't open root dir.");
 		goto error_free_tree;
 	}
     
-	if (!(dir = reiser4_object_open(fs, argv[2]))) {
+	if (!(dir = reiser4_object_open(fs, argv[2], TRUE))) {
 		aal_exception_error("Can't open dir %s.", argv[2]);
 		goto error_free_root;
 	}

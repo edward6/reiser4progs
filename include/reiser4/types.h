@@ -183,6 +183,8 @@ struct reiser4_object {
 	/* Referrence to the filesystem file opened on */
 	reiser4_fs_t *fs;
 
+	bool_t follow;
+
 #ifndef ENABLE_STAND_ALONE
 	
 	/* Full file name or printed key */

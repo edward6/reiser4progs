@@ -3,8 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* cleanups in sym40 plugin.
-
 * add option to measurefs, which will introduce some kind of filter 
   for file fragmentation calculating.
 
@@ -13,11 +11,7 @@ reiser4progs/COPYING.
 
 * special file plugin and special files support in debugfs.
 
-* big digits stat data fields storing format change.
-
-* there should be an ability to work with symlinks from the API.
-  Currently if we open a symlink we just "follow" it and then work
-  with object it points to.
+* big digits stat data fields format change.
 
 * some kind of flush is needed for libreiser4.
 

@@ -91,8 +91,11 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
-	reiser4_plugin_t *plugin;
 	reiser4_object_t *object;
+
+#ifdef ENABLE_SYMLINKS_SUPPORT
+	reiser4_plugin_t *plugin;
+#endif
 
 	object = (reiser4_object_t *)data;
 
@@ -113,7 +116,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	plugin = object->entity->plugin;
 
 	/* Symlinks handling. Method "follow" should be implemented */
-	if (plugin->o.object_ops->follow) {
+	if (object->follow && plugin->o.object_ops->follow) {
 		if ((res = plugin->o.object_ops->follow(object->entity,
 							&object->key)))
 		{
@@ -171,13 +174,14 @@ static errno_t callback_find_entry(char *track, char *entry,
 /* This function opens object by its name */
 reiser4_object_t *reiser4_object_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
-	char *path)                     /* name of object to be opened */
+	char *filename,                 /* name of object to be opened */
+	bool_t follow)                  /* follow symlinks */
 {
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-678", fs != NULL);
-	aal_assert("umka-789", path != NULL);
+	aal_assert("umka-789", filename != NULL);
 
 	if (!fs->tree) {
 		aal_exception_error("Can't open object without "
@@ -189,9 +193,11 @@ reiser4_object_t *reiser4_object_open(
 		return NULL;
     
 	object->fs = fs;
+	object->follow = follow;
 
 #ifndef ENABLE_STAND_ALONE
-	aal_strncpy(object->name, path, sizeof(object->name));
+	aal_strncpy(object->name, filename,
+		    sizeof(object->name));
 #endif
 
 	reiser4_key_assign(&object->key, &fs->tree->key);
@@ -201,7 +207,7 @@ reiser4_object_t *reiser4_object_open(
 	  is absolute one. So, user, who calls this method should convert name
 	  previously into absolute one by means of using getcwd function.
 	*/
-	if (aux_parse_path(path, callback_find_statdata,
+	if (aux_parse_path(filename, callback_find_statdata,
 			   callback_find_entry, object))
 	{
 		goto error_free_object;
@@ -216,7 +222,7 @@ reiser4_object_t *reiser4_object_open(
 
 #ifndef ENABLE_STAND_ALONE
 /* This function opens object by its @place */
-reiser4_object_t *reiser4_object_begin(
+reiser4_object_t *reiser4_object_access(
 	reiser4_fs_t *fs,               /* fs object will be opened on */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
 {
@@ -473,7 +479,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	/* Opening victim statdata by found place */
-	if (!(child = reiser4_object_begin(object->fs, &place))) {
+	if (!(child = reiser4_object_access(object->fs, &place))) {
 		aal_exception_error("Can't open %s/%s.",
 				    object->name, name);
 		return -EINVAL;

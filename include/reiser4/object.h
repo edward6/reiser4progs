@@ -11,7 +11,8 @@
 #include <reiser4/types.h>
 
 extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
-					     char *path);
+					     char *filename,
+					     bool_t follow);
 
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint32_t n);
@@ -41,8 +42,8 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 extern errno_t reiser4_object_seek(reiser4_object_t *object,
 				   uint32_t offset);
 
-extern reiser4_object_t *reiser4_object_begin(reiser4_fs_t *fs,
-					      reiser4_place_t *place);
+extern reiser4_object_t *reiser4_object_access(reiser4_fs_t *fs,
+					       reiser4_place_t *place);
 
 extern reiser4_object_t *reiser4_object_create(reiser4_fs_t *fs,
 					       reiser4_object_t *parent,
