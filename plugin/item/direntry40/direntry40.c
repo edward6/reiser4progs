@@ -276,6 +276,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		  are at insert point and unit pos is not ~0ul.
 		*/
 		if (check && (flags & SF_UPTIP)) {
+			
 			if (!(flags & SF_MOVIP)) {
 				if (flags & SF_LEFT) {
 					if (hint->pos.unit == 0)

@@ -639,27 +639,27 @@ errno_t reiser4_tree_grow(
 errno_t reiser4_tree_shift(
 	reiser4_tree_t *tree,	/* tree we will operate on */
 	reiser4_coord_t *coord,	/* insert point coord */
-	reiser4_node_t *neig,	/* node items will be shifted to */
+	reiser4_node_t *node,	/* node items will be shifted to */
 	uint32_t flags)	        /* some flags (direction, move ip or not, etc) */
 {
 	shift_hint_t hint;
 
 	aal_assert("umka-1225", tree != NULL, return -1);
 	aal_assert("umka-1226", coord != NULL, return -1);
-	aal_assert("umka-1227", neig != NULL, return -1);
+	aal_assert("umka-1227", node != NULL, return -1);
     
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	hint.flags = flags;
 	hint.pos = coord->pos;
 	
-	if (reiser4_node_shift(coord->node, neig, &hint) < 0)
+	if (reiser4_node_shift(coord->node, node, &hint) < 0)
 		return -1;
 
 	coord->pos = hint.pos;
 
 	if (hint.flags & SF_MOVIP)
-		coord->node = neig;
+		coord->node = node;
 
 	return 0;
 }
@@ -750,7 +750,7 @@ errno_t reiser4_tree_mkspace(
 		  shifting.
 		*/
 		if (reiser4_node_items(save.node) == 0) {
-			reiser4_node_t *ghost = &save.node;
+			reiser4_node_t *ghost = save.node;
 
 			if (ghost->parent) {
 				
@@ -943,7 +943,45 @@ errno_t reiser4_tree_remove(
 	if (reiser4_node_remove(coord->node, &coord->pos))
 		return -1;
 
-	if (reiser4_node_items(coord->node) == 0) {
+	if (reiser4_node_items(coord->node) > 0) {
+		reiser4_node_t *left, *right;
+		
+		/*
+		  Packing node in order to keep the tree in well packed state
+		  anyway. Here we will shift data from the target node to its
+		  left neighbour node.
+		*/
+		if ((left = reiser4_node_left(coord->node))) {
+	    
+			if (reiser4_tree_shift(tree, coord, left, SF_LEFT)) {
+				aal_exception_error("Can't pack node %llu into left.",
+						    coord->node->blk);
+				return -1;
+			}
+		}
+
+		/*
+		  Shifting the data from the right neigbour node into the target
+		  node.
+		*/
+		if ((right = reiser4_node_right(coord->node))) {
+			reiser4_coord_t bogus;
+
+			bogus.node = right;
+			bogus.pos.item = 0;
+			bogus.pos.unit = ~0ul;
+	    
+			if (reiser4_tree_shift(tree, &bogus, coord->node, SF_LEFT)) {
+				aal_exception_error("Can't pack node %llu into left.",
+						    right->blk);
+				return -1;
+			}
+		}
+	} else {
+		/*
+		  If node has became empty, then we shoudl release it and
+		  release block it is occupying in block allocator.
+		*/
 		coord->node->flags &= ~NF_DIRTY;
 		reiser4_tree_release(tree, coord->node);
 	}
