@@ -19,17 +19,19 @@ extern errno_t reg40_reset(object_entity_t *entity);
 extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
 
-#define known_extentions ((uint64_t)1 << SDEXT_UNIX_ID | 	\
-			  	    1 << SDEXT_LW_ID |		\
-				    1 << SDEXT_PLUG_ID)
+#define reg40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
 static errno_t reg40_extentions(place_t *stat) {
 	uint64_t extmask;
 	
+	/* Check that there is no one unknown extention. */
 	extmask = obj40_extmask(stat);
-	extmask &= ~known_extentions;
-
-	return extmask ? RE_FATAL : RE_OK;
+	
+	if (extmask & ~(reg40_exts | 1 << SDEXT_PLUG_ID))
+		return RE_FATAL;
+	
+	/* Check that LW and UNIX extentions exist. */
+	return ((extmask & reg40_exts) == reg40_exts) ? RE_OK : RE_FATAL;
 }
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
@@ -47,26 +49,6 @@ static errno_t callback_stat(place_t *stat) {
 	return S_ISREG(lw_hint.mode) ? 0 : RE_FATAL;
 }
 
-/* Build the @obj->info.start on the basis of @obj->info.start place. */
-static errno_t callback_key(obj40_t *obj) {
-	uint64_t type, locality, objectid, ordering;
-	
-	locality = plug_call(obj->info.object.plug->o.key_ops,
-			     get_locality, &obj->info.start.key);
-		
-	objectid = plug_call(obj->info.object.plug->o.key_ops,
-			     get_objectid, &obj->info.start.key);
-	
-	ordering = plug_call(obj->info.object.plug->o.key_ops,
-			     get_ordering, &obj->info.start.key);
-	
-	plug_call(obj->info.object.plug->o.key_ops, build_gener, 
-		  &obj->info.object, KEY_STATDATA_TYPE, locality, 
-		  ordering, objectid, 0);
-	
-	return 0;
-}
-
 object_entity_t *reg40_realize(object_info_t *info) {
 	reg40_t *reg;
 	errno_t res;
@@ -77,11 +59,8 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
-	if ((res = obj40_realize(&reg->obj, callback_stat,
-				 callback_key)))
-	{
+	if ((res = obj40_realize(&reg->obj, callback_stat)))
 		goto error;
-	}
 	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
@@ -136,8 +115,6 @@ static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 
 	offset = reg40_offset((object_entity_t *)reg);
 
-	/* FIXME-UMKA->VITALY: reg40_put() return number of bytes written to
-	   tree. Stat data "bytes" fields should be updated byt using it. */
 	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
@@ -167,7 +144,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	info = &reg->obj.info;
 	
 	if ((res = obj40_stat_launch(&reg->obj, reg40_extentions, 
-				     1, S_IFREG, mode)))
+				     reg40_exts, 1, S_IFREG, mode)))
 		return res;
 
 	/* Try to register SD as an item of this file. */
@@ -188,15 +165,14 @@ errno_t reg40_check_struct(object_entity_t *object,
 				break;
 			
 			/* Initializing item entity at @next place */
-			if ((res |= core->tree_ops.fetch(info->tree, &reg->body)))
+			if ((res |= core->tree_ops.fetch(info->tree, 
+							 &reg->body)))
 				return res;
 			
 			/* Check if this is an item of another object. */
-			if (plug_call(reg->offset.plug->o.key_ops, compshort, 
+			if (plug_call(reg->offset.plug->o.key_ops, compshort,
 				      &reg->offset, &reg->body.key))
-			{
 				break;
-			}
 		}
 		
 		offset = plug_call(reg->body.key.plug->o.key_ops,
@@ -218,11 +194,10 @@ errno_t reg40_check_struct(object_entity_t *object,
 				/* Save offset to avoid another registering. */
 				next = offset;
 				
-				if ((res |= reg40_create_hole(reg, offset - 
-							      reg40_offset(object))))
-				{
+				res |= reg40_create_hole(reg, offset - 
+							 reg40_offset(object));							 
+				if (res < 0)
 					return res;
-				}
 				
 				/* Scan and register created items. */
 				continue;
@@ -240,9 +215,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		/* Fix item key if differs. */
 		if ((res |= obj40_ukey(&reg->obj, &reg->body, 
 				       &reg->offset, mode)) < 0)
-		{
 			return res;
-		}
 
 		/* Count size and bytes. */
 		size += plug_call(reg->body.plug->o.item_ops, 
@@ -274,9 +247,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		/* Get the maxreal key of the found item and find next. */
 		if ((res |= plug_call(reg->body.plug->o.item_ops, 
 				      maxreal_key, &reg->body, &key)))
-		{
 			return res;
-		}
 
 		reg40_seek(object, plug_call(key.plug->o.key_ops, 
 					     get_offset, &key) + 1);
@@ -292,6 +263,10 @@ errno_t reg40_check_struct(object_entity_t *object,
 					size, bytes, mode);
 
 	return res;
+}
+
+void reg40_core(reiser4_core_t *c) {
+	core = c;
 }
 
 #endif

@@ -187,8 +187,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 				return ret;
 		}
 	} else {
-		/* FIXME-UMKA->VITALY: This function no longer exists. */
-//		reiser4_key_guess(rd_key);
+		rd_key->plug = node->tree->key.plug;
 		reiser4_key_maximal(rd_key);
 	}
 	

@@ -123,16 +123,14 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.type_specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	switch (obj40_lookup(obj, &hint.key, LEAF_LEVEL,
-			     STAT_PLACE(obj)))
+	if (obj40_lookup(obj, &hint.key, LEAF_LEVEL, 
+			 STAT_PLACE(obj)) != ABSENT)
 	{
-	case ABSENT:
-		/* Insert stat data to tree */
-		return obj40_insert(obj, STAT_PLACE(obj),
-				    &hint, LEAF_LEVEL);
-	default:
 		return -EINVAL;
 	}
+	
+	/* Insert stat data to tree */
+	return obj40_insert(obj, STAT_PLACE(obj), &hint, LEAF_LEVEL);
 }
 
 /* Updates size, bytes and atime fielsds */
@@ -391,15 +389,13 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 
 /* Fetches item at passed @place */
 errno_t obj40_fetch(obj40_t *obj, place_t *place) {
-	return obj->core->tree_ops.fetch(obj->info.tree,
-					 place);
+	return obj->core->tree_ops.fetch(obj->info.tree, place);
 }
 
-/* Just returns a plugin for it @pid if specified; otherwise call
- * obj40_pid(). */
+/* Obtains the plugin of the plugid returned by obj40_pid(). */
 reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
 	rid_t pid = obj40_pid(obj, type, name);
-	
+
 	/* Obtain the plugin by id. */
 	if (pid == INVAL_PID)
 		return NULL;
@@ -407,13 +403,18 @@ reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
 	return obj->core->factory_ops.ifind(type, pid);
 }
 
-/* This function asks SD for the plugin of the type @type, if nothing found, it
-   asks core for default one for the @type. */
+/* Obtains plugid of the type @type from the SD if it is kept 
+   there, othewise obtains the default one from the profile. */
 rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
-	rid_t pid = plug_call(obj->info.start.plug->o.item_ops, 
-			      plug, &obj->info.start, type);
+	rid_t pid;
 	
-	/* If not specified yet, try to get default id. */
+	aal_assert("vpf-1235", obj != NULL);
+	aal_assert("vpf-1236", STAT_PLACE(obj)->plug != NULL);
+	
+	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops, plug, 
+			STAT_PLACE(obj), type);
+	
+	/* If nothing found in SD, obtain the default one. */
 	if (pid == INVAL_PID)
 		pid = obj->core->profile_ops.value(name);
 	
@@ -444,7 +445,7 @@ errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 
 /* Makes sure, that passed place points to right location in tree by means of
    calling tree_lookup() for its key. This is needed, because items may move to
-   somewhere after ech balancing. */
+   somewhere after each balancing. */
 errno_t obj40_update(obj40_t *obj) {
 	aal_assert("umka-1905", obj != NULL);
 		

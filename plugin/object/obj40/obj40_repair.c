@@ -7,6 +7,33 @@
 #include "obj40.h"
 #include <repair/plugin.h>
 
+/* Obtains the plugin of the type @type from SD if stored there, otherwise 
+   obtains the default one from the profile.  This differs from obj40_plug
+   as it checks if the id from the SD is a valid one. */
+reiser4_plug_t *obj40_plug_realize(obj40_t *obj, rid_t type, char *name) {
+	reiser4_plug_t *plug;
+	rid_t pid;
+	
+	aal_assert("vpf-1237", obj != NULL);
+	aal_assert("vpf-1238", STAT_PLACE(obj)->plug != NULL);
+	
+	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops, plug, 
+			STAT_PLACE(obj), type);
+	
+	/* If id found, try to find the plugin. */
+	if (pid != INVAL_PID) {
+		if ((plug = obj->core->factory_ops.ifind(type, pid)) != NULL)
+			return plug;
+	}
+	
+	/* Id either is not kept in SD or has not been found, 
+	   obtain the default one. */
+	if ((pid = obj->core->profile_ops.value(name)) == INVAL_PID)
+		return NULL;
+	
+	return obj->core->factory_ops.ifind(type, pid);
+}
+
 /* Checks that @obj->info.start is SD of the wanted file.  */
 errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 	object_info_t *info;
@@ -36,10 +63,10 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 }
 
 /* The plugin tries to realize the object: detects the SD, body items */
-errno_t obj40_realize(obj40_t *obj, stat_func_t stat_func, 
-		      key_func_t key_func)
-{
+errno_t obj40_realize(obj40_t *obj, stat_func_t stat_func) {
+	uint64_t locality, objectid, ordering;
 	object_info_t *info;
+	key_entity_t key;
 	errno_t res;
 
 	aal_assert("vpf-1121", info != NULL);
@@ -48,27 +75,24 @@ errno_t obj40_realize(obj40_t *obj, stat_func_t stat_func,
 	
 	info = &obj->info;
 	
-	if (info->object.plug) {
-		/* Realizing on the key: SD is not found. Check if the key 
-		   pointer is correct. */
-		
-		uint64_t locality, objectid, ordering;
-		key_entity_t key;
-		
-		locality = plug_call(info->object.plug->o.key_ops,
-				     get_locality, &info->object);
-		
-		objectid = plug_call(info->object.plug->o.key_ops,
-				     get_objectid, &info->object);
-		
-		ordering = plug_call(info->object.plug->o.key_ops,
-				     get_ordering, &info->object);
+	locality = plug_call(info->object.plug->o.key_ops,
+			     get_locality, &info->object);
 
+	objectid = plug_call(info->object.plug->o.key_ops,
+			     get_objectid, &info->object);
+
+	ordering = plug_call(info->object.plug->o.key_ops,
+			     get_ordering, &info->object);
+	
+	
+	if (info->object.plug) {
 		plug_call(info->object.plug->o.key_ops, build_gener, &key,
 			  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
 		
-		if (plug_call(info->object.plug->o.key_ops, compfull, &key, 
-			      &info->object))
+		/* Realizing on the key: SD is not found. Check if the key 
+		   pointer is correct. */
+		if (plug_call(info->object.plug->o.key_ops, compfull, 
+			      &key, &info->object))
 			return RE_FATAL;
 	} else {
 		/* Realizing on the SD. */
@@ -76,8 +100,9 @@ errno_t obj40_realize(obj40_t *obj, stat_func_t stat_func,
 			   		STATDATA_ITEM);
 		
 		/* Build the SD key into @info->object. */
-		if ((res = key_func(obj)))
-			return -EINVAL;
+		plug_call(info->object.plug->o.key_ops, build_gener, 
+			  &info->object, KEY_STATDATA_TYPE, locality, 
+			  ordering, objectid, 0);
 	}
 	
 	/* @info->object is the key of SD for now and @info->start is the 
@@ -96,14 +121,20 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	aal_assert("vpf-1213", obj != NULL);
 	
-	/* Update the SD place. */
-	if ((res = obj40_update(obj)))
-		return res;
-	
 	stat = &obj->info.start;
 	
+	/* Update the SD place. */
+	if ((res = obj40_update(obj))) {
+		aal_exception_error("Node (%llu), item (%u): failed to update "
+				    "the StatData of the file [%s]. Plugin "
+				    "(%s).", stat->block->nr, stat->pos.item,
+				    print_ino(obj->core, &stat->key), 
+				    stat->plug->label);
+		return res;
+	}
+	
 	/* Read LW extention. */
-	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
+	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
 		return res;
 	
 	/* Form the correct LW extention. */
@@ -130,9 +161,6 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Check the size in the LW extention. */
 	if (lw_new.size != lw_hint.size) {
-		/* FIXME-VITALY: This is not correct for extents as the last 
-		   block can be not used completely. Where to take the policy
-		   plugin to figure out if size is correct? */
 		aal_exception_error("Node (%llu), item (%u): StatData of "
 				    "the file [%s] has the wrong size "
 				    "(%llu), %s (%llu). Plugin (%s).",
@@ -173,15 +201,10 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	if (mode == RM_CHECK)
 		return res;
 	
-	if ((res = obj40_write_ext(stat, SDEXT_LW_ID, &unix_hint)) < 0)
+	if ((res = obj40_write_ext(stat, SDEXT_LW_ID, &unix_hint)))
 		return res;
 	
-	if ((res |= obj40_write_ext(stat, SDEXT_LW_ID, &lw_new)) >= 0) {
-		/* FIXME-VITALY: Mark the node dirty. */
-	}
-		
-	
-	return res;
+	return obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
 }
 
 /* Fix @place->key if differs from @key. */
@@ -215,15 +238,14 @@ errno_t obj40_ukey(obj40_t *obj, place_t *place,
 }
 
 errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func, 
-			  uint32_t nlink, uint16_t fmode, 
-			  uint8_t mode)
+			  uint64_t mask, uint32_t nlink, 
+			  uint16_t objmode, uint8_t mode)
 {
-	errno_t res;
-	uint64_t pid;
-	uint64_t mask;
-	place_t *start;
-	lookup_t lookup;
 	key_entity_t *key;
+	lookup_t lookup;
+	place_t *start;
+	uint64_t pid;
+	errno_t res;
 
 	aal_assert("vpf-1225", obj != NULL);
 	
@@ -231,11 +253,7 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	key = &obj->info.object;
 
 	/* Update the place of SD. */
-	switch ((lookup = obj40_lookup(obj, key,
-				       LEAF_LEVEL, start)))
-	{
-	case FAILED:
-		return -EINVAL;
+	switch ((lookup = obj40_lookup(obj, key, LEAF_LEVEL, start))) {
 	case PRESENT:
 		if ((res = stat_func(start))) {
 			aal_exception_error("Node (%llu), item (%u): StatData "
@@ -245,6 +263,8 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 		}
 
 		return res;
+	case FAILED:
+		return -EINVAL;
 	default:
 		break;
 	}
@@ -253,9 +273,9 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	if ((res = obj40_stat(obj, stat_func)) <= 0)
 		return res;
 	
-	/* Check showed that this is not right SD, create a new one. This is the
-	   special case and usually is not used as object plugin cannot be
-	   realized w/out SD. Used for for "/" and "lost+found" recovery. */
+	/* Check showed that this is not right SD, create a new one. This is 
+	   the special case and usually is not used as object plugin cannot 
+	   be realized w/out SD. Used for for "/" and "lost+found" recovery. */
 	aal_exception_error("The file [%s] does not have a StatData item. %s"
 			    "Plugin %s.", print_ino(obj->core, key), 
 			    mode == RM_BUILD ? " Creating a new one." :
@@ -267,10 +287,8 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	if ((pid = obj->core->profile_ops.value("statdata") == INVAL_PID))
 		return -EINVAL;
 
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-	
 	if ((res = obj40_create_stat(obj, pid, mask, 0, 0,
-				     nlink, fmode, NULL)))
+				     nlink, objmode, NULL)))
 	{
 		aal_exception_error("The file [%s] failed to create a "
 				    "StatData item. Plugin %s.", 

@@ -1501,8 +1501,7 @@ void reiser4_tree_pack_set(reiser4_tree_t *tree,
 {
 	aal_assert("umka-1896", tree != NULL);
 
-	tree->traps.pack = (func != NULL) ? func :
-		callback_tree_pack;
+	tree->traps.pack = func ? func : callback_tree_pack;
 }
 
 

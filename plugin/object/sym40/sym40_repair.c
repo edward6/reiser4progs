@@ -6,49 +6,117 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "sym40.h"
+#include "repair/plugin.h"
 
 extern reiser4_plug_t sym40_plug;
 
 extern object_entity_t *sym40_open(object_info_t *info);
 
+#define sym40_exts ((uint64_t)1 << SDEXT_UNIX_ID |	\
+			      1 << SDEXT_LW_ID |	\
+			      1 << SDEXT_SYMLINK_ID)
+
+static errno_t sym40_extentions(place_t *stat) {
+	uint64_t extmask;
+	
+	extmask = obj40_extmask(stat);
+	
+	/* Check that there is no one unknown extention. */
+	if (extmask & ~(sym40_exts | 1 << SDEXT_PLUG_ID))
+		return RE_FATAL;
+	
+	/* Check that LW, UNIX and SYMLINK extentions exist. */
+	return ((extmask & sym40_exts) == sym40_exts) ? RE_OK : RE_FATAL;
+}
+
+/* Check SD extentions and that mode in LW extention is DIRFILE. */
+static errno_t callback_stat(place_t *stat) {
+	sdext_lw_hint_t lw_hint;
+	errno_t res;
+	
+	if ((res = sym40_extentions(stat)))
+		return res;
+
+	/* Check the mode in the LW extention. */
+	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
+		return res;
+	
+	return S_ISLNK(lw_hint.mode) ? 0 : RE_FATAL;
+}
+
 object_entity_t *sym40_realize(object_info_t *info) {
 	sym40_t *sym;
-	sdext_lw_hint_t lw_hint;
-	uint64_t mask, extmask;
 	errno_t res;
 	
 	aal_assert("vpf-1124", info != NULL);
 	
-	/* Symlink is kept in the SD, if SD was not found (and realized) nothing 
-	   to looking for anymore. */
-	if (!info->start.plug)
-		return NULL;
-	
-	/* Double check that this is SD item. */
-	if (info->start.plug->id.group != STATDATA_ITEM)
-		return NULL;
-	
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID);
-	
-	if ((extmask = obj40_extmask(&info->start)) == MAX_UINT64)
-		return INVAL_PTR;
-	
-	if (extmask != mask)
-		return INVAL_PTR;
-	
-	/* Check the mode in the LW extention. */
-	if ((res = obj40_read_ext(&info->start, SDEXT_LW_ID, &lw_hint)) < 0)
-		return INVAL_PTR;
-	
-	if (!S_ISLNK(lw_hint.mode))
-	    return INVAL_PTR;
-	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return INVAL_PTR;
 	
+	/* Initializing file handle */
 	obj40_init(&sym->obj, &sym40_plug, core, info);
-
+	
+	if ((res = obj40_realize(&sym->obj, callback_stat)))
+		goto error;
+	
 	return (object_entity_t *)sym;
+ error:
+	aal_free(sym);
+	return res < 0 ? INVAL_PTR : NULL;
 }
-#endif
 
+static void sym40_one_nlink(uint32_t *nlink) {
+	*nlink = 1;
+}
+
+static void sym40_check_mode(uint16_t *mode) {
+	if (!S_ISDIR(*mode)) {
+		*mode &= ~S_IFMT;
+        	*mode |= S_IFLNK;
+	}
+}
+
+static void sym40_check_size(uint64_t *sd_size, uint64_t counted_size) {
+	if (*sd_size != counted_size)
+		*sd_size = counted_size;
+}
+
+errno_t sym40_check_struct(object_entity_t *object,
+			   place_func_t place_func,
+			   region_func_t region_func,
+			   uint8_t mode, void *data)
+{
+	sym40_t *sym = (sym40_t *)object;
+	uint64_t size, bytes;
+	errno_t res = RE_OK;
+	
+	aal_assert("vpf-1232", sym != NULL);
+	aal_assert("vpf-1233", sym->obj.info.tree != NULL);
+	aal_assert("vpf-1234", sym->obj.info.object.plug != NULL);
+
+	if ((res = obj40_stat_launch(&sym->obj, sym40_extentions, 
+				     sym40_exts, 1, S_IFLNK, mode)))
+		return res;
+	
+	/* Try to register SD as an item of this file. */
+	if (place_func && place_func(object, &sym->obj.info.start, data))
+		return -EINVAL;
+	
+	/* Fix SD's key if differs. */
+	if ((res = obj40_ukey(&sym->obj, &sym->obj.info.start, 
+			      &sym->obj.info.object, mode)))
+		return res;
+	
+	/* Fix the SD, if no fatal corruptions were found. */
+	return obj40_check_stat(&sym->obj, mode == RM_BUILD ? 
+				sym40_one_nlink : NULL,
+				sym40_check_mode, 
+				sym40_check_size, 
+				0, 0, mode);
+}
+
+void sym40_core(reiser4_core_t *c) {
+	core = c;
+}
+
+#endif

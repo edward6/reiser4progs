@@ -124,9 +124,7 @@ errno_t dir40_reset(object_entity_t *entity) {
 }
 
 /* Fetches current unit to passed @entry */
-static errno_t dir40_fetch(object_entity_t *entity, 
-			   entry_hint_t *entry)
-{
+errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
 	uint32_t pos;
 	dir40_t *dir;
 
@@ -262,25 +260,24 @@ errno_t dir40_readdir(object_entity_t *entity,
 	if ((res = dir40_fetch(entity, entry)))
 		return res;
 
-	/* Setting up entry type. Fsck needs this in order to know, that
-	   backlinks with parent-child should be repaired. Ugly, but it is
-	   difficult to make it right. The right way is to not consider about
-	   dot and dotdot as a special entries. That is because next time one
-	   will want to have also dotdotdot, etc. and we will not able to handle
-	   this case correctly. */
+	/* Setting up the entry type. It is essential for fsck to know
+	   what is the NAME -- that needs to be traversed semantically
+	   to be recovered completely -- and what is not -- that needs
+	   some other special actions, e.g. check_attach for ".." (and
+	   even "..." if it is needed one day), etc. */
 #ifndef ENABLE_STAND_ALONE
 	entry->type = ET_NAME;
 		
 	if (aal_strlen(entry->name) == 1 &&
 	    !aal_strncmp(entry->name, ".", 1))
 	{
-		entry->type = ET_SELF;
+		entry->type = ET_SPCL;
 	}
 
 	if (aal_strlen(entry->name) == 2 &&
 	    !aal_strncmp(entry->name, "..",2))
 	{
-		entry->type = ET_PARENT;
+		entry->type = ET_SPCL;
 	}
 #endif
 
@@ -292,7 +289,7 @@ errno_t dir40_readdir(object_entity_t *entity,
 	
 	if (dir->body.pos.unit < units) {
 		entry_hint_t temp;
-			
+		
 		if ((res = dir40_fetch(entity, &temp)))
 			return res;
 
@@ -919,11 +916,14 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	return 0;
 }
 
+extern void dir40_core(reiser4_core_t *c);
+
 extern object_entity_t *dir40_realize(object_info_t *info);
 
 extern errno_t dir40_check_attach(object_entity_t *object, 
 				  object_entity_t *parent, 
 				  uint8_t mode);
+
 #endif
 
 static reiser4_object_ops_t dir40_ops = {
@@ -981,6 +981,7 @@ reiser4_plug_t dir40_plug = {
 
 static reiser4_plug_t *dir40_start(reiser4_core_t *c) {
 	core = c;
+	dir40_core(c);
 	return &dir40_plug;
 }
 

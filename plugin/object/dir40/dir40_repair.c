@@ -14,18 +14,21 @@ extern lookup_t dir40_lookup(object_entity_t *entity, char *name,
 			     entry_hint_t *entry);
 extern errno_t dir40_readdir(object_entity_t *entity, entry_hint_t *entry);
 extern errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry);
+extern errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry);
 
-#define known_extentions ((uint64_t)1 << SDEXT_UNIX_ID | 	\
-			  	    1 << SDEXT_LW_ID |		\
-				    1 << SDEXT_PLUG_ID)
+#define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
 static errno_t dir40_extentions(place_t *stat) {
 	uint64_t extmask;
 	
 	extmask = obj40_extmask(stat);
-	extmask &= ~known_extentions;
-
-	return extmask ? RE_FATAL : RE_OK;
+	
+	/* Check that there is no one unknown extention. */
+	if (extmask & ~(dir40_exts | 1 << SDEXT_PLUG_ID))
+		return RE_FATAL;
+	
+	/* Check that LW and UNIX extentions exist. */
+	return ((extmask & dir40_exts) == dir40_exts) ? RE_OK : RE_FATAL;
 }
 
 /* Check SD extentions and that mode in LW extention is DIRFILE. */
@@ -37,36 +40,17 @@ static errno_t callback_stat(place_t *stat) {
 		return res;
 
 	/* Check the mode in the LW extention. */
-	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
+	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
 		return res;
 	
 	return S_ISDIR(lw_hint.mode) ? 0 : RE_FATAL;
 }
 
-/* Set the key of "." taken from @info->start into @info->object */
-static errno_t callback_key(obj40_t *obj) {
-	entry_hint_t entry;
-	
-	if (obj->info.start.plug->o.item_ops->read == NULL)
-		return -EINVAL;
-	
-	/* Read the first entry. */
-	if (plug_call(obj->info.start.plug->o.item_ops, read, 
-		      &obj->info.start, &entry, 0, 1) != 1)
-		return -EINVAL;
-	
-	/* If not "." -- cannot obtain the "." key. */
-	if (aal_strlen(entry.name) != 1 || aal_strncmp(entry.name, ".", 1))
-		return RE_FATAL;
-	
-	aal_memcpy(&obj->info.object, &entry.object, sizeof(entry.object));
-	
-	return 0;
-}
-
 object_entity_t *dir40_realize(object_info_t *info) {
 	dir40_t *dir;
 	errno_t res;
+	
+	aal_assert("vpf-1231", info != NULL);
 	
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return INVAL_PTR;
@@ -74,7 +58,7 @@ object_entity_t *dir40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&dir->obj, &dir40_plug, core, info);
 	
-	if ((res = obj40_realize(&dir->obj, callback_stat, callback_key)))
+	if ((res = obj40_realize(&dir->obj, callback_stat)))
 		goto error;
 	
 	/* Positioning to the first directory unit */
@@ -99,11 +83,134 @@ static void dir40_check_mode(uint16_t *mode) {
 }
 
 static void dir40_check_size(uint64_t *sd_size, uint64_t counted_size) {
-	/* FIXME-VITALY: This is not correct for extents as the last 
-	   block can be not used completely. Where to take the policy
-	   plugin to figure out if size is correct? */
 	if (*sd_size != counted_size)
 		*sd_size = counted_size;
+}
+
+static errno_t dir40_check_entry(dir40_t *dir, 
+				 entry_hint_t *entry, 
+				 uint8_t mode) 
+{
+	object_info_t *info;
+	key_entity_t key;
+	errno_t res;
+	
+	aal_assert("vpf-1239", dir != NULL);
+	aal_assert("vpf-1240", entry != NULL);
+	aal_assert("vpf-1241", entry->offset.plug != NULL);
+	
+	info = &dir->obj.info;
+	
+	/* Check that entry is valid. */
+	plug_call(entry->offset.plug->o.key_ops, build_entry, 
+		  &key, dir->hash, obj40_locality(&dir->obj),
+		  obj40_objectid(&dir->obj), entry->name);
+	
+	if (!plug_call(key.plug->o.key_ops, compfull, &key, &entry->offset))
+		return 0;
+	
+	/* Offset key does not match. Remove the entry. */
+	aal_exception_error("Directory [%s], plugin %s, node [%llu], item "
+			    "[%u], unit [%u]: entry has wrong offset [%s]."
+			    " Should be [%s]. %s", 
+			    print_ino(core, &info->object),
+			    dir40_plug.label, dir->body.block->nr,
+			    dir->body.pos.item, dir->body.pos.unit,
+			    print_key(core, &entry->offset),
+			    print_key(core, &key), mode == RM_BUILD ?
+			    "Removed." : "");
+
+	if (mode != RM_BUILD)
+		return RE_FATAL;
+
+	if ((res = plug_call(dir->body.plug->o.item_ops, remove, &dir->body,
+			     dir->body.pos.unit, 1)))
+	{
+		aal_exception_error("Directory [%s], plugin %s, node [%llu], "
+				    "item [%u], unit [%u]: failed to remove "
+				    "the entry.", print_ino(core, &info->object),
+				    dir40_plug.label, dir->body.block->nr,
+				    dir->body.pos.item, dir->body.pos.unit);
+		return res;
+	}
+	
+	return RE_REMOVED;
+}
+
+static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
+	insert_hint_t body_hint;
+	object_info_t *info;
+	entry_hint_t entry;
+	errno_t res;
+	
+	aal_assert("vpf-1242", dir != NULL);
+	aal_assert("vpf-1244", bplug != NULL);
+	
+	/* Lookup the ".". */
+	if ((res = dir40_reset((object_entity_t *)dir)))
+		return res;
+	
+	switch (obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, &dir->body)) {
+	case PRESENT:
+		return 0;
+	case FAILED:
+		return -EINVAL;
+	default:
+		break;
+	}
+	
+	info = &dir->obj.info;
+	
+	aal_exception_error("Directory [%s]: The entry \".\" is not found.%s "
+			    "Plugin (%s).", print_ino(core, &info->object), 
+			    mode == RM_BUILD ? " Inserts a new one." : "", 
+			    dir->obj.plug->label);
+	
+	if (mode != RM_BUILD)
+		return RE_FATAL;
+	
+	/* Absent. Add a new ".". Take it from the profile for now.
+	   FIXME-VITALY: It can be stored in SD also, but it is not 
+	   clear under which type -- ITEM_PLUG? Fix it when reiser4 
+	   syscall will be ready. */
+		
+	aal_memset(&body_hint, 0, sizeof(body_hint));
+	
+	body_hint.count = 1;
+	body_hint.plug = bplug;
+	
+	aal_memcpy(&body_hint.key, &dir->offset, sizeof(dir->offset));
+	aal_memcpy(&entry.offset,  &dir->offset, sizeof(dir->offset));
+	aal_memcpy(&entry.object,  &dir->obj.info.object, sizeof(entry.object));
+	
+	aal_strncpy(entry.name, ".", 1);
+	
+	body_hint.type_specific = &entry;
+	
+	plug_call(bplug->o.item_ops, estimate_insert, NULL, &body_hint, 0);
+
+	return obj40_insert(&dir->obj, &dir->body, &body_hint, LEAF_LEVEL);
+}
+
+static errno_t dir40_belongs(dir40_t *dir, reiser4_plug_t *bplug) {
+	aal_assert("vpf-1245", dir != NULL);
+	aal_assert("vpf-1246", bplug != NULL);
+	
+	/* Check that the body place is valid. */
+	if (!core->tree_ops.valid(dir->obj.info.tree, &dir->body))
+		return RE_FATAL;
+
+	/* Fetching item info at @place */
+	if (obj40_fetch(&dir->obj, &dir->body))
+		return -EINVAL;
+
+	/* Does the found item plugin match  */
+	if (dir->body.plug != bplug)
+		return RE_FATAL;
+
+	/* Does the body item belong to the current object. */
+	return plug_call(dir->body.key.plug->o.key_ops, compshort,
+			 &dir->body.key, &dir->offset) ? RE_FATAL : 0;
 }
 
 errno_t dir40_check_struct(object_entity_t *object, 
@@ -111,12 +218,16 @@ errno_t dir40_check_struct(object_entity_t *object,
 			   region_func_t region_func,
 			   uint8_t mode, void *data)
 {
-	uint64_t size, bytes, offset, next;
 	dir40_t *dir = (dir40_t *)object;
 	reiser4_plug_t *bplug;
 	object_info_t *info;
-	errno_t res = RE_OK;
+	entry_hint_t entry;
+	key_entity_t key;
 	lookup_t lookup;
+	rid_t pid;
+	
+	uint64_t size, bytes;
+	errno_t res;
 	
 	aal_assert("vpf-1224", dir != NULL);
 	aal_assert("vpf-1190", dir->obj.info.tree != NULL);
@@ -125,7 +236,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	info = &dir->obj.info;
 	
 	if ((res = obj40_stat_launch(&dir->obj, dir40_extentions, 
-				     1, S_IFDIR, mode)))
+				     dir40_exts, 1, S_IFDIR, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */
@@ -133,96 +244,107 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res |= obj40_ukey(&dir->obj, &info->start, &info->object, mode)))
+	if ((res = obj40_ukey(&dir->obj, &info->start, &info->object, mode)))
 		return res;
 	
 	/* Init hash plugin in use. */
-	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, "hash"))) {
-                aal_exception_error("Can't init hash plugin for directory %s. "
+	dir->hash = obj40_plug_realize(&dir->obj, HASH_PLUG_TYPE, "hash");
+	
+	if (dir->hash == NULL) {
+                aal_exception_error("Directory %s: failed to init hash plugin."
 				    "Plugin (%s).", print_ino(core, &info->object),
 				    dir40_plug.label);
                 return -EINVAL;
         }
+	
+	if ((pid = core->profile_ops.value("direntry")) == INVAL_PID) {
+		aal_exception_error("Failed to get a plugid for direntry from "
+				    "the profile.");
+		return -EINVAL;
+	}
+	
+	if ((bplug = core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) == NULL) {
+		aal_exception_error("Failed to find direntry plugin by "
+				    "the id %d.", pid);
+                 return -EINVAL;
+	}
 
-	/* Init body plugin in use. */
-	if (!(bplug = obj40_plug(&dir->obj, ITEM_PLUG_TYPE, "direntry"))) {
-                aal_exception_error("Can't init hash plugin for directory %s. "
-				    "Plugin (%s).", print_ino(core, &info->object),
-				    dir40_plug.label);
-                return -EINVAL;
-        }
+	/* Take case about the ".". */
+	if ((res = dir40_dot(dir, bplug, mode)) < 0)
+		return res;
 	
 	size = 0; bytes = 0; 
 	
 	/* FIXME-VITALY: this probably should be changed. Now hash plug
-	   that is used is default, passed here from outside, or taken 
-	   from SD. Probably it would be better to do evth in vise versa 
+	   that is used is taken from SD or the default one from the 
+	   profile. Probably it would be better to do evth in vise versa
 	   order -- choose the hash found among the entries most of the 
 	   times and correct hash plugin in SD. */
 	while (TRUE) {
-		entry_hint_t entry;
-		key_entity_t key;
+		uint32_t units, i;
+		errno_t result;
 		
-		if (dir40_readdir(object, &entry))
+		/* Check that the body item is of the current dir. */
+		if ((result = dir40_belongs(dir, bplug)) < 0)  {
+			return result;
+		} else if (result) {
+			/* Not of the current dir. */
 			break;
+		}
 		
-		/* Does the found item plugin match  */
-		if (dir->body.plug != bplug)
-			break;
-		
-		/* Try to register this item. Any item has a pointer to objectid
-		   in the key, if it is shared between 2 objects, it should be 
-		   already solved at relocation time. */
+		/* Try to register the item if it has not been yet. Any 
+		   item has a pointer to objectid in the key, if it is 
+		   shared between 2 objects, it should be already solved 
+		   at relocation time. */
 		if (place_func && place_func(object, &dir->body, data))
 			return -EINVAL;
 		
-		/* Check that entry is valid. */
-		plug_call(entry.offset.plug->o.key_ops, build_entry, 
-			  &key, dir->hash, obj40_locality(&dir->obj),
-			  obj40_objectid(&dir->obj), entry.name);
+		units = plug_call(dir->body.plug->o.item_ops, 
+				  units, &dir->body);
 		
-		if (plug_call(key.plug->o.key_ops, compfull, 
-			      &key, &entry.offset))
-		{
-			/* Offset key does not match. Remove the entry. */
-			aal_exception_error("Directory [%s], plugin %s, node "
-					    "[%llu], item [%u], unit [%u]: "
-					    "entry has wrong offset [%s]. "
-					    "Should be [%s]. %s",
-					    print_ino(core, &info->object),
-					    dir40_plug.label, 
-					    dir->body.block->nr,
-					    dir->body.pos.item, 
-					    dir->body.pos.unit,
-					    print_key(core, &entry.offset),
-					    print_key(core, &key), 
-					    mode == RM_BUILD ? 
-					    "Removed." : "");
-
-			if ((mode == RM_BUILD) && 
-			    (res = dir40_rem_entry(object, &entry))) {
-				aal_exception_error("Directory [%s], plugin %s,"
-						    " node [%llu], item [%u], "
-						    "unit [%u]: failed to "
-						    "remove the entry.",
-						    print_ino(core, &info->object),
-						    dir40_plug.label,
-						    dir->body.block->nr,
-						    dir->body.pos.item, 
-						    dir->body.pos.unit);
+		dir->body.pos.unit = 0;
+		for (i = 0; i < units; i++) {
+			/*  */
+			if ((res |= dir40_fetch(object, &entry)) < 0)
 				return res;
-			} else {
-				res |= RE_FATAL;
-			}
+			
+			if ((res |= dir40_check_entry(dir, &entry, mode)) < 0)
+				return res;
+
+			if (!(res & RE_REMOVED))
+				dir->body.pos.unit++;
+			else
+				res &= ~RE_REMOVED;
 		}
 		
-		/* Count size and bytes. */
-		size++;
-		bytes += entry.len; 
+		if (plug_call(dir->body.plug->o.item_ops, units, &dir->body)) {
+			/* Count size and bytes. */
+			size += plug_call(dir->body.plug->o.item_ops, 
+					  size, &dir->body);
+
+			bytes += plug_call(dir->body.plug->o.item_ops, 
+					   bytes, &dir->body);
+			
+			res |= core->tree_ops.next(dir->obj.info.tree,
+						   &dir->body, &dir->body);
+			if (res < 0)
+				return res;
+		} else {
+			remove_hint_t hint;
+			
+			/* No one unit left, remove the item. */
+			dir->body.pos.unit = MAX_UINT32;
+			hint.count = 1;
+			
+			if ((res |= obj40_remove(&dir->obj, &dir->body, 
+						 &hint)) < 0)
+				return res;
+
+			/* Lookup the last removed entry, get the next item. */
+			if (dir40_lookup(object, entry.name, NULL) == FAILED)
+				return -EINVAL;
+		}
 	}
-	
-	/* Take care about "." */
-//	dir40_insert_dot();
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL))
@@ -275,6 +397,11 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	/* ".." matches the parent. Now do parent->nlink++ for REBUILD mode. */
 	return mode != RM_BUILD ? RE_OK :
 	       plug_call(parent->plug->o.object_ops, link, parent);
+}
+
+
+void dir40_core(reiser4_core_t *c) {
+	core = c;
 }
 
 #endif

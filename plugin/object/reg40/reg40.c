@@ -767,6 +767,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
+extern void reg40_core(reiser4_core_t *c);
+
 extern object_entity_t *reg40_realize(object_info_t *info);
 
 extern errno_t reg40_check_struct(object_entity_t *object,
@@ -825,6 +827,7 @@ reiser4_plug_t reg40_plug = {
 
 static reiser4_plug_t *reg40_start(reiser4_core_t *c) {
 	core = c;
+	reg40_core(c);
 	return &reg40_plug;
 }
 

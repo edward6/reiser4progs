@@ -215,6 +215,8 @@ static errno_t sym40_layout(object_entity_t *entity,
 }
 
 extern object_entity_t *sym40_realize(object_info_t *info);
+extern void sym40_core(reiser4_core_t *c);
+
 #endif
 
 #ifdef ENABLE_STAND_ALONE
@@ -305,6 +307,7 @@ reiser4_plug_t sym40_plug = {
 
 static reiser4_plug_t *sym40_start(reiser4_core_t *c) {
 	core = c;
+	sym40_core(c);
 	return &sym40_plug;
 }
 

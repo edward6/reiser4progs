@@ -424,15 +424,11 @@ struct statdata_hint {
 typedef struct statdata_hint statdata_hint_t;
 
 enum entry_type {
-	ET_SELF		= (1 << 1),
-	ET_NAME		= (1 << 2),
-	ET_PARENT	= (1 << 2) + 1
+	ET_NAME	= 0,
+	ET_SPCL	= 1
 };
 
 typedef enum entry_type entry_type_t;
-
-#define ET_BACKLINK(link, back) \
-        ((link >> 1) == (back >> 1) && link != back)
 
 struct entry_hint {
 	/* Entry metadata size. Filled by rem_entry and add_entry. */

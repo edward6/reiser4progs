@@ -136,7 +136,10 @@ errno_t reiser4_node_print(
 }
 #endif
 
-/* Opens node on specified device and block number */
+/* Opens node on specified device and block number.
+   FIXME-VITALY->UMKA: Each node keeps its own pid, in other words 
+   each node is independant on another and can be of another plugin 
+   in theory. Therefore, pid should not be given as a parameter. */
 reiser4_node_t *reiser4_node_open(aal_device_t *device,
 				  uint32_t size, blk_t nr,
 				  reiser4_plug_t *kplg,
