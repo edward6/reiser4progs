@@ -27,8 +27,6 @@ extern uint64_t reiser4_key_get_ordering(reiser4_key_t *key);
 extern int reiser4_key_compshort(reiser4_key_t *key1,
 				 reiser4_key_t *key2);
 
-extern void reiser4_key_clean(reiser4_key_t *key);
-
 extern errno_t reiser4_key_set_type(reiser4_key_t *key,
 				    uint32_t type);
 

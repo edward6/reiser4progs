@@ -194,26 +194,30 @@ static void reg_test(reiser4_fs_t *fs, char *path) {
 				aal_error("Can't create an object '%s'.", 
 					  name[k]);
 			}
-		}
 
-		/* Get the second file and write there some more. */
-		if (reiser4_object_lookup(dir, name[1], &entry) != PRESENT)  {
-			aal_error("Can't find just created object %s.", 
-				  name[1]);
-			break;
-		}
+			/* Get the second file and write there some more. */
+			if (reiser4_object_lookup(dir, name[k], &entry) != 
+			    PRESENT)  
+			{
+				aal_error("Can't find just created object %s.",
+					  name[1]);
+				break;
+			}
 
-		if (!(object = reiser4_object_obtain(fs->tree, dir, 
-						     &entry.object))) 
-		{
-			aal_error("Can't open the object %s.", name[1]);
-			break;
-		}
+			if (!(object = reiser4_object_obtain(fs->tree, dir, 
+							     &entry.object))) 
+			{
+				aal_error("Can't open the object %s.", name[1]);
+				break;
+			}
 
-		if (reiser4_object_write(object, NULL, 1024) < 0) {
-			aal_error("Can't write data to file %s.", 
-				  name[k]);
-			break;
+			if (reiser4_object_write(object, NULL, 1024) < 0) {
+				aal_error("Can't write data to file %s.", 
+					  name[k]);
+				break;
+			}
+
+			reiser4_object_close(object);
 		}
 	}
 	

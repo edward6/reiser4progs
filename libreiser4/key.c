@@ -6,16 +6,6 @@
 #include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
-/* Cleans specified key */
-void reiser4_key_clean(
-	reiser4_key_t *key)	    /* key to be clean */
-{
-	aal_assert("umka-675", key != NULL);
-	aal_assert("umka-676", key->plug != NULL);
-    
-	plug_call(key->plug->o.key_ops, clean, key);
-} 
-
 void reiser4_key_free(reiser4_key_t *key) {
 	aal_free(key);
 }
@@ -162,7 +152,6 @@ errno_t reiser4_key_set_offset(
 	aal_assert("umka-689", key->plug != NULL);
     
 	plug_call(key->plug->o.key_ops, set_offset, key, offset);
-    
 	return 0;
 }
 
@@ -172,8 +161,7 @@ uint64_t reiser4_key_get_offset(reiser4_key_t *key) {
 	aal_assert("umka-700", key != NULL);
 	aal_assert("umka-701", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops,
-			 get_offset, key);
+	return plug_call(key->plug->o.key_ops, get_offset, key);
 }
 
 /* Increases key's offset by passed @value */

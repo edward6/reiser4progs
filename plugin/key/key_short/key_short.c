@@ -38,6 +38,7 @@ static errno_t key_short_assign(reiser4_key_t *dst,
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Sets up key type */
 static void key_short_set_type(reiser4_key_t *key, 
 			       key_type_t type) 
@@ -58,11 +59,24 @@ key_type_t key_short_get_type(reiser4_key_t *key) {
 	return key_common_minor2type(minor);
 }
 
+/* Sets up full key objectid */
+void key_short_set_fobjectid(reiser4_key_t *key, uint64_t objectid) {
+	aal_assert("umka-2345", key != NULL);
+	ks_set_fobjectid((key_short_t *)key->body, objectid);
+}
+
+/* Returns full key objectid */
+uint64_t key_short_get_fobjectid(reiser4_key_t *key) {
+	aal_assert("umka-2346", key != NULL);
+	return ks_get_fobjectid((key_short_t *)key->body);
+}
+
 /* Sets up key locality */
 void key_short_set_locality(reiser4_key_t *key, uint64_t locality) {
 	aal_assert("umka-636", key != NULL);
 	ks_set_locality((key_short_t *)key->body, locality);
 }
+#endif
 
 /* Returns key locality */
 uint64_t key_short_get_locality(reiser4_key_t *key) {
@@ -95,18 +109,6 @@ uint64_t key_short_get_objectid(reiser4_key_t *key) {
 	return ks_get_objectid((key_short_t *)key->body);
 }
 
-/* Sets up full key objectid */
-void key_short_set_fobjectid(reiser4_key_t *key, uint64_t objectid) {
-	aal_assert("umka-2345", key != NULL);
-	ks_set_fobjectid((key_short_t *)key->body, objectid);
-}
-
-/* Returns full key objectid */
-uint64_t key_short_get_fobjectid(reiser4_key_t *key) {
-	aal_assert("umka-2346", key != NULL);
-	return ks_get_fobjectid((key_short_t *)key->body);
-}
-
 /* Sets up key offset */
 void key_short_set_offset(reiser4_key_t *key, 
 			  uint64_t offset)
@@ -122,7 +124,7 @@ uint64_t key_short_get_offset(reiser4_key_t *key) {
 }
 
 static int key_short_hashed(reiser4_key_t *key) {
-	return (key_short_get_objectid(key) &
+	return (key_short_get_fobjectid(key) &
 		HASHED_NAME_MASK) ? 1 : 0;
 }
 
@@ -139,7 +141,7 @@ static char *key_short_get_name(reiser4_key_t *key,
 		return NULL;
 	
 	offset = key_short_get_offset(key);
-	objectid = key_short_get_objectid(key);
+	objectid = ks_get_fobjectid((key_short_t *)key->body);
                                                                                         
 	/* Special case, handling "." entry */
 	if (objectid == 0ull && offset == 0ull) {
@@ -171,18 +173,11 @@ static uint64_t key_short_get_hash(reiser4_key_t *key) {
 }
 #endif
 
-/* Cleans key body */
-static void key_short_clean(reiser4_key_t *key) {
-	aal_assert("vpf-139", key != NULL);
-
-	key->adjust = 0;
-	aal_memset(key->body, 0, sizeof(key->body));
-}
-
 /* Compares two first components of the pased keys (locality and objectid) */
 static int key_short_compshort(reiser4_key_t *key1, 
 			       reiser4_key_t *key2) 
 {
+	key_minor_t minor;
 	int res;
 
 	aal_assert("umka-2217", key1 != NULL);
@@ -195,7 +190,9 @@ static int key_short_compshort(reiser4_key_t *key1,
 		return res;
 	}
 	
-	if (key_short_get_type(key1) == KEY_FILENAME_TYPE)
+	minor = ks_get_minor((key_short_t *)key1->body);
+	
+	if (key_common_minor2type(minor) == KEY_FILENAME_TYPE)
 		return 0;
 	
 	/* Checking object id */
@@ -282,7 +279,7 @@ static errno_t key_short_build_hash(reiser4_key_t *key,
 	aal_assert("umka-1499", !(objectid & ~KEY_SHORT_OBJECTID_MASK));
 
 	/* Setting up objectid and offset */
-	key_short_set_objectid(key, objectid);
+	ks_set_fobjectid((key_short_t *)key->body, objectid);
 	key_short_set_offset(key, offset);
 
 	return 0;
@@ -302,13 +299,14 @@ static errno_t key_short_build_hashed(reiser4_key_t *key,
 	aal_assert("vpf-140", key != NULL);
 	aal_assert("umka-667", name != NULL);
 
-	key_short_clean(key);
+	aal_memset(key, 0, sizeof(*key));
 	type = key_common_minor2type(KEY_FILENAME_MINOR);
 	
 	key->plug = &key_short_plug;
-	key_short_set_locality(key, objectid);
-	key_short_set_type(key, type);
-    
+	ks_set_locality((key_short_t *)key->body, objectid);
+	ks_set_minor((key_short_t *)key->body,
+		      key_common_type2minor(type));
+	
 	return key_short_build_hash(key, hash, fibre, name);
 }
 
@@ -322,25 +320,21 @@ static errno_t key_short_build_generic(reiser4_key_t *key,
 {
 	aal_assert("vpf-141", key != NULL);
 
-	key_short_clean(key);
+	aal_memset(key, 0, sizeof(*key));
 	key->plug = &key_short_plug;
 	
-	ks_set_locality((key_short_t *)key->body,
-			locality);
+	ks_set_locality((key_short_t *)key->body, locality);
 
 	if (type == KEY_FILENAME_TYPE) {
-		ks_set_fobjectid((key_short_t *)key->body,
-				 objectid);
+		ks_set_fobjectid((key_short_t *)key->body, objectid);
 	} else {
-		ks_set_objectid((key_short_t *)key->body,
-				objectid);
+		ks_set_objectid((key_short_t *)key->body, objectid);
 	}
 
 	ks_set_minor((key_short_t *)key->body,
 		     key_common_type2minor(type));
 	
-	ks_set_offset((key_short_t *)key->body,
-		      offset);
+	ks_set_offset((key_short_t *)key->body, offset);
 
 	return 0;
 }
@@ -356,7 +350,6 @@ extern errno_t key_short_check_struct(reiser4_key_t *key);
 static reiser4_key_ops_t key_short_ops = {
 	.hashed		= key_short_hashed,
 	.assign		= key_short_assign,
-	.clean		= key_short_clean,
 	.minimal	= key_short_minimal,
 	.maximal	= key_short_maximal,
 	.bodysize	= key_short_bodysize,
@@ -373,26 +366,25 @@ static reiser4_key_ops_t key_short_ops = {
 
 	.set_hash	= key_short_set_hash,
 	.get_hash	= key_short_get_hash,
-#endif
 		
 	.set_type	= key_short_set_type,
 	.get_type	= key_short_get_type,
 
-	.set_offset	= key_short_set_offset,
-	.get_offset	= key_short_get_offset,
+	.set_fobjectid	= key_short_set_fobjectid,
+	.get_fobjectid	= key_short_get_fobjectid,
 	
 	.set_locality	= key_short_set_locality,
+#endif	
 	.get_locality	= key_short_get_locality,
-
+	
 	.set_objectid	= key_short_set_objectid,
 	.get_objectid	= key_short_get_objectid,
 
-	.set_fobjectid	= key_short_set_fobjectid,
-	.get_fobjectid	= key_short_get_fobjectid,
-
 	.set_ordering	= key_short_set_ordering,
 	.get_ordering	= key_short_get_ordering,
-	
+
+	.set_offset	= key_short_set_offset,
+	.get_offset	= key_short_get_offset,
 	.get_name       = key_short_get_name
 };
 

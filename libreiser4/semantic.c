@@ -22,7 +22,6 @@ static errno_t callback_find_statdata(char *path, char *entry, void *data) {
 	reiser4_plug_t *plug;
 #endif
 	resolve_t *resol;
-	errno_t res;
 	
 	resol = (resolve_t *)data;
 
@@ -41,6 +40,8 @@ static errno_t callback_find_statdata(char *path, char *entry, void *data) {
 	/* Symlinks handling. Method follow() should be implemented if object
 	   wants to be resolved (symlink). */
 	if (resol->follow && plug->o.object_ops->follow) {
+		errno_t res;
+
 		/* Calling object's follow() in order to get stat data key of
 		   the object that current object points to. */
 		res = plug_call(plug->o.object_ops, follow, resol->object->ent,

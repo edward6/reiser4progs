@@ -18,7 +18,7 @@ static reiser4_key_t *key_large_maximal(void) {
 	return key_common_maximal(&key_large_plug);
 }
 
-static uint32_t key_lage_bodysize(void) {
+static uint32_t key_large_bodysize(void) {
 	return KEY_LARGE_LAST_INDEX;
 }
 
@@ -38,6 +38,7 @@ static errno_t key_large_assign(reiser4_key_t *dst,
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Sets up key type */
 static void key_large_set_type(reiser4_key_t *key, 
 			       key_type_t type) 
@@ -58,11 +59,24 @@ key_type_t key_large_get_type(reiser4_key_t *key) {
 	return key_common_minor2type(minor);
 }
 
+/* Sets up full key objectid */
+void key_large_set_fobjectid(reiser4_key_t *key, uint64_t objectid) {
+	aal_assert("umka-2345", key != NULL);
+	kl_set_fobjectid((key_large_t *)key->body, objectid);
+}
+
+/* Returns full key objectid */
+uint64_t key_large_get_fobjectid(reiser4_key_t *key) {
+	aal_assert("umka-2346", key != NULL);
+	return kl_get_fobjectid((key_large_t *)key->body);
+}
+
 /* Sets up key locality */
 void key_large_set_locality(reiser4_key_t *key, uint64_t locality) {
 	aal_assert("umka-636", key != NULL);
 	kl_set_locality((key_large_t *)key->body, locality);
 }
+#endif
 
 /* Returns key locality */
 uint64_t key_large_get_locality(reiser4_key_t *key) {
@@ -94,18 +108,6 @@ void key_large_set_objectid(reiser4_key_t *key,
 uint64_t key_large_get_objectid(reiser4_key_t *key) {
 	aal_assert("umka-639", key != NULL);
 	return kl_get_objectid((key_large_t *)key->body);
-}
-
-/* Sets up full key objectid */
-void key_large_set_fobjectid(reiser4_key_t *key, uint64_t objectid) {
-	aal_assert("umka-2345", key != NULL);
-	kl_set_fobjectid((key_large_t *)key->body, objectid);
-}
-
-/* Returns full key objectid */
-uint64_t key_large_get_fobjectid(reiser4_key_t *key) {
-	aal_assert("umka-2346", key != NULL);
-	return kl_get_fobjectid((key_large_t *)key->body);
 }
 
 /* Sets up key offset */
@@ -144,7 +146,7 @@ static char *key_large_get_name(reiser4_key_t *key,
 
 	offset = key_large_get_offset(key);
 	ordering = key_large_get_ordering(key);
-	objectid = key_large_get_fobjectid(key);
+	objectid = kl_get_fobjectid((key_large_t *)key->body);
 
 	/* Check if key is dot one */
 	if (objectid == 0ull && offset == 0ull &&
@@ -178,18 +180,11 @@ static uint64_t key_large_get_hash(reiser4_key_t *key) {
 }
 #endif
 
-/* Cleans key body */
-static void key_large_clean(reiser4_key_t *key) {
-	aal_assert("vpf-139", key != NULL);
-
-	key->adjust = 0;
-	aal_memset(key->body, 0, sizeof(key->body));
-}
-
 /* Figures out if items are of one file or not. */
 static int key_large_compshort(reiser4_key_t *key1, 
 			       reiser4_key_t *key2) 
 {
+	key_minor_t minor;
 	int res;
 
 	aal_assert("umka-2217", key1 != NULL);
@@ -202,8 +197,10 @@ static int key_large_compshort(reiser4_key_t *key1,
 		return res;
 	}
 	
+	minor = kl_get_minor((key_large_t *)key1->body);
+	
 	/* There is nothing to check for entry keys anymore. */
-	if (key_large_get_type(key1) == KEY_FILENAME_TYPE)
+	if (key_common_minor2type(minor) == KEY_FILENAME_TYPE)
 		return 0;
 
 	/* Checking ordering. */
@@ -299,7 +296,7 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
 	
 	/* Setting up objectid and offset */
 	key_large_set_ordering(key, ordering);
-	key_large_set_objectid(key, objectid);
+	kl_set_objectid((key_large_t *)key->body, objectid);
 	key_large_set_offset(key, offset);
 
 	return 0;
@@ -319,13 +316,14 @@ static errno_t key_large_build_hashed(reiser4_key_t *key,
 	aal_assert("vpf-140", key != NULL);
 	aal_assert("umka-667", name != NULL);
 
-	key_large_clean(key);
 	type = key_common_minor2type(KEY_FILENAME_MINOR);
 	
+	aal_memset(key, 0, sizeof(*key));
 	key->plug = &key_large_plug;
-	key_large_set_locality(key, objectid);
-	key_large_set_type(key, type);
-    
+	kl_set_locality((key_large_t *)key->body, objectid);
+	kl_set_minor((key_large_t *)key->body,
+		      key_common_type2minor(type));
+	
 	return key_large_build_hash(key, hash, fibre, name);
 }
 
@@ -339,28 +337,22 @@ static errno_t key_large_build_generic(reiser4_key_t *key,
 {
 	aal_assert("vpf-141", key != NULL);
 
-	key_large_clean(key);
+	aal_memset(key, 0, sizeof(*key));
 	key->plug = &key_large_plug;
 	
-	kl_set_locality((key_large_t *)key->body,
-			locality);
-	
-	kl_set_ordering((key_large_t *)key->body,
-			ordering);
+	kl_set_locality((key_large_t *)key->body, locality);	
+	kl_set_ordering((key_large_t *)key->body, ordering);
 	
 	if (type == KEY_FILENAME_TYPE) {
-		kl_set_fobjectid((key_large_t *)key->body,
-				objectid);
+		kl_set_fobjectid((key_large_t *)key->body, objectid);
 	} else {
-		kl_set_objectid((key_large_t *)key->body,
-				objectid);
+		kl_set_objectid((key_large_t *)key->body, objectid);
 	}
 	
 	kl_set_minor((key_large_t *)key->body,
 		     key_common_type2minor(type));
 	
-	kl_set_offset((key_large_t *)key->body,
-		      offset);
+	kl_set_offset((key_large_t *)key->body, offset);
 
 	return 0;
 }
@@ -376,10 +368,9 @@ extern errno_t key_large_check_struct(reiser4_key_t *key);
 static reiser4_key_ops_t key_large_ops = {
 	.hashed		= key_large_hashed,
 	.assign		= key_large_assign,
-	.clean		= key_large_clean,
 	.minimal	= key_large_minimal,
 	.maximal	= key_large_maximal,
-	.bodysize	= key_lage_bodysize,
+	.bodysize	= key_large_bodysize,
 	.compraw	= key_large_compraw,
 	.compfull	= key_large_compfull,
 	.compshort	= key_large_compshort,
@@ -393,23 +384,23 @@ static reiser4_key_ops_t key_large_ops = {
 
 	.set_hash	= key_large_set_hash,
 	.get_hash	= key_large_get_hash,
-#endif
-		
-	.set_type	= key_large_set_type,
+
+	.set_type	= key_large_set_type,		
 	.get_type	= key_large_get_type,
-
-	.set_locality	= key_large_set_locality,
-	.get_locality	= key_large_get_locality,
-
-	.set_ordering	= key_large_set_ordering,
-	.get_ordering	= key_large_get_ordering,
-	
-	.set_objectid	= key_large_set_objectid,
-	.get_objectid	= key_large_get_objectid,
 
 	.set_fobjectid	= key_large_set_fobjectid,
 	.get_fobjectid	= key_large_get_fobjectid,
+	
+	.set_locality	= key_large_set_locality,
+#endif
+	.get_locality	= key_large_get_locality,
 
+	.set_objectid	= key_large_set_objectid,
+	.get_objectid	= key_large_get_objectid,
+	
+	.set_ordering	= key_large_set_ordering,
+	.get_ordering	= key_large_get_ordering,
+	
 	.set_offset	= key_large_set_offset,
 	.get_offset	= key_large_get_offset,
 	.get_name	= key_large_get_name

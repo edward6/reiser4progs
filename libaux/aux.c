@@ -62,11 +62,13 @@ int aux_bin_search(
 errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		       aux_post_entry_t post_func, void *data)
 {
-	char local[MAX_PATH] = {0};
+	char local[MAX_PATH];
 	char *pointer = NULL;
 	char *entry = NULL;
 	errno_t res;
 
+	aal_memset(local, 0, sizeof(local));
+	
 	/* Initializing local variable path is stored in. */
 	aal_strncpy(local, path, sizeof(local));
 	

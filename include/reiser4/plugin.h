@@ -802,10 +802,6 @@ struct fs_desc {
 typedef struct fs_desc fs_desc_t;
 
 struct reiser4_key_ops {
-	/* Cleans key up. Actually it just memsets it by zeros, but more smart
-	   behavior may be implemented. */
-	void (*clean) (reiser4_key_t *);
-
 	/* Function for dermining is key contains direntry name hashed or
 	   not? */
 	int (*hashed) (reiser4_key_t *);
@@ -846,14 +842,21 @@ struct reiser4_key_ops {
 	errno_t (*build_hashed) (reiser4_key_t *, reiser4_plug_t *,
 				 reiser4_plug_t *, uint64_t, uint64_t, char *);
 	
+#ifndef ENABLE_STAND_ALONE
+	
 	/* Gets/sets key type (minor in reiser4 notation). */	
 	void (*set_type) (reiser4_key_t *, key_type_t);
 	key_type_t (*get_type) (reiser4_key_t *);
 
+	/* Gets/sets key full objectid */
+	void (*set_fobjectid) (reiser4_key_t *, uint64_t);
+	uint64_t (*get_fobjectid) (reiser4_key_t *);
+	
 	/* Gets/sets key locality. */
 	void (*set_locality) (reiser4_key_t *, uint64_t);
+#endif
 	uint64_t (*get_locality) (reiser4_key_t *);
-    
+	
 	/* Gets/sets key locality. */
 	void (*set_ordering) (reiser4_key_t *, uint64_t);
 	uint64_t (*get_ordering) (reiser4_key_t *);
@@ -861,10 +864,6 @@ struct reiser4_key_ops {
 	/* Gets/sets key objectid. */
 	void (*set_objectid) (reiser4_key_t *, uint64_t);
 	uint64_t (*get_objectid) (reiser4_key_t *);
-
-	/* Gets/sets key full objectid */
-	void (*set_fobjectid) (reiser4_key_t *, uint64_t);
-	uint64_t (*get_fobjectid) (reiser4_key_t *);
 
 	/* Gets/sets key offset */
 	void (*set_offset) (reiser4_key_t *, uint64_t);

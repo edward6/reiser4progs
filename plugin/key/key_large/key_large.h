@@ -89,6 +89,7 @@ typedef enum {
 	KEY_LARGE_GEN_SHIFT		= 0,
 } key_large_shift_t;
 
+#ifndef ENABLE_STAND_ALONE
 extern void key_large_set_offset(reiser4_key_t *key, 
 				 uint64_t offset);
 extern uint64_t key_large_get_offset(reiser4_key_t *key);
@@ -114,6 +115,7 @@ extern void key_large_set_fobjectid(reiser4_key_t *key,
 				    uint64_t objectid);
 
 extern uint64_t key_large_get_fobjectid(reiser4_key_t *key);
+#endif
 
 static inline uint64_t kl_get_el(const key_large_t *key,
 				 key_large_field_t off)

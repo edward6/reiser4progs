@@ -32,9 +32,9 @@ static inline void *cde40_hash(reiser4_place_t *place, uint32_t pos) {
 static void cde40_get_obj(reiser4_place_t *place, uint32_t pos,
 			  reiser4_key_t *key)
 {
+	aal_memset(key, 0, sizeof(*key));
+	
 	key->plug = place->key.plug;
-	plug_call(key->plug->o.key_ops, clean, key);
-
 	aal_memcpy(key->body, cde40_objid(place, pos),
 		   ob_size(cde40_key_pol(place)));
 }
@@ -62,6 +62,7 @@ errno_t cde40_get_hash(reiser4_place_t *place, uint32_t pos,
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Set the key for the entry->offset. It is needed for fixing entry keys if
    repair code detects it is wrong. */
 errno_t cde40_set_hash(reiser4_place_t *place, uint32_t pos,
@@ -91,6 +92,7 @@ errno_t cde40_set_hash(reiser4_place_t *place, uint32_t pos,
 	
 	return 0;
 }
+#endif
 
 /* Extracts entry name from the passed @entry to passed @buff */
 char *cde40_get_name(reiser4_place_t *place, uint32_t pos,
@@ -139,6 +141,16 @@ static uint32_t cde40_get_len(reiser4_place_t *place, uint32_t pos) {
 	
 	return len;
 }
+
+/* Updates entry offset. It is needed for fixing entry keys if repair code
+   detects it is wrong. */
+errno_t cde40_update_key(reiser4_place_t *place, reiser4_key_t *key) {
+	aal_assert("vpf-1228", key != NULL);
+	aal_assert("vpf-1229", place != NULL);
+	aal_assert("vpf-1230", place->body != NULL);
+
+	return cde40_set_hash(place, place->pos.unit, key);
+}
 #endif
 
 /* Builds full key by entry components. It is needed for updating keys after
@@ -149,16 +161,6 @@ errno_t cde40_fetch_key(reiser4_place_t *place, reiser4_key_t *key) {
 	aal_assert("umka-1605", place->body != NULL);
 
 	return cde40_get_hash(place, place->pos.unit, key);
-}
-
-/* Updates entry offset. It is needed for fixing entry keys if repair code
-   detects it is wrong. */
-errno_t cde40_update_key(reiser4_place_t *place, reiser4_key_t *key) {
-	aal_assert("vpf-1228", key != NULL);
-	aal_assert("vpf-1229", place != NULL);
-	aal_assert("vpf-1230", place->body != NULL);
-
-	return cde40_set_hash(place, place->pos.unit, key);
 }
 
 /* Returns the number of units. */

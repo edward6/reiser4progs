@@ -454,12 +454,10 @@ fi
 # Check for large file
 AC_SYS_LARGEFILE
 
-if test -z "${ac_cv_sys_file_offset_bits}"; then
-	AC_MSG_WARN(Can't detect right _FILE_OFFSET_BITS. Will be forced to 64bit.)
-	ac_cv_sys_file_offset_bits=64
+if test x${ac_cv_sys_file_offset_bits} != x; then
+	GENERIC_CFLAGS="$GENERIC_CFLAGS -D_FILE_OFFSET_BITS=${ac_cv_sys_file_offset_bits}"
 fi
 
-GENERIC_CFLAGS="$GENERIC_CFLAGS -D_FILE_OFFSET_BITS=${ac_cv_sys_file_offset_bits}"
 AC_CHECK_SIZEOF(off_t, 64, [
 	#include <stdio.h>
 	#include <sys/types.h>

@@ -748,6 +748,9 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 			     FIND_EXACT, &temp))
 	{
 	case ABSENT:
+		if (!obj40_valid_item(&temp.place))
+			return -EINVAL;
+		
 		if ((res = obj40_fetch_item(&temp.place)))
 			return res;
 		
