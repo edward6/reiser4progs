@@ -74,20 +74,19 @@ static errno_t sdext_lt_print(body_t *body,
 	return 0;
 }
 
-extern errno_t sdext_lt_check(sdext_entity_t *sdext,
-			      uint8_t mode);
+extern errno_t sdext_lt_check_struct(sdext_entity_t *sdext, uint8_t mode);
 #endif
 
 static reiser4_sdext_ops_t sdext_lt_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.open	   = sdext_lt_open,
-	.init	   = sdext_lt_init,
-	.print     = sdext_lt_print,
-	.check     = sdext_lt_check,
+	.open	   	= sdext_lt_open,
+	.init	   	= sdext_lt_init,
+	.print     	= sdext_lt_print,
+	.check_struct	= sdext_lt_check_struct,
 #else
-	.open	   = NULL,
+	.open	   	= NULL,
 #endif
-	.length	   = sdext_lt_length
+	.length	   	= sdext_lt_length
 };
 
 static reiser4_plugin_t sdext_lt_plugin = {

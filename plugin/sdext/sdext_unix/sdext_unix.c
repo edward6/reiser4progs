@@ -105,20 +105,19 @@ static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 	return 0;
 }
 
-extern errno_t sdext_unix_check(sdext_entity_t *sdext,
-				uint8_t mode);
+extern errno_t sdext_unix_check_struct(sdext_entity_t *sdext, uint8_t mode);
 #endif
 
 static reiser4_sdext_ops_t sdext_unix_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.open	   = sdext_unix_open,
-	.init	   = sdext_unix_init,
-	.print     = sdext_unix_print,
-	.check     = sdext_unix_check,
+	.open	   	= sdext_unix_open,
+	.init	   	= sdext_unix_init,
+	.print     	= sdext_unix_print,
+	.check_struct	= sdext_unix_check_struct,
 #else
-	.open	   = NULL,
+	.open	   	= NULL,
 #endif
-	.length	   = sdext_unix_length
+	.length	   	= sdext_unix_length
 };
 
 static reiser4_plugin_t sdext_unix_plugin = {

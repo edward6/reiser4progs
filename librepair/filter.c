@@ -142,7 +142,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree, reiser4_node_t *no
 	} else 
 		fd->level--;
 	
-	if ((res = repair_node_check(node, fd->repair->mode)) < 0)
+	if ((res = repair_node_check_struct(node, fd->repair->mode)) < 0)
 		return res;
 	
 	if (reiser4_node_items(node) == 0)

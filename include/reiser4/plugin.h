@@ -779,7 +779,7 @@ struct reiser4_sdext_ops {
 	errno_t (*print) (body_t *, aal_stream_t *, uint16_t);
 
 	/* Checks sd extention content. */
-	errno_t (*check) (sdext_entity_t *, uint8_t);
+	errno_t (*check_struct) (sdext_entity_t *, uint8_t);
 #endif
 
 	/* Reads stat data extention data */
@@ -804,7 +804,7 @@ struct reiser4_node_ops {
 			  shift_hint_t *);
     
 	/* Checks thoroughly the node structure and fixes what needed. */
-	errno_t (*check) (object_entity_t *, uint8_t);
+	errno_t (*check_struct) (object_entity_t *, uint8_t);
 
 	int (*isdirty) (object_entity_t *);
 	void (*mkdirty) (object_entity_t *);
@@ -938,7 +938,7 @@ struct reiser4_format_ops {
 	errno_t (*update) (object_entity_t *);
 	    
 	/* Checks thoroughly the format structure and fixes what needed. */
-	errno_t (*check) (object_entity_t *, uint8_t);
+	errno_t (*check_struct) (object_entity_t *, uint8_t);
 
 	/* Prints all useful information about the format */
 	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
@@ -1091,7 +1091,7 @@ struct reiser4_alloc_ops {
 	/* Checks blocks allocator on validness */
 	errno_t (*valid) (object_entity_t *);
 
-	errno_t (*check) (object_entity_t *, uint8_t);
+	errno_t (*check_struct) (object_entity_t *, uint8_t);
 	    
 	/* Prints block allocator data */
 	errno_t (*print) (object_entity_t *, aal_stream_t *,
@@ -1160,7 +1160,7 @@ struct reiser4_journal_ops {
 			  uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
-	errno_t (*check) (object_entity_t *, layout_func_t, void *);
+	errno_t (*check_struct) (object_entity_t *, layout_func_t, void *);
 
 	/* Calls func for each block in block allocator */
 	errno_t (*layout) (object_entity_t *, block_func_t,

@@ -338,14 +338,14 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 }
 
 /*  Checks the node content. Returns values according to repair_error_codes_t. */
-errno_t repair_node_check(reiser4_node_t *node, uint8_t mode) {
+errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	errno_t res = REPAIR_OK;
 	
 	aal_assert("vpf-494", node != NULL);
 	aal_assert("vpf-193", node->entity != NULL);    
 	aal_assert("vpf-220", node->entity->plugin != NULL);
 	
-	res |= plugin_call(node->entity->plugin->o.node_ops, check, 
+	res |= plugin_call(node->entity->plugin->o.node_ops, check_struct, 
 			   node->entity, mode);
 	
 	if (repair_error_fatal(res))

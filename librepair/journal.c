@@ -17,11 +17,11 @@ static errno_t callback_fs_check(void *layout, block_func_t func, void *data) {
 }
 
 /* Checks the opened journal. */
-static errno_t repair_journal_check(reiser4_journal_t *journal) {
+static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 	aal_assert("vpf-460", journal != NULL);
 	aal_assert("vpf-736", journal->fs != NULL);
 	
-	return plugin_call(journal->entity->plugin->o.journal_ops, check, 
+	return plugin_call(journal->entity->plugin->o.journal_ops, check_struct, 
 			   journal->entity, callback_fs_check, journal->fs);
 }
 /* Open the journal and check it. */
@@ -68,7 +68,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 		}
 	} else {    
 		/* Check the structure of the opened journal or rebuild it if needed. */
-		ret = repair_journal_check(fs->journal);
+		ret = repair_journal_check_struct(fs->journal);
 		
 		if (repair_error_exists(ret))
 			goto error_journal_close;

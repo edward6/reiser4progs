@@ -62,18 +62,17 @@ static errno_t sdext_symlink_print(body_t *body,
 	return 0;
 }
 
-extern errno_t sdext_symlink_check(sdext_entity_t *sdext,
-				   uint8_t mode);
+extern errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode);
 
 #endif
 
 static reiser4_sdext_ops_t sdext_symlink_ops = {
-	.open	 = sdext_symlink_open,
+	.open	 	= sdext_symlink_open,
 		
 #ifndef ENABLE_STAND_ALONE
-	.init	 = sdext_symlink_init,
-	.print   = sdext_symlink_print,
-	.check   = sdext_symlink_check,
+	.init	 	= sdext_symlink_init,
+	.print   	= sdext_symlink_print,
+	.check_struct   = sdext_symlink_check_struct,
 #endif		
 	.length	 = sdext_symlink_length
 };

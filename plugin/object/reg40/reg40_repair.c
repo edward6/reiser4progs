@@ -10,7 +10,7 @@
 
 #include "reg40.h"
 
-//extern reiser4_plugin_t reg40_plugin;
+extern reiser4_plugin_t reg40_plugin;
 
 static errno_t callback_mode_reg(uint16_t mode) {
 	return S_ISREG(mode) ? 0 : -EINVAL;
@@ -30,7 +30,7 @@ object_entity_t *reg40_realize(object_info_t *info) {
 		return NULL;
 	
 	/* Initializing file handle */
-//	obj40_init(&reg->obj, &reg40_plugin, NULL, core, info->tree);
+	obj40_init(&reg->obj, &reg40_plugin, NULL, core, info->tree);
 	
 	return (object_entity_t *)reg;
 }

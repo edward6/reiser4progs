@@ -12,7 +12,7 @@
 #include "format40.h"
 #include <repair/plugin.h>
 
-errno_t format40_check(object_entity_t *entity, uint8_t mode) {
+errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
 	count_t count;

@@ -12,6 +12,6 @@
 extern errno_t repair_alloc_related_region(reiser4_alloc_t *alloc, blk_t blk,
 					   region_func_t func, void *data);
 
-extern errno_t repair_alloc_check(reiser4_alloc_t *alloc, uint8_t mode);
+extern errno_t repair_alloc_check_struct(reiser4_alloc_t *alloc, uint8_t mode);
 
 #endif

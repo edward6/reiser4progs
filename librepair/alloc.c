@@ -14,10 +14,10 @@ errno_t repair_alloc_related_region(reiser4_alloc_t *alloc, blk_t blk,
 			   alloc->entity, blk, func, data);
 }
 
-errno_t repair_alloc_check(reiser4_alloc_t *alloc, uint8_t mode) {
+errno_t repair_alloc_check_struct(reiser4_alloc_t *alloc, uint8_t mode) {
 	aal_assert("vpf-867", alloc != NULL);
 	
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, check, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, check_struct, 
 			   alloc->entity, mode);
 }
 

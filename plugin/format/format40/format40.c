@@ -494,15 +494,14 @@ errno_t format40_print(object_entity_t *entity,
 
 extern errno_t format40_update(object_entity_t *entity);
 
-extern errno_t format40_check(object_entity_t *entity,
-			      uint8_t mode);
+extern errno_t format40_check_struct(object_entity_t *entity, uint8_t mode);
 #endif
 
 static reiser4_format_ops_t format40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.device		= format40_device,
 	.valid		= format40_valid,
-	.check		= format40_check,
+	.check_struct	= format40_check_struct,
 	.sync		= format40_sync,
 	.isdirty        = format40_isdirty,
 	.mkdirty        = format40_mkdirty,

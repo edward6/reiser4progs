@@ -25,7 +25,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	aal_memset(&key, 0, sizeof(key));
 	aal_memcpy(&key, &entry->object, sizeof(entry->object));
 	
-	*object = repair_object_launch(parent->info.tree, &key);
+	*object = repair_object_launch(parent->info.tree, parent, &key);
 	
 	if (*object == NULL)
 		return -EINVAL;
@@ -176,7 +176,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if (fs->tree->root == NULL)
 		return -EINVAL;
 	
-	root = repair_object_launch(sem->repair->fs->tree, &fs->tree->key);
+	root = repair_object_launch(sem->repair->fs->tree, NULL, &fs->tree->key);
 	
 	/* Make sure that '/' exists. */
 	if (root == NULL) {

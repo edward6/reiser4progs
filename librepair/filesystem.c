@@ -65,7 +65,7 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
 		goto error_journal_close;
 	}
 
-	if ((error = repair_alloc_check(repair->fs->alloc, repair->mode)))
+	if ((error = repair_alloc_check_struct(repair->fs->alloc, repair->mode)))
 		goto error_alloc_close;
 	
 	if ((repair->fs->oid = reiser4_oid_open(repair->fs)) == NULL) {	

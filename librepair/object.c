@@ -87,7 +87,8 @@ static bool_t callback_object_open(reiser4_plugin_t *plugin, void *data) {
 }
 
 /* Open the object on the base of given start @key */
-reiser4_object_t *repair_object_launch(reiser4_tree_t *tree, 
+reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
+				       reiser4_object_t *parent,
 				       reiser4_key_t *key)
 {
 	reiser4_object_t *object;
@@ -109,6 +110,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 		if (reiser4_key_compare(&place.item.key, key))
 			return NULL;
 		
+		/* If the pointed item was found, object must be opanable. 
+		   @parent probably should be passed here. */
 		object = reiser4_object_realize(tree, &place);
 		
 		if (!object)
@@ -121,6 +124,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 		
 		object->info.tree = tree;
 		object->info.object = *key;
+		object->info.parent = parent->info.object;
 		
 		libreiser4_factory_cfind(callback_object_open, object, FALSE);
 		

@@ -5,7 +5,7 @@
 #include <repair/librepair.h>
 
 /* Checks the opened format, or build a new one if it was not openned. */
-static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
+static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plugin_t *plugin = NULL;
 	errno_t ret = REPAIR_OK;
 	count_t count;
@@ -104,7 +104,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
 	}
 	
 	/* Format was opened or detected. Check it and fix it. */
-	ret = plugin_call(fs->format->entity->plugin->o.format_ops, check,
+	ret = plugin_call(fs->format->entity->plugin->o.format_ops, check_struct,
 			  fs->format->entity, mode);
 	
 	if (repair_error_fatal(ret))
@@ -148,7 +148,7 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 	fs->format = reiser4_format_open(fs);
 	
 	/* Check the opened disk format or rebuild it if needed. */
-	error = repair_format_check(fs, mode);
+	error = repair_format_check_struct(fs, mode);
 	
 	if (repair_error_exists(error))
 		goto error_format_close;

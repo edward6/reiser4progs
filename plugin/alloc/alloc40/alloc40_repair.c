@@ -55,7 +55,7 @@ static errno_t callback_check_layout(object_entity_t *entity, uint64_t blk,
 	return res;
 }
 
-errno_t alloc40_check(object_entity_t *entity, uint8_t mode) {    
+errno_t alloc40_check_struct(object_entity_t *entity, uint8_t mode) {    
 	struct alloc_hint hint;
 	alloc40_t *alloc = (alloc40_t *)entity;
 	errno_t error;

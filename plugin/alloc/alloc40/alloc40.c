@@ -716,7 +716,7 @@ errno_t alloc40_valid(object_entity_t *entity) {
 			      callback_check_bitmap, alloc);
 }
 
-extern errno_t alloc40_check(object_entity_t *entity, uint8_t mode);
+extern errno_t alloc40_check_struct(object_entity_t *entity, uint8_t mode);
 
 static reiser4_alloc_ops_t alloc40_ops = {
 	.open           = alloc40_open,
@@ -730,7 +730,7 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.mkdirty        = alloc40_mkdirty,
 	.mkclean        = alloc40_mkclean,
 	.print          = alloc40_print,
-	.check          = alloc40_check,
+	.check_struct	= alloc40_check_struct,
 		
 	.used           = alloc40_used,
 	.free           = alloc40_free,

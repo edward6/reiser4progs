@@ -359,7 +359,7 @@ static errno_t node40_count_check(node40_t *node, uint8_t mode) {
 	return REPAIR_FATAL;
 }
 
-errno_t node40_check(object_entity_t *entity, uint8_t mode) {
+errno_t node40_check_struct(object_entity_t *entity, uint8_t mode) {
 	node40_t *node = (node40_t *)entity;
 	errno_t res;
 	

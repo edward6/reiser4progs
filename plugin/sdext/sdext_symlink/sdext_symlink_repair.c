@@ -8,7 +8,7 @@
 #include <reiser4/plugin.h>
 #include <repair/plugin.h>
 
-errno_t sdext_symlink_check(sdext_entity_t *sdext, uint8_t mode) {
+errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	uint32_t offset;
 	
 	aal_assert("vpf-779", sdext != NULL);

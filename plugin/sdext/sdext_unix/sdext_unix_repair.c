@@ -7,7 +7,7 @@
 #include "sdext_unix.h"
 #include <repair/plugin.h>
 
-errno_t sdext_unix_check(sdext_entity_t *sdext, uint8_t mode) {
+errno_t sdext_unix_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	aal_assert("vpf-778", sdext != NULL);
 	aal_assert("vpf-781", sdext->plugin != NULL);
 	

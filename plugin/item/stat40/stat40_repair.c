@@ -25,8 +25,9 @@ static errno_t callback_check_ext(sdext_entity_t *sdext, uint16_t extmask,
 	
 	hint->sdext = *sdext;
 	
-	return sdext->plugin->o.sdext_ops->check ? 
-		sdext->plugin->o.sdext_ops->check(sdext, hint->mode) : REPAIR_OK;
+	return sdext->plugin->o.sdext_ops->check_struct ? 
+		sdext->plugin->o.sdext_ops->check_struct(sdext, hint->mode) : 
+		REPAIR_OK;
 }
 
 errno_t stat40_check_struct(item_entity_t *item, uint8_t mode) {

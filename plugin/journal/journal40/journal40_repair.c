@@ -415,8 +415,9 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	return 0;
 }
 
-errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout, 
-			void *layout)
+errno_t journal40_check_struct(object_entity_t *entity, 
+			       layout_func_t fs_layout, 
+			       void *layout)
 {
 	journal40_t *journal = (journal40_t *)entity;
 	journal40_check_t data;

@@ -24,7 +24,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	aal_memset(&key, 0, sizeof(key));
 	aal_memcpy(&key, &entry->object, sizeof(entry->object));
 	
-	*object = repair_object_launch(parent->info.tree, &key);
+	*object = repair_object_launch(parent->info.tree, parent, &key);
 	
 	if (*object == NULL)
 		return -EINVAL;
@@ -125,7 +125,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	   fails link it to to the "lost+found". */
 	if (object->info.parent.plugin) {
 		/* FIXME-VITALY: smth like reiser4_object_launch should be here. */
-		parent = repair_object_launch(lf->repair->fs->tree, 
+		parent = repair_object_launch(lf->repair->fs->tree, NULL, 
 					      &object->info.parent);
 		
 		/* If there is no parent found, zero parent object to link to 

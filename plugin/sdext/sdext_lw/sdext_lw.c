@@ -119,19 +119,18 @@ static errno_t sdext_lw_print(body_t *body, aal_stream_t *stream,
 	return 0;
 }
 
-extern errno_t sdext_lw_check(sdext_entity_t *sdext,
-			      uint8_t mode);
+extern errno_t sdext_lw_check_struct(sdext_entity_t *sdext, uint8_t mode);
 #endif
 
 static reiser4_sdext_ops_t sdext_lw_ops = {
-	.open	 = sdext_lw_open,
+	.open	 	= sdext_lw_open,
 		
 #ifndef ENABLE_STAND_ALONE
-	.init	 = sdext_lw_init,
-	.print   = sdext_lw_print,
-	.check   = sdext_lw_check,
+	.init	 	= sdext_lw_init,
+	.print   	= sdext_lw_print,
+	.check_struct   = sdext_lw_check_struct,
 #endif		
-	.length	 = sdext_lw_length
+	.length	 	= sdext_lw_length
 };
 
 static reiser4_plugin_t sdext_lw_plugin = {

@@ -742,23 +742,23 @@ static void journal40_close(object_entity_t *entity) {
 	aal_free(journal);
 }
 
-extern errno_t journal40_check(object_entity_t *,
-			       layout_func_t, void *);
+extern errno_t journal40_check_struct(object_entity_t *,
+				      layout_func_t, void *);
 
 static reiser4_journal_ops_t journal40_ops = {
-	.open	  = journal40_open,
-	.create	  = journal40_create,
-	.sync	  = journal40_sync,
-	.isdirty  = journal40_isdirty,
-	.mkdirty  = journal40_mkdirty,
-	.mkclean  = journal40_mkclean,
-	.replay   = journal40_replay,
-	.print    = journal40_print,
-	.check    = journal40_check,
-	.layout   = journal40_layout,
-	.valid	  = journal40_valid,
-	.close	  = journal40_close,
-	.device   = journal40_device
+	.open	  	= journal40_open,
+	.create	  	= journal40_create,
+	.sync	  	= journal40_sync,
+	.isdirty  	= journal40_isdirty,
+	.mkdirty  	= journal40_mkdirty,
+	.mkclean  	= journal40_mkclean,
+	.replay   	= journal40_replay,
+	.print    	= journal40_print,
+	.check_struct	= journal40_check_struct,
+	.layout   	= journal40_layout,
+	.valid	  	= journal40_valid,
+	.close	  	= journal40_close,
+	.device   	= journal40_device
 };
 
 static reiser4_plugin_t journal40_plugin = {
