@@ -32,7 +32,7 @@
 
 /* Macros for hole and unallocated extents. Used by both plugins (extent40) and
    library itself. */
-#define EXTENT_SPARSE_UNIT      (0)
+#define EXTENT_HOLE_UNIT        (0)
 #define EXTENT_UNALLOC_UNIT     (1)
 
 /* Defining the types for disk structures. All types like f32_t are fake ones
@@ -611,19 +611,20 @@ struct trans_hint {
 	/* Length of the data to be inserted/removed. Set by estimate. */
 	int32_t len;
 
-	/* Value needed for updating bytes field in stat data. Set by estimate. */
+	/* Value needed for updating bytes field in stat data. Set by
+	   estimate. */
 	uint64_t bytes;
 
-	/* This is opaque pointer to item type specific information */
+	/* This is opaque pointer to item type specific information. */
 	void *specific;
 
-	/* The storage tree instance */
+	/* The storage tree instance. */
 	void *tree;
 
-	/* Count of units to be inserted into the tree */
+	/* Count of units to be inserted into the tree. */
 	uint64_t count;
 
-	/* The key of item/unit to be inserted */
+	/* The key of item/unit to be inserted. */
 	key_entity_t offset;
 
 	/* Max real key. Needed for extents only. Set by estimate. */
@@ -638,7 +639,7 @@ struct trans_hint {
 	/* Count of handled blocks in the first and the last extent unit. */
 	uint64_t head, tail;
 	
-	/* Plugin to be used for working with item */
+	/* Plugin to be used for working with item. */
 	reiser4_plug_t *plug;
 
 	/* Hook, which lets know, that passed block region is removed. Used for
@@ -649,9 +650,12 @@ struct trans_hint {
 	/* Hook called onto each create item during write flow. */
 	place_func_t place_func;
 
-	/* Related opaque data. May be used for passing something to 
-	   region_func and place_func */
+	/* Related opaque data. May be used for passing something to region_func
+	   and place_func. */
 	void *data;
+
+	/* Flag needed for extents. */
+	int merge_units;
 };
 
 typedef struct trans_hint trans_hint_t;

@@ -1084,8 +1084,11 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 			  fetch_key, place, &key);
 
 		/* Checking if some data assigned to this unit. */
-		if (!aal_hash_table_lookup(tree->data, &key))
-			continue;
+		if (!aal_hash_table_lookup(tree->data, &key)) {
+			aal_error("Unallocated extent is found, "
+				  "but data is not in cache.");
+			return -EINVAL;
+		}
 
 		/* Loop until all units get allocated */
 		for (blocks = 0, width = ptr.width;
