@@ -533,22 +533,14 @@ static int32_t dir40_write(object_entity_t *entity,
 		hint.len = 0;
 		hint.plugin = dir->body.entity.plugin;
 
-/*		if (dir->body.data)
-			core->tree_ops.unlock(dir->tree, &dir->body);*/
-		
 		/* Inserting the entry to the tree */
 		if (core->tree_ops.insert(dir->tree, &hint, LEAF_LEVEL, NULL)) {
 			aal_exception_error("Can't add entry %s to the thee.", 
 					    entry->name);
 			
-/*			if (dir->body.data)
-				core->tree_ops.lock(dir->tree, &dir->body);*/
-			
 			break;
 		}
 
-//		core->tree_ops.lock(dir->tree, &dir->body);
-		
 		entry++;
 	}
     
@@ -566,9 +558,9 @@ static errno_t dir40_layout(object_entity_t *entity, file_action_func_t func,
 	aal_assert("umka-1474", func != NULL, return -1);
 
 	while (1) {
-		aal_block_t *block = dir->body.entity.context.block;
+		blk_t blk = dir->body.entity.context.blk;
 		
-		if ((res = func(entity, aal_block_number(block), data)))
+		if ((res = func(entity, blk, data)))
 			return res;
 		
 		if (dir40_next(entity) != 1)

@@ -45,20 +45,27 @@ void aal_stream_close(aal_stream_t *stream) {
 	aal_free(stream);
 }
 
-int aal_stream_write(aal_stream_t *stream, void *buff, int size) {
-	aal_assert("umka-1544", stream != NULL, return 0);
-	aal_assert("umka-1545", buff != NULL, return 0);
-
+static errno_t aal_stream_grow(aal_stream_t *stream, int size) {
+	
 	if (stream->offset + size > stream->size) {
 		
-		stream->size = stream->offset + CHUNK_SIZE;
+		stream->size = stream->offset + size +
+			CHUNK_SIZE;
 
-		aal_assert("umka-1551", size > 0, return 0);
-		
 		if (!aal_realloc((void **)&stream->data, stream->size))
 			return -1;
 	}
 
+	return 0;
+}
+
+int aal_stream_write(aal_stream_t *stream, void *buff, int size) {
+	aal_assert("umka-1544", stream != NULL, return 0);
+	aal_assert("umka-1545", buff != NULL, return 0);
+
+	if (aal_stream_grow(stream, size))
+		return 0;
+	
 	aal_memcpy(stream->data + stream->offset, buff, size);
 	stream->offset += size;
 	
@@ -91,11 +98,14 @@ int aal_stream_format(aal_stream_t *stream, const char *format, ...) {
 			    format, arg_list);
 	
 	va_end(arg_list);
-	
+
 	if (!(res = aal_stream_write(stream, buff, res)))
 		return res;
 
-	*(char *)(stream->data + stream->offset) = '\0';
+	if (aal_stream_grow(stream, 1))
+		return 0;
+	
+	aal_memcpy(stream->data + stream->offset, "\0", 1);
 	
 	return res;
 }

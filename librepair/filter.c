@@ -157,8 +157,7 @@ errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
 	repair_coord_left_pos_save(coord, &prev);
 	if (reiser4_node_remove(reiser4_coord_node(coord), &coord->pos)) {
 	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
-		aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
-		coord->pos.unit);
+		reiser4_coord_blk(coord), coord->pos.item, coord->pos.unit);
 	    return -1;
 	}
 	coord->pos = prev;

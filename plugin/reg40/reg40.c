@@ -258,7 +258,7 @@ static int32_t reg40_read(object_entity_t *entity,
 					break;
 			}
 			
-			device = item->context.block->device;
+			device = item->context.device;
 			blocksize = aal_device_get_bs(device);
 			
 			for (; pos->unit < count && read < n; ) {
@@ -491,9 +491,9 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 		
 	while (1) {
 		if (reg->body.entity.plugin->h.sign.group == TAIL_ITEM) {
-			aal_block_t *block = reg->body.entity.context.block;
+			blk_t blk = reg->body.entity.context.blk;
 
-			if ((res = func(entity, aal_block_number(block), data)))
+			if ((res = func(entity, blk, data)))
 				return res;
 
 			reg->offset += reg->body.entity.len;
@@ -506,7 +506,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 			count = plugin_call(return -1, reg->body.entity.plugin->item_ops,
 					    count, &reg->body.entity);
 
-			blocksize = aal_block_size(reg->body.entity.context.block);
+			blocksize = reg->body.entity.context.device->blocksize;
 
 			if (pos.unit == ~0ul)
 				pos.unit = 0;

@@ -180,11 +180,14 @@ struct reiser4_joint {
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
 
-	/* Block node lies in */
-	aal_block_t *block;
-
 	/* Node entity. This field is uinitializied by node plugin */
 	object_entity_t *entity;
+
+	/* Device node lies on */
+	aal_device_t *device;
+
+	/* Block number node lies in */
+	blk_t blk;
 
 	/* Some per-node user-specified data */
 	void *data;

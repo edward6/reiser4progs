@@ -69,12 +69,12 @@ void reiser4_joint_close(
 
 	if (joint->flags & JF_DIRTY) {
 		aal_exception_warn("Destroing dirty joint. Block %llu.",
-				   aal_block_number(joint->node->block));
+				   joint->node->blk);
 	}
 
 	if (joint->counter) {
 		aal_exception_warn("Destroing locked (%d) joint. Block %llu.",
-				   joint->counter, aal_block_number(joint->node->block));
+				   joint->counter, joint->node->blk);
 	}
 	
 	if (joint->children) {
@@ -414,10 +414,10 @@ errno_t reiser4_joint_sync(
 	if (joint->flags & JF_DIRTY) {
 		
 		if (reiser4_node_sync(joint->node)) {
-			aal_device_t *device = joint->node->block->device;
+			aal_device_t *device = joint->node->device;
 
 			aal_exception_error("Can't synchronize node %llu to device. %s.", 
-					    aal_block_number(joint->node->block), device);
+					    joint->node->blk, device->error);
 
 			return -1;
 		}
@@ -683,10 +683,9 @@ errno_t reiser4_joint_traverse(
 	
 	reiser4_joint_t *child = NULL;
     
+	aal_assert("vpf-418", hint != NULL, return -1);
 	aal_assert("vpf-390", joint!= NULL, return -1);
 	aal_assert("vpf-391", joint->node != NULL, return -1);
-	aal_assert("vpf-392", joint->node->block != NULL, return -1);
-	aal_assert("vpf-418", hint != NULL, return -1);
 
 	joint->counter++;
 	
@@ -701,7 +700,7 @@ errno_t reiser4_joint_traverse(
 		  before_func. All items must be opened here.
 		*/
 		if (reiser4_coord_open(&coord, joint, CT_JOINT, pos)) {
-			blk_t blk = aal_block_number(joint->node->block);
+			blk_t blk = joint->node->blk;
 			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
 					    blk, pos->item);
 			goto error_after_func;

@@ -16,9 +16,9 @@
 #include <reiser4/key.h>
 #include <reiser4/plugin.h>
 
-extern reiser4_node_t *reiser4_node_open(aal_device_t *device, blk_t blk);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
 extern errno_t reiser4_node_valid(reiser4_node_t *node);
+extern reiser4_node_t *reiser4_node_open(aal_device_t *device, blk_t blk);
 
 #ifndef ENABLE_COMPACT
 

@@ -28,15 +28,27 @@ object_entity_t *reiser4_coord_entity(reiser4_coord_t *coord) {
 	}
 }
 
-/* Returns block coord points to */
-aal_block_t *reiser4_coord_block(reiser4_coord_t *coord) {
-	aal_assert("umka-1445", coord != NULL, return NULL);
+blk_t reiser4_coord_blk(reiser4_coord_t *coord) {
+	aal_assert("umka-1445", coord != NULL, return FAKE_BLK);
 	
 	switch (coord->context) {
 	case CT_NODE:
-		return coord->u.node->block;
+		return coord->u.node->blk;
 	case CT_JOINT:
-		return coord->u.joint->node->block;
+		return coord->u.joint->node->blk;
+	default:
+		return FAKE_BLK;
+	}
+}
+
+aal_device_t *reiser4_coord_device(reiser4_coord_t *coord) {
+	aal_assert("umka-1553", coord != NULL, return NULL);
+	
+	switch (coord->context) {
+	case CT_NODE:
+		return coord->u.node->device;
+	case CT_JOINT:
+		return coord->u.joint->node->device;
 	default:
 		return NULL;
 	}
@@ -105,7 +117,8 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	aal_assert("umka-1406", key->plugin != NULL, return -1);
 
 	context = &coord->entity.context;
-	context->block = reiser4_coord_block(coord);
+	context->blk = reiser4_coord_blk(coord);
+	context->device = reiser4_coord_device(coord);
 	context->node = reiser4_coord_entity(coord);
 	
 	return 0;

@@ -282,7 +282,7 @@ static errno_t callback_tree_frag(
 
 		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, aal_block_number(node->block));
+					    pos.item, node->blk);
 			return -1;
 		}
 
@@ -332,7 +332,7 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	
 	frag_hint.gauge = gauge;
 	frag_hint.tree = fs->tree;
-	frag_hint.curr = aal_block_number(fs->tree->root->node->block);
+	frag_hint.curr = fs->tree->root->node->blk;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -368,7 +368,7 @@ static errno_t callback_node_packing(reiser4_joint_t *joint, void *data) {
 	if (hint->total % 128 == 0)
 		aal_gauge_update(hint->gauge, 0);
 
-	device = joint->node->block->device;
+	device = joint->node->device;
 	used = aal_device_get_bs(device) - reiser4_node_space(joint->node);
 	
 	hint->used = (used + (hint->used * hint->total)) /  (hint->total + 1);
@@ -509,7 +509,7 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 
 		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, aal_block_number(node->block));
+					    pos.item, node->blk);
 			return -1;
 		}
 

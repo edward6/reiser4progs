@@ -28,33 +28,43 @@ inline void *node40_ib_at(object_entity_t *entity, int pos) {
 
 #ifndef ENABLE_COMPACT
 
-static object_entity_t *node40_create(aal_block_t *block, 
-				       uint8_t level) 
+static object_entity_t *node40_create(aal_device_t *device, blk_t blk, 
+				      uint8_t level)
 {
 	node40_t *node;
     
-	aal_assert("umka-806", block != NULL, return NULL);
+	aal_assert("umka-806", device != NULL, return NULL);
 
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
     
-	node->block = block;
+	if (!(node->block = aal_block_create(device, blk, 0)))
+		goto error_free_node;
+	
 	node->plugin = &node40_plugin;
     
 	/* Plugin setup was moved here because we should support reiser3 */
 	nh40_set_pid(node, NODE_REISER40_ID);
 
-	nh40_set_free_space(node, 
-			    aal_block_size(node->block) - sizeof(node40_header_t));
+	nh40_set_free_space(node, aal_block_size(node->block) -
+			    sizeof(node40_header_t));
     
-	nh40_set_free_space_start(node, 
-				  sizeof(node40_header_t));
+	nh40_set_free_space_start(node, sizeof(node40_header_t));
    
 	nh40_set_level(node, level);
 	nh40_set_magic(node, NODE40_MAGIC);
 	nh40_set_num_items(node, 0);
 
 	return (object_entity_t *)node;
+	
+ error_free_node:
+	aal_free(node);
+	return NULL;
+}
+
+static errno_t node40_sync(object_entity_t *entity) {
+	aal_assert("umka-1552", entity != NULL, return -1);
+	return aal_block_sync(((node40_t *)entity)->block);
 }
 
 #endif
@@ -66,15 +76,20 @@ static rpid_t node40_pid(object_entity_t *entity) {
 	return nh40_get_pid(node);
 } 
 
-static object_entity_t *node40_open(aal_block_t *block) {
+static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 	node40_t *node;
     
-	aal_assert("umka-807", block != NULL, return NULL);
+	aal_assert("umka-807", device != NULL, return NULL);
 
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
     
-	node->block = block;
+	if (!(node->block = aal_block_open(device, blk))) {
+		aal_exception_error("Can't read block %llu. %s.",
+				    blk, device->error);
+		goto error_free_node;
+	}
+	
 	node->plugin = &node40_plugin;
     
 	if (nh40_get_pid(node) != NODE_REISER40_ID) {
@@ -97,13 +112,10 @@ static errno_t node40_close(object_entity_t *entity) {
 	return 0;
 }
 
-/*
-  Confirms that passed node corresponds current plugin. This is something like 
-  "probe" method.
-*/
+/* Confirms that passed node corresponds current plugin */
 static int node40_confirm(object_entity_t *entity) {
 	aal_assert("vpf-014", entity != NULL, return 0);
-	return -(nh40_get_magic(((node40_t *)entity)) != NODE40_MAGIC);
+	return (nh40_get_magic(((node40_t *)entity)) == NODE40_MAGIC);
 }
 
 /* Returns item number in given block. Used for any loops through all items */
@@ -207,8 +219,9 @@ static void node40_item_init(object_entity_t *entity, reiser4_pos_t *pos,
 {
 	node40_t *node = (node40_t *)entity;
 	
-	item->context.block = node->block;
 	item->context.node = entity;
+	item->context.device = node->block->device;
+	item->context.blk = aal_block_number(node->block);
 	
 	item->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
 					       node40_item_pid(entity, pos));
@@ -769,6 +782,7 @@ static reiser4_plugin_t node40_plugin = {
 	
 #ifndef ENABLE_COMPACT
 		.create		= node40_create,
+		.sync           = node40_sync,
 		.insert		= node40_insert,
 		.remove		= node40_remove,
 		.paste		= node40_paste,
@@ -784,6 +798,7 @@ static reiser4_plugin_t node40_plugin = {
 		.item_legal	= node40_item_legal,
 #else
 		.create		= NULL,
+		.sync           = NULL,
 		.insert		= NULL,
 		.remove		= NULL,
 		.paste		= NULL,

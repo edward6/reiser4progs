@@ -66,7 +66,7 @@ void reiser4_tree_release(reiser4_tree_t *tree, reiser4_joint_t *joint) {
 	aal_assert("umka-917", joint != NULL, return);
 	aal_assert("umka-918", joint->node != NULL, return);
 
-	blk = aal_block_number(joint->node->block);
+	blk = joint->node->blk;
 	free = reiser4_alloc_free(tree->fs->alloc);
 	
     	/* Sets up the free blocks in block allocator */
@@ -155,7 +155,7 @@ static errno_t reiser4_tree_build_key(
 /* Returns tree root block number */
 blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	aal_assert("umka-738", tree != NULL, return FAKE_BLK);
-	return aal_block_number(tree->root->node->block);
+	return tree->root->node->blk;
 }
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
@@ -242,7 +242,7 @@ reiser4_tree_t *reiser4_tree_create(
 		goto error_free_node;
     
 	/* Setting up of the root block */
-	reiser4_format_set_root(fs->format, aal_block_number(node->block));
+	reiser4_format_set_root(fs->format, node->blk);
     
 	/* Setting up of the free blocks */
 	reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
@@ -375,7 +375,7 @@ int reiser4_tree_lookup(
 			coord->pos.item--;
 				
 		if (reiser4_coord_realize(coord)) {
-			blk_t blk = aal_block_number(reiser4_coord_block(coord));
+			blk_t blk = reiser4_coord_blk(coord);
 			aal_exception_error("Can't open item by its coord. Node "
 					    "%llu, item %u.", blk, coord->pos.item);
 			return -1;
@@ -392,7 +392,7 @@ int reiser4_tree_lookup(
 			return -1;
 		
 		if (ptr.ptr == FAKE_BLK) {
-			blk_t blk = aal_block_number(reiser4_coord_block(coord));
+			blk_t blk = reiser4_coord_blk(coord);
 			aal_exception_error("Can't get pointer from nodeptr item %u, "
 					    "node %llu.", coord->pos.item, blk);
 			return -1;
@@ -465,7 +465,7 @@ static errno_t reiser4_tree_attach(
 	}
 
 	aal_memset(&ptr, 0, sizeof(ptr));
-	ptr.ptr = aal_block_number(joint->node->block);
+	ptr.ptr = joint->node->blk;
 
 	reiser4_node_lkey(joint->node, &hint.key);
 	hint.hint = &ptr;
@@ -477,7 +477,7 @@ static errno_t reiser4_tree_attach(
     
 	if (reiser4_joint_attach(coord.u.joint, joint)) {
 		aal_exception_error("Can't attach the node %llu in tree cache.", 
-				    aal_block_number(joint->node->block));
+				    joint->node->blk);
 		return -1;
 	}
 
@@ -505,7 +505,7 @@ static errno_t reiser4_tree_grow(
 		goto error_free_root;
 	}
 
-	blk = aal_block_number(tree->root->node->block);
+	blk = tree->root->node->blk;
 	
 	reiser4_format_set_height(tree->fs->format, tree_height + 1);
     	reiser4_format_set_root(tree->fs->format, blk);
@@ -803,7 +803,7 @@ errno_t reiser4_tree_insert(
 		if (reiser4_joint_insert(coord->u.joint, &coord->pos, hint)) {
 	    
 			aal_exception_error("Can't insert an item into the node %llu.", 
-					    aal_block_number(coord->u.joint->node->block));
+					    coord->u.joint->node->blk);
 	    
 			reiser4_tree_release(tree, joint);
 			return -1;
@@ -827,7 +827,7 @@ errno_t reiser4_tree_insert(
 	if (reiser4_joint_insert(insert.u.joint, &insert.pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
 				    (insert.pos.unit == ~0ul ? "item" : "unit"),
-				    aal_block_number(insert.u.joint->node->block));
+				    insert.u.joint->node->blk);
 		return -1;
 	}
 

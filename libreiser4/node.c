@@ -29,31 +29,27 @@ reiser4_node_t *reiser4_node_create(
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
     
-	if (!(node->block = aal_block_create(device, blk, 0)))
-		goto error_free_node;
-    
 	/* Finding the node plugin by its id */
 	if (!(plugin = libreiser4_factory_ifind(NODE_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find node plugin by its id 0x%x.", pid);
-		goto error_free_block;
+		goto error_free_node;
 	}
     
 	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plugin_call(goto error_free_node, 
-					 plugin->node_ops, create, node->block, level))) 
+	if (!(node->entity = plugin_call(goto error_free_node, plugin->node_ops,
+					 create, device, blk, level))) 
 	{
 		aal_exception_error("Can't create node entity.");
-		goto error_free_block;
+		goto error_free_node;
 	}
-    
+
+	node->device = device;
+	node->blk = blk;
+	
 	return node;
 
- error_free_block:
-	aal_block_close(node->block);
-   
  error_free_node:    
 	aal_free(node);
-
 	return NULL;
 }
 
@@ -62,7 +58,8 @@ errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be save */
 {
 	aal_assert("umka-798", node != NULL, return -1);
-	return aal_block_sync(node->block);
+	return plugin_call(return -1, node->entity->plugin->node_ops,
+			   sync, node->entity);
 }
 
 errno_t reiser4_node_print(
@@ -79,18 +76,48 @@ errno_t reiser4_node_print(
 
 #endif
 
+struct guess_node {
+	blk_t blk;
+	
+	aal_device_t *device;
+	object_entity_t *entity;
+};
+
+static errno_t callback_guess_node(reiser4_plugin_t *plugin, void *data) {
+	struct guess_node *guess = (struct guess_node *)data;
+
+	if (plugin->h.sign.type == NODE_PLUGIN_TYPE) {
+
+		if (!(guess->entity = plugin_call(return -1, plugin->node_ops,
+						  open, guess->device, guess->blk)))
+			return -1;
+		
+		if (plugin_call(return -1, plugin->node_ops, confirm, guess->entity))
+			return 1;
+
+	}
+
+	guess->entity = NULL;
+	return 0;
+}
+
 /* This function is trying to detect node plugin */
-static reiser4_plugin_t *reiser4_node_guess(
-	aal_block_t *block)   /* block node lies in */
+static object_entity_t *reiser4_node_guess(
+	aal_device_t *device,    /* device node lies on */
+	blk_t blk)               /* node block */
 {
-	rpid_t pid;
+	struct guess_node guess;
+	object_entity_t *entity;
     
-	aal_assert("umka-902", block != NULL, return NULL);
-    
-	pid = *((uint16_t *)block->data);
-    
+	guess.blk = blk;
+	guess.device = device;
+	guess.entity = NULL;
+	
 	/* Finding node plugin by its id from node header */
-	return libreiser4_factory_ifind(NODE_PLUGIN_TYPE, pid);
+	if (!libreiser4_factory_cfind(callback_guess_node, &guess))
+		return NULL;
+
+	return guess.entity;
 }
 
 /* Opens node on specified device and block number */
@@ -99,43 +126,23 @@ reiser4_node_t *reiser4_node_open(
 	blk_t blk)		/* block number node will be opened on */
 {
 	reiser4_node_t *node;
-	reiser4_plugin_t *plugin;
 
 	aal_assert("umka-160", device != NULL, return NULL);
    
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
    
-	if (!(node->block = aal_block_open(device, blk))) {
-		aal_exception_error("Can't read block %llu. %s.",
-				    blk, device->error);
+	if (!(node->entity = reiser4_node_guess(device, blk))) {
+		aal_exception_error("Can't guess node plugin for "
+				    "node %llu.", blk);
 		goto error_free_node;
 	}
     
-	/* Finding the node plugin by its id */
-	if (!(plugin = reiser4_node_guess(node->block))) {
-		aal_exception_error("Can't guess node plugin for node %llu.", 
-				    aal_block_number(node->block));
-		goto error_free_block;
-	}
-    
-	/* 
-	   Initializing node's entity by means of calling "open" method of node
-	   plugin.
-	*/
-	if (!(node->entity = plugin_call(goto error_free_node,
-					 plugin->node_ops,
-					 open, node->block)))
-	{
-		aal_exception_error("Can't initialize node entity.");
-		goto error_free_block;
-	}
-	    
+	node->device = device;
+	node->blk = blk;
+	
 	return node;
     
- error_free_block:
-	aal_block_close(node->block);
-
  error_free_node:
 	aal_free(node);
    
@@ -150,7 +157,6 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	plugin_call(return -1, node->entity->plugin->node_ops,
 		    close, node->entity);
 	    
-	aal_block_close(node->block);
 	aal_free(node);
 
 	return 0;
@@ -296,8 +302,8 @@ int reiser4_node_lookup(
 	if ((lookup = plugin_call(return -1, node->entity->plugin->node_ops,
 				  lookup, node->entity, key, pos)) == -1) 
 	{
-		aal_exception_error("Lookup in the node %llu failed.", 
-				    aal_block_number(node->block));
+		aal_exception_error("Lookup in the node %llu failed.",
+				    node->blk);
 		return -1;
 	}
 
@@ -306,7 +312,7 @@ int reiser4_node_lookup(
 
 	if (reiser4_coord_open(&coord, node, CT_NODE, pos)) {
 		aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-				    aal_block_number(node->block), pos->item);
+				    node->blk, pos->item);
 		return -1;
 	}
 
@@ -334,7 +340,7 @@ int reiser4_node_lookup(
 	    
 	if ((lookup = item->plugin->item_ops.lookup(item, key, &pos->unit)) == -1) {
 		aal_exception_error("Lookup in the item %d in the node %llu failed.", 
-				    pos->item, aal_block_number(node->block));
+				    pos->item, node->blk);
 		return -1;
 	}
 
@@ -367,7 +373,7 @@ errno_t reiser4_node_remove(
 	
 		if (reiser4_coord_open(&coord, node, CT_NODE, pos)) {
 			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-					    aal_block_number(node->block), pos->item);
+					    node->blk, pos->item);
 			return -1;
 		}
 
@@ -422,7 +428,7 @@ errno_t reiser4_node_insert(
 		char *target = (pos->unit == ~0ul ? "item" : "unit");
 		aal_exception_error("There is no space to insert the %s of (%u) "
 				    "size in the node (%llu).", target, 
-				    hint->len, aal_block_number(node->block));
+				    hint->len, node->blk);
 		return -1;
 	}
 
