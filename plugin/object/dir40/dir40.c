@@ -331,7 +331,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	   directory oid, locality and name by menas of using hash plugin. */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
 		  &dir->body.key, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), name/*"file0"*/);
+		  obj40_objectid(&dir->obj), name);
 
 	/* Making tree_lookup() to find entry by key */
 	switch ((res = obj40_lookup(&dir->obj, &dir->body.key,
@@ -351,33 +351,45 @@ lookup_t dir40_lookup(object_entity_t *entity,
 		return res;
 	}
 
-	/* Key collisions handling */
 #ifdef ENABLE_COLLISIONS
-	{
+	/* Key collisions handling. Sequentional search of the needed entry by
+	   its name. */
+	while (1) {
 		uint32_t units;
-
+		entry_hint_t temp;
+			
 		units = plug_call(dir->body.plug->o.item_ops,
 				  units, &dir->body);
 
-		/* Sequentional search of the needed entry by its name */
-		for (; dir->body.pos.unit < units; dir->body.pos.unit++) {
-			entry_hint_t temp;
-			
-			/* Fetching entry to @temp */
+		if (dir->body.pos.unit < units) {
+
 			if (dir40_fetch(entity, &temp))
 				return FAILED;
 
-			/* Save entry place */
 			if (entry) {
-				aal_memcpy(&entry->place, &temp,
-					   sizeof(temp));
+				aal_memcpy(&entry->place, &temp.place,
+					   sizeof(temp.place));
 			}
+				
+			if (aal_strlen(name) > aal_strlen(temp.name))
+				goto next_entry;
+
+			if (aal_strlen(name) < aal_strlen(temp.name))
+				return ABSENT;
 			
-			/* Checking if it is the same as we're looking for */
-			if (aal_strlen(name) == aal_strlen(temp.name) &&
-			    !aal_strncmp(temp.name, name, aal_strlen(name)))
-			{
-				/* Saving found entry to passed @entry */
+			if (aal_strlen(name) == aal_strlen(temp.name)) {
+				if (aal_strncmp(name, temp.name,
+						aal_strlen(name)) > 0)
+				{
+					goto next_entry;
+				}
+
+				if (aal_strncmp(name, temp.name,
+						aal_strlen(name)) < 0)
+				{
+					return ABSENT;
+				}
+
 				if (entry) {
 					aal_memcpy(entry, &temp,
 						   sizeof(temp));
@@ -385,6 +397,14 @@ lookup_t dir40_lookup(object_entity_t *entity,
 				
 				return PRESENT;
 			}
+
+		next_entry:
+			dir->body.pos.unit++;
+			entry->place.pos.unit++;
+			continue;
+		} else {
+			if (dir40_next(entity, 0))
+				return ABSENT;
 		}
 	}
 	
@@ -724,17 +744,14 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	/* Getting place new entry will be inserted at */
 	switch (dir40_lookup(entity, entry->name, &temp)) {
 	case ABSENT:
-		if (obj40_fetch(&dir->obj, &temp.place))
-			return 0;
+		if ((res = obj40_fetch(&dir->obj, &temp.place)))
+			return res;
 		
 		break;
 	default:
 		return -EINVAL;
 	}
 
-	if ((res = obj40_fetch(&dir->obj, &temp.place)))
-		return res;
-	
 	hint.count = 1;
 	hint.plug = temp.place.plug;
 	hint.type_specific = (void *)entry;
@@ -742,7 +759,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	/* Building key of the new entry and hint's one */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
 		  &entry->offset, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), entry->name/*"file0"*/);
+		  obj40_objectid(&dir->obj), entry->name);
 
 	/* Copying key to @hint */
 	plug_call(entry->offset.plug->o.key_ops, assign, &hint.key,
