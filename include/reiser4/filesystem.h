@@ -308,9 +308,6 @@ struct traverse_hint {
 	 * not */
 	int cleanup;
 	
-	/* Bitmask of item types which should be handled. */
-	rpid_t objects;
-	
 	/* user-spacified data */
 	void *data;
 };
