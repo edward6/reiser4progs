@@ -72,12 +72,6 @@ static int direntry40_mergeable(item_entity_t *item1,
 	aal_assert("umka-1581", item1 != NULL, return -1);
 	aal_assert("umka-1582", item2 != NULL, return -1);
 
-	if (item1->plugin->h.sign.group != item2->plugin->h.sign.group)
-		return 0;
-	
-	if (item1->plugin->h.sign.id != item2->plugin->h.sign.id)
-		return 0;
-	
 	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
 	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
 					       KEY_REISER40_ID)))

@@ -755,6 +755,18 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 	return 0;
 }
 
+static int node40_mergeable(item_entity_t *item1, item_entity_t *item2) {
+	
+	if (item1->plugin->h.sign.group != item2->plugin->h.sign.group)
+		return 0;
+	
+	if (item1->plugin->h.sign.id != item2->plugin->h.sign.id)
+		return 0;
+
+	return item1->plugin->item_ops.mergeable &&
+		item1->plugin->item_ops.mergeable(item1, item2);
+}
+
 static errno_t node40_shift(object_entity_t *entity, object_entity_t *target, 
 			    reiser4_pos_t *pos, shift_hint_t *hint, shift_flags_t flags)
 {
@@ -954,13 +966,13 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 		node40_item_init((object_entity_t *)estimate.dst,
 				 &dst_pos, &dst_item);
 
-		mergeable = src_item.plugin->item_ops.mergeable &&
-			src_item.plugin->item_ops.mergeable(&src_item, &dst_item);
+		if ((mergeable = node40_mergeable(&src_item, &dst_item)) < 0)
+			return -1;
 
 		if (!(plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, src_ih->pid))) {
 			aal_exception_error("Can't find item plugin by its id 0x%x",
 					    src_ih->pid);
-			return 0;
+			return -1;
 		}
 		
 		/* Checking if items are mergeable */

@@ -51,8 +51,8 @@ static uint16_t extent40_remove(item_entity_t *item, uint32_t pos) {
 static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
 			      uint16_t options) 
 {
+	uint32_t i, count;
 	extent40_t *extent;
-	uint16_t i, count;
     
 	aal_assert("umka-1205", item != NULL, return -1);
 	aal_assert("umka-1206", stream != NULL, return -1);
@@ -70,6 +70,21 @@ static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
 	aal_stream_format(stream, " ]");
     
 	return 0;
+}
+
+static uint64_t extent40_size(item_entity_t *item) {
+	uint32_t i;
+	extent40_t *extent;
+	uint32_t blocks = 0;
+    
+	aal_assert("umka-1583", item != NULL, return -1);
+
+	extent = extent40_body(item);
+	
+	for (i = 0; i < extent40_count(item); i++)
+		blocks += et40_get_width(extent + i);
+    
+	return blocks * aal_device_get_bs(item->context.device);
 }
 
 #endif
@@ -219,6 +234,54 @@ static errno_t extent40_update(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
+static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
+	reiser4_plugin_t *plugin;
+	uint64_t offset1, offset2;
+	roid_t objectid1, objectid2;
+	roid_t locality1, locality2;
+	
+	aal_assert("umka-1581", item1 != NULL, return -1);
+	aal_assert("umka-1582", item2 != NULL, return -1);
+
+	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
+	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
+					       KEY_REISER40_ID)))
+	{
+		aal_exception_error("Can't find key plugin by its id 0x%x",
+				    KEY_REISER40_ID);
+		return -1;
+	}
+	
+	locality1 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &item1->key);
+
+	locality2 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &item2->key);
+
+	if (locality1 != locality2)
+		return 0;
+	
+	objectid1 = plugin_call(return -1, plugin->key_ops,
+				get_objectid, &item1->key);
+	
+	objectid2 = plugin_call(return -1, plugin->key_ops,
+				get_objectid, &item2->key);
+
+	if (objectid1 != objectid1)
+		return 0;
+
+	offset1 = plugin_call(return -1, plugin->key_ops,
+			      get_offset, &item1->key);
+	
+	offset2 = plugin_call(return -1, plugin->key_ops,
+			      get_offset, &item2->key);
+
+	if (offset1 + extent40_size(item1) != offset2)
+		return 0;
+	
+	return 1;
+}
+
 #endif
 
 static reiser4_plugin_t extent40_plugin = {
@@ -240,19 +303,20 @@ static reiser4_plugin_t extent40_plugin = {
 		.insert	       = extent40_insert,
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,
+		.mergeable     = extent40_mergeable,
 #else
 		.init	       = NULL,
 		.update        = NULL,
 		.insert	       = NULL,
 		.remove	       = NULL,
 		.print	       = NULL,
+		.mergeable     = NULL, 
 #endif
 		.estimate      = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
 		.shift         = NULL,
 		.open          = NULL,
-		.mergeable     = NULL, 
 
 		.lookup	       = extent40_lookup,
 		.count	       = extent40_count,

@@ -63,16 +63,24 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 
 static int dir40_next(object_entity_t *entity) {
 	reiser4_place_t right;
-	reiser4_plugin_t *plugin;
+	reiser4_plugin_t *this_plugin;
+	reiser4_plugin_t *right_plugin;
 	dir40_t *dir = (dir40_t *)entity;
 
 	/* Getting the right neighbour */
 	if (core->tree_ops.right(dir->file.tree, &dir->body, &right))
 		return 0;
 
-	plugin = dir->body.entity.plugin;
+	right_plugin = right.entity.plugin;
+	this_plugin = dir->body.entity.plugin;
 	
-	if (!plugin_call(return 0, plugin->item_ops, mergeable,
+	if (this_plugin->h.sign.group != right_plugin->h.sign.group)
+		return 0;
+	
+	if (this_plugin->h.sign.id != right_plugin->h.sign.id)
+		return 0;
+	
+	if (!plugin_call(return 0, this_plugin->item_ops, mergeable,
 			 &right.entity, &dir->body.entity))
 		return 0;
 	
