@@ -1512,52 +1512,39 @@ errno_t reiser4_tree_cut(
 	reiser4_place_t *start,     /* place of the start */
 	reiser4_place_t *end)       /* place of the end */
 {
-	reiser4_node_t *neig;
-	uint8_t end_level;
-	uint8_t start_level;
+	reiser4_node_t *node;
 
 	aal_assert("umka-1018", tree != NULL);
 	aal_assert("umka-1725", start != NULL);
 	aal_assert("umka-1782", end != NULL);
 
-	/*
-	  Getting nodes neighbour links to be connected. Also we check here is
-	  start node and end node lie on the same level and can they be accessed
-	  node by node durring neighbour scan.
-	*/
-	end_level = reiser4_node_get_level(end->node);
-	start_level = reiser4_node_get_level(start->node);
+	node = reiser4_tree_right(tree, start->node);
 	
-	if (start_level != end_level) {
-		aal_exception_error("Invalid start and end node levels.");
-		return -1;
-	}
-	
-	neig = reiser4_tree_right(tree, start->node);
-	
-	while (neig && neig != end->node)
-		neig = reiser4_tree_right(tree, neig);
+	while (node && node != end->node)
+		node = reiser4_tree_right(tree, node);
 
-	if (neig != end->node) {
-		aal_exception_error("End node is not reachable from the "
-				    "start corod.");
+	if (node != end->node) {
+		aal_exception_error("End place is not reachable from the"
+				    "start one durring cutting the tree.");
 		return -1;
 	}
 
 	if (start->node != end->node) {
-		rpos_t pos = { ~0ul, ~0ul };
+		rpos_t pos = {~0ul, ~0ul};
 
 		/* Removing start + 1 though end - 1 node from the tree */
-		neig = neig->left;
+		node = reiser4_tree_right(tree, start->node);
 		
-		while (neig && neig != start->node) {
-			if (neig->parent) {
-				reiser4_tree_detach(tree, neig);
-				reiser4_node_mkclean(neig);
-				reiser4_tree_release(tree, neig);
-			}
-						
-			neig = neig->left;
+		while (node && node != end->node) {
+			reiser4_node_t *right;
+
+			right = node->right;
+			
+			reiser4_node_mkclean(node);
+			reiser4_tree_detach(tree, node);
+			reiser4_tree_release(tree, node);
+			
+			node = right;
 		}
 
 		/* Removing items/units from the start node */
@@ -1580,10 +1567,7 @@ errno_t reiser4_tree_cut(
 				return -1;
 		}
 		
-		if (reiser4_node_items(start->node) > 0) {
-			if (reiser4_tree_shrink(tree, start))
-				return -1;
-		} else {
+		if (reiser4_node_items(start->node) == 0) {
 			reiser4_node_mkclean(start->node);
 			reiser4_tree_detach(tree, start->node);
 			
@@ -1611,10 +1595,7 @@ errno_t reiser4_tree_cut(
 				return -1;
 		}
 		
-		if (reiser4_node_items(end->node) > 0) {
-			if (reiser4_tree_shrink(tree, end))
-				return -1;
-		} else {
+		if (reiser4_node_items(end->node) == 0) {
 			reiser4_node_mkclean(end->node);
 			reiser4_tree_detach(tree, end->node);
 			
@@ -1622,6 +1603,18 @@ errno_t reiser4_tree_cut(
 			end->node = NULL;
 		}
 
+		/* Packing the tree at @start */
+		if (start->node && (tree->flags & TF_PACK)) {
+			if (reiser4_tree_shrink(tree, start))
+				return -1;
+		}
+
+		/* Packing the tree at @end */
+		if (end->node && (tree->flags & TF_PACK)) {
+			if (reiser4_tree_shrink(tree, start))
+				return -1;
+		}
+		
 	} else {
 		if (reiser4_node_cut(start->node, &start->pos, &end->pos))
 			return -1;

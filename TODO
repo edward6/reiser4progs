@@ -3,9 +3,9 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* implement files removing and debug direntry40_remove stuff.
+* implement reiser4_tree_write function needed for fsck.
 
-* implement reiser4_tree_write function.
+* implement files removing and debug direntry40_remove stuff.
 
 * insert an extent among internals may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
