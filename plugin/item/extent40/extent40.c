@@ -354,7 +354,6 @@ lookup_t extent40_lookup(reiser4_place_t *place,
 	place->pos.unit = units;
 	return (bias == FIND_CONV ? PRESENT : ABSENT);
 }
-
 #ifndef ENABLE_STAND_ALONE
 /* Reads @count bytes of extent data from the extent item at passed @pos into
    specified @buff. Uses data cache. */
@@ -521,15 +520,16 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	read_offset = plug_call(hint->offset.plug->o.key_ops,
 				get_offset, &hint->offset);
 	
+	rel_offset = read_offset - extent40_offset(place, place->pos.unit);
+	
 	for (read = count, i = place->pos.unit;
-	     i < extent40_units(place) && count > 0; i++)
+	     i < extent40_units(place) && count > 0; i++, rel_offset = 0)
 	{
 		uint32_t blkchunk;
 		uint64_t blk, start;
 
 		/* Calculating start block for read. */
 		start = et40_get_start(extent40_body(place) + i);
-		rel_offset = read_offset - extent40_offset(place, i);
 		blk = start + aal_div64(rel_offset, blksize, NULL);
 
 		/* Loop though the extent blocks */
@@ -577,7 +577,7 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 					
 				buff += secchunk;
 				count -= secchunk;
-				read_offset += secchunk;
+				rel_offset += secchunk;
 
 				blkchunk -= secchunk;
 				blklocal += secchunk;
