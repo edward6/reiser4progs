@@ -562,7 +562,6 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	tree->fs->tree = NULL;
 	
 	/* Freeing the tree */
-	reiser4_tree_fini(tree);
 	aal_free(tree);
 }
 
@@ -798,7 +797,7 @@ lookup_t reiser4_tree_lookup(
 	aal_assert("umka-2057", place != NULL);
 
 	/*
-	  Storing key into @wan. All consewuence code will use @wan. This is
+	  We store @key in @wan. All consewuence code will use @wan. This is
 	  neede, because @key might point to @item->key in @place and will be
 	  corrupted durring lookup.
 	*/
