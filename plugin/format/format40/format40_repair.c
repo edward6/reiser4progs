@@ -110,9 +110,7 @@ errno_t format40_update(generic_entity_t *entity) {
 
 	if ((res = aal_block_init(&block, format->device,
 				  format->blksize, blk)))
-	{
 		return res;
-	}
 	
 	if ((res = aal_block_read(&block))) {
 		aal_exception_error("Failed to read the block "
