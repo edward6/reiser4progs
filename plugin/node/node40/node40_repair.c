@@ -653,7 +653,6 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 		
 		ih = node40_ih_at(entity, pos.item);
 
-		key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
 		key = print_key(node40_core, &place.key);
 		
 		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF=%u, "
