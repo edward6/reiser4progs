@@ -559,17 +559,12 @@ reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
-		if (!(node = reiser4_node_open(tree, blk))) {
-			aal_error("Can't open node %llu.", blk);
+		if (!(node = reiser4_node_open(tree, blk)))
 			return NULL;
-		}
 
 		/* Connect loaded node to cache. */
-		if (reiser4_tree_connect_node(tree, parent, node)) {
-			aal_error("Can't connect node %llu "
-				  "to tree cache.", node->block->nr);
+		if (reiser4_tree_connect_node(tree, parent, node))
 			goto error_free_node;
-		}
 	}
 
 	return node;
@@ -609,6 +604,7 @@ errno_t reiser4_tree_unload_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 					reiser4_place_t *place)
 {
+	reiser4_node_t *node;
 	blk_t blk;
 	
 	aal_assert("umka-1889", tree != NULL);
@@ -624,7 +620,12 @@ reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 		return NULL;
 
 	blk = reiser4_item_down_link(place);
-	return reiser4_tree_load_node(tree, place->node, blk);
+	if (!(node = reiser4_tree_load_node(tree, place->node, blk))) {
+		aal_error("Can't load root node %llu.", blk);
+		return NULL;
+	}
+
+	return node;
 }
 
 static int reiser4_tree_neig_place(reiser4_tree_t *tree, 

@@ -184,12 +184,9 @@ static void format40_close(generic_entity_t *entity) {
 }
 
 static uint64_t format40_get_flags(generic_entity_t *entity) {
-	format40_t *format;
-	
 	aal_assert("umka-2343", entity != NULL);
 
-	format = (format40_t *)entity;
-	return format->super.sb_flags;
+	return get_sb_flags(SUPER(entity));
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -399,8 +396,6 @@ static void format40_set_height(generic_entity_t *entity, uint16_t height) {
 }
 
 static void format40_set_flags(generic_entity_t *entity, uint64_t flags) {
-	uint64_t fl;
-	
 	aal_assert("umka-2340", entity != NULL);
 
 	set_sb_flags(SUPER(entity), flags);
