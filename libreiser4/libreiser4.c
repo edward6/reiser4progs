@@ -200,7 +200,8 @@ static uint32_t tree_maxspace(void *tree) {
 	if (!(root = ((reiser4_tree_t *)tree)->root))
 		return 0;
 	
-	return reiser4_node_maxspace(root);
+	return reiser4_node_maxspace(root) -
+		reiser4_node_overhead(root);
 }
 #endif
 

@@ -31,7 +31,6 @@ int main(int argc, char *argv[]) {
 	char buff[4096];
 	reiser4_fs_t *fs;
 	aal_device_t *device;
-	reiser4_place_t place;
 
 	entry_hint_t entry;
 	reiser4_object_t *dir;
@@ -74,9 +73,8 @@ int main(int argc, char *argv[]) {
 		goto error_free_root;
 	}
     
-	{
+/*	{
 		object_hint_t dir_hint;
-		reiser4_plugin_t *dir_plugin;
 	
 		dir_hint.plugin = fs->root->entity->plugin;
 		dir_hint.statdata = ITEM_STATDATA40_ID;
@@ -102,7 +100,43 @@ int main(int argc, char *argv[]) {
 					goto error_free_dir;
 				}
 
-				place = object->place;
+				reiser4_object_close(object);
+			}
+		}
+	}*/
+    
+	{
+		object_hint_t reg_hint;
+	
+		reg_hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE,
+							   OBJECT_FILE40_ID);
+		
+		reg_hint.statdata = ITEM_STATDATA40_ID;
+
+		reg_hint.body.reg.tail = ITEM_TAIL40_ID;
+		reg_hint.body.reg.extent = ITEM_EXTENT40_ID;
+		reg_hint.body.reg.policy = TAIL_ALWAYS_ID;
+		
+		{
+			int i;
+			char name[256];
+			reiser4_object_t *object;
+	    
+			for (i = 0; i < 5000; i++) {
+				aal_memset(name, 0, sizeof(name));
+
+				aal_snprintf(name, 256, "testfile%d", i);
+
+				if (!(object = reiser4_object_create(fs, dir, &reg_hint)))
+					goto error_free_dir;
+
+				reiser4_object_write(object, "Hello world!", 12);
+
+				if (reiser4_object_link(dir, object, name)) {
+					reiser4_object_close(object);
+					goto error_free_dir;
+				}
+
 				reiser4_object_close(object);
 			}
 		}

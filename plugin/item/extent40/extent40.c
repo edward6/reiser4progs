@@ -342,29 +342,6 @@ static errno_t extent40_estimate_insert(item_entity_t *item,
 }
 
 /*
-  Tries to write @count bytes of data from @buff at @pos. Returns the number of
-  bytes realy written.
-*/
-static int32_t extent40_write(item_entity_t *item, void *buff,
-			      uint32_t pos, uint32_t count)
-{
-	extent40_t *extent;
-	uint32_t blocksize;
-
-	aal_assert("umka-2112", item != NULL);
-	aal_assert("umka-2113", buff != NULL);
-	
-	extent = extent40_body(item);
-	blocksize = extent40_blocksize(item);
-
-	/* Creating unallocated extent with one unit */
-	et40_set_start(extent, -1);
-	et40_set_width(extent, (count + blocksize - 1) / blocksize);
-	
-	return count;
-}
-
-/*
   Calls @func for each block number extent points to. It is needed for
   calculating fragmentation, etc.
 */
@@ -479,10 +456,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 	}
 
 	/* Updating @hint fields */
-	hint->pos.unit = pos;
-
-	hint->units = hint->rest /
-		sizeof(extent40_t);
+	hint->pos.unit = (pos == 0 ? ~0ul : pos);
+	hint->units = hint->rest / sizeof(extent40_t);
 	
 	return 0;
 }
@@ -613,7 +588,6 @@ extern errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos,
 
 static reiser4_item_ops_t extent40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.write            = extent40_write,
 	.copy             = extent40_copy,
 	.rep              = extent40_rep,
 	.expand           = extent40_expand,

@@ -415,11 +415,6 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 #ifndef ENABLE_STAND_ALONE
 /* Changes nlink field in statdata by passed @value */
 errno_t obj40_link(obj40_t *obj, uint32_t value) {
-
-	/* Updating stat data place */
-	if (obj40_stat(obj))
-		return -EINVAL;
-
 	/* Updating nlink field */
 	return obj40_set_nlink(obj, obj40_get_nlink(obj) + value);
 }

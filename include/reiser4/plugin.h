@@ -724,10 +724,6 @@ struct reiser4_item_ops {
 	/* Removes specified unit from the item. Returns released space */
 	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
 	
-	/* Write method for filebody items */
-	int32_t (*write) (item_entity_t *, void *, uint32_t,
-			  uint32_t);
-
 	/* Checks the item structure. */
 	errno_t (*check) (item_entity_t *, uint8_t);
 	
@@ -1310,8 +1306,8 @@ struct tree_ops {
 #endif
 	
 	/*
-	  Makes lookup in the tree in order to know where say stat data
-	  item of a file really lies. It is used in all object plugins.
+	  Makes lookup in the tree in order to know where say stat data item of
+	  a file really lies. It is used in all object plugins.
 	*/
 	lookup_t (*lookup) (void *, key_entity_t *, uint8_t,
 			    place_t *);
@@ -1321,14 +1317,14 @@ struct tree_ops {
 
 #ifndef ENABLE_STAND_ALONE
 	/* 
-	   Inserts item/unit in the tree by calling reiser4_tree_insert
-	   function, used by all object plugins (dir, file, etc)
+	  Inserts item/unit in the tree by calling reiser4_tree_insert function,
+	  used by all object plugins (dir, file, etc)
 	*/
 	errno_t (*insert) (void *, place_t *, uint8_t, create_hint_t *);
     
 	/*
-	  Removes item/unit from the tree. It is used in all object
-	  plugins for modification purposes.
+	  Removes item/unit from the tree. It is used in all object plugins for
+	  modification purposes.
 	*/
 	errno_t (*remove) (void *, place_t *, uint32_t);
 

@@ -20,7 +20,17 @@ static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t reg40_plugin;
 
 static uint64_t reg40_size(object_entity_t *entity) {
-	return obj40_get_size(&((reg40_t *)entity)->obj);
+	reg40_t *reg = (reg40_t *)entity;
+
+	aal_assert("umka-2278", entity != NULL);
+	
+#ifndef ENABLE_STAND_ALONE
+	/* Updating stat data place */
+	if (obj40_stat(&reg->obj))
+		return 0;
+#endif
+
+	return obj40_get_size(&reg->obj);
 }
 
 /* Updates body place in correspond to file offset */
@@ -251,12 +261,22 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 static errno_t reg40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
+	/* Not implemented yet */
 	return -EINVAL;
 }
 
 static errno_t reg40_link(object_entity_t *entity) {
+	reg40_t *reg;
+	
 	aal_assert("umka-1912", entity != NULL);
-	return obj40_link(&((reg40_t *)entity)->obj, 1);
+
+	reg = (reg40_t *)entity;
+	
+	/* Updating stat data place */
+	if (obj40_stat(&reg->obj))
+		return -EINVAL;
+	
+	return obj40_link(&reg->obj, 1);
 }
 
 static errno_t reg40_unlink(object_entity_t *entity) {
@@ -298,21 +318,89 @@ static errno_t reg40_unlink(object_entity_t *entity) {
   to be writen. This function will be using tail policy plugin for find out what
   next item should be writen.
 */
-static reiser4_plugin_t *reg40_policy(reg40_t *reg,
-				      uint32_t size)
+static reiser4_plugin_t *reg40_iplugin(reg40_t *reg,
+				       uint32_t size)
 {
 	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
 				       ITEM_TAIL40_ID);
+}
+
+static uint32_t reg40_chunk(reg40_t *reg) {
+	return core->tree_ops.maxspace(reg->obj.tree);
 }
 
 /* Writes "n" bytes from "buff" to passed file. */
 static int32_t reg40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
-	while (n > 0) {
+	errno_t res;
+	reg40_t *reg;
+	
+	uint64_t size;
+	uint32_t atime;
+
+	uint32_t written;
+	uint32_t maxspace;
+
+	create_hint_t hint;
+	item_entity_t *item;
+	reiser4_plugin_t *plugin;
+	sdext_unix_hint_t unix_hint;
+
+	reg = (reg40_t *)entity;
+
+	maxspace = reg40_chunk(reg);
+	plugin = reg40_iplugin(reg, 0);
+	
+	for (written = 0; written < n; ) {
+		errno_t res;
+		
+		if ((hint.len = n - written) > maxspace)
+			hint.len = maxspace;
+		
+		hint.count = hint.len;
+		
+		hint.plugin = plugin;
+		hint.flags = HF_FORMATD;
+		hint.type_specific = buff;
+
+		plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops,
+			    build_generic, &hint.key, KEY_FILEBODY_TYPE,
+			    obj40_locality(&reg->obj), obj40_objectid(&reg->obj),
+			    reg->offset);
+	
+		if ((res = obj40_insert(&reg->obj, &hint, LEAF_LEVEL, &reg->body)))
+			return res;
+
+		written += hint.len;
+		reg->offset += hint.len;
 	}
 	
-	return 0;
+	/* Updating stat data place */
+	if ((res = obj40_stat(&reg->obj)))
+		return res;
+	
+	/* Updating stat data fields */
+	size = obj40_get_size(&reg->obj);
+
+	if ((res = obj40_set_size(&reg->obj, size + written)))
+		return res;
+
+	item = &reg->obj.statdata.item;
+	
+	if ((res = obj40_read_unix(item, &unix_hint)))
+		return res;
+	
+	atime = time(NULL);
+	
+	unix_hint.atime = atime;
+	unix_hint.mtime = atime;
+	unix_hint.bytes += written;
+
+	if ((res = obj40_write_unix(item, &unix_hint)))
+		return res;
+	
+	return written;
 }
 
 struct layout_hint {

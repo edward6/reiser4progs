@@ -21,7 +21,17 @@ extern reiser4_plugin_t dir40_plugin;
 
 /* Gets size from the object stat data */
 static uint64_t dir40_size(object_entity_t *entity) {
-	return obj40_get_size(&((dir40_t *)entity)->obj);
+	dir40_t *dir = (dir40_t *)entity;
+
+	aal_assert("umka-2277", entity != NULL);
+	
+#ifndef ENABLE_STAND_ALONE
+	/* Updating stat data place */
+	if (obj40_stat(&dir->obj))
+		return 0;
+#endif
+
+	return obj40_get_size(&dir->obj);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -629,8 +639,17 @@ static errno_t dir40_truncate(object_entity_t *entity,
 }
 
 static errno_t dir40_link(object_entity_t *entity) {
+	dir40_t *dir;
+	
 	aal_assert("umka-1908", entity != NULL);
-	return obj40_link(&((dir40_t *)entity)->obj, 1);
+
+	dir = (dir40_t *)entity;
+	
+	/* Updating stat data place */
+	if (obj40_stat(&dir->obj))
+		return -EINVAL;
+	
+	return obj40_link(&dir->obj, 1);
 }
 
 static errno_t dir40_unlink(object_entity_t *entity) {
@@ -776,6 +795,10 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place)))
 		return res;
 
+	/* Updating stat data place */
+	if ((res = obj40_stat(&dir->obj)))
+		return res;
+	
 	/* Updating stat data fields */
 	size = obj40_get_size(&dir->obj);
 

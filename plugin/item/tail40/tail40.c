@@ -41,7 +41,6 @@ static int32_t tail40_read(item_entity_t *item, void *buff,
 #endif
 
 	aal_memcpy(buff, item->body + pos, count);
-	
 	return count;
 }
 
@@ -51,16 +50,17 @@ static int tail40_data(void) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Rewrites tail from passed @pos by data specifed by hint */
-static int32_t tail40_write(item_entity_t *item, void *buff,
-			    uint32_t pos, uint32_t count)
+static errno_t tail40_insert(item_entity_t *item,
+			     create_hint_t *hint,
+			     uint32_t pos)
 {
-	create_hint_t *hint;
+	uint32_t count;
 	
-	aal_assert("umka-1677", buff != NULL);
+	aal_assert("umka-1677", hint != NULL);
 	aal_assert("umka-1678", item != NULL);
 	aal_assert("umka-1679", pos < item->len);
 
-	hint = (create_hint_t *)buff;
+	count = hint->len;
 	
 	if (count > item->len - pos)
 		count = item->len - pos;
@@ -75,7 +75,7 @@ static int32_t tail40_write(item_entity_t *item, void *buff,
 			return -EINVAL;
 	}
 
-	return count;
+	return 0;
 }
 
 /* Removes the part of tail body */
@@ -180,7 +180,6 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 	uint32_t space;
 	
 	aal_assert("umka-1664", src_item != NULL);
-	aal_assert("umka-1690", dst_item != NULL);
 
 	space = hint->rest;
 		
@@ -204,7 +203,8 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 			/* Moving insert point into neighbour item */
 			if (pos == 0 && hint->control & SF_MOVIP) {
 				hint->result |= SF_MOVIP;
-				pos = dst_item->len + hint->rest;
+				pos = (dst_item ? dst_item->len : 0) +
+					hint->rest;
 			}
 		}
 	} else {
@@ -250,7 +250,9 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 		}
 	}
 
-	hint->pos.unit = pos;
+	hint->units = hint->rest;
+	hint->pos.unit = (pos == 0 ? ~0ul : pos);
+	
 	return 0;
 }
 
@@ -352,19 +354,19 @@ static reiser4_item_ops_t tail40_ops = {
 	.rep	          = tail40_rep,
 	.expand	          = tail40_expand,
 	.shrink           = tail40_shrink,
-	.write	          = tail40_write,
+	.insert	          = tail40_insert,
 	.remove	          = tail40_remove,
 	.print	          = tail40_print,
 	.shift	          = tail40_shift,
 	.maxreal_key      = tail40_maxreal_key,
+	
 	.estimate_copy    = tail40_estimate_copy,
 	.estimate_shift   = tail40_estimate_shift,
-
 	.estimate_insert  = NULL,
+	
 	.overhead         = NULL,
 	.check	          = NULL,
 	.init	          = NULL,
-	.insert           = NULL,
 	.branch           = NULL,
 	.layout	          = NULL,
 	.set_key          = NULL,

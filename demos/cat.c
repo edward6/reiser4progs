@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 
 	if (!(fs->tree = reiser4_tree_init(fs, misc_mpressure_detect)))
 		goto error_free_fs;
-    
+
 	if (!(reg = reiser4_object_open(fs, argv[2], TRUE)))
 		goto error_free_tree;
 
@@ -91,9 +91,7 @@ int main(int argc, char *argv[]) {
 	reiser4_object_close(reg);
 
 	reiser4_tree_fini(fs->tree);
-	reiser4_fs_sync(fs);
 	reiser4_fs_close(fs);
-    
 	libreiser4_fini();
 	aal_device_close(device);
     

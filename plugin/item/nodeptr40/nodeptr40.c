@@ -147,7 +147,6 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.rep		  = NULL,
 	.expand		  = NULL,
 	.shrink           = NULL,
-	.write            = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
 	.overhead         = NULL,

@@ -1251,11 +1251,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 			return 0;
 	}
 
-	aal_memset(&src_item, 0, sizeof(src_item));
-	aal_memset(&dst_item, 0, sizeof(dst_item));
-	
 	/*
-	  Initializing items to be examaned by the predict method of
+	  Initializing items to be examined by the estimate_shift() method of
 	  corresponding item plugin.
 	*/
 	POS_INIT(&pos, (hint->control & SF_LEFT ? 0 :

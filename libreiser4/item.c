@@ -35,7 +35,6 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /*
   Estimating insert operation. Below is the possible cases.
 
@@ -73,20 +72,18 @@ errno_t reiser4_item_estimate(
 
 	aal_assert("umka-2230", hint->plugin != NULL);
 
-	/* Check if we're going to insert an unit or an item instead */
-	if (place->pos.unit != ~0ul) {
-		/*
-		  Unit component is set, so, we assume this is an attempt insert
-		  new unit and item_entity should be passed to item's estimate
-		  method carefully. Method place_realise() will take care about
-		  @place->item.
-		*/
-		if ((res = reiser4_place_realize(place)))
-			return res;
+	/*
+	  Method estimate_insert() may be not implemented as it is not needed in
+	  some cases like tail item case.
+	*/
+	if (!hint->plugin->o.item_ops->estimate_insert) {
+		aal_assert("umka-2276", hint->len != 0);
+		return 0;
+	} else {
+		return plugin_call(hint->plugin->o.item_ops,
+				   estimate_insert, &place->item,
+				   place->pos.unit, hint->count, hint);
 	}
-
-	return plugin_call(hint->plugin->o.item_ops, estimate_insert,
-			   &place->item, place->pos.unit, hint->count, hint);
 }
 
 /* Prints passed @place into passed @buff */

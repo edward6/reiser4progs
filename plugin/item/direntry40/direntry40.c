@@ -1027,9 +1027,7 @@ static reiser4_item_ops_t direntry40_ops = {
 	.estimate_shift    = direntry40_estimate_shift,
 	.estimate_insert   = direntry40_estimate_insert,
 		
-	.write		   = NULL,
 	.set_key	   = NULL,
-	
 	.layout		   = NULL,
 	.layout_check	   = NULL,
 #endif
