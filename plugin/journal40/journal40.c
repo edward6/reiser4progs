@@ -231,9 +231,71 @@ static void journal40_close(reiser4_entity_t *entity) {
     aal_free(journal);
 }
 
-static errno_t journal40_replay(reiser4_entity_t *entity) {
+/* 
+    Replays oldest transaction. Returns 1 if replayed, 0 if there are no not 
+    flushed transactions and -1 in the case of error.
+*/
+static int format40_replay_oldest(journal40_t *journal) {
+    uint64_t prev_tx;
+    uint64_t last_flushed_tx;
+    uint64_t last_commited_tx;
+
+    uint32_t total;
+    uint64_t log_record_blk;
+    
+    aal_block_t *block;
+    journal40_tx_header_t *tx_header;
+    
+    last_commited_tx = get_jh_last_commited((journal40_header_t *)journal->header);
+    last_flushed_tx = get_jf_last_flushed((journal40_footer_t *)journal->footer);
+    
+    /* Check if all transactions are replayed */
+    if (last_commited_tx == last_flushed_tx)
+	return 0;
+
+    prev_tx = last_commited_tx;
+    
+    /* Searching for oldest not flushed transaction */
+    while (1) {
+
+	if (!(block = aal_block_open(journal->device, prev_tx)))
+	    return -1;
+	
+	tx_header = (journal40_tx_header_t *)block->data;
+	prev_tx = get_th_prev_tx(tx_header);
+
+	if (prev_tx == last_flushed_tx)
+	    break;
+
+	aal_block_free(block);
+    }
+    
+    total = get_th_total(tx_header);
+    log_record_blk = get_th_next_block(tx_header);
+
+/*    if (journal40_replay_transaction(tx_header))
+	goto error_free_block;*/
+
+    aal_block_free(block);
+    return 1;
+    
+error_free_block:
+    aal_block_free(block);
+    return -1;
+}
+
+static int journal40_replay(reiser4_entity_t *entity) {
+    int ret, nr_tran = 0;
+    
     aal_assert("umka-412", entity != NULL, return -1);
-    return 0;
+
+    while ((ret = format40_replay_oldest((journal40_t *)entity)) == 1)
+	nr_tran++;
+    
+    if (ret < 0)
+	aal_exception_error("Can't replay all transactions.");
+    
+    return nr_tran;
 }
 
 static reiser4_plugin_t journal40_plugin = {

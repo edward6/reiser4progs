@@ -892,8 +892,8 @@ struct reiser4_journal_ops {
     /* Synchronizes journal */
     errno_t (*sync) (reiser4_entity_t *);
 
-    /* Replays journal */
-    errno_t (*replay) (reiser4_entity_t *);
+    /* Replays journal. Returns the number of replayed transactions. */
+    int (*replay) (reiser4_entity_t *);
 };
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;
