@@ -313,7 +313,7 @@ diff -upNr --exclude=Makefile.in --exclude='*.info' --exclude='*.m4' --exclude='
 @@ -0,0 +1,260 @@
 +/* 
 + *  fsys_reiser4.c -- reiser4 filesystem support.
-+ *  Copyright (C) 2001, 2002, 2003 Hans Reiser.
++ *  Copyright (C) 2000, 2001   Free Software Foundation, Inc.
 + *  
 + *  GRUB  --  GRand Unified Bootloader
 + *

@@ -19,7 +19,7 @@ LIBREISER4_MICRO_VERSION=2
 
 LIBREISER4_INTERFACE_AGE=0
 LIBREISER4_BINARY_AGE=0
-LIBREISER4_VERSION=$LIBREISER4_MAJOR_VERSION.$LIBREISER4_MINOR_VERSION.$LIBREISER4_MICRO_VERSION-pre1
+LIBREISER4_VERSION=$LIBREISER4_MAJOR_VERSION.$LIBREISER4_MINOR_VERSION.$LIBREISER4_MICRO_VERSION
 
 LT_RELEASE=$LIBREISER4_MAJOR_VERSION.$LIBREISER4_MINOR_VERSION
 
@@ -675,7 +675,6 @@ AC_OUTPUT([
     	plugin/sdext/sdext_symlink/Makefile
     	plugin/sdext/sdext_flags/Makefile
 	plugin/sdext/sdext_plug/Makefile
-    	demos/Makefile
     	progs/Makefile
     	progs/mkfs/Makefile
     	progs/fsck/Makefile
@@ -683,7 +682,7 @@ AC_OUTPUT([
     	progs/measurefs/Makefile
     	progs/resizefs/Makefile
     	progs/cpfs/Makefile
-    	debug/Makefile
+    	demos/Makefile
     	doc/Makefile
     	reiser4progs.spec
 ])
