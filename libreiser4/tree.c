@@ -1039,8 +1039,6 @@ errno_t reiser4_tree_growup(
 /* Decreases tree height by one level */
 errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	errno_t res;
-	uint32_t height;
-	
 	reiser4_node_t *root;
 	reiser4_node_t *child;
 	reiser4_place_t place;
@@ -1051,8 +1049,6 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	if (reiser4_tree_fresh(tree))
 		return -EINVAL;
 	
-	height = reiser4_tree_height(tree);
-
 	if (reiser4_tree_minimal(tree))
 		return -EINVAL;
 

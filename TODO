@@ -10,7 +10,8 @@ reiser4progs/COPYING.
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
 
-* implement reiser4_tree_write function needed for fsck.
+* implement reiser4_tree_copy() and reiser4_tree_overwrite() functions, 
+  that needed for fsck.
 
 * should we use sdext_entity_t in sdext plugin interface?
 

@@ -26,7 +26,6 @@ reiser4_master_t *reiser4_master_create(
 	const char *uuid,	    /* uuid to be used */
 	const char *label)	    /* filesystem label to be used */
 {
-	blk_t offset;
 	reiser4_master_t *master;
     
 	aal_assert("umka-981", device != NULL);
@@ -34,8 +33,6 @@ reiser4_master_t *reiser4_master_create(
 	/* Allocating the memory for master super block struct */
 	if (!(master = aal_calloc(sizeof(*master), 0)))
 		return NULL;
-    
-	offset = MASTER_OFFSET / blocksize;
     
 	/* Setting up magic */
 	aal_strncpy(SUPER(master)->ms_magic, MASTER_MAGIC,

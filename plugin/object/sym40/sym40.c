@@ -90,10 +90,6 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 				     object_hint_t *hint, place_t *place)
 {
-	oid_t objectid;
-	oid_t locality;
-	oid_t parent_locality;
-
 	sym40_t *sym;
     
 	statdata_hint_t stat;
@@ -118,12 +114,6 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	plugin_call(hint->object.plugin->key_ops, assign,
 		    &sym->parent, &hint->parent);
 	
-	locality = obj40_locality(&sym->obj);
-	objectid = obj40_objectid(&sym->obj);
-
-	parent_locality = plugin_call(hint->object.plugin->key_ops, 
-				      get_locality, &hint->parent);
-
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))

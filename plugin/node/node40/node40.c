@@ -390,14 +390,12 @@ static uint32_t node40_size(node40_t *node, pos_t *pos,
 	uint32_t items;
 	
 	item40_header_t *cur;
-	item40_header_t *end;
 
 	items = nh40_get_num_items(node);
 
 	is_range = (pos->item + count <= items);
 	aal_assert("umka-1811", is_range);
 	
-	end = node40_ih_at(node, items - 1);
 	cur = node40_ih_at(node, pos->item);
 
 	if (pos->item + count < items)

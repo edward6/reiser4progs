@@ -200,9 +200,6 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 {
 	reg40_t *reg;
 	
-	oid_t parent_locality;
-	oid_t objectid, locality;
-
 	statdata_hint_t stat;
     	create_hint_t stat_hint;
     
@@ -224,12 +221,6 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	if (obj40_init(&reg->obj, &reg40_plugin, &hint->object, core, tree))
 		goto error_free_reg;
 	
-	locality = obj40_locality(&reg->obj);
-    	objectid = obj40_objectid(&reg->obj);
-
-	parent_locality = plugin_call(hint->object.plugin->key_ops, 
-				      get_locality, &hint->parent);
-
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))

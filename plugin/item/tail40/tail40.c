@@ -280,7 +280,7 @@ static int tail40_mergeable(item_entity_t *item1,
 	objectid2 = plugin_call(plugin->key_ops, get_objectid,
 				&item2->key);
 
-	if (objectid1 != objectid1)
+	if (objectid1 != objectid2)
 		return 0;
 
 	offset1 = plugin_call(plugin->key_ops, get_offset,

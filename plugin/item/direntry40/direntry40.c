@@ -201,8 +201,6 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 		count = direntry40_units(item) - pos;
 
 	for (i = pos; i < pos + count; i++, hint++) {
-		entry40_t *entry = &direntry->entry[i];
-
 		direntry40_get_obj(item, i, &hint->object);
 		direntry40_get_key(item, i, &hint->offset);
 		direntry40_get_name(item, i, hint->name);

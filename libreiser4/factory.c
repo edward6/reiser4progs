@@ -20,6 +20,14 @@
 
 /* This list contain all known libreiser4 plugins */
 aal_list_t *plugins;
+
+/* The array of entry points of the all builtin plugins */
+unsigned long builtin[100];
+
+/*
+  The struct which contains libreiser4 functions, they may be used by all plugin
+  (tree_insert(), tree_remove(), etc).
+*/
 extern reiser4_core_t core;
 
 /* Helper structure used in searching of plugins */
@@ -41,7 +49,9 @@ static int callback_match_id(
 }
 
 /* Helper callback for matching plugin by its name */
-static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
+static int callback_match_name(reiser4_plugin_t *plugin,
+			       walk_desc_t *desc)
+{
 	return aal_strncmp(plugin->h.label, desc->name,
 			   aal_strlen(desc->name));
 }
@@ -87,7 +97,6 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 
 	return 0;
 }
-
 #endif
 
 /* Initializes plugin (that is calls its init method) by its handle */
