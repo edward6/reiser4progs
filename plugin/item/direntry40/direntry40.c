@@ -39,18 +39,21 @@ static inline uint32_t direntry40_unitlen(direntry40_t *direntry,
 }
 
 /* Builds full key by entry components */
-static errno_t direntry40_unitkey(item_entity_t *item,
-				  entry40_t *entry,
-				  reiser4_key_t *key)
+static errno_t direntry40_unit_key(item_entity_t *item,
+				   uint16_t unit_pos,
+				   reiser4_key_t *key)
 {
 	uint64_t offset;
 	roid_t locality;
 	roid_t objectid;
+	entry40_t *entry;
 
-	aal_assert("umka-1605", entry != NULL, return -1);
 	aal_assert("umka-1606", key != NULL, return -1);
 	aal_assert("umka-1607", item != NULL, return -1);
+	aal_assert("umka-1605", item->body != NULL, return -1);
 	
+	entry = direntry40_entry(direntry40_body(item), 0);
+
 	locality = plugin_call(return -1, item->key.plugin->key_ops,
 			       get_locality, item->key.body);
 
@@ -382,9 +385,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		}
 		
 		/* Updating items key */
-		entry = direntry40_entry(src_direntry, 0);
-
-		if (direntry40_unitkey(src_item, entry, &src_item->key))
+		if (direntry40_unit_key(src_item, 0, &src_item->key))
 			return -1;
 	} else {
 
@@ -471,9 +472,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		}
 		
 		/* Updating items key */
-		entry = direntry40_entry(dst_direntry, 0);
-
-		if (direntry40_unitkey(dst_item, entry, &dst_item->key))
+		if (direntry40_unit_key(dst_item, 0, &dst_item->key))
 			return -1;
 	}
 
@@ -588,10 +587,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	de40_inc_count(direntry, dh->count);
 
 	if (pos == 0) {
-		/* Updating item's key */
-		entry = direntry40_entry(direntry, 0);
-
-		if (direntry40_unitkey(item, entry, &item->key))
+		if (direntry40_unit_key(item, 0, &item->key))
 			return -1;
 	}
     
@@ -665,9 +661,7 @@ static uint16_t direntry40_remove(item_entity_t *item,
 	de40_dec_count(direntry, 1);
 
 	if (pos == 0) {
-		entry40_t *entry = direntry40_entry(direntry, 0);
-
-		if (direntry40_unitkey(item, entry, &item->key))
+		if (direntry40_unit_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -747,23 +741,11 @@ static errno_t direntry40_max_poss_key(item_entity_t *item,
 }
 
 /* 
-   Helper function that is used by lookup method for getting n-th element of 
-   direntry.
-*/
-static inline void *callback_get_entry(void *array,
-				       uint32_t pos,
-				       void *data) 
-{
-	direntry40_t *direntry = (direntry40_t *)array;
-	return &direntry->entry[pos];
-}
-
-/* 
    Helper function that is used by lookup method for comparing given key with
    passed dirid.
 */
-static inline int callback_comp_entry(void *entry,
-	void *key, void *data)
+static inline int callback_comp_entry(void *array, uint32_t pos, void *key, 
+	void *data)
 {
 	item_entity_t *item;
 	reiser4_key_t *lookkey;
@@ -772,7 +754,7 @@ static inline int callback_comp_entry(void *entry,
 	item = (item_entity_t *)data;
 	lookkey = (reiser4_key_t *)key;
 	
-	if (direntry40_unitkey(item, (entry40_t *)entry, &entrykey))
+	if (direntry40_unit_key(item, pos, &entrykey))
 		return -1;
     
 	return plugin_call(return -1, item->key.plugin->key_ops, compare,
@@ -825,8 +807,8 @@ static int direntry40_lookup(item_entity_t *item,
 		return 0;
 	}
     
-	lookup = aux_binsearch((void *)direntry, units, key, callback_get_entry,
-			       callback_comp_entry, (void *)item, &unit);
+	lookup = aux_binsearch((void *)direntry, units, key, 
+		callback_comp_entry, (void *)item, &unit);
 
 	if (lookup != -1) {
 		*pos = (uint32_t)unit;
@@ -878,7 +860,8 @@ static reiser4_plugin_t direntry40_plugin = {
 		.fetch          = direntry40_fetch,
 		
 		.max_poss_key	= direntry40_max_poss_key,
-		.max_real_key   = NULL
+		.max_real_key   = NULL,
+		.unit_key	= direntry40_unit_key
 	}
 };
 
