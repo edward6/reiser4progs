@@ -16,6 +16,7 @@ void gauge_tree(aal_gauge_t *gauge) {
     gauge_hint_t *hint;
     aal_list_t *elem;
     uint32_t count;
+    time_t t;
 
     aal_assert("vpf-873", gauge != NULL);
     aal_assert("vpf-874", gauge->data != NULL);
@@ -25,15 +26,30 @@ void gauge_tree(aal_gauge_t *gauge) {
     
     hint = gauge->data;
 
-    progs_wipe_line(stderr);
     switch (gauge->state) {
 	case GAUGE_STARTED:
 	case GAUGE_RUNNING:
 	    current_gauge = gauge;
 
+	    time(&t);
+	    
+	    if (gauge->state == GAUGE_STARTED) {
+		if (hint->start_time == 0)
+		    hint->start_time = hint->displayed_time = t;
+	    } else {
+		/* Update the gauge not more ofter then once per second or if 
+		 * another percent passed. */
+		
+		if ((t - hint->displayed_time) < 1)
+		    return;	    
+		
+		hint->displayed_time = t;
+	    }
+
+	    progs_wipe_line(stderr);
 	    if (aal_strlen(gauge->name) != 0)
 		fprintf(stderr, "%s ", gauge->name);
-
+	    
 	    fprintf(stderr, "Item (unit) of total items: ");
 	    for(elem = hint->u.tree_hint.tree; elem; 
 		elem = aal_list_next(elem)) 
@@ -45,7 +61,9 @@ void gauge_tree(aal_gauge_t *gauge) {
 	    }
 	    break;
 	case GAUGE_DONE:
+	    current_gauge = NULL;
 	case GAUGE_PAUSED:
+	    progs_wipe_line(stderr);
 	    break;
     }
     
@@ -88,20 +106,19 @@ void gauge_rate(aal_gauge_t *gauge) {
 	    }
 
 	    progs_wipe_line(stderr);
-	    fprintf(stderr, "%s %llu of %llu, speed %llu/sec", gauge->name, 
-		rate->done, rate->total, hint->u.rate_hint.speed);
+	    if (aal_strlen(gauge->name))
+		fprintf(stderr, "%s ", gauge->name);
+
+	    fprintf(stderr, "%llu of %llu, speed %llu/sec", rate->done, 
+		rate->total, hint->u.rate_hint.speed);
 	    
 	    break;
+
+	case GAUGE_DONE:
+	    current_gauge = NULL;
 	case GAUGE_PAUSED:
 	    progs_wipe_line(stderr);
 	    break;
-	case GAUGE_DONE:
-	    current_gauge = NULL;
-	    
-	    progs_wipe_line(stderr);
-	    break;
-	default:
-	    return;
     }
     
     fflush(stderr);
@@ -126,7 +143,7 @@ static errno_t progress_start(repair_progress_t *progress) {
 		 progress->type;
 	
 	gauge = aal_gauge_create(gauge_type, NULL);
-	aal_gauge_rename(gauge, progress->header);
+	aal_gauge_rename(gauge, progress->text);
 	
 	if (!gauge) return -ENOMEM;
 
@@ -269,7 +286,6 @@ errno_t gauge_handler(repair_progress_t *progress) {
 	case PROGRESS_START:
 	    if ((res = progress_start(progress)))
 		return res;
-
 	    break;
 	case PROGRESS_END:
 	    progress_end(progress);
@@ -277,8 +293,9 @@ errno_t gauge_handler(repair_progress_t *progress) {
 	case PROGRESS_UPDATE:
 	    progress_update(progress);
 	    break;
-	default:
-	    return -EINVAL;
+	case PROGRESS_STAT:
+	    fprintf(stderr, "%s\n", progress->text);
+	    break;
     }
 
     return 0;
