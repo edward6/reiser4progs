@@ -237,7 +237,9 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 
 	item = &place->item;
 	aal_assert("umka-1456", item->plugin != NULL);
-		
+	
+	aal_memcpy(key, &item->key, sizeof(*key));
+
 	if (item->plugin->o.item_ops->maxposs_key)
 		return item->plugin->o.item_ops->maxposs_key(item, key);
 
@@ -276,6 +278,8 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
     
 	item = &place->item;
 	aal_assert("umka-1457", item->plugin != NULL);
+
+	aal_memcpy(key, &item->key, sizeof(*key));
 
 	if (item->plugin->o.item_ops->maxreal_key) 
 		return item->plugin->o.item_ops->maxreal_key(item, key);	

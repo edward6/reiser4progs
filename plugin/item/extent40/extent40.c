@@ -422,7 +422,7 @@ static errno_t extent40_predict(item_entity_t *src_item,
 	uint32_t space;
 	
 	aal_assert("umka-1704", src_item != NULL);
-	aal_assert("umka-1705", dst_item != NULL);
+	aal_assert("umka-1705", hint != NULL);
 
 	space = hint->rest;
 		
@@ -435,8 +435,13 @@ static errno_t extent40_predict(item_entity_t *src_item,
 		
 		if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
 			hint->result |= SF_MOVIP;
-			hint->pos.unit = (dst_item->len + hint->rest) /
-				sizeof(extent40_t);
+
+			if (dst_item) {
+				hint->pos.unit = (dst_item->len + hint->rest) /
+					sizeof(extent40_t);
+			} else {
+				hint->pos.unit = hint->rest / sizeof(extent40_t);
+			}
 		}
 	} else {
 		uint32_t right;
@@ -449,10 +454,9 @@ static errno_t extent40_predict(item_entity_t *src_item,
 			if (hint->rest > right)
 				hint->rest = right;
 
-			hint->pos.unit += hint->rest / sizeof(extent40_t);
-			
 			if (hint->control & SF_MOVIP &&
-			    hint->pos.unit == (src_item->len / sizeof(extent40_t)))
+			    hint->pos.unit == ((src_item->len - hint->rest) / 
+					       sizeof(extent40_t)))
 			{
 				hint->pos.unit = 0;
 				hint->result |= SF_MOVIP;
@@ -468,6 +472,8 @@ static errno_t extent40_predict(item_entity_t *src_item,
 		}
 	}
 
+	hint->units = hint->rest / sizeof(extent40_t);
+	
 	return 0;
 }
 

@@ -798,7 +798,7 @@ lookup_t reiser4_tree_lookup(
 		
 		units = reiser4_item_units(place);
 		
-		if (moved)
+		if (moved && place->pos.unit == ~0ul)
 			place->pos.unit = units - 1;
 		    
 		/* Checking is item at @place is nodeptr one */
@@ -806,7 +806,7 @@ lookup_t reiser4_tree_lookup(
 			if (moved) {
 				if (place->pos.unit == units - 1) {
 					place->pos.item++;
-					place->pos.unit = 0;
+					place->pos.unit = ~0ul;
 				} else 
 					place->pos.unit++;
 			}
