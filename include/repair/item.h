@@ -1,7 +1,6 @@
 /*
-    repair/item.h -- reiserfs item recovery structures and macros.
-    Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
+    repair/item.h -- common structures and methods for item recovery.
+    Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #ifndef REPAIR_ITEM_H
@@ -13,8 +12,11 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_item_nptr_check(reiser4_item_t *item, repair_check_t *data);
+extern errno_t repair_item_nptr_check(reiser4_node_t *node, 
+    reiser4_item_t *item, repair_check_t *data);
+
+extern errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node, 
+    reiser4_pos_t *pos);
 
 #endif
-
 
