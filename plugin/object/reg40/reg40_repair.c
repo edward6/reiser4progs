@@ -14,7 +14,7 @@ extern errno_t reg40_seek(object_entity_t *entity, uint64_t offset);
 
 extern errno_t reg40_reset(object_entity_t *entity);
 extern uint64_t reg40_offset(object_entity_t *entity);
-extern lookup_res_t reg40_update(object_entity_t *entity);
+extern lookup_t reg40_update(object_entity_t *entity);
 
 extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
@@ -160,7 +160,7 @@ static reiser4_plug_t *reg40_bodyplug(reg40_t *reg) {
 	plug_call(key.plug->o.key_ops, set_offset, &key, MAX_UINT64);
 	
 	if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-			  FIND_EXACT, &place)) == FAILED)
+			  FIND_EXACT, &place)) < 0)
 	{
 		return NULL;
 	}

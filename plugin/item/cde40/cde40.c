@@ -897,8 +897,8 @@ extern errno_t cde40_estimate_merge(place_t *dst, place_t *src,
 extern errno_t cde40_check_struct(place_t *place, uint8_t mode);
 #endif
 
-/* Returns maximal possible key in cde item. It is needed for lookuping needed
-   entry by entry key. */
+/* Returns maximal possible key in the item. It is needed durring lookup and in
+   other cases. */
 errno_t cde40_maxposs_key(place_t *place, 
 			  key_entity_t *key) 
 {
@@ -942,8 +942,8 @@ static int callback_comp_entry(void *array, uint32_t pos,
 }
 
 /* Performs lookup inside cde. Found pos is stored in @pos */
-lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
-			  lookup_mod_t mode)
+lookup_t cde40_lookup(place_t *place, key_entity_t *key,
+		      bias_t bias)
 {
 	int32_t i;
 
@@ -953,8 +953,9 @@ lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
     
 	/* Bin search within the cde item to get the position of 
 	   the wanted key. */
-	switch (aux_bin_search(place->body, cde40_units(place), key, 
-			       callback_comp_entry, place, &place->pos.unit))
+	switch (aux_bin_search(place->body, cde40_units(place),
+			       key, callback_comp_entry, place,
+			       &place->pos.unit))
 	{
 	case 1:
 #ifdef ENABLE_COLLISIONS
@@ -980,9 +981,9 @@ lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
 #endif
 		return PRESENT;
 	case 0:
-		return (mode == FIND_CONV ? PRESENT : ABSENT);
+		return (bias == FIND_CONV ? PRESENT : ABSENT);
 	default:
-		return FAILED;
+		return -EIO;
 	}
 }
 

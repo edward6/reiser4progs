@@ -15,8 +15,8 @@ extern errno_t extent40_maxreal_key(place_t *place,
 extern uint64_t extent40_offset(place_t *place, uint64_t pos);
 extern uint32_t extent40_unit(place_t *place, uint64_t offset);
 
-extern lookup_res_t extent40_lookup(place_t *place, key_entity_t *key, 
-				    uint32_t *pos);
+extern lookup_t extent40_lookup(place_t *place, key_entity_t *key, 
+				bias_t bias);
 
 errno_t extent40_check_layout(place_t *place, region_func_t func, 
 			      void *data, uint8_t mode) 
@@ -186,7 +186,7 @@ errno_t extent40_estimate_merge(place_t *dst, place_t *src,
 	extent40_t *dst_body, *src_body;
 	uint32_t dst_pos, src_pos;
 	key_entity_t key;
-	lookup_res_t lookup;
+	lookup_t lookup;
 	uint64_t b_size;
 	uint32_t pos;
 	errno_t res;
@@ -292,8 +292,12 @@ errno_t extent40_estimate_merge(place_t *dst, place_t *src,
 	plug_call(key.plug->o.key_ops, set_offset, &key, src_max - 1);    
 	plug_call(hint->end.plug->o.key_ops, set_offset, &hint->end, src_max);
 	
-	lookup = extent40_lookup(dst, &key, &pos);
+	if ((lookup = extent40_lookup(dst, &key, FIND_EXACT)) < 0)
+		return lookup;
+
 	aal_assert("vpf-1001", lookup == PRESENT);
+
+	pos = dst->pos.unit;
 	
 	hint->dst_count = pos - dst_pos + 1;
 	hint->src_count = extent40_unit(src, src_max - 1 - src_min) - src_pos + 1;

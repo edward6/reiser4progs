@@ -119,14 +119,15 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_key_t *key)
 {
 	reiser4_place_t place;
-	lookup_res_t lookup;
-	
+
 	aal_assert("vpf-1132", tree != NULL);
 	aal_assert("vpf-1134", key != NULL);
 	
-	if ((lookup = reiser4_tree_lookup(tree, key, LEAF_LEVEL, 
-					  FIND_EXACT, &place)) == FAILED)
+	if (reiser4_tree_lookup(tree, key, LEAF_LEVEL, 
+				FIND_EXACT, &place) < 0)
+	{
 		return INVAL_PTR;
+	}
 	
 	/* Even if place is found, pass it through object recognize 
 	   method to check all possible corruptions. */

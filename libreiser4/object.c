@@ -654,15 +654,15 @@ errno_t reiser4_object_metadata(
 }
 
 /* Makes lookup inside the @object */
-lookup_res_t reiser4_object_lookup(reiser4_object_t *object,
-				   const char *name,
-				   entry_hint_t *entry)
+lookup_t reiser4_object_lookup(reiser4_object_t *object,
+			       const char *name,
+			       entry_hint_t *entry)
 {
 	aal_assert("umka-1919", object != NULL);
 	aal_assert("umka-1920", name != NULL);
 
 	if (!object->entity->plug->o.object_ops->lookup)
-		return FAILED;
+		return -EINVAL;
 	
 	return plug_call(object->entity->plug->o.object_ops,
 			 lookup, object->entity, (char *)name,

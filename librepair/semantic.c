@@ -634,17 +634,17 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 	aal_assert("vpf-1194", sem->root != NULL);
 	
 	/* Look for the entry "lost+found" in the "/". */
-	switch (reiser4_object_lookup(sem->root, "lost+found", &entry)) {
-	case ABSENT:
-		return 0;
-	case FAILED:
-		return -EINVAL;
-	default:
-		break;
+	if ((res = reiser4_object_lookup(sem->root, "lost+found",
+					 &entry)) < 0)
+	{
+		return res;
 	}
 
-	/* The entry was found, take the key of "lost+found" and try to 
-	   open the object. */
+	if (res == ABSENT)
+		return 0;
+
+	/* The entry was found, take the key of "lost+found" and try to open the
+	   object. */
 	sem->lost = repair_semantic_dir_open(sem, sem->root, &entry.object);
 	
 	if (sem->lost == INVAL_PTR) {

@@ -147,8 +147,8 @@ static errno_t tail40_maxposs_key(place_t *place,
 	return body40_maxposs_key(place, key);
 }
 
-static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key, 
-				  lookup_mod_t mode)
+static lookup_t tail40_lookup(place_t *place, key_entity_t *key, 
+			      bias_t bias)
 {
 	uint32_t units;
 	uint64_t offset;
@@ -173,7 +173,7 @@ static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key,
 	}
 
 	place->pos.unit = units;
-	return (mode == FIND_CONV ? PRESENT : ABSENT);
+	return (bias == FIND_CONV ? PRESENT : ABSENT);
 }
 
 #ifndef ENABLE_STAND_ALONE

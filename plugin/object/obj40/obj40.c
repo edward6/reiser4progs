@@ -75,6 +75,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 			  uint64_t size, uint64_t bytes, uint32_t nlink,
 			  uint16_t mode, char *path)
 {
+	lookup_t res;
 	trans_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_ext;
@@ -124,13 +125,13 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	switch (obj40_lookup(obj, &hint.offset, LEAF_LEVEL,
-			     FIND_CONV, STAT_PLACE(obj)))
+	switch ((res = obj40_lookup(obj, &hint.offset, LEAF_LEVEL,
+				    FIND_CONV, STAT_PLACE(obj))))
 	{
 	case ABSENT:
 		break;
 	default:
-		return -EINVAL;
+		return res;
 	}
 	
 	/* Insert stat data to tree */
@@ -458,29 +459,31 @@ errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
    calling tree_lookup() for its key. This is needed, because items may move to
    somewhere after each balancing. */
 errno_t obj40_update(obj40_t *obj) {
+	lookup_t res;
+	
 	aal_assert("umka-1905", obj != NULL);
 		
 	/* Looking for stat data place by */
-	switch (obj40_lookup(obj, &STAT_PLACE(obj)->key,
-			     LEAF_LEVEL, FIND_EXACT,
-			     STAT_PLACE(obj)))
+	switch ((res = obj40_lookup(obj, &STAT_PLACE(obj)->key,
+				    LEAF_LEVEL, FIND_EXACT,
+				    STAT_PLACE(obj))))
 	{
 	case PRESENT:
 		return 0;
 	default:
-		return -EINVAL;
+		return res;
 	}
 }
 
 /* Performs lookup and returns result to caller */
-lookup_res_t obj40_lookup(obj40_t *obj, key_entity_t *key,
-			  uint8_t level, lookup_mod_t mode,
-			  place_t *place)
+lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
+		      uint8_t level, bias_t bias,
+		      place_t *place)
 {
 	aal_assert("umka-1966", obj != NULL);
 	
 	return obj->core->tree_ops.lookup(obj->info.tree, key,
-					  level, mode, place);
+					  level, bias, place);
 }
 
 #ifndef ENABLE_STAND_ALONE

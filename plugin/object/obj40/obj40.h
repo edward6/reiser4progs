@@ -48,9 +48,9 @@ extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type,
 
 extern rid_t obj40_pid(obj40_t *obj, rid_t type, char *name);
 
-extern lookup_res_t obj40_lookup(obj40_t *obj, key_entity_t *key,
-				 uint8_t level, lookup_mod_t mode,
-				 place_t *place);
+extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
+			     uint8_t level, bias_t bias,
+			     place_t *place);
 
 extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 			  reiser4_core_t *core, object_info_t *info);

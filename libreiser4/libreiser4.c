@@ -69,11 +69,11 @@ static errno_t tree_remove(
 #endif
 
 /* Handler for lookup reqiests from the all plugin can arrive */
-static lookup_res_t tree_lookup(
+static lookup_t tree_lookup(
 	void *tree,	            /* opaque pointer to the tree */
 	reiser4_key_t *key,	    /* key to be found */
 	uint8_t level,	            /* stop level */
-	lookup_mod_t mode,          /* position correcting mode */
+	bias_t bias,                /* position correcting mode */
 	place_t *place)             /* result will be stored in */
 {
 	reiser4_place_t *p;
@@ -85,7 +85,7 @@ static lookup_res_t tree_lookup(
 	p = (reiser4_place_t *)place;
 	
 	return reiser4_tree_lookup((reiser4_tree_t *)tree,
-				   key, level, mode, p);
+				   key, level, bias, p);
 }
 
 /* Initializes item at passed @place */

@@ -219,8 +219,8 @@ errno_t extent40_maxposs_key(place_t *place,
 
 /* Performs lookup for specified @key inside the passed @place. Result of lookup
    will be stored in @pos. */
-lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
-			     lookup_mod_t mode)
+lookup_t extent40_lookup(place_t *place, key_entity_t *key,
+			 bias_t bias)
 {
 	uint64_t offset;
 	uint64_t wanted;
@@ -250,7 +250,7 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 	}
 
 	place->pos.unit = units;
-	return (mode == FIND_CONV ? PRESENT : ABSENT);
+	return (bias == FIND_CONV ? PRESENT : ABSENT);
 }
 
 #ifndef ENABLE_STAND_ALONE

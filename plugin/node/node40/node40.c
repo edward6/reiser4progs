@@ -912,8 +912,9 @@ static int callback_comp_key(void *node, uint32_t pos,
 
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
-static lookup_res_t node40_lookup(node_entity_t *entity, key_entity_t *key,
-				  lookup_mod_t mode, pos_t *pos)
+static lookup_t node40_lookup(node_entity_t *entity,
+			      key_entity_t *key,
+			      bias_t bias, pos_t *pos)
 {
 	aal_assert("umka-472", key != NULL);
 	aal_assert("umka-478", pos != NULL);
@@ -929,7 +930,7 @@ static lookup_res_t node40_lookup(node_entity_t *entity, key_entity_t *key,
 	case 0:
 		return ABSENT;
 	default:
-		return FAILED;
+		return -EIO;
 	}
 }
 
@@ -1338,10 +1339,10 @@ static errno_t node40_predict(node_entity_t *src_entity,
 								break;
 						}
 					} else {
-						/* Insert point at the
-						   unexistent item at the end of
-						   node. So we just update hint
-						   and breaking the loop. */
+						/* Insert point stays at the non
+						   existent item. So we should
+						   just update hint and break
+						   the loop. */
 						if (flags & MSF_IPMOVE) {
 							hint->result |= MSF_IPMOVE;
 							hint->pos.item = 0;

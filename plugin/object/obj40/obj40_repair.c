@@ -244,7 +244,7 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 			  uint16_t objmode, uint8_t mode)
 {
 	key_entity_t *key;
-	lookup_res_t lookup;
+	lookup_t lookup;
 	place_t *start;
 	uint64_t pid;
 	errno_t res;
@@ -255,10 +255,13 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	key = &obj->info.object;
 
 	/* Update the place of SD. */
-	switch ((lookup = obj40_lookup(obj, key, LEAF_LEVEL,
-				       FIND_EXACT, start)))
+	if ((lookup = obj40_lookup(obj, key, LEAF_LEVEL,
+				   FIND_EXACT, start)) < 0)
 	{
-	case PRESENT:
+		return lookup;
+	}
+
+	if (lookup == PRESENT) {
 		if ((res = stat_func(start))) {
 			aal_exception_error("Node (%llu), item (%u): StatData "
 					    "is not of the current object. "
@@ -267,10 +270,6 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 		}
 
 		return res;
-	case FAILED:
-		return -EINVAL;
-	default:
-		break;
 	}
 
 	/* Absent. If SD is not correct. Create a new one. */

@@ -296,9 +296,9 @@ errno_t reiser4_node_realize(
 	/* Getting position by means of linear traverse */
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
 	if (!(node->flags & NF_FOREIGN)) {
+		lookup_t res;
 		uint32_t i, j;
 		ptr_hint_t ptr;
-		lookup_res_t res;
 		trans_hint_t hint;
 		
 		for (i = 0; i < reiser4_node_items(parent->node); i++) {
@@ -452,13 +452,13 @@ errno_t reiser4_node_disconnect(
 
 /* This function makes search inside of specified node for passed key. Position
    will be stored in passed @pos. */
-lookup_res_t reiser4_node_lookup(
+lookup_t reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
 	reiser4_key_t *key,	/* key to be find */
-	lookup_mod_t mode,      /* position correcting mode (insert or read) */
+	bias_t bias,            /* position correcting mode (insert or read) */
 	pos_t *pos)	        /* found pos will be stored here */
 {
-	lookup_res_t res;
+	lookup_t res;
 	reiser4_key_t maxkey;
 	reiser4_place_t place;
     
@@ -469,13 +469,11 @@ lookup_res_t reiser4_node_lookup(
 	POS_INIT(pos, 0, MAX_UINT32);
 
 	/* Calling node plugin lookup method */
-	switch ((res = plug_call(node->entity->plug->o.node_ops, lookup,
-				 node->entity, key, mode, pos)))
+	if ((res = plug_call(node->entity->plug->o.node_ops,
+			     lookup, node->entity, key, bias,
+			     pos)) < 0)
 	{
-	case FAILED:
 		return res;
-	default:
-		break;
 	}
 
 	if (res == ABSENT) {
@@ -487,7 +485,7 @@ lookup_res_t reiser4_node_lookup(
 		pos->item--;
 		
 		if (reiser4_place_open(&place, node, pos))
-			return FAILED;
+			return -EIO;
 		
 		/* We are on the position where key is less then wanted. Key
 		   could lie within the item or after the item. */
@@ -503,14 +501,12 @@ lookup_res_t reiser4_node_lookup(
 		/* Calling lookup method of found item */
 		if (place.plug->o.item_ops->lookup) {
 			res = plug_call(place.plug->o.item_ops, lookup,
-					(place_t *)&place, key, mode);
-
+					(place_t *)&place, key, bias);
 			pos->unit = place.pos.unit;
-			
 			return res;
 		}
 
-		if (mode == FIND_CONV) {
+		if (bias == FIND_CONV) {
 			pos->item++;
 			return ABSENT;
 		}

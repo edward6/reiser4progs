@@ -11,8 +11,9 @@ extern reiser4_core_t *dcore;
 extern reiser4_plug_t dir40_plug;
 
 extern errno_t dir40_reset(object_entity_t *entity);
-extern lookup_res_t dir40_lookup(object_entity_t *entity, char *name, 
-				 entry_hint_t *entry);
+extern lookup_t dir40_lookup(object_entity_t *entity,
+			     char *name, entry_hint_t *entry);
+
 extern errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry);
 
 #define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
@@ -99,16 +100,14 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	if ((res = dir40_reset((object_entity_t *)dir)))
 		return res;
 	
-	switch (obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, 
-			     FIND_EXACT, &dir->body)) 
+	if ((res = obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, 
+				FIND_EXACT, &dir->body)) < 0)
 	{
-	case PRESENT:
-		return 0;
-	case FAILED:
-		return -EINVAL;
-	default:
-		break;
+		return res;
 	}
+
+	if (res == PRESENT)
+		return 0;
 	
 	info = &dir->obj.info;
 	
@@ -315,20 +314,21 @@ errno_t dir40_check_struct(object_entity_t *object,
 				break;
 		} else {
 			/* Lookup the last removed entry, get the next item. */
-			if (dir40_lookup(object, entry.name, &entry) == FAILED)
-				return -EINVAL;
+			if (dir40_lookup(object, entry.name, &entry) < 0)
+				return -EIO;
 
 			dir->body = entry.place;
 		}
 	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */
-	if (!(res & RE_FATAL))
+	if (!(res & RE_FATAL)) {
 		res |= obj40_check_stat(&dir->obj, mode == RM_BUILD ?
 					dir40_one_nlink : NULL,
 					dir40_check_mode,
 					dir40_check_size, 
 					size, bytes, mode);
+	}
 	
 	return res;
 }
@@ -337,7 +337,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 			   uint8_t mode)
 {
 	dir40_t *dir = (dir40_t *)object;
-	lookup_res_t lookup;
+	lookup_t lookup;
 	entry_hint_t entry;
 	errno_t res;
 	
@@ -384,8 +384,8 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		if ((res = plug_call(object->plug->o.object_ops,
 				     add_entry, object, &entry)))
 			return res;
-	case FAILED:
-		return -EINVAL;
+	default:
+		return lookup;
 	}
 
 	/* ".." matches the parent. Now do parent->nlink++ for REBUILD mode. */
@@ -441,11 +441,11 @@ errno_t dir40_form(object_entity_t *object) {
 		aal_memset(&object->info.parent, 0, 
 			   sizeof(object->info.parent));
 		break;
-	case FAILED:
-		return -EINVAL;
-	default:
+	case PRESENT:
 		plug_call(entry.object.plug->o.key_ops, assign,
 			  &object->info.parent, &entry.object);
+	default:
+		return -EINVAL;
 	}
 	
 	return 0;

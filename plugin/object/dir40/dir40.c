@@ -149,10 +149,10 @@ errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
 
 /* Switches current dir body item onto next one. Returns 1 on success, 0 on the
    case of directory is over and values < 0 on error. */
-static lookup_res_t dir40_next(object_entity_t *entity) {
+static lookup_t dir40_next(object_entity_t *entity) {
 	dir40_t *dir;
+	lookup_t res;
 	place_t place;
-	lookup_res_t res;
 
 	aal_assert("umka-2063", entity != NULL);
 
@@ -184,9 +184,9 @@ static lookup_res_t dir40_next(object_entity_t *entity) {
 }
 
 /* Updates current body place by place found by @dir->offset and @dir->adjust */
-static lookup_res_t dir40_update(object_entity_t *entity) {
+static lookup_t dir40_update(object_entity_t *entity) {
 	dir40_t *dir;
-	lookup_res_t res;
+	lookup_t res;
 	
 #ifdef ENABLE_COLLISIONS
 	uint32_t units;
@@ -345,12 +345,12 @@ static int32_t dir40_compent(char *entry1, char *entry2) {
    needed to be used in add_entry() for two reasons: for make sure, that passed
    entry does not exists and to use lookup result for consequent insert. As it
    is used for insert, we should specify pos correctring mode INST. */
-static lookup_res_t dir40_search(object_entity_t *entity,
-				 char *name, lookup_mod_t mode,
-				 entry_hint_t *entry)
+static lookup_t dir40_search(object_entity_t *entity,
+			     char *name, bias_t bias,
+			     entry_hint_t *entry)
 {
 	dir40_t *dir;
-	lookup_res_t res;
+	lookup_t res;
 
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1117", entity != NULL);
@@ -365,7 +365,7 @@ static lookup_res_t dir40_search(object_entity_t *entity,
 
 	/* Making tree_lookup() to find entry by key */
 	switch ((res = obj40_lookup(&dir->obj, &dir->body.key,
-				    LEAF_LEVEL, mode, &dir->body)))
+				    LEAF_LEVEL, bias, &dir->body)))
 	{
 	case PRESENT:
 		/* Correcting unit pos */
@@ -389,6 +389,7 @@ static lookup_res_t dir40_search(object_entity_t *entity,
 		
 	while (1) {
 		int32_t comp;
+		lookup_t res;
 		uint32_t units;
 		entry_hint_t temp;
 		
@@ -396,18 +397,15 @@ static lookup_res_t dir40_search(object_entity_t *entity,
 				  units, &dir->body);
 
 		if (dir->body.pos.unit >= units) {
-			switch (dir40_next(entity)) {
-			case 1:
-				break;
-			case 0:
-				return ABSENT;
-			default:
-				return FAILED;
-			}
+			if ((res = dir40_next(entity)) < 0)
+				return res;
+
+			if (res == ABSENT)
+				return res;
 		}
 		
 		if (dir40_fetch(entity, &temp))
-			return FAILED;
+			return -EIO;
 
 		if (entry) {
 			aal_memcpy(&entry->place, &temp.place,
@@ -445,8 +443,8 @@ static lookup_res_t dir40_search(object_entity_t *entity,
 }
 
 /* Makes lookup inside @entity by passed @name */
-lookup_res_t dir40_lookup(object_entity_t *entity,
-			  char *name, entry_hint_t *entry) 
+lookup_t dir40_lookup(object_entity_t *entity,
+		      char *name, entry_hint_t *entry) 
 {
 	return dir40_search(entity, name, FIND_EXACT, entry);
 }
@@ -618,22 +616,21 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		trans_hint_t hint;
 
 		/* Looking for the last directory item */
-		switch ((obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
-				      FIND_EXACT, &place)))
+		if ((res = obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
+				  FIND_EXACT, &place)) < 0)
 		{
-		case FAILED:
-			return -EINVAL;
-		default:
-			/* Checking if found item belongs this directory */
-			if (!dir40_belong(entity, &place))
-				return 0;
-
-			hint.count = 1;
-			
-			/* Removing item from the tree */
-			if ((res = obj40_remove(&dir->obj, &place, &hint)))
-				return res;
+			return res;
 		}
+
+		/* Checking if found item belongs this directory */
+		if (!dir40_belong(entity, &place))
+			return 0;
+
+		hint.count = 1;
+		
+		/* Removing item from the tree */
+		if ((res = obj40_remove(&dir->obj, &place, &hint)))
+			return res;
 	}
 	
 	return 0;
@@ -924,14 +921,11 @@ static errno_t dir40_layout(object_entity_t *entity,
 			}
 		}
 		
-		switch ((res = dir40_next(entity))) {
-		case 1:
-			break;
-		case 0:
-			return 0;
-		default:
+		if ((res = dir40_next(entity)) < 0)
 			return res;
-		}
+
+		if (res == ABSENT)
+			return 0;
 	}
     
 	return 0;
@@ -967,21 +961,18 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = place_func(entity, &dir->body, data)))
 			return res;
 		
-		switch ((res = dir40_next(entity))) {
-		case 1:
-			break;
-		case 0:
-			return 0;
-		default:
+		if ((res = dir40_next(entity)) < 0)
 			return res;
-		}
+		
+		if (res == ABSENT)
+			return 0;
 	}
 	
 	return 0;
 }
 
-extern object_entity_t *dir40_fake(object_info_t *info);
 extern errno_t dir40_form(object_entity_t *object);
+extern object_entity_t *dir40_fake(object_info_t *info);
 extern object_entity_t *dir40_recognize(object_info_t *info);
 
 extern errno_t dir40_check_attach(object_entity_t *object, 

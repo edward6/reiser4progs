@@ -252,7 +252,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
 	reiser4_place_t place;
 	trans_hint_t hint;
-	lookup_res_t lookup;
+	lookup_t lookup;
 	ptr_hint_t ptr;
 	uint32_t level;
 	errno_t res;
@@ -268,16 +268,16 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_node_lkey(node, &hint.offset);
 	
 	/* Key should not exist in the tree yet. */
-	lookup = reiser4_tree_lookup(tree, &hint.offset,
-				     LEAF_LEVEL, FIND_EXACT,
-				     &place);
+	if ((lookup = reiser4_tree_lookup(tree, &hint.offset,
+					  LEAF_LEVEL, FIND_EXACT,
+					  &place)) < 0)
+	{
+		return 0;
+	}
 
-	if (lookup != ABSENT)
-		return lookup == FAILED ? -EINVAL : -ESTRUCT;
-	
-	/* If some node was found and it is not of higher level then the node 
-	   being attached, try to split nodes to be able to attach the node as 
-	   a whole. */
+	/* If some node was found and it is not of higher level then the node
+	   being attached, try to split nodes to be able to attach the node as a
+	   whole. */
 	level = reiser4_node_get_level(node) + 1;
     
 	if (place.node != NULL && reiser4_node_get_level(place.node) < level) {
@@ -513,8 +513,8 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		return res;
 	
 	while (1) {
-		switch (reiser4_tree_lookup(tree, &key, LEAF_LEVEL,
-					    FIND_EXACT, &dst))
+		switch ((res = reiser4_tree_lookup(tree, &key, LEAF_LEVEL,
+						   FIND_EXACT, &dst)))
 		{
 		case PRESENT:
 			/* Whole data can not be inserted */
@@ -558,8 +558,8 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 				dst = prev;
 			
 			break;
-		case FAILED:
-			return -EINVAL;
+		default:
+			return res;
 		}
 		
 		if (whole) {
@@ -628,9 +628,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 			break;
 		
 		/* Lookup by end_key. */
-		if (src->plug->o.item_ops->lookup((place_t *)src, &key, 
-						  FIND_EXACT) == FAILED)
-			return -EINVAL;
+		if ((res = src->plug->o.item_ops->lookup((place_t *)src, &key, 
+							 FIND_EXACT)) < 0)
+		{
+			return res;
+		}
 		
 		if (src->pos.unit >= scount)
 			break;

@@ -40,21 +40,20 @@ struct pos {
 typedef struct pos pos_t;
 
 /* Lookup return values */
-enum lookup_res {
+enum lookup {
 	PRESENT                 = 1,
 	ABSENT                  = 0,
-	FAILED                  = -1
 };
 
-typedef int32_t lookup_res_t;
+typedef int32_t lookup_t;
 
 /* Lookup mode */
-enum lookup_mod {
+enum bias {
 	FIND_EXACT              = 1,
 	FIND_CONV               = 2
 };
 
-typedef enum lookup_mod lookup_mod_t;
+typedef enum bias bias_t;
 
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
@@ -682,8 +681,8 @@ struct reiser4_object_ops {
 	uint64_t (*size) (object_entity_t *);
 
 	/* Makes lookup inside file */
-	lookup_res_t (*lookup) (object_entity_t *, char *,
-				entry_hint_t *);
+	lookup_t (*lookup) (object_entity_t *, char *,
+			    entry_hint_t *);
 
 	/* Finds actual file stat data (used in symlinks) */
 	errno_t (*follow) (object_entity_t *, key_entity_t *,
@@ -792,8 +791,8 @@ struct reiser4_item_ops {
 	uint32_t (*units) (place_t *);
 
 	/* Makes lookup for passed key */
-	lookup_res_t (*lookup) (place_t *, key_entity_t *,
-				lookup_mod_t);
+	lookup_t (*lookup) (place_t *, key_entity_t *,
+			    bias_t);
 
 	/* Get the key of a particular unit of the item. */
 	errno_t (*get_key) (place_t *, key_entity_t *);
@@ -947,8 +946,8 @@ struct reiser4_node_ops {
 	uint32_t (*items) (node_entity_t *);
     
 	/* Makes lookup inside node by specified key */
-	lookup_res_t (*lookup) (node_entity_t *, key_entity_t *, 
-				lookup_mod_t, pos_t *);
+	lookup_t (*lookup) (node_entity_t *, key_entity_t *, 
+			    bias_t, pos_t *);
     
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (node_entity_t *, pos_t *,
@@ -1329,8 +1328,8 @@ struct tree_ops {
 	
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file really lies. It is used in all object plugins. */
-	lookup_res_t (*lookup) (void *, key_entity_t *, uint8_t,
-				lookup_mod_t, place_t *);
+	lookup_t (*lookup) (void *, key_entity_t *, uint8_t,
+			    bias_t, place_t *);
 
 	/* Initializes all item fields in passed place */
 	errno_t (*fetch) (void *, place_t *);

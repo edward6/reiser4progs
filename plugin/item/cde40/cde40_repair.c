@@ -73,8 +73,8 @@ extern errno_t cde40_delete(place_t *place, uint32_t pos,
 extern errno_t cde40_get_hash(place_t *place, uint32_t pos, 
 			      key_entity_t *key);
 
-extern lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
-				 uint32_t *pos);
+extern lookup_t cde40_lookup(place_t *place, key_entity_t *key,
+			     bias_t bias);
 
 extern uint32_t cde40_regsize(place_t *place, uint32_t pos, 
 			      uint32_t count);
@@ -753,7 +753,7 @@ errno_t cde40_estimate_merge(place_t *dst, place_t *src,
 	uint32_t units, next_pos, pos;
 	uint32_t dst_pos, src_pos;
 	key_entity_t dst_key;
-	lookup_res_t lookup;
+	lookup_t lookup;
 	
 	aal_assert("vpf-957", dst  != NULL);
 	aal_assert("vpf-958", src  != NULL);
@@ -763,11 +763,17 @@ errno_t cde40_estimate_merge(place_t *dst, place_t *src,
 	src_pos = src->pos.unit;
 	units = cde40_units(src);
 	
-	if ((lookup = cde40_lookup(src, &hint->end, &pos)) == FAILED)
-		return -EINVAL;
+	if ((lookup = cde40_lookup(src, &hint->end, FIND_EXACT)) < 0)
+		return lookup;
+
+	pos = src->pos.unit;
 	
 	cde40_get_hash(dst, dst_pos, &dst_key);
-	cde40_lookup(src, &dst_key, &next_pos);
+	
+	if ((lookup = cde40_lookup(src, &dst_key, FIND_EXACT)) < 0)
+		return lookup;
+
+	next_pos = src->pos.unit;
 	
 	if (pos < next_pos)
 		next_pos = pos;
@@ -783,10 +789,11 @@ errno_t cde40_estimate_merge(place_t *dst, place_t *src,
 	
 	while (next_pos < units) {
 		cde40_get_hash(src, next_pos, &hint->end);
-		lookup = cde40_lookup(dst, &hint->end, &pos);
-		
-		if (lookup == FAILED)
-			return -EINVAL;
+
+		if ((lookup = cde40_lookup(dst, &hint->end, FIND_EXACT)) < 0)
+			return lookup;
+
+		pos = dst->pos.unit;
 		
 		if (lookup == ABSENT)
 			return 0;
@@ -795,7 +802,6 @@ errno_t cde40_estimate_merge(place_t *dst, place_t *src,
 	}
 	
 	cde40_maxposs_key(src, &hint->end);
-	
 	return 0;
 }
 

@@ -52,7 +52,7 @@ static void reg40_close(object_entity_t *entity) {
 }
 
 /* Updates body place in correspond to file offset */
-lookup_res_t reg40_update(object_entity_t *entity) {
+lookup_t reg40_update(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 
 	aal_assert("umka-1161", entity != NULL);
@@ -376,10 +376,9 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 	maxspace = reg40_chunk(reg);
 	
 	for (bytes = 0, written = 0; written < n; ) {
+		lookup_t res;
 		int32_t write;
 		uint32_t level;
-		
-		lookup_res_t res;
 		trans_hint_t hint;
 
 		/* Preparing hint key */

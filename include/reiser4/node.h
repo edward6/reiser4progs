@@ -92,10 +92,9 @@ extern errno_t reiser4_node_connect(reiser4_node_t *node,
 extern errno_t reiser4_node_disconnect(reiser4_node_t *node,
 				       reiser4_node_t *child);
 
-extern lookup_res_t reiser4_node_lookup(reiser4_node_t *node,
-					reiser4_key_t *key,
-					lookup_mod_t mode,
-					pos_t *pos);
+extern lookup_t reiser4_node_lookup(reiser4_node_t *node,
+				    reiser4_key_t *key,
+				    bias_t bias, pos_t *pos);
 
 extern errno_t reiser4_node_fini(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
