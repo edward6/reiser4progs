@@ -317,6 +317,14 @@ static errno_t callback_tree_frag(
 				if (plugin_call(continue, coord.entity.plugin->item_ops,
 						fetch, &coord.entity, pos.unit, &ptr, 1))
 					return -1;
+
+				if (ptr.ptr == 0)
+					continue;
+				
+				delta = frag_hint->curr - ptr.ptr;
+				
+				if (labs(delta) > 1)
+					frag_hint->bad++;
 				
 				frag_hint->curr = ptr.ptr + ptr.width;
 				frag_hint->total += ptr.width;
@@ -330,14 +338,10 @@ static errno_t callback_tree_frag(
 
 			delta = frag_hint->curr - ptr.ptr;
 
-			if (ptr.ptr == 0)
-				continue;
-		
 			if (labs(delta) > 1)
 				frag_hint->bad++;
 
 			frag_hint->total++;
-
 			frag_hint->curr = ptr.ptr;
 		}
 	}

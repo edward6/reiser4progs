@@ -9,13 +9,6 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_COMPACT
-#  include <unistd.h>
-#  include <signal.h>
-#  include <math.h>
-#  include <sys/vfs.h>
-#endif
-
 #include <reiser4/reiser4.h>
 
 errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {

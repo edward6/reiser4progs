@@ -11,6 +11,47 @@
 
 #include <reiser4/reiser4.h>
 
+static int callback_node_free(void *data) {
+	reiser4_node_t *node = (reiser4_node_t *)data;
+	
+	if (!node->counter || node->children)
+		return 0;
+
+	reiser4_node_close(node);
+	return 1;
+}
+
+static int callback_node_sync(void *data) {
+	reiser4_node_t *node = (reiser4_node_t *)data;
+	return reiser4_node_sync(node) == 0;
+}
+
+static aal_list_t *callback_get_next(void *data) {
+	return ((reiser4_node_t *)data)->lru.next;
+}
+
+static void callback_set_next(void *data, aal_list_t *next) {
+	((reiser4_node_t *)data)->lru.next = next;
+}
+
+static aal_list_t *callback_get_prev(void *data) {
+	return ((reiser4_node_t *)data)->lru.prev;
+}
+
+static void callback_set_prev(void *data, aal_list_t *prev) {
+	((reiser4_node_t *)data)->lru.prev = prev;
+}
+		
+static lru_ops_t lru_ops = {
+	.free     = callback_node_free,
+	.sync     = callback_node_sync,
+
+	.get_next = callback_get_next,
+	.set_next = callback_set_next,
+	.get_prev = callback_get_prev,
+	.set_prev = callback_set_prev
+};
+
 #ifndef ENABLE_COMPACT
 
 /* Requests block allocator for new block and creates empty node in it */
@@ -141,6 +182,45 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	return tree->root->blk;
 }
 
+#ifndef ENABLE_COMPACT
+
+static errno_t callback_tree_mpressure(void *data, int result) {
+	aal_lru_t *lru = (aal_lru_t *)data;
+
+	if (!lru->adjust || !lru->list || !result)
+		return 0;
+	
+	return aal_lru_adjust(lru);
+}
+
+#endif
+
+static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
+
+	if (!(tree->lru = aal_lru_create(&lru_ops))) {
+		aal_exception_error("Can't initialize tree cache lru list.");
+		return -1;
+	}
+	
+#ifndef ENABLE_COMPACT
+	tree->mpressure = aal_mpressure_handler_create(callback_tree_mpressure,
+						      "tree cache", tree->lru);
+#else
+	tree->mpressure = NULL;
+#endif
+	
+	return 0;
+}
+
+void reiser4_tree_fini(reiser4_tree_t *tree) {
+	aal_assert("umka-1531", tree != NULL, return);
+
+	if (tree->mpressure)
+		aal_mpressure_handler_free(tree->mpressure);
+
+	aal_lru_free(tree->lru);
+}
+
 /* Opens the tree (that is, the tree cache) on specified filesystem */
 reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	blk_t tree_root;
@@ -168,7 +248,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 		goto error_free_tree;
     
 	tree->root->tree = tree;
-	reiser4_lru_init(&tree->lru);
+	reiser4_tree_init(tree);
     
 	return tree;
 
@@ -228,7 +308,7 @@ reiser4_tree_t *reiser4_tree_create(
 	reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
 
 	tree->root->tree = tree;
-	reiser4_lru_init(&tree->lru);
+	reiser4_tree_init(tree);
 
 	return tree;
 
@@ -278,9 +358,7 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 	/* Freeing tree cashe and tree itself*/
 	reiser4_node_close(tree->root);
 
-	/* Freeing tree lru */
-	reiser4_lru_fini(&tree->lru);
-
+	reiser4_tree_fini(tree);
 	aal_free(tree);
 }
 

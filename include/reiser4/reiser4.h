@@ -41,7 +41,6 @@ extern "C" {
 #include "master.h"
 #include "item.h"
 #include "factory.h"
-#include "lru.h"
 
 extern void libreiser4_done(void);
 extern errno_t libreiser4_init(void);

@@ -286,7 +286,10 @@ struct reiser4_tree {
 	  The list of nodes present in tree cache sorted in recently used
 	  order. Thanks a lot to Nikita for this good idea.
 	*/
-	reiser4_lru_t lru;
+	aal_lru_t *lru;
+
+	/* Memory pressure handler */
+	void *mpressure;
 };
 
 struct traverse_hint {

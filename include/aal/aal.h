@@ -81,8 +81,9 @@ typedef int (*foreach_func_t) (const void *, const void *);
 #include "debug.h"
 #include "gauge.h"
 #include "block.h"
-#include "ui.h"
 #include "stream.h"
+#include "ui.h"
+#include "lru.h"
 
 #endif
 

@@ -416,7 +416,7 @@ reiser4_node_t *reiser4_node_child(
 
 	child = (reiser4_node_t *)list->data;
 
-	if (node->tree && reiser4_lru_touch(&node->tree->lru, child))
+	if (node->tree && aal_lru_touch(node->tree->lru, (void *)child))
 		aal_exception_warn("Can't update tree lru.");
 
 	return child;
@@ -483,7 +483,7 @@ errno_t reiser4_node_attach(
 
 	node->children = aal_list_first(node->children);
 
-	if (node->tree && reiser4_lru_attach(&node->tree->lru, child))
+	if (node->tree && aal_lru_attach(node->tree->lru, (void *)child))
 		aal_exception_warn("Can't attach node to tree lru.");
 	
 	return 0;
@@ -519,7 +519,7 @@ void reiser4_node_detach(
 	/* Updating node children list */
 	node->children = aal_list_remove(node->children, child);
 
-	if (node->tree && reiser4_lru_detach(&node->tree->lru, child))
+	if (node->tree && aal_lru_detach(node->tree->lru, (void *)child))
 		aal_exception_warn("Can't detach node from tree lru.");
 }
 
