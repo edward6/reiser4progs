@@ -69,10 +69,8 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 	node->size = size;
 	node->number = blk;
 	node->device = device;
-	
-	reiser4_place_assign(&node->parent,
-			     NULL, 0, ~0ul);
-	
+
+	reiser4_place_assign(&node->p, NULL, 0, ~0ul);
 	return node;
 
  error_free_node:    
@@ -97,6 +95,21 @@ errno_t reiser4_node_unload(reiser4_node_t *node) {
 	
 	return plugin_call(node->entity->plugin->o.node_ops,
 			   unload, node->entity);
+}
+
+void reiser4_node_lock(reiser4_node_t *node) {
+	aal_assert("umka-2314", node != NULL);
+	node->counter++;
+}
+
+void reiser4_node_unlock(reiser4_node_t *node) {
+	aal_assert("umka-2316", node != NULL);
+	aal_assert("umka-2316", node->counter > 0);
+	node->counter--;
+}
+
+bool_t reiser4_node_locked(reiser4_node_t *node) {
+	return node->counter > 0 ? TRUE : FALSE;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -200,9 +213,7 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
         if (reiser4_node_guess(node))
                 goto error_free_node;
      
-        reiser4_place_assign(&node->parent,
-                             NULL, 0, ~0ul);
-         
+        reiser4_place_assign(&node->p, NULL, 0, ~0ul);
         return node;
      
  error_free_node:
@@ -214,7 +225,6 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
    also detaches nodes from the tree if they were attached. */
 errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
-	aal_assert("umka-903", node->entity != NULL);
 	aal_assert("umka-2286", node->counter == 0);
 
 	reiser4_node_unload(node);
@@ -282,9 +292,9 @@ errno_t reiser4_node_realize(
 	reiser4_place_t *parent;
     
 	aal_assert("umka-869", node != NULL);
-	aal_assert("umka-1941", node->parent.node != NULL);
+	aal_assert("umka-1941", node->p.node != NULL);
 
-	parent = &node->parent;
+	parent = &node->p;
 
 	/* Checking if we are in position already */
 #ifndef ENABLE_STAND_ALONE
@@ -400,12 +410,12 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 
 	aal_assert("umka-1758", node != NULL);
 	aal_assert("umka-1759", child != NULL);
-	aal_assert("umka-1884", reiser4_node_items(child) > 0);
 	
 	current = aal_list_insert_sorted(node->children, child,
 					 callback_comp_node, NULL);
 	
-	child->parent.node = node;
+	child->p.node = node;
+	reiser4_node_lock(node);
 	
 	/* Updating node pos in parent node */
 	if ((res = reiser4_node_realize(child))) {
@@ -426,14 +436,17 @@ errno_t reiser4_node_disconnect(
 	reiser4_node_t *child)	        /* pointer to child to be deleted */
 {
 	aal_list_t *next;
+
+	aal_assert("umka-2321", node != NULL);
 	
 	if (!node->children)
 		return -EINVAL;
     
-	child->parent.node = NULL;
+	child->p.node = NULL;
     
 	/* Updating node children list */
 	next = aal_list_remove(node->children, child);
+	reiser4_node_unlock(node);
 	
 	if (!next || !next->prev)
 		node->children = next;
@@ -726,7 +739,7 @@ errno_t reiser4_node_update(reiser4_node_t *node) {
 
 	aal_assert("umka-2263", node != NULL);
 
-	place = &node->parent;
+	place = &node->p;
 	aal_assert("umka-2262", place->node != NULL);
 	
 	aal_memset(&hint, 0, sizeof(hint));
@@ -831,7 +844,7 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 	aal_list_foreach_forward(list, walk) {
 		reiser4_node_t *child = (reiser4_node_t *)walk->data;
 
-		aal_assert("umka-1886", child->parent.node == node);
+		aal_assert("umka-1886", child->p.node == node);
 
 		if ((res = reiser4_node_realize(child)))
 			return res;

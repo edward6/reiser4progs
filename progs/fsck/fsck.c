@@ -377,7 +377,7 @@ int fsck_children_check(reiser4_node_t *node) {
     aal_list_foreach_forward(list, walk) {
 	reiser4_node_t *child = (reiser4_node_t *)walk->data;
 
-	if (child->parent.node != node)
+	if (child->p.node != node)
 	    return i;
 
 	i++;

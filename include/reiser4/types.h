@@ -84,12 +84,8 @@ struct reiser4_place {
 struct reiser4_node {
 	
 	/* Place in parent node */
-	reiser4_place_t parent;
+	reiser4_place_t p;
 
-	/* List of children nodes. It is used for constructing part of on-disk
-	   tree in the memory. */
-	aal_list_t *children;
-	
 	/* Reference to the tree. Sometimes node needs access tree and tree
 	   functions. */
 	reiser4_tree_t *tree;
@@ -102,16 +98,20 @@ struct reiser4_node {
 	   links among nodes in memory tree cache. */
 	reiser4_node_t *right;
 	
+	/* List of children nodes. It is used for constructing part of on-disk
+	   tree in the memory. */
+	aal_list_t *children;
+	
 	/* Node entity. Node plugin initializes this value and return it back in
 	   node initializing time. This node entity is used for performing all
 	   on-node actions. */
 	object_entity_t *entity;
 
-	/* Node size */
-	uint32_t size;
-
 	/* Device node lies on */
 	aal_device_t *device;
+
+	/* Node size */
+	uint32_t size;
 
 	/* Block number node lies in */
 	blk_t number;

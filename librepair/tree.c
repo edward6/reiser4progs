@@ -228,17 +228,17 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 		return res;
 	}
 	
-	if (reiser4_place_leftmost(dst) && dst->node->parent.node) {
+	if (reiser4_place_leftmost(dst) && dst->node->p.node) {
 		reiser4_place_t p;
 		
-		reiser4_place_init(&p, dst->node->parent.node, &dst->node->parent.pos);
+		reiser4_place_init(&p, dst->node->p.node, &dst->node->p.pos);
 		
 		if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
 			return res;
 	}
 	
-	if (dst->node != tree->root && !dst->node->parent.node) {
-		if (!old.node->parent.node)
+	if (dst->node != tree->root && !dst->node->p.node) {
+		if (!old.node->p.node)
 			reiser4_tree_growup(tree);
 		
 		if ((res = reiser4_tree_attach(tree, dst->node))) {
