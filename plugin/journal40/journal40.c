@@ -169,7 +169,7 @@ static object_entity_t *journal40_create(object_entity_t *format,
 	return NULL;
 }
 
-static errno_t callback_flush_journal(object_entity_t *format,
+static errno_t callback_sync_journal(object_entity_t *format,
 				      blk_t blk, void *data)
 {
 	aal_device_t *device;
@@ -211,7 +211,7 @@ static errno_t journal40_sync(object_entity_t *entity) {
 		return -1;
 	}
     
-	if (layout(journal->format, callback_flush_journal, journal)) {
+	if (layout(journal->format, callback_sync_journal, journal)) {
 		aal_exception_error("Can't load journal metadata.");
 		return -1;
 	}

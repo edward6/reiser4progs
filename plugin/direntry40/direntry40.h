@@ -43,8 +43,8 @@ typedef struct objid40 objid40_t;
 
 /* Part of the key, describing the entry. */
 struct entryid40 {
-	d8_t objectid[sizeof(uint64_t)];	    
-	d8_t offset[sizeof(uint64_t)];
+	d8_t objectid[sizeof(d64_t)];	    
+	d8_t offset[sizeof(d64_t)];
 };
 
 typedef struct entryid40 entryid40_t;

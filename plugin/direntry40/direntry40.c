@@ -274,8 +274,34 @@ static uint16_t direntry40_remove(item_entity_t *item,
 static errno_t direntry40_print(item_entity_t *item, char *buff,
 				uint32_t n, uint16_t options) 
 {
+	uint32_t i;
+	direntry40_t *direntry;
+
+	char *name;
+	uint64_t objid, offset;
+	uint64_t locality, objectid;
+	
 	aal_assert("umka-548", item != NULL, return -1);
 	aal_assert("umka-549", buff != NULL, return -1);
+
+	if (!(direntry = direntry40_body(item)))
+		return -1;
+
+	aux_strncat(buff, n, "count:\t\t%u\n", direntry->count);
+	for (i = 0; i < direntry->count; i++) {
+		entry40_t *entry = &direntry->entry[i];
+
+		objid = *((uint64_t *)entry->entryid.objectid);
+		offset = *((uint64_t *)entry->entryid.offset);
+		name = (void *)direntry + entry->offset + sizeof(objid40_t);
+
+		locality = *((uint64_t *)((void *)direntry + entry->offset));
+		objectid = *((uint64_t *)((void *)direntry + entry->offset +
+					  sizeof(uint64_t)));
+
+		aux_strncat(buff, n, "(%i)\t\t\"%s\"\t0x%llx:0x%llx\t0x%llx:0x%llx\n",
+			    i, name, objid, offset, locality, objectid);
+	}
 
 	return 0;
 }

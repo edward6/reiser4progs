@@ -24,9 +24,11 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 	reiser4_format_get_root(fs->format), &data))) 
     {
 	repair_set_flag(&data, REPAIR_NOT_FIXED);
-    } else {    
+    } else {
+	traverse_hint_t hint = {TO_BACKWARD, LEAF_LEVEL};
+	    
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 
-	if ((res = reiser4_joint_traverse(joint, &data, 
+	if ((res = reiser4_joint_traverse(joint, &hint, &data, 
 	    repair_filter_joint_open,      repair_filter_joint_check, 
 	    repair_filter_before_traverse, repair_filter_setup_traverse, 
 	    repair_filter_update_traverse, repair_filter_after_traverse)) < 0)
@@ -37,9 +39,12 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 	return -1;
 
     if (joint) {
+	traverse_hint_t hint = {TO_BACKWARD, LEAF_LEVEL};
+	    
 	/* Solve overlapped problem within the tree. */
-	if ((res = reiser4_joint_traverse(joint, &data, repair_filter_joint_open,
-	    repair_scan_node_check, NULL, NULL, NULL, NULL)) < 0)
+	if ((res = reiser4_joint_traverse(joint, &hint, &data,
+	    repair_filter_joint_open, repair_scan_node_check,
+	    NULL, NULL, NULL, NULL)) < 0)
 	    return res;
     }
       

@@ -29,7 +29,8 @@ enum debugfs_print_flags {
 	PF_JOURNAL  = 1 << 1,
 	PF_ALLOC    = 1 << 2,
 	PF_OID	    = 1 << 3,
-	PF_TREE	    = 1 << 4
+	PF_TREE	    = 1 << 4,
+	PF_ITEMS    = 1 << 5
 };
 
 typedef enum debugfs_print_flags debugfs_print_flags_t;
@@ -47,11 +48,16 @@ static void debugfs_print_usage(char *name) {
 		"  -f | --force                   makes debugfs to use whole disk, not\n"
 		"                                 block device or mounted partition.\n"
 		"Print options:\n"
+		"  -i | --print-items             forces debugfs.reiser4 to print items\n"
+		"                                 content\n"
 		"  -t | --print-tree              prints the whole tree (default).\n"
 		"  -j | --print-journal           prints journal.\n"
 		"  -s | --print-super             prints the both super blocks.\n"
 		"  -b | --print-block-alloc       prints block allocator data.\n"
 		"  -o | --print-oid-alloc         prints oid allocator data.\n"
+		"Measurement options:\n"
+		"  -T | --total-fragmentation     measures total filesystem fragmentation\n"
+		"  -F | --file-fragmentation      measures average file fragmentation\n"
 		"Plugins options:\n"
 		"  -e | --profile PROFILE         profile to be used.\n"
 		"  -K | --known-profiles          prints known profiles.\n");
@@ -66,12 +72,19 @@ static void debugfs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
+struct print_tree_hint {
+	reiser4_tree_t *tree;
+	debugfs_print_flags_t flags;
+};
+
 /* Callback function used in traverse for opening the node */
 static errno_t debugfs_open_joint(
 	reiser4_joint_t **joint,    /* joint to be opened */
 	blk_t blk, void *data)	    /* blk to pe opened and user-specified data */
 {
-	*joint = reiser4_tree_load((reiser4_tree_t *)data, blk);
+	struct print_tree_hint *hint = (struct print_tree_hint *)data;
+	
+	*joint = reiser4_tree_load(hint->tree, blk);
 	return -(*joint == NULL);
 }
 
@@ -79,8 +92,10 @@ static errno_t debugfs_print_joint(
 	reiser4_joint_t *joint,	   /* joint to be printed */
 	void *data)		   /* user-specified data */
 {
-	char buff[4096];
+	char buff[8192];
+	
 	reiser4_node_t *node = joint->node;
+	struct print_tree_hint *hint = (struct print_tree_hint *)data;
 	uint8_t level = plugin_call(return -1, node->entity->plugin->node_ops,
 				    get_level, node->entity);
 
@@ -119,7 +134,7 @@ static errno_t debugfs_print_joint(
 
 			printf("PLUGIN: 0x%x (%s)\n", coord.entity.plugin->h.sign.id,
 			       coord.entity.plugin->h.label);
-	   
+
 			aal_memset(buff, 0, sizeof(buff));
 
 			if (reiser4_item_print(&coord, buff, sizeof(buff)))
@@ -166,21 +181,26 @@ static errno_t debugfs_print_joint(
 			printf("PLUGIN: 0x%x (%s)\n", coord.entity.plugin->h.sign.id,
 			       coord.entity.plugin->h.label);
 
-			aal_memset(buff, 0, sizeof(buff));
+			if (hint->flags & PF_ITEMS) {
+				aal_memset(buff, 0, sizeof(buff));
 			
-			if (reiser4_item_print(&coord, buff, sizeof(buff)))
-				return -1;
+				if (reiser4_item_print(&coord, buff, sizeof(buff)))
+					return -1;
 
-			printf(buff);
+				printf(buff);
+			}
 		}
 	}
     
 	return 0;
 }
 
-static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
-	reiser4_joint_traverse(fs->tree->root, (void *)fs->tree, debugfs_open_joint,
-			       debugfs_print_joint, NULL, NULL, NULL, NULL);
+static errno_t debugfs_print_tree(reiser4_fs_t *fs, debugfs_print_flags_t flags) {
+	struct print_tree_hint print_hint = {fs->tree, flags};
+	traverse_hint_t traverse_hint = {TO_FORWARD, LEAF_LEVEL};
+	
+	reiser4_joint_traverse(fs->tree->root, &traverse_hint, (void *)&print_hint,
+			       debugfs_open_joint, debugfs_print_joint, NULL, NULL, NULL, NULL);
     
 	printf("\n");
     
@@ -274,8 +294,13 @@ static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
 	return 0;
 }
 
+static errno_t debugfs_total_fragmentation(reiser4_fs_t *fs) {
+	return 0;
+};
+
 int main(int argc, char *argv[]) {
 	struct stat st;
+	int total_fragmentation = 0;
 	int c, force = 0, quiet = 0;
 	debugfs_print_flags_t flags = 0;
     
@@ -291,11 +316,14 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"profile", required_argument, NULL, 'e'},
 		{"force", no_argument, NULL, 'f'},
+		{"print-items", no_argument, NULL, 'i'},
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
 		{"print-super", no_argument, NULL, 's'},
 		{"print-block-alloc", no_argument, NULL, 'b'},
 		{"print-oid-alloc", no_argument, NULL, 'o'},
+		{"total-fragmentation", no_argument, NULL, 'T'},
+		{"file-fragmentation", no_argument, NULL, 'F'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
@@ -311,7 +339,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstboj", long_options, 
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbojiTF", long_options, 
 				     (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -336,9 +364,18 @@ int main(int argc, char *argv[]) {
 		case 'j':
 			flags |= PF_JOURNAL;
 			break;
+		case 'i':
+			flags |= PF_ITEMS;
+			break;
 		case 't':
 			flags |= PF_TREE;
 			break;
+		case 'T':
+			total_fragmentation = 1;
+			break;
+		case 'F':
+			aal_exception_info("Sorry, not implemented yet!");
+			return NO_ERROR;
 		case 'f':
 			force = 1;
 			break;
@@ -380,9 +417,9 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
     
 	/* 
-	   Checking is passed device is a block device. If so, we check also
-	   is it whole drive or just a partition. If the device is not a block
-	   device, then we emmit exception and propose user to use -f flag to 
+	   Checking is passed device is a block device. If so, we check also is
+	   it whole drive or just a partition. If the device is not a block
+	   device, then we emmit exception and propose user to use -f flag to
 	   force.
 	*/
 	if (!S_ISBLK(st.st_mode)) {
@@ -422,12 +459,24 @@ int main(int argc, char *argv[]) {
 	}
     
 	if (!aal_pow_of_two(flags) && !quiet) {
-		if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
-					"Ambiguous print options has been detected. "
-					"Continue?") == EXCEPTION_NO)
+		if (!(flags & PF_ITEMS)) {
+			if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
+						"Ambiguous print options has been detected. "
+						"Continue?") == EXCEPTION_NO)
+				goto error_free_fs;
+		}
+	}
+
+	if (!(flags & PF_TREE) && (flags & PF_ITEMS)) {
+		aal_exception_warn("Option --print-items is only active if "
+				   "--print-tree is specified.");
+	}
+
+	if (total_fragmentation) {
+		if (debugfs_total_fragmentation(fs))
 			goto error_free_fs;
 	}
-    
+	
 	if (flags & PF_SUPER) {
 		if (debugfs_print_master(fs))
 			goto error_free_fs;
@@ -452,7 +501,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	if (flags & PF_TREE) {
-		if (debugfs_print_tree(fs))
+		if (debugfs_print_tree(fs, flags))
 			goto error_free_fs;
 	}
     

@@ -623,6 +623,7 @@ errno_t reiser4_joint_move(
 /* This function traverse passed node. */
 errno_t reiser4_joint_traverse(
 	reiser4_joint_t *joint,		     /* block which should be traversed */
+	traverse_hint_t *hint,               /* some traverse flags */
 	void *data,			     /* user-spacified data */
 	reiser4_open_func_t open_func,	     /* callback will be used for opening node */
 	reiser4_handler_func_t handler_func, /* callback will be called on node */
@@ -646,7 +647,8 @@ errno_t reiser4_joint_traverse(
 		if (before_func && (result = before_func(joint, &coord, data)))
 			goto error;
 
-		pos.item = reiser4_node_count(joint->node) - 1;
+		pos.item = (hint->order == TO_FORWARD) ?
+			0 : reiser4_node_count(joint->node) - 1;
 	
 		do {
 			pos.unit = ~0ul; 
@@ -663,14 +665,15 @@ errno_t reiser4_joint_traverse(
 			}
 			
 			if (!reiser4_item_nodeptr(&coord))
-				continue;
+				goto out;
 	    
-			pos.unit = reiser4_item_count(&coord) - 1;
+			pos.unit = (hint->order == TO_FORWARD) ?
+				0 : reiser4_item_count(&coord) - 1;
 	    
 			do {
 				reiser4_ptr_hint_t ptr;
 		
-				if (plugin_call(continue, coord.entity.plugin->item_ops,
+				if (plugin_call(break, coord.entity.plugin->item_ops,
 						fetch, &coord.entity, 0, &ptr, 1))
 					goto error_after_func;
 		
@@ -685,8 +688,8 @@ errno_t reiser4_joint_traverse(
 					if (child) {
 						reiser4_joint_attach(joint, child);
  
-						if ((result = reiser4_joint_traverse(child, &data, 
-										     open_func,
+						if ((result = reiser4_joint_traverse(child, hint,
+										     data, open_func,
 										     handler_func,
 										     before_func, 
 										     setup_func,
@@ -701,9 +704,29 @@ errno_t reiser4_joint_traverse(
 					if (update_func && (result = update_func(joint, &coord, data)))
 						goto error_after_func;
 				}
-			} while (pos.unit--);
-	    
-		} while (pos.item--);
+				
+				if (hint->order == TO_FORWARD) {
+					if (pos.unit >= reiser4_item_count(&coord) - 1)
+						break;
+				} else {
+					if (pos.unit == 0)
+						break;
+				}
+					
+				pos.unit += (hint->order == TO_FORWARD) ? 1 : -1;
+			} while (1);
+
+		out:
+			if (hint->order == TO_FORWARD) {
+				if (pos.item >= reiser4_node_count(coord.u.joint->node) - 1)
+					break;
+			} else {
+				if (pos.item == 0)
+					break;
+			}
+			
+			pos.item += (hint->order == TO_FORWARD) ? 1 : -1;
+		} while (1);
 	
 		if (after_func && (result = after_func(joint, &coord, data)))
 			goto error;
