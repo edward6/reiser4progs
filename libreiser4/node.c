@@ -96,21 +96,15 @@ node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
 
 	/* Requesting the plugin for initialization node entity. */
 	if (!(node->entity = plug_call(plug->o.node_ops, init,
-				       block, tree->key.plug)))
+				       block, level, tree->key.plug)))
 	{
 		goto error_free_node;
 	}
 
 	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
 
-	/* Making node header. */
-	if (reiser4_node_fresh(node, level))
-		goto error_free_entity;
-	
 	return node;
 
- error_free_entity:
-	plug_call(plug->o.node_ops, fini, node->entity);
  error_free_node:    
 	aal_free(node);
  error_free_block:
@@ -149,14 +143,6 @@ void reiser4_node_move(node_t *node, blk_t nr) {
 		  move, node->entity, nr);
 }
 
-/* Call node plugin fresh() method, which creates new node header with zero
-   items in it, etc. */
-errno_t reiser4_node_fresh(node_t *node, uint8_t level) {
-	aal_assert("umka-2052", node != NULL);
-
-	return plug_call(node->entity->plug->o.node_ops,
-			 fresh, node->entity, level);
-}
 #endif
 
 /* Opens node on specified @tree and block number @nr. */
@@ -193,7 +179,7 @@ node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 		goto error_free_block;
 
 	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plug_call(plug->o.node_ops, init,
+	if (!(node->entity = plug_call(plug->o.node_ops, open,
 				       block, tree->key.plug)))
 	{
 		goto error_free_block;
