@@ -253,17 +253,21 @@ struct reiser4_oid {
 typedef struct reiser4_oid reiser4_oid_t;
 
 /* Tree modification trap typedefs */
-typedef bool_t (*insert_func_t) (reiser4_coord_t *,
+typedef bool_t (*insert_func_t) (reiser4_tree_t *,
+				 reiser4_coord_t *,
 				 reiser4_item_hint_t *, 
 				 void *);
 
-typedef bool_t (*remove_func_t) (reiser4_coord_t *,
+typedef bool_t (*remove_func_t) (reiser4_tree_t *,
+				 reiser4_coord_t *,
 				 void *);
 
-typedef errno_t (*attach_func_t) (reiser4_coord_t *,
+typedef errno_t (*attach_func_t) (reiser4_tree_t *,
+				  reiser4_coord_t *,
 				  reiser4_node_t *, void *);
 
-typedef errno_t (*detach_func_t) (reiser4_coord_t *,
+typedef errno_t (*detach_func_t) (reiser4_tree_t *,
+				  reiser4_coord_t *,
 				  reiser4_node_t *, void *);
 
 /* Tree structure */

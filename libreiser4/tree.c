@@ -567,7 +567,8 @@ errno_t reiser4_tree_attach(
 	}
 
 	if (tree->traps.attach) {
-		if ((res = tree->traps.attach(&coord, node, tree->traps.data)))
+		if ((res = tree->traps.attach(tree, &coord, node,
+					      tree->traps.data)))
 			return res;
 	}
 		
@@ -591,7 +592,8 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	reiser4_coord_init(&coord, parent, &node->pos);
 	
 	if (tree->traps.detach) {
-		if ((res = tree->traps.detach(&coord, node, tree->traps.data)))
+		if ((res = tree->traps.detach(tree, &coord, node,
+					      tree->traps.data)))
 			return res;
 	}
 	
@@ -1048,7 +1050,8 @@ errno_t reiser4_tree_insert(
 	if (tree->traps.pre_insert) {
 		bool_t res;
 		
-		if ((res = tree->traps.pre_insert(coord, hint, tree->traps.data)))
+		if ((res = tree->traps.pre_insert(tree, coord, hint,
+						  tree->traps.data)))
 			return res;
 	}
 
@@ -1107,7 +1110,8 @@ errno_t reiser4_tree_insert(
 	if (tree->traps.post_insert) {
 		bool_t res;
 		
-		if ((res = tree->traps.post_insert(coord, hint, tree->traps.data)))
+		if ((res = tree->traps.post_insert(tree, coord, hint,
+						   tree->traps.data)))
 			return res;
 	}
     
@@ -1257,7 +1261,8 @@ errno_t reiser4_tree_remove(
 
 	/* Calling "pre_remove" handler if it is defined */
 	if (tree->traps.pre_remove) {
-		if ((res = tree->traps.pre_remove(coord, tree->traps.data)))
+		if ((res = tree->traps.pre_remove(tree, coord,
+						  tree->traps.data)))
 			return res;
 	}
 
@@ -1286,7 +1291,8 @@ errno_t reiser4_tree_remove(
 	
 	/* Calling "post_remove" handler if it is defined */
 	if (tree->traps.post_remove) {
-		if ((res = tree->traps.post_remove(coord, tree->traps.data)))
+		if ((res = tree->traps.post_remove(tree, coord,
+						   tree->traps.data)))
 			return res;
 	}
 

@@ -185,15 +185,16 @@ reiser4_file_t *reiser4_file_begin(
 		return NULL;
     
 	file->fs = fs;
-	aal_memcpy(&file->coord, coord, sizeof(coord));
 	
-	if (reiser4_item_get_key(coord, &file->key)) {
+	aal_memcpy(&file->coord, coord, sizeof(*coord));
+	
+	if (reiser4_item_get_key(&file->coord, &file->key)) {
 		aal_exception_error("Node (%llu), item (%u), unit(%u): Can't "
 				    "get item key.", coord->node->blk, 
 				    coord->pos.item, coord->pos.unit);
 		goto error_free_file;
 	}
-	
+
 	aal_snprintf(file->name, sizeof(file->name), "file %llx",
 		     reiser4_key_get_objectid(&file->key));
 

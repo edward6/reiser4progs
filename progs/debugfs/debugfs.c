@@ -130,6 +130,17 @@ static errno_t debugfs_print_buff(void *buff, uint64_t size) {
 	return 0;
 }
 
+static errno_t debugfs_attach_handler(reiser4_tree_t *tree,
+				      reiser4_coord_t *coord,
+				      reiser4_node_t *node,
+				      void *data)
+{
+	if (tree->lru)
+		return aal_lru_adjust(tree->lru);
+	
+	return 0;
+}
+
 static errno_t debugfs_print_stream(aal_stream_t *stream) {
 	return debugfs_print_buff(stream->data, stream->size - 1);
 }
@@ -1303,6 +1314,8 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 
+	fs->tree->traps.attach = debugfs_attach_handler;
+	
 	/*
 	  Check if few print options specified. If so, and --quiet flay was not
 	  applyed we make warning, because that is probably user error and a lot
