@@ -187,19 +187,6 @@ static errno_t file_sync(
 }
 
 /*
-  Handler for "flags" operation for use with file device. See bellow for 
-  understanding where it is used. 
-*/
-static int file_flags(
-	aal_device_t *device)	    /* file device, flags will be obtained from */
-{
-	if (!device) 
-		return -1;
-		
-	return device->flags;
-}
-
-/*
   Handler for "equals" operation for use with file device. See bellow for
   understanding where it is used.
 */
@@ -285,7 +272,6 @@ struct aal_device_ops file_ops = {
 	.read   = file_read,	    /* handler for "read" operation */	    
 	.write  = file_write,	    /* handler for "write" operation */
 	.sync   = file_sync,	    /* handler for "sync" operation */
-	.flags  = file_flags,	    /* handler for "flags" obtaining */
 	.equals = file_equals,	    /* handler for comparing two devices */
 	.len    = file_len	    /* handler for length obtaining */
 };

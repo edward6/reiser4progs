@@ -190,9 +190,7 @@ int aal_device_flags(
 	aal_device_t *device)	/* device instance flags will be obtained from */
 {
 	aal_assert("umka-437", device != NULL, return -1);
-
-	aal_device_check_routine(device, flags, return -1);
-	return device->ops->flags(device);
+	return device->flags;
 }
 
 /* 

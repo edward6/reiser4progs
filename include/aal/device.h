@@ -69,7 +69,6 @@ struct aal_device_ops {
 			 void *, blk_t, count_t);
     
 	errno_t (*sync) (aal_device_t *);
-	int (*flags) (aal_device_t *);
     
 	errno_t (*equals) (aal_device_t *, 
 			   aal_device_t *);
