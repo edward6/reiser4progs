@@ -1346,8 +1346,10 @@ struct factory_ops {
 	/* Finds plugin by its attributes (type and id) */
 	reiser4_plugin_t *(*ifind) (rid_t, rid_t);
 	
+#ifndef ENABLE_STAND_ALONE	
 	/* Finds plugin by its type and name */
-	reiser4_plugin_t *(*nfind) (rid_t, const char *);
+	reiser4_plugin_t *(*nfind) (const char *);
+#endif
 };
 
 typedef struct factory_ops factory_ops_t;

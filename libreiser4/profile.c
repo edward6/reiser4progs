@@ -7,6 +7,20 @@
 
 #include <reiser4/reiser4.h>
 
+uint64_t reiser4_profile_value(reiser4_profile_t *profile, 
+			       const char *name) 
+{
+	reiser4_pid_t *pid;
+
+	aal_assert("umka-1878", profile != NULL);
+	aal_assert("umka-1879", name != NULL);
+	
+	if (!(pid = reiser4_profile_pid(profile, name)))
+		return INVAL_PID;
+
+	return pid->value;
+}
+
 reiser4_pid_t *reiser4_profile_pid(reiser4_profile_t *profile,
 				   const char *name)
 {
@@ -25,19 +39,7 @@ reiser4_pid_t *reiser4_profile_pid(reiser4_profile_t *profile,
 	return NULL;
 }
 
-uint64_t reiser4_profile_value(reiser4_profile_t *profile, 
-			       const char *name) 
-{
-	reiser4_pid_t *pid;
-
-	aal_assert("umka-1878", profile != NULL);
-	aal_assert("umka-1879", name != NULL);
-	
-	if (!(pid = reiser4_profile_pid(profile, name)))
-		return INVAL_PID;
-
-	return pid->value;
-}
+#ifndef ENABLE_STAND_ALONE
 
 errno_t reiser4_profile_override(reiser4_profile_t *profile, 
 				 const char *type, const char *name) 
@@ -60,3 +62,5 @@ errno_t reiser4_profile_override(reiser4_profile_t *profile,
 	pid->value = plugin->h.id;
 	return 0;
 }
+
+#endif

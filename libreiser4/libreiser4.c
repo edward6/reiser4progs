@@ -62,15 +62,14 @@ static reiser4_plugin_t *factory_ifind(
 	return libreiser4_factory_ifind(type, id);
 }
 
+#ifndef ENABLE_STAND_ALONE
+
 /* Handler for plugin finding requests from all plugins */
 static reiser4_plugin_t *factory_nfind(
-	rid_t type,		    /* needed type of plugin*/
 	const char *name)	    /* needed plugin name (label) */
 {
 	return libreiser4_factory_nfind(name);
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Handler for item insert requests from the all plugins */
 static errno_t tree_insert(
@@ -324,12 +323,14 @@ reiser4_core_t core = {
 		  and id.
 		*/
 		.ifind = factory_ifind,
-	
+
+#ifndef ENABLE_STAND_ALONE
 		/*
 		  Installing callback for making search for a plugin by its type
 		  and name.
 		*/
 		.nfind = factory_nfind
+#endif
 	}
 };
 

@@ -456,6 +456,7 @@ reiser4_plugin_t *libreiser4_factory_ifind(
 	return found ? (reiser4_plugin_t *)found->data : NULL;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Makes search for plugin by name */
 reiser4_plugin_t *libreiser4_factory_nfind(
 	const char *name)			 /* needed plugin name */
@@ -472,6 +473,7 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 
 	return found ? (reiser4_plugin_t *)found->data : NULL;
 }
+#endif
 
 /* Finds plugins by its type and id */
 reiser4_plugin_t *libreiser4_factory_cfind(
@@ -493,6 +495,7 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 	return NULL;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* 
    Calls specified function for every plugin from plugin list. This functions
    is used for getting any plugins information.
@@ -515,3 +518,4 @@ errno_t libreiser4_factory_foreach(
 	
 	return res;
 }
+#endif

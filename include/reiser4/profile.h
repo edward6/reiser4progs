@@ -14,6 +14,9 @@ extern uint64_t reiser4_profile_value(reiser4_profile_t *profile,
 extern reiser4_pid_t *reiser4_profile_pid(reiser4_profile_t *profile,
 					  const char *name);
 
+#ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_profile_override(reiser4_profile_t *profile, 
 					const char *type, const char *name);
+#endif
+
 #endif
