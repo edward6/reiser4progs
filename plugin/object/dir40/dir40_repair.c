@@ -71,11 +71,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
 	
-	/* Absent. Add a new ".". Take it from the stat_hint for now.
-
-	   FIXME-VITALY: It can be stored in SD also, but it is not clear 
-	   under which type -- ITEM_PLUG? Fix it when reiser4 syscall will 
-	   be ready. */
+	/* Absent. Add a new ".". */
 		
 	aal_memset(&hint, 0, sizeof(hint));
 
@@ -130,11 +126,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 			      mode)) < 0)
 		return res;
 	
-	/* FIXME-VITALY: this probably should be changed. Now hash plug that is
-	   used is taken from SD or the default one from @hint. Probably it
-	   would be better to do evth in vise versa order -- choose the hash
-	   found among the entries most of the times and correct hash plugin in
-	   SD. */
 	while (1) {
 		pos_t *pos = &dir->body.pos;
 		trans_hint_t trans;

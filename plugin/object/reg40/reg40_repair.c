@@ -166,7 +166,7 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 		{
 			reiser4_place_t next;
 
-			/* FIXME: join this code with dir40_next. */
+			/* This could be joint with dir40_next. */
 			if ((res = reg40_core->tree_ops.next_item(info->tree,
 								  &reg->body, 
 								  &next)))
