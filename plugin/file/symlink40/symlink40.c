@@ -52,7 +52,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 static object_entity_t *symlink40_open(const void *tree, 
 				       reiser4_place_t *place) 
 {
-	reiser4_key_t *pkey;
+	key_entity_t *key;
 	symlink40_t *symlink;
 
 	aal_assert("umka-1163", tree != NULL, return NULL);
@@ -61,13 +61,13 @@ static object_entity_t *symlink40_open(const void *tree,
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
 
-	pkey = &place->entity.key;
+	key = &place->entity.key;
 		
-	if (file40_init(&symlink->file, pkey, &symlink40_plugin, tree, core))
+	if (file40_init(&symlink->file, key, &symlink40_plugin, tree, core))
 		goto error_free_symlink;
 	
 	aal_memcpy(&symlink->file.statdata, place, sizeof(*place));
-	symlink->file.core->tree_ops.lock(tree, &symlink->file.statdata);
+	file40_lock(&symlink->file, &symlink->file.statdata);
     
 	return (object_entity_t *)symlink;
 
@@ -110,7 +110,7 @@ static object_entity_t *symlink40_create(const void *tree,
 	objectid = file40_objectid(&symlink->file);
 
 	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops, 
-				      get_locality, hint->parent.body);
+				      get_locality, &hint->parent);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))
@@ -126,8 +126,8 @@ static object_entity_t *symlink40_create(const void *tree,
     
 	stat_hint.key.plugin = hint->object.plugin;
 	
-	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops, assign, 
-		    stat_hint.key.body, hint->object.body);
+	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops,
+		    assign, &stat_hint.key, &hint->object);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |

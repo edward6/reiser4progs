@@ -15,7 +15,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *k
     aal_assert("vpf-616", parent->entity.plugin != NULL, return -1);
 
     if (reiser4_item_nodeptr(parent)) {
-	item_entity_t *item = &parent->entity;
+	item_entity_t *item = &parent->item;
 	reiser4_ptr_hint_t ptr;
 
 	if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
@@ -110,12 +110,12 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	/* Check that the item is legal for this node. If not, it will be 
 	 * deleted in update traverse callback method. */
 	if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
-	    item_legal, node->entity, coord.entity.plugin)))
+	    item_legal, node->entity, coord.item.plugin)))
 	    return res;
 
 	/* Check the item structure. */
-	if (coord.entity.plugin->item_ops.check) {
-	    if ((res = coord.entity.plugin->item_ops.check(&coord.entity)))
+	if (coord.item.plugin->item_ops.check) {
+	    if ((res = coord.item.plugin->item_ops.check(&coord.item)))
 		return res;
 	}
 
@@ -265,7 +265,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 	return -1;
     }
 
-    res = reiser4_key_compare(&d_key, &coord.entity.key);
+    res = reiser4_key_compare(&d_key, &coord.item.key);
     
     /* Left delimiting key should match the left key in the node. */
     if (res > 0) {
@@ -273,7 +273,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 	 * not legal */
 	aal_exception_error("Node (%llu): The first key %k is not equal to "
 	    "the left delimiting key %k.", node->blk, 
-	    &coord.entity.key, &d_key);
+	    &coord.item.key, &d_key);
 	return 1;
     } else if (res < 0) {
    	/* It is legal to have the left key in the node much then its left 
@@ -283,7 +283,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 	    aal_exception_error("Node (%llu): The left delimiting key %k in "
 		"the node (%llu), pos (%u/%u) mismatch the first key %k in the "
 		"node. Left delimiting key is fixed.", 
-		node->blk, &coord.entity.key, node->parent->blk, coord.pos.item, 
+		node->blk, &coord.item.key, node->parent->blk, coord.pos.item, 
 		coord.pos.unit, &d_key);
 	    if (repair_node_ld_key_update(node, &d_key)) 
 		return -1;

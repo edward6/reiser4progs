@@ -67,7 +67,7 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	aal_stream_format(stream, "NODEPTR: len=%u, KEY: ", item->len);
 		
 	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key.body, stream, options))
+			&item->key, stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",

@@ -48,7 +48,7 @@ static errno_t callback_preinsert(reiser4_coord_t *coord,
 
 	/* if true - the most right key of what is going to be inserted is 
 	 * greater then the key of the pos we found. */
-	if (reiser4_key_compare(&am->max_real_key, &coord->entity.key) >= 0)
+	if (reiser4_key_compare(&am->max_real_key, &coord->item.key) >= 0)
 	    return 1;
     }
     
@@ -98,8 +98,8 @@ static errno_t callback_preinsert(reiser4_coord_t *coord,
     if (!reiser4_item_nodeptr(&neigh))
 	return 1;
     
-    if (plugin_call(return -1, neigh.entity.plugin->item_ops, fetch, 
-	&neigh.entity, &ptr, neigh.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
+    if (plugin_call(return -1, neigh.item.plugin->item_ops, fetch, 
+	&neigh.item, &ptr, neigh.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
 	return -1;
     
     if (!(neigh.node = reiser4_node_open(neigh.node->device, ptr.ptr))) 
@@ -130,7 +130,7 @@ static errno_t callback_preinsert(reiser4_coord_t *coord,
     /* If the key of the coord is greater then the max key of what is going to be 
      * inserted, then the whole node could be inserted here. Split the neigh node 
      * and attach the node there. */
-    if (reiser4_key_compare(&am->max_real_key, &neigh.entity.key) >= 0)
+    if (reiser4_key_compare(&am->max_real_key, &neigh.item.key) >= 0)
 	return 1;
 
     if ((node = reiser4_tree_allocate(coord->node->tree, 
@@ -197,8 +197,8 @@ static errno_t callback_pstinsert(reiser4_coord_t *coord,
 	    units = reiser4_item_units(coord);
 
 	    for (i = 0; i < units; i++) {
-		if (plugin_call(return -1, coord->entity.plugin->item_ops,
-		    fetch, &coord->entity, &ptr, coord->pos.unit, 1) != 1)
+		if (plugin_call(return -1, coord->item.plugin->item_ops,
+		    fetch, &coord->item, &ptr, coord->pos.unit, 1) != 1)
 		    return -1;
 
 		aux_bitmap_mark_range(am->bm_used, ptr.ptr, ptr.width);

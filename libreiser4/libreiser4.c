@@ -85,7 +85,7 @@ static int tree_lookup(
 	coord = (reiser4_coord_t *)place;
 	
 	if (lookup == PRESENT) {
-		item_entity_t *item = &coord->entity;
+		item_entity_t *item = &coord->item;
 		object_entity_t *entity = coord->node->entity;
 		
 		if (plugin_call(return -1, entity->plugin->node_ops, 
@@ -95,7 +95,10 @@ static int tree_lookup(
 			return -1;
 		}
 
-		item->key.plugin = reiser4_key_guess(item->key.body);
+		if (reiser4_key_guess(&item->key)) {
+			aal_exception_error("Can't guess item key plugin.");
+			return -1;
+		}
 	}
 
 	return lookup;

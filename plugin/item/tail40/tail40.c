@@ -18,26 +18,26 @@ static uint32_t tail40_units(item_entity_t *item) {
 }
 
 /* Returns the key of the specified unit */
-static errno_t tail40_get_key(item_entity_t *item, uint32_t pos, 
-	reiser4_key_t *key) 
+static errno_t tail40_get_key(item_entity_t *item,
+			      uint32_t pos, 
+			      key_entity_t *key) 
 {
 	uint64_t offset;
-	uint32_t count;
+	uint32_t units;
 
 	aal_assert("vpf-626", item != NULL, return -1);
 	aal_assert("vpf-627", key != NULL, return -1);
 
-	count = tail40_units(item);
-
-	aal_assert("vpf-628", pos < count, return -1);
+	units = tail40_units(item);
+	aal_assert("vpf-628", pos < units, return -1);
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 
 	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key->body);
+			     get_offset, key);
 
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key->body, offset + pos);
+		    key, offset + pos);
 
 	return 0;
 }
@@ -157,7 +157,7 @@ static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,
 	aal_stream_format(stream, "TAIL: len=%u, KEY: ", item->len);
 		
 	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key.body, stream, options))
+			&item->key, stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
@@ -171,10 +171,10 @@ static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,
 #endif
 
 static errno_t tail40_max_poss_key(item_entity_t *item,
-				   reiser4_key_t *key) 
+				   key_entity_t *key) 
 {
 	uint64_t offset;
-	reiser4_body_t *maxkey;
+	key_entity_t *maxkey;
     
 	aal_assert("umka-1209", item != NULL, return -1);
 	aal_assert("umka-1210", key != NULL, return -1);
@@ -182,7 +182,7 @@ static errno_t tail40_max_poss_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 		
 	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key->body, item->key.body))
+			assign, key, &item->key))
 		return -1;
 	
 	maxkey = plugin_call(return -1, key->plugin->key_ops,
@@ -192,13 +192,13 @@ static errno_t tail40_max_poss_key(item_entity_t *item,
 			     get_offset, maxkey);
     
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key->body, offset);
+		    key, offset);
 
 	return 0;
 }
 
 static errno_t tail40_max_real_key(item_entity_t *item,
-				   reiser4_key_t *key) 
+				   key_entity_t *key) 
 {
 	uint64_t offset;
 
@@ -208,14 +208,14 @@ static errno_t tail40_max_real_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 	
 	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key->body, item->key.body))
+			assign, key, &item->key))
 		return -1;
 
 	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key->body);
+			     get_offset, key);
 	
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		key->body, offset + item->len - 1);
+		key, offset + item->len - 1);
 	
 	return 0;
 }
@@ -235,24 +235,26 @@ static int32_t tail40_fetch(item_entity_t *item, void *buff,
 	return count;
 }
 
-static int tail40_lookup(item_entity_t *item, reiser4_key_t *key, 
+static int tail40_lookup(item_entity_t *item,
+			 key_entity_t *key, 
 			 uint32_t *pos)
 {
 	uint32_t wanted;
 	uint32_t current;
     
-	reiser4_key_t curkey;
-	reiser4_key_t maxkey;
+	key_entity_t curkey;
+	key_entity_t maxkey;
     
 	aal_assert("umka-1228", item != NULL, return -1);
 	aal_assert("umka-1229", key != NULL, return -1);
 	aal_assert("umka-1230", pos != NULL, return -1);
 
 	maxkey.plugin = key->plugin;
+	
 	tail40_max_poss_key(item, &maxkey);
 
-	if (plugin_call(return -1, key->plugin->key_ops, compare,
-			key->body, maxkey.body) > 0)
+	if (plugin_call(return -1, key->plugin->key_ops,
+			compare, key, &maxkey) > 0)
 	{
 		*pos = item->len;
 		return 0;
@@ -261,14 +263,14 @@ static int tail40_lookup(item_entity_t *item, reiser4_key_t *key,
 	curkey.plugin = key->plugin;
 	
 	if (plugin_call(return -1, curkey.plugin->key_ops,
-			assign, curkey.body, item->key.body))
+			assign, &curkey, &item->key))
 		return -1;
 
 	current = plugin_call(return -1, key->plugin->key_ops,
-			      get_offset, curkey.body);
+			      get_offset, &curkey);
     
 	wanted = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key->body);
+			     get_offset, key);
     
 	if (wanted >= current && wanted < current + item->len) {
 		*pos = wanted - current;

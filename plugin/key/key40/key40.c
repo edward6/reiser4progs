@@ -8,10 +8,21 @@
 #include "key40.h"
 
 static reiser4_core_t *core = NULL;
+extern reiser4_plugin_t key40_plugin;
 
 static const char *const minor_names[] = {
 	"file name", "stat data", "attr name",
 	"attr body", "file body", "unknown"
+};
+
+static key_entity_t minimal_key = {
+	.plugin = &key40_plugin,
+	.body = { 0ull, 0ull, 0ull }
+};
+
+static key_entity_t maximal_key = {
+	.plugin = &key40_plugin,
+	.body = { ~0ull, ~0ull, ~0ull }
 };
 
 const char *key40_m2n(key40_minor_t type) {
@@ -22,7 +33,7 @@ const char *key40_m2n(key40_minor_t type) {
 }
 
 /* Translates key type from libreiser4 type to key40 one */
-static key40_minor_t key40_t2m(reiser4_key_type_t type) {
+static key40_minor_t key40_t2m(key_type_t type) {
 	switch (type) {
 	case KEY_FILENAME_TYPE:
 		return KEY40_FILENAME_MINOR;
@@ -35,13 +46,14 @@ static key40_minor_t key40_t2m(reiser4_key_type_t type) {
 	case KEY_FILEBODY_TYPE:
 		return KEY40_FILEBODY_MINOR;
 	default:
-		aal_exception_error("Invalid key type has been detected 0x%x.", type);
+		aal_exception_error("Invalid key type has been "
+				    "detected 0x%x.", type);
 		return 0xff;
 	}
 }
 
 /* Translates key type from key40 to libreiser4 one */
-static reiser4_key_type_t key40_m2t(key40_minor_t minor) {
+static key_type_t key40_m2t(key40_minor_t minor) {
 	switch (minor) {
 	case KEY40_FILENAME_MINOR:
 		return KEY_FILENAME_TYPE;
@@ -60,24 +72,17 @@ static reiser4_key_type_t key40_m2t(key40_minor_t minor) {
 	}
 }
 
-static const key40_t MINIMAL_KEY = {
-	.el = { 0ull, 0ull, 0ull }
-};
-
-static const key40_t MAXIMAL_KEY = {
-	.el = { ~0ull, ~0ull, ~0ull }
-};
-
-static reiser4_body_t *key40_minimal(void) {
-	return (key40_t *)&MINIMAL_KEY;
+static key_entity_t *key40_minimal(void) {
+	return &minimal_key;
 }
 
-static reiser4_body_t *key40_maximal(void) {
-	return (key40_t *)&MAXIMAL_KEY;
+static key_entity_t *key40_maximal(void) {
+	return &maximal_key;
 }
 
-static int key40_compare_short(key40_t *key1, 
-			       key40_t *key2) 
+static int key40_compare_short(
+	key40_t *key1, 
+	key40_t *key2) 
 {
 	int result;
 
@@ -87,126 +92,140 @@ static int key40_compare_short(key40_t *key1,
 	return k40_comp_el(key1, key2, 1);
 }
 
-static int key40_compare(reiser4_body_t *body1, 
-			 reiser4_body_t *body2) 
+static int key40_compare(
+	key_entity_t *key1, 
+	key_entity_t *key2) 
 {
 	int result;
-	key40_t *key1, *key2;
+	key40_t *body1, *body2;
 
-	aal_assert("vpf-135", body1 != NULL, return -1);
-	aal_assert("vpf-136", body2 != NULL, return -1);
+	aal_assert("vpf-135", key1 != NULL, return -1);
+	aal_assert("vpf-136", key2 != NULL, return -1);
     
-	key1 = (key40_t *)body1;
-	key2 = (key40_t *)body2;
+	body1 = (key40_t *)key1->body;
+	body2 = (key40_t *)key2->body;
     
-	if ((result = key40_compare_short(key1, key2)) != 0)
+	if ((result = key40_compare_short(body1, body2)) != 0)
 		return result;
 
-	return k40_comp_el(key1, key2, 2);
+	return k40_comp_el(body1, body2, 2);
 }
 
-static errno_t key40_assign(reiser4_body_t *dst, 
-			    reiser4_body_t *src)
+static errno_t key40_assign(
+	key_entity_t *dst,
+	key_entity_t *src)
 {
 	aal_assert("umka-1110", dst != NULL, return -1);
 	aal_assert("umka-1111", src != NULL, return -1);
 
-	aal_memcpy(dst, src, sizeof(key40_t));
-
+	if (dst->plugin->h.id != src->plugin->h.id)
+		return -1;
+	
+	aal_memcpy(dst->body, src->body, sizeof(key40_t));
 	return 0;
 }
 
-static int key40_confirm(reiser4_body_t *body) {
-	aal_assert("vpf-137", body != NULL, return -1);
-	return 1;
+static int key40_confirm(key_entity_t *key) {
+	key40_minor_t minor;
+	
+	aal_assert("vpf-137", key != NULL, return -1);
+	minor = k40_get_minor((key40_t *)key->body);
+
+	return minor < KEY40_LAST_MINOR;
 }
 
-static errno_t key40_valid(reiser4_body_t *body) {
-	aal_assert("vpf-243", body != NULL, return -1);
+static errno_t key40_valid(key_entity_t *key) {
+	uint8_t band;
+	key40_minor_t minor;
+	
+	aal_assert("vpf-243", key != NULL, return -1);
 
-	if (k40_get_minor((key40_t *)body) >= KEY40_LAST_MINOR)
+	if (!key40_confirm(key))
 		return -1;
-        
-	if ((k40_get_minor((key40_t *)body) == KEY40_FILENAME_MINOR && 
-	     k40_get_band(body) == 1) || k40_get_band(body) == 0)
+	
+	minor = k40_get_minor((key40_t *)key->body);
+	band = k40_get_band((key40_t *)key->body);
+	
+	if ((minor == KEY40_FILENAME_MINOR && band == 1) || band == 0)
 		return 0;
 
 	return -1;
 }
 
-static void key40_set_type(reiser4_body_t *body, 
-			   reiser4_key_type_t type)
+static void key40_set_type(
+	key_entity_t *key, 
+	key_type_t type)
 {
-	aal_assert("umka-634", body != NULL, return);
-	k40_set_minor((key40_t *)body, key40_t2m(type));
+	aal_assert("umka-634", key != NULL, return);
+	k40_set_minor((key40_t *)key->body, key40_t2m(type));
 }
 
-static reiser4_key_type_t key40_get_type(reiser4_body_t *body) {
-	aal_assert("umka-635", body != NULL, return 0);
-	return key40_m2t(k40_get_minor((key40_t *)body));
+static key_type_t key40_get_type(key_entity_t *key) {
+	aal_assert("umka-635", key != NULL, return 0);
+	return key40_m2t(k40_get_minor((key40_t *)key->body));
 }
 
-static void key40_set_locality(reiser4_body_t *body, 
-			       roid_t locality) 
+static void key40_set_locality(
+	key_entity_t *key, 
+	uint64_t locality) 
 {
-	aal_assert("umka-636", body != NULL, return);
-	k40_set_locality((key40_t *)body, (uint64_t)locality);
+	aal_assert("umka-636", key != NULL, return);
+	k40_set_locality((key40_t *)key->body, locality);
 }
 
-static roid_t key40_get_locality(reiser4_body_t *body) {
-	aal_assert("umka-637", body != NULL, return 0);
-	return (roid_t)k40_get_locality((key40_t *)body);
+static uint64_t key40_get_locality(key_entity_t *key) {
+	aal_assert("umka-637", key != NULL, return 0);
+	return k40_get_locality((key40_t *)key->body);
 }
     
-static void key40_set_objectid(reiser4_body_t *body, 
-			       roid_t objectid) 
+static void key40_set_objectid(key_entity_t *key, 
+			       uint64_t objectid) 
 {
-	aal_assert("umka-638", body != NULL, return);
-	k40_set_objectid((key40_t *)body, (uint64_t)objectid);
+	aal_assert("umka-638", key != NULL, return);
+	k40_set_objectid((key40_t *)key->body, objectid);
 }
 
-static roid_t key40_get_objectid(reiser4_body_t *body) {
-	aal_assert("umka-639", body != NULL, return 0);
-	return (roid_t)k40_get_objectid((key40_t *)body);
+static roid_t key40_get_objectid(key_entity_t *key) {
+	aal_assert("umka-639", key != NULL, return 0);
+	return k40_get_objectid((key40_t *)key->body);
 }
 
-static void key40_set_offset(reiser4_body_t *body, 
+static void key40_set_offset(key_entity_t *key, 
 			     uint64_t offset)
 {
-	aal_assert("umka-640", body != NULL, return);
-	k40_set_offset((key40_t *)body, offset);
+	aal_assert("umka-640", key != NULL, return);
+	k40_set_offset((key40_t *)key->body, offset);
 }
 
-static uint64_t key40_get_offset(reiser4_body_t *body) {
-	aal_assert("umka-641", body != NULL, return 0);
-	return k40_get_offset((key40_t *)body);
+static uint64_t key40_get_offset(key_entity_t *key) {
+	aal_assert("umka-641", key != NULL, return 0);
+	return k40_get_offset((key40_t *)key->body);
 }
 
-static void key40_set_hash(reiser4_body_t *body, 
+static void key40_set_hash(key_entity_t *key, 
 			   uint64_t hash)
 {
-	aal_assert("vpf-129", body != NULL, return);
-	k40_set_hash((key40_t *)body, hash);
+	aal_assert("vpf-129", key != NULL, return);
+	k40_set_hash((key40_t *)key->body, hash);
 }
 
-static uint64_t key40_get_hash(reiser4_body_t *body) {
-	aal_assert("vpf-130", body != NULL, return 0);
-	return k40_get_hash((key40_t *)body);
+static uint64_t key40_get_hash(key_entity_t *key) {
+	aal_assert("vpf-130", key != NULL, return 0);
+	return k40_get_hash((key40_t *)key->body);
 }
 
-static void key40_clean(reiser4_body_t *body) {
-	aal_assert("vpf-139", body != NULL, return);
-	aal_memset(body, 0, sizeof(key40_t));
+static void key40_clean(key_entity_t *key) {
+	aal_assert("vpf-139", key != NULL, return);
+	aal_memset(key->body, 0, sizeof(key40_t));
 }
 
-static uint64_t key40_pack_string(const char *name, 
-				  uint32_t start) 
+static uint64_t key40_pack_string(
+	const char *name, 
+	uint32_t start) 
 {
 	unsigned i;
 	uint64_t str;
 
-	aal_assert("vpf-134", name != NULL, return 0);
-    
 	str = 0;
 	for (i = 0; (i < sizeof(str) - start) && name[i]; ++i) {
 		str <<= 8;
@@ -217,25 +236,23 @@ static uint64_t key40_pack_string(const char *name,
 	return str;
 }
 
-static errno_t key40_build_hash(key40_t *key, reiser4_plugin_t *hash_plugin,
+static errno_t key40_build_hash(key_entity_t *key,
+				reiser4_plugin_t *hash,
 				const char *name) 
 {
 	uint16_t len;
-	roid_t objectid, offset;
+	uint64_t objectid, offset;
     
 	aal_assert("vpf-101", key != NULL, return -1);
 	aal_assert("vpf-102", name != NULL, return -1);
-	aal_assert("vpf-128", hash_plugin != NULL, return -1); 
+	aal_assert("vpf-128", hash != NULL, return -1); 
     
 	len = aal_strlen(name);
     
 	if (len == 1 && name[0] == '.')
 		return 0;
     
-	/* 
-	   Not dot, pack the first part of the name into 
-	   objectid.
-	*/
+	/* Not dot, pack the first part of the name into objectid */
 	objectid = key40_pack_string(name, 1);
     
 	if (len <= OID_CHARS + sizeof(uint64_t)) {
@@ -249,104 +266,126 @@ static errno_t key40_build_hash(key40_t *key, reiser4_plugin_t *hash_plugin,
 			offset = key40_pack_string(name + OID_CHARS, 0);
 		}
 	} else {
+
+		/* Build hash */
+		if (!hash->hash_ops.build)
+			return -1;
+		
 		objectid |= 0x0100000000000000ull;
-		offset = hash_plugin->hash_ops.build((const char *)(name + OID_CHARS),
-						     aal_strlen(name) - OID_CHARS);
+		offset = hash->hash_ops.build((const char *)(name + OID_CHARS),
+						aal_strlen(name) - OID_CHARS);
 	}
 
 	aal_assert("umka-1499", !(objectid & ~KEY40_OBJECTID_MASK), return -1);
-	
+
+	/* Setting up objectid and offset */
 	key40_set_objectid(key, objectid);
 	key40_set_offset(key, offset);
 
 	return 0;
 }
 
-static errno_t key40_build_direntry(reiser4_body_t *body, reiser4_plugin_t *hash_plugin,
-				    roid_t locality, roid_t objectid, const char *name) 
+static errno_t key40_build_direntry(key_entity_t *key,
+				    reiser4_plugin_t *hash,
+				    uint64_t locality,
+				    uint64_t objectid,
+				    const char *name) 
 {
-	key40_t *key = (key40_t *)body;
-    
-	aal_assert("vpf-140", body != NULL, return -1);
+	aal_assert("vpf-140", key != NULL, return -1);
 	aal_assert("umka-667", name != NULL, return -1);
-	aal_assert("umka-1006", hash_plugin != NULL, return -1);
-    
-	key40_clean(key);
-
-	k40_set_locality(key, objectid);
-	k40_set_minor(key, KEY40_FILENAME_MINOR);
-    
-	key40_build_hash(key, hash_plugin, name);
-
-	return 0;
-}
-
-static errno_t key40_build_entryid(reiser4_body_t *body, 
-				   reiser4_plugin_t *hash_plugin, const char *name) 
-{
-	key40_t key;    
-    
-	aal_assert("vpf-142", body != NULL, return -1);
-    
-	key40_clean(&key);
-	key40_build_hash(&key, hash_plugin, name);
-    
-	aal_memset(body, 0, sizeof(uint64_t)*2);
-	aal_memcpy(body, &key.el[1], sizeof(uint64_t)*2);
-
-	return 0;
-}
-
-static errno_t key40_build_generic(reiser4_body_t *body, reiser4_key_type_t type,
-				   roid_t locality, roid_t objectid, uint64_t offset) 
-{
-	key40_t *key = (key40_t *)body;
-    
-	aal_assert("vpf-141", body != NULL, return -1);
+	aal_assert("umka-1006", hash != NULL, return -1);
 
 	key40_clean(key);
+
+	key40_set_locality(key, objectid);
+	key40_set_type(key, key40_m2t(KEY40_FILENAME_MINOR));
     
-	k40_set_locality(key, locality);
-	k40_set_objectid(key, objectid);
-	k40_set_minor(key, key40_t2m(type));
-	k40_set_offset(key, offset);
+	return key40_build_hash(key, hash, name);
+}
+
+static errno_t key40_build_entryid(key_entity_t *key, 
+				   reiser4_plugin_t *hash,
+				   const char *name) 
+{
+	key40_t *body;
+	key_entity_t dumb;
+    
+	aal_assert("vpf-142", key != NULL, return -1);
+	aal_assert("umka-1755", hash != NULL, return -1);
+    
+	key40_clean(&dumb);
+
+	if (key40_build_hash(&dumb, hash, name))
+		return -1;
+
+	body = (key40_t *)dumb.body;
+	aal_memset(key->body, 0, sizeof(uint64_t) * 2);
+	aal_memcpy(key->body, &body->el[1], sizeof(uint64_t) * 2);
 
 	return 0;
 }
 
-static errno_t key40_build_objid(reiser4_body_t *body, reiser4_key_type_t type,
-				 roid_t locality, roid_t objectid)
+static errno_t key40_build_generic(
+	key_entity_t *key,
+	key_type_t type,
+	uint64_t locality,
+	uint64_t objectid,
+	uint64_t offset) 
 {
-	key40_t key;
-    
-	aal_assert("vpf-143", body != NULL, return -1);
-    
-	key40_clean(&key);
+	key40_t *body;
 
-	k40_set_locality(&key, locality);
-	k40_set_minor(&key, key40_t2m(type));
-	k40_set_objectid(&key, objectid);
+	aal_assert("vpf-141", key != NULL, return -1);
+
+	key40_clean(key);
     
-	aal_memset(body, 0, sizeof(uint64_t)*2);
-	aal_memcpy(body, &key, sizeof(uint64_t)*2);
+	body = (key40_t *)key->body;
+	k40_set_locality(body, locality);
+	k40_set_objectid(body, objectid);
+	k40_set_minor(body, key40_t2m(type));
+	k40_set_offset(body, offset);
+
+	return 0;
+}
+
+static errno_t key40_build_objid(
+	key_entity_t *key,
+	key_type_t type,
+	uint64_t locality,
+	uint64_t objectid)
+{
+	key40_t *body;
+	key_entity_t dumb;
+    
+	aal_assert("vpf-143", key != NULL, return -1);
+    
+	key40_clean(&dumb);
+
+	body = (key40_t *)dumb.body;
+	
+	k40_set_locality(body, locality);
+	k40_set_objectid(body, objectid);
+	k40_set_minor(body, key40_t2m(type));
+    
+	aal_memset(key->body, 0, sizeof(uint64_t) * 2);
+	aal_memcpy(key->body, body, sizeof(uint64_t) * 2);
 
 	return 0;
 }
 
 #ifndef ENABLE_COMPACT
 
-errno_t key40_print(reiser4_body_t *body, aal_stream_t *stream,
-		    uint16_t options) 
+errno_t key40_print(
+	key_entity_t *key,
+	aal_stream_t *stream,
+	uint16_t options) 
 {
-	key40_t *key = (key40_t *)body;
-    
 	aal_assert("vpf-191", key != NULL, return -1);
 	aal_assert("umka-1548", stream != NULL, return -1);
 
 	aal_stream_format(stream, "[ key40 %llx:%x:%llx:%llx %s ]",
-			  key40_get_locality(body), key40_get_type(body),
-			  key40_get_objectid(body), key40_get_offset(body),
-			  key40_m2n(key40_get_type(body)));
+			  key40_get_locality(key), key40_get_type(key),
+			  key40_get_objectid(key), key40_get_offset(key),
+			  key40_m2n(key40_get_type(key)));
 
 	return 0;
 }

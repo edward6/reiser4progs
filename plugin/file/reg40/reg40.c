@@ -23,7 +23,7 @@ extern reiser4_plugin_t reg40_plugin;
 
 static errno_t reg40_reset(object_entity_t *entity) {
 	uint64_t size;
-	reiser4_key_t key;
+	key_entity_t key;
 
 	reg40_t *reg = (reg40_t *)entity;
 	reiser4_level_t stop = {LEAF_LEVEL, TWIG_LEVEL};
@@ -35,7 +35,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	
 	key.plugin = reg->file.key.plugin;
 	
-	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body,
+	plugin_call(return -1, key.plugin->key_ops, build_generic, &key,
 		    KEY_FILEBODY_TYPE, file40_locality(&reg->file),
 		    file40_objectid(&reg->file), 0);
     
@@ -58,14 +58,14 @@ static errno_t reg40_reset(object_entity_t *entity) {
 /* Updates body coord in correspond to file offset */
 static errno_t reg40_next(reg40_t *reg) {
 	errno_t res;
-	reiser4_key_t key;
+	key_entity_t key;
 	reiser4_place_t place;
 
 	reiser4_level_t stop = {LEAF_LEVEL, TWIG_LEVEL};
 
 	key.plugin = reg->file.key.plugin;
 	
-	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body,
+	plugin_call(return -1, key.plugin->key_ops, build_generic, &key,
 		    KEY_FILEBODY_TYPE, file40_locality(&reg->file), 
 		    file40_objectid(&reg->file), reg->offset);
 
@@ -125,7 +125,7 @@ static int32_t reg40_read(object_entity_t *entity,
 
 		/* Getting item's key offset */
 		offset = plugin_call(return -1, item->key.plugin->key_ops,
-				     get_offset, item->key.body);
+				     get_offset, &item->key);
 
 		/* Calculating in-item local offset */
 		offset = reg->offset - offset;
@@ -151,7 +151,7 @@ static object_entity_t *reg40_open(const void *tree,
 				   reiser4_place_t *place) 
 {
 	reg40_t *reg;
-	reiser4_key_t *pkey;
+	key_entity_t *key;
 
 	aal_assert("umka-1163", tree != NULL, return NULL);
 	aal_assert("umka-1164", place != NULL, return NULL);
@@ -159,9 +159,9 @@ static object_entity_t *reg40_open(const void *tree,
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
-	pkey = &place->entity.key;
+	key = &place->entity.key;
 	
-	if (file40_init(&reg->file, pkey, &reg40_plugin, tree, core))
+	if (file40_init(&reg->file, key, &reg40_plugin, tree, core))
 		goto error_free_reg;
 	
 	aal_memcpy(&reg->file.statdata, place, sizeof(*place));
@@ -216,7 +216,7 @@ static object_entity_t *reg40_create(const void *tree,
     	objectid = file40_objectid(&reg->file);
 
 	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops, 
-				      get_locality, hint->parent.body);
+				      get_locality, &hint->parent);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))
@@ -233,7 +233,7 @@ static object_entity_t *reg40_create(const void *tree,
 	stat_hint.key.plugin = hint->object.plugin;
 	
 	plugin_call(goto error_free_reg, hint->object.plugin->key_ops, assign, 
-		    stat_hint.key.body, hint->object.body);
+		    &stat_hint.key, &hint->object);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
@@ -315,7 +315,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
-	reiser4_key_t key;
+	key_entity_t key;
 	layout_hint_t hint;
 	
 	aal_assert("umka-1471", entity != NULL, return -1);
@@ -341,7 +341,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 			    item, &key);
 		
 		reg->offset = plugin_call(return -1, key.plugin->key_ops,
-					  get_offset, key.body) + 1;
+					  get_offset, &key) + 1;
 		
 		reg40_next(reg);
 	}
@@ -354,7 +354,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 			      void *data)
 {
 	errno_t res;
-	reiser4_key_t key;
+	key_entity_t key;
 	uint64_t size, offset;
 	
 	reg40_t *reg = (reg40_t *)entity;
@@ -378,7 +378,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 			    item, &key);
 
 		reg->offset = plugin_call(return -1, key.plugin->key_ops,
-					  get_offset, key.body) + 1;
+					  get_offset, &key) + 1;
 
 		reg40_next(reg);
 	}

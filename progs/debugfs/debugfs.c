@@ -222,8 +222,6 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 	reiser4_node_traverse(fs->tree->root, &hint, print_open_node, 
 			      print_process_node, NULL, NULL, NULL);
     
-	printf("\n");
-    
 	return 0;
 }
 
@@ -376,8 +374,8 @@ static errno_t tfrag_process_node(
 		if (reiser4_item_extent(&coord)) {
 			for (pos.unit = 0; pos.unit < reiser4_item_units(&coord); pos.unit++) {
 				
-				plugin_call(continue, coord.entity.plugin->item_ops,
-					    fetch, &coord.entity, &ptr, pos.unit, 1);
+				plugin_call(continue, coord.item.plugin->item_ops,
+					    fetch, &coord.item, &ptr, pos.unit, 1);
 
 				if (ptr.ptr == 0)
 					continue;
@@ -391,8 +389,8 @@ static errno_t tfrag_process_node(
 				frag_hint->total += ptr.width;
 			}
 		} else {
-			plugin_call(continue, coord.entity.plugin->item_ops,
-				    fetch, &coord.entity, &ptr, pos.unit, 1);
+			plugin_call(continue, coord.item.plugin->item_ops,
+				    fetch, &coord.item, &ptr, pos.unit, 1);
 
 			delta = frag_hint->curr - ptr.ptr;
 
@@ -538,7 +536,7 @@ static errno_t stat_process_node(
 			if (!reiser4_item_extent(&coord))
 				continue;
 
-			item = &coord.entity;
+			item = &coord.item;
 				
 			units = plugin_call(return -1, item->plugin->item_ops,
 					    units, item);

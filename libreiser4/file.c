@@ -17,12 +17,11 @@ static errno_t callback_guess_file(
 	reiser4_plugin_t *plugin,	    /* plugin to be checked */
 	void *data)			    /* item ot be checked */
 {
-	if (plugin->h.type == FILE_PLUGIN_TYPE) {
-		return plugin_call(return 0, plugin->file_ops, confirm,
-				   (reiser4_place_t *)data);
-	}
-    
-	return 0;
+	if (plugin->h.type != FILE_PLUGIN_TYPE)
+		return 0;
+	
+	return plugin_call(return 0, plugin->file_ops, confirm,
+			   (reiser4_place_t *)data);
 }
 
 /* 
@@ -202,7 +201,7 @@ reiser4_file_t *reiser4_file_open(
 	aal_strncpy(file->name, name, sizeof(file->name));
 
 	key = &fs->tree->key;
-	reiser4_key_init(&file->key, key->plugin, key->body);
+	reiser4_key_assign(&file->key, key);
     
 	/* 
 	   Getting the file's stat data key by means of parsing its path. I
@@ -307,11 +306,11 @@ reiser4_file_t *reiser4_file_create(
 	   create root directory.
 	*/
 	if (parent) {
-		reiser4_key_init(&hint->parent, parent->key.plugin, parent->key.body);
+		reiser4_key_assign(&hint->parent, &parent->key);
 		objectid = reiser4_oid_allocate(parent->fs->oid);
 	} else {
 		roid_t root_locality = reiser4_oid_root_locality(fs->oid);
-		roid_t root_parent_locality = reiser4_oid_root_parent_locality(fs->oid);
+		roid_t root_parent_locality = reiser4_oid_hyper_locality(fs->oid);
 		
 		hint->parent.plugin = fs->tree->key.plugin;
 		reiser4_key_build_generic(&hint->parent, KEY_STATDATA_TYPE, 
@@ -328,7 +327,7 @@ reiser4_file_t *reiser4_file_create(
 	reiser4_key_build_generic(&hint->object, KEY_STATDATA_TYPE,
 				  locality, objectid, 0);
     
-	reiser4_key_init(&file->key, hint->object.plugin, hint->object.body);
+	reiser4_key_assign(&file->key, &hint->object);
     
 	/* Creating entry in parent */
 	if (parent) {   

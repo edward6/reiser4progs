@@ -398,7 +398,7 @@ int reiser4_tree_lookup(
 	reiser4_level_t *level,	/* stop level for search */
 	reiser4_coord_t *coord)	/* coord of found item */
 {
-	int lookup, deep;
+	int result, deep;
 
 	reiser4_coord_t fake;
 	reiser4_pos_t pos = {0, ~0ul};
@@ -431,22 +431,22 @@ int reiser4_tree_lookup(
 		  Looking up for key inside node. Result of lookuping will be
 		  stored in &coord->pos.
 		*/
-		if ((lookup = reiser4_node_lookup(node, key, &coord->pos)) == -1)
+		if ((result = reiser4_node_lookup(node, key, &coord->pos)) == -1)
 			return -1;
 
 		if (reiser4_node_items(node) == 0)
-			return lookup;
+			return result;
 
 		/* Check if we should finish lookup because we reach stop level */
 		if (deep <= level->top) {
 			
-			if (lookup == 1)
+			if (result == 1)
 				reiser4_coord_realize(coord);
 			
-			return lookup;
+			return result;
 		}
 		
-		if (lookup == 0 && coord->pos.item > 0)
+		if (result == 0 && coord->pos.item > 0)
 			coord->pos.item--;
 				
 		if (reiser4_coord_realize(coord)) {
@@ -457,9 +457,9 @@ int reiser4_tree_lookup(
 		}
 
 		if (!reiser4_item_nodeptr(coord))
-			return deep <= level->bottom ? lookup : 0;
+			return deep <= level->bottom ? result : 0;
 		
-		item = &coord->entity;
+		item = &coord->item;
 		
 		/* Getting the node pointer from internal item */
 		plugin_call(return -1, item->plugin->item_ops, fetch, item, 
@@ -520,7 +520,7 @@ errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
 	reiser4_node_t *node)       /* child to attached */
 {
-	int lookup;
+	int result;
 
 	errno_t res;
 	reiser4_level_t stop;
@@ -564,9 +564,9 @@ errno_t reiser4_tree_attach(
 		reiser4_tree_grow(tree);
 		
 	/* Looking up for the insert coord */
-	if ((lookup = reiser4_tree_lookup(tree, &hint.key, &stop, &coord))) {
+	if ((result = reiser4_tree_lookup(tree, &hint.key, &stop, &coord))) {
 
-		if (lookup == FAILED) {
+		if (result == FAILED) {
 			aal_stream_t stream = EMPTY_STREAM;
 			reiser4_key_print(&hint.key, &stream);
 
@@ -576,7 +576,7 @@ errno_t reiser4_tree_attach(
 			aal_stream_fini(&stream);
 		}
 
-		return lookup;
+		return result;
 	}
 
 	if ((res = reiser4_tree_insert(tree, &coord, &hint))) {

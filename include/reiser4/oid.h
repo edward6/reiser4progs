@@ -38,7 +38,7 @@ extern uint64_t reiser4_oid_used(reiser4_oid_t *oid);
 
 extern roid_t reiser4_oid_root_locality(reiser4_oid_t *oid);
 extern roid_t reiser4_oid_root_objectid(reiser4_oid_t *oid);
-extern roid_t reiser4_oid_root_parent_locality(reiser4_oid_t *oid);
+extern roid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid);
 
 #endif
 

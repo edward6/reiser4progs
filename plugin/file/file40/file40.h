@@ -31,7 +31,7 @@ struct file40 {
 	   The key of stat data (or just first item if stat data doesn't exists)
 	   for this directory.
 	*/
-	reiser4_key_t key;
+	key_entity_t key;
 
 	/* Stat data coord stored here */
 	reiser4_place_t statdata;
@@ -55,7 +55,7 @@ extern errno_t file40_set_mode(reiser4_place_t *place, uint16_t mode);
 extern uint64_t file40_get_size(reiser4_place_t *place);
 extern errno_t file40_set_size(reiser4_place_t *place, uint64_t size);
 
-extern errno_t file40_init(file40_t *file, reiser4_key_t *key,
+extern errno_t file40_init(file40_t *file, key_entity_t *key,
 			   reiser4_plugin_t *plugin, const void *tree,
 			   reiser4_core_t *core);
 

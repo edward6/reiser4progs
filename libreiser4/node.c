@@ -454,8 +454,8 @@ static reiser4_node_t *reiser4_node_fnn(
 		if (!reiser4_item_nodeptr(&coord))
 			return NULL;
 			
-		plugin_call(return NULL, coord.entity.plugin->item_ops,
-			    fetch, &coord.entity, &ptr, 0, 1);
+		plugin_call(return NULL, coord.item.plugin->item_ops,
+			    fetch, &coord.item, &ptr, 0, 1);
 
 		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
 			child = reiser4_tree_load(node->tree, ptr.ptr);
@@ -609,7 +609,7 @@ int reiser4_node_lookup(
 	reiser4_key_t *key,	/* key to be find */
 	reiser4_pos_t *pos)	/* found pos will be stored here */
 {
-	int lookup;
+	int result;
 
 	item_entity_t *item;
 	reiser4_key_t maxkey;
@@ -626,7 +626,7 @@ int reiser4_node_lookup(
 		return 0;
    
 	/* Calling node plugin */
-	if ((lookup = plugin_call(return -1, node->entity->plugin->node_ops,
+	if ((result = plugin_call(return -1, node->entity->plugin->node_ops,
 				  lookup, node->entity, key, pos)) == -1) 
 	{
 		aal_exception_error("Lookup in the node %llu failed.",
@@ -634,7 +634,7 @@ int reiser4_node_lookup(
 		return -1;
 	}
 
-	if (lookup == 1)
+	if (result == 1)
 		return 1;
 
 	/* Initializing item coord points to */
@@ -644,7 +644,7 @@ int reiser4_node_lookup(
 		return -1;
 	}
 
-	item = &coord.entity;
+	item = &coord.item;
 
 	/*
 	  We are on the position where key is less then wanted. Key could lies
@@ -666,13 +666,13 @@ int reiser4_node_lookup(
 	if (!item->plugin->item_ops.lookup)
 		return 0;
 
-	if ((lookup = item->plugin->item_ops.lookup(item, key, &pos->unit)) == -1) {
+	if ((result = item->plugin->item_ops.lookup(item, key, &pos->unit)) == -1) {
 		aal_exception_error("Lookup in the item %d in the node %llu failed.", 
 				    pos->item, node->blk);
 		return -1;
 	}
 
-	return lookup;
+	return result;
 }
 
 /* Returns real item count in specified node */
@@ -842,8 +842,8 @@ errno_t reiser4_node_shift(
 
 		for (ppos.unit = 0; ppos.unit < units; ppos.unit++) {
 			
-			plugin_call(return -1, coord.entity.plugin->item_ops,
-				    fetch, &coord.entity, &ptr, ppos.unit, 1);
+			plugin_call(return -1, coord.item.plugin->item_ops,
+				    fetch, &coord.item, &ptr, ppos.unit, 1);
 			
 			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
 				continue;
@@ -1065,7 +1065,7 @@ errno_t reiser4_node_remove(
 		if (reiser4_item_get_key(&coord, NULL))
 			return -1;
 
-		if ((child = reiser4_node_cbk(node, &coord.entity.key)))
+		if ((child = reiser4_node_cbk(node, &coord.item.key)))
 			reiser4_node_detach(node, child);
 	}
 
@@ -1159,8 +1159,8 @@ errno_t reiser4_node_traverse(
 			reiser4_ptr_hint_t ptr;
 
 			/* Fetching node ptr */
-			plugin_call(continue, coord.entity.plugin->item_ops,
-				    fetch, &coord.entity, &ptr, pos->unit, 1);
+			plugin_call(continue, coord.item.plugin->item_ops,
+				    fetch, &coord.item, &ptr, pos->unit, 1);
 		
 			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {
 				child = NULL;

@@ -3,10 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* splitt reg40_read into few separate and simple functions.
-
-* print_item method in node plugin.
-
 * --print-journal and --print-alloc options in debugfs.
 
 * something like "print_block" method for format, journal and block
@@ -18,7 +14,7 @@ reiser4progs/COPYING.
 
 * copy bitmap functions Vitaly need.
 
-* apply big digits stat data fields storing format changes.
+* big digits stat data fields storing format change.
 
 * update parent directory fields (nlink, etc) when creating file or
   directories.
@@ -35,9 +31,9 @@ reiser4progs/COPYING.
 * return value from the all low level plugin functions should be raised 
   up to the libreiser4 level.
 
-* debug tree remove functions.
+* debug tree remove function.
 
-* add overwriting ability to balancing code.
+* add overwriting ability.
 
 * FIBMAP ioctl implementation in reiser4.
 
@@ -45,4 +41,8 @@ reiser4progs/COPYING.
 
 * copy methods in node API.
 
-* reiser4_file_print function
+* reiser4_file_print function.
+
+* reiser4_tree_splitt function.
+
+* put key_entity_t into entry hint instead of entryid, etc.

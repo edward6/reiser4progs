@@ -28,8 +28,8 @@ static errno_t callback_ptr_handler(reiser4_coord_t *coord, void *data) {
 
     aal_assert("vpf-567", ts->bm_met != NULL, return -1);
  
-    if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	fetch, &coord->entity, &ptr, coord->pos.unit, 1) != 1)
+    if (plugin_call(return -1, coord->item.plugin->item_ops,
+	fetch, &coord->item, &ptr, coord->pos.unit, 1) != 1)
 	return -1;
 
     /* This must be fixed at the first pass. */
@@ -224,8 +224,8 @@ static errno_t repair_ts_ovrl_add(reiser4_coord_t *coord, repair_data_t *rd) {
 
     ovrl = aal_malloc(sizeof(*ovrl));
     
-    if (plugin_call(goto error_free_ovrl, coord->entity.plugin->item_ops, fetch, 
-	&coord->entity, coord->pos.unit, &ovrl->ptr, 1) != 1)
+    if (plugin_call(goto error_free_ovrl, coord->item.plugin->item_ops, fetch, 
+	&coord->item, coord->pos.unit, &ovrl->ptr, 1) != 1)
 	goto error_free_ovrl;
 
     ovrl->node = coord->node;

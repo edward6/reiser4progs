@@ -148,17 +148,19 @@ uint16_t node40_items(object_entity_t *entity) {
 }
 
 /* Returns key at passed @pos */
-static errno_t node40_get_key(object_entity_t *entity, reiser4_pos_t *pos,
-			      reiser4_key_t *key) 
+static errno_t node40_get_key(object_entity_t *entity,
+			      reiser4_pos_t *pos,
+			      key_entity_t *key) 
 {
+	uint32_t items;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-821", key != NULL, return -1);
-	aal_assert("vpf-009", node != NULL, return -1);
 	aal_assert("umka-939", pos != NULL, return -1);
+	aal_assert("vpf-009", node != NULL, return -1);
 
-	aal_assert("umka-810", pos->item < 
-		   nh40_get_num_items(node), return -1);
+	items = nh40_get_num_items(node);
+	aal_assert("umka-810", pos->item < items, return -1);
     
 	aal_memcpy(key->body, &(node40_ih_at(node, pos->item)->key), 
 		   sizeof(key40_t));
@@ -658,8 +660,9 @@ static void node40_set_flush_stamp(object_entity_t *entity, uint64_t stamp) {
 /* Updates key at @pos by specified @key */
 static errno_t node40_set_key(object_entity_t *entity, 
 			      reiser4_pos_t *pos,
-			      reiser4_key_t *key) 
+			      key_entity_t *key) 
 {
+	uint32_t items;
 	node40_t *node = (node40_t *)entity;
 
 	/* Checking input on validness */
@@ -668,33 +671,42 @@ static errno_t node40_set_key(object_entity_t *entity,
     
 	aal_assert("umka-809", node != NULL, return -1);
 	aal_assert("umka-944", pos != NULL, return -1);
-    
-	aal_assert("umka-811", pos->item < 
-		   nh40_get_num_items(node), return -1);
+
+	items = nh40_get_num_items(node);
+	aal_assert("umka-811", pos->item < items, return -1);
 
 	/* Calling key plugin assign method */
-	plugin_call(return -1, key->plugin->key_ops, assign,
-		    &(node40_ih_at(node, pos->item)->key), key->body);
-    
+	aal_memcpy(&(node40_ih_at(node, pos->item)->key), key->body,
+		   sizeof(key->body));
+
 	return 0;
 }
 
 /* Updating node level */
-static errno_t node40_set_level(object_entity_t *entity, uint8_t level) {
+static errno_t node40_set_level(
+	object_entity_t *entity,
+	uint8_t level)
+{
 	aal_assert("umka-1115", entity != NULL, return -1);
+
 	nh40_set_level(((node40_t *)entity), level);
 	return 0;
 }
 
 /* Updating node stamp */
-static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
+static errno_t node40_set_stamp(
+	object_entity_t *entity,
+	uint32_t stamp)
+{
 	aal_assert("umka-1126", entity != NULL, return -1);
+
 	nh40_set_mkfs_id(((node40_t *)entity), stamp);
 	return 0;
 }
 
 /* Prepare text node description and push it into specied @stream. */
-static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
+static errno_t node40_print(object_entity_t *entity,
+			    aal_stream_t *stream,
 			    uint16_t options) 
 {
 	uint8_t level;
@@ -735,8 +747,6 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 		aal_stream_format(stream, "\n");
 	}
 
-	aal_stream_format(stream, "\n");
-	
 	return 0;
 }
 
@@ -774,15 +784,23 @@ errno_t node40_item_legal(object_entity_t *entity,
 static inline int callback_comp_key(void *node, uint32_t pos,
 				    void *key2, void *data)
 {
-	void *key1;
+	void *body;
+	key_entity_t key1;
+	reiser4_plugin_t *plugin;
+	
 	aal_assert("umka-566", node != NULL, return -1);
 	aal_assert("umka-567", key2 != NULL, return -1);
 	aal_assert("umka-656", data != NULL, return -1);
 
-	key1 = &node40_ih_at((node40_t *)node, pos)->key;
+	/*
+	  FIXME-UMKA: Here we should avoid memcpy of the key body in order to
+	  keep good performance in tree operations.
+	*/
+	plugin = ((reiser4_plugin_t *)data);
+	body = &node40_ih_at((node40_t *)node, pos)->key;
+	aal_memcpy(key1.body, body, sizeof(key1.body));
 	
-	return plugin_call(return -1, ((reiser4_plugin_t *)data)->key_ops, 
-			   compare, key1, key2);
+	return plugin_call(return -1, plugin->key_ops, compare, &key1, key2);
 }
 
 /*
@@ -790,35 +808,38 @@ static inline int callback_comp_key(void *node, uint32_t pos,
   into @pos. This function returns 1 if key is found and 0 otherwise.
 */
 static int node40_lookup(object_entity_t *entity, 
-			 reiser4_key_t *key, reiser4_pos_t *pos)
+			 key_entity_t *key,
+			 reiser4_pos_t *pos)
 {
-	int lookup; 
+	int result; 
 	int64_t item;
 	uint32_t items;
+	node40_t *node;
 
-	node40_t *node = (node40_t *)entity;
-    
 	aal_assert("umka-472", key != NULL, return -1);
 	aal_assert("umka-714", key->plugin != NULL, return -1);
     
 	aal_assert("umka-478", pos != NULL, return -1);
-	aal_assert("umka-470", node != NULL, return -1);
+	aal_assert("umka-470", entity != NULL, return -1);
 
+	node = (node40_t *)entity;
 	items = nh40_get_num_items(node);
 
-	/* Calling binsearch with local callbacks in order to find needed key */
-	if ((lookup = aux_binsearch(node, items, key->body, callback_comp_key, 
-				    key->plugin, &item)) != -1)
-		pos->item = item;
+	result = aux_binsearch(node, items, key, callback_comp_key, 
+			       key->plugin, &item);
+	
+	pos->item = item;
 
-	return lookup;
+	return result;
 }
 
 #ifndef ENABLE_COMPACT
 
 /* Checks if two item entities are mergeable */
-static int node40_mergeable(item_entity_t *item1, item_entity_t *item2) {
-
+static int node40_mergeable(
+	item_entity_t *item1,
+	item_entity_t *item2)
+{
 	if (!plugin_equal(item1->plugin, item2->plugin))
 		return 0;
 

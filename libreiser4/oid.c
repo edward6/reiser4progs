@@ -196,11 +196,11 @@ uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
 }
 
 /* Returns root parent locality from specified oid allocator */
-roid_t reiser4_oid_root_parent_locality(reiser4_oid_t *oid) {
+roid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid) {
 	aal_assert("umka-745", oid != NULL, return 0);
     
 	return plugin_call(return 0, oid->entity->plugin->oid_ops, 
-			   root_parent_locality,);
+			   hyper_locality,);
 }
 
 /* Returns root parent objectid from specified oid allocator */

@@ -172,14 +172,14 @@ typedef union reiser4_plugin reiser4_plugin_t;
    Maximal possible key size. It is used for creating temporary keys by
    declaring array of uint8_t elements KEY_SIZE long.
 */
-#define KEY_SIZE 24
+#define KEY_SIZE 3
 
-struct reiser4_key {
+struct key_entity {
 	reiser4_plugin_t *plugin;
-	uint8_t body[KEY_SIZE];
+	uint64_t body[KEY_SIZE];
 };
 
-typedef struct reiser4_key reiser4_key_t;
+typedef struct key_entity key_entity_t;
 
 #define KEY_FILENAME_TYPE   0x0
 #define KEY_STATDATA_TYPE   0x1
@@ -188,7 +188,7 @@ typedef struct reiser4_key reiser4_key_t;
 #define KEY_FILEBODY_TYPE   0x4
 #define KEY_LAST_TYPE	    0x5
 
-typedef uint32_t reiser4_key_type_t;
+typedef uint32_t key_type_t;
 
 struct reiser4_pos {
 	uint32_t item;
@@ -223,12 +223,11 @@ typedef struct item_context item_context_t;
 struct item_entity {
 	reiser4_plugin_t *plugin;
 
+	uint32_t len;
+	key_entity_t key;
 	item_context_t con;
 
 	reiser4_pos_t pos;
-	reiser4_key_t key;
-
-	uint32_t len;
 	reiser4_body_t *body;
 };
 
@@ -425,8 +424,8 @@ struct reiser4_file_hint {
 		
 	} body;
     
-	reiser4_key_t object; 
-	reiser4_key_t parent;
+	key_entity_t object; 
+	key_entity_t parent;
 		
 	/* The plugin in use */
 	reiser4_plugin_t *plugin;
@@ -456,7 +455,7 @@ struct reiser4_item_hint {
 	void *hint;
     
 	/* The key of item */
-	reiser4_key_t key;
+	key_entity_t key;
 
 	/* Plugin to be used for working with item */
 	reiser4_plugin_t *plugin;
@@ -508,64 +507,65 @@ typedef struct reiser4_plugin_header reiser4_plugin_header_t;
 struct reiser4_key_ops {
 	reiser4_plugin_header_t h;
 
-	/* Smart check of key structure */
-	errno_t (*valid) (reiser4_body_t *);
+	/* 
+	   Cleans key up. Actually it just memsets it by zeros, but more smart
+	   behavior may be implemented.
+	*/
+	void (*clean) (key_entity_t *);
+
+	/* Check of key structure */
+	errno_t (*valid) (key_entity_t *);
     
 	/* Confirms key format */
-	int (*confirm) (reiser4_body_t *);
+	int (*confirm) (key_entity_t *);
 
 	/* Returns minimal key for this key-format */
-	reiser4_body_t *(*minimal) (void);
+	key_entity_t *(*minimal) (void);
     
 	/* Returns maximal key for this key-format */
-	reiser4_body_t *(*maximal) (void);
+	key_entity_t *(*maximal) (void);
     
 	/* Compares two keys by comparing its all components */
-	int (*compare) (reiser4_body_t *, reiser4_body_t *);
+	int (*compare) (key_entity_t *, key_entity_t *);
 
 	/* Copyies src key to dst one */
-	errno_t (*assign) (reiser4_body_t *, reiser4_body_t *);
+	errno_t (*assign) (key_entity_t *, key_entity_t *);
     
-	/* 
-	   Cleans key up. Actually it just memsets it by zeros, but more smart behavior 
-	   may be implemented.
-	*/
-	void (*clean) (reiser4_body_t *);
-
-	errno_t (*build_generic) (reiser4_body_t *, reiser4_key_type_t,
+	errno_t (*build_generic) (key_entity_t *, key_type_t,
 				  uint64_t, uint64_t, uint64_t);
     
-	errno_t (*build_direntry) (reiser4_body_t *, reiser4_plugin_t *,
+	errno_t (*build_direntry) (key_entity_t *, reiser4_plugin_t *,
 				   uint64_t, uint64_t, const char *);
     
-	errno_t (*build_objid) (reiser4_body_t *, 
-				reiser4_key_type_t, uint64_t, uint64_t);
+	errno_t (*build_objid) (key_entity_t *, key_type_t,
+				uint64_t, uint64_t);
     
-	errno_t (*build_entryid) (reiser4_body_t *, 
-				  reiser4_plugin_t *, const char *);
+	errno_t (*build_entryid) (key_entity_t *, reiser4_plugin_t *,
+				  const char *);
 
 	/* Gets/sets key type (minor in reiser4 notation) */	
-	void (*set_type) (reiser4_body_t *, reiser4_key_type_t);
-	reiser4_key_type_t (*get_type) (reiser4_body_t *);
+	void (*set_type) (key_entity_t *, key_type_t);
+	key_type_t (*get_type) (key_entity_t *);
 
 	/* Gets/sets key locality */
-	void (*set_locality) (reiser4_body_t *, uint64_t);
-	uint64_t (*get_locality) (reiser4_body_t *);
+	void (*set_locality) (key_entity_t *, uint64_t);
+	uint64_t (*get_locality) (key_entity_t *);
     
 	/* Gets/sets key objectid */
-	void (*set_objectid) (reiser4_body_t *, uint64_t);
-	uint64_t (*get_objectid) (reiser4_body_t *);
+	void (*set_objectid) (key_entity_t *, uint64_t);
+	uint64_t (*get_objectid) (key_entity_t *);
 
 	/* Gets/sets key offset */
-	void (*set_offset) (reiser4_body_t *, uint64_t);
-	uint64_t (*get_offset) (reiser4_body_t *);
+	void (*set_offset) (key_entity_t *, uint64_t);
+	uint64_t (*get_offset) (key_entity_t *);
 
 	/* Gets/sets directory key hash */
-	void (*set_hash) (reiser4_body_t *, uint64_t);
-	uint64_t (*get_hash) (reiser4_body_t *);
+	void (*set_hash) (key_entity_t *, uint64_t);
+	uint64_t (*get_hash) (key_entity_t *);
 
 	/* Prints key into specified buffer */
-	errno_t (*print) (reiser4_body_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (key_entity_t *, aal_stream_t *,
+			  uint16_t);
 };
 
 typedef struct reiser4_key_ops reiser4_key_ops_t;
@@ -598,7 +598,7 @@ struct reiser4_file_ops {
 	errno_t (*seek) (object_entity_t *, uint64_t);
     
 	/* Makes lookup inside dir */
-	int (*lookup) (object_entity_t *, char *, reiser4_key_t *);
+	int (*lookup) (object_entity_t *, char *, key_entity_t *);
     
 	/* Reads the data from file to passed buffer */
 	int32_t (*read) (object_entity_t *, void *, uint32_t);
@@ -663,8 +663,7 @@ struct reiser4_item_ops {
 	uint32_t (*units) (item_entity_t *);
 
 	/* Makes lookup for passed key */
-	int (*lookup) (item_entity_t *, reiser4_key_t *, 
-		       uint32_t *);
+	int (*lookup) (item_entity_t *, key_entity_t *, uint32_t *);
 
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (item_entity_t *, item_entity_t *,
@@ -684,16 +683,16 @@ struct reiser4_item_ops {
 	errno_t (*layout) (item_entity_t *, data_func_t, void *);
 	
 	/* Get the key of a particular unit of the item. */
-	errno_t (*get_key) (item_entity_t *, uint32_t, reiser4_key_t *);
+	errno_t (*get_key) (item_entity_t *, uint32_t, key_entity_t *);
 
 	/* Set the key of a particular unit of the item. */
-	errno_t (*set_key) (item_entity_t *, uint32_t, reiser4_key_t *);
+	errno_t (*set_key) (item_entity_t *, uint32_t, key_entity_t *);
 	
 	/* Get the max key which could be stored in the item of this type */
-	errno_t (*max_poss_key) (item_entity_t *, reiser4_key_t *);
+	errno_t (*max_poss_key) (item_entity_t *, key_entity_t *);
  
 	/* Get the max real key which is stored in the item */
-	errno_t (*max_real_key) (item_entity_t *, reiser4_key_t *);
+	errno_t (*max_real_key) (item_entity_t *, key_entity_t *);
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
@@ -781,7 +780,7 @@ struct reiser4_node_ops {
 	   Makes lookup inside node by specified key. Returns TRUE in the case
 	   exact match was found and FALSE otherwise.
 	*/
-	int (*lookup) (object_entity_t *, reiser4_key_t *, 
+	int (*lookup) (object_entity_t *, key_entity_t *, 
 		       reiser4_pos_t *);
     
 	/* Inserts item at specified pos */
@@ -800,10 +799,10 @@ struct reiser4_node_ops {
     
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (object_entity_t *, reiser4_pos_t *, 
-			    reiser4_key_t *);
+			    key_entity_t *);
     
 	errno_t (*set_key) (object_entity_t *, reiser4_pos_t *, 
-			    reiser4_key_t *);
+			    key_entity_t *);
 
 	/* Gets/sets node level */
 	uint8_t (*get_level) (object_entity_t *);
@@ -983,10 +982,11 @@ struct reiser4_oid_ops {
 	uint64_t (*free) (object_entity_t *);
 
 	/* Prints oid allocator data */
-	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *,
+			  uint16_t);
 
 	/* Object ids of root and root parenr object */
-	roid_t (*root_parent_locality) (void);
+	roid_t (*hyper_locality) (void);
 	roid_t (*root_locality) (void);
 	roid_t (*root_objectid) (void);
 };
@@ -1152,7 +1152,7 @@ struct reiser4_core {
 		  Makes lookup in the tree in order to know where say stat data
 		  item of a file realy lies. It is used in all object plugins.
 		*/
-		int (*lookup) (const void *, reiser4_key_t *, reiser4_level_t *,
+		int (*lookup) (const void *, key_entity_t *, reiser4_level_t *,
 			       reiser4_place_t *);
 
 		/* 

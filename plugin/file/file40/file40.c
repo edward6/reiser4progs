@@ -22,14 +22,14 @@ roid_t file40_objectid(file40_t *file) {
 	aal_assert("umka-839", file != NULL, return 0);
     
 	return plugin_call(return 0, file->key.plugin->key_ops, 
-			   get_objectid, file->key.body);
+			   get_objectid, &file->key);
 }
 
 roid_t file40_locality(file40_t *file) {
 	aal_assert("umka-839", file != NULL, return 0);
     
 	return plugin_call(return 0, file->key.plugin->key_ops, 
-			   get_locality, file->key.body);
+			   get_locality, &file->key);
 }
 
 errno_t file40_lock(file40_t *file, reiser4_place_t *place) {
@@ -130,22 +130,23 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 	return item->plugin->item_ops.insert(item, &hint, 0);
 }
 
-errno_t file40_init(file40_t *file, reiser4_key_t *key,
-		    reiser4_plugin_t *plugin, const void *tree,
+errno_t file40_init(file40_t *file, key_entity_t *key,
+		    reiser4_plugin_t *plugin,
+		    const void *tree,
 		    reiser4_core_t *core)
 {
 	aal_assert("umka-1574", file != NULL, return -1);
+	aal_assert("umka-1756", plugin != NULL, return -1);
+	aal_assert("umka-1757", tree != NULL, return -1);
 
 	file->plugin = plugin;
 	file->tree = tree;
+	file->core = core;
 
 	file->key.plugin = key->plugin;
-	plugin_call(return -1, key->plugin->key_ops, assign,
-		    file->key.body, key->body);
-
-	file->core = core;
 	
-	return 0;
+	return plugin_call(return -1, key->plugin->key_ops, assign,
+			   &file->key, key);
 }
 
 errno_t file40_realize(file40_t *file) {
@@ -154,11 +155,11 @@ errno_t file40_realize(file40_t *file) {
 	aal_assert("umka-857", file != NULL, return -1);	
 
 	plugin_call(return -1, file->key.plugin->key_ops, build_generic, 
-		    file->key.body, KEY_STATDATA_TYPE, file40_locality(file), 
+		    &file->key, KEY_STATDATA_TYPE, file40_locality(file), 
 		    file40_objectid(file), 0);
 
 	if (file->statdata.node)
-		file->core->tree_ops.unlock(file->tree, &file->statdata);
+		file40_unlock(file, &file->statdata);
 	
 	if (file->core->tree_ops.lookup(file->tree, &file->key, &stop,
 					&file->statdata) != PRESENT) 
@@ -167,12 +168,12 @@ errno_t file40_realize(file40_t *file) {
 				    file40_objectid(file));
 
 		if (file->statdata.node)
-			file->core->tree_ops.lock(file->tree, &file->statdata);
+			file40_lock(file, &file->statdata);
 		
 		return -1;
 	}
 	
-	file->core->tree_ops.lock(file->tree, &file->statdata);
+	file40_lock(file, &file->statdata);
 	
 	return 0;
 }

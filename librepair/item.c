@@ -13,8 +13,8 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     aal_assert("vpf-417", coord->node != NULL, return -1);
     
     /* Fetch the pointer from the coord. */
-    if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	fetch, &coord->entity, &hint, coord->pos.unit, 1) != 1)
+    if (plugin_call(return -1, coord->item.plugin->item_ops,
+	fetch, &coord->item, &hint, coord->pos.unit, 1) != 1)
 	return -1;
     
     if (hint.width == 1 && reiser4_item_extent(coord)) {
@@ -27,8 +27,8 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 
 	hint.ptr = 0;
 
-	if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	    update, &coord->entity, &hint, coord->pos.unit, 1))
+	if (plugin_call(return -1, coord->item.plugin->item_ops,
+	    update, &coord->item, &hint, coord->pos.unit, 1))
 	    return -1;	    
     } else {
 	/* For many unit pointers there is no way to figure out what 
@@ -67,8 +67,8 @@ errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
     aal_assert("vpf-497", reiser4_item_nodeptr(coord) || 
 	reiser4_item_extent(coord), return -1);
 
-    if ((res = plugin_call(return -1, coord->entity.plugin->item_ops, fetch, 
-	&coord->entity, &ptr, coord->pos.unit, 1)) != 1)
+    if ((res = plugin_call(return -1, coord->item.plugin->item_ops, fetch, 
+	&coord->item, &ptr, coord->pos.unit, 1)) != 1)
 	return res;
 
     /* Ptr can be 0 if extent item only. Width cannot be 0. */
@@ -114,8 +114,8 @@ errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
     aal_assert("vpf-496", reiser4_item_nodeptr(coord) || reiser4_item_extent(coord), 
 	return -1);
 
-    if (plugin_call(return -1, coord->entity.plugin->item_ops, fetch,
-	&coord->entity, coord->pos.unit, &ptr, 1))
+    if (plugin_call(return -1, coord->item.plugin->item_ops, fetch,
+	&coord->item, coord->pos.unit, &ptr, 1))
 	return -1;
 	
     if ((!ptr.ptr && reiser4_item_nodeptr(coord)) || !ptr.width) 

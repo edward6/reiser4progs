@@ -31,34 +31,33 @@ static uint32_t extent40_units(item_entity_t *item) {
 	return item->len / sizeof(extent40_t);
 }
 
-static errno_t extent40_get_key(item_entity_t *item, uint32_t pos, 
-	reiser4_key_t *key) 
+static errno_t extent40_get_key(item_entity_t *item,
+				uint32_t pos, 
+				key_entity_t *key) 
 {
-	uint32_t i;
-	uint16_t count;
+	uint32_t i, units;
 	extent40_t *extent;
 	uint64_t offset, blocksize;
 	
 	aal_assert("vpf-622", item != NULL, return -1);
 	aal_assert("vpf-623", key != NULL, return -1);
 	
-	count = extent40_units(item);
-
-	aal_assert("vpf-625", pos < count, return -1);
+	units = extent40_units(item);
+	aal_assert("vpf-625", pos < units, return -1);
 	
 	extent = extent40_body(item);
-	blocksize = item->con.device->blocksize;
+	blocksize = extent40_blocksize(item);
 
 	aal_memcpy(key, &item->key, sizeof(*key));
 		
 	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key->body);
+			     get_offset, key);
 
 	for (i = 0; i < pos; i++)
 		offset += et40_get_width(extent + i) * blocksize;
 
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key->body, offset);
+		    key, offset);
 	
 	return 0;
 }
@@ -175,7 +174,7 @@ static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
 	aal_stream_format(stream, "EXTENT: len=%u, KEY: ", item->len);
 		
 	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key.body, stream, options))
+			&item->key, stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
@@ -213,10 +212,10 @@ static uint64_t extent40_size(item_entity_t *item) {
 #endif
 
 static errno_t extent40_max_poss_key(item_entity_t *item,
-				     reiser4_key_t *key) 
+				     key_entity_t *key) 
 {
 	uint64_t offset;
-	reiser4_body_t *maxkey;
+	key_entity_t *maxkey;
     
 	aal_assert("umka-1211", item != NULL, return -1);
 	aal_assert("umka-1212", key != NULL, return -1);
@@ -224,7 +223,7 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 	
 	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key->body, item->key.body))
+			assign, key, &item->key))
 		return -1;
     
 	maxkey = plugin_call(return -1, key->plugin->key_ops,
@@ -234,13 +233,13 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 			     get_offset, maxkey);
     
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key->body, offset);
+		    key, offset);
 
 	return 0;
 }
 
 static errno_t extent40_max_real_key(item_entity_t *item,
-				     reiser4_key_t *key) 
+				     key_entity_t *key) 
 {
 	uint32_t i, blocksize;
 	uint64_t delta, offset;
@@ -251,11 +250,11 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	key->plugin = item->key.plugin;
 	
 	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key->body, item->key.body))
+			assign, key, &item->key))
 		return -1;
 			
 	if ((offset = plugin_call(return -1, key->plugin->key_ops,
-				  get_offset, key->body)))
+				  get_offset, key)))
 		return -1;
 	
 	blocksize = extent40_blocksize(item);
@@ -276,19 +275,20 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	}
 
 	plugin_call(return -1, key->plugin->key_ops, set_offset,
-		    key->body, offset - 1);
+		    key, offset - 1);
 	
 	return 0;	
 }
 
-static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
-			     uint32_t *pos)
+static int extent40_lookup(item_entity_t *item,
+			   key_entity_t *key,
+			   uint32_t *pos)
 {
-	uint32_t i, count;
+	uint32_t i, units;
 	uint32_t blocksize;
 	
 	extent40_t *extent;
-	reiser4_key_t maxkey;
+	key_entity_t maxkey;
 	uint64_t offset, lookuped;
 
 	aal_assert("umka-1500", item != NULL, return -1);
@@ -300,26 +300,26 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 	if (extent40_max_poss_key(item, &maxkey))
 		return -1;
 
-	if (!(count = extent40_units(item)))
+	if (!(units = extent40_units(item)))
 		return -1;
 	
 	if (plugin_call(return -1, key->plugin->key_ops,
-			compare, key->body, maxkey.body) > 0)
+			compare, key, &maxkey) > 0)
 	{
-		*pos = count - 1;
+		*pos = units - 1;
 		return 0;
 	}
 
 	lookuped = plugin_call(return -1, key->plugin->key_ops,
-			       get_offset, key->body);
+			       get_offset, key);
 
 	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, item->key.body);
+			     get_offset, &item->key);
 
 	extent = extent40_body(item);
 	blocksize = item->con.device->blocksize;
 		
-	for (i = 0; i < count; i++, extent++) {
+	for (i = 0; i < units; i++, extent++) {
 		offset += (blocksize * et40_get_width(extent));
 		
 		if (offset > lookuped) {
@@ -328,7 +328,7 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 		}
 	}
 
-	*pos = count - 1;
+	*pos = units - 1;
 	return 1;
 }
 
@@ -361,7 +361,7 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 	uint32_t read = 0;
 	uint32_t blocksize;
 
-	reiser4_key_t key;
+	key_entity_t key;
 	extent40_t *extent;
 	
 	aal_block_t *block;
@@ -389,9 +389,12 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 
 		extent40_get_key(item, i, &key);
 
+		if (!item->key.plugin->key_ops.get_offset)
+			return -1;
+		
 		/* Calculating in-unit local offset */
-		offset = item->key.plugin->key_ops.get_offset(key.body) -
-			item->key.plugin->key_ops.get_offset(item->key.body);
+		offset = item->key.plugin->key_ops.get_offset(&key) -
+			item->key.plugin->key_ops.get_offset(&item->key);
 		
 		start += ((pos - offset) / blocksize);
 		

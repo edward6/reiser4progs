@@ -111,7 +111,7 @@ static errno_t oid40_print(object_entity_t *entity,
 static errno_t oid40_valid(object_entity_t *entity) {
 	aal_assert("umka-966", entity != NULL, return -1);
 
-	if (((oid40_t *)entity)->next < OID40_ROOT_PARENT_LOCALITY)
+	if (((oid40_t *)entity)->next < OID40_HYPER_LOCALITY)
 		return -1;
     
 	return 0;
@@ -127,8 +127,8 @@ static roid_t oid40_used(object_entity_t *entity) {
 	return ((oid40_t *)entity)->used;
 }
 
-static roid_t oid40_root_parent_locality(void) {
-	return OID40_ROOT_PARENT_LOCALITY;
+static roid_t oid40_hyper_locality(void) {
+	return OID40_HYPER_LOCALITY;
 }
 
 static roid_t oid40_root_locality(void) {
@@ -173,8 +173,7 @@ static reiser4_plugin_t oid40_plugin = {
 	
 		.root_locality	= oid40_root_locality,
 		.root_objectid	= oid40_root_objectid,
-		
-		.root_parent_locality	= oid40_root_parent_locality
+		.hyper_locality	= oid40_hyper_locality
 	}
 };
 

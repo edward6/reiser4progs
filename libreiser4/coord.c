@@ -24,7 +24,7 @@ aal_device_t *reiser4_coord_device(reiser4_coord_t *coord) {
 errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	rpid_t pid;
 	reiser4_key_t *key;
-	item_context_t *con;
+	item_entity_t *item;
 	object_entity_t *entity;
 	
         aal_assert("umka-1459", coord != NULL, return -1);
@@ -37,28 +37,28 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 		aal_exception_error("Invalid item plugin id has been detected.");
 		return -1;
 	}
+
+	item = &coord->item;
 	
-	if (!(coord->entity.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
+	if (!(item->plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
 		return -1;
 	}
 
-	if (!(coord->entity.body = plugin_call(return -1, entity->plugin->node_ops,
-					       item_body, entity, &coord->pos)))
+	if (!(item->body = plugin_call(return -1, entity->plugin->node_ops,
+				       item_body, entity, &coord->pos)))
 	{
 		aal_exception_error("Can't get item body.");
 		return -1;
 	}
 
-	coord->entity.pos = coord->pos;
-	coord->entity.len = plugin_call(return -1, entity->plugin->node_ops,
-					item_len, entity, &coord->pos);
-
-	aal_memset(&coord->entity.key, 0, sizeof(coord->entity.key));
+	item->pos = coord->pos;
 	
-	con = &coord->entity.con;
-	con->blk = reiser4_coord_block(coord);
-	con->device = reiser4_coord_device(coord);
+	item->len = plugin_call(return -1, entity->plugin->node_ops,
+				item_len, entity, &coord->pos);
+
+	item->con.blk = reiser4_coord_block(coord);
+	item->con.device = reiser4_coord_device(coord);
 	
 	return 0;
 }
