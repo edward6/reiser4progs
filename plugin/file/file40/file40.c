@@ -113,7 +113,7 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 
 	lw_hint.size = size;
 	return plugin_call(return -1, item->plugin->item_ops,
-			   init, item, &hint);
+			   insert, item, 0, &hint);
 }
 
 errno_t file40_init(file40_t *file, reiser4_key_t *key,

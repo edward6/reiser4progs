@@ -373,7 +373,17 @@ errno_t libreiser4_factory_init(void) {
 			continue;
 	}
 #endif
-	return -(aal_list_length(plugins) == 0);
+	if (aal_list_length(plugins) == 0) {
+#if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
+		aal_exception_error("There are no any valid plugins found in %s.",
+				    PLUGIN_DIR);
+#else
+		aal_exception_error("There are no any built-in plugins found.");
+#endif
+		return -1;
+	}
+	
+	return 0;
 }
 
 /* Finalizes plugin factory, by means of unloading the all plugins */

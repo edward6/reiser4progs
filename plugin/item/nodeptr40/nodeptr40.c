@@ -19,8 +19,15 @@ static uint32_t nodeptr40_units(item_entity_t *item) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t nodeptr40_init(item_entity_t *item, 
-			      reiser4_item_hint_t *hint)
+static errno_t nodeptr40_init(item_entity_t *item) {
+	aal_assert("umka-1671", item != NULL, return -1);
+	
+	aal_memset(item->body, 0, item->len);
+	return 0;
+}
+
+static errno_t nodeptr40_insert(item_entity_t *item, uint32_t pos,
+				reiser4_item_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;
     
@@ -106,18 +113,19 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.check = NULL,
 #ifndef ENABLE_COMPACT	    
 		.init		= nodeptr40_init,
+		.insert		= nodeptr40_insert,
 		.update         = nodeptr40_update,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
 #else
 		.init		= NULL,
+		.insert		= NULL,
 		.update         = NULL,
 		.estimate	= NULL,
 		.print		= NULL,
 #endif
 		.lookup		= NULL,
 		.valid		= NULL,
-		.insert		= NULL,
 		.remove		= NULL,
 		.open           = NULL,
 		.mergeable      = NULL,

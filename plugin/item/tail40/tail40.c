@@ -47,12 +47,28 @@ static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos,
 static errno_t tail40_insert(item_entity_t *item, uint32_t pos, 
 			     reiser4_item_hint_t *hint)
 {
+	uint32_t size;
+	void *src, *dst;
+	reiser4_tail_hint_t *tail_hint;
+	
 	aal_assert("umka-1172", item != NULL, return -1); 
 	aal_assert("umka-1173", hint != NULL, return -1);
-	aal_assert("umka-1178", hint->data != NULL, return -1);
-    
-	aal_memcpy(tail40_body(item) + pos, hint->data, hint->len);
+	aal_assert("umka-1178", hint->hint != NULL, return -1);
 
+	tail_hint = (reiser4_tail_hint_t *)hint->hint;
+
+	/* Prepare the room for new data */
+	src = item->body + pos;
+	dst = src + tail_hint->len;
+	
+	size = item->len - tail_hint->len - pos;
+
+	aal_memmove(dst, src, size);
+
+	/* Copying new data into freed place */
+	aal_memcpy(item->body + pos, tail_hint->data, tail_hint->len);
+
+	/* Updating the key */
 	if (pos == 0) {
 		if (tail40_unit_key(item, 0, &item->key))
 			return -1;
@@ -66,8 +82,10 @@ static uint16_t tail40_remove(item_entity_t *item, uint32_t pos) {
 	aal_assert("umka-1662", pos != ~0ul, return -1);
 	aal_assert("umka-1663", pos < item->len, return -1);
 
-	aal_memmove(item->body, item->body + 1, item->len - pos - 1);
-	
+	aal_memmove(item->body, item->body + 1,
+		    item->len - pos - 1);
+
+	/* Updating the key */
 	if (pos == 0) {
 		if (tail40_unit_key(item, 0, &item->key))
 			return -1;
@@ -76,10 +94,11 @@ static uint16_t tail40_remove(item_entity_t *item, uint32_t pos) {
 	return 1;
 }
 
-static errno_t tail40_init(item_entity_t *item, 
-			   reiser4_item_hint_t *hint)
-{
-	return tail40_insert(item, 0, hint);
+static errno_t tail40_init(item_entity_t *item) {
+	aal_assert("umka-1668", item != NULL, return -1);
+	
+	aal_memset(item->body, 0, item->len);
+	return 0;
 }
 
 static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,

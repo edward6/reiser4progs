@@ -384,7 +384,6 @@ static errno_t node40_expand(node40_t *node,
 	nh40_dec_free_space(node, size);
 
 	if (is_insert) {
-
                 /* Setting up the fields of new item */
 		ih40_set_len(ih, size);
 		ih40_set_offset(ih, offset);
@@ -394,7 +393,6 @@ static errno_t node40_expand(node40_t *node,
 		/* Setting up node free space start */
 		nh40_dec_free_space(node, sizeof(item40_header_t));
 
-		/* Initializing new item's body */
 		aal_memset(node->block->data + offset, 0, size);
 	} else {
 
@@ -521,8 +519,12 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 		return -1;
 
 	/* Calling item plugin to perform initializing the item. */
+	if (plugin_call(return -1, hint->plugin->item_ops,
+			init, &item))
+		return -1;
+
 	return plugin_call(return -1, hint->plugin->item_ops,
-			   init, &item, hint);
+			   insert, &item, 0, hint);
 }
 
 /* Inserts a unit into item described by hint structure. */
@@ -896,16 +898,24 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  Initializing items to be examaned by the predict method of
 	  corresponding item plugin.
 	*/
-	node40_item(&src_item, src_node,
-		    (hint->flags & SF_LEFT ? 0 : src_items - 1));
-			
+	node40_item(&src_item, src_node, hint->flags & SF_LEFT ?
+		    0 : src_items - 1);
+
+	/*
+	  Items that do not implement predict and shift methods cannot be
+	  splitted.
+	*/
 	if (!src_item.plugin->item_ops.predict)
 		return 0;
 
+	if (!src_item.plugin->item_ops.shift)
+		return 0;
+	
 	/* We can't shift units from items with one unit */
 	if (!src_item.plugin->item_ops.units)
 		return 0;
-	
+
+	/* Items that consist of one unit cannot be splitted */
 	if (src_item.plugin->item_ops.units(&src_item) <= 1)
 		return 0;
 	
@@ -913,8 +923,8 @@ static errno_t node40_predict_units(node40_t *src_node,
 	hint->create = (dst_items == 0);
 
 	if (dst_items > 0) {
-		node40_item(&dst_item, dst_node,
-			    (hint->flags & SF_LEFT ? dst_items - 1 : 0));
+		node40_item(&dst_item, dst_node, hint->flags & SF_LEFT ?
+			    dst_items - 1 : 0);
 		
 		hint->create = !node40_mergeable(&src_item, &dst_item);
 	}
@@ -1029,6 +1039,8 @@ static errno_t node40_shift_units(node40_t *src_node,
 		  function.
 		*/
 		node40_item(&dst_item, dst_node, pos.item);
+
+		plugin_call(return -1, dst_item.plugin->item_ops, init, &dst_item);
 	} else {
 		/*
 		  Items are mergeable, so we do not need to create new item in
@@ -1067,7 +1079,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 	remove = src_item.plugin->item_ops.units(&src_item) == 0 &&
 		(hint->flags & SF_MOVIP || pos.item != hint->pos.item);
 	
-	/* Updating item delimiting key */
+	/* Updating item's keys */
 	if (hint->flags & SF_LEFT) {
 
 		/*

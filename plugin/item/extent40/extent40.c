@@ -105,11 +105,11 @@ static errno_t extent40_insert(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static errno_t extent40_init(item_entity_t *item, 
-			     reiser4_item_hint_t *hint)
-{
+static errno_t extent40_init(item_entity_t *item) {
+	aal_assert("umka-1669", item != NULL, return -1);
+	
 	aal_memset(item->body, 0, item->len);
-	return extent40_insert(item, 0, hint);
+	return 0;
 }
 
 static uint16_t extent40_remove(item_entity_t *item, uint32_t pos) {
@@ -335,8 +335,8 @@ static errno_t extent40_update(item_entity_t *item, uint32_t pos,
 	if (!(extent = extent40_body(item)))
 		return -1;
 	
-	et40_set_start(extent + pos, hint->ptr);
-	et40_set_width(extent + pos, hint->width);
+	et40_set_start((extent + pos), hint->ptr);
+	et40_set_width((extent + pos), hint->width);
 	
 	return 0;
 }

@@ -41,3 +41,6 @@ reiser4progs/COPYING.
 
 * improve work with keys in API and plugins. The problem is that we 
   always need the key plugin. Where should we take it everytime?
+
+* return value from the all low level plugin functions should be raised 
+  up to the libreiser4 level.

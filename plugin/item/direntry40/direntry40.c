@@ -628,18 +628,11 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static errno_t direntry40_init(item_entity_t *item, 
-			       reiser4_item_hint_t *hint)
-{
-	direntry40_t *direntry;
-    
+static errno_t direntry40_init(item_entity_t *item) {
 	aal_assert("umka-1010", item != NULL, return -1);
-
-	if (!(direntry = direntry40_body(item)))
-		return -1;
-    
-	de40_set_count(direntry, 0);
-	return direntry40_insert(item, 0, hint);
+	
+	aal_memset(item->body, 0, item->len);
+	return 0;
 }
 
 static uint16_t direntry40_remove(item_entity_t *item, 

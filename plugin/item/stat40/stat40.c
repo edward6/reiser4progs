@@ -96,7 +96,6 @@ static int callback_open(uint8_t ext, uint16_t extmask,
 	}
 
 	if (hint->ext[ext]) {
-		
 		if (plugin_call(return -1, plugin->sdext_ops, open,
 				extbody, hint->ext[ext]))
 			return -1;
@@ -116,62 +115,10 @@ static errno_t stat40_open(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t stat40_init(item_entity_t *item, 
-			   reiser4_item_hint_t *hint)
-{
-	uint8_t i;
-	reiser4_body_t *extbody;
-	reiser4_statdata_hint_t *stat_hint;
-    
-	aal_assert("vpf-076", item != NULL, return -1); 
-	aal_assert("vpf-075", hint != NULL, return -1);
-    
-	extbody = (reiser4_body_t *)stat40_body(item);
-	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
-    
-	if (!stat_hint->extmask)
-		return 0;
-    
-	for (i = 0; i < sizeof(uint64_t)*8; i++) {
-		reiser4_plugin_t *plugin;
+static errno_t stat40_init(item_entity_t *item) {
+	aal_assert("umka-1670", item != NULL, return -1);
 	
-		if (!(((uint64_t)1 << i) & stat_hint->extmask))
-			continue;
-	    
-		/* 
-		   Stat data contains 16 bit mask of extentions used in it. The
-		   first 15 bits of the mask denote the first 15 extentions in
-		   the stat data.  And the bit number is the stat data extention
-		   plugin id. If the last bit turned on, it means that one more
-		   16 bit mask present and so on. So, we should add sizeof(mask)
-		   to extention body pointer, in the case we are on bit denoted
-		   for indicating if next extention in use or not.
-		*/
-		if (i == 0 || (i + 1) % 16 == 0) {
-			uint16_t extmask;
-
-			extmask = (stat_hint->extmask >> i) & 0x000000000000ffff;
-			st40_set_extmask((stat40_t *)extbody, extmask);
-			extbody = (void *)extbody + sizeof(d16_t);
-			if (i > 0) continue;
-		}
-	    
-		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
-					   "by its id 0x%x.", i);
-			continue;
-		}
-	
-		plugin_call(return -1, plugin->sdext_ops, init, extbody, 
-			    stat_hint->ext[i]);
-	
-		/* 
-		   Getting pointer to the next extention. It is evaluating as
-		   previous pointer plus its size.
-		*/
-		extbody += plugin_call(return -1, plugin->sdext_ops, length, extbody);
-	}
-    
+	aal_memset(item->body, 0, item->len);
 	return 0;
 }
 
@@ -190,7 +137,7 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 		return 0;
     
 	/* Estimating the all stat data extentions */
-	for (i = 0; i < sizeof(uint64_t)*8; i++) {
+	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
 		reiser4_plugin_t *plugin;
 	
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
@@ -218,7 +165,68 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 static errno_t stat40_insert(item_entity_t *item, uint32_t pos,
 			     reiser4_item_hint_t *hint)
 {
-	return -1;
+	uint8_t i;
+	reiser4_body_t *extbody;
+	reiser4_statdata_hint_t *stat_hint;
+    
+	aal_assert("vpf-076", item != NULL, return -1); 
+	aal_assert("vpf-075", hint != NULL, return -1);
+
+	/*
+	  FIXME-UMKA: Should this function insert extentions like for exmple
+	  direntry does?
+	*/
+	extbody = (reiser4_body_t *)stat40_body(item);
+	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
+    
+	if (!stat_hint->extmask)
+		return 0;
+    
+	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
+		reiser4_plugin_t *plugin;
+	
+		if (!(((uint64_t)1 << i) & stat_hint->extmask))
+			continue;
+	    
+		/* 
+		   Stat data contains 16 bit mask of extentions used in it. The
+		   first 15 bits of the mask denote the first 15 extentions in
+		   the stat data.  And the bit number is the stat data extention
+		   plugin id. If the last bit turned on, it means that one more
+		   16 bit mask present and so on. So, we should add sizeof(mask)
+		   to extention body pointer, in the case we are on bit denoted
+		   for indicating if next extention in use or not.
+		*/
+		if (i == 0 || (i + 1) % 16 == 0) {
+			uint16_t extmask;
+
+			extmask = (stat_hint->extmask >> i) &
+				0x000000000000ffff;
+			
+			st40_set_extmask((stat40_t *)extbody, extmask);
+			extbody = (void *)extbody + sizeof(d16_t);
+			
+			if (i > 0) continue;
+		}
+	    
+		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
+			aal_exception_warn("Can't find stat data extention plugin "
+					   "by its id 0x%x.", i);
+			continue;
+		}
+	
+		plugin_call(return -1, plugin->sdext_ops, init, extbody, 
+			    stat_hint->ext[i]);
+	
+		/* 
+		   Getting pointer to the next extention. It is evaluating as
+		   previous pointer plus its size.
+		*/
+		extbody += plugin_call(return -1, plugin->sdext_ops,
+				       length, extbody);
+	}
+    
+	return 0;
 }
 
 /* This method deletes the stat data extentions */

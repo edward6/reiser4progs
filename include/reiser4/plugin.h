@@ -327,6 +327,13 @@ struct reiser4_extent_hint {
 
 typedef struct reiser4_extent_hint reiser4_extent_hint_t;
 
+struct reiser4_tail_hint {
+	void *data;
+	uint16_t len;
+};
+
+typedef struct reiser4_tail_hint reiser4_tail_hint_t;
+
 struct reiser4_sdext_unix_hint {
 	uint32_t uid;
 	uint32_t gid;
@@ -610,8 +617,8 @@ typedef struct reiser4_file_ops reiser4_file_ops_t;
 struct reiser4_item_ops {
 	reiser4_plugin_header_t h;
 
-	/* Forms item structures based on passed hint in passed memory area */
-	errno_t (*init) (item_entity_t *, reiser4_item_hint_t *);
+	/* Prepares item body for working with it */
+	errno_t (*init) (item_entity_t *);
 
 	/* Reads item data to passed hint */
 	errno_t (*open) (item_entity_t *, reiser4_item_hint_t *);
