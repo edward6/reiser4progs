@@ -653,10 +653,6 @@ struct trans_hint {
 	/* Related opaque data. May be used for passing something to region_func
 	   and place_func. */
 	void *data;
-
-	/* These are used to simplify extent write code be means of setting
-	   almost all thing during prep_write(). */
-        int create_unit;
 };
 
 typedef struct trans_hint trans_hint_t;
