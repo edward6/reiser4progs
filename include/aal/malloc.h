@@ -23,6 +23,9 @@ typedef errno_t (*aal_mpressure_handler_t) (void *);
 
 typedef int (*aal_mpressure_detect_t) (void);
 
+extern void aal_mpressure_enable(void *handler);
+extern void aal_mpressure_disable(void *handler);
+
 extern int aal_mpressure_active(void);
 extern int aal_mpressure_detect(void);
 

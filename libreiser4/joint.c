@@ -737,8 +737,6 @@ errno_t reiser4_joint_traverse(
 
 					if (reiser4_joint_attach(joint, child))
 						goto error_free_child;
-
-					child->data = (void *)1;
 				}
 				
 				if ((result = reiser4_joint_traverse(child, hint, 
@@ -752,7 +750,7 @@ errno_t reiser4_joint_traverse(
 				hint->level = plugin_call(return -1, entity->plugin->node_ops,
 							  get_level, entity);
 				
-				if (child->data && !child->children) {
+				if (!child->children) {
 					reiser4_joint_detach(joint, child);
 					reiser4_joint_close(child);
 				}
@@ -776,7 +774,7 @@ errno_t reiser4_joint_traverse(
 
  error_free_child:
 	
-	if (child->data && !child->children) {
+	if (!child->children) {
 		reiser4_joint_detach(joint, child);
 		reiser4_joint_close(child);
 	}

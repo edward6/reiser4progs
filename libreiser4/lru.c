@@ -30,7 +30,10 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	if (!(curr = aal_list_last(lru->list)))
 		return 0;
 
-	aal_exception_info("Shrinking tree cache.");
+	aal_mpressure_disable(lru->mpressure);
+	
+	aal_exception_info("Shrinking tree cache on %u nodes.",
+			   lru->adjust);
 	
 	while (curr && lru->adjust > 0) {
 		joint = (reiser4_joint_t *)curr->data;
@@ -49,6 +52,8 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 			reiser4_joint_close(joint);
 		}
 	}
+	
+	aal_mpressure_enable(lru->mpressure);
 
 	return 0;
 }
@@ -146,7 +151,7 @@ errno_t reiser4_lru_detach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 
 	if (lru->adjust > 0)
 		lru->adjust--;
-
+	
 	return 0;
 }
 
