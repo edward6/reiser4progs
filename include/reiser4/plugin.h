@@ -264,6 +264,8 @@ typedef errno_t (*format_layout_func_t) (object_entity_t *, format_action_func_t
 typedef errno_t (*file_action_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*file_layout_func_t) (object_entity_t *, file_action_func_t, void *);
 
+/* Type for alloc layout callback function */
+typedef errno_t (*alloc_layout_func_t) (object_entity_t *, blk_t, void *);
 /* 
    To create a new item or to insert into the item we need to perform the
    following operations:
@@ -981,6 +983,10 @@ struct reiser4_alloc_ops {
 
 	/* Prints block allocator data */
 	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
+
+	/* Calls func for all block of the same area as blk is. */
+	errno_t (*region_layout) (object_entity_t *, blk_t, 
+		alloc_layout_func_t, void *);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;

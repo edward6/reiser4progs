@@ -713,9 +713,8 @@ errno_t reiser4_joint_traverse(
 		  before_func. All items must be opened here.
 		*/
 		if (reiser4_coord_open(&coord, joint, CT_JOINT, pos)) {
-			blk_t blk = joint->node->blk;
 			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-					    blk, pos->item);
+					    joint->node->blk, pos->item);
 			goto error_after_func;
 		}
 		
