@@ -338,7 +338,7 @@ static int format40_tst_flag(generic_entity_t *entity,
 	aal_assert("umka-2343", entity != NULL);
 
 	format = (format40_t *)entity;
-	return format->super.sb_flags & flag;
+	return format->super.sb_flags & (1 << flag);
 }
 
 #ifndef ENABLE_STAND_ALONE

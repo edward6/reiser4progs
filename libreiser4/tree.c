@@ -531,7 +531,7 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 				    "id 0x%x.", pid);
 		return -EINVAL;
 	}
-	
+
 	return reiser4_fs_root_key(tree->fs, &tree->key);
 }
 
