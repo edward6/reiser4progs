@@ -2148,5 +2148,4 @@ errno_t reiser4_tree_traverse(
 				 before_func, setup_func, update_func,
 				 after_func);
 }
-
 #endif

@@ -212,18 +212,16 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
   detaches nodes from the tree if they were attached.
 */
 errno_t reiser4_node_close(reiser4_node_t *node) {
-	errno_t res;
-	
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
 
 	reiser4_node_unload(node);
 	
-	res = plugin_call(node->entity->plugin->o.node_ops,
-			  close, node->entity);
+	plugin_call(node->entity->plugin->o.node_ops,
+		    close, node->entity);
 	    
 	aal_free(node);
-	return res;
+	return 0;
 }
 
 /* Getting the left delimiting key */
@@ -283,81 +281,77 @@ errno_t reiser4_node_pbc(
 	ptr_hint_t ptr;
 
         reiser4_key_t lkey;
-	reiser4_place_t *place;
+	reiser4_place_t *parent;
     
 	aal_assert("umka-869", node != NULL);
 	aal_assert("umka-1941", node->parent.node != NULL);
 
-	place = &node->parent;
+	parent = &node->parent;
 	
 #ifndef ENABLE_STAND_ALONE
-	if (reiser4_node_ack(node, place))
-		goto out_update_place;
+	if (reiser4_node_ack(node, parent))
+		goto out_update_pos;
 #endif
 	
 	/* Getting position by key */
         reiser4_node_lkey(node, &lkey);
                                                                                                    
-        if (reiser4_node_lookup(place->node, &lkey,
-				&place->pos) == PRESENT)
+        if (reiser4_node_lookup(parent->node, &lkey,
+				&parent->pos) == PRESENT)
 	{
 #ifndef ENABLE_STAND_ALONE
-		if (reiser4_node_ack(node, place))
+		if (reiser4_node_ack(node, parent))
 #endif
-			goto out_update_place;
+			goto out_update_pos;
 	}
 
 #ifndef ENABLE_STAND_ALONE
-	for (i = 0; i < reiser4_node_items(place->node); i++) {
-		place->pos.item = i;
+	for (i = 0; i < reiser4_node_items(parent->node); i++) {
+		parent->pos.item = i;
 
-		if ((res = reiser4_place_realize(place)))
+		if ((res = reiser4_place_realize(parent)))
 			return res;
 
-		if (!reiser4_item_branch(place))
+		if (!reiser4_item_branch(parent))
 			continue;
 
-		for (j = 0; j < reiser4_item_units(place); j++) {
-			place->pos.unit = j;
+		for (j = 0; j < reiser4_item_units(parent); j++) {
+			parent->pos.unit = j;
 			
-			plugin_call(place->item.plugin->o.item_ops,
-				    read, &place->item, &ptr, j, 1);
+			plugin_call(parent->item.plugin->o.item_ops,
+				    read, &parent->item, &ptr, j, 1);
 
 			if (ptr.start == node->blk)
-				goto out_update_place;
+				goto out_update_pos;
 		}
 	}
 
 	return -EINVAL;
 #endif
 	
- out_update_place:
+ out_update_pos:
 		
-	if (reiser4_place_realize(place))
+	if (reiser4_place_realize(parent))
 		return -EINVAL;
 
-	if (reiser4_item_units(place) == 1)
-		place->pos.unit = ~0ul;
+	if (reiser4_item_units(parent) == 1)
+		parent->pos.unit = ~0ul;
 		
 	if (pos)
-		*pos = place->pos;
+		*pos = parent->pos;
 
 	return 0;
 }
 
 static int callback_comp_blk(
-	const void *item,		/* node find will operate on */
+	const void *node,		/* node find will operate on */
 	const void *blk,		/* key to be find */
 	void *data)			/* user-specified data */
 {
-	reiser4_node_t *node;
-
-	node = (reiser4_node_t *)item;
-
-	if (*(blk_t *)blk < node->blk)
+	if (*(blk_t *)blk < ((reiser4_node_t *)node)->blk)
 		return -1;
 
-	if (*(blk_t *)blk > node->blk)
+	if (*(blk_t *)blk > ((reiser4_node_t *)node)->blk)
 		return 1;
 
 	return 0;
@@ -369,7 +363,6 @@ reiser4_node_t *reiser4_node_cbp(
 	blk_t blk)                      /* left delimiting key */
 {
 	aal_list_t *list;
-	reiser4_node_t *child;
     
 	if (!node->children)
 		return NULL;
@@ -378,11 +371,13 @@ reiser4_node_t *reiser4_node_cbp(
 	  Using aal_list_find_custom function with local helper functions for
 	  comparing block numbers.
 	*/
-	if (!(list = aal_list_find_custom(node->children, (void *)&blk,
+	if ((list = aal_list_find_custom(node->children, (void *)&blk,
 					  callback_comp_blk, NULL)))
-		return NULL;
+	{
+		return (reiser4_node_t *)list->data;
+	}
 
-	return (reiser4_node_t *)list->data;
+	return NULL;
 }
 
 /*
@@ -420,9 +415,8 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	
 	/* Updating node pos in parent node */
 	if ((res = reiser4_node_pbc(child, &child->parent.pos))) {
-		aal_exception_error("Can't find child %llu in "
-				    "parent node %llu.",
-				    child->blk, node->blk);
+		aal_exception_error("Can't find child %llu in parent "
+				    "node %llu.", child->blk, node->blk);
 		return res;
 	}
 
@@ -522,7 +516,10 @@ lookup_t reiser4_node_lookup(
 				   lookup, item, key, &pos->unit);
 	}
 	
-	/* Lookup isn't implemented where maxposs_key isn't implemented also. */
+	/*
+	  Lookup isn't implemented whereas maxposs_key() isn't implemented
+	  too. Is it correct?
+	*/
 	aal_assert("vpf-895", item->plugin->o.item_ops->maxposs_key == NULL);
 	pos->item++;
 
@@ -538,7 +535,6 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Returns free space of specified node */
 uint16_t reiser4_node_space(reiser4_node_t *node) {
 	aal_assert("umka-455", node != NULL);
