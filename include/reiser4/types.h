@@ -254,6 +254,17 @@ struct reiser4_tree {
 	mpc_func_t mpc_func;
 
 #ifndef ENABLE_STAND_ALONE
+	/* Minimal tree level we have to allocate something on it. In current
+	   tree implementation this is TWIG_LEVEL, that is LEAF_LEVEL + 1. In
+	   tree lie reiser3 uses it is LEAF_LEVEL.
+
+	   Few words about why do we do so. We do so not because of reiser3. We
+	   really don't think, that libreiser4 will support reiser3 some day, we
+	   do this just to make tree more flexible and in order to avoid to use
+	   any kind of hardcoding.
+	*/
+	uint32_t bottom;
+	
 	/* Tree operation control flags */
 	uint32_t flags;
 #endif
@@ -274,6 +285,9 @@ struct reiser4_tree {
 		void *data;
 #endif
 	} traps;
+
+	/* Formatted nodes hash table. */
+	aal_hash_table_t *nodes;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Extents data stored here */

@@ -14,17 +14,10 @@
 #include <reiser4/reiser4.h>
 
 /* This list contain all known libreiser4 plugins */
-aal_list_t *plugins;
-unsigned int registered = 0;
+uint32_t registered;
+aal_hash_table_t *plugins;
 
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
-
-#ifndef ENABLE_STAND_ALONE
-#define MAX_BUILTINS 50
-#else
-#define MAX_BUILTINS 16
-#endif
-
 /* Builtin plugin representative struct. */
 struct plug_builtin {
 	plug_init_t init;
@@ -35,22 +28,19 @@ struct plug_builtin {
 
 typedef struct plug_builtin plug_builtin_t;
 
-/* The array of entry points of the all builtin plugins */
-static plug_builtin_t __builtins[MAX_BUILTINS];
+#ifndef ENABLE_STAND_ALONE
+#  define MAX_BUILTIN_PLUGINS 50
+#else
+#  define MAX_BUILTIN_PLUGINS 16
+#endif
+
+/* The array of entry points of the all builtin plugins. */
+static plug_builtin_t __builtins[MAX_BUILTIN_PLUGINS];
 #endif
 
 /* The struct which contains libreiser4 functions, they may be used by all
    plugin (tree_insert(), tree_remove(), etc). */
 extern reiser4_core_t core;
-
-/* Helper structure used in searching of plugins */
-struct walk_desc {
-	rid_t id;			    /* needed plugin id */
-	rid_t type;		            /* needed plugin type */
-	char *label;                        /* plugin label */
-};
-
-typedef struct walk_desc walk_desc_t;
 
 #ifdef ENABLE_PLUGINS_CHECK
 /* Helper callback for checking plugin validness. */
@@ -199,10 +189,8 @@ errno_t reiser4_factory_load(char *name) {
 	}
 #endif
 
-	/* Registering plugin in plugins list */
-	plugins = aal_list_append(plugins, plug);
-
-	return 0;
+	/* Registering @plug in plugin factory hsh table. */
+	return aal_hash_table_register(plugins, &plug->id, plug);
 
  error_free_plug:
 	reiser4_factory_unload(plug);
@@ -266,8 +254,8 @@ errno_t reiser4_factory_load(plug_init_t init, plug_fini_t fini) {
 	}
 #endif
 	
-	plugins = aal_list_append(plugins, plug);
-	return 0;
+	return aal_hash_table_insert(plugins, &plug->id, plug);
+
 #ifdef ENABLE_PLUGINS_CHECK
  error_free_plug:
 	reiser4_factory_unload(plug);
@@ -291,9 +279,22 @@ errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
 #endif
 	
 	reiser4_plug_close(class);
-	plugins = aal_list_remove(plugins, plug);
+	aal_hash_table_remove(plugins, &plug->id);
 
 	return 0;
+}
+
+static uint64_t callback_plugins_hash_func(const void *key) {
+	plug_ident_t *ident = (plug_ident_t *)key;
+	return (uint64_t)(ident->id + ident->type);
+}
+
+static int callback_plugins_comp_func(const void *key1,
+				      const void *key2,
+				      void *data)
+{
+	return (!ident_equal((plug_ident_t *)key1,
+			     (plug_ident_t *)key2));
 }
 
 /* Initializes plugin factory by means of loading all available plugins */
@@ -305,9 +306,14 @@ errno_t reiser4_factory_init(void) {
 	uint32_t i;
         plug_builtin_t *builtin;
 #endif
-                                                                                                
-        aal_assert("umka-159", plugins == NULL);
-                                                                                            
+
+	if (!(plugins = aal_hash_table_alloc(callback_plugins_hash_func,
+					     callback_plugins_comp_func,
+					     NULL, NULL)))
+	{
+		return -ENOMEM;
+	}
+	
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
         if (!(dir = opendir(PLUGIN_DIR))) {
                 aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
@@ -351,14 +357,14 @@ errno_t reiser4_factory_init(void) {
                                                                                                 
         closedir(dir);
 
-        if (aal_list_len(plugins) == 0) {
+        if (plugins->real == 0) {
                 aal_exception_error("There are no valid plugins found "
                                     "in %s.", PLUGIN_DIR);
                 return -EINVAL;
 	}
 #else
-        /* Loads the all builtin plugins */
-	for (i = 0; i < MAX_BUILTINS; i++) {
+        /* Loads the all builtin plugins. */
+	for (i = 0; i < MAX_BUILTIN_PLUGINS; i++) {
 		builtin = &__builtins[i];
 
 		if (!builtin->init)
@@ -377,10 +383,9 @@ errno_t reiser4_factory_init(void) {
 	}
 
 #ifndef ENABLE_STAND_ALONE
-	/* Nothing loaded? */
-	if (aal_list_len(plugins) == 0) {
-                aal_exception_error("There are no valid built-in plugins "
-                                    "found.");
+	if (plugins->real == 0) {
+                aal_exception_error("There are no valid built-in "
+				    "plugins found.");
                 return -EINVAL;
         }
 #endif
@@ -389,117 +394,130 @@ errno_t reiser4_factory_init(void) {
         return 0;
 }
 
+static errno_t callback_unload_plug(const void *entry, void *data) {
+	aal_hash_node_t *node = (aal_hash_node_t *)entry;
+	reiser4_factory_unload((reiser4_plug_t *)node->value);
+	return 0;
+}
+
 /* Finalizes plugin factory, by means of unloading the all plugins. */
 void reiser4_factory_fini(void) {
-	aal_list_t *walk, *next;
-
 	aal_assert("umka-335", plugins != NULL);
 
-	/* Unloading all registered plugins */
-	for (walk = plugins; walk; walk = next) {
-		next = walk->next;
-		reiser4_factory_unload((reiser4_plug_t *)walk->data);
-	}
+	/* Unloading all registered plugins. */
+	aal_hash_table_foreach(plugins, callback_unload_plug, NULL);
+	aal_hash_table_free(plugins);
 	
 	registered = 0;
-	plugins = NULL;
 }
 
-/* Helper callback function for matching plugin by type and id */
-static int callback_match_id(const void *plug,
-			     const void *desc,
-			     void *data)
-{
-	walk_desc_t *d = (walk_desc_t *)desc;
-	reiser4_plug_t *p = (reiser4_plug_t *)plug;
-
-	return !(p->id.type == d->type && p->id.id == d->id);
-}
 
 /* Finds plugin by its type and id. */
-reiser4_plug_t *reiser4_factory_ifind(
-	rid_t type,			         /* requested plugin type */
-	rid_t id)				 /* requested plugin id */
-{
-	aal_list_t *found;
-	walk_desc_t desc;
+reiser4_plug_t *reiser4_factory_ifind(rid_t type, rid_t id) {
+	plug_ident_t ident;
+	aal_hash_node_t **node;
 
 	aal_assert("umka-155", plugins != NULL);    
+
+	ident.id = id;
+	ident.type = type;
 	
-	desc.id = id;
-	desc.type = type;
-
-	found = aal_list_find_custom(plugins, (void *)&desc,
-				     callback_match_id, NULL);
-
-	return found ? (reiser4_plug_t *)found->data : NULL;
+	if (!(node = aal_hash_table_lookup_node(plugins, &ident)))
+		return NULL;
+	
+	return (reiser4_plug_t *)(*node)->value;
 }
 
-/* Finds plugin by variable criterios implemented by passed @plug_func. */
-reiser4_plug_t *reiser4_factory_cfind(
-	plug_func_t plug_func,                   /* per plugin function */
-	void *data)                              /* user-specified data */
-{
-	aal_list_t *walk;
+struct find_hint {
+	void *data;
+	reiser4_plug_t *plug;
+	plug_func_t plug_func;
+};
 
-	aal_assert("umka-155", plugins != NULL);    
-	aal_assert("umka-899", plug_func != NULL);    
+typedef struct find_hint find_hint_t;
 
-	aal_list_foreach_forward(plugins, walk) {
-		reiser4_plug_t *plug = (reiser4_plug_t *)walk->data;
+static errno_t callback_foreach_plug(const void *entry, void *data) {
+	errno_t res;
 
-		if (plug_func(plug, data))
-			return plug;
+	find_hint_t *hint;
+	reiser4_plug_t *plug;
+	aal_hash_node_t *node;
+
+	hint = (find_hint_t *)data;
+	node = (aal_hash_node_t *)entry;
+	plug = (reiser4_plug_t *)node->value;
+
+	if ((res = hint->plug_func(plug, hint->data))) {
+		hint->plug = plug;
+		return res;
 	}
 
-	return NULL;
+	return 0;
 }
-
-#ifndef ENABLE_STAND_ALONE
-/* Helper callback for matching plugin by its name. */
-static int callback_match_name(reiser4_plug_t *plug,
-			       char *label, void *data)
-{
-	return aal_strncmp(plug->label, label,
-			   sizeof(plug->label));
-}
-
-/* Makes search for plugin by name */
-reiser4_plug_t *reiser4_factory_nfind(
-	char *name)			        /* needed plugin name */
-{
-	aal_list_t *found;
-
-	aal_assert("vpf-156", name != NULL);    
-       
-	found = aal_list_find_custom(aal_list_first(plugins), name,
-				     (comp_func_t)callback_match_name,
-				     NULL);
-
-	return found ? (reiser4_plug_t *)found->data : NULL;
-}
-#endif
 
 #if !defined(ENABLE_STAND_ALONE) || defined(ENABLE_PLUGINS_CHECK)
 /* Calls specified function for every plugin from plugin list. This functions is
    used for getting any plugins information. */
-errno_t reiser4_factory_foreach(
-	plug_func_t plug_func,                   /* per plugin function */
-	void *data)                              /* user-specified data */
-{
-	errno_t res = 0;
-	aal_list_t *walk;
-    
-	aal_assert("umka-479", plug_func != NULL);
+errno_t reiser4_factory_foreach(plug_func_t plug_func, void *data) {
+	find_hint_t hint;
+	
+	aal_assert("umka-3005", plugins != NULL);    
+	aal_assert("umka-3006", plug_func != NULL);    
 
-	aal_list_foreach_forward(plugins, walk) {
-		reiser4_plug_t *plug = (reiser4_plug_t *)walk->data;
+	hint.data = data;
+	hint.plug = NULL;
+	hint.plug_func = plug_func;
+
+	return aal_hash_table_foreach(plugins, callback_foreach_plug, &hint);
+}
+#endif
+
+/* Finds plugin by variable criterios implemented by passed @plug_func. */
+reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
+	find_hint_t hint;
 	
-		if ((res = plug_func(plug, data)))
-			return res;
+	aal_assert("umka-155", plugins != NULL);    
+	aal_assert("umka-899", plug_func != NULL);    
+
+	hint.data = data;
+	hint.plug = NULL;
+	hint.plug_func = plug_func;
+
+	aal_hash_table_foreach(plugins, callback_foreach_plug,
+			       &hint);
+	
+	return hint.plug;
+}
+
+#ifndef ENABLE_STAND_ALONE
+static errno_t callback_nfind_plug(const void *entry, void *data) {
+	find_hint_t *hint = (find_hint_t *)data;
+	aal_hash_node_t *node = (aal_hash_node_t *)entry;
+	reiser4_plug_t *plug = (reiser4_plug_t *)node->value;
+
+	if (!aal_strncmp(plug->label, hint->data,
+			 sizeof(plug->label)))
+	{
+		hint->plug = plug;
+		return 1;
 	}
+
+	return 0;
+}
+
+/* Makes search for plugin by name */
+reiser4_plug_t *reiser4_factory_nfind(char *name) {
+	find_hint_t hint;
+
+	aal_assert("vpf-156", name != NULL);    
+       
+	hint.plug = NULL;
+	hint.data = name;
+
+	aal_hash_table_foreach(plugins, callback_nfind_plug,
+			       &hint);
 	
-	return res;
+	return hint.plug;
 }
 #endif
 
@@ -507,7 +525,7 @@ errno_t reiser4_factory_foreach(
 /* This function registers builtin plugin entry points. */
 void register_builtin(plug_init_t init, plug_fini_t fini) {
 
-	if (registered >= MAX_BUILTINS)
+	if (registered >= MAX_BUILTIN_PLUGINS)
 		registered = 0;
 		
 	__builtins[registered].init = init;

@@ -29,28 +29,31 @@ extern errno_t reiser4_tree_next_node(reiser4_tree_t *tree,
 				      place_t *place,
 				      place_t *next);
 
+extern node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
+				       place_t *place);
+
 extern errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 				      node_t *node,
 				      walk_func_t walk_func);
 
 extern errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
-					node_t *node, int check);
+					node_t *node);
 
 extern errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
-					 node_t *parent, node_t *node);
+					 node_t *parent,
+					 node_t *node);
 
 extern errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
-					    node_t *parent, node_t *node);
-
-extern node_t *reiser4_tree_child_node(reiser4_tree_t *tree, place_t *place);
+					    node_t *node);
 
 extern node_t *reiser4_tree_neigh_node(reiser4_tree_t *tree,
-				       node_t *node, aal_direction_t where);
+				       node_t *node, uint32_t where);
 
 #ifndef ENABLE_STAND_ALONE
+extern errno_t reiser4_tree_pack(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
-extern errno_t reiser4_tree_grow_up(reiser4_tree_t *tree);
-extern errno_t reiser4_tree_dry_out(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_growup(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_dryout(reiser4_tree_t *tree);
 
 extern void reiser4_tree_pack_on(reiser4_tree_t *tree);
 extern void reiser4_tree_pack_off(reiser4_tree_t *tree);
@@ -118,8 +121,7 @@ extern errno_t reiser4_tree_attach_node(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 					node_t *node);
 
-extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
-				      node_t *node,
+extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree, node_t *node,
 				      tree_open_func_t open_func,
 				      tree_edge_func_t before_func,
 				      tree_update_func_t update_func,
@@ -129,10 +131,8 @@ extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 extern node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 				       uint8_t level);
 
-extern int64_t reiser4_tree_modify(reiser4_tree_t *tree,
-				   place_t *place,
-				   trans_hint_t *hint,
-				   uint8_t level, 
+extern int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
+				   trans_hint_t *hint, uint8_t level, 
 				   estimate_func_t estimate_func,
 				   modify_func_t modify_func);
 
@@ -156,11 +156,15 @@ extern errno_t reiser4_tree_unload_node(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
 					 node_t *node);
 
+extern node_t *reiser4_tree_lookup_node(reiser4_tree_t *tree,
+					blk_t blk);
+
 extern node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 				      node_t *parent, blk_t blk);
 
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
-				    reiser4_key_t *key, uint8_t level,
+				    reiser4_key_t *key,
+				    uint8_t level,
 				    bias_t bias, place_t *place);
 #endif
 

@@ -60,9 +60,6 @@ extern errno_t reiser4_node_shift(node_t *node, node_t *neig,
 extern errno_t reiser4_node_update_key(node_t *node, pos_t *pos,
 				       reiser4_key_t *key);
 
-extern errno_t reiser4_node_update_children(node_t *node,
-					    pos_t *start);
-
 extern errno_t reiser4_node_clone(node_t *src, node_t *dst);
 extern errno_t reiser4_node_fresh(node_t *node, uint8_t level);
 
@@ -71,18 +68,14 @@ extern void reiser4_node_set_fstamp(node_t *node, uint64_t stamp);
 extern void reiser4_node_set_level(node_t *node, uint8_t level);
 #endif
 
+extern errno_t reiser4_node_realize(node_t *node);
+extern uint8_t reiser4_node_get_level(node_t *node);
+
 extern node_t *reiser4_node_open(reiser4_tree_t *tree,
 				 blk_t nr);
 
 extern errno_t reiser4_node_leftmost_key(node_t *node,
 					 reiser4_key_t *key);
-
-extern errno_t reiser4_node_realize(node_t *node);
-extern uint8_t reiser4_node_get_level(node_t *node);
-
-extern node_t *reiser4_node_child(node_t *node, blk_t blk);
-extern errno_t reiser4_node_connect(node_t *node, node_t *child);
-extern errno_t reiser4_node_disconnect(node_t *node, node_t *child);
 
 extern lookup_t reiser4_node_lookup(node_t *node, reiser4_key_t *key,
 				    bias_t bias, pos_t *pos);
@@ -98,8 +91,8 @@ extern void reiser4_node_mkclean(node_t *node);
 #endif
 
 extern void reiser4_node_lock(node_t *node);
-extern bool_t reiser4_node_locked(node_t *node);
 extern void reiser4_node_unlock(node_t *node);
+extern bool_t reiser4_node_locked(node_t *node);
 
 #define node_blocknr(node) \
         ((node)->entity->block->nr)

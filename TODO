@@ -3,6 +3,19 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* comment andupdate comments in factory.c.
+
+* implement ability to build progs staticaly.
+
+* implement tree_resize() and tree_copy().
+
+* update GRUB patch.
+
+* improve tree_adjust_node() to be able to stop if memory pressure is
+  gone.
+
+* make debugfs use librepair. Move all print stuff to librepair.
+
 * change R4Sb magic to Reiser4Sb both in progs and in kernel code.
 
 * implement tree_pack() function, which will pack tree on leaf level
