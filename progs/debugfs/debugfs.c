@@ -130,7 +130,7 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs, debugfs_print_flags_t flags)
 	struct print_tree_hint print_hint = {fs->tree, flags};
 	
 	reiser4_joint_traverse(fs->tree->root, (void *)&print_hint, debugfs_open_joint, 
-			       debugfs_print_joint, NULL, NULL, NULL, NULL);
+			       debugfs_print_joint, NULL, NULL, NULL);
     
 	printf("\n");
     
@@ -311,7 +311,7 @@ static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
 	aal_gauge_start(gauge);
 	
 	reiser4_joint_traverse(fs->tree->root, (void *)&hint, debugfs_open_joint,
-			       debugfs_calc_joint, NULL, NULL, NULL, NULL);
+			       debugfs_calc_joint, NULL, NULL, NULL);
 
 	aal_gauge_free(gauge);
 
