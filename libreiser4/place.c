@@ -170,6 +170,17 @@ void reiser4_place_dec(reiser4_place_t *place, int whole) {
 	if (whole && place->pos.unit == 0)
 		place->pos.unit = MAX_UINT32;
 }
+
+/* Copies @src to @dst and returns pointer to @dst. */
+reiser4_place_t *reiser4_place_dup(reiser4_place_t *dst,
+				   reiser4_place_t *src)
+{
+	aal_assert("umka-3105", dst != NULL);
+	aal_assert("umka-3106", src != NULL);
+
+	aal_memcpy(dst, src, sizeof(*dst));
+	return dst;
+}
 #endif
 
 /* Initializes all item-related fields */

@@ -21,6 +21,9 @@ extern bool_t reiser4_place_leftmost(reiser4_place_t *place);
 extern bool_t reiser4_place_rightmost(reiser4_place_t *place);
 extern void reiser4_place_inc(reiser4_place_t *place, int whole);
 extern void reiser4_place_dec(reiser4_place_t *place, int whole);
+
+extern reiser4_place_t *reiser4_place_dup(reiser4_place_t *dst,
+					  reiser4_place_t *src);
 #endif
 
 extern errno_t reiser4_place_init(reiser4_place_t *place,

@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fix attach node with key collisions.
+
 * overview sources and eliminate all not needed differences between
   kernel code and libreiser4.
 
