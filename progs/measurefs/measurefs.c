@@ -400,6 +400,7 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 /* Entry point function for calculating tree statistics */
 errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	errno_t res;
+	uint32_t blksize;
 	tree_stat_hint_t stat_hint;
 
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
@@ -432,13 +433,26 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 		misc_wipe_line(stdout);
 	}
 
+	blksize = reiser4_master_get_blksize(fs->master);
+	
 	/* Printing results. */
 	printf("Packing statistics:\n");
-	printf("  Formatted nodes:%*.2f\n", 11, stat_hint.formatted_used);
 	
-	printf("  Branch nodes:%*.2f\n", 14, stat_hint.branches_used);
-	printf("  Twig nodes:%*.2f\n", 16, stat_hint.twigs_used);
-	printf("  Leaf nodes:%*.2f\n\n", 16, stat_hint.leaves_used);
+	printf("  Formatted nodes:%*.2f (%.2f%%)\n",
+	       11, stat_hint.formatted_used,
+	       (stat_hint.formatted_used * 100) / blksize);
+	
+	printf("  Branch nodes:%*.2f (%.2f%%)\n",
+	       14, stat_hint.branches_used,
+	       (stat_hint.branches_used * 100) / blksize);
+	
+	printf("  Twig nodes:%*.2f (%.2f%%)\n",
+	       16, stat_hint.twigs_used,
+	       (stat_hint.twigs_used * 100) / blksize);
+	
+	printf("  Leaf nodes:%*.2f (%.2f%%)\n\n",
+	       16, stat_hint.leaves_used,
+	       (stat_hint.leaves_used * 100) / blksize);
 
 	printf("Node statistics:\n");
 	printf("  Total nodes:%*llu\n", 15, stat_hint.nodes);
