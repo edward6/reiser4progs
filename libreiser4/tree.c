@@ -3198,11 +3198,13 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
 
 		pos = &place.pos;
 
-		if ((res = pre_func(place.node, data)) < 0)
-			return res;
+		if (pre_func) {
+			if ((res = pre_func(place.node, data)) < 0)
+				return res;
 		
-		/* If res != 0, lookup is needed. */
-		if (res) continue;
+			/* If res != 0, lookup is needed. */
+			if (res) continue;
+		}
 		
                 for (; pos->item < reiser4_node_items(place.node); pos->item++)	{
                         if ((res = reiser4_place_fetch(&place)))
@@ -3216,12 +3218,17 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
 					return -EIO;
 				}
 		
-				if ((res = pre_func(place.node, data)) < 0)
-					return res;
-				
-				/* If res != 0, lookup is needed. */
-				if (res) break;
-				
+				if (pre_func) {
+					if ((res = pre_func(place.node, 
+							    data)) < 0)
+					{
+						return res;
+					}
+
+					/* If res != 0, lookup is needed. */
+					if (res) break;
+				}
+
 				count = reiser4_node_items(place.node);
 				place.pos.item = -1;
 				
