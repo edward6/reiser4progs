@@ -1101,10 +1101,18 @@ static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
 	}
 }
 
-static errno_t node40_write(object_entity_t *src_entity, pos_t *src_pos,
-			    object_entity_t *dst_entity, pos_t *dst_pos,
+static errno_t node40_write(object_entity_t *dst_entity, pos_t *dst_pos,
+			    object_entity_t *src_entity, pos_t *src_pos,
 			    uint32_t count, write_hint_t *hint)
 {
+	aal_assert("umka-2005", hint != NULL);
+	aal_assert("umka-2003", src_pos != NULL);
+	aal_assert("umka-2004", dst_pos != NULL);
+	aal_assert("umka-2001", src_entity != NULL);
+	aal_assert("umka-2002", dst_entity != NULL);
+
+	
+	
 	return 0;
 }
 

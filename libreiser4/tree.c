@@ -1687,7 +1687,7 @@ errno_t reiser4_tree_write(
 {
 	errno_t res;
 	uint32_t units;
-	reiser4_place_t place;
+	write_hint_t hint;
 	
 	aal_assert("vpf-683", tree != NULL);
 	aal_assert("vpf-684", dst != NULL);
@@ -1699,35 +1699,34 @@ errno_t reiser4_tree_write(
 	if (src->pos.item + count > units)
 		count = units - src->pos.item;
 
-	/* Checking id we should be dealing with items or units */
-	if (src->pos.unit == ~0ul) {
+	/* Initializing item at passed @src place */
+	if ((res = reiser4_place_realize(src)))
+		return res;
 		
-		/* Initializing item at passed @src place */
-		if ((res = reiser4_place_realize(src)))
-			return res;
-		
-		/*
-		  Initializing item key at passed @src place. This is needed for
-		  getting its key for searching the place we should insert it in
-		  @tree.
-		*/
-		if ((res = reiser4_item_realize(src)))
-			return res;
+	/*
+	  Initializing item key at passed @src place. This is needed for
+	  getting its key for searching the place we should insert it in
+	  @tree.
+	*/
+	if ((res = reiser4_item_realize(src)))
+		return res;
 
-		switch (reiser4_tree_lookup(tree, &src->item.key,
-					    LEAF_LEVEL, &place))
-		{
-		case LP_FAILED:
-			aal_exception_error("Lookup failed while writing "
-					    "items/units from %llu top tree.",
-					    src->node->blk);
-			return -1;
-		case LP_ABSENT:
-			return -1;
-		case LP_PRESENT:
-			return -1;
-		}
-	} else {
+	if ((res = reiser4_node_feel(src->node, &src->pos,
+				     count, &hint)))
+	{
+		aal_exception_error("Can't estimate tree write "
+				    "operation.");
+		return res;
+	}
+
+	if ((res = reiser4_node_write(dst->node, &dst->pos,
+				      src->node, &src->pos,
+				      count, &hint)))
+	{
+		aal_exception_error("Can't write %lu items/units from "
+				    "node %llu to %llu one.", count,
+				    src->node->blk, dst->node->blk);
+		return res;
 	}
 		
 	return 0;
