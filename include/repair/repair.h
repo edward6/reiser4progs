@@ -63,13 +63,13 @@ struct repair_check {
     uint64_t flags;
     union {
 	struct {
-	    aux_bitmap_t *format_layout;
-	    aux_bitmap_t *formatted;
+	    aux_bitmap_t *bm_format_layout;
+	    aux_bitmap_t *bm_formatted;
 	    uint8_t level;
 	} filter;
 	struct {
-	    aux_bitmap_t *format_layout;
-	    aux_bitmap_t *used;
+	    aux_bitmap_t *bm_format_layout;
+	    aux_bitmap_t *bm_used;
 	    reiser4_oid_t *oid_control;
 	} scan;
     } pass;

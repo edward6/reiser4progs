@@ -24,7 +24,7 @@ errno_t callback_mark_format_block(object_entity_t *format, blk_t blk,
 {
     aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
 
-    aux_bitmap_clear(format_layout, blk);
+    aux_bitmap_mark(format_layout, blk);
     
     return 0;
 }

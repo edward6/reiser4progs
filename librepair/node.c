@@ -60,11 +60,11 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
 	    /* FIXME-VITALY: Improve it later - it could be just width to be
 	     * obviously wrong. Or start block. Give a hint into 
-	     * repair_item_ptr_format_check which returns what is obviously 
+	     * repair_item_ptr_used_in_format which returns what is obviously 
 	     * wrong. */
-	    if ((res = repair_item_ptr_format_check(&coord, data)) < 0)  
+	    if ((res = repair_item_ptr_used_in_format(&coord, data)) < 0)  
 		return res;
-	    else if ((res > 0) && repair_item_fix_pointer(&coord)) 
+	    else if ((res > 0) && repair_item_handle_ptr(&coord)) 
 		return -1;
 	}
     }

@@ -111,7 +111,7 @@ static object_entity_t *alloc40_open(object_entity_t *format,
 		goto error_free_bitmap;
 	}
 
-	aux_bitmap_calc_used(alloc->bitmap);
+	aux_bitmap_calc_marked(alloc->bitmap);
     
 	return (object_entity_t *)alloc;
 
@@ -317,7 +317,7 @@ static uint64_t alloc40_allocate(object_entity_t *entity) {
 	   It is possible to implement here more smart allocation algorithm. For
 	   instance, it may look for contiguous areas.
 	*/
-	if ((blk = aux_bitmap_find(alloc->bitmap, 0)) == FAKE_BLK)
+	if ((blk = aux_bitmap_find_cleared(alloc->bitmap, 0)) == FAKE_BLK)
 		return FAKE_BLK;
     
 	aux_bitmap_mark(alloc->bitmap, blk);
@@ -343,7 +343,7 @@ static uint64_t alloc40_free(object_entity_t *entity) {
 	aal_assert("umka-376", alloc != NULL, return FAKE_BLK);
 	aal_assert("umka-377", alloc->bitmap != NULL, return FAKE_BLK);
     
-	return aux_bitmap_free(alloc->bitmap);
+	return aux_bitmap_cleared(alloc->bitmap);
 }
 
 /* Returns used blocks count */
@@ -353,7 +353,7 @@ static uint64_t alloc40_used(object_entity_t *entity) {
 	aal_assert("umka-378", alloc != NULL, return FAKE_BLK);
 	aal_assert("umka-379", alloc->bitmap != NULL, return FAKE_BLK);
 
-	return aux_bitmap_used(alloc->bitmap);
+	return aux_bitmap_marked(alloc->bitmap);
 }
 
 /* Checks whether specified block is used or not */

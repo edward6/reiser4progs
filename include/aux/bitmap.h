@@ -17,7 +17,7 @@
    memory chunk bit array placed in and bit array size.
 */
 struct aux_bitmap {
-	uint64_t used;
+	uint64_t marked;
 	uint64_t total;
 	uint32_t size;
     
@@ -30,19 +30,25 @@ extern void aux_bitmap_mark(aux_bitmap_t *bitmap, uint64_t bit);
 extern void aux_bitmap_clear(aux_bitmap_t *bitmap, uint64_t bit);
 extern int aux_bitmap_test(aux_bitmap_t *bitmap, uint64_t bit);
 
-extern uint64_t aux_bitmap_find(aux_bitmap_t *bitmap, uint64_t start);
+extern void aux_bitmap_mark_range(aux_bitmap_t *bitmap, 
+				  uint64_t start, uint64_t end);
+extern void aux_bitmap_clear_range(aux_bitmap_t *bitmap, 
+				   uint64_t start, uint64_t end);
 
-extern uint64_t aux_bitmap_calc_used(aux_bitmap_t *bitmap);
-extern uint64_t aux_bitmap_calc_free(aux_bitmap_t *bitmap);
+extern uint64_t aux_bitmap_find_marked(aux_bitmap_t *bitmap, uint64_t start);
+extern uint64_t aux_bitmap_find_cleared(aux_bitmap_t *bitmap, uint64_t start);
 
-extern uint64_t aux_bitmap_used(aux_bitmap_t *bitmap);
-extern uint64_t aux_bitmap_free(aux_bitmap_t *bitmap);
+extern uint64_t aux_bitmap_calc_marked(aux_bitmap_t *bitmap);
+extern uint64_t aux_bitmap_calc_cleared(aux_bitmap_t *bitmap);
 
-extern uint64_t aux_bitmap_calc_used_in_area(aux_bitmap_t *bitmap, 
-					     uint64_t start, uint64_t end);
+extern uint64_t aux_bitmap_marked(aux_bitmap_t *bitmap);
+extern uint64_t aux_bitmap_cleared(aux_bitmap_t *bitmap);
 
-extern uint64_t aux_bitmap_calc_free_in_area(aux_bitmap_t *bitmap, 
-					     uint64_t start, uint64_t end);
+extern uint64_t aux_bitmap_calc_marked_in_area(aux_bitmap_t *bitmap, 
+					       uint64_t start, uint64_t end);
+
+extern uint64_t aux_bitmap_calc_cleared_in_area(aux_bitmap_t *bitmap, 
+					        uint64_t start, uint64_t end);
 
 extern aux_bitmap_t *aux_bitmap_create(uint64_t len);
 extern aux_bitmap_t *aux_bitmap_clone(aux_bitmap_t *bitmap);
