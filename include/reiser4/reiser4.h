@@ -24,6 +24,7 @@ extern "C" {
 #include <reiser4/object.h>
 #include <reiser4/place.h>
 #include <reiser4/master.h>
+#include <reiser4/status.h>
 #include <reiser4/item.h>
 #include <reiser4/factory.h>
 #include <reiser4/param.h>

@@ -9,6 +9,7 @@
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 #ifndef ENABLE_STAND_ALONE
 	count_t blocks;
+	uint32_t blksize;
 #endif
 	reiser4_fs_t *fs;
 
@@ -27,11 +28,19 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_master_valid(fs->master))
 		goto error_free_master;
+
+	blksize = reiser4_master_blksize(fs->master);
+
+	if (!(fs->status = reiser4_status_open(device,
+					       blksize)))
+	{
+		goto error_free_master;
+	}
 #endif
 
 	/* Initializes used disk format. See format.c for details */
 	if (!(fs->format = reiser4_format_open(fs)))
-		goto error_free_master;
+		goto error_free_status;
 
 #ifndef ENABLE_STAND_ALONE
 	if (plug_call(fs->format->entity->plug->o.format_ops,
@@ -75,8 +84,12 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
  error_free_format:
 	reiser4_format_close(fs->format);
 #endif
-	
+
+ error_free_status:
+#ifndef ENABLE_STAND_ALONE
+	reiser4_status_close(fs->status);
  error_free_master:
+#endif
 	reiser4_master_close(fs->master);
  error_free_fs:
 	aal_free(fs);
@@ -103,6 +116,10 @@ void reiser4_fs_close(
 	reiser4_format_close(fs->format);
 	reiser4_master_close(fs->master);
 
+#ifndef ENABLE_STAND_ALONE
+	reiser4_status_close(fs->status);
+#endif
+	
 	/* Freeing memory occupied by fs instance */
 	aal_free(fs);
 }
@@ -142,6 +159,9 @@ reiser4_owner_t reiser4_fs_belongs(
 			return O_JOURNAL;
 	}
 
+	if (reiser4_status_layout(fs->status, callback_check_block, &blk) != 0)
+		return O_STATUS;
+	
 	/* Checks if passed @blk belongs to block allocator data */
 	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk) != 0)
 		return O_ALLOC;
@@ -181,6 +201,9 @@ errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 		}
 	}
     
+	if ((res = reiser4_status_layout(fs->status, region_func, data)))
+		return res;
+
 	/* Enumerating block allocator area */
 	return reiser4_alloc_layout(fs->alloc, region_func, data);
 }
@@ -253,6 +276,12 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_fs;
 	}
 
+	if (!(fs->status = reiser4_status_create(device,
+						 hint->blksize)))
+	{
+		goto error_free_master;
+	}
+
 	/* Getting tail policy from default params. */
 	policy = reiser4_param_value("policy");
 	
@@ -260,7 +289,7 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->format = reiser4_format_create(fs, hint->blocks,
 						 policy, format)))
 	{
-		goto error_free_master;
+		goto error_free_status;
 	}
 
 	/* Taking care about key flags in format super block */
@@ -296,6 +325,8 @@ reiser4_fs_t *reiser4_fs_create(
 	reiser4_alloc_close(fs->alloc);
  error_free_format:
 	reiser4_format_close(fs->format);
+ error_free_status:
+	reiser4_status_close(fs->status);
  error_free_master:
 	reiser4_master_close(fs->master);
  error_free_fs:
@@ -348,7 +379,7 @@ errno_t reiser4_fs_sync(
 	if ((res = reiser4_master_sync(fs->master)))
 		return res;
 
-	return 0;
+	return reiser4_status_sync(fs->status);
 }
 
 /* Returns the key of the fake root parent */

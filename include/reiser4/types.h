@@ -25,32 +25,60 @@ struct reiser4_master_sb {
 
 typedef struct reiser4_master_sb reiser4_master_sb_t;
 
-#define get_ms_format(ms)               aal_get_le16(ms, ms_format)
-#define set_ms_format(ms, val)          aal_set_le16(ms, ms_format, val)
+#define get_ms_format(ms)        aal_get_le16(ms, ms_format)
+#define set_ms_format(ms, val)   aal_set_le16(ms, ms_format, val)
 
-#define get_ms_blksize(ms)              aal_get_le16(ms, ms_blksize)
-#define set_ms_blksize(ms, val)         aal_set_le16(ms, ms_blksize, val)
+#define get_ms_blksize(ms)       aal_get_le16(ms, ms_blksize)
+#define set_ms_blksize(ms, val)  aal_set_le16(ms, ms_blksize, val)
+
+struct reiser4_status_sb {
+        char ss_magic[16];
+        d64_t ss_status;         /* current filesystem state */
+        d64_t ss_extended;       /* any additional info that might have sense in
+				    addition to "status". */
+        d64_t ss_stack[10];      /* last ten functional calls made
+				    (addresses). */
+        char ss_message[256];    /* any error message if appropriate, otherwise
+				    filled with zeroes. */
+};
+
+typedef struct reiser4_status_sb reiser4_status_sb_t;
+
+#define get_ss_status(ss)        aal_get_le64(ss, ss_status)         
+#define set_ss_status(ss, val)   aal_set_le64(ss, ss_status, val)         
+
+#define get_ss_extended(ss)      aal_get_le64(ss, ss_extended)         
+#define set_ss_extended(ss, val) aal_set_le64(ss, ss_extended, val)
 
 struct reiser4_master {
-	/* The flag, which shows that master super block is realy exist on disk
-	   and that filesystem was opened by reading it rather than probbing all
-	   known format plugins. We need to distinguish these two cases, because
-	   we should not save master super block in reiser4_master_sync() if it
-	   is not realy exist on disk without special actions like converting. */
-	bool_t native;
-
-	/* Flag for marking master as dirty */
+	/* Flag for marking master dirty */
 	bool_t dirty;
 
 	/* Device master is opened on */
 	aal_device_t *device;
 
-	/* Loaded master super block */
+	/* Loaded master data */
 	reiser4_master_sb_t super;
 };
 
 typedef struct reiser4_fs reiser4_fs_t;
 typedef struct reiser4_master reiser4_master_t;
+
+struct reiser4_status {
+	/* Flag for marking status block dirty */
+	bool_t dirty;
+
+	/* Block size */
+	uint32_t blksize;
+
+	/* Device status is opened on */
+	aal_device_t *device;
+
+	/* Loaded status data */
+	reiser4_status_sb_t status;
+};
+
+typedef struct reiser4_status reiser4_status_t;
 
 struct reiser4_pid {
 	char name[255];
@@ -166,7 +194,8 @@ enum reiser4_owner {
 	O_JOURNAL  = 1 << 2,
 	O_ALLOC    = 1 << 3,
 	O_OID      = 1 << 4,
-	O_UNKNOWN  = 1 << 5
+	O_STATUS   = 1 << 5,
+	O_UNKNOWN  = 1 << 6
 };
 
 typedef enum reiser4_owner reiser4_owner_t;
@@ -315,6 +344,9 @@ struct reiser4_fs {
 
 	/* Pointer to the block allocator in use */
 	reiser4_alloc_t *alloc;
+
+	/* Filesystem status block. */
+	reiser4_status_t *status;
 #endif
 
 	/* Pointer to the oid allocator in use */

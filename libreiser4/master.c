@@ -71,7 +71,6 @@ reiser4_master_t *reiser4_master_create(
 	set_ms_blksize(SUPER(master), blksize);
 
 	master->dirty = TRUE;
-	master->native = TRUE;
 	master->device = device;
 	
 	return master;
@@ -116,11 +115,14 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 			      void *data)
 {
 	uint32_t blk;
+	uint32_t blksize;
 	
 	aal_assert("vpf-1317", master != NULL);
 	aal_assert("vpf-1317", region_func != NULL);
+
+	blksize = reiser4_master_blksize(master);
+	blk = REISER4_MASTER_OFFSET / blksize;
 	
-	blk = REISER4_MASTER_OFFSET / reiser4_master_blksize(master);
 	return region_func(master, blk, 1, data);
 }
 
@@ -182,7 +184,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
     
 	/* Reiser4 master super block is not found on the device. */
 	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
-			sizeof(SUPER(master)->ms_magic)) != 0)
+			aal_strlen(REISER4_MASTER_MAGIC)) != 0)
 	{
 		aal_exception_fatal("Wrong magic is found in the master "
 				    "super block.");
@@ -237,14 +239,10 @@ errno_t reiser4_master_sync(
 	
 	aal_assert("umka-145", master != NULL);
     
-	/* The check if opened filesystem is native reiser4 one */
-	if (!master->native)
-		return 0;
-
-	if (master->dirty == FALSE)
+	if (!master->dirty)
 		return 0;
 	
-	blksize = master->device->blksize;
+	blksize = get_ms_blksize(SUPER(master));
 	offset = REISER4_MASTER_OFFSET / blksize;
 
 	if (!(block = aal_block_alloc(master->device,
