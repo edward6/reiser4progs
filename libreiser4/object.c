@@ -573,8 +573,6 @@ errno_t reiser4_object_metadata(
 					   func, data);
 }
 
-#endif
-
 lookup_t reiser4_object_lookup(reiser4_object_t *object,
 			     const char *name,
 			     entry_hint_t *entry)
@@ -590,6 +588,22 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 			   lookup, object->entity, (char *)name,
 			   (void *)entry);
 }
+
+/* Seeks directory current position to passed pos */
+errno_t reiser4_object_seek(
+	reiser4_object_t *object,    /* object where position shopuld be changed */
+	uint32_t offset)	     /* offset for seeking */
+{
+	aal_assert("umka-1129", object != NULL);
+	aal_assert("umka-1153", object->entity != NULL);
+    
+	if (!object->entity->plugin->object_ops.seek)
+		return -EINVAL;
+	
+	return plugin_call(object->entity->plugin->object_ops, 
+			   seek, object->entity, offset);
+}
+#endif
 
 /* Closes specified object */
 void reiser4_object_close(
@@ -635,23 +649,6 @@ int32_t reiser4_object_read(
 			   read, object->entity, buff, n);
 }
 
-#ifndef ENABLE_STAND_ALONE
-/* Seeks directory current position to passed pos */
-errno_t reiser4_object_seek(
-	reiser4_object_t *object,    /* object where position shopuld be changed */
-	uint32_t offset)	     /* offset for seeking */
-{
-	aal_assert("umka-1129", object != NULL);
-	aal_assert("umka-1153", object->entity != NULL);
-    
-	if (!object->entity->plugin->object_ops.seek)
-		return -EINVAL;
-	
-	return plugin_call(object->entity->plugin->object_ops, 
-			   seek, object->entity, offset);
-}
-#endif
-
 /* Retutns current position in directory */
 uint32_t reiser4_object_offset(
 	reiser4_object_t *object)    /* dir position will be obtained from */
@@ -677,6 +674,7 @@ errno_t reiser4_object_readdir(reiser4_object_t *object,
 			   readdir, object->entity, entry);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Change current position in passed @object if it is a directory */
 errno_t reiser4_object_seekdir(reiser4_object_t *object,
 			       reiser4_key_t *offset)
@@ -704,3 +702,4 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 	return plugin_call(object->entity->plugin->object_ops,
 			   telldir, object->entity, offset);
 }
+#endif
