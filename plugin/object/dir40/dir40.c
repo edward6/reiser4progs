@@ -587,6 +587,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	body_hint.place_func = NULL;
 	body_hint.region_func = NULL;
 	
+	dir40_reset((object_entity_t *)dir);
+	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.offset,
 			     LEAF_LEVEL, FIND_CONV, &dir->body))
@@ -610,10 +612,19 @@ static object_entity_t *dir40_create(object_info_t *info,
 	if (obj40_create_stat(&dir->obj, hint->label.statdata, mask,
 			      1, body_hint.len, 0, 1, S_IFDIR, NULL))
 	{
+	
+		/* Removing body item. */	
+		if (dir40_update_body((object_entity_t *)dir) == 0) {
+			body_hint.count = 1;
+			body_hint.place_func = NULL;
+			body_hint.region_func = NULL;
+			
+			obj40_remove(&dir->obj, &dir->body, &body_hint);
+		}
+		
 		goto error_free_dir;
 	}
 	
-	dir40_reset((object_entity_t *)dir);
 	return (object_entity_t *)dir;
 	
  error_free_dir:

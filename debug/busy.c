@@ -77,11 +77,9 @@ int main(int argc, char *argv[]) {
 
 		srandom(time(0));
                 for (i = 0; i < 500000; i++) {
-                        int j, count, suff;
+                        int j, count;
 			
-			suff = random();
-			
-			aal_snprintf(name, 256, "file name%d", suff);
+			aal_snprintf(name, 256, "file name%d", random());
                                                                                        
                         if (!(object = reiser4_reg_create(fs, dir, name)))
                                 continue;
@@ -102,6 +100,7 @@ int main(int argc, char *argv[]) {
         }
 	
 	reiser4_object_close(fs->root);
+	reiser4_tree_compress(fs->tree);
 	reiser4_fs_close(fs);
     
 	libreiser4_fini();

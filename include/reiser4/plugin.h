@@ -380,7 +380,7 @@ enum shift_flags {
 typedef enum shift_flags shift_flags_t;
 
 #define SF_DEFAULT \
-(SF_ALLOW_LEFT | SF_ALLOW_RIGHT | SF_ALLOW_ALLOC | SF_ALLOW_MERGE)
+(SF_ALLOW_LEFT | SF_ALLOW_RIGHT | SF_ALLOW_ALLOC | SF_ALLOW_MERGE | SF_MOVE_POINT)
 
 struct shift_hint {
 	/* Flag which shows that we need create an item before we will move
