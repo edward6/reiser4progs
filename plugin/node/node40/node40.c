@@ -807,19 +807,21 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 			
 			aal_memcpy(dst, ih, headers_size);
 
+			ih = (item40_header_t *)dst;
+		
 			/* Copying item bodies from src node to dst */
-			src = ih40_get_offset(ih) + estimate.src->block->data;
-			dst = estimate.dst->block->data + nh40_get_free_space_start(estimate.dst);
+			src = node40_ib_at(estimate.src, 0);
+
+			dst = estimate.dst->block->data +
+				nh40_get_free_space_start(estimate.dst);
 
 			aal_memcpy(dst, src, estimate.bytes);
 		}
 
 		/* Updating item headers */
-		ih = (item40_header_t *)dst;
-		
 		for (i = 0; i < estimate.items; i++, ih++) {
 			uint32_t offset = nh40_get_free_space_start(estimate.dst);
-			ih40_set_offset(ih, (uint32_t)(offset - ih40_get_offset(ih)));
+			ih40_set_offset(ih, offset + (offset - ih40_get_offset(ih)));
 		}
 	} else {
 		/* Preparing space for moving item headers in destination
@@ -850,7 +852,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		/* Copying item headers */
 		src = node40_ih_at(estimate.src, src_items - 1);
 		dst = node40_ih_at(estimate.dst, estimate.items - 1);
-			
+
 		aal_memcpy(dst, src, headers_size);
 
 		/* Copying item bodies */
