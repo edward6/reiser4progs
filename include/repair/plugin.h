@@ -47,4 +47,7 @@ typedef enum repair_error {
 
 #define LOST_PREFIX "lost_name_"
 
+extern void repair_set_error(uint32_t error);
+extern uint32_t repair_get_error();
+
 #endif

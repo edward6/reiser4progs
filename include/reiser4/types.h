@@ -31,6 +31,7 @@ typedef struct reiser4_master_sb reiser4_master_sb_t;
 #define get_ms_blksize(ms)       aal_get_le16(ms, ms_blksize)
 #define set_ms_blksize(ms, val)  aal_set_le16(ms, ms_blksize, val)
 
+#define SS_MAGIC_SIZE	16
 #define SS_STACK_SIZE	10
 #define SS_MESSAGE_SIZE 256
 

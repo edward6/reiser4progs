@@ -346,6 +346,11 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts,
 	return 0;
 }
 
+static void repair_ts_fini(repair_control_t *control) {
+	/* Not for the BUILD mode met points to the bm_used. */
+	control->bm_met = NULL;
+}
+
 static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	uint64_t i;
 	
@@ -418,9 +423,6 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 		aux_bitmap_t *bm_temp;
 		uint64_t fs_len, i;
 		errno_t res;
-		
-		/* Not for the BUILD mode met points to the bm_used. */
-		control->bm_met = NULL;
 		
 		fs_len = reiser4_format_get_len(control->repair->fs->format);
 
@@ -638,7 +640,9 @@ errno_t repair_check(repair_data_t *repair) {
 		
 		if ((res = repair_add_missing(&am)))
 			goto error;
-	} 
+	} else {
+		repair_ts_fini(&control);
+	}
 
 	if (repair->mode != RM_BUILD && repair->fatal) {
 		aal_exception_mess("\nFatal corruptions were found. "
