@@ -142,8 +142,8 @@ static errno_t stat40_init(item_entity_t *item) {
   Estimates how many bytes will be needed for creating statdata item described
   by passed @hint at passed @pos.
 */
-static errno_t stat40_estimate(item_entity_t *item, 
-			       void *buff, uint32_t pos) 
+static errno_t stat40_estimate(item_entity_t *item, void *buff,
+			       uint32_t pos, uint32_t count) 
 {
 	uint8_t i;
 	reiser4_item_hint_t *hint;
@@ -198,8 +198,8 @@ static errno_t stat40_estimate(item_entity_t *item,
 }
 
 /* This method inserts the stat data extentions */
-static errno_t stat40_insert(item_entity_t *item,
-			     void *buff, uint32_t pos)
+static errno_t stat40_insert(item_entity_t *item, void *buff,
+			     uint32_t pos, uint32_t count)
 {
 	uint8_t i;
 	rbody_t *extbody;

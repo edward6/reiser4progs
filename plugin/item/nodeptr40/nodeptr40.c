@@ -31,8 +31,8 @@ static errno_t nodeptr40_init(item_entity_t *item) {
 }
 
 /* Inserts new nodeptr described by passed @buff */
-static errno_t nodeptr40_insert(item_entity_t *item,
-				void *buff, uint32_t pos)
+static errno_t nodeptr40_insert(item_entity_t *item, void *buff,
+				uint32_t pos, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
 	reiser4_item_hint_t *hint;
@@ -53,8 +53,8 @@ static errno_t nodeptr40_insert(item_entity_t *item,
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */
-static errno_t nodeptr40_estimate(item_entity_t *item,
-				  void *buff, uint32_t pos) 
+static errno_t nodeptr40_estimate(item_entity_t *item, void *buff,
+				  uint32_t pos, uint32_t count) 
 {
 	reiser4_item_hint_t *hint;
 	

@@ -64,8 +64,8 @@ static int32_t tail40_update(item_entity_t *item, void *buff,
 }
 
 /* Inserts tail data into specified tail */
-static errno_t tail40_insert(item_entity_t *item,
-			     void *buff, uint32_t pos)
+static errno_t tail40_insert(item_entity_t *item, void *buff,
+			     uint32_t pos, uint32_t count)
 {
 	uint32_t len;
 	void *src, *dst;

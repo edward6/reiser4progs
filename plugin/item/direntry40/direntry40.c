@@ -283,25 +283,25 @@ static int direntry40_mergeable(item_entity_t *item1,
   Estimates how much bytes will be needed to prepare in node in odrer to make
   room for inserting new entries.
 */
-static errno_t direntry40_estimate(item_entity_t *item,
-				   void *buff, uint32_t pos) 
+static errno_t direntry40_estimate(item_entity_t *item, void *buff,
+				   uint32_t pos, uint32_t count) 
 {
 	uint32_t i;
 	reiser4_item_hint_t *hint;
-	reiser4_direntry_hint_t *direntry_hint;
+	reiser4_entry_hint_t *entry_hint;
 	    
 	aal_assert("vpf-095", buff != NULL, return -1);
     
 	hint = (reiser4_item_hint_t *)buff;
-	direntry_hint = (reiser4_direntry_hint_t *)hint->hint;
+	entry_hint = (reiser4_entry_hint_t *)hint->hint;
 	
-	hint->len = direntry_hint->count * sizeof(entry40_t);
+	hint->len = count * sizeof(entry40_t);
     
-	for (i = 0; i < direntry_hint->count; i++) {
+	for (i = 0; i < count; i++, entry_hint++) {
 		hint->len += sizeof(objid40_t);
 
-		if (direntry40_name_long(direntry_hint->unit[i].name))
-			hint->len += aal_strlen(direntry_hint->unit[i].name) + 1;
+		if (direntry40_name_long(entry_hint->name))
+			hint->len += aal_strlen(entry_hint->name) + 1;
 	}
 
 	/*
@@ -839,17 +839,15 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 }
 
 /* Inserts new entries inside direntry item */
-static errno_t direntry40_insert(item_entity_t *item,
-				 void *buff, uint32_t pos)
+static errno_t direntry40_insert(item_entity_t *item, void *buff,
+				 uint32_t pos, uint32_t count)
 {
-	uint32_t offset;
-	uint32_t i, count;
-	
 	entry40_t *entry;
+	uint32_t i, offset;
 	direntry40_t *direntry;
 
 	reiser4_item_hint_t *hint;
-	reiser4_direntry_hint_t *direntry_hint;
+	reiser4_entry_hint_t *entry_hint;
     
 	aal_assert("umka-791", item != NULL, return -1);
 	aal_assert("umka-792", buff != NULL, return -1);
@@ -859,15 +857,13 @@ static errno_t direntry40_insert(item_entity_t *item,
 		return -1;
 
 	hint = (reiser4_item_hint_t *)buff;
-	direntry_hint = (reiser4_direntry_hint_t *)hint->hint;
+	entry_hint = (reiser4_entry_hint_t *)hint->hint;
 
 	/*
 	  Expanding direntry in order to prepare the room for new entries. The
 	  function direntry40_expand returns the offset of where new unit will
 	  be inserted.
 	*/
-	count = direntry_hint->count;
-	
 	if ((offset = direntry40_expand(direntry, pos, count, hint->len)) <= 0) {
 		aal_exception_error("Can't expand direntry item at "
 				    "pos %u by %u entries.", pos, count);
@@ -877,7 +873,7 @@ static errno_t direntry40_insert(item_entity_t *item,
 	/* Creating new entries */
 	entry = direntry40_entry(direntry, pos);
 		
-	for (i = 0; i < count; i++, entry++) {
+	for (i = 0; i < count; i++, entry++, entry_hint++) {
 		objid40_t *objid;
 		entryid40_t *entryid;
 		uint64_t oid, loc, off;
@@ -891,25 +887,29 @@ static errno_t direntry40_insert(item_entity_t *item,
 		/* Setting up the offset of new entry */
 		en40_set_offset(entry, offset);
 
-		hash = &direntry_hint->unit[i].offset;
+		hash = &entry_hint->offset;
 		
 		/* Creating proper entry identifier (hash) */
-		oid = plugin_call(hash->plugin->key_ops, get_objectid, hash);
+		oid = plugin_call(hash->plugin->key_ops,
+				  get_objectid, hash);
 		
 		eid40_set_objectid(entryid, oid);
 
-		off = plugin_call(hash->plugin->key_ops, get_offset, hash);
+		off = plugin_call(hash->plugin->key_ops,
+				  get_offset, hash);
 
 		eid40_set_offset(entryid, off);
 
 		/* Creating stat data key ,entry points to */
-		object = &direntry_hint->unit[i].object;
+		object = &entry_hint->object;
 
-		loc = plugin_call(object->plugin->key_ops, get_locality, object);
+		loc = plugin_call(object->plugin->key_ops,
+				  get_locality, object);
 
 		oid40_set_locality(objid, loc);
 
-		oid = plugin_call(object->plugin->key_ops, get_objectid, object);
+		oid = plugin_call(object->plugin->key_ops,
+				  get_objectid, object);
 		
 		oid40_set_objectid(objid, oid);
 
@@ -920,11 +920,11 @@ static errno_t direntry40_insert(item_entity_t *item,
 		  entry name will be stored separately. If no, then entry name
 		  will be stored in entry key.
 		*/
-		if (direntry40_name_long(direntry_hint->unit[i].name)) {
-			uint32_t len = aal_strlen(direntry_hint->unit[i].name);
+		if (direntry40_name_long(entry_hint->name)) {
+			uint32_t len = aal_strlen(entry_hint->name);
 
-			aal_memcpy((void *)direntry + offset ,
-				   direntry_hint->unit[i].name, len);
+			aal_memcpy((void *)direntry + offset,
+				   entry_hint->name, len);
 
 			offset += len;
 			*((char *)direntry + offset) = '\0';
@@ -933,7 +933,7 @@ static errno_t direntry40_insert(item_entity_t *item,
 	}
 	
 	/* Updating direntry count field */
-	de40_inc_count(direntry, direntry_hint->count);
+	de40_inc_count(direntry, count);
 
 	/*
 	  Updating item key by unit key if the first unit was chnaged. It is
