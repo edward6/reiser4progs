@@ -365,7 +365,7 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
 	return REPAIR_FATAL;
     }
     
-    flags->count = --last;
+    flags->count = last;
 
     /* Last is the last valid offset. If the last unit is valid also, count is 
      * the last + 1. */
@@ -393,12 +393,12 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
      * valid offset. */
     aal_assert("vpf-765", e_count >= flags->count);
     
-    /* If there is enough space for another entry header, and the last entry is 
-     * valid also, set count unit offset to the item length. */
+    /* If there is enough space for another entry header, and the @last entry is
+     * valid also, set @count unit offset to the item length. */
     if (e_count > flags->count && last != flags->count && mode == REPAIR_REBUILD)
 	en40_set_offset(&de->entry[flags->count], item->len);
  	
-    if (flags->count == last) 
+    if (flags->count == last && mode == REPAIR_REBUILD) 
 	/* Last unit is not valid. */
 	item->len = OFFSET(de, last);
    
@@ -474,33 +474,33 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
     for (i = 0; i < flags->count; i++) {
 	if (last == ~0ul) {
 	    /* Looking for the problem interval start. */
-	    if (!aal_test_bit(flags->elem + i, R)) {
-		if (mode != REPAIR_REBUILD)
-		    return REPAIR_FATAL;
+	    if (!aal_test_bit(flags->elem + i, R))
 		last = i - 1;
-	    }
 	} else {
 	    /* Looking for the problem interval end. */
 	    if (aal_test_bit(flags->elem + i, R)) {
 		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] "
 		    "look corrupted. %s", item->context.blk, item->pos.item, 
 		    last, i - 1, mode == REPAIR_REBUILD ? "Removed." : "");
-			
-		if (direntry40_remove(item, last, i - last) < 0) {
-		    aal_exception_error("Node %llu, item %u: remove of the "
-			"unit (%u), count (%u) failed.", item->context.blk, 
-			item->pos.item, last, i - last);
-		    return -EINVAL;
-		}
 		
-		aal_memmove(flags->elem + last, flags->elem + i, 
-		    flags->count - i);
-		flags->count -= (i - last);
+		if (mode == REPAIR_REBUILD) {
+		    if (direntry40_remove(item, last, i - last) < 0) {
+			aal_exception_error("Node %llu, item %u: remove of the "
+			    "unit (%u), count (%u) failed.", item->context.blk, 
+			    item->pos.item, last, i - last);
+			return -EINVAL;
+		    }
 		
-		i = last;
+		    aal_memmove(flags->elem + last, flags->elem + i, 
+			flags->count - i);
+		    flags->count -= (i - last);
+		
+		    i = last;
+		    res |= REPAIR_FIXED;
+		} else
+		    res |= REPAIR_FATAL;
+		
 		last = ~0ul;
-		res |= REPAIR_FIXED;
-
 	    }
 	}
     }

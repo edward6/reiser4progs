@@ -356,7 +356,7 @@ free_device:
     if (exit_code == 0) {
 	if (repair.fatal) {
 	    fprintf(stderr, "\n%llu fatal corruptions were detected. Run in "
-		"--repair mode to fix them.\n", repair.fatal);
+		"--rebuild mode to fix them.\n", repair.fatal);
 	    exit_code = FATAL_ERROR;
 	} else if (repair.fixable) {
 	    fprintf(stderr, "\n%llu fixable corruptions were detected. Run in "

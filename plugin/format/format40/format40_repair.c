@@ -87,7 +87,8 @@ errno_t format40_check(object_entity_t *entity, uint8_t mode) {
     return result;
 }
 
-/* Update from the device only those fields which can be changed. */
+/* Update from the device only those fields which can be changed while 
+ * replaying. */
 errno_t format40_update(object_entity_t *entity) {
     format40_t *format = (format40_t *)entity;
     format40_super_t *super;
@@ -105,15 +106,13 @@ errno_t format40_update(object_entity_t *entity) {
     }
 
     super = (format40_super_t *)block->data;
-    format->super.sb_block_count = super->sb_block_count;
+
     format->super.sb_free_blocks = super->sb_free_blocks;
     format->super.sb_root_block = super->sb_root_block;
     format->super.sb_oid = super->sb_oid;
     format->super.sb_file_count = super->sb_file_count;
     format->super.sb_tree_height = super->sb_tree_height;
-    
     format->super.sb_flushes = super->sb_flushes;
-    format->super.sb_mkfs_id = super->sb_mkfs_id;
     
     aal_block_close(block);
     return 0;
