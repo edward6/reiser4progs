@@ -222,10 +222,8 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 	hint.cleanup = 1;
 	hint.data = fs->tree;
 	
-	reiser4_node_traverse(fs->tree->root, &hint, print_open_node, 
+	return reiser4_tree_traverse(fs->tree, &hint, print_open_node, 
 			      print_process_node, NULL, NULL, NULL);
-    
-	return 0;
 }
 
 errno_t debugfs_print_master(reiser4_fs_t *fs) {
@@ -449,8 +447,9 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 
 	aal_gauge_start(gauge);
 	
-	reiser4_node_traverse(root, &hint, tfrag_open_node, tfrag_process_node,
-			      tfrag_setup_node, tfrag_update_node, NULL);
+	if (reiser4_tree_traverse(fs->tree, &hint, tfrag_open_node, tfrag_process_node,
+				  tfrag_setup_node, tfrag_update_node, NULL))
+		return -1;
 
 	aal_gauge_free(gauge);
 	
@@ -596,8 +595,9 @@ static errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 
 	aal_gauge_start(gauge);
 	
-	reiser4_node_traverse(fs->tree->root, &hint, stat_open_node,
-			      stat_process_node, NULL, NULL, NULL);
+	if (reiser4_tree_traverse(fs->tree, &hint, stat_open_node,
+				  stat_process_node, NULL, NULL, NULL))
+		return -1;
 
 	aal_gauge_free(gauge);
 	progs_wipe_line(stdout);
@@ -807,9 +807,10 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 
 	aal_gauge_start(gauge);
 	
-	reiser4_node_traverse(fs->tree->root, &hint, dfrag_open_node,
-			      dfrag_process_node, dfrag_setup_node, 
-			      dfrag_update_node, NULL);
+	if (reiser4_tree_traverse(fs->tree, &hint, dfrag_open_node,
+				  dfrag_process_node, dfrag_setup_node, 
+				  dfrag_update_node, NULL))
+		return -1;
 
 	aal_gauge_free(gauge);
 

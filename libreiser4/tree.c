@@ -1175,4 +1175,19 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
+errno_t reiser4_tree_traverse(
+	reiser4_tree_t *tree,		     /* node which should be traversed */
+	traverse_hint_t *hint,		     /* hint for traverse and for callback methods */
+	traverse_open_func_t open_func,	     /* callback for node opening */
+	traverse_edge_func_t before_func,    /* callback to be called at the beginning */
+	traverse_setup_func_t setup_func,    /* callback to be called before a child  */
+	traverse_setup_func_t update_func,   /* callback to be called after a child */
+	traverse_edge_func_t after_func)     /* callback to be called at the end */
+{
+	aal_assert("umka-1768", tree != NULL, return -1);
+
+	return reiser4_node_traverse(tree->root, hint, open_func, before_func,
+				     setup_func, update_func, after_func);
+}
+
 #endif
