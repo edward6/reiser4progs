@@ -141,7 +141,7 @@ static errno_t format36_sync(reiser4_entity_t *entity) {
 }
 
 static reiser4_entity_t *format36_create(aal_device_t *device, 
-    count_t blocks, uint16_t tail)
+    uint64_t blocks, uint16_t tail)
 {
     return NULL;
 }
@@ -201,7 +201,7 @@ static rpid_t format36_oid_pid(reiser4_entity_t *entity) {
     return OID_REISER36_ID;
 }
 
-static blk_t format36_get_root(reiser4_entity_t *entity) {
+static uint64_t format36_get_root(reiser4_entity_t *entity) {
     format36_super_t *super;
     
     aal_assert("umka-387", entity != NULL, return FAKE_BLK);
@@ -210,7 +210,7 @@ static blk_t format36_get_root(reiser4_entity_t *entity) {
     return get_sb_root_block(super);
 }
 
-static count_t format36_get_len(reiser4_entity_t *entity) {
+static uint64_t format36_get_len(reiser4_entity_t *entity) {
     format36_super_t *super;
     
     aal_assert("umka-388", entity != NULL, return FAKE_BLK);
@@ -219,7 +219,7 @@ static count_t format36_get_len(reiser4_entity_t *entity) {
     return get_sb_block_count(super);
 }
 
-static count_t format36_get_free(reiser4_entity_t *entity) {
+static uint64_t format36_get_free(reiser4_entity_t *entity) {
     format36_super_t *super;
     
     aal_assert("umka-389", entity != NULL, return FAKE_BLK);
@@ -230,7 +230,7 @@ static count_t format36_get_free(reiser4_entity_t *entity) {
 
 #ifndef ENABLE_COMPACT
 
-static void format36_set_root(reiser4_entity_t *entity, blk_t root) {
+static void format36_set_root(reiser4_entity_t *entity, uint64_t root) {
     format36_super_t *super;
     
     aal_assert("umka-390", entity != NULL, return);
@@ -240,7 +240,7 @@ static void format36_set_root(reiser4_entity_t *entity, blk_t root) {
 }
 
 static void format36_set_len(reiser4_entity_t *entity, 
-    count_t blocks)
+    uint64_t blocks)
 {
     format36_super_t *super;
     
@@ -251,7 +251,7 @@ static void format36_set_len(reiser4_entity_t *entity,
 }
 
 static void format36_set_free(reiser4_entity_t *entity, 
-    count_t blocks) 
+    uint64_t blocks) 
 {
     format36_super_t *super;
     

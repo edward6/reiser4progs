@@ -576,8 +576,8 @@ static reiser4_plugin_t dir40_plugin = {
     .file_ops = {
 	.h = {
 	    .handle = NULL,
-	    .id = DIR_DIR40_ID,
-	    .type = DIR_PLUGIN_TYPE,
+	    .id = FILE_DIRTORY40_ID,
+	    .type = FILE_PLUGIN_TYPE,
 	    .label = "dir40",
 	    .desc = "Compound directory for reiserfs 4.0, ver. " VERSION,
 	},

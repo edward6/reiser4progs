@@ -27,30 +27,8 @@ reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
 	return NULL;
     }
     
-    if (reiser4_item_statdata(&item)) {
-	/* 
-	    FIXME-UMKA: Here should be inspecting of the stat data extentions
-	    in order to find out is there some plugin id extention exists and
-	    if so, what the plugin id should be used for working with this kind
-	    of file.
-	*/
-	    
-	/* 
-	    Guessing plugin type and plugin id by mode field from the stat data 
-	    item. Here we return default plugins for every file type.
-	*/
-	uint16_t mode = reiser4_item_get_smode(&item);
-    
-	if (S_ISDIR(mode))
-	    return libreiser4_factory_ifind(DIR_PLUGIN_TYPE, DIR_DIR40_ID);
-	
-	if (S_ISLNK(mode))
-	    return libreiser4_factory_ifind(FILE_PLUGIN_TYPE, FILE_SYMLINK40_ID);
-	
-	return libreiser4_factory_ifind(FILE_PLUGIN_TYPE, FILE_REGULAR40_ID);
-    }
-
-    return NULL;
+    return libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
+	reiser4_item_detect(&item));
 }
 
 /* 

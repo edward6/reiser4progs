@@ -152,6 +152,17 @@ int reiser4_item_statdata(reiser4_item_t *item) {
 	item->plugin->item_ops.type == STATDATA_ITEM_TYPE;
 }
 
+/* Returns object plugin id */
+uint16_t reiser4_item_detect(reiser4_item_t *item) {
+    aal_assert("umka-1294", item != NULL, return 0);
+    aal_assert("umka-1295", item->plugin != NULL, return 0);
+    
+    if (!item->plugin->item_ops.detect)
+	return FAKE_PLUGIN;
+
+    return item->plugin->item_ops.detect(item);
+}
+
 uint16_t reiser4_item_get_smode(reiser4_item_t *item) {
     aal_assert("umka-1102", item != NULL, return 0);
     aal_assert("umka-1103", item->plugin != NULL, return 0);

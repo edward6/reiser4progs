@@ -4,6 +4,7 @@
 */
 
 #include "stat40.h"
+#include <sys/stat.h>
 
 static reiser4_core_t *core = NULL;
 
@@ -138,7 +139,7 @@ extern errno_t stat40_check(reiser4_item_t *, uint16_t);
 
 #endif
 
-/* here w eprobably should check all stat data extention masks */
+/* Here we probably should check all stat data extention masks */
 static errno_t stat40_valid(reiser4_item_t *item) {
     aal_assert("umka-1007", item != NULL, return -1);
     return 0;
@@ -167,7 +168,7 @@ static uint32_t stat40_count(reiser4_item_t *item) {
     return count;
 }
 
-static reiser4_body_t *stat40_extbody(reiser4_item_t *item, 
+static reiser4_body_t *stat40_sdext_body(reiser4_item_t *item, 
     uint8_t bit)
 {
     uint8_t i;
@@ -208,7 +209,21 @@ static reiser4_body_t *stat40_extbody(reiser4_item_t *item,
     return extbody;
 }
 
-static errno_t stat40_open_sdext(reiser4_item_t *item, 
+static int stat40_sdext_present(reiser4_item_t *item, 
+    uint8_t bit)
+{
+    stat40_t *stat;
+    uint64_t extmask;
+    
+    aal_assert("umka-1293", item != NULL, return -1);
+    
+    stat = stat40_body(item);
+    extmask = st40_get_extmask(stat);
+
+    return (((uint64_t)1 << bit) & extmask);
+}
+
+static errno_t stat40_sdext_open(reiser4_item_t *item, 
     uint8_t bit, stat40_sdext_t *sdext)
 {
     stat40_t *stat;
@@ -220,7 +235,7 @@ static errno_t stat40_open_sdext(reiser4_item_t *item,
     stat = stat40_body(item);
     extmask = st40_get_extmask(stat);
 
-    if (!(((uint64_t)1 << bit) & extmask)) {
+    if (!stat40_sdext_present(item, bit)) {
 	aal_exception_error("Stat data extention 0x%x "
 	    "is not present.", bit);
 	return -1;
@@ -232,7 +247,7 @@ static errno_t stat40_open_sdext(reiser4_item_t *item,
 	return -1;
     }
     
-    return -((sdext->body = stat40_extbody(item, bit)) == NULL);
+    return -((sdext->body = stat40_sdext_body(item, bit)) == NULL);
 }
 
 static uint16_t stat40_get_mode(reiser4_item_t *item) {
@@ -241,7 +256,7 @@ static uint16_t stat40_get_mode(reiser4_item_t *item) {
     
     aal_assert("umka-710", item != NULL, return 0);
     
-    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
+    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
 	return 0;
     
     if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
@@ -256,13 +271,42 @@ static uint16_t stat40_get_mode(reiser4_item_t *item) {
     return hint.mode;
 }
 
+/* Detecting the object plugin by extentions or mode */
+static uint16_t stat40_detect(reiser4_item_t *item) {
+    uint16_t mode;
+    
+    aal_assert("umka-1292", item != NULL, return FAKE_PLUGIN);
+
+    /* 
+	FIXME-UMKA: Here we should inspect all extentions and try to find out
+	if non-standard file plugin is in use.
+    */
+
+    /* 
+        Guessing plugin type and plugin id by mode field from the stat data 
+        item. Here we return default plugins for every file type.
+    */
+    mode = stat40_get_mode(item);
+    
+    if (S_ISDIR(mode))
+        return FILE_DIRTORY40_ID;
+	
+    if (S_ISLNK(mode))
+        return FILE_SYMLINK40_ID;
+
+    if (S_ISFIFO(mode) || S_ISSOCK(mode))
+	return FILE_SPECIAL40_ID;
+	
+    return FILE_REGULAR40_ID;
+}
+
 static uint32_t stat40_get_size(reiser4_item_t *item) {
     stat40_sdext_t sdext;
     reiser4_sdext_lw_hint_t hint;
     
     aal_assert("umka-1223", item != NULL, return 0);
     
-    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
+    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
 	return 0;
     
     if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
@@ -287,7 +331,7 @@ static errno_t stat40_set_mode(reiser4_item_t *item,
     
     aal_assert("umka-1192", item != NULL, return 0);
     
-    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
+    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
 	return 0;
     
     if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
@@ -320,7 +364,7 @@ static errno_t stat40_set_size(reiser4_item_t *item,
     
     aal_assert("umka-1224", item != NULL, return 0);
     
-    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
+    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
 	return 0;
     
     if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
@@ -384,10 +428,12 @@ static reiser4_plugin_t stat40_plugin = {
         .lookup		= NULL,
         .print		= NULL,
 	    
-        .max_poss_key	= stat40_max_poss_key,
-        .max_real_key   = stat40_max_poss_key,
         .count		= stat40_count,
         .valid		= stat40_valid,
+	.detect		= stat40_detect,
+        
+	.max_poss_key	= stat40_max_poss_key,
+        .max_real_key   = stat40_max_poss_key,
 	
 	.specific = {
 	    .statdata = {

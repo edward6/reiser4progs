@@ -71,19 +71,18 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs,
     aal_assert("umka-1257", name != NULL, return NULL);
     
     /* Preparing object hint */
-    hint.plugin = libreiser4_factory_ifind(DIR_PLUGIN_TYPE, 
-        profile->dir.dir);
+    hint.plugin = libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
+        profile->file.dirtory);
 
     if (!hint.plugin) {
-	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, 
-	    "Can't find dir plugin by its id 0x%x.", profile->dir.dir);
+	aal_exception_error("Can't find dir plugin by its id 0x%x.", 
+	    profile->file.dirtory);
 	return NULL;
     }
     
     hint.statdata_pid = profile->item.statdata;
-
-    hint.body.dir.direntry_pid = profile->item.direntry;
     hint.body.dir.hash_pid = profile->hash;
+    hint.body.dir.direntry_pid = profile->item.file_body.direntry;
 	
     /* Creating directory by passed parameters */
     return reiser4_file_create(fs, &hint, parent, name);

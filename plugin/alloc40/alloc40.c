@@ -16,7 +16,7 @@ extern reiser4_plugin_t alloc40_plugin;
 static reiser4_core_t *core = NULL;
 
 static errno_t callback_fetch_bitmap(reiser4_entity_t *format, 
-    blk_t blk, void *data)
+    uint64_t blk, void *data)
 {
     aal_block_t *block;
     uint32_t size, chunk;
@@ -63,7 +63,7 @@ error_free_block:
 }
 
 static reiser4_entity_t *alloc40_open(reiser4_entity_t *format,
-    count_t len)
+    uint64_t len)
 {
     alloc40_t *alloc;
     aal_device_t *device;
@@ -128,7 +128,7 @@ error:
     caller (block allocator in libreiser4).
 */
 static reiser4_entity_t *alloc40_create(reiser4_entity_t *format,
-    count_t len) 
+    uint64_t len) 
 {
     alloc40_t *alloc;
     aal_device_t *device;
@@ -173,7 +173,7 @@ error:
 }
 
 static errno_t callback_flush_bitmap(reiser4_entity_t *format, 
-    blk_t blk, void *data)
+    uint64_t blk, void *data)
 {
     aal_block_t *block;
     aal_device_t *device;
@@ -271,7 +271,7 @@ static void alloc40_close(reiser4_entity_t *entity) {
 #ifndef ENABLE_COMPACT
 
 /* Marks specified block as used in its own bitmap */
-static void alloc40_mark(reiser4_entity_t *entity, blk_t blk) {
+static void alloc40_mark(reiser4_entity_t *entity, uint64_t blk) {
     
     alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -282,7 +282,7 @@ static void alloc40_mark(reiser4_entity_t *entity, blk_t blk) {
 }
 
 /* Marks "blk" as free */
-static void alloc40_release(reiser4_entity_t *entity, blk_t blk) {
+static void alloc40_release(reiser4_entity_t *entity, uint64_t blk) {
     alloc40_t *alloc = (alloc40_t *)entity;
     
     aal_assert("umka-372", alloc != NULL, return);
@@ -292,7 +292,7 @@ static void alloc40_release(reiser4_entity_t *entity, blk_t blk) {
 }
 
 /* Finds first free block in bitmap and returns it to caller */
-static blk_t alloc40_allocate(reiser4_entity_t *entity) {
+static uint64_t alloc40_allocate(reiser4_entity_t *entity) {
     blk_t blk;
     alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -313,7 +313,7 @@ static blk_t alloc40_allocate(reiser4_entity_t *entity) {
 #endif
 
 /* Returns free blcoks count */
-count_t alloc40_free(reiser4_entity_t *entity) {
+static uint64_t alloc40_free(reiser4_entity_t *entity) {
     alloc40_t *alloc = (alloc40_t *)entity;
 
     aal_assert("umka-376", alloc != NULL, return FAKE_BLK);
@@ -323,7 +323,7 @@ count_t alloc40_free(reiser4_entity_t *entity) {
 }
 
 /* Returns used blocks count */
-count_t alloc40_used(reiser4_entity_t *entity) {
+static uint64_t alloc40_used(reiser4_entity_t *entity) {
     alloc40_t *alloc = (alloc40_t *)entity;
     
     aal_assert("umka-378", alloc != NULL, return FAKE_BLK);
@@ -333,7 +333,7 @@ count_t alloc40_used(reiser4_entity_t *entity) {
 }
 
 /* Checks whether specified block is used or not */
-int alloc40_test(reiser4_entity_t *entity, blk_t blk) {
+static int alloc40_test(reiser4_entity_t *entity, uint64_t blk) {
     alloc40_t *alloc = (alloc40_t *)entity;
     
     aal_assert("umka-663", alloc != NULL, return -1);
@@ -343,7 +343,7 @@ int alloc40_test(reiser4_entity_t *entity, blk_t blk) {
 }
 
 static errno_t callback_check_bitmap(reiser4_entity_t *format, 
-    blk_t blk, void *data)
+    uint64_t blk, void *data)
 {
     char *current, *start;
     aal_device_t *device;

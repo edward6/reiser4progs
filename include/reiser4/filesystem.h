@@ -63,11 +63,8 @@ struct reiser4_profile {
     rpid_t node;
 
     struct {
-	rpid_t dir;
-    } dir;
-    
-    struct {
 	rpid_t regular;
+	rpid_t dirtory;
 	rpid_t symlink;
 	rpid_t special;      
     } file;
@@ -75,11 +72,13 @@ struct reiser4_profile {
     struct {	    
 	rpid_t statdata;
 	rpid_t internal;
-	rpid_t direntry;
+	
 	struct {
 	    rpid_t tail;
 	    rpid_t extent;
+	    rpid_t direntry;
 	} file_body;
+	
 	rpid_t acl;
     } item;
     
@@ -91,6 +90,7 @@ struct reiser4_profile {
     rpid_t alloc;
     rpid_t journal;
     rpid_t key;
+
     uint64_t sdext;
 };
 

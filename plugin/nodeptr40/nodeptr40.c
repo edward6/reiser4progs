@@ -62,21 +62,21 @@ static errno_t nodeptr40_print(reiser4_item_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t nodeptr40_set_ptr(reiser4_item_t *item, blk_t blk) {
+static errno_t nodeptr40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
     nodeptr40_t *internal;
     
     aal_assert("umka-605", item != NULL, return -1);
     aal_assert("vpf-361", item->pos != NULL, return -1);
     
     internal = nodeptr40_body(item);
-    np40_set_ptr(internal, blk);
+    np40_set_ptr(internal, ptr);
 
     return 0;
 }
 
 #endif
 
-static blk_t nodeptr40_get_ptr(reiser4_item_t *item) {
+static uint64_t nodeptr40_get_ptr(reiser4_item_t *item) {
     nodeptr40_t *internal;
     
     aal_assert("umka-606", item != NULL, return FAKE_BLK);
@@ -121,6 +121,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
         .valid		= NULL,
         .insert		= NULL,
         .remove		= NULL,
+	.detect		= NULL,
 
         .print		= nodeptr40_print,
         .count		= nodeptr40_count,

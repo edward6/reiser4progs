@@ -131,9 +131,9 @@ reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree) {
     locality and object id values.
 */
 static errno_t reiser4_tree_build_key(
-    reiser4_tree_t *tree	/* tree to be used */
+    reiser4_tree_t *tree,	/* tree to be used */
+    rpid_t pid			/* key plugin in use */
 ) {
-    rpid_t pid;
     reiser4_oid_t *oid;
     roid_t objectid, locality;
     reiser4_plugin_t *plugin;
@@ -144,9 +144,6 @@ static errno_t reiser4_tree_build_key(
     
     oid = tree->fs->oid;
     
-    /* FIXME-UMKA: hardcoded key plugin id */
-    pid = KEY_REISER40_ID;
-        
     /* Finding needed key plugin by its identifier */
     if (!(plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, pid))) {
 	aal_exception_error("Can't find key plugin by its id 0x%x.", pid);
@@ -184,7 +181,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
     tree->fs = fs;
 
     /* Building the tree root key */
-    if (reiser4_tree_build_key(tree)) {
+    if (reiser4_tree_build_key(tree, KEY_REISER40_ID)) {
 	aal_exception_error("Can't build the tree root key.");
 	goto error_free_tree;
     }
@@ -234,7 +231,7 @@ reiser4_tree_t *reiser4_tree_create(
     tree->fs = fs;
     
     /* Building the tree root key */
-    if (reiser4_tree_build_key(tree)) {
+    if (reiser4_tree_build_key(tree, profile->key)) {
 	aal_exception_error("Can't build the tree root key.");
 	goto error_free_tree;
     }
@@ -263,10 +260,12 @@ reiser4_tree_t *reiser4_tree_create(
 	goto error_free_node;
     
     /* Setting up of the root block */
-    reiser4_format_set_root(fs->format, aal_block_number(node->block));
+    reiser4_format_set_root(fs->format, 
+	aal_block_number(node->block));
     
     /* Setting up of the free blocks */
-    reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
+    reiser4_format_set_free(fs->format, 
+	reiser4_alloc_free(fs->alloc));
 
     tree->root->tree = tree;
     

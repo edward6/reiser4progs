@@ -36,32 +36,36 @@ typedef uint16_t rpid_t;
 typedef void reiser4_body_t;
 
 enum reiser4_plugin_type {
-    FILE_PLUGIN_TYPE,
-    DIR_PLUGIN_TYPE,
-    ITEM_PLUGIN_TYPE,
-    NODE_PLUGIN_TYPE,
-    HASH_PLUGIN_TYPE,
-    TAIL_PLUGIN_TYPE,
-    PERM_PLUGIN_TYPE,
-    SDEXT_PLUGIN_TYPE,
-    FORMAT_PLUGIN_TYPE,
-    OID_PLUGIN_TYPE,
-    ALLOC_PLUGIN_TYPE,
-    JNODE_PLUGIN_TYPE,
-    JOURNAL_PLUGIN_TYPE,
-    KEY_PLUGIN_TYPE
+    FILE_PLUGIN_TYPE		= 0x0,
+
+    /* 
+	In reiser4 kernel code DIR_PLUGIN_TYPE also exists, but libreiser4 works 
+	with files and directories by the unified interface and we do not need that
+	additional type. But we have to be commpatible, because reiser4_plugin_type
+	may be stored in stat data extentions.
+    */
+
+    ITEM_PLUGIN_TYPE		= 0x2,
+    NODE_PLUGIN_TYPE		= 0x3,
+    HASH_PLUGIN_TYPE		= 0x4,
+    TAIL_PLUGIN_TYPE		= 0x5,
+    PERM_PLUGIN_TYPE		= 0x6,
+    SDEXT_PLUGIN_TYPE		= 0x7,
+    FORMAT_PLUGIN_TYPE		= 0x8,
+    OID_PLUGIN_TYPE		= 0x9,
+    ALLOC_PLUGIN_TYPE		= 0xa,
+    JNODE_PLUGIN_TYPE		= 0xb,
+    JOURNAL_PLUGIN_TYPE		= 0xc,
+    KEY_PLUGIN_TYPE		= 0xd
 };
 
 typedef enum reiser4_plugin_type reiser4_plugin_type_t;
 
-enum reiser4_dir_plugin_id {
-    DIR_DIR40_ID		= 0x0
-};
-
 enum reiser4_file_plugin_id {
     FILE_REGULAR40_ID		= 0x0,
-    FILE_SYMLINK40_ID		= 0x1,
-    FILE_SPECIAL40_ID		= 0x2
+    FILE_DIRTORY40_ID		= 0x1,
+    FILE_SYMLINK40_ID		= 0x2,
+    FILE_SPECIAL40_ID		= 0x3
 };
 
 enum reiser4_item_plugin_id {
@@ -75,12 +79,12 @@ enum reiser4_item_plugin_id {
 };
 
 enum reiser4_item_type {
-    STATDATA_ITEM_TYPE,
-    INTERNAL_ITEM_TYPE,
-    DIRENTRY_ITEM_TYPE,
-    TAIL_ITEM_TYPE,
-    EXTENT_ITEM_TYPE,    
-    PERMISSN_ITEM_TYPE
+    STATDATA_ITEM_TYPE		= 0x0,
+    INTERNAL_ITEM_TYPE		= 0x1,
+    DIRENTRY_ITEM_TYPE		= 0x2,
+    TAIL_ITEM_TYPE		= 0x3,
+    EXTENT_ITEM_TYPE		= 0x4,
+    PERMISSN_ITEM_TYPE		= 0x5
 };
 
 typedef enum reiser4_item_type reiser4_item_type_t;
@@ -159,7 +163,7 @@ typedef struct reiser4_entity reiser4_entity_t;
 
 /* Types for layout defining */
 typedef errno_t (*reiser4_action_func_t) (reiser4_entity_t *, 
-    blk_t, void *);
+    uint64_t, void *);
 
 typedef errno_t (*reiser4_layout_func_t) (reiser4_entity_t *, 
     reiser4_action_func_t, void *);
@@ -229,7 +233,7 @@ typedef struct reiser4_item reiser4_item_t;
 */
 
 struct reiser4_internal_hint {    
-    blk_t ptr;
+    uint64_t ptr;
 };
 
 typedef struct reiser4_internal_hint reiser4_internal_hint_t;
@@ -487,10 +491,11 @@ struct reiser4_statdata_ops {
 typedef struct reiser4_statdata_ops reiser4_statdata_ops_t;
 
 struct reiser4_ptr_ops {
-    blk_t   (*get_ptr) (reiser4_item_t *);
-    errno_t (*set_ptr) (reiser4_item_t *, blk_t);
-    count_t (*get_width) (reiser4_item_t *);
-    errno_t (*set_width) (reiser4_item_t *, count_t);
+    uint64_t (*get_ptr) (reiser4_item_t *);
+    errno_t (*set_ptr) (reiser4_item_t *, uint64_t);
+    
+    uint64_t (*get_width) (reiser4_item_t *);
+    errno_t (*set_width) (reiser4_item_t *, uint64_t);
 };
 
 typedef struct reiser4_ptr_ops reiser4_ptr_ops_t;
@@ -534,6 +539,9 @@ struct reiser4_item_ops {
     
     /* Returns unit count */
     uint32_t (*count) (reiser4_item_t *);
+
+    /* Returns plugin id of object item belongs to */
+    uint16_t (*detect) (reiser4_item_t *);
 
     /* Checks the item structure. */
     errno_t (*check) (reiser4_item_t *, uint16_t);
@@ -709,7 +717,7 @@ struct reiser4_format_ops {
 	super block, initializes plugins and calls their create 
 	method.
     */
-    reiser4_entity_t *(*create) (aal_device_t *, count_t, uint16_t);
+    reiser4_entity_t *(*create) (aal_device_t *, uint64_t, uint16_t);
     
     /* Returns the device disk-format lies on */
     aal_device_t *(*device) (reiser4_entity_t *);
@@ -753,20 +761,20 @@ struct reiser4_format_ops {
     const char *(*name) (reiser4_entity_t *);
 
     /* Gets/sets root block */
-    blk_t (*get_root) (reiser4_entity_t *);
-    void (*set_root) (reiser4_entity_t *, blk_t);
+    uint64_t (*get_root) (reiser4_entity_t *);
+    void (*set_root) (reiser4_entity_t *, uint64_t);
     
     /* Gets/sets block count */
-    count_t (*get_len) (reiser4_entity_t *);
-    void (*set_len) (reiser4_entity_t *, count_t);
+    uint64_t (*get_len) (reiser4_entity_t *);
+    void (*set_len) (reiser4_entity_t *, uint64_t);
     
     /* Gets/sets height field */
     uint16_t (*get_height) (reiser4_entity_t *);
     void (*set_height) (reiser4_entity_t *, uint16_t);
     
     /* Gets/sets free blocks number for this format */
-    count_t (*get_free) (reiser4_entity_t *);
-    void (*set_free) (reiser4_entity_t *, count_t);
+    uint64_t (*get_free) (reiser4_entity_t *);
+    void (*set_free) (reiser4_entity_t *, uint64_t);
     
     /* Gets/sets free blocks number for this format */
     uint32_t (*get_stamp) (reiser4_entity_t *);
@@ -834,12 +842,10 @@ struct reiser4_alloc_ops {
     reiser4_plugin_header_t h;
     
     /* Opens block allocator */
-    reiser4_entity_t *(*open) (reiser4_entity_t *, 
-	count_t);
+    reiser4_entity_t *(*open) (reiser4_entity_t *, uint64_t);
 
     /* Creates block allocator */
-    reiser4_entity_t *(*create) (reiser4_entity_t *, 
-	count_t);
+    reiser4_entity_t *(*create) (reiser4_entity_t *, uint64_t);
     
     /* Closes blcok allocator */
     void (*close) (reiser4_entity_t *);
@@ -848,22 +854,22 @@ struct reiser4_alloc_ops {
     errno_t (*sync) (reiser4_entity_t *);
 
     /* Marks passed block as used */
-    void (*mark) (reiser4_entity_t *, blk_t);
+    void (*mark) (reiser4_entity_t *, uint64_t);
 
     /* Checks if passed block used */
-    int (*test) (reiser4_entity_t *, blk_t);
+    int (*test) (reiser4_entity_t *, uint64_t);
     
     /* Allocates one block */
-    blk_t (*allocate) (reiser4_entity_t *);
+    uint64_t (*allocate) (reiser4_entity_t *);
 
     /* Deallocates passed block */
-    void (*release) (reiser4_entity_t *, blk_t);
+    void (*release) (reiser4_entity_t *, uint64_t);
 
     /* Returns number of used blocks */
-    count_t (*used) (reiser4_entity_t *);
+    uint64_t (*used) (reiser4_entity_t *);
 
     /* Returns number of unused blocks */
-    count_t (*free) (reiser4_entity_t *);
+    uint64_t (*free) (reiser4_entity_t *);
 
     /* Checks blocks allocator on validness */
     errno_t (*valid) (reiser4_entity_t *);

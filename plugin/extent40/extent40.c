@@ -101,22 +101,26 @@ static errno_t extent40_max_real_key(reiser4_item_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t extent40_set_ptr(reiser4_item_t *item, blk_t blk) 
-{
+static errno_t extent40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
     aal_assert("vpf-355", item != NULL, return -1);
     aal_assert("vpf-359", item->pos != NULL, return -1);
-    aal_assert("vpf-356", item->pos->unit < extent40_count(item), return -1);
+
+    aal_assert("vpf-356", 
+	item->pos->unit < extent40_count(item), return -1);
     
-    et40_set_start(extent40_body(item) + item->pos->unit, blk);
+    et40_set_start(extent40_body(item) + item->pos->unit, ptr);
 
     return 0;
 }
 
-static errno_t extent40_set_width(reiser4_item_t *item, count_t width) 
-{    
+static errno_t extent40_set_width(reiser4_item_t *item, 
+    uint64_t width) 
+{
     aal_assert("vpf-364", item != NULL, return -1);
     aal_assert("vpf-365", item->pos != NULL, return -1);
-    aal_assert("vpf-366", item->pos->unit < extent40_count(item), return -1);
+    
+    aal_assert("vpf-366", 
+	item->pos->unit < extent40_count(item), return -1);
 
     et40_set_width(extent40_body(item) + item->pos->unit, width);
 
@@ -125,20 +129,22 @@ static errno_t extent40_set_width(reiser4_item_t *item, count_t width)
 
 #endif
 
-static blk_t extent40_get_ptr(reiser4_item_t *item) 
-{
+static uint64_t extent40_get_ptr(reiser4_item_t *item) {
     aal_assert("vpf-357", item != NULL, return 0);
     aal_assert("vpf-367", item->pos != NULL, return 0);
-    aal_assert("vpf-358", item->pos->unit < extent40_count(item), return 0);
+
+    aal_assert("vpf-358", 
+	item->pos->unit < extent40_count(item), return 0);
 
     return et40_get_start(extent40_body(item) + item->pos->unit);
 }
 
-static count_t extent40_get_width(reiser4_item_t *item) 
-{    
+static uint64_t extent40_get_width(reiser4_item_t *item) {    
     aal_assert("vpf-364", item != NULL, return FAKE_BLK);
     aal_assert("vpf-365", item->pos != NULL, return FAKE_BLK);
-    aal_assert("vpf-366", item->pos->unit < extent40_count(item), return FAKE_BLK);
+
+    aal_assert("vpf-366", 
+	item->pos->unit < extent40_count(item), return FAKE_BLK);
 
     return et40_get_width(extent40_body(item) + item->pos->unit);
 }
@@ -166,9 +172,10 @@ static reiser4_plugin_t extent40_plugin = {
         .estimate	= NULL,
         .check		= NULL,
         .lookup		= NULL,
-        .count		= extent40_count,
         .valid		= NULL,
-	
+	.detect		= NULL,
+
+        .count		= extent40_count,
         .max_poss_key	= extent40_max_poss_key,
         .max_real_key   = extent40_max_real_key,
         .print		= extent40_print,

@@ -21,14 +21,19 @@ extern errno_t reiser4_item_open(reiser4_item_t *item,
 extern uint32_t reiser4_item_count(reiser4_item_t *item);
 
 #ifndef ENABLE_COMPACT
+
 extern errno_t reiser4_item_estimate(reiser4_item_t *item,
     reiser4_item_hint_t *hint);
+
 #endif
 
 extern uint32_t reiser4_item_len(reiser4_item_t *item);
 extern reiser4_body_t *reiser4_item_body(reiser4_item_t *item);
 extern reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item);
-extern errno_t reiser4_item_key(reiser4_item_t *item, reiser4_key_t *key);
+extern uint16_t reiser4_item_detect(reiser4_item_t *item);
+
+extern errno_t reiser4_item_key(reiser4_item_t *item, 
+    reiser4_key_t *key);
 
 extern errno_t reiser4_item_max_poss_key(reiser4_item_t *item, 
     reiser4_key_t *key);

@@ -3,8 +3,8 @@ Copyright (C) 1996-2002 Hans Reiser
 
 * all functions which return errno_t should return real errno, not just -1.
 
-* should we have reset method in object plugins? does call like seek(obj, 0) will not be 
-  convenient enough
+* should we have reset method in object plugins? does call like seek(obj, 0) will 
+  not be convenient enough
 
 * should we have uint32_t additional param (unit pos) in item plugin functions?
 * should items have read/write methods? or they should be called insert/remove?
@@ -12,4 +12,8 @@ Copyright (C) 1996-2002 Hans Reiser
 * probably tree traverse function should belong to the tree?
 * reiser4_joint_realize may be improved by rid of lookup
 * add check of all journal strucrures durring replaying the journal
+* remove all kind of item-specific functions from item.c (for example, 
+  reiser4_item_get_smode)
+* probably we should do not have sdext specific methods, like get_mode, set_mode 
+  in stat40 plugin
 

@@ -14,16 +14,16 @@ extern reiser4_plugin_t format40_plugin;
 
 static reiser4_core_t *core = NULL;
 
-static blk_t format40_get_root(reiser4_entity_t *entity) {
+static uint64_t format40_get_root(reiser4_entity_t *entity) {
     format40_super_t *super;
     
     aal_assert("umka-400", entity != NULL, return FAKE_BLK);
     
     super = format40_super(((format40_t *)entity)->block);
-    return (blk_t)get_sb_root_block(super);
+    return get_sb_root_block(super);
 }
 
-static count_t format40_get_len(reiser4_entity_t *entity) {
+static uint64_t format40_get_len(reiser4_entity_t *entity) {
     format40_super_t *super;
     
     aal_assert("umka-401", entity != NULL, return FAKE_BLK);
@@ -32,7 +32,7 @@ static count_t format40_get_len(reiser4_entity_t *entity) {
     return get_sb_block_count(super);
 }
 
-static count_t format40_get_free(reiser4_entity_t *entity) {
+static uint64_t format40_get_free(reiser4_entity_t *entity) {
     format40_super_t *super;
     
     aal_assert("umka-402", entity != NULL, return FAKE_BLK);
@@ -254,7 +254,7 @@ error_free_block:
 
 /* This function should create super block and update all copies */
 static reiser4_entity_t *format40_create(aal_device_t *device, 
-    count_t blocks, uint16_t tail)
+    uint64_t blocks, uint16_t tail)
 {
     blk_t blk;
     format40_t *format;
@@ -392,7 +392,7 @@ static rpid_t format40_oid_pid(reiser4_entity_t *entity) {
 #ifndef ENABLE_COMPACT
 
 static void format40_set_root(reiser4_entity_t *entity, 
-    blk_t root) 
+    uint64_t root) 
 {
     format40_super_t *super;
     
@@ -403,7 +403,7 @@ static void format40_set_root(reiser4_entity_t *entity,
 }
 
 static void format40_set_len(reiser4_entity_t *entity, 
-    count_t blocks) 
+    uint64_t blocks) 
 {
     format40_super_t *super;
     
@@ -414,7 +414,7 @@ static void format40_set_len(reiser4_entity_t *entity,
 }
 
 static void format40_set_free(reiser4_entity_t *entity, 
-    count_t blocks) 
+    uint64_t blocks) 
 {
     format40_super_t *super;
     

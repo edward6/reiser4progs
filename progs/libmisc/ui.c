@@ -265,6 +265,7 @@ void progs_misc_print_banner(char *name) {
     
     aal_snprintf(banner, 255, BANNER);
     progs_ui_print_wrap(stderr, banner);
+    printf("\n");
     aal_free(banner);
 }
 

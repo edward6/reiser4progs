@@ -5,27 +5,27 @@
 
 #include <misc/profile.h>
 
-static reiser4_profile_t reiser4profiles[] = {
+static reiser4_profile_t profiles[] = {
     [0] = {
 	.label = "smart40",
         .desc = "Profile for reiser4 with smart tail policy",
 	.node		= NODE_REISER40_ID,
-	.dir = {
-	    .dir	= DIR_DIR40_ID,
-	},
 	.file = {
 	    .regular	= FILE_REGULAR40_ID, 
+	    .dirtory	= FILE_DIRTORY40_ID,
 	    .symlink	= FILE_SYMLINK40_ID,
 	    .special	= FILE_SPECIAL40_ID,
 	},
 	.item = {
 	    .internal	= ITEM_INTERNAL40_ID,
 	    .statdata	= ITEM_STATDATA40_ID,
-	    .direntry	= ITEM_CDE40_ID,
-	    .file_body = {
-		.tail	= ITEM_TAIL40_ID,
-		.extent	= ITEM_EXTENT40_ID,
+	    
+	    .file_body	= {
+		.tail	    = ITEM_TAIL40_ID,
+		.extent	    = ITEM_EXTENT40_ID,
+		.direntry   = ITEM_CDE40_ID,
 	    },
+	    
 	    .acl	= ITEM_ACL40_ID,
 	},       
 	.hash		= HASH_R5_ID,
@@ -42,22 +42,22 @@ static reiser4_profile_t reiser4profiles[] = {
 	.label = "extent40",
 	.desc = "Profile for reiser4 with extents turned on",
 	.node		= NODE_REISER40_ID,
-	.dir = {
-	    .dir	= DIR_DIR40_ID,
-	},
 	.file = {
 	    .regular	= FILE_REGULAR40_ID, 
+	    .dirtory	= FILE_DIRTORY40_ID,
 	    .symlink	= FILE_SYMLINK40_ID,
 	    .special	= FILE_SPECIAL40_ID,
 	},
 	.item = {
 	    .internal	= ITEM_INTERNAL40_ID,
 	    .statdata	= ITEM_STATDATA40_ID,
-	    .direntry	= ITEM_CDE40_ID,
-	    .file_body = {
-		.tail	= ITEM_TAIL40_ID,
-		.extent	= ITEM_EXTENT40_ID,
+	    
+	    .file_body	= {
+		.tail	    = ITEM_TAIL40_ID,
+		.extent	    = ITEM_EXTENT40_ID,
+		.direntry   = ITEM_CDE40_ID,
 	    },
+	    
 	    .acl	= ITEM_ACL40_ID,
 	},       
 	.hash		= HASH_R5_ID,
@@ -74,22 +74,22 @@ static reiser4_profile_t reiser4profiles[] = {
 	.label = "tail40",
 	.desc = "Profile for reiser4 with tails turned on",     
 	.node		= NODE_REISER40_ID,
-	.dir = {
-	    .dir	= DIR_DIR40_ID,
-	},
 	.file = {
 	    .regular	= FILE_REGULAR40_ID, 
+	    .dirtory	= FILE_DIRTORY40_ID,
 	    .symlink	= FILE_SYMLINK40_ID,
 	    .special	= FILE_SPECIAL40_ID,
 	},
 	.item = {
 	    .internal	= ITEM_INTERNAL40_ID,
 	    .statdata	= ITEM_STATDATA40_ID,
-	    .direntry	= ITEM_CDE40_ID,
-	    .file_body = {
-		.tail	= ITEM_TAIL40_ID,
-		.extent	= ITEM_EXTENT40_ID,
+	    
+	    .file_body	= {
+		.tail	    = ITEM_TAIL40_ID,
+		.extent	    = ITEM_EXTENT40_ID,
+		.direntry   = ITEM_CDE40_ID,
 	    },
+	    
 	    .acl	= ITEM_ACL40_ID,
 	},       
 	.hash		= HASH_R5_ID,
@@ -112,9 +112,9 @@ reiser4_profile_t *progs_profile_find(
     
     aal_assert("vpf-104", profile != NULL, return NULL);
     
-    for (i = 0; i < (sizeof(reiser4profiles) / sizeof(reiser4_profile_t)); i++) {
-	if (!aal_strncmp(reiser4profiles[i].label, profile, strlen(reiser4profiles[i].label)))
-	    return &reiser4profiles[i];
+    for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++) {
+	if (!aal_strncmp(profiles[i].label, profile, strlen(profiles[i].label)))
+	    return &profiles[i];
     }
 
     return NULL;
@@ -125,20 +125,21 @@ void progs_profile_list(void) {
     unsigned i;
     
     printf("\nKnown profiles are:\n");
-    for (i = 0; i < (sizeof(reiser4profiles) / sizeof(reiser4_profile_t)); i++)
-	printf("%s: %s.\n", reiser4profiles[i].label, reiser4profiles[i].desc);
+    for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++)
+	printf("%s: %s.\n", profiles[i].label, profiles[i].desc);
+    
     printf("\n");
 }
 
 /* 0 profile is the default one. */
 reiser4_profile_t *progs_profile_default() {
-    return &reiser4profiles[0];
+    return &profiles[0];
 }
 
 enum progs_plugin_type {
     PROGS_NODE_PLUGIN,
-    PROGS_FILE_PLUGIN,
-    PROGS_DIR_PLUGIN,
+    PROGS_REGULAR_PLUGIN,
+    PROGS_DIRTORY_PLUGIN,
     PROGS_SYMLINK_PLUGIN,
     PROGS_SPECIAL_PLUGIN,
     PROGS_INTERNAL_PLUGIN, 
@@ -162,8 +163,8 @@ typedef enum progs_plugin_type progs_plugin_type_t;
 
 static char *progs_plugin_name[] = {
     "NODE",
-    "FILE",
-    "DIR",
+    "REGULAR",
+    "DIRECTORY",
     "SYMLINK",
     "SPECIAL",
     "INTERNAL",
@@ -193,10 +194,10 @@ static rpid_t *progs_profile_field(reiser4_profile_t *profile,
     switch (type) {
 	case PROGS_NODE_PLUGIN:
 	    return &profile->node;
-	case PROGS_FILE_PLUGIN:
+	case PROGS_REGULAR_PLUGIN:
 	    return &profile->file.regular;
-	case PROGS_DIR_PLUGIN:
-	    return &profile->dir.dir;
+	case PROGS_DIRTORY_PLUGIN:
+	    return &profile->file.dirtory;
 	case PROGS_SYMLINK_PLUGIN:
 	    return &profile->file.symlink;
 	case PROGS_SPECIAL_PLUGIN:
@@ -206,7 +207,7 @@ static rpid_t *progs_profile_field(reiser4_profile_t *profile,
 	case PROGS_STATDATA_PLUGIN:
 	    return &profile->item.statdata;
 	case PROGS_DIRENTRY_PLUGIN:
-	    return &profile->item.direntry;
+	    return &profile->item.file_body.direntry;
 	case PROGS_TAIL_PLUGIN:
 	    return &profile->item.file_body.tail;
 	case PROGS_EXTENT_PLUGIN:
@@ -233,20 +234,18 @@ static rpid_t *progs_profile_field(reiser4_profile_t *profile,
 	default: 
 	    return NULL;	    
     }
-    return NULL;
 }
 
 static reiser4_plugin_type_t progs_profile_it2pt(progs_plugin_type_t type) {
-
     if (type >= PROGS_LAST_PLUGIN) 
 	return 0xffff;
     
     switch (type) {
 	case PROGS_NODE_PLUGIN:
 	    return NODE_PLUGIN_TYPE;
-	case PROGS_DIR_PLUGIN:
-	    return DIR_PLUGIN_TYPE;
-	case PROGS_FILE_PLUGIN:
+	case PROGS_REGULAR_PLUGIN:
+	    return FILE_PLUGIN_TYPE;
+	case PROGS_DIRTORY_PLUGIN:
 	    return FILE_PLUGIN_TYPE;
 	case PROGS_SYMLINK_PLUGIN:
 	    return FILE_PLUGIN_TYPE;
@@ -291,10 +290,10 @@ static progs_plugin_type_t progs_profile_name2it(const char *name) {
 
     if (!aal_strncmp(name, "NODE", 4))
 	return PROGS_NODE_PLUGIN;
-    else if (!aal_strncmp(name, "FILE", 4))
-	return PROGS_FILE_PLUGIN;
-    else if (!aal_strncmp(name, "DIR", 3))
-	return PROGS_DIR_PLUGIN;
+    else if (!aal_strncmp(name, "REGULAR", 7))
+	return PROGS_REGULAR_PLUGIN;
+    else if (!aal_strncmp(name, "DIRECTORY", 9))
+	return PROGS_DIRTORY_PLUGIN;
     else if (!aal_strncmp(name, "SYMLINK", 7))
 	return PROGS_SYMLINK_PLUGIN;
     else if (!aal_strncmp(name, "SPECIAL", 7))
@@ -386,6 +385,7 @@ void progs_profile_print(reiser4_profile_t *profile) {
 		plugin->h.label, plugin->h.desc);
 	}
     }
+
     printf("\n");
 }
 
