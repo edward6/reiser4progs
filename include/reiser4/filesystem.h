@@ -14,9 +14,6 @@
 #include <reiser4/plugin.h>
 #include <reiser4/key.h>
 
-#define LEFT	(0)
-#define RIGHT	(1)
-
 /* Master super block structure and macros */
 struct reiser4_master_super {
 

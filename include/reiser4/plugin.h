@@ -14,6 +14,13 @@
 #define MASTER_OFFSET	    (65536)
 #define MASTER_MAGIC	    ("R4Sb")
 
+enum direction {
+    D_LEFT  = 0,
+    D_RIGHT = 1
+};
+
+typedef enum direction direction_t;
+
 /* 
     Defining types for disk structures. All types like f32_t are fake types needed
     to avoid gcc-2.95.x bug with typedef of aligned types.

@@ -200,6 +200,7 @@ int reiser4_item_internal(reiser4_item_t *item) {
 blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
     aal_assert("vpf-041", item != NULL, return FAKE_BLK);
     aal_assert("umka-1074", item->plugin != NULL, return FAKE_BLK);
+    
     aal_assert("vpf-369", reiser4_item_internal(item) || 
 	reiser4_item_extent(item), return FAKE_BLK);
 
@@ -211,6 +212,7 @@ blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
 count_t reiser4_item_get_nwidth(reiser4_item_t *item) {
     aal_assert("vpf-370", item != NULL, return 0);
     aal_assert("vpf-371", item->plugin != NULL, return 0);
+    
     aal_assert("vpf-372", reiser4_item_internal(item) || 
 	reiser4_item_extent(item), return 0);
 
@@ -273,17 +275,17 @@ errno_t reiser4_item_key(reiser4_item_t *item, reiser4_key_t *key) {
 	get_key, item->node, item->pos, key);
 }
 
+reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item) {
+    aal_assert("umka-755", item != NULL, return NULL);
+    return item->plugin;
+}
+
 errno_t reiser4_item_max_poss_key(reiser4_item_t *item, reiser4_key_t *key) {
     aal_assert("umka-1269", item != NULL, return -1);
     aal_assert("umka-1270", key != NULL, return -1);
     
     return plugin_call(return -1, item->plugin->item_ops, 
 	max_poss_key, item, key);
-}
-
-reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item) {
-    aal_assert("umka-755", item != NULL, return NULL);
-    return item->plugin;
 }
 
 errno_t reiser4_item_max_real_key(reiser4_item_t *item, reiser4_key_t *key) {

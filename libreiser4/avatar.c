@@ -107,7 +107,7 @@ reiser4_avatar_t *reiser4_avatar_find(
 /* Returns left or right neighbor key for passed avatar */
 static errno_t reiser4_avatar_neighbour_key(
     reiser4_avatar_t *avatar,	/* avatar for working with */
-    int direction,		/* direction (left or right) */
+    direction_t direction,	/* direction (left or right) */
     reiser4_key_t *key		/* key pointer result should be stored */
 ) {
     reiser4_pos_t pos;
@@ -119,7 +119,7 @@ static errno_t reiser4_avatar_neighbour_key(
 	return -1;
     
     /* Checking for position */
-    if (direction == LEFT) {
+    if (direction == D_LEFT) {
 	    
 	if (pos.item == 0) 
 	    return -1;
@@ -136,7 +136,7 @@ static errno_t reiser4_avatar_neighbour_key(
 	}
     }
     
-    pos.item += (direction == RIGHT ? 1 : -1);
+    pos.item += (direction == D_RIGHT ? 1 : -1);
     reiser4_node_get_key(avatar->parent->node, &pos, key);
     
     return 0;
@@ -187,7 +187,7 @@ errno_t reiser4_avatar_realize(
     
     /* Rasing the right neighbour */
     if (!avatar->left) {
-	if (!reiser4_avatar_neighbour_key(avatar, LEFT, &key)) {
+	if (!reiser4_avatar_neighbour_key(avatar, D_LEFT, &key)) {
 	    if (reiser4_tree_lookup(avatar->tree, &key, level, NULL) != 1) {
 		aal_exception_error("Can't find left neighbour key when "
 		    "raising left neigbour.");
@@ -198,7 +198,7 @@ errno_t reiser4_avatar_realize(
 
     /* Raising the right neighbour */
     if (!avatar->right) {
-	if (!reiser4_avatar_neighbour_key(avatar, RIGHT, &key)) {
+	if (!reiser4_avatar_neighbour_key(avatar, D_RIGHT, &key)) {
 	    if (reiser4_tree_lookup(avatar->tree, &key, level, NULL) != 1) {
 		aal_exception_error("Can't find right neighbour key when "
 		    "raising right neigbour.");
@@ -266,7 +266,7 @@ errno_t reiser4_avatar_attach(
 	reiser4_node_lkey(left->node, &lkey);
 	    
 	/* Getting left neighbour key */
-	if (!reiser4_avatar_neighbour_key(child, LEFT, &key))
+	if (!reiser4_avatar_neighbour_key(child, D_LEFT, &key))
 	    child->left = (reiser4_key_compare(&key, &lkey) == 0 ? left : NULL);
     
 	if (child->left)
@@ -278,7 +278,7 @@ errno_t reiser4_avatar_attach(
 	reiser4_node_lkey(right->node, &lkey);
 	
 	/* Getting right neighbour key */
-	if (!reiser4_avatar_neighbour_key(child, RIGHT, &key))
+	if (!reiser4_avatar_neighbour_key(child, D_RIGHT, &key))
 	    child->right = (reiser4_key_compare(&key, &lkey) == 0 ? right : NULL);
 
 	if (child->right)

@@ -520,7 +520,7 @@ error_free_root:
 
 static errno_t reiser4_tree_shift(
     reiser4_tree_t *tree,	/* tree we will operate on */
-    int direction,		/* direction of the shifting */
+    direction_t direction,	/* direction of the shifting */
     reiser4_coord_t *coord,	/* insert point coord */
     reiser4_avatar_t *avatar,	/* destination node */
     uint32_t needed,
@@ -544,7 +544,7 @@ static errno_t reiser4_tree_shift(
     while (1) {
     
 	/* Prepare the src and dst coords for moving */
-	if (direction == LEFT) {
+	if (direction == D_LEFT) {
 	    reiser4_coord_init(&src, old.avatar, 0, ~0ul);
 	    
 	    reiser4_coord_init(&dst, avatar, 
@@ -577,7 +577,7 @@ static errno_t reiser4_tree_shift(
 	    @move_ip flag is not turned on.
 	*/
 	if (!move_ip && coord->avatar == old.avatar) {
-	    if (direction == LEFT) {
+	    if (direction == D_LEFT) {
 		if (coord->pos.item == 0)
 		    return 0;
 	    } else {
@@ -588,7 +588,7 @@ static errno_t reiser4_tree_shift(
 	}
 
 	/* Updating the insertion point coord */
-	if (direction == LEFT) {
+	if (direction == D_LEFT) {
 	    if (coord->avatar == old.avatar) {
 		if (coord->pos.item == 0) {
 		    coord->avatar = dst.avatar;
@@ -615,7 +615,7 @@ static errno_t reiser4_tree_shift(
 	/* Moving the item denoted by @src coord to @dst one */
         if (reiser4_tree_move(tree, &dst, &src)) {
             aal_exception_error("Can't move item %u into %s neighbour.",
-		src.pos.item, (direction == LEFT ? "left" : "right"));
+		src.pos.item, (direction == D_LEFT ? "left" : "right"));
 	    return -1;
 	}
 	
@@ -672,7 +672,7 @@ errno_t reiser4_tree_mkspace(
     
     if (new->avatar->left) {
 	    
-	if (reiser4_tree_shift(tree, LEFT, new, new->avatar->left, needed, 0))
+	if (reiser4_tree_shift(tree, D_LEFT, new, new->avatar->left, needed, 0))
 	    return -1;
 	
 	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
@@ -681,7 +681,7 @@ errno_t reiser4_tree_mkspace(
 
     if (new->avatar->right) {
 	    
-	if (reiser4_tree_shift(tree, RIGHT, new, new->avatar->right, needed, 0))
+	if (reiser4_tree_shift(tree, D_RIGHT, new, new->avatar->right, needed, 0))
 	    return -1;
 	
 	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
@@ -697,7 +697,7 @@ errno_t reiser4_tree_mkspace(
 	
 	reiser4_coord_dup(new, &save);
 	
-        if (reiser4_tree_shift(tree, RIGHT, new, avatar, needed, 1))
+        if (reiser4_tree_shift(tree, D_RIGHT, new, avatar, needed, 1))
 	   return -1;
 	
 	/* Attaching new allocated node into the tree */
