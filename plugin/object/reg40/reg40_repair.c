@@ -14,7 +14,6 @@
 
 extern reiser4_plug_t reg40_plug;
 extern errno_t reg40_reset(object_entity_t *entity);
-extern errno_t reg40_create_stat(obj40_t *obj, uint64_t sd);
 extern errno_t reg40_holes(object_entity_t *entity);
 
 #define reg40_zero_extentions(sd, mask)					\
@@ -105,8 +104,8 @@ static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key,
 	if (!key->plug->o.key_ops->compfull(key, &place->key))
 		return 0;
 	
-	aal_exception_error("Node (%llu), item(%u): the key [%s] of the item "
-			    "is wrong, %s [%s]. Plugin (%s).", 
+	aal_exception_error("Node (%llu), item(%u): the key [%s] of the "
+			    "item is wrong, %s [%s]. Plugin (%s).", 
 			    place->block->nr, place->pos.unit, 
 			    core->key_ops.print(&place->key, PO_DEF),
 			    mode == RM_BUILD ? "fixed to" : "should be", 
@@ -132,12 +131,11 @@ static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	
 	key = &reg->obj.info.object;
 	
-	aal_exception_error("Regular file [%s] does not have StatData "
-			    "item. %s Plugin %s.", 
-			    core->key_ops.print(key, PO_DEF), 
-			    mode == RM_BUILD ? "Creating a new one." : "",
+	aal_exception_error("Regfile [%s] does not have a StatData item.%s"
+			    "Plugin %s.", core->key_ops.print(key, PO_INO),
+			    mode == RM_BUILD ? " Creating a new one." : "",
 			    reg->obj.plug->label);
-	
+
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
@@ -149,10 +147,10 @@ static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
 	/* SD not found, create a new one. Special case and not used in 
 	   reg40. Usualy objects w/out SD are skipped as they just fail 
 	   to realize themselves. */
-	if ((res = reg40_create_stat(&reg->obj, pid))) {
-		aal_exception_error("Regular file [%s] failed to create "
-				    "StatData item. Plugin %s.",
-				    core->key_ops.print(key, PO_DEF),
+	if ((res = obj40_create_stat(&reg->obj, pid,  0, 0, 0, S_IFREG))) {
+		aal_exception_error("Regfile [%s] failed to create a "
+				    "StatData item. Plugin %s.", 
+				    core->key_ops.print(key, PO_INO),
 				    reg->obj.plug->label);
 	}
 	
@@ -219,7 +217,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	uint64_t size, bytes, offset, next;
 	reg40_t *reg = (reg40_t *)object;
 	object_info_t *info;
-	errno_t res, result = RE_OK;
+	errno_t res = RE_OK;
 	key_entity_t key;
 	lookup_t lookup;
 
@@ -265,8 +263,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((result |= reg40_ukey(reg, &info->start, &info->object, mode)))
-		return result;
+	if ((res = reg40_ukey(reg, &info->start, &info->object, mode)))
+		return res;
 	
 	/* Build the start key of the body. */
 	plug_call(info->start.plug->o.key_ops, build_gener, &key,
@@ -287,7 +285,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				break;
 			
 			/* Initializing item entity at @next place */
-			if ((res = core->tree_ops.fetch(info->tree, &reg->body)))
+			if ((res |= core->tree_ops.fetch(info->tree, &reg->body)))
 				return res;
 			
 			/* Check if this is an item of another object. */
@@ -309,9 +307,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 				return -EINVAL;
 
 			/* Fix item key if differs. */
-			if ((result |= reg40_ukey(reg, &reg->body, 
-						  &key, mode)) < 0)
-				return result;
+			if ((res |= reg40_ukey(reg, &reg->body, 
+					       &key, mode)) < 0)
+				return res;
 		} 
 
 		reg->bplug = reg->body.plug;
@@ -322,7 +320,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				/* Save offset to avoid another registering. */
 				next = offset;
 				
-				if ((res = reg40_create_hole(reg, offset)))
+				if ((res |= reg40_create_hole(reg, offset)))
 					return res;
 				
 				/* Scan and register created items. */
@@ -335,7 +333,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 								PO_INO),
 					    reg->offset, offset,
 					    reg->obj.plug->label);
-			result |= RE_FATAL;
+			res |= RE_FATAL;
 		} else
 			next = 0;
 		
@@ -354,20 +352,20 @@ errno_t reg40_check_struct(object_entity_t *object,
 			hint.entity = object;
 			hint.region_func = region_func;
 			
-			if ((result |= plug_call(reg->body.plug->o.item_ops, 
-						 check_layout, &reg->body, 
-						 callback_layout, &hint, 
-						 mode)) < 0)
-				return result;
+			if ((res |= plug_call(reg->body.plug->o.item_ops, 
+					      check_layout, &reg->body, 
+					      callback_layout, &hint, 
+					      mode)) < 0)
+				return res;
 
-			if (result & RE_FIXED) {
+			if (res & RE_FIXED) {
 				/* FIXME-VITALY: mark node ditry. */
-				result &= ~RE_FIXED;
+				res &= ~RE_FIXED;
 			}
 		}
 		
 		/* Get the maxreal key of the found item and find next. */
-		if ((res = plug_call(reg->body.plug->o.item_ops, 
+		if ((res |= plug_call(reg->body.plug->o.item_ops, 
 				     maxreal_key, &reg->body, &key)))
 			return res;
 		
@@ -380,14 +378,14 @@ errno_t reg40_check_struct(object_entity_t *object,
 	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */
-	if (!(result & RE_FATAL))
-		result |= obj40_check_stat(&reg->obj, mode == RM_BUILD ?
-					   reg40_zero_nlink : NULL,
-					   reg40_check_mode,
-					   reg40_check_size, 
-					   size, bytes, mode);
+	if (!(res & RE_FATAL))
+		res |= obj40_check_stat(&reg->obj, mode == RM_BUILD ?
+					reg40_zero_nlink : NULL,
+					reg40_check_mode, 
+					reg40_check_size,
+					size, bytes, mode);
 
-	return result;
+	return res;
 }
 
 #endif

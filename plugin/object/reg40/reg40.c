@@ -184,69 +184,6 @@ static object_entity_t *reg40_open(object_info_t *info) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-errno_t reg40_create_stat(obj40_t *obj, rid_t pid) {
-	statdata_hint_t stat;
-	sdext_lw_hint_t lw_ext;
-	create_hint_t stat_hint;
-	reiser4_plug_t *stat_plug;
-	sdext_unix_hint_t unix_ext;
-	
-	/* Getting statdata plugin */
-	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find stat data item plugin "
-				    "by its id 0x%x.", pid);
-		return -EINVAL;
-	}
-
-	/* Initializing the stat data hint */
-	aal_memset(&stat_hint, 0, sizeof(stat_hint));
-
-	stat_hint.count = 1;
-	stat_hint.plug = stat_plug;
-	
-	plug_call(obj->info.object.plug->o.key_ops, assign, 
-		  &stat_hint.key, &obj->info.object);
-    
-	/* Initializing stat data item hint. */
-	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
-    
-	lw_ext.nlink = 0;
-	lw_ext.mode = S_IFREG | 0755;
-
-	/* This should be modified by write function later */
-	lw_ext.size = 0;
-    
-	unix_ext.rdev = 0;
-	unix_ext.bytes = 0;
-
-	unix_ext.uid = getuid();
-	unix_ext.gid = getgid();
-	
-	unix_ext.atime = time(NULL);
-	unix_ext.mtime = unix_ext.atime;
-	unix_ext.ctime = unix_ext.atime;
-
-	aal_memset(&stat.ext, 0, sizeof(stat.ext));
-    
-	stat.ext[SDEXT_LW_ID] = &lw_ext;
-	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
-
-	stat_hint.type_specific = &stat;
-
-	switch (obj40_lookup(obj, &stat_hint.key,
-			     LEAF_LEVEL, STAT_PLACE(obj)))
-	{
-	case FAILED:
-	case PRESENT:
-		return -EINVAL;
-	default:
-		break;
-	}
-	
-	/* Insert statdata item into the tree */
-	return obj40_insert(obj, &stat_hint, LEAF_LEVEL, STAT_PLACE(obj));
-}
-
 /* Creating the file described by pased @hint */
 static object_entity_t *reg40_create(object_info_t *info,
 				     object_hint_t *hint)
@@ -282,7 +219,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
-	if (reg40_create_stat(&reg->obj, hint->statdata))
+	if (obj40_create_stat(&reg->obj, hint->statdata, 0, 0, 0, S_IFREG))
 		goto error_free_reg;
 
 	aal_memcpy(&info->start, STAT_PLACE(&reg->obj),

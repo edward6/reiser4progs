@@ -465,7 +465,6 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	
 	/* Try to attach it somewhere -- at least to lost+found -- and 
 	   traverse from the upper parent. */
-	
 	if ((upper = repair_semantic_uplink(sem, object)) == INVAL_PTR) {
 		reiser4_object_close(object);
 		return -EINVAL;

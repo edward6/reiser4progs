@@ -54,6 +54,10 @@ extern errno_t obj40_read_ext(place_t *place,
 			      rid_t id, void *data);
 
 #ifndef ENABLE_STAND_ALONE
+extern errno_t obj40_create_stat(obj40_t *obj, rid_t pid, 
+				 uint64_t size, uint64_t bytes,
+				 uint32_t nlink, uint16_t mode);
+
 extern errno_t obj40_write_ext(place_t *place,
 			       rid_t id, void *data);
 

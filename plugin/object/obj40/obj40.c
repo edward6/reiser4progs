@@ -74,6 +74,67 @@ uint64_t obj40_get_size(obj40_t *obj) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+errno_t obj40_create_stat(obj40_t *obj, rid_t pid, 
+			  uint64_t size, uint64_t bytes, 
+			  uint32_t nlink, uint16_t mode)
+{
+	statdata_hint_t stat;
+	sdext_lw_hint_t lw_ext;
+	create_hint_t stat_hint;
+	reiser4_plug_t *stat_plug;
+	sdext_unix_hint_t unix_ext;
+	
+	/* Getting statdata plugin */
+	if (!(stat_plug = obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
+		aal_exception_error("Can't find stat data item plugin "
+				    "by its id 0x%x.", pid);
+		return -EINVAL;
+	}
+
+	/* Initializing the stat data hint */
+	aal_memset(&stat_hint, 0, sizeof(stat_hint));
+	stat_hint.count = 1;
+	stat_hint.plug = stat_plug;
+	
+	plug_call(obj->info.object.plug->o.key_ops, assign, 
+		  &stat_hint.key, &obj->info.object);
+    
+	/* Initializing stat data item hint. It uses unix extention and light
+	   weight one. So we set up the mask in corresponding maner. */
+	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
+    	
+	/* Light weight hint initializing. */
+	lw_ext.nlink = nlink;
+	lw_ext.mode = mode | 0755;
+	lw_ext.size = size;
+	
+	/* Unix extention hint initializing */
+	unix_ext.rdev = 0;
+	unix_ext.bytes = bytes;
+	unix_ext.uid = getuid();
+	unix_ext.gid = getgid();
+	
+	unix_ext.atime = time(NULL);
+	unix_ext.mtime = unix_ext.atime;
+	unix_ext.ctime = unix_ext.atime;
+
+	aal_memset(&stat.ext, 0, sizeof(stat.ext));
+
+	stat.ext[SDEXT_LW_ID] = &lw_ext;
+	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
+
+	stat_hint.type_specific = &stat;
+
+	if ((obj40_lookup(obj, &stat_hint.key, LEAF_LEVEL, 
+			  STAT_PLACE(obj))) != ABSENT)
+	{
+		return -EINVAL;
+	}
+	
+	/* Insert statdata item into the tree */
+	return obj40_insert(obj, &stat_hint, LEAF_LEVEL, STAT_PLACE(obj));
+}
+
 /* Writes stat data extention. */
 errno_t obj40_write_ext(place_t *place, rid_t id, void *data) {
 	create_hint_t hint;

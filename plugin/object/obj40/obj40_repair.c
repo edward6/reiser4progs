@@ -20,10 +20,10 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 	aal_assert("vpf-1200", obj != NULL);
 	
 	if (!info->start.plug) {
-		if (!core->tree_ops.valid(info->tree, &info->start))
+		if (!obj->core->tree_ops.valid(info->tree, &info->start))
 			return RE_FATAL;
 
-		if ((res = core->tree_ops.fetch(info->tree, &info->start)))
+		if ((res = obj->core->tree_ops.fetch(info->tree, &info->start)))
 			return -EINVAL;
 	}
 	
@@ -122,7 +122,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong mode (%u),"
 				    "%s (%u). Plugin (%s).", 
 				    stat->block->nr, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_INO),
+				    obj->core->key_ops.print(&stat->key, PO_INO),
 				    lw_hint.mode, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", lw_new.mode, 
 				    stat->plug->label);
@@ -142,7 +142,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong size "
 				    "(%llu), %s (%llu). Plugin (%s).",
 				    stat->block->nr, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_INO),
+				    obj->core->key_ops.print(&stat->key, PO_INO),
 				    lw_hint.size, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", lw_new.size, 
 				    stat->plug->label);
@@ -160,7 +160,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong bytes "
 				    "(%llu), %s (%llu). Plugin (%s).", 
 				    stat->block->nr, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_INO),
+				    obj->core->key_ops.print(&stat->key, PO_INO),
 				    unix_hint.bytes, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", bytes, 
 				    stat->plug->label);

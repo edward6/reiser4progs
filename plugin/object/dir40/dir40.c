@@ -424,6 +424,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+
 /* Creates dir40 instance and inserts few item in new directory described by
    passed @hint. */
 static object_entity_t *dir40_create(object_info_t *info,
@@ -433,17 +434,12 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	entry_hint_t *body;
 	entry_hint_t *entry;
-	statdata_hint_t stat;
 
 	create_hint_t body_hint;
-	create_hint_t stat_hint;
    
 	uint64_t ordering;
-	sdext_lw_hint_t lw_ext;
 	oid_t objectid, locality;
-	sdext_unix_hint_t unix_ext;
-	
-	reiser4_plug_t *stat_plug;
+
 	reiser4_plug_t *body_plug;
     
 	aal_assert("umka-835", info != NULL);
@@ -479,16 +475,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 				    "id 0x%x.", hint->body.dir.hash);
 		goto error_free_dir;
 	}
-
-	/* Getting item plugins for statdata and body */
-	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
-						  hint->statdata)))
-	{
-		aal_exception_error("Can't find stat data item plugin "
-				    "by its id 0x%x.", hint->statdata);
-
-		goto error_free_dir;
-	}
    
 	if (!(body_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
 						  hint->body.dir.direntry)))
@@ -498,7 +484,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_dir;
 	}
     
-	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
 	/* Initializing direntry item hint. This should be done before the stat
@@ -530,73 +515,24 @@ static object_entity_t *dir40_create(object_info_t *info,
 		  entry->name);
 	
 	body_hint.type_specific = body;
-
-	/* Initializing stat data hint */
-	stat_hint.count = 1;
-	stat_hint.plug = stat_plug;
-    
-	plug_call(info->object.plug->o.key_ops, assign,
-		  &stat_hint.key, &info->object);
-    
-	/* Initializing stat data item hint. It uses unix extention and light
-	   weight one. So we set up the mask in corresponding maner. */
-	stat.extmask = (1 << SDEXT_UNIX_ID) | (1 << SDEXT_LW_ID);
-
-	/* Light weight hint initializing. New directory will have two links on
-	   it, because of dot entry which points onto directory itself and entry
-	   in parent directory, which points to this new directory. */
-	lw_ext.nlink = 1;
-	lw_ext.mode = S_IFDIR | 0755;
-	lw_ext.size = body_hint.count;
-
-	/* Unix extention hint initializing */
-	unix_ext.rdev = 0;
-	unix_ext.uid = getuid();
-	unix_ext.gid = getgid();
 	
-	unix_ext.atime = time(NULL);
-	unix_ext.mtime = unix_ext.atime;
-	unix_ext.ctime = unix_ext.atime;
-
 	/* Estimating body item and setting up "bytes" field from the unix
-	   extetion. */
+	   extention. */
 	if (plug_call(body_plug->o.item_ops, estimate_insert,
 		      NULL, &body_hint, MAX_UINT32))
 	{
 		aal_exception_error("Can't estimate directory item.");
 		goto error_free_body;
 	}
-    
-	unix_ext.bytes = body_hint.len;
-    
-	aal_memset(&stat.ext, 0, sizeof(stat.ext));
-    
-	stat.ext[SDEXT_LW_ID] = &lw_ext;
-	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
-
-	stat_hint.type_specific = &stat;
-
-	/* Looking for place to insert directory stat data */
-	switch (obj40_lookup(&dir->obj, &stat_hint.key,
-			     LEAF_LEVEL, STAT_PLACE(&dir->obj)))
-	{
-	case FAILED:
-	case PRESENT:
-		goto error_free_body;
-	default:
-		break;
-	}
 	
-	/* Inserting stat data and body into the tree */
-	if (obj40_insert(&dir->obj, &stat_hint,
-			 LEAF_LEVEL, STAT_PLACE(&dir->obj)))
+	/* New directory will have two links on it, because of dot 
+	   entry which points onto directory itself and entry in 
+	   parent directory, which points to this new directory. */
+	if (obj40_create_stat(&dir->obj, hint->statdata, body_hint.count,
+			      body_hint.len, 1, S_IFDIR))
 	{
 		goto error_free_body;
 	}
-	
-	/* Saving stat data place insert function has returned */
-	aal_memcpy(&info->start, STAT_PLACE(&dir->obj),
-		   sizeof(info->start));
 	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
