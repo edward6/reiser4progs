@@ -3156,7 +3156,6 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
 			  void *data) 
 {
         reiser4_key_t key, max;
-        uint32_t count;
         errno_t res;
 
         aal_assert("vpf-1423", tree != NULL);
@@ -3183,7 +3182,8 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
                 lookup_t lookup;
 		pos_t *pos;
 
-                /* FIXME-VITALY: This is not key-collision-safe. */
+                /* Some items can be handled a few times due to key 
+		   collisions. */
 		hint.key = &key;
 		hint.level = LEAF_LEVEL;
 		hint.collision = NULL;
@@ -3203,7 +3203,25 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
 			if (res) continue;
 		}
 		
-                for (; pos->item < reiser4_node_items(place.node); pos->item++)	{
+		/* Count may get change in func (e.g. after item fusing), so 
+		   get it on every loop */
+		while (1) {
+			if (pos->item >= reiser4_node_items(place.node)) {
+				/* All items are handled whithin this node, but 
+				   lookup is not needed. To avoid infinite loop 
+				   in the case of key collision, get the next item 
+				   instead of another lookup call. */
+				if ((res = reiser4_tree_next_place(tree, &place,
+								   &place))) 
+				{
+					aal_error("Failed to get the next node.");
+					return res;
+				}
+
+				if (!place.node)
+					return 0;
+			}
+				
                         if ((res = reiser4_place_fetch(&place)))
                                 return res;
 			
@@ -3226,9 +3244,7 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
 					if (res) break;
 				}
 
-				count = reiser4_node_items(place.node);
 				place.pos.item = -1;
-				
 				continue;
 			}
 			
@@ -3242,6 +3258,8 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
 
                         /* If res != 0, lookup is needed. */
                         if (res) break;
+
+			pos->item++;
                 }
         }
 
