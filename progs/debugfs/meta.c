@@ -9,12 +9,12 @@
 
 #include "debugfs.h"
 
-static errno_t debugfs_pack_tree(reiser4_fs_t *fs,
-				 aal_stream_t *stream)
-{
+static errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
 	blk_t blk;
 	count_t len;
 	errno_t res;
+	
+	aal_stream_t stream;
 
 	/* Packing tree. */
 	len = reiser4_format_get_len(fs->format);
@@ -35,10 +35,22 @@ static errno_t debugfs_pack_tree(reiser4_fs_t *fs,
 		if (!(node = reiser4_node_open(fs->tree, blk)))
 			continue;
 
+		/* Stream init. */
+		aal_stream_init(&stream);
+	
 		/* Packing @node to @stream. */
-		if ((res = reiser4_node_pack(node, stream)))
+		if ((res = reiser4_node_pack(node, &stream))) {
+			aal_stream_fini(&stream);
 			return res;
+		}
 
+		if ((res = debugfs_print_stream(&stream))) {
+			aal_stream_fini(&stream);
+			return res;
+		}
+		
+		aal_stream_fini(&stream);
+		
 		/* Close node. */
 		reiser4_node_close(node);
 	}
@@ -69,16 +81,14 @@ errno_t debugfs_pack_metadata(reiser4_fs_t *fs) {
 	if ((res = reiser4_status_pack(fs->status, &stream)))
 		return res;
 	
-	/* Packing tree. */
-	if ((res = debugfs_pack_tree(fs, &stream)))
-		return res;
-	
 	/* Print @stream to stdout. */
 	if ((res = debugfs_print_stream(&stream)))
 		return res;
 
 	aal_stream_fini(&stream);
-	return res;
+	
+	/* Packing tree. */
+	return debugfs_pack_tree(fs);
 }
 
 errno_t debugfs_unpack_metadata(reiser4_fs_t *fs) {
