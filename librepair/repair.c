@@ -451,12 +451,17 @@ errno_t repair_check(repair_data_t *repair) {
 			goto error;
 	}
 	
-	if ((res = repair_sem_prepare(&control, &sem)))
-		goto error;
-	
-	if ((res = repair_semantic(&sem)))
-		goto error;
-	
+	if (repair->mode != RM_BUILD && repair->fatal) {
+		aal_exception_mess("\nFatal corruptions found. "
+				   "Semantic pass is skipped.");
+	} else {
+		if ((res = repair_sem_prepare(&control, &sem)))
+			goto error;
+
+		if ((res = repair_semantic(&sem)))
+			goto error;
+	}
+
 	if (repair->mode == RM_BUILD) {
 		if ((res = repair_cleanup_prepare(&control, &cleanup)))
 			goto error;

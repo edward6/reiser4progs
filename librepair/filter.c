@@ -74,9 +74,18 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (error) goto error;
 	
-	node = repair_node_open(fd->repair->fs, ptr.start, *fd->check_node);
-	
-	if (node == NULL) goto error;
+	if (!(node = repair_node_open(fd->repair->fs, ptr.start, 
+				      *fd->check_node)))
+	{
+		aal_exception_error("Node (%llu): failed to open the node "
+				    "pointed by the node (%llu), item (%u), "
+				    "unit (%u) on the level (%u). The whole "
+				    "subtree is skipped.", 
+				    ptr.start, node_blocknr(place->node), 
+				    place->pos.item, place->pos.unit,
+				    reiser4_node_get_level(place->node));
+		goto error;
+	}
 	
 	if (reiser4_tree_connect(tree, place->node, node))
 		goto error_close_node;
@@ -156,7 +165,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	repair_error_check(res, fd->repair->mode);
 	
 	if (reiser4_node_items(node) == 0) {
-		res |= RE_EMPTY;
+		fd->flags |= RE_EMPTY;
 		reiser4_node_mkclean(node);
 		goto error;
 	}
@@ -502,8 +511,12 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 		goto error;
 	
 	/* try to open the root node. */
-	if (!(tree->root = repair_node_open(fd->repair->fs, root, 0)))
+	if (!(tree->root = repair_node_open(fd->repair->fs, root, 0))) {
+		aal_exception_error("Node (%llu): failed to open the "
+				    "root node. The whole filter pass "
+				    "is skipped.", root);
 		goto error;
+	}
 	
 	/* If SB's mkfs id exists and matches the root node's one, 
 	   check the mkfs id of all nodes. */

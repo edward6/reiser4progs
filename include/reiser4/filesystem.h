@@ -33,7 +33,6 @@ extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 				       fs_hint_t *hint);
 
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
-extern errno_t reiser4_fs_mark(reiser4_fs_t *fs);
 
 extern errno_t reiser4_fs_clobber(aal_device_t *device);
 #endif
