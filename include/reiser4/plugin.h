@@ -1249,8 +1249,14 @@ struct reiser4_core {
 		errno_t (*next) (void *, place_t *, place_t *);
 		errno_t (*prev) (void *, place_t *, place_t *);
 
+		/* Lock control functions */
 		errno_t (*lock) (void *, place_t *);
 		errno_t (*unlock) (void *, place_t *);
+
+		/* Packing control functions */
+		void (*pack_ctl) (void *, bool_t);
+		bool_t (*pack_on) (void *);
+		
 	} tree_ops;
 };
 

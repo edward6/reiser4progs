@@ -197,18 +197,22 @@ static errno_t tree_prev(
 
 	curr = (reiser4_place_t *)place;
 
-	if (curr->pos.item < reiser4_node_items(curr->node) - 1) {
+	if (curr->pos.item > 0) {
 
 		reiser4_place_assign((reiser4_place_t *)prev,
-				     curr->node, curr->pos.item + 1, ~0ul);
+				     curr->node, curr->pos.item - 1, ~0ul);
 
 		if (reiser4_place_realize((reiser4_place_t *)prev))
 			return -1;
 	} else {
-		reiser4_tree_left((reiser4_tree_t *)tree, curr->node);
+		uint32_t items;
 		
+		reiser4_tree_left((reiser4_tree_t *)tree, curr->node);
+
+		items = reiser4_node_items(curr->node->left);
+			
 		reiser4_place_assign((reiser4_place_t *)prev,
-				     curr->node->left, 0, ~0ul);
+				     curr->node->left, items - 1, ~0ul);
 
 		if (reiser4_place_realize((reiser4_place_t *)prev))
 			return -1;
@@ -241,6 +245,19 @@ static errno_t tree_unlock(
 
 	p = (reiser4_place_t *)place;
 	return reiser4_node_unlock(p->node);
+}
+
+/* Pack control function */
+static void tree_pack_ctl(void *tree, bool_t cmd) {
+	if (cmd)
+		reiser4_tree_pack_on((reiser4_tree_t *)tree);
+	else
+		reiser4_tree_pack_off((reiser4_tree_t *)tree);
+}
+
+static bool_t tree_pack_on(void *tree) {
+	return (((reiser4_tree_t *)tree)->flags & TF_PACK)
+		? TRUE : FALSE;
 }
 
 static uint32_t tree_blockspace(void *tree) {
@@ -290,6 +307,10 @@ reiser4_core_t core = {
 		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,
 		.unlock     = tree_unlock,
+
+		/* Packing control functions */
+		.pack_ctl       = tree_pack_ctl,
+		.pack_on       = tree_pack_on,
 
 #ifndef ENABLE_ALONE
 		

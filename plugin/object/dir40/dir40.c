@@ -508,6 +508,27 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 static errno_t dir40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
+	bool_t pack;
+	dir40_t *dir = (dir40_t *)entity;
+
+	aal_assert("umka-1925", entity != NULL);
+
+	pack = dir->obj.core->tree_ops.pack_on(dir->obj.tree);
+	dir->obj.core->tree_ops.pack_ctl(dir->obj.tree, FALSE);
+	
+	while (1) {
+		if (object40_remove(&dir->obj, &dir->body.item.key, 1))
+			goto error_restore_pack;
+
+		if (dir40_next(dir) != LP_PRESENT)
+			break;
+	}
+	
+	dir->obj.core->tree_ops.pack_ctl(dir->obj.tree, pack);
+	return 0;
+
+ error_restore_pack:
+	dir->obj.core->tree_ops.pack_ctl(dir->obj.tree, pack);
 	return -1;
 }
 
