@@ -158,8 +158,8 @@ reiser4_file_t *reiser4_file_open(
 		goto error_free_file;
 	}
     
-	if (!(file->entity = plugin_call(goto error_free_file, 
-					 plugin->file_ops, open, fs->tree, &file->key)))
+	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
+					 open, fs->tree, &file->key)))
 	{
 		aal_exception_error("Can't open %s.", name);
 		goto error_free_file;

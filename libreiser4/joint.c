@@ -362,18 +362,6 @@ errno_t reiser4_joint_sync(
 		}
 	}
     
-/*#ifdef ENABLE_DEBUG
-	{
-		uint32_t used = aal_block_size(joint->node->block) - 
-			reiser4_node_space(joint->node);    
-	
-		uint32_t percents = (used * 100) / aal_block_size(joint->node->block);
-	
-		aal_exception_info("Node %llu packing factor: %u%%", 
-				   aal_block_number(joint->node->block), percents);
-	}
-#endif*/
-    
 	/* Synchronizing joint itself */
 	if (reiser4_node_sync(joint->node)) {
 		aal_device_t *device = joint->node->block->device;
@@ -613,7 +601,7 @@ errno_t reiser4_joint_move(
 	return 0;
 }
 
-static int reiser4_joint_traverse_continue(rpid_t objects, rpid_t type) {
+static int traverse_continue(rpid_t objects, rpid_t type) {
 	return (objects & (1 << type));
 }
 
@@ -630,22 +618,28 @@ errno_t reiser4_joint_traverse(
 	reiser4_pos_t pos;
 	errno_t result = 0;
 	reiser4_coord_t coord;
-	reiser4_joint_t *child;
+	
+	reiser4_joint_t *child = NULL;
     
 	aal_assert("vpf-390", joint!= NULL, return -1);
 	aal_assert("vpf-391", joint->node != NULL, return -1);
 	aal_assert("vpf-392", joint->node->block != NULL, return -1);
 	aal_assert("vpf-418", hint != NULL, return -1);
 
+	if (aal_block_number(joint->node->block) == 8473) {
+		printf("here\n");
+	}
+	
 	if ((before_func && (result = before_func(joint, hint->data))))
 		goto error;
 
 	for (pos.item = 0; pos.item < reiser4_node_count(joint->node); pos.item++) {
 		pos.unit = ~0ul; 
 	    
-		/* If there is a suspicion in a corruption, it must be 
-		 * checked in before_func. All items must be openned
-		 * here. */
+		/*
+		  If there is a suspicion in a corruption, it must be checked in
+		  before_func. All items must be opened here.
+		*/
 		if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
 			blk_t blk = aal_block_number(joint->node->block);
 			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
@@ -653,7 +647,7 @@ errno_t reiser4_joint_traverse(
 			goto error_after_func;
 		}
 		
-		if (!reiser4_joint_traverse_continue(hint->objects, reiser4_item_type(&coord)))
+		if (!traverse_continue(hint->objects, reiser4_item_type(&coord)))
 			continue;
 	    
 		for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
@@ -664,33 +658,43 @@ errno_t reiser4_joint_traverse(
 				goto error_after_func;
 		
 			if (ptr.ptr != FAKE_BLK && ptr.ptr != 0) {
-			
 				child = NULL;
 					
 				if (setup_func && (result = setup_func(&coord, hint->data)))
 					goto error_after_func;
 
-				if (open_func) {
+				if (!open_func)
+					goto update;
+
+				if (!(child = reiser4_joint_find(joint, &coord.entity.key))) {
+						
 					if ((result = open_func(&child, ptr.ptr, hint->data)))
 						goto error_update_func;
 
-					if (child) {
-						reiser4_joint_attach(joint, child);
- 
-						if ((result = reiser4_joint_traverse(child,
-										     hint, 
-										     open_func,
-										     before_func, 
-										     setup_func,
-										     update_func,
-										     after_func)) < 0)
-							goto error_update_func;
+					if (!child)
+						goto update;
+					
+					if (reiser4_joint_attach(joint, child))
+						goto error_update_func;
 
-						reiser4_joint_detach(joint, child);
-						reiser4_joint_close(child);
-					}
+					child->data = (void *)1;
+				}
+				
+				if ((result = reiser4_joint_traverse(child, hint, 
+								     open_func,
+								     before_func, 
+								     setup_func,
+								     update_func,
+								     after_func)) < 0)
+					goto error_update_func;
+				
+				if (child->data && !child->children) {
+					reiser4_joint_detach(joint, child);
+					reiser4_joint_close(child);
 				}
 
+					
+			update:
 				if (update_func && (result = update_func(&coord, hint->data)))
 					goto error_after_func;
 			}
@@ -707,8 +711,11 @@ errno_t reiser4_joint_traverse(
 	return result;
 
  error_update_func:
-	reiser4_joint_detach(joint, child);
-	reiser4_joint_close(child);
+	
+	if (!child->children) {
+		reiser4_joint_detach(joint, child);
+		reiser4_joint_close(child);
+	}
 
 	if (update_func)
 		result = update_func(&coord, hint->data);

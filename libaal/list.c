@@ -125,8 +125,8 @@ aal_list_t *aal_list_insert(aal_list_t *list,
 	return temp == list ? new : list;
 }
 
-aal_list_t *aal_list_insert_sorted(aal_list_t *list,
-				   void *data, comp_func_t comp_func, void *user)
+aal_list_t *aal_list_insert_sorted(aal_list_t *list, void *data,
+				   comp_func_t comp_func, void *user)
 {
 	aal_list_t *tmp_list = list;
 	aal_list_t *new_list;
@@ -204,17 +204,19 @@ aal_list_t *aal_list_append(aal_list_t *list, void *data) {
 }
 
 /* 
-   Removes item from trhe passed @list and return true if it was the last item
+   Removes item from the passed @list and return true if it was the last item
    in the list.
 */
 int aal_list_remove(aal_list_t *list, void *data) {
 	int result = 0;
 	aal_list_t *temp;
-   
-	temp = aal_list_find(list, data);
-	if (temp) {
+
+	if (!list)
+		return 1;
 	
-		result = (temp->next == NULL);
+	if ((temp = aal_list_find(list, data))) {
+	
+		result = (!temp->next && !temp->prev);
 	
 		if (temp->prev)
 			temp->prev->next = temp->next;

@@ -342,7 +342,7 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 };
 
 struct file_frag_hint {
-	reiser4_fs_t *fs;
+	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
 	blk_t curr;
@@ -350,7 +350,7 @@ struct file_frag_hint {
 };
 
 static errno_t callback_file_frag(object_entity_t *entity, blk_t blk,
-					   void *data)
+				  void *data)
 {
 	int64_t delta;
 	struct file_frag_hint *hint = (struct file_frag_hint *)data;
@@ -388,7 +388,7 @@ static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	hint.fs = fs;
+	hint.tree = fs->tree;
 	hint.gauge = gauge;
 
 	block = reiser4_coord_block(&file->coord);
@@ -473,22 +473,91 @@ static errno_t debugfs_node_packing(reiser4_fs_t *fs) {
 	return 0;
 }
 
-struct data_frag_hint {
-	reiser4_tree_t *tree;
-	aal_gauge_t *gauge;
-
-	double factor;
-	count_t total;
-};
+/* Callback function for probing all file plugins */
+static errno_t callback_statdata_guess(
+	reiser4_plugin_t *plugin,	    /* plugin to be checked */
+	void *data)			    /* item ot be checked */
+{
+	if (plugin->h.sign.type == FILE_PLUGIN_TYPE) {
+		return plugin_call(return 0, plugin->file_ops, confirm,
+				   (item_entity_t *)data);
+	}
+    
+	return 0;
+}
 
 static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
+	uint32_t level;
+	reiser4_pos_t pos;
+	
+	reiser4_node_t *node = joint->node;
+	struct file_frag_hint *hint = (struct file_frag_hint *)data;
+
+	level = plugin_call(return -1, node->entity->plugin->node_ops,
+			    get_level, node->entity);
+
+	if (level > LEAF_LEVEL)
+		return 0;
+	
+	aal_gauge_touch(hint->gauge);
+
+	pos.unit = ~0ul;
+	
+	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+		int64_t delta, oid;
+		reiser4_coord_t coord;
+
+		object_entity_t *entity;
+		reiser4_plugin_t *plugin;
+
+		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+			aal_exception_error("Can't open item %u in node %llu.", 
+					    pos.item, aal_block_number(node->block));
+			return -1;
+		}
+
+		if (!reiser4_item_statdata(&coord))
+			continue;
+
+		oid = reiser4_key_get_objectid(&coord.entity.key);
+		
+		if (!(plugin = libreiser4_factory_cfind(callback_statdata_guess,
+							(void *)&coord.entity)))
+		{
+			aal_exception_warn("Can't find plugin for file %llx.", oid);
+			continue;
+		}
+
+		if (!plugin->file_ops.layout) {
+			aal_exception_warn("Method \"layout\" is not implemented "
+					   "in file.", oid);
+			continue;
+		}
+
+		if (!(entity = plugin_call(return -1, plugin->file_ops, open,
+					   hint->tree, &coord.entity.key)))
+		{
+			aal_exception_error("Can't open file %llx.", oid);
+			return -1;
+		}
+		
+		if (plugin->file_ops.layout(entity, callback_file_frag, data)) {
+			aal_exception_error("Can't enumerate blocks occupied "
+					    "by file %llx", oid);
+			plugin_call(return -1, plugin->file_ops, close, entity);
+			return -1;
+		}
+
+		plugin_call(return -1, plugin->file_ops, close, entity);
+	}
+	
 	return 0;
 }
 
 static errno_t debugfs_data_frag(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
-	struct data_frag_hint frag_hint;
+	struct file_frag_hint frag_hint;
 
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Data fragmentation",
 				       progs_gauge_handler, NULL)))
@@ -511,7 +580,8 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs) {
 
 	aal_gauge_free(gauge);
 
-	printf("%.5f\n", frag_hint.factor);
+	printf("%.5f\n", frag_hint.total > 0 ?
+	       (double)frag_hint.bad / frag_hint.total : 0);
 	
 	return 0;
 }

@@ -419,8 +419,8 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 	   bitmap.
 	*/
 	if (ladler != cadler) {
-		aal_exception_error("Checksum missmatch in bitmap block %llu. "
-				    "Loaded checksum is 0x%x, calculated one is 0x%x.", blk, 
+		aal_exception_warn("Checksum missmatch in bitmap block %llu. "
+				    "Checksum is 0x%x, should be 0x%x.", blk, 
 				    ladler, cadler);
 	
 		return -1;
@@ -444,10 +444,8 @@ errno_t alloc40_valid(object_entity_t *entity) {
 		return -1;
 	}
     
-	if (layout(alloc->format, callback_check_bitmap, alloc)) {
-		aal_exception_error("Can't check bitmap on validness.");
+	if (layout(alloc->format, callback_check_bitmap, alloc))
 		return -1;
-	}
 
 	return 0;
 }
