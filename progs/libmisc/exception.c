@@ -85,7 +85,8 @@ static void progs_exception_print_wrap(
    enter and converts it into aal_exception_option_t type.
 */
 static aal_exception_option_t progs_exception_prompt(
-	aal_exception_option_t options)  /* exception options can be selected */
+	aal_exception_option_t options,  /* exception options can be selected */
+	void *stream)
 {
 	int i;
 	char *option;
@@ -100,8 +101,8 @@ static aal_exception_option_t progs_exception_prompt(
 	for (i = 1; i < aal_log2(EXCEPTION_LAST); i++) {
 	    
 		if ((1 << i) & options) {
-			int count = progs_exception_option_count(options, i + 1);
 			char *opt = aal_exception_option_name(1 << i);
+			int count = progs_exception_option_count(options, i + 1);
 	    
 			aal_strncat(prompt, opt, aal_strlen(opt));
 	    
@@ -112,7 +113,7 @@ static aal_exception_option_t progs_exception_prompt(
 		}
 	}
     
-	if (!(option = progs_readline(prompt)) || aal_strlen(option) == 0)
+	if (!(option = progs_readline(prompt, stream)) || aal_strlen(option) == 0)
 		return EXCEPTION_UNHANDLED;
     
 	return progs_exception_oneof(option, options);
@@ -132,20 +133,26 @@ extern aal_gauge_t *current_gauge;
 aal_exception_option_t progs_exception_handler(
 	aal_exception_t *exception)		/* exception to be processed */
 {
-	int i;
+	int i, tty;
 	void *stream = stderr;
-	aal_exception_option_t opt;
 	aal_list_t *variant = NULL;
+	aal_exception_option_t opt = EXCEPTION_UNHANDLED;
     
 	if (progs_exception_option_count(exception->options, 0) == 1) {
 		if (!(stream = streams[exception->type]))
 			return EXCEPTION_UNHANDLED;
 	}
 
+	if ((tty = fileno(stream)) == -1)
+		return EXCEPTION_UNHANDLED;
+	
 	if (current_gauge)
 		aal_gauge_pause(current_gauge);
+	else {
+		if (isatty(tty))
+			progs_wipe_line(stream);
+	}
 	
-	progs_wipe_line(stream);
 	progs_exception_print_wrap(exception);
     
 	if (progs_exception_option_count(exception->options, 0) == 1)
@@ -162,11 +169,11 @@ aal_exception_option_t progs_exception_handler(
 	variant = aal_list_first(variant);
 	progs_set_variant(variant);
 #endif
-    
-	do {
-		opt = progs_exception_prompt(exception->options);
-	} while (opt == EXCEPTION_UNHANDLED && isatty(0));
 
+	do {
+		opt = progs_exception_prompt(exception->options, stream);
+	} while (opt == EXCEPTION_UNHANDLED);
+	
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 	aal_list_free(variant);
 	progs_set_variant(NULL);

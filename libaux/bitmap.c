@@ -188,13 +188,10 @@ uint64_t aux_bitmap_find_marked(
 }
 
 /*
-  Makes loop through bitmap and calculates the number of marked/cleared blocks in
-  it. If it is possible it tries to find contiguous bitmap areas (64 bit) and in
-  this maner increases performance. This function is used for checking the
-  bitmap on validness. Imagine, we have a number of free blocks in the super
-  block or somewhere else. And we can easily check whether this number equal to
-  actual returned one or not. Also it is used for calculating marked blocks of
-  bitmap in aux_bitmap_open function. See bellow for details.
+  Makes loop through bitmap and calculates the number of marked/cleared blocks
+  in it. This function is used for checking the bitmap on validness. Also it is
+  used for calculating marked blocks of bitmap in aux_bitmap_open function. See
+  bellow for details.
 */
 static uint64_t aux_bitmap_calc(
 	aux_bitmap_t *bitmap,	   /* bitmap will be used for calculating bits */
@@ -324,4 +321,3 @@ char *aux_bitmap_map(
 	aal_assert("umka-356", bitmap != NULL, return NULL);
 	return bitmap->map;
 }
-

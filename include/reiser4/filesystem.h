@@ -185,6 +185,9 @@ struct reiser4_node {
 
 	/* Node entity. This field is uinitializied by node plugin */
 	object_entity_t *entity;
+
+	/* Some per-node user-specified data */
+	void *data;
 };
 
 /* Reiserfs object structure (file, dir) */
@@ -204,6 +207,9 @@ struct reiser4_file {
 
 	/* Full file name */
 	char name[256];
+
+	/* Some per-file user-specified data */
+	void *data;
 };
 
 typedef struct reiser4_file reiser4_file_t;
@@ -346,6 +352,9 @@ struct reiser4_fs {
 
 	/* Root file (by default directory) */
 	reiser4_file_t *root;
+
+	/* Some usefull user-specified data */
+	void *data;
 };
 
 /* Public functions */
@@ -356,8 +365,6 @@ extern void reiser4_fs_close(reiser4_fs_t *fs);
 
 #ifndef ENABLE_COMPACT
 
-extern errno_t reiser4_fs_clobber(aal_device_t *device);
-
 extern reiser4_fs_t *reiser4_fs_create(reiser4_profile_t *profile,
 				       aal_device_t *host_device,
 				       size_t blocksize, const char *uuid, 
@@ -365,6 +372,7 @@ extern reiser4_fs_t *reiser4_fs_create(reiser4_profile_t *profile,
 				       aal_device_t *journal_device, 
 				       void *journal_params);
 
+extern errno_t reiser4_fs_clobber(aal_device_t *device);
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
 
 #endif

@@ -41,20 +41,25 @@ progs_exception_handler(aal_exception_t *exception);
 
 /* This function gets user enter */
 char *progs_readline(
-	char *prompt)		/* prompt to be printed */
+	char *prompt,       /* prompt to be printed */
+	void *stream)	    /* stream to be used */
 {
 	char *line;
     
 	aal_assert("umka-1021", prompt != NULL, return NULL);
+	aal_assert("umka-1536", stream != NULL, return NULL);
     
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
+	rl_instream = stdin;
+	rl_outstream = stream;
+	
 	if ((line = readline(prompt)) && aal_strlen(line)) {
 		HIST_ENTRY *last_entry = current_history();
 		if (!last_entry || aal_strncmp(last_entry->line, line, aal_strlen(line)))
 			add_history(line);
 	}
 #else
-	fprintf(stderr, prompt);
+	fprintf(stream, prompt);
     
 	if (!(line = aal_calloc(256, 0)))
 		return NULL;
@@ -112,9 +117,11 @@ void progs_print_wrap(void *stream, char *text) {
 		return;
     
 	line = NULL;
-	width = progs_screen_width();
 
-	while ((word = aal_strsep(&text, " "))) {
+	if (!(width = progs_screen_width()))
+		width = 80;
+
+	while ((word = aal_strsep(&text, " ,;"))) {
 		if (!line || aal_strlen(line) + aal_strlen(word) > width) {
 			if (line)
 				list = aal_list_append(list, line);
@@ -211,7 +218,7 @@ static char *progs_alpha_handler(
 	aal_snprintf(buff, sizeof(buff), "%s [%s]: ", prompt, defvalue);
     
 	while (1) {
-		if (aal_strlen((line = progs_readline(buff))) == 0) 
+		if (aal_strlen((line = progs_readline(buff, stderr))) == 0) 
 			return defvalue;
 
 		if (!check_func || check_func(line, data))
@@ -243,7 +250,7 @@ static int64_t progs_numeric_handler(
 		int error;
 		char *line;
 	
-		if (aal_strlen((line = progs_readline(buff))) == 0) 
+		if (aal_strlen((line = progs_readline(buff, stderr))) == 0) 
 			return defvalue;
 
 		if (!(value = progs_parse_size(line, &error)) && error != ~0) {

@@ -28,3 +28,8 @@ reiser4progs/COPYING.
 * move memory pressure mechanism to libaal
 
 * print_block method for format, journal and block allocator plugins.
+
+* some bitops methods for big endiang byte order 
+
+* some way to print big node and item descriptions (print methods)
+   without preallocated buffer. Possible we should use FILE *

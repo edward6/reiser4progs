@@ -12,6 +12,7 @@
 #ifndef ENABLE_COMPACT
 #  include <unistd.h>
 #  include <signal.h>
+#  include <math.h>
 #  include <sys/vfs.h>
 #endif
 

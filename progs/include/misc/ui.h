@@ -12,8 +12,9 @@
 #  include <config.h>
 #endif
 
-extern char *progs_readline(char *prompt);
 extern uint16_t progs_screen_width(void);
+
+extern char *progs_readline(char *prompt, void *stream);
 extern void progs_print_wrap(void *stream, char *text);
 extern void progs_wipe_line(void *stream);
 

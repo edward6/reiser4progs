@@ -6,6 +6,8 @@
 */
 
 #include <stdio.h>
+#include <unistd.h>
+
 #include <aal/aal.h>
 #include <misc/misc.h>
 
@@ -48,6 +50,9 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 	unsigned int i;
 	char display[10] = {0};
 
+	if (!isatty(2))
+		return;
+	
 	if (gauge->state == GAUGE_PAUSED) {
 		progs_wipe_line(stderr);
 		fflush(stderr);
