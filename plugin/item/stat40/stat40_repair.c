@@ -30,7 +30,7 @@ static errno_t cb_check_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	hint->goodmask |= ((uint64_t)1 << stat->ext_plug->id.id);
 
 	if ((chunk = stat->ext_plug->id.id / 16) > 0) {
-		hint->goodmask |= (1 << (chunk * 16 - 1));
+		hint->goodmask |= ((uint64_t)1 << (chunk * 16 - 1));
 	}
 	
 	if (stat->ext_plug->o.sdext_ops->check_struct) {
