@@ -20,16 +20,6 @@ static char *levels[6] = {
 	"INTERNAL"
 };
 
-/* Names of item groups. Used by node40_print too */
-static char *groups[6] = {
-	"STATDATA",
-	"NODEPTR",
-	"DIRENTRY",
-	"TAIL",
-	"EXTENT",
-	"PERMISSION"
-};
-
 /* Returns item header by pos */
 inline item40_header_t *node40_ih_at(node40_t *node, int pos) {
 	aal_block_t *block = node->block;
@@ -741,16 +731,7 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 		}
 
 		aal_stream_format(stream, "(%u) ", pos.item);
-		aal_stream_format(stream, groups[item.plugin->h.group]);
-		aal_stream_format(stream, ": len=%u, KEY: ", item.len);
 		
-		if (plugin_call(return -1, item.key.plugin->key_ops, print,
-				&item.key.body, stream, options))
-			return -1;
-	
-		aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-				  item.plugin->h.id, item.plugin->h.label);
-
 		/* Printing item by means of calling item print method */
 		if (plugin_call(return -1, item.plugin->item_ops, print,
 				&item, stream, options))

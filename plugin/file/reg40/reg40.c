@@ -379,7 +379,9 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	
 	while (reg->offset < size) {
 		uint64_t offset;
-		item_entity_t *item = &reg->body.entity;
+		item_entity_t *item;
+
+		item = &reg->body.entity;
 			
 		if ((res = func(entity, &reg->body, data)))
 			return res;
@@ -387,10 +389,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		plugin_call(return -1, item->plugin->item_ops,
 			    max_real_key, item, &key);
 
-		offset = plugin_call(return -1, key.plugin->key_ops,
-				     get_offset, key.body);
-		
-		reg->offset = offset + 1;
+		reg->offset = plugin_call(return -1, key.plugin->key_ops,
+					  get_offset, key.body) + 1;
 
 		reg40_next(reg);
 	}

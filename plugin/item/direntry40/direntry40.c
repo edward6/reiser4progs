@@ -877,6 +877,15 @@ static errno_t direntry40_print(item_entity_t *item,
 	if (!(direntry = direntry40_body(item)))
 		return -1;
 	
+	aal_stream_format(stream, "DIRENTRY: len=%u, KEY: ", item->len);
+		
+	if (plugin_call(return -1, item->key.plugin->key_ops, print,
+			&item->key.body, stream, options))
+		return -1;
+	
+	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
+			  item->plugin->h.id, item->plugin->h.label);
+	
 	aal_stream_format(stream, "count:\t\t%u\n", de40_get_count(direntry));
 
 	for (i = 0; i < de40_get_count(direntry); i++) {

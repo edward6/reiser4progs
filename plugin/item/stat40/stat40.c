@@ -347,6 +347,15 @@ static errno_t stat40_print(item_entity_t *item, aal_stream_t *stream,
 	aal_assert("umka-1407", item != NULL, return -1);
 	aal_assert("umka-1408", stream != NULL, return -1);
     
+	aal_stream_format(stream, "STATDATA: len=%u, KEY: ", item->len);
+		
+	if (plugin_call(return -1, item->key.plugin->key_ops, print,
+			&item->key.body, stream, options))
+		return -1;
+	
+	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
+			  item->plugin->h.id, item->plugin->h.label);
+
 	aal_stream_format(stream, "count:\t\t%u\n", stat40_sdexts(item));
 
 	if (stat40_layout(item, callback_print, (void *)stream) < 0)
