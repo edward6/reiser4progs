@@ -471,18 +471,38 @@ static uint64_t alloc40_allocate(object_entity_t *entity,
 	return found;
 }
 
+static errno_t callback_print_bitmap(object_entity_t *entity, 
+				     uint64_t blk, void *data)
+{
+	uint32_t size;
+	uint64_t offset;
+
+	alloc40_t *alloc;
+	aal_stream_t *stream;
+	
+	alloc = (alloc40_t *)entity;
+	stream = (aal_stream_t *)data;
+
+	size = alloc->device->blocksize - CRC_SIZE;
+	
+	offset = blk / size / 8;
+	
+	aal_stream_format(stream, "%*llu [ 0x%lx ]\n", 10, blk,
+			  *((uint32_t *)alloc->crc + offset));
+
+	return 0;
+}
+
 /* Handler for "print" method */
 static errno_t alloc40_print(object_entity_t *entity,
 			     aal_stream_t *stream,
 			     uint16_t options)
 {
-	uint64_t blk;
+	errno_t res;
 	uint64_t start;
 	uint64_t total;
 	uint64_t blocks;
-
 	alloc40_t *alloc;
-	uint32_t blocksize;
 	
 	aal_assert("umka-1778", entity != NULL);
 	aal_assert("umka-1779", stream != NULL);
@@ -508,17 +528,15 @@ static errno_t alloc40_print(object_entity_t *entity,
 			  alloc->bitmap->total -
 			  alloc->bitmap->marked);
 
-	aal_stream_format(stream, "\nBLK CRC\n");
-	aal_stream_format(stream, "-----------------\n");
+	aal_stream_format(stream, "\n%*s CRC\n", 10, "BLK");
+	aal_stream_format(stream, "-------------------------\n");
 
-	blocksize = alloc->device->blocksize;
-	
-	blocks = (alloc->bitmap->size + blocksize - 1) /
-		blocksize;
-
-	for (blk = 0; blk < blocks; blk++) {
-		aal_stream_format(stream, "%llu  [ 0x%lx ]\n", blk,
-				  *((uint32_t *)alloc->crc + blk));
+	/* Calling alloc40_layout() in order to print all block checksums */
+	if ((res = alloc40_layout((object_entity_t *)alloc,
+				  callback_print_bitmap, stream)))
+	{
+		aal_exception_error("Can't print bitmap.");
+		return res;
 	}
 	
 	start = 0;
@@ -527,16 +545,16 @@ static errno_t alloc40_print(object_entity_t *entity,
 	aal_stream_format(stream, "\nBlock map:\n");
 	
 	aal_stream_format(stream, "[ ");
-	
+
 	while (start < total) {
 		blocks = aux_bitmap_find_region(alloc->bitmap, &start,
-						total - start, 1);
+					       total - start, 1);
 
 		if (blocks == 0)
 			break;
 
-		aal_stream_format(stream, "%llu(%llu) ",
-				  start, blocks);
+		aal_stream_format(stream, "%llu-%llu ",
+				  start, start + blocks);
 		
 		start += blocks;
 	}

@@ -252,6 +252,8 @@ count_t reiser4_alloc_allocate(
 {
 	aal_assert("umka-505", alloc != NULL);
 
+	*start = 0;
+	
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   allocate, alloc->entity, start, count);
 }
