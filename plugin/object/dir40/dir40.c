@@ -214,6 +214,7 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 	
 	/* Lookp until needed entry will be found */
 	while (1) {
+		uint32_t units;
 		item_entity_t *item = &dir->body.item;
 
 		/*
@@ -234,8 +235,37 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 						    object40_objectid(&dir->obj));
 				return LP_FAILED;
 			}
-	    
-			return LP_PRESENT;
+
+			/* Handling possible hash collision */
+			if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0)
+				return LP_PRESENT;
+
+			aal_exception_warn("Hash collision is detected between "
+					   "%s and %s. Sequentional search has "
+					   "been started.", entry->name, name);
+
+			if (!item->plugin->item_ops.units)
+				return LP_FAILED;
+			
+			units = item->plugin->item_ops.units(item);
+			
+			for (; dir->body.pos.unit < units; dir->body.pos.unit++) {
+				
+				if (plugin_call(item->plugin->item_ops, read, item,
+						entry, dir->body.pos.unit, 1) != 1)
+				{
+					aal_exception_error("Can't read %lu entry "
+							    "from object 0x%llx.",
+							    dir->body.pos.unit,
+							    object40_objectid(&dir->obj));
+					return LP_FAILED;
+				}
+
+				if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0)
+					return LP_PRESENT;
+			}
+				
+			return LP_ABSENT;
 		}
 
 		if ((res = dir40_next(dir)) != LP_PRESENT)

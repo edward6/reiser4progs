@@ -190,7 +190,7 @@ fi
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([errno.h fcntl.h mntent.h stdint.h stdlib.h string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
+AC_CHECK_HEADERS([printf.h errno.h fcntl.h mntent.h stdint.h stdlib.h string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
 
 dnl Checks for typedefs, structures and compiler characteristics.
 AC_C_BIGENDIAN
@@ -212,7 +212,7 @@ AC_CHECK_MEMBERS([struct stat.st_rdev])
 # Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_STAT
-AC_CHECK_FUNCS([statfs getmntent hasmntopt memset strerror strtol time])
+AC_CHECK_FUNCS([register_printf_function statfs getmntent hasmntopt memset strerror strtol time])
 
 dnl Check for libdl, if we are doing dynamic loading
 LIBREISER4_LIBS=""

@@ -1524,12 +1524,17 @@ errno_t reiser4_tree_insert(
 		  requested level. If so, we should grow the tree up to
 		  requested level.
 		*/
-
 		if (level > reiser4_tree_height(tree)) {
+			
 			while (level > reiser4_tree_height(tree))
 				reiser4_tree_growup(tree);
 
-			/* Getting new place item/unit will be inserted at */
+			/*
+			  Getting new place item/unit will be inserted at after
+			  tree is growed up. It is needed because we want insert
+			  item onto level equal to the requested one passed by
+			  @level variable.
+			*/
 			if (reiser4_tree_lookup(tree, &hint->key, level,
 						place) == LP_FAILED)
 			{

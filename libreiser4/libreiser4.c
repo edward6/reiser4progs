@@ -11,7 +11,6 @@
 #endif
 
 #ifndef ENABLE_ALONE
-#  include <printf.h>
 #  include <stdlib.h>
 #endif
 
@@ -270,7 +269,9 @@ static uint32_t tree_nodespace(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
 
 	root = ((reiser4_tree_t *)tree)->root;
-	return reiser4_node_maxspace(root) - reiser4_node_overhead(root);
+
+	return reiser4_node_maxspace(root) -
+		reiser4_node_overhead(root);
 }
 
 static errno_t tree_rootkey(void *tree, key_entity_t *key) {
@@ -339,53 +340,21 @@ const char *libreiser4_version(void) {
 	return VERSION;
 }
 
-#ifndef ENABLE_ALONE
-
-/* Support for the %k occurences in the formated messages */
-#define PA_REISER4_KEY  (PA_LAST)
-
-static int arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
-	if (n > 0)
-		argtypes[0] = PA_REISER4_KEY | PA_FLAG_PTR;
-    
-	return 1;
-}
-
-static int print_key(FILE *file, const struct printf_info *info, 
-		     const void *const *args) 
-{
-	int len;
-	reiser4_key_t *key;
-	aal_stream_t stream;
-
-	aal_stream_init(&stream);
-    
-	key = *((reiser4_key_t **)(args[0]));
-	reiser4_key_print(key, &stream);
-
-	fprintf(file, (char *)stream.data);
-    
-	len = stream.offset;
-
-	aal_stream_fini(&stream);
-	return len;
-}
-
-#endif
-
 /* 
-   Initializes libreiser4 (plugin factory, etc). This function should be called
-   before any actions performed on libreiser4.
+  Initializes libreiser4 (plugin factory, etc). This function should be called
+  before any actions performed on libreiser4.
 */
 errno_t libreiser4_init(void) {
 	if (libreiser4_factory_init()) {
-		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, 
-				    "Can't initialize plugin factory.");
+		aal_exception_fatal("Can't initialize plugin factory.");
 		return -1;
 	}
 
 #ifndef ENABLE_ALONE
-	register_printf_function('k', print_key, arginfo_k);
+	if (reiser4_print_init()) {
+		aal_exception_error("Can't initialize print factory");
+		goto error_free_factory;
+	}
 #endif
     
 	return 0;
