@@ -2533,6 +2533,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 			}
 
 			reiser4_node_unlock(save.node);
+
+			if (save.node->p.node == parent->node) {
+				if (parent->pos.item < save.node->p.pos.item)
+					parent->pos.item--;
+			}
 		} else {
 			aplace.pos.item++;
 		}
@@ -2543,9 +2548,17 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 			/* Growing tree in the case we splitted the root
 			   node. */
 			if (reiser4_tree_root_node(tree, save.node)) {
+				reiser4_node_t *old_root = tree->root;
+				
 				if ((res = reiser4_tree_growup(tree))) {
 					reiser4_node_unlock(save.node);
 					return res;
+				}
+
+				/* Handling root node (without parent) case. */
+				if (aplace.node == NULL) {
+					reiser4_place_dup(&aplace, &old_root->p);
+					aplace.pos.item++;
 				}
 			}
 
@@ -2560,7 +2573,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 
 			reiser4_node_unlock(save.node);
 
-			/* Update the parent place after attach. It should be 
+			/* Update the parent place after attach. It should be
 			   the same as the parent of the just inserted node. */
 			reiser4_place_dup(parent, &node->p);
 		}
@@ -3026,7 +3039,11 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		/* Check if insert was on root node level. If so -- growing tree
 		   up by one. */
 		if (level == reiser4_tree_get_height(tree)) {
+			reiser4_node_t *old_root;
+			
 			reiser4_node_lock(place->node);
+
+			old_root = tree->root;
 
 			if ((res = reiser4_tree_growup(tree))) {
 				aal_error("Can't grow tree up during "
@@ -3036,6 +3053,13 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			}
 			
 			reiser4_node_unlock(place->node);
+
+			/* Tree was grown up and we have no valid parent yet?
+			   Let us take the new root node. */
+			if (aplace.node == NULL) {
+				reiser4_place_dup(&aplace, &old_root->p);
+				aplace.pos.item++;
+			}
 		}
 		
 		/* Attaching new node to the tree. */
