@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   journal40.c -- reiser4 default journal plugin. */
+   journal40.c -- reiser4 journal plugin. */
 
 #ifndef ENABLE_STAND_ALONE
 #include "journal40.h"
@@ -9,6 +9,7 @@
 
 extern reiser4_plug_t journal40_plug;
 
+/* Functions for making journal dirty, clean, etc. */
 static int journal40_isdirty(generic_entity_t *entity) {
 	aal_assert("umka-2081", entity != NULL);
 	return ((journal40_t *)entity)->dirty;
@@ -29,6 +30,7 @@ static errno_t journal40_valid(generic_entity_t *entity) {
 	return 0;
 }
 
+/* Journal enumerator function. */
 static errno_t journal40_layout(generic_entity_t *entity,
 				region_func_t region_func,
 				void *data)
@@ -50,11 +52,14 @@ aal_device_t *journal40_device(generic_entity_t *entity) {
 	return ((journal40_t *)entity)->device;
 }
 
+/* Helper function for fetching journal footer and header in initialization
+   time. */
 static errno_t callback_fetch_journal(void *entity, blk_t start,
 				      count_t width, void *data)
 {
 	journal40_t *journal = (journal40_t *)entity;
-		
+
+	/* Load journal header. */
 	if (!(journal->header = aal_block_load(journal->device,
 					       journal->blksize,
 					       start)))
@@ -65,6 +70,7 @@ static errno_t callback_fetch_journal(void *entity, blk_t start,
 		return -EIO;
 	}
 	
+	/* Load journal footer. */
 	if (!(journal->footer = aal_block_load(journal->device,
 					       journal->blksize,
 					       start + 1)))
@@ -78,6 +84,8 @@ static errno_t callback_fetch_journal(void *entity, blk_t start,
 	return 0;
 }
 
+/* Open journal on passed @format entity, @start and @blocks. Uses passed @desc
+   for getting device journal is working on and fs block size. */
 static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *format,
 					uint64_t start, uint64_t blocks)
 {
@@ -85,7 +93,8 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 
 	aal_assert("umka-409", desc != NULL);
 	aal_assert("umka-1692", format != NULL);
-    
+
+	/* Initializign journal entity. */
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
@@ -98,6 +107,8 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 	journal->area.len = blocks;
 	journal->area.start = start;
 
+	/* Calling journal enumerator in order to fetch journal header and
+	   footer. */
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_fetch_journal, journal))
 	{
@@ -113,6 +124,8 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 	return NULL;
 }
 
+/* Helper function for creating empty journal header and footer. Used in journal
+   create time. */
 static errno_t callback_alloc_journal(void *entity, blk_t start,
 				      count_t width, void *data)
 {
@@ -139,6 +152,7 @@ static errno_t callback_alloc_journal(void *entity, blk_t start,
 	return 0;
 }
 
+/* Create journal entity on passed params. Return create instance to caller. */
 static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *format,
 					  uint64_t start, uint64_t blocks)
 {
@@ -146,7 +160,9 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
     
 	aal_assert("umka-1057", desc != NULL);
 	aal_assert("umka-1691", format != NULL);
-    
+
+	/* Initializing journal entity. Making it dirty. Setting up all
+	   fields. */
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
@@ -158,7 +174,8 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 
 	journal->area.len = blocks;
 	journal->area.start = start;
-    
+
+	/* Create journal header and footer. */
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_alloc_journal, journal))
 	{
@@ -174,6 +191,8 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 	return NULL;
 }
 
+/* Helper function for save jopurnal header and footer to device journal is
+   working on. */
 static errno_t callback_sync_journal(void *entity, blk_t start,
 				     count_t width, void *data)
 {
@@ -194,21 +213,22 @@ static errno_t callback_sync_journal(void *entity, blk_t start,
 	return 0;
 }
 
+/* Save journal metadata to device. */
 static errno_t journal40_sync(generic_entity_t *entity) {
 	errno_t res;
 
 	aal_assert("umka-410", entity != NULL);
 
-	if ((res = journal40_layout(entity, callback_sync_journal,
-				    entity)))
-	{
+	if ((res = journal40_layout(entity, callback_sync_journal, NULL)))
 		return res;
-	}
 	
 	((journal40_t *)entity)->dirty = 0;
+	
 	return 0;
 }
 
+/* Update header/footer fields. Used from journal40_replay() and from fsck
+   related stuff.  */
 static errno_t journal40_update(journal40_t *journal) {
 	errno_t res = 0;
 	aal_device_t *device;
@@ -258,7 +278,6 @@ static errno_t journal40_update(journal40_t *journal) {
 	/* Updating journal footer */
 	set_jf_last_flushed(footer, last_commited_tx);
 	set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
-	
 	set_jf_used_oids(footer, get_th_used_oids(tx_header));
 	set_jf_next_oid(footer, get_th_next_oid(tx_header));
 
@@ -269,7 +288,7 @@ static errno_t journal40_update(journal40_t *journal) {
 	return res;
 }
 
-/* Makes traverses of one transaction. This is used for transactions replaying,
+/* Traverses one journal transaction. This is used for transactions replaying,
    checking, etc. */
 errno_t journal40_traverse_trans(
 	journal40_t *journal,                   /* journal object to be traversed */
@@ -295,14 +314,14 @@ errno_t journal40_traverse_trans(
 		
 		/* FIXME-VITALY->UMKA: There should be a check that the log_blk
 		   is not one of the LGR's of the same transaction. return 1. */
-	    
 		if (sec_func && (res = sec_func((generic_entity_t *)journal, 
 						tx_block, log_blk, JB_LGR,
 						data)))
 		{
 			return res;
 		}
-	    
+
+		/* Loading log record block. */
 		if (!(log_block = aal_block_load(device, journal->blksize,
 						 log_blk)))
 		{
@@ -312,6 +331,7 @@ errno_t journal40_traverse_trans(
 			return -EIO;
 		}
 
+		/* Checking it for validness, that is check magic, etc. */
 		lr_header = (journal40_lr_header_t *)log_block->data;
 		log_blk = get_lh_next_block(lr_header);
 
@@ -323,10 +343,10 @@ errno_t journal40_traverse_trans(
 		}
 
 		entry = (journal40_lr_entry_t *)(lr_header + 1);
-		
 		capacity = (journal->blksize - sizeof(journal40_lr_header_t)) /
 			sizeof(journal40_lr_entry_t);
 
+		/* Loop trough the all wandered records. */
 		for (i = 0; i < capacity; i++) {
 			
 			if (get_le_wandered(entry) == 0)
@@ -532,6 +552,7 @@ static void extract_string(char *stor, char *orig, uint32_t max) {
 	aal_memcpy(stor, orig, i);
 }
 
+/* Helper function for printing transaction header. */
 static errno_t callback_print_txh(generic_entity_t *entity,
 				  blk_t blk, void *data)
 {
@@ -601,6 +622,7 @@ static errno_t callback_print_par(generic_entity_t *entity,
 	return 0;
 }
 
+/* hellper function for printing log record. */
 static errno_t callback_print_lgr(generic_entity_t *entity,
 				  aal_block_t *block, blk_t blk,
 				  journal40_block_t bel, void *data)

@@ -3,19 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* update all headers in progsto using the following style for defines
-  #define &PROG_$FILE_H
-
-* comments in journal plugin.
-
 * remove all dirty(), clean() etc. functions and replace them with one
   function like set_state().
-
-* improve fs components initializing (block allocator, format,
-  etc). For now all they need lots of params, but all params are
-  almost the same: device fs lies on, blksize, etc. All these params
-  may be put into some struct called fs_desc and this fs_desc may be
-  passed to all components in init time.
 
 * improve data writing in tree.c. There should be call to item plugin
   in order to determine is it enough space in tree to insert data or
