@@ -154,6 +154,7 @@ static errno_t callback_find_entry(char *track, char *name,
 	case PRESENT:
 		res = reiser4_key_assign(&object->info->object,
 					 &entry.object);
+		break;
 	default:
 		aal_exception_error("Can't find %s.", track);
 		res = -EINVAL;

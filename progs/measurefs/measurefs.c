@@ -157,13 +157,8 @@ static errno_t tfrag_process_node(
 		/* Checking and calling item's layout method with function
 		   tfrag_process_item() as a function for handling one block the
 		   item points to. */
-		if (!place.plug->o.item_ops->layout) {
-			aal_exception_warn("Item %u in node %llu has not "
-					   "\"layout\" method implemented. "
-					   "The result will not be releable.",
-					   pos.item, node_blocknr(node));
+		if (!place.plug->o.item_ops->layout)
 			continue;
-		}
 
 		plug_call(place.plug->o.item_ops, layout, (place_t *)&place,
 			  tfrag_process_item, data);

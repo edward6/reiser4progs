@@ -599,7 +599,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Making sure, that dir->body points to correct item */
-	if ((res = dir40_update(entity)))
+	if ((res = dir40_update(entity)) != 1)
 		return res;
 
 	/* Creating maximal possible key in order to find last directory item
@@ -883,7 +883,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 	
-	if ((res = dir40_update(entity)))
+	if ((res = dir40_update(entity)) != 1)
 		return res;
 
 	hint.data = data;
@@ -940,7 +940,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	
 	dir = (dir40_t *)entity;
 	
-	if ((res = dir40_update(entity)))
+	if ((res = dir40_update(entity)) != 1)
 		return res;
 	
 	if ((res = place_func(entity, STAT_PLACE(&dir->obj), data)))
@@ -964,6 +964,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 }
 
 extern object_entity_t *dir40_fake(object_info_t *info);
+extern errno_t dir40_update_info(object_entity_t *object);
 extern object_entity_t *dir40_recognize(object_info_t *info);
 
 extern errno_t dir40_check_attach(object_entity_t *object, 
@@ -974,9 +975,6 @@ extern errno_t dir40_check_struct(object_entity_t *object,
 				  place_func_t place_func,
 				  region_func_t region_func,
 				  void *data, uint8_t mode);
-
-extern errno_t dir40_update_info(object_entity_t *object);
-
 #endif
 
 static reiser4_object_ops_t dir40_ops = {

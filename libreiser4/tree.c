@@ -480,16 +480,12 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Extents hash table related functions */
-static int callback_foreach_func(const void *entry, void *data) {
-	aal_hash_node_t *node;
+static void callback_keyrem_func(const void *key) {
+	reiser4_key_free((reiser4_key_t *)key);
+}
 
-	node = (aal_hash_node_t *)entry;
-	
-	reiser4_key_free((reiser4_key_t *)node->key);
-	aal_block_free((aal_block_t *)node->value);
-	
-	return 0;
+static void callback_valrem_func(const void *val) {
+	aal_block_free((aal_block_t *)val);
 }
 
 static uint64_t callback_hash_func(const void *k) {
@@ -528,7 +524,9 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 
 #ifndef ENABLE_STAND_ALONE
 	if (!(tree->data = aal_hash_table_alloc(callback_hash_func,
-						callback_comp_func)))
+						callback_comp_func,
+						callback_keyrem_func,
+						callback_valrem_func)))
 	{
 		goto error_free_tree;
 	}
@@ -570,10 +568,6 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	tree->fs->tree = NULL;
 	
 #ifndef ENABLE_STAND_ALONE
-	/* Freeing tree data (extents) */
-	aal_hash_table_foreach(tree->data,
-			       callback_foreach_func, NULL);
-	
 	aal_hash_table_free(tree->data);
 #endif
 	
@@ -652,6 +646,135 @@ static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 					 reiser4_place_t *place)
 {
+	errno_t res;
+	place_t eptr;
+	ptr_hint_t ptr;
+	uint32_t units;
+	trans_hint_t hint;
+
+	aal_memcpy(&eptr, place, sizeof(eptr));
+
+	units = plug_call(eptr.plug->o.item_ops,
+			  units, &eptr);
+
+	for (eptr.pos.unit = 0; eptr.pos.unit < units;
+	     eptr.pos.unit++)
+	{
+		uint64_t width;
+		uint64_t blocks;
+		uint64_t offset;
+		
+		hint.count = 1;
+		hint.specific = &ptr;
+		
+		if (plug_call(eptr.plug->o.item_ops,
+			      fetch, &eptr, &hint) != 1)
+		{
+			return -EIO;
+		}
+
+		/* Check if we have accessed unallocated extent */
+		if (ptr.start != 1)
+			continue;
+
+		for (blocks = 0, width = ptr.width;
+		     width > 0; width -= ptr.width)
+		{
+			blk_t blk;
+			uint32_t i;
+			int first = 1;
+			key_entity_t key;
+			aal_block_t *block;
+			
+			/* Trying to allocate @ptr.width blocks. */
+			ptr.width = reiser4_alloc_allocate(tree->fs->alloc,
+							   &ptr.start, width);
+
+			/* There is no space. */
+			if (ptr.width == 0) {
+				return -ENOSPC;
+			}
+
+			plug_call(eptr.plug->o.item_ops, get_key,
+				  &eptr, &key);
+			
+			if (first) {
+				/* Updating extent item data */
+				if (plug_call(eptr.plug->o.item_ops,
+					      update, &eptr, &hint) != 1)
+				{
+					return -EIO;
+				}
+			} else {
+				errno_t res;
+				uint32_t level;
+				
+				units++;
+				eptr.pos.unit++;
+
+				/* Insert new extent units */
+				place = (reiser4_place_t *)&eptr;
+				level = reiser4_node_get_level(place->node);
+				
+				if ((res = reiser4_tree_insert(tree, place,
+							       &hint, level)))
+				{
+					return res;
+				}
+
+				/* Updating place after possible balancing */
+				reiser4_tree_lookup(tree, &eptr.key, level,
+						    READ, (reiser4_place_t *)&eptr);
+
+				offset = plug_call(key.plug->o.key_ops,
+						   get_offset, &key);
+
+				offset += (blocks * tree->fs->device->blksize);
+				
+				plug_call(key.plug->o.key_ops, set_offset, &key,
+					  offset);
+			}
+
+			for (blk = ptr.start, i = 0;
+			     i < ptr.width; i++, blk++)
+			{
+				/* Allocating data blocks */
+				block = aal_hash_table_lookup(tree->data, &key);
+				
+				if (block == NULL) {
+					char *keyptr = reiser4_print_key(&key,
+									 PO_DEF);
+					
+					aal_exception_error("Can't find data "
+							    "block for key "
+							    "%s.", keyptr);
+					return -EIO;
+				}
+
+				aal_block_move(block, tree->fs->device, blk);
+				
+				if ((res = aal_block_write(block))) {
+					aal_exception_error("Can't write block "
+							    "%llu.", block->nr);
+					return res;
+				}
+
+				aal_hash_table_remove(tree->data, &key);
+				
+				offset = plug_call(key.plug->o.key_ops,
+						   get_offset, &key);
+
+				offset += reiser4_master_blksize(tree->fs->master);
+				
+				plug_call(key.plug->o.key_ops, set_offset,
+					  &key, offset);
+			}
+			
+			first = 0;
+			blocks += ptr.width;
+		}
+	}
+	
 	return 0;
 }
 #endif
