@@ -15,6 +15,7 @@
 #include <reiser4/types.h>
 
 extern void reiser4_tree_close(reiser4_tree_t *tree);
+
 extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
 
 extern errno_t reiser4_tree_connect(reiser4_tree_t *tree,
@@ -28,6 +29,9 @@ extern errno_t reiser4_tree_disconnect(reiser4_tree_t *tree,
 extern reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 					      reiser4_node_t *node,
 					      aal_direction_t where);
+
+extern reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
+					  reiser4_place_t *place);
 
 extern reiser4_node_t *reiser4_tree_left(reiser4_tree_t *tree,
 					 reiser4_node_t *node);
@@ -81,6 +85,10 @@ extern errno_t reiser4_tree_expand(reiser4_tree_t *tree,
 				   uint32_t needed,
 				   uint32_t flags);
 
+extern errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
+				 resier4_place_t *place,
+				 reiser4_key_t *key);
+
 extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_hint_t *hint,
 				     traverse_open_func_t open_func,
@@ -88,6 +96,7 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_setup_func_t setup_func,
 				     traverse_setup_func_t update_func,
 				     traverse_edge_func_t after_func);
+
 #endif
 
 extern int reiser4_tree_lookup(reiser4_tree_t *tree,

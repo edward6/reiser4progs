@@ -61,6 +61,77 @@ static lru_ops_t lru_ops = {
 };
 
 /*
+  Updates key at passed @place by passed @key by means of using
+  reiser4_node_ukey functions in recursive maner.
+*/
+errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
+			  resier4_place_t *place,
+			  reiser4_key_t *key)
+{
+	aal_assert("umka-1892", tree != NULL);
+	aal_assert("umka-1893", place != NULL);
+	aal_assert("umka-1894", key != NULL);
+
+	/* Getting into recursion if we should update leftmost key */
+	if (reiser4_place_leftmost(place)) {
+		
+		if (place->node->parent) {
+			reiser4_place_t p;
+
+			reiser4_place_init(&p, place->node->parent,
+					   &place->pos);
+			
+			if (reiser4_node_pos(place->node, &p.pos))
+				return -1;
+	    
+			if (reiser4_tree_ukey(node->parent, &p, key))
+				return -1;
+		}
+	}
+
+	if (reiser4_node_ukey(place.node, &place->pos, key))
+		return -1;
+
+	return 0;
+}
+
+/* Loads denoted by passed nodeptr @place child node */
+reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
+				   reiser4_place_t *place)
+{
+	reiser4_node_t *node;
+	reiser4_ptr_hint_t ptr;
+	
+	aal_assert("umka-1889", tree != NULL);
+	aal_assert("umka-1890", place != NULL);
+	aal_assert("umka-1891", place->node != NULL);
+
+	reiser4_node_lock(place->node);
+	
+	if (reiser4_place_realize(place))
+		goto error_unlock_place;
+
+	/* Checking if item is a branch of tree */
+	if (!reiser4_item_branch(place))
+		goto error_unlock_place;
+			
+	plugin_call(place->item.plugin->item_ops, read,
+		    &place->item, &ptr, 0, 1);
+
+	if (ptr.ptr == INVAL_BLK)
+		goto error_unlock_place;
+	
+	if (!(node = reiser4_tree_load(tree, place->node, ptr.ptr)))
+		goto error_unlock_place;
+
+	return node;
+
+ error_unlock_place:
+	reiser4_node_unlock(place->node);
+	return NULL;
+}
+
+/*
   Registers passed node in tree and connects left and right neighbour
   nodes. This function do not do any modifications.
 */
@@ -111,22 +182,23 @@ errno_t reiser4_tree_disconnect(
 	aal_list_t *next;
 	
 	aal_assert("umka-1858", tree != NULL);
-	aal_assert("umka-562", parent != NULL);
 	aal_assert("umka-563", node != NULL);
 
 	if (tree->traps.disconnect) {
 		errno_t res;
 		reiser4_place_t place;
-		reiser4_node_t *parent;
 
-		if ((parent = node->parent)) {
-			if (reiser4_place_open(&place, parent, &node->pos))
+		reiser4_place_init(&place, node->parent,
+				   &node->pos);
+
+		if (place.node) {
+			if (reiser4_place_realize(&place))
 				return -1;
-			
-			if ((res = tree->traps.disconnect(tree, &place, node,
-							  tree->traps.data)))
-				return res;
 		}
+		
+		if ((res = tree->traps.disconnect(tree, &place, node,
+						  tree->traps.data)))
+			return res;
 	}
 	
 	if (node->left) {
@@ -139,6 +211,9 @@ errno_t reiser4_tree_disconnect(
 		node->right = NULL;
 	}
 
+	if (!parent)
+		return 0;
+	
 	return reiser4_node_disconnect(parent, node);
 }
 
@@ -202,9 +277,7 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 
 	rpos_t pos;
 	reiser4_node_t *old;
-	reiser4_node_t *child;
 	reiser4_place_t place;
-	reiser4_ptr_hint_t ptr;
 
 	old = node;
 	level = orig = reiser4_node_get_level(node);
@@ -217,8 +290,9 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 		found = (where == D_LEFT ? (pos.item > 0) :
 			 (pos.item < reiser4_node_items(node->parent) - 1));
 
-		level++;
 		node = node->parent;
+		
+		level++;
 	}
 
 	if (!found)
@@ -227,28 +301,15 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 	pos.item += (where == D_LEFT ? -1 : 1);
 	
 	while (level > orig) {
-		if (reiser4_place_open(&place, node, &pos))
+		reiser4_place_init(&place, node, &pos);
+		
+		if (!(node = reiser4_tree_child(tree, &place)))
 			return NULL;
 
-		/* Checking if item is a branch of tree */
-		if (!reiser4_item_branch(&place))
-			return node;
-			
-		plugin_call(place.item.plugin->item_ops, read,
-			    &place.item, &ptr, 0, 1);
-
-		/* Checking item for validness */
-		if (ptr.ptr == INVAL_BLK)
-			return NULL;
-
-		if (!(child = reiser4_tree_load(tree, node, ptr.ptr)))
-			return NULL;
+		pos.item = where == D_LEFT ?
+			reiser4_node_items(node) - 1 : 0;
 
 		level--;
-		node = child;
-
-		pos.item = (where == D_LEFT ?
-			    reiser4_node_items(node) - 1 : 0);
 	}
 
 	if (where == D_LEFT) {
@@ -565,9 +626,7 @@ int reiser4_tree_lookup(
 	reiser4_place_t *place)	/* place the found item to be stored */
 {
 	int result, deep;
-
 	reiser4_place_t fake;
-	reiser4_ptr_hint_t ptr;
 	rpos_t pos = {0, ~0ul};
 	reiser4_node_t *parent = NULL;
 
@@ -597,7 +656,6 @@ int reiser4_tree_lookup(
 		*key = tree->key;
 		    
 	while (1) {
-		item_entity_t *item;
 		reiser4_node_t *node = place->node;
 	
 		if (reiser4_node_items(node) == 0)
@@ -629,51 +687,18 @@ int reiser4_tree_lookup(
 			return FAILED;
 		}
 
-		if (!reiser4_item_branch(place)) {
-
-			if (result == 1)
-				reiser4_place_realize(place);
-			
+		if (!reiser4_item_branch(place))
 			return result;
-		}
 		
-		item = &place->item;
-		
-		/* Getting the node pointer from internal item */
-		plugin_call(item->plugin->item_ops, read, item, &ptr,
-			    place->pos.unit, 1);
-		
-		if (ptr.ptr == INVAL_BLK) {
-			aal_exception_error("Can't get pointer from nodeptr item %u, "
-					    "node %llu.", place->pos.item,
-					    place->node->blk);
+		if (!(place->node = reiser4_tree_child(tree, place))) {
+			aal_exception_error("Can't load node by its nodeptr.");
 			return FAILED;
 		}
-	
+		
 		deep--;
-		
-		parent = place->node;
-	
-		/* 
-		   Check whether specified node already in cache. If so, we use
-		   node from the cache.
-		*/
-		reiser4_node_lock(parent);
-
-		/* Loading node by ptr */
-		if (!(place->node = reiser4_tree_load(tree, parent, ptr.ptr))) {
-			reiser4_node_unlock(parent);
-			return FAILED;
-		}
-
-		reiser4_node_unlock(parent);
 	}
     
 	return 0;
-    
- error_free_node:
-	reiser4_node_close(place->node);
-	return FAILED;
 }
 
 #ifndef ENABLE_ALONE
@@ -873,7 +898,7 @@ errno_t reiser4_tree_grow(
 /* Decreases tree height by one level */
 errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 	uint32_t height;
-	aal_list_t *children;
+	reiser4_place_t place;
 	reiser4_node_t *old_root;
 
 	aal_assert("umka-1731", tree != NULL);
@@ -887,31 +912,32 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 	if (height - 1 == LEAF_LEVEL)
 		return -1;
 
+	/* Rasing up the root node if it exists */
 	if (reiser4_tree_ldroot(tree))
 		return -1;
 	
-	/* Replacing old root ndoe by new root */
 	if (!(old_root = tree->root))
 		return -1;
 
-	children = old_root->children;
-	aal_assert("umka-1735", children != NULL);
-
-	/*
-	  FIXME-UMKA: Here first root child chould be obtained in other way,
-	  means of using reiser4_tree_load function. That is because, this
-	  function may be called when tree cache is empty and thus children is
-	  empty too.
-	*/
-	
 	/* Check if we can dry tree safely */
 	if (reiser4_node_items(old_root) > 1)
 		return -1;
 
-	tree->root = (reiser4_node_t *)children->data;
-	reiser4_tree_disconnect(tree, old_root, tree->root);
+	/* Getting new root as the first child of the old root node */
+	reiser4_place_assign(&place, old_root, 0, 0);
 
-	/* Releasing old root */
+	if (!(tree->root = reiser4_tree_child(tree, &place))) {
+		aal_exception_error("Can't load new root durring "
+				    "dryup the tree");
+		return -1;
+	}
+
+	tree->root->parent = NULL;
+	
+	/* Disconnect old root from the tree */
+	reiser4_tree_disconnect(tree, NULL, old_root);
+
+	/* Releasing old root node */
 	reiser4_node_mkclean(old_root);
 	reiser4_tree_release(tree, old_root);
 
@@ -926,7 +952,7 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 }
 
 /*
-  Tried to shift items and units from @place to passed @neig node. After it is
+  Tries to shift items and units from @place to passed @neig node. After it is
   finished place will contain new insert point.
 */
 errno_t reiser4_tree_shift(
@@ -994,10 +1020,14 @@ errno_t reiser4_tree_shift(
 		    (hint.items > 0 || hint.units > 0))
 		{
 			if (node->parent) {
+				reiser4_place_t p;
+				
 				if (reiser4_node_lkey(node, &lkey))
 					return -1;
+
+				reiser4_place_init(&p, node->parent, &pos);
 				
-				if (reiser4_node_ukey(node->parent, &pos, &lkey))
+				if (reiser4_tree_ukey(tree, &p, &lkey))
 					return -1;
 			}
 		}
@@ -1005,10 +1035,14 @@ errno_t reiser4_tree_shift(
 		if (hint.items > 0 || hint.units > 0) {
 
 			if (neig->parent) {
+				reiser4_place_t p;
+				
 				if (reiser4_node_lkey(neig, &lkey))
 					return -1;
 				
-				if (reiser4_node_ukey(neig->parent, &pos, &lkey))
+				reiser4_place_init(&p, neig->parent, &pos);
+				
+				if (reiser4_tree_ukey(tree, &p, &lkey))
 					return -1;
 			}
 		}
@@ -1044,8 +1078,8 @@ errno_t reiser4_tree_shift(
 				    &place.item, &ptr, pos.unit, 1);
 			
 			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
-				continue;
-
+			        continue;
+			
 			reiser4_node_disconnect(node, child);
 
 			if (reiser4_node_connect(neig, child))
@@ -1456,7 +1490,7 @@ errno_t reiser4_tree_insert(
 	if (reiser4_place_leftmost(place) && place->node->parent) {
 		rpos_t *pos = &place->node->pos;
 		
-		if (reiser4_node_ukey(place->node->parent, pos, &hint->key))
+		if (reiser4_tree_ukey(tree, place, &hint->key))
 			return -1;
 	}
 	
@@ -1552,7 +1586,8 @@ errno_t reiser4_tree_cut(
 		neig = reiser4_tree_right(tree, neig);
 
 	if (neig != end->node) {
-		aal_exception_error("End node is not reachable from the start corod.");
+		aal_exception_error("End node is not reachable from the "
+				    "start corod.");
 		return -1;
 	}
 
@@ -1583,7 +1618,7 @@ errno_t reiser4_tree_cut(
 
 		/* Removing items/units from the start node */
 		pos.item = reiser4_node_items(start->node);
-			
+
 		if (reiser4_node_cut(start->node, &start->pos, &pos))
 			return -1;
 		
@@ -1656,7 +1691,14 @@ void reiser4_tree_disable_pack(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
-/* Removes item by specified key */
+/*
+  Removes item/unit at passd @place. This functions also perform so called
+  "local packing". This is shift as many as possible items and units from the
+  node pointed by @place into its left neighbour node and the same shift from
+  the right neighbour into target node. This behavior may be controlled by
+  tree's control flags (tree->flags) or by functions treee_enable_pack and
+  tree_disable_pack.
+*/
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	  /* tree item will be removed from */
 	reiser4_place_t *place,   /* place the item will be removed at */
@@ -1677,6 +1719,12 @@ errno_t reiser4_tree_remove(
 
 	/* Updating left deleimiting key in all parent nodes */
 	if (reiser4_place_leftmost(place) && place->node->parent) {
+
+		/*
+		  If node became empty it will be detached from the tree, so,
+		  updating is not needed and impossible, becauseit has not
+		  items.
+		*/
 		if (reiser4_node_items(place->node) > 0) {
 			rpos_t *pos;
 			reiser4_key_t lkey;
@@ -1691,6 +1739,13 @@ errno_t reiser4_tree_remove(
 		}
 	}
 	
+	/* Calling "post_remove" handler if it is defined */
+	if (tree->traps.post_remove) {
+		if ((res = tree->traps.post_remove(tree, place,
+						   tree->traps.data)))
+			return res;
+	}
+
 	/*
 	  Checking if the node became empty. If so, we release it, otherwise we
 	  pack the tree about it.
@@ -1719,13 +1774,6 @@ errno_t reiser4_tree_remove(
 			return -1;
 	}
 	
-	/* Calling "post_remove" handler if it is defined */
-	if (tree->traps.post_remove) {
-		if ((res = tree->traps.post_remove(tree, place,
-						   tree->traps.data)))
-			return res;
-	}
-
 	return 0;
 }
 
