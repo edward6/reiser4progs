@@ -2511,7 +2511,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		old = *place;
 		
 		if (level < reiser4_node_get_level(place->node)) {
-			reiser4_node_lock(place->node);
+			reiser4_node_lock(old.node);
 			
 			/* Allocating node of requested level and assign place
 			   for insert to it. */
@@ -2520,7 +2520,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 				return -ENOSPC;
 			}
 
-			reiser4_node_unlock(place->node);
+			reiser4_node_unlock(old.node);
 
 			POS_INIT(&place->pos, 0, MAX_UINT32);
 		} else if (level > reiser4_node_get_level(place->node)) {

@@ -466,8 +466,14 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 			print_inode(dir40_core, &parent->info.object));
 		}
 */		
-		if (mode == RM_CHECK)
+		if (mode == RM_CHECK) {
+			aal_error("Directory [%s], plugin [%s]: the object "
+				  "is not attached. Reached from [%s].",
+				  print_inode(dir40_core, &object->info.object),
+				  dir40_plug.label,
+				  print_inode(dir40_core, &parent->info.object));
 			return RE_FIXABLE;
+		}
 		
 		/* Adding ".." to the @object pointing to the @parent. */
 		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, assign,

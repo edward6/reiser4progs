@@ -309,7 +309,7 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 			/* Get the offset for the maxkey. */
 			offset = plug_call(hint->offset.plug->o.key_ops,
 					   get_offset, &place->key);
-		offset += extent40_offset(place, dstart);
+			offset += extent40_offset(place, dstart);
 		} else {
 			uint32_t scount;
 			

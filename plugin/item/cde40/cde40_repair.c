@@ -777,13 +777,20 @@ int64_t cde40_merge(place_t *place, trans_hint_t *hint) {
 	
 	/* FIXME-VITALY: this cde40_comp_entry should compare not only key, but 
 	   the name also <- key collision. */
-	if (cde40_comp_entry(place, place->pos.unit, &key)) {
+	if (place->pos.unit == MAX_UINT32 || 
+	    cde40_comp_entry(place, place->pos.unit, &key)) 
+	{
 		/* Expand @place item for coping and copy @hint->count units 
 		   there from @src. */
-		cde40_expand(place, place->pos.unit, hint->count, hint->len);	
-		if ((res = cde40_copy(place, place->pos.unit, src, 
-				      src->pos.unit, hint->count)) < 0)
-			return res;
+		dpos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
+		
+		if (place->pos.unit != MAX_UINT32) {
+			cde40_expand(place, dpos, hint->count, hint->len);	
+		}
+		
+		res = cde40_copy(place, dpos, src, src->pos.unit, hint->count);
+		
+		if (res < 0) return res;
 
 		spos = src->pos.unit + hint->count;
 
@@ -795,7 +802,7 @@ int64_t cde40_merge(place_t *place, trans_hint_t *hint) {
 		for (dpos = place->pos.unit + 1, spos = src->pos.unit + 1;
 		     dpos < dunits; dpos++, spos++)
 		{
-			if (spos < sunits)
+			if (spos >= sunits)
 				break;
 
 			cde40_get_hash(src, spos, &key);
