@@ -374,6 +374,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	  stat data initialization.
 	*/
 	body_hint.plugin = body_plugin;
+	body_hint.flags = HF_FORMATD;
 	body_hint.key.plugin = hint->object.plugin; 
    	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
@@ -427,6 +428,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 
 	/* Initializing stat data hint */
 	stat_hint.count = 1;
+	stat_hint.flags = HF_FORMATD;
 	stat_hint.plugin = stat_plugin;
 	stat_hint.key.plugin = hint->object.plugin;
     
@@ -658,6 +660,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	hint.count = 1;
+	hint.flags = HF_FORMATD;
 	hint.key.plugin = key->plugin;
 	hint.plugin = dir->body.item.plugin;
 

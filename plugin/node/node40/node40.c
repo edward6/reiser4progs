@@ -685,6 +685,12 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 		if (plugin_call(hint->plugin->item_ops, init, &item))
 			return -1;
 
+		if (hint->flags == HF_RAWDATA) {
+			aal_memcpy(item.body, hint->type_specific,
+				   hint->len);
+			return 0;
+		}
+		
 		return -(plugin_call(hint->plugin->item_ops, write, &item,
 				     hint, 0, hint->count) != hint->count);
 	} else {

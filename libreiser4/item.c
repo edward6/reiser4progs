@@ -72,7 +72,7 @@ errno_t reiser4_item_estimate(
 		   hint->plugin != NULL);
    
 	/* Here hint has been already set for the 3rd case */
-	if (hint->data != NULL)
+	if (hint->flags == HF_RAWDATA)
 		return 0;
 
 	/* Check if we're egoing insert unit or an item instead */

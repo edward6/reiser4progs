@@ -454,11 +454,24 @@ struct reiser4_file_hint {
 
 typedef struct reiser4_file_hint reiser4_file_hint_t;
 
+/*
+  Flags for using in item hint for denoting is type_specific point for type
+  specific hint or onto raw data.
+*/
+enum hint_flags {
+	HF_FORMATD    = 1 << 0,
+	HF_RAWDATA    = 1 << 1
+};
+
+typedef enum hint_flags hint_flags_t;
+
 /* 
   This structure contains fields which describe an item or unit to be inserted
   into the tree.
 */ 
 struct reiser4_item_hint {
+	hint_flags_t flags;
+	
 	/*
 	  This is pointer to already formated item body. It is useful for item
 	  copying, replacing, etc. This will be used by fsck probably.
@@ -467,7 +480,7 @@ struct reiser4_item_hint {
 
 	/* Length of the data field */
 	uint16_t len;
-    
+
 	/* This is opaque pointer to item type specific information */
 	void *type_specific;
 

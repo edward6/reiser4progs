@@ -764,6 +764,7 @@ errno_t reiser4_tree_attach(
 	nodeptr_hint.ptr = node->blk;
 
 	hint.count = 1;
+	hint.flags = HF_FORMATD;
 	hint.type_specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);
@@ -1498,19 +1499,59 @@ errno_t reiser4_tree_insert(
 }
 
 /* 
-   The method should insert/overwrite the specified src place to the dst place
-   from count items/units started at src place.
+  The method should insert/overwrite the specified src place to the dst place
+  from count items/units started at src place.
 */
 errno_t reiser4_tree_write(
-	reiser4_tree_t *tree,	    /* tree insertion is performing into. */
+	reiser4_tree_t *tree,	    /* tree insertion is performing into */
 	reiser4_place_t *dst,       /* place found by lookup */
-	reiser4_place_t *src,       /* place to be inserted. */
-	uint32_t count)		    /* number of units to be inserted. */
+	reiser4_place_t *src,       /* place to be inserted */
+	uint32_t count)		    /* number of units to be inserted */
 {
+	uint32_t units;
+	reiser4_place_t place;
+	
 	aal_assert("vpf-683", tree != NULL);
 	aal_assert("vpf-684", dst != NULL);
 	aal_assert("vpf-685", src != NULL);
-	
+
+	units = reiser4_node_items(src->node);
+
+	/* Checking passed @count on validness */
+	if (src->pos.item + count > units)
+		count = units - src->pos.item;
+
+	/* Checking id we should be dealing with items or units */
+	if (src->pos.unit == ~0ul) {
+		
+		/* Initializing item at passed @src place */
+		if (reiser4_place_realize(src))
+			return -1;
+		
+		/*
+		  Initializing item key at passed @src place. This is needed for
+		  getting its key for searching the place we should insert it in
+		  @tree.
+		*/
+		if (reiser4_item_realize(src))
+			return -1;
+
+		switch (reiser4_tree_lookup(tree, &src->item.key,
+					    LEAF_LEVEL, &place))
+		{
+		case LP_FAILED:
+			aal_exception_error("Lookup failed while writing "
+					    "items/units from %llu top tree.",
+					    src->node->blk);
+			return -1;
+		case LP_ABSENT:
+			return -1;
+		case LP_PRESENT:
+			return -1;
+		}
+	} else {
+	}
+		
 	return 0;
 }
 

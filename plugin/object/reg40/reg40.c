@@ -254,8 +254,9 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
     
 	/* Initializing the stat data hint */
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
+
 	stat_hint.plugin = stat_plugin;
-    
+	stat_hint.flags = HF_FORMATD;
 	stat_hint.key.plugin = hint->object.plugin;
 	
 	plugin_call(hint->object.plugin->key_ops, assign, 

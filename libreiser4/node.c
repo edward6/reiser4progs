@@ -342,23 +342,11 @@ static int callback_comp_node(
 {
 	reiser4_node_t *node1;
 	reiser4_node_t *node2;
-	
-	uint32_t items1, items2;
 	reiser4_key_t lkey1, lkey2;
 
 	node1 = (reiser4_node_t *)item1;
 	node2 = (reiser4_node_t *)item2;
 
-	/*
-	  FIXME-UMKA: Is it correct? Should we consider that empty nodes may
-	  exist in children list.
-	*/
-/*	items1 = reiser4_node_items(node1);
-	items2 = reiser4_node_items(node2);
-
-	if (items1 == 0 || items2 == 0)
-		return -1;*/
-    
 	reiser4_node_lkey(node1, &lkey1);
 	reiser4_node_lkey(node2, &lkey2);
     
