@@ -89,8 +89,11 @@ int main(int argc, char *argv[]) {
 			for (i = 0; i < 5000; i++) {
 				aal_snprintf(name, 256, "dir%d", i);
 
-				if (!(object = reiser4_object_create(fs, dir, &dir_hint)))
-					goto error_free_dir;
+				if (!(object = reiser4_object_create(fs->tree,
+				                                     dir, &dir_hint)))
+				{
+				       goto error_free_dir;
+				}
 
 				if (reiser4_object_link(dir, object, name)) {
 					reiser4_object_close(object);
@@ -122,8 +125,11 @@ int main(int argc, char *argv[]) {
 			for (i = 0; i < 5000; i++) {
 				aal_snprintf(name, 256, "file%d", i);
 
-				if (!(object = reiser4_object_create(fs, dir, &reg_hint)))
+				if (!(object = reiser4_object_create(fs->tree, dir,
+								     &reg_hint)))
+				{
 					goto error_free_dir;
+				}
 
 				reiser4_object_link(dir, object, name);
 				reiser4_object_write(object, "H", 1);
