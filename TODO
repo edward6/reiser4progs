@@ -54,6 +54,3 @@ reiser4progs/COPYING.
 * repacking is needed after tree is created by reiser4progs. Or we
   should produce the tree in the right order.
 
-* replace item's method "remove" by "shrink".
-* for why we have cut/remove and paste/insert in node plugin interface?
-* TRUE and FALSE macros in aal.h

@@ -1,9 +1,9 @@
 /*
-  aal.h -- the central aal header. aal - (application abstraction library).  It
-  contains functions which will help libreiser4 to work in any mode, out of the
-  box. For now libaal supports two modes: standard (usespace, libc) and so
-  called allone mode - the mode, all bootloaders work in (real mode of
-  processor, no libc).
+  aal.h -- the central aal header. aal - application abstraction library.  It
+  contains functions which will help libreiser4 work in any environment, out of
+  the box. For now libaal supports two envinments: standard (usespace, libc) and
+  so called allone mode - the mode, for instance, bootloaders work in (real mode
+  of processor, no libc, etc).
     
   Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -17,27 +17,43 @@
   macro here in order to avoid compilation errors.
 */
 #undef NULL
+
 #if defined(__cplusplus)
 #  define NULL 0
 #else
 #  define NULL ((void *)0)
 #endif
 
-/* 
-   Macro for checking the format string in situations like this:
-
-   aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, "Operation %d failed.", 
-   "open");
-
-   As aal_exception_throw is declared with this macro, compiller in the comile
-   time will make warning about incorrect format string.
+/*
+  Here we define FALSE and TRUE macros in order to make sources more clean for
+  understanding. I mean, that there where we need some boolean value, we will
+  use these two macro.
 */
-#undef __check_format__
+#if !defined(FALSE)
+#  define FALSE 0
+#endif
+
+#if !defined(TRUE)
+#  define TRUE 1
+#endif
+
+typedef int bool_t;
+
+/* 
+  Macro for checking the format string in situations like this:
+
+  aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, "Operation %d failed.", 
+  "open");
+
+  As aal_exception_throw is declared with this macro, compiller in the comile
+  time will make warning about incorrect format string.
+*/
+#undef __aal_check_format__
 #ifdef __GNUC__
-#  define __check_format__(style, format, start) \
+#  define __aal_check_format__(style, format, start) \
        __attribute__((__format__(style, format, start)))
 #else
-#  define __check_format__(style, format, start)
+#  define __aal_check_format__(style, format, start)
 #endif
 
 #if defined(__sparc__) || defined(__sparcv9)
@@ -49,10 +65,10 @@
 #include <stdarg.h>
 
 /* 
-   This type is used for return of result of execution some function.
+  This type is used for return of result of execution some function.
     
-   Success - 0 (not errors),
-   Failure - negative error code
+  Success - 0 (not errors),
+  Failure - negative error code
 */
 typedef int errno_t;
 
@@ -63,8 +79,8 @@ typedef int errno_t;
 typedef int (*comp_func_t) (const void *, const void *, void *);
 
 /* 
-   Type for callback function that is called for each element of list. Usage is 
-   the same as previous one.
+  Type for callback function that is called for each element of list. Usage is 
+  the same as previous one.
 */
 typedef int (*foreach_func_t) (const void *, const void *);
 

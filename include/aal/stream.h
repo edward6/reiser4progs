@@ -32,6 +32,6 @@ extern int aal_stream_read(aal_stream_t *stream,
 
 extern int aal_stream_format(aal_stream_t *stream,
 			     const char *format, ...)
-                             __check_format__(printf, 2, 3);
+                             __aal_check_format__(printf, 2, 3);
 
 #endif

@@ -454,7 +454,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	return 0;
 }
 
-static int32_t node40_delete(node40_t *node, reiser4_pos_t *pos,
+static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 			     uint32_t count)
 {
 	uint32_t size;
@@ -532,9 +532,6 @@ static int32_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 	
 		nh40_dec_num_items(node, count);
 		nh40_inc_free_space(node, (len + headers));
-		nh40_dec_free_space_start(node, len);
-
-		return len + headers;
 	} else {
 		item40_header_t *ih;
 		uint32_t ilen, offset;
@@ -575,10 +572,10 @@ static int32_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 			ih40_dec_offset(cur, len);
 		
 		nh40_inc_free_space(node, len);
-		nh40_dec_free_space_start(node, len);
-
-		return len;
 	}
+
+	nh40_dec_free_space_start(node, len);
+	return 0;
 }
 
 /* Inserts item described by hint structure into node */
@@ -705,7 +702,7 @@ static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
 				count = item.plugin->item_ops.units(&item) -
 					start->unit;
 
-				if (node40_delete(node, &pos, count) < 0)
+				if (node40_delete(node, &pos, count))
 					return -1;
 
 				/*
@@ -726,7 +723,7 @@ static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
 				count = item.plugin->item_ops.units(&item) -
 					end->unit;
 
-				if (node40_delete(node, &pos, count) < 0)
+				if (node40_delete(node, &pos, count))
 					return -1;
 			}
 			
@@ -735,7 +732,7 @@ static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
 			pos.item = start->item + 1;
 			count = end->item - start->item + 1;
 
-			if (node40_delete(node, &pos, count) < 0)
+			if (node40_delete(node, &pos, count))
 				return -1;
 		}
 	} else {
@@ -747,7 +744,7 @@ static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
 
 		count = end->unit - start->unit;
 
-		if (node40_delete(node, &pos, count) < 0)
+		if (node40_delete(node, &pos, count))
 			return -1;
 	}
 
