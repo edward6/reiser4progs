@@ -551,8 +551,9 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 					if (flags & SF_MOVE_POINT) {
 						hint->result |= SF_MOVE_POINT;
 						hint->pos.unit = dst_units;
-					}/* else*/
-						break;
+					}
+					
+					break;
 				} else {
 					hint->pos.unit--;
 				}
