@@ -31,7 +31,7 @@ static int32_t nodeptr40_read(item_entity_t *item, void *buff,
 	nodeptr = nodeptr40_body(item);
 	
 	ptr_hint->width = 1;
-	ptr_hint->ptr = np40_get_ptr(nodeptr);
+	ptr_hint->start = np40_get_ptr(nodeptr);
 	
 	return 1;
 }
@@ -44,20 +44,18 @@ static int nodeptr40_branch(void) {
   Layout implementation for nodeptr40. It calls @func for each block nodeptr
   points to.
 */
-static errno_t nodeptr40_layout(item_entity_t *item, region_func_t func,
+static errno_t nodeptr40_layout(item_entity_t *item,
+				region_func_t region_func,
 				void *data)
 {
-	errno_t res;
 	nodeptr40_t *nodeptr;
 	
 	aal_assert("umka-1749", item != NULL);
 	aal_assert("umka-1750", func != NULL);
 	aal_assert("vpf-718",   item->body != NULL);
 
-	if ((res = func(item, np40_get_ptr(nodeptr40_body(item)), 1, data)))
-		return res;
-
-	return 0;
+	nodeptr = nodeptr40_body(item);
+	return region_func(item, np40_get_ptr(nodeptr), 1, data);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -91,7 +89,7 @@ static int32_t nodeptr40_write(item_entity_t *item, void *buff,
 	hint = (create_hint_t *)buff;
 	ptr_hint = (ptr_hint_t *)hint->type_specific;
 	
-	np40_set_ptr(nodeptr, ptr_hint->ptr);
+	np40_set_ptr(nodeptr, ptr_hint->start);
 	return 1;
 }
 

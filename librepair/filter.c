@@ -121,17 +121,17 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
      * is not very well as read does not mean that we get pointed block. */
     
     /* The validness of this node pointer must be checked at node_check time. */
-    if (ptr.ptr < fd->bm_used->total && ptr.width < fd->bm_used->total &&
-	ptr.ptr < fd->bm_used->total - ptr.width && 
-	aux_bitmap_test_region_cleared(fd->bm_used, ptr.ptr, ptr.width))
+    if (ptr.start < fd->bm_used->total && ptr.width < fd->bm_used->total &&
+	ptr.start < fd->bm_used->total - ptr.width && 
+	aux_bitmap_test_region_cleared(fd->bm_used, ptr.start, ptr.width))
     {
-	aux_bitmap_mark_region(fd->bm_used, ptr.ptr, ptr.width);
+	aux_bitmap_mark_region(fd->bm_used, ptr.start, ptr.width);
     } else {
 	/* Bad pointer detected. Remove if possible. */
 	aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 	    "invalid region [%llu..%llu] or some blocks are used already. %s", 
-	    place->node->blk, place->pos.item, place->pos.unit, ptr.ptr, 
-	    ptr.ptr + ptr.width - 1, fd->repair->mode == REPAIR_REBUILD ? 
+	    place->node->blk, place->pos.item, place->pos.unit, ptr.start, 
+	    ptr.start + ptr.width - 1, fd->repair->mode == REPAIR_REBUILD ? 
 	    "Removed." : "The whole subtree is skipped.");
 	
 	if (fd->repair->mode == REPAIR_REBUILD) {
@@ -180,27 +180,27 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 
     if (fd->flags) {
 	/* Clear pointed block in the formatted bitmap. */
-	aux_bitmap_clear_region(fd->bm_used, ptr.ptr, ptr.width);
+	aux_bitmap_clear_region(fd->bm_used, ptr.start, ptr.width);
 	
 	if (fd->flags & REPAIR_BAD_PTR) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the invalid node [%llu]. %s", place->node->blk, 
-		place->pos.item, place->pos.unit, ptr.ptr, 
+		place->pos.item, place->pos.unit, ptr.start, 
 		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
 	} else if (fd->flags & REPAIR_FATAL) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the unrecoverable node [%llu]. %s", place->node->blk, 
-		place->pos.item, place->pos.unit, ptr.ptr, 
+		place->pos.item, place->pos.unit, ptr.start, 
 		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
 	    
 	    /* Extents cannot point to this node. */
-	    aux_bitmap_mark_region(fd->bm_met, ptr.ptr, ptr.width);
+	    aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
 	} else if (fd->flags & REPAIR_BAD_DKEYS) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the node [%llu] with wrong delimiting keys. %s", 
-		place->node->blk, place->pos.item, place->pos.unit, ptr.ptr, 
+		place->node->blk, place->pos.item, place->pos.unit, ptr.start, 
 		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
 
@@ -208,11 +208,11 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	    
 	    /* Insert it later. FIXME: This is hardcoded, should be changed. */
 	    if (level == LEAF_LEVEL) 
-		aux_bitmap_mark_region(fd->bm_leaf, ptr.ptr, ptr.width);
+		aux_bitmap_mark_region(fd->bm_leaf, ptr.start, ptr.width);
 	    else if (level == TWIG_LEVEL)
-		aux_bitmap_mark_region(fd->bm_twig, ptr.ptr, ptr.width);
+		aux_bitmap_mark_region(fd->bm_twig, ptr.start, ptr.width);
 	    else
-		aux_bitmap_mark_region(fd->bm_met, ptr.ptr, ptr.width);
+		aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
 	} else
 	    aal_assert("vpf-827: Not expected case.", FALSE);
 	
@@ -236,9 +236,9 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
     } else {
 	/* FIXME-VITALY: hardcoded level, should be changed. */
 	if (reiser4_node_get_level(place->node) == TWIG_LEVEL + 1) 
-	    aux_bitmap_mark_region(fd->bm_twig, ptr.ptr, ptr.width);
+	    aux_bitmap_mark_region(fd->bm_twig, ptr.start, ptr.width);
 	else if (reiser4_node_get_level(place->node) == TWIG_LEVEL)
-	    aux_bitmap_mark_region(fd->bm_leaf, ptr.ptr, ptr.width);
+	    aux_bitmap_mark_region(fd->bm_leaf, ptr.start, ptr.width);
     }
     
     fd->level++;

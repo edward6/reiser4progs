@@ -367,7 +367,7 @@ typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
 */
 
 struct ptr_hint {    
-	uint64_t ptr;
+	uint64_t start;
 	uint64_t width;
 };
 

@@ -154,7 +154,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     hint.type_specific = &ptr;
     hint.count = 1;
     hint.flags = HF_FORMATD;
-    ptr.ptr = node->blk;
+    ptr.start = node->blk;
     ptr.width = 1;
     
     pid = reiser4_profile_value(tree->fs->profile, "nodeptr");

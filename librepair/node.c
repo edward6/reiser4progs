@@ -34,10 +34,10 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
 	place.pos.unit = reiser4_item_units(&place) - 1;
 	
 	if (plugin_call(item->plugin->item_ops, read, item, 
-	    &ptr, place.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
+	    &ptr, place.pos.unit, 1) != 1 || ptr.start == INVAL_BLK)
 	    return -EINVAL;
 
-	if (!(child = reiser4_node_open(place.node->device, ptr.ptr))) 
+	if (!(child = reiser4_node_open(place.node->device, ptr.start))) 
 	    return -EINVAL;
 	
 	res = repair_node_max_real_key(child, key);

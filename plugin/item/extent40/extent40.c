@@ -451,8 +451,26 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 static int32_t extent40_write(item_entity_t *item, void *buff,
 			      uint32_t pos, uint32_t count)
 {
-	/* Not implemented yet */
-	return -EINVAL;
+	uint32_t i;
+	extent40_t *extent;
+	create_hint_t *hint;
+	ptr_hint_t *ptr_hint;
+
+	aal_assert("umka-2112", item != NULL);
+	aal_assert("umka-2113", buff != NULL);
+	
+	extent = extent40_body(item);
+	hint = (create_hint_t *)buff;
+
+	ptr_hint = (ptr_hint_t *)hint->type_specific;
+	aal_assert("umka-2114", ptr_hint != NULL);
+
+	for (i = 0; i < count; i++, extent++, ptr_hint++) {
+		et40_set_start(extent, ptr_hint->start);
+		et40_set_width(extent, ptr_hint->width);
+	}
+	
+	return count;
 }
 
 /*
@@ -460,7 +478,7 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
   calculating fragmentation, etc.
 */
 static errno_t extent40_layout(item_entity_t *item,
-			       region_func_t func,
+			       region_func_t region_func,
 			       void *data)
 {
 	errno_t res;
@@ -477,10 +495,12 @@ static errno_t extent40_layout(item_entity_t *item,
 		uint64_t start;
 		uint64_t width;
 
-		start = et40_get_start(extent);
-		width = et40_get_start(extent);
-				
-		if (start && (res = func(item, start, width, data)))
+		if (!(start = et40_get_start(extent)))
+			continue;
+		
+		width = et40_get_width(extent);
+		
+		if ((res = region_func(item, start, width, data)))
 			return res;
 	}
 			

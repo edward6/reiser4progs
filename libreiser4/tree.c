@@ -350,11 +350,11 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 	plugin_call(place->item.plugin->item_ops,
 		    read, &place->item, &ptr, 0, 1);
 
-	if (ptr.ptr == INVAL_BLK)
+	if (ptr.start == INVAL_BLK)
 		return NULL;
 	
 	return reiser4_tree_load(tree, place->node,
-				 ptr.ptr);
+				 ptr.start);
 }
 
 /* Finds both left and right neighbours and connects them into the tree */
@@ -908,7 +908,7 @@ errno_t reiser4_tree_attach(
 
 	/* Prepare nodeptr hint from opassed @node */
 	nodeptr_hint.width = 1;
-	nodeptr_hint.ptr = node->blk;
+	nodeptr_hint.start = node->blk;
 
 	hint.count = 1;
 	hint.flags = HF_FORMATD;
@@ -1978,7 +1978,7 @@ errno_t reiser4_tree_down(
 			plugin_call(place.item.plugin->item_ops, read,
 				    &place.item, &ptr, pos->unit, 1);
 
-			if (ptr.ptr == INVAL_BLK || ptr.ptr == 0)
+			if (ptr.start == INVAL_BLK || ptr.start == 0)
 				continue;
 			
 			if (setup_func && (res = setup_func(&place, hint->data))) {
@@ -1995,13 +1995,13 @@ errno_t reiser4_tree_down(
 			  means that it is not loaded yet and w load it and
 			  connect to the tree explicitly.
 			*/
-			if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
+			if (!(child = reiser4_node_cbp(node, ptr.start))) {
 						
 				if (!open_func)
 					goto update;
 
 				/* Opening the node by its @ptr */
-				if ((res = open_func(&child, ptr.ptr, hint->data)))
+				if ((res = open_func(&child, ptr.start, hint->data)))
 					goto error_update_func;
 
 				if (!child)

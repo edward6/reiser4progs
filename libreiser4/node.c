@@ -597,7 +597,7 @@ errno_t reiser4_node_shift(
 			plugin_call(place.item.plugin->item_ops, read,
 				    &place.item, &ptr, place.pos.unit, 1);
 			
-			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
+			if (!(child = reiser4_node_cbp(node, ptr.start)))
 			        continue;
 
 			/*
@@ -741,7 +741,7 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 		plugin_call(place.item.plugin->item_ops, read,
 			    &place.item, &ptr, place.pos.unit, 1);
 	
-		if ((list = aal_list_find_custom(node->children, (void *)&ptr.ptr,
+		if ((list = aal_list_find_custom(node->children, (void *)&ptr.start,
 						 callback_comp_blk, NULL)))
 			break;
 	}
