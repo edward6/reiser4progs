@@ -1,10 +1,72 @@
-This file is part of reiser4progs package
+This file is part of reiser4progs package.
 
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-This is a library for reiser4 filesystem access and manipulations.
+This is a library for reiser4 filesystem access and manipulation.
 
-Send reiser4progs bug reports, requests for help, feature requests, 
-comments, etc. to reiserfs-list@namesys.com, vitaly@namesys.com,
-umka@namesys.com
+Send reiser4progs bug reports, requests for help, feature requests,
+comments, etc. to umka@namesys.com, vitaly@namesys.com,
+reiserfs-list@namesys.com
+
+In order to build the library, type the following sequence:
+
+./configure [OPTIONS]
+make
+make install
+
+Configure script is accepting the following keys:
+
+--disable-Werror               disable build with gcc -Werror (default=on)
+--disable-debug                disable asserts debug information (default=on)
+--enable-stand-alone enable    stand alone library (default=off)
+
+--disable-monolithic           disable embeding plugins in libreiser4
+			       (default=on)
+
+--disable-collisions-handling  disable key collisions handling in stand
+                               alone library (default=on)
+
+--disable-plugins-check        disable plugins validness check in stand alone
+                               library (default=on)
+
+--disable-symlinks-support     disable symlinks support in stand alone
+                               library (default=on)
+
+--disable-r5-hash              disable r5 hash plugin in stand alone library
+                               (default=on)
+
+--disable-fnv1-hash            disable fnv1 hash plugin in stand alone library
+                               (default=on)
+
+--disable-rupasov-hash         disable rupasov hash plugin in stand alone
+                               library (default=on)
+
+--disable-tea-hash             disable tea hash plugin in stand alone library
+                               (default=on)
+
+--with-uuid                    add support uuid generating and checking 
+                               (default=auto)
+
+--with-readline                add support fancy command line editing 
+                               (default=auto)
+
+--with-plugin-dir=PATH         directory stand alone plugins (*.so) lie in
+                               (default=${prefix}/lib/reiser4)
+
+
+Reiser4 support in GNU GRUB.
+
+reiser4progs package has ability to be built with so called "stand
+alone" libreiser4 library, which may be used for providing reiser4
+read only support in enviromnents without libc, etc., like GNU GRUB
+does work in.
+
+In order to build such a library, apply --enable-stand-alone key to
+./configure script in configuring time and type "make". This library
+is pretty small and does not contain balancing, journal code, and
+block allocator code, etc. As GNU GRUB has strong limitation for its
+binary images (used for embeding just after mbr and used for reading
+main GRUB core), we strongly recomend you do not build in unused hash
+plugins and check code into stand alone library. This may lead to
+unability use reiser4 filesystem for booting.

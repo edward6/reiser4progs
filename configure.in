@@ -174,62 +174,62 @@ AC_SUBST(PROGS_LIBS)
 AM_ENABLE_SHARED
 
 AC_ARG_ENABLE(Werror,
-    [  --disable-Werror               disable build with gcc -Werror [default=on]], ,
+    [  --disable-Werror               disable build with gcc -Werror ], ,
 	enable_Werror=yes
 )
 
 AC_ARG_ENABLE(debug, 
-    [  --disable-debug                disable debug information in binaries [default=on]], , 
+    [  --disable-debug                disable asserts and debug information ], , 
 	enable_debug=yes
 )
 
 AC_ARG_ENABLE(stand_alone,
-    [  --enable-stand-alone           enable build stand alone library [default=off]], ,
+    [  --enable-stand-alone           enable stand alone library ], ,
         enable_stand_alone=no
 )
 
 AC_ARG_ENABLE(monolithic,
-    [  --disable-monolithic           disable including all plugins in [default=on]], ,
+    [  --disable-monolithic           disable including all plugins embeding plugins ], ,
         enable_monolithic=yes
 )
 
 AC_ARG_ENABLE(collisions_handling,
-    [  --disable-collisions-handling  disable key collision handling in stand alone library [default=on]], ,
+    [  --disable-collisions-handling  disable key collisions handling in stand alone library ], ,
         enable_collisions_handling=yes
 )
 
 AC_ARG_ENABLE(plugins_check,
-    [  --disable-plugins-check        disable plugins check in stand alone library [default=on]], ,
+    [  --disable-plugins-check        disable plugins check in stand alone library ], ,
         enable_plugins_check=yes
 )
 
 AC_ARG_ENABLE(symlinks_support,
-    [  --disable-symlinks-support     disable symlinks support in stand alone library [default=on]], ,
+    [  --disable-symlinks-support     disable symlinks support in stand alone library ], ,
         enable_symlinks_support=yes
 )
 
 AC_ARG_ENABLE(r5_hash,
-    [  --disable-r5-hash              disable r5 hash plugin in stand alone library [default=on]], ,
+    [  --disable-r5-hash              disable r5 hash plugin in stand alone library ], ,
         enable_r5_hash=yes
 )
 
 AC_ARG_ENABLE(fnv1_hash,
-    [  --disable-fnv1-hash            disable fnv1 hash plugin in stand alone library [default=on]], ,
+    [  --disable-fnv1-hash            disable fnv1 hash plugin in stand alone library ], ,
         enable_fnv1_hash=yes
 )
 
 AC_ARG_ENABLE(rupasov_hash,
-    [  --disable-rupasov-hash         disable rupasov hash plugin in stand alone library [default=on]], ,
+    [  --disable-rupasov-hash         disable rupasov hash plugin in stand alone library ], ,
         enable_rupasov_hash=yes
 )
 
 AC_ARG_ENABLE(tea_hash,
-    [  --disable-tea-hash             disable tea hash plugin in stand alone library [default=on]], ,
+    [  --disable-tea-hash             disable tea hash plugin in stand alone library ], ,
         enable_tea_hash=yes
 )
 
 AC_ARG_WITH(plugin-dir, 
-    [  --with-plugin-dir=PATH         directory stand alone plugins will lie in]
+    [  --with-plugin-dir=PATH  directory stand alone plugins will lie in]
 )
 if test x$with_plugin_dir = x; then
     with_plugin_dir="$libdir/reiser4"
