@@ -50,3 +50,5 @@ reiser4progs/COPYING.
 * writing symlink may require expanding the node. Or we should do 
   not allow write symlinks? Write method may just remove old stat
   data and insert new one.
+
+* repacking is needed after tree is created by reiser4progs.

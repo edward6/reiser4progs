@@ -12,6 +12,7 @@ static reiser4_core_t *core = NULL;
 
 #define extent40_body(item) ((extent40_t *)item->body)
 
+/* Returns blocksize of the device passed extent @item lies on */
 static uint32_t extent40_blocksize(item_entity_t *item) {
 	aal_device_t *device;
 
@@ -19,6 +20,7 @@ static uint32_t extent40_blocksize(item_entity_t *item) {
 	return aal_device_get_bs(device);
 }
 
+/* Returns number of units in passed extent @item */
 static uint32_t extent40_units(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL, return 0);
 
@@ -31,6 +33,7 @@ static uint32_t extent40_units(item_entity_t *item) {
 	return item->len / sizeof(extent40_t);
 }
 
+/* Calculates extent size */
 static uint64_t extent40_size(item_entity_t *item) {
 	uint32_t i;
 	extent40_t *extent;
@@ -46,6 +49,10 @@ static uint64_t extent40_size(item_entity_t *item) {
 	return (blocks * aal_device_get_bs(item->con.device));
 }
 
+/*
+  Builds the ley of an unit ar @pos and stores it inside passed @key
+  variable. It is needed for updating item key after shifting, etc.
+*/
 static errno_t extent40_unit_key(item_entity_t *item,
 				 uint32_t pos, 
 				 key_entity_t *key)
@@ -68,6 +75,7 @@ static errno_t extent40_unit_key(item_entity_t *item,
 	extent = extent40_body(item);
 	blocksize = extent40_blocksize(item);
 
+	/* Calulating key offset to be used */
 	for (i = 0; i < pos; i++, extent++)
 		offset += et40_get_width(extent) * blocksize;
 
@@ -77,6 +85,11 @@ static errno_t extent40_unit_key(item_entity_t *item,
 	return 0;
 }
 
+/*
+  Builds unit key like the previous function, but the difference is that key
+  offset will be set up to the passed offet. So it can be not at the start of
+  an extent unit.
+*/
 static errno_t extent40_get_key(item_entity_t *item,
 				uint32_t offset, 
 				key_entity_t *key) 
@@ -103,10 +116,11 @@ static errno_t extent40_get_key(item_entity_t *item,
 static errno_t extent40_estimate(item_entity_t *item,
 				 void *buff, uint32_t pos)
 {
+	/* Sorry, not implemented yet */
 	return -1;
 }
 
-static int32_t extent40_write(item_entity_t *item, void *buff,
+/*static int32_t extent40_write(item_entity_t *item, void *buff,
 			      uint32_t offset, uint32_t count)
 {
 	uint32_t blocks;
@@ -122,8 +136,9 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 	alloc = item->con.alloc;
 
 	return count;
-}
+}*/
 
+/* Inserts next extent unit(s) at specified @pos */
 static errno_t extent40_insert(item_entity_t *item,
 			       void *buff, uint32_t pos)
 {
@@ -178,7 +193,12 @@ static errno_t extent40_init(item_entity_t *item) {
 	return 0;
 }
 
-static int32_t extent40_remove(item_entity_t *item, uint32_t pos,
+/*
+  Removes the numebr of extent units denoted by @count from the specified extent
+  @item.
+*/
+static int32_t extent40_remove(item_entity_t *item,
+			       uint32_t pos,
 			       uint32_t count)
 {
 	uint32_t units;
@@ -196,7 +216,8 @@ static int32_t extent40_remove(item_entity_t *item, uint32_t pos,
 
 	if (count > units - pos)
 		count = units - pos;
-	
+
+	/* Shrinking the item */
 	if (pos + count < units - 1) {
 		dst = extent + pos;
 		src = extent + pos + count;
@@ -204,7 +225,8 @@ static int32_t extent40_remove(item_entity_t *item, uint32_t pos,
 		aal_memmove(dst, src, item->len -
 			    ((pos + count) * sizeof(extent40_t)));
 	}
-		
+
+	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
 		if (extent40_get_key(item, 0, &item->key))
 			return -1;
@@ -213,7 +235,9 @@ static int32_t extent40_remove(item_entity_t *item, uint32_t pos,
 	return (count * sizeof(extent40_t));
 }
 
-static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
+/* Prints extent item into specified @stream */
+static errno_t extent40_print(item_entity_t *item,
+			      aal_stream_t *stream,
 			      uint16_t options) 
 {
 	uint32_t i, count;
@@ -250,6 +274,7 @@ static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
 
 #endif
 
+/* Builds maximal possible key for the extent item */
 static errno_t extent40_max_poss_key(item_entity_t *item,
 				     key_entity_t *key) 
 {
@@ -277,6 +302,7 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 	return 0;
 }
 
+/* Builds maximal real key in use for specified @item */
 static errno_t extent40_max_real_key(item_entity_t *item,
 				     key_entity_t *key) 
 {
@@ -319,6 +345,10 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	return 0;	
 }
 
+/*
+  Performs lookup for specified @key inside the passed @item. Result of lookup
+  will be stored in @pos.
+*/
 static int extent40_lookup(item_entity_t *item,
 			   key_entity_t *key,
 			   uint32_t *pos)
@@ -342,7 +372,7 @@ static int extent40_lookup(item_entity_t *item,
 
 	if (!(units = extent40_units(item)))
 		return -1;
-	
+
 	if (plugin_call(return -1, key->plugin->key_ops,
 			compare, key, &maxkey) > 0)
 	{
@@ -371,6 +401,7 @@ static int extent40_lookup(item_entity_t *item,
 	return 0;
 }
 
+/* Gets the number of unit specified offset lies in */
 static uint32_t extent40_unit(item_entity_t *item,
 			      uint32_t offset)
 {
@@ -392,6 +423,10 @@ static uint32_t extent40_unit(item_entity_t *item,
 	return i;
 }
 
+/*
+  Reads @count bytes of extent data from the extent item at passed @pos into
+  specified @buff.
+*/
 static int32_t extent40_fetch(item_entity_t *item, void *buff,
 			      uint32_t pos, uint32_t count)
 {
@@ -447,6 +482,7 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 				return -1;
 			}
 
+			/* Calculating in-block offset and chunk to be read */
 			offset = (pos % blocksize);
 			chunk = blocksize - offset;
 
@@ -469,6 +505,10 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+/*
+  Calls @func for each block number extent points to. It is needed for
+  calculating fragmentation, etc.
+*/
 static errno_t extent40_layout(item_entity_t *item,
 			       data_func_t func,
 			       void *data)
@@ -481,7 +521,7 @@ static errno_t extent40_layout(item_entity_t *item,
 
 	extent = extent40_body(item);
 	units = extent40_units(item);
-			
+
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t blk;
 		uint64_t start;
@@ -501,6 +541,7 @@ static errno_t extent40_layout(item_entity_t *item,
 	return 0;
 }
 
+/* Updates the number of extent units */
 static int32_t extent40_update(item_entity_t *item, void *buff,
 			       uint32_t pos, uint32_t count)
 {
@@ -532,6 +573,7 @@ static int32_t extent40_update(item_entity_t *item, void *buff,
 	return i - pos;
 }
 
+/* Checks if two extent items are mergeable */
 static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	reiser4_plugin_t *plugin;
 	uint64_t offset1, offset2;
