@@ -213,6 +213,8 @@ static errno_t tail40_prep_shift(place_t *src_place,
 	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_place != NULL);
 
+	hint->units = 0;
+	
 	/* Check if we have to check if insert point should be staying inside
 	   @src_place. Otherwise, we want to shift everything. */
 	if (!(src_place->pos.item == hint->pos.item &&

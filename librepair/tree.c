@@ -338,7 +338,19 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	}
 	
 	/* Setting needed links between nodes in the tree cashe. */
-	return reiser4_tree_connect_node(tree, place.node, node);
+	if ((res = reiser4_tree_connect_node(tree, place.node, node))) {
+		aal_exception_error("Can't connect node %llu to tree "
+				    "cache.", node_blocknr(node));
+		return res;
+	}
+
+	/* This is needed to update sibling links, as new attached node may be
+	   inserted between two nodes, that has established sibling links
+	   andthey should be changed. */
+	reiser4_tree_neigh_node(tree, node, DIR_LEFT);
+	reiser4_tree_neigh_node(tree, node, DIR_RIGHT);
+
+	return 0;
 }
 
 /* Check that conversion is needed. */

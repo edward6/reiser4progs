@@ -1699,6 +1699,12 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 				    "tree cache.", node_blocknr(node));
 		return res;
 	}
+
+	/* This is needed to update sibling links, as new attached node may be
+	   inserted between two nodes, that has established sibling links
+	   andthey should be changed. */
+	reiser4_tree_neigh_node(tree, node, DIR_LEFT);
+	reiser4_tree_neigh_node(tree, node, DIR_RIGHT);
 	
 	return 0;
 }
@@ -1901,10 +1907,7 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 	/* Check if we need update key in insert part of tree. That is if source
 	   node is not empty and there was actually moved at least one item or
 	   unit. */
-	if (reiser4_node_items(update) > 0 &&
-	    (hint.items > 0 || hint.units > 0))
-	{
-
+	if (reiser4_node_items(update) > 0 && hint.update) {
 		/* Check if node is connected to tree or it is not root and
 		   updating left delimiting keys if it makes sense at all. */
 		if (update->p.node) {
@@ -2492,8 +2495,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	   should be changed. */
 	if (place->node != tree->root && !place->node->p.node) {
 		if (old.node && reiser4_tree_root_node(tree, old.node)) {
-			if (reiser4_tree_growup(tree))
-				return -EINVAL;
+			if ((res = reiser4_tree_growup(tree)))
+				return res;
 		}
 		
 		/* Attaching new node to the tree */

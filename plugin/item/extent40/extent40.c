@@ -987,6 +987,8 @@ static errno_t extent40_prep_shift(place_t *src_place,
 	aal_assert("umka-1705", hint != NULL);
 	aal_assert("umka-1704", src_place != NULL);
 
+	hint->units = 0;
+	
 	/* Check if we have to check for insert point to be staying inside src
 	   place. This is usually needed. Otherwise, we want to shift
 	   everything. */

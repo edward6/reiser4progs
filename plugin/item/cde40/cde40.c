@@ -488,9 +488,10 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	aal_assert("umka-1592", hint != NULL);
 	aal_assert("umka-1591", src_place != NULL);
 
+	hint->units = 0;
 	space = hint->rest;
-	pol = cde40_key_pol(src_place);
 
+	pol = cde40_key_pol(src_place);
 	src_units = cde40_units(src_place);
 	dst_units = dst_place ? cde40_units(dst_place) : 0;
 

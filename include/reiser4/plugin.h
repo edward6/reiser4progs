@@ -383,6 +383,10 @@ struct shift_hint {
 	   or border items are not mergeable. Set and used by shift code. */
 	int create;
 
+	/* Shows, that one of neighbour nodes has changed its leftmost key and
+	   internal tree should be updated. */
+	int update;
+
 	/* Item count and unit count which will be moved out */
 	uint32_t items;
 	uint32_t units;

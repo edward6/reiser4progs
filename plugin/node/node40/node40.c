@@ -1219,6 +1219,8 @@ static errno_t node40_unite(node_entity_t *src_entity,
 			hint->create = !node40_mergeable(&src_place, &dst_place);
 		}
 	} else {
+		/* There are no items in dst node and we create new item in
+		   neighbour node anyway. */
 		hint->create = 1;
 	}
 
@@ -1246,8 +1248,6 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		if (hint->rest < overhead)
 			return 0;
 
-		hint->units = 0;
-		
 		/* Substract node overhead, that is item header. */
 		hint->rest -= overhead;
 			
@@ -1276,8 +1276,6 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		/* Prepare pos new item will be created at. */
 		POS_INIT(&pos, (left_shift ? dst_items : 0), MAX_UINT32);
 	} else {
-		hint->units = 0;
-		
 		/* The same for case when we will not create new item, but will
 		   shift units into existent one in neighbour node. */
 		if (plug_call(src_place.plug->o.item_ops->balance,
@@ -1349,6 +1347,10 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		return -EINVAL;
 	}
 
+	/* Set update flag to let high levels code know, that left delemiting
+	   keys should be updated. */
+	hint->update = 1;
+	
 	pos.item = src_place.pos.item;
 
 	/* Getting units number after shift. This is needed to detect correctly,
@@ -1609,6 +1611,10 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 		return res;
 	}
 
+	/* Set update flag to let high levels code know, that left delemiting
+	   keys should be updated. */
+	hint->update = 1;
+	
 	/* Shrinking source node after items are copied from it into dst
 	   node. */
 	return node40_shrink(src_entity, &src_pos, hint->bytes,

@@ -124,6 +124,7 @@ CFLAGS=""
 
 if test x$with_libaal != x; then
     	LIBS="-L$with_libaal/lib"
+	LDFLAGS="-L$with_libaal/lib"
     	CFLAGS="-I$with_libaal/include"
     	CPPFLAGS="-I$with_libaal/include"
 fi
