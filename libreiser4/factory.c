@@ -41,29 +41,34 @@ static int callback_match_id(
 		&& plugin->h.sign.id == desc->id);
 }
 
+/* Helper callback for matching plugin by its name */
 static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
 	return !(plugin->h.sign.type == desc->type 
 		&& !aal_strncmp(plugin->h.label, desc->name, aal_strlen(desc->name)));
 }
-    
+
+/* Helper callback for checking plugin validness */
 static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
 	reiser4_plugin_t *examined = (reiser4_plugin_t *)data;
 
 	if (examined == plugin)
 		return 0;
-	
+
+	/* Check plugins labels */
 	if (!aal_strncmp(examined->h.label, plugin->h.label, PLUGIN_MAX_LABEL)) {
 		aal_exception_error("Plugin %s has the same label as %s.",
 				   examined->h.handle.name, plugin->h.handle.name);
 		return -1;
 	}
 
+	/* Check plugin group */
 	if (examined->h.sign.group >= LAST_ITEM) {
 		aal_exception_error("Plugin %s has invalid group id 0x%x.",
 				    examined->h.handle.name, examined->h.sign.group);
 		return -1;
 	}
-	
+
+	/* Check plugin coord */
 	if (examined->h.sign.group == plugin->h.sign.group &&
 	    examined->h.sign.id == plugin->h.sign.id &&
 	    examined->h.sign.type == plugin->h.sign.type)
@@ -76,6 +81,7 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
 	return 0;
 }
 
+/* Initializes plugin (that is calls its init method) by its handle */
 reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle) {
 	reiser4_plugin_t *plugin;
     
@@ -91,6 +97,7 @@ reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle) {
 	return plugin;
 }
 
+/* Finalizes plugin by means of calling its fini method */
 errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
 	errno_t ret = 0;
 	reiser4_plugin_t *plugin;
@@ -107,6 +114,10 @@ errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
 
 #if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
 
+/*
+  Helper function for searcking for the needed symbol inside loaded dynamic
+  library.
+*/
 static void *find_symbol(void *handle, char *name, char *plugin) {
 	void *addr;
 	
@@ -115,6 +126,7 @@ static void *find_symbol(void *handle, char *name, char *plugin) {
 	
 	/* Getting plugin entry point */
 	addr = dlsym(handle, name);
+	
 	if (dlerror() != NULL || addr == NULL) {
 		aal_exception_error("Can't find symbol %s in plugin %s. %s.", 
 				    name, plugin, dlerror());
@@ -171,12 +183,18 @@ void libreiser4_plugin_close(plugin_handle_t *handle) {
 
 	/*
 	  Here we copy handle of the previously loaded library into address
-	  space of the main process.
+	  space of the main process due to prevent us from the segfault after
+	  plugin will be uploaded and we will unable access memory area it
+	  occupied.
 	*/
 	local = *handle;
 	dlclose(local.data);
 }
 
+/*
+  Loads plugin by is name (for instance, nodeptr40.so) and registers inside the
+  plugin factory.
+*/
 errno_t libreiser4_factory_load(char *name) {
 	errno_t res;
 
@@ -184,13 +202,19 @@ errno_t libreiser4_factory_load(char *name) {
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1495", name != NULL, return -1);
-	
+
+	/* Open plugin and prepare its handle */
 	if ((res = libreiser4_plugin_open(name, &handle)))
 		return res;
 
+	/*
+	  Init plugin (in this point all plugin's global variables are
+	  initializing too).
+	*/
 	if (!(plugin = libreiser4_plugin_init(&handle)))
 		return -1;
 
+	/* Checking pluign for validness (the same ids, etc) */
 	plugin->h.handle = handle;
 
 	if ((res = libreiser4_factory_foreach(callback_check_plugin, (void *)plugin))) {
@@ -198,7 +222,8 @@ errno_t libreiser4_factory_load(char *name) {
 				   plugin->h.handle.name);
 		goto error_free_plugin;
 	}
-	
+
+	/* Registering plugin in plugins list */
 	plugins = aal_list_append(plugins, plugin);
 
 	return 0;
@@ -210,6 +235,7 @@ errno_t libreiser4_factory_load(char *name) {
 
 #else
 
+/* Loads built-in plugin by its entry address */
 errno_t libreiser4_plugin_open(unsigned long *entry,
 			       plugin_handle_t *handle)
 {
@@ -228,11 +254,16 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 	return 0;
 }
 
+/* Closes built-in plugins */
 void libreiser4_plugin_close(plugin_handle_t *handle) {
 	aal_assert("umka-1433", handle != NULL, return);
 	aal_memset(handle, 0, sizeof(*handle));
 }
 
+/*
+  Loads and initializes plugin by its entry. Also this function makes register
+  the plugin in plugins list.
+*/
 errno_t libreiser4_factory_load(unsigned long *entry) {
 	errno_t res;
 
@@ -266,6 +297,7 @@ errno_t libreiser4_factory_load(unsigned long *entry) {
 
 #endif
 
+/* Finalizing the plugin */
 errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 	plugin_handle_t *handle;
 	
@@ -443,4 +475,3 @@ errno_t libreiser4_factory_foreach(
 	
 	return res;
 }
-
