@@ -60,10 +60,83 @@ static lru_ops_t lru_ops = {
 	.set_prev = callback_set_prev
 };
 
+/* Unloads passed @node from the tree */
+errno_t reiser4_tree_unload(reiser4_tree_t *tree,
+			    reiser4_node_t *node)
+{
+	aal_assert("umka-1840", tree != NULL, return -1);
+	aal_assert("umka-1842", node != NULL, return -1);
+	
+	if (tree->traps.attach) {
+		errno_t res;
+		reiser4_coord_t coord;
+		reiser4_node_t *parent;
+
+		if ((parent = node->parent)) {
+			if (reiser4_coord_open(&coord, parent, &node->pos))
+				return -1;
+			
+			if ((res = tree->traps.attach(tree, &coord, node,
+						      tree->traps.data)))
+				return res;
+		}
+	}
+
+	return reiser4_node_close(node);
+}
+
+/* Loads node and attaches it into the tree */
+reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
+				  reiser4_node_t *parent,
+				  blk_t blk)
+{
+	aal_device_t *device;
+	reiser4_node_t *node = NULL;
+
+	aal_assert("umka-1289", tree != NULL, return NULL);
+    
+	device = tree->fs->device;
+
+	if (parent)
+		node = reiser4_node_cbp(parent, blk);
+
+	if (!node) {
+		
+		if (!(node = reiser4_node_open(device, blk))) {
+			aal_exception_error("Can't read block %llu. %s.",
+					    blk, device->error);
+			return NULL;
+		}
+		
+		node->tree = tree;
+		reiser4_node_mkclean(node);
+
+		if (parent && reiser4_node_attach(parent, node))
+			goto error_free_node;
+
+		if (tree->traps.attach) {
+			reiser4_coord_t coord;
+			
+			if (reiser4_coord_open(&coord, parent, &node->pos))
+				goto error_free_node;
+			
+			if (tree->traps.attach(tree, &coord, node,
+					       tree->traps.data))
+				goto error_free_node;
+		}
+	}
+	
+	return node;
+
+ error_free_node:
+	reiser4_node_close(node);
+	return NULL;
+}
+
 #ifndef ENABLE_COMPACT
 
 /* Requests block allocator for new block and creates empty node in it */
-reiser4_node_t *reiser4_tree_allocate(
+reiser4_node_t *reiser4_tree_alloc(
 	reiser4_tree_t *tree,	    /* tree for operating on */
 	uint8_t level)	 	    /* level of new node */
 {
@@ -110,53 +183,23 @@ reiser4_node_t *reiser4_tree_allocate(
 	return NULL;
 }
 
-void reiser4_tree_release(reiser4_tree_t *tree, reiser4_node_t *node) {
+errno_t reiser4_tree_release(reiser4_tree_t *tree,
+			     reiser4_node_t *node)
+{
 	blk_t free;
 	
-	aal_assert("umka-917", node != NULL, return);
+	aal_assert("umka-1841", tree != NULL, return -1);
+	aal_assert("umka-917", node != NULL, return -1);
 
-	free = reiser4_alloc_free(tree->fs->alloc);
-	
     	/* Sets up the free blocks in block allocator */
+	free = reiser4_alloc_free(tree->fs->alloc);
 	reiser4_alloc_release_region(tree->fs->alloc, node->blk, 1);
 	reiser4_format_set_free(tree->fs->format, free);
     
-	reiser4_node_close(node);
+	return reiser4_tree_unload(tree, node);
 }
 
 #endif
-
-/* Loads node and attaches it into the tree */
-reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
-				  reiser4_node_t *parent,
-				  blk_t blk)
-{
-	aal_device_t *device;
-	reiser4_node_t *node = NULL;
-
-	aal_assert("umka-1289", tree != NULL, return NULL);
-    
-	device = tree->fs->device;
-
-	if (parent)
-		node = reiser4_node_cbp(parent, blk);
-
-	if (!node) {
-		if (!(node = reiser4_node_open(device, blk))) {
-			aal_exception_error("Can't read block %llu. %s.",
-					    blk, device->error);
-			return NULL;
-		}
-		
-		node->tree = tree;
-		reiser4_node_mkclean(node);
-
-		if (parent && reiser4_node_attach(parent, node))
-			return NULL;
-	}
-	
-	return node;
-}
 
 /*
   Builds the tree root key. It is used for lookups and other as init key. This
@@ -577,7 +620,6 @@ errno_t reiser4_tree_attach(
 					      tree->traps.data)))
 			return res;
 	}
-		
 
 	return 0;
 }
@@ -631,7 +673,7 @@ errno_t reiser4_tree_grow(
 	tree_height = reiser4_tree_height(tree);
     
 	/* Allocating new root node */
-	if (!(tree->root = reiser4_tree_allocate(tree, tree_height + 1))) {
+	if (!(tree->root = reiser4_tree_alloc(tree, tree_height + 1))) {
 		aal_exception_error("Can't allocate new root node.");
 		goto error_return_root;
 	}
@@ -798,7 +840,7 @@ errno_t reiser4_tree_expand(
 	
 		level = reiser4_node_level(coord->node);
 	
-		if (!(node = reiser4_tree_allocate(tree, level)))
+		if (!(node = reiser4_tree_alloc(tree, level)))
 			return -1;
 		
 		flags = SF_RIGHT | SF_UPTIP;
@@ -942,7 +984,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		    coord->pos.unit != reiser4_item_units(coord))
 		{
 			/* We are not on the border, split. */
-			if ((node = reiser4_tree_allocate(tree, cur_level)) == NULL) {
+			if ((node = reiser4_tree_alloc(tree, cur_level)) == NULL) {
 				aal_exception_error("Tree failed to allocate "
 						    "a new node.");
 				return -1;
@@ -1032,7 +1074,7 @@ errno_t reiser4_tree_insert(
 		if (twig_legal) {
 			POS_INIT(&coord->pos, 0, ~0ul);
 			
-			if (!(coord->node = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
+			if (!(coord->node = reiser4_tree_alloc(tree, LEAF_LEVEL))) {
 				aal_exception_error("Can't allocate new leaf node.");
 				return -1;
 			}

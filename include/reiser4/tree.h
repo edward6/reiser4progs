@@ -85,15 +85,18 @@ extern errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				  reiser4_coord_t *coord, 
 				  uint8_t level) ;
 
-extern void reiser4_tree_release(reiser4_tree_t *tree,
-				 reiser4_node_t *node);
+extern reiser4_node_t *reiser4_tree_alloc(reiser4_tree_t *tree,
+					  uint8_t level);
+
+extern errno_t reiser4_tree_release(reiser4_tree_t *tree,
+				    reiser4_node_t *node);
 
 extern reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 					 reiser4_node_t *parent,
 					 blk_t blk);
 
-extern reiser4_node_t *reiser4_tree_allocate(reiser4_tree_t *tree,
-					     uint8_t level);
+extern errno_t reiser4_tree_unload(reiser4_tree_t *tree,
+				   reiser4_node_t *node);
 
 #endif
 
