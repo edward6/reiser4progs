@@ -58,10 +58,9 @@ static errno_t reiser4_tree_sroot(reiser4_tree_t *tree,
 	level = reiser4_node_get_level(node);
 
 	reiser4_format_set_root(tree->fs->format,
-				tree->root->number);
+				node_blocknr(tree->root));
 	
-	reiser4_format_set_height(tree->fs->format,
-				  level);
+	reiser4_format_set_height(tree->fs->format, level);
 
 	return 0;
 }
@@ -110,7 +109,7 @@ errno_t reiser4_tree_connect(
 		/* Registering @child in @node children list */
 		if ((res = reiser4_node_connect(parent, node))) {
 			aal_exception_error("Can't connect node %llu to "
-					    "tree.", node->number);
+					    "tree.", node_blocknr(node));
 			return res;
 		}
 	}
@@ -229,16 +228,15 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		blksize = reiser4_master_blksize(tree->fs->master);
 
 #ifndef ENABLE_STAND_ALONE
-		pid = reiser4_format_node_pid(tree->fs->format);
-#else
 		pid = reiser4_profile_value(tree->fs->profile, "node");
+#else
+		pid = reiser4_format_node_pid(tree->fs->format);
 #endif
 
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
-		if (!(node = reiser4_node_open(tree->fs->device,
-					       blksize, blk, pid,
-					       tree->key.plug)))
+		if (!(node = reiser4_node_open(tree->fs->device, blksize,
+					       blk, tree->key.plug, pid)))
 		{
 			aal_exception_error("Can't open node "
 					    "%llu.", blk);
@@ -390,7 +388,8 @@ reiser4_node_t *reiser4_tree_alloc(
 	uint8_t level)	 	    /* level of new node */
 {
 	rid_t pid;
-	uint32_t blocksize;
+	blk_t fake_blk;
+	uint32_t blksize;
 	uint32_t free, stamp;
 	reiser4_node_t *node;
     
@@ -405,21 +404,18 @@ reiser4_node_t *reiser4_tree_alloc(
 	
 	reiser4_format_set_free(tree->fs->format, free - 1);
 
-	blocksize = reiser4_master_blksize(tree->fs->master);
+	fake_blk = reiser4_fake_get();
+	blksize = reiser4_master_blksize(tree->fs->master);
 	pid = reiser4_profile_value(tree->fs->profile, "node");
 
 	/* Creating new node */
-	if (!(node = reiser4_node_init(tree->fs->device, blocksize,
-				       reiser4_fake_get(), pid,
-				       tree->key.plug)))
+	if (!(node = reiser4_node_create(tree->fs->device, blksize,
+					 fake_blk, tree->key.plug,
+					 pid, level)))
 	{
 		aal_exception_error("Can't initialize node.");
 		return NULL;
 	}
-
-	/* Forming node of @level */
-	if (reiser4_node_form(node, level))
-		goto error_free_node;
 
 	/* Setting flush stamps to new node */
 	stamp = reiser4_format_get_stamp(tree->fs->format);
@@ -453,8 +449,8 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 
 	/* Check if we're trying to releas a node with fake block number. If
 	   not, free it in block allocator too. */
-	if (!reiser4_fake_ack(node->number))
-		reiser4_alloc_release(alloc, node->number, 1);
+	if (!reiser4_fake_ack(node_blocknr(node)))
+		reiser4_alloc_release(alloc, node_blocknr(node), 1);
 
 	/* Changing format field free_block_count */
 	free = reiser4_alloc_free(alloc);
@@ -504,6 +500,7 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	return reiser4_format_get_root(tree->fs->format);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Extents hash table related functions */
 static int callback_foreach_func(const void *entry, void *data) {
 	aal_hash_node_t *node;
@@ -532,6 +529,7 @@ static int callback_comp_func(const void *k1,
 	return reiser4_key_compare((reiser4_key_t *)k1,
 				   (reiser4_key_t *)k2);
 }
+#endif
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
@@ -549,11 +547,13 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 	tree->fs->tree = tree;
 	tree->mpc_func = mpc_func;
 
+#ifndef ENABLE_STAND_ALONE
 	if (!(tree->data = aal_hash_table_alloc(callback_hash_func,
 						callback_comp_func)))
 	{
 		goto error_free_tree;
 	}
+#endif
 
 	/* Building the tree root key */
 	if (reiser4_tree_key(tree)) {
@@ -570,7 +570,9 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 	return tree;
 
  error_free_data:
+#ifndef ENABLE_STAND_ALONE
 	aal_hash_table_free(tree->data);
+#endif
  error_free_tree:
 	aal_free(tree);
 	return NULL;
@@ -588,11 +590,13 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	reiser4_tree_collapse(tree);
 	tree->fs->tree = NULL;
 	
+#ifndef ENABLE_STAND_ALONE
 	/* Freeing tree data (extents) */
 	aal_hash_table_foreach(tree->data,
 			       callback_foreach_func, NULL);
-
+	
 	aal_hash_table_free(tree->data);
+#endif
 	
 	/* Freeing the tree */
 	aal_free(tree);
@@ -613,19 +617,19 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 #ifndef ENABLE_STAND_ALONE
 	/* We are dealing only with dirty nodes */
 	if (reiser4_node_isdirty(node)) {
-		blk_t number;
+		blk_t allocnr;
 
 		/* Requesting block allocator to allocate the real block number
 		   for fake allocated node. */
-		if (reiser4_fake_ack(node->number)) {
+		if (reiser4_fake_ack(node_blocknr(node))) {
 			if (!reiser4_alloc_allocate(tree->fs->alloc,
-						    &number, 1))
+						    &allocnr, 1))
 			{
 				return -ENOSPC;
 			}
 
 			/* Assigning new block number to @node */
-			reiser4_node_move(node, number);
+			reiser4_node_move(node, allocnr);
 		}
 
 		/* Allocating all children nodes if we are on internal level */
@@ -637,20 +641,20 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 				/* Checking if @child is fake one */
 				child = (reiser4_node_t *)walk->data;
 
-				if (!reiser4_fake_ack(child->number))
+				if (!reiser4_fake_ack(node_blocknr(child)))
 					continue;
 
 				/* If @child is fake one it needs to be
 				   allocated here and its nodeptr should be
 				   updated. */
 				if (!reiser4_alloc_allocate(tree->fs->alloc,
-							    &number, 1))
+							    &allocnr, 1))
 				{
 					return -ENOSPC;
 				}
 
 				/* Assigning node to new node blk */
-				reiser4_node_move(child, number);
+				reiser4_node_move(child, allocnr);
 
 				/* Updating parent node pointer */
 				if ((res = reiser4_node_upos(child)))
@@ -680,7 +684,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 			
 		/* Setting up format by new root and free blocks */
 		reiser4_format_set_root(tree->fs->format,
-					node->number);
+					node_blocknr(node));
 
 		free = reiser4_alloc_free(tree->fs->alloc);
 		reiser4_format_set_free(tree->fs->format, free);
@@ -700,8 +704,9 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 #ifndef ENABLE_STAND_ALONE
 		/* Okay, node is allocated and ready to be saved to device */
 		if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
-			aal_exception_error("Can't write node %llu.",
-					    node->number);
+			aal_exception_error("Can't write node %llu. %s.",
+					    node_blocknr(node),
+					    tree->fs->device->error);
 			return -EIO;
 		}
 
@@ -940,7 +945,7 @@ errno_t reiser4_tree_attach(
 
 	/* Prepare nodeptr hint from passed @node */
 	nodeptr_hint.width = 1;
-	nodeptr_hint.start = node->number;
+	nodeptr_hint.start = node_blocknr(node);
 
 	hint.count = 1;
 	hint.type_specific = &nodeptr_hint;
@@ -984,7 +989,7 @@ errno_t reiser4_tree_attach(
 	/* Attaching node to insert point node. */
 	if ((res = reiser4_tree_connect(tree, place.node, node))) {
 		aal_exception_error("Can't attach the node %llu to "
-				    "the tree.", node->number);
+				    "the tree.", node_blocknr(node));
 		return res;
 	}
 
@@ -1035,7 +1040,7 @@ errno_t reiser4_tree_growup(
 
 	/* Updating format-related fields */
     	reiser4_format_set_root(tree->fs->format,
-				tree->root->number);
+				node_blocknr(tree->root));
 
 	reiser4_format_set_height(tree->fs->format,
 				  height + 1);
@@ -1320,7 +1325,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	    
 		if ((res = reiser4_tree_shift(tree, place, left, SF_LEFT))) {
 			aal_exception_error("Can't pack node %llu into left.",
-					    place->node->number);
+					    node_blocknr(place->node));
 			return res;
 		}
 	}
@@ -1337,7 +1342,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 						      place->node, SF_LEFT)))
 			{
 				aal_exception_error("Can't pack node %llu "
-						    "into left.", right->number);
+						    "into left.", node_blocknr(right));
 				return res;
 			}
 
@@ -1577,7 +1582,7 @@ errno_t reiser4_tree_insert(
 	/* Inserting item/unit and updating parent keys */
 	if ((res = reiser4_node_insert(place->node, &place->pos, hint))) {
 		aal_exception_error("Can't insert an item/unit into the "
-				    "node %llu.", place->node->number);
+				    "node %llu.", node_blocknr(place->node));
 		return res;
 	}
 
@@ -1609,7 +1614,7 @@ errno_t reiser4_tree_insert(
 		/* Attaching new node to the tree */
 		if ((res = reiser4_tree_attach(tree, place->node))) {
 			aal_exception_error("Can't attach node %llu to "
-					    "the tree.", place->node->number);
+					    "the tree.", node_blocknr(place->node));
 			reiser4_tree_release(tree, place->node);
 			return res;
 		}
@@ -1944,7 +1949,7 @@ errno_t reiser4_tree_down(
 		   in before_func. All items must be opened here. */
 		if (reiser4_place_open(&place, node, pos)) {
 			aal_exception_error("Can't open item by place. Node "
-					    "%llu, item %u.", node->number,
+					    "%llu, item %u.", node_blocknr(node),
 					    pos->item);
 			goto error_after_func;
 		}
@@ -2022,34 +2027,35 @@ reiser4_node_t *reiser4_tree_clone(reiser4_tree_t *src_tree,
 				   reiser4_tree_t *dst_tree)
 {
 	rid_t pid;
+	blk_t fake_blk;
+
 	uint32_t level;
+	uint32_t blksize;
 	
 	reiser4_node_t *dst_node;
 	aal_device_t *dst_device;
-	
+
+	fake_blk = reiser4_fake_get();
 	dst_device = dst_tree->fs->device;
 	pid = src_node->entity->plug->id.id;
+	blksize = src_tree->fs->device->blksize;
+	level = reiser4_node_get_level(src_node);
 	
-	if (!(dst_node = reiser4_node_init(dst_device, src_node->size,
-					   reiser4_fake_get(), pid,
-					   src_tree->key.plug)))
+	if (!(dst_node = reiser4_node_create(dst_device, blksize,
+					     fake_blk, src_tree->key.plug,
+					     pid, level)))
 	{
 		aal_exception_error("Can't initialize destination "
 				    "node durring tree copy.");
 		return NULL;
 	}
 
-	level = reiser4_node_get_level(src_node);
-	reiser4_node_form(dst_node, level);
-
-	if (reiser4_node_clone(src_node, dst_node))
-		goto error_free_dst_node;
+	if (reiser4_node_clone(src_node, dst_node)) {
+		reiser4_node_close(dst_node);
+		return NULL;
+	}
 
 	return dst_node;
-	
- error_free_dst_node:
-	reiser4_node_close(dst_node);
-	return NULL;
 }
 
 struct move_hint {
@@ -2083,7 +2089,7 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 					    dst_tree)))
 	{
 		aal_exception_error("Can't clone node %llu.",
-				    src_node->number);
+				    node_blocknr(src_node));
 		return -EINVAL;
 	}
 
@@ -2094,7 +2100,7 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 	
 	if ((res = reiser4_tree_connect(dst_tree, parent, dst_node))) {
 		aal_exception_error("Can't connect node %llu to "
-				    "target tree.", src_node->number);
+				    "target tree.", node_blocknr(src_node));
 		goto error_free_dst_node;
 	}
 
