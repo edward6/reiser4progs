@@ -225,6 +225,29 @@ errno_t reiser4_node_lkey(
 }
 
 /*
+  Checking if passed @place has nodeptr that points onto passed @node. This is
+  needed for node_pbp() function.
+*/
+static int reiser4_node_ack(reiser4_node_t *node,
+				reiser4_place_t *place)
+{
+	ptr_hint_t ptr;
+	
+	if (place->pos.item < reiser4_node_items(place->node)) {
+		if (reiser4_place_realize(place))
+			return 0;
+	}
+	
+	plugin_call(place->item.plugin->item_ops, read,
+		    &place->item, &ptr, place->pos.unit, 1);
+
+	if (ptr.start == node->blk)
+		return 1;
+
+	return 0;
+}
+
+/*
   Makes search of nodeptr position in parent node by passed child node. This is
   used for updating parent position in nodes.
 */
@@ -232,27 +255,30 @@ errno_t reiser4_node_pbc(
 	reiser4_node_t *node,	        /* node position will be obtained for */
 	pos_t *pos)		        /* pointer result will be stored in */
 {
-	errno_t res;
+        lookup_t res;
 	uint32_t i, j;
-	
 	ptr_hint_t ptr;
+
+        reiser4_key_t lkey;
 	reiser4_place_t *place;
     
 	aal_assert("umka-869", node != NULL);
 
 	place = &node->parent;
 	aal_assert("umka-1941", place->node != NULL);
-	
-	if (place->pos.item < reiser4_node_items(place->node)) {
-		if ((res = reiser4_place_realize(place)))
-			return res;
-	}
-	
-	plugin_call(place->item.plugin->item_ops, read,
-		    &place->item, &ptr, place->pos.unit, 1);
 
-	if (ptr.start == node->blk)
+	if (reiser4_node_ack(node, place))
 		goto out_update_place;
+	
+	/* Getting position by key */
+        reiser4_node_lkey(node, &lkey);
+                                                                                                   
+        if (reiser4_node_lookup(place->node, &lkey,
+				&place->pos) == LP_PRESENT)
+	{
+		if (reiser4_node_ack(node, place))
+			goto out_update_place;
+	}
 
 	for (i = 0; i < reiser4_node_items(place->node); i++) {
 		place->pos.item = i;
