@@ -38,9 +38,10 @@ static int nodeptr40_branch(void) {
 	return 1;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /*
-  Layout implementation for nodeptr40. It calls @func for each block nodeptr
-  points to.
+  Layout implementation for nodeptr40. It calls @geion_func for each block
+  nodeptr points to.
 */
 static errno_t nodeptr40_layout(item_entity_t *item,
 				region_func_t region_func,
@@ -56,7 +57,6 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 	return region_func(item, np40_get_ptr(nodeptr), 1, data);
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* Writes of the specified nodeptr into passed @item*/
 static errno_t nodeptr40_insert(item_entity_t *item,
 				create_hint_t *hint,
@@ -117,11 +117,12 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	return 0;
 }
 
+extern errno_t nodeptr40_check(item_entity_t *item,
+			       uint8_t mode);
+
 extern errno_t nodeptr40_layout_check(item_entity_t *item,
 				      region_func_t func, 
 				      void *data, uint8_t mode);
-
-extern errno_t nodeptr40_check(item_entity_t *item, uint8_t mode);
 
 #endif
 
