@@ -673,9 +673,9 @@ errno_t reiser4_joint_traverse(
 	reiser4_setup_func_t update_func,    /* callback to be called after a child */
 	reiser4_edge_func_t after_func)      /* callback to be called at the end */
 {
-	reiser4_pos_t pos;
 	errno_t result = 0;
 	reiser4_coord_t coord;
+	reiser4_pos_t *pos = &coord.pos;
 	
 	reiser4_joint_t *child = NULL;
     
@@ -689,28 +689,28 @@ errno_t reiser4_joint_traverse(
 	if ((before_func && (result = before_func(joint, hint->data))))
 		goto error;
 
-	for (pos.item = 0; pos.item < reiser4_node_count(joint->node); pos.item++) {
-		pos.unit = ~0ul; 
-	    
+	for (pos->item = 0; pos->item < reiser4_node_count(joint->node); pos->item++) {
+		pos->unit = ~0ul; 
+
 		/*
 		  If there is a suspicion in a corruption, it must be checked in
 		  before_func. All items must be opened here.
 		*/
-		if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
+		if (reiser4_coord_open(&coord, joint, CT_JOINT, pos)) {
 			blk_t blk = aal_block_number(joint->node->block);
 			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-					    blk, pos.item);
+					    blk, pos->item);
 			goto error_after_func;
 		}
 		
 		if (!traverse_continue(hint->objects, reiser4_item_type(&coord)))
 			continue;
 	    
-		for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+		for (pos->unit = 0; pos->unit < reiser4_item_count(&coord); pos->unit++) {
 			reiser4_ptr_hint_t ptr;
 		
 			if (plugin_call(continue, coord.entity.plugin->item_ops,
-					fetch, &coord.entity, pos.unit, &ptr, 1))
+					fetch, &coord.entity, pos->unit, &ptr, 1))
 				goto error_after_func;
 		
 			if (ptr.ptr != FAKE_BLK && ptr.ptr != 0) {
@@ -755,7 +755,7 @@ errno_t reiser4_joint_traverse(
 			}
 				
 			/* We want to get out of the internal loop or the item was removed. */
-			if (pos.unit == ~0ul)
+			if (pos->unit == ~0ul)
 				break;				
 		}
 	}
