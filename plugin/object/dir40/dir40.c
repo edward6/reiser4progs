@@ -107,11 +107,12 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	}
 		
 #ifndef ENABLE_STAND_ALONE
-	aal_memcpy(&dir->offset, offset, sizeof(*offset));
+	aal_memcpy(&dir->offset, offset,
+		   sizeof(*offset));
 #endif
 	
-	obj40_relock(&dir->obj, &dir->body, &next);
-	aal_memcpy(&dir->body, &next, sizeof(dir->body));
+	aal_memcpy(&dir->body, &next,
+		   sizeof(dir->body));
 
 	dir->unit = dir->body.pos.unit;
 	
@@ -138,6 +139,21 @@ static errno_t dir40_reset(object_entity_t *entity) {
 		  obj40_objectid(&dir->obj), ".");
 
 	return dir40_seekdir(entity, &key);
+}
+
+/* Updates body item */
+static errno_t dir40_update(object_entity_t *entity) {
+	dir40_t *dir = (dir40_t *)entity;
+	
+	/* Looking for stat data place */
+	switch (obj40_lookup(&dir->obj, &dir->body.key,
+			     LEAF_LEVEL, &dir->body))
+	{
+	case PRESENT:
+		return 0;
+	default:
+		return -EINVAL;
+	}
 }
 
 /* Trying to guess hash in use by stat data extention */
@@ -169,6 +185,10 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	entry_hint_t entry;
 
 	aal_assert("umka-2063", entity != NULL);
+
+	/* Making sure, that dir->body points to correct item */
+	if (dir40_update(entity))
+		return FAILED;
 	
 	dir = (dir40_t *)entity;
 	dir->body.pos.unit = dir->unit;
@@ -183,10 +203,9 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	if (!dir40_mergeable(entity, &next))
 		return ABSENT;
 
-	dir->unit = 0;
-	
-	obj40_relock(&dir->obj, &dir->body, &next);
 	aal_memcpy(&dir->body, &next, sizeof(next));
+
+	dir->unit = 0;
 	
 #ifndef ENABLE_STAND_ALONE
 	place = &dir->body;
@@ -221,6 +240,10 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	if (dir40_size(entity) == 0)
 		return -EINVAL;
 
+	/* Making sure, that dir->body points to correct item */
+	if (dir40_update(entity))
+		return -EINVAL;
+	
 	units = plug_call(place->plug->o.item_ops,
 			  units, place);
 
@@ -280,9 +303,9 @@ lookup_t dir40_lookup(object_entity_t *entity,
 		      char *name, entry_hint_t *entry) 
 {
 	dir40_t *dir;
-	place_t next;
 	lookup_t res;
 
+	place_t next;
 	oid_t locality;
 	oid_t objectid;
 
@@ -306,15 +329,13 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	switch ((res = obj40_lookup(&dir->obj, &key,
 				    LEAF_LEVEL, &next)))
 	{
-	case ABSENT:
-	case FAILED:
-		return res;
-	default:
+	PRESENT:
+		aal_memcpy(&dir->body, &next,
+			   sizeof(next));
 		break;
+	default:
+		return res;
 	}
-
-	obj40_relock(&dir->obj, &dir->body, &next);
-	aal_memcpy(&dir->body, &next, sizeof(dir->body));
 
 #ifndef ENABLE_STAND_ALONE
 	if (entry) {
@@ -419,8 +440,6 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	/* Initialziing statdata place */
 	aal_memcpy(&dir->obj.statdata, &info->start,
 		   sizeof(info->start));
-	
-	obj40_lock(&dir->obj, &dir->obj.statdata);
 
 	/* Positioning to the first directory unit */
 	if (dir40_reset((object_entity_t *)dir))
@@ -609,9 +628,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	aal_memcpy(&info->start, &dir->obj.statdata,
 		   sizeof(info->start));
 	
-	obj40_lock(&dir->obj, &dir->obj.statdata);
-
-	/* Looking for place to insert directory body */
+        /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
 			     LEAF_LEVEL, &dir->body))
 	{
@@ -634,9 +651,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 		  build_entry, &dir->offset, dir->hash,
 		  locality, objectid, ".");
 	
-	obj40_lock(&dir->obj, &dir->body);
 	aal_free(body);
-
 	return (object_entity_t *)dir;
 
  error_free_body:
@@ -658,13 +673,15 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	/* Releasing current body item */
-	obj40_relock(&dir->obj, &dir->body, NULL);
+	/* Making sure, that dir->body points to correct item */
+	if (dir40_update(entity))
+		return -EINVAL;
 	
 	/* Getting maximal possible key form directory item. We will use it for
 	   removing last item and so on util directro contains no items. Thanks
 	   to Nikita for this idea. */
-	plug_call(dir->body.plug->o.item_ops, maxposs_key, &dir->body, &key);
+	plug_call(dir->body.plug->o.item_ops, maxposs_key,
+		  &dir->body, &key);
 
 	while (1) {
 		place_t place;
@@ -766,7 +783,6 @@ static errno_t dir40_detach(object_entity_t *entity,
 	case PRESENT:
 		plug_call(entity->plug->o.object_ops,
 			  rem_entry, entity, &entry);
-
 	default:
 		break;
 	}
@@ -837,31 +853,6 @@ static uint32_t dir40_estimate(object_entity_t *entity,
 	return hint.len;
 }
 
-/* Updates body item */
-static errno_t dir40_update(object_entity_t *entity) {
-	dir40_t *dir;
-	place_t place;
-	key_entity_t *key;
-	
-	dir = (dir40_t *)entity;
-	key = &dir->body.key;
-	
-	/* Looking for stat data place by */
-	switch (obj40_lookup(&dir->obj, key,
-			     LEAF_LEVEL, &place))
-	{
-	case PRESENT:
-		obj40_relock(&dir->obj, &dir->body,
-			     &place);
-
-		aal_memcpy(&dir->body, &place,
-			   sizeof(place));
-		return 0;
-	default:
-		return -EINVAL;
-	}
-}
-
 /* Adding new entry */
 static errno_t dir40_add_entry(object_entity_t *entity, 
 			       entry_hint_t *entry)
@@ -915,7 +906,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	default:
 		break;
 	}
-	
+
 	/* Inserting entry */
 	if ((res = obj40_insert(&dir->obj, &hint,
 				LEAF_LEVEL, &place)))
@@ -935,9 +926,12 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
-	if ((res = obj40_read_ext(&dir->obj.statdata, SDEXT_UNIX_ID, 
+	if ((res = obj40_read_ext(&dir->obj.statdata,
+				  SDEXT_UNIX_ID, 
 				  &unix_hint)))
+	{
 		return res;
+	}
 	
 	atime = time(NULL);
 
@@ -945,12 +939,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes += dir40_estimate(entity, entry);
 
-	if ((res = obj40_write_ext(&dir->obj.statdata, SDEXT_UNIX_ID, 
-				   &unix_hint)))
-		return res;
-
-	/* Updating body place */
-	return dir40_update(entity);
+	return obj40_write_ext(&dir->obj.statdata,
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Removing entry from the directory */
@@ -1001,7 +991,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 		return res;
 
 	/* Updating directory body  */
-	dir40_update(entity);
+	if ((res = dir40_update(entity)))
+		return res;
 	
 	units = plug_call(dir->body.plug->o.item_ops,
 			  units, &dir->body);
@@ -1034,9 +1025,12 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size - 1)))
 		return res;
 
-	if ((res = obj40_read_ext(&dir->obj.statdata, SDEXT_UNIX_ID, 
+	if ((res = obj40_read_ext(&dir->obj.statdata,
+				  SDEXT_UNIX_ID, 
 				  &unix_hint)))
+	{
 		return res;
+	}
 	
 	atime = time(NULL);
 	
@@ -1044,7 +1038,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes -= dir40_estimate(entity, entry);
 
-	return obj40_write_ext(&dir->obj.statdata, SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(&dir->obj.statdata,
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 struct layout_hint {
@@ -1094,6 +1089,9 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 	
+	if (dir40_update(entity))
+		return -EINVAL;
+	
 	while (1) {
 		place_t *place = &dir->body;
 		
@@ -1128,11 +1126,16 @@ static errno_t dir40_metadata(object_entity_t *entity,
 			      place_func_t place_func,
 			      void *data)
 {
-	errno_t res = 0;
-	dir40_t *dir = (dir40_t *)entity;
+	errno_t res;
+	dir40_t *dir;
 	
 	aal_assert("umka-1712", entity != NULL);
 	aal_assert("umka-1713", place_func != NULL);
+	
+	dir = (dir40_t *)entity;
+	
+	if (dir40_update(entity))
+		return -EINVAL;
 	
 	if ((res = place_func(entity, &dir->obj.statdata, data)))
 		return res;
@@ -1160,13 +1163,7 @@ extern errno_t dir40_check_attach(object_entity_t *object,
 /* Freeing dir40 instance. That is unlocking nodes current statdata and body lie
    in and freeing all occpied memory. */
 static void dir40_close(object_entity_t *entity) {
-	dir40_t *dir = (dir40_t *)entity;
-	
 	aal_assert("umka-750", entity != NULL);
-
-	obj40_relock(&dir->obj, &dir->obj.statdata, NULL);
-	obj40_relock(&dir->obj, &dir->body, NULL);
-
 	aal_free(entity);
 }
 

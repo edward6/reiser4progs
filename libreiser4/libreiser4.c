@@ -179,36 +179,6 @@ static errno_t tree_set_data(void *tree, key_entity_t *key,
 	return aal_hash_table_insert(t->data, k, block);
 }
 
-static errno_t tree_lock(
-	void *tree,               /* tree for working on */
-	place_t *place)           /* place to make lock on */
-{
-	reiser4_place_t *p;
-	
-	aal_assert("umka-1511", tree != NULL);
-	aal_assert("umka-1512", place != NULL);
-
-	p = (reiser4_place_t *)place;
-	reiser4_node_lock(p->node);
-	
-	return 0;
-}
-
-static errno_t tree_unlock(
-	void *tree,               /* tree for working on */
-	place_t *place)           /* place to make unlock on */
-{
-	reiser4_place_t *p;
-	
-	aal_assert("umka-1513", tree != NULL);
-	aal_assert("umka-1514", place != NULL);
-
-	p = (reiser4_place_t *)place;
-	reiser4_node_unlock(p->node);
-
-	return 0;
-}
-
 #ifndef ENABLE_STAND_ALONE
 static uint32_t tree_blksize(void *tree) {
 	reiser4_fs_t *fs;
@@ -301,11 +271,7 @@ reiser4_core_t core = {
 
 		/* Data related functions */
 		.get_data   = tree_get_data,
-		.set_data   = tree_set_data,
-		
-		/* Makes look and unlock of node specified by place */
-		.lock       = tree_lock,
-		.unlock     = tree_unlock,
+		.set_data   = tree_set_data
 	},
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its

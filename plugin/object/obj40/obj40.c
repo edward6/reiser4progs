@@ -40,38 +40,6 @@ uint64_t obj40_ordering(obj40_t *obj) {
 			 get_ordering, STAT_KEY(obj));
 }
 
-/* Locks the node place points to */
-errno_t obj40_lock(obj40_t *obj, place_t *place) {
-	aal_assert("umka-1901", obj != NULL);
-	aal_assert("umka-1902", place != NULL);
-	aal_assert("umka-1964", place->node != NULL);
-	
-	return obj->core->tree_ops.lock(obj->tree, place);
-}
-
-/* Unlocks the node place points to */
-errno_t obj40_unlock(obj40_t *obj, place_t *place) {
-	aal_assert("umka-1903", obj != NULL);
-	aal_assert("umka-1904", place != NULL);
-	aal_assert("umka-1965", place->node != NULL);
-	
-	return obj->core->tree_ops.unlock(obj->tree, place);
-}
-
-/* Relocks pased places */
-void obj40_relock(obj40_t *obj, place_t *curr,
-		  place_t *next)
-{
-	aal_assert("umka-2060", obj != NULL);
-	aal_assert("umka-2061", curr != NULL);
-	
-	if (curr && curr->node != NULL)
-		obj40_unlock(obj, curr);
-
-	if (next && next->node != NULL)
-		obj40_lock(obj, next);
-}
-
 /* Reads stat data extention */
 errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	create_hint_t hint;
@@ -317,30 +285,6 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 }
 #endif
 
-#ifdef ENABLE_SYMLINKS
-/* Gets symlink from the stat data */
-errno_t obj40_get_sym(obj40_t *obj, char *data) {
-	place_t *place;
-	create_hint_t hint;
-	statdata_hint_t stat;
-
-	aal_memset(&stat, 0, sizeof(stat));
-	
-	hint.type_specific = &stat;
-	stat.ext[SDEXT_SYMLINK_ID] = data;
-
-	place = &obj->statdata;
-
-	if (!place->plug->o.item_ops->read)
-		return -EINVAL;
-
-	if (place->plug->o.item_ops->read(place, &hint, 0, 1) != 1)
-		return -EINVAL;
-
-	return 0;
-}
-#endif
-
 #ifndef ENABLE_STAND_ALONE
 /* Changes nlink field in statdata by passed @value */
 errno_t obj40_link(obj40_t *obj, uint32_t value) {
@@ -406,17 +350,13 @@ errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 
 /* Performs lookup for the object's stat data */
 errno_t obj40_stat(obj40_t *obj) {
-	place_t place;
-	
 	aal_assert("umka-1905", obj != NULL);
 
 	/* Looking for stat data place by */
 	switch (obj->core->tree_ops.lookup(obj->tree, STAT_KEY(obj),
-					   LEAF_LEVEL, &place))
+					   LEAF_LEVEL, &obj->statdata))
 	{
 	case PRESENT:
-		obj40_relock(obj, &obj->statdata, &place);
-		aal_memcpy(&obj->statdata, &place, sizeof(place));
 		return 0;
 	default:
 		aal_exception_error("Can't find stat data of object "

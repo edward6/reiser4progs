@@ -50,19 +50,27 @@ static lookup_t reg40_next(reg40_t *reg) {
 
 	/* Getting the next body item from the tree */
 	if ((res = obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				&place)) == PRESENT)
+				&reg->body)) == PRESENT)
 	{
-		obj40_relock(&reg->obj, &reg->body,
-			     &place);
-
-		aal_memcpy(&reg->body, &place,
-			   sizeof(reg->body));
-
 		if (reg->body.pos.unit == MAX_UINT32)
 			reg->body.pos.unit = 0;
 	}
 
 	return res;
+}
+
+static errno_t reg40_update(object_entity_t *entity) {
+	reg40_t *reg = (reg40_t *)entity;
+	
+	/* Looking for stat data place */
+	switch (obj40_lookup(&reg->obj, &reg->body.key,
+			     LEAF_LEVEL, &reg->body))
+	{
+	case PRESENT:
+		return 0;
+	default:
+		return -EINVAL;
+	}
 }
 
 /* Resets file position. That is it searches first body item and sets file's
@@ -111,7 +119,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	for (read = 0; read < n; ) {
 
 		if (reg40_next(reg) != PRESENT)
-			break;
+			return read;
 
 		place = &reg->body;
 		chunk = n - read;
@@ -172,8 +180,6 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	aal_memcpy(&reg->obj.statdata, &info->start,
 		   sizeof(info->start));
 	
-	obj40_lock(&reg->obj, &reg->obj.statdata);
-
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
 
@@ -234,8 +240,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
 						  hint->statdata)))
 	{
-		aal_exception_error("Can't find stat data item plugin by "
-				    "its id 0x%x.", hint->statdata);
+		aal_exception_error("Can't find stat data item plugin "
+				    "by its id 0x%x.", hint->statdata);
 		goto error_free_reg;
 	}
     
@@ -293,8 +299,6 @@ static object_entity_t *reg40_create(object_info_t *info,
 	aal_memcpy(&info->start, &reg->obj.statdata,
 		   sizeof(info->start));
 	
-	obj40_lock(&reg->obj, &reg->obj.statdata);
-	
 	reg->bplug = reg40_bplug(reg, 0);
 	return (object_entity_t *)reg;
 
@@ -308,8 +312,16 @@ static key_entity_t *reg40_origin(object_entity_t *entity) {
 }
 
 static uint32_t reg40_links(object_entity_t *entity) {
+	reg40_t *reg;
+	
 	aal_assert("umka-2296", entity != NULL);
-	return obj40_get_nlink(&((reg40_t *)entity)->obj);
+
+	reg = (reg40_t *)entity;
+	
+	if (obj40_stat(&reg->obj))
+		return -EINVAL;
+	
+	return obj40_get_nlink(&reg->obj);
 }
 
 static errno_t reg40_link(object_entity_t *entity) {
@@ -421,7 +433,6 @@ static int32_t reg40_put(object_entity_t *entity,
 			return res;
 		}
 
-		obj40_relock(&reg->obj, &reg->body, &place);
 		aal_memcpy(&reg->body, &place, sizeof(reg->body));
 
 		buff += hint.count;
@@ -642,9 +653,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 	/* In the sace of tails bytes should be the same as size field in stat
 	   data. */
-	obj40_set_bytes(&reg->obj, n);
-	
-	return 0;
+	return obj40_set_bytes(&reg->obj, n);
 
  error_restore_offset:
 	reg->offset = offset;
@@ -713,6 +722,9 @@ static errno_t reg40_layout(object_entity_t *entity,
 	if ((size = reg40_size(entity)) == 0)
 		return 0;
 
+	if (reg40_update(entity))
+		return -EINVAL;
+
 	hint.data = data;
 	hint.entity = entity;
 	hint.block_func = block_func;
@@ -770,6 +782,9 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	if ((size = reg40_size(entity)) == 0)
 		return 0;
 	
+	if (reg40_update(entity))
+		return -EINVAL;
+
 	while (reg->offset < size) {
 		place_t *place;
 		
@@ -810,14 +825,7 @@ static errno_t reg40_seek(object_entity_t *entity,
 }
 
 static void reg40_close(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-	
 	aal_assert("umka-1170", entity != NULL);
-
-	/* Unlocking statdata and body */
-	obj40_relock(&reg->obj, &reg->obj.statdata, NULL);
-	obj40_relock(&reg->obj, &reg->body, NULL);
-	
 	aal_free(entity);
 }
 

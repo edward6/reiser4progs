@@ -25,18 +25,13 @@ errno_t reiser4_item_estimate(
 	reiser4_place_t *place,	   /* item we will work with */
 	create_hint_t *hint)       /* item hint to be estimated */
 {
-	errno_t res;
-	
 	aal_assert("vpf-106", place != NULL);
 	aal_assert("umka-541", hint != NULL);
 	aal_assert("umka-2230", hint->plug != NULL);
 
-	/* Method estimate_insert() may be not implemented as it is not needed
-	   in some cases like tail item case. */
-	if (!hint->plug->o.item_ops->estimate_insert)
-		return 0;
-
 	if (place->pos.unit != MAX_UINT32) {
+		errno_t res;
+		
 		if ((res = reiser4_place_fetch(place)))
 			return res;
 	}

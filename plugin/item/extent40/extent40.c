@@ -79,7 +79,7 @@ static errno_t extent40_get_key(place_t *place, uint32_t pos,
 	aal_assert("vpf-623", key != NULL);
 
 	return body40_get_key(place, pos, key,
-			      (trans_func_t)extent40_offset);
+			      extent40_offset);
 }
 
 static int extent40_data(void) {
@@ -252,6 +252,8 @@ static int32_t extent40_read(place_t *place, void *buff,
 			sec = (blk * (blksize / sectorsize)) +
 				(blklocal / sectorsize);
 
+			/* FIXME-UMKA: Here also should be holes handling */
+
 			/* Loop though one block (4096) */
 			while (blkchunk > 0) {
 				uint32_t secchunk;
@@ -310,7 +312,30 @@ static errno_t extent40_estimate_insert(place_t *place,
 {
 	aal_assert("umka-1836", hint != NULL);
 
-	hint->len = sizeof(extent40_t);
+	if (pos == MAX_UINT32)
+		hint->len = sizeof(extent40_t);
+	else {
+		key_entity_t key;
+		key_entity_t maxkey;
+		
+		uint64_t ins_offset;
+		uint64_t max_offset;
+
+		extent40_get_key(place, pos, &key);
+		extent40_maxreal_key(place, &maxkey);
+
+		ins_offset = plug_call(key.plug->o.key_ops,
+				       get_offset, &key);
+
+		ins_offset += hint->offset;
+
+		max_offset = plug_call(maxkey.plug->o.key_ops,
+				       get_offset, &maxkey);
+
+		if (ins_offset + hint->count > max_offset)
+			hint->len = sizeof(extent40_t);
+	}
+
 	return 0;
 }
 
@@ -318,19 +343,13 @@ static errno_t extent40_insert(place_t *place,
 			       create_hint_t *hint,
 			       uint32_t pos)
 {
-	uint32_t count;
-	uint32_t offset;
-
 	aal_assert("umka-2357", hint != NULL);
 	aal_assert("umka-2356", place != NULL);
-
-	count = hint->count;
-	offset = hint->offset;
 	
 	return -EINVAL;
 }
 
-/* Calls @func for each block number extent points to. It is needed for
+/* Calls @region_func for each block number extent points to. It is needed for
    calculating fragmentation, etc. */
 static errno_t extent40_layout(place_t *place,
 			       region_func_t region_func,

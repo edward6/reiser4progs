@@ -1319,10 +1319,6 @@ struct tree_ops {
 			     aal_block_t *);
 	
 #endif
-	/* Lock control functions */
-	errno_t (*lock) (void *, place_t *);
-	errno_t (*unlock) (void *, place_t *);
-		
 	/* Returns next and prev items respectively */
 	errno_t (*next) (void *, place_t *, place_t *);
 	errno_t (*prev) (void *, place_t *, place_t *);

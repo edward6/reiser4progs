@@ -55,10 +55,6 @@ extern errno_t obj40_fini(obj40_t *obj);
 
 extern errno_t obj40_read_ext(place_t *place, rid_t id, void *data);
 
-#ifdef ENABLE_SYMLINKS
-extern errno_t obj40_get_sym(obj40_t *obj, char *data);
-#endif
-
 #ifndef ENABLE_STAND_ALONE
 extern errno_t obj40_write_ext(place_t *place, rid_t id, void *data);
 extern uint64_t obj40_extmask(place_t *sd);
@@ -108,11 +104,4 @@ errno_t obj40_check_sd(place_t *sd);
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);
-
-extern void obj40_relock(obj40_t *obj, place_t *curr,
-			 place_t *next);
-
-extern errno_t obj40_lock(obj40_t *obj, place_t *place);
-extern errno_t obj40_unlock(obj40_t *obj, place_t *place);
-
 #endif
