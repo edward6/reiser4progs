@@ -68,7 +68,7 @@ reiser4_node_t *reiser4_tree_allocate(
 	aal_assert("umka-756", tree != NULL, return NULL);
     
 	/* Allocating the block */
-	if (reiser4_alloc_allocate(tree->fs->alloc, &blk, NULL)) {
+	if (reiser4_alloc_allocate_region(tree->fs->alloc, &blk, NULL)) {
 		aal_exception_error("Can't allocate block for new node. "
 				    "No space left?");
 		return NULL;
@@ -109,7 +109,7 @@ void reiser4_tree_release(reiser4_tree_t *tree, reiser4_node_t *node) {
 	free = reiser4_alloc_free(tree->fs->alloc);
 	
     	/* Sets up the free blocks in block allocator */
-	reiser4_alloc_release(tree->fs->alloc, node->blk, 1);
+	reiser4_alloc_release_region(tree->fs->alloc, node->blk, 1);
 	reiser4_format_set_free(tree->fs->format, free);
     
 	reiser4_node_close(node);
@@ -313,7 +313,7 @@ reiser4_tree_t *reiser4_tree_create(
 	}
     
 	/* Getting free block from block allocator for place root block in it */
-	if (reiser4_alloc_allocate(fs->alloc, &blk, NULL)) {
+	if (reiser4_alloc_allocate_region(fs->alloc, &blk, NULL)) {
 		aal_exception_error("Can't allocate block for the root node.");
 		goto error_free_tree;
 	}

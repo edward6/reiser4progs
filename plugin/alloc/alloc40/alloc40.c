@@ -17,34 +17,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t alloc40_plugin;
 
-/* Call func for all blocks which belong to the same bitmap block as blk. */
-errno_t alloc40_region(object_entity_t *entity, blk_t blk, 
-		       block_func_t func, void *data) 
-{
-	uint64_t size, i;
-	alloc40_t *alloc;
-	aal_device_t *device;
-    
-	aal_assert("vpf-554", entity != NULL, return -1);
-	aal_assert("umka-1746", func != NULL, return -1);
-
-	alloc = (alloc40_t *)entity;
-	
-	aal_assert("vpf-554", alloc->bitmap != NULL, return -1);
-	aal_assert("vpf-554", alloc->device != NULL, return -1);
-	
-	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
-    
-	for (i = blk / size; i < blk / size + size; i++) {
-		errno_t res;
-		
-		if ((res = func(entity, i, data)))
-			return res;
-	}
-
-	return 0;    
-}
-
 /* Calls func for each block allocator block */
 static errno_t alloc40_layout(object_entity_t *entity,
 			      block_func_t func,
@@ -130,7 +102,8 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
 		goto error_free_alloc;
   
-	crcsize = ((alloc->bitmap->size + blocksize - 1) / blocksize) * CRC_SIZE;
+	crcsize = ((alloc->bitmap->size + blocksize - 1) /
+		   blocksize) * CRC_SIZE;
     
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
@@ -306,25 +279,54 @@ static void alloc40_close(object_entity_t *entity) {
 	aal_free(alloc);
 }
 
+/* Call func for all blocks which belong to the same bitmap block as blk. */
+errno_t alloc40_related_region(object_entity_t *entity, blk_t blk, 
+			       block_func_t func, void *data) 
+{
+	uint64_t size, i;
+	alloc40_t *alloc;
+	aal_device_t *device;
+    
+	aal_assert("vpf-554", entity != NULL, return -1);
+	aal_assert("umka-1746", func != NULL, return -1);
+
+	alloc = (alloc40_t *)entity;
+	
+	aal_assert("vpf-554", alloc->bitmap != NULL, return -1);
+	aal_assert("vpf-554", alloc->device != NULL, return -1);
+	
+	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
+    
+	for (i = blk / size; i < blk / size + size; i++) {
+		errno_t res;
+		
+		if ((res = func(entity, i, data)))
+			return res;
+	}
+
+	return 0;    
+}
+
 #ifndef ENABLE_COMPACT
 
 /* Marks specified block as used in its own bitmap */
-static void alloc40_mark(object_entity_t *entity,
-			 uint64_t start,
-			 uint64_t count) 
+static errno_t alloc40_occupy_region(object_entity_t *entity,
+				    uint64_t start,
+				    uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
-	aal_assert("umka-370", alloc != NULL, return);
-	aal_assert("umka-371", alloc->bitmap != NULL, return);
+	aal_assert("umka-370", alloc != NULL, return -1);
+	aal_assert("umka-371", alloc->bitmap != NULL, return -1);
     
 	aux_bitmap_mark_region(alloc->bitmap, start, count);
+	return 0;
 }
 
 /* Marks "blk" as free */
-static errno_t alloc40_release(object_entity_t *entity,
-			    uint64_t start, 
-			    uint64_t count) 
+static errno_t alloc40_release_region(object_entity_t *entity,
+				      uint64_t start, 
+				      uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -336,9 +338,9 @@ static errno_t alloc40_release(object_entity_t *entity,
 }
 
 /* Finds first free block in bitmap and returns it to caller */
-static errno_t alloc40_allocate(object_entity_t *entity,
-				uint64_t *start,
-				uint64_t *count)
+static errno_t alloc40_allocate_region(object_entity_t *entity,
+				       uint64_t *start,
+				       uint64_t *count)
 {
 	alloc40_t *alloc;
 	alloc = (alloc40_t *)entity;
@@ -346,15 +348,13 @@ static errno_t alloc40_allocate(object_entity_t *entity,
 	aal_assert("umka-374", alloc != NULL, return -1);
 	aal_assert("umka-1771", start != NULL, return -1);
 	aal_assert("umka-375", alloc->bitmap != NULL, return -1);
-	
-	if ((*start = aux_bitmap_find_cleared(alloc->bitmap, 0)) == INVAL_BLK)
-		return -1;
-    
-	aux_bitmap_mark(alloc->bitmap, *start);
 
-	if (count)
-		*count = 1;
+	if (aux_bitmap_find_region_cleared(alloc->bitmap, start, count))
+		return -1;
+
+	*count += *start;
 	
+	aux_bitmap_mark_region(alloc->bitmap, *start, *count);
 	return 0;
 }
 
@@ -392,7 +392,7 @@ static uint64_t alloc40_used(object_entity_t *entity) {
 }
 
 /* Checks whether specified blocks are used or not */
-static int alloc40_region_used(object_entity_t *entity,
+static int alloc40_used_region(object_entity_t *entity,
 			       uint64_t start, 
 			       uint64_t count) 
 {
@@ -406,7 +406,7 @@ static int alloc40_region_used(object_entity_t *entity,
 }
 
 /* Checks whether specified blocks are unused or not */
-static int alloc40_region_unused(object_entity_t *entity,
+static int alloc40_unused_region(object_entity_t *entity,
 				 uint64_t start, 
 				 uint64_t count) 
 {
@@ -495,34 +495,34 @@ static reiser4_plugin_t alloc40_plugin = {
 			.label = "alloc40",
 			.desc = "Space allocator for reiserfs 4.0, ver. " VERSION,
 		},
-		.open		= alloc40_open,
-		.close		= alloc40_close,
+		.open		       = alloc40_open,
+		.close		       = alloc40_close,
 
 #ifndef ENABLE_COMPACT
-		.create		= alloc40_create,
-		.assign		= alloc40_assign,
-		.sync		= alloc40_sync,
-		.mark		= alloc40_mark,
-		.allocate	= alloc40_allocate,
-		.release	= alloc40_release,
-		.print		= alloc40_print,
-		.region         = alloc40_region,
+		.create		       = alloc40_create,
+		.assign		       = alloc40_assign,
+		.sync		       = alloc40_sync,
+		.print                 = alloc40_print,
+		.related_region        = alloc40_related_region,
+		.occupy_region	       = alloc40_occupy_region,
+		.allocate_region       = alloc40_allocate_region,
+		.release_region	       = alloc40_release_region,
 #else
-		.create		= NULL,
-		.assign		= NULL,
-		.sync		= NULL,
-		.mark		= NULL,
-		.allocate	= NULL,
-		.release	= NULL,
-		.print		= NULL,
-		.region	        = NULL,
+		.create		       = NULL,
+		.assign		       = NULL,
+		.sync		       = NULL,
+		.print		       = NULL,
+		.related_region        = NULL,
+		.occupy_region	       = NULL,
+		.allocate_region       = NULL,
+		.release_region	       = NULL,
 #endif
-		.region_used	= alloc40_region_used,
-		.region_unused	= alloc40_region_unused,
-		.free		= alloc40_free,
-		.used		= alloc40_used,
-		.valid		= alloc40_valid,
-		.layout         = alloc40_layout
+		.free                  = alloc40_free,
+		.used                  = alloc40_used,
+		.valid                 = alloc40_valid,
+		.layout                = alloc40_layout,
+		.used_region           = alloc40_used_region,
+		.unused_region         = alloc40_unused_region
 	}
 };
 

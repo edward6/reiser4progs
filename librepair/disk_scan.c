@@ -92,16 +92,16 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 	    return -1);
 	
 	if (aux_bitmap_test(ds->bm_used, i) && 
-	    reiser4_alloc_region_unused(rd->fs->alloc, i, 1)) 
+	    reiser4_alloc_unused_region(rd->fs->alloc, i, 1)) 
 	{
 	    /* Block was met as formatted, but unused in on-disk block 
 	     * allocator. Looks like the bitmap block of the allocator
 	     * has not been synced on disk. Scan through all its blocks. */
-	    reiser4_alloc_region(rd->fs->alloc, i, callback_blk_mark, 
+	    reiser4_alloc_related_region(rd->fs->alloc, i, callback_blk_mark, 
 		&region);
 	}
 
-	if (reiser4_alloc_region_used(rd->fs->alloc, i, 1) && 
+	if (reiser4_alloc_used_region(rd->fs->alloc, i, 1) && 
 	    !aux_bitmap_test(ds->bm_used, i))
 	    aux_bitmap_mark(ds->bm_scan, i);
     }

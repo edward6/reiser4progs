@@ -33,6 +33,7 @@ void aux_bitmap_mark(
 	aal_assert("umka-336", bitmap != NULL, return);
 
 	aux_bitmap_bound_check(bitmap, bit, return);
+	
 	if (aal_test_bit(bit, bitmap->map))
 		return;
 	
@@ -63,7 +64,6 @@ void aux_bitmap_mark_all(aux_bitmap_t *bitmap) {
 	aal_assert("vpf-572", bitmap != NULL, return);
 
 	aal_memset(bitmap->map, 0xff, bitmap->size);
-	
 	bitmap->marked = bitmap->total;
 }
 
@@ -72,7 +72,6 @@ void aux_bitmap_clear_all(aux_bitmap_t *bitmap) {
 	aal_assert("vpf-573", bitmap != NULL, return);
 
 	aal_memset(bitmap->map, 0, bitmap->size);
-	
 	bitmap->marked = 0;
 }
 
@@ -127,26 +126,6 @@ void aux_bitmap_clear_region(
 	bitmap->marked -= (end - start);
 }
 
-/* Tests if all bits of the interval [start,end) are cleared in the bitmap. */
-int aux_bitmap_test_region_cleared(
-	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
-	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* bit count to be clean */
-{
-	blk_t next;
-	aal_assert("vpf-471", bitmap != NULL, return 0);
-	
-	aux_bitmap_bound_check(bitmap, start, return 0);
-	aux_bitmap_bound_check(bitmap, end - 1, return 0);
-	
-	next = aux_bitmap_find_marked(bitmap, start);
-
-	if (next >= start && next < end)
-		return 0;
-
-	return 1;
-}
-
 /* Tests if all bits of the interval [start,end) are marked in the bitmap. */
 int aux_bitmap_test_region_marked(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
@@ -166,6 +145,7 @@ int aux_bitmap_test_region_marked(
 
 	return 1;
 }
+
 /* Finds first cleared bit in bitmap, starting from passed "start" */
 uint64_t aux_bitmap_find_cleared(
 	aux_bitmap_t *bitmap,	    /* bitmap, clear bit will be searched in */
@@ -200,6 +180,49 @@ uint64_t aux_bitmap_find_marked(
 		return INVAL_BLK;
 
 	return bit;
+}
+
+/* Tests if all bits of the interval [start,end) are cleared in the bitmap. */
+int aux_bitmap_test_region_cleared(
+	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
+	uint64_t start,		    /* start bit of the range */
+	uint64_t end)		    /* bit count to be clean */
+{
+	blk_t next;
+	aal_assert("vpf-471", bitmap != NULL, return 0);
+	
+	aux_bitmap_bound_check(bitmap, start, return 0);
+	aux_bitmap_bound_check(bitmap, end - 1, return 0);
+	
+	next = aux_bitmap_find_marked(bitmap, start);
+
+	if (next >= start && next < end)
+		return 0;
+
+	return 1;
+}
+
+/* Finds first cleared bit in bitmap, starting from passed "start" */
+errno_t aux_bitmap_find_region_cleared(
+	aux_bitmap_t *bitmap,	    /* bitmap, clear bit will be searched in */
+	uint64_t *start,	    /* start of clean region will be stored */
+	uint64_t *end)
+{
+	aal_assert("umka-1772", bitmap != NULL, return -1);
+
+	aal_find_zero_bits(bitmap->map, bitmap->total, start, end);
+	return 0;
+}
+
+errno_t aux_bitmap_find_region_marked(
+	aux_bitmap_t *bitmap,	    /* bitmap, clear bit will be searched in */
+	uint64_t *start,	    /* start of clean region will be stored */
+	uint64_t *end)
+{
+	aal_assert("umka-1772", bitmap != NULL, return -1);
+
+	aal_find_set_bits(bitmap->map, bitmap->total, start, end);
+	return 0;
 }
 
 /*

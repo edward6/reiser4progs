@@ -46,13 +46,21 @@ extern void aux_bitmap_clear_region(aux_bitmap_t *bitmap,
 				    uint64_t start,
 				    uint64_t end);
 
-int aux_bitmap_test_region_marked(aux_bitmap_t *bitmap,
-				  uint64_t start,	
-				  uint64_t end);
+extern int aux_bitmap_test_region_marked(aux_bitmap_t *bitmap,
+					 uint64_t start,	
+					 uint64_t end);
 
-int aux_bitmap_test_region_cleared(aux_bitmap_t *bitmap,
-				   uint64_t start,	
-				   uint64_t end);
+extern int aux_bitmap_test_region_cleared(aux_bitmap_t *bitmap,
+					  uint64_t start,	
+					  uint64_t end);
+
+extern errno_t aux_bitmap_find_region_marked(aux_bitmap_t *bitmap,
+					     uint64_t *start,
+					     uint64_t *end);
+
+extern errno_t aux_bitmap_find_region_cleared(aux_bitmap_t *bitmap,
+					      uint64_t *start,
+					      uint64_t *end);
 
 extern uint64_t aux_bitmap_find_marked(aux_bitmap_t *bitmap,
 				       uint64_t start);

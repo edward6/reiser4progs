@@ -31,4 +31,14 @@ extern inline unsigned long long aal_find_next_zero_bit(const void *vaddr,
 extern inline unsigned long long aal_find_next_set_bit(const void *vaddr,
 						       unsigned long long size,
 						       unsigned long long offset);
+
+extern inline void aal_find_zero_bits(void *vaddr,
+				      unsigned long long size,
+				      unsigned long long *start,
+				      unsigned long long *count);
+
+extern inline void aal_find_set_bits(void *vaddr,
+				     unsigned long long size,
+				     unsigned long long *start,
+				     unsigned long long *count);
 #endif

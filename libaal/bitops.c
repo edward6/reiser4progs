@@ -9,19 +9,6 @@
 
 #include <aal/aal.h>
 
-static inline int aal_find_next_zero_bit_in_byte(unsigned int byte, int start) {
-        int i = start;
-        unsigned int mask = 1 << start;
-
-        while ((byte & mask) != 0) {
-                mask <<= 1;
-                if (++i >= 8)
-                        break;
-        }
-
-        return i;
-}
-
 inline int aal_set_bit(unsigned long long nr, void *addr) {
 	unsigned char *p, mask;
 	int retval;
@@ -82,8 +69,8 @@ inline unsigned long long aal_find_first_zero_bit(const void *vaddr,
 }
 
 inline unsigned long long aal_find_next_zero_bit(const void *vaddr, 
-						    unsigned long long size,
-						    unsigned long long offset) 
+						 unsigned long long size,
+						 unsigned long long offset) 
 {
 	int bit = offset & 7, res;
 	const unsigned char *addr = vaddr;
@@ -103,31 +90,44 @@ inline unsigned long long aal_find_next_zero_bit(const void *vaddr,
 	return (p - addr) * 8 + res;
 }
 
+static inline int aal_find_next_zero_bit_in_byte(unsigned int byte,
+						 int start)
+{
+        int i = start;
+        unsigned int mask = 1 << start;
+
+        while ((byte & mask) != 0) {
+                mask <<= 1;
+                if (++i >= 8)
+                        break;
+        }
+
+        return i;
+}
+
 inline unsigned long long aal_find_next_set_bit(const void *vaddr, 
 						unsigned long long size, 
 						unsigned long long offset)
 {
         const unsigned char *addr = vaddr;
-        int byte_nr = offset >> 3;
-        int bit_nr = offset & 0x7;
-        int max_byte_nr = (size - 1) >> 3;
+        unsigned int byte_nr = offset >> 3;
+        unsigned int bit_nr = offset & 0x7;
+        unsigned int max_byte_nr = (size - 1) >> 3;
 
         if (bit_nr != 0) {
-                unsigned long long nr;
+		unsigned int b = ~(unsigned int)addr[byte_nr];
+                unsigned int nzb = aal_find_next_zero_bit_in_byte(b, bit_nr);
 
-                nr = aal_find_next_zero_bit_in_byte(
-			~(unsigned int) (addr[byte_nr]), bit_nr);
-
-                if (nr < 8)
-                        return (byte_nr << 3) + nr;
+                if (nzb < 8)
+                        return (byte_nr << 3) + nzb;
 
                 ++byte_nr;
         }
 
         while (byte_nr <= max_byte_nr) {
                 if (addr[byte_nr] != 0) {
-			unsigned long long nzb =
-				aal_find_next_zero_bit_in_byte(~(unsigned int)addr[byte_nr], 0);
+			unsigned int b = ~(unsigned int)addr[byte_nr];
+			unsigned int nzb = aal_find_next_zero_bit_in_byte(b, 0);
 			
                         return (byte_nr << 3) + nzb;
                 }
@@ -196,4 +196,18 @@ inline void aal_set_bits(void *vaddr,
                 addr[first_byte] |= first_byte_mask;
                 addr[last_byte] |= last_byte_mask;
         }
+}
+
+inline void aal_find_zero_bits(void *vaddr,
+			       unsigned long long size,
+			       unsigned long long *start,
+			       unsigned long long *count)
+{
+}
+
+inline void aal_find_set_bits(void *vaddr,
+			      unsigned long long size,
+			      unsigned long long *start,
+			      unsigned long long *count)
+{
 }

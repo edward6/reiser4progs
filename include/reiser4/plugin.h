@@ -1010,21 +1010,6 @@ struct reiser4_alloc_ops {
 	/* Synchronizes block allocator */
 	errno_t (*sync) (object_entity_t *);
 
-	/* Marks passed block as used */
-	void (*mark) (object_entity_t *, uint64_t, uint64_t);
-
-	/* Checks if passed range of blocks used */
-	int (*region_used) (object_entity_t *, uint64_t, uint64_t);
-    	
-	/* Checks if passed range of blocks unused */
-	int (*region_unused) (object_entity_t *, uint64_t, uint64_t);
-
-	/* Allocates one block */
-	errno_t (*allocate) (object_entity_t *, uint64_t *, uint64_t *);
-
-	/* Deallocates passed blocks */
-	errno_t (*release) (object_entity_t *, uint64_t, uint64_t);
-
 	/* Returns number of used blocks */
 	uint64_t (*used) (object_entity_t *);
 
@@ -1041,8 +1026,29 @@ struct reiser4_alloc_ops {
 	/* Calls func for each block in block allocator */
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
+	/* Checks if passed range of blocks used */
+	int (*used_region) (object_entity_t *, uint64_t,
+			    uint64_t);
+    	
+	/* Checks if passed range of blocks unused */
+	int (*unused_region) (object_entity_t *, uint64_t,
+			      uint64_t);
+
+	/* Marks passed block as used */
+	errno_t (*occupy_region) (object_entity_t *, uint64_t,
+				  uint64_t);
+
+	/* Allocates one block */
+	errno_t (*allocate_region) (object_entity_t *, uint64_t *,
+				    uint64_t *);
+	
+	/* Deallocates passed blocks */
+	errno_t (*release_region) (object_entity_t *, uint64_t,
+				   uint64_t);
+
 	/* Calls func for all block of the same area as blk is. */
-	errno_t (*region) (object_entity_t *, blk_t, block_func_t, void *);
+	errno_t (*related_region) (object_entity_t *, blk_t,
+				   block_func_t, void *);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
