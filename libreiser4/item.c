@@ -198,18 +198,26 @@ int reiser4_item_internal(reiser4_item_t *item) {
 
 /* Returns node pointer from internal node */
 blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
-    aal_assert("vpf-041", item != NULL, return 0);
-    aal_assert("umka-1074", item->plugin != NULL, return 0);
-    
-    /* Checking if specified item is an internal item */
-    if (!reiser4_item_internal(item)) {
-	aal_exception_error("An attempt to get the node pointer "
-	    "from non-internal item.");
-	return FAKE_BLK;
-    }
-    
+    aal_assert("vpf-041", item != NULL, return FAKE_BLK);
+    aal_assert("umka-1074", item->plugin != NULL, return FAKE_BLK);
+    aal_assert("vpf-369", reiser4_item_internal(item) || 
+	reiser4_item_extent(item), return FAKE_BLK);
+
     return plugin_call(return 0, item->plugin->item_ops.specific.ptr, 
 	get_ptr, item);
+}
+
+/* Returns the number of nodes pointed by 1 unit. Called width also. */
+count_t reiser4_item_get_nwidth(reiser4_item_t *item) {
+    aal_assert("vpf-370", item != NULL, return 0);
+    aal_assert("vpf-371", item->plugin != NULL, return 0);
+    aal_assert("vpf-372", reiser4_item_internal(item) || 
+	reiser4_item_extent(item), return 0);
+
+    if (item->plugin->item_ops.specific.ptr.get_width)
+	return item->plugin->item_ops.specific.ptr.get_width(item);
+    
+    return 1;
 }
 
 #ifndef ENABLE_COMPACT
@@ -220,17 +228,25 @@ errno_t reiser4_item_set_nptr(reiser4_item_t *item,
 {
     aal_assert("umka-607", item != NULL, return -1);
     aal_assert("umka-1071", item->plugin != NULL, return -1);
+    aal_assert("vpf-377", reiser4_item_internal(item) || 
+	reiser4_item_extent(item), return -1);
 
-    /* Checking if specified item is an internal item */
-    if (!reiser4_item_internal(item)) {
-	aal_exception_error("An attempt to set up the node pointer "
-	    "for non-internal item.");
-	return -1;
-    }
-    
     /* Calling node plugin for handling */
     return plugin_call(return -1, item->plugin->item_ops.specific.ptr, 
 	set_ptr, item, blk);
+}
+
+/* Returns the number of nodes pointed by 1 unit. Called width also. */
+errno_t reiser4_item_set_nwidth(reiser4_item_t *item, count_t width) {
+    aal_assert("vpf-373", item != NULL, return -1);
+    aal_assert("vpf-374", item->plugin != NULL, return -1);
+    aal_assert("vpf-375", reiser4_item_internal(item) || 
+	reiser4_item_extent(item), return -1);
+
+    if (item->plugin->item_ops.specific.ptr.set_width)
+	item->plugin->item_ops.specific.ptr.set_width(item, width);
+    
+    return 0;
 }
 
 #endif
