@@ -24,12 +24,18 @@ aal_list_t *plugins;
 
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 
+#ifndef ENABLE_STAND_ALONE
 #define MAX_BUILTINS 50
+#else
+#define MAX_BUILTINS 15
+#endif
 
 /* Builtin plugin representative struct */
 struct plugin_builtin {
 	plugin_init_t init;
+#ifndef ENABLE_STAND_ALONE
 	plugin_fini_t fini;
+#endif
 };
 
 typedef struct plugin_builtin plugin_builtin_t;
@@ -393,16 +399,23 @@ errno_t libreiser4_factory_init(void) {
 
 		if (!builtin->init)
 			break;
-		
+#ifndef ENABLE_STAND_ALONE		
 		if (libreiser4_factory_load(builtin->init, builtin->fini))
                         continue;
+#else
+		if (libreiser4_factory_load(builtin->init, NULL))
+                        continue;
+#endif
 	}
 
+#ifndef ENABLE_STAND_ALONE		
 	if (aal_list_len(plugins) == 0) {
                 aal_exception_error("There are no valid built-in plugins "
                                     "found.");
                 return -EINVAL;
         }
+#endif
+	
 #endif
         return 0;
 }
@@ -515,11 +528,15 @@ errno_t libreiser4_factory_foreach(
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 /* This function registers builtin plugin entry points */
 void register_builtin(plugin_init_t init, plugin_fini_t fini) {
+
 	if (last >= MAX_BUILTINS)
 		last = 0;
 		
 	__builtins[last].init = init;
+	
+#ifndef ENABLE_STAND_ALONE
 	__builtins[last].fini = fini;
+#endif
 
 	last++;
 }
