@@ -784,7 +784,7 @@ errno_t reiser4_node_shift(
 {
 	int retval;
 	uint32_t i, items;
-	reiser4_pos_t pos;
+	reiser4_pos_t ppos;
 	reiser4_key_t lkey;
 	reiser4_plugin_t *plugin;
     
@@ -800,7 +800,7 @@ errno_t reiser4_node_shift(
 	*/
 	if (hint->flags & SF_LEFT) {
 		if (node->parent) {
-			if (reiser4_node_pos(node, &pos)) {
+			if (reiser4_node_pos(node, &ppos)) {
 				aal_exception_error("Can't find node %llu in "
 						    "its parent node.", node->blk);
 				return -1;
@@ -808,7 +808,7 @@ errno_t reiser4_node_shift(
 		}
 	} else {
 		if (neig->parent) {
-			if (reiser4_node_pos(neig, &pos)) {
+			if (reiser4_node_pos(neig, &ppos)) {
 				aal_exception_error("Can't find node %llu in "
 						    "its parent node.", neig->blk);
 				return -1;
@@ -843,7 +843,7 @@ errno_t reiser4_node_shift(
 				if (reiser4_node_lkey(node, &lkey))
 					return -1;
 				
-				if (reiser4_node_ukey(node->parent, &pos, &lkey))
+				if (reiser4_node_ukey(node->parent, &ppos, &lkey))
 					return -1;
 			}
 		}
@@ -855,7 +855,7 @@ errno_t reiser4_node_shift(
 				if (reiser4_node_lkey(neig, &lkey))
 					return -1;
 				
-				if (reiser4_node_ukey(neig->parent, &pos, &lkey))
+				if (reiser4_node_ukey(neig->parent, &ppos, &lkey))
 					return -1;
 			}
 		}
@@ -873,10 +873,11 @@ errno_t reiser4_node_shift(
 		reiser4_node_t *child;
 		reiser4_ptr_hint_t ptr;
 
-		pos.item = hint->flags & SF_LEFT ?
+		ppos.unit = ~0ul;
+		ppos.item = hint->flags & SF_LEFT ?
 			items - i - 1 : i; 
 
-		if (reiser4_coord_open(&coord, neig, &pos))
+		if (reiser4_coord_open(&coord, neig, &ppos))
 			return -1;
 
 		if (!reiser4_item_nodeptr(&coord))

@@ -27,11 +27,20 @@ static inline entry40_t *direntry40_entry(direntry40_t *direntry,
 	return &direntry->entry[pos];
 }
 
-static inline uint32_t direntry40_unit_len(direntry40_t *direntry, 
-					   uint32_t pos) 
+static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
+					    entry40_t *entry)
 {
-	return aal_strlen((char *)(direntry40_unit(direntry, pos) + 1)) +
-		sizeof(objid40_t) + 1;
+	objid40_t *objid = (objid40_t *)((void *)direntry +
+					 entry->offset);
+	
+	return aal_strlen((char *)(objid + 1)) + sizeof(objid40_t) + 1;
+}
+
+static uint32_t direntry40_unit_len(direntry40_t *direntry,
+				    uint32_t pos) 
+{
+	entry40_t *entry = direntry40_entry(direntry, pos);
+	return direntry40_entry_len(direntry, entry);
 }
 
 /* Builds full key by entry components */
@@ -237,9 +246,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 				if (hint->pos.unit >= src_units - 1) {
 					hint->flags |= SF_MOVIP;
 					hint->pos.unit = 0;
-
-					if (hint->pos.unit > src_units - 1)
-						break;
+					break;
 				}
 			}
 		}
@@ -271,14 +278,12 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	
 	direntry40_t *src_direntry;
 	direntry40_t *dst_direntry;
-	uint32_t src_units, dst_units, units;
+	uint32_t src_units, dst_units;
 	
 	aal_assert("umka-1586", src_item != NULL, return -1);
 	aal_assert("umka-1587", dst_item != NULL, return -1);
 	aal_assert("umka-1589", hint != NULL, return -1);
 
-	units = hint->units;
-	
 	if (!(src_direntry = direntry40_body(src_item)))
 		return -1;
 	
@@ -289,7 +294,9 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	dst_units = de40_get_count(dst_direntry);
 	
 	aal_assert("umka-1604", src_units >= hint->units, return -1);
+
 	headers = hint->units * sizeof(entry40_t);
+	hint->part -= (dst_units == 0 ? sizeof(direntry40_t) : 0);
 		
 	if (hint->flags & SF_LEFT) {
 		
@@ -336,11 +343,6 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			((dst_units + hint->units) * sizeof(entry40_t)) + len;
 		
 		size = hint->part - headers;
-
-		/* FIXME-UMKA: Is this enough reliable? */
-		if (dst_units == 0)
-			size -= sizeof(direntry40_t);
-
 		aal_memcpy(dst, src, size);
 
 		/* Updating offset of dst direntry */
@@ -349,48 +351,36 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			
 		for (i = 0; i < hint->units; i++, entry++) {
 			en40_set_offset(entry, offset);
-			offset += direntry40_unit_len(dst_direntry, dst_units + i);
+			offset += direntry40_entry_len(dst_direntry, entry);
 		}
 
 		if (src_units > hint->units) {
 			
 			/* Moving headers of the src direntry */
 			src = (void *)src_direntry + sizeof(direntry40_t) +
-				(hint->units * sizeof(entry40_t));
+				headers;
 			
 			dst = (void *)src_direntry + sizeof(direntry40_t);
+			size = (src_units - hint->units) * sizeof(entry40_t);
 
-			size = src_item->len - sizeof(direntry40_t) -
-				(hint->units * sizeof(entry40_t));
-
-			offset = ((entry40_t *)dst)->offset;
-			
 			aal_memmove(dst, src, size);
 
 			/* Moving bodies of the src direntry */
-			src = (void *)src_direntry + offset;
+			src = (void *)src_direntry + sizeof(direntry40_t) +
+				headers + size + (hint->part - headers);
 
-			dst = direntry40_entry(src_direntry,
-					       src_units - hint->units);
+			dst = src - hint->part;
 
 			size = src_item->len - sizeof(direntry40_t) -
-				(src_units * sizeof(entry40_t)) -
-				(hint->part - (hint->units * sizeof(entry40_t)));
+				size - hint->part;
 
-			if (dst_units == 0)
-				size += sizeof(direntry40_t);
-			
 			aal_memmove(dst, src, size);
 			
 			/* Updating offsets of src direntry */
 			entry = direntry40_entry(src_direntry, 0);
 			
-			for (i = 0; i < src_units - hint->units; i++, entry++) {
-				uint32_t dec = hint->part -
-					(dst_units == 0 ? sizeof(direntry40_t) : 0);
-				
-				en40_dec_offset(entry, dec);
-			}
+			for (i = 0; i < src_units - hint->units; i++, entry++)
+				en40_dec_offset(entry, hint->part);
 		}
 	} else {
 
@@ -437,11 +427,6 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			((hint->units + dst_units) * sizeof(entry40_t));
 			
 		size = hint->part - headers;
-
-		/* FIXME-UMKA: Is this enough reliable? */
-		if (dst_units == 0)
-			size -= sizeof(direntry40_t);
-
 		aal_memcpy(dst, src, size);
 
 		/* Updating offset of dst direntry */
@@ -450,7 +435,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		
 		for (i = 0; i < hint->units; i++, entry++) {
 			en40_set_offset(entry, offset);
-			offset += direntry40_unit_len(dst_direntry, i);
+			offset += direntry40_entry_len(dst_direntry, entry);
 		}
 
 		if (src_units > hint->units) {
@@ -473,9 +458,6 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 				en40_dec_offset(entry, headers);
 		}
 	}
-
-	if (dst_units == 0)
-		hint->part -= sizeof(direntry40_t);
 
 	de40_inc_count(dst_direntry, hint->units);
 	de40_dec_count(src_direntry, hint->units);
@@ -534,7 +516,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 		} else {
 			entry = direntry40_entry(direntry, units - 1);
 			offset = en40_get_offset(entry) + sizeof(entry40_t) +
-				direntry40_unit_len(direntry, units - 1);
+				direntry40_entry_len(direntry, entry);
 		}
 	} else
 		offset = sizeof(direntry40_t) + headers;
@@ -593,7 +575,8 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 			   dh->entry[i].name, len);
 
 		offset += len + sizeof(objid40_t);
-		*((char *)(direntry) + offset++) = '\0';
+		*((char *)(direntry) + offset) = '\0';
+		offset++;
 	}
     
 	if (pos == 0) {

@@ -1031,6 +1031,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 				  node40_t *dst_node, 
 				  shift_hint_t *hint)
 {
+	int remove;
 	uint32_t len;
 	int mergeable;
 	reiser4_pos_t pos;
@@ -1121,22 +1122,29 @@ static errno_t node40_shift_units(node40_t *src_node,
 	if (plugin_call(return -1, src_item.plugin->item_ops, shift,
 			&src_item, &dst_item, hint))
 		return -1;
+	
+	/* Updating source node fields */
+	pos.item = src_item.pos;
 
+	/*
+	  We will remove src_item if it is empty and if the insert point is not
+	  points to it.
+	*/
+	remove = src_item.plugin->item_ops.units(&src_item) == 0 &&
+		(hint->flags & SF_MOVIP || pos.item != hint->pos.item);
+	
 	/* Updating item delimiting key */
 	if (hint->flags & SF_LEFT) {
-		ih = node40_ih_at(src_node, src_item.pos);
-		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
+		if (!remove) {
+			ih = node40_ih_at(src_node, src_item.pos);
+			aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
+		}
 	} else {
 		ih = node40_ih_at(dst_node, dst_item.pos);
 		aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
 	}
 	
-	/* Updating source node fields */
-	pos.item = src_item.pos;
-
-	if (src_item.plugin->item_ops.units(&src_item) == 0 &&
-		pos.item != hint->pos.item)
-	{
+	if (remove) {
 		pos.unit = ~0ul;
 		len = src_item.len;
 
