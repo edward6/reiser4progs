@@ -11,6 +11,7 @@
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
 
 extern int64_t reiser4_tree_read(reiser4_tree_t *tree,
 				 place_t *place,
@@ -25,16 +26,16 @@ extern int64_t reiser4_tree_fetch(reiser4_tree_t *tree,
 				  place_t *place,
 				  trans_hint_t *hint);
 
+extern errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
+				      node_t *node,
+				      walk_func_t walk_func);
+
 extern errno_t reiser4_tree_next_node(reiser4_tree_t *tree, 
 				      place_t *place,
 				      place_t *next);
 
 extern node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 				       place_t *place);
-
-extern errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
-				      node_t *node,
-				      walk_func_t walk_func);
 
 extern errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 					node_t *node);
@@ -121,15 +122,16 @@ extern errno_t reiser4_tree_attach_node(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 					node_t *node);
 
-extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree, node_t *node,
+extern node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
+				       uint8_t level);
+
+extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
+				      node_t *node,
 				      tree_open_func_t open_func,
 				      tree_edge_func_t before_func,
 				      tree_update_func_t update_func,
 				      tree_edge_func_t after_func,
 				      void *data);
-
-extern node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
-				       uint8_t level);
 
 extern int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 				   trans_hint_t *hint, uint8_t level, 
@@ -147,8 +149,6 @@ extern blk_t reiser4_tree_get_root(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_get_height(reiser4_tree_t *tree);
 extern uint32_t reiser4_tree_get_blksize(reiser4_tree_t *tree);
 extern aal_device_t *reiser4_tree_get_device(reiser4_tree_t *tree);
-
-extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_unload_node(reiser4_tree_t *tree,
 					node_t *node);

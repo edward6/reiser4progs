@@ -1065,11 +1065,10 @@ static int node40_splittable(place_t *place, shift_hint_t *hint) {
 
 		/* That item can be splitted which contains more than 1 unit or
 		   insert point lies behind the last unit. */
-		if (units > 1 && place->pos.unit >= units)
-			return 1;
+		return (units > 1 && place->pos.unit >= units);
 	}
 	
-	return 0;
+	return 1;
 }
 
 /* Initializes place by border item data (leftmost or rightmost). */
@@ -1290,12 +1289,12 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   and this will cause bad tree packing. */
 		src_ih = node40_ih_at(src_node, src_place.pos.item);
 		ih_set_flags(dst_ih, ih_get_flags(src_ih, pol), pol); 
-
-		/* Initializing @dst_place after that new item was created by
-		   expand() function at it. */
-		if (node40_fetch(dst_entity, &pos, &dst_place))
-			return -EINVAL;
 	}
+
+	/* Initializing @dst_place after that item was expanded by expand()
+	   function. */
+	if (node40_fetch(dst_entity, &pos, &dst_place))
+		return -EINVAL;
 
 	/* Shift units from @src_place to @dst_place. */
 	if (plug_call(src_place.plug->o.item_ops->balance,

@@ -47,6 +47,7 @@ errno_t misc_param_override(char *override) {
 	return 0;
 }
 
+/* Prints default plugin params. */
 void misc_param_print(void) {
 	uint32_t i;
 	reiser4_plug_t *plug;
@@ -63,11 +64,12 @@ void misc_param_print(void) {
 		if ((plug = reiser4_factory_ifind(pid->type,
 						  pid->value)))
 		{
-			printf("%s:%*s\"%s\"\n", pid->name, width - 1,
-			       " ", plug->label);
+			printf("%s:%*s\"%s\" (0x%x:0x%llx)\n", pid->name,
+			       width - 1, " ", plug->label, pid->type,
+			       pid->value);
 		} else {
-			printf("%s:%*s\"absent (id: 0x%llx)\"\n", pid->name,
-			       width - 1, " ", pid->value);
+			printf("%s:%*s\"absent (0x%x:0x%llx)\"\n", pid->name,
+			       width - 1, " ", pid->type, pid->value);
 		}
 	}
 	

@@ -3,8 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* fix "unloading dirty node" warning.
-
 * implement tree_resize() and tree_copy().
 
 * improve tree_adjust_node() to be able to stop if memory pressure is
