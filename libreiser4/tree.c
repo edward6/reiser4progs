@@ -717,6 +717,15 @@ errno_t reiser4_tree_mkspace(
         if (reiser4_tree_right_shift(tree, new, avatar, needed, 1))
 	   return -1;
 	
+	/* Attaching new allocated node into the tree */
+	if (reiser4_node_count(avatar->node)) {
+	    if (reiser4_tree_attach(tree, avatar)) {
+		aal_exception_error("Can't attach node to the tree.");
+		reiser4_tree_release(tree, avatar);
+		return -1;
+	    }
+	}
+	
 	not_enough = needed - reiser4_node_space(new->avatar->node);
 	
 	/* Checking if the old have enough free space after shifting */

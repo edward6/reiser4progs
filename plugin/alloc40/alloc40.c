@@ -47,7 +47,7 @@ static errno_t callback_fetch_bitmap(reiser4_entity_t *format,
     current = start + (size * (blk / size / 8));
     
     chunk = (start + alloc->bitmap->size) - current > (int)size ? 
-	size : (start + alloc->bitmap->size) - current;
+	(int)size : (int)((start + alloc->bitmap->size) - current);
 	    
     aal_memcpy(current, block->data + CRC_SIZE, chunk);
     
@@ -206,7 +206,7 @@ static errno_t callback_flush_bitmap(reiser4_entity_t *format,
     
     /* Updating block which is going to be saved */
     chunk = (start + alloc->bitmap->size) - current > (int)size ? 
-	size : (start + alloc->bitmap->size) - current;
+	(int)size : (int)((start + alloc->bitmap->size) - current);
 
     aal_memcpy(block->data + CRC_SIZE, current, chunk);
     
@@ -373,8 +373,8 @@ static errno_t callback_check_bitmap(reiser4_entity_t *format,
     
     /* Calculating adler checksumm for piece of bitmap */
     chunk = (alloc->bitmap->map + alloc->bitmap->size) - current > (int)size ? 
-	size : (alloc->bitmap->map + alloc->bitmap->size) - current;
-	    
+	(int)size : (int)((alloc->bitmap->map + alloc->bitmap->size) - current);
+    
     cadler = aal_adler32(current, chunk);
 
     /* 

@@ -63,6 +63,21 @@ AC_ARG_WITH(readline,
         with_readline=yes
 )
 
+dnl Check for termcap
+if test "$with_readline" = yes; then
+	OLD_LIBS="$LIBS"
+	LIBS=""
+	AC_SEARCH_LIBS(tgetent, ncurses curses termcap termlib,
+		PROGS_LIBS="$PROGS_LIBS $LIBS",
+		AC_MSG_WARN(
+termcap could not be found which is required for the
+--with-readline option (which is enabled by default).
+		)
+		with_readline=no
+	)
+	LIBS="$OLD_LIBS"
+fi
+
 dnl Check for readline
 if test "$with_readline" = yes; then
     OLD_LIBS="$LIBS"
@@ -71,8 +86,7 @@ if test "$with_readline" = yes; then
 	    AC_MSG_WARN(
 GNU Readline could not be found which is required for the --with-readline
 	    )
-	    with_readline=no,
-	    -lncurses
+	    with_readline=no
     )
     PROGS_LIBS="$PROGS_LIBS $LIBS"
     LIBS="$OLD_LIBS"
