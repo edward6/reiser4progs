@@ -134,9 +134,7 @@ static errno_t tree_frag_process_item(void *entity, uint64_t start,
 /* Traverse passed @node and calculate tree fragmentation for it. The results
    are stored in @frag_hint structure. This function is called from the tree
    traversal routine for each internal node. See bellow for details. */
-static errno_t tree_frag_process_node(reiser4_tree_t *tree,
-				      reiser4_node_t *node, void *data)
-{
+static errno_t tree_frag_process_node(reiser4_node_t *node, void *data) {
 	pos_t pos;
 	static int bogus = 0;
 	tree_frag_hint_t *frag_hint;
@@ -173,9 +171,7 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t tree_frag_update_node(reiser4_tree_t *tree,
-				     reiser4_place_t *place, void *data)
-{
+static errno_t tree_frag_update_node(reiser4_place_t *place, void *data) {
 	((tree_frag_hint_t *)data)->level++;
 	return 0;
 }
@@ -290,15 +286,15 @@ static errno_t stat_item_layout(void *entity, uint64_t start,
 
 /* Processing one formatted node and calculate number of internal pointers,
    extent ones, packing, etc. */
-static errno_t stat_process_node(reiser4_tree_t *tree,
-				 reiser4_node_t *node, void *data)
-{
+static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 	uint8_t level;
 	uint32_t blksize;
 	uint32_t twigs_used;
 	uint32_t leaves_used;
 	uint32_t branches_used;
 	uint32_t formatted_used;
+	
+	reiser4_tree_t *tree = (reiser4_tree_t *)node->tree;
 
 	tree_stat_hint_t *stat_hint;
 	pos_t pos = {MAX_UINT32, MAX_UINT32};
@@ -560,12 +556,10 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs, char *filename, uint32_t gauge) {
 
 /* Processes leaf node in order to find all stat data items which are start of
    corresponding files and calculate file fragmentation for each of them. */
-static errno_t data_frag_process_node(reiser4_tree_t *tree,
-				      reiser4_node_t *node,
-				      void *data)
-{
-	pos_t pos;
+static errno_t data_frag_process_node(reiser4_node_t *node, void *data) {
+	reiser4_tree_t *tree = (reiser4_tree_t *)node->tree;
 	file_frag_hint_t *frag_hint;
+	pos_t pos;
 
 	pos.unit = MAX_UINT32;
 	frag_hint = (file_frag_hint_t *)data;
@@ -641,10 +635,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t data_frag_update_node(reiser4_tree_t *tree,
-				     reiser4_place_t *place,
-				     void *data)
-{
+static errno_t data_frag_update_node(reiser4_place_t *place, void *data) {
 	((file_frag_hint_t *)data)->level++;
 	return 0;
 }

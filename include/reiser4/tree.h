@@ -90,9 +90,9 @@ extern int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_trav(reiser4_tree_t *tree,
 				 tree_open_func_t open_func,
-				 tree_edge_func_t before_func,
-				 tree_update_func_t update_func,
-				 tree_edge_func_t after_func,
+				 node_func_t before_func,
+				 place_func_t update_func,
+				 node_func_t after_func,
 				 void *data);
 
 extern errno_t reiser4_tree_update_keys(reiser4_tree_t *tree,
@@ -125,9 +125,9 @@ extern errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 				      reiser4_node_t *node,
 				      tree_open_func_t open_func,
-				      tree_edge_func_t before_func,
-				      tree_update_func_t update_func,
-				      tree_edge_func_t after_func,
+				      node_func_t before_func,
+				      place_func_t update_func,
+				      node_func_t after_func,
 				      void *data);
 
 extern int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
@@ -177,5 +177,12 @@ extern reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 				    lookup_bias_t bias, reiser4_place_t *place);
+
+extern errno_t reiser4_tree_scan(reiser4_tree_t *tree, 
+				 node_func_t pre_func, 
+				 place_func_t func, 
+				 void *data);
+
+
 #endif
 

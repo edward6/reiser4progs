@@ -509,7 +509,7 @@ static errno_t repair_sem_fini(repair_control_t *control,
 	
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
-	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 1)) {
+	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 0)) {
 		fsck_mess("On-disk used blocks and really used blocks "
 			  "differ.%s", control->repair->mode == RM_FIX &&
 			  !control->repair->fatal ? " Fixed." : "");

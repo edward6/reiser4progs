@@ -356,7 +356,6 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	conv_hint_t conv;
 	uint64_t maxreal;
 	errno_t res = 0;
-	uint64_t size;
 
 	aal_assert("vpf-1126", object != NULL);
 	aal_assert("vpf-1190", object->tree != NULL);

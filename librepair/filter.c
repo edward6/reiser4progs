@@ -263,10 +263,7 @@ static errno_t cb_count_sd(reiser4_place_t *place, void *data) {
 /* Before callback for traverse. It checks node level, node consistency, and 
    delimiting keys. If any check reveals a problem with the data consistency 
    it sets RE_FATAL flag. */
-static errno_t repair_filter_node_check(reiser4_tree_t *tree,
-					reiser4_node_t *node,
-					void *data)
-{
+static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	errno_t res = 0;
 	uint32_t items;
@@ -328,8 +325,11 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	}
 	
 	/* There are no fatal errors, check delimiting keys. */
-	if ((res = repair_tree_dknode_check(tree, node, fd->repair->mode)) < 0)
+	if ((res = repair_tree_dknode_check((reiser4_tree_t *)node->tree,
+					    node, fd->repair->mode)) < 0)
+	{
 		return res;
+	}
 	
 	if (res) {
 		repair_filter_bad_dk(fd, node->block->nr, level);
@@ -353,17 +353,21 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
    callback and do some essential stuff after traversing through the child -
    level, if RE_PTR flag is set - deletes the child pointer and mark
    the pointed block as unused in bm_used bitmap. */
-static errno_t repair_filter_update_traverse(reiser4_tree_t *tree, 
-					     reiser4_place_t *place, 
+static errno_t repair_filter_update_traverse(reiser4_place_t *place, 
 					     void *data) 
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	reiser4_node_t *node;
+	reiser4_tree_t *tree;
 	errno_t res;
 	blk_t blk;
     
 	aal_assert("vpf-257", fd != NULL);
 	aal_assert("vpf-434", place != NULL);
+	aal_assert("vpf-434", place->node != NULL);
+	aal_assert("vpf-434", place->node->tree != NULL);
+
+	tree = (reiser4_tree_t *)place->node->tree;
 
 	if ((blk = reiser4_item_down_link(place)) == INVAL_BLK) {
 		aal_error("Node (%llu), item (%u), unit(%u): Failed to "
@@ -433,10 +437,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 /* After callback for traverse. Does needed stuff after traversing through all 
    children - if no child left, set RE_PTR flag to force deletion of the 
    pointer to this block in update_traverse callback. */
-static errno_t repair_filter_after_traverse(reiser4_tree_t *tree, 
-					    reiser4_node_t *node, 
-					    void *data) 
-{
+static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	
 	aal_assert("vpf-393", node != NULL);

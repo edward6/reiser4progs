@@ -16,10 +16,6 @@ extern errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 				       reiser4_node_t *node, 
 				       reiser4_key_t *ld_key); 
 
-extern errno_t repair_tree_next_key(reiser4_tree_t *tree, 
-				    reiser4_place_t *place, 
-				    reiser4_key_t *key);
-
 extern reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, 
 				     reiser4_node_t *parent,
 				     blk_t blk, 
@@ -38,9 +34,5 @@ extern errno_t repair_tree_attach_node(reiser4_tree_t *tree,
 
 extern bool_t repair_tree_data_level(uint8_t level);
 extern bool_t repair_tree_legal_level(reiser4_plug_t *plug, uint8_t level);
-
-extern errno_t repair_tree_scan(reiser4_tree_t *tree, 
-				place_func_t func, 
-				void *data);
 
 #endif

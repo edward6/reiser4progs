@@ -35,9 +35,7 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 }
 
 /* Prints passed @node. */
-static errno_t tprint_process_node(reiser4_tree_t *tree,
-				   reiser4_node_t *node, void *data)
-{
+static errno_t tprint_process_node(reiser4_node_t *node, void *data) {
 	aal_stream_t stream;
 
 	aal_stream_init(&stream, stdout, &file_stream);
@@ -50,7 +48,7 @@ static errno_t tprint_process_node(reiser4_tree_t *tree,
 }
 
 void debugfs_print_node(reiser4_node_t *node) {
-	tprint_process_node(NULL, node, NULL);
+	tprint_process_node(node, NULL);
 }
 
 /* Prints block denoted as blk */

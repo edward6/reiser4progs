@@ -609,8 +609,11 @@ typedef enum entity_state entity_state_t;
 typedef errno_t (*region_func_t) (void *, uint64_t,
 				  uint64_t, void *);
 
-/* Type for object place enumeration functions. */
+/* Type for on-place functions. */
 typedef errno_t (*place_func_t) (reiser4_place_t *, void *);
+
+/* Type for on-node functions. */
+typedef errno_t (*node_func_t) (reiser4_node_t *, void *);
 
 /* Function definitions for enumeration item metadata and data. */
 typedef errno_t (*layout_func_t) (void *, region_func_t, void *);

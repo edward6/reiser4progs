@@ -849,7 +849,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	/* Connect lost objects to their parents -- if parents can be 
 	   identified -- or to "lost+found". */
 	if (sem->repair->mode == RM_BUILD) {
-		if ((res = repair_tree_scan(tree, cb_tree_scan, sem)))
+		if ((res = reiser4_tree_scan(tree, NULL, cb_tree_scan, sem)))
 			goto error_close_lost;
 	}
 	

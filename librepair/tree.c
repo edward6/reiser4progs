@@ -114,24 +114,6 @@ errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 	return 0;
 }
 
-/* Gets the key of the next item. */
-errno_t repair_tree_next_key(reiser4_tree_t *tree, 
-			     reiser4_place_t *place, 
-			     reiser4_key_t *key) 
-{
-	reiser4_place_t temp;
-	
-	aal_assert("vpf-1427", tree != NULL);
-	aal_assert("vpf-1427", place != NULL);
-	aal_assert("vpf-1427", key != NULL);
-
-	temp = *place;
-	temp.pos.item++;
-	temp.pos.unit = MAX_UINT32;
-
-	return reiser4_tree_place_key(tree, &temp, key);
-}
-
 reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, 
 				      reiser4_node_t *parent,
 				      blk_t blk, bool_t check)
@@ -635,80 +617,5 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	}
 	
 	return res;
-}
-
-errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
-        reiser4_key_t key, max;
-        uint32_t count;
-        errno_t res;
-
-        aal_assert("vpf-1423", tree != NULL);
-        aal_assert("vpf-1424", func != NULL);
-
-        if (reiser4_tree_fresh(tree))
-                return -EINVAL;
-
-        if ((res = reiser4_tree_load_root(tree)))
-                return res;
-
-        if (tree->root == NULL)
-                return -EINVAL;
-
-        /* Prepare the start and the end keys. */
-        key.plug = max.plug = tree->key.plug;
-        reiser4_key_minimal(&key);
-        reiser4_key_maximal(&max);
-
-        /* While not the end of the tree. */
-        while (reiser4_key_compfull(&key, &max)) {
-                reiser4_place_t place;
-		lookup_hint_t hint;
-                lookup_t lookup;
-		pos_t *pos;
-
-                /* FIXME-VITALY: This is not key-collision-safe. */
-		hint.key = &key;
-		hint.level = LEAF_LEVEL;
-		hint.collision = NULL;
-
-                /* Lookup the key. */
-                if ((lookup = reiser4_tree_lookup(tree, &hint, FIND_EXACT, 
-						  &place)) < 0)
-                        return lookup;
-
-		pos = &place.pos;
-
-                for (; pos->item < reiser4_node_items(place.node); pos->item++)	{
-                        if ((res = reiser4_place_fetch(&place)))
-                                return res;
-			
-			/* Go down to the child if branch. */
-			if ((res = reiser4_item_branch(place.plug))) {
-				if (!(place.node = 
-				      reiser4_tree_child_node(tree, &place)))
-				{
-					return -EIO;
-				}
-
-				count = reiser4_node_items(place.node);
-				place.pos.item = -1;
-				
-				continue;
-			}
-			
-                        /* Get the key of the next item. */
-                        if ((res = repair_tree_next_key(tree, &place, &key)))
-                                return res;
-
-                        /* Call func for the item. */
-                        if ((res = func(&place, data)) < 0)
-                                return res;
-
-                        /* If res != 0, lookup is needed. */
-                        if (res) break;
-                }
-        }
-
-        return 0;
 }
 

@@ -262,16 +262,8 @@ struct reiser4_tree {
 
 /* Callback function type for opening node. */
 typedef reiser4_node_t *(*tree_open_func_t) (reiser4_tree_t *, 
-				     reiser4_place_t *, void *);
-
-/* Callback function type for preparing per-node traverse data. */
-typedef errno_t (*tree_edge_func_t) (reiser4_tree_t *, 
-				     reiser4_node_t *, void *);
-
-/* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*tree_update_func_t) (reiser4_tree_t *, 
-				       reiser4_place_t *,
-				       void *);
+					     reiser4_place_t *, 
+					     void *);
 #endif
 
 /* Filesystem compound structure */

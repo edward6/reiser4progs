@@ -747,6 +747,25 @@ static errno_t reiser4_tree_adjust_place(reiser4_tree_t *tree,
 	return reiser4_place_fetch(next);
 }
 
+/* Gets the key of the next item. */
+static errno_t reiser4_tree_next_key(reiser4_tree_t *tree, 
+				     reiser4_place_t *place, 
+				     reiser4_key_t *key) 
+{
+	reiser4_place_t temp;
+	
+	aal_assert("vpf-1427", tree != NULL);
+	aal_assert("vpf-1427", place != NULL);
+	aal_assert("vpf-1427", key != NULL);
+
+	temp = *place;
+	temp.pos.item++;
+	temp.pos.unit = MAX_UINT32;
+
+	return reiser4_tree_place_key(tree, &temp, key);
+}
+
+
 /* Moves @place by one item to right. If node is over, returns node next to
    passed @place. Needed for moving though the tree node by node, for instance
    in directory read code. */
@@ -929,10 +948,12 @@ static void cb_blocks_valrem_func(void *val) {
 }
 
 /* Helper function for calculating 64-bit hash by passed key. This is used for
-   tree's data hash. */
+   tree's data hash. Note: as offset of extent blocks is divisible by blocksize
+   (4096 by default) offset is shifted on 12 bits to the right to have neighbour 
+   blocks in neighbour lists. */
 static uint64_t cb_blocks_hash_func(void *key) {
 	return (reiser4_key_get_objectid((reiser4_key_t *)key) +
-		reiser4_key_get_offset((reiser4_key_t *)key));
+		(reiser4_key_get_offset((reiser4_key_t *)key) >> 12));
 }
 
 /* Helper function for comparing two keys during tree's data hash lookups. */
@@ -3030,9 +3051,9 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_place_t *place,
 errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 			       reiser4_node_t *node,
 			       tree_open_func_t open_func,
-			       tree_edge_func_t before_func,
-			       tree_update_func_t update_func,
-			       tree_edge_func_t after_func,
+			       node_func_t before_func,
+			       place_func_t update_func,
+			       node_func_t after_func,
 			       void *data)
 {
 	errno_t res = 0;
@@ -3050,7 +3071,7 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 	   finished. */
 	reiser4_node_lock(node);
 
-	if ((before_func && (res = before_func(tree, node, data))))
+	if ((before_func && (res = before_func(node, data))))
 		goto error_unlock_node;
 
 	/* The loop though the items of current node */
@@ -3092,20 +3113,20 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 			}
 			
 		update:	
-			if (update_func && (res = update_func(tree, &place, data)))
+			if (update_func && (res = update_func(&place, data)))
 				goto error_after_func;
 		}
 	}
 	
 	if (after_func)
-		res = after_func(tree, node, data);
+		res = after_func(node, data);
 
 	reiser4_tree_unlock_node(tree, node);
 	return res;
 
  error_after_func:
 	if (after_func)
-		after_func(tree, node, data);
+		after_func(node, data);
 
  error_unlock_node:
 	reiser4_tree_unlock_node(tree, node);
@@ -3116,9 +3137,9 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
    for all tree traverse related operations like copy, measurements, etc. */
 errno_t reiser4_tree_trav(reiser4_tree_t *tree,
 			  tree_open_func_t open_func,
-			  tree_edge_func_t before_func,
-			  tree_update_func_t update_func,
-			  tree_edge_func_t after_func,
+			  node_func_t before_func,
+			  place_func_t update_func,
+			  node_func_t after_func,
 			  void *data)
 {
 	errno_t res;
@@ -3131,6 +3152,97 @@ errno_t reiser4_tree_trav(reiser4_tree_t *tree,
 	return reiser4_tree_trav_node(tree, tree->root, open_func,
 				      before_func, update_func,
 				      after_func, data);
+}
+
+errno_t reiser4_tree_scan(reiser4_tree_t *tree, 
+			  node_func_t pre_func, 
+			  place_func_t func, 
+			  void *data) 
+{
+        reiser4_key_t key, max;
+        uint32_t count;
+        errno_t res;
+
+        aal_assert("vpf-1423", tree != NULL);
+        aal_assert("vpf-1424", func != NULL);
+
+        if (reiser4_tree_fresh(tree))
+                return -EINVAL;
+
+        if ((res = reiser4_tree_load_root(tree)))
+                return res;
+
+        if (tree->root == NULL)
+                return -EINVAL;
+
+        /* Prepare the start and the end keys. */
+        key.plug = max.plug = tree->key.plug;
+        reiser4_key_minimal(&key);
+        reiser4_key_maximal(&max);
+
+        /* While not the end of the tree. */
+        while (reiser4_key_compfull(&key, &max)) {
+                reiser4_place_t place;
+		lookup_hint_t hint;
+                lookup_t lookup;
+		pos_t *pos;
+
+                /* FIXME-VITALY: This is not key-collision-safe. */
+		hint.key = &key;
+		hint.level = LEAF_LEVEL;
+		hint.collision = NULL;
+
+                /* Lookup the key. */
+                if ((lookup = reiser4_tree_lookup(tree, &hint, FIND_EXACT, 
+						  &place)) < 0)
+                        return lookup;
+
+		pos = &place.pos;
+
+		if ((res = pre_func(place.node, data)) < 0)
+			return res;
+		
+		/* If res != 0, lookup is needed. */
+		if (res) continue;
+		
+                for (; pos->item < reiser4_node_items(place.node); pos->item++)	{
+                        if ((res = reiser4_place_fetch(&place)))
+                                return res;
+			
+			/* Go down to the child if branch. */
+			if ((res = reiser4_item_branch(place.plug))) {
+				if (!(place.node = 
+				      reiser4_tree_child_node(tree, &place)))
+				{
+					return -EIO;
+				}
+		
+				if ((res = pre_func(place.node, data)) < 0)
+					return res;
+				
+				/* If res != 0, lookup is needed. */
+				if (res) break;
+				
+				count = reiser4_node_items(place.node);
+				place.pos.item = -1;
+				
+				continue;
+			}
+			
+                        /* Get the key of the next item. */
+                        if ((res = reiser4_tree_next_key(tree, &place, &key)))
+                                return res;
+
+                        /* Call func for the item. */
+                        if ((res = func(&place, data)) < 0)
+                                return res;
+
+                        /* If res != 0, lookup is needed. */
+                        if (res) break;
+                }
+        }
+
+        return 0;
 }
 
 /* Makes copy of @src_tree to @dst_tree */

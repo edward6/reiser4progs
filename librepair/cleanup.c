@@ -159,8 +159,8 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	aal_gauge_touch(cleanup->gauge);
 	time(&cleanup->stat.time);
 
-	if ((res = repair_tree_scan(cleanup->repair->fs->tree, 
-				    cb_node_cleanup, cleanup)))
+	if ((res = reiser4_tree_scan(cleanup->repair->fs->tree,
+				     NULL, cb_node_cleanup, cleanup)))
 		goto error;
 
 	aal_gauge_done(cleanup->gauge);

@@ -163,7 +163,7 @@ void sdext_plug_print(stat_entity_t *stat,
 	sdext_plug_t *ext;
 	uint16_t count, i;
 
-	aal_assert("vpf-1603", ext != NULL);
+	aal_assert("vpf-1603", stat != NULL);
 	aal_assert("vpf-1604", stream != NULL);
 	
 	ext = (sdext_plug_t *)stat_body(stat);
