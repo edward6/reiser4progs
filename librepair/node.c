@@ -50,13 +50,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		pos->unit = MAX_UINT32;
 		
 		/* Open the item, checking its plugin id. */
-		if (reiser4_place_fetch(&place)) {
-			fsck_mess("Node (%llu): Failed to open the item (%u)."
-				  "%s", node->block->nr, pos->item, mode ==
-				  RM_BUILD ? " Removed." : "");
-			
-			goto error_remove_item;
-		} 
+		if (reiser4_place_fetch(&place))
+			return -EINVAL;
 		
 		reiser4_key_assign(&key, &place.key);
 

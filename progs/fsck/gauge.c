@@ -216,11 +216,7 @@ static void progress_end(repair_progress_t *progress) {
 			aal_gauge_update(progress->data, hint->percent);
 			return;
 		}
-	} else if (gauge->type == GAUGE_PERCENTAGE) {
-		aal_assert("vpf-894", progress->u.rate.total == 
-			   progress->u.rate.done);
-	}
-
+	} 
 
 	aal_gauge_done(progress->data);
 

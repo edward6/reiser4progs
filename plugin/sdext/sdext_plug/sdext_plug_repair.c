@@ -7,18 +7,20 @@
 #include "sdext_plug.h"
 #include <repair/plugin.h>
 
+#define PSET_MEMBER_LEN 10
+
 char *opset_name[OPSET_STORE_LAST] = {
-	[OPSET_OBJ] =	  "object    ",
-	[OPSET_DIR] =	  "directory ",
+	[OPSET_OBJ] =	  "object",
+	[OPSET_DIR] =	  "directory",
 	[OPSET_PERM] =	  "permission",
 	[OPSET_POLICY] =  "formatting",
-	[OPSET_HASH] =	  "hash      ",
-	[OPSET_FIBRE] =   "fibration ",
-	[OPSET_STAT] =	  "statdata  ",
-	[OPSET_DIRITEM] = "diritem   ",
-	[OPSET_CRYPTO] =  "crypto    ",
-	[OPSET_DIGEST] =  "digest    ",
-	[OPSET_COMPRES] = "compress  "
+	[OPSET_HASH] =	  "hash",
+	[OPSET_FIBRE] =   "fibration",
+	[OPSET_STAT] =	  "statdata",
+	[OPSET_DIRITEM] = "diritem",
+	[OPSET_CRYPTO] =  "crypto",
+	[OPSET_DIGEST] =  "digest",
+	[OPSET_COMPRES] = "compress"
 };
 
 errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
@@ -154,8 +156,8 @@ void sdext_plug_print(stat_entity_t *stat,
 		
 		plug = sdext_plug_core->pset_ops.find(mem, id);
 
-		aal_stream_format(stream, "    %s : id = %u",
-				  opset_name[mem], id);
+		aal_stream_format(stream, "    %*s : id = %u",
+				  PSET_MEMBER_LEN, opset_name[mem], id);
 
 		if (plug && plug != INVAL_PTR) 
 			aal_stream_format(stream, " (%s)\n", plug->label);

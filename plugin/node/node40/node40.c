@@ -245,13 +245,14 @@ static errno_t node40_get_key(reiser4_node_t *entity,
 	aal_assert("umka-821", key != NULL);
 	aal_assert("umka-939", pos != NULL);
 	
-	aal_assert("umka-2344", pos->item <
-		   node40_items(entity));
-
 	aal_assert("umka-2333", entity != NULL);
 
 	ih = node40_ih_at(entity, pos->item);
-	
+		
+	/* Allow to fetch the item at pos > item count;
+	   but prevent segfault on errors. */
+	aal_assert("vpf-1661", ih > entity->block->data);
+
 	key->plug = entity->kplug;
 	size = key_size(node40_key_pol(entity));
 	aal_memcpy(key->body, ih, size);
@@ -265,30 +266,20 @@ errno_t node40_fetch(reiser4_node_t *entity,
 {
 	void *ih;
 	uint32_t pol;
-	reiser4_plug_t *plug;
 	
 	aal_assert("umka-1813", pos != NULL);
 	aal_assert("umka-1602", place != NULL);
 	aal_assert("umka-1631", entity != NULL);
 	
-	aal_assert("umka-2351", pos->item <
-		   node40_items(entity));
-
 	pol = node40_key_pol(entity);
 	ih = node40_ih_at(entity, pos->item);
 	
-	/* Initializing item's plugin. */
-	if (!(plug = node40_core->factory_ops.ifind(ITEM_PLUG_TYPE,
-						    ih_get_pid(ih, pol))))
-	{
-		aal_error("Can't find item plugin by its id 0x%x.",
-			  ih_get_pid(ih, pol));
-		return -EINVAL;
-	}
+	/* Allow to fetch the item at pos > item count;
+	   but prevent segfault on errors. */
+	aal_assert("vpf-1660", ih > entity->block->data);
 
 	/* Initializing other fields. */
 	place->pos = *pos;
-	place->plug = plug;
 	place->node = entity;
 
 	place->flags = ih_get_flags(ih, pol);
@@ -296,7 +287,20 @@ errno_t node40_fetch(reiser4_node_t *entity,
 	place->body = node40_ib_at(entity, pos->item);
 
 	/* Getting item key. */
-	return node40_get_key(entity, pos, &place->key);
+	if (node40_get_key(entity, pos, &place->key))
+		return -EINVAL;
+
+	/* Initializing item's plugin. */
+	place->plug = node40_core->factory_ops.ifind(ITEM_PLUG_TYPE, 
+						     ih_get_pid(ih, pol));
+	
+	if (!place->plug) {
+		aal_error("Can't find item plugin by its id 0x%x.",
+			  ih_get_pid(ih, pol));
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -444,10 +448,10 @@ errno_t node40_shrink(reiser4_node_t *entity, pos_t *pos,
 
 	pol = node40_key_pol(entity);
 	items = nh_get_num_items(entity);
+	end = node40_ih_at(entity, items - 1);
 
 	if (pos->unit == MAX_UINT32) {
 		headers = count * ih_size(pol);
-		end = node40_ih_at(entity, items - 1);
 
 		/* Moving item header and bodies if it is needed. */
 		if (pos->item + count < items) {
@@ -455,11 +459,12 @@ errno_t node40_shrink(reiser4_node_t *entity, pos_t *pos,
 			/* Moving item bodies */
 			dst = node40_ib_at(entity, pos->item);
 			
-			src = node40_ib_at(entity, pos->item +
-					   count);
+			src = dst + len; 
 
-			size = node40_size(entity, pos, items -
-					   pos->item) - len;
+			/* Remove operation in broken nodes cannot
+			   rely on free_space, do not use node40_size 
+			   here. */
+			size = end - src;
  
 			aal_memmove(dst, src, size);
 
@@ -493,16 +498,18 @@ errno_t node40_shrink(reiser4_node_t *entity, pos_t *pos,
 		
 		/* Moving item bodies */
 		src = node40_ib_at(entity, pos->item) + ilen;
+		
+		/* Remove operation in broken nodes cannot rely on 
+		   free_space, use len instead. */
+
 		dst = src - len;
 
-		size = nh_get_free_space_start(entity) -
-			ih_get_offset(ih, pol) - ilen;
+		size = end - src;
 		
 		aal_memmove(dst, src, size);
 		
 		/* Updating header offsets */
 		cur = ih - ih_size(pol);
-		end = node40_ih_at(entity, items - 1);
 		
 		while (cur >= end) {
 			ih_dec_offset(cur, len, pol);
@@ -541,8 +548,7 @@ errno_t node40_copy(reiser4_node_t *dst_entity, pos_t *dst_pos,
 	items = nh_get_num_items(dst_entity);
 	fss = nh_get_free_space_start(dst_entity);
 	
-	if (!(size = node40_size(src_entity, src_pos, count)))
-		return -EINVAL;
+	size = node40_size(src_entity, src_pos, count);
 	
 	/* Copying item bodies from src node to dst one. */
 	src = node40_ib_at(src_entity, src_pos->item);
@@ -621,11 +627,8 @@ int64_t node40_modify(reiser4_node_t *entity, pos_t *pos,
         }
         
 	/* Preparing place for calling item plugin with them. */
-        if (node40_fetch(entity, pos, &place)) {
-		aal_error("Can't fetch item data. Node %llu, item %u.", 
-			  entity->block->nr, pos->item);
+        if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
-        }
 
 	/* Inserting units into @place. */
 	if ((write = modify_func(&place, hint)) < 0) {
@@ -705,8 +708,10 @@ static int64_t node40_trunc(reiser4_node_t *entity, pos_t *pos,
 		place.pos.unit = 0;
 		
 		if (len >= place.len) {
+			/* It seems that len cannot be > than place.len now. */
 			number = 1;
 			place.pos.unit = MAX_UINT32;
+			len = place.len;
 		}
 
 		if ((res = node40_shrink(entity, &place.pos,
@@ -747,9 +752,7 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 		
 		/* Calculating amount of bytes removed item occupie. Node will
 		   be shrinked by this value. */
-		if (!(len = node40_size(entity, pos, hint->count)))
-			return -EINVAL;
-
+		len = node40_size(entity, pos, hint->count);
 		count = hint->count;
 
 		if (hint->region_func) {
@@ -760,9 +763,9 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 			   that some region is released. */
 			for (; walk.item < pos->item + count; walk.item++) {
 
-				if ((res = node40_fetch(entity, &walk, &place)))
-					return res;
-			
+				if (node40_fetch(entity, &walk, &place))
+					return -EINVAL;
+
 				if (place.plug->o.item_ops->object->layout) {
 					plug_call(place.plug->o.item_ops->object,
 						  layout, &place, hint->region_func,
@@ -781,8 +784,8 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 		   ignored.
 		*/
 
-		if ((res = node40_fetch(entity, pos, &place)))
-			return res;
+		if (node40_fetch(entity, pos, &place))
+			return -EINVAL;
 
 		units = plug_call(place.plug->o.item_ops->balance,
 				  units, &place);
@@ -859,14 +862,14 @@ static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 
 	/* First stage. Fusing item bodies: we should call some item 
 	   method, which will take care about item overhead, etc. */
-	if ((res = node40_fetch(entity, left_pos, &left_place))) {
-		aal_error("Can't fetch left item during items fuse.");
-		return res;
+	if (node40_fetch(entity, left_pos, &left_place)) {
+		aal_error("Can't fetch the left item on fusing.");
+		return -EINVAL;
 	}
 	
-	if ((res = node40_fetch(entity, right_pos, &right_place))) {
-		aal_error("Can't fetch right item during items fuse.");
-		return res;
+	if (node40_fetch(entity, right_pos, &right_place)) {
+		aal_error("Can't fetch the right item on fusing.");
+		return -EINVAL;
 	}
 
 	aal_assert("umka-2686", plug_equal(left_place.plug,
@@ -997,8 +1000,8 @@ static int node40_splittable(reiser4_place_t *place, shift_hint_t *hint) {
 static errno_t node40_border(reiser4_node_t *entity,
 			     int left_border, reiser4_place_t *place)
 {
-	pos_t pos;
 	uint32_t items;
+	pos_t pos;
 	
 	aal_assert("umka-2669", place != NULL);
 	aal_assert("umka-2670", entity != NULL);

@@ -127,6 +127,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
+	if (optind != argc - 1) {
+		resizefs_print_usage(argv[0]);
+		goto error;
+	}
+	
 	if (!(flags & BF_QUIET))
 		misc_print_banner(argv[0]);
 

@@ -129,10 +129,13 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 			goto error;
 		}
 		
-		if ((res |= repair_node_check_level(node, ds->repair->mode)) < 0)
-		{
-			reiser4_node_close(node);
-			goto error;
+		if (!(res & RE_FATAL)) {
+			res |= repair_node_check_level(node, ds->repair->mode);
+			
+			if (res < 0) {
+				reiser4_node_close(node);
+				goto error;
+			}
 		}
 		
 		aal_assert("vpf-812", (res & ~RE_FATAL) == 0);

@@ -604,7 +604,7 @@ static errno_t repair_update(repair_control_t *control) {
 		if (mode != RM_BUILD) {
 			fsck_mess("Free block count %llu found in the format is "
 				  "wrong. %s %llu.", val, mode == RM_CHECK ? 
-				  "Sould be" : "Fixed to", correct);
+				  "Should be" : "Fixed to", correct);
 		}
 
 		if (mode != RM_CHECK)
@@ -621,7 +621,7 @@ static errno_t repair_update(repair_control_t *control) {
 	if (control->oid && control->oid > val) {
 		if (mode != RM_BUILD) {
 			fsck_mess("First not used oid %llu is wrong. %s %llu.",
-				  val, mode == RM_CHECK ? "Sould be" : 
+				  val, mode == RM_CHECK ? "Should be" : 
 				  "Fixed to", control->oid);
 		}
 
@@ -731,7 +731,7 @@ errno_t repair_check(repair_data_t *repair) {
 	}
 
 	if (repair->mode != RM_BUILD && repair->fatal) {
-		aal_warn("\nFatal corruptions were found. "
+		aal_warn("Fatal corruptions were found. "
 			 "Semantic pass is skipped.");
 	} else {
 		/* Check the semantic reiser4 tree. */
@@ -755,7 +755,7 @@ errno_t repair_check(repair_data_t *repair) {
 	}
 	
 	/* Update SB data */
-	if ((res = repair_update(&control))) 
+	if (!repair->fatal && (res = repair_update(&control))) 
 		goto error;
 	
  error:

@@ -242,10 +242,6 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 
 	info = &reg->obj.info;
 
-	/* Convertion is needed, calcualate accurately for BM_BUILD mode only. */
-	if (mode != RM_BUILD)
-		return 2;
-
 	if (plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT])) {
 		/* Extent found, all previous items were tails, convert all 
 		   previous ones to extents. */

@@ -467,6 +467,9 @@ static void repair_filter_update(repair_filter_t *fd) {
 	format = fd->repair->fs->format;
 	
 	if (fd->flags) {
+		reiser4_tree_t *tree;
+		reiser4_node_t *node;
+		
 		if (!(fd->flags & RE_PTR)) {
 			fsck_mess("Root node (%llu): the node is %s. %s",
 				  reiser4_format_get_root(format), 
@@ -480,17 +483,20 @@ static void repair_filter_update(repair_filter_t *fd) {
 			aal_warn("Reiser4 storage tree does not exist. "
 				 "Filter pass skipped.");
 		}
+	
+		tree = fd->repair->fs->tree;
+		node = fd->repair->fs->tree->root;
+		
+		if (node) {
+			reiser4_tree_disconnect_node(tree, node);
+
+			/* If there is another pointer to this node, 
+			   changes should be saved. */
+			reiser4_node_fini(node);
+			tree->root = NULL;
+		}
 
 		if (fd->repair->mode == RM_BUILD) {
-			reiser4_node_t *root;
-			
-			root = fd->repair->fs->tree->root;
-			
-			if (root) {			
-				reiser4_node_fini(root);			
-				fd->repair->fs->tree->root = NULL;
-			}
-			
 			reiser4_format_set_root(format, INVAL_BLK);
 			fd->repair->fatal--;
 		}

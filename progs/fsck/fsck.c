@@ -305,10 +305,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 
 	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
 	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
-
-	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, 
-				  data->logfile ? data->logfile : stderr);
-	
+	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, data->logfile);
 	return fsck_ask_confirmation(data, argv[optind]);
 	
  user_error:
@@ -586,4 +583,3 @@ int main(int argc, char *argv[]) {
 	
 	return ex;
 }
-

@@ -28,13 +28,12 @@ static errno_t node40_region_delete(reiser4_node_t *node,
 				    uint16_t start_pos, 
 				    uint16_t end_pos) 
 {
-	void *ih;
-	uint8_t i;
-	pos_t pos;
-
+	uint32_t count;
 	uint32_t pol;
 	uint32_t len;
-	uint32_t count;
+	pos_t pos;
+	uint8_t i;
+	void *ih;
      
 	aal_assert("vpf-201", node != NULL);
 	aal_assert("vpf-202", node->block != NULL);
@@ -56,282 +55,205 @@ static errno_t node40_region_delete(reiser4_node_t *node,
 	count = end_pos - pos.item;
 	len = node40_size(node, &pos, count);
 
-	if (node40_shrink((reiser4_node_t *)node, &pos, len, count)) {
-		aal_error("Node (%llu): Failed to delete the item (%d) "
-			  "of a region [%u..%u].", node->block->nr,
-			  i - pos.item, start_pos, end_pos);
-		return -EIO;
-	}
-	
-	return 0;    
+	return node40_shrink((reiser4_node_t *)node, &pos, len, count);
 }
 
-static bool_t node40_item_count_valid(reiser4_node_t *node,
-				      uint32_t count)
-{
-	uint32_t pol = node40_key_pol(node);
-	uint32_t blksize = node->block->size;
+/* Count is valid if:
+   free_space_start + free_space == block_size - count * ih size */
+static int node40_count_valid(reiser4_node_t *node) {
+	uint32_t count;
+	uint32_t pol;
 	
-	return !( ( blksize - sizeof(node40_header_t) ) / 
-		  ( ih_size(pol) + MIN_ITEM_LEN ) 
-		  < count);
-}
-
-static uint32_t node40_count_estimate(reiser4_node_t *node) {
-	uint32_t num, blk_size, pol;
-	
-	aal_assert("vpf-804", node != NULL);
-	aal_assert("vpf-806", node->block != NULL);
-	
+	count = nh_get_num_items(node);
 	pol = node40_key_pol(node);
-	blk_size = node->block->size;
 	
-	/* Free space start is less then node_header + MIN_ITEM_LEN. */
-	if (sizeof(node40_header_t) + MIN_ITEM_LEN > 
-	    nh_get_free_space_start(node))
+	if (count > node->block->size / ih_size(pol))
 		return 0;
 	
-	/* Free space start is greater then the first item  */
-	if (blk_size - ih_size(pol) < nh_get_free_space_start(node))
+	if (nh_get_free_space_start(node) > node->block->size)
 		return 0;
 	
-	/* Free space + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them 
-	 * blksize. */
-	if (nh_get_free_space(node) > blk_size -
-	    sizeof(node40_header_t) - ih_size(pol) - MIN_ITEM_LEN)
-	{
+	if (nh_get_free_space(node) > node->block->size)
 		return 0;
+
+	return (nh_get_free_space_start(node) + nh_get_free_space(node) + 
+		count * ih_size(pol) == node->block->size);
+}
+
+/* Look through ih array looking for the last valid item location. This will 
+   be the last valid item. */
+static uint32_t node40_estimate_count(reiser4_node_t *node) {
+	uint32_t offset, left, right;
+	uint32_t count, last, i;
+	uint32_t pol;
+	
+	count = nh_get_num_items(node);
+	pol = node40_key_pol(node);
+	
+	left = sizeof(node40_header_t);
+	right = node->block->size - ih_size(pol) - MIN_ITEM_LEN;
+	last = 0;
+
+	for (i = 0 ; ; i++, left += MIN_ITEM_LEN, right -= ih_size(pol)) {
+		if (left > right)
+			break;
+		
+		offset = ih_get_offset(node40_ih_at(node, i), pol);
+		
+		if (offset >= left && offset <= right) {
+			last = i;
+			left = offset;
+		}
+	}
+
+	return last + 1;
+}
+
+static errno_t node40_space_check(reiser4_node_t *node, uint32_t pos, 
+				  uint32_t offset, uint8_t mode)
+{
+	errno_t res = 0;
+	uint32_t space;
+	uint32_t pol;
+
+	space = nh_get_free_space_start(node);
+	pol = node40_key_pol(node);
+	
+	/* Last relable position is not free space spart. Correct it. */
+	if (offset != space) {
+		/* There is left region with broken offsets, remove it. */
+		fsck_mess("Node (%llu): Free space start (%u) is wrong. "
+			  "Should be (%u). %s", node->block->nr, space, 
+			  offset, mode == RM_BUILD ? "Fixed." : "");
+		
+		if (mode == RM_BUILD) {
+			nh_set_free_space(node, nh_get_free_space(node) +
+					  space - offset);
+			
+			nh_set_free_space_start(node, offset);
+			nh_set_num_items(node, pos);
+			node40_mkdirty(node);
+		} else {
+			res |= RE_FATAL;
+		}
 	}
 	
-	num = nh_get_free_space_start(node) + nh_get_free_space(node);
+	space = node->block->size - nh_get_free_space_start(node) - 
+		ih_size(pol) * nh_get_num_items(node);
 	
-	/* Free space end > first item header offset. */
-	if (num > blk_size - ih_size(pol))
-		return 0;
-	
-	num = blk_size - num;
-	
-	/* The space between free space end and the end of block should be 
-	 * divisible by item_header. */
-	if (num % ih_size(pol))
-		return 0;
-	
-	num /= ih_size(pol);
-	
-	if (!node40_item_count_valid(node, num))
-		return 0;
-	
-	return num;
+	if (space != nh_get_free_space(node)) {
+		/* Free space is wrong. */
+		fsck_mess("Node (%llu): the free space (%u) is wrong. "
+			  "Should be (%u). %s", node->block->nr, 
+			  nh_get_free_space(node), space, 
+			  mode == RM_CHECK ? "" : "Fixed.");
+		
+		if (mode == RM_CHECK) {
+			res |= RE_FIXABLE;
+		} else {
+			nh_set_free_space(node, space);
+			node40_mkdirty(node);
+		}
+	}
+
+	return res;
 }
 
 /* Count of items is correct. Free space fields and item locations should be 
  * checked/recovered if broken. */
-static errno_t node40_item_check_array(reiser4_node_t *node, uint8_t mode) {
-	uint32_t limit, offset, last_relable, count, i, last_pos;
-	bool_t free_valid;
+static errno_t node40_ih_array_check(reiser4_node_t *node, uint8_t mode) {
+	uint32_t right, left, offset;
+	uint32_t last_pos, count, i;
 	errno_t res = 0;
 	uint32_t pol;
 	blk_t blk;
 	
 	aal_assert("vpf-208", node != NULL);
 	aal_assert("vpf-209", node->block != NULL);
-	
-	offset = 0;
 
 	blk = node->block->nr;
 	pol = node40_key_pol(node);
 	
-	/* Free space fields cossider as valid if count calculated on the 
-	   base of it matches the count ofrm the node_header. */
+	offset = 0;
+	last_pos = 0;
 	count = nh_get_num_items(node);
 	
-	free_valid = (node40_count_estimate(node) == count);
+	left = sizeof(node40_header_t);
+	right = node->block->size - count * ih_size(pol);
 	
-	limit = free_valid ? nh_get_free_space_start(node) : 
-		node->block->size - count * ih_size(pol);
-	
-	last_pos = 0;
-	last_relable = sizeof(node40_header_t);
-	for(i = 0; i <= count; i++) {
+	for(i = 0; i <= count; i++, left += MIN_ITEM_LEN) {
 		offset = (i == count) ? nh_get_free_space_start(node) : 
 			ih_get_offset(node40_ih_at(node, i), pol);
 		
 		if (i == 0) {
-			if (offset == last_relable)
+			if (offset == left)
 				continue;
 			
-			fsck_mess("Node (%llu), item (0): Offset "
-				  "(%u) is wrong. Should be (%u). "
-				  "%s", blk, offset, last_relable, 
-				  mode == RM_BUILD ? "Fixed." : "");
+			fsck_mess("Node (%llu), item (0): Offset (%u) is "
+				  "wrong. Should be (%u). %s", blk, offset, 
+				  left, mode == RM_BUILD ? "Fixed." : "");
 
-			if (mode == RM_BUILD) {
-				ih_set_offset(node40_ih_at(node, 0), 
-					      last_relable, pol);
-
-				node40_mkdirty((reiser4_node_t *)node);
-			} else
+			if (mode != RM_BUILD) {
 				res |= RE_FATAL;
-
+				continue;
+			}
+			
+			ih_set_offset(node40_ih_at(node, 0), left, pol);
+			node40_mkdirty(node);
 			continue;
 		}
 		
-		if (offset < last_relable + (i - last_pos) * MIN_ITEM_LEN || 
-		    offset + (count - i) * MIN_ITEM_LEN > limit) 
+		if (offset < left || 
+		    offset + (count - i) * MIN_ITEM_LEN > right) 
 		{
+			/* i-th offset is wrong. Needs to be removed. */
+			if (i == count)
+				break;
+
 			fsck_mess("Node (%llu), item (%u): Offset (%u) "
 				  "is wrong.", blk, i, offset);
 			
-			res |= (mode == RM_CHECK ? RE_FATAL : 0);
-		} else {
-			if ((mode == RM_BUILD) && (last_pos != i - 1)) {
-				/* Some items are to be deleted. */
-				fsck_mess("Node (%llu): Region of items "
-					  "[%d-%d] with wrong offsets is "
-					  "deleted.", blk, last_pos, i - 1);
-				limit -= (offset - last_relable);
-				count -= (i - last_pos);
-				if (node40_region_delete(node, last_pos + 1, i))
-					return -EINVAL;
-				
-				i = last_pos;
-			} else {	    
-				last_pos = i;
-				last_relable = (i == count) ?
-					nh_get_free_space_start(node) : 
-					ih_get_offset(node40_ih_at(node, i), pol);
-			}
+			res |= (mode == RM_BUILD ? 0 : RE_FATAL);
+			continue;
 		}
-	}
-	
-	if (free_valid) {
-		aal_assert("vpf-807", node40_count_estimate(node) == count);
-	}
-    
-	/* Last relable position is not free space spart. Correct it. */
-	if (last_pos != count) {	
-		/* There is left region with broken offsets, remove it. */
-		fsck_mess("Node (%llu): Free space start (%u) is wrong. "
-			  "Should be (%u). %s", blk, offset, last_relable, 
-			  mode == RM_BUILD ? "Fixed." : "");
-		
-		if (mode == RM_BUILD) {
-			nh_set_free_space(node, nh_get_free_space(node) + 
-					  offset - last_relable);
-			
-			nh_set_free_space_start(node, last_relable);
-			node40_mkdirty((reiser4_node_t *)node);
-		} else {
-			res |= RE_FATAL;
-		}
-	}
-	
-	last_relable = node->block->size - last_relable - 
-		ih_size(pol) * count;
-	
-	if (last_relable != nh_get_free_space(node)) {
-		/* Free space is wrong. */
-		fsck_mess("Node (%llu): the free space (%u) is wrong. "
-			  "Should be (%u). %s", blk, 
-			  nh_get_free_space(node), last_relable,
-			  mode == RM_CHECK ? "" : "Fixed.");
-		
-		if (mode == RM_CHECK) {
-			res |= RE_FIXABLE;
-		} else {
-			nh_set_free_space(node, last_relable);
-			node40_mkdirty((reiser4_node_t *)node);
-		}
-	}
-	
-	return res;
-}
 
-static errno_t node40_item_find_array(reiser4_node_t *node, uint8_t mode) {
-	uint32_t offset, i, nr = 0;
-	uint32_t pol;
-	blk_t blk;
-	
-	aal_assert("vpf-800", node != NULL);
-	
-	blk = node->block->nr;
-	pol = node40_key_pol(node);
-	
-	for (i = 0; ; i++) {
-		offset = ih_get_offset(node40_ih_at(node, i), pol);
-		
-		if (i) {
-			if (offset < sizeof(node40_header_t) + i * MIN_ITEM_LEN)
-				break;	
-		} else {
-			if (offset != sizeof(node40_header_t))
-				return RE_FATAL;
-		}
-		
-		if (node->block->size - ih_size(pol) * (i + 1) -
-		    MIN_ITEM_LEN < offset)
-		{
-			break;
-		}
-		
-		nr++;
+		/* i-th offset is ok. */
+		if ((mode == RM_BUILD) && (last_pos != i - 1)){
+			/* Some items need to be removed. */
+
+			uint32_t delta;
+
+			fsck_mess("Node (%llu): Region of items "
+				  "[%d-%d] with wrong offsets is "
+				  "deleted.", blk, last_pos, i - 1);
+
+			delta = i - last_pos;
+			count -= delta;
+			right += delta * ih_size(pol);
+
+			if (node40_region_delete(node, last_pos + 1, i))
+				return -EINVAL;
+
+			i = last_pos;
+		} 
+
+		/* Set the last correct offset and the keft limit. */
+		last_pos = i;
+		left = (i == count) ? nh_get_free_space_start(node) : 
+			ih_get_offset(node40_ih_at(node, i), pol);
 	}
 	
-	/* Only nr - 1 item can be recovered as free space start is unknown. */
-	if (nr <= 1)
-		return RE_FATAL;
-	
-	if (--nr != nh_get_num_items(node)) {
-		fsck_mess("Node (%llu): Count of items (%u) is wrong. "
-			  "Found only (%u) items. %s", blk, 
-			  nh_get_num_items(node), nr, 
-			  mode == RM_BUILD ? "Fixed." : "");
-		
-		if (mode == RM_BUILD) {
-			nh_set_num_items(node, nr);
-			node40_mkdirty((reiser4_node_t *)node);
-		} else
-			return RE_FATAL;
-	}
-	
-	offset = ih_get_offset(node40_ih_at(node, nr + 1), pol);
-	if (offset != nh_get_free_space_start(node)) {
-		fsck_mess("Node (%llu): Free space start (%u) is wrong. "
-			  "(%u) looks correct. %s", blk, 
-			  nh_get_free_space_start(node), offset, 
-			  mode == RM_CHECK ? "" : "Fixed.");
-		
-		if (mode != RM_CHECK) {
-			nh_set_free_space_start(node, offset);
-			node40_mkdirty((reiser4_node_t *)node);
-		} else
-			return RE_FIXABLE;
-	}
-	
-	offset = node->block->size - offset - 
-		nr * ih_size(pol);
-	
-	if (offset != nh_get_free_space_start(node)) {
-		fsck_mess("Node (%llu): Free space (%u) is wrong. "
-			  "Should be (%u). %s", blk, 
-			  nh_get_free_space(node), offset, 
-			  mode == RM_CHECK ? "" : "Fixed.");
-		
-		if (mode != RM_CHECK) {
-			nh_set_free_space(node, offset);
-			node40_mkdirty((reiser4_node_t *)node);
-		} else
-			return RE_FIXABLE;
-	}
-	
-	return 0;
+	left -= (i - last_pos) * MIN_ITEM_LEN;
+	res |= node40_space_check(node, last_pos, left, mode);
+
+	return res;
 }
 
 /* Checks the count of items written in node_header. If it is wrong, it tries
    to estimate it on the base of free_space fields and recover if REBUILD mode.
    Returns FATAL otherwise. */
 static errno_t node40_count_check(reiser4_node_t *node, uint8_t mode) {
-	uint32_t num;
+	uint32_t num, count;
 	blk_t blk;
 	
 	aal_assert("vpf-802", node != NULL);
@@ -339,45 +261,93 @@ static errno_t node40_count_check(reiser4_node_t *node, uint8_t mode) {
 	
 	blk = node->block->nr;
 	
-	if (node40_item_count_valid(node, nh_get_num_items(node)))
+	/* Check the count of items. */
+	if (node40_count_valid(node)) 
 		return 0;
 	
-	/* Count is wrong. Try to recover it if possible. */
-	num = node40_count_estimate(node);
+	/* Count is probably is not valid. Estimate the count. */
+	num = node40_estimate_count(node);
+	count = nh_get_num_items(node);
 	
-	fsck_mess("Node (%llu): Count of items (%u) is wrong. Only (%u) "
-		  "items found.%s", blk, nh_get_num_items(node), num, 
+	if (num >= count)
+		return 0;
+	
+	fsck_mess("Node (%llu): Count of items (%u) is wrong. "
+		  "Only (%u) items found.%s", blk, count, num, 
 		  mode == RM_BUILD ? " Fixed." : "");
-	
+
 	/* Recover is impossible. */
-	if (num == 0 || mode != RM_BUILD) 
+	if (mode != RM_BUILD)
 		return RE_FATAL;
-	
+
 	nh_set_num_items(node, num);
-	node40_mkdirty((reiser4_node_t *)node);
-	
+	node40_mkdirty(node);
+
 	return 0;
 }
 
-errno_t node40_check_struct(reiser4_node_t *entity, uint8_t mode) {
+static errno_t node40_iplug_check(reiser4_node_t *node, uint8_t mode) {
+	uint32_t count, len;
+	uint32_t pol;
+	uint16_t pid;
+	errno_t res;
+	pos_t pos;
+	void *ih;
+	
+	count = nh_get_num_items(node);
+	ih = node40_ih_at(node, 0);
+	pol = node40_key_pol(node);
+	pos.unit = MAX_UINT32;
+	res = 0;
+
+	for (pos.item = 0; pos.item < count; pos.item++, ih -= ih_size(pol)) {
+		pid = ih_get_pid(ih, pol);
+		
+		if (!node40_core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) {
+			fsck_mess("Node (%llu), item (%u): the item of unknown "
+				  "plugin id (0x%x) is found.%s", node->block->nr,
+				  pos.item, pid, mode == RM_BUILD ? " Removed." :
+				  "");
+			
+			if (mode != RM_BUILD) {
+				res |= RE_FATAL;
+				continue;
+			}
+			
+			/* Item plugin cannot be found, remove it. */
+			len = node40_size(node, &pos, 1);
+			
+			if ((res = node40_shrink(node, &pos, len, 1)))
+				return res;
+		}
+	}
+
+	return res;
+}
+
+errno_t node40_check_struct(reiser4_node_t *node, uint8_t mode) {
 	errno_t res;
 	
-	aal_assert("vpf-194", entity != NULL);
+	aal_assert("vpf-194", node != NULL);
 	
 	/* Check the content of the node40 header. */
-	if ((res = node40_count_check(entity, mode))) {
-		/* Count is wrong and not recoverable on the 
-		   base of free space end. */
-		if (mode != RM_BUILD)
-			return res;
-		
-		/* Recover count on the base of correct item 
-		   array if one exists. */
-		return node40_item_find_array(entity, mode);
+	if ((res = node40_count_check(node, mode))) 
+		return res;
+
+	if (nh_get_num_items(node) == 0) {
+		uint32_t offset = sizeof(node40_header_t);
+		return node40_space_check(node, 0, offset, mode);
 	}
 	
-	/* Count looks ok. Recover item array. */
-	return node40_item_check_array(entity, mode);    
+	/* Count looks ok. Recover the item array. */
+	res = node40_ih_array_check(node, mode);
+
+	if (repair_error_fatal(res))
+		return res;
+
+	res |= node40_iplug_check(node, mode);
+
+	return res;
 }
 
 errno_t node40_corrupt(reiser4_node_t *entity, uint16_t options) {
@@ -385,7 +355,7 @@ errno_t node40_corrupt(reiser4_node_t *entity, uint16_t options) {
 	
 	for(i = 0; i < nh_get_num_items(entity) + 1; i++) {
 		if (aal_test_bit(&options, i)) {
-			node40_set_offset_at(entity, i, 0xffff);
+			node40_set_offset_at(entity, i, 0xafff);
 		}
 	}
 	
@@ -655,8 +625,14 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 	if (start == MAX_UINT32)
 		start = 0;
 	
-	last = node40_count_estimate(entity);
 	num = node40_items(entity);
+	if (node40_count_valid(entity)) {
+		last = num;
+	} else {
+		last = node40_estimate_count(entity);
+		if (last > nh_get_num_items(entity))
+			last = nh_get_num_items(entity);
+	}
 	
 	if (count != MAX_UINT32 && last > start + count)
 		last = start + count;
@@ -670,25 +646,29 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 					  "------------------------------------"
 					  "--------------\n");
 		}
-			
-		if (node40_fetch(entity, &pos, &place))
-			continue;
+
+		place.plug = NULL;
+		node40_fetch(entity, &pos, &place);
 		
 		ih = node40_ih_at(entity, pos.item);
+
 		key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
 		
 		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF=%u, "
 				  "LEN=%u, flags=0x%x ", pos.item,
-				  pos.item >= num ? "D" : " ",
-				  reiser4_igname[place.plug->id.group],
-				  place.plug->label, key, 
-				  ih_get_offset(ih, pol),
+				  pos.item >= num ? "D" : " ", place.plug ? 
+				  reiser4_igname[place.plug->id.group] : 
+				  "UNKN", place.plug ? place.plug->label :
+				  "UNKN", key, ih_get_offset(ih, pol), 
 				  place.len, ih_get_flags(ih, pol));
 
 		/* Printing item by means of calling item print method if it is
 		   implemented. If it is not, then print common item information
 		   like key, len, etc. */
-		if (place.plug->o.item_ops->debug->print) {
+		if (place.plug && place.plug->o.item_ops->debug->print &&
+		    place.body - entity->block->data + place.len < 
+		    entity->block->size) 
+		{
 			plug_call(place.plug->o.item_ops->debug,
 				  print, &place, stream, options);
 		} else {
@@ -700,4 +680,145 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 			  "===================================="
 			  "==============\n");
 }
+#if 0
+static bool_t node40_item_count_valid(reiser4_node_t *node,
+				      uint32_t count)
+{
+	uint32_t pol = node40_key_pol(node);
+	uint32_t blksize = node->block->size;
+	
+	return !( ( blksize - sizeof(node40_header_t) ) / 
+		  ( ih_size(pol) + MIN_ITEM_LEN ) 
+		  < count);
+}
+
+static uint32_t node40_get_count(reiser4_node_t *node) {
+	uint32_t num, blk_size, pol;
+	
+	aal_assert("vpf-804", node != NULL);
+	aal_assert("vpf-806", node->block != NULL);
+	
+	pol = node40_key_pol(node);
+	blk_size = node->block->size;
+	
+	/* Free space start is less then node_header + MIN_ITEM_LEN. */
+	if (sizeof(node40_header_t) + MIN_ITEM_LEN > 
+	    nh_get_free_space_start(node))
+		return 0;
+	
+	/* Free space start is greater then the first item  */
+	if (blk_size - ih_size(pol) < nh_get_free_space_start(node))
+		return 0;
+	
+	/* Free space + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them 
+	 * blksize. */
+	if (nh_get_free_space(node) > blk_size -
+	    sizeof(node40_header_t) - ih_size(pol) - MIN_ITEM_LEN)
+	{
+		return 0;
+	}
+	
+	num = nh_get_free_space_start(node) + nh_get_free_space(node);
+	
+	/* Free space end > first item header offset. */
+	if (num > blk_size - ih_size(pol))
+		return 0;
+	
+	num = blk_size - num;
+	
+	/* The space between free space end and the end of block should be 
+	 * divisible by item_header. */
+	if (num % ih_size(pol))
+		return 0;
+	
+	num /= ih_size(pol);
+	
+	if (!node40_item_count_valid(node, num))
+		return 0;
+	
+	return num;
+}
+
+static errno_t node40_item_find_array(reiser4_node_t *node, uint8_t mode) {
+	uint32_t offset, i, nr = 0;
+	uint32_t pol;
+	blk_t blk;
+	
+	aal_assert("vpf-800", node != NULL);
+	
+	blk = node->block->nr;
+	pol = node40_key_pol(node);
+	
+	for (i = 0; ; i++) {
+		offset = ih_get_offset(node40_ih_at(node, i), pol);
+		
+		if (i) {
+			if (offset < sizeof(node40_header_t) + i * MIN_ITEM_LEN)
+				break;	
+		} else {
+			if (offset != sizeof(node40_header_t))
+				return RE_FATAL;
+		}
+		
+		if (node->block->size - ih_size(pol) * (i + 1) -
+		    MIN_ITEM_LEN < offset)
+		{
+			break;
+		}
+		
+		nr++;
+	}
+	
+	/* Only nr - 1 item can be recovered as free space start is unknown. */
+	if (nr <= 1)
+		return RE_FATAL;
+	
+	if (--nr != nh_get_num_items(node)) {
+		fsck_mess("Node (%llu): Count of items (%u) is wrong. "
+			  "Found only (%u) items. %s", blk, 
+			  nh_get_num_items(node), nr, 
+			  mode == RM_BUILD ? "Fixed." : "");
+		
+		if (mode == RM_BUILD) {
+			nh_set_num_items(node, nr);
+			node40_mkdirty((reiser4_node_t *)node);
+		} else
+			return RE_FATAL;
+	}
+	
+	offset = ih_get_offset(node40_ih_at(node, nr + 1), pol);
+	if (offset != nh_get_free_space_start(node)) {
+		fsck_mess("Node (%llu): Free space start (%u) is wrong. "
+			  "(%u) looks correct. %s", blk, 
+			  nh_get_free_space_start(node), offset, 
+			  mode == RM_CHECK ? "" : "Fixed.");
+		
+		if (mode != RM_CHECK) {
+			nh_set_free_space_start(node, offset);
+			node40_mkdirty((reiser4_node_t *)node);
+		} else
+			return RE_FIXABLE;
+	}
+	
+	offset = node->block->size - offset - 
+		nr * ih_size(pol);
+	
+	if (offset != nh_get_free_space_start(node)) {
+		fsck_mess("Node (%llu): Free space (%u) is wrong. "
+			  "Should be (%u). %s", blk, 
+			  nh_get_free_space(node), offset, 
+			  mode == RM_CHECK ? "" : "Fixed.");
+		
+		if (mode != RM_CHECK) {
+			nh_set_free_space(node, offset);
+			node40_mkdirty((reiser4_node_t *)node);
+		} else
+			return RE_FIXABLE;
+	}
+	
+	return 0;
+}
+#endif
+
+
 #endif

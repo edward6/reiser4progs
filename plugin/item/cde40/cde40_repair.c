@@ -854,24 +854,28 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *trans) {
 
 /* Prints cde item into passed @stream */
 void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options) {
-	uint32_t pol;
-	uint32_t i, j;
-	char name[256];
+	uint32_t i, j, count;
+	uint32_t namewidth;
 	uint64_t locality;
 	uint64_t objectid;
-	uint32_t namewidth;
+	char name[256];
+	uint32_t pol;
 	
 	aal_assert("umka-548", place != NULL);
 	aal_assert("umka-549", stream != NULL);
 
 	aal_stream_format(stream, "UNITS=%u\n", cde_get_units(place));
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
-			  "SDKEY%*s\n", PRINT_NAME_LIMIT - 5, " ", 29, " ", 13, " ");
+			  "SDKEY%*s\n", PRINT_NAME_LIMIT - 5, " ", 29, 
+			  " ", 13, " ");
 	
 	pol = cde40_key_pol(place);
+	count = (place->len - sizeof(cde40_t)) / (en_size(pol));
+	if (count > cde_get_units(place))
+		count = cde_get_units(place);
 
 	/* Loop though the all entries and print them to @stream. */
-	for (i = 0; i < cde_get_units(place); i++) {
+	for (i = 0; i < count; i++) {
 		uint64_t offset, haobj;
 		void *objid = cde40_objid(place, i);
 		void *entry = cde40_entry(place, i);

@@ -152,13 +152,19 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	reg40_reset((object_entity_t *)reg);
 
 #ifndef ENABLE_STAND_ALONE
-	/* Get the body plugin in use. */
-	if (reg40_update_body(reg) <= 0) {
-		aal_free(reg);
-		return NULL;
-	}
+	{
+		lookup_t lookup;
 
-	reg->body_plug = reg->body.plug;
+		/* Get the body plugin in use. */
+		if ((lookup = reg40_update_body(reg)) < 0) {
+			aal_free(reg);
+			return NULL;
+		}
+
+		if (lookup) {
+			reg->body_plug = reg->body.plug;
+		}
+	}
 #endif
 
 	return (object_entity_t *)reg;
@@ -311,7 +317,7 @@ static errno_t reg40_check_body(object_entity_t *entity,
 	reg = (reg40_t *)entity;
 	
 	/* There is nothing to convert? */
-	if (!reg->body_plug || !new_size)
+	if (!new_size)
 		return 0;
 
 	/* Getting item plugin that should be used according to 
@@ -322,6 +328,11 @@ static errno_t reg40_check_body(object_entity_t *entity,
 		return -EIO;
 	}
 
+	if (!reg->body_plug) {
+		reg->body_plug = plug;
+		return 0;
+	}
+		
 	/* Comparing new plugin and old one. If they are the same, conversion if
 	   not needed. */
 	if (plug_equal(plug, reg->body_plug))
@@ -329,7 +340,6 @@ static errno_t reg40_check_body(object_entity_t *entity,
 
 	/* Convert file. */
 	reg->body_plug = plug;
-	
 	return reg40_convert(entity, plug);
 }
 
@@ -412,15 +422,17 @@ static int64_t reg40_write(object_entity_t *entity,
 	int64_t bytes;
 	uint64_t size;
 	uint64_t offset;
+	uint64_t new_size;
 
 	aal_assert("umka-2281", entity != NULL);
 
 	reg = (reg40_t *)entity;
 	size = reg40_size(entity);
 	offset = reg40_offset(entity);
-
+	new_size = offset + n > size ? offset + n : size;
+	
 	/* Convert body items if needed. */
-	if ((res = reg40_check_body(entity, offset + n))) {
+	if ((res = reg40_check_body(entity, new_size))) {
 		aal_error("Can't perform tail conversion.");
 		return res;
 	}
@@ -431,13 +443,11 @@ static int64_t reg40_write(object_entity_t *entity,
 
 		/* Seek back to size of hole, as reg40_put() uses 
 		   @reg->position as data write offset. */
-		reg40_seek(entity, offset - hole);
+		reg40_seek(entity, size);
 
 		/* Put a hole of size @hole. */
 		if ((bytes = reg40_put(entity, NULL, hole, NULL)) < 0)
 			return bytes;
-
-		size += hole;
 	} else {
 		bytes = 0;
 	}
@@ -448,18 +458,13 @@ static int64_t reg40_write(object_entity_t *entity,
 
 	bytes += res;
 
-	/* Updating stat data fields. */
+	/* Updating the SD place and update size, bytes there. */
 	if ((res = obj40_update(&reg->obj)))
 		return res;
 
-	/* Size should be updated only if we write beyond of size. */
-	if (offset >= size)
-		size += n;
-
 	/* Calculating new @bytes and updating stat data fields. */
 	bytes += obj40_get_bytes(&reg->obj);
-	
-	return obj40_touch(&reg->obj, size, bytes);
+	return obj40_touch(&reg->obj, new_size, bytes);
 }
 
 /* Truncates file to passed size @n. */
