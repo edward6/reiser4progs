@@ -327,8 +327,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	if ((res = reiser4_tree_connect_node(tree, place.node, node)))
 		return res;
 	
-	reiser4_tree_neigh_node(tree, node, D_LEFT);
-	reiser4_tree_neigh_node(tree, node, D_RIGHT);
+	reiser4_tree_neigh_node(tree, node, DIR_LEFT);
+	reiser4_tree_neigh_node(tree, node, DIR_RIGHT);
 	
 	return 0;
 }

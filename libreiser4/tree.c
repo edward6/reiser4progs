@@ -6,12 +6,6 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
-extern errno_t callback_node_insert(node_t *node, pos_t *pos,
-				    trans_hint_t *hint);
-
-extern errno_t callback_node_write(node_t *node, pos_t *pos,
-				   trans_hint_t *hint);
-
 /* Tree packing callback. Used for packing the tree, after delete items. This is
    needed for keeping tree in well packed state. */
 static errno_t callback_tree_pack(reiser4_tree_t *tree,
@@ -474,7 +468,7 @@ static node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
 
 		/* Checking position. Level is found if position is not first
 		   (right neighbour) and is not last one (left neighbour). */
-		if (where == D_LEFT) {
+		if (where == DIR_LEFT) {
 			found = reiser4_place_gtfirst(&place);
 		} else {
 			found = reiser4_place_ltlast(&place);
@@ -487,14 +481,14 @@ static node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
                 goto error_unlock_node;
 
 	/* Position correcting */
-        place.pos.item += (where == D_LEFT ? -1 : 1);
+        place.pos.item += (where == DIR_LEFT ? -1 : 1);
                                                                                       
         /* Going down to the level of @node */
         while (level > 0) {
                 if (!(place.node = reiser4_tree_child_node(tree, &place)))
 			goto error_unlock_node;
 
-		if (where == D_LEFT) {
+		if (where == DIR_LEFT) {
 			if (reiser4_place_last(&place))
 				goto error_unlock_node;
 		} else {
@@ -508,7 +502,7 @@ static node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
 	reiser4_node_unlock(node);
 	
         /* Setting up neightbour links */
-        if (where == D_LEFT) {
+        if (where == DIR_LEFT) {
                 node->left = place.node;
                 place.node->right = node;
         } else {
@@ -535,7 +529,7 @@ errno_t reiser4_tree_next_node(reiser4_tree_t *tree,
 
 	/* Check if we have to get right neoghbour node. */
 	if (place->pos.item >= reiser4_node_items(place->node) - 1) {
-		reiser4_tree_neigh_node(tree, place->node, D_RIGHT);
+		reiser4_tree_neigh_node(tree, place->node, DIR_RIGHT);
 
 		/* There is no right neighbour. */
 		if (!place->node->right) {
@@ -566,10 +560,10 @@ node_t *reiser4_tree_neigh_node(reiser4_tree_t *tree,
 	if (!node->p.node)
 		return NULL;
 
-	if (where == D_LEFT && node->left)
+	if (where == DIR_LEFT && node->left)
 		return node->left;
 
-	if (where == D_RIGHT && node->right)
+	if (where == DIR_RIGHT && node->right)
 		return node->right;
 
 	return reiser4_tree_ltrt_node(tree, node, where);
@@ -670,54 +664,50 @@ static void reiser4_tree_discard_node(reiser4_tree_t *tree,
 
 /* Helper function for freeing passed key instance tree's data hashtable entry
    is going to be removed. */
-static void callback_data_keyrem_func(const void *key) {
+static void callback_data_keyrem_func(void *key) {
 	reiser4_key_free((reiser4_key_t *)key);
 }
 
 /* Helper function for freeing hash value, that is, data block. */
-static void callback_data_valrem_func(const void *val) {
+static void callback_data_valrem_func(void *val) {
 	aal_block_free((aal_block_t *)val);
 }
 
 /* Helper function for calculating 64-bit hash by passed key. This is used for
    tree's data hash. */
-static uint64_t callback_data_hash_func(const void *k) {
-	reiser4_key_t *key;
-	
-	key = (reiser4_key_t *)k;
-	
-	return (reiser4_key_get_objectid(key) +
-		reiser4_key_get_offset(key));
+static uint64_t callback_data_hash_func(void *key) {
+	return (reiser4_key_get_objectid((reiser4_key_t *)key) +
+		reiser4_key_get_offset((reiser4_key_t *)key));
 }
 
 /* Helper function for comparing two keys during tree's data hash lookups. */
-static int callback_data_comp_func(const void *k1, const void *k2,
+static int callback_data_comp_func(void *key1, void *key2,
 				   void *data)
 {
-	return reiser4_key_compfull((reiser4_key_t *)k1,
-				    (reiser4_key_t *)k2);
+	return reiser4_key_compfull((reiser4_key_t *)key1,
+				    (reiser4_key_t *)key2);
 }
 #endif
 
 /* Helpher function for freeing keys in @tree->nodes hash table during its
    destroying. */
-static void callback_nodes_keyrem_func(const void *key) {
-	aal_free((void *)key);
+static void callback_nodes_keyrem_func(void *key) {
+	aal_free(key);
 }
 
 /* Return hash number from passed key value from @tree->nodes hashtable. */
-static uint64_t callback_nodes_hash_func(const void *k) {
-	return *(uint64_t *)k;
+static uint64_t callback_nodes_hash_func(void *key) {
+	return *(uint64_t *)key;
 }
 
 /* Compares two passed keys of @tree->nodes hash table during lookup in it. */
-static int callback_nodes_comp_func(const void *k1, const void *k2,
+static int callback_nodes_comp_func(void *key1, void *key2,
 				    void *data)
 {
-	if (*(uint64_t *)k1 < *(uint64_t *)k2)
+	if (*(uint64_t *)key1 < *(uint64_t *)key2)
 		return -1;
 
-	if (*(uint64_t *)k1 > *(uint64_t *)k2)
+	if (*(uint64_t *)key1 > *(uint64_t *)key2)
 		return 1;
 
 	return 0;
@@ -1207,7 +1197,7 @@ errno_t reiser4_tree_walk_node(reiser4_tree_t *tree, node_t *node,
 #ifndef ENABLE_STAND_ALONE
 /* Helper function for save one unformatted block to device. Used from
    tree_sync() to save all in-memory unfromatted blocks. */
-static errno_t callback_save_block(const void *entry, void *data) {
+static errno_t callback_save_block( void *entry, void *data) {
 	aal_hash_node_t *node = (aal_hash_node_t *)entry;
 	aal_block_t *block = (aal_block_t *)node->value;
 
@@ -1336,7 +1326,7 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 		}
 
 		/* Getting left neighbour node */
-		reiser4_tree_neigh_node(tree, walk.node, D_LEFT);
+		reiser4_tree_neigh_node(tree, walk.node, DIR_LEFT);
 
 		/* Initializing @walk by neighbour node and last item. */
 		if ((walk.node = walk.node->left)) {
@@ -1630,8 +1620,8 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	}
 
 	/* Getting left and right neighbours. */
-	reiser4_tree_neigh_node(tree, node, D_LEFT);
-	reiser4_tree_neigh_node(tree, node, D_RIGHT);
+	reiser4_tree_neigh_node(tree, node, DIR_LEFT);
+	reiser4_tree_neigh_node(tree, node, DIR_RIGHT);
 	
 	return 0;
 }
@@ -1943,7 +1933,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	/* Shifting data into left neighbour if it exists and left shift
 	   allowing flag is specified. */
 	if ((SF_LEFT_SHIFT & flags) &&
-	    (left = reiser4_tree_neigh_node(tree, place->node, D_LEFT)))
+	    (left = reiser4_tree_neigh_node(tree, place->node, DIR_LEFT)))
 	{
 		uint32_t left_flags = (SF_LEFT_SHIFT | SF_UPDATE_POINT);
 
@@ -1968,7 +1958,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	/* Shifting data into right neighbour if it exists and right shift
 	   allowing flag is specified. */
 	if ((SF_RIGHT_SHIFT & flags) &&
-	    (right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT)))
+	    (right = reiser4_tree_neigh_node(tree, place->node, DIR_RIGHT)))
 	{
 		uint32_t right_flags = (SF_RIGHT_SHIFT | SF_UPDATE_POINT);
 		
@@ -2082,7 +2072,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 	/* Packing node in order to keep the tree in well packed state
 	   anyway. Here we will shift data from the target node to its left
 	   neighbour node. */
-	if ((left = reiser4_tree_neigh_node(tree, place->node, D_LEFT))) {
+	if ((left = reiser4_tree_neigh_node(tree, place->node, DIR_LEFT))) {
 		if ((res = reiser4_tree_shift(tree, place, left, flags))) {
 			aal_exception_error("Can't pack node %llu into left.",
 					    node_blocknr(place->node));
@@ -2093,7 +2083,9 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 	if (reiser4_node_items(place->node) > 0) {
 		/* Shifting the data from the right neigbour node into the
 		   target node. */
-		if ((right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT))) {
+		if ((right = reiser4_tree_neigh_node(tree, place->node,
+						     DIR_RIGHT)))
+		{
 			place_t bogus;
 
 			bogus.node = right;
@@ -2538,8 +2530,8 @@ static errno_t callback_prep_insert(place_t *place,
 	aal_assert("umka-2440", hint != NULL);
 	aal_assert("umka-2439", place != NULL);
 
-	hint->overhead = 0;
 	hint->len = 0;
+	hint->overhead = 0;
 
 	return plug_call(hint->plug->o.item_ops->object,
 			 prep_insert, place, hint);
@@ -2549,11 +2541,11 @@ static errno_t callback_prep_insert(place_t *place,
 static errno_t callback_prep_write(place_t *place, 
 				   trans_hint_t *hint) 
 {
-	aal_assert("umka-2440", hint != NULL);
-	aal_assert("umka-2439", place != NULL);
+	aal_assert("umka-3007", hint != NULL);
+	aal_assert("umka-3008", place != NULL);
 
-	hint->overhead = 0;
 	hint->len = 0;
+	hint->overhead = 0;
 
 	return plug_call(hint->plug->o.item_ops->object,
 			 prep_write, place, hint);
@@ -2756,7 +2748,7 @@ int64_t reiser4_tree_insert(reiser4_tree_t *tree, place_t *place,
 
 	return reiser4_tree_modify(tree, place, hint, level, 
 				   callback_prep_insert,
-				   callback_node_insert);
+				   reiser4_node_insert);
 }
 
 /* Writes data to the tree. used for puting tail and extents to tree. */
@@ -2771,7 +2763,7 @@ int64_t reiser4_tree_write(reiser4_tree_t *tree, place_t *place,
 
 	return reiser4_tree_modify(tree, place, hint, level,
 				   callback_prep_write,
-				   callback_node_write);
+				   reiser4_node_write);
 }
 
 /* Removes item/unit at passed @place and performs so called local packing. This

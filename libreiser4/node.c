@@ -627,7 +627,7 @@ int64_t reiser4_node_modify(node_t *node, pos_t *pos,
 	needed = len + (pos->unit == MAX_UINT32 ?
 			reiser4_node_overhead(node) : 0);
 	
-	/* Checking if item length is greater then free space in the node */
+	/* Checking if item length is greater then free space in the node. */
 	if (needed > reiser4_node_space(node)) {
 		aal_exception_error("There is no space to insert new "
 				    "item/unit of (%u) size in the node "
@@ -642,15 +642,15 @@ int64_t reiser4_node_modify(node_t *node, pos_t *pos,
 	return write;
 }
 
-errno_t callback_node_insert(node_t *node, pos_t *pos,
-			     trans_hint_t *hint) 
+static errno_t callback_node_insert(node_t *node, pos_t *pos,
+				    trans_hint_t *hint) 
 {
 	return plug_call(node->entity->plug->o.node_ops,
 			 insert, node->entity, pos, hint);
 }
 
-errno_t callback_node_write(node_t *node, pos_t *pos,
-			    trans_hint_t *hint) 
+static errno_t callback_node_write(node_t *node, pos_t *pos,
+				   trans_hint_t *hint) 
 {
 	return plug_call(node->entity->plug->o.node_ops,
 			 write, node->entity, pos, hint);
@@ -659,20 +659,20 @@ errno_t callback_node_write(node_t *node, pos_t *pos,
 errno_t reiser4_node_insert(node_t *node, pos_t *pos,
 			    trans_hint_t *hint)
 {
-	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-991", pos != NULL);
+	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-992", hint != NULL);
 	
 	return reiser4_node_modify(node, pos, hint,
 				   callback_node_insert);
 }
 
-int64_t reiser4_node_write(node_t *node,
-			   pos_t *pos, trans_hint_t *hint)
+int64_t reiser4_node_write(node_t *node, pos_t *pos,
+			   trans_hint_t *hint)
 {
-	aal_assert("umka-2445", node != NULL);
 	aal_assert("umka-2446", pos != NULL);
 	aal_assert("umka-2447", hint != NULL);
+	aal_assert("umka-2445", node != NULL);
 
 	return reiser4_node_modify(node, pos, hint,
 				   callback_node_write);

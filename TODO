@@ -3,7 +3,7 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* comment andupdate comments in factory.c.
+* comment and update comments in factory.c.
 
 * implement ability to build progs staticaly.
 

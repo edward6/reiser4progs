@@ -284,13 +284,11 @@ errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
 	return 0;
 }
 
-static uint64_t callback_plugins_hash_func(const void *key) {
-	plug_ident_t *ident = (plug_ident_t *)key;
-	return (uint64_t)(ident->id + ident->type);
+static uint64_t callback_plugins_hash_func(void *key) {
+	return (uint64_t)((plug_ident_t *)key)->type;
 }
 
-static int callback_plugins_comp_func(const void *key1,
-				      const void *key2,
+static int callback_plugins_comp_func(void *key1, void *key2,
 				      void *data)
 {
 	return (!ident_equal((plug_ident_t *)key1,
@@ -394,7 +392,7 @@ errno_t reiser4_factory_init(void) {
         return 0;
 }
 
-static errno_t callback_unload_plug(const void *entry, void *data) {
+static errno_t callback_unload_plug(void *entry, void *data) {
 	aal_hash_node_t *node = (aal_hash_node_t *)entry;
 	reiser4_factory_unload((reiser4_plug_t *)node->value);
 	return 0;
@@ -436,7 +434,7 @@ struct find_hint {
 
 typedef struct find_hint find_hint_t;
 
-static errno_t callback_foreach_plug(const void *entry, void *data) {
+static errno_t callback_foreach_plug(void *entry, void *data) {
 	errno_t res;
 
 	find_hint_t *hint;
@@ -464,8 +462,8 @@ errno_t reiser4_factory_foreach(plug_func_t plug_func, void *data) {
 	aal_assert("umka-3005", plugins != NULL);    
 	aal_assert("umka-3006", plug_func != NULL);    
 
-	hint.data = data;
 	hint.plug = NULL;
+	hint.data = data;
 	hint.plug_func = plug_func;
 
 	return aal_hash_table_foreach(plugins, callback_foreach_plug, &hint);
@@ -490,7 +488,7 @@ reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_nfind_plug(const void *entry, void *data) {
+static errno_t callback_nfind_plug(void *entry, void *data) {
 	find_hint_t *hint = (find_hint_t *)data;
 	aal_hash_node_t *node = (aal_hash_node_t *)entry;
 	reiser4_plug_t *plug = (reiser4_plug_t *)node->value;
