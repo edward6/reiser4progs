@@ -8,20 +8,15 @@
 
 static reiser4_core_t *core = NULL;
 
-static stat40_t *stat40_body(reiser4_item_t *item) {
-
-	if (item == NULL) return NULL;
-    
-	return (stat40_t *)plugin_call(return NULL, 
-				       item->node->plugin->node_ops,
-				       item_body, item->node, item->pos);
+static inline stat40_t *stat40_body(item_entity_t *item) {
+	return (stat40_t *)item->body;
 }
 
 /* Type for stat40 layout callback function */
 typedef int (*stat40_perext_func_t) (uint8_t, uint16_t, reiser4_body_t *, void *);
 
 /* The function which implements stat40 layout pass */
-static errno_t stat40_layout(reiser4_item_t *item,
+static errno_t stat40_layout(item_entity_t *item,
 			     stat40_perext_func_t perext_func, void *data)
 {
 	uint8_t i;
@@ -105,7 +100,7 @@ static int callback_open(uint8_t ext, uint16_t extmask,
 	return 1;
 }
 
-static errno_t stat40_open(reiser4_item_t *item, 
+static errno_t stat40_open(item_entity_t *item, 
 			   reiser4_item_hint_t *hint)
 {
 	aal_assert("umka-1414", item != NULL, return -1);
@@ -116,7 +111,7 @@ static errno_t stat40_open(reiser4_item_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t stat40_init(reiser4_item_t *item, 
+static errno_t stat40_init(item_entity_t *item, 
 			   reiser4_item_hint_t *hint)
 {
 	uint8_t i;
@@ -139,12 +134,13 @@ static errno_t stat40_init(reiser4_item_t *item,
 			continue;
 	    
 		/* 
-		   Stat data contains 16 bit mask of extentions used in it. The first 
-		   15 bits of the mask denote the first 15 extentions in the stat data.
-		   And the bit number is the stat data extention plugin id. If the last 
-		   bit turned on, it means that one more 16 bit mask present and so on. 
-		   So, we should add sizeof(mask) to extention body pointer, in the case
-		   we are on bit denoted for indicating if next extention in use or not.
+		   Stat data contains 16 bit mask of extentions used in it. The
+		   first 15 bits of the mask denote the first 15 extentions in
+		   the stat data.  And the bit number is the stat data extention
+		   plugin id. If the last bit turned on, it means that one more
+		   16 bit mask present and so on. So, we should add sizeof(mask)
+		   to extention body pointer, in the case we are on bit denoted
+		   for indicating if next extention in use or not.
 		*/
 		if (i == 0 || (i + 1) % 16 == 0) {
 			uint16_t extmask;
@@ -174,14 +170,13 @@ static errno_t stat40_init(reiser4_item_t *item,
 	return 0;
 }
 
-static errno_t stat40_estimate(reiser4_item_t *item, uint32_t pos, 
+static errno_t stat40_estimate(item_entity_t *item, uint32_t pos, 
 			       reiser4_item_hint_t *hint) 
 {
 	uint8_t i;
 	reiser4_statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-074", hint != NULL, return -1);
-	aal_assert("umka-1196", item != NULL, return -1);
 
 	hint->len = sizeof(stat40_t);
 	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
@@ -215,25 +210,25 @@ static errno_t stat40_estimate(reiser4_item_t *item, uint32_t pos,
 }
 
 /* This method inserts the stat data extentions */
-static errno_t stat40_insert(reiser4_item_t *item, 
+static errno_t stat40_insert(item_entity_t *item, 
 			     uint32_t pos, reiser4_item_hint_t *hint)
 {
 	return -1;
 }
 
 /* This method deletes the stat data extentions */
-static uint16_t stat40_remove(reiser4_item_t *item, 
+static uint16_t stat40_remove(item_entity_t *item, 
 			      uint32_t pos)
 {
 	return -1;
 }
 
-extern errno_t stat40_check(reiser4_item_t *, uint16_t);
+extern errno_t stat40_check(item_entity_t *, uint16_t);
 
 #endif
 
 /* Here we probably should check all stat data extention masks */
-static errno_t stat40_valid(reiser4_item_t *item) {
+static errno_t stat40_valid(item_entity_t *item) {
 	aal_assert("umka-1007", item != NULL, return -1);
 	return 0;
 }
@@ -248,7 +243,7 @@ static int callback_count(uint8_t ext, uint16_t extmask,
 }
 
 /* This function returns stat data extention count */
-static uint32_t stat40_count(reiser4_item_t *item) {
+static uint32_t stat40_count(item_entity_t *item) {
 	uint32_t count = 0;
 
 	if (stat40_layout(item, callback_count, &count) < 0)
@@ -273,7 +268,7 @@ static int callback_body(uint8_t ext, uint16_t extmask,
 	return (ext < hint->ext);
 }
 
-static reiser4_body_t *stat40_sdext_body(reiser4_item_t *item, 
+static reiser4_body_t *stat40_sdext_body(item_entity_t *item, 
 					 uint8_t bit)
 {
 	struct body_hint hint = {NULL, bit};
@@ -302,7 +297,7 @@ static int callback_present(uint8_t ext, uint16_t extmask,
 	return (!hint->present && ext < hint->ext);
 }
 
-static int stat40_sdext_present(reiser4_item_t *item, 
+static int stat40_sdext_present(item_entity_t *item, 
 				uint8_t bit)
 {
 	struct present_hint hint = {0, bit};
@@ -313,7 +308,7 @@ static int stat40_sdext_present(reiser4_item_t *item,
 	return hint.present;
 }
 
-static errno_t stat40_print(reiser4_item_t *item,
+static errno_t stat40_print(item_entity_t *item,
 			    char *buff, uint32_t n,
 			    uint16_t options)
 {
@@ -331,14 +326,14 @@ static errno_t stat40_print(reiser4_item_t *item,
 	return 0;
 }
 
-static errno_t stat40_max_poss_key(reiser4_item_t *item,
+static errno_t stat40_max_poss_key(item_entity_t *item,
 				   reiser4_key_t *key) 
 {
 	aal_assert("umka-1207", item != NULL, return -1);
 	aal_assert("umka-1208", key != NULL, return -1);
 
-	return plugin_call(return 0, item->node->plugin->node_ops,
-			   get_key, item->node, item->pos, key);
+	return plugin_call(return -1, key->plugin->key_ops,
+		    assign, key->body, item->key.body);
 }
 
 static reiser4_plugin_t stat40_plugin = {
@@ -367,12 +362,12 @@ static reiser4_plugin_t stat40_plugin = {
 		.check		= NULL,
 #endif
 		.lookup		= NULL,
-		.shift      = NULL,
+		.shift          = NULL,
 		
-		.fetch      = NULL,
-		.update     = NULL,
+		.fetch          = NULL,
+		.update         = NULL,
 	    
-		.open       = stat40_open,
+		.open           = stat40_open,
 		.count		= stat40_count,
 		.valid		= stat40_valid,
 		.print		= stat40_print,

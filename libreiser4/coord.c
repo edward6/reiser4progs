@@ -1,75 +1,142 @@
 /*
-  coord.c -- reiser4 tree coord functions. Coord contains full information
-  about smaller tree element position in the tree. The instance of structure 
-  reiser4_coord_t contains pointer to node where needed unit or item lies,
-  item position and unit position in specified item. 
+  qcoord.c -- reiser4 tree coord functions. Coord contains full information about
+  smaller tree element position in the tree. The instance of structure
+  reiser4_coord_t contains pointer to node where needed unit or item lies, item
+  position and unit position in specified item.
+
   Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <reiser4/reiser4.h>
 
-/* Initializes reiser4_pos_t struct */
-inline void reiser4_pos_init(
-	reiser4_pos_t *pos,	/* pos to be initialized */
-	uint32_t item,		/* item number */
-	uint32_t unit)		/* unit number */
-{
-	aal_assert("umka-955", pos != NULL, return);
-	pos->item = item;
-	pos->unit = unit;
+/* Returns entity from passed @coord */
+object_entity_t *reiser4_coord_entity(reiser4_coord_t *coord) {
+	aal_assert("umka-1434", coord != NULL, return NULL);
+	
+	switch (coord->context) {
+	case CT_ENTITY:
+		return coord->u.entity;
+	case CT_NODE:
+		return coord->u.node->entity;
+	case CT_JOINT:
+		return coord->u.joint->node->entity;
+	case CT_RAW:
+		return coord->u.data;
+	default:
+		return NULL;
+	}
 }
 
-/* Creates coord instance based on passed joint, item pos and unit pos params */
-reiser4_coord_t *reiser4_coord_create(
-	reiser4_joint_t *joint,	/* the first component of coord */
-	uint32_t item,		/* the second one */
-	uint32_t unit)		/* the third one */
-{
-	reiser4_coord_t *coord;
-
-	/* Allocating memory for instance of coord */
-	if (!(coord = aal_calloc(sizeof(*coord), 0)))
+/* Returns block coord points to */
+aal_block_t *reiser4_coord_block(reiser4_coord_t *coord) {
+	aal_assert("umka-1445", coord != NULL, return NULL);
+	
+	switch (coord->context) {
+	case CT_NODE:
+		return coord->u.node->block;
+	case CT_JOINT:
+		return coord->u.joint->node->block;
+	default:
 		return NULL;
+	}
+}
 
-	/* Initializing needed fields */
-	reiser4_coord_init(coord, joint, item, unit);
-    
-	return coord;
+/* Returns block coord points to */
+reiser4_node_t *reiser4_coord_node(reiser4_coord_t *coord) {
+	aal_assert("umka-1463", coord != NULL, return NULL);
+	
+	switch (coord->context) {
+	case CT_NODE:
+		return coord->u.node;
+	case CT_JOINT:
+		return coord->u.joint->node;
+	default:
+		return NULL;
+	}
+}
+
+/* Initializes all item-related fields */
+errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
+	rpid_t pid;
+	reiser4_key_t *key;
+	item_context_t *context;
+	object_entity_t *entity;
+	
+        aal_assert("umka-1459", coord != NULL, return -1);
+
+	if (!(entity = reiser4_coord_entity(coord))) {
+		aal_exception_error("Invalid coord context. Can't get coord entity.");
+		return -1;
+	}
+	
+	if ((pid = plugin_call(return -1, entity->plugin->node_ops,
+			       item_pid, entity, &coord->pos)) == FAKE_PLUGIN)
+	{
+		aal_exception_error("Invalid item plugin id has been detected.");
+		return -1;
+	}
+	
+	if (!(coord->entity.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
+		aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
+		return -1;
+	}
+
+	if (!(coord->entity.body = plugin_call(return -1, entity->plugin->node_ops,
+					       item_body, entity, &coord->pos)))
+	{
+		aal_exception_error("Can't get item body.");
+		return -1;
+	}
+
+	coord->entity.pos = coord->pos.item;
+	coord->entity.len = plugin_call(return -1, entity->plugin->node_ops,
+					item_len, entity, &coord->pos);
+
+	key = &coord->entity.key;
+	if (plugin_call(return -1, entity->plugin->node_ops, 
+			get_key, entity, &coord->pos, key))
+	{
+		aal_exception_error("Can't get item key.");
+		return -1;
+	}
+
+	key->plugin = reiser4_key_guess(key->body);
+	aal_assert("umka-1406", key->plugin != NULL, return -1);
+
+	context = &coord->entity.context;
+	context->block = reiser4_coord_block(coord);
+	context->node = reiser4_coord_entity(coord);
+	
+	return 0;
+}
+
+/* Initializes coord and its item related fields */
+errno_t reiser4_coord_open(
+	reiser4_coord_t *coord,	 /* coord to be initialized */
+	void *data,	         /* the first component of coord */
+	coord_context_t context, /* coord context */
+	reiser4_pos_t *pos)	 /* coord pos component */
+{
+        aal_assert("umka-1435", coord != NULL, return -1);
+
+	if (reiser4_coord_init(coord, data, context, pos))
+		return -1;
+	
+	return reiser4_coord_realize(coord);
 }
 
 /* This function initializes passed coord by specified params */
 errno_t reiser4_coord_init(
-	reiser4_coord_t *coord,	/* coord to be initialized */
-	reiser4_joint_t *joint,	/* the first component of coord */
-	uint32_t item,		/* the second one */
-	uint32_t unit)		/* the third one */
+	reiser4_coord_t *coord,	 /* coord to be initialized */
+	void *data,	         /* the first component of coord */
+	coord_context_t context, /* coord context */
+	reiser4_pos_t *pos)	 /* coord pos component */
 {
 	aal_assert("umka-795", coord != NULL, return -1);
     
-	coord->joint = joint;
-	coord->pos.item = item;
-	coord->pos.unit = unit;
+	coord->u.data = data;
+	coord->context = context;
+	coord->pos = *pos;
 
 	return 0;
 }
-
-/* Makes duplicate of the passed @coord */
-errno_t reiser4_coord_dup(
-	reiser4_coord_t *coord,	/* coord to be duplicated */
-	reiser4_coord_t *dup)	/* the clone will be saved */
-{
-	aal_assert("umka-1264", coord != NULL, return -1);
-	aal_assert("umka-1265", dup != NULL, return -1);
-
-	*dup = *coord;
-	return 0;
-}
-
-/* Freeing passed coord */
-void reiser4_coord_close(
-	reiser4_coord_t *coord)	/* coord to be freed */
-{
-	aal_assert("umka-793", coord != NULL, return);
-	aal_free(coord);
-}
-

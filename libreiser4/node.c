@@ -145,18 +145,16 @@ errno_t reiser4_node_lkey(
 	reiser4_node_t *node,	/* node the ldkey will be obtained from */
 	reiser4_key_t *key)	/* key pointer found key will be stored in */
 {
-	reiser4_pos_t pos;
-	reiser4_item_t item;
+	reiser4_coord_t coord;
+	reiser4_pos_t pos = {0, ~0ul};
 
 	aal_assert("umka-753", node != NULL, return -1);
 	aal_assert("umka-754", key != NULL, return -1);
 
-	reiser4_pos_init(&pos, 0, ~0ul);
-
-	if (reiser4_item_open(&item, node->entity, &pos))
+	if (reiser4_coord_open(&coord, node, CT_NODE, &pos))
 		return -1;
-	
-	return reiser4_item_get_key(&item, key);
+
+	return reiser4_item_key(&coord, key);
 }
 
 
@@ -167,28 +165,24 @@ errno_t reiser4_node_lkey(
    item specified by src* params to dst* location. Parametrs meaning the same as
    in reiser4_node_relocate.
 */
-errno_t reiser4_node_copy(reiser4_node_t *dst_node, 
-			  reiser4_pos_t *dst_pos, reiser4_node_t *src_node, 
-			  reiser4_pos_t *src_pos) 
+errno_t reiser4_node_copy(reiser4_node_t *dst_node, reiser4_pos_t *dst_pos,
+			  reiser4_node_t *src_node, reiser4_pos_t *src_pos) 
 {
-	reiser4_item_t item;
+	reiser4_coord_t coord;
 	reiser4_item_hint_t hint;
 
 	aal_assert("umka-799", src_node != NULL, return -1);
 	aal_assert("umka-800", dst_node != NULL, return -1);
 
-	if (reiser4_item_open(&item, src_node->entity, src_pos)) {
-		aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
-				    aal_block_number(src_node->block), src_pos->item);
+	if (reiser4_coord_open(&coord, src_node, CT_NODE, src_pos))
 		return -1;
-	}
-    
-	hint.len = reiser4_item_len(&item);
-	hint.data = reiser4_item_body(&item);
-	hint.plugin = reiser4_item_plugin(&item);
+	
+	hint.len = reiser4_item_len(&coord);
+	hint.data = reiser4_item_body(&coord);
+	hint.plugin = reiser4_item_plugin(&coord);
     
 	/* Getting the key of item that is going to be copied */
-	reiser4_item_get_key(&item, (reiser4_key_t *)&hint.key);
+	reiser4_item_key(&coord, (reiser4_key_t *)&hint.key);
 
 	/* Insering the item into new location */
 	if (reiser4_node_insert(dst_node, dst_pos, &hint))
@@ -221,16 +215,16 @@ errno_t reiser4_node_split(
 	reiser4_node_t *right)	/* node right half of splitted node will be stored */
 {
 	uint32_t median;
-	reiser4_pos_t dst_pos, src_pos;
+	reiser4_pos_t src_pos;
+	reiser4_pos_t dst_pos = {0, ~0ul};
     
 	aal_assert("umka-780", node != NULL, return -1);
 	aal_assert("umka-781", right != NULL, return -1);
 
 	median = reiser4_node_count(node) / 2;
 	while (reiser4_node_count(node) > median) {
-
-		reiser4_pos_init(&dst_pos, 0, ~0ul);
-		reiser4_pos_init(&src_pos, reiser4_node_count(node) - 1, ~0ul);
+		src_pos.unit = ~0ul;
+		src_pos.item = reiser4_node_count(node) - 1;
 	
 		if (reiser4_node_move(right, &dst_pos, node, &src_pos))
 			return -1;
@@ -267,22 +261,25 @@ int reiser4_node_lookup(
 	reiser4_key_t *key,	/* key to be find */
 	reiser4_pos_t *pos)	/* found pos will be stored here */
 {
-	int lookup; 
-	reiser4_item_t item;
+	int lookup;
+
+	item_entity_t *item;
 	reiser4_key_t maxkey;
+	reiser4_coord_t coord;
     
 	aal_assert("umka-475", pos != NULL, return -1);
 	aal_assert("vpf-048", node != NULL, return -1);
 	aal_assert("umka-476", key != NULL, return -1);
 
-	reiser4_pos_init(pos, 0, ~0ul);
+	pos->item = 0;
+	pos->unit = ~0ul;
 
 	if (reiser4_node_count(node) == 0)
 		return 0;
    
 	/* Calling node plugin */
-	if ((lookup = plugin_call(return -1, 
-				  node->entity->plugin->node_ops, lookup, node->entity, key, pos)) == -1) 
+	if ((lookup = plugin_call(return -1, node->entity->plugin->node_ops,
+				  lookup, node->entity, key, pos)) == -1) 
 	{
 		aal_exception_error("Lookup in the node %llu failed.", 
 				    aal_block_number(node->block));
@@ -291,23 +288,25 @@ int reiser4_node_lookup(
 
 	if (lookup == 1) return 1;
 
-	if (reiser4_item_open(&item, node->entity, pos)) {
-		aal_exception_error("Can't open item by coord. Nosde %llu, item %u.",
+	if (reiser4_coord_open(&coord, node, CT_NODE, pos)) {
+		aal_exception_error("Can't open item by coord. Node %llu, item %u.",
 				    aal_block_number(node->block), pos->item);
 		return -1;
 	}
 
+	item = &coord.entity;
+		
 	/*
 	  We are on the position where key is less then wanted. Key could lies 
 	  within the item or after the item.
 	*/
-	if (item.plugin->item_ops.max_poss_key) {
-	
+	if (item->plugin->item_ops.max_poss_key) {
+		
 		/* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
 		maxkey.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
 							 KEY_REISER40_ID);
-	
-		if (item.plugin->item_ops.max_poss_key(&item, &maxkey) == -1) {
+
+		if (item->plugin->item_ops.max_poss_key(item, &maxkey) == -1) {
 			aal_exception_error("Getting max key of the item %d "
 					    "in the node %llu failed.", pos->item, 
 					    aal_block_number(node->block));
@@ -321,12 +320,10 @@ int reiser4_node_lookup(
 	}
 
 	/* Calling lookup method of found item (most probably direntry item) */
-	if (!item.plugin->item_ops.lookup)
+	if (!item->plugin->item_ops.lookup)
 		return 0;
 	    
-	if ((lookup = item.plugin->item_ops.lookup(&item, key,
-						   &pos->unit)) == -1) 
-	{
+	if ((lookup = item->plugin->item_ops.lookup(item, key, &pos->unit)) == -1) {
 		aal_exception_error("Lookup in the item %d in the node %llu failed.", 
 				    pos->item, aal_block_number(node->block));
 		return -1;
@@ -357,15 +354,15 @@ errno_t reiser4_node_remove(
 		return plugin_call(return -1, node->entity->plugin->node_ops, 
 				   remove, node->entity, pos);
 	} else {
-		reiser4_item_t item;
+		reiser4_coord_t coord;
 	
-		if (reiser4_item_open(&item, node->entity, pos)) {
-			aal_exception_error("Can't open item %u in node %llu.",
-					    pos->item, aal_block_number(node->block));
+		if (reiser4_coord_open(&coord, node, CT_NODE, pos)) {
+			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
+					    aal_block_number(node->block), pos->item);
 			return -1;
 		}
-	
-		if (reiser4_item_count(&item) > 1) {
+
+		if (reiser4_item_count(&coord) > 1) {
 			return plugin_call(return -1, node->entity->plugin->node_ops, 
 					   cut, node->entity, pos);
 		} else {
@@ -393,11 +390,12 @@ errno_t reiser4_node_insert(
 		   done if item->data not installed.
 		*/
 		if (hint->len == 0) {
-			reiser4_item_t item;
+			reiser4_coord_t coord;
 	    
-			reiser4_item_init(&item, node->entity, pos);
+			if (reiser4_coord_init(&coord, node, CT_NODE, pos))
+				return -1;
 	    
-			if (reiser4_item_estimate(&item, hint)) {
+			if (reiser4_item_estimate(&coord, hint)) {
 				aal_exception_error("Can't estimate space that "
 						    "item being inserted will consume.");
 				return -1;

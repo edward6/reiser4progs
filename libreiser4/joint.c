@@ -8,8 +8,8 @@
 
 /* Creates joint instance based on passed node */
 reiser4_joint_t *reiser4_joint_create(
-	reiser4_node_t *node	/* the first component of joint */
-	) {
+	reiser4_node_t *node)	/* the first component of joint */
+{
 	reiser4_joint_t *joint;
 
 	aal_assert("umka-1268", node != NULL, return NULL);
@@ -68,8 +68,6 @@ void reiser4_joint_close(
 	joint->right = NULL;
 	joint->parent = NULL;
     
-	reiser4_pos_init(&joint->pos, 0, 0);
-    
 	reiser4_node_close(joint->node);
 	aal_free(joint);
 }
@@ -114,7 +112,7 @@ static errno_t reiser4_joint_neighbour_key(
 	reiser4_key_t *key)		/* key pointer result should be stored */
 {
 	reiser4_pos_t pos;
-	reiser4_item_t item;
+	reiser4_coord_t coord;
     
 	aal_assert("umka-770", joint != NULL, return -1);
 	aal_assert("umka-771", key != NULL, return -1);
@@ -144,10 +142,10 @@ static errno_t reiser4_joint_neighbour_key(
     
 	pos.item += (direction == D_RIGHT ? 1 : -1);
 
-	if (reiser4_item_open(&item, joint->parent->node->entity, &pos))
+	if (reiser4_coord_open(&coord, joint->parent, CT_JOINT, &pos))
 		return -1;
 	
-	return reiser4_item_get_key(&item, key);
+	return reiser4_item_key(&coord, key);
 }
 
 /* Returns position of passed joint in parent node */
@@ -336,8 +334,6 @@ void reiser4_joint_detach(
 	child->tree = NULL;
 	child->parent = NULL;
     
-	reiser4_pos_init(&child->pos, 0, 0);
-
 	if (aal_list_remove(children, child))
 		joint->children = NULL;
 }
@@ -400,7 +396,7 @@ errno_t reiser4_joint_sync(
 errno_t reiser4_joint_update_key(reiser4_joint_t *joint, 
 				 reiser4_pos_t *pos, reiser4_key_t *key)
 {
-	reiser4_item_t item;
+	reiser4_coord_t coord;
 	reiser4_pos_t parent_pos;
     
 	aal_assert("umka-999", joint != NULL, return -1);
@@ -410,10 +406,10 @@ errno_t reiser4_joint_update_key(reiser4_joint_t *joint,
 	aal_assert("umka-1002", 
 		   reiser4_node_count(joint->node) > 0, return -1);
 
-	if (reiser4_item_open(&item, joint->node->entity, pos))
+	if (reiser4_coord_open(&coord, joint, CT_JOINT, pos))
 		return -1;
-	
-	if (reiser4_item_set_key(&item, key))
+
+	if (reiser4_item_update(&coord, key))
 		return -1;
     
 	if (pos->item == 0 && (pos->unit == ~0ul || pos->unit == 0)) {
@@ -496,13 +492,13 @@ errno_t reiser4_joint_remove(
 	   internal node.
 	*/
 	if (joint->children) {
-		reiser4_item_t item;
+		reiser4_coord_t coord;
 		reiser4_joint_t *child;
 
-		if (reiser4_item_open(&item, joint->node->entity, pos))
+		if (reiser4_coord_open(&coord, joint, CT_JOINT, pos))
 			return -1;
-			
-		if (reiser4_item_get_key(&item, &key))
+
+		if (reiser4_item_key(&coord, &key))
 			return -1;
 		
 		child = reiser4_joint_find(joint, &key);
@@ -571,13 +567,13 @@ errno_t reiser4_joint_move(
     
 	if (src_joint->children) {
 		reiser4_key_t key;
-		reiser4_item_t item;
+		reiser4_coord_t coord;
 		reiser4_joint_t *child;
 
-		if (reiser4_item_open(&item, src_joint->node->entity, src_pos))
+		if (reiser4_coord_open(&coord, src_joint, CT_JOINT, src_pos))
 			return -1;
 		
-		if (reiser4_item_get_key(&item, &key))
+		if (reiser4_item_key(&coord, &key))
 			return -1;
 	
 		if ((child = reiser4_joint_find(src_joint, &key))) {
@@ -626,18 +622,18 @@ errno_t reiser4_joint_move(
 
 /* This function traverse passed node. */
 errno_t reiser4_joint_traverse(
-	reiser4_joint_t *joint,		        /* block which should be traversed */
-	void *data,			        /* user-spacified data */
-	reiser4_open_func_t open_func,	        /* callback will be used for opening node */
-	reiser4_handler_func_t handler_func,    /* callback will be called on node */
-	reiser4_setup_func_t before_func,	/* callback will be called before all childs */
-	reiser4_setup_func_t setup_func,	/* callback will be called before a child */
-	reiser4_setup_func_t update_func,	/* callback will be called after a child */
-	reiser4_setup_func_t after_func)	/* callback will be called after all childs  */
+	reiser4_joint_t *joint,		     /* block which should be traversed */
+	void *data,			     /* user-spacified data */
+	reiser4_open_func_t open_func,	     /* callback will be used for opening node */
+	reiser4_handler_func_t handler_func, /* callback will be called on node */
+	reiser4_setup_func_t before_func,    /* callback will be called before all childs */
+	reiser4_setup_func_t setup_func,     /* callback will be called before a child */
+	reiser4_setup_func_t update_func,    /* callback will be called after a child */
+	reiser4_setup_func_t after_func)     /* callback will be called after all childs */
 {
 	reiser4_pos_t pos;
 	errno_t result = 0;
-	reiser4_item_t item;
+	reiser4_coord_t coord;
 	reiser4_joint_t *child;
     
 	aal_assert("umka-1024", open_func != NULL, return -1);
@@ -647,7 +643,7 @@ errno_t reiser4_joint_traverse(
 
 	if ((handler_func && !(result = handler_func(joint, data))) || !handler_func) {
 	    
-		if (before_func && (result = before_func(joint, &item, data)))
+		if (before_func && (result = before_func(joint, &coord, data)))
 			goto error;
 
 		pos.item = reiser4_node_count(joint->node) - 1;
@@ -656,31 +652,31 @@ errno_t reiser4_joint_traverse(
 			pos.unit = ~0ul; 
 	    
 			/* 
-			   All items must be openned - this is checked in the 
+			   All items must be openned - this is checked in the
 			   handler_func.
 			*/
-			if ((result = reiser4_item_open(&item, joint->node->entity, &pos))) {
+			if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
 				blk_t blk = aal_block_number(joint->node->block);
-				aal_exception_error("Node (%llu), item (%u): item cannot be "
-						    "openned.", blk, pos.item);
+				aal_exception_error("Can't open item by coord. Node %llu, item %u.",
+						    blk, pos.item);
 				goto error_after_func;
 			}
-	    
-			if (!reiser4_item_nodeptr(&item))
+			
+			if (!reiser4_item_nodeptr(&coord))
 				continue;
 	    
-			pos.unit = reiser4_item_count(&item) - 1;
+			pos.unit = reiser4_item_count(&coord) - 1;
 	    
 			do {
 				reiser4_ptr_hint_t ptr;
 		
-				if (plugin_call(continue, item.plugin->item_ops,
-						fetch, &item, 0, &ptr, 1))
+				if (plugin_call(continue, coord.entity.plugin->item_ops,
+						fetch, &coord.entity, 0, &ptr, 1))
 					goto error_after_func;
 		
 				if (ptr.ptr != FAKE_BLK) {
 			
-					if (setup_func && (result = setup_func(joint, &item, data)))
+					if (setup_func && (result = setup_func(joint, &coord, data)))
 						goto error_after_func;
 	    
 					if ((result = open_func(&child, ptr.ptr, data)))
@@ -702,15 +698,14 @@ errno_t reiser4_joint_traverse(
 						reiser4_joint_close(child);
 					}
 
-					if (update_func && (result = update_func(joint,
-										 &item, data)))
+					if (update_func && (result = update_func(joint, &coord, data)))
 						goto error_after_func;
 				}
 			} while (pos.unit--);
 	    
 		} while (pos.item--);
 	
-		if (after_func && (result = after_func(joint, &item, data)))
+		if (after_func && (result = after_func(joint, &coord, data)))
 			goto error;
 	}
 
@@ -721,11 +716,11 @@ errno_t reiser4_joint_traverse(
 	reiser4_joint_close(child);
 
 	if (update_func)
-		result = update_func(joint, &item, data);
+		result = update_func(joint, &coord, data);
     
  error_after_func:
 	if (after_func)
-		result = after_func(joint, &item, data);
+		result = after_func(joint, &coord, data);
     
  error:
 	return result;

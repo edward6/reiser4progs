@@ -5,7 +5,7 @@
 
 #include "nodeptr40.h"
 
-errno_t nodeptr40_check(reiser4_item_t *item, uint16_t options) {
+errno_t nodeptr40_check(item_entity_t *item, uint16_t options) {
     /* Block numbers are checked in setup_func from reiser4_node_traverse */
     return 0;
 }

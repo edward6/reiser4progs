@@ -7,27 +7,18 @@
 
 static reiser4_core_t *core = NULL;
 
-static extent40_t *extent40_body(reiser4_item_t *item) {
-
-	if (item == NULL)
-		return NULL;
-    
-	return (extent40_t *)plugin_call(return NULL, item->node->plugin->node_ops, 
-					 item_body, item->node, item->pos);
+static extent40_t *extent40_body(item_entity_t *item) {
+	return (extent40_t *)item->body;
 }
 
-static uint32_t extent40_count(reiser4_item_t *item) {
-
-	if (item == NULL) 
-		return 0;
-    
-	return plugin_call(return 0, item->node->plugin->node_ops, 
-			   item_len, item->node, item->pos) / sizeof(extent40_t);
+static uint32_t extent40_count(item_entity_t *item) {
+	aal_assert("umka-1446", item != NULL, return 0);
+	return item->len / sizeof(extent40_t);
 }
 
 #ifndef ENABLE_COMPACT
 
-static errno_t extent40_init(reiser4_item_t *item, 
+static errno_t extent40_init(item_entity_t *item, 
 			     reiser4_item_hint_t *hint)
 {
 	aal_assert("umka-1202", item != NULL, return -1); 
@@ -37,19 +28,19 @@ static errno_t extent40_init(reiser4_item_t *item,
 	return 0;
 }
 
-static errno_t extent40_insert(reiser4_item_t *item, uint32_t pos, 
+static errno_t extent40_insert(item_entity_t *item, uint32_t pos, 
 			       reiser4_item_hint_t *hint)
 {
 	return -1;
 }
 
-static uint16_t extent40_remove(reiser4_item_t *item, uint32_t pos) {
+static uint16_t extent40_remove(item_entity_t *item, uint32_t pos) {
 	return -1;
 }
 
 #endif
 
-static errno_t extent40_print(reiser4_item_t *item, char *buff, 
+static errno_t extent40_print(item_entity_t *item, char *buff, 
 			      uint32_t n, uint16_t options) 
 {
 	extent40_t *extent;
@@ -70,7 +61,7 @@ static errno_t extent40_print(reiser4_item_t *item, char *buff,
 	return 0;
 }
 
-static errno_t extent40_max_poss_key(reiser4_item_t *item,
+static errno_t extent40_max_poss_key(item_entity_t *item,
 				     reiser4_key_t *key) 
 {
 	uint64_t offset;
@@ -79,8 +70,8 @@ static errno_t extent40_max_poss_key(reiser4_item_t *item,
 	aal_assert("umka-1211", item != NULL, return -1);
 	aal_assert("umka-1212", key != NULL, return -1);
 
-	if (plugin_call(return 0, item->node->plugin->node_ops,
-			get_key, item->node, item->pos, key))
+	if (plugin_call(return -1, key->plugin->key_ops,
+			assign, key->body, item->key.body))
 		return -1;
     
 	maxkey = plugin_call(return -1, key->plugin->key_ops,
@@ -95,13 +86,13 @@ static errno_t extent40_max_poss_key(reiser4_item_t *item,
 	return 0;
 }
 
-static errno_t extent40_max_real_key(reiser4_item_t *item,
+static errno_t extent40_max_real_key(item_entity_t *item,
 				     reiser4_key_t *key) 
 {
 	return 0;
 }
 
-static errno_t extent40_fetch(reiser4_item_t *item, uint32_t pos,
+static errno_t extent40_fetch(item_entity_t *item, uint32_t pos,
 			      void *buff, uint32_t count)
 {
 	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
@@ -117,7 +108,7 @@ static errno_t extent40_fetch(reiser4_item_t *item, uint32_t pos,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t extent40_update(reiser4_item_t *item, uint32_t pos,
+static errno_t extent40_update(item_entity_t *item, uint32_t pos,
 			       void *buff, uint32_t count)
 {
 	reiser4_ptr_hint_t *hint = (reiser4_ptr_hint_t *)buff;
@@ -147,25 +138,25 @@ static reiser4_plugin_t extent40_plugin = {
 		},
 		
 #ifndef ENABLE_COMPACT
-		.init		  = extent40_init,
-		.update       = extent40_update,
-		.insert		  = extent40_insert,
-		.remove		  = extent40_remove,
+		.init	       = extent40_init,
+		.update        = extent40_update,
+		.insert	       = extent40_insert,
+		.remove	       = extent40_remove,
 #else
-		.init		  = NULL,
-		.update       = NULL,
-		.insert		  = NULL,
-		.remove		  = NULL,
+		.init	       = NULL,
+		.update        = NULL,
+		.insert	       = NULL,
+		.remove	       = NULL,
 #endif
-		.estimate	  = NULL,
-		.check		  = NULL,
-		.lookup		  = NULL,
-		.valid		  = NULL,
-		.shift        = NULL,
-		.open         = NULL,
+		.estimate      = NULL,
+		.check	       = NULL,
+		.lookup	       = NULL,
+		.valid	       = NULL,
+		.shift         = NULL,
+		.open          = NULL,
 
-		.count		  = extent40_count,
-		.print		  = extent40_print,
+		.count	       = extent40_count,
+		.print	       = extent40_print,
 		.fetch         = extent40_fetch,
 		
 		.max_poss_key = extent40_max_poss_key,

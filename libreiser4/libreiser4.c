@@ -48,7 +48,7 @@ static errno_t tree_insert(
 static errno_t tree_remove(
 	const void *tree,	    /* opaque pointer to the tree */
 	reiser4_key_t *key,	    /* key of the item to be removerd */
-	uint8_t level)
+	uint8_t level)              /* stop level */
 {
 	aal_assert("umka-848", tree != NULL, return -1);
 	aal_assert("umka-849", key != NULL, return -1);
@@ -65,21 +65,12 @@ static int tree_lookup(
 	uint8_t level,		    /* stop level */
 	reiser4_place_t *place)	    /* the same as reiser4_coord_t;result will be stored in */
 {
-	int ret;
-	reiser4_coord_t coord;
-	
 	aal_assert("umka-851", key != NULL, return -1);
 	aal_assert("umka-850", tree != NULL, return -1);
 	aal_assert("umka-852", place != NULL, return -1);
     
-	ret = reiser4_tree_lookup((reiser4_tree_t *)tree, 
-				  key, level, &coord);
-
-	place->pos = coord.pos;
-	place->entity = coord.joint->node->entity;
-	place->data = (void *)coord.joint;
-
-	return ret;
+	return reiser4_tree_lookup((reiser4_tree_t *)tree, key, level,
+				   (reiser4_coord_t *)place);
 }
 
 /* Handler for requests for right neighbor */
@@ -88,9 +79,17 @@ static errno_t tree_right(
 	reiser4_place_t *place)	    /* coord of node right neighbor will be obtained for */
 {
 	reiser4_joint_t *joint;
+	reiser4_coord_t *coord;
     
 	aal_assert("umka-867", tree != NULL, return -1);
 	aal_assert("umka-868", place != NULL, return -1);
+
+	coord = (reiser4_coord_t *)place;
+		
+	if (coord->context != CT_JOINT) {
+		aal_exception_error("Passed place has invalid context.");
+		return -1;
+	}
     
 	joint = (reiser4_joint_t *)place->data; 
     
@@ -98,14 +97,7 @@ static errno_t tree_right(
 	if (reiser4_joint_realize(joint) || !joint->right)
 		return -1;
 
-	/* Filling passed coord by right neighbor coords */
-	place->data = (void *)joint->right;
-	place->entity = joint->right->node->entity;
-
-	place->pos.item = 0;
-	place->pos.unit = 0;
-    
-	return 0;
+	return reiser4_coord_open((reiser4_coord_t *)place, joint->right, CT_JOINT, &coord->pos);
 }
 
 /* Handler for requests for left neighbor */
@@ -114,24 +106,25 @@ static errno_t tree_left(
 	reiser4_place_t *place)	    /* coord of node left neighbor will be obtained for */
 {
 	reiser4_joint_t *joint;
-    
+	reiser4_coord_t *coord;
+	
 	aal_assert("umka-867", tree != NULL, return -1);
 	aal_assert("umka-868", place != NULL, return -1);
-    
-	joint = (reiser4_joint_t *)place->data; 
+
+	coord = (reiser4_coord_t *)place;
+	
+	if (coord->context != CT_JOINT) {
+		aal_exception_error("Passed place has invalid context.");
+		return -1;
+	}
+	
+	joint = (reiser4_joint_t *)place->data;
     
 	/* Rasing from the device tree lies on both neighbors */
 	if (reiser4_joint_realize(joint) || !joint->left)
 		return -1;
 
-	/* Filling passed coord by left neighbor coords */
-	place->data = (void *)joint->left;
-	place->entity = joint->left->node->entity;
-
-	place->pos.item = 0;
-	place->pos.unit = 0;
-    
-	return 0;
+	return reiser4_coord_open((reiser4_coord_t *)place, joint->left, CT_JOINT, &coord->pos);
 }
 
 static uint32_t tree_blockspace(const void *tree) {
@@ -147,84 +140,6 @@ static uint32_t tree_nodespace(const void *tree) {
 	node = ((reiser4_tree_t *)tree)->root->node;
 	return reiser4_node_maxspace(node) - reiser4_node_overhead(node);
 }
-
-static errno_t item_open(
-	reiser4_item_t *item,		/* item to gettin body from */
-	reiser4_entity_t *entity,	/* node entity the item lies in */
-	reiser4_pos_t *pos)             /* pos of item in node */
-{
-	aal_assert("umka-1218", entity != NULL, return -1);
-	aal_assert("umka-1218", pos != NULL, return -1);
-	aal_assert("umka-1219", item != NULL, return -1);
-    
-	return reiser4_item_open(item, entity, pos);
-}
-
-/* Hanlder for item length requests arrive from the all plugins */
-static uint32_t item_len(
-	reiser4_item_t *item)		/* item to getting the len from */
-{
-	aal_assert("umka-1216", item != NULL, return 0);
-	return reiser4_item_len(item);
-}
-
-/* Hanlder for item body requests arrive from the all plugins */
-static reiser4_body_t *item_body(
-	reiser4_item_t *item)		/* item to getting the body from */
-{
-	aal_assert("umka-855", item != NULL, return NULL);
-	return reiser4_item_body(item);
-}
-
-/* Hanlder for returning item key */
-static errno_t item_key(
-	reiser4_item_t *item,		/* item to getting the key from */
-	reiser4_key_t *key)
-{
-	aal_assert("umka-870", item != NULL, return -1);
-	aal_assert("umka-871", key != NULL, return -1);
-
-	return reiser4_item_get_key(item, key);
-}
-
-/* Handler for plugin id requests */
-static reiser4_plugin_t *item_plugin(
-	reiser4_item_t *item)		/* item to getting the plugin from */
-{
-	aal_assert("umka-872", item != NULL, return NULL);
-	return reiser4_item_plugin(item);
-}
-
-#ifndef ENABLE_COMPACT
-
-/* Support for the %k occurences in the formated messages */
-#define PA_REISER4_KEY  (PA_LAST)
-
-static int arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
-	if (n > 0)
-		argtypes[0] = PA_REISER4_KEY | PA_FLAG_PTR;
-    
-	return 1;
-}
-
-static int print_key(FILE * stream, const struct printf_info *info, 
-		     const void *const *args) 
-{
-	int len;
-	char buffer[100];
-	reiser4_key_t *key;
-
-	aal_memset(buffer, 0, sizeof(buffer));
-    
-	key = *((reiser4_key_t **)(args[0]));
-	reiser4_key_print(key, buffer, sizeof(buffer));
-
-	fprintf(stream, "%s", buffer);
-    
-	return aal_strlen(buffer);
-}
-
-#endif
 
 reiser4_core_t core = {
 	.factory_ops = {
@@ -262,24 +177,6 @@ reiser4_core_t core = {
 #endif
 		.nodespace  = tree_nodespace,
 		.blockspace = tree_blockspace
-	},
-    
-	.item_ops {
-	
-		/* Installing open callback */
-		.open	= item_open,
-	
-		/* The callback for getting an item body */
-		.body	= item_body,
-
-		/* The callback for getting an item length */
-		.len	= item_len,
-
-		/* Returns key of the item */
-		.key	= item_key,
-
-		/* Returns plugin of the item */
-		.plugin = item_plugin
 	}
 };
 
@@ -297,6 +194,37 @@ int libreiser4_min_interface_version(void) {
 const char *libreiser4_version(void) {
 	return VERSION;
 }
+
+#ifndef ENABLE_COMPACT
+
+/* Support for the %k occurences in the formated messages */
+#define PA_REISER4_KEY  (PA_LAST)
+
+static int arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
+	if (n > 0)
+		argtypes[0] = PA_REISER4_KEY | PA_FLAG_PTR;
+    
+	return 1;
+}
+
+static int print_key(FILE * stream, const struct printf_info *info, 
+		     const void *const *args) 
+{
+	int len;
+	char buffer[100];
+	reiser4_key_t *key;
+
+	aal_memset(buffer, 0, sizeof(buffer));
+    
+	key = *((reiser4_key_t **)(args[0]));
+	reiser4_key_print(key, buffer, sizeof(buffer));
+
+	fprintf(stream, "%s", buffer);
+    
+	return aal_strlen(buffer);
+}
+
+#endif
 
 /* 
    Initializes libreiser4 (plugin factory, memory limit, etc). This function

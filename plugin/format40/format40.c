@@ -14,7 +14,7 @@ extern reiser4_plugin_t format40_plugin;
 
 static reiser4_core_t *core = NULL;
 
-static uint64_t format40_get_root(reiser4_entity_t *entity) {
+static uint64_t format40_get_root(object_entity_t *entity) {
 	format40_super_t *super;
     
 	aal_assert("umka-400", entity != NULL, return FAKE_BLK);
@@ -23,7 +23,7 @@ static uint64_t format40_get_root(reiser4_entity_t *entity) {
 	return get_sb_root_block(super);
 }
 
-static uint64_t format40_get_len(reiser4_entity_t *entity) {
+static uint64_t format40_get_len(object_entity_t *entity) {
 	format40_super_t *super;
     
 	aal_assert("umka-401", entity != NULL, return FAKE_BLK);
@@ -32,7 +32,7 @@ static uint64_t format40_get_len(reiser4_entity_t *entity) {
 	return get_sb_block_count(super);
 }
 
-static uint64_t format40_get_free(reiser4_entity_t *entity) {
+static uint64_t format40_get_free(object_entity_t *entity) {
 	format40_super_t *super;
     
 	aal_assert("umka-402", entity != NULL, return FAKE_BLK);
@@ -41,7 +41,7 @@ static uint64_t format40_get_free(reiser4_entity_t *entity) {
 	return get_sb_free_blocks(super);
 }
 
-static uint16_t format40_get_height(reiser4_entity_t *entity) {
+static uint16_t format40_get_height(object_entity_t *entity) {
 	format40_super_t *super;
     
 	aal_assert("umka-1123", entity != NULL, return 0);
@@ -50,7 +50,7 @@ static uint16_t format40_get_height(reiser4_entity_t *entity) {
 	return get_sb_tree_height(super);
 }
 
-static uint32_t format40_get_stamp(reiser4_entity_t *entity) {
+static uint32_t format40_get_stamp(object_entity_t *entity) {
 	format40_super_t *super;
     
 	aal_assert("umka-1122", entity != NULL, return 0);
@@ -63,7 +63,7 @@ static uint32_t format40_get_stamp(reiser4_entity_t *entity) {
 #define FORMAT40_JFOOTER (4096 * 20)
 
 /* This function describes journal layout in format40 */
-static errno_t format40_journal_layout(reiser4_entity_t *entity,
+static errno_t format40_journal_layout(object_entity_t *entity,
 				       reiser4_action_func_t action_func, void *data)
 {
 	blk_t blk;
@@ -74,12 +74,12 @@ static errno_t format40_journal_layout(reiser4_entity_t *entity,
     
 	blk = FORMAT40_JHEADER / aal_device_get_bs(format->device);
     
-	if (action_func((reiser4_entity_t *)format, blk, data))
+	if (action_func((object_entity_t *)format, blk, data))
 		return -1;
     
 	blk = FORMAT40_JFOOTER / aal_device_get_bs(format->device);
     
-	if (action_func((reiser4_entity_t *)format, blk, data))
+	if (action_func((object_entity_t *)format, blk, data))
 		return -1;
 
 	return 0;
@@ -89,7 +89,7 @@ static errno_t format40_journal_layout(reiser4_entity_t *entity,
 	
 #define CRC_SIZE 4
 
-static errno_t format40_alloc_layout(reiser4_entity_t *entity,
+static errno_t format40_alloc_layout(object_entity_t *entity,
 				     reiser4_action_func_t action_func, void *data) 
 {
 	count_t bpb;
@@ -105,14 +105,14 @@ static errno_t format40_alloc_layout(reiser4_entity_t *entity,
 	for (blk = start; blk < format40_get_len(entity);
 	     blk = (blk / bpb + 1) * bpb) 
 	{
-		if (action_func((reiser4_entity_t *)format, blk, data))
+		if (action_func((object_entity_t *)format, blk, data))
 			return -1;
 	}
     
 	return 0;
 }
 
-static errno_t format40_skipped_layout(reiser4_entity_t *entity,
+static errno_t format40_skipped_layout(object_entity_t *entity,
 				       reiser4_action_func_t action_func, void *data) 
 {
 	blk_t blk, offset;
@@ -124,14 +124,14 @@ static errno_t format40_skipped_layout(reiser4_entity_t *entity,
 	offset = MASTER_OFFSET / format->device->blocksize;
     
 	for (blk = 0; blk < offset; blk++) {
-		if (action_func((reiser4_entity_t *)format, blk, data))
+		if (action_func((object_entity_t *)format, blk, data))
 			return -1;
 	}
     
 	return 0;
 }
 
-static errno_t format40_format_layout(reiser4_entity_t *entity,
+static errno_t format40_format_layout(object_entity_t *entity,
 				      reiser4_action_func_t action_func, void *data) 
 {
 	blk_t blk, offset;
@@ -144,7 +144,7 @@ static errno_t format40_format_layout(reiser4_entity_t *entity,
 	offset = FORMAT40_OFFSET / format->device->blocksize;
     
 	for (; blk <= offset; blk++) {
-		if (action_func((reiser4_entity_t *)format, blk, data))
+		if (action_func((object_entity_t *)format, blk, data))
 			return -1;
 	}
     
@@ -179,7 +179,7 @@ static int format40_magic(format40_super_t *super) {
 			   aal_strlen(FORMAT40_MAGIC)) == 0;
 }
 
-static aal_device_t *format40_device(reiser4_entity_t *entity) {
+static aal_device_t *format40_device(object_entity_t *entity) {
 	return ((format40_t *)entity)->device;
 }
 
@@ -201,7 +201,7 @@ static aal_block_t *format40_super_open(aal_device_t *device) {
 	return block;
 }
 
-static reiser4_entity_t *format40_open(aal_device_t *device) {
+static object_entity_t *format40_open(aal_device_t *device) {
 	format40_t *format;
 
 	aal_assert("umka-393", device != NULL, return NULL);
@@ -215,7 +215,7 @@ static reiser4_entity_t *format40_open(aal_device_t *device) {
 	if (!(format->block = format40_super_open(device)))
 		goto error_free_format;
     
-	return (reiser4_entity_t *)format;
+	return (object_entity_t *)format;
 
  error_free_format:
 	aal_free(format);
@@ -225,7 +225,7 @@ static reiser4_entity_t *format40_open(aal_device_t *device) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t callback_clobber_block(reiser4_entity_t *entity, 
+static errno_t callback_clobber_block(object_entity_t *entity, 
 				      blk_t blk, void *data) 
 {
 	aal_block_t *block;
@@ -253,7 +253,7 @@ static errno_t callback_clobber_block(reiser4_entity_t *entity,
 }
 
 /* This function should create super block and update all copies */
-static reiser4_entity_t *format40_create(aal_device_t *device, 
+static object_entity_t *format40_create(aal_device_t *device, 
 					 uint64_t blocks, uint16_t tail)
 {
 	blk_t blk;
@@ -289,14 +289,14 @@ static reiser4_entity_t *format40_create(aal_device_t *device,
 	set_sb_mkfs_id(super, random());
 
 	/* Clobbering skipped area */
-	if (format40_skipped_layout((reiser4_entity_t *)format, 
+	if (format40_skipped_layout((object_entity_t *)format, 
 				    callback_clobber_block, NULL))
 	{
 		aal_exception_error("Can't clobber skipped area.");
 		goto error_free_block;
 	}
     
-	return (reiser4_entity_t *)format;
+	return (object_entity_t *)format;
 
  error_free_block:
 	aal_block_close(format->block);
@@ -307,7 +307,7 @@ static reiser4_entity_t *format40_create(aal_device_t *device,
 }
 
 /* This function should update all copies of the super block */
-static errno_t format40_sync(reiser4_entity_t *entity) {
+static errno_t format40_sync(object_entity_t *entity) {
 	format40_t *format;
     
 	aal_assert("umka-394", entity != NULL, return -1); 
@@ -328,7 +328,7 @@ static errno_t format40_sync(reiser4_entity_t *entity) {
 
 #endif
 
-static errno_t format40_valid(reiser4_entity_t *entity) {
+static errno_t format40_valid(object_entity_t *entity) {
 	format40_t *format;
     
 	aal_assert("umka-397", entity != NULL, return -1);
@@ -339,7 +339,7 @@ static errno_t format40_valid(reiser4_entity_t *entity) {
 				    format->device);
 }
 
-static void format40_close(reiser4_entity_t *entity) {
+static void format40_close(object_entity_t *entity) {
 	aal_assert("umka-398", entity != NULL, return);
     
 	aal_block_close(((format40_t *)entity)->block);
@@ -358,7 +358,7 @@ static int format40_confirm(aal_device_t *device) {
 	return 1;
 }
 
-static void format40_oid_area(reiser4_entity_t *entity, 
+static void format40_oid_area(object_entity_t *entity, 
 			      void **oid_start, uint32_t *oid_len) 
 {
 	format40_super_t *super;
@@ -373,25 +373,25 @@ static void format40_oid_area(reiser4_entity_t *entity,
 
 static const char *formats[] = {"4.0"};
 
-static const char *format40_name(reiser4_entity_t *entity) {
+static const char *format40_name(object_entity_t *entity) {
 	return formats[0];
 }
 
-static rpid_t format40_journal_pid(reiser4_entity_t *entity) {
+static rpid_t format40_journal_pid(object_entity_t *entity) {
 	return JOURNAL_REISER40_ID;
 }
 
-static rpid_t format40_alloc_pid(reiser4_entity_t *entity) {
+static rpid_t format40_alloc_pid(object_entity_t *entity) {
 	return ALLOC_REISER40_ID;
 }
 
-static rpid_t format40_oid_pid(reiser4_entity_t *entity) {
+static rpid_t format40_oid_pid(object_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
 #ifndef ENABLE_COMPACT
 
-static void format40_set_root(reiser4_entity_t *entity, 
+static void format40_set_root(object_entity_t *entity, 
 			      uint64_t root) 
 {
 	format40_super_t *super;
@@ -402,7 +402,7 @@ static void format40_set_root(reiser4_entity_t *entity,
 	set_sb_root_block(super, root);
 }
 
-static void format40_set_len(reiser4_entity_t *entity, 
+static void format40_set_len(object_entity_t *entity, 
 			     uint64_t blocks) 
 {
 	format40_super_t *super;
@@ -413,7 +413,7 @@ static void format40_set_len(reiser4_entity_t *entity,
 	set_sb_block_count(super, blocks);
 }
 
-static void format40_set_free(reiser4_entity_t *entity, 
+static void format40_set_free(object_entity_t *entity, 
 			      uint64_t blocks) 
 {
 	format40_super_t *super;
@@ -424,7 +424,7 @@ static void format40_set_free(reiser4_entity_t *entity,
 	set_sb_free_blocks(super, blocks);
 }
 
-static void format40_set_height(reiser4_entity_t *entity, 
+static void format40_set_height(object_entity_t *entity, 
 				uint16_t height) 
 {
 	format40_super_t *super;
@@ -435,7 +435,7 @@ static void format40_set_height(reiser4_entity_t *entity,
 	set_sb_tree_height(super, height);
 }
 
-static void format40_set_stamp(reiser4_entity_t *entity, 
+static void format40_set_stamp(object_entity_t *entity, 
 			       uint32_t mkfsid) 
 {
 	format40_super_t *super;
@@ -446,10 +446,10 @@ static void format40_set_stamp(reiser4_entity_t *entity,
 	set_sb_mkfs_id(super, mkfsid);
 }
 
-extern errno_t format40_check(reiser4_entity_t *entity, 
+extern errno_t format40_check(object_entity_t *entity, 
 			      uint16_t options);
 
-extern errno_t format40_print(reiser4_entity_t *entity, 
+extern errno_t format40_print(object_entity_t *entity, 
 			      char *buff, uint32_t n, uint16_t options);
 
 #endif

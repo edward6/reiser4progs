@@ -5,7 +5,7 @@
 
 #include <repair/librepair.h>
 
-errno_t callback_data_block_check(reiser4_entity_t *format, blk_t blk, 
+errno_t callback_data_block_check(object_entity_t *format, blk_t blk, 
     void *data) 
 {
     blk_t passed_blk = *(blk_t *)data;
@@ -17,7 +17,7 @@ errno_t callback_data_block_check(reiser4_entity_t *format, blk_t blk,
     return passed_blk == blk ? 1 : 0;
 }
 
-errno_t callback_mark_format_block(reiser4_entity_t *format, blk_t blk, 
+errno_t callback_mark_format_block(object_entity_t *format, blk_t blk, 
     void *data) 
 {
     aux_bitmap_t *format_layout = (aux_bitmap_t *)data;

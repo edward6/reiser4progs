@@ -22,7 +22,7 @@ inline void *node40_ib_at(aal_block_t *block, int pos) {
 
 #ifndef ENABLE_COMPACT
 
-static reiser4_entity_t *node40_create(aal_block_t *block, 
+static object_entity_t *node40_create(aal_block_t *block, 
 				       uint8_t level) 
 {
 	node40_t *node;
@@ -48,19 +48,19 @@ static reiser4_entity_t *node40_create(aal_block_t *block,
 	nh40_set_magic(nh40(node->block), NODE40_MAGIC);
 	nh40_set_num_items(nh40(node->block), 0);
 
-	return (reiser4_entity_t *)node;
+	return (object_entity_t *)node;
 }
 
 #endif
 
-static rpid_t node40_pid(reiser4_entity_t *entity) {
+static rpid_t node40_pid(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-827", node != NULL, return FAKE_PLUGIN);
 	return nh40_get_pid(nh40(node->block));
 } 
 
-static reiser4_entity_t *node40_open(aal_block_t *block) {
+static object_entity_t *node40_open(aal_block_t *block) {
 	node40_t *node;
     
 	aal_assert("umka-807", block != NULL, return NULL);
@@ -77,14 +77,14 @@ static reiser4_entity_t *node40_open(aal_block_t *block) {
 		goto error_free_node;
 	}
 
-	return (reiser4_entity_t *)node;
+	return (object_entity_t *)node;
     
  error_free_node:
 	aal_free(node);
 	return NULL;
 }
 
-static errno_t node40_close(reiser4_entity_t *entity) {
+static errno_t node40_close(object_entity_t *entity) {
 	aal_assert("umka-825", entity != NULL, return -1);
     
 	aal_free(entity);
@@ -101,14 +101,14 @@ static int node40_confirm(aal_block_t *block) {
 }
 
 /* Returns item number in given block. Used for any loops through all items */
-uint16_t node40_count(reiser4_entity_t *entity) {
+uint16_t node40_count(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-018", node != NULL, return 0);
 	return nh40_get_num_items(nh40(node->block));
 }
 
-static errno_t node40_get_key(reiser4_entity_t *entity, 
+static errno_t node40_get_key(object_entity_t *entity, 
 			      reiser4_pos_t *pos, reiser4_key_t *key) 
 {
 	node40_t *node = (node40_t *)entity;
@@ -127,7 +127,7 @@ static errno_t node40_get_key(reiser4_entity_t *entity,
 }
 
 /* Gets item's body at given pos */
-static void *node40_item_body(reiser4_entity_t *entity, 
+static void *node40_item_body(object_entity_t *entity, 
 			      reiser4_pos_t *pos)
 {
 	node40_t *node = (node40_t *)entity;
@@ -145,12 +145,12 @@ static void *node40_item_body(reiser4_entity_t *entity,
   Retutns items overhead for this node format. Widely used in modification and 
   estimation routines.
 */
-static uint16_t node40_overhead(reiser4_entity_t *entity) {
+static uint16_t node40_overhead(object_entity_t *entity) {
 	return sizeof(item40_header_t);
 }
 
 /* Returns maximal size of item possible for passed node instance */
-static uint16_t node40_maxspace(reiser4_entity_t *entity) {
+static uint16_t node40_maxspace(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-016", node != NULL, return 0);
@@ -159,7 +159,7 @@ static uint16_t node40_maxspace(reiser4_entity_t *entity) {
 		sizeof(item40_header_t);
 }
 
-static rpid_t node40_item_pid(reiser4_entity_t *entity, 
+static rpid_t node40_item_pid(object_entity_t *entity, 
 			      reiser4_pos_t *pos)
 {
 	node40_t *node = (node40_t *)entity;
@@ -174,7 +174,7 @@ static rpid_t node40_item_pid(reiser4_entity_t *entity,
 }
 
 /* Returns length of item at pos */
-static uint16_t node40_item_len(reiser4_entity_t *entity, 
+static uint16_t node40_item_len(object_entity_t *entity, 
 				reiser4_pos_t *pos)
 {
 	item40_header_t *ih;
@@ -194,6 +194,22 @@ static uint16_t node40_item_len(reiser4_entity_t *entity,
 	return (int)pos->item == node40_count(entity) - 1 ? 
 		(int)free_space_start - ih40_get_offset(ih) : 
 		(int)ih40_get_offset(ih - 1) - ih40_get_offset(ih);
+}
+
+static void node40_item_init(object_entity_t *entity, reiser4_pos_t *pos,
+			     item_entity_t *item)
+{
+	node40_t *node = (node40_t *)entity;
+	
+	item->context.block = node->block;
+	item->context.node = entity;
+	
+	item->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
+					       node40_item_pid(entity, pos));
+	
+	item->pos = pos->item;
+	item->len = node40_item_len(entity, pos);
+	item->body = node40_ib_at(node->block, pos->item);
 }
 
 #ifndef ENABLE_COMPACT
@@ -269,11 +285,11 @@ static errno_t node40_expand(node40_t *node,
 }
 
 /* Inserts item described by hint structure into node */
-static errno_t node40_insert(reiser4_entity_t *entity, 
+static errno_t node40_insert(object_entity_t *entity, 
 			     reiser4_pos_t *pos, reiser4_item_hint_t *hint) 
 { 
+	item_entity_t item;
 	node40_header_t *nh;
-	reiser4_item_t item;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-818", node != NULL, return -1);
@@ -296,18 +312,17 @@ static errno_t node40_insert(reiser4_entity_t *entity,
 		return 0;
 	}
     
-	item.pos = pos;
-	item.node = entity;
-	    
+	node40_item_init(entity, pos, &item);
+	
 	return plugin_call(return -1, hint->plugin->item_ops,
 			   init, &item, hint);
 }
 
 /* Pastes unit into item described by hint structure. */
-static errno_t node40_paste(reiser4_entity_t *entity, 
-			    reiser4_pos_t *pos, reiser4_item_hint_t *hint) 
+static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
+			    reiser4_item_hint_t *hint) 
 {
-	reiser4_item_t item;
+	item_entity_t item;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-1017", node != NULL, return -1);
@@ -316,8 +331,8 @@ static errno_t node40_paste(reiser4_entity_t *entity,
 	if (node40_expand(node, pos, hint))
 		return -1;
 
-	item.pos = pos;
-	item.node = entity;
+	node40_item_init(entity, pos, &item);
+	node40_get_key(entity, pos, &item.key);
 	    
 	return plugin_call(return -1, hint->plugin->item_ops, 
 			   insert, &item, pos->unit, hint);
@@ -346,7 +361,7 @@ static errno_t node40_shrink(node40_t *node,
 	ih = node40_ih_at(node->block, pos->item);
     
 	offset = ih40_get_offset(ih);
-	ihlen = node40_item_len((reiser4_entity_t *)node, pos);
+	ihlen = node40_item_len((object_entity_t *)node, pos);
 
 	is_move = ((offset + ihlen) < nh40_get_free_space_start(nh));
     
@@ -378,7 +393,7 @@ static errno_t node40_shrink(node40_t *node,
    This function removes item from the node at specified pos. Do not try to 
    understand it. This is impossible. But it works correctly.
 */
-errno_t node40_remove(reiser4_entity_t *entity, 
+errno_t node40_remove(object_entity_t *entity, 
 		      reiser4_pos_t *pos) 
 {
 	uint16_t len;
@@ -391,7 +406,7 @@ errno_t node40_remove(reiser4_entity_t *entity,
     
 	nh = nh40(node->block);
 	ih = node40_ih_at(node->block, pos->item);
-	len = node40_item_len((reiser4_entity_t *)node, pos);
+	len = node40_item_len((object_entity_t *)node, pos);
 
 	/* Removing either item or unit, depending on pos */
 	if (node40_shrink(node, pos, len))
@@ -405,7 +420,7 @@ errno_t node40_remove(reiser4_entity_t *entity,
 	return 0;
 }
 
-static errno_t node40_cut(reiser4_entity_t *entity, 
+static errno_t node40_cut(object_entity_t *entity, 
 			  reiser4_pos_t *pos)
 {
 	rpid_t pid;
@@ -414,7 +429,7 @@ static errno_t node40_cut(reiser4_entity_t *entity,
 	item40_header_t *ih;
 	node40_header_t *nh;
     
-	reiser4_item_t item;
+	item_entity_t item;
 	reiser4_plugin_t *plugin;
 	node40_t *node = (node40_t *)entity;
 	
@@ -432,8 +447,8 @@ static errno_t node40_cut(reiser4_entity_t *entity,
 		return -1;
 	}
     
-	item.pos = pos;
-	item.node = entity;
+	node40_item_init(entity, pos, &item);
+	node40_get_key(entity, pos, &item.key);
 	
 	if (!(len = plugin_call(return 0, plugin->item_ops, remove, 
 				&item, pos->unit)))
@@ -442,21 +457,21 @@ static errno_t node40_cut(reiser4_entity_t *entity,
 	if (node40_shrink(node, pos, len))
 		return -1;
 	
-	ih40_set_len(ih, node40_item_len((reiser4_entity_t *)node, pos) - len);
+	ih40_set_len(ih, node40_item_len((object_entity_t *)node, pos) - len);
 	nh40_set_free_space(nh, nh40_get_free_space(nh) + len);
 
 	return 0;
 }
 
-extern errno_t node40_check(reiser4_entity_t *entity, 
+extern errno_t node40_check(object_entity_t *entity, 
 			    uint16_t options);
 
-extern errno_t node40_item_legal(reiser4_entity_t *entity, 
+extern errno_t node40_item_legal(object_entity_t *entity, 
 				 reiser4_plugin_t *plugin);
     
 #endif
 
-static errno_t node40_valid(reiser4_entity_t *entity) {
+static errno_t node40_valid(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-015", node != NULL, return -1);
@@ -467,7 +482,7 @@ static errno_t node40_valid(reiser4_entity_t *entity) {
 	return 0;
 }
 
-static uint16_t node40_space(reiser4_entity_t *entity) {
+static uint16_t node40_space(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-020", node != NULL, return 0);
@@ -477,7 +492,7 @@ static uint16_t node40_space(reiser4_entity_t *entity) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t node40_set_key(reiser4_entity_t *entity, 
+static errno_t node40_set_key(object_entity_t *entity, 
 			      reiser4_pos_t *pos, reiser4_key_t *key) 
 {
 	node40_t *node = (node40_t *)entity;
@@ -497,13 +512,13 @@ static errno_t node40_set_key(reiser4_entity_t *entity,
 	return 0;
 }
 
-static errno_t node40_set_level(reiser4_entity_t *entity, uint8_t level) {
+static errno_t node40_set_level(object_entity_t *entity, uint8_t level) {
 	aal_assert("umka-1115", entity != NULL, return -1);
 	nh40_set_level(nh40(((node40_t *)entity)->block), level);
 	return 0;
 }
 
-static errno_t node40_set_stamp(reiser4_entity_t *entity, uint32_t stamp) {
+static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	aal_assert("umka-1126", entity != NULL, return -1);
 	nh40_set_mkfs_id(nh40(((node40_t *)entity)->block), stamp);
 	return 0;
@@ -515,7 +530,7 @@ static errno_t node40_set_stamp(reiser4_entity_t *entity, uint32_t stamp) {
    Prepare text node description and push it into specied buffer. Caller should 
    decide what it should do with filled buffer.
 */
-static errno_t node40_print(reiser4_entity_t *entity, 
+static errno_t node40_print(object_entity_t *entity, 
 			    char *buff, uint32_t n, uint16_t options) 
 {
 	aal_assert("vpf-023", entity != NULL, return -1);
@@ -544,7 +559,7 @@ static inline int callback_comp_key(void *key1,
 			   compare, key1, key2);
 }
 
-static int node40_lookup(reiser4_entity_t *entity, 
+static int node40_lookup(object_entity_t *entity, 
 			 reiser4_key_t *key, reiser4_pos_t *pos)
 {
 	int lookup; 
@@ -568,12 +583,12 @@ static int node40_lookup(reiser4_entity_t *entity,
 	return lookup;
 }
 
-uint8_t node40_get_level(reiser4_entity_t *entity) {
+uint8_t node40_get_level(object_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL, return 0);
 	return nh40_get_level(nh40(((node40_t *)entity)->block));
 }
 
-static uint32_t node40_get_stamp(reiser4_entity_t *entity) {
+static uint32_t node40_get_stamp(object_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL, return -1);
 	return nh40_get_mkfs_id(nh40(((node40_t *)entity)->block));
 }
@@ -603,7 +618,7 @@ static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
 	item40_header_t *start;
 
 	nh = nh40(estimate->src->block);
-	space = node40_space((reiser4_entity_t *)estimate->dst);
+	space = node40_space((object_entity_t *)estimate->dst);
 	ins = node40_ih_at(estimate->src->block, estimate->pos->item);
 
 	start = node40_ih_at(estimate->src->block, 0);
@@ -641,7 +656,7 @@ static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
 	return 0;
 }
 
-static int node40_shift(reiser4_entity_t *entity, reiser4_entity_t *target, 
+static int node40_shift(object_entity_t *entity, object_entity_t *target, 
 			reiser4_pos_t *pos, shift_flags_t flags)
 {
 	node40_estimate_t estimate;

@@ -26,18 +26,12 @@ struct dir40 {
 	*/
 	reiser4_key_t key;
 
-	/* Coords of stat data are stored here */
-	reiser4_place_t place;
+	/* Stat data item coord */
+	reiser4_place_t statdata;
 
-	/* 
-	   Statdata item of the dir. It is used for passing it to statdata
-	   plugin in order to get or set someone field.
-	*/
-	reiser4_item_t statdata;
+	/* Current body item coord */
+	reiser4_place_t body;
 
-	/* Current body item */
-	reiser4_item_t body;
-    
 	/* Current position in the directory */
 	uint32_t offset;
 

@@ -9,17 +9,17 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
-    aal_list_t *list = NULL;
-    aal_list_t *walk = NULL;
+	aal_list_t *list = NULL;
+	aal_list_t *walk = NULL;
 
-    list = aal_list_append(list, "First test line");
-    aal_list_append(list, "Second test line");
-    aal_list_append(list, "Third test line");
+	list = aal_list_append(list, "First test line");
+	aal_list_append(list, "Second test line");
+	aal_list_append(list, "Third test line");
     
-    aal_list_foreach_forward(walk, list)
-    	fprintf(stderr, "%s\n", (char *)walk->data);
+	aal_list_foreach_forward(walk, list)
+		fprintf(stderr, "%s\n", (char *)walk->data);
 
-    aal_list_free(list);
-    return 0;
+	aal_list_free(list);
+	return 0;
 }
 

@@ -62,26 +62,26 @@ typedef struct node40_header node40_header_t;
 
 #define	nh40(block)				((node40_header_t *)block->data)
 
-#define nh40_get_pid(header)			aal_get_le16(&(header)->h, pid)
-#define nh40_set_pid(header, val)		aal_set_le16(&(header)->h, pid, val)
+#define nh40_get_pid(nh)			aal_get_le16(&(nh)->h, pid)
+#define nh40_set_pid(nh, val)		        aal_set_le16(&(nh)->h, pid, val)
 
-#define nh40_get_num_items(header)		aal_get_le16(header, num_items)
-#define nh40_set_num_items(header, val)		aal_set_le16(header, num_items, val)
+#define nh40_get_num_items(nh)	 	        aal_get_le16(nh, num_items)
+#define nh40_set_num_items(nh, val)		aal_set_le16(nh, num_items, val)
 
-#define nh40_get_free_space(header)		aal_get_le16(header, free_space)
-#define nh40_set_free_space(header, val)	aal_set_le16(header, free_space, val)
+#define nh40_get_free_space(nh)		        aal_get_le16(nh, free_space)
+#define nh40_set_free_space(nh, val)	        aal_set_le16(nh, free_space, val)
 
-#define nh40_get_free_space_start(header)	aal_get_le16(header, free_space_start)
-#define nh40_set_free_space_start(header, val)	aal_set_le16(header, free_space_start, val)
+#define nh40_get_free_space_start(nh)	        aal_get_le16(nh, free_space_start)
+#define nh40_set_free_space_start(nh, val)	aal_set_le16(nh, free_space_start, val)
 
-#define nh40_get_level(header)			(header->level)
-#define nh40_set_level(header, val)		(header->level = val)
+#define nh40_get_level(nh)			(nh->level)
+#define nh40_set_level(nh, val)		        (nh->level = val)
 
-#define nh40_get_magic(header)			aal_get_le32(header, magic)
-#define nh40_set_magic(header, val)		aal_set_le32(header, magic, val)
+#define nh40_get_magic(nh)			aal_get_le32(nh, magic)
+#define nh40_set_magic(nh, val)		        aal_set_le32(nh, magic, val)
 
-#define nh40_set_mkfs_id(header, val)		aal_set_le32(header, flush.mkfs_id, val)
-#define nh40_get_mkfs_id(header)		aal_get_le32(header, flush.mkfs_id)
+#define nh40_set_mkfs_id(nh, val)		aal_set_le32(nh, flush.mkfs_id, val)
+#define nh40_get_mkfs_id(nh)		        aal_get_le32(nh, flush.mkfs_id)
 
 union key40 {
 	d64_t el[3];

@@ -7,22 +7,17 @@
 
 static reiser4_core_t *core = NULL;
 
-static nodeptr40_t *nodeptr40_body(reiser4_item_t *item) {
-
-	if (item == NULL) return NULL;
-    
-	return (nodeptr40_t *)plugin_call(return NULL, 
-					  item->node->plugin->node_ops,
-					  item_body, item->node, item->pos);
+static nodeptr40_t *nodeptr40_body(item_entity_t *item) {
+	return (nodeptr40_t *)item->body;
 }
 
-static uint32_t nodeptr40_count(reiser4_item_t *item) {
+static uint32_t nodeptr40_count(item_entity_t *item) {
 	return 1;
 }
 
 #ifndef ENABLE_COMPACT
 
-static errno_t nodeptr40_init(reiser4_item_t *item, 
+static errno_t nodeptr40_init(item_entity_t *item, 
 			      reiser4_item_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;
@@ -36,7 +31,7 @@ static errno_t nodeptr40_init(reiser4_item_t *item,
 	return 0;
 }
 
-static errno_t nodeptr40_estimate(reiser4_item_t *item, uint32_t pos,
+static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
 				  reiser4_item_hint_t *hint) 
 {
 	aal_assert("vpf-068", hint != NULL, return -1);
@@ -45,43 +40,36 @@ static errno_t nodeptr40_estimate(reiser4_item_t *item, uint32_t pos,
 	return 0;
 }
 
-extern errno_t nodeptr40_check(reiser4_item_t *item, uint16_t options);
+extern errno_t nodeptr40_check(item_entity_t *item, uint16_t options);
 
 #endif
 
-static uint64_t nodeptr40_get_ptr(reiser4_item_t *item) {
-	nodeptr40_t *internal;
-    
-	aal_assert("umka-606", item != NULL, return FAKE_BLK);
-	aal_assert("vpf-362", item->pos != NULL, return FAKE_BLK);
-    
-	internal = nodeptr40_body(item);
-    
-	return np40_get_ptr(internal);
-}
-
-static errno_t nodeptr40_print(reiser4_item_t *item, 
+static errno_t nodeptr40_print(item_entity_t *item, 
 			       char *buff, uint32_t n,
 			       uint16_t options) 
 {
+	nodeptr40_t *nodeptr;
+	
 	aal_assert("umka-544", item != NULL, return -1);
 	aal_assert("umka-545", buff != NULL, return -1);
     
-	aal_snprintf(buff, n, "[ %llu ]", nodeptr40_get_ptr(item));
+	nodeptr = nodeptr40_body(item);
+
+	aal_snprintf(buff, n, "[ %llu ]", np40_get_ptr(nodeptr));
 	return 0;
 }
 
-static errno_t nodeptr40_max_poss_key(reiser4_item_t *item,
+static errno_t nodeptr40_max_poss_key(item_entity_t *item,
 				      reiser4_key_t *key) 
 {
 	aal_assert("umka-1207", item != NULL, return -1);
 	aal_assert("umka-1208", key != NULL, return -1);
 
-	return plugin_call(return 0, item->node->plugin->node_ops,
-			   get_key, item->node, item->pos, key);
+	return plugin_call(return -1, key->plugin->key_ops,
+		    assign, key->body, item->key.body);
 }
 
-static errno_t nodeptr40_fetch(reiser4_item_t *item, uint32_t pos,
+static errno_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
 			       void *buff, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
@@ -98,7 +86,7 @@ static errno_t nodeptr40_fetch(reiser4_item_t *item, uint32_t pos,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t nodeptr40_update(reiser4_item_t *item, uint32_t pos,
+static errno_t nodeptr40_update(item_entity_t *item, uint32_t pos,
 				void *buff, uint32_t count)
 {
 	nodeptr40_t *nodeptr;

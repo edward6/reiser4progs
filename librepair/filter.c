@@ -49,7 +49,7 @@ error_free_node:
     return res;
 }
 
-errno_t repair_filter_before_traverse(reiser4_joint_t *joint, reiser4_item_t *item, 
+errno_t repair_filter_before_traverse(reiser4_joint_t *joint, reiser4_coord_t *coord, 
     void *data) 
 {
     repair_check_t *check_data = data;
@@ -70,7 +70,7 @@ errno_t repair_filter_before_traverse(reiser4_joint_t *joint, reiser4_item_t *it
     return 0;
 }
 
-errno_t repair_filter_after_traverse(reiser4_joint_t *joint, reiser4_item_t *item, 
+errno_t repair_filter_after_traverse(reiser4_joint_t *joint, reiser4_coord_t *coord, 
     void *data) 
 {
     repair_check_t *check_data = data;
@@ -87,23 +87,23 @@ errno_t repair_filter_after_traverse(reiser4_joint_t *joint, reiser4_item_t *ite
 }
 
 errno_t repair_filter_setup_traverse(reiser4_joint_t *joint, 
-    reiser4_item_t *item, void *data)
+    reiser4_coord_t *coord, void *data)
 {
     repair_check_t *check_data = data;
     blk_t target;
     int res;
     
     aal_assert("vpf-255", data != NULL, return -1);
-    aal_assert("vpf-269", item != NULL, return -1);
+    aal_assert("vpf-269", coord != NULL, return -1);
 
-    if ((res = repair_item_nptr_check(joint->node, item, check_data)) > 0) 
+    if ((res = repair_item_nptr_check(joint->node, coord, check_data)) > 0) 
 	repair_set_flag(check_data, REPAIR_BAD_PTR);
 
     return 0;
 }
 
 errno_t repair_filter_update_traverse(reiser4_joint_t *joint, 
-    reiser4_item_t *item, void *data) 
+    reiser4_coord_t *coord, void *data) 
 {
     repair_check_t *check_data = data;
     
@@ -111,19 +111,19 @@ errno_t repair_filter_update_traverse(reiser4_joint_t *joint,
     
     if (repair_test_flag(check_data, REPAIR_NOT_FIXED)) {
 	/* The node corruption was not fixed - delete the internal item. */
-	if (reiser4_node_remove(joint->node, item->pos)) {
+	if (reiser4_node_remove(joint->node, &coord->pos)) {
 	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
-		aal_block_number(joint->node->block), item->pos->item, 
-		item->pos->unit);
+		aal_block_number(joint->node->block), coord->pos.item, 
+		coord->pos.unit);
 	    return -1;
 	}
 	repair_clear_flag(check_data, REPAIR_NOT_FIXED);
     } else {
-		reiser4_ptr_hint_t ptr;
+	reiser4_ptr_hint_t ptr;
 
-		if (plugin_call(return -1, item->plugin->item_ops,
-						fetch, item, 0, &ptr, 1))
-			return -1;
+	if (plugin_call(return -1, coord->entity.plugin->item_ops,
+		fetch, &coord->entity, 0, &ptr, 1))
+	    return -1;
 	
 	/* Mark the child as a formatted block in the bitmap. */
 	aux_bitmap_clear(repair_filter_data(check_data)->formatted, ptr.ptr);

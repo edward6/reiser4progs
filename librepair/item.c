@@ -6,15 +6,15 @@
 #include <repair/librepair.h>
 
 errno_t repair_item_nptr_check(reiser4_node_t *node, 
-    reiser4_item_t *item, repair_check_t *data) 
+    reiser4_coord_t *coord, repair_check_t *data) 
 {
+    int res;
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
-    int res;
 
     aal_assert("vpf-368", node != NULL, return -1);
     aal_assert("vpf-382", node->block != NULL, return -1);
-    aal_assert("vpf-270", item != NULL, return -1);
+    aal_assert("vpf-270", coord != NULL, return -1);
     aal_assert("vpf-271", data != NULL, return -1);
     aal_assert("vpf-272", data->format != NULL, return -1);
 
@@ -22,9 +22,9 @@ errno_t repair_item_nptr_check(reiser4_node_t *node,
 	FIXME-VITALY: This stuff should be tested carefully when functions 
 	return 0 as an error. 
     */
-	if (plugin_call(return -1, item->plugin->item_ops, fetch,
-					item, 0, &ptr, 1))
-		return -1;
+    if (plugin_call(return -1, coord->entity.plugin->item_ops, fetch,
+	    &coord->entity, 0, &ptr, 1))
+	return -1;
 	
     if (!ptr.ptr || (ptr.ptr >= reiser4_format_get_len(data->format)) || 
 	(ptr.width >= reiser4_format_get_len(data->format)) || 
@@ -41,7 +41,7 @@ errno_t repair_item_nptr_check(reiser4_node_t *node,
     return 0;
 }
 
-errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node, 
+errno_t repair_item_open(reiser4_coord_t *coord, reiser4_node_t *node, 
     reiser4_pos_t *pos)
 {
     rpid_t pid;
@@ -50,11 +50,12 @@ errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node,
     aal_assert("vpf-235", node->entity != NULL, return -1);
     aal_assert("vpf-236", node->entity->plugin != NULL, return -1);
     aal_assert("vpf-233", pos != NULL, return -1);
-    aal_assert("vpf-234", item != NULL, return -1);
+    aal_assert("vpf-234", coord != NULL, return -1);
     
     /* Check items plugin ids. */
     /* FIXME-VITALY: There will be a fix for plugin ids in a future here. */
-    pid = plugin_call(return 0, node->entity->plugin->node_ops, item_pid, 
+    
+/*    pid = plugin_call(return 0, node->entity->plugin->node_ops, item_pid, 
 	node->entity, pos);
 
     if ((pid == FAKE_PLUGIN) || !(item->plugin = 
@@ -66,7 +67,7 @@ errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node,
     }
 
     item->node = node->entity;
-    item->pos = pos;
+    item->pos = pos;*/
 
     return 0;
 }

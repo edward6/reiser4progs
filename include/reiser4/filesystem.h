@@ -101,9 +101,34 @@ typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_coord reiser4_coord_t;
 typedef struct reiser4_joint reiser4_joint_t;
 
+enum coord_context {
+	CT_RAW    = 0x0,
+	CT_ENTITY = 0x1,
+	CT_NODE   = 0x2,
+	CT_JOINT  = 0x3
+};
+
+typedef enum coord_context coord_context_t;
+
 struct reiser4_coord {
-	reiser4_joint_t *joint;
+
+	/* Coord may used in any context (with node, joint, etc) */
+	union {
+		void *data;
+		
+		reiser4_node_t *node;
+		reiser4_joint_t *joint;
+		object_entity_t *entity;
+	} u;
+
+	/* Coord context flag */
+	coord_context_t context;
+
+	/* Pos inside used entity */
 	reiser4_pos_t pos;
+
+	/* Item entity needed for working with item plugin */
+	item_entity_t entity;
 };
 
 /* The personalization of on-disk node in libreiser4 internal tree */
@@ -139,14 +164,14 @@ struct reiser4_node {
 	aal_block_t *block;
 
 	/* Node entity. This field is uinitializied by node plugin */
-	reiser4_entity_t *entity;
+	object_entity_t *entity;
 };
 
 /* Reiserfs object structure (file, dir) */
 struct reiser4_file {
 
 	/* Object entity. It is initialized by object plugin */
-	reiser4_entity_t *entity;
+	object_entity_t *entity;
     
 	/* Current coord */
 	reiser4_coord_t coord;
@@ -170,7 +195,7 @@ struct reiser4_format {
 	   Disk-format entity. It is initialized by disk-format plugin durring
 	   initialization.
 	*/
-	reiser4_entity_t *entity;
+	object_entity_t *entity;
 };
 
 typedef struct reiser4_format reiser4_format_t;
@@ -187,21 +212,21 @@ struct reiser4_journal {
 	aal_device_t *device;
 
 	/* Journal entity. Initializied by plugin */
-	reiser4_entity_t *entity;
+	object_entity_t *entity;
 };
 
 typedef struct reiser4_journal reiser4_journal_t;
 
 /* Block allocator structure */
 struct reiser4_alloc {
-	reiser4_entity_t *entity;
+	object_entity_t *entity;
 };
 
 typedef struct reiser4_alloc reiser4_alloc_t;
 
 /* Oid allocator structure */
 struct reiser4_oid {
-	reiser4_entity_t *entity;
+	object_entity_t *entity;
 };
 
 typedef struct reiser4_oid reiser4_oid_t;
@@ -233,7 +258,7 @@ typedef errno_t (*reiser4_edge_func_t) (reiser4_joint_t *, void *);
 typedef errno_t (*reiser4_handler_func_t) (reiser4_joint_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*reiser4_setup_func_t) (reiser4_joint_t *, reiser4_item_t *, 
+typedef errno_t (*reiser4_setup_func_t) (reiser4_joint_t *, reiser4_coord_t *, 
 					 void *);
 
 /* Filesystem compound structure */

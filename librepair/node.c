@@ -8,7 +8,7 @@
 static errno_t repair_node_items_check(reiser4_node_t *node, 
     repair_check_t *data) 
 {
-    reiser4_item_t item;
+    reiser4_coord_t coord;
     reiser4_pos_t pos;
     rpid_t pid;
     int res;
@@ -23,7 +23,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	pos.unit = ~0ul;
 	
 	/* Open the item, checking its plugin id. */
-	if ((res = repair_item_open(&item, node, &pos))) {
+	if ((res = repair_item_open(&coord, node, &pos))) {
 	    if (res > 0) {
 		aal_exception_error("Node (%llu): Failed to open the item (%u)."
 		    " Removed.", aal_block_number(node->block), pos.item);
@@ -46,30 +46,30 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	/* Check that the item is legal for this node. If not, it will be deleted 
 	 * in update traverse callback method. */
 	if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
-	    item_legal, node->entity, item.plugin)))
+	    item_legal, node->entity, coord.entity.plugin)))
 	    return res;	
 
 	/* Check the item structure. */
-	if ((res = plugin_call(return -1, item.plugin->item_ops, check, 
-	    &item, data->options))) 
+	if ((res = plugin_call(return -1, coord.entity.plugin->item_ops, check, 
+	    &coord.entity, data->options))) 
 	    return res;
 
-	if (!reiser4_item_extent(&item) && !reiser4_item_nodeptr(&item))
+	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
 	    continue;
 	
-	pos.unit = reiser4_item_count(&item) - 1;
+	pos.unit = reiser4_item_count(&coord) - 1;
 	
 	do {
-	    if ((res = repair_item_nptr_check(node, &item, data)) < 0) 
+	    if ((res = repair_item_nptr_check(node, &coord, data)) < 0) 
 		return -1;
 	    else {
 		reiser4_ptr_hint_t hint;
 			
-		if (plugin_call(return -1, item.plugin->item_ops,
-						fetch, &item, 0, &hint, 1))
-			return -1;
+		if (plugin_call(return -1, coord.entity.plugin->item_ops,
+			fetch, &coord.entity, 0, &hint, 1))
+		    return -1;
 		
-		if (reiser4_item_nodeptr(&item)) {
+		if (reiser4_item_nodeptr(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad internal pointer (%llu/%llu). Removed.", 
 			aal_block_number(node->block), pos.item, pos.unit, 
@@ -77,7 +77,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 
 		    if (reiser4_node_remove(node, &pos))
 			return -1;
-		} else if (reiser4_item_extent(&item)) {
+		} else if (reiser4_item_extent(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad extent pointer (%llu). Zeroed.", 
 			aal_block_number(node->block), pos.item, pos.unit, 
@@ -86,9 +86,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 			hint.ptr = 0;
 			hint.width = 0;
 			
-			if (plugin_call(return -1, item.plugin->item_ops,
-				update, &item, 0, &hint, 1))
-				return -1;
+			if (plugin_call(return -1, coord.entity.plugin->item_ops,
+				update, &coord.entity, 0, &hint, 1))
+			    return -1;
 		}
 	    }
 	} while (pos.unit--);	
@@ -100,7 +100,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 errno_t repair_joint_ld_key(reiser4_joint_t *joint, reiser4_key_t *ld_key, 
     repair_check_t *data) 
 {
-    reiser4_item_t item;
+    reiser4_coord_t coord;
     errno_t res;
     
     aal_assert("vpf-393", joint != NULL, return -1);
@@ -108,11 +108,10 @@ errno_t repair_joint_ld_key(reiser4_joint_t *joint, reiser4_key_t *ld_key,
     aal_assert("vpf-345", data != NULL, return -1);
 
     if (joint->parent != NULL) {
-	if ((res = reiser4_item_open(&item, joint->parent->node->entity, 
-	    &joint->pos)))
+        if ((res = reiser4_coord_open(&coord, joint->parent, CT_JOINT, &joint->pos)))
 	    return res;
 	
-	return reiser4_item_get_key(&item, ld_key);
+	return reiser4_item_key(&coord, ld_key);
     }
 
     reiser4_key_minimal(ld_key);
@@ -123,7 +122,7 @@ errno_t repair_joint_ld_key(reiser4_joint_t *joint, reiser4_key_t *ld_key,
 errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key, 
     repair_check_t *data)
 {
-    reiser4_item_t item;
+    reiser4_coord_t coord;
     reiser4_pos_t pos = {0, 0};
     errno_t res;
     
@@ -132,16 +131,16 @@ errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key,
     aal_assert("vpf-348", data != NULL, return -1);
 
     if (joint->parent != NULL) {
-	if ((res = reiser4_item_open(&item, joint->parent->node->entity, 
-	    &joint->pos)))
+        if ((res = reiser4_coord_open(&coord, joint->parent, CT_JOINT, 
+	        &joint->pos)))
 	    return res;
 	
-	if (reiser4_node_count(joint->node) == item.pos->item + 1) {
+	if (reiser4_node_count(joint->node) == coord.pos.item + 1) {
 	    return repair_joint_rd_key(joint->parent, rd_key, data);
 	} else {
-	    pos.item = item.pos->item + 1;
-	    reiser4_item_open(&item, joint->parent->node->entity, &pos);
-	    return reiser4_item_get_key(&item, rd_key);
+	    pos.item = coord.pos.item + 1;
+	    reiser4_coord_open(&coord, joint->parent, CT_JOINT, &pos);
+	    return reiser4_item_key(&coord, rd_key);
 	}
     }
 
@@ -158,9 +157,9 @@ errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key,
 static errno_t repair_joint_dkeys_check(reiser4_joint_t *joint, 
     repair_check_t *data) 
 {
+    reiser4_coord_t coord;
     reiser4_key_t key, d_key;
-    reiser4_pos_t pos;
-    reiser4_item_t item;
+    reiser4_pos_t pos = {0, ~0ul};
 
     aal_assert("vpf-248", joint != NULL, return -1);
     aal_assert("vpf-395", joint->node != NULL, return -1);
@@ -175,12 +174,10 @@ static errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 	return -1;
     }
     
-    reiser4_pos_init(&pos, 0, ~0ul);
-	
-    if (reiser4_item_open(&item, joint->node->entity, &pos))
+    if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos))
 	return -1;
 	
-    if (reiser4_item_get_key(&item, &key)) {
+    if (reiser4_item_key(&coord, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the left key.",
 	    aal_block_number(joint->node->block));
 	return -1;
@@ -199,15 +196,16 @@ static errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 	return -1;
     }
 
-    reiser4_pos_init(&pos, reiser4_node_count(joint->node) - 1, ~0ul);
+    pos.item = reiser4_node_count(joint->node) - 1;
+    pos.unit = ~0ul;
  
-    if (reiser4_item_open(&item, joint->node->entity, &pos)) {
+    if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
 	aal_exception_error("Node (%llu): Failed to open the item (%llu).",
 	    aal_block_number(joint->node->block), pos.item);
 	return -1;
     }
     
-    if (reiser4_item_max_real_key(&item, &key)) {
+    if (reiser4_item_max_real_key(&coord, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the max real key of "
 	    "the last item.", aal_block_number(joint->node->block));
 	return -1;
@@ -243,11 +241,11 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
     
     pos.item = reiser4_node_count(node) - 1;
     do {
-		reiser4_item_t item;
-		if (reiser4_item_open(&item, node->entity, &pos))
-			return -1;
+	reiser4_coord_t coord;
+	if (reiser4_coord_open(&coord, node, CT_NODE, &pos))
+		return -1;
 /*	if (reiser4_node_get_key(node, &pos, &key)) {*/
-	if (reiser4_item_get_key(&item, &key)) {
+	if (reiser4_item_key(&coord, &key)) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
 		"item (%u).", aal_block_number(node->block), pos.item);
 	    return -1;
@@ -345,7 +343,7 @@ errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data) {
 */
 errno_t repair_node_handle_pointers(reiser4_node_t *node, repair_check_t *data) 
 {
-    reiser4_item_t item;
+    reiser4_coord_t coord;
     reiser4_pos_t pos = {0, 0};
     
     aal_assert("vpf-384", node != NULL, return -1);
@@ -359,22 +357,22 @@ errno_t repair_node_handle_pointers(reiser4_node_t *node, repair_check_t *data)
 	aal_block_number(node->block));
    
     for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++)  {	
-	if (repair_item_open(&item, node, &pos)) {
+	if (repair_item_open(&coord, node, &pos)) {
 	    aal_exception_error("Node (%llu): failed to open the item (%u).", 
 		aal_block_number(node->block), pos.item);
 	    return -1;
 	}	    
 
-	if (!reiser4_item_extent(&item) && !reiser4_item_nodeptr(&item))
+	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
 	    continue;
 
-	for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
+	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
 		reiser4_ptr_hint_t ptr;
 	    blk_t form_blk, used_blk;
 
-		if (plugin_call(return -1, item.plugin->item_ops, fetch,
-						&item, 0, &ptr, 1))
-			return -1;
+	    if (plugin_call(return -1, coord.entity.plugin->item_ops, fetch,
+		    &coord.entity, 0, &ptr, 1))
+	        return -1;
 		
 	    aal_assert("vpf-387", 
 		(ptr.ptr < reiser4_format_get_len(data->format)) && 

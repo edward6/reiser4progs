@@ -13,7 +13,7 @@ extern reiser4_plugin_t oid40_plugin;
 
 static reiser4_core_t *core = NULL;
 
-static reiser4_entity_t *oid40_open(const void *start, 
+static object_entity_t *oid40_open(const void *start, 
 				    uint32_t len) 
 {
 	oid40_t *oid;
@@ -28,17 +28,17 @@ static reiser4_entity_t *oid40_open(const void *start,
 	oid->used = oid40_get_used(start);
 	oid->plugin = &oid40_plugin;
     
-	return (reiser4_entity_t *)oid;
+	return (object_entity_t *)oid;
 }
 
-static void oid40_close(reiser4_entity_t *entity) {
+static void oid40_close(object_entity_t *entity) {
 	aal_assert("umka-510", entity != NULL, return);
 	aal_free(entity);
 }
 
 #ifndef ENABLE_COMPACT
 
-static reiser4_entity_t *oid40_create(const void *start, 
+static object_entity_t *oid40_create(const void *start, 
 				      uint32_t len) 
 {
 	oid40_t *oid;
@@ -57,10 +57,10 @@ static reiser4_entity_t *oid40_create(const void *start,
 	oid40_set_next(start, OID40_RESERVED);
 	oid40_set_used(start, 0);
     
-	return (reiser4_entity_t *)oid;
+	return (object_entity_t *)oid;
 }
 
-static errno_t oid40_sync(reiser4_entity_t *entity) {
+static errno_t oid40_sync(object_entity_t *entity) {
 	aal_assert("umka-1016", entity != NULL, return -1);
     
 	oid40_set_next(((oid40_t *)entity)->start, 
@@ -72,12 +72,12 @@ static errno_t oid40_sync(reiser4_entity_t *entity) {
 	return 0;
 }
 
-static roid_t oid40_next(reiser4_entity_t *entity) {
+static roid_t oid40_next(object_entity_t *entity) {
 	aal_assert("umka-1109", entity != NULL, return 0);
 	return ((oid40_t *)entity)->next;
 }
 
-static roid_t oid40_allocate(reiser4_entity_t *entity) {
+static roid_t oid40_allocate(object_entity_t *entity) {
 	aal_assert("umka-513", entity != NULL, return 0);
 
 	((oid40_t *)entity)->next++;
@@ -86,7 +86,7 @@ static roid_t oid40_allocate(reiser4_entity_t *entity) {
 	return ((oid40_t *)entity)->next - 1;
 }
 
-static void oid40_release(reiser4_entity_t *entity, 
+static void oid40_release(object_entity_t *entity, 
 			  roid_t id)
 {
 	aal_assert("umka-528", entity != NULL, return);
@@ -95,7 +95,7 @@ static void oid40_release(reiser4_entity_t *entity,
 
 #endif
 
-static errno_t oid40_valid(reiser4_entity_t *entity) {
+static errno_t oid40_valid(object_entity_t *entity) {
 	aal_assert("umka-966", entity != NULL, return -1);
 
 	if (((oid40_t *)entity)->next < OID40_ROOT_PARENT_LOCALITY)
@@ -104,17 +104,17 @@ static errno_t oid40_valid(reiser4_entity_t *entity) {
 	return 0;
 }
 
-static roid_t oid40_free(reiser4_entity_t *entity) {
+static roid_t oid40_free(object_entity_t *entity) {
 	aal_assert("umka-961", entity != NULL, return 0);
 	return ~0ull - ((oid40_t *)entity)->next;
 }
 
-static roid_t oid40_used(reiser4_entity_t *entity) {
+static roid_t oid40_used(object_entity_t *entity) {
 	aal_assert("umka-530", entity != NULL, return 0);
 	return ((oid40_t *)entity)->used;
 }
 
-static errno_t oid40_print(reiser4_entity_t *entity,
+static errno_t oid40_print(object_entity_t *entity,
 			   char *buff, uint32_t n, uint16_t options)
 {
 	aal_assert("umka-1303", entity != NULL, return -1);

@@ -14,7 +14,7 @@ struct alloc40 {
 	reiser4_plugin_t *plugin;
 	
 	aux_bitmap_t *bitmap;
-	reiser4_entity_t *format;
+	object_entity_t *format;
 
 	char *crc;
 };

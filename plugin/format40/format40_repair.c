@@ -26,7 +26,7 @@ static int callback_tail_check(int64_t tail, void *data) {
     return 1;
 }
 
-errno_t format40_check(reiser4_entity_t *entity, uint16_t options) {
+errno_t format40_check(object_entity_t *entity, uint16_t options) {
     format40_super_t *super;
     format40_t *format = (format40_t *)entity;
     
@@ -90,7 +90,7 @@ errno_t format40_check(reiser4_entity_t *entity, uint16_t options) {
     return 0;
 }
 
-errno_t format40_print(reiser4_entity_t *entity, char *buff, 
+errno_t format40_print(object_entity_t *entity, char *buff, 
     uint32_t n, uint16_t options) 
 {
     aal_block_t *block;

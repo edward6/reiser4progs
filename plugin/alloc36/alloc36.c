@@ -13,7 +13,7 @@ extern reiser4_plugin_t alloc36_plugin;
 
 static reiser4_core_t *core = NULL;
 
-static reiser4_entity_t *alloc36_open(reiser4_entity_t *format, 
+static object_entity_t *alloc36_open(object_entity_t *format, 
 				      count_t len) 
 {
 	reiser4_alloc36_t *alloc;
@@ -24,7 +24,7 @@ static reiser4_entity_t *alloc36_open(reiser4_entity_t *format,
 	alloc->format = format;
 	alloc->plugin = &alloc36_plugin;
 
-	return (reiser4_entity_t *)alloc;
+	return (object_entity_t *)alloc;
 
  error_free_alloc:
 	aal_free(alloc);
@@ -34,7 +34,7 @@ static reiser4_entity_t *alloc36_open(reiser4_entity_t *format,
 
 #ifndef ENABLE_COMPACT
 
-static reiser4_entity_t *alloc36_create(reiser4_entity_t *format, 
+static object_entity_t *alloc36_create(object_entity_t *format, 
 					count_t len) 
 {
 	reiser4_alloc36_t *alloc;
@@ -45,7 +45,7 @@ static reiser4_entity_t *alloc36_create(reiser4_entity_t *format,
 	alloc->format = format;
 	alloc->plugin = &alloc36_plugin;
     
-	return (reiser4_entity_t *)alloc;
+	return (object_entity_t *)alloc;
 
  error_free_alloc:
 	aal_free(alloc);
@@ -53,14 +53,14 @@ static reiser4_entity_t *alloc36_create(reiser4_entity_t *format,
 	return NULL;
 }
 
-static errno_t alloc36_sync(reiser4_entity_t *entity) {
+static errno_t alloc36_sync(object_entity_t *entity) {
 	aal_assert("umka-415", entity != NULL, return -1);
 	return -1;
 }
 
 #endif
 
-static void alloc36_close(reiser4_entity_t *entity) {
+static void alloc36_close(object_entity_t *entity) {
 	aal_assert("umka-416", entity != NULL, return);
 	aal_free(entity);
 }

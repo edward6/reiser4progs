@@ -20,3 +20,4 @@ Copyright (C) 1996-2002 Hans Reiser
   header structure.
 
 * add fetch and update functions into item.c
+* add reiser4_joint_blk function

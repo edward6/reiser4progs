@@ -16,8 +16,8 @@ static errno_t callback_guess_file(
 	void *data)			    /* item ot be checked */
 {
 	if (plugin->h.sign.type == FILE_PLUGIN_TYPE) {
-		return plugin_call(return 0, plugin->file_ops, 
-				   confirm, (reiser4_item_t *)data);
+		return plugin_call(return 0, plugin->file_ops, confirm,
+				   (item_entity_t *)data);
 	}
     
 	return 0;
@@ -28,22 +28,8 @@ static errno_t callback_guess_file(
    body. Most probably, that passed item body is stat data body.
 */
 reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
-	reiser4_item_t item;
-	reiser4_entity_t *entity;
-    
-	aal_assert("umka-1296", file->coord.joint != NULL, return NULL);
-
-	entity = file->coord.joint->node->entity;
-	
-	if (reiser4_item_open(&item, entity, &file->coord.pos)) {
-		aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-				    aal_block_number(file->coord.joint->node->block),
-				    file->coord.pos.item);
-
-		return NULL;
-	}
-
-	return libreiser4_factory_cfind(callback_guess_file, (void *)&item);
+	aal_assert("umka-1296", file->coord.u.joint != NULL, return NULL);
+	return libreiser4_factory_cfind(callback_guess_file, (void *)&file->coord.entity);
 }
 
 /* 
@@ -56,7 +42,7 @@ static errno_t reiser4_file_realize(
 	reiser4_file_t *file,	    /* file lookup will be performed in */
 	const char *name)	    /* name to be parsed */
 {
-	reiser4_entity_t *entity;
+	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 
 	char track[4096], path[4096];

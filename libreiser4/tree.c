@@ -316,11 +316,10 @@ int reiser4_tree_lookup(
 	reiser4_coord_t *coord)	/* coord of found item */
 {
 	int lookup, deep;
-    
-	reiser4_key_t lkey;
-	reiser4_item_t item;
+
 	reiser4_coord_t fake;
 	reiser4_joint_t *parent;
+	reiser4_pos_t pos = {0, ~0ul};
 
 	reiser4_ptr_hint_t ptr;
 
@@ -330,78 +329,83 @@ int reiser4_tree_lookup(
 		coord = &fake;
     
 	deep = reiser4_tree_height(tree);
-	reiser4_coord_init(coord, tree->root, 0, ~0ul);
+	reiser4_coord_init(coord, tree->root, CT_JOINT, &pos);
     
 	/* 
-	   Check for the case when looked key smaller than root key. This is 
-	   the case, when somebody is trying to go up of the root by ".." entry
-	   of root directory.
+	   Check for the case when looked key smaller than root key. This is the
+	   case, when somebody is trying to go up of the root by ".." entry of
+	   root directory.
 	*/
 	if (reiser4_key_compare(key, &tree->key) < 0)
 		*key = tree->key;
 		    
 	while (1) {
-		reiser4_node_t *node = coord->joint->node;
+		item_entity_t *item;
+		reiser4_node_t *node = coord->u.joint->node;
 	
 		/* 
-		   Looking up for key inside node. Result of lookuping will be stored
-		   in &coord->pos.
+		   Looking up for key inside node. Result of lookuping will be
+		   stored in &coord->pos.
 		*/
 		if ((lookup = reiser4_node_lookup(node, key, &coord->pos)) == -1)
 			return -1;
 
-		if (deep <= level || reiser4_node_count(coord->joint->node) == 0)
+		if (deep <= level || reiser4_node_count(coord->u.joint->node) == 0) {
+
+			if (deep <= level && lookup == 1)
+				reiser4_coord_realize(coord);
+			
 			return lookup;
-       	
+		}
+		
 		if (lookup == 0 && coord->pos.item > 0)
 			coord->pos.item--;
-
-		if (reiser4_item_open(&item, coord->joint->node->entity, &coord->pos)) {
-			blk_t blk = aal_block_number(coord->joint->node->block);
+				
+		if (reiser4_coord_realize(coord)) {
+			blk_t blk = aal_block_number(reiser4_coord_block(coord));
 			aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
 					    blk, coord->pos.item);
 			return -1;
 		}
-	    
-		if (!reiser4_item_nodeptr(&item)) {
+
+		if (!reiser4_item_nodeptr(coord)) {
 			aal_exception_error("Not internal item was found on the twig level. "
 					    "Sorry, drilling is not supported yet!");
 			return -1;
 		}
-	
+
+		item = &coord->entity;
+		
 		/* Getting the node pointer from internal item */
-		if (plugin_call(return -1, item.plugin->item_ops,
-				fetch, &item, 0, &ptr, 1))
+		if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 0, &ptr, 1))
 			return -1;
 		
 		if (ptr.ptr == FAKE_BLK) {
-			blk_t blk = aal_block_number(coord->joint->node->block);
+			blk_t blk = aal_block_number(reiser4_coord_block(coord));
 			aal_exception_error("Can't get pointer from internal item %u, "
-					    "node %llu.", item.pos->item, blk);
+					    "node %llu.", coord->pos.item, blk);
 			return -1;
 		}
 	
 		deep--; 
-		parent = coord->joint;
+		parent = coord->u.joint;
 	
 		/* 
 		   Check whether specified node already in cache. If so, we use node
 		   from the cache.
 		*/
-		reiser4_item_get_key(&item, &lkey);
-
-		if (!(coord->joint = reiser4_joint_find(parent, &lkey))) {
+		if (!(coord->u.joint = reiser4_joint_find(parent, &item->key))) {
 			/* 
 			   Node was not found in the cache, we open it and attach to the 
 			   cache.
 			*/
-			if (!(coord->joint = reiser4_tree_load(tree, ptr.ptr))) {
+			if (!(coord->u.joint = reiser4_tree_load(tree, ptr.ptr))) {
 				aal_exception_error("Can't load node %llu durring lookup.", ptr.ptr);
 				return -1;
 			}
 
 			/* Registering node in tree cache */
-			if (reiser4_joint_attach(parent, coord->joint)) {
+			if (reiser4_joint_attach(parent, coord->u.joint)) {
 				aal_exception_error("Can't attach the node %llu in the tree.", ptr.ptr);
 				goto error_free_joint;
 			}
@@ -411,7 +415,7 @@ int reiser4_tree_lookup(
 	return 0;
     
  error_free_joint:
-	reiser4_joint_close(coord->joint);
+	reiser4_joint_close(coord->u.joint);
 	return -1;
 }
 
@@ -458,7 +462,7 @@ static errno_t reiser4_tree_attach(
 		return -1;
 	}
     
-	if (reiser4_joint_attach(coord.joint, joint)) {
+	if (reiser4_joint_attach(coord.u.joint, joint)) {
 		aal_exception_error("Can't attach the node %llu in tree cache.", 
 				    aal_block_number(joint->node->block));
 		return -1;
@@ -510,8 +514,7 @@ static errno_t reiser4_tree_shift(
 	int move_ip)		/* should we move insert point too */
 {
 	uint32_t overhead;
-	reiser4_item_t item;
-    
+
 	reiser4_coord_t old;
 	reiser4_coord_t src, dst;
     
@@ -520,7 +523,7 @@ static errno_t reiser4_tree_shift(
 	aal_assert("umka-1227", joint != NULL, return -1);
     
 	aal_assert("umka-1258", 
-		   reiser4_node_count(coord->joint->node) > 0, return -1);
+		   reiser4_node_count(coord->u.joint->node) > 0, return -1);
 
 	old = *coord;
 
@@ -537,44 +540,41 @@ static errno_t reiser4_tree_shift(
     
 		/* Prepare the src and dst coords for moving */
 		if (direction == D_LEFT) {
-			reiser4_coord_init(&src, old.joint, 0, ~0ul);
+			reiser4_pos_t src_pos = {0, ~0ul};
+			reiser4_pos_t dst_pos = {reiser4_node_count(joint->node), ~0ul};
+
+			if (reiser4_coord_open(&src, old.u.joint, CT_JOINT, &src_pos))
+				return -1;
 	    
-			reiser4_coord_init(&dst, joint, 
-					   reiser4_node_count(joint->node), ~0ul);
+			reiser4_coord_init(&dst, joint, CT_JOINT, &dst_pos);
 		} else {
-			reiser4_coord_init(&src, old.joint, 
-					   reiser4_node_count(old.joint->node) - 1, ~0ul);
+			reiser4_pos_t dst_pos = {0, ~0ul};
+			reiser4_pos_t src_pos = {reiser4_node_count(old.u.joint->node) - 1, ~0ul};
+			
+			if (reiser4_coord_open(&src, old.u.joint, CT_JOINT, &src_pos))
+				return -1;
 	    
-			reiser4_coord_init(&dst, joint, 0, ~0ul);
-		}
-	
-		/* Getting src item to be moved */
-		if (reiser4_item_open(&item, src.joint->node->entity, &src.pos)) {
-			blk_t blk = aal_block_number(src.joint->node->block);
-			aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
-					   blk, src.pos.item);
-			return -1;
+			reiser4_coord_init(&dst, joint, CT_JOINT, &dst_pos);
 		}
 	
 		overhead = reiser4_node_overhead(joint->node);
 	
-		if (reiser4_node_space(joint->node) < reiser4_item_len(&item) + overhead)
+		if (reiser4_node_space(joint->node) < reiser4_item_len(&src) + overhead)
 			return 0;
 	
-		if (reiser4_node_space(joint->node) - 
-		    (reiser4_item_len(&item) + overhead) < needed)
+		if (reiser4_node_space(joint->node) - (reiser4_item_len(&src) + overhead) < needed)
 			return 0;
 	
 		/* 
-		   Check if we should finish shifting due to insert point reached and
-		   @move_ip flag is not turned on.
+		   Check if we should finish shifting due to insert point
+		   reached and @move_ip flag is not turned on.
 		*/
-		if (!move_ip && coord->joint == old.joint) {
+		if (!move_ip && coord->u.joint == old.u.joint) {
 			if (direction == D_LEFT) {
 				if (coord->pos.item == 0)
 					return 0;
 			} else {
-				uint32_t count = reiser4_node_count(coord->joint->node);
+				uint32_t count = reiser4_node_count(coord->u.joint->node);
 				if (coord->pos.item == count - 1)
 					return 0;
 			}
@@ -582,24 +582,24 @@ static errno_t reiser4_tree_shift(
 
 		/* Updating the insertion point coord */
 		if (direction == D_LEFT) {
-			if (coord->joint == old.joint) {
+			if (coord->u.joint == old.u.joint) {
 				if (coord->pos.item == 0) {
-					coord->joint = dst.joint;
-					coord->pos.item = reiser4_node_count(dst.joint->node);
+					coord->u.joint = dst.u.joint;
+					coord->pos.item = reiser4_node_count(dst.u.joint->node);
 				} else
 					coord->pos.item--;
 			}
 		} else {
-			if (coord->joint == old.joint) {
-				uint32_t count = reiser4_node_count(old.joint->node);
+			if (coord->u.joint == old.u.joint) {
+				uint32_t count = reiser4_node_count(old.u.joint->node);
 				if (coord->pos.item >= count - 1) {
 					if (coord->pos.item > count - 1) {
 						coord->pos.item = 0;
-						coord->joint = dst.joint;
+						coord->u.joint = dst.u.joint;
 						return 0;
 					}
 					coord->pos.item = 0;
-					coord->joint = dst.joint;
+					coord->u.joint = dst.u.joint;
 				}
 			} else
 				coord->pos.item++;
@@ -613,11 +613,11 @@ static errno_t reiser4_tree_shift(
 			return -1;
 		}
 	
-		if (coord->joint != src.joint)
+		if (coord->u.joint != src.u.joint)
 			return 0;
 
 		aal_assert("umka-1260", 
-			   reiser4_node_count(src.joint->node) > 0, return -1);
+			   reiser4_node_count(src.u.joint->node) > 0, return -1);
 	}
 
 	return 0;
@@ -643,7 +643,7 @@ errno_t reiser4_tree_mkspace(
 	if (needed == 0)
 		return 0;
     
-	max_space = reiser4_node_maxspace(old->joint->node);
+	max_space = reiser4_node_maxspace(old->u.joint->node);
 	
 	/* 
 	   Checking if item hint to be inserted to tree has length more than 
@@ -655,30 +655,30 @@ errno_t reiser4_tree_mkspace(
 		return -1;
 	}
     
-	if ((not_enough = needed  - reiser4_node_space(old->joint->node)) <= 0)
+	if ((not_enough = needed  - reiser4_node_space(old->u.joint->node)) <= 0)
 		return 0;
     
-	if (reiser4_joint_realize(old->joint)) {
+	if (reiser4_joint_realize(old->u.joint)) {
 		aal_exception_error("Can't raise up neighbours of node %llu.", 
-				    aal_block_number(old->joint->node->block));
+				    aal_block_number(old->u.joint->node->block));
 		return -1;
 	}
     
-	if (new->joint->left) {
+	if (new->u.joint->left) {
 	    
-		if (reiser4_tree_shift(tree, D_LEFT, new, new->joint->left, needed, 0))
+		if (reiser4_tree_shift(tree, D_LEFT, new, new->u.joint->left, needed, 0))
 			return -1;
 	
-		if ((not_enough = needed - reiser4_node_space(new->joint->node)) <= 0)
+		if ((not_enough = needed - reiser4_node_space(new->u.joint->node)) <= 0)
 			return 0;
 	}
 
-	if (new->joint->right) {
+	if (new->u.joint->right) {
 	    
-		if (reiser4_tree_shift(tree, D_RIGHT, new, new->joint->right, needed, 0))
+		if (reiser4_tree_shift(tree, D_RIGHT, new, new->u.joint->right, needed, 0))
 			return -1;
 	
-		if ((not_enough = needed - reiser4_node_space(new->joint->node)) <= 0)
+		if ((not_enough = needed - reiser4_node_space(new->u.joint->node)) <= 0)
 			return 0;
 	}
     
@@ -687,14 +687,14 @@ errno_t reiser4_tree_mkspace(
 		reiser4_coord_t save;
 		reiser4_joint_t *joint;
 	
-		level = plugin_call(return -1, new->joint->node->entity->plugin->node_ops,
-				    get_level, new->joint->node->entity);
+		level = plugin_call(return -1, new->u.joint->node->entity->plugin->node_ops,
+				    get_level, new->u.joint->node->entity);
 	
 		if (!(joint = reiser4_tree_allocate(tree, level)))
 			return -1;
-	
-		reiser4_coord_dup(new, &save);
-	
+
+		save = *new;
+		
 		if (reiser4_tree_shift(tree, D_RIGHT, new, joint, needed, 1))
 			return -1;
 	
@@ -708,25 +708,25 @@ errno_t reiser4_tree_mkspace(
 			}
 		}
 	
-		not_enough = needed - reiser4_node_space(new->joint->node);
+		not_enough = needed - reiser4_node_space(new->u.joint->node);
 	
 		/* Checking if the old have enough free space after shifting */
-		if (not_enough > 0 && save.joint != new->joint && 
+		if (not_enough > 0 && save.u.joint != new->u.joint && 
 		    new->pos.unit == ~0ull) 
 		{
-			reiser4_coord_dup(&save, new);
-			not_enough = needed - reiser4_node_space(new->joint->node);
+			*new = save;
+			not_enough = needed - reiser4_node_space(new->u.joint->node);
 		}
 	}
 
-	if (new->joint != old->joint && 
-	    reiser4_node_count(old->joint->node) == 0)
+	if (new->u.joint != old->u.joint && 
+	    reiser4_node_count(old->u.joint->node) == 0)
 	{
-		if (old->joint->parent)
-			reiser4_joint_detach(old->joint->parent, old->joint);
+		if (old->u.joint->parent)
+			reiser4_joint_detach(old->u.joint->parent, old->u.joint);
 	
-		reiser4_tree_release(tree, old->joint);
-		old->joint = NULL;
+		reiser4_tree_release(tree, old->u.joint);
+		old->u.joint = NULL;
 	}
 	
 	return -(not_enough > 0);
@@ -743,8 +743,6 @@ errno_t reiser4_tree_insert(
 	uint32_t needed;
     
 	reiser4_key_t *key;
-	reiser4_item_t item;
-    
 	reiser4_coord_t fake;
 	reiser4_coord_t insert;
 
@@ -768,18 +766,17 @@ errno_t reiser4_tree_insert(
 	}
 
 	/* Estimating item in order to insert it into found node */
-	reiser4_item_init(&item, coord->joint->node->entity, &coord->pos);
-	
-	if (reiser4_item_estimate(&item, hint))
+	if (reiser4_item_estimate(coord, hint))
 		return -1;
     
 	/* Needed space is estimated space plugs item overhead */
 	needed = hint->len + (coord->pos.unit == ~0ul ? 
-			      reiser4_node_overhead(coord->joint->node) : 0);
+			      reiser4_node_overhead(coord->u.joint->node) : 0);
    
 	/* This is the special case. The tree doesn't contain any nodes */
 	if (level == LEAF_LEVEL && !tree->root->children) {
 		reiser4_joint_t *joint;
+		reiser4_pos_t pos = {0, ~0ul};
 	
 		if (!(joint = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
 			aal_exception_error("Can't allocate new leaf node.");
@@ -787,12 +784,12 @@ errno_t reiser4_tree_insert(
 		}
 
 		/* Updating coord by just allocated leaf */
-		reiser4_coord_init(coord, joint, 0, ~0ul);
+		reiser4_coord_init(coord, joint, CT_JOINT, &pos);
 	
-		if (reiser4_joint_insert(coord->joint, &coord->pos, hint)) {
+		if (reiser4_joint_insert(coord->u.joint, &coord->pos, hint)) {
 	    
 			aal_exception_error("Can't insert an item into the node %llu.", 
-					    aal_block_number(coord->joint->node->block));
+					    aal_block_number(coord->u.joint->node->block));
 	    
 			reiser4_tree_release(tree, joint);
 			return -1;
@@ -813,10 +810,10 @@ errno_t reiser4_tree_insert(
 		return -1;
 	}
     
-	if (reiser4_joint_insert(insert.joint, &insert.pos, hint)) {
+	if (reiser4_joint_insert(insert.u.joint, &insert.pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
 				    (insert.pos.unit == ~0ul ? "item" : "unit"),
-				    aal_block_number(insert.joint->node->block));
+				    aal_block_number(insert.u.joint->node->block));
 		return -1;
 	}
 
@@ -824,14 +821,14 @@ errno_t reiser4_tree_insert(
 	   If make space function allocate new node, we should attach it to the tree. Also,
 	   here we should handle the spacial case, when tree root should be changed.
 	*/
-	if (insert.joint != tree->root && !insert.joint->parent) {
+	if (insert.u.joint != tree->root && !insert.u.joint->parent) {
 	
-		if (!coord->joint->parent)
+		if (!coord->u.joint->parent)
 			reiser4_tree_grow(tree);
 	
-		if (reiser4_tree_attach(tree, insert.joint)) {
+		if (reiser4_tree_attach(tree, insert.u.joint)) {
 			aal_exception_error("Can't attach node to the tree.");
-			reiser4_tree_release(tree, insert.joint);
+			reiser4_tree_release(tree, insert.u.joint);
 			return -1;
 		}
 	}
@@ -865,7 +862,7 @@ errno_t reiser4_tree_remove(
 		return -1;
 	}
     
-	if (reiser4_joint_remove(coord.joint, &coord.pos))
+	if (reiser4_joint_remove(coord.u.joint, &coord.pos))
 		return -1;
 
 	/*
@@ -889,7 +886,7 @@ errno_t reiser4_tree_move(
 	aal_assert("umka-1020", dst != NULL, return -1);
 	aal_assert("umka-1020", src != NULL, return -1);
 
-	if (reiser4_joint_move(dst->joint, &dst->pos, src->joint, &src->pos))
+	if (reiser4_joint_move(dst->u.joint, &dst->pos, src->u.joint, &src->pos))
 		return -1;
     
 	return 0;

@@ -8,19 +8,18 @@
 
 #include <reiser4/filesystem.h>
 
-extern inline void reiser4_pos_init(reiser4_pos_t *pos,
-				    uint32_t item, uint32_t unit);
+extern errno_t reiser4_coord_realize(reiser4_coord_t *coord);
 
-extern reiser4_coord_t *reiser4_coord_create(reiser4_joint_t *joint, 
-					     uint32_t item, uint32_t unit);
+extern aal_block_t *reiser4_coord_block(reiser4_coord_t *coord);
 
-extern errno_t reiser4_coord_init(reiser4_coord_t *coord, reiser4_joint_t *joint,
-				  uint32_t item, uint32_t unit);
+extern reiser4_node_t *reiser4_coord_node(reiser4_coord_t *coord);
 
-extern errno_t reiser4_coord_dup(reiser4_coord_t *coord,
-				 reiser4_coord_t *dup);
+extern object_entity_t *reiser4_coord_entity(reiser4_coord_t *coord);
 
-extern void reiser4_coord_close(reiser4_coord_t *coord);
+extern errno_t reiser4_coord_init(reiser4_coord_t *coord, void *data,
+				  coord_context_t context, reiser4_pos_t *pos);
+
+extern errno_t reiser4_coord_open(reiser4_coord_t *coord, void *data,
+				  coord_context_t context, reiser4_pos_t *pos);
 
 #endif
-

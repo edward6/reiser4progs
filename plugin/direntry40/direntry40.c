@@ -7,15 +7,11 @@
 
 static reiser4_core_t *core = NULL;
 
-direntry40_t *direntry40_body(reiser4_item_t *item) {
-
-	if (item == NULL) return NULL;
-    
-	return (direntry40_t *)plugin_call(return NULL, item->node->plugin->node_ops,
-					   item_body, item->node, item->pos);
+direntry40_t *direntry40_body(item_entity_t *item) {
+	return (direntry40_t *)item->body;
 }
 
-static uint32_t direntry40_count(reiser4_item_t *item) {
+static uint32_t direntry40_count(item_entity_t *item) {
 	direntry40_t *direntry;
     
 	aal_assert("umka-865", item != NULL, return 0);
@@ -24,7 +20,7 @@ static uint32_t direntry40_count(reiser4_item_t *item) {
 	return de40_get_count(direntry);
 }
 
-static errno_t direntry40_fetch(reiser4_item_t *item, uint32_t pos,
+static errno_t direntry40_fetch(item_entity_t *item, uint32_t pos,
 				void *buff, uint32_t count)
 {
 	entry40_t *en;
@@ -65,7 +61,7 @@ static errno_t direntry40_fetch(reiser4_item_t *item, uint32_t pos,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t direntry40_estimate(reiser4_item_t *item, uint32_t pos,
+static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 				   reiser4_item_hint_t *hint) 
 {
 	int i;
@@ -102,7 +98,7 @@ static uint32_t direntry40_unitlen(direntry40_t *direntry,
 	return (aal_strlen(name) + sizeof(objid40_t) + 1);
 }
 
-static errno_t direntry40_insert(reiser4_item_t *item, uint32_t pos,
+static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 				 reiser4_item_hint_t *hint)
 {
 	uint32_t i, offset;
@@ -205,7 +201,7 @@ static errno_t direntry40_insert(reiser4_item_t *item, uint32_t pos,
 	return 0;
 }
 
-static errno_t direntry40_init(reiser4_item_t *item, 
+static errno_t direntry40_init(item_entity_t *item, 
 			       reiser4_item_hint_t *hint)
 {
 	direntry40_t *direntry;
@@ -219,7 +215,7 @@ static errno_t direntry40_init(reiser4_item_t *item,
 	return direntry40_insert(item, 0, hint);
 }
 
-static uint16_t direntry40_remove(reiser4_item_t *item, 
+static uint16_t direntry40_remove(item_entity_t *item, 
 				  uint32_t pos)
 {
 	uint16_t rem_len;
@@ -275,12 +271,12 @@ static uint16_t direntry40_remove(reiser4_item_t *item,
 	return rem_len + sizeof(entry40_t);
 }
 
-extern errno_t direntry40_check(reiser4_item_t *item, 
+extern errno_t direntry40_check(item_entity_t *item, 
 				uint16_t options);
 
 #endif
 
-static errno_t direntry40_print(reiser4_item_t *item, 
+static errno_t direntry40_print(item_entity_t *item, 
 				char *buff, uint32_t n, uint16_t options) 
 {
 	aal_assert("umka-548", item != NULL, return -1);
@@ -340,19 +336,19 @@ static inline int callback_comp_entry(
 			   compare, entrykey.body, lookkey);
 }
 
-static errno_t direntry40_max_poss_key(reiser4_item_t *item, 
+static errno_t direntry40_max_poss_key(item_entity_t *item, 
 				       reiser4_key_t *key) 
 {
 	uint64_t offset;
 	roid_t objectid;
+	
 	reiser4_body_t *maxkey;
     
 	aal_assert("umka-716", key->plugin != NULL, return -1);
 
-	if (plugin_call(return 0, item->node->plugin->node_ops,
-			get_key, item->node, item->pos, key))
-		return -1;
-    
+	plugin_call(return -1, key->plugin->key_ops,
+		    assign, key->body, item->key.body);
+
 	maxkey = plugin_call(return -1, key->plugin->key_ops,
 			     maximal,);
     
@@ -372,13 +368,13 @@ static errno_t direntry40_max_poss_key(reiser4_item_t *item,
 }
 
 /* Returns the key of the last unit. */
-static errno_t direntry40_max_real_key(reiser4_item_t *item, 
+static errno_t direntry40_max_real_key(item_entity_t *item, 
 				       reiser4_key_t *key) 
 {
 	return 0;
 }
 
-static int direntry40_lookup(reiser4_item_t *item, 
+static int direntry40_lookup(item_entity_t *item, 
 			     reiser4_key_t *key, uint32_t *pos)
 {
 	int lookup;
@@ -396,8 +392,9 @@ static int direntry40_lookup(reiser4_item_t *item,
 	if (!(direntry = direntry40_body(item)))
 		return -1;
     
-	/* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
-	maxkey.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE, KEY_REISER40_ID);
+	maxkey.plugin = key->plugin;
+	plugin_call(return -1, maxkey.plugin->key_ops,
+		    assign, maxkey.body, item->key.body);
 	
 	if (direntry40_max_poss_key(item, &maxkey))
 		return -1;
@@ -409,11 +406,10 @@ static int direntry40_lookup(reiser4_item_t *item,
 		return 0;
 	}
     
-	minkey.plugin = maxkey.plugin;
-	if (plugin_call(return 0, item->node->plugin->node_ops,
-			get_key, item->node, item->pos, &minkey))
-		return -1;
-    
+	minkey.plugin = key->plugin;
+	plugin_call(return -1, minkey.plugin->key_ops,
+		    assign, minkey.body, item->key.body);
+
 	if (plugin_call(return -1, key->plugin->key_ops,
 			compare, minkey.body, key->body) > 0)
 	{
@@ -421,8 +417,8 @@ static int direntry40_lookup(reiser4_item_t *item,
 		return 0;
 	}
     
-	lookup = aux_binsearch((void *)direntry, direntry40_count(item), 
-			       key->body, callback_get_entry, callback_comp_entry, key->plugin, &unit);
+	lookup = aux_binsearch((void *)direntry, direntry40_count(item), key->body,
+			       callback_get_entry, callback_comp_entry, key->plugin, &unit);
 
 	if (lookup != -1) {
 		*pos = (uint32_t)unit;

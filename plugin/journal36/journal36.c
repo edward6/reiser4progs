@@ -13,7 +13,7 @@ static errno_t journal36_header_check(journal36_header_t *header) {
 	return 0;
 }
 
-static reiser4_entity_t *journal36_open(reiser4_entity_t *format) {
+static object_entity_t *journal36_open(object_entity_t *format) {
 	journal36_t *journal;
 
 	aal_assert("umka-406", format != NULL, return NULL);
@@ -23,20 +23,20 @@ static reiser4_entity_t *journal36_open(reiser4_entity_t *format) {
     
 	journal->plugin = &journal36_plugin;
     
-	return (reiser4_entity_t *)journal;
+	return (object_entity_t *)journal;
 }
 
-static errno_t journal36_sync(reiser4_entity_t *entity) {
+static errno_t journal36_sync(object_entity_t *entity) {
 	aal_assert("umka-407", entity != NULL, return -1);
 	return -1;
 }
 
-static void journal36_close(reiser4_entity_t *entity) {
+static void journal36_close(object_entity_t *entity) {
 	aal_assert("umka-408", entity != NULL, return);
 	aal_free(entity);
 }
 
-static errno_t journal36_replay(reiser4_entity_t *entity) {
+static errno_t journal36_replay(object_entity_t *entity) {
 	return 0;
 }
 

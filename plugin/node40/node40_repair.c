@@ -7,9 +7,9 @@
 
 #define INVALID_U16	0xffff
 
-extern errno_t node40_remove(reiser4_entity_t *entity, reiser4_pos_t *pos);
-extern uint16_t node40_count(reiser4_entity_t *entity);
-extern uint8_t node40_get_level(reiser4_entity_t *entity);
+extern errno_t node40_remove(object_entity_t *entity, reiser4_pos_t *pos);
+extern uint16_t node40_count(object_entity_t *entity);
+extern uint8_t node40_get_level(object_entity_t *entity);
 
 static uint16_t node40_get_offset_at(aal_block_t *block, int pos) {
     if (pos > nh40_get_num_items(nh40(block)))
@@ -37,7 +37,7 @@ static int64_t __length_sum(item40_header_t *ih, uint16_t count) {
 	ih40_get_len(ih) + __length_sum(ih - 1, count - 1);
 }
 
-static errno_t node40_region_fix_offsets(reiser4_entity_t *entity, 
+static errno_t node40_region_fix_offsets(object_entity_t *entity, 
     uint16_t start_pos, uint16_t end_pos) 
 {
     int i;
@@ -66,7 +66,7 @@ static errno_t node40_region_fix_offsets(reiser4_entity_t *entity,
     return 0;
 }
 
-static errno_t node40_region_delete(reiser4_entity_t *entity,
+static errno_t node40_region_delete(object_entity_t *entity,
     uint16_t start_pos, uint16_t end_pos) 
 {
     int i;
@@ -104,7 +104,7 @@ static errno_t node40_region_delete(reiser4_entity_t *entity,
     return 0;    
 }
 
-static errno_t node40_region_check(reiser4_entity_t *entity, uint16_t start_pos,
+static errno_t node40_region_check(object_entity_t *entity, uint16_t start_pos,
     uint16_t end_pos) 
 {
     int count, i, j, inval_len = 0, inval_off = 0;
@@ -236,7 +236,7 @@ static errno_t node40_region_check(reiser4_entity_t *entity, uint16_t start_pos,
     first reliable position.  Otherwise, returns 0 and set *start_pos at 0 and
     *end_pos at count of item.
 */
-static int node40_region_find_bad(reiser4_entity_t *entity, uint16_t *start_pos,
+static int node40_region_find_bad(object_entity_t *entity, uint16_t *start_pos,
     uint16_t *end_pos) 
 {
     int i;
@@ -309,7 +309,7 @@ static int node40_region_find_bad(reiser4_entity_t *entity, uint16_t *start_pos,
     Checks the set of items within the node. Recovers items lengths, offsets, 
     free space. 
 */
-static errno_t node40_item_array_check(reiser4_entity_t *entity) {
+static errno_t node40_item_array_check(object_entity_t *entity) {
     node40_t *node = (node40_t *)entity;
     item40_header_t *ih;
     uint16_t start_pos, end_pos, free_space;
@@ -367,7 +367,7 @@ static errno_t node40_item_array_check(reiser4_entity_t *entity) {
     return 0;
 }
 
-static errno_t node40_item_count_check(reiser4_entity_t *entity) {
+static errno_t node40_item_count_check(object_entity_t *entity) {
     node40_t *node = (node40_t *)entity;
 
     aal_assert("vpf-199", node != NULL, return -1);
@@ -386,7 +386,7 @@ static errno_t node40_item_count_check(reiser4_entity_t *entity) {
     return 0;
 }
 
-static errno_t node40_corrupt(reiser4_entity_t *entity, uint16_t options) {
+static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
     int i;
     item40_header_t *ih;
     node40_t *node = (node40_t *)entity;
@@ -406,7 +406,7 @@ static errno_t node40_corrupt(reiser4_entity_t *entity, uint16_t options) {
     return 0;
 }
 
-errno_t node40_check(reiser4_entity_t *entity, uint16_t options) {
+errno_t node40_check(object_entity_t *entity, uint16_t options) {
     node40_t *node = (node40_t *)entity;
     
     aal_assert("vpf-194", node != NULL, return -1);
@@ -426,7 +426,7 @@ errno_t node40_check(reiser4_entity_t *entity, uint16_t options) {
     This checks the level constrains like no internal and extent items 
     at leaf level or no statdata items at internal level.
 */
-errno_t node40_item_legal(reiser4_entity_t *entity, reiser4_plugin_t *plugin) {
+errno_t node40_item_legal(object_entity_t *entity, reiser4_plugin_t *plugin) {
     node40_t *node = (node40_t *)entity;
     uint16_t level;
 

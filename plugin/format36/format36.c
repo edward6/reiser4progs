@@ -98,7 +98,7 @@ static aal_block_t *format36_super_open(aal_device_t *device) {
 	return NULL;
 }
 
-static reiser4_entity_t *format36_open(aal_device_t *device) {
+static object_entity_t *format36_open(aal_device_t *device) {
 	format36_t *format;
 
 	aal_assert("umka-380", device != NULL, return NULL);    
@@ -112,7 +112,7 @@ static reiser4_entity_t *format36_open(aal_device_t *device) {
 	format->device = device;
 	format->plugin = &format36_plugin;
     
-	return (reiser4_entity_t *)format;
+	return (object_entity_t *)format;
 
  error_free_format:
 	aal_free(format);
@@ -122,7 +122,7 @@ static reiser4_entity_t *format36_open(aal_device_t *device) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t format36_sync(reiser4_entity_t *entity) {
+static errno_t format36_sync(object_entity_t *entity) {
 	format36_t *format;
     
 	aal_assert("umka-381", entity != NULL, return -1);
@@ -140,7 +140,7 @@ static errno_t format36_sync(reiser4_entity_t *entity) {
 	return 0;
 }
 
-static reiser4_entity_t *format36_create(aal_device_t *device, 
+static object_entity_t *format36_create(aal_device_t *device, 
 					 uint64_t blocks, uint16_t tail)
 {
 	return NULL;
@@ -148,7 +148,7 @@ static reiser4_entity_t *format36_create(aal_device_t *device,
 
 #endif
 
-static errno_t format36_valid(reiser4_entity_t *entity) {
+static errno_t format36_valid(object_entity_t *entity) {
 	format36_super_t *super;
     
 	aal_assert("umka-383", entity != NULL, return -1);
@@ -157,7 +157,7 @@ static errno_t format36_valid(reiser4_entity_t *entity) {
 	return format36_super_check(super, ((format36_t *)entity)->device);
 }
 
-static void format36_close(reiser4_entity_t *entity) {
+static void format36_close(object_entity_t *entity) {
 	aal_assert("umka-384", entity != NULL, return);
 	aal_block_close(((format36_t *)entity)->block);
 	aal_free(entity);
@@ -177,7 +177,7 @@ static int format36_confirm(aal_device_t *device) {
 
 static const char *formats[] = {"3.5", "unknown", "3.6"};
 
-static const char *format36_name(reiser4_entity_t *entity) {
+static const char *format36_name(object_entity_t *entity) {
 	int version;
 	format36_super_t *super;
 
@@ -189,19 +189,19 @@ static const char *format36_name(reiser4_entity_t *entity) {
 	return formats[version >= 0 && version < 3 ? version : 1];
 }
 
-static rpid_t format36_journal_pid(reiser4_entity_t *entity) {
+static rpid_t format36_journal_pid(object_entity_t *entity) {
 	return JOURNAL_REISER36_ID;
 }
 
-static rpid_t format36_alloc_pid(reiser4_entity_t *entity) {
+static rpid_t format36_alloc_pid(object_entity_t *entity) {
 	return ALLOC_REISER36_ID;
 }
 
-static rpid_t format36_oid_pid(reiser4_entity_t *entity) {
+static rpid_t format36_oid_pid(object_entity_t *entity) {
 	return OID_REISER36_ID;
 }
 
-static uint64_t format36_get_root(reiser4_entity_t *entity) {
+static uint64_t format36_get_root(object_entity_t *entity) {
 	format36_super_t *super;
     
 	aal_assert("umka-387", entity != NULL, return FAKE_BLK);
@@ -210,7 +210,7 @@ static uint64_t format36_get_root(reiser4_entity_t *entity) {
 	return get_sb_root_block(super);
 }
 
-static uint64_t format36_get_len(reiser4_entity_t *entity) {
+static uint64_t format36_get_len(object_entity_t *entity) {
 	format36_super_t *super;
     
 	aal_assert("umka-388", entity != NULL, return FAKE_BLK);
@@ -219,7 +219,7 @@ static uint64_t format36_get_len(reiser4_entity_t *entity) {
 	return get_sb_block_count(super);
 }
 
-static uint64_t format36_get_free(reiser4_entity_t *entity) {
+static uint64_t format36_get_free(object_entity_t *entity) {
 	format36_super_t *super;
     
 	aal_assert("umka-389", entity != NULL, return FAKE_BLK);
@@ -230,7 +230,7 @@ static uint64_t format36_get_free(reiser4_entity_t *entity) {
 
 #ifndef ENABLE_COMPACT
 
-static void format36_set_root(reiser4_entity_t *entity, uint64_t root) {
+static void format36_set_root(object_entity_t *entity, uint64_t root) {
 	format36_super_t *super;
     
 	aal_assert("umka-390", entity != NULL, return);
@@ -239,7 +239,7 @@ static void format36_set_root(reiser4_entity_t *entity, uint64_t root) {
 	set_sb_root_block(super, root);
 }
 
-static void format36_set_len(reiser4_entity_t *entity, 
+static void format36_set_len(object_entity_t *entity, 
 			     uint64_t blocks)
 {
 	format36_super_t *super;
@@ -250,7 +250,7 @@ static void format36_set_len(reiser4_entity_t *entity,
 	set_sb_block_count(super, blocks);
 }
 
-static void format36_set_free(reiser4_entity_t *entity, 
+static void format36_set_free(object_entity_t *entity, 
 			      uint64_t blocks) 
 {
 	format36_super_t *super;

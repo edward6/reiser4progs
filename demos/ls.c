@@ -18,58 +18,58 @@
 #include <misc/misc.h>
 
 static void ls_print_usage(void) {
-    fprintf(stderr, "Usage: ls FILE DIR\n");
+	fprintf(stderr, "Usage: ls FILE DIR\n");
 }
 
 static void ls_init(void) {
-    int i;
-    for (i = 0; i < 5; i++)
+	int i;
+	for (i = 0; i < 5; i++)
 		progs_exception_set_stream(i, stderr);
 }
 
 int main(int argc, char *argv[]) {
-    reiser4_fs_t *fs;
-    aal_device_t *device;
+	reiser4_fs_t *fs;
+	aal_device_t *device;
 
-    reiser4_file_t *dir;
-    reiser4_entry_hint_t entry;
+	reiser4_file_t *dir;
+	reiser4_entry_hint_t entry;
 
 #ifndef ENABLE_COMPACT    
     
-    if (argc < 3) {
+	if (argc < 3) {
 		ls_print_usage();
 		return 0xfe;
-    }
+	}
     
-    ls_init();
+	ls_init();
 
-    if (libreiser4_init()) {
+	if (libreiser4_init()) {
 		aal_exception_error("Can't initialize libreiser4.");
 		return 0xff;
-    }
+	}
     
-    if (!(device = aal_file_open(argv[1], DEFAULT_BLOCKSIZE, O_RDWR))) {
+	if (!(device = aal_file_open(argv[1], DEFAULT_BLOCKSIZE, O_RDWR))) {
 		aal_exception_error("Can't open device %s.", argv[1]);
 		goto error_free_libreiser4;
-    }
+	}
     
-    if (!(fs = reiser4_fs_open(device, device, 0))) {
+	if (!(fs = reiser4_fs_open(device, device, 0))) {
 		aal_exception_error("Can't open filesystem on %s.", 
-							aal_device_name(device));
+				    aal_device_name(device));
 		goto error_free_device;
-    }
+	}
     
-    if (!(fs->root = reiser4_file_open(fs, "/"))) {
+	if (!(fs->root = reiser4_file_open(fs, "/"))) {
 		aal_exception_error("Can't open root dir.");
 		goto error_free_fs;
-    }
+	}
     
-    if (!(dir = reiser4_file_open(fs, argv[2]))) {
+	if (!(dir = reiser4_file_open(fs, argv[2]))) {
 		aal_exception_error("Can't open dir %s.", argv[2]);
 		goto error_free_root;
-    }
+	}
     
-    {
+	{
 		reiser4_plugin_t *dir_plugin;
 		reiser4_file_hint_t dir_hint;
 	
@@ -92,42 +92,41 @@ int main(int argc, char *argv[]) {
 					reiser4_file_close(file);
 			}
 		}
-    }
+	}
     
-    if (reiser4_file_reset(dir)) {
+	if (reiser4_file_reset(dir)) {
 		aal_exception_error("Can't rewind dir %s.", argv[2]);
 		goto error_free_dir;
-    }
+	}
     
-    while (reiser4_file_read(dir, (char *)&entry, 1)) {
+	while (reiser4_file_read(dir, (char *)&entry, 1)) {
 		fprintf(stdout, "[0x%llx:0x%llx] %s\n", (entry.objid.locality >> 4), 
-				entry.objid.objectid, entry.name);
-    }
+			entry.objid.objectid, entry.name);
+	}
     
-    reiser4_file_close(dir);
-//    reiser4_fs_sync(fs);
+	reiser4_file_close(dir);
+//        reiser4_fs_sync(fs);
 
-    reiser4_file_close(fs->root);
-    reiser4_fs_close(fs);
+	reiser4_file_close(fs->root);
+	reiser4_fs_close(fs);
     
-    libreiser4_done();
-    aal_file_close(device);
+	libreiser4_done();
+	aal_file_close(device);
     
-    return 0;
+	return 0;
 
-  error_free_dir:
-    reiser4_file_close(dir);
-  error_free_root:
-    reiser4_file_close(fs->root);
-  error_free_fs:
-    reiser4_fs_close(fs);
-  error_free_device:
-    aal_file_close(device);
-  error_free_libreiser4:
-    libreiser4_done();
+ error_free_dir:
+	reiser4_file_close(dir);
+ error_free_root:
+	reiser4_file_close(fs->root);
+ error_free_fs:
+	reiser4_fs_close(fs);
+ error_free_device:
+	aal_file_close(device);
+ error_free_libreiser4:
+	libreiser4_done();
     
 #endif
-    
-    return 0xff;
+	return 0xff;
 }
 

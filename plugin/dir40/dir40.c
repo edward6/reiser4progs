@@ -35,7 +35,7 @@ static roid_t dir40_locality(dir40_t *dir) {
 }
 
 /* Gets mode field from the stat data */
-static errno_t dir40_get_mode(reiser4_item_t *item, uint16_t *mode) {
+static errno_t dir40_get_mode(item_entity_t *item, uint16_t *mode) {
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -46,15 +46,14 @@ static errno_t dir40_get_mode(reiser4_item_t *item, uint16_t *mode) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-	if (plugin_call(return -1, item->plugin->item_ops,
-			open, item, &hint))
+	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
 		return -1;
 
 	*mode = lw_hint.mode;
 	return 0;
 }
 
-static errno_t dir40_reset(reiser4_entity_t *entity) {
+static errno_t dir40_reset(object_entity_t *entity) {
 	reiser4_key_t key;
 	dir40_t *dir = (dir40_t *)entity;
     
@@ -65,20 +64,14 @@ static errno_t dir40_reset(reiser4_entity_t *entity) {
 	plugin_call(return -1, key.plugin->key_ops, build_direntry, key.body, 
 		    dir->hash, dir40_locality(dir), dir40_objectid(dir), ".");
 	    
-	if (core->tree_ops.lookup(dir->tree, &key, LEAF_LEVEL, &dir->place) != 1) {
+	if (core->tree_ops.lookup(dir->tree, &key, LEAF_LEVEL, &dir->body) != 1) {
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    dir40_objectid(dir));
 		return -1;
 	}
 
-	if (core->item_ops.open(&dir->body, dir->place.entity, &dir->place.pos)) {
-		aal_exception_error("Can't open the body of direcrtory 0x%llx.",
-				    dir40_objectid(dir));
-		return -1;
-	}
-    
 	dir->offset = 0;
-	dir->place.pos.unit = 0;
+	dir->body.pos.unit = 0;
 
 	return 0;
 }
@@ -86,9 +79,9 @@ static errno_t dir40_reset(reiser4_entity_t *entity) {
 /* Trying to guess hash in use by stat  dfata extention */
 static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 	/* 
-	   FIXME-UMKA: This functions should inspect stat data extention first. And
-	   only in the case there are not convenient plugin extention (hash plugin),
-	   it should use some default hash plugin id.
+	   FIXME-UMKA: This functions should inspect stat data extention
+	   first. And only in the case there are not convenient plugin extention
+	   (hash plugin), it should use some default hash plugin id.
 	*/
 	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
 }
@@ -103,15 +96,9 @@ static errno_t dir40_realize(dir40_t *dir) {
     
 	/* Positioning to the dir stat data */
 	if (core->tree_ops.lookup(dir->tree, &dir->key, LEAF_LEVEL, 
-				  &dir->place) != 1) 
+				  &dir->statdata) != 1) 
 	{
 		aal_exception_error("Can't find stat data of directory 0x%llx.", 
-				    dir40_objectid(dir));
-		return -1;
-	}
-    
-	if (core->item_ops.open(&dir->statdata, dir->place.entity, &dir->place.pos)) {
-		aal_exception_error("Can't open the stadata of directory 0x%llx.",
 				    dir40_objectid(dir));
 		return -1;
 	}
@@ -125,48 +112,38 @@ static errno_t dir40_realize(dir40_t *dir) {
 	return 0;
 }
 
-static errno_t dir40_next(reiser4_entity_t *entity) {
-	reiser4_key_t next_key;
-	reiser4_item_t next_item;
+static errno_t dir40_next(object_entity_t *entity) {
+	item_entity_t next_item;
     
 	roid_t curr_locality;
 	roid_t next_locality;
 
 	dir40_t *dir = (dir40_t *)entity;
-	reiser4_place_t *place = &dir->place;
-	reiser4_place_t save_place = dir->place;
+	reiser4_place_t *place = &dir->body;
+	reiser4_place_t save_place = dir->body;
 
 	/* Getting the right neighbour */
 	if (core->tree_ops.right(dir->tree, place))
 		goto error_set_context;
     
-	if (core->item_ops.open(&next_item, place->entity, &place->pos))
-		goto error_set_context;
-    
-	if (next_item.plugin->h.sign.id != dir->body.plugin->h.sign.id)
+	if (place->entity.plugin->h.sign.id != dir->body.entity.plugin->h.sign.id)
 		goto error_set_context;
 	
-	/* Getting key of the first item in the right neightbour */
-	if (core->item_ops.key(&next_item, &next_key)) {
-		aal_exception_error("Can't get next item key by coord.");
-		goto error_set_context;
-	}
-    
 	/* 
 	   Getting locality of both keys in order to determine is they are 
 	   mergeable.
 	*/
-	curr_locality = plugin_call(goto error_set_context, 
-				    dir->key.plugin->key_ops, get_locality, dir->key.body);
+	curr_locality = plugin_call(goto error_set_context,
+				    dir->key.plugin->key_ops,
+				    get_locality, dir->key.body);
 	
 	next_locality = plugin_call(goto error_set_context, 
-				    dir->key.plugin->key_ops, get_locality, next_key.body);
+				    dir->key.plugin->key_ops,
+				    get_locality, next_item.key.body);
 	
-	/* Determining is items are mergeable */
-	if (curr_locality == next_locality) {
-		dir->body = next_item;
+	/* Checking if items mergeable */
+	if (curr_locality == next_locality)
 		return 0;
-	}
 
  error_set_context:
 	*place = save_place;
@@ -174,56 +151,54 @@ static errno_t dir40_next(reiser4_entity_t *entity) {
 }
 
 /* Reads n entries to passed buffer buff */
-static int32_t dir40_read(reiser4_entity_t *entity, 
+static int32_t dir40_read(object_entity_t *entity, 
 			  void *buff, uint32_t n)
 {
 	uint32_t i, count;
-	reiser4_plugin_t *plugin;
+	item_entity_t *item;
+	reiser4_entry_hint_t *entry;
     
 	dir40_t *dir = (dir40_t *)entity;
+	entry = (reiser4_entry_hint_t *)buff;
 
-	reiser4_entry_hint_t *entry = 
-		(reiser4_entry_hint_t *)buff;
-    
 	aal_assert("umka-844", dir != NULL, return -1);
 	aal_assert("umka-845", entry != NULL, return -1);
 
-	plugin = core->item_ops.plugin(&dir->body);
-       
+	item = &dir->body.entity;
+	
 	/* Getting the number of entries */
-	if (!(count = plugin_call(return -1, plugin->item_ops, count, &dir->body)))
+	if (!(count = plugin_call(return -1, item->plugin->item_ops, count, item)))
 		return -1;
     
 	for (i = 0; i < n; i++) {
-		if (dir->place.pos.unit >= count) {
-	    
-			/* Now we are trying to get next direntry item */
-			if (dir40_next(entity))
-				break;
-		}
-    
-		/* Getting next entry from the current direntry item */
-		if ((plugin_call(break, plugin->item_ops, fetch, &dir->body,
-				 dir->place.pos.unit, entry, 1)))
+		uint16_t chunk;
+
+		/* Check if we should get next item in right neighbour */
+		if (dir->body.pos.unit >= count && dir40_next(entity))
 			break;
 
-		entry++;
+		item = &dir->body.entity;
+
+		/* Getting next entry from the current direntry item */
+		if (plugin_call(break, item->plugin->item_ops, fetch, item,
+				dir->body.pos.unit, entry++, 1))
+			break;
+
 		dir->offset++; 
-		dir->place.pos.unit++; 
+		dir->body.pos.unit++; 
 	}
     
 	return i;
 }
 
 /* 
-   Makes lookup in directory by name. Returns the key of the stat data item found
+   Makes lookup in directory by name. Returns the key of the stat data item,
    entry points to.
 */
-static int dir40_lookup(reiser4_entity_t *entity, 
+static int dir40_lookup(object_entity_t *entity, 
 			char *name, reiser4_key_t *key) 
 {
 	reiser4_key_t wanted;
-	reiser4_plugin_t *plugin;
 	dir40_t *dir = (dir40_t *)entity;
     
 	aal_assert("umka-1117", entity != NULL, return -1);
@@ -232,36 +207,34 @@ static int dir40_lookup(reiser4_entity_t *entity,
 	aal_assert("umka-1119", key != NULL, return -1);
 	aal_assert("umka-1120", key->plugin != NULL, return -1);
 
-	/* Forming the directory key */
+	/* Forming the directory key by passed @name*/
 	wanted.plugin = dir->key.plugin;
 	plugin_call(return -1, wanted.plugin->key_ops, build_direntry, wanted.body,
 		    dir->hash, dir40_locality(dir), dir40_objectid(dir), name);
     
-	plugin = core->item_ops.plugin(&dir->body);
-
 	while (1) {
-		reiser4_item_t item;
-	    
-		if (plugin_call(return -1, plugin->item_ops, lookup, 
-				&dir->body, &wanted, &dir->place.pos.unit) == 1) 
+		item_entity_t *item = &dir->body.entity;
+
+		if (plugin_call(return -1, item->plugin->item_ops, lookup, 
+				item, &wanted, &dir->body.pos.unit) == 1) 
 		{
 			roid_t locality;
 			reiser4_entry_hint_t entry;
-	    
-			if ((plugin_call(return -1, plugin->item_ops, fetch, &dir->body,
-					 dir->place.pos.unit, &entry, 1)))
+
+			if (plugin_call(return -1, item->plugin->item_ops, fetch,
+					item, dir->body.pos.unit, &entry, 1))
 				return -1;
 
 			locality = plugin_call(return -1, key->plugin->key_ops,
 					       get_locality, &entry.objid);
 	    
 			plugin_call(return -1, key->plugin->key_ops, build_generic,
-				    key->body, KEY_STATDATA_TYPE, locality, entry.objid.objectid, 0);
+				    key->body, KEY_STATDATA_TYPE, locality,
+				    entry.objid.objectid, 0);
 	    
 			return 1;
 		}
 	
-		/* Now we are trying to get next direntry item */
 		if (dir40_next(entity))
 			return 0;
 	}
@@ -269,7 +242,7 @@ static int dir40_lookup(reiser4_entity_t *entity,
 	return 0;
 }
 
-static reiser4_entity_t *dir40_open(const void *tree, 
+static object_entity_t *dir40_open(const void *tree, 
 				    reiser4_key_t *object) 
 {
 	dir40_t *dir;
@@ -296,13 +269,13 @@ static reiser4_entity_t *dir40_open(const void *tree,
 	}
     
 	/* Positioning to the first directory unit */
-	if (dir40_reset((reiser4_entity_t *)dir)) {
+	if (dir40_reset((object_entity_t *)dir)) {
 		aal_exception_error("Can't rewind directory with oid 0x%llx.", 
 				    dir40_objectid(dir));
 		goto error_free_dir;
 	}
     
-	return (reiser4_entity_t *)dir;
+	return (object_entity_t *)dir;
 
  error_free_dir:
 	aal_free(dir);
@@ -311,7 +284,7 @@ static reiser4_entity_t *dir40_open(const void *tree,
 
 #ifndef ENABLE_COMPACT
 
-static reiser4_entity_t *dir40_create(const void *tree, 
+static object_entity_t *dir40_create(const void *tree, 
 				      reiser4_key_t *parent, reiser4_key_t *object, 
 				      reiser4_file_hint_t *hint) 
 {
@@ -480,7 +453,7 @@ static reiser4_entity_t *dir40_create(const void *tree,
 		goto error_free_dir;
 	}
     
-	if (dir40_reset((reiser4_entity_t *)dir)) {
+	if (dir40_reset((object_entity_t *)dir)) {
 		aal_exception_error("Can't open body of directory 0x%llx.",
 				    dir40_objectid(dir));
 		goto error_free_dir;
@@ -488,7 +461,7 @@ static reiser4_entity_t *dir40_create(const void *tree,
     
 	aal_free(body.entry);
     
-	return (reiser4_entity_t *)dir;
+	return (object_entity_t *)dir;
 
  error_free_dir:
 	aal_free(dir);
@@ -496,7 +469,7 @@ static reiser4_entity_t *dir40_create(const void *tree,
 	return NULL;
 }
 
-static errno_t dir40_truncate(reiser4_entity_t *entity, 
+static errno_t dir40_truncate(object_entity_t *entity, 
 			      uint64_t n) 
 {
 	/* Sorry, not implemented yet! */
@@ -504,7 +477,7 @@ static errno_t dir40_truncate(reiser4_entity_t *entity,
 }
 
 /* Adds n entries from buff to passed entity */
-static int32_t dir40_write(reiser4_entity_t *entity, 
+static int32_t dir40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
 	uint64_t i;
@@ -524,13 +497,6 @@ static int32_t dir40_write(reiser4_entity_t *entity,
 
 	body_hint.count = 1;
 
-	/* 
-	   FIXME-UMKA: Here we have the funny situation. Direntry plugin can insert 
-	   more than one entry in turn, but they should be sorted before. Else we 
-	   will have broken direntry. So, we should either perform a loop here in 
-	   order to insert	all n entris, or we should sort entries whenever (in 
-	   direntry plugin or here).
-	*/
 	if (!(body_hint.entry = aal_calloc(sizeof(*entry), 0)))
 		return 0;
     
@@ -550,7 +516,7 @@ static int32_t dir40_write(reiser4_entity_t *entity,
 			    dir->hash, dir40_locality(dir), dir40_objectid(dir), entry->name);
     
 		hint.len = 0;
-		hint.plugin = dir->body.plugin;
+		hint.plugin = dir->body.entity.plugin;
     
 		/* Inserting the entry to the tree */
 		if (core->tree_ops.insert(dir->tree, &hint, LEAF_LEVEL, NULL)) {
@@ -568,17 +534,17 @@ static int32_t dir40_write(reiser4_entity_t *entity,
 
 #endif
 
-static void dir40_close(reiser4_entity_t *entity) {
+static void dir40_close(object_entity_t *entity) {
 	aal_assert("umka-750", entity != NULL, return);
 	aal_free(entity);
 }
 
-static uint64_t dir40_offset(reiser4_entity_t *entity) {
+static uint64_t dir40_offset(object_entity_t *entity) {
 	aal_assert("umka-874", entity != NULL, return 0);
 	return ((dir40_t *)entity)->offset;
 }
 
-static errno_t dir40_seek(reiser4_entity_t *entity, 
+static errno_t dir40_seek(object_entity_t *entity, 
 			  uint64_t offset) 
 {
 	dir40_t *dir = (dir40_t *)entity;
@@ -592,7 +558,7 @@ static errno_t dir40_seek(reiser4_entity_t *entity,
 }
 
 /* Detecting the object plugin by extentions or mode */
-static int dir40_confirm(reiser4_item_t *item) {
+static int dir40_confirm(item_entity_t *item) {
 	uint16_t mode;
     
 	aal_assert("umka-1417", item != NULL, return 0);

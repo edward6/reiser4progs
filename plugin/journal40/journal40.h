@@ -11,7 +11,7 @@
 
 struct journal40 {
 	reiser4_plugin_t *plugin;
-	reiser4_entity_t *format;
+	object_entity_t *format;
  
 	aal_device_t *device;
 

@@ -23,7 +23,7 @@ static errno_t journal40_fcheck(journal40_footer_t *footer) {
 	return 0;
 }
 
-static errno_t callback_fetch_journal(reiser4_entity_t *format, 
+static errno_t callback_fetch_journal(object_entity_t *format, 
 				      blk_t blk, void *data)
 {
 	aal_device_t *device;
@@ -54,11 +54,11 @@ static errno_t callback_fetch_journal(reiser4_entity_t *format,
 	return 0;
 }
 
-static aal_device_t *journal40_device(reiser4_entity_t *entity) {
+static aal_device_t *journal40_device(object_entity_t *entity) {
 	return ((journal40_t *)entity)->device;
 }
 
-static reiser4_entity_t *journal40_open(reiser4_entity_t *format) {
+static object_entity_t *journal40_open(object_entity_t *format) {
 	journal40_t *journal;
 	reiser4_layout_func_t layout;
 
@@ -81,7 +81,7 @@ static reiser4_entity_t *journal40_open(reiser4_entity_t *format) {
 		goto error_free_journal;
 	}
     
-	return (reiser4_entity_t *)journal;
+	return (object_entity_t *)journal;
 
  error_free_journal:
 	aal_free(journal);
@@ -89,7 +89,7 @@ static reiser4_entity_t *journal40_open(reiser4_entity_t *format) {
 	return NULL;
 }
 
-static errno_t journal40_valid(reiser4_entity_t *entity) {
+static errno_t journal40_valid(object_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
     
 	aal_assert("umka-965", journal != NULL, return -1);
@@ -105,7 +105,7 @@ static errno_t journal40_valid(reiser4_entity_t *entity) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t callback_alloc_journal(reiser4_entity_t *format,
+static errno_t callback_alloc_journal(object_entity_t *format,
 				      blk_t blk, void *data)
 {
 	aal_device_t *device;
@@ -134,7 +134,7 @@ static errno_t callback_alloc_journal(reiser4_entity_t *format,
 	return 0;
 }
 
-static reiser4_entity_t *journal40_create(reiser4_entity_t *format,
+static object_entity_t *journal40_create(object_entity_t *format,
 					  void *params) 
 {
 	journal40_t *journal;
@@ -159,7 +159,7 @@ static reiser4_entity_t *journal40_create(reiser4_entity_t *format,
 		goto error_free_journal;
 	}
     
-	return (reiser4_entity_t *)journal;
+	return (object_entity_t *)journal;
 
  error_free_header:
 	aal_block_close(journal->header);
@@ -169,7 +169,7 @@ static reiser4_entity_t *journal40_create(reiser4_entity_t *format,
 	return NULL;
 }
 
-static errno_t callback_flush_journal(reiser4_entity_t *format,
+static errno_t callback_flush_journal(object_entity_t *format,
 				      blk_t blk, void *data)
 {
 	aal_device_t *device;
@@ -199,7 +199,7 @@ static errno_t callback_flush_journal(reiser4_entity_t *format,
     
 	return 0;
 }
-static errno_t journal40_sync(reiser4_entity_t *entity) {
+static errno_t journal40_sync(object_entity_t *entity) {
 	reiser4_layout_func_t layout;
 	journal40_t *journal = (journal40_t *)entity;
 
@@ -356,7 +356,7 @@ static int format40_replay_oldest(journal40_t *journal) {
 	return (ret == 0);
 }
 
-static int journal40_replay(reiser4_entity_t *entity) {
+static int journal40_replay(object_entity_t *entity) {
 	int ret, trans_nr = 0;
     
 	aal_assert("umka-412", entity != NULL, return -1);
@@ -372,7 +372,7 @@ static int journal40_replay(reiser4_entity_t *entity) {
 
 #endif
 
-static void journal40_close(reiser4_entity_t *entity) {
+static void journal40_close(object_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
     
 	aal_assert("umka-411", entity != NULL, return);
