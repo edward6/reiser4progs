@@ -221,8 +221,8 @@ AC_ARG_ENABLE(debug,
 )
 
 AC_ARG_ENABLE(libminimal,
-    	[  --enable-libminimal      enable minimal footprint library ], ,
-        	enable_libminimal=no
+    	[  --disable-libminimal     disable minimal footprint library ], ,
+        	enable_libminimal=yes
 )
 
 AC_ARG_ENABLE(symlinks,
