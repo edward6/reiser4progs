@@ -20,6 +20,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#if defined(HAVE_UNAME)
+#  include <sys/utsname.h>
+#endif
+
 #include <reiser4/reiser4.h>
 
 #include <aux/aux.h>
@@ -87,6 +91,11 @@ int main(int argc, char *argv[]) {
     
 	char *host_dev;
 	count_t dev_len = 0;
+	
+#if defined(HAVE_UNAME)
+	struct utsname sysinfo;
+#endif
+	
 	mkfs_behav_flags_t flags = 0;
     
 	static struct option long_options[] = {
@@ -228,10 +237,63 @@ int main(int argc, char *argv[]) {
 	if (flags & BF_PLUGS)
 		misc_plugins_print();
 
+#if defined(HAVE_SYSCONF)
 	/* Guessing block size by getting page size */
-	if (!hint.blksize)
+	if (!hint.blksize) {
 		hint.blksize = sysconf(_SC_PAGESIZE);
+	} else {
+		if (!(flags & BF_FORCE)) {
+			if (hint.blksize != (uint32_t)sysconf(_SC_PAGESIZE)) {
+				aal_exception_warn("Block size (%u) and page size "
+						   "(%ld) mismatch is detected. "
+						   "Reiser4 does not support block "
+						   "sizes different than page size "
+						   "yet. Use -f to force over.",
+						   hint.blksize, sysconf(_SC_PAGESIZE));
+				goto error_free_libreiser4;
+			}
+		}
+	}
 	
+	if (!(flags & BF_QUIET)) {
+		aal_exception_mess("Block size %u will be used.",
+				   hint.blksize);
+	}
+#else
+	if (!hint.blksize) {
+		aal_exception_warn("Can't guess page size. Default "
+				   "block size (4096) will be used, "
+				   "or use -b option instead.");
+		hint.blksize = 4096;
+	}
+#endif
+	
+#if defined(HAVE_UNAME)
+	/* Guessing system type */
+	if (uname(&sysinfo) == -1) {
+		aal_exception_warn("Can't guess system type.");
+		goto error_free_libreiser4;
+	}
+
+	if (!(flags & BF_FORCE)) {
+		if (aal_strncmp(sysinfo.release, "2.5", 3) &&
+		    aal_strncmp(sysinfo.release, "2.6", 3))
+		{
+			aal_exception_warn("%s %s is detected. Reiser4 is not "
+					   "supported for such a platform. Use "
+					   "-f to force over.", sysinfo.sysname,
+					   sysinfo.release);
+			goto error_free_libreiser4;
+		}
+
+	}
+
+	if (!(flags & BF_QUIET)) {
+		aal_exception_mess("%s %s is detected.", sysinfo.sysname,
+				   sysinfo.release);
+	}
+#endif
+
 	/* Building list of devices the filesystem will be created on */
 	for (; optind < argc; optind++) {
 		if (stat(argv[optind], &st) == -1) {
@@ -309,8 +371,16 @@ int main(int argc, char *argv[]) {
 
 		/* Generating uuid if it was not specified and if libuuid is in use */
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-		if (aal_strlen(hint.uuid) == 0)
+		if (uuid_is_null(hint.uuid)) {
 			uuid_generate(hint.uuid);
+		}
+
+		if (!(flags & BF_QUIET)) {
+			char uuid[256];
+				
+			uuid_unparse(hint.uuid, uuid);
+			aal_exception_mess("Uuid %s will be used.", uuid);
+		}
 #endif
 		/* Opening device */
 		if (!(device = aal_device_open(&file_ops, host_dev, 
@@ -396,9 +466,6 @@ int main(int argc, char *argv[]) {
 	
 		if (gauge) {
 			aal_gauge_done(gauge);
-	
-			aal_gauge_rename(gauge, "Synchronizing %s", host_dev);
-			aal_gauge_start(gauge);
 		}
 	
 		/* Zeroing uuid in order to force mkfs to generate it on its own
@@ -413,9 +480,6 @@ int main(int argc, char *argv[]) {
 		   its size from actual device length. */
 		hint.blocks = 0;
 	
-		if (gauge)
-			aal_gauge_done(gauge);
-
 		/* Freeing the root directory */
 		reiser4_object_close(fs->root);
 

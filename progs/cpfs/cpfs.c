@@ -320,13 +320,6 @@ int main(int argc, char *argv[]) {
 	
 	if (gauge) {
 		aal_gauge_done(gauge);
-		
-		aal_gauge_rename(gauge, "Synchronizing %s", dst_dev);
-		aal_gauge_start(gauge);
-	}
-	
-	if (gauge) {
-		aal_gauge_done(gauge);
 		aal_gauge_free(gauge);
 	}
 

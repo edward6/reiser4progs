@@ -15,7 +15,7 @@ AH_TEMPLATE([HAVE_LIBREADLINE], [Define for enable libreadline using.])
 
 LIBREISER4_MAJOR_VERSION=0
 LIBREISER4_MINOR_VERSION=4
-LIBREISER4_MICRO_VERSION=12
+LIBREISER4_MICRO_VERSION=13
 
 LIBREISER4_INTERFACE_AGE=0
 LIBREISER4_BINARY_AGE=0
@@ -304,7 +304,8 @@ fi
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([printf.h errno.h fcntl.h mntent.h stdint.h stdlib.h string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
+AC_CHECK_HEADERS([printf.h errno.h fcntl.h mntent.h stdint.h stdlib.h \
+string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
 
 # Checks for typedefs, structures and compiler characteristics.
 AC_C_BIGENDIAN
@@ -326,7 +327,8 @@ AC_CHECK_MEMBERS([struct stat.st_rdev])
 # Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_STAT
-AC_CHECK_FUNCS([register_printf_function statfs getmntent hasmntopt memset strerror strtol time])
+AC_CHECK_FUNCS([register_printf_function statfs getmntent hasmntopt memset strerror \
+strtol time uname, sysconf])
 
 # The options -falign-* are supported by gcc 3.0 or later.
 # Probably it is sufficient to only check for -falign-loops.
@@ -334,6 +336,14 @@ AC_CACHE_CHECK([whether -falign-loops works], [falign_loop_flag], [
   saved_CPPFLAGS="$CPPFLAGS"
   CPPFLAGS="-falign-loops=1"
   AC_TRY_COMPILE(, , [falign_loop_flag=yes], [falign_loop_flag=no])
+  CPPFLAGS="$saved_CPPFLAGS"
+])
+
+# Checking for compiler warning options
+AC_CACHE_CHECK([whether -Wuninitialized and friends work], [uninitialized], [
+  saved_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="-Wuninitialized"
+  AC_TRY_COMPILE(, , [uninitialized=yes], [uninitialized=no])
   CPPFLAGS="$saved_CPPFLAGS"
 ])
  
@@ -437,7 +447,12 @@ else
     ALONE_CFLAGS="$ALONE_CFLAGS -Os"
 fi
 
-CFLAGS="$CFLAGS -W -Wall -Wno-unused-parameter -Wuninitialized -Wredundant-decls"
+if test "x$uninitialized" = xyes; then
+    CFLAGS="$CFLAGS -W -Wall -Wno-unused-parameter -Wuninitialized -Wredundant-decls"
+else
+    CFLAGS="$CFLAGS -W -Wall"
+fi
+
 if test x$enable_Werror = xyes; then
     CFLAGS="$CFLAGS -Werror"
 fi

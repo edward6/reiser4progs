@@ -3,23 +3,14 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* fix bug with bitmaps on big filesystems
-
-* do we need tree_cut() related stuff?
-
 * fix unaligned access on ia64
 
 * tail conversion in reg40 plugin.
 
 * functions for adding/removing stat data extentions.
 
-* cleanup in node plugins and cde plugins.
-
 * stat data key's odrering should be the same as in entry key, 
   that points to, for large key policy.
-
-* remove libreisr4/key.c and include/reiser4/key.h these are only 
-  wrappers for plugin functions with no additional functionality.
 
 * dumpfs utility.
 
@@ -27,14 +18,14 @@ reiser4progs/COPYING.
 
 * plugin inheritance for objects.
 
-* extents support (reg40.c, tree.c, etc).
+* finish extents support (reg40.c, tree.c, etc).
 
 * special file plugin and special files support in debugfs.
 
 * big digits stat data fields format change.
 
 * change balancing algorithm from the recursive to task oriented one
-  like kernel does.
+  like kernel uses.
 
 * online/offline resizer/repacker, manual page resizefs.
 * introduce some kind of reiser4_errnum for all libreiser4 operations.

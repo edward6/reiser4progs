@@ -68,7 +68,9 @@ static void misc_exception_print_wrap(aal_exception_t *exception,
 
 	aal_memset(buff, 0, sizeof(buff));
     
-	if (exception->type != EXCEPTION_BUG) {
+	if (exception->type != EXCEPTION_BUG &&
+	    exception->type != EXCEPTION_MESSAGE)
+	{
 		aal_snprintf(buff, sizeof(buff), "%s: ", 
 			     aal_exception_type_name(exception->type));
 	}
