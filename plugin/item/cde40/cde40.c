@@ -838,7 +838,7 @@ static errno_t cde40_print(place_t *place, aal_stream_t *stream,
 	aal_assert("umka-548", place != NULL);
 	aal_assert("umka-549", stream != NULL);
 
-	aal_stream_format(stream, "DIRENTRY PLUGIN=%s LEN=%u, KEY=[%s] "
+	aal_stream_format(stream, "DIRENTRY PLUGIN=%s, LEN=%u, KEY=[%s], "
 			  "UNITS=%u\n", place->plug->label, place->len, 
 			  cde40_core->key_ops.print(&place->key, PO_DEFAULT), 
 			  cde_get_units(place));

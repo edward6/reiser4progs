@@ -942,6 +942,7 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 	
 	aal_assert("umka-1580", level > 0);
 
+	/* Print node header. */
 	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
 			  "SPACE=%u MKFS ID=0x%x FLUSH=0x%llx\n",
 			  node->block->nr, level, node40_items(entity),
@@ -972,10 +973,12 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 			return -EINVAL;
 		
 		ih = node40_ih_at(node, pos.item);
-		aal_stream_format(stream, "#%u, LOC %u: ", pos.item, 
+		aal_stream_format(stream, "#%u, OFF %u: ", pos.item, 
 				  ih_get_offset(ih, pol));
 		
-		/* Printing item by means of calling item print method */
+		/* Printing item by means of calling item print method if it is
+		   implemented. If it is not, then print common item information
+		   like key, len, etc. */
 		if (place.plug->o.item_ops->debug->print) {
 			if (plug_call(place.plug->o.item_ops->debug,
 				      print, &place, stream, options))
@@ -983,9 +986,10 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 				return -EINVAL;
 			}
 		} else {
-			aal_stream_format(stream, "Method \"print\" is "
-					  "not implemented for \"%s\".",
-					  place.plug->label);
+			char *key = core->key_ops.print(&place.key, PO_DEFAULT);
+			
+			aal_stream_format(stream, "PLUGIN: %s LEN=%u, KEY=[%s]\n",
+					  place.plug->label, place.len, key);
 		}
 	}
 	
@@ -1627,7 +1631,6 @@ static errno_t node40_shift(node_entity_t *src_entity,
 		   item to @dst_entity, because we have to support all tree
 		   invariants and namely there should not be mergeable items in
 		   the same node. */
-
 		left_shift = (hint->control & SF_LEFT_SHIFT);
 
 		/* Getting border items and checking if they are mergeable. */

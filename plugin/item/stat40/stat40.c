@@ -470,7 +470,7 @@ static errno_t stat40_print(place_t *place,
 	aal_assert("umka-1407", place != NULL);
 	aal_assert("umka-1408", stream != NULL);
     
-	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=[%s] "
+	aal_stream_format(stream, "STATDATA PLUGIN=%s, LEN=%u, KEY=[%s], "
 			  "UNITS=1\n", place->plug->label, place->len,
 			  core->key_ops.print(&place->key, PO_DEFAULT));
 		
