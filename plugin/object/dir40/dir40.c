@@ -688,10 +688,12 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	dir40_t *dir;
 	uint64_t size;
 	uint32_t atime;
-	uint64_t bytes;
 
 	key_entity_t *key;
+	item_entity_t *item;
+
 	reiser4_item_hint_t hint;
+	reiser4_sdext_unix_hint_t unix_hint;
 	
 	aal_assert("umka-1922", entity != NULL);
 	aal_assert("umka-1923", entry != NULL);
@@ -721,9 +723,6 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 
 	aal_memset(&hint, 0, sizeof(hint));
 
-	/* Updating bytes field */
-	bytes = obj40_get_bytes(&dir->obj);
-	
 	hint.count = 1;
 	hint.flags = HF_FORMATD;
 	hint.type_specific = entry;
@@ -733,17 +732,19 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = plugin_call(hint.plugin->item_ops,
 			       estimate, NULL, &hint, 0, 1)))
 		return res;
-		
-	if ((res = obj40_set_bytes(&dir->obj, bytes + hint.len)))
+
+	item = &dir->obj.statdata.item;
+	
+	if ((res = obj40_read_unix(item, &unix_hint)))
 		return res;
 	
-	/* Updating atime and mtime fields */
 	atime = time(NULL);
 	
-	if ((res = obj40_set_atime(&dir->obj, atime)))
-		return res;
+	unix_hint.atime = atime;
+	unix_hint.mtime = atime;
+	unix_hint.bytes -= hint.len;
 
-	return obj40_set_mtime(&dir->obj, atime);
+	return obj40_write_unix(item, &unix_hint);
 }
 
 /* Adding new entry  */
@@ -751,15 +752,16 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 			       reiser4_entry_hint_t *entry)
 {
 	errno_t res;
-	uint64_t size;
-	uint32_t atime;
-	uint64_t bytes;
-
 	dir40_t *dir;
 	place_t place;
+	uint64_t size;
+	uint32_t atime;
+
 	key_entity_t *key;
+	item_entity_t *item;
 	
 	reiser4_item_hint_t hint;
+	reiser4_sdext_unix_hint_t unix_hint;
 
 	aal_assert("umka-844", entity != NULL);
 	aal_assert("umka-845", entry != NULL);
@@ -790,30 +792,25 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 				    entry->name);
 		return res;
 	}
-	
-	/* Updating size field in stat data */
-	if ((res = obj40_stat(&dir->obj)))
-		return res;
-	
+
+	/* Updating stat data fields */
 	size = obj40_get_size(&dir->obj);
 
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
-	bytes = obj40_get_bytes(&dir->obj);
-
-	if ((res = obj40_set_bytes(&dir->obj, bytes + hint.len)))
+	item = &dir->obj.statdata.item;
+	
+	if ((res = obj40_read_unix(item, &unix_hint)))
 		return res;
 	
 	atime = time(NULL);
 	
-	if ((res = obj40_set_atime(&dir->obj, atime)))
-		return res;
+	unix_hint.atime = atime;
+	unix_hint.mtime = atime;
+	unix_hint.bytes += hint.len;
 
-	if ((res = obj40_set_mtime(&dir->obj, atime)))
-		return res;
-
-	return 0;
+	return obj40_write_unix(item, &unix_hint);
 }
 
 struct layout_hint {

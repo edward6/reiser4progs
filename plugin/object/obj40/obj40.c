@@ -53,8 +53,8 @@ errno_t obj40_unlock(obj40_t *obj, place_t *place) {
 }
 
 /* Reads light weight stat data extention into passed @lw_hint */
-static errno_t obj40_read_lw(item_entity_t *item,
-			     reiser4_sdext_lw_hint_t *lw_hint)
+errno_t obj40_read_lw(item_entity_t *item,
+		      reiser4_sdext_lw_hint_t *lw_hint)
 {
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -82,8 +82,8 @@ static errno_t obj40_read_lw(item_entity_t *item,
   Writes light weight stat data extention from passed @lw_hint into @obj stat
   data item.
 */
-static errno_t obj40_write_lw(item_entity_t *item,
-			      reiser4_sdext_lw_hint_t *lw_hint)
+errno_t obj40_write_lw(item_entity_t *item,
+		       reiser4_sdext_lw_hint_t *lw_hint)
 {
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -110,8 +110,8 @@ static errno_t obj40_write_lw(item_entity_t *item,
 #endif
 
 /* Reads unix stat data extention into passed @unix_hint */
-static errno_t obj40_read_unix(item_entity_t *item,
-			       reiser4_sdext_unix_hint_t *unix_hint)
+errno_t obj40_read_unix(item_entity_t *item,
+			reiser4_sdext_unix_hint_t *unix_hint)
 {
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -136,8 +136,8 @@ static errno_t obj40_read_unix(item_entity_t *item,
 #ifndef ENABLE_STAND_ALONE
 
 /* Writes unix stat data extention into @obj stat data item */
-static errno_t obj40_write_unix(item_entity_t *item,
-				reiser4_sdext_unix_hint_t *unix_hint)
+errno_t obj40_write_unix(item_entity_t *item,
+			 reiser4_sdext_unix_hint_t *unix_hint)
 {
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;

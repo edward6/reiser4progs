@@ -64,7 +64,20 @@ extern uint32_t obj40_get_mtime(obj40_t *obj);
 extern uint64_t obj40_get_bytes(obj40_t *obj);
 extern errno_t obj40_get_sym(obj40_t *obj, char *data);
 
+extern errno_t obj40_read_lw(item_entity_t *item,
+			     reiser4_sdext_lw_hint_t *lw_hint);
+
+extern errno_t obj40_read_unix(item_entity_t *item,
+			       reiser4_sdext_unix_hint_t *unix_hint);
+
 #ifndef ENABLE_STAND_ALONE
+
+extern errno_t obj40_write_lw(item_entity_t *item,
+			      reiser4_sdext_lw_hint_t *lw_hint);
+
+extern errno_t obj40_write_unix(item_entity_t *item,
+				reiser4_sdext_unix_hint_t *unix_hint);
+
 extern errno_t obj40_set_mode(obj40_t *obj, uint16_t mode);
 extern errno_t obj40_set_size(obj40_t *obj, uint64_t size);
 extern errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink);
