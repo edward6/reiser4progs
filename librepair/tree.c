@@ -180,9 +180,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	if (comp > 0) {
 		/* The left delimiting key is much then the left key in the 
 		   node - not legal */
-		aal_error("Node (%llu): The first key [%s] is not "
-			  "equal to the left delimiting key [%s].",
-			  node_blocknr(node), 
+		aal_error("Node (%llu): The first key [%s] is not equal to the "
+			  "left delimiting key [%s].", node_blocknr(node), 
 			  reiser4_print_key(&place.key, PO_DEFAULT),
 			  reiser4_print_key(&dkey, PO_DEFAULT));
 		return RE_FATAL;
@@ -195,14 +194,12 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		if (node->p.node == NULL) 
 			break;
 		
-		aal_error("Node (%llu): The left delimiting key [%s] "
-			  "in the parent node (%llu), pos (%u/%u) "
-			  "does not match the first key [%s] in the "
-			  "node.%s", node_blocknr(node),
+		aal_error("Node (%llu): The left delimiting key [%s] in the "
+			  "parent node (%llu), pos (%u/%u) does not match the "
+			  "first key [%s] in the node.%s", node_blocknr(node),
 			  reiser4_print_key(&place.key, PO_DEFAULT),
-			  node_blocknr(node->p.node),
-			  place.pos.item, place.pos.unit, 
-			  reiser4_print_key(&dkey, PO_DEFAULT),
+			  node_blocknr(node->p.node), place.pos.item, 
+			  place.pos.unit, reiser4_print_key(&dkey, PO_DEFAULT),
 			  mode == RM_BUILD ? "Fixed." : "");
 
 		if (mode != RM_BUILD) {
@@ -557,21 +554,19 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 				/* Repeat lookup after @dst conversion. */
 				continue;
 			case FALSE:
-				   break;
+				break;
 			default:
-				   /* Conversion cannot be performed. */
-				   aal_error("Node (%llu), item (%u): the item "
-					     "(%s) [%s] is overlapped by keys "
-					     "with the item (%s) [%s] being "
-					     "inserted [node %llu, item %u]. "
-					     "Skip insertion.", 
-					     node_blocknr(dst.node), dst.pos.item,
-					     dst.plug->label, 
-					     reiser4_print_key(&dst.key, PO_INODE),
-					     src->plug->label,
-					     reiser4_print_key(&src->key, PO_INODE),
-					     node_blocknr(src->node), 
-					     src->pos.item);
+				/* Conversion cannot be performed. */
+				aal_error("Node (%llu), item (%u): the item (%s) "
+					  "[%s] is overlapped by keys with the "
+					  "item (%s) [%s] being inserted [node "
+					  "%llu, item %u]. Skip insertion.",
+					  node_blocknr(dst.node), dst.pos.item,
+					  dst.plug->label,
+					  reiser4_print_key(&dst.key, PO_INODE),
+					  src->plug->label,
+					  reiser4_print_key(&src->key, PO_INODE),
+					  node_blocknr(src->node), src->pos.item);
 
 				   return 0;
 			}

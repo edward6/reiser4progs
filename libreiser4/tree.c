@@ -430,7 +430,7 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 							     tree->root))
 				{
 					aal_error("Can't adjust tree "
-						  "during loading node.");
+						  "during node loading.");
 					return NULL;
 				}
 			} else {
@@ -1724,7 +1724,7 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 	   release it as it is locked by connect @node. */
 	if ((res = reiser4_tree_disconnect_node(tree, node))) {
 		aal_error("Can't disconnect node %llu "
-			  "from tree during detach it.",
+			  "from tree during its detaching.",
 			  node_blocknr(node));
 		return res;
 	}
