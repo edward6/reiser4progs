@@ -39,23 +39,22 @@ extern errno_t reiser4_item_utmost_key(reiser4_place_t *place,
 extern errno_t reiser4_item_gap_key(reiser4_place_t *place, 
 				    reiser4_key_t *key);
 
+extern rid_t reiser4_item_type(reiser4_place_t *place);
+extern body_t *reiser4_item_body(reiser4_place_t *place);
+extern bool_t reiser4_item_data(reiser4_plugin_t *plugin);
+extern bool_t reiser4_item_statdata(reiser4_place_t *place);
+extern bool_t reiser4_item_filebody(reiser4_place_t *place);
+extern bool_t reiser4_item_filename(reiser4_place_t *place);
+
+extern reiser4_plugin_t *reiser4_item_plugin(reiser4_place_t *place);
 #endif
 
 extern errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 					reiser4_key_t *key);
 
-extern bool_t reiser4_item_statdata(reiser4_place_t *place);
-extern bool_t reiser4_item_filebody(reiser4_place_t *place);
-extern bool_t reiser4_item_filename(reiser4_place_t *place);
-
-extern bool_t reiser4_item_branch(reiser4_place_t *place);
-extern bool_t reiser4_item_data(reiser4_plugin_t *plugin);
-extern rid_t reiser4_item_type(reiser4_place_t *place);
-
 extern uint32_t reiser4_item_len(reiser4_place_t *place);
+extern bool_t reiser4_item_branch(reiser4_place_t *place);
 extern uint32_t reiser4_item_units(reiser4_place_t *place);
-extern body_t *reiser4_item_body(reiser4_place_t *place);
-extern reiser4_plugin_t *reiser4_item_plugin(reiser4_place_t *place);
 
 
 #endif

@@ -116,8 +116,6 @@ errno_t reiser4_item_print(
 	return item->plugin->item_ops.print(item, stream, 0);
 }
 
-#endif
-
 bool_t reiser4_item_filebody(reiser4_place_t *place) {
 	aal_assert("umka-1098", place != NULL);
 
@@ -145,21 +143,6 @@ bool_t reiser4_item_filename(reiser4_place_t *place) {
 	return reiser4_key_get_type(&place->item.key) == KEY_FILENAME_TYPE;
 }
 
-/* Returns TRUE if @place points to an internal item */
-bool_t reiser4_item_branch(reiser4_place_t *place) {
-	item_entity_t *item;
-	
-	aal_assert("umka-1828", place != NULL);
-
-	item = &place->item;
-	aal_assert("umka-1829", item->plugin != NULL);
-
-	if (!item->plugin->item_ops.branch)
-		return FALSE;
-
-	return item->plugin->item_ops.branch();
-}
-
 /* Returns item type from its plugin */
 rid_t reiser4_item_type(reiser4_place_t *place) {
 	item_entity_t *item;
@@ -174,18 +157,6 @@ rid_t reiser4_item_type(reiser4_place_t *place) {
 		
 	return (item->plugin->h.group < LAST_ITEM ?
 		item->plugin->h.group : LAST_ITEM);
-}
-
-/* Returns item len */
-uint32_t reiser4_item_len(reiser4_place_t *place) {
-	item_entity_t *item;
-	
-	aal_assert("umka-760", place != NULL);
-
-	item = &place->item;
-	aal_assert("umka-1460", item->plugin != NULL);
-	
-	return item->len;
 }
 
 /* Retuns item body pointer */
@@ -204,6 +175,35 @@ body_t *reiser4_item_body(reiser4_place_t *place) {
 reiser4_plugin_t *reiser4_item_plugin(reiser4_place_t *place) {
 	aal_assert("umka-755", place != NULL);
 	return place->item.plugin;
+}
+
+#endif
+
+/* Returns TRUE if @place points to an internal item */
+bool_t reiser4_item_branch(reiser4_place_t *place) {
+	item_entity_t *item;
+	
+	aal_assert("umka-1828", place != NULL);
+
+	item = &place->item;
+	aal_assert("umka-1829", item->plugin != NULL);
+
+	if (!item->plugin->item_ops.branch)
+		return FALSE;
+
+	return item->plugin->item_ops.branch();
+}
+
+/* Returns item len */
+uint32_t reiser4_item_len(reiser4_place_t *place) {
+	item_entity_t *item;
+	
+	aal_assert("umka-760", place != NULL);
+
+	item = &place->item;
+	aal_assert("umka-1460", item->plugin != NULL);
+	
+	return item->len;
 }
 
 /* Returns item key and updates key fields in place->item.key */
@@ -370,9 +370,9 @@ errno_t reiser4_item_gap_key(reiser4_place_t *place,
 	return 0;
 }
 
-#endif
-
 bool_t reiser4_item_data(reiser4_plugin_t *plugin) {
 	aal_assert("vpf-747", plugin != NULL);
 	return plugin->item_ops.data && plugin->item_ops.data();
 }
+
+#endif

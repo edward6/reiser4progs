@@ -15,7 +15,6 @@
 #include <reiser4/types.h>
 
 #ifndef ENABLE_STAND_ALONE
-
 extern errno_t reiser4_key_string(reiser4_key_t *key,
 				  char *buff);
 
@@ -26,7 +25,6 @@ extern uint64_t reiser4_key_get_hash(reiser4_key_t *key);
 
 extern errno_t reiser4_key_set_hash(reiser4_key_t *key,
 				    uint64_t hash);
-
 #endif
 
 extern int reiser4_key_compare(reiser4_key_t *key1,
@@ -59,15 +57,15 @@ extern errno_t reiser4_key_set_objectid(reiser4_key_t *key,
 extern errno_t reiser4_key_set_locality(reiser4_key_t *key,
 					oid_t locality);
 
+#ifndef ENABLE_STAND_ALONE
+extern errno_t reiser4_key_valid(reiser4_key_t *key);
 extern uint32_t reiser4_key_get_type(reiser4_key_t *key);
 extern uint64_t reiser4_key_get_offset(reiser4_key_t *key);
-
 extern oid_t reiser4_key_get_objectid(reiser4_key_t *key);
 extern oid_t reiser4_key_get_locality(reiser4_key_t *key);
+#endif
 
-extern errno_t reiser4_key_valid(reiser4_key_t *key);
 extern errno_t reiser4_key_guess(reiser4_key_t *key);
-
 extern void reiser4_key_maximal(reiser4_key_t *key);
 extern void reiser4_key_minimal(reiser4_key_t *key);
 extern void reiser4_key_clean(reiser4_key_t *key);

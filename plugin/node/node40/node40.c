@@ -21,6 +21,8 @@ uint8_t node40_get_level(object_entity_t *entity) {
 	return nh40_get_level((node40_t *)entity);
 }
 
+#ifndef ENABLE_STAND_ALONE
+
 /* Returns node make stamp */
 static uint32_t node40_get_mstamp(object_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL);
@@ -36,6 +38,8 @@ static uint64_t node40_get_fstamp(object_entity_t *entity) {
 	
 	return nh40_get_flush_id((node40_t *)entity);
 }
+
+#endif
 
 /* Returns item header by pos */
 item40_header_t *node40_ih_at(node40_t *node, uint32_t pos) {
@@ -1805,10 +1809,10 @@ static reiser4_plugin_t node40_plugin = {
 		.get_key	 = node40_get_key,
 		.get_level	 = node40_get_level,
 		
+#ifndef ENABLE_STAND_ALONE
 		.get_mstamp	 = node40_get_mstamp,
 		.get_fstamp      = node40_get_fstamp,
-	
-#ifndef ENABLE_STAND_ALONE
+		
 		.form		 = node40_form,
 		.sync            = node40_sync,
 		.insert		 = node40_insert,

@@ -936,8 +936,6 @@ void reiser4_node_set_level(reiser4_node_t *node,
 	reiser4_node_mkdirty(node);
 }
 
-#endif
-
 uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {
 	reiser4_plugin_t *plugin;
 	
@@ -966,6 +964,8 @@ uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 	return 0;
 }
 
+#endif
+
 /* Returns node level */
 uint8_t reiser4_node_get_level(reiser4_node_t *node) {
 	aal_assert("umka-1642", node != NULL);
@@ -973,4 +973,3 @@ uint8_t reiser4_node_get_level(reiser4_node_t *node) {
 	return plugin_call(node->entity->plugin->node_ops, 
 			   get_level, node->entity);
 }
-

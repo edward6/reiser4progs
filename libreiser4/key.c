@@ -159,6 +159,7 @@ errno_t reiser4_key_set_locality(
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Gets key type */
 uint32_t reiser4_key_get_type(reiser4_key_t *key) {
 	aal_assert("umka-698", key != NULL);
@@ -190,6 +191,7 @@ oid_t reiser4_key_get_locality(reiser4_key_t *key) {
 
 	return plugin_call(key->plugin->key_ops, get_locality, key);
 }
+#endif
 
 /* Returns the maximal possible key  */
 void reiser4_key_maximal(reiser4_key_t *key) {

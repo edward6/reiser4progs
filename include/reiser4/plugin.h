@@ -930,6 +930,10 @@ struct reiser4_node_ops {
 	  setting up level, plugin id,etc.
 	*/
 	errno_t (*form) (object_entity_t *, uint8_t);
+
+	/* Get mkfs and flush stamps */
+	uint32_t (*get_mstamp) (object_entity_t *);
+    	uint64_t (*get_fstamp) (object_entity_t *);
 #endif
 
 	/* Cerates node entity */
@@ -964,10 +968,6 @@ struct reiser4_node_ops {
     
 	uint8_t (*get_level) (object_entity_t *);
     
-	uint32_t (*get_mstamp) (object_entity_t *);
-	
-    	uint64_t (*get_fstamp) (object_entity_t *);
-
 	/* Gets item at passed pos */
 	body_t *(*item_body) (object_entity_t *, pos_t *);
 
@@ -1083,16 +1083,19 @@ struct reiser4_format_ops {
 	*/
 	void (*close) (object_entity_t *);
     
+	uint64_t (*get_root) (object_entity_t *);
+	uint16_t (*get_height) (object_entity_t *);
+
+#ifndef ENABLE_STAND_ALONE
 	/* Gets the start of the filesystem. */
 	uint64_t (*start) (object_entity_t *);
 	
-	uint64_t (*get_root) (object_entity_t *);
 	uint64_t (*get_len) (object_entity_t *);
-	uint16_t (*get_height) (object_entity_t *);
 	uint64_t (*get_free) (object_entity_t *);
     
 	uint32_t (*get_stamp) (object_entity_t *);
 	uint16_t (*get_policy) (object_entity_t *);
+#endif
 	    
 	rid_t (*oid_pid) (object_entity_t *);
 

@@ -26,6 +26,7 @@ static uint64_t format40_get_root(object_entity_t *entity) {
 	return get_sb_root_block(SUPER(entity));
 }
 
+#ifndef ENABLE_STAND_ALONE
 static uint64_t format40_get_len(object_entity_t *entity) {
 	aal_assert("umka-401", entity != NULL);
 	return get_sb_block_count(SUPER(entity));
@@ -34,11 +35,6 @@ static uint64_t format40_get_len(object_entity_t *entity) {
 static uint64_t format40_get_free(object_entity_t *entity) {
 	aal_assert("umka-402", entity != NULL);
 	return get_sb_free_blocks(SUPER(entity));
-}
-
-static uint16_t format40_get_height(object_entity_t *entity) {
-	aal_assert("umka-1123", entity != NULL);
-	return get_sb_tree_height(SUPER(entity));
 }
 
 static uint32_t format40_get_stamp(object_entity_t *entity) {
@@ -58,6 +54,12 @@ static uint64_t format40_begin(object_entity_t *entity) {
 	aal_assert("vpf-463", format->device != NULL);
 	
 	return FORMAT40_OFFSET / format->device->blocksize;
+}
+#endif
+
+static uint16_t format40_get_height(object_entity_t *entity) {
+	aal_assert("umka-1123", entity != NULL);
+	return get_sb_tree_height(SUPER(entity));
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -488,19 +490,21 @@ static reiser4_plugin_t format40_plugin = {
 		.skipped        = format40_skipped,
 		.confirm	= format40_confirm,
 		.update		= format40_update,
-#endif
 		.start		= format40_begin,
+#endif
 		.oid	        = format40_oid,
 		.close		= format40_close,
 		.name		= format40_name,
 
 		.get_root	= format40_get_root,
+		.get_height	= format40_get_height,
+		
+#ifndef ENABLE_STAND_ALONE
 		.get_len	= format40_get_len,
 		.get_free	= format40_get_free,
-		.get_height	= format40_get_height,
 		.get_stamp	= format40_get_stamp,
-		.get_policy	= format40_get_policy, 
-#ifndef ENABLE_STAND_ALONE
+		.get_policy	= format40_get_policy,
+		
 		.set_root	= format40_set_root,
 		.set_len	= format40_set_len,
 		.set_free	= format40_set_free,

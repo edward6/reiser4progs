@@ -21,12 +21,12 @@ int aal_log2(unsigned long n) {
 	return x - 1;
 }
 
+#ifndef ENABLE_STAND_ALONE
+
 /* Calculates factorial */
 long long int aal_fact(long long int n) {
 	return n ? n * aal_fact(n - 1) : 1;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /*
   Calculates the adler32 checksum for the data pointed by "buff" of the
