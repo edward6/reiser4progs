@@ -136,12 +136,10 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 				      node_t *node, void *data)
 {
 	pos_t pos;
+	static int bogus = 0;
 	tree_frag_hint_t *frag_hint;
 	frag_hint = (tree_frag_hint_t *)data;
 
-	if (frag_hint->gauge)
-		aal_gauge_update(frag_hint->gauge, 0);
-		
 	pos.unit = MAX_UINT32;
 
 	/* Loop though the node items. */
@@ -155,6 +153,9 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 			return -EINVAL;
 		}
 
+		if (frag_hint->gauge && pos.item == 0 && bogus++ % 128 == 0)
+			aal_gauge_update(frag_hint->gauge, 0);
+		
 		/* Checking and calling item's layout method with function
 		   tfrag_process_item() as a function for handling one block the
 		   item points to. */
@@ -438,19 +439,19 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	/* Printing results. */
 	printf("Packing statistics:\n");
 	
-	printf("  Formatted nodes:%*.2f (%.2f%%)\n",
+	printf("  Formatted nodes:%*.2fb (%.2f%%)\n",
 	       11, stat_hint.formatted_used,
 	       (stat_hint.formatted_used * 100) / blksize);
 	
-	printf("  Branch nodes:%*.2f (%.2f%%)\n",
+	printf("  Branch nodes:%*.2fb (%.2f%%)\n",
 	       14, stat_hint.branches_used,
 	       (stat_hint.branches_used * 100) / blksize);
 	
-	printf("  Twig nodes:%*.2f (%.2f%%)\n",
+	printf("  Twig nodes:%*.2fb (%.2f%%)\n",
 	       16, stat_hint.twigs_used,
 	       (stat_hint.twigs_used * 100) / blksize);
 	
-	printf("  Leaf nodes:%*.2f (%.2f%%)\n\n",
+	printf("  Leaf nodes:%*.2fb (%.2f%%)\n\n",
 	       16, stat_hint.leaves_used,
 	       (stat_hint.leaves_used * 100) / blksize);
 
@@ -599,7 +600,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 		frag_hint->last = 0;
 		frag_hint->total = 0;
 
-		if (frag_hint->gauge)
+		if (frag_hint->gauge && pos.item == 0)
 			aal_gauge_update(frag_hint->gauge, 0);
 
 		/* Calling calculating the file fragmentation by emans of using
