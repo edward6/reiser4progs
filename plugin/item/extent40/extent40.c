@@ -780,7 +780,7 @@ static errno_t extent40_prep_write(place_t *place,
 			if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
 				/* We will allocate new unit if we write data to
 				   hole and data size less than @unit_size. */
-				if (hint->specific && count < unit_size)
+				if (hint->specific)
 					hint->len += sizeof(extent40_t);
 			}
 
@@ -803,8 +803,11 @@ static errno_t extent40_prep_write(place_t *place,
 			} else {
 				/* Unit is allocated one or hole. */
 				if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
-					if (hint->specific || count < blksize)
+					if ((hint->specific || count < blksize) &&
+					    hint->len == 0)
+					{
 						hint->len += sizeof(extent40_t);
+					}
 				} else {
 					hint->len += sizeof(extent40_t);
 				}
@@ -1049,6 +1052,8 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			width = et40_get_width(extent);
 
 			if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
+				/* FIXME-UMKA: Handling holes will be here
+				   later. */
 			} else {
 				/* Getting data block by offset key. Block
 				   should be get before modifying it. */

@@ -3,6 +3,9 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fix ugliness with node in place_t. It cannot be always initialized, 
+  as some times place_t is initialized inside node40 plugin.
+
 * handle holes overwriting in extent write code.
 
 * implement more sophisticated memory pressure detect code.

@@ -10,7 +10,7 @@ static uint32_t curr_size;
 static uint32_t heap_size;
 static aal_list_t *streams;
 
-static void reiser4_add_stream(aal_stream_t *stream) {
+static void reiser4_print_add_stream(aal_stream_t *stream) {
 	aal_list_t *new;
 	
 	if (curr_size + 1 > heap_size)
@@ -24,7 +24,7 @@ static void reiser4_add_stream(aal_stream_t *stream) {
 	curr_size++;
 }
 
-static void reiser4_rem_stream(aal_stream_t *stream) {
+static void reiser4_print_rem_stream(aal_stream_t *stream) {
 	aal_list_t *next;
 	
 	next = aal_list_remove(streams, stream);
@@ -43,7 +43,7 @@ void reiser4_print_recycle(uint32_t heap) {
 	{
 		next = walk->next;
 		aal_stream_fini(walk->data);
-		reiser4_rem_stream(walk->data);
+		reiser4_print_rem_stream(walk->data);
 	}
 }
 
@@ -68,7 +68,7 @@ char *reiser4_print_key(reiser4_key_t *key,
 		return NULL;
 
 	reiser4_key_print(key, stream, options);
-	reiser4_add_stream(stream);
+	reiser4_print_add_stream(stream);
 	
 	return (char *)stream->entity;
 }

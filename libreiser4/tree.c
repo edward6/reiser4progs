@@ -224,7 +224,7 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, node_t *node) {
 #endif
 
         reiser4_node_leftmost_key(node, &lkey);
-                                                                                                   
+
 	/* Getting position by means of using node lookup. */
         if (reiser4_node_lookup(parent->node, &lkey, FIND_EXACT,
 				&parent->pos) == PRESENT)
@@ -711,9 +711,10 @@ errno_t reiser4_tree_next_node(reiser4_tree_t *tree,
 node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 				uint8_t level)
 {
+	blk_t blk;
 	rid_t pid;
+	
 	node_t *node;
-	blk_t fake_blk;
 	uint32_t stamp;
 	
 	uint64_t free_blocks;
@@ -722,8 +723,8 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	aal_assert("umka-756", tree != NULL);
     
 	/* Allocating fake block number. */
+	blk = reiser4_fake_get();
 	format = tree->fs->format;
-	fake_blk = reiser4_fake_get();
 	pid = reiser4_param_value("node");
 
 	/* Setting up of the free blocks in format. */
@@ -733,9 +734,7 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	reiser4_format_set_free(format, free_blocks - 1);
 
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree, fake_blk,
-					 pid, level)))
-	{
+	if (!(node = reiser4_node_create(tree, blk, pid, level))) {
 		aal_error("Can't initialize new fake node.");
 		return NULL;
 	}
