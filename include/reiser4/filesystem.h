@@ -110,9 +110,6 @@ struct reiser4_joint {
     /* Pointer to the node */
     reiser4_node_t *node;
 
-    /* Level in the tree */
-    uint8_t level;
-    
     /* References to parent, left and right neighbours */
     reiser4_joint_t *parent;
     reiser4_joint_t *left;

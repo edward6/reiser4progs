@@ -178,12 +178,12 @@ errno_t reiser4_joint_realize(
     /* 
 	Initializing stop level for tree lookup function. Here tree lookup function is
 	used as instrument for reflecting the part of tree into libreiser4 tree cache.
-	So, connecting to the stop level for lookup we need to map part of the tree
+	So, connecting to the stop level for lookup we need to map the part of the tree
 	from the root (tree height) to the level of passed node, because we should make
 	sure, that needed neighbour will be mapped into cache and will be accesible by
 	joint->left or joint->right pointers.
     */
-    level = joint->level;
+    level = LEAF_LEVEL;
     
     /* Rasing the right neighbour */
     if (!joint->left) {

@@ -59,8 +59,6 @@ static reiser4_joint_t *reiser4_tree_allocate(
     reiser4_format_set_free(tree->fs->format, 
 	reiser4_alloc_free(tree->fs->alloc));
     
-    joint->level = level;
-    
     return joint;
     
 error_free_node:
@@ -89,7 +87,7 @@ static void reiser4_tree_release(reiser4_tree_t *tree,
 #endif
 
 static reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
-    blk_t blk, uint8_t level) 
+    blk_t blk/*, uint8_t level*/) 
 {
     aal_block_t *block;
     reiser4_node_t *node;
@@ -106,8 +104,6 @@ static reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree,
     if (!(joint = reiser4_joint_create(node)))
 	goto error_free_node;
 
-    joint->level = level;
-    
     return joint;
     
 error_free_node:
@@ -195,7 +191,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	
     tree_height = reiser4_format_get_height(fs->format);
     
-    if (!(tree->root = reiser4_tree_load(tree, tree_root, tree_height)))
+    if (!(tree->root = reiser4_tree_load(tree, tree_root/*, tree_height*/)))
 	goto error_free_tree;
     
     tree->root->tree = tree;
@@ -270,7 +266,6 @@ reiser4_tree_t *reiser4_tree_create(
     /* Setting up of the free blocks */
     reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
 
-    tree->root->level = level;
     tree->root->tree = tree;
     
     return tree;
@@ -328,7 +323,10 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 
 uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
     aal_assert("umka-1065", tree != NULL, return 0);
-    return tree->root->level;
+    aal_assert("umka-1284", tree->fs != NULL, return 0);
+    aal_assert("umka-1285", tree->fs->format != NULL, return 0);
+
+    return reiser4_format_get_height(tree->fs->format);
 }
 
 /* 
@@ -416,7 +414,7 @@ int reiser4_tree_lookup(
 		Node was not found in the cache, we open it and attach to the 
 		cache.
 	    */
-	    if (!(coord->joint = reiser4_tree_load(tree, target, deep))) {
+	    if (!(coord->joint = reiser4_tree_load(tree, target/*, deep*/))) {
 		aal_exception_error("Can't load node %llu durring lookup.", target);
 		return -1;
 	    }
@@ -492,10 +490,13 @@ static errno_t reiser4_tree_attach(
 static errno_t reiser4_tree_grow(
     reiser4_tree_t *tree	/* tree to be growed up */
 ) {
+    uint8_t tree_height;
     reiser4_joint_t *old_root = tree->root;
     
+    tree_height = reiser4_tree_height(tree);
+    
     /* Allocating new root node */
-    if (!(tree->root = reiser4_tree_allocate(tree, old_root->level + 1))) {
+    if (!(tree->root = reiser4_tree_allocate(tree, tree_height + 1))) {
 	aal_exception_error("Can't allocate new root node.");
 	return -1;
     }
@@ -506,10 +507,9 @@ static errno_t reiser4_tree_grow(
     }
 	    
     /* Updating the tree height and tree root values in disk format */
-    reiser4_format_set_height(tree->fs->format, 
-	reiser4_tree_height(tree) + 1);
+    reiser4_format_set_height(tree->fs->format, tree_height + 1);
     
-    reiser4_format_set_root(tree->fs->format, 
+    reiser4_format_set_root(tree->fs->format,
 	aal_block_number(tree->root->node->block));
 
     return 0;
@@ -691,10 +691,14 @@ errno_t reiser4_tree_mkspace(
     }
     
     for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
+	uint8_t level;
 	reiser4_coord_t save;
         reiser4_joint_t *joint;
 	
-        if (!(joint = reiser4_tree_allocate(tree, new->joint->level)))
+	level = plugin_call(return -1, new->joint->node->entity->plugin->node_ops,
+	    get_level, new->joint->node->entity);
+	
+        if (!(joint = reiser4_tree_allocate(tree, level)))
 	   return -1;
 	
 	reiser4_coord_dup(new, &save);
@@ -895,6 +899,88 @@ errno_t reiser4_tree_move(
     
     return 0;
 }
+
+/*static errno_t reiser4_tree_traverse_node(
+    blk_t blk,
+    reiser4_open_func_t open_func,
+    reiser4_handler_func_t handler_func,
+    reiser4_setup_func_t before_func,
+    reiser4_setup_func_t setup_func,
+    reiser4_setup_func_t update_func,
+    reiser4_setup_func_t after_func,
+    void *data
+) {
+    reiser4_pos_t pos;
+    errno_t result = 0;
+    reiser4_item_t item;
+    reiser4_node_t *node;
+    
+    aal_assert("umka-1024", open_func != NULL, return -1);
+
+    if ((result = open_func(&node, blk, data))) {
+	aal_exception_error("Node (%llu): cannot be openned.", blk);
+	return result;
+    }
+    
+    if ((handler_func && !(result = handler_func(node, data))) || !handler_func) {
+	    
+	if (before_func && (result = before_func(node, &item, data)))
+	    goto error_free_node;
+
+	pos.item = reiser4_node_count(node);
+	
+	do {
+	    pos.unit = ~0ul; 
+	    
+	    if ((result = reiser4_item_open(&item, node, &pos))) {
+
+		aal_exception_error("Node (%llu), item (%u): item cannot be openned.",
+		    aal_block_number(node->block), pos.item);
+		
+		goto error_after_func;
+	    }
+	    
+	    if (!reiser4_item_internal(&item))
+		continue;
+	    
+	    pos.unit = reiser4_item_count(&item) - 1;
+	    
+	    do {
+		blk_t target;
+		
+		if ((target = reiser4_item_get_nptr(&item)) != FAKE_BLK) {
+		    if (setup_func && (result = setup_func(node, &item, data)))
+			goto error_after_func;
+	
+		    if ((result = reiser4_node_traverse(target, open_func, 
+			handler_func, before_func, setup_func, 
+			update_func, after_func, data)) < 0)
+			return result;
+
+		    if (update_func && (result = update_func(node, &item, data)))
+			goto error_after_func;
+		}
+	    } while (pos.unit--);
+	} while (pos.item--);
+	
+	if (after_func && (result = after_func(node, &item, data)))
+	    goto error_free_node;
+    }
+
+    reiser4_node_close(node);
+    return result;
+
+error_update_func:
+    if (update_func)
+       result = update_func(node, &item, data);
+error_after_func:
+    if (after_func)
+	result = after_func(node, &item, data);
+error_free_node:
+    reiser4_node_close(node);
+error:
+    return result;
+}*/
 
 #endif
 
