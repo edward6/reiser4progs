@@ -482,7 +482,7 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 			return NULL;
 
 		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
-			aal_device_t *device = node->tree->fs->device;
+			aal_device_t *device = node->device;
 			
 			if (!(child = reiser4_node_open(device, ptr.ptr))) {
 				aal_exception_error("Can't read block %llu. %s.",
@@ -953,7 +953,7 @@ errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be synchronized */
 {
 	aal_assert("umka-124", node != NULL, return 0);
-	aal_assert("umka-1781", node->tree != NULL, return 0);
+	/*aal_assert("umka-1781", node->tree != NULL, return 0);*/
     
 	/* Synchronizing passed @node */
 	if (reiser4_node_isdirty(node)) {
