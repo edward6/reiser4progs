@@ -204,7 +204,7 @@ static rpid_t format36_oid_pid(reiser4_entity_t *entity) {
 static blk_t format36_get_root(reiser4_entity_t *entity) {
     format36_super_t *super;
     
-    aal_assert("umka-387", entity != NULL, return 0);
+    aal_assert("umka-387", entity != NULL, return FAKE_BLK);
     
     super = format36_super(((format36_t *)entity)->block);
     return get_sb_root_block(super);
@@ -213,7 +213,7 @@ static blk_t format36_get_root(reiser4_entity_t *entity) {
 static count_t format36_get_len(reiser4_entity_t *entity) {
     format36_super_t *super;
     
-    aal_assert("umka-388", entity != NULL, return 0);
+    aal_assert("umka-388", entity != NULL, return FAKE_BLK);
     
     super = format36_super(((format36_t *)entity)->block);
     return get_sb_block_count(super);
@@ -222,7 +222,7 @@ static count_t format36_get_len(reiser4_entity_t *entity) {
 static count_t format36_get_free(reiser4_entity_t *entity) {
     format36_super_t *super;
     
-    aal_assert("umka-389", entity != NULL, return 0);
+    aal_assert("umka-389", entity != NULL, return FAKE_BLK);
     
     super = format36_super(((format36_t *)entity)->block);
     return get_sb_free_blocks(super);

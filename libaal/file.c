@@ -189,7 +189,7 @@ static count_t file_len(
     off_t max_off = 0;
 
     if (!device) 
-	return 0;
+	return FAKE_BLK;
     
 #ifdef BLKGETSIZE64
     
@@ -209,7 +209,7 @@ static count_t file_len(
 	0, SEEK_END)) == (off_t)-1) 
     {
 	save_error(device);
-	return 0;
+	return FAKE_BLK;
     }
     
     return (count_t)(max_off / device->blocksize);

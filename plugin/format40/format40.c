@@ -17,7 +17,7 @@ static reiser4_core_t *core = NULL;
 static blk_t format40_get_root(reiser4_entity_t *entity) {
     format40_super_t *super;
     
-    aal_assert("umka-400", entity != NULL, return 0);
+    aal_assert("umka-400", entity != NULL, return FAKE_BLK);
     
     super = format40_super(((format40_t *)entity)->block);
     return (blk_t)get_sb_root_block(super);
@@ -26,7 +26,7 @@ static blk_t format40_get_root(reiser4_entity_t *entity) {
 static count_t format40_get_len(reiser4_entity_t *entity) {
     format40_super_t *super;
     
-    aal_assert("umka-401", entity != NULL, return 0);
+    aal_assert("umka-401", entity != NULL, return FAKE_BLK);
     
     super = format40_super(((format40_t *)entity)->block);
     return get_sb_block_count(super);
@@ -35,7 +35,7 @@ static count_t format40_get_len(reiser4_entity_t *entity) {
 static count_t format40_get_free(reiser4_entity_t *entity) {
     format40_super_t *super;
     
-    aal_assert("umka-402", entity != NULL, return 0);
+    aal_assert("umka-402", entity != NULL, return FAKE_BLK);
     
     super = format40_super(((format40_t *)entity)->block);
     return get_sb_free_blocks(super);

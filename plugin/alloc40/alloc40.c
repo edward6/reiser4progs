@@ -296,15 +296,15 @@ static blk_t alloc40_allocate(reiser4_entity_t *entity) {
     blk_t blk;
     alloc40_t *alloc = (alloc40_t *)entity;
     
-    aal_assert("umka-374", alloc != NULL, return 0);
-    aal_assert("umka-375", alloc->bitmap != NULL, return 0);
+    aal_assert("umka-374", alloc != NULL, return FAKE_BLK);
+    aal_assert("umka-375", alloc->bitmap != NULL, return FAKE_BLK);
     
     /* 
 	It is possible to implement here more smart allocation algorithm. For
 	instance, it may look for contiguous areas.
     */
-    if ((blk = aux_bitmap_find(alloc->bitmap, 0)) == ~0ull)
-	return ~0ull;
+    if ((blk = aux_bitmap_find(alloc->bitmap, 0)) == FAKE_BLK)
+	return FAKE_BLK;
     
     aux_bitmap_mark(alloc->bitmap, blk);
     return blk;
@@ -336,8 +336,8 @@ count_t alloc40_used(reiser4_entity_t *entity) {
 int alloc40_test(reiser4_entity_t *entity, blk_t blk) {
     alloc40_t *alloc = (alloc40_t *)entity;
     
-    aal_assert("umka-663", alloc != NULL, return 0);
-    aal_assert("umka-664", alloc->bitmap != NULL, return 0);
+    aal_assert("umka-663", alloc != NULL, return -1);
+    aal_assert("umka-664", alloc->bitmap != NULL, return -1);
 
     return aux_bitmap_test(alloc->bitmap, blk);
 }

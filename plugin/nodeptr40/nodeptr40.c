@@ -79,8 +79,8 @@ static errno_t nodeptr40_set_ptr(reiser4_item_t *item, blk_t blk) {
 static blk_t nodeptr40_get_ptr(reiser4_item_t *item) {
     nodeptr40_t *internal;
     
-    aal_assert("umka-606", item != NULL, return 0);
-    aal_assert("vpf-362", item->pos != NULL, return 0);
+    aal_assert("umka-606", item != NULL, return FAKE_BLK);
+    aal_assert("vpf-362", item->pos != NULL, return FAKE_BLK);
     
     internal = nodeptr40_body(item);
     
