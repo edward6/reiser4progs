@@ -38,7 +38,7 @@ errno_t alloc40_related_region(object_entity_t *entity, blk_t blk,
  	
     /* Loop though the all blocks one bitmap block describes and calling
      * passed @func for each of them. */   
-    return func(entity, blk/size, size, data);
+    return func(entity, (blk/size) * size, size, data);
 }
 
 #endif

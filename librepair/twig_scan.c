@@ -77,13 +77,13 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     if (res < 0) 
 	return res;
     
-    if (res | REPAIR_FATAL) 
+    if (res & REPAIR_FATAL) 
 	ts->info.check.fatal++;
-    else if (res | REPAIR_FIXABLE)
+    else if (res & REPAIR_FIXABLE)
 	ts->info.check.fixable++;
-    else if (res | REPAIR_FIXED)
+    else if (res & REPAIR_FIXED)
 	reiser4_node_mkdirty(place->node);
-    else if (res | REPAIR_REMOVED) {
+    else if (res & REPAIR_REMOVED) {
 	reiser4_node_mkdirty(place->node);
 	place->pos.item--;
     }

@@ -24,11 +24,12 @@ reiser4_fs_t *repair_fs_open(aal_device_t *host_device,
 	return NULL;
 
     fs->device = host_device;
+    fs->profile = profile;
     
     if (repair_master_open(fs))
 	goto error_fs_free;
 	
-    if (repair_format_open(fs, profile))
+    if (repair_format_open(fs))
 	goto error_master_close;
     
     /* Block and oid allocator plugins are specified by format plugin unambiguously, 

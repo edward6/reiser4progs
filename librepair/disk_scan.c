@@ -1,12 +1,13 @@
 /* 
-    librepair/disk_scan.c - methods are needed for the third fsck pass. 
+    librepair/disk_scan.c - Disk scan pass of reiser4 filesystem recovery. 
     Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
     reiser4progs/COPYING. 
 */
 
 /* 
-    The disk_scan pass - fsck scans the blocks which are used, but not 
-    in the tree yet. 
+    The disk_scan pass scans the blocks which are specified in the bm_scan 
+    bitmap, all formatted blocks marks in bm_map bitmap, all found leaves 
+    in bm_leaf, all found twigs in bm_twig.
 
     After filter pass:
     - some extent units may points to formatted blocks;
@@ -57,12 +58,12 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 	if (res < 0)
 	    goto error_node_release;
 	
-	aal_assert("vpf-812", (res | REPAIR_FIXABLE) == 0);
+	aal_assert("vpf-812", (res & REPAIR_FIXABLE) == 0);
 	
 	if (repair_error_exists(res) || reiser4_node_items(node) == 0)
 	    goto next;
 	
-	if (res | REPAIR_FIXED)
+	if (res & REPAIR_FIXED)
 	    reiser4_node_mkdirty(node);
 
 	if (level == TWIG_LEVEL)

@@ -14,7 +14,7 @@
 
 #include <reiser4/filesystem.h>
 
-extern errno_t repair_format_open(reiser4_fs_t *fs, reiser4_profile_t *profile);
+extern errno_t repair_format_open(reiser4_fs_t *fs);
 extern void repair_format_print(reiser4_fs_t *fs, FILE *file, 
     uint16_t options);
 

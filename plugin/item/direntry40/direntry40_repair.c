@@ -263,7 +263,7 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
     for (i = 0; i < count; i++) {
 	/* Check if the offset is valid. */
 	if (direntry40_offset_check(item, i)) {
-	    aal_exception_error("node %llu, item %u, unit %d: unit offset "
+	    aal_exception_error("node %llu, item %u, unit %u: unit offset "
 		"(%u) is wrong.", item->context.blk, item->pos, i, OFFSET(de, i));
 
 	    /* mark offset wrong. */

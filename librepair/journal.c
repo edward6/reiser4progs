@@ -6,6 +6,7 @@
 */
 
 #include <repair/librepair.h>
+#include <fcntl.h>
 
 /* Callback for journal check method - check if a block, pointed from the 
  * journal, is of the special filesystem areas - skipped, block allocator, 
@@ -69,16 +70,24 @@ error_journal_close:
 }
 
 /* Open, replay, close journal. */
-errno_t repair_journal_handle(reiser4_fs_t *fs, aal_device_t *journal_device) {
+errno_t repair_journal_handle(reiser4_fs_t *fs, aal_device_t *journal_device) {    
     errno_t ret = 0;
+    int flags;
  
     if (repair_journal_open(fs, journal_device))
 	return -1;
-
+    
+    flags = journal_device->flags;
+    if (aal_device_reopen(journal_device, journal_device->blocksize, O_RDWR))
+	return -1;
+    
     /* FIXME-VITALY: What if we do it on RO partition? */
     if (reiser4_journal_replay(fs->journal))
 	ret = -1;
 
+    if (aal_device_reopen(journal_device, journal_device->blocksize, flags))
+	return -1;
+    
     reiser4_journal_close(fs->journal);
     fs->journal = NULL;
 

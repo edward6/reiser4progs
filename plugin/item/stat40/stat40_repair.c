@@ -62,7 +62,8 @@ errno_t stat40_check(item_entity_t *item, uint8_t mode) {
 	     item->len, hint.sdext.pos, mode == REPAIR_REBUILD ? 
 	     "Fixed." : "");
 	
-	item->len = hint.sdext.pos;
+	if (mode == REPAIR_REBUILD)
+	    item->len = hint.sdext.pos;
 	
 	return mode == REPAIR_REBUILD ? REPAIR_FIXED : REPAIR_FATAL;
     }
