@@ -2163,6 +2163,81 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_place_t *place,
 	return 0;
 }
 
+/* Shifts data from passed @place to one of neighbour nodes basing on passed
+   @flags. */
+static errno_t tree_shift_todir(reiser4_tree_t *tree, reiser4_place_t *place,
+				uint32_t flags, int direction)
+{
+	errno_t res;
+	uint32_t shift_flags;
+	reiser4_node_t *neighbor;
+	reiser4_node_t *old_node;
+
+	if (direction == DIR_LEFT && (SF_ALLOW_LEFT & flags))
+		shift_flags = SF_ALLOW_LEFT;
+
+	if (direction == DIR_RIGHT && (SF_ALLOW_RIGHT & flags))
+		shift_flags = SF_ALLOW_RIGHT;
+
+	if (!(SF_ALLOW_LEFT & flags) && !(SF_ALLOW_RIGHT & flags))
+		return 0;
+	
+	shift_flags |= SF_UPDATE_POINT;
+
+	if (SF_ALLOW_MERGE & flags)
+		shift_flags |= SF_ALLOW_MERGE;
+		
+	if (SF_MOVE_POINT & flags)
+		shift_flags |= SF_MOVE_POINT;
+
+	old_node = place->node;
+
+	/* Getting neighbour. */
+	neighbor = direction == DIR_LEFT ?
+		place->node->left : place->node->right;
+
+	aal_assert("umka-3096", neighbor != NULL);
+	
+	/* Shift items from @place to @left neighbour. */
+	if ((res = reiser4_tree_shift(tree, place, neighbor, shift_flags)))
+		return res;
+
+	if (reiser4_node_items(old_node) == 0 &&
+	    old_node != place->node)
+	{
+		if (reiser4_node_locked(old_node)) {
+			old_node->flags |= NF_HEARD_BANSHEE;
+		} else {
+			reiser4_node_lock(place->node);
+			
+			if ((res = reiser4_tree_discard_node(tree, old_node))) {
+				reiser4_node_unlock(place->node);
+				return res;
+			}
+
+			reiser4_node_unlock(place->node);
+		}
+	}
+
+	return 0;
+}
+
+/* This calculates if space in passed @needed is enough for passed @needed. */
+static int32_t tree_calc_space(reiser4_tree_t *tree, reiser4_place_t *place,
+			       uint32_t needed)
+{
+	int32_t enough;
+
+	if ((enough = reiser4_node_space(place->node) - needed) > 0) {
+		enough = reiser4_node_space(place->node);
+		
+		if (place->pos.unit == MAX_UINT32)
+			enough -= reiser4_node_overhead(place->node);
+	}
+	
+	return enough;
+}
+
 /* Makes space in tree to insert @needed bytes of data. Returns space in insert
    point, or negative value for errors. */
 int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
@@ -2172,11 +2247,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	errno_t res;
 	uint8_t level;
 	int32_t enough;
-	reiser4_node_t *old_node;
 	uint32_t overhead;
-
-	uint32_t shift_flags;
-	reiser4_node_t *left, *right;
 
 	aal_assert("umka-929", tree != NULL);
 	aal_assert("umka-766", place != NULL);
@@ -2208,99 +2279,22 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	/* Shifting data into left neighbour if it exists and left shift
 	   allowing flag is specified. */
-	if ((SF_ALLOW_LEFT & flags) &&
-	    (left = reiser4_tree_neig_node(tree, place->node, DIR_LEFT)))
-	{
-		shift_flags = (SF_ALLOW_LEFT | SF_UPDATE_POINT);
-
-		if (SF_ALLOW_MERGE & flags)
-			shift_flags |= SF_ALLOW_MERGE;
-		
-		if (SF_MOVE_POINT & flags)
-			shift_flags |= SF_MOVE_POINT;
-
-		old_node = place->node;
-		
-                /* Shift items from @place to @left neighbour. */
-		if ((res = reiser4_tree_shift(tree, place, left, shift_flags)))
+	if ((reiser4_tree_neig_node(tree, place->node, DIR_LEFT))) {
+		if ((res = tree_shift_todir(tree, place, flags, DIR_LEFT)))
 			return res;
 
-		if (reiser4_node_items(old_node) == 0 &&
-		    old_node != place->node)
-		{
-			if (reiser4_node_locked(old_node)) {
-				old_node->flags |= NF_HEARD_BANSHEE;
-			} else {
-				reiser4_node_lock(place->node);
-			
-				if ((res = reiser4_tree_discard_node(tree, old_node))) {
-					reiser4_node_unlock(place->node);
-					return res;
-				}
-
-				reiser4_node_unlock(place->node);
-			}
-		}
-
-		/* Check fo result of shift -- space in node. */
-		if ((enough = reiser4_node_space(place->node) - needed) > 0) {
-			enough = reiser4_node_space(place->node);
-		
-			if (place->pos.unit == MAX_UINT32)
-				enough -= overhead;
-
+		if ((enough = tree_calc_space(tree, place, needed)) > 0)
 			return enough;
-		}
 	}
 
 	/* Shifting data into right neighbour if it exists and right shift
 	   allowing flag is specified. */
-	if ((SF_ALLOW_RIGHT & flags) &&
-	    (right = reiser4_tree_neig_node(tree, place->node, DIR_RIGHT)))
-	{
-		shift_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
-		
-		if (SF_ALLOW_MERGE & flags)
-			shift_flags |= SF_ALLOW_MERGE;
-		
-		if (SF_MOVE_POINT & flags)
-			shift_flags |= SF_MOVE_POINT;
-
-		old_node = place->node;
-		
-		/* Shift items from @place to @right neighbour. */
-		if ((res = reiser4_tree_shift(tree, place, right, shift_flags)))
+	if ((reiser4_tree_neig_node(tree, place->node, DIR_RIGHT))) {
+		if ((res = tree_shift_todir(tree, place, flags, DIR_RIGHT)))
 			return res;
 
-		if (reiser4_node_items(old_node) == 0 &&
-		    old_node != place->node)
-		{
-			if (reiser4_node_locked(old_node)) {
-				old_node->flags |= NF_HEARD_BANSHEE;
-			} else {
-				reiser4_node_lock(place->node);
-			
-				if ((res = reiser4_tree_discard_node(tree,
-								     old_node)))
-				{
-					reiser4_node_unlock(place->node);
-					return res;
-				}
-
-				reiser4_node_unlock(place->node);
-			}
-		}
-
-		/* Check if node has enough of space and fucntion should do
-		   nothing but exit with success return code. */
-		if ((enough = reiser4_node_space(place->node) - needed) > 0) {
-			enough = reiser4_node_space(place->node);
-		
-			if (place->pos.unit == MAX_UINT32)
-				enough -= overhead;
-
+		if ((enough = tree_calc_space(tree, place, needed)) > 0)
 			return enough;
-		}
 	}
 
 	/* Check if we allowed to allocate new nodes if there still not enough
@@ -2321,6 +2315,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	for (alloc = 0; enough < 0 && alloc < 2; alloc++) {
 		reiser4_place_t save;
 		reiser4_node_t *node;
+		uint32_t shift_flags;
 
 		/* Saving place as it will be usefull for us later */
 		save = *place;
@@ -2635,7 +2630,7 @@ static errno_t callback_prep_write(reiser4_place_t *place,
 			 prep_write, place, hint);
 }
 
-/* This grows tree until requested level reached. Also*/
+/* This grows tree until requested level reached. */
 static inline errno_t tree_growup_level(reiser4_tree_t *tree,
 					uint8_t level)
 {
