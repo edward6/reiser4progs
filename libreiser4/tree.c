@@ -179,8 +179,10 @@ static errno_t reiser4_tree_unhash_node(reiser4_tree_t *tree,
 
 #ifndef ENABLE_STAND_ALONE
 /* Acknowledles, that passed @place has nodeptr that points onto passed
-   @node. This is needed for tree_realize_node() function. */
-static int reiser4_tree_node_ack(reiser4_node_t *node, reiser4_place_t *place) {
+   @node. This is needed for tree_rebind_node() function. */
+static int tree_check_pos(reiser4_place_t *place, blk_t blocknr) {
+	aal_assert("umka-3115", place != NULL);
+	
 	if (!(place->pos.item < reiser4_node_items(place->node)))
 		return 0;
 	       
@@ -190,67 +192,65 @@ static int reiser4_tree_node_ack(reiser4_node_t *node, reiser4_place_t *place) {
 	if (!reiser4_item_branch(place->plug))
 		return 0;
 
-	return reiser4_item_down_link(place) == node_blocknr(node);
+	return reiser4_item_down_link(place) == blocknr;
 }
 #endif
 
-/* Updates @node->p by position in parent node. */
-errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
+static errno_t tree_find_child_pos(reiser4_tree_t *tree,
+				   reiser4_node_t *parent,
+				   reiser4_node_t *child,
+				   reiser4_place_t *place)
+{
+	lookup_hint_t hint;
+        reiser4_key_t lkey;
+
 #ifndef ENABLE_STAND_ALONE
 	uint32_t i;
 #endif
-
-	lookup_hint_t hint;
-        reiser4_key_t lkey;
-	reiser4_place_t *parent;
     
-	aal_assert("umka-869", node != NULL);
-	aal_assert("umka-1941", node->p.node != NULL);
-	aal_assert("umka-3038", reiser4_node_items(node) > 0);
+	aal_assert("umka-869", child != NULL);
+	aal_assert("umka-3114", parent != NULL);
+	aal_assert("umka-3038", reiser4_node_items(child) > 0);
 
-	parent = &node->p;
-
-	/* Checking if we are in position already */
+	place->node = parent;
+	
 #ifndef ENABLE_STAND_ALONE
-	if (reiser4_tree_node_ack(node, parent))
+	/* Checking if we are in position already. */
+	if (tree_check_pos(place, node_blocknr(child)))
 		goto out_correct_place;
 #endif
 
-        reiser4_node_leftmost_key(node, &lkey);
-
+	/* Getting position by means of using node lookup. */
+        reiser4_node_leftmost_key(child, &lkey);
 	hint.key = &lkey;
 
-	/* Getting position by means of using node lookup. */
-        if (reiser4_node_lookup(parent->node, &hint, FIND_EXACT,
-				&parent->pos) == PRESENT)
+        if (reiser4_node_lookup(parent, &hint, FIND_EXACT,
+				&place->pos) == PRESENT)
 	{
 #ifndef ENABLE_STAND_ALONE
-		if (reiser4_tree_node_ack(node, parent))
+		if (tree_check_pos(place, node_blocknr(child)))
 			goto out_correct_place;
 #endif
 	}
 
 	/* Getting position by means of linear traverse. */
 #ifndef ENABLE_STAND_ALONE
-	for (i = 0; i < reiser4_node_items(parent->node); i++) {
-		blk_t blk;
+	for (i = 0; i < reiser4_node_items(place->node); i++) {
 		uint32_t j;
-		lookup_t res;
+		errno_t res;
 			
-		parent->pos.item = i;
+		place->pos.item = i;
 
-		if ((res = reiser4_place_fetch(parent)))
+		if ((res = reiser4_place_fetch(place)))
 			return res;
 
-		if (!reiser4_item_branch(parent->plug))
+		if (!reiser4_item_branch(place->plug))
 			continue;
 
-		for (j = 0; j < reiser4_item_units(parent); j++) {
-			parent->pos.unit = j;
-				
-			blk = reiser4_item_down_link(parent);
-				
-			if (blk == node_blocknr(node))
+		for (j = 0; j < reiser4_item_units(place); j++) {
+			place->pos.unit = j;
+
+			if (tree_check_pos(place, node_blocknr(child)))
 				goto out_correct_place;
 		}
 	}
@@ -259,10 +259,52 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 out_correct_place:
 #endif
-	if (reiser4_item_units(parent) == 1)
-		parent->pos.unit = MAX_UINT32;
+	if (reiser4_item_units(place) == 1)
+		place->pos.unit = MAX_UINT32;
 
 	return 0;
+}
+
+#ifndef ENABLE_STAND_ALONE
+static errno_t tree_next_child_pos(reiser4_tree_t *tree,
+				   reiser4_node_t *parent,
+				   reiser4_node_t *left,
+				   reiser4_place_t *place)
+{
+	aal_assert("umka-3119", tree != NULL);
+	aal_assert("umka-3120", parent != NULL);
+	aal_assert("umka-3121", place != NULL);
+
+	if (left != NULL) {
+		errno_t res;
+		
+		if ((res = tree_find_child_pos(tree, parent,
+					       left, &left->p)))
+		{
+			aal_error("Can't find position in parent for "
+				  "node %llu.", node_blocknr(left));
+			return res;
+		}
+
+		*place = left->p;
+		place->pos.item++;
+	} else {
+		reiser4_place_assign(place, parent, 0, MAX_UINT32);
+	}
+
+	return 0;
+}
+#endif
+
+/* Updates @node->p by position in parent node. */
+errno_t reiser4_tree_rebind_node(reiser4_tree_t *tree,
+				 reiser4_node_t *node)
+{
+	aal_assert("umka-3116", tree != NULL);
+	aal_assert("umka-3117", node != NULL);
+
+	return tree_find_child_pos(tree, node->p.node,
+				   node, &node->p);
 }
 
 /* Loads root node and put it to @tree->nodes hash table. */
@@ -367,7 +409,7 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 		   @node->p.node and updating @node->p.pos. */
 		node->p.node = parent;
 
-		if (reiser4_tree_realize_node(tree, node))
+		if (reiser4_tree_rebind_node(tree, node))
 			return -EINVAL;
 
 		reiser4_node_lock(parent);
@@ -500,7 +542,7 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
 			}
 
 			/* Updating position in parent node. */
-			if ((res = reiser4_tree_realize_node(tree, child)))
+			if ((res = reiser4_tree_rebind_node(tree, child)))
 				return res;
 		}
 	}
@@ -2446,10 +2488,13 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		reiser4_place_t save;
 		reiser4_node_t *node;
 		uint32_t shift_flags;
+		reiser4_node_t *left;
+		reiser4_node_t *parent;
 		reiser4_place_t aplace;
 
 		/* Saving place as it will be usefull for us later */
-		save = *place;
+		reiser4_place_dup(&save, place);
+		parent = save.node->p.node;
 
 		/* Allocating new node of @level */
 		level = reiser4_node_get_level(place->node);
@@ -2474,10 +2519,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		if ((res = reiser4_tree_shift(tree, place, node, shift_flags)))
 			return res;
 
-		/* Preparing new @node parent place. */
-		reiser4_place_dup(&aplace, &save.node->p);
-			
 		if (reiser4_node_items(save.node) == 0) {
+			left = reiser4_tree_neig_node(tree, save.node,
+						      DIR_LEFT);
+			
 			reiser4_node_lock(place->node);
 			
 			if ((res = reiser4_tree_detach_node(tree, save.node,
@@ -2489,7 +2534,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 
 			reiser4_node_unlock(place->node);
 		} else {
-			aplace.pos.item++;
+			left = save.node;
 		}
 		
 		if (reiser4_node_items(node) > 0) {
@@ -2505,6 +2550,12 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 			}
 
 			reiser4_node_lock(save.node);
+
+			if ((res = tree_next_child_pos(tree, parent,
+						       left, &aplace)))
+			{
+				return res;
+			}
 
 			/* Attach new node to tree if it is not empty. */
 			if ((res = reiser4_tree_attach_node(tree, node,
@@ -2671,8 +2722,6 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 
 			old_node = place->node;
 			
-			reiser4_place_dup(&aplace, &old_node->p);
-			
 			/* Perform shift from @place->node to @node. */
 			if ((res = reiser4_tree_shift(tree, place, node,
 						      flags)))
@@ -2692,11 +2741,14 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 					reiser4_node_unlock(old_node);
 					goto error_free_node;
 				}
-				reiser4_place_dup(&aplace, &old_node->p);
 			}
 
-			aplace.pos.item++;
-		
+			if ((res = tree_next_child_pos(tree, old_node->p.node,
+						       old_node, &aplace)))
+			{
+				return res;
+			}
+			
 			/* Attach new node to tree. */
 			if ((res = reiser4_tree_attach_node(tree, node,
 							    &aplace,
@@ -2898,30 +2950,12 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
 	}
 
-	/* Preparing position new allocated node (if any) will be attached
-	   later. */
-	if (place->node != NULL) {
-		if (level < reiser4_node_get_level(place->node)) {
-			reiser4_place_dup(&aplace, place);
-		} else {
-			reiser4_place_dup(&aplace, &place->node->p);
-			
-			if (level == reiser4_node_get_level(place->node))
-				aplace.pos.item++;
-		}
-	} else {
-		reiser4_place_assign(&aplace, NULL, 0, MAX_UINT32);
-	}
+	reiser4_place_dup(&aplace, place);
 
 	/* Preparing things for insert. This may be splitting the tree,
 	   allocating root, etc. */
 	if ((res = tree_prepare_insert(tree, place, level)))
 		return res;
-
-	if (aplace.node == NULL) {
-		reiser4_place_assign(&aplace, tree->root,
-				     0, MAX_UINT32);
-	}
 
 	/* Estimating item/unit to inserted/written to tree. */
 	if ((res = estimate_func(place, hint)))
@@ -3002,6 +3036,22 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			reiser4_node_unlock(place->node);
 		}
 
+		if (aplace.node == NULL) {
+			reiser4_place_assign(&aplace, tree->root, 0,
+					     MAX_UINT32);
+		} else {
+			if (level >= reiser4_node_get_level(aplace.node)) {
+				reiser4_node_t *parent = aplace.node->p.node;
+			
+				if ((res = tree_next_child_pos(tree, parent,
+							       aplace.node,
+							       &aplace)))
+				{
+					return res;
+				}
+			}
+		}
+			
 		/* Attaching new node to the tree. */
 		if ((res = reiser4_tree_attach_node(tree, place->node, &aplace,
 						    hint->shift_flags)))

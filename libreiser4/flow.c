@@ -49,7 +49,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			if ((res = reiser4_tree_place_key(tree, &place, &tkey)))
 				return res;
 			
-			if (plug_call(place.key.plug->o.key_ops, compshort,
+			if (plug_call(tkey.plug->o.key_ops, compshort,
 				      &tkey, &hint->offset))
 			{
 				/* No data found. */
@@ -232,7 +232,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 			if ((res = reiser4_tree_place_key(tree, &place, &tkey)))
 				return res;
 			
-			if (plug_call(place.key.plug->o.key_ops, compshort,
+			if (plug_call(tkey.plug->o.key_ops, compshort,
 				      &tkey, &hint->offset))
 			{
 				/* No data found. */
