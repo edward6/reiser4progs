@@ -11,48 +11,48 @@
     This macros is used for checking whether given block is inside of allowed 
     range or not. It is used in all bitmap functions.
 */
-#define aux_bitmap_range_check(bitmap, blk, action)				\
-do {										\
-    if (blk >= bitmap->total_blocks) {						\
-	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,			\
-	    "Block %llu is out of range (0-%llu)", blk, bitmap->total_blocks);  \
-	action;									\
-    }										\
+#define aux_bitmap_range_check(bitmap, bit, action)			\
+do {									\
+    if (bit >= bitmap->total) {						\
+	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,		\
+	    "Block %llu is out of range (0-%llu)", bit, bitmap->total); \
+	action;								\
+    }									\
 } while (0)
 
 /* 
     Checks whether passed block is inside of bitmap and marks it as used. This
     function also increses used blocks counter. 
 */
-void aux_bitmap_use(
-    aux_bitmap_t *bitmap,	/* bitmap instance passed blk will be marked in */
-    blk_t blk			/* blk to be marked as used */
+void aux_bitmap_mark(
+    aux_bitmap_t *bitmap,	/* bitmap instance passed bit will be marked in */
+    uint64_t bit		/* bit to be marked as used */
 ) {
     aal_assert("umka-336", bitmap != NULL, return);
 
-    if (aal_test_bit(blk, bitmap->map))
+    if (aal_test_bit(bit, bitmap->map))
 	return;
 	
-    aal_set_bit(blk, bitmap->map);
-    bitmap->used_blocks++;
+    aal_set_bit(bit, bitmap->map);
+    bitmap->used++;
 }
 
 /* 
     Checks whether passed block is inside of bitmap and marks it as free. This
     function also descreases used blocks counter. 
 */
-void aux_bitmap_unuse(
+void aux_bitmap_clear(
     aux_bitmap_t *bitmap,	/* bitmap, passed blk will be marked in */
-    blk_t blk			/* blk to be marked as unused */
+    uint64_t bit		/* bit to be marked as free */
 ) {
     aal_assert("umka-337", bitmap != NULL, return);
 
-    aux_bitmap_range_check(bitmap, blk, return);
-    if (!aal_test_bit(blk, bitmap->map))
+    aux_bitmap_range_check(bitmap, bit, return);
+    if (!aal_test_bit(bit, bitmap->map))
 	return;
 	
-    aal_clear_bit(blk, bitmap->map);
-    bitmap->used_blocks--;
+    aal_clear_bit(bit, bitmap->map);
+    bitmap->used--;
 }
 
 /* 
@@ -61,29 +61,29 @@ void aux_bitmap_unuse(
 */
 int aux_bitmap_test(
     aux_bitmap_t *bitmap,	/* bitmap, passed blk will be tested */
-    blk_t blk			/* blk to be tested */
+    uint64_t bit		/* bit to be tested */
 ) {
     aal_assert("umka-338", bitmap != NULL, return 0);
-    aux_bitmap_range_check(bitmap, blk, return 0);
-    return aal_test_bit(blk, bitmap->map);
+    aux_bitmap_range_check(bitmap, bit, return 0);
+    return aal_test_bit(bit, bitmap->map);
 }
 
 /* Finds first unused in bitmap block, starting from passed "start" */
-blk_t aux_bitmap_find(
+uint64_t aux_bitmap_find(
     aux_bitmap_t *bitmap,	/* bitmap, unused bit will be searched in */
-    blk_t start			/* start bit, search should be performed from */
+    uint64_t start		/* start bit, search should be performed from */
 ) {
-    blk_t blk;
+    uint64_t bit;
 	
     aal_assert("umka-339", bitmap != NULL, return 0);
 	
     aux_bitmap_range_check(bitmap, start, return 0);
 
-    if ((blk = aal_find_next_zero_bit(bitmap->map, 
-	    bitmap->total_blocks, start)) >= bitmap->total_blocks)
+    if ((bit = aal_find_next_zero_bit(bitmap->map, 
+	    bitmap->total, start)) >= bitmap->total)
 	return 0;
 
-    return blk;
+    return bit;
 }
 
 /*
@@ -95,13 +95,13 @@ blk_t aux_bitmap_find(
     to actual returned one or not. Also it is used for calculating used blocks of 
     bitmap in aux_bitmap_open function. See bellow for details.
 */
-static blk_t aux_bitmap_calc(
+static uint64_t aux_bitmap_calc(
     aux_bitmap_t *bitmap,	/* bitmap will be used for calculating bits */
-    blk_t start,		/* start bit, calculating should be performed from */
-    blk_t end,			/* end bit, calculating should be stoped on */
+    uint64_t start,		/* start bit, calculating should be performed from */
+    uint64_t end,		/* end bit, calculating should be stoped on */
     int flag			/* flag for kind of calculating (used or free) */
 ) {
-    blk_t i, blocks = 0;
+    uint64_t i, bits = 0;
 	
     aal_assert("umka-340", bitmap != NULL, return 0);
 	
@@ -109,73 +109,73 @@ static blk_t aux_bitmap_calc(
     aux_bitmap_range_check(bitmap, end - 1, return 0);
 	
     for (i = start; i < end; i++)
-	blocks += aux_bitmap_test(bitmap, i) ? flag : !flag;
+	bits += aux_bitmap_test(bitmap, i) ? flag : !flag;
 
-    return blocks;
+    return bits;
 }
 
 /* Public wrapper for previous function */
-blk_t aux_bitmap_calc_used(
+uint64_t aux_bitmap_calc_used(
     aux_bitmap_t *bitmap	/* bitmap, calculating will be performed in */
 ) {
-    return (bitmap->used_blocks = aux_bitmap_calc(bitmap, 0, 
-	bitmap->total_blocks, 1));
+    return (bitmap->used = aux_bitmap_calc(bitmap, 0, 
+	bitmap->total, 1));
 }
 
 /* The same as previous one */
-blk_t aux_bitmap_calc_unused(
+uint64_t aux_bitmap_calc_free(
     aux_bitmap_t *bitmap	/* bitmap, calculating will be performed in */
 ) {
-    return aux_bitmap_calc(bitmap, 0, bitmap->total_blocks, 0);
+    return aux_bitmap_calc(bitmap, 0, bitmap->total, 0);
 }
 
 /* 
     Yet another wrapper. It counts the number of used/unused blocks in specified 
     region.
 */
-count_t aux_bitmap_calc_used_in_area(
+uint64_t aux_bitmap_calc_used_in_area(
     aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
-    blk_t start,		/* start bit (block) */
-    blk_t end			/* end bit (block) */
+    uint64_t start,		/* start bit (block) */
+    uint64_t end		/* end bit (block) */
 ) {
     return aux_bitmap_calc(bitmap, start, end, 1);
 }
 
 /* The same as previous one */
-count_t aux_bitmap_calc_unused_in_area(
+uint64_t aux_bitmap_calc_free_in_area(
     aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
-    blk_t start,		/* start bit */
-    blk_t end			/* end bit */
+    uint64_t start,		/* start bit */
+    uint64_t end		/* end bit */
 ) {
     return aux_bitmap_calc(bitmap, start, end, 0);
 }
 
 /* Retuns stored value of used blocks from specified bitmap */
-count_t aux_bitmap_used(
+uint64_t aux_bitmap_used(
     aux_bitmap_t *bitmap	/* bitmap used blocks number will be obtained from */
 ) {
     aal_assert("umka-343", bitmap != NULL, return 0);
-    return bitmap->used_blocks;
+    return bitmap->used;
 }
 
 /* Retuns stored value of free blocks from specified bitmap */
-count_t aux_bitmap_unused(
+uint64_t aux_bitmap_free(
     aux_bitmap_t *bitmap	/* bitmap unsuded blocks will be obtained from */
 ) {
     aal_assert("umka-344", bitmap != NULL, return 0);
-    return bitmap->total_blocks - bitmap->used_blocks;
+    return bitmap->total - bitmap->used;
 }
 
 /* Creates instance of bitmap */
-aux_bitmap_t *aux_bitmap_create(count_t len) {
+aux_bitmap_t *aux_bitmap_create(uint64_t len) {
     aux_bitmap_t *bitmap;
 	    
     if (!(bitmap = (aux_bitmap_t *)aal_calloc(sizeof(*bitmap), 0)))
 	return NULL;
 	
-    bitmap->size = /*size*/(len + 7) / 8;
-    bitmap->used_blocks = 0;
-    bitmap->total_blocks = len;
+    bitmap->size = (len + 7) / 8;
+    bitmap->used = 0;
+    bitmap->total = len;
     
     if (!(bitmap->map = aal_calloc(bitmap->size, 0)))
 	goto error_free_bitmap;
@@ -195,12 +195,10 @@ aux_bitmap_t *aux_bitmap_clone(
 
     aal_assert("umka-358", bitmap != NULL, return 0);	
 
-    if (!(clone = aux_bitmap_create(bitmap->total_blocks)))
+    if (!(clone = aux_bitmap_create(bitmap->total)))
 	return NULL;
 	
-    clone->size = bitmap->size;
-    clone->used_blocks = bitmap->used_blocks;
-    
+    clone->used = bitmap->used;
     aal_memcpy(clone->map, bitmap->map, clone->size);
     
     return clone;

@@ -278,7 +278,7 @@ static void alloc40_mark(reiser4_entity_t *entity, blk_t blk) {
     aal_assert("umka-370", alloc != NULL, return);
     aal_assert("umka-371", alloc->bitmap != NULL, return);
     
-    aux_bitmap_use(alloc->bitmap, blk);
+    aux_bitmap_mark(alloc->bitmap, blk);
 }
 
 /* Marks "blk" as free */
@@ -288,7 +288,7 @@ static void alloc40_release(reiser4_entity_t *entity, blk_t blk) {
     aal_assert("umka-372", alloc != NULL, return);
     aal_assert("umka-373", alloc->bitmap != NULL, return);
     
-    aux_bitmap_unuse(alloc->bitmap, blk);
+    aux_bitmap_clear(alloc->bitmap, blk);
 }
 
 /* Finds first free block in bitmap and returns it to caller */
@@ -306,7 +306,7 @@ static blk_t alloc40_allocate(reiser4_entity_t *entity) {
     if (!(blk = aux_bitmap_find(alloc->bitmap, 0)))
 	return 0;
     
-    aux_bitmap_use(alloc->bitmap, blk);
+    aux_bitmap_mark(alloc->bitmap, blk);
     return blk;
 }
 
@@ -319,7 +319,7 @@ count_t alloc40_free(reiser4_entity_t *entity) {
     aal_assert("umka-376", alloc != NULL, return 0);
     aal_assert("umka-377", alloc->bitmap != NULL, return 0);
     
-    return aux_bitmap_unused(alloc->bitmap);
+    return aux_bitmap_free(alloc->bitmap);
 }
 
 /* Returns used blocks count */
