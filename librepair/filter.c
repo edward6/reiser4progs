@@ -63,43 +63,95 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     if (fd->level != level) {
 	aal_exception_error("Level of the node (%u) mismatches to the expected "
 	    "one (%u).", level, fd->level);
-	res = 1;
+	res = REPAIR_FATAL;
     }
-
-    if (!res && (res = repair_node_check(node, fd->bm_used)) < 0)
-	return res;
-	
-    if (!res && (res = repair_node_dkeys_check(node, data)) < 0)
-	return res;
-
-    if (res > 0) {
+    
+    if (!repair_error_fatal(res))
+	res |= repair_node_check(node, rd->mode);
+    
+    if (reiser4_node_items(node) == 0) {
 	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
-	/* FIXME-VITALY: if a node was changed, all changes should be forgot. */
+	return 1;
     }
-
+    
+    if (!repair_error_fatal(res))
+	res |= repair_node_dkeys_check(node);
+    
+    if (res < 0)
+	return res;
+    
+    aal_assert("vpf-799", (res & REPAIR_REMOVED) == 0);
+    
+    if (repair_error_exists(res)) {
+	if (res | REPAIR_FATAL) {
+	    aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
+	    rd->info.check.fatal++;
+	    res = 1;
+	} else {
+	    rd->info.check.fixable++;
+	    res = 0;
+	}
+    } else if (res | REPAIR_FIXED) {
+	reiser4_node_mkdirty(node);
+	res = 0;
+    }
+    
     return res;
 }
 
 /* Setup callback for traverse. Prepares essential information for a child of 
  * a node - level. */
 static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) {
+    repair_data_t *rd = (repair_data_t *)data;
     repair_filter_t *fd;
     reiser4_ptr_hint_t ptr;
 
     aal_assert("vpf-255", data != NULL);
     aal_assert("vpf-531", place != NULL);
-    aal_assert("vpf-703", reiser4_item_nodeptr(place));
-
-    fd = repair_filter((repair_data_t *)data);
-    if (plugin_call(place->item.plugin->item_ops, read, 
-	&place->item, &ptr, place->pos.unit, 1) != 1) 
+    aal_assert("vpf-703", reiser4_item_branch(place));
+    
+    fd = repair_filter(rd);
+    if (plugin_call(place->item.plugin->item_ops, read, &place->item, &ptr, 
+	place->pos.unit, 1) != 1) 
     {
-	aal_exception_fatal("Failed to fetch the node pointer.");
+	aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to fetch "
+	    "the node pointer.", place->node, place->pos.item, place->pos.unit);
 	return -1;
     }
-
-    /* The validness of this pointer must be checked at node_check time. */
-    aux_bitmap_mark_region(fd->bm_used, ptr.ptr, ptr.width);
+    
+    /* FIXME: as a result layout of nodeptr items is checked automatically, what
+     * is not very well as read does not mean that we get pointed block. */
+    
+    /* The validness of this node pointer must be checked at node_check time. */
+    if (ptr.ptr < fd->bm_used->total && ptr.width < fd->bm_used->total &&
+	ptr.ptr < fd->bm_used->total - ptr.width && 
+	aux_bitmap_test_region_cleared(fd->bm_used, ptr.ptr, ptr.width))
+	aux_bitmap_mark_region(fd->bm_used, ptr.ptr, ptr.width);
+    else {
+	/* Bad pointer detected. Remove if possible. */
+	aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
+	    "invalid region [%llu..%llu] or some blocks are used already. %s", 
+	    place->node->blk, place->pos.item, place->pos.unit, ptr.ptr, 
+	    ptr.ptr + ptr.width - 1, rd->mode == REPAIR_REBUILD ? 
+	    "Removed." : "The whole subtree is skipped.");
+	
+	if (rd->mode == REPAIR_REBUILD) {
+	    rpos_t ppos;
+	    
+	    repair_place_get_lpos(place, ppos);
+	
+	    if (reiser4_node_remove(place->node, &place->pos, 1)) {
+		aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.",
+		    place->node->blk, place->pos.item, place->pos.unit);
+		return -1;
+	    }
+	
+	    place->pos = ppos;
+	} else
+	    rd->info.check.fatal++;
+	
+	return 1;
+    }
 
     fd->level--;
  
@@ -111,39 +163,59 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
  * level, if REPAIR_BAD_PTR flag is set - deletes the child pointer and 
  * mark the pointed block as unused in bm_used bitmap. */
 static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data) {
-    rpos_t prev;
+    reiser4_ptr_hint_t ptr;
     repair_data_t *rd = (repair_data_t *)data;
+    repair_filter_t *fd;
     
     aal_assert("vpf-257", rd != NULL);
     aal_assert("vpf-434", place != NULL);
     
-    if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR)) {
-	reiser4_ptr_hint_t ptr;
+    fd = repair_filter(rd);
+   	
+    /* Clear pointed block in the formatted bitmap. */
+    if (plugin_call(place->item.plugin->item_ops, read, &place->item, &ptr, 
+	place->pos.unit, 1) != 1) 
+    {
+	aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to "
+	    "fetch the node pointer.", place->node, place->pos.item, 
+	    place->pos.unit);
+	return -1;
+    }
+
+    if (aal_test_bit(&fd->flags, REPAIR_BAD_PTR)) {		
+	aux_bitmap_clear_region(fd->bm_used, ptr.ptr, ptr.width);
 	
-	/* Clear pointed block in the formatted bitmap. */
-	if (plugin_call(place->item.plugin->item_ops,
-	    read, &place->item, &ptr, place->pos.unit, 1) != 1)
-	    return -1;
+	aal_exception_error("Node (%llu), item (%u), unit (%u): Points to the "
+	    "unrecoverable node (%llu). %s", place->node, place->pos.item, 
+	    place->pos.unit, ptr.ptr, rd->mode == REPAIR_REBUILD ? 
+	    "Removed." : "");
 	
-	aux_bitmap_clear(repair_filter(rd)->bm_used, ptr.ptr);
+	if (rd->mode == REPAIR_REBUILD) {
+	    rpos_t prev;
+	    
+	    /* The node corruption was not fixed - delete the internal item. */
+	    repair_place_get_lpos(place, prev);
 	
-	/* The node corruption was not fixed - delete the internal item. */
-	repair_place_left_pos_save(place, &prev);
-	if (reiser4_node_remove(place->node, &place->pos, 1)) {
-	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
-		place->node->blk, place->pos.item, place->pos.unit);
-	    return -1;
-	}
-	place->pos = prev;
-	aal_clear_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
+	    if (reiser4_node_remove(place->node, &place->pos, 1)) {
+		aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
+		    place->node->blk, place->pos.item, place->pos.unit);
+		return -1;
+	    }
+	
+	    place->pos = prev;
+	} else
+	    rd->info.check.fatal++;
+	
+	aal_clear_bit(&fd->flags, REPAIR_BAD_PTR);
     } else {
 	/* Mark all twigs in the bm_twig bitmap. */
-	if (reiser4_node_get_level(place->node) == TWIG_LEVEL) 
-	    aux_bitmap_mark(repair_filter(rd)->bm_twig, 
-		place->node->blk);
+	/* FIXME-VITALY: hardcoded level, should be changed to check if the 
+	 * node contains some items with layout. */
+	if (reiser4_node_get_level(place->node) == TWIG_LEVEL + 1) 
+	    aux_bitmap_mark_region(fd->bm_twig, ptr.ptr, ptr.width);
     }
     
-    repair_filter(rd)->level++;
+    fd->level++;
 
     return 0;
 }
@@ -157,9 +229,10 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
     aal_assert("vpf-393", node != NULL);
     aal_assert("vpf-256", rd != NULL);    
 
-    if (reiser4_node_items(node) == 0)
+    if (reiser4_node_items(node) == 0) {
 	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
-    /* FIXME-VITALY: else - sync the node */
+	reiser4_node_mkclean(node);
+    }
 
     return 0;
 }
@@ -190,18 +263,21 @@ static errno_t callback_format_mark(object_entity_t *format, blk_t blk,
 /* Setup data (common and specific) before traverse through the tree. */
 static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     reiser4_ptr_hint_t ptr;
+    repair_filter_t *fd;
     blk_t root;
     
     aal_assert("vpf-420", hint != NULL);
     aal_assert("vpf-423", rd != NULL);
     aal_assert("vpf-592", rd->fs != NULL);
 
+    fd = repair_filter(rd);
+    
     hint->data = rd;
     hint->cleanup = 1;
 
     /* Allocate a bitmap for blocks belonged to the format area - skipped, 
      * super block, journal, bitmaps. */
-    if (!(repair_filter(rd)->bm_used = aux_bitmap_create(
+    if (!(fd->bm_used = aux_bitmap_create(
 	reiser4_format_get_len(rd->fs->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for format layout.");
@@ -209,23 +285,21 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     }
 
     /* Mark all format area block in the bm_used bitmap. */
-    if (repair_fs_layout(rd->fs, callback_format_mark, 
-	repair_filter(rd)->bm_used)) 
-    {
+    if (repair_fs_layout(rd->fs, callback_format_mark, fd->bm_used)) {
 	aal_exception_error("Failed to mark the filesystem area as used in "
 	    "the bitmap.");
 	goto error;
     }
     
     /* Allocate a bitmap for twig blocks in the tree. */
-    if (!(repair_filter(rd)->bm_twig = aux_bitmap_create(
-	reiser4_format_get_len(rd->fs->format)))) 
+    if (!(fd->bm_twig = aux_bitmap_create(
+	reiser4_format_get_len(rd->fs->format))))
     {
 	aal_exception_error("Failed to allocate a bitmap for twig blocks.");
 	goto error;
     }
  
-    repair_filter(rd)->flags = 0;
+    fd->flags = 0;
 
     root = reiser4_format_get_root(rd->fs->format);
 
@@ -233,15 +307,14 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     if (root < reiser4_format_start(rd->fs->format) || 
 	root > reiser4_format_get_len(rd->fs->format))
 	/* Wrong pointer. */
-	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
-    else if (aux_bitmap_test(repair_filter(rd)->bm_used, 
+	aal_set_bit(&fd->flags, REPAIR_BAD_PTR);
+    else if (aux_bitmap_test(fd->bm_used, 
 	reiser4_format_get_root(rd->fs->format))) 
 	/* This block is from format area. */
-	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
+	aal_set_bit(&fd->flags, REPAIR_BAD_PTR);
     else	
 	/* We meet the block for the first time. */
-	aux_bitmap_mark(repair_filter(rd)->bm_used, 
-	    reiser4_format_get_root(rd->fs->format));
+	aux_bitmap_mark(fd->bm_used, reiser4_format_get_root(rd->fs->format));
  
     return 0;
     
@@ -257,19 +330,21 @@ error:
  * otherwise. */
 static errno_t repair_filter_update(traverse_hint_t *hint) {
     repair_data_t *rd;
+    repair_filter_t *fd;
 
     aal_assert("vpf-421", hint != NULL);
     aal_assert("vpf-422", hint->data != NULL);
     
+    fd = repair_filter(rd);
+    
     rd = hint->data;
     
-    if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR)) {
+    if (aal_test_bit(&fd->flags, REPAIR_BAD_PTR)) {
 	reiser4_format_set_root(rd->fs->format, INVAL_BLK);
-	aal_clear_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
+	aal_clear_bit(&fd->flags, REPAIR_BAD_PTR);
     } else {
 	/* Mark the root block as a formatted block in the bitmap. */
-	aux_bitmap_mark(repair_filter(rd)->bm_used, 
-	    reiser4_format_get_root(rd->fs->format));
+	aux_bitmap_mark(fd->bm_used, reiser4_format_get_root(rd->fs->format));
     }
 
     return 0;

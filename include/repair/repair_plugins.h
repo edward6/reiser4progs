@@ -10,38 +10,42 @@
 
 #include <aal/types.h>
 
-enum repair_flag {
+typedef enum repair_flag {
     REPAIR_CHECK    = 1,
     REPAIR_FIX	    = 2,
     REPAIR_REBUILD  = 3,
     REPAIR_ROLLBACK = 4
-};
+} repair_flag_t;
 
-typedef enum repair_flag repair_flag_t;
-
-enum repair_error_codes {
+typedef enum repair_error {
+    /* To make repair_error_t signed. */
+    REPAIR_BUG	    = -1,
     /* No error were detected. */
     REPAIR_OK	    = 0,
+    /* When item gets removed from the node, to correct position in the loop 
+     * correctly. */
+    REPAIR_REMOVED  = (1 << 0),
     /* All errors were fixed. */
-    REPAIR_FIXED    = 1,
+    REPAIR_FIXED    = (1 << 1),
     /* Fixable errors were detected. */
-    REPAIR_FIXABLE  = 2,
+    REPAIR_FIXABLE  = (1 << 2),
     /* Fatal errors were detected. */
-    REPAIR_FATAL    = 3,
-};
+    REPAIR_FATAL    = (1 << 3),
+} repair_error_t;
 
-typedef enum repair_error_codes repair_error_codes_t;
+#define repair_error_exists(result)	((result > REPAIR_FIXED) || (result < 0))
+#define repair_error_fatal(result)	((result >= REPAIR_FATAL) || (result < 0))
 
-#define repair_error_exists(result)	(result > REPAIR_FIXED || result < 0)
-#define repair_error(result, kind)	(result = result < kind ? kind : result)
+/*
+#define repair_error(result, kind)	(result = result < kind || kind < 0 ? \
+					    kind : result)
+*/
 
-struct repair_plugin_info {
-    uint32_t fatal;
-    uint32_t fixable;
-    uint32_t fixed;
-    uint8_t  mode;
-};
-
-//typedef struct repair_plugin_info repair_plugin_info_t;
+#define repair_error_check(result, mode)				       \
+({									       \
+    aal_assert("vpf-785", (mode != REPAIR_CHECK)  || !(res | REPAIR_FIXED));   \
+    aal_assert("vpf-786", (mode != REPAIR_FIX)	  || !(res | REPAIR_FIXABLE)); \
+    aal_assert("vpf-787", (mode != REPAIR_REBUILD)|| !(res | REPAIR_FIXABLE)); \
+})
 
 #endif

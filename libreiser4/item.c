@@ -143,30 +143,6 @@ bool_t reiser4_item_filename(reiser4_place_t *place) {
 	return reiser4_key_get_type(&place->item.key) == KEY_FILENAME_TYPE;
 }
 
-bool_t reiser4_item_extent(reiser4_place_t *place) {
-	item_entity_t *item;
-	
-	aal_assert("vpf-238", place != NULL);
-
-	item = &place->item;
-	aal_assert("umka-1452", item->plugin != NULL);
-	
-	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == EXTENT_ITEM;
-}
-
-bool_t reiser4_item_nodeptr(reiser4_place_t *place) {
-	item_entity_t *item;
-	
-	aal_assert("vpf-042", place != NULL);
-
-	item = &place->item;
-	aal_assert("umka-1455", item->plugin != NULL);
-	
-	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == NODEPTR_ITEM;
-}
-
 /* Returns TRUE if @place points to an internal item */
 bool_t reiser4_item_branch(reiser4_place_t *place) {
 	item_entity_t *item;

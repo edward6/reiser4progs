@@ -35,14 +35,57 @@ uint32_t repair_item_split(
     return unit;
 }
 
+/* Checks if length has been changed, shrink the node if so. */
+static errno_t repair_item_check_fini(reiser4_place_t *place, 
+    repair_error_t result, uint32_t old_len, uint8_t mode) 
+{
+    rpos_t pos;
+    
+    if (place->item.len)
+	result = REPAIR_FATAL;
+    
+    if (old_len != place->item.len && !repair_error_exists(result)) {
+	aal_assert("vpf-768", old_len > place->item.len);
+	
+	pos = place->pos;
+	pos.unit = 0;
+    
+	if (reiser4_node_shrink(place->node, &pos, old_len - place->item.len, 1)) {
+	    aal_exception_bug("Node (%llu), item (%u), len (%u): Failed "
+		"to shrink the node on (%u) bytes.", place->node->blk, pos.item,
+		old_len, old_len - place->item.len);
+	    return -1;
+	}
+	result = REPAIR_FIXED;
+    } 
+    
+    if ((result | REPAIR_FATAL) && mode == REPAIR_REBUILD) {
+	aal_exception_error("Node (%llu), item (%u): unrecoverable corruption "
+	    "found. Remove item.", place->node->blk, place->pos.item);
+		
+	place->pos.unit = ~0ul;
+
+	if (reiser4_node_remove(place->node, &place->pos, 1)) {
+	    aal_exception_error("Node (%llu), item (%u): failed to remove the "
+		"item.", place->node->blk, place->pos.item);
+	    return -1;
+	}
+	result = REPAIR_REMOVED;
+    }
+    
+    return result;
+}
+
 /* Calls the item check method to check the item structure and shrink the node
  * if item length has been changed.
  *
- * Return values are described in repair_error_codes_t.
- */
+ * Return values are described in repair_error_t, but REPAIR_FIXED. */
 errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) { 
     uint32_t length;
     errno_t res;
+    
+    aal_assert("vpf-791", place != NULL);
+    aal_assert("vpf-792", place->node != NULL);
     
     if (!place->item.plugin->item_ops.check)
 	return 0;
@@ -50,30 +93,43 @@ errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) {
     length = place->item.len;
 
     res = place->item.plugin->item_ops.check(&place->item, mode);
-    
-    /* Operational error occured or some errors are left in the item. */
-    if (repair_error_exists(res) < 0)
+
+    if (res < 0)
 	return res;
     
-    /* Check if length has been changed, shrink the node. */
-    if (length != place->item.len) {
-	rpos_t pos;
+    repair_error_check(res, mode);
+    aal_assert("vpf-789", mode != REPAIR_CHECK	 || length == place->item.len);
+    aal_assert("vpf-767", length == place->item.len || res != REPAIR_OK);
+    
+    return repair_item_check_fini(place, res, length, mode);
+}
 
-	aal_assert("vpf-767", res == REPAIR_FIXED);
-	aal_assert("vpf-768", length > place->item.len);
-	
-	pos = place->pos;
-	pos.unit = 0;
-	if (reiser4_node_shrink(place->node, &pos, length - place->item.len, 1)) {
-	    aal_exception_bug("Node (%llu), item (%u), len (%u): Failed "
-		"to shrink the node on (%u) bytes.", place->node->blk, pos.item,
-		length, length - place->item.len);
-	    return -1;
-	}
-	
-    }
+/* Calls the item layout_check method to check the layout of an item and shrink 
+ * the node if item length has been changed.
+ *
+ * Return values are described in repair_error_codes_t, but REPAIR_FIXED. */
+errno_t repair_item_layout_check(reiser4_place_t *place, 
+    region_func_t func, void *data, uint8_t mode) 
+{
+    uint32_t length;
+    errno_t res;
+        
+    aal_assert("vpf-793", place != NULL);
+    aal_assert("vpf-794", place->node != NULL);
 
-    return REPAIR_OK;
+    if (!place->item.plugin->item_ops.layout_check)
+	return 0;
+
+    length = place->item.len;
+
+    res = place->item.plugin->item_ops.layout_check(&place->item, func, 
+	data, mode);
+    
+    repair_error_check(res, mode);
+    aal_assert("vpf-795", mode != REPAIR_CHECK || length == place->item.len);
+    aal_assert("vpf-796", length == place->item.len || res != REPAIR_OK);
+
+    return repair_item_check_fini(place, res, length, mode);
 }
 
 #if 0

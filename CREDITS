@@ -57,8 +57,11 @@ Ramon Reiser developed our website.
 
 Beverly Palmer drew our graphics.
 
-Yury Umanets (aka Umka) and Vitaly Fertman developed libreiser4, 
-userspace plugins and userspace tools (reiser4progs).
+Vitaly Fertman developed librepair, userspace plugins repair code, fsck
+and worked with Umka on developing libreiser4 and userspace plugins.
+
+Yury Umanets (aka Umka) developed libreiser4, userspace plugins and 
+userspace tools (reiser4progs).
 
 Oleg Drokin (aka Green) is the release manager who fixes everything.
 It is so nice to have someone like that on the team.  He (plus Chris

@@ -172,10 +172,6 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 		    goto error_node_free;
 		}
 	 
-		if (i == 0) {
-		    aal_assert("vpf-637", reiser4_item_extent(&place));
-		}
-
 		if (repair_tree_insert(tree, &place))
 		    goto error_node_free;
 

@@ -182,7 +182,7 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 	    goto next;
 	}
 
-	res = repair_node_check(node, ds->bm_used);
+	res = repair_node_check(node, rd->mode);
 	
 	if (res > 0) {
 	    /* Node was not recovered, save it as formatted. */
@@ -202,8 +202,11 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 		goto error_node_release;
 	    }
 		
-	    /* If an item does not contain data (only metadata), remove it. */	
-	    if (!reiser4_item_data(place.item.plugin)) {
+	    /* If an item does not contain data (only metadata), remove it. */
+	    /* FIXME: Just a reminder - here should be deleted all metadata
+	     * info from items, only user data should be left. For now, items
+	     * contain data xor metadata, not both. */
+	    if (!reiser4_item_data(place.item.plugin)) {		
 		if (reiser4_node_remove(place.node, pos, 1)) {
 		    aal_exception_error("Node (%llu), item (%u): failed to "
 			"remove the item.", node->blk, pos->item);

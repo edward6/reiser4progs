@@ -46,9 +46,6 @@ extern bool_t reiser4_item_filebody(reiser4_place_t *place);
 extern bool_t reiser4_item_filename(reiser4_place_t *place);
 extern bool_t reiser4_item_branch(reiser4_place_t *place);
 
-extern bool_t reiser4_item_extent(reiser4_place_t *place);
-extern bool_t reiser4_item_nodeptr(reiser4_place_t *place);
-
 extern rpid_t reiser4_item_type(reiser4_place_t *place);
 
 extern uint32_t reiser4_item_len(reiser4_place_t *place);

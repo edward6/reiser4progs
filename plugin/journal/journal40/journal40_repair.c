@@ -16,7 +16,7 @@
 
 /*
 
-Jouranl check 
+Journal check 
  a. no one block can point before the master sb and after the end of a 
     partition.
  b. TxH, LGR, wandered blocks

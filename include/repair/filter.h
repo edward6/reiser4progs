@@ -12,8 +12,6 @@
 #  include <config.h>
 #endif
 
-#include <repair/repair.h>
-
 extern errno_t repair_filter_pass(repair_data_t *rd);
 
 #endif

@@ -48,51 +48,6 @@ bool_t repair_tree_data_level(uint8_t level) {
 	&level) != NULL);
 }
 
-/* Get the max real key existed in the tree. Go down through all right-most 
- * child to get it. */
-static errno_t repair_tree_max_real_key(reiser4_node_t *node, 
-    reiser4_key_t *key) 
-{
-    reiser4_place_t place;
-    reiser4_node_t *child;
-    errno_t res;
-
-    aal_assert("vpf-712", node != NULL);
-    aal_assert("vpf-713", key != NULL);
-
-    place.node = node;
-    place.pos.item = reiser4_node_items(node) - 1;
-    place.pos.unit = ~0ul;
-
-    if (reiser4_place_realize(&place)) {
-	aal_exception_error("Node (%llu): Failed to open the item (%u).",
-	    node->blk, place.pos.item);
-	return -1;
-    }
- 
-    if (reiser4_item_nodeptr(&place)) {
-	item_entity_t *item = &place.item;
-	reiser4_ptr_hint_t ptr;
-
-	place.pos.unit = reiser4_item_units(&place);
-	
-	if (plugin_call(item->plugin->item_ops, read, item, 
-	    &ptr, place.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
-	    return -1;
-
-	if (!(child = reiser4_node_open(place.node->device, ptr.ptr))) 
-	    return -1;
-	
-	res = repair_tree_max_real_key(child, key);
-	
-	if (reiser4_node_close(child))
-	    return -1;
-    } else 
-	res = reiser4_item_utmost_key(&place, key);
-
-    return res;
-}
-
 /* Corrects place for insertion over the base reiser4_tree_lookup method. */
 lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key, 
     reiser4_place_t *place) 
@@ -180,7 +135,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	    return -1;
     }
     
-    if (repair_tree_max_real_key(node, &rkey))
+    if (repair_node_max_real_key(node, &rkey))
 	return -1;
  
     if (reiser4_key_compare(&key, &rkey) >= 0)

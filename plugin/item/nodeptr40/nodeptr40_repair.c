@@ -14,26 +14,35 @@
 #include "nodeptr40.h"
 #include "repair/repair_plugins.h"
 
-int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
-    void *data) 
+errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
+    void *data, uint8_t mode) 
 {
     nodeptr40_t *nodeptr;
     blk_t blk;
-    int res;
-	
+    errno_t res;
+    
     aal_assert("vpf-721", item != NULL);
 
     nodeptr = nodeptr40_body(item);
 
-    blk = np40_get_ptr(nodeptr);    
+    blk = np40_get_ptr(nodeptr);
+
     res = func(item, blk, 1, data);
     
-    if (res > 0) 
-	return item->len;
-    else if (res < 0)
+    if (res > 0) {
+	if (mode == REPAIR_REBUILD) {
+	    aal_exception_error("Node (%llu), item (%u): a pointer to the "
+		"region [%llu..%llu] is removed.", item->con.blk, blk, blk);
+	    item->len = 0;
+	    
+	    return REPAIR_FIXED;
+	}
+	
+	return REPAIR_FATAL;
+    } else if (res < 0)
 	return res;
 
-    return 0;
+    return REPAIR_OK;
 }
 
 errno_t nodeptr40_check(item_entity_t *item, uint8_t mode) {

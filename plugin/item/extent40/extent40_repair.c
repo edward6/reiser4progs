@@ -16,12 +16,12 @@
 
 extern uint32_t extent40_units(item_entity_t *item);
 
-int32_t extent40_layout_check(item_entity_t *item, region_func_t func, 
-    void *data) 
+errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
+    void *data, uint8_t mode) 
 {
-    int res;
     uint32_t i, units;
     extent40_t *extent;
+    errno_t res, result = REPAIR_OK;
 	
     aal_assert("vpf-724", item != NULL);
     aal_assert("vpf-725", func != NULL);
@@ -30,23 +30,31 @@ int32_t extent40_layout_check(item_entity_t *item, region_func_t func,
     units = extent40_units(item);
 			
     for (i = 0; i < units; i++, extent++) {
-	uint64_t blk;
-	uint64_t start;
+	uint64_t start, width;
 
 	start = et40_get_start(extent);
+	width = et40_get_width(extent);
 
 	if (start) {
-	    res = func(item, start, et40_get_width(extent), data);
+	    res = func(item, start, width, data);
 
 	    if (res > 0) {
-		/* Zero the problem region. */
-		et40_set_start(extent, 0);
+		if (mode == REPAIR_CHECK)
+		    result = REPAIR_FIXABLE;
+		else {
+		    /* Zero the problem region. */
+		    aal_exception_error("Node (%llu), item (%u): pointed "
+			"region [%llu..%llu] is zeroed.", item->con.blk, 
+			item->pos.item, start, width);
+		    et40_set_start(extent, 0);
+		    result = REPAIR_FIXED;
+		}
 	    } else if (res < 0) 
 		return res;
 	}
     }
 
-    return 0;
+    return result;
 }
 
 errno_t extent40_check(item_entity_t *item, uint8_t mode) {

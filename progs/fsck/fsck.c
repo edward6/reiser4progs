@@ -298,7 +298,7 @@ static errno_t fsck_data_prepare(repair_data_t *rd,
     aal_assert("vpf-513", fs != NULL);
  
     rd->fs = fs;
-    aal_set_bit(&rd->options, parse_data->mode);
+    rd->mode = parse_data->mode;
 
     rd->profile = parse_data->profile;
 

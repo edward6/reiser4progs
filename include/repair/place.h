@@ -14,8 +14,16 @@
 
 #include <repair/repair.h>
 
-extern void repair_place_left_pos_save(reiser4_place_t *place, 
-    rpos_t *pos);
+#define repair_place_get_lpos(place, ppos)				\
+{									\
+    ppos = place->pos;							\
+    if (reiser4_item_units(place) == 1 || place->pos.unit == ~0ul) {	\
+	ppos.unit = ~0ul - 1;						\
+	ppos.item--;							\
+    } else {								\
+	ppos.unit--;							\
+    }									\
+}
 
 #endif
 

@@ -12,6 +12,7 @@
 #ifndef ENABLE_ALONE
 
 #include "node40.h"
+#include "repair/repair_plugins.h"
 
 #define INVALID_U16	0xffff
 
@@ -81,12 +82,13 @@ static errno_t node40_region_delete(object_entity_t *entity,
     Checks the set of items within the node. Delete item with wrong offsets, fix free space,
     free space start.
 */
-static int node40_item_array_check(object_entity_t *entity) {
-    blk_t blk;
-    int i, l_pos;
-    uint64_t offset, r_limit;
+static errno_t node40_item_array_check(object_entity_t *entity, uint8_t mode) {
+    node40_t *node = (node40_t *)entity;
     int64_t start_pos, end_pos;
-    node40_t *node = (node40_t *)entity;    
+    uint64_t offset, r_limit;
+    int i, l_pos;
+    blk_t blk;
+    errno_t res = REPAIR_OK;
     
     aal_assert("vpf-208", node != NULL);
     aal_assert("vpf-209", node->block != NULL);
@@ -95,10 +97,14 @@ static int node40_item_array_check(object_entity_t *entity) {
     
     /* First item offset must be at node40_header bytes. */
     if (node40_get_offset_at(entity, 0) != sizeof(node40_header_t)) {
-	aal_exception_error("Node (%llu): item (0) has a wrong offset (%d), "
-	    "fixed to (%d).", blk, node40_get_offset_at(entity, 0), 
-	    sizeof(node40_header_t));
-	node40_set_offset_at(entity, 0, sizeof(node40_header_t));
+	aal_exception_error("Node (%llu): item (0) has a wrong offset (%u), "
+	    "Should be (%u). %s", blk, node40_get_offset_at(entity, 0), 
+	    sizeof(node40_header_t), mode == REPAIR_CHECK ? "" : "Fixed.");
+
+	/* Node will not be synced on disk, fix it for further checks only. */
+	node40_set_offset_at(entity, 0, sizeof(node40_header_t));	
+	
+	res |= mode != REPAIR_CHECK ? REPAIR_FIXED : REPAIR_FIXABLE;
     }
 
     /* Rigth limit for offsets is at item40_headers count from the end of block. */
@@ -108,16 +114,20 @@ static int node40_item_array_check(object_entity_t *entity) {
     if (nh40_get_free_space_start(node) < sizeof(node40_header_t) || 
 	nh40_get_free_space_start(node) > r_limit)
     {
-	aal_exception_error("Node (%llu): the start of the free space (%llu) "
+	aal_exception_error("Node (%llu): the start of the free space (%u) "
 	    "is invalid.", blk, nh40_get_free_space_start(node));
 	nh40_set_free_space_start(node, INVALID_U16);
+
+	res |= mode != REPAIR_CHECK ? REPAIR_FIXED : REPAIR_FIXABLE;
     }
 
     /* Free space cannot be more then r_limit - node40_header */
     if (nh40_get_free_space(node) + sizeof(node40_header_t) > r_limit) {
-	aal_exception_error("Node (%llu): the free space (%llu) is invalid.", 
+	aal_exception_error("Node (%llu): the free space (%u) is invalid.", 
 	    blk, nh40_get_free_space(node));
 	nh40_set_free_space(node, INVALID_U16);
+
+	res |= mode != REPAIR_CHECK ? REPAIR_FIXED : REPAIR_FIXABLE;
     }
     
     /* If free_space_start + free_space == r_limit => free_space_start is 
@@ -128,8 +138,8 @@ static int node40_item_array_check(object_entity_t *entity) {
 	     nh40_get_free_space_start(node) != INVALID_U16)
     {
 	/* Cannot rely on neither free_space nor free_space_start. */
-	aal_exception_error("Node (%llu): the start of the free space (%llu) "
-	    " + free space (%llu) is not equal to rigth offset limit (%llu).", 
+	aal_exception_error("Node (%llu): the start of the free space (%u) "
+	    " + free space (%u) is not equal to rigth offset limit (%u).", 
 	    blk, nh40_get_free_space_start(node), nh40_get_free_space(node), 
 	    r_limit);
 	nh40_set_free_space(node, INVALID_U16);
@@ -145,7 +155,7 @@ static int node40_item_array_check(object_entity_t *entity) {
     	    
 	/* Check if the item offset is invalid. */
 	if (offset < sizeof(node40_header_t) || offset > r_limit) {
-	    aal_exception_error("Node (%llu): the offset (%llu) of the item"
+	    aal_exception_error("Node (%llu): the offset (%u) of the item"
 		" (%d) is invalid.", blk, offset, i);
 
 	    node40_set_offset_at(entity, i, INVALID_U16);
@@ -182,7 +192,7 @@ static int node40_item_array_check(object_entity_t *entity) {
     return 0;
 }
 
-static errno_t node40_item_count_check(object_entity_t *entity) {
+static errno_t node40_item_count_check(object_entity_t *entity, uint8_t mode) {
     node40_t *node = (node40_t *)entity;
 
     aal_assert("vpf-199", node != NULL);
@@ -193,12 +203,12 @@ static errno_t node40_item_count_check(object_entity_t *entity) {
 	(aal_device_get_bs(node->block->device) - sizeof(node40_header_t)) / 
 	(sizeof(item40_header_t) + 1)) 
     {
-	aal_exception_error("Node (%llu): number of items (%d) exceeds the "
+	aal_exception_error("Node (%llu): number of items (%u) exceeds the "
 	    "limit.", aal_block_number(node->block), node40_items(entity));
-	return -1;
+	return REPAIR_FATAL;
     }
     
-    return 0;
+    return REPAIR_OK;
 }
 
 static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
@@ -215,20 +225,22 @@ static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
     return 0;
 }
 
-errno_t node40_check(object_entity_t *entity, uint16_t options) {
+errno_t node40_check(object_entity_t *entity, uint8_t mode) {
     node40_t *node = (node40_t *)entity;
+    errno_t res;
     
     aal_assert("vpf-194", node != NULL);
  
     /* Check the count of items */
-    if (node40_item_count_check(entity))
-	return -1;
+    res = node40_item_count_check(entity, mode);
+
+    if (repair_error_fatal(res))
+	return res;
 
     /* Check the item array and free space. */
-    if (node40_item_array_check(entity))
-	return -1;
+    res |= node40_item_array_check(entity, mode);
 
-    return 0;    
+    return res;
 }
 
 #endif

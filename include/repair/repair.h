@@ -16,7 +16,7 @@
 #include <reiser4/reiser4.h>
 #include <repair/repair_plugins.h>
 
-struct repair_check_info {
+typedef struct repair_check_info {
     /* amounts of different kinds of corruptions. */
     uint64_t fatal;
     uint64_t fixable;
@@ -27,16 +27,22 @@ struct repair_check_info {
     uint64_t unformatted;
     uint64_t zero_unformatted;
     uint64_t broken;
-};
+} repair_check_info_t;
 
-typedef struct repair_check_info repair_check_info_t;
+/*
+#define repair_result(info, result)	\
+{					\
+    if (result == REPAIR_FATAL)		\
+	(info)->fatal++;		\
+    else if (result == REPAIR_FIXABLE)	\
+	(info)->fixable++;		\
+}
+*/
 
-union repair_info {
-    struct repair_check_info check;    
-};
+typedef union repair_info {
+    repair_check_info_t check;    
+} repair_info_t;
 
-typedef union repair_info repair_info_t;
-    
 /* Filter data. */
 typedef struct repair_filter {
     aux_bitmap_t *bm_used;	/* Formatted area + formatted nodes. */
@@ -80,7 +86,7 @@ typedef struct repair_data {
     reiser4_fs_t *fs;
     reiser4_profile_t *profile;
     repair_info_t info;
-    uint16_t options;
+    uint8_t mode;
     union {
 	repair_filter_t filter;
 	repair_ds_t ds;
