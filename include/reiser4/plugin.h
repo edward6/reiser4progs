@@ -250,9 +250,6 @@ struct shift_hint {
 
 	reiser4_pos_t pos;
 	shift_flags_t flags;
-
-	item_entity_t *src_item;
-	item_entity_t *dst_item;
 };
 
 typedef struct shift_hint shift_hint_t;
