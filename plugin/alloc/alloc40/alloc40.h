@@ -12,6 +12,8 @@
 #include <aux/bitmap.h>
 #include <reiser4/plugin.h>
 
+#define CRC_SIZE (4)
+
 struct alloc40 {
 	reiser4_plugin_t *plugin;
 	

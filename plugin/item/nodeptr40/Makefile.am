@@ -1,7 +1,7 @@
 includedir			= -I$(top_srcdir)/include
 libdir				= $(plugindir)
 
-nodeptr40_sources               = nodeptr40.c nodeptr40.h
+nodeptr40_sources               = nodeptr40.c nodeptr40_repair.c nodeptr40.h
 
 if ENABLE_MONOLITHIC
 noinst_LTLIBRARIES		= libnodeptr40-static.la

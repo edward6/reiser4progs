@@ -1,7 +1,7 @@
 includedir		      = -I$(top_srcdir)/include
 libdir			      = $(plugindir)
 
-extent40_sources	      = extent40.c extent40.h
+extent40_sources	      = extent40.c extent40_repair.c extent40.h
 
 if ENABLE_MONOLITHIC
 noinst_LTLIBRARIES	      = libextent40-static.la
