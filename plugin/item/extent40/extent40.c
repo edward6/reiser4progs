@@ -534,6 +534,8 @@ extern errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 				  copy_hint_t *hint);
 #endif
 
+static reiser4_item_ops_t extent40_ops = {
+#ifndef ENABLE_STAND_ALONE
 	.init	       = extent40_init,
 	.write         = extent40_write,
 	.copy          = extent40_copy,
@@ -545,9 +547,13 @@ extern errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 	.layout        = extent40_layout,
 	.check	       = extent40_check,
 	.feel_copy     = extent40_feel_copy,
-	.gap_key       = extent40_maxreal_key,
 	.maxreal_key   = extent40_maxreal_key,
 	.layout_check  = extent40_layout_check,
+	
+	.insert        = NULL,
+	.set_key       = NULL,
+#endif
+	.branch        = NULL,
 
 	.data	       = extent40_data,
 	.lookup	       = extent40_lookup,

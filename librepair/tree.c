@@ -353,11 +353,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	    return ret;
 	}
 	
-	if (whole || !src->item.plugin->o.item_ops.lookup)
+	if (whole || !src->item.plugin->o.item_ops->lookup)
 	    break;
 	
 	/* Lookup by end_key. */
-	res = src->item.plugin->o.item_ops.lookup(&src->item, &hint.end, 
+	res = src->item.plugin->o.item_ops->lookup(&src->item, &hint.end, 
 	    &src->pos.unit);
 
 	if (src->pos.unit >= reiser4_item_units(src))

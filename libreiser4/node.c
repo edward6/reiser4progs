@@ -499,8 +499,8 @@ lookup_t reiser4_node_lookup(
 	}
 	
 	/* Calling lookup method of found item (most probably direntry item) */
-	if (item->plugin->o.item_ops.lookup)
-		return item->plugin->o.item_ops.lookup(item, key, &pos->unit);
+	if (item->plugin->o.item_ops->lookup)
+		return item->plugin->o.item_ops->lookup(item, key, &pos->unit);
 	
 	/* Lookup isn't implemented where maxposs_key isn't implemented also. */
 	aal_assert("vpf-895", item->plugin->o.item_ops->maxposs_key == NULL);

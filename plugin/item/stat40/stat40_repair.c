@@ -98,9 +98,9 @@ errno_t stat40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     hint->dst_count = 0;
     hint->len_delta = src->len - dst->len;
     
-    key = plugin_call(hint->end.plugin->key_ops, maximal,);
+    key = plugin_call(hint->end.plugin->o.key_ops, maximal,);
     
-    plugin_call(hint->end.plugin->key_ops, assign, &hint->end, key);
+    plugin_call(hint->end.plugin->o.key_ops, assign, &hint->end, key);
     
     return 0;
 }

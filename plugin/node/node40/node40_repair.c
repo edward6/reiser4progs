@@ -417,11 +417,12 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
     if (dst_pos->unit == ~0ul)
 	return node40_rep(dst_node, dst_pos, src_node, src_pos, 1);
     
-    if ((res = plugin_call(src_item.plugin->item_ops, copy, &dst_item, 
+    if ((res = plugin_call(src_item.plugin->o.item_ops, copy, &dst_item, 
 	dst_pos->unit, &src_item, src_pos->unit, hint)))
     {
 	aal_exception_error("Can't copy units from node %llu to node %llu.",
-	    src_node->block->blk, dst_node->block->blk);
+	    aal_block_number(src_node->block), 
+	    aal_block_number(dst_node->block));
 	return res;
     }
    

@@ -473,7 +473,7 @@ errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos,
     aal_assert("vpf-967", dst_pos != NULL);
     aal_assert("vpf-968", src_pos != NULL);
     
-    return plugin_call(dst->entity->plugin->node_ops, copy, dst->entity, dst_pos, 
+    return plugin_call(dst->entity->plugin->o.node_ops, copy, dst->entity, dst_pos, 
 	src->entity, src_pos, hint);
 }
 

@@ -462,6 +462,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.set_key	= NULL,
 	.layout_check	= NULL,
 	.maxreal_key    = NULL,
+#endif
 	.data		= stat40_data,
 	.read           = stat40_read,
 	.units		= stat40_units,

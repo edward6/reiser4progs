@@ -52,19 +52,19 @@ errno_t tail40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     if ((res = tail40_maxreal_key(dst, &key)))
 	return res;
 
-    dst_max = plugin_call(key.plugin->key_ops, get_offset, &key);
+    dst_max = plugin_call(key.plugin->o.key_ops, get_offset, &key);
     
-    src_end = plugin_call(hint->end.plugin->key_ops, get_offset, &hint->end);
+    src_end = plugin_call(hint->end.plugin->o.key_ops, get_offset, &hint->end);
     
     if ((res = tail40_maxreal_key(src, &key)))
 	return res;
     
-    src_max = plugin_call(key.plugin->key_ops, get_offset, &key);
+    src_max = plugin_call(key.plugin->o.key_ops, get_offset, &key);
     
     if (src_max > src_end)
 	src_max = src_end;
 	
-    src_offset = plugin_call(hint->start.plugin->key_ops, get_offset, 
+    src_offset = plugin_call(hint->start.plugin->o.key_ops, get_offset, 
 	&hint->start);
     
     if (src_offset <= dst_max) {
@@ -75,7 +75,7 @@ errno_t tail40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 	if (tail40_get_key(dst, dst_pos, &key))
 	    return -EINVAL;
 	
-	dst_offset = plugin_call(key.plugin->key_ops, get_offset, &key);
+	dst_offset = plugin_call(key.plugin->o.key_ops, get_offset, &key);
 	
 	aal_assert("vpf-985", dst_offset < src_max);
 	
@@ -88,7 +88,7 @@ errno_t tail40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 	hint->src_count = hint->len_delta = src_max - src_offset + 1;
     }
     
-    plugin_call(hint->end.plugin->key_ops, set_offset, &hint->end, 
+    plugin_call(hint->end.plugin->o.key_ops, set_offset, &hint->end, 
 	src_offset + hint->src_count);
     
     return 0;

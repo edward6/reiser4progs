@@ -102,14 +102,14 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     
     /* Getting src_start, dst_start, src_max, dst_max, dst_min and src_min. */
     
-    src_end = plugin_call(hint->end.plugin->key_ops, get_offset, &hint->end) + 1;
-    src_start = plugin_call(hint->start.plugin->key_ops, get_offset, &hint->start);
-    src_min = plugin_call(src->key.plugin->key_ops, get_offset, &src->key);
+    src_end = plugin_call(hint->end.plugin->o.key_ops, get_offset, &hint->end) + 1;
+    src_start = plugin_call(hint->start.plugin->o.key_ops, get_offset, &hint->start);
+    src_min = plugin_call(src->key.plugin->o.key_ops, get_offset, &src->key);
     
     if ((res = extent40_maxposs_key(src, &key)))
 	return res;
 
-    src_max = plugin_call(key.plugin->key_ops, get_offset, &key) + 1;
+    src_max = plugin_call(key.plugin->o.key_ops, get_offset, &key) + 1;
     
     /* Copy through src_end only. */
     if (src_max > src_end)
@@ -126,7 +126,7 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     if ((res = extent40_maxposs_key(dst, &key)))
 	return res;
     
-    dst_max = plugin_call(key.plugin->key_ops, get_offset, &key) + 1;
+    dst_max = plugin_call(key.plugin->o.key_ops, get_offset, &key) + 1;
     
     if (dst_pos >= extent40_units(dst)) {
 	aal_assert("vpf-1007", src_start == dst_max);
@@ -137,13 +137,13 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 	
 	hint->dst_head = hint->dst_tail = 0;
 		
-	plugin_call(hint->end.plugin->key_ops, set_offset, &hint->end, src_max);
+	plugin_call(hint->end.plugin->o.key_ops, set_offset, &hint->end, src_max);
 	
 	return 0;
     }
     
     dst_start = extent40_offset(dst, dst_pos) + dst_min;    
-    dst_min = plugin_call(dst->key.plugin->key_ops, get_offset, &dst->key);    
+    dst_min = plugin_call(dst->key.plugin->o.key_ops, get_offset, &dst->key);    
     
     aal_assert("vpf-997", dst_start % b_size == 0);
     aal_assert("vpf-1010", dst_start < dst_max);
@@ -173,8 +173,8 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     if (dst_max < src_max)
 	src_max = dst_max;
 	
-    plugin_call(key.plugin->key_ops, set_offset, &key, src_max - 1);    
-    plugin_call(hint->end.plugin->key_ops, set_offset, &hint->end, src_max);
+    plugin_call(key.plugin->o.key_ops, set_offset, &key, src_max - 1);    
+    plugin_call(hint->end.plugin->o.key_ops, set_offset, &hint->end, src_max);
     
     lookup = extent40_lookup(dst, &key, &pos);
     aal_assert("vpf-1001", lookup == LP_PRESENT);
