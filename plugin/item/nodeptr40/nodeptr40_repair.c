@@ -31,7 +31,7 @@ errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func,
 		if (mode == RM_BUILD) {
 			aal_exception_error("Node (%llu), item (%u): a pointer to "
 					    "the region [%llu..%llu] is removed.", 
-					    place->con.blk, blk, blk);
+					    place->con.blk,place->pos.item,  blk, blk);
 			place->len = 0;
 			return RE_FIXED;
 		}

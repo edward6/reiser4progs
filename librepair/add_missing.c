@@ -223,8 +223,8 @@ errno_t repair_add_missing(repair_am_t *am) {
 			
 			if (res < 0 && res != -ESTRUCT) {
 				aal_exception_bug("Add missing pass failed to attach the "
-						  "%s (%llu) to the tree.", blk, 
-						  i == 0 ? "twig" : "leaf");
+						  "%s (%llu) to the tree.", i == 0 ? "twig" :
+						  "leaf", blk);
 				
 				goto error_node_close;
 			} else if (res == 0) {

@@ -894,7 +894,7 @@ errno_t reiser4_node_cut(
 			     cut, node->entity, start, end)))
 	{
 		aal_exception_error("Can't cut items/units from the node "
-				    "%llu. Start: (%lu, %lu), end: (%lu, %lu).",
+				    "%llu. Start: (%u, %u), end: (%u, %u).",
 				    node->number, start->item, start->unit,
 				    end->item, end->unit);
 		return res;
@@ -926,7 +926,7 @@ errno_t reiser4_node_remove(
 	if ((res = plug_call(node->entity->plug->o.node_ops,
 			     remove, node->entity, pos, count)))
 	{
-		aal_exception_error("Can't remove %lu items/units from "
+		aal_exception_error("Can't remove %u items/units from "
 				    "node %llu.", count, node->number);
 		return res;
 	}

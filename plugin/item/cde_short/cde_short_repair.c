@@ -483,7 +483,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 	if (flags->count != e_count) {
 		/* Estimated count is greater then the recovered count, in other 
 		   words there are some last unit headers should be removed. */
-		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
+		aal_exception_error("Node %llu, item %u: entries [%u..%u] look "
 				    "corrupted. %s", place->con.blk, place->pos.item, 
 				    flags->count, e_count - 1, 
 				    mode == RM_BUILD ? "Removed." : "");
@@ -508,7 +508,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 	
 	if (i) {
 		/* Some first units should be removed. */
-		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
+		aal_exception_error("Node %llu, item %u: entries [%u..%u] look "
 				    " corrupted. %s", place->con.blk, 
 				    place->pos.item, 0, i - 1, 
 				    mode == RM_BUILD ? "Removed." : "");
@@ -545,7 +545,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 			/* Looking for the problem interval end. */
 			if (aal_test_bit(flags->elem + i, R)) {
 				aal_exception_error("Node %llu, item %u: entries "
-						    "[%lu..%lu] look corrupted. %s", 
+						    "[%u..%u] look corrupted. %s", 
 						    place->con.blk, 
 						    place->pos.item,
 						    last, i - 1, 

@@ -250,7 +250,7 @@ reiser4_fs_t *reiser4_fs_create(
 	
 	if (hint->blocks > dev_len) {
 		aal_exception_error("Device %s is too small (%llu) "
-				    "for filesystem %u blocks long.",
+				    "for filesystem %llu blocks long.",
 				    aal_device_name(device), dev_len,
 				    hint->blocks);
 		return NULL;

@@ -1236,7 +1236,9 @@ errno_t reiser4_tree_expand(
 	    
 		if ((res = reiser4_tree_shift(tree, place, left,
 					      SF_LEFT | SF_UPTIP)))
+		{
 			return res;
+		}
 	
 		if ((enough = enough_by_space(tree, place, needed)))
 			return 0;
@@ -1249,7 +1251,9 @@ errno_t reiser4_tree_expand(
 	    
 		if ((res = reiser4_tree_shift(tree, place, right,
 					      SF_RIGHT | SF_UPTIP)))
+		{
 			return res;
+		}
 	
 		if ((enough = enough_by_space(tree, place, needed)))
 			return 0;

@@ -224,9 +224,10 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	if (res > 0) {
 		/* The left delimiting key is much then the left key in the 
 		   node - not legal */
-		aal_exception_error("Node (%llu): The first key %k is not "
-				    "equal to the left delimiting key %k.",
-				    node->number, &place.key, &d_key);
+		aal_exception_error("Node (%llu): The first key %s is not "
+				    "equal to the left delimiting key %s.",
+				    node->number, reiser4_print_key(&place.key),
+				    reiser4_print_key(&d_key));
 		return RE_FATAL;
 	} else if (res < 0) {
 		/* It is legal to have the left key in the node much then 
@@ -235,12 +236,13 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 		   we have parent. */
 		if (node->p.node != NULL) {
 			aal_exception_error("Node (%llu): The left delimiting "
-					    "key %k in the parent node (%llu), "
+					    "key %s in the parent node (%llu), "
 					    "pos (%u/%u) mismatch the first key "
-					    "%k in the node. %s", node->number,
-					    &place.key, node->p.node->number,
-					    place.pos.item, place.pos.unit, 
-					    &d_key, mode == RM_BUILD ? 
+					    "%s in the node. %s", node->number,
+					    reiser4_print_key(&place.key),
+					    node->p.node->number, place.pos.item,
+					    place.pos.unit, reiser4_print_key(&d_key),
+					    mode == RM_BUILD ? 
 					    "Left delimiting key is fixed." : 
 					    "");
 			
@@ -262,7 +264,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	
 	if ((res = reiser4_place_fetch(&place))) {
 		aal_exception_error("Node (%llu): Failed to open the item "
-				    "(%llu).", node->number, pos->item);
+				    "(%u).", node->number, pos->item);
 		return res;
 	}
 	
@@ -273,9 +275,10 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	}
 	
 	if (reiser4_key_compare(&key, &d_key) >= 0) {
-		aal_exception_error("Node (%llu): The last key %k in the node "
+		aal_exception_error("Node (%llu): The last key %s in the node "
 				    "is greater then the right delimiting key "
-				    "%k.", node->number, &key, &d_key);
+				    "%s.", node->number, reiser4_print_key(&key),
+				    reiser4_print_key(&d_key));
 		return -ESTRUCT;
 	}
 	
@@ -310,9 +313,10 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		}
 		
 		if (reiser4_key_valid(&key)) {
-			aal_exception_error("Node (%llu): The key %k of the "
+			aal_exception_error("Node (%llu): The key %s of the "
 					    "item (%u) is not valid. Item "
-					    "removed.", node->number, &key,
+					    "removed.", node->number,
+					    reiser4_print_key(&key),
 					    pos->item);
 			
 			if ((res = reiser4_node_remove(node, pos, 1))) {

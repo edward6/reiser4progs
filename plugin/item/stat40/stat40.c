@@ -140,12 +140,8 @@ static errno_t stat40_estimate_insert(place_t *place,
 	
 	hint->len = sizeof(stat40_t);
 	stat_hint = (statdata_hint_t *)hint->type_specific;
-    
-	if (!stat_hint->extmask) {
-		aal_exception_warn("Empty extention mask is detected "
-				   "while estimating stat data.");
-		return 0;
-	}
+
+	aal_assert("umka-2360", stat_hint->extmask != 0);
     
 	/* Estimating the all stat data extentions */
 	for (i = 0; i < STAT40_EXTNR; i++) {
@@ -238,8 +234,7 @@ static errno_t stat40_insert(place_t *place,
 	
 		/* Getting pointer to the next extention. It is evaluating as
 		   the previous pointer plus its size. */
-		extbody += plug_call(plug->o.sdext_ops, length,
-				     extbody);
+		extbody += plug_call(plug->o.sdext_ops, length, extbody);
 	}
     
 	return 0;

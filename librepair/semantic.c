@@ -336,9 +336,10 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	
 	if (res < 0) {
 		aal_exception_error("Semantic traverse failed to remove the "
-				    "entry %k (%s) pointing to %k.", 
-				    &entry->offset, entry->name, 
-				    &entry->object);
+				    "entry %s (%s) pointing to %s.", 
+				    reiser4_print_key(&entry->offset),
+				    entry->name, 
+				    reiser4_print_key(&entry->object));
 	}
 
  error_close_object:

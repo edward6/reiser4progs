@@ -345,26 +345,30 @@ const char *libreiser4_version(void) {
 /* Initializes libreiser4 (plugin factory, etc). This function should be called
    before any actions performed on libreiser4. */
 errno_t libreiser4_init(void) {
-	if (libreiser4_factory_init()) {
-		aal_exception_fatal("Can't initialize plugin factory.");
-		return -EINVAL;
-	}
-
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_print_init()) {
 		aal_exception_error("Can't initialize print factory");
-		goto error_free_factory;
+		return -EINVAL;
 	}
 #endif
     
+	if (libreiser4_factory_init()) {
+		aal_exception_fatal("Can't initialize plugin factory.");
+		goto error_free_print;
+	}
+
 	return 0;
 	
- error_free_factory:
-	libreiser4_factory_fini();
+ error_free_print:
+	reiser4_print_fini();
 	return -EINVAL;
 }
 
 /* Finalizes libreiser4 */
 void libreiser4_fini(void) {
 	libreiser4_factory_fini();
+	
+#ifndef ENABLE_STAND_ALONE
+	reiser4_print_init();
+#endif
 }

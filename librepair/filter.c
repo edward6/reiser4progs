@@ -283,7 +283,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		      &ptr, place->pos.unit, 1) != 1)
 	{
 		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed "
-				    "to fetch the node pointer.", place->node,
+				    "to fetch the node pointer.", place->node->number,
 				    place->pos.item, place->pos.unit);
 		return -EINVAL;
 	}

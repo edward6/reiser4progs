@@ -6,10 +6,6 @@
 #ifndef REISER4_NODE_H
 #define REISER4_NODE_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/types.h>
 
 extern errno_t reiser4_node_load(reiser4_node_t *node);

@@ -531,9 +531,10 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	if (reiser4_tree_lookup(object->info.tree, &entry.object,
 				LEAF_LEVEL, &place) != PRESENT)
 	{
-		aal_exception_error("Can't find an item pointed by %k. "
+		aal_exception_error("Can't find an item pointed by %s. "
 				    "Entry %s/%s points to nowere.",
-				    &entry.object, object->name, name);
+				    reiser4_print_key(&entry.object),
+				    object->name, name);
 		return -EINVAL;
 	}
 
@@ -572,7 +573,7 @@ static errno_t callback_print_place(
 	reiser4_place_t *p = (reiser4_place_t *)place;
 	
 	if ((res = reiser4_item_print(p, stream))) {
-		aal_exception_error("Can't print item %lu in node %llu.",
+		aal_exception_error("Can't print item %u in node %llu.",
 				    p->pos.item, p->node->number);
 		return res;
 	}

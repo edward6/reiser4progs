@@ -4,13 +4,16 @@
    print.h -- handlers for expanded printf keys like %k for printing
    reiser4_key_t and so on. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef REISER4_PRINT_H
 #define REISER4_PRINT_H
 
+#ifndef ENABLE_STAND_ALONE
+#include <reiser4/types.h>
+
 extern errno_t reiser4_print_init(void);
+extern errno_t reiser4_print_fini(void);
+
+extern char *reiser4_print_key(reiser4_key_t *key);
+#endif
 
 #endif

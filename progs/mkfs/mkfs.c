@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
 			}
 			
 			if (!aal_pow2(hint.blksize)) {
-				aal_exception_error("Invalid blocksize (%lu). "
+				aal_exception_error("Invalid blocksize (%u). "
 						    "It must power of two.",
 						    hint.blksize);
 				return USER_ERROR;	

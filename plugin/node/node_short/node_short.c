@@ -491,24 +491,15 @@ static errno_t node_short_insert(object_entity_t *entity,
 		/* Calling item plugin to perform initializing the item */
 		if (hint->plug->o.item_ops->init)
 			hint->plug->o.item_ops->init(&place);
+	}
 
-		/* Inserting units into @place */
-		if ((res = plug_call(hint->plug->o.item_ops,
-				     insert, &place, hint, 0)))
-		{
-			aal_exception_error("Can't create new item in "
-					    "node %llu.", node->number);
-			return res;
-		}
-	} else {
-		/* Inserting units into @item */
-		if ((res = plug_call(hint->plug->o.item_ops,
-				     insert, &place, hint, pos->unit)))
-		{
-			aal_exception_error("Can't insert unit to "
-					    "node %llu.", node->number);
-			return res;
-		}
+	/* Inserting units into @item */
+	if ((res = plug_call(hint->plug->o.item_ops, insert, &place, hint,
+			     pos->unit == MAX_UINT32 ? 0 : pos->unit)))
+	{
+		aal_exception_error("Can't insert unit to "
+				    "node %llu.", node->number);
+		return res;
 	}
 	
 	/* Updating item's key if we insert new item or if we insert unit into
@@ -1383,12 +1374,12 @@ static errno_t node_short_shift(object_entity_t *src_entity,
 	merge.control |= SF_MERGE;
 	merge.rest = node_common_space(dst_entity);
 	
-	/* Merges nodes without ability to create the new item in the
-	   @dst_node. This is needed for avoiding the case when a node will
-	   contain two neighbour items which are mergeable. That would be not
-	   optimal space usage and might also led to some unstable behavior of
-	   the code which assume that next mergeable item lies in the neighbour
-	   node, not the next to it (directory read and lookup code). */
+	/* Merges passed nodes with no creating new item in the @dst_node. This
+	   is needed for avoiding the case when a node will contain two
+	   neighbour items which are mergeable. That would be not optimal space
+	   usage and might also led to some unstable behavior of the code which
+	   assume that next mergeable item lies in the neighbour node, not the
+	   next to it (directory read and lookup code). */
 	if ((res = node_short_merge(src_entity, dst_entity, &merge))) {
 		aal_exception_error("Can't merge two nodes durring "
 				    "node shift operation.");

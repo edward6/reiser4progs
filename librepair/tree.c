@@ -384,10 +384,10 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 				aal_exception_error("Tree Copy failed: from the node "
 						    "(%llu), item (%u) to the node "
 						    "(%llu), item (%u). Key interval "
-						    "%k - %k.", src->node->number, 
+						    "%s - %s.", src->node->number, 
 						    src->pos.item, dst.node->number, 
-						    dst.pos.item,  &hint.start, 
-						    &hint.end);
+						    dst.pos.item,  reiser4_print_key(&hint.start), 
+						    reiser4_print_key(&hint.end));
 			} else {
 				aal_exception_error("Tree Copy failed: from the node "
 						    "(%llu), item (%u) to the node "

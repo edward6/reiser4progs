@@ -641,7 +641,7 @@ static errno_t cde_short_insert(place_t *place,
 	entry_hint = (entry_hint_t *)hint->type_specific;
 
 	/* Expanding direntry in order to prepare the room for new entries. The
-	   function cde_short_expand returns the offset of where new unit will
+	   function cde_short_expand() returns the offset of where new unit will
 	   be inserted at. */
 	offset = cde_short_expand(place, pos, hint->count,
 				  hint->len);

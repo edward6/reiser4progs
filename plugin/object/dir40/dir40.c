@@ -344,7 +344,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	if (plug_call(place->plug->o.item_ops, read,
 		      place, entry, dir->unit, 1) != 1)
 	{
-		aal_exception_error("Can't read %lu entry from "
+		aal_exception_error("Can't read %u entry from "
 				    "object 0x%llx.", dir->unit,
 				    obj40_objectid(&dir->obj));
 		return FAILED;
@@ -370,7 +370,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 		if (plug_call(place->plug->o.item_ops, read,
 			      place, entry, dir->unit, 1) != 1)
 		{
-			aal_exception_error("Can't read %lu entry "
+			aal_exception_error("Can't read %u entry "
 					    "from object 0x%llx.",
 					    dir->unit, objectid);
 			return FAILED;
