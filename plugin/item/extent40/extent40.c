@@ -439,7 +439,7 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 	aal_assert("umka-1836", buff != NULL);
 	
 	hint = (create_hint_t *)buff;
-	hint->len = sizeof(extent40_t);
+	hint->len = count * sizeof(extent40_t);
 	
 	return 0;
 }
