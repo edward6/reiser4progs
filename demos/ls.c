@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 		aal_exception_error("Can't initialize libreiser4.");
 		return 0xff;
 	}
-    
+
 //	misc_param_override("hash=deg_hash");
 		
 	if (!(device = aal_device_open(&file_ops, argv[1], 

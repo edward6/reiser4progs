@@ -109,7 +109,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 }
 
 /* Fetches whole statdata item with extentions into passed @buff */
-static int32_t stat40_fetch(place_t *place, trans_hint_t *hint) {
+static int64_t stat40_fetch(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
 
@@ -202,7 +202,7 @@ static errno_t stat40_estimate_insert(place_t *place,
 }
 
 /* This method writes the stat data extentions */
-static int32_t stat40_insert(place_t *place,
+static int64_t stat40_insert(place_t *place,
 			     trans_hint_t *hint)
 {
 	uint16_t i;

@@ -14,7 +14,7 @@ static uint32_t nodeptr40_units(place_t *place) {
 }
 
 /* Fetches nodeptr into passed @hint */
-static int32_t nodeptr40_fetch(place_t *place, trans_hint_t *hint) {
+static int64_t nodeptr40_fetch(place_t *place, trans_hint_t *hint) {
 	nodeptr40_t *nodeptr;
 	ptr_hint_t *ptr_hint;
 		
@@ -63,7 +63,7 @@ static errno_t nodeptr40_estimate_insert(place_t *place,
 }
 
 /* Writes of the specified nodeptr into passed @place */
-static int32_t nodeptr40_insert(place_t *place,
+static int64_t nodeptr40_insert(place_t *place,
 				trans_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;

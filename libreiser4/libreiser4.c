@@ -38,7 +38,7 @@ static errno_t tree_insert(
 }
 
 /* Handler for write data to the tree */
-static int32_t tree_write(
+static int64_t tree_write(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* insertion point will be saved here */
 	trans_hint_t *hint,         /* item hint to be inserted into tree */
@@ -165,7 +165,7 @@ static char *key_print(key_entity_t *key, uint16_t options) {
 }
 
 static errno_t tree_conv(void *tree, conv_hint_t *hint) {
-	return reiser4_tree_conv(tree, hint);
+	return reiser4_tree_conv_flow(tree, hint);
 }
 
 static uint64_t param_value(char *name) {

@@ -9,12 +9,12 @@ reiser4progs/COPYING.
   in order to determine is it enough space in tree to insert data or
   not.
 
-* fix unaligned access on Itanium2.
-
 * functions for adding/removing stat data extentions.
 
 * object key's odrering should be the same as in entry key, 
   that points to, for large key policy.
+
+* fix unaligned access on Itanium2.
 
 * dumpfs utility.
 

@@ -495,10 +495,10 @@ struct trans_hint {
 	   insert directory item and tree should now how many space should be
 	   prepared in the tree ohd + len, but we don't need overhead for
 	   updating stat data bytes field. */
-	uint16_t ohd;
+	uint32_t ohd;
 	
 	/* Length of the data to be inserted */
-	uint16_t len;
+	uint32_t len;
 
 	/* Value needed for updating bytes field in stat data */
 	uint64_t bytes;
@@ -510,7 +510,7 @@ struct trans_hint {
 	void *tree;
 
 	/* Count of units to be inserted into the tree */
-	uint32_t count;
+	uint64_t count;
 
 	/* The key of item/unit to be inserted */
 	key_entity_t offset;
@@ -537,13 +537,12 @@ struct conv_hint {
 	/* New bytes value */
 	uint64_t bytes;
 
-	/* Real item size. This is needed, because only object plugin knows
-	   correct size. */
-	uint32_t size;
+	/* Bytes to be converted. */
+	uint64_t count;
 
-	/* Place to be converted */
-	place_t *place;
-
+	/* File will be converted starting from this key. */
+	key_entity_t offset;
+	
 	/* Plugin item will be converted to. */
 	reiser4_plug_t *plug;
 };
@@ -650,7 +649,7 @@ struct reiser4_object_ops {
 			   object_entity_t *);
 
 	/* Writes the data to file from passed buffer */
-	int32_t (*write) (object_entity_t *, void *, uint32_t);
+	int64_t (*write) (object_entity_t *, void *, uint64_t);
 
 	/* Directory specific methods */
 	errno_t (*add_entry) (object_entity_t *, entry_hint_t *);
@@ -683,8 +682,8 @@ struct reiser4_object_ops {
 	   recovered as a such. */
 	object_entity_t *(*recognize) (object_info_t *);
 	
-	/* Creates the fake object by the gived @info. Needed to recover 
-	   "/" and "lost+found" direcories if their SD are broken. */
+	/* Creates the fake object by the gived @info. Needed to recover "/" and
+	   "lost+found" direcories if their SD are broken. */
 	object_entity_t *(*fake) (object_info_t *);
 
 	/* Forms the correct object from what was openned/checked. */
@@ -718,11 +717,10 @@ struct reiser4_object_ops {
 			   key_entity_t *);
 
 	/* Reads the data from file to passed buffer */
-	int32_t (*read) (object_entity_t *, void *, uint32_t);
+	int64_t (*read) (object_entity_t *, void *, uint64_t);
 
 	/* Directory read method */
-	int32_t (*readdir) (object_entity_t *,
-			    entry_hint_t *);
+	int32_t (*readdir) (object_entity_t *, entry_hint_t *);
 
 	/* Return current position in dirctory */
 	errno_t (*telldir) (object_entity_t *, key_entity_t *);
@@ -757,10 +755,10 @@ struct reiser4_item_ops {
 	
 	/* Inserts some amount of units described by passed hint into passed
 	   item denoted by place. */
-	int32_t (*insert) (place_t *, trans_hint_t *);
+	int64_t (*insert) (place_t *, trans_hint_t *);
 
 	/* Writes data to item */
-	int32_t (*write) (place_t *, trans_hint_t *);
+	int64_t (*write) (place_t *, trans_hint_t *);
 
 	/* Cuts out some amount of data */
 	int64_t (*truncate) (place_t *, trans_hint_t *);
@@ -769,7 +767,7 @@ struct reiser4_item_ops {
 	errno_t (*remove) (place_t *, trans_hint_t *);
 
 	/* Updates unit at passed place by data from passed hint */
-	int32_t (*update) (place_t *, trans_hint_t *);
+	int64_t (*update) (place_t *, trans_hint_t *);
 
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (place_t *, place_t *, shift_hint_t *);
@@ -811,10 +809,10 @@ struct reiser4_item_ops {
 	int (*mergeable) (place_t *, place_t *);
 
 	/* Reads passed amount of bytes from the item. */
-	int32_t (*read) (place_t *, trans_hint_t *);
+	int64_t (*read) (place_t *, trans_hint_t *);
 
 	/* Fetches one or more units at passed @place to passed hint */
-	int32_t (*fetch) (place_t *, trans_hint_t *);
+	int64_t (*fetch) (place_t *, trans_hint_t *);
 
 	/* Returns unit count */
 	uint32_t (*units) (place_t *);
@@ -900,7 +898,7 @@ struct reiser4_node_ops {
 			   trans_hint_t *);
     
 	/* Writes data to the node */
-	int32_t (*write) (node_entity_t *, pos_t *,
+	int64_t (*write) (node_entity_t *, pos_t *,
 			  trans_hint_t *);
 
 	int64_t (*truncate) (node_entity_t *, pos_t *,
@@ -914,7 +912,8 @@ struct reiser4_node_ops {
 	errno_t (*shrink) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	/* Merge 2 items--insert/overwrite @src_entity parts to @dst_entity. */
+	/* Merge 2 items -- insert/overwrite @src_entity parts to
+	   @dst_entity. */
 	errno_t (*merge) (node_entity_t *, pos_t *, 
 			  node_entity_t *, pos_t *, 
 			  merge_hint_t *);
@@ -1374,7 +1373,7 @@ struct tree_ops {
 			   trans_hint_t *, uint8_t);
 
 	/* Writes some data to tree */
-	int32_t (*write) (void *, place_t *,
+	int64_t (*write) (void *, place_t *,
 			  trans_hint_t *, uint8_t);
     
 	/* Removes item/unit from the tree. It is used in all object plugins for

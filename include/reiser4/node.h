@@ -47,10 +47,10 @@ extern errno_t reiser4_node_ukey(reiser4_node_t *node,
 				 pos_t *pos,
 				 reiser4_key_t *key);
 
-extern int32_t reiser4_node_mod(reiser4_node_t *node, pos_t *pos,
+extern int64_t reiser4_node_mod(reiser4_node_t *node, pos_t *pos,
 				trans_hint_t *hint, bool_t insert);
 
-extern int32_t reiser4_node_write(reiser4_node_t *node,
+extern int64_t reiser4_node_write(reiser4_node_t *node,
 				  pos_t *pos, trans_hint_t *hint);
 
 extern errno_t reiser4_node_insert(reiser4_node_t *node,
@@ -76,12 +76,11 @@ extern uint32_t reiser4_node_get_mstamp(reiser4_node_t *node);
 extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 #endif
 
-extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
-
 extern errno_t reiser4_node_lkey(reiser4_node_t *node,
 				 reiser4_key_t *key);
 
 extern errno_t reiser4_node_realize(reiser4_node_t *node);
+extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
 
 extern reiser4_node_t *reiser4_node_child(reiser4_node_t *node,
 					  blk_t blk);

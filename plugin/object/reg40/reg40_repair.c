@@ -389,7 +389,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 			}
 			
 			hint.bytes = 0;
-			hint.place = &reg->body;
+			
+			plug_call(reg->body.key.plug->o.key_ops, assign,
+				  &hint.offset, &reg->body.key);
 	
 			if (plug_equal(bplug, tplug)) {
 				/* Extent found, tail should be. Convert evth 
@@ -399,7 +401,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				reg->policy = extent;
 				
 				hint.plug = eplug;
-				hint.size = reg40_offset(object);
+				hint.count = reg40_offset(object);
 				
 				/* Start from the beginning. */
 				size = bytes = 0;
@@ -409,8 +411,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 				   the item to extent. */
 
 				hint.plug = bplug;		
-				hint.size = plug_call(reg->body.plug->o.item_ops,
-						      size, &reg->body);
+				hint.count = plug_call(reg->body.plug->o.item_ops,
+						       size, &reg->body);
 			}
 
 			if ((res |= rcore->tree_ops.conv(info->tree, &hint)) < 0)

@@ -1831,7 +1831,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		      place->pos.unit == reiser4_item_units(place)))
 		{
 			/* We are not on the border, split */
-			if ((node = reiser4_tree_alloc_node(tree, curr)) == NULL) {
+			if (!(node = reiser4_tree_alloc_node(tree, curr))) {
 				aal_exception_error("Tree failed to allocate "
 						    "a new node.");
 				return -EINVAL;
@@ -1864,7 +1864,6 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		}
 		
 		reiser4_place_init(place, node->p.node, &node->p.pos);
-		reiser4_place_inc(place, place->pos.unit == MAX_UINT32);
 		curr++;
 	}
 	
@@ -1896,14 +1895,14 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
-int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
+int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				trans_hint_t *hint)
 {
 	char *buff;
 	errno_t res;
-	uint32_t size;
+	uint64_t size;
 	uint64_t bytes;
-	uint32_t total;
+	uint64_t total;
 	reiser4_key_t key;
 
 	buff = hint->specific;
@@ -1958,13 +1957,13 @@ int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 }
 
 /* Reads one convert chunk from src item */
-int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
+int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 			       trans_hint_t *hint)
 {
 	char *buff;
 	errno_t res;
-	int32_t total;
-	uint32_t size;
+	int64_t total;
+	uint64_t size;
 	reiser4_key_t key;
 
 	buff = hint->specific;
@@ -2022,35 +2021,24 @@ errno_t callback_region_func(void *entity, uint64_t start,
 
 /* Converts item at passed @place from tail to extent and back from extent to
    tail. */
-errno_t reiser4_tree_conv(reiser4_tree_t *tree,
-			  conv_hint_t *hint)
+errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
+			       conv_hint_t *hint)
 {
 	char *buff;
 	errno_t res;
 	int64_t conv;
-	uint32_t size;
+	uint64_t size;
 	uint32_t blksize;
 	trans_hint_t trans;
-	reiser4_place_t *place;
 	
 	aal_assert("umka-2406", tree != NULL);
 	aal_assert("umka-2407", hint != NULL);
-	
 	aal_assert("umka-2481", hint->plug != NULL);
-	aal_assert("umka-2481", hint->place != NULL);
 
-	place = (reiser4_place_t *)hint->place;
-	
-	if (plug_equal(hint->plug, place->plug)) {
-		hint->bytes = plug_call(place->plug->o.item_ops,
-					bytes, (place_t *)place);
-		return 0;
-	}
-
-	reiser4_key_assign(&trans.offset, &place->key);
+	reiser4_key_assign(&trans.offset, &hint->offset);
 	blksize = reiser4_master_get_blksize(tree->fs->master);
 
-	for (size = hint->size, hint->bytes = 0;
+	for (size = hint->count, hint->bytes = 0;
 	     size > 0; size -= conv)
 	{
 		/* Preparing buffer to read to it and size to read. */
@@ -2129,7 +2117,7 @@ static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
 }
 
 /* Function for tree modifications */
-static int32_t reiser4_tree_mod(
+static int64_t reiser4_tree_mod(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
 	trans_hint_t *hint,         /* item hint to be inserted */
@@ -2315,7 +2303,7 @@ errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 }
 
 /* Reads data from the @tree to passed @hint */
-int32_t reiser4_tree_read(reiser4_tree_t *tree,
+int64_t reiser4_tree_read(reiser4_tree_t *tree,
 			  reiser4_place_t *place,
 			  trans_hint_t *hint)
 {
@@ -2324,7 +2312,7 @@ int32_t reiser4_tree_read(reiser4_tree_t *tree,
 }
 
 /* Writes data to the tree */
-int32_t reiser4_tree_write(reiser4_tree_t *tree,
+int64_t reiser4_tree_write(reiser4_tree_t *tree,
 			   reiser4_place_t *place,
 			   trans_hint_t *hint,
 			   uint8_t level)

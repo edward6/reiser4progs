@@ -332,10 +332,11 @@ lookup_t extent40_lookup(place_t *place, key_entity_t *key,
 #ifndef ENABLE_STAND_ALONE
 /* Reads @count bytes of extent data from the extent item at passed @pos into
    specified @buff. Uses data cache. */
-static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
+static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 	void *buff;
-	uint32_t count;
-	uint32_t read, i;
+	uint32_t i;
+	uint64_t read;
+	uint64_t count;
 	uint32_t blksize;
 	
 	key_entity_t key;
@@ -443,10 +444,11 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
    specified @buff. This function is used in stand alone mode. It does not use
    data cache and reads data by 512 bytes chunks. This is needed because of
    GRUB, which has ugly mechanism of getting real block numbers data lie in. */
-static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
+static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 	void *buff;
-	uint32_t count;
-	uint32_t read, i;
+	uint32_t i;
+	uint64_t read;
+	uint64_t count;
 	uint32_t blksize;
 	uint32_t secsize;
 
@@ -547,7 +549,7 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 #endif
 
 /* Updates extent unit at @place by @data */
-static int32_t extent40_fetch(place_t *place, trans_hint_t *hint) {
+static int64_t extent40_fetch(place_t *place, trans_hint_t *hint) {
 	uint32_t i, pos;
 	extent40_t *extent;
 	ptr_hint_t *ptr_hint;
@@ -642,7 +644,7 @@ static errno_t extent40_copy(place_t *dst_place, uint32_t dst_pos,
 }
 
 /* Updates extent unit at @place by @data */
-static int32_t extent40_update(place_t *place, trans_hint_t *hint) {
+static int64_t extent40_update(place_t *place, trans_hint_t *hint) {
 	uint32_t i, pos;
 	extent40_t *extent;
 	ptr_hint_t *ptr_hint;
@@ -678,7 +680,7 @@ static errno_t extent40_estimate_insert(place_t *place,
 }
 
 /* Inserts one or more extent units to @place */
-static int32_t extent40_insert(place_t *place,
+static int64_t extent40_insert(place_t *place,
 			       trans_hint_t *hint)
 {
 	aal_assert("umka-2429", hint != NULL);
@@ -767,7 +769,7 @@ static errno_t extent40_estimate_write(place_t *place,
 }
 
 /* Writes data to @place */
-static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
+static int64_t extent40_write(place_t *place, trans_hint_t *hint) {
 	char *buff;
 	uint32_t units;
 	uint32_t blksize;

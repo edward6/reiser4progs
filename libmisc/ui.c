@@ -106,60 +106,33 @@ void misc_wipe_line(void *stream) {
 
 /* Constructs exception message */
 void misc_print_wrap(void *stream, char *text) {
-	uint16_t width;
-	char *word, *line;
-
-	aal_list_t *walk = NULL;
-	aal_list_t *list = NULL;
+	char *word;
+	uint32_t line_width;
+	uint32_t screen_width;
 
 	if (!stream || !text)
 		return;
     
-	line = NULL;
+	if (!(screen_width = misc_screen_width()))
+		screen_width = 80;
 
-	if (!(width = misc_screen_width()))
-		width = 80;
-
-	while ((word = aal_strsep(&text, " "))) {
-		if (!line || aal_strlen(line) + aal_strlen(word) > width) {
-			if (line) {
-				list = aal_list_append(list, line);
-				list = aal_list_last(list);
-			}
-	    
-			line = aal_calloc(width + 1, 0);
+	for (line_width = 0; (word = aal_strsep(&text, " ")); ) {
+		if (line_width + aal_strlen(word) > screen_width) {
+			line_width = 0;
+			fprintf(stream, "\n");
 		}
-	
-		aal_strncat(line, word, strlen(word));
+		
+		fprintf(stream, word);
 
-		if (aal_strlen(line) + 1 < width)
-			aal_strncat(line, " ", 1);
-	}
-    
-	if (line && aal_strlen(line)) {
-		char lc = line[aal_strlen(line) - 1];
-	
-		if (lc == '\040')
-			line[aal_strlen(line) - 1] = '\0';
-
-		list = aal_list_append(list, line);
-	}
-
-	if (list) {
-		list = aal_list_first(list);
-    
-		/* Printing message */
-		aal_list_foreach_forward(list, walk) {
-			char *line = (char *)walk->data;
-
-			if (line && aal_strlen(line) > 0) {
-				fprintf(stream, "%s\n", line);
-				aal_free(line);
-			}
+		line_width += aal_strlen(word);
+		
+		if (line_width + 1 < screen_width) {
+			fprintf(stream, " ");
+			line_width++;
 		}
-    
-		aal_list_free(list);
 	}
+
+	fprintf(stream, "\n");
 }
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)

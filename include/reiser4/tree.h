@@ -58,9 +58,6 @@ extern void reiser4_tree_set_height(reiser4_tree_t *tree,
 extern void reiser4_tree_pack_set(reiser4_tree_t *tree,
 				  pack_func_t func);
 
-extern errno_t reiser4_tree_conv(reiser4_tree_t *tree,
-				 conv_hint_t *hint);
-
 extern int32_t reiser4_tree_fetch(reiser4_tree_t *tree,
 				  reiser4_place_t *place,
 				  trans_hint_t *hint);
@@ -70,11 +67,11 @@ extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   trans_hint_t *hint,
 				   uint8_t level);
 
-extern int32_t reiser4_tree_read(reiser4_tree_t *tree,
+extern int64_t reiser4_tree_read(reiser4_tree_t *tree,
 				 reiser4_place_t *place,
 				 trans_hint_t *hint);
 
-extern int32_t reiser4_tree_write(reiser4_tree_t *tree,
+extern int64_t reiser4_tree_write(reiser4_tree_t *tree,
 				  reiser4_place_t *place,
 				  trans_hint_t *hint,
 				  uint8_t level);
@@ -86,10 +83,13 @@ extern errno_t reiser4_tree_trav(reiser4_tree_t *tree,
 				 tree_edge_func_t after_func,
 				 void *data);
 
-extern int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
+extern errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
+				      conv_hint_t *hint);
+
+extern int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 				      trans_hint_t *hint);
 
-extern int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
+extern int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				       trans_hint_t *hint);
 
 extern int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,

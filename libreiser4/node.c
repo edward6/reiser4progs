@@ -846,7 +846,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 }
 
 /* Node modifying fucntion. */
-int32_t reiser4_node_mod(
+int64_t reiser4_node_mod(
 	reiser4_node_t *node,	         /* node item will be inserted in */
 	pos_t *pos,                      /* pos item will be inserted at */
 	trans_hint_t *hint,              /* item hint to be inserted */
@@ -906,7 +906,7 @@ errno_t reiser4_node_insert(reiser4_node_t *node,
 	return reiser4_node_mod(node, pos, hint, 1);
 }
 
-int32_t reiser4_node_write(reiser4_node_t *node,
+int64_t reiser4_node_write(reiser4_node_t *node,
 			   pos_t *pos, trans_hint_t *hint)
 {
 	aal_assert("umka-2445", node != NULL);
@@ -934,7 +934,7 @@ errno_t reiser4_node_remove(
 	if ((res = plug_call(node->entity->plug->o.node_ops,
 			     remove, node->entity, pos, hint)))
 	{
-		aal_exception_error("Can't remove %u items/units "
+		aal_exception_error("Can't remove %llu items/units "
 				    "from node %llu.", hint->count,
 				    node_blocknr(node));
 		return res;

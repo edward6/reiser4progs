@@ -23,8 +23,8 @@ extern uint64_t reiser4_object_size(reiser4_object_t *object);
 extern errno_t reiser4_object_seek(reiser4_object_t *object,
 				   uint32_t offset);
 
-extern int32_t reiser4_object_read(reiser4_object_t *object,
-				   void *buff, uint32_t n);
+extern int64_t reiser4_object_read(reiser4_object_t *object,
+				   void *buff, uint64_t n);
 
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
@@ -77,7 +77,7 @@ extern errno_t reiser4_object_link(reiser4_object_t *object,
 extern errno_t reiser4_object_unlink(reiser4_object_t *object,
 				     const char *name);
 
-extern int32_t reiser4_object_write(reiser4_object_t *object,
+extern int64_t reiser4_object_write(reiser4_object_t *object,
 				    void *buff, uint64_t n);
 
 extern errno_t reiser4_object_add_entry(reiser4_object_t *object,

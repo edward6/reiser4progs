@@ -167,7 +167,7 @@ uint32_t cde40_units(place_t *place) {
 	return cde_get_units(place);
 }
 
-static int32_t cde40_fetch(place_t *place, trans_hint_t *hint) {
+static int64_t cde40_fetch(place_t *place, trans_hint_t *hint) {
 	uint32_t i, pos;
 	entry_hint_t *entry;
     
@@ -675,7 +675,7 @@ static errno_t cde40_estimate_insert(place_t *place,
 }
 
 /* Inserts new entries to cde item */
-static int32_t cde40_insert(place_t *place,
+static int64_t cde40_insert(place_t *place,
 			    trans_hint_t *hint)
 {
 	void *entry;

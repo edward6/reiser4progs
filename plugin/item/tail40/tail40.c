@@ -29,7 +29,7 @@ errno_t tail40_get_key(place_t *place,
 	return body40_get_key(place, pos, key, NULL);
 }
 
-static int32_t tail40_read(place_t *place, trans_hint_t *hint) {
+static int64_t tail40_read(place_t *place, trans_hint_t *hint) {
 	uint32_t count;
 	
 	aal_assert("umka-1674", hint != NULL);
@@ -77,7 +77,7 @@ static errno_t tail40_estimate_write(place_t *place,
 }
 
 /* Rewrites tail from passed @pos by data from hint */
-static int32_t tail40_write(place_t *place,
+static int64_t tail40_write(place_t *place,
 			    trans_hint_t *hint)
 {
 	uint32_t count, pos;

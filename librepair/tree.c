@@ -579,15 +579,15 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 
 			hint.bytes = 0;
 			hint.plug = src->plug;
-			hint.place = (place_t *)&dst;
+			reiser4_key_assign(&hint.offset, &dst.key);
 			
 			/* FIXME-UMKA->VITALY: This should be fixed to right
 			   item size, which depends on size stat data field for
 			   the last item in file. */
-			hint.size = plug_call(dst.plug->o.item_ops,
+			hint.count = plug_call(dst.plug->o.item_ops,
 					      size, (place_t *)&dst);
 
-			if ((res = reiser4_tree_conv(tree, &hint)))
+			if ((res = reiser4_tree_conv_flow(tree, &hint)))
 				return res;
 			
 			/* Repeat lookup after @dst conversion. */

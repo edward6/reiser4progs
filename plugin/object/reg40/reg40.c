@@ -78,8 +78,8 @@ errno_t reg40_reset(object_entity_t *entity) {
 }
 
 /* Reads @n bytes to passed buffer @buff */
-static int32_t reg40_read(object_entity_t *entity, 
-			  void *buff, uint32_t n)
+static int64_t reg40_read(object_entity_t *entity, 
+			  void *buff, uint64_t n)
 {
 	errno_t res;
 	reg40_t *reg;
@@ -305,10 +305,8 @@ errno_t reg40_convert(object_entity_t *entity,
 		      reiser4_plug_t *plug) 
 {
 	reg40_t *reg;
-	place_t place;
 	uint64_t fsize;
 	conv_hint_t hint;
-	key_entity_t key;
 
 	aal_assert("umka-2467", plug != NULL);
 	aal_assert("umka-2466", entity != NULL);
@@ -316,41 +314,26 @@ errno_t reg40_convert(object_entity_t *entity,
 	reg = (reg40_t *)entity;
 	fsize = reg40_size(entity);
 
+	/* Getting file data start key */
 	plug_call(reg->offset.plug->o.key_ops, assign,
-		  &key, &reg->offset);
+		  &hint.offset, &reg->offset);
 	
 	plug_call(reg->offset.plug->o.key_ops, set_offset,
-		  &key, 0);
-	
-	/* Looking for item to be converted */
-	switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-			     FIND_EXACT, &place))
-	{
-	case PRESENT:
-		break;
-	default:
-		return -EIO;
-	}
+		  &hint.offset, 0);
 	
 	/* Prepare convert hint. */
 	hint.bytes = 0;
-	hint.size = fsize;
 	hint.plug = plug;
-	hint.place = &place;
+	hint.count = fsize;
 
-	/* Converting item. */
+	/* Converting file data. */
 	if (rcore->tree_ops.conv(reg->obj.info.tree,
 				 &hint))
 	{
-		aal_exception_error("Can't convert item "
-				    "%s at %llu:%u to %s.",
-				    place.plug->label,
-				    place.block->nr,
-				    place.pos.item,
-				    plug->label);
 		return -EIO;
 	}
-	
+
+	/* Updating stat data fields. */
 	return obj40_touch(&reg->obj, fsize,
 			   hint.bytes, time(NULL));
 }
@@ -513,8 +496,8 @@ static int32_t reg40_cut(object_entity_t *entity,
 }
 
 /* Writes "n" bytes from "buff" to passed file */
-static int32_t reg40_write(object_entity_t *entity, 
-			   void *buff, uint32_t n) 
+static int64_t reg40_write(object_entity_t *entity, 
+			   void *buff, uint64_t n) 
 {
 	int32_t res;
 	reg40_t *reg;

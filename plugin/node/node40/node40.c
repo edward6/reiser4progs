@@ -674,7 +674,7 @@ static errno_t node40_insert(node_entity_t *entity,
 	return node40_mod(entity, pos, hint, 1);
 }
 
-static int32_t node40_write(node_entity_t *entity,
+static int64_t node40_write(node_entity_t *entity,
 			    pos_t *pos, trans_hint_t *hint)
 {
 	aal_assert("umka-2449", pos != NULL);
@@ -714,7 +714,7 @@ static int64_t node40_truncate(node_entity_t *entity, pos_t *pos,
 
 	/* Updating key if it makes sence, that is we has not truncated whole
 	   item. */
-	if ((int32_t)place.len > hint->len + hint->ohd) {
+	if (place.len > hint->len + hint->ohd) {
 		pol = node40_key_pol(node);
 		ih = node40_ih_at(node, place.pos.item);
 		aal_memcpy(ih, place.key.body, key_size(pol));

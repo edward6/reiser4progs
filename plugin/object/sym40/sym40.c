@@ -43,8 +43,8 @@ object_entity_t *sym40_open(object_info_t *info) {
 }
 
 /* Reads @n bytes to passed buffer @buff */
-static int32_t sym40_read(object_entity_t *entity, 
-			  void *buff, uint32_t n)
+static int64_t sym40_read(object_entity_t *entity, 
+			  void *buff, uint64_t n)
 {
 	sym40_t *sym;
 	errno_t res;
