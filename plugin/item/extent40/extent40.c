@@ -234,40 +234,55 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 		uint32_t size;
 		uint64_t blk, start;
 
+		/* Size to read */
+		if ((size = count) > blksize - (read_offset % blksize))
+			size = blksize - (read_offset % blksize);
+		
 		/* Calculating start block for read */
 		start = blk = et40_get_start(extent40_body(place) + i) +
 			((hint->offset - extent40_offset(place, i)) / blksize);
 
-		/* Loop though the extent blocks */
-		while (blk < start + et40_get_width(extent40_body(place) + i) &&
-		       count > 0)
-		{
-			if ((size = count) > blksize - (read_offset % blksize))
-				size = blksize - (read_offset % blksize);
-			
-			block_offset = read_offset - (read_offset & (blksize - 1));
-			plug_call(key.plug->o.key_ops, set_offset, &key, block_offset);
-		
-			if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
-				if (!(block = aal_block_load(extent40_device(place),
-							     blksize, blk)))
-				{
-					return -EIO;
-				}
-			
-				core->tree_ops.set_data(hint->tree, &key, block);
-			}
-
-			aal_memcpy(buff, block->data +
-				   (read_offset % blksize), size);
-
-			buff += size;
+		/* Handle hole */
+		if (start == 0) {
+			aal_memset(buff, 0, size);
 			count -= size;
-			read_offset += size;
+		} else {
+			extent40_t *extent = extent40_body(place);
+			
+			while (blk < start + et40_get_width(extent + i) &&
+			       count > 0)
+			{
+				block_offset = read_offset - (read_offset &
+							      (blksize - 1));
 
-			if ((read_offset % blksize) == 0) {
-				blk++;
+				plug_call(key.plug->o.key_ops, set_offset,
+					  &key, block_offset);
+		
+				if (!(block = core->tree_ops.get_data(hint->tree,
+								      &key)))
+				{
+					aal_device_t *device = extent40_device(place);
+				
+					if (!(block = aal_block_load(device, blksize,
+								     blk)))
+					{
+						return -EIO;
+					}
+					core->tree_ops.set_data(hint->tree, &key, block);
+				}
+
+				aal_memcpy(buff, block->data +
+					   (read_offset % blksize), size);
+
+				count -= size;
 			}
+		}
+
+		buff += size;
+		read_offset += size;
+
+		if ((read_offset % blksize) == 0) {
+			blk++;
 		}
 	}
 	
