@@ -8,7 +8,7 @@
 
 #include <repair/librepair.h>
 
-#define SUPER(master) ((reiser4_master_sb_t *)master->block->data)
+#define SUPER(master) (&master->super)
 
 /* Checks the blocksize. */
 static int callback_bs_check (int64_t val, void * data) {

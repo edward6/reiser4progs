@@ -88,7 +88,8 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 		if (!(entity = plugin_call(plugin->file_ops, open, 
 					   file->fs->tree, place)))
 		{
-			aal_exception_error("Can't open parent of %s.", track);
+			aal_exception_error("Can't open parent of %s.",
+					    track);
 			return -1;
 		}
 
@@ -118,6 +119,12 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	
 	file = (reiser4_file_t *)data;
 
+	if (reiser4_file_stat(file)) {
+		aal_exception_error("Can't find stat data of %s.",
+				    track);
+		return -1;
+	}
+	
 	/* Getting file plugin */
 	if (!(plugin = reiser4_file_plugin(file))) {
 		aal_exception_error("Can't find file plugin for %s.",
@@ -125,7 +132,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 		return -1;
 	}
 
-	/* Opening currect diretory */
+	/* Opening currect directory */
 	place = (place_t *)&file->place;
 		
 	if (!(entity = plugin_call(plugin->file_ops, open, 

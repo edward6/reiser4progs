@@ -132,6 +132,10 @@ char *aal_strrchr(const char *s, int c) {
 			return p_s;
 		p_s--;
 	}
+
+	if (*p_s == c)
+		return p_s;
+	
 	return NULL;
 }
 

@@ -303,7 +303,7 @@ static errno_t callback_find_statdata(char *track,
 	}
 
 	if (sym->obj.core->tree_ops.realize(sym->obj.tree,
-					     &sym->obj.statdata))
+					    &sym->obj.statdata))
 		return -1;
 	
 	/* Getting file plugin */
@@ -349,8 +349,10 @@ static errno_t callback_find_entry(char *track, char *entry,
 	sym40_t *sym;
 	place_t *place;
 	item_entity_t *item;
+	
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
+	reiser4_entry_hint_t entry_hint;
 	
 	sym = (sym40_t *)data;
 	place = &sym->obj.statdata;
@@ -374,13 +376,18 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(plugin->file_ops, lookup, entity,
-			entry, &sym->obj.key) != LP_PRESENT)
+			entry, &entry_hint) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
 	}
 
 	plugin_call(plugin->file_ops, close, entity);
+
+	/* Assign found key to symlink's object stat data key */
+	plugin_call(item->key.plugin->key_ops, assign,
+		    &sym->obj.key, &entry_hint.object);
+	
 	return 0;
 	
  error_free_entity:
