@@ -14,7 +14,6 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 					  uint64_t count, void *data) 
 {
 	repair_ts_t *ts = (repair_ts_t *)data;
-	errno_t res = 0;
 	
 	aal_assert("vpf-385", ts != NULL);
 	aal_assert("vpf-567", ts->bm_met != NULL);

@@ -9,8 +9,6 @@
 
 #include "debugfs.h"
 
-#define TREE_SIGN "TREE"
-
 static errno_t debugfs_pack_tree(reiser4_fs_t *fs,
 				 aal_stream_t *stream)
 {
@@ -19,7 +17,6 @@ static errno_t debugfs_pack_tree(reiser4_fs_t *fs,
 	errno_t res;
 
 	/* Packing tree. */
-	aal_stream_write(stream, TREE_SIGN, 4);
 	len = reiser4_format_get_len(fs->format);
 	
 	for (blk = 0; blk < len; blk++) {
