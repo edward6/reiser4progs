@@ -121,7 +121,7 @@ enum reiser4_hash_plug_id {
 	HASH_R5_ID		= 0x1,
 	HASH_TEA_ID		= 0x2,
 	HASH_FNV1_ID		= 0x3,
-	HASH_DEGENERATE_ID	= 0x4
+	HASH_DEG_ID             = 0x4
 };
 
 typedef enum reiser4_hash_plug_id reiser4_hash_plug_id_t;

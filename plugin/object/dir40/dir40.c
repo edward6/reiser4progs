@@ -95,7 +95,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 #ifdef ENABLE_COLLISIONS
-	dir->adjust = dir->offset.adjust;
+	dir->adjust = offset->adjust;
 #endif
 	
 	plug_call(dir->offset.plug->o.key_ops,
@@ -296,7 +296,7 @@ errno_t dir40_readdir(object_entity_t *entity,
 			return res;
 
 #ifdef ENABLE_COLLISIONS
-		/* Taking care about adjusting  adjust */
+		/* Taking care about adjust */
 		if (!plug_call(temp.offset.plug->o.key_ops,
 			       compfull, &temp.offset, &dir->offset))
 		{
@@ -357,7 +357,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	while (1) {
 		uint32_t units;
 		entry_hint_t temp;
-			
+		
 		units = plug_call(dir->body.plug->o.item_ops,
 				  units, &dir->body);
 

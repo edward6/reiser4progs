@@ -811,16 +811,14 @@ static errno_t cde_short_print(place_t *place,
 		/* Cutting name by 16 symbols */
 		if (aal_strlen(name) > 16) {
 			for (j = 0; j < 3; j++)
-				name[14 + j] = '.';
+				name[13 + j] = '.';
 
-			name[14 + j] = '\0';
+			name[13 + j] = '\0';
 		}
 
 		locality = ob_get_locality(objid);
 		objectid = ob_get_objectid(objid);
-		
-		namewidth = aal_strlen(name) < 16 ? 16 -
-			aal_strlen(name) + 1 : 1;
+		namewidth = 16 - aal_strlen(name) + 1;
 
 		offset = ha_get_offset(&entry->hash);
 		haobjectid = ha_get_objectid(&entry->hash);

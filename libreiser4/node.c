@@ -277,7 +277,7 @@ errno_t reiser4_node_realize(
 	}
 
 	/* Getting position by means of linear traverse */
-#ifdef ENABLE_COLLISIONS
+#if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
 	if (!(node->flags & NF_FOREIGN)) {
 		for (i = 0; i < reiser4_node_items(parent->node); i++) {
 			parent->pos.item = i;

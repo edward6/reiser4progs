@@ -256,6 +256,11 @@ AC_ARG_ENABLE(tea_hash,
         enable_tea_hash=yes
 )
 
+AC_ARG_ENABLE(deg_hash,
+    [  --disable-deg-hash       disable degenerate hash plugin in stand alone library ], ,
+        enable_deg_hash=yes
+)
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -398,6 +403,10 @@ if test x$enable_stand_alone = xyes; then
 	TEA_HASH_CFLAGS="-DENABLE_TEA_HASH"
     fi
 
+    if test x$enable_deg_hash = xyes; then
+	DEG_HASH_CFLAGS="-DENABLE_DEG_HASH"
+    fi
+
     if test x$with_keys = xlarge; then
 	LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
     fi
@@ -413,12 +422,12 @@ if test x$enable_stand_alone = xyes; then
 
     ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $COLLISION_CFLAGS \
 $PLUGINS_CHECK_CFLAGS $SYMLINKS_CFLAGS $R5_HASH_CFLAGS $FNV1_HASH_CFLAGS \
-$RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS $ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS"
+$RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS $DEG_HASH_CFLAGS $ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS"
 fi
 
 GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_COLLISIONS -DENABLE_PLUGINS_CHECK \
 -DENABLE_SYMLINKS -DENABLE_R5_HASH -DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH \
--DENABLE_TEA_HASH -DENABLE_LARGE_KEYS -DENABLE_SHORT_KEYS"
+-DENABLE_TEA_HASH -DENABLE_DEG_HASH -DENABLE_LARGE_KEYS -DENABLE_SHORT_KEYS"
 
 if test x$enable_debug = xyes; then
     GENERIC_CFLAGS="$GENERIC_CFLAGS -O0 -g"
@@ -502,6 +511,7 @@ AC_OUTPUT([
     plugin/hash/Makefile
     plugin/hash/r5_hash/Makefile
     plugin/hash/tea_hash/Makefile
+    plugin/hash/deg_hash/Makefile
     plugin/hash/rupasov_hash/Makefile
     plugin/hash/fnv1_hash/Makefile
     plugin/sdext/Makefile

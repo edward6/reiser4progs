@@ -45,6 +45,8 @@ int main(int argc, char *argv[]) {
 		return 0xff;
 	}
     
+	misc_profile_override("hash=deg_hash");
+		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
 	{
@@ -115,14 +117,14 @@ int main(int argc, char *argv[]) {
 		reg_hint.body.reg.tail = ITEM_TAIL40_ID;
 		reg_hint.body.reg.extent = ITEM_EXTENT40_ID;
 		reg_hint.body.reg.policy = TAIL_NEVER_ID;
-		
+
 		{
 			int i;
 			char name[256];
 			reiser4_object_t *object;
 	    
-			for (i = 0; i < 5000; i++) {
-				aal_snprintf(name, 256, "file%d", i);
+			for (i = 0; i < 40; i++) {
+				aal_snprintf(name, 256, "very long test file name%d", i);
 
 				if (!(object = reiser4_object_create(fs->tree, dir,
 								     &reg_hint)))
