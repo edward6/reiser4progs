@@ -219,18 +219,6 @@ static errno_t journal40_sync(reiser4_entity_t *entity) {
     return 0;
 }
 
-#endif
-
-static void journal40_close(reiser4_entity_t *entity) {
-    journal40_t *journal = (journal40_t *)entity;
-    
-    aal_assert("umka-411", entity != NULL, return);
-
-    aal_block_free(journal->header);
-    aal_block_free(journal->footer);
-    aal_free(journal);
-}
-
 static errno_t journal40_replay_transaction(journal40_t *journal, 
     aal_block_t *tx_block) 
 {
@@ -381,6 +369,18 @@ static int journal40_replay(reiser4_entity_t *entity) {
     return trans_nr;
 }
 
+#endif
+
+static void journal40_close(reiser4_entity_t *entity) {
+    journal40_t *journal = (journal40_t *)entity;
+    
+    aal_assert("umka-411", entity != NULL, return);
+
+    aal_block_free(journal->header);
+    aal_block_free(journal->footer);
+    aal_free(journal);
+}
+
 static reiser4_plugin_t journal40_plugin = {
     .journal_ops = {
 	.h = {
@@ -392,17 +392,17 @@ static reiser4_plugin_t journal40_plugin = {
 	    .desc = "Default journal for reiserfs 4.0, ver. " VERSION,
 	},
 	.open	= journal40_open,
-	
 #ifndef ENABLE_COMPACT
 	.create	= journal40_create,
 	.sync	= journal40_sync,
+	.replay = journal40_replay,
 #else
 	.create = NULL,
 	.sync	= NULL,
+	.replay = NULL,
 #endif
 	.valid	= journal40_valid,
 	.close	= journal40_close,
-	.replay = journal40_replay,
 	.device = journal40_device
     }
 };

@@ -15,7 +15,7 @@
     Memory and string working functions. They are full analog of standard ones.
     See corresponding man page for details.
 */
-void *aal_memset(void *dest, char c, uint32_t n) {
+void *aal_memset(void *dest, int c, uint32_t n) {
     char *dest_p = (char *)dest;
 
     for (; (int)dest_p - (int)dest < (int)n; dest_p++)

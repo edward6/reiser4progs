@@ -25,7 +25,7 @@ int64_t aal_ui_get_numeric(int64_t defvalue,
     if (!numeric_handler)
 	return ~0ll;
     
-    aal_memset(buff, sizeof(buff), 0);
+    aal_memset(buff, 0, sizeof(buff));
     
     va_start(arg_list, format);
     aal_vsnprintf(buff, sizeof(buff), format, arg_list);
@@ -54,7 +54,7 @@ char *aal_ui_get_alpha(char *defvalue,
     if (!alpha_handler)
 	return NULL;
     
-    aal_memset(buff, sizeof(buff), 0);
+    aal_memset(buff, 0, sizeof(buff));
     
     va_start(arg_list, format);
     aal_vsnprintf(buff, sizeof(buff), format, arg_list);

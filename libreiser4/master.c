@@ -236,7 +236,6 @@ void reiser4_master_close(
     aal_free(master);
 }
 
-/* Prints master super block to passed @buff */
 char *reiser4_master_magic(reiser4_master_t *master) {
     aal_assert("umka-982", master != NULL, return NULL);
     return master->super->mr_magic;
