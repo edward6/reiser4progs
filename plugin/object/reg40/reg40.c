@@ -265,8 +265,8 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
     
+	lw_ext.nlink = 1;
 	lw_ext.mode = S_IFREG | 0755;
-	lw_ext.nlink = 2;
 
 	/* This should be modified by write function later */
 	lw_ext.size = 0;

@@ -494,8 +494,11 @@ static errno_t reiser4_tree_key(
 	}
     
 	/* Getting root directory attributes from oid allocator */
-	locality = plugin_call(oid->entity->plugin->oid_ops, root_locality,);
-	objectid = plugin_call(oid->entity->plugin->oid_ops, root_objectid,);
+	locality = plugin_call(oid->entity->plugin->oid_ops,
+			       root_locality,);
+	
+	objectid = plugin_call(oid->entity->plugin->oid_ops,
+			       root_objectid,);
 
 	/* Initializing the key by found plugin */
 	tree->key.plugin = plugin;
