@@ -951,9 +951,9 @@ static errno_t node40_shift(object_entity_t *entity,
 			    object_entity_t *target, 
 			    shift_hint_t *hint)
 {
-	uint32_t i;
 	int mergeable;
 	void *dst, *src;
+	uint32_t i, size;
 	uint32_t src_items;
 	uint32_t dst_items;
 
@@ -1043,21 +1043,27 @@ static errno_t node40_shift(object_entity_t *entity,
 				ih40_dec_offset(ih, hint->bytes);
 		}
 	} else {
-		/* Preparing space in dst node */
+		uint32_t offset;
+		
+		/* Preparing space for headers in dst node */
 		if (dst_items > 0) {
 			src = node40_ih_at(dst_node, dst_items - 1);
 			dst = src - headers_size;
-		
-			aal_memmove(dst, src, headers_size);
 
-			/* Preparing space for moving item bodies in destination
-			 * node */
-			ih = ((item40_header_t *)dst);
-		
-			src = dst_node->block->data + ih40_get_offset(ih);
+			size = dst_items * sizeof(item40_header_t);
+			
+			aal_memmove(dst, src, size);
+
+			ih = (item40_header_t *)dst;
+
+			/* Preparing space for bodies in dst node */
+			src = dst_node->block->data + sizeof(node40_header_t);
 			dst = src + hint->bytes;
 
-			aal_memmove(dst, src, hint->bytes);
+			size = nh40_get_free_space_start(dst_node) -
+				sizeof(node40_header_t);
+			
+			aal_memmove(dst, src, size);
 
 			/* Updating item headers */
 			for (i = 0; i < dst_items; i++, ih++)
@@ -1071,15 +1077,18 @@ static errno_t node40_shift(object_entity_t *entity,
 		aal_memcpy(dst, src, headers_size);
 
 		/* Updating item headers in dst node */
-		ih = (item40_header_t *)dst;
+		ih = node40_ih_at(src_node, src_items -
+				  hint->items - 1);
 		
-		for (i = 0; i < hint->items; i++, ih++) {
-			uint32_t offset = ih40_get_offset(ih);
-			ih40_set_offset(ih, offset - (offset - sizeof(item40_header_t)));
-		}
+		offset = ih40_get_offset(ih);
 		
-		/* Copying item bodies from src node to dst*/
-		ih = node40_ih_at(src_node, src_items - hint->items);
+		ih = node40_ih_at(dst_node, 0);
+		
+		for (i = 0; i < hint->items; i++, ih--)
+			ih40_dec_offset(ih, offset);
+
+		/* Copying item bodies from src node to dst */
+		ih = node40_ih_at(src_node, src_items - hint->items - 1);
 		src = src_node->block->data + ih40_get_offset(ih);
 		dst = dst_node->block->data + sizeof(node40_header_t);
 
@@ -1097,7 +1106,7 @@ static errno_t node40_shift(object_entity_t *entity,
 	nh40_dec_free_space_start(src_node, hint->bytes);
 
 	/*
-	  If after moving the items we will have some amount of free space in
+	  If after moving the items we still having some amount of free space in
 	  destination node, we should try to shift units from the last item to
 	  first item of destination node.
 	*/
