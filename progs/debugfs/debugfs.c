@@ -176,7 +176,19 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 }
 
 static errno_t debugfs_print_super(reiser4_fs_t *fs) {
-    aal_exception_error("Sorry, not implemented yet!");
+    char buff[4096];
+
+    aal_memset(buff, 0, sizeof(buff));
+    
+    if (plugin_call(return -1, fs->format->entity->plugin->format_ops,
+	print, fs->format->entity, buff, sizeof(buff), 0))
+    {
+	aal_exception_error("Can't print format specific super block.");
+	return -1;
+    }
+    
+    printf(buff);
+    
     return 0;
 }
 
