@@ -82,7 +82,7 @@ void repair_object_init(repair_object_t *hint, reiser4_tree_t *tree) {
 
 /* Try to recognized the object plugin by the given @hint->place. */
 static errno_t repair_object_pullout(repair_object_t *hint, 
-    reiser4_place_t *place, reiser4_key_t *key) 
+    reiser4_place_t *place, reiser4_key_t *parent, reiser4_key_t *key)
 {
     lookup_t lookup = PRESENT;
     rid_t pid = INVAL_PID;
@@ -90,13 +90,14 @@ static errno_t repair_object_pullout(repair_object_t *hint,
     aal_assert("vpf-1083", hint != NULL); 
     aal_assert("vpf-1084", hint->tree != NULL); 
     
-    aal_assert("vpf-1085", (key != NULL && key->plugin != NULL) || 
-	place != NULL);
+    aal_assert("vpf-1085", (key != NULL && key->plugin != NULL && 
+	parent != NULL) || place != NULL);
 
     if (key != NULL) {
 	/* Pull out by key. */
 	
 	hint->key = key;
+	hint->parent = parent;
 	aal_memset(&hint->place, 0, sizeof(*place));
 	
 	/* Looking for place to insert directory stat data */
@@ -108,6 +109,7 @@ static errno_t repair_object_pullout(repair_object_t *hint,
     } else {
 	/* Pull out by place. */
 	hint->key = NULL;
+	hint->parent = NULL;
 	
 	aal_memcpy(&hint->place, place, sizeof(*place));
     }
@@ -155,12 +157,14 @@ static errno_t repair_object_pullout(repair_object_t *hint,
 
 /* Realize the object plugin by the given @place. */
 errno_t repair_object_realize(repair_object_t *hint, reiser4_place_t *place) {
-    return repair_object_pullout(hint, place, NULL);
+    return repair_object_pullout(hint, place, NULL, NULL);
 }
 
 /* Realize the object plugin by the given @key. */
-errno_t repair_object_launch(repair_object_t *hint, reiser4_key_t *key) {
-    return repair_object_pullout(hint, NULL, key);
+errno_t repair_object_launch(repair_object_t *hint, reiser4_key_t *parent, 
+    reiser4_key_t *key) 
+{
+    return repair_object_pullout(hint, NULL, parent, key);
 }
 
 reiser4_object_t *repair_object_open(repair_object_t *hint) {
@@ -211,7 +215,7 @@ errno_t repair_object_traverse(reiser4_object_t *object) {
 	/* Some entry was read. Try to detect the object of the paticular plugin
 	 * pointed by this entry. */
 	
-	if (repair_object_launch(&hint, &entry.object)) {
+	if (repair_object_launch(&hint, &object->parent, &entry.object)) {
 	    /* Some problems with the object recovery appeared, rm the entry. */
 	
 	    if ((res = reiser4_object_rem_entry(object, &entry))) {

@@ -1,5 +1,5 @@
 /*
-    semantic.c -- repair/semantic.c -- semantic pass recovery code.
+    repair/semantic.c -- semantic pass recovery code.
   
     Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
     reiser4progs/COPYING.
@@ -34,15 +34,15 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
     
     /* This is really an object, check its structure. */
     if ((res = repair_object_check_struct(&hint, sem->repair->mode))) {
-	aal_exception_error("Node %llu, item %u: Check of the object openned "
-	    "on the item failed.", place->node->blk, place->pos.item);
+	aal_exception_error("Node %llu, item %u: check of the object structure "
+	    "failed.", place->node->blk, place->pos.item);
 	return res;
     }
     
     /* Open the object and traverse its child pointers. */
     if ((object = repair_object_open(&hint)) == NULL) {
-	aal_exception_error("Node %llu, item %u: Object openning failed for "
-	    "%k.", place->node->blk, place->pos.item, &hint.place.item.key);
+	aal_exception_error("Node %llu, item %u: failed to open an object %k.",
+	    place->node->blk, place->pos.item, &hint.place.item.key);
 	return -EINVAL;
     }
 	
@@ -100,7 +100,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
     repair_object_init(&object, fs->tree);
 
     /* Make sure that '/' exists. */
-    if (repair_object_launch(&object, &fs->tree->key)) {
+    if (repair_object_launch(&object, &fs->tree->key, &fs->tree->key)) {
 	reiser4_object_t *root;
 	
 	/* Failed to realize the root directory, create a new one. */	

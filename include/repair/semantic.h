@@ -1,5 +1,5 @@
 /*
-    repair/filter.h -- the structures and methods needed for semantic 
+    repair/semantic.h -- the structures and methods needed for semantic 
     pass of fsck.
 
     Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by

@@ -28,12 +28,12 @@ typedef struct repair_object {
     reiser4_tree_t *tree;
 
     /* Pointer to the parent object. */
-    reiser4_object_t *parent;
+    key_entity_t *parent;
 } repair_object_t;
 
 extern void repair_object_init(repair_object_t *hint, reiser4_tree_t *tree);
 extern errno_t repair_object_launch(repair_object_t *hint, 
-    reiser4_key_t *key);
+    reiser4_key_t *parent, reiser4_key_t *key);
 extern errno_t repair_object_realize(repair_object_t *hint, 
     reiser4_place_t *place);
 
