@@ -537,9 +537,14 @@ static errno_t reiser4_tree_shift(
 	int move_ip)		/* should we move insert point too */
 {
 	uint32_t overhead;
-
 	reiser4_coord_t old;
 	reiser4_coord_t src, dst;
+
+	int retval;
+	reiser4_key_t ldkey;
+	shift_flags_t flags = 0;
+	reiser4_coord_t ldcoord;
+	reiser4_pos_t ldpos = {0, ~0ul};
     
 	aal_assert("umka-1225", tree != NULL, return -1);
 	aal_assert("umka-1226", coord != NULL, return -1);
@@ -550,14 +555,52 @@ static errno_t reiser4_tree_shift(
 
 	old = *coord;
 
-/*	{
-		shift_flags_t flags = 0;
-		flags |= (direction == D_LEFT ? SF_LEFT : SF_RIGHT);
-		if (move_ip)
-			flags |= SF_MOVIP;
-		plugin_call(, coord->joint->node->entity->plugin->node_ops, shift,
-			    old.joint->node->entity, joint->node->entity, &old.pos, flags);
-	}*/
+/*	flags |= (direction == D_LEFT ? SF_LEFT : SF_RIGHT);
+		
+	if (move_ip)
+		flags |= SF_MOVIP;
+
+	retval = plugin_call(return -1, joint->node->entity->plugin->node_ops,
+			      shift, old.u.joint->node->entity, joint->node->entity,
+			      &coord->pos, flags);
+
+	if (retval < 0)
+		return retval;
+
+	if (retval)
+		coord->u.joint = joint;
+
+	if (reiser4_node_count(old.u.joint->node) == 0) {
+		old.u.joint->flags &= ~JF_DIRTY;
+		reiser4_tree_release(tree, old.u.joint);
+		old.u.joint = NULL;
+	}
+
+	if (direction == D_LEFT) {
+		if (old.u.joint && old.u.joint->parent) {
+			if (reiser4_coord_open(&ldcoord, old.u.joint, CT_JOINT, &ldpos))
+				return -1;
+
+			if (reiser4_item_key(&ldcoord, &ldkey))
+				return -1;
+				
+			if (reiser4_joint_update(old.u.joint->parent, &ldpos, &ldkey))
+				return -1;
+		}
+	} else {
+		if (joint->parent) {
+			if (reiser4_coord_open(&ldcoord, joint, CT_JOINT, &ldpos))
+				return -1;
+
+			if (reiser4_item_key(&ldcoord, &ldkey))
+				return -1;
+				
+			if (reiser4_joint_update(joint, &ldpos, &ldkey))
+				return -1;
+		}
+	}
+		
+	return 0;*/
 
 	while (1) {
     
@@ -778,7 +821,7 @@ errno_t reiser4_tree_insert(
 
 	if (lookup == 1) {
 		aal_exception_error(
-			"Key (0x%llx 0x%x 0x%llx 0x%llx) already exists in tree.", 
+			"Key (0x%llx:0x%x:0x%llx:0x%llx) already exists in tree.", 
 			reiser4_key_get_locality(key), reiser4_key_get_type(key), 
 			reiser4_key_get_objectid(key), reiser4_key_get_offset(key));
 		return -1;

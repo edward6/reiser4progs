@@ -665,63 +665,94 @@ static int node40_lookup(object_entity_t *entity,
 #ifndef ENABLE_COMPACT
 
 struct node40_estimate {
+	int move_ip;
+	
 	node40_t *src;
 	node40_t *dst;
     
-	reiser4_pos_t *pos;
-	shift_flags_t flags;
-	
 	uint32_t bytes;
 	uint32_t items;
 	uint32_t part;
+
+	reiser4_pos_t *pos;
+	shift_flags_t flags;
 };
 
 typedef struct node40_estimate node40_estimate_t;
 
 static errno_t node40_estimate(node40_estimate_t *estimate) {
-	uint32_t items;
-	uint32_t len, space;
+	node40_t *node;
 	item40_header_t *end;
 	item40_header_t *cur;
-	item40_header_t *ins;
 	item40_header_t *start;
 
-	items = nh40_get_num_items(estimate->src);
-	space = node40_space((object_entity_t *)estimate->dst);
+	uint32_t len, dst_space;
+	uint32_t src_items, dst_items;
+
+	node = estimate->src;
+	src_items = nh40_get_num_items(estimate->src);
+	dst_items = nh40_get_num_items(estimate->dst);
 	
 	start = node40_ih_at(estimate->src, 0);
-	end = node40_ih_at(estimate->src, items - 1);
-	ins = node40_ih_at(estimate->src, estimate->pos->item);
-	
+	end = node40_ih_at(estimate->src, src_items - 1);
 	cur = (estimate->flags & SF_LEFT ? start : end);
 
-	/* Checking if insert point is at end of node */
-	if ((int)estimate->pos->item > nh40_get_num_items(estimate->src) - 1)
-		return 0;
+	dst_space = node40_space((object_entity_t *)estimate->dst);
 
 	while (1) {
-		len = (cur == end ? nh40_get_free_space_start(estimate->src) - 
-		       ih40_get_offset(cur) : ih40_get_offset(cur) - ih40_get_offset(cur + 1));
+		len = (cur == end ? nh40_get_free_space_start(node) - ih40_get_offset(cur) :
+		       ih40_get_offset(cur) - ih40_get_offset(cur + 1));
 
-		if (!(estimate->flags & SF_MOVIP)) {
-			if (cur == ins)
-				break;
-		} else {
-			if ((estimate->flags & SF_LEFT ? (cur > ins) : (cur < ins)))
-				break;
-		}
-
-		if (space < (len + sizeof(item40_header_t)))
+		if (dst_space < (len + sizeof(item40_header_t)))
 			break;
 
+		if (!(estimate->flags & SF_MOVIP) && node == estimate->src) {
+			if (estimate->flags & SF_LEFT) {
+				if (estimate->pos->item == 0)
+					break;
+			} else {
+				if (estimate->pos->item == src_items - 1)
+					break;
+			}
+		}
+
+		if (estimate->flags & SF_LEFT) {
+			if (node == estimate->src) {
+				if (estimate->pos->item == 0) {
+					estimate->move_ip = 1;
+					estimate->pos->item = dst_items;
+					node = estimate->dst;
+				} else
+					estimate->pos->item--;
+			}
+		} else {
+			if (node == estimate->src) {
+				if (estimate->pos->item >= src_items - 1) {
+					if (estimate->pos->item > src_items - 1) {
+						estimate->move_ip = 1;
+						estimate->pos->item = 0;
+						node = estimate->dst;
+						break;
+					}
+					
+					estimate->pos->item = 0;
+					node = estimate->dst;
+				}
+			} else
+				estimate->pos->item++;
+		}
+
+		src_items--;
+		dst_items++;
+		
 		estimate->items++;
 		estimate->bytes += len;
-		space -= (len + sizeof(item40_header_t));
+		dst_space -= (len + sizeof(item40_header_t));
 
 		cur += (estimate->flags & SF_LEFT ? -1 : 1);
 	}
 	
-	estimate->part = space;
+	estimate->part = dst_space;
 
 	return 0;
 }
@@ -749,31 +780,39 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	estimate.dst = (node40_t *)target;
 
 	if (node40_estimate(&estimate)) {
-		blk_t blk = aal_block_number(estimate.src->block);
-		aal_exception_error("Can't estimate shift for source node %llu, "
-				    "destination node %llu.", blk,
-				    aal_block_number(estimate.dst->block));
+		blk_t src_blk = aal_block_number(estimate.src->block);
+		blk_t dst_blk = aal_block_number(estimate.dst->block);
+
+		aal_exception_error("Can't estimate shift for source node "
+				    "%llu, destination node %llu.", src_blk,
+				    dst_blk);
 		return -1;
 	}
 
+	/* Nothing may be shifted */
+	if (estimate.items == 0)
+		return 0;
+	
 	dst_items = nh40_get_num_items(estimate.dst);
 	src_items = nh40_get_num_items(estimate.src);
 	headers_size = sizeof(item40_header_t) * estimate.items;
 
 	if (estimate.flags & SF_LEFT) {
 		ih = node40_ih_at(estimate.src, estimate.items - 1);
-		
-		/* Copying item headers from src node to dst */
-		dst = node40_ih_at(estimate.dst, dst_items - 1);
-		dst -= headers_size;
+
+		if (dst_items > 0) {
+			/* Copying item headers from src node to dst */
+			dst = node40_ih_at(estimate.dst, dst_items - 1);
+			dst -= headers_size;
 			
-		aal_memcpy(dst, ih, headers_size);
+			aal_memcpy(dst, ih, headers_size);
 
-		/* Copying item bodies from src node to dst */
-		src = ih40_get_offset(ih) + estimate.src->block->data;
-		dst = estimate.dst->block->data + nh40_get_free_space_start(estimate.dst);
+			/* Copying item bodies from src node to dst */
+			src = ih40_get_offset(ih) + estimate.src->block->data;
+			dst = estimate.dst->block->data + nh40_get_free_space_start(estimate.dst);
 
-		aal_memcpy(dst, src, estimate.bytes);
+			aal_memcpy(dst, src, estimate.bytes);
+		}
 
 		/* Updating item headers */
 		ih = (item40_header_t *)dst;
@@ -785,24 +824,27 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	} else {
 		/* Preparing space for moving item headers in destination
 		 * node */
-		src = node40_ih_at(estimate.dst, dst_items - 1);
-		dst = src - headers_size;
+		if (dst_items > 0) {
+			src = node40_ih_at(estimate.dst, dst_items - 1);
+			dst = src - headers_size;
 		
-		aal_memmove(dst, src, headers_size);
+			aal_memmove(dst, src, headers_size);
 
-		/* Preparing space for moving item bodies in destination
-		 * node */
-		ih = ((item40_header_t *)dst) + dst_items - 1;
+
+			/* Preparing space for moving item bodies in destination
+			 * node */
+			ih = ((item40_header_t *)dst) + dst_items - 1;
 		
-		src = estimate.dst->block->data + ih40_get_offset(ih);
-		dst = src + estimate.bytes;
+			src = estimate.dst->block->data + ih40_get_offset(ih);
+			dst = src + estimate.bytes;
 
-		aal_memmove(dst, src, estimate.bytes);
+			aal_memmove(dst, src, estimate.bytes);
 
-		/* Updating item headers */
-		for (i = 0; i < dst_items; i++, ih++) {
-			uint32_t offset = ih40_get_offset(ih);
-			ih40_set_offset(ih, offset + estimate.bytes);
+			/* Updating item headers */
+			for (i = 0; i < dst_items; i++, ih++) {
+				uint32_t offset = ih40_get_offset(ih);
+				ih40_set_offset(ih, offset + estimate.bytes);
+			}
 		}
 
 		/* Copying item headers */
@@ -846,7 +888,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	if (estimate.part > 0) {
 	}
 
-	return -1;
+	return estimate.move_ip;
 }
 
 #endif
