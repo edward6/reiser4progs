@@ -3,7 +3,7 @@
    
    extents.c -- extents only tail policy plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/plugin.h>
 
 static int extents_tails(uint64_t value) {

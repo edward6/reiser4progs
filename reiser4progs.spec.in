@@ -33,7 +33,7 @@ Development libraries and headers for developing reiser4 tools.
 %else
         --disable-debug \
 %endif
-        --enable-stand-alone \
+        --enable-libminimal \
         --disable-plugins-check \
         --disable-fnv1-hash \
         --disable-rupasov-hash \
@@ -56,7 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS BUGS COPYING CREDITS INSTALL NEWS README THANKS TODO
 %{_libdir}/libreiser4-1.0.so.*
-%{_libdir}/libreiser4-alone-1.0.so.*
+%{_libdir}/libreiser4-minimal-1.0.so.*
 %{_libdir}/librepair-1.0.so.*
 %{_sbindir}/cpfs.reiser4
 %{_sbindir}/debugfs.reiser4
@@ -74,7 +74,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/repair/*.h
 %{_datadir}/aclocal/libreiser4.m4
 %{_libdir}/libreiser4.*a
-%{_libdir}/libreiser4-alone.*a
+%{_libdir}/libreiser4-minimal.*a
 %{_libdir}/librepair.*a
 
 %changelog

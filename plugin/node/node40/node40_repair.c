@@ -3,7 +3,7 @@
    
    node40_repair.c -- reiser4 node with short keys. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include "node40.h"
 #include <repair/plugin.h>
 

@@ -7,7 +7,7 @@
 #ifndef AUX_BITMAP_H
 #define AUX_BITMAP_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <aal/libaal.h>
 
 #define AUX_BITMAP_MAGIC	"R4BtMp"

@@ -1,13 +1,13 @@
 SUBDIRS                         = format journal alloc oid node key hash \
                                   sdext item object policy fibre
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                      = libreiser4-plugin-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                      = libreiser4-plugin-minimal.la
 else
-ALONE_LIBS                      = 
+MINIMAL_LIBS                      = 
 endif
 
-noinst_LTLIBRARIES              = libreiser4-plugin.la $(ALONE_LIBS)
+noinst_LTLIBRARIES              = libreiser4-plugin.la $(MINIMAL_LIBS)
 
 libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     journal/journal40/libjournal40-static.la \
@@ -47,45 +47,45 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     fibre/ext_1_fibre/libext_1_fibre-static.la \
                                     fibre/ext_3_fibre/libext_3_fibre-static.la
 
-if ENABLE_STAND_ALONE
-libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
-                                    oid/oid40/liboid40-alone.la \
-                                    node/node40/libnode40-alone.la \
-                                    key/key_common/libkey_common-alone.la \
-                                    key/key_short/libkey_short-alone.la \
-                                    key/key_large/libkey_large-alone.la \
-                                    item/body40/libbody40-alone.la \
-                                    item/nodeptr40/libnodeptr40-alone.la \
-                                    item/cde40/libcde40-alone.la \
-                                    item/tail40/libtail40-alone.la \
-                                    item/extent40/libextent40-alone.la \
-                                    item/stat40/libstat40-alone.la \
-                                    item/bbox40/libbbox40-alone.la \
-                                    object/obj40/libobj40-alone.la \
-                                    object/dir40/libdir40-alone.la \
-                                    object/reg40/libreg40-alone.la \
-                                    object/sym40/libsym40-alone.la \
-                                    object/spl40/libspl40-alone.la \
-                                    sdext/sdext_unix/libsdext_unix-alone.la \
-                                    sdext/sdext_lw/libsdext_lw-alone.la \
-                                    sdext/sdext_lt/libsdext_lt-alone.la \
-                                    sdext/sdext_symlink/libsdext_symlink-alone.la \
-                                    sdext/sdext_plug/libsdext_plug-alone.la \
-                                    policy/tails/libtails-alone.la \
-                                    policy/extents/libextents-alone.la \
-                                    policy/smart/libsmart-alone.la \
-                                    hash/r5_hash/libr5_hash-alone.la \
-                                    hash/fnv1_hash/libfnv1_hash-alone.la \
-                                    hash/rupasov_hash/librupasov_hash-alone.la \
-                                    hash/tea_hash/libtea_hash-alone.la \
-                                    hash/deg_hash/libdeg_hash-alone.la \
-                                    fibre/lexic_fibre/liblexic_fibre-alone.la \
-                                    fibre/dot_o_fibre/libdot_o_fibre-alone.la \
-                                    fibre/ext_1_fibre/libext_1_fibre-alone.la \
-                                    fibre/ext_3_fibre/libext_3_fibre-alone.la
+if ENABLE_MINIMAL
+libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
+                                    oid/oid40/liboid40-minimal.la \
+                                    node/node40/libnode40-minimal.la \
+                                    key/key_common/libkey_common-minimal.la \
+                                    key/key_short/libkey_short-minimal.la \
+                                    key/key_large/libkey_large-minimal.la \
+                                    item/body40/libbody40-minimal.la \
+                                    item/nodeptr40/libnodeptr40-minimal.la \
+                                    item/cde40/libcde40-minimal.la \
+                                    item/tail40/libtail40-minimal.la \
+                                    item/extent40/libextent40-minimal.la \
+                                    item/stat40/libstat40-minimal.la \
+                                    item/bbox40/libbbox40-minimal.la \
+                                    object/obj40/libobj40-minimal.la \
+                                    object/dir40/libdir40-minimal.la \
+                                    object/reg40/libreg40-minimal.la \
+                                    object/sym40/libsym40-minimal.la \
+                                    object/spl40/libspl40-minimal.la \
+                                    sdext/sdext_unix/libsdext_unix-minimal.la \
+                                    sdext/sdext_lw/libsdext_lw-minimal.la \
+                                    sdext/sdext_lt/libsdext_lt-minimal.la \
+                                    sdext/sdext_symlink/libsdext_symlink-minimal.la \
+                                    sdext/sdext_plug/libsdext_plug-minimal.la \
+                                    policy/tails/libtails-minimal.la \
+                                    policy/extents/libextents-minimal.la \
+                                    policy/smart/libsmart-minimal.la \
+                                    hash/r5_hash/libr5_hash-minimal.la \
+                                    hash/fnv1_hash/libfnv1_hash-minimal.la \
+                                    hash/rupasov_hash/librupasov_hash-minimal.la \
+                                    hash/tea_hash/libtea_hash-minimal.la \
+                                    hash/deg_hash/libdeg_hash-minimal.la \
+                                    fibre/lexic_fibre/liblexic_fibre-minimal.la \
+                                    fibre/dot_o_fibre/libdot_o_fibre-minimal.la \
+                                    fibre/ext_1_fibre/libext_1_fibre-minimal.la \
+                                    fibre/ext_3_fibre/libext_3_fibre-minimal.la
 
 
-libreiser4_plugin_alone_la_SOURCES =
+libreiser4_plugin_minimal_la_SOURCES =
 
 endif
 

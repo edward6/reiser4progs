@@ -3,7 +3,7 @@
    
    backup.c -- filesystem backup methods. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
 /* Creates the backup of the given @fs. */

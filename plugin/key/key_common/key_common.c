@@ -9,7 +9,7 @@
 static reiser4_key_t minimal_key = {
 	.plug = NULL,
 	.body = {0ull, 0ull, 0ull, 0ull},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.adjust = 0
 #endif
 };
@@ -18,7 +18,7 @@ static reiser4_key_t minimal_key = {
 static reiser4_key_t maximal_key = {
 	.plug = NULL,
 	.body = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.adjust = 0
 #endif
 };

@@ -3,7 +3,7 @@
    
    alloc.c -- reiser4 block allocator common code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
 enum alloc_init {

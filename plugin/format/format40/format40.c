@@ -3,7 +3,7 @@
    
    format40.c -- default disk-layout plugin for reiser4. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #  include <time.h>
 #  include <stdlib.h>
 #endif
@@ -26,7 +26,7 @@ static uint16_t format40_get_height(generic_entity_t *entity) {
 	return get_sb_tree_height(SUPER(entity));
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static uint64_t format40_get_len(generic_entity_t *entity) {
 	aal_assert("umka-401", entity != NULL);
 	return get_sb_block_count(SUPER(entity));
@@ -189,7 +189,7 @@ static uint64_t format40_get_flags(generic_entity_t *entity) {
 	return get_sb_flags(SUPER(entity));
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static errno_t format40_clobber_block(void *entity, blk_t start,
 				      count_t width, void *data) 
 {
@@ -421,7 +421,7 @@ static void format40_set_policy(generic_entity_t *entity, uint16_t tail) {
 #endif
 
 static reiser4_format_ops_t format40_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.valid		= format40_valid,
 	.sync		= format40_sync,
 	.create		= format40_create,
@@ -465,7 +465,7 @@ static reiser4_format_ops_t format40_ops = {
 reiser4_plug_t format40_plug = {
 	.cl    = class_init,
 	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "format40",
 	.desc  = "Disk-format for reiser4, ver. " VERSION,
 #endif

@@ -40,7 +40,7 @@ errno_t body40_maxposs_key(reiser4_place_t *place, reiser4_key_t *key) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns max real key inside passed @place. */
 errno_t body40_maxreal_key(reiser4_place_t *place,
 			   reiser4_key_t *key,

@@ -3,7 +3,7 @@
    
    journal40.c -- reiser4 journal plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include "journal40.h"
 #include "journal40_repair.h"

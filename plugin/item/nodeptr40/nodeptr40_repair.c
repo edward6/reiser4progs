@@ -3,7 +3,7 @@
    
    nodeptr40_repair.c -- repair default node pointer item plugin methods. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include "nodeptr40.h"
 #include <repair/plugin.h>
 

@@ -6,7 +6,7 @@
 #ifndef REISER4_PSET_H
 #define REISER4_PSET_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 extern void reiser4_opset_profile(reiser4_plug_t **opset);
 

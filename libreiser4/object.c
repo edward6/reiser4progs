@@ -137,7 +137,7 @@ reiser4_object_t *reiser4_object_obtain(reiser4_tree_t *tree,
 
 	hint.key = key;
 	hint.level = LEAF_LEVEL;
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	hint.collision = NULL;
 #endif
 
@@ -190,7 +190,7 @@ void reiser4_object_close(
 	aal_free(object);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Adds @entry to @object */
 errno_t reiser4_object_add_entry(
 	reiser4_object_t *object,           /* object for adding entry */

@@ -4,7 +4,7 @@
    bbox40_repair.c -- reiser4 default black box plugin. */
 
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <repair/plugin.h>
 #include "bbox40_repair.h"
 

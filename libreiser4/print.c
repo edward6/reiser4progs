@@ -3,7 +3,7 @@
    
    print.c -- printing different reiser4 objects stuff. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
 static aal_list_t *current = NULL;

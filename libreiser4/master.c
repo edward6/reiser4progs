@@ -6,7 +6,7 @@
 #include <aux/aux.h>
 #include <reiser4/libreiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <unistd.h>
 
 bool_t reiser4_master_isdirty(reiser4_master_t *master) {
@@ -161,7 +161,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	return NULL;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Rereads master super block from the device */
 errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	blk_t offset;
@@ -251,7 +251,7 @@ uint32_t reiser4_master_get_blksize(reiser4_master_t *master) {
 	return get_ms_blksize(SUPER(master));
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 char *reiser4_master_get_magic(reiser4_master_t *master) {
 	aal_assert("umka-982", master != NULL);
 	return SUPER(master)->ms_magic;

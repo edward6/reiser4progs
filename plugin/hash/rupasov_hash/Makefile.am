@@ -6,17 +6,17 @@ STATIC_LIBS                       = librupasov_hash-static.la
 librupasov_hash_static_la_SOURCES = $(rupasov_hash_sources)
 librupasov_hash_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                         = librupasov_hash-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                         = librupasov_hash-minimal.la
 else
-ALONE_LIBS                         =
+MINIMAL_LIBS                         =
 endif
 
-noinst_LTLIBRARIES		   = $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES		   = $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-librupasov_hash_alone_la_SOURCES   = $(rupasov_hash_sources)
-librupasov_hash_alone_la_CFLAGS    = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+librupasov_hash_minimal_la_SOURCES   = $(rupasov_hash_sources)
+librupasov_hash_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

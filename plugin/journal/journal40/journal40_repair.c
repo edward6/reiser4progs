@@ -48,7 +48,7 @@
 
    FIXME-VITALY: For now II.4.5. and III.5. - cut to the previous transaction. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include "journal40.h"
 #include "journal40_repair.h"

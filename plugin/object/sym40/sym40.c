@@ -73,7 +73,7 @@ static errno_t sym40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	return obj40_load_stat(&sym->obj, hint);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_create(object_hint_t *hint) {
 	sym40_t *sym;
@@ -212,7 +212,7 @@ static void sym40_close(object_entity_t *entity) {
 
 /* Symlinks operations. */
 static reiser4_object_ops_t sym40_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.create	        = sym40_create,
 	.metadata       = sym40_metadata,
 	.link           = sym40_link,
@@ -255,7 +255,7 @@ static reiser4_object_ops_t sym40_ops = {
 reiser4_plug_t sym40_plug = {
 	.cl    = class_init,
 	.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "sym40",
 	.desc  = "Symlink plugin for reiser4, ver. " VERSION,
 #endif

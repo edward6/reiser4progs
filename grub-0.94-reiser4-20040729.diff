@@ -5,11 +5,11 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
  /* Define to 1 if you have the <inttypes.h> header file. */
  #undef HAVE_INTTYPES_H
  
-+/* Define to 1 if you have the `aal-alone' library (-laal-alone). */
-+#undef HAVE_LIBAAL_ALONE
++/* Define to 1 if you have the `aal-minimal' library (-laal-minimal). */
++#undef HAVE_LIBAAL_MINIMAL
 +
-+/* Define to 1 if you have the `reiser4-alone' library (-lreiser4-alone). */
-+#undef HAVE_LIBREISER4_ALONE
++/* Define to 1 if you have the `reiser4-minimal' library (-lreiser4-minimal). */
++#undef HAVE_LIBREISER4_MINIMAL
 +
  /* Define to 1 if you have the <memory.h> header file. */
  #undef HAVE_MEMORY_H
@@ -35,9 +35,9 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +
 +enable_reiser4_support=yes
 + 
-+AC_CHECK_LIB(aal-alone, aal_mem_init, , 
++AC_CHECK_LIB(aal-minimal, aal_mem_init, , 
 +  AC_MSG_WARN(
-+Reiser4 support is disabled due to inability find libaal-alone with 
++Reiser4 support is disabled due to inability find libaal-minimal with 
 +memory manager support turned on.)
 +  enable_reiser4_support=no
 +)
@@ -51,11 +51,11 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +fi
 +  
 +if test x"$enable_reiser4_support" != xno; then
-+  AC_CHECK_LIB(reiser4-alone, reiser4_fs_open, , 
++  AC_CHECK_LIB(reiser4-minimal, reiser4_fs_open, , 
 +  AC_MSG_WARN(
-+Reiser4 support is disabled due to inability find valid libreiser4-alone.)
++Reiser4 support is disabled due to inability find valid libreiser4-minimal.)
 +    enable_reiser4_support=no, 
-+    -laal-alone
++    -laal-minimal
 +  )
 +fi
 +
@@ -73,10 +73,10 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +fi
 +
 +if test x"$enable_reiser4_support" != xno; then
-+  AC_CHECK_LIB(reiser4-alone, __sym40_plug_init, 
++  AC_CHECK_LIB(reiser4-minimal, __sym40_plug_init, 
 +    REISER4_CFLAGS="$REISER4_CFLAGS -DENABLE_SYMLINKS=1",
 +AC_MSG_WARN(Reiser4 symlinks support is disabled.), 
-+    -laal-alone
++    -laal-minimal
 +  )
 +fi
 +
@@ -221,7 +221,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +#include "shared.h"
 +#include "filesys.h"
 +
-+#define ENABLE_STAND_ALONE
++#define ENABLE_MINIMAL
 +#include <reiser4/libreiser4.h>
 +
 +static reiser4_fs_t *fs = NULL;

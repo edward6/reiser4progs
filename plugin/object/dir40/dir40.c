@@ -3,7 +3,7 @@
    
    dir40.c -- reiser4 directory object plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #  include <unistd.h>
 #endif
 
@@ -25,7 +25,7 @@ static errno_t dir40_telldir(object_entity_t *entity,
 	plug_call(dir->position.plug->o.key_ops,
 		  assign, position, &dir->position);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Adjust is offset inside collided keys arrays and needed for
 	   positioning right in such a case. In normal case it is zero. */
 	position->adjust = dir->position.adjust;
@@ -56,7 +56,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	/* Getting adjust from the passed key and puting it to
 	   @dir->adjust. Seekdir is accepting key, which might be got from
 	   telldir() function. So, adjust will be set too. */
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	dir->position.adjust = position->adjust;
 #endif
 
@@ -75,7 +75,7 @@ errno_t dir40_reset(object_entity_t *entity) {
 	
 	/* Preparing key of the first entry in directory and set directory
 	   adjust to zero. */
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	dir->position.adjust = 0;
 #endif
 
@@ -155,7 +155,7 @@ lookup_t dir40_next(dir40_t *dir, int first) {
 	return PRESENT;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #define dir40_update_next(dir, first)			\
 {							\
 	/* Getting next directory item */		\
@@ -190,7 +190,7 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 	lookup_t res;
 	uint32_t units;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	uint32_t adjust = dir->position.adjust;
 #endif
 	
@@ -210,7 +210,7 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 		if (check_group && dir->body.plug->id.group != DIR_ITEM)
 			return ABSENT;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		/* No adjusting for the ABSENT result. */
 		adjust = 0;
 #endif
@@ -224,7 +224,7 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 	if (dir->body.pos.unit == MAX_UINT32)
 		dir->body.pos.unit = 0;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Adjusting current position by key's adjust. This is needed
 	   for working fine when key collisions take place. */
 	while (adjust || dir->body.pos.unit >= units) {
@@ -287,7 +287,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	   completely -- and what is not -- that needs some other special
 	   actions, e.g. check_attach for ".." (and even "..." if it is needed
 	   one day), etc. */
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	entry->type = ET_NAME;
 		
 	if (aal_strlen(entry->name) == 1 &&
@@ -322,7 +322,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 		if ((res = dir40_fetch(dir, &temp)))
 			return res;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		/* Taking care about adjust */
 		if (!plug_call(temp.offset.plug->o.key_ops,
 			       compfull, &temp.offset, &dir->position))
@@ -346,7 +346,7 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 {
 	dir40_t *dir;
 	lookup_t res;
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	coll_hint_t hint;
 	coll_func_t func;
 #endif
@@ -365,14 +365,14 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 		  obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), name);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	hint.specific = name;
 	hint.type = DIR_ITEM;
 	func = dir40_core->tree_ops.collision;
 #endif
 	
 	if ((res = obj40_find_item(&dir->obj, &dir->body.key, bias, 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 				   func, &hint,
 #else
 				   NULL, NULL,
@@ -445,7 +445,7 @@ static errno_t dir40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	return obj40_load_stat(&dir->obj, hint);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Gets size from the object stat data */
 static uint64_t dir40_size(object_entity_t *entity) {
 	dir40_t *dir;
@@ -991,7 +991,7 @@ static errno_t dir40_update(object_entity_t *entity,
 
 /* Directory object operations. */
 static reiser4_object_ops_t dir40_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.create		= dir40_create,
 	.layout		= dir40_layout,
 	.metadata	= dir40_metadata,
@@ -1032,7 +1032,7 @@ static reiser4_object_ops_t dir40_ops = {
 reiser4_plug_t dir40_plug = {
 	.cl    = class_init,
 	.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "dir40",
 	.desc  = "Compound directory for reiser4, ver. " VERSION,
 #endif

@@ -12,7 +12,7 @@ static uint32_t sdext_unix_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_unix_t);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static errno_t sdext_unix_open(stat_entity_t *stat, void *hint) {
 	sdext_unix_t *ext;
 	sdhint_unix_t *unixh;
@@ -68,7 +68,7 @@ extern void sdext_unix_print(stat_entity_t *stat,
 #endif
 
 static reiser4_sdext_ops_t sdext_unix_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.open	   	= sdext_unix_open,
 	.init	   	= sdext_unix_init,
 	.print     	= sdext_unix_print,
@@ -82,7 +82,7 @@ static reiser4_sdext_ops_t sdext_unix_ops = {
 static reiser4_plug_t sdext_unix_plug = {
 	.cl    = class_init,
 	.id    = {SDEXT_UNIX_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "sdext_unix",
 	.desc  = "Unix stat data extension for reiser4, ver. " VERSION,
 #endif

@@ -1,19 +1,19 @@
 auxincludedir		    = -I$(top_srcdir)/include
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS = libaux-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS = libaux-minimal.la
 else
-ALONE_LIBS =
+MINIMAL_LIBS =
 endif
 
-noinst_LTLIBRARIES	    = libaux-static.la $(ALONE_LIBS)
+noinst_LTLIBRARIES	    = libaux-static.la $(MINIMAL_LIBS)
 
 libaux_static_la_SOURCES    = aux.c bitmap.c gauge.c
 libaux_static_la_CFLAGS     = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-libaux_alone_la_SOURCES     = aux.c bitmap.c gauge.c
-libaux_alone_la_CFLAGS      = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+libaux_minimal_la_SOURCES     = aux.c bitmap.c gauge.c
+libaux_minimal_la_CFLAGS      = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(auxincludedir)

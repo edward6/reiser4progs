@@ -3,7 +3,7 @@
    
    spl40_repair.c -- reiser4 special files plugin repair code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #ifdef ENABLE_SPECIAL
 
 #include "spl40_repair.h"

@@ -6,7 +6,7 @@
 #ifndef JOURNAL40_H
 #define JOURNAL40_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>

@@ -3,7 +3,7 @@
    
    reg40_repair.c -- reiser4 regular file plugin repair code. */
  
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include "reg40_repair.h"
 

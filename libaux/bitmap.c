@@ -4,7 +4,7 @@
    bitmap.c -- bitmap functions. Bitmap is used by bitmap-based block allocator
    plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <aux/bitmap.h>
 
 /* This macros is used for checking whether given block is inside of allowed

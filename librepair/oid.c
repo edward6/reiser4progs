@@ -3,7 +3,7 @@
    
    oid.c -- oid allocator repair code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
 void repair_oid_print(reiser4_oid_t *oid, aal_stream_t *stream) {

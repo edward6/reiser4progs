@@ -3,7 +3,7 @@
    
    key_large_repair.c -- large key plugin repair methods. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #ifdef ENABLE_LARGE_KEYS
 
 #include "key_large.h"
@@ -38,7 +38,7 @@ errno_t key_large_check_struct(reiser4_key_t *key) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Prints key into passed stream */
 void key_large_print(reiser4_key_t *key, aal_stream_t *stream,
 		     uint16_t options)

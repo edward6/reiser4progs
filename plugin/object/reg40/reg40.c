@@ -3,7 +3,7 @@
    
    reg40.c -- reiser4 regular file plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #  include <unistd.h>
 #endif
 
@@ -151,7 +151,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	{
 		lookup_t lookup;
 
@@ -181,7 +181,7 @@ static errno_t reg40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	return obj40_load_stat(&reg->obj, hint);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Create the file described by pased @hint. That is create files stat data
    item. */
 static object_entity_t *reg40_create(object_hint_t *hint) {
@@ -684,7 +684,7 @@ static errno_t reg40_update(object_entity_t *entity, stat_hint_t *hint) {
 
 /* Regular file operations. */
 static reiser4_object_ops_t reg40_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.create	        = reg40_create,
 	.write	        = reg40_write,
 	.truncate       = reg40_truncate,
@@ -727,7 +727,7 @@ static reiser4_object_ops_t reg40_ops = {
 reiser4_plug_t reg40_plug = {
 	.cl    = class_init,
 	.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "reg40",
 	.desc  = "Regular file for reiser4, ver. " VERSION,
 #endif

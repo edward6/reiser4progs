@@ -6,7 +6,7 @@
 #ifndef AUX_GAUGE_H
 #define AUX_GAUGE_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <aal/gauge.h>
 
 enum aux_gauge_type {

@@ -6,7 +6,7 @@
 
 #include <reiser4/libreiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 const char *reiser4_igname[] = {
 	"SD",
 	"NPTR",
@@ -33,7 +33,7 @@ static reiser4_plug_t *factory_ifind(
 	return reiser4_factory_ifind(type, id);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Handler for item insert requests from the all plugins */
 static int64_t tree_insert(tree_entity_t *tree, reiser4_place_t *place,
 			   trans_hint_t *hint, uint8_t level)
@@ -91,7 +91,7 @@ static reiser4_plug_t *pset_find(rid_t member, rid_t id) {
 	return reiser4_opset_plug(member, id);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static errno_t tree_update_key(tree_entity_t *tree, 
 			       reiser4_place_t *place,
 			       reiser4_key_t *key)
@@ -160,7 +160,7 @@ reiser4_core_t core = {
 		/* Reads data from the tree. */
 		.read		= tree_read,
 		
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		/* Callback for truncating data in tree. */
 		.truncate	= tree_truncate,
 
@@ -175,7 +175,7 @@ reiser4_core_t core = {
 		/* This one for lookuping the tree */
 		.lookup		= tree_lookup,
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		/* Correct the position if collision exists. */
 		.collision	= tree_collision,
 		
@@ -200,7 +200,7 @@ reiser4_core_t core = {
 	},
 	.pset_ops = {
 		.find		= pset_find,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.diff		= pset_diff,
 #endif
 	},
@@ -209,7 +209,7 @@ reiser4_core_t core = {
 		.resolve	= object_resolve
 	},
 #endif
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.key_ops = {
 		.print		= key_print
 	},
@@ -237,7 +237,7 @@ const char *libreiser4_version(void) {
 /* Initializes libreiser4 (plugin factory, etc). This function should be called
    before any actions performed on libreiser4. */
 errno_t libreiser4_init(void) {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	reiser4_print_init(20);
 #endif
     
@@ -249,7 +249,7 @@ errno_t libreiser4_init(void) {
 	return 0;
 	
  error_fini_print:
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	reiser4_print_fini();
 #endif
 	return -EINVAL;
@@ -259,7 +259,7 @@ errno_t libreiser4_init(void) {
 void libreiser4_fini(void) {
 	reiser4_factory_fini();
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	reiser4_print_fini();
 #endif
 }

@@ -6,7 +6,7 @@
 #ifndef SYM40_H
 #define SYM40_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #  include <time.h>
 #  include <unistd.h>
 #  include <limits.h>

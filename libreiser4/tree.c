@@ -24,7 +24,7 @@ static bool_t reiser4_tree_root_node(reiser4_tree_t *tree,
 	return reiser4_tree_get_root(tree) == node->block->nr;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Updates root block number in format by passed @blk. Takes care about correct
    block number in loaded root node if any. */
 void reiser4_tree_set_root(reiser4_tree_t *tree, blk_t blk) {
@@ -86,7 +86,7 @@ blk_t reiser4_tree_get_root(reiser4_tree_t *tree) {
 			 get_root, tree->fs->format->ent);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns tree height stored in format. */
 uint8_t reiser4_tree_get_height(reiser4_tree_t *tree) {
 	aal_assert("umka-2411", tree != NULL);
@@ -162,7 +162,7 @@ static errno_t reiser4_tree_unhash_node(reiser4_tree_t *tree,
 	return aal_hash_table_remove(tree->nodes, &blk);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Acknowledles, that passed @place has nodeptr that points onto passed
    @node. This is needed for tree_rebind_node() function. */
 static int tree_check_pos(reiser4_place_t *place, blk_t blocknr) {
@@ -199,7 +199,7 @@ static errno_t tree_find_child_pos(reiser4_tree_t *tree,
 	lookup_hint_t hint;
         reiser4_key_t lkey;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	uint32_t i;
 #endif
     
@@ -209,7 +209,7 @@ static errno_t tree_find_child_pos(reiser4_tree_t *tree,
 
 	place->node = parent;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Checking if we are in position already. */
 	if (tree_check_pos(place, child->block->nr))
 		goto out_correct_place;
@@ -222,14 +222,14 @@ static errno_t tree_find_child_pos(reiser4_tree_t *tree,
         if (reiser4_node_lookup(parent, &hint, FIND_EXACT,
 				&place->pos) == PRESENT)
 	{
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		if (tree_check_pos(place, child->block->nr))
 			goto out_correct_place;
 #endif
 	}
 
 	/* Getting position by means of linear traverse. */
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	for (i = 0; i < reiser4_node_items(place->node); i++) {
 		uint32_t j;
 		errno_t res;
@@ -345,7 +345,7 @@ static errno_t debug_node_check_keys(reiser4_node_t *node) {
 
 #endif
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Assignes passed @node to root. Takes care about root block number and tree
    height in format. */
 errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
@@ -468,7 +468,7 @@ errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Updates all internal node loaded children positions in parent. */
 static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
 					reiser4_node_t *node)
@@ -574,7 +574,7 @@ errno_t reiser4_tree_unload_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 	aal_assert("umka-1840", tree != NULL);
 	aal_assert("umka-1842", node != NULL);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Check if node is dirty. */
 	if (reiser4_node_isdirty(node)) {
 		aal_warn("Unloading dirty node %llu.",
@@ -646,7 +646,7 @@ static int reiser4_tree_neig_place(reiser4_tree_t *tree,
 		return 0;
 	
 	/* Position correcting. We do not use place_inc() and place_dec() here,
-	   because they are not accessible in stand alone mode and we do not
+	   because they are not accessible in minimal mode and we do not
 	   want to make it accessible because here is one place only and they
 	   are quite big. */
 	place->pos.item += (where == DIR_LEFT ? -1 : 1);
@@ -816,7 +816,7 @@ errno_t reiser4_tree_place_key(reiser4_tree_t *tree,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Gets the key of the next item. */
 static errno_t reiser4_tree_next_key(reiser4_tree_t *tree, 
 				     reiser4_place_t *place, 
@@ -988,7 +988,7 @@ static int cb_nodes_comp_func(void *key1, void *key2, void *data) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 # define TREE_NODES_TABLE_SIZE (512)
 #else
 # define TREE_NODES_TABLE_SIZE (32)
@@ -1020,7 +1020,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		goto error_free_tree;
 	}
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Initializing hash table for storing loaded unformatted blocks in
 	   it. This uses all callbacks we described above for getting hash
 	   values, lookup, etc. */
@@ -1047,7 +1047,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	return tree;
 
  error_free_data:
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	aal_hash_table_free(tree->blocks);
 error_free_nodes:
 #endif
@@ -1057,7 +1057,7 @@ error_free_nodes:
 	return NULL;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Closes specified tree. */
 void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_assert("umka-134", tree != NULL);
@@ -1079,7 +1079,7 @@ errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
                 return 0;
                                                                                           
         return reiser4_tree_walk_node(tree, tree->root, 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 				      NULL, NULL,
 #endif
                                       reiser4_tree_unload_node);
@@ -1087,7 +1087,7 @@ errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
 
 /* Closes specified tree without saving dirty nodes to device. It just thows out
    all loaded nodes without dealing with allocating etc. This may be used in
-   stand alone mode and/or just to free modified tree without a changes on
+   minimal mode and/or just to free modified tree without a changes on
    device. */
 void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("vpf-1316", tree != NULL);
@@ -1096,7 +1096,7 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 	reiser4_tree_collapse(tree);
 
 	/* Releasing unformatted nodes hash table. */
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	aal_hash_table_free(tree->blocks);
 #endif
 
@@ -1107,7 +1107,7 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 	tree->fs->tree = NULL;
 	aal_free(tree);
 }
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static errno_t cb_flags_dup(reiser4_place_t *place, void *data) {
 	reiser4_item_dup_flags(place, *(uint16_t *)data);
 	return 0;
@@ -1300,7 +1300,7 @@ static errno_t cb_nodeptr_adjust(reiser4_tree_t *tree, reiser4_place_t *place) {
 #endif
 
 static errno_t cb_node_unload(reiser4_tree_t *tree, reiser4_node_t *node) {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	count_t free_blocks;
 
 	/* Updating free space counter in format for the case some blocks were 
@@ -1315,7 +1315,7 @@ static errno_t cb_node_unload(reiser4_tree_t *tree, reiser4_node_t *node) {
 	if (reiser4_node_locked(node))
 		return 0;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Okay, node is fully allocated now and ready to be saved to device if
 	   it is dirty. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
@@ -1340,7 +1340,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 		/* Check for special case -- tree_adjust() is calling during
 		   tree_growup(), when empty root is connected. */
 		if (reiser4_node_items(tree->root))
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 			res = reiser4_tree_walk_node(tree, tree->root, 
 						     cb_node_adjust,
 						     cb_nodeptr_adjust,
@@ -1361,7 +1361,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 /* Walking though the tree cache and closing all nodes. */
 errno_t reiser4_tree_walk_node(reiser4_tree_t *tree, 
 			       reiser4_node_t *node,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 			       walk_func_t pre_func, 
 			       walk_on_func_t on_func,
 #endif
@@ -1373,7 +1373,7 @@ errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 	aal_assert("umka-1933", tree != NULL);
 	aal_assert("umka-1934", node != NULL);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	if (pre_func && (res = pre_func(tree, node)))
 		return res;
 #endif
@@ -1391,7 +1391,7 @@ errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		if (on_func && (res = on_func(tree, &place)))
 			return res;
 #endif
@@ -1413,7 +1413,7 @@ errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 
 			/* Making recursive call to tree_walk_node(). */
 			if ((res = reiser4_tree_walk_node(tree, child, 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 							  pre_func, on_func, 
 #endif
 							  post_func)))
@@ -1429,7 +1429,7 @@ errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 	return post_func ? post_func(tree, node) : 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Helper function for save one unformatted block to device. Used from
    tree_sync() to save all in-memory unfromatted blocks. */
 static errno_t cb_save_block( void *entry, void *data) {
@@ -1775,7 +1775,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	   having some garbage in it. */
 	aal_memset(place, 0, sizeof(*place));
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */
 	if (reiser4_tree_fresh(tree)) {
@@ -1787,7 +1787,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 			return res;
 		
 		reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	}
 #endif
 
@@ -1807,7 +1807,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		   or some error occured during last node lookup. */
 		if (clevel <= hint->level || res < 0) {
 			if (res == PRESENT) {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 				if (reiser4_tree_collision_start(tree, place,
 								 &wanted))
 				{
@@ -1860,7 +1860,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	restore_and_exit(ABSENT);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns 1 if passed @tree has minimal possible height and thus cannot be
    dried out. Othersize 0 is returned. */
 bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {

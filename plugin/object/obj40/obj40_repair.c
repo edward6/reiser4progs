@@ -3,7 +3,7 @@
    
    obj40_repair.c -- reiser4 file 40 plugins repair code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include "obj40_repair.h"
 

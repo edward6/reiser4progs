@@ -8,7 +8,7 @@
 
 #include <sys/stat.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #  include <time.h>
 #  include <unistd.h>
 #endif
@@ -63,7 +63,7 @@ extern errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data);
 
 extern errno_t obj40_load_stat(obj40_t *obj, stat_hint_t *hint);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data);
 
 extern errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes);

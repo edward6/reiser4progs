@@ -6,17 +6,17 @@ STATIC_LIBS                     = libtails-static.la
 libtails_static_la_SOURCES 	= $(tails_sources)
 libtails_static_la_CFLAGS 	= @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                      = libtails-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                      = libtails-minimal.la
 else
-ALONE_LIBS                      =
+MINIMAL_LIBS                      =
 endif
 
-noinst_LTLIBRARIES   	        = $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES   	        = $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-libtails_alone_la_SOURCES       = $(tails_sources)
-libtails_alone_la_CFLAGS        = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+libtails_minimal_la_SOURCES       = $(tails_sources)
+libtails_minimal_la_CFLAGS        = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

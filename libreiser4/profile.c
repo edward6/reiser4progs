@@ -3,7 +3,7 @@
    
    profile.c -- reiser4 profile functions. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include <reiser4/libreiser4.h>
 

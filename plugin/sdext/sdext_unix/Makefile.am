@@ -6,17 +6,17 @@ STATIC_LIBS                     = libsdext_unix-static.la
 libsdext_unix_static_la_SOURCES = $(sdext_unix_sources)
 libsdext_unix_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                      = libsdext_unix-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                      = libsdext_unix-minimal.la
 else
-ALONE_LIBS                      =
+MINIMAL_LIBS                      =
 endif
 
-noinst_LTLIBRARIES              = $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES              = $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-libsdext_unix_alone_la_SOURCES  = $(sdext_unix_sources)
-libsdext_unix_alone_la_CFLAGS   = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+libsdext_unix_minimal_la_SOURCES  = $(sdext_unix_sources)
+libsdext_unix_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

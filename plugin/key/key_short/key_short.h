@@ -81,7 +81,7 @@ typedef enum {
 	KEY_SHORT_GEN_SHIFT        = 0,
 } key_short_shift_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern void key_short_set_offset(reiser4_key_t *key, 
 				 uint64_t offset);
 

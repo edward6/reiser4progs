@@ -6,7 +6,7 @@
 #ifndef REPAIR_OID_H
 #define REPAIR_OID_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <repair/repair.h>
 
 extern void repair_oid_print(reiser4_oid_t *oid, 

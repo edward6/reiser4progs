@@ -3,7 +3,7 @@
    
    status.c -- filesystem status block functions. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
 void reiser4_status_close(reiser4_status_t *status) {

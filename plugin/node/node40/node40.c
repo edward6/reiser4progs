@@ -52,7 +52,7 @@ static reiser4_node_t *node40_prepare(aal_block_t *block,
 	return entity;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Functions for making node dirty, cleann and for check if it is dirty. This is
    used in all node modifying functions, etc. */
 void node40_mkdirty(reiser4_node_t *entity) {
@@ -150,7 +150,7 @@ uint32_t node40_items(reiser4_node_t *entity) {
 	return nh_get_num_items(entity);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns node free space. */
 uint16_t node40_space(reiser4_node_t *entity) {
 	aal_assert("vpf-020", entity != NULL);
@@ -312,7 +312,7 @@ errno_t node40_fetch(reiser4_node_t *entity,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Retutns item overhead for this node format. Widely used in modification and
    estimation routines. */
 static uint16_t node40_overhead(reiser4_node_t *entity) {
@@ -983,7 +983,7 @@ static lookup_t node40_lookup(reiser4_node_t *entity,
 	}
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Checks if @place is splittable. */
 static int node40_splittable(reiser4_place_t *place, shift_hint_t *hint) {
 	/* Check if item's shift_units() and prep_shift() method are
@@ -1648,7 +1648,7 @@ static reiser4_node_ops_t node40_ops = {
 	.get_key	= node40_get_key,
 	.get_level	= node40_get_level,
 		
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.init		= node40_init,
 	.sync           = node40_sync,
 	.fuse           = node40_fuse,
@@ -1692,7 +1692,7 @@ static reiser4_node_ops_t node40_ops = {
 reiser4_plug_t node40_plug = {
 	.cl    = class_init,
 	.id    = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "node40",
 	.desc  = "Node plugin for reiser4, ver. " VERSION,
 #endif

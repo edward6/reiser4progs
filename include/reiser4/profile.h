@@ -6,7 +6,7 @@
 #ifndef REISER4_PROFILE_H
 #define REISER4_PROFILE_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/types.h>
 
 enum reiser4_profile_index {

@@ -54,7 +54,7 @@ static errno_t extent40_fetch_key(reiser4_place_t *place, reiser4_key_t *key) {
 			      key, extent40_offset);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns item size in bytes */
 static uint64_t extent40_size(reiser4_place_t *place) {
 	uint32_t units = extent40_units(place);
@@ -354,7 +354,7 @@ lookup_t extent40_lookup(reiser4_place_t *place,
 	place->pos.unit = units;
 	return (bias == FIND_CONV ? PRESENT : ABSENT);
 }
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Reads @count bytes of extent data from the extent item at passed @pos into
    specified @buff. Uses data cache. */
 static int64_t extent40_read_units(reiser4_place_t *place,
@@ -488,7 +488,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 }
 #else
 /* Reads @count bytes of extent data from the extent item at passed @pos into
-   specified @buff. This function is used in stand alone mode. It does not use
+   specified @buff. This function is used in minimal mode. It does not use
    data cache and reads data by 512 bytes chunks. This is needed because of
    GRUB, which has ugly mechanism of getting real block numbers data lie in. */
 static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
@@ -616,7 +616,7 @@ static int64_t extent40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) 
 	return hint->count;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Checks if two extent items are mergeable */
 static int extent40_mergeable(reiser4_place_t *place1,
 			      reiser4_place_t *place2)
@@ -1361,7 +1361,7 @@ static errno_t extent40_shift_units(reiser4_place_t *src_place,
 #endif
 
 static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.fuse		  = NULL,
 	.update_key	  = NULL,
 	.mergeable	  = extent40_mergeable,
@@ -1377,7 +1377,7 @@ static item_balance_ops_t balance_ops = {
 };
 
 static item_object_ops_t object_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.remove_units	  = extent40_remove_units,
 	.update_units	  = extent40_update_units,
 	.prep_insert	  = extent40_prep_insert,
@@ -1394,7 +1394,7 @@ static item_object_ops_t object_ops = {
 	.fetch_units	  = extent40_fetch_units
 };
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static item_repair_ops_t repair_ops = {
 	.check_layout	  = extent40_check_layout,
 	.check_struct	  = extent40_check_struct,
@@ -1413,7 +1413,7 @@ static item_debug_ops_t debug_ops = {
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.update_link	  = NULL,
 #endif
 };
@@ -1422,7 +1422,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops,
 #endif
@@ -1431,7 +1431,7 @@ static reiser4_item_ops_t extent40_ops = {
 static reiser4_plug_t extent40_plug = {
 	.cl    = class_init,
 	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "extent40",
 	.desc  = "Extent item for reiser4, ver. " VERSION,
 #endif

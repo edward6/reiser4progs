@@ -6,7 +6,7 @@
 #ifndef REISER4_ALLOC_H
 #define REISER4_ALLOC_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/types.h>
 
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 

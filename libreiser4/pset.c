@@ -13,7 +13,7 @@ struct opset_member {
 	   reiser4_opset_plug. */
 	uint8_t type;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* To be sure that a plugin found by type,id pair is valid, add the
 	   group here. */
 	rid_t group;
@@ -33,7 +33,7 @@ typedef struct opset_member opset_member_t;
 opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_OBJ] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = 0,
 		.prof = INVAL_PID,
 		.ess = 0,
@@ -41,7 +41,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_DIR] = {
 		.type = INVAL_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = 0,
 		.prof = INVAL_PID,
 		.ess = 0,
@@ -49,7 +49,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_PERM] = {
 		.type = INVAL_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
@@ -57,7 +57,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_POLICY] = {
 		.type = POLICY_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = 0,
 		.prof = PROF_POLICY,
 		.ess = 0,
@@ -65,7 +65,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_HASH] = {
 		.type = HASH_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = 0,
 		.prof = PROF_HASH,
 		.ess = 1,
@@ -73,7 +73,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_FIBRE] = {
 		.type = FIBRE_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = 0,
 		.prof = PROF_FIBRE,
 		.ess = 1,
@@ -81,7 +81,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_STAT] = {
 		.type = ITEM_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = STAT_ITEM,
 		.prof = PROF_STAT,
 		.ess = 0,
@@ -89,7 +89,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_DIRITEM] = {
 		.type = ITEM_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = DIR_ITEM,
 		.prof = PROF_DIRITEM,
 		.ess = 1,
@@ -97,7 +97,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_CRYPTO] = {
 		.type = INVAL_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
@@ -105,7 +105,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_DIGEST] = {
 		.type = INVAL_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
@@ -113,7 +113,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_COMPRES] = {
 		.type = INVAL_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
@@ -127,7 +127,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	   If the former ones are non-essential, the other 4 are essential. */
 	[OPSET_CREATE] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = REG_OBJECT,
 		.prof = PROF_REG,
 		.ess = 1,
@@ -135,7 +135,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_MKDIR] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = DIR_OBJECT,
 		.prof = PROF_DIR,
 		.ess = 1,
@@ -143,7 +143,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_SYMLINK] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = SYM_OBJECT,
 		.prof = PROF_SYM,
 		.ess = 1,
@@ -151,13 +151,13 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	},
 	[OPSET_MKNODE] = {
 		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		.group = SPL_OBJECT,
 		.prof = PROF_SPL,
 		.ess = 1,
 #endif
 	},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	[OPSET_TAIL] = {
 		.type = ITEM_PLUG_TYPE,
 		.group = TAIL_ITEM,
@@ -193,7 +193,7 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 	if (!(plug = reiser4_factory_ifind(opset_prof[member].type, id)))
 		return INVAL_PTR;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	if (plug->id.group != opset_prof[member].group)
 		return INVAL_PTR;
 #endif
@@ -201,7 +201,7 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 	return plug;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 void reiser4_opset_profile(reiser4_plug_t **opset) {
 	uint8_t i;
 	
@@ -286,7 +286,7 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	tree->ent.tpset[TPSET_KEY] = plug;
 
 	/* Init other tpset plugins. */
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	tree->ent.tpset[TPSET_NODE] = reiser4_profile_plug(PROF_NODE);
 	tree->ent.tpset[TPSET_NODEPTR] = reiser4_profile_plug(PROF_NODEPTR);
 	
@@ -343,7 +343,7 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
 	int i;
 #else
@@ -364,7 +364,7 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree) {
 	
 	reiser4_object_close(object);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Check that all 'on-disk' plugins are obtained. */
 	for (i = 0; i < OPSET_STORE_LAST; i++) {
 		/* If root should not be checked (debugreiserfs), 

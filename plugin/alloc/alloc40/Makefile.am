@@ -6,17 +6,17 @@ STATIC_LIBS                  = liballoc40-static.la
 liballoc40_static_la_SOURCES = $(alloc40_sources)
 liballoc40_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                   = liballoc40-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                   = liballoc40-minimal.la
 else
-ALONE_LIBS                   =
+MINIMAL_LIBS                   =
 endif
 
-noinst_LTLIBRARIES	     = $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES	     = $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-liballoc40_alone_la_SOURCES  = $(alloc40_sources)
-liballoc40_alone_la_CFLAGS   = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+liballoc40_minimal_la_SOURCES  = $(alloc40_sources)
+liballoc40_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

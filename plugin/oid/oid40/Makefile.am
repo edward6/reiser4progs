@@ -6,17 +6,17 @@ STATIC_LIBS		    = liboid40-static.la
 liboid40_static_la_SOURCES  = $(oid40_sources)
 liboid40_static_la_CFLAGS   = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                  = liboid40-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                  = liboid40-minimal.la
 else
-ALONE_LIBS                  =
+MINIMAL_LIBS                  =
 endif
 
-noinst_LTLIBRARIES   	    = $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES   	    = $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-liboid40_alone_la_SOURCES   = $(oid40_sources)
-liboid40_alone_la_CFLAGS    = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+liboid40_minimal_la_SOURCES   = $(oid40_sources)
+liboid40_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

@@ -6,7 +6,7 @@
 #ifndef REISER4_FAKE_H
 #define REISER4_FAKE_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/types.h>
 
 #define REISER4_FAKE_BLOCKNR_VAL   0xf000000000000000ull

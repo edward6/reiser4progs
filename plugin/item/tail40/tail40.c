@@ -59,7 +59,7 @@ static int64_t tail40_read_units(reiser4_place_t *place,
 	return count;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Estimates how many bytes in tree is needed to write @hint->count bytes of
    data. This function considers, that tail item is not expandable one. That is,
    tail will not be splitted at insert point, but will be rewritten instead. */
@@ -222,7 +222,7 @@ static lookup_t tail40_lookup(reiser4_place_t *place,
 	return (bias == FIND_CONV ? PRESENT : ABSENT);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Return 1 if two tail items are mergeable. Otherwise 0 will be returned. This
    method is used in balancing to determine if two border items may be
    merged. */
@@ -488,7 +488,7 @@ static uint64_t tail40_size(reiser4_place_t *place) {
 #endif
 
 static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.fuse		  = NULL,
 	.update_key	  = NULL,
 	.mergeable	  = tail40_mergeable,
@@ -504,7 +504,7 @@ static item_balance_ops_t balance_ops = {
 };
 
 static item_object_ops_t object_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.size		  = tail40_size,
 	.bytes		  = tail40_size,
 	.overhead	  = NULL,
@@ -523,7 +523,7 @@ static item_object_ops_t object_ops = {
 	.read_units	  = tail40_read_units
 };
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static item_repair_ops_t repair_ops = {
 	.check_struct	  = tail40_check_struct,
 	.check_layout	  = NULL,
@@ -542,7 +542,7 @@ static item_debug_ops_t debug_ops = {
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.update_link	  = NULL
 #endif
 };
@@ -551,7 +551,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops,
 #endif
@@ -560,7 +560,7 @@ static reiser4_item_ops_t tail40_ops = {
 static reiser4_plug_t tail40_plug = {
 	.cl    = class_init,
 	.id    = {ITEM_TAIL40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "tail40",
 	.desc  = "Tail item for reiser4, ver. " VERSION,
 #endif

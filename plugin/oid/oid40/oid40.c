@@ -3,7 +3,7 @@
    
    oid40_repair.c -- reiser4 oid allocator plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include "oid40.h"
 #include "oid40_repair.h"

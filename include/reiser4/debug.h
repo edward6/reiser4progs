@@ -6,7 +6,7 @@
 #ifndef REISER4_DEBUG_H
 #define REISER4_DEBUG_H
 
-#if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_DEBUG)
+#if !defined(ENABLE_MINIMAL) && defined(ENABLE_DEBUG)
 
 #include <reiser4/types.h>
 

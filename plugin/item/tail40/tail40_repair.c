@@ -3,7 +3,7 @@
    
    tail40_repair.c -- reiser4 default tail plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include "tail40.h"
 #include <repair/plugin.h>
 #include <reiser4/plugin.h>

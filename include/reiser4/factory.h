@@ -11,7 +11,7 @@
 extern void reiser4_factory_fini(void);
 extern errno_t reiser4_factory_init(void);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern reiser4_plug_t *reiser4_factory_nfind(char *name);
 #endif
 

@@ -25,7 +25,7 @@ typedef struct dir40 dir40_t;
 
 extern reiser4_plug_t dir40_plug;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern reiser4_core_t *dir40_core;
 
 extern lookup_t dir40_next(dir40_t *dir, int first);

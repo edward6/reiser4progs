@@ -13,7 +13,7 @@ aal_hash_table_t *plugins;
    used. */
 extern reiser4_core_t core;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Helper callback for checking plugin validness. It if called for each plugin
    in order to compare its characteristics with characteristics of new
    registered one. */
@@ -100,7 +100,7 @@ reiser4_plug_t *reiser4_factory_load(plug_class_t *cl) {
 	if (!(plug = reiser4_plug_init(cl)))
 		return NULL;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	if (reiser4_factory_foreach(cb_check_plug, (void *)plug)) {
 		aal_error("Plugin %s will not be attached to "
 			  "plugin factory.", plug->label);
@@ -149,7 +149,7 @@ static int cb_comp_func(void *key1, void *key2,
 	reiser4_factory_load(&cl);               \
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #  define PLUGINS_TABLE_SIZE 128
 #else
 #  define PLUGINS_TABLE_SIZE 32
@@ -171,7 +171,7 @@ errno_t reiser4_factory_init(void) {
 	/* Registering all known plugins. */
 	__load_plug(format40);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	__load_plug(oid40);
 	__load_plug(alloc40);
 	__load_plug(journal40);
@@ -246,13 +246,13 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(sym40);
 #endif
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	__load_plug(extents);
 	__load_plug(smart);
 	__load_plug(tails);
 #endif
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Check if at least one plugin has registered in plugins hash table. If
 	   there are no one, plugin factory is considered not successfully
 	   initialized.*/
@@ -310,7 +310,7 @@ static errno_t cb_foreach_plug(void *entry, void *data) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Helper function for comparing each plugin registered in plugin factory with
    passed one in order to check if they name the same . */
 static errno_t cb_nfind_plug(void *entry, void *data) {
@@ -378,7 +378,7 @@ reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
 	return hint.plug;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Makes search for plugin by @name. */
 reiser4_plug_t *reiser4_factory_nfind(char *name) {
 	enum_hint_t hint;

@@ -17,7 +17,7 @@ extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
 
 extern errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 				      reiser4_node_t *node,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 				      walk_func_t pre_func,
 				      walk_on_func_t on_func,
 #endif
@@ -41,7 +41,7 @@ extern errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 extern reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 					       reiser4_place_t *place);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern errno_t reiser4_tree_discard_node(reiser4_tree_t *tree,
 					 reiser4_node_t *node);
 

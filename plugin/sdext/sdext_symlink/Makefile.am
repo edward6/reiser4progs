@@ -6,17 +6,17 @@ STATIC_LIBS                        = libsdext_symlink-static.la
 libsdext_symlink_static_la_SOURCES = $(sdext_symlink_sources)
 libsdext_symlink_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                         = libsdext_symlink-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                         = libsdext_symlink-minimal.la
 else
-ALONE_LIBS                         =
+MINIMAL_LIBS                         =
 endif
 
-noinst_LTLIBRARIES   	           = $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES   	           = $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-libsdext_symlink_alone_la_SOURCES  = $(sdext_symlink_sources)
-libsdext_symlink_alone_la_CFLAGS   = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+libsdext_symlink_minimal_la_SOURCES  = $(sdext_symlink_sources)
+libsdext_symlink_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

@@ -31,7 +31,7 @@ static errno_t sdext_symlink_open(stat_entity_t *stat, void *hint) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static errno_t sdext_symlink_init(stat_entity_t *stat, void *hint) {
 	uint32_t len;
 	
@@ -58,7 +58,7 @@ extern void sdext_symlink_print(stat_entity_t *stat,
 static reiser4_sdext_ops_t sdext_symlink_ops = {
 	.open	 	= sdext_symlink_open,
 		
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.init	 	= sdext_symlink_init,
 	.print   	= sdext_symlink_print,
 	.check_struct   = sdext_symlink_check_struct,
@@ -69,7 +69,7 @@ static reiser4_sdext_ops_t sdext_symlink_ops = {
 static reiser4_plug_t sdext_symlink_plug = {
 	.cl    = class_init,
 	.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "sdext_symlink",
 	.desc  = "Symlink stat data extension for reiser4, ver. " VERSION,
 #endif

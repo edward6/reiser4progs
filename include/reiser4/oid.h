@@ -6,7 +6,7 @@
 #ifndef REISER4_OID_H
 #define REISER4_OID_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/types.h>
 
 extern void reiser4_oid_close(reiser4_oid_t *oid);

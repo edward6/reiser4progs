@@ -61,7 +61,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		plugh->plug[mem] = sdext_plug_core->pset_ops.find(mem, id);
 		
 		if (plugh->plug[mem] == INVAL_PTR) {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 			aal_error("Node (%llu), item (%u): Failed to find "
 				  "a plugin of the opset member (%u), id "
 				  "(%u).", place_blknr(stat->place),
@@ -85,7 +85,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	sdhint_plug_t *plugh;
 	sdext_plug_t *ext;
@@ -126,7 +126,7 @@ extern void sdext_plug_print(stat_entity_t *stat,
 
 static reiser4_sdext_ops_t sdext_plug_ops = {
 	.open	 	= sdext_plug_open,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.init	 	= sdext_plug_init,
 	.print   	= sdext_plug_print,
 	.check_struct   = sdext_plug_check_struct,
@@ -137,7 +137,7 @@ static reiser4_sdext_ops_t sdext_plug_ops = {
 static reiser4_plug_t sdext_plug_plug = {
 	.cl    = class_init,
 	.id    = {SDEXT_PLUG_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "sdext_plug",
 	.desc  = "Plugin id stat data extension for reiser4, ver. " VERSION,
 #endif

@@ -31,7 +31,7 @@ static errno_t key_short_assign(reiser4_key_t *dst,
 
 	dst->plug = src->plug;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	dst->adjust = src->adjust;
 #endif
 
@@ -41,7 +41,7 @@ static errno_t key_short_assign(reiser4_key_t *dst,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Sets up key type */
 static void key_short_set_type(reiser4_key_t *key, 
 			       key_type_t type) 
@@ -160,7 +160,7 @@ static char *key_short_get_name(reiser4_key_t *key,
 }
 
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Sets up key offset */
 static void key_short_set_hash(reiser4_key_t *key, 
 			       uint64_t hash)
@@ -342,7 +342,7 @@ static errno_t key_short_build_generic(reiser4_key_t *key,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern void key_short_print(reiser4_key_t *key,
 			    aal_stream_t *stream, 
 			    uint16_t options);
@@ -363,7 +363,7 @@ static reiser4_key_ops_t key_short_ops = {
 	.build_hashed   = key_short_build_hashed,
 	.build_generic  = key_short_build_generic,
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.check_struct	= key_short_check_struct,
 	.print		= key_short_print,
 
@@ -394,7 +394,7 @@ static reiser4_key_ops_t key_short_ops = {
 static reiser4_plug_t key_short_plug = {
 	.cl    = class_init,
 	.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "key_short",
 	.desc  = "Short key for reiser4, ver. " VERSION,
 #endif

@@ -6,7 +6,7 @@
 #ifndef REISER4_BACKUP_H
 #define REISER4_BACKUP_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 extern errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 				     region_func_t region_func, 

@@ -6,17 +6,17 @@ STATIC_LIBS			= liblexic_fibre-static.la
 liblexic_fibre_static_la_SOURCES= $(lexic_fibre_sources)
 liblexic_fibre_static_la_CFLAGS = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS			= liblexic_fibre-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS			= liblexic_fibre-minimal.la
 else
-ALONE_LIBS			=
+MINIMAL_LIBS			=
 endif
 
-noinst_LTLIBRARIES		= $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES		= $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-liblexic_fibre_alone_la_SOURCES = $(lexic_fibre_sources)
-liblexic_fibre_alone_la_CFLAGS  = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+liblexic_fibre_minimal_la_SOURCES = $(lexic_fibre_sources)
+liblexic_fibre_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

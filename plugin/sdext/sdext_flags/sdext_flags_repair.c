@@ -4,7 +4,7 @@
    sdext_flags_repair.c -- inode flags stat data extension plugin recovery
    code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include "sdext_flags.h"
 #include <repair/plugin.h>
 

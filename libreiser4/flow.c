@@ -25,7 +25,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		int32_t read;
 		reiser4_place_t place;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		lhint.collision = NULL;
 #endif
 		lhint.level = LEAF_LEVEL;
@@ -78,7 +78,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			/* Prepare hint for read */
 			hint->count = size;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 			hint->blocks = tree->blocks;
 #endif
 			
@@ -107,7 +107,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	return total;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Releases passed region in block allocator. This is used in tail during tree
    trunacte. */
 static errno_t cb_release_region(void *entity, uint64_t start,

@@ -148,7 +148,7 @@ static reiser4_hash_ops_t tea_hash_ops = {
 static reiser4_plug_t tea_hash_plug = {
 	.cl = class_init,
 	.id = {HASH_TEA_ID, 0, HASH_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "tea_hash",
 	.desc  = "Tea hash for reiser4, ver. " VERSION,
 #endif

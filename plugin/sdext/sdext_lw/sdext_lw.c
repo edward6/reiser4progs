@@ -31,7 +31,7 @@ static uint32_t sdext_lw_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_lw_t);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Saves all extension fields from passed @hint to @body. */
 static errno_t sdext_lw_init(stat_entity_t *stat, void *hint) {
 	sdhint_lw_t *lwh;
@@ -62,7 +62,7 @@ extern void sdext_lw_print(stat_entity_t *stat,
 static reiser4_sdext_ops_t sdext_lw_ops = {
 	.open	 	= sdext_lw_open,
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.init	 	= sdext_lw_init,
 	.print   	= sdext_lw_print,
 	.check_struct   = sdext_lw_check_struct,
@@ -73,7 +73,7 @@ static reiser4_sdext_ops_t sdext_lw_ops = {
 static reiser4_plug_t sdext_lw_plug = {
 	.cl    = class_init,
 	.id    = {SDEXT_LW_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "sdext_lw",
 	.desc  = "Light stat data extension for reiser4, ver. " VERSION,
 #endif

@@ -6,17 +6,17 @@ STATIC_LIBS                     = libkey_large-static.la
 libkey_large_static_la_SOURCES	= $(key_large_sources)
 libkey_large_static_la_CFLAGS	= @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                      = libkey_large-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                      = libkey_large-minimal.la
 else
-ALONE_LIBS                  	=
+MINIMAL_LIBS                  	=
 endif
 
-noinst_LTLIBRARIES          	= $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES          	= $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-libkey_large_alone_la_SOURCES  	= $(key_large_sources)
-libkey_large_alone_la_CFLAGS   	= @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+libkey_large_minimal_la_SOURCES  	= $(key_large_sources)
+libkey_large_minimal_la_CFLAGS   	= @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

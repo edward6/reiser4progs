@@ -7,7 +7,7 @@
 #  include <config.h>
 #endif
 
-#if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_DEBUG)
+#if !defined(ENABLE_MINIMAL) && defined(ENABLE_DEBUG)
 #include <reiser4/libreiser4.h>
 
 void reiser4_print_node(reiser4_node_t *node, uint32_t start, 

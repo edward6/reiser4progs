@@ -6,7 +6,7 @@
 #ifndef REISER4_PRINT_H
 #define REISER4_PRINT_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/types.h>
 
 extern void reiser4_print_fini(void);

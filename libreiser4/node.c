@@ -6,7 +6,7 @@
 
 #include <reiser4/libreiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 bool_t reiser4_node_isdirty(reiser4_node_t *node) {
 	aal_assert("umka-2663", node != NULL);
 	return node->block->dirty;
@@ -110,7 +110,7 @@ bool_t reiser4_node_locked(reiser4_node_t *node) {
 	return node->counter > 0 ? 1 : 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Assigns @nr block number to @node. */
 void reiser4_node_move(reiser4_node_t *node, blk_t nr) {
 	aal_assert("umka-2248", node != NULL);
@@ -168,7 +168,7 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
         return NULL;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Saves node to device if it is dirty and closes node */
 errno_t reiser4_node_fini(reiser4_node_t *node) {
 	/* Node should be clean when it is going to be closed. */
@@ -282,7 +282,7 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 			 items, node);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns free space of specified node */
 uint16_t reiser4_node_space(reiser4_node_t *node) {
 	aal_assert("umka-455", node != NULL);

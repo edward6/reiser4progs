@@ -18,7 +18,7 @@ static reiser4_hash_ops_t deg_hash_ops = {
 static reiser4_plug_t deg_hash_plug = {
 	.cl = class_init,
 	.id = {HASH_DEG_ID, 0, HASH_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "deg_hash",
 	.desc  = "Degenerate hash for reiser4, ver. " VERSION,
 #endif

@@ -3,7 +3,7 @@
    
    smart.c -- smart tail policy plugin. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/plugin.h>
 
 static int smart_tails(uint64_t value) {

@@ -7,7 +7,7 @@
 #include <reiser4/plugin.h>
 #include <repair/plugin.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #ifdef ENABLE_SYMLINKS
 
 extern reiser4_core_t *sdext_symlink_core;

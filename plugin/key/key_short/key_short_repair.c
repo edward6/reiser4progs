@@ -3,7 +3,7 @@
    
    key_short_repair.c -- short key plugin repair methods. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #ifdef ENABLE_SHORT_KEYS
 
 #include "key_short.h"
@@ -38,7 +38,7 @@ errno_t key_short_check_struct(reiser4_key_t *key) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Prints key into passed stream */
 void key_short_print(reiser4_key_t *key, aal_stream_t *stream,
 		     uint16_t options)

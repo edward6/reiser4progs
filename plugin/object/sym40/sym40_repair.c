@@ -5,7 +5,7 @@
 
 #include "sym40_repair.h"
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #ifdef ENABLE_SYMLINKS
 
 #define SYM40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)

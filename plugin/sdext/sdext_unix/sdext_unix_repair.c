@@ -4,7 +4,7 @@
    sdext_unix.c -- stat data exception plugin, that implements unix
    stat data fields. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include <time.h>
 #include <sys/types.h>

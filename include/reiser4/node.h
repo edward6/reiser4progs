@@ -8,7 +8,7 @@
 
 #include <reiser4/types.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern errno_t reiser4_node_sync(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
@@ -87,7 +87,7 @@ extern lookup_t reiser4_node_lookup(reiser4_node_t *node,
 extern errno_t reiser4_node_close(reiser4_node_t *node);
 extern uint32_t reiser4_node_items(reiser4_node_t *node);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern errno_t reiser4_node_fini(reiser4_node_t *node);
 extern bool_t reiser4_node_isdirty(reiser4_node_t *node);
 extern void reiser4_node_mkdirty(reiser4_node_t *node);

@@ -18,7 +18,7 @@ extern bool_t reiser4_place_gtfirst(reiser4_place_t *place);
 extern bool_t reiser4_place_right(reiser4_place_t *place);
 extern void reiser4_place_inc(reiser4_place_t *place, int whole);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern bool_t reiser4_place_leftmost(reiser4_place_t *place);
 extern bool_t reiser4_place_rightmost(reiser4_place_t *place);
 extern void reiser4_place_dec(reiser4_place_t *place, int whole);

@@ -190,7 +190,7 @@ static uint32_t stat40_units(reiser4_place_t *place) {
 	return 1;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	sdhint_plug_t *plugh;
@@ -500,7 +500,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 #endif
 
 static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.fuse		  = NULL,
 	.prep_shift	  = NULL,
 	.shift_units	  = NULL,
@@ -519,7 +519,7 @@ static item_balance_ops_t balance_ops = {
 static item_object_ops_t object_ops = {
 	.read_units	  = NULL,
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.prep_write	  = NULL,
 	.write_units	  = NULL,
 
@@ -537,7 +537,7 @@ static item_object_ops_t object_ops = {
 	.fetch_units	  = stat40_fetch_units
 };
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static item_repair_ops_t repair_ops = {
 	.check_struct	  = stat40_check_struct,
 	.check_layout	  = NULL,
@@ -556,7 +556,7 @@ static item_debug_ops_t debug_ops = {
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.update_link	  = NULL
 #endif
 };
@@ -565,7 +565,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops,
 #endif
@@ -574,7 +574,7 @@ static reiser4_item_ops_t stat40_ops = {
 static reiser4_plug_t stat40_plug = {
 	.cl    = class_init,
 	.id    = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "stat40",
 	.desc  = "Stat data item for reiser4, ver. " VERSION,
 #endif

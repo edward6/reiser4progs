@@ -46,7 +46,7 @@ static errno_t spl40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	return obj40_load_stat(&spl->obj, hint);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Creates special file and returns initialized instance to the caller. */
 static object_entity_t *spl40_create(object_hint_t *hint) {
 	spl40_t *spl;
@@ -139,7 +139,7 @@ static void spl40_close(object_entity_t *entity) {
 }
 
 static reiser4_object_ops_t spl40_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.create	        = spl40_create,
 	.metadata       = spl40_metadata,
 	.link           = spl40_link,
@@ -181,7 +181,7 @@ static reiser4_object_ops_t spl40_ops = {
 reiser4_plug_t spl40_plug = {
 	.cl    = class_init,
 	.id    = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "spl40",
 	.desc  = "Special file plugin for reiser4, ver. " VERSION,
 #endif

@@ -5,7 +5,7 @@
    and it deals with bitmap blocks. For the all bitmap-related actions, we use
    aux_bitmap from the libaux. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include "alloc40.h"
 #include "alloc40_repair.h"
 

@@ -130,7 +130,7 @@ struct reiser4_object {
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *ent;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;
@@ -147,7 +147,7 @@ typedef object_entity_t *(*object_init_t) (object_info_t *);
 typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *, 
 						 entry_hint_t *, void *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 enum reiser4_owner {
 	O_MASTER   = 1 << 0,
 	O_FORMAT   = 1 << 1,
@@ -174,7 +174,7 @@ struct reiser4_format {
 
 typedef struct reiser4_format reiser4_format_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 /* Journal structure */
 struct reiser4_journal {
@@ -218,7 +218,7 @@ struct reiser4_oid {
 
 typedef struct reiser4_oid reiser4_oid_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 typedef errno_t (*estimate_func_t) (reiser4_place_t *place, 
 				    trans_hint_t *hint);
 
@@ -251,14 +251,14 @@ struct reiser4_tree {
 	/* Formatted nodes hash table. */
 	aal_hash_table_t *nodes;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Extents data stored here. */
 	aal_hash_table_t *blocks;
 #endif
 };
 
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 /* Callback function type for opening node. */
 typedef reiser4_node_t *(*tree_open_func_t) (reiser4_tree_t *, 
@@ -278,7 +278,7 @@ struct reiser4_fs {
 	/* Pointer to the disk-format instance */
 	reiser4_format_t *format;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Pointer to the journal in use */
 	reiser4_journal_t *journal;
 
@@ -298,7 +298,7 @@ struct reiser4_fs {
 	/* Pointer to the storage tree wrapper object */
 	reiser4_tree_t *tree;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_object_t *root;
 

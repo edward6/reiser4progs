@@ -31,7 +31,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object);
 
 extern void reiser4_object_close(reiser4_object_t *object);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern errno_t reiser4_object_add_entry(reiser4_object_t *object,
 					entry_hint_t *entry);
 

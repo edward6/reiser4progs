@@ -38,7 +38,7 @@ static blk_t nodeptr40_down_link(reiser4_place_t *place) {
 	return np40_get_ptr(nodeptr40_body(place));
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Update nodeptr block number by passed @blk. */
 static errno_t nodeptr40_update_link(reiser4_place_t *place,
 				     blk_t blk)
@@ -113,7 +113,7 @@ static errno_t nodeptr40_remove_units(reiser4_place_t *place,
 #endif
 
 static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.fuse		  = NULL,
 	.prep_shift	  = NULL,
 	.shift_units	  = NULL,
@@ -130,7 +130,7 @@ static item_balance_ops_t balance_ops = {
 };
 
 static item_object_ops_t object_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.layout		  = nodeptr40_layout,
 	.prep_insert	  = nodeptr40_prep_insert,
 	.insert_units	  = nodeptr40_insert_units,
@@ -148,7 +148,7 @@ static item_object_ops_t object_ops = {
 	.fetch_units	  = nodeptr40_fetch_units
 };
 
-#ifndef ENABLE_STAND_ALONE	    
+#ifndef ENABLE_MINIMAL	    
 static item_repair_ops_t repair_ops = {
 	.check_struct	  = nodeptr40_check_struct,
 	.check_layout	  = nodeptr40_check_layout,
@@ -167,7 +167,7 @@ static item_debug_ops_t debug_ops = {
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = nodeptr40_down_link,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.update_link	  = nodeptr40_update_link
 #endif
 };
@@ -176,7 +176,7 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops
 #endif
@@ -185,7 +185,7 @@ static reiser4_item_ops_t nodeptr40_ops = {
 static reiser4_plug_t nodeptr40_plug = {
 	.cl    = class_init,
 	.id    = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "nodeptr40",
 	.desc  = "Node pointer item for reiser4, ver. " VERSION,
 #endif

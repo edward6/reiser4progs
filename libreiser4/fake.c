@@ -3,7 +3,7 @@
    
    fake.c -- functions for working with fake block numbers. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
 static blk_t fake_gen = 0;

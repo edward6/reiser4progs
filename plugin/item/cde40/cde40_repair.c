@@ -24,7 +24,7 @@
    10)Remove the space between the end of the last entry and the end of 
    the item. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include "cde40.h"
 #include <aux/bitmap.h>

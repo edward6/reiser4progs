@@ -19,7 +19,7 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 	return 1;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 bool_t reiser4_item_statdata(reiser4_place_t *place) {
 	aal_assert("umka-1831", place != NULL);
 	aal_assert("umka-2382", place->plug != NULL);
@@ -76,7 +76,7 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 			 maxposs_key, place, key);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns real maximal item key */
 errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 				 reiser4_key_t *key)
@@ -132,7 +132,7 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 errno_t reiser4_item_update_link(reiser4_place_t *place,
 				 blk_t blk)
 {

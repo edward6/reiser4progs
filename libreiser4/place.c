@@ -71,7 +71,7 @@ bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 	}
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns TRUE if passed @place points to leftmost item/unit */
 bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 	aal_assert("umka-1862", place != NULL);
@@ -149,7 +149,7 @@ void reiser4_place_inc(reiser4_place_t *place, int whole) {
 		place->pos.unit++;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 void reiser4_place_dec(reiser4_place_t *place, int whole) {
 	aal_assert("umka-2362", place != NULL);
 	aal_assert("umka-2365", place->node != NULL);

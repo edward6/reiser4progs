@@ -4,7 +4,7 @@
    sdext_lw_repair.c -- light weight stat data extension plugin recovery 
    code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <sys/stat.h>
 #include "sdext_lw.h"
 #include <repair/plugin.h>

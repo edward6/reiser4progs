@@ -5,7 +5,7 @@
 
 #include <reiser4/libreiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 void reiser4_key_free(reiser4_key_t *key) {
 	aal_free(key);
 }
@@ -55,7 +55,7 @@ errno_t reiser4_key_assign(
 			 assign, dst, src);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Builds full non-directory key */
 errno_t reiser4_key_build_generic(
 	reiser4_key_t *key,	    /* key to be built */
@@ -169,7 +169,7 @@ void reiser4_key_inc_offset(reiser4_key_t *key, uint64_t value) {
 	reiser4_key_set_offset(key, reiser4_key_get_offset(key) + value);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Gets key type */
 uint32_t reiser4_key_get_type(reiser4_key_t *key) {
 	aal_assert("umka-698", key != NULL);
@@ -218,7 +218,7 @@ void reiser4_key_maximal(reiser4_key_t *key) {
 	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns the minimal possible key */
 void reiser4_key_minimal(reiser4_key_t *key) {
 	reiser4_key_t *entity;

@@ -12,7 +12,7 @@ static uint32_t sdext_flags_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_flags_t);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Loads all extension fields to passed @hint. */
 static errno_t sdext_flags_open(stat_entity_t *stat, void *hint) {
 	sdext_flags_t *ext;
@@ -52,7 +52,7 @@ extern errno_t sdext_flags_check_struct(stat_entity_t *stat,
 #endif
 
 static reiser4_sdext_ops_t sdext_flags_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.open	   	= sdext_flags_open,
 	.init	   	= sdext_flags_init,
 	.print     	= sdext_flags_print,
@@ -66,7 +66,7 @@ static reiser4_sdext_ops_t sdext_flags_ops = {
 static reiser4_plug_t sdext_flags_plug = {
 	.cl    = class_init,
 	.id    = {SDEXT_FLAGS_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "sdext_flags",
 	.desc  = "Inode flags stat data extension for reiser4, ver. " VERSION,
 #endif

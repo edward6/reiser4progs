@@ -7,14 +7,14 @@
 
 /* Opens filesystem on specified device */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device, bool_t check) {
 #else
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 #endif
 	reiser4_fs_t *fs;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	count_t blocks;
 	uint32_t blksize;
 #endif
@@ -31,7 +31,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	if (!(fs->master = reiser4_master_open(device)))
 		goto error_free_fs;
     
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	if (check) {
 		if (reiser4_master_valid(fs->master))
 			goto error_free_master;
@@ -47,7 +47,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	if (!(fs->format = reiser4_format_open(fs)))
 		goto error_free_status;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	if (check) {
 		if (reiser4_format_valid(fs->format))
 			goto error_free_format;
@@ -80,7 +80,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 		goto error_free_oid;
 
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	if (check) {
 		if (reiser4_opset_init(fs->tree, check))
 			goto error_free_oid;
@@ -93,7 +93,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	return fs;
 
  error_free_oid:
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
@@ -101,7 +101,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 #endif
 	reiser4_format_close(fs->format);
  error_free_status:
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	reiser4_status_close(fs->status);
  error_free_master:
 #endif
@@ -116,7 +116,7 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
     
 	aal_assert("umka-230", fs != NULL);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	if (!aal_device_readonly(fs->device))
 		reiser4_fs_sync(fs);
 	reiser4_tree_fini(fs->tree);
@@ -124,7 +124,7 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 	reiser4_tree_close(fs->tree);
 #endif
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	reiser4_oid_close(fs->oid);
 	reiser4_alloc_close(fs->alloc);
 #endif
@@ -132,7 +132,7 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 	reiser4_format_close(fs->format);
 	reiser4_master_close(fs->master);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	reiser4_status_close(fs->status);
 #endif
 	
@@ -140,7 +140,7 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 	aal_free(fs);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static errno_t cb_check_block(void *entity, blk_t start,
 			      count_t width, void *data)
 {
@@ -440,7 +440,7 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 
 	key->plug = fs->tree->ent.tpset[TPSET_KEY];
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	locality = reiser4_oid_root_locality(fs->oid);
 	objectid = reiser4_oid_root_objectid(fs->oid);
 #else

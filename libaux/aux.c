@@ -51,7 +51,7 @@ int aux_bin_search(
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #define MAX_PATH 1024
 #else
 #define MAX_PATH 256

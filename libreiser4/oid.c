@@ -3,7 +3,7 @@
    
    oid.c -- oid allocator common code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
 bool_t reiser4_oid_isdirty(reiser4_oid_t *oid) {

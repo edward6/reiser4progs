@@ -11,7 +11,7 @@
 extern int64_t reiser4_flow_read(reiser4_tree_t *tree,
 				 trans_hint_t *hint);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern int64_t reiser4_flow_write(reiser4_tree_t *tree,
 				  trans_hint_t *hint);
 

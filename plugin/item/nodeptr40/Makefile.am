@@ -6,17 +6,17 @@ STATIC_LIBS                     = libnodeptr40-static.la
 libnodeptr40_static_la_SOURCES	= $(nodeptr40_sources)
 libnodeptr40_static_la_CFLAGS	= @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                      = libnodeptr40-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                      = libnodeptr40-minimal.la
 else
-ALONE_LIBS                      =
+MINIMAL_LIBS                      =
 endif
 
-noinst_LTLIBRARIES	        = $(STATIC_LIBS) $(ALONE_LIBS)
+noinst_LTLIBRARIES	        = $(STATIC_LIBS) $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-libnodeptr40_alone_la_SOURCES   = $(nodeptr40_sources)
-libnodeptr40_alone_la_CFLAGS    = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+libnodeptr40_minimal_la_SOURCES   = $(nodeptr40_sources)
+libnodeptr40_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

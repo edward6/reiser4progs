@@ -21,7 +21,7 @@ struct reg40 {
 	/* Current position in the reg file */
 	reiser4_key_t position;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* File body plugin is use. */
 	reiser4_plug_t *body_plug;
 #endif

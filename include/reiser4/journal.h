@@ -6,7 +6,7 @@
 #ifndef REISER4_JOURNAL_H
 #define REISER4_JOURNAL_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/types.h>
 
 extern void reiser4_journal_close(reiser4_journal_t *journal);

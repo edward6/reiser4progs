@@ -26,7 +26,7 @@
 #define REISER4_BACKUP_START(blksize)	(REISER4_MASTER_BLOCKNR(blksize) + 6)
 
 /* Root key locality and objectid. This is actually defined in oid plugin,
-   but hardcoded here to exclude oid plugin from the stand alone mode at all,
+   but hardcoded here to exclude oid plugin from the minimal mode at all,
    nothing but these oids is needed there. */
 #define REISER4_ROOT_LOCALITY		(0x29)
 #define REISER4_ROOT_OBJECTID		(0x2a)
@@ -243,7 +243,7 @@ typedef enum reiser4_fibre_plug_id reiser4_fibre_plug_id_t;
 struct reiser4_key {
 	reiser4_plug_t *plug;
 	d64_t body[4];
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	uint32_t adjust;
 #endif
 };
@@ -293,7 +293,7 @@ enum reiser4_opset_id {
 	OPSET_SYMLINK		= 0xd,
 	OPSET_MKNODE		= 0xe,
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	OPSET_TAIL		= 0xf,
 	OPSET_EXTENT		= 0x10,
 	OPSET_ACL		= 0x11,
@@ -390,7 +390,7 @@ struct reiser4_node {
 	/* Node state flags. */
 	uint32_t state;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Different node flags. */
 	uint32_t flags;
 	
@@ -641,7 +641,7 @@ struct entry_hint {
 	/* Name of entry */
 	char name[REISER4_MAX_BLKSIZE];
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Hook called onto each create item during write flow. */
 	place_func_t place_func;
 
@@ -653,7 +653,7 @@ struct entry_hint {
 
 typedef struct entry_hint entry_hint_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 enum slink_type {
 	SL_UNLINK,   /* safe-link for unlink */
 	SL_TRUNCATE, /* safe-link for truncate */
@@ -791,7 +791,7 @@ struct lookup_hint {
 	/* Tree level lookup should stop on. */
 	uint8_t level;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Function for modifying position during lookup in some way needed by
 	   caller. Key collisions may be handler though this. */
 	coll_func_t collision;
@@ -858,7 +858,7 @@ struct reiser4_key_ops {
 	errno_t (*build_hashed) (reiser4_key_t *, reiser4_plug_t *,
 				 reiser4_plug_t *, uint64_t, uint64_t, char *);
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	
 	/* Gets/sets key type (minor in reiser4 notation). */	
 	void (*set_type) (reiser4_key_t *, key_type_t);
@@ -888,7 +888,7 @@ struct reiser4_key_ops {
 	/* Extracts name from passed key. */
 	char *(*get_name) (reiser4_key_t *, char *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Gets/sets directory key hash */
 	void (*set_hash) (reiser4_key_t *, uint64_t);
 	uint64_t (*get_hash) (reiser4_key_t *);
@@ -908,7 +908,7 @@ struct reiser4_object_ops {
 	/* Loads object stat data to passed hint. */
 	errno_t (*stat) (object_entity_t *, stat_hint_t *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* These methods change @nlink value of passed @entity. */
 	errno_t (*link) (object_entity_t *);
 	errno_t (*unlink) (object_entity_t *);
@@ -1012,7 +1012,7 @@ struct item_balance_ops {
 	lookup_t (*lookup) (reiser4_place_t *, lookup_hint_t *,
 			    lookup_bias_t);
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Fuses two neighbour items in the same node. Returns space released
 	   Needed for fsck. */
 	int32_t (*fuse) (reiser4_place_t *, reiser4_place_t *);
@@ -1053,7 +1053,7 @@ struct item_object_ops {
 	/* Fetches one or more units at passed @place to passed hint. */
 	int64_t (*fetch_units) (reiser4_place_t *, trans_hint_t *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Estimates write operation. */
 	errno_t (*prep_write) (reiser4_place_t *, trans_hint_t *);
 
@@ -1092,7 +1092,7 @@ struct item_object_ops {
 
 typedef struct item_object_ops item_object_ops_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 struct item_repair_ops {
 	/* Estimate merge operation. */
 	errno_t (*prep_insert_raw) (reiser4_place_t *, trans_hint_t *);
@@ -1115,7 +1115,7 @@ struct item_repair_ops {
 
 typedef struct item_repair_ops item_repair_ops_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 struct item_debug_ops {
 	/* Prints item into specified buffer. */
 	void (*print) (reiser4_place_t *, aal_stream_t *, uint16_t);
@@ -1128,7 +1128,7 @@ struct item_tree_ops {
 	/* Return block number from passed place. Place is nodeptr item. */
 	blk_t (*down_link) (reiser4_place_t *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Update link block number. */
 	errno_t (*update_link) (reiser4_place_t *, blk_t);
 #endif
@@ -1140,7 +1140,7 @@ struct reiser4_item_ops {
 	item_tree_ops_t *tree;
 	item_object_ops_t *object;
 	item_balance_ops_t *balance;
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	item_debug_ops_t *debug;
 	item_repair_ops_t *repair;
 #endif
@@ -1150,7 +1150,7 @@ typedef struct reiser4_item_ops reiser4_item_ops_t;
 
 /* Stat data extension plugin */
 struct reiser4_sdext_ops {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Initialize stat data extension data at passed pointer. */
 	errno_t (*init) (stat_entity_t *, void *);
 
@@ -1173,7 +1173,7 @@ typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
    hasn't close method and all its methods accepts first argument aal_block_t,
    not initialized previously hypothetic instance of node. */
 struct reiser4_node_ops {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Get node state flags and set them back. */
 	uint32_t (*get_state) (reiser4_node_t *);
 	void (*set_state) (reiser4_node_t *, uint32_t);
@@ -1308,7 +1308,7 @@ typedef struct reiser4_fibre_ops reiser4_fibre_ops_t;
 struct reiser4_format_ops {
 	uint64_t (*get_flags) (generic_entity_t *);
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	void (*set_flags) (generic_entity_t *, uint64_t);
 	
 	/* Called during filesystem creating. It forms format-specific super
@@ -1376,7 +1376,7 @@ struct reiser4_format_ops {
 	/* Get tree height from format. */
 	uint16_t (*get_height) (generic_entity_t *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Gets start of the filesystem. */
 	uint64_t (*start) (generic_entity_t *);
 
@@ -1399,7 +1399,7 @@ struct reiser4_format_ops {
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 struct reiser4_oid_ops {
 	/* Opens oid allocator on passed format entity. */
 	generic_entity_t *(*open) (generic_entity_t *);
@@ -1621,7 +1621,7 @@ struct reiser4_plug {
 	/* Plugin id. This will be used for looking for a plugin. */
 	plug_ident_t id;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Plugin label (name). */
 	const char label[PLUG_MAX_LABEL];
 	
@@ -1640,7 +1640,7 @@ struct reiser4_plug {
 		reiser4_object_ops_t *object_ops;
 		reiser4_format_ops_t *format_ops;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		reiser4_oid_ops_t *oid_ops;
 		reiser4_alloc_ops_t *alloc_ops;
 		reiser4_policy_ops_t *policy_ops;
@@ -1663,7 +1663,7 @@ struct flow_ops {
 	/* Reads data from the tree. */
 	int64_t (*read) (tree_entity_t *, trans_hint_t *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Writes data to tree. */
 	int64_t (*write) (tree_entity_t *, trans_hint_t *);
 
@@ -1683,7 +1683,7 @@ struct tree_ops {
 	lookup_t (*lookup) (tree_entity_t *, lookup_hint_t *, 
 			    lookup_bias_t, reiser4_place_t *);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	/* Collisions handler. It takes start place and looks for actual data in
 	   collided array. */
 	lookup_t (*collision) (tree_entity_t *, reiser4_place_t *, 
@@ -1730,14 +1730,14 @@ typedef struct object_ops object_ops_t;
 struct pset_ops {
 	/* Obtains the plugin from the profile by its profile index. */
 	reiser4_plug_t *(*find) (rid_t, rid_t);
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	void (*diff) (tree_entity_t *, reiser4_opset_t *);
 #endif
 };
 
 typedef struct pset_ops pset_ops_t;
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 struct key_ops {
 	char *(*print) (reiser4_key_t *, uint16_t);
 };
@@ -1764,7 +1764,7 @@ struct reiser4_core {
 	object_ops_t object_ops;
 #endif
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	key_ops_t key_ops;
 	item_ops_t item_ops;
 #endif

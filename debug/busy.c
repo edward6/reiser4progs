@@ -135,7 +135,7 @@ static void read_test(reiser4_fs_t *fs, char *path, char *out) {
 	char buf[40960];
 	int read, wrote;
 
-#define ENABLE_STAND_ALONE	
+#define ENABLE_MINIMAL	
 	if (!path) {
 		aal_error("No file on the filesystem is specified.");
 		return;
@@ -174,7 +174,7 @@ static void read_test(reiser4_fs_t *fs, char *path, char *out) {
 	
 	fclose(file);
 	reiser4_object_close(obj);
-#undef ENABLE_STAND_ALONE	
+#undef ENABLE_MINIMAL	
 	
 	return;
 	

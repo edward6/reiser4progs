@@ -5,7 +5,7 @@
 
 #ifndef ALLOC40_H
 #define ALLOC40_H
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include <aal/libaal.h>
 #include <aux/bitmap.h>

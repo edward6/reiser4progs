@@ -10,7 +10,7 @@
 
 #define SUPER(master) (&master->ent)
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern int reiser4_master_confirm(aal_device_t *device);
 extern errno_t reiser4_master_sync(reiser4_master_t *master);
 extern errno_t reiser4_master_valid(reiser4_master_t *master);

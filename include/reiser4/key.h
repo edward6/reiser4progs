@@ -8,7 +8,7 @@
 
 #include <reiser4/types.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern void reiser4_key_free(reiser4_key_t *key);
 
 extern void reiser4_key_print(reiser4_key_t *key,

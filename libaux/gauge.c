@@ -3,7 +3,7 @@
 
    gauge.c -- common for all progs gauge metods. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <aal/libaal.h>
 #include <aux/gauge.h>
 

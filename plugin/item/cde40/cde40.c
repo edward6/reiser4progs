@@ -62,7 +62,7 @@ errno_t cde40_get_hash(reiser4_place_t *place, uint32_t pos,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Set the key for the entry->offset. It is needed for fixing entry keys if
    repair code detects it is wrong. */
 errno_t cde40_set_hash(reiser4_place_t *place, uint32_t pos,
@@ -115,7 +115,7 @@ char *cde40_get_name(reiser4_place_t *place, uint32_t pos,
         return buff;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Calculates entry length. This function is widely used in shift code and
    modification code. */
 static uint32_t cde40_get_len(reiser4_place_t *place, uint32_t pos) {
@@ -195,7 +195,7 @@ static int64_t cde40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	return hint->count;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 uint16_t cde40_overhead() {
 	return sizeof(cde40_t);
 }
@@ -1037,7 +1037,7 @@ lookup_t cde40_lookup(reiser4_place_t *place,
 		      lookup_hint_t *hint,
 		      lookup_bias_t bias)
 {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	int32_t i;
 #endif
 
@@ -1051,7 +1051,7 @@ lookup_t cde40_lookup(reiser4_place_t *place,
 			       place, &place->pos.unit))
 	{
 	case 1:
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 		/* Making sure, that we have found right unit. This is needed
 		   because of possible key collision. We move left direction
 		   until we find a key smaller than passed one. */
@@ -1073,7 +1073,7 @@ lookup_t cde40_lookup(reiser4_place_t *place,
 }
 
 static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.fuse		  = cde40_fuse, 
 	.mergeable	  = cde40_mergeable,
 	.prep_shift	  = cde40_prep_shift,
@@ -1091,7 +1091,7 @@ static item_balance_ops_t balance_ops = {
 static item_object_ops_t object_ops = {
 	.fetch_units	  = cde40_fetch_units,
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.prep_insert	  = cde40_prep_insert,
 	.insert_units	  = cde40_insert_units,
 	.remove_units	  = cde40_remove_units,
@@ -1109,7 +1109,7 @@ static item_object_ops_t object_ops = {
 	.read_units	  = NULL
 };
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static item_debug_ops_t debug_ops = {
 	.print		  = cde40_print
 };
@@ -1128,7 +1128,7 @@ static item_repair_ops_t repair_ops = {
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.update_link	  = NULL
 #endif
 };
@@ -1137,7 +1137,7 @@ static reiser4_item_ops_t cde40_ops = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops
 #endif
@@ -1146,7 +1146,7 @@ static reiser4_item_ops_t cde40_ops = {
 static reiser4_plug_t cde40_plug = {
 	.cl    = class_init,
 	.id    = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "cde40",
 	.desc  = "Compound direntry for reiser4, ver. " VERSION,
 #endif

@@ -12,7 +12,7 @@ static uint32_t sdext_lt_length(stat_entity_t *stat, void *h) {
 	return sizeof(sdext_lt_t);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Loads all extension fields to passed @hint. */
 static errno_t sdext_lt_open(stat_entity_t *stat, void *hint) {
 	sdext_lt_t *ext;
@@ -59,7 +59,7 @@ extern void sdext_lt_print(stat_entity_t *stat,
 #endif
 
 static reiser4_sdext_ops_t sdext_lt_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.open	   	= sdext_lt_open,
 	.init	   	= sdext_lt_init,
 	.print     	= sdext_lt_print,
@@ -73,7 +73,7 @@ static reiser4_sdext_ops_t sdext_lt_ops = {
 static reiser4_plug_t sdext_lt_plug = {
 	.cl    = class_init,
 	.id    = {SDEXT_LT_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "sdext_lt",
 	.desc  = "Large times stat data extension for reiser4, ver. " VERSION,
 #endif

@@ -6,7 +6,7 @@
 #ifndef OID40_REPAIR_H
 #define OID40_REPAIR_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/plugin.h>
 
 extern void oid40_print(generic_entity_t *entity,

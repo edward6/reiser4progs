@@ -6,7 +6,7 @@
 #ifndef REISER4_STATUS_H
 #define REISER4_STATUS_H
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include <reiser4/types.h>
 
 #define STATUS(status) (&status->ent)

@@ -8,7 +8,7 @@
 
 #include <reiser4/types.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern rid_t reiser4_item_type(reiser4_place_t *place);
 extern bool_t reiser4_item_statdata(reiser4_place_t *place);
 

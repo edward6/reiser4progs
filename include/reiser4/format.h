@@ -10,7 +10,7 @@
 
 extern reiser4_format_t *reiser4_format_open(reiser4_fs_t *fs);
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 extern errno_t reiser4_format_sync(reiser4_format_t *format);
 extern void reiser4_format_mkdirty(reiser4_format_t *format);
 extern void reiser4_format_mkclean(reiser4_format_t *format);

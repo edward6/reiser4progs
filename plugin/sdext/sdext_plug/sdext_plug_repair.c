@@ -3,7 +3,7 @@
    
    sdext_lt_repair.c -- large time stat data extension plugin recovery code. */
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 #include "sdext_plug.h"
 #include <repair/plugin.h>
 

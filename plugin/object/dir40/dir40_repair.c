@@ -3,7 +3,7 @@
    
    dir40_repair.c -- reiser4 default directory file plugin repair code. */
  
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 #include "dir40_repair.h"
 

@@ -7,7 +7,7 @@
 
 #include <reiser4/libreiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 bool_t reiser4_format_isdirty(reiser4_format_t *format) {
 	uint32_t state;
 	
@@ -92,7 +92,7 @@ reiser4_format_t *reiser4_format_open(
 	return NULL;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
 	reiser4_fs_t *fs,	/* fs the format will be created on */
@@ -182,7 +182,7 @@ void reiser4_format_close(
 	aal_free(format);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Returns root block from passed disk-format */
 blk_t reiser4_format_get_root(
 	reiser4_format_t *format)	/* format to be used */

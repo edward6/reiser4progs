@@ -12,7 +12,7 @@ static uint32_t bbox40_units(reiser4_place_t *place) {
 	return 1;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 
 static errno_t bbox40_prep_insert(reiser4_place_t *place,
 				  trans_hint_t *hint)
@@ -109,7 +109,7 @@ static errno_t bbox40_fetch_units(reiser4_place_t *place,
 
 
 static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.fuse		  = NULL,
 	.update_key	  = NULL,
 	.mergeable	  = NULL,
@@ -125,7 +125,7 @@ static item_balance_ops_t balance_ops = {
 };
 
 static item_object_ops_t object_ops = {
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.size		  = NULL,
 	.bytes		  = NULL,
 	.overhead	  = NULL,
@@ -146,7 +146,7 @@ static item_object_ops_t object_ops = {
 	.read_units	  = NULL
 };
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 static item_repair_ops_t repair_ops = {
 	.check_struct	  = bbox40_check_struct,
 	.check_layout	  = NULL,
@@ -165,7 +165,7 @@ static item_debug_ops_t debug_ops = {
 
 static item_tree_ops_t tree_ops = {
 	.down_link	  = NULL,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.update_link	  = NULL
 #endif
 };
@@ -174,7 +174,7 @@ static reiser4_item_ops_t bbox40_ops = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops
 #endif
@@ -183,7 +183,7 @@ static reiser4_item_ops_t bbox40_ops = {
 static reiser4_plug_t bbox40_plug = {
 	.cl    = class_init,
 	.id    = {ITEM_BLACKBOX40_ID, SAFE_LINK_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	.label = "bbox40",
 	.desc  = "Safe link item plugin for reiser4, ver. " VERSION,
 #endif

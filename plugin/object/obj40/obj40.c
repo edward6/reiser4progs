@@ -87,7 +87,7 @@ lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
 	hint.key = key;
 	hint.level = LEAF_LEVEL;
 	
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 	hint.hint = chint;
 	hint.collision = func;
 #endif
@@ -155,7 +155,7 @@ errno_t obj40_load_stat(obj40_t *obj, stat_hint_t *hint) {
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 /* Saves stat data to passed @hint. */
 errno_t obj40_save_stat(obj40_t *obj, stat_hint_t *hint) {
 	trans_hint_t trans;
@@ -633,7 +633,7 @@ int64_t obj40_read(obj40_t *obj, trans_hint_t *hint) {
 	return obj->core->flow_ops.read(obj->info.tree, hint);
 }
 
-#ifndef ENABLE_STAND_ALONE
+#ifndef ENABLE_MINIMAL
 int64_t obj40_convert(obj40_t *obj, conv_hint_t *hint) {
 	return obj->core->flow_ops.convert(obj->info.tree, hint);
 }

@@ -5,17 +5,17 @@ key_common_sources               = key_common.c key_common.h
 libkey_common_static_la_SOURCES  = $(key_common_sources)
 libkey_common_static_la_CFLAGS   = @GENERIC_CFLAGS@
 
-if ENABLE_STAND_ALONE
-ALONE_LIBS                       = libkey_common-alone.la
+if ENABLE_MINIMAL
+MINIMAL_LIBS                       = libkey_common-minimal.la
 else
-ALONE_LIBS                       =
+MINIMAL_LIBS                       =
 endif
 
-noinst_LTLIBRARIES	         = libkey_common-static.la $(ALONE_LIBS)
+noinst_LTLIBRARIES	         = libkey_common-static.la $(MINIMAL_LIBS)
 
-if ENABLE_STAND_ALONE
-libkey_common_alone_la_SOURCES   = $(key_common_sources)
-libkey_common_alone_la_CFLAGS    = @ALONE_CFLAGS@
+if ENABLE_MINIMAL
+libkey_common_minimal_la_SOURCES   = $(key_common_sources)
+libkey_common_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)
