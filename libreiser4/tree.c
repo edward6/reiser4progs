@@ -1308,7 +1308,7 @@ errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 	return 0;
 }
 
-/* Saves all dirty nodes in tree to device tree lies on.. */
+/* Saves all dirty nodes in tree to device tree lies on. */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	errno_t res;
 	
@@ -1317,7 +1317,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	if (!tree->root)
 		return 0;
 	
-        /* Flushing formatted nodes starting from root node with memory pressure
+	/* Flushing formatted nodes starting from root node with memory pressure
 	   flag set to 0, that is do not check memory presure, and save
 	   everything. */
 	if ((res = reiser4_tree_adjust_node(tree, tree->root))) {
