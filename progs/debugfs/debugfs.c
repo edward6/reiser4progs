@@ -80,7 +80,7 @@ static errno_t debugfs_print_joint(
 	get_level, node->entity);
 
     printf("%s NODE (%llu) contains level=%u, nr_items=%u, free_space=%u\n", 
-	level > LEAF_LEVEL ? "INTERNAL" : "LEAF", aal_block_number(node->block),
+	level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
 	level, reiser4_node_count(node), reiser4_node_space(node));
     
     if (level > LEAF_LEVEL) {
@@ -150,9 +150,9 @@ static errno_t debugfs_print_joint(
 	    printf("(%u) ", i);
 		    
 	    if (reiser4_item_statdata(&item)) {
-		printf("SD");
+		printf("STATDATA");
 	    } else if (reiser4_item_direntry(&item)) {
-		printf("DIR");
+		printf("DIRENTRY");
 	    } else if (reiser4_item_tail(&item)) {
 		printf("TAIL");
 	    }
