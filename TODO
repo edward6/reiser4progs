@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* change R4Sb magic to Reiser4Sb both in progs and in kernel code.
+
 * implement tree_pack() function, which will pack treeon leaf level in
   order to make it well packed and thus occupied less nodes on device. 
   This is needed for using less space and especially important in fsck

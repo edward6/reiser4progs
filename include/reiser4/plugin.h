@@ -14,7 +14,7 @@
 
 /* Master related stuff like magic and offset in bytes. These are sued by both
    plugins and library itself. */
-#define REISER4_MASTER_MAGIC	("Reiser4Sb")
+#define REISER4_MASTER_MAGIC	("R4Sb")
 #define REISER4_MASTER_OFFSET	(65536)
 
 /* The same for fs stat block. */
@@ -691,16 +691,16 @@ struct reiser4_key_ops {
 	   entities. */
 	int (*compraw) (void *, void *);
 
-	/* Compares two keys by comparing its all components */
+	/* Compares two keys by comparing its all components. */
 	int (*compfull) (key_entity_t *, key_entity_t *);
 
-	/* Compares two keys by comparing locality and objectid */
+	/* Compares two keys by comparing locality and objectid. */
 	int (*compshort) (key_entity_t *, key_entity_t *);
 	
 	/* Copyies src key to dst one */
 	errno_t (*assign) (key_entity_t *, key_entity_t *);
 	
-	/* Builds generic key (statdata, file body, etc) */
+	/* Builds generic key (statdata, file body, etc). */
 	errno_t (*build_gener) (key_entity_t *, key_type_t,
 				uint64_t, uint64_t, uint64_t,
 				uint64_t);
@@ -708,19 +708,19 @@ struct reiser4_key_ops {
 	errno_t (*build_entry) (key_entity_t *, reiser4_plug_t *,
 				uint64_t, uint64_t, char *);
 	
-	/* Gets/sets key type (minor in reiser4 notation) */	
+	/* Gets/sets key type (minor in reiser4 notation). */	
 	void (*set_type) (key_entity_t *, key_type_t);
 	key_type_t (*get_type) (key_entity_t *);
 
-	/* Gets/sets key locality */
+	/* Gets/sets key locality. */
 	void (*set_locality) (key_entity_t *, uint64_t);
 	uint64_t (*get_locality) (key_entity_t *);
     
-	/* Gets/sets key locality */
+	/* Gets/sets key locality. */
 	void (*set_ordering) (key_entity_t *, uint64_t);
 	uint64_t (*get_ordering) (key_entity_t *);
     
-	/* Gets/sets key objectid */
+	/* Gets/sets key objectid. */
 	void (*set_objectid) (key_entity_t *, uint64_t);
 	uint64_t (*get_objectid) (key_entity_t *);
 
@@ -732,7 +732,7 @@ struct reiser4_key_ops {
 	void (*set_offset) (key_entity_t *, uint64_t);
 	uint64_t (*get_offset) (key_entity_t *);
 
-	/* Extracts name from keys */
+	/* Extracts name from passed key. */
 	char *(*get_name) (key_entity_t *, char *);
 
 #ifndef ENABLE_STAND_ALONE
@@ -744,6 +744,7 @@ struct reiser4_key_ops {
 	errno_t (*print) (key_entity_t *, aal_stream_t *,
 			  uint16_t);
 
+	/* Check key body for validness. */
 	errno_t (*check_struct) (key_entity_t *);
 #endif
 };
@@ -755,25 +756,25 @@ struct reiser4_object_ops {
 	errno_t (*stat) (object_entity_t *, statdata_hint_t *);
 
 #ifndef ENABLE_STAND_ALONE
-	/* These methods change @nlink value of passed @entity */
+	/* These methods change @nlink value of passed @entity. */
 	errno_t (*link) (object_entity_t *);
 	errno_t (*unlink) (object_entity_t *);
 	uint32_t (*links) (object_entity_t *);
 
-	/* Establish parent child relationship */
+	/* Establish parent child relationship. */
 	errno_t (*attach) (object_entity_t *, object_entity_t *);
 	errno_t (*detach) (object_entity_t *, object_entity_t *);
 
 	/* Updates object stat data from passed hint. */
 	errno_t (*update) (object_entity_t *, statdata_hint_t *);
 	
-	/* Creates new file with passed parent and object keys */
+	/* Creates new file with passed parent and object keys. */
 	object_entity_t *(*create) (object_info_t *, object_hint_t *);
 
 	/* Delete file body and stat data if any. */
 	errno_t (*clobber) (object_entity_t *);
 
-	/* Writes the data to file from passed buffer */
+	/* Writes the data to file from passed buffer. */
 	int64_t (*write) (object_entity_t *, void *, uint64_t);
 
 	/* Directory specific methods */
@@ -781,7 +782,7 @@ struct reiser4_object_ops {
 	errno_t (*rem_entry) (object_entity_t *, entry_hint_t *);
 	errno_t (*build_entry) (object_entity_t *, entry_hint_t *);
 	
-	/* Truncates file at current offset onto passed units */
+	/* Truncates file at current offset onto passed units. */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
 	/* Function for going through all metadata blocks specfied file
@@ -793,7 +794,7 @@ struct reiser4_object_ops {
 	   measuring, etc. */
 	errno_t (*layout) (object_entity_t *, region_func_t, void *);
 
-	/* Converts file body to item denoted by @plug */
+	/* Converts file body to item denoted by @plug. */
 	errno_t (*convert) (object_entity_t *, reiser4_plug_t *plug);
 	
 	/* Checks and recover the structure of the object. */
@@ -804,8 +805,8 @@ struct reiser4_object_ops {
 	errno_t (*check_attach) (object_entity_t *, object_entity_t *,
 				 uint8_t);
 	
-	/* Realizes if the object can be of this plugin and can be 
-	   recovered as a such. */
+	/* Realizes if the object can be of this plugin and can be recovered as
+	   a such. */
 	object_entity_t *(*recognize) (object_info_t *);
 	
 	/* Creates the fake object by the gived @info. Needed to recover "/" and
@@ -816,39 +817,39 @@ struct reiser4_object_ops {
 	errno_t (*form) (object_entity_t *);
 #endif
 	
-	/* Change current position to passed value */
+	/* Change current position to passed value. */
 	errno_t (*seek) (object_entity_t *, uint64_t);
 	
 	/* Opens file with specified key */
 	object_entity_t *(*open) (object_info_t *);
 
-	/* Closes previously opened or created directory */
+	/* Closes previously opened or created directory. */
 	void (*close) (object_entity_t *);
 
-	/* Resets internal position */
+	/* Resets internal position. */
 	errno_t (*reset) (object_entity_t *);
    
-	/* Returns current position in directory */
+	/* Returns current position in directory. */
 	uint64_t (*offset) (object_entity_t *);
 
 	/* Makes lookup inside file */
 	lookup_t (*lookup) (object_entity_t *, char *,
 			    entry_hint_t *);
 
-	/* Finds actual file stat data (used in symlinks) */
+	/* Finds actual file stat data (used in symlinks). */
 	errno_t (*follow) (object_entity_t *, key_entity_t *,
 			   key_entity_t *);
 
-	/* Reads the data from file to passed buffer */
+	/* Reads the data from file to passed buffer. */
 	int64_t (*read) (object_entity_t *, void *, uint64_t);
 
-	/* Directory read method */
+	/* Directory read method. */
 	int32_t (*readdir) (object_entity_t *, entry_hint_t *);
 
-	/* Return current position in dirctory */
+	/* Return current position in directory. */
 	errno_t (*telldir) (object_entity_t *, key_entity_t *);
 
-	/* Change current position in directory */
+	/* Change current position in directory. */
 	errno_t (*seekdir) (object_entity_t *, key_entity_t *);
 };
 
@@ -873,7 +874,7 @@ struct item_balance_ops {
 	/* Estimates shift operation. */
 	errno_t (*prep_shift) (place_t *, place_t *, shift_hint_t *);
 	
-	/* Performs shift of units from passed @src item to @dst item */
+	/* Performs shift of units from passed @src item to @dst item. */
 	errno_t (*shift_units) (place_t *, place_t *, shift_hint_t *);
 
 	/* Set the key of a particular unit of the item. */
@@ -991,20 +992,20 @@ typedef struct reiser4_item_ops reiser4_item_ops_t;
 /* Stat data extension plugin */
 struct reiser4_sdext_ops {
 #ifndef ENABLE_STAND_ALONE
-	/* Initialize stat data extension data at passed pointer */
+	/* Initialize stat data extension data at passed pointer. */
 	errno_t (*init) (void *, void *);
 
-	/* Prints stat data extension data into passed buffer */
+	/* Prints stat data extension data into passed buffer. */
 	errno_t (*print) (void *, aal_stream_t *, uint16_t);
 
 	/* Checks sd extension content. */
 	errno_t (*check_struct) (sdext_entity_t *, uint8_t);
 #endif
 
-	/* Reads stat data extension data */
+	/* Reads stat data extension data. */
 	errno_t (*open) (void *, void *);
 
-	/* Returns length of the extension */
+	/* Returns length of the extension. */
 	uint16_t (*length) (void *);
 };
 
@@ -1015,13 +1016,14 @@ typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
    not initialized previously hypothetic instance of node. */
 struct reiser4_node_ops {
 #ifndef ENABLE_STAND_ALONE
+	/* Get node state flags and set them back. */
 	uint32_t (*get_state) (node_entity_t *);
 	void (*set_state) (node_entity_t *, uint32_t);
 
-	/* Makes clone of passed node */
+	/* Makes clone of passed node. */
 	errno_t (*clone) (node_entity_t *, node_entity_t *);
 
-	/* Performs shift of items and units */
+	/* Performs shift of items and units. */
 	errno_t (*shift) (node_entity_t *, node_entity_t *, 
 			  shift_hint_t *);
 
@@ -1038,35 +1040,36 @@ struct reiser4_node_ops {
 	
 	errno_t (*pack) (node_entity_t *, aal_stream_t *);
 
-	/* Prints node into given buffer */
+	/* Prints node into given buffer. */
 	errno_t (*print) (node_entity_t *, aal_stream_t *,
 			  uint32_t, uint32_t, uint16_t);
     
-	/* Returns item's overhead */
+	/* Returns item's overhead. */
 	uint16_t (*overhead) (node_entity_t *);
 
-	/* Returns item's max size */
+	/* Returns item's max size. */
 	uint16_t (*maxspace) (node_entity_t *);
     
-	/* Returns free space in the node */
+	/* Returns free space in the node. */
 	uint16_t (*space) (node_entity_t *);
 
-	/* Inserts item at specified pos */
+	/* Inserts item at specified pos. */
 	errno_t (*insert) (node_entity_t *, pos_t *,
 			   trans_hint_t *);
     
-	/* Writes data to the node */
+	/* Writes data to the node. */
 	int64_t (*write) (node_entity_t *, pos_t *,
 			  trans_hint_t *);
 
+	/* Truncate item at passed pos. */
 	int64_t (*trunc) (node_entity_t *, pos_t *,
 			  trans_hint_t *);
 
-	/* Removes item/unit at specified pos */
+	/* Removes item/unit at specified pos. */
 	errno_t (*remove) (node_entity_t *, pos_t *,
 			   trans_hint_t *);
 
-	/* Shrinks node without calling any item methods */
+	/* Shrinks node without calling any item methods. */
 	errno_t (*shrink) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
@@ -1076,12 +1079,12 @@ struct reiser4_node_ops {
 			  node_entity_t *, pos_t *, 
 			  merge_hint_t *);
 
-	/* Copies items from @src_entity to @dst_entity */
+	/* Copies items from @src_entity to @dst_entity. */
 	errno_t (*copy) (node_entity_t *, pos_t *,
 			 node_entity_t *, pos_t *,
 			 uint32_t);
 	
-	/* Expands node */
+	/* Expands node. */
 	errno_t (*expand) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
@@ -1431,7 +1434,7 @@ typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
 struct plug_class {
 	void *data;
 
-	/* Plugin initialization routine */
+	/* Plugin initialization routine. */
 	plug_init_t init;
 	
 #ifndef ENABLE_STAND_ALONE
@@ -1471,10 +1474,10 @@ struct reiser4_plug {
 	plug_ident_t id;
 	
 #ifndef ENABLE_STAND_ALONE
-	/* Plugin label (name) */
+	/* Plugin label (name). */
 	const char label[PLUG_MAX_LABEL];
 	
-	/* Short plugin description */
+	/* Short plugin description. */
 	const char desc[PLUG_MAX_DESC];
 #endif
 
@@ -1516,15 +1519,15 @@ struct tree_ops {
 	/* Reads data from the tree. */
 	int64_t (*read) (void *, trans_hint_t *);
 
-	/* Initializes all item fields in passed place */
+	/* Initializes all item fields in passed place. */
 	errno_t (*fetch) (void *, place_t *);
 
-	/* Checks if passed @place points to some real item inside a node */
+	/* Checks if passed @place points to some real item inside a node. */
 	int (*valid) (void *, place_t *);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
-	   by all object plugins (dir, file, etc) */
+	   by all object plugins (dir, file, etc). */
 	int64_t (*insert) (void *, place_t *,
 			   trans_hint_t *, uint8_t);
 
@@ -1541,7 +1544,7 @@ struct tree_ops {
 	   modification purposes. */
 	errno_t (*remove) (void *, place_t *, trans_hint_t *);
 
-	/* Functions for getting/setting extent data */
+	/* Functions for getting/setting extent data. */
 	aal_block_t *(*get_data) (void *, key_entity_t *);
 	
 	errno_t (*put_data) (void *, key_entity_t *,
@@ -1560,11 +1563,11 @@ struct tree_ops {
 typedef struct tree_ops tree_ops_t;
 
 struct factory_ops {
-	/* Finds plugin by its attributes (type and id) */
+	/* Finds plugin by its attributes (type and id). */
 	reiser4_plug_t *(*ifind) (rid_t, rid_t);
 	
 #ifndef ENABLE_STAND_ALONE
-	/* Finds plugin by its type and name */
+	/* Finds plugin by its type and name. */
 	reiser4_plug_t *(*nfind) (char *);
 #endif
 };
@@ -1624,7 +1627,6 @@ struct reiser4_core {
         (plug1->id.type == plug2->id.type &&                     \
          plug1->id.group == plug2->id.group &&                   \
 	 plug1->id.id == plug2->id.id)
-
 
 /* Makes check is needed method implemengted */
 #define plug_call(ops, method, ...) ({                           \
