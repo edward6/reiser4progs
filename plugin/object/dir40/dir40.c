@@ -153,6 +153,7 @@ lookup_t dir40_next(dir40_t *dir, int first) {
 	return PRESENT;
 }
 
+#ifndef ENABLE_STAND_ALONE
 #define dir40_update_next(dir, first)			\
 {							\
 	/* Getting next directory item */		\
@@ -167,6 +168,18 @@ lookup_t dir40_next(dir40_t *dir, int first) {
 	if (adjust == 0)				\
 		return PRESENT;				\
 }
+#else
+#define dir40_update_next(dir, first)			\
+{							\
+	/* Getting next directory item */		\
+	if ((res = dir40_next(dir, first)) < 0)		\
+		return res;				\
+							\
+	/* No more items in the tree. */		\
+	if (res == ABSENT)				\
+		return ABSENT;				\
+}
+#endif
 
 /* Updates current body place by place found by @dir->position and
    @dir->adjust. */
@@ -192,8 +205,7 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 		} else if (!obj40_belong(&dir->body, NULL, &dir->position))
 			return ABSENT;
 		
-		/* If ABSENT means there is no any dir item, check this again
-		   for the case key matches. */
+		/* If key matches, but this is not directory item. */
 		if (check_group && dir->body.plug->id.group != DIRENTRY_ITEM)
 			return ABSENT;
 		

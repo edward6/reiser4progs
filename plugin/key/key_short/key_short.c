@@ -276,9 +276,8 @@ static errno_t key_short_build_hash(reiser4_key_t *key,
 				   len - OBJECTID_CHARS);
 	}
 	
-	objectid |= ((uint64_t)plug_call(fibre->o.fibre_ops, 
-					 build, name + OBJECTID_CHARS,
-					 len - OBJECTID_CHARS) << FIBRE_SHIFT);
+	objectid |= ((uint64_t)plug_call(fibre->o.fibre_ops, build, 
+					 name, len) << FIBRE_SHIFT);
 	
 	/* Objectid must occupie 60 bits. If it takes more, then we have broken
 	   key, or objectid allocator reached this value, that impossible in

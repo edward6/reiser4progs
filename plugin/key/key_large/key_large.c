@@ -295,9 +295,8 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
 				   len - INLINE_CHARS);
 	}
 
-	ordering |= ((uint64_t)plug_call(fibre->o.fibre_ops, 
-					 build, name + INLINE_CHARS,
-					 len - INLINE_CHARS) << FIBRE_SHIFT);
+	ordering |= ((uint64_t)plug_call(fibre->o.fibre_ops, build, 
+					 name, len) << FIBRE_SHIFT);
 	
 	/* Setting up objectid and offset */
 	key_large_set_ordering(key, ordering);
