@@ -295,7 +295,10 @@ errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug, reiser4_core_t *core,
 	obj->info = *info;
 	obj->core = core;
 	obj->plug = plug;
-
+	
+	if (info->object.plug)
+		STAT_ITEM(obj)->key = info->object;
+	
 	return 0;
 }
 
@@ -305,7 +308,7 @@ errno_t obj40_stat(obj40_t *obj) {
 
 	/* Looking for stat data place by */
 	switch (obj->core->tree_ops.lookup(obj->info.tree, STAT_KEY(obj),
-					   LEAF_LEVEL, &obj->statdata))
+					   LEAF_LEVEL, STAT_ITEM(obj)))
 	{
 	case PRESENT:
 		return 0;
