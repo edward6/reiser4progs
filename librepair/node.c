@@ -118,14 +118,12 @@ static errno_t repair_joint_rd_key(reiser4_joint_t *joint,
 	/* If this is the last position in the parent, call the method 
 	 * recursevely for the parent. Get the right delimiting key 
 	 * otherwise. */
-	if (reiser4_node_count(joint->node) == coord.pos.item + 1) {
-//	if (reiser4_node_count(joint->parent->node) == coord.pos.item + 1) {
+	if (reiser4_node_count(joint->parent->node) == coord.pos.item + 1) {
 	    return repair_joint_rd_key(joint->parent, rd_key, data);
 	} else {
 	    pos.item = coord.pos.item + 1;
-	    reiser4_coord_open(&coord, joint->parent, CT_JOINT, &pos);
-//	    if (reiser4_coord_open(&coord, joint->parent, CT_JOINT, &pos))
-//		return -1;
+	    if (reiser4_coord_open(&coord, joint->parent, CT_JOINT, &pos))
+		return -1;
 
 	    return reiser4_item_key(&coord, rd_key);
 	}
@@ -208,7 +206,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 	return -1;
     }
     
-    if (reiser4_key_compare(&key, &d_key) < 0) {
+    if (reiser4_key_compare(&key, &d_key) > 0) {
 	aal_exception_error("Node (%llu): The last key %k in the node is less "
 	    "then the right delimiting key %k.", 
 	    aal_block_number(joint->node->block), &key, &d_key);

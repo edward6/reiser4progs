@@ -75,6 +75,21 @@ static errno_t tail40_max_poss_key(item_entity_t *item,
 static errno_t tail40_max_real_key(item_entity_t *item,
 				   reiser4_key_t *key) 
 {
+	uint64_t offset;
+
+	aal_assert("vpf-442", item != NULL, return -1);
+	aal_assert("vpf-443", key != NULL, return -1);
+
+	if (plugin_call(return -1, key->plugin->key_ops,
+			assign, key->body, item->key.body))
+		return -1;
+
+	offset = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, key);
+	
+	plugin_call(return -1, key->plugin->key_ops, set_offset, 
+		key, offset + item->len);
+	
 	return 0;
 }
 

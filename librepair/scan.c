@@ -31,7 +31,7 @@ errno_t repair_scan_handle_pointers(reiser4_coord_t *coord, void *data) {
     repair_check_t *check_data = data;
     reiser4_ptr_hint_t ptr;
     int res;
-    
+ 
     aal_assert("vpf-384", coord != NULL, return -1);
     aal_assert("vpf-385", check_data != NULL, return -1);
     aal_assert("vpf-431", reiser4_coord_block(coord) != NULL, return -1);

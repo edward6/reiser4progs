@@ -61,16 +61,6 @@ extern errno_t nodeptr40_check(item_entity_t *item, uint16_t options);
 
 #endif
 
-static errno_t nodeptr40_max_poss_key(item_entity_t *item,
-				      reiser4_key_t *key) 
-{
-	aal_assert("umka-1207", item != NULL, return -1);
-	aal_assert("umka-1208", key != NULL, return -1);
-
-	return plugin_call(return -1, key->plugin->key_ops,
-		    assign, key->body, item->key.body);
-}
-
 static errno_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
 			       void *buff, uint32_t count)
 {
@@ -141,8 +131,8 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.count		= nodeptr40_count,
 		.fetch          = nodeptr40_fetch,
 	
-		.max_poss_key	= nodeptr40_max_poss_key,
-		.max_real_key   = nodeptr40_max_poss_key,
+		.max_poss_key	= NULL,
+		.max_real_key   = NULL,
 	}
 };
 

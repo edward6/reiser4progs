@@ -251,8 +251,11 @@ errno_t reiser4_item_max_poss_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	entity = &coord->entity;
 	aal_assert("umka-1456", entity->plugin != NULL, return 0);
 	
-	return plugin_call(return -1, entity->plugin->item_ops, 
-			   max_poss_key, entity, key);
+	if (entity->plugin->item_ops.max_poss_key)
+		return entity->plugin->item_ops.max_poss_key(entity, key);
+	    
+	return plugin_call(return -1, key->plugin->key_ops,
+			   assign, key->body, entity->key.body);
 }
 
 errno_t reiser4_item_max_real_key(reiser4_coord_t *coord, reiser4_key_t *key) {
@@ -263,7 +266,10 @@ errno_t reiser4_item_max_real_key(reiser4_coord_t *coord, reiser4_key_t *key) {
     
 	entity = &coord->entity;
 	aal_assert("umka-1457", entity->plugin != NULL, return 0);
-	
-	return plugin_call(return -1, entity->plugin->item_ops,
-			   max_real_key, entity, key);
+
+	if (entity->plugin->item_ops.max_real_key) 
+		return entity->plugin->item_ops.max_real_key(entity, key);	
+		
+	return plugin_call(return -1, key->plugin->key_ops,
+				   assign, key->body, entity->key.body);
 }

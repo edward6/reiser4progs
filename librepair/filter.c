@@ -18,6 +18,8 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk,
     repair_check_t *check_data = data;
 
     aal_assert("vpf-379", check_data != NULL, return -1);
+    aal_assert("vpf-432", joint != NULL, return -1);
+    aal_assert("vpf-433", check_data->format != NULL, return -1);
 
     if (repair_test_flag(check_data, REPAIR_BAD_PTR))
 	return 0;
@@ -26,24 +28,22 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk,
     
     if ((node = reiser4_node_open(device, blk)) == NULL) {
 	repair_set_flag(check_data, REPAIR_BAD_PTR);
-	return 1;
+	return 0;
     }
 	    
-    if (!(*joint = reiser4_joint_create(node))) {
-	res = -1;
+    if (!(*joint = reiser4_joint_create(node))) 
 	goto error_free_node;
-    }
 
     return 0;
     
 error_free_node:
     reiser4_node_close(node);
-    return res;
+    return -1;
 }
 
 errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
     repair_check_t *check_data = data;
-    errno_t res;
+    errno_t res = 0;
     
     aal_assert("vpf-252", check_data != NULL, return -1);
     aal_assert("vpf-409", joint != NULL, return -1);
@@ -60,20 +60,18 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
 	aal_exception_error("Level of the node (%u) is not correct, expected (%u)", 
 	    joint->node->entity->plugin->node_ops.get_level(joint->node->entity), 
 	    repair_filter_data(check_data)->level);
-	return 1;
+	res = 1;
     }
 
-    if ((res = repair_joint_check(joint, check_data)) < 0)
+    if (!res && (res = repair_joint_check(joint, check_data)) < 0)
 	return res;
 	
     if (!res && repair_filter_data(check_data)->level)
 	if ((res = repair_joint_dkeys_check(joint, data)) < 0)
 	    return res;
 
-    if (res > 0) {
+    if (res > 0)
 	repair_set_flag(check_data, REPAIR_NOT_FIXED);
-	return 0;
-    }
 	
     return res;
 }
@@ -124,6 +122,7 @@ errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
     reiser4_pos_t prev;
     
     aal_assert("vpf-257", check_data != NULL, return -1);
+    aal_assert("vpf-434", coord != NULL, return -1);
     
     if (repair_test_flag(check_data, REPAIR_NOT_FIXED)) {
 	reiser4_ptr_hint_t ptr;
@@ -175,7 +174,7 @@ errno_t repair_filter_setup(reiser4_fs_t *fs, traverse_hint_t *hint) {
     aal_assert("vpf-423", hint->data != NULL, return -1);
     
     check_data = hint->data;
-    
+   
     check_data->format = fs->format;
     check_data->options = repair_data(fs)->options;
 

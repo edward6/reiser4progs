@@ -684,7 +684,7 @@ errno_t reiser4_joint_traverse(
 										     before_func, 
 										     setup_func,
 										     update_func,
-										     after_func)))
+										     after_func)) < 0)
 							goto error_update_func;
 
 						reiser4_joint_detach(joint, child);

@@ -96,7 +96,40 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 static errno_t extent40_max_real_key(item_entity_t *item,
 				     reiser4_key_t *key) 
 {
-	return 0;
+	uint8_t i;
+	uint64_t offset, delta, blocksize;
+	
+	aal_assert("vpf-437", item != NULL, return -1);
+	aal_assert("vpf-438", key  != NULL, return -1);
+
+	if (plugin_call(return -1, key->plugin->key_ops,
+			assign, key->body, item->key.body))
+		return -1;
+			
+	if ((offset = plugin_call(return -1, key->plugin->key_ops,
+				  get_offset, key->body)))
+		return -1;
+	
+	blocksize = aal_block_size(item->context.block);
+	
+	aal_assert("vpf-440", blocksize != 0, return -1);
+	
+	/* key offset + for all units { width * blocksize } */
+	for (i = 0; i < extent40_count(item); i++) {
+		delta = et40_get_width(extent40_body(item) + i);
+		
+		aal_assert("vpf-439", delta < ((uint64_t)-1) / 102400, return -1);
+
+		delta *= blocksize;
+		
+		aal_assert("vpf-439", offset < ((uint64_t)-1) - delta, return -1);
+		
+		offset += delta;
+	}
+
+	plugin_call(return -1, key->plugin->key_ops, set_offset, key->body, offset);
+	
+	return 0;	
 }
 
 static errno_t extent40_fetch(item_entity_t *item, uint32_t pos,

@@ -397,13 +397,6 @@ static errno_t direntry40_max_poss_key(item_entity_t *item,
 	return 0;
 }
 
-/* Returns the key of the last unit. */
-static errno_t direntry40_max_real_key(item_entity_t *item, 
-				       reiser4_key_t *key) 
-{
-	return 0;
-}
-
 static int direntry40_lookup(item_entity_t *item, 
 			     reiser4_key_t *key, uint32_t *pos)
 {
@@ -495,7 +488,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.fetch          = direntry40_fetch,
 		
 		.max_poss_key	= direntry40_max_poss_key,
-		.max_real_key   = direntry40_max_real_key
+		.max_real_key   = NULL
 	}
 };
 

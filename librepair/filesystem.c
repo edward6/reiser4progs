@@ -9,7 +9,7 @@
 errno_t repair_fs_check(reiser4_fs_t *fs) {
     traverse_hint_t hint;
     repair_check_t data;
-    reiser4_joint_t *joint;
+    reiser4_joint_t *joint = NULL;
     errno_t res = 0;
 
     aal_assert("vpf-180", fs != NULL, return -1);
@@ -24,10 +24,10 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 	return -1;    
 
     if ((res = repair_filter_joint_open(&joint, 
-	reiser4_format_get_root(fs->format), &hint)) < 0) 
+	reiser4_format_get_root(fs->format), &data)) < 0) 
 	return res;
  
-    if (!res) {
+    if (res == 0 && joint != NULL) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 
 	if ((res = reiser4_joint_traverse(joint, &hint, repair_filter_joint_open,
 	    repair_filter_joint_check,	    repair_filter_setup_traverse,  
