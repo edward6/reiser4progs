@@ -193,8 +193,8 @@ static uint16_t node40_item_len(reiser4_entity_t *entity,
     free_space_start = nh40_get_free_space_start(nh40(node->block));
     
     return (int)pos->item == node40_count(entity) - 1 ? 
-	free_space_start - ih40_get_offset(ih) : 
-	ih40_get_offset(ih - 1) - ih40_get_offset(ih);
+	(int)free_space_start - ih40_get_offset(ih) : 
+	(int)ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
 
 #ifndef ENABLE_COMPACT
