@@ -8,8 +8,8 @@
 
 errno_t repair_fs_check(reiser4_fs_t *fs) {
     repair_check_t data;
-    blk_t blk;
-    errno_t res;    
+    reiser4_joint_t *joint;
+    errno_t res;
 
     aal_assert("vpf-180", fs != NULL, return -1);
     aal_assert("vpf-181", fs->format != NULL, return -1);
@@ -17,26 +17,32 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 
     aal_memset(&data, 0, sizeof(data));
     
-    blk = reiser4_format_get_root(fs->format);
-    
-    if (repair_cut_tree_setup(fs, &data))
+    if (repair_filter_setup(fs, &data))
 	return -1;    
-   
-    /* Cut the corrupted, unrecoverable parts of the tree off. */ 
-    if ((res = reiser4_node_traverse(blk, repair_cut_tree_node_open, 
-	repair_cut_tree_node_check, repair_cut_tree_before_traverse, 
-	repair_cut_tree_setup_traverse, repair_cut_tree_update_traverse, 
-	repair_cut_tree_after_traverse, &data)) < 0)
-	return res;
 
-    if (repair_cut_tree_update(fs, &data))
+    if ((res = repair_filter_joint_open(&joint, 
+	reiser4_format_get_root(fs->format), &data))) 
+    {
+	repair_set_flag(&data, REPAIR_NOT_FIXED);
+    } else {    
+	/* Cut the corrupted, unrecoverable parts of the tree off. */ 
+	if ((res = reiser4_joint_traverse(joint, &data, 
+	    repair_filter_joint_open,      repair_filter_joint_check, 
+	    repair_filter_before_traverse, repair_filter_setup_traverse, 
+	    repair_filter_update_traverse, repair_filter_after_traverse)) < 0)
+	    return res;
+    }
+
+    if (repair_filter_update(fs, &data))
 	return -1;
 
-    /* Solve overlapped problem within the tree. */
-    if ((res = reiser4_node_traverse(blk, repair_node_open, 
-	repair_scan_node_check, NULL, NULL, NULL, NULL, &data)) < 0)
-	return res;
-  
+    if (joint) {
+	/* Solve overlapped problem within the tree. */
+	if ((res = reiser4_joint_traverse(joint, &data, repair_filter_joint_open,
+	    repair_scan_node_check, NULL, NULL, NULL, NULL)) < 0)
+	    return res;
+    }
+      
     return 0;
 }
 
@@ -45,7 +51,6 @@ static errno_t repair_master_check(reiser4_fs_t *fs,
 {
     uint16_t blocksize = 0;
     int error = 0;
-    int free_master = 0;
     reiser4_plugin_t *plugin;
    
     aal_assert("vpf-161", fs != NULL, return -1);
@@ -79,7 +84,6 @@ static errno_t repair_master_check(reiser4_fs_t *fs,
 	} else if (repair_verbose(repair_data(fs)))
 	    aal_exception_info("A new master superblock was created on (%s).", 
 		aal_device_name(repair_data(fs)->host_device));
-	free_master = 1;
     } else {
 	/* Master SB was opened. Check it for validness. */
 
@@ -90,11 +94,13 @@ static errno_t repair_master_check(reiser4_fs_t *fs,
 	    
 	    if (!(blocksize = ask_blocksize(fs, &error)) && error)
 		return -1;
-	}	
+
+	    set_mr_blocksize(fs->master->super, blocksize);
+	} 
     }
 
     /* Setting actual used block size from master super block */
-    if (blocksize && aal_device_set_bs(repair_data(fs)->host_device, 
+    if (aal_device_set_bs(repair_data(fs)->host_device, 
 	reiser4_master_blocksize(fs->master))) 
     {
         aal_exception_fatal("Invalid block size was specified (%u). It must "

@@ -81,12 +81,14 @@ typedef struct repair_check repair_check_t;
 #define repair_scan_data(data)		(&(data)->pass.scan)
 
 #define REPAIR_NOT_FIXED		0x1
+#define REPAIR_BAD_PTR			0x2
 
 #define repair_set_flag(data, flag)	(aal_set_bit(flag, &(data)->flags))
 #define repair_test_flag(data, flag)	(aal_test_bit(flag, &(data)->flags))
 #define repair_clear_flag(data, flag)	(aal_clear_bit(flag, &(data)->flags))
 
-#define repair_cut_node_at(data, h)				    \
+
+#define repair_cut_node_at(joint, h)				    \
     (h < aal_list_length(repair_cut_data(data)->nodes_path) ?	    \
      aal_list_at(repair_cut_data(data)->nodes_path, h)->data :	    \
      NULL)

@@ -4,10 +4,9 @@
 */
 
 #include <repair/librepair.h>
-
-errno_t repair_node_open(reiser4_node_t **node, blk_t blk, void *data) {
+/*
+reiser4_node_t *repair_node_open(reiser4_block_t *block, void *data) {
     repair_check_t *check_data = data;
-    aal_block_t *block;
     errno_t res;
 
     aal_assert("vpf-383", check_data != NULL, return -1);
@@ -23,7 +22,7 @@ errno_t repair_node_open(reiser4_node_t **node, blk_t blk, void *data) {
 
     return -((*node = reiser4_node_open(block)) == NULL);
 }
-
+*/
 static errno_t repair_node_items_check(reiser4_node_t *node, 
     repair_check_t *data) 
 {
@@ -77,16 +76,35 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    continue;
 	pos.unit = reiser4_item_count(&item) - 1;
 	do {
-	    if (repair_item_nptr_check(node, &item, data))
+	    if ((res = repair_item_nptr_check(node, &item, data)) < 0) 
 		return -1;
+	    else {
+		if (reiser4_item_internal(&item)) {
+		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
+			"bad internal pointer (%llu/%llu). Removed.", 
+			aal_block_number(node->block), pos.item, pos.unit, 
+			reiser4_item_get_nptr(&item), 
+			reiser4_item_get_nwidth(&item));
+		    if (reiser4_node_remove(node, &pos))
+			return -1;
+		} else if (reiser4_item_extent(&item)) {
+		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
+			"bad extent pointer (%llu). Zeroed.", 
+			aal_block_number(node->block), pos.item, pos.unit, 
+			reiser4_item_get_nptr(&item), 
+			reiser4_item_get_nwidth(&item));
+		    reiser4_item_set_nptr(&item, 0);
+		    reiser4_item_set_nwidth(&item, 0);
+		}
+	    }
 	} while (pos.unit--);	
     } while (pos.item--);
     
     return 0;    
 }
 
-errno_t repair_node_ld_key(reiser4_key_t *ld_key, repair_check_t *data, 
-    uint8_t path_length) 
+errno_t repair_node_ld_key(reiser4_key_t *ld_key, repair_check_t *data,
+     uint8_t path_length) 
 {
     reiser4_item_t *item;
     
@@ -110,8 +128,8 @@ errno_t repair_node_ld_key(reiser4_key_t *ld_key, repair_check_t *data,
     return 0;
 }
 
-errno_t repair_node_rd_key(reiser4_key_t *rd_key, repair_check_t *data, 
-    uint8_t path_length)
+errno_t repair_node_rd_key(reiser4_key_t *rd_key, repair_check_t *data,
+     uint8_t path_length)
 {
     reiser4_item_t *item;
     reiser4_pos_t pos;

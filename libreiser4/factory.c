@@ -20,7 +20,7 @@
 /* Helper structure used in searching of plugins */
 struct walk_desc {
     rpid_t id;			    /* needed plugin id */
-    rpid_t type;			    /* needed plugin type */
+    rpid_t type;		    /* needed plugin type */
     const char *name;
 };
 

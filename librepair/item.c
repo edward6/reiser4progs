@@ -28,36 +28,15 @@ errno_t repair_item_nptr_check(reiser4_node_t *node,
     if (!blk || (blk >= reiser4_format_get_len(data->format)) || 
 	(width >= reiser4_format_get_len(data->format)) || 
 	(blk + width >= reiser4_format_get_len(data->format))) 
-    {
-	if (reiser4_item_internal(item)) {
-	    if (reiser4_node_remove(node, item->pos))
-		return -1;
-	} else if (reiser4_item_extent(item)) {
-	    reiser4_item_set_nptr(item, 0);
-	}
-	
-	return 0;
-    }
+	return 1;
 	
     if ((next_blk = aux_bitmap_find(repair_cut_data(data)->format_layout, 
 	blk)) == 0)
 	/* No any formatted blocks exists after blk. */
         return 0;
     
-    if (next_blk >= blk && next_blk < blk + width) {
-	if (reiser4_item_internal(item)) {
-	    aal_exception_error("Node (%llu), item (%u), unit (%u): bad "
-		"internal pointer (%llu). Removed.", aal_block_number(node->block), 
-		item->pos->item, item->pos->unit, blk);
-	    if (reiser4_node_remove(node, item->pos))
-		return -1;
-	} else if (reiser4_item_extent(item)) {
-	    aal_exception_error("Node (%llu), item (%u), unit (%u): bad extent "
-		"pointer (%llu). Zeroed.", aal_block_number(node->block), blk);
-		    
-	    reiser4_item_set_nptr(item, 0);
-	}
-    }
+    if (next_blk >= blk && next_blk < blk + width) 
+	return 1;
 
     return 0;
 }

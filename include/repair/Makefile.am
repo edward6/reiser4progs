@@ -1,2 +1,2 @@
 repairincludedir	= $(includedir)/repair
-repairinclude_HEADERS   = librepair.h repair.h filesystem.h format.h node.h item.h cut_tree.h scan.h
+repairinclude_HEADERS   = librepair.h repair.h filesystem.h format.h node.h item.h filter.h scan.h
