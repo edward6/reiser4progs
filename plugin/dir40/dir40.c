@@ -141,9 +141,7 @@ static errno_t dir40_realize(dir40_t *dir) {
     return 0;
 }
 
-static reiser4_place_t *dir40_next(reiser4_entity_t *entity, 
-    reiser4_place_t *place) 
-{
+static errno_t dir40_next(reiser4_entity_t *entity) {
     rpid_t pid;
     reiser4_key_t key;
 
@@ -151,37 +149,48 @@ static reiser4_place_t *dir40_next(reiser4_entity_t *entity,
     roid_t next_locality;
 
     dir40_t *dir = (dir40_t *)entity;
-    reiser4_place_t *next_place = place;
+    reiser4_place_t *place = &dir->place;
+    reiser4_place_t save_place = dir->place;
 
     /* Getting the right neighbour */
-    if (core->tree_ops.item_right(dir->tree, next_place))
-        return NULL;
+    if (core->tree_ops.item_right(dir->tree, place))
+        goto error_set_context;
     
-    pid = core->tree_ops.item_pid(dir->tree, next_place, 
+    pid = core->tree_ops.item_pid(dir->tree, place, 
 	ITEM_PLUGIN_TYPE);
     
     /* Here we check is next item belongs to this directory */
     if (pid != dir->direntry.plugin->h.id)
-	return NULL;
+        goto error_set_context;
 	
     /* Getting key of the first item in the right neightbour */
-    if (core->tree_ops.item_key(dir->tree, next_place, &key)) {
+    if (core->tree_ops.item_key(dir->tree, place, &key)) {
         aal_exception_error("Can't get next item key by coord.");
-	return NULL;
+        goto error_set_context;
     }
 	
     /* 
         Getting locality of both keys in order to determine is they are 
         mergeable.
     */
-    curr_locality = plugin_call(return NULL, dir->key.plugin->key_ops,
+    curr_locality = plugin_call(goto error_set_context, dir->key.plugin->key_ops,
         get_locality, dir->key.body);
 	
-    next_locality = plugin_call(return NULL, dir->key.plugin->key_ops,
+    next_locality = plugin_call(goto error_set_context, dir->key.plugin->key_ops,
         get_locality, key.body);
 	
     /* Determining is items are mergeable */
-    return (curr_locality == next_locality) ? next_place : NULL;
+    if (curr_locality == next_locality) {
+	    
+	if (core->tree_ops.item_body(dir->tree, place, &dir->direntry.body, NULL))
+	    goto error_set_context;
+	
+	dir->place.pos.unit = 0;
+	return 0;
+    }
+error_set_context:
+    *place = save_place;
+    return -1;
 }
 
 static uint32_t dir40_count(dir40_t *dir) {
@@ -212,16 +221,9 @@ static uint64_t dir40_read(reiser4_entity_t *entity,
     
     for (i = 0; i < n; i++) {
 	if (dir->place.pos.unit >= count) {
-	    reiser4_place_t place = dir->place;
-	
-	    if (!dir40_next(entity, &dir->place)) {
-		dir->place = place;
-		break;
-	    }
-	
-	    /* Items are mergeable, updating pointer to current directory item */
-	    if (core->tree_ops.item_body(dir->tree, &dir->place, 
-		   &dir->direntry.body, NULL))
+	    
+	    /* Now we are trying to get next direntry item */
+	    if (dir40_next(entity))
 		break;
 	}
     
@@ -264,8 +266,6 @@ static int dir40_lookup(reiser4_entity_t *entity,
 
     while (1) {
 
-	reiser4_place_t place;
-	
 	if (plugin_call(return -1, plugin->item_ops, lookup, 
 	    dir->direntry.body, &k, &dir->place.pos.unit) == 1) 
 	{
@@ -285,15 +285,9 @@ static int dir40_lookup(reiser4_entity_t *entity,
 	    return 1;
 	}
 	
-	place = dir->place;
-	if (!dir40_next(entity, &dir->place)) {
-	    dir->place = place;
+	/* Now we are trying to get next direntry item */
+	if (dir40_next(entity))
 	    return 0;
-	}
-	
-	if (core->tree_ops.item_body(dir->tree, &dir->place, 
-		&dir->direntry.body, NULL))
-	    return -1;
     }
     
     return 0;

@@ -133,99 +133,104 @@ static errno_t reg40_realize(reg40_t *reg) {
     return 0;
 }
 
-static reiser4_place_t *reg40_next(reiser4_entity_t *entity, 
-    reiser4_place_t *place) 
-{
-    reiser4_key_t key;
-
+static errno_t reg40_next(reiser4_entity_t *entity) {
+    rpid_t pid;
     roid_t curr_objectid;
     roid_t next_objectid;
 
+    reiser4_key_t key;
     reg40_t *reg = (reg40_t *)entity;
-    reiser4_place_t *next_place = place;
 
+    reiser4_place_t *place = &reg->place;
+    reiser4_place_t save_place = reg->place;
+    reiser4_plugin_t *save_plugin = reg->body.plugin;
+    
     /* Getting the right neighbour */
-    if (core->tree_ops.item_right(reg->tree, next_place))
-        return NULL;
+    if (core->tree_ops.item_right(reg->tree, place))
+        goto error_set_context;
     
     /* Getting key of the first item in the right neightbour */
-    if (core->tree_ops.item_key(reg->tree, next_place, &key)) {
+    if (core->tree_ops.item_key(reg->tree, place, &key)) {
         aal_exception_error("Can't get next item key by coord.");
-	return NULL;
+	goto error_set_context;
+    }
+    
+    pid = core->tree_ops.item_pid(reg->tree, place, ITEM_PLUGIN_TYPE);
+	
+    if (!(reg->body.plugin = 
+	core->factory_ops.plugin_ifind(ITEM_PLUGIN_TYPE, pid)))
+    {
+	aal_exception_error("Can't find item plugin by "
+	    "its id %x.", pid);
+	
+	goto error_set_context;
+    }
+    
+    if (reg->body.plugin->h.type != ITEM_PLUGIN_TYPE ||
+	(reg->body.plugin->item_ops.type != TAIL_ITEM_TYPE &&
+	reg->body.plugin->item_ops.type != EXTENT_ITEM_TYPE))
+    {
+	/* Next item is nor tail neither extent */
+	goto error_set_context;
     }
     
     /* 
         Getting locality of both keys in order to determine is they are 
         mergeable.
     */
-    curr_objectid = plugin_call(return NULL, reg->key.plugin->key_ops,
-        get_objectid, reg->key.body);
+    curr_objectid = plugin_call(goto error_set_context, 
+	reg->key.plugin->key_ops, get_objectid, reg->key.body);
 	
-    next_objectid = plugin_call(return NULL, reg->key.plugin->key_ops,
-        get_objectid, key.body);
+    next_objectid = plugin_call(goto error_set_context, 
+	reg->key.plugin->key_ops, get_objectid, key.body);
 	
     /* Determining is items are mergeable */
-    return (curr_objectid == next_objectid) ? next_place : NULL;
+    if (curr_objectid == next_objectid) {
+	    
+	if (core->tree_ops.item_body(reg->tree, place, 
+		&reg->body.body, &reg->body.len))
+	    goto error_set_context;
+	
+	reg->place.pos.unit = 0;
+	return 0;
+    }
+error_set_context:
+    *place = save_place;
+    reg->body.plugin = save_plugin;
+    return -1;
 }
 
 /* Reads n entries to passed buffer buff */
 static uint64_t reg40_read(reiser4_entity_t *entity, 
     char *buff, uint64_t n)
 {
-    reg40_t *reg;
     uint32_t read;
+    reg40_t *reg = (reg40_t *)entity;
 
     aal_assert("umka-1182", entity != NULL, return 0);
     aal_assert("umka-1183", buff != NULL, return 0);
     
-    reg = (reg40_t *)entity;
-    
-    if (reg->body.plugin->item_ops.type != TAIL_ITEM_TYPE) {
-	aal_exception_error("Sorry, extents are not supported yet!");
-	return 0;
-    }
-
-    for (read = 0; read < n;) {
+    for (read = 0; read < n; ) {
 	uint32_t chunk;
 	
 	if (reg->place.pos.unit >= reg->body.len) {
-	    reiser4_place_t place = reg->place;
-	
-	    if (!reg40_next(entity, &reg->place)) {
-		reg->place = place;
-		break;
-	    }
 
-	    if (core->tree_ops.item_body(reg->tree, &reg->place, 
-		   &reg->body.body, &reg->body.len))
+	    /* Getting the next file body item */
+	    if (reg40_next(entity))
 		break;
-	    
-	    {
-		rpid_t pid;
-		
-		pid = core->tree_ops.item_pid(reg->tree, 
-		    &reg->place, ITEM_PLUGIN_TYPE);
-		
-		if (!(reg->body.plugin = 
-		    core->factory_ops.plugin_ifind(ITEM_PLUGIN_TYPE, pid)))
-		{
-		    aal_exception_error("Can't find item plugin by "
-			"its id %x.", pid);
-		    break;
-		}
-	    }
 	}
 	
-	chunk = (reg->body.len - reg->place.pos.unit) <= n ? n
-	    : reg->body.len - reg->place.pos.unit;
+	chunk = (reg->body.len - reg->place.pos.unit) > n - read ?
+	    n - read : (reg->body.len - reg->place.pos.unit);
 
-	chunk = chunk > n ? n : chunk;
+	if (!chunk) break;
 	
 	if (reg->body.plugin->item_ops.type == TAIL_ITEM_TYPE) {
 
 	    /* Getting the data from the tail item */
-	    aal_memcpy(buff, reg->body.body + reg->place.pos.unit, chunk);
-	    
+	    aal_memcpy(buff + read, reg->body.body + 
+		reg->place.pos.unit, chunk);
+
 	} else {
 	    /* Getting the data from the extent item */
 	    aal_exception_error("Sorry, extents are not supported yet!");
