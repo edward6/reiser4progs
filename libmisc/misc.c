@@ -62,9 +62,9 @@ long long progs_size2long(const char *str) {
 	aal_strncpy(number, str, aal_strlen(str));
 	label = number[aal_strlen(number) - 1];
 
-	valid = toupper(label) == toupper('k') ||
-		toupper(label) == toupper('m') || 
-		toupper(label) == toupper('g');
+	valid = toupper(label) == toupper('K') ||
+		toupper(label) == toupper('M') || 
+		toupper(label) == toupper('G');
 
 	if (valid)
 		number[aal_strlen(number) - 1] = '\0';
@@ -72,11 +72,11 @@ long long progs_size2long(const char *str) {
 	if ((result = progs_str2long(number, 10)) == INVAL_DIG)
 		return INVAL_DIG;
 	
-	if (toupper(label) == toupper('m'))
+	if (toupper(label) == toupper('M'))
 		result *= MB;
-	else if (toupper(label) == toupper('k'))
+	else if (toupper(label) == toupper('K'))
 		result *= KB;
-	else if (toupper(label) == toupper('g'))
+	else if (toupper(label) == toupper('G'))
 		result *= GB;
 
 	return result;

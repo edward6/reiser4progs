@@ -289,7 +289,7 @@ int main(int argc, char *argv[]) {
 		if (stat(argv[optind], &st) == -1) {
 
 			/* Checking device name for validness */
-			fs_len = (progs_size2long(argv[optind]));
+			fs_len = progs_size2long(argv[optind]);
 			
 			if (fs_len != INVAL_DIG) {
 				if (fs_len < blocksize) {

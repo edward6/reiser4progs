@@ -31,7 +31,7 @@ typedef enum behav_flags behav_flags_t;
 
 /* Prints resizefs options */
 static void resizefs_print_usage(char *name) {
-	fprintf(stderr, "Usage: %s [ options ] FILE SIZE[Kb|Mb|Gb]\n", name);
+	fprintf(stderr, "Usage: %s [ options ] FILE size[K|M|G]\n", name);
     
 	fprintf(stderr, 
 		"Common options:\n"
@@ -80,6 +80,7 @@ int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
 	char *host_dev;
+	count_t fs_len;
 
 	uint32_t flags = 0;
 	char override[4096];
@@ -147,8 +148,8 @@ int main(int argc, char *argv[]) {
 			return NO_ERROR;
 		}
 	}
-    
-	if (optind >= argc) {
+	
+	if (optind >= argc + 1) {
 		resizefs_print_usage(argv[0]);
 		return USER_ERROR;
 	}
@@ -191,7 +192,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
 	}
 	
-	host_dev = argv[optind];
+	host_dev = argv[optind++];
     
 	if (stat(host_dev, &st) == -1) {
 		aal_exception_error("Can't stat %s. %s.", host_dev,
@@ -248,6 +249,15 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
+	fs_len = progs_size2long(argv[optind]);
+
+	if (fs_len == INVAL_DIG) {
+		aal_exception_error("Invalid new filesystem "
+				    "size %s.", argv[optind]);
+		goto error_free_tree;
+	}
+	
+	fs_len /= reiser4_master_blocksize(fs->master);
 	fs->tree->traps.connect = resizefs_connect_handler;
 
 	aal_exception_error("Sorry, not implemented yet!");
