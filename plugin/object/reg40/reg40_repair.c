@@ -21,7 +21,8 @@ static errno_t reg40_check_extentions(place_t *sd) {
 	uint64_t mask, extmask;
 	
 	/*  SD may contain LW and UNIX extentions only. 
-	    FIXME-VITALY: tail policy is not supported yet. */
+	    FIXME-VITALY: tail policy is not supported yet;
+	    check if there is no point to another file plugin in SD. */
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
 	if ((extmask = obj40_extmask(sd)) == MAX_UINT64)
@@ -44,34 +45,6 @@ static errno_t callback_stat(place_t *sd) {
 		return res;
 	
 	return S_ISREG(lw_hint.mode) ? 0 : RE_FATAL;
-}
-
-static errno_t reg40_check_mode(place_t *sd, uint8_t mode) {
-	sdext_lw_hint_t lw_hint;
-	errno_t res;
-	
-	/* Check the mode in the LW extention. */
-	if ((res = obj40_read_ext(sd, SDEXT_LW_ID, &lw_hint)) < 0)
-		return res;
-	
-	if S_ISREG(lw_hint.mode) 
-		return 0;
-	
-	aal_exception_error("Node (%llu), item (%u): statdata has wrong mode "
-			    "(%o). Plugin (%s)", sd->con.blk, sd->pos.item,
-			    lw_hint.mode, sd->plug->label);
-	
-	if (mode == RM_CHECK)
-		return RE_FIXABLE;
-	
-	lw_hint.mode &= ~S_IFMT;
-        lw_hint.mode |= S_IFREG;
-	
-	aal_exception_error("Node (%llu), item (%u): statdata mode is fixed "
-			    "to (%o). Plugin (%s)", sd->con.blk, sd->pos.item,
-			    lw_hint.mode, sd->plug->label);
-	
-	return obj40_write_ext(sd, SDEXT_LW_ID, &lw_hint);
 }
 
 /* Build the @obj->info.start on the basis of @obj->info.start place. */
@@ -124,15 +97,100 @@ static errno_t reg40_check_key(place_t *place, key_entity_t *key) {
 	return 0;
 }
 
-static errno_t reg40_check_stat(place_t *stat, sdext_lw_hint_t *lw_hint, 
+static errno_t reg40_check_stat(reg40_t *reg, uint64_t size, 
 				uint64_t bytes, uint8_t mode) 
 {
-	errno_t res;
-
-	if ((res = reg40_check_mode(stat, mode)))
+	sdext_lw_hint_t lw_hint, lw_new;
+	sdext_unix_hint_t unix_hint;
+	errno_t res = RE_OK;
+	place_t *stat;
+	
+	aal_assert("vpf-1213", reg != NULL);
+	
+	stat = &reg->obj.info.start;
+	
+	/* Update the SD place. */
+	if ((res = obj40_update(&reg->obj, stat)))
 		return res;
 	
-	return RE_OK;
+	/* Read LW extention. */
+	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
+		return res;
+	
+	/* Form the correct LW extention. */
+	aal_memset(&lw_new, 0, sizeof(lw_new));
+	lw_new.mode = lw_hint.mode;
+	lw_new.size = size;
+	/* Leave 'nlinks' 0-ed in BUILD mode. */
+	if (mode != RM_BUILD)
+		lw_new.nlink = lw_hint.nlink;
+	
+	/* Check the mode in the LW extention. */
+	if (!S_ISREG(lw_new.mode)) {
+		lw_new.mode &= ~S_IFMT;
+        	lw_new.mode |= S_IFREG;
+		
+		aal_exception_error("Node (%llu), item (%u): StatData of the "
+				    "regular file [%s] has the wrong mode "
+				    "(%u), %s (%u). Plugin (%s).", 
+				    stat->con.blk, stat->pos.item, 
+				    core->key_ops.print_key(&stat->key, P_SHORT),
+				    lw_hint.mode, mode == RM_CHECK ? "Should be" :
+				    "Fixed to", lw_new.mode, stat->plug->label);
+		
+		if (mode == RM_CHECK)
+			res = RE_FIXABLE;
+	}
+	
+	/* Check the size in the LW extention. */
+	if (lw_hint.size < lw_new.size) {
+		/* FIXME-VITALY: This is not correct for extents as the last 
+		   block can be not used completely. Where to take the policy
+		   plugin to figure out if size is correct? */
+		aal_exception_error("Node (%llu), item (%u): StatData of the "
+				    "regular file [%s] has the wrong size "
+				    "(%llu), %s (%llu). Plugin (%s).",
+				    stat->con.blk, stat->pos.item, 
+				    core->key_ops.print_key(&stat->key, P_SHORT),
+				    lw_hint.size, mode == RM_CHECK ? "Should be" :
+				    "Fixed to", lw_new.size, stat->plug->label);
+		
+		if (mode == RM_CHECK)
+			res = RE_FIXABLE;
+	}
+	
+	if ((res |= obj40_read_ext(stat, SDEXT_UNIX_ID, &unix_hint)) < 0)
+		return res;
+	
+	/* Check the mode in the LW extention. */
+	if (unix_hint.bytes != bytes) {
+		aal_exception_error("Node (%llu), item (%u): StatData of the "
+				    "regular file [%s] has the wrong bytes "
+				    "(%llu), %s (%llu). Plugin (%s).", 
+				    stat->con.blk, stat->pos.item, 
+				    core->key_ops.print_key(&stat->key, P_SHORT),
+				    unix_hint.bytes, mode == RM_CHECK ? "Should be" :
+				    "Fixed to", bytes, stat->plug->label);
+		
+		if (mode == RM_CHECK) {
+			unix_hint.bytes = bytes;
+			res = RE_FIXABLE;
+		}
+	}
+	
+	/* Fix r_dev field silently. */
+	if (unix_hint.rdev)
+		unix_hint.rdev = 0;
+
+	if (mode == RM_CHECK)
+		return res;
+	
+	if ((res = obj40_write_ext(stat, SDEXT_LW_ID, &unix_hint)) < 0)
+		return res;
+	
+	res |= obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
+	
+	return res;
 }
 
 static errno_t reg40_recreate_stat(reg40_t *reg) {
@@ -170,9 +228,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 			   uint8_t mode, void *data)
 {
 	uint64_t locality, objectid, ordering;
-	uint64_t bytes, offset, next;
+	uint64_t size, bytes, offset, next;
 	reg40_t *reg = (reg40_t *)object;
-	sdext_lw_hint_t lw_hint;
 	object_info_t *info;
 	errno_t res = RE_OK;
 	key_entity_t key;
@@ -239,8 +296,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		  KEY_FILEBODY_TYPE, locality, ordering, objectid, 
 		  reg->offset);
 	
-	aal_memset(&lw_hint, 0, sizeof(lw_hint));
-	next = 0;
+	size = 0; bytes = 0; next = 0;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
@@ -316,7 +372,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			next = 0;
 		
 		/* Count size and bytes. */
-		lw_hint.size += plug_call(reg->body.plug->o.item_ops, 
+		size += plug_call(reg->body.plug->o.item_ops, 
 					  size, &reg->body);
 		
 		bytes += plug_call(reg->body.plug->o.item_ops, 
@@ -337,7 +393,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* Fix the SD -- mode, lw and unix extentions. */
 	
-	return reg40_check_stat(&info->start, &lw_hint, bytes, mode);
+	return reg40_check_stat(reg, size, bytes, mode);
 }
 
 #endif
