@@ -12,6 +12,34 @@
 #include "obj40.h"
 #include <repair/plugin.h>
 
+/* Checks that @obj->info.start is SD of the wanted file.  */
+errno_t obj40_check_sd(obj40_t *obj, realize_func_t sd_func) {
+	object_info_t *info;
+	errno_t res;
+
+	aal_assert("vpf-1200", obj != NULL);
+	
+	if (!info->start.plug) {
+		if (!core->tree_ops.valid(info->tree, &info->start))
+			return RE_FATAL;
+
+		if ((res = core->tree_ops.fetch(info->tree, &info->start)))
+			return -EINVAL;
+	}
+	
+	if (info->start.plug->id.group != STATDATA_ITEM)
+		return RE_FATAL;
+	
+	/* Is @info->start SD of the wanted file? If some fields are broken, 
+	   like offset != 0, fix it at check_struct time. */
+	if (info->object.plug->o.key_ops->compshort(&info->object, 
+						    &info->start.key))
+		return RE_FATAL;
+	
+	/* Some SD is realized. Check that this is our SD. */
+	return sd_func(&info->start);
+}
+
 /* The plugin tries to realize the object: detects the SD, body items */
 errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func, 
 		      realize_key_func_t key_func, uint64_t types)
@@ -78,25 +106,7 @@ errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
 	
 	/* @info->object is the key of SD for now and @info->start is the 
 	   result of tree lookup by @info->object -- skip objects w/out SD. */
-	if (!info->start.plug) {
-		if (!core->tree_ops.valid(info->tree, &info->start))
-			return RE_FATAL;
-
-		if ((res = core->tree_ops.fetch(info->tree, &info->start)))
-			return -EINVAL;
-	}
-	
-	if (info->start.plug->id.group != STATDATA_ITEM)
-		return RE_FATAL;
-	
-	/* Is @info->start SD of the wanted file? If some fields are broken, 
-	   like offset != 0, fix it at check_struct time. */
-	if (info->object.plug->o.key_ops->compshort(&info->object, 
-						    &info->start.key))
-		return RE_FATAL;
-	
-	/* Some SD is realized. Check that this is our SD. */
-	return sd_func(&info->start);
+	return obj40_check_sd(obj, sd_func);
 }
 
 #endif

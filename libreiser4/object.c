@@ -12,9 +12,7 @@
 #include <reiser4/reiser4.h>
 
 /* Helper callback for probing passed @plug */
-static bool_t callback_object_guess(reiser4_plug_t *plug,
-				    void *data)
-{
+static bool_t callback_object_guess(reiser4_plug_t *plug, void *data) {
 	reiser4_object_t *object;
 
 	/* We are interested only in object plugins here */
@@ -46,13 +44,10 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 }
 
 /* This function is trying to open object's entity on @object->place */
-errno_t reiser4_object_guess(reiser4_object_t *object) {
+errno_t reiser4_object_guess(reiser4_object_t *object, plug_func_t open_func) {
 	reiser4_plug_t *plug;
 	
-	plug = libreiser4_factory_cfind(callback_object_guess,
-					object, TRUE);
-	
-	if (!plug)
+	if (!(plug = libreiser4_factory_cfind(open_func, object, TRUE)))
 		return -EINVAL;
 	
 	object->entity = plug_call(plug->o.object_ops, open,
@@ -108,7 +103,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	}
 
 	/* Getting object plugin */
-	if ((res = reiser4_object_guess(object))) {
+	if ((res = reiser4_object_guess(object, callback_object_guess))) {
 		aal_exception_error("Can't init object %s.",
 				    track);
 		return res;
@@ -139,7 +134,9 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 
 		/* Initializing entity on new place */
-		if ((res = reiser4_object_guess(object)))
+		res = reiser4_object_guess(object, callback_object_guess);
+		
+		if (res)
 			return -EINVAL;
 	}
 
@@ -240,6 +237,9 @@ reiser4_object_t *reiser4_object_open(
 }
 
 /* This function opens object by its @place.
+   FIXME-VITALY->UNKA: This method should not try all object plugins,
+   just extract id from SD if it is kept there (take the standard object 
+   plugin on the base of the mode otherwise) and try open this only plugin.
    
    FIXME-VITALY->UMKA: How to open the object without SD? At least the parent
    object is needed here. */
@@ -261,7 +261,7 @@ reiser4_object_t *reiser4_object_realize(
 	aal_memcpy(reiser4_object_start(object),
 		   place, sizeof(*place));
 	
-	if (reiser4_object_guess(object))
+	if (reiser4_object_guess(object, callback_object_guess))
 		goto error_free_object;
 	
 	reiser4_key_assign(&object->info.object,

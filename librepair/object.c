@@ -16,9 +16,8 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(object->entity->plug->o.object_ops, 
-			     check_struct, object->entity, &object->info,
-			     place_func, data, mode)) < 0)
+	if ((res = plug_call(object->entity->plug->o.object_ops, check_struct,
+			     object->entity, place_func, data, mode)) < 0)
 	
 	repair_error_check(res, mode);
 	aal_assert("vpf-1195", mode != RM_BUILD ||
@@ -54,6 +53,39 @@ static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	return FALSE;
 }
 
+reiser4_object_t *repair_object_realize(reiser4_tree_t *tree, 
+					reiser4_place_t *place)
+{
+	reiser4_object_t *object;
+	reiser4_plug_t *plug;
+	
+	aal_assert("vpf-1198", tree != NULL);
+	aal_assert("vpf-1199", place != NULL);
+
+	if (!(object = aal_calloc(sizeof(*object), 0)))
+		return NULL;
+    
+	object->info.tree = tree;
+	
+	aal_memcpy(reiser4_object_start(object),
+		   place, sizeof(*place));
+	
+	if (reiser4_object_guess(object, callback_object_realize))
+		goto error_free_object;
+	
+	reiser4_key_assign(&object->info.object,
+			   &object->info.start.key);
+	
+	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+		    sizeof(object->name));
+	
+	return object;
+	
+ error_free_object:
+	aal_free(object);
+	return NULL;
+}
+
 /* Open the object on the base of given start @key */
 reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_key_t *key, 
@@ -74,7 +106,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	if (lookup == PRESENT)
 		/* If the pointed item is found, try to realize it.
 		   @parent probably should be passed here. */
-		return reiser4_object_realize(tree, &place);
+		return repair_object_realize(tree, &place);
 	
 	/* ABSENT. Try to realize the object. */
 	if (!(object = aal_calloc(sizeof(*object), 0)))
@@ -88,7 +120,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	   	object->info.parent = parent->info.object; */
 
 	if ((plug = libreiser4_factory_cfind(callback_object_realize,
-					object, only)) == NULL)
+					     object, only)) == NULL)
 		goto error_close_object;
 
 	object->entity = plug_call(plug->o.object_ops, realize, 

@@ -13,6 +13,8 @@
 #include "repair/plugin.h"
 
 extern reiser4_plug_t dir40_plug;
+
+extern errno_t dir40_reset(object_entity_t *entity);
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
 
@@ -72,6 +74,10 @@ object_entity_t *dir40_realize(object_info_t *info) {
 	
 	if ((res = obj40_realize(&dir->obj, callback_sd, callback_key,
 				 1 << KEY_FILENAME_TYPE)))
+		goto error;
+	
+	/* Positioning to the first directory unit */
+	if (dir40_reset((object_entity_t *)dir))
 		goto error;
 	
 	return (object_entity_t *)dir;

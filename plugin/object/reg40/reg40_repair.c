@@ -13,6 +13,7 @@
 #include "repair/plugin.h"
 
 extern reiser4_plug_t reg40_plug;
+extern errno_t reg40_reset(object_entity_t *entity);
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
 static errno_t callback_sd(place_t *sd) {
@@ -99,6 +100,9 @@ object_entity_t *reg40_realize(object_info_t *info) {
 				 1 << KEY_FILEBODY_TYPE)))
 		goto error;
 	
+	/* Reseting file (setting offset to 0) */
+	reg40_reset((object_entity_t *)reg);
+
 	return (object_entity_t *)reg;
  error:
 	aal_free(reg);
@@ -219,84 +223,44 @@ static errno_t reg40_realize_sd(place_t *sd, uint8_t mode) {
 }
 #endif
 
-errno_t reg40_check_struct(object_entity_t *object, object_info_t *info,
-			   place_func_t register_func, uint8_t mode,
-			   void *data)
+errno_t reg40_check_struct(object_entity_t *object, 
+			   place_func_t register_func, 
+			   uint8_t mode,  void *data)
 {
 	uint64_t locality, objectid, ordering;
-	reiser4_plug_t *kplug;
+	reg40_t *reg = (reg40_t *)object;
+	object_info_t *info;
 	errno_t res = RE_OK;
 	key_entity_t key;
 	lookup_t lookup;
-	reg40_t *reg;
 
-	aal_assert("vpf-1126", info != NULL);
-	aal_assert("vpf-1190", info->tree != NULL);
+	aal_assert("vpf-1126", reg != NULL);
+	aal_assert("vpf-1190", reg->obj.info.tree != NULL);
+	aal_assert("vpf-1197", reg->obj.info.object.plug != NULL);
 	
-	reg = (reg40_t *)object;
+	info = &reg->obj.info;
 	
-	/* Recovery on the base of an item. */
-	if (info->start.plug) {
-		kplug = info->start.key.plug;
+	/* Update the place of SD. */
+	lookup = core->tree_ops.lookup(info->tree, &info->object,
+				       LEAF_LEVEL, &info->start);
+	
+	if (lookup == FAILED)
+		return -EINVAL;
+	
+	/* It must be correct SD. Fix it if needed. */
+	if (lookup == ABSENT) {
+		/* Check if found place is our SD with broken key. */
+		if ((res = obj40_check_sd(&reg->obj, callback_sd)) < 0)
+			return res;
 		
-		locality = plug_call(kplug->o.key_ops, get_locality, 
-				     &info->start.key);
-
-		objectid = plug_call(kplug->o.key_ops, get_objectid, 
-				     &info->start.key);
-
-		ordering = plug_call(kplug->o.key_ops, get_ordering, 
-				     &info->start.key);
-
-		/* If the object is realized on the basis of place and it 
-		   is not SD, build start key first and try to find SD. */
-		if (info->start.plug->id.group != STATDATA_ITEM) {
+		/*  */
+		if (res) {
+			/* SD of this file is not found, create a new one. */
 			
-			/* Build the SD key on the base of the start place. */
-					
-			plug_call(info->start.plug->o.key_ops, build_gener,
-				  &info->object, KEY_STATDATA_TYPE, locality, 
-				  ordering, objectid, 0);
-			
-			plug_call(info->start.plug->o.key_ops, assign, 
-				  STAT_KEY(&reg->obj), &info->object);
-			
-			/* Find SD. */
-			lookup = core->tree_ops.lookup(info->tree, 
-						       &info->object,
-						       LEAF_LEVEL, 
-						       &info->start);
-			
-			if (lookup == FAILED) {
-				return -EINVAL;
-			} else if (lookup == ABSENT) {
-				/* No SD found, create a new one. */
-				
-			} else {
-				/* SD is found. If it is not reg40 SD or is 
-				   CHECKED (register_func returns an error) 
-				   relocate all reg40 item and create a new 
-				   SD. */
-				reg40_check_sd(&info->start, mode);
-			}
 		} else {
-			/* We are on the SD, init it. */
-
+			/* SD is found, fix the item key (~offset is wrong). */
+			info->start.key = info->object;
 		}
-	} else {
-		/* Key of SD was specified but SD item has not been found. 
-		   Create a new one.*/
-		kplug = info->object.plug;
-		
-		locality = plug_call(kplug->o.key_ops, get_locality, 
-				     &info->object);
-
-		objectid = plug_call(kplug->o.key_ops, get_objectid, 
-				     &info->object);
-
-		ordering = plug_call(kplug->o.key_ops, get_ordering, 
-				     &info->object);
-
 	}
 	
 	/* Reg40 object (its SD item) has been openned or created. */
