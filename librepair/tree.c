@@ -190,7 +190,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
     aal_assert("vpf-654", tree != NULL);
     aal_assert("vpf-655", insert != NULL);
     aal_assert("vpf-657", insert->node != NULL);
-    aal_assert("vpf-656", insert->node->tree != NULL);
 
     insert->pos.unit = 0;
     while (insert->pos.unit < reiser4_item_units(insert)) {

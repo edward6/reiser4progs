@@ -44,8 +44,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
     if (res == 0) {
 	aal_exception_error("Node (%llu), item (%u): Pointed region "
 	    "[%llu..%llu] is used already or contains a formatted block.", 
-	    item->context.blk, item->pos.item, item->pos.unit, item->pos.unit, 
-	    start, start + count - 1);
+	    item->context.blk, item->pos.item, start, start + count - 1);
 	return 1;
     } 
     
@@ -70,6 +69,9 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     aal_assert("vpf-797", data != NULL);
 
     node = place->node;
+    
+    if (!reiser4_item_data(place->item.plugin))
+	return 0;
     
     res = repair_item_layout_check(place, callback_item_region_check, 
 	ts, ts->repair->mode);

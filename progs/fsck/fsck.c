@@ -32,6 +32,7 @@ static void fsck_print_usage(char *name) {
     
     fprintf(stderr, "Modes:\n"
 	"  --check                         consistency checking (default).\n"
+	"  --fixable                       fixes what can be fixed without rebuild.\n"
 	"  --rebuild                       fixes all fs corruptions.\n"
 	"Options:\n"
 	"  -l, --logfile                   complains into the logfile\n"
@@ -87,7 +88,7 @@ static void fsck_print_usage(char *name) {
   *************************************************************\n\
 \nWill check consistency of the filesystem on (%s).\n"
 
-static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {    
+static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
     if (data->mode == REPAIR_CHECK) {
 	fprintf(stderr, CHECK_WARNING, host_name);
     } else if (data->mode == REPAIR_FIX) {
@@ -125,7 +126,8 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
     static struct option long_options[] = {
 	/* Fsck modes */
 	{"check", no_argument, &mode, REPAIR_CHECK},
-        {"rebuild", no_argument, &mode, REPAIR_FIX},
+        {"fixable", no_argument, &mode, REPAIR_FIX},
+        {"rebuild", no_argument, &mode, REPAIR_REBUILD},
 	/* Fsck hidden modes. */
 	{"rollback-fsck-changes", no_argument, &mode, REPAIR_ROLLBACK},
 	/* Fsck options */

@@ -99,6 +99,8 @@ static errno_t callback_region_mark(void *object, blk_t blk, uint64_t count,
     
     aal_assert("vpf-561", ds != NULL);
 
+    reiser4_alloc_occupy_region(ds->repair->fs->alloc, blk, count);
+
     for (i = blk; i < blk + count; i++) {
 	if (!aux_bitmap_test(ds->bm_met, i))
 	    aux_bitmap_mark(ds->bm_scan, i);
@@ -137,8 +139,9 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
     /* Build a bitmap of what was met already. */
     for (i = 0; i < control->bm_met->size; i++) {	
 	/* If block is marked as met, it should not be marked as used. */
-	aal_assert("vpf-817", 
-	    (control->bm_met->map[i] & control->bm_used->map[i]) == 0);
+	aal_assert("vpf-817", (control->bm_met->map[i] & 
+	    (control->bm_used->map[i] | control->bm_leaf->map[i] | 
+	     control->bm_twig->map[i])) == 0);
 
 	/* bm_met is bm_met | bm_used | bm_leaf | bm_twig */
 	control->bm_met->map[i] |= (control->bm_used->map[i] | 
@@ -214,9 +217,6 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	    (control->bm_unfm_tree->map[i] | control->bm_unfm_out->map[i])) 
 	    == 0);
 
-	aal_assert("vpf-717", 
-	    (control->bm_used->map[i] & control->bm_twig->map[i]) == 0);
-
 	/* Let met will be leaves, twigs and unfm which are not in the tree. */
 	control->bm_met->map[i] = ((control->bm_leaf->map[i] | 
 	    control->bm_twig->map[i] | control->bm_unfm_out->map[i]) 
@@ -224,6 +224,7 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	
 	/* Leave there only unused twigs. */
 	control->bm_twig->map[i] &= ~(control->bm_used->map[i]);
+	control->bm_leaf->map[i] &= ~(control->bm_leaf->map[i]);
 	control->bm_used->map[i] |= control->bm_unfm_tree->map[i];
     }
     

@@ -169,7 +169,6 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
     aal_assert("vpf-257", fd != NULL);
     aal_assert("vpf-434", place != NULL);
     
-    /* Clear pointed block in the formatted bitmap. */
     if (plugin_call(place->item.plugin->item_ops, read, &place->item, &ptr, 
 	place->pos.unit, 1) != 1) 
     {
@@ -180,6 +179,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
     }
 
     if (fd->flags) {
+	/* Clear pointed block in the formatted bitmap. */
 	aux_bitmap_clear_region(fd->bm_used, ptr.ptr, ptr.width);
 	
 	if (fd->flags & REPAIR_BAD_PTR) {
@@ -288,16 +288,25 @@ static void repair_filter_setup(repair_filter_t *fd) {
  * the pointer to the root block from the specific super block if 
  * REPAIR_BAD_PTR flag is set, mark that block used in bm_used bitmap 
  * otherwise. */
-static void repair_filter_update(repair_filter_t *fd) {
+static void repair_filter_fini_traverse(repair_filter_t *fd, 
+    reiser4_node_t *root) 
+{
     aal_assert("vpf-421", fd != NULL);
+    aal_assert("vpf-863", root != NULL);
     
-    if (fd->flags & REPAIR_BAD_PTR) {
-	aux_bitmap_clear(fd->bm_used, 
-	    reiser4_format_get_root(fd->repair->fs->format));
+    if (fd->flags & (REPAIR_BAD_PTR | REPAIR_FATAL)) {
+	aux_bitmap_clear(fd->bm_used, root->blk);
 	reiser4_format_set_root(fd->repair->fs->format, INVAL_BLK);
 	/* FIXME: sync it to disk. */
 	fd->flags = 0;
-    } 
+    } else {
+	aal_assert("vpf-862", fd->flags == 0);
+	/* FIXME-VITALY: hardcoded level, should be changed. */
+	if (reiser4_node_get_level(root) == TWIG_LEVEL) 
+	    aux_bitmap_mark(fd->bm_twig, root->blk);
+	else if (reiser4_node_get_level(root) == LEAF_LEVEL)
+	    aux_bitmap_mark(fd->bm_leaf, root->blk);
+    }
 }
 
 /* The pass itself - goes through the existent tree trying to filter all 
@@ -332,15 +341,15 @@ errno_t repair_filter(repair_filter_t *fd) {
 	    repair_filter_node_check,	    repair_filter_setup_traverse,
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
-	reiser4_tree_collapse(fd->repair->fs->tree, fd->repair->fs->tree->root);
-	fd->repair->fs->tree->root = NULL;
-
 	if (res < 0)
 	    return res;
+	
+	repair_filter_fini_traverse(fd, fd->repair->fs->tree->root);
+	
+	reiser4_tree_collapse(fd->repair->fs->tree, fd->repair->fs->tree->root);
+	fd->repair->fs->tree->root = NULL;
     }
-
-    repair_filter_update(fd);
     
-    return 0;
+    return res;
 }
 
