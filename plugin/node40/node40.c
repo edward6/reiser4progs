@@ -449,51 +449,6 @@ static errno_t node40_cut(reiser4_entity_t *entity,
     return 0;
 }
 
-struct node40_estimate {
-    node40_t *src;
-    node40_t *dst;
-    
-    reiser4_pos_t *pos;
-    shift_flags_t flags;
-	
-    uint32_t bytes;
-    uint32_t items;
-};
-
-typedef struct node40_estimate node40_estimate_t;
-
-static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
-   return -1;
-}
-
-static int node40_shift(reiser4_entity_t *entity, reiser4_entity_t *target, 
-    reiser4_pos_t *pos, shift_flags_t flags)
-{
-    node40_estimate_t estimate;
-
-    aal_assert("umka-1305", entity != NULL, return -1);
-    aal_assert("umka-1306", target != NULL, return -1);
-    aal_assert("umka-1307", pos != NULL, return -1);
-
-    aal_memset(&estimate, 0, sizeof(estimate));
-    
-    estimate.src = (node40_t *)entity;
-    estimate.dst = (node40_t *)target;
-    estimate.flags = flags;
-    estimate.pos = pos;
-
-    if (node40_shift_estimate(&estimate)) {
-	aal_exception_error("Can't estimate shift for source node %llu, "
-	    "destination node %llu.", aal_block_number(estimate.src->block),
-	    aal_block_number(estimate.dst->block));
-	return -1;
-    }
-
-    /* Moving items */
-    
-    return -1;
-}
-
 extern errno_t node40_check(reiser4_entity_t *entity, 
     uint16_t options);
 
@@ -623,6 +578,98 @@ static uint32_t node40_get_stamp(reiser4_entity_t *entity) {
     aal_assert("umka-1127", entity != NULL, return -1);
     return nh40_get_mkfs_id(nh40(((node40_t *)entity)->block));
 }
+
+#ifndef ENABLE_COMPACT
+
+struct node40_estimate {
+    node40_t *src;
+    node40_t *dst;
+    
+    reiser4_pos_t *pos;
+    shift_flags_t flags;
+	
+    uint32_t bytes;
+    uint32_t items;
+};
+
+typedef struct node40_estimate node40_estimate_t;
+
+static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
+    uint32_t len, space;
+    node40_header_t *nh;
+    item40_header_t *end;
+    item40_header_t *cur;
+    item40_header_t *ins;
+    item40_header_t *start;
+
+    nh = nh40(estimate->src->block);
+    space = node40_space((reiser4_entity_t *)estimate->dst);
+    ins = node40_ih_at(estimate->src->block, estimate->pos->item);
+
+    start = node40_ih_at(estimate->src->block, 0);
+    end = node40_ih_at(estimate->src->block, nh40_get_num_items(nh) - 1);
+    cur = (estimate->flags & SF_LEFT ? start : end);
+
+    /* Checking if insert point is at end of node */
+    if ((int)estimate->pos->item > nh40_get_num_items(nh) - 1)
+	return 0;
+
+    while (cur != ins) {
+	len = (cur == end ? nh40_get_free_space_start(nh) - ih40_get_offset(cur) : 
+	       ih40_get_offset(cur) - ih40_get_offset(cur + 1));
+
+	if (space < len)
+	    break;
+
+	estimate->items++;
+	estimate->bytes += len;
+	space -= len;
+
+	cur += (estimate->flags & SF_LEFT ? -1 : 1);
+    }
+
+    /*if (space > 0) {
+	reiser4_plugin_t *plugin;
+	rpid_t pid = ih40_get_pid(cur);
+
+	if (!(plugin = core->plugin_ops.ifind(ITEM_PLUGIN_TYPE, pid))) {
+	    aal_exception_error("Can't find item plugin by its id %x.", pid);
+	    return -1;
+	}
+    }*/
+
+    return -1;
+}
+
+static int node40_shift(reiser4_entity_t *entity, reiser4_entity_t *target, 
+    reiser4_pos_t *pos, shift_flags_t flags)
+{
+    node40_estimate_t estimate;
+
+    aal_assert("umka-1305", entity != NULL, return -1);
+    aal_assert("umka-1306", target != NULL, return -1);
+    aal_assert("umka-1307", pos != NULL, return -1);
+
+    aal_memset(&estimate, 0, sizeof(estimate));
+    
+    estimate.src = (node40_t *)entity;
+    estimate.dst = (node40_t *)target;
+    estimate.flags = flags;
+    estimate.pos = pos;
+
+    if (node40_shift_estimate(&estimate)) {
+	aal_exception_error("Can't estimate shift for source node %llu, "
+	    "destination node %llu.", aal_block_number(estimate.src->block),
+	    aal_block_number(estimate.dst->block));
+	return -1;
+    }
+
+    /* Moving items */
+    
+    return -1;
+}
+
+#endif
 
 static reiser4_plugin_t node40_plugin = {
     .node_ops = {

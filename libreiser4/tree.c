@@ -15,6 +15,8 @@
 
 #ifndef ENABLE_COMPACT
 
+ENABLE_COMPACT
+
 /* Requests block allocator for new block and creates empty node in it */
 reiser4_joint_t *reiser4_tree_allocate(
     reiser4_tree_t *tree,	    /* tree for operating on */
