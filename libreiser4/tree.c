@@ -571,6 +571,7 @@ static errno_t reiser4_tree_shift(
 	if (reiser4_node_space(avatar->node) - 
 		(reiser4_item_len(&item) + overhead) < needed)
 	    return 0;
+	
 	/* 
 	    Check if we should finish shifting due to insert point reached and
 	    @move_ip flag is not turned on.
@@ -611,10 +612,6 @@ static errno_t reiser4_tree_shift(
 		coord->pos.item++;
 	}
 	
-	if (reiser4_node_count(src.avatar->node) == 1) {
-	    int a = 0;
-	}
-	
 	/* Moving the item denoted by @src coord to @dst one */
         if (reiser4_tree_move(tree, &dst, &src)) {
             aal_exception_error("Can't move item %u into %s neighbour.",
@@ -630,20 +627,6 @@ static errno_t reiser4_tree_shift(
     }
 
     return 0;
-}
-
-/* Wrapper for left shifting performed by reiser4_tree_shift function */
-static errno_t reiser4_tree_left_shift(reiser4_tree_t *tree, 
-    reiser4_coord_t *coord, reiser4_avatar_t *avatar, uint32_t needed, int move_ip)
-{
-    return reiser4_tree_shift(tree, LEFT, coord, avatar, needed, move_ip);
-}
-
-/* Wrapper for right shifting performed by reiser4_tree_shift function */
-static errno_t reiser4_tree_right_shift(reiser4_tree_t *tree, 
-    reiser4_coord_t *coord, reiser4_avatar_t *avatar, uint32_t needed, int move_ip)
-{
-    return reiser4_tree_shift(tree, RIGHT, coord, avatar, needed, move_ip);
 }
 
 errno_t reiser4_tree_mkspace(
@@ -689,7 +672,7 @@ errno_t reiser4_tree_mkspace(
     
     if (new->avatar->left) {
 	    
-	if (reiser4_tree_left_shift(tree, new, new->avatar->left, needed, 0))
+	if (reiser4_tree_shift(tree, LEFT, new, new->avatar->left, needed, 0))
 	    return -1;
 	
 	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
@@ -698,7 +681,7 @@ errno_t reiser4_tree_mkspace(
 
     if (new->avatar->right) {
 	    
-	if (reiser4_tree_right_shift(tree, new, new->avatar->right, needed, 0))
+	if (reiser4_tree_shift(tree, RIGHT, new, new->avatar->right, needed, 0))
 	    return -1;
 	
 	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
@@ -714,11 +697,12 @@ errno_t reiser4_tree_mkspace(
 	
 	reiser4_coord_dup(new, &save);
 	
-        if (reiser4_tree_right_shift(tree, new, avatar, needed, 1))
+        if (reiser4_tree_shift(tree, RIGHT, new, avatar, needed, 1))
 	   return -1;
 	
 	/* Attaching new allocated node into the tree */
 	if (reiser4_node_count(avatar->node)) {
+		
 	    if (reiser4_tree_attach(tree, avatar)) {
 		aal_exception_error("Can't attach node to the tree.");
 		reiser4_tree_release(tree, avatar);

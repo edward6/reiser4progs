@@ -138,8 +138,6 @@ static reiser4_plugin_t tail40_plugin = {
         .count		= NULL,
         .valid		= NULL,
         .print		= NULL,
-	.mergeable	= NULL,
-	.shift		= NULL,
 
 	.specific	= {}
     }

@@ -137,9 +137,9 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
     aal_assert("umka-824", node != NULL, return -1);
     aal_assert("umka-903", node->entity != NULL, return -1);
     
-    return plugin_call(return -1, node->entity->plugin->node_ops,
+    plugin_call(return -1, node->entity->plugin->node_ops,
 	close, node->entity);
-    
+	    
     aal_block_free(node->block);
     aal_free(node);
 
@@ -166,17 +166,14 @@ errno_t reiser4_node_lkey(
 #ifndef ENABLE_COMPACT
 
 /* 
-    Relocates item from position specified by src_pos into position specified by
-    dst_pos params. This function is used for cpying and moving items by balancing 
-    code.
+    Wrapper for reiser4_node_relocate function. This function actually copies
+    item specified by src* params to dst* location. Parametrs meaning the same 
+    as in reiser4_node_relocate.
 */
-static errno_t reiser4_node_relocate(
-    reiser4_node_t *dst_node,	/* destination node */
-    reiser4_pos_t *dst_pos,	/* destination pos in destination node */
-    reiser4_node_t *src_node,	/* source node */
-    reiser4_pos_t *src_pos,	/* source position in source node */
-    int remove			/* whether moved ite mshould be removed in src node */
-) {
+errno_t reiser4_node_copy(reiser4_node_t *dst_node, 
+    reiser4_pos_t *dst_pos, reiser4_node_t *src_node, 
+    reiser4_pos_t *src_pos) 
+{
     reiser4_item_t item;
     reiser4_item_hint_t hint;
 
@@ -200,24 +197,7 @@ static errno_t reiser4_node_relocate(
     if (reiser4_node_insert(dst_node, dst_pos, &hint))
         return -1;
     
-    /* Remove src item if remove flag is turned on */
-    if (remove && reiser4_node_remove(src_node, src_pos))
-        return -1;
-    
     return 0;
-}
-
-/* 
-    Wrapper for reiser4_node_relocate function. This function actually copies
-    item specified by src* params to dst* location. Parametrs meaning the same 
-    as in reiser4_node_relocate.
-*/
-errno_t reiser4_node_copy(reiser4_node_t *dst_node, 
-    reiser4_pos_t *dst_pos, reiser4_node_t *src_node, 
-    reiser4_pos_t *src_pos) 
-{
-    return reiser4_node_relocate(dst_node, dst_pos, 
-	src_node, src_pos, 0);
 }
 
 /* 
@@ -229,14 +209,15 @@ errno_t reiser4_node_move(reiser4_node_t *dst_node,
     reiser4_pos_t *dst_pos, reiser4_node_t *src_node, 
     reiser4_pos_t *src_pos) 
 {
-    return reiser4_node_relocate(dst_node, dst_pos, 
-	src_node, src_pos, 1);
+    if (reiser4_node_copy(dst_node, dst_pos, src_node, src_pos))
+	return -1;
+    
+    return reiser4_node_remove(src_node, src_pos);
 }
 
 /* 
-    Splits node by means of moving right half of node into specified "right" node.
-    This function is used by balancing code for splitting the internal nodes in 
-    the case target internal node doesn't has enought free space for new node pointer.
+    Splits node by means of moving right half of node into specified "right" 
+    node.
 */
 errno_t reiser4_node_split(
     reiser4_node_t *node,	/* node to be splitted */

@@ -60,9 +60,10 @@ static errno_t extent40_print(reiser4_item_t *item, char *buff,
     extent = extent40_body(item);
     count = extent40_count(item);
 
-    for (i = 0; i < count; i++)
+    for (i = 0; i < count; i++) {
 	aal_snprintf(buff, n, "%llu(%llu)", et40_get_start(extent + i),
 	    et40_get_width(extent + i));
+    }
     
     return 0;
 }
@@ -167,8 +168,6 @@ static reiser4_plugin_t extent40_plugin = {
         .lookup		= NULL,
         .count		= extent40_count,
         .valid		= NULL,
-	.mergeable	= NULL,
-	.shift		= NULL,
 	
         .max_poss_key	= extent40_max_poss_key,
         .max_real_key   = extent40_max_real_key,

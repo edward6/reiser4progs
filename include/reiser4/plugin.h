@@ -504,12 +504,6 @@ struct reiser4_item_ops {
     /* Removes specified unit from the item. Returns released space */
     uint16_t (*remove) (reiser4_item_t *, uint32_t);
 
-    /* Performs the shifting of some amount of units into passed item */
-    errno_t (*shift) (reiser4_item_t *, reiser4_item_t *);
-
-    /* Checks if passed items are mergeable */
-    int (*mergeable) (reiser4_item_t *, reiser4_item_t *);
-    
     /* Estimates item */
     errno_t (*estimate) (reiser4_item_t *, uint32_t, 
 	reiser4_item_hint_t *);
@@ -563,14 +557,6 @@ struct reiser4_sdext_ops {
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
 
-enum reiser4_shift_flags {
-    SF_LEFT	= 1 << 0,
-    SF_RIGHT	= 1 << 1,
-    SF_MIP	= 1 << 2
-};
-
-typedef enum reiser4_shift_flags reiser4_shift_flags_t;
-
 /*
     Node plugin operates on passed block. It doesn't any initialization, so it 
     hasn't close method and all its methods accepts first argument aal_block_t, 
@@ -596,13 +582,6 @@ struct reiser4_node_ops {
 	Returns the error code to caller.
     */
     errno_t (*close) (reiser4_entity_t *);
-    
-    /* Performs shift of some amount of items to passed node */
-    errno_t (*shift) (reiser4_entity_t *, reiser4_entity_t *, 
-	reiser4_pos_t *, reiser4_shift_flags_t);
-
-    /* Checks if passed nodes are mergeable */
-    int (*mergeable) (reiser4_entity_t *, reiser4_entity_t *);
     
     /* Confirms that given block contains valid node of requested format */
     int (*confirm) (aal_block_t *);
