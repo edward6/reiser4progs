@@ -286,8 +286,6 @@ static errno_t tail40_prep_shift(reiser4_place_t *src_place,
 				if (hint->units_bytes > right)
 					hint->units_bytes = right;
 
-				hint->pos.unit += hint->units_bytes;
-
 				/* Updating insert point to first position in
 				   neighbour item. */
 				if (hint->pos.unit >= src_place->len &&
@@ -339,6 +337,8 @@ errno_t tail40_copy(reiser4_place_t *dst_place, uint32_t dst_pos,
 /* Expand tail at @place and @pos by @count bytes. Used in balancing code
    pathes. */
 uint32_t tail40_expand(reiser4_place_t *place, uint32_t pos, uint32_t count) {
+	aal_assert("vpf-1559", place->len >= pos + count);
+	
 	if (pos < place->len) {
 		uint32_t size = place->len - count - pos;
 		
