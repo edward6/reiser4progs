@@ -214,10 +214,8 @@ int main(int argc, char *argv[]) {
 	if (behav_flags & BF_PLUGS)
 		misc_plugins_print();
 
-	if (optind >= argc) {
-		debugfs_print_usage(argv[0]);
+	if (optind >= argc)
 		goto error_free_libreiser4;
-	}
 		
 	host_dev = argv[optind];
     

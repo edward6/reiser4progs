@@ -104,8 +104,8 @@ errno_t debugfs_print_block(
 	
 	/* Check if @blk is a filesystem block at all */
 	if (!reiser4_alloc_occupied(fs->alloc, blk, 1)) {
-		fprintf(stdout, "Block %llu is not used.\n", blk);
-		return 0;
+		fprintf(stdout, "Block %llu is marked as not "
+			"used.\n", blk);
 	}
 
 	/* Determining what is the object block belong to */

@@ -237,6 +237,9 @@ int main(int argc, char *argv[]) {
 	if (flags & BF_PLUGS)
 		misc_plugins_print();
 
+	if (optind >= argc)
+		goto error_free_libreiser4;
+		
 #ifdef HAVE_SYSCONF
 	/* Guessing block size by getting page size */
 	if (!hint.blksize) {
