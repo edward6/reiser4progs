@@ -54,4 +54,5 @@ libreiser4_alone_la_CFLAGS   = @ALONE_CFLAGS@
 libreiser4_alone_la_LDFLAGS  = -Wl,-T -Wl,libreiser4.lds
 endif
 
-INCLUDES = $(includedir)
+INCLUDES                     = $(includedir)
+EXTRA_DIST                   = libreiser4.lds
