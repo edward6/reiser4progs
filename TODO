@@ -16,8 +16,6 @@ reiser4progs/COPYING.
 
 * plugin inheritance for objects.
 
-* finish extents support (tree.c).
-
 * special file plugin and special files support in debugfs.
 
 * big digits stat data fields format change.

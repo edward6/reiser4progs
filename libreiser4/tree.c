@@ -956,6 +956,22 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 }
 
 #ifndef ENABLE_STAND_ALONE
+static errno_t callback_save_node(const void *entry,
+				  void *data)
+{
+	aal_hash_node_t *node = (aal_hash_node_t *)entry;
+	aal_block_t *block = (aal_block_t *)node->value;
+
+	if (block->dirty) {
+		errno_t res;
+		
+		if ((res = aal_block_write(block)))
+			return res;
+	}
+
+	return 0;
+}
+
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	errno_t res;
@@ -967,8 +983,15 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
         /* Flushing whole tree. */
 	if ((res = reiser4_tree_adjust(tree, tree->root, 0))) {
-		aal_exception_error("Can't sync tree cache "
-				    "properly.");
+		aal_exception_error("Can't synchronize metadata.");
+		return res;
+	}
+
+	/* Saving data blocks */
+	if ((res = aal_hash_table_foreach(tree->data,
+					  callback_save_node, tree)))
+	{
+		aal_exception_error("Can't synchronize tree data.");
 		return res;
 	}
 	

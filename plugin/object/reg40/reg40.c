@@ -124,6 +124,7 @@ static int32_t reg40_read(object_entity_t *entity,
 		hint.count = chunk;
 		hint.offset = offset;
 		hint.specific = buff;
+		hint.tree = reg->obj.info.tree;
 
 		/* Calling body item's read() method */
 		if (!(chunk = plug_call(reg->body.plug->o.item_ops,

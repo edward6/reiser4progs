@@ -196,8 +196,88 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 	return PRESENT;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Reads @count bytes of extent data from the extent item at passed @pos into
-   specified @buff. */
+   specified @buff. Uses data cache. */
+static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
+	void *buff;
+	uint32_t count;
+	uint32_t read, i;
+	uint32_t blksize;
+	
+	key_entity_t key;
+	aal_block_t *block;
+	
+	uint64_t read_offset;
+	uint64_t block_offset;
+
+	aal_assert("umka-1421", place != NULL);
+	aal_assert("umka-1422", buff != NULL);
+
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
+
+	count = hint->count;
+	buff = hint->specific;
+	
+	extent40_get_key(place, &key);
+	blksize = extent40_blksize(place);
+
+	read_offset = plug_call(key.plug->o.key_ops,
+				get_offset, &key);
+
+	read_offset += hint->offset;
+
+	for (read = count, i = place->pos.unit;
+	     i < extent40_units(place) && count > 0; i++)
+	{
+		uint32_t size;
+		uint64_t blk, start;
+
+		/* Calculating start block for read */
+		start = blk = et40_get_start(extent40_body(place) + i) +
+			((hint->offset - extent40_offset(place, i)) / blksize);
+
+		/* Loop though the extent blocks */
+		while (blk < start + et40_get_width(extent40_body(place) + i) &&
+		       count > 0)
+		{
+			if ((size = count) > blksize - (read_offset % blksize))
+				size = blksize - (read_offset % blksize);
+			
+			block_offset = read_offset - (read_offset & (blksize - 1));
+			plug_call(key.plug->o.key_ops, set_offset, &key, block_offset);
+		
+			if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
+				if (!(block = aal_block_load(extent40_device(place),
+							     blksize, blk)))
+				{
+					return -EIO;
+				}
+			
+				core->tree_ops.set_data(hint->tree, &key, block);
+			}
+
+			aal_memcpy(buff, block->data +
+				   (read_offset % blksize), size);
+
+			buff += size;
+			count -= size;
+			read_offset += size;
+
+			if ((read_offset % blksize) == 0) {
+				blk++;
+			}
+		}
+	}
+	
+	return read;
+}
+#else
+/* Reads @count bytes of extent data from the extent item at passed @pos into
+   specified @buff. This function is used in stand alone mode. It does not uses
+   data cache and reads data by 512 bytes chunks. This is needed because of
+   GRUB, which has ugly mechanism of getting real block numbers data lie in. */
 static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 	void *buff;
 	uint32_t count;
@@ -269,8 +349,9 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 				
 				aal_block_free(block);
 
-				if ((seclocal + secchunk) % secsize == 0)
+				if ((seclocal + secchunk) % secsize == 0) {
 					sec++;
+				}
 					
 				buff += secchunk;
 				count -= secchunk;
@@ -280,13 +361,15 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 				blklocal += secchunk;
 			}
 
-			if (blklocal % blksize == 0)
+			if (blklocal % blksize == 0) {
 				blk++;
+			}
 		}
 	}
 	
 	return read;
 }
+#endif
 
 /* Updates extent unit at @place by @data */
 static int32_t extent40_fetch(place_t *place, trans_hint_t *hint) {
@@ -627,13 +710,19 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 
 		/* Writting data to @block */
 		if (hint->specific) {
-			aal_memcpy(block->data + (ins_offset % blksize),
+			uint32_t off = (ins_offset % blksize);
+			
+			aal_memcpy(block->data + off,
 				   hint->specific, size);
+			
+			block->dirty = 1;
 		} else {
 			/* Writting hole */
 			if (size < blksize) {
 				uint32_t off = (ins_offset % blksize);
+				
 				aal_memset(block->data + off, 0, size);
+				block->dirty = 1;
 			}
 		}
 

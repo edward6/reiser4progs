@@ -3,7 +3,7 @@
 %define _sbindir /sbin
 
 Name: reiser4progs
-Version: 0.4.13
+Version: 0.4.14
 Release: 1
 Summary: Utilities for reiser4 filesystems
 License: GPL
