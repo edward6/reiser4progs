@@ -124,12 +124,6 @@ errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, node_t *node,
 	
 	if (node->p.node != NULL) {
 		/* Take the right delimiting key from the parent. */
-
-		/* FIXME-UMKA->VITALY: It seems, that node_realize() is not
-		   realy needed here. It is guarantied by basic tree code, that
-		   node->p is always up to date. */
-		if ((ret = reiser4_tree_node_realize(tree, node)))
-			return ret;
 		
 		place = node->p;
 		reiser4_place_inc(&place, 0);
@@ -395,8 +389,6 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	hint.chunk = 0;
 	hint.bytes = 0;
 	hint.plug = plug;
-
-	/* FIXME-UMKA->VITALY: Here @hint->place_func should be initialized. */
 	hint.place_func = NULL;
 	
 	reiser4_key_assign(&hint.offset, &place->key);

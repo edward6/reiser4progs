@@ -74,16 +74,14 @@ static errno_t callback_check_layout(place_t *place, void *data) {
 			hint.count = 1;
 			hint.place_func = NULL;
 
-			/* FIXME-UMKA->VITALY: Is this correct? I mean res |=
-			   etc. */
-			res |= reiser4_node_remove(node, &place->pos, &hint);
+			res = reiser4_node_remove(node, &place->pos, &hint);
 
 			if (res < 0) return res;
 			
 			place->pos.item--;
-			res &= ~RE_FATAL;
-		} else 
+		} else {
 			ts->repair->fatal++;
+		}
 	} else if (res & RE_FIXABLE) {
 		ts->repair->fixable++;
 	} 

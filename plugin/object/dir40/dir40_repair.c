@@ -460,6 +460,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		return RE_FATAL;
 	case ABSENT:
 		/* Not attached yet. */
+/*
 		if (plug_call(object->info.object.plug->o.key_ops, compfull,
 			      &object->info.object, &parent->info.object))
 		{
@@ -470,7 +471,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 					    "Reached from" : "Attaching to",
 					    print_inode(dir40_core, &parent->info.object));
 		}
-		
+*/		
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
 		

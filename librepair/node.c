@@ -159,10 +159,7 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 
-			/* FIXME-UMKA->VITALY: Here was not initialized
-			   @hint. It should have at least these two
-			   fields. Please check if I have set @hint->count
-			   correctly.*/
+			aal_memset(&hint, 0, sizeof(hint));
 			hint.count = 1;
 			hint.place_func = NULL;
 			
