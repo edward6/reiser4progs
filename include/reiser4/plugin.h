@@ -646,6 +646,9 @@ struct reiser4_item_ops {
 	int32_t (*remove) (item_entity_t *, uint32_t,
 			   uint32_t);
 
+	/* Shrinks item at @pos by @count */
+	int32_t (*shrink) (item_entity_t *, uint32_t, uint32_t);
+	
 	/* Inserts unit described by passed hint into the item */
 	errno_t (*insert) (item_entity_t *, void *, uint32_t);
 	

@@ -725,6 +725,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.shift         = NULL,
 		.layout        = NULL,
 #endif
+		.shrink        = NULL,
 		.belongs       = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,

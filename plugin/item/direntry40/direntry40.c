@@ -691,9 +691,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 }
 
 /* Shrinks direntry item in order to delete some entries */
-static int32_t direntry40_shrink(direntry40_t *direntry,
-				 uint32_t pos,
-				 uint32_t count)
+static int32_t direntry40_shrink(item_entity_t *item,
+				 uint32_t pos, uint32_t count)
 {
 	entry40_t *entry;
 
@@ -703,6 +702,10 @@ static int32_t direntry40_shrink(direntry40_t *direntry,
 	uint32_t offset = 0;
 	uint32_t before = 0;
 	uint32_t remove = 0;
+
+	direntry40_t *direntry;
+	
+	direntry = direntry40_body(item);
 	
 	units = de40_get_count(direntry);
 	aal_assert("umka-1681", pos < units, return -1);
@@ -788,7 +791,7 @@ static int32_t direntry40_remove(item_entity_t *item,
 		return -1;
 
 	/* Shrinking direntry */
-	if ((len = direntry40_shrink(direntry, pos, count)) <= 0) {
+	if ((len = direntry40_shrink(item, pos, count)) <= 0) {
 		aal_exception_error("Can't shrink direntry at pos "
 				    "%u by %u entries.", pos, count);
 		return -1;
@@ -1213,6 +1216,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.init		= direntry40_init,
 		.insert		= direntry40_insert,
 		.remove		= direntry40_remove,
+		.shrink		= direntry40_shrink,
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
 		.print		= direntry40_print,
@@ -1226,6 +1230,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.estimate	= NULL,
 		.insert		= NULL,
 		.remove		= NULL,
+		.shrink		= NULL,
 		.check		= NULL,
 		.print		= NULL,
 		.mergeable      = NULL,

@@ -353,7 +353,7 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 
 		/*
 		  If this is the insert new item mode, we should prepare the
-		  room for ne witem header and set it up.
+		  room for new item header and set it up.
 		*/
 		if (is_insert) {
 			aal_memmove(ih, ih + 1, sizeof(item40_header_t) * 
@@ -387,10 +387,113 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	return 0;
 }
 
+static int32_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
+			     uint32_t count, int shrink_item)
+{
+	void *src, *dst;
+	
+	uint32_t size;
+	uint32_t headers;
+	uint32_t i, items;
+	item_entity_t item;
+	uint32_t len, offset;
+
+	int is_range, is_items;
+	item40_header_t *cur, *end;
+	
+	aal_assert("umka-958", node != NULL, return -1);
+	aal_assert("umka-959", pos != NULL, return -1);
+	aal_assert("umka-1792", count > 0, return -1);
+
+	items = nh40_get_num_items(node);
+	is_range = (pos->item < items);
+	
+	aal_assert("umka-960", is_range, return -1);
+
+	is_items = pos->unit == ~0ul;
+		
+	if (shrink_item && pos->unit == ~0ul) {
+		
+		if (node40_item(&item, node, pos->item))
+			return -1;
+
+		/* Whole item will be removed */
+		if (plugin_call(item.plugin->item_ops, units, &item)) {
+			is_items = 1;
+			count = 1;
+		}
+	}
+	
+	end = node40_ih_at(node, items - 1);
+	
+	if (is_items) {
+		is_range = (is_range && pos->item + count <= items);
+		aal_assert("umka-1793", is_range, return -1);
+
+		cur = node40_ih_at(node, pos->item);
+
+		/* Calculating how much bytes will be removed */
+		for (len = 0, i = 0; i < count && cur >= end; i++, cur--) {
+			len += (cur == end ? nh40_get_free_space_start(node) :
+				ih40_get_offset(cur - 1)) - ih40_get_offset(cur);
+		}
+
+		/* Moving bodies */
+		dst = node40_ib_at(node, pos->item);
+		src = node40_ib_at(node, pos->item + count);
+		size = nh40_get_free_space_start(node) - len;
+
+		aal_memmove(dst, src, size);
+
+		/* Moving headers */
+		src = node40_ih_at(node, items - 1);
+		dst = src + (count * sizeof(item40_header_t));
+		size = (items - pos->item - 1) * sizeof(item40_header_t);
+	
+		aal_memmove(dst, src, size);
+
+		/* Updating item offsets */
+		cur = node40_ih_at(node, pos->item + count);
+	
+		for (i = 0; i < items - count; i++, cur--)
+			ih40_dec_offset(cur, len);
+
+		/* Updating node header */
+		headers = count * sizeof(item40_header_t);
+	
+		nh40_dec_num_items(node, count);
+		nh40_inc_free_space(node, (len + headers));
+		nh40_dec_free_space_start(node, len);
+
+		return len + headers;
+	} else {
+		if (shrink_item) {
+			/*
+			  The number of bytes were removed from the item. Node
+			  will be shrinked by this value.
+			*/
+			len = item.plugin->item_ops.shrink(&item, pos->unit,
+							   count);
+		} else
+			/* Item length. Node will be shrinked by this value */
+			len = node40_item_len((object_entity_t *)node, pos);
+			
+		/* Updating header offsets */
+		cur = node40_ih_at(node, pos->item) - 1;
+		
+		for (; cur >= end; cur--)
+			ih40_dec_offset(cur, len);
+		
+		nh40_inc_free_space(node, len);
+		nh40_dec_free_space_start(node, len);
+
+		return len;
+	}
+}
+
 /* Makes shrink node by passed @len after item/unit was removed */
-static errno_t node40_shrink(node40_t *node,
-			     reiser4_pos_t *pos,
-			     uint32_t size) 
+static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
+			      uint32_t size) 
 {
 	int is_range;
     
@@ -412,8 +515,8 @@ static errno_t node40_shrink(node40_t *node,
 	len = node40_item_len((object_entity_t *)node, pos);
 
 	/*
-	  If we are going to remove not the last item, we need update item
-	  bodies and them offsets.
+	  If we are going to remove not the last item, we do need update item
+	  bodies and their offsets.
 	*/
 	if ((offset + len) < nh40_get_free_space_start(node)) {
 		uint32_t tomove;
@@ -452,7 +555,7 @@ static errno_t node40_shrink(node40_t *node,
 
 	/*
 	  Increasing free space by item overhead in the case of removing whole
-	  item from the node. Here also update of num items field.
+	  item from the node. Here we also update of num items field.
 	*/
 	if (pos->unit == ~0ul) {
 		nh40_dec_num_items(node, 1);

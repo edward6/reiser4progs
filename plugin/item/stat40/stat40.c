@@ -505,6 +505,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.print		= NULL,
 		.layout         = NULL,
 #endif
+		.shrink         = NULL,
 		.remove		= NULL,
 		.lookup		= NULL,
 		.update         = NULL,
