@@ -11,7 +11,6 @@
 static errno_t repair_cleanup_check(place_t *place, void *data) {
 	repair_cleanup_t *cleanup;
 	errno_t res = 0;
-	uint8_t i;
 	
 	aal_assert("vpf-1060", place != NULL);
 	aal_assert("vpf-1061", data != NULL);
@@ -32,31 +31,78 @@ static errno_t repair_cleanup_check(place_t *place, void *data) {
 		return 0;	
 	}
 
-	for (i = 0; i < OF_LAST; i++)
-		repair_item_clear_flag(place, i);
+	repair_node_clear_flags(place->node);
+	
 	return 0;
 }
 
-static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree, 
+static errno_t repair_cleanup_node_traverse(reiser4_tree_t *tree, 
+					    node_t *node, void *data)
+{
+	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
+
+	if (cleanup->progress_handler && 
+	    reiser4_node_get_level(node) != LEAF_LEVEL) 
+	{
+		cleanup->progress->state = PROGRESS_START;
+		cleanup->progress->u.tree.i_total = reiser4_node_items(node);
+		cleanup->progress->u.tree.u_total = 0;
+		cleanup->progress->u.tree.item = 0;
+		cleanup->progress->u.tree.unit = 0;
+		cleanup->progress_handler(cleanup->progress);
+	}
+
+	return repair_node_traverse(node, repair_cleanup_check, data);
+}
+
+static node_t *repair_cleanup_open_traverse(reiser4_tree_t *tree,
+					    place_t *place,
+					    void *data) 
+{
+	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
+	
+	if (cleanup->progress_handler &&
+	    reiser4_node_get_level(place->node) != LEAF_LEVEL) 
+	{
+		cleanup->progress->state = PROGRESS_UPDATE;
+		cleanup->progress->u.tree.i_total = reiser4_node_items(place->node);
+		cleanup->progress->u.tree.u_total = reiser4_item_units(place);
+		cleanup->progress->u.tree.item = place->pos.item;
+		cleanup->progress->u.tree.unit = place->pos.unit;
+		cleanup->progress_handler(cleanup->progress);
+	}
+
+	return reiser4_tree_child_node(tree, place);
+}
+
+static errno_t repair_cleanup_after_traverse(reiser4_tree_t *tree, 
 					     node_t *node, 
 					     void *data) 
 {
-    return repair_node_traverse(node, repair_cleanup_check, data);
+	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
+	
+	if (cleanup->progress_handler && 
+	    reiser4_node_get_level(node) != LEAF_LEVEL) 
+	{
+		cleanup->progress->state = PROGRESS_END;
+		cleanup->progress_handler(cleanup->progress);
+	}
+
+	return 0;
 }
 
 static void repair_cleanup_setup(repair_cleanup_t *cleanup) {
 	aal_assert("vpf-1045", cleanup != NULL);
-	aal_assert("vpf-1046", cleanup->repair != NULL);
-	aal_assert("vpf-1047", cleanup->repair->fs != NULL);
-	aal_assert("vpf-1048", cleanup->repair->fs->tree != NULL);
 
+	aal_memset(cleanup->progress, 0, sizeof(*cleanup->progress));
+	
 	if (!cleanup->progress_handler)
 		return;
 	
-	aal_memset(cleanup->progress, 0, sizeof(*cleanup->progress));
 	cleanup->progress->type = GAUGE_TREE;
 	cleanup->progress->text = "***** Cleanup Pass: cleaning reiser4 "
 		"storage tree up.";
+	cleanup->progress->state = PROGRESS_STAT;
 	time(&cleanup->stat.time);
 	cleanup->progress_handler(cleanup->progress);
 	cleanup->progress->text = NULL;
@@ -71,7 +117,7 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	if (!cleanup->progress_handler)
 		return;
 	
-	cleanup->progress->state = PROGRESS_END;
+	cleanup->progress->state = PROGRESS_STAT;
 	cleanup->progress_handler(cleanup->progress);
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
@@ -117,9 +163,11 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		return -EINVAL;
 	
 	/* Cut the corrupted, unrecoverable parts of the tree off. */
-	res = reiser4_tree_trav_node(fs->tree, fs->tree->root, NULL, 
-				     repair_semantic_node_traverse, 
-				     NULL, NULL, cleanup);
+	res = reiser4_tree_trav_node(fs->tree, fs->tree->root, 
+				     repair_cleanup_open_traverse, 
+				     repair_cleanup_node_traverse, 
+				     NULL, repair_cleanup_after_traverse, 
+				     cleanup);
 	
 	repair_cleanup_update(cleanup);
 	reiser4_fs_sync(fs);

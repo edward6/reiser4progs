@@ -1108,14 +1108,9 @@ struct reiser4_node_ops {
     	uint64_t (*get_fstamp) (node_entity_t *);
 	
 	/* Get/set/test item flags. */
-	void (*set_flag) (node_entity_t *, uint32_t,
-			  uint16_t);
-	
-	void (*clear_flag) (node_entity_t *, uint32_t,
-			    uint16_t);
-	
-	bool_t (*test_flag) (node_entity_t *, uint32_t,
-			     uint16_t);
+	void (*set_flag) (node_entity_t *, uint32_t, uint16_t);	
+	void (*clear_flag) (node_entity_t *, uint32_t, uint16_t);	
+	bool_t (*test_flag) (node_entity_t *, uint32_t, uint16_t);
 
 	/* Saves node to device */
 	errno_t (*sync) (node_entity_t *);

@@ -25,8 +25,7 @@ extern void node40_clear_flag(node_entity_t *entity,
 extern bool_t node40_test_flag(node_entity_t *entity, 
 			       uint32_t pos, uint16_t flag);
 
-extern errno_t node40_check_struct(node_entity_t *entity,
-				   uint8_t mode);
+extern errno_t node40_check_struct(node_entity_t *entity, uint8_t mode);
 
 extern errno_t node40_merge(node_entity_t *entity, pos_t *pos,
 			    trans_hint_t *hint);

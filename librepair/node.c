@@ -31,14 +31,15 @@ node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
 /* Checks all the items of the node. */
 static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 	place_t place;
-	pos_t *pos = &place.pos;
 	errno_t res = 0;
 	uint32_t count;
+	pos_t *pos;
 	
 	aal_assert("vpf-229", node != NULL);
 	aal_assert("vpf-230", node->entity != NULL);
 	aal_assert("vpf-231", node->entity->plug != NULL);
 	
+	pos = &place.pos;
 	place.node = node;
 	count = reiser4_node_items(node);
 	
@@ -266,3 +267,27 @@ errno_t repair_node_traverse(node_t *node, node_func_t func,
 	return 0;
 }
 
+errno_t repair_node_clear_flags(node_t *node) {
+	uint32_t count;
+	place_t place;
+	pos_t *pos;
+	
+	aal_assert("vpf-1401", node != NULL);
+	aal_assert("vpf-1402", node->entity != NULL);
+	aal_assert("vpf-1403", node->entity->plug != NULL);
+
+	place.node = node;
+	count = reiser4_node_items(node);
+	
+	pos = &place.pos;
+	pos->unit = MAX_UINT32;
+	
+	for (pos->item = 0; pos->item < count; pos->item++) {
+		if (reiser4_place_fetch(&place))
+			return -EINVAL;
+		
+		repair_item_clear_flag(&place, MAX_UINT16);
+	}
+
+	return 0;
+}

@@ -18,4 +18,6 @@ extern errno_t repair_node_check_struct(node_t *node, uint8_t mode);
 extern errno_t repair_node_traverse(node_t *node, node_func_t func,
 				    void *data);
 
+extern errno_t repair_node_clear_flags(node_t *node);
+
 #endif

@@ -150,6 +150,9 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 				ds->stat.fixed_leaves++;
 		}
 		
+		/* Zero all flags for all items. */
+		repair_node_clear_flags(node);
+
 	next:
 		reiser4_node_fini(node);
 		blk++;

@@ -248,7 +248,6 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 
 static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 	uint32_t offset, i, nr = 0;
-	errno_t res = 0;
 	uint32_t pol;
 	blk_t blk;
 	
@@ -324,7 +323,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 			return RE_FIXABLE;
 	}
 	
-	return res;
+	return 0;
 }
 
 /* Checks the count of items written in node_header. If it is wrong, it tries
@@ -374,11 +373,13 @@ errno_t node40_check_struct(node_entity_t *entity, uint8_t mode) {
 	
 	/* Check the content of the node40 header. */
 	if ((res = node40_count_check(node, mode))) {
-		/* Count is wrong and not recoverable on the base of free space end. */
+		/* Count is wrong and not recoverable on the 
+		   base of free space end. */
 		if (mode != RM_BUILD)
 			return res;
 		
-		/* Recover count on the base of correct item array if one exists. */
+		/* Recover count on the base of correct item 
+		   array if one exists. */
 		return node40_item_find_array(node, mode);
 	}
 	
@@ -387,8 +388,8 @@ errno_t node40_check_struct(node_entity_t *entity, uint8_t mode) {
 }
 
 errno_t node40_corrupt(node_entity_t *entity, uint16_t options) {
-	int i;
 	node40_t *node;
+	int i;
 	
 	node = (node40_t *)entity;
 	
@@ -411,9 +412,9 @@ int64_t node40_merge(node_entity_t *entity, pos_t *pos, trans_hint_t *hint) {
 }
 
 void node40_set_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
-	void *ih;
-	uint32_t pol;
 	node40_t *node;
+	uint32_t pol;
+	void *ih;
 	
 	aal_assert("vpf-1038", entity != NULL);
 	
@@ -429,9 +430,9 @@ void node40_set_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 }
 
 void node40_clear_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
-	void *ih;
-	uint32_t pol;
 	node40_t *node;
+	uint32_t pol;
+	void *ih;
 	
 	aal_assert("vpf-1039", entity != NULL);
 	
@@ -439,22 +440,34 @@ void node40_clear_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 	pol = node40_key_pol(node);
 	ih = node40_ih_at(node, pos);
 	
-	if (!ih_test_flag(ih, flag, pol))
-		return;
+	if (flag == MAX_UINT16) {
+		if (!ih_get_flags(ih, pol)) 
+		    return;
+
+		ih_set_flags(ih, 0, pol);
+	} else {
+		if (!ih_test_flag(ih, flag, pol))
+			return;
+		
+		ih_clear_flag(ih, flag, pol);
+	}
 	
-	ih_clear_flag(ih, flag, pol);
 	node->state |= (1 << ENTITY_DIRTY);
 }
 
 bool_t node40_test_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
-	void *ih; 
 	node40_t *node;
+	uint32_t pol;
+	void *ih; 
 	
 	aal_assert("vpf-1040", entity != NULL);
 	
 	node = (node40_t *)entity;
+	pol = node40_key_pol(node);
 	ih = node40_ih_at(node, pos);
-	return ih_test_flag(ih, flag, node40_key_pol(node));
+	
+	return flag == MAX_UINT16 ? ih_get_flags (ih, pol) == 0 : 
+		ih_test_flag(ih, flag, pol);
 }
 
 errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream) {
@@ -501,4 +514,5 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	node->state |= (1 << ENTITY_DIRTY);
 	return (node_entity_t *)node;
 }
+
 #endif

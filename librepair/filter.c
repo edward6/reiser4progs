@@ -160,8 +160,8 @@ static void repair_filter_bad_level(repair_filter_t *fd,
    nothing if RE_PTR is set and set this flag if node cannot 
    be opeened. Returns error if any. */
 static node_t *repair_filter_node_open(reiser4_tree_t *tree,
-					       place_t *place,
-					       void *data)
+				       place_t *place,
+				       void *data)
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	node_t *node = NULL;
@@ -315,6 +315,10 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		goto error;
 	}
 	
+	/* Zero all flags for all items. */
+	if (fd->repair->mode == RM_BUILD)
+		repair_node_clear_flags(node);
+	
 	return 0;
  error:
 	if (fd->level != LEAF_LEVEL) {
@@ -446,9 +450,9 @@ static void repair_filter_setup(repair_filter_t *fd) {
 static void repair_filter_update(repair_filter_t *fd) {
 	repair_filter_stat_t *stat;
 	reiser4_format_t *format;
-	node_t *root;
 	aal_stream_t stream;
 	char *time_str;
+	node_t *root;
 	
 	aal_assert("vpf-421", fd != NULL);
 	
