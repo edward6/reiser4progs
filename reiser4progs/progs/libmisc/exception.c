@@ -10,6 +10,7 @@
 
 #include <ctype.h>
 #include <unistd.h>
+#include <aal/aal.h>
 
 #ifdef HAVE_LIBREADLINE
 
@@ -29,6 +30,8 @@ extern int tgetnum(char *key);
 #ifndef rl_compentry_func_t
 #define rl_compentry_func_t void
 #endif
+
+static aal_list_t *options = NULL;
 
 #endif /* HAVE_LIBREADLINE */
 
@@ -212,8 +215,57 @@ exit:
     return res;
 }
 
+#ifdef HAVE_LIBREADLINE
+
+static char *progs_exception_generator(char *text, int state) {
+    aal_list_t *walk = NULL;
+
+    aal_list_foreach_forward(walk, options) {
+	char *option = (char *)walk->item;
+	if (!aal_strncmp(option, text, aal_strlen(text)))
+	    return option;
+    }
+    
+    return NULL;
+}
+
+static char **progs_exception_complete(char *text, int start, int end) {
+    return rl_completion_matches(text,
+	(rl_compentry_func_t *)progs_exception_generator);
+}
+
+#endif
+
 /* Streams assigned with exception type are stored here */
 static void *streams[10];
+
+void progs_exception_done(void) {
+#ifdef HAVE_LIBREADLINE
+    if (options) {
+	aal_list_free(options);
+	options = NULL;
+    }
+#endif
+}
+
+void progs_exception_init(void) {
+#ifdef HAVE_LIBREADLINE
+    int i;
+    
+    for (i = 1; i < aal_log2(EXCEPTION_LAST); i++) {
+	char *name = aal_exception_option_string(1 << i);
+	options = aal_list_append(options, name);
+    }
+    
+    if (options)
+	options = aal_list_first(options);
+    
+    rl_initialize();
+    
+    rl_attempted_completion_function = 
+	(CPPFunction *)progs_exception_complete;
+#endif
+}
 
 /* This function sets up exception streams */
 void progs_exception_set_stream(
