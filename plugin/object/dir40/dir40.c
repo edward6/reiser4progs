@@ -881,12 +881,12 @@ static reiser4_plugin_t dir40_plugin = {
 		.truncate     = dir40_truncate,
 		.add_entry    = dir40_add_entry,
 		.rem_entry    = dir40_rem_entry,
+		.write        = NULL,
 #endif
 		.follow       = NULL,
 		.valid	      = NULL,
 		.seek	      = NULL,
 		.read         = NULL,
-		.write        = NULL,
 		
 		.open	      = dir40_open,
 		.close	      = dir40_close,

@@ -113,7 +113,9 @@ void reiser4_fs_close(
     
 	aal_assert("umka-230", fs != NULL);
 
+#ifndef ENABLE_ALONE
 	reiser4_fs_sync(fs);
+#endif
 	
 	/* Closing the all filesystem objects */
 	reiser4_oid_close(fs->oid);
