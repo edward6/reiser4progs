@@ -137,17 +137,22 @@ errno_t reiser4_node_print(
 #endif
 
 /* Opens node on specified device and block number. */
-reiser4_node_t *reiser4_node_open(aal_device_t *device,
-				  uint32_t size, blk_t nr,
-				  reiser4_plug_t *kplg)
-{
+reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 	uint16_t pid;
+	uint32_t size;
 	aal_block_t *block;
+	aal_device_t *device;
         reiser4_node_t *node;
-	reiser4_plug_t *plug;
+	reiser4_plug_t *plug, *kplg;
  
-        aal_assert("umka-160", device != NULL);
-    
+        aal_assert("umka-160", fs != NULL);
+	aal_assert("vpf-1315", fs->master != NULL);
+	aal_assert("vpf-1315", fs->device != NULL);
+	
+	device = fs->device;
+	size = reiser4_master_blksize(fs->master);
+	kplg = fs->tree->key.plug;
+	
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;
 
