@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   sdext_lw.c -- light weight stat data extention plugin, that implements base
+   sdext_lw.c -- light weight stat data extension plugin, that implements base
    stat data fields. */
 
 #ifndef ENABLE_STAND_ALONE
@@ -11,7 +11,7 @@
 #include "sdext_lw.h"
 #include <aux/aux.h>
 
-/* Loads extention to passed @hint */
+/* Loads extension to passed @hint */
 static errno_t sdext_lw_open(void *body, void *hint) {
 	sdext_lw_t *ext;
 	sdext_lw_hint_t *sdext_lw;
@@ -34,7 +34,7 @@ static uint16_t sdext_lw_length(void *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Saves all extention fields from passed @hint to @body. */
+/* Saves all extension fields from passed @hint to @body. */
 static errno_t sdext_lw_init(void *body, 
 			     void *hint) 
 {
@@ -94,7 +94,7 @@ static void sdext_lw_parse_mode(uint16_t mode, char *str) {
 	str[10] = '\0';
 }
 
-/* Print extention to passed @stream. */
+/* Print extension to passed @stream. */
 static errno_t sdext_lw_print(void *body, aal_stream_t *stream,
 			      uint16_t options)
 {
@@ -140,7 +140,7 @@ static reiser4_plug_t sdext_lw_plug = {
 	.id    = {SDEXT_LW_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_lw",
-	.desc  = "Light stat data extention for reiser4, ver. " VERSION,
+	.desc  = "Light stat data extension for reiser4, ver. " VERSION,
 #endif
 	.o = {
 		.sdext_ops = &sdext_lw_ops

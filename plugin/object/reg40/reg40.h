@@ -21,7 +21,7 @@ struct reg40 {
 	place_t body;
 
 	/* Current position in the reg file */
-	key_entity_t offset;
+	key_entity_t position;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Tail policy plugin */

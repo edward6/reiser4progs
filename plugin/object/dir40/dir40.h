@@ -25,8 +25,9 @@ struct dir40 {
 #ifndef ENABLE_STAND_ALONE
 	uint32_t adjust;
 #endif
-	
-	key_entity_t offset;
+
+	/* Current directory offset. */
+	key_entity_t position;
 
 	/* Hash plugin in use */
 	reiser4_plug_t *hash;

@@ -16,20 +16,20 @@ reiser4_core_t *dir40_core = NULL;
 #ifndef ENABLE_STAND_ALONE
 /* Return current position in directory into passed @offset. */
 static errno_t dir40_telldir(object_entity_t *entity,
-			     key_entity_t *offset)
+			     key_entity_t *position)
 {
 	dir40_t *dir = (dir40_t *)entity;
 	
 	aal_assert("umka-1985", entity != NULL);
-	aal_assert("umka-1986", offset != NULL);
+	aal_assert("umka-1986", position != NULL);
 
 	/* Getting current dir key and adjust. */
-	plug_call(dir->offset.plug->o.key_ops,
-		  assign, offset, &dir->offset);
+	plug_call(dir->position.plug->o.key_ops,
+		  assign, position, &dir->position);
 
 	/* Adjust is offset inside collided keys arrays and needed for
 	   positioning right in such a case. In normal case it is zero. */
-	offset->adjust = dir->adjust;
+	position->adjust = dir->adjust;
 	
 	return 0;
 }
@@ -64,16 +64,16 @@ static void dir40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-/* Positioning inside directory by passed @offset key. Normally, user should use
+/* Positioning inside directory by passed @position key. Normally, user should use
    key got from telldir() function. But, this is possible to generate directory
    key by himself and pass here. */
 static errno_t dir40_seekdir(object_entity_t *entity,
-			     key_entity_t *offset)
+			     key_entity_t *position)
 {
 	dir40_t *dir;
 	
 	aal_assert("umka-1983", entity != NULL);
-	aal_assert("umka-1984", offset != NULL);
+	aal_assert("umka-1984", position != NULL);
 
 	dir = (dir40_t *)entity;
 
@@ -81,12 +81,12 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	   @dir->adjust. Seekdir is accepting key, which might be got from
 	   telldir() function. So, adjust will be set too. */
 #ifndef ENABLE_STAND_ALONE
-	dir->adjust = offset->adjust;
+	dir->adjust = position->adjust;
 #endif
 
-	/* Saving passed key to @dir->offset. */
-	plug_call(dir->offset.plug->o.key_ops,
-		  assign, &dir->offset, offset);
+	/* Saving passed key to @dir->position. */
+	plug_call(dir->position.plug->o.key_ops,
+		  assign, &dir->position, position);
 
 	return 0;
 }
@@ -105,7 +105,7 @@ errno_t dir40_reset(object_entity_t *entity) {
 
 	/* Building key itself. */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
-		  &dir->offset, dir->hash, obj40_locality(&dir->obj),
+		  &dir->position, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), ".");
 
 	return 0;
@@ -151,11 +151,11 @@ lookup_t dir40_next(dir40_t *dir, bool_t check) {
 		uint64_t offset;
 		
 		/* Set offset to non-existent value as the end is reached. */
-		offset = plug_call(dir->offset.plug->o.key_ops,
-				   get_offset, &dir->offset);
+		offset = plug_call(dir->position.plug->o.key_ops,
+				   get_offset, &dir->position);
 		
-		plug_call(dir->offset.plug->o.key_ops, set_offset,
-			  &dir->offset, offset + 1);
+		plug_call(dir->position.plug->o.key_ops, set_offset,
+			  &dir->position, offset + 1);
 		
 		return ABSENT;
 	}
@@ -165,7 +165,8 @@ lookup_t dir40_next(dir40_t *dir, bool_t check) {
 	return PRESENT;
 }
 
-/* Updates current body place by place found by @dir->offset and @dir->adjust */
+/* Updates current body place by place found by @dir->position and
+   @dir->adjust. */
 static lookup_t dir40_update_body(object_entity_t *entity) {
 	dir40_t *dir;
 	lookup_t res;
@@ -178,7 +179,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 
 	/* Making lookup by current dir key. */
-	if ((res = obj40_lookup(&dir->obj, &dir->offset,
+	if ((res = obj40_lookup(&dir->obj, &dir->position,
 				LEAF_LEVEL, FIND_EXACT,
 				&dir->body)) < 0)
 	{
@@ -280,7 +281,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	units = plug_call(dir->body.plug->o.item_ops->balance,
 			  units, &dir->body);
 
-	/* Getting next entry in odrer to set up @dir->offset correctly */
+	/* Getting next entry in odrer to set up @dir->position correctly. */
 	if (++dir->body.pos.unit >= units) {
 		/* Switching to the next directory item */
 		if ((res = dir40_next(dir, 1)) < 0)
@@ -299,7 +300,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 #ifndef ENABLE_STAND_ALONE
 		/* Taking care about adjust */
 		if (!plug_call(temp.offset.plug->o.key_ops,
-			       compfull, &temp.offset, &dir->offset))
+			       compfull, &temp.offset, &dir->position))
 		{
 			temp.offset.adjust = dir->adjust + 1;
 		} else {
@@ -870,8 +871,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 		if ((res = obj40_remove(&dir->obj, &temp.place, &hint)))
 			return res;
 
-		if (!plug_call(dir->offset.plug->o.key_ops,
-			       compfull, &dir->offset, &temp.offset))
+		if (!plug_call(dir->position.plug->o.key_ops,
+			       compfull, &dir->position, &temp.offset))
 		{
 			if (entry->offset.adjust < dir->adjust)
 				dir->adjust--;

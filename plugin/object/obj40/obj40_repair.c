@@ -149,11 +149,11 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 		return res;
 	}
 	
-	/* Read LW extention. */
+	/* Read LW extension. */
 	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
 		return res;
 	
-	/* Form the correct LW extention. */
+	/* Form the correct LW extension. */
 	lw_new = lw_hint;
 	
 	if (nlink_func)
@@ -161,7 +161,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 
 	mode_func(obj, &lw_new.mode);
 	
-	/* Check the mode in the LW extention. */
+	/* Check the mode in the LW extension. */
 	if (lw_new.mode != lw_hint.mode) {
 		aal_exception_error("Node (%llu), item (%u): StatData of "
 				    "the file [%s] has the wrong mode (%u),"
@@ -177,7 +177,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	size_func(obj, &lw_new.size, size);
 	
-	/* Check the size in the LW extention. */
+	/* Check the size in the LW extension. */
 	if (lw_new.size != lw_hint.size) {
 		aal_exception_error("Node (%llu), item (%u): StatData of "
 				    "the file [%s] has the wrong size "
@@ -199,7 +199,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	if ((res |= obj40_read_ext(stat, SDEXT_UNIX_ID, &unix_hint)) < 0)
 		return res;
 	
-	/* Check the mode in the LW extention. */
+	/* Check the mode in the LW extension. */
 	
 	/* sd_butes are set wrongly in the kernel. Waiting for the VS.	
 	if (unix_hint.bytes != bytes) {

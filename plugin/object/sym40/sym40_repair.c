@@ -12,29 +12,29 @@
 			      1 << SDEXT_LW_ID |	\
 			      1 << SDEXT_SYMLINK_ID)
 
-static errno_t sym40_extentions(place_t *stat) {
+static errno_t sym40_extensions(place_t *stat) {
 	uint64_t extmask;
 	
 	extmask = obj40_extmask(stat);
 	
-	/* Check that there is no one unknown extention. */
+	/* Check that there is no one unknown extension. */
 	/*
 	if (extmask & ~(sym40_exts | 1 << SDEXT_PLUG_ID))
 		return RE_FATAL;
 	*/
-	/* Check that LW, UNIX and SYMLINK extentions exist. */
+	/* Check that LW, UNIX and SYMLINK extensions exist. */
 	return ((extmask & sym40_exts) == sym40_exts) ? 0 : RE_FATAL;
 }
 
-/* Check SD extentions and that mode in LW extention is DIRFILE. */
+/* Check SD extensions and that mode in LW extension is DIRFILE. */
 static errno_t callback_stat(place_t *stat) {
 	sdext_lw_hint_t lw_hint;
 	errno_t res;
 	
-	if ((res = sym40_extentions(stat)))
+	if ((res = sym40_extensions(stat)))
 		return res;
 
-	/* Check the mode in the LW extention. */
+	/* Check the mode in the LW extension. */
 	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
 		return res;
 	
@@ -90,7 +90,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 	aal_assert("vpf-1233", sym->obj.info.tree != NULL);
 	aal_assert("vpf-1234", sym->obj.info.object.plug != NULL);
 
-	if ((res = obj40_launch_stat(&sym->obj, sym40_extentions, 
+	if ((res = obj40_launch_stat(&sym->obj, sym40_extensions, 
 				     sym40_exts, 1, S_IFLNK, mode)))
 	{
 		return res;

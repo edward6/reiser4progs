@@ -10,7 +10,7 @@
 
 #include <repair/filter.h>
 
-/* This is extention for repair_error_t. */
+/* This is extension for repair_error_t. */
 typedef enum repair_error_filter {
 	/* Pointer to the wrong place. */
 	RE_PTR         = (RE_LAST),

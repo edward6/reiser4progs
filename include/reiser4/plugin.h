@@ -14,7 +14,7 @@
 
 /* Master related stuff like magic and offset in bytes. These are sued by both
    plugins and library itself. */
-#define REISER4_MASTER_MAGIC	("R4Sb")
+#define REISER4_MASTER_MAGIC	("Reiser4Sb")
 #define REISER4_MASTER_OFFSET	(65536)
 
 /* The same for fs stat block. */
@@ -129,7 +129,7 @@ enum reiser4_item_group {
 	DIRENTRY_ITEM		= 0x2,
 	TAIL_ITEM		= 0x3,
 	EXTENT_ITEM		= 0x4,
-	PERMISSN_ITEM		= 0x5,
+	PERMISSION_ITEM		= 0x5,/* not used yet */
 	LAST_ITEM
 };
 
@@ -156,8 +156,7 @@ typedef enum reiser4_hash_plug_id reiser4_hash_plug_id_t;
 /* Know tail policy plugin ids. */
 enum reiser4_tail_plug_id {
 	TAIL_NEVER_ID		= 0x0,
-	TAIL_SUPPRESS_ID	= 0x1,
-	TAIL_FOURK_ID		= 0x2,
+	TAIL_SUPPRESS_OLD_ID	= 0x1,
 	TAIL_ALWAYS_ID		= 0x3,
 	TAIL_SMART_ID		= 0x4,
 	TAIL_LAST_ID
@@ -169,7 +168,7 @@ enum reiser4_perm_plug_id {
 	PERM_LAST_ID
 };
 
-/* Known stat data extention plugin ids. */
+/* Known stat data extension plugin ids. */
 enum reiser4_sdext_plug_id {
 	SDEXT_LW_ID	        = 0x0,
 	SDEXT_UNIX_ID		= 0x1,
@@ -312,7 +311,8 @@ struct node {
 	node_t *right;
 	
 	/* List of children nodes. It is used for constructing part of on-disk
-	   tree in the memory. */
+	   tree in the memory. This should be rewritten to use hash table like
+	   kernel does. */
 	aal_list_t *children;
 	
 	/* Usage counter to prevent releasing used nodes */
@@ -328,8 +328,8 @@ struct node {
 #endif
 };
 
-/* Object info struct is main information about reiser4 object. These are: its
-   key, parent key and corod of first item. */
+/* Object info struct contains the main information about a reiser4
+   object. These are: its key, parent key and coord of first item. */
 struct object_info {
 	void *tree;
 	place_t start;
@@ -348,7 +348,7 @@ struct object_entity {
 
 typedef struct object_entity object_entity_t;
 
-/* Stat data extention entity. */
+/* Stat data extension entity. */
 struct sdext_entity {
 	reiser4_plug_t *plug;
 
@@ -381,13 +381,13 @@ enum shift_flags {
 	   checked item and not checked one. */
 	SF_ALLOW_MERGE   = 1 << 4,
 
-	/* Controls is shift allowed to allocate new nodes during make
+	/* Controls is shift allowed to allocate new nodes during making
 	   space. This is needed sometimes if there is not enough of free space
 	   in existent nodes (one insert point points to and its neighbours)*/
 	SF_ALLOW_ALLOC   = 1 << 5
 };
 
-typedef enum mkspace_flags mkspace_flags_t;
+typedef enum shift_flags shift_flags_t;
 
 #define SF_DEFAULT \
 (SF_LEFT_SHIFT | SF_RIGHT_SHIFT | SF_ALLOW_ALLOC | SF_ALLOW_MERGE)
@@ -483,15 +483,14 @@ struct sdext_lt_hint {
 };
 
 typedef struct sdext_lt_hint sdext_lt_hint_t;
-
 /* These fields should be changed to what proper description of needed
-   extentions. */
+   extensions. */
 struct statdata_hint {
 	
-	/* Extentions mask */
+	/* Extensions mask */
 	uint64_t extmask;
     
-	/* Stat data extentions */
+	/* Stat data extensions */
 	void *ext[60];
 };
 
@@ -527,7 +526,7 @@ struct entry_hint {
 typedef struct entry_hint entry_hint_t;
 
 /* Object hint. It is used to bring all about object information to object
-   plugin to craete appropriate object by it. */
+   plugin to create appropriate object by it. */
 struct object_hint {
 
 	/* Stat data related fields. */
@@ -594,12 +593,12 @@ typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
 
 /* This structure contains fields which describe an item or unit to be inserted
-   into the tree. */ 
+   into the tree. UMKA-FIXME-HANS: trans stands for what? */ 
 struct trans_hint {
-	/* Overhead of data to be insetred. This is needed for the case when we
-	   insert directory item and tree should now how many space should be
-	   prepared in the tree ohd + len, but we don't need overhead for
-	   updating stat data bytes field. Set by estimate */
+	/* Overhead of data to be inserted. This is needed for the case when we
+	   insert directory item and tree should know how much space should be
+	   prepared in the tree (ohd + len), but we don't need overhead for
+	   updating stat data bytes field. Set by estimate. */
 	uint32_t ohd;
 	
 	/* Length of the data to be inserted/removed. Set by estimate. */
@@ -671,7 +670,8 @@ struct reiser4_key_ops {
 	   behavior may be implemented. */
 	void (*clean) (key_entity_t *);
 
-	/* Functions for determining is key long */
+	/* Function for dermining is key contains direntry name hashed or
+	   not? */
 	int (*hashed) (key_entity_t *);
 
 	/* Returns minimal key for this key-format */
@@ -683,7 +683,12 @@ struct reiser4_key_ops {
 	/* Returns key size for particular key-format */
 	uint32_t (*bodysize) (void);
 
-	/* Compares two keys by comparing its all components */
+	/* Compares two keys by comparing its all components. This function
+	   accepts not key entities, but key bodies. This is needed in order to
+	   avoid memory copying in some cases. For instance when we look into
+	   node and try to find position by key, we preffer pass to comraw()
+	   pointers to key bodies, than to copy tjem to new created key
+	   entities. */
 	int (*compraw) (void *, void *);
 
 	/* Compares two keys by comparing its all components */
@@ -755,7 +760,7 @@ struct reiser4_object_ops {
 	errno_t (*unlink) (object_entity_t *);
 	uint32_t (*links) (object_entity_t *);
 
-	/* Establish parent child relationchip */
+	/* Establish parent child relationship */
 	errno_t (*attach) (object_entity_t *, object_entity_t *);
 	errno_t (*detach) (object_entity_t *, object_entity_t *);
 
@@ -983,23 +988,23 @@ struct reiser4_item_ops {
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
 
-/* Stat data extention plugin */
+/* Stat data extension plugin */
 struct reiser4_sdext_ops {
 #ifndef ENABLE_STAND_ALONE
-	/* Initialize stat data extention data at passed pointer */
+	/* Initialize stat data extension data at passed pointer */
 	errno_t (*init) (void *, void *);
 
-	/* Prints stat data extention data into passed buffer */
+	/* Prints stat data extension data into passed buffer */
 	errno_t (*print) (void *, aal_stream_t *, uint16_t);
 
-	/* Checks sd extention content. */
+	/* Checks sd extension content. */
 	errno_t (*check_struct) (sdext_entity_t *, uint8_t);
 #endif
 
-	/* Reads stat data extention data */
+	/* Reads stat data extension data */
 	errno_t (*open) (void *, void *);
 
-	/* Returns length of the extention */
+	/* Returns length of the extension */
 	uint16_t (*length) (void *);
 };
 

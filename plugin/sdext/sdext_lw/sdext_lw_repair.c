@@ -1,7 +1,7 @@
 /* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   sdext_lw_repair.c -- light weight stat data extention plugin recovery 
+   sdext_lw_repair.c -- light weight stat data extension plugin recovery 
    code. */
 
 #ifndef ENABLE_STAND_ALONE
@@ -14,7 +14,7 @@ errno_t sdext_lw_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	
 	if (sdext->offset + sizeof(sdext_lw_t) > sdext->sdlen) {
 		aal_exception_error("Does not look like a valid (%s) statdata "
-				    "extention.", sdext->plug->label);
+				    "extension.", sdext->plug->label);
 		
 		return 	RE_FATAL;
 	}

@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   stat40.c -- reiser4 default stat data plugin. */
+   stat40.c -- reiser4 stat data plugin. */
 
 #include "stat40.h"
 #include "stat40_repair.h"
@@ -10,7 +10,7 @@
 static reiser4_core_t *core = NULL;
 
 /* The function which implements stat40 layout pass. This function is used for
-   all statdata extention-related actions. For example for reading, or
+   all statdata extension-related actions. For example for reading, or
    counting. */
 errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 	uint16_t i, len;
@@ -25,8 +25,8 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 	sdext.offset = 0;
 	sdext.body = place->body;
 
-	/* Loop though the all possible extentions and calling passed @ext_func
-	   for each of them if corresponing extention exists. */
+	/* Loop though the all possible extensions and calling passed @ext_func
+	   for each of them if corresponing extension exists. */
 	for (i = 0; i < STAT40_EXTNR; i++) {
 		errno_t res;
 
@@ -51,18 +51,18 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 			sdext.offset += sizeof(d16_t);
 		}
 
-		/* If extention is not present, we going to the next one */
+		/* If extension is not present, we going to the next one */
 		if (!((1 << (i - (chunks - 1))) & extmask))
 			continue;
 
-		/* Getting extention plugin from the plugin factory */
+		/* Getting extension plugin from the plugin factory */
 		if (!(sdext.plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
+			aal_exception_warn("Can't find stat data extension plugin "
 					   "by its id 0x%x.", i);
 			return 0;
 		}
 
-		/* Okay, extention is present, calling callback function for it
+		/* Okay, extension is present, calling callback function for it
 		   and if result is not good, returning it to teh caller. */
 		if ((res = ext_func(&sdext, extmask, data)))
 			return res;
@@ -70,7 +70,7 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 		len = plug_call(sdext.plug->o.sdext_ops, length, 
 				sdext.body);
 
-		/* Calculating the pointer to the next extention body */
+		/* Calculating the pointer to the next extension body */
 		sdext.body += len;
 		sdext.offset += len;
 	}
@@ -78,7 +78,7 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 	return 0;
 }
 
-/* Callback for opening one extention */
+/* Callback for opening one extension */
 static errno_t callback_open_ext(sdext_entity_t *sdext,
 				 uint16_t extmask,
 				 void *data)
@@ -109,7 +109,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	return 0;
 }
 
-/* Fetches whole statdata item with extentions into passed @buff */
+/* Fetches whole statdata item with extensions into passed @buff */
 static int64_t stat40_fetch_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
@@ -133,7 +133,7 @@ static errno_t stat40_maxposs_key(place_t *place,
 /* This function returns unit count. This value must be 1 if item has not
    units. It is because balancing code assumes that if item has more than one
    unit the it may be shifted out. That is because w ecan't return the number of
-   extentions here. Extentions are the statdata private bussiness. */
+   extensions here. Extensions are the statdata private bussiness. */
 static uint32_t stat40_units(place_t *place) {
 	return 1;
 }
@@ -156,17 +156,17 @@ static errno_t stat40_prep_insert(place_t *place, trans_hint_t *hint) {
 
 	aal_assert("umka-2360", stat_hint->extmask != 0);
     
-	/* Estimating the all stat data extentions */
+	/* Estimating the all stat data extensions */
 	for (i = 0; i < STAT40_EXTNR; i++) {
 		reiser4_plug_t *plug;
 
-		/* Check if extention is present in mask */
+		/* Check if extension is present in mask */
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
 
 		aal_assert("vpf-773", stat_hint->ext[i] != NULL);
 		
-		/* If we are on the extention which is multiple of 16 (each mask
+		/* If we are on the extension which is multiple of 16 (each mask
 		   has 16 bits) then we add to hint's len the size of next
 		   mask. */
 		if ((i + 1) % 16 == 0) {
@@ -174,14 +174,14 @@ static errno_t stat40_prep_insert(place_t *place, trans_hint_t *hint) {
 			continue;
 		}
 
-		/* Getting extention plugin */
+		/* Getting extension plugin */
 		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
+			aal_exception_warn("Can't find stat data extension plugin "
 					   "by its id 0x%x.", i);
 			continue;
 		}
 
-		/* Calculating length of the corresponding extention and add it
+		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
 		hint->len += plug_call(plug->o.sdext_ops,
 				       length, stat_hint->ext[i]);
@@ -208,22 +208,22 @@ static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
 	for (i = 0; i < STAT40_EXTNR; i++) {
 		reiser4_plug_t *plug;
 
-		/* Check if extention is present */
+		/* Check if extension is present */
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
 	    
-		/* Stat data contains 16 bit mask of extentions used in it. The
-		   first 15 bits of the mask denote the first 15 extentions in
-		   the stat data. And the bit number is the stat data extention
+		/* Stat data contains 16 bit mask of extensions used in it. The
+		   first 15 bits of the mask denote the first 15 extensions in
+		   the stat data. And the bit number is the stat data extension
 		   plugin id. If the last bit turned on, then one more 16 bit
 		   mask present and so on. So, we should add sizeof(mask) to
-		   extention body pointer, in the case we are on bit dedicated
-		   to indicating if next extention exists or not. */
+		   extension body pointer, in the case we are on bit dedicated
+		   to indicating if next extension exists or not. */
 		if (i % 16 == 0) {
 			if (insert) {
 				uint16_t extmask;
 			
-				/* Modifying extentions mask. */
+				/* Modifying extensions mask. */
 				extmask = ((stat_hint->extmask >> i) &
 					   0x000000000000ffff);
 
@@ -234,20 +234,20 @@ static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
 			extbody = (void *)extbody + sizeof(d16_t);
 		}
 
-		/* Getting extention plugin by extent number. */
+		/* Getting extension plugin by extent number. */
 		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
+			aal_exception_warn("Can't find stat data extension plugin "
 					   "by its id 0x%x.", i);
 			continue;
 		}
 
-		/* Initializing extention data at passed area */
+		/* Initializing extension data at passed area */
 		if (stat_hint->ext[i]) {
 			plug_call(plug->o.sdext_ops, init, extbody,
 				  stat_hint->ext[i]);
 		}
 	
-		/* Getting pointer to the next extention. It is evaluating as
+		/* Getting pointer to the next extension. It is evaluating as
 		   the previous pointer plus its size. */
 		extbody += plug_call(plug->o.sdext_ops, length, extbody);
 	}
@@ -256,7 +256,7 @@ static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
 	return 1;
 }
 
-/* This method is for insert stat data extentions. */
+/* This method is for insert stat data extensions. */
 static int64_t stat40_insert_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("vpf-076", place != NULL); 
 	aal_assert("vpf-075", hint != NULL);
@@ -264,7 +264,7 @@ static int64_t stat40_insert_units(place_t *place, trans_hint_t *hint) {
 	return stat40_modify(place, hint, 1);
 }
 
-/* This method is for update stat data extentions. */
+/* This method is for update stat data extensions. */
 static int64_t stat40_update_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2588", place != NULL); 
 	aal_assert("umka-2589", hint != NULL);
@@ -272,7 +272,7 @@ static int64_t stat40_update_units(place_t *place, trans_hint_t *hint) {
 	return stat40_modify(place, hint, 0);
 }
 
-/* Removes stat data extentions marked in passed hint stat data extentions
+/* Removes stat data extensions marked in passed hint stat data extensions
    mask. Needed for fsck. */
 static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 	uint16_t i;
@@ -295,7 +295,7 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 		uint16_t new_extmask;
 		uint16_t old_extmask = 0;
 
-		/* Check if we are on next extention mask. */
+		/* Check if we are on next extension mask. */
 		if (i == 0 || ((i + 1) % 16 == 0)) {
 			/* Getting current old mask. It is needed to calculate
 			   extbody correctly to shrink stat data. */
@@ -324,13 +324,13 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 			extbody += sizeof(d16_t);
 		}
 
-		/* Check if we're interested in this extention. */
+		/* Check if we're interested in this extension. */
 		if (!(((uint64_t)1 << i) & old_extmask))
 			continue;
 
-		/* Getting extention plugin by extent number. */
+		/* Getting extension plugin by extent number. */
 		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
+			aal_exception_warn("Can't find stat data extension plugin "
 					   "by its id 0x%x.", i);
 			return -EINVAL;
 		}
@@ -338,11 +338,11 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 		extsize = plug_call(plug->o.sdext_ops, length, extbody);
 		
 		/* Moving the rest of stat data to left in odrer to keep stat
-		   data extention packed. */
+		   data extension packed. */
 		aal_memmove(extbody, extbody + extsize, place->len -
 			    ((extbody + extsize) - place->body));
 		
-		/* Getting pointer to the next extention. It is evaluating as
+		/* Getting pointer to the next extension. It is evaluating as
 		   the previous pointer plus its size. */
 		extbody += extsize;
 	}
@@ -351,7 +351,7 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
-/* Helper structrure for keeping track of stat data extention body */
+/* Helper structrure for keeping track of stat data extension body */
 struct body_hint {
 	void *body;
 	uint8_t ext;
@@ -359,7 +359,7 @@ struct body_hint {
 
 typedef struct body_hint body_hint_t;
 
-/* Callback function for finding stat data extention body by bit */
+/* Callback function for finding stat data extension body by bit */
 static errno_t callback_body_ext(sdext_entity_t *sdext,
 				 uint16_t extmask, 
 				 void *data)
@@ -370,7 +370,7 @@ static errno_t callback_body_ext(sdext_entity_t *sdext,
 	return -(sdext->plug->id.id >= hint->ext);
 }
 
-/* Finds extention body by number of bit in 64bits mask */
+/* Finds extension body by number of bit in 64bits mask */
 void *stat40_sdext_body(place_t *place, uint8_t bit) {
 	struct body_hint hint = {NULL, bit};
 
@@ -380,7 +380,7 @@ void *stat40_sdext_body(place_t *place, uint8_t bit) {
 	return hint.body;
 }
 
-/* Helper structure for keeping track of presence of a stat data extention. */
+/* Helper structure for keeping track of presence of a stat data extension. */
 struct present_hint {
 	int present;
 	uint8_t ext;
@@ -388,7 +388,7 @@ struct present_hint {
 
 typedef struct present_hint present_hint_t;
 
-/* Callback for getting presence information for certain stat data extention. */
+/* Callback for getting presence information for certain stat data extension. */
 static errno_t callback_present_ext(sdext_entity_t *sdext,
 				    uint16_t extmask, 
 				    void *data)
@@ -399,7 +399,7 @@ static errno_t callback_present_ext(sdext_entity_t *sdext,
 	return hint->present;
 }
 
-/* Determines if passed extention denoted by @bit present in statdata item */
+/* Determines if passed extension denoted by @bit present in statdata item */
 int stat40_sdext_present(place_t *place, uint8_t bit) {
 	present_hint_t hint = {0, bit};
 
@@ -409,7 +409,7 @@ int stat40_sdext_present(place_t *place, uint8_t bit) {
 	return hint.present;
 }
 
-/* Callback for counting the number of stat data extentions in use */
+/* Callback for counting the number of stat data extensions in use */
 static errno_t callback_count_ext(sdext_entity_t *sdext,
 				  uint16_t extmask, 
 				  void *data)
@@ -418,7 +418,7 @@ static errno_t callback_count_ext(sdext_entity_t *sdext,
         return 0;
 }
 
-/* This function returns stat data extention count */
+/* This function returns stat data extension count */
 static uint32_t stat40_sdext_count(place_t *place) {
         uint32_t count = 0;
 
@@ -428,7 +428,7 @@ static uint32_t stat40_sdext_count(place_t *place) {
         return count;
 }
 
-/* Prints extention into @stream */
+/* Prints extension into @stream */
 static errno_t callback_print_ext(sdext_entity_t *sdext,
 				  uint16_t extmask, 
 				  void *data)
@@ -489,9 +489,9 @@ static rid_t stat40_object_plug(place_t *place, rid_t type) {
 
 	aal_memset(&stat, 0, sizeof(stat));
 
-	/* FIXME-UMKA: Here should be stat data extentions inspected first in
+	/* FIXME-UMKA: Here should be stat data extensions inspected first in
 	   order to find non-standard object plugin. And only if it is not
-	   found, we should take a look to mode field of the lw extention. */
+	   found, we should take a look to mode field of the lw extension. */
 	if (type == OBJECT_PLUG_TYPE) {
 		hint.specific = &stat;
 		stat.ext[SDEXT_LW_ID] = &lw_hint;

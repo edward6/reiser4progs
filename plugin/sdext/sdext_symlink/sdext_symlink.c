@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   sdext_symlink.c -- symlink stat data extention plugin. */
+   sdext_symlink.c -- symlink stat data extension plugin. */
 
 #ifdef ENABLE_SYMLINKS
 #include <reiser4/plugin.h>
@@ -82,7 +82,7 @@ static reiser4_plug_t sdext_symlink_plug = {
 	.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_symlink",
-	.desc  = "Symlink stat data extention for reiser4, ver. " VERSION,
+	.desc  = "Symlink stat data extension for reiser4, ver. " VERSION,
 #endif
 	.o = {
 		.sdext_ops = &sdext_symlink_ops

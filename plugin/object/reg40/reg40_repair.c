@@ -9,29 +9,29 @@
 
 #define reg40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
-static errno_t reg40_extentions(place_t *stat) {
+static errno_t reg40_extensions(place_t *stat) {
 	uint64_t extmask;
 	
-	/* Check that there is no one unknown extention. */
+	/* Check that there is no one unknown extension. */
 	extmask = obj40_extmask(stat);
 	
 	/*
 	if (extmask & ~(reg40_exts | 1 << SDEXT_PLUG_ID))
 		return RE_FATAL;
 	*/
-	/* Check that LW and UNIX extentions exist. */
+	/* Check that LW and UNIX extensions exist. */
 	return ((extmask & reg40_exts) == reg40_exts) ? 0 : RE_FATAL;
 }
 
-/* Check SD extentions and that mode in LW extention is REGFILE. */
+/* Check SD extensions and that mode in LW extension is REGFILE. */
 static errno_t callback_stat(place_t *stat) {
 	sdext_lw_hint_t lw_hint;
 	errno_t res;
 	
-	if ((res = reg40_extentions(stat)))
+	if ((res = reg40_extensions(stat)))
 		return res;
 	
-	/* Check the mode in the LW extention. */
+	/* Check the mode in the LW extension. */
 	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
 		return res;
 	
@@ -122,9 +122,9 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	errno_t res;
 	
 	aal_assert("vpf-1305", reg != NULL);
-	aal_assert("vpf-1305", reg->offset.plug != NULL);
+	aal_assert("vpf-1305", reg->position.plug != NULL);
 
-	aal_memcpy(&key, &reg->offset, sizeof (key));
+	aal_memcpy(&key, &reg->position, sizeof (key));
 	plug_call(key.plug->o.key_ops, set_offset, &key, MAX_UINT64);
 	
 	if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
@@ -207,8 +207,8 @@ static errno_t reg40_next(object_entity_t *object,
 				return res;
 
 			/* Check if this is an item of another object. */
-			if (plug_call(reg->offset.plug->o.key_ops, compshort,
-				      &reg->offset, &reg->body.key))
+			if (plug_call(reg->position.plug->o.key_ops, compshort,
+				      &reg->position, &reg->body.key))
 				goto end;
 
 			/* If non-existent position in the item, move next. */
@@ -232,8 +232,8 @@ static errno_t reg40_next(object_entity_t *object,
 				reg->body = next;
 
 				/* Check if this is an item of another object. */
-				if (plug_call(reg->offset.plug->o.key_ops, 
-					      compshort, &reg->offset, 
+				if (plug_call(reg->position.plug->o.key_ops, 
+					      compshort, &reg->position, 
 					      &reg->body.key))
 				{
 					break;
@@ -323,7 +323,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 		
 		/* Set the start key for convertion. */
 		plug_call(reg->body.key.plug->o.key_ops, assign,
-			  &hint->offset, &reg->offset);
+			  &hint->offset, &reg->position);
 		plug_call(reg->body.key.plug->o.key_ops, set_offset,
 			  &hint->offset, 0);
 
@@ -345,7 +345,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	   at once later. */
 	if (hint->offset.plug == NULL) {
 		plug_call(reg->body.key.plug->o.key_ops, assign,
-			  &hint->offset, &reg->offset);
+			  &hint->offset, &reg->position);
 
 		hint->bytes = 0;
 	}
@@ -459,7 +459,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	aal_memset(&repair, 0, sizeof(repair));
 	
 	/* Get the reg file tail never policy. FIXME-VITALY: obj40_plug
-	   when we can point tail_never policy in plug_extention */
+	   when we can point tail_never policy in plug_extension */
 	if (!(repair.extent = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
 						       TAIL_NEVER_ID)))
 	{
@@ -469,7 +469,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	}
 	
 	/* Get the extent item plugin. FIXME-VITALY: param_ops.valus+ifind
-	   for now untill we can point tail item in plug_extention */
+	   for now untill we can point tail item in plug_extension */
 	if (!(repair.eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent"))){
 		aal_exception_error("The object [%s] failed to detect the "
 				    "extent plugin to use.", 
@@ -478,7 +478,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	}
 
 	/* Get the tail item plugin. FIXME-VITALY: param_ops.valus+ifind
-	   for now untill we can point extent item in plug_extention */
+	   for now untill we can point extent item in plug_extension */
 	if (!(repair.tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
 		aal_exception_error("The object [%s] failed to detect the "
 				    "tail plugin to use.", 
@@ -546,7 +546,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			return -EINVAL;
 
 		if ((result = obj40_fix_key(&reg->obj, &reg->body, 
-					    &reg->offset, mode)))
+					    &reg->position, mode)))
 			return result;
 
 		/* Fix item key if differs. */
@@ -573,8 +573,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL)) {
-		size = plug_call(reg->offset.plug->o.key_ops, 
-				 get_offset, &reg->offset);
+		size = plug_call(reg->position.plug->o.key_ops, 
+				 get_offset, &reg->position);
 		
 		res |= obj40_check_stat(&reg->obj, mode == RM_BUILD ?
 					reg40_zero_nlink : NULL,

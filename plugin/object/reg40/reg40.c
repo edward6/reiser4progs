@@ -19,8 +19,8 @@ uint64_t reg40_offset(object_entity_t *entity) {
 	
 	aal_assert("umka-1159", entity != NULL);
 
-	return plug_call(reg->offset.plug->o.key_ops,
-			 get_offset, &reg->offset);
+	return plug_call(reg->position.plug->o.key_ops,
+			 get_offset, &reg->position);
 }
 
 /* Returns regular file size. */
@@ -43,8 +43,8 @@ errno_t reg40_seek(object_entity_t *entity,
 	
 	aal_assert("umka-1968", entity != NULL);
 
-	plug_call(reg->offset.plug->o.key_ops,
-		  set_offset, &reg->offset, offset);
+	plug_call(reg->position.plug->o.key_ops,
+		  set_offset, &reg->position, offset);
 
 	return 0;
 }
@@ -55,27 +55,27 @@ static void reg40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-/* Updates body place in correspond to file offset */
+/* Updates body place in correspond to file offset. */
 lookup_t reg40_update_body(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 
 	aal_assert("umka-1161", entity != NULL);
 	
 	/* Getting the next body item from the tree */
-	return obj40_lookup(&reg->obj, &reg->offset,
+	return obj40_lookup(&reg->obj, &reg->position,
 			    LEAF_LEVEL, FIND_EXACT,
 			    &reg->body);
 }
 
-/* Resets file position. As fire position is stored inside @reg->offset, it just
-   builds new zero offset key.*/
+/* Resets file position. As fire position is stored inside @reg->position, it
+   just builds new zero offset key.*/
 errno_t reg40_reset(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1963", entity != NULL);
 	
 	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops, build_gener,
-		  &reg->offset, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
+		  &reg->position, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
 		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj), 0);
 
 	return 0;
@@ -106,9 +106,9 @@ static int64_t reg40_read(object_entity_t *entity,
 	hint.tree = reg->obj.info.tree;
 
 	/* Initializing offset data must be read from. This is current file
-	   offset, so we use @reg->offset. */
-	plug_call(reg->offset.plug->o.key_ops,
-		  assign, &hint.offset, &reg->offset);
+	   offset, so we use @reg->position. */
+	plug_call(reg->position.plug->o.key_ops,
+		  assign, &hint.offset, &reg->position);
 
 	/* Correcting number of bytes to be read. It cannot be more then file
 	   size value from stat data. That is because, body item itself does not
@@ -323,10 +323,10 @@ static errno_t reg40_convert(object_entity_t *entity,
 
 	/* Getting file data start key. We convert file starting from the zero
 	   offset until end is reached. */
-	plug_call(reg->offset.plug->o.key_ops, assign,
-		  &hint.offset, &reg->offset);
+	plug_call(reg->position.plug->o.key_ops, assign,
+		  &hint.offset, &reg->position);
 	
-	plug_call(reg->offset.plug->o.key_ops, set_offset,
+	plug_call(reg->position.plug->o.key_ops, set_offset,
 		  &hint.offset, 0);
 	
 	/* Prepare convert hint. */
@@ -411,8 +411,8 @@ int64_t reg40_put(object_entity_t *entity, void *buff, uint64_t n) {
 	hint.specific = buff;
 	hint.tree = reg->obj.info.tree;
 	
-	plug_call(reg->offset.plug->o.key_ops,
-		  assign, &hint.offset, &reg->offset);
+	plug_call(reg->position.plug->o.key_ops,
+		  assign, &hint.offset, &reg->position);
 
 	/* Getting file plugin for new offset. */
 	new_offset = reg40_offset(entity) + n;
@@ -442,7 +442,7 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
 
 	/* Preparing key of the data to be truncated. */
 	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
-		  assign, &hint.offset, &reg->offset);
+		  assign, &hint.offset, &reg->position);
 		
 	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
 		  set_offset, &hint.offset, n);

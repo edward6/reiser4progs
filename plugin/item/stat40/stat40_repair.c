@@ -45,7 +45,7 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 		return RE_FATAL;
 	}
 	
-	/* Hint is set up by callback, so the last extention lenght has not been 
+	/* Hint is set up by callback, so the last extension lenght has not been
 	   added yet. */
 	hint.sdext.offset += plug_call(hint.sdext.plug->o.sdext_ops, length, 
 				       hint.sdext.body);

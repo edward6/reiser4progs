@@ -9,29 +9,29 @@
 
 #define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
-static errno_t dir40_extentions(place_t *stat) {
+static errno_t dir40_extensions(place_t *stat) {
 	uint64_t extmask;
 	
 	extmask = obj40_extmask(stat);
 	
-	/* Check that there is no one unknown extention. */
+	/* Check that there is no one unknown extension. */
 	/*
 	if (extmask & ~(dir40_exts | 1 << SDEXT_PLUG_ID))
 		return RE_FATAL;
 	*/
-	/* Check that LW and UNIX extentions exist. */
+	/* Check that LW and UNIX extensions exist. */
 	return ((extmask & dir40_exts) == dir40_exts) ? 0 : RE_FATAL;
 }
 
-/* Check SD extentions and that mode in LW extention is DIRFILE. */
+/* Check SD extensions and that mode in LW extension is DIRFILE. */
 static errno_t callback_stat(place_t *stat) {
 	sdext_lw_hint_t lw_hint;
 	errno_t res;
 	
-	if ((res = dir40_extentions(stat)))
+	if ((res = dir40_extensions(stat)))
 		return res;
 
-	/* Check the mode in the LW extention. */
+	/* Check the mode in the LW extension. */
 	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
 		return res;
 	
@@ -91,7 +91,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	if ((res = dir40_reset((object_entity_t *)dir)))
 		return res;
 	
-	if ((res = obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, 
+	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
 				FIND_EXACT, &dir->body)) < 0)
 		return res;
 
@@ -119,8 +119,8 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	body_hint.count = 1;
 	body_hint.plug = bplug;
 	
-	aal_memcpy(&body_hint.offset, &dir->offset, sizeof(dir->offset));
-	aal_memcpy(&entry.offset,  &dir->offset, sizeof(dir->offset));
+	aal_memcpy(&body_hint.offset, &dir->position, sizeof(dir->position));
+	aal_memcpy(&entry.offset,  &dir->position, sizeof(dir->position));
 	aal_memcpy(&entry.object,  &dir->obj.info.object, sizeof(entry.object));
 	
 	aal_strncpy(entry.name, ".", 1);
@@ -144,11 +144,11 @@ static errno_t dir40_belongs(dir40_t *dir) {
 
 	/* Does the body item belong to the current object. */
 	return plug_call(dir->body.key.plug->o.key_ops, compshort,
-			 &dir->body.key, &dir->offset) ? RE_FATAL : 0;
+			 &dir->body.key, &dir->position) ? RE_FATAL : 0;
 }
 #endif
 
-/* Search for the position for the read in the directory by dir->offset,
+/* Search for the position for the read in the directory by @dir->position,
    Returns ABSENT only if there is no more entries in the directory. */
 static lookup_t dir40_search(dir40_t *dir) {
 	uint32_t units, adjust;
@@ -156,10 +156,10 @@ static lookup_t dir40_search(dir40_t *dir) {
 	
 	aal_assert("vpf-1343", dir != NULL);
 	
-	adjust = dir->offset.adjust;
+	adjust = dir->position.adjust;
 	
 	/* Making tree_lookup() to find entry by key */
-	if ((res = obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, 
+	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
 				FIND_EXACT, &dir->body)) < 0)
 		return res;
 	
@@ -197,7 +197,7 @@ static lookup_t dir40_search(dir40_t *dir) {
 			return -EIO;
 
 		if (plug_call(temp.offset.plug->o.key_ops, compfull, 
-			      &temp.offset, &dir->offset))
+			      &temp.offset, &dir->position))
 		{
 			/* Greater key is reached. */
 			return PRESENT;
@@ -294,8 +294,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 		/* Looks like an item of dir40. If there were some key collisions, 
 		   this search was performed with incremented adjust, decrement it 
 		   here. */
-		if (dir->offset.adjust)
-			dir->offset.adjust--;
+		if (dir->position.adjust)
+			dir->position.adjust--;
 			
 		/* Item can be of another plugin, but of the same group. 
 		   FIXME-VITALY: item of the same group but of another 
@@ -397,23 +397,23 @@ errno_t dir40_check_struct(object_entity_t *object,
 		leave:
 			/* The key is ok. */
 			if (plug_call(key.plug->o.key_ops, compfull, 
-				      &dir->offset, &key))
+				      &dir->position, &key))
 			{
 				/* Key differs from the offset of the 
 				   last left entry. */
 				plug_call(key.plug->o.key_ops, assign,
-					  &dir->offset, &key);
+					  &dir->position, &key);
 			} else if (aal_strlen(entry.name) != 1 ||
 				   aal_strncmp(entry.name, ".", 1))
 			{
 				/* Key collision. */
-				dir->offset.adjust++;
+				dir->position.adjust++;
 			}
 		}
 		
 		/* Lookup for the last entry left in the tree with the 
 		   incremented adjust to get the next one. */
-		dir->offset.adjust++;
+		dir->position.adjust++;
 	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */

@@ -1,7 +1,7 @@
 /* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   sdext_symlink.c -- symlink stat data extention plugin. */
+   sdext_symlink.c -- symlink stat data extension plugin. */
 
 #ifdef ENABLE_SYMLINKS
 #ifndef ENABLE_STAND_ALONE
@@ -21,7 +21,7 @@ errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 		offset++;
 		if (offset == sdext->sdlen) {
 			aal_exception_error("Does not look like a valid (%s) "
-					    "statdata extention.", 
+					    "statdata extension.", 
 					    sdext->plug->label);
 			
 			return RE_FATAL;

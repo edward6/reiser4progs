@@ -128,7 +128,7 @@ static reiser4_plug_t sdext_unix_plug = {
 	.id    = {SDEXT_UNIX_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_unix",
-	.desc  = "Unix stat data extention for reiser4, ver. " VERSION,
+	.desc  = "Unix stat data extension for reiser4, ver. " VERSION,
 #endif
 	.o = {
 		.sdext_ops = &sdext_unix_ops

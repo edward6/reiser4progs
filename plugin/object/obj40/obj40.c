@@ -36,7 +36,7 @@ uint64_t obj40_ordering(obj40_t *obj) {
 			 get_ordering, STAT_KEY(obj));
 }
 
-/* Reads one stat data extention to @data. */
+/* Reads one stat data extension to @data. */
 errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	trans_hint_t trans;
 	statdata_hint_t stat;
@@ -109,7 +109,7 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 	return 0;
 }
 
-/* Create stat data item basing on passed extentions @mask, @size, @bytes,
+/* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
 errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 			  uint64_t size, uint64_t bytes, uint64_t rdev,
@@ -144,7 +144,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	lw_ext.nlink = nlink;
 	lw_ext.mode = mode | 0755;
 	
-	/* Unix extention hint initializing */
+	/* Unix extension hint initializing */
 	if (rdev && bytes) {
 		aal_exception_error("Invalid stat data params (rdev or "
 				    "bytes).");
@@ -163,7 +163,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 
 	aal_memset(&stat.ext, 0, sizeof(stat.ext));
 
-	/* Initializing extentions array */
+	/* Initializing extensions array */
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
@@ -215,7 +215,7 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 		return res;
 	}
 
-	/* Updating values and write unix extention back. */
+	/* Updating values and write unix extension back. */
 	unix_hint.rdev = 0;
 	unix_hint.atime = atime;
 	unix_hint.mtime = atime;
@@ -226,7 +226,7 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 			       &unix_hint);
 }
 
-/* Writes one stat data extention. */
+/* Writes one stat data extension. */
 errno_t obj40_write_ext(place_t *place, rid_t id,
 			void *data)
 {
@@ -254,7 +254,7 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 	return 0;
 }
 
-/* Returns extentions mask from stat data item at @place. */
+/* Returns extensions mask from stat data item at @place. */
 uint64_t obj40_extmask(place_t *place) {
 	trans_hint_t hint;
 	statdata_hint_t stat;

@@ -1,17 +1,17 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   sdext_lt.c -- large time stat data extention plugin. */
+   sdext_lt.c -- large time stat data extension plugin. */
 
 #include "sdext_lt.h"
 
-/* Stat data extention length. */
+/* Stat data extension length. */
 static uint16_t sdext_lt_length(void *body) {
 	return sizeof(sdext_lt_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Loads all extention fields to passed @hint. */
+/* Loads all extension fields to passed @hint. */
 static errno_t sdext_lt_open(void *body, void *hint) {
 	sdext_lt_t *ext;
 	sdext_lt_hint_t *sdext_lt;
@@ -29,7 +29,7 @@ static errno_t sdext_lt_open(void *body, void *hint) {
 	return 0;
 }
 
-/* Saves all fields to passed extention @body. */
+/* Saves all fields to passed extension @body. */
 static errno_t sdext_lt_init(void *body, void *hint) {
 	sdext_lt_hint_t *sdext_lt;
     
@@ -50,7 +50,7 @@ static errno_t sdext_lt_init(void *body, void *hint) {
 	return 0;
 }
 
-/* Prints extention into passed @stream. */
+/* Prints extension into passed @stream. */
 static errno_t sdext_lt_print(void *body,
 			      aal_stream_t *stream,
 			      uint16_t options)
@@ -95,7 +95,7 @@ static reiser4_plug_t sdext_lt_plug = {
 	.id    = {SDEXT_LT_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_lt",
-	.desc  = "Large times stat data extention for reiser4, ver. " VERSION,
+	.desc  = "Large times stat data extension for reiser4, ver. " VERSION,
 #endif
 	.o = {
 		.sdext_ops = &sdext_lt_ops

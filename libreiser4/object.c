@@ -44,18 +44,18 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 /* Returns object size. That is stat data field st_size. Actually it might be
    got by means of using object_stat() function, but, we implemented this
    function as helper, because using object_stat() is rather complicated due to
-   somplex initializing stat data extentions to be loaded by it. */
+   somplex initializing stat data extensions to be loaded by it. */
 uint64_t reiser4_object_size(reiser4_object_t *object) {
 	statdata_hint_t hint;
 	sdext_lw_hint_t lw_hint;
 	
 	aal_assert("umka-1961", object != NULL);
 
-	/* Initializing stat data hint. And namely extention mask of extention
-	   slot we are interested in. Size lies in light weight extention. */
+	/* Initializing stat data hint. And namely extension mask of extension
+	   slot we are interested in. Size lies in light weight extension. */
 
 	/* FIXME-UMKA: Why object (on API abstraction level) knows, that size
-	   lies in LW extention? What if someone will move it to another one? */
+	   lies in LW extension? What if someone will move it to another one? */
 	hint.extmask = 1 << SDEXT_LW_ID;
 	hint.ext[SDEXT_LW_ID] = &lw_hint;
 

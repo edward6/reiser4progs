@@ -59,7 +59,7 @@ static int64_t sym40_read(object_entity_t *entity,
 	if ((res = obj40_update(&sym->obj)))
 		return res;
 
-	/* Reading symlink extention data. */
+	/* Reading symlink extension data. */
 	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
 				  SDEXT_SYMLINK_ID, buff)))
 	{
@@ -101,7 +101,7 @@ static object_entity_t *sym40_create(object_info_t *info,
 	/* Inizializes symlink file handle. */
 	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 
-	/* Initializing stat data extentions mask */
+	/* Initializing stat data extensions mask */
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
 		1 << SDEXT_SYMLINK_ID);
 
