@@ -58,16 +58,16 @@ long long progs_size2long(const char *str) {
 	if (!str)
 		return INVAL_DIG;
 	
-	memset(number, 0, 255);
-	aal_strncpy(number, str, strlen(str));
-	label = number[strlen(number) - 1];
+	aal_memset(number, 0, 255);
+	aal_strncpy(number, str, aal_strlen(str));
+	label = number[aal_strlen(number) - 1];
 
 	valid = toupper(label) == toupper('k') ||
 		toupper(label) == toupper('m') || 
 		toupper(label) == toupper('g');
 
 	if (valid)
-		number[strlen(number) - 1] = '\0';
+		number[aal_strlen(number) - 1] = '\0';
 	
 	if ((result = progs_str2long(number, 10)) == INVAL_DIG)
 		return INVAL_DIG;

@@ -341,7 +341,7 @@ reiser4_profile_t *progs_profile_find(const char *name) {
     
 	for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++) {
 		if (!aal_strncmp(profiles[i].name, name,
-				 strlen(profiles[i].name)))
+				 aal_strlen(profiles[i].name)))
 		{
 			return &profiles[i];
 		}

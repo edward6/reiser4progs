@@ -70,7 +70,7 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 		sprintf(display, "%d%%", gauge->value);
 		fputs(display, stderr);
 		
-		for (i = 0; i < strlen(display); i++)
+		for (i = 0; i < aal_strlen(display); i++)
 			fputc('\b', stderr);
 		break;
 	case GAUGE_INDICATOR:
