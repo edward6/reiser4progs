@@ -44,23 +44,23 @@ static void fsck_print_usage(char *name) {
 #define WARNING \
 "*******************************************************************\n"\
 "This is an EXPERIMENTAL version of fsck.reiser4. Read README first.\n"\
-"*******************************************************************\n\n"
+"*******************************************************************\n"
 
 static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
-	fprintf(stderr, WARNING);
-	fprintf(stderr, "Fscking the %s block device.\n", host_name);
+	fprintf(stderr, WARNING "\n");
+	aal_mess("Fscking the %s block device.", host_name);
 	
 	switch (data->sb_mode) {
 	case RM_CHECK:
-		fprintf(stderr, "Will check the consistency of the Reiser4 "
-			"SuperBlock.\n");
+		aal_mess("Will check the consistency of "
+			 "the Reiser4 SuperBlock.");
 		break;
 	case RM_FIX:
-		fprintf(stderr, "Will fix minor corruptions of the Reiser4 "
-			"SuperBblock.\n");
+		aal_mess("Will fix minor corruptions of "
+			 "the Reiser4 SuperBblock.");
 		break;
 	case RM_BUILD:
-		fprintf(stderr, "Will build the Reiser4 SuperBlock.\n");
+		aal_mess("Will build the Reiser4 SuperBlock.");
 		break;
 	default:
 		break;
@@ -68,19 +68,19 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 	
 	switch (data->fs_mode) {
 	case RM_CHECK:
-		fprintf(stderr, "Will check the consistency of the Reiser4 "
-			"FileSystem.\n");
+		aal_mess("Will check the consistency of "
+			 "the Reiser4 FileSystem.");
 		break;
 	case RM_FIX:
-		fprintf(stderr, "Will fix minor corruptions of the Reiser4 "
-			"FileSystem.\n");
+		aal_mess("Will fix minor corruptions of "
+			 "the Reiser4 FileSystem.");
 		break;
 	case RM_BUILD:
-		fprintf(stderr, "Will build the Reiser4 FileSystem.\n");
+		aal_mess("Will build the Reiser4 FileSystem.");
 		break;
 	case RM_BACK:
-		fprintf(stderr, "Will rollback changes saved in '%s' back "
-			"onto (%s).\n", data->backup_file, host_name);
+		aal_mess("Will rollback changes saved in '%s' back "
+			"onto (%s).", data->backup_file, host_name);
 		break;
 	default:
 		break;
@@ -98,7 +98,6 @@ static void fsck_init_streams() {
 	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
 	
-	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stdout);
 	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stdout);
 }
 
@@ -263,6 +262,11 @@ static errno_t fsck_init(fsck_parse_t *data,
 		goto user_error;
 	}
 	
+	if (aal_test_bit(&data->options, FSCK_OPT_AUTO)) {
+		aal_mess("%s %s", argv[0], argv[optind]);
+		exit(NO_ERROR);
+	}
+
 	data->sb_mode = sb_mode ? sb_mode : mode;
 	data->fs_mode = fs_mode ? fs_mode : mode;
   
@@ -281,12 +285,20 @@ static errno_t fsck_init(fsck_parse_t *data,
 	/* Check if device is mounted and we are able to fsck it. */ 
 	if ((mounted = misc_dev_mounted(argv[optind])) > 0) {
 		if (mounted == MF_RW) {
-			aal_fatal("The partition (%s) is mounted "
-				  "w/ write permissions, cannot "
-				  "fsck it.", argv[optind]);
+			aal_fatal("The partition (%s) is mounted with write "
+				  "permissions, cannot fsck it.", argv[optind]);
 			goto user_error;
-		} else {
-			aal_set_bit(&data->options, FSCK_OPT_READ_ONLY);
+		}
+		
+		aal_set_bit(&data->options, FSCK_OPT_RO);
+
+		if (data->sb_mode != RM_CHECK || data->fs_mode != RM_CHECK) {
+			/* If not CHECK mode, lock the process in the memory. */
+			if (mlockall(MCL_CURRENT)) {
+				aal_fatal("Failed to lock the process in the "
+					  "memory: %s.", strerror(errno));
+				goto oper_error;
+			}
 		}
 	}
     
@@ -296,11 +308,6 @@ static errno_t fsck_init(fsck_parse_t *data,
 		aal_fatal("Cannot open the partition (%s): %s.",
 			  argv[optind], strerror(errno));
 		goto oper_error;
-	}
-
-	if (aal_test_bit(&data->options, FSCK_OPT_AUTO)) {
-		misc_print_banner(argv[0]);
-		exit(NO_ERROR);
 	}
 
 	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
@@ -350,7 +357,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	count_t len;
 	errno_t res;
 	
-	fprintf(stderr, "***** Opening the fs.\n");
+	aal_mess("***** Opening the fs.");
 	
 	/* Reopen device RW for fixing SB. */
 	if (sb_mode != RM_CHECK) {
@@ -417,7 +424,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	repair_format_print(repair->fs->format, &stream);
 	aal_stream_format(&stream, "\n");
 	
-	fprintf(stderr, "Reiser4 fs was detected on %s.\n%s",
+	aal_mess("Reiser4 fs was detected on %s.\n%s",
 		repair->fs->device->name, (char *)stream.entity);
 	
 	aal_stream_fini(&stream);
@@ -575,8 +582,16 @@ int main(int argc, char *argv[]) {
 			repair.fixable);
 		
 		ex = FIXABLE_ERROR;
-	} else if (!repair.sb_fixable)
-		fprintf(stderr, "No corruption found.\n\n");
+	} else if (!repair.sb_fixable) {
+		if (parse_data.fs_mode != RM_CHECK && 
+		    aal_test_bit(&parse_data.options, FSCK_OPT_RO))
+		{
+			aal_mess("\nThe filesystem was mounted RO. It is "
+				 "better to umount and mount it again.");
+		}
+		
+		aal_mess("FS is consistent.\n");
+	}
 
  free_fsck:
 	fsck_fini(&parse_data);

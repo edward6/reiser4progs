@@ -87,7 +87,10 @@ long long misc_size2long(const char *str) {
    
    Warning: if the root fs is mounted RO, the content of /etc/mtab may be 
    not correct. */
-static struct mntent *misc_mntent_lookup(char *mntfile, char *file, int path) {
+static struct mntent *misc_mntent_lookup(const char *mntfile, 
+					 const char *file, 
+					 int path) 
+{
 	struct mntent *mnt;
 	int name_match = 0;
 	struct stat st;
@@ -160,7 +163,7 @@ static struct mntent *misc_mntent_lookup(char *mntfile, char *file, int path) {
         return mnt;
 }
 
-static int misc_root_mounted(char *device) {
+static int misc_root_mounted(const char *device) {
 	struct stat rootst, devst;
 	
 	aal_assert("vpf-1676", device != NULL);
@@ -187,7 +190,7 @@ static int misc_file_ro(char *file) {
 	return 0;
 }
 
-struct mntent *misc_mntent(char *device) {
+struct mntent *misc_mntent(const char *device) {
 	int proc = 0, path = 0, root = 0;
 	
 	struct mntent *mnt;

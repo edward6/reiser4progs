@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <sys/mman.h>
 
 #include "gauge.h"
 #include "backup.h"
@@ -33,11 +34,11 @@
 
 /* fsck options. */
 typedef enum fsck_options {
-    FSCK_OPT_AUTO	    = 0x1,
-    FSCK_OPT_FORCE	    = 0x2,
-    FSCK_OPT_VERBOSE	    = 0x3,
-    FSCK_OPT_READ_ONLY	    = 0x4,
-    FSCK_OPT_DEBUG	    = 0x5
+    FSCK_OPT_AUTO	= 0x1,
+    FSCK_OPT_FORCE	= 0x2,
+    FSCK_OPT_VERBOSE	= 0x3,
+    FSCK_OPT_RO		= 0x4,
+    FSCK_OPT_DEBUG	= 0x5
 } fsck_options_t;
 
 typedef struct fsck_parse {
