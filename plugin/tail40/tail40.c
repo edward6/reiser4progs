@@ -62,6 +62,12 @@ static errno_t tail40_max_poss_key(reiser4_item_t *item,
     return 0;
 }
 
+static errno_t tail40_max_real_key(reiser4_item_t *item,
+    reiser4_key_t *key) 
+{
+    return 0;
+}
+
 static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key, 
     uint32_t *pos)
 {
@@ -131,6 +137,7 @@ static reiser4_plugin_t tail40_plugin = {
         .count		= NULL,
         .valid		= NULL,
         .print		= NULL,
+        .max_real_key	= tail40_max_real_key,
 
 	.specific	= {}
     }

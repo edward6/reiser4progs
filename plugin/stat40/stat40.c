@@ -387,6 +387,7 @@ static reiser4_plugin_t stat40_plugin = {
         .max_poss_key	= stat40_max_poss_key,
         .count		= stat40_count,
         .valid		= stat40_valid,
+        .max_real_key   = stat40_max_poss_key,
 	
 	.specific = {
 	    .statdata = {
