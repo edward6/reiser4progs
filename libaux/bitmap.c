@@ -85,43 +85,42 @@ int aux_bitmap_test(
 	uint64_t bit)		    /* bit to be tested */
 {
 	aal_assert("umka-338", bitmap != NULL, return 0);
+	
 	aux_bitmap_bound_check(bitmap, bit, return 0);
 	return aal_test_bit(bit, bitmap->map);
 }
 
 /* 
-   Checks whether passed range of blocks is inside of bitmap and marks blocks. 
-   This function also increses marked block counter.
+   Checks whether passed range of blocks is inside of bitmap and marks
+   blocks. This function also increses marked block counter.
 */
 void aux_bitmap_mark_range(
 	aux_bitmap_t *bitmap,	    /* bitmap range of bits to be marked in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* end bit of the range, excluding */
+	uint64_t end)		    /* bit count to be marked */
 {
 	aal_assert("vpf-472", bitmap != NULL, return);
-	aal_assert("vpf-458", start < end, return);
 
 	aux_bitmap_bound_check(bitmap, start, return);
-	aux_bitmap_bound_check(bitmap, end, return);
+	aux_bitmap_bound_check(bitmap, end - 1, return);
 	
 	aal_set_bits(bitmap->map, start, end);
 	bitmap->marked += (end - start);
 }
 
 /* 
-   Checks whether passed range of blocks is inside of bitmap and clears blocks. 
-   This function also descreases marked block counter.
+   Checks whether passed range of blocks is inside of bitmap and clears
+   blocks. This function also descreases marked block counter.
 */
 void aux_bitmap_clear_range(
 	aux_bitmap_t *bitmap,	    /* bitmap range of blocks will be cleared in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* end bit of the range, excluding */
+	uint64_t end)		    /* bit count to be clean */
 {
 	aal_assert("vpf-473", bitmap != NULL, return);
-	aal_assert("vpf-459", start < end, return);
 
 	aux_bitmap_bound_check(bitmap, start, return);
-	aux_bitmap_bound_check(bitmap, end, return);
+	aux_bitmap_bound_check(bitmap, end - 1, return);
 	
 	aal_clear_bits(bitmap->map, start, end);
 	
@@ -132,14 +131,13 @@ void aux_bitmap_clear_range(
 int aux_bitmap_test_range_cleared(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* end bit of the range, excluding */
+	uint64_t end)		    /* bit count to be clean */
 {
 	blk_t next;
 	aal_assert("vpf-471", bitmap != NULL, return 0);
-	aal_assert("vpf-470", start < end, return 0);
 	
 	aux_bitmap_bound_check(bitmap, start, return 0);
-	aux_bitmap_bound_check(bitmap, end, return 0);
+	aux_bitmap_bound_check(bitmap, end - 1, return 0);
 	
 	next = aux_bitmap_find_marked(bitmap, start);
 
@@ -153,14 +151,13 @@ int aux_bitmap_test_range_cleared(
 int aux_bitmap_test_range_marked(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* end bit of the range, excluding */
+	uint64_t end)		    /* bit count to be marked */
 {
 	blk_t next;
 	aal_assert("vpf-474", bitmap != NULL, return 0);
-	aal_assert("vpf-475", start < end, return 0);
 	
 	aux_bitmap_bound_check(bitmap, start, return 0);
-	aux_bitmap_bound_check(bitmap, end, return 0);
+	aux_bitmap_bound_check(bitmap, end - 1, return 0);
 	
 	next = aux_bitmap_find_cleared(bitmap, start);
 
@@ -180,8 +177,9 @@ uint64_t aux_bitmap_find_cleared(
 	
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 
-	if ((bit = aal_find_next_zero_bit(bitmap->map, 
-					  bitmap->total, start)) >= bitmap->total)
+	bit = aal_find_next_zero_bit(bitmap->map, bitmap->total, start);
+	
+	if (bit >= bitmap->total)
 		return INVAL_BLK;
 
 	return bit;
@@ -198,8 +196,9 @@ uint64_t aux_bitmap_find_marked(
 	
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 
-	if ((bit = aal_find_next_set_bit(bitmap->map, 
-					 bitmap->total, start)) >= bitmap->total)
+	bit = aal_find_next_set_bit(bitmap->map, bitmap->total, start);
+
+	if (bit >= bitmap->total)
 		return INVAL_BLK;
 
 	return bit;
@@ -235,7 +234,7 @@ uint64_t aux_bitmap_calc_marked(
 	aux_bitmap_t *bitmap)	 /* bitmap, calculating will be performed in */
 {
 	return (bitmap->marked = aux_bitmap_calc(bitmap, 0, 
-					       bitmap->total, 1));
+						 bitmap->total, 1));
 }
 
 /* The same as previous one */

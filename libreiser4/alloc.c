@@ -187,7 +187,7 @@ errno_t reiser4_alloc_mark(
 	aal_assert("umka-501", alloc != NULL, return -1);
 
 	plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
-		    mark, alloc->entity, blk, count);
+		    mark, alloc->entity, blk, blk + count);
 
 	return 0;
 }
@@ -201,7 +201,7 @@ errno_t reiser4_alloc_release(
 	aal_assert("umka-503", alloc != NULL, return -1);
 
 	plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
-		    release, alloc->entity, blk, count);
+		    release, alloc->entity, blk, blk + count);
 
 	return 0;
 }
@@ -236,7 +236,7 @@ int reiser4_alloc_used_range(
 	aal_assert("umka-662", alloc != NULL, return 0);
 
 	return plugin_call(return 0, alloc->entity->plugin->alloc_ops, 
-			   used_range, alloc->entity, blk, count);
+			   used_range, alloc->entity, blk, blk + count);
 }
 
 /* Returns TRUE if specified blocks unused. */
@@ -248,7 +248,7 @@ int reiser4_alloc_unused_range(
 	aal_assert("umka-662", alloc != NULL, return 0);
 
 	return plugin_call(return 0, alloc->entity->plugin->alloc_ops, 
-			   unused_range, alloc->entity, blk, count);
+			   unused_range, alloc->entity, blk, blk + count);
 }
 
 errno_t reiser4_alloc_region(
@@ -276,25 +276,28 @@ errno_t reiser4_alloc_layout(
 			   layout, alloc->entity, func, data);
 }
 
-errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk, uint64_t count) 
+errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
+			     blk_t blk, uint64_t count) 
 {
 	aal_assert("vpf-584", alloc != NULL, return -1);
 
-	if (!alloc->forbid) 
-	    alloc->forbid = aux_bitmap_create(reiser4_alloc_free(alloc) + 
-					      reiser4_alloc_used(alloc));
+	if (!alloc->forbid) {
+		alloc->forbid = aux_bitmap_create(reiser4_alloc_free(alloc) + 
+						  reiser4_alloc_used(alloc));
+	}
 	
-	aux_bitmap_mark_range(alloc->forbid, blk, count);
+	aux_bitmap_mark_range(alloc->forbid, blk, blk + count);
 	
 	return 0;	
 }
 
-errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc, blk_t blk, uint64_t count) 
+errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc,
+			     blk_t blk, uint64_t count) 
 {
 	aal_assert("vpf-585", alloc != NULL, return -1);
 	
-	if (alloc->forbid)	
-	    aux_bitmap_clear_range(alloc->forbid, blk, count);
+	if (alloc->forbid)
+		aux_bitmap_clear_range(alloc->forbid, blk, blk + count);
 	
 	return 0;
 }

@@ -31,30 +31,66 @@ static uint32_t extent40_units(item_entity_t *item) {
 	return item->len / sizeof(extent40_t);
 }
 
-static errno_t extent40_get_key(item_entity_t *item,
-				uint32_t pos, 
-				key_entity_t *key) 
+static uint64_t extent40_size(item_entity_t *item) {
+	uint32_t i;
+	extent40_t *extent;
+	uint32_t blocks = 0;
+    
+	aal_assert("umka-1583", item != NULL, return -1);
+
+	extent = extent40_body(item);
+	
+	for (i = 0; i < extent40_units(item); i++)
+		blocks += et40_get_width(extent + i);
+    
+	return (blocks * aal_device_get_bs(item->con.device));
+}
+
+static errno_t extent40_unit_key(item_entity_t *item,
+				 uint32_t pos, 
+				 key_entity_t *key)
 {
-	uint32_t i, units;
+	uint32_t i;
 	extent40_t *extent;
 	uint64_t offset, blocksize;
 	
 	aal_assert("vpf-622", item != NULL, return -1);
 	aal_assert("vpf-623", key != NULL, return -1);
 	
-	units = extent40_units(item);
-	aal_assert("vpf-625", pos < units, return -1);
+	aal_assert("vpf-625", pos <  extent40_units(item),
+		   return -1);
 	
-	extent = extent40_body(item);
-	blocksize = extent40_blocksize(item);
-
 	aal_memcpy(key, &item->key, sizeof(*key));
 		
 	offset = plugin_call(return -1, key->plugin->key_ops,
 			     get_offset, key);
 
-	for (i = 0; i < pos; i++)
-		offset += et40_get_width(extent + i) * blocksize;
+	extent = extent40_body(item);
+	blocksize = extent40_blocksize(item);
+
+	for (i = 0; i < pos; i++, extent++)
+		offset += et40_get_width(extent) * blocksize;
+
+	plugin_call(return -1, key->plugin->key_ops, set_offset, 
+		    key, offset);
+	
+	return 0;
+}
+
+static errno_t extent40_get_key(item_entity_t *item,
+				uint32_t offset, 
+				key_entity_t *key) 
+{
+	aal_assert("vpf-622", item != NULL, return -1);
+	aal_assert("vpf-623", key != NULL, return -1);
+
+	aal_assert("vpf-625", offset < extent40_size(item),
+		   return -1);
+	
+	aal_memcpy(key, &item->key, sizeof(*key));
+		
+	offset += plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, key);
 
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
 		    key, offset);
@@ -194,21 +230,6 @@ static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
 	return 0;
 }
 
-static uint64_t extent40_size(item_entity_t *item) {
-	uint32_t i;
-	extent40_t *extent;
-	uint32_t blocks = 0;
-    
-	aal_assert("umka-1583", item != NULL, return -1);
-
-	extent = extent40_body(item);
-	
-	for (i = 0; i < extent40_units(item); i++)
-		blocks += et40_get_width(extent + i);
-    
-	return (blocks * aal_device_get_bs(item->con.device));
-}
-
 #endif
 
 static errno_t extent40_max_poss_key(item_entity_t *item,
@@ -295,8 +316,9 @@ static int extent40_lookup(item_entity_t *item,
 	aal_assert("umka-1501", key  != NULL, return -1);
 	aal_assert("umka-1502", pos != NULL, return -1);
 	
-	maxkey.plugin = key->plugin;
-
+	if (!(extent = extent40_body(item)))
+		return -1;
+	
 	if (extent40_max_poss_key(item, &maxkey))
 		return -1;
 
@@ -306,7 +328,7 @@ static int extent40_lookup(item_entity_t *item,
 	if (plugin_call(return -1, key->plugin->key_ops,
 			compare, key, &maxkey) > 0)
 	{
-		*pos = units;
+		*pos = extent40_size(item);
 		return 0;
 	}
 
@@ -316,19 +338,18 @@ static int extent40_lookup(item_entity_t *item,
 	offset = plugin_call(return -1, key->plugin->key_ops,
 			     get_offset, &item->key);
 
-	extent = extent40_body(item);
 	blocksize = item->con.device->blocksize;
 		
 	for (i = 0; i < units; i++, extent++) {
 		offset += (blocksize * et40_get_width(extent));
 		
 		if (offset > lookuped) {
-			*pos = i;
+			*pos = offset - (offset - lookuped);
 			return 1;
 		}
 	}
 
-	*pos = units;
+	*pos = extent40_size(item);
 	return 0;
 }
 
@@ -386,15 +407,18 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 		start = et40_get_start(extent + i);
 		width = et40_get_width(extent + i);
 
-		extent40_get_key(item, i, &key);
+		extent40_unit_key(item, i, &key);
 
 		if (!item->key.plugin->key_ops.get_offset)
 			return -1;
 		
 		/* Calculating in-unit local offset */
-		offset = item->key.plugin->key_ops.get_offset(&key) -
-			item->key.plugin->key_ops.get_offset(&item->key);
-		
+		offset = plugin_call(return -1, item->key.plugin->key_ops,
+				     get_offset, &key);
+
+		offset -= plugin_call(return -1, item->key.plugin->key_ops,
+				      get_offset, &item->key);
+
 		start += ((pos - offset) / blocksize);
 		
 		for (blk = start; blk < start + width && read < count; ) {
@@ -402,7 +426,7 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 			if (!(block = aal_block_open(device, blk))) {
 				aal_exception_error("Can't read block %llu. %s.",
 						    blk, device->error);
-				break;
+				return -1;
 			}
 
 			offset = (pos % blocksize);

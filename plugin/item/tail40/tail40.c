@@ -19,25 +19,24 @@ static uint32_t tail40_units(item_entity_t *item) {
 
 /* Returns the key of the specified unit */
 static errno_t tail40_get_key(item_entity_t *item,
-			      uint32_t pos, 
+			      uint32_t offset, 
 			      key_entity_t *key) 
 {
-	uint64_t offset;
 	uint32_t units;
 
 	aal_assert("vpf-626", item != NULL, return -1);
 	aal_assert("vpf-627", key != NULL, return -1);
 
 	units = tail40_units(item);
-	aal_assert("vpf-628", pos < units, return -1);
+	aal_assert("vpf-628", offset < units, return -1);
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 
-	offset = plugin_call(return -1, key->plugin->key_ops,
+	offset += plugin_call(return -1, key->plugin->key_ops,
 			     get_offset, key);
 
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key, offset + pos);
+		    key, offset);
 
 	return 0;
 }
