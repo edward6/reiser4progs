@@ -48,7 +48,6 @@ static void mkfs_print_usage(char *name) {
 		"  -f, --force                     makes mkfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"Mkfs options:\n"
-		"  -k, --keys=LARGE|SHORT          key length to be used.\n"
 		"  -s, --lost-found                forces mkfs to create lost+found\n"
 		"                                  directory.\n"
 		"  -b, --block-size N              block size, 4096 by default, other\n"
@@ -97,7 +96,6 @@ int main(int argc, char *argv[]) {
 		{"label", required_argument, NULL, 'l'},
 		{"uuid", required_argument, NULL, 'i'},
 		{"lost-found", required_argument, NULL, 's'},
-		{"keys", required_argument, NULL, 'k'},
 		{"known-plugins", no_argument, NULL, 'P'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
@@ -111,7 +109,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	hint.blocks = 0;
-	hint.key = LARGE;
 	hint.blksize = REISER4_BLKSIZE;
 	
 	memset(override, 0, sizeof(override));
@@ -119,7 +116,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPo:k:",
+	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPo:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -140,21 +137,6 @@ int main(int argc, char *argv[]) {
 			break;
 		case 's':
 			flags |= BF_LOST;
-			break;
-		case 'k':
-			if (aal_strlen(optarg) == aal_strlen("LARGE") &&
-			    !aal_strncmp(optarg, "LARGE", aal_strlen(optarg)))
-			{
-				hint.key = LARGE;
-			} else if (aal_strlen(optarg) == aal_strlen("SHORT") &&
-				   !aal_strncmp(optarg, "SHORT", aal_strlen(optarg)))
-			{
-				hint.key = SHORT;
-			} else {
-				aal_exception_warn("Invalid key policy %s. Large keys "
-						   "will be used by default.", optarg);
-			}
-
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -226,9 +208,13 @@ int main(int argc, char *argv[]) {
 	/* Overriding profile by passed by used values. This should be done
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
-		aal_exception_info("Overriding default profile by \"%s\".",
-				   override);
-		
+		override[aal_strlen(override) - 1] = '\0';
+
+		if (!(flags & BF_QUIET)) {
+			aal_exception_info("Overriding default profile "
+					   "by \"%s\".", override);
+		}
+
 		if (misc_profile_override(override))
 			goto error_free_libreiser4;
 	}
@@ -389,7 +375,8 @@ int main(int argc, char *argv[]) {
 			reiser4_object_t *object;
 	    
 			if (!(object = reiser4_dir_create(fs, fs->root, "lost+found"))) {
-				aal_exception_error("Can't create \"/lost+found\" directory.");
+				aal_exception_error("Can't create \"/lost+found\" "
+						    "directory.");
 				goto error_free_root;
 			}
 	    

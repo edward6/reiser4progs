@@ -77,7 +77,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 	{
 	case PRESENT:
 		/* Initializing item at @object->place */
-		if (reiser4_place_realize(reiser4_object_start(object)))
+		if (reiser4_place_fetch(reiser4_object_start(object)))
 			return -EINVAL;
 
 		reiser4_key_assign(&info->object, &info->start.key);
@@ -294,7 +294,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 		return NULL;
 
 	/* The start of the object seems to be found. */
-	if (reiser4_place_realize(&place))
+	if (reiser4_place_fetch(&place))
 		return NULL;
 	
 	/* The key must point to the start of the object. */
@@ -876,12 +876,15 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 bool_t reiser4_object_begin(reiser4_place_t *place) {
 	aal_assert("vpf-1033", place != NULL);
 
-	if (reiser4_place_realize(place))
+	if (reiser4_place_fetch(place))
 		return FALSE;
 
 	/* FIXME-VITALY: This is ok until we create objects without statdatas.
 	   But how to distinguish, that this is the first item of some plugin,
 	   and not the second item of the default one? */
+
+	/* FIXME-UMKA: Here we can perform tree lookup and try to find out is
+	 * this place points to object most smaller key. */
 	return reiser4_item_statdata(place);
 }
 

@@ -219,8 +219,12 @@ int main(int argc, char *argv[]) {
 	/* Overriding profile by passed by used values. This should be done after
 	   libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
-		aal_exception_info("Overriding default profile by \"%s\".",
-				   override);
+		override[aal_strlen(override) - 1] = '\0';
+		
+		if (!(behav_flags & BF_QUIET)) {
+			aal_exception_info("Overriding default profile "
+					   "by \"%s\".", override);
+		}
 		
 		if (misc_profile_override(override))
 			goto error_free_libreiser4;

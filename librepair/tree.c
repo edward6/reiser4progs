@@ -62,7 +62,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	place.pos.item = reiser4_node_items(node) - 1;
 	place.pos.unit = MAX_UINT32;
 	
-	if (reiser4_place_realize(&place)) {
+	if (reiser4_place_fetch(&place)) {
 		aal_exception_error("Node (%llu): Failed to open the item "
 				    "(%u).", node->number, place.pos.item);
 		return -EINVAL;
@@ -136,7 +136,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 			if ((res = repair_node_rd_key(place.node, &key)))
 				return res;
 		} else {			
-			if ((res = reiser4_place_realize(&place)))
+			if ((res = reiser4_place_fetch(&place)))
 				return res;
 
 			reiser4_key_assign(&key, &place.key);
@@ -238,7 +238,7 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 	if (reiser4_place_leftmost(dst) && dst->node->p.node) {
 		reiser4_place_t p;
 		
-		reiser4_place_init(&p, tree, dst->node->p.node, 
+		reiser4_place_init(&p, dst->node->p.node, 
 				   &dst->node->p.pos);
 		
 		if ((res = reiser4_tree_ukey(tree, &p, &src->key)))
@@ -294,11 +294,11 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 					     LEAF_LEVEL, &dst);
 		
 		if (lookup == PRESENT) {
-			/* whole data can not be inserted */
+			/* Whole data can not be inserted */
 			whole = 0;
 		} else if (dst.pos.item == reiser4_node_items(dst.node)) {
-			/* If right neighbour is overlapped with src item, 
-			   move dst there. */	    
+			/* If right neighbour is overlapped with src item, move
+			   dst there. */	    
 			pos_t rpos = {0, -1};
 			reiser4_place_t rplace;
 			reiser4_node_t *rnode;
@@ -306,8 +306,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			rnode = reiser4_tree_neigh(tree, dst.node, D_RIGHT);
 			
 			if (rnode != NULL) {
-				if (reiser4_place_open(&rplace, tree, 
-						       rnode, &rpos))
+				if (reiser4_place_open(&rplace, rnode, &rpos))
 					return -EINVAL;
 				
 				res = reiser4_key_compare(&src_max, 
@@ -319,7 +318,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 				}
 			}
 		} else {
-			if ((res = reiser4_place_realize(&dst)))
+			if ((res = reiser4_place_fetch(&dst)))
 				return res;
 			
 			if (dst.pos.unit == reiser4_item_units(&dst)) {
@@ -330,7 +329,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 				dst.pos.item++;
 				dst.pos.unit = MAX_UINT32;
 			} else {
-				if ((res = reiser4_place_realize(&dst)))
+				if ((res = reiser4_place_fetch(&dst)))
 					return res;
 				
 				res = reiser4_key_compare(&src_max, 
@@ -352,7 +351,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			if (src->pos.unit == MAX_UINT32)
 				src->pos.unit = 0; 
 			
-			if ((res = reiser4_place_realize(&dst)))
+			if ((res = reiser4_place_fetch(&dst)))
 				return res;
 			
 			if (dst.plug->id.id != src->plug->id.id) {

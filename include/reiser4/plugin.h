@@ -232,7 +232,6 @@ typedef struct sdext_entity sdext_entity_t;
 struct place {
 	object_entity_t *node;
 	reiser4_plug_t *plug;
-	void *tree;
 
 	pos_t pos;
 	body_t *body;
@@ -824,6 +823,10 @@ struct reiser4_node_ops {
 	/* Returns free space in the node */
 	uint16_t (*space) (object_entity_t *);
 
+	/* Fetches item data to passed @place */
+	errno_t (*fetch) (object_entity_t *, pos_t *,
+			  place_t *);
+	
 	/* Inserts item at specified pos */
 	errno_t (*insert) (object_entity_t *, pos_t *,
 			   create_hint_t *);
@@ -915,9 +918,6 @@ struct reiser4_node_ops {
 			    key_entity_t *);
     
 	uint8_t (*get_level) (object_entity_t *);
-
-	errno_t (*get_item) (object_entity_t *, pos_t *,
-			     place_t *);
 };
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;
@@ -1237,12 +1237,12 @@ typedef struct plug_id plug_id_t;
 #endif
 
 struct reiser4_plug {
-	/* Plugin id. This will be used for looking for a plugin. */
-	plug_id_t id;
-	
 	/* Plugin handle. This will be used by plugin factory. */
 	plug_class_t cl;
 
+	/* Plugin id. This will be used for looking for a plugin. */
+	plug_id_t id;
+	
 #ifndef ENABLE_STAND_ALONE
 	/* Plugin label (name) */
 	const char label[PLUG_MAX_LABEL];
@@ -1274,7 +1274,6 @@ struct reiser4_plug {
 };
 
 struct tree_ops {
-		
 #ifndef ENABLE_STAND_ALONE
 	/* Returns blocksize in passed tree */
 	uint32_t (*blksize) (void *);
@@ -1289,7 +1288,7 @@ struct tree_ops {
 			    place_t *);
 
 	/* Initializes all item fields in passed place */
-	errno_t (*realize) (void *, place_t *);
+	errno_t (*fetch) (void *, place_t *);
 
 	/* Checks if passed @place points to some real item inside a node */
 	int (*valid) (void *, place_t *);

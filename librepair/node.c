@@ -56,7 +56,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		pos->unit = MAX_UINT32;
 		
 		/* Open the item, checking its plugin id. */
-		if (reiser4_place_realize(&place)) {
+		if (reiser4_place_fetch(&place)) {
 			aal_exception_error("Node (%llu): Failed to open the "
 					    "item (%u). %s", node->number, 
 					    pos->item, mode == REPAIR_REBUILD ? 
@@ -112,7 +112,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	return res;
 }
 
-/* Sets @key to the left delimiting key of the node kept in the parent. */
+/* Sets @ld_key to the left delimiting key of the node kept in the parent. */
 static errno_t repair_node_ld_key_fetch(reiser4_node_t *node, 
 					reiser4_key_t *ld_key) 
 {
@@ -122,14 +122,12 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 	aal_assert("vpf-344", ld_key != NULL);
 	
 	if (node->p.node != NULL) {
-		if ((res = reiser4_place_realize(&node->p)))
+		if ((res = reiser4_place_fetch(&node->p)))
 			return res;
 		
 		if ((res = reiser4_key_assign(ld_key, &node->p.key)))
 			return res;
 	} else {
-		/* FIXME-UMKA->VITALY: This function no longer exists. */
-//		reiser4_key_guess(ld_key);
 		reiser4_key_minimal(ld_key);
 	}
 	
@@ -140,17 +138,17 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
    
    FIXME-VITALY: This must be recursive method. + there is smth similar in 
    libreiser4 already.*/
+
+/* FIXME-UMKA->VITALY: Recursive key updating should be performed from the tree
+ * and in this case reiser4_tree_ukey() may be used. */
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
 					 reiser4_key_t *ld_key) 
 {
 	aal_assert("vpf-467", node != NULL);
 	aal_assert("vpf-468", ld_key != NULL);
 	aal_assert("vpf-469", ld_key->plug != NULL);
-	
-	if (node->p.node == NULL)
-		return 0;
-	
-	return reiser4_item_set_key(&node->p, ld_key);
+
+	return reiser4_node_ukey(node->p.node, &node->p.pos, ld_key);
 }
 
 /* Sets to the @key the right delimiting key of the node kept in the parent. */
@@ -182,7 +180,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 			place.pos.item++;
 			place.pos.unit = 0;
 			
-			if ((ret = reiser4_place_realize(&place)))
+			if ((ret = reiser4_place_fetch(&place)))
 				return ret;
 			
 			if ((ret = reiser4_key_assign(rd_key, &place.key)))
@@ -220,7 +218,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	place.pos.unit = MAX_UINT32;
 	place.node = node;
 	
-	if ((res = reiser4_place_realize(&place)))
+	if ((res = reiser4_place_fetch(&place)))
 		return res;
 	
 	res = reiser4_key_compare(&d_key, &place.key);
@@ -265,7 +263,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	
 	pos->item = reiser4_node_items(node) - 1;
 	
-	if ((res = reiser4_place_realize(&place))) {
+	if ((res = reiser4_place_fetch(&place))) {
 		aal_exception_error("Node (%llu): Failed to open the item "
 				    "(%llu).", node->number, pos->item);
 		return res;
@@ -304,7 +302,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 	count = reiser4_node_items(node);
 	
 	for (pos->item = 0; pos->item < count; pos->item++) {
-		if ((res = reiser4_place_realize(&place)))
+		if ((res = reiser4_place_fetch(&place)))
 			return res;
 		
 		if ((res = reiser4_key_assign(&key, &place.key))) {
@@ -405,7 +403,7 @@ errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func,
 	pos->unit = MAX_UINT32;
 	
 	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
-		if ((res = reiser4_place_open(&place, node->tree, node, pos))) {
+		if ((res = reiser4_place_open(&place, node, pos))) {
 			aal_exception_error("Node (%llu), item (%u): failed to "
 					    "open the item by its place.", 
 					    node->number, pos->item);

@@ -19,7 +19,6 @@ int aux_bin_search(
 	void *data,			/* user-specified data */
 	uint32_t *pos)		        /* pointer result will be saved in */
 {
-	void *elem;
 	int res = 0;
 	int left, right, i;
 
@@ -52,7 +51,6 @@ int aux_bin_search(
 	}
 
 	*pos = left;
-	
 	return 0;
 }
 

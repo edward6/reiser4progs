@@ -113,8 +113,8 @@ static uint16_t node_large_len(object_entity_t *entity,
 /* Initializes item entity in order to pass it to an item plugin routine. If
    unit component of pos is set up the function will initialize item's key from
    the unit one. */
-errno_t node_large_get_item(object_entity_t *entity,
-			    pos_t *pos, place_t *place)
+errno_t node_large_fetch(object_entity_t *entity,
+			 pos_t *pos, place_t *place)
 {
 	rid_t pid;
 	node_t *node;
@@ -491,7 +491,7 @@ static errno_t node_large_insert(object_entity_t *entity, pos_t *pos,
 	}
 	
 	/* Preparing item for calling item plugin with them */
-	if (node_large_get_item(entity, pos, &place)) {
+	if (node_large_fetch(entity, pos, &place)) {
 		aal_exception_error("Can't fetch item data.");
 		return -EINVAL;
 	}
@@ -545,7 +545,7 @@ errno_t node_large_remove(object_entity_t *entity,
 
 	node = (node_t *)entity;
 
-	if (node_large_get_item(entity, pos, &place))
+	if (node_large_fetch(entity, pos, &place))
 		return -EINVAL;
 
 	rpos = *pos;
@@ -602,7 +602,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		if (start->unit != MAX_UINT32) {
 			pos = *start;
 			
-			if (node_large_get_item(entity, &pos, &place))
+			if (node_large_fetch(entity, &pos, &place))
 				return -EINVAL;
 				
 			units = plug_call(place.plug->o.item_ops,
@@ -619,7 +619,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		if (end->unit != MAX_UINT32) {
 			pos = *end;
 			
-			if (node_large_get_item(entity, &pos, &place))
+			if (node_large_fetch(entity, &pos, &place))
 				return -EINVAL;
 				
 			units = plug_call(place.plug->o.item_ops,
@@ -651,7 +651,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		if (node_large_remove(entity, &pos, count))
 			return -EINVAL;
 
-		if (node_large_get_item(entity, &pos, &place))
+		if (node_large_fetch(entity, &pos, &place))
 			return -EINVAL;
 
 		/* Remove empty item */
@@ -735,7 +735,7 @@ static errno_t node_large_print(object_entity_t *entity,
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
 
-		if (node_large_get_item(entity, &pos, &place))
+		if (node_large_fetch(entity, &pos, &place))
 			return -EINVAL;
 
 		aal_stream_format(stream, "(%u) ", pos.item);
@@ -853,10 +853,10 @@ static errno_t node_large_fuse(object_entity_t *src_entity,
 		return -EINVAL;
 	
 	/* Initializing items */
-	if (node_large_get_item(src_entity, src_pos, &src_place))
+	if (node_large_fetch(src_entity, src_pos, &src_place))
 		return -EINVAL;
 	
-	if (node_large_get_item(dst_entity, dst_pos, &dst_place))
+	if (node_large_fetch(dst_entity, dst_pos, &dst_place))
 		return -EINVAL;
 
 	/* Making copy of the src_item */
@@ -888,7 +888,7 @@ static errno_t node_large_fuse(object_entity_t *src_entity,
 		pos.item--;
 
 	/* Reinitializing @dst_item after shrink and pos correcting */
-	if ((res = node_large_get_item(dst_entity, &pos, &dst_place)))
+	if ((res = node_large_fetch(dst_entity, &pos, &dst_place)))
 		goto error_free_body;
 	
 	if ((res = node_large_expand(dst_entity, &pos, len, 1))) {
@@ -975,7 +975,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 	POS_INIT(&pos, (hint->control & SF_LEFT ? 0 :
 			src_items - 1), MAX_UINT32);
 	
-	if (node_large_get_item(src_entity, &pos, &src_place))
+	if (node_large_fetch(src_entity, &pos, &src_place))
 		return -EINVAL;
 
 	/* Items that do not implement predict and shift methods cannot be
@@ -988,7 +988,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items - 1 : 0), MAX_UINT32);
 		
-		if (node_large_get_item(dst_entity, &pos, &dst_place))
+		if (node_large_fetch(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
 		if (hint->control & SF_LEFT) {
@@ -1078,7 +1078,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 
 		/* Initializing dst item after it was created by node_large_expand()
 		   function. */
-		if (node_large_get_item(dst_entity, &pos, &dst_place))
+		if (node_large_fetch(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
 		if (dst_place.plug->o.item_ops->init)
@@ -1232,8 +1232,8 @@ static errno_t node_large_predict(object_entity_t *src_entity,
 					   shift whole item pointed by pos. */
 					POS_INIT(&pos, 0, MAX_UINT32);
 					
-					if (node_large_get_item(src_entity,
-								&pos, &place))
+					if (node_large_fetch(src_entity,
+							     &pos, &place))
 					{
 						return -EINVAL;
 					}
@@ -1483,9 +1483,9 @@ static reiser4_node_ops_t node_large_ops = {
 	.confirm	= node_common_confirm,
 	.items		= node_common_items,
 	.lookup		= node_large_lookup,
+	.fetch          = node_large_fetch,
 	
 	.get_key	= node_large_get_key,
-	.get_item       = node_large_get_item,
 	.get_level	= node_common_get_level,
 		
 #ifndef ENABLE_STAND_ALONE

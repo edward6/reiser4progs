@@ -180,7 +180,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 			count = reiser4_node_items(node);
 			
 			for (pos->item = 0; pos->item < count; pos->item++) {
-				if ((res = reiser4_place_realize(&place))) {
+				if ((res = reiser4_place_fetch(&place))) {
 					aal_exception_error("Node (%llu), item (%u): "
 							    "failed to open the item.", 
 							    node->number, pos->item);
@@ -295,7 +295,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 			for (pos->item = 0; pos->item < items; pos->item++) {
 				aal_assert("vpf-636", pos->unit == MAX_UINT32);
 				
-				if ((res = reiser4_place_realize(&place))) {
+				if ((res = reiser4_place_fetch(&place))) {
 					aal_exception_error("Node (%llu), item (%u): "
 							    "cannot open the item "
 							    "place.", blk, pos->item);

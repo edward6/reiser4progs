@@ -84,7 +84,7 @@ errno_t obj40_realize(object_info_t *info,
 			return -EINVAL;
 		
 		/* Initializing item entity at @next place */
-		if ((res = core->tree_ops.realize(info->tree, &place)))
+		if ((res = core->tree_ops.fetch(info->tree, &place)))
 			return res;
 
 		return plug_call(info->object.plug->o.key_ops, compshort, 

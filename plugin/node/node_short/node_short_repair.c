@@ -14,8 +14,8 @@
 extern errno_t node_short_remove(object_entity_t *entity, pos_t *pos, 
 				 uint32_t count);
 
-extern errno_t node_short_get_item(object_entity_t *entity, pos_t *pos, 
-				   place_t *place);
+extern errno_t node_short_fetch(object_entity_t *entity, pos_t *pos, 
+				place_t *place);
 
 extern errno_t node_short_expand(object_entity_t *entity, pos_t *pos,
 				 uint32_t len, uint32_t count);
@@ -418,7 +418,7 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 		return 0;
 	
 	/* Just a part of src item being copied, gets merged with dst item. */
-	if (node_short_get_item(src, src_pos, &src_place))
+	if (node_short_fetch(src, src_pos, &src_place))
 		return -EINVAL;
 	
 	/* Expand the node if needed. */
@@ -435,11 +435,11 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 		return node_short_rep(dst, dst_pos, src, src_pos, 1);
 	
 	/* Just a part of src item being copied, gets merged with dst item. */
-	if (node_short_get_item(src, src_pos, &src_place))
+	if (node_short_fetch(src, src_pos, &src_place))
 		return -EINVAL;
 	
 	/* If not the whole item, realize the dst item. */
-	if (node_short_get_item(dst, dst_pos, &dst_place))
+	if (node_short_fetch(dst, dst_pos, &dst_place))
 		return -EINVAL;
 	
 	if ((res = plug_call(src_place.plug->o.item_ops, copy, &dst_place, 

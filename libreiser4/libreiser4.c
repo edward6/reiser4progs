@@ -84,9 +84,8 @@ static lookup_t tree_lookup(
 }
 
 /* Initializes item at passed @place */
-static errno_t tree_realize(void *tree, place_t *place) {
-	reiser4_place_t *p = (reiser4_place_t *)place;
-	return reiser4_place_realize(p);
+static errno_t tree_fetch(void *tree, place_t *place) {
+	return reiser4_place_fetch((reiser4_place_t *)place);
 }
 
 /* Returns TRUE if passed @place points to some real item in a node */
@@ -112,7 +111,7 @@ static errno_t tree_next(
 	curr = (reiser4_place_t *)place;
 
 	if (reiser4_place_ltlast(curr)) {
-		reiser4_place_assign((reiser4_place_t *)next, t,
+		reiser4_place_assign((reiser4_place_t *)next,
 				     curr->node, curr->pos.item + 1,
 				     MAX_UINT32);
 	} else {
@@ -121,12 +120,11 @@ static errno_t tree_next(
 		if (!curr->node->right)
 			return -EINVAL;
 
-		((reiser4_place_t *)next)->tree = curr->tree;
 		((reiser4_place_t *)next)->node = curr->node->right;
 		reiser4_place_first((reiser4_place_t *)next);
 	}
 
-	return reiser4_place_realize((reiser4_place_t *)next);
+	return reiser4_place_fetch((reiser4_place_t *)next);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -147,7 +145,7 @@ static errno_t tree_prev(
 	curr = (reiser4_place_t *)place;
 
 	if (reiser4_place_gtfirst(curr)) {
-		reiser4_place_assign((reiser4_place_t *)prev, t,
+		reiser4_place_assign((reiser4_place_t *)prev,
 				     curr->node, curr->pos.item - 1,
 				     MAX_UINT32);
 	} else {
@@ -156,12 +154,11 @@ static errno_t tree_prev(
 		if (!curr->node->left)
 			return -EINVAL;
 
-		((reiser4_place_t *)prev)->tree = curr->tree;
 		((reiser4_place_t *)prev)->node = curr->node->left;
 		reiser4_place_last((reiser4_place_t *)prev);
 	}
 
-	return reiser4_place_realize((reiser4_place_t *)prev);
+	return reiser4_place_fetch((reiser4_place_t *)prev);
 }
 #endif
 
@@ -258,7 +255,7 @@ reiser4_core_t core = {
 		.lookup	    = tree_lookup,
 
 		/* This one for initializing an item at place */
-		.realize    = tree_realize,
+		.fetch      = tree_fetch,
 
 		/* Installing "valid" callback */
 		.valid      = tree_valid,

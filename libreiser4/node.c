@@ -66,13 +66,12 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 		goto error_free_node;
 	}
 
+	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
+	
 	node->size = size;
 	node->number = blk;
 	node->device = device;
 
-	reiser4_place_assign(&node->p, NULL,
-			     NULL, 0, MAX_UINT32);
-	
 	return node;
 
  error_free_node:    
@@ -183,14 +182,13 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
 	if (!plug_call(plug->o.node_ops, confirm, node->entity))
 		goto error_free_data;
 	
+        reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
+	
 	node->size = size;
         node->number = blk;
         node->device = device;
 	
-        reiser4_place_assign(&node->p, NULL,
-			     NULL, 0, MAX_UINT32);
-	
-        return node;
+	return node;
 	
  error_free_data:
 	plug_call(node->entity->plug->o.node_ops,
@@ -223,20 +221,13 @@ errno_t reiser4_node_lkey(
 	reiser4_node_t *node,	         /* node for working with */
 	reiser4_key_t *key)	         /* key will be stored here */
 {
-	errno_t res;
-	reiser4_place_t place;
 	pos_t pos = {0, MAX_UINT32};
 
-	aal_assert("umka-753", node != NULL);
 	aal_assert("umka-754", key != NULL);
+	aal_assert("umka-753", node != NULL);
 
-	if ((res = reiser4_place_open(&place, node->tree,
-				      node, &pos)))
-	{
-		return res;
-	}
-
-	return reiser4_key_assign(key, &place.key);
+	return plug_call(node->entity->plug->o.node_ops,
+			 get_key, node->entity, &pos, key);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -250,14 +241,14 @@ static int reiser4_node_ack(reiser4_node_t *node,
 	if (!(place->pos.item < reiser4_node_items(place->node)))
 		return 0;
 	       
-	if (reiser4_place_realize(place))
+	if (reiser4_place_fetch(place))
 		return 0;
 
 	if (!reiser4_item_branch(place))
 		return 0;
 
-	plug_call(place->plug->o.item_ops, read, (place_t *)place,
-		  &ptr, place->pos.unit, 1);
+	plug_call(place->plug->o.item_ops, read,
+		  (place_t *)place, &ptr, place->pos.unit, 1);
 
 	return ptr.start == node->number;
 }
@@ -284,7 +275,7 @@ errno_t reiser4_node_realize(
 #ifndef ENABLE_STAND_ALONE
 	if (!(node->flags & NF_FOREIGN)) {
 		if (reiser4_node_ack(node, parent))
-			goto parent_realize;
+			goto parent_fetch;
 	}
 #endif
 
@@ -297,10 +288,10 @@ errno_t reiser4_node_realize(
 #ifndef ENABLE_STAND_ALONE
 		if (!(node->flags & NF_FOREIGN)) {
 			if (reiser4_node_ack(node, parent))
-				goto parent_realize;
+				goto parent_fetch;
 		} else
 #endif
-			goto parent_realize;
+			goto parent_fetch;
 	}
 
 	/* Getting position by means of linear traverse */
@@ -309,7 +300,7 @@ errno_t reiser4_node_realize(
 		for (i = 0; i < reiser4_node_items(parent->node); i++) {
 			parent->pos.item = i;
 
-			if ((res = reiser4_place_realize(parent)))
+			if ((res = reiser4_place_fetch(parent)))
 				return res;
 
 			if (!reiser4_item_branch(parent))
@@ -322,7 +313,7 @@ errno_t reiser4_node_realize(
 					  (place_t *)parent, &ptr, j, 1);
 
 				if (ptr.start == node->number)
-					goto parent_realize;
+					goto parent_fetch;
 			}
 		}
 	}
@@ -330,8 +321,8 @@ errno_t reiser4_node_realize(
 	return -EINVAL;
 #endif
 	
- parent_realize:
-	if (reiser4_place_realize(parent))
+ parent_fetch:
+	if (reiser4_place_fetch(parent))
 		return -EINVAL;
 
 	if (reiser4_item_units(parent) == 1)
@@ -410,8 +401,6 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 					 callback_comp_node, NULL);
 	
 	child->p.node = node;
-	child->p.tree = node->tree;
-	
 	reiser4_node_lock(node);
 	
 	/* Updating node pos in parent node */
@@ -439,7 +428,6 @@ errno_t reiser4_node_disconnect(
 	if (!node->children)
 		return -EINVAL;
     
-	child->p.tree = NULL;
 	child->p.node = NULL;
     
 	/* Updating node children list */
@@ -495,7 +483,7 @@ lookup_t reiser4_node_lookup(
 		pos->item--;
 	}
 		
-	if (reiser4_place_open(&place, node->tree, node, pos))
+	if (reiser4_place_open(&place, node, pos))
 		return FAILED;
 		
 	if (res == ABSENT) {
@@ -635,11 +623,10 @@ errno_t reiser4_node_shift(
 		uint32_t units;
 		reiser4_place_t place;
 
-		reiser4_place_assign(&place, node->tree, neig,
-				     (hint->control & SF_LEFT) ?
+		reiser4_place_assign(&place, neig, (hint->control & SF_LEFT) ?
 				     items - i - 1 : i, MAX_UINT32);
 
-		if ((res = reiser4_place_realize(&place)))
+		if ((res = reiser4_place_fetch(&place)))
 			return res;
 
 		if (!reiser4_item_branch(&place))
@@ -678,13 +665,13 @@ errno_t reiser4_node_shift(
 		POS_INIT(&pos, reiser4_node_items(neig) -
 			 hint->items - 1, MAX_UINT32);
 
-		if ((res = reiser4_node_uchildren(neig, &pos)))
+		if ((res = reiser4_node_uchild(neig, &pos)))
 			return res;
 		
 		/* Updating @node starting from the first item */
 		POS_INIT(&pos, 0, MAX_UINT32);
 		
-		if ((res = reiser4_node_uchildren(node, &pos)))
+		if ((res = reiser4_node_uchild(node, &pos)))
 			return res;
 	} else {
 		pos_t pos;
@@ -692,7 +679,7 @@ errno_t reiser4_node_shift(
 		/* Updating neighbour starting from the first item */
 		POS_INIT(&pos, 0, MAX_UINT32);
 
-		if ((res = reiser4_node_uchildren(neig, &pos)))
+		if ((res = reiser4_node_uchild(neig, &pos)))
 			return res;
 	}
 
@@ -725,18 +712,14 @@ errno_t reiser4_node_sync(
 }
 
 /* Updates nodeptr item in parent node */
-errno_t reiser4_node_update(reiser4_node_t *node) {
+errno_t reiser4_node_upos(reiser4_node_t *node) {
 	errno_t res;
 	create_hint_t hint;
-	
-	reiser4_place_t *place;
 	ptr_hint_t nodeptr_hint;
 
 	aal_assert("umka-2263", node != NULL);
 
-	place = &node->p;
-
-	if (!place->node)
+	if (!node->p.node)
 		return 0;
 	
 	aal_memset(&hint, 0, sizeof(hint));
@@ -744,44 +727,33 @@ errno_t reiser4_node_update(reiser4_node_t *node) {
         /* Preparing node pointer hint to be used */
 	nodeptr_hint.width = 1;
 	nodeptr_hint.start = node->number;
-	
 	hint.type_specific = &nodeptr_hint;
-				
-	if ((res = reiser4_place_realize(place)))
+
+	if ((res = reiser4_place_fetch(&node->p)))
 		return res;
 
-	return reiser4_item_insert(place, &hint);
+	return plug_call(node->p.plug->o.item_ops, insert,
+			 (place_t *)&node->p, &hint,
+			 node->p.pos.unit);
 }
 
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all
    levels of tre tree). */
 errno_t reiser4_node_ukey(reiser4_node_t *node,
-			  pos_t *pos,
-			  reiser4_key_t *key)
+			  pos_t *pos, reiser4_key_t *key)
 {
-	errno_t res;
-	reiser4_place_t place;
-    
 	aal_assert("umka-999", node != NULL);
 	aal_assert("umka-1000", pos != NULL);
 	aal_assert("umka-1001", key != NULL);
 
-	if ((res = reiser4_place_open(&place, node->tree,
-				      node, pos)))
-	{
-		return res;
-	}
-
-	if ((res = reiser4_item_set_key(&place, key)))
-		return res;
-    
-	return 0;
+	return plug_call(node->entity->plug->o.node_ops,
+			 set_key, node->entity, pos, key);
 }
 
 /* Updates children in-parent position. It is used during internal nodes
    modifying. */
-errno_t reiser4_node_uchildren(reiser4_node_t *node,
-			       pos_t *start)
+errno_t reiser4_node_uchild(reiser4_node_t *node,
+			    pos_t *start)
 {
 	errno_t res;
 	ptr_hint_t ptr;
@@ -802,13 +774,13 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 
 	items = reiser4_node_items(node);
 	
-	reiser4_place_assign(&place, node->tree, node,
+	reiser4_place_assign(&place, node,
 			     start->item, 0);
 
 	/* Searchilg for first nodeptr item */
 	for (; place.pos.item < items; place.pos.item++) {
 		
-		if ((res = reiser4_place_realize(&place)))
+		if ((res = reiser4_place_fetch(&place)))
 			return res;
 
 		if (reiser4_item_branch(&place))
@@ -823,7 +795,7 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 	/* Searching for the first loaded child found nodeptr item points to */
 	for (; place.pos.item < items; place.pos.item++) {
 
-		if ((res = reiser4_place_realize(&place)))
+		if ((res = reiser4_place_fetch(&place)))
 			return res;
 		
 		if (!reiser4_item_branch(&place))
@@ -896,7 +868,7 @@ errno_t reiser4_node_insert(
 
 	reiser4_node_mkdirty(node);
 	
-	if ((res = reiser4_node_uchildren(node, pos))) {
+	if ((res = reiser4_node_uchild(node, pos))) {
 		aal_exception_error("Can't update child positions in "
 				    "node %llu.", node->number);
 		return res;
@@ -931,7 +903,7 @@ errno_t reiser4_node_cut(
 	reiser4_node_mkdirty(node);
 	
 	/* Updating children */
-	if ((res = reiser4_node_uchildren(node, start)))
+	if ((res = reiser4_node_uchild(node, start)))
 		return res;
 	
 	return 0;
@@ -964,7 +936,7 @@ errno_t reiser4_node_remove(
 		reiser4_node_mkdirty(node);
 	
 		/* Updating children */
-		if ((res = reiser4_node_uchildren(node, pos)))
+		if ((res = reiser4_node_uchild(node, pos)))
 			return res;
 	}
 	

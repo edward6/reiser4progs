@@ -65,7 +65,10 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	switch(lookup) {
 	case PRESENT:
 		/* The start of the object seems to be found. */
-		if (reiser4_place_realize(&place))
+
+		/* FIXME-UMKA->VITALY: This is not needed here, tree_lookup()
+		 * already did it for you :) */
+		if (reiser4_place_fetch(&place))
 			return NULL;
 
 		/* The key must point to the start of the object. */

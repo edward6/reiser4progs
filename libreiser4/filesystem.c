@@ -294,18 +294,16 @@ reiser4_fs_t *reiser4_fs_create(
 	}
 
 	/* Taking care about key flags in format super block */
-	if (hint->key == LARGE) {
+	if (reiser4_profile_value(fs->profile, "key") == KEY_LARGE_ID) {
 		plug_call(fs->format->entity->plug->o.format_ops,
 			  set_flag, fs->format->entity, 0);
 
-		reiser4_profile_override(fs->profile, "key", "key_large");
 		reiser4_profile_override(fs->profile, "cde", "cde_large");
 		reiser4_profile_override(fs->profile, "node", "node_large");
 	} else {
 		plug_call(fs->format->entity->plug->o.format_ops,
 			  clr_flag, fs->format->entity, 0);
 
-		reiser4_profile_override(fs->profile, "key", "key_short");
 		reiser4_profile_override(fs->profile, "cde", "cde_short");
 		reiser4_profile_override(fs->profile, "node", "node_short");
 	}

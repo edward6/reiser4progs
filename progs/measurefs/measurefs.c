@@ -19,14 +19,14 @@
 #include <reiser4/reiser4.h>
 
 enum behav_flags {
-	F_FORCE    = 1 << 0,
-	F_QUIET    = 1 << 1,
-	F_TFRAG    = 1 << 2,
-	F_FFRAG    = 1 << 3,
-	F_TSTAT    = 1 << 4,
-	F_DFRAG    = 1 << 5,
-	F_SFILE    = 1 << 6,
-	F_PLUGS    = 1 << 7
+	BF_FORCE    = 1 << 0,
+	BF_QUIET    = 1 << 1,
+	BF_TFRAG    = 1 << 2,
+	BF_FFRAG    = 1 << 3,
+	BF_TSTAT    = 1 << 4,
+	BF_DFRAG    = 1 << 5,
+	BF_SFILE    = 1 << 6,
+	BF_PLUGS    = 1 << 7
 };
 
 typedef enum behav_flags behav_flags_t;
@@ -146,7 +146,7 @@ static errno_t tfrag_process_node(
 		reiser4_place_t place;
 
 		/* Initializing item at @place */
-		if (reiser4_place_open(&place, tree, node, &pos)) {
+		if (reiser4_place_open(&place, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->number);
 			return -EINVAL;
@@ -192,7 +192,7 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
-	if (!(flags & F_QUIET)) {
+	if (!(flags & BF_QUIET)) {
 		/* Initializing gauge, because it is a long process and user
 		   should be informed what the stage of the process is going at
 		   the moment. */
@@ -302,21 +302,23 @@ static errno_t stat_process_node(
 
 		stat_hint->internals_used /= (stat_hint->internals + 1);
 
-		for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
+		for (pos.item = 0; pos.item < reiser4_node_items(node);
+		     pos.item++)
+		{
 			errno_t res;
 			reiser4_place_t place;
 			
-			if ((res = reiser4_place_open(&place, tree, node, &pos))) {
-				aal_exception_error("Can't open item %u in node %llu.", 
-						    pos.item, node->number);
+			if ((res = reiser4_place_open(&place, node, &pos))) {
+				aal_exception_error("Can't open item %u in node "
+						    "%llu.", pos.item, node->number);
 				return res;
 			}
 			
 			if (!place.plug->o.item_ops->layout)
 				continue;
 
-			plug_call(place.plug->o.item_ops, layout, (place_t *)&place,
-				  stat_process_item, data);
+			plug_call(place.plug->o.item_ops, layout,
+				  (place_t *)&place, stat_process_item, data);
 		}
 	} else {
 		leaves_used = aal_device_get_bs(device) -
@@ -345,7 +347,7 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 	
-	if (!(flags & F_QUIET)) {
+	if (!(flags & BF_QUIET)) {
 		if (!(stat_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
 							 NULL)))
 		{
@@ -492,7 +494,7 @@ static errno_t dfrag_process_node(
 		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
-		if ((res = reiser4_place_init(&place, tree, node, &pos))) {
+		if ((res = reiser4_place_init(&place, node, &pos))) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->number);
 			return res;
@@ -535,7 +537,7 @@ static errno_t dfrag_process_node(
 			
 		/* We was instructed show file fragmentation for each file, not
 		   only the average one, we will do it now. */
-		if (frag_hint->flags & F_SFILE) {
+		if (frag_hint->flags & BF_SFILE) {
 			double file_factor = frag_hint->total > 0 ?
 				(double)frag_hint->bad / frag_hint->total : 0;
 			
@@ -572,7 +574,7 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
-	if (!(flags & F_QUIET)) {
+	if (!(flags & BF_QUIET)) {
 		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
 							 NULL)))
 		{
@@ -596,7 +598,7 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	if (frag_hint.gauge)
 		aal_gauge_free(frag_hint.gauge);
 
-	if (frag_hint.flags & F_SFILE || !frag_hint.gauge)
+	if (frag_hint.flags & BF_SFILE || !frag_hint.gauge)
 		printf("Data fragmentation is: ");
 	
 	printf("%.6f\n", frag_hint.files > 0 ?
@@ -652,29 +654,29 @@ int main(int argc, char *argv[]) {
 			misc_print_banner(argv[0]);
 			return NO_ERROR;
 		case 'S':
-			flags |= F_TSTAT;
+			flags |= BF_TSTAT;
 			break;
 		case 'T':
-			flags |= F_TFRAG;
+			flags |= BF_TFRAG;
 			break;
 		case 'D':
-			flags |= F_DFRAG;
+			flags |= BF_DFRAG;
 			break;
 		case 'E':
-			flags |= F_SFILE;
+			flags |= BF_SFILE;
 			break;
 		case 'F':
-			flags |= F_FFRAG;
+			flags |= BF_FFRAG;
 			frag_filename = optarg;
 			break;
 		case 'f':
-			flags |= F_FORCE;
+			flags |= BF_FORCE;
 			break;
 		case 'q':
-			flags |= F_QUIET;
+			flags |= BF_QUIET;
 			break;
 		case 'P':
-			flags |= F_PLUGS;
+			flags |= BF_PLUGS;
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -693,7 +695,7 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
     
-	if (!(flags & F_QUIET))
+	if (!(flags & BF_QUIET))
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
@@ -707,14 +709,18 @@ int main(int argc, char *argv[]) {
 	/* Overriding profile by passed by used values. This should be done
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
-		aal_exception_info("Overriding default profile by \"%s\".",
-				   override);
+		override[aal_strlen(override) - 1] = '\0';
+		
+		if (!(flags & BF_QUIET)) {
+			aal_exception_info("Overriding default profile "
+					   "by \"%s\".", override);
+		}
 		
 		if (misc_profile_override(override))
 			goto error_free_libreiser4;
 	}
 	
-	if (flags & F_PLUGS) {
+	if (flags & BF_PLUGS) {
 		misc_profile_print();
 		libreiser4_fini();
 		return 0;
@@ -732,7 +738,7 @@ int main(int argc, char *argv[]) {
 	   whole drive or just a partition. If the device is not a block device,
 	   then we emmit exception and propose user to use -f flag to force. */
 	if (!S_ISBLK(st.st_mode)) {
-		if (!(flags & F_FORCE)) {
+		if (!(flags & BF_FORCE)) {
 			aal_exception_error("Device %s is not block device. "
 					    "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;
@@ -740,7 +746,7 @@ int main(int argc, char *argv[]) {
 	} else {
 		if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 64 == 0) ||
 		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
-		    (!(flags & F_FORCE)))
+		    (!(flags & BF_FORCE)))
 		{
 			aal_exception_error("Device %s is an entire harddrive, not "
 					    "just one partition.", host_dev);
@@ -749,7 +755,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (misc_dev_mounted(host_dev, NULL) && !(flags & F_FORCE)) {
+	if (misc_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
 		aal_exception_error("Device %s is mounted at the moment. "
 				    "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
@@ -777,35 +783,35 @@ int main(int argc, char *argv[]) {
     
 	/* Check if specified options are compatible. For instance, --show-each
 	   can be used only if --data-frag was specified. */
-	if (!(flags & F_DFRAG) && (flags & F_SFILE)) {
+	if (!(flags & BF_DFRAG) && (flags & BF_SFILE)) {
 		aal_exception_warn("Option --show-file is only active if "
 				   "--data-frag is specified.");
 	}
 
-	if (!(flags & F_TFRAG || flags & F_DFRAG ||
-	      flags & F_FFRAG || flags & F_TSTAT))
+	if (!(flags & BF_TFRAG || flags & BF_DFRAG ||
+	      flags & BF_FFRAG || flags & BF_TSTAT))
 	{
-		flags |= F_TSTAT;
+		flags |= BF_TSTAT;
 	}
 
 	/* Handling measurements options */
-	if (flags & F_TFRAG) {
+	if (flags & BF_TFRAG) {
 		if (measurefs_tree_frag(fs, flags))
 			goto error_free_tree;
 	}
 
-	if (flags & F_DFRAG) {
+	if (flags & BF_DFRAG) {
 		if (measurefs_data_frag(fs, flags))
 			goto error_free_tree;
 	}
 
-	if (flags & F_FFRAG) {
+	if (flags & BF_FFRAG) {
 		if (measurefs_file_frag(fs, frag_filename,
 					flags))
 			goto error_free_tree;
 	}
 	
-	if (flags & F_TSTAT) {
+	if (flags & BF_TSTAT) {
 		if (measurefs_tree_stat(fs, flags))
 			goto error_free_tree;
 	}

@@ -19,9 +19,9 @@
 #include <reiser4/reiser4.h>
 
 enum behav_flags {
-	F_FORCE    = 1 << 0,
-	F_QUIET    = 1 << 1,
-	F_PLUGS    = 1 << 2
+	BF_FORCE    = 1 << 0,
+	BF_QUIET    = 1 << 1,
+	BF_PLUGS    = 1 << 2
 };
 
 typedef enum behav_flags behav_flags_t;
@@ -95,13 +95,13 @@ int main(int argc, char *argv[]) {
 			misc_print_banner(argv[0]);
 			return NO_ERROR;
 		case 'f':
-			flags |= F_FORCE;
+			flags |= BF_FORCE;
 			break;
 		case 'q':
-			flags |= F_QUIET;
+			flags |= BF_QUIET;
 			break;
 		case 'P':
-			flags |= F_PLUGS;
+			flags |= BF_PLUGS;
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
     
-	if (!(flags & F_QUIET))
+	if (!(flags & BF_QUIET))
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
@@ -131,8 +131,12 @@ int main(int argc, char *argv[]) {
 	/* Overriding profile by passed by used values. This should be done
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
-		aal_exception_info("Overriding default profile by \"%s\".",
-				   override);
+		override[aal_strlen(override) - 1] = '\0';
+
+		if (!(flags & BF_QUIET)) {
+			aal_exception_info("Overriding default profile "
+					   "by \"%s\".", override);
+		}
 		
 		if (misc_profile_override(override))
 			goto error_free_libreiser4;
@@ -141,7 +145,7 @@ int main(int argc, char *argv[]) {
 	/* Initializing passed profile */
 	profile = misc_profile_default();
     
-	if (flags & F_PLUGS) {
+	if (flags & BF_PLUGS) {
 		misc_profile_print();
 		libreiser4_fini();
 		return 0;
@@ -159,7 +163,7 @@ int main(int argc, char *argv[]) {
 	   whole drive or just a partition. If the device is not a block device,
 	   then we emmit exception and propose user to use -f flag to force. */
 	if (!S_ISBLK(st.st_mode)) {
-		if (!(flags & F_FORCE)) {
+		if (!(flags & BF_FORCE)) {
 			aal_exception_error("Device %s is not block device. "
 					    "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;
@@ -167,7 +171,7 @@ int main(int argc, char *argv[]) {
 	} else {
 		if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 64 == 0) ||
 		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
-		    (!(flags & F_FORCE)))
+		    (!(flags & BF_FORCE)))
 		{
 			aal_exception_error("Device %s is an entire harddrive, not "
 					    "just one partition.", host_dev);
@@ -176,7 +180,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (misc_dev_mounted(host_dev, NULL) && !(flags & F_FORCE)) {
+	if (misc_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
 		aal_exception_error("Device %s is mounted at the moment. "
 				    "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;

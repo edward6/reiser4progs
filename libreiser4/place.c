@@ -25,7 +25,7 @@ errno_t reiser4_place_last(reiser4_place_t *place) {
 	
 	if (place->pos.unit != MAX_UINT32) {
 		
-		if (reiser4_place_realize(place))
+		if (reiser4_place_fetch(place))
 			return -EINVAL;
 
 		place->pos.unit = reiser4_item_units(place) - 1;
@@ -54,7 +54,7 @@ bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 	} else {
 		uint32_t units;
 
-		if (reiser4_place_realize(place))
+		if (reiser4_place_fetch(place))
 			return FALSE;
 
 		units = reiser4_item_units(place);
@@ -88,7 +88,7 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	if (place->pos.item == items)
 		return TRUE;
 	
-	reiser4_place_realize(place);
+	reiser4_place_fetch(place);
 	units = reiser4_item_units(place);
 	
 	return (place->pos.item == items - 1 && 
@@ -97,29 +97,26 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 #endif
 
 /* Initializes all item-related fields */
-errno_t reiser4_place_realize(reiser4_place_t *place) {
+errno_t reiser4_place_fetch(reiser4_place_t *place) {
 	object_entity_t *entity;
 	
 	aal_assert("umka-1459", place != NULL);
-	aal_assert("umka-2342", place->tree != NULL);
 
 	entity = place->node->entity;
 
-	return plug_call(entity->plug->o.node_ops, get_item,
+	return plug_call(entity->plug->o.node_ops, fetch,
 			 entity, &place->pos, (place_t *)place);
 }
 
 /* This function initializes passed @place by specified params */
 errno_t reiser4_place_init(
 	reiser4_place_t *place,	 /* place to be initialized */
-	reiser4_tree_t *tree,	 /* tree, place will be opened on  */
 	reiser4_node_t *node,	 /* the first component of place */
 	pos_t *pos)	         /* place pos component */
 {
 	aal_assert("umka-795", place != NULL);
     
 	place->node = node;
-	place->tree = tree;
 
 	if (pos != NULL)
 		place->pos = *pos;
@@ -129,7 +126,6 @@ errno_t reiser4_place_init(
 
 errno_t reiser4_place_assign(
 	reiser4_place_t *place,	  /* place to be initialized */
-	reiser4_tree_t *tree,	  /* tree, place will be opened on  */
 	reiser4_node_t *node,     /* node to be assigned to place */
 	uint32_t item,            /* item component */
 	uint32_t unit)	          /* unit component */
@@ -137,13 +133,12 @@ errno_t reiser4_place_assign(
 	pos_t pos = {item, unit};
 	
         aal_assert("umka-1730", place != NULL);
-	return reiser4_place_init(place, tree, node, &pos);
+	return reiser4_place_init(place, node, &pos);
 }
 
 /* Initializes @place and its item related fields */
 errno_t reiser4_place_open(
 	reiser4_place_t *place,	 /* place to be initialized */
-	reiser4_tree_t *tree,	 /* tree, place will be opened on  */
 	reiser4_node_t *node,	 /* the first component of place */
 	pos_t *pos)	         /* place pos component */
 {
@@ -151,8 +146,8 @@ errno_t reiser4_place_open(
 	
         aal_assert("umka-1435", place != NULL);
 
-	if ((res = reiser4_place_init(place, tree, node, pos)))
+	if ((res = reiser4_place_init(place, node, pos)))
 		return res;
 
-	return reiser4_place_realize(place);
+	return reiser4_place_fetch(place);
 }

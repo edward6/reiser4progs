@@ -76,7 +76,6 @@ typedef struct reiser4_place reiser4_place_t;
 struct reiser4_place {
 	reiser4_node_t *node;
 	reiser4_plug_t *plug;
-	reiser4_tree_t *tree;
 
 	pos_t pos;
 	body_t *body;
@@ -376,7 +375,6 @@ struct reiser4_fs {
 struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
-	key_policy_t key;
 	char uuid[17], label[17];
 	reiser4_profile_t *profile;
 };

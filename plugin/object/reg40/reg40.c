@@ -545,7 +545,7 @@ static errno_t reg40_cut(object_entity_t *entity) {
 			return -EINVAL;
 		}
 
-		if (core->tree_ops.realize(reg->obj.tree, &place))
+		if (core->tree_ops.fetch(reg->obj.tree, &place))
 			return -EINVAL;
 
 		/* Check if we can remove whole item at @place */

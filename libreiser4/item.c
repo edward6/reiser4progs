@@ -3,10 +3,6 @@
    
    item.c -- common reiser4 item functions. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/reiser4.h>
 
 /* Returns count of units in item. If count method is not implemented, it
@@ -41,7 +37,7 @@ errno_t reiser4_item_estimate(
 		return 0;
 
 	if (place->pos.unit != MAX_UINT32) {
-		if ((res = reiser4_place_realize(place)))
+		if ((res = reiser4_place_fetch(place)))
 			return res;
 	}
 
@@ -103,19 +99,6 @@ rid_t reiser4_item_type(reiser4_place_t *place) {
 	return (place->plug->id.group < LAST_ITEM ?
 		place->plug->id.group : LAST_ITEM);
 }
-
-/* Retuns item body pointer */
-body_t *reiser4_item_body(reiser4_place_t *place) {
-	aal_assert("umka-554", place != NULL);
-	aal_assert("umka-1461", place->plug != NULL);
-	return place->body;
-}
-
-/* Returns item plugin in use */
-reiser4_plug_t *reiser4_item_plug(reiser4_place_t *place) {
-	aal_assert("umka-755", place != NULL);
-	return place->plug;
-}
 #endif
 
 /* Returns TRUE if @place points to an internal item */
@@ -128,34 +111,6 @@ bool_t reiser4_item_branch(reiser4_place_t *place) {
 
 	return place->plug->o.item_ops->branch();
 }
-
-/* Returns item len */
-uint32_t reiser4_item_len(reiser4_place_t *place) {
-	aal_assert("umka-760", place != NULL);
-	aal_assert("umka-1460", place->plug != NULL);
-	return place->len;
-}
-
-#ifndef ENABLE_STAND_ALONE
-/* Updates item key in node and in place->item.key field */
-errno_t reiser4_item_set_key(reiser4_place_t *place,
-			     reiser4_key_t *key)
-{
-	object_entity_t *entity;
-	
-	aal_assert("umka-1404", key != NULL);
-	aal_assert("umka-1403", place != NULL);
-	aal_assert("umka-2330", key->plug != NULL);
-	
-	if (!(entity = place->node->entity))
-		return -EINVAL;
-
-	reiser4_key_assign(&place->key, key);
-
-	return plug_call(entity->plug->o.node_ops, set_key,
-			 entity, &place->pos, key);
-}
-#endif
 
 /* Returns maximal possible key may exist in item at @place. If item's "get_key"
    method is not implemented, it returns item key. */
@@ -179,24 +134,6 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 }
 
 #ifndef ENABLE_STAND_ALONE
-bool_t reiser4_item_mergeable(reiser4_place_t *place1,
-			      reiser4_place_t *place2)
-{
-	aal_assert("umka-2006", place1 != NULL);
-	aal_assert("umka-2007", place2 != NULL);
-	
-	if (!place1->plug->o.item_ops->mergeable)
-		return FALSE;
-
-	if (place1->plug->o.item_ops->mergeable((place_t *)place1,
-						(place_t *)place2))
-	{
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
 /* Returns real maximal item key */
 errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 				 reiser4_key_t *key)
@@ -222,23 +159,5 @@ bool_t reiser4_item_data(reiser4_plug_t *plug) {
 
 	return (plug->o.item_ops->data &&
 		plug->o.item_ops->data());
-}
-
-errno_t reiser4_item_insert(reiser4_place_t *place,
-			    create_hint_t *hint)
-{
-	errno_t res;
-	
-	aal_assert("umka-2257", place != NULL);
-	aal_assert("umka-2258", hint != NULL);
-
-	if ((res = plug_call(place->plug->o.item_ops, insert,
-			     (place_t *)place, hint, place->pos.unit)))
-	{
-		return res;
-	}
-
-	reiser4_node_mkdirty(place->node);
-	return 0;
 }
 #endif

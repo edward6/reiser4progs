@@ -53,7 +53,7 @@ static int dir40_mergeable(object_entity_t *entity,
 		return 0;
 
 	/* Initializing item entity at @next place */
-	if (core->tree_ops.realize(dir->obj.tree, place))
+	if (core->tree_ops.fetch(dir->obj.tree, place))
 		return 0;
 	
 	/* Checking if item plugins are mergeable */
@@ -90,7 +90,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 			return -EINVAL;
 		
                 /* Initializing item entity at @next place */
-                if (core->tree_ops.realize(dir->obj.tree, &next))
+                if (core->tree_ops.fetch(dir->obj.tree, &next))
                         return -EINVAL;
                                                                                     
                 locality = plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
