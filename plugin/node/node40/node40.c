@@ -816,18 +816,6 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 
 	node = (node40_t *)entity;
 
-	if (pos->unit != MAX_UINT32) {
-		if (node40_fetch(entity, pos, &place))
-			return -EINVAL;
-
-		/* Checking if we have to remove whole item as it will has not units
-		   after removing. */
-		units = plug_call(place.plug->o.item_ops->balance, units, &place);
-
-		if (pos->unit == 0 && units == hint->count)
-			pos->unit = MAX_UINT32;
-	}
-
 	/* Check if we remove some number of whole items, or units inside
 	   particular item. */
 	if (pos->unit == MAX_UINT32) {
@@ -869,6 +857,9 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		   ignored.
 		*/
 
+		if ((res = node40_fetch(entity, pos, &place)))
+			return res;
+
 		units = plug_call(place.plug->o.item_ops->balance,
 				  units, &place);
 	
@@ -890,14 +881,14 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 			/* Forcing node40_shrink() to remove whole item, as we
 			   have removed all units from it.*/
 			len = place.len;
-			place.pos.unit = MAX_UINT32;
+			pos->unit = MAX_UINT32;
 		} else {
 			uint32_t pol = node40_key_pol(node);
 				
 			/* Updating items key if leftmost unit was changed and
 			   item will not be removed as it is not yet empty. */
-			if (place.pos.unit == 0) {
-				void *ih = node40_ih_at(node, place.pos.item);
+			if (pos->unit == 0) {
+				void *ih = node40_ih_at(node, pos->item);
 				aal_memcpy(ih, place.key.body, key_size(pol));
 			}
 		}

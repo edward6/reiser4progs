@@ -292,7 +292,6 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Save and free bitmap. */
-		aux_bitmap_close(bitmap);
 	} else {
 		/* Open file system on the device */
 		if (!(fs = reiser4_fs_open(device, FALSE))) {
