@@ -17,7 +17,8 @@ extern reiser4_key_t *reiser4_key_clone(reiser4_key_t *key);
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_key_print(reiser4_key_t *key,
-				 aal_stream_t *stream);
+				 aal_stream_t *stream,
+				 uint16_t options);
 
 extern uint64_t reiser4_key_get_hash(reiser4_key_t *key);
 

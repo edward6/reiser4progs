@@ -400,9 +400,17 @@ errno_t key_large_print(key_entity_t *key,
 	aal_assert("vpf-191", key != NULL);
 	aal_assert("umka-1548", stream != NULL);
 
+	if (options == SHORT) {
+		aal_stream_format(stream, "%llx:%llx:%llx",
+				  key_large_get_locality(key),
+				  key_large_get_ordering(key),
+				  key_large_get_objectid(key));
+		return 0;
+	}
+	
 	name = key_common_minor2name(key_large_get_type(key));
 	
-	aal_stream_format(stream, "[ key_large %llx:%x:%llx:%llx:%llx %s ]",
+	aal_stream_format(stream, "%llx:%x:%llx:%llx:%llx:%s",
 			  key_large_get_locality(key), key_large_get_type(key),
 			  key_large_get_ordering(key), key_large_get_fobjectid(key),
 			  key_large_get_offset(key), name);

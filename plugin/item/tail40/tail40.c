@@ -9,6 +9,8 @@
 
 #define tail40_body(place) (place->body)
 
+static reiser4_core_t *core = NULL;
+
 /* Returns tail length */
 uint32_t tail40_units(place_t *place) {
 	return place->len;
@@ -133,17 +135,11 @@ static errno_t tail40_print(place_t *place,
 	aal_assert("umka-1489", place != NULL);
 	aal_assert("umka-1490", stream != NULL);
 
-	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=",
-			  place->plug->label, place->len);
+	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=[%s] "
+			  "UNITS=%u\n", place->plug->label, place->len,
+			  core->key_ops.print_key(&place->key, 0), 
+			  place->len);
 		
-	if (plug_call(place->key.plug->o.key_ops, print,
-		      &place->key, stream, options))
-	{
-		return -EINVAL;
-	}
-	
-	aal_stream_format(stream, " UNITS=%u\n", place->len);
-	
 	return 0;
 }
 
@@ -430,6 +426,7 @@ static reiser4_plug_t tail40_plug = {
 };
 
 static reiser4_plug_t *tail40_start(reiser4_core_t *c) {
+	core = c;
 	return &tail40_plug;
 }
 

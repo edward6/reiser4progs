@@ -143,8 +143,8 @@ int main(int argc, char *argv[]) {
 		if (reiser4_object_readdir(dir, &entry) != 0)
 			break;
 
-		aal_snprintf(buff, sizeof(buff), "%s %s\n",
-			     reiser4_print_key(&entry.object),
+		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
+			     reiser4_print_key(&entry.object, 0),
 			     entry.name);
 
 		printf(buff);

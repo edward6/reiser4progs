@@ -143,8 +143,8 @@ static errno_t reg40_recreate_stat(reg40_t *reg) {
 	key = &reg->obj.info.object;
 	
 	aal_exception_error("Regular file [%s] does not have StatData "
-			    "item. Creating a new one.Plugin %s.",
-			    core->tree_ops.print_key(key), 
+			    "item. Creating a new one. Plugin %s.",
+			    core->key_ops.print_key(key, 0), 
 			    reg->obj.plug->label);
 	
 	pid = core->tree_ops.profile(reg->obj.info.tree, "statdata");
@@ -158,7 +158,7 @@ static errno_t reg40_recreate_stat(reg40_t *reg) {
 	if ((res = reg40_create_stat(&reg->obj, pid))) {
 		aal_exception_error("Regular file [%s] failed to create "
 				    "StatData item. Plugin %s.",
-				    core->tree_ops.print_key(key),
+				    core->key_ops.print_key(key, 0),
 				    reg->obj.plug->label);
 	}
 	
@@ -300,8 +300,15 @@ errno_t reg40_check_struct(object_entity_t *object,
 			
 			/* This should work correctly with extents and 
 			   put there flags for newly inserted items. */
-			if ((res = reg40_holes(object)))
+			if ((res = reg40_holes(object))) {
+				aal_exception_error("The object [%s] failed to "
+						    "create the hole on offsets"
+						    " [%llu-%llu]. Plugin %s.",
+						    core->key_ops.print_key(&info->object, 0),
+						    reg->offset, offset,
+						    reg->obj.plug->label);
 				return res;
+			}
 			
 			/* Scan through all just created holes. */
 			continue;

@@ -204,6 +204,12 @@ enum key_type {
 
 typedef enum key_type key_type_t;
 
+enum print_options {
+	P_SHORT			= 0x0
+};
+
+typedef enum print_options print_options_t;
+
 /* Type for describing reiser4 objects (like node, block allocator, etc) inside
    the library, created by plugins themselves and which also have the our plugin
    referrence. */
@@ -1327,9 +1333,6 @@ struct tree_ops {
 
 	/* Update the key in the place and the node itsef. */
 	errno_t (*ukey) (place_t *place, key_entity_t *key);
-
-	/* Print wrappers. */
-	char *(*print_key) (key_entity_t *);
 #endif
 	/* Returns next and prev items respectively */
 	errno_t (*next) (void *, place_t *, place_t *);
@@ -1363,6 +1366,12 @@ struct object_ops {
 typedef struct object_ops object_ops_t;
 #endif
 
+struct key_ops {
+	char *(*print_key) (key_entity_t *, uint16_t);
+};
+
+typedef struct key_ops key_ops_t;
+
 /* This structure is passed to all plugins in initialization time and used for
    access libreiser4 factories. */
 struct reiser4_core {
@@ -1372,6 +1381,7 @@ struct reiser4_core {
 #ifdef ENABLE_SYMLINKS
 	object_ops_t object_ops;
 #endif
+	key_ops_t key_ops;
 };
 
 #define plug_equal(plug1, plug2)                                 \

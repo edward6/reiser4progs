@@ -10,7 +10,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 	uint8_t len;
 
 	len = aal_strlen(LOST_PREFIX);
-	key = reiser4_print_key(&object->info.object);
+	key = reiser4_print_key(&object->info.object, P_SHORT);
 	
 	aal_memcpy(name, LOST_PREFIX, len);
 	aal_memcpy(name + len, key, aal_strlen(key));
@@ -339,10 +339,10 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	
 	if (res < 0) {
 		aal_exception_error("Semantic traverse failed to remove the "
-				    "entry %s (%s) pointing to %s.", 
-				    reiser4_print_key(&entry->offset),
+				    "entry \"%s\" [%s] pointing to [%s].", 
 				    entry->name, 
-				    reiser4_print_key(&entry->object));
+				    reiser4_print_key(&entry->offset, P_SHORT),
+				    reiser4_print_key(&entry->object, P_SHORT));
 	}
 
  error_close_object:

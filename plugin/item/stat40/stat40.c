@@ -383,22 +383,14 @@ static errno_t stat40_print(place_t *place,
 	aal_assert("umka-1407", place != NULL);
 	aal_assert("umka-1408", stream != NULL);
     
-	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=",
-			  place->plug->label, place->len);
+	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=[%s] "
+			  "UNITS=1\n", place->plug->label, place->len,
+			  core->key_ops.print_key(&place->key, 0));
 		
-	if (plug_call(place->key.plug->o.key_ops, print,
-		      &place->key, stream, options))
-	{
-		return -EINVAL;
-	}
-	
-	aal_stream_format(stream, " UNITS=1\n");
-
 	aal_stream_format(stream, "exts:\t\t%u\n",
 			  stat40_sdext_count(place));
 
-	return stat40_traverse(place, callback_print_ext,
-			       (void *)stream);
+	return stat40_traverse(place, callback_print_ext, (void *)stream);
 }
 
 /* Get the plugin id of the type @type if stored in SD. */

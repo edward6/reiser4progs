@@ -133,19 +133,10 @@ static errno_t extent40_print(place_t *place,
 	extent = extent40_body(place);
 	count = extent40_units(place);
 
-	aal_stream_format(stream, "EXTENT PLUGIN=%s LEN=%u, KEY=",
-			  place->plug->label, place->len);
+	aal_stream_format(stream, "EXTENT PLUGIN=%s LEN=%u, KEY=[%s] "
+			  "UNITS=%u\n[", place->plug->label, place->len,
+			  core->key_ops.print_key(&place->key, 0), count);
 		
-	if (plug_call(place->key.plug->o.key_ops, print,
-		      &place->key, stream, options))
-	{
-		return -EINVAL;
-	}
-	
-	aal_stream_format(stream, " UNITS=%u\n", count);
-	
-	aal_stream_format(stream, "[ ");
-	
 	for (i = 0; i < count; i++) {
 		aal_stream_format(stream, "%llu(%llu)%s",
 				  et40_get_start(extent + i),

@@ -17,9 +17,10 @@ errno_t reiser4_print_fini(void) {
 	return 0;
 }
 
-char *reiser4_print_key(reiser4_key_t *key) {
+char *reiser4_print_key(reiser4_key_t *key, uint16_t options) {
 	aal_stream_reset(&stream);
-	reiser4_key_print(key, &stream);
+	reiser4_key_print(key, &stream, options);
 	return (char *)stream.data;
 }
+
 #endif

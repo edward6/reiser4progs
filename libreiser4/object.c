@@ -268,7 +268,8 @@ reiser4_object_t *reiser4_object_realize(
 			   &object->info.start.key);
 	
 #ifndef ENABLE_STAND_ALONE
-	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+	aal_strncpy(object->name, 
+		    reiser4_print_key(&object->info.object, P_SHORT),
 		    sizeof(object->name));
 #endif
 	
@@ -439,7 +440,7 @@ reiser4_object_t *reiser4_object_create(
 	}
 	
 	/* @hint->object key is built by plugin create method. */
-	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+	aal_strncpy(object->name, reiser4_print_key(&object->info.object, P_SHORT),
 		    sizeof(object->name));
 	
 	return object;
@@ -537,7 +538,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	{
 		aal_exception_error("Can't find an item pointed by %s. "
 				    "Entry %s/%s points to nowere.",
-				    reiser4_print_key(&entry.object),
+				    reiser4_print_key(&entry.object, 0),
 				    object->name, name);
 		return -EINVAL;
 	}

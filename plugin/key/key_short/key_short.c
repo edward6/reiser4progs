@@ -376,12 +376,19 @@ errno_t key_short_print(key_entity_t *key,
 {
 	aal_assert("vpf-191", key != NULL);
 	aal_assert("umka-1548", stream != NULL);
-
-	aal_stream_format(stream, "[ key_short %llx:%x:%llx:%llx %s ]",
+	
+	if (options == SHORT) {
+		aal_stream_format(stream, "%llx:%llx",
+				  key_short_get_locality(key),
+				  key_short_get_objectid(key));
+		return 0;
+	}
+	
+	aal_stream_format(stream, "%llx:%x:%llx:%llx:%s",
 			  key_short_get_locality(key), key_short_get_type(key),
-			  key_short_get_objectid(key), key_short_get_offset(key),
+			  key_short_get_objectid(key), key_short_get_offset(key), 
 			  key_common_minor2name(key_short_get_type(key)));
-
+	
 	return 0;
 }
 #endif

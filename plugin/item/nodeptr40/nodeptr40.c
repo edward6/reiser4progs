@@ -5,6 +5,8 @@
 
 #include "nodeptr40.h"
 
+static reiser4_core_t *core = NULL;
+
 /* Returns the number of units in nodeptr. As nodeptr40 has not units and thus
    cannot be splitted by balancing, it has one unit. */
 static uint32_t nodeptr40_units(place_t *place) {
@@ -93,18 +95,9 @@ static errno_t nodeptr40_print(place_t *place,
     
 	nodeptr = nodeptr40_body(place);
 
-	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=",
-			  place->plug->label, place->len);
-		
-	if (plug_call(place->key.plug->o.key_ops, print,
-		      &place->key, stream, options))
-	{
-		return -EINVAL;
-	}
-	
-	aal_stream_format(stream, " UNITS=1\n");
-
-	aal_stream_format(stream, "[ %llu ]\n",
+	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=[%s] UNITS=1 "
+			  "\n[%llu]\n", place->plug->label, place->len, 
+			  core->key_ops.print_key(&place->key, 0), 
 			  np40_get_ptr(nodeptr));
 	
 	return 0;
@@ -127,7 +120,7 @@ static reiser4_item_ops_t nodeptr40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
 	.insert           = nodeptr40_insert,
 	.print		  = nodeptr40_print,
-	.check_struct		  = nodeptr40_check_struct,
+	.check_struct	  = nodeptr40_check_struct,
 	.layout           = nodeptr40_layout,
 	.check_layout	  = nodeptr40_check_layout,
 	.estimate_insert  = nodeptr40_estimate_insert,
@@ -171,6 +164,7 @@ static reiser4_plug_t nodeptr40_plug = {
 };
 
 static reiser4_plug_t *nodeptr40_start(reiser4_core_t *c) {
+	core = c;
 	return &nodeptr40_plug;
 }
 

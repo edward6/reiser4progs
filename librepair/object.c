@@ -26,7 +26,8 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	reiser4_key_assign(&object->info.object, &object->info.start.key);
 
-	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+	aal_strncpy(object->name, 
+		    reiser4_print_key(&object->info.object, P_SHORT),  
 		    sizeof(object->name));
 	
 	return res;
@@ -77,7 +78,8 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	reiser4_key_assign(&object->info.object,
 			   &object->info.start.key);
 	
-	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+	aal_strncpy(object->name, 
+		    reiser4_print_key(&object->info.object, P_SHORT),
 		    sizeof(object->name));
 	
 	return object;
@@ -130,7 +132,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	aal_assert("vpf-1196", object->entity != NULL && 
 			       object->entity != INVAL_PTR);
 	
-	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+	aal_strncpy(object->name, 
+		    reiser4_print_key(&object->info.object, P_SHORT),
 		    sizeof(object->name));
 
 	return object;

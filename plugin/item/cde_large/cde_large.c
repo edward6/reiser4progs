@@ -6,6 +6,8 @@
 #ifdef ENABLE_LARGE_KEYS
 #include "cde_large.h"
 
+static reiser4_core_t *core = NULL;
+
 /* Returns pointer to the objectid entry component in passed @cde at pased
    @pos. It is used in code bellow. */
 static objid_t *cde_large_objid(place_t *place,	uint32_t pos) {
@@ -769,18 +771,11 @@ static errno_t cde_large_print(place_t *place,
 
 	cde = cde_large_body(place);
 	
-	aal_stream_format(stream, "CDE PLUGIN=%s LEN=%u, KEY=",
-			  place->plug->label, place->len);
-		
-	if (plug_call(place->key.plug->o.key_ops, print,
-		      &place->key, stream, options))
-	{
-		return -EINVAL;
-	}
-	
-	aal_stream_format(stream, " UNITS=%u\n",
+	aal_stream_format(stream, "CDE PLUGIN=%s LEN=%u, KEY=[%s] UNITS=%u\n",
+			  place->plug->label, place->len, 
+			  core->key_ops.print_key(&place->key, 0), 
 			  de_get_units(cde));
-
+		
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
 			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
 	
@@ -1005,6 +1000,7 @@ static reiser4_plug_t cde_large_plug = {
 };
 
 static reiser4_plug_t *cde_large_start(reiser4_core_t *c) {
+	core = c;
 	return &cde_large_plug;
 }
 

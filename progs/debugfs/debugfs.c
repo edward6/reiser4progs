@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Pp",
+	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Pps",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
