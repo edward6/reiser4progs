@@ -138,7 +138,6 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 		if (copy <= prev)
 			continue;
 
-		aal_mess("backup block #%llu.", copy);
 		if ((res = region_func(fs, copy, 1, data)))
 			return res;
 
