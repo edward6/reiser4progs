@@ -106,7 +106,6 @@ errno_t format40_print(reiser4_entity_t *entity, char *buff,
     reiser4_aux_strcat(buff, n, "Description: %s\n", entity->plugin->h.desc);
     reiser4_aux_strcat(buff, n, "Block number: %llu\n\n", aal_block_number(block));
     
-    
     reiser4_aux_strcat(buff, n, "Magic: %s\n", super->sb_magic);
     reiser4_aux_strcat(buff, n, "Flushes: %llu\n", get_sb_flushes(super));
     reiser4_aux_strcat(buff, n, "Stamp: 0x%x\n", get_sb_mkfs_id(super));
