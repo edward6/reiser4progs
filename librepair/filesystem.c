@@ -108,7 +108,7 @@ error_journal_close:
 	repair->fs->journal = NULL;
 
  error_oid_close:
-	reiser4_tree_fini(repair->fs->tree);
+	reiser4_oid_close(repair->fs->oid);
 	
  error_alloc_close:
 	reiser4_alloc_close(repair->fs->alloc);

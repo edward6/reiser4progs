@@ -223,8 +223,9 @@ void repair_master_print(reiser4_master_t *master,
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	if (*master->ent.ms_uuid != '\0') {
-		char uuid[256];
+		char uuid[37];
 		
+		uuid[36] = '\0';
 		unparse(reiser4_master_get_uuid(master), uuid);
 		aal_stream_format(stream, "uuid:\t\t%s\n", uuid);
 	} else {
