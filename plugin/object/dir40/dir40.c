@@ -508,28 +508,51 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 static errno_t dir40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
-	bool_t pack;
+	uint64_t offset;
+	uint64_t objectid;
+	
+	key_entity_t key;
+	key_entity_t *maxkey;
+
 	dir40_t *dir = (dir40_t *)entity;
 
 	aal_assert("umka-1925", entity != NULL);
 
-	pack = dir->obj.core->tree_ops.pack_on(dir->obj.tree);
-	dir->obj.core->tree_ops.pack_ctl(dir->obj.tree, FALSE);
-	
-	while (1) {
-		if (object40_remove(&dir->obj, &dir->body.item.key, 1))
-			goto error_restore_pack;
+	key.plugin = dir->obj.key.plugin;
 
-		if (dir40_next(dir) != LP_PRESENT)
-			break;
+	maxkey = plugin_call(key.plugin->key_ops, maximal,);
+	offset = plugin_call(key.plugin->key_ops, get_offset, maxkey);
+	objectid = plugin_call(key.plugin->key_ops, get_objectid, maxkey);
+	
+	plugin_call(key.plugin->key_ops, build_generic, &key,
+		    KEY_FILENAME_TYPE, object40_objectid(&dir->obj),
+		    objectid, offset);
+
+	while (1) {
+		place_t place;
+		
+		if ((object40_lookup(&dir->obj, &key, LEAF_LEVEL,
+				     &place)) == LP_FAILED)
+		{
+			aal_exception_error("Lookup failed while searching "
+					    "the last directory item durring "
+					    "truncate the directory 0x%llx.",
+					    object40_objectid(&dir->obj));
+			return -1;
+		}
+
+		if (!dir40_mergeable(&dir->body.item, &place.item))
+			return 0;
+		
+		if (dir->obj.core->tree_ops.remove(dir->obj.tree, &place, 1)) {
+			aal_exception_error("Can't remove directory item "
+					    "from directory 0x%llx.",
+					    object40_objectid(&dir->obj));
+			return -1;
+		}
 	}
 	
-	dir->obj.core->tree_ops.pack_ctl(dir->obj.tree, pack);
 	return 0;
-
- error_restore_pack:
-	dir->obj.core->tree_ops.pack_ctl(dir->obj.tree, pack);
-	return -1;
 }
 
 static errno_t dir40_link(object_entity_t *entity) {

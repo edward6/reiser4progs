@@ -247,19 +247,6 @@ static errno_t tree_unlock(
 	return reiser4_node_unlock(p->node);
 }
 
-/* Pack control function */
-static void tree_pack_ctl(void *tree, bool_t cmd) {
-	if (cmd)
-		reiser4_tree_pack_on((reiser4_tree_t *)tree);
-	else
-		reiser4_tree_pack_off((reiser4_tree_t *)tree);
-}
-
-static bool_t tree_pack_on(void *tree) {
-	return (((reiser4_tree_t *)tree)->flags & TF_PACK)
-		? TRUE : FALSE;
-}
-
 static uint32_t tree_blockspace(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
 	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
@@ -307,10 +294,6 @@ reiser4_core_t core = {
 		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,
 		.unlock     = tree_unlock,
-
-		/* Packing control functions */
-		.pack_ctl       = tree_pack_ctl,
-		.pack_on       = tree_pack_on,
 
 #ifndef ENABLE_ALONE
 		
