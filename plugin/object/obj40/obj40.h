@@ -104,7 +104,8 @@ extern errno_t obj40_set_mtime(obj40_t *obj,
 extern errno_t obj40_set_bytes(obj40_t *obj,
 			       uint64_t bytes);
 
-extern errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func);
+extern errno_t obj40_recognize(obj40_t *obj,
+			       stat_func_t stat_func);
 
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    trans_hint_t *hint);
@@ -112,7 +113,7 @@ extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 extern errno_t obj40_insert(obj40_t *obj, place_t *place,
 			    trans_hint_t *hint, uint8_t level);
 
-extern errno_t obj40_write(obj40_t *obj, place_t *place,
+extern int32_t obj40_write(obj40_t *obj, place_t *place,
 			   trans_hint_t *hint, uint8_t level);
 
 extern errno_t obj40_ukey(obj40_t *obj, place_t *place, 

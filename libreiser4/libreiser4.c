@@ -38,7 +38,7 @@ static errno_t tree_insert(
 }
 
 /* Handler for write data to the tree */
-static errno_t tree_write(
+static int32_t tree_write(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* insertion point will be saved here */
 	trans_hint_t *hint,         /* item hint to be inserted into tree */

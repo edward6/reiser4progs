@@ -30,13 +30,20 @@ errno_t tail40_get_key(place_t *place,
 }
 
 static int32_t tail40_read(place_t *place, trans_hint_t *hint) {
+	uint32_t count;
+	
 	aal_assert("umka-1674", hint != NULL);
 	aal_assert("umka-1673", place != NULL);
 
-	aal_memcpy(hint->specific, place->body +
-		   hint->offset, hint->count);
+	count = hint->count;
 	
-	return hint->count;
+	if (hint->offset + hint->count > place->len)
+		count = place->len - hint->offset;
+			
+	aal_memcpy(hint->specific, place->body +
+		   hint->offset, count);
+	
+	return count;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -70,40 +77,37 @@ static errno_t tail40_estimate_write(place_t *place,
 static int32_t tail40_write(place_t *place,
 			    trans_hint_t *hint)
 {
-	uint32_t pos;
 	uint32_t count;
 	
 	aal_assert("umka-1677", hint != NULL);
 	aal_assert("umka-1678", place != NULL);
 
 	count = hint->count;
-	pos = place->pos.unit;
-
-	if (pos == MAX_UINT32)
-		pos = 0;
 	
-	if (count > place->len - pos)
-		count = place->len - pos;
+	if (count > place->len - hint->offset)
+		count = place->len - hint->offset;
 
 	/* Checking if we insert hole */
 	if (hint->specific) {
 		/* Copying new data into place */
-		aal_memcpy(place->body + pos,
+		aal_memcpy(place->body + hint->offset,
 			   hint->specific, count);
 	} else {
 		/* Making hole of size @count */
-		aal_memset(place->body + pos, 0, count);
+		aal_memset(place->body + hint->offset,
+			   0, count);
 	}
 
 	/* Updating the key */
-	if (pos == 0) {
-		body40_get_key(place, 0, &place->key, NULL);
+	if (hint->offset == 0) {
+		body40_get_key(place, 0,
+			       &place->key, NULL);
 	}
 
 	hint->bytes = count;
 	place_mkdirty(place);
 	
-	return hint->count;
+	return count;
 }
 
 static errno_t tail40_print(place_t *place, aal_stream_t *stream,
@@ -186,10 +190,10 @@ static errno_t tail40_estimate_shift(place_t *src_place,
 		goto out_update_hint;
 	}
 	
-	if (hint->control & SF_LEFT) {
+	if (hint->control & MSF_LEFT) {
 
 		/* Can we update insert point? */
-		if (hint->control & SF_UPTIP) {
+		if (hint->control & MSF_IPUPDT) {
 
 			/* Correcting @hint->rest. It should contains number of
 			   bytes we realy can move out. */
@@ -199,8 +203,8 @@ static errno_t tail40_estimate_shift(place_t *src_place,
 			hint->pos.unit -= hint->rest;
 
 			/* Moving insert point into neighbour item */
-			if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
-				hint->result |= SF_MOVIP;
+			if (hint->pos.unit == 0 && hint->control & MSF_IPMOVE) {
+				hint->result |= MSF_IPMOVE;
 
 				hint->pos.unit = hint->rest +
 					(dst_place ? dst_place->len : 0);
@@ -209,7 +213,7 @@ static errno_t tail40_estimate_shift(place_t *src_place,
 	} else {
 		uint32_t right;
 
-		if (hint->control & SF_UPTIP) {
+		if (hint->control & MSF_IPUPDT) {
 			
 			/* Is insert point inside item? */
 			if (hint->pos.unit < src_place->len) {
@@ -225,16 +229,16 @@ static errno_t tail40_estimate_shift(place_t *src_place,
 				/* Updating insert point to first position in
 				   neighbour item. */
 				if (hint->pos.unit == src_place->len &&
-				    hint->control & SF_MOVIP)
+				    hint->control & MSF_IPMOVE)
 				{
-					hint->result |= SF_MOVIP;
+					hint->result |= MSF_IPMOVE;
 					hint->pos.unit = 0;
 				}
 			} else {
 				/* Updating insert point to first position in
 				   neighbour item. */
-				if (hint->control & SF_MOVIP) {
-					hint->result |= SF_MOVIP;
+				if (hint->control & MSF_IPMOVE) {
+					hint->result |= MSF_IPMOVE;
 					hint->pos.unit = 0;
 				}
 
@@ -300,7 +304,7 @@ static errno_t tail40_shift(place_t *src_place,
 	aal_assert("umka-1666", dst_place != NULL);
 	aal_assert("umka-1667", hint != NULL);
 
-	if (hint->control & SF_LEFT) {
+	if (hint->control & MSF_LEFT) {
 		tail40_expand(dst_place, dst_place->len,
 			     hint->units, hint->rest);
 		

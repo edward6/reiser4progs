@@ -262,33 +262,33 @@ struct sdext_entity {
 typedef struct sdext_entity sdext_entity_t;
 
 /* Shift flags control shift process */
-enum shift_flags {
+enum mkspace_flags {
 
 	/* Perform shift from the passed node to the left neighbour node */
-	SF_LEFT	 = 1 << 0,
+	MSF_LEFT    = 1 << 0,
 
 	/* Perform shift from the passed node to the right neighbour node */
-	SF_RIGHT = 1 << 1,
+	MSF_RIGHT   = 1 << 1,
 
 	/* Allows to move insert point to the corresponding neighbour node while
 	   performing shift. */
-	SF_MOVIP = 1 << 2,
+	MSF_IPMOVE  = 1 << 2,
 
 	/* Allows update insert point while performing shift */
-	SF_UPTIP = 1 << 3,
+	MSF_IPUPDT  = 1 << 3,
 
-	/* Allows do not create new items while performing the shift of
+	/* Forces do not create new items while performing the shift of
 	   units. Units from the source item may be moved into an item if the
 	   items are mergeable. */
-	SF_MERGE = 1 << 4,
+	MSF_MERGE = 1 << 4,
 
-	/* Should be new node allocated durring make space or not */
-	SF_ALLOC = 1 << 5
+	/* Should be new nodes allocated durring make space or not */
+	MSF_ALLOC = 1 << 5
 };
 
-typedef enum shift_flags shift_flags_t;
+typedef enum mkspace_flags mkspace_flags_t;
 
-#define SF_DEFAULT (SF_LEFT | SF_RIGHT | SF_ALLOC)
+#define MSF_DEF (MSF_LEFT | MSF_RIGHT | MSF_ALLOC)
 
 struct shift_hint {
 	/* Flag which shows that we need create an item before we will move
@@ -871,7 +871,7 @@ struct reiser4_node_ops {
 			   trans_hint_t *);
     
 	/* Writes data to the node */
-	errno_t (*write) (node_entity_t *, pos_t *,
+	int32_t (*write) (node_entity_t *, pos_t *,
 			  trans_hint_t *);
 
 	errno_t (*cutout) (node_entity_t *, pos_t *,
@@ -1207,8 +1207,8 @@ struct reiser4_journal_ops {
 	errno_t (*replay) (generic_entity_t *);
 
 	/* Prints journal content */
-	errno_t (*print) (generic_entity_t *, aal_stream_t *,
-			  uint16_t);
+	errno_t (*print) (generic_entity_t *,
+			  aal_stream_t *, uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
 	errno_t (*check_struct) (generic_entity_t *,

@@ -74,7 +74,7 @@ extern int32_t reiser4_tree_read(reiser4_tree_t *tree,
 				 reiser4_place_t *place,
 				 trans_hint_t *hint);
 
-extern errno_t reiser4_tree_write(reiser4_tree_t *tree,
+extern int32_t reiser4_tree_write(reiser4_tree_t *tree,
 				  reiser4_place_t *place,
 				  trans_hint_t *hint,
 				  uint8_t level);

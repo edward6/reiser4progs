@@ -49,14 +49,14 @@ extern errno_t reiser4_node_ukey(reiser4_node_t *node,
 				 pos_t *pos,
 				 reiser4_key_t *key);
 
-extern errno_t reiser4_node_mod(reiser4_node_t *node, pos_t *pos,
+extern int32_t reiser4_node_mod(reiser4_node_t *node, pos_t *pos,
 				trans_hint_t *hint, bool_t insert);
+
+extern int32_t reiser4_node_write(reiser4_node_t *node,
+				  pos_t *pos, trans_hint_t *hint);
 
 extern errno_t reiser4_node_insert(reiser4_node_t *node,
    				   pos_t *pos, trans_hint_t *hint);
-
-extern errno_t reiser4_node_write(reiser4_node_t *node,
-				  pos_t *pos, trans_hint_t *hint);
 
 extern errno_t reiser4_node_remove(reiser4_node_t *node,
 				   pos_t *pos, trans_hint_t *hint);

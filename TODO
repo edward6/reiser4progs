@@ -3,6 +3,11 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* items write code should see if uit is able to put requested 
+  amount of data. It should return the value which is realy put
+  in tree and then write operation will be repeated until all needed
+  data is written.
+
 * release extent blocks in block allocator data durring tail
   conversion.
 

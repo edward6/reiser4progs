@@ -490,7 +490,7 @@ errno_t obj40_insert(obj40_t *obj, place_t *place,
 }
 
 /* Writes data to tree */
-errno_t obj40_write(obj40_t *obj, place_t *place,
+int32_t obj40_write(obj40_t *obj, place_t *place,
 		    trans_hint_t *hint, uint8_t level)
 {
 	return obj->core->tree_ops.write(obj->info.tree,
