@@ -73,7 +73,7 @@ errno_t reiser4_item_estimate(
 
 	aal_assert("umka-2230", hint->plugin != NULL);
 
-	/* Check if we're going insert unit or an item instead */
+	/* Check if we're going to insert an unit or an item instead */
 	if (place->pos.unit != ~0ul) {
 		/*
 		  Unit component is set, so, we assume this is an attempt insert
