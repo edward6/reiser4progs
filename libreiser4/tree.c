@@ -574,6 +574,22 @@ errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
 	
 	return reiser4_tree_unload_node(tree, node);
 }
+
+/* Releases node from tree previously detaching it if @detach is 1. This
+   function is just for making bunch of actions which occured often enough. */
+static void reiser4_tree_discard_node(reiser4_tree_t *tree,
+				      reiser4_node_t *node,
+				      int detach)
+{
+	aal_assert("umka-2671", tree != NULL);
+	aal_assert("umka-2672", node != NULL);
+
+	if (detach)
+		reiser4_tree_detach_node(tree, node);
+	
+	reiser4_node_mkclean(node);
+	reiser4_tree_release_node(tree, node);
+}
 #endif
 
 /* Builds root key and stores it in passed @tree instance */
@@ -1585,9 +1601,8 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	reiser4_tree_assign_root(tree, new_root);
 	
         /* Releasing old root node */
-	reiser4_node_mkclean(old_root);
-	reiser4_tree_release_node(tree, old_root);
-
+	reiser4_tree_discard_node(tree, old_root, 0);
+	
 	return 0;
 }
 
@@ -1708,13 +1723,8 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 	} else {
 		/* Releasing old node, because it got empty as result of data
 		   shifting. */
-		if (reiser4_node_items(left) == 0) {
-			if ((res = reiser4_tree_detach_node(tree, left)))
-				return res;
-			
-			reiser4_node_mkclean(left);
-			reiser4_tree_release_node(tree, left);
-		}
+		if (reiser4_node_items(left) == 0)
+			reiser4_tree_discard_node(tree, left, 1);
 	}
 
 	/* Attaching new allocated node into the tree, if it is not
@@ -1873,8 +1883,7 @@ int32_t reiser4_tree_expand(
 		/* Taking care about new allocated @node and possible gets free
 		   @save.node (attaching, detaching from the tree, etc.). */
 		if ((res = reiser4_tree_care(tree, save.node, node))) {
-			reiser4_node_mkclean(node);
-			reiser4_tree_release_node(tree, node);
+			reiser4_tree_discard_node(tree, node, 0);
 			return res;
 		}
 
@@ -1944,17 +1953,12 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 
 			/* Check if node got enmpty. If so then we release
 			   it. */
-			if (reiser4_node_items(right) == 0) {
-				reiser4_node_mkclean(right);
-				reiser4_tree_detach_node(tree, right);
-				reiser4_tree_release_node(tree, right);
-			}
+			if (reiser4_node_items(right) == 0)
+				reiser4_tree_discard_node(tree, right, 1);
 		}
 	} else {
 		/* Release node, because it got empty. */
-		reiser4_node_mkclean(place->node);
-		reiser4_tree_detach_node(tree, place->node);
-		reiser4_tree_release_node(tree, place->node);
+		reiser4_tree_discard_node(tree, place->node, 1);
 	}
 
 	/* Drying tree up in the case root node has only one item */
@@ -2024,7 +2028,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 
 			/* Attach new node to tree. */
 			if ((res = reiser4_tree_attach_node(tree, node))) {
-				reiser4_tree_release_node(tree, node);
+				reiser4_tree_discard_node(tree, node, 0);
 				aal_exception_error("Tree is failed to attach "
 						    "node durring split opeartion.");
 				goto error_free_node;
@@ -2264,15 +2268,8 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 				}
 			}
 		} else {
-			/* Detaching node from the tree, because it became
-			   empty. */
-			reiser4_node_mkclean(place.node);
-			reiser4_tree_detach_node(tree, place.node);
-
-			/* Freeing node and updating place node component in
-			   order to let user know that node do not exist any
-			   longer. */
-			reiser4_tree_release_node(tree, place.node);
+			/* Release @place.node, as it gets empty.  */
+			reiser4_tree_discard_node(tree, place.node, 1);
 		}
 
 		/* Drying tree up in the case root node has only one item */
@@ -2651,14 +2648,8 @@ errno_t reiser4_tree_remove(
 				return res;
 		}
 	} else {
-		/* Detaching node from the tree, because it became empty */
-		reiser4_node_mkclean(place->node);
-		reiser4_tree_detach_node(tree, place->node);
-
-		/* Freeing node and updating place node component in order to
-		   let user know that node do not exist any longer. */
-		reiser4_tree_release_node(tree, place->node);
-		place->node = NULL;
+		/* Releasing node from the tree, as it gets empty. */
+		reiser4_tree_discard_node(tree, place->node, 1);
 	}
 
 	/* Drying tree up in the case root node has only one item */

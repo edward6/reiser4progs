@@ -333,15 +333,15 @@ struct merge_hint {
 	
 	key_entity_t start, end;
 	
-	/* Fields bellow are only related to extent estimate_merge() and merge()
-	   operations. */
+	/* Fields bellow are only related to extent prep_merge() and
+	   merge_units() operations. */
 	
 	/* Offset in blocks in the start and end units of dst and src */
 	uint64_t dst_tail, src_tail;
 	uint64_t dst_head, src_head;
 
-	/* Should be dst head and tail splitted into 2 units while 
-	   performing merge() operation. */
+	/* Should be dst head and tail splitted into 2 units while performing
+	   merge_units() operation. */
 	bool_t head, tail;
 };
 

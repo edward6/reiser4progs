@@ -960,7 +960,7 @@ static int node40_mergeable(place_t *src, place_t *dst) {
 static int node40_splitable(place_t *place) {
 	uint32_t units;
 	
-	/* Check if item has shift() and estimate_shift() method are
+	/* Check if item's shift_units() and prep_shift() method are
 	   implemented. */
 	if (!place->plug->o.item_ops->balance->shift_units ||
 	    !place->plug->o.item_ops->balance->prep_shift)
@@ -1062,7 +1062,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	if ((res = node40_border(src_entity, left_shift, &src_place)))
 		return res;
 
-	/* Items that do not implement estimate_shift() and shift() methods
+	/* Items that do not implement prep_shift() and shift_units() methods
 	   cannot be splitted. */
 	if (!node40_splitable(&src_place))
 		return 0;
