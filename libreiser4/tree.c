@@ -16,7 +16,7 @@
 #ifndef ENABLE_COMPACT
 
 /* Requests block allocator for new block and creates empty node in it */
-static reiser4_avatar_t *reiser4_tree_allocate(
+static reiser4_joint_t *reiser4_tree_allocate(
     reiser4_tree_t *tree,	    /* tree for operating on */
     uint8_t level		    /* level of new node */
 ) {
@@ -25,7 +25,7 @@ static reiser4_avatar_t *reiser4_tree_allocate(
     
     rpid_t pid;
     reiser4_node_t *node;
-    reiser4_avatar_t *avatar;
+    reiser4_joint_t *joint;
     
     aal_assert("umka-756", tree != NULL, return NULL);
     
@@ -52,16 +52,16 @@ static reiser4_avatar_t *reiser4_tree_allocate(
     plugin_call(goto error_free_block, node->entity->plugin->node_ops,
 	set_stamp, node->entity, reiser4_format_get_stamp(tree->fs->format));
     
-    if (!(avatar = reiser4_avatar_create(node)))
+    if (!(joint = reiser4_joint_create(node)))
 	goto error_free_node;
     
     /* Setting up of the free blocks in format */
     reiser4_format_set_free(tree->fs->format, 
 	reiser4_alloc_free(tree->fs->alloc));
     
-    avatar->level = level;
+    joint->level = level;
     
-    return avatar;
+    return joint;
     
 error_free_node:
     reiser4_node_close(node);
@@ -71,29 +71,29 @@ error_free_block:
 }
 
 static void reiser4_tree_release(reiser4_tree_t *tree, 
-    reiser4_avatar_t *avatar) 
+    reiser4_joint_t *joint) 
 {
-    aal_assert("umka-917", avatar != NULL, return);
-    aal_assert("umka-918", avatar->node != NULL, return);
+    aal_assert("umka-917", joint != NULL, return);
+    aal_assert("umka-918", joint->node != NULL, return);
 
     reiser4_alloc_release(tree->fs->alloc, 
-	aal_block_number(avatar->node->block));
+	aal_block_number(joint->node->block));
     
     /* Sets up the free blocks in block allocator */
     reiser4_format_set_free(tree->fs->format, 
 	reiser4_alloc_free(tree->fs->alloc));
     
-    reiser4_avatar_close(avatar);
+    reiser4_joint_close(joint);
 }
 
 #endif
 
-static reiser4_avatar_t *reiser4_tree_load(reiser4_tree_t *tree, 
+static reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
     blk_t blk, uint8_t level) 
 {
     aal_block_t *block;
     reiser4_node_t *node;
-    reiser4_avatar_t *avatar;
+    reiser4_joint_t *joint;
 
     if (!(block = aal_block_open(tree->fs->format->device, blk))) {
 	aal_exception_error("Can't allocate block %llu in memory.", blk);
@@ -103,12 +103,12 @@ static reiser4_avatar_t *reiser4_tree_load(reiser4_tree_t *tree,
     if (!(node = reiser4_node_open(block))) 
 	goto error_free_block;
 	    
-    if (!(avatar = reiser4_avatar_create(node)))
+    if (!(joint = reiser4_joint_create(node)))
 	goto error_free_node;
 
-    avatar->level = level;
+    joint->level = level;
     
-    return avatar;
+    return joint;
     
 error_free_node:
     reiser4_node_close(node);
@@ -258,8 +258,8 @@ reiser4_tree_t *reiser4_tree_create(
 	goto error_free_block;
     }
 
-    /* Creating avatar for the root node */
-    if (!(tree->root = reiser4_avatar_create(node)))
+    /* Creating joint for the root node */
+    if (!(tree->root = reiser4_joint_create(node)))
 	goto error_free_node;
     
     /* Setting up of the root block */
@@ -300,7 +300,7 @@ errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
 	aal_list_t *walk;
 	
 	aal_list_foreach_forward(walk, list)
-	    reiser4_avatar_close((reiser4_avatar_t *)walk->data);
+	    reiser4_joint_close((reiser4_joint_t *)walk->data);
 	
 	tree->root->children = NULL;
     }
@@ -311,7 +311,7 @@ errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
     aal_assert("umka-560", tree != NULL, return -1);
-    return reiser4_avatar_sync(tree->root);
+    return reiser4_joint_sync(tree->root);
 }
 
 #endif
@@ -320,7 +320,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 void reiser4_tree_close(reiser4_tree_t *tree) {
     aal_assert("umka-134", tree != NULL, return);
     
-    reiser4_avatar_close(tree->root);
+    reiser4_joint_close(tree->root);
     aal_free(tree);
 }
 
@@ -345,7 +345,7 @@ int reiser4_tree_lookup(
     reiser4_key_t ldkey;
     reiser4_item_t item;
     reiser4_coord_t fake;
-    reiser4_avatar_t *parent;
+    reiser4_joint_t *parent;
 
     aal_assert("umka-742", key != NULL, return -1);
 
@@ -364,7 +364,7 @@ int reiser4_tree_lookup(
         *key = tree->key;
 		    
     while (1) {
-	reiser4_node_t *node = coord->avatar->node;
+	reiser4_node_t *node = coord->joint->node;
 	
 	/* 
 	    Looking up for key inside node. Result of lookuping will be stored
@@ -373,15 +373,15 @@ int reiser4_tree_lookup(
 	if ((lookup = reiser4_node_lookup(node, key, &coord->pos)) == -1)
 	    return -1;
 
-	if (deep <= level || reiser4_node_count(coord->avatar->node) == 0)
+	if (deep <= level || reiser4_node_count(coord->joint->node) == 0)
 	    return lookup;
        	
 	if (lookup == 0 && coord->pos.item > 0)
 	    coord->pos.item--;
 
-	if (reiser4_item_open(&item, coord->avatar->node, &coord->pos)) {
+	if (reiser4_item_open(&item, coord->joint->node, &coord->pos)) {
 	    aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
-	        aal_block_number(coord->avatar->node->block), coord->pos.item);
+	        aal_block_number(coord->joint->node->block), coord->pos.item);
 	    return -1;
 	}
 	    
@@ -393,7 +393,7 @@ int reiser4_tree_lookup(
 	    
 	/* Getting the node pointer from internal item */
 	if ((target = reiser4_item_get_nptr(&item)) == FAKE_BLK) {
-	    reiser4_node_t *node = coord->avatar->node;
+	    reiser4_node_t *node = coord->joint->node;
 
 	    aal_exception_error("Can't get pointer from internal item %u, "
 		"node %llu.", item.pos->item, aal_block_number(node->block));
@@ -401,36 +401,36 @@ int reiser4_tree_lookup(
 	}
 	
 	deep--; 
-	parent = coord->avatar;
+	parent = coord->joint;
 	
 	/* 
 	    Check whether specified node already in cache. If so, we use node
 	    from the cache.
 	*/
-	reiser4_node_get_key(coord->avatar->node, &coord->pos, &ldkey);
+	reiser4_node_get_key(coord->joint->node, &coord->pos, &ldkey);
 
-	if (!(coord->avatar = reiser4_avatar_find(parent, &ldkey))) {
+	if (!(coord->joint = reiser4_joint_find(parent, &ldkey))) {
 	    /* 
 		Node was not found in the cache, we open it and attach to the 
 		cache.
 	    */
-	    if (!(coord->avatar = reiser4_tree_load(tree, target, deep))) {
+	    if (!(coord->joint = reiser4_tree_load(tree, target, deep))) {
 		aal_exception_error("Can't load node %llu durring lookup.", target);
 		return -1;
 	    }
 
 	    /* Registering node in tree cache */
-	    if (reiser4_avatar_attach(parent, coord->avatar)) {
+	    if (reiser4_joint_attach(parent, coord->joint)) {
 		aal_exception_error("Can't attach the node %llu in the tree.", target);
-		goto error_free_avatar;
+		goto error_free_joint;
 	    }
 	}
     }
     
     return 0;
     
-error_free_avatar:
-    reiser4_avatar_close(coord->avatar);
+error_free_joint:
+    reiser4_joint_close(coord->joint);
     return -1;
 }
 
@@ -439,7 +439,7 @@ error_free_avatar:
 /* This function inserts internal item to the tree */
 static errno_t reiser4_tree_attach(
     reiser4_tree_t *tree,	    /* tree we will attach node to */
-    reiser4_avatar_t *avatar	    /* child to attached */
+    reiser4_joint_t *joint	    /* child to attached */
 ) {
     rpid_t id;
     int lookup, level;
@@ -448,7 +448,7 @@ static errno_t reiser4_tree_attach(
     reiser4_internal_hint_t internal_hint;
 
     aal_assert("umka-913", tree != NULL, return -1);
-    aal_assert("umka-916", avatar != NULL, return -1);
+    aal_assert("umka-916", joint != NULL, return -1);
     
     /* Preparing internal item hint */
     aal_memset(&hint, 0, sizeof(hint));
@@ -467,9 +467,9 @@ static errno_t reiser4_tree_attach(
     }
 
     aal_memset(&internal_hint, 0, sizeof(internal_hint));
-    internal_hint.ptr = aal_block_number(avatar->node->block);
+    internal_hint.ptr = aal_block_number(joint->node->block);
 
-    reiser4_node_lkey(avatar->node, &hint.key);
+    reiser4_node_lkey(joint->node, &hint.key);
     hint.hint = &internal_hint;
 
     if (reiser4_tree_insert(tree, &hint, LEAF_LEVEL + 1, &coord)) {
@@ -477,9 +477,9 @@ static errno_t reiser4_tree_attach(
 	return -1;
     }
     
-    if (reiser4_avatar_attach(coord.avatar, avatar)) {
+    if (reiser4_joint_attach(coord.joint, joint)) {
         aal_exception_error("Can't attach the node %llu in tree cache.", 
-	    aal_block_number(avatar->node->block));
+	    aal_block_number(joint->node->block));
 	return -1;
     }
 
@@ -490,7 +490,7 @@ static errno_t reiser4_tree_attach(
 static errno_t reiser4_tree_grow(
     reiser4_tree_t *tree	/* tree to be growed up */
 ) {
-    reiser4_avatar_t *old_root = tree->root;
+    reiser4_joint_t *old_root = tree->root;
     
     /* Allocating new root node */
     if (!(tree->root = reiser4_tree_allocate(tree, old_root->level + 1))) {
@@ -522,7 +522,7 @@ static errno_t reiser4_tree_shift(
     reiser4_tree_t *tree,	/* tree we will operate on */
     direction_t direction,	/* direction of the shifting */
     reiser4_coord_t *coord,	/* insert point coord */
-    reiser4_avatar_t *avatar,	/* destination node */
+    reiser4_joint_t *joint,	/* destination node */
     uint32_t needed,
     int move_ip			/* should we move insert point too */
 ) {
@@ -534,10 +534,10 @@ static errno_t reiser4_tree_shift(
     
     aal_assert("umka-1225", tree != NULL, return -1);
     aal_assert("umka-1226", coord != NULL, return -1);
-    aal_assert("umka-1227", avatar != NULL, return -1);
+    aal_assert("umka-1227", joint != NULL, return -1);
     
     aal_assert("umka-1258", 
-	reiser4_node_count(coord->avatar->node) > 0, return -1);
+	reiser4_node_count(coord->joint->node) > 0, return -1);
 
     old = *coord;
     
@@ -545,30 +545,30 @@ static errno_t reiser4_tree_shift(
     
 	/* Prepare the src and dst coords for moving */
 	if (direction == D_LEFT) {
-	    reiser4_coord_init(&src, old.avatar, 0, ~0ul);
+	    reiser4_coord_init(&src, old.joint, 0, ~0ul);
 	    
-	    reiser4_coord_init(&dst, avatar, 
-		reiser4_node_count(avatar->node), ~0ul);
+	    reiser4_coord_init(&dst, joint, 
+		reiser4_node_count(joint->node), ~0ul);
 	} else {
-	    reiser4_coord_init(&src, old.avatar, 
-		reiser4_node_count(old.avatar->node) - 1, ~0ul);
+	    reiser4_coord_init(&src, old.joint, 
+		reiser4_node_count(old.joint->node) - 1, ~0ul);
 	    
-	    reiser4_coord_init(&dst, avatar, 0, ~0ul);
+	    reiser4_coord_init(&dst, joint, 0, ~0ul);
 	}
 	
 	/* Getting src item to be moved */
-	if (reiser4_item_open(&item, src.avatar->node, &src.pos)) {
+	if (reiser4_item_open(&item, src.joint->node, &src.pos)) {
 	    aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
-		aal_block_number(src.avatar->node->block), src.pos.item);
+		aal_block_number(src.joint->node->block), src.pos.item);
 	    return -1;
 	}
 	
-	overhead = reiser4_node_overhead(avatar->node);
+	overhead = reiser4_node_overhead(joint->node);
 	
-	if (reiser4_node_space(avatar->node) < reiser4_item_len(&item) + overhead)
+	if (reiser4_node_space(joint->node) < reiser4_item_len(&item) + overhead)
 	    return 0;
 	
-	if (reiser4_node_space(avatar->node) - 
+	if (reiser4_node_space(joint->node) - 
 		(reiser4_item_len(&item) + overhead) < needed)
 	    return 0;
 	
@@ -576,12 +576,12 @@ static errno_t reiser4_tree_shift(
 	    Check if we should finish shifting due to insert point reached and
 	    @move_ip flag is not turned on.
 	*/
-	if (!move_ip && coord->avatar == old.avatar) {
+	if (!move_ip && coord->joint == old.joint) {
 	    if (direction == D_LEFT) {
 		if (coord->pos.item == 0)
 		    return 0;
 	    } else {
-		uint32_t count = reiser4_node_count(coord->avatar->node);
+		uint32_t count = reiser4_node_count(coord->joint->node);
 		if (coord->pos.item == count - 1)
 		    return 0;
 	    }
@@ -589,24 +589,24 @@ static errno_t reiser4_tree_shift(
 
 	/* Updating the insertion point coord */
 	if (direction == D_LEFT) {
-	    if (coord->avatar == old.avatar) {
+	    if (coord->joint == old.joint) {
 		if (coord->pos.item == 0) {
-		    coord->avatar = dst.avatar;
-		    coord->pos.item = reiser4_node_count(dst.avatar->node);
+		    coord->joint = dst.joint;
+		    coord->pos.item = reiser4_node_count(dst.joint->node);
 		} else
 		    coord->pos.item--;
 	    }
 	} else {
-	    if (coord->avatar == old.avatar) {
-		uint32_t count = reiser4_node_count(old.avatar->node);
+	    if (coord->joint == old.joint) {
+		uint32_t count = reiser4_node_count(old.joint->node);
 		if (coord->pos.item >= count - 1) {
 		    if (coord->pos.item > count - 1) {
 			coord->pos.item = 0;
-			coord->avatar = dst.avatar;
+			coord->joint = dst.joint;
 			return 0;
 		    }
 		    coord->pos.item = 0;
-		    coord->avatar = dst.avatar;
+		    coord->joint = dst.joint;
 		}
 	    } else
 		coord->pos.item++;
@@ -619,11 +619,11 @@ static errno_t reiser4_tree_shift(
 	    return -1;
 	}
 	
-	if (coord->avatar != src.avatar)
+	if (coord->joint != src.joint)
 	    return 0;
 
 	aal_assert("umka-1260", 
-	    reiser4_node_count(src.avatar->node) > 0, return -1);
+	    reiser4_node_count(src.joint->node) > 0, return -1);
     }
 
     return 0;
@@ -638,7 +638,7 @@ errno_t reiser4_tree_mkspace(
     int alloc;
     uint32_t max_space;
     int32_t not_enough;
-    reiser4_avatar_t *parent;
+    reiser4_joint_t *parent;
 
     aal_assert("umka-759", old != NULL, return -1);
     aal_assert("umka-766", new != NULL, return -1);
@@ -649,7 +649,7 @@ errno_t reiser4_tree_mkspace(
     if (needed == 0)
 	return 0;
     
-    max_space = reiser4_node_maxspace(old->avatar->node);
+    max_space = reiser4_node_maxspace(old->joint->node);
 	
     /* 
         Checking if item hint to be inserted to tree has length more than 
@@ -661,71 +661,71 @@ errno_t reiser4_tree_mkspace(
 	return -1;
     }
     
-    if ((not_enough = needed  - reiser4_node_space(old->avatar->node)) <= 0)
+    if ((not_enough = needed  - reiser4_node_space(old->joint->node)) <= 0)
 	return 0;
     
-    if (reiser4_avatar_realize(old->avatar)) {
+    if (reiser4_joint_realize(old->joint)) {
 	aal_exception_error("Can't raise up neighbours of node %llu.", 
-	    aal_block_number(old->avatar->node->block));
+	    aal_block_number(old->joint->node->block));
 	return -1;
     }
     
-    if (new->avatar->left) {
+    if (new->joint->left) {
 	    
-	if (reiser4_tree_shift(tree, D_LEFT, new, new->avatar->left, needed, 0))
+	if (reiser4_tree_shift(tree, D_LEFT, new, new->joint->left, needed, 0))
 	    return -1;
 	
-	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
+	if ((not_enough = needed - reiser4_node_space(new->joint->node)) <= 0)
 	    return 0;
     }
 
-    if (new->avatar->right) {
+    if (new->joint->right) {
 	    
-	if (reiser4_tree_shift(tree, D_RIGHT, new, new->avatar->right, needed, 0))
+	if (reiser4_tree_shift(tree, D_RIGHT, new, new->joint->right, needed, 0))
 	    return -1;
 	
-	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
+	if ((not_enough = needed - reiser4_node_space(new->joint->node)) <= 0)
 	    return 0;
     }
     
     for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
 	reiser4_coord_t save;
-        reiser4_avatar_t *avatar;
+        reiser4_joint_t *joint;
 	
-        if (!(avatar = reiser4_tree_allocate(tree, new->avatar->level)))
+        if (!(joint = reiser4_tree_allocate(tree, new->joint->level)))
 	   return -1;
 	
 	reiser4_coord_dup(new, &save);
 	
-        if (reiser4_tree_shift(tree, D_RIGHT, new, avatar, needed, 1))
+        if (reiser4_tree_shift(tree, D_RIGHT, new, joint, needed, 1))
 	   return -1;
 	
 	/* Attaching new allocated node into the tree */
-	if (reiser4_node_count(avatar->node)) {
+	if (reiser4_node_count(joint->node)) {
 		
-	    if (reiser4_tree_attach(tree, avatar)) {
+	    if (reiser4_tree_attach(tree, joint)) {
 		aal_exception_error("Can't attach node to the tree.");
-		reiser4_tree_release(tree, avatar);
+		reiser4_tree_release(tree, joint);
 		return -1;
 	    }
 	}
 	
-	not_enough = needed - reiser4_node_space(new->avatar->node);
+	not_enough = needed - reiser4_node_space(new->joint->node);
 	
 	/* Checking if the old have enough free space after shifting */
-        if (not_enough > 0 && save.avatar != new->avatar && 
+        if (not_enough > 0 && save.joint != new->joint && 
 	    new->pos.unit == ~0ull) 
 	{
 	    reiser4_coord_dup(&save, new);
-	    not_enough = needed - reiser4_node_space(new->avatar->node);
+	    not_enough = needed - reiser4_node_space(new->joint->node);
 	}
     }
 
-    if (new->avatar != old->avatar && 
-        reiser4_node_count(old->avatar->node) == 0)
+    if (new->joint != old->joint && 
+        reiser4_node_count(old->joint->node) == 0)
     {
-        reiser4_tree_release(tree, old->avatar);
-        old->avatar = NULL;
+        reiser4_tree_release(tree, old->joint);
+        old->joint = NULL;
     }
 	
     return -(not_enough > 0);
@@ -767,39 +767,39 @@ errno_t reiser4_tree_insert(
     }
 
     /* Estimating item in order to insert it into found node */
-    reiser4_item_init(&item, coord->avatar->node, &coord->pos);
+    reiser4_item_init(&item, coord->joint->node, &coord->pos);
 	
     if (reiser4_item_estimate(&item, hint))
         return -1;
     
     /* Needed space is estimated space plugs item overhead */
     needed = hint->len + (coord->pos.unit == ~0ul ? 
-	reiser4_node_overhead(coord->avatar->node) : 0);
+	reiser4_node_overhead(coord->joint->node) : 0);
    
     /* This is the special case. The tree doesn't contain any nodes */
     if (level == LEAF_LEVEL && !tree->root->children) {
-	reiser4_avatar_t *avatar;
+	reiser4_joint_t *joint;
 	
-	if (!(avatar = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
+	if (!(joint = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
 	    aal_exception_error("Can't allocate new leaf node.");
 	    return -1;
 	}
 
 	/* Updating coord by just allocated leaf */
-	reiser4_coord_init(coord, avatar, 0, ~0ul);
+	reiser4_coord_init(coord, joint, 0, ~0ul);
 	
-        if (reiser4_avatar_insert(coord->avatar, &coord->pos, hint)) {
+        if (reiser4_joint_insert(coord->joint, &coord->pos, hint)) {
 	    
 	    aal_exception_error("Can't insert an item into the node %llu.", 
-		aal_block_number(coord->avatar->node->block));
+		aal_block_number(coord->joint->node->block));
 	    
-	    reiser4_tree_release(tree, avatar);
+	    reiser4_tree_release(tree, joint);
 	    return -1;
 	}
 	
-	if (reiser4_tree_attach(tree, avatar)) {
+	if (reiser4_tree_attach(tree, joint)) {
 	    aal_exception_error("Can't attach node to the tree.");
-	    reiser4_tree_release(tree, avatar);
+	    reiser4_tree_release(tree, joint);
 	    return -1;
 	}
 	
@@ -812,10 +812,10 @@ errno_t reiser4_tree_insert(
         return -1;
     }
     
-    if (reiser4_avatar_insert(insert.avatar, &insert.pos, hint)) {
+    if (reiser4_joint_insert(insert.joint, &insert.pos, hint)) {
         aal_exception_error("Can't insert an %s into the node %llu.", 
 	    (insert.pos.unit == ~0ul ? "item" : "unit"),
-	    aal_block_number(insert.avatar->node->block));
+	    aal_block_number(insert.joint->node->block));
 	return -1;
     }
 
@@ -823,14 +823,14 @@ errno_t reiser4_tree_insert(
 	If make space function allocate new node, we should attach it to the tree. Also,
 	here we should handle the spacial case, when tree root should be changed.
     */
-    if (insert.avatar != tree->root && !insert.avatar->parent) {
+    if (insert.joint != tree->root && !insert.joint->parent) {
 	
-	if (!coord->avatar->parent)
+	if (!coord->joint->parent)
 	    reiser4_tree_grow(tree);
 	
-	if (reiser4_tree_attach(tree, insert.avatar)) {
+	if (reiser4_tree_attach(tree, insert.joint)) {
 	    aal_exception_error("Can't attach node to the tree.");
-	    reiser4_tree_release(tree, insert.avatar);
+	    reiser4_tree_release(tree, insert.joint);
 	    return -1;
 	}
     }
@@ -864,7 +864,7 @@ errno_t reiser4_tree_remove(
 	return -1;
     }
     
-    if (reiser4_avatar_remove(coord.avatar, &coord.pos))
+    if (reiser4_joint_remove(coord.joint, &coord.pos))
 	return -1;
 
     /*
@@ -888,7 +888,7 @@ errno_t reiser4_tree_move(
     aal_assert("umka-1020", dst != NULL, return -1);
     aal_assert("umka-1020", src != NULL, return -1);
 
-    if (reiser4_avatar_move(dst->avatar, &dst->pos, src->avatar, &src->pos))
+    if (reiser4_joint_move(dst->joint, &dst->pos, src->joint, &src->pos))
 	return -1;
     
     return 0;

@@ -99,10 +99,10 @@ typedef struct reiser4_profile reiser4_profile_t;
 typedef struct reiser4_tree reiser4_tree_t;
 typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_coord reiser4_coord_t;
-typedef struct reiser4_avatar reiser4_avatar_t;
+typedef struct reiser4_joint reiser4_joint_t;
 
 /* The real personalization of on-disk node in libreiser4 internal tree */
-struct reiser4_avatar {
+struct reiser4_joint {
 
     /* Reference to the tree */
     reiser4_tree_t *tree;
@@ -114,16 +114,16 @@ struct reiser4_avatar {
     uint8_t level;
     
     /* References to parent, left and right neighbours */
-    reiser4_avatar_t *parent;
-    reiser4_avatar_t *left;
-    reiser4_avatar_t *right;
+    reiser4_joint_t *parent;
+    reiser4_joint_t *left;
+    reiser4_joint_t *right;
 
     /* List of children */
     aal_list_t *children;
 };
 
 struct reiser4_coord {
-    reiser4_avatar_t *avatar;
+    reiser4_joint_t *joint;
     reiser4_pos_t pos;
 };
 
@@ -212,7 +212,7 @@ struct reiser4_tree {
 	and always exists. All other nodes are loaded on demand and flushed at 
 	memory presure event.
     */
-    reiser4_avatar_t *root;
+    reiser4_joint_t *root;
 
     /* Tree root key */
     reiser4_key_t key;
@@ -222,7 +222,7 @@ struct reiser4_tree {
 typedef errno_t (*reiser4_open_func_t) (reiser4_node_t *, blk_t, void *);
 
 /* Callback function type for preparing per-node traverse data. */
-//typedef errno_t (*reiser4_edge_func_t) (reiser4_node_t *, void *);
+typedef errno_t (*reiser4_edge_func_t) (reiser4_node_t *, void *);
 
 /* Callback function type for node handler. */
 typedef errno_t (*reiser4_handler_func_t) (reiser4_node_t *, void *);

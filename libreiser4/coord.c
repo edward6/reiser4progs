@@ -19,9 +19,9 @@ inline void reiser4_pos_init(
     pos->unit = unit;
 }
 
-/* Creates coord instance based on passed avatar, item pos and unit pos params */
+/* Creates coord instance based on passed joint, item pos and unit pos params */
 reiser4_coord_t *reiser4_coord_create(
-    reiser4_avatar_t *avatar,	/* the first component of coord */
+    reiser4_joint_t *joint,	/* the first component of coord */
     uint32_t item,		/* the second one */
     uint32_t unit		/* the third one */
 ) {
@@ -32,7 +32,7 @@ reiser4_coord_t *reiser4_coord_create(
 	return NULL;
 
     /* Initializing needed fields */
-    reiser4_coord_init(coord, avatar, item, unit);
+    reiser4_coord_init(coord, joint, item, unit);
     
     return coord;
 }
@@ -40,13 +40,13 @@ reiser4_coord_t *reiser4_coord_create(
 /* This function initializes passed coord by specified params */
 errno_t reiser4_coord_init(
     reiser4_coord_t *coord,	/* coord to be initialized */
-    reiser4_avatar_t *avatar,	/* the first component of coord */
+    reiser4_joint_t *joint,	/* the first component of coord */
     uint32_t item,		/* the second one */
     uint32_t unit		/* the third one */
 ) {
     aal_assert("umka-795", coord != NULL, return -1);
     
-    coord->avatar = avatar;
+    coord->joint = joint;
     coord->pos.item = item;
     coord->pos.unit = unit;
 

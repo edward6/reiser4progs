@@ -78,19 +78,19 @@ static errno_t tree_right(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node right neighbor will be obtained for */
 ) {
-    reiser4_avatar_t *avatar;
+    reiser4_joint_t *joint;
     
     aal_assert("umka-867", tree != NULL, return -1);
     aal_assert("umka-868", place != NULL, return -1);
     
-    avatar = (reiser4_avatar_t *)place->avatar; 
+    joint = (reiser4_joint_t *)place->joint; 
     
     /* Rasing from the device tree lies on both neighbors */
-    if (reiser4_avatar_realize(avatar) || !avatar->right)
+    if (reiser4_joint_realize(joint) || !joint->right)
 	return -1;
 
     /* Filling passed coord by right neighbor coords */
-    place->avatar = avatar->right;
+    place->joint = joint->right;
 
     place->pos.item = 0;
     place->pos.unit = 0;
@@ -103,19 +103,19 @@ static errno_t tree_left(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node left neighbor will be obtained for */
 ) {
-    reiser4_avatar_t *avatar;
+    reiser4_joint_t *joint;
     
     aal_assert("umka-867", tree != NULL, return -1);
     aal_assert("umka-868", place != NULL, return -1);
     
-    avatar = (reiser4_avatar_t *)place->avatar; 
+    joint = (reiser4_joint_t *)place->joint; 
     
     /* Rasing from the device tree lies on both neighbors */
-    if (reiser4_avatar_realize(avatar) || !avatar->left)
+    if (reiser4_joint_realize(joint) || !joint->left)
 	return -1;
 
     /* Filling passed coord by left neighbor coords */
-    place->avatar = avatar->left;
+    place->joint = joint->left;
 
     place->pos.item = 0;
     place->pos.unit = 0;
@@ -146,7 +146,7 @@ static errno_t item_open(
     aal_assert("umka-1218", place != NULL, return -1);
     aal_assert("umka-1219", item != NULL, return -1);
     
-    node = ((reiser4_avatar_t *)place->avatar)->node;
+    node = ((reiser4_joint_t *)place->joint)->node;
     return reiser4_item_open(item, node, &place->pos);
 }
 

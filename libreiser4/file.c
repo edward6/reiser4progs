@@ -17,11 +17,11 @@
 reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
     reiser4_item_t item;
     
-    if (reiser4_item_open(&item, file->coord.avatar->node, 
+    if (reiser4_item_open(&item, file->coord.joint->node, 
 	&file->coord.pos)) 
     {
 	aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-	    aal_block_number(file->coord.avatar->node->block),
+	    aal_block_number(file->coord.joint->node->block),
 	    file->coord.pos.item);
 
 	return NULL;
@@ -98,11 +98,11 @@ static errno_t reiser4_file_realize(
 	    return -1;
 	}
 	
-	if (reiser4_item_open(&item, file->coord.avatar->node,
+	if (reiser4_item_open(&item, file->coord.joint->node,
 	    &file->coord.pos)) 
 	{
 	    aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-		aal_block_number(file->coord.avatar->node->block),
+		aal_block_number(file->coord.joint->node->block),
 		file->coord.pos.item);
 
 	    return -1;

@@ -39,7 +39,7 @@ extern "C" {
 #include "master.h"
 #include "item.h"
 #include "factory.h"
-#include "avatar.h"
+#include "joint.h"
 
 extern errno_t libreiser4_init(void);
 extern void libreiser4_done(void);
