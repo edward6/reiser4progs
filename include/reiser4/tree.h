@@ -29,6 +29,8 @@ extern errno_t reiser4_tree_grow(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node);
 
+extern errno_t reiser4_tree_detach(reiser4_tree_t *tree, reiser4_node_t *node);
+
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *coord,
 				   reiser4_item_hint_t *hint);
 

@@ -1108,8 +1108,6 @@ errno_t reiser4_node_remove(
 			*/
 			if (reiser4_node_remove(node->parent, &ppos))
 				return -1;
-
-			reiser4_node_detach(node->parent, node);
 		}
 	}
 

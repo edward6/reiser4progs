@@ -597,6 +597,26 @@ errno_t reiser4_tree_attach(
 	return 0;
 }
 
+errno_t reiser4_tree_detach(reiser4_tree_t *tree,
+			    reiser4_node_t *node)
+{
+	reiser4_node_t *parent;
+	
+	aal_assert("umka-1726", tree != NULL, return -1);
+	aal_assert("umka-1727", node != NULL, return -1);
+
+	if (!(parent = node->parent))
+		return 0;
+
+	/* Removing item/unit from the parent node */
+	if (reiser4_node_remove(parent, &node->pos))
+		return -1;
+
+	reiser4_node_detach(parent, node);
+			
+	return 0;
+}
+
 /* This function grows and sets up tree after the growing */
 errno_t reiser4_tree_grow(
 	reiser4_tree_t *tree)	/* tree to be growed up */
@@ -750,18 +770,12 @@ errno_t reiser4_tree_mkspace(
 		  shifting.
 		*/
 		if (reiser4_node_items(save.node) == 0) {
-			reiser4_node_t *ghost = save.node;
 
-			if (ghost->parent) {
-				
-				if (reiser4_node_remove(ghost->parent, &ghost->pos))
-					return -1;
-				
-				reiser4_node_detach(ghost->parent, ghost);
-			}
+			if (reiser4_tree_detach(tree, save.node))
+				return -1;
 			
-			ghost->flags &= ~NF_DIRTY;
-			reiser4_tree_release(tree, ghost);
+			save.node->flags &= ~NF_DIRTY;
+			reiser4_tree_release(tree, save.node);
 		}
 		
 		/* Attaching new allocated node into the tree, if it is not empty */
