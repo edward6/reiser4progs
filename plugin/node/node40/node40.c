@@ -706,6 +706,7 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			     create_hint_t *hint)
 {
 	node40_t *node;
+	int32_t written;
 	item_entity_t item;
 	item40_header_t *ih;
     
@@ -723,6 +724,14 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 
 	ih = node40_ih_at(node, pos->item);
 
+	/* Updating item header if we want insert new item */
+	if (pos->unit == ~0ul) {
+		ih40_set_pid(ih, hint->plugin->h.id);
+
+		aal_memcpy(&ih->key, hint->key.body,
+			   sizeof(ih->key));
+	}
+	
 	/* Preparing item for calling item plugin with them */
 	if (node40_item(entity, pos, &item))
 		return -EINVAL;
@@ -730,41 +739,34 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 	/* Updating item header plugin id if we insert new item */
 	if (pos->unit == ~0ul) {
 
-                /* Updating item header */
-		ih40_set_pid(ih, hint->plugin->h.id);
-
-		aal_memcpy(&ih->key, hint->key.body,
-			   sizeof(ih->key));
-	
-		/* Calling item plugin to perform initializing the item. */
+		/* Calling item plugin to perform initializing the item */
 		if (plugin_call(hint->plugin->item_ops, init, &item))
 			return -EINVAL;
 
 		if (hint->flags == HF_RAWDATA) {
 			aal_memcpy(item.body, hint->type_specific,
 				   hint->len);
-			node->dirty = 1;
-			return 0;
+			goto out_make_dirty;
 		}
-		
-		return -(plugin_call(hint->plugin->item_ops, write, &item,
-				     hint, 0, hint->count) != hint->count);
+
+		written = plugin_call(hint->plugin->item_ops, write,
+				      &item, hint, 0, hint->count);
 	} else {
-		if (plugin_call(hint->plugin->item_ops, write, &item,
-				hint, pos->unit, hint->count) != hint->count)
-		{
-			/* Was unable to insert new unit */
-			return -EINVAL;
-		}
-
-		/*
-		  Updating item's key if we insert new item or if we insert unit
-		  into leftmost postion.
-		*/
-		if (pos->unit == 0)
-			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+		written = plugin_call(hint->plugin->item_ops, write,
+				      &item, hint, pos->unit, hint->count);
 	}
+	
+	if (written != hint->count)
+		return -EINVAL;
 
+	/*
+	  Updating item's key if we insert new item or if we insert unit
+	  into leftmost postion.
+	*/
+	if (pos->unit == 0)
+		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+
+ out_make_dirty:
 	node->dirty = 1;
 	return 0;
 }

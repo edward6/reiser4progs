@@ -30,7 +30,8 @@ static errno_t tail40_get_key(item_entity_t *item,
 	units = tail40_units(item);
 	aal_assert("vpf-628", offset < units);
 	
-	aal_memcpy(key, &item->key, sizeof(*key));
+	plugin_call(item->key.plugin->key_ops, assign,
+		    key, &item->key);
 
 	offset += plugin_call(key->plugin->key_ops,
 			      get_offset, key);
@@ -93,7 +94,8 @@ static int32_t tail40_write(item_entity_t *item, void *buff,
 		count = item->len - pos;
 	
 	/* Copying new data into place */
-	aal_memcpy(item->body + pos, hint->type_specific, count);
+	aal_memcpy(item->body + pos,
+		   hint->type_specific, count);
 
 	/* Updating the key */
 	if (pos == 0) {
@@ -174,8 +176,8 @@ static errno_t tail40_maxposs_key(item_entity_t *item,
 
 	key->plugin = item->key.plugin;
 		
-	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -EINVAL;
+	plugin_call(key->plugin->key_ops, assign,
+		    key, &item->key);
 	
 	maxkey = plugin_call(key->plugin->key_ops,
 			     maximal,);
@@ -233,18 +235,23 @@ static lookup_t tail40_lookup(item_entity_t *item,
 	
 	tail40_maxposs_key(item, &maxkey);
 
-	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
+	if (plugin_call(key->plugin->key_ops, compare,
+			key, &maxkey) > 0)
+	{
 		*pos = item->len;
 		return LP_ABSENT;
 	}
 
 	curkey.plugin = key->plugin;
 	
-	if (plugin_call(curkey.plugin->key_ops, assign, &curkey, &item->key))
-		return LP_FAILED;
+	plugin_call(curkey.plugin->key_ops, assign,
+		    &curkey, &item->key);
 
-	current = plugin_call(key->plugin->key_ops, get_offset, &curkey);
-    	wanted = plugin_call(key->plugin->key_ops, get_offset, key);
+	current = plugin_call(key->plugin->key_ops,
+			      get_offset, &curkey);
+	
+    	wanted = plugin_call(key->plugin->key_ops,
+			     get_offset, key);
     
 	if (wanted >= current && wanted < current + item->len) {
 		*pos = wanted - current;
@@ -256,7 +263,6 @@ static lookup_t tail40_lookup(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static int tail40_mergeable(item_entity_t *item1,
 			    item_entity_t *item2)
 {

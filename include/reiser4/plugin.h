@@ -493,7 +493,7 @@ struct create_hint {
 	/* Unit count to inserted into the tree */
 	uint16_t count;
     
-	/* The key of item */
+	/* The key of item/unit to be inserted */
 	key_entity_t key;
 
 	/* Plugin to be used for working with item */

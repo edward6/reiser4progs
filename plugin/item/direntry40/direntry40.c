@@ -784,9 +784,9 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	}
 	
 	/* Creating new entries */
-	entry = &direntry->entry[pos];
-		
-	for (i = 0; i < count; i++, entry++, entry_hint++) {
+	for (i = 0, entry = &direntry->entry[pos];
+	     i < count; i++, entry++, entry_hint++)
+	{
 		hash_t *entid;
 		objid_t *objid;
 
@@ -814,10 +814,6 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 
 		ha40_set_offset(entid, off);
 
-		/*
-		  FIXME-UMKA: Here should be more convenient way to setup entry
-		  key. This is somehow hardcoded.
-		*/
 		object = &entry_hint->object;
 		aal_memcpy(objid, object->body, sizeof(*objid));
 
