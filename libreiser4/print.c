@@ -10,8 +10,6 @@ static uint32_t curr_size;
 static uint32_t heap_size;
 static aal_list_t *streams;
 
-static void reiser4_print_recycle(uint32_t heap);
-
 static void reiser4_add_stream(aal_stream_t *stream) {
 	aal_list_t *new;
 	
@@ -37,7 +35,7 @@ static void reiser4_rem_stream(aal_stream_t *stream) {
 	curr_size--;
 }
 
-static void reiser4_print_recycle(uint32_t heap) {
+void reiser4_print_recycle(uint32_t heap) {
 	aal_list_t *walk, *next;
 
 	for (walk = streams; walk && curr_size > heap;
