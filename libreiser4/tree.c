@@ -788,18 +788,35 @@ lookup_t reiser4_tree_lookup(
 		}
 
 		/* Position correcting for internal levels */
-		if (res == LP_ABSENT && place->pos.item > 0)
-			place->pos.item--;
-
+		if (res == LP_ABSENT) {
+			if ((place->pos.unit == ~0ul || place->pos.unit == 0) && 
+			    place->pos.item == 0)
+				return LP_FAILED;
+		
+			if (place->pos.unit == ~0ul || place->pos.unit == 0) {
+				place->pos.item--;
+				place->pos.unit = ~0ul;
+			} else {
+				place->pos.unit--;
+			}
+		}
+		
 		/* Initializing item at @place */
 		if (reiser4_place_realize(place))
 			return LP_FAILED;
-
+		
 		/* Checking is item at @place is nodeptr one */
 		if (!reiser4_item_branch(place)) {
-			place->pos.item++;
+			if (res == LP_ABSENT) {
+				if (place->pos.unit == ~0ul)
+					place->pos.item++;
+				else 
+					place->pos.unit++;
+			}
+
 			return res;
-		}
+		} else if (res == LP_ABSENT && place->pos.unit == ~0ul)
+			place->pos.unit = reiser4_item_units(place) - 1;
 
 		/* Loading node by nodeptr item @place points to */
 		if (!(place->node = reiser4_tree_child(tree, place)))
@@ -1478,23 +1495,13 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return res;
 }
 
-/* This will be removed soon */
-errno_t reiser4_tree_write(reiser4_tree_t *tree,
-			   reiser4_place_t *src,
-			   reiser4_place_t *dst,
-			   uint32_t count)
-{
-	return -1;
-}
-
 /*
-  Overwrites items/units pointed by @dst from @src one, from @start key though
-  the @end one.
+  Overwrites items/units pointed by @dst from @src one, from the key pointed 
+  by src place though the @end one.
 */
 errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 			       reiser4_place_t *dst,
 			       reiser4_place_t *src,
-			       reiser4_key_t *start,
 			       reiser4_key_t *end)
 {
 	errno_t res;
@@ -1504,7 +1511,6 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 	aal_assert("umka-2162", src != NULL);
 	aal_assert("umka-2164", end != NULL);
 	aal_assert("umka-2160", tree != NULL);
-	aal_assert("umka-2163", start != NULL);
 
 	if (reiser4_tree_fresh(tree)) {
 		aal_exception_error("Can't write item/units to "
@@ -1512,14 +1518,14 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 		return -EINVAL;
 	}
 	
-	if ((res = reiser4_item_feel(src, start, end, &hint)))
+	if ((res = reiser4_item_feel(src, &src->item.key, end, &hint)))
 		return res;
 
 	aal_assert("umka-2122", hint.len > 0);
 	
 	if ((res = reiser4_node_copy(dst->node, &dst->pos,
 				     src->node, &src->pos,
-				     start, end, &hint)))
+				     &src->item.key, end, &hint)))
 	{
 		aal_exception_error("Can't copy an item/unit from node "
 				    "%llu to %llu one.", src->node->blk,
@@ -1542,12 +1548,11 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 
 /*
   Makes copy of item at passed @src place or some amount of its units to the
-  passed @dst from @start key though the @end one.
+  passed @dst from the key pointed by src though the @end one.
 */
 errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 			  reiser4_place_t *dst,
 			  reiser4_place_t *src,
-			  reiser4_key_t *start,
 			  reiser4_key_t *end)
 {
 	errno_t res;
@@ -1558,7 +1563,6 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 	aal_assert("umka-2117", src != NULL);
 	aal_assert("umka-2119", end != NULL);
 	aal_assert("umka-2115", tree != NULL);
-	aal_assert("umka-2118", start != NULL);
 
 	if (reiser4_tree_fresh(tree)) {
 		aal_exception_error("Can't copy item/units to "
@@ -1566,7 +1570,7 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 		return -EINVAL;
 	}
 	
-	if ((res = reiser4_item_feel(src, start, end, &hint)))
+	if ((res = reiser4_item_feel(src, &src->item.key, end, &hint)))
 		return res;
 
 	aal_assert("umka-2122", hint.len > 0);
@@ -1582,7 +1586,7 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 	}
 
 	if ((res = reiser4_node_copy(dst->node, &dst->pos, src->node,
-				     &src->pos, start, end, &hint)))
+				     &src->pos, &src->item.key, end, &hint)))
 	{
 		aal_exception_error("Can't copy an item/unit from node "
 				    "%llu to %llu one.", src->node->blk,
