@@ -271,7 +271,8 @@ static reiser4_object_ops_t sym40_ops = {
 	.links          = sym40_links,
 	.clobber        = sym40_clobber,
 	.recognize	= sym40_recognize,
-		
+	.update		= NULL,
+	
 	.seek	        = NULL,
 	.write	        = NULL,
 	.truncate       = NULL,

@@ -788,6 +788,8 @@ static reiser4_object_ops_t reg40_ops = {
 	.links          = reg40_links,
 	.clobber        = reg40_clobber,
 	.recognize	= reg40_recognize,
+	.update		= NULL,
+	
 	.add_entry      = NULL,
 	.rem_entry      = NULL,
 	.attach         = NULL,

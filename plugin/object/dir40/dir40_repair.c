@@ -310,8 +310,10 @@ errno_t dir40_check_struct(object_entity_t *object,
 				return res;
 		} else {
 			/* Lookup the last removed entry, get the next item. */
-			if (dir40_lookup(object, entry.name, NULL) == FAILED)
+			if (dir40_lookup(object, entry.name, &entry) == FAILED)
 				return -EINVAL;
+
+			dir->body = entry.place;
 		}
 	}
 	
@@ -338,26 +340,15 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	aal_assert("vpf-1151", object != NULL);
 	aal_assert("vpf-1152", parent != NULL);
 	
-	aal_strncpy(entry.name, "..", 2);
-
-	lookup = dir40_lookup(object, entry.name, &entry);
+	lookup = dir40_lookup(object, "..", &entry);
 
 	switch(lookup) {
 	case PRESENT:
-		if (parent) {
-			/* If the key matches the parent -- ok. */
-			if (!plug_call(entry.object.plug->o.key_ops, compfull, 
-				       &entry.object, &parent->info.object))
-				break;
+		/* If the key matches the parent -- ok. */
+		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
+			       &entry.object, &parent->info.object))
+			break;
 
-		} else {
-			/* Set the parent key correctly if possible. */
-			plug_call(entry.object.plug->o.key_ops, assign,
-				  &object->info.parent, &entry.object);
-			
-			return 0;
-		}
-		
 		return RE_FATAL;
 	case ABSENT:
 		if (mode == RM_CHECK)
@@ -400,4 +391,30 @@ object_entity_t *dir40_fake(object_info_t *info) {
 	
 	return (object_entity_t *)dir;
 }
+
+/* Updates the @object->info.parent. If ".." cannot be found, zero the key. */
+errno_t dir40_update(object_entity_t *object) {
+	entry_hint_t entry;
+	dir40_t *dir;
+	errno_t res;
+
+	aal_assert("vpf-1269", object != NULL);
+
+	dir = (dir40_t *)object;
+	
+	switch ((dir40_lookup(object, "..", &entry))) {
+	case ABSENT:
+		aal_memset(&object->info.parent, 0, 
+			   sizeof(object->info.parent));
+		break;
+	case FAILED:
+		return -EINVAL;
+	default:
+		plug_call(entry.object.plug->o.key_ops, assign,
+			  &object->info.parent, &entry.object);
+	}
+	
+	return 0;
+}
+
 #endif

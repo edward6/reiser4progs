@@ -51,12 +51,11 @@ static errno_t callback_register_region(void *o, uint64_t start,
 	aal_assert("vpf-1217", data != NULL);
 	
 	if (reiser4_alloc_available(sem->repair->fs->alloc, start, count)) {
-		/* FIXME-VITALY: print object key when available through @object. */
-		aal_exception_error("Object failed to register the region "
-				    "[%llu-%llu] -- it belongs to another "
-				    "object already. Plugin (%s).", 
-				    start, start + count - 1, 
-				    object->plug->label);
+		aal_exception_error("Object [%s] failed to register the "
+				    "region [%llu-%llu] -- it belongs to "
+				    "another object already. Plugin (%s).",
+				    reiser4_print_key(&object->info.object, PO_INO),
+				    start, start + count - 1, object->plug->label);
 		return 1;
 	}
 	
@@ -74,16 +73,21 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	aal_assert("vpf-1169", sem != NULL);
 	aal_assert("vpf-1170", object != NULL);
 	
-	if ((res = repair_object_check_struct(object, callback_register_item,
-					      callback_register_region,
-					      sem->repair->mode, sem)) < 0)
-		return res;
+	if (!repair_item_test_flag(object_start(object), OF_CHECKED)) {
+		res = repair_object_check_struct(object, callback_register_item,
+						 callback_register_region,
+						 sem->repair->mode, sem);
+		if (res < 0)
+			return res;
+		
+		if (res & RE_FATAL)
+			sem->repair->fatal++;
+		else if (res & RE_FIXABLE)
+			sem->repair->fixable++;
+	}
 	
-	if (res & RE_FATAL)
-		sem->repair->fatal++;
-	else if (res & RE_FIXABLE)
-		sem->repair->fixable++;
-	
+	/* Update the @object->info. */
+	res |= repair_object_update(object);
 	return res;
 }
 
@@ -330,12 +334,10 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	checked = repair_item_test_flag(start, OF_CHECKED);
 	attached = repair_item_test_flag(start, OF_ATTACHED);
 	
-	if (!checked) {
-		res = repair_semantic_check_struct(sem, object);
+	res = repair_semantic_check_struct(sem, object);
 
-		if (repair_error_fatal(res))
-			goto error_close_object;
-	}
+	if (repair_error_fatal(res))
+		goto error_close_object;
 
 	/* If @object is not attached yet, [ a) was just checked; b) is linked
 	   to "lost+found" ]. If not ATTACHED @object knows about its parent, 
@@ -468,13 +470,11 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	if (object == NULL)
 		return 0;
 	
-	if (!repair_item_test_flag(object_start(object), OF_CHECKED)) {
-		res = repair_semantic_check_struct(sem, object);
+	res = repair_semantic_check_struct(sem, object);
 
-		if (repair_error_fatal(res))
-			goto error_close_object;
-	}
-	
+	if (repair_error_fatal(res))
+		goto error_close_object;
+
 	/* Try to attach it somewhere -- at least to lost+found. */
 	if ((upper = repair_semantic_uplink(sem, object)) == INVAL_PTR) {
 		reiser4_object_close(object);

@@ -166,6 +166,8 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
 	errno_t res;
 	
+	aal_assert("vpf-1270", object != NULL);
+	
 	/* Get the start place. */
 	if ((res = reiser4_object_stat(object))) {
 		aal_exception_error("Update of the object [%s] failed.",
@@ -181,6 +183,8 @@ errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
 int repair_object_test(reiser4_object_t *object, uint16_t flag) {
 	errno_t res;
 	
+	aal_assert("vpf-1273", object != NULL);
+	
 	/* Get the start place. */
 	if ((res = reiser4_object_stat(object))) {
 		aal_exception_error("Update of the object [%s] failed.",
@@ -194,6 +198,8 @@ int repair_object_test(reiser4_object_t *object, uint16_t flag) {
 errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	errno_t res;
 	
+	aal_assert("vpf-1272", object != NULL);
+	
 	/* Get the start place. */
 	if ((res = reiser4_object_stat(object))) {
 		aal_exception_error("Update of the object [%s] failed.",
@@ -204,4 +210,14 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	repair_item_clear_flag(object_start(object), flag);
 	
 	return 0;
+}
+
+errno_t repair_object_update(reiser4_object_t *object) {
+	aal_assert("vpf-1271", object != NULL);
+
+	if (!object->entity->plug->o.object_ops->update)
+		return 0;
+
+	return plug_call(object->entity->plug->o.object_ops, 
+			 update, object->entity);
 }
