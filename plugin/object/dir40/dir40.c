@@ -49,11 +49,11 @@ static int dir40_mergeable(object_entity_t *entity,
 	dir40_t *dir = (dir40_t *)entity;
 
 	/* Checking if item component in @place->pos is valid one */
-	if (!core->tree_ops.valid(dir->obj.tree, place))
+	if (!core->tree_ops.valid(dir->obj.info.tree, place))
 		return 0;
 
 	/* Initializing item entity at @next place */
-	if (core->tree_ops.fetch(dir->obj.tree, place))
+	if (core->tree_ops.fetch(dir->obj.info.tree, place))
 		return 0;
 	
 	/* Checking if item plugins are mergeable */
@@ -86,11 +86,11 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	case ABSENT:
 #ifndef ENABLE_STAND_ALONE
 		/* Checking if item component in @item->pos is valid one */
-		if (!core->tree_ops.valid(dir->obj.tree, &next))
+		if (!core->tree_ops.valid(dir->obj.info.tree, &next))
 			return -EINVAL;
 		
                 /* Initializing item entity at @next place */
-                if (core->tree_ops.fetch(dir->obj.tree, &next))
+                if (core->tree_ops.fetch(dir->obj.info.tree, &next))
                         return -EINVAL;
                                                                                     
                 locality = plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
@@ -194,7 +194,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	dir->body.pos.unit = dir->unit;
 	
 	/* Getting next directory item */
-	if (core->tree_ops.next(dir->obj.tree,
+	if (core->tree_ops.next(dir->obj.info.tree,
 				&dir->body, &next))
 	{
 		return ABSENT;
@@ -427,8 +427,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initializing obj handle for the directory */
-	obj40_init(&dir->obj, &dir40_plug, &info->start.key, 
-		   core, info->tree);
+	obj40_init(&dir->obj, &dir40_plug, core, info);
 
 	/* Guessing hash plugin basing on stat data */
 	if (!(dir->hash = dir40_hash((object_entity_t *)dir, INVAL_PID))) {
@@ -438,7 +437,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
         }
 
 	/* Initialziing statdata place */
-	aal_memcpy(&dir->obj.statdata, &info->start,
+	aal_memcpy(STAT_ITEM(&dir->obj), &info->start,
 		   sizeof(info->start));
 
 	/* Positioning to the first directory unit */
@@ -496,10 +495,9 @@ static object_entity_t *dir40_create(object_info_t *info,
 	plug_call(info->object.plug->o.key_ops, build_gener,
 		  &info->object, KEY_STATDATA_TYPE, locality,
 		  ordering, objectid, 0);
-
+	
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plug, &info->object,
-		   core, info->tree);
+	obj40_init(&dir->obj, &dir40_plug, core, info);
 
 	/* Getting hash plugin */
 	if (!(dir->hash = dir40_hash((object_entity_t *)dir,
@@ -608,7 +606,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	/* Looking for place to insert directory stat data */
 	switch (obj40_lookup(&dir->obj, &stat_hint.key,
-			     LEAF_LEVEL, &dir->obj.statdata))
+			     LEAF_LEVEL, STAT_ITEM(&dir->obj)))
 	{
 	case FAILED:
 	case PRESENT:
@@ -619,14 +617,13 @@ static object_entity_t *dir40_create(object_info_t *info,
 	
 	/* Inserting stat data and body into the tree */
 	if (obj40_insert(&dir->obj, &stat_hint,
-			 LEAF_LEVEL, &dir->obj.statdata))
+			 LEAF_LEVEL, STAT_ITEM(&dir->obj)))
 	{
 		goto error_free_body;
 	}
 	
 	/* Saving stat data place insert function has returned */
-	aal_memcpy(&info->start, &dir->obj.statdata,
-		   sizeof(info->start));
+	aal_memcpy(&info->start, STAT_ITEM(&dir->obj), sizeof(info->start));
 	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
@@ -719,7 +716,7 @@ static errno_t dir40_clobber(object_entity_t *entity) {
 	if (obj40_stat(&dir->obj))
 		return -EINVAL;
 
-	return obj40_remove(&dir->obj, &dir->obj.statdata, 1);
+	return obj40_remove(&dir->obj, STAT_ITEM(&dir->obj), 1);
 }
 
 static key_entity_t *dir40_origin(object_entity_t *entity) {
@@ -926,12 +923,9 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
-	if ((res = obj40_read_ext(&dir->obj.statdata,
-				  SDEXT_UNIX_ID, 
+	if ((res = obj40_read_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, 
 				  &unix_hint)))
-	{
 		return res;
-	}
 	
 	atime = time(NULL);
 
@@ -939,8 +933,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes += dir40_estimate(entity, entry);
 
-	return obj40_write_ext(&dir->obj.statdata,
-			       SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Removing entry from the directory */
@@ -1025,12 +1018,9 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size - 1)))
 		return res;
 
-	if ((res = obj40_read_ext(&dir->obj.statdata,
-				  SDEXT_UNIX_ID, 
+	if ((res = obj40_read_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, 
 				  &unix_hint)))
-	{
 		return res;
-	}
 	
 	atime = time(NULL);
 	
@@ -1038,8 +1028,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes -= dir40_estimate(entity, entry);
 
-	return obj40_write_ext(&dir->obj.statdata,
-			       SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, 
+			       &unix_hint);
 }
 
 struct layout_hint {
@@ -1137,7 +1127,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	if (dir40_update(entity))
 		return -EINVAL;
 	
-	if ((res = place_func(entity, &dir->obj.statdata, data)))
+	if ((res = place_func(entity, STAT_ITEM(&dir->obj), data)))
 		return res;
 
 	while (1) {
@@ -1164,6 +1154,7 @@ extern errno_t dir40_check_attach(object_entity_t *object,
    in and freeing all occpied memory. */
 static void dir40_close(object_entity_t *entity) {
 	aal_assert("umka-750", entity != NULL);
+
 	aal_free(entity);
 }
 

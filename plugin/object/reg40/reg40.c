@@ -173,11 +173,10 @@ static object_entity_t *reg40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug,
-		   &info->start.key, core, info->tree);
+	obj40_init(&reg->obj, &reg40_plug, core, info);
 
 	/* Initialziing statdata place */
-	aal_memcpy(&reg->obj.statdata, &info->start,
+	aal_memcpy(STAT_ITEM(&reg->obj), &info->start,
 		   sizeof(info->start));
 	
 	/* Reseting file (setting offset to 0) */
@@ -233,8 +232,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 		  ordering, objectid, 0);
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, &info->object,
-		   core, info->tree);
+	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
@@ -280,7 +278,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 	stat_hint.type_specific = &stat;
 
 	switch (obj40_lookup(&reg->obj, &stat_hint.key,
-			     LEAF_LEVEL, &reg->obj.statdata))
+			     LEAF_LEVEL, STAT_ITEM(&reg->obj)))
 	{
 	case FAILED:
 	case PRESENT:
@@ -291,13 +289,12 @@ static object_entity_t *reg40_create(object_info_t *info,
 	
 	/* Insert statdata item into the tree */
 	if (obj40_insert(&reg->obj, &stat_hint,
-			 LEAF_LEVEL, &reg->obj.statdata))
+			 LEAF_LEVEL, STAT_ITEM(&reg->obj)))
 	{
 		goto error_free_reg;
 	}
 
-	aal_memcpy(&info->start, &reg->obj.statdata,
-		   sizeof(info->start));
+	aal_memcpy(&info->start, STAT_ITEM(&reg->obj), sizeof(info->start));
 	
 	reg->bplug = reg40_bplug(reg, 0);
 	return (object_entity_t *)reg;
@@ -353,7 +350,7 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 }
 
 static uint32_t reg40_chunk(reg40_t *reg) {
-	return core->tree_ops.maxspace(reg->obj.tree);
+	return core->tree_ops.maxspace(reg->obj.info.tree);
 }
 
 /* Writes passed data to the file */
@@ -455,7 +452,7 @@ static int32_t reg40_put(object_entity_t *entity,
 			return res;
 	}
 	
-	place = &reg->obj.statdata;
+	place = STAT_ITEM(&reg->obj);
 	
 	if ((res = obj40_read_ext(place, SDEXT_UNIX_ID, &unix_hint)))
 		return res;
@@ -558,12 +555,12 @@ static errno_t reg40_cut(object_entity_t *entity) {
 			return -EINVAL;
 		}
 
-		if (core->tree_ops.fetch(reg->obj.tree, &place))
+		if (core->tree_ops.fetch(reg->obj.info.tree, &place))
 			return -EINVAL;
 
 		/* Check if we can remove whole item at @place */
 		if (place.len <= cut) {
-			if (core->tree_ops.remove(reg->obj.tree,
+			if (core->tree_ops.remove(reg->obj.info.tree,
 						  &place, 1))
 			{
 				aal_exception_error("Can't remove item "
@@ -577,7 +574,7 @@ static errno_t reg40_cut(object_entity_t *entity) {
 		} else {
 			place.pos.unit = place.len - cut;
 
-			if (core->tree_ops.remove(reg->obj.tree,
+			if (core->tree_ops.remove(reg->obj.info.tree,
 						  &place, cut))
 			{
 				aal_exception_error("Can't remove units "
@@ -674,7 +671,7 @@ static errno_t reg40_clobber(object_entity_t *entity) {
 	if (obj40_stat(&reg->obj))
 		return -EINVAL;
 
-	return obj40_remove(&reg->obj, &reg->obj.statdata, 1);
+	return obj40_remove(&reg->obj, STAT_ITEM(&reg->obj), 1);
 }
 
 struct layout_hint {
@@ -776,7 +773,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	aal_assert("umka-1716", entity != NULL);
 	aal_assert("umka-1717", place_func != NULL);
 
-	if ((res = place_func(entity, &reg->obj.statdata, data)))
+	if ((res = place_func(entity, STAT_ITEM(&reg->obj), data)))
 		return res;
 
 	if ((size = reg40_size(entity)) == 0)
@@ -826,6 +823,7 @@ static errno_t reg40_seek(object_entity_t *entity,
 
 static void reg40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
+
 	aal_free(entity);
 }
 

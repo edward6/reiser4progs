@@ -67,11 +67,8 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 uint64_t obj40_get_size(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(&obj->statdata,
-			   SDEXT_LW_ID, &lw_hint))
-	{
+	if (obj40_read_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint))
 		return 0;
-	}
 	
 	return lw_hint.size;
 }
@@ -121,11 +118,8 @@ uint64_t obj40_extmask(place_t *place) {
 uint16_t obj40_get_mode(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(&obj->statdata,
-			   SDEXT_LW_ID, &lw_hint))
-	{
+	if (obj40_read_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint))
 		return 0;
-	}
 	
 	return lw_hint.mode;
 }
@@ -135,16 +129,12 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata,
-				  SDEXT_LW_ID, &lw_hint)))
-	{
+	if ((res = obj40_read_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint)))
 		return res;
-	}
 
 	lw_hint.mode = mode;
 	
-	return obj40_write_ext(&obj->statdata,
-			       SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint);
 }
 
 /* Updates size field in the stat data */
@@ -152,27 +142,20 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata,
-				  SDEXT_LW_ID, &lw_hint)))
-	{
+	if ((res = obj40_read_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint)))
 		return res;
-	}
 
 	lw_hint.size = size;
 	
-	return obj40_write_ext(&obj->statdata,
-			       SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint);
 }
 
 /* Gets nlink field from the stat data */
 uint32_t obj40_get_nlink(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(&obj->statdata,
-			   SDEXT_LW_ID, &lw_hint))
-	{
+	if (obj40_read_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint))
 		return 0;
-	}
 	
 	return lw_hint.nlink;
 }
@@ -182,27 +165,20 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata,
-				  SDEXT_LW_ID, &lw_hint)))
-	{
+	if ((res = obj40_read_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint)))
 		return res;
-	}
 
 	lw_hint.nlink = nlink;
 	
-	return obj40_write_ext(&obj->statdata,
-			       SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(STAT_ITEM(obj), SDEXT_LW_ID, &lw_hint);
 }
 
 /* Gets atime field from the stat data */
 uint32_t obj40_get_atime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(&obj->statdata,
-			   SDEXT_UNIX_ID, &unix_hint))
-	{
+	if (obj40_read_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint))
 		return 0;
-	}
 	
 	return unix_hint.atime;
 }
@@ -212,27 +188,20 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata,
-				  SDEXT_UNIX_ID, &unix_hint)))
-	{
+	if ((res = obj40_read_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint)))
 		return res;
-	}
 
 	unix_hint.atime = atime;
 	
-	return obj40_write_ext(&obj->statdata,
-			       SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Gets mtime field from the stat data */
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(&obj->statdata,
-			   SDEXT_UNIX_ID, &unix_hint))
-	{
+	if (obj40_read_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint))
 		return 0;
-	}
 	
 	return unix_hint.mtime;
 }
@@ -242,27 +211,20 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata,
-				  SDEXT_UNIX_ID, &unix_hint)))
-	{
+	if ((res = obj40_read_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint)))
 		return res;
-	}
 
 	unix_hint.mtime = mtime;
 	
-	return obj40_write_ext(&obj->statdata,
-			       SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Gets bytes field from the stat data */
 uint64_t obj40_get_bytes(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(&obj->statdata,
-			   SDEXT_UNIX_ID, &unix_hint))
-	{
+	if (obj40_read_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint))
 		return 0;
-	}
 	
 	return unix_hint.bytes;
 }
@@ -272,16 +234,12 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata,
-				  SDEXT_UNIX_ID, &unix_hint)))
-	{
+	if ((res = obj40_read_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint)))
 		return res;
-	}
 
 	unix_hint.bytes = bytes;
 	
-	return obj40_write_ext(&obj->statdata,
-			       SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_ITEM(obj), SDEXT_UNIX_ID, &unix_hint);
 }
 #endif
 
@@ -327,24 +285,17 @@ rid_t obj40_pid(place_t *place) {
   Initializes object handle by plugin, key, core operations and opaque pointer
   to tree file is going to be opened/created in.
 */
-errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
-		   key_entity_t *key, reiser4_core_t *core,
-		   void *tree)
+errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug, reiser4_core_t *core,
+		   object_info_t *info)
 {
 	aal_assert("umka-1574", obj != NULL);
 	aal_assert("umka-1756", plug != NULL);
-	aal_assert("umka-1757", tree != NULL);
+	aal_assert("umka-1757", info != NULL);
 
-	obj->tree = tree;
+	obj->info = *info;
 	obj->core = core;
 	obj->plug = plug;
 
-	/* Initializing stat data key */
-	if (key) {
-		plug_call(key->plug->o.key_ops, assign,
-			    STAT_KEY(obj), key);
-	}
-	
 	return 0;
 }
 
@@ -353,7 +304,7 @@ errno_t obj40_stat(obj40_t *obj) {
 	aal_assert("umka-1905", obj != NULL);
 
 	/* Looking for stat data place by */
-	switch (obj->core->tree_ops.lookup(obj->tree, STAT_KEY(obj),
+	switch (obj->core->tree_ops.lookup(obj->info.tree, STAT_KEY(obj),
 					   LEAF_LEVEL, &obj->statdata))
 	{
 	case PRESENT:
@@ -371,7 +322,7 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 {
 	aal_assert("umka-1966", obj != NULL);
 	
-	return obj->core->tree_ops.lookup(obj->tree, key,
+	return obj->core->tree_ops.lookup(obj->info.tree, key,
 					  level, place);
 }
 
@@ -383,7 +334,7 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 		     uint8_t level, place_t *place)
 {
-	if (obj->core->tree_ops.insert(obj->tree, place,
+	if (obj->core->tree_ops.insert(obj->info.tree, place,
 				       level, hint))
 	{
 		aal_exception_error("Can't insert new "
@@ -400,7 +351,7 @@ errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 errno_t obj40_remove(obj40_t *obj, place_t *place,
 		     uint32_t count)
 {
-	if (obj->core->tree_ops.remove(obj->tree, place,
+	if (obj->core->tree_ops.remove(obj->info.tree, place,
 				       count))
 	{
 		aal_exception_error("Can't remove item/unit "

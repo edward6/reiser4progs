@@ -32,11 +32,10 @@ object_entity_t *sym40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initalizing file handle */
-	obj40_init(&sym->obj, &sym40_plug,
-		   &info->start.key, core, info->tree);
+	obj40_init(&sym->obj, &sym40_plug, core, info);
 
 	/* Initialziing statdata place */
-	aal_memcpy(&sym->obj.statdata, &info->start,
+	aal_memcpy(STAT_ITEM(&sym->obj), &info->start,
 		   sizeof(info->start));
 	
 	return (object_entity_t *)sym;
@@ -65,7 +64,7 @@ static int32_t sym40_read(object_entity_t *entity,
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
-	place = &sym->obj.statdata;
+	place = STAT_ITEM(&sym->obj);
 
 	if (plug_call(place->plug->o.item_ops,
 		      read, place, &hint, 0, 1) != 1)
@@ -115,8 +114,7 @@ static object_entity_t *sym40_create(object_info_t *info,
 		  ordering, objectid, 0);
 	
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plug, &info->object,
-		   core, info->tree);
+	obj40_init(&sym->obj, &sym40_plug, core, info);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
@@ -165,8 +163,8 @@ static object_entity_t *sym40_create(object_info_t *info,
 
 	stat_hint.type_specific = &stat;
 
-	switch (obj40_lookup(&sym->obj, &stat_hint.key,
-			     LEAF_LEVEL, &sym->obj.statdata))
+	switch (obj40_lookup(&sym->obj, &stat_hint.key, LEAF_LEVEL, 
+			     STAT_ITEM(&sym->obj)))
 	{
 	case FAILED:
 	case PRESENT:
@@ -176,15 +174,14 @@ static object_entity_t *sym40_create(object_info_t *info,
 	}
 	
 	/* Inserting stat data into the tree */
-	if (obj40_insert(&sym->obj, &stat_hint,
-			 LEAF_LEVEL, &sym->obj.statdata))
+	if (obj40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, 
+			 STAT_ITEM(&sym->obj)))
 	{
 		goto error_free_sym;
 	}
 
 	/* Saving statdata place and locking the node it lies in */
-	aal_memcpy(&info->start, &sym->obj.statdata,
-		   sizeof(info->start));
+	aal_memcpy(&info->start, STAT_ITEM(&sym->obj), sizeof(info->start));
 
 	return (object_entity_t *)sym;
 
@@ -204,7 +201,7 @@ static errno_t sym40_clobber(object_entity_t *entity) {
 	if ((res = obj40_stat(&sym->obj)))
 		return res;
 
-	return obj40_remove(&sym->obj, &sym->obj.statdata, 1);
+	return obj40_remove(&sym->obj, STAT_ITEM(&sym->obj), 1);
 }
 
 static uint32_t sym40_links(object_entity_t *entity) {
@@ -265,7 +262,7 @@ static errno_t sym40_metadata(object_entity_t *entity,
 	if ((res = obj40_stat(&sym->obj)))
 		return res;
 
-	return place_func(entity, &sym->obj.statdata, data);
+	return place_func(entity, STAT_ITEM(&sym->obj), data);
 }
 
 /* Calls function @func for each block symlink items lie in */
@@ -285,7 +282,8 @@ static errno_t sym40_layout(object_entity_t *entity,
 	if ((res = obj40_stat(&sym->obj)))
 		return res;
 	
-	blk = sym->obj.statdata.con.blk;
+	blk = STAT_ITEM(&sym->obj)->con.blk;
+
 	return block_func(entity, blk, data);
 }
 
@@ -318,14 +316,15 @@ static errno_t sym40_follow(object_entity_t *entity,
 	if (sym40_read(entity, path, sizeof(path)) != sizeof(path))
 		return -EIO;
 
-	return sym->obj.core->object_ops.resolve(sym->obj.tree,
-						 &sym->obj.statdata,
+	return sym->obj.core->object_ops.resolve(sym->obj.info.tree,
+						 STAT_ITEM(&sym->obj),
 						 path, from, key);
 }
 
 /* Releases passed @entity */
 static void sym40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
+
 	aal_free(entity);
 }
 
