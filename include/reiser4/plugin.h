@@ -858,7 +858,7 @@ struct reiser4_node_ops {
 
 	/* Prints node into given buffer */
 	errno_t (*print) (object_entity_t *, aal_stream_t *,
-			  uint16_t);
+			  uint32_t, uint32_t, uint16_t);
     
 	/* Returns item's overhead */
 	uint16_t (*overhead) (object_entity_t *);
