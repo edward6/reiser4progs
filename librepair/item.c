@@ -7,7 +7,7 @@
 
 errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     reiser4_ptr_hint_t hint;
-    reiser4_pos_t prev;
+    rpos_t prev;
 
     aal_assert("vpf-416", coord != NULL, return -1);
     aal_assert("vpf-417", coord->node != NULL, return -1);

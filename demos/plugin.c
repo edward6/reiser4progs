@@ -51,7 +51,9 @@ int main(int argc, char *argv[]) {
 		return 0xff;
 	}
     
-	if (!(device = aal_device_open(&file_ops, argv[1], DEFAULT_BLOCKSIZE, O_RDWR))) {
+	if (!(device = aal_device_open(&file_ops, argv[1], 
+		BLOCKSIZE, O_RDWR))) 
+	{
 		aal_exception_error("Can't open device %s.", argv[1]);
 		goto error_free_libreiser4;
 	}

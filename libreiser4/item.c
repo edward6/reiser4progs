@@ -197,7 +197,7 @@ uint32_t reiser4_item_len(reiser4_coord_t *coord) {
 	return item->len;
 }
 
-reiser4_body_t *reiser4_item_body(reiser4_coord_t *coord) {
+rbody_t *reiser4_item_body(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("umka-554", coord != NULL, return NULL);

@@ -13,27 +13,33 @@
 #define LEAF_LEVEL	    (1)
 #define TWIG_LEVEL	    (LEAF_LEVEL + 1)
 
-#define MASTER_OFFSET	    (65536)
 #define MASTER_MAGIC	    ("R4Sb")
-
-#define DEFAULT_BLOCKSIZE   (4096)
+#define MASTER_OFFSET	    (65536)
+#define BLOCKSIZE           (4096)
 
 /* 
-   Defining the types for disk structures. All types like f32_t are fake ones
-   needed to avoid gcc-2.95.x bug with typedef of aligned types.
+  Defining the types for disk structures. All types like f32_t are fake ones
+  needed to avoid gcc-2.95.x bug with typedef of aligned types.
 */
 typedef uint8_t  f8_t;  typedef f8_t  d8_t  __attribute__((aligned(1)));
 typedef uint16_t f16_t; typedef f16_t d16_t __attribute__((aligned(2)));
 typedef uint32_t f32_t; typedef f32_t d32_t __attribute__((aligned(4)));
 typedef uint64_t f64_t; typedef f64_t d64_t __attribute__((aligned(8)));
 
+/* Basic reiser4 types used in library and plugins */
+typedef void rbody_t;
 typedef uint64_t roid_t;
 typedef uint16_t rpid_t;
 
-typedef void reiser4_body_t;
+struct rpos {
+	uint32_t item;
+	uint32_t unit;
+};
+
+typedef struct rpos rpos_t;
 
 enum reiser4_plugin_type {
-	FILE_PLUGIN_TYPE    = 0x0,
+	FILE_PLUGIN_TYPE        = 0x0,
 
 	/*
 	  In reiser4 kernel code DIR_PLUGIN_TYPE exists, but libreiser4 works
@@ -108,7 +114,7 @@ enum reiser4_hash_plugin_id {
 	HASH_DEGENERATE_ID	= 0x4
 };
 
-typedef enum reiser4_hash reiser4_hash_t;
+typedef enum reiser4_hash_plugin_id reiser4_hash_plugin_id_t;
 
 enum reiser4_tail_plugin_id {
 	TAIL_NEVER_ID		 = 0x0,
@@ -190,13 +196,6 @@ typedef struct key_entity key_entity_t;
 
 typedef uint32_t key_type_t;
 
-struct reiser4_pos {
-	uint32_t item;
-	uint32_t unit;
-};
-
-typedef struct reiser4_pos reiser4_pos_t;
-
 /*
   Type for describing inside the library the objects created by plugins
   themselves and which also have plugin. For example, node, format, alloc,
@@ -230,12 +229,13 @@ typedef struct item_context item_context_t;
 struct item_entity {
 	reiser4_plugin_t *plugin;
 
+	rpos_t pos;
+
 	uint32_t len;
+	rbody_t *body;
+	
 	key_entity_t key;
 	item_context_t con;
-
-	reiser4_pos_t pos;
-	reiser4_body_t *body;
 };
 
 typedef struct item_entity item_entity_t;
@@ -294,7 +294,7 @@ struct shift_hint {
 	uint32_t flags;
 
 	/* Insert point. It will be modified durring shfiting */
-	reiser4_pos_t pos;
+	rpos_t pos;
 };
 
 typedef struct shift_hint shift_hint_t;
@@ -307,30 +307,30 @@ typedef errno_t (*layout_func_t) (object_entity_t *, block_func_t, void *);
 typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
 
 /* 
-   To create a new item or to insert into the item we need to perform the
-   following operations:
+  To create a new item or to insert into the item we need to perform the
+  following operations:
     
-   (1) Create the description of the data being inserted.
-   (2) Ask item plugin how much space is needed for the data, described in 1.
+  (1) Create the description of the data being inserted.
+  (2) Ask item plugin how much space is needed for the data, described in 1.
     
-   (3) Free needed space for data being inserted.
-   (4) Ask item plugin to create an item (to paste into the item) on the base
-   of description from 1.
+  (3) Free needed space for data being inserted.
+  (4) Ask item plugin to create an item (to paste into the item) on the base
+      of description from 1.
 
-   For such purposes we have:
+  For such purposes we have:
     
-   (1) Fixed description structures for all item types (statdata, direntry, 
-   nodeptr, etc).
+  (1) Fixed description structures for all item types (statdata, direntry, 
+      nodeptr, etc).
     
-   (2) Estimate common item method which gets coord of where to insert into
-   (NULL or unit == -1 for insertion, otherwise it is pasting) and data
-   description from 1.
+  (2) Estimate common item method which gets coord of where to insert into
+      (NULL or unit == -1 for insertion, otherwise it is pasting) and data
+      description from 1.
     
-   (3) Insert node methods prepare needed space and call create/paste item
-   methods if data description is specified.
+  (3) Insert node methods prepare needed space and call create/paste item
+      methods if data description is specified.
     
-   (4) Create/Paste item methods if data description has not beed specified
-   on 3.
+  (4) Create/Paste item methods if data description has not beed specified
+      on 3.
 */
 
 struct reiser4_ptr_hint {    
@@ -705,16 +705,16 @@ struct reiser4_sdext_ops {
 	reiser4_plugin_header_t h;
 
 	/* Initialize stat data extention data at passed pointer */
-	errno_t (*init) (reiser4_body_t *, void *);
+	errno_t (*init) (rbody_t *, void *);
 
 	/* Reads stat data extention data */
-	errno_t (*open) (reiser4_body_t *, void *);
+	errno_t (*open) (rbody_t *, void *);
 
 	/* Prints stat data extention data into passed buffer */
-	errno_t (*print) (reiser4_body_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (rbody_t *, aal_stream_t *, uint16_t);
 
 	/* Returns length of the extention */
-	uint16_t (*length) (reiser4_body_t *);
+	uint16_t (*length) (rbody_t *);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
@@ -781,25 +781,21 @@ struct reiser4_node_ops {
 	   exact match was found and FALSE otherwise.
 	*/
 	int (*lookup) (object_entity_t *, key_entity_t *, 
-		       reiser4_pos_t *);
+		       rpos_t *);
     
 	/* Inserts item at specified pos */
-	errno_t (*insert) (object_entity_t *, reiser4_pos_t *, 
-			   reiser4_item_hint_t *);
+	errno_t (*insert) (object_entity_t *, rpos_t *, reiser4_item_hint_t *);
     
 	/* Removes item/unit at specified pos */
-	errno_t (*remove) (object_entity_t *, reiser4_pos_t *);
+	errno_t (*remove) (object_entity_t *, rpos_t *);
     
 	/* Removes some amount of items/units */
-	errno_t (*cut) (object_entity_t *, reiser4_pos_t *,
-			reiser4_pos_t *);
+	errno_t (*cut) (object_entity_t *, rpos_t *, rpos_t *);
 	
 	/* Gets/sets key at pos */
-	errno_t (*get_key) (object_entity_t *, reiser4_pos_t *, 
-			    key_entity_t *);
+	errno_t (*get_key) (object_entity_t *, rpos_t *, key_entity_t *);
     
-	errno_t (*set_key) (object_entity_t *, reiser4_pos_t *, 
-			    key_entity_t *);
+	errno_t (*set_key) (object_entity_t *, rpos_t *, key_entity_t *);
 
 	/* Gets/sets node level */
 	uint8_t (*level) (object_entity_t *);
@@ -812,13 +808,13 @@ struct reiser4_node_ops {
 	void (*set_flush_stamp) (object_entity_t *, uint64_t);
 
 	/* Gets item at passed pos */
-	reiser4_body_t *(*item_body) (object_entity_t *, reiser4_pos_t *);
+	rbody_t *(*item_body) (object_entity_t *, rpos_t *);
 
 	/* Returns item's length by pos */
-	uint16_t (*item_len) (object_entity_t *, reiser4_pos_t *);
+	uint16_t (*item_len) (object_entity_t *, rpos_t *);
     
 	/* Gets/sets node's plugin ID */
-	uint16_t (*item_pid) (object_entity_t *, reiser4_pos_t *);
+	uint16_t (*item_pid) (object_entity_t *, rpos_t *);
 
 	/* Constrain on the item type. */
 	errno_t (*item_legal) (object_entity_t *, reiser4_plugin_t *);
@@ -1115,7 +1111,7 @@ union reiser4_plugin {
 
 struct reiser4_place {
 	void *node;
-	reiser4_pos_t pos;
+	rpos_t pos;
 	item_entity_t item;
 };
 

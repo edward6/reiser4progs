@@ -8,7 +8,7 @@
 
 static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
     reiser4_ptr_hint_t ptr;
-    reiser4_pos_t *pos;
+    rpos_t *pos;
     repair_am_t *am = (repair_am_t *)data;
     uint32_t units;
 
@@ -57,7 +57,7 @@ static errno_t repair_am_setup(repair_data_t *rd) {
 
 errno_t repair_am_pass(repair_data_t *rd) {
     reiser4_coord_t coord;
-    reiser4_pos_t *pos = &coord.pos;
+    rpos_t *pos = &coord.pos;
     reiser4_tree_t *tree;
     reiser4_node_t *node;
     aux_bitmap_t *bitmap;

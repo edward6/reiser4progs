@@ -112,7 +112,7 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 errno_t repair_ds_pass(repair_data_t *rd) {
     reiser4_node_t *node;
     reiser4_coord_t coord;
-    reiser4_pos_t *pos = &coord.pos;
+    rpos_t *pos = &coord.pos;
     repair_ds_t *ds;
     blk_t blk = 0;
     errno_t res;

@@ -16,7 +16,7 @@ static reiser4_core_t *core = NULL;
 
 /* Type for stat40 layout callback function */
 typedef int (*stat40_ext_func_t) (uint8_t, reiser4_plugin_t *, uint16_t,
-				  reiser4_body_t *, void *);
+				  rbody_t *, void *);
 
 /*
   The function which implements stat40 layout pass. This function is used for
@@ -30,7 +30,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 	stat40_t *stat;
 	uint16_t extmask;
 	
-	reiser4_body_t *extbody;
+	rbody_t *extbody;
 	reiser4_plugin_t *plugin;
 
 	aal_assert("umka-1197", item != NULL, return -1);
@@ -91,7 +91,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 
 /* Callback for opening one extention */
 static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
-				 uint16_t extmask, reiser4_body_t *extbody,
+				 uint16_t extmask, rbody_t *extbody,
 				 void *data)
 {
 	reiser4_statdata_hint_t *hint;
@@ -202,7 +202,7 @@ static errno_t stat40_insert(item_entity_t *item,
 			     void *buff, uint32_t pos)
 {
 	uint8_t i;
-	reiser4_body_t *extbody;
+	rbody_t *extbody;
 
 	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
@@ -210,7 +210,7 @@ static errno_t stat40_insert(item_entity_t *item,
 	aal_assert("vpf-076", item != NULL, return -1); 
 	aal_assert("vpf-075", buff != NULL, return -1);
 
-	extbody = (reiser4_body_t *)item->body;
+	extbody = (rbody_t *)item->body;
 
 	hint = (reiser4_item_hint_t *)buff;
 	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
@@ -288,13 +288,13 @@ static uint32_t stat40_units(item_entity_t *item) {
 
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
-	reiser4_body_t *body;
+	rbody_t *body;
 	uint8_t ext;
 };
 
 /* Callback function for finding stat data extention body by bit */
 static int callback_body_ext(uint8_t ext, reiser4_plugin_t *plugin,
-			     uint16_t extmask, reiser4_body_t *extbody,
+			     uint16_t extmask, rbody_t *extbody,
 			     void *data)
 {
 	struct body_hint *hint = (struct body_hint *)data;
@@ -304,7 +304,7 @@ static int callback_body_ext(uint8_t ext, reiser4_plugin_t *plugin,
 }
 
 /* Finds extention body by number of bit in 64bits mask */
-static reiser4_body_t *stat40_sdext_body(item_entity_t *item, 
+static rbody_t *stat40_sdext_body(item_entity_t *item, 
 					 uint8_t bit)
 {
 	struct body_hint hint = {NULL, bit};
@@ -325,7 +325,7 @@ struct present_hint {
 /* Callback for getting presence information for certain stat data
  * extention */
 static int callback_present_ext(uint8_t ext, reiser4_plugin_t *plugin,
-				uint16_t extmask, reiser4_body_t *extbody,
+				uint16_t extmask, rbody_t *extbody,
 				void *data)
 {
 	struct present_hint *hint = (struct present_hint *)data;
@@ -366,7 +366,7 @@ static errno_t stat40_layout(item_entity_t *item,
 
 /* Callback for counting the number of stat data extentions in use */
 static int callback_count_ext(uint8_t ext, reiser4_plugin_t *plugin,
-			      uint16_t extmask, reiser4_body_t *extbody,
+			      uint16_t extmask, rbody_t *extbody,
 			      void *data)
 {
         (*(uint32_t *)data)++;
@@ -385,7 +385,7 @@ static uint32_t stat40_sdexts(item_entity_t *item) {
 
 /* Prints extention into @stream */
 static int callback_print_ext(uint8_t ext, reiser4_plugin_t *plugin,
-			      uint16_t extmask, reiser4_body_t *extbody,
+			      uint16_t extmask, rbody_t *extbody,
 			      void *data)
 {
 	aal_stream_t *stream = (aal_stream_t *)data;

@@ -69,7 +69,7 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 errno_t reiser4_coord_init(
 	reiser4_coord_t *coord,	 /* coord to be initialized */
 	reiser4_node_t *node,	 /* the first component of coord */
-	reiser4_pos_t *pos)	 /* coord pos component */
+	rpos_t *pos)	 /* coord pos component */
 {
 	aal_assert("umka-795", coord != NULL, return -1);
 	aal_assert("umka-1728", node != NULL, return -1);
@@ -86,7 +86,7 @@ errno_t reiser4_coord_init(
 errno_t reiser4_coord_open(
 	reiser4_coord_t *coord,	 /* coord to be initialized */
 	reiser4_node_t *node,	 /* the first component of coord */
-	reiser4_pos_t *pos)	 /* coord pos component */
+	rpos_t *pos)	 /* coord pos component */
 {
         aal_assert("umka-1435", coord != NULL, return -1);
 

@@ -16,7 +16,7 @@ static char *levels[6] = {
 };
 
 /* Returns item header by pos */
-inline item40_header_t *node40_ih_at(node40_t *node, int pos) {
+inline item40_header_t *node40_ih_at(node40_t *node, uint32_t pos) {
 	aal_block_t *block = node->block;
 
 	item40_header_t *ih =
@@ -26,7 +26,7 @@ inline item40_header_t *node40_ih_at(node40_t *node, int pos) {
 }
 
 /* Retutrns item body by pos */
-inline void *node40_ib_at(node40_t *node, int pos) {
+inline void *node40_ib_at(node40_t *node, uint32_t pos) {
 	aal_block_t *block = node->block;
 	return block->data + ih40_get_offset(node40_ih_at(node, pos));
 }
@@ -141,7 +141,7 @@ uint16_t node40_items(object_entity_t *entity) {
 
 /* Returns key at passed @pos */
 static errno_t node40_get_key(object_entity_t *entity,
-			      reiser4_pos_t *pos,
+			      rpos_t *pos,
 			      key_entity_t *key) 
 {
 	uint32_t items;
@@ -181,7 +181,7 @@ static uint16_t node40_maxspace(object_entity_t *entity) {
 
 /* Gets item's body at passed @pos */
 static void *node40_item_body(object_entity_t *entity, 
-			      reiser4_pos_t *pos)
+			      rpos_t *pos)
 {
 	uint32_t items;
 	node40_t *node = (node40_t *)entity;
@@ -197,7 +197,7 @@ static void *node40_item_body(object_entity_t *entity,
 
 /* Returns item plugin id at specified @pos */
 static rpid_t node40_item_pid(object_entity_t *entity, 
-			      reiser4_pos_t *pos)
+			      rpos_t *pos)
 {
 	node40_t *node = (node40_t *)entity;
     
@@ -212,7 +212,7 @@ static rpid_t node40_item_pid(object_entity_t *entity,
 
 /* Returns length of item at pos. */
 static uint16_t node40_item_len(object_entity_t *entity, 
-				reiser4_pos_t *pos)
+				rpos_t *pos)
 {
 	item40_header_t *ih;
 	uint32_t free_space_start;
@@ -245,7 +245,7 @@ static errno_t node40_item(item_entity_t *item,
 			   uint32_t pos)
 {
 	rpid_t pid;
-	reiser4_pos_t item_pos;
+	rpos_t item_pos;
 
 	aal_assert("umka-1602", item != NULL, return -1);
 	aal_assert("umka-1631", node != NULL, return -1);
@@ -292,7 +292,7 @@ static errno_t node40_item(item_entity_t *item,
   Makes expand passed @node by @len in odrer to insert item/unit into it. This
   function is used by insert and shift methods.
 */
-static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
+static errno_t node40_expand(node40_t *node, rpos_t *pos,
 			     uint32_t size)
 {
 	int is_space;
@@ -381,13 +381,21 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	return 0;
 }
 
+/* makes copy of @count items from the src node to dst one */
+static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
+			   node40_t *dst_node, rpos_t *dst_pos,
+			   uint32_t count)
+{
+	return -1;
+}
+
 /*
   General node40 cutting function. It is used frim shift, remove, etc. It
   removes an amount of items specified by @count and shrinks node. If unit
   component of pos is specified, then it will shrink specified by @pos->item
   node by specified @len.
 */
-static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
+static errno_t node40_shrink(node40_t *node, rpos_t *pos,
 			     uint32_t len, uint32_t count)
 {
 	int is_range;
@@ -487,7 +495,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	return 0;
 }
 
-static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
+static errno_t node40_delete(node40_t *node, rpos_t *pos,
 			     uint32_t count)
 {
 	int is_range;
@@ -535,7 +543,7 @@ static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 
 /* Inserts item described by hint structure into node */
 static errno_t node40_insert(object_entity_t *entity,
-			     reiser4_pos_t *pos,
+			     rpos_t *pos,
 			     reiser4_item_hint_t *hint) 
 {
 	node40_t *node;
@@ -601,7 +609,7 @@ static errno_t node40_insert(object_entity_t *entity,
 
 /* This function removes item/unit from the node at specified @pos */
 errno_t node40_remove(object_entity_t *entity, 
-		      reiser4_pos_t *pos) 
+		      rpos_t *pos) 
 {
 	uint32_t len;
 	node40_t *node;
@@ -628,8 +636,8 @@ errno_t node40_remove(object_entity_t *entity,
 
 /* Removes items/units starting from the @start and ending at the @end */
 static errno_t node40_cut(object_entity_t *entity,
-			  reiser4_pos_t *start,
-			  reiser4_pos_t *end)
+			  rpos_t *start,
+			  rpos_t *end)
 {
 	node40_t *node;
 	uint32_t units;
@@ -637,7 +645,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	uint32_t begin;
 	uint32_t count;
 	
-	reiser4_pos_t pos;
+	rpos_t pos;
 	item_entity_t item;
 	
 	aal_assert("umka-1788", entity != NULL, return -1);
@@ -776,7 +784,7 @@ static void node40_set_flush_stamp(object_entity_t *entity, uint64_t stamp) {
 
 /* Updates key at @pos by specified @key */
 static errno_t node40_set_key(object_entity_t *entity, 
-			      reiser4_pos_t *pos,
+			      rpos_t *pos,
 			      key_entity_t *key) 
 {
 	uint32_t items;
@@ -816,7 +824,7 @@ static errno_t node40_print(object_entity_t *entity,
 			    uint16_t options) 
 {
 	uint8_t level;
-	reiser4_pos_t pos;
+	rpos_t pos;
 	item_entity_t item;
 
 	node40_t *node = (node40_t *)entity;
@@ -914,7 +922,7 @@ static inline int callback_comp_key(void *node, uint32_t pos,
 */
 static int node40_lookup(object_entity_t *entity, 
 			 key_entity_t *key,
-			 reiser4_pos_t *pos)
+			 rpos_t *pos)
 {
 	int result; 
 	int64_t item;
@@ -962,7 +970,7 @@ static errno_t node40_merge(node40_t *src_node,
 	int remove;
 	uint32_t len;
 	
-	reiser4_pos_t pos;
+	rpos_t pos;
 	
 	uint32_t dst_items;
 	uint32_t src_items;
@@ -1397,8 +1405,12 @@ static errno_t node40_shift_items(node40_t *src_node,
 		for (i = 0; i < hint->items; i++, ih++)
 			ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));
 
+		/*
+		  Shrinking source node after items are copied from it to dst
+		  node.
+		*/
 		if (src_items > hint->items) {
-			reiser4_pos_t pos = {0, ~0ul};
+			rpos_t pos = {0, ~0ul};
 
 			if (node40_shrink(src_node, &pos, hint->bytes,
 					  hint->items))
@@ -1410,7 +1422,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 			}
 		}
 	} else {
-		reiser4_pos_t pos = {src_items - hint->items, ~0ul};
+		rpos_t pos = {src_items - hint->items, ~0ul};
 		
 		/* Preparing space for headers in dst node */
 		if (dst_items > 0) {
@@ -1459,6 +1471,11 @@ static errno_t node40_shift_items(node40_t *src_node,
 
 		aal_memcpy(dst, src, hint->bytes);
 
+		/*
+		  Shrinking source node after items are copied from it to dst
+		  node. Actually here will be only src node header updating
+		  performed by node40_shrink function.
+		*/
 		if (node40_shrink(src_node, &pos, hint->bytes,
 				  hint->items))
 		{

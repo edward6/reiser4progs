@@ -5,7 +5,7 @@
 
 #include <repair/librepair.h>
 
-void repair_coord_left_pos_save(reiser4_coord_t *current, reiser4_pos_t *pos) {
+void repair_coord_left_pos_save(reiser4_coord_t *current, rpos_t *pos) {
     *pos = current->pos;
     
     if ((current->pos.unit == 0 && reiser4_item_units(current) == 1) || 

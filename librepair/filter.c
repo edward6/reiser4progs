@@ -100,7 +100,7 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
  * level, if REPAIR_BAD_PTR flag is set - deletes the child pointer and 
  * mark the pointed block as unused in bm_used bitmap. */
 static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
-    reiser4_pos_t prev;
+    rpos_t prev;
     repair_data_t *rd = (repair_data_t *)data;
     
     aal_assert("vpf-257", rd != NULL, return -1);

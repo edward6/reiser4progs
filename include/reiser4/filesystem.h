@@ -105,7 +105,7 @@ typedef struct reiser4_coord reiser4_coord_t;
 
 struct reiser4_coord {
 	reiser4_node_t *node;
-	reiser4_pos_t pos;
+	rpos_t pos;
 	item_entity_t item;
 };
 
@@ -127,12 +127,12 @@ typedef struct lru_link lru_link_t;
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
 	
+	/* Position in parent node */
+	rpos_t pos;
+	
 	/* Lru related fields */
 	lru_link_t lru;
 
-	/* Position in parent node */
-	reiser4_pos_t pos;
-	
 	/* List of children */
 	aal_list_t *children;
 	

@@ -126,10 +126,10 @@ int reiser4_master_confirm(aal_device_t *device) {
     
 	aal_assert("umka-901", device != NULL, return 0);
     
-	offset = (blk_t)(MASTER_OFFSET / DEFAULT_BLOCKSIZE);
+	offset = (blk_t)(MASTER_OFFSET / BLOCKSIZE);
 
 	/* Setting up default block size (4096) to used device */
-	aal_device_set_bs(device, DEFAULT_BLOCKSIZE);
+	aal_device_set_bs(device, BLOCKSIZE);
     
 	/* Reading the block where master super block lies */
 	if (!(block = aal_block_open(device, offset))) {
@@ -172,10 +172,10 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	if (!(master = aal_calloc(sizeof(*master), 0)))
 		return NULL;
     
-	offset = (blk_t)(MASTER_OFFSET / DEFAULT_BLOCKSIZE);
+	offset = (blk_t)(MASTER_OFFSET / BLOCKSIZE);
 
 	/* Setting up default block size (4096) to used device */
-	aal_device_set_bs(device, DEFAULT_BLOCKSIZE);
+	aal_device_set_bs(device, BLOCKSIZE);
     
 	/* Reading the block where master super block lies */
 	if (!(master->block = aal_block_open(device, offset))) {
@@ -202,8 +202,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	    
 			/* Creating in-memory master super block */
 			if (!(master = reiser4_master_create(device, plugin->h.id, 
-							     DEFAULT_BLOCKSIZE,
-							     NULL, NULL)))
+							     BLOCKSIZE, NULL, NULL)))
 			{
 				aal_exception_error("Can't find format in use after probe the "
 						    "all registered format plugins.");

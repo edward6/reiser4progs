@@ -11,7 +11,7 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_symlink_plugin;
 
-static errno_t sdext_symlink_init(reiser4_body_t *body, 
+static errno_t sdext_symlink_init(rbody_t *body, 
 				  void *hint) 
 {
 	char *data;
@@ -24,7 +24,7 @@ static errno_t sdext_symlink_init(reiser4_body_t *body,
 	return 0;
 }
 
-static errno_t sdext_symlink_open(reiser4_body_t *body, 
+static errno_t sdext_symlink_open(rbody_t *body, 
 				  void *hint) 
 {
 	char *data;
@@ -38,14 +38,14 @@ static errno_t sdext_symlink_open(reiser4_body_t *body,
 	return 0;
 }
 
-static uint16_t sdext_symlink_length(reiser4_body_t *body) {
+static uint16_t sdext_symlink_length(rbody_t *body) {
 	aal_assert("umka-1488", body != NULL, return 0);
 	return aal_strlen((char *)body);
 }
 
 #ifndef ENABLE_COMPACT
 
-static errno_t sdext_symlink_print(reiser4_body_t *body, aal_stream_t *stream,
+static errno_t sdext_symlink_print(rbody_t *body, aal_stream_t *stream,
 			      uint16_t options)
 {
 	aal_assert("umka-1485", body != NULL, return -1);

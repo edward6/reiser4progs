@@ -57,7 +57,7 @@ static errno_t direntry40_count_check(item_entity_t *item) {
     return 0;
 }
 
-static errno_t direntry40_region_delete(reiser4_body_t *body, uint16_t start_pos, 
+static errno_t direntry40_region_delete(rbody_t *body, uint16_t start_pos, 
     uint16_t end_pos) 
 {
     int i;

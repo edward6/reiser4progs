@@ -11,7 +11,7 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_lt_plugin;
 
-static errno_t sdext_lt_init(reiser4_body_t *body, 
+static errno_t sdext_lt_init(rbody_t *body, 
 			     void *hint) 
 {
 	sdext_lt_t *ext;
@@ -30,7 +30,7 @@ static errno_t sdext_lt_init(reiser4_body_t *body,
 	return 0;
 }
 
-static errno_t sdext_lt_open(reiser4_body_t *body, 
+static errno_t sdext_lt_open(rbody_t *body, 
 			     void *hint) 
 {
 	sdext_lt_t *ext;
@@ -49,13 +49,13 @@ static errno_t sdext_lt_open(reiser4_body_t *body,
 	return 0;
 }
 
-static uint16_t sdext_lt_length(reiser4_body_t *body) {
+static uint16_t sdext_lt_length(rbody_t *body) {
 	return sizeof(sdext_lt_t);
 }
 
 #ifndef ENABLE_COMPACT
 
-static errno_t sdext_lt_print(reiser4_body_t *body, aal_stream_t *stream,
+static errno_t sdext_lt_print(rbody_t *body, aal_stream_t *stream,
 			      uint16_t options)
 {
 	sdext_lt_t *ext;

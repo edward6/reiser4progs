@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 	char uuid[17], label[17];
 	mkfs_behav_flags_t flags = 0;
 	count_t fs_len = 0, dev_len = 0;
-	uint16_t blocksize = DEFAULT_BLOCKSIZE;
+	uint16_t blocksize = BLOCKSIZE;
 	char *host_dev, *profile_label = "smart40";
     
 	static struct option long_options[] = {

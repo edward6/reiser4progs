@@ -13,7 +13,7 @@
 #include <repair/repair.h>
 
 extern void repair_coord_left_pos_save(reiser4_coord_t *coord, 
-    reiser4_pos_t *pos);
+    rpos_t *pos);
 
 #endif
 

@@ -33,25 +33,25 @@ extern errno_t reiser4_node_print(reiser4_node_t *node,
 extern errno_t reiser4_node_sync(reiser4_node_t *node);
 
 extern errno_t reiser4_node_ukey(reiser4_node_t *node,
-				 reiser4_pos_t *pos,
+				 rpos_t *pos,
 				 reiser4_key_t *key);
 
 extern errno_t reiser4_node_insert(reiser4_node_t *node,
-				   reiser4_pos_t *pos,
+				   rpos_t *pos,
 				   reiser4_item_hint_t *hint);
 
 extern errno_t reiser4_node_remove(reiser4_node_t *node,
-				   reiser4_pos_t *pos);
+				   rpos_t *pos);
 
 extern errno_t reiser4_node_write(reiser4_node_t *dst_node,
-				  reiser4_pos_t *dst_pos,
+				  rpos_t *dst_pos,
 				  reiser4_node_t *src_node,
-				  reiser4_pos_t *src_pos,
+				  rpos_t *src_pos,
 				  uint32_t count);
 
 extern errno_t reiser4_node_cut(reiser4_node_t *node,
-				reiser4_pos_t *start,
-				reiser4_pos_t *end);
+				rpos_t *start,
+				rpos_t *end);
 
 extern errno_t reiser4_node_shift(reiser4_node_t *node,
 				  reiser4_node_t *neig,
@@ -71,7 +71,7 @@ extern errno_t reiser4_node_lkey(reiser4_node_t *node,
 				 reiser4_key_t *key);
 
 extern errno_t reiser4_node_pos(reiser4_node_t *node,
-				reiser4_pos_t *pos);
+				rpos_t *pos);
 
 extern reiser4_node_t *reiser4_node_cbk(reiser4_node_t *node,
 					reiser4_key_t *key);
@@ -87,7 +87,7 @@ extern void reiser4_node_detach(reiser4_node_t *node,
 
 extern int reiser4_node_lookup(reiser4_node_t *node,
 			       reiser4_key_t *key,
-			       reiser4_pos_t *pos);
+			       rpos_t *pos);
 
 extern errno_t reiser4_node_lock(reiser4_node_t *node);
 extern errno_t reiser4_node_unlock(reiser4_node_t *node);

@@ -11,7 +11,7 @@
 
 #define INVALID_U16	0xffff
 
-extern errno_t node40_remove(object_entity_t *entity, reiser4_pos_t *pos);
+extern errno_t node40_remove(object_entity_t *entity, rpos_t *pos);
 extern uint16_t node40_items(object_entity_t *entity);
 extern uint8_t node40_level(object_entity_t *entity);
 
@@ -41,7 +41,7 @@ static errno_t node40_region_delete(object_entity_t *entity,
     uint16_t start_pos, uint16_t end_pos) 
 {
     int i;
-    reiser4_pos_t pos;
+    rpos_t pos;
     item40_header_t *ih;
     node40_t *node = (node40_t *)entity;
      

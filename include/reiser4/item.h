@@ -51,7 +51,7 @@ extern rpid_t reiser4_item_type(reiser4_coord_t *coord);
 
 extern uint32_t reiser4_item_len(reiser4_coord_t *coord);
 extern uint32_t reiser4_item_units(reiser4_coord_t *coord);
-extern reiser4_body_t *reiser4_item_body(reiser4_coord_t *coord);
+extern rbody_t *reiser4_item_body(reiser4_coord_t *coord);
 extern reiser4_plugin_t *reiser4_item_plugin(reiser4_coord_t *coord);
 
 #endif

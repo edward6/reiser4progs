@@ -409,7 +409,7 @@ int reiser4_tree_lookup(
 
 	reiser4_coord_t fake;
 	reiser4_ptr_hint_t ptr;
-	reiser4_pos_t pos = {0, ~0ul};
+	rpos_t pos = {0, ~0ul};
 	reiser4_node_t *parent = NULL;
 
 	aal_assert("umka-1760", tree != NULL, return -1);
@@ -925,7 +925,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	int cur_level;
 	uint64_t stamp;
 	reiser4_node_t *node;
-	reiser4_pos_t pos = {0, 0};
+	rpos_t pos = {0, 0};
 	
 	aal_assert("vpf-672", tree != NULL, return -1);
 	aal_assert("vpf-673", coord != NULL, return -1);
@@ -1182,7 +1182,7 @@ errno_t reiser4_tree_cut(
 	}
 
 	if (start->node != end->node) {
-		reiser4_pos_t pos = { ~0ul, ~0ul };
+		rpos_t pos = { ~0ul, ~0ul };
 
 		/* Removing start + 1 though end - 1 node from the tree */
 		neig = neig->left;

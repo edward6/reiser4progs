@@ -154,7 +154,7 @@ static errno_t tree_right(
 	reiser4_place_t *place,     /* coord of node */
 	reiser4_place_t *right)	    /* right neighbour will be here */
 {
-	reiser4_pos_t pos;
+	rpos_t pos;
 	reiser4_coord_t *coord;
     
 	aal_assert("umka-867", tree != NULL, return -1);
@@ -182,7 +182,7 @@ static errno_t tree_left(
 	reiser4_place_t *place,	    /* coord of node */
 	reiser4_place_t *left)	    /* left neighbour will be here */
 {
-	reiser4_pos_t pos;
+	rpos_t pos;
 	reiser4_coord_t *coord;
 	
 	aal_assert("umka-867", tree != NULL, return -1);

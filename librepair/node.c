@@ -72,7 +72,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     aux_bitmap_t *bm_used) 
 {
     reiser4_coord_t coord;
-    reiser4_pos_t *pos = &coord.pos;
+    rpos_t *pos = &coord.pos;
     int res;
 
     aal_assert("vpf-229", node != NULL, return -1);
@@ -230,7 +230,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
     reiser4_coord_t coord;
     reiser4_key_t key, d_key;
-    reiser4_pos_t *pos = &coord.pos;
+    rpos_t *pos = &coord.pos;
     int res;
 
     aal_assert("vpf-248", node != NULL, return -1);
@@ -324,7 +324,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 static errno_t repair_node_keys_check(reiser4_node_t *node) {
     reiser4_coord_t coord;
     reiser4_key_t key, prev_key;
-    reiser4_pos_t *pos = &coord.pos;
+    rpos_t *pos = &coord.pos;
     errno_t res;
     
     aal_assert("vpf-258", node != NULL, return -1);
@@ -405,7 +405,7 @@ errno_t repair_node_traverse(reiser4_node_t *node, rpid_t object_hint,
     traverse_item_func_t func, void *data) 
 {
     reiser4_coord_t coord;
-    reiser4_pos_t *pos = &coord.pos;
+    rpos_t *pos = &coord.pos;
     uint32_t items;
 
     pos->unit = ~0ul;

@@ -19,10 +19,10 @@ extern errno_t reiser4_coord_assign(reiser4_coord_t *coord,
 
 extern errno_t reiser4_coord_init(reiser4_coord_t *coord,
 					   reiser4_node_t *node,
-					   reiser4_pos_t *pos);
+					   rpos_t *pos);
 
 extern errno_t reiser4_coord_open(reiser4_coord_t *coord,
 					   reiser4_node_t *node,
-					   reiser4_pos_t *pos);
+					   rpos_t *pos);
 
 #endif

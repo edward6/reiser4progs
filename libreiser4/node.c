@@ -263,7 +263,7 @@ errno_t reiser4_node_lkey(
 	reiser4_key_t *key)	/* key pointer found key will be stored in */
 {
 	reiser4_coord_t coord;
-	reiser4_pos_t pos = {0, ~0ul};
+	rpos_t pos = {0, ~0ul};
 
 	aal_assert("umka-753", node != NULL, return -1);
 	aal_assert("umka-754", key != NULL, return -1);
@@ -280,7 +280,7 @@ errno_t reiser4_node_lkey(
 /* Returns position of passed node in parent node */
 errno_t reiser4_node_pos(
 	reiser4_node_t *node,	        /* node position will be obtained for */
-	reiser4_pos_t *pos)		/* pointer result will be stored in */
+	rpos_t *pos)		/* pointer result will be stored in */
 {
 	reiser4_key_t lkey;
 	reiser4_key_t parent_key;
@@ -452,7 +452,7 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 	uint32_t orig;
 	uint32_t level;
 
-	reiser4_pos_t pos;
+	rpos_t pos;
 	reiser4_node_t *child;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
@@ -660,7 +660,7 @@ bool_t reiser4_node_confirm(reiser4_node_t *node) {
 int reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
 	reiser4_key_t *key,	/* key to be find */
-	reiser4_pos_t *pos)	/* found pos will be stored here */
+	rpos_t *pos)	/* found pos will be stored here */
 {
 	int result;
 
@@ -788,7 +788,7 @@ errno_t reiser4_node_shift(
 {
 	int retval;
 	uint32_t i, items;
-	reiser4_pos_t ppos;
+	rpos_t ppos;
 	reiser4_key_t lkey;
 	reiser4_plugin_t *plugin;
     
@@ -958,10 +958,10 @@ errno_t reiser4_node_sync(
   levels of tre tree).
 */
 errno_t reiser4_node_ukey(reiser4_node_t *node,
-			  reiser4_pos_t *pos,
+			  rpos_t *pos,
 			  reiser4_key_t *key)
 {
-	reiser4_pos_t ppos;
+	rpos_t ppos;
 	reiser4_coord_t coord;
     
 	aal_assert("umka-999", node != NULL, return -1);
@@ -997,11 +997,11 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 */
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	            /* node item will be inserted in */
-	reiser4_pos_t *pos,	    	    /* pos item will be inserted at */
+	rpos_t *pos,	    	    /* pos item will be inserted at */
 	reiser4_item_hint_t *hint)	    /* item hint to be inserted */
 {
 	errno_t ret;
-	reiser4_pos_t ppos;
+	rpos_t ppos;
     
 	aal_assert("umka-990", node != NULL, return -1);
 	aal_assert("umka-991", pos != NULL, return -1);
@@ -1073,9 +1073,9 @@ errno_t reiser4_node_insert(
 /* Inserts/overwrites some amount of items/units */
 errno_t reiser4_node_write(
 	reiser4_node_t *dst_node,               /* destination node */
-	reiser4_pos_t *dst_pos,                 /* destination pos */
+	rpos_t *dst_pos,                 /* destination pos */
 	reiser4_node_t *src_node,               /* source node */
-	reiser4_pos_t *src_pos,                 /* source pos */
+	rpos_t *src_pos,                 /* source pos */
 	uint32_t count)
 {
 	return -1;
@@ -1084,10 +1084,10 @@ errno_t reiser4_node_write(
 /* Removes some amount of item/units */
 errno_t reiser4_node_cut(
 	reiser4_node_t *node,	            /* node item will be removed from */
-	reiser4_pos_t *start,		    /* start item will be removed at */
-	reiser4_pos_t *end)		    /* end item will be removed at */
+	rpos_t *start,		    /* start item will be removed at */
+	rpos_t *end)		    /* end item will be removed at */
 {
-	reiser4_pos_t ppos;
+	rpos_t ppos;
 	
 	aal_assert("umka-1785", node != NULL, return -1);
 	aal_assert("umka-1786", start != NULL, return -1);
@@ -1129,10 +1129,10 @@ errno_t reiser4_node_cut(
 */
 errno_t reiser4_node_remove(
 	reiser4_node_t *node,	            /* node item will be removed from */
-	reiser4_pos_t *pos)		    /* pos item will be removed at */
+	rpos_t *pos)		    /* pos item will be removed at */
 {
 	int update;
-	reiser4_pos_t ppos;
+	rpos_t ppos;
 	reiser4_coord_t coord;
 
 	aal_assert("umka-993", node != NULL, return -1);
@@ -1210,8 +1210,8 @@ errno_t reiser4_node_traverse(
 {
 	errno_t result = 0;
 	reiser4_coord_t coord;
+	rpos_t *pos = &coord.pos;
 	reiser4_node_t *child = NULL;
-	reiser4_pos_t *pos = &coord.pos;
  
 	aal_assert("vpf-418", hint != NULL, return -1);
 	aal_assert("vpf-390", node != NULL, return -1);

@@ -9,8 +9,8 @@
 #include <aux/bitmap.h>
 
 /* 
-   This macros is used for checking whether given block is inside of allowed
-   range or not. It is used in all bitmap functions.
+  This macros is used for checking whether given block is inside of allowed
+  range or not. It is used in all bitmap functions.
 */
 #define aux_bitmap_bound_check(bitmap, bit, action)		        \
 do {								        \
@@ -22,8 +22,8 @@ do {								        \
 } while (0)
 
 /* 
-   Checks whether passed block is inside of bitmap and marks it. This
-   function also increses marked block counter.
+  Checks whether passed block is inside of bitmap and marks it. This function
+  also increses marked block counter.
 */
 void aux_bitmap_mark(
 	aux_bitmap_t *bitmap,	    /* bitmap instance passed bit will be marked in */
@@ -41,8 +41,8 @@ void aux_bitmap_mark(
 }
 
 /* 
-   Checks whether passed block is inside of bitmap and clears it. This
-   function also descreases marked block counter.
+  Checks whether passed block is inside of bitmap and clears it. This function
+  also descreases marked block counter.
 */
 void aux_bitmap_clear(
 	aux_bitmap_t *bitmap,	    /* bitmap, passed blk will be marked in */
@@ -75,8 +75,8 @@ void aux_bitmap_clear_all(aux_bitmap_t *bitmap) {
 }
 
 /* 
-   Checks whether passed block is inside of bitmap and test it. Returns TRUE if
-   block is marked, FALSE otherwise.
+  Checks whether passed block is inside of bitmap and test it. Returns TRUE if
+  block is marked, FALSE otherwise.
 */
 int aux_bitmap_test(
 	aux_bitmap_t *bitmap,	    /* bitmap, passed blk will be tested */
@@ -89,8 +89,8 @@ int aux_bitmap_test(
 }
 
 /* 
-   Checks whether passed range of blocks is inside of bitmap and marks
-   blocks. This function also increses marked block counter.
+  Checks whether passed range of blocks is inside of bitmap and marks
+  blocks. This function also increses marked block counter.
 */
 void aux_bitmap_mark_region(
 	aux_bitmap_t *bitmap,	    /* bitmap range of bits to be marked in */
@@ -107,8 +107,8 @@ void aux_bitmap_mark_region(
 }
 
 /* 
-   Checks whether passed range of blocks is inside of bitmap and clears
-   blocks. This function also descreases marked block counter.
+  Checks whether passed range of blocks is inside of bitmap and clears
+  blocks. This function also descreases marked block counter.
 */
 void aux_bitmap_clear_region(
 	aux_bitmap_t *bitmap,	    /* bitmap range of blocks will be cleared in */
@@ -253,8 +253,8 @@ static uint64_t aux_bitmap_calc(
 }
 
 /* 
-   Yet another wrapper. It counts the number of marked/cleared blocks in specified
-   region.
+  Yet another wrapper. It counts the number of marked/cleared blocks in
+  specified region.
 */
 uint64_t aux_bitmap_calc_region_marked(
 	aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */

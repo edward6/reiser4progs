@@ -113,23 +113,23 @@ typedef struct node40_header node40_header_t;
 #define nh40_set_free_space_start(node, val) \
         aal_set_le16(nh40((node)->block), free_space_start, val)
 
-#define nh40_inc_free_space(node, value) \
-        nh40_set_free_space(node, (nh40_get_free_space(node) + value));
+#define nh40_inc_free_space(node, val) \
+        nh40_set_free_space(node, (nh40_get_free_space(node) + (val)));
 
-#define nh40_dec_free_space(node, value) \
-        nh40_set_free_space(node, (nh40_get_free_space(node) - value));
+#define nh40_dec_free_space(node, val) \
+        nh40_set_free_space(node, (nh40_get_free_space(node) - (val)));
 
-#define nh40_inc_free_space_start(node, value) \
-	nh40_set_free_space_start(node, (nh40_get_free_space_start(node) + value));
+#define nh40_inc_free_space_start(node, val) \
+	nh40_set_free_space_start(node, (nh40_get_free_space_start(node) + (val)));
 
-#define nh40_dec_free_space_start(node, value) \
-	nh40_set_free_space_start(node, (nh40_get_free_space_start(node) - value));
+#define nh40_dec_free_space_start(node, val) \
+	nh40_set_free_space_start(node, (nh40_get_free_space_start(node) - (val)));
 
-#define nh40_inc_num_items(node, value) \
-	nh40_set_num_items(node, (nh40_get_num_items(node) + value));
+#define nh40_inc_num_items(node, val) \
+	nh40_set_num_items(node, (nh40_get_num_items(node) + (val)));
 
-#define nh40_dec_num_items(node, value) \
-	nh40_set_num_items(node, (nh40_get_num_items(node) - value));
+#define nh40_dec_num_items(node, val) \
+	nh40_set_num_items(node, (nh40_get_num_items(node) - (val)));
 
 union key40 {
 	d64_t el[3];
@@ -151,20 +151,20 @@ typedef struct item40_header item40_header_t;
 #define ih40_get_offset(ih)	  aal_get_le16(ih, offset)
 #define ih40_set_offset(ih, val)  aal_set_le16(ih, offset, val);
 
-#define ih40_inc_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) + val))
-#define ih40_dec_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) - val))
+#define ih40_inc_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) + (val)))
+#define ih40_dec_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) - (val)))
 
 #define ih40_get_len(ih)	  aal_get_le16(ih, len)
 #define ih40_set_len(ih, val)	  aal_set_le16(ih, len, val)
 
-#define ih40_inc_len(ih, val)     ih40_set_len(ih, (ih40_get_len(ih) + val))
-#define ih40_dec_len(ih, val)     ih40_set_len(ih, (ih40_get_len(ih) - val))
+#define ih40_inc_len(ih, val)     ih40_set_len(ih, (ih40_get_len(ih) + (val)))
+#define ih40_dec_len(ih, val)     ih40_set_len(ih, (ih40_get_len(ih) - (val)))
 
 #define ih40_get_pid(ih)	  aal_get_le16(ih, pid)
-#define ih40_set_pid(ih, val)	  aal_set_le16(ih, pid, val)
+#define ih40_set_pid(ih, val)	  aal_set_le16(ih, pid, (val))
 
-extern inline void *node40_ib_at(node40_t *node, int pos);
-extern inline item40_header_t *node40_ih_at(node40_t *node, int pos);
+extern inline void *node40_ib_at(node40_t *node, uint32_t pos);
+extern inline item40_header_t *node40_ih_at(node40_t *node, uint32_t pos);
 
 extern inline uint16_t node40_free_space_end(node40_t *node);
 
