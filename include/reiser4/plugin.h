@@ -585,10 +585,10 @@ struct reiser4_file_ops {
 
 	/* Returns current position in directory */
 	errno_t (*seek) (object_entity_t *, uint64_t);
-    
+
 	/* Makes lookup inside dir */
 	int (*lookup) (object_entity_t *, char *, key_entity_t *);
-    
+
 	/* Reads the data from file to passed buffer */
 	int32_t (*read) (object_entity_t *, void *, uint32_t);
     
