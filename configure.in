@@ -113,7 +113,7 @@ int main() {
 $3])
 
 AC_ARG_WITH(libaal,
-    [  --with-libaal=<dir>      prefix of where libaal was installed], ,
+    [  --with-libaal            prefix of where libaal was installed], ,
 )
 
 LIBS=""
@@ -184,21 +184,21 @@ AC_SUBST(PROGS_LIBS)
 
 AM_ENABLE_SHARED
 
-AC_ARG_WITH(key-policy,
-    [  --with-key-policy=POLICY keys in standalone library (large|short|both)]
+AC_ARG_WITH(keys,
+    [  --with-keys              key policy in standalone library (large|short|both)]
 )
-if test x$with_key_policy = x; then
-    with_key_policy="large"
+if test x$with_keys = x; then
+    with_keys="large"
 fi
 
-AC_ARG_WITH(plugin-dir, 
-    [  --with-plugin-dir=PATH   directory plugins will lie in]
+AC_ARG_WITH(plugins, 
+    [  --with-plugins           path to directory plugins will lie in]
 )
-if test x$with_plugin_dir = x; then
-    with_plugin_dir="$libdir/reiser4"
+if test x$with_plugins = x; then
+    with_plugins="$libdir/reiser4"
 fi
 
-plugindir=$with_plugin_dir
+plugindir=$with_plugins
 AC_SUBST(plugindir)
 
 AC_ARG_ENABLE(Werror,
@@ -398,15 +398,15 @@ if test x$enable_stand_alone = xyes; then
 	TEA_HASH_CFLAGS="-DENABLE_TEA_HASH"
     fi
 
-    if test x$with_key_policy = xlarge; then
+    if test x$with_keys = xlarge; then
 	LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
     fi
 
-    if test x$with_key_policy = xshort; then
+    if test x$with_keys = xshort; then
 	SHORT_KEYS_CFLAGS="-DENABLE_SHORT_KEYS"
     fi
 
-    if test x$with_key_policy = xboth; then
+    if test x$with_keys = xboth; then
 	LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
 	SHORT_KEYS_CFLAGS="-DENABLE_SHORT_KEYS"
     fi
@@ -436,7 +436,7 @@ fi
 AM_CONDITIONAL(ENABLE_MONOLITHIC, test x$enable_monolithic = xyes)
 
 if test x$enable_monolithic = xno; then
-    CFLAGS="$CFLAGS -DPLUGIN_DIR=\\\"$with_plugin_dir\\\""
+    CFLAGS="$CFLAGS -DPLUGIN_DIR=\\\"$with_plugins\\\""
 fi
 
 PLUGIN_LDFLAGS=""
