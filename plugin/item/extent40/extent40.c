@@ -380,18 +380,17 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 				       item_entity_t *dst_item,
 				       shift_hint_t *hint)
 {
-	uint32_t pos;
-	uint32_t space;
-	
 	aal_assert("umka-1705", hint != NULL);
 	aal_assert("umka-1704", src_item != NULL);
 
-	space = hint->rest;
-
-	pos = (hint->pos.unit == ~0ul) ? 0 :
-		hint->pos.unit;
-		
+	if (!(src_item->pos.item == hint->pos.item &&
+	      hint->pos.unit != ~0ul))
+	{
+		goto out_update_hint;
+	}
+	
 	if (hint->control & SF_LEFT) {
+		uint32_t left;
 
 		/*
 		  Check if we need to update insert point at all. If not, we
@@ -400,19 +399,21 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 		*/
 		if (hint->control & SF_UPTIP) {
 
-			if (hint->rest > pos * sizeof(extent40_t))
-				hint->rest = pos * sizeof(extent40_t);
+			left = hint->pos.unit * sizeof(extent40_t);
+			
+			if (hint->rest > left)
+				hint->rest = left;
 
-			pos -= hint->rest / sizeof(extent40_t);
+			hint->pos.unit -= hint->rest / sizeof(extent40_t);
 
-			if (pos == 0 && hint->control & SF_MOVIP) {
+			if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
 				hint->result |= SF_MOVIP;
 
 				if (dst_item) {
-					pos = (dst_item->len + hint->rest) /
+					hint->pos.unit = (dst_item->len + hint->rest) /
 						sizeof(extent40_t);
 				} else {
-					pos = hint->rest / sizeof(extent40_t);
+					hint->pos.unit = hint->rest / sizeof(extent40_t);
 				}
 			}
 		}
@@ -426,19 +427,19 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 			  Check is it is possible to move something into right
 			  neighbour item.
 			*/
-			if (pos * sizeof(extent40_t) < src_item->len) {
+			if (hint->pos.unit * sizeof(extent40_t) < src_item->len) {
 				right = src_item->len -
-					(pos * sizeof(extent40_t));
+					(hint->pos.unit * sizeof(extent40_t));
 		
 				if (hint->rest > right)
 					hint->rest = right;
 
 				if (hint->control & SF_MOVIP &&
-				    pos == ((src_item->len - hint->rest) /
-					    sizeof(extent40_t)))
+				    hint->pos.unit == ((src_item->len - hint->rest) /
+						       sizeof(extent40_t)))
 				{
 					hint->result |= SF_MOVIP;
-					pos = 0;
+					hint->pos.unit = 0;
 				}
 			} else {
 				/*
@@ -447,7 +448,7 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 				*/
 				if (hint->control & SF_MOVIP) {
 					hint->result |= SF_MOVIP;
-					pos = 0;
+					hint->pos.unit = 0;
 				}
 
 				hint->rest = 0;
@@ -455,10 +456,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 		}
 	}
 
-	/* Updating @hint fields */
-	hint->pos.unit = (pos == 0 ? ~0ul : pos);
+ out_update_hint:
 	hint->units = hint->rest / sizeof(extent40_t);
-	
 	return 0;
 }
 

@@ -522,6 +522,7 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 					 item_entity_t *dst_item,
 					 shift_hint_t *hint)
 {
+	int check;
 	uint32_t curr;
 	uint32_t flags;
 	uint32_t src_units;
@@ -547,16 +548,16 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 		space -= sizeof(direntry40_t);
 	}
 
-	curr = (hint->control & SF_LEFT ? 0 : src_units - 1);
-	
 	flags = hint->control;
 	
+	curr = (hint->control & SF_LEFT ? 0 : src_units - 1);
+	
+	check = (src_item->pos.item == hint->pos.item &&
+		 hint->pos.unit != ~0ul);
+
 	while (!(hint->result & SF_MOVIP) &&
 	       curr < direntry40_units(src_item))
 	{
-
-		int check = (src_item->pos.item == hint->pos.item &&
-			     hint->pos.unit != ~0ul);
 
 		/*
 		  Check if we should update unit pos. we will update it if we

@@ -122,14 +122,15 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_object_t *object;
 	    
-			for (i = 0; i < 5000; i++) {
+//			for (i = 0; i < 5000; i++) {
 				aal_memset(name, 0, sizeof(name));
 
-				aal_snprintf(name, 256, "testfile%d", i);
+				aal_snprintf(name, 256, "testfile%d", 0/*i*/);
 
 				if (!(object = reiser4_object_create(fs, dir, &reg_hint)))
 					goto error_free_dir;
 
+				for (i = 0; i < 100000; i++)
 				reiser4_object_write(object, "Hello world!", 12);
 
 				if (reiser4_object_link(dir, object, name)) {
@@ -138,7 +139,7 @@ int main(int argc, char *argv[]) {
 				}
 
 				reiser4_object_close(object);
-			}
+//			}
 		}
 	}
     

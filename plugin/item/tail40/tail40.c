@@ -176,15 +176,14 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 				     item_entity_t *dst_item,
 				     shift_hint_t *hint)
 {
-	uint32_t pos;
-	uint32_t space;
-	
+	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_item != NULL);
 
-	space = hint->rest;
-		
-	pos = (hint->pos.unit == ~0ul) ? 0 :
-		hint->pos.unit;
+	if (!(src_item->pos.item == hint->pos.item &&
+	      hint->pos.unit != ~0ul))
+	{
+		goto out_update_hint;
+	}
 	
 	if (hint->control & SF_LEFT) {
 
@@ -195,16 +194,17 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 			  Correcting @hint->rest. It should contains number of
 			  bytes we realy can move out.
 			*/
-			if (hint->rest > pos)
-				hint->rest = pos;
+			if (hint->rest > hint->pos.unit)
+				hint->rest = hint->pos.unit;
 
-			pos -= hint->rest;
+			hint->pos.unit -= hint->rest;
 
 			/* Moving insert point into neighbour item */
-			if (pos == 0 && hint->control & SF_MOVIP) {
+			if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
 				hint->result |= SF_MOVIP;
-				pos = (dst_item ? dst_item->len : 0) +
-					hint->rest;
+
+				hint->pos.unit = hint->rest +
+					(dst_item ? dst_item->len : 0);
 			}
 		}
 	} else {
@@ -213,8 +213,8 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 		if (hint->control & SF_UPTIP) {
 			
 			/* Is insert point inside item? */
-			if (pos < src_item->len) {
-				right = src_item->len - pos;
+			if (hint->pos.unit < src_item->len) {
+				right = src_item->len - hint->pos.unit;
 
 				/*
 				  Insert point inside item and we can move
@@ -223,17 +223,17 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 				if (hint->rest > right)
 					hint->rest = right;
 
-				pos += hint->rest;
+				hint->pos.unit += hint->rest;
 
 				/*
 				  Updating insert point to first position in
 				  neighbour item.
 				*/
-				if (pos == src_item->len &&
+				if (hint->pos.unit == src_item->len &&
 				    hint->control & SF_MOVIP)
 				{
 					hint->result |= SF_MOVIP;
-					pos = 0;
+					hint->pos.unit = 0;
 				}
 			} else {
 				/*
@@ -242,7 +242,7 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 				*/
 				if (hint->control & SF_MOVIP) {
 					hint->result |= SF_MOVIP;
-					pos = 0;
+					hint->pos.unit = 0;
 				}
 
 				hint->rest = 0;
@@ -250,9 +250,8 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 		}
 	}
 
+ out_update_hint:
 	hint->units = hint->rest;
-	hint->pos.unit = (pos == 0 ? ~0ul : pos);
-	
 	return 0;
 }
 
