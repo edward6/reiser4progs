@@ -201,14 +201,12 @@ static generic_entity_t *format40_open(aal_device_t *device,
 	format->blksize = blksize;
 	format->plug = &format40_plug;
     
-	if (format40_super_open(format))
-		goto error_free_format;
+	if (format40_super_open(format)) {
+		aal_free(format);
+		return NULL;
+	}
     
 	return (generic_entity_t *)format;
-
- error_free_format:
-	aal_free(format);
-	return NULL;
 }
 
 static void format40_close(generic_entity_t *entity) {
@@ -285,14 +283,11 @@ static generic_entity_t *format40_create(aal_device_t *device,
 			     callback_clobber_block, NULL))
 	{
 		aal_exception_error("Can't clobber skipped area.");
-		goto error_free_format;
+		aal_free(format);
+		return NULL;
 	}
     
 	return (generic_entity_t *)format;
-
- error_free_format:
-	aal_free(format);
-	return NULL;
 }
 
 /* This function should update all copies of the super block */
