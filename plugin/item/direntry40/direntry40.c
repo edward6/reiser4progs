@@ -204,6 +204,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 			break;
 
 		if (hint->pos.unit != ~0ul) {
+			
 			if (!(flags & SF_MOVIP)) {
 				if (flags & SF_LEFT) {
 					if (hint->pos.unit == 0)
@@ -263,16 +264,16 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 
 	units = hint->units;
 	
-	src_units = direntry40_count(src_item);
-	dst_units = direntry40_count(dst_item);
-	
-	aal_assert("umka-1604", hint->units < src_units, return -1);
-
 	if (!(src_direntry = direntry40_body(src_item)))
 		return -1;
 	
 	if (!(dst_direntry = direntry40_body(dst_item)))
 		return -1;
+
+	src_units = de40_get_count(src_direntry);
+	dst_units = de40_get_count(dst_direntry);
+	
+	aal_assert("umka-1604", hint->units < src_units, return -1);
 
 	if (hint->flags & SF_LEFT) {
 		aal_exception_error("Sorry, left shifting "
@@ -281,7 +282,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	} else {
 		uint32_t i;
 
-		if (de40_get_count(dst_direntry) > 0) {
+		if (dst_units > 0) {
 
 			/* Moving entry headers of dst direntry */
 			src = (void *)dst_direntry + sizeof(direntry40_t);
@@ -290,7 +291,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 
 			/* Updating offsets of dst direntry */
 			entry = (entry40_t *)src;
-				
+
 			for (i = 0; i < dst_units; i++, entry++)
 				en40_inc_offset(entry, hint->part);
 			
@@ -359,20 +360,16 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		}
 
 		/* Updating items key */
-		if (dst_item->pos == 0) {
-			entry = direntry40_entry(dst_direntry, 0);
+		entry = direntry40_entry(dst_direntry, 0);
 
-			if (direntry40_unitkey(dst_item, entry, &dst_item->key))
-				return -1;
-		}
+		if (direntry40_unitkey(dst_item, entry, &dst_item->key))
+			return -1;
 	}
 
-	if (dst_units == 0) {
+	if (dst_units == 0)
 		hint->part -= sizeof(direntry40_t);
-		de40_set_count(dst_direntry, hint->units);
-	} else
-		de40_inc_count(dst_direntry, hint->units);
-	
+
+	de40_inc_count(dst_direntry, hint->units);
 	de40_dec_count(src_direntry, hint->units);
 
 	return 0;
@@ -478,7 +475,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	/* Updating direntry count field */
 	de40_inc_count(direntry, dh->count);
 
-	if (item->pos == 0 && pos == 0) {
+	if (pos == 0) {
 		entry40_t *entry = direntry40_entry(direntry, 0);
 
 		if (direntry40_unitkey(item, entry, &item->key))
@@ -554,7 +551,7 @@ static uint16_t direntry40_remove(item_entity_t *item,
     
 	de40_dec_count(direntry, 1);
 
-	if (item->pos == 0 && pos == 0) {
+	if (pos == 0) {
 		entry40_t *entry = direntry40_entry(direntry, 0);
 
 		if (direntry40_unitkey(item, entry, &item->key))

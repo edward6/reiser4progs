@@ -305,7 +305,7 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	int is_range;
 	int is_insert;
 	int i, item_pos;
-	uint16_t offset;
+	uint32_t offset;
 
 	item40_header_t *ih;
 
@@ -348,11 +348,13 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 		offset = nh40_get_free_space_start(node);
 
 	nh40_inc_free_space_start(node, len);
-	nh40_dec_free_space(node, (len + (is_insert ? sizeof(item40_header_t) : 0)));
-	
+	nh40_dec_free_space(node, len);
+
 	if (is_insert) {
 		ih40_set_len(ih, len);
 		ih40_set_offset(ih, offset);
+		nh40_dec_free_space(node, sizeof(item40_header_t));
+		aal_memset(node->block->data + offset, 0, len);
 	} else {
 		ih = node40_ih_at(node, pos->item);
 		ih40_inc_len(ih, len);
@@ -758,6 +760,9 @@ static errno_t node40_shift_init(object_entity_t *entity,
 
 	dst_space = node40_space((object_entity_t *)dst);
 
+	hint->part = 0;
+	hint->bytes = 0;
+	
 	hint->src_item = NULL;
 	hint->dst_item = NULL;
 	
@@ -799,10 +804,19 @@ static errno_t node40_shift_init(object_entity_t *entity,
 		
 		cur += (hint->flags & SF_LEFT ? -1 : 1);
 		dst_space -= (len + sizeof(item40_header_t));
+
+		aal_assert("umka-1612", dst_space < node40_maxspace(entity),
+			   return -1);
 	}
 
 	hint->part = dst_space;
 				
+	aal_assert("umka-1611", hint->bytes <= node40_maxspace(entity) +
+		   sizeof(item40_header_t), return -1);
+	
+	aal_assert("umka-1614", hint->part <= node40_maxspace(entity) +
+		   sizeof(item40_header_t), return -1);
+	
 	if (src_items == 0 && hint->part == 0)
 		return 0;
 	
@@ -861,6 +875,9 @@ static errno_t node40_shift_init(object_entity_t *entity,
 					return -1;
 			} else {
 				hint->part -= sizeof(item40_header_t);
+
+				aal_assert("umka-1612", hint->part < node40_maxspace(entity),
+					   return -1);
 
 				if (hint->src_item->plugin->item_ops.predict(
 					    hint->src_item, NULL, hint))
@@ -947,6 +964,9 @@ static errno_t node40_shift_init(object_entity_t *entity,
 		}
 	}
 
+	aal_assert("umka-1611", hint->part <= node40_maxspace(entity) +
+		   sizeof(item40_header_t), return -1);
+	
 	return 0;
 }
 
@@ -1088,13 +1108,26 @@ static errno_t node40_shift(object_entity_t *entity,
 		aal_memcpy(dst, src, headers_size);
 
 		/* Updating item headers in dst node */
-		offset = nh40_get_free_space_start(src_node) -
-			hint->bytes;
+		offset = nh40_get_free_space_start(src_node) - hint->bytes;
+		ih = node40_ih_at(src_node, src_items - hint->items);
+		aal_assert("umka-1616", offset == ih40_get_offset(ih), return -1);
 		
 		ih = node40_ih_at(dst_node, 0);
-		
-		for (i = 0; i < hint->items; i++, ih--)
+
+		for (i = 0; i < hint->items; i++, ih--) {
+			uint32_t new_offset;
+			uint32_t old_offset = ih40_get_offset(ih);
+
 			ih40_dec_offset(ih, (offset - sizeof(node40_header_t)));
+
+			new_offset = ih40_get_offset(ih);
+
+			if (new_offset > nh40_get_free_space_start(dst_node) +
+			    hint->bytes || new_offset < 32)
+			{
+				printf("here\n");
+			}
+		}
 
 		/* Copying item bodies from src node to dst */
 		ih = node40_ih_at(src_node, src_items - 1) +
