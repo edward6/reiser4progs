@@ -3,7 +3,10 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* --print-journal and --print-alloc options in debugfs.
+* --print-journal options in debugfs.
+
+* --print_block-alloc should also nbe able to print bitmap, not just
+  some info about it like used, free blocks, etc.
 
 * something like "print_block" method for format, journal and block
   allocator plugins.
@@ -17,7 +20,11 @@ reiser4progs/COPYING.
 
 * smart bitmap working functions (copy, invert, etc).
 
-* symlinks and special files browsing in debugfs.
+* special files browsing in debugfs.
+
+* there should be an ability to work with symlinks from the API.
+  Currently if we open a symlink we just "follow" it and then work
+  with object it points to.
 
 * insert an extent among internals may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
@@ -29,9 +36,10 @@ reiser4progs/COPYING.
 * return value from the all low level plugin functions should be raised 
   up to the libreiser4 level.
 
-* to debug tree remove function.
+* debug reiser4_tree_remove function.
 
-* add overwriting ability.
+* probably item_ops need to be rewtiten somehow in order to be able to
+  satisfy fsck requirements like rewriting.
 
 * FIBMAP ioctl implementation in reiser4.
 

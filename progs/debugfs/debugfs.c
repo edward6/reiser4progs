@@ -101,11 +101,15 @@ static void debugfs_init(void) {
 	/* Initializing memory pressure hooks */
 	progs_mpressure_init();
 	
-	/* Setting up exception streams*/
+	/* Setting up exception streams */
 	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
 		progs_exception_set_stream(ex, stderr);
 }
 
+/*
+  Prints passed @buff into stdout. The special print function is needed because
+  we can't just put 4k buffer into stdout.
+*/
 static errno_t debugfs_print_buff(void *buff, uint64_t size) {
 	int len = size;
 	void *ptr = buff;
@@ -114,6 +118,7 @@ static errno_t debugfs_print_buff(void *buff, uint64_t size) {
 		int written;
 
 		if ((written = write(1, ptr, len)) <= 0) {
+			
 			if (errno == EINTR)
 				continue;
 			
@@ -144,6 +149,7 @@ static errno_t print_open_node(
 	return -(*node == NULL);
 }
 
+/* Prints passed node */
 static errno_t print_process_node(
 	reiser4_node_t *node,	    /* node to be printed */
 	void *data)		    /* traverse data */
@@ -164,18 +170,21 @@ static errno_t print_process_node(
 	return -1;
 }
 
+/* Prints block denoted as blk */
 static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	errno_t res = 0;
 	aal_device_t *device;
 	reiser4_node_t *node;
 	struct traverse_hint hint;
 
+	/* Check if @blk is a filesystem block at all */
 	if (!reiser4_alloc_used_region(fs->alloc, blk, 1)) {
 		aal_exception_info("Block %llu is not belong to "
 				   "filesystem.", blk);
 		return 0;
 	}
-		
+
+	/* Determining whata object this block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {
 	case O_SKIPPED:
 		aal_exception_info("Block %llu belongs to skipped area.", blk);
@@ -199,7 +208,11 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	aal_exception_disable();
 	
 	device = fs->device;
-	
+
+	/*
+	  If passed @blk points to a formatted node then open it and print
+	  using print_process_node listed abowe.
+	*/
 	if (!(node = reiser4_node_open(device, blk))) {
 		aal_exception_enable();
 		aal_exception_info("Node %llu is not a formated one.", blk);
@@ -216,6 +229,7 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	return res;
 }
 
+/* Makes traverse though the whole tree and prints all nodes */
 static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 	traverse_hint_t hint;
 	
@@ -226,6 +240,7 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 			      print_process_node, NULL, NULL, NULL);
 }
 
+/* Prints master super block */
 errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 	
@@ -236,6 +251,10 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	if (reiser4_master_print(fs->master, &stream))
 		return -1;
 
+	/*
+	  If reiser4progs supports uuid (if it was found durring building), then
+	  it will also print uuid stored in master super block.
+	*/
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	{
 		char uuid[37];
@@ -244,12 +263,14 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	}
 #endif
 
-	aal_stream_write(&stream, "\n", 1);
+	aal_stream_format(&stream, "\n");
 	debugfs_print_stream(&stream);
 	
+	aal_stream_fini(&stream);
 	return 0;
 }
 
+/* Prints format-specific super block */
 static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
@@ -276,6 +297,7 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	return -1;
 }
 
+/* Prints oid allocator */
 static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	aal_stream_t stream;
     
@@ -302,6 +324,7 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	return -1;
 }
 
+/* Prints block allocator */
 static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
@@ -322,7 +345,8 @@ static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
 	aal_stream_fini(&stream);
 	return -1;
 }
-   
+
+/* Prints journal */
 static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
 	aal_exception_error("Sorry, journal print is not implemented yet!");
 	return 0;
@@ -339,6 +363,7 @@ struct tfrag_hint {
 
 typedef struct tfrag_hint tfrag_hint_t;
 
+/* Open node callback for calculating the tree fragmentation */
 static errno_t tfrag_open_node(
 	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* blk node lies in */
@@ -350,7 +375,8 @@ static errno_t tfrag_open_node(
 	aal_assert("umka-1556", frag_hint->level > 0, return -1);
 	
 	*node = NULL;
-	
+
+	/* As we do not need traverse leaf level at all, we going out here */
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 	
@@ -358,65 +384,89 @@ static errno_t tfrag_open_node(
 	return -(*node == NULL);
 }
 
+static errno_t tfrag_process_item(
+	item_entity_t *item,        /* item we traverse now */
+	blk_t blk, void *data)      /* one of blk item points to */
+{
+	int64_t delta;
+	tfrag_hint_t *hint;
+	
+	hint = (tfrag_hint_t *)data;
+	
+	if (blk == 0)
+		return 0;
+				
+	delta = hint->curr - blk;
+				
+	if (labs(delta) > 1)
+		hint->bad++;
+				
+	hint->total++;
+	hint->curr = blk;
+
+	return 0;
+}
+
+/*
+  Traverse passed leaf @node and calculate fragmentation for it. The results are
+  stored in frag_hint structure. This function is called from the tree traversal
+  routine for each internal node. See bellow for details.
+*/
 static errno_t tfrag_process_node(
 	reiser4_node_t *node,	   /* node to be estimated */
 	void *data)	           /* user-specified data */
 {
 	reiser4_pos_t pos;
-	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
+	tfrag_hint_t *frag_hint;
 
+	frag_hint = (tfrag_hint_t *)data;
+	
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 
 	aal_gauge_update(frag_hint->gauge, 0);
 		
 	pos.unit = ~0ul;
-	
-	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
-		int64_t delta;
-		reiser4_coord_t coord;
-		reiser4_ptr_hint_t ptr;
 
+	/* Loop though the node items */
+	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
+		item_entity_t *item;
+		reiser4_coord_t coord;
+
+		/* Initializing item at @coord */
 		if (reiser4_coord_open(&coord, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
 			return -1;
 		}
 
-		if (reiser4_item_extent(&coord)) {
-			for (pos.unit = 0; pos.unit < reiser4_item_units(&coord); pos.unit++) {
-				
-				plugin_call(continue, coord.item.plugin->item_ops,
-					    fetch, &coord.item, &ptr, pos.unit, 1);
-
-				if (ptr.ptr == 0)
-					continue;
-				
-				delta = frag_hint->curr - ptr.ptr;
-				
-				if (labs(delta) > 1)
-					frag_hint->bad++;
-				
-				frag_hint->curr = ptr.ptr + ptr.width;
-				frag_hint->total += ptr.width;
-			}
-		} else {
-			plugin_call(continue, coord.item.plugin->item_ops,
-				    fetch, &coord.item, &ptr, pos.unit, 1);
-
-			delta = frag_hint->curr - ptr.ptr;
-
-			if (labs(delta) > 1)
-				frag_hint->bad++;
-
-			frag_hint->total++;
-			frag_hint->curr = ptr.ptr;
+		item = &coord.item;
+		
+		/*
+		  Checking and calling item's layout method with function
+		  tfrag_process_item as a function for handling one block the
+		  item points to.
+		*/
+		if (!item->plugin->item_ops.layout) {
+			aal_exception_warn("Item %u in node %llu has not "
+					   "\"layout\" method implemented. "
+					   "The result will not be releable.",
+					   pos.item, node->blk);
+			continue;
 		}
+
+		item->plugin->item_ops.layout(item, tfrag_process_item, data);
 	}
 	
 	return 0;
 }
 
+/*
+  Traverse callbacks for keeping track the current level we are on. They are
+  needed for make dependence from the node's "level" field lesses in our
+  code. That is baceuse that filed is counting as optional one and probably will
+  be eliminated soon.
+*/
 static errno_t tfrag_setup_node(reiser4_coord_t *coord, void *data) {
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 
@@ -431,18 +481,30 @@ static errno_t tfrag_update_node(reiser4_coord_t *coord, void *data) {
 	return 0;
 }
 
+/*
+  Entry point for calculating tree fragmentation. It zeroes out all counters in
+  structure which wiil be passed to actual routines and calls tree_traverse
+  function  with couple of callbacks for handling all traverse cases (open
+  node, traverse node, etc). Actual statistics collecting is performed in the
+  passed callbacks and subcallbacks (for item traversing).
+*/
 static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	reiser4_node_t *root;
 	tfrag_hint_t frag_hint;
 
+	/*
+	  Initializing gauge, because it is a long process and user should be
+	  informated what the stage of the process is going on in the moment.
+	*/
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Tree fragmentation",
 				       progs_gauge_handler, NULL)))
 		return -1;
 	
 	root = fs->tree->root;
 
+	/* Preparing serve structure, statistics will be stored in  */
 	frag_hint.bad = 0;
 	frag_hint.total = 0;
 	frag_hint.gauge = gauge;
@@ -456,20 +518,22 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	hint.data = (void *)&frag_hint;
 
 	aal_gauge_start(gauge);
-	
+
+	/* Calling tree traversal */
 	if (reiser4_tree_traverse(fs->tree, &hint, tfrag_open_node, tfrag_process_node,
 				  tfrag_setup_node, tfrag_update_node, NULL))
 		return -1;
 
 	aal_gauge_free(gauge);
-	
+
+	/* Printing the result */
 	printf("%.5f\n", frag_hint.total > 0 ?
 	       (double)frag_hint.bad / frag_hint.total : 0);
 	
 	return 0;
 };
 
-struct tree_stat_hint {
+struct tstat_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
@@ -483,20 +547,33 @@ struct tree_stat_hint {
 	count_t formatted;
 };
 
-typedef struct tree_stat_hint tree_stat_hint_t;
+typedef struct tstat_hint tstat_hint_t;
 
+/* Open node for tree staticstics process */
 static errno_t stat_open_node(
 	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
-	tree_stat_hint_t *stat_hint = (tree_stat_hint_t *)data;
+	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
 	aal_device_t *device = stat_hint->tree->fs->device;
 
 	*node = reiser4_node_open(device, blk);
 	return -(*node == NULL);
 }
 
+/* Process one block belong to the item (extent or nodeptr) */
+static errno_t stat_process_item(
+	item_entity_t *item,        /* item we traverse now */
+	blk_t blk, void *data)      /* one of blk item points to */
+{
+	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
+	stat_hint->nodes++;
+
+	return 0;
+}
+
+/* Processing one formatted node */
 static errno_t stat_process_node(
 	reiser4_node_t *node,	    /* node to be inspected */
 	void *data)		    /* traverse data */
@@ -507,8 +584,7 @@ static errno_t stat_process_node(
 	uint32_t formatted_used;
 	uint32_t internals_used;
 
-	tree_stat_hint_t *stat_hint =
-		(tree_stat_hint_t *)data;
+	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
 
 	level = reiser4_node_level(node);
 
@@ -516,17 +592,20 @@ static errno_t stat_process_node(
 		aal_gauge_update(stat_hint->gauge, 0);
 
 	device = node->device;
-	formatted_used = aal_device_get_bs(device) - reiser4_node_space(node);
+	
+	formatted_used = aal_device_get_bs(device) -
+		reiser4_node_space(node);
 
 	stat_hint->formatted_used = formatted_used +
 		(stat_hint->formatted_used * stat_hint->formatted);
 
 	stat_hint->formatted_used /= (stat_hint->formatted + 1);
 
+	/*
+	  If we are on the level higher taht leaf level, we traverse extents on
+	  it. Otherwise we just update stat structure.
+	*/
 	if (level > LEAF_LEVEL) {
-		uint32_t units;
-		item_entity_t *item;
-		reiser4_coord_t coord;
 		reiser4_pos_t pos = {~0ul, ~0ul};
 		
 		internals_used = aal_device_get_bs(device) -
@@ -538,30 +617,24 @@ static errno_t stat_process_node(
 		stat_hint->internals_used /= (stat_hint->internals + 1);
 
 		for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
+			item_entity_t *item;
 			reiser4_coord_t coord;
-
+			
 			if (reiser4_coord_open(&coord, node, &pos)) {
 				aal_exception_error("Can't open item %u in node %llu.", 
 						    pos.item, node->blk);
 				return -1;
 			}
 
+			item = &coord.item;
+			
 			if (!reiser4_item_extent(&coord))
 				continue;
 
-			item = &coord.item;
-				
-			units = plugin_call(return -1, item->plugin->item_ops,
-					    units, item);
+			if (!item->plugin->item_ops.layout)
+				continue;
 
-			for (pos.unit = 0; pos.unit < units; pos.unit++) {
-				reiser4_ptr_hint_t ptr;
-				
-				plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-					    &ptr, pos.unit, 1);
-
-				stat_hint->nodes += ptr.width;
-			}
+			item->plugin->item_ops.layout(item, stat_process_item, data);
 		}
 	} else {
 		leaves_used = aal_device_get_bs(device) -
@@ -573,21 +646,20 @@ static errno_t stat_process_node(
 		stat_hint->leaves_used /= (stat_hint->leaves + 1);
 	}
 	
-	if (level > LEAF_LEVEL)
-		stat_hint->internals++;
-	else
-		stat_hint->leaves++;
-		
-	stat_hint->formatted++;
+	stat_hint->leaves += (level == LEAF_LEVEL);
+	stat_hint->internals += (level > LEAF_LEVEL);
+
 	stat_hint->nodes++;
-	
+	stat_hint->formatted++;
+
 	return 0;
 }
 
+/* Ebtry point function for calculating tree statistics */
 static errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
-	tree_stat_hint_t stat_hint;
+	tstat_hint_t stat_hint;
 
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Tree statistics",
 				       progs_gauge_handler, NULL)))
@@ -610,8 +682,10 @@ static errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 		return -1;
 
 	aal_gauge_free(gauge);
+	
 	progs_wipe_line(stdout);
 
+	/* Printing results */
 	printf("Formatted packing:\t%.2f\n", stat_hint.formatted_used);
 	printf("Leaves packing:\t\t%.2f\n", stat_hint.leaves_used);
 	printf("Internals packing:\t%.2f\n\n", stat_hint.internals_used);
@@ -639,6 +713,10 @@ struct ffrag_hint {
 
 typedef struct ffrag_hint ffrag_hint_t;
 
+/*
+  Callback function for processing one block belong to the fiel we are
+  traversing.
+*/
 static errno_t ffrag_process_blk(
 	object_entity_t *entity,   /* file to be inspected */
 	blk_t blk,                 /* next file block */
@@ -666,18 +744,22 @@ static errno_t ffrag_process_blk(
 	return 0;
 }
 
+/* Calculates the passed file fragmentation */
 static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 	aal_gauge_t *gauge;
 	reiser4_file_t *file;
 	ffrag_hint_t frag_hint;
 
+	/* Opens file by its name */
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
 
+	/* Create a gauge which will show the progress */
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "",
 				       progs_gauge_handler, NULL)))
 		goto error_free_file;
-	
+
+	/* Initializing serve structures */
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
 	frag_hint.tree = fs->tree;
@@ -685,7 +767,13 @@ static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 
 	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
 	aal_gauge_start(gauge);
-	
+
+	/*
+	  Calling file layout function, wich will call ffrag_process_blk
+	  fucntion on each block belong to the file denoted by @filename. Actual
+	  data file fragmentation will be calculated on are gathering in that
+	  function.
+	*/
 	if (reiser4_file_layout(file, ffrag_process_blk, &frag_hint)) {
 		aal_exception_error("Can't enumerate data blocks occupied by %s",
 				    filename);
@@ -693,11 +781,11 @@ static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 	}
 	
 	aal_gauge_free(gauge);
+	reiser4_file_close(file);
 
+	/* Showing the results */
 	printf("%.5f\n", frag_hint.fl_total > 0 ?
 	       (double)frag_hint.fl_bad / frag_hint.fl_total : 0);
-
-	reiser4_file_close(file);
 	
 	return 0;
 
@@ -720,6 +808,10 @@ static errno_t dfrag_open_node(
 	return -(*node == NULL);
 }
 
+/*
+  Processes leaf node in order to find all the stat data items which denote
+  corresponding files and calculate file fragmentation for each of them.
+*/
 static errno_t dfrag_process_node(
 	reiser4_node_t *node,       /* node to be inspected */
 	void *data)                 /* traverse hint */
@@ -733,22 +825,31 @@ static errno_t dfrag_process_node(
 	
 	pos.unit = ~0ul;
 
+	/* The loop though the all items in current node */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 		reiser4_file_t *file;
 		reiser4_coord_t coord;
 
+		/* Initialiing the item at @coord */
 		if (reiser4_coord_open(&coord, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
 			return -1;
 		}
 
+		/*
+		  If the item is not a stat data item, we getting to the next
+		  circle of the loop, because we are intersted only in the stat
+		  data items.
+		*/
 		if (!reiser4_item_statdata(&coord))
 			continue;
 
+		/* Opening file by its stat data item denoded by @coord */
 		if (!(file = reiser4_file_begin(frag_hint->tree->fs, &coord)))
 			continue;
 
+		/* Initializing per-file counters */
 		frag_hint->curr = 0;
 		frag_hint->fl_bad = 0;
 		frag_hint->fl_total = 0;
@@ -757,15 +858,23 @@ static errno_t dfrag_process_node(
 			aal_gauge_update(frag_hint->gauge, 0);
 
 		bogus %= 16;
-	
+
+		/*
+		  Calling calculating the file fragmentation by emans of using
+		  the function we have seen abowe.
+		*/
 		if (reiser4_file_layout(file, ffrag_process_blk, data)) {
-			aal_exception_error("Can't enumerate data blocks occupied by %s",
-					    file->name);
+			aal_exception_error("Can't enumerate data blocks "
+					    "occupied by %s", file->name);
 			
 			reiser4_file_close(file);
 			continue;
 		}
 
+		/*
+		  We was instructed show file fragmentation for each file, not
+		  only the average one, we will do it now.
+		*/
 		if (frag_hint->flags & BF_SEACH) {
 			double factor = frag_hint->fl_total > 0 ?
 				(double)frag_hint->fl_bad / frag_hint->fl_total : 0;
@@ -780,6 +889,7 @@ static errno_t dfrag_process_node(
 	return 0;
 }
 
+/* Level keeping track for data fragmentation traversal */
 static errno_t dfrag_setup_node(reiser4_coord_t *coord, void *data) {
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
     
@@ -794,6 +904,7 @@ static errno_t dfrag_update_node(reiser4_coord_t *coord, void *data) {
 	return 0;
 }
 
+/* Entry point function for data fragmentation */
 static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
@@ -833,6 +944,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	return 0;
 }
 
+/* If file is a regular one we show its contant here */
 static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	int32_t read;
 	char buff[4096];
@@ -854,6 +966,7 @@ static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	return 0;
 }
 
+/* If file is the directory, we show its contant here */
 static errno_t debugfs_file_ls(reiser4_file_t *file) {
 	reiser4_entry_hint_t entry;
 	
@@ -878,6 +991,7 @@ static errno_t debugfs_file_ls(reiser4_file_t *file) {
 	return 0;
 }
 
+/* Common entry point for --ls and --cat options handling code */
 static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	errno_t res = 0;
 	reiser4_file_t *file;
@@ -885,6 +999,7 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
 
+	/* Determining what the type file is */
 	if (file->entity->plugin->h.group == REGULAR_FILE)
 		res = debugfs_file_cat(file);
 	else if (file->entity->plugin->h.group == DIRTORY_FILE)
@@ -906,6 +1021,7 @@ struct fprint_hint {
 
 typedef struct fprint_hint fprint_hint_t;
 
+/* Prints item at passed coord */
 static errno_t fprint_process_place(
 	object_entity_t *entity,   /* file to be inspected */
 	reiser4_place_t *place,    /* next file block */
@@ -928,6 +1044,7 @@ static errno_t fprint_process_place(
 	return 0;
 }
 
+/* Prints all items belong to the specified file */
 static errno_t debugfs_print_file(reiser4_fs_t *fs,
 				  char *filename,
 				  uint32_t flags)
@@ -939,6 +1056,11 @@ static errno_t debugfs_print_file(reiser4_fs_t *fs,
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
 
+	/*
+	  If --show-items option is specified, we show only items belong to the
+	  file. If no, that we show all items whihc lie in the same block as the
+	  item belong to the file denoted by @filename.
+	*/
 	if (PF_SITEMS & flags) {
 		aal_stream_t stream;
 
@@ -1054,7 +1176,8 @@ int main(int argc, char *argv[]) {
 			int error;
 			
 			print_flags |= PF_BLOCK;
-			
+
+			/* Parsing block number */
 			if (!(blocknr = aux_strtol(optarg, &error)) && error) {
 				aal_exception_error("Invalid block number (%s).", optarg);
 				return USER_ERROR;
@@ -1166,40 +1289,53 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 
-	/* Opening device */
-	if (!(device = aal_device_open(&file_ops, host_dev, DEFAULT_BLOCKSIZE, O_RDONLY))) {
+	/* Opening device with file_ops and default blocksize */
+	if (!(device = aal_device_open(&file_ops, host_dev,
+				       DEFAULT_BLOCKSIZE, O_RDONLY)))
+	{
 		aal_exception_error("Can't open %s. %s.", host_dev,
 				    strerror(errno));
 		goto error_free_libreiser4;
 	}
-    
+
+	/* Open file system on the device */
 	if (!(fs = reiser4_fs_open(device, device))) {
 		aal_exception_error("Can't open reiser4 on %s", host_dev);
 		goto error_free_libreiser4;
 	}
-    
+
+	/*
+	  Check if few print options specified. If so, and --quiet flay was not
+	  applyed we make warning, because that is probably user error and a lot
+	  of information will confuse him.
+	*/
 	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET) &&
 	    !(print_flags & PF_SITEMS))
 	{
-		if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
-					"Few print options has been detected. "
+		if (aal_exception_yesno("Few print options has been detected. "
 					"Continue?") == EXCEPTION_NO)
 			goto error_free_fs;
 	}
 
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
 		print_flags = PF_SUPER;
-		
+
+	/*
+	  Check if specified options are compatible. For instance, --show-each
+	  can be used only if --data-frag was specified.
+	*/
 	if (!(behav_flags & BF_DFRAG) && (behav_flags & BF_SEACH)) {
 		aal_exception_warn("Option --show-each is only active if "
 				   "--data-frag is specified.");
 	}
 
+	/* The same for --print-file option */
 	if (!(print_flags & PF_FILE) && (print_flags & PF_SITEMS)) {
 		aal_exception_warn("Option --show-items is only active if "
 				   "--print-file is specified.");
 	}
 
+	/* Handling print options */
 	if (behav_flags & BF_TFRAG || behav_flags & BF_DFRAG ||
 	    behav_flags & BF_FFRAG || behav_flags & BF_TSTAT)
 	{
@@ -1229,6 +1365,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
+	/* Handling other options */
 	if ((behav_flags & BF_LS)) {
 		if (debugfs_browse(fs, ls_filename))
 			goto error_free_fs;
