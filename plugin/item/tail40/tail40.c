@@ -310,9 +310,10 @@ errno_t tail40_copy(place_t *dst_place, uint32_t dst_pos,
    pathes. */
 uint32_t tail40_expand(place_t *place, uint32_t pos, uint32_t count) {
 	if (pos < place->len) {
+		uint32_t size = place->len - count - pos;
+		
 		aal_memmove(place->body + pos + count,
-			    place->body + pos, 
-			    place->len - pos - count);
+			    place->body + pos, size);
 
 		place_mkdirty(place);
 	}
@@ -342,6 +343,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 				  place_t *dst_place,
 				  shift_hint_t *hint)
 {
+	uint32_t pos;
 	uint64_t offset;
 	
 	aal_assert("umka-1665", src_place != NULL);
@@ -350,22 +352,25 @@ static errno_t tail40_shift_units(place_t *src_place,
 
 	/* Check if this is left shift. */
 	if (hint->control & SF_LEFT_SHIFT) {
+		pos = dst_place->len - hint->units;
+		
 		/* Expanding tail item at @dst_place by @hint->units value. It
-		   is that, pre_shift() has prepared for us. */
-		tail40_expand(dst_place, dst_place->len, hint->units);
+		   is that, prep_shift() has prepared for us. */
+		tail40_expand(dst_place, pos,
+			      hint->units, hint->rest);
 
 		/* Copy @hint->rest units from @src_place to @dst_place at
 		   @dst_place->len position. */
-		tail40_copy(dst_place, dst_place->len,
+		tail40_copy(dst_place, pos,
 			    src_place, 0, hint->rest);
 
 		/* Shrink @src_place at 0 position by @hint->rest bytes, that is
-		 * by number of bytes we have just moved to @dst_place. */
+		   by number of bytes we have just moved to @dst_place. */
 		tail40_shrink(src_place, 0, hint->units,
 			      hint->rest);
 
 		/* Updating @place->key in order to maintain consistency of left
-		 * delimiting keys. */
+		   delimiting keys. */
 		offset = plug_call(src_place->key.plug->o.key_ops,
 				   get_offset, &src_place->key);
 
@@ -373,10 +378,8 @@ static errno_t tail40_shift_units(place_t *src_place,
 			  set_offset, &src_place->key,
 			  offset + hint->rest);
 	} else {
-		uint32_t pos;
-
 		/* Right shift. Expanding @dst_place at 0 pos. */
-		tail40_expand(dst_place, 0, hint->units);
+		tail40_expand(dst_place, 0, hint->units, hint->rest);
 
 		/* Copying data and removing it from source. */
 		pos = src_place->len - hint->units;
