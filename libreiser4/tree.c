@@ -560,12 +560,17 @@ errno_t reiser4_tree_attach(
 		case PRESENT:
 			reiser4_key_print(&hint.key, &stream);
 			
+			/* 
+			    FIXME-VITALY: this offten happens at fsck time when leaves are attached 
+			    into the tree and key may exists in the tree already. The exception 
+			    should not be thrown here.
+			*/
 			aal_exception_error("Can't attach node %llu. Its left delimiting "
 					    "key %s already exists in tree.", node->blk,
 					    stream.data);
 		
 			aal_stream_fini(&stream);
-			return -1;
+			return lookup;
 		case FAILED:
 			reiser4_key_print(&hint.key, &stream);
 		
@@ -576,7 +581,7 @@ errno_t reiser4_tree_attach(
 		}
 	}
 
-	if (reiser4_tree_insert(tree, &coord, &hint)) {
+	if ((res = reiser4_tree_insert(tree, &coord, &hint))) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}
@@ -850,9 +855,8 @@ errno_t reiser4_tree_insert(
 	}
     
 	if (tree->traps.preinsert && 
-	    (res = tree->traps.preinsert(coord, hint, tree->traps.data))
-			return -1;
-	}
+	    (res = tree->traps.preinsert(coord, hint, tree->traps.data)))
+			return res;
 
 	if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 

@@ -18,7 +18,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *c, reiser4_key_t *key)
     coord = *c;
 
     if (coord.pos.unit == ~0ul) 
-	coord.pos.unit = reiser4_item_count(&coord) - 1;
+	coord.pos.unit = reiser4_item_units(&coord) - 1;
 
     if (reiser4_item_nodeptr(&coord)) {
 	item_entity_t *item = &coord.entity;
@@ -32,7 +32,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *c, reiser4_key_t *key)
 	    return -1;
 
 	coord.node = child;
-	coord.pos.item = reiser4_node_count(child) - 1;
+	coord.pos.item = reiser4_node_items(child) - 1;
 	coord.pos.unit = ~0ul;
 	
 	if (reiser4_coord_realize(&coord)) {

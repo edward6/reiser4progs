@@ -167,7 +167,7 @@ static errno_t extent40_unit_key(item_entity_t *item, uint16_t pos,
 	aal_assert("vpf-622", item != NULL, return -1);
 	aal_assert("vpf-623", key != NULL, return -1);
 	
-	count = extent40_count(item);
+	count = extent40_units(item);
 
 	aal_assert("vpf-625", pos < count, return -1);
 	

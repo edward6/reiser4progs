@@ -105,7 +105,7 @@ static errno_t tail40_unit_key(item_entity_t *item, uint16_t pos,
 	aal_assert("vpf-626", item != NULL, return -1);
 	aal_assert("vpf-627", key != NULL, return -1);
 
-	count = tail40_count(item);
+	count = tail40_units(item);
 
 	aal_assert("vpf-628", pos < count, return -1);
 	
