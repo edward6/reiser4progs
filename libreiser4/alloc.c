@@ -268,8 +268,8 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk) {
 	aal_assert("vpf-584", alloc != NULL, return -1);
 
 	if (!alloc->forbid) 
-	    aux_bitmap_create(reiser4_alloc_free(alloc) + 
-			      reiser4_alloc_used(alloc));
+	    alloc->forbid = aux_bitmap_create(reiser4_alloc_free(alloc) + 
+					      reiser4_alloc_used(alloc));
 	
 	aux_bitmap_mark(alloc->forbid, blk);
 	
@@ -279,11 +279,8 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk) {
 errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc, blk_t blk) {
 	aal_assert("vpf-585", alloc != NULL, return -1);
 	
-	if (!alloc->forbid) 
-	    aux_bitmap_create(reiser4_alloc_free(alloc) + 
-			      reiser4_alloc_used(alloc));
-	
-	aux_bitmap_clear(alloc->forbid, blk);
+	if (alloc->forbid)	
+	    aux_bitmap_clear(alloc->forbid, blk);
 	
 	return 0;
 }
@@ -292,11 +289,12 @@ errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc,
 	aux_bitmap_t *bitmap) 
 {
 	uint32_t i;
+
 	aal_assert("vpf-583", alloc != NULL && bitmap != NULL, return -1);
 
 	if (!alloc->forbid) 
-	    aux_bitmap_create(reiser4_alloc_free(alloc) + 
-			      reiser4_alloc_used(alloc));
+	    alloc->forbid = aux_bitmap_create(reiser4_alloc_free(alloc) + 
+					      reiser4_alloc_used(alloc));
 
 	aal_assert("vpf-589", alloc->forbid->size == bitmap->size &&
 		   alloc->forbid->total == bitmap->total, return -1);
