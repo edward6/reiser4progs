@@ -290,11 +290,12 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 	hint.count = 1;
 	hint.specific = &ptr;
 	
-	if (plug_call(place->plug->o.item_ops, read,
+	if (plug_call(place->plug->o.item_ops, fetch,
 		      (place_t *)place, &hint) != 1)
 	{
 		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed "
-				    "to fetch the node pointer.",node_blocknr(place->node),
+				    "to fetch the node pointer.",
+				    node_blocknr(place->node),
 				    place->pos.item, place->pos.unit);
 		return -EIO;
 	}

@@ -907,7 +907,7 @@ errno_t reiser4_object_traverse(reiser4_object_t *object,
 	aal_assert("vpf-1090", object != NULL);
 	aal_assert("vpf-1103", open_func != NULL);
 	
-	while (!reiser4_object_readdir(object, &entry)) {
+	while ((res = reiser4_object_readdir(object, &entry)) > 0) {
 		reiser4_object_t *child = NULL;
 		
 		if ((child = open_func(object, &entry, data)) == INVAL_PTR)
@@ -920,10 +920,9 @@ errno_t reiser4_object_traverse(reiser4_object_t *object,
 		
 		reiser4_object_close(child);
 		
-		if (res)
-			return res;
+		if (res) return res;
 	}
 	
-	return 0;
+	return res;
 }
 #endif

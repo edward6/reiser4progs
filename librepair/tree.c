@@ -80,9 +80,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 		
 		if (plug_call(place.plug->o.item_ops, fetch,
 			      (place_t *)&place, &hint) != 1)
-		{
 			return -EIO;
-		}
 		
 		if (ptr.start == INVAL_BLK)
 			return -EINVAL;
@@ -142,14 +140,13 @@ errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node,
 			return ret;
 		
 		place = node->p;
-		
 		reiser4_place_inc(&place, 0);
 		
 		/* If the rightmost place, call recursevely for the parent. */ 
 		if (reiser4_place_rightmost(&place)) {
-			if ((ret = repair_tree_parent_rkey(tree, node->p.node,
-							   key)))
-				return ret;
+			ret = repair_tree_parent_rkey(tree, node->p.node, key);
+			
+			if (ret) return ret;
 		} else {
 			if ((ret = reiser4_place_fetch(&place)))
 				return ret;
@@ -254,7 +251,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	return 0;
 }
 
-/* This function creates nodeptr item on the base of 'node' and insert it 
+/* This function creates nodeptr item on the base of @node and insert it 
    to the tree. */
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
@@ -276,11 +273,10 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_node_lkey(node, &hint.key);
 	
 	/* Key should not exist in the tree yet. */
-	lookup = reiser4_tree_lookup(tree, &hint.key,
-				     LEAF_LEVEL, INST, &place);
-	
+	lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL, INST, &place);
+
 	if (lookup != ABSENT)
-		return lookup;
+		return lookup == FAILED ? -EINVAL : -ESTRUCT;
 	
 	/* If some node was found and it is not of higher level then the node 
 	   being attached, try to split nodes to be able to attach the node as 

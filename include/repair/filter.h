@@ -38,6 +38,8 @@ typedef struct repair_filter {
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;
 	repair_filter_stat_t stat;
+
+	uint64_t oid;
 } repair_filter_t;
 
 extern errno_t repair_filter(repair_filter_t *filter);

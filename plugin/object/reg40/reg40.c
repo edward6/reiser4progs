@@ -722,11 +722,8 @@ static errno_t reg40_layout(object_entity_t *entity,
 		} else {
 			blk_t blk = place->block->nr;
 			
-			if ((res = callback_item_layout(place, blk,
-							1, &hint)))
-			{
+			if ((res = callback_item_layout(place, blk, 1, &hint)))
 				return res;
-			}
 		}
 
 		/* Getting current item max real key inside, in order to know

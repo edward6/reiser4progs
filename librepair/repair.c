@@ -22,6 +22,8 @@ typedef struct repair_control {
 	aux_bitmap_t *bm_met;		/* frmt | used | leaf | twig. 	     */
 	aux_bitmap_t *bm_unfm_tree;	/* Unfmatted pointed from tree.      */
 	aux_bitmap_t *bm_unfm_out;	/* Unfoamatted pointed out of tree.  */
+
+	uint64_t oid;
 } repair_control_t;
 
 /* Callback for the format_ops.layout method - mark all blocks in the bitmap. */

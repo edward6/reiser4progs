@@ -174,7 +174,7 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 	if (reg->body.plug->id.group != EXTENT_ITEM)
 		return -EINVAL;
 
-	offset = plug_call(reg->body.plug->o.key_ops, get_offset, 
+	offset = plug_call(reg->body.key.plug->o.key_ops, get_offset, 
 			   &reg->body.key);
 	
 	return offset % reg->body.block->size ? RE_FATAL : 0;
@@ -284,15 +284,14 @@ errno_t reg40_check_struct(object_entity_t *object,
 			trans_hint_t hint;
 			hint.count = 1;
 			
-			aal_exception_error("The object [%s] of the plugin %s "
-					    "found the item [%s] in the node "
-					    "(%llu), item (%u) of the plugin "
-					    "%s.%s", 
+			aal_exception_error("The object [%s] (%s), node (%llu),"
+					    "item (%u): the item [%s] of the "
+					    "invalid plugin (%s) found.%s",
 					    print_ino(rcore, &info->object),
 					    reg->obj.plug->label,
-					    print_key(rcore, &reg->body.key),
 					    reg->body.block->nr, 
 					    reg->body.pos.item,
+					    print_key(rcore, &reg->body.key),
 					    reg->body.plug->label, 
 					    mode == RM_BUILD ? 
 					    " Removed." : "");
@@ -316,19 +315,20 @@ errno_t reg40_check_struct(object_entity_t *object,
 		maxreal = plug_call(key.plug->o.key_ops, get_offset, &key);
 			
 		while (!plug_equal(reg->body.plug, bplug)) {
-			aal_exception_error("The object [%s] of the plugin %s "
-					    "found the item [%s] in the node "
-					    "(%llu), item (%u) of the plugin "
-					    "%s.%s", 
+			aal_exception_error("The object [%s] (%s), node (%llu),"
+					    "item (%u): the found item [%s] of "
+					    "the plugin (%s) does not match "
+					    "the detected tail policy (%s).%s",
 					    print_ino(rcore, &info->object),
 					    reg->obj.plug->label,
-					    print_key(rcore, &reg->body.key),
 					    reg->body.block->nr, 
 					    reg->body.pos.item,
-					    reg->body.plug->label, 
+					    print_key(rcore, &reg->body.key),
+					    reg->body.plug->label,
+					    reg->policy->label,
 					    mode == RM_BUILD ? 
 					    " Converted." : "");
-			
+
 			if (mode != RM_BUILD) {
 				res |= RE_FATAL;
 				break;
@@ -347,7 +347,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 				/* Start from the beginning. */
 				size = bytes = 0;
 				reg40_reset(object);
-				/* Continue with the  */
 			} else {
 				/* Tail found, extent should be. Convert. */
 				if ((res |= rcore->tree_ops.conv(info->tree, 

@@ -38,7 +38,7 @@ typedef struct repair_progress {
 	uint8_t state;		/* state of the progress - progress_state_t */
 	char *text;		/* Some uptodate text for the progress.     
 				   Becomes the name of the gauge for now.   */
-    
+ 
 	union {
 		repair_progress_rate_t rate;
 		repair_progress_tree_t tree;

@@ -185,6 +185,9 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			}
 		}
 		
+		if ((res = reiser4_item_maxreal_key(&place, &key)))
+			return res;
+		
 		if (pos->item) {
 			if (reiser4_key_compare(&prev_key, &key) >= 0) {
 				aal_exception_error("Node (%llu), items (%u) "
