@@ -1431,19 +1431,8 @@ typedef errno_t (*plug_fini_t) (reiser4_core_t *);
 typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
 
-/* Builtin plugin representative struct. It contains pointers to plugin init()
-   and fini() methods. */
-struct plug_desc {
-	plug_init_t init;
-	plug_fini_t fini;
-};
-
-typedef struct plug_desc plug_desc_t;
-
 /* Plugin class descriptor. Used for loading plugins. */
 struct plug_class {
-	void *handle;
-
 	/* Plugin initialization routine. */
 	plug_init_t init;
 	
@@ -1451,9 +1440,8 @@ struct plug_class {
 	plug_fini_t fini;
 
 #ifndef ENABLE_STAND_ALONE
-	/* Plugin location. Filename of library plugin (for instance
-	   /usr/lib/reiser4/libstat40.so) or address for built-in ones. */
-	char location[PLUG_MAX_PATH];
+	/* Plugin location, that is address of its init() function. */
+	char loc[PLUG_MAX_PATH];
 #endif
 };
 
@@ -1469,11 +1457,9 @@ struct plug_ident {
 typedef struct plug_ident plug_ident_t;
 
 #ifndef ENABLE_STAND_ALONE
-#define class_init \
-        {NULL, NULL, NULL, ""}
+#define class_init {NULL, NULL, ""}
 #else
-#define class_init \
-        {NULL, NULL, NULL}
+#define class_init {NULL, NULL}
 #endif
 
 struct reiser4_plug {
