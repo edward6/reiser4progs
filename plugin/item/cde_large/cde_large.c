@@ -61,38 +61,16 @@ static char *cde_large_get_name(item_entity_t *item,
 				uint32_t pos, char *buff,
 				uint32_t len)
 {
-	char *name;
 	key_entity_t key;
 
 	cde_large_get_key(item, pos, &key);
 
 	if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
-		name = (char *)((cde_large_objid(item, pos)) + 1);
-		aal_strncpy(buff, name, len);
+		char *ptr = (char *)((cde_large_objid(item, pos)) + 1);
+		aal_strncpy(buff, ptr, len);
 	} else {
-		uint64_t offset;
-		uint64_t objectid;
-		uint64_t ordering;
-
-		objectid = plugin_call(key.plugin->o.key_ops,
-				       get_fobjectid, &key);
-		
-		offset = plugin_call(key.plugin->o.key_ops,
-				     get_offset, &key);
-	
-		ordering = plugin_call(key.plugin->o.key_ops,
-				       get_ordering, &key);
-		
-		if (objectid == 0ull && offset == 0ull &&
-		    ordering == 0ull)
-		{
-			*buff = '.';
-			*(buff + 1) = '\0';
-		} else {
-			name = aux_unpack_string(ordering, buff);
-			name = aux_unpack_string(objectid, name);
-			aux_unpack_string(offset, name);
-		}
+		plugin_call(key.plugin->o.key_ops, get_name,
+			    &key, buff);
 	}
 
 	return buff;

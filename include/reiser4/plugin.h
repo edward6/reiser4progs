@@ -580,6 +580,9 @@ struct reiser4_key_ops {
 	void (*set_offset) (key_entity_t *, uint64_t);
 	uint64_t (*get_offset) (key_entity_t *);
 
+	/* Extracts name from keys */
+	char *(*get_name) (key_entity_t *, char *);
+
 #ifndef ENABLE_STAND_ALONE
 	/* Gets/sets directory key hash */
 	void (*set_hash) (key_entity_t *, uint64_t);

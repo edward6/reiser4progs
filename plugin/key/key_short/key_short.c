@@ -81,12 +81,13 @@ static uint64_t key_short_get_locality(key_entity_t *key) {
 static void key_short_set_ordering(key_entity_t *key, 
 				   uint64_t ordering) 
 {
-	return;
+	aal_assert("umka-2331", key != NULL);
 }
 
 /* Returns key ordering (is not used in short keys) */
 static uint64_t key_short_get_ordering(key_entity_t *key) {
-	return 0;
+	aal_assert("umka-2332", key != NULL);
+	return 0;;
 }
 
 /* Sets up key objectid */
@@ -117,6 +118,39 @@ static uint64_t key_short_get_offset(key_entity_t *key) {
 	return ks_get_offset((key_short_t *)key->body);
 }
 
+static int key_short_tall(key_entity_t *key) {
+	return (key_short_get_objectid(key) &
+		0x0100000000000000ull) ? 1 : 0;
+}
+
+/* Extracts name from key */
+static char *key_short_get_name(key_entity_t *key,
+				char *name)
+{
+	char *ptr;
+	uint64_t offset;
+	uint64_t objectid;
+                                                                                        
+	/* Check if key is not tall one */
+	if (key_short_tall(key))
+		return NULL;
+	
+	offset = key_short_get_offset(key);
+	objectid = key_short_get_objectid(key);
+                                                                                        
+	/* Special case, handling "." entry */
+	if (objectid == 0ull && offset == 0ull) {
+		*name = '.';
+		*(name + 1) = '\0';
+	} else {
+		ptr = aux_unpack_string(objectid, name);
+		aux_unpack_string(offset, ptr);
+	}
+
+	return name;
+}
+
+
 #ifndef ENABLE_STAND_ALONE
 /* Sets up key offset */
 static void key_short_set_hash(key_entity_t *key, 
@@ -137,11 +171,6 @@ static uint64_t key_short_get_hash(key_entity_t *key) {
 static void key_short_clean(key_entity_t *key) {
 	aal_assert("vpf-139", key != NULL);
 	aal_memset(key->body, 0, sizeof(key_short_t));
-}
-
-static int key_short_tall(key_entity_t *key) {
-	return (key_short_get_objectid(key) &
-		0x0100000000000000ull) ? 1 : 0;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -374,11 +403,13 @@ static reiser4_key_ops_t key_short_ops = {
 	.set_locality	   = key_short_set_locality,
 	.get_locality	   = key_short_get_locality,
 
+	.set_objectid	   = key_short_set_objectid,
+	.get_objectid	   = key_short_get_objectid,
+
 	.set_ordering	   = key_short_set_ordering,
 	.get_ordering	   = key_short_get_ordering,
 	
-	.set_objectid	   = key_short_set_objectid,
-	.get_objectid	   = key_short_get_objectid,
+	.get_name          = key_short_get_name,
 
 	.set_fobjectid	   = NULL,
 	.get_fobjectid	   = NULL

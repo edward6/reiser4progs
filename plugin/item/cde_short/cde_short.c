@@ -60,7 +60,6 @@ static char *cde_short_get_name(item_entity_t *item,
 				 uint32_t pos, char *buff,
 				 uint32_t len)
 {
-        char *name;
         key_entity_t key;
                                                                                         
         cde_short_get_key(item, pos, &key);
@@ -68,26 +67,11 @@ static char *cde_short_get_name(item_entity_t *item,
         /* If name is long, we just copy it from the area after
            objectid. Otherwise we extract it from the entry hash. */
         if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
-                name = (char *)((cde_short_objid(item, pos)) + 1);
-                aal_strncpy(buff, name, len);
+                char *ptr = (char *)((cde_short_objid(item, pos)) + 1);
+                aal_strncpy(buff, ptr, len);
         } else {
-                uint64_t offset;
-                uint64_t objectid;
-                                                                                        
-                offset = plugin_call(key.plugin->o.key_ops,
-                                     get_offset, &key);
-                                                                                        
-                objectid = plugin_call(key.plugin->o.key_ops,
-                                       get_objectid, &key);
-                                                                                        
-                /* Special case, handling "." entry */
-                if (objectid == 0ull && offset == 0ull) {
-                        *buff = '.';
-                        *(buff + 1) = '\0';
-                } else {
-                        name = aux_unpack_string(objectid, buff);
-                        aux_unpack_string(offset, name);
-                }
+		plugin_call(key.plugin->o.key_ops, get_name,
+			    &key, buff);
         }
                                                                                         
         return buff;

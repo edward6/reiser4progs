@@ -218,7 +218,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 	
 	objectid = plugin_call(info->object.plugin->o.key_ops,
 			       get_objectid, &info->object);
-	
+
 	ordering = plugin_call(info->object.plugin->o.key_ops,
 			       get_ordering, &info->object);
 	

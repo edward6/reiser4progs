@@ -133,6 +133,47 @@ static uint64_t key_large_get_offset(key_entity_t *key) {
 	return kl_get_offset((key_large_t *)key->body);
 }
 
+static int key_large_tall(key_entity_t *key) {
+	return (key_large_get_ordering(key) &
+		0x0100000000000000ull) ? 1 : 0;
+}
+
+/* Extracts name from key */
+static char *key_large_get_name(key_entity_t *key,
+				char *name)
+{
+	char *ptr;
+	uint64_t offset;
+	uint64_t objectid;
+	uint64_t ordering;
+
+	aal_assert("umka-2352", key != NULL);
+	aal_assert("umka-2353", name != NULL);
+
+	/* Check if key is not tall one */
+	if (key_large_tall(key))
+		return NULL;
+
+	offset = key_large_get_offset(key);
+	ordering = key_large_get_ordering(key);
+	objectid = key_large_get_fobjectid(key);
+
+	/* Check if key is dot one */
+	if (objectid == 0ull && offset == 0ull &&
+	    ordering == 0ull)
+	{
+		*name = '.';
+		*(name + 1) = '\0';
+	} else {
+		ordering &= ~0x0100000000000000ull;
+		ptr = aux_unpack_string(ordering, name);
+		ptr = aux_unpack_string(objectid, ptr);
+		aux_unpack_string(offset, ptr);
+	}
+
+	return name;
+}
+
 #ifndef ENABLE_STAND_ALONE
 /* Sets up key offset */
 static void key_large_set_hash(key_entity_t *key, 
@@ -153,11 +194,6 @@ static uint64_t key_large_get_hash(key_entity_t *key) {
 static void key_large_clean(key_entity_t *key) {
 	aal_assert("vpf-139", key != NULL);
 	aal_memset(key->body, 0, sizeof(key_large_t));
-}
-
-static int key_large_tall(key_entity_t *key) {
-	return (key_large_get_ordering(key) &
-		0x0100000000000000ull) ? 1 : 0;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -407,7 +443,8 @@ static reiser4_key_ops_t key_large_ops = {
 	.get_fobjectid	   = key_large_get_fobjectid,
 
 	.set_offset	   = key_large_set_offset,
-	.get_offset	   = key_large_get_offset
+	.get_offset	   = key_large_get_offset,
+	.get_name          = key_large_get_name
 };
 
 static reiser4_plugin_t key_large_plugin = {

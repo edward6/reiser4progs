@@ -35,7 +35,7 @@ oid_t obj40_locality(obj40_t *obj) {
 /* Returns file's ordering  */
 uint64_t obj40_ordering(obj40_t *obj) {
 	aal_assert("umka-2334", obj != NULL);
-    
+
 	return plugin_call(STAT_KEY(obj)->plugin->o.key_ops, 
 			   get_ordering, STAT_KEY(obj));
 }
