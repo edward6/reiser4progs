@@ -1114,13 +1114,12 @@ struct reiser4_node_ops {
 
 	/* Saves node to device */
 	errno_t (*sync) (node_entity_t *);
-
-	/* Makes fresh node (zero items, etc) */
-	errno_t (*fresh) (node_entity_t *, uint8_t);
 #endif
-
+	/* Open the node on the given block with the given key plugin. */
+	node_entity_t *(*open) (aal_block_t *, reiser4_plug_t *);
+	
 	/* Initializes node with passed block and key plugin. */
-	node_entity_t *(*init) (aal_block_t *,
+	node_entity_t *(*init) (aal_block_t *, uint8_t , 
 				reiser4_plug_t *);
 	
 	/* Destroys the node entity. */
