@@ -194,7 +194,7 @@ errno_t reiser4_status_print(reiser4_status_t *status,
 	aal_assert("umka-2493", status != NULL);
 	aal_assert("umka-2494", stream != NULL);
 
-	aal_stream_format(stream, "Status block (%lu):\n", 
+	aal_stream_format(stream, "FS status block (%lu):\n", 
 			  REISER4_STATUS_BLOCK);
 
 	state = get_ss_status(STATUS(status));

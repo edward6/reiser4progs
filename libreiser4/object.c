@@ -757,7 +757,7 @@ static reiser4_object_t *reiser4_object_comp(reiser4_tree_t *tree,
 		reiser4_key_assign(&entry->offset, &tree->key);
 	}
 	
-	/* Creating object by passed parameters */
+	/* Creating object by passed parameters. */
 	if (!(object = reiser4_object_create(tree, entry, hint)))
 		return NULL;
 
@@ -773,7 +773,7 @@ static reiser4_object_t *reiser4_object_comp(reiser4_tree_t *tree,
 }
 
 /* Enumerates all enries in @object. Calls @open_func for each of them. Used in
-   semantic path in librepair. */
+   semanthic path in librepair. */
 errno_t reiser4_object_traverse(reiser4_object_t *object,
 				object_open_func_t open_func,
 				void *data)

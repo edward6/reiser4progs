@@ -1000,7 +1000,7 @@ static errno_t extent40_prep_shift(place_t *src_place,
 		return 0;
 	}
 	
-	if (hint->control & SF_LEFT_SHIFT) {
+	if (hint->control & SF_ALLOW_LEFT) {
 		uint32_t left;
 
 		/* Check if we need to update insert point at all. If not, we
@@ -1074,7 +1074,7 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 	aal_assert("umka-1706", src_place != NULL);
 	aal_assert("umka-1707", dst_place != NULL);
 
-	if (hint->control & SF_LEFT_SHIFT) {
+	if (hint->control & SF_ALLOW_LEFT) {
 		pos = extent40_units(dst_place) - hint->units;
 			
 		/* Preparing space in @dst_place */

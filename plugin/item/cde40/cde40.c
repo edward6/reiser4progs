@@ -507,7 +507,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 
 	flags = hint->control;
 	
-	curr = (hint->control & SF_LEFT_SHIFT ? 0 : src_units - 1);
+	curr = (hint->control & SF_ALLOW_LEFT ? 0 : src_units - 1);
 
 	check = (src_place->pos.item == hint->pos.item &&
 		 hint->pos.unit != MAX_UINT32);
@@ -516,11 +516,11 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	       curr < cde40_units(src_place))
 	{
 
-		/* Check if we should update unit pos. we will update it if we
-		   are at insert point and unit pos is not MAX_UINT32. */
+		/* Check if we have already moved everything possible and are on
+		   edge of item and will be moved to neighbour item. */
 		if (check && (flags & SF_UPDATE_POINT)) {
 			if (!(flags & SF_MOVE_POINT)) {
-				if (flags & SF_LEFT_SHIFT) {
+				if (flags & SF_ALLOW_LEFT) {
 					if (hint->pos.unit == 0)
 						break;
 				} else {
@@ -541,7 +541,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 		   of insert point is the same as current item has and unit
 		   component is not MAX_UINT32. */
 		if (check && (flags & SF_UPDATE_POINT)) {
-			if (flags & SF_LEFT_SHIFT) {
+			if (flags & SF_ALLOW_LEFT) {
 				/* Insert point is near to be moved into left
 				   neighbour. Checking if we are permitted to do
 				   so and updating insert point. */
@@ -585,8 +585,8 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 		dst_units++;
 		hint->units++;
 
-		curr += (flags & SF_LEFT_SHIFT ? 1 : -1);
 		space -= (len + en_size(pol));
+		curr += (flags & SF_ALLOW_LEFT ? 1 : -1);
 	}
 
 	/* Updating @hint->rest. It is needed for unit shifting. This value is
@@ -612,7 +612,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	if (dst_place->pos.unit == MAX_UINT32)
 		hint->rest -= sizeof(cde40_t);
 	
-	if (hint->control & SF_LEFT_SHIFT) {
+	if (hint->control & SF_ALLOW_LEFT) {
 		src_pos = 0;
 		dst_pos = cde_get_units(dst_place);
 	} else {
@@ -634,7 +634,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 
 	/* Updating item key by first cde key */
 	if (cde_get_units(src_place) > 0 &&
-	    hint->control & SF_LEFT_SHIFT)
+	    hint->control & SF_ALLOW_LEFT)
 	{
 		cde40_get_hash(src_place, 0,
 			       &src_place->key);

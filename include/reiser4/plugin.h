@@ -358,11 +358,11 @@ typedef struct sdext_entity sdext_entity_t;
 enum shift_flags {
 	/* Allows to try to make shift from the passed node to left neighbour
 	   node. */
-	SF_LEFT_SHIFT    = 1 << 0,
+	SF_ALLOW_LEFT    = 1 << 0,
 
 	/* Allows to try to make shift from the passed node to right neighbour
 	   node. */
-	SF_RIGHT_SHIFT   = 1 << 1,
+	SF_ALLOW_RIGHT   = 1 << 1,
 
 	/* Allows to move insert point to one of neighbour nodes during
 	   shift. */
@@ -385,7 +385,7 @@ enum shift_flags {
 typedef enum shift_flags shift_flags_t;
 
 #define SF_DEFAULT \
-(SF_LEFT_SHIFT | SF_RIGHT_SHIFT | SF_ALLOW_ALLOC | SF_ALLOW_MERGE)
+(SF_ALLOW_LEFT | SF_ALLOW_RIGHT | SF_ALLOW_ALLOC | SF_ALLOW_MERGE)
 
 struct shift_hint {
 	/* Flag which shows that we need create an item before we will move

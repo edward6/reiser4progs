@@ -226,8 +226,7 @@ static errno_t tail40_prep_shift(place_t *src_place,
 	}
 
 	/* Check if this is left shift. */
-	if (hint->control & SF_LEFT_SHIFT) {
-
+	if (hint->control & SF_ALLOW_LEFT) {
 		/* Are we able to update insert point? */
 		if (hint->control & SF_UPDATE_POINT) {
 			/* Correcting @hint->rest. It should contain number of
@@ -351,7 +350,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 	aal_assert("umka-1667", hint != NULL);
 
 	/* Check if this is left shift. */
-	if (hint->control & SF_LEFT_SHIFT) {
+	if (hint->control & SF_ALLOW_LEFT) {
 		pos = dst_place->len - hint->units;
 		
 		/* Expanding tail item at @dst_place by @hint->units value. It

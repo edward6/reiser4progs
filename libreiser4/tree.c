@@ -1246,7 +1246,7 @@ static errno_t reiser4_tree_pack_level(reiser4_tree_t *tree,
 		/* Left shift and merge is allowed. As this function will be
 		   used mostly in the case of out of space, we do not allow to
 		   allocate new nodes during shift. */
-		flags = (SF_LEFT_SHIFT | SF_ALLOW_MERGE);
+		flags = (SF_ALLOW_LEFT | SF_ALLOW_MERGE);
 
 		/* Getting node next to @right. It is needed for setting @node
 		   to it for next time of loop if right will get empty after
@@ -1911,7 +1911,7 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 		place->node = neig;
 
 	/* Updating left delimiting keys in the tree */
-	if (hint.control & SF_LEFT_SHIFT) {
+	if (hint.control & SF_ALLOW_LEFT) {
 
 		/* Check if we need update key in insert part of tree. That is
 		   if source node is not empty and there was actually moved at
@@ -2052,10 +2052,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 
 	/* Shifting data into left neighbour if it exists and left shift
 	   allowing flag is specified. */
-	if ((SF_LEFT_SHIFT & flags) &&
+	if ((SF_ALLOW_LEFT & flags) &&
 	    (left = reiser4_tree_neigh_node(tree, place->node, DIR_LEFT)))
 	{
-		uint32_t left_flags = (SF_LEFT_SHIFT | SF_UPDATE_POINT);
+		uint32_t left_flags = (SF_ALLOW_LEFT | SF_UPDATE_POINT);
 
 		if (SF_ALLOW_MERGE & flags)
 			left_flags |= SF_ALLOW_MERGE;
@@ -2077,10 +2077,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 
 	/* Shifting data into right neighbour if it exists and right shift
 	   allowing flag is specified. */
-	if ((SF_RIGHT_SHIFT & flags) &&
+	if ((SF_ALLOW_RIGHT & flags) &&
 	    (right = reiser4_tree_neigh_node(tree, place->node, DIR_RIGHT)))
 	{
-		uint32_t right_flags = (SF_RIGHT_SHIFT | SF_UPDATE_POINT);
+		uint32_t right_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
 		
 		if (SF_ALLOW_MERGE & flags)
 			right_flags |= SF_ALLOW_MERGE;
@@ -2132,7 +2132,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			return -ENOSPC;
 
 		/* Setting up shift flags */
-		alloc_flags = (SF_RIGHT_SHIFT | SF_UPDATE_POINT |
+		alloc_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT |
 			       SF_ALLOW_MERGE);
 
 		if (SF_ALLOW_MERGE & flags)
@@ -2187,7 +2187,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 	aal_assert("umka-1783", place != NULL);
 
 	/* Shift flags to be used in packing. */
-	flags = (SF_LEFT_SHIFT | SF_ALLOW_MERGE);
+	flags = (SF_ALLOW_LEFT | SF_ALLOW_MERGE);
 	
 	/* Packing node in order to keep the tree in well packed state
 	   anyway. Here we will shift data from the target node to its left
@@ -2275,7 +2275,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				return -EINVAL;
 			}
 
-			flags = (SF_RIGHT_SHIFT | SF_UPDATE_POINT |
+			flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT |
 				 SF_ALLOW_MERGE);
 			
 			/* Perform shift. */
@@ -2790,9 +2790,14 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 			return -ENOSPC;
 		}
 		
-		/* Check is we have spece at all. */
-		if (!(hint->len = hint->count = space))
+		/* Check is we have space at all. */
+		if (!(hint->len = hint->count = space)) {
+			aal_exception_error("Can't prepare space in tree. "
+					    "Node %llu, item %u, unit %u.",
+					    node_blocknr(place->node),
+					    place->pos.item, place->pos.unit);
 			return -ENOSPC;
+		}
 	}
 
 	/* Making yet another estimate if insert mode is changed after making

@@ -1046,7 +1046,7 @@ static int node40_mergeable(place_t *src, place_t *dst) {
 
 static int node40_splittable(place_t *place, shift_hint_t *hint) {
 	uint32_t units;
-	
+
 	/* Check if item's shift_units() and prep_shift() method are
 	   implemented. */
 	if (!place->plug->o.item_ops->balance->shift_units ||
@@ -1063,9 +1063,9 @@ static int node40_splittable(place_t *place, shift_hint_t *hint) {
 		units = plug_call(place->plug->o.item_ops->balance,
 				  units, place);
 
-		/* Those item can be splitted that contains more than 1 unit or
+		/* That item can be splitted which contains more than 1 unit or
 		   insert point lies behind the last unit. */
-		if (units > 1 || place->pos.unit >= units)
+		if (units > 1 && place->pos.unit >= units)
 			return 1;
 	}
 	
@@ -1134,7 +1134,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	if (src_items == 0 || hint->rest == 0)
 		return 0;
 	
-	left_shift = (hint->control & SF_LEFT_SHIFT);
+	left_shift = (hint->control & SF_ALLOW_LEFT);
 	
 	/* We can't split the leftmost and rightmost items if they are the same
 	   insert point points to. */
@@ -1385,7 +1385,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 	space = node40_space(dst_entity);
 	end = node40_ih_at(src_node, src_items - 1);
 
-	if (hint->control & SF_LEFT_SHIFT) {
+	if (hint->control & SF_ALLOW_LEFT) {
 		cur = node40_ih_at(src_node, 0);
 	} else {
 		cur = node40_ih_at(src_node, src_items - 1);
@@ -1398,7 +1398,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 	while (!(hint->result & SF_MOVE_POINT) && src_items > 0) {
 		uint32_t len;
 
-		if (!(flags & SF_MOVE_POINT) && (flags & SF_RIGHT_SHIFT)) {
+		if (!(flags & SF_MOVE_POINT) && (flags & SF_ALLOW_RIGHT)) {
 			if (hint->pos.item >= src_items)
 				break;
 		}
@@ -1423,7 +1423,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		   of space otherwise. */
 		if (flags & SF_UPDATE_POINT) {
 			/* Updating insert point. */
-			if (flags & SF_LEFT_SHIFT) {
+			if (flags & SF_ALLOW_LEFT) {
 				if (hint->pos.item == 0) {
 					pos_t pos;
 					place_t place;
@@ -1499,7 +1499,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		src_items--; dst_items++;
 		
 		space -= (len + node40_overhead(dst_entity));
-		cur += (flags & SF_LEFT_SHIFT ? -ih_size(pol) : ih_size(pol));
+		cur += (flags & SF_ALLOW_LEFT ? -ih_size(pol) : ih_size(pol));
 	}
 
 	/* After number of whole items was estimated, all free space will be
@@ -1540,7 +1540,7 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 	/* Initializing src and dst positions, we will used them for moving
 	   items. They are initialized in different way for left and right
 	   shift. */
-	if (hint->control & SF_LEFT_SHIFT) {
+	if (hint->control & SF_ALLOW_LEFT) {
 		POS_INIT(&src_pos, 0, MAX_UINT32);
 		POS_INIT(&dst_pos, dst_items, MAX_UINT32);
 	} else {
@@ -1619,7 +1619,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 		   item to @dst_entity, because we have to support all tree
 		   invariants and namely there should not be mergeable items in
 		   the same node. */
-		left_shift = (hint->control & SF_LEFT_SHIFT);
+		left_shift = (hint->control & SF_ALLOW_LEFT);
 
 		/* Getting border items and checking if they are mergeable. */
 		if ((res = node40_border(src_entity, left_shift, &src_place)))

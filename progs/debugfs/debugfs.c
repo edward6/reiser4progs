@@ -288,10 +288,10 @@ int main(int argc, char *argv[]) {
 		if (debugfs_print_master(fs))
 			goto error_free_journal;
 	
-		if (debugfs_print_status(fs))
-			goto error_free_journal;
-		
 		if (debugfs_print_format(fs))
+			goto error_free_journal;
+
+		if (debugfs_print_status(fs))
 			goto error_free_journal;
 	}
     

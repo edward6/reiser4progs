@@ -368,7 +368,9 @@ reiser4_plug_t *reiser4_factory_ifind(rid_t type, rid_t id) {
 	ident.id = id;
 	ident.type = type;
 	
-	if (!(node = aal_hash_table_lookup_node(plugins, &ident)))
+	node = aal_hash_table_lookup_node(plugins, &ident);
+
+	if (!node || !(*node))
 		return NULL;
 	
 	return (reiser4_plug_t *)(*node)->value;
