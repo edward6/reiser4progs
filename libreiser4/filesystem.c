@@ -333,31 +333,19 @@ errno_t reiser4_fs_sync(
 	if (fs->tree && (res = reiser4_tree_sync(fs->tree)))
 		return res;
     
-	/* Synchronizing the journal */
-	if (fs->journal && fs->journal->dirty) {
-		if ((res = reiser4_journal_sync(fs->journal)))
-			return res;
-	}
-    
 	/* Synchronizing block allocator */
-	if (fs->alloc->dirty) {
-		if ((res = reiser4_alloc_sync(fs->alloc)))
-			return res;
-	}
+	if ((res = reiser4_alloc_sync(fs->alloc)))
+		return res;
     
 	/* Synchronizing the object allocator */
 	if ((res = reiser4_oid_sync(fs->oid)))
 		return res;
     
-	if (fs->format->dirty) {
-		if ((res = reiser4_format_sync(fs->format)))
-			return res;
-	}
+	if ((res = reiser4_format_sync(fs->format)))
+		return res;
 
-	if (fs->master->dirty) {
-		if ((res = reiser4_master_sync(fs->master)))
-			return res;
-	}
+	if ((res = reiser4_master_sync(fs->master)))
+		return res;
 
 	return 0;
 }

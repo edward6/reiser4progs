@@ -157,7 +157,9 @@ reiser4_journal_t *reiser4_journal_create(
 	
 	if (reiser4_journal_mark(journal))
 		goto error_free_entity;
-			
+	
+	journal->dirty = TRUE;
+	
 	return journal;
 
  error_free_entity:
@@ -186,10 +188,18 @@ errno_t reiser4_journal_replay(
 errno_t reiser4_journal_sync(
 	reiser4_journal_t *journal)	/* journal to be saved */
 {
+	errno_t res;
 	aal_assert("umka-100", journal != NULL);
+	
+	if (journal->dirty == FALSE)
+		return 0;
+	
+	if ((res = plugin_call(journal->entity->plugin->journal_ops, 
+			       sync, journal->entity)))
+		return res;
 
-	return plugin_call(journal->entity->plugin->journal_ops, 
-			   sync, journal->entity);
+	journal->dirty = FALSE;
+	return 0;
 }
 
 /* Checks jouranl structure for validness */
@@ -215,6 +225,10 @@ void reiser4_journal_close(
 	reiser4_journal_t *journal)	/* jouranl to be closed */
 {
 	aal_assert("umka-102", journal != NULL);
+	
+#ifndef ENABLE_ALONE
+	reiser4_journal_sync(journal);
+#endif	
 
 	journal->fs->journal = NULL;
 	

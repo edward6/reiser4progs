@@ -140,6 +140,9 @@ errno_t reiser4_alloc_sync(
 	errno_t res;
 	aal_assert("umka-139", alloc != NULL);
 
+	if (alloc->dirty == FALSE)
+		return 0;
+	
 	if ((res = plugin_call(alloc->entity->plugin->alloc_ops,
 			       sync, alloc->entity)))
 		return res;

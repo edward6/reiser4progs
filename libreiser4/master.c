@@ -261,6 +261,9 @@ errno_t reiser4_master_sync(
 	if (!master->native)
 		return 0;
 
+	if (master->dirty == FALSE)
+		return 0;
+	
 	offset = MASTER_OFFSET / master->device->blocksize;
 
 	if (!(block = aal_block_create(master->device, offset, 0)))
