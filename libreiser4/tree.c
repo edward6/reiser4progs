@@ -229,11 +229,8 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
-		if (!(node = reiser4_node_open(tree->fs->device, blksize,
-					       blk, tree->key.plug)))
-		{
-			aal_exception_error("Can't open node "
-					    "%llu.", blk);
+		if (!(node = reiser4_node_open(tree->fs, blk)))	{
+			aal_exception_error("Can't open node %llu.", blk);
 			return NULL;
 		}
 
@@ -1952,7 +1949,7 @@ static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
 	}
 }
 
-/* Function for tre modifying */
+/* Function for tree modifications */
 static int32_t reiser4_tree_mod(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
