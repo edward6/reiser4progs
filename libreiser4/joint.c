@@ -739,7 +739,7 @@ errno_t reiser4_joint_traverse(
 					if (!child)
 						goto update;
 
-					child->data = (void *)1;
+//					child->data = (void *)1;
 					
 					if (reiser4_joint_attach(joint, child))
 						goto error_free_child;
@@ -753,7 +753,7 @@ errno_t reiser4_joint_traverse(
 								     after_func)) < 0)
 					goto error_free_child;
 
-				if (hint->cleanup && !child->children && child->data)
+				if (hint->cleanup && !child->children && !child->counter)
 					reiser4_joint_close(child);
 					
 			update:
@@ -775,7 +775,7 @@ errno_t reiser4_joint_traverse(
 
  error_free_child:
 	
-	if (hint->cleanup && !child->children && child->data)
+	if (hint->cleanup && !child->children && !child->counter)
 		reiser4_joint_close(child);
 
  error_update_func:

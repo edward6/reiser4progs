@@ -406,6 +406,8 @@ int reiser4_tree_lookup(
 		   Check whether specified node already in cache. If so, we use
 		   node from the cache.
 		*/
+		parent->counter++;
+		
 		if (!(coord->u.joint = reiser4_joint_find(parent, &item->key))) {
 			/* 
 			   Node was not found in the cache, we open it and
@@ -414,6 +416,7 @@ int reiser4_tree_lookup(
 			if (!(coord->u.joint = reiser4_tree_load(tree, ptr.ptr))) {
 				aal_exception_error("Can't load node %llu durring "
 						    "lookup.", ptr.ptr);
+				parent->counter--;
 				return -1;
 			}
 
@@ -421,6 +424,7 @@ int reiser4_tree_lookup(
 			if (reiser4_joint_attach(parent, coord->u.joint)) {
 				aal_exception_error("Can't attach the node %llu "
 						    "in the tree.", ptr.ptr);
+				parent->counter--;
 				goto error_free_joint;
 			}
 		}

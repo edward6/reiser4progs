@@ -557,6 +557,7 @@ static errno_t callback_data_frag(
 {
 	reiser4_pos_t pos;
 	reiser4_node_t *node = joint->node;
+	static int bogus = 0;
 
 	struct file_frag_hint *frag_hint =
 		(struct file_frag_hint *)data;
@@ -565,8 +566,11 @@ static errno_t callback_data_frag(
 		return 0;
 	
 	pos.unit = ~0ul;
-	
-	aal_gauge_update(frag_hint->gauge, 0);
+
+	if (bogus++ % 16 == 0)
+		aal_gauge_update(frag_hint->gauge, 0);
+
+	bogus %= 16;
 	
 	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 		reiser4_file_t *file;
