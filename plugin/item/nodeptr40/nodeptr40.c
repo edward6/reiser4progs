@@ -162,6 +162,7 @@ static reiser4_plug_t nodeptr40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "nodeptr40",
 	.desc  = "Node pointer item for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.item_ops = &nodeptr40_ops

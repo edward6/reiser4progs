@@ -351,6 +351,7 @@ static reiser4_plug_t sym40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "sym40",
 	.desc  = "Symlink plugin for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.object_ops = &sym40_ops

@@ -1197,6 +1197,7 @@ reiser4_plug_t dir40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "dir40",
 	.desc  = "Compound directory for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.object_ops = &dir40_ops

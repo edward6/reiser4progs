@@ -28,6 +28,7 @@ static reiser4_plug_t fnv1_hash_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "fnv1_hash",
 	.desc  = "Fnv1 hash for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.hash_ops = &fnv1_hash_ops

@@ -602,6 +602,7 @@ static reiser4_plug_t format40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "format40",
 	.desc  = "Disk-format for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.format_ops = &format40_ops

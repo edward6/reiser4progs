@@ -611,6 +611,7 @@ static reiser4_plug_t extent40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "extent40",
 	.desc  = "Extent item for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.item_ops = &extent40_ops

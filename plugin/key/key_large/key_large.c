@@ -453,6 +453,7 @@ static reiser4_plug_t key_large_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "key_large",
 	.desc  = "Large key for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.key_ops = &key_large_ops

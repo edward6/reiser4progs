@@ -1534,6 +1534,7 @@ static reiser4_plug_t node_large_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "node_large",
 	.desc  = "Node plugin for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.node_ops = &node_large_ops

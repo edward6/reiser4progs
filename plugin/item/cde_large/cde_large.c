@@ -987,6 +987,7 @@ static reiser4_plug_t cde_large_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "cde_large",
 	.desc  = "Compound direntry for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.item_ops = &cde_large_ops

@@ -435,6 +435,7 @@ static reiser4_plug_t key_short_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "key_short",
 	.desc  = "Short key for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.key_ops = &key_short_ops

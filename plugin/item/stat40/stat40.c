@@ -458,6 +458,7 @@ static reiser4_plug_t stat40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "stat40",
 	.desc  = "Stat data item for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.item_ops = &stat40_ops

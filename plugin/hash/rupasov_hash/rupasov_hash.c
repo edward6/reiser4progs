@@ -59,6 +59,7 @@ static reiser4_plug_t rupasov_hash_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "rupasov_hash",
 	.desc  = "Rupasov hash for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.hash_ops = &rupasov_hash_ops

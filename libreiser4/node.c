@@ -835,7 +835,9 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 		if ((list = aal_list_find_custom(node->children,
 						 (void *)&ptr.start,
 						 callback_comp_blk, NULL)))
+		{
 			break;
+		}
 	}
 
 	if (!list)

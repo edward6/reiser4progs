@@ -866,6 +866,7 @@ reiser4_plug_t reg40_plug = {
 #ifndef ENABLE_STAND_ALONE
 	.label = "reg40",
 	.desc  = "Regular file for reiser4, ver. " VERSION,
+	.data  = NULL,
 #endif
 	.o = {
 		.object_ops = &reg40_ops
