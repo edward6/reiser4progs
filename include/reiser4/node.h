@@ -31,6 +31,9 @@ extern errno_t reiser4_node_copy(reiser4_node_t *dst_node, reiser4_pos_t *dst_po
 extern errno_t reiser4_node_move(reiser4_node_t *dst_node, reiser4_pos_t *dst_pos,
 				 reiser4_node_t *src_node, reiser4_pos_t *src_pos);
 
+errno_t reiser4_node_print(reiser4_node_t *node, char *buff, uint32_t n,
+			   uint16_t options);
+
 #endif
 
 extern errno_t reiser4_node_lkey(reiser4_node_t *node, reiser4_key_t *key);

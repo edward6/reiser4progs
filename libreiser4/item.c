@@ -73,8 +73,6 @@ errno_t reiser4_item_estimate(
 			   estimate, NULL, coord->pos.unit, hint);
 }
 
-#endif
-
 /* Prints passed @coord into passed @buff */
 errno_t reiser4_item_print(
 	reiser4_coord_t *coord,    /* item to be printed */
@@ -96,6 +94,8 @@ errno_t reiser4_item_print(
 	
 	return item->plugin->item_ops.print(item, buff, n, 0);
 }
+
+#endif
 
 int reiser4_item_permissn(reiser4_coord_t *coord) {
 	item_entity_t *item;

@@ -9,6 +9,7 @@
 #  include <config.h>
 #endif
 
+#include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_COMPACT
@@ -64,11 +65,95 @@ errno_t reiser4_node_sync(
 	return aal_block_sync(node->block);
 }
 
+#define ITEM_SIZE (32768)
+
+errno_t reiser4_node_print(
+	reiser4_node_t *node, /* node to be printed */
+	char *buff,           /* buffer item to be printed in */
+	uint32_t n,           /* buffer size */
+	uint16_t options)     /* some options */
+{
+	uint8_t level;
+	reiser4_key_t key;
+	reiser4_pos_t pos;
+	reiser4_coord_t coord;
+
+	char *item_buff, key_buff[255];
+	
+	aal_assert("umka-1493", node != NULL, return -1);
+	aal_assert("umka-1494", buff != NULL, return -1);
+
+	level = plugin_call(return -1, node->entity->plugin->node_ops,
+			    get_level, node->entity);
+
+	aux_strncat(buff, n, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
+	       level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
+	       level, reiser4_node_count(node), reiser4_node_space(node));
+
+	pos.unit = ~0ul;
+	
+	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
+
+		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+			aal_exception_error("Can't open item %u in node %llu.", 
+					    pos.item, aal_block_number(node->block));
+			return -1;
+		}
+
+		if (reiser4_item_statdata(&coord))
+			aux_strncat(buff, n, "STATDATA ITEM");
+		else if (reiser4_item_direntry(&coord))
+			aux_strncat(buff, n, "DIRENTRY ITEM");
+		else if (reiser4_item_tail(&coord))
+			aux_strncat(buff, n, "TAIL ITEM");
+		else if (reiser4_item_nodeptr(&coord))
+			aux_strncat(buff, n, "NODEPTR ITEM");
+		else if (reiser4_item_extent(&coord))
+			aux_strncat(buff, n, "EXTENT ITEM");
+		else
+			aux_strncat(buff, n, "UNKNOWN ITEM");
+	    
+		aux_strncat(buff, n, ": len=%u, ", reiser4_item_len(&coord));
+		
+		if (reiser4_item_key(&coord, &key)) {
+			aal_exception_error("Can't get key of item %u in node %llu.",
+					    pos.item, aal_block_number(node->block));
+			return -1;
+		}
+
+		aal_memset(key_buff, 0, sizeof(key_buff));
+		if (reiser4_key_print(&key, key_buff, sizeof(key_buff)))
+			return -1;
+		
+		aux_strncat(buff, n, "KEY: %s, ", key_buff);
+
+		aux_strncat(buff, n, "PLUGIN: 0x%x (%s)\n",
+			    coord.entity.plugin->h.sign.id,
+			    coord.entity.plugin->h.label);
+
+		if (level > LEAF_LEVEL || options) {
+			
+			if (!(item_buff = aal_calloc(ITEM_SIZE, 0)))
+				return -1;
+
+			if (reiser4_item_print(&coord, item_buff, ITEM_SIZE))
+				goto error_free_buff;
+
+			aux_strncat(buff, n, "%s\n", item_buff);
+			
+		error_free_buff:
+			aal_free(item_buff);
+		}
+	}
+	
+	return 0;
+}
+
 #endif
 
 /* This function is trying to detect node plugin */
 static reiser4_plugin_t *reiser4_node_guess(
-	aal_block_t *block)	/* block node lies in */
+	aal_block_t *block)   /* block node lies in */
 {
 	rpid_t pid;
     
@@ -158,7 +243,6 @@ errno_t reiser4_node_lkey(
 
 	return reiser4_item_key(&coord, key);
 }
-
 
 #ifndef ENABLE_COMPACT
 

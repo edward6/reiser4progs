@@ -3,9 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* all functions which return errno_t should return real errno, not
-  just -1.
-
 * should we have reset method in object plugins? is call like
   seek(obj, 0) will not be convenient enough?
 

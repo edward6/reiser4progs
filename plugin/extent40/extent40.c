@@ -58,7 +58,7 @@ static errno_t extent40_print(item_entity_t *item, char *buff,
 		int len = aal_snprintf(buff, n, "%llu(%llu)%s",
 				       et40_get_start(extent + i),
 				       et40_get_width(extent + i),
-				       (i < count - 1 ? ", " : ""));
+				       (i < count - 1 ? " " : ""));
 		buff += len;
 	}
 	aux_strncat(buff, n, " ]");

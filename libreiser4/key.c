@@ -5,6 +5,10 @@
   reiser4progs/COPYING.
 */  
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <reiser4/reiser4.h>
 
 /* Initializes passed key by specified data */
@@ -274,6 +278,8 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 	aal_memcpy(key->body, body, KEY_SIZE);
 }
 
+#ifndef ENABLE_COMPACT
+
 /* Prints key to passed buffer */
 errno_t reiser4_key_print(reiser4_key_t *key, char *buff, 
 			  uint32_t n) 
@@ -284,6 +290,8 @@ errno_t reiser4_key_print(reiser4_key_t *key, char *buff,
 	return plugin_call(return -1, key->plugin->key_ops, 
 			   print, key->body, buff, n, 0); 
 }
+
+#endif
 
 errno_t reiser4_key_valid(reiser4_key_t *key) {
 	aal_assert("vpf-259", key != NULL, return -1);

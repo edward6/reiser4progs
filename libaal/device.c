@@ -110,7 +110,6 @@ uint32_t aal_device_get_bs(
 	aal_device_t *device)	/* device instance blocksize will be received from */
 {
 	aal_assert("umka-432", device != NULL, return 0);
-
 	return device->blocksize;
 }
 
@@ -217,7 +216,6 @@ char *aal_device_name(
 	aal_device_t *device)	/* device, name will be obtained from */
 {
 	aal_assert("umka-442", device != NULL, return NULL);
-    
 	return device->name;
 }
 

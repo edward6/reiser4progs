@@ -8,6 +8,10 @@
 #ifndef KEY_H
 #define KEY_H
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
@@ -52,7 +56,11 @@ extern void reiser4_key_minimal(reiser4_key_t *key);
 
 extern errno_t reiser4_key_valid(reiser4_key_t *key);
 
+#ifndef ENABLE_COMPACT
+
 extern errno_t reiser4_key_print(reiser4_key_t *key, char *buff, 
 				 uint32_t n);
+
+#endif
 
 #endif

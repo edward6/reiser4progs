@@ -200,13 +200,16 @@ errno_t reiser4_joint_realize(
 	*/
 	level = LEAF_LEVEL;
     
-	/* Rasing the right neighbour */
+	/*
+	  Attaching right and left neighbours into the tree. Here we take them
+	  keys and perform lookup. We use lookup because it attaches all nodes
+	  belong to search path.
+	*/
 	if (!joint->left) {
 		if (reiser4_joint_neighbour_key(joint, D_LEFT, &key) == 0)
 			reiser4_tree_lookup(joint->tree, &key, level, NULL);
 	}
 
-	/* Raising the right neighbour */
 	if (!joint->right) {
 		if (reiser4_joint_neighbour_key(joint, D_RIGHT, &key) == 0)
 			reiser4_tree_lookup(joint->tree, &key, level, NULL);
