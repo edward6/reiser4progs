@@ -40,6 +40,27 @@ static int nodeptr40_branch(item_entity_t *item) {
 	return 1;
 }
 
+/*
+  Layout implementation for nodeptr40. It calls @func for each block nodeptr
+  points to.
+*/
+static errno_t nodeptr40_layout(item_entity_t *item,
+				region_func_t func,
+				void *data)
+{
+	errno_t res;
+	nodeptr40_t *nodeptr;
+	
+	aal_assert("umka-1749", item != NULL);
+	aal_assert("umka-1750", func != NULL);
+	aal_assert("vpf-718",   item->body != NULL);
+
+	if ((res = func(item, np40_get_ptr(nodeptr40_body(item)), 1, data)))
+		return res;
+
+	return 0;
+}
+
 #ifndef ENABLE_ALONE
 
 /* Writes of the specified nodeptr into passed @item*/
@@ -109,27 +130,6 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	
 	aal_stream_format(stream, "[ %llu ]", np40_get_ptr(nodeptr));
 	
-	return 0;
-}
-
-/*
-  Layout implementation for nodeptr40. It calls @func for each block nodeptr
-  points to.
-*/
-static errno_t nodeptr40_layout(item_entity_t *item,
-				region_func_t func,
-				void *data)
-{
-	errno_t res;
-	nodeptr40_t *nodeptr;
-	
-	aal_assert("umka-1749", item != NULL);
-	aal_assert("umka-1750", func != NULL);
-	aal_assert("vpf-718",   item->body != NULL);
-
-	if ((res = func(item, np40_get_ptr(nodeptr40_body(item)), 1, data)))
-		return res;
-
 	return 0;
 }
 

@@ -4,18 +4,31 @@ libdir			      = $(plugindir)
 extent40_sources	      = extent40.c extent40_repair.c extent40.h
 
 if ENABLE_MONOLITHIC
-noinst_LTLIBRARIES	      = libextent40-static.la
+STATIC_LIBS                   = libextent40-static.la
 libextent40_static_la_SOURCES = $(extent40_sources)
+libextent40_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
 else
+STATIC_LIBS                   = 
 lib_LTLIBRARIES		      = libextent40.la
 libextent40_la_LIBADD	      = $(top_builddir)/libaal/libaal.la \
 			        $(top_builddir)/libaux/libaux-static.la
 
 libextent40_la_SOURCES	      = $(extent40_sources)
+libextent40_la_LDFLAGS	      = $(PLUGIN_LDFLAGS)
 endif
 
-libextent40_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
-libextent40_la_LDFLAGS	      = $(PLUGIN_LDFLAGS)
+if ENABLE_ALONE
+ALONE_LIBS                    = libextent40-alone.la
+else
+ALONE_LIBS                    =
+endif
+
+noinst_LTLIBRARIES	      = $(STATIC_LIBS) $(ALONE_LIBS)
+
+if ENABLE_ALONE
+libextent40_alone_la_SOURCES  = $(extent40_sources)
+libextent40_alone_la_CFLAGS   = -DENABLE_ALONE -DENABLE_MONOLITHIC -O9 -fno-builtin
+endif
 
 INCLUDES = $(includedir)
 

@@ -32,7 +32,7 @@ typedef enum format_modifier format_modifier_t;
 */
 int aal_vsnprintf(
 	char *buff,			    /* buffer string will be formed in */
-	size_t n,			    /* size of the buffer */
+	uint32_t n,			    /* size of the buffer */
 	const char *format,		    /* format string */
 	va_list arg_list)		    /* list of parameters */
 {
@@ -195,7 +195,7 @@ int aal_vsnprintf(
 /* Forms string in passed buffer by using format string */
 int aal_snprintf(
 	char *buff,			    /* buffer string will be formed in */
-	size_t n,			    /* size of the buffer */
+	uint32_t n,			    /* size of the buffer */
 	const char *format,		    /* format string */
 	...)				    /* variable list of parametsrs */
 {

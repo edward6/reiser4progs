@@ -1,8 +1,15 @@
 SUBDIRS 			= format journal alloc oid node key hash sdext item file
 
-noinst_LTLIBRARIES	     	= libheader.la libfooter.la libreiser4-plugin.la
+if ENABLE_ALONE
+ALONE_LIBS                      = libreiser4-plugin-alone.la libheader-alone.la libfooter-alone.la
+else
+ALONE_LIBS                      = 
+endif
+
+noinst_LTLIBRARIES	     	= libheader.la libfooter.la libreiser4-plugin.la $(ALONE_LIBS)
 
 if ENABLE_MONOLITHIC
+
 libheader_la_SOURCES 		= header.c
 libfooter_la_SOURCES 		= footer.c
 
@@ -31,11 +38,41 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          sdext/sdext_lt/libsdext_lt-static.la \
 			          sdext/sdext_symlink/libsdext_symlink-static.la \
 			          libfooter.la
-else
-libheader_la_SOURCES 		= 
-libfooter_la_SOURCES 		= 
+endif
 
-libreiser4_plugin_la_LIBADD	=
+if ENABLE_ALONE
+
+libheader_alone_la_SOURCES 	= header.c
+libfooter_alone_la_SOURCES 	= footer.c
+
+libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
+			          format/format40/libformat40-alone.la \
+			          journal/journal40/libjournal40-alone.la \
+			          alloc/alloc40/liballoc40-alone.la \
+			          oid/oid40/liboid40-alone.la \
+			          node/node40/libnode40-alone.la \
+			          key/key40/libkey40-alone.la \
+			          item/nodeptr40/libnodeptr40-alone.la \
+			          item/direntry40/libdirentry40-alone.la \
+			          item/tail40/libtail40-alone.la \
+			          item/extent40/libextent40-alone.la \
+			          item/stat40/libstat40-alone.la \
+			          file/file40/libfile40-alone.la \
+			          file/dir40/libdir40-alone.la \
+			          file/reg40/libreg40-alone.la \
+			          file/symlink40/libsymlink40-alone.la \
+			          hash/r5_hash/libr5_hash-alone.la \
+			          hash/tea_hash/libtea_hash-alone.la \
+			          hash/rupasov_hash/librupasov_hash-alone.la \
+			          hash/fnv1_hash/libfnv1_hash-alone.la \
+			          sdext/sdext_unix/libsdext_unix-alone.la \
+			          sdext/sdext_lw/libsdext_lw-alone.la \
+			          sdext/sdext_lt/libsdext_lt-alone.la \
+			          sdext/sdext_symlink/libsdext_symlink-alone.la \
+			          libfooter-alone.la
+
+libreiser4_plugin_alone_la_SOURCES =
+
 endif
 
 libreiser4_plugin_la_SOURCES	=

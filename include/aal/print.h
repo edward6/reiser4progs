@@ -12,12 +12,14 @@
 #  include <config.h>
 #endif
 
+#include <aal/types.h>
+
 #ifdef ENABLE_ALONE
 
-extern int aal_vsnprintf(char *buff, unsigned int n, const char *format, 
+extern int aal_vsnprintf(char *buff, uint32_t n, const char *format, 
 			 va_list arg_list);
 
-extern int aal_snprintf(char *buff, unsigned int n, const char *format, 
+extern int aal_snprintf(char *buff, uint32_t n, const char *format, 
 			...) __aal_check_format__(printf, 3, 4);
 
 #else

@@ -1,4 +1,4 @@
-if ENABLE_COMPACT
+if ENABLE_ALONE
 SUBDIRS         = libaal libaux plugin libreiser4 include doc debug
 else
 SUBDIRS         = libaal libaux plugin libreiser4 librepair progs demos include doc debug

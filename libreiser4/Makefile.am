@@ -4,18 +4,25 @@ libreiser4_sources	     = libreiser4.c filesystem.c format.c journal.c \
 			       alloc.c oid.c factory.c node.c tree.c key.c \
 			       file.c coord.c master.c item.c
 
-lib_LTLIBRARIES		     = libreiser4.la
+if ENABLE_ALONE
+ALONE_LIBS                   = libreiser4-alone.la
+else
+ALONE_LIBS                   =
+endif
 
-noinst_LTLIBRARIES	     = libreiser4-static.la 
+lib_LTLIBRARIES		     = libreiser4.la $(ALONE_LIBS)
+noinst_LTLIBRARIES	     = libreiser4-static.la
 
 libreiser4_la_LDFLAGS	     = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 			       -release $(LT_RELEASE)
 
 if ENABLE_MONOLITHIC
+
 libreiser4_la_LIBADD	     = $(top_builddir)/libaal/libaal.la \
 			       $(top_builddir)/libaux/libaux-static.la \
 			       $(top_builddir)/plugin/libreiser4-plugin.la
 else
+
 libreiser4_la_LIBADD	     = $(top_builddir)/libaal/libaal.la \
 			       $(top_builddir)/libaux/libaux-static.la \
 			       @LIBREISER4_LIBS@
@@ -29,5 +36,16 @@ libreiser4_static_la_LIBADD  = $(top_builddir)/libaal/libaal-static.la \
 
 libreiser4_static_la_SOURCES = $(libreiser4_sources)
 
-INCLUDES = $(includedir)
+if ENABLE_ALONE
 
+libreiser4_alone_la_LIBADD   = $(top_builddir)/libaal/libaal-static.la \
+			       $(top_builddir)/libaux/libaux-static.la \
+			       $(top_builddir)/plugin/libreiser4-plugin.la
+
+libreiser4_alone_la_SOURCES  = $(libreiser4_sources)
+
+libreiser4_alone_la_CFLAGS   = -DENABLE_ALONE -DENABLE_MONOLITHIC -O9 -fno-builtin
+
+endif
+
+INCLUDES = $(includedir)

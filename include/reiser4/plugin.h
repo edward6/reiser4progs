@@ -8,6 +8,10 @@
 #ifndef REISER4_PLUGIN_H
 #define REISER4_PLUGIN_H
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <aal/aal.h>
 
 #define LEAF_LEVEL	        (1)

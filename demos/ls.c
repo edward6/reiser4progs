@@ -140,5 +140,6 @@ int main(int argc, char *argv[]) {
 	aal_device_close(device);
  error_free_libreiser4:
 	libreiser4_done();
+	return 0xff;
 }
 

@@ -7,6 +7,15 @@
 
 #include "format40.h"
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#ifndef ENABLE_ALONE
+#  include <time.h>
+#  include <stdlib.h>
+#endif
+
 extern reiser4_plugin_t format40_plugin;
 static reiser4_core_t *core = NULL;
 
