@@ -6,6 +6,18 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2004-12-04
+	The version is 1.0.3
+2004-12-01
+	The Pack/unpack journal code is written.
+	Cleanups in program options.
+2004-11-25
+	Build either all or none progs statically.
+	The recover from unused space code is added. Could be used as undelete.
+2004-11-24
+	The backup code is written.
+2004-10-29
+	A bunch of bugs is fixed.
 2004-10-21
 	Object detach/unlink methods are fixed.
 	Fix the handling of special entries ('.', '..') in directory objects.
@@ -16,7 +28,7 @@ not an invitation to misrepresent the history of reiser4progs.
 2004-10-12
 	Make allocator CRC endian safe
 2004-10-07
-	A bunch of bugs are fixed in the balancing code
+	A bunch of bugs is fixed in the balancing code
 2004-09-22
 	Change "stand alone" to "minimal footprint"
 2004-09-21

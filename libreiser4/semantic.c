@@ -117,7 +117,7 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 }
 
 /* This function opens object by its name */
-reiser4_object_t *reiser4_semantic_open(
+static reiser4_object_t *reiser4_semantic_open_object(
 	reiser4_tree_t *tree,		/* tree object will be opened on */
 	char *path,                     /* name of object to be opened */
 	reiser4_key_t *from,		/* key to start  resolving from */
@@ -157,4 +157,24 @@ reiser4_object_t *reiser4_semantic_open(
 		reiser4_object_close(resol.object);
 
 	return NULL;
+}
+
+/* This function opens object by its name */
+reiser4_object_t *reiser4_semantic_try_open(
+	reiser4_tree_t *tree,		/* tree object will be opened on */
+	char *path,                     /* name of object to be opened */
+	reiser4_key_t *from,		/* key to start  resolving from */
+	bool_t follow)                  /* follow symlinks */
+{
+	return reiser4_semantic_open_object(tree, path, from, follow, 0);
+}
+
+/* This function opens object by its name */
+reiser4_object_t *reiser4_semantic_open(
+	reiser4_tree_t *tree,		/* tree object will be opened on */
+	char *path,                     /* name of object to be opened */
+	reiser4_key_t *from,		/* key to start  resolving from */
+	bool_t follow)                  /* follow symlinks */
+{
+	return reiser4_semantic_open_object(tree, path, from, follow, 1);
 }

@@ -189,7 +189,7 @@ errno_t sym_test(busy_ctx_t *ctx) {
 	char *path = ctx->in.path;
 	char name[256];
 	
-	if (!(dir0 = reiser4_semantic_open(fs->tree, path, NULL, 1, 1))) {
+	if (!(dir0 = reiser4_semantic_open(fs->tree, path, NULL, 1))) {
                 aal_error("Can't open dir %s.", path);
                 return -EIO;
         }
@@ -232,14 +232,14 @@ errno_t sym_test(busy_ctx_t *ctx) {
 	
 	aal_snprintf(name, 256, "%s/test1 dir2/test1 sym0", path);
 
-	if (!(sym0 = reiser4_semantic_open(fs->tree, name, NULL, 1, 1))) {
+	if (!(sym0 = reiser4_semantic_open(fs->tree, name, NULL, 1))) {
 		aal_error("Failed to open a sym '%s'.", name);
 		return -EIO;
 	}
 
 	aal_snprintf(name, 256, "%s/test1 dir2/test1 sym1", path);
 	
-	if (!(sym1 = reiser4_semantic_open(fs->tree, name, NULL, 1, 1))) {
+	if (!(sym1 = reiser4_semantic_open(fs->tree, name, NULL, 1))) {
 		aal_error("Failed to create a sym '%s'.", name);
 		return -EIO;
 	}
@@ -271,7 +271,7 @@ errno_t read_test(busy_ctx_t *ctx) {
 		return -EINVAL;
 	}
 	
-	if (!(obj = reiser4_semantic_open(fs->tree, path, NULL, 1, 1))) {
+	if (!(obj = reiser4_semantic_open(fs->tree, path, NULL, 1))) {
                 aal_error("Can't open dir %s.", path);
                 return -EINVAL;
         }
@@ -323,7 +323,7 @@ errno_t reg_test(busy_ctx_t *ctx) {
 //	misc_param_override("hash=deg_hash");
 //	misc_param_override("policy=tails");
 
-	if (!(dir = reiser4_semantic_open(fs->tree, path, NULL, 1, 1))) {
+	if (!(dir = reiser4_semantic_open(fs->tree, path, NULL, 1))) {
                 aal_error("Can't open dir %s.", path);
                 return -EINVAL;
         }

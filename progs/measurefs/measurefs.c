@@ -523,7 +523,7 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs, char *filename, uint32_t gauge) {
 	file_frag_hint_t frag_hint;
 
 	/* Opens object by its name */
-	if (!(object = reiser4_semantic_open(fs->tree, filename, NULL, 0, 1)))
+	if (!(object = reiser4_semantic_open(fs->tree, filename, NULL, 0)))
 		return -EINVAL;
 
 	/* Initializing serve structures */
