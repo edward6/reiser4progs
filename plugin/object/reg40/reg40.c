@@ -100,11 +100,8 @@ static int32_t reg40_read(object_entity_t *entity,
 	size = reg40_size(entity);
 	offset = reg40_offset(entity);
 
-	if (offset > size)
-		return -EINVAL;
-	
-	/* The file has not data or nothing can be read */
-	if (offset == size)
+	/* The file has not data or there is nothing to read more */
+	if (offset >= size)
 		return 0;
 
 	if (n > size - offset)
@@ -124,12 +121,18 @@ static int32_t reg40_read(object_entity_t *entity,
 				    get_offset, &reg->body.key);
 
 		/* Calling body item's read() method */
-		chunk = plug_call(reg->body.plug->o.item_ops, read,
-				  &reg->body, buff, offset, chunk);
+		if (!(chunk = plug_call(reg->body.plug->o.item_ops, read,
+					&reg->body, buff, offset, chunk)))
+		{
+			return chunk;
+		}
 
 		/* Updating offset */
 		reg40_seek(entity, reg40_offset(entity) + chunk);
-		buff += chunk; read += chunk;
+
+		/* Updating local counter and @buff */
+		buff += chunk;
+		read += chunk;
 	}
 
 	return read;
@@ -774,7 +777,6 @@ extern errno_t reg40_check_struct(object_entity_t *object,
 				  place_func_t place_func,
 				  region_func_t region_func,
 				  void *data, uint8_t mode);
-
 #endif
 
 static reiser4_object_ops_t reg40_ops = {
