@@ -8,8 +8,8 @@
 #ifdef ENABLE_SYMLINKS_SUPPORT
 
 #ifndef ENABLE_STAND_ALONE
-#  include <time.h>
-#  include <unistd.h>
+#include <time.h>
+#include <unistd.h>
 #endif
 
 #include "sym40.h"
