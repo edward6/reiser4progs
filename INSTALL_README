@@ -2,9 +2,8 @@ In order to build the library, type the following command:
 
 ./install
 
-This will check if configure script is in place and then runs it with
-passed configure options. After configuring if finished, package will
-built and installed.
+This will check if configure script is in place and then runs it. 
+After configuring if finished, package will built and installed.
 
 Or if you want to have a full control on build process and/or specify
 some options, read CUSTOM_INSTALL_README please.
