@@ -406,7 +406,12 @@ reiser4_node_t *reiser4_tree_alloc(
 	reiser4_format_set_free(tree->fs->format, free - 1);
 
 	blocksize = reiser4_master_blksize(tree->fs->master);
-	pid = reiser4_profile_value(tree->fs->profile, "node");
+//	pid = reiser4_profile_value(tree->fs->profile, "node");
+
+	if (tree->fs->key == LARGE)
+		pid = NODE_LARGE_ID;
+	else
+		pid = NODE_SHORT_ID;
     
 	/* Creating new node */
 	if (!(node = reiser4_node_init(tree->fs->device, blocksize,

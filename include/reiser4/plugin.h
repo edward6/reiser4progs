@@ -1388,7 +1388,7 @@ struct reiser4_core {
 
 /* Makes check is needed method implemengted */
 #define plugin_call(ops, method, ...) ({                         \
-        aal_assert("Method \""#method"\" isn't implemented in"   \
+        aal_assert("Method \""#method"\" isn't implemented in "  \
                    ""#ops".", ops->method != NULL);              \
         ops->method(__VA_ARGS__);			         \
 })
