@@ -104,32 +104,9 @@ static errno_t tree_next(
 	place_t *place,             /* place of node */
 	place_t *next)	            /* next item will be stored here */
 {
-	reiser4_tree_t *t;
-	reiser4_place_t *p;
-    
-	aal_assert("umka-867", tree != NULL);
-	aal_assert("umka-868", place != NULL);
-	aal_assert("umka-1491", next != NULL);
-
-	t = (reiser4_tree_t *)tree;
-	p = (reiser4_place_t *)place;
-
-	if (p->pos.item >= reiser4_node_items(p->node) - 1) {
-		reiser4_tree_neigh(t, p->node, D_RIGHT);
-
-		if (!p->node->right) {
-			aal_memset(next, 0, sizeof(*next));
-			return 0;
-		}
-
-		reiser4_place_assign((reiser4_place_t *)next,
-				     p->node->right, 0, 0);
-	} else {
-		reiser4_place_assign((reiser4_place_t *)next,
-				     p->node, p->pos.item + 1, 0);
-	}
-
-	return reiser4_place_fetch((reiser4_place_t *)next);
+	return reiser4_tree_next((reiser4_tree_t *)tree, 
+				 (reiser4_place_t *)place,
+				 (reiser4_place_t *)next);
 }
 
 #ifndef ENABLE_STAND_ALONE

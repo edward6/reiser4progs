@@ -354,6 +354,32 @@ static reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 	return place.node;
 }
 
+errno_t reiser4_tree_next(reiser4_tree_t *tree, 
+			  reiser4_place_t *place, 
+			  reiser4_place_t *next)
+{
+	aal_assert("umka-867", tree != NULL);
+	aal_assert("umka-868", place != NULL);
+	aal_assert("umka-1491", next != NULL);
+
+	if (place->pos.item >= reiser4_node_items(place->node) - 1) {
+		reiser4_tree_neigh(tree, place->node, D_RIGHT);
+
+		if (!place->node->right) {
+			aal_memset(next, 0, sizeof(*next));
+			return 0;
+		}
+
+		reiser4_place_assign((reiser4_place_t *)next,
+				     place->node->right, 0, 0);
+	} else {
+		reiser4_place_assign((reiser4_place_t *)next,
+				     place->node, place->pos.item + 1, 0);
+	}
+
+	return reiser4_place_fetch((reiser4_place_t *)next);
+}
+
 /* Gets left or right neighbour nodes */
 reiser4_node_t *reiser4_tree_neigh(reiser4_tree_t *tree,
 				   reiser4_node_t *node,
@@ -560,6 +586,12 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 	/* Flushing tree cache */
 	reiser4_tree_sync(tree);
 #endif
+	reiser4_tree_close(tree);
+}
+
+/* Closes specified tree (frees all assosiated memory) */
+void reiser4_tree_close(reiser4_tree_t *tree) {
+	aal_assert("vpf-1316", tree != NULL);
 
 	reiser4_tree_collapse(tree);
 	tree->fs->tree = NULL;
@@ -2036,9 +2068,8 @@ static int32_t reiser4_tree_mod(
 	/* Needed space to be prepared in tree */
 	needed = hint->len + hint->ohd;
 
-	if ((mode = (place->pos.unit == MAX_UINT32))) {
+	if ((mode = (place->pos.unit == MAX_UINT32)))
 		needed += reiser4_node_overhead(place->node);
-	}
 
 	/* Making space in target node */
 	if ((res = reiser4_tree_expand(tree, place, needed, MSF_DEF))) {
@@ -2052,11 +2083,8 @@ static int32_t reiser4_tree_mod(
 	   in order to get right space for @hint. That is because, estimated
 	   value depends on insert point. */
 	if (mode != (place->pos.unit == MAX_UINT32)) {
-		if ((res = reiser4_tree_estimate(tree, place,
-						 hint, insert)))
-		{
+		if ((res = reiser4_tree_estimate(tree, place, hint, insert)))
 			return res;
-		}
 	}
 
 	/* Inserting/writing data to node */

@@ -33,8 +33,6 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 		return RE_FATAL;
 	}
 	
-	if (!start) return 0;
-	
 	res = aux_bitmap_test_region(ts->bm_met, start, count, 0);
 	
 	/* Pointed region is used already. */
@@ -209,7 +207,9 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 	}
 	
 	repair_twig_scan_update(ts);
-	reiser4_fs_sync(ts->repair->fs);
+
+	if (ts->repair->mode != RM_CHECK)
+		reiser4_fs_sync(ts->repair->fs);
 	
 	return 0;
 	
@@ -220,4 +220,3 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 
 	return -EINVAL;
 }
-

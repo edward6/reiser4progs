@@ -35,12 +35,14 @@ typedef enum repair_error {
 #define repair_error_exists(result)  (result)
 #define repair_error_fatal(result)   ((result >= RE_FATAL) || (result < 0))
 
-#define repair_error_check(result, mode)		\
-({							\
-	aal_assert("vpf-786", (mode != RM_FIX) ||	\
-			      !(res & RE_FIXABLE));	\
-	aal_assert("vpf-787", (mode != RM_BUILD) ||	\
-			      !(res & RE_FIXABLE));	\
+#define repair_error_check(res, mode)				\
+({								\
+	if (res > 0) {						\
+		aal_assert("vpf-786", (mode != RM_FIX) ||	\
+				      !(res & RE_FIXABLE));	\
+		aal_assert("vpf-787", (mode != RM_BUILD) ||	\
+				      !(res & RE_FIXABLE));	\
+	}							\
 })
 
 #define LOST_PREFIX "lost_name_"

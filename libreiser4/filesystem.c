@@ -168,6 +168,10 @@ errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 	if ((res = reiser4_format_layout(fs->format, region_func, data)))
 		return res;
 
+	/* Enumerating master area */
+	if ((res = reiser4_master_layout(fs->master, region_func, data)))
+		return res;
+
 	/* Enumerating journal area */
 	if (fs->journal) {
 		if ((res = reiser4_journal_layout(fs->journal,

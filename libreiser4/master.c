@@ -111,6 +111,19 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	return 0;
 }
 
+errno_t reiser4_master_layout(reiser4_master_t *master, 
+			      region_func_t region_func,
+			      void *data)
+{
+	uint32_t blk;
+	
+	aal_assert("vpf-1317", master != NULL);
+	aal_assert("vpf-1317", region_func != NULL);
+	
+	blk = REISER4_MASTER_OFFSET / master->device->blksize;
+	return region_func(master, blk, 1, data);
+}
+
 /* Callback function for comparing plugins */
 static errno_t callback_guess_format(
 	reiser4_plug_t *plug,        /* plugin to be checked */

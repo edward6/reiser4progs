@@ -768,7 +768,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting place new entry will be inserted at */
-	switch (dir40_search(entity, entry->name, CONV, &temp)) {
+	switch (dir40_search(entity, entry->name, EXACT, &temp)) {
 	case ABSENT:
 		if ((res = obj40_fetch(&dir->obj, &temp.place)))
 			return res;

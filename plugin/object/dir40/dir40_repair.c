@@ -98,8 +98,9 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	if ((res = dir40_reset((object_entity_t *)dir)))
 		return res;
 	
-	switch (obj40_lookup(&dir->obj, &dir->offset,
-			     LEAF_LEVEL, CONV, &dir->body)) {
+	switch (obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL, 
+			     EXACT, &dir->body)) 
+	{
 	case PRESENT:
 		return 0;
 	case FAILED:

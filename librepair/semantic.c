@@ -838,7 +838,9 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	}
  error:
 	repair_semantic_update(sem);	
-	reiser4_fs_sync(sem->repair->fs);
+	
+	if (sem->repair->mode != RM_CHECK)
+		reiser4_fs_sync(sem->repair->fs);
 	
 	return res < 0 ? res : 0;
 }

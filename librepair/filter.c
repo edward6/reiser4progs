@@ -556,6 +556,8 @@ errno_t repair_filter(repair_filter_t *fd) {
 	res = repair_filter_traverse(fd);
 	
 	repair_filter_update(fd);
-	reiser4_fs_sync(fd->repair->fs);
+	if (fd->repair->mode != RM_CHECK)
+		reiser4_fs_sync(fd->repair->fs);
+	
 	return res;
 }

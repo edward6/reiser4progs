@@ -10,13 +10,11 @@
 bool_t repair_tree_legal_level(reiser4_item_group_t group,
 			       uint8_t level)
 {
-	if (group == NODEPTR_ITEM) {
-		if (level == LEAF_LEVEL)
-			return FALSE;
-	} else if (group == EXTENT_ITEM) {
-		if (level != TWIG_LEVEL)
-			return FALSE;
-	} 
+	if (group == NODEPTR_ITEM)
+		return level != LEAF_LEVEL;
+	
+	if (group == EXTENT_ITEM)
+		return level == TWIG_LEVEL;
 	
 	return level == LEAF_LEVEL;
 }
@@ -271,7 +269,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	
 	/* Key should not exist in the tree yet. */
 	lookup = reiser4_tree_lookup(tree, &hint.key,
-				     LEAF_LEVEL, CONV, &place);
+				     LEAF_LEVEL, EXACT, &place);
 
 	if (lookup != ABSENT)
 		return lookup == FAILED ? -EINVAL : -ESTRUCT;
@@ -494,7 +492,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
    if needed. Does not insert branches. */
 errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	reiser4_key_t skey_max, dkey, key;
-	reiser4_place_t dst;
+	reiser4_place_t dst, prev;
 	bool_t whole = TRUE;
 	uint32_t scount;
 	errno_t res;
@@ -516,7 +514,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	
 	while (1) {
 		switch (reiser4_tree_lookup(tree, &key, LEAF_LEVEL,
-					    CONV, &dst))
+					    EXACT, &dst))
 		{
 		case PRESENT:
 			/* Whole data can not be inserted */
@@ -527,28 +525,37 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 			   mergable from the right side--lookup would go 
 			   down there in that case. */
 			
-			if (reiser4_place_right(&dst)) {
+			if (reiser4_place_right(&dst))
 				/* Step to right. */
 				reiser4_place_inc(&dst, 0);
-				break;
-			}
 			
-			if (reiser4_place_rightmost(&dst))
-				break;
-			
+			if (reiser4_place_rightmost(&dst)) {
+				prev = dst;
+				
+				if ((res = reiser4_tree_next(tree, &dst, 
+							     &dst)))
+					return res;
+
+				if (!dst.node) {
+					dst = prev;
+					break;
+				}
+			} else 
+				aal_memset(&prev, 0, sizeof(prev));
+
 			/* Get the current key of the @dst. */
 			if ((res = reiser4_place_fetch(&dst)))
 				return res;
-			
+
 			if ((res = reiser4_item_key(&dst, &dkey)))
 				return res;
-			
-			res = reiser4_key_compare(&skey_max, &dkey);
-			
-			/* If @src maxkey is not less than the lookuped,
-			   items are overlapped. */
-			if (res >= 0)
+
+			/* If @src maxkey is not less than the lookuped, items 
+			   are overlapped. Othewise move to the previous pos. */
+			if ((res = reiser4_key_compare(&skey_max, &dkey)) >= 0)
 				whole = FALSE;
+			else if (prev.node)
+				dst = prev;
 			
 			break;
 		case FAILED:
@@ -621,8 +628,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 			break;
 		
 		/* Lookup by end_key. */
-		res = src->plug->o.item_ops->lookup((place_t *)src,
-						    &key, CONV);
+		if (src->plug->o.item_ops->lookup((place_t *)src, &key, 
+						  EXACT) == FAILED)
+			return -EINVAL;
 		
 		if (src->pos.unit >= scount)
 			break;

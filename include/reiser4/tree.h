@@ -9,6 +9,7 @@
 #include <reiser4/types.h>
 
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
+extern void reiser4_tree_close(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 				 reiser4_node_t *node,
@@ -32,6 +33,10 @@ extern errno_t reiser4_tree_disconnect(reiser4_tree_t *tree,
 extern reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 					  reiser4_place_t *place);
 
+extern errno_t reiser4_tree_next(reiser4_tree_t *tree, 
+				 reiser4_place_t *place, 
+				 reiser4_place_t *next);
+
 extern reiser4_node_t *reiser4_tree_neigh(reiser4_tree_t *tree,
 					  reiser4_node_t *node,
 					  aal_direction_t where);
@@ -47,7 +52,6 @@ extern errno_t reiser4_tree_lroot(reiser4_tree_t *tree);
 
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
-
 extern errno_t reiser4_tree_growup(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_dryout(reiser4_tree_t *tree);
 

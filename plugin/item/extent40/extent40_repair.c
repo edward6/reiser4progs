@@ -21,8 +21,8 @@ extern lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 errno_t extent40_check_layout(place_t *place, region_func_t func, 
 			      void *data, uint8_t mode) 
 {
-	uint32_t i, units;
 	extent40_t *extent;
+	uint32_t i, units;
 	errno_t result = 0;
 	
 	aal_assert("vpf-724", place != NULL);
@@ -38,7 +38,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 		start = et40_get_start(extent);
 		width = et40_get_width(extent);
 		
-		if (!start) continue;
+		if (!start || start == UNALLOC_UNIT) continue;
 
 		if ((res = func(place, start, width, data)) < 0)
 			return res;
@@ -63,8 +63,39 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 }
 
 errno_t extent40_check_struct(place_t *place, uint8_t mode) {
+	extent40_t *extent;
+	uint32_t i, units;
+	errno_t res = 0;
+	
 	aal_assert("vpf-750", place != NULL);
-	return place->len % sizeof(extent40_t) ? RE_FATAL : 0;
+	
+	if (place->len % sizeof(extent40_t)) 
+		return RE_FATAL;
+	
+	extent = extent40_body(place);
+	units = extent40_units(place);
+	
+	for (i = 0; i < units; i++, extent++) {
+		uint64_t start;
+
+		if (!(start = et40_get_start(extent)))
+			continue;
+		
+		if (start != UNALLOC_UNIT)
+			continue;
+
+		aal_exception_error("Node (%llu), unit (%u): unallocated "
+				    "unit is found.%s", place->block->nr,
+				    i, mode == RM_CHECK ? "" : "Zeroed.");
+
+		if (mode != RM_CHECK) {
+			et40_set_start(extent, 0);
+			place_mkdirty(place);
+		} else 
+			res |= RE_FIXABLE;
+	}
+	
+	return res;
 }
 
 errno_t extent40_merge(place_t *dst, place_t *src, 

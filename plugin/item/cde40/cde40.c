@@ -955,17 +955,10 @@ lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
 	aal_assert("umka-609", place != NULL);
 	aal_assert("umka-717", key->plug != NULL);
     
-	/* Comparing looked key with minimal one (that is with item key) */
-	if (plug_call(key->plug->o.key_ops, compfull, &place->key, key) > 0) {
-		place->pos.unit = 0;
-		return ABSENT;
-	}
-
-	/* Performing binary search inside the cde in order to find position of
-	   the looked key. */
-	switch (aux_bin_search(place->body, cde40_units(place),
-			       key, callback_comp_entry, place,
-			       &place->pos.unit))
+	/* Bin search within the cde item to get the position of 
+	   the wanted key. */
+	switch (aux_bin_search(place->body, cde40_units(place), key, 
+			       callback_comp_entry, place, &place->pos.unit))
 	{
 	case 1:
 #ifdef ENABLE_COLLISIONS
@@ -991,7 +984,7 @@ lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
 #endif
 		return PRESENT;
 	case 0:
-		return ABSENT;
+		return (mode == CONV ? PRESENT : ABSENT);
 	default:
 		return FAILED;
 	}
