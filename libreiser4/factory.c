@@ -19,8 +19,8 @@
 #include <reiser4/reiser4.h>
 
 /* This list contain all known libreiser4 plugins */
-static int last = 0;
 aal_list_t *plugins;
+unsigned int registered = 0;
 
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 
@@ -325,7 +325,7 @@ errno_t libreiser4_factory_init(void) {
 #endif
                                                                                                 
         aal_assert("umka-159", plugins == NULL);
-                                                                                                
+                                                                                            
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
         if (!(dir = opendir(PLUGIN_DIR))) {
                 aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
@@ -374,6 +374,7 @@ errno_t libreiser4_factory_init(void) {
 
 		if (!builtin->init)
 			break;
+		
 #ifndef ENABLE_STAND_ALONE		
 		if (libreiser4_factory_load(builtin->init, builtin->fini))
                         continue;
@@ -414,6 +415,7 @@ void libreiser4_factory_fini(void) {
 		walk = temp;
 	}
 	
+	registered = 0;
 	plugins = NULL;
 }
 
@@ -520,16 +522,16 @@ errno_t libreiser4_factory_foreach(
 /* This function registers builtin plugin entry points */
 void register_builtin(plugin_init_t init, plugin_fini_t fini) {
 
-	if (last >= MAX_BUILTINS)
-		last = 0;
+	if (registered >= MAX_BUILTINS)
+		registered = 0;
 		
-	__builtins[last].init = init;
+	__builtins[registered].init = init;
 	
 #ifndef ENABLE_STAND_ALONE
-	__builtins[last].fini = fini;
+	__builtins[registered].fini = fini;
 #endif
 
-	last++;
+	registered++;
 }
 
 register_builtin_t __register_builtin = register_builtin;

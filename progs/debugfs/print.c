@@ -13,6 +13,7 @@
 #  include <uuid/uuid.h>
 #endif
 
+#include <stdio.h>
 #include "debugfs.h"
 
 /* Callback function used in traverse for opening the node */
@@ -80,27 +81,27 @@ errno_t debugfs_print_block(
 	
 	/* Check if @blk is a filesystem block at all */
 	if (!reiser4_alloc_occupied(fs->alloc, blk, 1))
-		aal_exception_info("Block %llu is not used.", blk);
+		fprintf(stdout, "Block %llu is not used.", blk);
 	else
-		aal_exception_info("Block %llu is used.", blk);
+		fprintf(stdout, "Block %llu is used.", blk);
 
 	/* Determining what is the object block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {
 	case O_SKIPPED:
-		aal_exception_info("Block %llu belongs to skipped area "
-				   "in the begin of partition.", blk);
+		fprintf(stdout, "Block %llu belongs to skipped area "
+			"in the begin of partition.", blk);
 		return 0;
 	case O_FORMAT:
-		aal_exception_info("Block %llu belongs to format "
-				   "metadata.", blk);
+		fprintf(stdout, "Block %llu belongs to format "
+			"metadata.", blk);
 		return 0;
 	case O_JOURNAL:
-		aal_exception_info("Block %llu belongs to journal "
-				   "metadata.", blk);
+		fprintf(stdout, "Block %llu belongs to journal "
+			"metadata.", blk);
 		return 0;
 	case O_ALLOC:
-		aal_exception_info("Block %llu belongs to block "
-				   "allocator metadata.", blk);
+		fprintf(stdout, "Block %llu belongs to block "
+			"allocator metadata.", blk);
 		return 0;
 	default:
 		break;
@@ -114,8 +115,8 @@ errno_t debugfs_print_block(
 	  using print_process_node listed abowe.
 	*/
 	if (!(node = reiser4_node_open(device, blocksize, blk))) {
-		aal_exception_info("Block %llu is not a formatted "
-				   "one.", blk);
+		fprintf(stdout, "Block %llu is not a formatted "
+			"one.", blk);
 		return 0;
 	}
 	
