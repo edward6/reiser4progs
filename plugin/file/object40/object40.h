@@ -26,7 +26,7 @@ struct object40 {
 	key_entity_t key;
 
 	/* Stat data coord stored here */
-	reiser4_place_t statdata;
+	place_t statdata;
 
 	/* Core operations pointer */
 	reiser4_core_t *core;
@@ -54,8 +54,8 @@ extern errno_t object40_set_size(object40_t *file, uint64_t size);
 extern errno_t object40_get_sym(object40_t *file, char *data);
 extern errno_t object40_set_sym(object40_t *file, char *data);
 
-extern errno_t object40_lock(object40_t *file, reiser4_place_t *place);
-extern errno_t object40_unlock(object40_t *file, reiser4_place_t *place);
+extern errno_t object40_lock(object40_t *file, place_t *place);
+extern errno_t object40_unlock(object40_t *file, place_t *place);
 
 extern errno_t object40_init(object40_t *file, reiser4_plugin_t *plugin,
 			     key_entity_t *key, reiser4_core_t *core,
@@ -64,9 +64,9 @@ extern errno_t object40_init(object40_t *file, reiser4_plugin_t *plugin,
 extern errno_t object40_fini(object40_t *file);
 
 extern errno_t object40_lookup(object40_t *file, key_entity_t *key,
-			       uint8_t stop, reiser4_place_t *place);
+			       uint8_t stop, place_t *place);
 
 extern errno_t object40_insert(object40_t *file, reiser4_item_hint_t *hint,
-			       uint8_t stop, reiser4_place_t *place);
+			       uint8_t stop, place_t *place);
 
 #endif

@@ -734,7 +734,7 @@ static errno_t extent40_shift(item_entity_t *src_item,
 static reiser4_plugin_t extent40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = ITEM_EXTENT40_ID,
 			.group = EXTENT_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

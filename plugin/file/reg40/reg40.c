@@ -70,8 +70,8 @@ static errno_t reg40_reset(object_entity_t *entity) {
 /* Updates body coord in correspond to file offset */
 static errno_t reg40_next(reg40_t *reg) {
 	errno_t res;
+	place_t place;
 	key_entity_t key;
-	reiser4_place_t place;
 
 	/* Building key to be searched by current offset */
 	key.plugin = reg->file.key.plugin;
@@ -165,7 +165,7 @@ static int32_t reg40_read(object_entity_t *entity,
 
 /* Opening reg40 by statdata coord passed in @place */
 static object_entity_t *reg40_open(void *tree, 
-				   reiser4_place_t *place) 
+				   place_t *place) 
 {
 	reg40_t *reg;
 	key_entity_t *key;
@@ -207,7 +207,7 @@ static object_entity_t *reg40_create(void *tree,
 				     reiser4_file_hint_t *hint) 
 {
 	reg40_t *reg;
-	reiser4_place_t place;
+	place_t place;
 	
 	roid_t parent_locality;
 	roid_t objectid, locality;
@@ -458,7 +458,7 @@ static errno_t reg40_seek(object_entity_t *entity,
 static reiser4_plugin_t reg40_plugin = {
 	.file_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = FILE_REGULAR40_ID,
 			.group = REGULAR_FILE,
 			.type = FILE_PLUGIN_TYPE,

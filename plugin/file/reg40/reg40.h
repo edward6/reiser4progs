@@ -20,7 +20,7 @@ struct reg40 {
 	object40_t file;
 
 	/* Current body item coord stored here */
-	reiser4_place_t body;
+	place_t body;
 
 	/* Current position in the directory */
 	uint64_t offset;

@@ -14,7 +14,7 @@
 
 #include <repair/repair.h>
 
-extern uint32_t repair_item_split(reiser4_coord_t *coord, 
+extern uint32_t repair_item_split(reiser4_place_t *place, 
     reiser4_key_t *rd_key);
 
 #endif

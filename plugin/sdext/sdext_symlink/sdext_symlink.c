@@ -62,7 +62,7 @@ static errno_t sdext_symlink_print(rbody_t *body, aal_stream_t *stream,
 static reiser4_plugin_t sdext_symlink_plugin = {
 	.sdext_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = SDEXT_SYMLINK_ID,
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,

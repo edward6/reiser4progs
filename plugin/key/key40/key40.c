@@ -388,7 +388,7 @@ errno_t key40_print(key_entity_t *key,
 static reiser4_plugin_t key40_plugin = {
 	.key_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = KEY_REISER40_ID,
 			.group = 0,
 			.type = KEY_PLUGIN_TYPE,

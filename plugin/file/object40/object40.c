@@ -35,7 +35,7 @@ roid_t object40_locality(object40_t *file) {
 }
 
 /* Locks the node an item belong to file lies in */
-errno_t object40_lock(object40_t *file, reiser4_place_t *place) {
+errno_t object40_lock(object40_t *file, place_t *place) {
 	
 	if (place->node)
 		return file->core->tree_ops.lock(file->tree, place);
@@ -44,7 +44,7 @@ errno_t object40_lock(object40_t *file, reiser4_place_t *place) {
 }
 
 /* Unlocks the node an item belong to file lies in */
-errno_t object40_unlock(object40_t *file, reiser4_place_t *place) {
+errno_t object40_unlock(object40_t *file, place_t *place) {
 	
 	if (place->node)
 		return file->core->tree_ops.unlock(file->tree, place);
@@ -278,7 +278,7 @@ errno_t object40_stat(object40_t *file) {
 
 /* Performs lookup and returns result to caller */
 errno_t object40_lookup(object40_t *file, key_entity_t *key,
-			uint8_t stop, reiser4_place_t *place)
+			uint8_t stop, place_t *place)
 {
 	return file->core->tree_ops.lookup(file->tree, key,
 					   stop, place);
@@ -289,7 +289,7 @@ errno_t object40_lookup(object40_t *file, key_entity_t *key,
   contains the coord of the inserted item.
 */
 errno_t object40_insert(object40_t *file, reiser4_item_hint_t *hint,
-			uint8_t stop, reiser4_place_t *place)
+			uint8_t stop, place_t *place)
 {
 	roid_t objectid = object40_objectid(file);
 

@@ -136,7 +136,7 @@ error:
 
 errno_t repair_disk_scan_pass(repair_data_t *rd) {
     reiser4_node_t *node;
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     rpos_t *pos = &coord.pos;
     repair_ds_t *ds;
     blk_t blk = 0;
@@ -190,7 +190,7 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 	    count = reiser4_node_items(node);
 	    
 	    for (pos->item = 0; pos->item < count; pos->item++) {
-		if (reiser4_coord_realize(&coord)) {
+		if (reiser4_place_realize(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u): failed to open"
 			" the item.", node->blk, pos->item);
 		    goto error_node_release;

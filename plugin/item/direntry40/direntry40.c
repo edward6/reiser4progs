@@ -1184,7 +1184,7 @@ static int direntry40_lookup(item_entity_t *item,
 static reiser4_plugin_t direntry40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = ITEM_CDE40_ID,
 			.group = DIRENTRY_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

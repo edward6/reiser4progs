@@ -14,7 +14,7 @@
 
 #include <repair/repair.h>
 
-extern void repair_coord_left_pos_save(reiser4_coord_t *coord, 
+extern void repair_coord_left_pos_save(reiser4_place_t *place, 
     rpos_t *pos);
 
 #endif

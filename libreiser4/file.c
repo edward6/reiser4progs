@@ -17,7 +17,7 @@ static reiser4_plugin_t *reiser4_file_plugin(reiser4_file_t *file) {
 	item_entity_t *item;
 
 	/* Getting file plugin */
-	item = &file->coord.item;
+	item = &file->place.item;
 		
 	if (!item->plugin->item_ops.belongs) {
 		aal_exception_error("Method \"belongs\" is not "
@@ -36,23 +36,23 @@ static errno_t reiser4_file_stat(reiser4_file_t *file) {
 
 	/* Performing lookup for statdata of current directory */
 	if (reiser4_tree_lookup(file->fs->tree, &file->key, 
-				LEAF_LEVEL, &file->coord) != PRESENT) 
+				LEAF_LEVEL, &file->place) != PRESENT) 
 	{
 		/* Stat adta is not found. getting us out */
 		return -1;
 	}
 
-	/* Initializing item at @file->coord */
-	if (reiser4_coord_realize(&file->coord))
+	/* Initializing item at @file->place */
+	if (reiser4_place_realize(&file->place))
 		return -1;
 
-	return reiser4_item_get_key(&file->coord, &file->key);
+	return reiser4_item_get_key(&file->place, &file->key);
 }
 
 /* Callback function for finding statdata of the current directory */
 static errno_t callback_find_statdata(char *track, char *entry, void *data) {
+	place_t *place;
 	reiser4_file_t *file;
-	reiser4_place_t *place;
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 
@@ -75,7 +75,7 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 	if (plugin->file_ops.follow) {
 
 		/* Opening file */
-		place = (reiser4_place_t *)&file->coord;
+		place = (place_t *)&file->place;
 		
 		if (!(entity = plugin_call(plugin->file_ops, open, 
 					   file->fs->tree, place)))
@@ -102,8 +102,8 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 
 /* Callback function for finding passed @entry inside the current directory */
 static errno_t callback_find_entry(char *track, char *entry, void *data) {
+	place_t *place;
 	reiser4_file_t *file;
-	reiser4_place_t *place;
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 	
@@ -117,7 +117,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	}
 
 	/* Opening currect diretory */
-	place = (reiser4_place_t *)&file->coord;
+	place = (place_t *)&file->place;
 		
 	if (!(entity = plugin_call(plugin->file_ops, open, 
 				   file->fs->tree, place)))
@@ -170,29 +170,29 @@ static errno_t reiser4_file_lookup(
 	return reiser4_file_stat(file);
 }
 
-/* This function opens file by its @coord */
+/* This function opens file by its @place */
 reiser4_file_t *reiser4_file_begin(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
-	reiser4_coord_t *coord)		/* statdata key of file to be opened */
+	reiser4_place_t *place)		/* statdata key of file to be opened */
 {
+	place_t *p;
 	reiser4_file_t *file;
-	reiser4_place_t *place;
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1508", fs != NULL);
-	aal_assert("umka-1509", coord != NULL);
+	aal_assert("umka-1509", place != NULL);
 
 	if (!(file = aal_calloc(sizeof(*file), 0)))
 		return NULL;
     
 	file->fs = fs;
 	
-	aal_memcpy(&file->coord, coord, sizeof(*coord));
+	aal_memcpy(&file->place, place, sizeof(*place));
 	
-	if (reiser4_item_get_key(&file->coord, &file->key)) {
+	if (reiser4_item_get_key(&file->place, &file->key)) {
 		aal_exception_error("Node (%llu), item (%u), unit(%u): Can't "
-				    "get item key.", coord->node->blk, 
-				    coord->pos.item, coord->pos.unit);
+				    "get item key.", place->node->blk, 
+				    place->pos.item, place->pos.unit);
 		goto error_free_file;
 	}
 
@@ -206,10 +206,10 @@ reiser4_file_t *reiser4_file_begin(
 		goto error_free_file;
 	}
 
-	place = (reiser4_place_t *)&file->coord;
+	p = (place_t *)&file->place;
 		
 	if (!(file->entity = plugin_call(plugin->file_ops, open,
-					 fs->tree, place)))
+					 fs->tree, p)))
 	{
 		aal_exception_error("Can't open %s.", file->name);
 		goto error_free_file;
@@ -227,8 +227,8 @@ reiser4_file_t *reiser4_file_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
 	char *name)		        /* name of file to be opened */
 {
+	place_t *place;
 	reiser4_file_t *file;
-	reiser4_place_t *place;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-678", fs != NULL);
@@ -263,7 +263,7 @@ reiser4_file_t *reiser4_file_open(
 		goto error_free_file;
 	}
     
-	place = (reiser4_place_t *)&file->coord;
+	place = (place_t *)&file->place;
 	
 	if (!(file->entity = plugin_call(plugin->file_ops,
 					 open, fs->tree, place)))
@@ -423,15 +423,15 @@ reiser4_file_t *reiser4_file_create(
 
 static errno_t callback_process_place(
 	object_entity_t *entity,   /* file to be inspected */
-	reiser4_place_t *place,    /* next file block */
+	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
+	reiser4_place_t *p = (reiser4_place_t *)place;
 	aal_stream_t *stream = (aal_stream_t *)data;
-	reiser4_coord_t *coord = (reiser4_coord_t *)place;
 	
-	if (reiser4_item_print(coord, stream)) {
+	if (reiser4_item_print(p, stream)) {
 		aal_exception_error("Can't print item %lu in node %llu.",
-				    coord->pos.item, coord->node->blk);
+				    p->pos.item, p->node->blk);
 		return -1;
 	}
 		

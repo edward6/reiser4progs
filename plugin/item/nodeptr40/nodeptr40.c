@@ -142,7 +142,7 @@ extern errno_t nodeptr40_layout_check(item_entity_t *item,
 static reiser4_plugin_t nodeptr40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = ITEM_NODEPTR40_ID,
 			.group = NODEPTR_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

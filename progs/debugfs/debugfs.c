@@ -106,7 +106,7 @@ static errno_t debugfs_print_buff(void *buff, uint64_t size) {
 }
 
 static errno_t debugfs_connect_handler(reiser4_tree_t *tree,
-				      reiser4_coord_t *coord,
+				      reiser4_place_t *place,
 				      reiser4_node_t *node,
 				      void *data)
 {
@@ -119,7 +119,7 @@ static errno_t debugfs_connect_handler(reiser4_tree_t *tree,
 }
 
 static errno_t debugfs_disconnect_handler(reiser4_tree_t *tree,
-					  reiser4_coord_t *coord,
+					  reiser4_place_t *place,
 					  reiser4_node_t *node,
 					  void *data)
 {
@@ -427,16 +427,16 @@ static errno_t tfrag_process_node(
 	/* Loop though the node items */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 		item_entity_t *item;
-		reiser4_coord_t coord;
+		reiser4_place_t place;
 
 		/* Initializing item at @coord */
-		if (reiser4_coord_open(&coord, node, &pos)) {
+		if (reiser4_place_open(&place, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
 			return -1;
 		}
 
-		item = &coord.item;
+		item = &place.item;
 		
 		/*
 		  Checking and calling item's layout method with function
@@ -463,14 +463,14 @@ static errno_t tfrag_process_node(
   code. That is baceuse that filed is counting as optional one and probably will
   be eliminated soon.
 */
-static errno_t tfrag_setup_node(reiser4_coord_t *coord, void *data) {
+static errno_t tfrag_setup_node(reiser4_place_t *place, void *data) {
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 
 	frag_hint->level--;
 	return 0;
 }
 
-static errno_t tfrag_update_node(reiser4_coord_t *coord, void *data) {
+static errno_t tfrag_update_node(reiser4_place_t *place, void *data) {
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 
 	frag_hint->level++;
@@ -617,15 +617,15 @@ static errno_t stat_process_node(
 
 		for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 			item_entity_t *item;
-			reiser4_coord_t coord;
+			reiser4_place_t place;
 			
-			if (reiser4_coord_open(&coord, node, &pos)) {
+			if (reiser4_place_open(&place, node, &pos)) {
 				aal_exception_error("Can't open item %u in node %llu.", 
 						    pos.item, node->blk);
 				return -1;
 			}
 
-			item = &coord.item;
+			item = &place.item;
 			
 			if (!item->plugin->item_ops.layout)
 				continue;
@@ -826,10 +826,10 @@ static errno_t dfrag_process_node(
 	/* The loop though the all items in current node */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 		reiser4_file_t *file;
-		reiser4_coord_t coord;
+		reiser4_place_t place;
 
-		/* Initialiing the item at @coord */
-		if (reiser4_coord_open(&coord, node, &pos)) {
+		/* Initialiing the item at @place */
+		if (reiser4_place_open(&place, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
 			return -1;
@@ -840,11 +840,11 @@ static errno_t dfrag_process_node(
 		  circle of the loop, because we are intersted only in the stat
 		  data items.
 		*/
-		if (!reiser4_item_statdata(&coord))
+		if (!reiser4_item_statdata(&place))
 			continue;
 
-		/* Opening file by its stat data item denoded by @coord */
-		if (!(file = reiser4_file_begin(frag_hint->tree->fs, &coord)))
+		/* Opening file by its stat data item denoded by @place */
+		if (!(file = reiser4_file_begin(frag_hint->tree->fs, &place)))
 			continue;
 
 		/* Initializing per-file counters */
@@ -888,14 +888,14 @@ static errno_t dfrag_process_node(
 }
 
 /* Level keeping track for data fragmentation traversal */
-static errno_t dfrag_setup_node(reiser4_coord_t *coord, void *data) {
+static errno_t dfrag_setup_node(reiser4_place_t *place, void *data) {
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
     
 	frag_hint->level--;
 	return 0;
 }
 
-static errno_t dfrag_update_node(reiser4_coord_t *coord, void *data) {
+static errno_t dfrag_update_node(reiser4_place_t *place, void *data) {
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 
 	frag_hint->level++;
@@ -1019,21 +1019,21 @@ struct fprint_hint {
 
 typedef struct fprint_hint fprint_hint_t;
 
-/* Prints item at passed coord */
+/* Prints item at passed @place */
 static errno_t fprint_process_place(
 	object_entity_t *entity,   /* file to be inspected */
-	reiser4_place_t *place,    /* next file block */
+	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
 	fprint_hint_t *hint = (fprint_hint_t *)data;
-	reiser4_coord_t *coord = (reiser4_coord_t *)place;
+	reiser4_place_t *p = (reiser4_place_t *)place;
 
-	if (coord->node->blk == hint->old)
+	if (p->node->blk == hint->old)
 		return 0;
 
-	hint->old = coord->node->blk;
+	hint->old = p->node->blk;
 	
-	if (print_process_node(coord->node, NULL)) {
+	if (print_process_node(p->node, NULL)) {
 		aal_exception_error("Can't print node %llu.",
 				    hint->old);
 		return -1;

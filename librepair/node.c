@@ -29,9 +29,9 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
 
 
 
-static errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *key)
+static errno_t repair_node_child_max_real_key(reiser4_place_t *parent, reiser4_key_t *key)
 {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     errno_t res;
 
     aal_assert("vpf-614", parent != NULL);
@@ -52,7 +52,7 @@ static errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_k
 	coord.pos.item = reiser4_node_items(coord.node) - 1;
 	coord.pos.unit = ~0ul;
 	
-	if (reiser4_coord_realize(&coord)) {
+	if (reiser4_place_realize(&coord)) {
 	    aal_exception_error("Node (%llu): Failed to open the item (%u).",
 		coord.node->blk, coord.pos.item);
 	    goto error_child_close;
@@ -93,7 +93,7 @@ error_node_free:
 static errno_t repair_node_items_check(reiser4_node_t *node, 
     aux_bitmap_t *bm_used) 
 {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     rpos_t *pos = &coord.pos;
     uint32_t count;
     int32_t len;
@@ -111,7 +111,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	pos->unit = ~0ul;
 	
 	/* Open the item, checking its plugin id. */
-	if ((res = reiser4_coord_realize(&coord))) {
+	if ((res = reiser4_place_realize(&coord))) {
 	    if (res > 0) {
 		aal_exception_error("Node (%llu): Failed to open the item (%u)."
 		    " Removed.", node->blk, pos->item);
@@ -173,7 +173,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 static errno_t repair_node_ld_key_fetch(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     errno_t res;
 
     aal_assert("vpf-501", node != NULL);
@@ -181,7 +181,7 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
     aal_assert("vpf-407", ld_key->plugin != NULL);
 
     if (node->parent != NULL) {
-        if ((res = reiser4_coord_open(&coord, node->parent, &node->pos)))
+        if ((res = reiser4_place_open(&coord, node->parent, &node->pos)))
 	    return res;
 	
 	if (reiser4_item_get_key(&coord, ld_key))
@@ -195,7 +195,7 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     errno_t res;
     
     aal_assert("vpf-467", node != NULL);
@@ -205,14 +205,14 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     if (node->parent == NULL)
 	return 0;
 
-    if ((res = reiser4_coord_open(&coord, node->parent, &node->pos)))
+    if ((res = reiser4_place_open(&coord, node->parent, &node->pos)))
 	return res;
 
     return reiser4_item_set_key(&coord, ld_key);
 }
 
 errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     errno_t res;
     
     aal_assert("vpf-502", node != NULL);
@@ -226,7 +226,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	    return -1;
 	
 	/* Open coord in the parent at the correct position. */
-        if ((res = reiser4_coord_open(&coord, node->parent, &node->pos)))
+        if ((res = reiser4_place_open(&coord, node->parent, &node->pos)))
 	    return res;
 	
 	/* If this is the last position in the parent, call the method 
@@ -243,7 +243,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	    coord.pos.item++;
 	    coord.pos.unit = 0;
 	    
-	    if (reiser4_coord_realize(&coord))
+	    if (reiser4_place_realize(&coord))
 		return -1;
 
 	    if (reiser4_item_get_key(&coord, rd_key))
@@ -260,7 +260,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     supported? 
 */
 errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     reiser4_key_t key, d_key;
     rpos_t *pos = &coord.pos;
     int res;
@@ -289,7 +289,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
     coord.pos.unit = ~0ul;
     coord.node = node;
 
-    if (reiser4_coord_realize(&coord))
+    if (reiser4_place_realize(&coord))
 	return -1;
 
     if (reiser4_item_get_key(&coord, NULL)) {
@@ -331,7 +331,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 
     pos->item = reiser4_node_items(node) - 1;
  
-    if (reiser4_coord_realize(&coord)) {
+    if (reiser4_place_realize(&coord)) {
 	aal_exception_error("Node (%llu): Failed to open the item (%llu).",
 	    node->blk, pos->item);
 	return -1;
@@ -354,7 +354,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
 }
 
 static errno_t repair_node_keys_check(reiser4_node_t *node) {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     reiser4_key_t key, prev_key;
     rpos_t *pos = &coord.pos;
     uint32_t count;
@@ -366,7 +366,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
     count = reiser4_node_items(node);
     
     for (pos->item = 0; pos->item < count; pos->item++) {
-	if (reiser4_coord_realize(&coord))
+	if (reiser4_place_realize(&coord))
 	    return -1;
 	
 	if (reiser4_item_get_key(&coord, &key)) {
@@ -440,13 +440,13 @@ errno_t repair_node_check(reiser4_node_t *node, aux_bitmap_t *bm_used) {
 errno_t repair_node_traverse(reiser4_node_t *node, rpid_t object_hint, 
     traverse_item_func_t func, void *data) 
 {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     rpos_t *pos = &coord.pos;
     uint32_t items;
 
     pos->unit = ~0ul;
     for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
-	if (reiser4_coord_open(&coord, node, pos)) {
+	if (reiser4_place_open(&coord, node, pos)) {
 	    aal_exception_error("Node (%llu), item (%u): failed to open the "
 		"item by its coord.", node->blk, pos->item);
 	    return -1;

@@ -50,7 +50,7 @@ static int32_t sym40_read(object_entity_t *entity,
 }
 
 /* Opens symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_open(void *tree, reiser4_place_t *place) {
+static object_entity_t *sym40_open(void *tree, place_t *place) {
 	sym40_t *sym;
 	key_entity_t *key;
 
@@ -90,7 +90,7 @@ static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint) {
 	roid_t parent_locality;
 
 	sym40_t *sym;
-	reiser4_place_t place;
+	place_t place;
 	reiser4_plugin_t *stat_plugin;
     
 	reiser4_statdata_hint_t stat;
@@ -241,7 +241,7 @@ static errno_t callback_find_statdata(char *track,
 	key_entity_t *key;
 	item_entity_t *item;
 
-	reiser4_place_t *place;
+	place_t *place;
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 
@@ -309,8 +309,8 @@ static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
 	sym40_t *sym;
+	place_t *place;
 	item_entity_t *item;
-	reiser4_place_t *place;
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 	
@@ -414,7 +414,7 @@ static void sym40_close(object_entity_t *entity) {
 static reiser4_plugin_t sym40_plugin = {
 	.file_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = FILE_SYMLINK40_ID,
 			.group = SYMLINK_FILE,
 			.type = FILE_PLUGIN_TYPE,

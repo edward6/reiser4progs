@@ -50,7 +50,7 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
     return 0;
 }
 
-static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
+static errno_t callback_item_layout(reiser4_place_t *coord, void *data) {
     reiser4_node_t *node;
     int32_t len;
     int res;
@@ -257,7 +257,7 @@ static int comp_ovrl_index(const void *elem, const void *needle, void *data) {
 */
 
 /* Coord pints to a problem extent. Save it into ovrl_list for futher handling. */
-static errno_t repair_ts_ovrl_add(reiser4_coord_t *coord, repair_data_t *rd) {
+static errno_t repair_ts_ovrl_add(reiser4_place_t *coord, repair_data_t *rd) {
     repair_ovrl_t *ovrl;
     reiser4_node_t *node;
     aal_list_t *list;
@@ -367,9 +367,9 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
      /* Choose the coord with the largest conflicts value, remove it, 
      * recalculate conflicts. Continue it unless there is no any conflict. */
     while (max_conflict && max_conflict->conflicts) {
-	reiser4_coord_t coord;
+	reiser4_place_t coord;
 	
-	if (reiser4_coord_open(&coord, max_conflict->node, CT_JOINT, 
+	if (reiser4_place_open(&coord, max_conflict->node, CT_JOINT, 
 	    &max_conflict->pos)) 
 	{
 	    aal_exception_error("Can't open item by coord. Node %llu, item %u.",
@@ -430,7 +430,7 @@ static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list,
 	    region->extents = aal_list_remove(region->extents, oc);
 	    
 	    // FIXME-VITALY: close the node, sync it if needed. 
-	    reiser4_node_release(reiser4_coord_node(oc->coord));
+	    reiser4_node_release(reiser4_place_node(oc->coord));
 	    
 	    aal_free(oc->coord);
 	    aal_free(oc);

@@ -80,7 +80,7 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 
 /* Setup callback for traverse. Prepares essential information for a child of 
  * a node - level. */
-static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
+static errno_t repair_filter_setup_traverse(reiser4_place_t *coord, void *data) {
     repair_filter_t *fd;
     reiser4_ptr_hint_t ptr;
 
@@ -108,7 +108,7 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
  * callback and do some essential stuff after traversing through the child -
  * level, if REPAIR_BAD_PTR flag is set - deletes the child pointer and 
  * mark the pointed block as unused in bm_used bitmap. */
-static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
+static errno_t repair_filter_update_traverse(reiser4_place_t *coord, void *data) {
     rpos_t prev;
     repair_data_t *rd = (repair_data_t *)data;
     

@@ -25,7 +25,7 @@ extern "C" {
 #include "node.h"
 #include "key.h"
 #include "file.h"
-#include "coord.h"
+#include "place.h"
 #include "master.h"
 #include "item.h"
 #include "factory.h"

@@ -12,7 +12,7 @@
 static errno_t repair_tree_max_real_key(reiser4_node_t *node, 
     reiser4_key_t *key) 
 {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     reiser4_node_t *child;
     errno_t res;
 
@@ -23,7 +23,7 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
     coord.pos.item = reiser4_node_items(node) - 1;
     coord.pos.unit = ~0ul;
 
-    if (reiser4_coord_realize(&coord)) {
+    if (reiser4_place_realize(&coord)) {
 	aal_exception_error("Node (%llu): Failed to open the item (%u).",
 	    node->blk, coord.pos.item);
 	return -1;
@@ -53,7 +53,7 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
 }
 
 errno_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key, 
-    reiser4_coord_t *coord) 
+    reiser4_place_t *coord) 
 {
     uint32_t items;
     int lookup;
@@ -68,7 +68,7 @@ errno_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 
 	return lookup;
     } else if (lookup > 0) {
-	if (reiser4_coord_realize(coord))
+	if (reiser4_place_realize(coord))
 	    return -1;
 	
 	return lookup;
@@ -79,7 +79,7 @@ errno_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
     /* Position was not found - coord could point to a non existent position, 
      * move to the right item then. */
     if (coord->pos.item < items) {
-	if (reiser4_coord_realize(coord))
+	if (reiser4_place_realize(coord))
 	    return -1;
 
 	if (coord->pos.unit == reiser4_item_units(coord)) {
@@ -87,7 +87,7 @@ errno_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 	    coord->pos.unit = ~0ul;
 
 	    if (coord->pos.item < items) {
-		if (reiser4_coord_realize(coord))
+		if (reiser4_place_realize(coord))
 		    return -1;
 	    }
 	} 
@@ -99,7 +99,7 @@ errno_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 /* This function creates nodeptr item on the nase of 'node' and insert it to 
  * the tree. */
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     reiser4_item_hint_t hint;
     reiser4_ptr_hint_t ptr;
     reiser4_key_t rkey, key;
@@ -176,8 +176,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 }
 
 /* Insert the item with overwriting of existent in the tree items if needed. */
-errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
-    reiser4_coord_t coord;
+errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
+    reiser4_place_t coord;
     reiser4_key_t src_key, dst_key;
     errno_t res;
     uint32_t count;
@@ -278,7 +278,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
  * was not found. So start_key is not checked here.
  */
 /*
-static errno_t repair_tree_fits(reiser4_coord_t *coord,
+static errno_t repair_tree_fits(reiser4_place_t *coord,
     reiser4_key_t *start_key, reiser4_key_t *end_key)
 {
     reiser4_key_t key;
@@ -291,7 +291,7 @@ static errno_t repair_tree_fits(reiser4_coord_t *coord,
 	if (repair_node_rd_key(coord->node, &key))
 	    return -1;
     } else {
-	if (reiser4_coord_realize(coord)) {
+	if (reiser4_place_realize(coord)) {
 	    aal_exception_error("Node (%llu): failed to open the item on "
 		"the parent node.", coord->node->blk);
 	    return -1;
@@ -315,7 +315,7 @@ static errno_t repair_tree_fits(reiser4_coord_t *coord,
 
 /*
  
-static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_coord_t *coord) {
+static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_place_t *coord) {
     reiser4_node_t *node;
     uint32_t level;
     
@@ -329,7 +329,7 @@ static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_coord_t *coord) {
 
     // Insertable but split should be performed. 
     // FIXME: coord could be realised already. Optimise it later. 
-    if (reiser4_coord_realize(coord))
+    if (reiser4_place_realize(coord))
 	return -1;
 		
     level = reiser4_node_level(coord->node);

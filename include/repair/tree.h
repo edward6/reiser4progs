@@ -14,7 +14,7 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_tree_insert(reiser4_tree_t *, reiser4_coord_t *);
+extern errno_t repair_tree_insert(reiser4_tree_t *, reiser4_place_t *);
 extern errno_t repair_tree_attach(reiser4_tree_t *, reiser4_node_t *);
 
 #endif

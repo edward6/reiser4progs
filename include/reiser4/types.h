@@ -110,11 +110,12 @@ typedef struct reiser4_profile reiser4_profile_t;
 
 typedef struct reiser4_tree reiser4_tree_t;
 typedef struct reiser4_node reiser4_node_t;
-typedef struct reiser4_coord reiser4_coord_t;
+typedef struct reiser4_place reiser4_place_t;
 
-struct reiser4_coord {
+struct reiser4_place {
 	reiser4_node_t *node;
 	rpos_t pos;
+	
 	item_entity_t item;
 };
 
@@ -202,7 +203,7 @@ struct reiser4_file {
 	object_entity_t *entity;
     
 	/* The coord of the file's first item (stat data one?) */
-	reiser4_coord_t coord;
+	reiser4_place_t place;
 
 	/* File first item key */
 	reiser4_key_t key;
@@ -288,20 +289,20 @@ typedef struct reiser4_oid reiser4_oid_t;
 
 /* Tree modification trap typedefs */
 typedef bool_t (*insert_func_t) (reiser4_tree_t *,
-				 reiser4_coord_t *,
+				 reiser4_place_t *,
 				 reiser4_item_hint_t *, 
 				 void *);
 
 typedef bool_t (*remove_func_t) (reiser4_tree_t *,
-				 reiser4_coord_t *,
+				 reiser4_place_t *,
 				 void *);
 
 typedef errno_t (*attach_func_t) (reiser4_tree_t *,
-				  reiser4_coord_t *,
+				  reiser4_place_t *,
 				  reiser4_node_t *, void *);
 
 typedef errno_t (*detach_func_t) (reiser4_tree_t *,
-				  reiser4_coord_t *,
+				  reiser4_place_t *,
 				  reiser4_node_t *, void *);
 
 /* Tree structure */
@@ -363,7 +364,7 @@ typedef errno_t (*traverse_open_func_t) (reiser4_node_t **, blk_t, void *);
 typedef errno_t (*traverse_edge_func_t) (reiser4_node_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*traverse_setup_func_t) (reiser4_coord_t *, void *);
+typedef errno_t (*traverse_setup_func_t) (reiser4_place_t *, void *);
 
 /* Filesystem compound structure */
 struct reiser4_fs {

@@ -21,7 +21,7 @@ static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start,
     return 0;
 }
 
-static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
+static errno_t callback_extent_used(reiser4_place_t *coord, void *data) {
     repair_am_t *am = (repair_am_t *)data;
 
     aal_assert("vpf-649", coord != NULL);
@@ -77,7 +77,7 @@ error:
 }
 
 errno_t repair_add_missing_pass(repair_data_t *rd) {
-    reiser4_coord_t coord;
+    reiser4_place_t coord;
     rpos_t *pos = &coord.pos;
     reiser4_tree_t *tree;
     reiser4_node_t *node;
@@ -171,7 +171,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	    for (pos->item = 0; pos->item < items; pos->item++) {
 		aal_assert("vpf-636", pos->unit == ~0ul);
 
-		if (reiser4_coord_realize(&coord)) {
+		if (reiser4_place_realize(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u): cannot open "
 			"the item coord.", blk, pos->item);
 		    

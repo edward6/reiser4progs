@@ -251,7 +251,7 @@ struct item_entity {
 };
 
 typedef struct item_entity item_entity_t;
-typedef struct reiser4_place reiser4_place_t;
+typedef struct place place_t;
 
 /* Shift flags control shift process */
 enum shift_flags {
@@ -324,7 +324,7 @@ typedef struct shift_hint shift_hint_t;
 
 typedef errno_t (*region_func_t) (item_entity_t *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
-typedef errno_t (*place_func_t) (object_entity_t *, reiser4_place_t *, void *);
+typedef errno_t (*place_func_t) (object_entity_t *, place_t *, void *);
 
 typedef errno_t (*layout_func_t) (void *, block_func_t, void *);
 typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
@@ -499,7 +499,7 @@ typedef reiser4_plugin_t *(*reiser4_plugin_init_t) (reiser4_core_t *);
 
 typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
 
-#define empty_handle { "", NULL, NULL, NULL, NULL }
+#define EMPTY_HANDLE { "", NULL, NULL, NULL, NULL }
 
 struct plugin_handle {
 	char name[PLUGIN_MAX_NAME];
@@ -602,7 +602,7 @@ struct reiser4_file_ops {
 	object_entity_t *(*create) (void *, reiser4_file_hint_t *); 
     
 	/* Opens a file with specified key */
-	object_entity_t *(*open) (void *, reiser4_place_t *);
+	object_entity_t *(*open) (void *, place_t *);
 
 	/* Closes previously opened or created directory */
 	void (*close) (object_entity_t *);
@@ -1168,9 +1168,10 @@ union reiser4_plugin {
 	void *data;
 };
 
-struct reiser4_place {
+struct place {
 	void *node;
 	rpos_t pos;
+	
 	item_entity_t item;
 };
 
@@ -1212,29 +1213,29 @@ struct reiser4_core {
 		  item of a file really lies. It is used in all object plugins.
 		*/
 		int (*lookup) (void *, key_entity_t *, uint8_t,
-			       reiser4_place_t *);
+			       place_t *);
 
 		/* Initializes all item fields in passed place */
-		errno_t (*realize) (void *, reiser4_place_t *);
+		errno_t (*realize) (void *, place_t *);
 		
 		/* 
 		   Inserts item/unit in the tree by calling reiser4_tree_insert
 		   function, used by all object plugins (dir, file, etc)
 		*/
-		errno_t (*insert) (void *, reiser4_place_t *, reiser4_item_hint_t *);
+		errno_t (*insert) (void *, place_t *, reiser4_item_hint_t *);
     
 		/*
 		  Removes item/unit from the tree. It is used in all object
 		  plugins for modification purposes.
 		*/
-		errno_t (*remove) (void *, reiser4_place_t *, uint32_t);
+		errno_t (*remove) (void *, place_t *, uint32_t);
 	
 		/* Returns right and left neighbour respectively */
-		errno_t (*right) (void *, reiser4_place_t *, reiser4_place_t *);
-		errno_t (*left) (void *, reiser4_place_t *, reiser4_place_t *);
+		errno_t (*right) (void *, place_t *, place_t *);
+		errno_t (*left) (void *, place_t *, place_t *);
 
-		errno_t (*lock) (void *, reiser4_place_t *);
-		errno_t (*unlock) (void *, reiser4_place_t *);
+		errno_t (*lock) (void *, place_t *);
+		errno_t (*unlock) (void *, place_t *);
 	} tree_ops;
 };
 

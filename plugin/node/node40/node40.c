@@ -1615,7 +1615,7 @@ static errno_t node40_shift(object_entity_t *entity,
 static reiser4_plugin_t node40_plugin = {
 	.node_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = NODE_REISER40_ID,
 			.group = 0,
 			.type = NODE_PLUGIN_TYPE,

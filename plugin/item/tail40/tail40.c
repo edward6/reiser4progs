@@ -364,7 +364,7 @@ static errno_t tail40_shift(item_entity_t *src_item,
 static reiser4_plugin_t tail40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = ITEM_TAIL40_ID,
 			.group = TAIL_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

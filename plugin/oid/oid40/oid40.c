@@ -173,7 +173,7 @@ static roid_t oid40_root_objectid(void) {
 static reiser4_plugin_t oid40_plugin = {
 	.oid_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = OID_REISER40_ID,
 			.group = 0,
 			.type = OID_PLUGIN_TYPE,

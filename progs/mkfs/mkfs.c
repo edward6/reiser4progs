@@ -177,8 +177,8 @@ int main(int argc, char *argv[]) {
 			}
 			
 			if (!aal_pow_of_two(blocksize)) {
-				aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL, 
-						    "Invalid block size %u. It must power of two.",
+				aal_exception_error("Invalid block size %u. "
+						    "It must power of two.",
 						    (uint16_t)blocksize);
 				return USER_ERROR;	
 			}
@@ -186,13 +186,15 @@ int main(int argc, char *argv[]) {
 		case 'i':
 			/* Parsing passed by user uuid */
 			if (aal_strlen(optarg) != 36) {
-				aal_exception_error("Invalid uuid was specified (%s).", optarg);
+				aal_exception_error("Invalid uuid was "
+						    "specified (%s).", optarg);
 				return USER_ERROR;
 			}
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 			{
 				if (uuid_parse(optarg, uuid) < 0) {
-					aal_exception_error("Invalid uuid was specified (%s).", optarg);
+					aal_exception_error("Invalid uuid was "
+							    "specified (%s).", optarg);
 					return USER_ERROR;
 				}
 			}
@@ -353,7 +355,7 @@ int main(int argc, char *argv[]) {
 		if (!(fs->journal = reiser4_journal_create(fs, device, NULL)))
 			goto error_free_fs;
 
-		/* Creating tree (root node, etc) */
+		/* Creating tree */
 		if (!(fs->tree = reiser4_tree_init(fs)))
 			goto error_free_journal;
     
@@ -380,10 +382,10 @@ int main(int argc, char *argv[]) {
 		}
 	
 		/* 
-		   Flushing all filesystem buffers onto the device. In this time
-		   are flushing master super block, format specific super block,
-		   oid allocator data, block allocator data (alloc40 which in
-		   use flushes bitmap) and tree cache.
+		  Flushing all filesystem buffers onto the device. In this time
+		  are flushing master super block, format specific super block,
+		  oid allocator data, block allocator data (alloc40 which in use
+		  flushes bitmap) and tree cache.
 		*/
 		if (reiser4_fs_sync(fs)) {
 			aal_exception_error("Can't synchronize created filesystem.");

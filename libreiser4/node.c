@@ -244,16 +244,16 @@ errno_t reiser4_node_lkey(
 	reiser4_node_t *node,	         /* node for working with */
 	reiser4_key_t *key)	         /* key will be stored here */
 {
-	reiser4_coord_t coord;
+	reiser4_place_t place;
 	rpos_t pos = {0, ~0ul};
 
 	aal_assert("umka-753", node != NULL);
 	aal_assert("umka-754", key != NULL);
 
-	if (reiser4_coord_open(&coord, node, &pos))
+	if (reiser4_place_open(&place, node, &pos))
 		return -1;
 
-	if (reiser4_item_get_key(&coord, key))
+	if (reiser4_item_get_key(&place, key))
 		return -1;
 	
 	return 0;
@@ -471,7 +471,7 @@ int reiser4_node_lookup(
 
 	item_entity_t *item;
 	reiser4_key_t maxkey;
-	reiser4_coord_t coord;
+	reiser4_place_t place;
     
 	aal_assert("umka-475", pos != NULL);
 	aal_assert("vpf-048", node != NULL);
@@ -495,21 +495,21 @@ int reiser4_node_lookup(
 	if (result == 1)
 		return 1;
 
-	/* Initializing item coord points to */
-	if (reiser4_coord_open(&coord, node, pos)) {
-		aal_exception_error("Can't open item by coord. Node "
+	/* Initializing item place points to */
+	if (reiser4_place_open(&place, node, pos)) {
+		aal_exception_error("Can't open item by place. Node "
 				    "%llu, item %u.", node->blk, pos->item);
 		return -1;
 	}
 
-	item = &coord.item;
+	item = &place.item;
 
 	/*
 	  We are on the position where key is less then wanted. Key could lies
 	  within the item or after the item.
 	*/
 		
-	if (reiser4_item_maxposs_key(&coord, &maxkey))
+	if (reiser4_item_maxposs_key(&place, &maxkey))
 		return -1;
 
 	if (reiser4_key_compare(key, &maxkey) > 0) {
@@ -685,7 +685,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 			  reiser4_key_t *key)
 {
 	rpos_t ppos;
-	reiser4_coord_t coord;
+	reiser4_place_t place;
     
 	aal_assert("umka-999", node != NULL);
 	aal_assert("umka-1000", pos != NULL);
@@ -702,10 +702,10 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 		}
 	}
     
-	if (reiser4_coord_open(&coord, node, pos))
+	if (reiser4_place_open(&place, node, pos))
 		return -1;
 
-	if (reiser4_item_set_key(&coord, key))
+	if (reiser4_item_set_key(&place, key))
 		return -1;
     
 	reiser4_node_mkdirty(node);
@@ -850,8 +850,8 @@ errno_t reiser4_node_traverse(
 	traverse_edge_func_t after_func)     /* callback to be called at the end */
 {
 	errno_t result = 0;
-	reiser4_coord_t coord;
-	rpos_t *pos = &coord.pos;
+	reiser4_place_t place;
+	rpos_t *pos = &place.pos;
 	reiser4_node_t *child = NULL;
  
 	aal_assert("vpf-418", hint != NULL);
@@ -869,27 +869,27 @@ errno_t reiser4_node_traverse(
 		  If there is a suspicion in a corruption, it must be checked in
 		  before_func. All items must be opened here.
 		*/
-		if (reiser4_coord_open(&coord, node, pos)) {
-			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-					    node->blk, pos->item);
+		if (reiser4_place_open(&place, node, pos)) {
+			aal_exception_error("Can't open item by place. Node "
+					    "%llu, item %u.", node->blk, pos->item);
 			goto error_after_func;
 		}
 
-		if (!reiser4_item_branch(&coord))
+		if (!reiser4_item_branch(&place))
 			continue;
 
 		/* The loop though the units of the current item */
-		for (pos->unit = 0; pos->unit < reiser4_item_units(&coord); pos->unit++) {
+		for (pos->unit = 0; pos->unit < reiser4_item_units(&place); pos->unit++) {
 			reiser4_ptr_hint_t ptr;
 
 			/* Fetching node ptr */
-			plugin_call(coord.item.plugin->item_ops, read,
-				    &coord.item, &ptr, pos->unit, 1);
+			plugin_call(place.item.plugin->item_ops, read,
+				    &place.item, &ptr, pos->unit, 1);
 		
 			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {
 				child = NULL;
 					
-				if (setup_func && (result = setup_func(&coord, hint->data)))
+				if (setup_func && (result = setup_func(&place, hint->data)))
 					goto error_after_func;
 
 				if (!open_func)
@@ -924,7 +924,7 @@ errno_t reiser4_node_traverse(
 				}
 				
 			update:
-				if (update_func && (result = update_func(&coord, hint->data)))
+				if (update_func && (result = update_func(&place, hint->data)))
 					goto error_after_func;
 			}
 				
@@ -951,7 +951,7 @@ errno_t reiser4_node_traverse(
  error_update_func:
 	
 	if (update_func)
-		result = update_func(&coord, hint->data);
+		result = update_func(&place, hint->data);
     
  error_after_func:
 	if (after_func)

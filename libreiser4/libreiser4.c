@@ -72,7 +72,7 @@ static reiser4_plugin_t *factory_nfind(
 /* Handler for item insert requests from the all plugins */
 static errno_t tree_insert(
 	void *tree,	            /* opaque pointer to the tree */
-	reiser4_place_t *place,	    /* insertion point will be saved here */
+	place_t *place,	            /* insertion point will be saved here */
 	reiser4_item_hint_t *item)  /* item hint to be inserted into tree */
 {
 	aal_assert("umka-846", tree != NULL);
@@ -80,20 +80,20 @@ static errno_t tree_insert(
 	aal_assert("umka-1643", place != NULL);
     
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
-				   (reiser4_coord_t *)place, item);
+				   (reiser4_place_t *)place, item);
 }
 
 /* Handler for item removing requests from the all plugins */
 static errno_t tree_remove(
 	void *tree,	            /* opaque pointer to the tree */
-	reiser4_place_t *place,	    /* coord of the item to be removerd */
+	place_t *place,	            /* place of the item to be removerd */
 	uint32_t count)
 {
 	aal_assert("umka-848", tree != NULL);
 	aal_assert("umka-849", place != NULL);
     
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
-				   (reiser4_coord_t *)place, count);
+				   (reiser4_place_t *)place, count);
 }
 
 #endif
@@ -103,28 +103,28 @@ static int tree_lookup(
 	void *tree,	            /* opaque pointer to the tree */
 	reiser4_key_t *key,	    /* key to be found */
 	uint8_t stop,	            /* stop level */
-	reiser4_place_t *place)	    /* result will be stored in */
+	place_t *place)             /* result will be stored in */
 {
 	int lookup;
-	reiser4_coord_t *coord;
+	reiser4_place_t *p;
 	
 	aal_assert("umka-851", key != NULL);
 	aal_assert("umka-850", tree != NULL);
 	aal_assert("umka-852", place != NULL);
 
-	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree, key, stop,
-					  (reiser4_coord_t *)place)) == FAILED)
-		return lookup;
+	p = (reiser4_place_t *)place;
 	
-	coord = (reiser4_coord_t *)place;
+	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree,
+					  key, stop, p)) == FAILED)
+		return lookup;
 	
 	if (lookup == PRESENT) {
 		
-		item_entity_t *item = &coord->item;
-		object_entity_t *entity = coord->node->entity;
+		item_entity_t *item = &p->item;
+		object_entity_t *entity = p->node->entity;
 		
 		if (plugin_call(entity->plugin->node_ops, get_key,
-				entity, &coord->pos, &item->key))
+				entity, &p->pos, &item->key))
 		{
 			aal_exception_error("Can't get item key.");
 			return -1;
@@ -140,93 +140,93 @@ static int tree_lookup(
 }
 
 /* Initializes item at passed @place */
-static errno_t tree_realize(void *tree, reiser4_place_t *place) {
-	reiser4_coord_t *coord = (reiser4_coord_t *)place;
-
-	if (reiser4_coord_realize(coord))
+static errno_t tree_realize(void *tree, place_t *place) {
+	reiser4_place_t *p = (reiser4_place_t *)place;
+	
+	if (reiser4_place_realize(p))
 		return -1;
 
-	return reiser4_item_get_key(coord, NULL);
+	return reiser4_item_get_key(p, NULL);
 }
 
 /* Handler for requests for right neighbor */
 static errno_t tree_right(
 	void *tree,	            /* opaque pointer to the tree */
-	reiser4_place_t *place,     /* coord of node */
-	reiser4_place_t *right)	    /* right neighbour will be here */
+	place_t *place,             /* coord of node */
+	place_t *right)	            /* right neighbour will be here */
 {
 	rpos_t pos;
-	reiser4_coord_t *coord;
+	reiser4_place_t *p;
     
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
 	aal_assert("umka-1491", right != NULL);
 
-	coord = (reiser4_coord_t *)place;
+	p = (reiser4_place_t *)place;
 		
-	if (!reiser4_tree_right((reiser4_tree_t *)tree, coord->node))
+	if (!reiser4_tree_right((reiser4_tree_t *)tree, p->node))
 		return -1;
 
 	POS_INIT(&pos, 0, ~0ul);
 	
-	if (reiser4_coord_open((reiser4_coord_t *)right,
-			       coord->node->right, &pos))
+	if (reiser4_place_open((reiser4_place_t *)right,
+			       p->node->right, &pos))
 		return -1;
 
-	return reiser4_item_get_key((reiser4_coord_t *)right, NULL);
+	return reiser4_item_get_key((reiser4_place_t *)right, NULL);
 }
 
 /* Handler for requests for left neighbor */
 static errno_t tree_left(
 	void *tree,	            /* opaque pointer to the tree */
-	reiser4_place_t *place,	    /* coord of node */
-	reiser4_place_t *left)	    /* left neighbour will be here */
+	place_t *place,             /* coord of node */
+	place_t *left)              /* left neighbour will be here */
 {
 	rpos_t pos;
-	reiser4_coord_t *coord;
+	reiser4_place_t *p;
 	
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
 	aal_assert("umka-1492", left != NULL);
 
-	coord = (reiser4_coord_t *)place;
+	p = (reiser4_place_t *)place;
 	
-	if (!reiser4_tree_left((reiser4_tree_t *)tree, coord->node))
+	if (!reiser4_tree_left((reiser4_tree_t *)tree, p->node))
 		return -1;
 
-	POS_INIT(&pos, reiser4_node_items(coord->node->left) - 1, ~0ul);
+	POS_INIT(&pos, reiser4_node_items(p->node->left) - 1, ~0ul);
 	
-	if (reiser4_coord_open((reiser4_coord_t *)left,
-			       coord->node->left, &pos))
+	if (reiser4_place_open((reiser4_place_t *)left,
+			       p->node->left, &pos))
 		return -1;
 
-	return reiser4_item_get_key((reiser4_coord_t *)left, NULL);
+	return reiser4_item_get_key((reiser4_place_t *)left, NULL);
 }
 
 static errno_t tree_lock(
 	void *tree,               /* tree for working on */
-	reiser4_place_t *place)   /* coord to make lock on */
+	place_t *place)           /* place to make lock on */
 {
-	reiser4_coord_t *coord;
+	reiser4_place_t *p;
 	
 	aal_assert("umka-1511", tree != NULL);
 	aal_assert("umka-1512", place != NULL);
 
-	coord = (reiser4_coord_t *)place;
-	return reiser4_node_lock(coord->node);
+	p = (reiser4_place_t *)place;
+	return reiser4_node_lock(p->node);
 }
 
 static errno_t tree_unlock(
 	void *tree,               /* tree for working on */
-	reiser4_place_t *place)   /* coord to make unlock on */
+	place_t *place)           /* coord to make unlock on */
 {
-	reiser4_coord_t *coord;
+	reiser4_place_t *p;
 	
 	aal_assert("umka-1513", tree != NULL);
 	aal_assert("umka-1514", place != NULL);
 
-	coord = (reiser4_coord_t *)place;
-	return reiser4_node_unlock(coord->node);
+	p = (reiser4_place_t *)place;
+	return reiser4_node_unlock(p->node);
 }
 
 static uint32_t tree_blockspace(void *tree) {
@@ -264,26 +264,25 @@ reiser4_core_t core = {
 		/* This one for lookuping the tree */
 		.lookup	    = tree_lookup,
 
-		/* This one for initializing an item at coord */
+		/* This one for initializing an item at place */
 		.realize    = tree_realize,
 
-		/* Returns right neighbour of passed coord */
+		/* Returns right neighbour of passed place */
 		.right	    = tree_right,
     
-		/* Returns left neighbour of passed coord */
+		/* Returns left neighbour of passed place */
 		.left	    = tree_left,
 
-		/* Makes look and unlock of node specified by coord */
+		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,
 		.unlock     = tree_unlock,
 
 #ifndef ENABLE_ALONE
-		/* Installing callback function for inserting items into the
-		 * tree */
+		
+		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
 
-		/* Installing callback function for removing items from the
-		 * tree */
+		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
 #else
 		.insert	    = NULL,

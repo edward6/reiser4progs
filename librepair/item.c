@@ -10,7 +10,7 @@
 /* Prepare coord for just a piece of item insertion. Return the number of 
  * units to be splited. */
 uint32_t repair_item_split(
-    reiser4_coord_t *coord, 
+    reiser4_place_t *coord, 
     reiser4_key_t *rd_key)  /* split to this right delimiting key */
 {    
     reiser4_key_t key;
@@ -37,7 +37,7 @@ uint32_t repair_item_split(
 
 #if 0
 
-errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
+errno_t repair_item_handle_ptr(reiser4_place_t *coord) {
     reiser4_ptr_hint_t hint;
     rpos_t prev;
 
@@ -88,7 +88,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 
 /* Blocks pointed by coord should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
-errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
+errno_t repair_item_ptr_unused(reiser4_place_t *coord, aux_bitmap_t *bitmap) {
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
     int res;
@@ -131,7 +131,7 @@ error:
 
 /* Blocks pointed by coord should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
-errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord, 
+errno_t repair_item_ptr_used_in_format(reiser4_place_t *coord, 
     repair_data_t *data) 
 {
     int res;
@@ -179,7 +179,7 @@ error:
 
 /* Blocks pointed by coord should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
-errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
+errno_t repair_item_ptr_unused(reiser4_place_t *coord, aux_bitmap_t *bitmap) {
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
     int res;
@@ -220,7 +220,7 @@ error:
     return 1;
 }
 
-errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
+errno_t repair_item_handle_ptr(reiser4_place_t *coord) {
     reiser4_ptr_hint_t hint;
     reiser4_pos_t prev;
 

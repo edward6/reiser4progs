@@ -466,7 +466,7 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 static reiser4_plugin_t stat40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = ITEM_STATDATA40_ID,
 			.group = STATDATA_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

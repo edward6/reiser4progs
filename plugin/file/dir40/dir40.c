@@ -87,7 +87,7 @@ static int dir40_mergeable(item_entity_t *item1,
 
 /* Makes position onto next direntry item */
 static int dir40_next(dir40_t *dir) {
-	reiser4_place_t right;
+	place_t right;
 	reiser4_plugin_t *this_plugin;
 	reiser4_plugin_t *right_plugin;
 
@@ -246,7 +246,7 @@ static int dir40_lookup(object_entity_t *entity,
   of using dir40_reset function and return instance to caller.
 */
 static object_entity_t *dir40_open(void *tree, 
-				   reiser4_place_t *place) 
+				   place_t *place) 
 {
 	dir40_t *dir;
 	key_entity_t *key;
@@ -300,7 +300,7 @@ static object_entity_t *dir40_create(void *tree, reiser4_file_hint_t *hint) {
 	uint32_t i;
 	dir40_t *dir;
 
-	reiser4_place_t place;
+	place_t place;
 	roid_t parent_locality;
 	roid_t objectid, locality;
 
@@ -504,7 +504,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	uint64_t size;
 
 	key_entity_t *key;
-	reiser4_place_t place;
+	place_t place;
 	reiser4_item_hint_t hint;
 	reiser4_entry_hint_t *entry;
 	dir40_t *dir = (dir40_t *)entity;
@@ -675,7 +675,7 @@ static uint64_t dir40_offset(object_entity_t *entity) {
 static reiser4_plugin_t dir40_plugin = {
 	.file_ops = {
 		.h = {
-			.handle = empty_handle,
+			.handle = EMPTY_HANDLE,
 			.id = FILE_DIRTORY40_ID,
 			.group = DIRTORY_FILE,
 			.type = FILE_PLUGIN_TYPE,
