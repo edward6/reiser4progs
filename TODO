@@ -3,9 +3,13 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* should nodes be created on tree, not on device?
+
+* manual pages for cpfs and resizefs.
+
 * take care about locking in all tree functions.
 
-* cpfs utility.
+* reiser4_fs_copy() and reiser4_fs_resize().
 
 * dumpfs utility.
 

@@ -62,10 +62,10 @@ errno_t debugfs_print_block(
 	}
 	
 	/* Check if @blk is a filesystem block at all */
-	if (!reiser4_alloc_occupied(fs->alloc, blk, 1))
+	if (!reiser4_alloc_occupied(fs->alloc, blk, 1)) {
 		fprintf(stdout, "Block %llu is not used.\n", blk);
-	else
-		fprintf(stdout, "Block %llu is used.\n", blk);
+		return 0;
+	}
 
 	/* Determining what is the object block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {
@@ -95,7 +95,8 @@ errno_t debugfs_print_block(
 	/* If passed @blk points to a formatted node then open it and print
 	   using print_process_node listed abowe. */
 	if (!(node = reiser4_node_open(device, blocksize, blk))) {
-		fprintf(stdout, "Block %llu is not a formatted one.\n", blk);
+		fprintf(stdout, "Block %llu is used, but it is not "
+			"a formatted one.\n", blk);
 		return 0;
 	}
 	

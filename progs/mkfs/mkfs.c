@@ -226,8 +226,8 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	/* Overriding profile by passed by used values. This should be done after
-	   libreiser4 is initialized. */
+	/* Overriding profile by passed by used values. This should be done
+	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
 				   profile->name, override);
@@ -323,9 +323,8 @@ int main(int argc, char *argv[]) {
 		if (!(device = aal_device_open(&file_ops, host_dev, 
 		      REISER4_SECSIZE, O_RDWR))) 
 		{
-			char *error = strerror(errno);
-	
-			aal_exception_error("Can't open %s. %s.", host_dev, error);
+			aal_exception_error("Can't open %s. %s.",
+					    host_dev, strerror(errno));
 			goto error_free_libreiser4;
 		}
     

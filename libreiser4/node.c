@@ -27,6 +27,16 @@ void reiser4_node_mkclean(reiser4_node_t *node) {
 	plugin_call(node->entity->plugin->o.node_ops,
 		    mkclean, node->entity);
 }
+
+errno_t reiser4_node_clone(reiser4_node_t *src,
+			   reiser4_node_t *dst)
+{
+	aal_assert("umka-2306", src != NULL);
+	aal_assert("umka-2307", dst != NULL);
+
+	return plugin_call(src->entity->plugin->o.node_ops,
+			   clone, src->entity, dst->entity);
+}
 #endif
 
 reiser4_node_t *reiser4_node_init(aal_device_t *device,
@@ -275,13 +285,14 @@ errno_t reiser4_node_realize(
 	aal_assert("umka-1941", node->parent.node != NULL);
 
 	parent = &node->parent;
-	
+
+	/* Checking if we are in position already */
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_ack(node, parent))
 		goto parent_realize;
 #endif
 	
-	/* Getting position by key */
+	/* Getting position by means of using node lookup */
         reiser4_node_lkey(node, &lkey);
                                                                                                    
         if (reiser4_node_lookup(parent->node, &lkey,
@@ -293,6 +304,7 @@ errno_t reiser4_node_realize(
 			goto parent_realize;
 	}
 
+	/* Getting position by means of linear traverse */
 #ifndef ENABLE_STAND_ALONE
 	for (i = 0; i < reiser4_node_items(parent->node); i++) {
 		parent->pos.item = i;
@@ -397,9 +409,8 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	
 	/* Updating node pos in parent node */
 	if ((res = reiser4_node_realize(child))) {
-		aal_exception_error("Can't find child %llu in "
-				    "parent node %llu.",
-				    child->number, node->number);
+		aal_exception_error("Can't realize node %llu.",
+				    child->number);
 		return res;
 	}
 

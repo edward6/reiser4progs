@@ -166,7 +166,7 @@ typedef struct item40_header item40_header_t;
 #define ih40_get_pid(ih)	  aal_get_le16(ih, pid)
 #define ih40_set_pid(ih, val)	  aal_set_le16(ih, pid, (val))
 
-#define node40_loaded(entity) \
+#define loaded(entity) \
         (((node40_t *)entity)->block != NULL)
 
 extern uint16_t node40_free_space_end(node40_t *node);

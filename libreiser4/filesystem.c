@@ -324,8 +324,16 @@ errno_t reiser4_fs_resize(
 	return -EINVAL;
 }
 
-/* Synchronizes all filesystem objects to corresponding devices (all filesystem
-   objects except journal - to host device and journal - to journal device). */
+/* Makes copy of @src_fs to @dst_fs */
+errno_t reiser4_fs_copy(
+	reiser4_fs_t *src_fs,           /* fs to be copied */
+	reiser4_fs_t *dst_fs)           /* destination fs */
+{
+	/* FIXME-UMKA: Not implemented yet! */
+	return -EINVAL;
+}
+
+/* Synchronizes all filesystem objects. */
 errno_t reiser4_fs_sync(
 	reiser4_fs_t *fs)		/* fs instance to be synchronized */
 {

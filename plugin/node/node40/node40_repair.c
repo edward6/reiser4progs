@@ -407,8 +407,8 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
 	
 	aal_assert("vpf-965",  dst != NULL);
 	aal_assert("vpf-966",  src != NULL);
-	aal_assert("umka-2029", node40_loaded(dst));
-	aal_assert("umka-2030", node40_loaded(src));
+	aal_assert("umka-2029", loaded(dst));
+	aal_assert("umka-2030", loaded(src));
 	
 	dst_node = (node40_t *)dst;
 	src_node = (node40_t *)src;

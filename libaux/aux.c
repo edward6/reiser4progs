@@ -95,8 +95,12 @@ errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		if (!(entry = aal_strsep(&pointer, "/")))
 			return 0;
 
-		if (!aal_strlen(entry))
-			continue;
+		if (!aal_strlen(entry)) {
+			if (!pointer || !aal_strlen(pointer))
+				return 0;
+			else
+				continue;
+		}
 	
 #ifndef ENABLE_STAND_ALONE
 		aal_strncat(track, entry, aal_strlen(entry));

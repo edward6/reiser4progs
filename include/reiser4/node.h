@@ -24,6 +24,9 @@ extern reiser4_node_t *reiser4_node_init(aal_device_t *device,
 					 rid_t pid);
 
 #ifndef ENABLE_STAND_ALONE
+extern errno_t reiser4_node_clone(reiser4_node_t *src,
+				  reiser4_node_t *dst);
+
 extern void reiser4_node_move(reiser4_node_t *node,
 			      blk_t number);
 

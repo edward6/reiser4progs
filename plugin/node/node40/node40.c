@@ -28,7 +28,7 @@ static void node40_mkclean(object_entity_t *entity) {
 /* Returns node level */
 static uint8_t node40_get_level(object_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL);
-	aal_assert("umka-2017", node40_loaded(entity));
+	aal_assert("umka-2017", loaded(entity));
 	
 	return nh40_get_level((node40_t *)entity);
 }
@@ -37,7 +37,7 @@ static uint8_t node40_get_level(object_entity_t *entity) {
 /* Returns node make stamp */
 static uint32_t node40_get_mstamp(object_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL);
-	aal_assert("umka-2018", node40_loaded(entity));
+	aal_assert("umka-2018", loaded(entity));
 	
 	return nh40_get_mkfs_id((node40_t *)entity);
 }
@@ -45,7 +45,7 @@ static uint32_t node40_get_mstamp(object_entity_t *entity) {
 /* Returns node flush stamp */
 static uint64_t node40_get_fstamp(object_entity_t *entity) {
 	aal_assert("vpf-645", entity != NULL);
-	aal_assert("umka-2019", node40_loaded(entity));
+	aal_assert("umka-2019", loaded(entity));
 	
 	return nh40_get_flush_id((node40_t *)entity);
 }
@@ -110,13 +110,35 @@ static object_entity_t *node40_init(aal_device_t *device,
 }
 
 #ifndef ENABLE_STAND_ALONE
+static errno_t node40_clone(object_entity_t *src_entity,
+			    object_entity_t *dst_entity)
+{
+	uint32_t blocksize;
+	node40_t *src_node, *dst_node;
+	
+	aal_assert("umka-2308", src_entity != NULL);
+	aal_assert("umka-2309", dst_entity != NULL);
+
+	aal_assert("umka-2310", loaded(src_entity));
+	aal_assert("umka-2311", loaded(dst_entity));
+
+	src_node = (node40_t *)src_node;
+	dst_node = (node40_t *)dst_node;
+	blocksize = aal_block_size(src_node->block);
+
+	aal_memcpy(dst_node->block->data,
+		   src_node->block->data, blocksize);
+
+	return 0;
+}
+
 static void node40_move(object_entity_t *entity,
 			blk_t number)
 {
 	node40_t *node;
 	
 	aal_assert("umka-2249", entity != NULL);
-	aal_assert("umka-2012", node40_loaded(entity));
+	aal_assert("umka-2012", loaded(entity));
 
 	node = (node40_t *)entity;
 	node->number = number;
@@ -182,7 +204,7 @@ static errno_t node40_unload(object_entity_t *entity) {
 	node40_t *node = (node40_t *)entity;
 	
 	aal_assert("umka-2011", entity != NULL);
-	aal_assert("umka-2012", node40_loaded(entity));
+	aal_assert("umka-2012", loaded(entity));
 
 	aal_block_free(node->block);
 	node->block = NULL;
@@ -212,7 +234,7 @@ static errno_t node40_close(object_entity_t *entity) {
 /* Confirms that passed node corresponds current plugin */
 static int node40_confirm(object_entity_t *entity) {
 	aal_assert("vpf-014", entity != NULL);
-	aal_assert("umka-2020", node40_loaded(entity));
+	aal_assert("umka-2020", loaded(entity));
 	
 	return (nh40_get_magic((node40_t *)entity) == NODE40_MAGIC);
 }
@@ -221,7 +243,7 @@ static int node40_confirm(object_entity_t *entity) {
    node items. */
 uint16_t node40_items(object_entity_t *entity) {
 	aal_assert("vpf-018", entity != NULL);
-	aal_assert("umka-2021", node40_loaded(entity));
+	aal_assert("umka-2021", loaded(entity));
 	
 	return nh40_get_num_items((node40_t *)entity);
 }
@@ -235,7 +257,7 @@ static errno_t node40_get_key(object_entity_t *entity,
 	aal_assert("umka-821", key != NULL);
 	aal_assert("umka-939", pos != NULL);
 	aal_assert("vpf-009", entity != NULL);
-	aal_assert("umka-2022", node40_loaded(entity));
+	aal_assert("umka-2022", loaded(entity));
 
 	aal_assert("umka-810", pos->item <
 		   nh40_get_num_items((node40_t *)entity));
@@ -256,7 +278,7 @@ static uint16_t node40_item_len(object_entity_t *entity,
     
 	aal_assert("vpf-037", entity != NULL);
 	aal_assert("umka-942", pos != NULL);
-	aal_assert("umka-2024", node40_loaded(entity));
+	aal_assert("umka-2024", loaded(entity));
 
 	/* Item length is calculated as next item body offset minus current item
 	   offset. If we are on the last item then we use free space start for
@@ -340,7 +362,7 @@ errno_t node40_item(object_entity_t *entity, pos_t *pos,
 /* Returns node free space */
 static uint16_t node40_space(object_entity_t *entity) {
 	aal_assert("vpf-020", entity != NULL);
-	aal_assert("umka-2025", node40_loaded(entity));
+	aal_assert("umka-2025", loaded(entity));
 	
 	return nh40_get_free_space((node40_t *)entity);
 }
@@ -663,7 +685,7 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 	aal_assert("umka-1814", hint != NULL);
 
 	aal_assert("umka-818", entity != NULL);
-	aal_assert("umka-2026", node40_loaded(entity));
+	aal_assert("umka-2026", loaded(entity));
     
 	/* Makes expand of the node new items will be inserted in */
 	if (node40_expand(entity, pos, hint->len, 1))
@@ -730,7 +752,7 @@ errno_t node40_remove(object_entity_t *entity,
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
-	aal_assert("umka-2027", node40_loaded(entity));
+	aal_assert("umka-2027", loaded(entity));
 
 	node = (node40_t *)entity;
 
@@ -778,7 +800,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	aal_assert("umka-1790", end != NULL);
 	aal_assert("umka-1789", start != NULL);
 	aal_assert("umka-1788", entity != NULL);
-	aal_assert("umka-2028", node40_loaded(entity));
+	aal_assert("umka-2028", loaded(entity));
 
 	node = (node40_t *)entity;
 		
@@ -863,7 +885,7 @@ static void node40_set_mstamp(object_entity_t *entity,
 			      uint32_t stamp)
 {
 	aal_assert("vpf-644", entity != NULL);
-	aal_assert("umka-2038", node40_loaded(entity));
+	aal_assert("umka-2038", loaded(entity));
 	
 	((node40_t *)entity)->dirty = 1;
 	nh40_set_mkfs_id((node40_t *)entity, stamp);
@@ -874,7 +896,7 @@ static void node40_set_fstamp(object_entity_t *entity,
 			      uint64_t stamp)
 {
 	aal_assert("vpf-643", entity != NULL);
-	aal_assert("umka-2039", node40_loaded(entity));
+	aal_assert("umka-2039", loaded(entity));
 	
 	((node40_t *)entity)->dirty = 1;
 	nh40_set_flush_id((node40_t *)entity, stamp);
@@ -884,7 +906,7 @@ static void node40_set_level(object_entity_t *entity,
 			     uint8_t level)
 {
 	aal_assert("umka-1864", entity != NULL);
-	aal_assert("umka-2040", node40_loaded(entity));
+	aal_assert("umka-2040", loaded(entity));
 	
 	((node40_t *)entity)->dirty = 1;
 	nh40_set_level((node40_t *)entity, level);
@@ -901,7 +923,7 @@ static errno_t node40_set_key(object_entity_t *entity,
     	aal_assert("umka-944", pos != NULL);
 	
 	aal_assert("umka-809", entity != NULL);
-	aal_assert("umka-2041", node40_loaded(entity));
+	aal_assert("umka-2041", loaded(entity));
 
 	node = (node40_t *)entity;
 	items = nh40_get_num_items(node);
@@ -921,7 +943,7 @@ static errno_t node40_set_stamp(object_entity_t *entity,
 				uint32_t stamp)
 {
 	aal_assert("umka-1126", entity != NULL);
-	aal_assert("umka-2042", node40_loaded(entity));
+	aal_assert("umka-2042", loaded(entity));
 
 	nh40_set_mkfs_id(((node40_t *)entity), stamp);
 	return 0;
@@ -932,7 +954,7 @@ static errno_t node40_sync(object_entity_t *entity) {
 	errno_t res;
 	
 	aal_assert("umka-1552", entity != NULL);
-	aal_assert("umka-2043", node40_loaded(entity));
+	aal_assert("umka-2043", loaded(entity));
 	
 	if ((res = aal_block_write(((node40_t *)entity)->block)))
 		return res;
@@ -957,7 +979,7 @@ static errno_t node40_print(object_entity_t *entity,
 
 	aal_assert("vpf-023", entity != NULL);
 	aal_assert("umka-457", stream != NULL);
-	aal_assert("umka-2044", node40_loaded(entity));
+	aal_assert("umka-2044", loaded(entity));
 
 	node = (node40_t *)entity;
 	level = node40_get_level(entity);
@@ -1036,7 +1058,7 @@ static lookup_t node40_lookup(object_entity_t *entity,
 	aal_assert("umka-478", pos != NULL);
 	aal_assert("umka-470", entity != NULL);
 	aal_assert("umka-714", key->plugin != NULL);
-	aal_assert("umka-2046", node40_loaded(entity));
+	aal_assert("umka-2046", loaded(entity));
 
 	switch (aux_bin_search(entity, node40_items(entity),
 			       key, callback_comp_key,
@@ -1628,8 +1650,8 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	aal_assert("umka-2050", src_entity != NULL);
 	aal_assert("umka-2051", dst_entity != NULL);
 
-	aal_assert("umka-2048", node40_loaded(src_entity));
-	aal_assert("umka-2049", node40_loaded(dst_entity));
+	aal_assert("umka-2048", loaded(src_entity));
+	aal_assert("umka-2049", loaded(dst_entity));
 
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
@@ -1742,6 +1764,7 @@ static reiser4_node_ops_t node40_ops = {
 	.get_fstamp     = node40_get_fstamp,
 		
 	.move		= node40_move,
+	.clone          = node40_clone,
 	.form		= node40_form,
 	.sync           = node40_sync,
 	.isdirty        = node40_isdirty,
@@ -1766,6 +1789,7 @@ static reiser4_node_ops_t node40_ops = {
 	.set_level      = node40_set_level,
 	.set_mstamp	= node40_set_mstamp,
 	.set_fstamp     = node40_set_fstamp,
+	
 	.set_flag	= node40_set_flag,
 	.clear_flag	= node40_clear_flag,
 	.test_flag	= node40_test_flag

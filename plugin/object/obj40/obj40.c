@@ -57,10 +57,10 @@ void obj40_relock(obj40_t *obj, place_t *curr,
 	aal_assert("umka-2060", obj != NULL);
 	aal_assert("umka-2061", curr != NULL);
 	
-	if (curr->node != NULL)
+	if (curr && curr->node != NULL)
 		obj40_unlock(obj, curr);
 
-	if (next)
+	if (next && next->node != NULL)
 		obj40_lock(obj, next);
 }
 

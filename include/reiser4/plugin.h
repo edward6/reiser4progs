@@ -872,9 +872,16 @@ struct reiser4_node_ops {
     	uint64_t (*get_fstamp) (object_entity_t *);
 	
 	/* Get/set/test item flags. */
-	void (*set_flag) (object_entity_t *, uint32_t, uint16_t);
-	void (*clear_flag) (object_entity_t *, uint32_t, uint16_t);
-	bool_t (*test_flag) (object_entity_t *, uint32_t, uint16_t);
+	void (*set_flag) (object_entity_t *, uint32_t,
+			  uint16_t);
+	
+	void (*clear_flag) (object_entity_t *, uint32_t,
+			    uint16_t);
+	
+	bool_t (*test_flag) (object_entity_t *, uint32_t,
+			     uint16_t);
+
+	errno_t (*clone) (object_entity_t *, object_entity_t *);
 #endif
 
 	/* Cerates node entity */

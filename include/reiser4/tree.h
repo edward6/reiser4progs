@@ -108,17 +108,20 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 
 #endif
 
+extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
+extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
+
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 			       reiser4_key_t *key,
 			       uint8_t level,
 			       reiser4_place_t *place);
 
-extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
-extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
-extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
-
 extern reiser4_node_t *reiser4_tree_alloc(reiser4_tree_t *tree,
 					  uint8_t level);
+
+extern errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
+				 reiser4_tree_t *dst_tree);
 
 extern errno_t reiser4_tree_release(reiser4_tree_t *tree,
 				    reiser4_node_t *node);

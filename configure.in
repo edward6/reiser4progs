@@ -477,6 +477,7 @@ AC_OUTPUT([
     progs/debugfs/Makefile
     progs/measurefs/Makefile
     progs/resizefs/Makefile
+    progs/cpfs/Makefile
     debug/Makefile
     doc/Makefile
 ])
