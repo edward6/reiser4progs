@@ -46,6 +46,7 @@ typedef struct busy_cmd {
 	char *options;
 	cmd_handler_t handler;
 	int ops_num;
+	char *info;
 } busy_cmd_t;
 
 

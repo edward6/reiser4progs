@@ -12,78 +12,86 @@ busy_cmd_t tests[] = {
 		.options = "PATH",
 		.handler = create_cmd,
 		.ops_num = 1,
+		.info = "Creates a regular file on reiser4.",
 	},
 	[1] = {
 		.name = "mkdir",
 		.options = "PATH",
 		.handler = create_cmd,
 		.ops_num = 1,
+		.info = "Creates a directory on reiser4.",
 	},
 	[2] = {
 		.name = "mknod",
 		.options = "PATH [char/fifo/block/sock] MAJOR MINOR",
 		.handler = create_cmd,
 		.ops_num = 4,
+		.info = "Creates a device file on reiser4.",
 	},
 	[3] = {
 		.name = "ln-s",
 		.options = "PATH link_name",
 		.handler = create_cmd,
 		.ops_num = 2,
+		.info = "Creates a symlink on reiser4.",
 	},
 	[4] = {
 		.name = "ln",
 		.options = "PATH link_name",
 		.handler = ln_cmd,
 		.ops_num = 2,
+		.info = "Creates a hard link on reiser4.",
 	},
 	[5] = {
 		.name = "ls",
 		.options = "PATH",
 		.handler = ls_cmd,
 		.ops_num = 1,
+		.info = "Lists a directory.",
 	},
 	[6] = {
 		.name = "rm",
 		.options = "PATH",
 		.handler = rm_cmd,
 		.ops_num = 1,
+		.info = "Removes a file.",
 	},
 	[7] = {
 		.name = "cp",
-		.options = "PATH PATH in_offset out_offset count blk_size",
+		.options = "PATH1 PATH2 in_offset out_offset count blk_size",
 		.handler = cp_cmd,
 		.ops_num = 6,
+		.info = "Copies <count> blocks of <blk_size> bytes from "
+			"<PATH1> to <PATH2>\n\tskipping <in_offset> bytes, "
+			"seeking on <out_offset> bytes.",
 	},
 	[8] = {
 		.name = "stat",
 		.options = "PATH",
 		.handler = stat_cmd,
 		.ops_num = 1,
+		.info = "Stats a file.",
 	},
 	[9] = {
 		.name = "trunc",
 		.options = "PATH size",
 		.handler = trunc_cmd,
 		.ops_num = 2,
+		.info = "Truncates a file.",
 	},
 	[10] = {
 		.name = "reg",
 		.options = "PATH",
 		.handler = reg_test,
 		.ops_num = 1,
+		.info = "Just a test. Creates some amount of files.",
 	},
 	[11] = {
 		.name = "sym",
 		.options = "PATH",
 		.handler = sym_test,
 		.ops_num = 1,
-	},
-	[12] = {
-		.name = "read",
-		.options = "PATH output",
-		.handler = read_test,
-		.ops_num = 2,
+		.info = "Just a test. Creates some amount of symlinks.",
 	}
 };
 
@@ -141,15 +149,17 @@ static void busy_fs_close(reiser4_fs_t *fs) {
 static void busy_print_usage(void) {
 	unsigned int i;
 
-	fprintf(stderr, "\nUsage: busy COMMAND args\n");
-	fprintf(stderr, "Commands: \n");
+	fprintf(stderr, "\nUsage: busy COMMAND ARGS\n");
+	fprintf(stderr, "Commands with args: \n");
 	
-	for (i = 0; i < TESTS_COUNT; i++)
+	for (i = 0; i < TESTS_COUNT; i++) {
 		fprintf(stderr, "\t%s %s\n", tests[i].name, tests[i].options);
+		fprintf(stderr, "\t%s\n\n", tests[i].info);
+	}
 		
 	fprintf(stderr, "\nPATH = {device:path || ^path}\n");
 	fprintf(stderr, "when working with reiser4 fs on 'device' and others "
-		"respectively.\n\n");
+		"respectively.\nFor others '^' is mandatory.\n\n");
 }
 
 static int busy_get_testno(char *name) {
@@ -249,63 +259,6 @@ errno_t sym_test(busy_ctx_t *ctx) {
 
 	reiser4_tree_compress(fs->tree);
 	return 0;
-}
-
-errno_t read_test(busy_ctx_t *ctx) {
-	reiser4_fs_t *fs = ctx->in.fs;
-	char *path = ctx->in.path;
-	char *out = ctx->out.path;
-	reiser4_object_t *obj;
-	char buf[40960];
-	int read, wrote;
-	FILE *file;
-	
-#define ENABLE_MINIMAL	
-	if (!path) {
-		aal_error("No file on the filesystem is specified.");
-		return -EINVAL;
-	}
-		
-	if (!out) {
-		aal_error("No output file is specified.");
-		return -EINVAL;
-	}
-	
-	if (!(obj = reiser4_semantic_open(fs->tree, path, NULL, 1))) {
-                aal_error("Can't open dir %s.", path);
-                return -EINVAL;
-        }
-
-	if (obj->ent->opset.plug[OPSET_OBJ]->id.group != REG_OBJECT) {
-		aal_error("Not regular file is specified %s.", path);
-		goto error;
-	}
-
-	
-	if (!(file = fopen(out, "w"))) {
-		aal_error("Failed to open the output file %s.", out);
-		goto error;
-	}
-	
-	while ((read = reiser4_object_read(obj, buf, 40960)) > 0) {
-		wrote = fwrite(buf, 1, read, file);
-		
-		if (read != wrote)
-			aal_error("Write failed: read %d bytes, wrote %d.", read, wrote);
-	}
-
-	if (read < 0)
-		aal_error("Read failed.");
-	
-	fclose(file);
-	reiser4_object_close(obj);
-#undef ENABLE_MINIMAL	
-	
-	return 0;
-	
- error:
-	reiser4_object_close(obj);
-	return -EINVAL;
 }
 
 errno_t reg_test(busy_ctx_t *ctx) {
