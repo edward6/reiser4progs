@@ -526,7 +526,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 					if (hint->pos.unit == 0)
 						break;
 				} else {
-					if (hint->pos.unit == src_units - 1)
+					if (hint->pos.unit == src_units)
 						break;
 				}
 			}

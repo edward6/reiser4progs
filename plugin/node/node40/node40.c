@@ -465,16 +465,16 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 		offset = nh_get_free_space_start(node);
 	}
 
-	/* Updating node's free space and free space start fields */
+	/* Updating node's free space and free space start fields. */
 	nh_inc_free_space_start(node, len);
 	nh_dec_free_space(node, len);
 
 	if (insert) {
-                /* Setting up the fields of new item */
+                /* Setting up the fields of new item. */
 		ih_set_offset(ih, offset, pol);
 		ih_set_flags(ih, 0, pol);
 
-		/* Setting up node header */
+		/* Setting up node header. */
 		nh_inc_num_items(node, count);
 		nh_dec_free_space(node, headers);
 	}
@@ -1145,7 +1145,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	if (!node40_splittable(&src_place, hint))
 		return 0;
 	
-	/* Checking if items are mergeable */
+	/* Checking if items are mergeable. */
 	if (dst_items > 0) {
 		/* Getting dst item. */
 		if ((res = node40_border(dst_entity, !left_shift, &dst_place)))
@@ -1172,20 +1172,20 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		hint->create = 1;
 	}
 
-	/* Calling item's pre_shift() method in order to estimate how many units
-	   may be shifted out. This method also updates unit component of insert
-	   point position. After this function is finish @hint->units_bytes will
-	   contain real number of bytes to be shifted into neighbour item. */
+	/* If items are not mergeable and we are in merge mode, we will not
+	   create new item in dst node. This mode is needed for mergeing two
+	   mergeable items when they lie in different nodes, and in such a way
+	   to prevent creating two mergeable items in the same node. */
+	if (hint->create != create)
+		return 0;
+	
+	/* Calling item's prep_shift() method in order to estimate how many
+	   units may be shifted out. This method also updates unit component of
+	   insert point position. After this function is finish
+	   @hint->units_bytes will contain real number of bytes to be shifted
+	   into neighbour item. */
 	if (hint->create) {
 		uint32_t overhead;
-		
-		/* If items are not mergeable and we are in merge mode, we will
-		   not create new item in dst node. This mode is needed for
-		   mergeing mergeable items when they lie in different nodes.
-		   And it prevents creating two mergeable items in the same
-		   node. */
-		if (!create)
-			return 0;
 
 		/* Getting node overhead in order to substract it from
 		   @hint->units_bytes, that is from space allowed to be used. */

@@ -1940,11 +1940,12 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 {
 	int alloc;
 	errno_t res;
+	uint8_t level;
 	int32_t enough;
 	uint32_t overhead;
 
-	node_t *left;
-	node_t *right;
+	uint32_t shift_flags;
+	node_t *left, *right;
 
 	aal_assert("umka-766", place != NULL);
 	aal_assert("umka-929", tree != NULL);
@@ -1953,7 +1954,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	   height and assigning it to passed @place. This may happen if this
 	   function will be called by user on empty tree. */
 	if (reiser4_tree_fresh(tree)) {
-		uint8_t level = reiser4_tree_get_height(tree);
+		level = reiser4_tree_get_height(tree);
 		
 		if (!(place->node = reiser4_tree_alloc_node(tree, level)))
 			return -ENOSPC;
@@ -1986,13 +1987,16 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	if ((SF_ALLOW_LEFT & flags) &&
 	    (left = reiser4_tree_neigh_node(tree, place->node, DIR_LEFT)))
 	{
-		uint32_t left_flags = (SF_ALLOW_LEFT | SF_UPDATE_POINT);
+		shift_flags = (SF_ALLOW_LEFT | SF_UPDATE_POINT);
 
 		if (SF_ALLOW_MERGE & flags)
-			left_flags |= SF_ALLOW_MERGE;
+			shift_flags |= SF_ALLOW_MERGE;
 		
-		/* Shift items from @place to @left neighbour. */
-		if ((res = reiser4_tree_shift(tree, place, left, left_flags)))
+		if (reiser4_place_leftmost(place))
+			shift_flags |= SF_MOVE_POINT;
+
+                /* Shift items from @place to @left neighbour. */
+		if ((res = reiser4_tree_shift(tree, place, left, shift_flags)))
 			return res;
 
 		/* Check fo result of shift -- space in node. */
@@ -2011,13 +2015,16 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	if ((SF_ALLOW_RIGHT & flags) &&
 	    (right = reiser4_tree_neigh_node(tree, place->node, DIR_RIGHT)))
 	{
-		uint32_t right_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
+		shift_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
 		
 		if (SF_ALLOW_MERGE & flags)
-			right_flags |= SF_ALLOW_MERGE;
+			shift_flags |= SF_ALLOW_MERGE;
+		
+		if (reiser4_place_rightmost(place))
+			shift_flags |= SF_MOVE_POINT;
 		
 		/* Shift items from @place to @right neighbour. */
-		if ((res = reiser4_tree_shift(tree, place, right, right_flags)))
+		if ((res = reiser4_tree_shift(tree, place, right, shift_flags)))
 			return res;
 
 		/* Check if node has enough of space and fucntion should do
@@ -2050,8 +2057,6 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	for (alloc = 0; enough < 0 && alloc < 2; alloc++) {
 		place_t save;
 		node_t *node;
-		uint8_t level;
-		uint32_t alloc_flags;
 
 		/* Saving place as it will be usefull for us later */
 		save = *place;
@@ -2063,20 +2068,20 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			return -ENOSPC;
 
 		/* Setting up shift flags */
-		alloc_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
+		shift_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
 
 		if (SF_ALLOW_MERGE & flags)
-			alloc_flags |= SF_ALLOW_MERGE;
+			shift_flags |= SF_ALLOW_MERGE;
 		
 		/* We will allow to move insert point to neighbour node if we
 		   are at first iteration in this loop or if place points behind
 		   the last unit of last item in current node. */
 		if (alloc > 0 || reiser4_place_rightmost(place))
-			alloc_flags |= SF_MOVE_POINT;
+			shift_flags |= SF_MOVE_POINT;
 
 		/* Shift data from @place to @node. Updating @place by new
 		   insert point. */
-		if ((res = reiser4_tree_shift(tree, place, node, alloc_flags)))
+		if ((res = reiser4_tree_shift(tree, place, node, shift_flags)))
 			return res;
 
 		if (reiser4_tree_root_node(tree, save.node)) {
