@@ -356,15 +356,14 @@ reiser4_node_t *reiser4_tree_nbr(reiser4_tree_t *tree,
 				 aal_direction_t where)
 {
         int found = 0;
-        uint32_t orig;
         uint32_t level;
         reiser4_place_t place;
                                                                                       
 	aal_assert("umka-2213", tree != NULL);
 	aal_assert("umka-2214", node != NULL);
 	
+	level = 0;
 	reiser4_place_assign(&place, node, 0, ~0ul);
-        level = orig = reiser4_node_get_level(node);
                                                                                       
         /*
           Going up to the level where corresponding neighbour node may be
@@ -393,7 +392,7 @@ reiser4_node_t *reiser4_tree_nbr(reiser4_tree_t *tree,
         place.pos.item += (where == D_LEFT ? -1 : 1);
                                                                                       
         /* Going down to the level of @node */
-        while (level > orig) {
+        while (level > 0) {
                 if (!(place.node = reiser4_tree_child(tree, &place)))
                         return NULL;
 
