@@ -5,10 +5,6 @@
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
 
 #include "journal40.h"
@@ -35,7 +31,7 @@ static void journal40_mkclean(object_entity_t *entity) {
 }
 
 static errno_t journal40_layout(object_entity_t *entity,
-				block_func_t func,
+				block_func_t block_func,
 				void *data)
 {
 	blk_t blk;
@@ -45,19 +41,19 @@ static errno_t journal40_layout(object_entity_t *entity,
 	journal40_t *journal;
 
 	aal_assert("umka-1040", entity != NULL);
-	aal_assert("umka-1041", func != NULL);
+	aal_assert("umka-1041", block_func != NULL);
     
 	journal = (journal40_t *)entity;
 	blocksize = journal->device->blocksize;
 	
 	blk = JOURNAL40_HEADER / blocksize;
     
-	if ((res = func(entity, blk, data)))
+	if ((res = block_func(entity, blk, data)))
 		return res;
     
 	blk = JOURNAL40_FOOTER / blocksize;
     
-	return func(entity, blk, data);
+	return block_func(entity, blk, data);
 }
 
 static errno_t journal40_hcheck(journal40_header_t *header) {
@@ -251,24 +247,6 @@ static errno_t journal40_sync(object_entity_t *entity) {
 	return 0;
 }
 
-static errno_t callback_replay_handler(object_entity_t *entity,
-				       aal_block_t *block,
-				       d64_t original, void *data) 
-{
-	aal_block_relocate(block, original);
-	    
-	if (aal_block_sync(block)) {
-		
-		aal_exception_error("Can't write block %llu.", 
-				    aal_block_number(block));
-		
-		aal_block_close(block);
-		return -EIO;
-	}
-
-	return 0;
-}
-
 static errno_t journal40_update(journal40_t *journal) {
 	aal_device_t *device;
 	aal_block_t *tx_block;
@@ -285,8 +263,8 @@ static errno_t journal40_update(journal40_t *journal) {
 	aal_assert("vpf-504", journal->header->data != NULL);
 	aal_assert("vpf-454", journal->device != NULL);
 
-	footer = (journal40_footer_t *)journal->footer->data;	
-	header = (journal40_header_t *)journal->header->data;
+	footer = JFOOTER(journal->footer);
+	header = JHEADER(journal->header);
 	
 	last_commited_tx = get_jh_last_commited(header);
 	last_flushed_tx = get_jf_last_flushed(footer);
@@ -315,7 +293,7 @@ static errno_t journal40_update(journal40_t *journal) {
 	set_jf_last_flushed(footer, last_commited_tx);
 	set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
 	
-	set_jf_nr_files(footer, get_th_nr_files(tx_header));
+	set_jf_used_oids(footer, get_th_used_oids(tx_header));
 	set_jf_next_oid(footer, get_th_next_oid(tx_header));
 
 	journal->dirty = 1;
@@ -330,7 +308,7 @@ static errno_t journal40_update(journal40_t *journal) {
 errno_t journal40_traverse_trans(
 	journal40_t *journal,                   /* journal object to be traversed */
 	aal_block_t *tx_block,                  /* trans header of a transaction */
-	journal40_wan_func_t wan_func,          /* wandered/original pair callback */
+	journal40_han_func_t han_func,          /* wandered/original pair callback */
 	journal40_sec_func_t sec_func,          /* secondary blocks callback */
 	void *data) 
 {
@@ -355,7 +333,8 @@ errno_t journal40_traverse_trans(
 		*/
 	    
 		if (sec_func && (res = sec_func((object_entity_t *)journal, 
-						tx_block, log_blk, LGR, data)))
+						tx_block, log_blk, BEL_LGR,
+						data)))
 			goto error;
 	    
 		if (!(log_block = aal_block_open(device, log_blk))) {
@@ -382,20 +361,21 @@ errno_t journal40_traverse_trans(
 			sizeof(journal40_lr_entry_t);
 
 		for (i = 0; i < capacity; i++) {
+			
 			if (get_le_wandered(entry) == 0)
 				break;
 
 			if (sec_func) {
 				if ((res = sec_func((object_entity_t *)journal, tx_block, 
-						    get_le_wandered(entry), WAN, data)))
+						    get_le_wandered(entry), BEL_WAN, data)))
 					goto error_free_log_block;
 		    
 				if ((res = sec_func((object_entity_t *)journal, tx_block,
-						    get_le_original(entry), ORG, data)))
+						    get_le_original(entry), BEL_ORG, data)))
 					goto error_free_log_block;
 			}
 	
-			if (wan_func) {
+			if (han_func) {
 				wan_block = aal_block_open(device, get_le_wandered(entry));
 		
 				if (!wan_block) {
@@ -407,7 +387,7 @@ errno_t journal40_traverse_trans(
 					goto error_free_log_block;
 				}
 
-				if ((res = wan_func((object_entity_t *)journal, wan_block, 
+				if ((res = han_func((object_entity_t *)journal, wan_block, 
 						    get_le_original(entry), data)))
 					goto error_free_wandered;
 
@@ -441,7 +421,7 @@ errno_t journal40_traverse_trans(
 errno_t journal40_traverse(
 	journal40_t *journal,                   /* journal object to be traversed */
 	journal40_txh_func_t txh_func,          /* TxH block callback */
-	journal40_wan_func_t wan_func,          /* wandered/original pair callback */
+	journal40_han_func_t han_func,          /* wandered/original pair callback */
 	journal40_sec_func_t sec_func,          /* secondary blocks callback */
 	void *data)                             /* opaque data for traverse callbacks */ 
 {
@@ -508,7 +488,7 @@ errno_t journal40_traverse(
 		tx_block = (aal_block_t *)aal_list_last(tx_list)->data;
 		
 		if ((res = journal40_traverse_trans(journal, tx_block,
-						    wan_func, sec_func,
+						    han_func, sec_func,
 						    data)))
 			goto error_free_tx_list;
 	
@@ -531,6 +511,24 @@ errno_t journal40_traverse(
 	return res;
 }
 
+static errno_t callback_replay_handler(object_entity_t *entity,
+				       aal_block_t *block,
+				       d64_t original, void *data) 
+{
+	aal_block_relocate(block, original);
+	    
+	if (aal_block_sync(block)) {
+		
+		aal_exception_error("Can't write block %llu.", 
+				    aal_block_number(block));
+		
+		aal_block_close(block);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 /* Makes journal replay */
 static errno_t journal40_replay(object_entity_t *entity) {
 	errno_t res;
@@ -544,15 +542,79 @@ static errno_t journal40_replay(object_entity_t *entity) {
 	return journal40_update((journal40_t *)entity);
 }
 
+static errno_t callback_print_txh(object_entity_t *entity,
+				  blk_t blk, void *data)
+{
+	return 0;
+}
+
+/* Printing pair (wandered and original) blocks */
+static errno_t callback_print_par(object_entity_t *entity,
+				  aal_block_t *block,
+				  d64_t original,
+				  void *data)
+{
+	return 0;
+}
+
+static errno_t callback_print_log(object_entity_t *entity,
+				  aal_block_t *block, blk_t blk,
+				  journal40_bel_t bel, void *data)
+{
+	return 0;
+}
+
 /* Prints journal structures into passed @stream */
 static errno_t journal40_print(object_entity_t *entity,
 			       aal_stream_t *stream, 
 			       uint16_t options)
 {
+	journal40_t *journal;
+	journal40_footer_t *footer;
+	journal40_header_t *header;
+	
 	aal_assert("umka-1465", entity != NULL);
 	aal_assert("umka-1466", stream != NULL);
 
-	return 0;
+	journal = (journal40_t *)entity;
+		
+	/* Printing journal header and journal footer first */
+	header = JHEADER(journal->header);
+	footer = JFOOTER(journal->footer);
+
+	aal_stream_format(stream, "Journal:\n");
+	
+	aal_stream_format(stream, "plugin: \t%s\n",
+			  entity->plugin->h.label);
+
+	aal_stream_format(stream, "description:\t%s\n\n",
+			  entity->plugin->h.desc);
+	
+	aal_stream_format(stream, "Journal header:\n");
+
+	aal_stream_format(stream, "last commited:\t%llu\n\n",
+			  get_jh_last_commited(header));
+		
+	aal_stream_format(stream, "Journal footer:\n");
+
+	aal_stream_format(stream, "last flushed:\t%llu\n",
+			  get_jf_last_flushed(footer));
+	
+	aal_stream_format(stream, "free blocks:\t%llu\n",
+			  get_jf_free_blocks(footer));
+	
+	aal_stream_format(stream, "next oid:\t0x%llx\n",
+			  get_jf_next_oid(footer));
+	
+	aal_stream_format(stream, "used oids:\t%llu\n",
+			  get_jf_used_oids(footer));
+
+	/* Print all transactions */
+	return journal40_traverse((journal40_t *)entity,
+				  callback_print_txh,
+				  callback_print_par,
+				  callback_print_log,
+				  (void *)stream);
 }
 
 /* Releases the journal */

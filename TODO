@@ -34,5 +34,5 @@ reiser4progs/COPYING.
 * change balancing algorithm from the recursive to task oriented one
   like kernel does.
 
-* make GRUB working in its native mode (make reiser4 in GRUb less size 
+* make GRUB working in its native mode (make reiser4 in GRUB less size 
   that it is for now).

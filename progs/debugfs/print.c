@@ -178,21 +178,13 @@ errno_t debugfs_print_format(reiser4_fs_t *fs) {
     
 	aal_stream_init(&stream);
 	
-	if ((res = reiser4_format_print(fs->format, &stream))) {
-		aal_exception_error("Can't print format specific "
-				    "super block.");
-		goto error_free_stream;
-	}
+	res = reiser4_format_print(fs->format, &stream);
     
 	aal_stream_format(&stream, "\n");
 	debugfs_print_stream(&stream);
 
 	aal_stream_fini(&stream);
-    	return 0;
-	
- error_free_stream:
-	aal_stream_fini(&stream);
-	return res;
+    	return res;
 }
 
 /* Prints oid allocator */
@@ -208,20 +200,13 @@ errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 
 	aal_stream_init(&stream);
 
-	if ((res = reiser4_oid_print(fs->oid, &stream))) {
-		aal_exception_error("Can't print oid allocator.");
-		goto error_free_stream;;
-	}
+	res = reiser4_oid_print(fs->oid, &stream);
 
 	aal_stream_format(&stream, "\n");
 	debugfs_print_stream(&stream);
 
 	aal_stream_fini(&stream);
-    	return 0;
-	
- error_free_stream:
-	aal_stream_fini(&stream);
-	return res;
+    	return res;
 }
 
 /* Prints block allocator */
@@ -231,27 +216,32 @@ errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
 
 	aal_stream_init(&stream);
     
-	if ((res = reiser4_alloc_print(fs->alloc, &stream))) {
-		aal_exception_error("Can't print block allocator.");
-		goto error_free_stream;;
-	}
+	res = reiser4_alloc_print(fs->alloc, &stream);
 
 	aal_stream_format(&stream, "\n");
 	debugfs_print_stream(&stream);
 
 	aal_stream_fini(&stream);
-    	return 0;
-	
- error_free_stream:
-	aal_stream_fini(&stream);
-	return res;
+    	return res;
 }
 
 /* Prints journal */
 errno_t debugfs_print_journal(reiser4_fs_t *fs) {
-	aal_exception_error("Sorry, journal print is not "
-			    "implemented yet!");
-	return 0;
+	errno_t res;
+	aal_stream_t stream;
+
+	aal_stream_init(&stream);
+	
+	if (!fs->journal)
+		return -EINVAL;
+
+	res = reiser4_journal_print(fs->journal, &stream);
+
+	aal_stream_format(&stream, "\n");
+	debugfs_print_stream(&stream);
+
+	aal_stream_fini(&stream);
+    	return res;
 }
 
 struct fprint_hint {
@@ -276,14 +266,7 @@ static errno_t fprint_process_place(
 		return 0;
 
 	hint->old = p->node->blk;
-	
-	if ((res = debugfs_print_node(p->node))) {
-		aal_exception_error("Can't print node %llu.",
-				    hint->old);
-		return res;
-	}
-
-	return 0;
+	return debugfs_print_node(p->node);
 }
 
 /* Prints all items belong to the specified file */
@@ -300,7 +283,7 @@ errno_t debugfs_print_file(
 		return -EINVAL;
 
 	/*
-	  If --show-items option is specified, we show only items belong to the
+	  If --print-items option is specified, we show only items belong to the
 	  file. If no, that we show all items whihc lie in the same block as the
 	  item belong to the file denoted by @filename.
 	*/
@@ -309,13 +292,8 @@ errno_t debugfs_print_file(
 
 		aal_stream_init(&stream);
 		
-		if (reiser4_object_print(object, &stream) == 0)
+		if ((res = reiser4_object_print(object, &stream)) == 0)
 			debugfs_print_stream(&stream);
-		else {
-			aal_exception_error("Can't print file %s.",
-					    object->name);
-			res = -EINVAL;
-		}
 		
 		aal_stream_fini(&stream);
 	} else {
@@ -323,10 +301,11 @@ errno_t debugfs_print_file(
 		hint.data = fs;
 		hint.flags = flags;
 
-		if (reiser4_object_metadata(object, fprint_process_place, &hint)) {
+		if ((res = reiser4_object_metadata(object, fprint_process_place,
+						   &hint)))
+		{
 			aal_exception_error("Can't print object %s metadata.",
 					    object->name);
-			res = -EINVAL;
 		}
 	}
 

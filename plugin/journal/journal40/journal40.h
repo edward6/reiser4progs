@@ -55,7 +55,7 @@ struct journal40_footer {
 	d64_t jf_last_flushed;
 
 	d64_t jf_free_blocks;
-	d64_t jf_nr_files;
+	d64_t jf_used_oids;
 	d64_t jf_next_oid;
 };
 
@@ -67,16 +67,11 @@ typedef struct journal40_footer journal40_footer_t;
 #define get_jf_free_blocks(jf)			aal_get_le64(jf, jf_free_blocks)
 #define set_jf_free_blocks(jf, val)		aal_set_le64(jf, jf_free_blocks, val)
 
-#define get_jf_nr_files(jf)			aal_get_le64(jf, jf_nr_files)
-#define set_jf_nr_files(jf, val)		aal_set_le64(jf, jf_nr_files, val)
+#define get_jf_used_oids(jf)			aal_get_le64(jf, jf_used_oids)
+#define set_jf_used_oids(jf, val)		aal_set_le64(jf, jf_used_oids, val)
 
 #define get_jf_next_oid(jf)			aal_get_le64(jf, jf_next_oid)
 #define set_jf_next_oid(jf, val)		aal_set_le64(jf, jf_next_oid, val)
-
-#define TXH 1
-#define LGR 2
-#define WAN 3
-#define ORG 4
 
 #define TXH_MAGIC "TxMagic4"
 #define LGR_MAGIC "LogMagc4"
@@ -94,7 +89,7 @@ struct journal40_tx_header {
 	d64_t th_next_block;
 
 	d64_t th_free_blocks;
-	d64_t th_nr_files;
+	d64_t th_used_oids;
 	d64_t th_next_oid;
 };
 
@@ -115,8 +110,8 @@ typedef struct journal40_tx_header journal40_tx_header_t;
 #define get_th_free_blocks(th)			aal_get_le64(th, th_free_blocks)
 #define set_th_free_blocks(th, val)		aal_set_le64(th, th_free_blocks, val)
 
-#define get_th_nr_files(th)			aal_get_le64(th, th_nr_files)
-#define set_th_nr_files(th, val)		aal_set_le64(th, th_nr_files, val)
+#define get_th_used_oids(th)			aal_get_le64(th, th_used_oids)
+#define set_th_used_oids(th, val)		aal_set_le64(th, th_used_oids, val)
 
 #define get_th_next_oid(th)			aal_get_le64(th, th_next_oid)
 #define set_th_next_oid(th, val)		aal_set_le64(th, th_next_oid, val)
@@ -150,6 +145,17 @@ struct journal40_lr_entry {
 
 typedef struct journal40_lr_entry journal40_lr_entry_t;
 
+enum journal40_bel {
+	BEL_INV = 0x0,
+	BEL_TXH = 0x1,
+	BEL_LGR = 0x2,
+	BEL_WAN = 0x3,
+	BEL_ORG = 0x4,
+	BEL_LST
+};
+
+typedef enum journal40_bel journal40_bel_t;
+
 #define get_le_original(le)			aal_get_le64(le, le_original)
 #define set_le_original(le, val)		aal_set_le64(le, le_original, val)
 
@@ -158,12 +164,17 @@ typedef struct journal40_lr_entry journal40_lr_entry_t;
 
 typedef errno_t (*journal40_txh_func_t) (object_entity_t *, blk_t, void *);
 
-typedef errno_t (*journal40_wan_func_t) (object_entity_t *, aal_block_t *, 
+typedef errno_t (*journal40_sec_func_t) (object_entity_t *, aal_block_t *, 
+					 blk_t, journal40_bel_t, void *);
+
+typedef errno_t (*journal40_han_func_t) (object_entity_t *, aal_block_t *, 
 					 d64_t, void *);
 
-typedef errno_t (*journal40_sec_func_t) (object_entity_t *, aal_block_t *, 
-					 blk_t, int, void *);
+#define JFOOTER(block) \
+        ((journal40_footer_t *)block->data)
 
+#define JHEADER(block) \
+        ((journal40_header_t *)block->data)
 #endif
 
 #endif

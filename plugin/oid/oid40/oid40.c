@@ -153,7 +153,7 @@ static errno_t oid40_print(object_entity_t *entity,
 	aal_stream_format(stream, "next oid:\t0x%llx\n",
 			  ((oid40_t *)entity)->next);
 
-	aal_stream_format(stream, "used oids:\t0x%llx\n",
+	aal_stream_format(stream, "used oids:\t%llu\n",
 			  ((oid40_t *)entity)->used);
 	return 0;
 }
