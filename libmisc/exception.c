@@ -132,10 +132,10 @@ aal_exception_option_t misc_exception_handler(
 {
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 	int i;
+	aal_list_t *variant = NULL;
 #endif
 	int tty;
 	void *stream = stderr;
-	aal_list_t *variant = NULL;
 	aal_exception_option_t opt = EXCEPTION_UNHANDLED;
     
 	if (misc_exception_option_count(exception->options, 0) == 1) {
