@@ -1026,8 +1026,8 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 #ifndef ENABLE_STAND_ALONE
 
 /* Returns real maximal key in direntry item */
-static errno_t direntry40_utmost_key(item_entity_t *item, 
-				     key_entity_t *key) 
+static errno_t direntry40_maxreal_key(item_entity_t *item, 
+				      key_entity_t *key) 
 {
 	uint32_t units;
 	direntry40_t *direntry;
@@ -1157,7 +1157,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.shift          = direntry40_shift,
 		.predict        = direntry40_predict,
 		.feel           = direntry40_feel,
-		.utmost_key     = direntry40_utmost_key,
+		.maxreal_key    = direntry40_maxreal_key,
 		
 		.write		= NULL,
 		.set_key	= NULL,

@@ -13,9 +13,9 @@
   variable. It is needed for updating item key after shifting, etc.
 */
 errno_t common40_get_key(item_entity_t *item,
-			 uint32_t pos,
+			 uint64_t pos,
 			 key_entity_t *key,
-			 trans_func_t func)
+			 trans_func_t trans_func)
 {
 	uint64_t offset;
 
@@ -25,7 +25,7 @@ errno_t common40_get_key(item_entity_t *item,
 	offset = plugin_call(key->plugin->key_ops,
 			     get_offset, key);
 
-	offset += (func ? func(item, pos) : pos);
+	offset += (trans_func ? trans_func(item, pos) : pos);
 
 	plugin_call(key->plugin->key_ops, set_offset,
 		    key, offset);
@@ -55,12 +55,40 @@ errno_t common40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
+
+/* Returns max real key inside passed @item */
+errno_t common40_maxreal_key(item_entity_t *item,
+			     key_entity_t *key,
+			     trans_func_t trans_func) 
+{
+	uint64_t units;
+	uint64_t offset;
+
+	units = plugin_call(item->plugin->item_ops,
+			    units, item);
+	
+	plugin_call(item->key.plugin->key_ops,
+		    assign, key, &item->key);
+
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, key);
+
+	if (trans_func)
+		units = trans_func(item, units);
+	
+	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset + units - 1);
+	
+	return 0;
+}
+
 /* Checks if two items are mergeable */
 int common40_mergeable(item_entity_t *item1,
 		       item_entity_t *item2)
 {
-	key_entity_t utmost_key;
-	uint64_t utmost, offset;
+	key_entity_t maxreal_key;
+	uint64_t maxreal, offset;
 	reiser4_plugin_t *plugin;
 	oid_t objectid1, objectid2;
 	
@@ -84,17 +112,64 @@ int common40_mergeable(item_entity_t *item1,
 	if (objectid1 != objectid2)
 		return 0;
 
-	plugin_call(item1->plugin->item_ops, utmost_key,
-		    item1, &utmost_key);
+	plugin_call(item1->plugin->item_ops, maxreal_key,
+		    item1, &maxreal_key);
 		
-	utmost = plugin_call(plugin->key_ops, get_offset,
-			     &utmost_key);
+	maxreal = plugin_call(plugin->key_ops, get_offset,
+			      &maxreal_key);
 	
 	offset = plugin_call(plugin->key_ops, get_offset,
 			     &item2->key);
 
-	if (utmost != offset)
+	if (maxreal != offset)
 		return 0;
 	
 	return 1;
+}
+#endif
+
+lookup_t common40_lookup(item_entity_t *item,
+			 key_entity_t *key,
+			 uint64_t *pos,
+			 trans_func_t trans_func)
+{
+	uint64_t size;
+	uint64_t offset;
+	uint64_t wanted;
+	
+	uint32_t units;
+	key_entity_t maxkey;
+
+	common40_maxposs_key(item, &maxkey);
+
+	units = plugin_call(item->plugin->item_ops,
+			    units, item);
+	if (units == 0)
+		return LP_ABSENT;
+
+	size = trans_func ? trans_func(item, units) :
+		units;
+	
+	if (plugin_call(key->plugin->key_ops,
+			compare, key, &maxkey) > 0)
+	{
+		*pos = size;
+		return LP_ABSENT;
+	}
+
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, &item->key);
+
+	wanted = plugin_call(key->plugin->key_ops,
+			     get_offset, key);
+
+	if (wanted >= offset &&
+	    wanted < offset + size)
+	{
+		*pos = wanted - offset;
+		return LP_PRESENT;
+	}
+
+	*pos = size;
+	return LP_ABSENT;
 }

@@ -325,7 +325,6 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 bool_t reiser4_item_mergeable(reiser4_place_t *place1,
 			      reiser4_place_t *place2)
 {
@@ -346,8 +345,8 @@ bool_t reiser4_item_mergeable(reiser4_place_t *place1,
 }
 
 /* Returns real maximal item key */
-errno_t reiser4_item_utmost_key(reiser4_place_t *place,
-				reiser4_key_t *key)
+errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
+				 reiser4_key_t *key)
 {
 	errno_t res;
 	item_entity_t *item;
@@ -361,8 +360,8 @@ errno_t reiser4_item_utmost_key(reiser4_place_t *place,
 	if ((res = reiser4_item_get_key(place, key)))
 		return res;
 	    
-	if (item->plugin->item_ops.utmost_key) 
-		return item->plugin->item_ops.utmost_key(item, key);	
+	if (item->plugin->item_ops.maxreal_key) 
+		return item->plugin->item_ops.maxreal_key(item, key);	
 		
 	return 0;
 }

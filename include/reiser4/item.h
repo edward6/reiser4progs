@@ -38,8 +38,8 @@ extern errno_t reiser4_item_feel(reiser4_place_t *place,
 extern errno_t reiser4_item_estimate(reiser4_place_t *place,
 				     create_hint_t *hint);
 
-extern errno_t reiser4_item_utmost_key(reiser4_place_t *place,
-				       reiser4_key_t *key);
+extern errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
+					reiser4_key_t *key);
 
 extern errno_t reiser4_item_gap_key(reiser4_place_t *place, 
 				    reiser4_key_t *key);

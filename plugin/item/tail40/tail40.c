@@ -196,24 +196,13 @@ static errno_t tail40_print(item_entity_t *item,
 	return 0;
 }
 
-static errno_t tail40_utmost_key(item_entity_t *item,
-				 key_entity_t *key) 
+static errno_t tail40_maxreal_key(item_entity_t *item,
+				  key_entity_t *key) 
 {
-	uint64_t offset;
-
 	aal_assert("vpf-442", item != NULL);
 	aal_assert("vpf-443", key != NULL);
 
-	plugin_call(item->key.plugin->key_ops,
-		    assign, key, &item->key);
-
-	offset = plugin_call(key->plugin->key_ops,
-			     get_offset, key);
-	
-	plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset + item->len - 1);
-	
-	return 0;
+	return common40_maxreal_key(item, key, NULL);
 }
 #endif
 
@@ -230,45 +219,17 @@ static lookup_t tail40_lookup(item_entity_t *item,
 			      key_entity_t *key, 
 			      uint32_t *pos)
 {
-	uint32_t wanted;
-	uint32_t current;
-    
-	key_entity_t curkey;
-	key_entity_t maxkey;
-    
+	lookup_t res;
+	uint64_t offset;
+	
 	aal_assert("umka-1228", item != NULL);
 	aal_assert("umka-1229", key != NULL);
 	aal_assert("umka-1230", pos != NULL);
 
-	maxkey.plugin = key->plugin;
-	
-	tail40_maxposs_key(item, &maxkey);
+	res = common40_lookup(item, key, &offset, NULL);
 
-	if (plugin_call(key->plugin->key_ops,
-			compare, key, &maxkey) > 0)
-	{
-		*pos = item->len;
-		return LP_ABSENT;
-	}
-
-	curkey.plugin = key->plugin;
-	
-	plugin_call(curkey.plugin->key_ops, assign,
-		    &curkey, &item->key);
-
-	current = plugin_call(key->plugin->key_ops,
-			      get_offset, &curkey);
-	
-    	wanted = plugin_call(key->plugin->key_ops,
-			     get_offset, key);
-    
-	if (wanted >= current && wanted < current + item->len) {
-		*pos = wanted - current;
-		return LP_PRESENT;
-	}
-
-	*pos = item->len;
-	return LP_ABSENT;
+	*pos = offset;
+	return res;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -407,8 +368,9 @@ static reiser4_plugin_t tail40_plugin = {
 		.predict        = tail40_predict,
 		.shift	        = tail40_shift,		
 		.feel           = tail40_feel,
-		.utmost_key     = tail40_utmost_key,
-		.gap_key        = tail40_utmost_key,
+		
+		.maxreal_key    = tail40_maxreal_key,
+		.gap_key        = tail40_maxreal_key,
 		
 		.check	        = NULL,
 		.insert         = NULL,

@@ -499,7 +499,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.predict        = NULL,
 		.set_key	= NULL,
 		.layout_check	= NULL,
-		.utmost_key     = NULL,
+		.maxreal_key    = NULL,
 		.gap_key	= NULL,
 #endif
 		.data		= stat40_data,

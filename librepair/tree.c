@@ -234,7 +234,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
 	    if ((ret = reiser4_item_gap_key(&place, &dst_key))) 
 		return ret;
 
-	    if ((ret = reiser4_item_utmost_key(insert, &src_key)))
+	    if ((ret = reiser4_item_maxreal_key(insert, &src_key)))
 		return ret;
 	    
 	    /* Count of items to be inserted. */

@@ -16,7 +16,7 @@ uint32_t repair_item_split(
     reiser4_key_t key;
     uint32_t unit = 0;
 
-    if (reiser4_item_utmost_key(place, &key))
+    if (reiser4_item_maxreal_key(place, &key))
 	return -EINVAL;
  
     /* rd_key greater then max real key - nothing to split. */

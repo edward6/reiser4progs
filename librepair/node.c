@@ -45,7 +45,7 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
 	if (reiser4_node_close(child))
 	    return -EINVAL;
     } else 
-	res = reiser4_item_utmost_key(&place, key);
+	res = reiser4_item_maxreal_key(&place, key);
 
     return res;
 }
@@ -308,7 +308,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	return res;
     }
     
-    if ((res = reiser4_item_utmost_key(&place, &key))) {
+    if ((res = reiser4_item_maxreal_key(&place, &key))) {
 	aal_exception_error("Node (%llu): Failed to get the max real key of "
 	    "the last item.", node->blk);
 	return res;

@@ -797,7 +797,7 @@ struct reiser4_item_ops {
 #ifndef ENABLE_STAND_ALONE
 	
 	/* Get the max real key which is stored in the item */
-	errno_t (*utmost_key) (item_entity_t *, key_entity_t *);
+	errno_t (*maxreal_key) (item_entity_t *, key_entity_t *);
 
 	/*
 	  Get the max real key stored continously from the key specified in the

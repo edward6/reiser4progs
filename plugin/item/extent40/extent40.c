@@ -36,16 +36,40 @@ uint32_t extent40_units(item_entity_t *item) {
 
 /* Calculates extent size */
 static uint64_t extent40_offset(item_entity_t *item,
-				uint32_t pos)
+				uint64_t pos)
 {
 	uint32_t i, blocks = 0;
     
 	aal_assert("umka-2204", item != NULL);
 	
-	for (i = 0; i < pos; i++)
-		blocks += et40_get_width(extent40_body(item) + i);
+	for (i = 0; i < pos; i++) {
+		extent40_t *extent = extent40_body(item);
+		blocks += et40_get_width(extent + i);
+	}
     
 	return (blocks * item->context.device->blocksize);
+}
+
+/* Gets the number of unit specified offset lies in */
+static uint32_t extent40_unit(item_entity_t *item,
+			      uint64_t offset)
+{
+	uint32_t i;
+	uint32_t blocksize;
+	extent40_t *extent;
+
+	extent = extent40_body(item);
+	blocksize = extent40_blocksize(item);
+	
+	for (i = 0; i < extent40_units(item); i++, extent++) {
+
+		if (offset < et40_get_width(extent) * blocksize)
+			return i;
+
+		offset -= et40_get_width(extent) * blocksize;
+	}
+
+	return i;
 }
 
 /*
@@ -83,7 +107,7 @@ static int32_t extent40_remove(item_entity_t *item,
 
 	aal_assert("umka-1834", item != NULL);
 
-	/* FIXME-UMKA */
+	/* FIXME-UMKA: Not implemented yet */
 	
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
@@ -134,24 +158,13 @@ static errno_t extent40_print(item_entity_t *item,
 }
 
 /* Builds maximal real key in use for specified @item */
-static errno_t extent40_utmost_key(item_entity_t *item,
-				   key_entity_t *key) 
+static errno_t extent40_maxreal_key(item_entity_t *item,
+				    key_entity_t *key) 
 {
-	uint64_t offset;
-	
 	aal_assert("vpf-437", item != NULL);
 	aal_assert("vpf-438", key  != NULL);
 
-	plugin_call(item->key.plugin->key_ops,
-		    assign, key, &item->key);
-	
-	offset = plugin_call(key->plugin->key_ops,
-			     get_offset, key);
-
-	plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset + extent40_size(item) - 1);
-
-	return 0;	
+	return common40_maxreal_key(item, key, extent40_offset);
 }
 #endif
 
@@ -173,70 +186,21 @@ static lookup_t extent40_lookup(item_entity_t *item,
 				key_entity_t *key,
 				uint32_t *pos)
 {
+	lookup_t res;
 	uint64_t offset;
-	uint64_t wanted;
-	uint32_t i, units;
-	extent40_t *extent;
-	key_entity_t maxkey;
 
 	aal_assert("umka-1500", item != NULL);
 	aal_assert("umka-1501", key  != NULL);
 	aal_assert("umka-1502", pos != NULL);
 	
-	extent = extent40_body(item);
-	extent40_maxposs_key(item, &maxkey);
+	/* Looking up */
+	res = common40_lookup(item, key, &offset,
+			      extent40_offset);
 
-	if (!(units = extent40_units(item)))
-		return LP_FAILED;
-
-	if (plugin_call(key->plugin->key_ops,
-			compare, key, &maxkey) > 0)
-	{
-		*pos = extent40_size(item);
-		return LP_ABSENT;
-	}
-
-	offset = plugin_call(key->plugin->key_ops,
-			     get_offset, &item->key);
-
-	wanted = plugin_call(key->plugin->key_ops,
-			     get_offset, key);
+	/* Transforming from the offset ot unit */
+	*pos = extent40_unit(item, offset);
 	
-	for (i = 0; i < units; i++, extent++) {
-
-		offset += (extent40_blocksize(item) *
-			   et40_get_width(extent));
-		
-		if (offset > wanted) {
-			*pos = i;
-			return LP_PRESENT;
-		}
-	}
-
-	*pos = units - 1;
-	return LP_ABSENT;
-}
-
-/* Gets the number of unit specified offset lies in */
-static uint32_t extent40_unit(item_entity_t *item,
-			      uint32_t offset)
-{
-	uint32_t i;
-	uint32_t blocksize;
-	extent40_t *extent;
-
-	extent = extent40_body(item);
-	blocksize = extent40_blocksize(item);
-	
-	for (i = 0; i < extent40_units(item); i++, extent++) {
-		
-		if (offset < et40_get_width(extent) * blocksize)
-			return i;
-
-		offset -= et40_get_width(extent) * blocksize;
-	}
-
-	return i;
+	return res;
 }
 
 /*
@@ -577,8 +541,8 @@ static reiser4_plugin_t extent40_plugin = {
 		.layout        = extent40_layout,
 		.check	       = extent40_check,
 		.feel          = extent40_feel,
-		.gap_key       = extent40_utmost_key,
-		.utmost_key    = extent40_utmost_key,
+		.gap_key       = extent40_maxreal_key,
+		.maxreal_key   = extent40_maxreal_key,
 		.layout_check  = extent40_layout_check,
 		
 		.insert        = NULL,

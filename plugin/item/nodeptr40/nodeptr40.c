@@ -216,7 +216,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 
 		.set_key	= NULL,
 		.gap_key	= NULL,
-		.utmost_key     = NULL,
+		.maxreal_key    = NULL,
 #endif
 		.units		= nodeptr40_units,
 		.read           = nodeptr40_read,
