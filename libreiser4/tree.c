@@ -420,10 +420,10 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 		if (reiser4_tree_adjust(tree)) {
 			aal_error("Can't adjust tree during connect "
 				  "node %llu.", node->block->nr);
+			
 			reiser4_node_unlock(node);
-			if (parent) {
+			if (parent)
 				reiser4_node_unlock(parent);
-			}
 			
 			reiser4_tree_unhash_node(tree, node);
 			return -EINVAL;
@@ -431,7 +431,7 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 		
 		reiser4_node_unlock(node);
 	}
-
+	
 	return 0;
 }
 
@@ -1280,13 +1280,17 @@ static errno_t cb_nodeptr_adjust(reiser4_tree_t *tree, reiser4_place_t *place) {
 	/* Allocating unallocated extent item at @place. */
 	return reiser4_tree_alloc_extent(tree, place);
 }
+#endif
 
 static errno_t cb_node_unload(reiser4_tree_t *tree, reiser4_node_t *node) {
+#ifndef ENABLE_STAND_ALONE
 	count_t free_blocks;
 
-	/* Updating free space counter in format. */
+	/* Updating free space counter in format for the case some blocks were 
+	   allocated. */
 	free_blocks = reiser4_alloc_free(tree->fs->alloc);
 	reiser4_format_set_free(tree->fs->format, free_blocks);
+#endif
 
 	/* If node is locked, that is not a leaf or it is used by someone, it
 	   cannot be released, and thus, it does not make the sense to save it
@@ -1294,16 +1298,17 @@ static errno_t cb_node_unload(reiser4_tree_t *tree, reiser4_node_t *node) {
 	if (reiser4_node_locked(node))
 		return 0;
 	
+#ifndef ENABLE_STAND_ALONE
 	/* Okay, node is fully allocated now and ready to be saved to device if
 	   it is dirty. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
 		aal_error("Can't write node %llu.", node->block->nr);
 		return -EIO;
 	}
+#endif
 	/* Unloading node from tree cache. */
 	return reiser4_tree_unload_node(tree, node);
 }
-#endif
 
 
 /* Entry point for adjsuting tree routines. */
@@ -1325,7 +1330,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 						     cb_node_unload);
 #else
 			res = reiser4_tree_walk_node(tree, tree->root, 
-						     reiser4_tree_unload_node);
+						     cb_node_unload);
 #endif
 		
 		tree->adjusting = 0;

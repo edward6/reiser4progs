@@ -384,6 +384,9 @@ static void format40_set_len(generic_entity_t *entity, uint64_t blocks) {
 static void format40_set_free(generic_entity_t *entity, uint64_t blocks) {
 	aal_assert("umka-405", entity != NULL);
 
+	if (get_sb_free_blocks(SUPER(entity)) == blocks)
+		return;
+
 	set_sb_free_blocks(SUPER(entity), blocks);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
