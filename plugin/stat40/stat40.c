@@ -383,6 +383,8 @@ static reiser4_plugin_t stat40_plugin = {
 #endif
         .lookup		= NULL,
         .print		= NULL,
+	.mergeable	= NULL,
+	.shift		= NULL,
 	    
         .max_poss_key	= stat40_max_poss_key,
         .max_real_key   = stat40_max_poss_key,

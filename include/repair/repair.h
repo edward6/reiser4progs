@@ -57,12 +57,12 @@ struct repair_check {
     reiser4_format_t *format;
     uint16_t options;
     uint64_t flags;
-    reiser4_bitmap_t *many_pointed_blocks;
+    aux_bitmap_t *many_pointed_blocks;
     union {
 	struct {
 	    uint8_t level;
-	    reiser4_bitmap_t *once_pointed;
-	    reiser4_bitmap_t *many_pointed;
+	    aux_bitmap_t *once_pointed;
+	    aux_bitmap_t *many_pointed;
 	    aal_list_t *nodes_path;
 	    aal_list_t *items_path;
 	} cut;

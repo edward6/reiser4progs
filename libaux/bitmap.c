@@ -1,7 +1,6 @@
 /*
     bitmap.c -- bitmap functions. Bitmap is used by bitmap-based block allocator 
     plugin.
-    
     Copyright (C) 1996-2002 Hans Reiser.
 */
 
@@ -12,7 +11,7 @@
     This macros is used for checking whether given block is inside of allowed 
     range or not. It is used in all bitmap functions.
 */
-#define reiser4_bitmap_range_check(bitmap, blk, action)				\
+#define aux_bitmap_range_check(bitmap, blk, action)				\
 do {										\
     if (blk >= bitmap->total_blocks) {						\
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,			\
@@ -25,8 +24,8 @@ do {										\
     Checks whether passed block is inside of bitmap and marks it as used. This
     function also increses used blocks counter. 
 */
-void reiser4_bitmap_use(
-    reiser4_bitmap_t *bitmap,	/* bitmap instance passed blk will be marked in */
+void aux_bitmap_use(
+    aux_bitmap_t *bitmap,	/* bitmap instance passed blk will be marked in */
     blk_t blk			/* blk to be marked as used */
 ) {
     aal_assert("umka-336", bitmap != NULL, return);
@@ -42,13 +41,13 @@ void reiser4_bitmap_use(
     Checks whether passed block is inside of bitmap and marks it as free. This
     function also descreases used blocks counter. 
 */
-void reiser4_bitmap_unuse(
-    reiser4_bitmap_t *bitmap,	/* bitmap, passed blk will be marked in */
+void aux_bitmap_unuse(
+    aux_bitmap_t *bitmap,	/* bitmap, passed blk will be marked in */
     blk_t blk			/* blk to be marked as unused */
 ) {
     aal_assert("umka-337", bitmap != NULL, return);
 
-    reiser4_bitmap_range_check(bitmap, blk, return);
+    aux_bitmap_range_check(bitmap, blk, return);
     if (!aal_test_bit(blk, bitmap->map))
 	return;
 	
@@ -60,25 +59,25 @@ void reiser4_bitmap_unuse(
     Checks whether passed block is inside of bitmap and test it. Returns TRUE
     if block is used, FALSE otherwise.
 */
-int reiser4_bitmap_test(
-    reiser4_bitmap_t *bitmap,	/* bitmap, passed blk will be tested */
+int aux_bitmap_test(
+    aux_bitmap_t *bitmap,	/* bitmap, passed blk will be tested */
     blk_t blk			/* blk to be tested */
 ) {
     aal_assert("umka-338", bitmap != NULL, return 0);
-    reiser4_bitmap_range_check(bitmap, blk, return 0);
+    aux_bitmap_range_check(bitmap, blk, return 0);
     return aal_test_bit(blk, bitmap->map);
 }
 
 /* Finds first unused in bitmap block, starting from passed "start" */
-blk_t reiser4_bitmap_find(
-    reiser4_bitmap_t *bitmap,	/* bitmap, unused bit will be searched in */
+blk_t aux_bitmap_find(
+    aux_bitmap_t *bitmap,	/* bitmap, unused bit will be searched in */
     blk_t start			/* start bit, search should be performed from */
 ) {
     blk_t blk;
 	
     aal_assert("umka-339", bitmap != NULL, return 0);
 	
-    reiser4_bitmap_range_check(bitmap, start, return 0);
+    aux_bitmap_range_check(bitmap, start, return 0);
 
     if ((blk = aal_find_next_zero_bit(bitmap->map, 
 	    bitmap->total_blocks, start)) >= bitmap->total_blocks)
@@ -94,10 +93,10 @@ blk_t reiser4_bitmap_find(
     the bitmap on validness. Imagine, we have a number of free blocks in the super 
     block or somewhere else. And we can easily check whether this number equal 
     to actual returned one or not. Also it is used for calculating used blocks of 
-    bitmap in reiser4_bitmap_open function. See bellow for details.
+    bitmap in aux_bitmap_open function. See bellow for details.
 */
-static blk_t reiser4_bitmap_calc(
-    reiser4_bitmap_t *bitmap,	/* bitmap will be used for calculating bits */
+static blk_t aux_bitmap_calc(
+    aux_bitmap_t *bitmap,	/* bitmap will be used for calculating bits */
     blk_t start,		/* start bit, calculating should be performed from */
     blk_t end,			/* end bit, calculating should be stoped on */
     int flag			/* flag for kind of calculating (used or free) */
@@ -106,72 +105,72 @@ static blk_t reiser4_bitmap_calc(
 	
     aal_assert("umka-340", bitmap != NULL, return 0);
 	
-    reiser4_bitmap_range_check(bitmap, start, return 0);
-    reiser4_bitmap_range_check(bitmap, end - 1, return 0);
+    aux_bitmap_range_check(bitmap, start, return 0);
+    aux_bitmap_range_check(bitmap, end - 1, return 0);
 	
     for (i = start; i < end; i++)
-	blocks += reiser4_bitmap_test(bitmap, i) ? flag : !flag;
+	blocks += aux_bitmap_test(bitmap, i) ? flag : !flag;
 
     return blocks;
 }
 
 /* Public wrapper for previous function */
-blk_t reiser4_bitmap_calc_used(
-    reiser4_bitmap_t *bitmap	/* bitmap, calculating will be performed in */
+blk_t aux_bitmap_calc_used(
+    aux_bitmap_t *bitmap	/* bitmap, calculating will be performed in */
 ) {
-    return (bitmap->used_blocks = reiser4_bitmap_calc(bitmap, 0, 
+    return (bitmap->used_blocks = aux_bitmap_calc(bitmap, 0, 
 	bitmap->total_blocks, 1));
 }
 
 /* The same as previous one */
-blk_t reiser4_bitmap_calc_unused(
-    reiser4_bitmap_t *bitmap	/* bitmap, calculating will be performed in */
+blk_t aux_bitmap_calc_unused(
+    aux_bitmap_t *bitmap	/* bitmap, calculating will be performed in */
 ) {
-    return reiser4_bitmap_calc(bitmap, 0, bitmap->total_blocks, 0);
+    return aux_bitmap_calc(bitmap, 0, bitmap->total_blocks, 0);
 }
 
 /* 
     Yet another wrapper. It counts the number of used/unused blocks in specified 
     region.
 */
-count_t reiser4_bitmap_calc_used_in_area(
-    reiser4_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
+count_t aux_bitmap_calc_used_in_area(
+    aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
     blk_t start,		/* start bit (block) */
     blk_t end			/* end bit (block) */
 ) {
-    return reiser4_bitmap_calc(bitmap, start, end, 1);
+    return aux_bitmap_calc(bitmap, start, end, 1);
 }
 
 /* The same as previous one */
-count_t reiser4_bitmap_calc_unused_in_area(
-    reiser4_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
+count_t aux_bitmap_calc_unused_in_area(
+    aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
     blk_t start,		/* start bit */
     blk_t end			/* end bit */
 ) {
-    return reiser4_bitmap_calc(bitmap, start, end, 0);
+    return aux_bitmap_calc(bitmap, start, end, 0);
 }
 
 /* Retuns stored value of used blocks from specified bitmap */
-count_t reiser4_bitmap_used(
-    reiser4_bitmap_t *bitmap	/* bitmap used blocks number will be obtained from */
+count_t aux_bitmap_used(
+    aux_bitmap_t *bitmap	/* bitmap used blocks number will be obtained from */
 ) {
     aal_assert("umka-343", bitmap != NULL, return 0);
     return bitmap->used_blocks;
 }
 
 /* Retuns stored value of free blocks from specified bitmap */
-count_t reiser4_bitmap_unused(
-    reiser4_bitmap_t *bitmap	/* bitmap unsuded blocks will be obtained from */
+count_t aux_bitmap_unused(
+    aux_bitmap_t *bitmap	/* bitmap unsuded blocks will be obtained from */
 ) {
     aal_assert("umka-344", bitmap != NULL, return 0);
     return bitmap->total_blocks - bitmap->used_blocks;
 }
 
 /* Creates instance of bitmap */
-reiser4_bitmap_t *reiser4_bitmap_create(count_t len) {
-    reiser4_bitmap_t *bitmap;
+aux_bitmap_t *aux_bitmap_create(count_t len) {
+    aux_bitmap_t *bitmap;
 	    
-    if (!(bitmap = (reiser4_bitmap_t *)aal_calloc(sizeof(*bitmap), 0)))
+    if (!(bitmap = (aux_bitmap_t *)aal_calloc(sizeof(*bitmap), 0)))
 	return NULL;
 	
     bitmap->size = /*size*/(len + 7) / 8;
@@ -189,14 +188,14 @@ error_free_bitmap:
 }
 
 /* Makes clone of specified bitmap. Returns it to caller */
-reiser4_bitmap_t *reiser4_bitmap_clone(
-    reiser4_bitmap_t *bitmap	    /* bitmap clone of which will be created */
+aux_bitmap_t *aux_bitmap_clone(
+    aux_bitmap_t *bitmap	    /* bitmap clone of which will be created */
 ) {
-    reiser4_bitmap_t *clone;
+    aux_bitmap_t *clone;
 
     aal_assert("umka-358", bitmap != NULL, return 0);	
 
-    if (!(clone = reiser4_bitmap_create(bitmap->total_blocks)))
+    if (!(clone = aux_bitmap_create(bitmap->total_blocks)))
 	return NULL;
 	
     clone->size = bitmap->size;
@@ -208,8 +207,8 @@ reiser4_bitmap_t *reiser4_bitmap_clone(
 }
 
 /* Frees all assosiated with bitmap memory */
-void reiser4_bitmap_close(
-    reiser4_bitmap_t *bitmap	    /* bitmap to be closed */
+void aux_bitmap_close(
+    aux_bitmap_t *bitmap	    /* bitmap to be closed */
 ) {
     aal_assert("umka-354", bitmap != NULL, return);
     aal_assert("umka-1082", bitmap->map != NULL, return);
@@ -219,8 +218,8 @@ void reiser4_bitmap_close(
 }
 
 /* Returns bitmap's map (memory chunk, bits array placed in) for direct access */
-char *reiser4_bitmap_map(
-    reiser4_bitmap_t *bitmap	    /* bitmap, the bit array will be obtained from */
+char *aux_bitmap_map(
+    aux_bitmap_t *bitmap	    /* bitmap, the bit array will be obtained from */
 ) {
     aal_assert("umka-356", bitmap != NULL, return NULL);
     return bitmap->map;

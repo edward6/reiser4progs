@@ -87,7 +87,7 @@ static reiser4_entity_t *alloc40_open(reiser4_entity_t *format,
     
     blocksize = aal_device_get_bs(device) - CRC_SIZE;
     
-    if (!(alloc->bitmap = reiser4_bitmap_create(len)))
+    if (!(alloc->bitmap = aux_bitmap_create(len)))
 	goto error_free_alloc;
   
     crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;
@@ -109,12 +109,12 @@ static reiser4_entity_t *alloc40_open(reiser4_entity_t *format,
 	goto error_free_bitmap;
     }
 
-    reiser4_bitmap_calc_used(alloc->bitmap);
+    aux_bitmap_calc_used(alloc->bitmap);
     
     return (reiser4_entity_t *)alloc;
 
 error_free_bitmap:
-    reiser4_bitmap_close(alloc->bitmap);
+    aux_bitmap_close(alloc->bitmap);
 error_free_alloc:
     aal_free(alloc);
 error:
@@ -151,7 +151,7 @@ static reiser4_entity_t *alloc40_create(reiser4_entity_t *format,
 
     blocksize = aal_device_get_bs(device) - CRC_SIZE;
     
-    if (!(alloc->bitmap = reiser4_bitmap_create(len)))
+    if (!(alloc->bitmap = aux_bitmap_create(len)))
 	goto error_free_alloc;
   
     crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;
@@ -165,7 +165,7 @@ static reiser4_entity_t *alloc40_create(reiser4_entity_t *format,
     return (reiser4_entity_t *)alloc;
 
 error_free_bitmap:
-    reiser4_bitmap_close(alloc->bitmap);
+    aux_bitmap_close(alloc->bitmap);
 error_free_alloc:
     aal_free(alloc);
 error:
@@ -262,7 +262,7 @@ static void alloc40_close(reiser4_entity_t *entity) {
     aal_assert("umka-368", alloc != NULL, return);
     aal_assert("umka-369", alloc->bitmap != NULL, return);
 
-    reiser4_bitmap_close(alloc->bitmap);
+    aux_bitmap_close(alloc->bitmap);
 
     aal_free(alloc->crc);
     aal_free(alloc);
@@ -278,7 +278,7 @@ static void alloc40_mark(reiser4_entity_t *entity, blk_t blk) {
     aal_assert("umka-370", alloc != NULL, return);
     aal_assert("umka-371", alloc->bitmap != NULL, return);
     
-    reiser4_bitmap_use(alloc->bitmap, blk);
+    aux_bitmap_use(alloc->bitmap, blk);
 }
 
 /* Marks "blk" as free */
@@ -288,7 +288,7 @@ static void alloc40_release(reiser4_entity_t *entity, blk_t blk) {
     aal_assert("umka-372", alloc != NULL, return);
     aal_assert("umka-373", alloc->bitmap != NULL, return);
     
-    reiser4_bitmap_unuse(alloc->bitmap, blk);
+    aux_bitmap_unuse(alloc->bitmap, blk);
 }
 
 /* Finds first free block in bitmap and returns it to caller */
@@ -303,10 +303,10 @@ static blk_t alloc40_allocate(reiser4_entity_t *entity) {
 	It is possible to implement here more smart allocation algorithm. For
 	instance, it may look for contiguous areas.
     */
-    if (!(blk = reiser4_bitmap_find(alloc->bitmap, 0)))
+    if (!(blk = aux_bitmap_find(alloc->bitmap, 0)))
 	return 0;
     
-    reiser4_bitmap_use(alloc->bitmap, blk);
+    aux_bitmap_use(alloc->bitmap, blk);
     return blk;
 }
 
@@ -319,7 +319,7 @@ count_t alloc40_free(reiser4_entity_t *entity) {
     aal_assert("umka-376", alloc != NULL, return 0);
     aal_assert("umka-377", alloc->bitmap != NULL, return 0);
     
-    return reiser4_bitmap_unused(alloc->bitmap);
+    return aux_bitmap_unused(alloc->bitmap);
 }
 
 /* Returns used blocks count */
@@ -329,7 +329,7 @@ count_t alloc40_used(reiser4_entity_t *entity) {
     aal_assert("umka-378", alloc != NULL, return 0);
     aal_assert("umka-379", alloc->bitmap != NULL, return 0);
 
-    return reiser4_bitmap_used(alloc->bitmap);
+    return aux_bitmap_used(alloc->bitmap);
 }
 
 /* Checks whether specified block is used or not */
@@ -339,7 +339,7 @@ int alloc40_test(reiser4_entity_t *entity, blk_t blk) {
     aal_assert("umka-663", alloc != NULL, return 0);
     aal_assert("umka-664", alloc->bitmap != NULL, return 0);
 
-    return reiser4_bitmap_test(alloc->bitmap, blk);
+    return aux_bitmap_test(alloc->bitmap, blk);
 }
 
 static errno_t callback_check_bitmap(reiser4_entity_t *format, 

@@ -7,14 +7,6 @@
 #  include <config.h>
 #endif
 
-#if defined(__sparc__) || defined(__sparcv9)
-#  include <sys/int_types.h>
-#else
-#  include <stdint.h>
-#endif
-
-#include <aal/aal.h>
-
 /* 
     These functions are standard bitopts functions for both (big and little 
     endian) systems. As endianess of system is determining durring configure
@@ -25,11 +17,11 @@
 
 #ifndef WORDS_BIGENDIAN
 
-static inline int aal_le_set_bit(int nr, void *addr) {
-    uint8_t * p, mask;
+static inline int aal_le_set_bit(unsigned long nr, void *addr) {
+    unsigned char *p, mask;
     int retval;
 
-    p = (uint8_t *)addr;
+    p = (unsigned char *)addr;
     p += nr >> 3;
     mask = 1 << (nr & 0x7);
 
@@ -39,11 +31,11 @@ static inline int aal_le_set_bit(int nr, void *addr) {
     return retval;
 }
 
-static inline int aal_le_clear_bit(int nr, void *addr) {
-    uint8_t * p, mask;
+static inline int aal_le_clear_bit(unsigned long nr, void *addr) {
+    unsigned char *p, mask;
     int retval;
 
-    p = (uint8_t *)addr;
+    p = (unsigned char *)addr;
     p += nr >> 3;
     mask = 1 << (nr & 0x7);
 
@@ -53,19 +45,19 @@ static inline int aal_le_clear_bit(int nr, void *addr) {
     return retval;
 }
 
-static inline int aal_le_test_bit(int nr, const void *addr) {
-    uint8_t *p, mask;
+static inline int aal_le_test_bit(unsigned long nr, const void *addr) {
+    unsigned char *p, mask;
   
-    p = (uint8_t *)addr;
+    p = (unsigned char *)addr;
     p += nr >> 3;
     mask = 1 << (nr & 0x7);
     return ((mask & *p) != 0);
 }
 
 static inline int aal_le_find_first_zero_bit(const void *vaddr, 
-    unsigned size) 
+    unsigned long size) 
 {
-    const uint8_t *p = vaddr, *addr = vaddr;
+    const unsigned char *p = vaddr, *addr = vaddr;
     int res;
 
     if (!size)
@@ -85,10 +77,10 @@ static inline int aal_le_find_first_zero_bit(const void *vaddr,
 }
 
 static inline int aal_le_find_next_zero_bit(const void *vaddr, 
-    unsigned size, unsigned offset) 
+    unsigned long size, unsigned long offset) 
 {
-    const uint8_t *addr = vaddr;
-    const uint8_t *p = addr + (offset >> 3);
+    const unsigned char *addr = vaddr;
+    const unsigned char *p = addr + (offset >> 3);
     int bit = offset & 7, res;
   
     if (offset >= size)
@@ -107,51 +99,54 @@ static inline int aal_le_find_next_zero_bit(const void *vaddr,
 
 #else
 
-static inline int aal_be_set_bit(int nr, void *addr) {
-    uint8_t mask = 1 << (nr & 0x7);
-    uint8_t *p = (uint8_t *) addr + (nr >> 3);
-    uint8_t old = *p;
+static inline int aal_be_set_bit(unsigned long nr, void *addr) {
+    unsigned char mask = 1 << (nr & 0x7);
+    unsigned char *p = (uint8_t *) addr + (nr >> 3);
+    unsigned char old = *p;
 
     *p |= mask;
 
     return (old & mask) != 0;
 }
  
-static inline int aal_be_clear_bit(int nr, void *addr) {
-    uint8_t mask = 1 << (nr & 0x07);
-    uint8_t *p = (unsigned char *) addr + (nr >> 3);
-    uint8_t old = *p;
+static inline int aal_be_clear_bit(unsigned long nr, void *addr) {
+    unsigned char mask = 1 << (nr & 0x07);
+    unsigned char *p = (unsigned char *) addr + (nr >> 3);
+    unsigned char old = *p;
  
     *p = *p & ~mask;
     return (old & mask) != 0;
 }
  
-static inline int aal_be_test_bit(int nr, const void *addr) {
-    const uint8_t *a = (__const__ uint8_t *)addr;
+static inline int aal_be_test_bit(unsigned long nr, const void *addr) {
+    const unsigned char *a = (__const__ unsigned char *)addr;
  
     return ((a[nr >> 3] >> (nr & 0x7)) & 1) != 0;
 }
  
-static inline int aal_be_find_first_zero_bit(const void *vaddr, unsigned size) {
+static inline int aal_be_find_first_zero_bit(const void *vaddr, 
+    unsigned long size) 
+{
     return aal_be_find_next_zero_bit(vaddr, size, 0);
 }
 
-static inline unsigned long aal_ffz(unsigned long word) {
+static inline unsigned long aal_ffz(unsigned unsigned long word) {
     unsigned long result = 0;
  
     while(word & 1) {
         result++;
         word >>= 1;
     }
+    
     return result;
 }
 
-static inline int aal_be_find_next_zero_bit(const void *vaddr, unsigned size, 
-    unsigned offset) 
+static inline int aal_be_find_next_zero_bit(const void *vaddr, 
+    unsigned long size, unsigned long offset) 
 {
-    uint32_t *p = ((uint32_t *) vaddr) + (offset >> 5);
-    uint32_t result = offset & ~31ul;
-    uint32_t tmp;
+    unsigned long *p = ((unsigned long *) vaddr) + (offset >> 5);
+    unsigned long result = offset & ~31ul;
+    unsigned long tmp;
 
     if (offset >= size)
         return size;
@@ -195,16 +190,16 @@ found_middle:
 #endif
 
 /* Public wrappers for all bitops functions. */
-inline int aal_set_bit(int nr, void *addr) {
+inline int aal_set_bit(unsigned long nr, void *addr) {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_set_bit(nr, addr);
-#else 
+#else
     return aal_be_set_bit(nr, addr);
 #endif 
     return 0;
 }
 
-inline int aal_clear_bit(int nr, void *addr) {
+inline int aal_clear_bit(unsigned long nr, void *addr) {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_clear_bit(nr, addr);
 #else 
@@ -213,7 +208,7 @@ inline int aal_clear_bit(int nr, void *addr) {
     return 0;
 }
 
-inline int aal_test_bit(int nr, const void *addr) {
+inline int aal_test_bit(unsigned long nr, const void *addr) {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_test_bit(nr, addr);
 #else 
@@ -223,7 +218,7 @@ inline int aal_test_bit(int nr, const void *addr) {
 }
 
 inline int aal_find_first_zero_bit(const void *vaddr, 
-    unsigned size) 
+    unsigned long size) 
 {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_find_first_zero_bit(vaddr, size);
@@ -234,7 +229,7 @@ inline int aal_find_first_zero_bit(const void *vaddr,
 }
 
 inline int aal_find_next_zero_bit(const void *vaddr, 
-    unsigned size, unsigned offset) 
+    unsigned long  size, unsigned long offset) 
 {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_find_next_zero_bit(vaddr, size, offset);
@@ -243,3 +238,4 @@ inline int aal_find_next_zero_bit(const void *vaddr,
 #endif 
     return 0;
 }
+

@@ -111,6 +111,9 @@ static reiser4_plugin_t extent40_plugin = {
         .lookup		= NULL,
         .count		= NULL,
         .valid		= NULL,
+	.mergeable	= NULL,
+	.shift		= NULL,
+	
         .max_poss_key	= extent40_max_poss_key,
         .max_real_key   = extent40_max_real_key,
         .print		= extent40_print,

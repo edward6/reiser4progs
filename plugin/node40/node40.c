@@ -119,9 +119,9 @@ static errno_t node40_get_key(reiser4_entity_t *entity,
 
     aal_assert("umka-810", pos->item < 
 	nh40_get_num_items(nh40(node->block)), return -1);
-        
+    
     aal_memcpy(key->body, &(node40_ih_at(node->block, pos->item)->key), 
-	sizeof(key40_t));
+        sizeof(key40_t));
     
     return 0;
 }
@@ -494,7 +494,7 @@ static errno_t node40_set_key(reiser4_entity_t *entity,
 
     plugin_call(return -1, key->plugin->key_ops, assign,
 	&(node40_ih_at(node->block, pos->item)->key), key->body);
-
+    
     return 0;
 }
 
@@ -606,6 +606,9 @@ static reiser4_plugin_t node40_plugin = {
 	.get_key	= node40_get_key,
 	.get_level	= node40_get_level,
 	.get_stamp	= node40_get_stamp,
+
+	.mergeable	= NULL,
+	.shift		= NULL,
 	
 #ifndef ENABLE_COMPACT
 	.create		= node40_create,

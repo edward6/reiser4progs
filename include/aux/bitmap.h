@@ -22,31 +22,31 @@ struct reiser4_bitmap {
     char *map;
 };
 
-typedef struct reiser4_bitmap reiser4_bitmap_t;
+typedef struct reiser4_bitmap aux_bitmap_t;
 
-extern void reiser4_bitmap_use(reiser4_bitmap_t *bitmap, blk_t blk);
-extern void reiser4_bitmap_unuse(reiser4_bitmap_t *bitmap, blk_t blk);
-extern int reiser4_bitmap_test(reiser4_bitmap_t *bitmap, blk_t blk);
+extern void aux_bitmap_use(aux_bitmap_t *bitmap, blk_t blk);
+extern void aux_bitmap_unuse(aux_bitmap_t *bitmap, blk_t blk);
+extern int aux_bitmap_test(aux_bitmap_t *bitmap, blk_t blk);
 
-extern blk_t reiser4_bitmap_find(reiser4_bitmap_t *bitmap, blk_t start);
+extern blk_t aux_bitmap_find(aux_bitmap_t *bitmap, blk_t start);
 
-extern count_t reiser4_bitmap_calc_used(reiser4_bitmap_t *bitmap);
-extern count_t reiser4_bitmap_calc_unused(reiser4_bitmap_t *bitmap);
+extern count_t aux_bitmap_calc_used(aux_bitmap_t *bitmap);
+extern count_t aux_bitmap_calc_unused(aux_bitmap_t *bitmap);
 
-extern count_t reiser4_bitmap_used(reiser4_bitmap_t *bitmap);
-extern count_t reiser4_bitmap_unused(reiser4_bitmap_t *bitmap);
+extern count_t aux_bitmap_used(aux_bitmap_t *bitmap);
+extern count_t aux_bitmap_unused(aux_bitmap_t *bitmap);
 
-extern count_t reiser4_bitmap_calc_used_in_area(reiser4_bitmap_t *bitmap, 
+extern count_t aux_bitmap_calc_used_in_area(aux_bitmap_t *bitmap, 
     blk_t start, blk_t end);
 
-extern count_t reiser4_bitmap_calc_unused_in_area(reiser4_bitmap_t *bitmap, 
+extern count_t aux_bitmap_calc_unused_in_area(aux_bitmap_t *bitmap, 
     blk_t start, blk_t end);
 
-extern reiser4_bitmap_t *reiser4_bitmap_create(count_t len);
-extern reiser4_bitmap_t *reiser4_bitmap_clone(reiser4_bitmap_t *bitmap);
+extern aux_bitmap_t *aux_bitmap_create(count_t len);
+extern aux_bitmap_t *aux_bitmap_clone(aux_bitmap_t *bitmap);
 
-extern void reiser4_bitmap_close(reiser4_bitmap_t *bitmap);
-extern char *reiser4_bitmap_map(reiser4_bitmap_t *bitmap);
+extern void aux_bitmap_close(aux_bitmap_t *bitmap);
+extern char *aux_bitmap_map(aux_bitmap_t *bitmap);
 
 #endif
 
