@@ -172,7 +172,8 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     /* There were found overlapped extents. Look through twigs, build list of
      * extents for each problem region. */ 
     while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
-	if ((node = repair_node_open(rd->fs->format, blk)) == NULL) {
+	node = repair_node_open(rd->fs, blk);
+	if (node == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);
 	    goto error_ts_update;
@@ -195,6 +196,8 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 	/* Do not keep twig marked in bm_twigs if it is in the tree already. */
 	if (aux_bitmap_test(ts->bm_used, blk))
 	    aux_bitmap_clear(ts->bm_twig, blk);
+
+	blk++;
     }
 
     if (repair_ts_update(rd))
