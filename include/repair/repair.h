@@ -53,6 +53,10 @@ typedef struct repair_data repair_data_t;
 #define repair_verbose(repair_data)	(repair_test_option(REPAIR_OPT_VERBOSE, repair_data))
 #define repair_read_only(repair_data)	(repair_test_option(REPAIR_OPT_READ_ONLY, repair_data))
 
+#define PASS_FILTER 0x1
+#define PASS_SCAN   0x2
+#define PASS_GATHER 0x3
+
 struct repair_check {
     reiser4_format_t *format;
     uint16_t options;

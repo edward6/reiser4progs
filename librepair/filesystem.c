@@ -26,29 +26,23 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
     
     if (!res) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 
-	if ((res = reiser4_joint_traverse(joint, &data, 
-	    repair_filter_joint_open,      repair_filter_joint_check, 
-	    repair_filter_before_traverse, repair_filter_setup_traverse, 
-	    repair_filter_update_traverse, repair_filter_after_traverse)) < 0)
+	if ((res = reiser4_joint_traverse(joint, &data, repair_filter_joint_open,
+	    repair_filter_joint_check,	    repair_filter_setup_traverse,  
+	    repair_filter_update_traverse,  repair_filter_after_traverse)) < 0)
 	    goto error_free_joint;
     } else 
 	repair_set_flag(&data, REPAIR_NOT_FIXED);
 
-    if (repair_filter_update(fs, &data)) {
-	res = -1;
+    if ((res = repair_filter_update(fs, &data)))
 	goto error_free_joint;
-    }
 
     if (reiser4_format_get_root(fs->format) != FAKE_BLK) {
-	if (repair_scan_setup(fs, &data)) {
-	    res = -1;
+	if ((res = repair_scan_setup(fs, &data)))
 	    goto error_free_joint;
-	}
 
 	/* Solve overlapped problem within the tree. */
-	if ((res = reiser4_joint_traverse(joint, &data,
-	    repair_filter_joint_open, repair_scan_node_check,
-	    NULL, NULL, NULL, NULL)) < 0)
+	if ((res = reiser4_joint_traverse(joint, &data, repair_filter_joint_open,
+	    repair_scan_node_check, NULL, NULL, NULL)) < 0)
 	    goto error_free_joint;
     }
 

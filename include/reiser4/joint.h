@@ -51,7 +51,6 @@ extern errno_t reiser4_joint_update_key(reiser4_joint_t *joint,
 
 extern errno_t reiser4_joint_traverse(reiser4_joint_t *joint, void *data, 
 				      reiser4_open_func_t open_func,
-				      reiser4_handler_func_t handler_func, 
 				      reiser4_edge_func_t before_func,
 				      reiser4_setup_func_t setup_func, 
 				      reiser4_setup_func_t update_func,

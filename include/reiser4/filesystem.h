@@ -256,9 +256,6 @@ typedef errno_t (*reiser4_open_func_t) (reiser4_joint_t **, blk_t, void *);
 /* Callback function type for preparing per-node traverse data. */
 typedef errno_t (*reiser4_edge_func_t) (reiser4_joint_t *, void *);
 
-/* Callback function type for node handler. */
-typedef errno_t (*reiser4_handler_func_t) (reiser4_joint_t *, void *);
-
 /* Callback function type for preparing per-item traverse data. */
 typedef errno_t (*reiser4_setup_func_t) (reiser4_coord_t *, void *);
 typedef enum traverse_order traverse_order_t;

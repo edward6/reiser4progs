@@ -9,7 +9,8 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
+errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, 
+    void *data)
 {
     errno_t res = 0;
     aal_device_t *device;
@@ -17,8 +18,6 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
     repair_check_t *check_data = data;
 
     aal_assert("vpf-379", check_data != NULL, return -1);
-
-    *joint = NULL;
 
     if (repair_test_flag(check_data, REPAIR_BAD_PTR))
 	return 0;
@@ -40,92 +39,6 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
 error_free_node:
     reiser4_node_close(node);
     return res;
-}
-
-errno_t repair_filter_before_traverse(reiser4_joint_t *joint, void *data) {
-    repair_check_t *check_data = data;
-    
-    aal_assert("vpf-392", joint != NULL, return -1);
-    aal_assert("vpf-251", joint->node != NULL, return -1);
-    aal_assert("vpf-251", joint->node->entity != NULL, return -1);
-    aal_assert("vpf-253", check_data != NULL, return -1);
-    aal_assert("vpf-254", check_data->format != NULL, return -1);
-
-    /* Initialize the level for the root node before traverse. */
-    if (!repair_filter_data(check_data)->level)
-	repair_filter_data(check_data)->level = 
-	    (joint->node->entity->plugin->node_ops.get_level ? 
-	    joint->node->entity->plugin->node_ops.get_level(
-		joint->node->entity) : 
-	    reiser4_format_get_height(check_data->format));
-    
-    repair_filter_data(check_data)->level--;
-
-    return 0;
-}
-
-errno_t repair_filter_after_traverse(reiser4_joint_t *joint, void *data) {
-    repair_check_t *check_data = data;
-     
-    aal_assert("vpf-393", joint != NULL, return -1);
-    aal_assert("vpf-394", joint->node != NULL, return -1);   
-    aal_assert("vpf-256", check_data != NULL, return -1);
-    
-    repair_filter_data(check_data)->level++;
-
-    if (reiser4_node_count(joint->node) == 0)
-	repair_set_flag(check_data, REPAIR_NOT_FIXED);
-    /* FIXME-VITALY: else - sync the node */
-
-    return 0;
-}
-
-errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
-    repair_check_t *check_data = data;
-    blk_t target;
-    int res = 0;
-    
-    aal_assert("vpf-255", data != NULL, return -1);
-    aal_assert("vpf-269", coord != NULL, return -1);
-
-/* this seems to be done at node_check time.
-    if ((res = repair_coord_ptr_check(coord, check_data)) > 0) {
-	repair_set_flag(check_data, REPAIR_BAD_PTR);
-	res = 0;
-    }
-*/
-    return res;
-}
-
-errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
-    repair_check_t *check_data = data;
-    reiser4_pos_t prev;
-    
-    aal_assert("vpf-257", check_data != NULL, return -1);
-    
-    if (repair_test_flag(check_data, REPAIR_NOT_FIXED)) {
-	/* The node corruption was not fixed - delete the internal item. */
-	repair_coord_left_pos_save(coord, &prev);
-	if (reiser4_node_remove(reiser4_coord_node(coord), &coord->pos)) {
-	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
-		aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
-		coord->pos.unit);
-	    return -1;
-	}
-	coord->pos = prev;
-	repair_clear_flag(check_data, REPAIR_NOT_FIXED);
-    } else {
-	reiser4_ptr_hint_t ptr;
-
-	if (plugin_call(return -1, coord->entity.plugin->item_ops,
-	    fetch, &coord->entity, coord->pos.unit, &ptr, 1))
-	    return -1;
-	
-	/* Mark the child as a formatted block in the bitmap. */
-	aux_bitmap_clear(repair_filter_data(check_data)->formatted, ptr.ptr);
-    }
-    
-    return 0;
 }
 
 errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
@@ -163,6 +76,95 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
     }
 	
     return res;
+}
+
+errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
+    repair_check_t *check_data = data;
+    reiser4_ptr_hint_t ptr;
+	
+    aal_assert("vpf-255", check_data != NULL, return -1);
+    aal_assert("vpf-254", check_data->format != NULL, return -1);
+    aal_assert("vpf-269", coord != NULL, return -1);
+    
+    /* Clear bit in the formatetd bitmap. */
+    if (plugin_call(return -1, coord->entity.plugin->item_ops,
+	fetch, &coord->entity, coord->pos.unit, &ptr, 1))
+	return -1;
+    
+    if (!aux_bitmap_test(repair_filter_data(check_data)->formatted, ptr.ptr)) {
+	/* This block was met more then once in the formatted part of the tree. */
+	repair_set_flag(check_data, REPAIR_BAD_PTR);
+    } else {	
+	/* We meet the block for the first time. */
+	aux_bitmap_clear(repair_filter_data(check_data)->formatted, ptr.ptr);
+    }
+
+/* this seems to be done at node_check time.
+    if ((res = repair_coord_ptr_check(coord, check_data)) > 0) {
+	repair_set_flag(check_data, REPAIR_BAD_PTR);
+	res = 0;
+    }
+*/
+
+    /* Initialize the level for the root node before traverse. */
+    if (!repair_filter_data(check_data)->level)
+	repair_filter_data(check_data)->level = 
+	    (reiser4_coord_entity(coord)->plugin->node_ops.get_level ? 
+	    reiser4_coord_entity(coord)->plugin->node_ops.get_level(
+		reiser4_coord_entity(coord)) : 
+	    reiser4_format_get_height(check_data->format));
+    
+    repair_filter_data(check_data)->level--;
+    
+    return 0;
+}
+
+errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
+    repair_check_t *check_data = data;
+    reiser4_pos_t prev;
+    
+    aal_assert("vpf-257", check_data != NULL, return -1);
+    
+    if (repair_test_flag(check_data, REPAIR_NOT_FIXED)) {
+	reiser4_ptr_hint_t ptr;
+	
+	/* Set the bit in the formatted bitmap back. */
+	if (plugin_call(return -1, coord->entity.plugin->item_ops,
+	    fetch, &coord->entity, coord->pos.unit, &ptr, 1))
+	    return -1;
+	
+	aux_bitmap_mark(repair_filter_data(check_data)->formatted, ptr.ptr);
+	
+	/* The node corruption was not fixed - delete the internal item. */
+	repair_coord_left_pos_save(coord, &prev);
+	if (reiser4_node_remove(reiser4_coord_node(coord), &coord->pos)) {
+	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
+		aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
+		coord->pos.unit);
+	    return -1;
+	}
+	coord->pos = prev;
+	repair_clear_flag(check_data, REPAIR_NOT_FIXED);
+    } 
+    
+    repair_filter_data(check_data)->level++;
+
+    return 0;
+}
+
+errno_t repair_filter_after_traverse(reiser4_joint_t *joint, void *data) {
+    repair_check_t *check_data = data;
+     
+    aal_assert("vpf-393", joint != NULL, return -1);
+    aal_assert("vpf-394", joint->node != NULL, return -1);   
+    aal_assert("vpf-256", check_data != NULL, return -1);
+    
+
+    if (reiser4_node_count(joint->node) == 0)
+	repair_set_flag(check_data, REPAIR_NOT_FIXED);
+    /* FIXME-VITALY: else - sync the node */
+
+    return 0;
 }
 
 /* Setup data and initialize data->pass.filter. */
