@@ -203,12 +203,6 @@ fi
 
 CFLAGS="$CFLAGS -DPLUGIN_DIR=\\\"$with_plugin_dir\\\""
 
-case "$host" in
-    *-sun-*)
-	AC_DEFINE(loff_t, offset_t)
-    ;;
-esac
-
 AM_CONDITIONAL(ENABLE_MONOLITHIC, test x$enable_monolithic = xyes)
 
 PLUGIN_LDFLAGS=""
