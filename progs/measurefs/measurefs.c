@@ -209,8 +209,8 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	}
 	
 	/* Preparing serve structure, statistics will be stored in  */
-	frag_hint.curr = reiser4_tree_root(fs->tree);
-	frag_hint.level = reiser4_tree_height(fs->tree);
+	frag_hint.curr = reiser4_tree_get_root(fs->tree);
+	frag_hint.level = reiser4_tree_get_height(fs->tree);
 	
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
@@ -587,7 +587,7 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	}
 
 	frag_hint.flags = flags;
-	frag_hint.level = reiser4_tree_height(fs->tree);
+	frag_hint.level = reiser4_tree_get_height(fs->tree);
 	
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
