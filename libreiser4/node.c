@@ -40,6 +40,28 @@ errno_t reiser4_node_clone(reiser4_node_t *src,
 			 clone, src->entity, dst->entity);
 }
 
+/* Packes @node to @stream. */
+errno_t reiser4_node_pack(reiser4_node_t *node,
+			  aal_stream_t *stream)
+{
+	aal_assert("umka-2622", node != NULL);
+	aal_assert("umka-2623", stream != NULL);
+
+	return plug_call(node->entity->plug->o.node_ops,
+			 pack, node->entity, stream);
+}
+
+/* Unpackes @stream to @node. */
+errno_t reiser4_node_unpack(reiser4_node_t *node,
+			    aal_stream_t *stream)
+{
+	aal_assert("umka-2624", node != NULL);
+	aal_assert("umka-2625", stream != NULL);
+
+	return plug_call(node->entity->plug->o.node_ops,
+			 unpack, node->entity, stream);
+}
+
 /* Creates new node at block @nr on @tree with @level and with plugin @pid. Uses
    tree instance for accessing block size and key plugin in use. */
 reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
