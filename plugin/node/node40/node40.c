@@ -562,19 +562,15 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 errno_t node40_remove(object_entity_t *entity, 
 		      reiser4_pos_t *pos) 
 {
-	uint16_t len;
-	item40_header_t *ih;
-	
-	node40_t *node = (node40_t *)entity;
+	uint32_t len;
 
-	aal_assert("umka-986", node != NULL, return -1);
+	aal_assert("umka-986", entity != NULL, return -1);
 	aal_assert("umka-987", pos != NULL, return -1);
     
-	ih = node40_ih_at(node, pos->item);
-	len = node40_item_len((object_entity_t *)node, pos);
+	len = node40_item_len(entity, pos);
 
 	/* Removing item or unit, depending on @pos */
-	if (node40_shrink(node, pos, len))
+	if (node40_shrink((node40_t *)entity, pos, len))
 		return -1;
 	
 	return 0;
@@ -585,14 +581,15 @@ static errno_t node40_cut(object_entity_t *entity,
 			  reiser4_pos_t *pos)
 {
 	uint32_t len;
+	node40_t *node;
+
 	item_entity_t item;
 	item40_header_t *ih;
-
-	node40_t *node = (node40_t *)entity;
 	
 	aal_assert("umka-988", node != NULL, return -1);
 	aal_assert("umka-989", pos != NULL, return -1);
     
+	node = (node40_t *)entity;
 	ih = node40_ih_at(node, pos->item);
 
 	/* Initializing item entity */

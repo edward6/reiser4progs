@@ -750,29 +750,34 @@ errno_t reiser4_tree_mkspace(
 		  shifting.
 		*/
 		if (reiser4_node_items(save.node) == 0) {
-			
-			if (save.node->parent) {
+			reiser4_node_t *ghost = &save.node;
+
+			if (ghost->parent) {
 				
-				if (reiser4_node_remove(save.node->parent, &save.node->pos))
+				if (reiser4_node_remove(ghost->parent, &ghost->pos))
 					return -1;
 				
-				reiser4_node_detach(save.node->parent, save.node);
+				reiser4_node_detach(ghost->parent, ghost);
 			}
 			
-			save.node->flags &= ~NF_DIRTY;
-			reiser4_tree_release(tree, save.node);
+			ghost->flags &= ~NF_DIRTY;
+			reiser4_tree_release(tree, ghost);
 		}
 		
 		/* Attaching new allocated node into the tree, if it is not empty */
 		if (reiser4_node_items(node) > 0) {
 
-			/* Growing the tree */
+			/*
+			  Growing the tree in the case we splitted the root
+			  node. Root node has not parent.
+			*/
 			if (!old.node->parent)
 				reiser4_tree_grow(tree);
 			
 			/* Attaching new node to the tree */
 			if (reiser4_tree_attach(tree, node)) {
-				aal_exception_error("Can't attach node to the tree.");
+				aal_exception_error("Can't attach new node to the "
+						    "tree while making space.");
 				
 				reiser4_tree_release(tree, node);
 				return -1;
@@ -922,12 +927,14 @@ errno_t reiser4_tree_insert(
 
 /* Removes item by specified key */
 errno_t reiser4_tree_remove(
-	reiser4_tree_t *tree,	/* tree item will be removed from */
-	reiser4_coord_t *coord)	/* coord item will be removed at */
+	reiser4_tree_t *tree,	  /* tree item will be removed from */
+	reiser4_coord_t *coord)	  /* coord item will be removed at */
 {
 	errno_t res;
 
 	aal_assert("umka-1018", tree != NULL, return -1);
+	aal_assert("umka-1725", coord != NULL, return -1);
+	
 	if (tree->traps.preremove) {
 		if ((res = tree->traps.preremove(coord, tree->traps.data)))
 			return res;
@@ -936,16 +943,16 @@ errno_t reiser4_tree_remove(
 	if (reiser4_node_remove(coord->node, &coord->pos))
 		return -1;
 
+	if (reiser4_node_items(coord->node) == 0) {
+		coord->node->flags &= ~NF_DIRTY;
+		reiser4_tree_release(tree, coord->node);
+	}
+	
 	if (tree->traps.pstremove) {
 		if ((res = tree->traps.pstremove(coord, tree->traps.data)))
 			return res;
 	}
-	
-	/*
-	  FIXME-UMKA: Here should be also checking if we need descrease tree
-	  height.
-	*/
-    
+
 	return 0;
 }
 

@@ -1033,28 +1033,35 @@ errno_t reiser4_node_remove(
 	reiser4_node_t *node,	            /* node item will be inserted in */
 	reiser4_pos_t *pos)		    /* pos item will be inserted at */
 {
+	int update;
 	reiser4_pos_t ppos;
+	reiser4_coord_t coord;
 
 	aal_assert("umka-993", node != NULL, return -1);
 	aal_assert("umka-994", pos != NULL, return -1);
 
-	if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
-		if (node->parent) {
-			if (reiser4_node_pos(node, &ppos))
-				return -1;
-		}
+	/*
+	  Update parent node will be performed in the case we are going to
+	  remove the leftmost item or the leftmost unit of the leftmost item.
+	*/
+	update = (pos->item == 0 && (pos->unit == 0 ||
+				     pos->unit == ~0ul));
+	
+	if (update && node->parent) {
+		if (reiser4_node_pos(node, &ppos))
+			return -1;
 	}
-    
+
+	/* Initializing the coord of the item/unit we are going to remove */
+	if (reiser4_coord_open(&coord, node, pos))
+		return -1;
+
 	/* 
-	   Updating list of childrens of modified node in the case we modifying an 
-	   internal node.
+	   Updating list of childrens of modified node in the case we modifying
+	   an internal node.
 	*/
 	if (node->children) {
-		reiser4_coord_t coord;
 		reiser4_node_t *child;
-
-		if (reiser4_coord_open(&coord, node, pos))
-			return -1;
 
 		if (reiser4_item_get_key(&coord, NULL))
 			return -1;
@@ -1063,19 +1070,19 @@ errno_t reiser4_node_remove(
 			reiser4_node_detach(node, child);
 	}
 
-	/* Removing item or unit */
+	/*
+	  Removing item or unit. We assume that we are going to remove unit if
+	  unit component is setted up.
+	*/
 	if (pos->unit == ~0ul) {
 		return plugin_call(return -1, node->entity->plugin->node_ops, 
 				   remove, node->entity, pos);
 	} else {
-		reiser4_coord_t coord;
-	
-		if (reiser4_coord_open(&coord, node, pos)) {
-			aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-					    node->blk, pos->item);
-			return -1;
-		}
 
+		/*
+		  In the case we remove the last unit from an item, we should
+		  also remove item itself.
+		*/
 		if (reiser4_item_units(&coord) > 1) {
 			return plugin_call(return -1, node->entity->plugin->node_ops, 
 					   cut, node->entity, pos);
@@ -1086,25 +1093,23 @@ errno_t reiser4_node_remove(
 	}
 
 	/* Updating left deleimiting key in all parent nodes */
-	if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
-		reiser4_node_t *parent = node->parent;
-	
-		if (parent) {
-			if (reiser4_node_items(node) > 0) {
-				reiser4_key_t lkey;
+	if (update && node->parent) {
+		if (reiser4_node_items(node) > 0) {
 
-				reiser4_node_lkey(node, &lkey);
+			reiser4_key_t lkey;
+			reiser4_node_lkey(node, &lkey);
 				
-				if (reiser4_node_ukey(parent, &ppos, &lkey))
-					return -1;
-			} else {
-				/* 
-				   Removing cached node from the tree in the
-				   case it has not items anymore.
-				*/
-				if (reiser4_node_remove(parent, &ppos))
-					return -1;
-			}
+			if (reiser4_node_ukey(node->parent, &ppos, &lkey))
+				return -1;
+		} else {
+			/* 
+			   Removing cached node from the tree in the case it has
+			   not items anymore.
+			*/
+			if (reiser4_node_remove(node->parent, &ppos))
+				return -1;
+
+			reiser4_node_detach(node->parent, node);
 		}
 	}
 
