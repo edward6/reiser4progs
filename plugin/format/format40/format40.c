@@ -66,7 +66,7 @@ static uint64_t format40_begin(object_entity_t *entity) {
 	aal_assert("vpf-462", format != NULL);
 	aal_assert("vpf-463", format->device != NULL);
 	
-	return FORMAT40_OFFSET / format->blocksize;
+	return FORMAT40_OFFSET / format->blksize;
 }
 
 static int format40_isdirty(object_entity_t *entity) {
@@ -94,7 +94,7 @@ static errno_t format40_skipped(object_entity_t *entity,
 	aal_assert("umka-1086", func != NULL);
 	aal_assert("umka-1085", entity != NULL);
     
-	offset = REISER4_MASTER_OFFSET / format->blocksize;
+	offset = REISER4_MASTER_OFFSET / format->blksize;
     
 	for (blk = 0; blk < offset; blk++) {
 		errno_t res;
@@ -117,8 +117,8 @@ static errno_t format40_layout(object_entity_t *entity,
 	aal_assert("umka-1042", entity != NULL);
 	aal_assert("umka-1043", func != NULL);
     
-	blk = REISER4_MASTER_OFFSET / format->blocksize;
-	offset = FORMAT40_OFFSET / format->blocksize;
+	blk = REISER4_MASTER_OFFSET / format->blksize;
+	offset = FORMAT40_OFFSET / format->blksize;
     
 	for (; blk <= offset; blk++) {
 		if ((res = func(entity, blk, data)))
@@ -135,7 +135,7 @@ static errno_t format40_super_check(format40_t *format,
 	blk_t dev_len;
     
 	dev_len = aal_device_len(format->device) /
-		(format->blocksize / format->device->blksize);
+		(format->blksize / format->device->blksize);
 	
 	if (get_sb_block_count(super) > dev_len) {
 		aal_exception_error("Superblock has an invalid block "
@@ -145,7 +145,7 @@ static errno_t format40_super_check(format40_t *format,
 		return -EINVAL;
 	}
     
-	offset = FORMAT40_OFFSET / format->blocksize;
+	offset = FORMAT40_OFFSET / format->blksize;
 
 	if (get_sb_root_block(super) <= offset ||
 	    get_sb_root_block(super) >= dev_len)
@@ -170,31 +170,37 @@ static int format40_magic(format40_super_t *super) {
 }
 
 static errno_t format40_super_open(format40_t *format) {
-	errno_t res = 0;
-	aal_block_t *block;
-    
-	if (!(block = aal_block_read(format->device, format->blocksize,
-				     (FORMAT40_OFFSET / format->blocksize))))
-	{
-		aal_exception_error("Can't read format40 super block.");
-		return -EIO;
+	errno_t res;
+	blk_t offset;
+	aal_block_t block;
+
+	offset = FORMAT40_OFFSET / format->blksize;
+		
+	aal_block_init(&block, format->device,
+		       format->blksize, offset);
+
+	if ((res = aal_block_read(&block))) {
+		aal_exception_error("Can't read format40 super block. "
+				    "%s.", format->device->error);
+		goto error_free_block;
 	}
 
-	if (!format40_magic((format40_super_t *)block->data)) {
+	if (!format40_magic((format40_super_t *)block.data)) {
 		res = -EINVAL;
 		goto error_free_block;
 	}
 
-	aal_memcpy(&format->super, block->data,
+	aal_memcpy(&format->super, block.data,
 		   sizeof(format->super));
 
  error_free_block:
-	aal_block_free(block);
+	aal_block_fini(&block);
 	return res;
 }
 
 static object_entity_t *format40_open(aal_device_t *device,
-				      uint32_t blocksize) {
+				      uint32_t blksize)
+{
 	format40_t *format;
 
 	aal_assert("umka-393", device != NULL);
@@ -207,7 +213,7 @@ static object_entity_t *format40_open(aal_device_t *device,
 #endif
 
 	format->device = device;
-	format->blocksize = blocksize;
+	format->blksize = blksize;
 	format->plug = &format40_plug;
     
 	if (format40_super_open(format))
@@ -229,33 +235,29 @@ static void format40_close(object_entity_t *entity) {
 static errno_t callback_clobber_block(object_entity_t *entity, 
 				      blk_t blk, void *data) 
 {
-	errno_t res = 0;
-	aal_block_t *block;
+	errno_t res;
+	aal_block_t block;
 	format40_t *format;
 
 	format = (format40_t *)entity;
-    
-	if (!(block = aal_block_create(format->device,
-				       format->blocksize,
-				       blk, 0)))
+
+	if ((res = aal_block_init(&block, format->device,
+				  format->blksize, blk)))
 	{
-		return -ENOMEM;
+		return res;
 	}
-    
-	if (aal_block_write(block)) {
-		aal_exception_error("Can't write block %llu to device. "
-				    "%s.", blk, format->device->error);
-		res = -EIO;
-	}
-    
-	aal_block_free(block);
+	
+	aal_block_fill(&block, 0);
+	res = aal_block_write(&block);
+	
+	aal_block_fini(&block);
 	return res;
 }
 
 /* This function should create super block and update all copies */
 static object_entity_t *format40_create(aal_device_t *device, 
 					uint64_t blocks,
-					uint32_t blocksize,
+					uint32_t blksize,
 					uint16_t tail)
 {
 	format40_t *format;
@@ -268,7 +270,7 @@ static object_entity_t *format40_create(aal_device_t *device,
 
 	format->dirty = 1;
 	format->device = device;
-	format->blocksize = blocksize;
+	format->blksize = blksize;
 	format->plug = &format40_plug;
 
 	super = (format40_super_t *)&format->super;
@@ -302,36 +304,29 @@ static object_entity_t *format40_create(aal_device_t *device,
 
 /* This function should update all copies of the super block */
 static errno_t format40_sync(object_entity_t *entity) {
+	errno_t res;
 	blk_t offset;
-	errno_t res = 0;
+	aal_block_t block;
 	format40_t *format;
-	aal_block_t *block;
     
 	aal_assert("umka-394", entity != NULL);
    
 	format = (format40_t *)entity;
-	offset = FORMAT40_OFFSET / format->blocksize;
+	offset = FORMAT40_OFFSET / format->blksize;
 
-	if (!(block = aal_block_create(format->device,
-				       format->blocksize,
-				       offset, 0)))
+	if ((res = aal_block_init(&block, format->device,
+				  format->blksize, offset)))
 	{
-		return -ENOMEM;
+		return res;
 	}
 
-	aal_memcpy(block->data, &format->super,
+	aal_memcpy(block.data, &format->super,
 		   sizeof(format->super));
 	
-	if (aal_block_write(block)) {
-		aal_exception_error("Can't write format40 super "
-				    "block to %llu. %s.", offset,
-				    format->device->error);
-		res = -EIO;
-	}
-    
-	format->dirty = 0;
-	aal_block_free(block);
+	if (!(res = aal_block_write(&block)))
+		format->dirty = 0;
 	
+	aal_block_fini(&block);
 	return res;
 }
 
@@ -500,7 +495,7 @@ errno_t format40_print(object_entity_t *entity,
 	aal_stream_format(stream, "description:\t%s\n",
 			  entity->plug->desc);
 
-	offset = (FORMAT40_OFFSET / format->blocksize);
+	offset = (FORMAT40_OFFSET / format->blksize);
 	
 	aal_stream_format(stream, "offset:\t\t%lu\n",
 			  offset);

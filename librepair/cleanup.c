@@ -23,7 +23,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		/* Not checked item does not belong to any object. Remove. */
 		if ((res = reiser4_node_remove(place->node, &place->pos, 1))) {
 			aal_exception_bug("Node (%llu): Failed to delete the "
-					  "item (%d).", place->node->number, 
+					  "item (%d).", node_blocknr(place->node), 
 					  place->pos.item);
 			return res;
 		}

@@ -45,8 +45,7 @@ extern reiser4_plug_t alloc40_plug;
    Jean-loup Gailly        Mark Adler
    jloup@gzip.org          madler@alumni.caltech.edu
 
-   The above comment is applyed to the only aal_alder32 function.
-*/
+   The above comment is applyed to the only aal_alder32 function. */
 
 #define ADLER_BASE (65521l)
 #define ADLER_NMAX (5552)
@@ -107,7 +106,7 @@ errno_t alloc40_related(object_entity_t *entity, blk_t blk,
 	aal_assert("vpf-710", alloc->bitmap != NULL);
 	aal_assert("vpf-711", alloc->device != NULL);
     
-	size = alloc->blocksize - CRC_SIZE;
+	size = alloc->blksize - CRC_SIZE;
     
 	/* Loop though the all blocks one bitmap block describes and calling
 	   passed @region_func for each of them. */   
@@ -123,20 +122,20 @@ errno_t alloc40_layout(object_entity_t *entity,
 	count_t bpb;
 	alloc40_t *alloc;
 	blk_t blk, start;
-	uint32_t blocksize;
+	uint32_t blksize;
 	
 	aal_assert("umka-347", entity != NULL);
 	aal_assert("umka-348", block_func != NULL);
 
 	alloc = (alloc40_t *)entity;
-	blocksize = alloc->blocksize;
+	blksize = alloc->blksize;
 
 	/* Calculating block-per-bitmap value. I mean the number of blocks one
 	   bitmap block describes. It is calulating such maner because we should
 	   count also four bytes for checksum at begibnning og the each bitmap
 	   block. */
-	bpb = (blocksize - CRC_SIZE) * 8;
-	start = ALLOC40_START / blocksize;
+	bpb = (blksize - CRC_SIZE) * 8;
+	start = ALLOC40_START / blksize;
 
 	/* Loop though the all bitmap blocks */
 	for (blk = start; blk < start + alloc->bitmap->total;
@@ -158,45 +157,49 @@ errno_t alloc40_layout(object_entity_t *entity,
 static errno_t callback_fetch_bitmap(object_entity_t *entity, 
 				     uint64_t blk, void *data)
 {
+	errno_t res;
 	uint64_t offset;
-	aal_block_t *block;
+	alloc40_t *alloc;
+	aal_block_t block;
 	char *current, *start;
 	uint32_t size, chunk, free;
-	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-1053", entity != NULL);
 
-	/* Opening block bitmap lies in */
-	if (!(block = aal_block_read(alloc->device,
-				     alloc->blocksize, blk)))
+	alloc = (alloc40_t *)entity;
+
+	if ((res = aal_block_init(&block, alloc->device,
+				  alloc->blksize, blk)))
 	{
-		aal_exception_error("Can't read bitmap block "
-				    "%llu. %s.", blk,
-				    alloc->device->error);
-		return -EIO;
+		return res;
 	}
 
-	size = alloc->blocksize - CRC_SIZE;
+	if ((res = aal_block_read(&block))) {
+		aal_exception_error("Can't read bitmap block %llu. "
+				    "%s.", blk, alloc->device->error);
+		goto error_free_block;
+	}
+
+	size = alloc->blksize - CRC_SIZE;
 	start = aux_bitmap_map(alloc->bitmap);
 
 	offset = blk / size / 8;
 	current = start + (size * offset);
 
 	/* Calculating where and how many bytes will be copied */
-	free = (start + alloc->bitmap->size) -
-		current;
-	
+	free = (start + alloc->bitmap->size) - current;
 	chunk = free > size ? size : free;
 
 	/* Copying bitmap data and crc data into corresponding memory areas in
 	   block allocator instance. */
-	aal_memcpy(current, block->data + CRC_SIZE, chunk);
+	aal_memcpy(current, block.data + CRC_SIZE, chunk);
 
 	aal_memcpy(alloc->crc + (offset * CRC_SIZE),		   
-		   block->data, CRC_SIZE);
-	
-	aal_block_free(block);
-	return 0;
+		   block.data, CRC_SIZE);
+
+ error_free_block:
+	aal_block_fini(&block);
+	return res;
 }
 
 /* Initializing block allocator instance and loads bitmap into it from the
@@ -204,7 +207,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
    method. */
 static object_entity_t *alloc40_open(aal_device_t *device,
 				     uint64_t len,
-				     uint32_t blocksize)
+				     uint32_t blksize)
 {
 	alloc40_t *alloc;
 	uint32_t crcsize;
@@ -219,7 +222,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	/* Creating bitmap with passed @len. Value @len is the number of blocks
 	   filesystem lies in. In other words it is the filesystem size. This
 	   value is the same as partition size sometimes. */
-	mapsize = blocksize - CRC_SIZE;
+	mapsize = blksize - CRC_SIZE;
     
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
 		goto error_free_alloc;
@@ -235,7 +238,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 		goto error_free_bitmap;
     
 	alloc->device = device;
-	alloc->blocksize = blocksize;
+	alloc->blksize = blksize;
 	alloc->plug = &alloc40_plug;
 
 	/* Calling alloc40_layout method with callback_fetch_bitmap callback for
@@ -264,8 +267,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
    alloc40_open. The difference is that it does not load bitmap from the passed
    device. */
 static object_entity_t *alloc40_create(aal_device_t *device,
-				       uint64_t len,
-				       uint32_t blocksize)
+				       uint64_t len, uint32_t blksize)
 {
 	alloc40_t *alloc;
 	uint32_t mapsize;
@@ -277,7 +279,7 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
-	mapsize = blocksize - CRC_SIZE;
+	mapsize = blksize - CRC_SIZE;
     
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
 		goto error_free_alloc;
@@ -289,7 +291,7 @@ static object_entity_t *alloc40_create(aal_device_t *device,
     
 	alloc->dirty = 1;
 	alloc->device = device;
-	alloc->blocksize = blocksize;
+	alloc->blksize = blksize;
 	alloc->plug = &alloc40_plug;
     
 	return (object_entity_t *)alloc;
@@ -340,9 +342,9 @@ static errno_t alloc40_extract(object_entity_t *entity, void *data) {
 static errno_t callback_sync_bitmap(object_entity_t *entity, 
 				    uint64_t blk, void *data)
 {
-	errno_t res = 0;
+	errno_t res;
 	alloc40_t *alloc;
-	aal_block_t *block;
+	aal_block_t block;
 	char *current, *start; 
 	uint32_t size, adler, chunk;
 	
@@ -353,26 +355,24 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 	/* Allocating new block and filling it by 0xff bytes (all bits are
 	   turned on). This is needed in order to make the rest of last block
 	   filled by 0xff istead of 0x00 as it might be by default. */
-	if (!(block = aal_block_create(alloc->device,
-				       alloc->blocksize,
-				       blk, 0xff)))
+
+	if ((res = aal_block_init(&block, alloc->device,
+				  alloc->blksize, blk)))
 	{
-		aal_exception_error("Can't allocate bitmap "
-				    "block %llu. %s.", blk,
-				    alloc->device->error);
-		return -ENOMEM;
+		return res;
 	}
 
+	aal_block_fill(&block, 0xff);
+
+	size = block.size - CRC_SIZE;
 	start = aux_bitmap_map(alloc->bitmap);
-    
-	size = aal_block_size(block) - CRC_SIZE;
 	current = start + (size * (blk / size / 8));
     
 	/* Copying the piece of bitmap map into allocated block to be saved */
 	chunk = (start + alloc->bitmap->size) - current > (int)size ? 
 		(int)size : (int)((start + alloc->bitmap->size) - current);
 
-	aal_memcpy(block->data + CRC_SIZE, current, chunk);
+	aal_memcpy(block.data + CRC_SIZE, current, chunk);
 
 	/* Calculating adler crc checksum and updating it in the block to be
 	   saved. For the last block we are calculating it only for significant
@@ -392,18 +392,16 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 	} else
 		adler = aal_adler32(current, chunk);
 	
-	aal_memcpy(block->data, &adler, sizeof(adler));
+	aal_memcpy(block.data, &adler, sizeof(adler));
 
 	/* Saving block onto device it was allocated on */
-	if (aal_block_write(block)) {
+	if ((res = aal_block_write(&block))) {
 		aal_exception_error("Can't write bitmap block %llu. "
 				    "%s.", blk, alloc->device->error);
-		res = -EIO;
-		goto error_free_block;
 	}
 
  error_free_block:
-	aal_block_free(block);
+	aal_block_fini(&block);
 	return res;
 }
 
@@ -520,7 +518,7 @@ static errno_t callback_print_bitmap(object_entity_t *entity,
 	alloc = (alloc40_t *)entity;
 	stream = (aal_stream_t *)data;
 
-	size = alloc->blocksize - CRC_SIZE;
+	size = alloc->blksize - CRC_SIZE;
 	
 	offset = blk / size / 8;
 	
@@ -660,7 +658,7 @@ errno_t callback_check_bitmap(object_entity_t *entity,
 	uint32_t ladler, cadler;
     
 	alloc = (alloc40_t *)entity;
-	size = alloc->blocksize - CRC_SIZE;
+	size = alloc->blksize - CRC_SIZE;
 	start = aux_bitmap_map(alloc->bitmap);
     
 	/* Getting pointer to next bitmap portion */

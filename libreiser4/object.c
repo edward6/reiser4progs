@@ -578,7 +578,7 @@ static errno_t callback_print_place(
 	
 	if ((res = reiser4_item_print(p, stream))) {
 		aal_exception_error("Can't print item %u in node %llu.",
-				    p->pos.item, p->node->number);
+				    p->pos.item, node_blocknr(p->node));
 		return res;
 	}
 		

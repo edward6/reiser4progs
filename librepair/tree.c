@@ -64,7 +64,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	
 	if (reiser4_place_fetch(&place)) {
 		aal_exception_error("Node (%llu): Failed to open the item "
-				    "(%u).", node->number, place.pos.item);
+				    "(%u).", node_blocknr(node), place.pos.item);
 		return -EINVAL;
 	}
 	
@@ -82,8 +82,8 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 
 		blksize = reiser4_master_blksize(tree->fs->master);
 		
-		child = reiser4_node_open(place.node->device, blksize, ptr.start,
-					  node->entity->plug->id.id, tree->key.plug);
+		child = reiser4_node_open(tree->fs->device, blksize, ptr.start,
+					  tree->key.plug, node->entity->plug->id.id);
 		
 		if (!child)
 			return -EINVAL;
@@ -155,7 +155,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	
 	hint.type_specific = &ptr;
 	hint.count = 1;
-	ptr.start = node->number;
+	ptr.start = node_blocknr(node);
 	ptr.width = 1;
 	
 	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
@@ -174,7 +174,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	/* Setting needed links between nodes in the tree cashe. */
 	if ((res = reiser4_tree_connect(tree, place.node, node))) {
 		aal_exception_error("Can't attach the node %llu in tree "
-				    "cache.", node->number);
+				    "cache.", node_blocknr(node));
 		return res;
 	}
 	
@@ -230,8 +230,8 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 	if (res) {
 		aal_exception_error("Node copying failed from node %llu, item "
 				    "%u to node %llu, item %u one.", 
-				    src->node->number, src->pos.item, 
-				    dst->node->number, dst->pos.item);
+				    node_blocknr(src->node), src->pos.item, 
+				    node_blocknr(dst->node), dst->pos.item);
 		return res;
 	}
 	
@@ -251,7 +251,7 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 		
 		if ((res = reiser4_tree_attach(tree, dst->node))) {
 			aal_exception_error("Can't attach node %llu to the "
-					    "tree.", dst->node->number);
+					    "tree.", node_blocknr(dst->node));
 			
 			reiser4_tree_release(tree, dst->node);	    
 			return res;
@@ -363,9 +363,9 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 						    "Destination: node (%llu), "
 						    "items (%u), unit (%u). "
 						    "Relocation is not supported "
-						    "yet.", src->node->number, 
+						    "yet.", node_blocknr(src->node), 
 						    src->pos.item, src->pos.unit, 
-						    dst.node->number, dst.pos.item, 
+						    node_blocknr(dst.node), dst.pos.item, 
 						    dst.pos.unit);
 				return 0;
 			}
@@ -384,16 +384,16 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 				aal_exception_error("Tree Copy failed: from the node "
 						    "(%llu), item (%u) to the node "
 						    "(%llu), item (%u). Key interval "
-						    "%s - %s.", src->node->number, 
-						    src->pos.item, dst.node->number, 
+						    "%s - %s.", node_blocknr(src->node), 
+						    src->pos.item, node_blocknr(dst.node), 
 						    dst.pos.item,  reiser4_print_key(&hint.start), 
 						    reiser4_print_key(&hint.end));
 			} else {
 				aal_exception_error("Tree Copy failed: from the node "
 						    "(%llu), item (%u) to the node "
 						    "(%llu), item (%u).", 
-						    src->node->number, src->pos.item, 
-						    dst.node->number,  dst.pos.item);
+						    node_blocknr(src->node), src->pos.item, 
+						    node_blocknr(dst.node), dst.pos.item);
 			}
 			
 			return ret;

@@ -208,14 +208,14 @@ static int32_t extent40_read(place_t *place, void *buff,
 {
 	uint32_t read, i;
 	uint32_t blksize;
-	uint32_t sectorsize;
+	uint32_t secsize;
 
 	aal_assert("umka-1421", place != NULL);
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != MAX_UINT32);
 
 	blksize = extent40_blksize(place);
-	sectorsize = place->con.device->blksize;
+	secsize = place->con.device->blksize;
 
 	for (read = count, i = place->pos.unit;
 	     i < extent40_units(place) && count > 0; i++)
@@ -244,43 +244,48 @@ static int32_t extent40_read(place_t *place, void *buff,
 		{
 			blk_t sec;
 			uint32_t blklocal;
-			aal_block_t *block;
 
 			blklocal = (pos % blksize);
 			
 			if ((blkchunk = blksize - blklocal) > count)
 				blkchunk = count;
 
-			sec = (blk * (blksize / sectorsize)) +
-				(blklocal / sectorsize);
+			sec = (blk * (blksize / secsize)) +
+				(blklocal / secsize);
 
 			/* FIXME-UMKA: Here also should be holes handling */
 
 			/* Loop though one block (4096) */
 			while (blkchunk > 0) {
+				aal_block_t block;
 				uint32_t secchunk;
 				uint32_t seclocal;
 
-				/* Reading one device block (sector) */
-				if (!(block = aal_block_read(place->con.device,
-							     sectorsize, sec)))
+				if (aal_block_init(&block, place->con.device,
+						   secsize, sec))
 				{
-					aal_exception_error("Can't read device "
-							    "block %llu.", sec);
-					return -EIO;
+					return -ENOMEM;
 				}
 
-				/* Calculating data chunk to be copied */
-				seclocal = (blklocal % sectorsize);
+				/* Reading one device block (sector) */
+				if (aal_block_read(&block)) {
+					aal_block_fini(&block);
+					return -EIO;
+				}
 				
-				if ((secchunk = sectorsize - seclocal) > blkchunk)
+				/* Calculating data chunk to be copied */
+				seclocal = (blklocal % secsize);
+				
+				if ((secchunk = secsize - seclocal) > blkchunk)
 					secchunk = blkchunk;
 
 				/* Copy data to passed buffer */
-				aal_memcpy(buff, block->data + seclocal, secchunk);
-				aal_block_free(block);
+				aal_memcpy(buff, block.data + seclocal,
+					   secchunk);
+				
+				aal_block_fini(&block);
 
-				if ((seclocal + secchunk) % sectorsize == 0)
+				if ((seclocal + secchunk) % secsize == 0)
 					sec++;
 					
 				pos += secchunk;
@@ -387,8 +392,8 @@ static errno_t extent40_insert(place_t *place,
 
 		/* Setting up data block */
 		if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
-			if (!(block = aal_block_create(place->con.device,
-						       blksize, 0, 0)))
+			if (!(block = aal_block_alloc(place->con.device,
+						      blksize, 0)))
 			{
 				return -ENOMEM;
 			}

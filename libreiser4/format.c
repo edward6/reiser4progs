@@ -118,7 +118,7 @@ reiser4_format_t *reiser4_format_create(
 					 fs->device, len, blksize, tail))) 
 	{
 		aal_exception_error("Can't create disk-format %s on %s.", 
-				    plug->label, aal_device_name(fs->device));
+				    plug->label, fs->device->name);
     
 		goto error_free_format;
 	}

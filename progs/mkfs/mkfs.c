@@ -349,7 +349,7 @@ int main(int argc, char *argv[]) {
 		/* Creating filesystem */
 		if (!(fs = reiser4_fs_create(device, &hint))) {
 			aal_exception_error("Can't create filesystem on %s.", 
-					    aal_device_name(device));
+					    device->name);
 			goto error_free_device;
 		}
 
@@ -422,7 +422,7 @@ int main(int argc, char *argv[]) {
 		   (libaal/file.c), then function fsync will be called. */
 		if (aal_device_sync(device)) {
 			aal_exception_error("Can't synchronize device %s.", 
-					    aal_device_name(device));
+					    device->name);
 			goto error_free_device;
 		}
 

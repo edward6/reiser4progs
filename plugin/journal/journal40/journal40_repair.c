@@ -173,7 +173,7 @@ static errno_t callback_find_sec_blk(object_entity_t *entity,
 	journal40_check_t *check_data = (journal40_check_t *)data;
 	
 	if (check_data->wanted_blk == blk) {
-		check_data->wanted_blk = aal_block_number(txh_block);
+		check_data->wanted_blk = txh_block->nr;
 		check_data->found_type = blk_type;
 		return -ESTRUCT;
 	}
@@ -233,10 +233,10 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	aal_assert("vpf-507", txh_block->device != NULL);
 	
 	/* If we start working with a new trans, zero the current trans bitmap. */
-	if (check_data->cur_txh != aal_block_number(txh_block)) {
+	if (check_data->cur_txh != txh_block->nr) {
 		aal_memset(check_data->current_layout->map, 0,
 			   check_data->current_layout->size);
-		check_data->cur_txh = aal_block_number(txh_block);
+		check_data->cur_txh = txh_block->nr;
 	}
 	
 	/* Check that blk is not out of bound and (not for original block) that 
@@ -255,8 +255,8 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		aal_block_t *log_block;
 		journal40_lr_header_t *lr_header;
 		
-		if (!(log_block = aal_block_read(txh_block->device,
-						 journal->blocksize, blk)))
+		if (!(log_block = aal_block_load(txh_block->device,
+						 journal->blksize, blk)))
 		{
 			aal_exception_error("Can't read block %llu while "
 					    "traversing the journal. %s.", blk, 
@@ -334,8 +334,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 			} else if (ret != -ESTRUCT) {
 				aal_exception_error("Transaction Header (%llu): "
 						    "corrupted log record circle "
-						    "found.", 
-						    aal_block_number(txh_block));
+						    "found.", txh_block->nr);
 				
 				return ret;
 			}
@@ -479,7 +478,7 @@ errno_t journal40_check_struct(object_entity_t *entity,
 				return -EINVAL;
 			}
 			
-			if (!(tx_block = aal_block_read(device, journal->blocksize,
+			if (!(tx_block = aal_block_load(device, journal->blksize,
 							data.cur_txh)))
 			{
 				aal_exception_error("Can't read the block %llu "
@@ -489,15 +488,14 @@ errno_t journal40_check_struct(object_entity_t *entity,
 				return -EIO;
 			}
 			
-			aal_exception_error("Corrupted transaction (%llu) was found. "
-					    "The last valid transaction is (%llu).", 
-					    data.cur_txh, 
+			aal_exception_error("Corrupted transaction (%llu) was "
+					    "found. The last valid transaction "
+					    "is (%llu).", data.cur_txh,
 					    get_th_prev_tx((journal40_tx_header_t *)
 							   tx_block->data));
 			
-			data.cur_txh = 
-				get_th_prev_tx((journal40_tx_header_t *)
-					       tx_block->data);
+			data.cur_txh = get_th_prev_tx((journal40_tx_header_t *)
+						      tx_block->data);
 			
 			aal_block_free(tx_block);
 		}

@@ -74,7 +74,7 @@ struct format40 {
 	int dirty;
 #endif
 
-	uint32_t blocksize;
+	uint32_t blksize;
 	aal_device_t *device;
 	format40_super_t super;
 };

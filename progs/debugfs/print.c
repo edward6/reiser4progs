@@ -93,8 +93,8 @@ errno_t debugfs_print_block(
 	blksize = reiser4_master_blksize(fs->master);
 	pid = reiser4_profile_value(fs->profile, "node");
 	
-	if (!(node = reiser4_node_open(device, blksize, blk, pid,
-				       fs->tree->key.plug)))
+	if (!(node = reiser4_node_open(device, blksize, blk,
+				       fs->tree->key.plug, pid)))
 	{
 		fprintf(stdout, "Block %llu is used, but it is not "
 			"a formatted one.\n", blk);
@@ -246,10 +246,10 @@ static errno_t fprint_process_place(
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 	reiser4_place_t *p = (reiser4_place_t *)place;
 
-	if (p->node->number == hint->old)
+	if (node_blocknr(p->node) == hint->old)
 		return 0;
 
-	hint->old = p->node->number;
+	hint->old = node_blocknr(p->node);
 	return debugfs_print_node(p->node);
 }
 

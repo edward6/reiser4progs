@@ -37,12 +37,13 @@ errno_t reiser4_node_clone(reiser4_node_t *src,
 	return plug_call(src->entity->plug->o.node_ops,
 			 clone, src->entity, dst->entity);
 }
-#endif
 
-reiser4_node_t *reiser4_node_init(aal_device_t *device,
-				  uint32_t size, blk_t blk,
-				  rid_t pid, reiser4_plug_t *kplug)
+reiser4_node_t *reiser4_node_create(aal_device_t *device,
+				    uint32_t size, blk_t nr,
+				    reiser4_plug_t *kplug,
+				    rid_t pid, uint8_t level)
 {
+	aal_block_t *block;
 	reiser4_node_t *node;
 	reiser4_plug_t *plug;
 
@@ -59,44 +60,34 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 		goto error_free_node;
 	}
 
-	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plug_call(plug->o.node_ops, init,
-				       device, size, blk, kplug)))
-	{
+	if (!(block = aal_block_alloc(device, size, nr)))
 		goto error_free_node;
+
+	/* Requesting the plugin for initialization of the entity */
+	if (!(node->entity = plug_call(plug->o.node_ops,
+				       init, block, kplug)))
+	{
+		goto error_free_block;
 	}
 
-	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
-	
-	node->size = size;
-	node->number = blk;
-	node->device = device;
+	reiser4_place_assign(&node->p, NULL, 0,
+			     MAX_UINT32);
 
+	if (reiser4_node_fresh(node, level))
+		goto error_free_entity;
+	
 	return node;
 
+ error_free_entity:
+	plug_call(plug->o.node_ops, fini,
+		  node->entity);
+ error_free_block:
+	aal_block_free(block);
  error_free_node:    
 	aal_free(node);
 	return NULL;
 }
-	
-errno_t reiser4_node_load(reiser4_node_t *node) {
-	aal_assert("umka-2053", node != NULL);
-
-	return plug_call(node->entity->plug->o.node_ops,
-			 load, node->entity);
-}
-
-errno_t reiser4_node_unload(reiser4_node_t *node) {
-	aal_assert("umka-2054", node != NULL);
-
-#ifndef ENABLE_STAND_ALONE
-	if (reiser4_node_isdirty(node))
-		reiser4_node_sync(node);
 #endif
-	
-	return plug_call(node->entity->plug->o.node_ops,
-			 unload, node->entity);
-}
 
 void reiser4_node_lock(reiser4_node_t *node) {
 	aal_assert("umka-2314", node != NULL);
@@ -115,25 +106,21 @@ bool_t reiser4_node_locked(reiser4_node_t *node) {
 
 #ifndef ENABLE_STAND_ALONE
 void reiser4_node_move(reiser4_node_t *node,
-		       blk_t number)
+		       blk_t nr)
 {
 	aal_assert("umka-2248", node != NULL);
-
-	node->number = number;
 	
 	plug_call(node->entity->plug->o.node_ops,
-		  move, node->entity, number);
-
-	reiser4_node_mkdirty(node);
+		  move, node->entity, nr);
 }
 
-errno_t reiser4_node_form(reiser4_node_t *node,
+errno_t reiser4_node_fresh(reiser4_node_t *node,
 			  uint8_t level)
 {
 	aal_assert("umka-2052", node != NULL);
 
 	return plug_call(node->entity->plug->o.node_ops,
-			 form, node->entity, level);
+			 fresh, node->entity, level);
 }
 
 /* Prints passed @node to the specified @stream */
@@ -151,9 +138,11 @@ errno_t reiser4_node_print(
 
 /* Opens node on specified device and block number */
 reiser4_node_t *reiser4_node_open(aal_device_t *device,
-				  uint32_t size, blk_t blk,
-				  rid_t pid, reiser4_plug_t *kplug)
+				  uint32_t size, blk_t nr,
+				  reiser4_plug_t *kplg,
+				  rid_t pid)
 {
+	aal_block_t *block;
         reiser4_node_t *node;
 	reiser4_plug_t *plug;
  
@@ -169,33 +158,32 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
 		goto error_free_node;
 	}
 
+	if (!(block = aal_block_load(device, size, nr))) {
+		aal_exception_error("Can't load node %llu. %s.",
+				    nr, device->error);
+		goto error_free_node;
+	}
+
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plug_call(plug->o.node_ops, init,
-				       device, size, blk, kplug)))
+				       block, kplg)))
 	{
+		aal_exception_error("Can't initialize node %llu.",
+				    block->nr);
 		goto error_free_node;
 	}
 	
-	if (plug_call(plug->o.node_ops, load, node->entity))
-		goto error_free_entity;
-		
 	if (!plug_call(plug->o.node_ops, confirm, node->entity))
-		goto error_free_data;
+		goto error_free_entity;
 	
-        reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
-	
-	node->size = size;
-        node->number = blk;
-        node->device = device;
-	
+        reiser4_place_assign(&node->p, NULL, 0,
+			     MAX_UINT32);
+
 	return node;
 	
- error_free_data:
-	plug_call(node->entity->plug->o.node_ops,
-		  unload, node->entity);
  error_free_entity:
 	plug_call(node->entity->plug->o.node_ops,
-		  close, node->entity);
+		  fini, node->entity);
  error_free_node:
         aal_free(node);
         return NULL;
@@ -207,12 +195,11 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-2286", node->counter == 0);
 
-	reiser4_node_unload(node);
-	
 	plug_call(node->entity->plug->o.node_ops,
-		  close, node->entity);
+		  fini, node->entity);
 	    
 	aal_free(node);
+	
 	return 0;
 }
 
@@ -250,7 +237,7 @@ static int reiser4_node_ack(reiser4_node_t *node,
 	plug_call(place->plug->o.item_ops, read,
 		  (place_t *)place, &ptr, place->pos.unit, 1);
 
-	return ptr.start == node->number;
+	return ptr.start == node_blocknr(node);
 }
 #endif
 
@@ -312,7 +299,7 @@ errno_t reiser4_node_realize(
 				plug_call(parent->plug->o.item_ops, read,
 					  (place_t *)parent, &ptr, j, 1);
 
-				if (ptr.start == node->number)
+				if (ptr.start == node_blocknr(node))
 					goto parent_fetch;
 			}
 		}
@@ -338,10 +325,10 @@ static int callback_comp_blk(
 	const void *blk,		/* block number to be found */
 	void *data)			/* user-specified data */
 {
-	if (*(blk_t *)blk < ((reiser4_node_t *)node)->number)
+	if (*(blk_t *)blk < node_blocknr((reiser4_node_t *)node))
 		return -1;
 
-	if (*(blk_t *)blk > ((reiser4_node_t *)node)->number)
+	if (*(blk_t *)blk > node_blocknr((reiser4_node_t *)node))
 		return 1;
 
 	return 0;
@@ -406,7 +393,7 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	/* Updating node pos in parent node */
 	if ((res = reiser4_node_realize(child))) {
 		aal_exception_error("Can't realize node %llu.",
-				    child->number);
+				    node_blocknr(child));
 		return res;
 	}
 
@@ -700,10 +687,6 @@ errno_t reiser4_node_sync(
 		if ((res = plug_call(node->entity->plug->o.node_ops,
 				     sync, node->entity)))
 		{
-			aal_exception_error("Can't synchronize node %llu "
-					    "to device. %s.", node->number,
-					    node->device->error);
-
 			return res;
 		}
 	}
@@ -725,9 +708,9 @@ errno_t reiser4_node_upos(reiser4_node_t *node) {
 	aal_memset(&hint, 0, sizeof(hint));
 
         /* Preparing node pointer hint to be used */
-	nodeptr_hint.width = 1;
-	nodeptr_hint.start = node->number;
 	hint.type_specific = &nodeptr_hint;
+	nodeptr_hint.start = node_blocknr(node);
+	nodeptr_hint.width = 1;
 
 	if ((res = reiser4_place_fetch(&node->p)))
 		return res;
@@ -854,7 +837,7 @@ errno_t reiser4_node_insert(
 	if (needed > reiser4_node_space(node)) {
 		aal_exception_error("There is no space to insert new "
 				    "item/unit of (%u) size in the node "
-				    "(%llu).", hint->len, node->number);
+				    "(%llu).", hint->len, node_blocknr(node));
 		return -EINVAL;
 	}
 
@@ -870,7 +853,7 @@ errno_t reiser4_node_insert(
 	
 	if ((res = reiser4_node_uchild(node, pos))) {
 		aal_exception_error("Can't update child positions in "
-				    "node %llu.", node->number);
+				    "node %llu.", node_blocknr(node));
 		return res;
 	}
 	
@@ -895,8 +878,8 @@ errno_t reiser4_node_cut(
 	{
 		aal_exception_error("Can't cut items/units from the node "
 				    "%llu. Start: (%u, %u), end: (%u, %u).",
-				    node->number, start->item, start->unit,
-				    end->item, end->unit);
+				    node_blocknr(node), start->item,
+				    start->unit, end->item, end->unit);
 		return res;
 	}
 
@@ -927,7 +910,7 @@ errno_t reiser4_node_remove(
 			     remove, node->entity, pos, count)))
 	{
 		aal_exception_error("Can't remove %u items/units from "
-				    "node %llu.", count, node->number);
+				    "node %llu.", count, node_blocknr(node));
 		return res;
 	}
 

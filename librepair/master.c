@@ -38,8 +38,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
 					"Master super block cannot be found. "
 					"Do you want to build a new one on "
-					"(%s)?", aal_device_name(fs->device))
-		    == EXCEPTION_NO)
+					"(%s)?", fs->device->name) == EXCEPTION_NO)
 			return -EINVAL;
 		
 		blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL,
@@ -58,8 +57,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 				return -EINVAL;
 		} else {
 			aal_exception_fatal("A new master superblock was "
-					    "created on (%s).", 
-					    aal_device_name(fs->device));
+					    "created on (%s).", fs->device->name);
 		}
 		
 		error |= RE_FIXED;

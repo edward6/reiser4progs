@@ -11,20 +11,20 @@
 
 #define MIN_ITEM_LEN	1
 
-extern errno_t node_short_remove(object_entity_t *entity, pos_t *pos, 
+extern errno_t node_short_remove(node_entity_t *entity, pos_t *pos, 
 				 uint32_t count);
 
-extern errno_t node_short_fetch(object_entity_t *entity, pos_t *pos, 
+extern errno_t node_short_fetch(node_entity_t *entity, pos_t *pos, 
 				place_t *place);
 
-extern errno_t node_short_expand(object_entity_t *entity, pos_t *pos,
+extern errno_t node_short_expand(node_entity_t *entity, pos_t *pos,
 				 uint32_t len, uint32_t count);
 
-extern errno_t node_short_rep(object_entity_t *dst_entity, pos_t *dst_pos, 
-			      object_entity_t *src_entity, pos_t *src_pos, 
+extern errno_t node_short_rep(node_entity_t *dst_entity, pos_t *dst_pos, 
+			      node_entity_t *src_entity, pos_t *src_pos, 
 			      uint32_t count);
 
-extern errno_t node_short_shrink(object_entity_t *entity, pos_t *pos, 
+extern errno_t node_short_shrink(node_entity_t *entity, pos_t *pos, 
 				 uint32_t len, uint32_t count);
 
 static void node_short_set_offset_at(node_t *node, int pos,
@@ -59,13 +59,10 @@ static errno_t node_short_region_delete(node_t *node,
 	pos.unit = MAX_UINT32;
 	pos.item = start_pos - 1;
     
-	if(node_short_remove((object_entity_t *)node, &pos, end_pos - pos.item)) {
+	if(node_short_remove((node_entity_t *)node, &pos, end_pos - pos.item)) {
 		aal_exception_bug("Node (%llu): Failed to delete the item (%d) "
-				  "of a region [%u..%u].", 
-				  aal_block_number(node->block), 
-				  i - pos.item,
-				  start_pos, 
-				  end_pos);
+				  "of a region [%u..%u].", node->block->nr, 
+				  i - pos.item, start_pos, end_pos);
 		return -EINVAL;
 	}
 	
@@ -84,7 +81,7 @@ static uint32_t node_short_count_estimate(node_t *node) {
 	aal_assert("vpf-804", node != NULL);
 	aal_assert("vpf-806", node->block != NULL);
 	
-	blk_size = aal_block_size(node->block);
+	blk_size = node->block->size;
 	
 	/* Free space start is less then node_header + MIN_ITEM_LEN. */
 	if (sizeof(node_header_t) + MIN_ITEM_LEN > 
@@ -134,7 +131,7 @@ static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 	aal_assert("vpf-209", node->block != NULL);
 	
 	offset = 0;
-	blk = aal_block_number(node->block);
+	blk = node->block->nr;
 	
 	/* Free space fields cossider as valid if count calculated on the 
 	   base of it matches the count ofrm the node_header. */
@@ -143,7 +140,7 @@ static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 	free_valid = (node_short_count_estimate(node) == count);
 	
 	limit = free_valid ? nh_get_free_space_start(node) : 
-		aal_block_size(node->block) - count * sizeof(item_header_t);
+		node->block->size - count * sizeof(item_header_t);
 	
 	last_pos = 0;
 	last_relable = sizeof(node_header_t);
@@ -218,7 +215,7 @@ static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 		}
 	}
 	
-	last_relable = aal_block_size(node->block) - last_relable - 
+	last_relable = node->block->size - last_relable - 
 		sizeof(item_header_t) * count;
 	
 	if (last_relable != nh_get_free_space(node)) {
@@ -246,7 +243,7 @@ static errno_t node_short_item_array_find(node_t *node, uint8_t mode) {
 	
 	aal_assert("vpf-800", node != NULL);
 	
-	blk = aal_block_number(node->block);
+	blk = node->block->nr;
 	
 	for (i = 0; ; i++) {
 		offset = ih_get_offset(node_short_ih_at(node, i));
@@ -259,7 +256,7 @@ static errno_t node_short_item_array_find(node_t *node, uint8_t mode) {
 				return RE_FATAL;
 		}
 		
-		if (aal_block_size(node->block) - 
+		if (node->block->size - 
 		    sizeof(item_header_t) * (i + 1) -
 		    MIN_ITEM_LEN < offset)
 		{
@@ -301,7 +298,7 @@ static errno_t node_short_item_array_find(node_t *node, uint8_t mode) {
 			return RE_FIXABLE;
 	}
 	
-	offset = aal_block_size(node->block) - offset - 
+	offset = node->block->size - offset - 
 		nr * sizeof(item_header_t);
 	
 	if (offset != nh_get_free_space_start(node)) {
@@ -331,9 +328,9 @@ static errno_t node_short_count_check(node_t *node, uint8_t mode) {
 	aal_assert("vpf-802", node != NULL);
 	aal_assert("vpf-803", node->block != NULL);
 	
-	blk = aal_block_number(node->block);
+	blk = node->block->size;
 	
-	if (node_short_item_count_valid(aal_block_size(node->block), 
+	if (node_short_item_count_valid(node->block->size, 
 				    nh_get_num_items(node)))
 		return RE_OK;
 	
@@ -360,7 +357,7 @@ static errno_t node_short_count_check(node_t *node, uint8_t mode) {
 	return RE_FATAL;
 }
 
-errno_t node_short_check_struct(object_entity_t *entity, uint8_t mode) {
+errno_t node_short_check_struct(node_entity_t *entity, uint8_t mode) {
 	node_t *node = (node_t *)entity;
 	errno_t res;
 	
@@ -382,7 +379,7 @@ errno_t node_short_check_struct(object_entity_t *entity, uint8_t mode) {
 	return node_short_item_array_check(node, mode);    
 }
 
-static errno_t node_short_corrupt(object_entity_t *entity, uint16_t options) {
+static errno_t node_short_corrupt(node_entity_t *entity, uint16_t options) {
 	node_t *node = (node_t *)entity;
 	int i;
 	item_header_t *ih;    
@@ -396,8 +393,8 @@ static errno_t node_short_corrupt(object_entity_t *entity, uint16_t options) {
 	return 0;
 }
 
-errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos, 
-		    object_entity_t *src, pos_t *src_pos, 
+errno_t node_short_copy(node_entity_t *dst, pos_t *dst_pos, 
+		    node_entity_t *src, pos_t *src_pos, 
 		    copy_hint_t *hint) 
 {
 	place_t dst_place, src_place;
@@ -408,8 +405,6 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 	
 	aal_assert("vpf-965",  dst != NULL);
 	aal_assert("vpf-966",  src != NULL);
-	aal_assert("umka-2029", loaded(dst));
-	aal_assert("umka-2030", loaded(src));
 	
 	dst_node = (node_t *)dst;
 	src_node = (node_t *)src;
@@ -446,8 +441,7 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 			     dst_pos->unit, &src_place, src_pos->unit, hint)))
 	{
 		aal_exception_error("Can't copy units from node %llu to node %llu.",
-				    aal_block_number(src_node->block), 
-				    aal_block_number(dst_node->block));
+				    src_node->block->nr, dst_node->block->nr);
 		return res;
 	}
 	
@@ -464,12 +458,12 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 		
 		aal_memcpy(&ih->key, dst_place.key.body, sizeof(ih->key));
 	}
-	
-	dst_node->dirty = 1;
+
+	node_common_mkdirty(dst);
 	return 0;
 }
 
-void node_short_set_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
+void node_short_set_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 	node_t *node;
 	item_header_t *ih; 
 	
@@ -482,10 +476,10 @@ void node_short_set_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
 		return;
 	
 	aal_set_bit(ih, flag);
-	node->dirty = 1;
+	node_common_mkdirty(entity);
 }
 
-void node_short_clear_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
+void node_short_clear_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 	node_t *node;
 	item_header_t *ih; 
 	
@@ -498,10 +492,10 @@ void node_short_clear_flag(object_entity_t *entity, uint32_t pos, uint16_t flag)
 		return;
 	
 	aal_clear_bit(ih, flag);
-	node->dirty = 1;
+	node_common_mkdirty(entity);
 }
 
-bool_t node_short_test_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
+bool_t node_short_test_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 	node_t *node;
 	item_header_t *ih; 
 	

@@ -28,7 +28,7 @@ struct journal40 {
 	object_entity_t *format;
 
 	/* Filesystem blocksize */
-	uint32_t blocksize;
+	uint32_t blksize;
 
 	journal40_area_t area;
 	

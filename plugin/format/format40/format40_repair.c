@@ -99,21 +99,29 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 errno_t format40_update(object_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
-	aal_block_t *block;
+	aal_block_t block;
+	errno_t res;
 	blk_t blk;
 	
 	aal_assert("vpf-828", format != NULL);
 	aal_assert("vpf-828", format->device != NULL);
 	
-	blk = (FORMAT40_OFFSET / format->blocksize);
-	
-	if (!(block = aal_block_read(format->device, format->blocksize, blk))) {
-		aal_exception_error("Failed to read the block (%llu).", blk);
-		return -EIO;
+	blk = (FORMAT40_OFFSET / format->blksize);
+
+	if ((res = aal_block_init(&block, format->device,
+				  format->blksize, blk)))
+	{
+		return res;
 	}
 	
-	super = (format40_super_t *)block->data;
+	if ((res = aal_block_read(&block))) {
+		aal_exception_error("Failed to read the block "
+				    "(%llu).", blk);
+		goto error_free_block;
+	}
 	
+	super = (format40_super_t *)block.data;
+
 	format->super.sb_free_blocks = super->sb_free_blocks;
 	format->super.sb_root_block = super->sb_root_block;
 	format->super.sb_oid = super->sb_oid;
@@ -121,8 +129,9 @@ errno_t format40_update(object_entity_t *entity) {
 	format->super.sb_tree_height = super->sb_tree_height;
 	format->super.sb_flushes = super->sb_flushes;
 	
-	aal_block_free(block);
-	return 0;
+ error_free_block:
+	aal_block_fini(&block);
+	return res;
 }
 
 #endif

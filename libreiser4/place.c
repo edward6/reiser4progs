@@ -158,7 +158,7 @@ void reiser4_place_dec(reiser4_place_t *place,
 
 /* Initializes all item-related fields */
 errno_t reiser4_place_fetch(reiser4_place_t *place) {
-	object_entity_t *entity;
+	node_entity_t *entity;
 	
 	aal_assert("umka-1459", place != NULL);
 

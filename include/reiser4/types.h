@@ -95,7 +95,7 @@ struct reiser4_node {
 	/* Node entity. Node plugin initializes this value and return it back in
 	   node initializing time. This node entity is used for performing all
 	   on-node actions. */
-	object_entity_t *entity;
+	node_entity_t *entity;
 
 	/* Place in parent node */
 	reiser4_place_t p;
@@ -116,17 +116,8 @@ struct reiser4_node {
 	   tree in the memory. */
 	aal_list_t *children;
 	
-	/* Device node lies on */
-	aal_device_t *device;
-
-	/* Node size */
-	uint32_t size;
-
-	/* Block number node lies in */
-	blk_t number;
-
 	/* Usage counter to prevent releasing used nodes */
-	signed counter;
+	signed int counter;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Some node flags */
@@ -301,17 +292,17 @@ struct reiser4_tree {
 		   into target one. */
 		pack_func_t pack;
 #endif
-
 		/* Traps used opaque data  */
 		void *data;
 	} traps;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Extents data stored here */
 	aal_hash_table_t *data;
+#endif
 };
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Callback function type for opening node. */
 typedef reiser4_node_t *(*tree_open_func_t) (reiser4_tree_t *, 
 					     reiser4_place_t *, 

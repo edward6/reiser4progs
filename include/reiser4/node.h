@@ -8,27 +8,28 @@
 
 #include <reiser4/types.h>
 
-extern errno_t reiser4_node_load(reiser4_node_t *node);
-extern errno_t reiser4_node_unload(reiser4_node_t *node);
-extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
-
 extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
-					 uint32_t size, blk_t blk,
-					 rid_t pid, reiser4_plug_t *kplug);
-
-extern reiser4_node_t *reiser4_node_init(aal_device_t *device,
-					 uint32_t size, blk_t blk,
-					 rid_t pid, reiser4_plug_t *kplug);
+					 uint32_t size, blk_t nr,
+					 reiser4_plug_t *kplg,
+					 rid_t pid);
 
 #ifndef ENABLE_STAND_ALONE
+extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
+					   uint32_t size, blk_t nr,
+					   reiser4_plug_t *kplug,
+					   rid_t pid, uint8_t level);
+
+extern errno_t reiser4_node_sync(reiser4_node_t *node);
+extern errno_t reiser4_node_upos(reiser4_node_t *node);
+
 extern errno_t reiser4_node_clone(reiser4_node_t *src,
 				  reiser4_node_t *dst);
 
 extern void reiser4_node_move(reiser4_node_t *node,
-			      blk_t number);
+			      blk_t nr);
 
-extern errno_t reiser4_node_form(reiser4_node_t *node,
-				 uint8_t level);
+extern errno_t reiser4_node_fresh(reiser4_node_t *node,
+				  uint8_t level);
 
 extern void reiser4_node_set_mstamp(reiser4_node_t *node,
 				    uint32_t stamp);
@@ -44,9 +45,6 @@ extern errno_t reiser4_node_uchild(reiser4_node_t *node,
 
 extern errno_t reiser4_node_print(reiser4_node_t *node,
 				  aal_stream_t *stream);
-
-extern errno_t reiser4_node_sync(reiser4_node_t *node);
-extern errno_t reiser4_node_upos(reiser4_node_t *node);
 
 extern errno_t reiser4_node_ukey(reiser4_node_t *node,
 				 pos_t *pos,
@@ -82,6 +80,8 @@ extern uint32_t reiser4_node_get_mstamp(reiser4_node_t *node);
 extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 #endif
 
+extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
+
 extern errno_t reiser4_node_lkey(reiser4_node_t *node,
 				 reiser4_key_t *key);
 
@@ -109,8 +109,11 @@ extern void reiser4_node_mkdirty(reiser4_node_t *node);
 extern void reiser4_node_mkclean(reiser4_node_t *node);
 #endif
 
-extern bool_t reiser4_node_locked(reiser4_node_t *node);
 extern void reiser4_node_lock(reiser4_node_t *node);
+extern bool_t reiser4_node_locked(reiser4_node_t *node);
 extern void reiser4_node_unlock(reiser4_node_t *node);
+
+#define node_blocknr(node) \
+        ((node)->entity->block->nr)
 
 #endif

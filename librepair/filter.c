@@ -53,7 +53,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 				    "to invalid region [%llu..%llu] or some "
 				    "blocks are used already. %s", 
-				    place->node->number, place->pos.item,
+				    node_blocknr(place->node), place->pos.item,
 				    place->pos.unit, ptr.start,
 				    ptr.start + ptr.width - 1,
 				    fd->repair->mode == RM_BUILD ?
@@ -69,7 +69,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 			if (reiser4_node_remove(place->node, &place->pos, 1)) {
 				aal_exception_error("Node (%llu), pos (%u, "
 						    "%u): Remove failed.",
-						    place->node->number,
+						    node_blocknr(place->node),
 						    place->pos.item,
 						    place->pos.unit);
 				return INVAL_PTR;
@@ -232,7 +232,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 		/* Bad pointer detected. Remove if possible. */
 		aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 				    "invalid region [%llu..%llu] or some blocks are "
-				    "used already. %s", place->node->number, 
+				    "used already. %s", node_blocknr(place->node), 
 				    place->pos.item, place->pos.unit, ptr.start,
 				    ptr.start + ptr.width - 1, 
 				    fd->repair->mode == RM_BUILD ? 
@@ -246,7 +246,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 			
 			if (reiser4_node_remove(place->node, &place->pos, 1)) {
 				aal_exception_error("Node (%llu), pos (%u, %u): "
-						    "Remove failed.", place->node->number,
+						    "Remove failed.", node_blocknr(place->node),
 						    place->pos.item, place->pos.unit);
 				return -EINVAL;
 			}
@@ -283,7 +283,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		      &ptr, place->pos.unit, 1) != 1)
 	{
 		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed "
-				    "to fetch the node pointer.", place->node->number,
+				    "to fetch the node pointer.",node_blocknr(place->node),
 				    place->pos.item, place->pos.unit);
 		return -EINVAL;
 	}
@@ -295,7 +295,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		if (fd->flags & RE_NPTR) {
 			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 					    "to the invalid node [%llu]. %s", 
-					    place->node->number, place->pos.item, 
+					    node_blocknr(place->node), place->pos.item, 
 					    place->pos.unit, ptr.start, 
 					    fd->repair->mode == RM_BUILD ? 
 					    "Removed." : "The whole subtree is skipped.");
@@ -304,7 +304,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		} else if (fd->flags & RE_FATAL) {
 			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 					    "to the %s node [%llu]. %s", 
-					    place->node->number, place->pos.item, 
+					    node_blocknr(place->node), place->pos.item, 
 					    place->pos.unit, 
 					    fd->repair->mode == RM_BUILD ? 
 					    "emptied" : "unrecoverable", ptr.start, 
@@ -323,7 +323,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		} else if (fd->flags & RE_DKEYS) {
 			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 					    "to the node [%llu] with wrong delimiting "
-					    "keys. %s", place->node->number, 
+					    "keys. %s", node_blocknr(place->node), 
 					    place->pos.item, place->pos.unit, 
 					    ptr.start, 
 					    fd->repair->mode == RM_BUILD ? 
@@ -359,7 +359,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 	
 			if (reiser4_node_remove(place->node, &place->pos, 1)) {
 				aal_exception_error("Node (%llu), pos (%u, %u): "
-						    "Remove failed.", place->node->number, 
+						    "Remove failed.", node_blocknr(place->node), 
 						    place->pos.item, place->pos.unit);
 				return -EINVAL;
 			}
@@ -461,7 +461,7 @@ static void repair_filter_update(repair_filter_t *fd,
 	stat = &fd->stat;
 	
 	if (fd->flags & (RE_NPTR | RE_FATAL)) {
-		aux_bitmap_clear(fd->bm_used, root->number);
+		aux_bitmap_clear(fd->bm_used, node_blocknr(root));
 
 		fd->flags = 0;
 		if (fd->flags & RE_NPTR)
@@ -479,10 +479,10 @@ static void repair_filter_update(repair_filter_t *fd,
 		
 		/* FIXME-VITALY: hardcoded level, should be changed. */
 		if (reiser4_node_get_level(root) == TWIG_LEVEL) {
-			aux_bitmap_mark(fd->bm_twig, root->number);
+			aux_bitmap_mark(fd->bm_twig, node_blocknr(root));
 			stat->good_twigs++;
 		} else if (reiser4_node_get_level(root) == LEAF_LEVEL) {
-			aux_bitmap_mark(fd->bm_leaf, root->number);
+			aux_bitmap_mark(fd->bm_leaf, node_blocknr(root));
 			stat->good_leaves++;
 		}
 		

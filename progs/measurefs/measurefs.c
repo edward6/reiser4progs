@@ -150,7 +150,7 @@ static errno_t tfrag_process_node(
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, node->number);
+					    pos.item, node_blocknr(node));
 			return -EINVAL;
 		}
 
@@ -161,7 +161,7 @@ static errno_t tfrag_process_node(
 			aal_exception_warn("Item %u in node %llu has not "
 					   "\"layout\" method implemented. "
 					   "The result will not be releable.",
-					   pos.item, node->number);
+					   pos.item, node_blocknr(node));
 			continue;
 		}
 
@@ -281,7 +281,7 @@ static errno_t stat_process_node(
 	if (stat_hint->gauge && stat_hint->formatted % 128 == 0)
 		aal_gauge_update(stat_hint->gauge, 0);
 
-	device = node->device;
+	device = tree->fs->device;
 	
 	formatted_used = aal_device_get_bs(device) -
 		reiser4_node_space(node);
@@ -311,8 +311,8 @@ static errno_t stat_process_node(
 			reiser4_place_t place;
 			
 			if ((res = reiser4_place_open(&place, node, &pos))) {
-				aal_exception_error("Can't open item %u in node "
-						    "%llu.", pos.item, node->number);
+				aal_exception_error("Can't open item %u in node %llu.",
+						    pos.item, node_blocknr(node));
 				return res;
 			}
 			
@@ -498,7 +498,7 @@ static errno_t dfrag_process_node(
 		/* Initialiing the item at @place */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
 			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, node->number);
+					    pos.item, node_blocknr(node));
 			return res;
 		}
 

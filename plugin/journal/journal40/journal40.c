@@ -34,21 +34,21 @@ static errno_t journal40_layout(object_entity_t *entity,
 	blk_t blk;
 	errno_t res;
 	
-	uint32_t blocksize;
+	uint32_t blksize;
 	journal40_t *journal;
 
 	aal_assert("umka-1040", entity != NULL);
 	aal_assert("umka-1041", block_func != NULL);
     
 	journal = (journal40_t *)entity;
-	blocksize = journal->blocksize;
+	blksize = journal->blksize;
 	
-	blk = JOURNAL40_HEADER / blocksize;
+	blk = JOURNAL40_HEADER / blksize;
     
 	if ((res = block_func(entity, blk, data)))
 		return res;
     
-	blk = JOURNAL40_FOOTER / blocksize;
+	blk = JOURNAL40_FOOTER / blksize;
     
 	return block_func(entity, blk, data);
 }
@@ -71,24 +71,24 @@ aal_device_t *journal40_device(object_entity_t *entity) {
 static errno_t callback_fetch_journal(object_entity_t *entity, 
 				      blk_t blk, void *data)
 {
-	uint32_t blocksize;
+	uint32_t blksize;
 	aal_device_t *device;
 	journal40_t *journal;
 
 	journal = (journal40_t *)entity;
 
 	device = journal->device;
-	blocksize = journal->blocksize;
+	blksize = journal->blksize;
 		
 	if (!journal->header) {
-		if (!(journal->header = aal_block_read(device, blocksize, blk))) {
+		if (!(journal->header = aal_block_load(device, blksize, blk))) {
 			aal_exception_error("Can't read journal header "
 					    "from block %llu. %s.", blk,
 					    device->error);
 			return -EIO;
 		}
 	} else {
-		if (!(journal->footer = aal_block_read(device, blocksize, blk))) {
+		if (!(journal->footer = aal_block_load(device, blksize, blk))) {
 			aal_exception_error("Can't read journal footer "
 					    "from block %llu. %s.", blk,
 					    device->error);
@@ -102,7 +102,7 @@ static errno_t callback_fetch_journal(object_entity_t *entity,
 static object_entity_t *journal40_open(object_entity_t *format,
 				       aal_device_t *device,
 				       uint64_t start, uint64_t len,
-				       uint32_t blocksize)
+				       uint32_t blksize)
 {
 	journal40_t *journal;
 
@@ -115,7 +115,7 @@ static object_entity_t *journal40_open(object_entity_t *format,
 	journal->dirty = 0;
 	journal->device = device;
 	journal->format = format;
-	journal->blocksize = blocksize;
+	journal->blksize = blksize;
 	journal->plug = &journal40_plug;
 
 	journal->area.start = start;
@@ -152,26 +152,26 @@ static errno_t journal40_valid(object_entity_t *entity) {
 static errno_t callback_alloc_journal(object_entity_t *entity,
 				      blk_t blk, void *data)
 {
-	uint32_t blocksize;
+	uint32_t blksize;
 	aal_device_t *device;
 	journal40_t *journal;
 
 	journal = (journal40_t *)entity;
 
 	device = journal->device;
-	blocksize = journal->blocksize;
+	blksize = journal->blksize;
 	
 	if (!journal->header) {
-		if (!(journal->header = aal_block_create(device, blocksize,
-							 blk, 0)))
+		if (!(journal->header = aal_block_alloc(device, blksize,
+							blk)))
 		{
 			aal_exception_error("Can't alloc journal "
 					    "header on block %llu.", blk);
 			return -ENOMEM;
 		}
 	} else {
-		if (!(journal->footer = aal_block_create(device, blocksize,
-							 blk, 0)))
+		if (!(journal->footer = aal_block_alloc(device, blksize,
+							 blk)))
 		{
 			aal_exception_error("Can't alloc journal footer "
 					    "on block %llu.", blk);
@@ -185,7 +185,7 @@ static errno_t callback_alloc_journal(object_entity_t *entity,
 static object_entity_t *journal40_create(object_entity_t *format,
 					 aal_device_t *device,
 					 uint64_t start, uint64_t len,
-					 uint32_t blocksize, void *hint)
+					 uint32_t blksize, void *hint)
 {
 	journal40_t *journal;
     
@@ -198,7 +198,7 @@ static object_entity_t *journal40_create(object_entity_t *format,
 	journal->dirty = 1;
 	journal->device = device;
 	journal->format = format;
-	journal->blocksize = blocksize;
+	journal->blksize = blksize;
 	journal->plug = &journal40_plug;
 
 	journal->area.start = start;
@@ -228,7 +228,7 @@ static errno_t callback_sync_journal(object_entity_t *entity,
 	
 	device = journal->device;
 
-	if (blk == aal_block_number(journal->header)) {
+	if (blk == journal->header->nr) {
 		if (aal_block_write(journal->header)) {
 			aal_exception_error("Can't write journal "
 					    "header to block %llu. "
@@ -263,6 +263,7 @@ static errno_t journal40_sync(object_entity_t *entity) {
 }
 
 static errno_t journal40_update(journal40_t *journal) {
+	errno_t res = 0;
 	aal_device_t *device;
 	aal_block_t *tx_block;
 	journal40_footer_t *footer;
@@ -289,7 +290,7 @@ static errno_t journal40_update(journal40_t *journal) {
 
 	device = journal->device;
 
-	if (!(tx_block = aal_block_read(device, journal->blocksize,
+	if (!(tx_block = aal_block_load(device, journal->blksize,
 					last_commited_tx)))
 	{
 		aal_exception_error("Can't read block %llu while updating "
@@ -303,7 +304,8 @@ static errno_t journal40_update(journal40_t *journal) {
 	if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
 		aal_exception_error("Invalid transaction header has "
 				    "been detected.");
-		return -EINVAL;
+		res = -EINVAL;
+		goto error_free_tx_block;
 	}
 	
 	/* Updating journal footer */
@@ -315,7 +317,9 @@ static errno_t journal40_update(journal40_t *journal) {
 
 	journal->dirty = 1;
 
-	return 0;
+ error_free_tx_block:
+	aal_block_free(tx_block);
+	return res;
 }
 
 /* Makes traverses of one transaction. This is used for transactions replaying,
@@ -340,7 +344,7 @@ errno_t journal40_traverse_trans(
 	device = journal->device;
 	log_blk = get_th_next_block((journal40_tx_header_t *)tx_block->data);
 	
-	while (log_blk != aal_block_number(tx_block)) {
+	while (log_blk != tx_block->nr) {
 		
 		/* FIXME-VITALY->UMKA: There should be a check that the log_blk
 		   is not one of the LGR's of the same transaction. return 1. */
@@ -348,16 +352,17 @@ errno_t journal40_traverse_trans(
 		if (sec_func && (res = sec_func((object_entity_t *)journal, 
 						tx_block, log_blk, JB_LGR,
 						data)))
-			goto error;
+		{
+			return res;
+		}
 	    
-		if (!(log_block = aal_block_read(device, journal->blocksize,
+		if (!(log_block = aal_block_load(device, journal->blksize,
 						 log_blk)))
 		{
 			aal_exception_error("Can't read block %llu while "
 					    "traversing the journal. %s.", 
 					    log_blk, device->error);
-			res = -EIO;
-			goto error;
+			return -EIO;
 		}
 
 		lr_header = (journal40_lr_header_t *)log_block->data;
@@ -367,12 +372,12 @@ errno_t journal40_traverse_trans(
 			aal_exception_error("Invalid log record header has been"
 					    " detected.");
 			res = -ESTRUCT;
-			goto error;
+			goto error_free_log_block;
 		}
 
 		entry = (journal40_lr_entry_t *)(lr_header + 1);
 		
-		capacity = (journal->blocksize - sizeof(journal40_lr_header_t)) /
+		capacity = (journal->blksize - sizeof(journal40_lr_header_t)) /
 			sizeof(journal40_lr_entry_t);
 
 		for (i = 0; i < capacity; i++) {
@@ -383,18 +388,21 @@ errno_t journal40_traverse_trans(
 			if (sec_func) {
 				if ((res = sec_func((object_entity_t *)journal, tx_block, 
 						    get_le_wandered(entry), JB_WAN, data)))
+				{
 					goto error_free_log_block;
+				}
 		    
 				if ((res = sec_func((object_entity_t *)journal, tx_block,
 						    get_le_original(entry), JB_ORG, data)))
+				{
 					goto error_free_log_block;
+				}
 			}
 	
 			if (han_func) {
-				wan_block = aal_block_read(device, journal->blocksize,
-							   get_le_wandered(entry));
-		
-				if (!wan_block) {
+				if (!(wan_block = aal_block_load(device, journal->blksize,
+								 get_le_wandered(entry))))
+				{
 					aal_exception_error("Can't read block %llu while "
 							    "traversing the journal. %s.",
 							    get_le_wandered(entry), 
@@ -405,7 +413,9 @@ errno_t journal40_traverse_trans(
 
 				if ((res = han_func((object_entity_t *)journal, wan_block, 
 						    get_le_original(entry), data)))
+				{
 					goto error_free_wandered;
+				}
 
 				aal_block_free(wan_block);
 			}
@@ -422,7 +432,6 @@ errno_t journal40_traverse_trans(
 	aal_block_free(wan_block);
  error_free_log_block:
 	aal_block_free(log_block);
- error:
 	return res;	
 }
 
@@ -473,7 +482,7 @@ errno_t journal40_traverse(
 						txh_blk, data)))
 			goto error_free_tx_list;
 	    
-		if (!(tx_block = aal_block_read(device, journal->blocksize,
+		if (!(tx_block = aal_block_load(device, journal->blksize,
 						txh_blk)))
 		{
 			aal_exception_error("Can't read block %llu while "
@@ -504,7 +513,9 @@ errno_t journal40_traverse(
 		if ((res = journal40_traverse_trans(journal, tx_block,
 						    han_func, sec_func,
 						    data)))
+		{
 			goto error_free_tx_list;
+		}
 	
 		tx_list = aal_list_remove(tx_list, tx_block);
 		aal_block_free(tx_block);
@@ -527,31 +538,37 @@ errno_t journal40_traverse(
 
 static errno_t callback_replay_handler(object_entity_t *entity,
 				       aal_block_t *block,
-				       d64_t original, void *data) 
+				       d64_t orig, void *data) 
 {
-	aal_block_move(block, original);
+	errno_t res;
+	journal40_t *journal;
+
+	journal = (journal40_t *)entity;
+	
+	aal_block_move(block, journal->device, orig);
 	    
-	if (aal_block_write(block)) {
-		
+	if ((res = aal_block_write(block))) {
 		aal_exception_error("Can't write block %llu.", 
-				    aal_block_number(block));
+				    block->nr);
 		
 		aal_block_free(block);
-		return -EIO;
 	}
 
-	return 0;
+	return res;
 }
 
 /* Makes journal replay */
 static errno_t journal40_replay(object_entity_t *entity) {
 	errno_t res;
+
 	aal_assert("umka-412", entity != NULL);
 
 	if ((res = journal40_traverse((journal40_t *)entity, NULL,
 				      callback_replay_handler,
 				      NULL, NULL)))
+	{
 		return res;
+	}
 
 	return journal40_update((journal40_t *)entity);
 }
@@ -584,8 +601,8 @@ static errno_t callback_print_txh(object_entity_t *entity,
 	stream = (aal_stream_t *)data;
 	journal = (journal40_t *)entity;
 
-	if (!(block = aal_block_read(journal->device,
-				     journal->blocksize,
+	if (!(block = aal_block_load(journal->device,
+				     journal->blksize,
 				     blk)))
 	{
 		return -EIO;
@@ -629,14 +646,11 @@ static errno_t callback_print_txh(object_entity_t *entity,
 /* Printing pair (wandered and original) blocks */
 static errno_t callback_print_par(object_entity_t *entity,
 				  aal_block_t *block,
-				  blk_t original,
-				  void *data)
+				  blk_t orig, void *data)
 {
-	aal_stream_t *stream;
-	stream = (aal_stream_t *)data;
-	
-	aal_stream_format(stream, "%llu -> %llu\n",
-			  original, block->number);
+	aal_stream_format((aal_stream_t *)data,
+			  "%llu -> %llu\n",
+			  orig, block->nr);
 	return 0;
 }
 

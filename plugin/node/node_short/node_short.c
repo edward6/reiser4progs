@@ -25,40 +25,21 @@ item_header_t *node_short_ih_at(node_t *node,
 }
 
 /* Retutrns item body by pos */
-void *node_short_ib_at(node_t *node,
-		       uint32_t pos)
-{
+void *node_short_ib_at(node_t *node, uint32_t pos) {
 	item_header_t *ih;
 
 	ih = node_short_ih_at(node, pos);
 	return node->block->data + ih_get_offset(ih);
 }
 
-static object_entity_t *node_short_init(aal_device_t *device,
-					uint32_t size, blk_t blk,
-					reiser4_plug_t *key_plug)
-{
-	object_entity_t *entity;
-
-	if (!(entity = node_common_init(device, size,
-					blk, key_plug)))
-	{
-		return NULL;
-	}
-	
-	entity->plug = &node_short_plug;
-	return entity;
-}
-
 /* Returns length of item at pos. */
-static uint16_t node_short_len(object_entity_t *entity, 
+static uint16_t node_short_len(node_entity_t *entity, 
 			       pos_t *pos)
 {
 	item_header_t *ih;
     
 	aal_assert("umka-942", pos != NULL);
 	aal_assert("vpf-037", entity != NULL);
-	aal_assert("umka-2024", loaded(entity));
 
 	/* Item length is calculated as next item body offset minus current item
 	   offset. If we are on the last item then we use free space start for
@@ -75,8 +56,15 @@ static uint16_t node_short_len(object_entity_t *entity,
 	return ih_get_offset(ih - 1) - ih_get_offset(ih);
 }
 
+static node_entity_t *node_short_init(aal_block_t *block,
+				      reiser4_plug_t *kplug)
+{
+	/* Calling common node init fnction */
+	return node_common_init(block, &node_short_plug, kplug);
+}
+
 /* Returns key at passed @pos */
-static errno_t node_short_get_key(object_entity_t *entity,
+static errno_t node_short_get_key(node_entity_t *entity,
 				  pos_t *pos, key_entity_t *key) 
 {
 	void *body;
@@ -88,12 +76,11 @@ static errno_t node_short_get_key(object_entity_t *entity,
 		   node_common_items(entity));
 
 	aal_assert("umka-2333", entity != NULL);
-	aal_assert("umka-2022", loaded(entity));
 
 	body = &(node_short_ih_at((node_t *)entity,
 				  pos->item)->key);
 	
-	key->plug = ((node_t *)entity)->key_plug;
+	key->plug = ((node_t *)entity)->kplug;
 	aal_memcpy(key->body, body, sizeof(key_t));
 	
 	return 0;
@@ -102,7 +89,7 @@ static errno_t node_short_get_key(object_entity_t *entity,
 /* Initializes item entity in order to pass it to an item plugin routine. If
    unit component of pos is set up the function will initialize item's key from
    the unit one. */
-errno_t node_short_fetch(object_entity_t *entity,
+errno_t node_short_fetch(node_entity_t *entity,
 			 pos_t *pos, place_t *place)
 {
 	rid_t pid;
@@ -118,8 +105,8 @@ errno_t node_short_fetch(object_entity_t *entity,
 	node = (node_t *)entity;
 	
 	/* Initialize context (device, block number, etc) */
-	place->con.blksize = node->size;
-	place->con.blk = node->block->number;
+	place->con.blk = node->block->nr;
+	place->con.blksize = node->block->size;
 	place->con.device = node->block->device;
 
 	/* Initializing item's plugin */
@@ -145,18 +132,18 @@ errno_t node_short_fetch(object_entity_t *entity,
 #ifndef ENABLE_STAND_ALONE
 /* Retutns item overhead for this node format. Widely used in modification and
    estimation routines. */
-static uint16_t node_short_overhead(object_entity_t *entity) {
+static uint16_t node_short_overhead(node_entity_t *entity) {
 	return sizeof(item_header_t);
 }
 
 /* Returns maximal size of item possible for passed node instance */
-static uint16_t node_short_maxspace(object_entity_t *entity) {
+static uint16_t node_short_maxspace(node_entity_t *entity) {
 	aal_assert("vpf-016", entity != NULL);
 
 	/* Maximal space is node size minus node header and minus item
 	   overhead. */
-	return ((node_t *)entity)->size - sizeof(node_header_t) -
-		sizeof(item_header_t);
+	return ((node_t *)entity)->block->size -
+		sizeof(node_header_t) -	sizeof(item_header_t);
 }
 
 /* Calculates size of a region denoted by @pos and @count. This is used by
@@ -186,7 +173,7 @@ static uint32_t node_short_size(node_t *node, pos_t *pos,
 
 /* Makes expand passed @node by @len in odrer to make room for insert new
    items/units. This function is used by insert and shift methods. */
-errno_t node_short_expand(object_entity_t *entity, pos_t *pos,
+errno_t node_short_expand(node_entity_t *entity, pos_t *pos,
 			  uint32_t len, uint32_t count)
 {
 	int insert;
@@ -274,14 +261,14 @@ errno_t node_short_expand(object_entity_t *entity, pos_t *pos,
 		/* Increasing item len for the case of pasting new units */
 		ih = node_short_ih_at(node, pos->item);
 	}
-	
-	node->dirty = 1;
+
+	node_common_mkdirty(entity);
 	return 0;
 }
 
 /* General node_short cutting function. It is used from shift, remove, etc. It
    removes an amount of items specified by @count and shrinks node. */
-errno_t node_short_shrink(object_entity_t *entity, pos_t *pos,
+errno_t node_short_shrink(node_entity_t *entity, pos_t *pos,
 			  uint32_t len, uint32_t count)
 {
 	int is_range;
@@ -347,9 +334,9 @@ errno_t node_short_shrink(object_entity_t *entity, pos_t *pos,
 	} else {
 		uint32_t item_len;
 		item_header_t *ih;
-		object_entity_t *entity;
+		node_entity_t *entity;
 
-		entity = (object_entity_t *)node;
+		entity = (node_entity_t *)node;
 
 		ih = node_short_ih_at(node, pos->item);
 		item_len = node_short_len(entity, pos);
@@ -374,14 +361,14 @@ errno_t node_short_shrink(object_entity_t *entity, pos_t *pos,
 	}
 
 	nh_dec_free_space_start(node, len);
-	node->dirty = 1;
+	node_common_mkdirty(entity);
 	
 	return 0;
 }
 
 /* Makes copy of @count items from @src_entity to @dst_entity */
-errno_t node_short_rep(object_entity_t *dst_entity, pos_t *dst_pos,
-		       object_entity_t *src_entity, pos_t *src_pos,
+errno_t node_short_rep(node_entity_t *dst_entity, pos_t *dst_pos,
+		       node_entity_t *src_entity, pos_t *src_pos,
 		       uint32_t count)
 {
 	uint32_t size;
@@ -443,12 +430,12 @@ errno_t node_short_rep(object_entity_t *dst_entity, pos_t *dst_pos,
 			offset += ih_get_offset(ih - 1) - old;
 	}
 	
-	dst_node->dirty = 1;
+	node_common_mkdirty(dst_entity);
 	return 0;
 }
 
 /* Inserts item described by hint structure into node */
-static errno_t node_short_insert(object_entity_t *entity,
+static errno_t node_short_insert(node_entity_t *entity,
 				 pos_t *pos, create_hint_t *hint)
 {
 	errno_t res;
@@ -461,7 +448,6 @@ static errno_t node_short_insert(object_entity_t *entity,
 	aal_assert("umka-1814", hint != NULL);
 
 	aal_assert("umka-818", entity != NULL);
-	aal_assert("umka-2026", loaded(entity));
     
 	/* Makes expand of the node new items will be inserted in */
 	if (node_short_expand(entity, pos, hint->len, 1)) {
@@ -498,7 +484,7 @@ static errno_t node_short_insert(object_entity_t *entity,
 			     pos->unit == MAX_UINT32 ? 0 : pos->unit)))
 	{
 		aal_exception_error("Can't insert unit to "
-				    "node %llu.", node->number);
+				    "node %llu.", node->block->nr);
 		return res;
 	}
 	
@@ -512,7 +498,7 @@ static errno_t node_short_insert(object_entity_t *entity,
 }
 
 /* This function removes item/unit from the node at specified @pos */
-errno_t node_short_remove(object_entity_t *entity, 
+errno_t node_short_remove(node_entity_t *entity, 
 			  pos_t *pos, uint32_t count) 
 {
 	pos_t rpos;
@@ -522,7 +508,6 @@ errno_t node_short_remove(object_entity_t *entity,
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
-	aal_assert("umka-2027", loaded(entity));
 
 	node = (node_t *)entity;
 
@@ -554,7 +539,7 @@ errno_t node_short_remove(object_entity_t *entity,
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
-static errno_t node_short_cut(object_entity_t *entity,
+static errno_t node_short_cut(node_entity_t *entity,
 			      pos_t *start, pos_t *end)
 {
 	pos_t pos;
@@ -569,7 +554,6 @@ static errno_t node_short_cut(object_entity_t *entity,
 	aal_assert("umka-1790", end != NULL);
 	aal_assert("umka-1789", start != NULL);
 	aal_assert("umka-1788", entity != NULL);
-	aal_assert("umka-2028", loaded(entity));
 
 	node = (node_t *)entity;
 		
@@ -650,7 +634,7 @@ static errno_t node_short_cut(object_entity_t *entity,
 }
 
 /* Updates key at @pos by specified @key */
-static errno_t node_short_set_key(object_entity_t *entity, 
+static errno_t node_short_set_key(node_entity_t *entity, 
 				  pos_t *pos, key_entity_t *key) 
 {
 	item_header_t *ih;
@@ -663,19 +647,18 @@ static errno_t node_short_set_key(object_entity_t *entity,
 		   node_common_items(entity));
 
 	aal_assert("umka-809", entity != NULL);
-	aal_assert("umka-2041", loaded(entity));
 
 	node = (node_t *)entity;
 
 	ih = node_short_ih_at(node, pos->item);
 	aal_memcpy(&ih->key, key->body, sizeof(ih->key));
 
-	node->dirty = 1;
+	node_common_mkdirty(entity);
 	return 0;
 }
 
 /* Prepare text node description and push it into specified @stream. */
-static errno_t node_short_print(object_entity_t *entity,
+static errno_t node_short_print(node_entity_t *entity,
 				aal_stream_t *stream,
 				uint32_t start, 
 				uint32_t count, 
@@ -690,7 +673,6 @@ static errno_t node_short_print(object_entity_t *entity,
 
 	aal_assert("vpf-023", entity != NULL);
 	aal_assert("umka-457", stream != NULL);
-	aal_assert("umka-2044", loaded(entity));
 
 	node = (node_t *)entity;
 	level = node_common_get_level(entity);
@@ -699,9 +681,9 @@ static errno_t node_short_print(object_entity_t *entity,
 
 	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
 			  "SPACE=%u MKFS=0x%llx FLUSH=0x%llx\n",
-			  aal_block_number(node->block), level,
-			  node_common_items(entity), node_common_space(entity),
-			  nh_get_mkfs_id(node), nh_get_flush_id(node));
+			  node->block->nr, level, node_common_items(entity),
+			  node_common_space(entity), nh_get_mkfs_id(node),
+			  nh_get_flush_id(node));
 	
 	pos.unit = MAX_UINT32;
 	
@@ -759,13 +741,12 @@ static int callback_comp_key(void *node, uint32_t pos,
 
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
-static lookup_t node_short_lookup(object_entity_t *entity, 
+static lookup_t node_short_lookup(node_entity_t *entity, 
 				  key_entity_t *key, pos_t *pos)
 {
 	aal_assert("umka-472", key != NULL);
 	aal_assert("umka-478", pos != NULL);
 	aal_assert("umka-470", entity != NULL);
-	aal_assert("umka-2046", loaded(entity));
 	aal_assert("umka-714", key->plug != NULL);
 
 	switch (aux_bin_search(entity, node_common_items(entity),
@@ -812,9 +793,9 @@ static bool_t node_short_splitable(place_t *place) {
 }
 
 /* Fuses two items is they are mergeable */
-static errno_t node_short_fuse(object_entity_t *src_entity,
+static errno_t node_short_fuse(node_entity_t *src_entity,
 			       pos_t *src_pos,
-			       object_entity_t *dst_entity,
+			       node_entity_t *dst_entity,
 			       pos_t *dst_pos)
 {
 	pos_t pos;
@@ -905,8 +886,8 @@ static errno_t node_short_fuse(object_entity_t *src_entity,
 
 /* Merges border items of the src and dst nodes. The behavior depends on the
    passed hint pointer. */
-static errno_t node_short_merge(object_entity_t *src_entity,
-				object_entity_t *dst_entity, 
+static errno_t node_short_merge(node_entity_t *src_entity,
+				node_entity_t *dst_entity, 
 				shift_hint_t *hint)
 {
 	pos_t pos;
@@ -1150,8 +1131,8 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 
 /* Predicts how many whole item may be shifted from @src_entity to
    @dst_entity. */
-static errno_t node_short_predict(object_entity_t *src_entity,
-				  object_entity_t *dst_entity, 
+static errno_t node_short_predict(node_entity_t *src_entity,
+				  node_entity_t *dst_entity, 
 				  shift_hint_t *hint)
 {
 	uint32_t flags;
@@ -1286,8 +1267,8 @@ static errno_t node_short_predict(object_entity_t *src_entity,
 }
 
 /* Moves some amount of whole items from @src_entity to @dst_entity */
-static errno_t node_short_transfuse(object_entity_t *src_entity,
-				    object_entity_t *dst_entity, 
+static errno_t node_short_transfuse(node_entity_t *src_entity,
+				    node_entity_t *dst_entity, 
 				    shift_hint_t *hint)
 {	
 	errno_t res;
@@ -1347,8 +1328,8 @@ static errno_t node_short_transfuse(object_entity_t *src_entity,
 }
 
 /* Performs shift of items and units from @entity to @neighb */
-static errno_t node_short_shift(object_entity_t *src_entity,
-				object_entity_t *dst_entity,
+static errno_t node_short_shift(node_entity_t *src_entity,
+				node_entity_t *dst_entity,
 				shift_hint_t *hint)
 {
 	errno_t res;
@@ -1358,9 +1339,6 @@ static errno_t node_short_shift(object_entity_t *src_entity,
 
 	aal_assert("umka-2050", src_entity != NULL);
 	aal_assert("umka-2051", dst_entity != NULL);
-
-	aal_assert("umka-2048", loaded(src_entity));
-	aal_assert("umka-2049", loaded(dst_entity));
 
 	src_node = (node_t *)src_entity;
 	dst_node = (node_t *)dst_entity;
@@ -1431,34 +1409,32 @@ static errno_t node_short_shift(object_entity_t *src_entity,
 	return 0;
 }
 
-extern void node_short_set_flag(object_entity_t *entity, 
+extern void node_short_set_flag(node_entity_t *entity, 
 				uint32_t pos, 
 				uint16_t flag);
 
-extern void node_short_clear_flag(object_entity_t *entity, 
+extern void node_short_clear_flag(node_entity_t *entity, 
 				  uint32_t pos, 
 				  uint16_t flag);
 
-extern bool_t node_short_test_flag(object_entity_t *entity, 
+extern bool_t node_short_test_flag(node_entity_t *entity, 
 				   uint32_t pos, 
 				   uint16_t flag);
 
-extern errno_t node_short_copy(object_entity_t *dst_entity,
+extern errno_t node_short_copy(node_entity_t *dst_entity,
 			       pos_t *dst_pos, 
-			       object_entity_t *src_entity,
+			       node_entity_t *src_entity,
 			       pos_t *src_pos, 
 			       copy_hint_t *hint);
 
-extern errno_t node_short_check_struct(object_entity_t *entity,
+extern errno_t node_short_check_struct(node_entity_t *entity,
 				       uint8_t mode);
 
 #endif
 
 static reiser4_node_ops_t node_short_ops = {
 	.init		= node_short_init,
-	.load		= node_common_load,
-	.close		= node_common_close,
-	.unload		= node_common_unload,
+	.fini		= node_common_fini,
 	.confirm	= node_common_confirm,
 	.lookup		= node_short_lookup,
 	.fetch          = node_short_fetch,
@@ -1468,12 +1444,9 @@ static reiser4_node_ops_t node_short_ops = {
 	.get_level	= node_common_get_level,
 		
 #ifndef ENABLE_STAND_ALONE
-	.get_mstamp	= node_common_get_mstamp,
-	.get_fstamp     = node_common_get_fstamp,
-		
 	.move		= node_common_move,
 	.clone          = node_common_clone,
-	.form		= node_common_form,
+	.fresh		= node_common_fresh,
 	.sync           = node_common_sync,
 	
 	.isdirty        = node_common_isdirty,
@@ -1496,6 +1469,10 @@ static reiser4_node_ops_t node_short_ops = {
 	
 	.set_key	= node_short_set_key,
 	.set_level      = node_common_set_level,
+
+	.get_mstamp	= node_common_get_mstamp,
+	.get_fstamp     = node_common_get_fstamp,
+	
 	.set_mstamp	= node_common_set_mstamp,
 	.set_fstamp     = node_common_set_fstamp,
 	

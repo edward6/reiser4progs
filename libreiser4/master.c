@@ -34,6 +34,7 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 /* Destroys master super block */
 errno_t reiser4_master_clobber(aal_device_t *device) {
 	blk_t blk;
+	errno_t res;
 	uint32_t blksize;
 	aal_block_t *block;
     
@@ -42,14 +43,23 @@ errno_t reiser4_master_clobber(aal_device_t *device) {
 	blksize = REISER4_BLKSIZE;
 	blk = (REISER4_MASTER_OFFSET / blksize);
 		
-	if (!(block = aal_block_create(device,
-				       blksize,
-				       blk, 0)))
+	if (!(block = aal_block_alloc(device,
+				      blksize,
+				      blk)))
 	{
 		return -ENOMEM;
 	}
 
-	return aal_block_write(block);
+	aal_block_fill(block, 0);
+	
+	if ((res = aal_block_write(block))) {
+		aal_exception_error("Can't write block %llu. "
+				    "%s.", blk, device->error);
+	}
+		
+	aal_block_free(block);
+	
+	return res;	
 }
 
 /* Forms master super block disk structure */
@@ -160,7 +170,7 @@ int reiser4_master_confirm(aal_device_t *device) {
 	offset = (blk_t)(REISER4_MASTER_OFFSET / blksize);
     
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(device, blksize, offset))) {
+	if (!(block = aal_block_load(device, blksize, offset))) {
 		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		return 0;
@@ -194,7 +204,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	master->device = device;
 	
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(device, device->blksize,
+	if (!(block = aal_block_load(device, device->blksize,
 				     REISER4_MASTER_OFFSET /
 				     device->blksize)))
 	{
@@ -256,7 +266,7 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	offset = (blk_t)(REISER4_MASTER_OFFSET / blksize);
 	
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(master->device,
+	if (!(block = aal_block_load(master->device,
 				     blksize, offset)))
 	{
 		aal_exception_fatal("Can't read master super block "
@@ -294,20 +304,21 @@ errno_t reiser4_master_sync(
 	blksize = master->device->blksize;
 	offset = REISER4_MASTER_OFFSET / blksize;
 
-	if (!(block = aal_block_create(master->device,
-				       blksize, offset, 0)))
+	if (!(block = aal_block_alloc(master->device,
+				      blksize, offset)))
 	{
 		return -ENOMEM;
 	}
+
+	aal_block_fill(block, 0);
 
 	aal_memcpy(block->data, SUPER(master),
 		   sizeof(*SUPER(master)));
 	
 	/* Writing master super block to its device */
 	if ((res = aal_block_write(block))) {
-		aal_exception_error("Can't synchronize master "
-				    "super block at %llu. %s.",
-				    aal_block_number(block), 
+		aal_exception_error("Can't write master super block "
+				    "at %llu. %s.", block->nr,
 				    block->device->error);
 		goto error_free_block;
 	}

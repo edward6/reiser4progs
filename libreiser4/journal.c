@@ -173,7 +173,7 @@ reiser4_journal_t *reiser4_journal_create(
 					  start, len, blocksize, hint))) 
 	{
 		aal_exception_error("Can't create journal %s on %s.",
-				    plug->label, aal_device_name(device));
+				    plug->label, device->name);
 		goto error_free_journal;
 	}
 	

@@ -444,7 +444,11 @@ static int callback_match_policy(reiser4_plug_t *plug,
 			if ((desc->policy == LARGE &&
 			     desc->id == ITEM_CDE_LARGE_ID) ||
 			    (desc->policy == SHORT &&
-			     desc->id == ITEM_CDE_SHORT_ID))
+			     desc->id == ITEM_CDE_SHORT_ID) ||
+			    (desc->policy == LARGE &&
+			     desc->id == NODE_LARGE_ID)     ||
+			    (desc->policy == SHORT &&
+			     desc->id == NODE_SHORT_ID))
 			{
 				return 0;
 			} else

@@ -17,7 +17,7 @@
 struct alloc40 {
 	reiser4_plug_t *plug;
 	
-	uint32_t blocksize;
+	uint32_t blksize;
 	aal_device_t *device;
 	aux_bitmap_t *bitmap;
 
