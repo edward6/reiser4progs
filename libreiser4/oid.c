@@ -240,7 +240,7 @@ oid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid) {
 	aal_assert("umka-745", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->o.oid_ops, 
-			   hyper_locality,);
+			   hyper_locality);
 }
 
 /* Returns root parent objectid from specified oid allocator */
@@ -248,7 +248,7 @@ oid_t reiser4_oid_root_locality(reiser4_oid_t *oid) {
 	aal_assert("umka-746", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->o.oid_ops, 
-			   root_locality,);
+			   root_locality);
 }
 
 /* Returns root objectid from specified oid allocator */
@@ -256,6 +256,6 @@ oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid) {
 	aal_assert("umka-747", oid != NULL);
     
 	return plugin_call(oid->entity->plugin->o.oid_ops, 
-			   root_objectid,);
+			   root_objectid);
 }
 #endif
