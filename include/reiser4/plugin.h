@@ -485,10 +485,6 @@ typedef struct object_hint object_hint_t;
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. */ 
 struct insert_hint {
-	/* This is pointer to already formated item body. It is useful for item
-	   copying, replacing, etc. This will be used by fsck probably. */
-	void *data;
-
 	/* Overhead of data to be insetred. This is needed for the case when we
 	 * insert directory item and tree should now how many space should be
 	 * prepared in the tree ohd + len, but we don't need overhead for
@@ -1359,6 +1355,9 @@ struct tree_ops {
 	
 	/* Update the key in the place and the node itsef. */
 	errno_t (*ukey) (void *, place_t *, key_entity_t *);
+
+	/* Convert some particular place to another plugin. */
+	errno_t (*conv) (void *, place_t *, reiser4_plug_t *plug);
 #endif
 	/* Returns next items respectively. */
 	errno_t (*next) (void *, place_t *, place_t *);
