@@ -242,7 +242,7 @@ errno_t reiser4_node_lkey(
 	if (reiser4_item_key(&coord))
 		return -1;
 
-	aal_memcpy(key, &coord.entity.key, sizeof(key));
+	aal_memcpy(key, &coord.entity.key, sizeof(*key));
 	
 	return 0;
 }
@@ -298,7 +298,7 @@ errno_t reiser4_node_nkey(
 	if (reiser4_item_key(&coord))
 		return -1;
 
-	aal_memcpy(key, &coord.entity.key, sizeof(key));
+	aal_memcpy(key, &coord.entity.key, sizeof(*key));
 	
 	return 0;
 }
