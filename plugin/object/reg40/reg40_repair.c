@@ -11,7 +11,7 @@
 
 #include "reg40.h"
 
-extern reiser4_plugin_t reg40_plugin;
+extern reiser4_plug_t reg40_plug;
 
 static errno_t callback_mode_reg(uint16_t mode) {
 	return S_ISREG(mode) ? 0 : -EINVAL;
@@ -31,7 +31,7 @@ object_entity_t *reg40_realize(object_info_t *info) {
 		return NULL;
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plugin, NULL, core, info->tree);
+	obj40_init(&reg->obj, &reg40_plug, NULL, core, info->tree);
 	
 	return (object_entity_t *)reg;
 }
@@ -49,20 +49,21 @@ errno_t reg40_check_struct(object_entity_t *object, object_info_t *info,
 	aal_assert("vpf-1190", info->tree != NULL);
 	
 	/* Recovery on the base of an item. */
-	if (info->start.item.plugin) {
+	if (info->start.item.plug) {
 		uint64_t locality, objectid;
 		
 		/* Build the SD key on the base of the start place. */
-		locality = plugin_call(info->start.item.key.plugin->o.key_ops,
-				       get_locality, &info->object);
-		objectid = plugin_call(info->start.item.plugin->o.key_ops,
-				       get_objectid, &info->object);
+		locality = plug_call(info->start.item.key.plug->o.key_ops,
+				     get_locality, &info->object);
+		
+		objectid = plug_call(info->start.item.plug->o.key_ops,
+				     get_objectid, &info->object);
 
-		plugin_call(info->start.item.plugin->o.key_ops, build_generic,
-			    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+		plug_call(info->start.item.plug->o.key_ops, build_generic,
+			  &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 		
 		/* If the specified place is not the place of the SD, find SD. */
-		if (info->start.item.plugin->h.group != STATDATA_ITEM) {
+		if (info->start.item.plug->h.group != STATDATA_ITEM) {
 			lookup = core->tree_ops.lookup(info->tree, &info->object,
 						       LEAF_LEVEL, &info->start);
 			
@@ -102,8 +103,8 @@ errno_t reg40_check_struct(object_entity_t *object, object_info_t *info,
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
-		plugin_call(info->start.item.plugin->o.key_ops, build_generic, 
-			    &key, KEY_FILEBODY_TYPE, locality, objectid, reg->offset);
+		plug_call(info->start.item.plug->o.key_ops, build_generic, 
+			  &key, KEY_FILEBODY_TYPE, locality, objectid, reg->offset);
 
 		lookup = obj40_lookup(&reg->obj, &key, LEAF_LEVEL, &reg->body);
 		
@@ -113,12 +114,12 @@ errno_t reg40_check_struct(object_entity_t *object, object_info_t *info,
 			if ((res = core->tree_ops.realize(info->tree, &reg->body)))
 				return res;
 			
-			if ((res = plugin_call(reg->body.item->plugin->o.item_ops, 
-					       maxreal_key, reg->body.item, &key)))
+			if ((res = plug_call(reg->body.item->plug->o.item_ops, 
+					     maxreal_key, reg->body.item, &key)))
 				return res;
 			
-			reg->offset = plugin_call(key.plugin->key_ops, get_offset, 
-						  &key) + 1;
+			reg->offset = plug_call(key.plug->key_ops, get_offset, 
+						&key) + 1;
 			
 			continue;
 		case ABSENT:
@@ -131,9 +132,11 @@ errno_t reg40_check_struct(object_entity_t *object, object_info_t *info,
 				return res;
 			
 			/* Check if this is an item of another object. */
-			if (plugin_call(key.plugin->o.key_ops, compare_short, 
-					&key, &reg->body.item.key))
+			if (plug_call(key.plug->o.key_ops, compare_short, 
+				      &key, &reg->body.item.key))
+			{
 				break;
+			}
 
 			/* Insert the hole. */
 
