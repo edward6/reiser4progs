@@ -748,7 +748,7 @@ extern errno_t alloc40_check(object_entity_t *entity, uint8_t mode);
 static reiser4_plugin_t alloc40_plugin = {
 	.alloc_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = ALLOC_REISER40_ID,
 			.group = 0,
 			.type = ALLOC_PLUGIN_TYPE,

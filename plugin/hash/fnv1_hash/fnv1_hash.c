@@ -24,15 +24,13 @@ static uint64_t fnv1_hash_build(const unsigned char *name, uint32_t len) {
 static reiser4_plugin_t fnv1_hash_plugin = {
 	.hash_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = HASH_FNV1_ID,
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "fnv1_hash",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Implementation fnv1 hash for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		.build = fnv1_hash_build

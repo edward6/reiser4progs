@@ -68,7 +68,7 @@ extern errno_t sdext_symlink_check(sdext_entity_t *sdext,
 static reiser4_plugin_t sdext_symlink_plugin = {
 	.sdext_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = SDEXT_SYMLINK_ID,
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
@@ -76,8 +76,6 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Symlink stat data extention for "
 			"reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		.open	 = sdext_symlink_open,

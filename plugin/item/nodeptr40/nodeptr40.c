@@ -186,15 +186,13 @@ extern errno_t nodeptr40_check(item_entity_t *item, uint8_t mode);
 static reiser4_plugin_t nodeptr40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = ITEM_NODEPTR40_ID,
 			.group = NODEPTR_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "nodeptr40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Node pointer item for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 #ifndef ENABLE_STAND_ALONE	    

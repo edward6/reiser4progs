@@ -86,7 +86,7 @@ extern errno_t sdext_lt_check(sdext_entity_t *sdext, uint8_t mode);
 static reiser4_plugin_t sdext_lt_plugin = {
 	.sdext_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = SDEXT_LT_ID,
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,

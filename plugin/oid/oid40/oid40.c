@@ -205,15 +205,13 @@ static oid_t oid40_root_objectid(void) {
 static reiser4_plugin_t oid40_plugin = {
 	.oid_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = OID_REISER40_ID,
 			.group = 0,
 			.type = OID_PLUGIN_TYPE,
 			.label = "oid40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Inode allocator for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		.open		= oid40_open,

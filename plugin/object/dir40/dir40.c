@@ -914,15 +914,13 @@ static void dir40_close(object_entity_t *entity) {
 static reiser4_plugin_t dir40_plugin = {
 	.object_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = OBJECT_DIRTORY40_ID,
 			.group = DIRTORY_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "dir40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Compound directory for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		

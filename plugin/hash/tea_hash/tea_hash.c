@@ -145,15 +145,13 @@ uint64_t tea_hash_build(const unsigned char *name, uint32_t len) {
 static reiser4_plugin_t tea_hash_plugin = {
 	.hash_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = HASH_TEA_ID,
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "tea_hash",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Implementation tea hash for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		.build = tea_hash_build

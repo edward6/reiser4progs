@@ -1847,15 +1847,13 @@ static errno_t node40_shift(object_entity_t *src_entity,
 static reiser4_plugin_t node40_plugin = {
 	.node_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = NODE_REISER40_ID,
 			.group = 0,
 			.type = NODE_PLUGIN_TYPE,
 			.label = "node40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Node plugin for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		

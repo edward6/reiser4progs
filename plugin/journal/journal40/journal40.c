@@ -732,7 +732,7 @@ extern errno_t journal40_check(object_entity_t *,
 static reiser4_plugin_t journal40_plugin = {
 	.journal_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = JOURNAL_REISER40_ID,
 			.group = 0,
 			.type = JOURNAL_PLUGIN_TYPE,

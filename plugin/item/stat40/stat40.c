@@ -474,15 +474,13 @@ static errno_t stat40_copy(item_entity_t *dst_item,
 static reiser4_plugin_t stat40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = ITEM_STATDATA40_ID,
 			.group = STATDATA_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "stat40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Stat data item for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		

@@ -398,15 +398,13 @@ errno_t key40_print(key_entity_t *key,
 static reiser4_plugin_t key40_plugin = {
 	.key_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = KEY_REISER40_ID,
 			.group = 0,
 			.type = KEY_PLUGIN_TYPE,
 			.label = "key40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Key for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 	

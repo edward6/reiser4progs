@@ -25,15 +25,13 @@ uint64_t r5_hash_build(const unsigned char *name, uint32_t len) {
 static reiser4_plugin_t r5_hash_plugin = {
 	.hash_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = HASH_R5_ID,
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "r5_hash",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Implementation r5 hash for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		.build = r5_hash_build

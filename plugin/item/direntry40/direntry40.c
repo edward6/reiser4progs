@@ -1068,15 +1068,13 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 static reiser4_plugin_t direntry40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = ITEM_CDE40_ID,
 			.group = DIRENTRY_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "direntry40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Compound direntry for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		

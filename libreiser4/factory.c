@@ -90,15 +90,15 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 			 PLUGIN_MAX_LABEL))
 	{
 		aal_exception_error("Plugin %s has the same label "
-				    "as %s.", examined->h.handle.name,
-				    plugin->h.handle.name);
+				    "as %s.", examined->h.class.name,
+				    plugin->h.class.name);
 		return -EINVAL;
 	}
 
 	/* Check plugin group */
 	if (examined->h.group >= LAST_ITEM) {
 		aal_exception_error("Plugin %s has invalid group id "
-				    "0x%x.", examined->h.handle.name,
+				    "0x%x.", examined->h.class.name,
 				    examined->h.group);
 		return -EINVAL;
 	}
@@ -109,8 +109,8 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 	    examined->h.type == plugin->h.type)
 	{
 		aal_exception_error("Plugin %s has the same sign as "
-				    "%s.", examined->h.handle.name,
-				    plugin->h.handle.name);
+				    "%s.", examined->h.class.name,
+				    plugin->h.class.name);
 		return -EINVAL;
 	}
 
@@ -138,8 +138,8 @@ static void *find_symbol(void *handle, char *name, char *plugin) {
 	addr = dlsym(handle, name);
 	
 	if (dlerror() != NULL || addr == NULL) {
-		aal_exception_error("Can't find symbol %s in plugin %s. %s.", 
-				    name, plugin, dlerror());
+		aal_exception_error("Can't find symbol %s in plugin "
+				    "%s. %s.", name, plugin, dlerror());
 		return NULL;
 	}
 	
@@ -148,55 +148,55 @@ static void *find_symbol(void *handle, char *name, char *plugin) {
 
 /* Loads plugin (*.so file) by its filename */
 errno_t libreiser4_plugin_open(const char *name,
-			       plugin_handle_t *handle)
+			       plugin_class_t *class)
 {
 	void *addr;
 	
 	aal_assert("umka-260", name != NULL);
-	aal_assert("umka-1430", handle != NULL);
+	aal_assert("umka-1430", class != NULL);
     
 	/* Loading specified plugin filename */
-	if (!(handle->data = dlopen(name, RTLD_NOW))) {
+	if (!(class->data = dlopen(name, RTLD_NOW))) {
 		aal_exception_error("Can't load plugin %s. %s.", 
 				    name, dlerror());
 		return errno;
 	}
 
-	aal_strncpy(handle->name, name, sizeof(handle->name));
+	aal_strncpy(class->name, name, sizeof(class->name));
 
 	/* Getting plugin init function */
-	if (!(addr = find_symbol(handle->data, "__plugin_init", (char *)name)))
-		goto error_free_handle;
+	if (!(addr = find_symbol(class->data, "__plugin_init", (char *)name)))
+		goto error_free_data;
     
-	handle->init = *((plugin_init_t *)addr);
+	class->init = *((plugin_init_t *)addr);
 
 	/* Getting plugin fini function */
-	if (!(addr = find_symbol(handle->data, "__plugin_fini", (char *)name)))
-		goto error_free_handle;
+	if (!(addr = find_symbol(class->data, "__plugin_fini", (char *)name)))
+		goto error_free_data;
     
-	handle->fini = *((plugin_fini_t *)addr);
-	handle->abort = abort_func;
+	class->fini = *((plugin_fini_t *)addr);
+	class->abort = abort_func;
 
 	return 0;
     
- error_free_handle:
-	dlclose(handle->data);
+ error_free_data:
+	dlclose(class->data);
 	return -EINVAL;
 }
 
-void libreiser4_plugin_close(plugin_handle_t *handle) {
-	plugin_handle_t local;
+void libreiser4_plugin_close(plugin_class_t *class) {
+	void *data;
 	
-	aal_assert("umka-158", handle != NULL);
+	aal_assert("umka-158", class != NULL);
 
 	/*
 	  Here we copy handle of the previously loaded library into address
 	  space of the main process due to prevent us from the segfault after
-	  plugin will be uploaded and we will unable access memory area it
-	  occupied.
+	  plugin will be unloaded and we will unable to access memory area it
+	  has just occupied.
 	*/
-	local = *handle;
-	dlclose(local.data);
+	data = class->data;
+	dlclose(data);
 }
 
 /*
@@ -206,31 +206,31 @@ void libreiser4_plugin_close(plugin_handle_t *handle) {
 errno_t libreiser4_factory_load(char *name) {
 	errno_t res;
 
-	plugin_handle_t handle;
+	plugin_class_t class;
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1495", name != NULL);
 
-	/* Open plugin and prepare its handle */
-	if ((res = libreiser4_plugin_open(name, &handle)))
+	/* Open plugin and prepare its class */
+	if ((res = libreiser4_plugin_open(name, &class)))
 		return res;
 
 	/*
 	  Init plugin (in this point all plugin's global variables are
 	  initializing too).
 	*/
-	if (!(plugin = handle.init(&core)))
+	if (!(plugin = class.init(&core)))
 		return -EINVAL;
 
 	/* Checking pluign for validness (the same ids, etc) */
-	plugin->h.handle = handle;
+	plugin->h.class = class;
 
 #ifdef ENABLE_PLUGINS_CHECK
 	if ((res = libreiser4_factory_foreach(callback_check_plugin,
 					      (void *)plugin)))
 	{
 		aal_exception_warn("Plugin %s will not be attached to "
-				   "plugin factory.", plugin->h.handle.name);
+				   "plugin factory.", plugin->h.class.name);
 		goto error_free_plugin;
 	}
 #endif
@@ -250,33 +250,33 @@ errno_t libreiser4_factory_load(char *name) {
 /* Loads built-in plugin by its entry address */
 errno_t libreiser4_plugin_open(plugin_init_t init,
 			       plugin_fini_t fini,
-			       plugin_handle_t *handle)
+			       plugin_class_t *class)
 {
 
 	aal_assert("umka-1431", init != NULL);
-	aal_assert("umka-1432", handle != NULL);
+	aal_assert("umka-1432", class != NULL);
 
 #ifndef ENABLE_STAND_ALONE
-	aal_snprintf(handle->name, sizeof(handle->name),
+	aal_snprintf(class->name, sizeof(class->name),
 		     "built-in (%p)", init);
 #endif
 	
-	handle->init = init;
-	handle->fini = fini;
+	class->init = init;
+	class->fini = fini;
 
 #ifndef ENABLE_STAND_ALONE
-	handle->abort = abort_func;
+	class->abort = abort_func;
 #endif
 
 	return 0;
 }
 
 /* Closes built-in plugins */
-void libreiser4_plugin_close(plugin_handle_t *handle) {
-	aal_assert("umka-1433", handle != NULL);
+void libreiser4_plugin_close(plugin_class_t *class) {
+	aal_assert("umka-1433", class != NULL);
 
-	handle->init = 0;
-	handle->fini = 0;
+	class->init = 0;
+	class->fini = 0;
 }
 
 /*
@@ -288,23 +288,23 @@ errno_t libreiser4_factory_load(plugin_init_t init,
 {
 	errno_t res;
 
-	plugin_handle_t handle;
+	plugin_class_t class;
 	reiser4_plugin_t *plugin;
 	
-	if ((res = libreiser4_plugin_open(init, fini, &handle)))
+	if ((res = libreiser4_plugin_open(init, fini, &class)))
 		return res;
 
-	if (!(plugin = handle.init(&core)))
+	if (!(plugin = class.init(&core)))
 		return -EINVAL;
 
-	plugin->h.handle = handle;
+	plugin->h.class = class;
 	
 #ifdef ENABLE_PLUGINS_CHECK
 	if ((res = libreiser4_factory_foreach(callback_check_plugin,
 					      (void *)plugin)))
 	{
 		aal_exception_warn("Plugin %s will not be attached to "
-				   "plugin factory.", plugin->h.handle.name);
+				   "plugin factory.", plugin->h.class.name);
 		goto error_free_plugin;
 	}
 #endif
@@ -321,16 +321,16 @@ errno_t libreiser4_factory_load(plugin_init_t init,
 
 /* Finalizing the plugin */
 errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
-	plugin_handle_t *handle;
+	plugin_class_t *class;
 	
 	aal_assert("umka-1496", plugin != NULL);
 	
-	handle = &plugin->h.handle;
+	class = &plugin->h.class;
 
-	if (handle->fini)
-		handle->fini(&core);
+	if (class->fini)
+		class->fini(&core);
 	
-	libreiser4_plugin_close(handle);
+	libreiser4_plugin_close(class);
 	plugins = aal_list_remove(plugins, plugin);
 
 	return 0;
@@ -338,7 +338,6 @@ errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 
 /* Initializes plugin factory by means of loading all available plugins */
 errno_t libreiser4_factory_init(void) {
-        plugin_handle_t handle;
         reiser4_plugin_t *plugin;
                                                                                                 
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
@@ -423,7 +422,7 @@ errno_t libreiser4_factory_init(void) {
 /* Finalizes plugin factory, by means of unloading the all plugins */
 void libreiser4_factory_fini(void) {
 	aal_list_t *walk;
-	plugin_handle_t *handle;
+	plugin_class_t *class;
 
 	aal_assert("umka-335", plugins != NULL);
     

@@ -601,15 +601,13 @@ extern errno_t extent40_check(item_entity_t *item, uint8_t mode);
 static reiser4_plugin_t extent40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = ITEM_EXTENT40_ID,
 			.group = EXTENT_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "extent40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Extent item for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		

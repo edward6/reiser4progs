@@ -359,15 +359,13 @@ static errno_t tail40_shift(item_entity_t *src_item,
 static reiser4_plugin_t tail40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = ITEM_TAIL40_ID,
 			.group = TAIL_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "tail40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Tail item for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		

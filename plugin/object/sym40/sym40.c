@@ -449,15 +449,13 @@ static void sym40_close(object_entity_t *entity) {
 static reiser4_plugin_t sym40_plugin = {
 	.object_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = OBJECT_SYMLINK40_ID,
 			.group = SYMLINK_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "sym40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Symlink for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		

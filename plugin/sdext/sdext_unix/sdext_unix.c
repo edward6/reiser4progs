@@ -116,12 +116,13 @@ extern errno_t sdext_unix_check(sdext_entity_t *sdext,
 static reiser4_plugin_t sdext_unix_plugin = {
 	.sdext_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = SDEXT_UNIX_ID,
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_unix",
-			.desc = "Unix stat data extention for reiser4, ver. " VERSION
+			.desc = "Unix stat data extention for "
+			"reiser4, ver. " VERSION
 		},
 		.open	 = sdext_unix_open,
 		.init	 = sdext_unix_init,

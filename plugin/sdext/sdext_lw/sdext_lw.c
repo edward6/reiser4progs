@@ -131,15 +131,13 @@ extern errno_t sdext_lw_check(sdext_entity_t *sdext,
 static reiser4_plugin_t sdext_lw_plugin = {
 	.sdext_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = SDEXT_LW_ID,
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_lw",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Light stat data extention for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		.open	 = sdext_lw_open,

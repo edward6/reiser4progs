@@ -68,6 +68,8 @@ static int32_t reg40_read(object_entity_t *entity,
 			  void *buff, uint32_t n)
 {
 	errno_t res;
+	reg40_t *reg;
+	
 #ifndef ENABLE_STAND_ALONE
 	uint64_t size;
 	uint64_t offset;
@@ -75,14 +77,14 @@ static int32_t reg40_read(object_entity_t *entity,
 	uint32_t size;
 	uint32_t offset;
 #endif
+	
 	item_entity_t *item;
 	uint32_t read, chunk;
-	
-	reg40_t *reg = (reg40_t *)entity;
 
 	aal_assert("umka-1183", buff != NULL);
 	aal_assert("umka-1182", entity != NULL);
 
+	reg = (reg40_t *)entity;
 	size = reg40_size(entity);
 
 	if (reg->offset > size)
@@ -473,15 +475,13 @@ static uint64_t reg40_offset(object_entity_t *entity) {
 static reiser4_plugin_t reg40_plugin = {
 	.object_ops = {
 		.h = {
-			.handle = EMPTY_HANDLE,
+			.class = CLASS_INIT,
 			.id = OBJECT_FILE40_ID,
 			.group = FILE_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "reg40",
 #ifndef ENABLE_STAND_ALONE
 			.desc = "Regular file for reiser4, ver. " VERSION
-#else
-			.desc = ""
 #endif
 		},
 		
