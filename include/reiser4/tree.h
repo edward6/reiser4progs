@@ -16,7 +16,7 @@ extern errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 				   reiser4_node_t *node,
-				   bool_t check);
+				   bool_t mpcheck);
 
 extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 					 mpc_func_t mpc_func);
@@ -61,10 +61,18 @@ extern errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 				 reiser4_place_t *place,
 				 reiser4_plug_t *plug);
 
+extern int32_t reiser4_tree_fetch(reiser4_tree_t *tree,
+				  reiser4_place_t *place,
+				  trans_hint_t *hint);
+
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
 				   trans_hint_t *hint,
 				   uint8_t level);
+
+extern int32_t reiser4_tree_read(reiser4_tree_t *tree,
+				 reiser4_place_t *place,
+				 trans_hint_t *hint);
 
 extern errno_t reiser4_tree_write(reiser4_tree_t *tree,
 				  reiser4_place_t *place,
@@ -138,12 +146,11 @@ extern errno_t reiser4_tree_resize(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_release(reiser4_tree_t *tree,
 				    reiser4_node_t *node);
 
-extern reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
-					 reiser4_node_t *parent,
-					 blk_t blk);
-
 extern errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
 
+extern reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
+					 reiser4_node_t *parent,
+					 blk_t blk);
 #endif
 

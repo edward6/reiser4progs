@@ -120,7 +120,6 @@ bool_t reiser4_place_right(reiser4_place_t *place) {
 	
 	return place->pos.unit == units;
 }
-#endif
 
 void reiser4_place_inc(reiser4_place_t *place,
 		       int whole)
@@ -175,6 +174,7 @@ void reiser4_place_dec(reiser4_place_t *place,
 	if (whole && place->pos.unit == 0)
 		place->pos.unit = MAX_UINT32;
 }
+#endif
 
 /* Initializes all item-related fields */
 errno_t reiser4_place_fetch(reiser4_place_t *place) {

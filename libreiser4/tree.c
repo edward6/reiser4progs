@@ -779,7 +779,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 /* Flushes some part of tree cache to device starting from passed @node */
 errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 			    reiser4_node_t *node,
-			    bool_t check)
+			    bool_t mpcheck)
 {
 	errno_t res;
 	aal_list_t *walk;
@@ -829,8 +829,11 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 			next = walk->next;
 			child = (reiser4_node_t *)walk->data;
 			
-			if ((res = reiser4_tree_adjust(tree, child, check)))
+			if ((res = reiser4_tree_adjust(tree, child,
+						       mpcheck)))
+			{
 				return res;
+			}
 		}
 	}
 
@@ -894,7 +897,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 #endif
 		
 	/* Checking if we should try to release some nodes.*/
-	if (check) {
+	if (mpcheck) {
 		/* Checking if memory pressure is still exist */
 		if (!tree->mpc_func || !tree->mpc_func())
 			return 1;
@@ -1775,7 +1778,9 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			  reiser4_plug_t *plug)
 {
 	errno_t res;
+	uint32_t size;
 //	trans_hint_t hint;
+	key_entity_t maxkey;
 	
 	aal_assert("umka-2406", tree != NULL);
 	aal_assert("umka-2407", place != NULL);
@@ -1786,6 +1791,15 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 	
 	if (plug->id.group == place->plug->id.group)
 		return -EINVAL;
+
+	plug_call(place->plug->o.item_ops, maxreal_key,
+		  (place_t *)place, &maxkey);
+
+	size = plug_call(maxkey.plug->o.key_ops,
+			 get_offset, &maxkey);
+
+	size -= plug_call(place->key.plug->o.key_ops,
+			  get_offset, &place->key);
 
 	return 0;
 }
@@ -1984,6 +1998,15 @@ static errno_t reiser4_tree_mod(
 	return reiser4_place_fetch(place);
 }
 
+/* Fetches data from the @tree to passed @hint */
+int32_t reiser4_tree_fetch(reiser4_tree_t *tree,
+			   reiser4_place_t *place,
+			   trans_hint_t *hint)
+{
+	return plug_call(place->plug->o.item_ops, fetch,
+			 (place_t *)place, hint);
+}
+
 /* Inserts data to the tree */
 errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 			    reiser4_place_t *place,
@@ -1997,6 +2020,15 @@ errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 	aal_assert("umka-1645", hint->plug != NULL);
 
 	return reiser4_tree_mod(tree, place, hint, level, 1);
+}
+
+/* Reads data from the @tree to passed @hint */
+int32_t reiser4_tree_read(reiser4_tree_t *tree,
+			  reiser4_place_t *place,
+			  trans_hint_t *hint)
+{
+	return plug_call(place->plug->o.item_ops, read,
+			 (place_t *)place, hint);
 }
 
 /* Writes data to the tree */

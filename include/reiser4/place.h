@@ -8,16 +8,16 @@
 
 #include <reiser4/types.h>
 
+#ifndef ENABLE_STAND_ALONE
 extern void reiser4_place_inc(reiser4_place_t *place,
 			      int whole);
 
 extern void reiser4_place_dec(reiser4_place_t *place,
 			      int whole);
 
-#ifndef ENABLE_STAND_ALONE
-extern bool_t reiser4_place_rightmost(reiser4_place_t *place);
-extern bool_t reiser4_place_leftmost(reiser4_place_t *place);
 extern bool_t reiser4_place_right(reiser4_place_t *place);
+extern bool_t reiser4_place_leftmost(reiser4_place_t *place);
+extern bool_t reiser4_place_rightmost(reiser4_place_t *place);
 #endif
 
 extern bool_t reiser4_place_valid(reiser4_place_t *place);
