@@ -757,11 +757,11 @@ struct reiser4_item_ops {
 	   to formatted node in the tree. If this method if not implemented,
 	   then item is assumed as not nodeptr one. All tree running operations
 	   like going from the root to leaves will use this function. */
-	int (*branch) (void);
+	int (*branch) (place_t *);
 	
 	/* Returns TRUE if instances of the plugin can contain data, not just
 	   tree index data. */
-	int (*data) (void);
+	int (*data) (place_t *);
 	
 	/* Get the key of a particular unit of the item. */
 	errno_t (*get_key) (place_t *, uint32_t, key_entity_t *);

@@ -137,7 +137,7 @@ errno_t misc_profile_override(char *override)
 		aal_memset(name, 0, sizeof(name));
 		aal_memset(value, 0, sizeof(value));
 		
-		aal_strncpy(name, entry, (index - entry));
+		aal_strncpy(name, entry, sizeof(name));
 
 		if (index + 1 == '\0') {
 			aal_exception_error("Invalid profile override "
@@ -145,8 +145,7 @@ errno_t misc_profile_override(char *override)
 			return -EINVAL;
 		}
 		
-		aal_strncpy(value, index + 1, (entry + aal_strlen(entry)) -
-			    index);
+		aal_strncpy(value, index + 1, sizeof(value));
 	
 		if (reiser4_profile_override(&profile, name, value))
 			return -EINVAL;

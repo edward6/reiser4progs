@@ -400,9 +400,6 @@ static int32_t reg40_put(object_entity_t *entity,
 		hint.offset = 0;
 		hint.tree = reg->obj.info.tree;
 
-		level = hint.plug->id.group == EXTENT_ITEM ?
-			LEAF_LEVEL + 1 : LEAF_LEVEL;
-
 		/* Lookup place data will be inserted at */
 		switch (obj40_lookup(&reg->obj, &hint.key,
 				     LEAF_LEVEL, &place))
@@ -434,6 +431,9 @@ static int32_t reg40_put(object_entity_t *entity,
 		default:
 			break;
 		}
+
+		level = hint.plug->id.group == EXTENT_ITEM ?
+			LEAF_LEVEL + 1 : LEAF_LEVEL;
 
 		/* Inserting data to the tree */
 		if ((res = obj40_insert(&reg->obj, &hint, level, &place)))

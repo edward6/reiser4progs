@@ -30,7 +30,7 @@ static int32_t nodeptr40_read(place_t *place, void *buff,
 	return 1;
 }
 
-static int nodeptr40_branch(void) {
+static int nodeptr40_branch(place_t *place) {
 	return 1;
 }
 

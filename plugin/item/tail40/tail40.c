@@ -39,7 +39,7 @@ static int32_t tail40_read(place_t *place, void *buff,
 	return count;
 }
 
-static int tail40_data(void) {
+static int tail40_data(place_t *place) {
 	return 1;
 }
 

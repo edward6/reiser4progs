@@ -796,9 +796,6 @@ lookup_t reiser4_tree_lookup(
 	reiser4_place_t *place)	  /* place the found item to be stored */
 {
 	lookup_t res;
-	bool_t moved;
-	
-	uint32_t units;
 	reiser4_key_t wan;
 
 	aal_assert("umka-742", key != NULL);
@@ -830,6 +827,8 @@ lookup_t reiser4_tree_lookup(
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
+		bool_t whole = 0;
+		
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
 		res = reiser4_node_lookup(place->node, &wan, &place->pos);
@@ -839,48 +838,30 @@ lookup_t reiser4_tree_lookup(
 		if (reiser4_node_get_level(place->node) <= level ||
 		    res == FAILED)
 		{
-			/* Realizing place if key is found */
-			if (res == PRESENT)
+			if (res == PRESENT) {
+				/* Fetching item at @place if key is found */
 				reiser4_place_fetch(place);
+			}
 			
 			return res;
 		}
 
-		moved = FALSE;
-		
 		/* Position correcting for internal levels */
-		if (res == ABSENT && place->pos.item != 0) {
-			if (place->pos.unit == MAX_UINT32 ||
-			    place->pos.unit == 0)
-			{
-				place->pos.item--;
-				place->pos.unit = MAX_UINT32;
-			} else {
-				place->pos.unit--;
-			}
-			
-			moved = TRUE;
+		if (res == ABSENT) {
+			whole = (place->pos.unit == MAX_UINT32);
+			reiser4_place_dec(place, whole);
 		}
 		
 		/* Initializing @place->item. This should be done before using
 		   any item methods. */
 		if (reiser4_place_fetch(place))
 			return FAILED;
-		
-		units = reiser4_item_units(place);
-		
-		if (moved && place->pos.unit == MAX_UINT32)
-			place->pos.unit = units - 1;
 		    
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   position back. */
 		if (!reiser4_item_branch(place)) {
-			if (moved) {
-				if (place->pos.unit == units - 1) {
-					place->pos.item++;
-					place->pos.unit = MAX_UINT32;
-				} else 
-					place->pos.unit++;
+			if (res == ABSENT) {
+				reiser4_place_inc(place, whole);
 			}
 
 			return res;
@@ -1438,7 +1419,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		reiser4_place_init(place, node->p.node,
 				   &node->p.pos);
 
-		reiser4_place_inc(place);
+		reiser4_place_inc(place, place->pos.unit == MAX_UINT32);
 		
 		curr++;
 	}

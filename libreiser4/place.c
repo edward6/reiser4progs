@@ -88,20 +88,68 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	if (place->pos.item == items)
 		return TRUE;
 	
-	reiser4_place_fetch(place);
+	if (reiser4_place_fetch(place))
+		return FALSE;
+	
 	units = reiser4_item_units(place);
 	
 	return (place->pos.item == items - 1 && 
 		place->pos.unit == units);
 }
+#endif
 
-void reiser4_place_inc(reiser4_place_t *place) {
+void reiser4_place_inc(reiser4_place_t *place,
+		       int whole)
+{
+	uint32_t unit;
+	uint32_t units;
+
+	aal_assert("umka-2361", place != NULL);
+	aal_assert("umka-2364", place->node != NULL);
+
+	unit = whole ? MAX_UINT32 : 0;
+		
 	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = unit;
+
+	if (reiser4_place_fetch(place))
+		return;
+		
+	units = reiser4_item_units(place);
+	
+	if (place->pos.unit >= units - 1) {
 		place->pos.item++;
-	else
+		place->pos.unit = unit;
+	} else
 		place->pos.unit++;
 }
-#endif
+
+void reiser4_place_dec(reiser4_place_t *place,
+		       int whole)
+{
+	uint32_t unit;
+	
+	aal_assert("umka-2362", place != NULL);
+	aal_assert("umka-2365", place->node != NULL);
+	
+	unit = whole ? MAX_UINT32 : 0;
+	
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = unit;
+
+	if (place->pos.unit == unit) {
+		uint32_t units;
+		
+		place->pos.item--;
+
+		if (reiser4_place_fetch(place))
+			return;
+
+		units = reiser4_item_units(place);
+		place->pos.unit = units - 1;
+	} else
+		place->pos.unit--;
+}
 
 /* Initializes all item-related fields */
 errno_t reiser4_place_fetch(reiser4_place_t *place) {

@@ -136,7 +136,7 @@ static int32_t cde_large_read(place_t *place, void *buff,
 	return count;
 }
 
-static int cde_large_data(void) {
+static int cde_large_data(place_t *place) {
 	return 1;
 }
 

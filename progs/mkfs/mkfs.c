@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'l':
 			aal_strncpy(hint.label, optarg,
-				    sizeof(hint.label) - 1);
+				    sizeof(hint.label));
 			break;
 		case '?':
 			mkfs_print_usage(argv[0]);

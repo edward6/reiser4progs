@@ -84,7 +84,7 @@ static errno_t extent40_get_key(place_t *place, uint32_t pos,
 			      extent40_offset);
 }
 
-static int extent40_data(void) {
+static int extent40_data(place_t *place) {
 	return 1;
 }
 

@@ -104,7 +104,7 @@ bool_t reiser4_item_branch(reiser4_place_t *place) {
 	if (!place->plug->o.item_ops->branch)
 		return FALSE;
 
-	return place->plug->o.item_ops->branch();
+	return place->plug->o.item_ops->branch((place_t *)place);
 }
 
 /* Returns maximal possible key may exist in item at @place. If item's "get_key"
@@ -149,10 +149,8 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 	return 0;
 }
 
-bool_t reiser4_item_data(reiser4_plug_t *plug) {
-	aal_assert("vpf-747", plug != NULL);
-
-	return (plug->o.item_ops->data &&
-		plug->o.item_ops->data());
+int reiser4_item_data(reiser4_plug_t *plug) {
+        return (plug->o.item_ops->data &&
+		plug->o.item_ops->data(NULL));
 }
 #endif

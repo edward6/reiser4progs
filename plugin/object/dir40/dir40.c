@@ -72,8 +72,6 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	dir40_t *dir;
 	place_t next;
 	lookup_t res;
-
-	uint64_t locality;
 	
 	aal_assert("umka-1983", entity != NULL);
 	aal_assert("umka-1984", offset != NULL);
@@ -85,20 +83,8 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	{
 	case ABSENT:
 #ifndef ENABLE_STAND_ALONE
-		/* Checking if item component in @item->pos is valid one */
-		if (!core->tree_ops.valid(dir->obj.info.tree, &next))
+		if (!dir40_mergeable(entity, &next))
 			return -EINVAL;
-		
-                /* Initializing item entity at @next place */
-                if (core->tree_ops.fetch(dir->obj.info.tree, &next))
-                        return -EINVAL;
-                                                                                    
-                locality = plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-				     get_locality, &next.key);
-                                                                                    
-                /* Items are not mergeable */
-                if (locality != obj40_objectid(&dir->obj))
-                        return -EINVAL;
 #endif
 	case FAILED:
 		return -EINVAL;
@@ -126,19 +112,21 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 static errno_t dir40_reset(object_entity_t *entity) {
 	errno_t res;
 	dir40_t *dir;
-	key_entity_t key;
     
 	aal_assert("umka-864", entity != NULL);
     
 	dir = (dir40_t *)entity;
 	
 	/* Preparing key of the first entry in directory */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-		  build_entry, &key, dir->hash,
-		  obj40_locality(&dir->obj),
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
+		  &dir->offset, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), ".");
 
-	return dir40_seekdir(entity, &key);
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, assign,
+		  &dir->body.key, &dir->offset);
+
+	dir->unit = dir->body.pos.unit = 0;
+	return 0;
 }
 
 /* Updates body item */
@@ -643,10 +631,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_body;
 	}
 
-	/* Initializing @dir->offset by key of the "." entry */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-		  build_entry, &dir->offset, dir->hash,
-		  locality, objectid, ".");
+	if (dir40_reset((object_entity_t *)dir))
+		goto error_free_body;
 	
 	aal_free(body);
 	return (object_entity_t *)dir;
@@ -841,7 +827,7 @@ static uint32_t dir40_estimate(object_entity_t *entity,
 	hint.key.plug = STAT_KEY(&dir->obj)->plug;
 
 	if (plug_call(hint.plug->o.item_ops,
-			estimate_insert, NULL, &hint, 0))
+		      estimate_insert, NULL, &hint, 0))
 	{
 		aal_exception_error("Can't estimate directory "
 				    "operation.");
@@ -871,6 +857,9 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 	key = STAT_KEY(&dir->obj);
+
+	if (dir->body.plug == NULL && dir40_update(entity))
+		return -EINVAL;
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -923,9 +912,12 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
-	if ((res = obj40_read_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, 
+	if ((res = obj40_read_ext(STAT_ITEM(&dir->obj),
+				  SDEXT_UNIX_ID, 
 				  &unix_hint)))
+	{
 		return res;
+	}
 	
 	atime = time(NULL);
 
@@ -933,7 +925,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes += dir40_estimate(entity, entry);
 
-	return obj40_write_ext(STAT_ITEM(&dir->obj), SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_ITEM(&dir->obj),
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Removing entry from the directory */
@@ -960,6 +953,9 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	key = STAT_KEY(&dir->obj);
 
+	if (dir->body.plug == NULL && dir40_update(entity))
+		return -EINVAL;
+	
 	/* Generating key of the entry to be removed */
 	locality = obj40_locality(&dir->obj);
 	objectid = obj40_objectid(&dir->obj);

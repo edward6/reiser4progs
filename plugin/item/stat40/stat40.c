@@ -122,7 +122,7 @@ static int32_t stat40_read(place_t *place, void *buff,
 	return 1;
 }
 
-static int stat40_data(void) {
+static int stat40_data(place_t *place) {
 	return 1;
 }
 

@@ -135,7 +135,7 @@ static int32_t cde_short_read(place_t *place, void *buff,
 	return count;
 }
 
-static int cde_short_data(void) {
+static int cde_short_data(place_t *place) {
 	return 1;
 }
 

@@ -49,7 +49,7 @@ long long misc_size2long(const char *str) {
 	 
 	if (str) {
 		aal_memset(number, 0, 255);
-		aal_strncpy(number, str, aal_strlen(str));
+		aal_strncpy(number, str, sizeof(number));
 		label = number[aal_strlen(number) - 1];
 
 		valid = toupper(label) == toupper('K') ||
