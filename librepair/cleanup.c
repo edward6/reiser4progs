@@ -16,6 +16,9 @@ static errno_t repair_cleanup_check(place_t *place, void *data) {
 	aal_assert("vpf-1061", data != NULL);
 	
 	cleanup = (repair_cleanup_t *)data;
+
+	if (reiser4_item_branch(place->plug))
+		return 0;
 	
 	if (!repair_item_test_flag(place, OF_CHECKED)) {
 		trans_hint_t hint;

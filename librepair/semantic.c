@@ -607,8 +607,7 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 	if (sem->root == NULL) {
 		sem->repair->fatal++;
 		aal_exception_error("No root directory openned.");
-		
-		return 0;
+		return RE_FATAL;
 	} else if (sem->root == INVAL_PTR)
 		return -EINVAL;
 	
