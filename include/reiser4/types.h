@@ -156,6 +156,8 @@ struct reiser4_node {
 #endif
 };
 
+#define OBJECT_NAME_SIZE 256
+
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
 struct reiser4_object {
 
@@ -169,7 +171,7 @@ struct reiser4_object {
 #ifndef ENABLE_STAND_ALONE
 	
 	/* Full file name or printed key */
-	char name[256];
+	char name[OBJECT_NAME_SIZE];
 
 	/*
 	  Applications using this library sometimes need to embed information

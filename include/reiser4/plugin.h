@@ -639,6 +639,9 @@ struct reiser4_object_ops {
 	/* Checks and recover the structure of the object. */
 	object_entity_t *(*check_struct) (object_info_t *, uint8_t);
 	
+	/* Checks and recover the up link of the object. */
+	errno_t (*check_link) (object_info_t *, object_info_t *, uint8_t);
+	
 	/* 
 	  Realizes if the object can be of this plugin and can be recovered 
 	  as a such. 

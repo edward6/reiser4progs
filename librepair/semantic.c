@@ -8,6 +8,7 @@
 #include <repair/semantic.h>
 
 static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) {
+    reiser4_plugin_t *plugin;
     reiser4_object_t object;
     repair_semantic_t *sem;
     reiser4_key_t parent;
@@ -26,18 +27,17 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
     
     sem = (repair_semantic_t *)data;
     
-    aal_memset(&object, 0, sizeof(object));
-    object.info.tree = sem->repair->fs->tree;
-    aal_memcpy(&object.info.start, place, sizeof(*place));
+    repair_object_init(&object, sem->repair->fs->tree, place, NULL, NULL);
     
     /* Try to realize the plugin. */
-    if (repair_object_realize(&object))
+    if ((plugin = repair_object_realize(&object)) == NULL)
 	return 0;
     
     /* This is really an object, check its structure. */
-    if ((res = repair_object_check_struct(&object, sem->repair->mode))) {
-	aal_exception_error("Node %llu, item %u: check of the object structure "
-	    "failed.", place->node->blk, place->pos.item);
+    if ((res = repair_object_check_struct(&object, plugin, sem->repair->mode))){
+	aal_exception_error("Node %llu, item %u: structure check of the object "
+	    "pointed by %k failed. Plugin %s.", place->node->blk, 
+	    place->pos.item, &place->item.key, plugin->h.label);
 	return res;
     }
     
@@ -62,6 +62,7 @@ static errno_t repair_semantic_node_traverse(reiser4_node_t *node, void *data) {
 
 errno_t repair_semantic(repair_semantic_t *sem) {
     repair_progress_t progress;
+    reiser4_plugin_t *plugin;
     reiser4_object_t object;
     traverse_hint_t hint;
     reiser4_fs_t *fs;
@@ -93,13 +94,10 @@ errno_t repair_semantic(repair_semantic_t *sem) {
     if (fs->tree->root == NULL)
 	return -EINVAL;
     
-    aal_memset(&object, 0, sizeof(object));
-    object.info.tree = fs->tree;
-    object.info.parent = fs->tree->key;
-    object.info.object = fs->tree->key;
+    repair_object_init(&object, fs->tree, NULL, &fs->tree->key, &fs->tree->key);
     
     /* Make sure that '/' exists. */
-    if (repair_object_realize(&object)) {
+    if ((plugin = repair_object_realize(&object)) == NULL) {
 	reiser4_object_t *root;
 	
 	/* Failed to realize the root directory, create a new one. */	

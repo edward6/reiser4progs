@@ -831,15 +831,15 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 
 /* Checks if the specified place can be the beginning of an object. */
 bool_t reiser4_object_can_begin(reiser4_place_t *place) {
-    aal_assert("vpf-1033", place != NULL);
+	aal_assert("vpf-1033", place != NULL);
 
-    if (reiser4_place_realize(place))
-	return FALSE;
+	if (reiser4_place_realize(place))
+		return FALSE;
 
-    /* FIXME-VITALY: This is hardcoded way. As only stat data is not what 
-     * must be at the beginning of the object, we have to ask plugin if 
-     * this is a beginning. */
-    return reiser4_item_statdata(place);
+	/* FIXME-VITALY: This is ok untill we create objects without StatDatas.
+         * But how to distinguish that this is the first item of some plugin,
+	 * and not the second item of the default one? */
+	return reiser4_item_statdata(place);
 }
 
 #endif

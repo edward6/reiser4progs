@@ -7,20 +7,36 @@
 
 #include <repair/object.h>
 
-errno_t repair_object_check_struct(reiser4_object_t *object, uint8_t mode) {
+errno_t repair_object_check_struct(reiser4_object_t *object, 
+    reiser4_plugin_t *plugin, uint8_t mode) 
+{
     aal_assert("vpf-1044", object != NULL);
-    aal_assert("vpf-1044", object->entity->plugin != NULL);
+    aal_assert("vpf-1044", plugin != NULL);
     
-    object->entity = plugin_call(object->entity->plugin->o.object_ops, 
-	check_struct, &object->info, mode);
+    object->entity = plugin_call(plugin->o.object_ops, check_struct, 
+	&object->info, mode);
     
     if (object->entity == NULL)
        return -EINVAL;
     
+    /* FIXME-VITALY: this is probably should be set by plugin. 
+     * Together with object->info.parent key. */
     reiser4_key_assign(&object->info.object, &object->info.start.item.key);
     reiser4_key_string(&object->info.object, object->name);
 
     return 0;
+}
+
+errno_t repair_object_check_link(reiser4_object_t *object, 
+    reiser4_object_t *parent, uint8_t mode) 
+{
+    aal_assert("vpf-1044", object != NULL);
+    aal_assert("vpf-1098", object->entity != NULL);
+    aal_assert("vpf-1099", parent != NULL);    
+    aal_assert("vpf-1100", parent->entity != NULL);
+    
+    return plugin_call(object->entity->plugin->o.object_ops, check_link, 
+	&object->info, &parent->info, mode);
 }
 
 errno_t repair_object_launch(reiser4_object_t *object) {
@@ -30,6 +46,23 @@ errno_t repair_object_launch(reiser4_object_t *object) {
     reiser4_key_string(&object->info.object, object->name);
     
     return reiser4_object_guess(object);
+}
+
+inline void repair_object_init(reiser4_object_t *object, 
+    reiser4_tree_t *tree, reiser4_place_t *place, 
+    reiser4_key_t *parent, reiser4_key_t *key)
+{
+    aal_memset(object, 0, sizeof(*object));
+    object->info.tree = tree;
+    
+    if (place)
+	aal_memcpy(&object->info.start, place, sizeof(*place));
+    
+    if (parent)
+	aal_memcpy(&object->info.parent, parent, sizeof(*parent));
+    
+    if (key)
+	aal_memcpy(&object->info.object, key, sizeof(*key));
 }
 
 /* Helper callback for probing passed @plugin. 
@@ -52,7 +85,7 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin, void *data)
 /* Try to recognized the object plugin by the given @object->info. 
  * Either object->info.place must be valid or object->info.object and
  * object->info.parent keys. */
-errno_t repair_object_realize(reiser4_object_t *object) {
+reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
     lookup_t lookup = PRESENT;
     rid_t pid = INVAL_PID;
     
@@ -66,16 +99,21 @@ errno_t repair_object_realize(reiser4_object_t *object) {
 	    LEAF_LEVEL, (reiser4_place_t *)&object->info.start);
     
 	if (lookup == FAILED)
-	    return -EINVAL;
+	    return NULL;
+
+	/* Even if SD is lost, recognize plugin method will return 0 with 
+	 * specified key only if key matches the start key of the object. */
     } 
     
-    while (TRUE) {
+    do {
+	reiser4_plugin_t *plugin;
+	
 	if (lookup != PRESENT)
 	    break;
 	
 	/* The start of the object seems to be found, is it SD? */
 	if (reiser4_place_realize((reiser4_place_t *)&object->info.start))
-	    return -EINVAL;
+	    return NULL;
 
 	/* If it is stat data, try to get object plugin from it. */
 	if (!reiser4_item_statdata((reiser4_place_t *)&object->info.start))
@@ -92,22 +130,17 @@ errno_t repair_object_realize(reiser4_object_t *object) {
 	    break;
 	
 	/* Plugin id was obtained from the SD. Get the plugin. */
-	if (!(object->entity->plugin = libreiser4_factory_ifind(
-	    OBJECT_PLUGIN_TYPE, pid)))
+	if (!(plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, pid)))
 	    break;
 	
 	/* Ask the plugin if it realizes the object or not. */
-	if (!plugin_call(object->entity->plugin->o.object_ops, realize, 
-	    &object->info))
-	    return 0;
-    };
+	if (!plugin_call(plugin->o.object_ops, realize, &object->info))
+	    return plugin;
+    } while (FALSE);
     
     /* Try all plugins to realize the object, choose the more preferable. 
      * FIXME-VITALY: plugins are not sorted yet in the list. */
-    object->entity->plugin = libreiser4_factory_cfind(callback_object_guess, 
-	&object->info);
-    
-    return object->entity->plugin == NULL ? -EINVAL : 0;
+    return libreiser4_factory_cfind(callback_object_guess, &object->info);
 }
 
 errno_t repair_object_traverse(reiser4_object_t *object) {
@@ -118,22 +151,23 @@ errno_t repair_object_traverse(reiser4_object_t *object) {
     aal_assert("vpf-1090", object != NULL);
     aal_assert("vpf-1092", object->info.tree != NULL);
     
-    aal_memset(&child, 0, sizeof(child));
-    child.info.tree = object->info.tree;
-    child.info.parent = object->info.object;
-	
+    repair_object_init(&child, object->info.tree, NULL, &object->info.object, 
+	NULL);
+    
     while (reiser4_object_readdir(object, &entry)) {
+	reiser4_plugin_t *plugin;
+	
 	/* Some entry was read. Try to detect the object of the paticular plugin
 	 * pointed by this entry. */
 	
 	child.info.object = entry.object;
 	
 	/* Cannot detect the object plugin, rm the entry. */
-	if (repair_object_realize(&child)) 
+	if ((plugin = repair_object_realize(&child)) == NULL)
 	    goto child_recovery_problem;
 	
 	/* FIXME-VITALY: put mode here somehow. */
-	if ((res = repair_object_check_struct(&child, 0/* mode */)) < 0) {
+	if ((res = repair_object_check_struct(&child, plugin, 0 /*MODE*/ )) < 0) {
 	    aal_exception_error("Check of the object pointed by %k from the "
 		"%k (%s) failed.", &entry.object, &entry.offset, entry.name);
 	    return res;
@@ -161,61 +195,4 @@ errno_t repair_object_traverse(reiser4_object_t *object) {
     
     return 0;
 }
-
-#if 0
-extern void reiser4_object_create_base(reiser4_fs_t *fs,
-    reiser4_object_t *parent, reiser4_object_t *object);
-
-reiser4_object_t *repair_object_force_create(reiser4_fs_t *fs, 
-    reiser4_object_t *parent, object_hint_t *hint)
-{
-    reiser4_object_t *object;
-
-    aal_assert("vpf-1064", fs != NULL);
-    aal_assert("vpf-1065", parent != NULL);
-    aal_assert("vpf-1066", hint != NULL);
-    aal_assert("vpf-1067", fs->tree != NULL);
-    
-    /* Allocating the memory for object instance */
-    if (!(object = aal_calloc(sizeof(*object), 0)))
-	return NULL;
-    
-    reiser4_object_create_base(fs, parent, object, hint);
-    
-    if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
-	create, fs->tree, parent ? parent->entity : NULL, hint, 
-	(place_t *)&object->place)))
-    {
-	aal_exception_error("Can't create object with oid 0x%llx.",
-	    reiser4_key_get_objectid(&object->key));
-	goto error_free_object;
-    }
-    
-    reiser4_key_assign(&object->key, &hint->object);
-    reiser4_key_string(&object->key, object->name);
-
-    return object;
-
-error_free_object:
-    aal_free(object);
-    return NULL;
-}
-
-errno_t repair_object_open(reiser4_object_t *object) {
-    aal_assert("vpf-1087", object != NULL);
-    aal_assert("vpf-1088", object->info.tree != NULL);
-    aal_assert("vpf-1096", object->entity->plugin != NULL);
-    
-#ifndef ENABLE_STAND_ALONE
-    reiser4_key_string(&object->info.object, object->name);
-#endif
-    
-    reiser4_key_assign(&object->info.object, &object->info.start.item.key);
-    
-    object->entity = plugin_call(object->entity->plugin->o.object_ops, open,
-	&object->info.tree, &object->info.start);
-    
-    return object->entity == NULL ? -EINVAL : 0;
-}
-#endif
 
