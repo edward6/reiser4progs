@@ -41,9 +41,12 @@ void reiser4_print_recycle(uint32_t heap) {
 	for (walk = streams; walk && curr_size > heap;
 	     walk = next)
 	{
+		void *stream = walk->data;
+		
 		next = walk->next;
-		reiser4_print_rem_stream(walk->data);
-		aal_stream_fini(walk->data);
+		
+		reiser4_print_rem_stream(stream);
+		aal_stream_fini(stream);
 	}
 }
 
