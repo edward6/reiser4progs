@@ -83,8 +83,8 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 	place_func = sem->repair->mode == RM_BUILD ? 
 		callback_register_item : NULL;
 	
-	/* Even if this object is ATTACHED already it may allow many names
-	   to itself -- check the attach with this @parent. */
+	/* Even if this object is ATTACHED already it may allow many 
+	   names to itself -- check the attach with this @parent. */
 	res = repair_object_check_attach(parent, object, place_func, 
 					 sem, sem->repair->mode);
 	
@@ -126,15 +126,16 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	entry.data = NULL;
 	
 	if ((res = reiser4_object_add_entry(parent, &entry)))
-		aal_error("Can't add entry %s to %s.",
-			  name, parent->name);
+		aal_error("Can't add entry %s to %s.", name, 
+			  reiser4_print_key(&parent->ent->object, PO_INODE));
 	
 	return res;
 }
 
 static errno_t repair_semantic_unlink(repair_semantic_t *sem, 
 				      reiser4_object_t *parent,
-				      reiser4_object_t *object)
+				      reiser4_object_t *object,
+				      char *name)
 {
 	entry_hint_t entry;
 	
@@ -153,7 +154,7 @@ static errno_t repair_semantic_unlink(repair_semantic_t *sem,
 	}
 	
 	/* unlink from the parent. */
-	aal_strncpy(entry.name, object->name, sizeof(entry.name));
+	aal_strncpy(entry.name, name, sizeof(entry.name));
 	return reiser4_object_unlink(parent, &entry);
 }
 
@@ -162,20 +163,21 @@ static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
 					 reiser4_object_t *object)
 {
 	errno_t res;
+	char buff[4096];
 
 	aal_assert("vpf-1178", sem != NULL);
 	aal_assert("vpf-1179", parent != NULL);
 	aal_assert("vpf-1180", object != NULL);
 	
 	/* Make the lost name. */
-	repair_semantic_lost_name(object, object->name);
+	repair_semantic_lost_name(object, buff);
 	
 	/* Detach if possible. */
-	if ((res = repair_semantic_unlink(sem, NULL, object)))
+	if ((res = repair_semantic_unlink(sem, NULL, object, NULL)))
 		return res;
 	
 	/* Add the entry to the @parent. */
-	if ((res = repair_semantic_add_entry(parent, object, object->name)))
+	if ((res = repair_semantic_add_entry(parent, object, buff)))
 		return res;
 	
 	/* Check the attach of the @object to the @parent. */
@@ -259,11 +261,11 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	}
 	
 	if (!res) {
-		/* EOF was reached. Add entry to the parent. */
-		repair_semantic_lost_name(object, object->name);
+		char buff[4096];
 		
-		if ((res = repair_semantic_add_entry(parent, object, 
-						     object->name)))
+		/* EOF was reached. Add entry to the parent. */
+		repair_semantic_lost_name(object, buff);
+		if ((res = repair_semantic_add_entry(parent, object, buff)))
 			goto error_parent_close;
 
 		/* Do not check attach here, as the pointer to parent 
@@ -292,7 +294,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
  error_object_detach:
 	/* Detach if possible. */
-	res = repair_semantic_unlink(sem, NULL, object);
+	res = repair_semantic_unlink(sem, NULL, object, NULL);
 	return res < 0 ? INVAL_PTR : NULL;
 	
  error_parent_close:
@@ -377,15 +379,16 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		} else {
 			/* If @object is checked and not attached, detach from
 			   the parent, if parent is "lost+found" -- unlink. */
+			char buff[4096];
 			int lost;
 
 			lost = !reiser4_key_compfull(&object->ent->parent,
 						     &sem->lost->ent->object);
 			
-			repair_semantic_lost_name(object, object->name);
+			repair_semantic_lost_name(object, buff);
 			
 			if ((res = repair_semantic_unlink(sem, lost ? sem->lost
-							  : 0, object)))
+							  : 0, object, buff)))
 				goto error_close_object;
 		}
 
@@ -600,7 +603,7 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 		aal_info("Object [%s]: detaching.", 
 			 reiser4_print_key(&object->ent->object, PO_INODE));
 		
-		if ((res = repair_semantic_unlink(sem, NULL, object)))
+		if ((res = repair_semantic_unlink(sem, NULL, object, NULL)))
 			return res;
 		
 		aal_info("Object [%s]: attaching to [%s].", 

@@ -104,9 +104,8 @@ reiser4_object_t *reiser4_object_form(reiser4_tree_t *tree,
 #ifndef ENABLE_STAND_ALONE
 	{
 		/* Initializing object name. */
-		char *name = reiser4_print_key(&object->ent->object, PO_INODE);
-
-		aal_strncpy(object->name, name, sizeof(object->name));
+//		char *name = reiser4_print_key(&object->ent->object, PO_INODE);
+//		aal_strncpy(object->oname, name, sizeof(object->oname));
 	}
 #endif
 	
@@ -333,7 +332,7 @@ reiser4_object_t *reiser4_object_create(
 {
 	reiser4_object_t *object;
 	reiser4_plug_t *plug;
-	char *name;
+//	char *name;
 	
 	aal_assert("umka-790", tree != NULL);
 	aal_assert("umka-1128", hint != NULL);
@@ -354,8 +353,8 @@ reiser4_object_t *reiser4_object_create(
 		goto error_free_object;
 
 	/* @hint->object key is built by plugin create method. */
-	name = reiser4_print_key(&object->ent->object, PO_INODE);
-	aal_strncpy(object->name, name, sizeof(object->name));
+//	name = reiser4_print_key(&object->ent->object, PO_INODE);
+//	aal_strncpy(object->oname, name, sizeof(object->oname));
 	
 	return object;
 	
@@ -387,8 +386,9 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 				   &child->ent->object);
 
 		if ((res = reiser4_object_add_entry(object, entry))) {
-			aal_error("Can't add entry %s to %s.",
-				  entry->name, object->name);
+			aal_error("Can't add entry %s to %s.", entry->name, 
+				  reiser4_print_key(&object->ent->object, 
+						    PO_INODE));
 			return res;
 		}
 	}
@@ -428,15 +428,15 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	if (reiser4_object_lookup(object, entry->name,
 				  entry) != PRESENT)
 	{
-		aal_error("Can't find entry %s in %s.",
-			  entry->name, object->name);
+		aal_error("Can't find entry %s in %s.", entry->name, 
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return -EINVAL;
 	}
 
 	/* Removing entry from @object. */
 	if ((res = reiser4_object_rem_entry(object, entry))) {
-		aal_error("Can't remove entry %s in %s.",
-			  entry->name, object->name);
+		aal_error("Can't remove entry %s in %s.",entry->name, 
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return res;
 	}
 
@@ -450,15 +450,17 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	if (reiser4_tree_lookup(tree, &hint, FIND_EXACT, &place) != PRESENT) {
 		char *key = reiser4_print_key(&entry->object, PO_DEFAULT);
 		aal_error("Can't find an item pointed by %s. "
-			  "Entry %s/%s points to nowere.",
-			  key, object->name, entry->name);
+			  "Entry %s/%s points to nowere.", key, 
+			  reiser4_print_key(&object->ent->object, PO_INODE), 
+			  entry->name);
 		return -EINVAL;
 	}
 
 	/* Opening victim object by found place */
 	if (!(child = reiser4_object_open(tree, object, &place))) {
 		aal_error("Can't open %s/%s. Object is corrupted?",
-			  object->name, entry->name);
+			  reiser4_print_key(&object->ent->object, PO_INODE), 
+			  entry->name);
 		return -EINVAL;
 	}
 
@@ -514,8 +516,7 @@ errno_t reiser4_object_metadata(
 
 /* Makes lookup inside the @object */
 lookup_t reiser4_object_lookup(reiser4_object_t *object,
-			       const char *name,
-			       entry_hint_t *entry)
+			       const char *name, entry_hint_t *entry)
 {
 	aal_assert("umka-1919", object != NULL);
 	aal_assert("umka-1920", name != NULL);
@@ -644,9 +645,10 @@ static reiser4_object_t *reiser4_obj_create(reiser4_tree_t *tree,
 	   object. This is name and offset key. */
 	if (parent) {
 		if (!objplug(parent)->o.object_ops->build_entry) {
-			aal_error("Object %s has not build_entry() "
-				  "method implemented. Is it dir "
-				  "object at all?", parent->name);
+			aal_error("Object %s has not build_entry() method "
+				  "implemented. Is it dir object at all?", 
+				  reiser4_print_key(&parent->ent->object, 
+						    PO_INODE));
 			return NULL;
 		}
 		
@@ -664,8 +666,10 @@ static reiser4_object_t *reiser4_obj_create(reiser4_tree_t *tree,
 
 	if (parent) {
 		if (reiser4_object_link(parent, object, entry)) {
-			aal_warn("Removing not attached object %s "
-				 "from tree.", object->name);
+			aal_warn("Removing not attached object %s from tree.", 
+				 reiser4_print_key(&object->ent->object, 
+						   PO_INODE));
+
 			reiser4_object_clobber(object);
 			reiser4_object_close(object);
 			return NULL;

@@ -125,17 +125,12 @@ typedef struct reiser4_status reiser4_status_t;
 
 typedef struct reiser4_tree reiser4_tree_t;
 
-#define OBJECT_NAME_SIZE 1024
-
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
 struct reiser4_object {
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *ent;
 
 #ifndef ENABLE_STAND_ALONE
-	/* Full file name or printed key */
-	char name[OBJECT_NAME_SIZE];
-
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;

@@ -26,10 +26,6 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	reiser4_key_assign(&object->ent->object, &object_start(object)->key);
 
-	aal_strncpy(object->name, 
-		    reiser4_print_key(&object->ent->object, PO_INODE),
-		    sizeof(object->name));
-	
 	return res;
 }
 
@@ -42,7 +38,6 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 {
 	reiser4_object_t *object;
 	object_info_t info;
-	char *name;
 
 	aal_assert("vpf-1247", tree != NULL);
 	aal_assert("vpf-1248", key != NULL);
@@ -64,9 +59,6 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	if (!(object->ent = plug_call(plug->o.object_ops, fake, &info)))
 		goto error_close_object;
 	
-	name = reiser4_print_key(&object->ent->object, PO_INODE);
-	aal_strncpy(object->name, name, sizeof(object->name));
-
 	return object;
 	
  error_close_object:
@@ -147,7 +139,7 @@ errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  object->name);
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return res;
 	}
 	
@@ -164,7 +156,7 @@ int repair_object_test(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  object->name);
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return res;
 	}
 	
@@ -179,7 +171,7 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  object->name);
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return res;
 	}
 	

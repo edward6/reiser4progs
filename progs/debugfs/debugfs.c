@@ -260,8 +260,7 @@ int main(int argc, char *argv[]) {
 	host_dev = argv[optind];
     
 	if (stat(host_dev, &st) == -1) {
-		aal_error("Can't stat %s. %s.", host_dev,
-			  strerror(errno));
+		aal_error("Can't stat %s. %s.", host_dev, strerror(errno));
 		goto error_free_libreiser4;
 	}
 	
