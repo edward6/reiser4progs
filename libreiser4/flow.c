@@ -140,9 +140,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		bytes += hint->bytes;
 		
 		/* Updating key and buffer pointer */
-		if (hint->specific) {
+		if (hint->specific)
 			hint->specific += write;
-		}
 		
 		reiser4_key_inc_offset(&hint->offset, write);
 	}

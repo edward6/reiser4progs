@@ -53,7 +53,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 
 			if (aal_yesno("Do you want to build the on-disk "
 				      "format (%s) specified in the profile?",
-				      plug->label) == EXCEPTION_NO)
+				      plug->label) == EXCEPTION_OPT_NO)
 				return -EINVAL;
 			
 			count = aal_device_len(fs->device);

@@ -116,7 +116,7 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 	
 	fprintf(stderr, "Will use (%s) params.\n", data->param->name);
 
-	if (aal_yesno("Continue?") == EXCEPTION_NO) 
+	if (aal_yesno("Continue?") == EXCEPTION_OPT_NO) 
 		return USER_ERROR;
      
 	return NO_ERROR; 
@@ -124,15 +124,15 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 
 static void fsck_init_streams(fsck_parse_t *data) {
 	
-	misc_exception_set_stream(EXCEPTION_INFORMATION, 
+	misc_exception_set_stream(EXCEPTION_TYPE_INFO, 
 				  aal_test_bit(&data->options,
 					       FSCK_OPT_VERBOSE) ? stderr : NULL);
 	
-	misc_exception_set_stream(EXCEPTION_ERROR, data->logfile);
-	misc_exception_set_stream(EXCEPTION_WARNING, data->logfile);
-	misc_exception_set_stream(EXCEPTION_MESSAGE, stdout);
-	misc_exception_set_stream(EXCEPTION_FATAL, stderr);
-	misc_exception_set_stream(EXCEPTION_BUG, stderr);
+	misc_exception_set_stream(EXCEPTION_TYPE_ERROR, data->logfile);
+	misc_exception_set_stream(EXCEPTION_TYPE_WARNING, data->logfile);
+	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stdout);
+	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
+	misc_exception_set_stream(EXCEPTION_TYPE_BUG, stderr);
 }
 
 static errno_t fsck_init(fsck_parse_t *data, 
@@ -169,7 +169,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 	};
 
 	data->param = &default_param;
-	misc_exception_set_stream(EXCEPTION_FATAL, stderr);
+	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
 	data->logfile = stderr;
 
 	if (argc < 2) {

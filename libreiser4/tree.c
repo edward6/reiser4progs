@@ -2010,6 +2010,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			if (place->pos.unit == MAX_UINT32)
 				enough -= overhead;
 
+			if (shift_flags & SF_MOVE_POINT)
+				aal_mess("Optimizing hit during left shift.");
+
 			return enough;
 		}
 	}
@@ -2039,6 +2042,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			if (place->pos.unit == MAX_UINT32)
 				enough -= overhead;
 
+			if (shift_flags & SF_MOVE_POINT)
+				aal_mess("Optimizing hit during right shift.");
+			
 			return enough;
 		}
 	}
@@ -2326,6 +2332,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 
 	aal_assert("umka-2673", tree != NULL);
 	aal_assert("umka-2674", hint != NULL);
+	
 	aal_assert("umka-2676", modify_func != NULL);
 	aal_assert("umka-2675", estimate_func != NULL);
 

@@ -65,10 +65,11 @@ bool_t misc_mpressure_detect(void) {
 	if (swapped == 0)
 		return 0;
 
-	/* Calculating how much memory space is moved to spapped area. */
+	/* Calculating how much memory space is moved to swapped area. */
 	diff = labs((vms - (rss << 12)) - swapped);
-	swapped = labs(vms - (rss << 12));
-	return (diff > MEMORY_PRESSURE_WATER_MARK && swapped > 0);
+
+	return (diff > MEMORY_PRESSURE_WATER_MARK &&
+		(swapped = labs(vms - (rss << 12))) > 0);
 #else
 	return 0;
 #endif

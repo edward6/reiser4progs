@@ -26,14 +26,15 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	if (count < get_sb_block_count(super)) {
 		/* Device is smaller then fs size. */
 		if (mode == RM_BUILD) {
-			if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
+			if (aal_exception_throw(EXCEPTION_TYPE_FATAL,
+						EXCEPTION_OPT_YESNO,
 						"Number of blocks found in the "
 						"superblock (%llu) is not equal "
 						"to the size of the partition "
 						"(%llu).\n Are you sure that "
 						"the partition size is correct?", 
 						get_sb_block_count(super), 
-						count) == EXCEPTION_NO)
+						count) == EXCEPTION_OPT_NO)
 			{
 				/* This is not the repair code problem. */
 				return -EINVAL;

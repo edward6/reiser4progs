@@ -382,6 +382,12 @@ uint32_t node40_size(node40_t *node, pos_t *pos, uint32_t count) {
 	uint32_t len;
 	uint32_t pol;
 
+	aal_assert("umka-3032", pos != NULL);
+	aal_assert("umka-3031", node != NULL);
+
+	aal_assert("umka-3033", pos->item + count <=
+		   node40_items((node_entity_t *)node));
+	
 	pol = node40_key_pol(node);
 	ih = node40_ih_at(node, pos->item);
 	
@@ -813,19 +819,21 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	/* Check if we remove some number of whole items, or units inside
 	   particular item. */
 	if (pos->unit == MAX_UINT32) {
-		pos_t walk = {pos->item, MAX_UINT32};
+		pos_t walk;
 		
 		/* Calculating amount of bytes removed item occupie. Node will
 		   be shrinked by this value. */
-		if (!(len = node40_size(node, &place.pos, hint->count)))
+		if (!(len = node40_size(node, pos, hint->count)))
 			return -EINVAL;
 
 		count = hint->count;
 
+		POS_INIT(&walk, pos->item, MAX_UINT32);
+				
 		/* Calling layout function with @hint->region_func for each
 		   removed item in order to let higher levels know that some
 		   region is released. */
-		for (; walk.item < walk.item + count; walk.item++) {
+		for (; walk.item < pos->item + count; walk.item++) {
 
 			if ((res = node40_fetch(entity, &walk, &place)))
 				return res;

@@ -58,8 +58,8 @@ static void debugfs_print_usage(char *name) {
 static void debugfs_init(void) {
 	int ex;
 
-	/* Setting up exception streams */
-	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
+	/* Setting up exception streams. */
+	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
 }
 
@@ -313,22 +313,27 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (behav_flags & BF_PACK_META) {
-		aal_stream_t stream;
 		void *error;
+		aal_stream_t stream;
 
 		aal_stream_init(&stream, stdout, &file_stream);
 		
-		/* FIXME-VITALY: this is needed to not print all found node 
-		   corruptions, but this also avoid prining usaful pack 
+		/* FIXME-VITALY: This is needed to not print all found node
+		   corruptions, but this also avoid prining useful pack
 		   errors. */
-		error = misc_exception_get_stream(EXCEPTION_ERROR);
-		misc_exception_set_stream(EXCEPTION_ERROR, NULL);
+
+		/* FIXME-UMKA: Probably some kind of mask in libaal/exception
+		   for masking not needed exceptions would be helpful. */
+		error = misc_exception_get_stream(EXCEPTION_TYPE_ERROR);
+		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, NULL);
+		
 		if (repair_fs_pack(fs, &stream)) {
+			misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
 			aal_error("Can't pack filesystem.");
 			goto error_free_journal;
 		}
-		misc_exception_set_stream(EXCEPTION_ERROR, error);
-
+		
+		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
 		aal_stream_fini(&stream);
 	}
 	

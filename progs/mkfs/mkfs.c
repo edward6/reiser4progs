@@ -72,7 +72,7 @@ static void mkfs_init(void) {
 	int ex;
 
 	/* Setting up exception streams*/
-	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
+	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
 }
 
@@ -400,18 +400,16 @@ int main(int argc, char *argv[]) {
 			hint.blocks = dev_len;
 	
 		if (hint.blocks > dev_len) {
-			aal_error("Filesystem wouldn't fit "
-				  "into device %llu blocks "
-				  "long, %llu blocks required.",
+			aal_error("Filesystem wouldn't fit into device "
+				  "%llu blocks long, %llu blocks required.",
 				  dev_len, hint.blocks);
 			goto error_free_device;
 		}
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_yesno("Reiser4 is going to be "
-				      "created on %s.",
-				      host_dev) == EXCEPTION_NO)
+			if (aal_yesno("Reiser4 is going to be created on %s.",
+				      host_dev) == EXCEPTION_OPT_NO)
 			{
 				goto error_free_device;
 			}

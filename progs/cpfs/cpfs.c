@@ -51,8 +51,8 @@ static void cpfs_print_usage(char *name) {
 static void cpfs_init(void) {
 	int ex;
 
-	/* Setting up exception streams*/
-	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
+	/* Setting up exception streams. */
+	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
 }
 
@@ -259,8 +259,8 @@ int main(int argc, char *argv[]) {
 
 	/* Checking for "quiet" mode */
 	if (!(flags & BF_QUIET)) {
-		if (aal_yesno("All data on %s will be lost. "
-			      "Are you sure?", dst_dev) == EXCEPTION_NO)
+		if (aal_yesno("All data on %s will be lost. Are you sure?",
+			      dst_dev) == EXCEPTION_OPT_NO)
 		{
 			goto error_free_dst_device;
 		}

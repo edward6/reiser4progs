@@ -822,6 +822,9 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 			return res;
 		
 		break;
+	case PRESENT:
+		aal_error("Entry \"%s\" already exists.",
+			  entry->name);
 	default:
 		return -EINVAL;
 	}

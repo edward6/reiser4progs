@@ -7,8 +7,10 @@
 #  include <config.h>
 #endif
 
+#include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
@@ -72,16 +74,19 @@ int main(int argc, char *argv[]) {
                 int i;
                 char name[256];
                 reiser4_object_t *object;
-                                                                                       
-                for (i = 0; i < 1000; i++) {
-                        int j, count;
-                                                                                       
-                        aal_snprintf(name, 256, "file name%d", i);
+
+		srandom(time(0));
+                for (i = 0; i < 500000; i++) {
+                        int j, count, suff;
+			
+			suff = random();
+			
+			aal_snprintf(name, 256, "file name%d", suff);
                                                                                        
                         if (!(object = reiser4_reg_create(fs, dir, name)))
-                                goto error_free_dir;
+                                continue;
                                                                                        
-                        count = 1000;
+                        count = 0;
                                                                                        
                         for (j = 0; j < count; j++) {
                                 if (reiser4_object_write(object, name,
@@ -104,8 +109,8 @@ int main(int argc, char *argv[]) {
     
 	return 0;
 
- error_free_dir:
-	reiser4_object_close(dir);
+/* error_free_dir:
+	reiser4_object_close(dir);*/
  error_free_root:
 	reiser4_object_close(fs->root);
  error_free_fs:

@@ -67,7 +67,7 @@ static void measurefs_init(void) {
 	int ex;
 
 	/* Setting up exception streams */
-	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
+	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
 }
 

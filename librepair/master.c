@@ -31,10 +31,10 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 			return RE_FATAL;
 		
 		/* Master SB was not opened. Create a new one. */
-		if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
+		if (aal_exception_throw(EXCEPTION_TYPE_FATAL, EXCEPTION_OPT_YESNO,
 					"Master super block cannot be found. "
 					"Do you want to build a new one on "
-					"(%s)?", fs->device->name) == EXCEPTION_NO)
+					"(%s)?", fs->device->name) == EXCEPTION_OPT_NO)
 			return -EINVAL;
 		
 		blksize = aal_ui_get_numeric(4096, callback_bs_check, NULL,
