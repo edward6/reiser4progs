@@ -54,17 +54,8 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	coord->entity.len = plugin_call(return -1, entity->plugin->node_ops,
 					item_len, entity, &coord->pos);
 
-	key = &coord->entity.key;
-	if (plugin_call(return -1, entity->plugin->node_ops, 
-			get_key, entity, &coord->pos, key))
-	{
-		aal_exception_error("Can't get item key.");
-		return -1;
-	}
-
-	key->plugin = reiser4_key_guess(key->body);
-	aal_assert("umka-1406", key->plugin != NULL, return -1);
-
+	aal_memset(&coord->entity.key, 0, sizeof(coord->entity.key));
+	
 	con = &coord->entity.con;
 	con->blk = reiser4_coord_blk(coord);
 	con->device = reiser4_coord_device(coord);
@@ -82,7 +73,7 @@ errno_t reiser4_coord_open(
 
 	if (reiser4_coord_init(coord, node, pos))
 		return -1;
-	
+
 	return reiser4_coord_realize(coord);
 }
 
