@@ -254,7 +254,8 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 			}
 		}
 
-		hint->bytes += remove * blksize;
+		if (start != EXTENT_HOLE_UNIT)
+			hint->bytes += remove * blksize;
 		
 		/* Check if we remove whole unit. */
 		if (remove < width) {

@@ -501,7 +501,7 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 			uint32_t blksize;
 			
 			blksize = STAT_PLACE(&reg->obj)->node->block->size;
-			size = (n + blksize) / blksize * blksize;
+			size = (n + blksize - 1) / blksize * blksize;
 		} else
 			size = n;
 			

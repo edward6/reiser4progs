@@ -63,7 +63,9 @@ busy_cmd_t tests[] = {
 		.ops_num = 6,
 		.info = "Copies <count> blocks of <blk_size> bytes from "
 			"<PATH1> to <PATH2>\n\tskipping <in_offset> bytes, "
-			"seeking on <out_offset> bytes.",
+			"seeking on <out_offset> bytes.\n\t<in_offset>, "
+			"<out_offset> and <count> could be given -1, "
+			"that is,\n\tstart, end, unlimited correspondingly.",
 	},
 	[8] = {
 		.name = "stat",
