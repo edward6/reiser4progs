@@ -193,6 +193,12 @@ reiser4_file_t *reiser4_file_open(
     aal_assert("umka-678", fs != NULL, return NULL);
     aal_assert("umka-789", name != NULL, return NULL);
 
+    if (!fs->tree) {
+	aal_exception_error("Can't created file without "
+	    "initialized tree.");
+	return NULL;
+    }
+    
     if (!(file = aal_calloc(sizeof(*file), 0)))
 	return NULL;
     
@@ -275,6 +281,12 @@ reiser4_file_t *reiser4_file_create(
     aal_assert("umka-790", fs != NULL, return NULL);
     aal_assert("umka-1128", hint != NULL, return NULL);
     aal_assert("umka-1152", name != NULL, return NULL);
+
+    if (!fs->tree) {
+	aal_exception_error("Can't created file without "
+	    "initialized tree.");
+	return NULL;
+    }
     
     /* Getting plugin will be used for file creating */
     if (!(plugin = hint->plugin)) {

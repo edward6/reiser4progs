@@ -62,6 +62,11 @@ int main(int argc, char *argv[]) {
 	    aal_device_name(device));
 	goto error_free_device;
     }
+
+    if (!(fs->root = reiser4_file_open(fs, "/"))) {
+	aal_exception_error("Can't open root directory.");
+	goto error_free_fs;
+    }
     
     {
 	reiser4_plugin_t *reg_plugin;
@@ -106,7 +111,7 @@ int main(int argc, char *argv[]) {
     
 /*    if (!(reg = reiser4_file_open(fs, argv[2]))) {
 	aal_exception_error("Can't open file %s.", argv[2]);
-	goto error_free_fs;
+	goto error_free_root;
     }
     
     while (1) {
@@ -119,6 +124,8 @@ int main(int argc, char *argv[]) {
     }*/
     
     reiser4_file_close(reg);
+
+    reiser4_file_close(fs->root);
     reiser4_fs_sync(fs);
     reiser4_fs_close(fs);
     
@@ -129,6 +136,8 @@ int main(int argc, char *argv[]) {
 
 error_free_reg:
     reiser4_file_close(reg);
+error_free_root:
+    reiser4_file_close(fs->root);
 error_free_fs:
     reiser4_fs_close(fs);
 error_free_device:

@@ -92,7 +92,15 @@ int main(int argc, char *argv[]) {
 	    "Can't open filesystem on %s.", aal_device_name(device));
 	goto error_free_device;
     }
+    
+    if (!(fs->root = reiser4_file_open(fs, "/"))) {
+	aal_exception_error("Can't open root directory.");
+	goto error_free_fs;
+    }
+    
     info_print_fs(fs);
+    
+    reiser4_file_close(fs->root);
     
     reiser4_fs_close(fs);
     libreiser4_done();
@@ -100,6 +108,8 @@ int main(int argc, char *argv[]) {
 
     return 0;
 
+error_free_fs:
+    reiser4_fs_close(fs);
 error_free_device:
     aal_file_close(device);
 error_free_libreiser4:

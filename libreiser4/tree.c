@@ -59,6 +59,10 @@ static reiser4_cache_t *reiser4_tree_allocate(
 	return NULL;
     }
     
+    /* Setting up of the free blocks in format */
+    reiser4_format_set_free(tree->fs->format, 
+	reiser4_alloc_free(tree->fs->alloc));
+    
     cache->level = level;
     
     return cache;
@@ -76,6 +80,10 @@ static void reiser4_tree_release(reiser4_tree_t *tree,
 
     reiser4_alloc_release(tree->fs->alloc, 
 	aal_block_number(cache->node->block));
+    
+    /* Sets up the free blocks in block allocator */
+    reiser4_format_set_free(tree->fs->format, 
+	reiser4_alloc_free(tree->fs->alloc));
     
     reiser4_cache_close(cache);
 }
@@ -255,6 +263,12 @@ reiser4_tree_t *reiser4_tree_create(
     if (!(tree->cache = reiser4_cache_create(node)))
 	goto error_free_node;
     
+    /* Setting up of the root block */
+    reiser4_format_set_root(fs->format, aal_block_number(node->block));
+    
+    /* Setting up of the free blocks */
+    reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
+
     tree->cache->level = reiser4_tree_height(tree);
     tree->cache->tree = tree;
     

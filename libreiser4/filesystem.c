@@ -86,7 +86,7 @@ reiser4_fs_t *reiser4_fs_open(
 	    }
 	    
 	    /* 
-		Reopening format in odrer to keep it up to date after journal 
+		Reopening format in order to keep it up to date after journal 
 		replaying. Journal might contain super block ior master super
 		block.
 	    */
@@ -110,10 +110,6 @@ reiser4_fs_t *reiser4_fs_open(
     /* Opens the tree starting from root block */
     if (!(fs->tree = reiser4_tree_open(fs)))
 	goto error_free_oid;
-    
-    /* Opens root firectory */
-    if (!(fs->root = reiser4_file_open(fs, "/")))
-	goto error_free_tree;
     
     return fs;
 
@@ -166,7 +162,10 @@ reiser4_fs_t *reiser4_fs_create(
 ) {
     reiser4_fs_t *fs;
     blk_t blk, master_offset;
-    blk_t journal_area_start, journal_area_end;
+    blk_t journal_area_start;
+    blk_t journal_area_end;
+    
+    reiser4_file_hint_t root_hint;
 
     aal_assert("umka-149", host_device != NULL, return NULL);
     aal_assert("umka-150", journal_device != NULL, return NULL);
@@ -227,38 +226,6 @@ reiser4_fs_t *reiser4_fs_create(
     /* Creates tree */
     if (!(fs->tree = reiser4_tree_create(fs, profile)))
 	goto error_free_oid;
-    
-    /* Setts up root block */
-    reiser4_format_set_root(fs->format, 
-	aal_block_number(fs->tree->cache->node->block));
-
-    /* Creates root directory */
-    {
-	reiser4_file_hint_t root_hint;
-	
-	/* Finding directroy plugin */
-	if (!(root_hint.plugin = libreiser4_factory_ifind(DIR_PLUGIN_TYPE, 
-	    profile->dir.dir))) 
-	{
-	    aal_exception_error("Can't find directory plugin by "
-		"its id 0x%x.", profile->dir.dir);
-	    
-	    goto error_free_tree;
-	}
-	
-	root_hint.statdata_pid = profile->item.statdata;
-	root_hint.body.dir.direntry_pid = profile->item.direntry;
-	root_hint.body.dir.hash_pid = profile->hash;
-	
-	/* Creating object "dir40". See object.c for details */
-	if (!(fs->root = reiser4_file_create(fs, &root_hint, NULL, "/"))) {
-	    aal_exception_error("Can't create root directory.");
-	    goto error_free_tree;
-	}
-    }
-    
-    /* Setts up free blocks in block allocator */
-    reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
     
     return fs;
 
@@ -327,7 +294,6 @@ void reiser4_fs_close(
     aal_assert("umka-230", fs != NULL, return);
     
     /* Closong the all filesystem objects */
-    reiser4_file_close(fs->root);
     reiser4_tree_close(fs->tree);
     reiser4_oid_close(fs->oid);
     

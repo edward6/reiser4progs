@@ -60,20 +60,33 @@ static void mkfs_init(void) {
 }
 
 /* Crates lost+found directory */
-static reiser4_file_t *mkfs_create_lost_found(reiser4_fs_t *fs, 
-    reiser4_profile_t *profile) 
+static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, 
+    reiser4_profile_t *profile, reiser4_file_t *parent, 
+    const char *name) 
 {
     reiser4_file_hint_t hint;
 
+    aal_assert("umka-1255", fs != NULL, return NULL);
+    aal_assert("umka-1256", profile != NULL, return NULL);
+    aal_assert("umka-1257", name != NULL, return NULL);
+    
     /* Preparing object hint */
-    hint.plugin = fs->root->entity->plugin;
+    hint.plugin = libreiser4_factory_ifind(DIR_PLUGIN_TYPE, 
+        profile->dir.dir);
+
+    if (!hint.plugin) {
+	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, 
+	    "Can't find dir plugin by its id 0x%x.", profile->dir.dir);
+	return NULL;
+    }
+    
     hint.statdata_pid = profile->item.statdata;
 
     hint.body.dir.direntry_pid = profile->item.direntry;
     hint.body.dir.hash_pid = profile->hash;
 	
-    /* Creating lost+found */
-    return reiser4_file_create(fs, &hint, fs->root, "lost+found");
+    /* Creating directory by passed parameters */
+    return reiser4_file_create(fs, &hint, parent, name);
 }
 
 int main(int argc, char *argv[]) {
@@ -323,13 +336,20 @@ int main(int argc, char *argv[]) {
 	    goto error_free_device;
 	}
 
+	if (!(fs->root = mkfs_create_dir(fs, profile, NULL, "/"))) {
+	    aal_exception_error("Can't create filesystem root directory.");
+	    goto error_free_fs;
+	}
+	
 	/* Creating lost+found directory */
 	if (lost_found) {
 	    reiser4_file_t *object;
 	    
-	    if (!(object = mkfs_create_lost_found(fs, profile))) {
+	    if (!(object = mkfs_create_dir(fs, profile, 
+		fs->root, "lost+found"))) 
+	    {
 		aal_exception_error("Can't create lost+found directory.");
-		goto error_free_device;
+		goto error_free_root;
 	    }
 	    
 	    reiser4_file_close(object);
@@ -343,7 +363,7 @@ int main(int argc, char *argv[]) {
 	*/
 	if (reiser4_fs_sync(fs)) {
 	    aal_exception_error("Can't synchronize created filesystem.");
-	    goto error_free_fs;
+	    goto error_free_root;
 	}
 
 	aal_gauge_done();
@@ -358,7 +378,7 @@ int main(int argc, char *argv[]) {
 	if (aal_device_sync(device)) {
 	    aal_exception_error("Can't synchronize device %s.", 
 		aal_device_name(device));
-	    goto error_free_fs;
+	    goto error_free_root;
 	}
 
 	/* 
@@ -375,7 +395,10 @@ int main(int argc, char *argv[]) {
 	
 	aal_gauge_done();
 
-	/* Deinitializing filesystem instance and device instance */
+	/* Freeing the root directory */
+	reiser4_file_close(fs->root);
+	
+	/* Freeing the filesystem instance and device instance */
 	reiser4_fs_close(fs);
 	aal_file_close(device);
     }
@@ -392,6 +415,8 @@ int main(int argc, char *argv[]) {
     
     return NO_ERROR;
 
+error_free_root:
+    reiser4_file_close(fs->root);
 error_free_fs:
     reiser4_fs_close(fs);
 error_free_device:
