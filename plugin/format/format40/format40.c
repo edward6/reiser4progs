@@ -467,7 +467,7 @@ errno_t format40_print(object_entity_t *entity,
 	aal_stream_format(stream, "stamp:\t\t0x%x\n",
 			  get_sb_mkfs_id(super));
     
-	aal_stream_format(stream, "length:\t\t%llu\n",
+	aal_stream_format(stream, "blocks:\t\t%llu\n",
 			  get_sb_block_count(super));
 	
 	aal_stream_format(stream, "free blocks:\t%llu\n",

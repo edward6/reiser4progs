@@ -10,7 +10,7 @@
 #include <fsck.h>
 
 static void fsck_print_usage(char *name) {
-    fprintf(stderr, "\nUsage: %s [ options ] FILE\n", name);
+    fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
     
     fprintf(stderr, "Modes:\n"
 	"  --check                         consistency checking (default).\n"
@@ -33,7 +33,7 @@ static void fsck_print_usage(char *name) {
 	"  -k, --known-plugins             prints known plugins.\n"	
 	"  -e, --profile PROFILE           profile \"PROFILE\" to be used or printed.\n"
 	"  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
-	"                                  \"TYPE\" by the plugin \"PLUGIN\".\n\n");
+	"                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
 
 #define REBUILD_WARNING \
@@ -142,13 +142,13 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 
     aal_memset(override,0, sizeof(override));
 
-    progs_print_banner(argv[0]);
-    
     if (argc < 2) {
 	fsck_print_usage(argv[0]);
 	return USER_ERROR;
     }
 
+    progs_print_banner(argv[0]);
+    
     while ((c = getopt_long(argc, argv, "l:Vhnqapfve:Kko:U:R:r?", long_options, 
 	(int *)0)) != EOF) 
     {

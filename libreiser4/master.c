@@ -126,8 +126,12 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "format:\t\t%x\n",
 			  reiser4_master_format(master));
 
-	aal_stream_format(stream, "label:\t\t%s\n",
-			  reiser4_master_label(master));
+	if (aal_strlen(reiser4_master_label(master))) {
+		aal_stream_format(stream, "label:\t\t%s\n",
+				  reiser4_master_label(master));
+	} else {
+		aal_stream_format(stream, "label:\t\t<none>\n");
+	}
 
 	return 0;
 }

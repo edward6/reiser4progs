@@ -144,7 +144,12 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	{
 		char uuid[37];
-		uuid_unparse(reiser4_master_uuid(fs->master), uuid);
+
+		if (aal_strlen(reiser4_master_uuid(fs->master)))
+			uuid_unparse(reiser4_master_uuid(fs->master), uuid);
+		else
+			aal_strncpy(uuid, "<none>", sizeof(uuid));
+		
 		aal_stream_format(&stream, "uuid:\t\t%s\n", uuid);
 	}
 #endif
