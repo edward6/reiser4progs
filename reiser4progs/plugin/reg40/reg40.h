@@ -43,6 +43,8 @@ struct reg40 {
     */
     reg40_item_t statdata;
 
+    reg40_item_t body;
+    
     /* Current position in the directory */
     uint64_t offset;
 };
