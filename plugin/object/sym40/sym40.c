@@ -189,11 +189,30 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 }
 
 static errno_t sym40_link(object_entity_t *entity) {
+	aal_assert("umka-1915", entity != NULL);
 	return object40_link(&((sym40_t *)entity)->obj, 1);
 }
 
 static errno_t sym40_unlink(object_entity_t *entity) {
-	return object40_link(&((sym40_t *)entity)->obj, -1);
+	sym40_t *sym;
+	
+	aal_assert("umka-1914", entity != NULL);
+
+	sym = (sym40_t *)entity;
+	
+	if (object40_link(&sym->obj, -1))
+		return -1;
+
+	if (object40_get_nlink(&sym->obj) > 0)
+		return 0;
+	
+	/* Removing file when nlink became zero */
+	if (object40_stat(&sym->obj))
+		return -1;
+
+	/* FIXME-UMKA: Here also should be removing symlink stat data */
+	
+	return 0;
 }
 
 /* Writes "n" bytes from "buff" to passed file. */

@@ -304,16 +304,44 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	return NULL;
 }
 
+static errno_t reg40_truncate(object_entity_t *entity,
+			      uint64_t n)
+{
+	return -1;
+}
+
 static errno_t reg40_link(object_entity_t *entity) {
+	aal_assert("umka-1912", entity != NULL);
 	return object40_link(&((reg40_t *)entity)->obj, 1);
 }
 
 static errno_t reg40_unlink(object_entity_t *entity) {
-	return object40_link(&((reg40_t *)entity)->obj, -1);
-}
+	reg40_t *reg;
+	uint64_t size;
+	
+	aal_assert("umka-1911", entity != NULL);
 
-static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
-	return -1;
+	reg = (reg40_t *)entity;
+	
+	if (object40_link(&reg->obj, -1))
+		return -1;
+
+	if (object40_get_nlink(&reg->obj) > 0)
+		return 0;
+	
+	/* Removing file when nlink became zero */
+	if (reg40_reset(entity))
+		return -1;
+		
+	if (object40_stat(&reg->obj))
+		return -1;
+
+	size = object40_get_size(&reg->obj);
+
+	/* FIXME-UMKA: Here also should be removing symlink stat data */
+
+	aal_assert("umka-1913", size > 0);
+	return reg40_truncate(entity, size);
 }
 
 /* 
