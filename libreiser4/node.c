@@ -795,6 +795,9 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 	if (node->children == NULL)
 		return 0;
 
+	if (reiser4_node_items(node) == 0)
+		return 0;
+
 	items = reiser4_node_items(node);
 	
 	reiser4_place_assign(&place, node, start->item, 0);
@@ -808,9 +811,11 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 		if (reiser4_item_branch(&place))
 			break;
 	}
-	
-	if (!reiser4_item_branch(&place))
-		return 0;
+
+	if (place.pos.item < items) {
+		if (!reiser4_item_branch(&place))
+			return 0;
+	}
 
 	/* Searching for the first loaded child found nodeptr item points to */
 	for (; place.pos.item < items; place.pos.item++) {
@@ -961,11 +966,14 @@ errno_t reiser4_node_remove(
 		return -1;
 	}
 
-	reiser4_node_mkdirty(node);
+	if (reiser4_node_items(node) > 0) {
+		
+		reiser4_node_mkdirty(node);
 	
-	/* Updating children */
-	if (reiser4_node_uchildren(node, pos))
-		return -1;
+		/* Updating children */
+		if (reiser4_node_uchildren(node, pos))
+			return -1;
+	}
 	
 	return 0;
 }
