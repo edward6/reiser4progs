@@ -157,7 +157,7 @@ static aal_device_t *format40_device(object_entity_t *entity) {
 
 static int format40_magic(format40_super_t *super) {
 	return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
-			   sizeof(super->sb_magic)) == 0;
+			   aal_strlen(FORMAT40_MAGIC)) == 0;
 }
 
 static errno_t format40_super_open(format40_t *format) {
