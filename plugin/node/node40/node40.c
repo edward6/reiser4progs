@@ -12,18 +12,25 @@ extern reiser4_plugin_t node40_plugin;
 static reiser4_core_t *core = NULL;
 
 /* Returns item header by pos */
-inline item40_header_t *node40_ih_at(object_entity_t *entity, int pos) {
-	aal_block_t *block = ((node40_t *)entity)->block;
+inline item40_header_t *node40_ih_at(node40_t *node, int pos) {
+	aal_block_t *block = node->block;
+
+	item40_header_t *ih =
+		(item40_header_t *)(block->data + aal_block_size(block));
 	
-	return ((item40_header_t *)(block->data + aal_block_size(block))) - 
-		pos - 1;
+	return ih - pos - 1;
 }
 
 /* Retutrns item body by pos */
-inline void *node40_ib_at(object_entity_t *entity, int pos) {
-	aal_block_t *block = ((node40_t *)entity)->block;
-	
-	return block->data + ih40_get_offset(node40_ih_at(entity, pos));
+inline void *node40_ib_at(node40_t *node, int pos) {
+	aal_block_t *block = node->block;
+	return block->data + ih40_get_offset(node40_ih_at(node, pos));
+}
+
+/* Returns node free space end offset */
+inline uint16_t node40_free_space_end(node40_t *node) {
+	uint32_t items = nh40_get_num_items(node);
+	return aal_block_size(node->block) - items * sizeof(item40_header_t);
 }
 
 #ifndef ENABLE_COMPACT
@@ -128,8 +135,8 @@ uint16_t node40_count(object_entity_t *entity) {
 	return nh40_get_num_items(node);
 }
 
-static errno_t node40_get_key(object_entity_t *entity, 
-			      reiser4_pos_t *pos, reiser4_key_t *key) 
+static errno_t node40_get_key(object_entity_t *entity, reiser4_pos_t *pos,
+			      reiser4_key_t *key) 
 {
 	node40_t *node = (node40_t *)entity;
     
@@ -140,7 +147,7 @@ static errno_t node40_get_key(object_entity_t *entity,
 	aal_assert("umka-810", pos->item < 
 		   nh40_get_num_items(node), return -1);
     
-	aal_memcpy(key->body, &(node40_ih_at(entity, pos->item)->key), 
+	aal_memcpy(key->body, &(node40_ih_at(node, pos->item)->key), 
 		   sizeof(key40_t));
     
 	return 0;
@@ -150,15 +157,16 @@ static errno_t node40_get_key(object_entity_t *entity,
 static void *node40_item_body(object_entity_t *entity, 
 			      reiser4_pos_t *pos)
 {
+	uint32_t items;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-040", node != NULL, return NULL);
 	aal_assert("umka-940", pos != NULL, return NULL);
 
-	aal_assert("umka-814", pos->item < 
-		   nh40_get_num_items(node), return NULL);
+	items = nh40_get_num_items(node);
+	aal_assert("umka-814", pos->item < items, return NULL);
     
-	return node40_ib_at(entity, pos->item);
+	return node40_ib_at(node, pos->item);
 }
 
 /*
@@ -190,7 +198,7 @@ static rpid_t node40_item_pid(object_entity_t *entity,
 	aal_assert("umka-815", pos->item < 
 		   nh40_get_num_items(node), return 0);
     
-	return ih40_get_pid(node40_ih_at(entity, pos->item));
+	return ih40_get_pid(node40_ih_at(node, pos->item));
 }
 
 /* Returns length of item at pos */
@@ -207,7 +215,7 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	aal_assert("umka-815", pos->item < 
 		   nh40_get_num_items(node), return 0);
     
-	ih = node40_ih_at(entity, pos->item);
+	ih = node40_ih_at(node, pos->item);
 
 	free_space_start = nh40_get_free_space_start(node);
     
@@ -230,7 +238,7 @@ static void node40_item_init(object_entity_t *entity, reiser4_pos_t *pos,
 	
 	item->pos = pos->item;
 	item->len = node40_item_len(entity, pos);
-	item->body = node40_ib_at(entity, pos->item);
+	item->body = node40_ib_at(node, pos->item);
 }
 
 #ifndef ENABLE_COMPACT
@@ -263,7 +271,7 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	is_insert = (pos->unit == ~0ul);
 	item_pos = pos->item + !is_insert;
     
-	ih = node40_ih_at((object_entity_t *)node, item_pos);
+	ih = node40_ih_at(node, item_pos);
     
 	if (item_pos < nh40_get_num_items(node)) {
 		offset = ih40_get_offset(ih);
@@ -289,7 +297,7 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	nh40_set_free_space_start(node, nh40_get_free_space_start(node) + hint->len);
     
 	if (!is_insert) {
-		ih = node40_ih_at((object_entity_t *)node, pos->item);
+		ih = node40_ih_at(node, pos->item);
 		ih40_set_len(ih, ih40_get_len(ih) + hint->len);
 		return 0;
 	}
@@ -323,9 +331,8 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	nh40_set_num_items(node, nh40_get_num_items(node) + 1);
     
 	if (hint->data) {
-		aal_memcpy(node40_ib_at(entity, pos->item), 
+		aal_memcpy(node40_ib_at(node, pos->item), 
 			   hint->data, hint->len);
-
 		return 0;
 	}
     
@@ -373,7 +380,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
     
 	is_cut = (pos->unit != ~0ul);
     
-	ih = node40_ih_at((object_entity_t *)node, pos->item);
+	ih = node40_ih_at(node, pos->item);
     
 	offset = ih40_get_offset(ih);
 	ihlen = node40_item_len((object_entity_t *)node, pos);
@@ -389,7 +396,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 			    offset + len, nh40_get_free_space_start(node) - offset - len);
     
 		/* Updating offsets */
-		end = node40_ih_at((object_entity_t *)node, nh40_get_num_items(node) - 1);
+		end = node40_ih_at(node, nh40_get_num_items(node) - 1);
 
 		for (cur = ih - 1; cur >= end; cur--)
 			ih40_set_offset(cur, ih40_get_offset(cur) - len);
@@ -418,7 +425,7 @@ errno_t node40_remove(object_entity_t *entity,
 	aal_assert("umka-986", node != NULL, return -1);
 	aal_assert("umka-987", pos != NULL, return -1);
     
-	ih = node40_ih_at(entity, pos->item);
+	ih = node40_ih_at(node, pos->item);
 	len = node40_item_len((object_entity_t *)node, pos);
 
 	/* Removing either item or unit, depending on pos */
@@ -448,7 +455,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	aal_assert("umka-988", node != NULL, return -1);
 	aal_assert("umka-989", pos != NULL, return -1);
     
-	ih = node40_ih_at(entity, pos->item);
+	ih = node40_ih_at(node, pos->item);
     
 	if ((pid = ih40_get_pid(ih)) == FAKE_PLUGIN)
 		return -1;
@@ -525,7 +532,7 @@ static errno_t node40_set_key(object_entity_t *entity,
 		   nh40_get_num_items(node), return -1);
 
 	plugin_call(return -1, key->plugin->key_ops, assign,
-		    &(node40_ih_at(entity, pos->item)->key), key->body);
+		    &(node40_ih_at(node, pos->item)->key), key->body);
     
 	return 0;
 }
@@ -614,10 +621,10 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 
 #endif
 
-static inline void *callback_get_key(void *node, 
-				     uint32_t pos, void *data)
+static inline void *callback_get_key(void *node, uint32_t pos,
+				     void *data)
 {
-	return &node40_ih_at((object_entity_t *)node, pos)->key;
+	return &node40_ih_at((node40_t *)node, pos)->key;
 }
 
 static inline int callback_comp_key(void *key1,
@@ -672,20 +679,19 @@ struct node40_estimate {
 typedef struct node40_estimate node40_estimate_t;
 
 static errno_t node40_estimate(node40_estimate_t *estimate) {
+	uint32_t items;
 	uint32_t len, space;
 	item40_header_t *end;
 	item40_header_t *cur;
 	item40_header_t *ins;
 	item40_header_t *start;
 
+	items = nh40_get_num_items(estimate->src);
 	space = node40_space((object_entity_t *)estimate->dst);
 	
-	ins = node40_ih_at((object_entity_t *)estimate->src, estimate->pos->item);
-
-	start = node40_ih_at((object_entity_t *)estimate->src, 0);
-
-	end = node40_ih_at((object_entity_t *)estimate->src, 
-			   nh40_get_num_items(estimate->src) - 1);
+	start = node40_ih_at(estimate->src, 0);
+	end = node40_ih_at(estimate->src, items - 1);
+	ins = node40_ih_at(estimate->src, estimate->pos->item);
 	
 	cur = (estimate->flags & SF_LEFT ? start : end);
 
@@ -723,7 +729,14 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 static int node40_shift(object_entity_t *entity, object_entity_t *target, 
 			reiser4_pos_t *pos, shift_flags_t flags)
 {
+	uint32_t i;
 	void *dst, *src;
+	uint32_t src_items;
+	uint32_t dst_items;
+	item40_header_t *bih;
+	item40_header_t *nih;
+	uint32_t headers_size;
+
 	item40_header_t *end;
 	item40_header_t *cur;
 	item40_header_t *ins;
@@ -749,23 +762,19 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		return -1;
 	}
 
-	start = node40_ih_at((object_entity_t *)estimate.src, 0);
-
-	end = node40_ih_at((object_entity_t *)estimate.src, 
-			   nh40_get_num_items(estimate.src) - 1);
+	dst_items = nh40_get_num_items(estimate.dst);
+	src_items = nh40_get_num_items(estimate.src);
+		
+	start = node40_ih_at(estimate.src, 0);
+	end = node40_ih_at(estimate.src, src_items - 1);
 	
 	cur = (estimate.flags & SF_LEFT ? start : end);
 
 	if (estimate.flags & SF_LEFT) {
-		item40_header_t *bih;
-		item40_header_t *nih;
-		uint32_t i, headers_size;
-		
 		bih = start - (estimate.items - 1);
 		
 		/* Copying item headers */
-		dst = node40_ih_at((object_entity_t *)estimate.dst,
-				   nh40_get_num_items(estimate.dst) - 1);
+		dst = node40_ih_at(estimate.dst, dst_items - 1);
 
 		headers_size = sizeof(item40_header_t) * estimate.items;
 		dst -= headers_size;
@@ -789,29 +798,19 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		nh40_set_free_space(estimate.dst, nh40_get_free_space(estimate.dst) -
 				    estimate.bytes - headers_size);
 
-		nh40_set_num_items(estimate.dst, nh40_get_num_items(estimate.dst) - 1);
+		nh40_set_num_items(estimate.dst, dst_items - 1);
 
 		/* Updating source node fields */
 		nh40_set_free_space(estimate.src, nh40_get_free_space(estimate.src) +
 				    estimate.bytes + headers_size);
 
-		nh40_set_num_items(estimate.src, nh40_get_num_items(estimate.src) - 1);
+		nh40_set_num_items(estimate.src, src_items - 1);
 	} else {
-		uint32_t i;
-		uint32_t src_items;
-		uint32_t dst_items;
-		item40_header_t *bih;
-		item40_header_t *nih;
-		uint32_t headers_size;
-
-		dst_items = nh40_get_num_items(estimate.dst);
-		src_items = nh40_get_num_items(estimate.src);
-		
 		/* Preparing space for moving item headers in destination
 		 * node */
 		headers_size = sizeof(item40_header_t) * estimate.items;
 		
-		src = node40_ih_at((object_entity_t *)estimate.dst, dst_items - 1);
+		src = node40_ih_at(estimate.dst, dst_items - 1);
 		dst = src - headers_size;
 		
 		aal_memmove(dst, src, headers_size);
@@ -834,15 +833,13 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		}
 
 		/* Copying item headers */
-		src = node40_ih_at((object_entity_t *)estimate.src,
-				   src_items - 1);
-		
-		dst = node40_ih_at((object_entity_t *)estimate.dst,
-				   estimate.items - 1);
+		src = node40_ih_at(estimate.src, src_items - 1);
+		dst = node40_ih_at(estimate.dst, estimate.items - 1);
 			
 		aal_memcpy(dst, src, headers_size);
 
-		/* Copying item bodies*/
+		/* Copying item bodies */
+		
 	}
 	
 	

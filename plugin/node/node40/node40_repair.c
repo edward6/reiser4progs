@@ -22,7 +22,7 @@ static uint16_t node40_get_offset_at(object_entity_t *entity, int pos) {
 	return 0;
     
     return nh40_get_num_items(node) == pos ? nh40_get_free_space_start(node) :
-	ih40_get_offset(node40_ih_at(entity, pos));
+	ih40_get_offset(node40_ih_at(node, pos));
 }
 
 static void node40_set_offset_at(object_entity_t *entity, int pos, uint16_t offset) {
@@ -34,15 +34,15 @@ static void node40_set_offset_at(object_entity_t *entity, int pos, uint16_t offs
     if (nh40_get_num_items(node) == pos) 
 	nh40_set_free_space_start(node, offset);
     else 
-	ih40_set_offset(node40_ih_at(entity, pos), offset);
+	ih40_set_offset(node40_ih_at(node, pos), offset);
 }
 
 static errno_t node40_region_delete(object_entity_t *entity,
     uint16_t start_pos, uint16_t end_pos) 
 {
     int i;
-    item40_header_t *ih;
     reiser4_pos_t pos;
+    item40_header_t *ih;
     node40_t *node = (node40_t *)entity;
      
     aal_assert("vpf-201", node != NULL, return -1);
@@ -50,7 +50,7 @@ static errno_t node40_region_delete(object_entity_t *entity,
     aal_assert("vpf-213", start_pos <= end_pos, return -1);
     aal_assert("vpf-214", end_pos <= node40_count(entity), return -1);
     
-    ih = node40_ih_at(entity, start_pos);
+    ih = node40_ih_at(node, start_pos);
     for (i = start_pos; i <= end_pos; i++, ih--) {
 	if (i != end_pos || i == node40_count(entity)) 
 	    node40_set_offset_at(entity, i, ih40_get_offset(ih + 1) + 1);	
@@ -75,11 +75,11 @@ static errno_t node40_region_delete(object_entity_t *entity,
     free space start.
 */
 static int node40_item_array_check(object_entity_t *entity) {
-    int i, l_pos;
-    int64_t start_pos, end_pos;
-    uint64_t offset, r_limit;
-    node40_t *node = (node40_t *)entity;    
     blk_t blk;
+    int i, l_pos;
+    uint64_t offset, r_limit;
+    int64_t start_pos, end_pos;
+    node40_t *node = (node40_t *)entity;    
     
     aal_assert("vpf-208", node != NULL, return -1);
     aal_assert("vpf-209", node->block != NULL, return -1);
@@ -95,7 +95,7 @@ static int node40_item_array_check(object_entity_t *entity) {
     }
 
     /* Rigth limit for offsets is at item40_headers count from the end of block. */
-    r_limit = node40_free_space_end(entity);
+    r_limit = node40_free_space_end(node);
 
     /* Start of free space must be between node40_header and r_limit */
     if (nh40_get_free_space_start(node) < sizeof(node40_header_t) || 
@@ -169,7 +169,7 @@ static int node40_item_array_check(object_entity_t *entity) {
 	if (node40_region_delete(entity, l_pos + 1, node40_count(entity)))
 	    return -1;
 	nh40_set_free_space_start(node, offset);
-	nh40_set_free_space(node, node40_free_space_end(entity) - offset);
+	nh40_set_free_space(node, node40_free_space_end(node) - offset);
     }
 
     return 0;
