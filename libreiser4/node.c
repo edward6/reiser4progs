@@ -845,7 +845,7 @@ errno_t reiser4_node_shift(
 		}
 	}
 
-	/* We do not need update children lists if we are on left level */
+	/* We do not need update children lists if we are on leaf level */
 	if (reiser4_node_level(node) <= LEAF_LEVEL)
 		return 0;
 

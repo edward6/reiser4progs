@@ -730,14 +730,11 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 				  item.plugin->h.sign.id, item.plugin->h.label);
 
 		/* Printing item by means of calling item print method */
-		if (level > LEAF_LEVEL) {
-			
-			if (plugin_call(return -1, item.plugin->item_ops, print,
-					&item, stream, options))
-				return -1;
+		if (plugin_call(return -1, item.plugin->item_ops, print,
+				&item, stream, options))
+			return -1;
 
-			aal_stream_format(stream, "\n");
-		}
+		aal_stream_format(stream, "\n");
 	}
 	
 	return 0;
@@ -860,7 +857,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 
 	hint->items = 1;
 	hint->bytes = src_item.len;
-	hint->part = dst_item.len;
+	hint->part = nh40_get_free_space(dst_node);
 
 	if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
 		return -1;
@@ -872,7 +869,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 	pos.unit = 0;
 	pos.item = dst_item.pos;
 
-	if (node40_expand(dst_node, &pos, hint->bytes)) {
+	if (node40_expand(dst_node, &pos, hint->part)) {
 		aal_exception_error("Can't expand item for "
 				    "shifting units into it.");
 		return -1;
@@ -890,14 +887,17 @@ static errno_t node40_merge_items(node40_t *src_node,
 		return -1;
 
 	/* Updating item key */
-	if (hint->flags & SF_RIGHT) {
+	if (hint->flags & SF_LEFT) {
+		ih = node40_ih_at(src_node, pos.item);
+		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
+	} else {
 		ih = node40_ih_at(dst_node, pos.item);
 		aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
 	}
 
 	/* Updating source node fields */
-	pos.unit = ~0ul;
 	pos.item = src_item.pos;
+	pos.unit = src_items <= hint->units ? ~0ul : 0;
 	
 	return node40_shrink(src_node, &pos, hint->bytes);
 }
@@ -1391,8 +1391,8 @@ static errno_t node40_shift(object_entity_t *entity,
 	hint->items = 0;
 	merge = *hint;
 
-/*	if (node40_merge_items(src_node, dst_node, &merge))
-		return -1;*/
+	if (node40_merge_items(src_node, dst_node, &merge))
+		return -1;
 	
 	flags = hint->flags;
 	
@@ -1431,6 +1431,9 @@ static errno_t node40_shift(object_entity_t *entity,
 	if (node40_shift_units(src_node, dst_node, hint))
 		return -1;
 
+	hint->bytes += merge.bytes;
+	hint->items += merge.items;
+	
 	return 0;
 }
 

@@ -8,8 +8,6 @@ reiser4progs/COPYING.
 
 * shift method for item plugins.
 
-* left shifting for direntry40 item plugin
-
 * --print-journal and --print-alloc options in debugfs.
 
 * FIBMAP ioctl implementation in reiser4
@@ -30,3 +28,5 @@ reiser4progs/COPYING.
   has enough free space. In this case we should insert new unit into
   right neighbour, not int onew allocated node. This will improve node
   packing substantionaly.
+
+* add extent hint for inserting extents into the tree
