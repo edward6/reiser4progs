@@ -12,9 +12,9 @@ extern reiser4_plug_t reg40_plug;
 
 extern errno_t reg40_seek(object_entity_t *entity, uint64_t offset);
 
-extern uint64_t reg40_offset(object_entity_t *entity);
-extern errno_t reg40_update(object_entity_t *entity);
 extern errno_t reg40_reset(object_entity_t *entity);
+extern uint64_t reg40_offset(object_entity_t *entity);
+extern lookup_res_t reg40_update(object_entity_t *entity);
 
 extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
@@ -258,7 +258,10 @@ errno_t reg40_check_struct(object_entity_t *object,
 	while (TRUE) {
 		errno_t result;
 		
-		if (reg40_update(object)) {
+		if ((result = reg40_update(object)) < 0)
+			return result;
+		
+		if (result == ABSENT) {
 			/* If place is invalid, no more reg40 items. */
 			if (!rcore->tree_ops.valid(info->tree, &reg->body))
 				break;

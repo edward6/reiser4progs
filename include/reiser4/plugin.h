@@ -43,8 +43,9 @@ enum lookup_res {
 	FAILED                  = -1
 };
 
-typedef enum lookup_res lookup_res_t;
+typedef int32_t lookup_res_t;
 
+/* Lookup mode */
 enum lookup_mod {
 	FIND_EXACT              = 1,
 	FIND_CONV               = 2

@@ -252,9 +252,17 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 	aal_assert("umka-1840", tree != NULL);
 	aal_assert("umka-1842", node != NULL);
 
-	/* Disconnecting @node from its parent node and releasing passed
-	   @node */
+#ifndef ENABLE_STAND_ALONE
+	if (reiser4_node_isdirty(node)) {
+		aal_exception_error("Unloading dirty node %llu.",
+				    node_blocknr(node));
+	}
+#endif
+
+	/* Disconnecting @node from its parent node. */
 	reiser4_tree_disconnect(tree, node->p.node, node);
+
+	/* Releasing node */
 	return reiser4_node_close(node);
 }
 

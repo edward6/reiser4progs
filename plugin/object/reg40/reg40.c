@@ -52,21 +52,15 @@ static void reg40_close(object_entity_t *entity) {
 }
 
 /* Updates body place in correspond to file offset */
-errno_t reg40_update(object_entity_t *entity) {
+lookup_res_t reg40_update(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
 
 	aal_assert("umka-1161", entity != NULL);
 	
 	/* Getting the next body item from the tree */
-	switch (obj40_lookup(&reg->obj, &reg->offset,
-			     LEAF_LEVEL, FIND_EXACT,
-			     &reg->body))
-	{
-	case PRESENT:
-		return 0;
-	default:
-		return -EINVAL;
-	}
+	return obj40_lookup(&reg->obj, &reg->offset,
+			    LEAF_LEVEL, FIND_EXACT,
+			    &reg->body);
 }
 
 /* Resets file position. That is it searches first body item and sets file's
@@ -92,27 +86,24 @@ static int32_t reg40_read(object_entity_t *entity,
 	uint64_t size;
 	uint32_t read;
 	uint32_t chunk;
-	uint64_t offset;
 
 	aal_assert("umka-1183", buff != NULL);
 	aal_assert("umka-1182", entity != NULL);
 
 	reg = (reg40_t *)entity;
 	size = reg40_size(entity);
-	offset = reg40_offset(entity);
-
-	/* The file has not data or there is nothing to read more */
-	if (offset >= size)
-		return 0;
-
-	if (n > size - offset)
-		n = size - offset;
 
 	for (read = 0; read < n; ) {
+		uint64_t offset;
 		trans_hint_t hint;
 
-		if ((res = reg40_update(entity)))
+		/* Update body place. Check for error. */
+		if ((res = reg40_update(entity)) < 0)
 			return res;
+
+		/* Check if file stream is over. */
+		if (res == ABSENT)
+			return 0;
 
 		chunk = n - read;
 
@@ -684,9 +675,13 @@ static errno_t reg40_layout(object_entity_t *entity,
 	while (reg40_offset(entity) < size) {
 		place_t *place = &reg->body;
 		
-		/* Updating place fo current body item */
-		if ((res = reg40_update(entity)))
+		/* Update body place. Check for error. */
+		if ((res = reg40_update(entity)) < 0)
 			return res;
+
+		/* Check if file stream is over. */
+		if (res == ABSENT)
+			return 0;
 
 		/* Calling enumerator funtions */
 		if (place->plug->o.item_ops->layout) {
@@ -741,9 +736,13 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		uint64_t offset;
 		key_entity_t maxkey;
 		
-		/* Updating place fo current body item */
-		if ((res = reg40_update(entity)))
+		/* Update body place. Check for error. */
+		if ((res = reg40_update(entity)) < 0)
 			return res;
+
+		/* Check if file stream is over. */
+		if (res == ABSENT)
+			return 0;
 
 		/* Calling per-place callback function */
 		if ((res = place_func(entity, &reg->body, data)))

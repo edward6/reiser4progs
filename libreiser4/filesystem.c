@@ -160,16 +160,16 @@ errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 	if ((res = reiser4_format_skipped(fs->format, region_func, data)))
 		return res;
 	
+	/* Enumerating master area */
+	if ((res = reiser4_master_layout(fs->master, region_func, data)))
+		return res;
+
 	/* Enumerating oid allocator area */
 	if ((res = reiser4_oid_layout(fs->oid, region_func, data)))
 		return res;
 	
 	/* Enumerating format area */
 	if ((res = reiser4_format_layout(fs->format, region_func, data)))
-		return res;
-
-	/* Enumerating master area */
-	if ((res = reiser4_master_layout(fs->master, region_func, data)))
 		return res;
 
 	/* Enumerating journal area */

@@ -150,8 +150,8 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 	aal_assert("vpf-1315", fs->device != NULL);
 	
 	device = fs->device;
-	size = reiser4_master_blksize(fs->master);
 	kplg = fs->tree->key.plug;
+	size = reiser4_master_blksize(fs->master);
 	
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;
@@ -166,8 +166,6 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 
 	/* Finding the node plug by its id */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find node plugin by its id "
-				    "0x%x.", pid);
 		goto error_free_block;
 	}
 
@@ -175,8 +173,6 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 	if (!(node->entity = plug_call(plug->o.node_ops, init,
 				       block, kplg)))
 	{
-		aal_exception_error("Can't initialize node %llu.",
-				    block->nr);
 		goto error_free_block;
 	}
 	
@@ -190,6 +186,19 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
         return NULL;
 }
 
+/* Saves node to device if it is dirty and closes node */
+errno_t reiser4_node_fini(reiser4_node_t *node) {
+
+#ifndef ENABLE_STAND_ALONE
+	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
+		aal_exception_error("Can't write node %llu.",
+				    node_blocknr(node));
+	}
+#endif
+
+	return reiser4_node_close(node);
+}
+
 /* Closes specified node and its children. Before the closing, this function
    also detaches nodes from the tree if they were attached. */
 errno_t reiser4_node_close(reiser4_node_t *node) {
@@ -200,7 +209,6 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 		  fini, node->entity);
 	    
 	aal_free(node);
-	
 	return 0;
 }
 

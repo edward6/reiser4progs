@@ -97,6 +97,7 @@ extern lookup_res_t reiser4_node_lookup(reiser4_node_t *node,
 					lookup_mod_t mode,
 					pos_t *pos);
 
+extern errno_t reiser4_node_fini(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
 extern uint32_t reiser4_node_items(reiser4_node_t *node);
 

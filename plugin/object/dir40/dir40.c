@@ -149,10 +149,10 @@ errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
 
 /* Switches current dir body item onto next one. Returns 1 on success, 0 on the
    case of directory is over and values < 0 on error. */
-static int32_t dir40_next(object_entity_t *entity) {
-	errno_t res;
+static lookup_res_t dir40_next(object_entity_t *entity) {
 	dir40_t *dir;
 	place_t place;
+	lookup_res_t res;
 
 	aal_assert("umka-2063", entity != NULL);
 
@@ -176,78 +176,75 @@ static int32_t dir40_next(object_entity_t *entity) {
 		plug_call(dir->offset.plug->o.key_ops, set_offset,
 			  &dir->offset, offset + 1);
 		
-		return 0;
+		return ABSENT;
 	}
 	
 	aal_memcpy(&dir->body, &place, sizeof(place));
-	return 1;
+	return PRESENT;
 }
 
 /* Updates current body place by place found by @dir->offset and @dir->adjust */
-static int32_t dir40_update(object_entity_t *entity) {
+static lookup_res_t dir40_update(object_entity_t *entity) {
 	dir40_t *dir;
 	lookup_res_t res;
 	
-	dir = (dir40_t *)entity;
+#ifdef ENABLE_COLLISIONS
+	uint32_t units;
+	uint32_t adjust;
+#endif
 	
-	switch ((res = obj40_lookup(&dir->obj, &dir->offset,
-				    LEAF_LEVEL, FIND_EXACT,
-				    &dir->body)))
+	dir = (dir40_t *)entity;
+
+	/* Making lookup by current dir key */
+	if ((res = obj40_lookup(&dir->obj, &dir->offset,
+				LEAF_LEVEL, FIND_EXACT,
+				&dir->body)) < 0)
 	{
-	case FAILED:
-		return -EINVAL;
-	default: {
-#ifdef ENABLE_COLLISIONS
-		uint32_t units;
-		uint32_t adjust;
-#endif
-		/* Correcting unit pos for next body item */
-		if (dir->body.pos.unit == MAX_UINT32)
-			dir->body.pos.unit = 0;
+		return res;
+	}
 
-		if (res == ABSENT) {
+	/* Correcting unit pos for next body item */
+	if (dir->body.pos.unit == MAX_UINT32)
+		dir->body.pos.unit = 0;
 
-			/* Directory is over */
-			if (!dir40_belong(entity, &dir->body))
-				return 0;
+	if (res == ABSENT) {
 
-			/* Checking if directory is over */
-			units = plug_call(dir->body.plug->o.item_ops,
-					  units, &dir->body);
+		/* Directory is over */
+		if (!dir40_belong(entity, &dir->body))
+			return ABSENT;
+
+		/* Checking if directory is over */
+		units = plug_call(dir->body.plug->o.item_ops,
+				  units, &dir->body);
 			
-			if (dir->body.pos.unit >= units)
-				return 0;
-		}
+		if (dir->body.pos.unit >= units)
+			return ABSENT;
+	}
 
 #ifdef ENABLE_COLLISIONS
-		/* Adjusting current position by key's adjust. This is needed
-		   for working fine when key collitions take place. */
-		for (adjust = dir->adjust; adjust;) {
-			uint32_t off = adjust;
+	/* Adjusting current position by key's adjust. This is needed
+	   for working fine when key collitions take place. */
+	for (adjust = dir->adjust; adjust;) {
+		uint32_t off = adjust;
 
-			units = plug_call(dir->body.plug->o.item_ops,
-					  units, &dir->body);
+		units = plug_call(dir->body.plug->o.item_ops,
+				  units, &dir->body);
 			
-			if (off > units - 1 - dir->body.pos.unit)
-				off = units - dir->body.pos.unit;
+		if (off > units - 1 - dir->body.pos.unit)
+			off = units - dir->body.pos.unit;
 
-			dir->body.pos.unit += off - 1;
+		dir->body.pos.unit += off - 1;
 
-			if ((adjust -= off) > 0) {
-				switch (dir40_next(entity)) {
-				case 1:
-					break;
-				case 0:
-					return 0;
-				default:
-					return -EINVAL;
-				}
-			}
+		if ((adjust -= off) > 0) {
+			if ((res = dir40_next(entity)) < 0)
+				return res;
+
+			if (res == ABSENT)
+				return 0;
 		}
+	}
 #endif
-		return 1;
-	}
-	}
+	return PRESENT;
 }
 
 /* Reads one entry from passed @entity */
@@ -264,8 +261,12 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Getting place of current unit */
-	if ((res = dir40_update(entity)) != 1)
+	if ((res = dir40_update(entity)) < 0)
 		return res;
+
+	/* Directory is over? */
+	if (res == ABSENT)
+		return 0;
 
 	/* Reading next entry */
 	if ((res = dir40_fetch(entity, entry)))
@@ -601,11 +602,15 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Making sure, that dir->body points to correct item */
-	if ((res = dir40_update(entity)) != 1)
+	if ((res = dir40_update(entity)) < 0)
 		return res;
 
+	/* There is no body in directory */
+	if (res == ABSENT)
+		return 0;
+
 	/* Creating maximal possible key in order to find last directory item
-	 * and remove it from the tree. Thanks to Nikita for this idea. */
+	   and remove it from the tree. Thanks to Nikita for this idea. */
 	plug_call(dir->body.plug->o.key_ops,
 		  set_offset, &key, MAX_UINT64);
 
@@ -887,8 +892,12 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 	
-	if ((res = dir40_update(entity)) != 1)
+	if ((res = dir40_update(entity)) < 0)
 		return res;
+
+	/* There is no body in directory */
+	if (res == ABSENT)
+		return 0;
 
 	hint.data = data;
 	hint.entity = entity;
@@ -943,9 +952,14 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	aal_assert("umka-1713", place_func != NULL);
 	
 	dir = (dir40_t *)entity;
-	
-	if ((res = dir40_update(entity)) != 1)
+
+	/* Getting current position */
+	if ((res = dir40_update(entity)) < 0)
 		return res;
+
+	/* Nothing found */
+	if (res == ABSENT)
+		return 0;
 	
 	if ((res = place_func(entity, STAT_PLACE(&dir->obj), data)))
 		return res;
