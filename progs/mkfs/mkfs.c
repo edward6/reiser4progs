@@ -129,6 +129,7 @@ int main(int argc, char *argv[]) {
 	struct stat st;
 	char override[4096];
 	char uuid[17], label[17];
+	
 	mkfs_behav_flags_t flags = 0;
 	count_t fs_len = 0, dev_len = 0;
 	uint32_t blocksize = REISER4_BLKSIZE;

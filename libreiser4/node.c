@@ -285,6 +285,9 @@ errno_t reiser4_node_pbc(
 
 		if ((res = reiser4_place_realize(place)))
 			return res;
+
+		if (!reiser4_item_branch(place))
+			continue;
 		
 		for (j = 0; j < reiser4_item_units(place); j++) {
 			place->pos.unit = j;

@@ -1012,8 +1012,6 @@ static errno_t direntry40_utmost_key(item_entity_t *item,
 	
 	aal_assert("umka-1651", key != NULL);
 	aal_assert("umka-1650", item != NULL);
-	aal_assert("umka-716", key->plugin != NULL);
-	aal_assert("umka-1652", item->body != NULL);
 
 	direntry = direntry40_body(item);
 	units = de40_get_units(direntry);

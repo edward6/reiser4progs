@@ -203,8 +203,8 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 
 	key->plugin = item->key.plugin;
 	
-	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -EINVAL;
+	plugin_call(key->plugin->key_ops, assign, key,
+		    &item->key);
 
 	offset = plugin_call(key->plugin->key_ops,
 			     get_offset, key);

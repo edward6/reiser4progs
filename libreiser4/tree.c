@@ -1435,6 +1435,87 @@ errno_t reiser4_tree_write(reiser4_tree_t *tree,
 	return -1;
 }
 
+/*
+  Makes copy of item at passed @src place or some amount of its units to the
+  passed @dst from @start key though the @end one.
+*/
+errno_t reiser4_tree_copy(reiser4_tree_t *tree,
+			  reiser4_place_t *dst,
+			  reiser4_place_t *src,
+			  reiser4_key_t *start,
+			  reiser4_key_t *end)
+{
+/*	errno_t res;
+	uint32_t needed;
+	copy_hint_t hint;
+	   
+	aal_assert("umka-2116", dst != NULL);
+	aal_assert("umka-2117", src != NULL);
+	aal_assert("umka-2119", end != NULL);
+	aal_assert("umka-2115", tree != NULL);
+	aal_assert("umka-2118", start != NULL);
+	
+	if ((res = reiser4_item_feel(src, &hint)))
+		return res;
+
+	needed = hint.header_len + hint.body_len;
+	aal_assert("umka-2122", needed > 0);
+	
+	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
+		aal_exception_error("Can't prepare space for copy "
+				    "one more item/unit.");
+		return res;
+	}
+
+	if ((res = reiser4_node_copy(dst->node, &dst->pos,
+				     src->node, &src->pos,
+				     start, end, hint)))
+	{
+		aal_exception_error("Can't copy an item/unit from node "
+				    "%llu to %llu one.", src->node->blk,
+				    dst->node->blk);
+		return res;
+	}
+
+	if (reiser4_place_leftmost(place) &&
+	    place->node->parent.node)
+	{
+		reiser4_place_t p;
+
+		reiser4_place_init(&p, place->node->parent.node,
+				   &place->node->parent.pos);
+		
+		if ((res = reiser4_tree_ukey(tree, &p, &hint->key)))
+			return res;
+	}
+	
+	if (place->node != tree->root && !place->node->parent.node) {
+		if (!old.node->parent.node)
+			reiser4_tree_growup(tree);
+	
+		if ((res = reiser4_tree_attach(tree, place->node))) {
+			aal_exception_error("Can't attach node %llu to "
+					    "the tree.", place->node->blk);
+			reiser4_tree_release(tree, place->node);
+			return res;
+		}
+	}
+
+	if ((res = reiser4_place_realize(place)))
+		return res;
+
+	if ((res = reiser4_item_realize(place)))
+		return res;
+
+	if (tree->traps.post_insert) {
+		if ((res = tree->traps.post_insert(tree, place, hint,
+						   tree->traps.data)))
+			return res;
+	}*/
+    
+	return 0;
+}
+
 /* Inserts new item/unit described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
