@@ -45,7 +45,7 @@ static inline void progs_gauge_footer(
 void progs_gauge_handler(aal_gauge_t *gauge) {
 
 	if (gauge->state == GAUGE_PAUSED) {
-		progs_ui_wipe_line(stderr);
+		progs_wipe_line(stderr);
 		fflush(stderr);
 		return;
 	}

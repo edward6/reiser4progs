@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
     
 	debugfs_init();
     
-	progs_misc_print_banner(argv[0]);
+	progs_print_banner(argv[0]);
     
 	if (argc < 2) {
 		debugfs_print_usage(argv[0]);
@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
 			return NO_ERROR;
 		}
 		case 'V': {
-			progs_misc_print_banner(argv[0]);
+			progs_print_banner(argv[0]);
 			return NO_ERROR;
 		}
 		case 'e': {

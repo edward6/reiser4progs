@@ -38,7 +38,7 @@ extern aal_exception_option_t
 progs_exception_handler(aal_exception_t *exception);
 
 /* This function gets user enter */
-char *progs_ui_readline(
+char *progs_readline(
 	char *prompt)		/* prompt to be printed */
 {
 	char *line;
@@ -72,7 +72,7 @@ char *progs_ui_readline(
 }
 
 /* Gets screen width */
-uint16_t progs_ui_screen_width(void) {
+uint16_t progs_screen_width(void) {
 	struct winsize winsize;
     
 	if (ioctl(2, TIOCGWINSZ, &winsize))
@@ -81,9 +81,9 @@ uint16_t progs_ui_screen_width(void) {
 	return winsize.ws_col == 0 ? 80 : winsize.ws_col;
 }
 
-void progs_ui_wipe_line(void *stream) {
+void progs_wipe_line(void *stream) {
 	char *buff;
-	int i, width = progs_ui_screen_width();
+	int i, width = progs_screen_width();
     
 	if (!(buff = aal_calloc(width + 1, 0)))
 		return;
@@ -99,7 +99,7 @@ void progs_ui_wipe_line(void *stream) {
 }
 
 /* Constructs exception message */
-void progs_ui_print_wrap(void *stream, char *text) {
+void progs_print_wrap(void *stream, char *text) {
 	uint16_t width;
 	char *word, *line;
 
@@ -110,7 +110,7 @@ void progs_ui_print_wrap(void *stream, char *text) {
 		return;
     
 	line = NULL;
-	width = progs_ui_screen_width();
+	width = progs_screen_width();
 
 	while ((word = aal_strsep(&text, " "))) {
 		if (!line || aal_strlen(line) + aal_strlen(word) > width) {
@@ -154,7 +154,7 @@ void progs_ui_print_wrap(void *stream, char *text) {
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 
-static char *progs_ui_generator(char *text, int state) {
+static char *progs_generator(char *text, int state) {
 	char *opt;
 	char s[80], s1[80];
 	static aal_list_t *cur = NULL;
@@ -179,23 +179,23 @@ static char *progs_ui_generator(char *text, int state) {
 	return NULL;
 }
 
-static char **progs_ui_complete(char *text, int start, int end) {
+static char **progs_complete(char *text, int start, int end) {
 	return rl_completion_matches(text,
-				     (rl_compentry_func_t *)progs_ui_generator);
+				     (rl_compentry_func_t *)progs_generator);
 }
 
-void progs_ui_set_variant(aal_list_t *list) {
+void progs_set_variant(aal_list_t *list) {
 	variant = list;
 }
 
-aal_list_t *progs_ui_get_variant(void) {
+aal_list_t *progs_get_variant(void) {
 	return variant;
 }
 
 #endif
 
 /* Common alpha handler. Params are the same as in numeric handler */
-static char *progs_ui_alpha_handler(
+static char *progs_alpha_handler(
 	const char *prompt, char *defvalue, 
 	aal_check_alpha_func_t check_func, 
 	void *data)
@@ -209,7 +209,7 @@ static char *progs_ui_alpha_handler(
 	aal_snprintf(buff, sizeof(buff), "%s [%s]: ", prompt, defvalue);
     
 	while (1) {
-		if (aal_strlen((line = progs_ui_readline(buff))) == 0) 
+		if (aal_strlen((line = progs_readline(buff))) == 0) 
 			return defvalue;
 
 		if (!check_func || check_func(line, data))
@@ -220,7 +220,7 @@ static char *progs_ui_alpha_handler(
 }
 
 /* Common for all progs ui get numeric handler */
-static int64_t progs_ui_numeric_handler(
+static int64_t progs_numeric_handler(
 	const char *prompt, int64_t defvalue, /* user prompt and default
 					       * value */
 	aal_check_numeric_func_t check_func,  /* user's enter checking
@@ -241,7 +241,7 @@ static int64_t progs_ui_numeric_handler(
 		int error;
 		char *line;
 	
-		if (aal_strlen((line = progs_ui_readline(buff))) == 0) 
+		if (aal_strlen((line = progs_readline(buff))) == 0) 
 			return defvalue;
 
 		if (!(value = progs_parse_size(line, &error)) && error != ~0) {
@@ -257,7 +257,7 @@ static int64_t progs_ui_numeric_handler(
 	return value; 
 }
 
-void progs_misc_print_banner(char *name) {
+void progs_print_banner(char *name) {
 	char *banner;
    
 	printf("%s %s\n", name, VERSION);
@@ -266,7 +266,7 @@ void progs_misc_print_banner(char *name) {
 		return;
     
 	aal_snprintf(banner, 255, BANNER);
-	progs_ui_print_wrap(stderr, banner);
+	progs_print_wrap(stderr, banner);
 	printf("\n");
 	aal_free(banner);
 }
@@ -278,10 +278,10 @@ static void _init(void) {
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 	rl_initialize();
 	rl_attempted_completion_function = 
-		(CPPFunction *)progs_ui_complete;
+		(CPPFunction *)progs_complete;
 #endif
     
 	aal_exception_set_handler(progs_exception_handler);
-	aal_ui_set_numeric_handler(progs_ui_numeric_handler);
-	aal_ui_set_alpha_handler(progs_ui_alpha_handler);
+	aal_ui_set_numeric_handler(progs_numeric_handler);
+	aal_ui_set_alpha_handler(progs_alpha_handler);
 }

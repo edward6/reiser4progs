@@ -75,7 +75,7 @@ static void progs_exception_print_wrap(
 	aal_strncat(buff, exception->message, 
 		    aal_strlen(exception->message));
 
-	progs_ui_print_wrap(stderr, buff);
+	progs_print_wrap(stderr, buff);
 }
 
 /* 
@@ -110,7 +110,7 @@ static aal_exception_option_t progs_exception_prompt(
 		}
 	}
     
-	if (!(option = progs_ui_readline(prompt)) || aal_strlen(option) == 0)
+	if (!(option = progs_readline(prompt)) || aal_strlen(option) == 0)
 		return EXCEPTION_UNHANDLED;
     
 	return progs_exception_oneof(option, options);
@@ -137,7 +137,7 @@ aal_exception_option_t progs_exception_handler(
 			return EXCEPTION_UNHANDLED;
 	}
 
-	progs_ui_wipe_line(stream);
+	progs_wipe_line(stream);
 
 	aal_gauge_pause();
 	progs_exception_print_wrap(exception);
@@ -153,7 +153,7 @@ aal_exception_option_t progs_exception_handler(
 		}
 	}
 	variant = aal_list_first(variant);
-	progs_ui_set_variant(variant);
+	progs_set_variant(variant);
 #endif
     
 	do {
@@ -162,7 +162,7 @@ aal_exception_option_t progs_exception_handler(
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 	aal_list_free(variant);
-	progs_ui_set_variant(NULL);
+	progs_set_variant(NULL);
 #endif
     
 	return opt;

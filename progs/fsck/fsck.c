@@ -165,7 +165,7 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
     data->profile = progs_profile_default();
     fsck_init_streams(data);
 
-    progs_misc_print_banner(argv[0]);
+    progs_print_banner(argv[0]);
     
     if (argc < 2) {
 	fsck_print_usage(argv[0]);
@@ -231,7 +231,7 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 		fsck_print_usage(argv[0]);
 		return NO_ERROR;	    
 	    case 'V': 
-		progs_misc_print_banner(argv[0]);
+		progs_print_banner(argv[0]);
 		return USER_ERROR;
 	    case 'q': 
 		repair_set_option(REPAIR_OPT_QUIET, data);

@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     
 	mkfs_init();
 
-	progs_misc_print_banner(argv[0]);
+	progs_print_banner(argv[0]);
     
 	if (argc < 2) {
 		mkfs_print_usage(argv[0]);
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
 			mkfs_print_usage(argv[0]);
 			return NO_ERROR;
 		case 'V':
-			progs_misc_print_banner(argv[0]);
+			progs_print_banner(argv[0]);
 			return NO_ERROR;
 		case 'e':
 			profile_label = optarg;
