@@ -46,14 +46,15 @@ static errno_t dir40_reset(object_entity_t *entity) {
 		    dir->hash, object40_locality(&dir->obj),
 		    object40_objectid(&dir->obj), ".");
 
-	object40_unlock(&dir->obj, &dir->body);
+	if (dir->body.node)
+		object40_unlock(&dir->obj, &dir->body);
 	
 	/* Lookup for the first direntry item */
 	if (object40_lookup(&dir->obj, &key, LEAF_LEVEL,
 			    &dir->body) != LP_PRESENT)
 	{
-		aal_exception_error("Can't find direntry of object 0x%llx.", 
-				    object40_objectid(&dir->obj));
+		aal_exception_error("Can't find direntry of object "
+				    "0x%llx.", object40_objectid(&dir->obj));
 		
 		object40_lock(&dir->obj, &dir->body);
 		return -1;

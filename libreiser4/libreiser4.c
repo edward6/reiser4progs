@@ -246,7 +246,9 @@ static errno_t tree_lock(
 	aal_assert("umka-1512", place != NULL);
 
 	p = (reiser4_place_t *)place;
-	return reiser4_node_lock(p->node);
+	reiser4_node_lock(p->node);
+	
+	return 0;
 }
 
 static errno_t tree_unlock(
@@ -258,8 +260,13 @@ static errno_t tree_unlock(
 	aal_assert("umka-1513", tree != NULL);
 	aal_assert("umka-1514", place != NULL);
 
-	p = (reiser4_place_t *)place;
-	return reiser4_node_unlock(p->node);
+	p = (reiser4_place_t *)place;	
+	reiser4_node_unlock(p->node);
+
+	if (!reiser4_node_locked(p->node))
+		reiser4_tree_unload(p->node->tree, p->node);
+
+	return 0;
 }
 
 #ifndef ENABLE_ALONE

@@ -151,18 +151,8 @@ errno_t reiser4_tree_connect(
 	if ((res = reiser4_node_connect(parent, node)))
 		return res;
 
-	node->tree = tree;
-
-#ifndef ENABLE_ALONE
-	/* Attaching new node into tree's lru list */
-	if (aal_lru_attach(tree->lru, (void *)node)) {
-		aal_exception_error("Can't attach node %llu to tree LRU.",
-				    node->blk);
-		return -1;
-	}
-#endif
-	
 	reiser4_node_lock(parent);
+	node->tree = tree;
 
 #ifndef ENABLE_ALONE
 	if (tree->traps.connect) {
@@ -172,7 +162,7 @@ errno_t reiser4_tree_connect(
 			return -1;
 			
 		/*
-		  Arounding the callback calling by lock/unlock braces for
+		  Placing the callback calling into lock/unlock braces for
 		  preventing it freeing by handler.
 		*/
 		reiser4_node_lock(node);
@@ -181,6 +171,16 @@ errno_t reiser4_tree_connect(
 					  tree->traps.data);
 		
 		reiser4_node_unlock(node);
+	}
+#endif
+	
+#ifndef ENABLE_ALONE
+	
+	/* Attaching new node into tree's lru list */
+	if (aal_lru_attach(tree->lru, (void *)node)) {
+		aal_exception_error("Can't attach node %llu to tree LRU.",
+				    node->blk);
+		return -1;
 	}
 #endif
 	

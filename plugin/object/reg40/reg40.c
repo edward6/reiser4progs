@@ -30,62 +30,14 @@ static uint64_t reg40_size(object_entity_t *entity) {
 	return object40_get_size(&reg->obj);
 }
 
-/*
-  Resets file position. That is it searches first body item and sets file's
-  offset to zero.
-*/
-static errno_t reg40_reset(object_entity_t *entity) {
-	reg40_t *reg;
-	uint64_t size;
-	key_entity_t key;
-    
-	aal_assert("umka-1161", entity != NULL);
-
-	reg = (reg40_t *)entity;
-
-	if ((size = reg40_size(entity)) == 0)
-		return 0;
-
-	/* Building body key to be found */
-	key.plugin = reg->obj.key.plugin;
-	
-	plugin_call(key.plugin->key_ops, build_generic, &key,
-		    KEY_FILEBODY_TYPE, object40_locality(&reg->obj),
-		    object40_objectid(&reg->obj), 0);
-
-	object40_unlock(&reg->obj, &reg->body);
-
-	/*
-	  Perform lookup with instruction to stop on the leaf level. In the case
-	  first item is extent, we will stop on twig level.
-	*/
-	if (object40_lookup(&reg->obj, &key, LEAF_LEVEL,
-			    &reg->body) != LP_PRESENT)
-	{
-		/*
-		  Cleaning body node. It is needed because functions below check
-		  this in order to determine is file has a body or not.
-		*/
-		reg->body.node = NULL;
-	}
-	
-	/*
-	  Locking node the current body lies in, due to prevent the throwing it
-	  out of tree cache.
-	*/
-	object40_lock(&reg->obj, &reg->body);
-
-	reg->offset = 0;
-
-	return 0;
-}
-
 /* Updates body place in correspond to file offset */
 static lookup_t reg40_next(reg40_t *reg) {
 	lookup_t res;
 	place_t place;
 	key_entity_t key;
 
+	aal_assert("umka-1161", reg != NULL);
+	
 	/* Building key to be searched by current offset */
 	key.plugin = reg->obj.key.plugin;
 	
@@ -97,13 +49,33 @@ static lookup_t reg40_next(reg40_t *reg) {
 	if ((res = object40_lookup(&reg->obj, &key, LEAF_LEVEL,
 				   &place)) == LP_PRESENT)
 	{
-		object40_unlock(&reg->obj, &reg->body);
+		/* Unlocking old location */
+		if (reg->body.node != NULL)
+			object40_unlock(&reg->obj, &reg->body);
 
+		/* Locking new location */
 		reg->body = place;
 		object40_lock(&reg->obj, &reg->body);
 	}
 
 	return res;
+}
+
+/*
+  Resets file position. That is it searches first body item and sets file's
+  offset to zero.
+*/
+static errno_t reg40_reset(object_entity_t *entity) {
+	reg40_t *reg = (reg40_t *)entity;
+    
+	aal_assert("umka-1963", reg != NULL);
+
+	reg->offset = 0;
+
+	if (reg40_size(entity) == 0)
+		return 0;
+
+	return -(reg40_next(reg) != LP_PRESENT);
 }
 
 /* Reads @n bytes to passed buffer @buff */
@@ -133,7 +105,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	  Reading data from the file. As we do not know item types, we just
 	  call item's read method.
 	*/
-	for (read = 0; read < n; read += chunk) {
+	for (read = 0; read < n; ) {
 		item = &reg->body.item;
 		
 		if (item->pos.unit == ~0ul)
@@ -157,6 +129,7 @@ static int32_t reg40_read(object_entity_t *entity,
 			return read;
 		
 		buff += chunk;
+		read += chunk;
 		reg->offset += chunk;
 
 		/* Getting new body item by current file offset */
