@@ -133,6 +133,93 @@ static bool_t reiser4_tree_root_node(reiser4_tree_t *tree,
 	return reiser4_tree_get_root(tree) == node_blocknr(node);
 }
 
+#ifndef ENABLE_STAND_ALONE
+/* Acknowledles, that passed @place has nodeptr that points onto passed
+   @node. This is needed for tree_node_realize() function. */
+static int reiser4_tree_node_ack(node_t *node, place_t *place) {
+	if (!(place->pos.item < reiser4_node_items(place->node)))
+		return 0;
+	       
+	if (reiser4_place_fetch(place))
+		return 0;
+
+	if (!reiser4_item_branch(place->plug))
+		return 0;
+
+	return reiser4_item_down_link(place) == node_blocknr(node);
+}
+#endif
+
+/* Updates @node->p by position in parent node. */
+errno_t reiser4_tree_node_realize(reiser4_tree_t *tree, node_t *node) {
+#ifndef ENABLE_STAND_ALONE
+	uint32_t i;
+#endif
+	
+	place_t *parent;
+        reiser4_key_t lkey;
+    
+	aal_assert("umka-869", node != NULL);
+	aal_assert("umka-1941", node->p.node != NULL);
+
+	parent = &node->p;
+
+	/* Checking if we are in position already */
+#ifndef ENABLE_STAND_ALONE
+	if (reiser4_tree_node_ack(node, parent))
+		goto out_parent_fetch;
+#endif
+
+        reiser4_node_leftmost_key(node, &lkey);
+                                                                                                   
+	/* Getting position by means of using node lookup. */
+        if (reiser4_node_lookup(parent->node, &lkey, FIND_EXACT,
+				&parent->pos) == PRESENT)
+	{
+#ifndef ENABLE_STAND_ALONE
+		if (reiser4_tree_node_ack(node, parent))
+			goto out_parent_fetch;
+#endif
+	}
+
+	/* Getting position by means of linear traverse. */
+#ifndef ENABLE_STAND_ALONE
+	for (i = 0; i < reiser4_node_items(parent->node); i++) {
+		blk_t blk;
+		uint32_t j;
+		lookup_t res;
+			
+		parent->pos.item = i;
+
+		if ((res = reiser4_place_fetch(parent)))
+			return res;
+
+		if (!reiser4_item_branch(parent->plug))
+			continue;
+
+		for (j = 0; j < reiser4_item_units(parent); j++) {
+			parent->pos.unit = j;
+				
+			blk = reiser4_item_down_link(parent);
+				
+			if (blk == node_blocknr(node))
+				goto out_parent_fetch;
+		}
+	}
+
+	return -EINVAL;
+
+out_parent_fetch:
+#endif
+	if (reiser4_place_fetch(parent))
+		return -EINVAL;
+
+	if (reiser4_item_units(parent) == 1)
+		parent->pos.unit = MAX_UINT32;
+
+	return 0;
+}
+
 /* Loads root node and put it to @tree->nodes hash table. */
 errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	blk_t root_blk;
@@ -212,7 +299,7 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 		   @node->p.node and updating @node->p.pos. */
 		node->p.node = parent;
 
-		if (reiser4_node_realize(node))
+		if (reiser4_tree_node_realize(tree, node))
 			return -EINVAL;
 
 		reiser4_node_lock(parent);
@@ -296,16 +383,19 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree, node_t *node) {
 			if (!(child = reiser4_tree_lookup_node(tree, blk)))
 				continue;
 
-			/* Fix @node->counter's of bothe nodes. */
-			if (child->p.node != node) {
+			/* Unlock old parent node. Thre are some cases when
+			   parent is not set yet (like tree_growup()). So, we
+			   check parent for null. */
+			if (child->p.node)
 				reiser4_node_unlock(child->p.node);
-				reiser4_node_lock(node);
-			}
 			
-			/* Update @child parent pos. */
+			/* Update @child parent. */
 			child->p.node = node;
+
+			/* Lock new parent node. */
+			reiser4_node_lock(child->p.node);
 			
-			if ((res = reiser4_node_realize(child)))
+			if ((res = reiser4_tree_node_realize(tree, child)))
 				return res;
 		}
 	}
@@ -1588,7 +1678,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	if ((res = reiser4_tree_lookup(tree, &hint.offset, level,
 				       FIND_CONV, &place)) < 0)
 	{
-		/* Lookup is failed. Tree is corrupted? */
+		/* Lookup failed. Tree is corrupted? */
 		return res;
 	}
 
@@ -1798,15 +1888,6 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 	if ((res = reiser4_node_shift(node, neig, &hint)))
 		return res;
 
-	if (reiser4_node_get_level(node) > LEAF_LEVEL) {
-		/* Updating @node and @neig children's parent position. */
-		if ((res = reiser4_tree_update_node(tree, node)))
-			return res;
-	
-		if ((res = reiser4_tree_update_node(tree, neig)))
-			return res;
-	}
-	
 	/* Updating insert point by pos returned from node_shift(). */
 	place->pos = hint.pos;
 
@@ -1844,6 +1925,15 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 		}
 	}
 
+	/* Updating @node and @neig children's parent position. */
+	if (reiser4_node_get_level(node) > LEAF_LEVEL) {
+		if ((res = reiser4_tree_update_node(tree, node)))
+			return res;
+	
+		if ((res = reiser4_tree_update_node(tree, neig)))
+			return res;
+	}
+	
 	return 0;
 }
 
@@ -2392,11 +2482,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		return write;
 	}
 
-	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
-		if ((res = reiser4_tree_update_node(tree, place->node)))
-			return res;
-	}
-	
 	/* Parent keys will be updated if we inserted item/unit into leftmost
 	   pos and if target node has parent. */
 	if (reiser4_place_leftmost(place) && place->node != tree->root) {
@@ -2414,6 +2499,11 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		}
 	}
 	
+	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
+		if ((res = reiser4_tree_update_node(tree, place->node)))
+			return res;
+	}
+
 	/* If make space function allocates new node, we should attach it to the
 	   tree. Also, here we should handle the special case, when tree root
 	   should be changed. */
@@ -2483,11 +2573,6 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 	if ((res = reiser4_node_remove(place->node, &place->pos, hint)))
 		return res;
 
-	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
-		if ((res = reiser4_tree_update_node(tree, place->node)))
-			return res;
-	}
-
 	/* Updating left deleimiting key in all parent nodes. */
 	if (reiser4_place_leftmost(place) &&
 	    place->node->p.node)
@@ -2512,6 +2597,11 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 		}
 	}
 	
+	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
+		if ((res = reiser4_tree_update_node(tree, place->node)))
+			return res;
+	}
+
 	/* Checking if the node became empty. If so, we release it, otherwise we
 	   pack the tree about it. */
 	if (reiser4_node_items(place->node) == 0) {
