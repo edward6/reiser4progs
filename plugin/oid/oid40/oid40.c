@@ -77,14 +77,23 @@ static generic_entity_t *oid40_create(generic_entity_t *format) {
 
 /* Updating next and used values in oid allocator dedicated area */
 static errno_t oid40_sync(generic_entity_t *entity) {
+	generic_entity_t *format;
+	uint32_t state;
+	
 	aal_assert("umka-1016", entity != NULL);
-    
+
 	oid40_set_next(((oid40_t *)entity)->start, 
 		       ((oid40_t *)entity)->next);
     
 	oid40_set_used(((oid40_t *)entity)->start, 
 		       ((oid40_t *)entity)->used);
 
+	/* Mark the format dirty. */
+	format = ((oid40_t *)entity)->format;
+	state = plug_call(format->plug->o.format_ops, get_state, format);
+	plug_call(format->plug->o.format_ops, set_state, 
+		  format, state | (1 << ENTITY_DIRTY));
+	
 	return 0;
 }
 
