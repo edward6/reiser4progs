@@ -77,7 +77,10 @@ errno_t reiser4_object_refresh(reiser4_object_t *object) {
 	info = object->info;
 	hint.level = LEAF_LEVEL;
 	hint.key = &info->object;
+
+#ifndef ENABLE_STAND_ALONE
 	hint.collision = NULL;
+#endif
 
 	switch (reiser4_tree_lookup(info->tree, &hint, FIND_EXACT,
 				    object_start(object)))

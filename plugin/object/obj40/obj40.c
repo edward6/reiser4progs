@@ -62,9 +62,12 @@ lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
 	aal_assert("umka-3112", place != NULL);
 
 	hint.key = key;
-	hint.hint = chint;
 	hint.level = LEAF_LEVEL;
+	
+#ifndef ENABLE_STAND_ALONE
+	hint.hint = chint;
 	hint.collision = func;
+#endif
 	
 	return obj->core->tree_ops.lookup(obj->info.tree,
 					  &hint, bias, place);

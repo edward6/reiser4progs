@@ -343,11 +343,9 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 		  obj40_objectid(&dir->obj), name);
 
 #ifndef ENABLE_STAND_ALONE
-	func = dir40_core->tree_ops.collision;
-	hint.type = DIRENTRY_ITEM;
 	hint.specific = name;
-#else
-	chandler = NULL;
+	hint.type = DIRENTRY_ITEM;
+	func = dir40_core->tree_ops.collision;
 #endif
 	
 	if ((res = obj40_find_item(&dir->obj, &dir->body.key, bias, 

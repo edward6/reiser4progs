@@ -1245,9 +1245,9 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 				first_time = 0;
 			} else {
-				reiser4_place_t iplace;
-				uint32_t level;
 				errno_t res;
+				uint32_t level;
+				reiser4_place_t iplace;
 
 				iplace = *place;
 				iplace.pos.unit++;
@@ -1949,26 +1949,35 @@ bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
    node_update_key() function in recursive maner. This function is used for
    update all internal left delimiting keys after balancing on underlying
    levels. */
-errno_t reiser4_tree_update_keys(reiser4_tree_t *tree, reiser4_place_t *place,
+errno_t reiser4_tree_update_keys(reiser4_tree_t *tree,
+				 reiser4_place_t *place,
 				 reiser4_key_t *key)
 {
 	errno_t res;
-	reiser4_place_t *parent;
+	reiser4_key_t pkey;
 	
 	aal_assert("umka-1892", tree != NULL);
 	aal_assert("umka-1893", place != NULL);
 	aal_assert("umka-1894", key != NULL);
 
-	parent = &place->node->p;
-	reiser4_key_assign(&place->key, key);
+	/* Small improvement. Do not update keys if this is not really
+	   needed. */
+	reiser4_item_get_key(place, &pkey);
+
+	if (!reiser4_key_compfull(&pkey, key))
+		return 0;
 	
-	/* Getting into recursion if we should update leftmost key. */
-	if (reiser4_place_leftmost(place) && parent->node != NULL) {
+	reiser4_key_assign(&place->key, key);
+
+	/* Check if we should update keys on higher levels of tree. */
+	if (reiser4_place_leftmost(place) && place->node->p.node != NULL) {
+		reiser4_place_t *parent = &place->node->p;
+		
 		if ((res = reiser4_tree_update_keys(tree, parent, key)))
 			return res;
 	}
 
-	/* Update key in parent node. */
+	/* Actuall key updating in @place->node. */
 	return reiser4_node_update_key(place->node, &place->pos, key);
 }
 

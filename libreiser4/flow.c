@@ -25,9 +25,11 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		int32_t read;
 		reiser4_place_t place;
 
+#ifndef ENABLE_STAND_ALONE
+		lhint.collision = NULL;
+#endif
 		lhint.level = LEAF_LEVEL;
 		lhint.key = &hint->offset;
-		lhint.collision = NULL;
 	
 		/* Looking for the place to read. */
 		if ((res = reiser4_tree_lookup(tree, &lhint,
