@@ -3,7 +3,7 @@ mkfs_reiser4_SOURCES 	= mkfs.c
 
 mkfs_reiser4_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 			  $(top_builddir)/libmisc/libmisc.la \
-			  $(PROGS_LIBS) $(UUID_LIBS)
+			  $(PROGS_LIBS)
 
 mkfs_reiser4_LDFLAGS    = @PROGS_LDFLAGS@
 mkfs_reiser4_CFLAGS 	= @GENERIC_CFLAGS@

@@ -40,7 +40,8 @@ typedef enum fsck_options {
     FSCK_OPT_RO		= 0x3,
     FSCK_OPT_DEBUG	= 0x4,
     FSCK_OPT_WHOLE	= 0x5,
-    FSCK_OPT_OLD	= 0x6
+    FSCK_OPT_OLD	= 0x6,
+    FSCK_OPT_NOMKID	= 0x7
 } fsck_options_t;
 
 typedef struct fsck_parse {

@@ -1,7 +1,5 @@
 %define enable_debug 1
 
-%define _sbindir /sbin
-
 Name: reiser4progs
 Version: @VERSION@
 Release: 1
@@ -58,13 +56,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libreiser4-1.0.so.*
 %{_libdir}/libreiser4-minimal-1.0.so.*
 %{_libdir}/librepair-1.0.so.*
-%{_sbindir}/cpfs.reiser4
 %{_sbindir}/debugfs.reiser4
 %{_sbindir}/fsck.reiser4
 %{_sbindir}/make_reiser4
 %{_sbindir}/measurefs.reiser4
 %{_sbindir}/mkfs.reiser4
-%{_sbindir}/resizefs.reiser4
 %{_mandir}/man8/*.gz
 
 %files devel
