@@ -623,8 +623,6 @@ errno_t reiser4_node_shift(
 	if (hint->items == 0 && hint->units == 0)
 		return 0;
 
-	/* Marking nodes as dirty */
-	/* FIXME-GREEN->UMKA: the above comment is misleading */
 	if (!node->children)
 		return 0;
 

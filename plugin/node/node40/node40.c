@@ -1236,7 +1236,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	
 	src_items = node40_items(src_entity);
 	dst_items = node40_items(dst_entity);
-	
+
 	if (src_items == 0 || hint->rest == 0)
 		return 0;
 	
@@ -1287,7 +1287,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	/*
 	  Calling item's "predict" method in order to estimate how many units
 	  may be shifted out. This method also updates unit component of insert
-	  point position. After this function is finish hint->rest will contain
+	  point position. After this function is finish @hint->rest will contain
 	  real number of bytes to be shifted into neighbour item.
 	*/
 	if (hint->create) {
@@ -1501,7 +1501,7 @@ static errno_t node40_predict(object_entity_t *src_entity,
 	
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
-	
+
 	dst_items = nh40_get_num_items(dst_node);
 	
 	if (!(src_items = nh40_get_num_items(src_node)))
@@ -1705,15 +1705,21 @@ static errno_t node40_shift(object_entity_t *src_entity,
 			    object_entity_t *dst_entity,
 			    shift_hint_t *hint)
 {
-	shift_hint_t merge;
+	errno_t res;
 	node40_t *src_node;
 	node40_t *dst_node;
+	shift_hint_t merge;
 
 	aal_assert("umka-2050", src_entity != NULL);
 	aal_assert("umka-2051", dst_entity != NULL);
 
 	aal_assert("umka-2048", node40_loaded(src_entity));
 	aal_assert("umka-2049", node40_loaded(dst_entity));
+
+	src_node = (node40_t *)src_entity;
+	dst_node = (node40_t *)dst_entity;
+
+	merge = *hint;
 	
 	/*
 	  First of all we should try to merge boundary items if they are
@@ -1721,49 +1727,34 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	  special shift flags SF_MERGE. It will forbid creating the new item if
 	  boundary items are not mergeable.
 	*/
-	merge = *hint;
-	
-	merge.create = 0;
 	merge.control |= SF_MERGE;
-
-	/*
-	  The all free space in neighbour node will be used for estimating
-	  number of units to be moved.
-	*/
 	merge.rest = node40_space(dst_entity);
-
-	src_node = (node40_t *)src_entity;
-	dst_node = (node40_t *)dst_entity;
-
+	
 	/*
-	  Merges border items without ability to create the new item in dst
-	  node. This is needed for avoiding the case when a node will contain
-	  two neighbour items which are mergeable. That would be not optimal
-	  space usage and might also led to some unstable behavior of the code
-	  which assume that next mergeable item lies in the neighbour node, not
-	  in the neighbour position (directory read and lookup code).
+	  Merges nodes without ability to create the new item in the
+	  @dst_node. This is needed for avoiding the case when a node will
+	  contain two neighbour items which are mergeable. That would be not
+	  optimal space usage and might also led to some unstable behavior of
+	  the code which assume that next mergeable item lies in the neighbour
+	  node, not the next to it (directory read and lookup code).
 	*/
-	if (node40_merge(src_entity, dst_entity, &merge)) {
-		aal_exception_error("Can't merge nodes %llu and %llu.",
-				    src_node->block->number,
-				    dst_node->block->number);
-		return -EINVAL;
+	if ((res = node40_merge(src_entity, dst_entity, &merge))) {
+		aal_exception_error("Can't merge two nodes durring "
+				    "node shift operation.");
+		return res;
 	}
 
-	/* Insert pos might be chnaged, and we should keep it up to date. */
 	hint->pos = merge.pos;
 	hint->result = merge.result;
 
 	if (hint->result & SF_MOVIP)
-		goto update_hint_out;
-	
-	/* Moving items from src node to dst one */
-	if (node40_transfuse(src_entity, dst_entity, hint)) {
-		aal_exception_error("Can't move items from node "
-				    "%llu to %llu one.",
-				    src_node->block->number,
-				    dst_node->block->number);
-		return -EINVAL;
+		goto out_update_hint;
+
+	/* Moving some amount of whole items from @src_node to @dst_node */
+	if ((res = node40_transfuse(src_entity, dst_entity, hint))) {
+		aal_exception_error("Can't transfuse two nodes "
+				    "durring node shift operation.");
+		return res;
 	}
 
 	/*
@@ -1771,24 +1762,23 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	  neighbour.
 	*/
 	if (hint->result & SF_MOVIP)
-		goto update_hint_out;
+		goto out_update_hint;
 
 	/*
 	  Merges border items with ability to create new item in the dst node.
 	  Here our objective is to shift into neighbour node as many units as
 	  possible.
 	*/
-	if (node40_merge(src_entity, dst_entity, hint)) {
-		aal_exception_error("Can't merge nodes %llu and %llu.",
-				    src_node->block->number,
-				    dst_node->block->number);
-		return -EINVAL;
+	if ((res = node40_merge(src_entity, dst_entity, hint))) {
+		aal_exception_error("Can't merge two nodes durring "
+				    "node shift operation.");
+		return res;
 	}
 
 	/*
 	  The case when insert point is moved to the neighbour node, but nothing
 	  was shifted because old insert point was at last item and last unit.
-	  Thus, insert unit request will be transformed into insert item one by
+	  Thus, insert unit request should be converted into insert item one by
 	  means of clearing unit component of the insert point in shift hint.
 	*/
 	if (hint->control & SF_UPTIP &&
@@ -1798,15 +1788,11 @@ static errno_t node40_shift(object_entity_t *src_entity,
 		hint->pos.unit = ~0ul;
 	}
 
- update_hint_out:
-	src_node->dirty = 1;
-	dst_node->dirty = 1;
-	
-	/* Updating shift hint by merging results. */
-	if (merge.units > 0) {
-		hint->rest += merge.rest;
-		hint->units += merge.units;
-	}
+ out_update_hint:
+
+	hint->rest += merge.rest;
+	hint->units += merge.units;
+	hint->items += merge.items;
 	
 	return 0;
 }

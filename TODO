@@ -5,6 +5,8 @@ reiser4progs/COPYING.
 
 * extents support.
 
+* optimize node dirtying.
+
 * make flush in libreiser4 more flexible. It should be able to flush
   not only whole the tree, but also slums in the tree.
 
