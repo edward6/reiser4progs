@@ -223,11 +223,14 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 	extent40_get_key(place, &key);
 	blksize = extent40_blksize(place);
 
+	/* Initializing read offset */
 	read_offset = plug_call(key.plug->o.key_ops,
 				get_offset, &key);
 
 	read_offset += hint->offset;
 
+	/* Loop through the units until needed amount of data is read or extent
+	   item is over. */
 	for (read = count, i = place->pos.unit;
 	     i < extent40_units(place) && count > 0; i++)
 	{
@@ -248,19 +251,26 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 			count -= size;
 		} else {
 			extent40_t *extent = extent40_body(place);
-			
+
+			/* Loop though the one unit. */
 			while (blk < start + et40_get_width(extent + i) &&
 			       count > 0)
 			{
+				/* Initilaizing offset of block needed data lie
+				   in. It is needed for getting block from data
+				   cache. */
 				block_offset = read_offset - (read_offset &
 							      (blksize - 1));
 
 				plug_call(key.plug->o.key_ops, set_offset,
 					  &key, block_offset);
-		
+
+				/* Getting block from the cache. */
 				if (!(block = core->tree_ops.get_data(hint->tree,
 								      &key)))
 				{
+					/* If block is not found in cache, we
+					   read it and put to cache. */
 					aal_device_t *device = extent40_device(place);
 				
 					if (!(block = aal_block_load(device, blksize,
@@ -268,9 +278,11 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 					{
 						return -EIO;
 					}
-					core->tree_ops.set_data(hint->tree, &key, block);
+					core->tree_ops.put_data(hint->tree, &key, block);
 				}
 
+				/* Copying data from found (loaded) block to
+				   @buff */
 				aal_memcpy(buff, block->data +
 					   (read_offset % blksize), size);
 
@@ -278,9 +290,12 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 			}
 		}
 
+		/* Updating buffer pointer and read offset, as it is used for
+		 * getting correct block offset for next read. */
 		buff += size;
 		read_offset += size;
 
+		/* Updating block number to be used on next read */
 		if ((read_offset % blksize) == 0) {
 			blk++;
 		}
@@ -290,7 +305,7 @@ static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
 }
 #else
 /* Reads @count bytes of extent data from the extent item at passed @pos into
-   specified @buff. This function is used in stand alone mode. It does not uses
+   specified @buff. This function is used in stand alone mode. It does not use
    data cache and reads data by 512 bytes chunks. This is needed because of
    GRUB, which has ugly mechanism of getting real block numbers data lie in. */
 static int32_t extent40_read(place_t *place, trans_hint_t *hint) {
@@ -651,7 +666,7 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 				}
 
 				/* Updating it data cache. */
-				core->tree_ops.set_data(hint->tree, &key, block);
+				core->tree_ops.put_data(hint->tree, &key, block);
 			}
 		} else {
 			/* We write beyond of item and thus need to allocate new
@@ -663,7 +678,7 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 			}
 
 			/* Attaching new block to data cache. */
-			core->tree_ops.set_data(hint->tree, &key, block);
+			core->tree_ops.put_data(hint->tree, &key, block);
 			extent = extent40_body(place) + place->pos.unit;
 
 			/* Checking if we write data or holes */

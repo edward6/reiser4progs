@@ -1345,7 +1345,7 @@ struct tree_ops {
 	/* Functions for getting/setting extent data */
 	aal_block_t *(*get_data) (void *, key_entity_t *);
 	
-	errno_t (*set_data) (void *, key_entity_t *,
+	errno_t (*put_data) (void *, key_entity_t *,
 			     aal_block_t *);
 	
 	/* Update the key in the place and the node itsef. */

@@ -1778,6 +1778,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			  reiser4_plug_t *plug)
 {
 	errno_t res;
+//	trans_hint_t hint;
 	
 	aal_assert("umka-2406", tree != NULL);
 	aal_assert("umka-2407", place != NULL);
