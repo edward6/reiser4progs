@@ -94,11 +94,15 @@ errno_t repair_fs_open(repair_data_t *repair,
 	if (!(repair->fs->backup = repair_backup_reopen(repair->fs))) {
 		aal_fatal("Failed to reopen backup.");
 		res = -EINVAL;
-		goto error_journal_close;
+		goto error_tree_close;
 	}
 	
 	repair_error_count(repair, res);
 	return 0;
+
+ error_tree_close:
+	reiser4_tree_close(repair->fs->tree);
+	repair->fs->tree = NULL;
 
  error_journal_close:
 	reiser4_journal_close(repair->fs->journal);
@@ -153,16 +157,6 @@ errno_t repair_fs_replay(reiser4_fs_t *fs) {
 	return 0;
 }
 
-/* Close the journal and the filesystem. */
-void repair_fs_close(reiser4_fs_t *fs) {
-	aal_assert("vpf-909", fs != NULL);
-	aal_assert("vpf-910", fs->journal != NULL);
-	
-	reiser4_journal_close(fs->journal);
-	fs->journal = NULL;
-	reiser4_fs_close(fs);    
-}
-
 /* Pack passed @fs to @stream. */
 errno_t repair_fs_pack(reiser4_fs_t *fs, 
 		       aux_bitmap_t *bitmap, 
@@ -201,6 +195,11 @@ errno_t repair_fs_pack(reiser4_fs_t *fs,
 	if ((res = repair_backup_pack(fs, stream)))
 		return res;
 	
+	aal_stream_write(stream, JOURNAL_PACK_SIGN, 4);
+	
+	if ((res = repair_journal_pack(fs->journal, stream)))
+		return res;
+	
 	len = reiser4_format_get_len(fs->format);
 
 	/* Loop though the all data blocks, check if they belong to tree and if
@@ -222,22 +221,23 @@ errno_t repair_fs_pack(reiser4_fs_t *fs,
 		if (!(node = reiser4_node_open(fs->tree, blk)))
 			continue;
 
-		if ((res = repair_node_check_struct(node, NULL, 
-						    RM_CHECK, NULL)) < 0)
-			return res;
+		res = repair_node_check_struct(node, NULL, RM_CHECK, NULL);
 
-		if (res) {
+		if (res > 0) {
 			aal_stream_write(stream, BLOCK_PACK_SIGN, 4);
 		
 			/* Packing @node to @stream. */
-			if ((res = repair_node_pack(node, stream, PACK_OFF)))
+			if ((res = repair_fs_block_pack(node->block, stream)))
 				return res;
-		} else {
+		} else if (res == 0) {
 			aal_stream_write(stream, NODE_PACK_SIGN, 4);
 		
 			/* Packing @node to @stream. */
-			if ((res = repair_node_pack(node, stream, PACK_FULL)))
+			if ((res = repair_node_pack(node, stream)))
 				return res;
+		} else {
+			reiser4_node_close(node);
+			return res;
 		}
 
 		/* Close node. */
@@ -266,6 +266,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 	char sign[5] = {0};
 	
 	aal_block_t *block;
+	reiser4_node_t *node;
 	
 	aal_assert("umka-2633", device != NULL);
 	aal_assert("umka-2648", stream != NULL);
@@ -317,11 +318,11 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 	if (aal_block_write(block)) {
 		aal_error("Can't write the very last block (%llu) "
 			  "on the fs: %s", bn, device->error);
-		aal_free(block);
+		aal_block_free(block);
 		goto error_free_format;
 	}
 
-	aal_free(block);
+	aal_block_free(block);
 	
 	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_format;
@@ -363,7 +364,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 	}
 
 	if (aal_strncmp(sign, BACKUP_PACK_SIGN, 4)) {
-		aal_error("Invalid backup blocks sign %s is "
+		aal_error("Invalid backup sign %s is "
 			  "detected in stream.", sign);
 		goto error_free_status;
 	}
@@ -371,6 +372,20 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 	if (repair_backup_unpack(fs, stream))
 		goto error_free_status;
 
+	if (aal_stream_read(stream, &sign, 4) != 4) {
+		aal_error("Can't unpack journal blocks. Stream is over?");
+		goto error_free_backup;
+	}
+	
+	if (aal_strncmp(sign, JOURNAL_PACK_SIGN, 4)) {
+		aal_error("Invalid journal sign %s is "
+			  "detected in stream.", sign);
+		goto error_free_backup;
+	}
+
+	if (repair_journal_unpack(fs, stream))
+		goto error_free_backup;
+	
 	/* If @bitmap is given, save there unpacked blocks of the fs. */
 	if (bitmap) {
 		uint64_t len = reiser4_format_get_len(fs->format);
@@ -381,46 +396,64 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 		if (reiser4_fs_layout(fs, cb_mark_used, bitmap)) {
 			aal_error("Can't to mark all frozen fs "
 				  "blocks as used in the bitmap.");
-			goto error_free_status;
+			goto error_free_journal;
 		}
 	}
 		
 	while (1) {
-		reiser4_node_t *node;
+		int pack;
 		
 		if (aal_stream_read(stream, &sign, 4) != 4) {
 			if (aal_stream_eof(stream))
 				break;
 			else
-				goto error_free_status;
+				goto error_free_journal;
 		}
 
+		node = NULL;
+		block = NULL;
+		
 		if (!aal_strncmp(sign, NODE_PACK_SIGN, 4)) {
-			node = repair_node_unpack(fs->tree, stream, PACK_FULL);
+			node = repair_node_unpack(fs->tree, stream);
+			pack = 1;
 		} else if (!aal_strncmp(sign, BLOCK_PACK_SIGN, 4)) {
-			node = repair_node_unpack(fs->tree, stream, PACK_OFF);
+			block = repair_fs_block_unpack(fs, stream);
+			pack = 0;
 		} else {
 			aal_error("Invalid object %s is detected in stream. "
 				  "Node is expected.", sign);
-			goto error_free_status;
+			goto error_free_journal;
 		}
 
-		if (!node) goto error_free_status;
-
-		if (reiser4_node_sync(node)) {
-			reiser4_node_close(node);
-			goto error_free_status;
+		if ((pack && !node) || (!pack && !block)) {
+			goto error;
 		}
+
+		if (pack && reiser4_node_sync(node))
+			goto error;
+		else if (!pack && aal_block_write(block))
+			goto error_free_journal;
 
 		if (bitmap) {
 			aux_bitmap_mark(bitmap, node->block->nr);
 		}
 		
-		reiser4_node_close(node);
+		if (pack) {
+			reiser4_node_close(node);
+		} else {
+			aal_block_free(block);
+		}
 	}
 
 	return fs;
 
+ error:
+	if (block) aal_block_free(block);
+	if (node) reiser4_node_close(node);
+ error_free_journal:
+	reiser4_journal_close(fs->journal);
+ error_free_backup:
+	reiser4_backup_close(fs->backup);
  error_free_status:
 	reiser4_status_close(fs->status);
  error_free_alloc:
@@ -475,4 +508,45 @@ errno_t repair_fs_check_backup(aal_device_t *device, backup_hint_t *hint) {
 
 	/* Backup the format backup structure. */
 	return repair_format_check_backup(device, hint);
+}
+
+errno_t repair_fs_block_pack(aal_block_t *block, aal_stream_t *stream) {
+	aal_assert("vpf-1749", block != NULL);
+	aal_assert("vpf-1750", stream != NULL);
+
+	aal_stream_write(stream, &block->nr, sizeof(block->nr));
+	aal_stream_write(stream, block->data, block->size);
+
+	return 0;
+}
+
+aal_block_t *repair_fs_block_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
+	aal_block_t *block;
+	count_t size;
+	count_t read;
+	blk_t blk;
+	
+	
+	aal_assert("vpf-1751", fs != NULL);
+	aal_assert("vpf-1752", stream != NULL);
+
+	if (aal_stream_read(stream, &blk, sizeof(blk)) != sizeof(blk))
+		return NULL;
+	
+	size = reiser4_master_get_blksize(fs->master);
+
+	/* Allocate new node of @size at @nr. */
+	if (!(block = aal_block_alloc(fs->device, size, blk)))
+		return NULL;
+
+	read = aal_stream_read(stream, block->data, block->size);
+	
+	if (read != block->size)
+		goto error;
+
+	return block;
+	
+ error:
+	aal_block_free(block);
+	return NULL;
 }

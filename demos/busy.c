@@ -117,7 +117,6 @@ static reiser4_fs_t *busy_fs_open(char *name) {
 	fs->journal = NULL;
 
 	reiser4_fs_sync(fs);
-	
 	return fs;
 
  error_close_journal:

@@ -140,6 +140,9 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 	reiser4_tree_close(fs->tree);
 
 #ifndef ENABLE_MINIMAL
+	if (fs->journal)
+		reiser4_journal_close(fs->journal);
+
 	reiser4_oid_close(fs->oid);
 	reiser4_alloc_close(fs->alloc);
 #endif
@@ -414,6 +417,9 @@ errno_t reiser4_fs_sync(reiser4_fs_t *fs) {
 	if ((res = reiser4_tree_sync(fs->tree)))
 		return res;
     
+	if (fs->journal && (res = reiser4_journal_sync(fs->journal)))
+		return res;
+	
 	/* Synchronizing block allocator */
 	if ((res = reiser4_alloc_sync(fs->alloc)))
 		return res;

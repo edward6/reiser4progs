@@ -530,7 +530,7 @@ int main(int argc, char *argv[]) {
     
  free_fs:
 	fprintf(stderr, "Closing fs...");
-	repair_fs_close(repair.fs);
+	reiser4_fs_close(repair.fs);
 	repair.fs = NULL;
 	fprintf(stderr, "done\n");
     

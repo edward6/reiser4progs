@@ -129,7 +129,6 @@ static errno_t cb_unpack_bitmap(blk_t start, count_t width, void *data)
 errno_t alloc40_pack(generic_entity_t *entity,
 		     aal_stream_t *stream)
 {
-	rid_t pid;
 	errno_t res;
 	uint64_t len;
 	alloc40_t *alloc;
@@ -138,9 +137,6 @@ errno_t alloc40_pack(generic_entity_t *entity,
 	aal_assert("umka-2619", stream != NULL);
 
 	alloc = (alloc40_t *)entity;
-
-	pid = entity->plug->id.id;
-	aal_stream_write(stream, &pid, sizeof(pid));
 
 	len = alloc->bitmap->total;
 	aal_stream_write(stream, &len, sizeof(len));

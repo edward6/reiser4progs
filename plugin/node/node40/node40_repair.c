@@ -377,7 +377,7 @@ int64_t node40_insert_raw(reiser4_node_t *entity, pos_t *pos,
 			     hint->plug->o.item_ops->repair->insert_raw);
 }
 
-errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
+errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream) {
 	node40_header_t *head;
 	reiser4_place_t place;
 	uint16_t num;
@@ -394,14 +394,6 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 	aal_stream_write(stream, &entity->block->nr,
 			 sizeof(entity->block->nr));
 
-	if (mode != PACK_FULL) {
-		/* Write node raw data. */
-		aal_stream_write(stream, entity->block->data,
-				 entity->block->size);
-
-		return 0;
-	}
-	
 	/* Pack the node content. */
 	
 	/* Node header w/out magic and padding. */
@@ -464,8 +456,7 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 
 reiser4_node_t *node40_unpack(aal_block_t *block,
 			     reiser4_plug_t *kplug,
-			     aal_stream_t *stream,
-			     int mode)
+			     aal_stream_t *stream)
 {
 	node40_header_t *head;
 	reiser4_node_t *entity;
@@ -487,17 +478,6 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	
 	node40_mkdirty(entity);
 	
-	if (mode != PACK_FULL) {
-		/* Read node raw data. */
-		read = aal_stream_read(stream, entity->block->data,
-				       entity->block->size);
-		
-		if (read != entity->block->size)
-			goto error_free_entity;
-		
-		return entity;
-	}
-
 	/* Unpack the node content. */
 	
 	/* Node header w/out magic and padding. */

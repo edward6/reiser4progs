@@ -8,8 +8,6 @@
 #include "journal40.h"
 #include "journal40_repair.h"
 
-extern reiser4_plug_t journal40_plug;
-
 static uint32_t journal40_get_state(generic_entity_t *entity) {
 	aal_assert("umka-2081", entity != NULL);
 	return ((journal40_t *)entity)->state;
@@ -71,6 +69,8 @@ static errno_t cb_fetch_journal(blk_t start, count_t width, void *data) {
 	{
 		aal_error("Can't read journal footer from block %llu. %s.",
 				    start + 1, journal->device->error);
+		
+		aal_block_free(journal->header);
 		return -EIO;
 	}
     
@@ -139,6 +139,8 @@ static errno_t cb_alloc_journal(blk_t start, count_t width, void *data) {
 	{
 		aal_error("Can't alloc journal footer "
 			  "on block %llu.", start + 1);
+		
+		aal_block_free(journal->header);
 		return -ENOMEM;
 	}
 
@@ -171,7 +173,7 @@ static generic_entity_t *journal40_create(aal_device_t *device, uint32_t blksize
 	journal->device = device;
 	journal->plug = &journal40_plug;
 	journal->blksize = blksize;
-	journal->state = (1 << ENTITY_DIRTY);
+	journal40_mkdirty(journal);
 
 	/* Create journal header and footer. */
 	if (journal40_layout((generic_entity_t *)journal,
@@ -217,8 +219,7 @@ static errno_t journal40_sync(generic_entity_t *entity) {
 	if ((res = journal40_layout(entity, cb_sync_journal, entity)))
 		return res;
 	
-	((journal40_t *)entity)->state &= ~(1 << ENTITY_DIRTY);
-	
+	journal40_mkclean(entity);
 	return 0;
 }
 
@@ -275,7 +276,7 @@ static errno_t journal40_update(journal40_t *journal) {
 	set_jf_used_oids(footer, get_th_used_oids(tx_header));
 	set_jf_next_oid(footer, get_th_next_oid(tx_header));
 
-	journal->state |= (1 << ENTITY_DIRTY);
+	journal40_mkdirty(journal);
 
  error_free_tx_block:
 	aal_block_free(tx_block);
@@ -638,9 +639,11 @@ static reiser4_journal_ops_t journal40_ops = {
 	.get_state  	= journal40_get_state,
 	.check_struct	= journal40_check_struct,
 	.invalidate	= journal40_invalidate,
+	.pack		= journal40_pack,
+	.unpack		= journal40_unpack,
 };
 
-static reiser4_plug_t journal40_plug = {
+reiser4_plug_t journal40_plug = {
 	.cl    = class_init,
 	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
 	.label = "journal40",

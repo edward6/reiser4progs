@@ -14,6 +14,8 @@
 #define JOURNAL40_BLOCKNR(blksize) \
         (REISER4_MASTER_BLOCKNR(blksize) + 3)
 
+extern reiser4_plug_t journal40_plug;
+
 struct journal40_area {
 	blk_t start;
 	count_t len;
@@ -200,5 +202,11 @@ extern errno_t journal40_traverse_trans(journal40_t *journal,
 					void *data);
 
 extern aal_device_t *journal40_device(generic_entity_t *entity);
+
+#define journal40_mkdirty(journal) \
+	((journal40_t *)journal)->state |= (1 << ENTITY_DIRTY);
+
+#define journal40_mkclean(journal) \
+	((journal40_t *)journal)->state &= ~(1 << ENTITY_DIRTY);
 
 #endif

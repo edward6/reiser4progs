@@ -468,20 +468,20 @@ int main(int argc, char *argv[]) {
 		if (!(fs->root = reiser4_root_create(fs))) {
 			aal_error("Can't create filesystem "
 				  "root directory.");
-			goto error_free_journal;
+			goto error_free_fs;
 		}
 
 		/* Linking root to itself */
 		if (reiser4_object_link(fs->root, fs->root, NULL)) {
 			aal_error("Can't link root directory "
 				  "to itself.");
-			goto error_free_journal;
+			goto error_free_fs;
 		}
 	
 		if (reiser4_opset_init(fs->tree, 1)) {
 			aal_error("Can't initialize the fs-global "
 				  "object plugin set.");
-			goto error_free_journal;
+			goto error_free_fs;
 		}
 
 		/* Creating lost+found directory */
@@ -514,13 +514,8 @@ int main(int argc, char *argv[]) {
 		   its size from actual device length. */
 		hint.blocks = 0;
 	
-		/* Freeing the root directory */
+		/* Freeing the root directory & fs.*/
 		reiser4_object_close(fs->root);
-
-		/* Freeing journal */
-		reiser4_journal_close(fs->journal);
-
-		/* Freeing the filesystem instance and device instance */
 		reiser4_fs_close(fs);
 
 		/* Synchronizing device. If device we are using is a file device
@@ -548,8 +543,6 @@ int main(int argc, char *argv[]) {
 
  error_free_root:
 	reiser4_object_close(fs->root);
- error_free_journal:
-	reiser4_journal_close(fs->journal);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

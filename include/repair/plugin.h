@@ -28,11 +28,6 @@ typedef enum repair_mode {
 /* For expansibility. */
 #define RE_LAST		((uint64_t)1 << 34)
 
-/* Packing modes. */
-#define PACK_FULL 0
-#define PACK_PART 1
-#define PACK_OFF  2
-
 #define repair_error_fatal(result)   ((result & RE_FATAL) || (result < 0))
 
 #define EXCEPTION_TYPE_FSCK EXCEPTION_TYPE_LAST
@@ -42,5 +37,14 @@ typedef enum repair_mode {
 			    EXCEPTION_OPT_OK,		\
 			    "FSCK: "msg,		\
 			    ##list)
+
+#define MASTER_PACK_SIGN	"MSTR"
+#define STATUS_PACK_SIGN	"STAT"
+#define BACKUP_PACK_SIGN	"BCKP"
+#define FORMAT_PACK_SIGN	"FRMT"
+#define ALLOC_PACK_SIGN		"ALLO"
+#define NODE_PACK_SIGN		"NODE"
+#define BLOCK_PACK_SIGN		"BLCK"
+#define JOURNAL_PACK_SIGN	"JRNL"
 
 #endif

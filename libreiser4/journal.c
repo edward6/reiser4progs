@@ -157,7 +157,6 @@ reiser4_journal_t *reiser4_journal_create(
 
 	journal->fs = fs;
 	journal->device = device;
-	journal->fs->journal = journal;
 
 	/* Getting journal plugin to be used. */
 	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
@@ -246,7 +245,6 @@ void reiser4_journal_close(
 	aal_assert("umka-102", journal != NULL);
 	
 	reiser4_journal_sync(journal);
-	journal->fs->journal = NULL;
 	
 	plug_call(journal->ent->plug->o.journal_ops, 
 		  close, journal->ent);

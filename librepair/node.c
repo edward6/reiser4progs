@@ -240,20 +240,17 @@ errno_t repair_node_clear_flags(reiser4_node_t *node) {
 
 /* Packes @node to @stream. */
 errno_t repair_node_pack(reiser4_node_t *node,
-			 aal_stream_t *stream,
-			 int mode)
+			 aal_stream_t *stream)
 {
 	aal_assert("umka-2622", node != NULL);
 	aal_assert("umka-2623", stream != NULL);
 
-	return plug_call(node->plug->o.node_ops,
-			 pack, node, stream, mode);
+	return plug_call(node->plug->o.node_ops, pack, node, stream);
 }
 
 /* Create node from passed @stream. */
 reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree, 
-				   aal_stream_t *stream, 
-				   int mode) 
+				   aal_stream_t *stream) 
 {
 	blk_t blk;
 	rid_t pid;
@@ -292,7 +289,7 @@ reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree,
 	
 	/* Requesting the plugin for initialization node entity. */
 	if (!(node = plug_call(plug->o.node_ops, unpack, block, 
-			       tree->key.plug, stream, mode)))
+			       tree->key.plug, stream)))
 	{
 		goto error_free_block;
 	}

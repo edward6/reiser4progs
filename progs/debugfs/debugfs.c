@@ -535,6 +535,8 @@ int main(int argc, char *argv[]) {
 			
 	if (behav_flags & BF_UNPACK_META) {
 		aal_stream_t stream;
+		char buf[256];
+		int i;
 		
 		/* Prepare the bitmap if needed. */
 		if (bm_file) {
@@ -551,6 +553,34 @@ int main(int argc, char *argv[]) {
 		}
 		
 		aal_stream_init(&stream, stdin, &file_stream);
+		aal_stream_read(&stream, buf, 4);
+		
+		if (aal_strncmp(buf, VERSION_PACK_SIGN, 4)) {
+			aal_error("The metadata were packed with the "
+				  "reiser4progs version <= 1.0.2.");
+			goto error_free_bitmap;
+		}
+		
+		i = 0;
+		while (1) {
+			if (aal_stream_read(&stream, buf + i, 1) != 1) {
+				aal_error("Can't read from the stream. Is it over?");
+				goto error_free_bitmap;
+			}
+			
+			if (buf[i] == '\0' || i == 255)
+				break;
+			i++;
+		}
+
+		if (i == 255) {
+			aal_fatal("Can't detect the reiser4progs version "
+				  "the metadata were packed with.");
+			goto error_free_bitmap;
+		} else {
+			aal_info("The metadata were packed with the "
+				 "reiser4progs %s.", buf);
+		}
 		
 		if (!(fs = repair_fs_unpack(device, bitmap, &stream))) {
 			aal_error("Can't unpack filesystem.");
@@ -590,6 +620,12 @@ int main(int argc, char *argv[]) {
 		}
 
 		reiser4_opset_profile(fs->tree->ent.opset);
+
+		/* Opening the journal */
+		if (!(fs->journal = reiser4_journal_open(fs, device))) {
+			aal_error("Can't open journal on %s", host_dev);
+			goto error_free_fs;
+		}
 	}
 	
 	if (behav_flags & BF_PACK_META /* || print disk blocks */) {
@@ -637,12 +673,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/* Opening the journal */
-	if (!(fs->journal = reiser4_journal_open(fs, device))) {
-		aal_error("Can't open journal on %s", host_dev);
-		goto error_free_bitmap;
-	}
-		
 	/* In the case no print flags was specified, debugfs will print super
 	   blocks by defaut. */
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
@@ -651,7 +681,7 @@ int main(int argc, char *argv[]) {
 	/* Handling print options */
 	if ((behav_flags & BF_CAT)) {
 		if (debugfs_browse(fs, cat_filename))
-			goto error_free_journal;
+			goto error_free_bitmap;
 	}
 	
 	if (print_flags & PF_SUPER) {
@@ -674,22 +704,24 @@ int main(int argc, char *argv[]) {
 
 	if (print_flags & PF_BLOCK) {
 		if (debugfs_print_block(fs, blocknr))
-			goto error_free_journal;
+			goto error_free_bitmap;
 	}
     
 	if (print_flags & PF_NODES || print_flags & PF_ITEMS) {
 		if (debugfs_print_file(fs, print_filename, print_flags))
-			goto error_free_journal;
+			goto error_free_bitmap;
 	}
 
 	if (behav_flags & BF_PACK_META) {
 		aal_stream_t stream;
 
 		aal_stream_init(&stream, stdout, &file_stream);
+		aal_stream_write(&stream, VERSION_PACK_SIGN, 4);
+		aal_stream_write(&stream, VERSION, sizeof(VERSION));
 		
 		if (repair_fs_pack(fs, bitmap, &stream)) {
 			aal_error("Can't pack filesystem.");
-			goto error_free_journal;
+			goto error_free_bitmap;
 		}
 		
 		aal_stream_fini(&stream);
@@ -713,7 +745,7 @@ int main(int argc, char *argv[]) {
 			aal_error("Failed to mark backup blocks used.");
 			aal_gauge_done(backup.gauge);
 			aal_gauge_free(backup.gauge);
-			goto error_free_journal;
+			goto error_free_fs;
 		}
 		
 		fs->data = NULL;
@@ -728,7 +760,7 @@ int main(int argc, char *argv[]) {
 			aal_error("Failed to free blocks for the new backup.");
 			aal_gauge_done(backup.gauge);
 			aal_gauge_free(backup.gauge);
-			goto error_free_journal;
+			goto error_free_fs;
 		}
 		aal_gauge_done(backup.gauge);
 		aal_gauge_free(backup.gauge);
@@ -736,14 +768,11 @@ int main(int argc, char *argv[]) {
 		/* Mark all old backup blocks as unused. */
 		if (reiser4_old_backup_layout(fs, cb_unmark_block, fs)) {
 			aal_error("Failed to mark backup blocks used.");
-			goto error_free_journal;
+			goto error_free_fs;
 		}
 
 		aal_free(backup.blk);
 	}
-	
-	/* Closing the journal */
-	reiser4_journal_close(fs->journal);
 	
  done:
 	/* Closing filesystem itself */
@@ -757,8 +786,6 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
 	return NO_ERROR;
 
- error_free_journal:
-	reiser4_journal_close(fs->journal);
  error_free_bitmap:
 	if (bitmap) {
 		aux_bitmap_close(bitmap);

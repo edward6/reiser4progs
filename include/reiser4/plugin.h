@@ -1216,10 +1216,11 @@ struct reiser4_node_ops {
 	errno_t (*check_struct) (reiser4_node_t *, uint8_t);
 
 	/* Packing/unpacking metadata. */
-	reiser4_node_t *(*unpack) (aal_block_t *, reiser4_plug_t *,
-				  aal_stream_t *, int);
+	reiser4_node_t *(*unpack) (aal_block_t *, 
+				   reiser4_plug_t *, 
+				   aal_stream_t *);
 	
-	errno_t (*pack) (reiser4_node_t *, aal_stream_t *, int);
+	errno_t (*pack) (reiser4_node_t *, aal_stream_t *);
 
 	/* Prints node into given buffer. */
 	void (*print) (reiser4_node_t *, aal_stream_t *,
@@ -1589,15 +1590,21 @@ struct reiser4_journal_ops {
 	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
-	errno_t (*check_struct) (generic_entity_t *,
-				 layout_func_t, void *);
+	errno_t (*check_struct) (generic_entity_t *, layout_func_t, void *);
 
 	/* Invalidates the journal. */
 	void (*invalidate) (generic_entity_t *);
 	
 	/* Calls func for each block in block allocator. */
-	errno_t (*layout) (generic_entity_t *, region_func_t,
-			   void *);
+	errno_t (*layout) (generic_entity_t *, region_func_t, void *);
+
+	/* Pack/unpack the journal blocks. */
+	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
+	generic_entity_t *(*unpack) (aal_device_t *, uint32_t, 
+				     generic_entity_t *, 
+				     generic_entity_t *, 
+				     uint64_t, uint64_t, 
+				     aal_stream_t *);
 };
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;

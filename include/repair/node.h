@@ -22,12 +22,10 @@ extern errno_t repair_node_check_struct(reiser4_node_t *node,
 extern errno_t repair_node_clear_flags(reiser4_node_t *node);
 
 extern errno_t repair_node_pack(reiser4_node_t *node,
-				aal_stream_t *stream,
-				int mode);
+				aal_stream_t *stream);
 
 extern reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree,
-					  aal_stream_t *stream,
-					  int mode);
+					  aal_stream_t *stream);
 
 extern void repair_node_print(reiser4_node_t *node,
 			      aal_stream_t *stream);

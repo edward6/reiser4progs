@@ -21,5 +21,16 @@ extern void journal40_print(generic_entity_t *entity,
 
 extern void journal40_invalidate(generic_entity_t *entity);
 
+extern errno_t journal40_pack(generic_entity_t *entity, 
+			      aal_stream_t *stream);
+
+extern generic_entity_t *journal40_unpack(aal_device_t *device, 
+					  uint32_t blksize, 
+					  generic_entity_t *format, 
+					  generic_entity_t *oid,
+					  uint64_t start, 
+					  uint64_t blocks, 
+					  aal_stream_t *stream);
+
 #endif
 #endif

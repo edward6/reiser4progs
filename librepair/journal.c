@@ -100,3 +100,71 @@ void repair_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
 	plug_call(journal->ent->plug->o.journal_ops,
 		  print, journal->ent, stream, 0);
 }
+
+errno_t repair_journal_pack(reiser4_journal_t *journal, aal_stream_t *stream) {
+	rid_t pid;
+	
+	aal_assert("vpf-1747", journal != NULL);
+	aal_assert("vpf-1748", stream != NULL);
+
+	pid = journal->ent->plug->id.id;
+	aal_stream_write(stream, &pid, sizeof(pid));
+	
+	return plug_call(journal->ent->plug->o.journal_ops,
+			 pack, journal->ent, stream);
+}
+
+reiser4_journal_t *repair_journal_unpack(reiser4_fs_t *fs, 
+					 aal_stream_t *stream) 
+{
+	reiser4_journal_t *journal;
+	reiser4_plug_t *plug;
+	uint32_t blksize;
+	count_t blocks;
+	uint32_t read;
+	blk_t start;
+	rid_t pid;
+	
+	aal_assert("vpf-1753", fs != NULL);
+	aal_assert("vpf-1754", stream != NULL);
+
+	read = aal_stream_read(stream, &pid, sizeof(pid));
+	if (read != sizeof(pid)) {
+		aal_error("Can't unpack the journal. Stream is over?");
+		return NULL;
+	}
+	
+	/* Getting needed plugin from plugin factory by its id */
+	if (!(plug = reiser4_factory_ifind(JOURNAL_PLUG_TYPE, pid))) {
+		aal_error("Can't find journal plugin "
+			  "by its id 0x%x.", pid);
+		return NULL;
+	}
+
+	/* Allocating memory and finding plugin */
+	if (!(journal = aal_calloc(sizeof(*journal), 0)))
+		return NULL;
+
+	journal->fs = fs;
+	journal->device = fs->device;
+	
+	start = reiser4_format_start(fs->format);
+	blocks = reiser4_format_get_len(fs->format);
+	blksize = reiser4_master_get_blksize(fs->master);
+
+	/* Creating journal entity. */
+	if (!(journal->ent = plug_call(plug->o.journal_ops, unpack,
+				       fs->device, blksize, fs->format->ent,
+				       fs->oid->ent, start, blocks, stream)))
+	{
+		aal_error("Can't unpack journal %s on %s.",
+			  plug->label, fs->device->name);
+		goto error;
+	}
+
+	return 0;
+	
+ error:
+	aal_free(journal);
+	return NULL;
+}

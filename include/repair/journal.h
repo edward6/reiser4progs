@@ -20,4 +20,9 @@ extern errno_t repair_journal_replay(reiser4_journal_t *journal,
 extern void repair_journal_print(reiser4_journal_t *journal,
 				 aal_stream_t *stream);
 
+extern errno_t repair_journal_pack(reiser4_journal_t *journal, 
+				   aal_stream_t *stream);
+
+extern reiser4_journal_t *repair_journal_unpack(reiser4_fs_t *fs, 
+						aal_stream_t *stream);
 #endif

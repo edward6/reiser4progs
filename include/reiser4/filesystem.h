@@ -18,14 +18,6 @@ extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device);
 
 #ifndef ENABLE_MINIMAL
 
-#define MASTER_PACK_SIGN "MSTR"
-#define STATUS_PACK_SIGN "STAT"
-#define BACKUP_PACK_SIGN "BCKP"
-#define FORMAT_PACK_SIGN "FRMT"
-#define ALLOC_PACK_SIGN  "ALLO"
-#define NODE_PACK_SIGN   "NODE"
-#define BLOCK_PACK_SIGN  "BLCK"
-
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
 
 extern errno_t reiser4_fs_clobber(aal_device_t *device);

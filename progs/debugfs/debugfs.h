@@ -18,4 +18,6 @@
 #include "browse.h"
 #include "print.h"
 
+#define VERSION_PACK_SIGN "VRSN"
+
 #endif

@@ -16,13 +16,11 @@ extern errno_t node40_check_struct(reiser4_node_t *entity,
 				   uint8_t mode);
 
 extern errno_t node40_pack(reiser4_node_t *entity,
-			   aal_stream_t *stream,
-			   int mode);
+			   aal_stream_t *stream);
 
 extern reiser4_node_t *node40_unpack(aal_block_t *block,
 				    reiser4_plug_t *kplug,
-				    aal_stream_t *stream,
-				    int mode);
+				    aal_stream_t *stream);
 
 extern void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 			 uint32_t start, uint32_t count, uint16_t options);

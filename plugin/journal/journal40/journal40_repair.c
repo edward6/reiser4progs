@@ -72,8 +72,6 @@ typedef struct journal40_check {
 	journal40_block_t found_type;	/* Put the type of the found block here. */
 	int flags;
 	
-	blk_t fs_start;
-	count_t fs_len;
 	layout_func_t layout_func;
 	void *layout_data;
 } journal40_check_t;
@@ -107,8 +105,7 @@ static errno_t journal40_blk_format_check(journal40_t *journal, blk_t blk,
 	aal_assert("vpf-492", data != NULL);
 	
 	/* blk is out of format bound */
-	if (blk >= journal->area.start + journal->area.len || 
-	    blk < journal->area.start) 
+	if (blk >= journal->area.len || blk < journal->area.start) 
 		return -ESTRUCT;
 	
 	/* If blk can be from format area, nothing to check anymore. */
@@ -204,7 +201,7 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 {
 	journal40_t *journal = (journal40_t *)entity;
 	journal40_check_t *check_data = (journal40_check_t *)data;
-	errno_t ret;
+	errno_t res;
 	
 	aal_assert("vpf-461", journal != NULL);
 	aal_assert("vpf-491", check_data != NULL);
@@ -280,22 +277,22 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 	    
 			/* Traverse of 1 trans with no callbacks shows if LRG 
 			   circle is valid. */
-			ret = journal40_traverse_trans(journal, txh_block, NULL, 
+			res = journal40_traverse_trans(journal, txh_block, NULL, 
 						       NULL, NULL);
-			if (ret == 0) {
+			if (res == 0) {
 				/* Find the place we met blk previous time. */
 				check_data->wanted_blk = blk;
 				
-				ret = journal40_traverse(journal, NULL, NULL, 
+				res = journal40_traverse(journal, NULL, NULL, 
 							 cb_find_sec_blk, 
 							 check_data);
 				
-				if (ret != -ESTRUCT) {
+				if (res != -ESTRUCT) {
 					aal_error("Traverse failed to find "
 						  "a transaction the block "
 						  "(%llu) was met for the "
 						  "first time.", blk);
-					return ret;
+					return res;
 				}
 				
 				/* Found trans is the oldest problem, return it 
@@ -308,12 +305,12 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 					  check_data->wanted_blk);
 				
 				check_data->cur_txh = check_data->wanted_blk;
-			} else if (ret != -ESTRUCT) {
+			} else if (res != -ESTRUCT) {
 				aal_error("Transaction Header (%llu): "
 					  "corrupted log record circle "
 					  "found.", txh_block->nr);
 				
-				return ret;
+				return res;
 			}
 			
 			return -ESTRUCT;
@@ -323,15 +320,15 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 			check_data->wanted_blk = blk;
 			check_data->flags = 0;
 			
-			ret = journal40_traverse(journal, cb_find_txh_blk, 
+			res = journal40_traverse(journal, cb_find_txh_blk, 
 						 NULL, cb_find_sec_blk, 
 						 check_data);
 			
-			if (ret != -ESTRUCT) {
+			if (res != -ESTRUCT) {
 				aal_error("Traverse failed to find a "
 					  "transaction the block (%llu) was "
 					  "met for the first time.", blk);
-				return ret;
+				return res;
 			}
 			
 			fsck_mess("Transaction Header (%llu): transaction "
@@ -358,14 +355,14 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 			/* Stop looking through TxH's when reach the current trans. */
 			check_data->flags = (1 << TF_SAME_TXH_BREAK);
 			
-			ret = journal40_traverse(journal, cb_find_txh_blk, 
+			res = journal40_traverse(journal, cb_find_txh_blk, 
 						 NULL, NULL, check_data);
 			
-			if (ret != -ESTRUCT) {
+			if (res != -ESTRUCT) {
 				aal_error("Traverse failed to find a "
 					  "transaction the block (%llu) was "
 					  "met for the first time.", blk);
-				return ret;
+				return res;
 			}
 			
 			/* If TxH was found, the current transaction is the oldest 
@@ -402,32 +399,28 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 
 	aal_memset(&jdata, 0, sizeof(jdata));
 
-	jdata.fs_start = plug_call(journal->format->plug->o.format_ops, 
-				   start, journal->format);
-
-	jdata.fs_len = plug_call(journal->format->plug->o.format_ops, 
-				 get_len, journal->format);
-
 	jdata.layout_func = func;
 	jdata.layout_data = data;
 
-	if (!(jdata.journal_layout = aux_bitmap_create(jdata.fs_len))) {
+	if (!(jdata.journal_layout = aux_bitmap_create(journal->area.len))) {
 		aal_error("Failed to allocate a control bitmap for "
 			  "journal layout.");
 		return -ENOMEM;
 	}
 
-	if (!(jdata.current_layout = aux_bitmap_create(jdata.fs_len))) {
+	if (!(jdata.current_layout = aux_bitmap_create(journal->area.len))) {
 		aal_error("Failed to allocate a control bitmap of the "
 			  "current transaction blocks.");
-		return -ENOMEM;
+		
+		ret = -ENOMEM;
+		goto error_free_layout;
 	}
 
 	ret = journal40_traverse((journal40_t *)entity, cb_journal_txh_check,
 				 NULL, cb_journal_sec_check, &jdata);
 
 	if (ret && ret != -ESTRUCT)
-		return ret;
+		goto error_free_current;
 
 	if (ret) {
 		/* Journal should be updated */
@@ -448,7 +441,8 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 
 			if (device == NULL) {
 				aal_error("Invalid device has been detected.");
-				return -EINVAL;
+				ret = -EINVAL;
+				goto error_free_current;
 			}
 
 			tx_block = aal_block_load(device, 
@@ -459,7 +453,8 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 				aal_error("Can't read the block %llu while "
 					  "checking the journal. %s.", 
 					  jdata.cur_txh, device->error);
-				return -EIO;
+				ret = -EIO;
+				goto error_free_current;
 			}
 
 			txh = (journal40_tx_header_t *)tx_block->data;
@@ -475,10 +470,19 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 		header = (journal40_header_t *)journal->header->data;
 		set_jh_last_commited(header, jdata.cur_txh);
 
-		journal->state |= (1 << ENTITY_DIRTY);
+		journal40_mkdirty(journal);
 	}
+	
+	aux_bitmap_close(jdata.current_layout);
+	aux_bitmap_close(jdata.journal_layout);
 
 	return 0;
+	
+ error_free_current:
+	aux_bitmap_close(jdata.current_layout);
+ error_free_layout:
+	aux_bitmap_close(jdata.journal_layout);
+	return ret;
 }
 
 void journal40_invalidate(generic_entity_t *entity) {
@@ -497,7 +501,7 @@ void journal40_invalidate(generic_entity_t *entity) {
 	set_jf_used_oids(footer, 0);
 	set_jf_next_oid(footer, 0);
 
-	journal->state |= (1 << ENTITY_DIRTY);
+	journal40_mkdirty(journal);
 }
 
 /* Safely extracts string field from passed location. */
@@ -670,5 +674,176 @@ void journal40_print(generic_entity_t *entity,
 	journal40_traverse((journal40_t *)entity, cb_print_txh,
 			   cb_print_par, cb_print_lgr, (void *)stream);
 }
-#endif
 
+static errno_t journal40_block_pack(journal40_t *journal, aal_stream_t *stream,
+				    aux_bitmap_t *layout, uint64_t blk) 
+{
+	journal40_tx_header_t *txh;
+	journal40_lr_header_t *lrh;
+	journal40_lr_entry_t *lre;
+	aal_block_t *block;
+	uint32_t i, num;
+	errno_t res;
+	
+	if (blk < journal->area.start || blk >= journal->area.len)
+		return 0;
+	
+	if (aux_bitmap_test(layout, blk))
+		return 0;
+
+	aux_bitmap_mark(layout, blk);
+
+	if (!(block = aal_block_load(journal->device, journal->blksize, blk))) {
+		aal_error("Can't read block %llu while traversing the journal."
+			  "%s.", blk, journal->device->error);
+		return -EIO;
+	}
+	
+	aal_stream_write(stream, BLOCK_PACK_SIGN, 4);
+	aal_stream_write(stream, &block->nr, sizeof(block->nr));
+	aal_stream_write(stream, block->data, block->size);
+
+	txh = (journal40_tx_header_t *)block->data;
+	if (!aal_memcmp(txh->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
+		if ((res = journal40_block_pack(journal, stream, layout, 
+						get_th_next_block(txh))))
+		{
+			goto done_block;
+		}
+
+		if ((res = journal40_block_pack(journal, stream, layout, 
+						get_th_prev_tx(txh))))
+		{
+			goto done_block;
+		}
+	}
+
+	lrh = (journal40_lr_header_t *)block->data;
+	if (!aal_memcmp(lrh->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
+		lre = (journal40_lr_entry_t *)(lrh + 1);
+		num = (journal->blksize - sizeof(*lrh)) / sizeof(*lre);
+		
+		for (i = 0; i < num; i++, lre++) {
+			blk = get_le_wandered(lre);
+			if (!blk) break;
+
+			if ((res = journal40_block_pack(journal, stream, 
+							layout, blk)))
+			{
+				goto done_block;
+			}
+		}
+	}
+	
+	aal_block_free(block);
+	return 0;
+	
+ done_block:
+	aal_block_free(block);
+	return res;
+}
+
+errno_t journal40_pack(generic_entity_t *entity, aal_stream_t *stream) {
+	journal40_header_t *jheader;
+	journal40_t *journal;
+	aux_bitmap_t *layout;
+	uint64_t blk;
+	errno_t res;
+	
+	aal_assert("vpf-1745", entity != NULL);
+	aal_assert("vpf-1746", stream != NULL);
+
+	journal = (journal40_t *)entity;
+	
+	if (!(layout = aux_bitmap_create(journal->area.len))) {
+		aal_error("Failed to allocate a control bitmap for "
+			  "journal layout.");
+		return -ENOMEM;
+	}
+	
+	jheader = (journal40_header_t *)journal->header->data;
+	blk = get_jh_last_commited(jheader);
+	
+	aal_stream_write(stream, journal->header->data, journal->header->size);
+	aal_stream_write(stream, journal->footer->data, journal->footer->size);
+	
+	/* Getting all blocks that are pointed by journal, do not control 
+	   the journal structure. */
+	res = journal40_block_pack(journal, stream, layout, blk);
+
+	aux_bitmap_close(layout);
+	return res;
+}
+
+generic_entity_t *journal40_unpack(aal_device_t *device, 
+				   uint32_t blksize, 
+				   generic_entity_t *format, 
+				   generic_entity_t *oid,
+				   uint64_t start, 
+				   uint64_t blocks, 
+				   aal_stream_t *stream) 
+{
+	journal40_t *journal;
+	uint64_t read;
+	blk_t jblk;
+	
+	aal_assert("vpf-1755", device != NULL);
+	aal_assert("vpf-1756", format != NULL);
+	aal_assert("vpf-1757", oid != NULL);
+	
+	/* Initializign journal entity. */
+	if (!(journal = aal_calloc(sizeof(*journal), 0)))
+		return NULL;
+
+	journal->state = 0;
+	journal->format = format;
+	journal->oid = oid;
+	journal->device = device;
+	journal->plug = &journal40_plug;
+	journal->blksize = blksize;
+
+	journal->area.len = blocks;
+	journal->area.start = start;
+	jblk =  JOURNAL40_BLOCKNR(blksize);
+
+	if (!(journal->header = aal_block_alloc(device, blksize, jblk))) {
+		aal_error("Can't alloc journal header on block %llu.", jblk);
+		goto error_free_journal;
+	}
+
+	if (!(journal->footer = aal_block_alloc(device, blksize, jblk + 1))) {
+		aal_error("Can't alloc journal footer on block %llu.", 
+			  jblk + 1);
+		
+		goto error_free_header;
+	}
+
+	read = aal_stream_read(stream, journal->header->data, blksize);
+	
+	if (read != blksize) {
+		aal_error("Can't unpack journal header. Stream is over?");
+		goto error_free_footer;
+	}
+
+	read = aal_stream_read(stream, journal->footer->data, blksize);
+	
+	if (read != blksize) {
+		aal_error("Can't unpack journal footer. Stream is over?");
+		goto error_free_footer;
+	}
+	
+	/* Other blocks are unpacked in reiser4_fs_unpack as usual blocks. */
+	
+	journal40_mkdirty(journal);
+	return (generic_entity_t *)journal;
+
+ error_free_footer:
+	aal_block_free(journal->footer);
+ error_free_header:
+	aal_block_free(journal->header);
+ error_free_journal:
+	aal_free(journal);
+	return NULL;
+}
+
+#endif

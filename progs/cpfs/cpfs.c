@@ -316,16 +316,13 @@ int main(int argc, char *argv[]) {
 
 	if (reiser4_fs_copy(src_fs, dst_fs)) {
 		aal_error("Can't copy %s to %s.", src_dev, dst_dev);
-		goto error_free_dst_journal;
+		goto error_free_dst_fs;
 	}
 	
 	if (gauge) {
 		aal_gauge_done(gauge);
 		aal_gauge_free(gauge);
 	}
-
-	/* Freeing dst journal */
-	reiser4_journal_close(dst_fs->journal);
 
 	/* Closing dst fs */
 	reiser4_fs_close(dst_fs);
@@ -345,8 +342,6 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
 	return NO_ERROR;
 	
- error_free_dst_journal:
-	reiser4_journal_close(dst_fs->journal);
  error_free_dst_fs:
 	reiser4_fs_close(dst_fs);
  error_free_src_fs:

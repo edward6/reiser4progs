@@ -31,8 +31,13 @@ void repair_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 
 /* Fetches block allocator data to @stream. */
 errno_t repair_alloc_pack(reiser4_alloc_t *alloc, aal_stream_t *stream) {
+	rid_t pid;
+	
 	aal_assert("umka-2614", alloc != NULL);
 	aal_assert("umka-2615", stream != NULL);
+
+	pid = alloc->ent->plug->id.id;
+	aal_stream_write(stream, &pid, sizeof(pid));
 
 	return plug_call(alloc->ent->plug->o.alloc_ops,
 			 pack, alloc->ent, stream);
@@ -67,7 +72,6 @@ reiser4_alloc_t *repair_alloc_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 		return NULL;
 
 	alloc->fs = fs;
-	alloc->fs->alloc = alloc;
 	blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Query the block allocator plugin for creating allocator entity */
