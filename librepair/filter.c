@@ -229,7 +229,6 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	    /* Extents cannot point to this node. */
 	    aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
 	    fd->stat.bad_nodes += ptr.width;
-	    level = reiser4_node_get_level(place->node);
 	    if (level == LEAF_LEVEL)
 		fd->stat.bad_leaves += ptr.width;
 	    else if (level == TWIG_LEVEL)
