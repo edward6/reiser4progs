@@ -145,14 +145,14 @@ aal_exception_option_t progs_exception_handler(
 
 	if ((tty = fileno(stream)) == -1)
 		return EXCEPTION_UNHANDLED;
-	
+
 	if (current_gauge)
 		aal_gauge_pause(current_gauge);
 	else {
 		if (isatty(tty))
 			progs_wipe_line(stream);
 	}
-	
+
 	progs_exception_print_wrap(exception);
     
 	if (progs_exception_option_count(exception->options, 0) == 1)

@@ -96,13 +96,13 @@ static void oid40_release(object_entity_t *entity,
 }
 
 static errno_t oid40_print(object_entity_t *entity,
-			   char *buff, uint32_t n, uint16_t options)
+			   aal_stream_t *stream, uint16_t options)
 {
 	aal_assert("umka-1303", entity != NULL, return -1);
-	aal_assert("umka-1304", buff != NULL, return -1);
+	aal_assert("umka-1304", stream != NULL, return -1);
 
-	aal_snprintf(buff, n, "next oid:\t0x%llx\nused oids:\t0x%llx\n",
-		     ((oid40_t *)entity)->next, ((oid40_t *)entity)->used);
+	aal_stream_format(stream, "next oid:\t0x%llx\nused oids:\t0x%llx\n",
+			  ((oid40_t *)entity)->next, ((oid40_t *)entity)->used);
 	return 0;
 }
 

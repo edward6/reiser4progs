@@ -17,7 +17,7 @@
 #ifndef ENABLE_COMPACT
 
 extern errno_t reiser4_item_print(reiser4_coord_t *coord,
-				  char *buff, uint32_t n);
+				  aal_stream_t *stream);
 
 extern errno_t reiser4_item_estimate(reiser4_coord_t *coord,
 				     reiser4_item_hint_t *hint);

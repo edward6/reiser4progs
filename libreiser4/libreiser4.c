@@ -5,8 +5,12 @@
   reiser4progs/COPYING.
 */
 
+#ifndef ENABLE_COMPACT
+#  include <printf.h>
+#endif
+
+#include <aal/aal.h>
 #include <reiser4/reiser4.h>
-#include <printf.h>
 
 /* 
    Initializing the libreiser4 core instance. It will be passed into all plugins
@@ -284,21 +288,24 @@ static int arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
 	return 1;
 }
 
-static int print_key(FILE * stream, const struct printf_info *info, 
+static int print_key(FILE *file, const struct printf_info *info, 
 		     const void *const *args) 
 {
 	int len;
-	char buffer[100];
 	reiser4_key_t *key;
+	aal_stream_t stream;
 
-	aal_memset(buffer, 0, sizeof(buffer));
+	aal_stream_init(&stream);
     
 	key = *((reiser4_key_t **)(args[0]));
-	reiser4_key_print(key, buffer, sizeof(buffer));
+	reiser4_key_print(key, &stream);
 
-	fprintf(stream, "%s", buffer);
+	fprintf(file, (char *)stream.data);
     
-	return aal_strlen(buffer);
+	len = stream.offset;
+
+	aal_stream_fini(&stream);
+	return len;
 }
 
 #endif

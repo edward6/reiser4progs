@@ -42,18 +42,17 @@ static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static errno_t nodeptr40_print(item_entity_t *item, 
-			       char *buff, uint32_t n,
+static errno_t nodeptr40_print(item_entity_t *item, aal_stream_t *stream,
 			       uint16_t options) 
 {
 	nodeptr40_t *nodeptr;
 	
 	aal_assert("umka-544", item != NULL, return -1);
-	aal_assert("umka-545", buff != NULL, return -1);
+	aal_assert("umka-545", stream != NULL, return -1);
     
 	nodeptr = nodeptr40_body(item);
 
-	aal_snprintf(buff, n, "[ %llu ]", np40_get_ptr(nodeptr));
+	aal_stream_format(stream, "[ %llu ]", np40_get_ptr(nodeptr));
 	return 0;
 }
 

@@ -89,8 +89,7 @@ static char *sdext_unix_gecos(char *pwdline) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t sdext_unix_print(reiser4_body_t *body,
-				char *buff, uint32_t n,
+static errno_t sdext_unix_print(reiser4_body_t *body, aal_stream_t *stream,
 				uint16_t options)
 {
 	sdext_unix_t *ext;
@@ -98,7 +97,7 @@ static errno_t sdext_unix_print(reiser4_body_t *body,
 	char uid[255], gid[255];
 	
 	aal_assert("umka-1412", body != NULL, return -1);
-	aal_assert("umka-1413", buff != NULL, return -1);
+	aal_assert("umka-1413", stream != NULL, return -1);
 
 	ext = (sdext_unix_t *)body;
 
@@ -106,25 +105,30 @@ static errno_t sdext_unix_print(reiser4_body_t *body,
 	aal_memset(gid, 0, sizeof(gid));
 
 	if (!getpw(sdext_unix_get_uid(ext), uid) && !getpw(sdext_unix_get_uid(ext), gid)) {
-		aux_strncat(buff, n, "uid:\t\t%s (%s)\n", sdext_unix_name(uid),
-			    sdext_unix_gecos(uid));
-		aux_strncat(buff, n, "gid:\t\t%s (%s)\n", sdext_unix_name(gid),
-			    sdext_unix_gecos(gid));
+		char *name, *gecos;
+
+		name = sdext_unix_name(uid);
+		
+		if (!(gecos = sdext_unix_gecos(uid)))
+			gecos = "undefined";
+		
+		aal_stream_format(stream, "uid:\t\t%s (%s)\n", name, gecos);
+		aal_stream_format(stream, "gid:\t\t%s (%s)\n", name, gecos);
 	} else {
-		aux_strncat(buff, n, "uid:\t\t%u\n", sdext_unix_get_uid(ext));
-		aux_strncat(buff, n, "gid:\t\t%u\n", sdext_unix_get_gid(ext));
+		aal_stream_format(stream, "uid:\t\t%u\n", sdext_unix_get_uid(ext));
+		aal_stream_format(stream, "gid:\t\t%u\n", sdext_unix_get_gid(ext));
 	}
 	
 	atm = sdext_unix_get_atime(ext);
 	mtm = sdext_unix_get_mtime(ext);
 	ctm = sdext_unix_get_ctime(ext);
 
-	aux_strncat(buff, n, "atime:\t\t%s", ctime((time_t *)&atm));
-	aux_strncat(buff, n, "mtime:\t\t%s", ctime((time_t *)&mtm));
-	aux_strncat(buff, n, "ctime:\t\t%s", ctime((time_t *)&ctm));
+	aal_stream_format(stream, "atime:\t\t%s", ctime((time_t *)&atm));
+	aal_stream_format(stream, "mtime:\t\t%s", ctime((time_t *)&mtm));
+	aal_stream_format(stream, "ctime:\t\t%s", ctime((time_t *)&ctm));
 
-	aux_strncat(buff, n, "rdev:\t\t%u\n", sdext_unix_get_rdev(ext));
-	aux_strncat(buff, n, "bytes:\t\t%llu\n", sdext_unix_get_bytes(ext));
+	aal_stream_format(stream, "rdev:\t\t%u\n", sdext_unix_get_rdev(ext));
+	aal_stream_format(stream, "bytes:\t\t%llu\n", sdext_unix_get_bytes(ext));
 
 	return 0;
 }

@@ -55,20 +55,20 @@ static uint16_t sdext_lt_length(reiser4_body_t *body) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t sdext_lt_print(reiser4_body_t *body,
-			      char *buff, uint32_t n,
+static errno_t sdext_lt_print(reiser4_body_t *body, aal_stream_t *stream,
 			      uint16_t options)
 {
 	sdext_lt_t *ext;
 	
 	aal_assert("umka-1479", body != NULL, return -1);
-	aal_assert("umka-1480", buff != NULL, return -1);
+	aal_assert("umka-1480", stream != NULL, return -1);
 
 	ext = (sdext_lt_t *)body;
 
-	aux_strncat(buff, n, "atime:\t\t%u\n", sdext_lt_get_atime(ext));
-	aux_strncat(buff, n, "mtime:\t\t%u\n", sdext_lt_get_mtime(ext));
-	aux_strncat(buff, n, "ctime:\t\t%u\n", sdext_lt_get_ctime(ext));
+	aal_stream_format(stream, "atime:\t\t%u\n", sdext_lt_get_atime(ext));
+	aal_stream_format(stream, "mtime:\t\t%u\n", sdext_lt_get_mtime(ext));
+	aal_stream_format(stream, "ctime:\t\t%u\n", sdext_lt_get_ctime(ext));
+	
 	return 0;
 }
 

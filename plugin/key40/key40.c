@@ -335,18 +335,18 @@ static errno_t key40_build_objid(reiser4_body_t *body, reiser4_key_type_t type,
 
 #ifndef ENABLE_COMPACT
 
-errno_t key40_print(reiser4_body_t *body, char *buff, 
-		    uint32_t n, uint16_t options) 
+errno_t key40_print(reiser4_body_t *body, aal_stream_t *stream,
+		    uint16_t options) 
 {
 	key40_t *key = (key40_t *)body;
     
 	aal_assert("vpf-191", key != NULL, return -1);
+	aal_assert("umka-1548", stream != NULL, return -1);
 
-	if (!buff) return -1;
-
-	aux_strncat(buff, n, "[ key40 %llx:%x:%llx:%llx:%llx %s ]",
-		    k40_get_locality(key), k40_get_minor(key),  k40_get_band(key),
-		    k40_get_objectid(key), k40_get_offset(key), key40_m2n(k40_get_minor(key)));
+	aal_stream_format(stream, "[ key40 %llx:%x:%llx:%llx %s ]",
+			  key40_get_locality(body), key40_get_type(body),
+			  key40_get_objectid(body), key40_get_offset(body),
+			  key40_m2n(key40_get_type(body)));
 
 	return 0;
 }

@@ -45,15 +45,15 @@ static uint16_t sdext_symlink_length(reiser4_body_t *body) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t sdext_symlink_print(reiser4_body_t *body,
-			      char *buff, uint32_t n,
+static errno_t sdext_symlink_print(reiser4_body_t *body, aal_stream_t *stream,
 			      uint16_t options)
 {
 	aal_assert("umka-1485", body != NULL, return -1);
-	aal_assert("umka-1486", buff != NULL, return -1);
+	aal_assert("umka-1486", stream != NULL, return -1);
 
-	aux_strncat(buff, n, "len:\t\t%u\n", aal_strlen((char *)body));
-	aux_strncat(buff, n, "value:\t\t\"%s\"\n", (char *)body);
+	aal_stream_format(stream, "len:\t\t%u\n", aal_strlen((char *)body));
+	aal_stream_format(stream, "value:\t\t\"%s\"\n", (char *)body);
+	
 	return 0;
 }
 

@@ -215,7 +215,7 @@ static errno_t callback_sync_bitmap(object_entity_t *format,
 	if (chunk < size) {
 		void *fake;
 
-		if (!(fake = aal_calloc(size, 0)))
+		if (!(fake = aal_calloc(size, 0xff)))
 			goto error_free_block;
 
 		aal_memcpy(fake, current, chunk);
@@ -324,11 +324,11 @@ static uint64_t alloc40_allocate(object_entity_t *entity) {
 	return blk;
 }
 
-static errno_t alloc40_print(object_entity_t *entity, char *buff, 
-			     uint32_t n, uint16_t options)
+static errno_t alloc40_print(object_entity_t *entity, aal_stream_t *stream,
+			     uint16_t options)
 {
 	aal_assert("umka-1467", entity != NULL, return -1);
-	aal_assert("umka-1468", buff != NULL, return -1);
+	aal_assert("umka-1468", stream != NULL, return -1);
 
 	return 0;
 }
@@ -404,7 +404,7 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 	if (chunk < size) {
 		void *fake;
 
-		if (!(fake = aal_calloc(size, 0)))
+		if (!(fake = aal_calloc(size, 0xff)))
 			return -1;
 
 		aal_memcpy(fake, current, chunk);

@@ -481,12 +481,11 @@ struct reiser4_key_ops {
 	*/
 	void (*clean) (reiser4_body_t *);
 
-	errno_t (*build_generic) (reiser4_body_t *, 
-				  reiser4_key_type_t, uint64_t, uint64_t, uint64_t);
+	errno_t (*build_generic) (reiser4_body_t *, reiser4_key_type_t,
+				  uint64_t, uint64_t, uint64_t);
     
-	errno_t (*build_direntry) (reiser4_body_t *, 
-				   reiser4_plugin_t *, uint64_t, uint64_t, 
-				   const char *);
+	errno_t (*build_direntry) (reiser4_body_t *, reiser4_plugin_t *,
+				   uint64_t, uint64_t, const char *);
     
 	errno_t (*build_objid) (reiser4_body_t *, 
 				reiser4_key_type_t, uint64_t, uint64_t);
@@ -515,8 +514,7 @@ struct reiser4_key_ops {
 	uint64_t (*get_hash) (reiser4_body_t *);
 
 	/* Prints key into specified buffer */
-	errno_t (*print) (reiser4_body_t *, char *, 
-			  uint32_t, uint16_t);
+	errno_t (*print) (reiser4_body_t *, aal_stream_t *, uint16_t);
 };
 
 typedef struct reiser4_key_ops reiser4_key_ops_t;
@@ -607,8 +605,7 @@ struct reiser4_item_ops {
 		      uint32_t *, shift_flags_t);
 	
 	/* Prints item into specified buffer */
-	errno_t (*print) (item_entity_t *, char *, uint32_t, 
-			  uint16_t);
+	errno_t (*print) (item_entity_t *, aal_stream_t *, uint16_t);
 
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*max_poss_key) (item_entity_t *, reiser4_key_t *);
@@ -636,8 +633,7 @@ struct reiser4_sdext_ops {
 	errno_t (*open) (reiser4_body_t *, void *);
 
 	/* Prints stat data extention data into passed buffer */
-	errno_t (*print) (reiser4_body_t *, char *,
-			  uint32_t, uint16_t);
+	errno_t (*print) (reiser4_body_t *, aal_stream_t *, uint16_t);
 
 	/* Returns length of the extention */
 	uint16_t (*length) (reiser4_body_t *);
@@ -691,7 +687,7 @@ struct reiser4_node_ops {
 	errno_t (*item_legal) (object_entity_t *, reiser4_plugin_t *);
     
 	/* Prints node into given buffer */
-	errno_t (*print) (object_entity_t *, char *, uint32_t, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
     
 	/* Returns item count */
 	uint16_t (*count) (object_entity_t *);
@@ -818,7 +814,7 @@ struct reiser4_format_ops {
 	errno_t (*check) (object_entity_t *);
 
 	/* Prints all useful information about the format */
-	errno_t (*print) (object_entity_t *, char *, uint32_t, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
     
 	/*
 	  Probes whether filesystem on given device has this format. Returns
@@ -911,8 +907,7 @@ struct reiser4_oid_ops {
 	uint64_t (*free) (object_entity_t *);
 
 	/* Prints oid allocator data */
-	errno_t (*print) (object_entity_t *, char *, 
-			  uint32_t, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
 
 	/* Object ids of root and root parenr object */
 	roid_t (*root_parent_locality) (void);
@@ -959,8 +954,7 @@ struct reiser4_alloc_ops {
 	errno_t (*valid) (object_entity_t *);
 
 	/* Prints block allocator data */
-	errno_t (*print) (object_entity_t *, char *, 
-			  uint32_t, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
@@ -990,8 +984,8 @@ struct reiser4_journal_ops {
 	errno_t (*replay) (object_entity_t *);
 
 	/* Prints journal content */
-	errno_t (*print) (object_entity_t *, char *, 
-			  uint32_t, uint16_t);
+	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
+	
 	/* Checks thoroughly the journal structure. */
 	errno_t (*check) (object_entity_t *);
 };

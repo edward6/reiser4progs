@@ -58,8 +58,7 @@ extern errno_t reiser4_key_valid(reiser4_key_t *key);
 
 #ifndef ENABLE_COMPACT
 
-extern errno_t reiser4_key_print(reiser4_key_t *key, char *buff, 
-				 uint32_t n);
+extern errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream);
 
 #endif
 

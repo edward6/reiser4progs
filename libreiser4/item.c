@@ -76,15 +76,15 @@ errno_t reiser4_item_estimate(
 /* Prints passed @coord into passed @buff */
 errno_t reiser4_item_print(
 	reiser4_coord_t *coord,    /* item to be printed */
-	char *buff,                /* buffer item to be printed in */
-	uint32_t n)                /* buffer size */
+	aal_stream_t *stream)      /* stream for printing in */
 {
 	item_entity_t *item;
 	
-	aal_assert("umka-1297", coord != NULL, return 0);
+	aal_assert("umka-1297", coord != NULL, return -1);
+	aal_assert("umka-1550", stream != NULL, return -1);
 
 	item = &coord->entity;
-	aal_assert("umka-1449", item->plugin != NULL, return 0);
+	aal_assert("umka-1449", item->plugin != NULL, return -1);
 
 	if (!item->plugin->item_ops.print) {
 		aal_exception_warn("Method \"print\" is not implemented in %s.",
@@ -92,7 +92,7 @@ errno_t reiser4_item_print(
 		return -1;
 	}
 	
-	return item->plugin->item_ops.print(item, buff, n, 0);
+	return item->plugin->item_ops.print(item, stream, 0);
 }
 
 #endif

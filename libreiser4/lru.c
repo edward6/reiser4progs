@@ -37,7 +37,7 @@ static int reiser4_lru_nomem(reiser4_lru_t *lru) {
 	long dlong;
 	char cmd[256], dchar;
 
-	uint32_t diff;
+	long diff;
 
 	aal_assert("umka-1524", lru != NULL, return -1);
 	
@@ -56,11 +56,11 @@ static int reiser4_lru_nomem(reiser4_lru_t *lru) {
 	       &dlong, &dlong, &dlong, &dlong, &dint, &dint, &dlong, &dlong);
 	
 	diff = labs((vmsize - (rss << 12)) - lru->swaped);
-
+	
 	if (!(res = diff > 4096))
 		lru->adjust = 0;
-
-	lru->swaped = vmsize - (rss << 12);
+	
+	lru->swaped = labs(vmsize - (rss << 12));
 
 	fclose(f);
 	
@@ -77,8 +77,6 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 
 	if (!lru->adjustable)
 		lru->adjust = 1;
-	
-	aal_exception_info("Shrinking cache on %u nodes.", lru->adjust);
 	
 	if (!(curr = aal_list_last(lru->list)))
 		return 0;
@@ -118,6 +116,7 @@ errno_t reiser4_lru_init(reiser4_lru_t *lru) {
 		fs_st.f_type == 0x9fa0;
 
 	reiser4_lru_nomem(lru);
+	lru->adjust = 0;
 
 	if (lru->adjustable) {
 		new.sa_flags = 0;

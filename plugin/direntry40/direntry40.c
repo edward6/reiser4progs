@@ -273,8 +273,8 @@ static uint16_t direntry40_remove(item_entity_t *item,
 	return rem_len + sizeof(entry40_t);
 }
 
-static errno_t direntry40_print(item_entity_t *item, char *buff,
-				uint32_t n, uint16_t options) 
+static errno_t direntry40_print(item_entity_t *item, aal_stream_t *stream,
+				uint16_t options) 
 {
 	uint32_t i, width;
 	direntry40_t *direntry;
@@ -284,12 +284,12 @@ static errno_t direntry40_print(item_entity_t *item, char *buff,
 	uint64_t locality, objectid;
 	
 	aal_assert("umka-548", item != NULL, return -1);
-	aal_assert("umka-549", buff != NULL, return -1);
+	aal_assert("umka-549", stream != NULL, return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
 	
-	aux_strncat(buff, n, "count:\t\t%u\n", direntry->count);
+	aal_stream_format(stream, "count:\t\t%u\n", direntry->count);
 
 	for (i = 0; i < direntry->count; i++) {
 		entry40_t *entry = &direntry->entry[i];
@@ -303,8 +303,8 @@ static errno_t direntry40_print(item_entity_t *item, char *buff,
 					  sizeof(uint64_t)));
 
 		width = 30 > aal_strlen(name) ? 30 - aal_strlen(name) + 1 : 1;
-		aux_strncat(buff, n, "%.7llx:%.7llx\t%s%*s%.16llx:%.16llx\n",
-			    locality, objectid, name, width, " ", objid, offset);
+		aal_stream_format(stream, "%.7llx:%.7llx\t%s%*s%.16llx:%.16llx\n",
+				  locality, objectid, name, width, " ", objid, offset);
 	}
 
 	return 0;

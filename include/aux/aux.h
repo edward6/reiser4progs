@@ -18,7 +18,7 @@
 
 extern long int aux_strtol(const char *str, int *error);
 
-extern int aux_strncat(char *dest, uint32_t n, const char *src, ...) 
+extern int aux_strncat(char *dest, uint32_t n, const char *format, ...)
 __check_format__(printf, 3, 4);
     
 #endif

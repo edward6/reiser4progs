@@ -141,19 +141,21 @@ error:
     return NULL;
 }
 
-void repair_format_print(reiser4_fs_t *fs, FILE *stream, uint16_t options) {
-    char buf[4096];
+void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
+    aal_stream_t stream;
 
     aal_assert("vpf-245", fs != NULL, return);
     aal_assert("vpf-175", fs->format != NULL, return);
 
-    if (!stream)
+    if (!file)
 	return;
 
-    aal_memset(buf, 0, 4096);
+    aal_stream_init(&stream);
 
     plugin_call(return, fs->format->entity->plugin->format_ops, print, 
-	fs->format->entity, buf, 4096, options);
+	fs->format->entity, &stream, options);
     
-    fprintf(stream, "%s", buf);
+    fprintf(file, (char *)stream.data);
+    
+    aal_stream_fini(&stream);
 }

@@ -34,13 +34,13 @@ static errno_t tail40_insert(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static errno_t tail40_print(item_entity_t *item, char *buff,
-			    uint32_t n, uint16_t options)
+static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,
+			    uint16_t options)
 {
 	aal_assert("umka-1489", item != NULL, return -1);
-	aal_assert("umka-1490", buff != NULL, return -1);
+	aal_assert("umka-1490", stream != NULL, return -1);
 
-	aux_strncat(buff, n, "len:\t\t%u\n", item->len);
+	aal_stream_format(stream, "len:\t\t%u\n", item->len);
 	return 0;
 }
 

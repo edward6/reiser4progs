@@ -91,7 +91,7 @@ long int aux_strtol(
 int aux_strncat(
 	char *dest,	               /* a buffer where result will be stored */
 	uint32_t n,	               /* size of the buffer */
-	const char *src,	       /* format string */
+	const char *format,	       /* format string */
 	...)		               /* list of params */
 {
 	int res;
@@ -101,10 +101,10 @@ int aux_strncat(
 	if (!(size = n - aal_strlen(dest)))
 		return 0;
 	
-	va_start(arg_list, src);
+	va_start(arg_list, format);
 
 	res = aal_vsnprintf(dest + aal_strlen(dest), 
-		      size, src, arg_list);
+		      size, format, arg_list);
     
 	va_end(arg_list);
     

@@ -314,19 +314,14 @@ static int stat40_sdext_present(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
-struct print_hint {
-	char *buff;
-	uint32_t n;
-};
-
 static int callback_print(uint8_t ext, uint16_t extmask,
 			  reiser4_body_t *extbody, void *data)
 {
 	reiser4_plugin_t *plugin;
-	struct print_hint *hint = (struct print_hint *)data;
+	aal_stream_t *stream = (aal_stream_t *)data;
 
 	if (ext == 0 || (ext + 1) % 16 == 0)
-		aux_strncat(hint->buff, hint->n, "mask:\t\t0x%x\n", extmask);
+		aal_stream_format(stream, "mask:\t\t0x%x\n", extmask);
 				
 	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, ext))) {
 		aal_exception_warn("Can't find stat data extention plugin "
@@ -334,31 +329,25 @@ static int callback_print(uint8_t ext, uint16_t extmask,
 		return 1;
 	}
 
-	aux_strncat(hint->buff, hint->n, "label:\t\t%s\n",
-		    plugin->h.label);
-		
-	aux_strncat(hint->buff, hint->n, "plugin:\t\t%s\n",
-		    plugin->h.desc);
+	aal_stream_format(stream, "label:\t\t%s\n", plugin->h.label);
+	aal_stream_format(stream, "plugin:\t\t%s\n", plugin->h.desc);
 	
 	plugin_call(return 1, plugin->sdext_ops, print, extbody,
-		    hint->buff, hint->n, 0);
+		    stream, 0);
 	
 	return 1;
 }
 
-static errno_t stat40_print(item_entity_t *item,
-			    char *buff, uint32_t n,
+static errno_t stat40_print(item_entity_t *item, aal_stream_t *stream,
 			    uint16_t options)
 {
-	struct print_hint hint = {buff, n};
-	
 	aal_assert("umka-1407", item != NULL, return -1);
-	aal_assert("umka-1408", buff != NULL, return -1);
+	aal_assert("umka-1408", stream != NULL, return -1);
     
-	aux_strncat(buff, n, "count:\t\t%u\n", stat40_count(item));
+	aal_stream_format(stream, "count:\t\t%u\n", stat40_count(item));
 
-	if (!stat40_layout(item, callback_print, &hint) < 0)
-		return 0;
+	if (stat40_layout(item, callback_print, (void *)stream) < 0)
+		return -1;
 
 	return 0;
 }

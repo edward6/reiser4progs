@@ -137,7 +137,16 @@ reiser4_file_t *reiser4_file_begin(
 			 &coord->entity.key.body);
 
 #ifndef ENABLE_COMPACT
-	reiser4_key_print(&file->key, file->name, sizeof(file->name));
+	{
+		aal_stream_t stream;
+		aal_stream_init(&stream);
+		
+		reiser4_key_print(&file->key, &stream);
+		aal_strncpy(file->name, (char *)stream.data,
+			    sizeof(file->name));
+		
+		aal_stream_fini(&stream);
+	}
 #else
 	aal_snprintf(file->name, sizeof(file->name), "%llx",
 		     reiser4_key_objectid(&file->key));

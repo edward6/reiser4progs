@@ -32,4 +32,14 @@ reiser4progs/COPYING.
 * some bitops methods for big endiang byte order 
 
 * some way to print big node and item descriptions (print methods)
-   without preallocated buffer. Possible we should use FILE *
+  without preallocated buffer. Possible we should use FILE *
+
+* improve lru list for storing different objects in it
+
+* joint reiser4_node_t and reiser4_joint_t
+
+* get rid of using aal_block_t in node API
+
+* to find out are we need big endiang bitops code. If no, remove it
+
+* should we have print methods in format, alloc and oid in libreiser4?

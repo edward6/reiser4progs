@@ -49,27 +49,26 @@ static uint16_t extent40_remove(item_entity_t *item, uint32_t pos) {
 	return -1;
 }
 
-static errno_t extent40_print(item_entity_t *item, char *buff, 
-			      uint32_t n, uint16_t options) 
+static errno_t extent40_print(item_entity_t *item, aal_stream_t *stream,
+			      uint16_t options) 
 {
 	extent40_t *extent;
 	uint16_t i, count;
     
 	aal_assert("umka-1205", item != NULL, return -1);
-	aal_assert("umka-1206", buff != NULL, return -1);
+	aal_assert("umka-1206", stream != NULL, return -1);
 
 	extent = extent40_body(item);
 	count = extent40_count(item);
 
-	aux_strncat(buff, n, "[ "); buff += 2;
+	aal_stream_format(stream, "[ ");
+	
 	for (i = 0; i < count; i++) {
-		int len = aal_snprintf(buff, n, "%llu(%llu)%s",
-				       et40_get_start(extent + i),
-				       et40_get_width(extent + i),
-				       (i < count - 1 ? " " : ""));
-		buff += len;
+		aal_stream_format(stream, "%llu(%llu)%s", et40_get_start(extent + i),
+			       et40_get_width(extent + i), (i < count - 1 ? " " : ""));
 	}
-	aux_strncat(buff, n, " ]");
+	
+	aal_stream_format(stream, " ]");
     
 	return 0;
 }

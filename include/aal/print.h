@@ -8,6 +8,10 @@
 #ifndef PRINT_H
 #define PRINT_H
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #ifdef ENABLE_COMPACT
 
 extern int aal_vsnprintf(char *buff, size_t n, const char *format, 

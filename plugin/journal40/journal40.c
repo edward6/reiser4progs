@@ -454,11 +454,11 @@ static errno_t journal40_replay(object_entity_t *entity) {
 	return 0;
 }
 
-static errno_t journal40_print(object_entity_t *entity, char *buff, 
-			      uint32_t n, uint16_t options)
+static errno_t journal40_print(object_entity_t *entity, aal_stream_t *stream, 
+			       uint16_t options)
 {
 	aal_assert("umka-1465", entity != NULL, return -1);
-	aal_assert("umka-1466", buff != NULL, return -1);
+	aal_assert("umka-1466", stream != NULL, return -1);
 
 	return 0;
 }

@@ -527,28 +527,25 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 	return 0;
 }
 
-#define ITEM_SIZE (32768)
-
 /* 
    Prepare text node description and push it into specied buffer. Caller should
    decide what it should do with filled buffer.
 */
-static errno_t node40_print(object_entity_t *entity, char *buff,
-			    uint32_t n, uint16_t options) 
+static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
+			    uint16_t options) 
 {
 	uint8_t level;
 	reiser4_pos_t pos;
 	item_entity_t item;
 
-	char *item_buff, key_buff[255];
 	node40_t *node = (node40_t *)entity;
 	
 	aal_assert("vpf-023", entity != NULL, return -1);
-	aal_assert("umka-457", buff != NULL, return -1);
+	aal_assert("umka-457", stream != NULL, return -1);
 
 	level = node40_get_level(entity);
 
-	aux_strncat(buff, n, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
+	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
 	       level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
 	       level, node40_count(entity), node40_space(entity));
 
@@ -562,47 +559,37 @@ static errno_t node40_print(object_entity_t *entity, char *buff,
 			return -1;
 		}
 
-		aux_strncat(buff, n, "(%u) ", pos.item);
+		aal_stream_format(stream, "(%u) ", pos.item);
 		
 		if (item.plugin->h.sign.group == STATDATA_ITEM)
-			aux_strncat(buff, n, "STATDATA ITEM");
+			aal_stream_format(stream, "STATDATA ITEM");
 		else if (item.plugin->h.sign.group == DIRENTRY_ITEM)
-			aux_strncat(buff, n, "DIRENTRY ITEM");
+			aal_stream_format(stream, "DIRENTRY ITEM");
 		else if (item.plugin->h.sign.group == TAIL_ITEM)
-			aux_strncat(buff, n, "TAIL ITEM");
+			aal_stream_format(stream, "TAIL ITEM");
 		else if (item.plugin->h.sign.group == NODEPTR_ITEM)
-			aux_strncat(buff, n, "NODEPTR ITEM");
+			aal_stream_format(stream, "NODEPTR ITEM");
 		else if (item.plugin->h.sign.group == EXTENT_ITEM)
-			aux_strncat(buff, n, "EXTENT ITEM");
+			aal_stream_format(stream, "EXTENT ITEM");
 		else
-			aux_strncat(buff, n, "UNKNOWN ITEM");
+			aal_stream_format(stream, "UNKNOWN ITEM");
 	    
-		aux_strncat(buff, n, ": len=%u, ", item.len);
-		
-		aal_memset(key_buff, 0, sizeof(key_buff));
+		aal_stream_format(stream, ": len=%u, KEY: ", item.len);
 		
 		if (plugin_call(return -1, item.key.plugin->key_ops, print,
-				&item.key, key_buff, sizeof(key_buff), options))
+				&item.key, stream, options))
 			return -1;
-		
-		aux_strncat(buff, n, "KEY: %s, ", key_buff);
-
-		aux_strncat(buff, n, "PLUGIN: 0x%x (%s)\n", item.plugin->h.sign.id,
+	
+		aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n", item.plugin->h.sign.id,
 			    item.plugin->h.label);
 
 		if (level > LEAF_LEVEL || options) {
 			
-			if (!(item_buff = aal_calloc(ITEM_SIZE, 0)))
+			if (plugin_call(return -1, item.plugin->item_ops, print,
+					&item, stream, options))
 				return -1;
 
-			if (plugin_call(return -1, item.plugin->item_ops, print,
-					&item, item_buff, ITEM_SIZE, options))
-				goto error_free_buff;
-
-			aux_strncat(buff, n, "%s\n", item_buff);
-			
-		error_free_buff:
-			aal_free(item_buff);
+			aal_stream_format(stream, "\n");
 		}
 	}
 	

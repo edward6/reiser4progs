@@ -105,7 +105,7 @@ aal_realloc_handler_t aal_realloc_get_handler(void) {
   if it failed then reports about this.
 */
 int aal_realloc(
-	void** old,		    /* pointer to previously allocated piece */
+	void **old,		    /* pointer to previously allocated piece */
 	size_t size)		    /* new size */
 {
 	void *mem;

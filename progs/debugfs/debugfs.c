@@ -115,29 +115,25 @@ static errno_t debugfs_open_joint(
 	return -(*joint == NULL);
 }
 
-#define NODE_SIZE (65536)
-
 static errno_t debugfs_print_joint(
 	reiser4_joint_t *joint,	   /* joint to be printed */
 	void *data)		   /* user-specified data */
 {
-	char *buff;
+	aal_stream_t stream;
 	struct print_tree_hint *hint = (struct print_tree_hint *)data;
 
-	if (!(buff = aal_calloc(NODE_SIZE, 0)))
-		return -1;
+	aal_stream_init(&stream);
 
-	if (reiser4_node_print(joint->node, buff, NODE_SIZE,
-			       hint->flags & PF_ITEMS))
-		goto error_free_buff;
+	if (reiser4_node_print(joint->node, &stream, hint->flags & PF_ITEMS))
+		goto error_free_stream;
 
-	printf(buff);
+	printf((char *)stream.data);
 	
-	aal_free(buff);
+	aal_stream_fini(&stream);
 	return 0;
 	
- error_free_buff:
-	aal_free(buff);
+ error_free_stream:
+	aal_stream_fini(&stream);
 	return -1;
 }
 
@@ -184,51 +180,61 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 }
 
 static errno_t debugfs_print_format(reiser4_fs_t *fs) {
-	char buff[4096];
+	aal_stream_t stream;
 
-	aal_memset(buff, 0, sizeof(buff));
-   
 	if (!fs->format->entity->plugin->format_ops.print) {
 		aal_exception_info("Format print method is not implemented.");
 		return 0;
 	}
     
+	aal_stream_init(&stream);
+	
 	printf("Format super block:\n");
 	if (fs->format->entity->plugin->format_ops.print(fs->format->entity, 
-							 buff, sizeof(buff), 0))
+							 &stream, 0))
 	{
 		aal_exception_error("Can't print format specific super block.");
-		return -1;
+		goto error_free_stream;
 	}
     
-	printf(buff);
+	printf((char *)stream.data);
 	printf("\n");
-    
-	return 0;
+
+	aal_stream_fini(&stream);
+    	return 0;
+	
+ error_free_stream:
+	aal_stream_fini(&stream);
+	return -1;
 }
 
 static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
-	char buff[255];
+	aal_stream_t stream;
     
 	if (!fs->oid->entity->plugin->oid_ops.print) {
 		aal_exception_info("Oid allocator print method is not implemented.");
 		return 0;
 	}
-    
-	aal_memset(buff, 0, sizeof(buff));
+
+	aal_stream_init(&stream);
     
 	printf("Oid allocator:\n");
 	if (fs->oid->entity->plugin->oid_ops.print(fs->oid->entity,
-						   buff, sizeof(buff), 0))
+						   &stream, 0))
 	{
 		aal_exception_error("Can't print oid allocator.");
-		return -1;
+		goto error_free_stream;;
 	}
 
-	printf(buff);
+	printf((char *)stream.data);
 	printf("\n");
 
-	return 0;
+	aal_stream_fini(&stream);
+    	return 0;
+	
+ error_free_stream:
+	aal_stream_fini(&stream);
+	return -1;
 }
 
 static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
