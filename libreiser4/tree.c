@@ -547,6 +547,8 @@ errno_t reiser4_tree_shift(
 	aal_assert("umka-1258", 
 		   reiser4_node_count(coord->u.joint->node) > 0, return -1);
 
+	aal_memset(&hint, 0, sizeof(hint));
+	
 	/*
 	  Saving node position in parent. It will be used bellow for updating
 	  left delemiting key.
@@ -563,6 +565,9 @@ errno_t reiser4_tree_shift(
 		}
 	}
 
+	hint.flags = flags;
+	hint.pos = coord->pos;
+	
 	/*
 	  Performing the shifting by calling shift method of node plugin. This
 	  method shifts some amount of items and units of last item, based on
@@ -574,15 +579,16 @@ errno_t reiser4_tree_shift(
 	
 	retval = plugin_call(return -1, plugin->node_ops, shift,
 			     coord->u.joint->node->entity,
-			     joint->node->entity, &coord->pos,
-			     &hint, flags);
+			     joint->node->entity, &hint);
 
 	if (retval < 0)
 		return retval;
 
 	/* Updating coords joint if insertion point was moved to neighbour */
-	if (hint.ipmoved)
+	if (hint.flags & SF_MOVIP) {
+		coord->pos = hint.pos;
 		coord->u.joint = joint;
+	}
 
 	/* Updating leaf delimiting keys in the tree */
 	if (flags & SF_LEFT) {

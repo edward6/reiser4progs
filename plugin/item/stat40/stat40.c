@@ -238,22 +238,9 @@ static errno_t stat40_valid(item_entity_t *item) {
 	return 0;
 }
 
-/* Callbakc for counting the number of stat data extentions in use */
-static int callback_count(uint8_t ext, uint16_t extmask,
-			  reiser4_body_t *extbody, void *data)
-{
-	(*(uint32_t *)data)++;
-	return 1;
-}
-
 /* This function returns stat data extention count */
 static uint32_t stat40_count(item_entity_t *item) {
-	uint32_t count = 0;
-
-	if (stat40_layout(item, callback_count, &count) < 0)
-		return 0;
-	
-	return count;
+	return 1;
 }
 
 /* Helper structrure for keeping track of stat data extention body */
@@ -382,12 +369,13 @@ static reiser4_plugin_t stat40_plugin = {
 		.print		= NULL,
 #endif
 		.lookup		= NULL,
-		.shift          = NULL,
-		
 		.fetch          = NULL,
 		.update         = NULL,
 		.mergeable      = NULL,
 	    
+		.shift          = NULL,
+		.predict        = NULL,
+		
 		.open           = stat40_open,
 		.count		= stat40_count,
 		.valid		= stat40_valid,

@@ -25,24 +25,6 @@ enum direction {
 
 typedef enum direction direction_t;
 
-enum shift_flags {
-	SF_LEFT	 = 1 << 0,
-	SF_RIGHT = 1 << 1,
-	SF_MOVIP = 1 << 2
-};
-
-typedef enum shift_flags shift_flags_t;
-
-struct shift_hint {
-	int ipmoved;
-
-	uint32_t items;
-	uint32_t units;
-	uint32_t bytes;
-};
-
-typedef struct shift_hint shift_hint_t;
-
 /* 
    Defining types for disk structures. All types like f32_t are fake types
    needed to avoid gcc-2.95.x bug with typedef of aligned types.
@@ -217,6 +199,27 @@ struct reiser4_pos {
 };
 
 typedef struct reiser4_pos reiser4_pos_t;
+
+enum shift_flags {
+	SF_LEFT	 = 1 << 0,
+	SF_RIGHT = 1 << 1,
+	SF_MOVIP = 1 << 2
+};
+
+typedef enum shift_flags shift_flags_t;
+
+struct shift_hint {
+	uint32_t items;
+	uint32_t units;
+
+	uint32_t bytes;
+	uint32_t part;
+
+	reiser4_pos_t pos;
+	shift_flags_t flags;
+};
+
+typedef struct shift_hint shift_hint_t;
 
 /* Type for describing inside the library the objects created by plugins
  * themselves and which also have plugin. For example, node, format, alloc,
@@ -617,8 +620,12 @@ struct reiser4_item_ops {
 
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (item_entity_t *, item_entity_t *,
-			  uint32_t *, shift_hint_t *, shift_flags_t);
+			  shift_hint_t *);
 
+	/* Predicts the shift parameters (units, bytes, etc) */
+	errno_t (*predict) (item_entity_t *, item_entity_t *,
+			    shift_hint_t *);
+	
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
 	int (*mergeable) (item_entity_t *, item_entity_t *);
 	
@@ -690,7 +697,11 @@ struct reiser4_node_ops {
 	
 	/* Performs shift of items and units */
 	errno_t (*shift) (object_entity_t *, object_entity_t *, 
-			  reiser4_pos_t *pos, shift_hint_t *, shift_flags_t);
+			  shift_hint_t *);
+    
+	/* Predicts all shift parameters */
+	errno_t (*predict) (object_entity_t *, object_entity_t *, 
+			    shift_hint_t *);
     
 	/* Confirms that given block contains valid node of requested format */
 	int (*confirm) (object_entity_t *);
@@ -1109,6 +1120,10 @@ struct reiser4_core {
 	} item_ops;
 };
 
+#define plugin_equal(plugin1, plugin2)                        \
+        (plugin1->h.sign.group == plugin1->h.sign.group &&    \
+	 plugin1->h.sign.id == plugin1->h.sign.id)
+
 /* Plugin functions and macros */
 #ifndef ENABLE_COMPACT
 
@@ -1117,21 +1132,23 @@ struct reiser4_core {
   then calls it. In the case it is not implemented, the exception will be thown
   out and @action will be performed.
 */
-#define plugin_call(action, ops, method, args...)	                    \
-    ({								            \
-	    if (!ops.method) {					            \
-	        aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,	    \
-		        "Method \"" #method "\" isn't implemented in %s.",  \
-		        #ops);						    \
-	        action;						            \
-	    }							            \
-	    ops.method(args);					            \
-    })
+#define plugin_call(action, ops, method, args...) ({           \
+        if (!ops.method) {				       \
+                aal_exception_error("Method \"" #method "\" "  \
+				    "isn't implemented "       \
+				    "in %s.", #ops);	       \
+                action;					       \
+        }						       \
+        ops.method(args);				       \
+})
 
 #else
 
-#define plugin_call(action, ops, method, args...)                           \
-    ops.method(args)
+#define plugin_call(action, ops, method, args...) ({           \
+        if (!ops.method)                                       \
+	        action;                                        \
+	ops.method(args);                                      \
+})
     
 #endif
 
@@ -1148,16 +1165,19 @@ struct reiser4_core {
   means of using dl* functions.
 */
 #if defined(ENABLE_COMPACT) || defined(ENABLE_MONOLITHIC)
-#define plugin_register(init, fini)				            \
-    static reiser4_plugin_init_t __plugin_init		                    \
-	    __attribute__((__section__(".plugins"))) = init;                \
-                                                                            \
-    static reiser4_plugin_fini_t __plugin_fini		                    \
+
+#define plugin_register(init, fini)			       \
+    static reiser4_plugin_init_t __plugin_init		       \
+	    __attribute__((__section__(".plugins"))) = init;   \
+                                                               \
+    static reiser4_plugin_fini_t __plugin_fini		       \
 	    __attribute__((__section__(".plugins"))) = fini
 #else
-#define plugin_register(init, fini)					    \
-    reiser4_plugin_init_t __plugin_init = init;                             \
+
+#define plugin_register(init, fini)			       \
+    reiser4_plugin_init_t __plugin_init = init;                \
     reiser4_plugin_fini_t __plugin_fini = fini
+
 #endif
 
 #endif

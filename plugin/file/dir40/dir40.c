@@ -74,10 +74,7 @@ static int dir40_next(object_entity_t *entity) {
 	right_plugin = right.entity.plugin;
 	this_plugin = dir->body.entity.plugin;
 	
-	if (this_plugin->h.sign.group != right_plugin->h.sign.group)
-		return 0;
-	
-	if (this_plugin->h.sign.id != right_plugin->h.sign.id)
+	if (!plugin_equal(this_plugin, right_plugin))
 		return 0;
 	
 	if (!plugin_call(return 0, this_plugin->item_ops, mergeable,

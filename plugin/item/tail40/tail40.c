@@ -143,6 +143,10 @@ static int tail40_lookup(item_entity_t *item, reiser4_key_t *key,
 	return 0;
 }
 
+static uint32_t tail40_count(item_entity_t *item) {
+	return item->len;
+}
+
 #ifndef ENABLE_COMPACT
 
 static int tail40_mergeable(item_entity_t *item1, item_entity_t *item2) {
@@ -223,11 +227,13 @@ static reiser4_plugin_t tail40_plugin = {
 		.remove	       = NULL,
 		.estimate      = NULL,
 		.check	       = NULL,
-		.count	       = NULL,
 		.valid	       = NULL,
-		.shift         = NULL,
 		.update        = NULL,
+
+		.shift         = NULL,
+		.predict       = NULL,
 		
+		.count	       = tail40_count,
 		.lookup	       = tail40_lookup,
 		.fetch         = tail40_fetch,
 		
