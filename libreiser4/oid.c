@@ -34,7 +34,10 @@ reiser4_oid_t *reiser4_oid_open(
 	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid oid allocator plugin id has been detected.");
+#ifndef ENABLE_ALONE
+		aal_exception_error("Invalid oid allocator plugin id "
+				    "has been detected.");
+#endif
 		goto error_free_oid;
 	}
     
@@ -48,11 +51,12 @@ reiser4_oid_t *reiser4_oid_open(
 	plugin_call(fs->format->entity->plugin->format_ops, 
 		    oid, fs->format->entity, &oid_start, &oid_len);
     
-	/* Initializing entity */
+	/* Initializing oid allocator entity */
 	if (!(oid->entity = plugin_call(plugin->oid_ops, open,
 					oid_start, oid_len))) 
 	{
-		aal_exception_error("Can't open oid allocator %s.", plugin->h.label);
+		aal_exception_error("Can't open oid allocator %s.",
+				    plugin->h.label);
 		goto error_free_oid;
 	}
 

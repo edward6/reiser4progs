@@ -47,6 +47,8 @@ static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
 			   aal_strlen(desc->name));
 }
 
+#ifndef ENABLE_PLUGINS_CHECK
+
 /* Helper callback for checking plugin validness */
 static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 				     void *data)
@@ -87,6 +89,8 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 
 	return 0;
 }
+
+#endif
 
 /* Initializes plugin (that is calls its init method) by its handle */
 reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle) {
@@ -232,6 +236,7 @@ errno_t libreiser4_factory_load(char *name) {
 	/* Checking pluign for validness (the same ids, etc) */
 	plugin->h.handle = handle;
 
+#ifdef ENABLE_PLUGINS_CHECK
 	if ((res = libreiser4_factory_foreach(callback_check_plugin,
 					      (void *)plugin)))
 	{
@@ -239,6 +244,7 @@ errno_t libreiser4_factory_load(char *name) {
 				   "plugin factory.", plugin->h.handle.name);
 		goto error_free_plugin;
 	}
+#endif
 
 	/* Registering plugin in plugins list */
 	plugins = aal_list_append(plugins, plugin);
@@ -301,6 +307,7 @@ errno_t libreiser4_factory_load(unsigned long *entry) {
 
 	plugin->h.handle = handle;
 	
+#ifdef ENABLE_PLUGINS_CHECK
 	if ((res = libreiser4_factory_foreach(callback_check_plugin,
 					      (void *)plugin)))
 	{
@@ -308,9 +315,9 @@ errno_t libreiser4_factory_load(unsigned long *entry) {
 				   "plugin factory.", plugin->h.handle.name);
 		goto error_free_plugin;
 	}
+#endif
 	
 	plugins = aal_list_append(plugins, plugin);
-
 	return 0;
 	
  error_free_plugin:
@@ -385,12 +392,14 @@ errno_t libreiser4_factory_init(void) {
 #else
 	/* Loads the all built-in plugins */
 	for (entry = &__plugin_start; entry < &__plugin_end; entry += 2) {
-	
+
+#ifndef ENABLE_ALONE
 		if (!entry) {
 			aal_exception_warn("Invalid built-in entry detected at "
 					   "address (0x%lx).", &entry);
 			continue;
 		}
+#endif
 
 		if (libreiser4_factory_load(entry))
 			continue;
@@ -398,10 +407,11 @@ errno_t libreiser4_factory_init(void) {
 #endif
 	if (aal_list_length(plugins) == 0) {
 #if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
-		aal_exception_error("There are no any valid plugins found in %s.",
-				    PLUGIN_DIR);
+		aal_exception_error("There are no valid plugins found "
+				    "in %s.", PLUGIN_DIR);
 #else
-		aal_exception_error("There are no any built-in plugins found.");
+		aal_exception_error("There are no valid built-in plugins "
+				    "found.");
 #endif
 		return -EINVAL;
 	}

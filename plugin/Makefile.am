@@ -10,6 +10,30 @@ noinst_LTLIBRARIES	     	= libreiser4-plugin.la $(ALONE_LIBS)
 
 if ENABLE_MONOLITHIC
 
+if ENABLE_R5_HASH
+monolithic_r5_hash_libs         = hash/r5_hash/libr5_hash-static.la
+else
+monolithic_r5_hash_libs         =
+endif
+
+if ENABLE_FNV1_HASH
+monolithic_fnv1_hash_libs       = hash/fnv1_hash/libfnv1_hash-static.la
+else
+monolithic_fnv1_hash_libs       =
+endif
+
+if ENABLE_RUPASOV_HASH
+monolithic_rupasov_hash_libs    = hash/rupasov_hash/librupasov_hash-static.la
+else
+monolithic_rupasov_hash_libs    =
+endif
+
+if ENABLE_TEA_HASH
+monolithic_tea_hash_libs        = hash/tea_hash/libtea_hash-static.la
+else
+monolithic_tea_hash_libs        =
+endif
+
 libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          journal/journal40/libjournal40-static.la \
 			          alloc/alloc40/liballoc40-static.la \
@@ -25,17 +49,39 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          object/dir40/libdir40-static.la \
 			          object/reg40/libreg40-static.la \
 			          object/sym40/libsym40-static.la \
-			          hash/r5_hash/libr5_hash-static.la \
-			          hash/tea_hash/libtea_hash-static.la \
-			          hash/rupasov_hash/librupasov_hash-static.la \
-			          hash/fnv1_hash/libfnv1_hash-static.la \
 			          sdext/sdext_unix/libsdext_unix-static.la \
 			          sdext/sdext_lw/libsdext_lw-static.la \
 			          sdext/sdext_lt/libsdext_lt-static.la \
-			          sdext/sdext_symlink/libsdext_symlink-static.la
+			          sdext/sdext_symlink/libsdext_symlink-static.la \
+				  $(monolithic_r5_hash_libs) $(monolithic_fnv1_hash_libs) \
+                                  $(monolithic_rupasov_hash_libs) $(monolithic_tea_hash_libs)
 endif
 
 if ENABLE_ALONE
+
+if ENABLE_R5_HASH
+alone_r5_hash_libs              = hash/r5_hash/libr5_hash-alone.la
+else
+alone_r5_hash_libs              =
+endif
+
+if ENABLE_FNV1_HASH
+alone_fnv1_hash_libs            = hash/fnv1_hash/libfnv1_hash-alone.la
+else
+alone_fnv1_hash_libs            =
+endif
+
+if ENABLE_RUPASOV_HASH
+alone_rupasov_hash_libs         = hash/rupasov_hash/librupasov_hash-alone.la
+else
+alone_rupasov_hash_libs         =
+endif
+
+if ENABLE_TEA_HASH
+alone_tea_hash_libs             = hash/tea_hash/libtea_hash-alone.la
+else
+alone_tea_hash_libs            	=
+endif
 
 libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          oid/oid40/liboid40-alone.la \
@@ -50,11 +96,12 @@ libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          object/dir40/libdir40-alone.la \
 			          object/reg40/libreg40-alone.la \
 			          object/sym40/libsym40-alone.la \
-			          hash/r5_hash/libr5_hash-alone.la \
 			          sdext/sdext_unix/libsdext_unix-alone.la \
 			          sdext/sdext_lw/libsdext_lw-alone.la \
 			          sdext/sdext_lt/libsdext_lt-alone.la \
-			          sdext/sdext_symlink/libsdext_symlink-alone.la
+			          sdext/sdext_symlink/libsdext_symlink-alone.la \
+				  $(alone_r5_hash_libs) $(alone_fnv1_hash_libs) \
+                                  $(alone_rupasov_hash_libs) $(alone_tea_hash_libs)
 
 libreiser4_plugin_alone_la_SOURCES =
 

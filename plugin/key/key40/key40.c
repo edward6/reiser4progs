@@ -10,12 +10,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t key40_plugin;
 
-/* Key minor names. They are used key40_print function */
-static const char *const minor_names[] = {
-	"file name", "stat data", "attr name",
-	"attr body", "file body", "unknown"
-};
-
 /* Minimal possible key */
 static key_entity_t minimal_key = {
 	.plugin = &key40_plugin,
@@ -27,14 +21,6 @@ static key_entity_t maximal_key = {
 	.plugin = &key40_plugin,
 	.body = { ~0ull, ~0ull, ~0ull }
 };
-
-/* Translates passed minor into corresponding name */
-const char *key40_minor2name(key40_minor_t type) {
-	if (type > KEY40_LAST_MINOR)
-		type = KEY40_LAST_MINOR;
-    
-	return minor_names[type];
-}
 
 /* Translates key type from libreiser4 type to key40 one */
 static key40_minor_t key40_type2minor(key_type_t type) {
@@ -373,6 +359,20 @@ static errno_t key40_valid(key_entity_t *key) {
 		return 0;
 
 	return -EINVAL;
+}
+
+/* Key minor names. They are used key40_print function */
+static const char *const minor_names[] = {
+	"file name", "stat data", "attr name",
+	"attr body", "file body", "unknown"
+};
+
+/* Translates passed minor into corresponding name */
+const char *key40_minor2name(key40_minor_t type) {
+	if (type > KEY40_LAST_MINOR)
+		type = KEY40_LAST_MINOR;
+    
+	return minor_names[type];
 }
 
 /* Prints key into passed stream */

@@ -13,6 +13,7 @@ AH_TEMPLATE([ENABLE_MONOLITHIC], [Define for enable monolotic build.])
 AH_TEMPLATE([ENABLE_MANAGER], [Define for enable simple memory manager in libaal.])
 AH_TEMPLATE([ENABLE_DEBUG], [Define for enable debug info.])
 AH_TEMPLATE([ENABLE_KCW], [Define for enable key collision workaround code.])
+AH_TEMPLATE([ENABLE_PLUGINS_CHECK], [Define for enable plugins check code.])
 AH_TEMPLATE([HAVE_LIBUUID], [Define for enable libuuid using.])
 AH_TEMPLATE([HAVE_LIBREADLINE], [Define for enable libreadline using.])
 
@@ -128,6 +129,31 @@ AC_ARG_ENABLE(manager,
 AC_ARG_ENABLE(kcw,
     [  --enable-kcw            enable key collision workaround in directory plugin [default=yes]], ,
         enable_kcw=yes
+)
+
+AC_ARG_ENABLE(plugins_check,
+    [  --enable-plugins_check  enable plugins check in plugin initialization time [default=yes]], ,
+        enable_plugins_check=yes
+)
+
+AC_ARG_ENABLE(r5_hash,
+    [  --enable-r5-hash        enable r5 hash support [default=yes]], ,
+        enable_r5_hash=yes
+)
+
+AC_ARG_ENABLE(fnv1_hash,
+    [  --enable-fnv1-hash      enable fnv1 hash support [default=yes]], ,
+        enable_fnv1_hash=yes
+)
+
+AC_ARG_ENABLE(rupasov_hash,
+    [  --enable-rupasov-hash   enable rupasov hash support [default=yes]], ,
+        enable_rupasov_hash=yes
+)
+
+AC_ARG_ENABLE(tea_hash,
+    [  --enable-tea-hash       enable tea hash support [default=yes]], ,
+        enable_tea_hash=yes
 )
 
 AC_ARG_ENABLE(Werror,
@@ -274,6 +300,15 @@ fi
 if test x$enable_kcw = xyes; then
     AC_DEFINE(ENABLE_KCW)
 fi
+
+if test x$enable_plugins_check = xyes; then
+    AC_DEFINE(ENABLE_PLUGINS_CHECK)
+fi
+
+AM_CONDITIONAL(ENABLE_R5_HASH, test x$enable_r5_hash = xyes)
+AM_CONDITIONAL(ENABLE_FNV1_HASH, test x$enable_fnv1_hash = xyes)
+AM_CONDITIONAL(ENABLE_RUPASOV_HASH, test x$enable_rupasov_hash = xyes)
+AM_CONDITIONAL(ENABLE_TEA_HASH, test x$enable_tea_hash = xyes)
 
 PLUGIN_LDFLAGS=""
 if test x$enable_monolithic = xno; then

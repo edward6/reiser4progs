@@ -12,6 +12,9 @@
 /* Define for enable monolotic build. */
 #undef ENABLE_MONOLITHIC
 
+/* Define for enable plugins check code. */
+#undef ENABLE_PLUGINS_CHECK
+
 /* Define if you have the <dirent.h> header file, and it defines `DIR'. */
 #undef HAVE_DIRENT_H
 
