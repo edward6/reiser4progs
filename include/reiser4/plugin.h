@@ -1331,6 +1331,9 @@ struct tree_ops {
 	/* Initializes all item fields in passed place */
 	errno_t (*realize) (void *, place_t *);
 
+	/* Checks if passed @place points to some real item inside a node */
+	int (*inside) (void *, place_t *);
+	
 #ifndef ENABLE_STAND_ALONE
 	/* 
 	  Inserts item/unit in the tree by calling reiser4_tree_insert function,

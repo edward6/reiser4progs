@@ -50,6 +50,36 @@ static errno_t dir40_telldir(object_entity_t *entity,
 }
 #endif
 
+static int dir40_mergeable(object_entity_t *entity,
+			   place_t *place)
+{
+	dir40_t *dir;
+	item_entity_t *item;
+	
+	dir = (dir40_t *)entity;
+
+	/* Checking if item component in @item->pos is valid one */
+	if (!core->tree_ops.inside(dir->obj.tree, place))
+		return 0;
+
+	/* Initializing item entity at @next place */
+	if (core->tree_ops.realize(dir->obj.tree, place))
+		return 0;
+	
+	item = &dir->body.item;
+	
+	/* Checking if item plugins are mergeable */
+	if (!plugin_equal(item->plugin, place->item.plugin))
+		return 0;
+
+	/*
+	  Calling item's mergeable method in order to determine if they are
+	  mergeable.
+	*/
+	return plugin_call(item->plugin->o.item_ops,
+			   mergeable, item, &place->item);
+}
+
 static errno_t dir40_seekdir(object_entity_t *entity,
 			     key_entity_t *offset)
 {
@@ -62,7 +92,8 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	if ((res = obj40_lookup(&dir->obj, offset, LEAF_LEVEL,
+	if ((res = obj40_lookup(&dir->obj, offset,
+				LEAF_LEVEL,
 				&next) == FAILED))
 	{
 		return -EINVAL;
@@ -70,18 +101,23 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 	if (res == ABSENT) {
-		uint64_t locality;
-
-		/* Initializing item entity at @next place */
-		if (core->tree_ops.realize(dir->obj.tree, &next))
+                uint64_t locality;
+                                                                                    
+		/* Checking if item component in @item->pos is valid one */
+		if (!core->tree_ops.inside(dir->obj.tree, &next))
 			return -EINVAL;
-
-		locality = plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
-				       get_locality, &next.item.key);
-
-		/* Items are not mergeable */
-		if (locality != obj40_objectid(&dir->obj))
-			return -EINVAL;
+		
+                /* Initializing item entity at @next place */
+                if (core->tree_ops.realize(dir->obj.tree, &next))
+                        return -EINVAL;
+                                                                                    
+                locality = plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
+                                       get_locality, &next.item.key);
+                                                                                    
+                /* Items are not mergeable */
+                if (locality != obj40_objectid(&dir->obj))
+                        return -EINVAL;
+		
 	}
 #endif
 		
@@ -127,28 +163,16 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
 }
 
-static int dir40_mergeable(item_entity_t *item1,
-			   item_entity_t *item2)
-{
-	/* Checking if items are mergeable */
-	if (!plugin_equal(item1->plugin, item2->plugin))
-		return 0;
-
-	/*
-	  Calling item's mergeable method in order to determine if they are
-	  mergeable.
-	*/
-	return plugin_call(item1->plugin->o.item_ops,
-			   mergeable, item1, item2);
-}
-
 /* Switches current dir body item onto next one */
 static lookup_t dir40_next(object_entity_t *entity) {
 	dir40_t *dir;
 	place_t next;
 
 	entry_hint_t entry;
+
+#ifndef ENABLE_STAND_ALONE
 	item_entity_t *item;
+#endif
 
 	aal_assert("umka-2063", entity != NULL);
 	
@@ -158,9 +182,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	core->tree_ops.next(dir->obj.tree,
 			    &dir->body, &next);
 
-	item = &dir->body.item;
-	
-	if (!dir40_mergeable(&next.item, item))
+	if (!dir40_mergeable(entity, &next))
 		return ABSENT;
 
 	obj40_relock(&dir->obj, &dir->body, &next);
@@ -169,6 +191,8 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	dir->body.pos.unit = 0;
 
 #ifndef ENABLE_STAND_ALONE
+	item = &dir->body.item;
+	
 	/* Updating current position by entry offset key */
 	if (plugin_call(item->plugin->o.item_ops, read, item,
 			&entry, dir->body.pos.unit, 1) == 1)
@@ -670,11 +694,8 @@ static errno_t dir40_truncate(object_entity_t *entity,
 			return -EINVAL;
 		}
 
-		if (core->tree_ops.realize(dir->obj.tree, &place))
-			return -EINVAL;
-		
 		/* Checking if found item belongs this directory */
-		if (!dir40_mergeable(&dir->body.item, &place.item))
+		if (!dir40_mergeable(entity, &place))
 			return 0;
 
 		/* Removing item from the tree */

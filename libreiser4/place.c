@@ -115,7 +115,9 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 
 	if ((res = plugin_call(entity->plugin->o.node_ops, get_item,
 			       entity, &place->pos, &place->item)))
+	{
 		return res;
+	}
 
 	if ((res = plugin_call(entity->plugin->o.node_ops, get_key,
 			       entity, &place->pos, &place->item.key)))
