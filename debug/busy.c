@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 	}
 
 //	misc_param_override("hash=deg_hash");
-	misc_param_override("policy=tails");
+//	misc_param_override("policy=tails");
 		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
@@ -67,13 +67,13 @@ int main(int argc, char *argv[]) {
                 aal_error("Can't open dir %s.", argv[2]);
                 goto error_free_root;
         }
-                                                                                       
+	
         {
                 int i;
                 char name[256];
                 reiser4_object_t *object;
                                                                                        
-                for (i = 0; i < 100; i++) {
+                for (i = 0; i < 79; i++) {
                         int j, count;
                                                                                        
                         aal_snprintf(name, 256, "file name%d", i);
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
                         if (!(object = reiser4_reg_create(fs, dir, name)))
                                 goto error_free_dir;
                                                                                        
-                        count = 1000;
+                        count = 0;
                                                                                        
                         for (j = 0; j < count; j++) {
                                 if (reiser4_object_write(object, name,

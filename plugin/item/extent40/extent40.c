@@ -961,34 +961,21 @@ static errno_t extent40_prep_shift(place_t *src_place,
 				   place_t *dst_place,
 				   shift_hint_t *hint)
 {
+	int check_point;
+	
 	aal_assert("umka-1705", hint != NULL);
 	aal_assert("umka-1704", src_place != NULL);
 
 	hint->units_number = 0;
-	
-	/* Check if we have to check for insert point to be staying inside src
-	   place. This is usually needed. Otherwise, we want to shift
-	   everything. */
-	if (src_place->pos.item != hint->pos.item &&
-	    hint->pos.unit == MAX_UINT32)
-	{
-		if (hint->units_bytes > src_place->len)
-			hint->units_bytes = src_place->len;
+
+	check_point = (src_place->pos.item == hint->pos.item &&
+		       hint->pos.unit != MAX_UINT32);
 		
-		hint->units_number = hint->units_bytes /
-			sizeof(extent40_t);
-		
-		return 0;
-	}
-	
 	if (hint->control & SF_ALLOW_LEFT) {
 		uint32_t left;
 
-		/* Check if we need to update insert point at all. If not, we
-		   only rely on @hint->rest in that, how many units may be
-		   shifted out to neighbour item. */
-		if (hint->control & SF_UPDATE_POINT) {
-
+		/* If we have to take into account insert point. */
+		if (hint->control & SF_UPDATE_POINT && check_point) {
 			left = hint->pos.unit * sizeof(extent40_t);
 			
 			if (hint->units_bytes > left)
@@ -1018,8 +1005,7 @@ static errno_t extent40_prep_shift(place_t *src_place,
 		uint32_t right;
 
 		/* The same check as abowe, but for right shift */
-		if (hint->control & SF_UPDATE_POINT) {
-
+		if (hint->control & SF_UPDATE_POINT && check_point) {
 			/* Check is it is possible to move something into right
 			   neighbour item. */
 			if (hint->pos.unit * sizeof(extent40_t) < src_place->len) {

@@ -197,27 +197,20 @@ static errno_t tail40_prep_shift(place_t *src_place,
 				 place_t *dst_place,
 				 shift_hint_t *hint)
 {
+	int check_point;
+
 	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_place != NULL);
 
 	hint->units_number = 0;
 	
-	/* Check if we have to check if insert point should be staying inside
-	   @src_place. Otherwise, we want to shift everything. */
-	if (src_place->pos.item != hint->pos.item ||
-	    hint->pos.unit == MAX_UINT32)
-	{
-		if (hint->units_bytes > src_place->len)
-			hint->units_bytes = src_place->len;
-	
-		hint->units_number = hint->units_bytes;
-		return 0;
-	}
+	check_point = (src_place->pos.item == hint->pos.item &&
+		       hint->pos.unit != MAX_UINT32);
 
 	/* Check if this is left shift. */
 	if (hint->control & SF_ALLOW_LEFT) {
-		/* Are we able to update insert point? */
-		if (hint->control & SF_UPDATE_POINT) {
+		/* Check if should take into account inert point from @hint. */
+		if (hint->control & SF_UPDATE_POINT && check_point) {
 			/* Correcting @hint->rest. It should contain number of
 			   bytes we realy can shift. */
 			if (hint->units_bytes > hint->pos.unit)
@@ -241,7 +234,8 @@ static errno_t tail40_prep_shift(place_t *src_place,
 	} else {
 		uint32_t right;
 
-		if (hint->control & SF_UPDATE_POINT) {
+		/* Check if should take into account insert point. */
+		if (hint->control & SF_UPDATE_POINT && check_point) {
 			/* Is insert point inside item? */
 			if (hint->pos.unit < src_place->len) {
 				right = src_place->len - hint->pos.unit;
