@@ -1052,8 +1052,6 @@ static errno_t node40_shift_units(node40_t *src_node,
 					    "shifting units into it.");
 			return -1;
 		}
-		
-		ih = node40_ih_at(dst_node, pos.item);
 
 		/*
 		  Reinitializing dst item after it was expanded by node40_expand
@@ -1094,7 +1092,13 @@ static errno_t node40_shift_units(node40_t *src_node,
 			&src_item, &dst_item, hint))
 		return -1;
 
+	/* Updating dst_node left delimiting key */
+	ih = node40_ih_at(dst_node, dst_item.pos);
 	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+	
+	/* Updating src_node left delimiting key */
+	ih = node40_ih_at(src_node, src_item.pos);
+	aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
 
 	/* Updating source node fields */
 	pos.unit = 0;

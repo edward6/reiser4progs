@@ -25,8 +25,6 @@ reiser4progs/COPYING.
 
 * few disk-format changes (direntry format, big digits storing in stat data)
 
-* fix gpart to wotk with more recent reiserfs than version 3.5.x
-
 * improve balacing for the case when we are going to insert new unit
   at the end of last item in node. Suppose right neighbour exists and
   has enough free space. In this case we should insert new unit into

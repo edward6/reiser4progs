@@ -491,6 +491,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	uint32_t len_after = 0;
 	uint32_t len_before = 0;
     
+	entry40_t *entry;
 	direntry40_t *direntry;
 	reiser4_direntry_hint_t *dh;
     
@@ -580,12 +581,11 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	/* Updating direntry count field */
 	de40_inc_count(direntry, dh->count);
 
-	if (pos == 0) {
-		entry40_t *entry = direntry40_entry(direntry, 0);
+	/* Updating item's key */
+	entry = direntry40_entry(direntry, 0);
 
-		if (direntry40_unitkey(item, entry, &item->key))
-			return -1;
-	}
+	if (direntry40_unitkey(item, entry, &item->key))
+		return -1;
     
 	return 0;
 }

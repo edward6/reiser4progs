@@ -298,17 +298,18 @@ struct tfrag_hint {
 	count_t total, bad;
 };
 
+typedef struct tfrag_hint tfrag_hint_t;
+
 static errno_t tfrag_open_node(
 	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* blk node lies in */
 	void *data)		    /* traverse hint */
 {	
-	struct tfrag_hint *frag_hint =
-		(struct tfrag_hint *)data;
-
-	*node = NULL;
+	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 
 	aal_assert("umka-1556", frag_hint->level > 0, return -1);
+	
+	*node = NULL;
 	
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
@@ -322,7 +323,7 @@ static errno_t tfrag_process_node(
 	void *data)	           /* user-specified data */
 {
 	reiser4_pos_t pos;
-	struct tfrag_hint *frag_hint = (struct tfrag_hint *)data;
+	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
 
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
@@ -378,7 +379,7 @@ static errno_t tfrag_process_node(
 }
 
 static errno_t tfrag_setup_node(reiser4_coord_t *coord, void *data) {
-	struct tfrag_hint *frag_hint = (struct tfrag_hint *)data;
+	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
     
 	aal_assert("vpf-508", frag_hint != NULL, return -1);
 
@@ -387,7 +388,7 @@ static errno_t tfrag_setup_node(reiser4_coord_t *coord, void *data) {
 }
 
 static errno_t tfrag_update_node(reiser4_coord_t *coord, void *data) {
-	struct tfrag_hint *frag_hint = (struct tfrag_hint *)data;
+	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
     
 	aal_assert("vpf-509", frag_hint != NULL, return -1);
 
@@ -399,8 +400,7 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	reiser4_node_t *root;
-
-	struct tfrag_hint frag_hint;
+	tfrag_hint_t frag_hint;
 
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Tree fragmentation",
 				       progs_gauge_handler, NULL)))
@@ -450,13 +450,14 @@ struct tree_stat_hint {
 	count_t formatted;
 };
 
+typedef struct tree_stat_hint tree_stat_hint_t;
+
 static errno_t stat_open_node(
 	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
-	struct tree_stat_hint *stat_hint =
-		(struct tree_stat_hint *)data;
+	tree_stat_hint_t *stat_hint = (tree_stat_hint_t *)data;
 
 	*node = reiser4_tree_load(stat_hint->tree, blk);
 	return -(*node == NULL);
@@ -472,8 +473,7 @@ static errno_t stat_process_node(
 	uint32_t formatted_used;
 	uint32_t internals_used;
 	
-	struct tree_stat_hint *stat_hint =
-		(struct tree_stat_hint *)data;
+	tree_stat_hint_t *stat_hint = (tree_stat_hint_t *)data;
 
 	level = plugin_call(return -1, node->entity->plugin->node_ops,
 			    get_level, node->entity);
@@ -554,7 +554,7 @@ static errno_t stat_process_node(
 static errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
-	struct tree_stat_hint stat_hint;
+	tree_stat_hint_t stat_hint;
 
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Tree statistics",
 				       progs_gauge_handler, NULL)))
@@ -603,13 +603,15 @@ struct ffrag_hint {
 	uint16_t level;
 };
 
+typedef struct ffrag_hint ffrag_hint_t;
+
 static errno_t ffrag_process_blk(
 	object_entity_t *entity,   /* file to be inspected */
 	blk_t blk,                 /* next file block */
 	void *data)                /* user-specified data */
 {
 	int64_t delta;
-	struct ffrag_hint *frag_hint = (struct ffrag_hint *)data;
+	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 
 	if (frag_hint->curr == 0) {
 		frag_hint->curr = blk;
@@ -633,7 +635,7 @@ static errno_t ffrag_process_blk(
 static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 	aal_gauge_t *gauge;
 	reiser4_file_t *file;
-	struct ffrag_hint frag_hint;
+	ffrag_hint_t frag_hint;
 
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
@@ -677,7 +679,7 @@ static errno_t dfrag_open_node(
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
-	struct ffrag_hint *frag_hint = (struct ffrag_hint *)data;
+	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 
 	*node = reiser4_tree_load(frag_hint->tree, blk);
 	return -(*node == NULL);
@@ -689,9 +691,7 @@ static errno_t dfrag_process_node(
 {
 	reiser4_pos_t pos;
 	static int bogus = 0;
-
-	struct ffrag_hint *frag_hint =
-		(struct ffrag_hint *)data;
+	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 
 	if (frag_hint->level > LEAF_LEVEL)
 		return 0;
@@ -746,14 +746,14 @@ static errno_t dfrag_process_node(
 }
 
 static errno_t dfrag_setup_node(reiser4_coord_t *coord, void *data) {
-	struct ffrag_hint *frag_hint = (struct ffrag_hint *)data;
+	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
     
 	frag_hint->level--;
 	return 0;
 }
 
 static errno_t dfrag_update_node(reiser4_coord_t *coord, void *data) {
-	struct ffrag_hint *frag_hint = (struct ffrag_hint *)data;
+	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 
 	frag_hint->level++;
 	return 0;
@@ -762,7 +762,7 @@ static errno_t dfrag_update_node(reiser4_coord_t *coord, void *data) {
 static errno_t debugfs_data_frag(reiser4_fs_t *fs, behav_flags_t flags) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
-	struct ffrag_hint frag_hint;
+	ffrag_hint_t frag_hint;
 
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Data fragmentation",
 				       progs_gauge_handler, NULL)))
