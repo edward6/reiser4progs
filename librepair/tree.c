@@ -214,15 +214,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 
 	    aal_assert("vpf-681", count > insert->pos.unit, return -1);
 	    
-	    if ((coord.item.plugin->h.id != insert->item.plugin->h.id) && 
-		(count != reiser4_item_units(insert))) 
-	    {
-		/* FIXME later. */
-		aal_exception_error("Tree failed to overwrite items of "
-		    "different plugins. Relocation is not supported yet.");
-		return -1;
-	    }
-	    
+
 	    count -= insert->pos.unit;
 	} else if (res > 0) {
 	    /* Prepare the overwriting. */
@@ -231,6 +223,13 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 	     * units - like direntry40 - check that. Use the special method - 
 	     * item_ops.gap_key - which get the max real key stored continously 
 	     * from the key specified in the coord. */
+	    
+	    if (coord.item.plugin->h.id != insert->item.plugin->h.id) {
+		/* FIXME: relocation code should be here. */
+		aal_exception_error("Tree failed to overwrite items of "
+		    "different plugins. Relocation is not supported yet.");
+		return -1;
+	    }
 
 	    if (reiser4_item_gap_key(&coord, &dst_key)) 
 		return -1;
@@ -253,6 +252,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 	    return res;
 	}
 
+	/* FIXME: Here tree_write_prepare should be called. It should split the 
+	 * target node to keep correct flush_ids. */
+	
 	if (reiser4_tree_write(tree, &coord, insert, count)) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u), count "
 		"(%u): Tree failed on writing the set of units to the tree "
