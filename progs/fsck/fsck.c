@@ -314,10 +314,6 @@ static void fsck_time(char *string) {
 	fprintf(stderr, "***** %s %s", string, ctime (&t));
 }
 
-static void callback_uuid_unparse(char *uuid, char *string) {
-	misc_uuid_unparse(uuid, string);
-}
-
 /* Open the fs and init the tree. */
 static errno_t fsck_check_init(repair_data_t *repair, 
 			       aal_device_t *host, 
@@ -344,7 +340,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	repair_master_print(repair->fs->master, &stream, 
-			    callback_uuid_unparse);
+			    misc_uuid_unparse);
 	
 	aal_stream_format(&stream, "\n");
 	
@@ -449,6 +445,7 @@ int main(int argc, char *argv[]) {
 	
 	if (parse_data.sb_mode != RM_CHECK || parse_data.fs_mode != RM_CHECK) {
 		if (aal_device_reopen(device, device->blksize, O_RDWR)) {
+			aal_fatal("Failed to reopen the device RW.");
 			ex = OPER_ERROR;
 			goto free_libreiser4;
 		}
@@ -493,7 +490,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "\n");
 	
 	/* Report about the results. */
-	if (res < 0) {
+	if (res < 0 || ex == OPER_ERROR) {
 		aal_mess("Operational error occured while fscking.");
 		goto free_fsck;
 	} 
