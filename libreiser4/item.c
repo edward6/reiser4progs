@@ -149,6 +149,17 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 	return 0;
 }
 
+errno_t reiser4_item_ukey(reiser4_place_t *place, reiser4_key_t *key) {
+	errno_t res;
+
+	aal_assert("vpf-1205", place != NULL);
+	aal_assert("vpf-1205", key != NULL);
+	
+	aal_memcpy(&place->key, key, sizeof(*key));
+	
+	return reiser4_node_ukey(place->node, &place->pos, &place->key);
+}
+
 int reiser4_item_data(reiser4_plug_t *plug) {
         return (plug->o.item_ops->data &&
 		plug->o.item_ops->data(NULL));

@@ -102,12 +102,8 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 
 	lookup = dir40_lookup(object, entry.name, &entry);
 
-	if (!(par_key = plug_call(parent->plug->o.object_ops, origin,
-				  parent)))
-	{
-		/* FIXME-UMKA->VITALY: Is it correct here? */
+	if (!(par_key = plug_call(parent->plug->o.object_ops, origin,  parent)))
 		return -EINVAL;
-	}
 	
 	switch(lookup) {
 	case PRESENT:
@@ -131,9 +127,8 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	}
 
 	/* ".." matches the parent. Now do parent->nlink++ for REBUILD mode. */
-	return mode == RM_BUILD ? 
-	       plug_call(parent->plug->o.object_ops, link, parent) :
-	       RE_OK;
+	return mode != RM_BUILD ? RE_OK :
+	       plug_call(parent->plug->o.object_ops, link, parent);
 }
 
 #endif

@@ -1317,7 +1317,9 @@ struct tree_ops {
 	
 	/* Obtains the profile value for @entry. */
 	uint64_t (*profile) (void *, char *);
-	
+
+	/* Update the key in the place and the node itsef. */
+	errno_t (*ukey) (place_t *place, key_entity_t *key);
 #endif
 	/* Returns next and prev items respectively */
 	errno_t (*next) (void *, place_t *, place_t *);

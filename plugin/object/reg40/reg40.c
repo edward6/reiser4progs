@@ -456,7 +456,7 @@ static int32_t reg40_put(object_entity_t *entity,
 }
 
 /* Takes care about holes */
-static errno_t reg40_holes(object_entity_t *entity) {
+errno_t reg40_holes(object_entity_t *entity) {
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;

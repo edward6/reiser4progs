@@ -15,13 +15,10 @@
 extern reiser4_plug_t reg40_plug;
 extern errno_t reg40_reset(object_entity_t *entity);
 extern errno_t reg40_create_stat(obj40_t *obj, uint64_t sd);
+extern errno_t reg40_holes(object_entity_t *entity);
 
-/* Check SD extentions and that mode in LW extention is REGFILE. */
-static errno_t callback_stat(place_t *sd) {
-	sdext_lw_hint_t lw_hint;
+static errno_t reg40_check_extentions(place_t *sd) {
 	uint64_t mask, extmask;
-	uint64_t reg;
-	errno_t res;
 	
 	/*  SD may contain LW and UNIX extentions only. 
 	    FIXME-VITALY: tail policy is not supported yet. */
@@ -30,8 +27,17 @@ static errno_t callback_stat(place_t *sd) {
 	if ((extmask = obj40_extmask(sd)) == MAX_UINT64)
 		return -EINVAL;
 	
-	if (mask != extmask)
-		return RE_FATAL;
+	return mask == extmask ? RE_OK : RE_FATAL;
+}
+
+/* Check SD extentions and that mode in LW extention is REGFILE. */
+static errno_t callback_stat(place_t *sd) {
+	sdext_lw_hint_t lw_hint;
+	uint64_t reg;
+	errno_t res;
+	
+	if ((res = reg40_check_extentions(sd)))
+		return res;
 	
 	/* Check the mode in the LW extention. */
 	if ((res = obj40_read_ext(sd, SDEXT_LW_ID, &lw_hint)) < 0)
@@ -224,12 +230,21 @@ static errno_t reg40_realize_sd(place_t *sd, uint8_t mode) {
 }
 #endif
 
+inline errno_t reg40_check_key(place_t *place, key_entity_t *key) {
+	/* Fix SD's key if differs. */
+	if (key->plug->o.key_ops->compfull(key, &place->key))
+		return core->tree_ops.ukey(place, key);
+	
+	return 0;
+}
+
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t register_func,
 			   uint8_t mode, void *data)
 {
 	uint64_t locality, objectid, ordering;
 	reg40_t *reg = (reg40_t *)object;
+	sdext_lw_hint_t lw_hint;
 	object_info_t *info;
 	errno_t res = RE_OK;
 	key_entity_t key;
@@ -250,12 +265,12 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* It must be correct SD. Fix it if needed. */
 	if (lookup == ABSENT) {
-		/* Check if found place is our SD with broken key. */
-		if ((res = obj40_check_stat(&reg->obj, callback_stat)) < 0)
-			return res;
+		
+		/* Check if found place is our SD with some broken key. */
+		res = obj40_check_stat(&reg->obj, reg40_check_extentions);
 		
 		/*  */
-		if (res) {
+		if (res > 0) {
 			uint64_t pid;
 			
 			pid = core->tree_ops.profile(info->tree, "statdata");
@@ -268,36 +283,32 @@ errno_t reg40_check_struct(object_entity_t *object,
 			   they just fail to realize themselves. */
 			if ((res = reg40_create_stat(&reg->obj, pid)))
 				return res;
-		} else {
-			/* SD is found, fix the item key (~offset is wrong). */
-			info->start.key = info->object;
-		}
+		} else if (res < 0)
+			return res;
 	}
 	
+	if (register_func && register_func(object, &info->start, data))
+		/* Fails to register SD as an item of this file. */
+		return RE_FATAL;
+	
+	/* Fix SD's key if differs. */
+	if ((res = reg40_check_key(&info->start, &info->object)))
+		return res;
+	
+	/* Build the start key of the body. */
 	plug_call(info->start.plug->o.key_ops, build_gener, &key,
 		  KEY_FILEBODY_TYPE, locality, ordering, objectid, 
 		  reg->offset);
-
+	
+	aal_memset(&lw_hint, 0, sizeof(lw_hint));
+	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
+		if ((lookup = obj40_lookup(&reg->obj, &key, LEAF_LEVEL, 
+					   &reg->body)) == FAILED)
+			return -EINVAL;
 
-		lookup = obj40_lookup(&reg->obj, &key, LEAF_LEVEL, &reg->body);
-		
-		switch(lookup) {
-		case PRESENT:
-			/* Get the maxreal key of the foudn item and find next. */
-			if ((res = core->tree_ops.fetch(info->tree, &reg->body)))
-				return res;
-			
-			if ((res = plug_call(reg->body.plug->o.item_ops, 
-					     maxreal_key, &reg->body, &key)))
-				return res;
-			
-			reg->offset = plug_call(key.plug->o.key_ops, get_offset, 
-						&key) + 1;
-			
-			continue;
-		case ABSENT:
+		if (lookup == ABSENT) {
 			/* If place is invalid, then no more reg40 body items exists. */
 			if (!core->tree_ops.valid(info->tree, &reg->body))
 				break;
@@ -309,19 +320,42 @@ errno_t reg40_check_struct(object_entity_t *object,
 			/* Check if this is an item of another object. */
 			if (plug_call(key.plug->o.key_ops, compshort, 
 				      &key, &reg->body.key))
-			{
 				break;
-			}
-
-			/* Insert the hole. */
-
-		case FAILED:
-			return -EINVAL;
 		}
+		
+		/* Try to register this item. */
+		if (register_func && register_func(object, &reg->body, data))
+			break;
+		
+		/* Fix item key if differs. */
+		if ((res = reg40_check_key(&reg->body, &key)))
+			return res;
+		
+		reg->bplug = reg->body.plug;
+		
+		/* Insert the hole if needed. */
+		reg->offset = plug_call(key.plug->o.key_ops, get_offset, 
+					&reg->body.key);
+		
+		if ((res = reg40_holes(object)))
+			return res;
+		
+		/* Get the maxreal key of the found item and find next. */
+		if ((res = plug_call(reg->body.plug->o.item_ops, 
+				     maxreal_key, &reg->body, &key)))
+			return res;
 
-		break;
+		reg->offset = plug_call(key.plug->o.key_ops, 
+					get_offset, &key) + 1;
 	}
-
+	
+	/* Fix the SD -- mode, lw and unix extentions. */
+	
+	res = reg40_check_mode(&info->start, mode);
+	
+	if (repair_error_fatal(res))
+		return res;
+	
 	return 0;
 
  error_free_reg:

@@ -212,6 +212,14 @@ static uint64_t tree_profile(void *t, char *entry) {
 	return reiser4_profile_value(tree->fs->profile, entry);
 }
 
+static errno_t tree_ukey(place_t *place, key_entity_t *key) {
+	aal_assert("vpf-1206", place != NULL);
+	aal_assert("vpf-1207", key != NULL);
+
+	return reiser4_item_ukey((reiser4_place_t *)place, 
+				 (reiser4_key_t *)key);
+}
+
 #endif
 
 #ifdef ENABLE_SYMLINKS
@@ -283,6 +291,9 @@ reiser4_core_t core = {
 
 		/* Get the default plugin id. */
 		.profile    = tree_profile,
+
+		/* Update the key in the place and the node itsef. */
+		.ukey       = tree_ukey,
 #endif
 
 		/* Data related functions */
