@@ -48,6 +48,7 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
     reiser4_format_t *format;
     repair_ds_t *ds;
     blk_t i;
+    uint64_t fs_len;
  
     aal_assert("vpf-511", rd != NULL, return -1);
     aal_assert("vpf-704", rd->fs != NULL, return -1);
@@ -57,16 +58,18 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
     aal_assert("vpf-633", ds->bm_used != NULL, return -1);
     
     format = rd->fs->format;
+
+    fs_len = reiser4_format_get_len(format);
     
     /* Allocate a bitmap for blocks to be scanned on this pass. */ 
-    if (!(ds->bm_scan = aux_bitmap_create(reiser4_format_get_len(format)))) {
+    if (!(ds->bm_scan = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap for blocks unconnected"
 	    " from the tree.");
 	return -1;
     }
 
     /* Allocate a bitmap for leaves to be inserted into the tree later. */
-    if (!(ds->bm_leaf = aux_bitmap_create(reiser4_format_get_len(format)))) {
+    if (!(ds->bm_leaf = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap for leaves unconnected"
 	    " from the tree.");
 	return -1;
@@ -74,21 +77,20 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 
     /* Allocate a bitmap for formatted blocks which cannot be pointed by extents,
      * which are not in the used nor twig not leaf bitmaps. */
-    if (!(ds->bm_frmt = aux_bitmap_create(reiser4_format_get_len(format)))) {
+    if (!(ds->bm_frmt = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap for unaccounted "
 	    "formatted blocks.");
 	return -1;
     }
-	    
+
     region.bm_used = ds->bm_used;	    
     region.bm_scan = ds->bm_scan;
 
     /* FIXME-VITALY: optimize it later somehow. */
     /* Build a bitmap of blocks which are not in the tree yet. */
-    for (i = 0; i < reiser4_format_get_len(format); i++) {
+    for (i = reiser4_format_start(format); i < fs_len; i++) {
 	aal_assert("vpf-693", 
-	    (aux_bitmap_test(ds->bm_used, i) && !aux_bitmap_test(ds->bm_twig, i)) ||
-	    (!aux_bitmap_test(ds->bm_used, i) && aux_bitmap_test(ds->bm_twig, i)), 
+	    (!aux_bitmap_test(ds->bm_used, i) || !aux_bitmap_test(ds->bm_twig, i)),
 	    return -1);
 	
 	if (aux_bitmap_test(ds->bm_used, i) && 
@@ -133,15 +135,16 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	aal_assert("vpf-694", !aux_bitmap_test(ds->bm_used, blk), return -1);
 	aal_assert("vpf-695", !aux_bitmap_test(ds->bm_used, blk), return -1);
 	
-	if ((node = repair_node_open(rd->fs->format, blk)))
-	    continue;
+	node = repair_node_open(rd->fs, blk);
+	if (node == NULL)
+	    goto next;
 
 	level = reiser4_node_level(node);
 
 	if (level != LEAF_LEVEL && level != TWIG_LEVEL) {
 	    aux_bitmap_mark(ds->bm_frmt, blk);
 	    reiser4_node_release(node);
-	    continue;
+	    goto next;
 	}
 
 	res = repair_node_check(node, ds->bm_used);
@@ -150,7 +153,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	    /* Node was not recovered, save it as formatted. */
 	    aux_bitmap_mark(ds->bm_frmt, blk);
 	    reiser4_node_release(node);
-	    continue;
+	    goto next;
 	} else if (res < 0)
 	    goto error_node_release;
 
@@ -179,6 +182,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 
 		    reiser4_node_mkdirty(coord.node);
 		    pos->item--;
+		    count = reiser4_node_items(node);
 		}
 	    }
 
@@ -190,6 +194,8 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	    aux_bitmap_mark(ds->bm_leaf, blk);
 	
 	reiser4_node_release(node);
+    next:
+	blk++;	
     }
     
     return 0;

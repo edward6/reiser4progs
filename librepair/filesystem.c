@@ -41,10 +41,12 @@ reiser4_fs_t *repair_fs_open(aal_device_t *host_device,
     if (!(fs = aal_calloc(sizeof(*fs), 0)))
 	return NULL;
 
-    if ((fs->master = repair_master_open(host_device)) == NULL)
+    fs->device = host_device;
+    
+    if (repair_master_open(fs))
 	goto error_fs_free;
 	
-    if ((fs->format = repair_format_open(fs->master, profile)) == NULL)
+    if (repair_format_open(fs, profile))
 	goto error_master_close;
     
     /* Block and oid allocator plugins are specified by format plugin unambiguously, 

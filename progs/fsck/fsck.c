@@ -329,7 +329,7 @@ int main(int argc, char *argv[]) {
 
     fsck_data_prepare(&repair_data, &data, fs);
 
-    if (repair_journal_handle(fs->format, data.journal_device)) {
+    if (repair_journal_handle(fs, data.journal_device)) {
 	aal_exception_fatal("Failed to replay the journal.");
 	goto free_device;
     }

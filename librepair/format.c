@@ -55,29 +55,25 @@ static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile,
     return plugin;
 }
 
-static errno_t repair_format_check(reiser4_format_t **format, 
-    aal_device_t *host_device, reiser4_profile_t *profile) 
+static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile) 
 {
     reiser4_plugin_t *plugin = NULL;
 
-    aal_assert("vpf-165", format != NULL, return -1);
-    aal_assert("vpf-171", host_device != NULL, return -1);
-    aal_assert("vpf-166", *format != NULL || profile != NULL, 
-	return -1);
-   
-    if (*format == NULL) {
+    aal_assert("vpf-165", fs != NULL, return -1);
+    aal_assert("vpf-171", fs->device != NULL, return -1);
+    aal_assert("vpf-166", fs->format != NULL || profile != NULL, return -1);
+
+    if (fs->format == NULL) {
 	/* Format was not opened. */
 	aal_exception_fatal("Cannot open the on-disk format on (%s)", 
-	    aal_device_name(host_device));
+	    aal_device_name(fs->device));
 	
-	if (!(plugin = __choose_format(profile, host_device)))
+	if (!(plugin = __choose_format(profile, fs->device)))
 	    return -1;
 
-	/* FIXME-UMKA->VITALY: Here we need filesystem instance */
-	
 	/* Create the format with fake tail plugin. */
-	if (!(*format = reiser4_format_create(NULL, 0, INVAL_PID, 
-	    plugin->h.id))) 
+	if (!(fs->format = reiser4_format_create(fs, 0, INVAL_PID, 
+	    plugin->h.id)))
 	{
 	    aal_exception_fatal("Cannot create a filesystem of the format "
 		"(%s).", plugin->h.label);
@@ -86,48 +82,36 @@ static errno_t repair_format_check(reiser4_format_t **format,
     } 
     
     /* Format was either opened or created. Check it and fix it. */
-    if (plugin_call((*format)->entity->plugin->format_ops, check, 
-	(*format)->entity)) 
+    if (plugin_call(fs->format->entity->plugin->format_ops, check, 
+	fs->format->entity)) 
     {
 	aal_exception_error("Failed to recover the on-disk format (%s) on "
-	    "(%s).", plugin->h.label, aal_device_name(host_device));
+	    "(%s).", plugin->h.label, aal_device_name(fs->device));
 	return -1;
     }
     
     return 0;
 }
 
-reiser4_format_t *repair_format_open(reiser4_master_t *master, 
-    reiser4_profile_t *profile) 
-{
-    reiser4_format_t *format = NULL;
-    aal_device_t *host_device;    
+errno_t repair_format_open(reiser4_fs_t *fs, reiser4_profile_t *profile) {
+    aal_assert("vpf-398", fs != NULL, return -1);
 
-    aal_assert("vpf-398", master != NULL, return NULL);
-    aal_assert("vpf-396", master->block != NULL, return NULL);
-    aal_assert("vpf-479", master->block->device != NULL, return NULL);
-    
-    host_device = master->block->device;
-    
-    /* FIXME-UMKA->VITALY: Here we need filesystem instance */
-    
     /* Try to open the disk format. */
-//    format = reiser4_format_open(hont_device, reiser4_master_format(master));
-    format = reiser4_format_open(NULL/* Here should be a filesystem instance */);
+    fs->format = reiser4_format_open(fs);
 
     /* Check the opened disk format or rebuild it if needed. */
-    if (repair_format_check(&format, host_device, profile))
+    if (repair_format_check(fs, profile))
 	goto error_format_close;
 
-    aal_assert("vpf-478", format != NULL, goto error);
-
-    return format;
+    return 0;
 
 error_format_close:
-    if (format)
-	reiser4_format_close(format);
-error:
-    return NULL;
+    if (fs->format) {
+	reiser4_format_close(fs->format);
+	fs->format = NULL;
+    }
+    
+    return -1;
 }
 
 void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {

@@ -82,6 +82,7 @@ typedef struct journal40_check {
     blk_t fs_start;
     count_t fs_len;
     layout_func_t fs_layout;
+    void *layout;
 } journal40_check_t;
 
 extern errno_t journal40_traverse(journal40_t *, journal40_handler_func_t,
@@ -122,7 +123,8 @@ static int journal40_blk_format_check(journal40_t *journal, blk_t blk,
     aal_assert("vpf-492", data != NULL, return -1);
 
     /* blk is out of format bound */
-    if (blk >= journal->area.start + journal->area.len || blk < journal->area.start) 
+    if (blk >= journal->area.start + journal->area.len || 
+	blk < journal->area.start) 
 	return 1;
 
     /* If blk can be from format area, nothing to check anymore. */
@@ -130,8 +132,7 @@ static int journal40_blk_format_check(journal40_t *journal, blk_t blk,
 	return 0;
 	
     /* blk belongs to format area */
-    return data->fs_layout((object_entity_t *)journal,
-			   callback_check_format_block, &blk);
+    return data->fs_layout(data->layout, callback_check_format_block, &blk);
 }
 
 /* TxH callback for nested traverses. Should find the transaction which TxH 
@@ -378,12 +379,15 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
     return 0;
 }
 
-errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout) {
+errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout, 
+    void *layout)
+{
     errno_t ret;
     journal40_check_t data;
     journal40_t *journal = (journal40_t *)entity;
     
     aal_assert("vpf-447", journal != NULL, return -1);
+    aal_assert("vpf-733", fs_layout != NULL, return -1);
 
     aal_memset(&data, 0, sizeof(data));
     
@@ -394,6 +398,7 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout) {
 	get_len, journal->format);
     
     data.fs_layout = fs_layout;
+    data.layout = layout;
     
     if (!(data.journal_layout = aux_bitmap_create(data.fs_len))) {
 	aal_exception_error("Failed to allocate a control bitmap for journal "

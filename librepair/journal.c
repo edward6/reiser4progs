@@ -1,85 +1,81 @@
 /*
-    librepair/jounrnal.c - methods are needed for the work with broken reiser4 journals.
+    librepair/journal.c - methods are needed for the work with broken reiser4 journals.
     Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <repair/librepair.h>
 
+static errno_t callback_fs_check(void *layout, block_func_t func, 
+    void *data) 
+{
+    reiser4_fs_t *fs = (reiser4_fs_t *)layout;
+    
+    aal_assert("vpf-737", fs != NULL, return -1);
+
+    return reiser4_fs_layout(fs, func, data);
+}
+
 static errno_t repair_journal_check(reiser4_journal_t *journal) {
     aal_assert("vpf-460", journal != NULL, return -1);
+    aal_assert("vpf-736", journal->fs != NULL, return -1);
 
-    /* FIXME-UMKA->VITALY: Where we should get filesystem layout function?
-     * Actually we have one in fs API. But we have not fs access here. */
     if (plugin_call(journal->entity->plugin->journal_ops, check, 
-	journal->entity, NULL))
+	journal->entity, callback_fs_check, journal->fs)) 
     {
 	aal_exception_error("Failed to recover the journal (%s) on (%s).", 
 	    journal->entity->plugin->h.label, aal_device_name(journal->device));
 	return -1;
     }
-	    
+    
     return 0;	    
 }
 
-reiser4_journal_t *repair_journal_open(reiser4_format_t *format, 
-    aal_device_t *journal_device) 
-{
-    reiser4_journal_t *journal = NULL;
+errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device) {
+    aal_assert("vpf-445", fs != NULL, return -1);
+    aal_assert("vpf-446", fs->format != NULL, return -1);
+    aal_assert("vpf-476", journal_device != NULL, return -1);
 
-    aal_assert("vpf-446", format != NULL, return NULL);
-    aal_assert("vpf-476", journal_device != NULL, return NULL);
-
-    /* FIXME-UMKA->VITALY */
-    
     /* Try to open the journal. */
-    if ((journal = reiser4_journal_open(NULL/* Here should be fs instance*/, journal_device)) == NULL) {
+    if ((fs->journal = reiser4_journal_open(fs, journal_device)) == NULL) {
 	/* failed to open a journal. Build a new one. */
 	aal_exception_fatal("Failed to open a journal by its id (0x%x). "
-	    "Try to build a new one.", reiser4_format_journal_pid(format));
+	    "Try to build a new one.", reiser4_format_journal_pid(fs->format));
 	
-	if (!(journal = reiser4_journal_create(NULL/* Here should be fs instance*/, journal_device, NULL))) {
+	if (!(fs->journal = reiser4_journal_create(fs, journal_device, NULL))) 
+	{
 	    aal_exception_fatal("Cannot create a journal by its id (0x%x).", 
-		reiser4_format_journal_pid(format));
-	    return NULL;
+		reiser4_format_journal_pid(fs->format));
+	    return -1;
 	}
     }
     
-    aal_assert("vpf-482", journal != NULL, goto error);
-    
     /* Check the structure of the opened journal or rebuild it if needed. */
-    if (repair_journal_check(journal))
+    if (repair_journal_check(fs->journal))
 	goto error_journal_close;
     
-    return journal;
-    
-error_journal_close:
-    reiser4_journal_close(journal);
-error:
-    return NULL;
-}
-
-/* Open, replay, close journal. */
-errno_t repair_journal_handle(reiser4_format_t *format, 
-    aal_device_t *journal_device) 
-{
-    reiser4_journal_t *journal = NULL;
-
-    aal_assert("vpf-445", format != NULL, return -1);
-    aal_assert("vpf-444", journal_device != NULL, return -1);
-    
-    if ((journal = repair_journal_open(format, journal_device)) == NULL)
-	return -1;
-
-    /* FIXME-VITALY: What if we do it on RO partition? */
-    if (reiser4_journal_replay(journal))
-	goto error_journal_close;
-
-    reiser4_journal_close(journal);
-
     return 0;
     
 error_journal_close:
-    reiser4_journal_close(journal);
+    reiser4_journal_close(fs->journal);
+    fs->journal = NULL;
 
     return -1;
 }
+
+/* Open, replay, close journal. */
+errno_t repair_journal_handle(reiser4_fs_t *fs, aal_device_t *journal_device) {
+    errno_t ret = 0;
+ 
+    if (repair_journal_open(fs, journal_device))
+	return -1;
+
+    /* FIXME-VITALY: What if we do it on RO partition? */
+    if (reiser4_journal_replay(fs->journal))
+	ret = -1;
+
+    reiser4_journal_close(fs->journal);
+    fs->journal = NULL;
+
+    return ret;
+}
+

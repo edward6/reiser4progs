@@ -12,7 +12,9 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_journal_handle(reiser4_format_t *format, 
+extern errno_t repair_journal_handle(reiser4_fs_t *fs, 
+    aal_device_t *journal_device);
+extern errno_t repair_journal_open(reiser4_fs_t *fs, 
     aal_device_t *journal_device);
 
 #endif
