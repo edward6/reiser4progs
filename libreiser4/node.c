@@ -438,9 +438,9 @@ errno_t reiser4_node_insert(
     return 0;
 }
 
-/* This function travers passed node. */
+/* This function traverse passed node. */
 errno_t reiser4_node_traverse(
-    aal_block_t *block,			/* root block traverse will be going from */
+    blk_t blk,				/* block which should be traversed */
     reiser4_open_func_t open_func,	/* callback will be used for opening node */
     reiser4_handler_func_t handler_func,/* callback will be called on node */
     reiser4_setup_func_t before_func,	/* callback will be called before all childs */
@@ -450,31 +450,28 @@ errno_t reiser4_node_traverse(
     void *data				/* user-spacified data */
 ) {
     errno_t result = 0;
-    aal_device_t *device;
-    reiser4_node_t *node;
+    reiser4_node_t *node = NULL;
     reiser4_item_t item;
     reiser4_pos_t pos;
     
-    aal_assert("umka-1029", block != NULL, return -1);
     aal_assert("umka-1024", open_func != NULL, return -1);
 
-    device = block->device;
-    
-    if (!(node = open_func(block, data))) {
-	aal_exception_error("Can't open node on block %llu.", 
-	    aal_block_number(block));
-	return -1;
+    if ((result = open_func(node, blk, data))) {
+	aal_exception_error("Node (%llu): cannot be openned.", blk);
+	return result;
     }
     
     if ((handler_func && !(result = handler_func(node, data))) || !handler_func) {
 	if (before_func && (result = before_func(node, &item, data)))
 	    goto error_free_node;
 
-	for (; pos.item < reiser4_node_count(node); pos.item++) {
-	    aal_block_t *block;
+	pos.item = reiser4_node_count(node);
+	do {
+	    pos.unit = ~0ul; 
 	    
-	    if (reiser4_item_open(&item, node, &pos)) {
-		aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
+	    if ((result = reiser4_item_open(&item, node, &pos))) {
+		/* All items must be openned - this is checked in the handler_func. */
+		aal_exception_error("Node (%llu), item (%u): item cannot be openned.",
 		    aal_block_number(node->block), pos.item);
 		goto error_after_func;
 	    }
@@ -482,29 +479,24 @@ errno_t reiser4_node_traverse(
 	    if (!reiser4_item_internal(&item))
 		continue;
 	    
-	    for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
+	    pos.unit = reiser4_item_count(&item) - 1;
+	    do {
 		blk_t target;
 		
 		if ((target = reiser4_item_get_nptr(&item)) != FAKE_BLK) {
 		    if (setup_func && (result = setup_func(node, &item, data)))
 			goto error_after_func;
 	
-		    if (!(block = aal_block_open(device, target))) {
-			aal_exception_error("Can't read block %llu. %s.", 
-			    target, device->error);
-			goto error_update_func;
-		    }
-	    	    
-		    if ((result = reiser4_node_traverse(block, open_func, 
+		    if ((result = reiser4_node_traverse(target, open_func, 
 			handler_func, before_func, setup_func, 
-			update_func, after_func, data)))
-			goto error_update_func;
+			update_func, after_func, data)) < 0)
+			return result;
 
 		    if (update_func && (result = update_func(node, &item, data)))
 			goto error_after_func;
 		}
-	    }
-	}
+	    } while (pos.unit--);
+	} while (pos.item--);
 	
 	if (after_func && (result = after_func(node, &item, data)))
 	    goto error_free_node;
