@@ -82,8 +82,8 @@ static int32_t sym40_read(object_entity_t *entity,
 }
 
 /* Creates symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
-				     object_hint_t *hint, place_t *place)
+static object_entity_t *sym40_create(void *tree, object_hint_t *hint, 
+				     place_t *place)
 {
 	sym40_t *sym;
 	oid_t objectid, locality;
@@ -184,11 +184,6 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	aal_memcpy(place, &sym->obj.statdata, sizeof(*place));
 
 	obj40_lock(&sym->obj, &sym->obj.statdata);
-		
-	if (parent) {
-		plugin_call(parent->plugin->o.object_ops, link,
-			    parent);
-	}
 	
 	return (object_entity_t *)sym;
 

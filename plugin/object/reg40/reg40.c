@@ -192,8 +192,8 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Creating the file described by pased @hint */
-static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
-				     object_hint_t *hint, place_t *place) 
+static object_entity_t *reg40_create(void *tree, object_hint_t *hint, 
+				     place_t *place)
 {
 	reg40_t *reg;
 	oid_t objectid, locality;
@@ -289,12 +289,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 
 	aal_memcpy(place, &reg->obj.statdata, sizeof(*place));
 	obj40_lock(&reg->obj, &reg->obj.statdata);
-    
-	if (parent) {
-		plugin_call(parent->plugin->o.object_ops, link,
-			    parent);
-	}
-
+	
 	reg->bplug = reg40_bplug(reg, 0);
 	return (object_entity_t *)reg;
 

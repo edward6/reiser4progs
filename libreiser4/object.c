@@ -15,7 +15,7 @@
 
 /* Helper callback for probing passed @plugin */
 static bool_t callback_object_guess(reiser4_plugin_t *plugin,
-				     void *data)
+				    void *data)
 {
 	reiser4_object_t *object;
 	bool_t res = FALSE;
@@ -400,9 +400,8 @@ reiser4_object_t *reiser4_object_create(
 	reiser4_object_create_base(fs, parent, object, hint);
 	
 	if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
-					   create, fs->tree, parent ?
-					   parent->entity : NULL,
-					   hint, (place_t *)&object->place)))
+					   create, fs->tree, hint, 
+					   (place_t *)&object->place)))
 	{
 		aal_exception_error("Can't create object with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&object->key));
@@ -520,14 +519,6 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 		aal_exception_error("Can't open %s/%s.",
 				    object->name, name);
 		return -EINVAL;
-	}
-
-	/* Increasing unlink value */
-	if ((res = plugin_call(child->entity->plugin->o.object_ops,
-			       unlink, child->entity)))
-	{
-		aal_exception_error("Can't unlink %s/%s.",
-				    object->name, name);
 	}
 
 	reiser4_object_close(child);

@@ -393,8 +393,8 @@ static char *dir40_empty_dir[2] = { ".", ".." };
   Creates dir40 instance and inserts few item in new directory described by
   passed @hint.
 */
-static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
-				     object_hint_t *hint, place_t *place)
+static object_entity_t *dir40_create(void *tree, object_hint_t *hint, 
+				     place_t *place)
 {
 	uint32_t i;
 	dir40_t *dir;
@@ -543,7 +543,16 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	  it, because of dot entry which points onto directory itself and entry
 	  in parent directory, which points to this new directory.
 	*/
-	lw_ext.nlink = parent ? 1 : 3;
+	
+
+	if (plugin_call(hint->parent.plugin->o.key_ops, compare, &hint->parent, 
+	    &hint->object))
+	{
+	    lw_ext.nlink = 3;
+	} else {
+	    lw_ext.nlink = 1;
+	}
+
 	lw_ext.mode = S_IFDIR | 0755;
 	lw_ext.size = body_hint.count;
 
@@ -619,11 +628,6 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	
 	aal_free(body);
 
-	if (parent) {
-		plugin_call(parent->plugin->o.object_ops, link,
-			    parent);
-	}
-	
 	return (object_entity_t *)dir;
 
  error_free_body:
@@ -766,6 +770,10 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
 	
+	/* Descreasing link counter. */
+	if ((res = dir40_unlink(entity)))
+		return res;
+
 	/* Updating size field */
 	size = obj40_get_size(&dir->obj);
 
@@ -855,6 +863,10 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		return res;
 	}
 
+	/* Increasing link counter. */
+	if ((res = dir40_link(entity)))
+		return res;
+	
 	/* Updating stat data place */
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
