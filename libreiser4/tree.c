@@ -2247,14 +2247,8 @@ errno_t reiser4_tree_cutout(reiser4_tree_t *tree,
 		}
 	}
 	
-	/* Checking if the node became empty. If so, we release it, otherwise we
-	   pack the tree about it. */
+	/* Checking if the node became empty. If so, we release it. */
 	if (reiser4_node_items(place->node) > 0) {
-		if ((tree->flags & TF_PACK) && tree->traps.pack) {
-			if ((res = tree->traps.pack(tree, place, tree->traps.data)))
-				return res;
-		}
-	} else {
 		/* Detaching node from the tree, because it became empty */
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach(tree, place->node);
