@@ -35,7 +35,7 @@ extern reiser4_core_t core;
 /* Helper callback function for matching plugin by type and id */
 static int callback_match_id(
 	reiser4_plugin_t *plugin,	         /* current plugin in list */
-	walk_desc_t *desc)		         /* desction contained needed plugin type and id */
+	walk_desc_t *desc)		         /* key to searched */
 {
 	return !(plugin->h.type == desc->type 
 		&& plugin->h.id == desc->id);
@@ -220,9 +220,11 @@ errno_t libreiser4_factory_load(char *name) {
 	/* Checking pluign for validness (the same ids, etc) */
 	plugin->h.handle = handle;
 
-	if ((res = libreiser4_factory_foreach(callback_check_plugin, (void *)plugin))) {
-		aal_exception_warn("Plugin %s will not be attached to plugin factory.",
-				   plugin->h.handle.name);
+	if ((res = libreiser4_factory_foreach(callback_check_plugin,
+					      (void *)plugin)))
+	{
+		aal_exception_warn("Plugin %s will not be attached to "
+				   "plugin factory.", plugin->h.handle.name);
 		goto error_free_plugin;
 	}
 
@@ -284,9 +286,11 @@ errno_t libreiser4_factory_load(unsigned long *entry) {
 
 	plugin->h.handle = handle;
 	
-	if ((res = libreiser4_factory_foreach(callback_check_plugin, (void *)plugin))) {
-		aal_exception_warn("Plugin %s will not be attached to plugin factory.",
-				   plugin->h.handle.name);
+	if ((res = libreiser4_factory_foreach(callback_check_plugin,
+					      (void *)plugin)))
+	{
+		aal_exception_warn("Plugin %s will not be attached to "
+				   "plugin factory.", plugin->h.handle.name);
 		goto error_free_plugin;
 	}
 	
@@ -455,7 +459,7 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 	aal_assert("umka-899", func != NULL);    
 	aal_assert("umka-155", plugins != NULL);    
 	
-	aal_list_foreach_forward(walk, plugins) {
+	aal_list_foreach_forward(plugins, walk) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
 	
 		if (func(plugin, data))
@@ -478,7 +482,7 @@ errno_t libreiser4_factory_foreach(
     
 	aal_assert("umka-479", func != NULL);
 
-	aal_list_foreach_forward(walk, plugins) {
+	aal_list_foreach_forward(plugins, walk) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
 	
 		if ((res = func(plugin, data)))

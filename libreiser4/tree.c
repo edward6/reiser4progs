@@ -1040,8 +1040,8 @@ errno_t reiser4_tree_shift(
 			reiser4_node_t *child;
 			reiser4_ptr_hint_t ptr;
 			
-			plugin_call(place.item.plugin->item_ops,
-				    read, &place.item, &ptr, pos.unit, 1);
+			plugin_call(place.item.plugin->item_ops, read,
+				    &place.item, &ptr, pos.unit, 1);
 			
 			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
 				continue;
@@ -1232,8 +1232,8 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	} else {
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach(tree, place->node);
+		
 		reiser4_tree_release(tree, place->node);
-
 		place->node = NULL;
 	}
 
@@ -1342,7 +1342,8 @@ errno_t reiser4_tree_insert(
 	reiser4_item_hint_t *hint)  /* item hint to be inserted */
 {
 	int mode;
-	uint32_t needed;	
+	uint32_t needed;
+	
 	reiser4_key_t *key;
 	reiser4_place_t old;
 
@@ -1445,34 +1446,24 @@ errno_t reiser4_tree_insert(
 	}
 
 	/* Inserting item/unit and updating parent keys */
-	{
-		int update;
-		rpos_t ppos;
+	if (reiser4_node_insert(place->node, &place->pos, hint)) {
+		aal_exception_error("Can't insert an %s into the node %llu.", 
+				    (place->pos.unit == ~0ul ? "item" : "unit"),
+				    place->node->blk);
+		return -1;
+	}
 
-		if ((update = reiser4_place_leftmost(place))) {
-			if (place->node->parent) {
-				if (reiser4_node_pos(place->node, &ppos))
-					return -1;
-			}
-		}
-
-		if (reiser4_node_insert(place->node, &place->pos, hint)) {
-			aal_exception_error("Can't insert an %s into the node %llu.", 
-					    (place->pos.unit == ~0ul ? "item" : "unit"),
-					    place->node->blk);
+	if (reiser4_place_leftmost(place) && place->node->parent) {
+		rpos_t *pos = &place->node->pos;
+		
+		if (reiser4_node_ukey(place->node->parent, pos, &hint->key))
 			return -1;
-		}
-
-		if (update && place->node->parent) {
-			if (reiser4_node_ukey(place->node->parent, &ppos, &hint->key))
-				return -1;
-		}
 	}
 	
 	/* 
-	   If make space function allocates new node, we should attach it to the
-	   tree. Also, here we should handle the special case, when tree root
-	   should be changed.
+	  If make space function allocates new node, we should attach it to the
+	  tree. Also, here we should handle the special case, when tree root
+	  should be changed.
 	*/
 	if (place->node != tree->root && !place->node->parent) {
 
@@ -1602,7 +1593,9 @@ errno_t reiser4_tree_cut(
 		} else {
 			reiser4_node_mkclean(start->node);
 			reiser4_tree_detach(tree, start->node);
+			
 			reiser4_tree_release(tree, start->node);
+			start->node = NULL;
 		}
 		
 		/* Removing from the end node */
@@ -1617,7 +1610,9 @@ errno_t reiser4_tree_cut(
 		} else {
 			reiser4_node_mkclean(end->node);
 			reiser4_tree_detach(tree, end->node);
+			
 			reiser4_tree_release(tree, end->node);
+			end->node = NULL;
 		}
 
 	} else {
@@ -1630,7 +1625,9 @@ errno_t reiser4_tree_cut(
 		} else {
 			reiser4_node_mkclean(start->node);
 			reiser4_tree_detach(tree, start->node);
+			
 			reiser4_tree_release(tree, start->node);
+			start->node = NULL;
 		}
 
 	}
@@ -1665,8 +1662,6 @@ errno_t reiser4_tree_remove(
 	reiser4_place_t *place,   /* place the item will be removed at */
 	uint32_t count)
 {
-	int update;
-	rpos_t ppos;
 	errno_t res;
 
 	/* Calling "pre_remove" handler if it is defined */
@@ -1676,30 +1671,22 @@ errno_t reiser4_tree_remove(
 			return res;
 	}
 
-	/*
-	  Getting position in parent node. It is needed for updating key in it
-	  after node_remove is finished.
-	*/
-	update = reiser4_place_leftmost(place);
-	
-	if (update && place->node->parent) {
-		if (reiser4_node_pos(place->node, &ppos))
-			return -1;
-	}
-		
 	/* Removing iten/unit from the node */
 	if (reiser4_node_remove(place->node, &place->pos, count))
 		return -1;
 
 	/* Updating left deleimiting key in all parent nodes */
-	if (update && place->node->parent) {
+	if (reiser4_place_leftmost(place) && place->node->parent) {
 		if (reiser4_node_items(place->node) > 0) {
-
+			rpos_t *pos;
 			reiser4_key_t lkey;
+
+			/* Updating parent keys */
+			pos = &place->node->pos;
 			reiser4_node_lkey(place->node, &lkey);
 				
 			if (reiser4_node_ukey(place->node->parent,
-					      &ppos, &lkey))
+					      pos, &lkey))
 				return -1;
 		}
 	}
@@ -1714,9 +1701,16 @@ errno_t reiser4_tree_remove(
 				return -1;
 		}
 	} else {
+		/* Detaching node from the tree, because it became empty */
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach(tree, place->node);
+
+		/*
+		  Freeing node and updating place node component in order to let
+		  user know that node do not exist longer.
+		*/
 		reiser4_tree_release(tree, place->node);
+		place->node = NULL;
 	}
 
 	/* Drying tree up in the case root node has only one item */

@@ -3,6 +3,9 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* should we consider, that node's children list may contains empty 
+  nodes? Or in node_remove we should detach empty node from the list?
+
 * debug tree remove stuff.
 
 * implement reiser4_tree_write function.

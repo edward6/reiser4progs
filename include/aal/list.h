@@ -43,13 +43,13 @@ extern aal_list_t *aal_list_find_custom(aal_list_t *list, void *needle,
 extern void aal_list_free(aal_list_t *list);
 
 /* 
-   Macro for walking through the list in both directions (forward and
-   backward). It is used for simple search (if list has small size), etc.
+  Macros for walking through the list in both directions (forward and
+  backward). They are used for simple search, etc.
 */
-#define aal_list_foreach_forward(walk, list) \
+#define aal_list_foreach_forward(list, walk) \
     for (walk = aal_list_first(list); walk; walk = aal_list_next(walk))
 
-#define aal_list_foreach_backward(walk, list) \
+#define aal_list_foreach_backward(list, walk) \
     for (walk = aal_list_last(list); walk; walk = aal_list_prev(walk))
     
 #endif

@@ -304,7 +304,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
     
 	/* The loop through all devices */
-	aal_list_foreach_forward(walk, devices) {
+	aal_list_foreach_forward(devices, walk) {
     
 		host_dev = (char *)walk->data;
     

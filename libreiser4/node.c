@@ -283,54 +283,6 @@ errno_t reiser4_node_pos(
 	return 0;
 }
 
-/*
-  Helper callback function for comparing two keys durring registering the new
-  child.
-*/
-static inline int callback_comp_key(
-	const void *item,		/* node find will operate on */
-	const void *key,		/* key to be find */
-	void *data)			/* user-specified data */
-{
-	reiser4_key_t lkey;
-	reiser4_node_t *node;
-
-	node = (reiser4_node_t *)item;
-
-	if (reiser4_node_items(node) == 0)
-		return -1;
-	
-	reiser4_node_lkey(node, &lkey);
-	return reiser4_key_compare(&lkey, (reiser4_key_t *)key);
-}
-
-/* Finds child by its left delimiting key */
-reiser4_node_t *reiser4_node_cbk(
-	reiser4_node_t *node,	        /* node to be greped */
-	reiser4_key_t *key)		/* left delimiting key */
-{
-	aal_list_t *list;
-	reiser4_node_t *child;
-    
-	if (!node->children)
-		return NULL;
-    
-	/*
-	  Using aal_list_find_custom function with local helper functions for
-	  comparing keys.
-	*/
-	if (!(list = aal_list_find_custom(node->children, (void *)key,
-					  callback_comp_key, NULL)))
-		return NULL;
-
-	child = (reiser4_node_t *)list->data;
-
-	if (node->tree && aal_lru_touch(node->tree->lru, (void *)child))
-		aal_exception_warn("Can't update tree lru.");
-
-	return child;
-}
-
 static inline int callback_comp_blk(
 	const void *item,		/* node find will operate on */
 	const void *blk,		/* key to be find */
@@ -385,10 +337,24 @@ static int callback_comp_node(
 	const void *item2,		/* the second one */
 	void *data)		        /* user-specified data */
 {
+	reiser4_node_t *node1;
+	reiser4_node_t *node2;
+	
+	uint32_t items1, items2;
 	reiser4_key_t lkey1, lkey2;
 
-	reiser4_node_t *node1 = (reiser4_node_t *)item1;
-	reiser4_node_t *node2 = (reiser4_node_t *)item2;
+	node1 = (reiser4_node_t *)item1;
+	node2 = (reiser4_node_t *)item2;
+
+	/*
+	  FIXME-UMKA: Is it correct? Should we consider that empty nodes may
+	  exist in children list.
+	*/
+	items1 = reiser4_node_items(node1);
+	items2 = reiser4_node_items(node2);
+
+	if (items1 == 0 || items2 == 0)
+		return -1;
     
 	reiser4_node_lkey(node1, &lkey1);
 	reiser4_node_lkey(node2, &lkey2);
@@ -403,6 +369,7 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 
 	aal_assert("umka-1758", node != NULL);
 	aal_assert("umka-1759", child != NULL);
+	aal_assert("umka-1884", reiser4_node_items(child) > 0);
 	
 	current = aal_list_insert_sorted(node->children, child,
 					 callback_comp_node, NULL);
@@ -667,7 +634,7 @@ errno_t reiser4_node_sync(
 	if (node->children) {
 		aal_list_t *walk;
 	
-		aal_list_foreach_forward(walk, node->children) {
+		aal_list_foreach_forward(node->children, walk) {
 			if (reiser4_node_sync((reiser4_node_t *)walk->data))
 				return -1;
 		}
@@ -712,6 +679,64 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 	return 0;
 }
 
+/*
+  Updates children in-parent position. It is used durring internal nodes
+  modifying.
+*/
+static errno_t reiser4_node_uchildren(reiser4_node_t *node,
+				      rpos_t *start)
+{
+	rpos_t pos;
+	reiser4_place_t item;
+
+	reiser4_ptr_hint_t ptr;
+	aal_list_t *walk = NULL;
+	aal_list_t *list = NULL;
+
+	aal_assert("umka-1887", node != NULL);
+	aal_assert("umka-1888", start != NULL);
+	
+	if (node->children == NULL)
+		return 0;
+
+	POS_INIT(&pos, start->item, 0);
+
+	/* Getting nodeptr item */
+	for (; pos.item < reiser4_node_items(node); pos.item++) {
+		if (reiser4_place_open(&item, node, start))
+			return -1;
+
+		if (reiser4_item_branch(&item))
+			break;
+	}
+	
+	if (!reiser4_item_branch(&item))
+		return 0;
+
+	for (; pos.item < reiser4_node_items(node); pos.item++) {
+		plugin_call(item.item.plugin->item_ops, read,
+			    &item.item, &ptr, pos.unit, 1);
+	
+		if ((list = aal_list_find_custom(node->children, (void *)&ptr.ptr,
+						 callback_comp_blk, NULL)))
+			break;
+	}
+
+	if (!list)
+		return 0;
+	
+	aal_list_foreach_forward(list, walk) {
+		reiser4_node_t *child = (reiser4_node_t *)walk->data;
+
+		aal_assert("umka-1886", child->parent == node);
+
+		if (reiser4_node_pos(child, &child->pos))
+			return -1;
+	}
+	
+	return 0;
+}
+
 /* 
   Inserts item or unit into node. Keeps track of changes of the left delimiting
   keys in all parent nodes.
@@ -731,7 +756,9 @@ errno_t reiser4_node_insert(
 
 #ifdef ENABLE_DEBUG
 	maxspace = reiser4_node_maxspace(node);
-	aal_assert("umka-761", hint->len > 0 && hint->len < maxspace);
+
+	aal_assert("umka-761", hint->len > 0 &&
+		   hint->len < maxspace);
 #endif
 
 	needed = hint->len + (pos->unit == ~0ul ?
@@ -753,7 +780,11 @@ errno_t reiser4_node_insert(
 			       insert, node->entity, pos, hint)))
 		return res;
 
+	if (reiser4_node_uchildren(node, pos))
+		return -1;
+	
 	reiser4_node_mkdirty(node);
+	
 	return 0;
 }
 
@@ -786,8 +817,8 @@ errno_t reiser4_node_cut(
 			return -1;
 	}
 	
-	if (plugin_call(node->entity->plugin->node_ops, cut, node->entity,
-			start, end))
+	if (plugin_call(node->entity->plugin->node_ops, cut,
+			node->entity, start, end))
 	{
 		aal_exception_error("Can't cut items/units from the node "
 				    "%llu. Start: (%lu, %lu), end: (%lu, %lu).",
@@ -796,8 +827,6 @@ errno_t reiser4_node_cut(
 		return -1;
 	}
 
-	reiser4_node_mkdirty(node);
-	
 	if (start->item == 0 && node->parent) {
 		reiser4_key_t lkey;
 		
@@ -808,6 +837,12 @@ errno_t reiser4_node_cut(
 			return -1;
 	}
 
+	/* Updating children */
+	if (reiser4_node_uchildren(node, end))
+		return -1;
+	
+	reiser4_node_mkdirty(node);
+	
 	return 0;
 }
 
@@ -827,15 +862,22 @@ errno_t reiser4_node_remove(
 	  Removing item or unit. We assume that we are going to remove unit if
 	  unit component is set up.
 	*/
-	if (plugin_call(node->entity->plugin->node_ops, remove,
-			node->entity, pos, count))
+	if (plugin_call(node->entity->plugin->node_ops,
+			remove, node->entity, pos, count))
 	{
 		aal_exception_error("Can't remove %lu items/units from "
 				    "node %llu.", count, node->blk);
 		return -1;
 	}
 
+	/* Updating children */
+	if (node->children) {
+		if (reiser4_node_uchildren(node, pos))
+			return -1;
+	}
+	
 	reiser4_node_mkdirty(node);
+	
 	return 0;
 }
 

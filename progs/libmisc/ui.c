@@ -148,7 +148,7 @@ void progs_print_wrap(void *stream, char *text) {
 		list = aal_list_first(list);
     
 		/* Printing message */
-		aal_list_foreach_forward(walk, list) {
+		aal_list_foreach_forward(list, walk) {
 			char *line = (char *)walk->data;
 
 			if (line && aal_strlen(line) > 0) {

@@ -1,7 +1,7 @@
 /*
   ls.c -- a demo program which works like standard ls utility.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -117,13 +117,11 @@ int main(int argc, char *argv[]) {
 		aal_stream_fini(&stream);
 	}
 
-	{
-		int i;
-		for (i = 0; i < reiser4_node_items(place.node); i++) {
-			place.pos.item = i;
-			reiser4_tree_remove(fs->tree, &place, 1);
-		}
-	}
+	place.pos.item = 0;
+		
+/*	while (reiser4_node_items(place.node) > 0)
+		reiser4_tree_remove(fs->tree, &place, 1);*/
+	
 //	reiser4_tree_detach(fs->tree, place.node);
 	
 	reiser4_file_close(dir);
