@@ -17,7 +17,7 @@
 struct reg40 {
 
 	/* Common fields (statdata, etc) */
-	object40_t file;
+	object40_t obj;
 
 	/* Current body item coord stored here */
 	place_t body;

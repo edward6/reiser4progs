@@ -25,9 +25,6 @@ reiser4progs/COPYING.
 
 * big digits stat data fields storing format change.
 
-* update parent directory fields (nlink, etc) when creating file or
-  directories.
-
 * smart bitmap working functions (copy, invert, etc).
 
 * there should be an ability to work with symlinks from the API.

@@ -314,6 +314,7 @@ reiser4_file_t *reiser4_file_create(
 	const char *name)		    /* name of entry */
 {
 	reiser4_file_t *file;
+	object_entity_t *par;
 	reiser4_plugin_t *plugin;
     
 	roid_t objectid, locality;
@@ -339,7 +340,7 @@ reiser4_file_t *reiser4_file_create(
 		plugin = parent->entity->plugin;
 	}
     
-	/* Allocating the memory for obejct instance */
+	/* Allocating the memory for object instance */
 	if (!(file = aal_calloc(sizeof(*file), 0)))
 		return NULL;
 
@@ -357,8 +358,8 @@ reiser4_file_t *reiser4_file_create(
 		aal_strncpy(file->name, name, sizeof(file->name));
     
 	/* 
-	   This is a special case. In the case parent is NULL, we are trying to
-	   create root directory.
+	  This is a special case. In the case parent is NULL, we are trying to
+	  create root directory.
 	*/
 	if (parent) {
 		reiser4_key_assign(&hint->parent, &parent->key);
@@ -405,16 +406,16 @@ reiser4_file_t *reiser4_file_create(
 		}
 	}
 
+	par = parent ? parent->entity : NULL;
+	
 	if (!(file->entity = plugin_call(plugin->file_ops, create, fs->tree,
-					 hint, (place_t *)&file->place)))
+					 par, hint, (place_t *)&file->place)))
 	{
 		aal_exception_error("Can't create file with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&file->key));
 		goto error_free_file;
 	}
 
-	/* FIXME-UMKA: Updating parent will be here (nlink, size, etc) */
-    
 	return file;
 
  error_free_file:

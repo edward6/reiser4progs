@@ -38,7 +38,7 @@ static int32_t sym40_read(object_entity_t *entity,
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
-	item = &sym->file.statdata.item;
+	item = &sym->obj.statdata.item;
 
 	if (!item->plugin->item_ops.read)
 		return -1;
@@ -63,16 +63,16 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 	key = &place->item.key;
 
 	/* Initalizing file handle */
-	if (object40_init(&sym->file, &sym40_plugin, key, core, tree))
+	if (object40_init(&sym->obj, &sym40_plugin, key, core, tree))
 		goto error_free_sym;
 
 	/* Saving statdata coord and locking the node it lies in */
-	aal_memcpy(&sym->file.statdata, place, sizeof(*place));
-	object40_lock(&sym->file, &sym->file.statdata);
+	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
+	object40_lock(&sym->obj, &sym->obj.statdata);
 
 	/* Initializing parent key from the root one */
-	sym->file.core->tree_ops.rootkey(sym->file.tree,
-					 &sym->parent);
+	sym->obj.core->tree_ops.rootkey(sym->obj.tree,
+					&sym->parent);
 	
 	return (object_entity_t *)sym;
 
@@ -84,7 +84,8 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 #ifndef ENABLE_ALONE
 
 /* Creates symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint,
+static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
+				     reiser4_file_hint_t *hint,
 				     place_t *place)
 {
 	roid_t objectid;
@@ -107,15 +108,15 @@ static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint,
 		return NULL;
 
 	/* Inizializes file handle */
-	object40_init(&sym->file, &sym40_plugin, &hint->object, 
-		    core, tree);
-
+	object40_init(&sym->obj, &sym40_plugin, &hint->object, 
+		      core, tree);
+	
 	/* Initializing parent key from the parent field of passed @hint */
 	plugin_call(hint->object.plugin->key_ops, assign,
 		    &sym->parent, &hint->parent);
 	
-	locality = object40_locality(&sym->file);
-	objectid = object40_objectid(&sym->file);
+	locality = object40_locality(&sym->obj);
+	objectid = object40_objectid(&sym->obj);
 
 	parent_locality = plugin_call(hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
@@ -168,18 +169,31 @@ static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint,
 	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data into the tree */
-	if (object40_insert(&sym->file, &stat_hint, LEAF_LEVEL, place))
+	if (object40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_sym;
 
 	/* Saving statdata coord and locking the node it lies in */
-	aal_memcpy(&sym->file.statdata, place, sizeof(*place));
-	object40_lock(&sym->file, &sym->file.statdata);
+	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
+	object40_lock(&sym->obj, &sym->obj.statdata);
 		
+	if (parent) {
+		plugin_call(parent->plugin->file_ops, link,
+			    parent);
+	}
+	
 	return (object_entity_t *)sym;
 
  error_free_sym:
 	aal_free(sym);
 	return NULL;
+}
+
+static errno_t sym40_link(object_entity_t *entity) {
+	return object40_link(&((sym40_t *)entity)->obj, 1);
+}
+
+static errno_t sym40_unlink(object_entity_t *entity) {
+	return object40_link(&((sym40_t *)entity)->obj, -1);
 }
 
 /* Writes "n" bytes from "buff" to passed file. */
@@ -196,7 +210,7 @@ static int32_t sym40_write(object_entity_t *entity,
 	  we have do here?
 	*/
 	sym = (sym40_t *)entity;
-	return object40_set_sym(&sym->file, buff);
+	return object40_set_sym(&sym->obj, buff);
 }
 
 /* Calls function @func for each symlink item (statdata only) */
@@ -210,7 +224,7 @@ static errno_t sym40_metadata(object_entity_t *entity,
 	aal_assert("umka-1718", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	return func(entity, &sym->file.statdata, data);
+	return func(entity, &sym->obj.statdata, data);
 }
 
 /* Calls function @func for each block symlink items lie in */
@@ -225,7 +239,7 @@ static errno_t sym40_layout(object_entity_t *entity,
 	aal_assert("umka-1720", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	blk = sym->file.statdata.item.con.blk;
+	blk = sym->obj.statdata.item.con.blk;
 		
 	return func(entity, blk, data);
 }
@@ -238,7 +252,6 @@ static errno_t callback_find_statdata(char *track,
 				      void *data)
 {
 	sym40_t *sym;
-	object40_t *file;
 	key_entity_t *key;
 	item_entity_t *item;
 
@@ -247,28 +260,26 @@ static errno_t callback_find_statdata(char *track,
 	reiser4_plugin_t *plugin;
 
 	sym = (sym40_t *)data;
-
-	file = &sym->file;
-	key = &sym->file.key;
+	key = &sym->obj.key;
 	
-	place = &sym->file.statdata;
-	item = &sym->file.statdata.item;
+	place = &sym->obj.statdata;
+	item = &sym->obj.statdata.item;
 		
 	/* Setting up the file key */
 	plugin_call(key->plugin->key_ops, set_type, key, KEY_STATDATA_TYPE);
 	plugin_call(key->plugin->key_ops, set_offset, key, 0);
 
 	/* Performing lookup for statdata of current directory */
-	if (object40_lookup(file, key, LEAF_LEVEL,
-			    &file->statdata) != LP_PRESENT)
+	if (object40_lookup(&sym->obj, key, LEAF_LEVEL,
+			    &sym->obj.statdata) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
 		return -1;
 	}
 
-	if (file->core->tree_ops.realize(file->tree,
-					 &file->statdata))
+	if (sym->obj.core->tree_ops.realize(sym->obj.tree,
+					     &sym->obj.statdata))
 		return -1;
 	
 	/* Getting file plugin */
@@ -282,14 +293,14 @@ static errno_t callback_find_statdata(char *track,
 	if (plugin->file_ops.follow) {
 		
 		if (!(entity = plugin_call(plugin->file_ops, open, 
-					   sym->file.tree, place)))
+					   sym->obj.tree, place)))
 		{
 			aal_exception_error("Can't open parent of directory "
 					    "%s.", track);
 			return -1;
 		}
 
-		if (plugin->file_ops.follow(entity, &sym->file.key)) {
+		if (plugin->file_ops.follow(entity, &sym->obj.key)) {
 			aal_exception_error("Can't follow %s.", track);
 			goto error_free_entity;
 		}
@@ -297,8 +308,8 @@ static errno_t callback_find_statdata(char *track,
 		plugin_call(plugin->file_ops, close, entity);
 	}
 	
-	plugin_call(sym->file.key.plugin->key_ops,
-		    assign, &sym->parent, &sym->file.key);
+	plugin_call(sym->obj.key.plugin->key_ops,
+		    assign, &sym->parent, &sym->obj.key);
 
 	return 0;
 
@@ -318,8 +329,8 @@ static errno_t callback_find_entry(char *track, char *entry,
 	reiser4_plugin_t *plugin;
 	
 	sym = (sym40_t *)data;
-	place = &sym->file.statdata;
-	item = &sym->file.statdata.item;
+	place = &sym->obj.statdata;
+	item = &sym->obj.statdata.item;
 
 	/* Getting file plugin */
 	if (!(plugin = item->plugin->item_ops.belongs(item))) {
@@ -330,7 +341,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 	/* Opening currect diretory */
 	if (!(entity = plugin_call(plugin->file_ops, open, 
-				   sym->file.tree, place)))
+				   sym->obj.tree, place)))
 	{
 		aal_exception_error("Can't open parent of directory "
 				    "%s.", track);
@@ -339,7 +350,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(plugin->file_ops, lookup, entity,
-			entry, &sym->file.key) != LP_PRESENT)
+			entry, &sym->obj.key) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
@@ -374,21 +385,21 @@ static errno_t sym40_follow(object_entity_t *entity,
 	sym = (sym40_t *)entity;
 	aal_memset(path, 0, sizeof(path));
 	
-	if (object40_get_sym(&sym->file, path))
+	if (object40_get_sym(&sym->obj, path))
 		return -1;
 
-	plugin = sym->file.key.plugin;
+	plugin = sym->obj.key.plugin;
 		
 	/*
 	  Assigning parent key to root one of path symlink has is beginning from
 	  the slash or assigning it to the parent key otherwise.
 	*/
 	if (path[0] == '/') {
-		sym->file.core->tree_ops.rootkey(sym->file.tree,
-						 &sym->file.key);
+		sym->obj.core->tree_ops.rootkey(sym->obj.tree,
+						&sym->obj.key);
 	} else {
 		plugin_call(plugin->key_ops, assign,
-			    &sym->file.key, &sym->parent);
+			    &sym->obj.key, &sym->parent);
 	}
 
 	res = aux_parse_path(path, callback_find_statdata,
@@ -397,7 +408,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 	/* If there is no errors, we assign result ot passed @key */
 	if (res == 0) {
 		plugin_call(plugin->key_ops, assign, key,
-			    &sym->file.key);
+			    &sym->obj.key);
 	}
 
 	return res;
@@ -410,7 +421,7 @@ static void sym40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
-	object40_unlock(&sym->file, &sym->file.statdata);
+	object40_unlock(&sym->obj, &sym->obj.statdata);
 	aal_free(entity);
 }
 
@@ -430,11 +441,15 @@ static reiser4_plugin_t sym40_plugin = {
 		.write	    = sym40_write,
 		.layout     = sym40_layout,
 		.metadata   = sym40_metadata,
+		.link       = sym40_link,
+		.unlink     = sym40_unlink,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
 		.layout     = NULL,
 		.metadata   = NULL,
+		.link       = NULL,
+		.unlink     = NULL,
 #endif
 		.truncate   = NULL,
 		.valid	    = NULL,

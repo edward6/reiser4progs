@@ -99,7 +99,7 @@ static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
 	hint = ((reiser4_item_hint_t *)data)->type_specific;
 
 	/* Reading mask into hint */
-	if ((ext + 1) % 16 == 0) {
+	if (ext % 16 == 0) {
 		hint->extmask <<= 16;
 		hint->extmask |= extmask;
 	}
@@ -234,7 +234,7 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 		   to extention body pointer, in the case we are on bit denoted
 		   for indicating if next extention in use or not.
 		*/
-		if (i == 0 || (i + 1) % 16 == 0) {
+		if (i % 16 == 0) {
 			uint16_t extmask;
 
 			extmask = (stat_hint->extmask >> i) &
@@ -242,8 +242,6 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 			
 			st40_set_extmask((stat40_t *)extbody, extmask);
 			extbody = (void *)extbody + sizeof(d16_t);
-			
-			if (i > 0) continue;
 		}
 
 		/* Getting extention plugin */
@@ -254,7 +252,10 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 		}
 
 		/* Initializing extention data at passed area */
-		plugin_call(plugin->sdext_ops, init, extbody, stat_hint->ext[i]);
+		if (stat_hint->ext[i]) {
+			plugin_call(plugin->sdext_ops, init, extbody,
+				    stat_hint->ext[i]);
+		}
 	
 		/* 
 		   Getting pointer to the next extention. It is evaluating as

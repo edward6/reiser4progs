@@ -658,7 +658,7 @@ lookup_t reiser4_tree_lookup(
 	
 	deep = reiser4_tree_height(tree);
 
-	/* Making sure that root is exist */
+	/* Making sure that root exists */
 	if (reiser4_tree_ldroot(tree))
 		return LP_FAILED;
     
@@ -666,8 +666,9 @@ lookup_t reiser4_tree_lookup(
 	
 	/* 
 	  Check for the case when wanted key smaller than root key. This is the
-	  case, when somebody is trying to go up of the root by ".." entry of
-	  root directory.
+	  case, when somebody is trying go up of the root by ".." entry in root
+	  directory. If so, we initialize key to be looked up by root stored in
+	  tree key.
 	*/
 	if (reiser4_key_compare(key, &tree->key) < 0)
 		*key = tree->key;
@@ -693,10 +694,12 @@ lookup_t reiser4_tree_lookup(
 			
 			return res;
 		}
-		
+
+		/* Position correcting for internal levels */
 		if (res == LP_ABSENT && place->pos.item > 0)
 			place->pos.item--;
-				
+
+		/* Initializing item at @place */
 		if (reiser4_place_realize(place)) {
 			aal_exception_error("Can't open item by its place. Node "
 					    "%llu, item %u.", place->node->blk,
@@ -704,9 +707,11 @@ lookup_t reiser4_tree_lookup(
 			return LP_FAILED;
 		}
 
+		/* Checking is item at @place is nodeptr one */
 		if (!reiser4_item_branch(place))
 			return res;
-		
+
+		/* Loading node by nodeptr item @place points to */
 		if (!(place->node = reiser4_tree_child(tree, place))) {
 			aal_exception_error("Can't load node by its nodeptr.");
 			return LP_FAILED;

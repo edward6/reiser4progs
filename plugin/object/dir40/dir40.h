@@ -17,7 +17,7 @@
 struct dir40 {
 	
 	/* Common fields for all files (statdata, etc) */
-	object40_t file;
+	object40_t obj;
 
 	/* Current body item coord */
 	place_t body;

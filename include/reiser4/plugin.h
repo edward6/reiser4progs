@@ -422,6 +422,7 @@ struct reiser4_entry_hint {
 typedef struct reiser4_entry_hint reiser4_entry_hint_t;
 
 struct reiser4_file_hint {
+	
 	rpid_t statdata;
 
 	/* Hint for a file body */
@@ -442,7 +443,6 @@ struct reiser4_file_hint {
 
 		/* Symlink data */
 		char sym[4096];
-		
 	} body;
     
 	key_entity_t object; 
@@ -603,13 +603,22 @@ struct reiser4_file_ops {
 	reiser4_plugin_header_t h;
 
 	/* Creates new file with passed parent and object keys */
-	object_entity_t *(*create) (void *, reiser4_file_hint_t *, place_t *);
+	object_entity_t *(*create) (void *, object_entity_t *,
+				    reiser4_file_hint_t *,
+				    place_t *);
     
-	/* Opens a file with specified key */
+	/* Opens file with specified key */
 	object_entity_t *(*open) (void *, place_t *);
 
 	/* Closes previously opened or created directory */
 	void (*close) (object_entity_t *);
+
+	/*
+	  Links/unlinks file in its parent and updates all needed stat data
+	  fields in parent file.
+	*/
+	errno_t (*link) (object_entity_t *);
+	errno_t (*unlink) (object_entity_t *);
 
 	/* Resets internal position */
 	errno_t (*reset) (object_entity_t *);
@@ -623,7 +632,7 @@ struct reiser4_file_ops {
 	/* Returns current position in directory */
 	errno_t (*seek) (object_entity_t *, uint64_t);
 
-	/* Makes lookup inside dir */
+	/* Makes lookup inside file */
 	lookup_t (*lookup) (object_entity_t *, char *, key_entity_t *);
 
 	/* Finds actual file stat data (symlink) */
@@ -639,14 +648,15 @@ struct reiser4_file_ops {
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
 	/*
-	  Function for going throught all metadata blocks specfied file
-	  occupied.
+	  Function for going through all metadata blocks specfied file
+	  occupied. It is needed for accessing file's metadata.
 	*/
 	errno_t (*metadata) (object_entity_t *, place_func_t, void *);
 	
 	/*
-	  Function for going throught the all data blocks specfied file
-	  occupied.
+	  Function for going through the all data blocks specfied file
+	  occupied. It is needed for different purposes like data fragmentation
+	  counting, etc.
 	*/
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 };

@@ -22,7 +22,7 @@ struct sym40 {
 	  statdata only, this structure has only file handler, which contains
 	  stuff for statdata handling.
 	*/
-	object40_t file;
+	object40_t obj;
 
 	/* Parent key */
 	key_entity_t parent;
