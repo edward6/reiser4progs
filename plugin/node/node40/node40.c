@@ -96,7 +96,7 @@ static object_entity_t *node40_init(aal_device_t *device,
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
 
-	node->blk = blk;
+	node->number = blk;
 	
 #ifndef ENABLE_STAND_ALONE
 	node->dirty = 0;
@@ -119,6 +119,8 @@ static void node40_move(object_entity_t *entity,
 	aal_assert("umka-2012", node40_loaded(entity));
 
 	node = (node40_t *)entity;
+	node->number = number;
+	
 	aal_block_move(node->block, number);
 }
 
@@ -134,7 +136,7 @@ static errno_t node40_form(object_entity_t *entity,
 	if (node->block == NULL) {
 		if (!(node->block = aal_block_create(node->device,
 						     node->size,
-						     node->blk, 0)))
+						     node->number, 0)))
 		{
 			return -ENOMEM;
 		}
@@ -164,7 +166,7 @@ static errno_t node40_load(object_entity_t *entity) {
 
 	if (!(node->block = aal_block_read(node->device,
 					   node->size,
-					   node->blk)))
+					   node->number)))
 	{
 		return -EIO;
 	}

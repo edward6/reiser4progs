@@ -60,7 +60,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 		/* Error occured. */
 		aal_exception_error("Node %llu, item %u: failed to check the link "
 				    "of the object pointed by %k to the object "
-				    "pointed by %k.", start->node->blk,
+				    "pointed by %k.", start->node->number,
 				    start->pos.item, &((*object)->info.object),
 				    &parent->info.object);
 		
@@ -77,7 +77,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 				aal_exception_error("Node %llu, item %u: readdir"
 						    "of the object pointed by %k"
 						    "from 'lost+found' %k failed.",
-						    start->node->blk,
+						    start->node->number,
 						    start->pos.item,
 						    &((*object)->info.object),
 						    lf->lost->info.object);
@@ -89,7 +89,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 				aal_exception_error("Node %llu, item %u: unlink"
 						    "of the object pointed by %k"
 						    "from 'lost+found' %k failed.",
-						    start->node->blk,
+						    start->node->number,
 						    start->pos.item,
 						    &((*object)->info.object),
 						    lf->lost->info.object);
@@ -139,7 +139,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		/* CHECKED and not REACHABLE StatData item. */
 		if (!(object = reiser4_object_realize(lf->repair->fs->tree, place))) {
 			aal_exception_error("Node %llu, item %u: failed to open an "
-					    "object pointed by %k.", place->node->blk, 
+					    "object pointed by %k.", place->node->number, 
 					    place->pos.item, &place->item.key);
 			return res;
 		}
@@ -154,7 +154,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		{
 			aal_exception_error("Node %llu, item %u: structure check "
 					    "of the object pointed by %k failed. "
-					    "Plugin %s.", place->node->blk, 
+					    "Plugin %s.", place->node->number, 
 					    place->pos.item, &place->item.key, 
 					    object->entity->plugin->h.label);
 			return res;
@@ -183,7 +183,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	if ((res = reiser4_object_link(parent, object, object->name))) {
 		aal_exception_error("Node %llu, item %u: failed to link the object "
 				    "pointed by %k to the object pointed by %k.",
-				    place->node->blk, place->pos.item, 
+				    place->node->number, place->pos.item, 
 				    &place->item.key, &parent->info.object);
 		goto error_close_parent;
 	}

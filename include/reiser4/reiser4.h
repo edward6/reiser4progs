@@ -29,6 +29,7 @@ extern "C" {
 #include "factory.h"
 #include "profile.h"
 #include "print.h"
+#include "fake.h"
 
 extern void libreiser4_fini(void);
 extern errno_t libreiser4_init(void);

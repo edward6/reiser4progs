@@ -1,9 +1,7 @@
-/*
-  resizefs.c -- program for resizing reiser4.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   resizefs.c -- program for resizing reiser4. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h> 
@@ -162,10 +160,8 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	/*
-	  Overriding profile by passed by used values. This should be done after
-	  libreiser4 is initialized.
-	*/
+	/* Overriding profile by passed by used values. This should be done
+	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
 				   profile->name, override);
@@ -182,12 +178,9 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 	
-	/* 
-	   Checking if passed device is a block one. If so, we check also is
-	   it whole drive or just a partition. If the device is not a block
-	   device, then we emmit exception and propose user to use -f flag to
-	   force.
-	*/
+	/* Checking if passed device is a block one. If so, we check also is it
+	   whole drive or just a partition. If the device is not a block device,
+	   then we emmit exception and propose user to use -f flag to force. */
 	if (!S_ISBLK(st.st_mode)) {
 		if (!(flags & F_FORCE)) {
 			aal_exception_error("Device %s is not block device. "
@@ -254,10 +247,8 @@ int main(int argc, char *argv[]) {
 	reiser4_fs_close(fs);
 	aal_device_close(device);
     
-	/* 
-	   Deinitializing libreiser4. At the moment only plugins are unloading 
-	   durrign this.
-	*/
+	/* Deinitializing libreiser4. At the moment only plugins are unloading
+	   durring this. */
 	libreiser4_fini();
 	return NO_ERROR;
 

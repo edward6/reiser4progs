@@ -1,9 +1,7 @@
-/*
-  types.h -- debugs types.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   types.h -- debugs types. */
 
 #ifndef DEBUGFS_TYPE_H
 #define DEBUGFS_TYPE_H

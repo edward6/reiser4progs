@@ -20,9 +20,6 @@ reiser4progs/COPYING.
 
 * extents support (reg40.c, tree.c, etc).
 
-* make flush in libreiser4 more flexible. It should be able to flush
-  not only whole the tree, but also slums in the tree.
-
 * should we print blocks, that belong to some fs objects 
   (block allocator, etc) while handling --print-block option?
 

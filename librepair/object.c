@@ -358,7 +358,7 @@ errno_t repair_object_check(reiser4_object_t *object, reiser4_object_t *parent,
 	{
 		aal_exception_error("Node %llu, item %u: failed to link the "
 				    "object pointed by %k.",
-				    reiser4_object_start(object)->node->blk,
+				    reiser4_object_start(object)->node->number,
 				    object->info.start.pos.item, 
 				    &object->info.object);
 		

@@ -1,9 +1,7 @@
-/*
-  browse.c -- filesystem browse code.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   browse.h -- filesystem browse code.*/
 
 #ifndef DEBUGFS_BROWSE_H
 #define DEBUGFS_BROWSE_H

@@ -26,7 +26,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place, repair_error_t res
 		if (ret) {
 			aal_exception_bug("Node (%llu), item (%u), len (%u): Failed "
 					  "to shrink the node on (%u) bytes.", 
-					  place->node->blk, pos.item, old_len, 
+					  place->node->number, pos.item, old_len, 
 					  old_len - place->item.len);
 			return ret;
 		}
@@ -36,14 +36,14 @@ static errno_t repair_item_check_fini(reiser4_place_t *place, repair_error_t res
 	
 	if ((result & REPAIR_FATAL) && mode == REPAIR_REBUILD) {
 		aal_exception_error("Node (%llu), item (%u): unrecoverable corruption "
-				    "found. Remove item.", place->node->blk, 
+				    "found. Remove item.", place->node->number, 
 				    place->pos.item);
 		
 		place->pos.unit = ~0ul;
 		
 		if ((ret = reiser4_node_remove(place->node, &place->pos, 1))) {
 			aal_exception_error("Node (%llu), item (%u): failed to remove "
-					    "the item.", place->node->blk, 
+					    "the item.", place->node->number, 
 					    place->pos.item);
 			return ret;
 		}

@@ -20,7 +20,7 @@
 struct node40 {
 	reiser4_plugin_t *plugin;
 
-	blk_t blk;
+	blk_t number;
 	
 #ifndef ENABLE_STAND_ALONE
 	int dirty;

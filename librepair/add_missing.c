@@ -177,7 +177,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 				if ((res = reiser4_place_realize(&place))) {
 					aal_exception_error("Node (%llu), item (%u): "
 							    "failed to open the item.", 
-							    node->blk, pos->item);
+							    node->number, pos->item);
 					
 					goto error_node_close;
 				}
@@ -195,7 +195,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 						aal_exception_error("Node (%llu), item "
 								    "(%u): failed to "
 								    "remove the item.", 
-								    node->blk, pos->item);
+								    node->number, pos->item);
 						
 						goto error_node_close;
 					}
@@ -208,8 +208,8 @@ errno_t repair_add_missing(repair_am_t *am) {
 			
 			if (reiser4_node_items(node) == 0) {
 				reiser4_node_mkclean(place.node);
-				aux_bitmap_clear(bitmap, node->blk);
-				reiser4_alloc_permit(alloc, node->blk, 1);
+				aux_bitmap_clear(bitmap, node->number);
+				reiser4_alloc_permit(alloc, node->number, 1);
 				goto find_next;
 			}
 			
@@ -223,9 +223,9 @@ errno_t repair_add_missing(repair_am_t *am) {
 				goto error_node_close;
 			} else if (res == 0) {
 				/* Has been inserted. */
-				aux_bitmap_clear(bitmap, node->blk);
-				reiser4_alloc_permit(alloc, node->blk, 1);
-				reiser4_alloc_occupy(alloc, node->blk, 1);
+				aux_bitmap_clear(bitmap, node->number);
+				reiser4_alloc_permit(alloc, node->number, 1);
+				reiser4_alloc_occupy(alloc, node->number, 1);
 				
 				if (i == 0)
 					am->stat.by_twig++;
@@ -307,8 +307,8 @@ errno_t repair_add_missing(repair_am_t *am) {
 				}
 			}
 			
-			aux_bitmap_clear(bitmap, node->blk);
-			reiser4_alloc_permit(alloc, node->blk, 1);
+			aux_bitmap_clear(bitmap, node->number);
+			reiser4_alloc_permit(alloc, node->number, 1);
 			reiser4_node_close(node);
 			blk++;
 		}

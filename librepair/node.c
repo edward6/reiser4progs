@@ -47,14 +47,14 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		/* Open the item, checking its plugin id. */
 		if (reiser4_place_realize(&place)) {
 			aal_exception_error("Node (%llu): Failed to open the item "
-					    "(%u). %s", node->blk, pos->item, 
+					    "(%u). %s", node->number, pos->item, 
 					    mode == REPAIR_REBUILD ? "Removed." : "");
 			
 			if (mode == REPAIR_REBUILD) {
 				if ((ret = reiser4_node_remove(node, pos, 1))) {
 					aal_exception_bug("Node (%llu): Failed to "
 							  "delete the item (%d).", 
-							  node->blk, pos->item);
+							  node->number, pos->item);
 					return ret;
 				}
 				
@@ -74,7 +74,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 					     reiser4_node_get_level(node)))
 		{
 			aal_exception_error("Node (%llu): Node level (%u) does not "
-					    "match to the item type (%s).", node->blk,
+					    "match to the item type (%s).", node->number,
 					    reiser4_node_get_level(node),
 					    place.item.plugin->h.label);
 			
@@ -197,7 +197,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	
 	if ((res = repair_node_ld_key_fetch(node, &d_key))) {
 		aal_exception_error("Node (%llu): Failed to get the left "
-				    "delimiting key.", node->blk);
+				    "delimiting key.", node->number);
 		return res;
 	}
 	
@@ -215,7 +215,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 		/* The left delimiting key is much then the left key in the node - 
 		   not legal */
 		aal_exception_error("Node (%llu): The first key %k is not equal "
-				    "to the left delimiting key %k.", node->blk,
+				    "to the left delimiting key %k.", node->number,
 				    &place.item.key, &d_key);
 		return -ESTRUCT;
 	} else if (res < 0) {
@@ -226,8 +226,8 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 			aal_exception_error("Node (%llu): The left delimiting key "
 					    "%k in the parent node (%llu), pos "
 					    "(%u/%u) mismatch the first key %k in "
-					    "the node. %s", node->blk, &place.item.key,
-					    node->parent.node->blk, place.pos.item, 
+					    "the node. %s", node->number, &place.item.key,
+					    node->parent.node->number, place.pos.item, 
 					    place.pos.unit, &d_key, 
 					    mode == REPAIR_REBUILD ? 
 					    "Left delimiting key is fixed." : "");
@@ -241,7 +241,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	
 	if ((res = repair_node_rd_key(node, &d_key))) {
 		aal_exception_error("Node (%llu): Failed to get the right delimiting "
-				    "key.", node->blk);
+				    "key.", node->number);
 		return res;
 	}
 	
@@ -249,20 +249,20 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	
 	if ((res = reiser4_place_realize(&place))) {
 		aal_exception_error("Node (%llu): Failed to open the item (%llu).",
-				    node->blk, pos->item);
+				    node->number, pos->item);
 		return res;
 	}
 	
 	if ((res = reiser4_item_maxreal_key(&place, &key))) {
 		aal_exception_error("Node (%llu): Failed to get the max real key of "
-				    "the last item.", node->blk);
+				    "the last item.", node->number);
 		return res;
 	}
 	
 	if (reiser4_key_compare(&key, &d_key) >= 0) {
 		aal_exception_error("Node (%llu): The last key %k in the node is "
 				    "greater then the right delimiting key %k.", 
-				    node->blk, &key, &d_key);
+				    node->number, &key, &d_key);
 		return -ESTRUCT;
 	}
 	
@@ -291,18 +291,18 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		
 		if ((res = reiser4_key_assign(&key, &place.item.key))) {
 			aal_exception_error("Node (%llu): Failed to get the key of "
-					    "the item (%u).", node->blk, pos->item);
+					    "the item (%u).", node->number, pos->item);
 			return res;
 		}
 		
 		if (reiser4_key_valid(&key)) {
 			aal_exception_error("Node (%llu): The key %k of the item "
 					    "(%u) is not valid. Item removed.", 
-					    node->blk, &key, pos->item);
+					    node->number, &key, pos->item);
 			
 			if ((res = reiser4_node_remove(node, pos, 1))) {
 				aal_exception_bug("Node (%llu): Failed to delete the "
-						  "item (%d).", node->blk, pos->item);
+						  "item (%d).", node->number, pos->item);
 				return res;
 			}
 			
@@ -324,7 +324,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 				   neighbour keys could be equal? */
 				aal_exception_error("Node (%llu), items (%u) and "
 						    "(%u): Wrong order of keys.", 
-						    node->blk, pos->item - 1, 
+						    node->number, pos->item - 1, 
 						    pos->item);
 				
 				return REPAIR_FATAL;
@@ -385,7 +385,7 @@ errno_t repair_node_traverse(reiser4_node_t *node, traverse_node_func_t func,
 	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
 		if ((res = reiser4_place_open(&place, node, pos))) {
 			aal_exception_error("Node (%llu), item (%u): failed to open "
-					    "the item by its place.", node->blk, 
+					    "the item by its place.", node->number, 
 					    pos->item);
 			return res;
 		}

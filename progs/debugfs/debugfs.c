@@ -1,9 +1,7 @@
-/*
-  debugfs.c -- program for debugging reiser4 filesystem.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   debugfs.c -- program for debugging reiser4 filesystem. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h> 
@@ -64,10 +62,8 @@ static void debugfs_init(void) {
 		misc_exception_set_stream(ex, stderr);
 }
 
-/*
-  Prints passed @buff into stdout. The special print function is needed because
-  we can't just put 4k buffer into stdout.
-*/
+/* Prints passed @buff into stdout. The special print function is needed because
+   we can't just put 4k buffer into stdout. */
 errno_t debugfs_print_buff(void *buff, uint32_t size) {
 	int len = size;
 	void *ptr = buff;
@@ -246,10 +242,8 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	/*
-	  Overriding profile by passed by used values. This should be done after
-	  libreiser4 is initialized.
-	*/
+	/* Overriding profile by passed by used values. This should be done after
+	   libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
 				   profile->name, override);
@@ -266,12 +260,10 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 	
-	/* 
-	   Checking is passed device is a block device. If so, we check also is
+	/* Checking is passed device is a block device. If so, we check also is
 	   it whole drive or just a partition. If the device is not a block
 	   device, then we emmit exception and propose user to use -f flag to
-	   force.
-	*/
+	   force. */
 	if (!S_ISBLK(st.st_mode)) {
 		if (!(behav_flags & BF_FORCE)) {
 			aal_exception_error("Device %s is not block device. "
@@ -321,10 +313,8 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs, NULL)))
 		goto error_free_journal;
     
-	/*
-	  In the case no print flags was specified, debugfs will print super
-	  blocks by defaut.
-	*/
+	/* In the case no print flags was specified, debugfs will print super
+	   blocks by defaut. */
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
 		print_flags = PF_SUPER;
 
@@ -384,10 +374,8 @@ int main(int argc, char *argv[]) {
 	/* Closing device */
 	aal_device_close(device);
     
-	/* 
-	   Deinitializing libreiser4. At the moment only plugins are unloading
-	   while doing this.
-	*/
+	/* Deinitializing libreiser4. At the moment only plugins are unloading
+	   while doing this. */
 	libreiser4_fini();
 	return NO_ERROR;
 

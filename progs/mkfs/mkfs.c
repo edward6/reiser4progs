@@ -1,9 +1,7 @@
-/*
-  mkfs.c -- program for creating reiser4 filesystem.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   mkfs.c -- program for creating reiser4 filesystem. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h> 
@@ -215,10 +213,8 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	/*
-	  Initializing libreiser4 (getting plugins, checking them on validness,
-	  etc).
-	*/
+	/* Initializing libreiser4 (getting plugins, checking them on validness,
+	   etc). */
 	if (libreiser4_init()) {
 		aal_exception_error("Can't initialize libreiser4.");
 		goto error;
@@ -230,10 +226,8 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	/*
-	  Overriding profile by passed by used values. This should be done after
-	  libreiser4 is initialized.
-	*/
+	/* Overriding profile by passed by used values. This should be done after
+	   libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
 				   profile->name, override);
@@ -272,10 +266,8 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 	
-	/*
-	  All devices cannot have the same uuid and label, so here we clean it
-	  out.
-	*/
+	/* All devices cannot have the same uuid and label, so here we clean it
+	   out. */
 	if (aal_list_len(devices) > 1) {
 		aal_memset(uuid, 0, sizeof(uuid));
 		aal_memset(label, 0, sizeof(label));
@@ -294,12 +286,10 @@ int main(int argc, char *argv[]) {
 		if (stat(host_dev, &st) == -1)
 			goto error_free_libreiser4;
     
-		/* 
-		   Checking is passed device is a block device. If so, we check
+		/* Checking is passed device is a block device. If so, we check
 		   also is it whole drive or just a partition. If the device is
 		   not a block device, then we emmit exception and propose user
-		   to use -f flag to force.
-		*/
+		   to use -f flag to force. */
 		if (!S_ISBLK(st.st_mode)) {
 			if (!(flags & BF_FORCE)) {
 				aal_exception_error("Device %s is not block device. "
@@ -395,10 +385,8 @@ int main(int argc, char *argv[]) {
 			goto error_free_tree;
 		}
 
-		/*
-		  Adding two links to root directory in order to prevent its
-		  removing anyway.
-		*/
+		/* Adding two links to root directory in order to prevent its
+		   removing anyway. */
 		reiser4_object_link(NULL, fs->root, NULL);
 		reiser4_object_link(NULL, fs->root, NULL);
 	
@@ -424,26 +412,20 @@ int main(int argc, char *argv[]) {
 			aal_gauge_start(gauge);
 		}
 	
-		/* 
-		   Synchronizing device. If device we are using is a file_device
-		   (libaal/file.c), then function fsync will be called.
-		*/
+		/* Synchronizing device. If device we are using is a file device
+		   (libaal/file.c), then function fsync will be called. */
 		if (aal_device_sync(device)) {
 			aal_exception_error("Can't synchronize device %s.", 
 					    aal_device_name(device));
 			goto error_free_root;
 		}
 
-		/* 
-		   Zeroing uuid in order to force mkfs to generate it on its own
-		   for next device form built device list.
-		*/
+		/* Zeroing uuid in order to force mkfs to generate it on its own
+		   for next device form built device list. */
 		aal_memset(uuid, 0, sizeof(uuid));
 
-		/* 
-		   Zeroing fs_len in order to force mkfs on next turn to calc
-		   its size from actual device length.
-		*/
+		/* Zeroing fs_len in order to force mkfs on next turn to calc
+		   its size from actual device length. */
 		fs_len = 0;
 	
 		if (gauge)
@@ -469,10 +451,8 @@ int main(int argc, char *argv[]) {
 	
 	aal_list_free(devices);
 
-	/* 
-	   Deinitializing libreiser4. At the moment only plugins are unloading
-	   durrign this.
-	*/
+	/* Deinitializing libreiser4. At the moment only plugins are unloading
+	   durring this. */
 	libreiser4_fini();
     
 	return NO_ERROR;

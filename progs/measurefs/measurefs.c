@@ -1,9 +1,7 @@
-/*
-  measurefs.c -- program for measuring reiser4.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   measurefs.c -- program for measuring reiser4. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h> 
@@ -146,11 +144,9 @@ static errno_t tfrag_process_item(
 	return 0;
 }
 
-/*
-  Traverse passed leaf @node and calculate fragmentation for it. The results are
-  stored in frag_hint structure. This function is called from the tree traversal
-  routine for each internal node. See bellow for details.
-*/
+/* Traverse passed leaf @node and calculate fragmentation for it. The results
+   are stored in frag_hint structure. This function is called from the tree
+   traversal routine for each internal node. See bellow for details. */
 static errno_t tfrag_process_node(
 	reiser4_tree_t *tree,	   /* tree being traversed */
 	reiser4_node_t *node,	   /* node to be estimated */
@@ -174,22 +170,20 @@ static errno_t tfrag_process_node(
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, node->blk);
+					    pos.item, node->number);
 			return -EINVAL;
 		}
 
 		item = &place.item;
 		
-		/*
-		  Checking and calling item's layout method with function
-		  tfrag_process_item() as a function for handling one block the
-		  item points to.
-		*/
+		/* Checking and calling item's layout method with function
+		   tfrag_process_item() as a function for handling one block the
+		   item points to. */
 		if (!item->plugin->o.item_ops->layout) {
 			aal_exception_warn("Item %u in node %llu has not "
 					   "\"layout\" method implemented. "
 					   "The result will not be releable.",
-					   pos.item, node->blk);
+					   pos.item, node->number);
 			continue;
 		}
 
@@ -210,13 +204,11 @@ static errno_t tfrag_update_node(reiser4_tree_t *tree,
 	return 0;
 }
 
-/*
-  Entry point for calculating tree fragmentation. It zeroes out all counters in
-  structure which wiil be passed to actual routines and calls tree_traverse
-  function with couple of callbacks for handling all traverse cases (open node,
-  traverse node, etc). Actual statistics collecting is performed in the passed
-  callbacks and subcallbacks (for item traversing).
-*/
+/* Entry point for calculating tree fragmentation. It zeroes out all counters in
+   structure which wiil be passed to actual routines and calls tree_traverse
+   function with couple of callbacks for handling all traverse cases (open node,
+   traverse node, etc). Actual statistics collecting is performed in the passed
+   callbacks and subcallbacks (for item traversing). */
 errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	errno_t res;
 	tfrag_hint_t frag_hint;
@@ -224,11 +216,9 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
 	if (!(flags & F_QUIET)) {
-		/*
-		  Initializing gauge, because it is a long process and user
-		  should be informed what the stage of the process is going at
-		  the moment.
-		*/
+		/* Initializing gauge, because it is a long process and user
+		   should be informed what the stage of the process is going at
+		   the moment. */
 		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
 							 NULL)))
 		{
@@ -322,10 +312,8 @@ static errno_t stat_process_node(
 
 	stat_hint->formatted_used /= (stat_hint->formatted + 1);
 
-	/*
-	  If we are on the level higher taht leaf level, we traverse extents on
-	  it. Otherwise we just update stat structure.
-	*/
+	/* If we are on the level higher taht leaf level, we traverse extents on
+	   it. Otherwise we just update stat structure. */
 	if (level > LEAF_LEVEL) {
 		pos_t pos = {~0ul, ~0ul};
 		
@@ -344,7 +332,7 @@ static errno_t stat_process_node(
 			
 			if ((res = reiser4_place_open(&place, node, &pos))) {
 				aal_exception_error("Can't open item %u in node %llu.", 
-						    pos.item, node->blk);
+						    pos.item, node->number);
 				return res;
 			}
 
@@ -435,10 +423,8 @@ struct ffrag_hint {
 
 typedef struct ffrag_hint ffrag_hint_t;
 
-/*
-  Callback function for processing one block belong to the fiel we are
-  traversing.
-*/
+/* Callback function for processing one block belong to the fiel we are
+   traversing. */
 static errno_t ffrag_process_blk(
 	object_entity_t *entity,   /* file to be inspected */
 	blk_t blk,                 /* next file block */
@@ -479,10 +465,8 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 	/* Initializing serve structures */
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
-	/*
-	  Calling file layout function, which calls ffrag_process_blk() fucntion
-	  for each block belong to the file @filename.
-	*/
+	/* Calling file layout function, which calls ffrag_process_blk()
+	   fucntion for each block belong to the file @filename. */
 	if ((res = reiser4_object_layout(object, ffrag_process_blk,
 					 &frag_hint)))
 	{
@@ -505,10 +489,8 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 	return res;
 }
 
-/*
-  Processes leaf node in order to find all the stat data items which denote
-  corresponding files and calculate file fragmentation for each of them.
-*/
+/* Processes leaf node in order to find all the stat data items which denote
+   corresponding files and calculate file fragmentation for each of them. */
 static errno_t dfrag_process_node(
 	reiser4_tree_t *tree,	    /* tree being traversed */
 	reiser4_node_t *node,       /* node to be inspected */
@@ -537,15 +519,13 @@ static errno_t dfrag_process_node(
 		/* Initialiing the item at @place */
 		if ((res = reiser4_place_init(&place, node, &pos))) {
 			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, node->blk);
+					    pos.item, node->number);
 			return res;
 		}
 
-		/*
-		  If the item is not a stat data item, we getting to the next
-		  circle of the loop, because we are intersted only in the stat
-		  data items, which can be used for opening files.
-		*/
+		/* If the item is not a stat data item, we getting to the next
+		   circle of the loop, because we are intersted only in the stat
+		   data items, which can be used for opening files. */
 		if (!reiser4_object_begin(&place))
 			continue;
 
@@ -563,10 +543,8 @@ static errno_t dfrag_process_node(
 
 		bogus %= 16;
 
-		/*
-		  Calling calculating the file fragmentation by emans of using
-		  the function we have seen abowe.
-		*/
+		/* Calling calculating the file fragmentation by emans of using
+		   the function we have seen abowe. */
 		if (reiser4_object_layout(object, ffrag_process_blk, data)) {
 			aal_exception_error("Can't enumerate data blocks "
 					    "occupied by %s", object->name);
@@ -580,10 +558,8 @@ static errno_t dfrag_process_node(
 
 		frag_hint->files++;
 			
-		/*
-		  We was instructed show file fragmentation for each file, not
-		  only the average one, we will do it now.
-		*/
+		/* We was instructed show file fragmentation for each file, not
+		   only the average one, we will do it now. */
 		if (frag_hint->flags & F_SFILE) {
 			double file_factor = frag_hint->total > 0 ?
 				(double)frag_hint->bad / frag_hint->total : 0;
@@ -778,10 +754,8 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	/*
-	  Overriding profile by passed by used values. This should be done after
-	  libreiser4 is initialized.
-	*/
+	/* Overriding profile by passed by used values. This should be done
+	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
 				   profile->name, override);
@@ -798,12 +772,9 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 	
-	/* 
-	   Checking if passed device is a block one. If so, we check also is
-	   it whole drive or just a partition. If the device is not a block
-	   device, then we emmit exception and propose user to use -f flag to
-	   force.
-	*/
+	/* Checking if passed device is a block one. If so, we check also is it
+	   whole drive or just a partition. If the device is not a block device,
+	   then we emmit exception and propose user to use -f flag to force. */
 	if (!S_ISBLK(st.st_mode)) {
 		if (!(flags & F_FORCE)) {
 			aal_exception_error("Device %s is not block device. "
@@ -847,10 +818,8 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs, misc_mpressure_detect)))
 		goto error_free_fs;
     
-	/*
-	  Check if specified options are compatible. For instance, --show-each
-	  can be used only if --data-frag was specified.
-	*/
+	/* Check if specified options are compatible. For instance, --show-each
+	   can be used only if --data-frag was specified. */
 	if (!(flags & F_DFRAG) && (flags & F_SFILE)) {
 		aal_exception_warn("Option --show-file is only active if "
 				   "--data-frag is specified.");
@@ -891,10 +860,8 @@ int main(int argc, char *argv[]) {
 	reiser4_fs_close(fs);
 	aal_device_close(device);
     
-	/* 
-	   Deinitializing libreiser4. At the moment only plugins are unloading 
-	   durrign this.
-	*/
+	/* Deinitializing libreiser4. At the moment only plugins are unloading
+	   durring this. */
 	libreiser4_fini();
 	return NO_ERROR;
 

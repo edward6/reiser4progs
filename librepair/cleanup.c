@@ -21,7 +21,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		/* Not checked item does not belong to any object, remove it. */	
 		if ((res = reiser4_node_remove(place->node, &place->pos, 1))) {
 			aal_exception_bug("Node (%llu): Failed to delete the item (%d).",
-					  place->node->blk, place->pos.item);
+					  place->node->number, place->pos.item);
 			return res;
 		}
 		
@@ -48,7 +48,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		if ((res = reiser4_object_link(cleanup->lost, object, object->name))) {
 			aal_exception_error("Node (%llu), item(%u): openned object is "
 					    "failed to be linked to 'lost+found'.", 
-					    place->node->blk, place->pos.item);
+					    place->node->number, place->pos.item);
 			
 			return res;
 		}

@@ -59,7 +59,7 @@ static errno_t callback_semantic_open(reiser4_object_t *parent,
 		/* Error occured. */
 		aal_exception_error("Node %llu, item %u: failed to check the "
 				    "link of the object pointed by %k to the "
-				    "object pointed by %k.", start->node->blk,
+				    "object pointed by %k.", start->node->number,
 				    start->pos.item, &((*object)->info.object),
 				    &parent->info.object);
 		
@@ -102,7 +102,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 	{
 		aal_exception_error("Node %llu, item %u: structure check of the "
 				    "object pointed by %k failed. Plugin %s.", 
-				    place->node->blk, place->pos.item, 
+				    place->node->number, place->pos.item, 
 				    &place->item.key, 
 				    object->entity->plugin->h.label);
 		return res;

@@ -276,6 +276,7 @@ reiser4_object_t *reiser4_object_realize(
 	return NULL;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Try to open the object on the base of the given key. */
 reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					reiser4_object_t *parent,
@@ -572,7 +573,7 @@ static errno_t callback_print_place(
 	
 	if ((res = reiser4_item_print(p, stream))) {
 		aal_exception_error("Can't print item %lu in node %llu.",
-				    p->pos.item, p->node->blk);
+				    p->pos.item, p->node->number);
 		return res;
 	}
 		

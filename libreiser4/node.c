@@ -56,8 +56,8 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 		goto error_free_node;
 	}
 
-	node->blk = blk;
 	node->size = size;
+	node->number = blk;
 	node->device = device;
 	
 	reiser4_place_assign(&node->parent,
@@ -95,7 +95,7 @@ void reiser4_node_move(reiser4_node_t *node,
 {
 	aal_assert("umka-2248", node != NULL);
 
-	node->blk = number;
+	node->number = number;
 	
 	plugin_call(node->entity->plugin->o.node_ops,
 		    move, node->entity, number);
@@ -142,7 +142,7 @@ static bool_t callback_guess_node(reiser4_plugin_t *plugin,
 	   confirmed about its format. */
 	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
 					 node->device, node->size,
-					 node->blk)))
+					 node->number)))
 		return FALSE;
 
 	if (plugin_call(plugin->o.node_ops, load, node->entity))
@@ -183,8 +183,8 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;
  
-        node->blk = blk;
 	node->size = size;
+        node->number = blk;
         node->device = device;
 
         if (reiser4_node_guess(node))
@@ -254,7 +254,7 @@ static int reiser4_node_ack(reiser4_node_t *node,
 	plugin_call(place->item.plugin->o.item_ops, read,
 		    &place->item, &ptr, place->pos.unit, 1);
 
-	return ptr.start == node->blk;
+	return ptr.start == node->number;
 }
 #endif
 
@@ -309,7 +309,7 @@ errno_t reiser4_node_realize(
 			plugin_call(parent->item.plugin->o.item_ops,
 				    read, &parent->item, &ptr, j, 1);
 
-			if (ptr.start == node->blk)
+			if (ptr.start == node->number)
 				goto parent_realize;
 		}
 	}
@@ -334,10 +334,10 @@ static int callback_comp_blk(
 	const void *blk,		/* key to be find */
 	void *data)			/* user-specified data */
 {
-	if (*(blk_t *)blk < ((reiser4_node_t *)node)->blk)
+	if (*(blk_t *)blk < ((reiser4_node_t *)node)->number)
 		return -1;
 
-	if (*(blk_t *)blk > ((reiser4_node_t *)node)->blk)
+	if (*(blk_t *)blk > ((reiser4_node_t *)node)->number)
 		return 1;
 
 	return 0;
@@ -397,8 +397,9 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	
 	/* Updating node pos in parent node */
 	if ((res = reiser4_node_realize(child))) {
-		aal_exception_error("Can't find child %llu in parent "
-				    "node %llu.", child->blk, node->blk);
+		aal_exception_error("Can't find child %llu in "
+				    "parent node %llu.",
+				    child->number, node->number);
 		return res;
 	}
 
@@ -686,7 +687,6 @@ errno_t reiser4_node_sync(
 	errno_t res;
 	
 	aal_assert("umka-2253", node != NULL);
-	aal_assert("umka-2252", (!is_fake_blk(node->blk)));
     
 	/* Synchronizing passed @node */
 	if (reiser4_node_isdirty(node)) {
@@ -695,7 +695,7 @@ errno_t reiser4_node_sync(
 				       sync, node->entity)))
 		{
 			aal_exception_error("Can't synchronize node %llu "
-					    "to device. %s.", node->blk,
+					    "to device. %s.", node->number,
 					    node->device->error);
 
 			return res;
@@ -722,7 +722,7 @@ errno_t reiser4_node_update(reiser4_node_t *node) {
 
         /* Preparing node pointer hint to be used */
 	nodeptr_hint.width = 1;
-	nodeptr_hint.start = node->blk;
+	nodeptr_hint.start = node->number;
 	
 	hint.type_specific = &nodeptr_hint;
 				
@@ -855,7 +855,7 @@ errno_t reiser4_node_insert(
 	if (needed > reiser4_node_space(node)) {
 		aal_exception_error("There is no space to insert new "
 				    "item/unit of (%u) size in the node "
-				    "(%llu).", hint->len, node->blk);
+				    "(%llu).", hint->len, node->number);
 		return -EINVAL;
 	}
 
@@ -891,7 +891,7 @@ errno_t reiser4_node_cut(
 	{
 		aal_exception_error("Can't cut items/units from the node "
 				    "%llu. Start: (%lu, %lu), end: (%lu, %lu).",
-				    node->blk, start->item, start->unit,
+				    node->number, start->item, start->unit,
 				    end->item, end->unit);
 		return res;
 	}
@@ -923,7 +923,7 @@ errno_t reiser4_node_remove(
 			       remove, node->entity, pos, count)))
 	{
 		aal_exception_error("Can't remove %lu items/units from "
-				    "node %llu.", count, node->blk);
+				    "node %llu.", count, node->number);
 		return res;
 	}
 

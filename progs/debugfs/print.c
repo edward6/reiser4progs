@@ -1,9 +1,7 @@
-/*
-  print.c -- filesystem print related code.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   print.c -- filesystem print related code. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h> 
@@ -29,10 +27,8 @@ static errno_t tprint_process_node(
 	if ((res = reiser4_node_print(node, &stream)))
 		goto error_free_stream;
 
-	/*
-	  FIXME-VITALY->UMKA: it printf a node, so it is not binary data and
-	  just a printf could be called here.
-	*/
+	/* FIXME-VITALY->UMKA: it printf a node, so it is not binary data and
+	   just a printf could be called here. */
 	debugfs_print_stream(&stream);
 	aal_stream_fini(&stream);
 	
@@ -96,10 +92,8 @@ errno_t debugfs_print_block(
 	device = fs->device;
 	blocksize = reiser4_master_blksize(fs->master);
 
-	/*
-	  If passed @blk points to a formatted node then open it and print
-	  using print_process_node listed abowe.
-	*/
+	/* If passed @blk points to a formatted node then open it and print
+	   using print_process_node listed abowe. */
 	if (!(node = reiser4_node_open(device, blocksize, blk))) {
 		fprintf(stdout, "Block %llu is not a formatted one.\n", blk);
 		return 0;
@@ -131,10 +125,8 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	if ((res = reiser4_master_print(fs->master, &stream)))
 		return res;
 
-	/*
-	  If reiser4progs supports uuid (if it was found durring building), then
-	  it will also print uuid stored in master super block.
-	*/
+	/* If reiser4progs supports uuid (if it was found durring building),
+	   then it will also print uuid stored in master super block. */
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	{
 		char uuid[37];
@@ -252,10 +244,10 @@ static errno_t fprint_process_place(
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 	reiser4_place_t *p = (reiser4_place_t *)place;
 
-	if (p->node->blk == hint->old)
+	if (p->node->number == hint->old)
 		return 0;
 
-	hint->old = p->node->blk;
+	hint->old = p->node->number;
 	return debugfs_print_node(p->node);
 }
 
@@ -272,11 +264,9 @@ errno_t debugfs_print_file(
 	if (!(object = reiser4_object_open(fs->tree, filename, FALSE)))
 		return -EINVAL;
 
-	/*
-	  If --print-items option is specified, we show only items belong to the
-	  file. If no, that we show all items whihc lie in the same block as the
-	  item belong to the file denoted by @filename.
-	*/
+	/* If --print-items option is specified, we show only items belong to
+	   the file. If no, that we show all items whihc lie in the same block
+	   as the item belong to the file denoted by @filename. */
 	if (PF_ITEMS & flags) {
 		aal_stream_t stream;
 

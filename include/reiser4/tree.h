@@ -14,14 +14,16 @@
 
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
 
-extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
-					 mpc_func_t mpc_func);
-
 extern errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 				 reiser4_node_t *node,
 				 walk_func_t walk_func);
 
-extern errno_t reiser4_tree_adjust(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
+				   reiser4_node_t *node,
+				   bool_t check);
+
+extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
+					 mpc_func_t mpc_func);
 
 extern errno_t reiser4_tree_connect(reiser4_tree_t *tree,
 				     reiser4_node_t *parent,
@@ -58,9 +60,6 @@ extern errno_t reiser4_tree_attach(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
-
-extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree,
-				     reiser4_node_t *node);
 
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
@@ -107,13 +106,6 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_edge_func_t after_func,
 				     void *data);
 
-#define get_fake_blk (fake_blk--)
-#define max_fake_blk (INVAL_BLK - 1)
-#define min_fake_blk (max_fake_blk - 0x100000)
-
-#define is_fake_blk(blk) \
-        (blk >= min_fake_blk && blk <= max_fake_blk)
-
 #endif
 
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
@@ -122,8 +114,8 @@ extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 			       reiser4_place_t *place);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
-
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
 
 extern reiser4_node_t *reiser4_tree_alloc(reiser4_tree_t *tree,
 					  uint8_t level);
