@@ -808,7 +808,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		count = hint->count;
 	} else {
 		/* Here we init @count (number of items to be removed) to 1, as
-		   here are possible onlytwo cases:
+		   here are possible only two cases:
 
 		   (1) Remove item as it get empty (the case when @count is
 		   needed).

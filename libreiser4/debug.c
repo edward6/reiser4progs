@@ -3,8 +3,12 @@
    
    debug.c -- debug related stuff. */
 
-#include <reiser4/reiser4.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_DEBUG)
+#include <reiser4/reiser4.h>
 
 void reiser4_print_node(node_t *node, uint32_t start, 
 			uint32_t count, uint16_t options) 
