@@ -104,7 +104,7 @@ errno_t dir40_reset(object_entity_t *entity) {
 #endif
 
 	/* Building key itself. */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_hashed,
 		  &dir->position, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), ".");
 
@@ -348,7 +348,7 @@ static lookup_t dir40_search(object_entity_t *entity,
 
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_hashed,
 		  &dir->body.key, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), name);
 
@@ -562,9 +562,9 @@ static object_entity_t *dir40_create(object_info_t *info,
    	body_hint.count = 1;
 	body_hint.plug = body_plug;
 	
-	plug_call(info->object.plug->o.key_ops, build_entry,
-		  &body_hint.offset, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), ".");
+	plug_call(info->object.plug->o.key_ops, build_hashed, &body_hint.offset,
+		  dir->hash, obj40_locality(&dir->obj), obj40_objectid(&dir->obj),
+		  ".");
 
 	/* Preparing hint for the empty directory. It consists only "." for
 	   unlinked directories. */
@@ -782,7 +782,7 @@ static errno_t dir40_build_entry(object_entity_t *entity,
 	objectid = obj40_objectid(&dir->obj);
 	
 	return plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-			 build_entry, &entry->offset, dir->hash,
+			 build_hashed, &entry->offset, dir->hash,
 			 locality, objectid, entry->name);
 }
 

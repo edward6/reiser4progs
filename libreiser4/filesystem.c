@@ -609,6 +609,6 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 	locality = REISER4_ROOT_LOCALITY;
 	objectid = REISER4_ROOT_OBJECTID;
 #endif
-	return reiser4_key_build_gener(key, KEY_STATDATA_TYPE,
-				       locality, 0, objectid, 0);
+	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
+					 locality, 0, objectid, 0);
 }

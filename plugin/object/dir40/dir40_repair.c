@@ -349,7 +349,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				return res;
 			
 			/* Prepare the correct key for the entry. */
-			plug_call(entry.offset.plug->o.key_ops, build_entry, 
+			plug_call(entry.offset.plug->o.key_ops, build_hashed, 
 				  &key, dir->hash, obj40_locality(&dir->obj),
 				  obj40_objectid(&dir->obj), entry.name);
 			

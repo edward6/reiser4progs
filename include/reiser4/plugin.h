@@ -129,7 +129,7 @@ enum reiser4_item_group {
 	DIRENTRY_ITEM		= 0x2,
 	TAIL_ITEM		= 0x3,
 	EXTENT_ITEM		= 0x4,
-	PERMISSION_ITEM		= 0x5,/* not used yet */
+	PERMISSION_ITEM		= 0x5, /* not used yet */
 	LAST_ITEM
 };
 
@@ -700,13 +700,16 @@ struct reiser4_key_ops {
 	/* Copyies src key to dst one */
 	errno_t (*assign) (key_entity_t *, key_entity_t *);
 	
-	/* Builds generic key (statdata, file body, etc). */
-	errno_t (*build_gener) (key_entity_t *, key_type_t,
-				uint64_t, uint64_t, uint64_t,
-				uint64_t);
-    
-	errno_t (*build_entry) (key_entity_t *, reiser4_plug_t *,
-				uint64_t, uint64_t, char *);
+	/* Builds generic key (statdata, file body, etc). That is build key by
+	   all its components. */
+	errno_t (*build_generic) (key_entity_t *, key_type_t,
+				  uint64_t, uint64_t, uint64_t,
+				  uint64_t);
+
+	/* Builds key used for directory entries access. It uses name and hash
+	   plugin to build hash and put it to key offset component. */
+	errno_t (*build_hashed) (key_entity_t *, reiser4_plug_t *,
+				 uint64_t, uint64_t, char *);
 	
 	/* Gets/sets key type (minor in reiser4 notation). */	
 	void (*set_type) (key_entity_t *, key_type_t);

@@ -55,7 +55,7 @@ errno_t cde40_get_hash(place_t *place, uint32_t pos,
 			     get_locality, &place->key);
 
 	/* Building the full key from entry at @place */
-	plug_call(place->key.plug->o.key_ops, build_gener, key,
+	plug_call(place->key.plug->o.key_ops, build_generic, key,
 		  KEY_FILENAME_TYPE, locality, ha_get_ordering(hash, pol),
 		  ha_get_objectid(hash, pol), ha_get_offset(hash, pol));
 

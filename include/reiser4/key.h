@@ -55,18 +55,18 @@ extern uint64_t reiser4_key_get_offset(reiser4_key_t *key);
 extern void reiser4_key_inc_offset(reiser4_key_t *key,
 				   uint64_t value);
 
-extern errno_t reiser4_key_build_gener(reiser4_key_t *key,
-				       uint32_t type,
-				       oid_t locality,
-				       uint64_t ordering,
-				       oid_t objectid,
-				       uint64_t offset);
+extern errno_t reiser4_key_build_generic(reiser4_key_t *key,
+					 uint32_t type,
+					 oid_t locality,
+					 uint64_t ordering,
+					 oid_t objectid,
+					 uint64_t offset);
 
-extern errno_t reiser4_key_build_entry(reiser4_key_t *key,
-				       reiser4_plug_t *plug,
-				       oid_t locality,
-				       oid_t objectid,
-				       char *name);
+extern errno_t reiser4_key_build_hashed(reiser4_key_t *key,
+					reiser4_plug_t *plug,
+					oid_t locality,
+					oid_t objectid,
+					char *name);
 
 extern void reiser4_key_maximal(reiser4_key_t *key);
 extern void reiser4_key_minimal(reiser4_key_t *key);

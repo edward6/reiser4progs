@@ -372,8 +372,8 @@ static void reiser4_object_base(reiser4_tree_t *tree,
 	ordering = reiser4_key_get_ordering(&entry->offset);
 
 	/* Building object stat data key. */
-	reiser4_key_build_gener(&info->object, KEY_STATDATA_TYPE,
-				locality, ordering, objectid, 0);
+	reiser4_key_build_generic(&info->object, KEY_STATDATA_TYPE,
+				  locality, ordering, objectid, 0);
 }
 
 /* Creates new object on specified filesystem */

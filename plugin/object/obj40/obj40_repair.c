@@ -93,7 +93,7 @@ errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 				     get_ordering, &info->object);
 
 	
-		plug_call(info->object.plug->o.key_ops, build_gener, &key,
+		plug_call(info->object.plug->o.key_ops, build_generic, &key,
 			  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
 		
 		/* Realizing on the key: SD is not found. Check if the key 
@@ -116,7 +116,7 @@ errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 				     get_ordering, &info->start.key);
 
 		/* Build the SD key into @info->object. */
-		plug_call(info->start.key.plug->o.key_ops, build_gener, 
+		plug_call(info->start.key.plug->o.key_ops, build_generic, 
 			  &info->object, KEY_STATDATA_TYPE, locality, 
 			  ordering, objectid, 0);
 	}

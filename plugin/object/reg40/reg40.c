@@ -74,7 +74,7 @@ errno_t reg40_reset(object_entity_t *entity) {
 	
 	aal_assert("umka-1963", entity != NULL);
 	
-	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops, build_gener,
+	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops, build_generic,
 		  &reg->position, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
 		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj), 0);
 

@@ -78,7 +78,7 @@ void reiser4_key_clean(
 } 
 
 /* Builds full non-directory key */
-errno_t reiser4_key_build_gener(
+errno_t reiser4_key_build_generic(
 	reiser4_key_t *key,	    /* key to be built */
 	uint32_t type,		    /* key type to be used */
 	oid_t locality,		    /* locality to be used */
@@ -89,12 +89,12 @@ errno_t reiser4_key_build_gener(
 	aal_assert("umka-665", key != NULL);
 	aal_assert("umka-666", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops, build_gener, key,
+	return plug_call(key->plug->o.key_ops, build_generic, key,
 			 type, locality, ordering, objectid, offset);
 }
 
-/* Builds full directory key */
-errno_t reiser4_key_build_entry(
+/* Builds full directory key. */
+errno_t reiser4_key_build_hashed(
 	reiser4_key_t *key,	    /* key to be built */
 	reiser4_plug_t *plug,       /* hash plugin to be used */
 	oid_t locality,		    /* loaclity to be used */
@@ -105,8 +105,8 @@ errno_t reiser4_key_build_entry(
 	aal_assert("umka-670", name != NULL);
 	aal_assert("umka-669", key->plug != NULL);
     
-	return plug_call(key->plug->o.key_ops, build_entry, key,
-			 plug, locality, objectid, name);
+	return plug_call(key->plug->o.key_ops, build_hashed,
+			 key, plug, locality, objectid, name);
 }
 
 /* Sets key type */

@@ -288,11 +288,11 @@ static errno_t key_short_build_hash(key_entity_t *key,
 
 /* Builds key by passed locality, objectid, and name. It is suitable for
    creating entry keys. */
-static errno_t key_short_build_entry(key_entity_t *key,
-				     reiser4_plug_t *hash,
-				     uint64_t locality,
-				     uint64_t objectid,
-				     char *name) 
+static errno_t key_short_build_hashed(key_entity_t *key,
+				      reiser4_plug_t *hash,
+				      uint64_t locality,
+				      uint64_t objectid,
+				      char *name) 
 {
 	key_type_t type;
 	
@@ -310,12 +310,12 @@ static errno_t key_short_build_entry(key_entity_t *key,
 }
 
 /* Builds generic key by all its components */
-static errno_t key_short_build_gener(key_entity_t *key,
-				     key_type_t type,
-				     uint64_t locality,
-				     uint64_t ordering,
-				     uint64_t objectid,
-				     uint64_t offset)
+static errno_t key_short_build_generic(key_entity_t *key,
+				       key_type_t type,
+				       uint64_t locality,
+				       uint64_t ordering,
+				       uint64_t objectid,
+				       uint64_t offset)
 {
 	aal_assert("vpf-141", key != NULL);
 
@@ -387,8 +387,8 @@ static reiser4_key_ops_t key_short_ops = {
 	.compshort	= key_short_compshort,
 #endif
 		
-	.build_entry	= key_short_build_entry,
-	.build_gener	= key_short_build_gener,
+	.build_hashed   = key_short_build_hashed,
+	.build_generic  = key_short_build_generic,
 	
 #ifndef ENABLE_STAND_ALONE
 	.check_struct	= key_short_check_struct,
