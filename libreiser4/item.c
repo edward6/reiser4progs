@@ -257,6 +257,7 @@ errno_t reiser4_item_update(reiser4_coord_t *coord, reiser4_key_t *key) {
 	if (!(entity = coord->node->entity))
 		return -1;
 	
+	/* FIXME: unit key should be updated instead if pos.unit != ~0ul */
 	return plugin_call(return -1, entity->plugin->node_ops, 
 			   set_key, entity, &coord->pos, key);
 }
