@@ -23,18 +23,29 @@ extern reiser4_alloc_t *reiser4_alloc_open(reiser4_format_t *format,
 extern reiser4_alloc_t *reiser4_alloc_create(reiser4_format_t *format, 
 					     count_t len);
 
+extern errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, 
+				    aux_bitmap_t *bitmap);
+
 extern errno_t reiser4_alloc_sync(reiser4_alloc_t *alloc);
 
-extern errno_t reiser4_alloc_mark(reiser4_alloc_t *alloc, 
-				  blk_t blk);
+extern errno_t reiser4_alloc_mark(reiser4_alloc_t *alloc, blk_t blk);
 
-extern errno_t reiser4_alloc_release(reiser4_alloc_t *alloc, 
-				     blk_t blk);
+extern errno_t reiser4_alloc_release(reiser4_alloc_t *alloc, blk_t blk);
 
 extern blk_t reiser4_alloc_allocate(reiser4_alloc_t *alloc);
 
 extern errno_t reiser4_alloc_print(reiser4_alloc_t *alloc,
 				   aal_stream_t *stream);
+
+extern errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk);
+
+extern errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc, blk_t blk);
+
+extern errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc, 
+					 aux_bitmap_t *bitmap);
+
+extern errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc, 
+					 aux_bitmap_t *bitmap);
 
 #endif
 

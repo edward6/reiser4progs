@@ -19,7 +19,6 @@ int aux_binsearch(
 	void *array,		        /* opaque pointer to array item will be searched in */
 	uint32_t count,		        /* array length */
 	void *needle,		        /* array item to be found */
-	reiser4_elem_func_t elem_func,  /* callback function for getting next item from the array */
 	reiser4_comp_func_t comp_func,  /* callback function for comparing items from the array */
 	void *data,			/* user-specified data */
 	uint64_t *pos)		        /* pointer result will be saved in */
@@ -37,11 +36,7 @@ int aux_binsearch(
 	right = count - 1;
 
 	for (i = (right + left) / 2; left <= right; i = (right + left) / 2) {
-	
-		if (!(elem = elem_func(array, i, data)))
-			return -1;
-	
-		res = comp_func(elem, needle, data);
+		res = comp_func(array, i, needle, data);
 		if (res == -1) {
 			left = i + 1;
 			continue;

@@ -22,6 +22,9 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *rd) {
     if ((res = repair_ts_pass(rd)))
 	return res;
 
+    if ((res = repair_am_pass(rd)))
+	return res;
+
     return 0;
 }
 

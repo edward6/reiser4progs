@@ -5,7 +5,6 @@
 
 #include <repair/librepair.h>
 
-/* Pointer to the block in coord is illegal. It sould be fixed or removed. */
 errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     reiser4_ptr_hint_t hint;
     reiser4_pos_t prev;

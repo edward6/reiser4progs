@@ -23,12 +23,11 @@ __check_format__(printf, 3, 4);
     
 #endif
 
-typedef void *(*reiser4_elem_func_t) (void *, uint32_t, void *);
-typedef int (*reiser4_comp_func_t) (void *, void *, void *);
+typedef int (*reiser4_comp_func_t) (void *, uint32_t, void *, void *);
 
 extern int aux_binsearch(void *array, uint32_t count, 
-			 void *needle, reiser4_elem_func_t elem_func, 
-			 reiser4_comp_func_t comp_func, void *, uint64_t *pos);
+			 void *needle, reiser4_comp_func_t comp_func, 
+			 void *, uint64_t *pos);
 
 #endif
 
