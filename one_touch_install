@@ -1,0 +1,26 @@
+#!/bin/bash
+
+if [ ! -f ./configure.in ]; then
+    echo "Error: You should run this from the packge directory."
+    exit 1
+fi
+
+if [ ! -x ./configure ]; then
+    ./prepare
+fi
+
+cpu_nr=$(cat /proc/cpuinfo | grep ^processor\.*:\.*[[:digit:]] | \
+	 wc -l | tr --delete [[:blank:]])
+
+if test "x$cpu_nr" = "x"; then
+    cpu_nr=1
+fi
+
+./configure && make -j$cpu_nr
+
+if test x$USER != "xroot"; then
+    echo "You are not root and installing may require root privilages.\
+Enter root password before install."
+fi
+
+sudo make install
