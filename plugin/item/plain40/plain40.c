@@ -35,7 +35,9 @@ errno_t plain40_prep_shift(reiser4_place_t *src_place,
 			   reiser4_place_t *dst_place,
 			   shift_hint_t *hint)
 {
-	dst_place->off = 0;
+	if (dst_place)
+		dst_place->off = 0;
+	
 	return tail40_prep_shift(src_place, dst_place, hint);
 }
 #endif

@@ -42,7 +42,9 @@ static errno_t ctail40_prep_shift(reiser4_place_t *src_place,
 				  reiser4_place_t *dst_place,
 				  shift_hint_t *hint)
 {
-	dst_place->off = sizeof(ctail40_t);
+	if (dst_place)
+		dst_place->off = sizeof(ctail40_t);
+
 	return tail40_prep_shift(src_place, dst_place, hint);
 }
 
