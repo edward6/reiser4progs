@@ -332,7 +332,8 @@ errno_t repair_filter(repair_filter_t *fd) {
 	    repair_filter_node_check,	    repair_filter_setup_traverse,
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
-	reiser4_node_close(fd->repair->fs->tree->root);
+	reiser4_tree_collapse(fd->repair->fs->tree, fd->repair->fs->tree->root);
+	fd->repair->fs->tree->root = NULL;
 
 	if (res < 0)
 	    return res;

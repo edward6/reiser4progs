@@ -93,6 +93,8 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 
 	blocksize = master->device->blocksize;
 	
+	aal_stream_format(stream, "Master super block:\n");
+	
 	aal_stream_format(stream, "offset:\t\t%lu\n",
 			  (MASTER_OFFSET / blocksize));
 	

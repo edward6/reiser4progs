@@ -156,7 +156,8 @@ inline void aal_clear_bits(void *map,
 	int end_byte;
 	int start_byte;
 	char *addr = map;
-
+	bit_t left, right;
+	
         start_byte = start >> 3;
         end_byte = (start + count - 1) >> 3;
 
@@ -165,21 +166,18 @@ inline void aal_clear_bits(void *map,
 			   end_byte - start_byte - 1);
 	}
 
-        if (start_byte == end_byte) {
-		bit_t bits;
-		
-		bits = start - (start_byte * 8);
-		
-		addr[start_byte] &= 0xff >>
-			(0x8 - (bits + count));
-        } else {
-		bit_t bits;
-		
-		bits = start - (start_byte * 8);
-		addr[start_byte] &= (0xff >> bits << bits);
-
-		bits = (start + count) - (end_byte * 8);
-		addr[end_byte] &= (0xff >> bits);
+	/* Work with start byte. */
+	left = start - (start_byte * 8);
+	right = start_byte == end_byte ? left + count : 8;
+	
+	addr[start_byte] &= ~((0xff << left) &
+		(0xff >> (0x8 - right)));
+	
+	/* Work with end byte. */
+        if (start_byte != end_byte) {
+		right = start + count - (end_byte * 8);
+		    
+		addr[end_byte] &= ~(0xff >> (0x8 - right));
         }
 }
 
@@ -191,6 +189,7 @@ inline void aal_set_bits(void *map,
 	int end_byte;
 	int start_byte;
 	char *addr = map;
+	bit_t left, right;
 
 	start_byte = start >> 3;
 	end_byte = (start + count - 1) >> 3;
@@ -200,22 +199,19 @@ inline void aal_set_bits(void *map,
 			   end_byte - start_byte - 1);
 	}
 
-        if (start_byte == end_byte) {
-		bit_t bits;
-		
-		bits = start - (start_byte * 8);
-		
-		addr[start_byte] |= 0xff >>
-			(0x8 - (bits + count));
-        } else {
-		bit_t bits;
-		
-		bits = start - (start_byte * 8);
-		addr[start_byte] |= (0xff >> bits << bits);
-
-		bits = (start + count) - (end_byte * 8);
-		addr[end_byte] |= (0xff >> bits);
-        }
+	/* Work with start byte. */
+	left = start - (start_byte * 8);
+	right = start_byte == end_byte ? left + count : 8;
+	
+	addr[start_byte] |= ((0xff << left) &
+		(0xff >> (0x8 - right)));
+	
+	/* Work with end byte. */
+        if (start_byte != end_byte) {
+		right = start + count - (end_byte * 8);
+		    
+		addr[end_byte] |= (0xff >> (0x8 - right));
+        } 
 }
 
 /* Finds @count clear bits inside @map */

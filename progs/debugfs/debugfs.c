@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjTDpSF:c:n:i:wo:P",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjTDpsSF:c:n:i:wo:P",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -371,19 +371,6 @@ int main(int argc, char *argv[]) {
 	fs->tree->traps.connect = debugfs_connect_handler;
 	fs->tree->traps.disconnect = debugfs_disconnect_handler;
 	
-	/*
-	  Check if few print options are specified. If so, and --quiet flag was
-	  not applyed we throw warning, because that is probably user error and
-	  a lot of information will confuse him.
-	*/
-	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET) &&
-	    !(print_flags & PF_ITEMS))
-	{
-		if (aal_exception_yesno("Few print options has been detected. "
-					"Continue?") == EXCEPTION_NO)
-			goto error_free_tree;
-	}
-
 	/*
 	  In the case no print flags was specified, debugfs will print super
 	  blocks by defaut.

@@ -262,7 +262,7 @@ enum aal_exception_option {
 	EXCEPTION_RETRY	        = 1 << 4,
 	EXCEPTION_IGNORE        = 1 << 5,
 	EXCEPTION_CANCEL        = 1 << 6,
-	EXCEPTION_LAST
+	EXCEPTION_LAST		= 1 << 7
 };
 
 typedef enum aal_exception_option aal_exception_option_t;

@@ -81,6 +81,7 @@ error_master_close:
 
 error_fs_free:
     aal_free(repair->fs);
+    repair->fs = NULL;
 
     if (error > 0) {
 	if (error & REPAIR_FATAL)

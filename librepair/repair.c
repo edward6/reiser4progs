@@ -186,7 +186,7 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 
     fs_len =  reiser4_format_get_len(ts->repair->fs->format);
     
-    if (!(control->bm_unfm_out = ts->bm_unfm_tree = aux_bitmap_create(fs_len))) {
+    if (!(control->bm_unfm_out = ts->bm_unfm_out = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of unformatted blocks "
 	    "pointed by extents which are not in the tree.");
 	return -EINVAL;
@@ -236,6 +236,9 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
     aux_bitmap_close(control->bm_unfm_tree);
     aux_bitmap_close(control->bm_unfm_out);
     
+    control->bm_used = control->bm_met = control->bm_unfm_tree = 
+	control->bm_unfm_out = NULL;
+    
     return 0;
 }
 
@@ -254,6 +257,9 @@ static void repair_control_release(repair_control_t *control) {
 	aux_bitmap_close(control->bm_unfm_tree);
     if (control->bm_unfm_out)
 	aux_bitmap_close(control->bm_unfm_out);
+
+    control->bm_used = control->bm_leaf = control->bm_twig = control->bm_met = 
+	control->bm_unfm_tree = control->bm_unfm_out = NULL;
 }
 
 errno_t repair_check(repair_data_t *repair) {
