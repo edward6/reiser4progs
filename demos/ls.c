@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 		return 0xff;
 	}
     
-//	misc_profile_override("hash=deg_hash");
+	misc_profile_override("hash=deg_hash");
 		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 

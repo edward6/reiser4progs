@@ -8,6 +8,7 @@
 #include "sym40.h"
 #include "repair/plugin.h"
 
+extern reiser4_core_t *score;
 extern reiser4_plug_t sym40_plug;
 
 extern object_entity_t *sym40_open(object_info_t *info);
@@ -54,7 +55,7 @@ object_entity_t *sym40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&sym->obj, &sym40_plug, core, info);
+	obj40_init(&sym->obj, &sym40_plug, score, info);
 	
 	if ((res = obj40_recognize(&sym->obj, callback_stat)))
 		goto error;
@@ -114,9 +115,4 @@ errno_t sym40_check_struct(object_entity_t *object,
 				sym40_check_size, 
 				0, 0, mode);
 }
-
-void sym40_core(reiser4_core_t *c) {
-	core = c;
-}
-
 #endif

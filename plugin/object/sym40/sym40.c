@@ -13,6 +13,7 @@
 
 #include "sym40.h"
 
+reiser4_core_t *score = NULL;
 extern reiser4_plug_t sym40_plug;
 
 /* Opens symlink and returns initialized instance to the caller */
@@ -29,7 +30,7 @@ object_entity_t *sym40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initalizing file handle */
-	obj40_init(&sym->obj, &sym40_plug, core, info);
+	obj40_init(&sym->obj, &sym40_plug, score, info);
 	
 	if (obj40_pid(&sym->obj, OBJECT_PLUG_TYPE, "symlink") != 
 	    sym40_plug.id.id)
@@ -98,7 +99,7 @@ static object_entity_t *sym40_create(object_info_t *info,
 		return NULL;
 	
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plug, core, info);
+	obj40_init(&sym->obj, &sym40_plug, score, info);
 
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
 		1 << SDEXT_SYMLINK_ID);
@@ -215,12 +216,11 @@ static errno_t sym40_layout(object_entity_t *entity,
 }
 
 extern object_entity_t *sym40_recognize(object_info_t *info);
-extern void sym40_core(reiser4_core_t *c);
+
 extern errno_t sym40_check_struct(object_entity_t *object,
 				  place_func_t place_func,
 				  region_func_t region_func,
 				  void *data, uint8_t mode);
-
 #endif
 
 #ifdef ENABLE_STAND_ALONE
@@ -311,8 +311,7 @@ reiser4_plug_t sym40_plug = {
 };
 
 static reiser4_plug_t *sym40_start(reiser4_core_t *c) {
-	core = c;
-	sym40_core(c);
+	score = c;
 	return &sym40_plug;
 }
 

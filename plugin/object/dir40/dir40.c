@@ -10,6 +10,7 @@
 
 #include "dir40.h"
 
+reiser4_core_t *dcore = NULL;
 extern reiser4_plug_t dir40_plug;
 
 /* Gets size from the object stat data */
@@ -64,7 +65,7 @@ static int dir40_belongs(object_entity_t *entity,
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
 	   check this here. */
-	if (!core->tree_ops.valid(dir->obj.info.tree, place))
+	if (!dcore->tree_ops.valid(dir->obj.info.tree, place))
 		return 0;
 
 	/* Fetching item info at @place */
@@ -157,8 +158,8 @@ static errno_t dir40_next(object_entity_t *entity, int adjust) {
 	dir = (dir40_t *)entity;
 	
 	/* Getting next directory item */
-	res = core->tree_ops.next(dir->obj.info.tree,
-				  &dir->body, &place);
+	res = dcore->tree_ops.next(dir->obj.info.tree,
+				   &dir->body, &place);
 
 	if (res || !dir40_belongs(entity, &place)) {
 		/* Making offset pointed to nowhere in order to let know that
@@ -431,7 +432,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initializing obj handle for the directory */
-	obj40_init(&dir->obj, &dir40_plug, core, info);
+	obj40_init(&dir->obj, &dir40_plug, dcore, info);
 	
 	if (obj40_pid(&dir->obj, OBJECT_PLUG_TYPE,
 		      "directory") !=  dir40_plug.id.id)
@@ -472,19 +473,19 @@ static object_entity_t *dir40_create(object_info_t *info,
 		return NULL;
 	
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plug, core, info);
+	obj40_init(&dir->obj, &dir40_plug, dcore, info);
 
 	/* Getting hash plugin */
-	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUG_TYPE, 
-						  hint->body.dir.hash))) 
+	if (!(dir->hash = dcore->factory_ops.ifind(HASH_PLUG_TYPE, 
+						   hint->body.dir.hash))) 
 	{
 		aal_exception_error("Can't find hash plugin by its "
 				    "id 0x%x.", hint->body.dir.hash);
 		goto error_free_dir;
 	}
    
-	if (!(body_plug = core->factory_ops.ifind(ITEM_PLUG_TYPE, 
-						  hint->body.dir.direntry)))
+	if (!(body_plug = dcore->factory_ops.ifind(ITEM_PLUG_TYPE, 
+						   hint->body.dir.direntry)))
 	{
 		aal_exception_error("Can't find direntry item plugin by "
 				    "its id 0x%x.", hint->body.dir.direntry);
@@ -916,10 +917,8 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	return 0;
 }
 
-extern void dir40_core(reiser4_core_t *c);
-
-extern object_entity_t *dir40_recognize(object_info_t *info);
 extern object_entity_t *dir40_fake(object_info_t *info);
+extern object_entity_t *dir40_recognize(object_info_t *info);
 
 extern errno_t dir40_check_attach(object_entity_t *object, 
 				  object_entity_t *parent, 
@@ -929,7 +928,6 @@ extern errno_t dir40_check_struct(object_entity_t *object,
 				  place_func_t place_func,
 				  region_func_t region_func,
 				  void *data, uint8_t mode);
-
 #endif
 
 static reiser4_object_ops_t dir40_ops = {
@@ -987,8 +985,7 @@ reiser4_plug_t dir40_plug = {
 };
 
 static reiser4_plug_t *dir40_start(reiser4_core_t *c) {
-	core = c;
-	dir40_core(c);
+	dcore = c;
 	return &dir40_plug;
 }
 

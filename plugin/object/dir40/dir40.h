@@ -11,8 +11,6 @@
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
 
-static reiser4_core_t *core = NULL;
-
 /* Compaund directory structure */
 struct dir40 {
 	

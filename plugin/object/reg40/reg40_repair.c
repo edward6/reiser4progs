@@ -7,6 +7,7 @@
 #include "reg40.h"
 #include "repair/plugin.h"
 
+extern reiser4_core_t *rcore;
 extern reiser4_plug_t reg40_plug;
 
 extern errno_t reg40_seek(object_entity_t *entity, 
@@ -57,7 +58,7 @@ object_entity_t *reg40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, core, info);
+	obj40_init(&reg->obj, &reg40_plug, rcore, info);
 	
 	if ((res = obj40_recognize(&reg->obj, callback_stat)))
 		goto error;
@@ -118,7 +119,7 @@ static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
-				    print_ino(core, &info->object),
+				    print_ino(rcore, &info->object),
 				    offset, offset + len, reg->obj.plug->label);
 	}
 
@@ -161,13 +162,15 @@ errno_t reg40_check_struct(object_entity_t *object,
 	while (TRUE) {
 		if (reg40_update(object)) {
 			/* If place is invalid, no more reg40 items. */
-			if (!core->tree_ops.valid(info->tree, &reg->body))
+			if (!rcore->tree_ops.valid(info->tree, &reg->body))
 				break;
 			
 			/* Initializing item entity at @next place */
-			if ((res |= core->tree_ops.fetch(info->tree, 
-							 &reg->body)))
+			if ((res |= rcore->tree_ops.fetch(info->tree, 
+							  &reg->body)))
+			{
 				return res;
+			}
 			
 			/* Check if this is an item of another object. */
 			if (plug_call(reg->offset.plug->o.key_ops, compshort,
@@ -205,7 +208,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			
 			aal_exception_error("The object [%s] has a break at "
 					    "[%llu-%llu] offsets. Plugin %s.",
-					    print_ino(core, &info->object),
+					    print_ino(rcore, &info->object),
 					    reg40_offset(object), offset,
 					    reg->obj.plug->label);
 			res |= RE_FATAL;
@@ -261,7 +264,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 }
 
 void reg40_core(reiser4_core_t *c) {
-	core = c;
+	rcore = c;
 }
-
 #endif

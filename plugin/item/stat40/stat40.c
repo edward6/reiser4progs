@@ -231,7 +231,7 @@ static errno_t stat40_insert(place_t *place,
 		if (i % 16 == 0) {
 			uint16_t extmask;
 
-			/* Initializing extemask */
+			/* Initializing extmask */
 			extmask = ((stat_hint->extmask >> i) &
 				   0x000000000000ffff);
 

@@ -7,6 +7,7 @@
 #include "dir40.h"
 #include "repair/plugin.h"
 
+extern reiser4_core_t *dcore;
 extern reiser4_plug_t dir40_plug;
 
 extern errno_t dir40_reset(object_entity_t *entity);
@@ -54,11 +55,11 @@ object_entity_t *dir40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plug, core, info);
+	obj40_init(&dir->obj, &dir40_plug, dcore, info);
 	
 	if ((res = obj40_recognize(&dir->obj, callback_stat)))
 		goto error;
-	
+
 	/* Positioning to the first directory unit */
 	dir40_reset((object_entity_t *)dir);
 	
@@ -109,7 +110,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	info = &dir->obj.info;
 	
 	aal_exception_error("Directory [%s]: The entry \".\" is not found.%s "
-			    "Plugin (%s).", print_ino(core, &info->object), 
+			    "Plugin (%s).", print_ino(dcore, &info->object), 
 			    mode == RM_BUILD ? " Inserts a new one." : "", 
 			    dir->obj.plug->label);
 	
@@ -144,7 +145,7 @@ static errno_t dir40_belongs(dir40_t *dir, reiser4_plug_t *bplug) {
 	aal_assert("vpf-1246", bplug != NULL);
 	
 	/* Check that the body place is valid. */
-	if (!core->tree_ops.valid(dir->obj.info.tree, &dir->body))
+	if (!dcore->tree_ops.valid(dir->obj.info.tree, &dir->body))
 		return RE_FATAL;
 
 	/* Fetching item info at @place */
@@ -199,18 +200,18 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	if (dir->hash == NULL) {
                 aal_exception_error("Directory %s: failed to init hash plugin."
-				    "Plugin (%s).", print_ino(core, &info->object),
+				    "Plugin (%s).", print_ino(dcore, &info->object),
 				    dir40_plug.label);
                 return -EINVAL;
         }
 	
-	if ((pid = core->profile_ops.value("direntry")) == INVAL_PID) {
+	if ((pid = dcore->profile_ops.value("direntry")) == INVAL_PID) {
 		aal_exception_error("Failed to get a plugid for direntry from "
 				    "the profile.");
 		return -EINVAL;
 	}
 	
-	if ((bplug = core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) == NULL) {
+	if ((bplug = dcore->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) == NULL) {
 		aal_exception_error("Failed to find direntry plugin by "
 				    "the id %d.", pid);
                  return -EINVAL;
@@ -270,13 +271,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 					    "[%llu], item [%u], unit [%u]: "
 					    "entry has wrong offset [%s]."
 					    " Should be [%s]. %s", 
-					    print_ino(core, &info->object),
+					    print_ino(dcore, &info->object),
 					    dir40_plug.label, 
 					    dir->body.block->nr,
 					    dir->body.pos.item, 
 					    dir->body.pos.unit,
-					    print_key(core, &entry.offset),
-					    print_key(core, &key), 
+					    print_key(dcore, &entry.offset),
+					    print_key(dcore, &key), 
 					    mode == RM_BUILD ? "Removed." : "");
 
 
@@ -307,7 +308,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			bytes += plug_call(dir->body.plug->o.item_ops, 
 					   bytes, &dir->body);
 			
-			if ((res |= core->tree_ops.next(dir->obj.info.tree,
+			if ((res |= dcore->tree_ops.next(dir->obj.info.tree,
 							&dir->body, 
 							&dir->body)) < 0)
 				return res;
@@ -385,16 +386,11 @@ object_entity_t *dir40_fake(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plug, core, info);
+	obj40_init(&dir->obj, &dir40_plug, dcore, info);
 	
 	/* Positioning to the first directory unit */
 	dir40_reset((object_entity_t *)dir);
 	
 	return (object_entity_t *)dir;
 }
-
-void dir40_core(reiser4_core_t *c) {
-	core = c;
-}
-
 #endif

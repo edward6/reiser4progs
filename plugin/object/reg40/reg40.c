@@ -10,6 +10,7 @@
 
 #include "reg40.h"
 
+reiser4_core_t *rcore = NULL;
 extern reiser4_plug_t reg40_plug;
 
 uint64_t reg40_offset(object_entity_t *entity) {
@@ -148,7 +149,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 		return NULL;
 
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, core, info);
+	obj40_init(&reg->obj, &reg40_plug, rcore, info);
 	
 	if (obj40_pid(&reg->obj, OBJECT_PLUG_TYPE,
 		      "regular") !=  reg40_plug.id.id)
@@ -190,13 +191,13 @@ static object_entity_t *reg40_create(object_info_t *info,
 		return NULL;
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, core, info);
+	obj40_init(&reg->obj, &reg40_plug, rcore, info);
 
 	/* Initializing tail policy plugin */
 	if (hint->body.reg.policy == INVAL_PID) {
 		/* Getting default tail policy from profile if passed hint
 		   contains no valid tail policy plugin id. */
-		hint->body.reg.policy = core->profile_ops.value("policy");
+		hint->body.reg.policy = rcore->profile_ops.value("policy");
 
 		if (hint->body.reg.policy == INVAL_PID) {
 			aal_exception_error("Invalid default tail policy "
@@ -205,8 +206,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 		}
 	}
 	
-	if (!(reg->policy = core->factory_ops.ifind(POLICY_PLUG_TYPE,
-						    hint->body.reg.policy)))
+	if (!(reg->policy = rcore->factory_ops.ifind(POLICY_PLUG_TYPE,
+						     hint->body.reg.policy)))
 	{
 		aal_exception_error("Can't find tail policy plugin by "
 				    "its id 0x%x.", hint->body.reg.policy);
@@ -272,7 +273,7 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 }
 
 static uint32_t reg40_chunk(reg40_t *reg) {
-	return core->tree_ops.maxspace(reg->obj.info.tree);
+	return rcore->tree_ops.maxspace(reg->obj.info.tree);
 }
 
 /* Returns plugin (tail or extent) for next write operation basing on passed
@@ -767,8 +768,6 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
-extern void reg40_core(reiser4_core_t *c);
-
 extern object_entity_t *reg40_recognize(object_info_t *info);
 
 extern errno_t reg40_check_struct(object_entity_t *object,
@@ -828,8 +827,7 @@ reiser4_plug_t reg40_plug = {
 };
 
 static reiser4_plug_t *reg40_start(reiser4_core_t *c) {
-	core = c;
-	reg40_core(c);
+	rcore = c;
 	return &reg40_plug;
 }
 
