@@ -638,7 +638,7 @@ errno_t reiser4_object_reset(
 int32_t reiser4_object_read(
 	reiser4_object_t *object,   /* object entry will be read from */
 	void *buff,		    /* buffer result will be stored in */
-	uint64_t n)                 /* buffer size */
+	uint32_t n)                 /* buffer size */
 {
 	aal_assert("umka-860", object != NULL);
 	aal_assert("umka-861", object->entity != NULL);

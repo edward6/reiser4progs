@@ -249,7 +249,6 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		uint32_t start;
 		uint32_t offset;
 #endif
-
 		extent40_get_key(item, i, &key);
 
 		/* Calculating in-unit local offset */
@@ -280,7 +279,6 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 				chunk = count;
 
 			aal_memcpy(buff, block->data + local, chunk);
-					
 			aal_block_free(block);
 					
 			if ((local + chunk) % blocksize == 0)

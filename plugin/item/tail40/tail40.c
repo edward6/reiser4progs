@@ -41,7 +41,7 @@ static int32_t tail40_read(item_entity_t *item, void *buff,
 	if (count > item->len - pos)
 		count = item->len - pos;
 #endif
-	
+
 	aal_memcpy(buff, item->body + pos, count);
 	
 	return count;

@@ -14,7 +14,7 @@ extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
 					     char *path);
 
 extern int32_t reiser4_object_read(reiser4_object_t *object,
-				   void *buff, uint64_t n);
+				   void *buff, uint32_t n);
 
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
