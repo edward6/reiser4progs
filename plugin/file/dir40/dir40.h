@@ -11,14 +11,13 @@
 #include <aal/aal.h>
 #include <sys/stat.h>
 #include <reiser4/plugin.h>
-
-#include <plugin/file/file40/file40.h>
+#include <plugin/file/object40/object40.h>
 
 /* Compaund directory structure */
 struct dir40 {
 	
 	/* Common fields for all files (statdata, etc) */
-	file40_t file;
+	object40_t file;
 
 	/* Current body item coord */
 	reiser4_place_t body;

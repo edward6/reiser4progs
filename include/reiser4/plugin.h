@@ -216,12 +216,8 @@ struct object_entity {
 typedef struct object_entity object_entity_t;
 
 struct item_context {
-
-	/* Block number of the node item lies in */
 	blk_t blk;
-
-	/* Device item's node lies on */
-	aal_device_t *device;
+ 	aal_device_t *device; 
 };
 
 typedef struct item_context item_context_t;
@@ -231,7 +227,6 @@ typedef struct item_context item_context_t;
   allocator.
 */
 struct item_envirom {
-	object_entity_t *oid;
 	object_entity_t *alloc;
 };
 
@@ -456,8 +451,8 @@ struct reiser4_file_hint {
 typedef struct reiser4_file_hint reiser4_file_hint_t;
 
 /* 
-  Create item or paste into item on the base of this structure. Here "data" is a
-  pointer to data to be copied.
+  This structure contains fields which describe an item or unit to be inserted
+  into the tree.
 */ 
 struct reiser4_item_hint {
 	/*
@@ -469,11 +464,10 @@ struct reiser4_item_hint {
 	/* Length of the data field */
 	uint16_t len;
     
-	/*
-	  This is pointer to hint which describes item. It is widely
-	  used for creating an item.
-	*/
-	void *hint;
+	/* This is opaque pointer to item type specific information */
+	void *type_specific;
+
+	/* Unit count to inserted into the tree */
 	uint16_t count;
     
 	/* The key of item */
@@ -1188,18 +1182,18 @@ struct node_header {
 typedef struct node_header node_header_t;
 
 /* 
-   This structure is passed to all plugins in initialization time and used for
-   access libreiser4 factories.
+  This structure is passed to all plugins in initialization time and used for
+  access libreiser4 factories.
 */
 struct reiser4_core {
     
 	struct {
 	
-		/* Finds plugin by its attribues (type and id) */
-		reiser4_plugin_t *(*ifind)(rpid_t, rpid_t);
+		/* Finds plugin by its attributes (type and id) */
+		reiser4_plugin_t *(*ifind) (rpid_t, rpid_t);
 	
 		/* Finds plugin by its type and name */
-		reiser4_plugin_t *(*nfind)(rpid_t, const char *);
+		reiser4_plugin_t *(*nfind) (rpid_t, const char *);
 	
 	} factory_ops;
     
@@ -1215,7 +1209,7 @@ struct reiser4_core {
 	
 		/*
 		  Makes lookup in the tree in order to know where say stat data
-		  item of a file realy lies. It is used in all object plugins.
+		  item of a file really lies. It is used in all object plugins.
 		*/
 		int (*lookup) (void *, key_entity_t *, uint8_t,
 			       reiser4_place_t *);
@@ -1227,13 +1221,13 @@ struct reiser4_core {
 		   Inserts item/unit in the tree by calling reiser4_tree_insert
 		   function, used by all object plugins (dir, file, etc)
 		*/
-		errno_t (*insert)(void *, reiser4_place_t *, reiser4_item_hint_t *);
+		errno_t (*insert) (void *, reiser4_place_t *, reiser4_item_hint_t *);
     
 		/*
 		  Removes item/unit from the tree. It is used in all object
 		  plugins for modification purposes.
 		*/
-		errno_t (*remove)(void *, reiser4_place_t *, uint32_t);
+		errno_t (*remove) (void *, reiser4_place_t *, uint32_t);
 	
 		/* Returns right and left neighbour respectively */
 		errno_t (*right) (void *, reiser4_place_t *, reiser4_place_t *);

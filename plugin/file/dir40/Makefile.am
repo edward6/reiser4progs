@@ -11,7 +11,7 @@ else
 STATIC_LIBS                 =
 lib_LTLIBRARIES		    = libdir40.la
 libdir40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
-			      $(top_builddir)/plugin/file/file40/libfile40-static.la
+			      $(top_builddir)/plugin/file/object40/libobject40-static.la
 libdir40_la_SOURCES	    = $(dir40_sources)
 libdir40_la_LDFLAGS	    = $(PLUGIN_LDFLAGS)
 

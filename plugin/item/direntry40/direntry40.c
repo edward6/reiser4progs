@@ -293,7 +293,7 @@ static errno_t direntry40_estimate(item_entity_t *item, void *buff,
 	aal_assert("vpf-095", buff != NULL);
     
 	hint = (reiser4_item_hint_t *)buff;
-	entry_hint = (reiser4_entry_hint_t *)hint->hint;
+	entry_hint = (reiser4_entry_hint_t *)hint->type_specific;
 	
 	hint->len = count * sizeof(entry40_t);
     
@@ -857,7 +857,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 		return -1;
 
 	hint = (reiser4_item_hint_t *)buff;
-	entry_hint = (reiser4_entry_hint_t *)hint->hint;
+	entry_hint = (reiser4_entry_hint_t *)hint->type_specific;
 
 	/*
 	  Expanding direntry in order to prepare the room for new entries. The

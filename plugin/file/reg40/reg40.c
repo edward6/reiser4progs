@@ -32,23 +32,23 @@ static errno_t reg40_reset(object_entity_t *entity) {
 
 	reg = (reg40_t *)entity;
 	
-	if ((size = file40_get_size(&reg->file)) == 0)
+	if ((size = object40_get_size(&reg->file)) == 0)
 		return 0;
 
 	/* Building body key to be found */
 	key.plugin = reg->file.key.plugin;
 	
 	plugin_call(key.plugin->key_ops, build_generic, &key,
-		    KEY_FILEBODY_TYPE, file40_locality(&reg->file),
-		    file40_objectid(&reg->file), 0);
+		    KEY_FILEBODY_TYPE, object40_locality(&reg->file),
+		    object40_objectid(&reg->file), 0);
     
-	file40_unlock(&reg->file, &reg->body);
+	object40_unlock(&reg->file, &reg->body);
 
 	/*
 	  Perform lookup with instruction to stop on the leaf level. In the case
 	  first item is extent, we will stop on twig level.
 	*/
-	if (file40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body) != PRESENT)	{
+	if (object40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body) != PRESENT)	{
 		/*
 		  Cleaning body node. It is needed because functions below check
 		  this in order to determine is file has a body or not.
@@ -60,7 +60,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	  Locking node the current body lies in, due to prevent the throwing it
 	  out of tree cache.
 	*/
-	file40_lock(&reg->file, &reg->body);
+	object40_lock(&reg->file, &reg->body);
 
 	reg->offset = 0;
 
@@ -77,16 +77,16 @@ static errno_t reg40_next(reg40_t *reg) {
 	key.plugin = reg->file.key.plugin;
 	
 	plugin_call(key.plugin->key_ops, build_generic, &key,
-		    KEY_FILEBODY_TYPE, file40_locality(&reg->file), 
-		    file40_objectid(&reg->file), reg->offset);
+		    KEY_FILEBODY_TYPE, object40_locality(&reg->file), 
+		    object40_objectid(&reg->file), reg->offset);
 
         /* Unlocking the old body */
-	file40_unlock(&reg->file, &reg->body);
+	object40_unlock(&reg->file, &reg->body);
 
 	place = reg->body;
 	
 	/* Getting the next body item from the tree */
-	res = file40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body);
+	res = object40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body);
 
 	if (res != PRESENT) {
 		/*
@@ -98,7 +98,7 @@ static errno_t reg40_next(reg40_t *reg) {
 	}
 
 	/* Locking new body or old one if lookup failed */
-	file40_lock(&reg->file, &reg->body);
+	object40_lock(&reg->file, &reg->body);
 	
 	return res;
 }
@@ -117,7 +117,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	aal_assert("umka-1183", buff != NULL);
 	aal_assert("umka-1182", entity != NULL);
 
-	size = file40_get_size(&reg->file);
+	size = object40_get_size(&reg->file);
 
 	/* The file has not data at all */
 	if (size == 0 || !reg->body.node)
@@ -179,17 +179,17 @@ static object_entity_t *reg40_open(void *tree,
 	key = &place->item.key;
 
 	/* Initializing file handle */
-	if (file40_init(&reg->file, &reg40_plugin, key, core, tree))
+	if (object40_init(&reg->file, &reg40_plugin, key, core, tree))
 		goto error_free_reg;
 
 	/* saving statdata coord and looking the code it lies in */
 	aal_memcpy(&reg->file.statdata, place, sizeof(*place));
-	file40_lock(&reg->file, &reg->file.statdata);
+	object40_lock(&reg->file, &reg->file.statdata);
 
 	/* Position onto the first body item */
 	if (reg40_reset((object_entity_t *)reg)) {
 		aal_exception_error("Can't reset file 0x%llx.", 
-				    file40_objectid(&reg->file));
+				    object40_objectid(&reg->file));
 		goto error_free_reg;
 	}
     
@@ -229,11 +229,11 @@ static object_entity_t *reg40_create(void *tree,
 	reg->offset = 0;
 
 	/* Initializing file handle */
-	if (file40_init(&reg->file, &reg40_plugin, &hint->object, core, tree))
+	if (object40_init(&reg->file, &reg40_plugin, &hint->object, core, tree))
 		goto error_free_reg;
 	
-	locality = file40_locality(&reg->file);
-    	objectid = file40_objectid(&reg->file);
+	locality = object40_locality(&reg->file);
+    	objectid = object40_objectid(&reg->file);
 
 	parent_locality = plugin_call(hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
@@ -278,10 +278,10 @@ static object_entity_t *reg40_create(void *tree,
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
-	stat_hint.hint = &stat;
+	stat_hint.type_specific = &stat;
 
 	/* Insert statdata item into the tree */
-	if (file40_insert(&reg->file, &stat_hint, LEAF_LEVEL, &place))
+	if (object40_insert(&reg->file, &stat_hint, LEAF_LEVEL, &place))
 		goto error_free_reg;
 
 	aal_memcpy(&reg->file.statdata, &place, sizeof(place));
@@ -357,7 +357,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 	reg = (reg40_t *)entity;
 	
-	if ((size = file40_get_size(&reg->file)) == 0)
+	if ((size = object40_get_size(&reg->file)) == 0)
 		return 0;
 
 	hint.func = func;
@@ -409,7 +409,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	if ((res = func(entity, &reg->file.statdata, data)))
 		return res;
 
-	if ((size = file40_get_size(&reg->file)) == 0)
+	if ((size = object40_get_size(&reg->file)) == 0)
 		return 0;
 	
 	while (reg->offset < size) {
@@ -438,8 +438,8 @@ static void reg40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
-	file40_unlock(&reg->file, &reg->file.statdata);
-	file40_unlock(&reg->file, &reg->body);
+	object40_unlock(&reg->file, &reg->file.statdata);
+	object40_unlock(&reg->file, &reg->body);
 	
 	aal_free(entity);
 }

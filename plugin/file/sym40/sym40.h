@@ -11,9 +11,8 @@
 #include <aal/aal.h>
 #include <aux/aux.h>
 #include <sys/stat.h>
-
 #include <reiser4/plugin.h>
-#include <plugin/file/file40/file40.h>
+#include <plugin/file/object40/object40.h>
 
 /* Compaund directory structure */
 struct sym40 {
@@ -23,7 +22,7 @@ struct sym40 {
 	  statdata only, this structure has only file handler, which contains
 	  stuff for statdata handling.
 	*/
-	file40_t file;
+	object40_t file;
 
 	/* Parent key */
 	key_entity_t parent;

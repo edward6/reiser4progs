@@ -78,7 +78,7 @@ static int32_t nodeptr40_write(item_entity_t *item, void *buff,
 	nodeptr = nodeptr40_body(item);
 	
 	hint = (reiser4_item_hint_t *)buff;
-	ptr_hint = (reiser4_ptr_hint_t *)hint->hint;
+	ptr_hint = (reiser4_ptr_hint_t *)hint->type_specific;
 	
 	np40_set_ptr(nodeptr, ptr_hint->ptr);
 	return 1;

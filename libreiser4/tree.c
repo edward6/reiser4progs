@@ -704,7 +704,7 @@ errno_t reiser4_tree_attach(
 
 	/* Prepare nodeptr hint from opassed @node */
 	hint.count = 1;
-	hint.hint = &ptr;
+	hint.type_specific = &ptr;
 
 	ptr.width = 1;
 	ptr.ptr = node->blk;
@@ -1362,8 +1362,6 @@ errno_t reiser4_tree_insert(
 		hint->con.blk = coord->node->blk;
 	
 	hint->con.device = tree->fs->device;
-	
-	hint->env.oid = tree->fs->oid->entity;
 	hint->env.alloc = tree->fs->alloc->entity;
 	
 	/* Estimating item in order to insert it into found node */

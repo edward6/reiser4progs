@@ -35,7 +35,7 @@ static int32_t sym40_read(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.hint = &stat;
+	hint.type_specific = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
 	item = &sym->file.statdata.item;
@@ -51,8 +51,8 @@ static int32_t sym40_read(object_entity_t *entity,
 
 /* Opens symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_open(void *tree, reiser4_place_t *place) {
-	key_entity_t *key;
 	sym40_t *sym;
+	key_entity_t *key;
 
 	aal_assert("umka-1163", tree != NULL);
 	aal_assert("umka-1164", place != NULL);
@@ -63,12 +63,12 @@ static object_entity_t *sym40_open(void *tree, reiser4_place_t *place) {
 	key = &place->item.key;
 
 	/* Initalizing file handle */
-	if (file40_init(&sym->file, &sym40_plugin, key, core, tree))
+	if (object40_init(&sym->file, &sym40_plugin, key, core, tree))
 		goto error_free_sym;
 
 	/* Saving statdata coord and locking the node it lies in */
 	aal_memcpy(&sym->file.statdata, place, sizeof(*place));
-	file40_lock(&sym->file, &sym->file.statdata);
+	object40_lock(&sym->file, &sym->file.statdata);
 
 	/* Initializing parent key from the root one */
 	sym->file.core->tree_ops.rootkey(sym->file.tree,
@@ -106,15 +106,15 @@ static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint) {
 		return NULL;
 
 	/* Inizializes file handle */
-	file40_init(&sym->file, &sym40_plugin, &hint->object, 
+	object40_init(&sym->file, &sym40_plugin, &hint->object, 
 		    core, tree);
 
 	/* Initializing parent key from the parent field of passed @hint */
 	plugin_call(hint->object.plugin->key_ops, assign,
 		    &sym->parent, &hint->parent);
 	
-	locality = file40_locality(&sym->file);
-	objectid = file40_objectid(&sym->file);
+	locality = object40_locality(&sym->file);
+	objectid = object40_objectid(&sym->file);
 
 	parent_locality = plugin_call(hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
@@ -164,15 +164,15 @@ static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint) {
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 	stat.ext[SDEXT_SYMLINK_ID] = hint->body.sym;
 
-	stat_hint.hint = &stat;
+	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data into the tree */
-	if (file40_insert(&sym->file, &stat_hint, LEAF_LEVEL, &place))
+	if (object40_insert(&sym->file, &stat_hint, LEAF_LEVEL, &place))
 		goto error_free_sym;
 
 	/* Saving statdata coord and locking the node it lies in */
 	aal_memcpy(&sym->file.statdata, &place, sizeof(place));
-	file40_lock(&sym->file, &sym->file.statdata);
+	object40_lock(&sym->file, &sym->file.statdata);
 		
 	return (object_entity_t *)sym;
 
@@ -195,7 +195,7 @@ static int32_t sym40_write(object_entity_t *entity,
 	  we have do here?
 	*/
 	sym = (sym40_t *)entity;
-	return file40_set_sym(&sym->file, buff);
+	return object40_set_sym(&sym->file, buff);
 }
 
 /* Calls function @func for each symlink item (statdata only) */
@@ -237,7 +237,7 @@ static errno_t callback_find_statdata(char *track,
 				      void *data)
 {
 	sym40_t *sym;
-	file40_t *file;
+	object40_t *file;
 	key_entity_t *key;
 	item_entity_t *item;
 
@@ -258,7 +258,7 @@ static errno_t callback_find_statdata(char *track,
 	plugin_call(key->plugin->key_ops, set_offset, key, 0);
 
 	/* Performing lookup for statdata of current directory */
-	if (file40_lookup(file, key, LEAF_LEVEL, &file->statdata) != PRESENT) {
+	if (object40_lookup(file, key, LEAF_LEVEL, &file->statdata) != PRESENT) {
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
 		return -1;
@@ -371,7 +371,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 	sym = (sym40_t *)entity;
 	aal_memset(path, 0, sizeof(path));
 	
-	if (file40_get_sym(&sym->file, path))
+	if (object40_get_sym(&sym->file, path))
 		return -1;
 
 	plugin = sym->file.key.plugin;
@@ -407,7 +407,7 @@ static void sym40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
-	file40_unlock(&sym->file, &sym->file.statdata);
+	object40_unlock(&sym->file, &sym->file.statdata);
 	aal_free(entity);
 }
 

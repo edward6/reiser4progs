@@ -96,7 +96,7 @@ static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
 {
 	reiser4_statdata_hint_t *hint;
 
-	hint = ((reiser4_item_hint_t *)data)->hint;
+	hint = ((reiser4_item_hint_t *)data)->type_specific;
 
 	/* Reading mask into hint */
 	if ((ext + 1) % 16 == 0) {
@@ -152,7 +152,7 @@ static errno_t stat40_estimate(item_entity_t *item, void *buff,
 	aal_assert("vpf-074", buff != NULL);
 
 	hint = (reiser4_item_hint_t *)buff;
-	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
+	stat_hint = (reiser4_statdata_hint_t *)hint->type_specific;
 
 	hint->len = sizeof(stat40_t);
     
@@ -213,7 +213,7 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 	extbody = (rbody_t *)item->body;
 
 	hint = (reiser4_item_hint_t *)buff;
-	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
+	stat_hint = (reiser4_statdata_hint_t *)hint->type_specific;
     
 	if (!stat_hint->extmask)
 		return 0;
@@ -439,7 +439,7 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 	
-	hint.hint = &stat;
+	hint.type_specific = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 	
 	if (stat40_read(item, &hint, 0, 1) != 1) {

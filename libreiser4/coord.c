@@ -63,10 +63,8 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	item->con.device = coord->node->device;
 	
 	/* Initializing item enviromnent fields */
-	if (coord->node->tree) {
-		item->env.oid = coord->node->tree->fs->oid->entity;
+	if (coord->node->tree)
 		item->env.alloc = coord->node->tree->fs->alloc->entity;
-	}
 		
 	return 0;
 }

@@ -71,7 +71,7 @@ static int32_t tail40_write(item_entity_t *item, void *buff,
 		count = item->len - pos;
 	
 	/* Copying new data into place */
-	aal_memcpy(item->body + pos, hint->hint, count);
+	aal_memcpy(item->body + pos, hint->type_specific, count);
 
 	/* Updating the key */
 	if (pos == 0) {

@@ -300,7 +300,7 @@ AC_OUTPUT([
     plugin/item/tail40/Makefile
     plugin/item/extent40/Makefile
     plugin/file/Makefile
-    plugin/file/file40/Makefile
+    plugin/file/object40/Makefile
     plugin/file/dir40/Makefile
     plugin/file/reg40/Makefile
     plugin/file/sym40/Makefile

@@ -144,7 +144,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     if (reiser4_key_compare(&key, &rkey) >= 0)
 	return 1;
  
-    hint.hint = &ptr;
+    hint.type_specific = &ptr;
+    hint.count = 1;
     ptr.ptr = node->blk;
     ptr.width = 1;
 
