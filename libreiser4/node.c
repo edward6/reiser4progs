@@ -1046,7 +1046,6 @@ uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 
 	return 0;
 }
-
 #endif
 
 /* Returns node level */
