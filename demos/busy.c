@@ -588,10 +588,10 @@ int main(int argc, char *argv[]) {
 		return res;
 	}
 
-	tests[ctx.testno].handler(&ctx);
+	res = tests[ctx.testno].handler(&ctx);
 	
 	busy_ctx_fini(&ctx);
 	libreiser4_fini();
     
-	return 0;
+	return res;
 }
