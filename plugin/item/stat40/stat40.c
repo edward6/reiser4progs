@@ -480,22 +480,17 @@ static reiser4_plugin_t stat40_plugin = {
 		.init		= stat40_init,
 		.check		= stat40_check,
 		.print		= stat40_print,
-#else
-		.estimate	= NULL,
-		.write		= NULL,
-		.init		= NULL,
-		.check		= NULL,
-		.print		= NULL,
-#endif
 		.layout         = NULL,
 		.remove		= NULL,
-		.lookup		= NULL,
 		.insert         = NULL,
-		.mergeable      = NULL,
-	    
 		.shift          = NULL,
 		.predict        = NULL,
+		.set_key	= NULL,
+		.layout_check	= NULL,
+#endif
+		.lookup		= NULL,
 		.branch         = NULL,
+		.mergeable      = NULL,
 
 		.data		= stat40_data,
 		.read           = stat40_read,
@@ -503,13 +498,10 @@ static reiser4_plugin_t stat40_plugin = {
 		.valid		= stat40_valid,
 		.belongs        = stat40_belongs,
         
-		.get_key	= NULL,
-		.set_key	= NULL,
-		
 		.maxposs_key	= NULL,
 		.utmost_key     = NULL,
-		.gap_key	= NULL,
-		.layout_check	= NULL
+		.get_key	= NULL,
+		.gap_key	= NULL
 	}
 };
 

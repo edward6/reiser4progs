@@ -11,19 +11,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_symlink_plugin;
 
-static errno_t sdext_symlink_init(rbody_t *body, 
-				  void *hint) 
-{
-	char *data;
-	
-	aal_assert("umka-1481", body != NULL);
-	aal_assert("umka-1482", hint != NULL);
-
-	data = (char *)hint;
-	aal_memcpy((char *)body, data, aal_strlen(data));
-	return 0;
-}
-
 static errno_t sdext_symlink_open(rbody_t *body, 
 				  void *hint) 
 {
@@ -44,6 +31,19 @@ static uint16_t sdext_symlink_length(rbody_t *body) {
 }
 
 #ifndef ENABLE_ALONE
+
+static errno_t sdext_symlink_init(rbody_t *body, 
+				  void *hint) 
+{
+	char *data;
+	
+	aal_assert("umka-1481", body != NULL);
+	aal_assert("umka-1482", hint != NULL);
+
+	data = (char *)hint;
+	aal_memcpy((char *)body, data, aal_strlen(data));
+	return 0;
+}
 
 static errno_t sdext_symlink_print(rbody_t *body, aal_stream_t *stream,
 			      uint16_t options)
@@ -69,13 +69,11 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 			.label = "sdext_symlink",
 			.desc = "Symlink data extention for reiserfs 4.0, ver. " VERSION,
 		},
-		.init	 = sdext_symlink_init,
 		.open	 = sdext_symlink_open,
 		
 #ifndef ENABLE_ALONE
+		.init	 = sdext_symlink_init,
 		.print   = sdext_symlink_print,
-#else
-		.print   = NULL,
 #endif		
 		.length	 = sdext_symlink_length
 	}
@@ -87,4 +85,3 @@ static reiser4_plugin_t *sdext_symlink_start(reiser4_core_t *c) {
 }
 
 plugin_register(sdext_symlink_start, NULL);
-
