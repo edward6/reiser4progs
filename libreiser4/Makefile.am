@@ -26,7 +26,6 @@ else
 libreiser4_la_LIBADD	     = $(top_builddir)/libaal/libaal.la \
 			       $(top_builddir)/libaux/libaux-static.la \
 			       @LIBREISER4_LIBS@
-
 endif
 
 libreiser4_la_SOURCES	     = $(libreiser4_sources)
@@ -37,7 +36,6 @@ libreiser4_static_la_LIBADD  = $(top_builddir)/libaal/libaal-static.la \
 			       $(top_builddir)/plugin/libreiser4-plugin.la
 
 libreiser4_static_la_SOURCES = $(libreiser4_sources)
-
 libreiser4_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
 if ENABLE_ALONE

@@ -258,8 +258,8 @@ int aal_##name##toa(type d, uint32_t n, char *a, int base, int flags) { \
 	    return 1;						        \
     }								        \
 								        \
-    for (s = range; s > 0; s = s >> aal_pow_of_two(base)) {		\
-	    type v = d >> aal_pow_of_two(s);				\
+    for (s = range; s > 0; s = s >> aal_log2(base)) {		        \
+	    type v = d >> aal_log2(s);                                  \
 								        \
 	    if ((uint32_t)(p - a) >= n)				        \
 	            break;			                        \
@@ -268,8 +268,8 @@ int aal_##name##toa(type d, uint32_t n, char *a, int base, int flags) { \
 		    continue;                                           \
 								        \
 	    if (v >= (type)base) {				        \
-                    type ds = d >> aal_pow_of_two(s);                   \
-                    type vb = v >> aal_pow_of_two(base);                \
+                    type ds = d >> aal_log2(s);                         \
+                    type vb = v >> aal_log2(base);                      \
 		    v = ds - (vb * base);		                \
             }                                                           \
 	    switch (base) {					        \

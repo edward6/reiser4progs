@@ -25,10 +25,8 @@ libaal_static_la_SOURCES = $(libaal_sources)
 libaal_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
 if ENABLE_ALONE
-
 libaal_alone_la_SOURCES  = $(libaal_sources)
 libaal_alone_la_CFLAGS   = @ALONE_CFLAGS@
-
 endif
 
 INCLUDES = $(aalincludedir)

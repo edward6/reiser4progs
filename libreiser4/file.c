@@ -320,7 +320,6 @@ reiser4_file_t *reiser4_file_create(
     
 	aal_assert("umka-790", fs != NULL);
 	aal_assert("umka-1128", hint != NULL);
-	aal_assert("umka-1948", parent != NULL);
 	aal_assert("umka-1917", hint->plugin != NULL);
 
 	if (!fs->tree) {

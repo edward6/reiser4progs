@@ -51,7 +51,7 @@ static errno_t alloc40_layout(object_entity_t *entity,
 
 	/* Loop though the all bitmap blocks */
 	for (blk = start; blk < start + alloc->bitmap->total;
-	     blk = ((blk >> aal_pow_of_two(bpb)) + 1) * bpb) 
+	     blk = ((blk >> aal_log2(bpb)) + 1) * bpb) 
 	{
 		errno_t res;
 		
@@ -90,7 +90,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 
 	/* Calculating bitmap size in bytes its position inside map */
 	size = aal_block_size(block) - CRC_SIZE;
-	offset = blk >> aal_pow_of_two(size) >> aal_pow_of_two(8);
+	offset = blk >> aal_log2(size) >> aal_log2(8);
 	current = start + (size * offset);
 
 	/* Calculating where and how many bytes will be copied */
@@ -504,7 +504,7 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
     
 	/* Getting pointer to next bitmap portion */
-	offset = blk >> aal_pow_of_two(size) >> aal_pow_of_two(8);
+	offset = blk >> aal_log2(size) >> aal_log2(8);
 	current = start + (offset * size);
 	    
 	/* Getting the checksum from loaded crc map */

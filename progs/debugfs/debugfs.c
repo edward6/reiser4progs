@@ -17,6 +17,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/stat.h>
 
 #include "debugfs.h"
