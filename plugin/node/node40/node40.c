@@ -109,17 +109,45 @@ static errno_t node40_clone(node_entity_t *src_entity,
 	return 0;
 }
 
-/* Makes fresh node. That is sets numebr of items to zero, and reinitializes all
-   other fields of node header. */
-static errno_t node40_fresh(node_entity_t *entity,
-			    uint8_t level)
+static node_entity_t *node40_prepare(aal_block_t *block, 
+				     reiser4_plug_t *kplug) 
+{
+	node40_t *node;
+	
+	aal_assert("umka-2376", kplug != NULL);
+	aal_assert("umka-2375", block != NULL);
+	
+	if (!(node = aal_calloc(sizeof(*node), 0)))
+		return NULL;
+
+	node->kplug = kplug;
+	node->block = block;
+
+	node->plug = &node40_plug;
+
+	/* Making node dirty if block it is supposed to work with is dirty. */
+	if (block->dirty) {
+		node40_mkdirty((node_entity_t *)node);
+	} else {
+		node40_mkclean((node_entity_t *)node);
+	}
+	
+	return (node_entity_t *)node;
+}
+
+/* Initializes node of the given @level on the @block with key plugin @kplug. 
+   Returns initialized node instance. */
+static node_entity_t *node40_init(aal_block_t *block, uint8_t level,
+				  reiser4_plug_t *kplug)
 {
 	node40_t *node;
 	uint32_t header;
 
-	aal_assert("umka-2374", entity != NULL);
+	aal_assert("umka-2374", block != NULL);
+	aal_assert("vpf-1417",  kplug != NULL);
 	
-	node = (node40_t *)entity;
+	if (!(node = (node40_t *)node40_prepare(block, kplug)))
+		return NULL;
 	
 	nh_set_num_items(node, 0);
 	nh_set_level(node, level);
@@ -130,7 +158,7 @@ static errno_t node40_fresh(node_entity_t *entity,
 	nh_set_free_space_start(node, header);
 	nh_set_free_space(node, node->block->size - header);
 
-	return 0;
+	return (node_entity_t *)node;
 }
 
 /* Saves node to device */
@@ -240,29 +268,22 @@ uint16_t node40_len(node_entity_t *entity, pos_t *pos) {
 	}
 }
 
-/* Initializes node and on @block with key plugin @kplug. Returns initialized
-   node instance. */
-static node_entity_t *node40_init(aal_block_t *block,
-				  reiser4_plug_t *kplug)
-{
+
+/* Open the node on the given @block with the given key plugin @kplug. 
+   Returns initialized node instance. */
+static node_entity_t *node40_open(aal_block_t *block, reiser4_plug_t *kplug) {
 	node40_t *node;
 	
-	aal_assert("umka-2376", kplug != NULL);
-	aal_assert("umka-2375", block != NULL);
-
-	if (!(node = aal_calloc(sizeof(*node), 0)))
+	aal_assert("vpf-1415", kplug != NULL);
+	aal_assert("vpf-1416", block != NULL);
+	
+	if (!(node = (node40_t *)node40_prepare(block, kplug)))
 		return NULL;
 
-	node->kplug = kplug;
-	node->block = block;
-	
-	node->plug = &node40_plug;
-
-	/* Making node dirty if block it is supposed to work with is dirty. */
-	if (block->dirty) {
-		node40_mkdirty((node_entity_t *)node);
-	} else {
-		node40_mkclean((node_entity_t *)node);
+	/* Check the magic. */
+	if (nh_get_magic(node) != NODE40_MAGIC) {
+		aal_free(node);
+		return NULL;
 	}
 	
 	return (node_entity_t *)node;
@@ -1649,6 +1670,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 #endif
 
 static reiser4_node_ops_t node40_ops = {
+	.open		= node40_open,
 	.init		= node40_init,
 	.fini		= node40_fini,
 	.lookup		= node40_lookup,
@@ -1661,7 +1683,6 @@ static reiser4_node_ops_t node40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.move		= node40_move,
 	.clone          = node40_clone,
-	.fresh		= node40_fresh,
 	.sync           = node40_sync,
 	.fuse           = node40_fuse,
 
