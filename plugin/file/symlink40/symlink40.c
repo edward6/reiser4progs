@@ -255,6 +255,7 @@ static reiser4_plugin_t symlink40_plugin = {
 #endif
 		.truncate   = NULL,
 		.layout     = NULL,
+		.metadata   = NULL,
 		.valid	    = NULL,
 		.lookup	    = NULL,
 		.reset	    = NULL,
