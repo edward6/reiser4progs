@@ -161,21 +161,9 @@ struct reiser4_object {
 
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *entity;
-    
-	/* The place of the file's first item (stat data one?) */
-	reiser4_place_t place;
-
-	/* File first item key */
-	reiser4_key_t key;
-
-#ifdef ENABLE_SYMLINKS_SUPPORT
-	/* Parent key */
-	reiser4_key_t parent;
-#endif
 	
-	/* Referrence to the filesystem file opened on */
-	reiser4_fs_t *fs;
-
+	object_info_t info;
+	
 	bool_t follow;
 
 #ifndef ENABLE_STAND_ALONE

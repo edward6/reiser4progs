@@ -82,9 +82,7 @@ static int32_t sym40_read(object_entity_t *entity,
 }
 
 /* Creates symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_create(void *tree, object_hint_t *hint, 
-				     place_t *place)
-{
+static object_entity_t *sym40_create(object_info_t *info, object_hint_t *hint) {
 	sym40_t *sym;
 	oid_t objectid, locality;
     
@@ -96,24 +94,25 @@ static object_entity_t *sym40_create(void *tree, object_hint_t *hint,
 	
 	reiser4_plugin_t *stat_plugin;
 	
-	aal_assert("umka-1741", tree != NULL);
+	aal_assert("umka-1741", info != NULL);
+	aal_assert("vpf-1094",  info->tree != NULL);
 	aal_assert("umka-1740", hint != NULL);
 
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(hint->object.plugin->o.key_ops, get_locality, 
-			       &hint->object);
-	objectid = plugin_call(hint->object.plugin->o.key_ops, get_objectid, 
-			       &hint->object);
+	locality = plugin_call(info->object.plugin->o.key_ops, get_locality, 
+			       &info->object);
+	objectid = plugin_call(info->object.plugin->o.key_ops, get_objectid, 
+			       &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(hint->object.plugin->o.key_ops, build_generic, 
-		    &hint->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(info->object.plugin->o.key_ops, build_generic, 
+		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 	
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plugin, &hint->object, core, tree);
+	obj40_init(&sym->obj, &sym40_plugin, &info->object, core, info->tree);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -129,10 +128,10 @@ static object_entity_t *sym40_create(void *tree, object_hint_t *hint,
 
 	stat_hint.plugin = stat_plugin;
 	stat_hint.flags = HF_FORMATD;
-	stat_hint.key.plugin = hint->object.plugin;
+	stat_hint.key.plugin = info->object.plugin;
 	
-	plugin_call(hint->object.plugin->o.key_ops, assign,
-		    &stat_hint.key, &hint->object);
+	plugin_call(info->object.plugin->o.key_ops, assign,
+		    &stat_hint.key, &info->object);
     
 	/*
 	  Initializing stat data item hint. Here we set up the extentions mask
@@ -181,7 +180,7 @@ static object_entity_t *sym40_create(void *tree, object_hint_t *hint,
 	}
 
 	/* Saving statdata place and locking the node it lies in */
-	aal_memcpy(place, &sym->obj.statdata, sizeof(*place));
+	aal_memcpy(&info->start, &sym->obj.statdata, sizeof(info->start));
 
 	obj40_lock(&sym->obj, &sym->obj.statdata);
 	

@@ -251,6 +251,12 @@ struct sdext_entity {
 
 typedef struct sdext_entity sdext_entity_t;
 
+struct place {
+	void *node;
+	pos_t pos;
+	item_entity_t item;
+};
+
 typedef struct place place_t;
 
 /* Shift flags control shift process */
@@ -469,14 +475,22 @@ struct object_hint {
 		char sym[SYMLINK_MAX_LEN];
 	} body;
     
-	key_entity_t object; 
-	key_entity_t parent;		
-	
 	/* The plugin in use */
 	reiser4_plugin_t *plugin;
 };
 
 typedef struct object_hint object_hint_t;
+
+struct object_info {
+	key_entity_t object; 
+	key_entity_t parent;
+	
+	place_t start;
+	
+	void *tree;
+};
+
+typedef struct object_info object_info_t;
 
 /*
   Flags for using in item hint for denoting is type_specific point for type
@@ -590,7 +604,7 @@ typedef struct reiser4_key_ops reiser4_key_ops_t;
 struct reiser4_object_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Creates new file with passed parent and object keys */
-	object_entity_t *(*create) (void *, object_hint_t *, place_t *);
+	object_entity_t *(*create) (object_info_t *, object_hint_t *);
     
 	/*
 	  Links/unlinks file in its parent and updates all needed stat data
@@ -1284,12 +1298,6 @@ struct reiser4_plugin {
 		reiser4_oid_ops_t *oid_ops;
 		reiser4_key_ops_t *key_ops;
 	} o;
-};
-
-struct place {
-	void *node;
-	pos_t pos;
-	item_entity_t item;
 };
 
 /* The common node header */

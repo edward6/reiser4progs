@@ -46,7 +46,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	if (reiser4_object_can_begin(place) == FALSE)
 	    return 0;
 	
-	object = reiser4_object_launch(cleanup->repair->fs, place);
+	object = reiser4_object_launch(cleanup->repair->fs->tree, place);
 	if (object == NULL)
 	    return 0;
 	
@@ -143,13 +143,13 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	return -EINVAL;
     
     /* Make sure that '/' and 'lost+found' exist. */
-    root = reiser4_object_open(fs, "/", FALSE);
+    root = reiser4_object_open(fs->tree, "/", FALSE);
     if (root == NULL) {
 	aal_exception_error("Cleanup failed to find '/' directory.");
 	return -EINVAL;
     }    
     
-    cleanup->lost = reiser4_object_open(fs, "/lost+found", FALSE);
+    cleanup->lost = reiser4_object_open(fs->tree, "/lost+found", FALSE);
     if (cleanup->lost == NULL) {	
 	cleanup->lost = reiser4_dir_create(fs, "lost+found", root, fs->profile);
 	if (cleanup->lost == NULL) {

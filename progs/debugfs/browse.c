@@ -74,7 +74,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	errno_t res = -EINVAL;
 	reiser4_object_t *object;
 	
-	if (!(object = reiser4_object_open(fs, filename, TRUE)))
+	if (!(object = reiser4_object_open(fs->tree, filename, TRUE)))
 		return -EINVAL;
 
 	switch (object->entity->plugin->h.group) {

@@ -192,9 +192,7 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Creating the file described by pased @hint */
-static object_entity_t *reg40_create(void *tree, object_hint_t *hint, 
-				     place_t *place)
-{
+static object_entity_t *reg40_create(object_info_t *info, object_hint_t *hint) {
 	reg40_t *reg;
 	oid_t objectid, locality;
 	
@@ -206,9 +204,9 @@ static object_entity_t *reg40_create(void *tree, object_hint_t *hint,
 	
 	reiser4_plugin_t *stat_plugin;
 	
-	aal_assert("umka-1169", tree != NULL);
+	aal_assert("umka-1169", info != NULL);
+	aal_assert("vpf-1093",  info->tree != NULL);
 	aal_assert("umka-1738", hint != NULL);
-	aal_assert("umka-1880", place != NULL);
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
@@ -216,17 +214,17 @@ static object_entity_t *reg40_create(void *tree, object_hint_t *hint,
 	reg->offset = 0;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(hint->object.plugin->o.key_ops, get_locality, 
-			       &hint->object);
-	objectid = plugin_call(hint->object.plugin->o.key_ops, get_objectid, 
-			       &hint->object);
+	locality = plugin_call(info->object.plugin->o.key_ops, get_locality, 
+			       &info->object);
+	objectid = plugin_call(info->object.plugin->o.key_ops, get_objectid, 
+			       &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(hint->object.plugin->o.key_ops, build_generic, 
-		    &hint->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(info->object.plugin->o.key_ops, build_generic, 
+		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plugin, &hint->object, core, tree);
+	obj40_init(&reg->obj, &reg40_plugin, &info->object, core, info->tree);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -243,8 +241,8 @@ static object_entity_t *reg40_create(void *tree, object_hint_t *hint,
 	stat_hint.plugin = stat_plugin;
 	stat_hint.flags = HF_FORMATD;
 
-	plugin_call(hint->object.plugin->o.key_ops, assign, 
-		    &stat_hint.key, &hint->object);
+	plugin_call(info->object.plugin->o.key_ops, assign, 
+		    &stat_hint.key, &info->object);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
@@ -287,7 +285,7 @@ static object_entity_t *reg40_create(void *tree, object_hint_t *hint,
 		goto error_free_reg;
 	}
 
-	aal_memcpy(place, &reg->obj.statdata, sizeof(*place));
+	aal_memcpy(&info->start, &reg->obj.statdata, sizeof(info->start));
 	obj40_lock(&reg->obj, &reg->obj.statdata);
 	
 	reg->bplug = reg40_bplug(reg, 0);

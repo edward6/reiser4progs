@@ -10,7 +10,7 @@
 
 #include <reiser4/types.h>
 
-extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
+extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 					     char *filename,
 					     bool_t follow);
 
@@ -24,7 +24,7 @@ extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
-extern reiser4_object_t *reiser4_object_launch(reiser4_fs_t *fs,
+extern reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					       reiser4_place_t *place);
 #endif
 

@@ -483,7 +483,7 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 	reiser4_object_t *object;
 
 	/* Opens object by its name */
-	if (!(object = reiser4_object_open(fs, filename, FALSE)))
+	if (!(object = reiser4_object_open(fs->tree, filename, FALSE)))
 		return -EINVAL;
 
 	/* Initializing serve structures */
@@ -559,7 +559,7 @@ static errno_t dfrag_process_node(
 			continue;
 
 		/* Opening object by its stat data item denoded by @place */
-		if (!(object = reiser4_object_launch(frag_hint->tree->fs, &place)))
+		if (!(object = reiser4_object_launch(frag_hint->tree, &place)))
 			continue;
 
 		/* Initializing per-file counters */

@@ -273,7 +273,7 @@ errno_t debugfs_print_file(
 	fprint_hint_t hint;
 	reiser4_object_t *object;
 	
-	if (!(object = reiser4_object_open(fs, filename, FALSE)))
+	if (!(object = reiser4_object_open(fs->tree, filename, FALSE)))
 		return -EINVAL;
 
 	/*

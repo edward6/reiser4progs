@@ -393,9 +393,7 @@ static char *dir40_empty_dir[2] = { ".", ".." };
   Creates dir40 instance and inserts few item in new directory described by
   passed @hint.
 */
-static object_entity_t *dir40_create(void *tree, object_hint_t *hint, 
-				     place_t *place)
-{
+static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 	uint32_t i;
 	dir40_t *dir;
 
@@ -415,24 +413,25 @@ static object_entity_t *dir40_create(void *tree, object_hint_t *hint,
 	reiser4_plugin_t *stat_plugin;
 	reiser4_plugin_t *body_plugin;
     
-	aal_assert("umka-835", tree != NULL);
+	aal_assert("umka-835", info != NULL);
+	aal_assert("vpf-1095", info->tree != NULL);
 	aal_assert("umka-1739", hint != NULL);
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(hint->object.plugin->o.key_ops, get_locality, 
-			       &hint->object);
-	objectid = plugin_call(hint->object.plugin->o.key_ops, get_objectid, 
-			       &hint->object);
+	locality = plugin_call(info->object.plugin->o.key_ops, get_locality, 
+			       &info->object);
+	objectid = plugin_call(info->object.plugin->o.key_ops, get_objectid, 
+			       &info->object);
 
 	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(hint->object.plugin->o.key_ops, build_generic, 
-		    &hint->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(info->object.plugin->o.key_ops, build_generic, 
+		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plugin, &hint->object, core, tree);
+	obj40_init(&dir->obj, &dir40_plugin, &info->object, core, info->tree);
 
 	/* Getting hash plugin */
 	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
@@ -444,11 +443,11 @@ static object_entity_t *dir40_create(void *tree, object_hint_t *hint,
 	}
 
 	/* Preparing parent locality and objectid */
-	plocality = plugin_call(hint->object.plugin->o.key_ops,
-				get_locality, &hint->parent);
+	plocality = plugin_call(info->object.plugin->o.key_ops,
+				get_locality, &info->parent);
 	
-	pobjectid = plugin_call(hint->object.plugin->o.key_ops,
-				get_objectid, &hint->parent);
+	pobjectid = plugin_call(info->object.plugin->o.key_ops,
+				get_objectid, &info->parent);
 
 	/* Getting item plugins for statdata and body */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -480,7 +479,7 @@ static object_entity_t *dir40_create(void *tree, object_hint_t *hint,
 	body_hint.plugin = body_plugin;
    	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
-	plugin_call(hint->object.plugin->o.key_ops, build_entry,
+	plugin_call(info->object.plugin->o.key_ops, build_entry,
 		    &body_hint.key, dir->hash, locality, objectid, ".");
 
 	if (!(body = aal_calloc(body_hint.count * sizeof(*body), 0)))
@@ -513,11 +512,11 @@ static object_entity_t *dir40_create(void *tree, object_hint_t *hint,
 		  Building key for the statdata of object new entry will point
 		  to.
 		*/
-		plugin_call(hint->object.plugin->o.key_ops, build_generic,
+		plugin_call(info->object.plugin->o.key_ops, build_generic,
 			    &entry->object, KEY_STATDATA_TYPE, loc, oid, 0);
 
 		/* Building key for the hash new entry will have */
-		plugin_call(hint->object.plugin->o.key_ops, build_entry,
+		plugin_call(info->object.plugin->o.key_ops, build_entry,
 			    &entry->offset, dir->hash, locality,
 			    objectid, name);
 	}
@@ -529,8 +528,8 @@ static object_entity_t *dir40_create(void *tree, object_hint_t *hint,
 	stat_hint.flags = HF_FORMATD;
 	stat_hint.plugin = stat_plugin;
     
-	plugin_call(hint->object.plugin->o.key_ops, assign,
-		    &stat_hint.key, &hint->object);
+	plugin_call(info->object.plugin->o.key_ops, assign,
+		    &stat_hint.key, &info->object);
     
 	/*
 	  Initializing stat data item hint. It uses unix extention and light
@@ -545,8 +544,8 @@ static object_entity_t *dir40_create(void *tree, object_hint_t *hint,
 	*/
 	
 
-	if (plugin_call(hint->parent.plugin->o.key_ops, compare, &hint->parent, 
-	    &hint->object))
+	if (plugin_call(info->parent.plugin->o.key_ops, compare, &info->parent, 
+	    &info->object))
 	{
 	    lw_ext.nlink = 3;
 	} else {
@@ -603,7 +602,7 @@ static object_entity_t *dir40_create(void *tree, object_hint_t *hint,
 	}
 	
 	/* Saving stat data place insert function has returned */
-	aal_memcpy(place, &dir->obj.statdata, sizeof(*place));
+	aal_memcpy(&info->start, &dir->obj.statdata, sizeof(info->start));
 	obj40_lock(&dir->obj, &dir->obj.statdata);
 
 	/* Looking for place to insert directory body */

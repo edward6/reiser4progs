@@ -295,7 +295,7 @@ static errno_t node40_get_item(object_entity_t *entity,
 
 	node = (node40_t *)entity;
 	
-	if (pos->item < nh40_get_num_items(node))
+	if (pos->item >= nh40_get_num_items(node))
 	    return -EINVAL;
 	
 	/* Initializes item's context (device, block number, etc) */

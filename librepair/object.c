@@ -8,7 +8,7 @@
 #include <repair/object.h>
 
 extern void reiser4_object_create_base(reiser4_fs_t *fs,
-    reiser4_object_t *parent, reiser4_object_t *object, object_hint_t *hint);
+    reiser4_object_t *parent, reiser4_object_t *object);
 
 errno_t repair_object_check_struct(repair_object_t *hint, uint8_t mode) {
     aal_assert("vpf-1044", hint != NULL);
@@ -177,17 +177,17 @@ reiser4_object_t *repair_object_open(repair_object_t *hint) {
     if (!(object = aal_calloc(sizeof(*object), 0)))
 	return NULL;
     
-    object->fs = hint->tree->fs;
+    object->info.tree = hint->tree;
     
 #ifndef ENABLE_STAND_ALONE
-    reiser4_key_string(&object->key, object->name);
+    reiser4_key_string(&object->info.object, object->name);
 #endif
     
-    aal_memcpy(&object->place, &hint->place, sizeof(hint->place));
-    reiser4_key_assign(&object->key, &object->place.item.key);
+    aal_memcpy(&object->info.start, &hint->place, sizeof(hint->place));
+    reiser4_key_assign(&object->info.object, &object->info.start.item.key);
     
     object->entity = plugin_call(hint->plugin->o.object_ops, open,
-	(void *)hint->tree, (void *)&object->place);
+	(void *)hint->tree, (void *)&object->info.start);
     
     if (object->entity == NULL)
 	goto error_free_object;
@@ -206,16 +206,15 @@ errno_t repair_object_traverse(reiser4_object_t *object) {
     errno_t res = 0;
 
     aal_assert("vpf-1090", object != NULL);
-    aal_assert("vpf-1091", object->fs != NULL);
-    aal_assert("vpf-1092", object->fs->tree != NULL);
+    aal_assert("vpf-1092", object->info.tree != NULL);
     
-    repair_object_init(&hint, object->fs->tree);
+    repair_object_init(&hint, object->info.tree);
     
     while (reiser4_object_readdir(object, &entry)) {
 	/* Some entry was read. Try to detect the object of the paticular plugin
 	 * pointed by this entry. */
 	
-	if (repair_object_launch(&hint, &object->parent, &entry.object)) {
+	if (repair_object_launch(&hint, &object->info.parent, &entry.object)) {
 	    /* Some problems with the object recovery appeared, rm the entry. */
 	
 	    if ((res = reiser4_object_rem_entry(object, &entry))) {

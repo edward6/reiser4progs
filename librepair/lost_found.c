@@ -58,7 +58,9 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	}
     } else {
 	/* Not reachable. */
-	if ((object = reiser4_object_launch(lf->repair->fs, place)) == NULL) {
+	object = reiser4_object_launch(lf->repair->fs->tree, place);
+	
+	if (object == NULL) {
 	    aal_exception_error("Node %llu, item %u: failed to open an object "
 		"%k.", place->node->blk, place->pos.item, &hint.place.item.key);
 	    return -EINVAL;
@@ -66,7 +68,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
     }
     
     /* link the object to its parent or to the "lost+found" directory. */
-    if (object->parent.plugin) {
+    if (object->info.parent.plugin) {
 	/* Parent key was obtained from the object. Try to find the parent 
 	 * object, if it fails, link the object to lost+found. */
     }
@@ -121,10 +123,12 @@ errno_t repair_lost_found(repair_lost_found_t *lf) {
     if (fs->tree->root == NULL)
 	return -EINVAL;
     
-    if ((lf->lost = reiser4_object_open(fs, "/lost+found", FALSE)) == NULL) {
+    lf->lost = reiser4_object_open(fs->tree, "/lost+found", FALSE);
+
+    if (lf->lost == NULL) {
 	/* 'lost+found' directory openning failed. Try to open '/' */
 	
-	if ((root = reiser4_object_open(fs, "/", FALSE)) == NULL) {
+	if ((root = reiser4_object_open(fs->tree, "/", FALSE)) == NULL) {
 	    aal_exception_error("Lost&Found pass failed: no root directory "
 		"found.");
 	    return -EINVAL;
