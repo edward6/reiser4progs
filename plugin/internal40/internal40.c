@@ -15,6 +15,10 @@ static internal40_t *internal40_body(reiser4_item_t *item) {
 	item->node->plugin->node_ops, item_body, item->node, item->pos);
 }
 
+static internal40_t *internal40_count(reiser4_item_t *item) {
+    return 1;
+}
+
 #ifndef ENABLE_COMPACT
 
 static errno_t internal40_init(reiser4_item_t *item, 
@@ -58,13 +62,14 @@ static errno_t internal40_print(reiser4_item_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t internal40_set_ptr(reiser4_item_t *item, 
+static errno_t internal40_set_ptr(reiser4_item_t *item, uint16_t unit 
     blk_t blk)
 {
     internal40_t *internal;
     
     aal_assert("umka-605", item != NULL, return -1);
-
+    aal_assert("vpf-354", unit != 1, return -1);
+    
     internal = internal40_body(item);
     it40_set_ptr(internal, blk);
 
@@ -73,10 +78,12 @@ static errno_t internal40_set_ptr(reiser4_item_t *item,
 
 #endif
 
-static blk_t internal40_get_ptr(reiser4_item_t *item) {
+static blk_t internal40_get_ptr(reiser4_item_t *item, uint16_t unit) {
     internal40_t *internal;
     
     aal_assert("umka-606", item != NULL, return 0);
+    aal_assert("vpf-353", unit != 1, return 0);
+    
     internal = internal40_body(item);
     
     return it40_get_ptr(internal);
@@ -115,7 +122,7 @@ static reiser4_plugin_t internal40_plugin = {
         .lookup		= NULL,
         .valid		= NULL,
         .insert		= NULL,
-        .count		= NULL,
+        .count		= internal40_count,
         .remove		= NULL,
 	.mergeable	= NULL,
 	.shift		= NULL,
@@ -125,7 +132,7 @@ static reiser4_plugin_t internal40_plugin = {
         .print		= internal40_print,
 	
     	.specific = {
-	    .internal = {
+	    .ptr = {
 		.get_ptr = internal40_get_ptr,
 #ifndef ENABLE_COMPACT
 		.set_ptr = internal40_set_ptr

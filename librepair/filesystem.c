@@ -149,8 +149,23 @@ static errno_t repair_fs_check_setup(reiser4_fs_t *fs, repair_check_t *data) {
 	aal_exception_error("Failed to allocate a bitmap for many pointed blocks.");
 	return -1;
     }
+
+    if (!(repair_cut_data(data)->format_layout = reiser4_bitmap_create(
+	reiser4_format_get_len(data->format)))) 
+    {
+	aal_exception_error("Failed to allocate a bitmap for format layout blocks.");
+	return -1;
+    }
     
- 
+    aal_memset(repair_cut_data(data)->format_layout->map, 0xff, size);
+    
+    if (reiser4_format_layout(fs->format, callback_mark_format_block, 
+	repair_cut_data(data)->format_layout)) 
+    {
+	aal_exception_error("Failed to mark all format blocks in the bitmap as unused.");
+	return -1;
+    }
+    
     data->format = fs->format;
     data->options = repair_data(fs)->options;
 
