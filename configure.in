@@ -624,8 +624,6 @@ AC_OUTPUT([
     	progs/fsck/Makefile
     	progs/debugfs/Makefile
     	progs/measurefs/Makefile
-    	progs/resizefs/Makefile
-    	progs/cpfs/Makefile
     	demos/Makefile
     	doc/Makefile
     	reiser4progs.spec

@@ -1,1 +1,1 @@
-SUBDIRS = mkfs debugfs measurefs cpfs resizefs fsck
+SUBDIRS = mkfs debugfs measurefs fsck
