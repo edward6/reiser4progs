@@ -618,6 +618,7 @@ AC_OUTPUT([
     	plugin/sdext/sdext_lw/Makefile
     	plugin/sdext/sdext_lt/Makefile
     	plugin/sdext/sdext_symlink/Makefile
+    	plugin/sdext/sdext_flags/Makefile
     	demos/Makefile
     	progs/Makefile
     	progs/mkfs/Makefile

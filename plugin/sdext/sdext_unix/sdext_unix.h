@@ -24,26 +24,26 @@ struct sdext_unix {
 
 typedef struct sdext_unix sdext_unix_t;
 
-#define sdext_unix_get_uid(ux)		aal_get_le32(ux, uid)
-#define sdext_unix_set_uid(ux, val)	aal_set_le32(ux, uid, val)
+#define sdext_unix_get_uid(ext)		aal_get_le32(ext, uid)
+#define sdext_unix_set_uid(ext, val)	aal_set_le32(ext, uid, val)
 
-#define sdext_unix_get_gid(ux)		aal_get_le32(ux, gid)
-#define sdext_unix_set_gid(ux, val)	aal_set_le32(ux, gid, val)
+#define sdext_unix_get_gid(ext)		aal_get_le32(ext, gid)
+#define sdext_unix_set_gid(ext, val)	aal_set_le32(ext, gid, val)
 
-#define sdext_unix_get_atime(ux)	aal_get_le32(ux, atime)
-#define sdext_unix_set_atime(ux, val)	aal_set_le32(ux, atime, val)
+#define sdext_unix_get_atime(ext)	aal_get_le32(ext, atime)
+#define sdext_unix_set_atime(ext, val)	aal_set_le32(ext, atime, val)
 
-#define sdext_unix_get_mtime(ux)	aal_get_le32(ux, mtime)
-#define sdext_unix_set_mtime(ux, val)	aal_set_le32(ux, mtime, val)
+#define sdext_unix_get_mtime(ext)	aal_get_le32(ext, mtime)
+#define sdext_unix_set_mtime(ext, val)	aal_set_le32(ext, mtime, val)
 
-#define sdext_unix_get_ctime(ux)	aal_get_le32(ux, ctime)
-#define sdext_unix_set_ctime(ux, val)	aal_set_le32(ux, ctime, val)
+#define sdext_unix_get_ctime(ext)	aal_get_le32(ext, ctime)
+#define sdext_unix_set_ctime(ext, val)	aal_set_le32(ext, ctime, val)
 
-#define sdext_unix_get_rdev(ux)	        aal_get_le64(ux, u.rdev)
-#define sdext_unix_set_rdev(ux, val)	aal_set_le64(ux, u.rdev, val)
+#define sdext_unix_get_rdev(ext)	        aal_get_le64(ext, u.rdev)
+#define sdext_unix_set_rdev(ext, val)	aal_set_le64(ext, u.rdev, val)
 
-#define sdext_unix_get_bytes(ux)	aal_get_le64(ux, u.bytes)
-#define sdext_unix_set_bytes(ux, val)	aal_set_le64(ux, u.bytes, val)
+#define sdext_unix_get_bytes(ext)	aal_get_le64(ext, u.bytes)
+#define sdext_unix_set_bytes(ext, val)	aal_set_le64(ext, u.bytes, val)
 
 #endif
 
