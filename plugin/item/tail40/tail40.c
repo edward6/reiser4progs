@@ -53,6 +53,10 @@ static int32_t tail40_read(item_entity_t *item, void *buff,
 	return count;
 }
 
+static int tail40_data() {
+	return 1;
+}
+
 #ifndef ENABLE_ALONE
 
 /* Rewrites tail from passed @pos by data specifed by hint */
@@ -379,7 +383,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.print	        = tail40_print,
 		.mergeable      = tail40_mergeable,
 		.predict        = tail40_predict,
-		.shift	        = tail40_shift,
+		.shift	        = tail40_shift,		
 #else
 		.init	        = NULL,
 		.write	        = NULL,
@@ -401,6 +405,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.units	        = tail40_units,
 		.lookup	        = tail40_lookup,
 		.read	        = tail40_read,
+		.data		= tail40_data,
 		
 		.maxposs_key    = tail40_maxposs_key,
 		.utmost_key     = tail40_utmost_key,

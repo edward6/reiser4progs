@@ -128,6 +128,10 @@ static int32_t stat40_read(item_entity_t *item, void *buff,
 	return 1;
 }
 
+static int stat40_data() {
+	return 1;
+}
+
 #ifndef ENABLE_ALONE
 
 /* Prepares item area */
@@ -498,6 +502,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.predict        = NULL,
 		.branch         = NULL,
 
+		.data		= stat40_data,
 		.read           = stat40_read,
 		.units		= stat40_units,
 		.valid		= stat40_valid,

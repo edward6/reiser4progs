@@ -98,6 +98,10 @@ static errno_t extent40_get_key(item_entity_t *item,
 	return 0;
 }
 
+static int extent40_data () {
+	return 1;
+}
+
 #ifndef ENABLE_ALONE
 
 static errno_t extent40_init(item_entity_t *item) {
@@ -773,6 +777,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.valid	       = NULL,
 		.branch        = NULL,
 		.set_key       = NULL,
+		.data	       = extent40_data,
 
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,

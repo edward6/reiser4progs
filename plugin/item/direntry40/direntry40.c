@@ -247,6 +247,10 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	return i - pos;
 }
 
+static int direntry40_data() {
+	return 1;
+}
+
 #ifndef ENABLE_ALONE
 
 /*
@@ -1215,6 +1219,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.valid		= NULL,
 		.insert         = NULL,
 		.branch         = NULL,
+		.data		= direntry40_data,
 
 		.gap_key	= NULL,
 		.set_key	= NULL,
