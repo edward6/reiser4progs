@@ -15,31 +15,31 @@ errno_t reiser4_item_open(
 	reiser4_entity_t *entity, /* node entity */
 	reiser4_pos_t *pos)       /* pos item will initialized at */
 {
-    rpid_t pid;
+	rpid_t pid;
     
-    aal_assert("umka-1063", entity != NULL, return -1);
-    aal_assert("umka-1066", pos != NULL, return -1);
-    aal_assert("umka-1064", item != NULL, return -1);
+	aal_assert("umka-1063", entity != NULL, return -1);
+	aal_assert("umka-1066", pos != NULL, return -1);
+	aal_assert("umka-1064", item != NULL, return -1);
     
-    pid = plugin_call(return 0, 
-					  entity->plugin->node_ops, item_pid, entity, pos);
+	pid = plugin_call(return 0, 
+			  entity->plugin->node_ops, item_pid, entity, pos);
     
-    if (pid == FAKE_PLUGIN) {
-        aal_exception_error("Invalid item plugin id detected.");
+	if (pid == FAKE_PLUGIN) {
+		aal_exception_error("Invalid item plugin id detected.");
 		return -1;
-    }
+	}
     
-    item->plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid);
+	item->plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid);
     
-    if (!item->plugin) {
-        aal_exception_error("Can't get item plugin.");
+	if (!item->plugin) {
+		aal_exception_error("Can't get item plugin.");
 		return -1;
-    }
+	}
     
-    item->node = entity;
-    item->pos = pos;
+	item->node = entity;
+	item->pos = pos;
 
-    return 0;
+	return 0;
 }
 
 /* Assignes passed @entity and @pos to item */
@@ -48,32 +48,32 @@ errno_t reiser4_item_init(
 	reiser4_entity_t *entity, /* node entity to be assigned */
 	reiser4_pos_t *pos)       /* pos to be assigned */
 {
-    aal_assert("umka-1060", entity != NULL, return -1);
-    aal_assert("umka-1067", pos != NULL, return -1);
+	aal_assert("umka-1060", entity != NULL, return -1);
+	aal_assert("umka-1067", pos != NULL, return -1);
     
-    item->node = entity;
-    item->pos = pos;
+	item->node = entity;
+	item->pos = pos;
     
-    return 0;
+	return 0;
 }
 
 /* Returns count of units in item. If count method is not implemented,
  * it returns 1 */
 uint32_t reiser4_item_count(reiser4_item_t *item) {
-    aal_assert("umka-1030", item != NULL, return 0);
-    aal_assert("umka-1068", item->plugin != NULL, return 0);
+	aal_assert("umka-1030", item != NULL, return 0);
+	aal_assert("umka-1068", item->plugin != NULL, return 0);
     
-    if (item->plugin->item_ops.count)
+	if (item->plugin->item_ops.count)
 		return item->plugin->item_ops.count(item);
 
-    return 1;
+	return 1;
 }
 
 #ifndef ENABLE_COMPACT
 
 /*
-  We can estimate size for insertion and for pasting of hint->data (to be memcpy) 
-  or of item_info->info (data to be created on the base of).
+  We can estimate size for insertion and for pasting of hint->data (to be
+  memcpy) or of item_info->info (data to be created on the base of).
     
   1. Insertion of data: 
   a) pos->unit == ~0ul 
@@ -96,23 +96,23 @@ uint32_t reiser4_item_count(reiser4_item_t *item) {
   c) get hint->plugin on the base of pos.
 */
 errno_t reiser4_item_estimate(
-    reiser4_item_t *item,	/* item we will work with */
-    reiser4_item_hint_t *hint	/* item hint to be estimated */
+	reiser4_item_t *item,	/* item we will work with */
+	reiser4_item_hint_t *hint	/* item hint to be estimated */
 	) {
-    aal_assert("vpf-106", item != NULL, return -1);
-    aal_assert("umka-541", hint != NULL, return -1);
+	aal_assert("vpf-106", item != NULL, return -1);
+	aal_assert("umka-541", hint != NULL, return -1);
 
-    /* We must have hint->plugin initialized for the 2nd case */
-    aal_assert("vpf-118", item->pos->unit != ~0ul || 
-			   hint->plugin != NULL, return -1);
+	/* We must have hint->plugin initialized for the 2nd case */
+	aal_assert("vpf-118", item->pos->unit != ~0ul || 
+		   hint->plugin != NULL, return -1);
    
-    /* Here hint has been already set for the 3rd case */
-    if (hint->data != NULL)
+	/* Here hint has been already set for the 3rd case */
+	if (hint->data != NULL)
 		return 0;
     
-    /* Estimate for the 2nd and for the 4th cases */
-    return plugin_call(return -1, hint->plugin->item_ops, 
-					   estimate, item, item->pos->unit, hint);
+	/* Estimate for the 2nd and for the 4th cases */
+	return plugin_call(return -1, hint->plugin->item_ops, 
+			   estimate, item, item->pos->unit, hint);
 }
 
 #endif
@@ -123,119 +123,119 @@ errno_t reiser4_item_print(
 	char *buff,            /* buffer item to be printed in */
 	uint32_t n)            /* buffer size */
 {
-    aal_assert("umka-1297", item != NULL, return 0);
-    aal_assert("umka-1298", item->plugin != NULL, return 0);
+	aal_assert("umka-1297", item != NULL, return 0);
+	aal_assert("umka-1298", item->plugin != NULL, return 0);
 
-    return plugin_call(return -1, item->plugin->item_ops, print,
-					   item, buff, n, 0);
+	return plugin_call(return -1, item->plugin->item_ops, print,
+			   item, buff, n, 0);
 }
 
 int reiser4_item_permissn(reiser4_item_t *item) {
-    aal_assert("umka-1100", item != NULL, return 0);
-    aal_assert("umka-1101", item->plugin != NULL, return 0);
+	aal_assert("umka-1100", item != NULL, return 0);
+	aal_assert("umka-1101", item->plugin != NULL, return 0);
 
-    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.sign.group == PERMISSN_ITEM;
 }
 
 int reiser4_item_tail(reiser4_item_t *item) {
-    aal_assert("umka-1098", item != NULL, return 0);
-    aal_assert("umka-1099", item->plugin != NULL, return 0);
+	aal_assert("umka-1098", item != NULL, return 0);
+	aal_assert("umka-1099", item->plugin != NULL, return 0);
 
-    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.sign.group == TAIL_ITEM;
 }
 
 int reiser4_item_extent(reiser4_item_t *item) {
-    aal_assert("vpf-238", item != NULL, return 0);
-    aal_assert("vpf-239", item->plugin != NULL, return 0);
+	aal_assert("vpf-238", item != NULL, return 0);
+	aal_assert("vpf-239", item->plugin != NULL, return 0);
 
-    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.sign.group == EXTENT_ITEM;
 }
 
 int reiser4_item_direntry(reiser4_item_t *item) {
-    aal_assert("umka-1096", item != NULL, return 0);
-    aal_assert("umka-1097", item->plugin != NULL, return 0);
+	aal_assert("umka-1096", item != NULL, return 0);
+	aal_assert("umka-1097", item->plugin != NULL, return 0);
 
-    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.sign.group == DIRENTRY_ITEM;
 }
 
 int reiser4_item_statdata(reiser4_item_t *item) {
-    aal_assert("umka-1094", item != NULL, return 0);
-    aal_assert("umka-1095", item->plugin != NULL, return 0);
+	aal_assert("umka-1094", item != NULL, return 0);
+	aal_assert("umka-1095", item->plugin != NULL, return 0);
 
-    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.sign.group == STATDATA_ITEM;
 }
 
 int reiser4_item_nodeptr(reiser4_item_t *item) {
-    aal_assert("vpf-042", item != NULL, return 0);
-    aal_assert("umka-1072", item->plugin != NULL, return 0);
+	aal_assert("vpf-042", item != NULL, return 0);
+	aal_assert("umka-1072", item->plugin != NULL, return 0);
 
-    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+	return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.sign.group == NODEPTR_ITEM;
 }
 
 uint32_t reiser4_item_len(reiser4_item_t *item) {
-    aal_assert("umka-760", item != NULL, return 0);
+	aal_assert("umka-760", item != NULL, return 0);
     
-    return plugin_call(return 0, item->node->plugin->node_ops, 
-					   item_len, item->node, item->pos);
+	return plugin_call(return 0, item->node->plugin->node_ops, 
+			   item_len, item->node, item->pos);
 }
 
 reiser4_body_t *reiser4_item_body(reiser4_item_t *item) {
-    aal_assert("umka-554", item != NULL, return NULL);
+	aal_assert("umka-554", item != NULL, return NULL);
     
-    return plugin_call(return NULL, item->node->plugin->node_ops, 
-					   item_body, item->node, item->pos);
+	return plugin_call(return NULL, item->node->plugin->node_ops, 
+			   item_body, item->node, item->pos);
 }
 
 reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item) {
-    aal_assert("umka-755", item != NULL, return NULL);
-    return item->plugin;
+	aal_assert("umka-755", item != NULL, return NULL);
+	return item->plugin;
 }
 
 errno_t reiser4_item_get_key(reiser4_item_t *item, reiser4_key_t *key) {
 	int ret;
 	
-    aal_assert("umka-1215", item != NULL, return -1);
-    aal_assert("umka-1271", key != NULL, return -1);
+	aal_assert("umka-1215", item != NULL, return -1);
+	aal_assert("umka-1271", key != NULL, return -1);
     
-    ret = plugin_call(return -1, item->node->plugin->node_ops, 
-					  get_key, item->node, item->pos, key);
+	ret = plugin_call(return -1, item->node->plugin->node_ops, 
+			  get_key, item->node, item->pos, key);
 
 	key->plugin = reiser4_key_guess(&key->body);
 	aal_assert("umka-1406", key->plugin != NULL, return -1);
 	
-    return ret && -(key->plugin == NULL);
+	return ret && -(key->plugin == NULL);
 }
 
 #ifndef ENABLE_COMPACT
 
 errno_t reiser4_item_set_key(reiser4_item_t *item, reiser4_key_t *key) {
-    aal_assert("umka-1403", item != NULL, return -1);
-    aal_assert("umka-1404", key != NULL, return -1);
+	aal_assert("umka-1403", item != NULL, return -1);
+	aal_assert("umka-1404", key != NULL, return -1);
 
-    return plugin_call(return -1, item->node->plugin->node_ops, 
-					   set_key, item->node, item->pos, key);
+	return plugin_call(return -1, item->node->plugin->node_ops, 
+			   set_key, item->node, item->pos, key);
 }
 
 #endif
 
 errno_t reiser4_item_max_poss_key(reiser4_item_t *item, reiser4_key_t *key) {
-    aal_assert("umka-1269", item != NULL, return -1);
-    aal_assert("umka-1270", key != NULL, return -1);
+	aal_assert("umka-1269", item != NULL, return -1);
+	aal_assert("umka-1270", key != NULL, return -1);
     
-    return plugin_call(return -1, item->plugin->item_ops, 
-					   max_poss_key, item, key);
+	return plugin_call(return -1, item->plugin->item_ops, 
+			   max_poss_key, item, key);
 }
 
 errno_t reiser4_item_max_real_key(reiser4_item_t *item, reiser4_key_t *key) {
-    aal_assert("vpf-351", item != NULL, return -1);
-    aal_assert("vpf-352", key != NULL, return -1);
+	aal_assert("vpf-351", item != NULL, return -1);
+	aal_assert("vpf-352", key != NULL, return -1);
     
-    return plugin_call(return -1, item->plugin->item_ops, max_real_key, 
-					   item, key);
+	return plugin_call(return -1, item->plugin->item_ops, max_real_key, 
+			   item, key);
 }

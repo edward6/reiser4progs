@@ -12,80 +12,79 @@
 
 /* Callback function for probing all file plugins */
 static errno_t callback_guess_file(
-    reiser4_plugin_t *plugin,	    /* plugin to be checked */
-    void *data)			            /* item ot be checked */
+	reiser4_plugin_t *plugin,	    /* plugin to be checked */
+	void *data)			    /* item ot be checked */
 {
-    if (plugin->h.sign.type == FILE_PLUGIN_TYPE) {
+	if (plugin->h.sign.type == FILE_PLUGIN_TYPE) {
 		return plugin_call(return 0, plugin->file_ops, 
-						   confirm, (reiser4_item_t *)data);
-    }
+				   confirm, (reiser4_item_t *)data);
+	}
     
-    return 0;
+	return 0;
 }
 
 /* 
-   Tries to guess object plugin type passed first item plugin and item body. 
-   Most probably, that passed item body is stat data body.
+   Tries to guess object plugin type passed first item plugin and item
+   body. Most probably, that passed item body is stat data body.
 */
 reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
-    reiser4_item_t item;
+	reiser4_item_t item;
 	reiser4_entity_t *entity;
     
-    aal_assert("umka-1296", file->coord.joint != NULL, return NULL);
+	aal_assert("umka-1296", file->coord.joint != NULL, return NULL);
 
 	entity = file->coord.joint->node->entity;
 	
-    if (reiser4_item_open(&item, entity, &file->coord.pos)) {
+	if (reiser4_item_open(&item, entity, &file->coord.pos)) {
 		aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-							aal_block_number(file->coord.joint->node->block),
-							file->coord.pos.item);
+				    aal_block_number(file->coord.joint->node->block),
+				    file->coord.pos.item);
 
 		return NULL;
 	}
 
-    return libreiser4_factory_cfind(callback_guess_file, (void *)&item);
+	return libreiser4_factory_cfind(callback_guess_file, (void *)&item);
 }
 
 /* 
-   Performs lookup of file statdata by its name. result of lookuping are stored 
-   in passed object fileds. Returns error code or 0 if there is no errors. This 
-   function also supports symlinks and it rather might be called "stat", by means 
-   of work it performs.
+   Performs lookup of file statdata by its name. result of lookuping are stored
+   in passed object fileds. Returns error code or 0 if there is no errors. This
+   function also supports symlinks and it rather might be called "stat", by
+   means of work it performs.
 */
 static errno_t reiser4_file_realize(
-    reiser4_file_t *file,	    /* file lookup will be performed in */
-    const char *name)		    /* name to be parsed */
+	reiser4_file_t *file,	    /* file lookup will be performed in */
+	const char *name)	    /* name to be parsed */
 {
-    reiser4_entity_t *entity;
-    reiser4_plugin_t *plugin;
+	reiser4_entity_t *entity;
+	reiser4_plugin_t *plugin;
 
-    char track[4096], path[4096];
-    char *pointer = NULL, *dirname = NULL;
+	char track[4096], path[4096];
+	char *pointer = NULL, *dirname = NULL;
 
-    aal_assert("umka-682", file != NULL, return -1);
-    aal_assert("umka-681", name != NULL, return -1);
+	aal_assert("umka-682", file != NULL, return -1);
+	aal_assert("umka-681", name != NULL, return -1);
     
-    aal_memset(path, 0, sizeof(path));
-    aal_memset(track, 0, sizeof(track));
+	aal_memset(path, 0, sizeof(path));
+	aal_memset(track, 0, sizeof(track));
     
-    aal_strncpy(path, name, sizeof(path));
+	aal_strncpy(path, name, sizeof(path));
     
-    if (path[0] != '.' || path[0] == '/')
+	if (path[0] != '.' || path[0] == '/')
 		track[aal_strlen(track)] = '/';
   
-    pointer = path[0] == '/' ? &path[1] : &path[0];
+	pointer = path[0] == '/' ? &path[1] : &path[0];
 
-    /* Main loop the all work is performed inside */
-    while (1) {
+	while (1) {
 		reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 		reiser4_key_set_offset(&file->key, 0);
 	
 		if (reiser4_tree_lookup(file->fs->tree, &file->key, 
-								LEAF_LEVEL, &file->coord) != 1) 
-			{
-				aal_exception_error("Can't find stat data of directory %s.", track);
-				return -1;
-			}
+					LEAF_LEVEL, &file->coord) != 1) 
+		{
+			aal_exception_error("Can't find stat data of directory %s.", track);
+			return -1;
+		}
 	
 		if (!(dirname = aal_strsep(&pointer, "/")))
 			break;
@@ -97,20 +96,20 @@ static errno_t reiser4_file_realize(
 	
 		if (!(plugin = reiser4_file_guess(file))) {
 			aal_exception_error("Can't guess file plugin for "
-								"parent of %s.", track);
+					    "parent of %s.", track);
 			return -1;
 		}
 	
 		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
-								   file->fs->tree, &file->key)))
-			{
-				aal_exception_error("Can't open parent of directory %s.", track);
-				return -1;
-			}
+					   file->fs->tree, &file->key)))
+		{
+			aal_exception_error("Can't open parent of directory %s.", track);
+			return -1;
+		}
 	    
 		if (!plugin->file_ops.lookup) {
 			aal_exception_error("Method \"lookup\" is not implemented in %s plugin.", 
-								plugin->h.label);
+					    plugin->h.label);
 		
 			plugin_call(return -1, plugin->file_ops, close, entity);
 			return -1;
@@ -123,168 +122,169 @@ static errno_t reiser4_file_realize(
 			return -1;
 		}
 	    
-       	plugin_call(return -1, plugin->file_ops, close, entity);
+		plugin_call(return -1, plugin->file_ops, close, entity);
 		track[aal_strlen(track)] = '/';
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 /* This function opens file by its name */
 reiser4_file_t *reiser4_file_open(
-    reiser4_fs_t *fs,		/* object (file/dir/etc) will be opened on */
-    const char *name)		/* name of file to be opened */
+	reiser4_fs_t *fs,		/* fs object will be opened on */
+	const char *name)		/* name of file to be opened */
 {
-    reiser4_file_t *file;
-    reiser4_key_t *root_key;
-    reiser4_plugin_t *plugin;
+	reiser4_file_t *file;
+	reiser4_key_t *root_key;
+	reiser4_plugin_t *plugin;
     
-    aal_assert("umka-678", fs != NULL, return NULL);
-    aal_assert("umka-789", name != NULL, return NULL);
+	aal_assert("umka-678", fs != NULL, return NULL);
+	aal_assert("umka-789", name != NULL, return NULL);
 
-    if (!fs->tree) {
+	if (!fs->tree) {
 		aal_exception_error("Can't created file without "
-							"initialized tree.");
+				    "initialized tree.");
 		return NULL;
-    }
+	}
     
-    if (!(file = aal_calloc(sizeof(*file), 0)))
+	if (!(file = aal_calloc(sizeof(*file), 0)))
 		return NULL;
     
-    file->fs = fs;
+	file->fs = fs;
 
-    root_key = &fs->tree->key;
-    reiser4_key_init(&file->key, root_key->plugin, root_key->body);
+	root_key = &fs->tree->key;
+	reiser4_key_init(&file->key, root_key->plugin, root_key->body);
     
-    /* 
-	   I assume that name is absolute name. So, user, who will call this method 
-	   should convert name previously into absolute one by getcwd function.
-    */
-    if (reiser4_file_realize(file, name)) {
+	/* 
+	   I assume that name is absolute name. So, user, who will call this
+	   method should convert name previously into absolute one by getcwd
+	   function.
+	*/
+	if (reiser4_file_realize(file, name)) {
 		aal_exception_error("Can't find file %s.", name);
 		goto error_free_file;
-    }
+	}
     
-    if (!(plugin = reiser4_file_guess(file))) {
+	if (!(plugin = reiser4_file_guess(file))) {
 		aal_exception_error("Can't detect file plugin for %s.", name);
 		goto error_free_file;
-    }
+	}
     
-    if (!(file->entity = plugin_call(goto error_free_file, 
-									 plugin->file_ops, open, fs->tree, &file->key)))
-		{
-			aal_exception_error("Can't open %s.", name);
-			goto error_free_file;
-		}
+	if (!(file->entity = plugin_call(goto error_free_file, 
+					 plugin->file_ops, open, fs->tree, &file->key)))
+	{
+		aal_exception_error("Can't open %s.", name);
+		goto error_free_file;
+	}
     
-    return file;
+	return file;
     
-  error_free_file:
-    aal_free(file);
-    return NULL;
+ error_free_file:
+	aal_free(file);
+	return NULL;
 }
 
 #ifndef ENABLE_COMPACT
 
 errno_t reiser4_file_truncate(
-    reiser4_file_t *file,	    /* file for truncating */
-    uint64_t n)			        /* the number of entries */
+	reiser4_file_t *file,	            /* file for truncating */
+	uint64_t n)			    /* the number of entries */
 {
-    aal_assert("umka-1154", file != NULL, return -1);
-    aal_assert("umka-1155", file->entity != NULL, return -1);
+	aal_assert("umka-1154", file != NULL, return -1);
+	aal_assert("umka-1155", file->entity != NULL, return -1);
     
-    return plugin_call(return -1, file->entity->plugin->file_ops, 
-					   truncate, file->entity, n);
+	return plugin_call(return -1, file->entity->plugin->file_ops, 
+			   truncate, file->entity, n);
 }
 
 /* Adds speficied entry into passed opened dir */
 errno_t reiser4_file_write(
-    reiser4_file_t *file,	    /* file for writing */
-    void *buff,			        /* new entries buffer */
-    uint64_t n)			        /* the number of entries to be created */
+	reiser4_file_t *file,	            /* file for writing */
+	void *buff,			    /* new entries buffer */
+	uint64_t n)			    /* the number of entries to be created */
 {
-    aal_assert("umka-862", file != NULL, return -1);
-    aal_assert("umka-863", file->entity != NULL, return -1);
+	aal_assert("umka-862", file != NULL, return -1);
+	aal_assert("umka-863", file->entity != NULL, return -1);
     
-    return plugin_call(return -1, file->entity->plugin->file_ops, 
-					   write, file->entity, buff, n);
+	return plugin_call(return -1, file->entity->plugin->file_ops, 
+			   write, file->entity, buff, n);
 }
 
 /* Creates new file on specified filesystem */
 reiser4_file_t *reiser4_file_create(
-    reiser4_fs_t *fs,		    /* filesystem dir will be created on */
-    reiser4_file_hint_t *hint,	/* directory hint */
-    reiser4_file_t *parent,	    /* parent file */
-    const char *name)		    /* name of entry */
+	reiser4_fs_t *fs,		    /* filesystem dir will be created on */
+	reiser4_file_hint_t *hint,	    /* directory hint */
+	reiser4_file_t *parent,	            /* parent file */
+	const char *name)		    /* name of entry */
 {
-    reiser4_file_t *file;
-    reiser4_plugin_t *plugin;
+	reiser4_file_t *file;
+	reiser4_plugin_t *plugin;
     
-    roid_t objectid, locality;
-    reiser4_key_t parent_key, file_key;
+	roid_t objectid, locality;
+	reiser4_key_t parent_key, file_key;
     
-    aal_assert("umka-790", fs != NULL, return NULL);
-    aal_assert("umka-1128", hint != NULL, return NULL);
-    aal_assert("umka-1152", name != NULL, return NULL);
+	aal_assert("umka-790", fs != NULL, return NULL);
+	aal_assert("umka-1128", hint != NULL, return NULL);
+	aal_assert("umka-1152", name != NULL, return NULL);
 
-    if (!fs->tree) {
+	if (!fs->tree) {
 		aal_exception_error("Can't created file without initialized tree.");
 		return NULL;
-    }
+	}
     
-    /* Getting plugin will be used for file creating */
-    if (!(plugin = hint->plugin)) {
-
+	/* Getting plugin will be used for file creating */
+	if (!(plugin = hint->plugin)) {
 		if (!parent) {
 			aal_exception_error("Can't find plugin for file creating.");
 			return NULL;
 		}
 	
 		plugin = parent->entity->plugin;
-    }
+	}
     
-    /* Allocating the memory for obejct instance */
-    if (!(file = aal_calloc(sizeof(*file), 0)))
+	/* Allocating the memory for obejct instance */
+	if (!(file = aal_calloc(sizeof(*file), 0)))
 		return NULL;
 
-    /* Initializing fileds and preparing keys */
-    file->fs = fs;
+	/* Initializing fileds and preparing keys */
+	file->fs = fs;
     
-    /* 
+	/* 
 	   This is a special case. In the case parent is NULL, we are trying to
 	   create root directory.
-    */
-    if (parent) {
-        reiser4_key_init(&parent_key, parent->key.plugin, parent->key.body);
-        objectid = reiser4_oid_allocate(parent->fs->oid);
-    } else {
+	*/
+	if (parent) {
+		reiser4_key_init(&parent_key, parent->key.plugin, parent->key.body);
+		objectid = reiser4_oid_allocate(parent->fs->oid);
+	} else {
 		roid_t root_locality = reiser4_oid_root_locality(fs->oid);
 		roid_t root_parent_locality = reiser4_oid_root_parent_locality(fs->oid);
 		
-        parent_key.plugin = fs->tree->key.plugin;
-        reiser4_key_build_generic(&parent_key, KEY_STATDATA_TYPE, 
-								  root_parent_locality, root_locality, 0);
+		parent_key.plugin = fs->tree->key.plugin;
+		reiser4_key_build_generic(&parent_key, KEY_STATDATA_TYPE, 
+					  root_parent_locality, root_locality, 0);
 
 		objectid = reiser4_oid_root_objectid(fs->oid);
-    }
+	}
 
-    locality = reiser4_key_get_objectid(&parent_key);
+	locality = reiser4_key_get_objectid(&parent_key);
     
-    /* Building stat data key of directory */
-    file_key.plugin = parent_key.plugin;
-    reiser4_key_build_generic(&file_key, KEY_STATDATA_TYPE,
-							  locality, objectid, 0);
+	/* Building stat data key of directory */
+	file_key.plugin = parent_key.plugin;
+	reiser4_key_build_generic(&file_key, KEY_STATDATA_TYPE,
+				  locality, objectid, 0);
     
-    reiser4_key_init(&file->key, file_key.plugin, file_key.body);
+	reiser4_key_init(&file->key, file_key.plugin, file_key.body);
     
-    /* Creating entry in parent */
-    if (parent) {   
+	/* Creating entry in parent */
+	if (parent) {   
 		reiser4_entry_hint_t entry;
 
 		/* 
-		   Creating entry in parent directory. It should be done first, because
-		   if such directory exist we preffer just return error and do not delete
-		   inserted file stat data and some kind of body.
+		   Creating entry in parent directory. It should be done first,
+		   because if such directory exist we preffer just return error
+		   and do not delete inserted file stat data and some kind of
+		   body.
 		*/
 		aal_memset(&entry, 0, sizeof(entry));
 	
@@ -296,81 +296,82 @@ reiser4_file_t *reiser4_file_create(
 			aal_exception_error("Can't add entry %s.", name);
 			goto error_free_file;
 		}
-    }
+	}
 
-    if (!(file->entity = plugin_call(goto error_free_file, 
-									 plugin->file_ops, create, fs->tree, &parent_key, &file_key, hint)))
-		{
-			aal_exception_error("Can't create file with oid 0x%llx.", 
-								reiser4_key_get_objectid(&file_key));
-			goto error_free_file;
-		}
+	if (!(file->entity = plugin_call(goto error_free_file, 
+					 plugin->file_ops, create,
+					 fs->tree, &parent_key, &file_key, hint)))
+	{
+		aal_exception_error("Can't create file with oid 0x%llx.", 
+				    reiser4_key_get_objectid(&file_key));
+		goto error_free_file;
+	}
     
-    return file;
+	return file;
 
-  error_free_file:
-    aal_free(file);
-    return NULL;
+ error_free_file:
+	aal_free(file);
+	return NULL;
 }
 
 #endif
 
 /* Closes specified file */
 void reiser4_file_close(
-    reiser4_file_t *file)	    /* file to be closed */
+	reiser4_file_t *file)	    /* file to be closed */
 {
-    aal_assert("umka-680", file != NULL, return);
-    aal_assert("umka-1149", file->entity != NULL, return);
+	aal_assert("umka-680", file != NULL, return);
+	aal_assert("umka-1149", file->entity != NULL, return);
 
-    plugin_call(goto error_free_file, file->entity->plugin->file_ops,
-				close, file->entity);
+	plugin_call(goto error_free_file, file->entity->plugin->file_ops,
+		    close, file->entity);
     
-  error_free_file:
-    aal_free(file);
+ error_free_file:
+	aal_free(file);
 }
 
 /* Resets directory position */
 errno_t reiser4_file_reset(
-    reiser4_file_t *file)	    /* dir to be rewinded */
+	reiser4_file_t *file)	    /* dir to be rewinded */
 {
-    aal_assert("umka-842", file != NULL, return -1);
-    aal_assert("umka-843", file->entity != NULL, return -1);
+	aal_assert("umka-842", file != NULL, return -1);
+	aal_assert("umka-843", file->entity != NULL, return -1);
 
-    return plugin_call(return -1, file->entity->plugin->file_ops, 
-					   reset, file->entity);
+	return plugin_call(return -1, file->entity->plugin->file_ops, 
+			   reset, file->entity);
 }
 
 errno_t reiser4_file_read(
-    reiser4_file_t *file,	    /* dir entry will be read from */
-    void *buff,			        /* buffer result will be stored in */
-    uint64_t n)
+	reiser4_file_t *file,	    /* dir entry will be read from */
+	void *buff,		    /* buffer result will be stored in */
+	uint64_t n)                 /* buffer size */
 {
-    aal_assert("umka-860", file != NULL, return -1);
-    aal_assert("umka-861", file->entity != NULL, return -1);
+	aal_assert("umka-860", file != NULL, return -1);
+	aal_assert("umka-861", file->entity != NULL, return -1);
 
-    return plugin_call(return -1, file->entity->plugin->file_ops, 
-					   read, file->entity, buff, n);
+	return plugin_call(return -1, file->entity->plugin->file_ops, 
+			   read, file->entity, buff, n);
 }
 
 /* Retutns current position in directory */
 uint32_t reiser4_file_offset(
-    reiser4_file_t *file)	    /* dir position will be obtained from */
+	reiser4_file_t *file)	    /* dir position will be obtained from */
 {
-    aal_assert("umka-875", file != NULL, return -1);
-    aal_assert("umka-876", file->entity != NULL, return -1);
+	aal_assert("umka-875", file != NULL, return -1);
+	aal_assert("umka-876", file->entity != NULL, return -1);
 
-    return plugin_call(return -1, file->entity->plugin->file_ops, 
-					   offset, file->entity);
+	return plugin_call(return -1, file->entity->plugin->file_ops, 
+			   offset, file->entity);
 }
 
 /* Seeks directory current position to passed pos */
 errno_t reiser4_file_seek(
-    reiser4_file_t *file,	    /* dir where position shopuld be chnaged */
-    uint32_t offset)		    /* offset for seeking */
+	reiser4_file_t *file,	    /* dir where position shopuld be chnaged */
+	uint32_t offset)	    /* offset for seeking */
 {
-    aal_assert("umka-1129", file != NULL, return -1);
-    aal_assert("umka-1153", file->entity != NULL, return -1);
+	aal_assert("umka-1129", file != NULL, return -1);
+	aal_assert("umka-1153", file->entity != NULL, return -1);
     
-    return plugin_call(return -1, file->entity->plugin->file_ops, 
-					   seek, file->entity, offset);
+	return plugin_call(return -1, file->entity->plugin->file_ops, 
+			   seek, file->entity, offset);
 }
