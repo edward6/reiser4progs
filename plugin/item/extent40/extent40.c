@@ -390,9 +390,6 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 	read_offset = plug_call(hint->offset.plug->o.key_ops,
 				get_offset, &hint->offset);
 
-	rel_offset = read_offset - plug_call(key.plug->o.key_ops,
-					     get_offset, &key);
-
 	/* Loop through the units until needed amount of data is read or extent
 	   item is over. */
 	for (read = count, i = place->pos.unit;
@@ -405,13 +402,15 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 		extent = extent40_body(place);
 
 		/* Calculating start block for read. */
-		start = blk = et40_get_start(extent + i) +
-			(rel_offset / blksize);
+		start = et40_get_start(extent + i);
+		rel_offset = read_offset - extent40_offset(place, i);
+		blk = start + (rel_offset / blksize);
 
 		if (start == EXTENT_HOLE_UNIT) {
 			/* Handle the holes. Here we fill @buff by zeros, as
 			   hole is detected during read. */
-			uint64_t width = et40_get_width(extent + i);
+			uint64_t width = et40_get_width(extent + i) - 
+				(rel_offset / blksize);
 			
 			for (; width > 0 && count > 0; count -= size,
 				     buff += size, read_offset += size, width--)
@@ -506,7 +505,6 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint64_t read_offset;
 
 	aal_assert("umka-1421", place != NULL);
-	aal_assert("umka-1422", buff != NULL);
 
 	buff = hint->specific;
 	count = (uint32_t)hint->count;
@@ -523,9 +521,6 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	read_offset = plug_call(hint->offset.plug->o.key_ops,
 				get_offset, &hint->offset);
 	
-	rel_offset = read_offset - plug_call(key.plug->o.key_ops,
-					     get_offset, &key);
-	
 	for (read = count, i = place->pos.unit;
 	     i < extent40_units(place) && count > 0; i++)
 	{
@@ -533,8 +528,9 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 		uint64_t blk, start;
 
 		/* Calculating start block for read. */
-		start = blk = et40_get_start(extent40_body(place) + i) +
-			aal_div64(rel_offset, blksize, NULL);
+		start = et40_get_start(extent40_body(place) + i);
+		rel_offset = read_offset - extent40_offset(place, i);
+		blk = start + aal_div64(rel_offset, blksize, NULL);
 
 		/* Loop though the extent blocks */
 		while (blk < start + et40_get_width(extent40_body(place) + i) &&
@@ -581,7 +577,7 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 					
 				buff += secchunk;
 				count -= secchunk;
-				rel_offset += secchunk;
+				read_offset += secchunk;
 
 				blkchunk -= secchunk;
 				blklocal += secchunk;

@@ -16,21 +16,29 @@
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
 
-#define TESTS_COUNT 2
+#define TESTS_COUNT 3
 
-char *tests[2] = {
+char *tests[TESTS_COUNT] = {
 	[0] = "reg",
-	[1] = "sym"
+	[1] = "sym",
+	[2] = "read"
 };
+
+char *options[TESTS_COUNT] = {
+	[0] = "DEVICE DIR",
+	[1] = "DEVICE DIR",
+	[2] = "DEVICE file_on_fs output"
+};
+
 
 static void busy_print_usage(void) {
 	int i;
 
-	fprintf(stderr, "Usage: busy test DEVICE DIR\n");
-	fprintf(stderr, "tests: ");
+	fprintf(stderr, "Usage: busy test\n");
+	fprintf(stderr, "tests: \n");
 	
 	for (i = 0; i < TESTS_COUNT; i++)
-		fprintf(stderr, "%s ", tests[i]);
+		fprintf(stderr, "\t%s %s\n", tests[i], options[i]);
 		
 	fprintf(stderr, "\n");
 }
@@ -118,6 +126,60 @@ static void sym_test(reiser4_fs_t *fs, char *path) {
 	reiser4_object_close(sym1);
 
 	reiser4_tree_compress(fs->tree);
+	return;
+}
+
+static void read_test(reiser4_fs_t *fs, char *path, char *out) {
+	reiser4_object_t *obj;
+	FILE *file;
+	char buf[40960];
+	int read, wrote;
+
+#define ENABLE_STAND_ALONE	
+	if (!path) {
+		aal_error("No file on the filesystem is specified.");
+		return;
+	}
+		
+	if (!out) {
+		aal_error("No output file is specified.");
+		return;
+	}
+	
+	if (!(obj = reiser4_semantic_open(fs->tree, path, NULL, 1))) {
+                aal_error("Can't open dir %s.", path);
+                return;
+        }
+
+	if (obj->ent->opset.plug[OPSET_OBJ]->id.group != REG_OBJECT) {
+		aal_error("Not regular file is specified %s.", path);
+		goto error;
+	}
+
+	
+	if (!(file = fopen(out, "w"))) {
+		aal_error("Failed to open the output file %s.", out);
+		goto error;
+	}
+	
+	while ((read = reiser4_object_read(obj, buf, 40960)) > 0) {
+		wrote = fwrite(buf, 1, read, file);
+		
+		if (read != wrote)
+			aal_error("Write failed: read %d bytes, wrote %d.", read, wrote);
+	}
+
+	if (read < 0)
+		aal_error("Read failed.");
+	
+	fclose(file);
+	reiser4_object_close(obj);
+#undef ENABLE_STAND_ALONE	
+	
+	return;
+	
+ error:
+	reiser4_object_close(obj);
 	return;
 }
 
@@ -261,6 +323,9 @@ int main(int argc, char *argv[]) {
 		break;
 	case 1:
 		sym_test(fs, argv[3]);
+		break;
+	case 2:
+		read_test(fs, argv[3], argv[4]);
 		break;
 	default:
 		aal_error("Can't find test '%s'.", argv[1]);

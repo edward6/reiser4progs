@@ -995,7 +995,11 @@ static int cb_nodes_comp_func(void *key1, void *key2, void *data) {
 	return 0;
 }
 
-#define TREE_NODES_TABLE_SIZE (512)
+#ifndef ENABLE_STAND_ALONE
+# define TREE_NODES_TABLE_SIZE (512)
+#else
+# define TREE_NODES_TABLE_SIZE (32)
+#endif
 #define TREE_BLOCKS_TABLE_SIZE (512)
 
 /* Initializes tree instance on passed filesystem and return it to caller. Then
