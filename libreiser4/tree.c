@@ -2994,9 +2994,9 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		/* Prepare parent place for new created node. */
 		if (old.node != NULL) {
 			if (level < reiser4_node_get_level(old.node)) {
-				/* If level lookup gave us is higher level, this
-				   means, that new leaf node was allocated we
-				   use loouped place to atta this new leaf to
+				/* If level lookup gaved to us is higher level,
+				   this means, that new leaf node was allocated
+				   we use lookuped place to attach this new leaf
 				   at. */
 				reiser4_place_dup(&aplace, &old);
 			} else {

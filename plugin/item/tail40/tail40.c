@@ -70,6 +70,7 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 	
 	aal_assert("umka-1836", hint != NULL);
 	aal_assert("umka-2437", place != NULL);
+	aal_assert("umka-3113", place->node != NULL);
 
 	/* Check if we want to create new tail item. If so, we say, that we need
 	   @hint->count bytes in tree. Even if this is more than one node can
@@ -106,8 +107,10 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 		plug_call(hint->maxkey.plug->o.key_ops,
 			  set_offset, &hint->maxkey, max_offset);
 	}
-	
-	space = tail40_core->node_ops.maxspace(place->node);
+
+	/* Max possible item size. */
+	space = plug_call(place->node->plug->o.node_ops,
+			  maxspace, place->node);
 	
 	if (hint->len > space)
 		hint->len = space;

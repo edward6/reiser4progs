@@ -1628,13 +1628,6 @@ struct item_ops {
 };
 
 typedef struct item_ops item_ops_t;
-
-struct node_ops {
-	uint16_t (*maxspace) (reiser4_node_t *);
-};
-
-typedef struct node_ops node_ops_t;
-
 #endif
 
 /* This structure is passed to all plugins in initialization time and used for
@@ -1655,7 +1648,6 @@ struct reiser4_core {
 #ifndef ENABLE_STAND_ALONE
 	key_ops_t key_ops;
 	item_ops_t item_ops;
-	node_ops_t node_ops;
 #endif
 };
 

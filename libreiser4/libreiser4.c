@@ -137,10 +137,6 @@ static errno_t object_resolve(void *tree, char *path,
 
 	return 0;
 }
-
-uint16_t node_maxspace(reiser4_node_t *node) {
-	return reiser4_node_maxspace(node);
-}
 #endif
 
 /* Initializing the libreiser4 core instance. It will be passed into all plugins
@@ -210,9 +206,6 @@ reiser4_core_t core = {
 	.item_ops = {
 		.mergeable = item_mergeable
 	},
-	.node_ops = {
-		.maxspace = node_maxspace
-	}
 #endif
 };
 
