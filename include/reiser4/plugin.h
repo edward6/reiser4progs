@@ -350,6 +350,7 @@ struct reiser4_place {
 
 enum node_flags {
 	NF_HEARD_BANSHEE  = 1 << 0,
+	NF_LAST
 };
 
 typedef enum node_flags node_flags_t;

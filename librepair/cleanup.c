@@ -64,7 +64,7 @@ static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 		     place_blknr(&cleanup->neigh) != place_blknr(place));
 	
 	if (next_node) {
-		aal_gauge_set_data(cleanup->gauge, place);
+		aal_gauge_set_data(cleanup->gauge, place->node);
 		aal_gauge_touch(cleanup->gauge);
 	}
 	

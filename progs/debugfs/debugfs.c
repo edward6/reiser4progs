@@ -127,6 +127,7 @@ static void debugfs_init(void) {
 typedef struct debugfs_backup_hint {
 	uint64_t count;
 	blk_t *blk;
+	aal_gauge_t *gauge;
 } debugfs_backup_hint_t;
 
 static int cb_cmp64(void *b, uint32_t pos, void *p, void *data) {
@@ -145,6 +146,10 @@ static int cb_cmp64(void *b, uint32_t pos, void *p, void *data) {
 	return 0;
 }
 
+enum {
+	NF_DONE = NF_LAST
+};
+
 static errno_t cb_reloc_node(reiser4_node_t *node, void *data) {
 	debugfs_backup_hint_t *backup;
 	reiser4_tree_t *tree;
@@ -158,38 +163,49 @@ static errno_t cb_reloc_node(reiser4_node_t *node, void *data) {
 
 	tree = (reiser4_tree_t *)node->tree;
 	backup = (debugfs_backup_hint_t *)data;
-	ptr.start = node->block->nr;
-	ptr.width = 1;
 
+	aal_gauge_set_data(backup->gauge, node);
+	aal_gauge_touch(backup->gauge);
 
-	/* Relocate the node if belongs to backup layout. */
-	if (aux_bin_search(backup->blk, backup->count, 
-			   &ptr, cb_cmp64, NULL, &pos))
-	{
-		aal_mess("Relocating the node %llu.", node->block->nr);
-		
-		if (!(free = reiser4_format_get_free(tree->fs->format))) {
-			aal_error("No free blocks on the fs");
-			return -EIO;
+	while(node) {
+		ptr.start = node->block->nr;
+		ptr.width = 1;
+
+		if (node->flags & NF_DONE)
+			break;
+			
+		/* Relocate the node if belongs to backup layout. */
+		if (aux_bin_search(backup->blk, backup->count, 
+				   &ptr, cb_cmp64, NULL, &pos))
+		{
+			aal_mess("Relocating the node %llu.", node->block->nr);
+
+			if (!(free = reiser4_format_get_free(tree->fs->format))) {
+				aal_error("No free blocks on the fs");
+				return -EIO;
+			}
+
+			reiser4_format_set_free(tree->fs->format, free - 1);
+
+			blk = reiser4_fake_get();
+
+			if (reiser4_tree_get_root(tree) == node->block->nr)
+				reiser4_tree_set_root(tree, blk);
+
+			if (node->p.node && reiser4_item_update_link(&node->p, blk))
+				return -EIO;
+
+			/* Rehashing node in @tree->nodes hash table. */
+			reiser4_tree_rehash_node(tree, node, blk);
+
+			if (reiser4_tree_get_root(tree) != node->block->nr) {
+				if ((res = reiser4_node_update_ptr(node)))
+					return res;
+			}
 		}
-		
-		reiser4_format_set_free(tree->fs->format, free - 1);
 
-		blk = reiser4_fake_get();
-		
-		if (reiser4_tree_get_root(tree) == node->block->nr)
-			reiser4_tree_set_root(tree, blk);
-
-		if (node->p.node && reiser4_item_update_link(&node->p, blk))
-			return -EIO;
-
-		/* Rehashing node in @tree->nodes hash table. */
-		reiser4_tree_rehash_node(tree, node, blk);
-
-		if (reiser4_tree_get_root(tree) != node->block->nr) {
-			if ((res = reiser4_node_update_ptr(node)))
-				return res;
-		}
+		node->flags |= NF_DONE;
+		node = node->p.node;
 	}
 	
 	return 0;
@@ -314,6 +330,8 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 
 	return look;
 }
+
+extern void cb_gauge_tree_percent(aal_gauge_t *gauge);
 
 int main(int argc, char *argv[]) {
 	int c;
@@ -710,7 +728,7 @@ int main(int argc, char *argv[]) {
 		debugfs_backup_hint_t backup;
 		
 		fs->tree->mpc_func = misc_mpressure_detect;
-		
+
 		reiser4_backup_layout(fs, cb_count_block, &backup.count);
 			
 		backup.blk = aal_calloc(sizeof(blk_t) * backup.count, 0);
@@ -720,17 +738,27 @@ int main(int argc, char *argv[]) {
 		   again on reallocation. */
 		if (reiser4_backup_layout(fs, cb_mark_block, fs->alloc)) {
 			aal_error("Failed to mark backup blocks used.");
+			aal_gauge_done(backup.gauge);
+			aal_gauge_free(backup.gauge);
 			goto error_free_journal;
 		}
 		
 		fs->data = NULL;
-		
+		backup.gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
+						cb_gauge_tree_percent, NULL, 500, NULL);
+		aal_gauge_set_value(backup.gauge, 0);
+		aal_gauge_touch(backup.gauge);
+	
 		if (reiser4_tree_scan(fs->tree, cb_reloc_node,  
 				      cb_reloc_extent, &backup))
 		{
 			aal_error("Failed to free blocks for the new backup.");
+			aal_gauge_done(backup.gauge);
+			aal_gauge_free(backup.gauge);
 			goto error_free_journal;
 		}
+		aal_gauge_done(backup.gauge);
+		aal_gauge_free(backup.gauge);
 
 		/* Mark all old backup blocks as unused. */
 		if (reiser4_old_backup_layout(fs, cb_unmark_block, fs->alloc)) {

@@ -38,7 +38,7 @@ void cb_gauge_tree_percent(aal_gauge_t *gauge) {
 	if (!gauge || !gauge->data)
 		return;
 	
-	place = gauge->data;
+	place = &((reiser4_node_t *)gauge->data)->p;
 	
 	i = 0;
 	while (place->node) {
@@ -340,7 +340,7 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 	if (fd->repair->mode == RM_BUILD)
 		repair_node_clear_flags(node);
 	
-	aal_gauge_set_data(fd->gauge, &node->p);
+	aal_gauge_set_data(fd->gauge, node);
 	aal_gauge_touch(fd->gauge);
 	
 	return 0;
