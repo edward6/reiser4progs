@@ -232,12 +232,7 @@ static int symlink40_confirm(reiser4_place_t *place) {
 	   Guessing plugin type and plugin id by mode field from the stat data
 	   item. Here we return default plugins for every file type.
 	*/
-	if (file40_get_mode(place, &mode)) {
-		aal_exception_error("Can't get mode from stat data while probing %s.",
-				    symlink40_plugin.h.label);
-		return 0;
-	}
-    
+	mode = file40_get_mode(place);
 	return S_ISLNK(mode);
 }
 

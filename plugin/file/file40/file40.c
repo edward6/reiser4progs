@@ -48,7 +48,7 @@ errno_t file40_unlock(file40_t *file, reiser4_place_t *place) {
 }
 
 /* Gets mode field from the stat data */
-errno_t file40_get_mode(reiser4_place_t *place, uint16_t *mode) {
+uint16_t file40_get_mode(reiser4_place_t *place) {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -61,20 +61,22 @@ errno_t file40_get_mode(reiser4_place_t *place, uint16_t *mode) {
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 	item = &place->entity;
-	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
-		return -1;
 
-	*mode = lw_hint.mode;
-	return 0;
+	if (!item->plugin->item_ops.open)
+		return 0;
+
+	if (item->plugin->item_ops.open(item, &hint))
+		return 0;
+
+	return lw_hint.mode;
 }
 
 errno_t file40_set_mode(reiser4_place_t *place, uint16_t mode) {
-	/* FIXME-UMKA: Is not implemented yet! */
 	return -1;
 }
 
 /* Gets size field from the stat data */
-errno_t file40_get_size(reiser4_place_t *place, uint64_t *size) {
+uint64_t file40_get_size(reiser4_place_t *place) {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -87,11 +89,14 @@ errno_t file40_get_size(reiser4_place_t *place, uint64_t *size) {
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 	item = &place->entity;
-	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
-		return -1;
 
-	*size = lw_hint.size;
-	return 0;
+	if (!item->plugin->item_ops.open)
+		return 0;
+
+	if (item->plugin->item_ops.open(item, &hint))
+		return 0;
+	
+	return lw_hint.size;
 }
 
 /* Updates size field in the stat data */
@@ -105,15 +110,24 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 	aal_memset(&stat, 0, sizeof(stat));
 	
 	hint.hint = &stat;
+
+	stat.extmask = 1 << SDEXT_LW_ID;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 	item = &place->entity;
-	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
+
+	if (!item->plugin->item_ops.open)
+		return -1;
+
+	if (item->plugin->item_ops.open(item, &hint))
 		return -1;
 
 	lw_hint.size = size;
-	return plugin_call(return -1, item->plugin->item_ops,
-			   insert, item, &hint, 0);
+	
+	if (!item->plugin->item_ops.insert)
+		return -1;
+
+	return item->plugin->item_ops.insert(item, &hint, 0);
 }
 
 errno_t file40_init(file40_t *file, reiser4_key_t *key,

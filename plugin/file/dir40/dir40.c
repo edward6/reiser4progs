@@ -68,11 +68,21 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 }
 
 static int dir40_next(dir40_t *dir) {
-	reiser4_place_t right;
+	uint32_t units;
+	item_entity_t *item;
 
+	reiser4_place_t right;
 	reiser4_plugin_t *this_plugin;
 	reiser4_plugin_t *right_plugin;
 
+	item = &dir->body.entity;
+	
+	units = plugin_call(return -1, item->plugin->item_ops,
+			    units, item);
+	
+	if (dir->body.pos.unit < units)
+		return 0;
+	
 	/*
 	  Getting the right neighbour. While key40 is using, next direntry item
 	  will lie in the right neighbour node.
@@ -95,6 +105,8 @@ static int dir40_next(dir40_t *dir) {
 	file40_lock(&dir->file, &right);
 
 	dir->body = right;
+	dir->body.pos.unit = 0;
+	
 	return PRESENT;
 }
 
@@ -115,14 +127,13 @@ static int32_t dir40_read(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	if (file40_get_size(&dir->file.statdata, &size))
-		return -1;
-
-	if (size == 0)
+	file40_realize(&dir->file);
+	
+	if ((size = file40_get_size(&dir->file.statdata)) == 0)
 		return 0;
 
-/*	if (n > size - dir->offset)
-		n = size - dir->offset;*/
+	if (n > size - dir->offset)
+		n = size - dir->offset;
 	
 	entry = (reiser4_entry_hint_t *)buff;
 
@@ -134,14 +145,6 @@ static int32_t dir40_read(object_entity_t *entity,
 		if ((chunk = n - read) == 0)
 			return read;
 
-		units = plugin_call(return -1, item->plugin->item_ops,
-				    units, item);
-		
-		if (dir->body.pos.unit >= units) {
-			if (dir40_next(dir) != PRESENT)
-				return read;
-		}
-		
 		chunk = plugin_call(return -1, item->plugin->item_ops, fetch,
 				    item, entry, dir->body.pos.unit, chunk);
 
@@ -151,6 +154,8 @@ static int32_t dir40_read(object_entity_t *entity,
 		entry += chunk;
 		dir->offset += chunk;
 		dir->body.pos.unit += chunk;
+
+		dir40_next(dir);
 	}
     
 	return read;
@@ -468,18 +473,16 @@ static int32_t dir40_write(object_entity_t *entity,
 		entry++;
 	}
 
+	/* Updating size field */
 	file40_realize(&dir->file);
 	
-	/* Updating size field */
-	if (file40_get_size(&dir->file.statdata, &size))
-		return -1;
+	size = file40_get_size(&dir->file.statdata);
 
-	size += n;
-
-	if (file40_set_size(&dir->file.statdata, &size))
+	if (file40_set_size(&dir->file.statdata, size + n))
 		return -1;
 	
 	aal_free(body_hint.unit);
+	
 	return i;
 }
 
@@ -566,12 +569,7 @@ static int dir40_confirm(reiser4_place_t *place) {
 	   Guessing plugin type and plugin id by mode field from the stat data 
 	   item. Here we return default plugins for every file type.
 	*/
-	if (file40_get_mode(place, &mode)) {
-		aal_exception_error("Can't get mode from stat data while probing %s.",
-				    dir40_plugin.h.label);
-		return 0;
-	}
-    
+	mode = file40_get_mode(place);
 	return S_ISDIR(mode);
 }
 

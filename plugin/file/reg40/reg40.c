@@ -30,10 +30,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
     
 	aal_assert("umka-1161", reg != NULL, return -1);
 
-	if (file40_get_size(&reg->file.statdata, &size))
-		return -1;
-
-	if (size == 0)
+	if ((size = file40_get_size(&reg->file.statdata)) == 0)
 		return 0;
 	
 	key.plugin = reg->file.key.plugin;
@@ -106,8 +103,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	aal_assert("umka-1183", buff != NULL, return 0);
 	aal_assert("umka-1182", entity != NULL, return 0);
 
-	if (file40_get_size(&reg->file.statdata, &size))
-		return -1;
+	size = file40_get_size(&reg->file.statdata);
 
 	/* The file has not data at all */
 	if (size == 0 || !reg->body.node)
@@ -311,11 +307,8 @@ static errno_t reg40_layout(object_entity_t *entity,
 	aal_assert("umka-1471", entity != NULL, return -1);
 	aal_assert("umka-1472", func != NULL, return -1);
 
-	if (!reg->body.node)
+	if ((size = file40_get_size(&reg->file.statdata)) == 0)
 		return 0;
-
-	if (file40_get_size(&reg->file.statdata, &size))
-		return -1;
 		
 	while (1) {
 		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
@@ -382,11 +375,10 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	if ((res = func(entity, &reg->file.statdata, data)))
 		return res;
 
+	size = file40_get_size(&reg->file.statdata);
+	
 	if (!reg->body.node)
 		return 0;
-	
-	if (file40_get_size(&reg->file.statdata, &size))
-		return -1;
 	
 	while (1) {
 		if ((res = func(entity, &reg->body, data)))
@@ -435,7 +427,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		}
 
 		/* Getting next file item. */
-		if (reg->offset >= size || reg40_next(reg) != PRESENT)
+		if (reg40_next(reg) != PRESENT)
 			break;
 			
 	}
@@ -477,12 +469,7 @@ static int reg40_confirm(reiser4_place_t *place) {
 	   Guessing plugin type and plugin id by mode field from the stat data
 	   item. Here we return default plugins for every file type.
 	*/
-	if (file40_get_mode(place, &mode)) {
-		aal_exception_error("Can't get mode from stat data while probing %s.",
-				    reg40_plugin.h.label);
-		return 0;
-	}
-    
+	mode = file40_get_mode(place);
 	return S_ISREG(mode);
 }
 
