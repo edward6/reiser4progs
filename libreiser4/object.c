@@ -253,11 +253,12 @@ reiser4_object_t *reiser4_object_guess(
 	aal_assert("vpf-1222",  okey != NULL);
 	aal_assert("vpf-1221",  init_func != NULL);
 
+	aal_memset(&info, 0, sizeof(info));
+	
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return INVAL_PTR;
 
 	/* Initializing info */
-	aal_memset(&info, 0, sizeof(info));
 	object->info = &info;
 	object->info->tree = tree;
 	
@@ -298,8 +299,8 @@ reiser4_object_t *reiser4_object_realize(
 	
 	aal_assert("vpf-1223", place != NULL);
 	
-	object = reiser4_object_guess(tree, parent, &place->key, place,
-				      reiser4_object_init);
+	object = reiser4_object_guess(tree, parent, &place->key,
+				      place, reiser4_object_init);
 
 	return object == INVAL_PTR ? NULL : object;
 }

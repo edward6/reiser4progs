@@ -112,6 +112,19 @@ int main() {
 # Execute ACTION-IF-FOUND
 $3])
 
+AC_ARG_WITH(libaal,
+    [  --with-libaal=<dir>      prefix of where libaal was installed], ,
+)
+
+LIBS=""
+CFLAGS=""
+
+if test x$with_libaal != x; then
+    LIBS="-L$with_libaal/lib"
+    CFLAGS="-I$with_libaal/include"
+    CPPFLAGS="-I$with_libaal/include"
+fi
+
 AC_ARG_WITH(uuid,
     [  --with-uuid              support uuid generating and checking], ,
         with_uuid=yes
@@ -252,7 +265,6 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_PROG_AWK
 
-CFLAGS=""
 ALONE_CFLAGS=""
 GENERIC_CFLAGS=""
 
@@ -343,7 +355,6 @@ fi
 AC_SUBST(LIBREISER4_LIBS)
 
 OLD_LIBS="$LIBS"
-LIBS=""
 AC_CHECK_LIBAAL(aal, 0.4.9, ,exit)
 AAL_LIBS="$LIBS"
 LIBS="$OLD_LIBS"
@@ -353,7 +364,6 @@ AC_SUBST(AAL_LIBS)
 if test x$enable_stand_alone = xyes; then
 
     OLD_LIBS="$LIBS"
-    LIBS=""
     AC_CHECK_LIBAAL(aal-alone, 0.4.9, ,exit)
     AAL_ALONE_LIBS="$LIBS"
     LIBS="$OLD_LIBS"

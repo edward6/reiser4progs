@@ -144,8 +144,6 @@ static int32_t reg40_read(object_entity_t *entity,
 		/* Calling body item's read() method */
 		chunk = plug_call(place->plug->o.item_ops, read,
 				  place, buff, offset, chunk);
-
-		aal_assert("umka-2216", chunk > 0);
 		
 		reg->offset += chunk;
 		buff += chunk; read += chunk;
