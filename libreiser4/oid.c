@@ -61,7 +61,6 @@ reiser4_oid_t *reiser4_oid_open(
 		return NULL;
 
 	oid->fs = fs;
-	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
 		aal_error("Invalid oid allocator plugin id "
@@ -122,7 +121,6 @@ reiser4_oid_t *reiser4_oid_create(
 		return NULL;
    
 	oid->fs = fs;
-	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
 		aal_error("Invalid oid allocator plugin id "

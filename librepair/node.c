@@ -277,8 +277,7 @@ reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree,
 	
 	/* Finding the node plugin by its id */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_error("Can't find node plugin by its id "
-			  "0x%x.", pid);
+		aal_error("Can't find node plugin by its id 0x%x.", pid);
 		return NULL;
 	}
 
@@ -289,6 +288,8 @@ reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree,
 	if (!(block = aal_block_alloc(device, size, blk)))
 		return NULL;
 
+	aal_block_fill(block, 0);
+	
 	/* Requesting the plugin for initialization node entity. */
 	if (!(node = plug_call(plug->o.node_ops, unpack, block, 
 			       tree->key.plug, stream, mode)))

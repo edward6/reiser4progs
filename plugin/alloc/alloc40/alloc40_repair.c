@@ -156,7 +156,8 @@ errno_t alloc40_pack(generic_entity_t *entity,
 }
 
 /* Create block allocator from passed @stream. */
-generic_entity_t *alloc40_unpack(fs_desc_t *desc,
+generic_entity_t *alloc40_unpack(aal_device_t *device, 
+				 uint32_t blksize,
 				 aal_stream_t *stream)
 {
 	uint64_t blocks;
@@ -164,7 +165,7 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 	uint32_t mapsize;
 	alloc40_t *alloc;
 	
-	aal_assert("umka-2620", desc != NULL);
+	aal_assert("umka-2620", device != NULL);
 	aal_assert("umka-2621", stream != NULL);
 
 	/* Allocating block allocator instance and initializing it by passed
@@ -173,8 +174,8 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 		return NULL;
 
 	alloc->plug = &alloc40_plug;
-	alloc->device = desc->device;
-	alloc->blksize = desc->blksize;
+	alloc->device = device;
+	alloc->blksize = blksize;
 
 	/* Read number of bits in bitmap. */
 	if (aal_stream_read(stream, &blocks, sizeof(blocks)) != sizeof(blocks))
@@ -220,9 +221,9 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 }
 
 static errno_t cb_print_bitmap(blk_t start, count_t width, void *data) {
-	uint32_t size;
-	uint64_t offset;
+	uint64_t offset, end;
 	uint64_t i, count;
+	uint32_t size;
 
 	alloc40_t *alloc;
 	aal_stream_t *stream;
@@ -230,15 +231,17 @@ static errno_t cb_print_bitmap(blk_t start, count_t width, void *data) {
 	alloc = (alloc40_t *)data;
 	stream = (aal_stream_t *)alloc->data;
 
-	size = alloc->blksize - CRC_SIZE;
+	size = (alloc->blksize - CRC_SIZE) * 8;
 	offset = start / size;
+	end = (offset  + 1) * size;
+	end = end <= alloc->bitmap->total ? end : alloc->bitmap->total;
 
 	count = 0;
-	for (i = offset * 8; i < (offset + size) * 8; i++)
+	for (i = offset * size; i < end; i++)
 		count += (aal_test_bit(alloc->bitmap->map, i) ? 1 : 0);
 	
 	aal_stream_format(stream, "%*llu [ 0x%lx ] %llu\n", 10, start,
-			  *((uint32_t *)alloc->crc + offset / 8), count);
+			  *((uint32_t *)(alloc->crc + offset * CRC_SIZE)), count);
 
 	return 0;
 }
@@ -281,7 +284,7 @@ void alloc40_print(generic_entity_t *entity,
 	/* Calling alloc40_layout() in order to print all block checksums */
 	alloc->data = stream;
 	alloc40_layout((generic_entity_t *)alloc, 
-		       cb_print_bitmap, stream);
+		       cb_print_bitmap, alloc);
 	
 	start = 0;
 	total = alloc->bitmap->total;
@@ -318,9 +321,9 @@ errno_t alloc40_check_struct(generic_entity_t *entity, uint8_t mode) {
 
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
-
 	alloc->data = cb_inval_warn;
-	res = alloc40_layout(entity, cb_valid_block, alloc);
+	res = alloc40_layout((generic_entity_t *)alloc,
+			     cb_valid_block, alloc);
 
 	if (res != -ESTRUCT)
 		return res;

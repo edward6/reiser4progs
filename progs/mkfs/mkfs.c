@@ -538,7 +538,7 @@ int main(int argc, char *argv[]) {
 	if (gauge)
 		aal_gauge_free(gauge);
 	
-	aal_list_free(devices);
+	aal_list_free(devices, NULL, NULL);
 
 	/* Deinitializing libreiser4. At the moment only plugins are unloading
 	   during this. */

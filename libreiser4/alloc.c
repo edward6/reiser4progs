@@ -59,7 +59,7 @@ static reiser4_alloc_t *reiser4_alloc_init(reiser4_fs_t *fs,
 					   alloc_init_t init)
 {
 	rid_t pid;
-	fs_desc_t desc;
+	uint32_t blksize;
 	reiser4_plug_t *plug;
 	reiser4_alloc_t *alloc;
 	
@@ -68,7 +68,6 @@ static reiser4_alloc_t *reiser4_alloc_init(reiser4_fs_t *fs,
 		return NULL;
 
 	alloc->fs = fs;
-	alloc->fs->alloc = alloc;
 	
 	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
 		aal_error("Invalid block allocator plugin id has "
@@ -83,18 +82,17 @@ static reiser4_alloc_t *reiser4_alloc_init(reiser4_fs_t *fs,
 		goto error_free_alloc;
 	}
 
-	desc.device = fs->device;
-	desc.blksize = reiser4_master_get_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
 
 	/* Initializing block allocator entity. */
 	switch (init) {
 	case ALLOC_OPEN:
-		alloc->ent = plug_call(plug->o.alloc_ops,
-				       open, &desc, blocks);
+		alloc->ent = plug_call(plug->o.alloc_ops, open, 
+				       fs->device, blksize, blocks);
 		break;
 	case ALLOC_CREATE:
-		alloc->ent = plug_call(plug->o.alloc_ops,
-				       create, &desc, blocks);
+		alloc->ent = plug_call(plug->o.alloc_ops, create, 
+				       fs->device, blksize, blocks);
 		break;
 	}
 

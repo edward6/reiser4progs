@@ -30,9 +30,7 @@ void reiser4_print_node(reiser4_node_t *node, uint32_t start,
 	aal_stream_fini(&stream);
 }
 
-void reiser4_print_format(reiser4_format_t *format,
-			  uint16_t options)
-{
+void reiser4_print_format(reiser4_format_t *format,uint16_t options) {
 	aal_stream_t stream;
 
 	aal_assert("vpf-175", format != NULL);

@@ -82,16 +82,32 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 
 #ifndef ENABLE_MINIMAL
 	if (check) {
+		if (!(fs->backup = reiser4_backup_open(fs))) {
+			aal_error("Failed to open fs backup.");
+			goto error_free_tree;
+		}
+		
+		if (reiser4_backup_valid(fs->backup)) {
+			aal_error("Reiser4 backup is not consistent.");
+			goto error_free_backup;
+		}
+		
 		if (reiser4_opset_init(fs->tree, check))
-			goto error_free_oid;
+			goto error_free_backup;
 	}
 #else
 	if (reiser4_opset_init(fs->tree))
-		goto error_free_oid;
+		goto error_free_tree;
 #endif
 	
 	return fs;
 
+#ifndef ENABLE_MINIMAL
+ error_free_backup:
+	reiser4_backup_close(fs->backup);
+#endif
+ error_free_tree:
+	reiser4_tree_close(fs->tree);
  error_free_oid:
 #ifndef ENABLE_MINIMAL
 	reiser4_oid_close(fs->oid);
@@ -119,10 +135,9 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 #ifndef ENABLE_MINIMAL
 	if (!aal_device_readonly(fs->device))
 		reiser4_fs_sync(fs);
-	reiser4_tree_fini(fs->tree);
-#else
-	reiser4_tree_close(fs->tree);
 #endif
+
+	reiser4_tree_close(fs->tree);
 
 #ifndef ENABLE_MINIMAL
 	reiser4_oid_close(fs->oid);
@@ -134,6 +149,10 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 
 #ifndef ENABLE_MINIMAL
 	reiser4_status_close(fs->status);
+	
+	if (fs->backup) {
+		reiser4_backup_close(fs->backup);
+	}
 #endif
 	
 	/* Freeing memory occupied by fs instance */
@@ -147,10 +166,7 @@ static errno_t cb_check_block(blk_t start, count_t width, void *data) {
 }
 
 /* Returns passed @blk owner */
-reiser4_owner_t reiser4_fs_belongs(
-	reiser4_fs_t *fs,
-	blk_t blk)
-{
+reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs, blk_t blk) {
 	aal_assert("umka-1534", fs != NULL);
 
 	/* Checks if passed @blk is master super block */
@@ -223,20 +239,19 @@ static errno_t cb_mark_block(blk_t start, count_t width, void *data) {
 				    start, width);
 }
 
-errno_t reiser4_fs_check_len(reiser4_fs_t *fs, count_t blocks) {
-	uint32_t blksize;
+errno_t reiser4_fs_check_len(aal_device_t *device, 
+			     uint32_t blksize, 
+			     count_t blocks) 
+{
 	count_t dev_len;
 
-	aal_assert("vpf-1564", fs != NULL);
+	aal_assert("vpf-1564", device != NULL);
 	
-	blksize = reiser4_master_get_blksize(fs->master);
-
-	dev_len = aal_device_len(fs->device) / 
-		(blksize / fs->device->blksize);
+	dev_len = aal_device_len(device) / (blksize / device->blksize);
 	
 	if (blocks > dev_len) {
 		aal_error("Device %s is too small (%llu) for filesystem %llu "
-			  "blocks long.", fs->device->name, dev_len, blocks);
+			  "blocks long.", device->name, dev_len, blocks);
 		return -EINVAL;
 	}
 
@@ -279,16 +294,14 @@ reiser4_fs_t *reiser4_fs_create(
 	/* Create master super block. */
 	format = reiser4_profile_plug(PROF_FORMAT);
 		
-	if (!(fs->master = reiser4_master_create(device, hint->blksize)))
+	if (!(fs->master = reiser4_master_create(device, hint)))
 		goto error_free_fs;
 	
-	if (reiser4_fs_check_len(fs, hint->blocks))
+	if (reiser4_fs_check_len(device, hint->blksize, hint->blocks))
 		goto error_free_master;
 
 	/* Setting up master super block. */
 	reiser4_master_set_format(fs->master, format->id.id);
-	reiser4_master_set_uuid(fs->master, hint->uuid);
-	reiser4_master_set_label(fs->master, hint->label);
 
 	if (!(fs->status = reiser4_status_create(device, hint->blksize)))
 		goto error_free_master;
@@ -296,22 +309,14 @@ reiser4_fs_t *reiser4_fs_create(
 	/* Getting tail policy from default params. */
 	policy = reiser4_profile_plug(PROF_POLICY);
 	
-	/* Creates disk format. */
-	if (!(fs->format = reiser4_format_create(fs, format, policy, 
-						 hint->blocks)))
-	{
-		goto error_free_status;
-	}
-
 	/* Taking care about key flags in format super block */
 	key = reiser4_profile_plug(PROF_KEY);
 	
-	if (key->id.id == KEY_LARGE_ID) {
-		plug_call(fs->format->ent->plug->o.format_ops, set_flags,
-			  fs->format->ent, (1 << REISER4_LARGE_KEYS));
-	} else {
-		plug_call(fs->format->ent->plug->o.format_ops,
-			  set_flags, fs->format->ent, 0);
+	/* Creates disk format. */
+	if (!(fs->format = reiser4_format_create(fs, format, policy->id.id, 
+						 key->id.id, hint->blocks)))
+	{
+		goto error_free_status;
 	}
 
 	/* Creates block allocator */
@@ -341,7 +346,7 @@ reiser4_fs_t *reiser4_fs_create(
  error_free_backup:
 	reiser4_backup_close(fs->backup);
  error_free_tree:
-	reiser4_tree_fini(fs->tree);
+	reiser4_tree_close(fs->tree);
  error_free_oid:
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
@@ -359,16 +364,25 @@ reiser4_fs_t *reiser4_fs_create(
 
 /* Backup the fs -- save all permanent info about the fs info the memory stream
    to be backed up somewhere on the fs. */
-errno_t reiser4_fs_backup(reiser4_fs_t *fs, aal_stream_t *stream) {
+errno_t reiser4_fs_backup(reiser4_fs_t *fs, backup_hint_t *hint) {
 	errno_t res;
 
 	aal_assert("vpf-1392", fs != NULL);
-	aal_assert("vpf-1393", stream != NULL);
+	aal_assert("vpf-1392", hint != NULL);
 
-	if ((res = reiser4_master_backup(fs->master, stream)))
+	/* Set the backup version. */
+	((char *)hint->block.data)[0] = 0;
+
+	/* Master backup starts on 1st byte. Note: Every backuper must set 
+	   hint->el[next index] correctly. */
+	hint->el[BK_MASTER] = hint->block.data + 1;
+	
+	/* Backup the master. */
+	if ((res = reiser4_master_backup(fs->master, hint)))
 		return res;
 
-	return reiser4_format_backup(fs->format, stream);
+	/* Backup the format. */
+	return reiser4_format_backup(fs->format, hint);
 }
 
 /* Resizes passed open @fs by passed @blocks */
@@ -391,9 +405,7 @@ errno_t reiser4_fs_copy(
 }
 
 /* Synchronizes all filesystem objects. */
-errno_t reiser4_fs_sync(
-	reiser4_fs_t *fs)		/* fs instance to be synchronized */
-{
+errno_t reiser4_fs_sync(reiser4_fs_t *fs) {
 	errno_t res;
 	
 	aal_assert("umka-231", fs != NULL);
@@ -409,7 +421,10 @@ errno_t reiser4_fs_sync(
 	/* Synchronizing the object allocator */
 	if ((res = reiser4_oid_sync(fs->oid)))
 		return res;
-    
+  
+	if (fs->backup && (res = reiser4_backup_sync(fs->backup)))
+		return res;
+  
 	if ((res = reiser4_format_sync(fs->format)))
 		return res;
 
@@ -421,25 +436,3 @@ errno_t reiser4_fs_sync(
 
 #endif
 
-/* Returns the key of the fake root parent */
-errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
-			    reiser4_key_t *key)
-{
-	oid_t locality;
-	oid_t objectid;
-	
-	aal_assert("umka-1949", fs != NULL);
-	aal_assert("umka-1950", key != NULL);
-
-	key->plug = fs->tree->ent.tpset[TPSET_KEY];
-	
-#ifndef ENABLE_MINIMAL
-	locality = reiser4_oid_root_locality(fs->oid);
-	objectid = reiser4_oid_root_objectid(fs->oid);
-#else
-	locality = REISER4_ROOT_LOCALITY;
-	objectid = REISER4_ROOT_OBJECTID;
-#endif
-	return plug_call(key->plug->o.key_ops, build_generic, key,
-			 KEY_STATDATA_TYPE, locality, 0, objectid, 0);
-}

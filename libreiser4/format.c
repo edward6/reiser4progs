@@ -50,11 +50,9 @@ void reiser4_format_mkclean(reiser4_format_t *format) {
 
 /* Opens disk-format on specified device. Actually it just calls specified by
    "pid" disk-format plugin and that plugin makes all dirty work. */
-reiser4_format_t *reiser4_format_open(
-	reiser4_fs_t *fs)	/* fs the format will be opened on */
-{
+reiser4_format_t *reiser4_format_open(reiser4_fs_t *fs) {
 	rid_t pid;
-	fs_desc_t desc;
+	uint32_t blksize;
 	reiser4_plug_t *plug;
 	reiser4_format_t *format;
 	
@@ -66,11 +64,9 @@ reiser4_format_t *reiser4_format_open(
 		return NULL;
     
 	format->fs = fs;
-	format->fs->format = format;
 
-	desc.device = fs->device;
 	pid = reiser4_master_get_format(fs->master);
-	desc.blksize = reiser4_master_get_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
     
 	/* Finding needed disk-format plugin by its plugin id. */
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
@@ -80,7 +76,9 @@ reiser4_format_t *reiser4_format_open(
 	}
     
 	/* Initializing disk-format entity by calling plugin */
-	if (!(format->ent = plug_call(plug->o.format_ops, open, &desc))) {
+	if (!(format->ent = plug_call(plug->o.format_ops, open, 
+				      fs->device, blksize))) 
+	{
 		aal_fatal("Can't open disk-format %s.",  plug->label);
 		goto error_free_format;
 	}
@@ -95,13 +93,14 @@ reiser4_format_t *reiser4_format_open(
 #ifndef ENABLE_MINIMAL
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
-	reiser4_fs_t *fs,	/* fs the format will be created on */
-	reiser4_plug_t *plug,	/* disk-format plugin id to be used */
-	reiser4_plug_t *policy,	/* tail policy to be used */
-	count_t blocks)		/* filesystem length in blocks */
+	reiser4_fs_t *fs,	/* fs instance */
+	reiser4_plug_t *plug,	/* format plugin */
+	rid_t policy,		/* policy plug id */
+	rid_t key,		/* key plug id */
+	count_t blocks)		/* block count */
 {
-	fs_desc_t desc;
 	reiser4_format_t *format;
+	format_hint_t desc;
 		
 	aal_assert("umka-105", fs != NULL);
 	aal_assert("vpf-1595", plug != NULL);
@@ -111,18 +110,18 @@ reiser4_format_t *reiser4_format_create(
 		return NULL;
 
 	format->fs = fs;
-	format->fs->format = format;
 
 	/* Initializing filesystem descriptor. */
-	desc.policy = policy;
-	desc.device = fs->device;
 	desc.blksize = reiser4_master_get_blksize(fs->master);
-	
+	desc.blocks = blocks;
+	desc.policy = policy;
+	desc.key = key;
+
 	/* Initializing entity of disk-format by means of calling "create"
 	   method from found plugin. Plugin "create" method will be creating 
 	   all disk structures, namely, format-specific super block. */
-	if (!(format->ent = plug_call(plug->o.format_ops,
-				      create, &desc, blocks))) 
+	if (!(format->ent = plug_call(plug->o.format_ops, create,
+				      fs->device, &desc))) 
 	{
 		aal_error("Can't create format %s on %s.",
 			  plug->label, fs->device->name);
@@ -135,13 +134,13 @@ reiser4_format_t *reiser4_format_create(
 }
 
 errno_t reiser4_format_backup(reiser4_format_t *format,
-			      aal_stream_t *stream) 
+			      backup_hint_t *hint) 
 {
 	aal_assert("vpf-1390", format != NULL);
-	aal_assert("vpf-1391", stream != NULL);
+	aal_assert("vpf-1391", hint != NULL);
 
 	return plug_call(format->ent->plug->o.format_ops,
-			 backup, format->ent, stream);
+			 backup, format->ent, hint);
 }
 
 /* Saves passed format on its device */

@@ -15,6 +15,9 @@ extern errno_t reiser4_tree_adjust(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
 extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
 
+extern errno_t reiser4_tree_root_key(reiser4_tree_t *tree,
+				     reiser4_key_t *key);
+
 extern errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 				      reiser4_node_t *node,
 #ifndef ENABLE_MINIMAL
@@ -48,7 +51,6 @@ extern errno_t reiser4_tree_discard_node(reiser4_tree_t *tree,
 extern inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
 						 reiser4_plug_t *plug);
 
-extern void reiser4_tree_fini(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_minimal(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_singular(reiser4_tree_t *tree);

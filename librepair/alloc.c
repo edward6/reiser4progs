@@ -42,7 +42,7 @@ errno_t repair_alloc_pack(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 reiser4_alloc_t *repair_alloc_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	reiser4_alloc_t *alloc;
 	reiser4_plug_t *plug;
-	fs_desc_t desc;
+	uint32_t blksize;
 	uint32_t read;
 	rid_t pid;
 	
@@ -68,13 +68,11 @@ reiser4_alloc_t *repair_alloc_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 
 	alloc->fs = fs;
 	alloc->fs->alloc = alloc;
-
-	desc.device = fs->device;
-	desc.blksize = reiser4_master_get_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Query the block allocator plugin for creating allocator entity */
 	if (!(alloc->ent = plug_call(plug->o.alloc_ops, unpack,
-				     &desc, stream)))
+				     fs->device, blksize, stream)))
 	{
 		aal_error("Can't unpack block allocator.");
 		goto error_free_alloc;

@@ -189,7 +189,7 @@ aal_exception_option_t misc_exception_handler(
 	} while (opt == EXCEPTION_OPT_UNHANDLED);
 	
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
-	aal_list_free(variant);
+	aal_list_free(variant, NULL, NULL);
 	misc_set_variant(NULL);
 #endif
 

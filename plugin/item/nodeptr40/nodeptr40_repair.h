@@ -6,6 +6,7 @@
 #ifndef NODEPTR40_REPAIR_H
 #define NODEPTR40_REPAIR_H
 
+#ifndef ENABLE_MINIMAL
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
@@ -20,4 +21,5 @@ extern errno_t nodeptr40_check_layout(reiser4_place_t *place,
 				      repair_hint_t *hint, 
 				      region_func_t func, 
 				      void *data);
+#endif
 #endif

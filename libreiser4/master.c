@@ -35,10 +35,7 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 }
 
 /* Forms master super block disk structure */
-reiser4_master_t *reiser4_master_create(
-	aal_device_t *device,	    /* device master will be created on */
-	uint32_t blksize)	    /* blocksize to be used */
-{
+reiser4_master_t *reiser4_master_create(aal_device_t *device, fs_hint_t *hint) {
 	reiser4_master_t *master;
     
 	aal_assert("umka-981", device != NULL);
@@ -52,7 +49,9 @@ reiser4_master_t *reiser4_master_create(
 		    sizeof(REISER4_MASTER_MAGIC));
     
 	/* Setting up block filesystem used */
-	set_ms_blksize(SUPER(master), blksize);
+	set_ms_blksize(SUPER(master), hint->blksize);
+	reiser4_master_set_uuid(master, hint->uuid);
+	reiser4_master_set_label(master, hint->label);
 
 	master->dirty = 1;
 	master->device = device;
@@ -61,13 +60,17 @@ reiser4_master_t *reiser4_master_create(
 }
 
 errno_t reiser4_master_backup(reiser4_master_t *master,
-			      aal_stream_t *stream)
+			      backup_hint_t *hint)
 {
 	aal_assert("vpf-1388", master != NULL);
-	aal_assert("vpf-1389", stream != NULL);
-
-	aal_stream_write(stream, &master->ent,
-			 sizeof(master->ent));
+	aal_assert("vpf-1389", hint != NULL);
+	
+	aal_memcpy(hint->el[BK_MASTER], &master->ent, sizeof(master->ent));
+	hint->el[BK_MASTER + 1] = hint->el[BK_MASTER] + sizeof(master->ent);
+	
+	/* Reserve 8 bytes. */
+	aal_memset(hint->el[BK_MASTER + 1], 0, 8);
+	hint->el[BK_MASTER + 1] += 8;
 	
 	return 0;
 }
@@ -93,17 +96,17 @@ static errno_t cb_guess_format(
 	void *data)		     /* needed plugin type */
 {
 	if (plug->id.type == FORMAT_PLUG_TYPE) {
-		fs_desc_t desc;
 		generic_entity_t *entity;
+		aal_device_t *device;
+		uint32_t blksize;
 
-		desc.device = (aal_device_t *)data;
-		desc.blksize = sysconf(_SC_PAGESIZE);
+		device = (aal_device_t *)data;
+		blksize = sysconf(_SC_PAGESIZE);
 		
-		if ((entity = plug_call(plug->o.format_ops,
-					open, &desc)))
+		if ((entity = plug_call(plug->o.format_ops, open, 
+					device, blksize)))
 		{
-			plug_call(plug->o.format_ops, close,
-				  entity);
+			plug_call(plug->o.format_ops, close, entity);
 			return 1;
 		}
 	}
@@ -192,9 +195,7 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 }
 
 /* Saves master super block to device. */
-errno_t reiser4_master_sync(
-	reiser4_master_t *master)	    /* master to be saved */
-{
+errno_t reiser4_master_sync(reiser4_master_t *master) {
 	errno_t res;
 	blk_t offset;
 	uint32_t blksize;
@@ -272,6 +273,7 @@ void reiser4_master_set_format(reiser4_master_t *master,
 {
 	aal_assert("umka-2496", master != NULL);
 	set_ms_format(SUPER(master), format);
+	master->dirty = 1;
 }
 
 void reiser4_master_set_blksize(reiser4_master_t *master,
@@ -279,6 +281,7 @@ void reiser4_master_set_blksize(reiser4_master_t *master,
 {
 	aal_assert("umka-2497", master != NULL);
 	set_ms_blksize(SUPER(master), blksize);
+	master->dirty = 1;
 }
 
 void reiser4_master_set_uuid(reiser4_master_t *master,
@@ -286,13 +289,14 @@ void reiser4_master_set_uuid(reiser4_master_t *master,
 {
 	aal_assert("umka-2498", master != NULL);
 
+	aal_memset(SUPER(master)->ms_uuid, 0,
+		   sizeof(SUPER(master)->ms_uuid));
+	
 	if (uuid) {
 		aal_strncpy(SUPER(master)->ms_uuid, uuid,
 			    sizeof(SUPER(master)->ms_uuid));
-	} else {
-		aal_memset(SUPER(master)->ms_uuid, 0,
-			   sizeof(SUPER(master)->ms_uuid));
-	}
+	} 
+	master->dirty = 1;
 }
 
 void reiser4_master_set_label(reiser4_master_t *master,
@@ -300,13 +304,14 @@ void reiser4_master_set_label(reiser4_master_t *master,
 {
 	aal_assert("umka-2500", master != NULL);
 
+	aal_memset(SUPER(master)->ms_label, 0,
+		   sizeof(SUPER(master)->ms_label));
+	
 	if (label) {
 		aal_strncpy(SUPER(master)->ms_label, label,
 			    sizeof(SUPER(master)->ms_label));
-	} else {
-		aal_memset(SUPER(master)->ms_label, 0,
-			   sizeof(SUPER(master)->ms_label));
 	}
+	master->dirty = 1;
 }
 
 #endif

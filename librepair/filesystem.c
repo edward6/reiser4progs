@@ -24,18 +24,35 @@ errno_t repair_fs_open(repair_data_t *repair,
 
 	repair->fs->device = hdevice;
 	
-	res |= repair_master_open(repair->fs, repair->mode);
+	/* Try to open master & format -- evth what gets backed up. */
+	repair->fs->master = reiser4_master_open(repair->fs->device);
+	if (repair->fs->master) {
+		repair->fs->format = reiser4_format_open(repair->fs);
+	}
+	
+	/* Try to open the reiser4 backup. */
+	if (!(repair->fs->backup = repair_backup_open(repair->fs, 
+						      repair->mode))) 
+	{
+		if (repair->mode != RM_BUILD) {
+			aal_fatal("Failed to open the reiser4 backup.");
+			res = RE_FATAL;
+			goto error_fs_close;
+		}
+	}
+	
+	res |= repair_master_check_struct(repair->fs, repair->mode);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the master super block.");
-		goto error_fs_free;
+		goto error_fs_close;
 	}
 	
-	res |= repair_format_open(repair->fs, repair->mode);
+	res |= repair_format_check_struct(repair->fs, repair->mode);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the format.");
-		goto error_master_close;
+		goto error_fs_close;
 	}
 
 	/* FIXME-VITALY: if status has io flag set and there is no bad
@@ -45,7 +62,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the status block.");
-		goto error_format_close;
+		goto error_fs_close;
 	}
 	
 	res |= repair_alloc_open(repair->fs, repair->mode);
@@ -73,11 +90,17 @@ errno_t repair_fs_open(repair_data_t *repair,
 		res = -ENOMEM;
 		goto error_journal_close;
 	}
+
+	if (!(repair->fs->backup = repair_backup_reopen(repair->fs))) {
+		aal_fatal("Failed to reopen backup.");
+		res = -EINVAL;
+		goto error_journal_close;
+	}
 	
 	repair_error_count(repair, res);
 	return 0;
 
-error_journal_close:
+ error_journal_close:
 	reiser4_journal_close(repair->fs->journal);
 	repair->fs->journal = NULL;
 
@@ -92,15 +115,16 @@ error_journal_close:
 	reiser4_status_close(repair->fs->status);
 	repair->fs->status = NULL;
 
- error_format_close:
-	reiser4_format_close(repair->fs->format);
-	repair->fs->format = NULL;
+ error_fs_close:
+	if (repair->fs->backup)
+		reiser4_backup_close(repair->fs->backup);
+	
+	if (repair->fs->format)
+		reiser4_format_close(repair->fs->format);
+	
+	if (repair->fs->master)
+		reiser4_master_close(repair->fs->master);
 
- error_master_close:
-	reiser4_master_close(repair->fs->master);
-	repair->fs->master = NULL;
-
- error_fs_free:
 	aal_free(repair->fs);
 	repair->fs = NULL;
 
@@ -402,7 +426,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
  error_free_tree:
-	reiser4_tree_fini(fs->tree);
+	reiser4_tree_close(fs->tree);
  error_free_oid:
 	reiser4_oid_close(fs->oid);
  error_free_format:
@@ -427,4 +451,28 @@ errno_t repair_fs_lost_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	
 	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
 					 locality, 0, objectid, 0);
+}
+
+/* Fs is not opened yet. A block is read and it could be a backup one.
+   This method figure out if it is. */
+errno_t repair_fs_check_backup(aal_device_t *device, backup_hint_t *hint) {
+	errno_t res;
+
+	aal_assert("vpf-1730", hint != NULL);
+	aal_assert("vpf-1730", hint->block.data != NULL);
+	
+	/* Check the backup version. */
+	if (((char *)hint->block.data)[0] != 0)
+		return RE_FATAL;
+
+	/* Master backup starts on 1st byte. Note: Every backuper must set 
+	   hint->el[next index] correctly. */
+	hint->el[BK_MASTER] = hint->block.data + 1;
+
+	/* Check the master backup structure. */
+	if ((res = repair_master_check_backup(hint)))
+		return res;
+
+	/* Backup the format backup structure. */
+	return repair_format_check_backup(device, hint);
 }

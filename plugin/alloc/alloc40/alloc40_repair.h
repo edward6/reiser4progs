@@ -9,9 +9,15 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
-extern errno_t alloc40_pack(generic_entity_t *entity, aal_stream_t *stream);
-extern generic_entity_t *alloc40_unpack(fs_desc_t *desc3, aal_stream_t *stream);
-extern errno_t alloc40_check_struct(generic_entity_t *entity, uint8_t mode);
+extern errno_t alloc40_pack(generic_entity_t *entity, 
+			    aal_stream_t *stream);
+
+extern generic_entity_t *alloc40_unpack(aal_device_t *device, 
+					uint32_t blksize, 
+					aal_stream_t *stream);
+
+extern errno_t alloc40_check_struct(generic_entity_t *entity, 
+				    uint8_t mode);
 
 extern errno_t alloc40_layout_bad(generic_entity_t *entity,
 				  region_func_t region_func,

@@ -5,15 +5,6 @@
 
 #include <repair/librepair.h>
 
-static int cb_check_count(int64_t val, void *data) {
-	reiser4_fs_t *fs = (reiser4_fs_t *)data;
-	
-	if (val < 0) 
-		return 0;
-	
-	return reiser4_fs_check_len(fs, val) ? 0 : 1;
-}
-
 static int cb_check_plugname(char *name, void *data) {
 	reiser4_plug_t **plug = (reiser4_plug_t **)data;
 	
@@ -26,278 +17,177 @@ static int cb_check_plugname(char *name, void *data) {
 	return *plug ? 1 : 0;
 }
 
-
-static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
-	count_t dev_len, fs_len;
-	reiser4_plug_t *defplug;
-	reiser4_plug_t *plug;
-	errno_t res = 0;
-	rid_t pid;
-
-	/* Format was opened or detected. Check it and fix it. */
-	if (fs->format->ent->plug->o.format_ops->check_struct) {
-		res = plug_call(fs->format->ent->plug->o.format_ops,
-				check_struct, fs->format->ent, 
-				mode);
-
-		if (repair_error_fatal(res))
-			return res;
-	}
-		
-	fs_len = reiser4_format_get_len(fs->format);
+static int cb_check_count(int64_t val, void *data) {
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
+	uint32_t blksize;
 	
-	/* Check that fs length is equal to device length. */
-	dev_len = aal_device_len(fs->device) / 
-		(reiser4_master_get_blksize(fs->master) / fs->device->blksize);
+	if (val < 0) 
+		return 0;
 	
-	if (dev_len != fs_len) {
-		if (reiser4_fs_check_len(fs, fs_len)) {
-			/* FS length is not valid. */
-			if (mode != RM_BUILD)
-				return RE_FATAL;
-		} else {
-			aal_warn("Number of blocks found in the superblock "
-				 "(%llu) is not equal to the size of the "
-				 "partition (%llu).%s", fs_len, dev_len, 
-				 mode != RM_BUILD ? " Assuming this is "
-				 "correct.": "");
-		}
-		
-		if (mode == RM_BUILD) {
-			/* Confirm that size is correct. */
-			fs_len = aal_ui_get_numeric(dev_len, cb_check_count,
-						   fs, "Enter the correct "
-						   "block count please");
-			
-			reiser4_format_set_len(fs->format, fs_len);
-			reiser4_format_mkdirty(fs->format);
-		}
-	}
-
-	defplug = reiser4_profile_plug(PROF_POLICY);
-	pid = reiser4_format_get_policy(fs->format);
-
-	if (pid != defplug->id.id) {
-		if (reiser4_profile_overridden(PROF_POLICY)) {
-			/* The policy was overridden. */
-			aal_error("The specified reiser4 formatting policy "
-				  "is '%s'. Its id (0x%x) does not match the "
-				  "on-disk id (0x%x). %s", defplug->label,
-				  defplug->id.id, pid, mode == RM_BUILD ? 
-				  "Fixed." : "Has effect in the BUILD mode "
-				  "only.");
-
-			if (mode != RM_BUILD)
-				return RE_FATAL;
-
-			reiser4_format_set_policy(fs->format, defplug->id.id);
-		} else {
-			/* Was not overridden, try the on-disk one. */
-			plug = reiser4_factory_ifind(POLICY_PLUG_TYPE, pid);
-
-			if (!plug) {
-				aal_error("Can't find the formatting policy "
-					  "plugin by the detected id 0x%x.", 
-					  pid);
-
-				if (mode != RM_BUILD)
-					return RE_FATAL;
-
-				/* This is not overridden in BUILD mode. */
-				aal_error("Using the default formatting policy "
-					  "'%s'.", defplug->label);
-
-				reiser4_format_set_policy(fs->format, 
-							  defplug->id.id);
-			}
-		}
-	}
-	
-	if (reiser4_profile_overridden(PROF_KEY)) {
-		uint16_t flags;
-		bool_t large;
-		
-		defplug = reiser4_profile_plug(PROF_KEY);
-		flags = plug_call(fs->format->ent->plug->o.format_ops,
-				  get_flags, fs->format->ent);
-
-		large = flags & (1 << REISER4_LARGE_KEYS);
-
-		if ((large && (defplug->id.id != KEY_LARGE_ID)) || 
-		    (!large && (defplug->id.id != KEY_SHORT_ID)))
-		{
-			/* Key policy does ot match and was overridden. */
-			aal_error("The specified key plugin '%s' does not match "
-				  "to the on-disk one '%s'. %s", defplug->label,
-				  large ? "LARGE" : "SHORT", mode == RM_BUILD ? 
-				  "Fixed.":"Has effect in the BUILD mode only.");
-
-			if (mode != RM_BUILD)
-				return RE_FATAL;
-
-			if (large)
-				flags &= ~(1 << REISER4_LARGE_KEYS);
-			else
-				flags |= (1 << REISER4_LARGE_KEYS);
-
-			plug_call(fs->format->ent->plug->o.format_ops, 
-				  set_flags, fs->format->ent, flags);
-		}
-	}
-	
-	return res;
+	blksize = reiser4_master_get_blksize(fs->master);
+	return reiser4_fs_check_len(fs->device, blksize, val) ? 0 : 1;
 }
 
-/* Checks the opened format, or build a new one if it was not opened. */
-static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
-	reiser4_plug_t *defplug, *plug, *policy;
+/* Try to open format if not yet and check it. */
+errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
+	generic_entity_t *fent;
+	reiser4_plug_t *plug; 
+	format_hint_t hint;
+	count_t blocks;
 	bool_t over;
+	errno_t res;
 	rid_t pid;
 	
 	aal_assert("vpf-165", fs != NULL);
 	aal_assert("vpf-171", fs->device != NULL);
 	aal_assert("vpf-834", fs->master != NULL);
 	
-	if (fs->format == NULL) {
-		/* Format was not opened. */
-		aal_error("Cannot open the on-disk format on (%s)",
-			  fs->device->name);
-		
-		over = reiser4_profile_overridden(PROF_FORMAT);
-		
-		if (!over) {
-			/* Format was not overridden, try to detect it. */
-			if ((plug = reiser4_master_guess(fs->device))) {
-				aal_info("The format '%s' is detected.%s",
-					 plug->label, mode == RM_BUILD ? 
-					 " Rebuilding with it." : "");
-			}
-		} else {
-			plug = NULL;
+	/* If opened backup does not match opened format, close format. */
+	pid = reiser4_master_get_format(fs->master);
+	if (fs->format && pid != fs->format->ent->plug->id.id) {
+		reiser4_format_close(fs->format);
+		fs->format = NULL;
+	}
+
+	/* If format is not opened but the master has been changed, try
+	 to open format again -- probably the master format plug id has 
+	 been changed. */
+	if (!fs->format && reiser4_master_isdirty(fs->master))
+		fs->format = reiser4_format_open(fs);
+
+	/* If format is still not opened, return the error not in 
+	   the BUILD mode. */
+	if (!fs->format) {
+		/* Format was not overridden, try to detect it. */
+		if ((plug = reiser4_master_guess(fs->device))) {
+			aal_info("Trying to detect it ... '%s' is detected. "
+				 "Fsck with -o format='%s' option will have "
+				 "an effect.", plug->label, plug->label);
 		}
-		
+				
 		if (mode != RM_BUILD)
 			return RE_FATAL;
+	}
+	
+	/* Prepare the format hint for the futher checks. */
+	aal_memset(&hint, 0, sizeof(hint));
 
-		if (plug) {
-			/* Save in the master the format pid. */
-			reiser4_master_set_format(fs->master, plug->id.id);
-			reiser4_master_mkdirty(fs->master);
+	/* If the policy/key/etc plugin is overridden in the profile or there 
+	   is no opened backup not format, policy is taken from the profile. 
+	   Otherwise from the backup if opened or from the format. */
+	over = reiser4_profile_overridden(PROF_POLICY);
+	plug = reiser4_profile_plug(PROF_POLICY);
+	hint.policy = plug->id.id;
+	hint.mask |= over ? (1 << PM_POLICY) : 0;
 
-			/* Open the detected format. */
-			if (!(fs->format = reiser4_format_open(fs))) {
-				aal_fatal("Failed to open the detected "
-					  "format '%s'.", plug->label);
-				return -EINVAL;
+	over = reiser4_profile_overridden(PROF_KEY);
+	plug = reiser4_profile_plug(PROF_KEY);
+	
+	if (over) {
+		hint.mask |= (1 << PM_KEY);
+	} else if (!fs->backup && mode == RM_BUILD) {
+		char buff[256];
+
+		plug = reiser4_profile_plug(PROF_KEY);
+		aal_memset(buff, 0, sizeof(buff));
+		aal_memcpy(buff, plug->label, 
+			   aal_strlen(plug->label));
+
+		aal_ui_get_alpha(buff, cb_check_plugname, &plug, 
+				 "Enter the key plugin name");
+	}
+	hint.key = plug->id.id;
+	
+	hint.blksize = reiser4_master_get_blksize(fs->master);
+	hint.blocks = aal_device_len(fs->device) / 
+		(hint.blksize / fs->device->blksize);
+
+	/* Check the block count if the backup is not opened. */
+	if (!fs->backup) {
+		if (fs->format) {
+			blocks = reiser4_format_get_len(fs->format);
+
+			if (reiser4_fs_check_len(fs->device, 
+						 hint.blksize, blocks))
+			{
+				/* FS length is not valid. */
+				if (mode != RM_BUILD)
+					return RE_FATAL;
+
+				blocks = MAX_UINT64;
+			} else if (blocks != hint.blocks) {
+				aal_warn("Number of blocks found in the super "
+					 "block (%llu) is not equal to the size"
+					 " of the partition (%llu).%s", blocks,
+					 hint.blocks, mode != RM_BUILD ? 
+					 " Assuming this is correct.": "");
 			}
+		} else {
+			blocks = MAX_UINT64;
+		}
+
+		if (blocks != hint.blocks && mode == RM_BUILD) {
+			/* Confirm that size is correct. */
+			blocks = aal_ui_get_numeric(blocks == MAX_UINT64 ? 
+						    hint.blocks : blocks, 
+						    cb_check_count, fs, 
+						    "Enter the correct "
+						    "block count please");
 			
-			return 0;
+			hint.blocks = blocks;
+		}
+	}
+
+	/* If there still is no format opened, create a new one or regenerate 
+	   it from the backup if exists. */
+	if (!fs->format) {
+		if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
+			aal_fatal("Failed to find a format plugin "
+				  "by its on-disk id (%u).", pid);
+			return -EINVAL;
 		}
 		
-		/* @format is still NULL: its id was overridden or the format
-		   cannot be detected on the device. Try to find a profile by 
-		   the on-disk id (the overridden pid was set there at the 
-		   master check time), if fails take from the profile, and 
-		   build a new profile. */
-		defplug = reiser4_profile_plug(PROF_FORMAT);
-		pid = reiser4_master_get_format(fs->master);
-
-		if (pid != defplug->id.id && !over) {
-			/* Not the same pid as in the profile and was not 
-			   overridden. Try to find plugin by @pid. */
-			plug = reiser4_factory_ifind(POLICY_PLUG_TYPE, pid);
-
-			if (plug) {
-				aal_error("Building the format '%s' by "
-					  "the detected format id 0x%x.",
-					  plug->label, pid);
-			}
-		}
-		
-		if (!plug) {
-			plug = defplug;
-			aal_error("No format was detected and no valid format "
-				  "id was found. Building the default format "
-				  "'%s'.", plug->label);
+		if (fs->backup) {
+			fent = plug_call(plug->o.format_ops, regenerate,
+					 fs->device, &fs->backup->hint);
+		} else {
+			fent = plug_call(plug->o.format_ops, create, 
+					 fs->device, &hint);
 		}
 
-		policy = reiser4_profile_plug(PROF_POLICY);
-
-		/* Create the format from the scratch. */
-		fs->format = reiser4_format_create(fs, plug, policy, 0);
-
-		if (!fs->format) {
-			aal_fatal("Failed to create a filesystem "
-				  "of the format '%s' on '%s'.", 
+		if (!fent) {
+			aal_error("Failed to %s the format '%s' on '%s'.",
+				  fs->backup ? "regenerate" : "create", 
 				  plug->label, fs->device->name);
 			return -EINVAL;
 		} else {
-			aal_warn("The format '%s' was created on '%s'.",
-				 plug->label, fs->device->name);
+			aal_warn("The format '%s' is %s on '%s'.", plug->label,
+				 fs->backup ? "regenerated from backup" : 
+				 "created", fs->device->name);
 		}
-	
-		reiser4_master_set_format(fs->master, plug->id.id);
-		reiser4_master_mkdirty(fs->master);
-		
-		/* Set the key plugin correctly, ask user if needed. */
-		defplug = reiser4_profile_plug(PROF_KEY);
-		
-		if (!reiser4_profile_overridden(PROF_KEY)) {
-			char buff[256];
-			
-			aal_memset(buff, 0, sizeof(buff));
-			aal_memcpy(buff, defplug->label, 
-				   aal_strlen(defplug->label));
-			
-			aal_ui_get_alpha(buff, cb_check_plugname, &plug, 
-					 "Enter the key plugin name");
-		}
-
-		if (!plug) plug = defplug;
-			
-		if (plug->id.id == KEY_LARGE_ID) {
-			plug_call(fs->format->ent->plug->o.format_ops, 
-				  set_flags, fs->format->ent, 
-				  (1 << REISER4_LARGE_KEYS));
-		} else {
-			plug_call(fs->format->ent->plug->o.format_ops,
-				  set_flags, fs->format->ent, 0);
-		}
-		
-		reiser4_format_set_stamp(fs->format, 0);
-		reiser4_format_mkdirty(fs->format);
+	} else {
+		fent = fs->format->ent;
 	}
+	
+	/* Check the format structure. If there is no backup and format, then 
+	   @fent has been just created, nothing to check anymore. */
+	if (fs->backup || fs->format) {
+		res = plug_call(fent->plug->o.format_ops, check_struct, 
+				fent, fs->backup ? &fs->backup->hint : NULL,
+				&hint, mode);
+	} else {
+		res = 0;
+	}
+	
+	if (!fs->format) {
+		if (!(fs->format = aal_calloc(sizeof(reiser4_format_t), 0))) {
+			aal_error("Can't allocate the format.");
+			plug_call(plug->o.format_ops, close, fent);
+			return -ENOMEM;
+		}
 
-	return 0;
-}
-
-/* Try to open format and check it. */
-errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
-	errno_t res;
-	
-	aal_assert("vpf-398", fs != NULL);
-	
-	/* Try to open the disk format. */
-	fs->format = reiser4_format_open(fs);
-	
-	/* Check the opened disk format or rebuild it if needed. */
-	res = repair_format_open_check(fs, mode);
-	
-	if (repair_error_fatal(res))
-		goto error_format_close;
-	
-	res |= repair_format_check_struct(fs, mode);
-
-	if (repair_error_fatal(res))
-		goto error_format_close;
-	
-	return res;
-	
- error_format_close:
-	
-	if (fs->format) {
-		reiser4_format_close(fs->format);
-		fs->format = NULL;
+		fs->format->fs = fs;
+		fs->format->ent = fent;
 	}
 	
 	return res;
@@ -333,7 +223,7 @@ void repair_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 /* Loads format data from @stream to format entity. */
 reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	rid_t pid;
-	fs_desc_t desc;
+	uint32_t blksize;
 	reiser4_plug_t *plug;
 	reiser4_format_t *format;
 	
@@ -359,11 +249,10 @@ reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	format->fs = fs;
 	format->fs->format = format;
 
-	desc.device = fs->device;
-	desc.blksize = reiser4_master_get_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
 	
-	if (!(format->ent = plug_call(plug->o.format_ops,
-				      unpack, &desc, stream)))
+	if (!(format->ent = plug_call(plug->o.format_ops, unpack, 
+				      fs->device, blksize, stream)))
 	{
 		aal_error("Can't unpack disk-format.");
 		goto error_free_format;
@@ -374,5 +263,27 @@ reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
  error_free_format:
 	aal_free(format);
 	return NULL;
+}
+
+errno_t repair_format_check_backup(aal_device_t *device, backup_hint_t *hint) {
+	reiser4_master_sb_t *master;
+	reiser4_plug_t *plug;
+	errno_t res;
+
+	aal_assert("vpf-1732", hint != NULL);
+	
+	master = (reiser4_master_sb_t *)hint->el[BK_MASTER];
+	
+	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, 
+					   get_ms_format(master))))
+	{
+		return RE_FATAL;
+	}
+
+	if ((res = plug_call(plug->o.format_ops, check_backup, hint)))
+		return res;
+
+	return (reiser4_fs_check_len(device, get_ms_blksize(master), 
+				     hint->blocks)) ? RE_FATAL : 0;
 }
 

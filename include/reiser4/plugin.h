@@ -606,6 +606,7 @@ typedef errno_t (*node_func_t) (reiser4_node_t *, void *);
 /* Function definitions for enumeration item metadata and data. */
 typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 
+#define REISER4_MIN_BLKSIZE (512)
 #define REISER4_MAX_BLKSIZE (8192)
 
 struct entry_hint {
@@ -792,6 +793,7 @@ struct lookup_hint {
 #endif
 };
 
+#ifndef ENABLE_MINIMAL
 struct repair_hint {
 	int64_t len;
 	uint8_t mode;
@@ -799,14 +801,48 @@ struct repair_hint {
 
 typedef struct repair_hint repair_hint_t;
 
-/* Filesystem description. */
-struct fs_desc {
-	reiser4_plug_t *policy;
-	uint32_t blksize;
-	aal_device_t *device;
+enum reiser4_backuper {
+	BK_MASTER	= 0x0,
+	BK_FORMAT	= 0X1,
+	BK_LAST		= 0x2
 };
 
-typedef struct fs_desc fs_desc_t;
+struct backup_hint {
+	aal_block_t block;
+	char *el[BK_LAST + 1];
+
+	/* Fields below are used by check_backup. */
+	
+	/* Block count. */
+	uint64_t blocks;
+
+	/* Matched block count. */
+	uint64_t count;
+	uint64_t total;
+};
+
+typedef struct backup_hint backup_hint_t;
+#endif
+
+enum format_hint_mask {
+	PM_POLICY	= 0x0,
+	PM_KEY		= 0x1
+};
+
+struct format_hint {
+	uint64_t blocks;
+	uint32_t blksize;
+	rid_t policy;
+	rid_t key;
+	
+	/* For repair purposes. Set plugin types that are overridden 
+	   in the profile here, they must be set in the format plugin
+	   check_struct. If bit is not set, plugins given with the above 
+	   hints are merely hints. */
+	uint64_t mask;
+};
+
+typedef struct format_hint format_hint_t;
 
 struct reiser4_key_ops {
 	/* Function for dermining is key contains direntry name hashed or
@@ -1297,18 +1333,18 @@ typedef struct reiser4_fibre_ops reiser4_fibre_ops_t;
 
 /* Disk-format plugin */
 struct reiser4_format_ops {
-	uint64_t (*get_flags) (generic_entity_t *);
-	
 #ifndef ENABLE_MINIMAL
-	void (*set_flags) (generic_entity_t *, uint64_t);
-	
 	/* Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
-	generic_entity_t *(*create) (fs_desc_t *, uint64_t);
+	generic_entity_t *(*create) (aal_device_t *, format_hint_t *);
 
 	/* Save the important permanent info about the format into the stream 
-	   to be backuped on the fs. */
-	errno_t (*backup) (generic_entity_t *, aal_stream_t *);
+	   to be backuped on the fs & check this info. */
+	errno_t (*backup) (generic_entity_t *, backup_hint_t *);
+	errno_t (*check_backup) (backup_hint_t *);
+
+	/* Regenerate the format instance by the backup. */
+	generic_entity_t *(*regenerate) (aal_device_t *, backup_hint_t *);
 	
 	/* Save format data to device. */
 	errno_t (*sync) (generic_entity_t *);
@@ -1318,16 +1354,13 @@ struct reiser4_format_ops {
 	void (*set_state) (generic_entity_t *, uint32_t);
 
 	/* Format pack/unpack methods. */
-	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
+	generic_entity_t *(*unpack) (aal_device_t *, uint32_t, aal_stream_t *);
 	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
 	
 	/* Update only fields which can be changed after journal replay in
 	   memory to avoid second checking. */
 	errno_t (*update) (generic_entity_t *);
 	    
-	/* Checks thoroughly the format structure and fixes what needed. */
-	errno_t (*check_struct) (generic_entity_t *, uint8_t);
-
 	/* Prints all useful information about the format */
 	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
     
@@ -1335,7 +1368,7 @@ struct reiser4_format_ops {
 	void (*set_root) (generic_entity_t *, uint64_t);
 	void (*set_free) (generic_entity_t *, uint64_t);
 	void (*set_stamp) (generic_entity_t *, uint32_t);
-	void (*set_policy) (generic_entity_t *, uint16_t);
+	void (*set_policy) (generic_entity_t *, rid_t);
 	void (*set_height) (generic_entity_t *, uint16_t);
 
 	/* Return plugin ids for journal, block allocator, and oid allocator
@@ -1347,15 +1380,19 @@ struct reiser4_format_ops {
 	/* Format enumerator function. */
 	errno_t (*layout) (generic_entity_t *, region_func_t, void *);
 
-	/* Checks format-specific super block for validness. Also checks whether
-	   filesystem objects lie in valid places. For example, format-specific
-	   super block for format40 must lie in 17-th block for 4096 byte long
-	   blocks. */
+	/* Basic consistency checks */
 	errno_t (*valid) (generic_entity_t *);
+
+	/* Check format-specific super block for validness. */
+	errno_t (*check_struct) (generic_entity_t *, backup_hint_t *, 
+				 format_hint_t *, uint8_t);
 #endif
+	/* Returns the key plugin id. */
+	rid_t (*key_pid) (generic_entity_t *);
+	
 	/* Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format. */
-	generic_entity_t *(*open) (fs_desc_t *);
+	generic_entity_t *(*open) (aal_device_t *, uint32_t);
     
 	/* Closes opened or created previously filesystem. Frees all assosiated
 	   memory. */
@@ -1380,8 +1417,8 @@ struct reiser4_format_ops {
 	/* Return mkfs stamp. */
 	uint32_t (*get_stamp) (generic_entity_t *);
 
-	/* Return policy flags (tail, extents, etc). */
-	uint16_t (*get_policy) (generic_entity_t *);
+	/* Return policy (tail, extents, etc). */
+	rid_t (*get_policy) (generic_entity_t *);
 
 	/* Returns area where oid data lies in */
 	void (*oid_area) (generic_entity_t *, void **, uint32_t *);
@@ -1445,8 +1482,8 @@ typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 
 struct reiser4_alloc_ops {
 	/* Functions for create and open block allocator. */
-	generic_entity_t *(*open) (fs_desc_t *, uint64_t);
-	generic_entity_t *(*create) (fs_desc_t *, uint64_t);
+	generic_entity_t *(*open) (aal_device_t *, uint32_t, uint64_t);
+	generic_entity_t *(*create) (aal_device_t *, uint32_t, uint64_t);
 
 	/* Closes block allocator. */
 	void (*close) (generic_entity_t *);
@@ -1460,7 +1497,7 @@ struct reiser4_alloc_ops {
 	
 	/* Format pack/unpack methods. */
 	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
-	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
+	generic_entity_t *(*unpack) (aal_device_t *, uint32_t, aal_stream_t *);
 	
 	/* Assign the bitmap to the block allocator */
 	errno_t (*assign) (generic_entity_t *, void *);
@@ -1520,12 +1557,14 @@ typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
 
 struct reiser4_journal_ops {
 	/* Opens journal on specified device. */
-	generic_entity_t *(*open) (fs_desc_t *, generic_entity_t *,
-				   generic_entity_t *, uint64_t, uint64_t);
+	generic_entity_t *(*open) (aal_device_t *, uint32_t, 
+				   generic_entity_t *, generic_entity_t *,
+				   uint64_t, uint64_t);
 
 	/* Creates journal on specified device. */
-	generic_entity_t *(*create) (fs_desc_t *, generic_entity_t *,
-				     generic_entity_t *, uint64_t, uint64_t);
+	generic_entity_t *(*create) (aal_device_t *, uint32_t, 
+				     generic_entity_t *, generic_entity_t *, 
+				     uint64_t, uint64_t);
 
 	/* Returns the device journal lies on */
 	aal_device_t *(*device) (generic_entity_t *);

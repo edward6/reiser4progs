@@ -164,13 +164,16 @@ static errno_t cb_fetch_bitmap(blk_t start, count_t width, void *data) {
 /* Initializing block allocator instance and loads bitmap into it from the
    passed @device. This functions is implementation of alloc_ops.open() plugin
    method. */
-static generic_entity_t *alloc40_open(fs_desc_t *desc, uint64_t blocks) {
+static generic_entity_t *alloc40_open(aal_device_t *device, 
+				      uint32_t blksize, 
+				      uint64_t blocks) 
+{
 	alloc40_t *alloc;
 	uint32_t crcsize;
 	uint32_t mapsize;
     
 	aal_assert("umka-1682", blocks > 0);
-	aal_assert("umka-364", desc != NULL);
+	aal_assert("umka-364", device != NULL);
 
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
@@ -178,7 +181,7 @@ static generic_entity_t *alloc40_open(fs_desc_t *desc, uint64_t blocks) {
 	/* Creating bitmap with passed @len. Value @len is the number of blocks
 	   filesystem lies in. In other words it is the filesystem size. This
 	   value is the same as partition size sometimes. */
-	mapsize = desc->blksize - CRC_SIZE;
+	mapsize = blksize - CRC_SIZE;
     
 	if (!(alloc->bitmap = aux_bitmap_create(blocks)))
 		goto error_free_alloc;
@@ -186,8 +189,8 @@ static generic_entity_t *alloc40_open(fs_desc_t *desc, uint64_t blocks) {
 	/* Initializing alloc instance. */
 	alloc->state = 0;
 	alloc->plug = &alloc40_plug;
-	alloc->device = desc->device;
-	alloc->blksize = desc->blksize;
+	alloc->device = device;
+	alloc->blksize = blksize;
 
 	/* Calulating crc array size */
 	crcsize = ((alloc->bitmap->size + mapsize - 1) /
@@ -219,18 +222,21 @@ static generic_entity_t *alloc40_open(fs_desc_t *desc, uint64_t blocks) {
    caller (block allocator in libreiser4). This function does almost the same as
    alloc40_open(). The difference is that it does not load bitmap from the
    passed device. */
-static generic_entity_t *alloc40_create(fs_desc_t *desc, uint64_t blocks) {
+static generic_entity_t *alloc40_create(aal_device_t *device, 
+					uint32_t blksize, 
+					uint64_t blocks) 
+{
 	alloc40_t *alloc;
 	uint32_t mapsize;
 	uint32_t crcsize;
 
-	aal_assert("umka-365", desc != NULL);
+	aal_assert("umka-365", device != NULL);
 	aal_assert("umka-1683", blocks > 0);
 
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
-	mapsize = desc->blksize - CRC_SIZE;
+	mapsize = blksize - CRC_SIZE;
     
 	if (!(alloc->bitmap = aux_bitmap_create(blocks)))
 		goto error_free_alloc;
@@ -242,8 +248,8 @@ static generic_entity_t *alloc40_create(fs_desc_t *desc, uint64_t blocks) {
 
 	/* Initializing alloc instance. */
 	alloc->plug = &alloc40_plug;
-	alloc->device = desc->device;
-	alloc->blksize = desc->blksize;
+	alloc->device = device;
+	alloc->blksize = blksize;
 	alloc->state = (1 << ENTITY_DIRTY);
     
 	return (generic_entity_t *)alloc;

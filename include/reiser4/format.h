@@ -18,11 +18,12 @@ extern bool_t reiser4_format_isdirty(reiser4_format_t *format);
 
 extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       reiser4_plug_t *plug,
-					       reiser4_plug_t *policy,
+					       rid_t policy,
+					       rid_t key,
 					       count_t blocks);
 
 extern errno_t reiser4_format_backup(reiser4_format_t *format,
-				     aal_stream_t *stream);
+				     backup_hint_t *hint);
 
 extern errno_t reiser4_format_layout(reiser4_format_t *format, 
 				     region_func_t func,

@@ -80,7 +80,7 @@ static errno_t cb_mark_block(blk_t start, count_t width, void *data) {
 	backup++;
 	fs->data = backup;
 		
-	if (reiser4_alloc_occupied((reiser4_alloc_t *)data, start, width))
+	if (reiser4_alloc_occupied(fs->alloc, start, width))
 		return 0;
 		
 	if ((res = reiser4_format_dec_free(fs->format, 1))) {
@@ -88,7 +88,7 @@ static errno_t cb_mark_block(blk_t start, count_t width, void *data) {
 		return -ENOSPC;
 	}
 	
-	return reiser4_alloc_occupy((reiser4_alloc_t *)data, start, width);
+	return reiser4_alloc_occupy(fs->alloc, start, width);
 }
 
 static errno_t cb_unmark_block(blk_t start, count_t width, void *data) {
@@ -709,7 +709,7 @@ int main(int argc, char *argv[]) {
 		
 		/* Mark all new backup blocks as used to not allocate them
 		   again on reallocation. */
-		if (reiser4_backup_layout(fs, cb_mark_block, fs->alloc)) {
+		if (reiser4_backup_layout(fs, cb_mark_block, fs)) {
 			aal_error("Failed to mark backup blocks used.");
 			aal_gauge_done(backup.gauge);
 			aal_gauge_free(backup.gauge);

@@ -8,13 +8,13 @@
 
 /* Checks the blocksize. */
 static int cb_bs_check (int64_t val, void * data) {
-	if (!aal_pow2(val))
-		return 0;
-    
-	if (val < 512)
+	if (val < REISER4_MIN_BLKSIZE)
 		return 0;
 
 	if (val > REISER4_MAX_BLKSIZE)
+		return 0;
+	
+	if (!aal_pow2(val))
 		return 0;
 
 	return 1;
@@ -22,49 +22,142 @@ static int cb_bs_check (int64_t val, void * data) {
 
 /* Checks the opened master, builds a new one on the base of user profile if no 
    one was opened. */
-static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
-	reiser4_plug_t *plug;
+errno_t repair_master_check_struct(reiser4_fs_t *fs, uint8_t mode) {
+	reiser4_master_sb_t *master;
+	reiser4_plug_t *format;
+	fs_hint_t hint;
 	uint16_t size;
 	rid_t pid;
+	int over;
+	char *s;
 	
 	aal_assert("vpf-730", fs != NULL);
 	aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
 	
+	over = reiser4_profile_overridden(PROF_FORMAT);
+	format = reiser4_profile_plug(PROF_FORMAT);
+
+	master = fs->backup ? 
+		(reiser4_master_sb_t *)fs->backup->hint.el[BK_MASTER] : NULL;
+		
 	if (fs->master == NULL) {
 		if (mode != RM_BUILD)
 			return RE_FATAL;
 		
-		/* Master SB was not opened. Create a new one. */
-		if (aal_yesno("Master super block cannot be found. Do"
-			      " you want to build a new one on (%s)?",
-			      fs->device->name) == EXCEPTION_OPT_NO)
-		{
-			return -EINVAL;
+		if (master) {
+			fsck_mess("Master super block cannot be found on '%s'.",
+				 fs->device->name);
+			size = get_ms_blksize(master);
+		} else {
+			/* Master SB was not opened. Create a new one. */
+			if (aal_yesno("Master super block cannot be found. Do"
+				      " you want to build a new one on (%s)?",
+				      fs->device->name) == EXCEPTION_OPT_NO)
+			{
+				return -EINVAL;
+			}
+
+			size = aal_ui_get_numeric(4096, cb_bs_check, NULL,
+						  "Which block size do you use?");
 		}
 		
-		size = aal_ui_get_numeric(4096, cb_bs_check, NULL,
-					  "Which block size do you use?");
-		
 		/* Create a new master SB. */
-		if (!(fs->master = reiser4_master_create(fs->device, size)))
-		{
+		aal_memset(&hint, 0, sizeof(hint));
+		hint.blksize = size;
+		
+		if (!(fs->master = reiser4_master_create(fs->device, &hint))) {
 			aal_error("Failed to create a new master super block.");
 			return -EINVAL;
 		}
 
-		aal_warn("A new master superblock is created on (%s).", 
+		aal_warn("A new master superblock is %s on '%s'.", 
+			 master ? "regenerated from backup" : "created", 
 			 fs->device->name);
 		
-		reiser4_master_set_uuid(fs->master, NULL);
-		reiser4_master_set_label(fs->master, NULL);
-		reiser4_master_set_format(fs->master, INVAL_PID);
+		reiser4_master_set_uuid(fs->master, 
+					master ? master->ms_uuid : NULL);
+		reiser4_master_set_label(fs->master, master ? 
+					 master->ms_label : NULL);
+
+		pid = master ? get_ms_format(master) : format->id.id;
+		reiser4_master_set_format(fs->master, pid);
+	} else if (master) {
+		/* Master SB & backup are opened. Fix accoring to backup. */
+		size = reiser4_master_get_blksize(fs->master);
+		
+		if (size != get_ms_blksize(master)) {
+			fsck_mess("Blocksize (%u) found in the master "
+				  "super block does not match the one "
+				  "found in the backup (%u).%s", size,
+				  get_ms_blksize(master), mode == RM_BUILD ?
+				  " Fixed." : "");
+
+			if (mode != RM_BUILD)
+				return RE_FATAL;
+
+			size = get_ms_blksize(master);
+			reiser4_master_set_blksize(fs->master, size);
+		}
+
+		if (!over) {
+			pid = reiser4_master_get_format(fs->master);
+
+			if (pid != get_ms_format(master)) {
+				/* The @plug is the correct one. */
+				fsck_mess("The reiser4 format plugin id (%u) "
+					  "found in the master super block on "
+					  "'%s' does not match the one from "
+					  "the backup (%u).%s.", pid, 
+					  fs->device->name, 
+					  get_ms_format(master),
+					  mode == RM_BUILD ? 
+					  " Fixed." : "");
+
+				if (mode != RM_BUILD)
+					return RE_FATAL;
+
+				pid = get_ms_format(master);
+				reiser4_master_set_format(fs->master, pid);
+			}
+		}
+		
+		s = reiser4_master_get_uuid(fs->master);
+		if (aal_strncmp(s, master->ms_uuid, sizeof(master->ms_uuid))) {
+			fsck_mess("UUID (0x%llx%llx) found in the master super "
+				  "block does not match the one found in the "
+				  "backup (0x%llx%llx).%s", ((uint64_t *)s)[0],
+				  ((uint64_t *)s)[1], 
+				  ((uint64_t *)master->ms_uuid)[0],
+				  ((uint64_t *)master->ms_uuid)[1],
+				  mode != RM_CHECK ? " Fixed." : "");
+
+			if (mode == RM_CHECK)
+				return RE_FIXABLE;
+
+			reiser4_master_set_uuid(fs->master, master->ms_uuid);
+		}
+		
+		s = reiser4_master_get_label(fs->master);
+		if (aal_strncmp(s, master->ms_label, sizeof(master->ms_label)))
+		{
+			fsck_mess("LABEL (%s) found in the master super block "
+				  "does not match the one found in the backup "
+				  "(%s).%s", s, master->ms_label, 
+				  mode != RM_CHECK ? " Fixed." : "");
+
+			if (mode == RM_CHECK)
+				return RE_FIXABLE;
+
+			reiser4_master_set_label(fs->master, master->ms_label);
+		}
 	} else {
 		/* Master SB was opened. Check it for validness. */
 		
 		/* Check the blocksize. */
-		if (!cb_bs_check(reiser4_master_get_blksize(fs->master), NULL))
-		{
-			aal_error("Invalid blocksize found in the "
+		size = reiser4_master_get_blksize(fs->master);
+		
+		if (!cb_bs_check(size, NULL)) {
+			fsck_mess("Invalid blocksize found in the "
 				  "master super block (%u).",
 				  reiser4_master_get_blksize(fs->master));
 			
@@ -76,66 +169,36 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 						  "use?");
 
 			reiser4_master_set_blksize(fs->master, size);
-			reiser4_master_mkdirty(fs->master);
 		}
 	}
 
 	/* Setting actual used block size from master super block */
-	if (aal_device_set_bs(fs->device, reiser4_master_get_blksize(fs->master))) {
-		aal_error("Invalid block size was specified (%u). It "
-			  "must be power of two.",
-			  reiser4_master_get_blksize(fs->master));
+	size = reiser4_master_get_blksize(fs->master);
+	if (aal_device_set_bs(fs->device, size)) {
+		fsck_mess("Invalid block size was specified (%u). "
+			  "It must be power of two.", size);
 		return -EINVAL;
 	}
 	
-	plug = reiser4_profile_plug(PROF_FORMAT);
 	pid = reiser4_master_get_format(fs->master);
 	
 	/* If the format is overridden, fix master accordingly to the specified 
 	   value. */ 
-	if (reiser4_profile_overridden(PROF_FORMAT) && pid != plug->id.id) {
+	if (over && pid != format->id.id) {
 		/* The @plug is the correct one. */
-		aal_error("The specified reiser4 format on '%s' is '%s'. Its "
+		fsck_mess("The specified reiser4 format on '%s' is '%s'. Its "
 			  "id (0x%x) does not match the on-disk id (0x%x).%s", 
-			  fs->device->name, plug->label, plug->id.id, pid, 
+			  fs->device->name, format->label, format->id.id, pid,
 			  mode == RM_BUILD ? " Fixed." : " Has effect in BUILD "
 			  "mode only.");
 
 		if (mode != RM_BUILD)
 			return RE_FATAL;
 
-		reiser4_master_set_format(fs->master, plug->id.id);
-		reiser4_master_mkdirty(fs->master);
+		reiser4_master_set_format(fs->master, format->id.id);
 	}
-	
-	return 0;
-}
 
-/* Opens and checks the master. */
-errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode) {
-	errno_t res;
-	
-	aal_assert("vpf-399", fs != NULL);
-	aal_assert("vpf-729", fs->device != NULL);
-	
-	/* Try to open master. */
-	fs->master = reiser4_master_open(fs->device);
-	
-	/* Either check the opened master or build a new one. */
-	res = repair_master_check(fs, mode);
-	
-	if (repair_error_fatal(res))
-		goto error_master_free;
-	
-	return res;
-	
- error_master_free:
-	if (fs->master) {
-		reiser4_master_close(fs->master);
-		fs->master = NULL;
-	}
-	
-	return res;
+	return 0;
 }
 
 errno_t repair_master_pack(reiser4_master_t *master, aal_stream_t *stream) {
@@ -248,3 +311,27 @@ void repair_master_print(reiser4_master_t *master,
 	}
 }
 
+
+errno_t repair_master_check_backup(backup_hint_t *hint) {
+	reiser4_master_sb_t *master;
+	
+	aal_assert("vpf-1731", hint != NULL);
+
+	master = (reiser4_master_sb_t *)hint->el[BK_MASTER];
+	
+	/* Check the MAGIC. */
+	if (aal_strncmp(master->ms_magic, REISER4_MASTER_MAGIC,
+			sizeof(REISER4_MASTER_MAGIC)))
+	{
+		return RE_FATAL;
+	}
+
+	/* Check the blocksize. */
+	if (get_ms_blksize(master) != hint->block.size)
+		return RE_FATAL;
+	
+	hint->el[BK_MASTER + 1] = hint->el[BK_MASTER] + 
+		sizeof(reiser4_master_sb_t) + 8 /* reserved */;
+	
+	return 0;
+}

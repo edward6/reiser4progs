@@ -77,12 +77,19 @@ typedef struct reiser4_status_sb reiser4_status_sb_t;
 
 typedef struct reiser4_fs reiser4_fs_t;
 
+#ifndef ENABLE_MINIMAL
 struct reiser4_backup {
 	reiser4_fs_t *fs;
-	aal_stream_t *stream;
+
+	/* The backup data are stored here. */
+	backup_hint_t hint;
+
+	bool_t dirty;
+	void *data;
 };
 
 typedef struct reiser4_backup reiser4_backup_t;
+#endif
 
 enum reiser4_state {
 	FS_OK		= 0,
@@ -290,10 +297,10 @@ struct reiser4_fs {
 	
 	/* Filesystem backup. */
 	reiser4_backup_t *backup;
-#endif
 
 	/* Pointer to the oid allocator in use */
 	reiser4_oid_t *oid;
+#endif
 
 	/* Pointer to the storage tree wrapper object */
 	reiser4_tree_t *tree;
@@ -311,7 +318,8 @@ struct reiser4_fs {
 struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
-	char uuid[17], label[17];
+	char uuid[17];
+	char label[17];
 };
 
 typedef struct fs_hint fs_hint_t;
@@ -319,9 +327,5 @@ typedef struct fs_hint fs_hint_t;
 typedef void (*uuid_unparse_t) (char *uuid, char *string);
 typedef errno_t (*walk_func_t) (reiser4_tree_t *, reiser4_node_t *);
 typedef errno_t (*walk_on_func_t) (reiser4_tree_t *, reiser4_place_t *);
-
-/* Number of bit to test it in format flags in order check if large keys policy
-   in use. Large keys in use if bit is set. */
-#define REISER4_LARGE_KEYS 0
 
 #endif

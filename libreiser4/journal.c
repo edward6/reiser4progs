@@ -54,8 +54,7 @@ reiser4_journal_t *reiser4_journal_open(
 	rid_t pid;
 	blk_t start;
 	count_t blocks;
-	
-	fs_desc_t desc;
+	uint32_t blksize;
 	reiser4_plug_t *plug;
 	reiser4_journal_t *journal;
 	
@@ -85,14 +84,14 @@ reiser4_journal_t *reiser4_journal_open(
 	start = reiser4_format_start(fs->format);
 	blocks = reiser4_format_get_len(fs->format);
 
-	desc.device = journal->device;
-	desc.blksize = reiser4_master_get_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Initializing journal entity by means of calling "open" method from
 	   found journal plugin. */
 	if (!(journal->ent = plug_call(plug->o.journal_ops, open,
-				       &desc, fs->format->ent,
-				       fs->oid->ent, start, blocks))) 
+				       journal->device, blksize, 
+				       fs->format->ent, fs->oid->ent, 
+				       start, blocks))) 
 	{
 		aal_error("Can't open journal %s on %s.",
 			  plug->label, device->name);
@@ -145,8 +144,7 @@ reiser4_journal_t *reiser4_journal_create(
 	rid_t pid;
 	blk_t start;
 	count_t blocks;
-
-	fs_desc_t desc;
+	uint32_t blksize;
 	reiser4_plug_t *plug;
 	reiser4_journal_t *journal;
 
@@ -175,13 +173,13 @@ reiser4_journal_t *reiser4_journal_create(
 	start = reiser4_format_start(fs->format);
 	blocks = reiser4_format_get_len(fs->format);
 
-	desc.device = journal->device;
-	desc.blksize = reiser4_master_get_blksize(fs->master);
+	blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Creating journal entity. */
 	if (!(journal->ent = plug_call(plug->o.journal_ops, create,
-				       &desc, fs->format->ent,
-				       fs->oid->ent, start, blocks))) 
+				       journal->device, blksize, 
+				       fs->format->ent, fs->oid->ent, 
+				       start, blocks))) 
 	{
 		aal_error("Can't create journal %s on %s.",
 			  plug->label, journal->device->name);

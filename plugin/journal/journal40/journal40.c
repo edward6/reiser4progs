@@ -79,13 +79,14 @@ static errno_t cb_fetch_journal(blk_t start, count_t width, void *data) {
 
 /* Open journal on passed @format entity, @start and @blocks. Uses passed @desc
    for getting device journal is working on and fs block size. */
-static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *format,
-					generic_entity_t *oid, uint64_t start, 
-					uint64_t blocks)
+static generic_entity_t *journal40_open(aal_device_t *device, uint32_t blksize, 
+					generic_entity_t *format, 
+					generic_entity_t *oid, 
+					uint64_t start, uint64_t blocks)
 {
 	journal40_t *journal;
 
-	aal_assert("umka-409", desc != NULL);
+	aal_assert("umka-409", device != NULL);
 	aal_assert("umka-1692", format != NULL);
 
 	/* Initializign journal entity. */
@@ -95,9 +96,9 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 	journal->state = 0;
 	journal->format = format;
 	journal->oid = oid;
-	journal->device = desc->device;
+	journal->device = device;
 	journal->plug = &journal40_plug;
-	journal->blksize = desc->blksize;
+	journal->blksize = blksize;
 
 	journal->area.len = blocks;
 	journal->area.start = start;
@@ -141,17 +142,21 @@ static errno_t cb_alloc_journal(blk_t start, count_t width, void *data) {
 		return -ENOMEM;
 	}
 
+	aal_block_fill(journal->header, 0);
+	aal_block_fill(journal->footer, 0);
+	
 	return 0;
 }
 
 /* Create journal entity on passed params. Return create instance to caller. */
-static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *format,
-					  generic_entity_t *oid, uint64_t start, 
-					  uint64_t blocks)
+static generic_entity_t *journal40_create(aal_device_t *device, uint32_t blksize, 
+					  generic_entity_t *format,
+					  generic_entity_t *oid, 
+					  uint64_t start, uint64_t blocks)
 {
 	journal40_t *journal;
     
-	aal_assert("umka-1057", desc != NULL);
+	aal_assert("umka-1057", device != NULL);
 	aal_assert("umka-1691", format != NULL);
 
 	/* Initializing journal entity. Making it dirty. Setting up all
@@ -163,9 +168,9 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 	journal->oid = oid;
 	journal->area.len = blocks;
 	journal->area.start = start;
-	journal->device = desc->device;
+	journal->device = device;
 	journal->plug = &journal40_plug;
-	journal->blksize = desc->blksize;
+	journal->blksize = blksize;
 	journal->state = (1 << ENTITY_DIRTY);
 
 	/* Create journal header and footer. */

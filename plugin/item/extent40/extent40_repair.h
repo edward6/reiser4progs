@@ -6,6 +6,7 @@
 #ifndef EXTENT40_REPAIR_H
 #define EXTENT40_REPAIR_H
 
+#ifndef ENABLE_MINIMAL
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 #include "extent40.h"
@@ -28,4 +29,5 @@ extern void extent40_print(reiser4_place_t *place,
 			   aal_stream_t *stream, 
 			   uint16_t options);
 
+#endif
 #endif

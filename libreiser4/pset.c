@@ -264,7 +264,6 @@ void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {
 
 errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	reiser4_plug_t *plug;
-	uint16_t flags;
 	rid_t pid;
 	
 	aal_assert("vpf-1608", tree != NULL);
@@ -272,12 +271,9 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	aal_assert("vpf-1610", tree->fs->format != NULL);
 
 	/* Init the key plugin. */
-	flags = plug_call(tree->fs->format->ent->plug->o.format_ops,
-			  get_flags, tree->fs->format->ent);
+	pid = plug_call(tree->fs->format->ent->plug->o.format_ops,
+			key_pid, tree->fs->format->ent);
 
-	/* Hardcoded plugin ids for 2 cases. */
-	pid = ((1 << REISER4_LARGE_KEYS) & flags)? KEY_LARGE_ID : KEY_SHORT_ID;
-	
 	if (!(plug = reiser4_factory_ifind(KEY_PLUG_TYPE, pid))) {
 		aal_error("Can't find a key plugin by its id %d.", pid);
 		return -EINVAL;

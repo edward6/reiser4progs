@@ -984,6 +984,29 @@ static int cb_nodes_comp_func(void *key1, void *key2, void *data) {
 	return 0;
 }
 
+/* Returns the key of the fake root parent */
+errno_t reiser4_tree_root_key(reiser4_tree_t *tree,
+			      reiser4_key_t *key)
+{
+	oid_t locality;
+	oid_t objectid;
+	
+	aal_assert("umka-1949", tree != NULL);
+	aal_assert("umka-1950", key != NULL);
+
+	key->plug = tree->ent.tpset[TPSET_KEY];
+	
+#ifndef ENABLE_MINIMAL
+	locality = reiser4_oid_root_locality(tree->fs->oid);
+	objectid = reiser4_oid_root_objectid(tree->fs->oid);
+#else
+	locality = REISER4_ROOT_LOCALITY;
+	objectid = REISER4_ROOT_OBJECTID;
+#endif
+	return plug_call(key->plug->o.key_ops, build_generic, key,
+			 KEY_STATDATA_TYPE, locality, 0, objectid, 0);
+}
+
 #ifndef ENABLE_MINIMAL
 # define TREE_NODES_TABLE_SIZE (512)
 #else
@@ -1004,7 +1027,6 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 	tree->fs = fs;
 	tree->adjusting = 0;
-	tree->fs->tree = tree;
 
 	/* Initializing hash table for storing loaded formatted nodes in it. */
 	if (!(tree->nodes = aal_hash_table_create(TREE_NODES_TABLE_SIZE,
@@ -1035,7 +1057,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		goto error_free_data;
 
 	/* Building tree root key. It is used in tree lookup, etc. */
-	if (reiser4_fs_root_key(tree->fs, &tree->key)) {
+	if (reiser4_tree_root_key(tree, &tree->key)) {
 		aal_error("Can't build the tree root key.");
 		goto error_free_data;
 	}
@@ -1052,20 +1074,6 @@ error_free_nodes:
 	aal_free(tree);
 	return NULL;
 }
-
-#ifndef ENABLE_MINIMAL
-/* Closes specified tree. */
-void reiser4_tree_fini(reiser4_tree_t *tree) {
-	aal_assert("umka-134", tree != NULL);
-
-	/* Allocates everything is needed to allocated and saves dirty nodes to
-	   device. Unloads saved nodes from tree. */
-	reiser4_tree_sync(tree);
-
-	/* Releasing all loaded formatted nodes and tree itself. */
-	reiser4_tree_close(tree);
-}
-#endif
 
 /* Unloads all loaded tree nodes. */
 errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
@@ -2018,7 +2026,7 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 }
 
 /* This function forces tree to grow by one level and sets it up after the
-   growing. This occures when after next balancing root node needs to accept new
+   growing. This occurs when after next balancing root node needs to accept new
    nodeptr item, but has not free space enough.  */
 errno_t reiser4_tree_growup(reiser4_tree_t *tree) {
 	errno_t res;

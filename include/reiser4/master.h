@@ -11,6 +11,7 @@
 #define SUPER(master) (&master->ent)
 
 #ifndef ENABLE_MINIMAL
+
 extern int reiser4_master_confirm(aal_device_t *device);
 extern errno_t reiser4_master_sync(reiser4_master_t *master);
 extern errno_t reiser4_master_valid(reiser4_master_t *master);
@@ -22,10 +23,10 @@ extern errno_t reiser4_master_layout(reiser4_master_t *master,
 				     void *data);
 
 extern errno_t reiser4_master_backup(reiser4_master_t *master, 
-				     aal_stream_t *stream);
+				     backup_hint_t *hint);
 
 extern reiser4_master_t *reiser4_master_create(aal_device_t *device,
-					       uint32_t blksize);
+					       fs_hint_t *hint);
 
 extern void reiser4_master_set_uuid(reiser4_master_t *master,
 				    char *uuid);

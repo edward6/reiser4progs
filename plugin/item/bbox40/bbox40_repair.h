@@ -6,6 +6,8 @@
 
 #ifndef BLACKBOX40_REPAIR_H
 #define BLACKBOX40_REPAIR_H
+
+#ifndef ENABLE_MINIMAL
 #include <reiser4/plugin.h>
 
 extern reiser4_core_t *bbox40_core;
@@ -23,4 +25,5 @@ extern void bbox40_print(reiser4_place_t *place,
 			 aal_stream_t *stream,
 			 uint16_t options);
 
+#endif
 #endif

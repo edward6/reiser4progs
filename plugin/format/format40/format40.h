@@ -52,6 +52,21 @@ struct format40 {
 };
 
 typedef struct format40 format40_t;
+
+#ifndef ENABLE_MINIMAL
+struct format40_backup {
+	char sb_magic[MAGIC_SIZE];
+	d64_t sb_block_count;
+	d32_t sb_mkfs_id;
+	d16_t sb_policy;
+	d64_t sb_flags;
+	d64_t sb_reserved;
+} __attribute__((packed));
+
+typedef struct format40_backup format40_backup_t;
+#endif
+
+
 extern reiser4_plug_t format40_plug;
 extern reiser4_core_t *format40_core;
 
@@ -84,5 +99,18 @@ extern reiser4_core_t *format40_core;
 
 #define get_sb_flags(sb)			aal_get_le64(sb, sb_flags)
 #define set_sb_flags(sb, val)		        aal_set_le64(sb, sb_flags, val)
+
+#define FORMAT40_KEY_LARGE	0
+
+#define format40_mkdirty(entity) \
+	(((format40_t *)entity)->state |= (1 << ENTITY_DIRTY))
+
+#define format40_mkclean(entity) \
+	(((format40_t *)entity)->state &= ~(1 << ENTITY_DIRTY))
+
+#ifndef ENABLE_MINIMAL
+extern void format40_set_key(generic_entity_t *entity, rid_t key);
+extern rid_t format40_get_key(generic_entity_t *entity);
+#endif
 
 #endif
