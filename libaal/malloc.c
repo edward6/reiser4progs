@@ -18,16 +18,147 @@
 */
 #ifndef ENABLE_COMPACT
 
+#include <sys/vfs.h>
+#include <unistd.h>
+#include <signal.h>
 #include <stdlib.h>
+
 static aal_malloc_handler_t malloc_handler = malloc;
 static aal_realloc_handler_t realloc_handler = realloc;
 static aal_free_handler_t free_handler = free;
+
 #else
+
 static aal_malloc_handler_t malloc_handler = NULL;
 static aal_realloc_handler_t realloc_handler = NULL;
 static aal_free_handler_t free_handler = NULL;
 
 #endif
+
+struct mpressure {
+	void *data;
+	char name[256];
+	
+	aal_mpressure_handler_t handler;
+	aal_mpressure_result_t result;
+};
+
+static int mpressure_active = 0;
+static aal_list_t *mpressure_handler = NULL;
+static aal_mpressure_detect_t mpressure_detect = NULL;
+
+#ifndef ENABLE_COMPACT
+
+static int check_mpressure = 0;
+
+static void callback_check_mpressure(int dummy) {
+	check_mpressure = 1;
+	alarm(1);
+}
+
+#endif
+
+static errno_t aal_mpressure_check(void) {
+	int result;
+	aal_list_t *walk;
+	struct mpressure *mpressure;
+	
+	if (check_mpressure) {
+		check_mpressure = 0;
+		result = mpressure_detect();
+
+		if (mpressure_handler != NULL) {
+			aal_list_foreach_forward(walk, mpressure_handler) {
+				mpressure = (struct mpressure *)walk->data;
+
+				if (mpressure->result)
+					mpressure->result(mpressure->data, result);
+			}
+			
+			if (result) {
+	
+				aal_list_foreach_forward(walk, mpressure_handler) {
+					mpressure = (struct mpressure *)walk->data;
+				
+					if (mpressure->handler(mpressure->data)) {
+						aal_exception_warn("Memory pressure handler "
+								   "\"%s\" failed.", mpressure->name);
+					}
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+int aal_mpressure_active(void) {
+	return mpressure_active;
+}
+
+int aal_mpressure_detect(void) {
+	return mpressure_detect && mpressure_detect();
+}
+
+errno_t aal_mpressure_init(aal_mpressure_detect_t handler) {
+#ifndef ENABLE_COMPACT
+	struct statfs fs_st;
+	struct sigaction new, old;
+#endif
+
+	if (!(mpressure_detect = handler))
+		return -1;
+
+#ifndef ENABLE_COMPACT
+	mpressure_detect();
+	
+	mpressure_active = statfs("/proc", &fs_st) != -1 &&
+		fs_st.f_type == 0x9fa0;
+
+	if (mpressure_active) {
+		new.sa_flags = 0;
+		new.sa_handler = callback_check_mpressure;
+
+		sigaction(SIGALRM, &new, &old);
+		alarm(1);
+	}
+
+	return 0;
+#else
+	return -1;
+#endif
+}
+
+void *aal_mpressure_handler_create(aal_mpressure_handler_t handler,
+				   aal_mpressure_result_t result,
+				   char *name, void *data)
+{
+	struct mpressure *mpressure;
+	
+	aal_assert("umka-1557", handler != NULL, return NULL);
+	aal_assert("umka-1558", name != NULL, return NULL );
+
+	if (!(mpressure = aal_calloc(sizeof(*mpressure), 0)))
+		return NULL;
+
+	mpressure->result = result;
+	mpressure->handler = handler;
+	mpressure->data = data;
+
+	aal_strncpy(mpressure->name, name,
+		    sizeof(mpressure->name));
+
+	mpressure_handler = aal_list_append(mpressure_handler, mpressure);
+
+	return mpressure;
+}
+
+void aal_mpressure_handler_free(void *handler) {
+	aal_assert("umka-1559", handler != NULL, return);
+	
+	mpressure_handler = aal_list_remove(mpressure_handler, handler);
+	aal_free(handler);
+}
 
 /* 
    Sets new handler for malloc function. This is useful for alone mode, because
@@ -57,6 +188,9 @@ void *aal_malloc(
 {
 	void *mem;
 
+	if (aal_mpressure_check())
+		return NULL;
+		
 	/* 
 	   We are using simple printf function instead of exception, because
 	   exception initialization is needed correctly worked memory allocation
@@ -104,20 +238,23 @@ aal_realloc_handler_t aal_realloc_get_handler(void) {
   The wrapper for realloc function. It checks for result memory allocation and
   if it failed then reports about this.
 */
-int aal_realloc(
+errno_t aal_realloc(
 	void **old,		    /* pointer to previously allocated piece */
 	size_t size)		    /* new size */
 {
 	void *mem;
 
 	if (!realloc_handler)
-		return 0;
+		return -1;
 
+	if (aal_mpressure_check())
+		return -1;
+	
 	if (!(mem = (void *)realloc_handler(*old, size)))
-		return 0;
+		return -1;
     
 	*old = mem;
-	return 1;
+	return 0;
 }
 
 /* Sets new handle for "free" operation */
@@ -144,4 +281,3 @@ void aal_free(
 
 	free_handler(ptr);
 }
-

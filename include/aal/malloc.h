@@ -18,6 +18,23 @@ typedef void *(*aal_malloc_handler_t) (size_t);
 typedef void *(*aal_realloc_handler_t) (void *, size_t);
 typedef void (*aal_free_handler_t) (void *);
 
+typedef void (*aal_mpressure_result_t) (void *, int);
+typedef errno_t (*aal_mpressure_handler_t) (void *);
+
+typedef int (*aal_mpressure_detect_t) (void);
+
+extern int aal_mpressure_active(void);
+extern int aal_mpressure_detect(void);
+
+extern errno_t aal_mpressure_init(aal_mpressure_detect_t handler);
+
+extern void *aal_mpressure_handler_create(aal_mpressure_handler_t handler,
+					  aal_mpressure_result_t result,
+					  char *name, void *data);
+
+extern void aal_mpressure_handler_free(void *handler);
+
+
 extern void aal_malloc_set_handler(aal_malloc_handler_t handler);
 extern aal_malloc_handler_t aal_malloc_get_handler(void);
 extern void *aal_malloc(size_t size);

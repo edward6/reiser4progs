@@ -21,16 +21,14 @@ aal_stream_t *aal_stream_create(void) {
 	return NULL;
 }
 
-#define CHUNK_SIZE (4096)
-
-void aal_stream_init(aal_stream_t *stream) {
-	aal_assert("umka-1543", stream != NULL, return);
+errno_t aal_stream_init(aal_stream_t *stream) {
+	aal_assert("umka-1543", stream != NULL, return -1);
 
 	stream->offset = 0;
 	stream->size = 4096;
 	stream->data = NULL;
 	
-	aal_realloc((void **)&stream->data, stream->size);
+	return aal_realloc((void **)&stream->data, stream->size);
 }
 
 void aal_stream_fini(aal_stream_t *stream) {
@@ -45,14 +43,16 @@ void aal_stream_close(aal_stream_t *stream) {
 	aal_free(stream);
 }
 
+#define GROW_SIZE (4096)
+
 static errno_t aal_stream_grow(aal_stream_t *stream, int size) {
 	
 	if (stream->offset + size > stream->size) {
 		
 		stream->size = stream->offset + size +
-			CHUNK_SIZE;
+			GROW_SIZE;
 
-		if (!aal_realloc((void **)&stream->data, stream->size))
+		if (aal_realloc((void **)&stream->data, stream->size))
 			return -1;
 	}
 

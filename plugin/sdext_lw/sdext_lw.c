@@ -107,8 +107,6 @@ static errno_t sdext_lw_print(reiser4_body_t *body, aal_stream_t *stream,
 
 	ext = (sdext_lw_t *)body;
 
-//	aal_stream_format(stream, "mode:\t\t0%o\n", sdext_lw_get_mode(ext));
-
 	aal_memset(mode, 0, sizeof(mode));
 
 	sdext_lw_parse_mode(sdext_lw_get_mode(ext), mode);

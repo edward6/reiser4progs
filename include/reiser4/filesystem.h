@@ -281,11 +281,11 @@ struct reiser4_lru {
 	/* The number of blocks to be freed on the next cache shrink */
 	uint32_t adjust;
 
-	/* The number of bytes of current process lie in swap */
-	uint32_t swaped;
-
 	/* Is lru djustable */
 	int adjustable;
+
+	/* Memory pressure handler handle */
+	void *mpressure;
 };
 
 typedef struct reiser4_lru reiser4_lru_t;

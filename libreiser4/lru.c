@@ -18,57 +18,6 @@
 
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_COMPACT
-
-static int check_lru = 0;
-
-static void callback_check_lru(int dummy) {
-	check_lru = 1;
-	alarm(1);
-}
-
-/* Returns true in the case we should adjust lru due to memory pressure */
-static int reiser4_lru_nomem(reiser4_lru_t *lru) {
-	FILE *f;
-	
-	int dint, res;
-	long rss, vmsize;
-
-	long dlong;
-	char cmd[256], dchar;
-
-	long diff;
-
-	aal_assert("umka-1524", lru != NULL, return -1);
-	
-	if (!(f = fopen("/proc/self/stat", "r"))) {
-		aal_exception_error("Can't open /proc/self/stat.");
-		return 0;
-	}
-
-	fscanf(f, "%d %s %c %d %d %d %d %d %lu %lu %lu %lu %lu %lu %lu "
-	       "%ld %ld %ld %ld %ld %ld %lu %lu %ld %lu %lu %lu %lu %lu "
-	       "%lu %lu %lu %lu %lu %lu %lu %lu %d %d %lu %lu\n",
-	       &dint, cmd, &dchar, &dint, &dint, &dint, &dint, &dint, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dlong, &vmsize, &rss, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dint, &dint, &dlong, &dlong);
-	
-	diff = labs((vmsize - (rss << 12)) - lru->swaped);
-	
-	if (!(res = diff > 4096))
-		lru->adjust = 0;
-	
-	lru->swaped = labs(vmsize - (rss << 12));
-
-	fclose(f);
-	
-	return res;
-}
-
-#endif
-
 errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	aal_list_t *curr;
 	reiser4_joint_t *joint;
@@ -80,8 +29,10 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	
 	if (!(curr = aal_list_last(lru->list)))
 		return 0;
+
+	aal_exception_info("Shrinking tree cache.");
 	
-	while (curr && lru->adjust-- > 0) {
+	while (curr && lru->adjust > 0) {
 		joint = (reiser4_joint_t *)curr->data;
 		curr = curr->prev;
 		
@@ -102,32 +53,36 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	return 0;
 }
 
+#ifndef ENABLE_COMPACT
+
+errno_t reiser4_lru_mpressure(void *data) {
+	reiser4_lru_t *lru = (reiser4_lru_t *)data;
+
+	if (!lru->adjust || !lru->list)
+		return 0;
+	
+	return reiser4_lru_adjust(lru);
+}
+
+void reiser4_lru_result(void *data, int result) {
+	reiser4_lru_t *lru = (reiser4_lru_t *)data;
+
+	if (!result)
+		lru->adjust = 0;
+}
+
+#endif
+
 errno_t reiser4_lru_init(reiser4_lru_t *lru) {
 
 #ifndef ENABLE_COMPACT
-	struct statfs fs_st;
-	struct sigaction new, old;
-#endif
-
-	aal_memset(lru, 0, sizeof(*lru));
-
-#ifndef ENABLE_COMPACT
-	lru->adjustable = statfs("/proc", &fs_st) != -1 &&
-		fs_st.f_type == 0x9fa0;
-
-	reiser4_lru_nomem(lru);
-	lru->adjust = 0;
-
-	if (lru->adjustable) {
-		new.sa_flags = 0;
-		new.sa_handler = callback_check_lru;
-
-		sigaction(SIGALRM, &new, &old);
-		alarm(1);
-	}
-	
+	lru->mpressure = aal_mpressure_handler_create(reiser4_lru_mpressure,
+						      reiser4_lru_result,
+						      "tree cache", lru);
+	lru->adjustable = aal_mpressure_active();
 #else
 	lru->adjustable = 0;
+	lru->mpressure = NULL;
 #endif
 	
 	return 0;
@@ -136,6 +91,9 @@ errno_t reiser4_lru_init(reiser4_lru_t *lru) {
 void reiser4_lru_fini(reiser4_lru_t *lru) {
 	aal_assert("umka-1531", lru != NULL, return);
 
+	if (lru->mpressure)
+		aal_mpressure_handler_free(lru->mpressure);
+	
 	if (lru->list)
 		aal_list_free(lru->list);
 }
@@ -146,22 +104,6 @@ errno_t reiser4_lru_attach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	aal_assert("umka-1525", lru != NULL, return -1);
 	aal_assert("umka-1526", joint != NULL, return -1);
 	
-	if (check_lru) {
-		int do_adjust = lru->list != NULL;
-		
-#ifndef ENABLE_COMPACT
-		do_adjust = do_adjust && reiser4_lru_nomem(lru);
-#endif
-		if (do_adjust && lru->adjust) {
-			if (reiser4_lru_adjust(lru)) {
-				aal_exception_error("Can't adjust tree lru.");
-				return -1;
-			}
-		}
-		
-		check_lru = !check_lru;
-	}
-		
 	joint->prev = lru->list;
 	joint->next = lru->list ? lru->list->next : NULL;
 
