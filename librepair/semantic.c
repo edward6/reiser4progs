@@ -50,17 +50,20 @@ static errno_t callback_register_region(void *o, uint64_t start,
 	aal_assert("vpf-1114", object != NULL);
 	aal_assert("vpf-1217", data != NULL);
 	
-	if (reiser4_alloc_available(sem->repair->fs->alloc, start, count)) {
-		aal_exception_error("Object [%s] failed to register the "
-				    "region [%llu-%llu] -- it belongs to "
-				    "another object already. Plugin (%s).",
-				    reiser4_print_key(&object->info.object, PO_INO),
-				    start, start + count - 1, object->plug->label);
-		return 1;
+	if (sem->repair->mode != RM_BUILD) {
+		/* Check if the region is legal. */
+		if (start >= sem->bm_used->total || 
+		    count > sem->bm_used->total  || 
+		    start >= sem->bm_used->total - count)
+		{
+			return RE_FATAL;
+		}
 	}
 	
-	reiser4_alloc_permit(sem->repair->fs->alloc, start, count);
-	reiser4_alloc_occupy(sem->repair->fs->alloc, start, count);
+	if (!aux_bitmap_test_region(sem->bm_used, start, count, 0))
+		return RE_FIXABLE;
+	
+	aux_bitmap_mark_region(sem->bm_used, start, count);
 	
 	return 0;
 }
@@ -612,10 +615,11 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 	
 	if (sem->root == NULL) {
 		sem->repair->fatal++;
+		aal_exception_error("No root directory openned.");
+		
 		return 0;
-	} else if (sem->root == INVAL_PTR) {
+	} else if (sem->root == INVAL_PTR)
 		return -EINVAL;
-	}
 	
 	if ((res = repair_semantic_dir_prepare(sem, sem->root, sem->root))) {
 		reiser4_object_close(sem->root);
@@ -784,6 +788,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	aal_assert("vpf-1026", sem->repair != NULL);
 	aal_assert("vpf-1027", sem->repair->fs != NULL);
 	aal_assert("vpf-1028", sem->repair->fs->tree != NULL);
+	aal_assert("vpf-1321", sem->bm_used != NULL);
 	
 	sem->progress = &progress;
 	repair_semantic_setup(sem);
