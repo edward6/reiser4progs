@@ -36,13 +36,18 @@ extern errno_t reiser4_tree_detach(reiser4_tree_t *tree, reiser4_node_t *node);
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *coord,
 				   reiser4_item_hint_t *hint);
 
-extern errno_t reiser4_tree_write(reiser4_tree_t *tree, reiser4_coord_t *dst_coord,
-				  reiser4_coord_t *src_coord, uint32_t count);
+extern errno_t reiser4_tree_write(reiser4_tree_t *tree, reiser4_coord_t *dst,
+				  reiser4_coord_t *src, uint32_t count);
+
+extern errno_t reiser4_tree_delete(reiser4_tree_t *tree, reiser4_coord_t *start,
+				   reiser4_coord_t *end);
 
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_coord_t *coord);
 
 extern errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_coord_t *coord,
 				  reiser4_node_t *node, uint32_t flags);
+
+extern errno_t reiser4_tree_pack(reiser4_tree_t *tree, reiser4_coord_t *coord);
 
 extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree, reiser4_coord_t *coord,
 				    uint32_t needed);

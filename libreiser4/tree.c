@@ -996,8 +996,8 @@ errno_t reiser4_tree_insert(
 	
 	old = *coord;
 		
-	if (tree->traps.preinsert) {
-		if ((res = tree->traps.preinsert(coord, hint, tree->traps.data)))
+	if (tree->traps.pre_insert) {
+		if ((res = tree->traps.pre_insert(coord, hint, tree->traps.data)))
 			return res;
 	}
 
@@ -1053,33 +1053,205 @@ errno_t reiser4_tree_insert(
 		}
 	}
     
-	if (tree->traps.pstinsert) {
-		if ((res = tree->traps.pstinsert(coord, hint, tree->traps.data)))
+	if (tree->traps.post_insert) {
+		if ((res = tree->traps.post_insert(coord, hint, tree->traps.data)))
 			return res;
 	}
     
 	return 0;
 }
 
+
+
 /* 
-    The method should insert/overwrite the specified src_coord to the dst_coord
-    from count units started at src_coord->pos.unit.
-    
-    scr_coord->pos.unit is set to the start of what should be inserted.
-    count is amount of units to be inserted.
-    dst_coord->pos.unit != ~0ul - item_ops.write does there.
+    The method should insert/overwrite the specified src coord to the dst coord
+    from count items/units started at src coord.
 */
 errno_t reiser4_tree_write(
 	reiser4_tree_t *tree,	    /* tree insertion is performing into. */
-	reiser4_coord_t *dst_coord, /* coord found by lookup */
-	reiser4_coord_t *src_coord, /* coord to be inserted. */
+	reiser4_coord_t *dst,       /* coord found by lookup */
+	reiser4_coord_t *src,       /* coord to be inserted. */
 	uint32_t count)		    /* number of units to be inserted. */
 {
 	aal_assert("vpf-683", tree != NULL, return -1);
-	aal_assert("vpf-684", dst_coord != NULL, return -1);
-	aal_assert("vpf-685", src_coord != NULL, return -1);
-	aal_assert("vpf-686", count != 0, return -1);
+	aal_assert("vpf-684", dst != NULL, return -1);
+	aal_assert("vpf-685", src != NULL, return -1);
 	
+	return 0;
+}
+
+/* Packs node in @coord by means of using shift into/from neighbours */
+errno_t reiser4_tree_pack(reiser4_tree_t *tree,
+			  reiser4_coord_t *coord)
+{
+	reiser4_node_t *left, *right;
+
+	aal_assert("umka-1784", tree != NULL, return -1);
+	aal_assert("umka-1783", coord != NULL, return -1);
+	
+	/*
+	  Packing node in order to keep the tree in well packed state
+	  anyway. Here we will shift data from the target node to its left
+	  neighbour node.
+	*/
+	if ((left = reiser4_node_left(coord->node))) {
+	    
+		if (reiser4_tree_shift(tree, coord, left, SF_LEFT)) {
+			aal_exception_error("Can't pack node %llu into left.",
+					    coord->node->blk);
+			return -1;
+		}
+	}
+		
+	if (reiser4_node_items(coord->node) > 0) {
+		/*
+		  Shifting the data from the right neigbour node into the target
+		  node.
+		*/
+		if ((right = reiser4_node_right(coord->node))) {
+				
+			reiser4_coord_t bogus;
+			reiser4_coord_assign(&bogus, right);
+	    
+			if (reiser4_tree_shift(tree, &bogus,
+					       coord->node, SF_LEFT))
+			{
+				aal_exception_error("Can't pack node %llu "
+						    "into left.", right->blk);
+				return -1;
+			}
+
+			if (reiser4_node_items(right) == 0) {
+				reiser4_tree_detach(tree, right);
+				reiser4_node_mkclean(right);
+				reiser4_tree_release(tree, right);
+			}
+		}
+	} else {
+		reiser4_node_mkclean(coord->node);
+		reiser4_tree_detach(tree, coord->node);
+		reiser4_tree_release(tree, coord->node);
+
+		coord->node = NULL;
+	}
+
+	/* Drying tree up in the case root node has only one item */
+	if (reiser4_node_items(tree->root) == 1) {
+		if (reiser4_tree_dryup(tree))
+			return -1;
+	}
+
+	return 0;
+}
+
+/*
+  Cuts some amounts of items or units from the tree. Updates internal keys and
+  children list.
+*/
+errno_t reiser4_tree_delete(
+	reiser4_tree_t *tree,     /* tree for working with */
+	reiser4_coord_t *start,   /* coord of the start */
+	reiser4_coord_t *end)     /* coord of the end */
+{
+	reiser4_node_t *neighbour;
+
+	aal_assert("umka-1018", tree != NULL, return -1);
+	aal_assert("umka-1725", start != NULL, return -1);
+	aal_assert("umka-1782", end != NULL, return -1);
+
+	/*
+	  Getting nodes neighbour links to be connected. Also we check here is
+	  start node and end node lie on the same level and can they be accessed
+	  node by node durring neighbour scan.
+	*/
+	if (reiser4_node_level(start->node) != reiser4_node_level(end->node)) {
+		aal_exception_error("Invalid node levels.");
+		return -1;
+	}
+	
+	neighbour = reiser4_node_right(start->node);
+	
+	while (neighbour && neighbour != end->node)
+		neighbour = reiser4_node_right(neighbour);
+
+	if (neighbour != end->node) {
+		aal_exception_error("End node is not reachable from the start one.");
+		return -1;
+	}
+
+	if (start->node != end->node) {
+		reiser4_pos_t pos = { ~0ul, ~0ul };
+		
+		/* Removing start + 1 though end - 1 node from the tree */
+		neighbour = reiser4_node_right(start->node);
+
+		while (neighbour && neighbour != end->node) {
+			if (neighbour->parent) {
+				if (reiser4_node_pos(neighbour, &pos))
+					return -1;
+				
+				if (reiser4_node_remove(neighbour->parent, &pos))
+					return -1;
+
+				reiser4_node_mkclean(neighbour);
+				reiser4_tree_detach(tree, neighbour);
+				reiser4_tree_release(tree, neighbour);
+			}
+						
+			neighbour = reiser4_node_right(start->node);
+		}
+
+		/* Removing items/units from the start node */
+		pos.item = reiser4_node_items(start->node);
+			
+		if (reiser4_node_delete(start->node, &start->pos, &pos))
+			return -1;
+		
+		if (reiser4_node_items(start->node) > 0) {
+			if (reiser4_tree_pack(tree, start))
+				return -1;
+		} else {
+			reiser4_node_mkclean(start->node);
+			reiser4_tree_detach(tree, start->node);
+			reiser4_tree_release(tree, start->node);
+		}
+		
+		/* Removing from the end node */
+		pos.item = 0;
+		
+		if (reiser4_node_delete(end->node, &pos, &end->pos))
+			return -1;
+
+		if (reiser4_node_items(end->node) > 0) {
+			if (reiser4_tree_pack(tree, end))
+				return -1;
+		} else {
+			reiser4_node_mkclean(end->node);
+			reiser4_tree_detach(tree, end->node);
+			reiser4_tree_release(tree, end->node);
+		}
+
+	} else {
+		if (reiser4_node_delete(start->node, &start->pos, &end->pos))
+			return -1;
+
+		if (reiser4_node_items(start->node) > 0) {
+			if (reiser4_tree_pack(tree, start))
+				return -1;
+		} else {
+			reiser4_node_mkclean(start->node);
+			reiser4_tree_detach(tree, start->node);
+			reiser4_tree_release(tree, start->node);
+		}
+
+	}
+
+	/* Drying tree up in the case root node has only one item */
+	if (reiser4_node_items(tree->root) == 1) {
+		if (reiser4_tree_dryup(tree))
+			return -1;
+	}
+
 	return 0;
 }
 
@@ -1090,86 +1262,38 @@ errno_t reiser4_tree_remove(
 {
 	errno_t res;
 
-	aal_assert("umka-1018", tree != NULL, return -1);
-	aal_assert("umka-1725", coord != NULL, return -1);
-	
-	if (tree->traps.preremove) {
-		if ((res = tree->traps.preremove(coord, tree->traps.data)))
+	/* Calling "pre_remove" handler if it is defined */
+	if (tree->traps.pre_remove) {
+		if ((res = tree->traps.pre_remove(coord, tree->traps.data)))
 			return res;
 	}
 
+	/* Removing iten/unit from the node */
 	if (reiser4_node_remove(coord->node, &coord->pos))
 		return -1;
 
+	/*
+	  Checking if the node became empty. If so, we release it, otherwise we
+	  pack the tree about it.
+	*/
 	if (reiser4_node_items(coord->node) > 0) {
-		reiser4_node_t *left, *right;
-		
-		/*
-		  Packing node in order to keep the tree in well packed state
-		  anyway. Here we will shift data from the target node to its
-		  left neighbour node.
-		*/
-		if ((left = reiser4_node_left(coord->node))) {
-	    
-			if (reiser4_tree_shift(tree, coord, left, SF_LEFT)) {
-				aal_exception_error("Can't pack node %llu into left.",
-						    coord->node->blk);
-				return -1;
-			}
-		}
-		
-		if (reiser4_node_items(coord->node) > 0) {
-			/*
-			  Shifting the data from the right neigbour node into
-			  the target node.
-			*/
-			if ((right = reiser4_node_right(coord->node))) {
-				
-				reiser4_coord_t bogus;
-				reiser4_coord_assign(&bogus, right);
-	    
-				if (reiser4_tree_shift(tree, &bogus,
-						       coord->node, SF_LEFT))
-				{
-					aal_exception_error("Can't pack node %llu "
-							    "into left.", right->blk);
-					return -1;
-				}
-
-				if (reiser4_node_items(right) == 0) {
-					reiser4_tree_detach(tree, right);
-					reiser4_node_mkclean(right);
-					reiser4_tree_release(tree, right);
-				}
-			}
-		} else {
-			reiser4_node_mkclean(coord->node);
-			reiser4_tree_detach(tree, coord->node);
-			reiser4_tree_release(tree, coord->node);
-
-			coord->node = NULL;
-		}
-
-		/* Drying tree up in the case root node has only one item */
-		if (coord->node && coord->node == tree->root) {
-			
-			if (reiser4_node_items(tree->root) == 1)
-				reiser4_tree_dryup(tree);
-		}
-		
+		if (reiser4_tree_pack(tree, coord))
+			return -1;
 	} else {
-		if (tree->root != coord->node) {
-			/*
-			  If node has became empty, then we should release it
-			  and release block it is occupying in block allocator.
-			*/
-			reiser4_node_mkclean(coord->node);
-			reiser4_tree_release(tree, coord->node);
-		}
+		reiser4_node_mkclean(coord->node);
+		reiser4_tree_detach(tree, coord->node);
+		reiser4_tree_release(tree, coord->node);
 	}
 
-	if (tree->traps.pstremove) {
-		if ((res = tree->traps.pstremove(coord, tree->traps.data)))
+	/* Drying tree up in the case root node has only one item */
+	if (reiser4_node_items(tree->root) == 1) {
+		if (reiser4_tree_dryup(tree))
+			return -1;
+	}
+	
+	/* Calling "post_remove" handler if it is defined */
+	if (tree->traps.post_remove) {
+		if ((res = tree->traps.post_remove(coord, tree->traps.data)))
 			return res;
 	}
 

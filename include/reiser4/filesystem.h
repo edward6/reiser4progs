@@ -254,13 +254,16 @@ struct reiser4_oid {
 typedef struct reiser4_oid reiser4_oid_t;
 
 /* Tree modification trap typedefs */
-typedef int (*preinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *, 
-				 void *);
-typedef int (*pstinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *, 
-				 void *);
+typedef int (*pre_insert_func_t) (reiser4_coord_t *,
+				  reiser4_item_hint_t *, 
+				  void *);
 
-typedef int (*preremove_func_t) (reiser4_coord_t *, void *);
-typedef int (*pstremove_func_t) (reiser4_coord_t *, void *);
+typedef int (*post_insert_func_t) (reiser4_coord_t *,
+				   reiser4_item_hint_t *, 
+				   void *);
+
+typedef int (*pre_remove_func_t) (reiser4_coord_t *, void *);
+typedef int (*post_remove_func_t) (reiser4_coord_t *, void *);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -289,11 +292,12 @@ struct reiser4_tree {
 
 	/* Tree modification traps */
 	struct {
-		preinsert_func_t preinsert;
-		pstinsert_func_t pstinsert;
+		pre_insert_func_t pre_insert;
+		post_insert_func_t post_insert;
 
-		preremove_func_t preremove;
-		pstremove_func_t pstremove;
+		pre_remove_func_t pre_remove;
+		post_remove_func_t post_remove;
+		
 		void *data;
 	} traps;
 

@@ -1080,13 +1080,33 @@ errno_t reiser4_node_insert(
 	return 0;
 }
 
+/* Inserts/overwrites some amount of items/units */
+errno_t reiser4_node_write(
+	reiser4_node_t *dst_node,               /* destination node */
+	reiser4_pos_t *dst_pos,                 /* destination pos */
+	reiser4_node_t *src_node,               /* source node */
+	reiser4_pos_t *src_pos,                 /* source pos */
+	uint32_t count)
+{
+	return -1;
+}
+
+/* Removes some amount of item/units */
+errno_t reiser4_node_delete(
+	reiser4_node_t *node,	            /* node item will be removed from */
+	reiser4_pos_t *start,		    /* start item will be removed at */
+	reiser4_pos_t *end)		    /* end item will be removed at */
+{
+	return -1;
+}
+
 /* 
    Deletes item or unit from cached node. Keeps track of changes of the left
    delimiting key.
 */
 errno_t reiser4_node_remove(
-	reiser4_node_t *node,	            /* node item will be inserted in */
-	reiser4_pos_t *pos)		    /* pos item will be inserted at */
+	reiser4_node_t *node,	            /* node item will be removed from */
+	reiser4_pos_t *pos)		    /* pos item will be removed at */
 {
 	int update;
 	reiser4_pos_t ppos;
