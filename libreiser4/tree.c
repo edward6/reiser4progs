@@ -292,9 +292,7 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 		/* This is the case when we connect root node, that is with no
 		   parent. */
 		tree->root = node;
-	} else {
-		aal_assert("umka-3003", parent != NULL);
-
+	} else if (parent) {
 		/* Assigning parent, locking it asit is refferenced by
 		   @node->p.node and updating @node->p.pos. */
 		node->p.node = parent;
