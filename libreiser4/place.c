@@ -141,6 +141,9 @@ void reiser4_place_dec(reiser4_place_t *place,
 	    place->pos.unit == MAX_UINT32) 
 	{
 		uint32_t units;
+
+		aal_assert("umka-2404",
+			   place->pos.item > 0);
 		
 		place->pos.item--;
 

@@ -190,8 +190,8 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 
 	stat.ext[id] = data;
 
-	return plug_call(place->plug->o.item_ops, insert,
-			 place, &hint, 0);
+	return plug_call(place->plug->o.item_ops,
+			 insert, place, 0, &hint);
 }
 
 uint64_t obj40_extmask(place_t *place) {
@@ -411,8 +411,8 @@ rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	aal_assert("vpf-1235", obj != NULL);
 	aal_assert("vpf-1236", STAT_PLACE(obj)->plug != NULL);
 	
-	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops, plug, 
-			STAT_PLACE(obj), type);
+	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops,
+			plugid, STAT_PLACE(obj), type);
 	
 	/* If nothing found in SD, obtain the default one. */
 	if (pid == INVAL_PID)

@@ -144,9 +144,8 @@ static errno_t stat40_init(place_t *place) {
 
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
-static errno_t stat40_estimate_insert(place_t *place,
-				      insert_hint_t *hint,
-				      uint32_t pos)
+static errno_t stat40_estimate_insert(place_t *place, uint32_t pos,
+				      insert_hint_t *hint)
 {
 	uint16_t i;
 	statdata_hint_t *stat_hint;
@@ -197,9 +196,8 @@ static errno_t stat40_estimate_insert(place_t *place,
 }
 
 /* This method writes the stat data extentions */
-static errno_t stat40_insert(place_t *place,
-			     insert_hint_t *hint,
-			     uint32_t pos)
+static errno_t stat40_insert(place_t *place, uint32_t pos,
+			     insert_hint_t *hint)
 {
 	uint16_t i;
 	body_t *extbody;
@@ -397,8 +395,7 @@ static errno_t stat40_print(place_t *place,
 			  "UNITS=1\n", place->plug->label, place->len,
 			  core->key_ops.print(&place->key, PO_DEF));
 		
-	aal_stream_format(stream, "exts:\t\t%u\n",
-			  stat40_sdext_count(place));
+	aal_stream_format(stream, "exts:\t\t%u\n", stat40_sdext_count(place));
 
 	return stat40_traverse(place, callback_print_ext, (void *)stream);
 }
@@ -415,11 +412,10 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* FIXME-UMKA: Here should be stat data extentions inspected first in
-	 * order to find non-standard object plugin. And only if it is not
-	 * found, we should take a look to mode field of the lw extention. */
+	   order to find non-standard object plugin. And only if it is not
+	   found, we should take a look to mode field of the lw extention. */
 
 	if (type == OBJECT_PLUG_TYPE) {
-		/* Preparing hint and mask */
 		hint.type_specific = &stat;
 		stat.ext[SDEXT_LW_ID] = &lw_hint;
 
@@ -443,6 +439,7 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 			return core->profile_ops.value("special");
 #endif
 	}
+	
 	return INVAL_PID;
 }
 
@@ -455,7 +452,8 @@ static reiser4_item_ops_t stat40_ops = {
 	.copy             = stat40_copy,
 	.insert		  = stat40_insert,
 	.print		  = stat40_print,
-	.plug	          = stat40_plugid,
+	.plugid	          = stat40_plugid,
+	
 	.check_struct     = stat40_check_struct,
 	.estimate_copy    = stat40_estimate_copy,
 	.estimate_insert  = stat40_estimate_insert,

@@ -490,7 +490,13 @@ struct insert_hint {
 	   copying, replacing, etc. This will be used by fsck probably. */
 	void *data;
 
-	/* Length of the data field */
+	/* Overhead of data to be insetred. This is needed for the case when we
+	 * insert directory item and tree should now how many space should be
+	 * prepared in the tree ohd + len, but we don't need overhead for
+	 * updating stat data bytes field. */
+	uint16_t ohd;
+	
+	/* Length of the data to be inserted */
 	uint16_t len;
 
 	/* This is opaque pointer to item type specific information */
@@ -515,6 +521,10 @@ struct insert_hint {
 typedef struct insert_hint insert_hint_t;
 
 struct remove_hint {
+	
+	/* Overhead of remoevd data */
+	uint32_t ohd;
+	
 	/* Length of removed data */
 	uint16_t len;
 
@@ -719,8 +729,8 @@ struct reiser4_item_ops {
 				  copy_hint_t *);
 
 	/* Estimates insert operation */
-	errno_t (*estimate_insert) (place_t *, insert_hint_t *,
-				    uint32_t);
+	errno_t (*estimate_insert) (place_t *, uint32_t,
+				    insert_hint_t *);
 
 	/* Predicts the shift parameters (units, bytes, etc) */
 	errno_t (*estimate_shift) (place_t *, place_t *,
@@ -728,7 +738,10 @@ struct reiser4_item_ops {
 	
 	/* Inserts some amount of units described by passed hint into passed
 	   item. */
-	errno_t (*insert) (place_t *, insert_hint_t *, uint32_t);
+	errno_t (*insert) (place_t *, uint32_t, insert_hint_t *);
+	
+	/* Removes specified unit from the item. */
+	errno_t (*remove) (place_t *, uint32_t, remove_hint_t *);
 	
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (place_t *, place_t *, shift_hint_t *);
@@ -744,9 +757,6 @@ struct reiser4_item_ops {
 	
 	uint32_t (*expand) (place_t *, uint32_t, uint32_t, uint32_t);
 	uint32_t (*shrink) (place_t *, uint32_t, uint32_t, uint32_t);
-	
-	/* Removes specified unit from the item. Returns released space */
-	int32_t (*remove) (place_t *, uint32_t, uint32_t);
 	
 	/* Checks the item structure. */
 	errno_t (*check_struct) (place_t *, uint8_t);
@@ -797,7 +807,7 @@ struct reiser4_item_ops {
 	errno_t (*maxposs_key) (place_t *, key_entity_t *);
 
 	/* Get the plugin id of the specified type if stored in SD. */
-	rid_t (*plug) (place_t *, rid_t);
+	rid_t (*plugid) (place_t *, rid_t);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Get the max real key which is stored in the item */

@@ -857,7 +857,7 @@ lookup_t reiser4_tree_lookup(
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
-		int whole = 0;
+		int whole = 0, adjust = 1;
 		
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
@@ -887,7 +887,14 @@ lookup_t reiser4_tree_lookup(
 		/* Position correcting for internal levels */
 		if (res == ABSENT) {
 			whole = (place->pos.unit == MAX_UINT32);
-			reiser4_place_dec(place, whole);
+			
+			adjust = (place->pos.item > 0 ||
+				  (place->pos.unit > 0 &&
+				   whole == 0));
+
+			if (adjust) {
+				reiser4_place_dec(place, whole);
+			}
 		}
 		
 		/* Initializing @place->item. This should be done before using
@@ -898,8 +905,11 @@ lookup_t reiser4_tree_lookup(
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   position back. */
 		if (!reiser4_item_branch(place->plug)) {
-			if (res == ABSENT)
+
+			/* Correcting position back if item is not a branch */
+			if (res == ABSENT && adjust) {
 				reiser4_place_inc(place, whole);
+			}
 
 			if (!reiser4_place_valid(place))
 				return res;
@@ -1527,9 +1537,8 @@ errno_t reiser4_tree_insert(
 {
 	int mode;
 	errno_t res;
+	uint32_t len;
 	uint32_t needed;
-	uint32_t maxspace;
-	
 	reiser4_key_t *key;
 	reiser4_place_t old;
 
@@ -1617,23 +1626,15 @@ errno_t reiser4_tree_insert(
 	/* Estimating item/unit to inserted to tree */
 	if ((res = reiser4_item_estimate(place, hint)))
 		return res;
-
-	maxspace = reiser4_node_maxspace(place->node);
 	
-	/* Checking if item hint to be inserted to tree has length more than max
-	   possible space in a node. */
-	if (hint->len > maxspace) {
-		aal_exception_error("Item size %u is too big. Maximal possible "
-				    "item can be %u bytes long.", hint->len,
-				    maxspace);
-		return -EINVAL;
-	}
-
 	/* Saving mode of insert (insert new item, paste units to the existent
 	   one) before making space for new inset/unit. */
 	mode = (place->pos.unit == MAX_UINT32);
+
+	len = hint->len + hint->ohd;
 	
-	needed = hint->len + (place->pos.unit == MAX_UINT32 ? 
+	/* Needed space to be prepared in tree */
+	needed = len + (place->pos.unit == MAX_UINT32 ? 
 		reiser4_node_overhead(place->node) : 0);
 	    
 	if ((res = reiser4_tree_expand(tree, place, needed, SF_DEFAULT))) {

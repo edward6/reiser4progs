@@ -452,6 +452,7 @@ static errno_t node_large_insert(node_entity_t *entity, pos_t *pos,
 {
 	errno_t res;
 	node_t *node;
+	uint32_t len;
 	place_t place;
 	item_header_t *ih;
     
@@ -459,9 +460,12 @@ static errno_t node_large_insert(node_entity_t *entity, pos_t *pos,
 	aal_assert("umka-1814", hint != NULL);
 
 	aal_assert("umka-818", entity != NULL);
+
+	if (!(len = hint->len + hint->ohd))
+		return -EINVAL;
     
 	/* Makes expand of the node new items will be inserted in */
-	if (node_large_expand(entity, pos, hint->len, 1)) {
+	if (node_large_expand(entity, pos, len, 1)) {
 		aal_exception_error("Can't expand node for insert "
 				    "item/unit.");
 		return -EINVAL;
@@ -494,24 +498,16 @@ static errno_t node_large_insert(node_entity_t *entity, pos_t *pos,
 		/* Calling item plugin to perform initializing the item */
 		if (hint->plug->o.item_ops->init)
 			hint->plug->o.item_ops->init(&place);
+	}
 
-		/* Inserting units into @item */
-		if ((res = plug_call(hint->plug->o.item_ops,
-				     insert, &place, hint, 0)))
-		{
-			aal_exception_error("Can't create new item in "
-					    "node %llu.", node->block->nr);
-			return res;
-		}
-	} else {
-		/* Inserting units into @place */
-		if ((res = plug_call(hint->plug->o.item_ops,
-				     insert, &place, hint, pos->unit)))
-		{
-			aal_exception_error("Can't insert unit to "
-					    "node %llu.", node->block->nr);
-			return res;
-		}
+	/* Inserting units into @item */
+	if ((res = plug_call(hint->plug->o.item_ops, insert, &place,
+			     (pos->unit == MAX_UINT32 ? 0 : pos->unit),
+			     hint)))
+	{
+		aal_exception_error("Can't insert new item/unit to"
+				    "node %llu.", node->block->nr);
+		return res;
 	}
 	
 	/* Updating item's key if we insert new item or if we insert unit into
@@ -528,7 +524,9 @@ errno_t node_large_remove(node_entity_t *entity,
 			  pos_t *pos, remove_hint_t *hint) 
 {
 	pos_t rpos;
+	errno_t res;
 	node_t *node;
+	uint32_t len;
 	place_t place;
 	
 	aal_assert("umka-987", pos != NULL);
@@ -546,6 +544,8 @@ errno_t node_large_remove(node_entity_t *entity,
 		rpos.unit = MAX_UINT32;
 	
 	if (rpos.unit == MAX_UINT32) {
+		hint->ohd = 0;
+		
 		if (!(hint->len = node_large_size(node, &rpos,
 						  hint->count)))
 		{
@@ -553,8 +553,11 @@ errno_t node_large_remove(node_entity_t *entity,
 		}
 	} else {
 		/* Removing units from the item pointed by @pos */
-		hint->len = plug_call(place.plug->o.item_ops, remove,
-				      &place, rpos.unit, hint->count);
+		if ((res = plug_call(place.plug->o.item_ops, remove,
+				     &place, rpos.unit, hint)))
+		{
+			return res;
+		}
 
                 /* Updating items key if leftmost unit was changed */
 		if (rpos.unit == 0) {
@@ -562,8 +565,10 @@ errno_t node_large_remove(node_entity_t *entity,
 			aal_memcpy(&ih->key, place.key.body, sizeof(ih->key));
 		}
 	}
-	
-	return node_large_shrink(entity, &rpos, hint->len, hint->count);
+
+	/* Releasing node space */
+	len = hint->len + hint->ohd;
+	return node_large_shrink(entity, &rpos, len, hint->count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */

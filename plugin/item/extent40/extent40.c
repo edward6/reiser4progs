@@ -86,21 +86,23 @@ static errno_t extent40_get_key(place_t *place, uint32_t pos,
 
 #ifndef ENABLE_STAND_ALONE
 /* Removes @count byte from passed @place at @pos */
-static int32_t extent40_remove(place_t *place,
-			       uint32_t pos,
-			       uint32_t count)
+static errno_t extent40_remove(place_t *place, uint32_t pos,
+			       remove_hint_t *hint)
 {
 	uint32_t len;
 	void *src, *dst;
 	
 	aal_assert("vpf-941", place != NULL);
+	aal_assert("umka-2402", hint != NULL);
 	aal_assert("vpf-940", pos < extent40_units(place));
 
-	if (pos + count < extent40_units(place)) {
+	if (pos + hint->count < extent40_units(place)) {
 		dst = extent40_body(place) + pos;
-		src = extent40_body(place) + pos + count;
 
-		len = place->len - (pos + count) *
+		src = extent40_body(place) + pos +
+			hint->count;
+
+		len = place->len - (pos + hint->count) *
 			sizeof(extent40_t);
 			
 		aal_memmove(dst, src, len);
@@ -111,7 +113,10 @@ static int32_t extent40_remove(place_t *place,
 		if (extent40_get_key(place, 0, &place->key))
 			return -EINVAL;
 	}
-	
+
+	hint->ohd = 0;
+	hint->len = sizeof(extent40_t);
+
 	place_mkdirty(place);
 	return 0;
 }
@@ -294,9 +299,8 @@ static int extent40_mergeable(place_t *place1, place_t *place2) {
 	return body40_mergeable(place1, place2);
 }
 
-static errno_t extent40_estimate_insert(place_t *place,
-					insert_hint_t *hint,
-					uint32_t pos)
+static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
+					insert_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
 
@@ -327,9 +331,8 @@ static errno_t extent40_estimate_insert(place_t *place,
 	return 0;
 }
 
-static errno_t extent40_insert(place_t *place,
-			       insert_hint_t *hint,
-			       uint32_t pos)
+static errno_t extent40_insert(place_t *place, uint32_t pos,
+			       insert_hint_t *hint)
 {
 	uint32_t blksize;
 	key_entity_t key;
@@ -695,7 +698,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.set_key          = NULL,
 #endif
 	.branch           = NULL,
-	.plug		  = NULL,
+	.plugid		  = NULL,
 
 	.read             = extent40_read,
 	.units	          = extent40_units,

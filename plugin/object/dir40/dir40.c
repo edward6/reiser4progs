@@ -536,21 +536,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	body_hint.type_specific = &entry;
 	
-	/* Estimating entry to be inserted */
-	plug_call(body_hint.plug->o.item_ops,
-		  estimate_insert, NULL, &body_hint, 0);
-	
-	/* New directory will have two links on it, because of dot 
-	   entry which points onto directory itself and entry in 
-	   parent directory, which points to this new directory. */
-	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-	
-	if (obj40_create_stat(&dir->obj, hint->statdata, mask,
-			      1, body_hint.len, 1, S_IFDIR, NULL))
-	{
-		goto error_free_dir;
-	}
-	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
 			     LEAF_LEVEL, &dir->body))
@@ -562,13 +547,26 @@ static object_entity_t *dir40_create(object_info_t *info,
 		{
 			goto error_free_dir;
 		}
-	
-		dir40_reset((object_entity_t *)dir);
-		return (object_entity_t *)dir;
+		
+		break;
 	default:
 		goto error_free_dir;
 	}
 
+	/* New directory will have two links on it, because of dot 
+	   entry which points onto directory itself and entry in 
+	   parent directory, which points to this new directory. */
+	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
+	
+	if (obj40_create_stat(&dir->obj, hint->statdata, mask,
+			      1, body_hint.len, 1, S_IFDIR, NULL))
+	{
+		goto error_free_dir;
+	}
+	
+	dir40_reset((object_entity_t *)dir);
+	return (object_entity_t *)dir;
+	
  error_free_dir:
 	aal_free(dir);
 	return NULL;

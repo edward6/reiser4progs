@@ -36,8 +36,13 @@ errno_t reiser4_item_estimate(
 			return res;
 	}
 
+	/* Getting item/unit to be inserted body length and overhead (header
+	   length). This is needed for correct space preparing by tree. */
+	hint->len = 0;
+	hint->ohd = 0;
+
 	return plug_call(hint->plug->o.item_ops, estimate_insert,
-			 (place_t *)place, hint, place->pos.unit);
+			 (place_t *)place, place->pos.unit, hint);
 }
 
 /* Prints passed @place into passed @buff */

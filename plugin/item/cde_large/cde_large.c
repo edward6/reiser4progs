@@ -193,9 +193,8 @@ static uint16_t cde_large_overhead(place_t *place) {
 
 /* Estimates how much bytes will be needed to prepare in node in odrer to make
    room for inserting new entries. */
-static errno_t cde_large_estimate_insert(place_t *place,
-					 insert_hint_t *hint,
-					 uint32_t pos)
+static errno_t cde_large_estimate_insert(place_t *place, uint32_t pos,
+					 insert_hint_t *hint)
 {
 	uint32_t i;
 	entry_hint_t *entry;
@@ -224,8 +223,7 @@ static errno_t cde_large_estimate_insert(place_t *place,
 	   it is the attempt to insert new directory item. In this case we
 	   should also count item overhead, that is cde_large header which
 	   contains the number of entries in item. */
-	if (pos == MAX_UINT32)
-		hint->len += cde_large_overhead(place);
+	hint->ohd = (pos == MAX_UINT32 ? cde_large_overhead(place) : 0);
     
 	return 0;
 }
@@ -665,9 +663,8 @@ static errno_t cde_large_shift(place_t *src_place,
 }
 
 /* Inserts new entries to cde item */
-static errno_t cde_large_insert(place_t *place,
-				insert_hint_t *hint,
-				uint32_t pos)
+static errno_t cde_large_insert(place_t *place, uint32_t pos,
+				insert_hint_t *hint)
 {
 	entry_t *entry;
 	uint32_t i, offset;
@@ -754,24 +751,28 @@ static errno_t cde_large_insert(place_t *place,
 }
 
 /* Removes @count entries at @pos from passed @place */
-int32_t cde_large_remove(place_t *place, uint32_t pos,
-			 uint32_t count)
+errno_t cde_large_remove(place_t *place, uint32_t pos,
+			 remove_hint_t *hint)
 {
 	uint32_t len;
 
 	aal_assert("umka-934", place != NULL);
+	aal_assert("umka-2399", hint != NULL);
 
-	len = count * sizeof(entry_t);
-	len += cde_large_size_units(place, pos, count);
+	len = hint->count * sizeof(entry_t);
+	len += cde_large_size_units(place, pos, hint->count);
 	
 	/* Shrinking cde */
-	cde_large_shrink(place, pos, count, 0);
+	cde_large_shrink(place, pos, hint->count, 0);
 	
 	/* Updating item key */
 	if (pos == 0 && cde_large_units(place) > 0)
 		cde_large_get_key(place, 0, &place->key);
 
-	return len;
+	hint->ohd = (pos == MAX_UINT32 ?
+		     cde_large_overhead(place) : 0);
+
+	return 0;
 }
 
 /* Prepares area new item will be created at */
@@ -1014,17 +1015,17 @@ static reiser4_item_ops_t cde_large_ops = {
 	.size		   = cde_large_size,
 	.bytes		   = cde_large_bytes,
 
+	.set_key	   = cde_large_set_key,
 	.maxreal_key       = cde_large_maxreal_key,
 	.estimate_copy	   = cde_large_estimate_copy,
 	.estimate_shift    = cde_large_estimate_shift,
 	.estimate_insert   = cde_large_estimate_insert,
-		
-	.set_key	   = cde_large_set_key,
+	
 	.layout		   = NULL,
 	.check_layout	   = NULL,
 #endif
 	.branch            = NULL,
-	.plug		   = NULL,
+	.plugid		   = NULL,
 
 	.lookup		   = cde_large_lookup,
 	.units		   = cde_large_units,

@@ -436,17 +436,19 @@ static errno_t node_short_insert(node_entity_t *entity,
 {
 	errno_t res;
 	node_t *node;
-
+	uint32_t len;
 	place_t place;
 	item_header_t *ih;
     
 	aal_assert("vpf-119", pos != NULL);
 	aal_assert("umka-1814", hint != NULL);
-
 	aal_assert("umka-818", entity != NULL);
+
+	if (!(len = hint->len + hint->ohd))
+		return -EINVAL;
     
 	/* Makes expand of the node new items will be inserted in */
-	if (node_short_expand(entity, pos, hint->len, 1)) {
+	if (node_short_expand(entity, pos, len, 1)) {
 		aal_exception_error("Can't expand node for insert "
 				    "item/unit.");
 		return -EINVAL;
@@ -476,8 +478,9 @@ static errno_t node_short_insert(node_entity_t *entity,
 	}
 
 	/* Inserting units into @item */
-	if ((res = plug_call(hint->plug->o.item_ops, insert, &place, hint,
-			     pos->unit == MAX_UINT32 ? 0 : pos->unit)))
+	if ((res = plug_call(hint->plug->o.item_ops, insert, &place,
+			     (pos->unit == MAX_UINT32 ? 0 : pos->unit),
+			     hint)))
 	{
 		aal_exception_error("Can't insert unit to "
 				    "node %llu.", node->block->nr);
@@ -498,7 +501,9 @@ errno_t node_short_remove(node_entity_t *entity, pos_t *pos,
 			  remove_hint_t *hint) 
 {
 	pos_t rpos;
+	errno_t res;
 	node_t *node;
+	uint32_t len;
 	place_t place;
 	
 	aal_assert("umka-987", pos != NULL);
@@ -516,12 +521,17 @@ errno_t node_short_remove(node_entity_t *entity, pos_t *pos,
 		rpos.unit = MAX_UINT32;
 	
 	if (rpos.unit == MAX_UINT32) {
+		hint->ohd = 0;
+		
 		if (!(hint->len = node_short_size(node, &rpos, hint->count)))
 			return -EINVAL;
 	} else {
 		/* Removing units from the item pointed by @pos */
-		hint->len = plug_call(place.plug->o.item_ops, remove,
-				      &place, rpos.unit, hint->count);
+		if ((res = plug_call(place.plug->o.item_ops, remove,
+				     &place, rpos.unit, hint)))
+		{
+			return res;
+		}
 
                 /* Updating items key if leftmost unit was changed */
 		if (rpos.unit == 0) {
@@ -530,7 +540,9 @@ errno_t node_short_remove(node_entity_t *entity, pos_t *pos,
 		}
 	}
 
-	return node_short_shrink(entity, &rpos, hint->len, hint->count);
+	/* Releasing node space */
+	len = hint->len + hint->ohd;
+	return node_short_shrink(entity, &rpos, len, hint->count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */

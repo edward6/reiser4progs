@@ -18,12 +18,12 @@ static errno_t reiser4_object_init(reiser4_object_t *object,
 	
 	place = object_start(object);
 	
-	if (!place->plug->o.item_ops->plug) {
+	if (!place->plug->o.item_ops->plugid) {
 		/* FIXME-UMKA: Here we should try to understand what object
 		   plugin is by means of asking @parent. */
 		pid = INVAL_PID;
 	} else {
-		pid = plug_call(place->plug->o.item_ops, plug, 
+		pid = plug_call(place->plug->o.item_ops, plugid, 
 				(place_t *)place, OBJECT_PLUG_TYPE);
 		
 		if (pid == INVAL_PID) {

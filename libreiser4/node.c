@@ -716,8 +716,8 @@ errno_t reiser4_node_upos(reiser4_node_t *node) {
 		return res;
 
 	return plug_call(node->p.plug->o.item_ops, insert,
-			 (place_t *)&node->p, &hint,
-			 node->p.pos.unit);
+			 (place_t *)&node->p, node->p.pos.unit,
+			 &hint);
 }
 
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all
@@ -818,6 +818,7 @@ errno_t reiser4_node_insert(
 	insert_hint_t *hint)             /* item hint to be inserted */
 {
 	errno_t res;
+	uint32_t len;
 	uint32_t needed;
 	uint32_t maxspace;
     
@@ -825,18 +826,18 @@ errno_t reiser4_node_insert(
 	aal_assert("umka-991", pos != NULL);
 	aal_assert("umka-992", hint != NULL);
 	aal_assert("umka-1957", hint->len > 0);
-	
-	aal_assert("umka-761", hint->len > 0 &&
-		   hint->len < reiser4_node_maxspace(node));
 
-	needed = hint->len + (pos->unit == MAX_UINT32 ?
-			      reiser4_node_overhead(node) : 0);
+	if (!(len = hint->len + hint->ohd))
+		return -EINVAL;
+
+	needed = len + (pos->unit == MAX_UINT32 ?
+			reiser4_node_overhead(node) : 0);
 	
 	/* Checking if item length is greater then free space in the node */
 	if (needed > reiser4_node_space(node)) {
 		aal_exception_error("There is no space to insert new "
 				    "item/unit of (%u) size in the node "
-				    "(%llu).", hint->len, node_blocknr(node));
+				    "(%llu).", len, node_blocknr(node));
 		return -EINVAL;
 	}
 

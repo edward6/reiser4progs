@@ -46,9 +46,8 @@ static int32_t tail40_read(place_t *place, void *buff,
    function considers also, that tail item is not expandable one. That is, if
    insert pos point inside the item body, it will not be splitted, but rewritten
    instead. */
-static errno_t tail40_estimate_insert(place_t *place,
-				      insert_hint_t *hint,
-				      uint32_t pos)
+static errno_t tail40_estimate_insert(place_t *place, uint32_t pos,
+				      insert_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
 
@@ -69,9 +68,8 @@ static errno_t tail40_estimate_insert(place_t *place,
 }
 
 /* Rewrites tail from passed @pos by data specifed by hint */
-static errno_t tail40_insert(place_t *place,
-			     insert_hint_t *hint,
-			     uint32_t pos)
+static errno_t tail40_insert(place_t *place, uint32_t pos,
+			     insert_hint_t *hint)
 {
 	uint32_t count;
 	
@@ -105,31 +103,36 @@ static errno_t tail40_insert(place_t *place,
 }
 
 /* Removes the part of tail body */
-static int32_t tail40_remove(place_t *place, uint32_t pos,
-			     uint32_t count)
+static errno_t tail40_remove(place_t *place, uint32_t pos,
+			     remove_hint_t *hint)
 {
+	uint32_t count;
 	void *src, *dst;
 	
+	aal_assert("umka-2403", hint != NULL);
 	aal_assert("umka-1661", place != NULL);
 	aal_assert("umka-1663", pos < place->len);
 
+	count = hint->count;
+	
 	if (pos + count > place->len)
 		count = place->len - pos;
 			
+	hint->ohd = 0;
+	hint->len = place->len - (pos + count);
+	
 	src = place->body + pos;
 	dst = src + count;
-	
-	aal_memmove(dst, src, place->len -
-		    (pos + count));
+
+	aal_memmove(dst, src, hint->len);
 
 	/* Updating the key */
 	if (pos == 0) {
-		if (tail40_get_key(place, 0, &place->key))
-			return -EINVAL;
+		tail40_get_key(place, 0, &place->key);
 	}
-	
+
 	place_mkdirty(place);
-	return count;
+	return 0;
 }
 
 static errno_t tail40_print(place_t *place,
@@ -407,7 +410,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.set_key          = NULL,
 	.check_layout     = NULL,
 #endif
-	.plug		  = NULL,
+	.plugid		  = NULL,
 	.units	          = tail40_units,
 	.lookup	          = tail40_lookup,
 	.read	          = tail40_read,

@@ -54,9 +54,8 @@ static errno_t nodeptr40_layout(place_t *place,
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */
-static errno_t nodeptr40_estimate_insert(place_t *place,
-					 insert_hint_t *hint,
-					 uint32_t pos)
+static errno_t nodeptr40_estimate_insert(place_t *place, uint32_t pos,
+					 insert_hint_t *hint)
 {
 	aal_assert("vpf-068", hint != NULL);
 
@@ -65,9 +64,8 @@ static errno_t nodeptr40_estimate_insert(place_t *place,
 }
 
 /* Writes of the specified nodeptr into passed @place */
-static errno_t nodeptr40_insert(place_t *place,
-				insert_hint_t *hint,
-				uint32_t pos)
+static errno_t nodeptr40_insert(place_t *place, uint32_t pos,
+				insert_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;
 	ptr_hint_t *ptr_hint;
@@ -144,8 +142,8 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.maxreal_key      = NULL,
 #endif
 	.lookup		  = NULL,
+	.plugid		  = NULL,
 	.mergeable        = NULL,
-	.plug		  = NULL,
 	.maxposs_key	  = NULL,
 	.get_key	  = NULL
 };

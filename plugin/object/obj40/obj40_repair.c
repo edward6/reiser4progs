@@ -17,8 +17,8 @@ reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	aal_assert("vpf-1237", obj != NULL);
 	aal_assert("vpf-1238", STAT_PLACE(obj)->plug != NULL);
 	
-	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops, plug, 
-			STAT_PLACE(obj), type);
+	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops,
+			plugid, STAT_PLACE(obj), type);
 	
 	/* If id found, try to find the plugin. */
 	if (pid != INVAL_PID) {
