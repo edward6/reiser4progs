@@ -145,9 +145,7 @@ errno_t repair_item_feel_copy(reiser4_place_t *dst, reiser4_place_t *src,
     aal_assert("vpf-956", src->item.plugin != NULL);
 	
     return plugin_call(src->item.plugin->o.item_ops, feel_copy, 
-	&dst->item, (dst->pos.unit == ~0ul ? 0 : dst->pos.unit), 
-	&src->item, src->pos.unit == ~0ul ? 0 : src->pos.unit, 
-	hint);
+	&dst->item, dst->pos.unit, &src->item, src->pos.unit, hint);
 }
 
 #if 0

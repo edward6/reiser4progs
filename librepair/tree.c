@@ -222,7 +222,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
     {
 	aal_exception_error("Node copying failed from node %llu, item %u to "
 	    "node %llu, item %u one.", src->node->blk, src->pos.item, 
-	    dst->node->blk, dst->pos.unit);
+	    dst->node->blk, dst->pos.item);
 	
 	return res;
     }
@@ -323,8 +323,13 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	    hint.len_delta = src->item.len;
 	    hint.src_count = reiser4_item_units(src);
 	    hint.dst_count = 0;
-	    src->pos.unit = ~0ul;
+	    dst.pos.unit = src->pos.unit = ~0ul;
 	} else {
+	    if (dst.pos.unit == ~0ul)
+		dst.pos.unit = 0;
+	    if (src->pos.unit == ~0ul)
+		src->pos.unit = 0; 
+
 	    if ((res = reiser4_place_realize(&dst)))
 		return res;
 	    
