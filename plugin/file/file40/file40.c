@@ -147,7 +147,7 @@ errno_t file40_realize(file40_t *file) {
 		file->core->tree_ops.unlock(file->tree, &file->statdata);
 	
 	if (file->core->tree_ops.lookup(file->tree, &file->key, &level,
-					&file->statdata) != 1) 
+					&file->statdata) != PRESENT) 
 	{
 		aal_exception_error("Can't find stat data of file 0x%llx.", 
 				    file40_objectid(file));

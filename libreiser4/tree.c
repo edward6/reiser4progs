@@ -565,32 +565,18 @@ errno_t reiser4_tree_attach(
 		
 	/* Looking up for the insert coord */
 	if ((lookup = reiser4_tree_lookup(tree, &hint.key, &stop, &coord))) {
-		aal_stream_t stream = EMPTY_STREAM;
-		
-		switch (lookup) {
-		case PRESENT:
+
+		if (lookup == FAILED) {
+			aal_stream_t stream = EMPTY_STREAM;
 			reiser4_key_print(&hint.key, &stream);
+
+			aal_exception_error("Lookup of key %s failed.",
+					    stream.data);
 			
-			/* 
-			    FIXME-UMKA: This offten happens at fsck time when
-			    leaves are attached into the tree and key may exists
-			    in the tree already. The exception should not be
-			    thrown here.
-			*/
-			aal_exception_error("Left delimiting key %s of node %llu "
-					    "already exists in tree.", stream.data,
-					    node->blk);
-		
 			aal_stream_fini(&stream);
-			return lookup;
-		case FAILED:
-			reiser4_key_print(&hint.key, &stream);
-		
-			aal_exception_error("Lookup of key %s failed.", stream.data);
-			aal_stream_fini(&stream);
-		
-			return -1;
 		}
+
+		return lookup;
 	}
 
 	if ((res = reiser4_tree_insert(tree, &coord, &hint))) {
@@ -920,6 +906,7 @@ errno_t reiser4_tree_insert(
 		/* Attaching new node to the tree */
 		if (reiser4_tree_attach(tree, coord->node)) {
 			aal_exception_error("Can't attach node to the tree.");
+
 			reiser4_tree_release(tree, coord->node);
 			return -1;
 		}

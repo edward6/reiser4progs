@@ -45,8 +45,8 @@ void aal_stream_close(aal_stream_t *stream) {
 
 static errno_t aal_stream_grow(aal_stream_t *stream, int size) {
 	
-	if (stream->offset + size > stream->size) {
-		stream->size = stream->offset + size;
+	if (stream->offset + size + 1 > stream->size) {
+		stream->size = stream->offset + size + 1;
 
 		if (aal_realloc((void **)&stream->data, stream->size))
 			return -1;
@@ -106,6 +106,8 @@ int aal_stream_format(aal_stream_t *stream, const char *format, ...) {
 
 	if (!(len = aal_stream_write(stream, buff, len)))
 		return len;
+
+	*((char *)stream->data + stream->offset) = '\0';
 	
 	return len;
 }

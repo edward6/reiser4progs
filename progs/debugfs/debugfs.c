@@ -107,8 +107,8 @@ static void debugfs_init(void) {
 }
 
 static errno_t debugfs_print_stream(aal_stream_t *stream) {
-	int len = stream->size;
 	void *ptr = stream->data;
+	int len = stream->size - 1;
 
 	while (len > 0) {
 		int written;

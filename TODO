@@ -5,9 +5,7 @@ reiser4progs/COPYING.
 
 * --print-journal and --print-alloc options in debugfs.
 
-* FIBMAP ioctl implementation in reiser4
-
-* something like print_block method for format, journal and block
+* something like "print_block" method for format, journal and block
   allocator plugins.
 
 * aal_block_t buffer list on device layer
@@ -34,4 +32,7 @@ reiser4progs/COPYING.
   up to the libreiser4 level.
 
 * add overwriting ability to balancing code.
+
+* FIBMAP ioctl implementation in reiser4.
+
 * conform reiser4 and reiser4progs to be worked with LILO and GRUB.
