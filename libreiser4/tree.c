@@ -119,6 +119,7 @@ errno_t reiser4_tree_connect(
 		return res;
 
 	reiser4_node_lock(parent);
+	
 	node->tree = tree;
 
 	if (tree->traps.connect) {
@@ -395,39 +396,38 @@ reiser4_node_t *reiser4_tree_alloc(
 	uint8_t level)	 	    /* level of new node */
 {
 	rid_t pid;
-
 	uint32_t blocksize;
 	uint32_t free, stamp;
-	
 	reiser4_node_t *node;
-	aal_device_t *device;
     
 	aal_assert("umka-756", tree != NULL);
     
-	device = tree->fs->device;
+	/* Setting up of the free blocks in format */
+	if (!(free = reiser4_alloc_free(tree->fs->alloc)))
+		return NULL;
+	
+	reiser4_format_set_free(tree->fs->format, free - 1);
 	blocksize = reiser4_master_blksize(tree->fs->master);
 	
 	/* Getting node plugin id from the profile */
 	pid = reiser4_profile_value(tree->fs->profile, "node");
     
 	/* Creating new node */
-	if (!(node = reiser4_node_init(device, blocksize,
+	if (!(node = reiser4_node_init(tree->fs->device, blocksize,
 				       get_fake_blk, pid)))
 	{
-		aal_exception_error("Can't initialize node.");
+		aal_exception_error("Can't initialize new fake node");
 		return NULL;
 	}
 
+	/* Forming node of @level */
 	if (reiser4_node_form(node, level))
 		goto error_free_node;
 
+	/* Setting flush stamps to new node */
 	stamp = reiser4_format_get_stamp(tree->fs->format);
 	reiser4_node_set_mstamp(node, stamp);
 	
-	/* Setting up of the free blocks in format */
-	free = reiser4_alloc_free(tree->fs->alloc);
-	reiser4_format_set_free(tree->fs->format, free);
-
 	if (tree->root) {
 		stamp = reiser4_node_get_fstamp(tree->root);
 		reiser4_node_set_fstamp(node, stamp);
@@ -445,20 +445,24 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 			     reiser4_node_t *node)
 {
 	blk_t free;
+	reiser4_alloc_t *alloc;
 	
 	aal_assert("umka-1841", tree != NULL);
 	aal_assert("umka-2255", node != NULL);
 
+	alloc = tree->fs->alloc;
 	reiser4_node_mkclean(node);
 
-	/* Check if we releasing fake blk */
-	if (!is_fake_blk(node->blk)) {
-		reiser4_alloc_release(tree->fs->alloc,
-				      node->blk, 1);
+	/*
+	  Check if we're releasing fake blk. If so, free it in block allocator
+	  too. Then it will be counted int free_block_count field in format.
+	*/
+	if (!is_fake_blk(node->blk))
+		reiser4_alloc_release(alloc, node->blk, 1);
 
-		free = reiser4_alloc_free(tree->fs->alloc);
-		reiser4_format_set_free(tree->fs->format, free);
-	}
+	/* Chnaging format field free_block_count */
+	free = reiser4_alloc_free(alloc);
+	reiser4_format_set_free(tree->fs->format, free + 1);
 	
 	return reiser4_tree_unload(tree, node);
 }
@@ -468,8 +472,8 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	rid_t pid;
 	reiser4_oid_t *oid;
-	oid_t locality, objectid;
 	reiser4_plugin_t *plugin;
+	oid_t locality, objectid;
     
 	aal_assert("umka-1090", tree != NULL);
 	aal_assert("umka-1091", tree->fs != NULL);
@@ -1060,15 +1064,13 @@ errno_t reiser4_tree_growup(
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	
-	if (!(old_root = tree->root))
-		return -EINVAL;
-	
+	old_root = tree->root;
 	height = reiser4_tree_height(tree);
     
 	/* Allocating new root node */
 	if (!(tree->root = reiser4_tree_alloc(tree, height + 1))) {
 		res = -ENOSPC;
-		goto error_old_root;
+		goto error_back_root;
 	}
 
 	tree->root->tree = tree;
@@ -1080,17 +1082,15 @@ errno_t reiser4_tree_growup(
 	reiser4_format_set_height(tree->fs->format,
 				  height + 1);
 	
-	if (reiser4_tree_attach(tree, old_root)) {
-		res = -EINVAL;
+	if ((res = reiser4_tree_attach(tree, old_root)))
 		goto error_free_root;
-	}
 
 	return 0;
 
  error_free_root:
 	reiser4_tree_release(tree, tree->root);
 
- error_old_root:
+ error_back_root:
 	tree->root = old_root;
 	return res;
 }

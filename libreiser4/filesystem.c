@@ -236,8 +236,8 @@ reiser4_fs_t *reiser4_fs_create(
 
 	/* Makes check for validness of specified block size value */
 	if (!aal_pow2(blocksize)) {
-		aal_exception_error("Invalid block size %u. It must be "
-				    "power of two.", blocksize);
+		aal_exception_error("Invalid block size %u. It must "
+				    "be power of two.", blocksize);
 		return NULL;
 	}
 
@@ -245,17 +245,19 @@ reiser4_fs_t *reiser4_fs_create(
 		(blocksize / device->blocksize);
 	
 	if (blocks > dev_len) {
-		aal_exception_error("Device %s is too small (%llu) for "
-				    "filesystem %u blocks long.",
-				    aal_device_name(device), dev_len, blocks);
+		aal_exception_error("Device %s is too small (%llu) "
+				    "for filesystem %u blocks long.",
+				    aal_device_name(device), dev_len,
+				    blocks);
 		return NULL;
 	}
     
 	/* Checks whether filesystem size is enough big */
 	if (blocks < REISER4_MIN_SIZE) {
-		aal_exception_error("Requested filesytem size (%llu) too "
-				    "small. ReiserFS required minimal size "
-				    "%u blocks long.", blocks, REISER4_MIN_SIZE);
+		aal_exception_error("Requested filesytem size (%llu) "
+				    "too small. Reiser4 required minimal "
+				    "size %u blocks long.", blocks,
+				    REISER4_MIN_SIZE);
 		return NULL;
 	}
     
