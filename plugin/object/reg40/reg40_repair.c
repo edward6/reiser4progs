@@ -177,7 +177,26 @@ static errno_t callback_layout(void *p, uint64_t start, uint64_t count,
 	return hint->region_func(hint->entity, start, count, hint->data);
 }
 
-
+static void reg40_check_mode(uint16_t *mode) {
+        if (!S_ISREG(*mode)) {
+                *mode &= ~S_IFMT;
+                *mode |= S_IFREG;
+        }
+}
+                                                                                           
+static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
+        /* FIXME-VITALY: This is not correct for extents as the last
+           block can be not used completely. Where to take the policy
+           plugin to figure out if size is correct? */
+        if (*sd_size < counted_size)
+                *sd_size = counted_size;
+}
+                                                                                           
+/* Zero nlink number for BUILD mode. */
+static void reg40_zero_nlink(uint32_t *nlink) {
+        *nlink = 0;
+}
+                                                                                           
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
 			   region_func_t region_func,
