@@ -779,47 +779,57 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		      trans_hint_t *hint) 
 {
 	errno_t res;
-	uint32_t pol;
 	uint32_t len;
 	place_t place;
 	node40_t *node;
-	uint32_t units;
+	uint32_t count;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
 
 	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
 
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
-	/* Checking if we have to remove whole item as it will has not units
-	   after removing. */
-	units = plug_call(place.plug->o.item_ops->balance,
-			  units, &place);
-	
-	if (units == hint->count)
-		place.pos.unit = MAX_UINT32;
-	
 	if (place.pos.unit == MAX_UINT32) {
-		hint->overhead = 0;
-		
-		if (!(hint->len = node40_size(node, &place.pos,
-					      hint->count)))
-		{
+		/* Calculating amount of bytes removed item occupie. Node will
+		   be shrinked by this value. */
+		if (!(len = node40_size(node, &place.pos,  hint->count)))
 			return -EINVAL;
-		}
+
+		count = hint->count;
 	} else {
+		/* Here we init @count (number of items to be removed) to 1, as
+		   here are possible onlytwo cases:
+
+		   (1) Remove item as it get empty (the case when @count is
+		   needed).
+
+		   (2) Shrink item at @place.pos.item by @len and @count is
+		   ignored.
+		*/
+		count = 1;
+		
 		if (place.plug->o.item_ops->object->remove_units) {
-			/* Removing units from the item pointed by @pos */
+			/* Removing units from the item pointed by @pos. */
 			if ((res = plug_call(place.plug->o.item_ops->object,
 					     remove_units, &place, hint)))
 			{
 				return res;
 			}
+		}
 
-			/* Updating items key if leftmost unit was changed */
+		/* Check if item is empty. If so, we remove it too. */
+		if ((len = hint->len + hint->overhead) >= place.len) {
+			/* Forcing node40_shrink() to remove whole item, as we
+			   have removed all units from it.*/
+			place.pos.unit = MAX_UINT32;
+		} else {
+			uint32_t pol = node40_key_pol(node);
+				
+			/* Updating items key if leftmost unit was changed and
+			   item will not be removed as it is not yet empty. */
 			if (place.pos.unit == 0) {
 				void *ih = node40_ih_at(node, place.pos.item);
 				aal_memcpy(ih, place.key.body, key_size(pol));
@@ -827,11 +837,9 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		}
 	}
 
-	/* Shrinking node by @len. */
-	len = hint->len + hint->overhead;
-	
-	return node40_shrink(entity, &place.pos,
-			     len, hint->count);
+	/* Shrinking node by @hint->len. Item @place.pos will be removed if
+	   place.pos points to whole item (unit is MAX_UINT32). */
+	return node40_shrink(entity, &place.pos, len, count);
 }
 
 /* Fuses two mergeable items if they lie in the same node side by side. This is
@@ -1352,8 +1360,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	/* We will remove src item if it has became empty and insert point is
 	   not points it, that is next insert will not be dealing with it. */
 	remove_src = ((hint->rest == src_place.len || units == 0) &&
-		      (hint->result & SF_MOVE_POINT ||
-		       pos.item != hint->pos.item));
+		      (hint->result & SF_MOVE_POINT || pos.item != hint->pos.item));
 	
 	/* Updating item's keys. */
 	if (left_shift) {

@@ -798,6 +798,8 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 	uint32_t pol;
 	uint32_t bytes;
 
+	aal_assert("umka-3024", pos < cde40_units(place));
+
 	pol = cde40_key_pol(place);
 	bytes = (hint->count * en_size(pol));
 	
@@ -805,12 +807,15 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 	bytes += cde40_shrink(place, pos, hint->count, 0);
 	
 	/* Updating item key */
-	if (pos == 0 && cde40_units(place) > 0) {
+	if (pos == 0 && cde40_units(place) > 0)
 		cde40_get_hash(place, 0, &place->key);
-	}
 
+	hint->overhead = 0;
 	hint->bytes = hint->len = bytes;
-	hint->overhead = (pos == MAX_UINT32 ? cde40_overhead() : 0);
+
+	/* Setting up cde item overhead in the case we removed all units. */
+	if (cde40_units(place) == 0)
+		hint->overhead = cde40_overhead();
 	
 	return 0;
 }
@@ -819,6 +824,7 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 static errno_t cde40_remove_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-934", place != NULL);
 	aal_assert("umka-2400", hint != NULL);
+
 	return cde40_delete(place, place->pos.unit, hint);
 }
 
