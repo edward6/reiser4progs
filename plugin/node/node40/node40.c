@@ -1033,8 +1033,20 @@ static lookup_t node40_lookup(object_entity_t *entity,
 	node = (node40_t *)entity;
 	items = nh40_get_num_items(node);
 
-	res = aux_bin_search(node, items, key, callback_comp_key, 
-			     key->plugin, &item);
+	switch (aux_bin_search(node, items, key,
+			       callback_comp_key, 
+			       key->plugin, &item))
+	{
+	case 1:
+		res = LP_PRESENT;
+		break;
+	case 0:
+		res = LP_ABSENT;
+		break;
+	default:
+		res = LP_FAILED;
+		break;
+	}
 	
 	pos->item = item;
 

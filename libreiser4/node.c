@@ -274,11 +274,12 @@ errno_t reiser4_node_pos(
 
 	reiser4_node_lkey(node, &lkey);
     
-	if (reiser4_node_lookup(node->parent, &lkey, &node->pos) != 1)
+	if (reiser4_node_lookup(node->parent, &lkey,
+				&node->pos) != LP_PRESENT)
 		return -1;
 
 	if (pos != NULL)
-	    *pos = node->pos;
+		*pos = node->pos;
     
 	return 0;
 }
@@ -454,7 +455,7 @@ lookup_t reiser4_node_lookup(
 	res = plugin_call(node->entity->plugin->node_ops,
 			  lookup, node->entity, key, pos);
 
-	if (res != LP_PRESENT)
+	if (res != LP_ABSENT)
 		return res;
 
 	/* Initializing item place points to */

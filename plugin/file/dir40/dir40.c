@@ -31,13 +31,16 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	/* Preparing key of the first entry in directory */
 	key.plugin = dir->file.key.plugin;
 	
-	plugin_call(key.plugin->key_ops, build_entry, &key, dir->hash,
-		    object40_locality(&dir->file), object40_objectid(&dir->file), ".");
+	plugin_call(key.plugin->key_ops, build_entry, &key,
+		    dir->hash, object40_locality(&dir->file),
+		    object40_objectid(&dir->file), ".");
 
 	object40_unlock(&dir->file, &dir->body);
 	
 	/* Lookup for the first direntry item */
-	if (object40_lookup(&dir->file, &key, LEAF_LEVEL, &dir->body) != LP_PRESENT) {
+	if (object40_lookup(&dir->file, &key, LEAF_LEVEL,
+			    &dir->body) != LP_PRESENT)
+	{
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    object40_objectid(&dir->file));
 		
@@ -207,8 +210,9 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 	*/
 	wanted.plugin = dir->file.key.plugin;
 	
-	plugin_call(wanted.plugin->key_ops, build_entry, &wanted, dir->hash,
-		    object40_locality(&dir->file), object40_objectid(&dir->file), name);
+	plugin_call(wanted.plugin->key_ops, build_entry, &wanted,
+		    dir->hash, object40_locality(&dir->file),
+		    object40_objectid(&dir->file), name);
 
 	/* Lookp until needed entry will be found */
 	while (1) {

@@ -46,7 +46,7 @@ typedef struct rpos rpos_t;
 enum lookup {
 	LP_PRESENT              = 1,
 	LP_ABSENT               = 0,
-	LP_FAILED               = 0
+	LP_FAILED               = -1
 };
 
 typedef enum lookup lookup_t;

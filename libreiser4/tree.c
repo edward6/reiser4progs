@@ -200,7 +200,8 @@ errno_t reiser4_tree_disconnect(
 						  tree->traps.data)))
 			return res;
 	}
-	
+
+	/* Disconnecting left and right neighbours */
 	if (node->left) {
 		node->left->right = NULL;
 		node->left = NULL;
@@ -716,22 +717,22 @@ errno_t reiser4_tree_attach(
 	uint8_t level;
 	
 	reiser4_place_t place;
-	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
+	reiser4_ptr_hint_t nodeptr_hint;
 
 	aal_assert("umka-913", tree != NULL);
 	aal_assert("umka-916", node != NULL);
     
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&ptr, 0, sizeof(ptr));
+	aal_memset(&nodeptr_hint, 0, sizeof(nodeptr_hint));
 
 	/* Prepare nodeptr hint from opassed @node */
-	hint.count = 1;
-	hint.type_specific = &ptr;
+	nodeptr_hint.width = 1;
+	nodeptr_hint.ptr = node->blk;
 
-	ptr.width = 1;
-	ptr.ptr = node->blk;
+	hint.count = 1;
+	hint.type_specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);
 
@@ -762,12 +763,12 @@ errno_t reiser4_tree_attach(
 			reiser4_node_set_level(place.node, level);
 
 			/*
-			  Attaching node to insert point node. We should attach formatted nodes
-			  only.
+			  Attaching node to insert point node. We should attach
+			  formatted nodes only.
 			*/
 			if (reiser4_tree_connect(tree, place.node, node)) {
-				aal_exception_error("Can't attach the node %llu to the tree.", 
-						    node->blk);
+				aal_exception_error("Can't attach the node %llu to "
+						    "the tree.", node->blk);
 				return -1;
 			}
 		} else {
@@ -781,9 +782,9 @@ errno_t reiser4_tree_attach(
 			return -1;
 
 		/*
-		  Checking if we have the tree with height smaller than node we are
-		  going to attach in it. If so, we should grow the tree by requested
-		  level.
+		  Checking if we have the tree with height smaller than node we
+		  are going to attach in it. If so, we should grow the tree by
+		  requested level.
 		*/
 		while (level > reiser4_tree_height(tree))
 			reiser4_tree_grow(tree);
@@ -791,8 +792,10 @@ errno_t reiser4_tree_attach(
 	}
 	
 	/* Looking up for the insert point place */
-	if ((res = reiser4_tree_lookup(tree, &hint.key, level, &place))) {
-		aal_exception_error("Can't find left delimiting key of "
+	if ((res = reiser4_tree_lookup(tree, &hint.key, level,
+				       &place)) != LP_ABSENT)
+	{
+		aal_exception_error("Can't find position "
 				    "node to be attached.");
 		return res;
 	}
@@ -830,15 +833,11 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	if (!(parent = node->parent))
 		return 0;
 
+	reiser4_tree_disconnect(tree, parent, node);
 	reiser4_place_init(&place, parent, &node->pos);
 	
 	/* Removing item/unit from the parent node */
-	if (reiser4_tree_remove(tree, &place, 1))
-		return -1;
-
-	reiser4_tree_disconnect(tree, parent, node);
-			
-	return 0;
+	return reiser4_tree_remove(tree, &place, 1);
 }
 
 /*
