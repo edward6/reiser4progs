@@ -153,7 +153,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	return 0;
 }
 
-/* Makes probing of reiser4 master super block on given device */
+/* Checks for reiser4 master super block on given device */
 int reiser4_master_confirm(aal_device_t *device) {
 	blk_t offset;
 	aal_block_t *block;
@@ -174,6 +174,8 @@ int reiser4_master_confirm(aal_device_t *device) {
     
 	super = (reiser4_master_sb_t *)block->data;
 
+	/* FIXME-GREEN->UMKA: While it works for now, perhaps you need to replace 4 with "sizeof(REISER4_MASTER_MAGIC)-1"
+	   or "sizeof(super->ms_magic)" */
 	if (aal_strncmp(super->ms_magic, REISER4_MASTER_MAGIC, 4) == 0) {
 		aal_block_free(block);
 		return 1;
@@ -209,6 +211,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	}
 
 	/* Copying master super block */
+	/* FIXME-GREEN->UMKA: What if device->blocksize is less than sizeof(*SUPER(master)) ? */
 	aal_memcpy(SUPER(master), block->data,
 		   sizeof(*SUPER(master)));
 
@@ -220,10 +223,12 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	  block, then we trying guess format in use by means of traversing all
 	  format plugins and call its confirm method.
 	*/
+	/* FIXME-GREEN->UMKA: While it works for now, perhaps you need to replace 4 with "sizeof(REISER4_MASTER_MAGIC)-1"
+	   or "sizeof(super->ms_magic)" */
 	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC, 4) != 0) {
 		/* 
-		   Reiser4 doesn't found on passed device. In this point we
-		   should call the function which detectes used format on the
+		   Reiser4 was not found on the device. At this point we
+		   should call the function which detects used format on the
 		   device.
 		*/
 #ifndef ENABLE_STAND_ALONE
