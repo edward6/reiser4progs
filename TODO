@@ -6,9 +6,8 @@ reiser4progs/COPYING.
 * add option to measurefs, which will introduce some kind of filter 
   for file fragmentation calculating.
 
-* insert an extent among internal items may require perform shift and
-  on other hands, insert of an item (nor extent or nodeptr) may 
-  require to perform so called drilling on the twig level.
+* implement drilling (the case when we're going to insert an item to 
+  leaf level, but lookup stumbled on twig level because of an extent).
 
 * should we print blocks, that belong to some of fs objects 
   (block allocator, etc) while handling --print-block option?
@@ -26,8 +25,6 @@ reiser4progs/COPYING.
   stat data and insert new one.
 
 * some kind of flush is needed for libreiser4.
-
-* extents handling code.
 
 * change balancing algorithm from the recursive to task oriented one
   like kernel does.

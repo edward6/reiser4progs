@@ -35,8 +35,8 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	units = reiser4_item_units(place);
 	items = reiser4_node_items(place->node);
 	
-	return ((place->pos.unit == units - 1 || place->pos.unit == ~0ul) &&
-		place->pos.item == items - 1) ? TRUE : FALSE;
+	return ((place->pos.unit == units || place->pos.unit == ~0ul) &&
+		place->pos.item == items) ? TRUE : FALSE;
 }
 #endif
 
