@@ -530,8 +530,8 @@ static item_repair_ops_t repair_ops = {
 	.check_struct	  = tail40_check_struct,
 	.check_layout	  = NULL,
 
-	.prep_merge	  = tail40_prep_merge,
-	.merge		  = tail40_merge,
+	.prep_insert_raw  = tail40_prep_insert_raw,
+	.insert_raw	  = tail40_insert_raw,
 
 	.pack		  = tail40_pack,
 	.unpack		  = tail40_unpack

@@ -201,8 +201,6 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 	hint.plug = obj->info.opset.plug[OPSET_STAT];
 
 	hint.count = 1;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
 	
 	plug_call(obj->info.object.plug->o.key_ops, assign, 

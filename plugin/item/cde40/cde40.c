@@ -1118,8 +1118,8 @@ static item_repair_ops_t repair_ops = {
 	.check_struct	  = cde40_check_struct,
 	.check_layout	  = NULL,
 
-	.prep_merge	  = cde40_prep_merge,
-	.merge		  = cde40_merge,
+	.prep_insert_raw  = cde40_prep_insert_raw,
+	.insert_raw	  = cde40_insert_raw,
 
 	.pack		  = NULL,
 	.unpack		  = NULL

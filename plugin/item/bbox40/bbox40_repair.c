@@ -76,4 +76,42 @@ void bbox40_print(reiser4_place_t *place, aal_stream_t *stream,
 	aal_stream_format(stream, "\n");
 }
 
+errno_t bbox40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
+	reiser4_place_t *src;
+	
+	aal_assert("vpf-1662", place != NULL);
+	aal_assert("vpf-1663", hint != NULL);
+	aal_assert("vpf-1664", hint->specific != NULL);
+	
+	src = (reiser4_place_t *)hint->specific;
+
+	hint->overhead = 0;
+	hint->bytes = 0;
+
+	if (place->pos.unit == MAX_UINT32) {
+		hint->count = 1;
+		hint->len = src->len;
+	} else {
+		hint->count = hint->len = 0;
+	}
+	
+	return 0;
+}
+
+errno_t bbox40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
+	reiser4_place_t *src;
+	
+	aal_assert("vpf-1665", place != NULL);
+	aal_assert("vpf-1666", hint != NULL);
+	aal_assert("vpf-1667", hint->specific != NULL);
+
+	if (!hint->len) return 0;
+	
+	src = (reiser4_place_t *)hint->specific;
+	aal_memcpy(place->body, src->body, hint->len);
+	place_mkdirty(place);
+	
+	return 0;
+}
+
 #endif

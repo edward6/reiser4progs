@@ -41,7 +41,7 @@ void gauge_tree(aal_gauge_t *gauge) {
 			/* Update the gauge not more ofter then once per second or if 
 			 * another percent passed. */
 
-			if ((t - hint->displayed_time) < 1)
+			if ((t - hint->displayed_time) <= 1)
 				return;	    
 
 			hint->displayed_time = t;
@@ -98,7 +98,7 @@ void gauge_rate(aal_gauge_t *gauge) {
 		} else {
 			/* Update the gauge not more ofter then once per second or if 
 			 * another percent passed. */
-			if (t - hint->displayed_time < 1)
+			if (t - hint->displayed_time <= 1)
 				return;	    
 
 			hint->u.rate_hint.speed = rate->done / (t - hint->start_time);

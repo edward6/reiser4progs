@@ -544,8 +544,8 @@ static item_repair_ops_t repair_ops = {
 	.check_struct	  = stat40_check_struct,
 	.check_layout	  = NULL,
 	
-	.prep_merge	  = NULL,
-	.merge		  = NULL,
+	.prep_insert_raw  = stat40_prep_insert_raw,
+	.insert_raw	  = stat40_insert_raw,
 	
 	.pack		  = NULL,
 	.unpack		  = NULL

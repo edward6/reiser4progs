@@ -187,4 +187,44 @@ void stat40_print(reiser4_place_t *place, aal_stream_t *stream,
 	
 	stat40_traverse(place, cb_print_ext, (void *)stream);
 }
+
+
+errno_t stat40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
+	reiser4_place_t *src;
+	
+	aal_assert("vpf-1668", place != NULL);
+	aal_assert("vpf-1669", hint != NULL);
+	aal_assert("vpf-1670", hint->specific != NULL);
+	
+	src = (reiser4_place_t *)hint->specific;
+
+	hint->overhead = 0;
+	hint->bytes = 0;
+
+	if (place->pos.unit == MAX_UINT32) {
+		hint->count = 1;
+		hint->len = src->len;
+	} else {
+		hint->count = hint->len = 0;
+	}
+	
+	return 0;
+}
+
+errno_t stat40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
+	reiser4_place_t *src;
+	
+	aal_assert("vpf-1671", place != NULL);
+	aal_assert("vpf-1672", hint != NULL);
+	aal_assert("vpf-1673", hint->specific != NULL);
+
+	if (!hint->len) return 0;
+	
+	src = (reiser4_place_t *)hint->specific;
+	aal_memcpy(place->body, src->body, hint->len);
+	place_mkdirty(place);
+	
+	return 0;
+
+}
 #endif

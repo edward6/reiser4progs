@@ -1924,10 +1924,10 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	aal_assert("umka-916", node != NULL);
 	aal_assert("umka-3104", place != NULL);
 
+	aal_memset(&hint, 0, sizeof(hint));
+	
 	hint.count = 1;
 	hint.specific = &ptr;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
 	hint.shift_flags = flags;
 	hint.plug = tree->ent.tpset[TPSET_NODEPTR];
 

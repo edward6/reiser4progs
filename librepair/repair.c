@@ -161,8 +161,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	/* Allocate a bitmap of twig blocks in the tree. */
 	if (!(control->bm_twig = filter->bm_twig = aux_bitmap_create(fs_len))) {
-		aal_error("Failed to allocate a bitmap of twig "
-			  "blocks.");
+		aal_error("Failed to allocate a bitmap of twig blocks.");
 		return -EINVAL;
 	}
 
@@ -193,7 +192,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 /* Mark blk in the scan bitmap if not marked in used bitmap (in this case it 
    is a node). */
 static errno_t cb_region_mark(void *object, blk_t blk, 
-				    uint64_t count, void *data)
+			      uint64_t count, void *data)
 {
 	repair_control_t *control = (repair_control_t *)data;
 	uint32_t i;
@@ -402,7 +401,14 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	}
 	
 	/* Assign the met bitmap to the block allocator. */
+	aux_bitmap_calc_marked(control->bm_met);
 	reiser4_alloc_assign(control->repair->fs->alloc, control->bm_met);
+
+	/* Set the amount of used blocks, allow to allocate blocks on the 
+	   add missing pass. */
+	reiser4_format_set_free(control->repair->fs->format, 
+				control->bm_met->total - 
+				control->bm_met->marked);
 	
 	aux_bitmap_close(control->bm_met);
 	
@@ -443,6 +449,12 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 		/* Assign the used bitmap to the block allocator. */
 		reiser4_alloc_assign(control->repair->fs->alloc, control->bm_used);
 		reiser4_alloc_sync(control->repair->fs->alloc);
+	
+		/* Set the amount of used blocks, allow to allocate blocks on 
+		   the semantic pass */
+		reiser4_format_set_free(control->repair->fs->format,
+					control->bm_used->total - 
+					control->bm_used->marked);
 
 		aux_bitmap_close(control->bm_used);
 		control->bm_used = NULL;

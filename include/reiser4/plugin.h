@@ -698,8 +698,8 @@ struct trans_hint {
 	/* Max real key. Set by estimate and needed for file body items. */
 	reiser4_key_t maxkey;
 
-	/* Flags specific for the operation, set at prepare stage. */
-	uint16_t merge_flags;
+	/* Flags specific for the insert (raw for now), set at prepare stage. */
+	uint16_t insert_flags;
 
 	/* Shift flags for shift operation. */
 	uint32_t shift_flags;
@@ -1087,11 +1087,11 @@ typedef struct item_object_ops item_object_ops_t;
 #ifndef ENABLE_STAND_ALONE
 struct item_repair_ops {
 	/* Estimate merge operation. */
-	errno_t (*prep_merge) (reiser4_place_t *, trans_hint_t *);
+	errno_t (*prep_insert_raw) (reiser4_place_t *, trans_hint_t *);
 
 	/* Copies some amount of units from @src to @dst with partial
 	   overwritting. */
-	errno_t (*merge) (reiser4_place_t *, trans_hint_t *);
+	errno_t (*insert_raw) (reiser4_place_t *, trans_hint_t *);
 
 	/* Checks the item structure. */
 	errno_t (*check_struct) (reiser4_place_t *, repair_hint_t *);
@@ -1221,8 +1221,8 @@ struct reiser4_node_ops {
 
 	/* Merge 2 items -- insert/overwrite @src_entity parts to
 	   @dst_entity. */
-	errno_t (*merge) (reiser4_node_t *, pos_t *, 
-			  trans_hint_t *);
+	errno_t (*insert_raw) (reiser4_node_t *, pos_t *, 
+			       trans_hint_t *);
 
 	/* Copies items from @src_entity to @dst_entity. */
 	errno_t (*copy) (reiser4_node_t *, pos_t *,

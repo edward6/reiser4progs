@@ -174,8 +174,7 @@ reiser4_master_t *repair_master_unpack(aal_device_t *device,
 		return NULL;
 	
 	if (size != sizeof(master->ent)) {
-		aal_error("Invalid size %u is detected in stream.",
-			  size);
+		aal_error("Invalid size %u is detected in stream.", size);
 		goto error_free_master;
 	}
 

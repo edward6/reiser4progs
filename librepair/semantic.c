@@ -331,11 +331,11 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 		return INVAL_PTR;
 	
 	if (object == NULL) {
-		fsck_mess("Failed to find the object [%s] pointed "
-			  "by the entry [%s].%s",
+		fsck_mess("Directory [%s]: can't find the object "
+			  "[%s] pointed by the entry [%s].%s",
+			  reiser4_print_key(&parent->ent->object, PO_INODE),
 			  reiser4_print_key(&entry->object, PO_INODE),
-			  reiser4_print_key(&entry->offset, PO_INODE),
-			  sem->repair->mode != RM_CHECK ?
+			  entry->name, sem->repair->mode != RM_CHECK ? 
 			  " Entry is removed." : "");
 		
 		if (sem->repair->mode != RM_CHECK)
@@ -635,7 +635,7 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	}
 	
-	reiser4_opset_profile(&sem->root->ent->opset);
+	reiser4_opset_profile(sem->root->ent->opset.plug);
 	if (!sem->root->ent->opset.plug[OPSET_OBJ]) {
 		sem->root->ent->opset.plug[OPSET_OBJ] = 
 			sem->root->ent->opset.plug[OPSET_MKDIR];

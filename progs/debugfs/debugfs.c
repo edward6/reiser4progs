@@ -69,9 +69,11 @@ static void debugfs_init(void) {
 	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
 	
-	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stdout);
-	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stdout);
-	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, stderr);
+	/* All steams should go to stderr, as in/out are used for pack/unpack 
+	   and other needs */
+	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stderr);
+	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stderr);
+	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, NULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -340,6 +342,8 @@ int main(int argc, char *argv[]) {
 			aal_error("Can't open reiser4 on %s", host_dev);
 			goto error_free_device;
 		}
+
+		reiser4_opset_profile(fs->tree->ent.opset);
 	}
 	
 	if (behav_flags & BF_PACK_META /* || print disk blocks */) {
@@ -433,7 +437,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (behav_flags & BF_PACK_META) {
-		void *error;
+//		void *error;
 		aal_stream_t stream;
 
 		aal_stream_init(&stream, stdout, &file_stream);
@@ -444,16 +448,16 @@ int main(int argc, char *argv[]) {
 
 		/* FIXME-UMKA: Probably some kind of mask in libaal/exception
 		   for masking not needed exceptions would be helpful. */
-		error = misc_exception_get_stream(EXCEPTION_TYPE_ERROR);
-		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, NULL);
+//		error = misc_exception_get_stream(EXCEPTION_TYPE_ERROR);
+//		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, NULL);
 		
 		if (repair_fs_pack(fs, bitmap, &stream)) {
-			misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
+//			misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
 			aal_error("Can't pack filesystem.");
 			goto error_free_journal;
 		}
 		
-		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
+//		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
 		aal_stream_fini(&stream);
 		aux_bitmap_close(bitmap);
 		bitmap = NULL;

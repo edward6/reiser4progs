@@ -1661,7 +1661,7 @@ static reiser4_node_ops_t node40_ops = {
 	.shift		= node40_shift,
 	.shrink		= node40_shrink,
 	.expand		= node40_expand,
-	.merge          = node40_merge,
+	.insert_raw     = node40_insert_raw,
 	.copy           = node40_copy,
 
 	.overhead	= node40_overhead,

@@ -9,14 +9,14 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
-extern errno_t cde40_merge(reiser4_place_t *place,
-			   trans_hint_t *hint);
+extern errno_t cde40_prep_insert_raw(reiser4_place_t *place,
+				     trans_hint_t *hint);
+
+extern errno_t cde40_insert_raw(reiser4_place_t *place,
+				trans_hint_t *hint);
 
 extern errno_t cde40_check_struct(reiser4_place_t *place,
 				  repair_hint_t *hint);
-
-extern errno_t cde40_prep_merge(reiser4_place_t *place,
-				trans_hint_t *hint);
 
 extern void cde40_print(reiser4_place_t *place,
 			aal_stream_t *stream,

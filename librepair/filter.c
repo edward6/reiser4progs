@@ -365,7 +365,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 			  place_blknr(place), place->pos.item, 
 			  place->pos.unit, blk, fd->repair->mode == RM_BUILD ?
 			  "Removed, content will be inserted later item-by-"
-			  "-item." : "The whole subtree is skipped.");
+			  "item." : "The whole subtree is skipped.");
 	}
 	
 	/* In the case of an error the node should be closed as it should 

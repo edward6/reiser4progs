@@ -202,22 +202,22 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-void reiser4_opset_profile(reiser4_opset_t *opset) {
+void reiser4_opset_profile(reiser4_plug_t **opset) {
 	uint8_t i;
 	
 	aal_assert("vpf-1639", opset != NULL);
 
 	/* All plugins must present in the root. Get them from the profile. */
 	for (i = 0; i < OPSET_LAST; i++) {
-		if (opset->plug[i])
+		if (opset[i] != NULL)
 			continue;
 		
-		opset->plug[i] = opset_prof[i].prof == INVAL_PID ? 
+		opset[i] = opset_prof[i].prof == INVAL_PID ? 
 			NULL : reiser4_profile_plug(opset_prof[i].prof);
 	}
 	
 	/* Directory plugin does not exist in progs at all. */
-	opset->plug[OPSET_DIR] = NULL;
+	opset[OPSET_DIR] = NULL;
 }
 
 void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {

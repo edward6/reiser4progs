@@ -21,8 +21,7 @@ errno_t tail40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	return 0;
 }
 
-errno_t tail40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
-	uint64_t doffset, start;
+errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	reiser4_place_t *src;
 	
 	aal_assert("vpf-982", place != NULL);
@@ -31,20 +30,26 @@ errno_t tail40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	src = (reiser4_place_t *)hint->specific;
 	
-	doffset = plug_call(place->key.plug->o.key_ops, get_offset,
-			    &place->key);
-	start = plug_call(hint->offset.plug->o.key_ops, get_offset,
-			  &hint->offset);
-	
 	if (place->pos.unit == tail40_units(place) || 
 	    place->pos.unit == MAX_UINT32)
+	{
 		/* New item or appending to the end. */
 		hint->count = tail40_units(src) - src->pos.unit;
-	else if (start < doffset)
-		/* Prepending. */
-		hint->count = doffset - start;
-	else 
-		hint->count = 0;
+	} else {
+		uint64_t doffset, start;
+		
+		doffset = plug_call(place->key.plug->o.key_ops, 
+				    get_offset, &place->key);
+		
+		start = plug_call(hint->offset.plug->o.key_ops, 
+				  get_offset, &hint->offset);
+
+		if (start < doffset)
+			/* Prepending. */
+			hint->count = doffset - start;
+		else 
+			hint->count = 0;
+	}
 
 	hint->overhead = 0;
 	hint->bytes = 0;
@@ -53,7 +58,7 @@ errno_t tail40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
-errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint) {
+errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	reiser4_place_t *src;
 	uint64_t offset;
 	uint32_t pos;
@@ -77,6 +82,8 @@ errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		res = tail40_copy(place, pos, src, src->pos.unit, hint->count);
 		if (res) return res;
 
+		place_mkdirty(place);
+		
 		offset += hint->count;
 	} else
 		offset += tail40_units(place) - place->pos.unit;

@@ -9,11 +9,13 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
+
+extern errno_t tail40_prep_insert_raw(reiser4_place_t *place, 
+				      trans_hint_t *hint);
+
+extern errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint);
+
 extern errno_t tail40_check_struct(reiser4_place_t *place, repair_hint_t *hint);
-
-extern errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint);
-
-extern errno_t tail40_prep_merge(reiser4_place_t *place, trans_hint_t *hint);
 
 extern errno_t tail40_pack(reiser4_place_t *place, aal_stream_t *stream);
 

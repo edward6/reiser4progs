@@ -25,29 +25,21 @@ struct aux_bitmap {
 
 typedef struct aux_bitmap aux_bitmap_t;
 
-extern void aux_bitmap_mark(aux_bitmap_t *bitmap,
-			    uint64_t bit);
-
-extern void aux_bitmap_clear(aux_bitmap_t *bitmap,
-			     uint64_t bit);
-
-extern int aux_bitmap_test(aux_bitmap_t *bitmap,
-			   uint64_t bit);
+extern void aux_bitmap_mark(aux_bitmap_t *bitmap, uint64_t bit);
+extern void aux_bitmap_clear(aux_bitmap_t *bitmap, uint64_t bit);
+extern int aux_bitmap_test(aux_bitmap_t *bitmap, uint64_t bit);
 
 extern void aux_bitmap_mark_region(aux_bitmap_t *bitmap, 
-				   uint64_t start,
-				   uint64_t count);
+				   uint64_t start,  uint64_t count);
 
 extern void aux_bitmap_clear_region(aux_bitmap_t *bitmap, 
-				    uint64_t start,
-				    uint64_t count);
+				    uint64_t start, uint64_t count);
 
 extern bool_t aux_bitmap_test_region_marked(aux_bitmap_t *bitmap,
-					    uint64_t start,	
-					    uint64_t count);
+					    uint64_t start, uint64_t count);
 
 extern bool_t aux_bitmap_test_region(aux_bitmap_t *bitmap,
-				     uint64_t start,	
+				     uint64_t start,
 				     uint64_t count,
 				     int marked);
 
@@ -58,11 +50,8 @@ extern uint64_t aux_bitmap_find_region(aux_bitmap_t *bitmap,
 				       uint64_t count,
 				       int marked);
 
-extern uint64_t aux_bitmap_find_marked(aux_bitmap_t *bitmap,
-				       uint64_t start);
-
-extern uint64_t aux_bitmap_find_cleared(aux_bitmap_t *bitmap,
-					uint64_t start);
+extern uint64_t aux_bitmap_find_marked(aux_bitmap_t *bitmap, uint64_t start);
+extern uint64_t aux_bitmap_find_cleared(aux_bitmap_t *bitmap, uint64_t start);
 
 extern uint64_t aux_bitmap_calc_marked(aux_bitmap_t *bitmap);
 extern uint64_t aux_bitmap_calc_cleared(aux_bitmap_t *bitmap);

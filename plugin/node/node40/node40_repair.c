@@ -362,13 +362,15 @@ errno_t node40_corrupt(reiser4_node_t *entity, uint16_t options) {
 	return 0;
 }
 
-int64_t node40_merge(reiser4_node_t *entity, pos_t *pos, trans_hint_t *hint) {
+int64_t node40_insert_raw(reiser4_node_t *entity, pos_t *pos, 
+			  trans_hint_t *hint) 
+{
 	aal_assert("vpf-965",  entity != NULL);
 	aal_assert("vpf-966",  pos != NULL);
 	aal_assert("vpf-1368", hint != NULL);
 	
 	return node40_modify(entity, pos, hint, 
-			     hint->plug->o.item_ops->repair->merge);
+			     hint->plug->o.item_ops->repair->insert_raw);
 }
 
 errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {

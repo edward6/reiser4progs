@@ -756,7 +756,7 @@ static int cde40_comp_entry(reiser4_place_t *place1, uint32_t pos1,
 
 /* Estimate the space needed for the insertion of the not overlapped part 
    of the item, overlapped part does not need any space. */
-errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *trans) {
+errno_t cde40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *trans) {
 	uint32_t sunits, send;
 	uint32_t offset, pol;
 	reiser4_place_t *src;
@@ -794,7 +794,7 @@ errno_t cde40_prep_merge(reiser4_place_t *place, trans_hint_t *trans) {
 	return 0;
 }
 
-int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *trans) {
+int64_t cde40_insert_raw(reiser4_place_t *place, trans_hint_t *trans) {
 	uint32_t dpos, dunits;
 	uint32_t spos, sunits;
 	reiser4_place_t *src;

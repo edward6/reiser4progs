@@ -10,6 +10,12 @@
 
 extern reiser4_core_t *bbox40_core;
 
+extern errno_t bbox40_prep_insert_raw(reiser4_place_t *place,
+				      trans_hint_t *hint);
+
+extern errno_t bbox40_insert_raw(reiser4_place_t *place,
+				 trans_hint_t *hint);
+
 extern errno_t bbox40_check_struct(reiser4_place_t *place, 
 				   repair_hint_t *hint);
 

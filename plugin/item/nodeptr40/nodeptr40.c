@@ -152,8 +152,8 @@ static item_repair_ops_t repair_ops = {
 	.check_struct	  = nodeptr40_check_struct,
 	.check_layout	  = nodeptr40_check_layout,
 	
-	.prep_merge	  = NULL,
-	.merge		  = NULL,
+	.prep_insert_raw = NULL,
+	.insert_raw	  = NULL,
 
 	.pack		  = NULL,
 	.unpack		  = NULL

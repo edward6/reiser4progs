@@ -397,9 +397,9 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 }
 
 /* Lookup for the correct @place place by the @start key in the @tree. */
-static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree, 
-					 reiser4_place_t *place,
-					 trans_hint_t *hint)
+static errno_t repair_tree_lookup(reiser4_tree_t *tree, 
+				  reiser4_place_t *dst,
+				  reiser4_place_t *src)
 {
 	reiser4_key_t dkey, end;
 	lookup_hint_t lhint;
@@ -408,43 +408,32 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	errno_t res;
 	
 	aal_assert("vpf-1364", tree  != NULL);
-	aal_assert("vpf-1365", place != NULL);
-	aal_assert("vpf-1367", hint  != NULL);
+	aal_assert("vpf-1365", dst != NULL);
+	aal_assert("vpf-1367", src != NULL);
 
 	aal_memset(&lhint, 0, sizeof(lhint));
 	lhint.level = LEAF_LEVEL;
-	lhint.key = &hint->offset;
+	lhint.key = &src->key;
 	lhint.collision = NULL;
 	lhint.hint = NULL;
 	
-	switch ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, place))) {
-	case PRESENT:
-		/* The whole item can not be inserted. */
-		if (place->pos.unit == MAX_UINT32)
-			place->pos.unit = 0;
-
-		if (reiser4_place_fetch(place))
-			return -EIO;
-
-		return 0;
-	case ABSENT:
-		break;
-	default:
+	res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, dst);
+	
+	if (res != ABSENT)
 		return res;
-	}
 
 	/* Absent. If non-existent unit or item, there is nothing mergable 
 	   from the right side--lookup would go down there in that case.  */
-	if (reiser4_place_right(place))
+	if (reiser4_place_right(dst))
 		/* Step to right. */
-		reiser4_place_inc(place, 1);
+		reiser4_place_inc(dst, 1);
 
-	if (reiser4_place_rightmost(place)) {
-		prev = *place;
+	if (reiser4_place_rightmost(dst)) {
+		prev = *dst;
 
 		reiser4_node_lock(prev.node);
 		
-		if ((res = reiser4_tree_next_place(tree, place, place))) {
+		if ((res = reiser4_tree_next_place(tree, dst, dst))) {
 			aal_error("Failed to get the next node.");
 			reiser4_node_unlock(prev.node);
 			return res;
@@ -453,42 +442,48 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 		reiser4_node_unlock(prev.node);
 		
 		/* No right node. */
-		if (!place->node) {
-			*place = prev;
-			return 0;
-		}
-	} else 
+		if (!dst->node)
+			goto finish;
+	} else {
 		aal_memset(&prev, 0, sizeof(prev));
+	}
 
-	/* Get the current key of the @place. */
-	if (reiser4_place_fetch(place))
+	/* Get the current key of the @dst. */
+	if (reiser4_place_fetch(dst))
 		return -EIO;
 
-	if ((res = reiser4_item_get_key(place, &dkey)))
+	if ((res = reiser4_item_get_key(dst, &dkey)))
 		return res;
 
-	if ((res = reiser4_item_maxreal_key((reiser4_place_t *)hint->specific, &end)))
+	if ((res = reiser4_item_maxreal_key(src, &end)))
 		return res;
 	
 	/* If @end key is not less than the lookuped, items are overlapped. 
 	   Othewise move to the previous pos. */
-	if ((res = reiser4_key_compfull(&end, &dkey)) >= 0) {
-		if (place->pos.unit == MAX_UINT32)
-			place->pos.unit = 0;
-	} else if (prev.node) {
-		*place = prev;
-	}
+	if ((res = reiser4_key_compfull(&end, &dkey)) >= 0) 
+		return PRESENT;
 
-	return 0;
+ finish:
+	if (prev.node)
+		*dst = prev;
+
+	/* Do not care about the  */
+	dst->plug = NULL;
+
+	return ABSENT;
 }
 
-static errno_t cb_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
+static errno_t cb_prep_insert_raw(reiser4_place_t *place, 
+				  trans_hint_t *hint) 
+{
 	return plug_call(hint->plug->o.item_ops->repair, 
-			 prep_merge, place, hint);
+			 prep_insert_raw, place, hint);
 }
 
-static errno_t cb_merge(reiser4_node_t *node, pos_t *pos, trans_hint_t *hint) {
-	return plug_call(node->plug->o.node_ops, merge, node, pos, hint);
+static errno_t cb_insert_raw(reiser4_node_t *node, pos_t *pos, 
+			     trans_hint_t *hint) 
+{
+	return plug_call(node->plug->o.node_ops, insert_raw, node, pos, hint);
 }
 
 /* Insert the item into the tree overwriting an existent in the tree item 
@@ -533,26 +528,17 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	level = reiser4_node_get_level(src->node);
 	
 	while (1) {
-		if ((res = repair_tree_insert_lookup(tree, &dst, &hint)))
+		if ((res = repair_tree_lookup(tree, &dst, src)) < 0)
 			return res;
 		
 		/* Convert @dst if needed. */
-		if (dst.pos.unit != MAX_UINT32) {
+		if (dst.plug) {
 			bool_t conv;
 
 			conv = repair_tree_need_conv(tree, dst.plug, src->plug);
 			
-			switch (conv) {
-			case 1:
-				res = repair_tree_conv(tree, &dst, src);
-				if (res) return res;
-
-				/* Repeat lookup after @dst conversion. */
-				continue;
-			case 0:
-				break;
-			default:
-				/* Conversion cannot be performed. */
+			if (conv < 0) {
+				/* Convertion is not possible. */
 				fsck_mess("Node (%llu), item (%u): the item (%s) "
 					  "[%s] is overlapped by keys with the "
 					  "item (%s) [%s] being inserted [node "
@@ -566,21 +552,30 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 
 				   return 0;
 			}
+			
+			if (conv) {
+				res = repair_tree_conv(tree, &dst, src);
+				if (res) return res;
+
+				/* Repeat lookup after @dst conversion. */
+				continue;
+			}
+			
+			/* Convertion is not needed, places are 
+			   overlapped, adjust the position. */
+			if (dst.pos.unit == MAX_UINT32)
+				dst.pos.unit = 0;
 		}
 
-		/* If dst points to some existent item of the same plugin type
-		   as src item and merge method is implemented for this plugin,
-		   call merge. Call it also if dst points to not existent item. 
-		 */
-		if (!hint.plug->o.item_ops->repair->merge) {
-			/* For items without merge method implemented, like SD. */
-			return 0;
-		} else if ((dst.plug && plug_equal(dst.plug, src->plug)) || 
-			   !dst.plug)
+		/* Insert_raw can insert the whole item (!dst.plug) or if dst &
+		   src items are of the same plugin. Call tree_copy otherwise. */
+		if ((dst.plug && plug_equal(dst.plug, src->plug)) || !dst.plug)
 		{
-			if ((res = reiser4_tree_modify(tree, &dst, &hint, level,
-						       cb_prep_merge,cb_merge)))
-				goto error;
+			res = reiser4_tree_modify(tree, &dst, &hint, level,
+						  cb_prep_insert_raw,
+						  cb_insert_raw);
+			
+			if (res) goto error;
 		} else {
 			/* For not equal plugins do coping. */
 			fsck_mess("Node (%llu), item (%u): the item (%s) [%s] "

@@ -13,6 +13,7 @@ static uint32_t bbox40_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+
 static errno_t bbox40_prep_insert(reiser4_place_t *place,
 				  trans_hint_t *hint)
 {
@@ -25,7 +26,8 @@ static errno_t bbox40_prep_insert(reiser4_place_t *place,
 	aal_assert("vpf-1570", link->key.plug != NULL);
 	
 	hint->overhead = 0;
-	
+
+	hint->count = 1;
 	hint->len = plug_call(link->key.plug->o.key_ops, bodysize);
 	hint->len *= sizeof(uint64_t);
 
@@ -71,11 +73,7 @@ static errno_t bbox40_remove_units(reiser4_place_t *place,
 	aal_assert("vpf-1575", link->key.plug != NULL);
 	
 	hint->overhead = 0;
-	hint->len = plug_call(link->key.plug->o.key_ops, bodysize);
-	hint->len *= sizeof(uint64_t);
-
-	if (link->type == SL_TRUNCATE)
-		hint->len += sizeof(uint64_t);
+	hint->len = place->len;
 
 	return 0;
 }
@@ -153,8 +151,8 @@ static item_repair_ops_t repair_ops = {
 	.check_struct	  = bbox40_check_struct,
 	.check_layout	  = NULL,
 
-	.prep_merge	  = NULL,
-	.merge		  = NULL,
+	.prep_insert_raw  = bbox40_prep_insert_raw,
+	.insert_raw	  = bbox40_insert_raw,
 
 	.pack		  = NULL,
 	.unpack		  = NULL

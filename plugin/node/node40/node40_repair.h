@@ -9,6 +9,12 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
+extern errno_t node40_insert_raw(reiser4_node_t *entity, pos_t *pos,
+				 trans_hint_t *hint);
+
+extern errno_t node40_check_struct(reiser4_node_t *entity,
+				   uint8_t mode);
+
 extern errno_t node40_pack(reiser4_node_t *entity,
 			   aal_stream_t *stream,
 			   int mode);
@@ -18,13 +24,7 @@ extern reiser4_node_t *node40_unpack(aal_block_t *block,
 				    aal_stream_t *stream,
 				    int mode);
 
-extern errno_t node40_check_struct(reiser4_node_t *entity,
-				   uint8_t mode);
-
-extern errno_t node40_merge(reiser4_node_t *entity, pos_t *pos,
-			    trans_hint_t *hint);
-
 extern void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
-			    uint32_t start, uint32_t count, uint16_t options);
+			 uint32_t start, uint32_t count, uint16_t options);
 
 #endif

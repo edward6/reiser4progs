@@ -374,7 +374,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 	uint64_t block_offset;
 
 	aal_assert("umka-1421", place != NULL);
-	aal_assert("umka-1422", buff != NULL);
+	aal_assert("umka-1422", hint != NULL);
 
 	count = hint->count;
 	buff = hint->specific;
@@ -1407,8 +1407,8 @@ static item_repair_ops_t repair_ops = {
 	.check_layout	  = extent40_check_layout,
 	.check_struct	  = extent40_check_struct,
 	
-	.prep_merge	  = extent40_prep_merge,
-	.merge		  = extent40_merge,
+	.prep_insert_raw  = extent40_prep_insert_raw,
+	.insert_raw	  = extent40_insert_raw,
 
 	.pack		  = NULL,
 	.unpack		  = NULL

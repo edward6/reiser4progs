@@ -507,8 +507,6 @@ static object_entity_t *dir40_create(object_hint_t *hint) {
 		  &entry.offset, &body_hint.offset);
 
 	body_hint.specific = &entry;
-	body_hint.place_func = NULL;
-	body_hint.region_func = NULL;
 	body_hint.shift_flags = SF_DEFAULT;
 	
 	dir40_reset((object_entity_t *)dir);
