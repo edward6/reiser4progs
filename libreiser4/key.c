@@ -217,7 +217,6 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Sets key hash component */
 errno_t reiser4_key_set_hash(
 	reiser4_key_t *key,	    /* key hash will be updated in */

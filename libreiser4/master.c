@@ -59,7 +59,7 @@ reiser4_master_t *reiser4_master_create(
     
 	/* Setting up magic */
 	aal_strncpy(SUPER(master)->ms_magic, MASTER_MAGIC,
-		    aal_strlen(MASTER_MAGIC));
+		    sizeof(SUPER(master)->ms_magic));
     
 	/* Setting up uuid and label */
 	if (uuid) {

@@ -20,13 +20,8 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 static objid_t *direntry40_objid(item_entity_t *item,
 				 uint32_t pos)
 {
-	uint32_t offset;
-	direntry40_t *direntry;
-
-	direntry = direntry40_body(item);
-	offset = direntry->entry[pos].offset;
-	
-	return (objid_t *)((void *)direntry + offset);
+	uint32_t offset = direntry40_body(item)->entry[pos].offset;
+	return (objid_t *)(item->body + offset);
 }
 
 /* Retutns statdata key of the file entry points to */
@@ -74,7 +69,8 @@ static errno_t direntry40_get_key(item_entity_t *item,
 
 /* Extracts entry name from the passed @entry to passed @buff */
 static char *direntry40_get_name(item_entity_t *item,
-				 uint32_t pos, char *buff)
+				 uint32_t pos, char *buff,
+				 uint32_t len)
 {
 	char *name;
 	key_entity_t key;
@@ -86,14 +82,8 @@ static char *direntry40_get_name(item_entity_t *item,
 	  objectid. Otherwise we extract it from the entry hash.
 	*/
 	if (plugin_call(key.plugin->key_ops, tall, &key)) {
-		uint32_t len;
-
 		name = (char *)((direntry40_objid(item, pos)) + 1);
-
-		len = aal_strlen(name);
 		aal_strncpy(buff, name, len);
-		
-		*(buff + len) = '\0';
 	} else {
 		uint64_t offset;
 		uint64_t objectid;
@@ -184,7 +174,9 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	for (i = pos; i < pos + count; i++, hint++) {
 		direntry40_get_obj(item, i, &hint->object);
 		direntry40_get_key(item, i, &hint->offset);
-		direntry40_get_name(item, i, hint->name);
+
+		direntry40_get_name(item, i, hint->name,
+				    sizeof(hint->name));
 	}
     
 	return count;
@@ -921,7 +913,7 @@ static errno_t direntry40_print(item_entity_t *item,
 		entry40_t *entry = &direntry->entry[i];
 		objid_t *objid = direntry40_objid(item, i);
 
-		direntry40_get_name(item, i, name);
+		direntry40_get_name(item, i, name, sizeof(name));
 
 		/* Cutting name by 25 symbols */
 		if (aal_strlen(name) > 25) {
