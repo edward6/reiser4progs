@@ -1472,12 +1472,11 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				goto error_free_node;
 			}
 		
-		} else
+		} else {
 			node = place->node;
+		}
 		
-		reiser4_place_init(place, node->p.node,
-				   &node->p.pos);
-
+		reiser4_place_init(place, node->p.node, &node->p.pos);
 		reiser4_place_inc(place, place->pos.unit == MAX_UINT32);
 		
 		curr++;

@@ -719,7 +719,7 @@ static errno_t cde40_insert(place_t *place, uint32_t pos,
 		
 		/* Setting up objectid component of hash */
 		oid = plug_call(hash->plug->o.key_ops,
-				get_objectid, hash);
+				get_fobjectid, hash);
 		
 		ha_set_objectid(entry, oid, pol);
 
