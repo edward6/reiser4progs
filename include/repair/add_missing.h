@@ -13,9 +13,15 @@
 #  include <config.h>
 #endif
 
+#include <repair/librepair.h>
+#include <time.h>
+
 /* Statistics gathered during the pass. */
-typedef struct repair_am_info {
-} repair_am_info_t;
+typedef struct repair_am_stat {
+    uint64_t read_leaves, by_leaf, by_item_leaves;
+    uint64_t read_twigs,  by_twig, by_item_twigs;
+    time_t time;
+} repair_am_stat_t;
 
 /* Add missing. */
 typedef struct repair_am {
@@ -23,8 +29,10 @@ typedef struct repair_am {
 
     aux_bitmap_t *bm_twig;
     aux_bitmap_t *bm_leaf;
-
-    repair_am_info_t info;
+    
+    repair_progress_handler_t *progress_handler;    
+    repair_progress_t *progress;
+    repair_am_stat_t stat;
 } repair_am_t;
 
 extern errno_t repair_add_missing(repair_am_t *am);

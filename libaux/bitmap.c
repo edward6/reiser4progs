@@ -16,8 +16,6 @@
 #define aux_bitmap_bound_check(bitmap, bit, action)		        \
 do {								        \
     if (bit >= bitmap->total) {					        \
-	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,	        \
-	    "Block %llu is out of range (0-%llu)", bit, bitmap->total); \
 	action;								\
     }									\
 } while (0)

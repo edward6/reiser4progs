@@ -6,7 +6,6 @@
     reiser4progs/COPYING.
 */
 
-#include <repair/librepair.h>
 #include <repair/add_missing.h>
 
 /* Callback for item_ops.layout method to mark all the blocks, items points to, 
@@ -43,9 +42,54 @@ static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	callback_item_mark_region, data);
 }
 
+static void repair_add_missing_setup(repair_am_t *am) {
+    aal_assert("vpf-887", am != NULL);
+    
+    aal_memset(am->progress, 0, sizeof(*am->progress));
+    am->progress->type = PROGRESS_RATE;
+    am->progress->title = "***** AddMissing Pass: inserting unconnected nodes "
+	"into the tree.";
+    time(&am->stat.time);
+}
+
+static void repair_add_missing_update(repair_am_t *am) {
+    aal_stream_t stream;
+    char *time_str;
+
+    aal_assert("vpf-886", am != NULL);
+
+    if (!am->progress_handler)
+	return;
+	
+    aal_stream_init(&stream);
+    
+    aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, by items "
+	"%llu\n", am->stat.read_twigs, am->stat.by_twig, 
+	am->stat.by_item_twigs);
+	    
+    aal_stream_format(&stream, "\tLeaves: read %llu, inserted %llu, by items "
+	"%llu\n", am->stat.read_leaves, am->stat.by_leaf, 
+	am->stat.by_item_leaves);
+
+    time_str = ctime(&am->stat.time);
+    time_str[aal_strlen(time_str) - 1] = '\0';
+    aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
+    time(&am->stat.time);
+    time_str = ctime(&am->stat.time);
+    time_str[aal_strlen(time_str) - 1] = '\0';
+    aal_stream_format(&stream, time_str);
+
+    am->progress->state = PROGRESS_STAT;
+    am->progress->text = (char *)stream.data;
+    am->progress_handler(am->progress);
+    
+    aal_stream_fini(&stream);
+}
+
 /* The pass inself, adds all the data which are not in the tree yet and which 
  * were found on the partition during the previous passes. */
 errno_t repair_add_missing(repair_am_t *am) {
+    repair_progress_t progress;
     reiser4_place_t place;
     pos_t *pos = &place.pos;
     reiser4_node_t *node;
@@ -59,19 +103,46 @@ errno_t repair_add_missing(repair_am_t *am) {
     aal_assert("vpf-847", am->repair->fs != NULL);
     aal_assert("vpf-848", am->bm_twig != NULL);
     aal_assert("vpf-849", am->bm_leaf != NULL);
-
-    bitmap = am->bm_twig;
     
+    am->progress = &progress;
+    
+    repair_add_missing_setup(am);
+   
     /* 2 loops - 1 for twigs, another for leaves. */
     for (i = 0; i < 2; i++) {
 	blk = 0;
-
+	
+	if (i == 0) {
+	    bitmap = am->bm_twig;
+	    am->progress->text = "Inserting unconnected twigs: ";
+	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_twig);
+	} else {
+	    bitmap = am->bm_leaf;
+	    am->progress->text = "Inserting unconnected leaves: ";
+	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
+	}
+	
+	am->progress->state = PROGRESS_START;
+	if (am->progress_handler)
+	    am->progress_handler(am->progress);
+	
+	am->progress->state = PROGRESS_UPDATE;
+ 
        	/* Try to insert the whole twig/leaf at once. If found twig/leaf could 
 	 * be split into 2 twigs/leaves and the wanted wtig/leaf fits between 
 	 * them w/out problem - it will be done instead of following item by 
 	 * item insertion. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
 	    node = repair_node_open(am->repair->fs, blk);
+	    
+	    if (i == 0)
+		am->stat.read_twigs++;
+	    else
+		am->stat.read_leaves++;
+	    
+	    if (am->progress_handler)
+		am->progress_handler(am->progress);
+	    
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
@@ -125,6 +196,11 @@ errno_t repair_add_missing(repair_am_t *am) {
 		reiser4_alloc_permit(am->repair->fs->alloc, node->blk, 1);
 		reiser4_alloc_occupy(am->repair->fs->alloc, node->blk, 1);
 
+		if (i == 0)
+		    am->stat.by_twig++;
+		else
+		    am->stat.by_leaf++;
+		
 		res = repair_node_traverse(node, callback_layout, 
 		    am->repair->fs->alloc);
 
@@ -139,14 +215,33 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    blk++;
 	}
 
+	am->progress->state = PROGRESS_END;
+	am->progress_handler(am->progress);
+	
 	blk = 0;
+	if (i == 0) {
+	    am->progress->text = "Inserting unconnected leaves item-by-item: ";
+	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_twig);
+	} else {
+	    am->progress->text = "Inserting unconnected twigs item-by-item: ";
+	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
+	}
+	
+	am->progress->state = PROGRESS_START;
+	am->progress_handler(am->progress);
 
+	am->progress->state = PROGRESS_UPDATE;
+	
 	/* Insert extents from the twigs/all items from leaves which are not in 
 	 * the tree yet item-by-item into the tree, overwrite existent data 
 	 * which is in the tree already if needed. FIXME: overwriting should be 
 	 * done on the base of flush_id. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
 	    node = repair_node_open(am->repair->fs, blk);
+	    
+	    if (am->progress_handler)
+		am->progress_handler(am->progress);
+	    
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
@@ -170,6 +265,11 @@ errno_t repair_add_missing(repair_am_t *am) {
 		if ((res = repair_tree_insert(am->repair->fs->tree, &place)))
 		    goto error_node_close;
 
+		if (i == 0)
+		    am->stat.by_item_twigs++;
+		else
+		    am->stat.by_item_leaves++;
+		
 		if ((res = callback_layout(&place, am->repair->fs->alloc)))
 		    goto error_node_close;
 	    }
@@ -180,15 +280,22 @@ errno_t repair_add_missing(repair_am_t *am) {
 
 	    blk++;
 	}
-	
-	bitmap = am->bm_leaf;
+
+	am->progress->state = PROGRESS_END;
+	am->progress_handler(am->progress);
     }
 
+    repair_add_missing(am);
     return 0;
 
 error_node_close:
     reiser4_node_close(node);
+
+error_progress_close:
     
+    am->progress->state = PROGRESS_END;
+    am->progress_handler(am->progress);
+
     return res;
 }
 

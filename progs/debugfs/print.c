@@ -74,10 +74,10 @@ errno_t debugfs_print_block(
 	}
 	
 	/* Check if @blk is a filesystem block at all */
-	if (!reiser4_alloc_occupied(fs->alloc, blk, 1)) {
+	if (!reiser4_alloc_occupied(fs->alloc, blk, 1))
 		aal_exception_info("Block %llu is not used.", blk);
-		return 0;
-	}
+	else
+		aal_exception_info("Block %llu is used.", blk);
 
 	/* Determining what is the object block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {

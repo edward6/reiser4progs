@@ -331,8 +331,8 @@ static void repair_filter_setup(repair_filter_t *fd) {
     
     aal_memset(fd->progress, 0, sizeof(*fd->progress));
     fd->progress->type = PROGRESS_TREE;
-    fd->progress->title = "Tree Traverse Pass: scanning the reiser4 internal "
-	"tree.";
+    fd->progress->title = "***** Tree Traverse Pass: scanning the reiser4 "
+	"internal tree.";
     fd->progress->text = "";
     time(&fd->stat.time);
 }

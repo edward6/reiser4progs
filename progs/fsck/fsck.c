@@ -256,14 +256,13 @@ static void fsck_time(char *string) {
     time_t t;
 
     time(&t);
-    fprintf(stderr, "\n======== %s %s\n", string, ctime (&t));
+    fprintf(stderr, "\n***** %s %s\n", string, ctime (&t));
 }
 
 int main(int argc, char *argv[]) {
     errno_t exit_code = NO_ERROR;
     fsck_parse_t parse_data;
     repair_data_t repair;
-    aal_gauge_t *gauge;
     aal_stream_t stream;
     errno_t error;
     
@@ -272,7 +271,6 @@ int main(int argc, char *argv[]) {
     memset(&parse_data, 0, sizeof(parse_data));
     memset(&repair, 0, sizeof(repair));
     aal_stream_init(&stream);
-    gauge = aal_gauge_create(GAUGE_SILENT, NULL);
 
     if ((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)
 	exit(exit_code);
@@ -289,21 +287,13 @@ int main(int argc, char *argv[]) {
 
     fsck_time("fsck.reiser4 started at");
 
-    aal_gauge_rename(gauge, "Openning the fs");
-    aal_gauge_start(gauge);
+    fprintf(stderr, "***** Openning the fs.\n");
     if ((error = repair_fs_open(&repair, parse_data.host_device, parse_data.host_device,
 	parse_data.profile)))
     {
 	exit_code = OPER_ERROR;	
 	goto free_libreiser4;
     }
-    aal_gauge_done(gauge);
-    aal_gauge_free(gauge);
-    
-    reiser4_master_print(repair.fs->master, &stream);
-    reiser4_format_print(repair.fs->format, &stream);
-    fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s", 
-	aal_device_name(parse_data.host_device), (char *)stream.data);
     
     if (repair.fs == NULL) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
@@ -311,7 +301,15 @@ int main(int argc, char *argv[]) {
 	
 	goto free_libreiser4;
     }
+     
+    reiser4_master_print(repair.fs->master, &stream);
+    aal_stream_format(&stream, "\n");
+    reiser4_format_print(repair.fs->format, &stream);
+    aal_stream_format(&stream, "\n");
     
+    fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s", 
+	aal_device_name(parse_data.host_device), (char *)stream.data);
+
     if (!(repair.fs->tree = reiser4_tree_init(repair.fs))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
 	    aal_device_name(parse_data.host_device));
@@ -342,16 +340,12 @@ free_libreiser4:
     
 free_device:
     if (parse_data.host_device) {
-	fprintf(stderr, "Closing device (%s) ...", 
-	    aal_device_name(parse_data.host_device));
-	
 	if (aal_device_sync(parse_data.host_device)) {
 	    aal_exception_fatal("Cannot synchronize the device (%s).", 
 		aal_device_name(parse_data.host_device));
 	    exit_code = OPER_ERROR;
 	}
 	aal_device_close(parse_data.host_device);
-	fprintf(stderr, "done\n");
     }
     
     /* Report about the results. */

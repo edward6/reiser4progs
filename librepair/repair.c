@@ -231,7 +231,9 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
     am->repair = control->repair;
     am->bm_leaf = control->bm_leaf;
     am->bm_twig = control->bm_twig;
-        
+    
+    am->progress_handler = control->repair->progress_handler;
+    
     for (i = 0; i < control->bm_met->size; i++) {
 	aal_assert("vpf-576", (control->bm_met->map[i] & 
 	    (control->bm_unfm_tree->map[i] | control->bm_unfm_out->map[i])) 

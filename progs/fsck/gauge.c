@@ -244,7 +244,7 @@ static void progress_update(repair_progress_t *progress) {
      
     gauge = (aal_gauge_t *)progress->data;
     
-    aal_assert("vpf-877", gauge->data != NULL);
+    aal_assert("vpf-888", gauge->data != NULL);
 
     hint = gauge->data;
 

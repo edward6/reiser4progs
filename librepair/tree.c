@@ -98,19 +98,18 @@ lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 /* This function creates nodeptr item on the nase of 'node' and insert it to 
  * the tree. */
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
+    reiser4_key_t rkey, key;
     reiser4_place_t place;
     create_hint_t hint;
+    lookup_t lookup;
     ptr_hint_t ptr;
-    reiser4_key_t rkey, key;
+    uint32_t level;
     errno_t res;
     rid_t pid;
-    uint32_t level;
-    lookup_t lookup;
 
     aal_assert("vpf-658", tree != NULL);
     aal_assert("vpf-659", node != NULL);
 
-    
     /* Preparing nodeptr item hint */
     aal_memset(&hint, 0, sizeof(hint));
     aal_memset(&ptr, 0, sizeof(ptr));
@@ -121,7 +120,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     if ((lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL, &place)) 
 	!= LP_ABSENT)
 	return lookup;
-	
+    
     /* If some node was found and it is not of higher level then the node being 
      * attached, try to split nodes to be able to attach the node as a whole. */
     level = reiser4_node_get_level(node);
@@ -175,10 +174,10 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	    node->blk);
 	return res;
     }
-
+    
     reiser4_tree_right(tree, node);
     reiser4_tree_left(tree, node);
-
+    
     return 0;
 }
 

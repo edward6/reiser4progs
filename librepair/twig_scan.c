@@ -101,8 +101,8 @@ static void repair_twig_scan_setup(repair_ts_t *ts) {
     
     aal_memset(ts->progress, 0, sizeof(*ts->progress));
     ts->progress->type = PROGRESS_RATE;
-    ts->progress->title = "TwigScan Pass: checking extent pointers of all "
-	"twigs.";
+    ts->progress->title = "***** TwigScan Pass: checking extent pointers of "
+	"all twigs.";
     ts->progress->text = "";
     time(&ts->stat.time);
     
