@@ -149,7 +149,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 
 /* Trying to guess hash in use by stat data extention */
 static reiser4_plugin_t *dir40_hash(dir40_t *dir, rid_t pid) {
-	if (pid != INVAL_PID) {
+	if (pid == INVAL_PID) {
 		/* This function should inspect stat data extentions first. And
 		   only if they do not contain a convenient plugin extention
 		   (hash plugin), it should use some default hash plugin id. */

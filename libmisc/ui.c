@@ -5,6 +5,7 @@
 
 #include <pty.h>
 #include <stdio.h>
+#include <string.h>
 #include <aal/aal.h>
 
 #ifdef HAVE_CONFIG_H
