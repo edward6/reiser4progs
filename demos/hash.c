@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 	if (!(table = aal_hash_table_alloc(hash_func, comp_func)))
 		return -1;
 
-	for (i = 1; i <= 100; i++) {
+	for (i = 1; i < 1000000; i++) {
 		aal_hash_table_insert(table, (void *)i,
 				      (void *)(i * 100));
 	}

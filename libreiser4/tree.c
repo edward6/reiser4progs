@@ -730,7 +730,7 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 		reiser4_node_t *child;
 		aal_list_t *walk, *next;
 
-		for (walk = node->children; walk; ) {
+		for (walk = node->children; walk; walk = next) {
 			next = walk->next;
 			child = (reiser4_node_t *)walk->data;
 			
@@ -739,8 +739,6 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 			{
 				return res;
 			}
-			
-			walk = next;
 		}
 	}
 

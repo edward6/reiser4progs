@@ -412,10 +412,9 @@ void libreiser4_factory_fini(void) {
 	aal_assert("umka-335", plugins != NULL);
 
 	/* Unloading all registered plugins */
-	for (walk = plugins; walk; ) {
+	for (walk = plugins; walk; walk = next) {
 		next = walk->next;
 		libreiser4_factory_unload((reiser4_plugin_t *)walk->data);
-		walk = next;
 	}
 	
 	registered = 0;
