@@ -6,6 +6,9 @@
 
 #include "direntry40.h"
 
-errno_t direntry40_check(reiser4_body_t *body, uint16_t options) {
+errno_t direntry40_check(reiser4_item_t *item, 
+    uint16_t options) 
+{
     return 0;
 }
+

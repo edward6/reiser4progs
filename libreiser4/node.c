@@ -343,7 +343,7 @@ int reiser4_node_lookup(
     
     if (item.plugin->item_ops.maxkey) {
 	    
-	if (item.plugin->item_ops.maxkey(&maxkey) == -1) {
+	if (item.plugin->item_ops.maxkey(&item, &maxkey) == -1) {
 	    aal_exception_error("Getting max key of the item %d "
 		"in the node %llu failed.", pos->item, 
 		aal_block_number(node->block));
@@ -361,7 +361,7 @@ int reiser4_node_lookup(
     if (!item.plugin->item_ops.lookup)
 	return 0;
 	    
-    if ((lookup = item.plugin->item_ops.lookup(reiser4_item_body(&item), key,
+    if ((lookup = item.plugin->item_ops.lookup(&item, key,
 	&pos->unit)) == -1) 
     {
 	aal_exception_error("Lookup in the item %d in the node %llu failed.", 

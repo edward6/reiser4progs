@@ -8,22 +8,34 @@
 
 static reiser4_core_t *core = NULL;
 
+static internal40_t *internal40_body(reiser4_item_t *item) {
+
+    if (item == NULL) return NULL;
+    
+    return (internal40_t *)plugin_call(return NULL, 
+	item->node->plugin->node_ops, item_body, item->node, item->pos);
+}
+
 #ifndef ENABLE_COMPACT
 
-static errno_t internal40_init(reiser4_body_t *body, 
+static errno_t internal40_init(reiser4_item_t *item, 
     reiser4_item_hint_t *hint)
 {
-    aal_assert("vpf-063", body != NULL, return -1); 
+    internal40_t *internal;
+    
+    aal_assert("vpf-063", item != NULL, return -1); 
     aal_assert("vpf-064", hint != NULL, return -1);
 
-    it40_set_ptr((internal40_t *)body, 
+    internal = internal40_body(item);
+    
+    it40_set_ptr(internal, 
 	((reiser4_internal_hint_t *)hint->hint)->ptr);
 	    
     return 0;
 }
 
-static errno_t internal40_estimate(uint32_t pos, 
-    reiser4_item_hint_t *hint) 
+static errno_t internal40_estimate(reiser4_item_t *item,
+    uint32_t pos, reiser4_item_hint_t *hint) 
 {
     aal_assert("vpf-068", hint != NULL, return -1);
     
@@ -31,14 +43,15 @@ static errno_t internal40_estimate(uint32_t pos,
     return 0;
 }
 
-extern errno_t internal40_check(reiser4_body_t *, uint16_t);
+extern errno_t internal40_check(reiser4_item_t *item, 
+    uint16_t options);
 
 #endif
 
-static errno_t internal40_print(reiser4_body_t *body, 
+static errno_t internal40_print(reiser4_item_t *item, 
     char *buff, uint32_t n, uint16_t options) 
 {
-    aal_assert("umka-544", body != NULL, return -1);
+    aal_assert("umka-544", item != NULL, return -1);
     aal_assert("umka-545", buff != NULL, return -1);
 
     return -1;
@@ -46,20 +59,28 @@ static errno_t internal40_print(reiser4_body_t *body,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t internal40_set_ptr(reiser4_body_t *body, 
+static errno_t internal40_set_ptr(reiser4_item_t *item, 
     blk_t blk)
 {
-    aal_assert("umka-605", body != NULL, return -1);
-    it40_set_ptr((internal40_t *)body, blk);
+    internal40_t *internal;
+    
+    aal_assert("umka-605", item != NULL, return -1);
+
+    internal = internal40_body(item);
+    it40_set_ptr(internal, blk);
 
     return 0;
 }
 
 #endif
 
-static blk_t internal40_get_ptr(reiser4_body_t *body) {
-    aal_assert("umka-606", body != NULL, return 0);
-    return it40_get_ptr((internal40_t *)body);
+static blk_t internal40_get_ptr(reiser4_item_t *item) {
+    internal40_t *internal;
+    
+    aal_assert("umka-606", item != NULL, return 0);
+    internal = internal40_body(item);
+    
+    return it40_get_ptr(internal);
 }
 
 static reiser4_plugin_t internal40_plugin = {
@@ -84,9 +105,7 @@ static reiser4_plugin_t internal40_plugin = {
 #endif
         .lookup	    = NULL,
         .maxkey	    = NULL,
-        .confirm    = NULL,
         .valid	    = NULL,
-	    
         .insert	    = NULL,
         .count	    = NULL,
         .remove	    = NULL,

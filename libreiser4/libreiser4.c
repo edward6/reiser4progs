@@ -71,6 +71,16 @@ static inline int __lookup(
 	REISER4_LEAF_LEVEL, key, (reiser4_coord_t *)place);
 }
 
+static inline reiser4_entity_t *__item_node(
+    const void *tree,		    /* opaque pointer to the tree */
+    reiser4_place_t *place	    /* coords of the item */
+) {
+    aal_assert("umka-1200", tree != NULL, return NULL);
+    aal_assert("umka-1201", place != NULL, return NULL);
+
+    return ((reiser4_cache_t *)place->cache)->node->entity;
+}
+
 /* Hanlder for item body requests arrive from the all plugins */
 static inline errno_t __item_body(
     const void *tree,		    /* opaque pointer to the tree */
@@ -245,6 +255,8 @@ reiser4_core_t core = {
 	    coord.
 	*/
 	.item_body = __item_body,
+
+	.item_node = __item_node,
 
 	/* Returns key by coords */
 	.item_key = __item_key,

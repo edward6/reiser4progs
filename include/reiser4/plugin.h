@@ -178,6 +178,21 @@ typedef struct reiser4_key reiser4_key_t;
 
 typedef uint32_t reiser4_key_type_t;
 
+struct reiser4_pos {
+    uint32_t item;
+    uint32_t unit;
+};
+
+typedef struct reiser4_pos reiser4_pos_t;
+
+struct reiser4_item {
+    reiser4_plugin_t *plugin;
+    reiser4_entity_t *node;
+    reiser4_pos_t *pos;
+};
+
+typedef struct reiser4_item reiser4_item_t;
+
 /* 
     To create a new item or to insert into the item we need to perform the 
     following operations:
@@ -327,13 +342,6 @@ struct reiser4_item_hint {
 
 typedef struct reiser4_item_hint reiser4_item_hint_t;
 
-struct reiser4_pos {
-    uint32_t item;
-    uint32_t unit;
-};
-
-typedef struct reiser4_pos reiser4_pos_t;
-
 #define REISER4_PLUGIN_MAX_LABEL	16
 #define REISER4_PLUGIN_MAX_DESC		256
 
@@ -456,22 +464,21 @@ struct reiser4_file_ops {
 typedef struct reiser4_file_ops reiser4_file_ops_t;
 
 struct reiser4_direntry_ops {
-    errno_t (*entry) (reiser4_body_t *, uint32_t, 
-	reiser4_entry_hint_t *);
+    errno_t (*entry) (reiser4_item_t *, uint32_t, reiser4_entry_hint_t *);
 };
 
 typedef struct reiser4_direntry_ops reiser4_direntry_ops_t;
 
 struct reiser4_statdata_ops {
-    uint16_t (*get_mode) (reiser4_body_t *);
-    errno_t (*set_mode) (reiser4_body_t *, uint16_t);
+    uint16_t (*get_mode) (reiser4_item_t *);
+    errno_t (*set_mode) (reiser4_item_t *, uint16_t);
 };
 
 typedef struct reiser4_statdata_ops reiser4_statdata_ops_t;
 
 struct reiser4_internal_ops {
-    blk_t (*get_ptr) (reiser4_body_t *);
-    errno_t (*set_ptr) (reiser4_body_t *, blk_t);
+    blk_t (*get_ptr) (reiser4_item_t *);
+    errno_t (*set_ptr) (reiser4_item_t *, blk_t);
 };
 
 typedef struct reiser4_internal_ops reiser4_internal_ops_t;
@@ -483,40 +490,38 @@ struct reiser4_item_ops {
     reiser4_item_type_t type;
 
     /* Forms item structures based on passed hint in passed memory area */
-    errno_t (*init) (reiser4_body_t *, reiser4_item_hint_t *);
+    errno_t (*init) (reiser4_item_t *, reiser4_item_hint_t *);
 
     /* Inserts unit described by passed hint into the item */
-    errno_t (*insert) (reiser4_body_t *, uint32_t, 
+    errno_t (*insert) (reiser4_item_t *, uint32_t, 
 	reiser4_item_hint_t *);
     
     /* Removes specified unit from the item. Returns released space */
-    uint16_t (*remove) (reiser4_body_t *, uint32_t);
+    uint16_t (*remove) (reiser4_item_t *, uint32_t);
 
     /* Estimates item */
-    errno_t (*estimate) (uint32_t, reiser4_item_hint_t *);
+    errno_t (*estimate) (reiser4_item_t *, uint32_t, 
+	reiser4_item_hint_t *);
     
-    /* Confirms item type */
-    int (*confirm) (reiser4_body_t *);
+    /* Checks item for validness */
+    errno_t (*valid) (reiser4_item_t *);
 
     /* Makes lookup for passed key */
-    int (*lookup) (reiser4_body_t *, reiser4_key_t *, 
+    int (*lookup) (reiser4_item_t *, reiser4_key_t *, 
 	uint32_t *);
 
-    /* Checks item for validness */
-    errno_t (*valid) (reiser4_body_t *);
-
     /* Prints item into specified buffer */
-    errno_t (*print) (reiser4_body_t *, char *, uint32_t, 
+    errno_t (*print) (reiser4_item_t *, char *, uint32_t, 
 	uint16_t);
 
     /* Get the max key which could be stored in the item of this type */
-    errno_t (*maxkey) (reiser4_key_t *);
+    errno_t (*maxkey) (reiser4_item_t *, reiser4_key_t *);
     
     /* Returns unit count */
-    uint32_t (*count) (reiser4_body_t *);
+    uint32_t (*count) (reiser4_item_t *);
 
     /* Checks the item structure. */
-    errno_t (*check) (reiser4_body_t *, uint16_t);
+    errno_t (*check) (reiser4_item_t *, uint16_t);
 
     /* Methods specific to particular type of item */
     union {
@@ -895,17 +900,6 @@ union reiser4_plugin {
     reiser4_sdext_ops_t sdext_ops;
 };
 
-struct reiser4_item {
-    
-    /* The pointer to the item plugin */
-    reiser4_plugin_t *plugin;
-    
-    reiser4_entity_t *node;
-    reiser4_pos_t *pos;
-};
-
-typedef struct reiser4_item reiser4_item_t;
-
 /* 
     The replica of coord for using in plugins. Field "cache" is void * because we 
     should keep libreiser4 structures unknown for plugins.
@@ -963,10 +957,14 @@ struct reiser4_core {
 	    Returns pointer on the item and its size by passed coord from the tree.
 	    It is used all object plugins in order to access data stored in items.
 	*/
-	errno_t (*item_body) (const void *, reiser4_place_t *, void **, uint32_t *);
+	errno_t (*item_body) (const void *, reiser4_place_t *, 
+	    void **, uint32_t *);
 
+	reiser4_entity_t *(*item_node) (const void *, reiser4_place_t *);
+	
 	/* Returns key by specified coord */
-	errno_t (*item_key) (const void *, reiser4_place_t *, reiser4_key_t *);
+	errno_t (*item_key) (const void *, reiser4_place_t *, 
+	    reiser4_key_t *);
     
 	errno_t (*item_right) (const void *, reiser4_place_t *);
 	errno_t (*item_left) (const void *, reiser4_place_t *);

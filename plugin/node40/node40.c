@@ -274,6 +274,7 @@ static errno_t node40_insert(reiser4_entity_t *entity,
     reiser4_pos_t *pos, reiser4_item_hint_t *hint) 
 { 
     node40_header_t *nh;
+    reiser4_item_t item;
     node40_t *node = (node40_t *)entity;
     
     aal_assert("umka-818", node != NULL, return -1);
@@ -297,14 +298,18 @@ static errno_t node40_insert(reiser4_entity_t *entity,
 	return 0;
     }
     
+    item.pos = pos;
+    item.node = entity;
+	    
     return plugin_call(return -1, hint->plugin->item_ops,
-	init, node40_ib_at(node->block, pos->item), hint);
+	init, &item, hint);
 }
 
 /* Pastes unit into item described by hint structure. */
 static errno_t node40_paste(reiser4_entity_t *entity, 
     reiser4_pos_t *pos, reiser4_item_hint_t *hint) 
 {
+    reiser4_item_t item;
     node40_t *node = (node40_t *)entity;
     
     aal_assert("umka-1017", node != NULL, return -1);
@@ -313,8 +318,11 @@ static errno_t node40_paste(reiser4_entity_t *entity,
     if (node40_expand(node, pos, hint))
 	return -1;
 
-    return plugin_call(return -1, hint->plugin->item_ops, insert, 
-	node40_ib_at(node->block, pos->item), pos->unit, hint);
+    item.pos = pos;
+    item.node = entity;
+	    
+    return plugin_call(return -1, hint->plugin->item_ops, 
+	insert, &item, pos->unit, hint);
 }
 
 static errno_t node40_shrink(node40_t *node,
@@ -402,12 +410,13 @@ errno_t node40_remove(reiser4_entity_t *entity,
 static errno_t node40_cut(reiser4_entity_t *entity, 
     reiser4_pos_t *pos)
 {
-    void *body;
     rpid_t pid;
     uint16_t len;
     
     item40_header_t *ih;
     node40_header_t *nh;
+    
+    reiser4_item_t item;
     reiser4_plugin_t *plugin;
     node40_t *node = (node40_t *)entity;
 	
@@ -425,10 +434,11 @@ static errno_t node40_cut(reiser4_entity_t *entity,
 	return -1;
     }
     
-    body = node40_ib_at(node->block, pos->item);
+    item.pos = pos;
+    item.node = entity;
 	
-    if (!(len = plugin_call(return 0, plugin->item_ops, 
-	    remove, body, pos->unit)))
+    if (!(len = plugin_call(return 0, plugin->item_ops, remove, 
+	    &item, pos->unit)))
         return -1;
 	
     if (node40_shrink(node, pos, len))
@@ -539,8 +549,10 @@ static inline int callback_comp_key(void *key1,
 static int node40_lookup(reiser4_entity_t *entity, 
     reiser4_key_t *key, reiser4_pos_t *pos)
 {
+    int lookup; 
+    int64_t item;
     uint32_t count;
-    int lookup; int64_t item;
+
     node40_t *node = (node40_t *)entity;
     
     aal_assert("umka-472", key != NULL, return -1);

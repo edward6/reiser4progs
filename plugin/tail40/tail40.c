@@ -8,28 +8,34 @@
 
 static reiser4_core_t *core = NULL;
 
+static reiser4_body_t *tail40_body(reiser4_item_t *item) {
+
+    if (item == NULL) return NULL;
+    
+    return plugin_call(return NULL, item->node->plugin->node_ops, 
+	item_body, item->node, item->pos);
+}
+
 #ifndef ENABLE_COMPACT
 
-static errno_t tail40_init(reiser4_body_t *body, 
+static errno_t tail40_init(reiser4_item_t *item, 
     reiser4_item_hint_t *hint)
 {
-    aal_assert("umka-1172", body != NULL, return -1); 
+    aal_assert("umka-1172", item != NULL, return -1); 
     aal_assert("umka-1173", hint != NULL, return -1);
     aal_assert("umka-1178", hint->data != NULL, return -1);
     
-    aal_memcpy(body, hint->data, hint->len);
+    aal_memcpy(tail40_body(item), hint->data, hint->len);
     return 0;
 }
 
-static errno_t tail40_insert(reiser4_body_t *body, 
-    uint32_t pos, reiser4_item_hint_t *hint)
+static errno_t tail40_insert(reiser4_item_t *item, uint32_t pos, 
+    reiser4_item_hint_t *hint)
 {
     return -1;
 }
 
-static uint16_t tail40_remove(reiser4_body_t *body, 
-    uint32_t pos)
-{
+static uint16_t tail40_remove(reiser4_item_t *item, uint32_t pos) {
     return -1;
 }
 
@@ -59,9 +65,7 @@ static reiser4_plugin_t tail40_plugin = {
         .check	    = NULL,
         .maxkey	    = NULL,
         .lookup	    = NULL,
-	    
         .count	    = NULL,
-        .confirm    = NULL,
         .valid	    = NULL,
         .print	    = NULL,
 

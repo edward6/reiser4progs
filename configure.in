@@ -56,20 +56,6 @@ AC_ARG_WITH(readline,
         with_readline=yes
 )
 
-dnl Check for termcap
-if test "$with_readline" = yes; then
-    OLD_LIBS="$LIBS"
-    LIBS="$LIBS $PROGS_LDADD"
-    AC_SEARCH_LIBS(tgetent, ncurses curses termcap termlib,
-	PROGS_LDADD="$PROGS_LDADD $LIBS",
-	AC_MSG_ERROR(
-termcap could not be found which is required for the --with-readline option
-	)
-	exit
-    )
-    LIBS="$OLD_LIBS"
-fi
-
 dnl Check for readline
 if test "$with_readline" = yes; then
     OLD_LIBS="$LIBS"
@@ -77,9 +63,10 @@ if test "$with_readline" = yes; then
     AC_CHECK_LIB(readline, readline,
 	PROGS_LDADD="$PROGS_LDADD -lreadline"
 	AC_DEFINE(HAVE_LIBREADLINE),
-	    AC_MSG_ERROR(
+	    AC_MSG_WARN(
 GNU Readline could not be found which is required for the --with-readline
 	    )
+	    with_readline=no
 	    exit,
 	    $PROGS_LDADD
     )
@@ -164,8 +151,6 @@ are required for the --with-readline option.
 	exit
     )
 fi
-
-AC_CHECK_HEADERS(termcap.h)
 
 # Checks for header files.
 AC_HEADER_STDC

@@ -8,26 +8,28 @@
 
 static reiser4_core_t *core = NULL;
 
-static errno_t stat40_confirm(reiser4_body_t *body) {
-    aal_assert("umka-1008", body != NULL, return -1);
-    return 0;
+static stat40_t *stat40_body(reiser4_item_t *item) {
+
+    if (item == NULL) return NULL;
+    
+    return (stat40_t *)plugin_call(return NULL, 
+	item->node->plugin->node_ops, item_body, item->node, item->pos);
 }
 
 #ifndef ENABLE_COMPACT
 
-static errno_t stat40_init(reiser4_body_t *body, 
+static errno_t stat40_init(reiser4_item_t *item, 
     reiser4_item_hint_t *hint)
 {
     uint8_t i;
     stat40_t *stat;
-    
     reiser4_body_t *extention;
     reiser4_statdata_hint_t *stat_hint;
     
-    aal_assert("vpf-076", body != NULL, return -1); 
+    aal_assert("vpf-076", item != NULL, return -1); 
     aal_assert("vpf-075", hint != NULL, return -1);
     
-    stat = (stat40_t *)body;
+    stat = stat40_body(item);
     stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
     st40_set_extmask(stat, stat_hint->extmask);
@@ -62,13 +64,14 @@ static errno_t stat40_init(reiser4_body_t *body,
     return 0;
 }
 
-static errno_t stat40_estimate(uint32_t pos, 
+static errno_t stat40_estimate(reiser4_item_t *item, uint32_t pos, 
     reiser4_item_hint_t *hint) 
 {
     uint8_t i;
     reiser4_statdata_hint_t *stat_hint;
     
     aal_assert("vpf-074", hint != NULL, return -1);
+    aal_assert("umka-1196", item != NULL, return -1);
 
     hint->len = sizeof(stat40_t);
     stat_hint = (reiser4_statdata_hint_t *)hint->hint;
@@ -97,34 +100,38 @@ static errno_t stat40_estimate(uint32_t pos,
 }
 
 /* This method inserts the stat data extentions */
-static errno_t stat40_insert(reiser4_body_t *body, 
+static errno_t stat40_insert(reiser4_item_t *item, 
     uint32_t pos, reiser4_item_hint_t *hint)
 {
     return -1;
 }
 
 /* This method deletes the stat data extentions */
-static uint16_t stat40_remove(reiser4_body_t *body, 
+static uint16_t stat40_remove(reiser4_item_t *item, 
     uint32_t pos)
 {
     return -1;
 }
 
-extern errno_t stat40_check(reiser4_body_t *, uint16_t);
+extern errno_t stat40_check(reiser4_item_t *, uint16_t);
 
 #endif
 
-static errno_t stat40_valid(reiser4_body_t *body) {
-    aal_assert("umka-1007", body != NULL, return -1);
+static errno_t stat40_valid(reiser4_item_t *item) {
+    aal_assert("umka-1007", item != NULL, return -1);
     return 0;
 }
 
 /* This function returns stat data extention count */
-static uint32_t stat40_count(reiser4_body_t *body) {
+static uint32_t stat40_count(reiser4_item_t *item) {
+    stat40_t *stat;
     uint64_t extmask;
     uint8_t i, count = 0;
 
-    extmask = st40_get_extmask((stat40_t *)body);
+    aal_assert("umka-1197", item != NULL, return 0);
+    
+    stat = stat40_body(item);
+    extmask = st40_get_extmask(stat);
     
     for (i = 0; i < sizeof(uint64_t)*8; i++)
 	count += (((uint64_t)1 << i) & extmask);
@@ -132,17 +139,20 @@ static uint32_t stat40_count(reiser4_body_t *body) {
     return count;
 }
 
-static reiser4_body_t *stat40_extbody(reiser4_body_t *body, 
+static reiser4_body_t *stat40_extbody(reiser4_item_t *item, 
     uint8_t bit)
 {
     uint8_t i;
+    stat40_t *stat;
     uint64_t extmask;
     reiser4_body_t *extbody;
    
-    aal_assert("umka-1191", body != NULL, return NULL);
+    aal_assert("umka-1191", item != NULL, return NULL);
     
-    extbody = ((void *)body) + sizeof(stat40_t);
-    extmask = st40_get_extmask((stat40_t *)body);
+    stat = stat40_body(item);
+    extbody = ((void *)stat) + sizeof(stat40_t);
+    
+    extmask = st40_get_extmask(stat);
     
     for (i = 0; i < bit; i++) {
         reiser4_plugin_t *plugin;
@@ -163,15 +173,17 @@ static reiser4_body_t *stat40_extbody(reiser4_body_t *body,
     return extbody;
 }
 
-static errno_t stat40_open_sdext(reiser4_body_t *body, 
+static errno_t stat40_open_sdext(reiser4_item_t *item, 
     uint8_t bit, stat40_sdext_t *sdext)
 {
+    stat40_t *stat;
     uint64_t extmask;
     
-    aal_assert("umka-1193", body != NULL, return -1);
+    aal_assert("umka-1193", item != NULL, return -1);
     aal_assert("umka-1194", sdext != NULL, return -1);
 
-    extmask = st40_get_extmask((stat40_t *)body);
+    stat = stat40_body(item);
+    extmask = st40_get_extmask(stat);
 
     if (!(((uint64_t)1 << bit) & extmask)) {
 	aal_exception_error("Stat data extention 0x%x "
@@ -187,16 +199,16 @@ static errno_t stat40_open_sdext(reiser4_body_t *body,
 	return -1;
     }
     
-    return -((sdext->body = stat40_extbody(body, bit)) == NULL);
+    return -((sdext->body = stat40_extbody(item, bit)) == NULL);
 }
 
-static uint16_t stat40_get_mode(reiser4_body_t *body) {
+static uint16_t stat40_get_mode(reiser4_item_t *item) {
     stat40_sdext_t sdext;
     reiser4_sdext_lw_hint_t hint;
     
-    aal_assert("umka-710", body != NULL, return 0);
+    aal_assert("umka-710", item != NULL, return 0);
     
-    if (stat40_open_sdext(body, SDEXT_LW_ID, &sdext))
+    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
 	return 0;
     
     if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
@@ -213,15 +225,15 @@ static uint16_t stat40_get_mode(reiser4_body_t *body) {
 
 #ifndef ENABLE_COMPACT
 
-static errno_t stat40_set_mode(reiser4_body_t *body, 
+static errno_t stat40_set_mode(reiser4_item_t *item, 
     uint16_t mode)
 {
     stat40_sdext_t sdext;
     reiser4_sdext_lw_hint_t hint;
     
-    aal_assert("umka-1192", body != NULL, return 0);
+    aal_assert("umka-1192", item != NULL, return 0);
     
-    if (stat40_open_sdext(body, SDEXT_LW_ID, &sdext))
+    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
 	return 0;
     
     if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
@@ -277,7 +289,6 @@ static reiser4_plugin_t stat40_plugin = {
         .print	    = NULL,
 	    
         .count	    = stat40_count,
-        .confirm    = stat40_confirm,
         .valid	    = stat40_valid,
 	
 	.specific = {

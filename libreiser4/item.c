@@ -56,18 +56,11 @@ errno_t reiser4_item_init(reiser4_item_t *item,
 
 /* Returns count of units in item */
 uint32_t reiser4_item_count(reiser4_item_t *item) {
-    reiser4_body_t *body;
-    
     aal_assert("umka-1030", item != NULL, return 0);
     aal_assert("umka-1068", item->plugin != NULL, return 0);
     
-    if (!(body = reiser4_item_body(item))) {
-	aal_exception_error("Can't get item body.");
-	return 0;
-    }
-    
     if (item->plugin->item_ops.count)
-	return item->plugin->item_ops.count(body);
+	return item->plugin->item_ops.count(item);
 
     return 1;
 }
@@ -115,7 +108,7 @@ errno_t reiser4_item_estimate(
     
     /* Estimate for the 2nd and for the 4th cases */
     return plugin_call(return -1, hint->plugin->item_ops, 
-	estimate, item->pos->unit, hint);
+	estimate, item, item->pos->unit, hint);
 }
 
 #endif
@@ -161,8 +154,6 @@ int reiser4_item_statdata(reiser4_item_t *item) {
 }
 
 uint16_t reiser4_item_get_smode(reiser4_item_t *item) {
-    reiser4_body_t *body;
-    
     aal_assert("umka-1102", item != NULL, return 0);
     aal_assert("umka-1103", item->plugin != NULL, return 0);
 
@@ -173,13 +164,8 @@ uint16_t reiser4_item_get_smode(reiser4_item_t *item) {
 	return 0;
     }
     
-    if (!(body = reiser4_item_body(item))) {
-	aal_exception_error("Can't get item body.");
-	return 0;
-    }
-    
     return plugin_call(return 0, 
-	item->plugin->item_ops.specific.statdata, get_mode, body);
+	item->plugin->item_ops.specific.statdata, get_mode, item);
 }
 
 #ifndef ENABLE_COMPACT
@@ -187,8 +173,6 @@ uint16_t reiser4_item_get_smode(reiser4_item_t *item) {
 errno_t reiser4_item_set_smode(reiser4_item_t *item, 
     uint16_t mode) 
 {
-    reiser4_body_t *body;
-    
     aal_assert("umka-1105", item != NULL, return 0);
     aal_assert("umka-1106", item->plugin != NULL, return 0);
 
@@ -199,13 +183,8 @@ errno_t reiser4_item_set_smode(reiser4_item_t *item,
 	return -1;
     }
     
-    if (!(body = reiser4_item_body(item))) {
-	aal_exception_error("Can't get item body.");
-	return -1;
-    }
-    
     return plugin_call(return -1, item->plugin->item_ops.specific.statdata, 
-	set_mode, body, mode);
+	set_mode, item, mode);
 }
 
 #endif
@@ -220,8 +199,6 @@ int reiser4_item_internal(reiser4_item_t *item) {
 
 /* Returns node pointer from internal node */
 blk_t reiser4_item_get_iptr(reiser4_item_t *item) {
-    reiser4_body_t *body;
-    
     aal_assert("vpf-041", item != NULL, return 0);
     aal_assert("umka-1074", item->plugin != NULL, return 0);
     
@@ -232,13 +209,8 @@ blk_t reiser4_item_get_iptr(reiser4_item_t *item) {
 	return 0;
     }
     
-    if (!(body = reiser4_item_body(item))) {
-	aal_exception_error("Can't get item body.");
-	return 0;
-    }
-    
     return plugin_call(return 0, item->plugin->item_ops.specific.internal, 
-	get_ptr, body);
+	get_ptr, item);
 }
 
 #ifndef ENABLE_COMPACT
@@ -247,8 +219,6 @@ blk_t reiser4_item_get_iptr(reiser4_item_t *item) {
 errno_t reiser4_item_set_iptr(reiser4_item_t *item,
     blk_t blk) 
 {
-    reiser4_body_t *body;
-    
     aal_assert("umka-607", item != NULL, return -1);
     aal_assert("umka-1071", item->plugin != NULL, return -1);
 
@@ -259,14 +229,9 @@ errno_t reiser4_item_set_iptr(reiser4_item_t *item,
 	return -1;
     }
     
-    if (!(body = reiser4_item_body(item))) {
-	aal_exception_error("Can't get item body.");
-	return -1;
-    }
-    
     /* Calling node plugin for handling */
     return plugin_call(return -1, item->plugin->item_ops.specific.internal, 
-	set_ptr, body, blk);
+	set_ptr, item, blk);
 }
 
 #endif

@@ -194,10 +194,16 @@ error_set_context:
 }
 
 static uint32_t dir40_count(dir40_t *dir) {
+    reiser4_item_t item;
+    
     aal_assert("umka-1156", dir != NULL, return 0);
     
+    item.plugin = dir->direntry.plugin;
+    item.node = core->tree_ops.item_node(dir->tree, &dir->place);
+    item.pos = &dir->place.pos;
+    
     return plugin_call(return -1, dir->direntry.plugin->item_ops, 
-        count, dir->direntry.body);
+        count, &item);
 }
 
 /* Reads n entries to passed buffer buff */
@@ -205,6 +211,7 @@ static int32_t dir40_read(reiser4_entity_t *entity,
     char *buff, uint32_t n)
 {
     uint32_t i, count;
+    reiser4_item_t item;
     reiser4_plugin_t *plugin;
     dir40_t *dir = (dir40_t *)entity;
 
@@ -227,9 +234,13 @@ static int32_t dir40_read(reiser4_entity_t *entity,
 		break;
 	}
     
+	item.plugin = dir->direntry.plugin;
+	item.node = core->tree_ops.item_node(dir->tree, &dir->place);
+	item.pos = &dir->place.pos;
+	
 	/* Getting next entry from the current direntry item */
 	if ((plugin_call(break, plugin->item_ops.specific.direntry, 
-		entry, dir->direntry.body, dir->place.pos.unit, entry)))
+		entry, &item, dir->place.pos.unit, entry)))
 	    break;
 
 	entry++;
@@ -265,15 +276,20 @@ static int dir40_lookup(reiser4_entity_t *entity,
     plugin = dir->direntry.plugin;
 
     while (1) {
-
+	reiser4_item_t item;
+	    
+	item.plugin = dir->direntry.plugin;
+	item.node = core->tree_ops.item_node(dir->tree, &dir->place);
+	item.pos = &dir->place.pos;
+	
 	if (plugin_call(return -1, plugin->item_ops, lookup, 
-	    dir->direntry.body, &k, &dir->place.pos.unit) == 1) 
+	    &item, &k, &dir->place.pos.unit) == 1) 
 	{
 	    roid_t locality;
 	    reiser4_entry_hint_t entry;
 	    
 	    if ((plugin_call(return -1, plugin->item_ops.specific.direntry, 
-		    entry, dir->direntry.body, dir->place.pos.unit, &entry)))
+		    entry, &item, dir->place.pos.unit, &entry)))
 		return -1;
 
 	    locality = plugin_call(return -1, key->plugin->key_ops,
@@ -474,7 +490,7 @@ static reiser4_entity_t *dir40_create(const void *tree,
     unix_ext.rdev = 0;
 
     if (plugin_call(goto error_free_dir, dir->direntry.plugin->item_ops, 
-	estimate, ~0ul, &direntry_hint))
+	estimate, NULL, ~0ul, &direntry_hint))
     {
 	aal_exception_error("Can't estimate directory item.");
 	goto error_free_dir;
