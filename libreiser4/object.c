@@ -14,7 +14,7 @@
 #include <reiser4/reiser4.h>
 
 /* Helper callback for probing passed @plugin */
-static int callback_guess_object(reiser4_plugin_t *plugin,
+static bool_t callback_guess_object(reiser4_plugin_t *plugin,
 				     void *data)
 {
 	void *tree, *place;
@@ -34,22 +34,28 @@ static int callback_guess_object(reiser4_plugin_t *plugin,
 		*/
 		if ((object->entity = plugin_call(plugin->o.object_ops,
 						  open, tree, place)))
-			return 1;
+			return TRUE;
 
 		object->entity = NULL;
 	}
 
-	return 0;
+	return FALSE;
 }
 
 /* This function is trying to detect object plugin */
-static errno_t reiser4_object_guess(reiser4_object_t *object) {
+static errno_t reiser4_object_init(reiser4_object_t *object) {
 	
 	/* Finding object plugin by its id */
 	if (!libreiser4_factory_cfind(callback_guess_object, object))
 		return -EINVAL;
 
 	return object->entity != NULL ? 0 : -EINVAL;
+}
+
+static void reiser4_object_fini(reiser4_object_t *object) {
+	plugin_call(object->entity->plugin->o.object_ops,
+		    close, object->entity);
+	object->entity = NULL;
 }
 
 uint64_t reiser4_object_size(reiser4_object_t *object) {
@@ -62,16 +68,12 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 /* Looks up for the object stat data place in tree */
 errno_t reiser4_object_stat(reiser4_object_t *object) {
 	errno_t res;
-	
-	/* Setting up the file key to statdata one */
-	reiser4_key_set_offset(&object->key, 0);
-	reiser4_key_set_type(&object->key, KEY_STATDATA_TYPE);
 
 	/* Performing lookup for statdata of current directory */
 	if (reiser4_tree_lookup(object->fs->tree, &object->key,
 				LEAF_LEVEL, &object->place) != LP_PRESENT) 
 	{
-		/* Stat data is not found. getting us out */
+		/* Stat data is not found. getting out */
 		return -EINVAL;
 	}
 
@@ -98,14 +100,14 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		return res;
 	}
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
 	/* Getting object plugin */
-	if ((res = reiser4_object_guess(object))) {
-		aal_exception_error("Can't guess object plugin for "
-				    "%s.", track);
+	if ((res = reiser4_object_init(object))) {
+		aal_exception_error("Can't init object %s.",
+				    track);
 		return res;
 	}
-
+	
+#ifdef ENABLE_SYMLINKS_SUPPORT
 	plugin = object->entity->plugin;
 
 	/* Symlinks handling. Method "follow" should be implemented */
@@ -114,87 +116,54 @@ static errno_t callback_find_statdata(char *track, char *entry,
 							&object->key)))
 		{
 			aal_exception_error("Can't follow %s.", track);
+			reiser4_object_fini(object);
+			return res;
 		}
+
+		/* Finalizing entity on old place */
+		reiser4_object_fini(object);
+		
+		/* Getting stat data place by key returned by foloow() */
+		if ((res = reiser4_object_stat(object)))
+			return -EINVAL;
+
+		/* Initializing entity on new place */
+		if ((res = reiser4_object_init(object)))
+			return -EINVAL;
 	}
-	
-	plugin_call(plugin->o.object_ops, close, object->entity);
-	object->entity = NULL;
 #endif
-	
-	return res;
+
+	return 0;
 }
 
 /* Callback function for finding passed @entry inside the current directory */
 static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
-	errno_t res;
+	errno_t res = 0;
 	lookup_t lookup;
+	
 	entry_hint_t entry_hint;
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
-	
+
 	object = (reiser4_object_t *)data;
-
-	if ((res = reiser4_object_stat(object))) {
-		aal_exception_error("Can't find stat data of %s.",
-				    track);
-		return res;
-	}
-	
-	/* Getting object plugin */
-	if ((res = reiser4_object_guess(object))) {
-		aal_exception_error("Can't find object plugin for "
-				    "%s.", track);
-		return res;
-	}
-
 	plugin = object->entity->plugin;
 
 	/* Looking up for @entry in current directory */
 	lookup = plugin_call(plugin->o.object_ops, lookup,
 			     object->entity, entry, &entry_hint);
 	
-	if (lookup == LP_PRESENT)
-		reiser4_key_assign(&object->key, &entry_hint.object);
-	else {
+	if (lookup == LP_PRESENT) {
+		res = reiser4_key_assign(&object->key,
+					 &entry_hint.object);
+	} else {
 		aal_exception_error("Can't find %s.", track);
 		res = -EINVAL;
 	}
 
-	plugin_call(plugin->o.object_ops, close, object->entity);
-	object->entity = NULL;
-	
+	reiser4_object_fini(object);
 	return res;
-}
-
-/* 
-  Performs lookup of object statdata by its name. Result is stored in passed
-  object fields. Returns error code or 0 if there are no errors. This function
-  also supports symlinks and it rather might be called "stat".
-*/
-static errno_t reiser4_object_search(
-	reiser4_object_t *object,   /* object lookup will be performed in */
-	char *path)                 /* name to be parsed */
-{
-	errno_t res;
-	
-	aal_assert("umka-682", object != NULL);
-	aal_assert("umka-681", path != NULL);
-
-	/*
-	  Parsing path and finding actual stat data key. I've said actual,
-	  because there may be a symlink.
-	*/
-	if ((res = aux_parse_path(path, callback_find_statdata,
-				  callback_find_entry, object)))
-		return res;
-
-	/*
-	  As the last part of path may be a symlink, we need position onto
-	  actual stat data item.
-	*/
-	return reiser4_object_stat(object);
 }
 
 /* This function opens object by its name */
@@ -230,12 +199,9 @@ reiser4_object_t *reiser4_object_open(
 	  is absolute one. So, user, who calls this method should convert name
 	  previously into absolute one by means of using getcwd function.
 	*/
-	if (reiser4_object_search(object, path))
-		goto error_free_object;
-    
-	if (reiser4_object_guess(object)) {
-		aal_exception_error("Can't find object plugin "
-				    "for %s.", path);
+	if (aux_parse_path(path, callback_find_statdata,
+			   callback_find_entry, object))
+	{
 		goto error_free_object;
 	}
     
@@ -270,12 +236,8 @@ reiser4_object_t *reiser4_object_begin(
 
 	reiser4_key_string(&object->key, object->name);
 
-	/* Guessing object plugin */
-	if (reiser4_object_guess(object)) {
-		aal_exception_error("Can't find object plugin for %s.",
-				    object->name);
+	if (reiser4_object_init(object))
 		goto error_free_object;
-	}
 
 	return object;
 	
@@ -414,7 +376,7 @@ reiser4_object_t *reiser4_object_create(
 	return NULL;
 }
 
-static errno_t callback_process_place(
+static errno_t callback_print_place(
 	object_entity_t *entity,   /* object to be inspected */
 	place_t *place,            /* next object block */
 	void *data)                /* user-specified data */
@@ -531,7 +493,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 errno_t reiser4_object_print(reiser4_object_t *object,
 			     aal_stream_t *stream)
 {
-	place_func_t place_func = callback_process_place;
+	place_func_t place_func = callback_print_place;
 	return reiser4_object_metadata(object, place_func, stream);
 }
 
@@ -588,7 +550,6 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 			   lookup, object->entity, (char *)name,
 			   (void *)entry);
 }
-
 #endif
 
 /* Seeks directory current position to passed pos */

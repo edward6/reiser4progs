@@ -1378,13 +1378,10 @@ struct reiser4_core {
 
 /* Makes check is needed method implemengted */
 #define plugin_call(ops, method, args...) ({                     \
-        ops->method(args);				         \
-})
-/*#define plugin_call(ops, method, args...) ({                     \
         aal_assert("Method \""#method"\" isn't implemented in"   \
                    ""#ops".", ops->method != NULL);              \
         ops->method(args);				         \
-})*/
+})
 
 #if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
 typedef void (*register_builtin_t) (plugin_init_t,
