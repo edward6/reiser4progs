@@ -176,6 +176,7 @@ static uint32_t cde40_short_entry_detect(reiser4_place_t *place,
 	if (mode == REPAIR_SKIP)
 		return length / ENTRY_LEN_MIN(S_NAME, pol);
 	
+	start_pos++;
 	for (offset = ENTRY_LEN_MIN(S_NAME, pol); offset < length; 
 	     offset += ENTRY_LEN_MIN(S_NAME, pol), start_pos++) 
 	{
@@ -392,10 +393,19 @@ static errno_t cde40_filter(reiser4_place_t *place,
 			    struct entry_flags *flags,
 			    repair_hint_t *hint)
 {
-	uint32_t i, last;
+	/* The correct number of units. */
+	uint32_t real_count;
+	/* Estimated number of units. The maximim possible limit. */
 	uint32_t e_count;
+	/* Offset within the item. */
 	uint32_t offset;
 	errno_t res = 0;
+	/* The first relable unit offset. */
+	uint32_t first;
+	/* The last relable unit offset. */
+	uint32_t last;
+	/* Count of bytes to be removed at the end of the item. */
+	uint32_t tail;
 	uint32_t pol;
 	
 	aal_assert("vpf-757", flags != NULL);
@@ -421,7 +431,8 @@ static errno_t cde40_filter(reiser4_place_t *place,
 	/* the last unit size is not checked yet, so save - 1 into @count. */
 	flags->count = --last;
 	
-	offset = cde_get_offset(place, last, pol) + ob_size(pol);
+	tail = offset = cde_get_offset(place, last, pol);
+	offset += ob_size(pol);
 	
 	/* Last is the last valid offset. If the last unit is valid also, count
 	   is the last + 1. */
@@ -433,74 +444,88 @@ static errno_t cde40_filter(reiser4_place_t *place,
 		offset += aal_strlen(place->body + offset) + 1;
 
 		/* If nothing to be removed, the last unit is relable. */
-		if (offset == place->len) 
+		if (offset == place->len)
 			flags->count++;
 	} else {
 		aal_bug("vpf-1560", "Amount of detected units exceeds the "
 			"item length.");
 	}
 	
+	if (flags->count == last && hint->mode == RM_BUILD) {
+		hint->len += place->len - tail;
+	}
+
 	/* Count is the amount of recovered elements. */
 	
 	/* Find the first relable. */
-	for (i = 0; i < flags->count && !aal_test_bit(flags->elem + i, R); i++) {}
+	for (first = 0; 
+	     first < flags->count && 
+	     !aal_test_bit(flags->elem + first, R);
+	     first++) {}
 	
-	/* Estimate the amount of units on the base of the first R element. */
-	e_count = cde40_count_estimate(place, i);
+	/* Estimate the amount of unit headers by the first R element offset. */
+	e_count = cde40_count_estimate(place, first);
 	
-	/* Estimated count must be less then count found on the base of the last 
-	 * valid offset. */
+	/* Estimated count must be larger than the recovered count. */
 	aal_assert("vpf-765", e_count >= flags->count);
 	
-	if (last != flags->count && 
-	    e_count > flags->count && 
-	    hint->mode == RM_BUILD) 
-	{
-		/* If there is enough space for another entry header, set 
-		   @count unit offset to the item length to remove item 
-		   headers correctly later. */
-		cde_set_offset(place, flags->count, place->len, pol);
-	} 
+	/* If the first unit offset is correct, the correct unit number 
+	   is estimated count, otherwise will be changed later. */
+	real_count = e_count;
 	
-	if (i) {
-		/* Some first offset are not relable. Consider count as 
-		   the correct count and set the first offset just after 
-		   the last unit.*/
+	if (first) {
+		/* Some first offset are not relable. Consider count as
+		   the correct count and set the first offset just after
+		   the last unit to remove first items correctly later.*/
 		if (hint->mode == RM_BUILD) {
 			cde_set_offset(place, 0, sizeof(cde40_t) + 
-				   en_size(pol) * flags->count, pol);
-			place_mkdirty(place);
+				       en_size(pol) * flags->count, pol);
 		}
-	}
-	
-	if (e_count != cde_get_units(place)) {
+		
+		/* There are some not correct units at the beginning, 
+		   the correct unit number is the recovered count. */
+		real_count = flags->count;
+	} else if (!offset && e_count > flags->count) {
+		/* If there is enough space for another entry header 
+		   (e_count > count), and nothing to remove at the end 
+		   of the item, the last unit is correct (offset == 0),
+		   set @count unit offset to the item length to remove 
+		   redundant item headers correctly later. */
+		if (hint->mode == RM_BUILD) {
+			cde_set_offset(place, flags->count, place->len, pol);
+		}
+	} 
+
+	/* Fix the count before removing anything. */
+	if (real_count != cde_get_units(place)) {
 		fsck_mess("Node (%llu), item (%u), [%s]: unit count "
 			  "(%u) is not correct. Should be (%u).%s",
 			  place_blknr(place), place->pos.item,
 			  print_key(cde40_core, &place->key), 
-			  cde_get_units(place), e_count, 
+			  cde_get_units(place), real_count, 
 			  hint->mode == RM_CHECK ? "" : 
 			  " Fixed.");
 		
 		if (hint->mode == RM_CHECK) {
 			res |= RE_FIXABLE;
 		} else {
-			cde_set_units(place, e_count);
+			cde_set_units(place, real_count);
 			place_mkdirty(place);
 		}
 	}
 	
-	if (flags->count != e_count) {
-		/* Estimated count is greater then the recovered count, in other 
+	if (flags->count != real_count) {
+		/* Estimated count is greater then the recovered count, in other
 		   words there are some last unit headers should be removed. */
 		fsck_mess("Node (%llu), item (%u), [%s]: entries [%u..%u] look "
 			  "corrupted. %s", place_blknr(place), place->pos.item,
 			  print_key(cde40_core, &place->key), flags->count, 
-			  e_count - 1, hint->mode == RM_BUILD ? "Removed." : "");
+			  real_count - 1, hint->mode == RM_BUILD ? 
+			  "Removed." : "");
 		
 		if (hint->mode == RM_BUILD) {
 			hint->len += cde40_cut(place, flags->count, 
-					       e_count - flags->count, 
+					       real_count - flags->count,
 					       place->len);
 			
 			place_mkdirty(place);
@@ -509,47 +534,47 @@ static errno_t cde40_filter(reiser4_place_t *place,
 		}
 	}
 	
-	if (i) {
+	if (first) {
 		/* Some first units should be removed. */
 		fsck_mess("Node (%llu), item (%u), [%s]: entries [%u..%u] look "
 			  "corrupted. %s", place_blknr(place), place->pos.item,
-			  print_key(cde40_core, &place->key), 0, i - 1, 
+			  print_key(cde40_core, &place->key), 0, first - 1, 
 			  hint->mode == RM_BUILD ? "Removed." : "");
 		
 		if (hint->mode == RM_BUILD) {
-			hint->len += cde40_cut(place, 0, i, place->len);
+			hint->len += cde40_cut(place, 0, first, place->len);
 
 			place_mkdirty(place);
 			
-			aal_memmove(flags->elem, flags->elem + i, 
-				    flags->count - i);
+			aal_memmove(flags->elem, flags->elem + first, 
+				    flags->count - first);
 			
-			flags->count -= i;
-			i = 0;
+			flags->count -= first;
+			first = 0;
 		} else {
 			res |= RE_FATAL;
 		}
 	}
 	
-	/* Units before @i and after @count were handled, do not care about them 
+	/* Units before @first and after @count were handled, do not care about them 
 	   anymore. Handle all not relable units between them. */
 	last = MAX_UINT32;
-	for (; i < flags->count; i++) {
+	for (; first < flags->count; first++) {
 		if (last == MAX_UINT32) {
 			/* Looking for the problem interval start. */
-			if (!aal_test_bit(flags->elem + i, R))
-				last = i - 1;
+			if (!aal_test_bit(flags->elem + first, R))
+				last = first - 1;
 			
 			continue;
 		}
 		
 		/* Looking for the problem interval end. */
-		if (aal_test_bit(flags->elem + i, R)) {
+		if (aal_test_bit(flags->elem + first, R)) {
 			fsck_mess("Node (%llu), item (%u), [%s]: "
 				  "entries [%u..%u] look corrupted. %s",
 				  place_blknr(place), place->pos.item, 
 				  print_key(cde40_core, &place->key), 
-				  last, i - 1, hint->mode == RM_BUILD ? 
+				  last, first - 1, hint->mode == RM_BUILD ? 
 				  "Removed." : "");
 
 			if (hint->mode != RM_BUILD) {
@@ -558,16 +583,16 @@ static errno_t cde40_filter(reiser4_place_t *place,
 				continue;
 			}
 			
-			hint->len += cde40_cut(place, last, i - last, 
+			hint->len += cde40_cut(place, last, first - last, 
 					       place->len);
 
 			place_mkdirty(place);
 			
-			aal_memmove(flags->elem + last, flags->elem + i,
-				    flags->count - i);
+			aal_memmove(flags->elem + last, flags->elem + first,
+				    flags->count - first);
 
-			flags->count -= (i - last);
-			i = last;
+			flags->count -= (first - last);
+			first = last;
 			last = MAX_UINT32;
 		}
 	}
@@ -861,10 +886,10 @@ int64_t cde40_insert_raw(reiser4_place_t *place, trans_hint_t *trans) {
 
 /* Prints cde item into passed @stream */
 void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options) {
+	uint32_t namewidth = 0;
+	uint64_t locality = 0;
+	uint64_t objectid = 0;
 	uint32_t i, j, count;
-	uint32_t namewidth;
-	uint64_t locality;
-	uint64_t objectid;
 	char name[256];
 	uint32_t pol;
 	
@@ -883,41 +908,52 @@ void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options)
 
 	/* Loop though the all entries and print them to @stream. */
 	for (i = 0; i < count; i++) {
-		uint64_t offset, haobj;
-		void *objid = cde40_objid(place, i);
 		void *entry = cde40_entry(place, i);
-
-		if (objid >= place->body + place->len || 
-		    entry >= place->body + place->len)
-		{
-			aal_stream_format(stream, "Broken entry array "
-					  "detected.\n");
-			break;
-		}
+		uint64_t offset, haobj;
+		void *objid;
 		
-		cde40_get_name(place, i, name, sizeof(name));
+		
+		if (options != PO_UNIT_OFFSETS) {
+			objid = cde40_objid(place, i);
 
-		/* Cutting name by PRINT_NAME_LIMIT symbols */
-		if (aal_strlen(name) > PRINT_NAME_LIMIT) {
-			for (j = 0; j < 3; j++)
-				name[PRINT_NAME_LIMIT - 3 + j] = '.';
+			if (objid >= place->body + place->len || 
+			    entry >= place->body + place->len)
+			{
+				aal_stream_format(stream, "Broken entry array "
+						  "detected.\n");
+				break;
+			}
 
-			name[PRINT_NAME_LIMIT - 3 + j] = '\0';
+			cde40_get_name(place, i, name, sizeof(name));
+
+			/* Cutting name by PRINT_NAME_LIMIT symbols */
+			if (aal_strlen(name) > PRINT_NAME_LIMIT) {
+				for (j = 0; j < 3; j++)
+					name[PRINT_NAME_LIMIT - 3 + j] = '.';
+
+				name[PRINT_NAME_LIMIT - 3 + j] = '\0';
+			}
+
+			/* Getting locality, objectid. */
+			locality = ob_get_locality(objid, pol);
+			objectid = ob_get_objectid(objid, pol);
+			namewidth = PRINT_NAME_LIMIT - aal_strlen(name);
 		}
-
-		/* Getting locality, objectid. */
-		locality = ob_get_locality(objid, pol);
-		objectid = ob_get_objectid(objid, pol);
-		namewidth = PRINT_NAME_LIMIT - aal_strlen(name);
 
 		offset = ha_get_offset(entry, pol);
 		haobj = ha_get_objectid(entry, pol);
 
 		/* Putting data to @stream. */
-		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
-				  "%.7llx:%.7llx\n", 3, i, name, namewidth,
-				  " ", 5, en_get_offset(entry, pol), haobj,
-				  offset, locality, objectid);
+		if (options != PO_UNIT_OFFSETS) {
+			aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
+					  "%.7llx:%.7llx\n", 3, i, name, namewidth,
+					  " ", 5, en_get_offset(entry, pol), haobj,
+					  offset, locality, objectid);
+		} else {
+			aal_stream_format(stream, "%*d %*u %.16llx:%.16llx\n", 
+					  3, i, 5, en_get_offset(entry, pol),
+					  haobj, offset);
+		}
 	}
 }
 

@@ -120,9 +120,6 @@ extern uint64_t key_large_get_fobjectid(reiser4_key_t *key);
 static inline uint64_t kl_get_el(const key_large_t *key,
 				 key_large_field_t off)
 {
-	aal_assert("vpf-029", key != NULL);
-	aal_assert("vpf-030", off < KEY_LARGE_LAST_INDEX);
-	
 	return LE64_TO_CPU(key->el[off]);
 }
 
@@ -130,9 +127,6 @@ static inline void kl_set_el(key_large_t *key,
 			     key_large_field_t off,
 			     uint64_t value)
 {
-	aal_assert("vpf-031", key != NULL);
-	aal_assert("vpf-032", off < KEY_LARGE_LAST_INDEX);
-	
 	key->el[off] = CPU_TO_LE64(value);
 }
 
@@ -147,15 +141,12 @@ static inline int kl_comp_el(void *k1, void *k2, int off) {
    T. It is used for minimize code. */
 #define KEY_LARGE_FIELD_HANDLER(L, U, T)			    \
 static inline T kl_get_##L (const key_large_t *key) {               \
-        aal_assert("vpf-036", key != NULL);                         \
         return (T) ((kl_get_el(key, KEY_LARGE_##U##_INDEX) &	    \
 	            KEY_LARGE_##U##_MASK) >> KEY_LARGE_##U##_SHIFT);\
 }								    \
 								    \
 static inline void kl_set_##L(key_large_t *key, T loc) {	    \
         uint64_t el;						    \
-								    \
-        aal_assert("vpf-033", key != NULL);                         \
 								    \
         el = kl_get_el(key, KEY_LARGE_##U##_INDEX);		    \
 								    \

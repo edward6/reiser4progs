@@ -18,9 +18,8 @@ static void node40_set_offset_at(reiser4_node_t *node, int pos,
 	if (nh_get_num_items(node) == pos) {
 		nh_set_free_space_start(node, offset);
 	} else {
-		uint32_t pol = node40_key_pol(node);
 		ih_set_offset(node40_ih_at(node, pos),
-			      offset, pol);
+			      offset, node->keypol);
 	}
 }
 
@@ -29,7 +28,6 @@ static errno_t node40_region_delete(reiser4_node_t *node,
 				    uint16_t end_pos) 
 {
 	uint32_t count;
-	uint32_t pol;
 	uint32_t len;
 	pos_t pos;
 	uint16_t i;
@@ -40,13 +38,14 @@ static errno_t node40_region_delete(reiser4_node_t *node,
 	aal_assert("vpf-213", start_pos <= end_pos);
 	aal_assert("vpf-214", end_pos <= nh_get_num_items(node));
     
-	pol = node40_key_pol(node);
 	ih = node40_ih_at(node, start_pos);
 
 	for (i = start_pos; i < end_pos; i++) {
-		ih_set_offset(ih, ih_get_offset(ih + ih_size(pol),
-						pol) + 1, pol);
-		ih -= ih_size(pol);
+		ih_set_offset(ih, ih_get_offset(ih + ih_size(node->keypol),
+						node->keypol) + 1, 
+			      node->keypol);
+		
+		ih -= ih_size(node->keypol);
 	}
     
 	pos.unit = MAX_UINT32;
@@ -62,12 +61,10 @@ static errno_t node40_region_delete(reiser4_node_t *node,
    free_space_start + free_space == block_size - count * ih size */
 static int node40_count_valid(reiser4_node_t *node) {
 	uint32_t count;
-	uint32_t pol;
 	
 	count = nh_get_num_items(node);
-	pol = node40_key_pol(node);
 	
-	if (count > node->block->size / ih_size(pol))
+	if (count > node->block->size / ih_size(node->keypol))
 		return 0;
 	
 	if (nh_get_free_space_start(node) > node->block->size)
@@ -77,7 +74,7 @@ static int node40_count_valid(reiser4_node_t *node) {
 		return 0;
 
 	return (nh_get_free_space_start(node) + nh_get_free_space(node) + 
-		count * ih_size(pol) == node->block->size);
+		count * ih_size(node->keypol) == node->block->size);
 }
 
 /* Look through ih array looking for the last valid item location. This will 
@@ -85,20 +82,20 @@ static int node40_count_valid(reiser4_node_t *node) {
 static uint32_t node40_estimate_count(reiser4_node_t *node) {
 	uint32_t offset, left, right;
 	uint32_t count, last, i;
-	uint32_t pol;
 	
 	count = nh_get_num_items(node);
-	pol = node40_key_pol(node);
 	
 	left = sizeof(node40_header_t);
-	right = node->block->size - ih_size(pol) - MIN_ITEM_LEN;
+	right = node->block->size - ih_size(node->keypol) - MIN_ITEM_LEN;
 	last = 0;
 
-	for (i = 0 ; ; i++, left += MIN_ITEM_LEN, right -= ih_size(pol)) {
+	for (i = 0 ; ; i++, left += MIN_ITEM_LEN, 
+	     right -= ih_size(node->keypol)) 
+	{
 		if (left > right)
 			break;
 		
-		offset = ih_get_offset(node40_ih_at(node, i), pol);
+		offset = ih_get_offset(node40_ih_at(node, i), node->keypol);
 		
 		if (offset >= left && offset <= right) {
 			last = i;
@@ -114,10 +111,8 @@ static errno_t node40_space_check(reiser4_node_t *node, uint32_t pos,
 {
 	errno_t res = 0;
 	uint32_t space;
-	uint32_t pol;
 
 	space = nh_get_free_space_start(node);
-	pol = node40_key_pol(node);
 	
 	/* Last relable position is not free space spart. Correct it. */
 	if (offset != space) {
@@ -139,7 +134,7 @@ static errno_t node40_space_check(reiser4_node_t *node, uint32_t pos,
 	}
 	
 	space = node->block->size - nh_get_free_space_start(node) - 
-		ih_size(pol) * nh_get_num_items(node);
+		ih_size(node->keypol) * nh_get_num_items(node);
 	
 	if (space != nh_get_free_space(node)) {
 		/* Free space is wrong. */
@@ -165,25 +160,23 @@ static errno_t node40_ih_array_check(reiser4_node_t *node, uint8_t mode) {
 	uint32_t right, left, offset;
 	uint32_t last_pos, count, i;
 	errno_t res = 0;
-	uint32_t pol;
 	blk_t blk;
 	
 	aal_assert("vpf-208", node != NULL);
 	aal_assert("vpf-209", node->block != NULL);
 
 	blk = node->block->nr;
-	pol = node40_key_pol(node);
 	
 	offset = 0;
 	last_pos = 0;
 	count = nh_get_num_items(node);
 	
 	left = sizeof(node40_header_t);
-	right = node->block->size - count * ih_size(pol);
+	right = node->block->size - count * ih_size(node->keypol);
 	
 	for(i = 0; i <= count; i++, left += MIN_ITEM_LEN) {
 		offset = (i == count) ? nh_get_free_space_start(node) : 
-			ih_get_offset(node40_ih_at(node, i), pol);
+			ih_get_offset(node40_ih_at(node, i), node->keypol);
 		
 		if (i == 0) {
 			if (offset == left)
@@ -198,7 +191,8 @@ static errno_t node40_ih_array_check(reiser4_node_t *node, uint8_t mode) {
 				continue;
 			}
 			
-			ih_set_offset(node40_ih_at(node, 0), left, pol);
+			ih_set_offset(node40_ih_at(node, 0), 
+				      left, node->keypol);
 			node40_mkdirty(node);
 			continue;
 		}
@@ -229,7 +223,7 @@ static errno_t node40_ih_array_check(reiser4_node_t *node, uint8_t mode) {
 
 			delta = i - last_pos;
 			count -= delta;
-			right += delta * ih_size(pol);
+			right += delta * ih_size(node->keypol);
 
 			if (node40_region_delete(node, last_pos + 1, i))
 				return -EINVAL;
@@ -240,7 +234,7 @@ static errno_t node40_ih_array_check(reiser4_node_t *node, uint8_t mode) {
 		/* Set the last correct offset and the keft limit. */
 		last_pos = i;
 		left = (i == count) ? nh_get_free_space_start(node) : 
-			ih_get_offset(node40_ih_at(node, i), pol);
+			ih_get_offset(node40_ih_at(node, i), node->keypol);
 	}
 	
 	left -= (i - last_pos) * MIN_ITEM_LEN;
@@ -288,7 +282,6 @@ static errno_t node40_count_check(reiser4_node_t *node, uint8_t mode) {
 
 static errno_t node40_iplug_check(reiser4_node_t *node, uint8_t mode) {
 	uint32_t count, len;
-	uint32_t pol;
 	uint16_t pid;
 	errno_t res;
 	pos_t pos;
@@ -296,12 +289,13 @@ static errno_t node40_iplug_check(reiser4_node_t *node, uint8_t mode) {
 	
 	count = nh_get_num_items(node);
 	ih = node40_ih_at(node, 0);
-	pol = node40_key_pol(node);
 	pos.unit = MAX_UINT32;
 	res = 0;
 
-	for (pos.item = 0; pos.item < count; pos.item++, ih -= ih_size(pol)) {
-		pid = ih_get_pid(ih, pol);
+	for (pos.item = 0; pos.item < count; pos.item++, 
+	     ih -= ih_size(node->keypol)) 
+	{
+		pid = ih_get_pid(ih, node->keypol);
 		
 		if (!node40_core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) {
 			fsck_mess("Node (%llu), item (%u): the item of unknown "
@@ -376,7 +370,6 @@ int64_t node40_insert_raw(reiser4_node_t *entity, pos_t *pos,
 errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 	node40_header_t *head;
 	reiser4_place_t place;
-	uint32_t pol;
 	uint16_t num;
 	pos_t *pos;
 	rid_t pid;
@@ -398,8 +391,6 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 
 		return 0;
 	}
-	
-	pol = node40_key_pol(entity);
 	
 	/* Pack the node content. */
 	
@@ -436,7 +427,7 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 	/* Pack all item headers. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
 		void *ih = node40_ih_at(entity, pos->item);
-		aal_stream_write(stream, ih, ih_size(pol));
+		aal_stream_write(stream, ih, ih_size(entity->keypol));
 	}
 
 	/* Pack all item bodies. */
@@ -469,7 +460,7 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	node40_header_t *head;
 	reiser4_node_t *entity;
 	reiser4_place_t place;
-	uint32_t pol, read;
+	uint32_t read;
 	uint16_t num;
 	pos_t *pos;
 
@@ -497,8 +488,6 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 		return entity;
 	}
 
-	pol = node40_key_pol(entity);
-	
 	/* Unpack the node content. */
 	
 	/* Node header w/out magic and padding. */
@@ -558,9 +547,9 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	/* Unpack all item headers. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
 		void *ih = node40_ih_at(entity, pos->item);
-		read = aal_stream_read(stream, ih, ih_size(pol));
+		read = aal_stream_read(stream, ih, ih_size(entity->keypol));
 		
-		if (read != ih_size(pol))
+		if (read != ih_size(entity->keypol))
 			goto error_free_entity;
 	}
 
@@ -604,7 +593,7 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 	void *ih;
 	char *key;
 	pos_t pos;
-	uint32_t pol;
+	uint8_t pol;
 	uint8_t level;
 
 	uint32_t last, num;
@@ -639,7 +628,7 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 	if (count != MAX_UINT32 && last > start + count)
 		last = start + count;
 	
-	pol = node40_key_pol(entity);
+	pol = entity->keypol;
 	
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
@@ -661,7 +650,7 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 				  pos.item >= num ? "D" : " ", place.plug ? 
 				  reiser4_igname[place.plug->id.group] : 
 				  "UNKN", place.plug ? place.plug->label :
-				  "UNKN", key, ih_get_offset(ih, pol), 
+				  "UNKN", key, ih_get_offset(ih, pol),
 				  place.len, ih_get_flags(ih, pol));
 
 		/* Printing item by means of calling item print method if it is

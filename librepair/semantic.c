@@ -63,9 +63,6 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 		if (res < 0) return res;
 		
 		sem->stat.reached_files++;
-		aal_gauge_set_value(sem->gauge, sem->stat.reached_files 
-				    * 100 / sem->stat.files);
-		aal_gauge_touch(sem->gauge);
 		repair_error_count(sem->repair, res);
 	}
 	
@@ -252,6 +249,11 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 		return NULL;
 	}
 	
+	sem->stat.statdatas++;
+	aal_gauge_set_value(sem->gauge, sem->stat.statdatas * 100 / 
+			    sem->stat.files);
+	aal_gauge_touch(sem->gauge);
+	
 	/* Some parent was found, check it and attach to it. */
 	if ((res = repair_semantic_check_struct(sem, parent)) < 0)
 		goto error_parent_close;
@@ -353,6 +355,15 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 	start = object_start(object);
 	checked = reiser4_item_test_flag(start, OF_CHECKED);
 	attached = reiser4_item_test_flag(start, OF_ATTACHED);
+	
+	if (!checked) {
+		uint64_t val;
+		
+		sem->stat.statdatas++;
+		val = sem->stat.statdatas * 100 /sem->stat.files;
+		aal_gauge_set_value(sem->gauge, val > 100 ? 100 : val);
+		aal_gauge_touch(sem->gauge);
+	}
 	
 	res = repair_semantic_check_struct(sem, object);
 
@@ -495,15 +506,19 @@ static errno_t cb_tree_scan(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-1171", place != NULL);
 	aal_assert("vpf-1037", sem != NULL);
 	
-	aal_gauge_touch(sem->gauge);
-
 	/* Objects w/out SD get recovered only when reached from the parent. */
 	if (!reiser4_item_statdata(place))
 		return 0;
-		
+	
+	aal_gauge_touch(sem->gauge);
+
 	/* If this item was checked already, skip it. */
 	if (reiser4_item_test_flag(place, OF_CHECKED))
 		return 0;
+	
+	sem->stat.statdatas++;
+	aal_gauge_set_value(sem->gauge, sem->stat.statdatas * 100 /
+			    sem->stat.files);
 	
 	/* Try to open the object by its SD. */
 	object = repair_object_open(sem->repair->fs->tree, NULL, place);
@@ -576,6 +591,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	fsck_mess("Trying to recover the directory [%s] with the default "
 		  "plugin--%s.", reiser4_print_key(key, PO_INODE), plug->label);
 
+	sem->stat.files++;
 	return repair_object_fake(tree, parent, key, plug);
 }
 
@@ -589,6 +605,11 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 	aal_assert("vpf-1268", object != NULL);
 	aal_assert("vpf-1419", parent != NULL);
 	
+	sem->stat.statdatas++;
+	aal_gauge_set_value(sem->gauge, sem->stat.statdatas * 100 /
+			    sem->stat.files);
+	aal_gauge_touch(sem->gauge);
+
 	/* Check the object. */
 	res = repair_semantic_check_struct(sem, object);
 	

@@ -20,6 +20,7 @@ typedef struct repair_semantic_stat {
 	uint64_t oid;
 
 	/* Files counted on previous passes. */
+	uint64_t statdatas;
 	uint64_t files;
 	time_t time;
 } repair_semantic_stat_t;

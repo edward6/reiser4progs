@@ -108,9 +108,6 @@ extern uint64_t key_short_get_fobjectid(reiser4_key_t *key);
 static inline uint64_t ks_get_el(const key_short_t *key,
 				 key_short_field_t off)
 {
-	aal_assert("vpf-029", key != NULL);
-	aal_assert("vpf-030", off < KEY_SHORT_LAST_INDEX);
-	
 	return LE64_TO_CPU(key->el[off]);
 }
 
@@ -118,9 +115,6 @@ static inline void ks_set_el(key_short_t *key,
 			     key_short_field_t off,
 			     uint64_t value)
 {
-	aal_assert("vpf-031", key != NULL);
-	aal_assert("vpf-032", off < KEY_SHORT_LAST_INDEX);
-	
 	key->el[off] = CPU_TO_LE64(value);
 }
 
@@ -136,7 +130,6 @@ static inline int ks_comp_el(void *k1, void *k2, int off) {
 								    
 #define KEY_SHORT_FIELD_HANDLER(L, U, T)			    \
 static inline T ks_get_##L (const key_short_t *key) {               \
-        aal_assert("vpf-036", key != NULL);                         \
         return (T) ((ks_get_el(key, KEY_SHORT_##U##_INDEX) &	    \
 	            KEY_SHORT_##U##_MASK) >> KEY_SHORT_##U##_SHIFT);\
 }								    \
@@ -144,14 +137,9 @@ static inline T ks_get_##L (const key_short_t *key) {               \
 static inline void ks_set_##L(key_short_t *key, T loc) {	    \
         uint64_t el;						    \
 								    \
-        aal_assert("vpf-033", key != NULL);                         \
-								    \
         el = ks_get_el(key, KEY_SHORT_##U##_INDEX);		    \
 								    \
         el &= ~KEY_SHORT_##U##_MASK;				    \
-								    \
-        aal_assert("vpf-034", ((loc << KEY_SHORT_##U##_SHIFT) &	    \
-                ~KEY_SHORT_##U##_MASK) == 0);                       \
 								    \
         el |= (loc << KEY_SHORT_##U##_SHIFT);			    \
         ks_set_el(key, KEY_SHORT_##U##_INDEX, el);		    \

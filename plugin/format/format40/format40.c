@@ -399,12 +399,12 @@ static void format40_set_height(generic_entity_t *entity, uint16_t height) {
 }
 
 static void format40_set_flags(generic_entity_t *entity, uint64_t flags) {
-	format40_t *format;
+	uint64_t fl;
 	
 	aal_assert("umka-2340", entity != NULL);
 
-	format = (format40_t *)entity;
-	format->super.sb_flags |= flags;
+	fl = get_sb_flags(SUPER(entity));
+	set_sb_flags(SUPER(entity), fl | flags);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 

@@ -303,7 +303,8 @@ enum reiser4_opset_id {
 /* Known print options for key. */
 enum print_options {
 	PO_DEFAULT              = 0x0,
-	PO_INODE                = 0x1
+	PO_INODE                = 0x1,
+	PO_UNIT_OFFSETS         = 0x2
 };
 
 typedef enum print_options print_options_t;
@@ -342,7 +343,6 @@ struct reiser4_place {
 	   method fetch() and stored here to make work with them simpler. */
 	void *body;
 	uint32_t len;
-	uint16_t flags;
 	reiser4_key_t key;
 	reiser4_plug_t *plug;
 };
@@ -382,6 +382,9 @@ struct reiser4_node {
 	/* Key plugin. */
 	reiser4_plug_t *kplug;
 
+	/* Key policy. Optimisation to not call key->bodysize all the time. */
+	uint8_t keypol;
+	
 	/* Node state flags. */
 	uint32_t state;
 

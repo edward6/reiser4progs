@@ -54,8 +54,6 @@ extern reiser4_core_t *node40_core;
 typedef int64_t (*modify_func_t) (reiser4_place_t *place,
 				  trans_hint_t *hint);
 
-extern inline uint32_t node40_key_pol(reiser4_node_t *node);
-
 extern void node40_mkdirty(reiser4_node_t *entity);
 extern void node40_mkclean(reiser4_node_t *entity);
 extern int node40_isdirty(reiser4_node_t *entity);

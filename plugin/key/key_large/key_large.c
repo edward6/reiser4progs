@@ -264,9 +264,6 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
 	uint64_t objectid;
 	uint64_t ordering;
     
-	aal_assert("vpf-101", key != NULL);
-	aal_assert("vpf-102", name != NULL);
-    
 	if ((len = aal_strlen(name)) == 1 && name[0] == '.')
 		return 0;
 
