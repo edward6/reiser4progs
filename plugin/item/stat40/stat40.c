@@ -139,6 +139,7 @@ static uint32_t stat40_units(place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+
 static errno_t stat40_init(place_t *place) {
 	aal_assert("umka-2397", place != NULL);
 	aal_assert("umka-2398", place->body != NULL);
@@ -363,6 +364,7 @@ static errno_t stat40_remove(place_t *place, trans_hint_t *hint) {
 		extbody += extsize;
 	}
 	
+	place_mkdirty(place);
 	return 0;
 }
 

@@ -516,4 +516,69 @@ bool_t node40_test_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 	ih = node40_ih_at(node, pos);
 	return ih_test_flag(ih, flag, node40_key_pol(node));
 }
+
+#define NODE40_SIGN "ND40"
+
+errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream) {
+	aal_assert("umka-2596", entity != NULL);
+	aal_assert("umka-2598", stream != NULL);
+
+	/* Write signature first. */
+	aal_stream_write(stream, NODE40_SIGN, 4);
+
+	/* Write node block number. */
+	aal_stream_write(stream, &entity->block->nr,
+			 sizeof(entity->block->nr));
+
+	/* Write node size. This is needed, because metadata may be packed on
+	   platforms different than thay will be unpacked later. */
+	aal_stream_write(stream, &entity->block->size,
+			 sizeof(entity->block->size));
+	
+	/* Write node raw data. */
+	aal_stream_write(stream, entity->block->data,
+			 entity->block->size);
+	
+	return 0;
+}
+
+errno_t node40_unpack(node_entity_t *entity, aal_stream_t *stream) {
+	blk_t blocknr;
+	uint32_t size;
+	char sign[5] = {0};
+	
+	aal_assert("umka-2597", entity != NULL);
+	aal_assert("umka-2599", stream != NULL);
+
+	/* Read signature and chek it for validness. */
+	aal_stream_read(stream, sign, 4);
+
+	if (aal_strncmp(sign, NODE40_SIGN, 4)) {
+		aal_exception_error("Invalid pack magic %s "
+				    "is detected in stream.",
+				    sign);
+		return -EINVAL;
+	}
+
+	/* Write node block number. */
+	aal_stream_read(stream, &blocknr, sizeof(blocknr));
+	
+	/* Read node size. */
+	aal_stream_read(stream, &size, sizeof(size));
+
+	if (size != entity->block->size) {
+		aal_exception_error("Invalid node size %u "
+				    "is detected.", size);
+		return -EINVAL;
+	}
+	
+	/* Read node raw data. */
+	aal_stream_read(stream, entity->block->data,
+			entity->block->size);
+
+	node40_move(entity, blocknr);
+	node40_mkdirty(entity);
+	
+	return 0;
+}
 #endif
