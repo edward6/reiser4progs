@@ -811,13 +811,16 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	hint.body.dir.direntry = reiser4_param_value("direntry");
 	hint.parent = (parent ? &parent->info->object : NULL);
 
+	/* Making new direntry items to be having flags zero. */
+	entry.item_flags = 0;
+	
 	if (name) {
 		aal_strncpy(entry.name, name,
 			    sizeof(entry.name));
 	} else {
 		entry.name[0] = '\0';
 	}
-	
+
 	return reiser4_object_comp(fs->tree, parent, &entry, &hint);
 }
 
@@ -853,6 +856,9 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	hint.body.reg.extent = reiser4_param_value("extent");
 	hint.body.reg.policy = reiser4_param_value("policy");
 	hint.parent = (parent ? &parent->info->object : NULL);
+	
+	/* Making new direntry items to be having flags zero. */
+	entry.item_flags = 0;
 	
 	if (name) {
 		aal_strncpy(entry.name, name,
@@ -896,6 +902,9 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	hint.body.sym = (char *)target;
 	hint.parent = (parent ? &parent->info->object : NULL);
 	
+	/* Making new direntry items to be having flags zero. */
+	entry.item_flags = 0;
+
 	if (name) {
 		aal_strncpy(entry.name, name,
 			    sizeof(entry.name));
@@ -939,6 +948,9 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 	hint.body.spl.rdev = rdev;
 	hint.parent = (parent ? &parent->info->object : NULL);
 	
+	/* Making new direntry items to be having flags zero. */
+	entry.item_flags = 0;
+
 	if (name) {
 		aal_strncpy(entry.name, name,
 			    sizeof(entry.name));

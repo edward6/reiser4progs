@@ -281,6 +281,7 @@ struct place {
 
 	void *body;
 	uint32_t len;
+	uint16_t flags;
 	key_entity_t key;
 	aal_block_t *block;
 	reiser4_plug_t *plug;
@@ -513,6 +514,9 @@ struct entry_hint {
 	
 	/* Tree coord entry lies at. Filled by dir plugin's lookup. */
 	place_t place;
+
+	/* Flags to be for new items. */
+	uint16_t item_flags;
 	
 	/* Entry key within the current directory */
 	key_entity_t offset;
@@ -602,6 +606,9 @@ typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
    into the tree. This is used for all tree modification purposes like
    insertitem, or write some file data. */ 
 struct trans_hint {
+	/* The storage tree instance. */
+	void *tree;
+
 	/* Overhead of data to be inserted. This is needed for the case when we
 	   insert directory item and tree should know how much space should be
 	   prepared in the tree (ohd + len), but we don't need overhead for
@@ -618,9 +625,6 @@ struct trans_hint {
 	/* This is opaque pointer to item type specific information. */
 	void *specific;
 
-	/* The storage tree instance. */
-	void *tree;
-
 	/* Count of items/units to be inserted into the tree. */
 	uint64_t count;
 
@@ -629,6 +633,9 @@ struct trans_hint {
 
 	/* Max real key. Needed for extents only. Set by estimate. */
 	key_entity_t maxkey;
+
+	/* Flags to be used for creating new item. */
+	uint16_t item_flags;
 
 	/* Flags specific for the operation, set at prepare stage. */
 	uint16_t merge_flags;
@@ -650,8 +657,8 @@ struct trans_hint {
 	/* Hook called onto each create item during write flow. */
 	place_func_t place_func;
 
-	/* Related opaque data. May be used for passing something to region_func
-	   and place_func. */
+	/* Related opaque data. May be used for passing something to
+	   region_func() and place_func(). */
 	void *data;
 };
 

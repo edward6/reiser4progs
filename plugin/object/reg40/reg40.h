@@ -35,7 +35,8 @@ extern reiser4_plug_t reg40_plug;
 extern reiser4_core_t *reg40_core;
 
 extern int64_t reg40_put(object_entity_t *entity,
-			 void *buff, uint64_t n);
+			 void *buff, uint64_t n,
+			 uint16_t item_flags);
 
 extern errno_t reg40_seek(object_entity_t *entity,
 			  uint64_t offset);

@@ -115,6 +115,7 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	trans_hint_t hint;
 
 	hint.count = 1;
+	hint.item_flags = 0;
 	hint.specific = entry;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
@@ -566,6 +567,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	   data item hint, because we will need size of direntry item during
 	   stat data initialization. */
    	body_hint.count = 1;
+	body_hint.item_flags = 0;
 	body_hint.plug = body_plug;
 	
 	plug_call(info->object.plug->o.key_ops, build_hashed, &body_hint.offset,
@@ -574,6 +576,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	/* Preparing hint for the empty directory. It consists only "." for
 	   unlinked directories. */
+	entry.item_flags = 0;
 	aal_strncpy(entry.name, ".", 1);
 
 	/* Initializing entry stat data key. */
@@ -675,6 +678,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 			return 0;
 
 		hint.count = 1;
+		hint.item_flags = 0;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
 		hint.shift_flags = SF_DEFAULT;
@@ -713,6 +717,8 @@ static errno_t dir40_attach(object_entity_t *entity,
 	aal_assert("umka-2359", parent != NULL);
 
 	dir = (dir40_t *)entity;
+
+	entry.item_flags = 0;
 	aal_strncpy(entry.name, "..", sizeof(entry.name));
 
 	/* Adding ".." pointing to parent to @entity object. */
@@ -850,6 +856,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	hint.plug = temp.place.plug;
 	hint.specific = (void *)entry;
 	hint.shift_flags = SF_DEFAULT;
+	hint.item_flags = entry->item_flags;
 
 	/* Building key of the new entry and hint's one */
 	dir40_build_entry(entity, entry);
@@ -901,6 +908,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 		hint.place_func = NULL;
 		hint.region_func = NULL;
 		hint.shift_flags = SF_DEFAULT;
+		hint.item_flags = entry->item_flags;
 		
 		/* Removing one unit from directory */
 		if ((res = obj40_remove(&dir->obj, &temp.place, &hint)))

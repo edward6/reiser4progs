@@ -1049,7 +1049,23 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 	units = reiser4_item_units(place);
 	blksize = reiser4_tree_get_blksize(tree);
-	
+
+	/* Prepare @hint. */
+	hint.count = 1;
+	hint.specific = &ptr;
+	hint.place_func = NULL;
+	hint.region_func = NULL;
+
+	hint.plug = place->plug;
+
+	/* Getting item flags for new extent items from old one. */
+	hint.item_flags = place->flags;
+
+	/* We force balancing use these flags with disables left shift
+	   in order to not affect to items/units left of insert point,
+	   as we allocate items/units from left to right. */
+	hint.shift_flags = (SF_DEFAULT & SF_ALLOW_LEFT);
+
 	for (place->pos.unit = 0; place->pos.unit < units;
 	     place->pos.unit++)
 	{
@@ -1059,18 +1075,6 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		
 		key_entity_t key;
 		int first_time = 1;
-
-		/* Fetching extent infomation. */
-		hint.count = 1;
-		hint.specific = &ptr;
-		hint.place_func = NULL;
-		hint.region_func = NULL;
-		hint.plug = place->plug;
-
-		/* We force balancing use these flags with disables left shift
-		   in order to not affect to items/units left of insert point,
-		   as we allocate items/units from left to right. */
-		hint.shift_flags = (SF_DEFAULT & SF_ALLOW_LEFT);
 
 		if (plug_call(place->plug->o.item_ops->object,
 			      fetch_units, place, &hint) != 1)
@@ -1761,6 +1765,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node,
     
 	/* Preparing nodeptr item hint. */
 	hint.count = 1;
+	hint.item_flags = 0;
 	hint.specific = &ptr;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
@@ -2760,14 +2765,19 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	   should be changed. */
 	if (place->node != tree->root && !place->node->p.node) {
 		if (old.node && reiser4_tree_root_node(tree, old.node)) {
-			if ((res = reiser4_tree_growup(tree)))
+			if ((res = reiser4_tree_growup(tree))) {
+				aal_error("Can't grow tree up during "
+					  "modify it.");
 				return res;
+			}
 		}
 		
 		/* Attaching new node to the tree. */
 		if ((res = reiser4_tree_attach_node(tree, place->node,
 						    hint->shift_flags)))
 		{
+			aal_error("Can't attach node %llu to tree.",
+				  node_blocknr(place->node));
 			return res;
 		}
 	}

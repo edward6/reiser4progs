@@ -101,7 +101,9 @@ static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
 static int64_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 	int64_t res;
 
-	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
+	/* FIXME-UMKA->VITALY: Last argument if item flags for new items. Should
+	   it be zero here? */
+	if ((res = reg40_put((object_entity_t *)reg, NULL, len, 0)) < 0) {
 		uint64_t offset = reg40_offset((object_entity_t *)reg);
 		object_info_t *info = &reg->obj.info;
 
@@ -129,7 +131,9 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	
 	if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
 			  FIND_EXACT, &place)) < 0)
+	{
 		return NULL;
+	}
 
 	/* If place is invalid, there is no items of the file. */
 	if (!reg40_core->tree_ops.valid(reg->obj.info.tree, &place))
@@ -461,7 +465,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	if ((res = obj40_launch_stat(&reg->obj, callback_stat, 
 				     reg40_exts, 1, S_IFREG, mode)))
+	{
 		return res;
+	}
 
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(&info->start, data))

@@ -93,7 +93,9 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
 				FIND_EXACT, &dir->body)) < 0)
+	{
 		return res;
+	}
 
 	if (res == PRESENT)
 		return 0;
@@ -115,14 +117,15 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	   ready. */
 		
 	aal_memset(&body_hint, 0, sizeof(body_hint));
-	
+
 	body_hint.count = 1;
 	body_hint.plug = bplug;
+	body_hint.item_flags = 0;
 	
 	aal_memcpy(&body_hint.offset, &dir->position, sizeof(dir->position));
 	aal_memcpy(&entry.offset,  &dir->position, sizeof(dir->position));
 	aal_memcpy(&entry.object,  &dir->obj.info.object, sizeof(entry.object));
-	
+
 	aal_strncpy(entry.name, ".", 1);
 	body_hint.specific = &entry;
 	res = obj40_insert(&dir->obj, &dir->body, &body_hint, LEAF_LEVEL);
@@ -371,6 +374,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			}
 
 			hint.count = 1;
+			hint.item_flags = 0;
 
 			if ((res |= obj40_remove(&dir->obj, &dir->body, 
 						 &hint)) < 0)
@@ -471,12 +475,17 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		/* Adding ".." to the @object pointing to the @parent. */
 		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, assign,
 			  &entry.object, &parent->info.object);
+
+		/* FIXME-UMKA->VITALY: Is this correct? */
+		entry.item_flags = 0;
 		
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
 		if ((res = plug_call(object->plug->o.object_ops,
 				     add_entry, object, &entry)))
+		{
 			return res;
+		}
 
 		break;
 	default:

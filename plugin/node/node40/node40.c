@@ -320,9 +320,10 @@ static errno_t node40_get_key(node_entity_t *entity,
 errno_t node40_fetch(node_entity_t *entity,
 		     pos_t *pos, place_t *place)
 {
-	rid_t pid;
+	void *ih;
 	uint32_t pol;
 	node40_t *node;
+	reiser4_plug_t *plug;
 	
 	aal_assert("umka-1813", pos != NULL);
 	aal_assert("umka-1602", place != NULL);
@@ -333,20 +334,22 @@ errno_t node40_fetch(node_entity_t *entity,
 
 	node = (node40_t *)entity;
 	pol = node40_key_pol(node);
+	ih = node40_ih_at(node, pos->item);
 	
 	/* Initializing item's plugin */
-	pid = ih_get_pid(node40_ih_at(node, pos->item), pol);
-	
-	if (!(place->plug = node40_core->factory_ops.ifind(ITEM_PLUG_TYPE,
-							   pid)))
+	if (!(plug = node40_core->factory_ops.ifind(ITEM_PLUG_TYPE,
+						    ih_get_pid(ih, pol))))
 	{
-		aal_error("Can't find item plugin by its id 0x%x.", pid);
+		aal_error("Can't find item plugin by its id 0x%x.",
+			  ih_get_pid(ih, pol));
 		return -EINVAL;
 	}
 
 	/* Initializing other fields. */
 	place->pos = *pos;
+	place->plug = plug;
 	place->block = node->block;
+	place->flags = ih_get_flags(ih, pol);
 	place->len = node40_len(entity, pos);
 	place->body = node40_ib_at(node, pos->item);
 
@@ -477,8 +480,8 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 
 	if (insert) {
                 /* Setting up the fields of new item. */
-		ih_set_offset(ih, offset, pol);
 		ih_set_flags(ih, 0, pol);
+		ih_set_offset(ih, offset, pol);
 
 		/* Setting up node header. */
 		nh_inc_num_items(node, count);
@@ -690,6 +693,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 	/* Updating item header if we want to insert new item. */
         if (pos->unit == MAX_UINT32) {
 		ih_set_pid(ih, hint->plug->id.id, pol);
+		ih_set_flags(ih, hint->item_flags, pol);
 		aal_memcpy(ih, hint->offset.body, key_size(pol));
         }
         
@@ -1123,7 +1127,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	uint32_t src_items;
 	
 	void *src_ih, *dst_ih;
-	int left_shift, remove_src;
+	int left_shift, remove;
 	
 	aal_assert("umka-1624", hint != NULL);
 	aal_assert("umka-1622", src_entity != NULL);
@@ -1222,7 +1226,8 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* Substract node overhead, that is item header. */
 		hint->units_bytes -= overhead;
-			
+
+		/* Making estimate how many units and bytes may be shifted. */
 		if (plug_call(src_place.plug->o.item_ops->balance,
 			      prep_shift, &src_place, NULL, hint))
 		{
@@ -1326,18 +1331,18 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* We will remove src item if it has became empty and insert point does
 	   not point it, that is next insert will not be dealing with it. */
-	remove_src = (hint->units_bytes == src_place.len || units == 0);
+	remove = (hint->units_bytes == src_place.len || units == 0);
 	
 	if (hint->control & SF_UPDATE_POINT) {
-		remove_src = remove_src && (hint->result & SF_MOVE_POINT ||
-					    pos.item != hint->pos.item);
+		remove = remove && (hint->result & SF_MOVE_POINT ||
+				    pos.item != hint->pos.item);
 	}
 	
-	/* Updating item's keys. */
+	/* Updating item's keys after shift_unit() is finished. */
 	if (left_shift) {
 		/* We do not need to update key of the src item which is going
 		   to be removed. */
-		if (!remove_src) {
+		if (!remove) {
 			src_ih = node40_ih_at(src_node, src_place.pos.item);
 			aal_memcpy(src_ih, src_place.key.body, key_size(pol));
 		}
@@ -1346,7 +1351,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		aal_memcpy(dst_ih, dst_place.key.body, key_size(pol));
 	}
 	
-	if (remove_src) {
+	if (remove) {
 		/* Like expand() does, shrink() will remove pointed item if unit
 		   component is MAX_UINT32 and shrink the item pointed by pos if
 		   unit component is not MAX_UINT32. */
