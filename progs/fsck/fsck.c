@@ -353,8 +353,11 @@ int main(int argc, char *argv[]) {
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
 	repair.progress_handler = gauge_handler;    
 	
-	if ((res = fsck_prepare(&repair, parse_data.host_device)))
+	if ((res = fsck_prepare(&repair, parse_data.host_device)) || 
+	    repair.fatal)
+	{
 		goto free_libreiser4;
+	}
 	
 	df_fixable = repair.fixable;
 	repair.fixable = 0;

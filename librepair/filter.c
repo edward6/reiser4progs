@@ -466,8 +466,6 @@ static void repair_filter_update(repair_filter_t *fd) {
 	root = fd->repair->fs->tree->root;
 	
 	if (fd->flags) {
-		aal_assert("vpf-863", root != NULL);
-		
 		aal_exception_error("Root node (%llu): the node is %s. %s",
 				    reiser4_format_get_root(format), 
 				    fd->flags & RE_EMPTY ? "empty" :
