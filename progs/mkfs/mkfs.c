@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
 			break;
 		case '?':
 			mkfs_print_usage(argv[0]);
-			return USER_ERROR;
+			return NO_ERROR;
 		}
 	}
     
@@ -303,6 +303,11 @@ int main(int argc, char *argv[]) {
 			devices = aal_list_append(devices, argv[optind]);
 	}
 
+	if (aal_list_length(devices) == 0) {
+		mkfs_print_usage(argv[0]);
+		goto error_free_libreiser4;
+	}
+	
 	/*
 	  All devices cannot have the same uuid and label, so here we clean it
 	  out.

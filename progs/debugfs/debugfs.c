@@ -47,15 +47,6 @@ static void debugfs_print_usage(char *name) {
 		"  -i, --print-file FILE           prints the all file's metadata.\n"
 		"  -w, --print-items               forces --print-file show only items\n"
 		"                                  which are belong to specified file.\n"
-		"Measurement options:\n"
-		"  -S, --tree-stat                 measures some tree characteristics\n"
-		"                                  (node packing, etc).\n"
-		"  -T, --tree-frag                 measures tree fragmentation.\n"
-		"  -F, --file-frag FILE            measures fragmentation of specified\n"
-		"                                  file.\n"
-		"  -D, --data-frag                 measures average files fragmentation.\n"
-		"  -p, --show-each                 show file fragmentation for each file\n"
-		"                                  if --data-frag is specified.\n"
 		"Plugins options:\n"
 		"  -e, --profile PROFILE           profile to be used.\n"
 		"  -P, --known-plugins             prints known plugins.\n"
@@ -64,7 +55,7 @@ static void debugfs_print_usage(char *name) {
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
 
-/* Initializes used by debugfs exception streams */
+/* Initializes exception streams used by debugfs */
 static void debugfs_init(void) {
 	int ex;
 
@@ -103,33 +94,6 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 	return debugfs_print_buff(stream->data, stream->size - 1);
 }
 
-/* Handler for connecting node into tree */
-static errno_t debugfs_connect_handler(reiser4_tree_t *tree,
-				       reiser4_place_t *place,
-				       reiser4_node_t *node,
-				       void *data)
-{
-	/*
-	  If tree's LRU is initializied and memory pressure is detected, calling
-	  adjust lru code, which will remove unused nodes from the tree.
-	*/
-	if (tree->lru) {
-		if (progs_mpressure_detect())
-			return aal_lru_adjust(tree->lru);
-	}
-	
-	return 0;
-}
-
-/* Hnalder for disconnecting node from the tree */
-static errno_t debugfs_disconnect_handler(reiser4_tree_t *tree,
-					  reiser4_place_t *place,
-					  reiser4_node_t *node,
-					  void *data)
-{
-	return 0;
-}
-
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -139,9 +103,7 @@ int main(int argc, char *argv[]) {
 	uint32_t behav_flags = 0;
 
 	char override[4096];
-
 	char *cat_filename = NULL;
-	char *frag_filename = NULL;
 	char *print_filename = NULL;
 	char *profile_label = "smart40";
     
@@ -155,6 +117,7 @@ int main(int argc, char *argv[]) {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
+		{"quiet", no_argument, NULL, 'q'},
 		{"cat", required_argument, NULL, 'c'},
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
@@ -164,16 +127,10 @@ int main(int argc, char *argv[]) {
 		{"print-block", required_argument, NULL, 'n'},
 		{"print-file", required_argument, NULL, 'i'},
 		{"print-items", no_argument, NULL, 'w'},
-		{"tree-stat", no_argument, NULL, 'S'},
-		{"tree-frag", no_argument, NULL, 'T'},
-		{"file-frag", required_argument, NULL, 'F'},
-		{"data-frag", no_argument, NULL, 'D'},
-		{"show-each", no_argument, NULL, 'p'},
 		{"profile", required_argument, NULL, 'e'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"known-plugins", no_argument, NULL, 'P'},
 		{"override", required_argument, NULL, 'o'},
-		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
 	};
 
@@ -185,7 +142,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjTDpsSF:c:n:i:wo:P",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjc:n:i:wo:P",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -231,25 +188,9 @@ int main(int argc, char *argv[]) {
 		case 'w':
 			print_flags |= PF_ITEMS;
 			break;
-		case 'S':
-			behav_flags |= BF_TSTAT;
-			break;
-		case 'T':
-			behav_flags |= BF_TFRAG;
-			break;
-		case 'D':
-			behav_flags |= BF_DFRAG;
-			break;
-		case 'p':
-			behav_flags |= BF_SEACH;
-			break;
 		case 'c':
 			behav_flags |= BF_CAT;
 			cat_filename = optarg;
-			break;
-		case 'F':
-			behav_flags |= BF_FFRAG;
-			frag_filename = optarg;
 			break;
 		case 'f':
 			behav_flags |= BF_FORCE;
@@ -270,7 +211,7 @@ int main(int argc, char *argv[]) {
 			return NO_ERROR;
 		case '?':
 			debugfs_print_usage(argv[0]);
-			return USER_ERROR;
+			return NO_ERROR;
 		}
 	}
     
@@ -368,9 +309,6 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
-	fs->tree->traps.connect = debugfs_connect_handler;
-	fs->tree->traps.disconnect = debugfs_disconnect_handler;
-	
 	/*
 	  In the case no print flags was specified, debugfs will print super
 	  blocks by defaut.
@@ -378,94 +316,54 @@ int main(int argc, char *argv[]) {
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
 		print_flags = PF_SUPER;
 
-	/*
-	  Check if specified options are compatible. For instance, --show-each
-	  can be used only if --data-frag was specified.
-	*/
-	if (!(behav_flags & BF_DFRAG) && (behav_flags & BF_SEACH)) {
-		aal_exception_warn("Option --show-each is only active if "
-				   "--data-frag is specified.");
-	}
-
 	/* The same for --print-file option */
 	if (!(print_flags & PF_FILE) && (print_flags & PF_ITEMS)) {
 		aal_exception_warn("Option --print-items is only active if "
 				   "--print-file is specified.");
 	}
 
-	/* Handling measurements options */
-	if (behav_flags & BF_TFRAG || behav_flags & BF_DFRAG ||
-	    behav_flags & BF_FFRAG || behav_flags & BF_TSTAT)
-	{
-		if (behav_flags & BF_QUIET ||
-		    aal_exception_yesno("This operation may take a long time. "
-					"Continue?") == EXCEPTION_YES)
-		{
-			if (behav_flags & BF_TFRAG) {
-				if (debugfs_tree_frag(fs, behav_flags))
-					goto error_free_fs;
-			}
-
-			if (behav_flags & BF_DFRAG) {
-				if (debugfs_data_frag(fs, behav_flags))
-					goto error_free_fs;
-			}
-
-			if (behav_flags & BF_FFRAG) {
-				if (debugfs_file_frag(fs, frag_filename,
-						      behav_flags))
-					goto error_free_fs;
-			}
-	
-			if (behav_flags & BF_TSTAT) {
-				if (debugfs_tree_stat(fs, behav_flags))
-					goto error_free_fs;
-			}
-		}
-	}
-	
 	/* Handling print options */
 	if ((behav_flags & BF_CAT)) {
 		if (debugfs_browse(fs, cat_filename))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
 	
 	if (print_flags & PF_SUPER) {
 		if (debugfs_print_master(fs))
-			goto error_free_fs;
+			goto error_free_tree;
 	
 		if (debugfs_print_format(fs))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
     
 	if (print_flags & PF_OID) {
 		if (debugfs_print_oid(fs))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
     
 	if (print_flags & PF_ALLOC) {
 		if (debugfs_print_alloc(fs))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
     
 	if (print_flags & PF_JOURNAL) {
 		if (debugfs_print_journal(fs))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
     
 	if (print_flags & PF_TREE) {
 		if (debugfs_print_tree(fs))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
 
 	if (print_flags & PF_BLOCK) {
 		if (debugfs_print_block(fs, blocknr))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
     
 	if (print_flags & PF_FILE) {
 		if (debugfs_print_file(fs, print_filename, print_flags))
-			goto error_free_fs;
+			goto error_free_tree;
 	}
 
 	/* Freeing tree */
@@ -476,11 +374,10 @@ int main(int argc, char *argv[]) {
 	aal_device_close(device);
     
 	/* 
-	   Deinitializing libreiser4. At the moment only plugins are unloading 
+	   Deinitializing libreiser4. At theq moment only plugins are unloading
 	   durrign this.
 	*/
 	libreiser4_fini();
-    
 	return NO_ERROR;
 
  error_free_tree:
