@@ -10,6 +10,9 @@
 #include <aux/bitmap.h>
 #include <reiser4/plugin.h>
 
+/* Minimal block number needed to reiser4 filesystem on device. */
+#define REISER4_FS_MIN_SIZE 23
+
 typedef struct key_entity reiser4_key_t;
 
 /* Master super block structure. It is the same for all reiser4 filesystems,
@@ -37,13 +40,10 @@ typedef struct reiser4_master_sb reiser4_master_sb_t;
 
 struct reiser4_status_sb {
 	char ss_magic[16];
-	d64_t ss_status;		    /* current filesystem state */
-	d64_t ss_extended;		    /* any additional info that might have 
-					       sense in addition to "status". */
-	d64_t ss_stack[SS_STACK_SIZE];      /* last ten functional calls made
-					       (addresses). */
-	char ss_message[SS_MESSAGE_SIZE];   /* any error message if appropriate, 
-					       otherwise filled with zeroes. */
+	d64_t ss_status;
+	d64_t ss_extended;
+	d64_t ss_stack[SS_STACK_SIZE];
+	char ss_message[SS_MESSAGE_SIZE];
 };
 
 typedef struct reiser4_status_sb reiser4_status_sb_t;
@@ -193,7 +193,9 @@ struct reiser4_journal {
 typedef struct reiser4_journal reiser4_journal_t;
 
 typedef struct reiser4_alloc reiser4_alloc_t;
-typedef errno_t (*hook_alloc_t) (reiser4_alloc_t *, uint64_t, uint64_t, void *);
+
+typedef errno_t (*hook_alloc_t) (reiser4_alloc_t *,
+				 uint64_t, uint64_t, void *);
 
 /* Block allocator structure */
 struct reiser4_alloc {
@@ -218,23 +220,14 @@ struct reiser4_oid {
 typedef struct reiser4_oid reiser4_oid_t;
 
 #ifndef ENABLE_STAND_ALONE
-typedef errno_t (*pack_func_t) (reiser4_tree_t *,
-				place_t *, void *);
-
 typedef errno_t (*estimate_func_t) (place_t *place, 
 				    trans_hint_t *hint);
 
 typedef errno_t (*modify_func_t) (node_t *node, pos_t *pos,
 				  trans_hint_t *hint);
-
-enum tree_flags {
-	TF_PACK = 1 << 0
-};
-
-typedef enum tree_flags tree_flags_t;
 #endif
 
-typedef bool_t (*mpc_func_t) (void);
+typedef bool_t (*mem_check_func_t) (void);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -251,7 +244,7 @@ struct reiser4_tree {
 	reiser4_key_t key;
 
 	/* Memory pressure check function */
-	mpc_func_t mpc_func;
+	mem_check_func_t mpc_func;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Minimal tree level we have to allocate something on it. In current
@@ -264,33 +257,13 @@ struct reiser4_tree {
 	   any kind of hardcoding.
 	*/
 	uint32_t bottom;
-	
-	/* Tree operation control flags */
-	uint32_t flags;
 #endif
 	
-	/* Tree modification traps */
-	struct {
-
-#ifndef ENABLE_STAND_ALONE
-		/* This trap is called by tree_remove(). It may be used for
-		   implementing an alternative tree packing at remove. By
-		   default it uses so called "local packing", that is, shift
-		   everything from target node to left neighbour and shift
-		   everything from right node to target one. */
-		pack_func_t pack;
-
-		/* Pack callback related data. User may use it for setting some
-		   usefull data to it, and then use it in alternative pack(). */
-		void *data;
-#endif
-	} traps;
-
 	/* Formatted nodes hash table. */
 	aal_hash_table_t *nodes;
 
 #ifndef ENABLE_STAND_ALONE
-	/* Extents data stored here */
+	/* Extents data stored here. */
 	aal_hash_table_t *data;
 #endif
 };
@@ -359,8 +332,8 @@ typedef struct fs_hint fs_hint_t;
 typedef void (*uuid_unparse_t) (char *uuid, char *string);
 typedef errno_t (*walk_func_t) (reiser4_tree_t *, node_t *);
 
-/* Number of but to test it in format flags in order know if large keys in use
-   or not. Large keys in use if it is set. */
+/* Number of bit to test it in format flags in order check if large keys policy
+   in use. Large keys in use if bit is set. */
 #define REISER4_LARGE_KEYS 0
 
 #endif

@@ -525,7 +525,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		/* If no more reg40 body items and some of them need to be 
 		   converted, or convertion is to be now, run tree_conv. */
 		if ((!reg->body.plug && hint.offset.plug) || result) {
-			result = reg40_core->tree_ops.conv(info->tree, &hint);
+			result = reg40_core->tree_ops.convert(info->tree, &hint);
 			
 			if (result) return result;
 

@@ -108,9 +108,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 }
 
 /* Close all filesystem's objects */
-void reiser4_fs_close(
-	reiser4_fs_t *fs)		/* filesystem to be closed */
-{
+void reiser4_fs_close(reiser4_fs_t *fs) {
     
 	aal_assert("umka-230", fs != NULL);
 
@@ -223,8 +221,6 @@ static errno_t callback_mark_block(void *entity, blk_t start,
 				    start, width);
 }
 
-#define REISER4_MIN_SIZE 122
-
 /* Create filesystem on specified host device and with passed params */
 reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
@@ -259,11 +255,11 @@ reiser4_fs_t *reiser4_fs_create(
 	}
     
 	/* Checks whether filesystem size is enough big. */
-	if (hint->blocks < REISER4_MIN_SIZE) {
+	if (hint->blocks < REISER4_FS_MIN_SIZE) {
 		aal_exception_error("Requested filesytem size (%llu) "
 				    "too small. Reiser4 required minimal "
 				    "size %u blocks long.", hint->blocks,
-				    REISER4_MIN_SIZE);
+				    REISER4_FS_MIN_SIZE);
 		return NULL;
 	}
     

@@ -11,14 +11,13 @@
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
+extern bool_t reiser4_tree_minimal(reiser4_tree_t *tree);
+extern bool_t reiser4_tree_singular(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
 
 extern int64_t reiser4_tree_read(reiser4_tree_t *tree,
 				 place_t *place,
 				 trans_hint_t *hint);
-
-extern int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
-				      trans_hint_t *hint);
 
 extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
 
@@ -56,16 +55,11 @@ extern errno_t reiser4_tree_growup(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_dryout(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_compress(reiser4_tree_t *tree);
 
-extern void reiser4_tree_pack_on(reiser4_tree_t *tree);
-extern void reiser4_tree_pack_off(reiser4_tree_t *tree);
-
 extern void reiser4_tree_set_root(reiser4_tree_t *tree,
 				  blk_t blk);
 
 extern void reiser4_tree_set_height(reiser4_tree_t *tree,
 				    uint8_t height);
-extern void reiser4_tree_pack_set(reiser4_tree_t *tree,
-				  pack_func_t func);
 
 extern int64_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   place_t *place,
@@ -76,22 +70,6 @@ extern int64_t reiser4_tree_write(reiser4_tree_t *tree,
 				  place_t *place,
 				  trans_hint_t *hint,
 				  uint8_t level);
-
-extern errno_t reiser4_tree_trav(reiser4_tree_t *tree,
-				 tree_open_func_t open_func,
-				 tree_edge_func_t before_func,
-				 tree_update_func_t update_func,
-				 tree_edge_func_t after_func,
-				 void *data);
-
-extern errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
-				      conv_hint_t *hint);
-
-extern int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
-				       trans_hint_t *hint);
-
-extern int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
-				       trans_hint_t *hint);
 
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree,
 				   place_t *place,
@@ -109,6 +87,13 @@ extern int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 				   place_t *place,
 				   uint32_t needed,
 				   uint32_t flags);
+
+extern errno_t reiser4_tree_trav(reiser4_tree_t *tree,
+				 tree_open_func_t open_func,
+				 tree_edge_func_t before_func,
+				 tree_update_func_t update_func,
+				 tree_edge_func_t after_func,
+				 void *data);
 
 extern errno_t reiser4_tree_update_key(reiser4_tree_t *tree,
 				       place_t *place,

@@ -33,6 +33,7 @@ static int64_t tree_insert(void *tree, place_t *place,
 				   place, hint, level);
 }
 
+/* Handler for write operation from @core. */
 static int64_t tree_write(void *tree, trans_hint_t *hint) {
 	reiser4_tree_t *t;
 
@@ -40,17 +41,18 @@ static int64_t tree_write(void *tree, trans_hint_t *hint) {
 	aal_assert("umka-2507", hint != NULL);
 	
 	t = (reiser4_tree_t *)tree;
-	return reiser4_tree_write_flow(t, hint);
+	return reiser4_flow_write(t, hint);
 }
 
-static int64_t tree_trunc(void *tree, trans_hint_t *hint) {
+/* Handler for truncate operation from @core. */
+static int64_t tree_truncate(void *tree, trans_hint_t *hint) {
 	reiser4_tree_t *t;
 
 	aal_assert("umka-2525", tree != NULL);
 	aal_assert("umka-2526", hint != NULL);
 	
 	t = (reiser4_tree_t *)tree;
-	return reiser4_tree_trunc_flow(t, hint);
+	return reiser4_flow_truncate(t, hint);
 }
 
 /* Handler for item removing requests from all plugins. */
@@ -85,7 +87,7 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 	aal_assert("umka-2510", hint != NULL);
 	
 	t = (reiser4_tree_t *)tree;
-	return reiser4_tree_read_flow(t, hint);
+	return reiser4_flow_read(t, hint);
 }
 
 /* Initializes item at passed @place */
@@ -140,8 +142,14 @@ static char *key_print(key_entity_t *key, uint16_t options) {
 	return reiser4_print_key((reiser4_key_t *)key, options);
 }
 
-static errno_t tree_conv(void *tree, conv_hint_t *hint) {
-	return reiser4_tree_conv_flow(tree, hint);
+static errno_t tree_convert(void *tree, conv_hint_t *hint) {
+	reiser4_tree_t *t;
+
+	aal_assert("umka-3014", tree != NULL);
+	aal_assert("umka-3015", hint != NULL);
+	
+	t = (reiser4_tree_t *)tree;
+	return reiser4_flow_convert(t, hint);
 }
 
 static uint64_t param_value(char *name) {
@@ -180,31 +188,31 @@ static errno_t object_resolve(void *tree, char *path,
 reiser4_core_t core = {
 	.tree_ops = {
 	
+		/* Installing "valid" callback */
+		.valid      = tree_valid,
+
+		/* This one for initializing an item at place */
+		.fetch      = tree_fetch,
+
 		/* This one for lookuping the tree */
 		.lookup	    = tree_lookup,
 
 		/* Reads data from the tree. */
 		.read	    = tree_read,
 		
-		/* This one for initializing an item at place */
-		.fetch      = tree_fetch,
-
-		/* Installing "valid" callback */
-		.valid      = tree_valid,
-
 #ifndef ENABLE_STAND_ALONE
-		/* Callback function for inserting items into the tree */
-		.insert	    = tree_insert,
+		/* Callback for truncating data in tree. */
+		.truncate   = tree_truncate,
 
+		/*Convertion to another item plugin. */
+		.convert    = tree_convert,
+		
 		/* Callback for writting data to tree. */
 		.write	    = tree_write,
 
-		/* Callback for truncating data in tree. */
-		.trunc	    = tree_trunc,
+		/* Callback function for inserting items into the tree */
+		.insert	    = tree_insert,
 
-		/*Convertion to another item plugin. */
-		.conv	    = tree_conv,
-		
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
 

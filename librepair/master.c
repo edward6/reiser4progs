@@ -56,8 +56,8 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 					    "block.");
 				return -EINVAL;
 		} else {
-			aal_exception_fatal("A new master superblock was "
-					    "created on (%s).", fs->device->name);
+			aal_exception_info("A new master superblock was "
+					   "created on (%s).", fs->device->name);
 		}
 	} else {
 		/* Master SB was opened. Check it for validness. */

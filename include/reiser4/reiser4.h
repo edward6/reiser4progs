@@ -19,6 +19,7 @@ extern "C" {
 #include <reiser4/oid.h>
 #include <reiser4/plugin.h>
 #include <reiser4/tree.h>
+#include <reiser4/flow.h>
 #include <reiser4/node.h>
 #include <reiser4/key.h>
 #include <reiser4/semantic.h>

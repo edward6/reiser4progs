@@ -1508,6 +1508,12 @@ struct reiser4_plug {
         ((place)->block->dirty)
 
 struct tree_ops {
+	/* Checks if passed @place points to some real item inside a node. */
+	int (*valid) (void *, place_t *);
+	
+	/* Initializes all item fields in passed place. */
+	errno_t (*fetch) (void *, place_t *);
+
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
 	lookup_t (*lookup) (void *, key_entity_t *,
@@ -1516,27 +1522,21 @@ struct tree_ops {
 	/* Reads data from the tree. */
 	int64_t (*read) (void *, trans_hint_t *);
 
-	/* Initializes all item fields in passed place. */
-	errno_t (*fetch) (void *, place_t *);
-
-	/* Checks if passed @place points to some real item inside a node. */
-	int (*valid) (void *, place_t *);
-	
 #ifndef ENABLE_STAND_ALONE
+	/* Truncates data from tree. */
+	int64_t (*truncate) (void *, trans_hint_t *);
+	
+	/* Convert some particular place to another plugin. */
+	errno_t (*convert) (void *, conv_hint_t *);
+	
+	/* Writes data to tree. */
+	int64_t (*write) (void *, trans_hint_t *);
+
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
 	   by all object plugins (dir, file, etc). */
 	int64_t (*insert) (void *, place_t *,
 			   trans_hint_t *, uint8_t);
 
-	/* Writes data to tree */
-	int64_t (*write) (void *, trans_hint_t *);
-
-	/* Truncates data from tree */
-	int64_t (*trunc) (void *, trans_hint_t *);
-	
-	/* Convert some particular place to another plugin. */
-	errno_t (*conv) (void *, conv_hint_t *);
-	
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
 	errno_t (*remove) (void *, place_t *, trans_hint_t *);

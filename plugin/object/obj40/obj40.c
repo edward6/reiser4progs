@@ -629,8 +629,8 @@ int64_t obj40_read(obj40_t *obj, trans_hint_t *hint) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-int64_t obj40_conv(obj40_t *obj, conv_hint_t *hint) {
-	return obj->core->tree_ops.conv(obj->info.tree, hint);
+int64_t obj40_convert(obj40_t *obj, conv_hint_t *hint) {
+	return obj->core->tree_ops.convert(obj->info.tree, hint);
 }
 
 /* Writes data to tree */
@@ -639,8 +639,8 @@ int64_t obj40_write(obj40_t *obj, trans_hint_t *hint) {
 }
 
 /* Truncates data in tree */
-int64_t obj40_trunc(obj40_t *obj, trans_hint_t *hint) {
-	return obj->core->tree_ops.trunc(obj->info.tree, hint);
+int64_t obj40_truncate(obj40_t *obj, trans_hint_t *hint) {
+	return obj->core->tree_ops.truncate(obj->info.tree, hint);
 }
 
 /* Inserts passed item hint into the tree. After function is finished, place

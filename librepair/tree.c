@@ -376,7 +376,7 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	hint.count = plug_call(place->plug->o.item_ops->object,
 			       size, place);
 
-	return reiser4_tree_conv_flow(tree, &hint);
+	return reiser4_flow_convert(tree, &hint);
 }
 
 /* Copy @src item data over the @dst from the key pointed by @key through the

@@ -51,8 +51,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 				return -EINVAL;
 			}
 
-			if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
-						"Do you want to build the on-disk "
+			if (aal_exception_yesno("Do you want to build the on-disk "
 						"format (%s) specified in the profile?",
 						plug->label) == EXCEPTION_NO)
 				return -EINVAL;

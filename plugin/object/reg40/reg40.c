@@ -336,7 +336,7 @@ static errno_t reg40_convert(object_entity_t *entity,
 	hint.count = fsize;
 
 	/* Converting file data. */
-	if ((res = obj40_conv(&reg->obj, &hint)))
+	if ((res = obj40_convert(&reg->obj, &hint)))
 		return res;
 
 	/* Updating stat data fields. */
@@ -452,7 +452,7 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
 	hint.data = reg->obj.info.tree;
 	hint.plug = reg40_policy_plug(reg, n);
 
-	if ((res = obj40_trunc(&reg->obj, &hint)) < 0)
+	if ((res = obj40_truncate(&reg->obj, &hint)) < 0)
 		return res;
 
 	return hint.bytes;

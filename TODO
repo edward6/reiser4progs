@@ -12,14 +12,15 @@ reiser4progs/COPYING.
 
 * change R4Sb magic to Reiser4Sb both in progs and in kernel code.
 
-* implement tree_pack() function, which will pack tree on leaf level
-  in order to make it well packed and thus occupied less nodes on
-  device. This is needed for using less space and especially important
-  in fsck when tail <--> extent convertion is running.
-
 * implement key collisions handling in tree_lookup().
 
-* remove one of reiser4_key_t and key_entity_t.
+* remove key_entity_t and use reiser4_key_t everywhere it is needed.
+  Declare it in plugin.h and make in such a way public available for
+  plugins. Rename node_t to reiser4_node_t and place_t to
+  reiser4_place_t.
+
+  All these types are basic reiser4 type available to be used on all
+  abstraction levels.
 
 * move plugin directory to libreiser4 directory. Maintain own plugin
   directory in librepair. Move all repair code from libreiser4/plugin/*

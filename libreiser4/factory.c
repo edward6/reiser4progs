@@ -207,10 +207,6 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(sdext_lt);
 	__load_plug(sdext_unix);
 
-#ifdef ENABLE_SYMLINKS
-	__load_plug(sdext_symlink);
-#endif
-	
 	__load_plug(cde40);
 	__load_plug(stat40);
 	__load_plug(tail40);
@@ -234,6 +230,7 @@ errno_t reiser4_factory_init(void) {
 #endif
 
 #ifdef ENABLE_SYMLINKS
+	__load_plug(sdext_symlink);
 	__load_plug(sym40);
 #endif
 
@@ -244,6 +241,9 @@ errno_t reiser4_factory_init(void) {
 #endif
 
 #ifndef ENABLE_STAND_ALONE
+	/* Check if at least one plugin has registered in plugins hash table. If
+	   there are no one, plugin factory is considered not successfully
+	   initialized.*/
 	if (plugins->real == 0) {
                 aal_exception_error("There are no valid "
 				    "builtin plugins found.");
@@ -300,6 +300,25 @@ static errno_t callback_foreach_plug(void *entry, void *data) {
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
+/* Helper function for comparing each plugin registered in plugin factory with
+   passed one in order to check if they name the same . */
+static errno_t callback_nfind_plug(void *entry, void *data) {
+	enum_hint_t *hint = (enum_hint_t *)data;
+	aal_hash_node_t *node = (aal_hash_node_t *)entry;
+	reiser4_plug_t *plug = (reiser4_plug_t *)node->value;
+
+	if (!aal_strncmp(plug->label, hint->data,
+			 sizeof(plug->label)))
+	{
+		hint->plug = plug;
+		return 1;
+	}
+
+	return 0;
+}
+#endif
+
 /* Calls specified function for every plugin from plugin list. This functions is
    used for getting any plugins information. */
 errno_t reiser4_factory_foreach(plug_func_t plug_func, void *data) {
@@ -352,23 +371,6 @@ reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Helper function for comparing each plugin hash table entry with needed
-   plugin name. */
-static errno_t callback_nfind_plug(void *entry, void *data) {
-	enum_hint_t *hint = (enum_hint_t *)data;
-	aal_hash_node_t *node = (aal_hash_node_t *)entry;
-	reiser4_plug_t *plug = (reiser4_plug_t *)node->value;
-
-	if (!aal_strncmp(plug->label, hint->data,
-			 sizeof(plug->label)))
-	{
-		hint->plug = plug;
-		return 1;
-	}
-
-	return 0;
-}
-
 /* Makes search for plugin by @name. */
 reiser4_plug_t *reiser4_factory_nfind(char *name) {
 	enum_hint_t hint;

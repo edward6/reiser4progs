@@ -11,6 +11,11 @@
 #include "format40.h"
 #include "format40_repair.h"
 
+static reiser4_core_t *core;
+
+/* All these functions are standard object getters and setters. They are
+   dedicated to modify object properties and get values from its fields. They
+   are almost the same and we will not describe each one especially. */
 static uint64_t format40_get_root(generic_entity_t *entity) {
 	aal_assert("umka-400", entity != NULL);
 	return get_sb_root_block(SUPER(entity));
@@ -42,7 +47,7 @@ static uint16_t format40_get_policy(generic_entity_t *entity) {
 	return get_sb_tail_policy(SUPER(entity));
 }
 
-static uint64_t format40_begin(generic_entity_t *entity) {
+static uint64_t format40_start(generic_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
 	aal_assert("vpf-462", format != NULL);
@@ -102,13 +107,13 @@ static errno_t format40_check(generic_entity_t *entity,
 		return -EINVAL;
 	}
     
-	if (get_sb_root_block(super) <= format40_begin(entity) ||
+	if (get_sb_root_block(super) <= format40_start(entity) ||
 	    get_sb_root_block(super) >= max_format_len)
 	{
 		aal_exception_error("Superblock has an invalid root block "
 				    "%llu. It must lie between %llu and %llu "
 				    "blocks.", get_sb_root_block(super),
-				    format40_begin(entity), max_format_len);
+				    format40_start(entity), max_format_len);
 		return -EINVAL;
 	}
 	
@@ -414,8 +419,10 @@ errno_t format40_print(generic_entity_t *entity,
 		       aal_stream_t *stream,
 		       uint16_t options) 
 {
+	rid_t tail_pid;
 	format40_t *format;
 	format40_super_t *super;
+	reiser4_plug_t *tail_plug;
     
 	aal_assert("vpf-246", entity != NULL);
 	aal_assert("umka-1290", stream != NULL);
@@ -423,6 +430,15 @@ errno_t format40_print(generic_entity_t *entity,
 	format = (format40_t *)entity;
 	super = &format->super;
     
+	tail_pid = get_sb_tail_policy(super);
+
+	if (!(tail_plug = core->factory_ops.ifind(POLICY_PLUG_TYPE,
+						   tail_pid)))
+	{
+		aal_exception_error("Can't find tail policy plugin "
+				    "by its id 0x%x.", tail_pid);
+	}
+		
 	aal_stream_format(stream, "Format super block (%lu):\n",
 			  FORMAT40_BLOCKNR(format->blksize));
 	
@@ -449,9 +465,10 @@ errno_t format40_print(generic_entity_t *entity,
 	
 	aal_stream_format(stream, "root block:\t%llu\n",
 			  get_sb_root_block(super));
-	
-	aal_stream_format(stream, "tail policy:\t%u\n",
-			  get_sb_tail_policy(super));
+
+	aal_stream_format(stream, "tail policy:\t0x%x (%s)\n",
+			  tail_pid, tail_plug ? tail_plug->label:
+			  "absent");
 	
 	aal_stream_format(stream, "next oid:\t0x%llx\n",
 			  get_sb_oid(super));
@@ -479,7 +496,7 @@ static reiser4_format_ops_t format40_ops = {
 	.print		= format40_print,
 	.layout	        = format40_layout,
 	.update		= format40_update,
-	.start		= format40_begin,
+	.start		= format40_start,
 	
 	.pack           = format40_pack,
 	.unpack         = format40_unpack,
@@ -524,9 +541,10 @@ reiser4_plug_t format40_plug = {
 	}
 };
 
-static reiser4_plug_t *format40_start(reiser4_core_t *core) {
+static reiser4_plug_t *format40_init(reiser4_core_t *c) {
+	core = c;
 	return &format40_plug;
 }
 
-plug_register(format40, format40_start, NULL);
+plug_register(format40, format40_init, NULL);
 
