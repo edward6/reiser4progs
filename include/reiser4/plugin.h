@@ -232,11 +232,30 @@ struct item_entity {
 typedef struct item_entity item_entity_t;
 typedef struct reiser4_place reiser4_place_t;
 
+/* Shift flags control shift process */
 enum shift_flags {
+
+	/* Perform shift from the passed node to the left neighbour node */
 	SF_LEFT	 = 1 << 0,
+
+	/* Perform shift from the passed node to the right neighbour node */
 	SF_RIGHT = 1 << 1,
+
+	/*
+	  Allows to move insert point to the corresponding neighbour node while
+	  performing shift.
+	*/
 	SF_MOVIP = 1 << 2,
-	SF_MERGE = 1 << 3
+
+	/* Allows update insert point while performing shift */
+	SF_UPTIP = 1 << 3,
+
+	/*
+	  Allows do not create new items while performing the shift of
+	  units. Units from the source item may be moved into an item if the
+	  items are mergeable.
+	*/
+	SF_MERGE = 1 << 4,
 };
 
 typedef enum shift_flags shift_flags_t;

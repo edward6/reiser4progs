@@ -1109,7 +1109,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 		  As item will be removed, we should update item pos in hint
 		  properly.
 		*/
-		if (pos.item < hint->pos.item)
+		if (hint->flags & SF_UPTIP && pos.item < hint->pos.item)
 			hint->pos.item--;
 	} else {
 		pos.unit = 0;
@@ -1179,83 +1179,87 @@ static errno_t node40_predict_items(node40_t *src_node,
 		if (space < len + overhead)
 			break;
 
-		/* Updating insert position */
-		if (flags & SF_LEFT) {
-			if (hint->pos.item == 0) {
-				uint32_t units;
-				item_entity_t item;
+		if (flags & SF_UPTIP) {
+			
+			/* Updating insert position */
+			if (flags & SF_LEFT) {
+				if (hint->pos.item == 0) {
+					uint32_t units;
+					item_entity_t item;
 
-				/*
-				  If unit component if zero, we can shift whole
-				  item pointed by pos.
-				*/
-				node40_item(&item, src_node, 0);
-
-				if (!item.plugin->item_ops.units)
-					return -1;
-				
-				units = item.plugin->item_ops.units(&item);
-
-				/*
-				  Breaking if insert point reach the end of
-				  node.
-				*/
-				if (flags & SF_MOVIP &&
-				    (hint->pos.unit == ~0ul ||
-				     hint->pos.unit >= units - 1))
-				{
 					/*
-					  If we are permitted to move insetr
-					  point to the neigbour, we doing it.
+					  If unit component if zero, we can
+					  shift whole item pointed by pos.
 					*/
-					hint->flags |= SF_MOVIP;
-					hint->pos.item = dst_items;
-				} else
-					break;
-				
-			} else
-				hint->pos.item--;
-		} else {
-			/*
-			  Checking if insert point reach the end of node. Hint
-			  is updated here.
-			*/
-			if (hint->pos.item >= src_items - 1) {
-				
-				if (hint->pos.item == src_items - 1) {
+					node40_item(&item, src_node, 0);
 
+					if (!item.plugin->item_ops.units)
+						return -1;
+				
+					units = item.plugin->item_ops.units(&item);
+
+					/*
+					  Breaking if insert point reach the end
+					  of node.
+					*/
 					if (flags & SF_MOVIP &&
 					    (hint->pos.unit == ~0ul ||
-					     hint->pos.unit == 0))
+					     hint->pos.unit >= units - 1))
 					{
+						/*
+						  If we are permitted to move
+						  insetr point to the neigbour,
+						  we doing it.
+						*/
 						hint->flags |= SF_MOVIP;
-						hint->pos.item = 0;
+						hint->pos.item = dst_items;
+					} else
+						break;
+				
+				} else
+					hint->pos.item--;
+			} else {
+				/*
+				  Checking if insert point reach the end of
+				  node. Hint is updated here.
+				*/
+				if (hint->pos.item >= src_items - 1) {
+				
+					if (hint->pos.item == src_items - 1) {
+
+						if (flags & SF_MOVIP &&
+						    (hint->pos.unit == ~0ul ||
+						     hint->pos.unit == 0))
+						{
+							hint->flags |= SF_MOVIP;
+							hint->pos.item = 0;
+						} else {
+							if (hint->pos.unit != ~0ul)
+								break;
+						}
 					} else {
-						if (hint->pos.unit != ~0ul)
-							break;
+						/*
+						  Insert point at the unexistent
+						  item at the end of node. So we
+						  just update hint and breaking
+						  the loop.
+						*/
+						if (flags & SF_MOVIP) {
+							hint->flags |= SF_MOVIP;
+							hint->pos.item = 0;
+						}
+						break;
 					}
-				} else {
-					/*
-					  Insert point at the unexistent item
-					  at the end of node. So, we just update
-					  hint and breaking the loop.
-					*/
-					if (flags & SF_MOVIP) {
-						hint->flags |= SF_MOVIP;
-						hint->pos.item = 0;
-					}
-					break;
 				}
 			}
 		}
 
 		/* Updating some counters and shift hint */
-		src_items--;
-		dst_items++;
-		
 		hint->items++;
 		hint->bytes += len;
 
+		src_items--; dst_items++;
+		
 		space -= (len + overhead);
 		cur += (flags & SF_LEFT ? -1 : 1);
 	}

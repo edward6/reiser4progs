@@ -275,7 +275,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		  Check if we should update unit pos. we will update it if we
 		  are at insert point and unit pos is not ~0ul.
 		*/
-		if (check) {
+		if (check && (flags & SF_UPTIP)) {
 			if (!(flags & SF_MOVIP)) {
 				if (flags & SF_LEFT) {
 					if (hint->pos.unit == 0)
@@ -303,7 +303,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		  of insert point is the same as current item has and unit
 		  component is not ~0ul.
 		*/
-		if (check) {
+		if (check && (flags & SF_UPTIP)) {
 			if (flags & SF_LEFT) {
 
 				/*

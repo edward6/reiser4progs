@@ -703,7 +703,7 @@ errno_t reiser4_tree_mkspace(
 	/* Shifting data into left neighbour if it exists */
 	if ((left = reiser4_node_left(coord->node))) {
 	    
-		if (reiser4_tree_shift(tree, coord, left, SF_LEFT))
+		if (reiser4_tree_shift(tree, coord, left, SF_LEFT | SF_UPTIP))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(coord->node)) <= 0)
@@ -713,7 +713,7 @@ errno_t reiser4_tree_mkspace(
 	/* Shifting data into right neighbour if it exists */
 	if ((right = reiser4_node_right(coord->node))) {
 	    
-		if (reiser4_tree_shift(tree, coord, right, SF_RIGHT))
+		if (reiser4_tree_shift(tree, coord, right, SF_RIGHT | SF_UPTIP))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(coord->node)) <= 0)
@@ -735,7 +735,7 @@ errno_t reiser4_tree_mkspace(
 		if (!(node = reiser4_tree_allocate(tree, level)))
 			return -1;
 		
-		flags = SF_RIGHT;
+		flags = SF_RIGHT | SF_UPTIP;
 
 		if (alloc == 0)
 			flags |= SF_MOVIP;
