@@ -118,7 +118,6 @@ errno_t repair_add_missing(repair_am_t *am) {
     
     repair_add_missing_setup(am);
     
-    
     /* 2 loops - 1 for twigs, another for leaves. */
     for (i = 0; i < 2; i++) {
 	blk = 0;
@@ -259,7 +258,12 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    pos->unit = ~0ul;
 	    items = reiser4_node_items(node);
 	    place.node = node;
-
+		
+	    if (i == 0)
+		am->stat.by_item_twigs++;
+	    else
+		am->stat.by_item_leaves++;
+	    
 	    for (pos->item = 0; pos->item < items; pos->item++) {
 		aal_assert("vpf-636", pos->unit == ~0ul);
 
@@ -273,10 +277,6 @@ errno_t repair_add_missing(repair_am_t *am) {
 		if ((res = repair_tree_insert(am->repair->fs->tree, &place)) < 0)
 		    goto error_node_close;
 
-		if (i == 0)
-		    am->stat.by_item_twigs++;
-		else
-		    am->stat.by_item_leaves++;
 		
 		if (res == 0) {
 		    if ((res = callback_layout(&place, am->repair->fs->alloc)))
@@ -291,7 +291,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    blk++;
 	}
     }
-
+    
     repair_add_missing_update(am);
     return 0;
 

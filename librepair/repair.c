@@ -124,6 +124,7 @@ static errno_t callback_region_mark(void *object, blk_t blk, uint64_t count,
  * scanned. */
 static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
     uint64_t fs_len, i;
+    uint8_t avail;
     
     aal_assert("vpf-826", ds != NULL);
     aal_assert("vpf-825", control != NULL);
@@ -142,7 +143,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
     fs_len = reiser4_format_get_len(control->repair->fs->format);
     
     /* Build a bitmap of what was met already. */
-    for (i = 0; i < control->bm_met->size; i++) {	
+    for (i = 0; i < control->bm_met->size; i++) {
 	/* If block is marked as met, it should not be marked as used. */
 	aal_assert("vpf-817", (control->bm_met->map[i] & 
 	    (control->bm_used->map[i] | control->bm_leaf->map[i] | 
@@ -157,20 +158,20 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
     
     i = reiser4_format_start(control->repair->fs->format);
     /* Build a bitmap of blocks which are not in the tree yet. */
-    for (; i < fs_len; i++) {	    
+    for (; i < fs_len; i++) {
 	/* Block was met as formatted, but unused in on-disk block allocator. 
 	 * Looks like the bitmap block of the allocator has not been synced on 
 	 * disk. Scan through all its blocks. */
-	if (aux_bitmap_test(ds->bm_met, i) && 
-	    reiser4_alloc_available(control->repair->fs->alloc, i, 1)) 
-	{
-	    repair_alloc_related_region(control->repair->fs->alloc, i, 
-		callback_region_mark, ds);
-	}
-
-	if (reiser4_alloc_occupied(control->repair->fs->alloc, i, 1) && 
-	    !aux_bitmap_test(ds->bm_met, i))
+	avail = reiser4_alloc_available(control->repair->fs->alloc, i, 1);
+	
+	if (avail) {
+	    if (aux_bitmap_test(ds->bm_met, i)) {
+		repair_alloc_related_region(control->repair->fs->alloc, i, 
+		    callback_region_mark, ds);
+	    }
+	} else if (!aux_bitmap_test(ds->bm_met, i)) {
 	    aux_bitmap_mark(ds->bm_scan, i);
+	}
     }
     
     aux_bitmap_calc_marked(ds->bm_scan);

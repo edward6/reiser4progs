@@ -482,13 +482,13 @@ errno_t journal40_traverse(
 		}
 
 		txh_blk = get_th_prev_tx(tx_header);
-		tx_list = aal_list_append(tx_list, tx_block);
+		tx_list = aal_list_prepend(tx_list, tx_block);
 	}
 
 	while (tx_list != NULL) {
 		
-		/* The last valid unreplayed transction */
-		tx_block = (aal_block_t *)aal_list_last(tx_list)->data;
+		/* The oldest valid unreplayed transction */
+		tx_block = (aal_block_t *)tx_list->data;
 		
 		if ((res = journal40_traverse_trans(journal, tx_block,
 						    han_func, sec_func,

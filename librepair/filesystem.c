@@ -14,7 +14,7 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
     aal_device_t *journal_device, reiser4_profile_t *profile)
 {
     void *oid_area_start, *oid_area_end;
-    errno_t error = 0;
+    errno_t error = REPAIR_OK;
 
     aal_assert("vpf-851", repair != NULL);
     aal_assert("vpf-159", host_device != NULL);
@@ -27,29 +27,34 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
     repair->fs->device = host_device;
     repair->fs->profile = profile;
     
-    error |= repair_master_open(repair->fs, repair->mode);    
-    if (repair_error_exists(error)) {
+    if ((error = repair_master_open(repair->fs, repair->mode))) {
 	aal_exception_fatal("Failed to open the master super block.");
 	goto error_fs_free;
     }
     
-    error |= repair_format_open(repair->fs, repair->mode);	
-    if (repair_error_exists(error)) {
+    if ((error = repair_format_open(repair->fs, repair->mode))) {
 	aal_exception_fatal("Failed to open the format.");
 	goto error_master_close;
     }
     
-    error |= repair_journal_handle(repair->fs, journal_device, repair->mode);
-    if (repair_error_exists(error)) {
-	aal_exception_fatal("Failed to replay the journal.");
+    if ((error = repair_journal_open(repair->fs, journal_device, 
+	repair->mode))) 
+    {
+	aal_exception_fatal("Failed to open the journal.");
 	goto error_format_close;
     }
+
+    if ((error = repair_journal_replay(repair->fs->journal, 
+	repair->fs->device))) 
+    {
+	aal_exception_fatal("Failed to replay the journal.");
+	goto error_journal_close;
+    }
     
-    error |= repair_format_update(repair->fs->format);
-    if (repair_error_exists(error)) {
+    if ((error = repair_format_update(repair->fs->format))) {
 	aal_exception_fatal("Failed to update the format after journal "
 	    "replaying.");
-	goto error_format_close;
+	goto error_journal_close;
     }
     
     /* Block and oid allocator plugins are specified by format plugin 
@@ -59,7 +64,7 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
     {
 	aal_exception_fatal("Failed to open a block allocator.");
 	error = -EINVAL;
-	goto error_format_close;
+	goto error_journal_close;
     }
 
     if ((error = repair_alloc_check(repair->fs->alloc, repair->mode)))
@@ -75,12 +80,19 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
 
 error_alloc_close:
     reiser4_alloc_close(repair->fs->alloc);
+    repair->fs->alloc = NULL;
+    
+error_journal_close:
+    reiser4_journal_close(repair->fs->journal);
+    repair->fs->journal = NULL;
     
 error_format_close:
     reiser4_format_close(repair->fs->format);
+    repair->fs->format = NULL;
     
 error_master_close:
     reiser4_master_close(repair->fs->master);
+    repair->fs->master = NULL;
 
 error_fs_free:
     aal_free(repair->fs);
@@ -96,5 +108,14 @@ error_fs_free:
     }
     
     return error;
+}
+
+/* Close the journal and the filesystem. */
+void repair_fs_close(reiser4_fs_t *fs) {
+    aal_assert("vpf-909", fs != NULL);
+    aal_assert("vpf-910", fs->journal != NULL);
+
+    reiser4_journal_close(fs->journal);
+    reiser4_fs_close(fs);    
 }
 

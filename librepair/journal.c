@@ -90,31 +90,36 @@ error_journal_close:
     return ret;
 }
 
-/* Open, replay, close journal. */
-errno_t repair_journal_handle(reiser4_fs_t *fs, aal_device_t *journal_device, 
-    uint8_t mode) 
+errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) 
 {
     errno_t ret = REPAIR_OK;
-    int flags;
+    int j_flags, flags;
     
-    ret = repair_journal_open(fs, journal_device, mode);
+    aal_assert("vpf-906", journal != NULL);
+    aal_assert("vpf-907", journal->device != NULL);
+    aal_assert("vpf-908", device != NULL);
     
     if (repair_error_exists(ret))
 	return ret;
     
-    flags = journal_device->flags;
-    if (aal_device_reopen(journal_device, journal_device->blocksize, O_RDWR))
+    j_flags = journal->device->flags;
+    flags = device->flags;
+
+    if (aal_device_reopen(journal->device, journal->device->blocksize, O_RDWR))
 	return -EIO;
     
-    if (reiser4_journal_replay(fs->journal))
+    if (aal_device_reopen(device, device->blocksize, O_RDWR))
+	return -EIO;
+
+    if (reiser4_journal_replay(journal))
 	return -EINVAL;
     
-    if (aal_device_reopen(journal_device, journal_device->blocksize, flags))
+    if (aal_device_reopen(device, device->blocksize, flags))
 	return -EIO;
     
-    reiser4_journal_close(fs->journal);
-    fs->journal = NULL;
-    
+    if (aal_device_reopen(journal->device, journal->device->blocksize, j_flags))
+	return -EIO;
+
     return 0;
 }
 

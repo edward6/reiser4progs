@@ -332,7 +332,7 @@ free_tree:
 
 free_fs:
     fprintf(stderr, "Closing fs ...");
-    reiser4_fs_close(repair.fs);
+    repair_fs_close(repair.fs);
     repair.fs = NULL;
     fprintf(stderr, "done\n");
     

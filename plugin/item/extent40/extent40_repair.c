@@ -45,7 +45,7 @@ errno_t extent40_layout_check(item_entity_t *item, region_func_t func,
 		    /* Zero the problem region. */
 		    aal_exception_error("Node (%llu), item (%u): pointed "
 			"region [%llu..%llu] is zeroed.", item->context.blk, 
-			item->pos.item, start, width);
+			item->pos.item, start, start + width - 1);
 		    et40_set_start(extent, 0);
 		    result = REPAIR_FIXED;
 		}

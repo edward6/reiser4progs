@@ -42,7 +42,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 
     /* Pointed region is used already. */
     if (res == 0) {
-	aal_exception_error("Node (%llu), item (%u): Pointed region "
+	aal_exception_error("Node (%llu), item (%u): pointed region "
 	    "[%llu..%llu] is used already or contains a formatted block.", 
 	    item->context.blk, item->pos.item, start, start + count - 1);
 	ts->stat.bad_unfm_ptrs++;

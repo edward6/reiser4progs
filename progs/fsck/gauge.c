@@ -143,7 +143,8 @@ static errno_t progress_start(repair_progress_t *progress) {
 		 progress->type;
 	
 	gauge = aal_gauge_create(gauge_type, NULL);
-	aal_gauge_rename(gauge, progress->text);
+	if (progress->text)
+	    aal_gauge_rename(gauge, progress->text);
 	
 	if (!gauge) return -ENOMEM;
 
@@ -298,7 +299,9 @@ errno_t gauge_handler(repair_progress_t *progress) {
 	progress_update(progress);
 	break;
     case PROGRESS_STAT:
-	fprintf(stderr, "%s\n", progress->text);
+	if (progress->text)
+	    fprintf(stderr, "%s\n", progress->text);
+
 	break;
     }
 
