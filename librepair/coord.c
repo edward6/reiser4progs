@@ -48,3 +48,18 @@ errno_t repair_coord_open(reiser4_coord_t *coord, void *data,
     return reiser4_coord_open(coord, data, context, pos);
 }
 
+
+void repair_coord_left_pos_save(reiser4_coord_t *current, reiser4_pos_t *prev) {
+    *prev = current->pos;
+    
+    if ((current->pos.unit == 0 && reiser4_item_count(current) == 1) || 
+	(current->pos.unit == ~0ul)) 
+    {
+	prev->item--;
+	prev->unit = ~0ul;
+    } else {	
+	prev->unit--;
+    }
+}
+
+

@@ -1,4 +1,4 @@
-librepair_sources            = filesystem.c format.c node.c coord.c filter.c scan.c
+librepair_sources            = filesystem.c alloc.c master.c oid.c format.c node.c coord.c filter.c scan.c
 
 lib_LTLIBRARIES		     = librepair.la
 

@@ -40,20 +40,21 @@ error_free_node:
     return res;
 }
 
-errno_t repair_filter_before_traverse(reiser4_joint_t *joint, reiser4_coord_t *coord, 
-    void *data) 
+errno_t repair_filter_before_traverse(reiser4_coord_t *coord, void *data) 
 {
     repair_check_t *check_data = data;
     
-    aal_assert("vpf-251", joint != NULL, return -1);
+    aal_assert("vpf-392", coord != NULL, return -1);
+    aal_assert("vpf-251", coord->u.joint != NULL, return -1);
     aal_assert("vpf-253", check_data != NULL, return -1);
     aal_assert("vpf-254", check_data->format != NULL, return -1);
 
     /* Initialize the level for the root node before traverse. */
     if (!repair_filter_data(check_data)->level)
 	repair_filter_data(check_data)->level = 
-	    (joint->node->entity->plugin->node_ops.get_level ? 
-	    joint->node->entity->plugin->node_ops.get_level(joint->node->entity) : 
+	    (reiser4_coord_entity(coord)->plugin->node_ops.get_level ? 
+	    reiser4_coord_entity(coord)->plugin->node_ops.get_level(
+		reiser4_coord_entity(coord)) : 
 	    reiser4_format_get_height(check_data->format));
     
     repair_filter_data(check_data)->level--;
@@ -61,25 +62,24 @@ errno_t repair_filter_before_traverse(reiser4_joint_t *joint, reiser4_coord_t *c
     return 0;
 }
 
-errno_t repair_filter_after_traverse(reiser4_joint_t *joint, reiser4_coord_t *coord, 
-    void *data) 
+errno_t repair_filter_after_traverse(reiser4_coord_t *coord, void *data) 
 {
     repair_check_t *check_data = data;
-    
+     
+    aal_assert("vpf-393", coord != NULL, return -1);
+    aal_assert("vpf-394", coord->u.joint != NULL, return -1);   
     aal_assert("vpf-256", check_data != NULL, return -1);
     
     repair_filter_data(check_data)->level++;
 
-    if (reiser4_node_count(joint->node) == 0)
+    if (reiser4_node_count(reiser4_coord_node(coord)) == 0)
 	repair_set_flag(check_data, REPAIR_NOT_FIXED);
     /* FIXME-VITALY: else - sync the node */
 
     return 0;
 }
 
-errno_t repair_filter_setup_traverse(reiser4_joint_t *joint, 
-    reiser4_coord_t *coord, void *data)
-{
+errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
     repair_check_t *check_data = data;
     blk_t target;
     int res;
@@ -93,21 +93,22 @@ errno_t repair_filter_setup_traverse(reiser4_joint_t *joint,
     return 0;
 }
 
-errno_t repair_filter_update_traverse(reiser4_joint_t *joint, 
-    reiser4_coord_t *coord, void *data) 
-{
+errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
     repair_check_t *check_data = data;
+    reiser4_pos_t prev;
     
     aal_assert("vpf-257", check_data != NULL, return -1);
     
     if (repair_test_flag(check_data, REPAIR_NOT_FIXED)) {
 	/* The node corruption was not fixed - delete the internal item. */
-	if (reiser4_node_remove(joint->node, &coord->pos)) {
+	repair_coord_left_pos_save(coord, &prev);
+	if (reiser4_node_remove(reiser4_coord_node(coord), &coord->pos)) {
 	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
-		aal_block_number(joint->node->block), coord->pos.item, 
+		aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
 		coord->pos.unit);
 	    return -1;
 	}
+	coord->pos = prev;
 	repair_clear_flag(check_data, REPAIR_NOT_FIXED);
     } else {
 	reiser4_ptr_hint_t ptr;

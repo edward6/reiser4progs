@@ -258,21 +258,8 @@ typedef errno_t (*reiser4_edge_func_t) (reiser4_joint_t *, void *);
 typedef errno_t (*reiser4_handler_func_t) (reiser4_joint_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*reiser4_setup_func_t) (reiser4_joint_t *, reiser4_coord_t *, 
-					 void *);
-enum traverse_order {
-	TO_FORWARD   = 0x1,
-	TO_BACKWARD  = 0x2
-};
-
+typedef errno_t (*reiser4_setup_func_t) (reiser4_coord_t *, void *);
 typedef enum traverse_order traverse_order_t;
-
-struct traverse_hint {
-	traverse_order_t order;
-	uint8_t max_level;
-};
-
-typedef struct traverse_hint traverse_hint_t;
 
 /* Filesystem compound structure */
 struct reiser4_fs {

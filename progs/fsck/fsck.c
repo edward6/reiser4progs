@@ -32,9 +32,7 @@ static void fsck_print_usage(char *name) {
 	"  -k | --known-plugins           prints known plugins.\n"	
 	"  -e | --profile PROFILE         profile 'PROFILE' to be used or printed.\n"
 	"  -o | --override 'TYPE=plugin'  overrides the default plugin of the type\n"
-	"                                 'TYPE' by the plugin 'plugin'.\n"
-	"Expert options:\n"
-	"  --no-journal                   does not open nor replay journal.\n\n");
+	"                                 'TYPE' by the plugin 'plugin'.\n\n");
 }
 
 #define REBUILD_WARNING \
@@ -155,7 +153,6 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 	{"known-profiles", no_argument, NULL, 'K'},
 	{"known-plugins", no_argument, NULL, 'k'},
 	{"override", required_argument, NULL, 'o'},
-	{"no-journal", required_argument, &flag, REPAIR_OPT_NO_JOURNAL},
 	/* Fsck hidden options. */
 	{"passes-dump", required_argument, 0, 'U'},
         {"rollback-data", required_argument, 0, 'R'},
@@ -264,10 +261,6 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 	    return USER_ERROR;
 	} else {
 	    repair_set_option(REPAIR_OPT_READ_ONLY, data);
-	}
-	    
-	if (mode == REPAIR_REBUILD) { 
-	} else {
 	}
     }
     

@@ -9,7 +9,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     repair_check_t *data) 
 {
     reiser4_coord_t coord;
-    reiser4_pos_t pos;
+    reiser4_pos_t pos, prev;
     rpid_t pid;
     int res;
 
@@ -18,8 +18,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     aal_assert("vpf-231", node->entity->plugin != NULL, return -1);
     aal_assert("vpf-242", data != NULL, return -1);
 
-    pos.item = reiser4_node_count(node) - 1;
-    do {
+    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 	pos.unit = ~0ul;
 	
 	/* Open the item, checking its plugin id. */
@@ -32,7 +31,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		    aal_exception_bug("Node (%llu): Failed to delete the item "
 			"(%d).", aal_block_number(node->block), pos.item);
 		    return -1;
-		}
+		}		
+		pos.item--;
 		
 		continue;		
 	    } 
@@ -57,9 +57,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
 	    continue;
 	
-	pos.unit = reiser4_item_count(&coord) - 1;
-	
-	do {
+	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
 	    if ((res = repair_coord_ptr_check(&coord, data)) < 0) 
 		return -1;
 	    else {
@@ -75,8 +73,11 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 			aal_block_number(node->block), pos.item, pos.unit, 
 			hint.ptr, 0);
 
+		    repair_coord_left_pos_save(&coord, &prev);
 		    if (reiser4_node_remove(node, &pos))
 			return -1;
+		    
+		    coord.pos = prev;
 		} else if (reiser4_item_extent(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad extent pointer (%llu). Zeroed.", 
@@ -91,8 +92,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 			    return -1;
 		}
 	    }
-	} while (pos.unit--);	
-    } while (pos.item--);
+	}
+    }
     
     return 0;    
 }
@@ -238,10 +239,10 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 	    KEY_REISER40_ID);
 	return -1;
     }
-    
-    pos.item = reiser4_node_count(node) - 1;
-    do {
+
+    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 	reiser4_coord_t coord;
+
 	if (reiser4_coord_open(&coord, node, CT_NODE, &pos))
 		return -1;
 /*	if (reiser4_node_get_key(node, &pos, &key)) {*/
@@ -261,6 +262,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 		    "(%d).", aal_block_number(node->block), pos.item);
 		return -1;
 	    }
+	    pos.item--;
 	}
 	
 	if (pos.item) {	    
@@ -276,7 +278,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 	    }
 	}
 	prev_key = key;
-    } while (pos.item--);
+    }
     
     return 0;
 }
