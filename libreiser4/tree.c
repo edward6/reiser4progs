@@ -2464,8 +2464,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		
 		/* If we are still in the same node, but on not-esistent 
 		   anymore item, set unit position to MAX_UINT32. */
-		if (save.node == place->node && place->pos.item >= left_items)
+		if (save.node == place->node && place->pos.item >= left_items) {
 			aal_assert("vpf-1793", place->pos.unit == MAX_UINT32);
+		}
 	
 		/* Checking if it is enough of space in @place. */
 		enough = tree_calc_space(place, ioverh);
