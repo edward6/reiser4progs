@@ -636,7 +636,11 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	}
 	
-	reiser4_opset_root(&sem->root->ent->opset);
+	reiser4_opset_profile(&sem->root->ent->opset);
+	if (!sem->root->ent->opset.plug[OPSET_OBJ]) {
+		sem->root->ent->opset.plug[OPSET_OBJ] = 
+			sem->root->ent->opset.plug[OPSET_MKDIR];
+	}
 	
 	if ((res = repair_semantic_object_check(sem, sem->root, sem->root))) {
 		reiser4_object_close(sem->root);

@@ -31,7 +31,14 @@ void sdext_lt_print(stat_entity_t *stat,
 	aal_assert("umka-1480", stream != NULL);
 
 	ext = (sdext_lt_t *)stat_body(stat);
-
+	
+	if (sizeof(sdext_lt_t) + stat->offset > stat->place->len) {
+		aal_stream_format(stream, "No enough space (%u bytes) "
+				  "for the light-weight extention body.\n",
+				  stat->place->len - stat->offset);
+		return;
+	}
+	
 	aal_stream_format(stream, "atime:\t\t%u\n",
 			  sdext_lt_get_atime(ext));
 	

@@ -15,12 +15,17 @@ void reiser4_print_node(reiser4_node_t *node, uint32_t start,
 {
 	aal_stream_t stream;
 	
-	aal_assert("umka-2642", node != NULL);
-	
 	aal_stream_init(&stream, NULL, &file_stream);
-
-	plug_call(node->plug->o.node_ops, print,
-		  node, &stream, start, count, options);
+	
+	if (!node || !node->block || !node->plug || 
+	    node->plug->id.type != NODE_PLUG_TYPE)
+	{
+		aal_stream_format(&stream, "Does not look "
+				  "like a proper node pointer.\n");
+	} else {
+		plug_call(node->plug->o.node_ops, print,
+			  node, &stream, start, count, options);
+	}
 	
 	aal_stream_fini(&stream);
 }

@@ -6,7 +6,7 @@
 #include "sdext_flags.h"
 
 /* Stat data extension length. */
-static uint16_t sdext_flags_length(stat_entity_t *stat, void *hint) {
+static uint32_t sdext_flags_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_flags_t);
 }
 

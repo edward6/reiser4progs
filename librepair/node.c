@@ -100,7 +100,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		res |= ret;
 		
 		if (prev.plug) {
-			if (reiser4_key_compfull(&prev, &key) >= 0) {
+			if (reiser4_key_compfull(&prev, &key) > 0) {
 				fsck_mess("Node (%llu), items (%u) and "
 					  "(%u): Wrong order of keys.",
 					  node->block->nr, pos->item - 1,

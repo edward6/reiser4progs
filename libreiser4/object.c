@@ -411,6 +411,13 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	
 	aal_assert("umka-1910", object != NULL);
 
+	if (entry->type == ET_SPCL) {
+		aal_error("Can't remove the special name '%s' "
+			  "from the directory %s.", entry->name, 
+			  reiser4_print_key(&object->ent->object, PO_INODE));
+		return -EINVAL;
+	}
+	
 	/* Getting child statdata key */
 	if (reiser4_object_lookup(object, entry->name,
 				  entry) != PRESENT)
@@ -723,12 +730,10 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
-	hint.mode = 0;
+	aal_memcpy(hint.info.opset.plug, tent->opset, 
+		   OPSET_LAST * sizeof(reiser4_plug_t *));
 	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_MKDIR];
-	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
-	hint.info.opset.plug[OPSET_HASH] = tent->opset[OPSET_HASH];
-	hint.info.opset.plug[OPSET_FIBRE] = tent->opset[OPSET_FIBRE];
-	hint.info.opset.plug[OPSET_DIRITEM] = tent->opset[OPSET_DIRITEM];
+	hint.mode = 0;
 	
 	if (parent) {
 		reiser4_key_assign(&hint.info.parent, 
@@ -761,17 +766,11 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
+	aal_memcpy(hint.info.opset.plug, tent->opset, 
+		   OPSET_LAST * sizeof(reiser4_plug_t *));
 	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_CREATE];
-
-	/* Preparing label fields. */
 	hint.mode = 0;
-	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
 
-	/* Preparing body fields. */
-	hint.info.opset.plug[OPSET_TAIL] = tent->opset[OPSET_TAIL];
-	hint.info.opset.plug[OPSET_EXTENT] = tent->opset[OPSET_EXTENT];
-	hint.info.opset.plug[OPSET_POLICY] = tent->opset[OPSET_POLICY];
-	
 	if (parent) {
 		reiser4_key_assign(&hint.info.parent, 
 				   &parent->ent->object);
@@ -802,13 +801,10 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
+	aal_memcpy(hint.info.opset.plug, tent->opset, 
+		   OPSET_LAST * sizeof(reiser4_plug_t *));
 	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_SYMLINK];
-
-	/* Preparing label fields. */
 	hint.mode = 0;
-	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
-
-	/* Preparing body fields. */
 	hint.name = (char *)target;
 	
 	if (parent) {
@@ -842,13 +838,10 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint. */
+	aal_memcpy(hint.info.opset.plug, tent->opset, 
+		   OPSET_LAST * sizeof(reiser4_plug_t *));
 	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_MKNODE];
-
-	/* Preparing label fields. */
 	hint.mode = mode;
-	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
-
-	/* Preparing body fields. */
 	hint.rdev = rdev;
 	
 	if (parent) {

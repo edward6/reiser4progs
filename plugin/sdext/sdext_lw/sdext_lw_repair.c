@@ -68,7 +68,14 @@ void sdext_lw_print(stat_entity_t *stat,
 	aal_assert("umka-1411", stream != NULL);
 
 	ext = (sdext_lw_t *)stat_body(stat);
-
+	
+	if (sizeof(sdext_lw_t) + stat->offset > stat->place->len) {
+		aal_stream_format(stream, "No enough space (%u bytes) "
+				  "for the large-time extention body.\n", 
+				  stat->place->len - stat->offset);
+		return;
+	}
+	
 	aal_memset(mode, 0, sizeof(mode));
 	sdext_lw_parse_mode(sdext_lw_get_mode(ext), mode);
 	

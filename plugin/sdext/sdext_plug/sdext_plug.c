@@ -7,13 +7,13 @@
 
 reiser4_core_t *sdext_plug_core = NULL;
 
-uint16_t sdext_plug_length(stat_entity_t *stat, void *hint) {
-	uint8_t count = 0;
+uint32_t sdext_plug_length(stat_entity_t *stat, void *hint) {
+	uint16_t count = 0;
 	
 	/* If hint is given, count its pset. */
 	if (hint) {
 		sdhint_plug_t *h = (sdhint_plug_t *)hint;
-		uint8_t i;
+		uint16_t i;
 
 		for (i = 0; i < OPSET_STORE_LAST; i++) {
 			if (h->mask & (1 << i))
@@ -27,7 +27,7 @@ uint16_t sdext_plug_length(stat_entity_t *stat, void *hint) {
 	
 	/* Count on-disk pset. */
 	return sizeof(sdext_plug_slot_t) * count + 
-		(count ? sizeof(sdext_plug_t) : 0);	
+		(count ? sizeof(sdext_plug_t) : 0);
 }
 
 static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
@@ -87,7 +87,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	sdhint_plug_t *plugh;
 	sdext_plug_t *ext;
-	uint8_t count = 0;
+	uint16_t count = 0;
 	rid_t mem;
 	
 	aal_assert("vpf-1600", stat != NULL);

@@ -1673,7 +1673,20 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
                         /* If items of different objects, get out here. */
                         if (reiser4_key_compshort(&walk.key, key))
                                 return 0;
-                                                                                     
+                        
+			/* If the maxreal key does not match anymore, 
+			   get out here. This clause is needed for the case 
+			   of corruption when not directory item has a NAME 
+			   minor. */
+			if (walk.plug->o.item_ops->balance->maxposs_key) {
+				reiser4_key_t maxkey;
+
+				reiser4_item_maxposs_key(&walk, &maxkey);
+				
+				if (reiser4_key_compfull(&maxkey, key) < 0)
+					return 0;
+			}
+			
                         /* If item's lookup is implemented, we use it. Item key
                            comparing is used otherwise. */
                         if (walk.plug->o.item_ops->balance->lookup) {
@@ -1685,18 +1698,15 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
                                                   lookup, &walk, &lhint, FIND_EXACT))
                                 {
                                 case PRESENT:
-                                        aal_memcpy(place, &walk,
-                                                   sizeof(*place));
+                                        aal_memcpy(place, &walk, sizeof(*place));
                                         break;
                                 default:
                                         return 0;
                                 }
+                        } else if (!reiser4_key_compfull(&walk.key, key)) {
+				aal_memcpy(place, &walk, sizeof(*place));
                         } else {
-                                if (!reiser4_key_compfull(&walk.key, key)) {
-                                        aal_memcpy(place, &walk, sizeof(*place));
-                                } else {
-                                        return 0;
-				}
+				return 0;
                         }
                 }
                                                                                      
@@ -1767,13 +1777,6 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	}
 #endif
 
-	/* Checking the case when wanted key is smaller than root one. This is
-	   the case, when somebody is trying go up of the root by ".." entry in
-	   root directory. If so, we initialize the key to be looked up by root
-	   key. */
-	if (reiser4_key_compfull(&wanted, &tree->key) < 0)
-		reiser4_key_assign(&wanted, &tree->key);
-		    
 	while (1) {
 		uint32_t clevel;
 		lookup_bias_t cbias;

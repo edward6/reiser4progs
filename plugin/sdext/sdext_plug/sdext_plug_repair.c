@@ -25,22 +25,32 @@ char *opset_name[OPSET_STORE_LAST] = {
 
 errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	sdhint_plug_t plugh;
+	uint16_t count, i;
 	sdext_plug_t *ext;
 	uint64_t mask = 0;
-	int8_t i, count;
-	int8_t remove;
+	int32_t remove;
 	uint32_t len;
 	void *dst;
 	
 	ext = (sdext_plug_t *)stat_body(stat);
 	count = sdext_plug_get_count(ext);
-	len = sdext_plug_length(stat, NULL);
 	
-	if (stat->offset + len < stat->place->len) {
+	if (count > SDEXT_LAST_ID) {
 		fsck_mess("Node (%llu), item (%u): does not look like a "
-			  "valid plug extention: wrong count of plugins "
-			  "detected (%u).", place_blknr(stat->place),
-			  stat->place->pos.item, count);
+			  "valid SD: wrong pset member count detected (%u).",
+			  place_blknr(stat->place), stat->place->pos.item, 
+			  count);
+
+		return RE_FATAL;
+	}
+	
+	len = sdext_plug_length(stat, NULL);
+
+	if (stat->offset + len > stat->place->len) {
+		fsck_mess("Node (%llu), item (%u): does not look like a "
+			  "valid SD: wrong pset member count detected (%u).",
+			  place_blknr(stat->place), stat->place->pos.item, 
+			  count);
 		return RE_FATAL;
 	}
 	    
@@ -115,18 +125,19 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	fsck_mess("Node (%llu), item (%u): removing broken slots.",
 		  place_blknr(stat->place), stat->place->pos.item);
 	
-	dst = stat_body(stat) + sizeof(sdext_plug_t) + 
-		(count - 1) * (sizeof(sdext_plug_slot_t));
-	
-	for (i = count - 1; i >= 0; i--, dst -= sizeof(sdext_plug_slot_t)) {
+	dst = stat_body(stat) + sizeof(sdext_plug_t);
+	len -= sizeof(sdext_plug_t);
+		
+	for (i = 0; i < count; i++, dst += sizeof(sdext_plug_slot_t)) {
+		len -= sizeof(sdext_plug_slot_t);
+		
 		if (!(mask & (1 << i)))
 			continue;
 
-		aal_memmove(dst, dst + sizeof(sdext_plug_slot_t),
-			    len - (dst - (void *)stat_body(stat)) - 
-			    sizeof(sdext_plug_slot_t));
+		aal_memmove(dst, dst + sizeof(sdext_plug_slot_t), len);
 	}
 	
+	sdext_plug_set_count(ext, count - remove);
 	hint->len = remove * sizeof(sdext_plug_slot_t);
 	
 	return 0;
@@ -138,27 +149,50 @@ void sdext_plug_print(stat_entity_t *stat,
 {
 	reiser4_plug_t *plug;
 	sdext_plug_t *ext;
-	uint16_t i;
+	uint16_t count, i;
 
 	aal_assert("vpf-1603", ext != NULL);
 	aal_assert("vpf-1604", stream != NULL);
 	
 	ext = (sdext_plug_t *)stat_body(stat);
 
-	aal_stream_format(stream, "Pset count: \t%u\n",
-			  sdext_plug_get_count(ext));
+	if (sizeof(sdext_plug_t) + sizeof(sdext_plug_slot_t) > 
+	    stat->place->len - stat->offset)
+	{
+		aal_stream_format(stream, "No enough space (%u bytes) "
+				  "for the pset extention body.\n", 
+				  stat->place->len - stat->offset);
+		return;
+	}
 
-	for (i = 0; i < sdext_plug_get_count(ext); i++) {
+	count = (stat->place->len - stat->offset - sizeof(sdext_plug_t)) / 
+		sizeof(sdext_plug_slot_t);
+	
+	if (count >= sdext_plug_get_count(ext)) {
+		count = sdext_plug_get_count(ext);
+		aal_stream_format(stream, "Pset count: \t%u\n", count);
+	} else {
+		aal_stream_format(stream, "Pset count: \t%u (fit to place length "
+				  "%u)\n", sdext_plug_get_count(ext), count);
+	}
+
+
+	for (i = 0; i < count; i++) {
 		rid_t mem, id;
 
 		mem = sdext_plug_get_member(ext, i);
 		id = sdext_plug_get_pid(ext, i);
 		
-		plug = sdext_plug_core->pset_ops.find(mem, id);
-
-		aal_stream_format(stream, "    %*s : id = %u",
-				  PSET_MEMBER_LEN, opset_name[mem], id);
-
+		if (mem < OPSET_STORE_LAST) {
+			plug = sdext_plug_core->pset_ops.find(mem, id);
+			aal_stream_format(stream, "    %*s : id = %u",
+					  PSET_MEMBER_LEN, opset_name[mem], id);
+		} else {
+			plug = NULL;
+			aal_stream_format(stream, "    UNKN(0x%*x):"
+					  " id = %u", 4, mem, id);
+		}
+		
 		if (plug && plug != INVAL_PTR) 
 			aal_stream_format(stream, " (%s)\n", plug->label);
 		else

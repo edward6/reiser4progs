@@ -25,7 +25,7 @@ static errno_t sdext_lw_open(stat_entity_t *stat, void *hint) {
 	return 0;
 }
 
-static uint16_t sdext_lw_length(stat_entity_t *stat, void *hint) {
+static uint32_t sdext_lw_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_lw_t);
 }
 

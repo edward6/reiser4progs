@@ -6,7 +6,7 @@
 #include <reiser4/plugin.h>
 #ifdef ENABLE_SYMLINKS
 
-static uint16_t sdext_symlink_length(stat_entity_t *stat, void *hint) {
+static uint32_t sdext_symlink_length(stat_entity_t *stat, void *hint) {
 	char *name;
 	
 	name = (hint != NULL) ? hint : stat_body(stat);

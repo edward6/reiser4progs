@@ -32,7 +32,7 @@ static errno_t node40_region_delete(reiser4_node_t *node,
 	uint32_t pol;
 	uint32_t len;
 	pos_t pos;
-	uint8_t i;
+	uint16_t i;
 	void *ih;
      
 	aal_assert("vpf-201", node != NULL);

@@ -36,6 +36,6 @@ extern reiser4_core_t *sdext_plug_core;
 #define sdext_plug_get_pid(ext, n)		aal_get_le16(&(ext->slot[n]), plug)
 #define sdext_plug_set_pid(ext, n, val)		aal_set_le16(&(ext->slot[n]), plug, val)
 
-extern uint16_t sdext_plug_length(stat_entity_t *stat, void *hint);
+extern uint32_t sdext_plug_length(stat_entity_t *stat, void *hint);
 
 #endif

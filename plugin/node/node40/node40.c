@@ -139,6 +139,7 @@ static errno_t node40_fini(reiser4_node_t *entity) {
 	aal_assert("umka-825", entity != NULL);
 
 	aal_block_free(entity->block);
+	entity->plug = NULL;
 	aal_free(entity);
 	
 	return 0;

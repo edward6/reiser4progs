@@ -33,6 +33,13 @@ void sdext_flags_print(stat_entity_t *stat,
 
 	ext = (sdext_flags_t *)stat_body(stat);
 
+	if (sizeof(sdext_flags_t) + stat->offset > stat->place->len) {
+		aal_stream_format(stream, "No enough space (%u bytes) "
+				  "for the flags extention body.\n", 
+				  stat->place->len - stat->offset);
+		return;
+	}
+	
 	aal_stream_format(stream, "flags:\t\t%u\n",
 			  sdext_flags_get_flags(ext));
 }

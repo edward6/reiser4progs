@@ -54,7 +54,7 @@
 
 struct entry_flags {
 	uint8_t *elem;
-	uint8_t count;
+	uint32_t count;
 };
     
 /* Extention for repair_flag_t */
@@ -156,7 +156,7 @@ static uint32_t cde40_name_len(char *body, uint32_t start, uint32_t end) {
 }
 
 /* Returns amount of entries detected. */
-static uint8_t cde40_short_entry_detect(reiser4_place_t *place, 
+static uint32_t cde40_short_entry_detect(reiser4_place_t *place, 
 					uint32_t start_pos, 
 					uint32_t length, 
 					uint8_t mode)
@@ -193,7 +193,7 @@ static uint8_t cde40_short_entry_detect(reiser4_place_t *place,
 }
 
 /* Returns amount of entries detected. */
-static uint8_t cde40_long_entry_detect(reiser4_place_t *place, 
+static uint32_t cde40_long_entry_detect(reiser4_place_t *place, 
 				       uint32_t start_pos, 
 				       uint32_t length, 
 				       uint8_t mode)
@@ -251,11 +251,11 @@ static uint8_t cde40_long_entry_detect(reiser4_place_t *place,
 	return l_limit == r_limit ? count : 0;
 }
 
-static inline uint8_t cde40_entry_detect(reiser4_place_t *place, uint32_t start_pos,
+static inline uint32_t cde40_entry_detect(reiser4_place_t *place, uint32_t start_pos,
 					 uint32_t end_pos, uint8_t mode)
 {
 	uint32_t pol;
-	uint8_t count;
+	uint32_t count;
 
 	pol = cde40_key_pol(place);
 	count = cde40_short_entry_detect(place, start_pos,
@@ -573,7 +573,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	struct entry_flags flags;
 	uint32_t pol;
 	errno_t res = 0;
-	int i;
+	uint32_t i;
 	
 	aal_assert("vpf-267", place != NULL);
 	aal_assert("vpf-1641", hint != NULL);

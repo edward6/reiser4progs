@@ -256,6 +256,7 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 	if (plugh.mask) {
 		stat.extmask |= (1 << SDEXT_PLUG_ID);
 		stat.ext[SDEXT_PLUG_ID] = &plugh;
+		obj->info.opset.mask = plugh.mask;
 	}
 
 	if (path) {

@@ -6,7 +6,7 @@
 #include "sdext_lt.h"
 
 /* Stat data extension length. */
-static uint16_t sdext_lt_length(stat_entity_t *stat, void *h) {
+static uint32_t sdext_lt_length(stat_entity_t *stat, void *h) {
 	return sizeof(sdext_lt_t);
 }
 

@@ -8,7 +8,7 @@
 
 #ifndef ENABLE_STAND_ALONE
 
-extern void reiser4_opset_root(reiser4_opset_t *opset);
+extern void reiser4_opset_profile(reiser4_opset_t *opset);
 
 extern void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset);
 

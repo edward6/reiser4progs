@@ -1156,7 +1156,7 @@ struct reiser4_sdext_ops {
 	errno_t (*open) (stat_entity_t *, void *);
 
 	/* Returns length of the extension. */
-	uint16_t (*length) (stat_entity_t *, void *);
+	uint32_t (*length) (stat_entity_t *, void *);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;

@@ -32,9 +32,9 @@ typedef struct opset_member opset_member_t;
 
 opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_OBJ] = {
-		.type = INVAL_TYPE,
+		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_STAND_ALONE
-		.group = INVAL_PID,
+		.group = 0,
 		.prof = INVAL_PID,
 		.ess = 0,
 #endif
@@ -42,7 +42,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_DIR] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_STAND_ALONE
-		.group = INVAL_PID,
+		.group = 0,
 		.prof = INVAL_PID,
 		.ess = 0,
 #endif
@@ -202,7 +202,7 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-void reiser4_opset_root(reiser4_opset_t *opset) {
+void reiser4_opset_profile(reiser4_opset_t *opset) {
 	uint8_t i;
 	
 	aal_assert("vpf-1639", opset != NULL);
@@ -216,10 +216,6 @@ void reiser4_opset_root(reiser4_opset_t *opset) {
 			NULL : reiser4_profile_plug(opset_prof[i].prof);
 	}
 	
-	/* Set the object plugin to the MKDIR fs-default plugin. */
-	if (!opset->plug[OPSET_OBJ])
-		opset->plug[OPSET_OBJ] = opset->plug[OPSET_MKDIR];
-
 	/* Directory plugin does not exist in progs at all. */
 	opset->plug[OPSET_DIR] = NULL;
 }
@@ -366,7 +362,7 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
 	
 	/* Check that all 'on-disk' plugins are obtained. */
 	for (i = 0; i < OPSET_STORE_LAST; i++) {
-		/* If rot is should not be checked (debugreiserfs), 
+		/* If root is should not be checked (debugreiserfs), 
 		   skip this loop. */
 		if (!check)
 			break;
