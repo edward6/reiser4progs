@@ -161,7 +161,7 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=",
 			  item->plugin->h.label, item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print,
+	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
 	{
 		return -EINVAL;
@@ -183,50 +183,54 @@ extern errno_t nodeptr40_check(item_entity_t *item, uint8_t mode);
 
 #endif
 
-static reiser4_plugin_t nodeptr40_plugin = {
-	.item_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = ITEM_NODEPTR40_ID,
-			.group = NODEPTR_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
-			.label = "nodeptr40",
-#ifndef ENABLE_STAND_ALONE
-			.desc = "Node pointer item for reiser4, ver. " VERSION
-#endif
-		},
+static reiser4_item_ops_t nodeptr40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
-		.init		= nodeptr40_init,
-		.feel           = nodeptr40_feel,
-		.copy           = nodeptr40_copy,
-		.insert         = nodeptr40_insert,
-		.estimate	= nodeptr40_estimate,
-		.print		= nodeptr40_print,
-		.check		= nodeptr40_check,
-		.layout         = nodeptr40_layout,
-		.layout_check	= nodeptr40_layout_check,
+	.init		= nodeptr40_init,
+	.feel           = nodeptr40_feel,
+	.copy           = nodeptr40_copy,
+	.insert         = nodeptr40_insert,
+	.estimate	= nodeptr40_estimate,
+	.print		= nodeptr40_print,
+	.check		= nodeptr40_check,
+	.layout         = nodeptr40_layout,
+	.layout_check	= nodeptr40_layout_check,
 
-		.write          = NULL,
-		.remove		= NULL,
-		.shrink		= NULL,
+	.write          = NULL,
+	.remove		= NULL,
+	.shrink		= NULL,
 
-		.shift          = NULL,
-		.predict        = NULL,
+	.shift          = NULL,
+	.predict        = NULL,
 
-		.set_key	= NULL,
-		.gap_key	= NULL,
-		.maxreal_key    = NULL,
+	.set_key	= NULL,
+	.gap_key	= NULL,
+	.maxreal_key    = NULL,
 #endif
-		.units		= nodeptr40_units,
-		.read           = nodeptr40_read,
-		.branch         = nodeptr40_branch,
+	.units		= nodeptr40_units,
+	.read           = nodeptr40_read,
+	.branch         = nodeptr40_branch,
 		
-		.data		= NULL,
-		.lookup		= NULL,
-		.mergeable      = NULL,
+	.data		= NULL,
+	.lookup		= NULL,
+	.mergeable      = NULL,
 
-		.maxposs_key	= NULL,
-		.get_key	= NULL
+	.maxposs_key	= NULL,
+	.get_key	= NULL
+};
+
+static reiser4_plugin_t nodeptr40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = ITEM_NODEPTR40_ID,
+		.group = NODEPTR_ITEM,
+		.type = ITEM_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "nodeptr40",
+		.desc = "Node pointer item for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.item_ops = &nodeptr40_ops
 	}
 };
 

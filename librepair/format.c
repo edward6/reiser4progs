@@ -95,7 +95,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
     } 
     
     /* Format was opened or detected. Check it and fix it. */
-    ret = plugin_call(fs->format->entity->plugin->format_ops, check, 
+    ret = plugin_call(fs->format->entity->plugin->o.format_ops, check, 
 	fs->format->entity, mode);
     
     if (repair_error_fatal(ret))
@@ -151,10 +151,10 @@ error_format_close:
 errno_t repair_format_update(reiser4_format_t *format) {
     aal_assert("vpf-829", format != NULL);
 
-    if (format->entity->plugin->format_ops.update == NULL)
+    if (format->entity->plugin->o.format_ops->update == NULL)
 	return 0;
     
-    return format->entity->plugin->format_ops.update(format->entity);
+    return format->entity->plugin->o.format_ops->update(format->entity);
 }
 
 /* Prints the opened format. */
@@ -169,7 +169,7 @@ void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
 
     aal_stream_init(&stream);
 
-    plugin_call(fs->format->entity->plugin->format_ops, print, 
+    plugin_call(fs->format->entity->plugin->o.format_ops, print, 
 	fs->format->entity, &stream, options);
     
     fprintf(file, (char *)stream.data);

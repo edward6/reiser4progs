@@ -28,8 +28,8 @@ static errno_t callback_check_ext(sdext_entity_t *sdext, uint16_t extmask,
     
     hint->sdext = *sdext;
     
-    return sdext->plugin->sdext_ops.check ? 
-	sdext->plugin->sdext_ops.check(sdext, hint->mode) : REPAIR_OK;
+    return sdext->plugin->o.sdext_ops->check ? 
+	sdext->plugin->o.sdext_ops->check(sdext, hint->mode) : REPAIR_OK;
 }
 
 errno_t stat40_check(item_entity_t *item, uint8_t mode) {
@@ -53,7 +53,7 @@ errno_t stat40_check(item_entity_t *item, uint8_t mode) {
     
     /* hint is set up by callback, so the last extention lenght has not been 
      * added yet. */
-    hint.sdext.offset += plugin_call(hint.sdext.plugin->sdext_ops, length, 
+    hint.sdext.offset += plugin_call(hint.sdext.plugin->o.sdext_ops, length, 
 	hint.sdext.body);
     
     aal_assert("vpf-784", hint.sdext.offset <= item->len);

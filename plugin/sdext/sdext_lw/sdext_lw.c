@@ -128,26 +128,31 @@ extern errno_t sdext_lw_check(sdext_entity_t *sdext,
 			      uint8_t mode);
 #endif
 
-static reiser4_plugin_t sdext_lw_plugin = {
-	.sdext_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = SDEXT_LW_ID,
-			.group = 0,
-			.type = SDEXT_PLUGIN_TYPE,
-			.label = "sdext_lw",
-#ifndef ENABLE_STAND_ALONE
-			.desc = "Light stat data extention for reiser4, ver. " VERSION
-#endif
-		},
-		.open	 = sdext_lw_open,
+static reiser4_sdext_ops_t sdext_lw_ops = {
+	.open	 = sdext_lw_open,
 		
 #ifndef ENABLE_STAND_ALONE
-		.init	 = sdext_lw_init,
-		.print   = sdext_lw_print,
-		.check   = sdext_lw_check,
+	.init	 = sdext_lw_init,
+	.print   = sdext_lw_print,
+	.check   = sdext_lw_check,
 #endif		
-		.length	 = sdext_lw_length
+	.length	 = sdext_lw_length
+};
+
+static reiser4_plugin_t sdext_lw_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = SDEXT_LW_ID,
+		.group = 0,
+		.type = SDEXT_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "sdext_lw",
+		.desc = "Light stat data extention for "
+		"reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.sdext_ops = &sdext_lw_ops
 	}
 };
 

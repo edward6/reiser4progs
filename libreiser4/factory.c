@@ -59,22 +59,6 @@ struct walk_desc {
 
 typedef struct walk_desc walk_desc_t;
 
-/* Helper callback function for matching plugin by type and id */
-static int callback_match_id(reiser4_plugin_t *plugin,
-			     walk_desc_t *desc)
-{
-	return !(plugin->h.type == desc->type 
-		&& plugin->h.id == desc->id);
-}
-
-/* Helper callback for matching plugin by its name */
-static int callback_match_name(reiser4_plugin_t *plugin,
-			       walk_desc_t *desc)
-{
-	return aal_strncmp(plugin->h.label, desc->name,
-			   aal_strlen(desc->name));
-}
-
 #ifdef ENABLE_PLUGINS_CHECK
 /* Helper callback for checking plugin validness */
 static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
@@ -116,10 +100,6 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 
 	return 0;
 }
-#endif
-
-#ifndef ENABLE_STAND_ALONE
-extern reiser4_abort_t abort_func;
 #endif
 
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
@@ -175,8 +155,6 @@ errno_t libreiser4_plugin_open(const char *name,
 		goto error_free_data;
     
 	class->fini = *((plugin_fini_t *)addr);
-	class->abort = abort_func;
-
 	return 0;
     
  error_free_data:
@@ -263,10 +241,6 @@ errno_t libreiser4_plugin_open(plugin_init_t init,
 	
 	class->init = init;
 	class->fini = fini;
-
-#ifndef ENABLE_STAND_ALONE
-	class->abort = abort_func;
-#endif
 
 	return 0;
 }
@@ -441,6 +415,14 @@ void libreiser4_factory_fini(void) {
 	plugins = NULL;
 }
 
+/* Helper callback function for matching plugin by type and id */
+static int callback_match_id(reiser4_plugin_t *plugin,
+			     walk_desc_t *desc)
+{
+	return !(plugin->h.type == desc->type 
+		&& plugin->h.id == desc->id);
+}
+
 /* Finds plugins by its type and id */
 reiser4_plugin_t *libreiser4_factory_ifind(
 	rid_t type,			         /* requested plugin type */
@@ -481,6 +463,14 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Helper callback for matching plugin by its name */
+static int callback_match_name(reiser4_plugin_t *plugin,
+			       walk_desc_t *desc)
+{
+	return aal_strncmp(plugin->h.label, desc->name,
+			   aal_strlen(desc->name));
+}
+
 /* Makes search for plugin by name */
 reiser4_plugin_t *libreiser4_factory_nfind(
 	const char *name)			 /* needed plugin name */

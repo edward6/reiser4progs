@@ -33,7 +33,7 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
 
 	place.pos.unit = reiser4_item_units(&place) - 1;
 	
-	if (plugin_call(item->plugin->item_ops, read, item, 
+	if (plugin_call(item->plugin->o.item_ops, read, item, 
 	    &ptr, place.pos.unit, 1) != 1 || ptr.start == INVAL_BLK)
 	    return -EINVAL;
 
@@ -388,7 +388,7 @@ errno_t repair_node_check(reiser4_node_t *node, uint8_t mode) {
     aal_assert("vpf-193", node->entity != NULL);    
     aal_assert("vpf-220", node->entity->plugin != NULL);
 
-    res |= plugin_call(node->entity->plugin->node_ops, check, 
+    res |= plugin_call(node->entity->plugin->o.node_ops, check, 
 	node->entity, mode);
 
     if (repair_error_fatal(res))
@@ -449,7 +449,7 @@ void repair_node_print(reiser4_node_t *node, uint32_t start, uint32_t count,
 
     aal_stream_init(&stream);
     
-    plugin_call(node->entity->plugin->node_ops, print, node->entity, &stream, 
+    plugin_call(node->entity->plugin->o.node_ops, print, node->entity, &stream, 
 	start, count, options);
     
     printf(stream.data);

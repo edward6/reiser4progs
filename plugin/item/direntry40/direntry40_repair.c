@@ -357,7 +357,7 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
 	/* No one R unit was found */
 	aal_exception_error("Node %llu, item %u: no one valid unit has been "
 	    "found. Does not look like a valid `%s` item.", item->context.blk, 
-	    item->pos.item, item->plugin->item_ops.h.label);
+	    item->pos.item, item->plugin->h.label);
 
 	return REPAIR_FATAL;
     }

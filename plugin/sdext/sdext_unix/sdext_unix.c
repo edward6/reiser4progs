@@ -113,22 +113,26 @@ static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 extern errno_t sdext_unix_check(sdext_entity_t *sdext,
 				uint8_t mode);
 
+static reiser4_sdext_ops_t sdext_unix_ops = {
+	.open	   = sdext_unix_open,
+	.init	   = sdext_unix_init,
+	.print     = sdext_unix_print,
+	.check     = sdext_unix_check,
+	.length	   = sdext_unix_length
+};
+
 static reiser4_plugin_t sdext_unix_plugin = {
-	.sdext_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = SDEXT_UNIX_ID,
-			.group = 0,
-			.type = SDEXT_PLUGIN_TYPE,
-			.label = "sdext_unix",
-			.desc = "Unix stat data extention for "
-			"reiser4, ver. " VERSION
-		},
-		.open	 = sdext_unix_open,
-		.init	 = sdext_unix_init,
-		.print   = sdext_unix_print,
-		.check   = sdext_unix_check,
-		.length	 = sdext_unix_length
+	.h = {
+		.class = CLASS_INIT,
+		.id = SDEXT_UNIX_ID,
+		.group = 0,
+		.type = SDEXT_PLUGIN_TYPE,
+		.label = "sdext_unix",
+		.desc = "Unix stat data extention for "
+		"reiser4, ver. " VERSION
+	},
+	.o = {
+		.sdext_ops = &sdext_unix_ops
 	}
 };
 

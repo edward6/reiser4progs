@@ -26,7 +26,7 @@ static errno_t repair_journal_check(reiser4_journal_t *journal) {
     aal_assert("vpf-460", journal != NULL);
     aal_assert("vpf-736", journal->fs != NULL);
 
-    return plugin_call(journal->entity->plugin->journal_ops, check, 
+    return plugin_call(journal->entity->plugin->o.journal_ops, check, 
 	journal->entity, callback_fs_check, journal->fs);
 }
 /* Open the journal and check it. */

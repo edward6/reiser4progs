@@ -332,15 +332,15 @@ static errno_t node40_item(object_entity_t *entity,
 		return -EINVAL;
 	
         /* Getting unit key if unit component is specified */
-	if (pos->unit != ~0ul && item->plugin->item_ops.get_key) {
+	if (pos->unit != ~0ul && item->plugin->o.item_ops->get_key) {
 		uint32_t units = 1;
 
-		if (item->plugin->item_ops.units)
-			units = item->plugin->item_ops.units(item);
+		if (item->plugin->o.item_ops->units)
+			units = item->plugin->o.item_ops->units(item);
 
 		if (pos->unit < units) {
-			if (item->plugin->item_ops.get_key(item, pos->unit,
-							   &item->key))
+			if (item->plugin->o.item_ops->get_key(item, pos->unit,
+							      &item->key))
 			{
 				aal_exception_error("Can't get unit key. Node "
 						    "%llu, item %lu, unit %lu.",
@@ -707,7 +707,7 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 	if (pos->unit == ~0ul) {
 
 		/* Calling item plugin to perform initializing the item */
-		if (plugin_call(hint->plugin->item_ops, init, &item))
+		if (plugin_call(hint->plugin->o.item_ops, init, &item))
 			return -EINVAL;
 
 		if (hint->flags == HF_RAWDATA) {
@@ -716,11 +716,11 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			goto out_make_dirty;
 		}
 
-		if ((res = plugin_call(hint->plugin->item_ops,
+		if ((res = plugin_call(hint->plugin->o.item_ops,
 				       insert, &item, hint, 0)))
 			return res;
 	} else {
-		if ((res = plugin_call(hint->plugin->item_ops,
+		if ((res = plugin_call(hint->plugin->o.item_ops,
 				       insert, &item, hint, pos->unit)))
 			return res;
 	}
@@ -754,7 +754,7 @@ errno_t node40_remove(object_entity_t *entity,
 	if (node40_item(entity, pos, &item))
 		return -EINVAL;
 	
-	units = plugin_call(item.plugin->item_ops, units, &item);
+	units = plugin_call(item.plugin->o.item_ops, units, &item);
 	
 	if (units == 1)
 		pos->unit = ~0ul;
@@ -764,7 +764,7 @@ errno_t node40_remove(object_entity_t *entity,
 			return -EINVAL;
 	} else {
 		/* Removing units from the item pointed by @pos */
-		len = plugin_call(item.plugin->item_ops, remove, &item,
+		len = plugin_call(item.plugin->o.item_ops, remove, &item,
 				  pos->unit, count);
 
                 /* Updating items key if leftmost unit was changed */
@@ -811,7 +811,8 @@ static errno_t node40_cut(object_entity_t *entity,
 			if (node40_item(entity, &pos, &item))
 				return -EINVAL;
 				
-			units = item.plugin->item_ops.units(&item);
+			units = plugin_call(item.plugin->o.item_ops,
+					    units, &item);
 
 			if (node40_remove(entity, &pos, units - start->unit))
 				return -EINVAL;
@@ -827,7 +828,8 @@ static errno_t node40_cut(object_entity_t *entity,
 			if (node40_item(entity, &pos, &item))
 				return -EINVAL;
 				
-			units = item.plugin->item_ops.units(&item);
+			units = plugin_call(item.plugin->o.item_ops,
+					    units, &item);
 
 			if (node40_remove(entity, &pos, end->unit))
 				return -EINVAL;
@@ -861,7 +863,9 @@ static errno_t node40_cut(object_entity_t *entity,
 			return -EINVAL;
 
 		/* Remove empty item */
-		if (!(units = item.plugin->item_ops.units(&item))) {
+		if (!(units = plugin_call(item.plugin->o.item_ops,
+					  units, &item)))
+		{
 			pos.unit = ~0ul;
 
 			if (node40_cutout(node, &pos, item.len, 1))
@@ -934,7 +938,7 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 	if (node40_item(src_entity, src_pos, &src_item))
 		return -EINVAL;
 
-	src_units = plugin_call(src_item.plugin->item_ops,
+	src_units = plugin_call(src_item.plugin->o.item_ops,
 				units, &src_item);
 	
 	if (is_copy) {
@@ -955,9 +959,9 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 			return -EINVAL;
 
 		/* Remove evth between @start and @end keys. */
-		if (dst_item.plugin->item_ops.shrink) {
-			if ((res = dst_item.plugin->item_ops.shrink(
-					&dst_item, dst_hint)) <= 0)
+		if (dst_item.plugin->o.item_ops->shrink) {
+			if ((res = dst_item.plugin->o.item_ops->shrink(
+				     &dst_item, dst_hint)) <= 0)
 			{
 				aal_exception_error("Node (%llu), item (%u): "
 						    "Can't shrink the item.", 
@@ -993,10 +997,9 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 				  src_pos, 1);
 	}
 	
-	if ((res = plugin_call(src_item.plugin->item_ops, copy,
-			       &dst_item, dst_pos->item,
-			       &src_item, src_pos->item,
-			       start, end, src_hint)))
+	if ((res = plugin_call(src_item.plugin->o.item_ops, copy,
+			       &dst_item, dst_pos->item, &src_item,
+			       src_pos->item, start, end, src_hint)))
 	{
 		aal_exception_error("Can't copy units from "
 				    "node %llu to node %llu.",
@@ -1178,8 +1181,8 @@ static errno_t node40_print(object_entity_t *entity,
 		aal_stream_format(stream, "(%u) ", pos.item);
 		
 		/* Printing item by means of calling item print method */
-		if (item.plugin->item_ops.print) {
-			if (item.plugin->item_ops.print(&item, stream, options))
+		if (item.plugin->o.item_ops->print) {
+			if (item.plugin->o.item_ops->print(&item, stream, options))
 				return -EINVAL;
 		} else {
 			aal_stream_format(stream, "Method \"print\" is not "
@@ -1216,7 +1219,7 @@ static int callback_comp_key(void *node, uint32_t pos,
 	body = &node40_ih_at((node40_t *)node, pos)->key;
 	aal_memcpy(key1.body, body, sizeof(key1.body));
 
-	return plugin_call(plugin->key_ops, compare, &key1, key2);
+	return plugin_call(plugin->o.key_ops, compare, &key1, key2);
 }
 
 /*
@@ -1258,25 +1261,25 @@ static bool_t node40_mergeable(item_entity_t *item1,
 	if (!plugin_equal(item1->plugin, item2->plugin))
 		return FALSE;
 
-	if (!item1->plugin->item_ops.mergeable)
+	if (!item1->plugin->o.item_ops->mergeable)
 		return FALSE;
 	
-	return item1->plugin->item_ops.mergeable(item1, item2);
+	return item1->plugin->o.item_ops->mergeable(item1, item2);
 }
 
 static bool_t node40_shiftable(item_entity_t *item) {
-	if (!item->plugin->item_ops.predict)
+	if (!item->plugin->o.item_ops->predict)
 		return FALSE;
 
-	if (!item->plugin->item_ops.shift)
+	if (!item->plugin->o.item_ops->shift)
 		return FALSE;
 	
 	/* We can't shift units from items with one unit */
-	if (!item->plugin->item_ops.units)
+	if (!item->plugin->o.item_ops->units)
 		return FALSE;
 
 	/* Items that consist of one unit cannot be splitted */
-	if (item->plugin->item_ops.units(item) <= 1)
+	if (item->plugin->o.item_ops->units(item) <= 1)
 		return FALSE;
 	
 	return TRUE;
@@ -1392,8 +1395,11 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		
 		hint->rest -= overhead;
 
-		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
+		if (plugin_call(src_item.plugin->o.item_ops, predict,
+				&src_item, NULL, hint))
+		{
 			return -EINVAL;
+		}
 
 		/*
 		  Updating item component of the insert point if it was moved
@@ -1407,8 +1413,11 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		
 		hint->items++;
 	} else {
-		if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
+		if (plugin_call(src_item.plugin->o.item_ops, predict,
+				&src_item, &dst_item, hint))
+		{
 			return -EINVAL;
+		}
 
 		if (hint->result & SF_MOVIP) {
 			hint->pos.item = (hint->control & SF_LEFT ?
@@ -1444,7 +1453,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		if (node40_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
 
-		plugin_call(dst_item.plugin->item_ops, init, &dst_item);
+		plugin_call(dst_item.plugin->o.item_ops, init, &dst_item);
 	} else {
 		/*
 		  Items are mergeable, so we do not need to create new item in
@@ -1470,8 +1479,11 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	}
 	
 	/* Calling item method shift */
-	if (src_item.plugin->item_ops.shift(&src_item, &dst_item, hint))
+	if (plugin_call(src_item.plugin->o.item_ops, shift,
+			&src_item, &dst_item, hint))
+	{
 		return -EINVAL;
+	}
 
 	/* Updating source node fields */
 	pos.item = src_item.pos.item;
@@ -1480,7 +1492,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	  We will remove src_item if it has became empty and insert point is not
 	  points it.
 	*/
-	remove = src_item.plugin->item_ops.units(&src_item) == 0 &&
+	remove = plugin_call(src_item.plugin->o.item_ops, units, &src_item) == 0 &&
 		(hint->result & SF_MOVIP || pos.item != hint->pos.item);
 	
 	/* Updating item's keys */
@@ -1608,10 +1620,10 @@ static errno_t node40_transfuse(object_entity_t *src_entity,
 					if (node40_item(src_entity, &pos, &item))
 						return -EINVAL;
 
-					if (!item.plugin->item_ops.units)
+					if (!item.plugin->o.item_ops->units)
 						return -EINVAL;
 				
-					units = item.plugin->item_ops.units(&item);
+					units = item.plugin->o.item_ops->units(&item);
 
 					/*
 					  Breaking if insert point reach the end
@@ -1844,62 +1856,65 @@ static errno_t node40_shift(object_entity_t *src_entity,
 
 #endif
 
-static reiser4_plugin_t node40_plugin = {
-	.node_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = NODE_REISER40_ID,
-			.group = 0,
-			.type = NODE_PLUGIN_TYPE,
-			.label = "node40",
-#ifndef ENABLE_STAND_ALONE
-			.desc = "Node plugin for reiser4, ver. " VERSION
-#endif
-		},
-		
-		.init		 = node40_init,
-		.load		 = node40_load,
-		.close		 = node40_close,
-		.unload		 = node40_unload,
+static reiser4_node_ops_t node40_ops = {
+	.init		 = node40_init,
+	.load		 = node40_load,
+	.close		 = node40_close,
+	.unload		 = node40_unload,
 	
-		.confirm	 = node40_confirm,
+	.confirm	 = node40_confirm,
 	
-		.lookup		 = node40_lookup,
-		.items		 = node40_items,
+	.lookup		 = node40_lookup,
+	.items		 = node40_items,
 	
-		.get_key	 = node40_get_key,
-		.get_item        = node40_get_item,
-		.get_level	 = node40_get_level,
+	.get_key	 = node40_get_key,
+	.get_item        = node40_get_item,
+	.get_level	 = node40_get_level,
 		
 #ifndef ENABLE_STAND_ALONE
-		.get_mstamp	 = node40_get_mstamp,
-		.get_fstamp      = node40_get_fstamp,
+	.get_mstamp	 = node40_get_mstamp,
+	.get_fstamp      = node40_get_fstamp,
 		
-		.form		 = node40_form,
-		.sync            = node40_sync,
-		.isdirty         = node40_isdirty,
-		.mkdirty         = node40_mkdirty,
-		.mkclean         = node40_mkclean,
-		.insert		 = node40_insert,
-		.remove		 = node40_remove,
-		.cut             = node40_cut,
-		.check		 = node40_check,
-		.print		 = node40_print,
-		.shift		 = node40_shift,
-		.shrink		 = node40_shrink,
-		.expand		 = node40_expand,
-		.copy            = node40_copy,
-		.overwrite       = node40_overwrite,
+	.form		 = node40_form,
+	.sync            = node40_sync,
+	.isdirty         = node40_isdirty,
+	.mkdirty         = node40_mkdirty,
+	.mkclean         = node40_mkclean,
+	.insert		 = node40_insert,
+	.remove		 = node40_remove,
+	.cut             = node40_cut,
+	.check		 = node40_check,
+	.print		 = node40_print,
+	.shift		 = node40_shift,
+	.shrink		 = node40_shrink,
+	.expand		 = node40_expand,
+	.copy            = node40_copy,
+	.overwrite       = node40_overwrite,
 
-		.overhead	 = node40_overhead,
-		.maxspace	 = node40_maxspace,
-		.space		 = node40_space,
+	.overhead	 = node40_overhead,
+	.maxspace	 = node40_maxspace,
+	.space		 = node40_space,
 	
-		.set_key	 = node40_set_key,
-		.set_level       = node40_set_level,
-		.set_mstamp	 = node40_set_mstamp,
-		.set_fstamp      = node40_set_fstamp
+	.set_key	 = node40_set_key,
+	.set_level       = node40_set_level,
+	.set_mstamp	 = node40_set_mstamp,
+	.set_fstamp      = node40_set_fstamp
 #endif
+};
+
+static reiser4_plugin_t node40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = NODE_REISER40_ID,
+		.group = 0,
+		.type = NODE_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "node40",
+		.desc = "Node plugin for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.node_ops = &node40_ops
 	}
 };
 

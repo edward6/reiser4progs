@@ -16,21 +16,21 @@
 bool_t reiser4_journal_isdirty(reiser4_journal_t *journal) {
 	aal_assert("umka-2100", journal != NULL);
 
-	return plugin_call(journal->entity->plugin->journal_ops,
+	return plugin_call(journal->entity->plugin->o.journal_ops,
 			   isdirty, journal->entity);
 }
 
 void reiser4_journal_mkdirty(reiser4_journal_t *journal) {
 	aal_assert("umka-2101", journal != NULL);
 
-	plugin_call(journal->entity->plugin->journal_ops,
+	plugin_call(journal->entity->plugin->o.journal_ops,
 		    mkdirty, journal->entity);
 }
 
 void reiser4_journal_mkclean(reiser4_journal_t *journal) {
 	aal_assert("umka-2102", journal != NULL);
 
-	plugin_call(journal->entity->plugin->journal_ops,
+	plugin_call(journal->entity->plugin->o.journal_ops,
 		    mkclean, journal->entity);
 }
 
@@ -81,7 +81,7 @@ reiser4_journal_t *reiser4_journal_open(
 	   Initializing journal entity by means of calling "open" method from
 	   found journal plugin.
 	*/
-	if (!(journal->entity = plugin_call(plugin->journal_ops, open,
+	if (!(journal->entity = plugin_call(plugin->o.journal_ops, open,
 					    fs->format->entity, device,
 					    start, len))) 
 	{
@@ -104,7 +104,7 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 	aal_assert("umka-1078", journal != NULL);
 	aal_assert("umka-1079", func != NULL);
 
-	return plugin_call(journal->entity->plugin->journal_ops,
+	return plugin_call(journal->entity->plugin->o.journal_ops,
 			   layout, journal->entity, func, data);
 }
 
@@ -166,13 +166,12 @@ reiser4_journal_t *reiser4_journal_create(
 	len = reiser4_format_get_len(fs->format);
 	
 	/* Initializing journal entity */
-	if (!(journal->entity = plugin_call(plugin->journal_ops, create,
+	if (!(journal->entity = plugin_call(plugin->o.journal_ops, create,
 					    fs->format->entity, device, start,
 					    len, hint))) 
 	{
 		aal_exception_error("Can't create journal %s on %s.",
-				    plugin->h.label, 
-				    aal_device_name(device));
+				    plugin->h.label, aal_device_name(device));
 		goto error_free_journal;
 	}
 	
@@ -182,7 +181,7 @@ reiser4_journal_t *reiser4_journal_create(
 	return journal;
 
  error_free_entity:
-	plugin_call(journal->entity->plugin->journal_ops, 
+	plugin_call(journal->entity->plugin->o.journal_ops, 
 		    close, journal->entity);
  error_free_journal:
 	aal_free(journal);
@@ -199,7 +198,7 @@ errno_t reiser4_journal_replay(
 	aal_assert("umka-727", journal != NULL);
     
 	/* Calling plugin for actual replaying */
-	return plugin_call(journal->entity->plugin->journal_ops, 
+	return plugin_call(journal->entity->plugin->o.journal_ops, 
 			   replay, journal->entity);
 }
 
@@ -212,7 +211,7 @@ errno_t reiser4_journal_sync(
 	if (!reiser4_journal_isdirty(journal))
 		return 0;
 	
-	return plugin_call(journal->entity->plugin->journal_ops, 
+	return plugin_call(journal->entity->plugin->o.journal_ops, 
 			   sync, journal->entity);
 }
 
@@ -222,7 +221,7 @@ errno_t reiser4_journal_valid(
 {
 	aal_assert("umka-830", journal != NULL);
 
-	return plugin_call(journal->entity->plugin->journal_ops, 
+	return plugin_call(journal->entity->plugin->o.journal_ops, 
 			   valid, journal->entity);
 }
 
@@ -232,7 +231,7 @@ errno_t reiser4_journal_print(reiser4_journal_t *journal,
 	aal_assert("umka-1564", journal != NULL);
 	aal_assert("umka-1565", stream != NULL);
 
-	return plugin_call(journal->entity->plugin->journal_ops,
+	return plugin_call(journal->entity->plugin->o.journal_ops,
 			   print, journal->entity, stream, 0);
 }
 
@@ -245,7 +244,7 @@ void reiser4_journal_close(
 	reiser4_journal_sync(journal);
 	journal->fs->journal = NULL;
 	
-	plugin_call(journal->entity->plugin->journal_ops, 
+	plugin_call(journal->entity->plugin->o.journal_ops, 
 		    close, journal->entity);
     
 	aal_free(journal);

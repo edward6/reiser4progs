@@ -136,7 +136,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 	fd->progress_handler(fd->progress);
     }
     
-    if (plugin_call(place->item.plugin->item_ops, read, &place->item, &ptr, 
+    if (plugin_call(place->item.plugin->o.item_ops, read, &place->item, &ptr, 
 	place->pos.unit, 1) != 1) 
     {
 	aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to fetch "
@@ -197,7 +197,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
     aal_assert("vpf-257", fd != NULL);
     aal_assert("vpf-434", place != NULL);
     
-    if (plugin_call(place->item.plugin->item_ops, read, &place->item, &ptr, 
+    if (plugin_call(place->item.plugin->o.item_ops, read, &place->item, &ptr, 
 	place->pos.unit, 1) != 1) 
     {
 	aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to "

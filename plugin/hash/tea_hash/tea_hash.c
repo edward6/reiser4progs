@@ -142,19 +142,25 @@ uint64_t tea_hash_build(const unsigned char *name, uint32_t len) {
 
 	return h0 ^ h1;
 }
+
+static reiser4_hash_ops_t tea_hash_ops = {
+	.build = tea_hash_build
+};
+
 static reiser4_plugin_t tea_hash_plugin = {
-	.hash_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = HASH_TEA_ID,
-			.group = 0,
-			.type = HASH_PLUGIN_TYPE,
-			.label = "tea_hash",
+	.h = {
+		.class = CLASS_INIT,
+		.id = HASH_TEA_ID,
+		.group = 0,
+		.type = HASH_PLUGIN_TYPE,
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Implementation tea hash for reiser4, ver. " VERSION
+		.label = "tea_hash",
+		.desc = "Implementation tea hash for "
+		"reiser4, ver. " VERSION
 #endif
-		},
-		.build = tea_hash_build
+	},
+	.o = {
+		.hash_ops = &tea_hash_ops
 	}
 };
 

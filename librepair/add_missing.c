@@ -8,7 +8,7 @@
 
 #include <repair/add_missing.h>
 
-/* Callback for item_ops.layout method to mark all the blocks, items points to, 
+/* Callback for item_ops->layout method to mark all the blocks, items points to, 
  * in the allocator. */
 static errno_t callback_item_mark_region(void *object, uint64_t start, 
     uint64_t count, void *data)
@@ -33,12 +33,12 @@ static errno_t callback_layout(reiser4_place_t *place, void *data) {
     aal_assert("vpf-649", place != NULL);
     aal_assert("vpf-748", reiser4_item_data(place->item.plugin));
 
-    if (!place->item.plugin->item_ops.layout)
+    if (!place->item.plugin->o.item_ops->layout)
 	return 0;
 	
     /* All these blocks should not be used in the allocator and should be 
      * forbidden for allocation. Check it somehow first. */
-    return place->item.plugin->item_ops.layout(&place->item, 
+    return place->item.plugin->o.item_ops->layout(&place->item, 
 	callback_item_mark_region, data);
 }
 

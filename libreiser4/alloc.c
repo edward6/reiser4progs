@@ -16,21 +16,21 @@
 bool_t reiser4_alloc_isdirty(reiser4_alloc_t *alloc) {
 	aal_assert("umka-2097", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops,
+	return plugin_call(alloc->entity->plugin->o.alloc_ops,
 			   isdirty, alloc->entity);
 }
 
 void reiser4_alloc_mkdirty(reiser4_alloc_t *alloc) {
 	aal_assert("umka-2098", alloc != NULL);
 
-	plugin_call(alloc->entity->plugin->alloc_ops,
+	plugin_call(alloc->entity->plugin->o.alloc_ops,
 		    mkdirty, alloc->entity);
 }
 
 void reiser4_alloc_mkclean(reiser4_alloc_t *alloc) {
 	aal_assert("umka-2099", alloc != NULL);
 
-	plugin_call(alloc->entity->plugin->alloc_ops,
+	plugin_call(alloc->entity->plugin->o.alloc_ops,
 		    mkclean, alloc->entity);
 }
 
@@ -71,7 +71,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	}
     
 	/* Calling "open" method from block allocator plugin */
-	if (!(alloc->entity = plugin_call(plugin->alloc_ops, open,
+	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, open,
 					  fs->device, count)))
 	{
 		aal_exception_error("Can't initialize block allocator.");
@@ -122,7 +122,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 	}
     
 	/* Query the block allocator plugin for creating allocator entity */
-	if (!(alloc->entity = plugin_call(plugin->alloc_ops, create,
+	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, create,
 					  fs->device, count)))
 	{
 		aal_exception_error("Can't create block allocator.");
@@ -142,7 +142,7 @@ errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc,
 	aal_assert("vpf-582", alloc != NULL);
 	aal_assert("umka-1848", bitmap != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   assign, alloc->entity, bitmap);
 }
 
@@ -152,7 +152,7 @@ errno_t reiser4_alloc_extract(reiser4_alloc_t *alloc,
 	aal_assert("umka-2191", alloc != NULL);
 	aal_assert("umka-2192", bitmap != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   extract, alloc->entity, bitmap);
 }
 
@@ -166,7 +166,7 @@ errno_t reiser4_alloc_sync(
 	if (!reiser4_alloc_isdirty(alloc))
 		return 0;
 	
-	return plugin_call(alloc->entity->plugin->alloc_ops,
+	return plugin_call(alloc->entity->plugin->o.alloc_ops,
 			   sync, alloc->entity);
 }
 
@@ -176,7 +176,7 @@ errno_t reiser4_alloc_print(reiser4_alloc_t *alloc,
 	aal_assert("umka-1566", alloc != NULL);
 	aal_assert("umka-1567", stream != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops,
+	return plugin_call(alloc->entity->plugin->o.alloc_ops,
 			   print, alloc->entity, stream, 0);
 }
 
@@ -189,7 +189,7 @@ void reiser4_alloc_close(
 	alloc->fs->alloc = NULL;
 	
 	/* Calling the plugin for close its internal instance properly */
-	plugin_call(alloc->entity->plugin->alloc_ops, 
+	plugin_call(alloc->entity->plugin->o.alloc_ops, 
 		    close, alloc->entity);
     
 	if (alloc->forbid)
@@ -204,7 +204,7 @@ count_t reiser4_alloc_free(
 {
 	aal_assert("umka-362", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   free, alloc->entity);
 }
 
@@ -214,7 +214,7 @@ count_t reiser4_alloc_used(
 {
 	aal_assert("umka-499", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   used, alloc->entity);
 }
 
@@ -226,7 +226,7 @@ errno_t reiser4_alloc_occupy(
 {
 	aal_assert("umka-501", alloc != NULL);
 
-	plugin_call(alloc->entity->plugin->alloc_ops, 
+	plugin_call(alloc->entity->plugin->o.alloc_ops, 
 		    occupy, alloc->entity, start, count);
 
 	return 0;
@@ -240,7 +240,7 @@ errno_t reiser4_alloc_release(
 {
 	aal_assert("umka-503", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   release, alloc->entity, start, count);
 }
 
@@ -254,7 +254,7 @@ count_t reiser4_alloc_allocate(
 
 	*start = 0;
 	
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   allocate, alloc->entity, start, count);
 }
 
@@ -263,7 +263,7 @@ errno_t reiser4_alloc_valid(
 {
 	aal_assert("umka-833", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   valid, alloc->entity);
 }
 
@@ -275,7 +275,7 @@ bool_t reiser4_alloc_occupied(
 {
 	aal_assert("umka-662", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   occupied, alloc->entity, start, count);
 }
 
@@ -287,7 +287,7 @@ bool_t reiser4_alloc_available(
 {
 	aal_assert("umka-662", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
+	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
 			   available, alloc->entity, start, count);
 }
 
@@ -298,7 +298,7 @@ errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 	aal_assert("umka-1080", alloc != NULL);
 	aal_assert("umka-1081", func != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops,
+	return plugin_call(alloc->entity->plugin->o.alloc_ops,
 			   layout, alloc->entity, func, data);
 }
 

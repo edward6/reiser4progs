@@ -188,7 +188,7 @@ static errno_t tfrag_process_node(
 		  tfrag_process_item() as a function for handling one block the
 		  item points to.
 		*/
-		if (!item->plugin->item_ops.layout) {
+		if (!item->plugin->o.item_ops->layout) {
 			aal_exception_warn("Item %u in node %llu has not "
 					   "\"layout\" method implemented. "
 					   "The result will not be releable.",
@@ -196,7 +196,7 @@ static errno_t tfrag_process_node(
 			continue;
 		}
 
-		item->plugin->item_ops.layout(item, tfrag_process_item, data);
+		item->plugin->o.item_ops->layout(item, tfrag_process_item, data);
 	}
 	
 	return 0;
@@ -380,10 +380,10 @@ static errno_t stat_process_node(
 
 			item = &place.item;
 			
-			if (!item->plugin->item_ops.layout)
+			if (!item->plugin->o.item_ops->layout)
 				continue;
 
-			item->plugin->item_ops.layout(item, stat_process_item, data);
+			item->plugin->o.item_ops->layout(item, stat_process_item, data);
 		}
 	} else {
 		leaves_used = aal_device_get_bs(device) -

@@ -10,39 +10,8 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_STAND_ALONE
-#  include <stdlib.h>
-#endif
-
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
-
-#ifndef ENABLE_STAND_ALONE
-
-static void libreiser4_abort(char *message);
-reiser4_abort_t abort_func = libreiser4_abort;
-
-/*
-  Default shutdown handler. It will be called when libreiser4 is determined that
-  some function in a plugin is not implemented.
-*/
-static void libreiser4_abort(char *message) {
-	aal_exception_fatal(message);
-	
-#ifndef ENABLE_STAND_ALONE
-	exit(-1);
-#endif
-}
-
-/* Sets/gets shutdown handler function */
-reiser4_abort_t libreiser4_get_abort(void) {
-	return abort_func;
-}
-
-void libreiser4_set_abort(reiser4_abort_t func) {
-	abort_func = func ? func : libreiser4_abort;
-}
-#endif
 
 /* 
   Initializing the libreiser4 core instance. It will be passed into all plugins
@@ -118,7 +87,7 @@ static lookup_t tree_lookup(
 		item_entity_t *item = &p->item;
 		object_entity_t *entity = p->node->entity;
 		
-		if (plugin_call(entity->plugin->node_ops, get_key,
+		if (plugin_call(entity->plugin->o.node_ops, get_key,
 				entity, &p->pos, &item->key))
 		{
 			aal_exception_error("Can't get item key.");

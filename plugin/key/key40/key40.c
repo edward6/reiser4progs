@@ -254,7 +254,7 @@ static errno_t key40_build_hash(key_entity_t *key,
 		/* Build hash by means of using hash plugin */
 		objectid |= 0x0100000000000000ull;
 		
-		offset = plugin_call(hash->hash_ops, build,
+		offset = plugin_call(hash->o.hash_ops, build,
 				     (const char *)(name + OID_CHARS),
 				     aal_strlen(name) - OID_CHARS);
 	}
@@ -395,52 +395,55 @@ errno_t key40_print(key_entity_t *key,
 
 #endif
 
+static reiser4_key_ops_t key40_ops = {
+	.tall              = key40_tall,
+	.confirm	   = key40_confirm,
+	.assign		   = key40_assign,
+	.minimal	   = key40_minimal,
+	.maximal	   = key40_maximal,
+	.clean		   = key40_clean,
+
+	.compare	   = key40_compare,
+	.compare_short	   = key40_compare_short,
+		
+#ifndef ENABLE_STAND_ALONE
+	.valid		   = key40_valid,
+	.print		   = key40_print,
+
+	.set_hash	   = key40_set_hash,
+	.get_hash	   = key40_get_hash,
+#endif
+		
+	.set_type	   = key40_set_type,
+	.get_type	   = key40_get_type,
+
+	.set_locality	   = key40_set_locality,
+	.get_locality	   = key40_get_locality,
+
+	.set_objectid	   = key40_set_objectid,
+	.get_objectid	   = key40_get_objectid,
+
+	.set_offset	   = key40_set_offset,
+	.get_offset	   = key40_get_offset,
+	
+	.build_short       = key40_build_short,
+	.build_entry       = key40_build_entry,
+	.build_generic     = key40_build_generic
+};
+
 static reiser4_plugin_t key40_plugin = {
-	.key_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = KEY_REISER40_ID,
-			.group = 0,
-			.type = KEY_PLUGIN_TYPE,
-			.label = "key40",
+	.h = {
+		.class = CLASS_INIT,
+		.id = KEY_REISER40_ID,
+		.group = 0,
+		.type = KEY_PLUGIN_TYPE,
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Key for reiser4, ver. " VERSION
+		.label = "key40",
+		.desc = "Key for reiser4, ver. " VERSION
 #endif
-		},
-	
-		.tall              = key40_tall,
-		.confirm	   = key40_confirm,
-		.assign		   = key40_assign,
-		.minimal	   = key40_minimal,
-		.maximal	   = key40_maximal,
-		.clean		   = key40_clean,
-
-		.compare	   = key40_compare,
-		.compare_short	   = key40_compare_short,
-		
-#ifndef ENABLE_STAND_ALONE
-		.valid		   = key40_valid,
-		.print		   = key40_print,
-
-		.set_hash	   = key40_set_hash,
-		.get_hash	   = key40_get_hash,
-#endif
-		
-		.set_type	   = key40_set_type,
-		.get_type	   = key40_get_type,
-
-		.set_locality	   = key40_set_locality,
-		.get_locality	   = key40_get_locality,
-
-		.set_objectid	   = key40_set_objectid,
-		.get_objectid	   = key40_get_objectid,
-
-		.set_offset	   = key40_set_offset,
-		.get_offset	   = key40_get_offset,
-	
-		.build_short       = key40_build_short,
-		.build_entry       = key40_build_entry,
-		.build_generic     = key40_build_generic
+	},
+	.o = {
+		.key_ops = &key40_ops
 	}
 };
 

@@ -38,10 +38,10 @@ static int32_t sym40_read(object_entity_t *entity,
 
 	item = &sym->obj.statdata.item;
 
-	if (!item->plugin->item_ops.read)
+	if (!item->plugin->o.item_ops->read)
 		return -EINVAL;
 
-	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+	if (item->plugin->o.item_ops->read(item, &hint, 0, 1) != 1)
 		return -EINVAL;
 
 	return aal_strlen(buff);
@@ -107,7 +107,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	obj40_init(&sym->obj, &sym40_plugin, &hint->object, core, tree);
 	
 	/* Initializing parent key from the parent field of passed @hint */
-	plugin_call(hint->object.plugin->key_ops, assign,
+	plugin_call(hint->object.plugin->o.key_ops, assign,
 		    &sym->parent, &hint->parent);
 	
 	/* Getting statdata plugin */
@@ -126,7 +126,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	stat_hint.flags = HF_FORMATD;
 	stat_hint.key.plugin = hint->object.plugin;
 	
-	plugin_call(hint->object.plugin->key_ops, assign,
+	plugin_call(hint->object.plugin->o.key_ops, assign,
 		    &stat_hint.key, &hint->object);
     
 	/*
@@ -168,7 +168,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	obj40_lock(&sym->obj, &sym->obj.statdata);
 		
 	if (parent) {
-		plugin_call(parent->plugin->object_ops, link,
+		plugin_call(parent->plugin->o.object_ops, link,
 			    parent);
 	}
 	
@@ -286,10 +286,10 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	item = &sym->obj.statdata.item;
 		
 	/* Setting up the file key */
-	plugin_call(key->plugin->key_ops, set_type, key,
+	plugin_call(key->plugin->o.key_ops, set_type, key,
 		    KEY_STATDATA_TYPE);
 	
-	plugin_call(key->plugin->key_ops, set_offset, key, 0);
+	plugin_call(key->plugin->o.key_ops, set_offset, key, 0);
 
 	/* Performing lookup for statdata of current directory */
 	if (obj40_lookup(&sym->obj, key, LEAF_LEVEL,
@@ -312,9 +312,9 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	}
 
 	/* Symlinks handling. Method "follow" should be implemented */
-	if (plugin->object_ops.follow) {
+	if (plugin->o.object_ops->follow) {
 		
-		if (!(entity = plugin_call(plugin->object_ops, open, 
+		if (!(entity = plugin_call(plugin->o.object_ops, open, 
 					   sym->obj.tree, place)))
 		{
 			aal_exception_error("Can't open parent of "
@@ -322,16 +322,16 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 		}
 
-		if (plugin->object_ops.follow(entity, STAT_KEY(&sym->obj))) {
+		if (plugin->o.object_ops->follow(entity, STAT_KEY(&sym->obj))) {
 			aal_exception_error("Can't follow %s.", track);
-			plugin_call(plugin->object_ops, close, entity);
+			plugin_call(plugin->o.object_ops, close, entity);
 			return -EINVAL;
 		}
 
-		plugin_call(plugin->object_ops, close, entity);
+		plugin_call(plugin->o.object_ops, close, entity);
 	}
 	
-	plugin_call(STAT_KEY(&sym->obj)->plugin->key_ops,
+	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
 		    assign, &sym->parent, STAT_KEY(&sym->obj));
 
 	return 0;
@@ -361,7 +361,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	}
 
 	/* Opening currect diretory */
-	if (!(entity = plugin_call(plugin->object_ops, open, 
+	if (!(entity = plugin_call(plugin->o.object_ops, open, 
 				   sym->obj.tree, place)))
 	{
 		aal_exception_error("Can't open parent of directory "
@@ -370,18 +370,18 @@ static errno_t callback_find_entry(char *track, char *entry,
 	}
 
 	/* Looking up for @enrty in current directory */
-	if (plugin_call(plugin->object_ops, lookup, entity,
+	if (plugin_call(plugin->o.object_ops, lookup, entity,
 			entry, &entry_hint) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
-		plugin_call(plugin->object_ops, close, entity);
+		plugin_call(plugin->o.object_ops, close, entity);
 		return -EINVAL;
 	}
 
-	plugin_call(plugin->object_ops, close, entity);
+	plugin_call(plugin->o.object_ops, close, entity);
 
 	/* Assign found key to symlink's object stat data key */
-	plugin_call(item->key.plugin->key_ops, assign,
+	plugin_call(item->key.plugin->o.key_ops, assign,
 		    STAT_KEY(&sym->obj), &entry_hint.object);
 	
 	return 0;
@@ -420,7 +420,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 		sym->obj.core->tree_ops.rootkey(sym->obj.tree,
 						STAT_KEY(&sym->obj));
 	} else {
-		plugin_call(plugin->key_ops, assign,
+		plugin_call(plugin->o.key_ops, assign,
 			    STAT_KEY(&sym->obj), &sym->parent);
 	}
 
@@ -429,7 +429,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 
 	/* If there is no errors, we assign result ot passed @key */
 	if (res == 0) {
-		plugin_call(plugin->key_ops, assign, key,
+		plugin_call(plugin->o.key_ops, assign, key,
 			    STAT_KEY(&sym->obj));
 	}
 
@@ -446,44 +446,47 @@ static void sym40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
+static reiser4_object_ops_t sym40_ops = {
+#ifndef ENABLE_STAND_ALONE
+	.create	      = sym40_create,
+	.write	      = sym40_write,
+	.layout       = sym40_layout,
+	.metadata     = sym40_metadata,
+	.link         = sym40_link,
+	.unlink       = sym40_unlink,
+		
+	.truncate     = NULL,
+	.rem_entry    = NULL,
+	.add_entry    = NULL,
+	.seek	      = NULL,
+#endif
+	.lookup	      = NULL,
+	.reset	      = NULL,
+	.offset	      = NULL,
+	.size         = NULL,
+	.readdir      = NULL,
+	.telldir      = NULL,
+	.seekdir      = NULL,
+		
+	.follow       = sym40_follow,
+	.open	      = sym40_open,
+	.close	      = sym40_close,
+	.read	      = sym40_read
+};
+
 static reiser4_plugin_t sym40_plugin = {
-	.object_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = OBJECT_SYMLINK40_ID,
-			.group = SYMLINK_OBJECT,
-			.type = OBJECT_PLUGIN_TYPE,
-			.label = "sym40",
+	.h = {
+		.class = CLASS_INIT,
+		.id = OBJECT_SYMLINK40_ID,
+		.group = SYMLINK_OBJECT,
+		.type = OBJECT_PLUGIN_TYPE,
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Symlink for reiser4, ver. " VERSION
+		.label = "sym40",
+		.desc = "Symlink for reiser4, ver. " VERSION
 #endif
-		},
-		
-#ifndef ENABLE_STAND_ALONE
-		.create	      = sym40_create,
-		.write	      = sym40_write,
-		.layout       = sym40_layout,
-		.metadata     = sym40_metadata,
-		.link         = sym40_link,
-		.unlink       = sym40_unlink,
-		
-		.truncate     = NULL,
-		.rem_entry    = NULL,
-		.add_entry    = NULL,
-		.seek	      = NULL,
-#endif
-		.lookup	      = NULL,
-		.reset	      = NULL,
-		.offset	      = NULL,
-		.size         = NULL,
-		.readdir      = NULL,
-		.telldir      = NULL,
-		.seekdir      = NULL,
-		
-		.follow       = sym40_follow,
-		.open	      = sym40_open,
-		.close	      = sym40_close,
-		.read	      = sym40_read
+	},
+	.o = {
+		.object_ops = &sym40_ops
 	}
 };
 
@@ -493,5 +496,4 @@ static reiser4_plugin_t *sym40_start(reiser4_core_t *c) {
 }
 
 plugin_register(sym40, sym40_start, NULL);
-
 #endif

@@ -201,7 +201,7 @@ static errno_t extent40_print(item_entity_t *item,
 	aal_stream_format(stream, "EXTENT PLUGIN=%s LEN=%u, KEY=",
 			  item->plugin->h.label, item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print,
+	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
 	{
 		return -EINVAL;
@@ -311,10 +311,10 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		extent40_get_key(item, i, &key);
 
 		/* Calculating in-unit local offset */
-		offset = plugin_call(item->key.plugin->key_ops,
+		offset = plugin_call(item->key.plugin->o.key_ops,
 				     get_offset, &key);
 
-		offset -= plugin_call(item->key.plugin->key_ops,
+		offset -= plugin_call(item->key.plugin->o.key_ops,
 				      get_offset, &item->key);
 
 		start = blk = et40_get_start(extent40_body(item) + i) +
@@ -598,54 +598,57 @@ extern errno_t extent40_check(item_entity_t *item, uint8_t mode);
 
 #endif
 
-static reiser4_plugin_t extent40_plugin = {
-	.item_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = ITEM_EXTENT40_ID,
-			.group = EXTENT_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
-			.label = "extent40",
+static reiser4_item_ops_t extent40_ops = {
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Extent item for reiser4, ver. " VERSION
-#endif
-		},
+	.init	       = extent40_init,
+	.write         = extent40_write,
+	.copy          = extent40_copy,
+	.estimate      = extent40_estimate,
+	.remove	       = extent40_remove,
+	.shrink	       = extent40_shrink,
+	.print	       = extent40_print,
+	.predict       = extent40_predict,
+	.shift         = extent40_shift,
+	.layout        = extent40_layout,
+	.check	       = extent40_check,
+	.feel          = extent40_feel,
+	.gap_key       = extent40_maxreal_key,
+	.maxreal_key   = extent40_maxreal_key,
+	.layout_check  = extent40_layout_check,
 		
-#ifndef ENABLE_STAND_ALONE
-		.init	       = extent40_init,
-		.write         = extent40_write,
-		.copy          = extent40_copy,
-		.estimate      = extent40_estimate,
-		.remove	       = extent40_remove,
-		.shrink	       = extent40_shrink,
-		.print	       = extent40_print,
-		.predict       = extent40_predict,
-		.shift         = extent40_shift,
-		.layout        = extent40_layout,
-		.check	       = extent40_check,
-		.feel          = extent40_feel,
-		.gap_key       = extent40_maxreal_key,
-		.maxreal_key   = extent40_maxreal_key,
-		.layout_check  = extent40_layout_check,
-		
-		.insert        = NULL,
-		.set_key       = NULL,
+	.insert        = NULL,
+	.set_key       = NULL,
 #endif
-		.branch        = NULL,
+	.branch        = NULL,
 
-		.data	       = extent40_data,
-		.lookup	       = extent40_lookup,
-		.units	       = extent40_units,
-		.read          = extent40_read,
+	.data	       = extent40_data,
+	.lookup	       = extent40_lookup,
+	.units	       = extent40_units,
+	.read          = extent40_read,
 
 #ifndef ENABLE_STAND_ALONE
-		.mergeable     = extent40_mergeable,
+	.mergeable     = extent40_mergeable,
 #else
-		.mergeable     = NULL,
+	.mergeable     = NULL,
 #endif
 
-		.get_key       = extent40_get_key,
-		.maxposs_key   = extent40_maxposs_key
+	.get_key       = extent40_get_key,
+	.maxposs_key   = extent40_maxposs_key
+};
+
+static reiser4_plugin_t extent40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = ITEM_EXTENT40_ID,
+		.group = EXTENT_ITEM,
+		.type = ITEM_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "extent40",
+		.desc = "Extent item for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.item_ops = &extent40_ops
 	}
 };
 

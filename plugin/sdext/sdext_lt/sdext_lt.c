@@ -83,22 +83,26 @@ static errno_t sdext_lt_print(body_t *body,
 
 extern errno_t sdext_lt_check(sdext_entity_t *sdext, uint8_t mode);
 
+static reiser4_sdext_ops_t sdext_lt_ops = {
+	.open	   = sdext_lt_open,
+	.init	   = sdext_lt_init,
+	.print     = sdext_lt_print,
+	.check     = sdext_lt_check,
+	.length	   = sdext_lt_length
+};
+
 static reiser4_plugin_t sdext_lt_plugin = {
-	.sdext_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = SDEXT_LT_ID,
-			.group = 0,
-			.type = SDEXT_PLUGIN_TYPE,
-			.label = "sdext_lt",
-			.desc = "Large times stat data extention "
-			"for reiser4, ver. " VERSION
-		},
-		.open	 = sdext_lt_open,
-		.init	 = sdext_lt_init,
-		.print   = sdext_lt_print,
-		.check   = sdext_lt_check,
-		.length	 = sdext_lt_length
+	.h = {
+		.class = CLASS_INIT,
+		.id = SDEXT_LT_ID,
+		.group = 0,
+		.type = SDEXT_PLUGIN_TYPE,
+		.label = "sdext_lt",
+		.desc = "Large times stat data extention "
+		"for reiser4, ver. " VERSION
+	},
+	.o = {
+		.sdext_ops = &sdext_lt_ops
 	}
 };
 

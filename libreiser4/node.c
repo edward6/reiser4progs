@@ -12,21 +12,21 @@
 bool_t reiser4_node_isdirty(reiser4_node_t *node) {
 	aal_assert("umka-2094", node != NULL);
 
-	return plugin_call(node->entity->plugin->node_ops,
+	return plugin_call(node->entity->plugin->o.node_ops,
 			   isdirty, node->entity);
 }
 
 void reiser4_node_mkdirty(reiser4_node_t *node) {
 	aal_assert("umka-2095", node != NULL);
 
-	plugin_call(node->entity->plugin->node_ops,
+	plugin_call(node->entity->plugin->o.node_ops,
 		    mkdirty, node->entity);
 }
 
 void reiser4_node_mkclean(reiser4_node_t *node) {
 	aal_assert("umka-2096", node != NULL);
 
-	plugin_call(node->entity->plugin->node_ops,
+	plugin_call(node->entity->plugin->o.node_ops,
 		    mkclean, node->entity);
 }
 #endif
@@ -51,7 +51,7 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 	}
     
 	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plugin_call(plugin->node_ops, init,
+	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
 					 device, blk))) 
 		goto error_free_node;
 
@@ -70,7 +70,7 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 errno_t reiser4_node_load(reiser4_node_t *node) {
 	aal_assert("umka-2053", node != NULL);
 
-	return plugin_call(node->entity->plugin->node_ops,
+	return plugin_call(node->entity->plugin->o.node_ops,
 			   load, node->entity);
 }
 
@@ -82,7 +82,7 @@ errno_t reiser4_node_unload(reiser4_node_t *node) {
 		reiser4_node_sync(node);
 #endif
 	
-	return plugin_call(node->entity->plugin->node_ops,
+	return plugin_call(node->entity->plugin->o.node_ops,
 			   unload, node->entity);
 }
 
@@ -92,7 +92,7 @@ errno_t reiser4_node_form(reiser4_node_t *node,
 {
 	aal_assert("umka-2052", node != NULL);
 
-	return plugin_call(node->entity->plugin->node_ops,
+	return plugin_call(node->entity->plugin->o.node_ops,
 			   form, node->entity, level);
 }
 
@@ -104,7 +104,7 @@ errno_t reiser4_node_print(
 	aal_assert("umka-1537", node != NULL);
 	aal_assert("umka-1538", stream != NULL);
 	
-	return plugin_call(node->entity->plugin->node_ops,
+	return plugin_call(node->entity->plugin->o.node_ops,
 			   print, node->entity, stream, -1, -1, 0);
 }
 #endif
@@ -125,19 +125,19 @@ static int callback_guess_node(reiser4_plugin_t *plugin,
 		  Requesting block supposed to be a correct node to be opened
 		  and confirmed about its format.
 		*/
-		if (!(node->entity = plugin_call(plugin->node_ops, init,
+		if (!(node->entity = plugin_call(plugin->o.node_ops, init,
 						 node->device, node->blk)))
 			return 0;
 
-		if (plugin_call(plugin->node_ops, load, node->entity))
+		if (plugin_call(plugin->o.node_ops, load, node->entity))
 			goto error_free_entity;
 		
 		/* Okay, we have found needed node plugin */
-		if (plugin_call(plugin->node_ops, confirm, node->entity))
+		if (plugin_call(plugin->o.node_ops, confirm, node->entity))
 			return 1;
 
 	error_free_entity:
-		plugin_call(plugin->node_ops, close, node->entity);
+		plugin_call(plugin->o.node_ops, close, node->entity);
 		node->entity = NULL;
 	}
 	
@@ -194,7 +194,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 
 	reiser4_node_unload(node);
 	
-	res = plugin_call(node->entity->plugin->node_ops,
+	res = plugin_call(node->entity->plugin->o.node_ops,
 			  close, node->entity);
 	    
 	aal_free(node);
@@ -238,7 +238,7 @@ static int reiser4_node_ack(reiser4_node_t *node,
 	if (!reiser4_item_branch(place))
 		return 0;
 
-	plugin_call(place->item.plugin->item_ops, read,
+	plugin_call(place->item.plugin->o.item_ops, read,
 		    &place->item, &ptr, place->pos.unit, 1);
 
 	return ptr.start == node->blk;
@@ -298,7 +298,7 @@ errno_t reiser4_node_pbc(
 		for (j = 0; j < reiser4_item_units(place); j++) {
 			place->pos.unit = j;
 			
-			plugin_call(place->item.plugin->item_ops,
+			plugin_call(place->item.plugin->o.item_ops,
 				    read, &place->item, &ptr, j, 1);
 
 			if (ptr.start == node->blk)
@@ -435,7 +435,7 @@ errno_t reiser4_node_disconnect(
 bool_t reiser4_node_confirm(reiser4_node_t *node) {
 	aal_assert("umka-123", node != NULL);
     
-	return plugin_call(node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->o.node_ops, 
 			   confirm, node->entity);
 }
 #endif
@@ -461,7 +461,7 @@ lookup_t reiser4_node_lookup(
 	POS_INIT(pos, 0, ~0ul);
 
 	/* Calling node plugin */
-	res = plugin_call(node->entity->plugin->node_ops,
+	res = plugin_call(node->entity->plugin->o.node_ops,
 			  lookup, node->entity, key, pos);
 
 	if (res != LP_ABSENT)
@@ -483,7 +483,7 @@ lookup_t reiser4_node_lookup(
 	  within the item or after the item.
 	*/
 	
-	if (item->plugin->item_ops.maxposs_key) {
+	if (item->plugin->o.item_ops->maxposs_key) {
 
 		/* Maxposs_key is impemented */
 		reiser4_item_maxposs_key(&place, &maxkey);
@@ -495,9 +495,9 @@ lookup_t reiser4_node_lookup(
 	}
 	
 	/* Calling lookup method of found item (most probably direntry item) */
-	if (item->plugin->item_ops.lookup) {
+	if (item->plugin->o.item_ops->lookup) {
 		
-		res = item->plugin->item_ops.lookup(item, key,
+		res = item->plugin->o.item_ops->lookup(item, key,
 						    &pos->unit);
 
 		if (res == LP_ABSENT) {
@@ -513,7 +513,7 @@ lookup_t reiser4_node_lookup(
 	}
 	
 	/* Method maxoss_key() must be implemented or we should not get here */
-	aal_assert("vpf-895", item->plugin->item_ops.maxposs_key == NULL);
+	aal_assert("vpf-895", item->plugin->o.item_ops->maxposs_key == NULL);
 	pos->item++;
 
 	return LP_ABSENT;
@@ -523,7 +523,7 @@ lookup_t reiser4_node_lookup(
 uint32_t reiser4_node_items(reiser4_node_t *node) {
 	aal_assert("umka-453", node != NULL);
     
-	return plugin_call(node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->o.node_ops, 
 			   items, node->entity);
 }
 
@@ -533,7 +533,7 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 uint16_t reiser4_node_space(reiser4_node_t *node) {
 	aal_assert("umka-455", node != NULL);
     
-	return plugin_call(node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->o.node_ops, 
 			   space, node->entity);
 }
 
@@ -541,7 +541,7 @@ uint16_t reiser4_node_space(reiser4_node_t *node) {
 uint16_t reiser4_node_overhead(reiser4_node_t *node) {
 	aal_assert("vpf-066", node != NULL);
 
-	return plugin_call(node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->o.node_ops, 
 			   overhead, node->entity);
 }
 
@@ -549,7 +549,7 @@ uint16_t reiser4_node_overhead(reiser4_node_t *node) {
 uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 	aal_assert("umka-125", node != NULL);
     
-	return plugin_call(node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->o.node_ops, 
 			   maxspace, node->entity);
 }
 
@@ -567,7 +567,7 @@ errno_t reiser4_node_copy(reiser4_node_t *dst_node,
 	aal_assert("umka-1820", src_pos != NULL);
 	aal_assert("umka-1822", dst_pos != NULL);
 
-	return plugin_call(src_node->entity->plugin->node_ops,
+	return plugin_call(src_node->entity->plugin->o.node_ops,
 			   copy, dst_node->entity, dst_pos,
 			   src_node->entity, src_pos, start,
 			   end, hint);
@@ -592,7 +592,7 @@ errno_t reiser4_node_overwrite(reiser4_node_t *dst_node,
 	aal_assert("vpf-922", dst_hint != NULL);
 	aal_assert("vpf-923", src_hint != NULL);
 
-	return plugin_call(src_node->entity->plugin->node_ops,
+	return plugin_call(src_node->entity->plugin->o.node_ops,
 			   overwrite, dst_node->entity, dst_pos,
 			   src_node->entity, src_pos, start,
 			   end, dst_hint, src_hint);
@@ -607,7 +607,7 @@ errno_t reiser4_node_expand(reiser4_node_t *node, pos_t *pos,
 	aal_assert("umka-1815", node != NULL);
 	aal_assert("umka-1816", pos != NULL);
 
-	res = plugin_call(node->entity->plugin->node_ops,
+	res = plugin_call(node->entity->plugin->o.node_ops,
 			  expand, node->entity, pos, len, count);
 
 	return res;
@@ -622,7 +622,7 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 	aal_assert("umka-1817", node != NULL);
 	aal_assert("umka-1818", pos != NULL);
 
-	res = plugin_call(node->entity->plugin->node_ops,
+	res = plugin_call(node->entity->plugin->o.node_ops,
 			  shrink, node->entity, pos, len, count);
 
 	return res;
@@ -651,7 +651,7 @@ errno_t reiser4_node_shift(
 	*/
 	plugin = node->entity->plugin;
 	
-	if ((res = plugin_call(plugin->node_ops, shift,
+	if ((res = plugin_call(plugin->o.node_ops, shift,
 			       node->entity, neig->entity, hint)))
 		return res;
 
@@ -694,7 +694,7 @@ errno_t reiser4_node_shift(
 			  Getting nodeptr and looking for the cached child by
 			  using it.
 			*/
-			plugin_call(place.item.plugin->item_ops, read,
+			plugin_call(place.item.plugin->o.item_ops, read,
 				    &place.item, &ptr, place.pos.unit, 1);
 			
 			if (!(child = reiser4_node_cbp(node, ptr.start)))
@@ -751,7 +751,7 @@ errno_t reiser4_node_sync(
 	/* Synchronizing passed @node */
 	if (reiser4_node_isdirty(node)) {
 
-		if ((res = plugin_call(node->entity->plugin->node_ops,
+		if ((res = plugin_call(node->entity->plugin->o.node_ops,
 				       sync, node->entity)))
 		{
 			aal_exception_error("Can't synchronize node %llu "
@@ -841,7 +841,7 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 		if (!reiser4_item_branch(&place))
 			continue;
 		
-		plugin_call(place.item.plugin->item_ops, read,
+		plugin_call(place.item.plugin->o.item_ops, read,
 			    &place.item, &ptr, place.pos.unit, 1);
 	
 		if ((list = aal_list_find_custom(node->children,
@@ -902,7 +902,7 @@ errno_t reiser4_node_insert(
 	  Inserting new item or pasting unit into one existent item pointed by
 	  pos->item.
 	*/
-	if ((res = plugin_call(node->entity->plugin->node_ops,
+	if ((res = plugin_call(node->entity->plugin->o.node_ops,
 			       insert, node->entity, pos, hint)))
 		return res;
 
@@ -927,7 +927,7 @@ errno_t reiser4_node_cut(
 	aal_assert("umka-1787", end != NULL);
 
 	/* Calling plugin's cut method */
-	if ((res = plugin_call(node->entity->plugin->node_ops,
+	if ((res = plugin_call(node->entity->plugin->o.node_ops,
 			       cut, node->entity, start, end)))
 	{
 		aal_exception_error("Can't cut items/units from the node "
@@ -965,7 +965,7 @@ errno_t reiser4_node_remove(
 	  unit component is set up.
 	*/
 	    
-	if ((res = plugin_call(node->entity->plugin->node_ops,
+	if ((res = plugin_call(node->entity->plugin->o.node_ops,
 			       remove, node->entity, pos, count)))
 	{
 		aal_exception_error("Can't remove %lu items/units from "
@@ -993,8 +993,8 @@ void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {
 
 	plugin = node->entity->plugin;
 	
-	if (plugin->node_ops.set_mstamp) {
-		plugin->node_ops.set_mstamp(node->entity, stamp);
+	if (plugin->o.node_ops->set_mstamp) {
+		plugin->o.node_ops->set_mstamp(node->entity, stamp);
 		reiser4_node_mkdirty(node);
 	}
 }
@@ -1007,8 +1007,8 @@ void reiser4_node_set_fstamp(reiser4_node_t *node, uint64_t stamp) {
 
 	plugin = node->entity->plugin;
 	
-	if (plugin->node_ops.get_fstamp) {
-		plugin->node_ops.set_fstamp(node->entity, stamp);
+	if (plugin->o.node_ops->get_fstamp) {
+		plugin->o.node_ops->set_fstamp(node->entity, stamp);
 		reiser4_node_mkdirty(node);
 	}
 }
@@ -1018,7 +1018,7 @@ void reiser4_node_set_level(reiser4_node_t *node,
 {
 	aal_assert("umka-1863", node != NULL);
     
-	plugin_call(node->entity->plugin->node_ops, 
+	plugin_call(node->entity->plugin->o.node_ops, 
 		    set_level, node->entity, level);
 
 	reiser4_node_mkdirty(node);
@@ -1032,8 +1032,8 @@ uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {
 
 	plugin = node->entity->plugin;
 	
-	if (plugin->node_ops.get_mstamp)
-		return plugin->node_ops.get_mstamp(node->entity);
+	if (plugin->o.node_ops->get_mstamp)
+		return plugin->o.node_ops->get_mstamp(node->entity);
 	
 	return 0;
 }
@@ -1046,8 +1046,8 @@ uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 
 	plugin = node->entity->plugin;
 	
-	if (plugin->node_ops.get_fstamp)
-		plugin->node_ops.get_fstamp(node->entity);
+	if (plugin->o.node_ops->get_fstamp)
+		plugin->o.node_ops->get_fstamp(node->entity);
 
 	return 0;
 }
@@ -1057,6 +1057,6 @@ uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 uint8_t reiser4_node_get_level(reiser4_node_t *node) {
 	aal_assert("umka-1642", node != NULL);
     
-	return plugin_call(node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->o.node_ops, 
 			   get_level, node->entity);
 }

@@ -80,7 +80,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	/* Preparing key of the first entry in directory */
-	plugin_call(STAT_KEY(&dir->obj)->plugin->key_ops,
+	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
 		    build_entry, &key, dir->hash,
 		    obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), ".");
@@ -109,8 +109,8 @@ static int dir40_mergeable(item_entity_t *item1,
 	  Calling item's mergeable method in order to determine if they are
 	  mergeable.
 	*/
-	return plugin_call(item1->plugin->item_ops, mergeable,
-			   item1, item2);
+	return plugin_call(item1->plugin->o.item_ops,
+			   mergeable, item1, item2);
 }
 
 /* Switches current dir body item onto next one */
@@ -141,7 +141,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 
 #ifndef ENABLE_STAND_ALONE
 	/* Updating current position by entry offset key */
-	if (plugin_call(item->plugin->item_ops, read, item,
+	if (plugin_call(item->plugin->o.item_ops, read, item,
 			&entry, dir->body.pos.unit, 1) == 1)
 	{
 		aal_memcpy(&dir->offset, &entry.offset,
@@ -170,14 +170,14 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	if (dir40_size(entity) == 0)
 		return -EINVAL;
 
-	units = plugin_call(item->plugin->item_ops,
+	units = plugin_call(item->plugin->o.item_ops,
 			    units, item);
 
 	if (dir->body.pos.unit >= units)
 		return -EINVAL;
 
 	/* Reading piece of data */
-	if (plugin_call(item->plugin->item_ops, read, item,
+	if (plugin_call(item->plugin->o.item_ops, read, item,
 			entry, dir->body.pos.unit, 1) == 1)
 	{
 		/* Updating positions */
@@ -190,7 +190,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		else {
 			entry_hint_t current;
 			
-			plugin_call(item->plugin->item_ops,
+			plugin_call(item->plugin->o.item_ops,
 				    read, item, &current,
 				    dir->body.pos.unit, 1);
 
@@ -229,7 +229,7 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
 	*/
-	plugin_call(STAT_KEY(&dir->obj)->plugin->key_ops, build_entry,
+	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops, build_entry,
 		    &wanted, dir->hash, obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), name);
 
@@ -255,7 +255,7 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	entry->object.plugin = wanted.plugin;
 	entry->offset.plugin = wanted.plugin;
 	
-	if (plugin_call(item->plugin->item_ops, read, item,
+	if (plugin_call(item->plugin->o.item_ops, read, item,
 			entry, dir->body.pos.unit, 1) != 1)
 	{
 		aal_exception_error("Can't read %lu entry from object "
@@ -266,7 +266,7 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	}
 
 #ifndef ENABLE_STAND_ALONE
-	plugin_call(wanted.plugin->key_ops, assign, &dir->offset,
+	plugin_call(wanted.plugin->o.key_ops, assign, &dir->offset,
 		    &entry->offset);
 #endif
 
@@ -280,14 +280,14 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 			   "%s and %s. Sequentional search is "
 			   "started.", entry->name, name);
 
-	if (!item->plugin->item_ops.units)
+	if (!item->plugin->o.item_ops->units)
 		return LP_FAILED;
 			
 	/* Sequentional search of the needed entry by its name */
-	for (; dir->body.pos.unit < item->plugin->item_ops.units(item);
+	for (; dir->body.pos.unit < item->plugin->o.item_ops->units(item);
 	     dir->body.pos.unit++)
 	{
-		if (plugin_call(item->plugin->item_ops, read, item,
+		if (plugin_call(item->plugin->o.item_ops, read, item,
 				entry, dir->body.pos.unit, 1) != 1)
 		{
 			aal_exception_error("Can't read %lu entry "
@@ -407,7 +407,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	locality = obj40_locality(&dir->obj);
 	objectid = obj40_objectid(&dir->obj);
 
-	parent_locality = plugin_call(hint->object.plugin->key_ops,
+	parent_locality = plugin_call(hint->object.plugin->o.key_ops,
 				      get_locality, &hint->parent);
 
 	/* Getting item plugins for statdata and body */
@@ -440,7 +440,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	body_hint.plugin = body_plugin;
    	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
-	plugin_call(hint->object.plugin->key_ops, build_entry,
+	plugin_call(hint->object.plugin->o.key_ops, build_entry,
 		    &body_hint.key, dir->hash, locality, objectid, ".");
 
 	if (!(body = aal_calloc(body_hint.count * sizeof(*body), 0)))
@@ -473,11 +473,11 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 		  Building key for the statdata of object new entry will point
 		  to.
 		*/
-		plugin_call(hint->object.plugin->key_ops, build_generic,
+		plugin_call(hint->object.plugin->o.key_ops, build_generic,
 			    &entry->object, KEY_STATDATA_TYPE, loc, oid, 0);
 
 		/* Building key for the hash new entry will have */
-		plugin_call(hint->object.plugin->key_ops, build_entry,
+		plugin_call(hint->object.plugin->o.key_ops, build_entry,
 			    &entry->offset, dir->hash, locality,
 			    objectid, name);
 	}
@@ -489,7 +489,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	stat_hint.flags = HF_FORMATD;
 	stat_hint.plugin = stat_plugin;
     
-	plugin_call(hint->object.plugin->key_ops, assign,
+	plugin_call(hint->object.plugin->o.key_ops, assign,
 		    &stat_hint.key, &hint->object);
     
 	/*
@@ -519,7 +519,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	  Estimating body item and setting up "bytes" field from the unix
 	  extetion.
 	*/
-	if (plugin_call(body_plugin->item_ops, estimate, NULL,
+	if (plugin_call(body_plugin->o.item_ops, estimate, NULL,
 			~0ul, 1, &body_hint))
 	{
 		aal_exception_error("Can't estimate directory item.");
@@ -552,7 +552,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	aal_free(body);
 
 	if (parent) {
-		plugin_call(parent->plugin->object_ops, link,
+		plugin_call(parent->plugin->o.object_ops, link,
 			    parent);
 	}
 	
@@ -588,11 +588,11 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	  idea). So, we remove whole directory starting from the last item step
 	  by step.
 	*/
-	maxkey = plugin_call(key.plugin->key_ops, maximal,);
-	offset = plugin_call(key.plugin->key_ops, get_offset, maxkey);
-	objectid = plugin_call(key.plugin->key_ops, get_objectid, maxkey);
+	maxkey = plugin_call(key.plugin->o.key_ops, maximal,);
+	offset = plugin_call(key.plugin->o.key_ops, get_offset, maxkey);
+	objectid = plugin_call(key.plugin->o.key_ops, get_objectid, maxkey);
 	
-	plugin_call(key.plugin->key_ops, build_generic, &key,
+	plugin_call(key.plugin->o.key_ops, build_generic, &key,
 		    KEY_FILENAME_TYPE, obj40_objectid(&dir->obj),
 		    objectid, offset);
 
@@ -689,7 +689,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	key = STAT_KEY(&dir->obj);
 
 	/* Generating key of the entry to be removed */
-	plugin_call(key->plugin->key_ops, build_entry, &entry->offset,
+	plugin_call(key->plugin->o.key_ops, build_entry, &entry->offset,
 		    dir->hash, obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), entry->name);
 	
@@ -714,7 +714,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	hint.plugin = dir->body.item.plugin;
 	hint.key.plugin = STAT_KEY(&dir->obj)->plugin;
 
-	res = plugin_call(hint.plugin->item_ops,
+	res = plugin_call(hint.plugin->o.item_ops,
 			  estimate, NULL, 0, 1, &hint);
 	
 	if (res != 0)
@@ -764,11 +764,11 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	hint.type_specific = (void *)entry;
 
 	/* Building key of the new entry */
-	plugin_call(key->plugin->key_ops, build_entry, &hint.key,
+	plugin_call(key->plugin->o.key_ops, build_entry, &hint.key,
 		    dir->hash, obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), entry->name);
 	
-	plugin_call(key->plugin->key_ops, assign, &entry->offset,
+	plugin_call(key->plugin->o.key_ops, assign, &entry->offset,
 		    &hint.key);
 
 	/* Inserting entry */
@@ -844,10 +844,10 @@ static errno_t dir40_layout(object_entity_t *entity,
 	while (1) {
 		item_entity_t *item = &dir->body.item;
 		
-		if (item->plugin->item_ops.layout) {
+		if (item->plugin->o.item_ops->layout) {
 			
 			/* Calling item's layout method */
-			res = plugin_call(item->plugin->item_ops, layout,
+			res = plugin_call(item->plugin->o.item_ops, layout,
 					  item, callback_item_data, &hint);
 
 			if (res != 0)
@@ -911,48 +911,51 @@ static void dir40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-static reiser4_plugin_t dir40_plugin = {
-	.object_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = OBJECT_DIRTORY40_ID,
-			.group = DIRTORY_OBJECT,
-			.type = OBJECT_PLUGIN_TYPE,
-			.label = "dir40",
+static reiser4_object_ops_t dir40_ops = {
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Compound directory for reiser4, ver. " VERSION
+	.create	      = dir40_create,
+	.layout       = dir40_layout,
+	.metadata     = dir40_metadata,
+	.link         = dir40_link,
+	.unlink       = dir40_unlink,
+	.truncate     = dir40_truncate,
+	.add_entry    = dir40_add_entry,
+	.rem_entry    = dir40_rem_entry,
+	.seek	      = NULL,
+	.write        = NULL,
 #endif
-		},
+	.follow       = NULL,
+	.read         = NULL,
+	.offset       = NULL,
+		
+	.open	      = dir40_open,
+	.close	      = dir40_close,
+	.reset	      = dir40_reset,
+	.lookup	      = dir40_lookup,
+	.size	      = dir40_size,
+	.seekdir      = dir40_seekdir,
+	.readdir      = dir40_readdir,
 		
 #ifndef ENABLE_STAND_ALONE
-		.create	      = dir40_create,
-		.layout       = dir40_layout,
-		.metadata     = dir40_metadata,
-		.link         = dir40_link,
-		.unlink       = dir40_unlink,
-		.truncate     = dir40_truncate,
-		.add_entry    = dir40_add_entry,
-		.rem_entry    = dir40_rem_entry,
-		.seek	      = NULL,
-		.write        = NULL,
-#endif
-		.follow       = NULL,
-		.read         = NULL,
-		.offset       = NULL,
-		
-		.open	      = dir40_open,
-		.close	      = dir40_close,
-		.reset	      = dir40_reset,
-		.lookup	      = dir40_lookup,
-		.size	      = dir40_size,
-		.seekdir      = dir40_seekdir,
-		.readdir      = dir40_readdir,
-		
-#ifndef ENABLE_STAND_ALONE
-		.telldir      = dir40_telldir
+	.telldir      = dir40_telldir
 #else
-		.telldir      = NULL
+	.telldir      = NULL
 #endif
+};
+
+static reiser4_plugin_t dir40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = OBJECT_DIRTORY40_ID,
+		.group = DIRTORY_OBJECT,
+		.type = OBJECT_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "dir40",
+		.desc = "Compound directory for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.object_ops = &dir40_ops
 	}
 };
 
@@ -962,4 +965,3 @@ static reiser4_plugin_t *dir40_start(reiser4_core_t *c) {
 }
 
 plugin_register(dir40, dir40_start, NULL);
-

@@ -22,7 +22,7 @@
 oid_t obj40_objectid(obj40_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
 
-	return plugin_call(STAT_KEY(obj)->plugin->key_ops, 
+	return plugin_call(STAT_KEY(obj)->plugin->o.key_ops, 
 			   get_objectid, STAT_KEY(obj));
 }
 
@@ -30,7 +30,7 @@ oid_t obj40_objectid(obj40_t *obj) {
 oid_t obj40_locality(obj40_t *obj) {
 	aal_assert("umka-1900", obj != NULL);
     
-	return plugin_call(STAT_KEY(obj)->plugin->key_ops, 
+	return plugin_call(STAT_KEY(obj)->plugin->o.key_ops, 
 			   get_locality, STAT_KEY(obj));
 }
 
@@ -80,7 +80,7 @@ errno_t obj40_read_lw(item_entity_t *item,
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
 	/* Calling statdata open method if any */
-	if (plugin_call(item->plugin->item_ops, read,
+	if (plugin_call(item->plugin->o.item_ops, read,
 			item, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
@@ -114,7 +114,7 @@ errno_t obj40_write_lw(item_entity_t *item,
 	
 	hint.type_specific = &stat;
 
-	if (plugin_call(item->plugin->item_ops, read,
+	if (plugin_call(item->plugin->o.item_ops, read,
 			item, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
@@ -122,7 +122,7 @@ errno_t obj40_write_lw(item_entity_t *item,
 
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
-	return plugin_call(item->plugin->item_ops,
+	return plugin_call(item->plugin->o.item_ops,
 			   insert, item, &hint, 0);
 }
 
@@ -140,7 +140,7 @@ errno_t obj40_read_unix(item_entity_t *item,
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
 	/* Calling statdata open method if it exists */
-	if (plugin_call(item->plugin->item_ops, read,
+	if (plugin_call(item->plugin->o.item_ops, read,
 			item, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
@@ -160,7 +160,7 @@ errno_t obj40_write_unix(item_entity_t *item,
 	
 	hint.type_specific = &stat;
 
-	if (plugin_call(item->plugin->item_ops, read,
+	if (plugin_call(item->plugin->o.item_ops, read,
 			item, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
@@ -168,7 +168,7 @@ errno_t obj40_write_unix(item_entity_t *item,
 
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
-	return plugin_call(item->plugin->item_ops,
+	return plugin_call(item->plugin->o.item_ops,
 			   insert, item, &hint, 0);
 }
 
@@ -315,10 +315,10 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 
 	item = &obj->statdata.item;
 
-	if (!item->plugin->item_ops.read)
+	if (!item->plugin->o.item_ops->read)
 		return -EINVAL;
 
-	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+	if (item->plugin->o.item_ops->read(item, &hint, 0, 1) != 1)
 		return -EINVAL;
 
 	return 0;
@@ -338,10 +338,10 @@ errno_t obj40_set_sym(obj40_t *obj, char *data) {
 
 	item = &obj->statdata.item;
 
-	if (!item->plugin->item_ops.insert)
+	if (!item->plugin->o.item_ops->insert)
 		return -EINVAL;
 
-	return item->plugin->item_ops.insert(item, &hint, 0);
+	return item->plugin->o.item_ops->insert(item, &hint, 0);
 }
 #endif
 
@@ -393,7 +393,7 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 	obj->plugin = plugin;
 
 	/* Initializing stat data key */
-	plugin_call(key->plugin->key_ops, assign,
+	plugin_call(key->plugin->o.key_ops, assign,
 		    STAT_KEY(obj), key);
 
 	return 0;
@@ -412,7 +412,7 @@ errno_t obj40_stat(obj40_t *obj) {
 	
 	key = STAT_KEY(obj);
 	
-	plugin_call(key->plugin->key_ops, build_generic, key,
+	plugin_call(key->plugin->o.key_ops, build_generic, key,
 		    KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Unlocking old node if it exists */

@@ -21,19 +21,23 @@ static uint64_t fnv1_hash_build(const unsigned char *name, uint32_t len) {
 	return a;
 }
 
+static reiser4_hash_ops_t fnv1_hash_ops = {
+	.build = fnv1_hash_build
+};
+
 static reiser4_plugin_t fnv1_hash_plugin = {
-	.hash_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = HASH_FNV1_ID,
-			.group = 0,
-			.type = HASH_PLUGIN_TYPE,
-			.label = "fnv1_hash",
+	.h = {
+		.class = CLASS_INIT,
+		.id = HASH_FNV1_ID,
+		.group = 0,
+		.type = HASH_PLUGIN_TYPE,
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Implementation fnv1 hash for reiser4, ver. " VERSION
+		.label = "fnv1_hash",
+		.desc = "Implementation fnv1 hash for reiser4, ver. " VERSION
 #endif
-		},
-		.build = fnv1_hash_build
+	},
+	.o = {
+		.hash_ops = &fnv1_hash_ops
 	}
 };
 

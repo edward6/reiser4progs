@@ -32,7 +32,7 @@ static errno_t direntry40_get_obj(item_entity_t *item,
 	objid_t *objid = direntry40_objid(item, pos);
 	
 	/* Building key by means of using key plugin */
-	return plugin_call(key->plugin->key_ops, build_short,
+	return plugin_call(key->plugin->o.key_ops, build_short,
 			   key, ob40_get_locality(objid),
 			   ob40_get_objectid(objid));
 }
@@ -55,11 +55,11 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	entry = &direntry40_body(item)->entry[pos];
 
 	/* Getting item key params */
-	locality = plugin_call(item->key.plugin->key_ops,
+	locality = plugin_call(item->key.plugin->o.key_ops,
 			       get_locality, &item->key);
 
 	/* Building the full key from entry at @pos */
-	plugin_call(item->key.plugin->key_ops, build_generic,
+	plugin_call(item->key.plugin->o.key_ops, build_generic,
 		    key, KEY_FILENAME_TYPE, locality,
 		    ha40_get_objectid(&entry->hash),
 		    ha40_get_offset(&entry->hash));
@@ -81,17 +81,17 @@ static char *direntry40_get_name(item_entity_t *item,
 	  If name is long, we just copy it from the area after
 	  objectid. Otherwise we extract it from the entry hash.
 	*/
-	if (plugin_call(key.plugin->key_ops, tall, &key)) {
+	if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
 		name = (char *)((direntry40_objid(item, pos)) + 1);
 		aal_strncpy(buff, name, len);
 	} else {
 		uint64_t offset;
 		uint64_t objectid;
 		
-		offset = plugin_call(key.plugin->key_ops,
+		offset = plugin_call(key.plugin->o.key_ops,
 				     get_offset, &key);
 		
-		objectid = plugin_call(key.plugin->key_ops,
+		objectid = plugin_call(key.plugin->o.key_ops,
 				       get_objectid, &key);
 		
 		/* Special case, handling "." entry */
@@ -130,7 +130,7 @@ static uint32_t direntry40_get_len(item_entity_t *item,
 	  entry. This trick saves a lot of space in directories, because the
 	  average name is shorter than 15 symbols.
 	*/
-	if (plugin_call(key.plugin->key_ops, tall, &key)) {
+	if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
 		objid_t *objid = direntry40_objid(item, pos);
 		len += aal_strlen((char *)(objid + 1)) + 1;
 	}
@@ -201,9 +201,9 @@ static int direntry40_mergeable(item_entity_t *item1,
 	  Items mergeable if they have the same locality, that is oid of the
 	  directory they belong to.
 	*/
-	return (plugin_call(item1->key.plugin->key_ops,
+	return (plugin_call(item1->key.plugin->o.key_ops,
 			    get_locality, &item1->key) ==
-		plugin_call(item1->key.plugin->key_ops,
+		plugin_call(item1->key.plugin->o.key_ops,
 			    get_locality, &item2->key));
 }
 
@@ -231,7 +231,7 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 		  Calling key plugin for in odrer to find out is passed name is
 		  long one or not.
 		*/
-		if (plugin_call(hint->key.plugin->key_ops,
+		if (plugin_call(hint->key.plugin->o.key_ops,
 				tall, &entry_hint->offset))
 		{
 			/*
@@ -806,12 +806,12 @@ static errno_t direntry40_insert(item_entity_t *item,
 		hash = &entry_hint->offset;
 		
 		/* Creating proper entry identifier (hash) */
-		oid = plugin_call(hash->plugin->key_ops,
+		oid = plugin_call(hash->plugin->o.key_ops,
 				  get_objectid, hash);
 		
 		ha40_set_objectid(entid, oid);
 
-		off = plugin_call(hash->plugin->key_ops,
+		off = plugin_call(hash->plugin->o.key_ops,
 				  get_offset, hash);
 
 		ha40_set_offset(entid, off);
@@ -822,7 +822,7 @@ static errno_t direntry40_insert(item_entity_t *item,
 		offset += sizeof(objid_t);
 
 		/* If key is long one we also count name length */
-		if (plugin_call(item->key.plugin->key_ops,
+		if (plugin_call(item->key.plugin->o.key_ops,
 				tall, &entry_hint->offset))
 		{
 			uint32_t len = aal_strlen(entry_hint->name);
@@ -904,7 +904,7 @@ static errno_t direntry40_print(item_entity_t *item,
 	aal_stream_format(stream, "DIRENTRY PLUGIN=%s LEN=%u, KEY=",
 			  item->plugin->h.label, item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print,
+	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
 	{
 		return -EINVAL;
@@ -982,18 +982,18 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 	aal_assert("umka-1649", key != NULL);
 	aal_assert("umka-1648", item != NULL);
 
-	plugin_call(item->key.plugin->key_ops,
+	plugin_call(item->key.plugin->o.key_ops,
 		    assign, key, &item->key);
 
-	maxkey = plugin_call(key->plugin->key_ops,
+	maxkey = plugin_call(key->plugin->o.key_ops,
 			     maximal,);
     
-    	plugin_call(key->plugin->key_ops, set_objectid,
-		    key, plugin_call(key->plugin->key_ops,
+    	plugin_call(key->plugin->o.key_ops, set_objectid,
+		    key, plugin_call(key->plugin->o.key_ops,
 				     get_objectid, maxkey));
 	
-	plugin_call(key->plugin->key_ops, set_offset,
-		    key, plugin_call(key->plugin->key_ops,
+	plugin_call(key->plugin->o.key_ops, set_offset,
+		    key, plugin_call(key->plugin->o.key_ops,
 				     get_offset, maxkey));
 	
 	return 0;
@@ -1010,7 +1010,7 @@ static int callback_comp_entry(void *array, uint32_t pos,
 
 	direntry40_get_key((item_entity_t *)data, pos, &current);
 
-	return plugin_call(((item_entity_t *)data)->key.plugin->key_ops,
+	return plugin_call(((item_entity_t *)data)->key.plugin->o.key_ops,
 			   compare, &current, (key_entity_t *)key);
 }
 
@@ -1035,13 +1035,13 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	  If looked key is greater that maximal possible one then we going out
 	  and return FALSE, that is the key not found.
 	*/
-	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
+	if (plugin_call(key->plugin->o.key_ops, compare, key, &maxkey) > 0) {
 		*pos = direntry40_units(item);
 		return LP_ABSENT;
 	}
 
 	/* Comparing looked key with minimal one (that is with item key) */
-	if (plugin_call(key->plugin->key_ops, compare, &item->key, key) > 0) {
+	if (plugin_call(key->plugin->o.key_ops, compare, &item->key, key) > 0) {
 		*pos = 0;
 		return LP_ABSENT;
 	}
@@ -1064,50 +1064,53 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	return res;
 }
 
-/* Preparing direntry plugin structure */
-static reiser4_plugin_t direntry40_plugin = {
-	.item_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = ITEM_CDE40_ID,
-			.group = DIRENTRY_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
-			.label = "direntry40",
-#ifndef ENABLE_STAND_ALONE
-			.desc = "Compound direntry for reiser4, ver. " VERSION
-#endif
-		},
-		
+static reiser4_item_ops_t direntry40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
-		.init		= direntry40_init,
-		.copy		= direntry40_copy,
-		.insert		= direntry40_insert,
-		.remove		= direntry40_remove,
-		.shrink		= direntry40_shrink,
-		.estimate	= direntry40_estimate,
-		.check		= direntry40_check,
-		.print		= direntry40_print,
-		.shift          = direntry40_shift,
-		.predict        = direntry40_predict,
-		.feel           = direntry40_feel,
-		.maxreal_key    = direntry40_maxreal_key,
+	.init		= direntry40_init,
+	.copy		= direntry40_copy,
+	.insert		= direntry40_insert,
+	.remove		= direntry40_remove,
+	.shrink		= direntry40_shrink,
+	.estimate	= direntry40_estimate,
+	.check		= direntry40_check,
+	.print		= direntry40_print,
+	.shift          = direntry40_shift,
+	.predict        = direntry40_predict,
+	.feel           = direntry40_feel,
+	.maxreal_key    = direntry40_maxreal_key,
 		
-		.write		= NULL,
-		.set_key	= NULL,
-		.gap_key	= NULL,
-		.layout		= NULL,
-		.layout_check	= NULL,
+	.write		= NULL,
+	.set_key	= NULL,
+	.gap_key	= NULL,
+	.layout		= NULL,
+	.layout_check	= NULL,
 #endif
-		.branch         = NULL,
+	.branch         = NULL,
 
-		.data		= direntry40_data,
-		.lookup		= direntry40_lookup,
-		.units		= direntry40_units,
-		.read           = direntry40_read,
-		.mergeable      = direntry40_mergeable,
+	.data		= direntry40_data,
+	.lookup		= direntry40_lookup,
+	.units		= direntry40_units,
+	.read           = direntry40_read,
+	.mergeable      = direntry40_mergeable,
 		
-		.get_key	= direntry40_get_key,
-		.maxposs_key	= direntry40_maxposs_key
+	.get_key	= direntry40_get_key,
+	.maxposs_key	= direntry40_maxposs_key
+};
+
+static reiser4_plugin_t direntry40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = ITEM_CDE40_ID,
+		.group = DIRENTRY_ITEM,
+		.type = ITEM_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "direntry40",
+		.desc = "Compound direntry for "
+		"reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.item_ops = &direntry40_ops
 	}
 };
 

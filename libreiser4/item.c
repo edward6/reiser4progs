@@ -24,8 +24,8 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 	item = &place->item;
 	aal_assert("umka-1448", item->plugin != NULL);
 
-	if (item->plugin->item_ops.units) {
-		units = item->plugin->item_ops.units(item);
+	if (item->plugin->o.item_ops->units) {
+		units = item->plugin->o.item_ops->units(item);
 
 		aal_assert("umka-1883", units > 0);
 		return units;
@@ -79,7 +79,7 @@ errno_t reiser4_item_estimate(
 
 	/* Check if we're egoing insert unit or an item instead */
 	if (place->pos.unit == ~0ul) {
-		return plugin_call(hint->plugin->item_ops, estimate, NULL,
+		return plugin_call(hint->plugin->o.item_ops, estimate, NULL,
 				   place->pos.unit, hint->count, hint);
 	} else {
 		/*
@@ -91,7 +91,7 @@ errno_t reiser4_item_estimate(
 		if ((res = reiser4_place_realize(place)))
 			return res;
 		
-		return plugin_call(hint->plugin->item_ops, estimate,
+		return plugin_call(hint->plugin->o.item_ops, estimate,
 				   &place->item, place->pos.unit,
 				   hint->count, hint);
 	}
@@ -111,8 +111,8 @@ errno_t reiser4_item_feel(reiser4_place_t *place,
 	if ((res = reiser4_place_realize(place)))
 		return res;
 		
-	return plugin_call(place->item.plugin->item_ops, feel, &place->item, 
-			   start, end, hint);
+	return plugin_call(place->item.plugin->o.item_ops,
+			   feel, &place->item, start, end, hint);
 }
 
 /* Prints passed @place into passed @buff */
@@ -128,10 +128,10 @@ errno_t reiser4_item_print(
 	item = &place->item;
 	aal_assert("umka-1449", item->plugin != NULL);
 
-	if (!item->plugin->item_ops.print)
+	if (!item->plugin->o.item_ops->print)
 		return -EINVAL;
 	
-	return item->plugin->item_ops.print(item, stream, 0);
+	return item->plugin->o.item_ops->print(item, stream, 0);
 }
 
 bool_t reiser4_item_filebody(reiser4_place_t *place) {
@@ -206,10 +206,10 @@ bool_t reiser4_item_branch(reiser4_place_t *place) {
 	item = &place->item;
 	aal_assert("umka-1829", item->plugin != NULL);
 
-	if (!item->plugin->item_ops.branch)
+	if (!item->plugin->o.item_ops->branch)
 		return FALSE;
 
-	return item->plugin->item_ops.branch();
+	return item->plugin->o.item_ops->branch();
 }
 
 /* Returns item len */
@@ -241,7 +241,7 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 
 	aal_assert("umka-1462", item->plugin != NULL);
 
-	if ((res = plugin_call(entity->plugin->node_ops, get_key,
+	if ((res = plugin_call(entity->plugin->o.node_ops, get_key,
 			       entity, &place->pos, &item->key)))
 	{
 		aal_exception_error("Can't get item key.");
@@ -251,9 +251,9 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 	if ((res = reiser4_key_guess(&item->key)))
 		return res;
 	
-	if (place->pos.unit != ~0ul && item->plugin->item_ops.get_key) {
+	if (place->pos.unit != ~0ul && item->plugin->o.item_ops->get_key) {
 
-		if ((res = plugin_call(item->plugin->item_ops, get_key,
+		if ((res = plugin_call(item->plugin->o.item_ops, get_key,
 				       item, place->pos.unit, &item->key)))
 			return res;
 	}
@@ -288,10 +288,10 @@ errno_t reiser4_item_set_key(reiser4_place_t *place,
 	aal_memcpy(&item->key, key, sizeof(*key));
 	
 	if (place->pos.unit != ~0ul) {
-		return plugin_call(item->plugin->item_ops, set_key,
+		return plugin_call(item->plugin->o.item_ops, set_key,
 				   item, place->pos.unit, key);
 	} else {
-		return plugin_call(entity->plugin->node_ops, 
+		return plugin_call(entity->plugin->o.node_ops, 
 				   set_key, entity, &place->pos, key);
 	}
 }
@@ -317,8 +317,8 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 	if ((res = reiser4_item_get_key(place, key)))
 		return res;
 	
-	if (item->plugin->item_ops.maxposs_key)
-		return item->plugin->item_ops.maxposs_key(item, key);
+	if (item->plugin->o.item_ops->maxposs_key)
+		return item->plugin->o.item_ops->maxposs_key(item, key);
 
 	return 0;
 }
@@ -336,11 +336,11 @@ bool_t reiser4_item_mergeable(reiser4_place_t *place1,
 	item1 = &place1->item;
 	item2 = &place2->item;
 	
-	if (!item1->plugin->item_ops.mergeable)
+	if (!item1->plugin->o.item_ops->mergeable)
 		return FALSE;
 	
-	return item1->plugin->item_ops.mergeable(
-		item1, item2) ? TRUE : FALSE;
+	return item1->plugin->o.item_ops->mergeable(item1, item2) ?
+		TRUE : FALSE;
 }
 
 /* Returns real maximal item key */
@@ -359,8 +359,8 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 	if ((res = reiser4_item_get_key(place, key)))
 		return res;
 	    
-	if (item->plugin->item_ops.maxreal_key) 
-		return item->plugin->item_ops.maxreal_key(item, key);	
+	if (item->plugin->o.item_ops->maxreal_key) 
+		return item->plugin->o.item_ops->maxreal_key(item, key);	
 		
 	return 0;
 }
@@ -381,15 +381,15 @@ errno_t reiser4_item_gap_key(reiser4_place_t *place,
 	if ((res = reiser4_item_get_key(place, key)))
 		return res;
 
-	if (item->plugin->item_ops.gap_key) 
-		return item->plugin->item_ops.gap_key(item, key);
+	if (item->plugin->o.item_ops->gap_key) 
+		return item->plugin->o.item_ops->gap_key(item, key);
 	
 	return 0;
 }
 
 bool_t reiser4_item_data(reiser4_plugin_t *plugin) {
 	aal_assert("vpf-747", plugin != NULL);
-	return plugin->item_ops.data && plugin->item_ops.data();
+	return plugin->o.item_ops->data && plugin->o.item_ops->data();
 }
 
 #endif

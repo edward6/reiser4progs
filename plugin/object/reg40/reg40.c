@@ -32,7 +32,7 @@ static lookup_t reg40_next(reg40_t *reg) {
 	aal_assert("umka-1161", reg != NULL);
 	
 	/* Building key to be searched by current offset */
-	plugin_call(STAT_KEY(&reg->obj)->plugin->key_ops, build_generic,
+	plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops, build_generic,
 		    &key, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
 		    obj40_objectid(&reg->obj), reg->offset);
 
@@ -111,11 +111,11 @@ static int32_t reg40_read(object_entity_t *entity,
 		chunk = n - read;
 
 		/* Calculating in-item local offset */
-		offset = reg->offset - plugin_call(item->key.plugin->key_ops,
+		offset = reg->offset - plugin_call(item->key.plugin->o.key_ops,
 						   get_offset, &item->key);
 
 		/* Calling body item's "read" method */
-		chunk = plugin_call(item->plugin->item_ops, read,
+		chunk = plugin_call(item->plugin->o.item_ops, read,
 				    item, buff, offset, chunk);
 
 		aal_assert("umka-2216", chunk > 0);
@@ -207,7 +207,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	stat_hint.plugin = stat_plugin;
 	stat_hint.flags = HF_FORMATD;
 
-	plugin_call(hint->object.plugin->key_ops, assign, 
+	plugin_call(hint->object.plugin->o.key_ops, assign, 
 		    &stat_hint.key, &hint->object);
     
 	/* Initializing stat data item hint. */
@@ -242,7 +242,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	obj40_lock(&reg->obj, &reg->obj.statdata);
     
 	if (parent) {
-		plugin_call(parent->plugin->object_ops, link,
+		plugin_call(parent->plugin->o.object_ops, link,
 			    parent);
 	}
 	
@@ -379,8 +379,8 @@ static errno_t reg40_layout(object_entity_t *entity,
 		
 		item = &reg->body.item;
 		
-		if (item->plugin->item_ops.layout) {
-			res = plugin_call(item->plugin->item_ops, layout,
+		if (item->plugin->o.item_ops->layout) {
+			res = plugin_call(item->plugin->o.item_ops, layout,
 					  item, callback_item_data, &hint);
 			
 			if (res != 0)
@@ -392,9 +392,9 @@ static errno_t reg40_layout(object_entity_t *entity,
 				return res;
 		}
 		
-		plugin_call(item->plugin->item_ops, maxreal_key, item, &key);
+		plugin_call(item->plugin->o.item_ops, maxreal_key, item, &key);
 		
-		reg->offset = plugin_call(key.plugin->key_ops,
+		reg->offset = plugin_call(key.plugin->o.key_ops,
 					  get_offset, &key) + 1;
 	}
 	
@@ -435,10 +435,10 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		if ((res = func(entity, &reg->body, data)))
 			return res;
 
-		plugin_call(item->plugin->item_ops, maxreal_key,
+		plugin_call(item->plugin->o.item_ops, maxreal_key,
 			    item, &key);
 
-		reg->offset = plugin_call(key.plugin->key_ops,
+		reg->offset = plugin_call(key.plugin->o.key_ops,
 					  get_offset, &key) + 1;
 	}
 	
@@ -472,44 +472,47 @@ static uint64_t reg40_offset(object_entity_t *entity) {
 	return ((reg40_t *)entity)->offset;
 }
 
+static reiser4_object_ops_t reg40_ops = {
+#ifndef ENABLE_STAND_ALONE
+	.create	      = reg40_create,
+	.write	      = reg40_write,
+	.truncate     = reg40_truncate,
+	.layout       = reg40_layout,
+	.metadata     = reg40_metadata,
+	.link         = reg40_link,
+	.unlink       = reg40_unlink,
+		
+	.add_entry    = NULL,
+	.rem_entry    = NULL,
+#endif
+	.lookup	      = NULL,
+	.follow       = NULL,
+	.readdir      = NULL,
+	.telldir      = NULL,
+	.seekdir      = NULL,
+		
+	.open	      = reg40_open,
+	.close	      = reg40_close,
+	.reset	      = reg40_reset,
+	.seek	      = reg40_seek,
+	.offset	      = reg40_offset,
+	.size         = reg40_size,
+	.read	      = reg40_read
+};
+
 static reiser4_plugin_t reg40_plugin = {
-	.object_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = OBJECT_FILE40_ID,
-			.group = FILE_OBJECT,
-			.type = OBJECT_PLUGIN_TYPE,
-			.label = "reg40",
+	.h = {
+		.class = CLASS_INIT,
+		.id = OBJECT_FILE40_ID,
+		.group = FILE_OBJECT,
+		.type = OBJECT_PLUGIN_TYPE,
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Regular file for reiser4, ver. " VERSION
+		.label = "reg40",
+		.desc = "Regular file for reiser4, ver. " VERSION
 #endif
-		},
-		
-#ifndef ENABLE_STAND_ALONE
-		.create	      = reg40_create,
-		.write	      = reg40_write,
-		.truncate     = reg40_truncate,
-		.layout       = reg40_layout,
-		.metadata     = reg40_metadata,
-		.link         = reg40_link,
-		.unlink       = reg40_unlink,
-		
-		.add_entry    = NULL,
-		.rem_entry    = NULL,
-#endif
-		.lookup	      = NULL,
-		.follow       = NULL,
-		.readdir      = NULL,
-		.telldir      = NULL,
-		.seekdir      = NULL,
-		
-		.open	      = reg40_open,
-		.close	      = reg40_close,
-		.reset	      = reg40_reset,
-		.seek	      = reg40_seek,
-		.offset	      = reg40_offset,
-		.size         = reg40_size,
-		.read	      = reg40_read
+	},
+	.o = {
+		.object_ops = &reg40_ops
 	}
 };
 

@@ -52,19 +52,24 @@ uint64_t rupasov_hash_build(const unsigned char *name, uint32_t len) {
 	return a;
 }
 
+static reiser4_hash_ops_t rupasov_hash_ops = {
+	.build = rupasov_hash_build
+};
+
 static reiser4_plugin_t rupasov_hash_plugin = {
-	.hash_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = HASH_RUPASOV_ID,
-			.group = 0,
-			.type = HASH_PLUGIN_TYPE,
-			.label = "rupasov_hash",
+	.h = {
+		.class = CLASS_INIT,
+		.id = HASH_RUPASOV_ID,
+		.group = 0,
+		.type = HASH_PLUGIN_TYPE,
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Implementation rupasov hash for reiser4, ver. " VERSION
+		.label = "rupasov_hash",
+		.desc = "Implementation rupasov hash for "
+		"reiser4, ver. " VERSION
 #endif
-		},
-		.build = rupasov_hash_build
+	},
+	.o = {
+		.hash_ops = &rupasov_hash_ops
 	}
 };
 

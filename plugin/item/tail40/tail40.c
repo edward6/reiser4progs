@@ -79,13 +79,13 @@ static errno_t tail40_feel(item_entity_t *item,
 	aal_assert("umka-1996", hint != NULL);
 	aal_assert("umka-2132", start != NULL);
 
-	end_offset = plugin_call(end->plugin->key_ops,
+	end_offset = plugin_call(end->plugin->o.key_ops,
 				 get_offset, end);
 	
-	start_offset = plugin_call(start->plugin->key_ops,
+	start_offset = plugin_call(start->plugin->o.key_ops,
 				   get_offset, start);
 	
-	offset = plugin_call(end->plugin->key_ops,
+	offset = plugin_call(end->plugin->o.key_ops,
 			     get_offset, &item->key);
 	
 	aal_assert("umka-2130", end_offset > start_offset);
@@ -197,7 +197,7 @@ static errno_t tail40_print(item_entity_t *item,
 	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=",
 			  item->plugin->h.label, item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print,
+	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
 	{
 		return -EINVAL;
@@ -356,55 +356,58 @@ static errno_t tail40_shift(item_entity_t *src_item,
 }
 #endif
 
-static reiser4_plugin_t tail40_plugin = {
-	.item_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = ITEM_TAIL40_ID,
-			.group = TAIL_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
-			.label = "tail40",
+static reiser4_item_ops_t tail40_ops = {
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Tail item for reiser4, ver. " VERSION
+	.init	        = tail40_init,
+	.copy	        = tail40_copy,
+	.write	        = tail40_write,
+	.remove	        = tail40_remove,
+	.shrink	        = tail40_shrink,
+	.print	        = tail40_print,
+	.predict        = tail40_predict,
+	.shift	        = tail40_shift,		
+	.feel           = tail40_feel,
+		
+	.maxreal_key    = tail40_maxreal_key,
+	.gap_key        = tail40_maxreal_key,
+		
+	.check	        = NULL,
+	.insert         = NULL,
+	.estimate       = NULL,
+	.set_key        = NULL,
+	.layout	        = NULL,
+	.layout_check   = NULL,
 #endif
-		},
-		
-#ifndef ENABLE_STAND_ALONE
-		.init	        = tail40_init,
-		.copy	        = tail40_copy,
-		.write	        = tail40_write,
-		.remove	        = tail40_remove,
-		.shrink	        = tail40_shrink,
-		.print	        = tail40_print,
-		.predict        = tail40_predict,
-		.shift	        = tail40_shift,		
-		.feel           = tail40_feel,
-		
-		.maxreal_key    = tail40_maxreal_key,
-		.gap_key        = tail40_maxreal_key,
-		
-		.check	        = NULL,
-		.insert         = NULL,
-		.estimate       = NULL,
-		.set_key        = NULL,
-		.layout	        = NULL,
-		.layout_check   = NULL,
-#endif
-		.branch         = NULL,
+	.branch         = NULL,
 
-		.units	        = tail40_units,
-		.lookup	        = tail40_lookup,
-		.read	        = tail40_read,
-		.data		= tail40_data,
+	.units	        = tail40_units,
+	.lookup	        = tail40_lookup,
+	.read	        = tail40_read,
+	.data		= tail40_data,
 
 #ifndef ENABLE_STAND_ALONE
-		.mergeable      = tail40_mergeable,
+	.mergeable      = tail40_mergeable,
 #else
-		.mergeable      = NULL,
+	.mergeable      = NULL,
 #endif
 		
-		.maxposs_key    = tail40_maxposs_key,
-		.get_key        = tail40_get_key
+	.maxposs_key    = tail40_maxposs_key,
+	.get_key        = tail40_get_key
+};
+
+static reiser4_plugin_t tail40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = ITEM_TAIL40_ID,
+		.group = TAIL_ITEM,
+		.type = ITEM_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "tail40",
+		.desc = "Tail item for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.item_ops = &tail40_ops
 	}
 };
 

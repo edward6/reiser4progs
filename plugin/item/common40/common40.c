@@ -19,15 +19,15 @@ errno_t common40_get_key(item_entity_t *item,
 {
 	uint64_t offset;
 
-	plugin_call(item->key.plugin->key_ops, assign,
+	plugin_call(item->key.plugin->o.key_ops, assign,
 		    key, &item->key);
 		
-	offset = plugin_call(key->plugin->key_ops,
+	offset = plugin_call(key->plugin->o.key_ops,
 			     get_offset, key);
 
 	offset += (trans_func ? trans_func(item, pos) : pos);
 
-	plugin_call(key->plugin->key_ops, set_offset,
+	plugin_call(key->plugin->o.key_ops, set_offset,
 		    key, offset);
 	
 	return 0;
@@ -41,16 +41,16 @@ errno_t common40_maxposs_key(item_entity_t *item,
 
 	key_entity_t *maxkey;
     
-	plugin_call(item->key.plugin->key_ops, assign,
+	plugin_call(item->key.plugin->o.key_ops, assign,
 		    key, &item->key);
     
-	maxkey = plugin_call(key->plugin->key_ops,
+	maxkey = plugin_call(key->plugin->o.key_ops,
 			     maximal,);
     
-	offset = plugin_call(key->plugin->key_ops,
+	offset = plugin_call(key->plugin->o.key_ops,
 			     get_offset, maxkey);
 	
-    	plugin_call(key->plugin->key_ops, set_offset,
+    	plugin_call(key->plugin->o.key_ops, set_offset,
 		    key, offset);
 
 	return 0;
@@ -65,19 +65,19 @@ errno_t common40_maxreal_key(item_entity_t *item,
 	uint64_t units;
 	uint64_t offset;
 
-	units = plugin_call(item->plugin->item_ops,
+	units = plugin_call(item->plugin->o.item_ops,
 			    units, item);
 	
-	plugin_call(item->key.plugin->key_ops,
+	plugin_call(item->key.plugin->o.key_ops,
 		    assign, key, &item->key);
 
-	offset = plugin_call(key->plugin->key_ops,
+	offset = plugin_call(key->plugin->o.key_ops,
 			     get_offset, key);
 
 	if (trans_func)
 		units = trans_func(item, units);
 	
-	plugin_call(key->plugin->key_ops, set_offset,
+	plugin_call(key->plugin->o.key_ops, set_offset,
 		    key, offset + units - 1);
 	
 	return 0;
@@ -89,10 +89,10 @@ int common40_mergeable(item_entity_t *item1,
 {
 	key_entity_t maxreal_key;
 
-	plugin_call(item1->plugin->item_ops, maxreal_key,
+	plugin_call(item1->plugin->o.item_ops, maxreal_key,
 		    item1, &maxreal_key);
 
-	return !plugin_call(item1->key.plugin->key_ops,
+	return !plugin_call(item1->key.plugin->o.key_ops,
 			    compare, &maxreal_key, &item2->key);
 }
 #endif
@@ -111,7 +111,7 @@ lookup_t common40_lookup(item_entity_t *item,
 
 	common40_maxposs_key(item, &maxkey);
 
-	units = plugin_call(item->plugin->item_ops,
+	units = plugin_call(item->plugin->o.item_ops,
 			    units, item);
 	if (units == 0)
 		return LP_ABSENT;
@@ -119,17 +119,17 @@ lookup_t common40_lookup(item_entity_t *item,
 	size = trans_func ? trans_func(item, units) :
 		units;
 	
-	if (plugin_call(key->plugin->key_ops,
+	if (plugin_call(key->plugin->o.key_ops,
 			compare, key, &maxkey) > 0)
 	{
 		*pos = size;
 		return LP_ABSENT;
 	}
 
-	offset = plugin_call(key->plugin->key_ops,
+	offset = plugin_call(key->plugin->o.key_ops,
 			     get_offset, &item->key);
 
-	wanted = plugin_call(key->plugin->key_ops,
+	wanted = plugin_call(key->plugin->o.key_ops,
 			     get_offset, key);
 
 	if (wanted >= offset &&

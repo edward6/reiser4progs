@@ -235,7 +235,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	    
 	    /* There are some item plugins which have gaps in keys between their 
 	     * units - like direntry40 - check that. Use the special method - 
-	     * item_ops.gap_key - which get the max real key stored continously 
+	     * item_ops->gap_key - which get the max real key stored continously 
 	     * from the key specified in the dst. */	    
 	    if (dst.item.plugin->h.id != src->item.plugin->h.id) {
 		/* FIXME: relocation code should be here. */
@@ -275,10 +275,10 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	}
 	
 	/* Lookup by end_key. */
-	if (!src->item.plugin->item_ops.lookup)
+	if (!src->item.plugin->o.item_ops->lookup)
 	    break;
 	
-	res = src->item.plugin->item_ops.lookup(&src->item, &end_key, 
+	res = src->item.plugin->o.item_ops->lookup(&src->item, &end_key, 
 	    &src->pos.unit);
 	
 	if (src->pos.unit >= reiser4_item_units(src))

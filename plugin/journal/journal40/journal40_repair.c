@@ -399,10 +399,10 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
 
     aal_memset(&data, 0, sizeof(data));
     
-    data.fs_start = plugin_call(journal->format->plugin->format_ops, 
+    data.fs_start = plugin_call(journal->format->plugin->o.format_ops, 
 	start, journal->format);
     
-    data.fs_len = plugin_call(journal->format->plugin->format_ops, 
+    data.fs_len = plugin_call(journal->format->plugin->o.format_ops, 
 	get_len, journal->format);
     
     data.fs_layout = fs_layout;

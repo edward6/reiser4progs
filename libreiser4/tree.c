@@ -332,7 +332,7 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 	if (!reiser4_item_branch(place))
 		return NULL;
 			
-	plugin_call(place->item.plugin->item_ops,
+	plugin_call(place->item.plugin->o.item_ops,
 		    read, &place->item, &ptr, 0, 1);
 
 	if (!VALID_BLK(ptr.start))
@@ -537,10 +537,10 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	}
     
 	/* Getting root directory attributes from oid allocator */
-	locality = plugin_call(oid->entity->plugin->oid_ops,
+	locality = plugin_call(oid->entity->plugin->o.oid_ops,
 			       root_locality,);
 	
-	objectid = plugin_call(oid->entity->plugin->oid_ops,
+	objectid = plugin_call(oid->entity->plugin->o.oid_ops,
 			       root_objectid,);
 
 	/* Initializing the key by found plugin */
@@ -2104,7 +2104,7 @@ errno_t reiser4_tree_down(
 			ptr_hint_t ptr;
 			
 			/* Fetching node ptr */
-			plugin_call(place.item.plugin->item_ops, read,
+			plugin_call(place.item.plugin->o.item_ops, read,
 				    &place.item, &ptr, pos->unit, 1);
 
 			if (setup_func && (res = setup_func(&place, hint->data))) {

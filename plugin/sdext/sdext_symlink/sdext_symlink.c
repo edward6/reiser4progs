@@ -65,27 +65,31 @@ extern errno_t sdext_symlink_check(sdext_entity_t *sdext,
 
 #endif
 
-static reiser4_plugin_t sdext_symlink_plugin = {
-	.sdext_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = SDEXT_SYMLINK_ID,
-			.group = 0,
-			.type = SDEXT_PLUGIN_TYPE,
-			.label = "sdext_symlink",
-#ifndef ENABLE_STAND_ALONE
-			.desc = "Symlink stat data extention for "
-			"reiser4, ver. " VERSION
-#endif
-		},
-		.open	 = sdext_symlink_open,
+static reiser4_sdext_ops_t sdext_symlink_ops = {
+	.open	 = sdext_symlink_open,
 		
 #ifndef ENABLE_STAND_ALONE
-		.init	 = sdext_symlink_init,
-		.print   = sdext_symlink_print,
-		.check   = sdext_symlink_check,
+	.init	 = sdext_symlink_init,
+	.print   = sdext_symlink_print,
+	.check   = sdext_symlink_check,
 #endif		
-		.length	 = sdext_symlink_length
+	.length	 = sdext_symlink_length
+};
+
+static reiser4_plugin_t sdext_symlink_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = SDEXT_SYMLINK_ID,
+		.group = 0,
+		.type = SDEXT_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "sdext_symlink",
+		.desc = "Symlink stat data extention for "
+		"reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.sdext_ops = &sdext_symlink_ops
 	}
 };
 

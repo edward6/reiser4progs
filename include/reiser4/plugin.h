@@ -175,7 +175,7 @@ enum reiser4_key_plugin_id {
 	KEY_REISER36_ID		= 0x1
 };
 
-typedef union reiser4_plugin reiser4_plugin_t;
+typedef struct reiser4_plugin reiser4_plugin_t;
 
 #define INVAL_PID               0xffff
 
@@ -504,7 +504,6 @@ typedef struct create_hint create_hint_t;
 #define PLUGIN_MAX_NAME		22
 #define PLUGIN_MAX_DESC		64
 
-typedef void (*reiser4_abort_t) (char *);
 typedef struct reiser4_core reiser4_core_t;
 
 typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
@@ -516,14 +515,21 @@ struct plugin_class {
 
 	plugin_init_t init;
 	plugin_fini_t fini;
-	reiser4_abort_t abort;
+	
+#ifndef ENABLE_STAND_ALONE
 	char name[PLUGIN_MAX_NAME];
+#endif
 };
 
 typedef struct plugin_class plugin_class_t;
 
+#ifndef ENABLE_STAND_ALONE
 #define CLASS_INIT \
-        {NULL, NULL, NULL, NULL, ""}
+        {NULL, NULL, NULL, ""}
+#else
+#define CLASS_INIT \
+        {NULL, NULL, NULL}
+#endif
 
 /* Common plugin header */
 struct plugin_header {
@@ -536,10 +542,10 @@ struct plugin_header {
 	rid_t type;
 	rid_t group;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Plugin label (name) */
 	const char label[PLUGIN_MAX_LABEL];
 	
-#ifndef ENABLE_STAND_ALONE
 	/* Plugin description */
 	const char desc[PLUGIN_MAX_DESC];
 #endif
@@ -548,8 +554,6 @@ struct plugin_header {
 typedef struct plugin_header plugin_header_t;
 
 struct reiser4_key_ops {
-	plugin_header_t h;
-
 	/* 
 	  Cleans key up. Actually it just memsets it by zeros, but more smart
 	  behavior may be implemented.
@@ -623,8 +627,6 @@ struct reiser4_key_ops {
 typedef struct reiser4_key_ops reiser4_key_ops_t;
 
 struct reiser4_object_ops {
-	plugin_header_t h;
-
 #ifndef ENABLE_STAND_ALONE
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (void *, object_entity_t *,
@@ -704,8 +706,6 @@ struct reiser4_object_ops {
 typedef struct reiser4_object_ops reiser4_object_ops_t;
 
 struct reiser4_item_ops {
-	plugin_header_t h;
-
 #ifndef ENABLE_STAND_ALONE
 	/* Prepares item body for working with it */
 	errno_t (*init) (item_entity_t *);
@@ -813,8 +813,6 @@ typedef struct reiser4_item_ops reiser4_item_ops_t;
 
 /* Stat data extention plugin */
 struct reiser4_sdext_ops {
-	plugin_header_t h;
-
 #ifndef ENABLE_STAND_ALONE
 	/* Initialize stat data extention data at passed pointer */
 	errno_t (*init) (body_t *, void *);
@@ -841,8 +839,6 @@ typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
   not initialized previously hypothetic instance of node.
 */
 struct reiser4_node_ops {
-	plugin_header_t h;
-
 #ifndef ENABLE_STAND_ALONE
 	/* Saves node onto device */
 	errno_t (*sync) (object_entity_t *);
@@ -957,34 +953,13 @@ struct reiser4_node_ops {
 typedef struct reiser4_node_ops reiser4_node_ops_t;
 
 struct reiser4_hash_ops {
-	plugin_header_t h;
 	uint64_t (*build) (const unsigned char *, uint32_t);
 };
 
 typedef struct reiser4_hash_ops reiser4_hash_ops_t;
 
-struct reiser4_tail_ops {
-	plugin_header_t h;
-};
-
-typedef struct reiser4_tail_ops reiser4_tail_ops_t;
-
-struct reiser4_hook_ops {
-	plugin_header_t h;
-};
-
-typedef struct reiser4_hook_ops reiser4_hook_ops_t;
-
-struct reiser4_perm_ops {
-	plugin_header_t h;
-};
-
-typedef struct reiser4_perm_ops reiser4_perm_ops_t;
-
 /* Disk-format plugin */
 struct reiser4_format_ops {
-	plugin_header_t h;
-
 #ifndef ENABLE_STAND_ALONE
 	/* 
 	   Called during filesystem creating. It forms format-specific super
@@ -1085,8 +1060,6 @@ struct reiser4_format_ops {
 typedef struct reiser4_format_ops reiser4_format_ops_t;
 
 struct reiser4_oid_ops {
-	plugin_header_t h;
-
 	/* Opens oid allocator on passed area */
 	object_entity_t *(*open) (void *,
 				  uint32_t);
@@ -1142,8 +1115,6 @@ typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 
 #ifndef ENABLE_STAND_ALONE
 struct reiser4_alloc_ops {
-	plugin_header_t h;
-
 	/* Creates block allocator */
 	object_entity_t *(*create) (aal_device_t *, uint64_t);
 
@@ -1212,8 +1183,6 @@ struct reiser4_alloc_ops {
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
 
 struct reiser4_journal_ops {
-	plugin_header_t h;
-
 	/* Opens journal on specified device */
 	object_entity_t *(*open) (object_entity_t *, aal_device_t *,
 				  uint64_t, uint64_t);
@@ -1254,30 +1223,27 @@ struct reiser4_journal_ops {
 };
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;
-
 #endif
 
-union reiser4_plugin {
+struct reiser4_plugin {
 	plugin_header_t h;
-	
-	reiser4_item_ops_t item_ops;
-	reiser4_node_ops_t node_ops;
-	reiser4_hash_ops_t hash_ops;
-	reiser4_tail_ops_t tail_ops;
-	reiser4_hook_ops_t hook_ops;
-	reiser4_perm_ops_t perm_ops;
 
-	reiser4_sdext_ops_t sdext_ops;
-	reiser4_object_ops_t object_ops;
-	reiser4_format_ops_t format_ops;
+	union {
+		reiser4_item_ops_t *item_ops;
+		reiser4_node_ops_t *node_ops;
+		reiser4_hash_ops_t *hash_ops;
+		reiser4_sdext_ops_t *sdext_ops;
+		reiser4_object_ops_t *object_ops;
+		reiser4_format_ops_t *format_ops;
 
 #ifndef ENABLE_STAND_ALONE
-	reiser4_alloc_ops_t alloc_ops;
-	reiser4_journal_ops_t journal_ops;
+		reiser4_alloc_ops_t *alloc_ops;
+		reiser4_journal_ops_t *journal_ops;
 #endif
 	
-	reiser4_oid_ops_t oid_ops;
-	reiser4_key_ops_t key_ops;
+		reiser4_oid_ops_t *oid_ops;
+		reiser4_key_ops_t *key_ops;
+	} o;
 
 	/* User-specific data */
 	void *data;
@@ -1367,27 +1333,20 @@ struct reiser4_core {
     
 };
 
-#define plugin_equal(plugin1, plugin2)                         \
-        (plugin1->h.group == plugin2->h.group &&               \
+#define plugin_equal(plugin1, plugin2)                           \
+        (plugin1->h.group == plugin2->h.group &&                 \
 	 plugin1->h.id == plugin2->h.id)
 
 
-/*
-  Macro for calling a plugin function. It checks if function is implemented and
-  then calls it. In the case it is not implemented, abort handler will be called
-*/
-
-#ifndef ENABLE_STAND_ALONE
-#define plugin_call(ops, method, args...) ({                    \
-        if (!ops.method && ops.h.class.abort)                   \
-               ops.h.class.abort("Method \""#method"\" isn't "  \
-				  "implemented in "#ops".");    \
-        ops.method(args);				        \
+/* Makes check is needed method implemengted */
+#define plugin_call(ops, method, args...) ({                     \
+        ops->method(args);				         \
 })
-#else
-#define plugin_call(ops, method, args...)                       \
-        ops.method(args)
-#endif
+/*#define plugin_call(ops, method, args...) ({                     \
+        aal_assert("Method \""#method"\" isn't implemented in"   \
+                   ""#ops".", ops->method != NULL);              \
+        ops->method(args);				         \
+})*/
 
 #if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
 typedef void (*register_builtin_t) (plugin_init_t,

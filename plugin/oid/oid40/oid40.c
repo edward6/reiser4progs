@@ -201,40 +201,43 @@ static oid_t oid40_root_objectid(void) {
 	return OID40_ROOT_OBJECTID;
 }
 
-/* Prepare oid40 plugin */
-static reiser4_plugin_t oid40_plugin = {
-	.oid_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = OID_REISER40_ID,
-			.group = 0,
-			.type = OID_PLUGIN_TYPE,
-			.label = "oid40",
-#ifndef ENABLE_STAND_ALONE
-			.desc = "Inode allocator for reiser4, ver. " VERSION
-#endif
-		},
-		.open		= oid40_open,
-		.close		= oid40_close,
+reiser4_oid_ops_t oid40_ops = {
+	.open		= oid40_open,
+	.close		= oid40_close,
 		
 #ifndef ENABLE_STAND_ALONE	
-		.create		= oid40_create,
-		.valid		= oid40_valid,
-		.next		= oid40_next,
-		.allocate	= oid40_allocate,
-		.release	= oid40_release,
-		.sync		= oid40_sync,
-		.isdirty        = oid40_isdirty,
-		.mkdirty        = oid40_mkdirty,
-		.mkclean        = oid40_mkclean,
-		.print		= oid40_print,
-		.used		= oid40_used,
-		.free		= oid40_free,
-		.layout         = NULL,
+	.create		= oid40_create,
+	.valid		= oid40_valid,
+	.next		= oid40_next,
+	.allocate	= oid40_allocate,
+	.release	= oid40_release,
+	.sync		= oid40_sync,
+	.isdirty        = oid40_isdirty,
+	.mkdirty        = oid40_mkdirty,
+	.mkclean        = oid40_mkclean,
+	.print		= oid40_print,
+	.used		= oid40_used,
+	.free		= oid40_free,
+	.layout         = NULL,
 #endif
-		.root_locality	= oid40_root_locality,
-		.root_objectid	= oid40_root_objectid,
-		.hyper_locality	= oid40_hyper_locality
+	.root_locality	= oid40_root_locality,
+	.root_objectid	= oid40_root_objectid,
+	.hyper_locality	= oid40_hyper_locality
+};
+
+static reiser4_plugin_t oid40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = OID_REISER40_ID,
+		.group = 0,
+		.type = OID_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "oid40",
+		.desc = "Inode allocator for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.oid_ops = &oid40_ops
 	}
 };
 

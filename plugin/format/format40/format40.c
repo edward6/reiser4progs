@@ -492,58 +492,62 @@ extern errno_t format40_check(object_entity_t *entity,
 extern errno_t format40_update(object_entity_t *entity);
 #endif
 
-static reiser4_plugin_t format40_plugin = {
-	.format_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = FORMAT_REISER40_ID,
-			.group = 0,
-			.type = FORMAT_PLUGIN_TYPE,
-			.label = "format40",
+static reiser4_format_ops_t format40_ops = {
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Disk-format for reiser4, ver. " VERSION
+	.device		= format40_device,
+	.valid		= format40_valid,
+	.check		= format40_check,
+	.sync		= format40_sync,
+	.isdirty        = format40_isdirty,
+	.mkdirty        = format40_mkdirty,
+	.mkclean        = format40_mkclean,
+	.create		= format40_create,
+	.print		= format40_print,
+	.layout	        = format40_layout,
+	.skipped        = format40_skipped,
+	.confirm	= format40_confirm,
+	.update		= format40_update,
+	.start		= format40_begin,
+	.name		= format40_name,
 #endif
-		},
-#ifndef ENABLE_STAND_ALONE
-		.device		= format40_device,
-		.valid		= format40_valid,
-		.check		= format40_check,
-		.sync		= format40_sync,
-		.isdirty        = format40_isdirty,
-		.mkdirty        = format40_mkdirty,
-		.mkclean        = format40_mkclean,
-		.create		= format40_create,
-		.print		= format40_print,
-		.layout	        = format40_layout,
-		.skipped        = format40_skipped,
-		.confirm	= format40_confirm,
-		.update		= format40_update,
-		.start		= format40_begin,
-		.name		= format40_name,
-#endif
-		.open		= format40_open,
-		.oid	        = format40_oid,
-		.close		= format40_close,
+	.open		= format40_open,
+	.oid	        = format40_oid,
+	.close		= format40_close,
 
-		.get_root	= format40_get_root,
-		.get_height	= format40_get_height,
+	.get_root	= format40_get_root,
+	.get_height	= format40_get_height,
 		
 #ifndef ENABLE_STAND_ALONE
-		.get_len	= format40_get_len,
-		.get_free	= format40_get_free,
-		.get_stamp	= format40_get_stamp,
-		.get_policy	= format40_get_policy,
+	.get_len	= format40_get_len,
+	.get_free	= format40_get_free,
+	.get_stamp	= format40_get_stamp,
+	.get_policy	= format40_get_policy,
 		
-		.set_root	= format40_set_root,
-		.set_len	= format40_set_len,
-		.set_free	= format40_set_free,
-		.set_height	= format40_set_height,
-		.set_stamp	= format40_set_stamp,
-		.set_policy	= format40_set_policy,
-		.journal_pid	= format40_journal_pid,
-		.alloc_pid	= format40_alloc_pid,
+	.set_root	= format40_set_root,
+	.set_len	= format40_set_len,
+	.set_free	= format40_set_free,
+	.set_height	= format40_set_height,
+	.set_stamp	= format40_set_stamp,
+	.set_policy	= format40_set_policy,
+	.journal_pid	= format40_journal_pid,
+	.alloc_pid	= format40_alloc_pid,
 #endif
-		.oid_pid	= format40_oid_pid
+	.oid_pid	= format40_oid_pid
+};
+
+static reiser4_plugin_t format40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = FORMAT_REISER40_ID,
+		.group = 0,
+		.type = FORMAT_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "format40",
+		.desc = "Disk-format for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.format_ops = &format40_ops
 	}
 };
 

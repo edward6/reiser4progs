@@ -744,41 +744,44 @@ errno_t alloc40_valid(object_entity_t *entity) {
 
 extern errno_t alloc40_check(object_entity_t *entity, uint8_t mode);
 
-/* Prepare alloc40 plugin by menas of filling it with abowe alloc40 methods */
-static reiser4_plugin_t alloc40_plugin = {
-	.alloc_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = ALLOC_REISER40_ID,
-			.group = 0,
-			.type = ALLOC_PLUGIN_TYPE,
-			.label = "alloc40",
-			.desc = "Space allocator for reiser4, ver. " VERSION,
-		},
-		.open		     = alloc40_open,
-		.close		     = alloc40_close,
+static reiser4_alloc_ops_t alloc40_ops = {
+	.open           = alloc40_open,
+	.close          = alloc40_close,
 
-		.create              = alloc40_create,
-		.assign              = alloc40_assign,
-		.extract             = alloc40_extract,
-		.sync		     = alloc40_sync,
-		.isdirty             = alloc40_isdirty,
-		.mkdirty             = alloc40_mkdirty,
-		.mkclean             = alloc40_mkclean,
-		.print               = alloc40_print,
-		.check               = alloc40_check,
+	.create         = alloc40_create,
+	.assign         = alloc40_assign,
+	.extract        = alloc40_extract,
+	.sync           = alloc40_sync,
+	.isdirty        = alloc40_isdirty,
+	.mkdirty        = alloc40_mkdirty,
+	.mkclean        = alloc40_mkclean,
+	.print          = alloc40_print,
+	.check          = alloc40_check,
 		
-		.used                = alloc40_used,
-		.free                = alloc40_free,
-		.valid               = alloc40_valid,
-		.layout              = alloc40_layout,
-		.occupied            = alloc40_occupied,
-		.available           = alloc40_available,
+	.used           = alloc40_used,
+	.free           = alloc40_free,
+	.valid          = alloc40_valid,
+	.layout         = alloc40_layout,
+	.occupied       = alloc40_occupied,
+	.available      = alloc40_available,
 
-		.related             = alloc40_related,
-		.occupy	             = alloc40_occupy,
-		.allocate            = alloc40_allocate,
-		.release             = alloc40_release
+	.related        = alloc40_related,
+	.occupy	        = alloc40_occupy,
+	.allocate       = alloc40_allocate,
+	.release        = alloc40_release
+};
+
+static reiser4_plugin_t alloc40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = ALLOC_REISER40_ID,
+		.group = 0,
+		.type = ALLOC_PLUGIN_TYPE,
+		.label = "alloc40",
+		.desc = "Space allocator for reiser4, ver. " VERSION,
+	},
+	.o = {
+		.alloc_ops = &alloc40_ops
 	}
 };
 

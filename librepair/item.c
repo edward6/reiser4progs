@@ -24,7 +24,7 @@ uint32_t repair_item_split(
 	return reiser4_item_units(place);
  
     // Split. Lookup method must be implemented in this case. 
-    if (plugin_call(place->item.plugin->item_ops, lookup, 
+    if (plugin_call(place->item.plugin->o.item_ops, lookup, 
 	&place->item, rd_key, &unit) == LP_FAILED) 
     {
 	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
@@ -90,12 +90,12 @@ errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) {
     aal_assert("vpf-791", place != NULL);
     aal_assert("vpf-792", place->node != NULL);
     
-    if (!place->item.plugin->item_ops.check)
+    if (!place->item.plugin->o.item_ops->check)
 	return 0;
 
     length = place->item.len;
 
-    res = place->item.plugin->item_ops.check(&place->item, mode);
+    res = place->item.plugin->o.item_ops->check(&place->item, mode);
 
     if (res < 0)
 	return res;
@@ -120,12 +120,12 @@ errno_t repair_item_layout_check(reiser4_place_t *place,
     aal_assert("vpf-793", place != NULL);
     aal_assert("vpf-794", place->node != NULL);
 
-    if (!place->item.plugin->item_ops.layout_check)
+    if (!place->item.plugin->o.item_ops->layout_check)
 	return 0;
 
     length = place->item.len;
 
-    res = place->item.plugin->item_ops.layout_check(&place->item, func, 
+    res = place->item.plugin->o.item_ops->layout_check(&place->item, func, 
 	data, mode);
     
     repair_error_check(res, mode);
@@ -145,7 +145,7 @@ errno_t repair_item_handle_ptr(reiser4_place_t *place) {
     aal_assert("vpf-417", place->node != NULL, return -1);
     
     /* Fetch the pointer from the place. */
-    if (plugin_call(place->item.plugin->item_ops,
+    if (plugin_call(place->item.plugin->o.item_ops,
 	read, &place->item, &hint, place->pos.unit, 1) != 1)
 	return -1;
     if (hint.width == 1 && reiser4_item_extent(place)) {
@@ -158,7 +158,7 @@ errno_t repair_item_handle_ptr(reiser4_place_t *place) {
 
 	hint.ptr = 0;
 
-	if (plugin_call(place->item.plugin->item_ops,
+	if (plugin_call(place->item.plugin->o.item_ops,
 	    write, &place->item, &hint, place->pos.unit, 1))
 	    return -1;	    
     } else {
@@ -198,7 +198,7 @@ errno_t repair_item_ptr_unused(reiser4_place_t *place, aux_bitmap_t *bitmap) {
     aal_assert("vpf-497", reiser4_item_nodeptr(place) || 
 	reiser4_item_extent(place), return -1);
 
-    if ((res = plugin_call(place->item.plugin->item_ops, read, 
+    if ((res = plugin_call(place->item.plugin->o.item_ops, read, 
 	&place->item, &ptr, place->pos.unit, 1)) != 1)
 	return res;
 
@@ -244,7 +244,7 @@ errno_t repair_item_ptr_used_in_format(reiser4_place_t *place,
     aal_assert("vpf-496", reiser4_item_nodeptr(place) || reiser4_item_extent(place), 
 	return -1);
 
-    if (plugin_call(place->item.plugin->item_ops, read,
+    if (plugin_call(place->item.plugin->o.item_ops, read,
 	&place->item, place->pos.unit, &ptr, 1))
 	return -1;
 	
@@ -289,7 +289,7 @@ errno_t repair_item_ptr_unused(reiser4_place_t *place, aux_bitmap_t *bitmap) {
     aal_assert("vpf-497", reiser4_item_nodeptr(place) || 
 	reiser4_item_extent(place), return -1);
 
-    if ((res = plugin_call(return -1, place->item.plugin->item_ops, read, 
+    if ((res = plugin_call(return -1, place->item.plugin->o.item_ops, read, 
 	&place->item, &ptr, place->pos.unit, 1)) != 1)
 	return res;
 
@@ -328,7 +328,7 @@ errno_t repair_item_handle_ptr(reiser4_place_t *place) {
     aal_assert("vpf-417", place->node != NULL, return -1);
     
     /* Fetch the pointer from the place. */
-    if (plugin_call(return -1, place->item.plugin->item_ops,
+    if (plugin_call(return -1, place->item.plugin->o.item_ops,
 	read, &place->item, &hint, place->pos.unit, 1) != 1)
 	return -1;
     if (hint.width == 1 && reiser4_item_extent(place)) {
@@ -341,7 +341,7 @@ errno_t repair_item_handle_ptr(reiser4_place_t *place) {
 
 	hint.ptr = 0;
 
-	if (plugin_call(return -1, place->item.plugin->item_ops,
+	if (plugin_call(return -1, place->item.plugin->o.item_ops,
 	    update, &place->item, &hint, place->pos.unit, 1))
 	    return -1;
     } else {

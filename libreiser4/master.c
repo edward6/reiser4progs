@@ -92,7 +92,7 @@ static errno_t callback_guess_format(
 {
 	if (plugin->h.type == FORMAT_PLUGIN_TYPE) {
 		aal_device_t *device = (aal_device_t *)data;
-		return plugin_call(plugin->format_ops, confirm, device);
+		return plugin_call(plugin->o.format_ops, confirm, device);
 	}
     
 	return 0;

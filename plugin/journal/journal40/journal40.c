@@ -729,29 +729,33 @@ static void journal40_close(object_entity_t *entity) {
 extern errno_t journal40_check(object_entity_t *,
 			       layout_func_t, void *);
 
+static reiser4_journal_ops_t journal40_ops = {
+	.open	  = journal40_open,
+	.create	  = journal40_create,
+	.sync	  = journal40_sync,
+	.isdirty  = journal40_isdirty,
+	.mkdirty  = journal40_mkdirty,
+	.mkclean  = journal40_mkclean,
+	.replay   = journal40_replay,
+	.print    = journal40_print,
+	.check    = journal40_check,
+	.layout   = journal40_layout,
+	.valid	  = journal40_valid,
+	.close	  = journal40_close,
+	.device   = journal40_device
+};
+
 static reiser4_plugin_t journal40_plugin = {
-	.journal_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = JOURNAL_REISER40_ID,
-			.group = 0,
-			.type = JOURNAL_PLUGIN_TYPE,
-			.label = "journal40",
-			.desc = "Journal for reiser4, ver. " VERSION,
-		},
-		.open	  = journal40_open,
-		.create	  = journal40_create,
-		.sync	  = journal40_sync,
-		.isdirty  = journal40_isdirty,
-		.mkdirty  = journal40_mkdirty,
-		.mkclean  = journal40_mkclean,
-		.replay   = journal40_replay,
-		.print    = journal40_print,
-		.check    = journal40_check,
-		.layout   = journal40_layout,
-		.valid	  = journal40_valid,
-		.close	  = journal40_close,
-		.device   = journal40_device
+	.h = {
+		.class = CLASS_INIT,
+		.id = JOURNAL_REISER40_ID,
+		.group = 0,
+		.type = JOURNAL_PLUGIN_TYPE,
+		.label = "journal40",
+		.desc = "Journal for reiser4, ver. " VERSION,
+	},
+	.o = {
+		.journal_ops = &journal40_ops
 	}
 };
 

@@ -81,7 +81,7 @@ errno_t stat40_traverse(item_entity_t *item,
 		if ((res = ext_func(&sdext, extmask, data)))
 			return res;
 
-		len = plugin_call(sdext.plugin->sdext_ops, length, 
+		len = plugin_call(sdext.plugin->o.sdext_ops, length, 
 				  sdext.body);
 
 		/* Calculating the pointer to the next extention body */
@@ -110,7 +110,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	if (stat_hint->ext[sdext->plugin->h.id]) {
 		void *sdext_hint = stat_hint->ext[sdext->plugin->h.id]; 
 
-		return plugin_call(sdext->plugin->sdext_ops, open,
+		return plugin_call(sdext->plugin->o.sdext_ops, open,
 				   sdext->body, sdext_hint);
 	}
 	
@@ -196,7 +196,7 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 		  Calculating length of the corresponding extention and add it
 		  to the estimated value.
 		*/
-		hint->len += plugin_call(plugin->sdext_ops, length,
+		hint->len += plugin_call(plugin->o.sdext_ops, length,
 					 stat_hint->ext[i]);
 	}
 	
@@ -256,7 +256,7 @@ static errno_t stat40_insert(item_entity_t *item,
 
 		/* Initializing extention data at passed area */
 		if (stat_hint->ext[i]) {
-			plugin_call(plugin->sdext_ops, init, extbody,
+			plugin_call(plugin->o.sdext_ops, init, extbody,
 				    stat_hint->ext[i]);
 		}
 	
@@ -264,7 +264,7 @@ static errno_t stat40_insert(item_entity_t *item,
 		   Getting pointer to the next extention. It is evaluating as
 		   the previous pointer plus its size.
 		*/
-		extbody += plugin_call(plugin->sdext_ops, length, extbody);
+		extbody += plugin_call(plugin->o.sdext_ops, length, extbody);
 	}
     
 	return 0;
@@ -399,12 +399,12 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 	aal_stream_format(stream, "offset:\t\t%u\n",
 			  sdext->offset);
 	
-	length = plugin_call(sdext->plugin->sdext_ops,
+	length = plugin_call(sdext->plugin->o.sdext_ops,
 			     length, sdext->body);
 	
 	aal_stream_format(stream, "len:\t\t%u\n", length);
 	
-	plugin_call(sdext->plugin->sdext_ops, print,
+	plugin_call(sdext->plugin->o.sdext_ops, print,
 		    sdext->body, stream, 0);
 	
 	return 0;
@@ -421,7 +421,7 @@ static errno_t stat40_print(item_entity_t *item,
 	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=",
 			  item->plugin->h.label, item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print,
+	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
 	{
 		return -EINVAL;
@@ -470,50 +470,52 @@ static errno_t stat40_copy(item_entity_t *dst_item,
 }
 #endif
 
-/* Stat data plugin preparing */
-static reiser4_plugin_t stat40_plugin = {
-	.item_ops = {
-		.h = {
-			.class = CLASS_INIT,
-			.id = ITEM_STATDATA40_ID,
-			.group = STATDATA_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
-			.label = "stat40",
+static reiser4_item_ops_t stat40_ops = {
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Stat data item for reiser4, ver. " VERSION
-#endif
-		},
+	.estimate	= stat40_estimate,
+	.feel           = stat40_feel,
+	.copy           = stat40_copy,
+	.insert		= stat40_insert,
+	.init		= stat40_init,
+	.check		= stat40_check,
+	.print		= stat40_print,
 		
-#ifndef ENABLE_STAND_ALONE
-		.estimate	= stat40_estimate,
-		.feel           = stat40_feel,
-		.copy           = stat40_copy,
-		.insert		= stat40_insert,
-		.init		= stat40_init,
-		.check		= stat40_check,
-		.print		= stat40_print,
-		
-		.write          = NULL,
-		.layout         = NULL,
-		.remove		= NULL,
-		.shrink		= NULL,
-		.shift          = NULL,
-		.predict        = NULL,
-		.set_key	= NULL,
-		.layout_check	= NULL,
-		.maxreal_key    = NULL,
-		.gap_key	= NULL,
+	.write          = NULL,
+	.layout         = NULL,
+	.remove		= NULL,
+	.shrink		= NULL,
+	.shift          = NULL,
+	.predict        = NULL,
+	.set_key	= NULL,
+	.layout_check	= NULL,
+	.maxreal_key    = NULL,
+	.gap_key	= NULL,
 #endif
-		.data		= stat40_data,
-		.read           = stat40_read,
-		.units		= stat40_units,
+	.data		= stat40_data,
+	.read           = stat40_read,
+	.units		= stat40_units,
         
-		.lookup		= NULL,
-		.branch         = NULL,
-		.mergeable      = NULL,
+	.lookup		= NULL,
+	.branch         = NULL,
+	.mergeable      = NULL,
 
-		.maxposs_key	= NULL,
-		.get_key	= NULL
+	.maxposs_key	= NULL,
+	.get_key	= NULL
+};
+
+static reiser4_plugin_t stat40_plugin = {
+	.h = {
+		.class = CLASS_INIT,
+		.id = ITEM_STATDATA40_ID,
+		.group = STATDATA_ITEM,
+		.type = ITEM_PLUGIN_TYPE,
+#ifndef ENABLE_STAND_ALONE
+		.label = "stat40",
+		.desc = "Stat data item for reiser4, ver. " VERSION
+#endif
+	},
+	.o = {
+		.item_ops = &stat40_ops
 	}
 };
 
