@@ -11,6 +11,7 @@
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_adjust(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_minimal(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_singular(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);

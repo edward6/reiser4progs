@@ -734,6 +734,8 @@ static reiser4_object_t *reiser4_object_comp(reiser4_tree_t *tree,
 
 	if (parent) {
 		if (reiser4_object_link(parent, object, entry)) {
+			aal_warn("Removing not attached object %s "
+				 "from tree.", object->name);
 			reiser4_object_clobber(object);
 			reiser4_object_close(object);
 			return NULL;

@@ -257,7 +257,7 @@ typedef errno_t (*modify_func_t) (node_t *node, pos_t *pos,
 				  trans_hint_t *hint);
 #endif
 
-typedef int (*bool_func_t) (void);
+typedef int (*mpc_func_t) (uint32_t);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -271,7 +271,7 @@ struct reiser4_tree {
 	reiser4_key_t key;
 
 	/* Memory pressure detect function. */
-	bool_func_t mpc_func;
+	mpc_func_t mpc_func;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Minimal tree level we have to allocate something on it. In current

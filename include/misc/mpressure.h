@@ -7,6 +7,8 @@
 #ifndef MISC_MPRESSURE_H
 #define MISC_MPRESSURE_H
 
-extern bool_t misc_mpressure_detect(void);
+#include <reiser4/types.h>
+
+extern int misc_mpressure_detect(uint32_t);
 
 #endif

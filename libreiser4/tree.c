@@ -419,21 +419,13 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 		/* Check for memory pressure event. If memory pressure is uppon
 		   us, we call memory cleaning function. For now we call
 		   tree_adjust() in order to release not locked nodes. */
-		if (tree->mpc_func && tree->mpc_func()) {
+		if (tree->mpc_func && tree->mpc_func(tree->nodes->real)) {
 			/* Adjusting the tree. It will be finished as soon as
 			   memory pressure condition will gone. */
-			if (tree->root) {
-				if (reiser4_tree_adjust_node(tree,
-							     tree->root))
-				{
-					aal_error("Can't adjust tree "
-						  "during node loading.");
-					return NULL;
-				}
-			} else {
-				aal_warn("Tree seems to be empty, but "
-					 "there memory pressure event "
-					 "has been detected.");
+			if (reiser4_tree_adjust(tree)) {
+				aal_error("Can't adjust tree during loading "
+					  "node %llu.", blk);
+				return NULL;
 			}
 		}
 		
@@ -517,8 +509,8 @@ static node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
 	aal_assert("umka-2214", node != NULL);
 
 	level = 0;
-
 	reiser4_node_lock(node);
+	
 	reiser4_place_assign(&place, node, 0, MAX_UINT32);
                                                                                       
         /* Going up to the level where corresponding neighbour node may be
@@ -643,19 +635,11 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	aal_assert("umka-756", tree != NULL);
     
 	/* Check for memory pressure event. */
-	if (tree->mpc_func && tree->mpc_func()) {
-		if (tree->root) {
-			/* Memory pressure is here, trying to release nodes. */
-			if (reiser4_tree_adjust_node(tree, tree->root)) {
-				aal_error("Error when adjusting "
-					  "tree during allocating "
-					  "new node.");
-				return NULL;
-			}
-		} else {
-			aal_warn("Tree seems to be empty, but "
-				 "memory pressure event has "
-				 "been detected");
+	if (tree->mpc_func && tree->mpc_func(tree->nodes->real)) {
+		if (reiser4_tree_adjust(tree)) {
+			aal_error("Can't adjust tree when allocating "
+				  "new node.");
+			return NULL;
 		}
 	}
 
@@ -1097,6 +1081,16 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	return 0;
 }
 #endif
+
+/* Entry point for adjsuting tree routines. */
+errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
+	aal_assert("umka-3034", tree != NULL);
+	
+	if (!tree->root)
+		return 0;
+
+	return reiser4_tree_adjust_node(tree, tree->root);
+}
 
 /* Flushes some part of tree cache (recursively) to device starting from passed
    @node. This function is used for allocating part of tree and flusing it to
@@ -2010,8 +2004,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			if (place->pos.unit == MAX_UINT32)
 				enough -= overhead;
 
+#if 0
 			if (shift_flags & SF_MOVE_POINT)
 				aal_mess("Optimizing hit during left shift.");
+#endif
 
 			return enough;
 		}
@@ -2042,8 +2038,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			if (place->pos.unit == MAX_UINT32)
 				enough -= overhead;
 
+#if 0
 			if (shift_flags & SF_MOVE_POINT)
 				aal_mess("Optimizing hit during right shift.");
+#endif
 			
 			return enough;
 		}
