@@ -608,7 +608,7 @@ struct trans_hint {
 	   updating stat data bytes field. Set by estimate. */
 	uint32_t overhead;
 	
-	/* Length of the data to be inserted/removed. Set by estimate. */
+	/* Length of the data to be inserted/removed. Set by prep methods. */
 	int32_t len;
 
 	/* Value needed for updating bytes field in stat data. Set by
@@ -621,7 +621,7 @@ struct trans_hint {
 	/* The storage tree instance. */
 	void *tree;
 
-	/* Count of units to be inserted into the tree. */
+	/* Count of items/units to be inserted into the tree. */
 	uint64_t count;
 
 	/* The key of item/unit to be inserted. */
