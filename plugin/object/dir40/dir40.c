@@ -530,7 +530,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	  it, because of dot entry which points onto directory itself and entry
 	  in parent directory, which points to this new directory.
 	*/
-	lw_ext.nlink = 1;
+	lw_ext.nlink = parent ? 1 : 3;
 	lw_ext.mode = S_IFDIR | 0755;
 	lw_ext.size = body_hint.count;
 
