@@ -461,3 +461,19 @@ void repair_node_print(reiser4_node_t *node, uint32_t start, uint32_t count,
     fflush(stdout);
     aal_stream_fini(&stream);
 }
+
+errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos, 
+    reiser4_node_t *src, pos_t *src_pos, copy_hint_t *hint) 
+{
+    aal_assert("vpf-961", dst != NULL);
+    aal_assert("vpf-962", src != NULL);
+    aal_assert("vpf-963", hint != NULL);
+    aal_assert("vpf-964", dst->entity->plugin->h.id == 
+			  src->entity->plugin->h.id);
+    aal_assert("vpf-967", dst_pos != NULL);
+    aal_assert("vpf-968", src_pos != NULL);
+    
+    return plugin_call(dst->entity->plugin->node_ops, copy, dst->entity, dst_pos, 
+	src->entity, src_pos, hint);
+}
+

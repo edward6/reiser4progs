@@ -135,6 +135,21 @@ errno_t repair_item_layout_check(reiser4_place_t *place,
     return repair_item_check_fini(place, res, length, mode);
 }
 
+errno_t repair_item_feel_copy(reiser4_place_t *dst, reiser4_place_t *src, 
+    copy_hint_t *hint)
+{
+    aal_assert("vpf-952", dst  != NULL);
+    aal_assert("vpf-953", src  != NULL);
+    aal_assert("vpf-954", hint != NULL);
+    aal_assert("vpf-955", dst->item.plugin != NULL);
+    aal_assert("vpf-956", src->item.plugin != NULL);
+	
+    return plugin_call(src->item.plugin->item_ops, feel_copy, 
+	&dst->item, (dst->pos.unit == ~0ul ? 0 : dst->pos.unit), 
+	&src->item, src->pos.unit == ~0ul ? 0 : src->pos.unit, 
+	hint);
+}
+
 #if 0
 
 errno_t repair_item_handle_ptr(reiser4_place_t *place) {

@@ -63,8 +63,21 @@ struct entry_flags {
 /* Extention for repair_flag_t */
 #define REPAIR_SKIP	0
     
-extern int32_t direntry40_remove(item_entity_t *item, uint32_t pos, uint32_t count);
- 
+extern int32_t direntry40_remove(item_entity_t *item, uint32_t pos, 
+    uint32_t count);
+extern errno_t direntry40_get_key(item_entity_t *item, uint32_t pos, 
+    key_entity_t *key);
+extern lookup_t direntry40_lookup(item_entity_t *item, key_entity_t *key,
+    uint32_t *pos);
+extern uint32_t direntry40_size(item_entity_t *item, uint32_t pos, 
+    uint32_t count);
+extern uint32_t direntry40_units(item_entity_t *item);
+extern errno_t direntry40_maxposs_key(item_entity_t *item, key_entity_t *key);
+extern errno_t direntry40_rep(item_entity_t *dst_item, uint32_t dst_pos,
+    item_entity_t *src_item, uint32_t src_pos, uint32_t count);
+extern int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
+    uint32_t count, uint32_t len);
+
 /* Check the i-th offset of the unit body within the item. */
 static errno_t direntry40_offset_check(item_entity_t *item, uint32_t pos) {
     direntry40_t *de = direntry40_body(item);
@@ -150,8 +163,8 @@ static uint32_t direntry40_name_end(char *body, uint32_t start, uint32_t end) {
 }
 
 /* Returns amount of entries detected. */
-static uint8_t direntry40_short_entry_detect(item_entity_t *item, uint32_t start_pos, 
-    uint32_t length, uint8_t mode)
+static uint8_t direntry40_short_entry_detect(item_entity_t *item, 
+    uint32_t start_pos, uint32_t length, uint8_t mode)
 {
     direntry40_t *de = direntry40_body(item);
     uint32_t offset, limit;
@@ -183,8 +196,8 @@ static uint8_t direntry40_short_entry_detect(item_entity_t *item, uint32_t start
 }
 
 /* Returns amount of entries detected. */
-static uint8_t direntry40_long_entry_detect(item_entity_t *item, uint32_t start_pos, 
-    uint32_t length, uint8_t mode)
+static uint8_t direntry40_long_entry_detect(item_entity_t *item, 
+    uint32_t start_pos, uint32_t length, uint8_t mode)
 {
     direntry40_t *de = direntry40_body(item);
     uint32_t offset, l_limit, r_limit;
@@ -305,7 +318,7 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 		    /* Do not compair with elements before the last R. */
 		    to_compare = i;
 		    
-		    /* It is possible to decrease the count when first R found. */
+		    /* It's possible to decrease the count when first R found. */
 		    limit = direntry40_count_estimate(item, j);
 
 		    if (flags->count > limit)
@@ -436,8 +449,8 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
     }
 
     if (flags->count != e_count) {
-	/* Estimated count is greater then the recovered count, in other words there 
-	 * are some last unit headers should be removed. */
+	/* Estimated count is greater then the recovered count, in other words 
+	 * there are some last unit headers should be removed. */
 	aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
 	    "corrupted. %s", item->context.blk, item->pos.item, flags->count, 
 	    e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
@@ -478,8 +491,8 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
 
     } 
     
-    /* Units before @i and after @count were handled, do not care about them anymore. 
-     * Handle all not relable units between them. */
+    /* Units before @i and after @count were handled, do not care about them 
+     * anymore. Handle all not relable units between them. */
     last = ~0ul;
     for (; i < flags->count; i++) {
 	if (last == ~0ul) {
@@ -555,6 +568,69 @@ error:
     aal_free(flags.elem);
 
     return res;    
+}
+
+errno_t direntry40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
+    item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
+{
+    uint32_t units, next_pos, pos;
+    key_entity_t dst_key;
+    lookup_t lookup;
+    
+    aal_assert("vpf-957", dst  != NULL);
+    aal_assert("vpf-958", src  != NULL);
+    aal_assert("vpf-959", hint != NULL);
+    
+    units = direntry40_units(src);
+
+    lookup = direntry40_lookup(src, &hint->end, &pos);
+    if (lookup == LP_FAILED)
+	return -EINVAL;
+    
+    direntry40_get_key(dst, dst_pos, &dst_key);
+    direntry40_lookup(src, &dst_key, &next_pos);
+    
+    if (pos < next_pos)
+	next_pos = pos;
+    
+    aal_assert("vpf-1015", next_pos >= src_pos);
+    
+    /* FIXME-VITALY: Key collisions are not supported yet. */
+    
+    hint->src_count = next_pos - src_pos;
+    hint->dst_count = 0;
+    hint->len_delta = (sizeof(entry40_t) * hint->src_count) +
+	direntry40_size(src, src_pos, hint->src_count);
+    
+    while (next_pos < units) {
+	direntry40_get_key(src, next_pos, &hint->end);
+	lookup = direntry40_lookup(dst, &hint->end, &pos);
+	
+	if (lookup == LP_FAILED)
+	    return -EINVAL;
+
+	if (lookup == LP_ABSENT)
+	    return 0;
+
+	next_pos++;
+    }
+    
+    direntry40_maxposs_key(src, &hint->end);
+    return 0;
+}
+
+errno_t direntry40_copy(item_entity_t *dst, uint32_t dst_pos, 
+    item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
+{
+    aal_assert("vpf-1014", dst != NULL);
+    aal_assert("vpf-1013", src != NULL);
+    aal_assert("vpf-1012", hint != NULL);
+    aal_assert("vpf-1011", hint->dst_count == 0);
+    
+    /* Preparing root for copying units into it */
+    direntry40_expand(dst, dst_pos, hint->src_count, hint->len_delta);
+	
+    return direntry40_rep(dst, dst_pos, src, src_pos, hint->src_count);
 }
 
 #if 0
@@ -732,7 +808,6 @@ static errno_t direntry40_bad_range_check(item_entity_t *item, uint32_t start_po
 
     return 1;
 }
-
 
 #endif
 
