@@ -43,7 +43,7 @@ static aal_exception_option_t progs_exception_oneof(
     for (i = 0; i < aal_log2(EXCEPTION_LAST); i++) {
 	if ((1 << i) & options) {
 	    char str1[256], str2[256];
-	    char *opt = aal_exception_option_string(1 << i);
+	    char *opt = aal_exception_option_name(1 << i);
 
 	    aal_memset(str1, 0, sizeof(str1));
 	    aal_memset(str2, 0, sizeof(str2));
@@ -70,7 +70,7 @@ static void progs_exception_print_wrap(
     
     if (exception->type != EXCEPTION_BUG) {
         aal_snprintf(buff, sizeof(buff), "%s: ", 
-	    aal_exception_type_string(exception->type));
+	    aal_exception_type_name(exception->type));
     }
     
     aal_strncat(buff, exception->message, 
@@ -100,7 +100,7 @@ static aal_exception_option_t progs_exception_prompt(
 	    
 	if ((1 << i) & options) {
 	    int count = progs_exception_option_count(options, i + 1);
-	    char *opt = aal_exception_option_string(1 << i);
+	    char *opt = aal_exception_option_name(1 << i);
 	    
 	    aal_strncat(prompt, opt, aal_strlen(opt));
 	    
@@ -148,7 +148,7 @@ aal_exception_option_t progs_exception_handler(
 #ifdef HAVE_LIBREADLINE
     for (i = 1; i < aal_log2(EXCEPTION_LAST); i++) {
 	if ((1 << i) & exception->options) {
-	    char *name = aal_exception_option_string(1 << i);
+	    char *name = aal_exception_option_name(1 << i);
 	    possibilities = aal_list_append(possibilities, name);
 	}
     }

@@ -156,7 +156,7 @@ error_set_context:
 
 /* Reads n entries to passed buffer buff */
 static int32_t dir40_read(reiser4_entity_t *entity, 
-    char *buff, uint32_t n)
+    void *buff, uint32_t n)
 {
     uint32_t i, count;
     reiser4_plugin_t *plugin;
@@ -487,7 +487,7 @@ static errno_t dir40_truncate(reiser4_entity_t *entity,
 
 /* Adds n entries from buff to passed entity */
 static int32_t dir40_write(reiser4_entity_t *entity, 
-    char *buff, uint32_t n) 
+    void *buff, uint32_t n) 
 {
     uint64_t i;
 

@@ -14,4 +14,5 @@ Copyright (C) 1996-2002 Hans Reiser
 * rename internal40 to nodeptr40
 * should items have read/write methods?
 * should we splitt reiser4_sf_cerate and reiser4_fs_open onto separate functions?
-
+* delete item if it doesn't contains units anymore
+ 

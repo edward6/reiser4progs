@@ -41,6 +41,10 @@ static errno_t reg40_reset(reiser4_entity_t *entity) {
     
     aal_assert("umka-1161", reg != NULL, return -1);
     
+    /* There si no any data in file */
+    if (!reg->body.plugin)
+	return 0;
+    
     key.plugin = reg->key.plugin;
     plugin_call(return -1, key.plugin->key_ops, build_generic, key.body, 
 	KEY_FILEBODY_TYPE, reg40_locality(reg), reg40_objectid(reg), 0);
@@ -146,13 +150,17 @@ error_set_context:
 
 /* Reads n entries to passed buffer buff */
 static int32_t reg40_read(reiser4_entity_t *entity, 
-    char *buff, uint32_t n)
+    void *buff, uint32_t n)
 {
     uint32_t read;
     reg40_t *reg = (reg40_t *)entity;
 
     aal_assert("umka-1182", entity != NULL, return 0);
     aal_assert("umka-1183", buff != NULL, return 0);
+
+    /* There si no any data in file */
+    if (!reg->body.plugin)
+	return 0;
     
     for (read = 0; read < n; ) {
 	char *body;
@@ -347,37 +355,92 @@ static errno_t reg40_truncate(reiser4_entity_t *entity,
     return -1;
 }
 
-/* Adds n entries from buff to passed entity */
-static int32_t reg40_write(reiser4_entity_t *entity, 
-    char *buff, uint32_t n) 
+/* 
+    Returns plugin (tail or extent) for next write operation basing on passed 
+    size to be writen. This function will be using tail policy plugin for find
+    out what next item should be writen.
+*/
+static reiser4_plugin_t *reg40_policy(reg40_t *reg, 
+    uint32_t size) 
 {
+    /* FIXME-UMKA: here should be more smart logic */
+    return core->factory_ops.ifind(ITEM_PLUGIN_TYPE, ITEM_TAIL40_ID);
+}
+
+/* Writes "n" bytes from "buff" to passed file */
+static int32_t reg40_write(reiser4_entity_t *entity, 
+    void *buff, uint32_t n) 
+{
+    int is_extent;
+    uint64_t size;
+    
     reiser4_item_hint_t hint;
+    uint32_t wrote, maxspace, overwrote;
+    
+    reiser4_place_t place;
+    reiser4_plugin_t *plugin;
     reg40_t *reg = (reg40_t *)entity;
 
     aal_assert("umka-1184", entity != NULL, return -1);
     aal_assert("umka-1185", buff != NULL, return -1);
     
-    hint.len = n;
-    hint.data = buff;
-    hint.plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, ITEM_TAIL40_ID);
+    plugin = reg->statdata.plugin;
+    size = plugin_call(return 0, plugin->item_ops.specific.statdata, 
+	get_size, &reg->statdata);
+    
+    overwrote = size - reg->offset;
+    
+    plugin = reg40_policy(reg, n);
+    
+    is_extent = (plugin->item_ops.type == EXTENT_ITEM_TYPE);
+    
+    maxspace = is_extent ? core->tree_ops.blockspace(reg->tree) : 
+	core->tree_ops.nodespace(reg->tree);
 
     /* 
-	FIXME-UMKA: Here tail policy plugin should decide what kind of item (tail 
-	or extent) we have to insert. And we should build the key basing on that 
-	desicion. 
+	FIXME-UMKA: Here also should be tail conversion code in the future. It 
+	will find the last tail if exists and convert it to the extent.
     */
-    hint.key.plugin = reg->key.plugin;
-    plugin_call(return 0, hint.key.plugin->key_ops, build_generic, hint.key.body, 
-	KEY_FILEBODY_TYPE, reg40_locality(reg), reg40_objectid(reg), reg->offset);
+    for (wrote = 0; wrote < n; ) {
+	uint8_t level;
+	uint32_t chunk;
+
+	hint.plugin = reg40_policy(reg, n - wrote);
+	chunk = n - wrote > maxspace ? maxspace : n - wrote;
+
+	hint.len = chunk;
+	hint.data = buff + wrote;
+
+	hint.key.plugin = reg->key.plugin;
+	plugin_call(break, hint.key.plugin->key_ops, build_generic, 
+	    hint.key.body, KEY_FILEBODY_TYPE, reg40_locality(reg), 
+	    reg40_objectid(reg), reg->offset);
     
-    /* Inserting the entry to the tree */
-    if (core->tree_ops.insert(reg->tree, &hint, LEAF_LEVEL, NULL)) {
-        aal_exception_error("Can't insert body item to the thee.");
-	return 0;
+	/* Inserting the entry to the tree */
+	level = LEAF_LEVEL + (hint.plugin->item_ops.type == 
+	    EXTENT_ITEM_TYPE ? 1 : 0);
+	
+	if (core->tree_ops.insert(reg->tree, &hint, level, &place)) {
+	    aal_exception_error("Can't insert body item to the thee.");
+	    return 0;
+	}
+    
+	wrote += chunk;
+	reg->offset += chunk;
     }
     
-    reg->offset += n;
-    return 0;
+    if (core->item_ops.open(&reg->body, &place))
+	return 0;
+    
+    /* Updating stat data item, because it may be moved durring balancing */
+    if (reg40_realize(reg))
+	return 0;
+    
+    /* Updating stat data size field */
+    plugin_call(return 0, reg->statdata.plugin->item_ops.specific.statdata,
+	set_size, &reg->statdata, size + (wrote - overwrote));
+    
+    return wrote;
 }
 
 #endif

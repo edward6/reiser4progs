@@ -453,10 +453,10 @@ struct reiser4_file_ops {
     int (*lookup) (reiser4_entity_t *, char *, reiser4_key_t *);
     
     /* Reads the data from file to passed buffer */
-    int32_t (*read) (reiser4_entity_t *, char *, uint32_t);
+    int32_t (*read) (reiser4_entity_t *, void *, uint32_t);
     
     /* Writes the data to file from passed buffer */
-    int32_t (*write) (reiser4_entity_t *, char *, uint32_t);
+    int32_t (*write) (reiser4_entity_t *, void *, uint32_t);
 
     /* Truncates file to passed length */
     errno_t (*truncate) (reiser4_entity_t *, uint64_t);
@@ -473,6 +473,9 @@ typedef struct reiser4_direntry_ops reiser4_direntry_ops_t;
 struct reiser4_statdata_ops {
     uint16_t (*get_mode) (reiser4_item_t *);
     errno_t (*set_mode) (reiser4_item_t *, uint16_t);
+    
+    uint32_t (*get_size) (reiser4_item_t *);
+    errno_t (*set_size) (reiser4_item_t *, uint32_t);
 };
 
 typedef struct reiser4_statdata_ops reiser4_statdata_ops_t;
@@ -958,6 +961,12 @@ struct reiser4_core {
 	/* Returns right and left neighbour respectively */
 	errno_t (*right) (const void *, reiser4_place_t *);
 	errno_t (*left) (const void *, reiser4_place_t *);
+
+	/* Returns blocksize in passed tree */
+	uint32_t (*blockspace) (const void *);
+	
+	/* Returns maximal available space in a node */
+	uint32_t (*nodespace) (const void *);
 	
     } tree_ops;
 

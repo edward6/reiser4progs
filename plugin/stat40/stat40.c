@@ -221,6 +221,27 @@ static uint16_t stat40_get_mode(reiser4_item_t *item) {
     return hint.mode;
 }
 
+static uint32_t stat40_get_size(reiser4_item_t *item) {
+    stat40_sdext_t sdext;
+    reiser4_sdext_lw_hint_t hint;
+    
+    aal_assert("umka-1223", item != NULL, return 0);
+    
+    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
+	return 0;
+    
+    if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
+	sdext.body, &hint)) 
+    {
+	aal_exception_error("Can't open light weight stat data "
+	    "extention.");
+	
+	return 0;
+    }
+    
+    return hint.size;
+}
+
 #ifndef ENABLE_COMPACT
 
 static errno_t stat40_set_mode(reiser4_item_t *item, 
@@ -244,6 +265,39 @@ static errno_t stat40_set_mode(reiser4_item_t *item,
     }
     
     hint.mode = mode;
+    
+    if (plugin_call(return 0, sdext.plugin->sdext_ops, init, 
+	sdext.body, &hint)) 
+    {
+	aal_exception_error("Can't update light weight stat data "
+	    "extention.");
+	return -1;
+    }
+    
+    return 0;
+}
+
+static errno_t stat40_set_size(reiser4_item_t *item, 
+    uint32_t size)
+{
+    stat40_sdext_t sdext;
+    reiser4_sdext_lw_hint_t hint;
+    
+    aal_assert("umka-1224", item != NULL, return 0);
+    
+    if (stat40_open_sdext(item, SDEXT_LW_ID, &sdext))
+	return 0;
+    
+    if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
+	sdext.body, &hint)) 
+    {
+	aal_exception_error("Can't open light weight stat data "
+	    "extention.");
+	
+	return -1;
+    }
+    
+    hint.size = size;
     
     if (plugin_call(return 0, sdext.plugin->sdext_ops, init, 
 	sdext.body, &hint)) 
@@ -302,10 +356,13 @@ static reiser4_plugin_t stat40_plugin = {
 	.specific = {
 	    .statdata = {
 		.get_mode = stat40_get_mode,
+		.get_size = stat40_get_size,
 #ifndef ENABLE_COMPACT
-		.set_mode = stat40_set_mode
+		.set_mode = stat40_set_mode,
+		.set_size = stat40_set_size
 #else
-		.set_mode = NULL
+		.set_mode = NULL,
+		.set_size = NULL
 #endif
 	    }
 	}

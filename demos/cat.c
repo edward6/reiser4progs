@@ -11,6 +11,9 @@
 #ifndef ENABLE_COMPACT
 #  include <stdio.h>
 #  include <fcntl.h>
+#  include <unistd.h>
+#  include <sys/types.h>
+#  include <sys/stat.h>
 #endif
 
 #include <aal/aal.h>
@@ -71,9 +74,32 @@ int main(int argc, char *argv[]) {
 	reg_hint.body.file.tail_pid = ITEM_TAIL40_ID;
 	reg_hint.body.file.extent_pid = ITEM_EXTENT40_ID;
 	
-	reg = reiser4_file_create(fs, &reg_hint, fs->root, "testfile");
+	reg = reiser4_file_create(fs, &reg_hint, fs->root, argv[2]);
 
-	reiser4_file_write(reg, "test small contant", 18);
+	{
+	    char *name = "/home/umka/download/parted-1.6.3-tar.gz";
+	    int f = open(name, O_RDONLY);
+	    void *buff = aal_calloc(4096, 0);
+	    
+	    if (!f) {
+		printf("Can't open %s.", name);
+		return 0;
+	    }
+	    
+	    if (f) {
+		aal_memset(buff, 0, 4096);
+		
+		while (read(f, buff, 4096)) {
+		    if (!reiser4_file_write(reg, buff, 4096)) {
+			aal_exception_error("Can't write next chunk of data.");
+			return 0;
+		    }
+		}
+	    }
+	    
+	    aal_free(buff);
+	    close(f);
+	}
     }
     
 /*    if (!(reg = reiser4_file_open(fs, argv[2]))) {

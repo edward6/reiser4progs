@@ -16,7 +16,7 @@
 static aal_exception_handler_t exception_handler = NULL;
 
 /* Strings for all exception types */
-static char *type_strings[] = {
+static char *type_names[] = {
     "Information", 
     "Warning", 
     "Error", 
@@ -25,7 +25,7 @@ static char *type_strings[] = {
 };
 
 /* Strings for all exception options */
-static char *option_strings[] = {
+static char *option_names[] = {
     "Yes", 
     "No", 
     "OK", 
@@ -34,16 +34,16 @@ static char *option_strings[] = {
     "Cancel"
 };
 
-static int fetch_count = 0;
+static int disable_count = 0;
 
 /* 
     Helper functions for getting different exception attributes (option string, 
     type string, etc). They are used in exception handing functions.
 */
-char *aal_exception_type_string(
+char *aal_exception_type_name(
     aal_exception_type_t type		/* exception type to be converted to string */
 ) {
-    return type_strings[type - 1];
+    return type_names[type - 1];
 }
 
 /* Returns exception type from passed exception instance */
@@ -54,10 +54,10 @@ aal_exception_type_t aal_exception_type(
 }
 
 /* Converts passed exception option into corresponding string */
-char *aal_exception_option_string(
+char *aal_exception_option_name(
     aal_exception_option_t opt		/* exception option to be converted to string */
 ) {
-    return option_strings[aal_log2(opt) - 1];
+    return option_names[aal_log2(opt) - 1];
 }
 
 /* Returns exception option from passed exception */
@@ -88,10 +88,8 @@ void aal_exception_set_handler(
 void aal_exception_catch(
     aal_exception_t *exception		/* exception, to be destroyed */
 ) {
-	
-    if (!exception)	
-	return;
-	
+    if (!exception) return;
+    
     aal_free(exception->message);
     aal_free(exception);
 }
@@ -105,7 +103,7 @@ static aal_exception_option_t aal_exception_actual_throw(
 ) {
     aal_exception_option_t opt;
 
-    if (!exception_handler || fetch_count)
+    if (!exception_handler || disable_count)
 	return EXCEPTION_UNHANDLED;
 	
     opt = exception_handler(exception);
@@ -156,12 +154,12 @@ error_no_memory:
     times while the control is flowing through stack, there is counter of how
     many time exception factory was disabled.
 */
-void aal_exception_fetch_all(void) {
-    fetch_count++;
+void aal_exception_disable(void) {
+    disable_count++;
 }
 
-void aal_exception_leave_all(void) {
-    if (fetch_count > 0)
-	fetch_count--;
+void aal_exception_enable(void) {
+    if (disable_count > 0)
+	disable_count--;
 }
 

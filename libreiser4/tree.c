@@ -546,6 +546,7 @@ errno_t reiser4_tree_lshift(
     
     /* Trying to move items into the left neighbour */
     if (reiser4_node_count(old->cache->node) > 0) {
+	uint32_t old_count;
 	reiser4_pos_t mpos;
 	reiser4_item_t item;
 
@@ -558,18 +559,18 @@ errno_t reiser4_tree_lshift(
 	    return -1;
 	}
 	
+	old_count = reiser4_node_count(old->cache->node);
 	item_len = reiser4_item_len(&item) + item_overhead;
 	
 	/* Moving items until insertion point reach first position in node */
-	while (reiser4_node_count(old->cache->node) > 0 && 
-	    reiser4_node_space(new->cache->node) < needed)
-	{
+	while (old_count > 0 && reiser4_node_space(new->cache->node) < needed) {
 	    if (allocate && (reiser4_node_space(left->node) < item_len ||
 		(new->cache == old->cache && new->pos.item == 0 &&
 		reiser4_node_space(left->node) - item_len < needed)))
 	    {
 		if (!(left = reiser4_tree_allocate(tree, left->level))) {
-		    aal_exception_error("Can't allocate new leaf node durring left shift.");
+		    aal_exception_error("Can't allocate new leaf node "
+			"durring left shift.");
 		    return -1;
 		}
 	    }
@@ -596,12 +597,16 @@ errno_t reiser4_tree_lshift(
 		return -1;
 	    }
 	    
-	    if (reiser4_node_count(old->cache->node) > 0)
+	    old->cache = src.cache;
+
+	    if (!src.cache) break;
+	    
+	    if ((old_count = reiser4_node_count(old->cache->node)) > 0)
 		item_len = reiser4_item_len(&item) + item_overhead;
 	}
 	
-	if (left != old->cache->left) {
-	    if (!old->cache->parent) {
+	if (!old->cache || left != old->cache->left) {
+	    if (old->cache && !old->cache->parent) {
 		/* 
 		    Tree growing is occured in the case insertion point hasn't
 		    parent.
@@ -672,6 +677,7 @@ errno_t reiser4_tree_rshift(
     
     /* Trying to move items into the right neighbour */
     if (reiser4_node_count(old->cache->node) > 0) {
+	uint32_t old_count;
 	reiser4_pos_t mpos;
 	reiser4_item_t item;
 	
@@ -685,16 +691,15 @@ errno_t reiser4_tree_rshift(
 	    return -1;
 	}
 	
+	old_count = reiser4_node_count(old->cache->node);
 	item_len = reiser4_item_len(&item) + item_overhead;
 	    
-	while (reiser4_node_count(old->cache->node) > 0 && 
-	    reiser4_node_space(new->cache->node) < needed)
-	{
-	    uint32_t count = reiser4_node_count(new->cache->node);
+	while (old_count > 0 && reiser4_node_space(new->cache->node) < needed) {
+	    uint32_t new_count = reiser4_node_count(new->cache->node);
 	    
 	    /* Allocating new block */
 	    if (allocate && (reiser4_node_space(right->node) < item_len ||
-		(new->cache == old->cache && new->pos.item >= count - 1 &&
+		(new->cache == old->cache && new->pos.item >= new_count - 1 &&
 		(reiser4_node_space(right->node) - item_len) < needed)))
 	    {
 		if (!(right = reiser4_tree_allocate(tree, right->level))) {
@@ -704,9 +709,9 @@ errno_t reiser4_tree_rshift(
 	    }
 	    
 	    if (new->cache == old->cache) {
-		if (new->pos.item >= count - 1) {
+		if (new->pos.item >= new_count - 1) {
 		    new->cache = right;
-		    new->pos.item = (new->pos.item > count - 1);
+		    new->pos.item = (new->pos.item > new_count - 1);
 		}
 	    } else
 		new->pos.item++;
@@ -715,21 +720,26 @@ errno_t reiser4_tree_rshift(
 		reiser4_node_count(old->cache->node) - 1, ~0ul);
 
 	    reiser4_coord_init(&dst, right, 0, ~0ul);
-	
+
 	    if (reiser4_tree_move(tree, &dst, &src)) {
-		aal_exception_error("Right shifting of an item failed.");
-		return -1;
+	        aal_exception_error("Right shifting of an item failed.");
+	        return -1;
 	    }
 	    
+	    old->cache = src.cache;
+	    
+	    if (!src.cache)
+		break;
+		
 	    /* Updating item_len for next item to be moved */
-	    if (reiser4_node_count(old->cache->node) > 0) {
-		mpos.item = reiser4_node_count(old->cache->node) - 1;
-		item_len = reiser4_item_len(&item) + item_overhead;
+	    if ((old_count = reiser4_node_count(old->cache->node)) > 0) {
+	        mpos.item = old_count - 1;
+	        item_len = reiser4_item_len(&item) + item_overhead;
 	    }
 	}
 	
-	if (right != old->cache->right) {
-	    if (!old->cache->parent) {
+	if (!old->cache || right != old->cache->right) {
+	    if (old->cache && !old->cache->parent) {
 		/* 
 		    Tree growing is occured in the case insertion point hasn't
 		    parent.
@@ -763,6 +773,7 @@ errno_t reiser4_tree_mkspace(
     reiser4_coord_t *new,	    /* new coord will be stored here */
     uint32_t needed		    /* amount of space that should be freed */
 ) {
+    uint32_t maxspace;
     reiser4_cache_t *parent;
 
     aal_assert("umka-759", old != NULL, return -1);
@@ -772,10 +783,24 @@ errno_t reiser4_tree_mkspace(
     if (!old->cache->parent || needed == 0)
 	return 0;
     
+    maxspace = reiser4_node_maxspace(old->cache->node);
+	
+    /* 
+        Checking if item hint to be inserted to tree has length more than 
+        max possible space in a node.
+    */
+    if (needed > maxspace) {
+        aal_exception_error("Item size is too big. Maximal possible "
+	   "item size can be %u bytes long.", maxspace);
+	return -1;
+    }
+	
     /* Trying to shift items into left neighbour */
     if (reiser4_tree_lshift(tree, old, new, needed, 1))
 	return -1;
 
+    if (!old->cache) return 0;
+    
     /* Trying to shift items into right neighbour */
     if (reiser4_node_space(new->cache->node) < needed && 
 	reiser4_node_count(old->cache->node) > 0) 
@@ -784,11 +809,6 @@ errno_t reiser4_tree_mkspace(
 	
 	if (reiser4_tree_rshift(tree, &coord, new, needed, 1))
 	    return -1;
-    }
-
-    if (reiser4_node_count(old->cache->node) == 0) {
-	reiser4_cache_close(old->cache);
-	old->cache = NULL;
     }
 
     return 0;
@@ -868,7 +888,7 @@ errno_t reiser4_tree_insert(
     /* Inserting item at coord if there is enough free space */
     if (reiser4_node_space(coord->cache->node) < needed) {
 	reiser4_coord_t insert;
-		
+	
 	if (reiser4_tree_mkspace(tree, coord, &insert, needed))
 	    return -1;
 
@@ -929,15 +949,20 @@ errno_t reiser4_tree_move(
     reiser4_coord_t *dst,	    /* dst coord */
     reiser4_coord_t *src	    /* src coord */
 ) {
+    uint32_t count;
+    
     aal_assert("umka-1020", tree != NULL, return -1);
     aal_assert("umka-1020", dst != NULL, return -1);
     aal_assert("umka-1020", src != NULL, return -1);
     
-
-    if (reiser4_cache_move(dst->cache, &dst->pos, 
-	    src->cache, &src->pos))
+    count = reiser4_node_count(src->cache->node);
+    
+    if (reiser4_cache_move(dst->cache, &dst->pos, src->cache, &src->pos))
 	return -1;
-	    
+    
+    if (count == 1)
+	src->cache = NULL;
+    
     return 0;
 }
 

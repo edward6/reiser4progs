@@ -472,9 +472,6 @@ errno_t reiser4_cache_remove(
     aal_assert("umka-994", pos != NULL, return -1);
 
     /* Getting position in parent cached node */
-    update = (cache->parent && pos->item == 0 && 
-	(pos->unit == 0 || pos->unit == ~0ul));
-    
     if ((update = (cache->parent && pos->item == 0 && 
 	(pos->unit == 0 || pos->unit == ~0ul)))) 
     {
@@ -494,9 +491,14 @@ errno_t reiser4_cache_remove(
         reiser4_key_t key;
         reiser4_cache_t *child;
 
-        reiser4_node_get_key(cache->node, pos, &key);
+	if (reiser4_node_count(cache->node) > 0) {
+	    reiser4_node_get_key(cache->node, pos, &key);
 	
-        if ((child = reiser4_cache_find(cache, &key))) {
+	    child = reiser4_cache_find(cache, &key);
+	} else
+	    child = (reiser4_cache_t *)cache->list->item;
+    
+	if (child) {
 	    reiser4_cache_unregister(cache, child);
 	    reiser4_cache_close(child);
 	}
@@ -513,19 +515,22 @@ errno_t reiser4_cache_remove(
 		return -1;
 	    
 	} else {
+	    if (cache->parent) {
+		/* 
+		    Removing cached node from the tree in the case it has not items 
+		    anymore.
+		*/
+		if (reiser4_cache_remove(cache->parent, &p))
+		    return -1;
 
-	    /* 
-		Removing cached node from the tree in the case it has not items 
-		anymore.
-	    */
-	    if (reiser4_cache_remove(cache->parent, &p))
-		return -1;
-
-	    reiser4_alloc_release(cache->tree->fs->alloc,
-		aal_block_number(cache->node->block));
+		reiser4_alloc_release(cache->tree->fs->alloc,
+		    aal_block_number(cache->node->block));
 	    
-	    reiser4_cache_unregister(cache->parent, cache);
-	    reiser4_cache_close(cache);
+		reiser4_cache_unregister(cache->parent, cache);
+	    }
+
+	    if (cache->tree->cache != cache)
+		reiser4_cache_close(cache);
 	}
     }
 
@@ -617,11 +622,8 @@ errno_t reiser4_cache_move(
 		return -1;
 	}
     } else {
-	
 	if (reiser4_cache_remove(src_cache->parent, &sp))
 	    return -1;
-
-	reiser4_cache_unregister(src_cache->parent, src_cache);
     }
     
     return 0;

@@ -122,6 +122,20 @@ static errno_t tree_left(
     return 0;
 }
 
+static uint32_t tree_blockspace(const void *tree) {
+    aal_assert("umka-1220", tree != NULL, return 0);
+    return aal_block_size(((reiser4_tree_t *)tree)->cache->node->block);
+}
+	
+static uint32_t tree_nodespace(const void *tree) {
+    reiser4_node_t *node;
+    
+    aal_assert("umka-1220", tree != NULL, return 0);
+
+    node = ((reiser4_tree_t *)tree)->cache->node;
+    return reiser4_node_maxspace(node) - reiser4_node_overhead(node);
+}
+
 static errno_t item_open(
     reiser4_item_t *item,		/* item to gettin body from */
     reiser4_place_t *place		/* the place the item is going to open */
@@ -213,24 +227,26 @@ reiser4_core_t core = {
     .tree_ops = {
 	
 	/* This one for lookuping the tree */
-	.lookup = tree_lookup,
+	.lookup	    = tree_lookup,
 
 	/* Returns right neighbour of passed coord */
-	.right	= tree_right,
+	.right	    = tree_right,
     
 	/* Returns left neighbour of passed coord */
-	.left	= tree_left,
+	.left	    = tree_left,
 
 #ifndef ENABLE_COMPACT	
 	/* Installing callback function for inserting items into the tree */
-	.insert = tree_insert,
+	.insert	    = tree_insert,
 
 	/* Installing callback function for removing items from the tree */
-	.remove = tree_remove,
+	.remove	    = tree_remove,
 #else
-	.insert = NULL,
-	.remove = NULL,
+	.insert	    = NULL,
+	.remove	    = NULL,
 #endif
+	.nodespace  = tree_nodespace,
+	.blockspace = tree_blockspace
     },
     
     .item_ops {
