@@ -549,7 +549,8 @@ static reiser4_journal_ops_t journal40_ops = {
 	.device   	= journal40_device,
 	.set_state  	= journal40_set_state,
 	.get_state  	= journal40_get_state,
-	.check_struct	= journal40_check_struct
+	.check_struct	= journal40_check_struct,
+	.invalidate	= journal40_invalidate,
 };
 
 static reiser4_plug_t journal40_plug = {

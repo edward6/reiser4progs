@@ -1450,6 +1450,9 @@ struct reiser4_journal_ops {
 	errno_t (*check_struct) (generic_entity_t *,
 				 layout_func_t, void *);
 
+	/* Invalidates the journal. */
+	void (*invalidate) (generic_entity_t *);
+	
 	/* Calls func for each block in block allocator. */
 	errno_t (*layout) (generic_entity_t *, region_func_t,
 			   void *);

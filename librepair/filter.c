@@ -464,14 +464,20 @@ static void repair_filter_update(repair_filter_t *fd) {
 	format = fd->repair->fs->format;
 	
 	if (fd->flags) {
-		aal_error("Root node (%llu): the node is %s. %s",
-			  reiser4_format_get_root(format), 
-			  fd->flags & RE_EMPTY ? "empty" :
-			  fd->repair->mode == RM_BUILD ? 
-			  "unrecoverable" : "broken",
-			  fd->repair->mode == RM_BUILD ? "Zeroed." :
-			  "The whole subtree is skipped.");
-		
+		if (!(fd->flags & RE_PTR)) {
+			aal_error("Root node (%llu): the node is %s. %s",
+				  reiser4_format_get_root(format), 
+				  fd->flags & RE_EMPTY ? "empty" :
+				  fd->repair->mode == RM_BUILD ? 
+				  "unrecoverable" : "broken",
+				  fd->repair->mode == RM_BUILD ? "Zeroed." :
+				  "The whole subtree is skipped.");
+		} else {
+			/* Wrong pointer. */
+			aal_warn("Reiser4 storage tree does not exist. "
+				 "Filter pass skipped.");
+		}
+
 		if (fd->repair->mode == RM_BUILD) {
 			reiser4_node_t *root;
 			
@@ -571,7 +577,6 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	if (root < reiser4_format_start(format) || 
 	    root > reiser4_format_get_len(format))
 	{
-		/* Wrong pointer. */
 		goto error;
 	} else if (aux_bitmap_test(fd->bm_used, root)) {
 		/* This block is from format area. */
@@ -623,12 +628,6 @@ errno_t repair_filter(repair_filter_t *fd) {
 	aal_assert("vpf-816", fd->repair->fs->tree != NULL);
 	aal_assert("vpf-815", fd->bm_used != NULL);
 
-	if (reiser4_tree_fresh(fd->repair->fs->tree)) {
-		aal_warn("Reiser4 storage tree does not exist. "
-			 "Filter pass skipped.");
-		return 0;
-	}
-	
 	fd->progress = &progress;
 	repair_filter_setup(fd);
 	

@@ -9,20 +9,21 @@
 /* Opens the filesystem - master, format, block and oid allocators - without 
    opening a journal. */
 errno_t repair_fs_open(repair_data_t *repair, 
-		       aal_device_t *host_device,
-		       aal_device_t *journal_device)
+		       aal_device_t *hdevice,
+		       aal_device_t *jdevice)
 {
 	errno_t res = 0;
 	uint64_t len;
 
-	aal_assert("vpf-851", repair != NULL);
-	aal_assert("vpf-159", host_device != NULL);
+	aal_assert("vpf-851",  repair != NULL);
+	aal_assert("vpf-159",  hdevice != NULL);
+	aal_assert("vpf-1556", jdevice != NULL);
  
 	/* Allocating memory and initializing fields */
 	if (!(repair->fs = aal_calloc(sizeof(*repair->fs), 0)))
 		return -ENOMEM;
 
-	repair->fs->device = host_device;
+	repair->fs->device = hdevice;
 	
 	res |= repair_master_open(repair->fs, repair->mode);
 	
@@ -64,26 +65,11 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_alloc_close;
 	}
 
-	res |= repair_journal_open(repair->fs, journal_device, repair->mode);
+	res |= repair_journal_open(repair->fs, jdevice, repair->mode);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the journal.");
 		goto error_oid_close;
-	}
-	
-	res |= repair_journal_replay(repair->fs->journal, repair->fs->device);
-	
-	if (repair_error_fatal(res)) {
-		aal_fatal("Failed to replay the journal.");
-		goto error_journal_close;
-	}
-	
-	res |= repair_format_update(repair->fs->format);
-	
-	if (repair_error_fatal(res)) {
-		aal_fatal("Failed to update the format after journal "
-			  "replaying.");
-		goto error_journal_close;
 	}
 	
 	if (!(repair->fs->tree = reiser4_tree_init(repair->fs))) {
@@ -125,21 +111,44 @@ error_journal_close:
 	return res < 0 ? res : 0;
 }
 
-errno_t repair_fs_valid(repair_data_t *repair) {
+errno_t repair_fs_valid(reiser4_fs_t *fs, uint8_t mode) {
 	errno_t res;
 	
-	if (!(res = reiser4_alloc_valid(repair->fs->alloc)))
+	if (!(res = reiser4_alloc_valid(fs->alloc)))
 		return 0;
 	
 	if (res != -ESTRUCT) 
 		return res;
 
-	if (repair->mode != RM_CHECK) {
+	if (mode != RM_CHECK) {
 		aal_mess("Checksums will be fixed later.\n");
 		return 0;
 	}
-		
+	
 	return RE_FIXABLE;
+}
+
+errno_t repair_fs_replay(reiser4_fs_t *fs) {
+	errno_t res;
+	
+	res = reiser4_journal_replay(fs->journal);
+	
+	if (repair_error_fatal(res)) {
+		aal_fatal("Failed to replay the journal.");
+		return res;
+	}
+	
+	res |= repair_format_update(fs->format);
+	
+	if (repair_error_fatal(res)) {
+		aal_fatal("Failed to update the format after journal "
+			  "replaying.");
+		return res;
+	}
+
+	repair_journal_invalidate(fs->journal);
+	
+	return 0;
 }
 
 /* Close the journal and the filesystem. */

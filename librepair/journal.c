@@ -31,6 +31,7 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 			 check_struct, journal->entity, 
 			 callback_journal_check, journal->fs);
 }
+
 /* Open the journal and check it. */
 errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			    uint8_t mode) 
@@ -90,35 +91,11 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 	return res;
 }
 
-errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) {
-	int j_flags, flags;
-	
-	aal_assert("vpf-906", journal != NULL);
-	aal_assert("vpf-907", journal->device != NULL);
-	aal_assert("vpf-908", device != NULL);
-	
-	j_flags = journal->device->flags;
-	flags = device->flags;
-	
-	if (aal_device_reopen(journal->device, device->blksize, O_RDWR))
-		return -EIO;
-	
-	if (aal_device_reopen(device, device->blksize, O_RDWR))
-		return -EIO;
-	
-	if (reiser4_journal_replay(journal))
-		return -EINVAL;
-	
-	if (reiser4_journal_sync(journal))
-		return -EIO;
-	
-	if (aal_device_reopen(device, device->blksize, flags))
-		return -EIO;
-	
-	if (aal_device_reopen(journal->device, device->blksize, j_flags))
-		return -EIO;
-	
-	return 0;
+void repair_journal_invalidate(reiser4_journal_t *journal) {
+	aal_assert("vpf-1555", journal != NULL);
+
+	plug_call(journal->entity->plug->o.journal_ops,
+		  invalidate, journal->entity);
 }
 
 void repair_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {

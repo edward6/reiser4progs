@@ -485,6 +485,22 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 	return 0;
 }
 
+void journal40_invalidate(generic_entity_t *entity) {
+	journal40_t *journal = (journal40_t *)entity;
+	journal40_footer_t *footer;
+	journal40_header_t *header;
+
+	aal_assert("vpf-1554", entity != NULL);
+
+	footer = JFOOTER(journal->footer);
+	header = JHEADER(journal->header);
+
+	set_jh_last_commited(header, 0);
+	set_jf_last_flushed(footer, 0);
+	
+	journal->state |= (1 << ENTITY_DIRTY);
+}
+
 /* Safely extracts string field from passed location. */
 static void extract_string(char *stor, char *orig, uint32_t max) {
 	uint32_t i;

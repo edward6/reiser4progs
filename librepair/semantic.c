@@ -791,28 +791,30 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	aal_assert("vpf-1027", sem->repair->fs != NULL);
 	aal_assert("vpf-1028", sem->repair->fs->tree != NULL);
 	
-	sem->progress = &progress;
-	repair_semantic_setup(sem);
 	
 	tree = sem->repair->fs->tree;
 	
 	if (reiser4_tree_fresh(tree)) {
 		aal_warn("No reiser4 metadata were found. Semantic "
 			 "pass is skipped.");
+		sem->repair->fatal++;
 		goto error;
 	}
+	
+	sem->progress = &progress;
+	repair_semantic_setup(sem);
 	
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	
 	if (tree->root == NULL) {
 		res = -EINVAL;
-		goto error;
+		goto error_update;
 	}
 	
 	/* Open "/" directory. */
 	if ((res = repair_semantic_root_prepare(sem)))
-		goto error;
+		goto error_update;
 	
 	/* Open "lost+found" directory in BUILD mode. */
 	if (sem->repair->mode == RM_BUILD) {
@@ -839,14 +841,17 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		reiser4_object_close(sem->lost);
 		sem->lost = NULL;
 	}
+
  error_close_root:
 	if (sem->root) {
 		reiser4_object_close(sem->root);
 		sem->root = NULL;
 	}
- error:
+	
+ error_update:
 	repair_semantic_update(sem);	
 	
+ error:
 	if (sem->repair->mode != RM_CHECK)
 		reiser4_fs_sync(sem->repair->fs);
 	

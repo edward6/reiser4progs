@@ -707,7 +707,7 @@ errno_t repair_check(repair_data_t *repair) {
 			goto error;
 	}
 		
-	if (repair->mode == RM_BUILD) {
+	if (repair->mode == RM_BUILD && !repair->fatal) {
 		/* Throw the garbage away. */
 		if ((res = repair_cleanup_prepare(&control, &cleanup)))
 			goto error;

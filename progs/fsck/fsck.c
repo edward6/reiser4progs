@@ -287,31 +287,71 @@ static errno_t fsck_check_init(repair_data_t *repair,
 			       uint8_t fs_mode) 
 {
 	aal_stream_t stream;
+	int reop = 0;
 	count_t len;
 	errno_t res;
+	int flags;
 	
 	fprintf(stderr, "***** Openning the fs.\n");
 	
+	/* Reopen device RW for fixing SB. */
+	if (sb_mode != RM_CHECK) {
+		flags = host->flags;
+		if (aal_device_reopen(host, host->blksize, O_RDWR)) {
+			aal_fatal("Failed to reopen the device RW.");
+			return -EIO;
+		}
+		
+		reop = 1;
+	}
+
 	repair->mode = sb_mode;
 	if ((res = repair_fs_open(repair, host, host)))
 		return res;
 
 	if (repair->fs == NULL) {
-		aal_fatal("Cannot open the FileSystem on (%s).", 
-			  host->name);
-		
+		aal_fatal("Cannot open the FileSystem on (%s).", host->name);
 		return res;
 	}
 
+	if (!reop) {
+		/* Reopen device RW for replaying. */
+		flags = host->flags;
+		if (aal_device_reopen(host, host->blksize, O_RDWR)) {
+			aal_fatal("Failed to reopen the device RW.");
+			res = -EIO;
+			goto error_close_fs;
+		}
+	}
+	
+	if ((res = repair_fs_replay(repair->fs)) < 0)
+		goto error_close_fs;
+	
+	repair_error_count(repair, res);
+	
+	/* Leave device RW if not CHECK mode. */
+	if (fs_mode == RM_CHECK) {
+		reiser4_journal_sync(repair->fs->journal);
+		reiser4_fs_sync(repair->fs);
+		if (aal_device_reopen(host, host->blksize, flags)) {
+			aal_fatal("Failed to reopen the device RW.");
+			res = -EIO;
+			goto error_close_fs;
+		}
+	}
+	
 	repair->sb_fixable = repair->fixable;
 	repair->fixable = 0;
 	repair->mode = fs_mode;
 
 	/* Check the openned fs. */
-	if ((res = repair_fs_valid(repair)) < 0)
+	if ((res = repair_fs_valid(repair->fs, fs_mode)) < 0)
 		goto error_close_fs;
 	
+	repair_error_count(repair, res);
+	
 	repair->fs->tree->mpc_func = misc_mpressure_detect;
+	repair->progress_handler = gauge_handler;    
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
@@ -382,7 +422,6 @@ int main(int argc, char *argv[]) {
 	repair_data_t repair;
 	
 	fsck_parse_t parse_data;
-	uint64_t df_fixable = 0;
 	errno_t ex = NO_ERROR;
 	int stage = 0;
 	errno_t res = 0;
@@ -415,22 +454,12 @@ int main(int argc, char *argv[]) {
 	
 	/* SB_mode is specified, otherwise  */
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
-	repair.progress_handler = gauge_handler;    
 	repair.bitmap_file = parse_data.bitmap_file;
 	
-	if (parse_data.sb_mode != RM_CHECK || parse_data.fs_mode != RM_CHECK) {
-		if (aal_device_reopen(device, device->blksize, O_RDWR)) {
-			aal_fatal("Failed to reopen the device RW.");
-			ex = OPER_ERROR;
-			goto free_libreiser4;
-		}
-	}
-
-	if ((res = fsck_check_init(&repair, device, parse_data.backup, 
-				   parse_data.sb_mode, parse_data.fs_mode)))
-		goto free_libreiser4;
+	res = fsck_check_init(&repair, device, parse_data.backup, 
+			      parse_data.sb_mode, parse_data.fs_mode);
 	
-	if (repair.fatal) 
+	if (res || repair.fatal)
 		goto free_libreiser4;
 		
 	stage = 1;
@@ -481,11 +510,14 @@ int main(int argc, char *argv[]) {
 
 	if (repair.fatal) {
 		/* Some fatal corruptions in disk format or filesystem. */
-		fprintf(stderr, "%llu fatal corruptions were detected in %s. "
-			"Run with %s option to fix them.\n", repair.fatal, 
-			stage ? "FileSystem" : "SuperBlock", 
-			stage ? "--build-fs" : "--build-sb");
-		
+		if (parse_data.fs_mode == RM_BUILD) {
+			fprintf(stderr, "Failed to build the reiser4 filesystem.\n");
+		} else {
+			fprintf(stderr, "%llu fatal corruptions were detected in %s. "
+				"Run with %s option to fix them.\n", repair.fatal, 
+				stage ? "FileSystem" : "SuperBlock", 
+				stage ? "--build-fs" : "--build-sb");
+		}
 		ex = stage ? FATAL_ERROR : FATAL_SB_ERROR;
 	} else if (repair.fixable) {
 		/* Some fixable corruptions in filesystem. */

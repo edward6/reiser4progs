@@ -19,5 +19,7 @@ extern void journal40_print(generic_entity_t *entity,
 			    aal_stream_t *stream, 
 			    uint16_t options);
 
+extern void journal40_invalidate(generic_entity_t *entity);
+
 #endif
 #endif
