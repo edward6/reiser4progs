@@ -123,6 +123,9 @@ static errno_t extent40_remove_units(place_t *place,
 		extent = extent40_body(place) + pos;
 			
 		for (i = pos; i < pos + hint->count; i++, extent++) {
+			if (!et40_get_start(extent))
+				continue;
+			
 			hint->region_func(place, et40_get_start(extent),
 					  et40_get_width(extent), hint->data);
 		}
