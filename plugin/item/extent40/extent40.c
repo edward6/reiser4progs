@@ -458,12 +458,28 @@ static errno_t extent40_estimate_write(place_t *place,
 		/* Check if insert offset plus data length will not fit to max
 		   real offset. */
 		if (offset + hint->offset + hint->count > hint->maxoff) {
-			uint32_t pos = place->pos.unit;
+			uint32_t blksize = extent40_blksize(place);
 			
-			/* Check if we insert inside allocated extent. If so, we
-			   need addition unit. */
-			if (et40_get_start(extent40_body(place) + pos) != 1)
-				hint->len = sizeof(extent40_t);
+			extent40_t *extent = extent40_body(place) +
+				place->pos.unit;
+
+			if (et40_get_start(extent) != UNALLOC_UNIT) {
+				if (hint->specific) {
+					hint->len = sizeof(extent40_t);
+				} else {
+					if (hint->count >= blksize &&
+					    et40_get_start(extent) != SPARSE_UNIT)
+					{
+						hint->len = sizeof(extent40_t);
+					}
+				}
+			} else {
+				if (!hint->specific && hint->count >= blksize &&
+				    et40_get_start(extent) != SPARSE_UNIT)
+				{
+					hint->len = sizeof(extent40_t);
+				}
+			}
 		}
 	}
 
@@ -488,17 +504,8 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
-	extent = extent40_body(place) +
-		place->pos.unit;
-
-	blksize = extent40_blksize(place);
-	
-	if (hint->len) {
-		et40_set_start(extent, 1);
-		et40_set_width(extent, 0);
-	}
-	
 	extent40_get_key(place, &key);
+	blksize = extent40_blksize(place);
 
 	uni_offset = plug_call(key.plug->o.key_ops,
 			       get_offset, &key);
@@ -511,19 +518,23 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
+		if ((size = count) > blksize - (ins_offset % blksize))
+			size = blksize - (ins_offset % blksize);
+		
 		/* Block offset we will insert in. */
-		block_offset = ins_offset - (ins_offset &
-					     (blksize - 1));
+		block_offset = ins_offset - (ins_offset & (blksize - 1));
 
 		/* Preparing key for getting data by it */
-		plug_call(key.plug->o.key_ops, set_offset,
-			  &key, block_offset);
+		plug_call(key.plug->o.key_ops, set_offset, &key, block_offset);
 
 		if (block_offset < hint->maxoff) {
 			blk_t blk;
 			
 			if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
 				
+				extent = extent40_body(place) +
+					place->pos.unit;
+
 				blk = et40_get_start(extent) +
 					(block_offset - uni_offset) / blksize;
 				
@@ -541,20 +552,61 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 			{
 				return -ENOMEM;
 			}
-			core->tree_ops.set_data(hint->tree, &key, block);
 
-			hint->bytes += blksize;
-			hint->maxoff += blksize;
-			et40_inc_width(extent, 1);
+			core->tree_ops.set_data(hint->tree, &key, block);
+			extent = extent40_body(place) + place->pos.unit;
+				
+			if (hint->specific && hint->maxoff) {
+				uint64_t start = et40_get_start(extent);
+						
+				if (start != UNALLOC_UNIT) {
+					et40_set_start(extent + 1,
+						       UNALLOC_UNIT);
+					
+					et40_set_width(extent + 1, 1);
+				} else {
+					et40_inc_width(extent, 1);
+				}
+				
+				hint->bytes += blksize;
+				hint->maxoff += blksize;
+			} else {
+				if (count >= blksize &&
+				    (ins_offset % blksize) == 0)
+				{
+					uint64_t width;
+					
+					size = count - (count &
+							(blksize - 1));
+							
+					et40_set_start(extent,
+						       SPARSE_UNIT);
+
+					width = (size / blksize);
+					et40_set_width(extent, width);
+
+					hint->maxoff += (width * blksize);
+				} else {
+					et40_set_start(extent,
+						       UNALLOC_UNIT);
+						
+					et40_set_width(extent, 1);
+					
+					hint->bytes += blksize;
+					hint->maxoff += blksize;
+				}
+			}
 		}
 
 		/* Writting data to @block */
-		if ((size = count) > blksize - (ins_offset % blksize))
-			size = blksize - (ins_offset % blksize);
-		
 		if (hint->specific) {
 			aal_memcpy(block->data + (ins_offset % blksize),
 				   hint->specific, size);
+		} else {
+			if (size < blksize) {
+				uint32_t off = (ins_offset % blksize);
+				aal_memset(block->data + off, 0, size);
+			}
 		}
 
 		ins_offset += size;
