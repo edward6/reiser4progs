@@ -1113,7 +1113,9 @@ static errno_t node40_fuse(object_entity_t *src_entity,
 	errno_t res;
 	uint32_t len;
 
-	shift_hint_t hint;
+	uint32_t src_units;
+	uint32_t dst_units;
+	
 	item_entity_t src_item;
 	item_entity_t dst_item;
 
@@ -1121,6 +1123,9 @@ static errno_t node40_fuse(object_entity_t *src_entity,
 	aal_assert("umka-2228", src_pos != NULL);
 	aal_assert("umka-2225", src_entity != NULL);
 	aal_assert("umka-2226", dst_entity != NULL);
+
+	if (aal_abs(src_pos->item - dst_pos->item) > 1)
+		return -EINVAL;
 	
 	/* Initializing items */
 	if (node40_item(src_entity, src_pos, &src_item))
@@ -1153,44 +1158,37 @@ static errno_t node40_fuse(object_entity_t *src_entity,
 				   overhead, &src_item);
 	}
 	
-	if (src_pos->item < dst_pos->item) {
-		POS_INIT(&pos, dst_pos->item - 1, 0);
-		
-		if ((res = node40_expand(dst_entity, &pos, len, 1))) {
-			aal_exception_error("Can't expand item for "
-					    "shifting units into it.");
-			goto error_free_body;
-		}
+	POS_INIT(&pos, dst_pos->item, 0);
+	
+	if (src_pos->item < dst_pos->item)
+		dst_pos->item--;
 
-		hint.control = SF_RIGHT;
-	} else {
-		POS_INIT(&pos, dst_pos->item, 0);
-		
-		if ((res = node40_expand(dst_entity, &pos, len, 1))) {
-			aal_exception_error("Can't expand item for "
-					    "shifting units into it.");
-			goto error_free_body;
-		}
-
-		hint.control = SF_LEFT;
+	if ((res = node40_expand(dst_entity, &pos, len, 1))) {
+		aal_exception_error("Can't expand item for "
+				    "shifting units into it.");
+		goto error_free_body;
 	}
-
+	
 	/* Reinitializing @dst_item after expand */
 	if ((res = node40_item(dst_entity, &pos, &dst_item)))
 		goto error_free_body;
 	
-	/* Shifting units from @src_item to @dst_item */
-	hint.rest = len;
-	
-	if ((res = plugin_call(src_item.plugin->o.item_ops,
-			       estimate_shift, &src_item,
-			       &dst_item, &hint)))
-	{
-		goto error_free_body;
+	/* Copying units @src_item to @dst_item */
+	src_units = plugin_call(src_item.plugin->o.item_ops,
+				units, &src_item);
+
+	if (src_pos->item < dst_pos->item) {
+		res = plugin_call(src_item.plugin->o.item_ops,
+				  rep, &dst_item, 0, &src_item,
+				  0, src_units);
+	} else {
+		dst_units = plugin_call(dst_item.plugin->o.item_ops,
+					units, &dst_item);
+		
+		res = plugin_call(src_item.plugin->o.item_ops,
+				  rep, &dst_item, dst_units,
+				  &src_item, 0, src_units);
 	}
-	
-	res = plugin_call(src_item.plugin->o.item_ops, shift,
-			  &src_item, &dst_item, &hint);
 
  error_free_body:
 	aal_free(src_item.body);
@@ -1823,6 +1821,7 @@ static reiser4_node_ops_t node40_ops = {
 	.shrink		 = node40_shrink,
 	.expand		 = node40_expand,
 	.copy            = node40_copy,
+	.rep             = node40_rep,
 
 	.overhead	 = node40_overhead,
 	.maxspace	 = node40_maxspace,

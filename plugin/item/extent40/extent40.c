@@ -468,6 +468,15 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 	return 0;
 }
 
+static errno_t extent40_rep(item_entity_t *dst_item,
+			    uint32_t dst_pos,
+			    item_entity_t *src_item,
+			    uint32_t src_pos,
+			    uint32_t count)
+{
+	return -EINVAL;
+}
+
 static errno_t extent40_shift(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
@@ -541,6 +550,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.init	          = extent40_init,
 	.write            = extent40_write,
 	.copy             = extent40_copy,
+	.rep              = extent40_rep,
 	.remove	          = extent40_remove,
 	.print	          = extent40_print,
 	.shift            = extent40_shift,

@@ -59,8 +59,11 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-errno_t nodeptr40_rep(item_entity_t *dst_item, uint32_t dst_pos,
-		      item_entity_t *src_item, uint32_t src_pos)
+errno_t nodeptr40_rep(item_entity_t *dst_item,
+		      uint32_t dst_pos,
+		      item_entity_t *src_item,
+		      uint32_t src_pos,
+		      uint32_t count)
 {
 	aal_assert("umka-2146", dst_item != NULL);
 	aal_assert("umka-2147", src_item != NULL);
@@ -167,6 +170,7 @@ static reiser4_item_ops_t nodeptr40_ops = {
 
 	.overhead         = NULL,
 	.copy             = NULL,
+	.rep		  = NULL,
 	.write            = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,

@@ -1034,6 +1034,7 @@ static reiser4_item_ops_t direntry40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
 	.init		   = direntry40_init,
 	.copy		   = direntry40_copy,
+	.rep		   = direntry40_rep,
 	.insert		   = direntry40_insert,
 	.remove		   = direntry40_remove,
 	.overhead          = direntry40_overhead,

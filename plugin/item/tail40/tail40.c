@@ -312,6 +312,7 @@ static reiser4_item_ops_t tail40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.init	          = tail40_init,
 	.copy	          = tail40_copy,
+	.rep	          = tail40_rep,
 	.write	          = tail40_write,
 	.remove	          = tail40_remove,
 	.print	          = tail40_print,

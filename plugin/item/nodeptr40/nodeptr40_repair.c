@@ -15,7 +15,7 @@
 #include <repair/repair_plugin.h>
 
 extern errno_t nodeptr40_rep(item_entity_t *dst_item, uint32_t dst_pos,
-    item_entity_t *src_item, uint32_t src_pos);
+    item_entity_t *src_item, uint32_t src_pos, uint32_t count);
 
 errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
     void *data, uint8_t mode) 

@@ -758,11 +758,19 @@ struct reiser4_item_ops {
 	errno_t (*shift) (item_entity_t *, item_entity_t *,
 			  shift_hint_t *);
 
-	/* Copies some amount of units from @src_item to @dst_item */
+	/*
+	  Copies some amount of units from @src_item to @dst_item with partial
+	  overwritting.
+	*/
 	errno_t (*copy) (item_entity_t *, uint32_t,
 			 item_entity_t *, uint32_t,
 			 copy_hint_t *);
 
+	/* Copes @count units from @src_item to @dst_item */
+	errno_t (*rep) (item_entity_t *, uint32_t,
+			item_entity_t *, uint32_t,
+			uint32_t);
+	
 	/* Removes specified unit from the item. Returns released space */
 	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
 	
@@ -903,10 +911,18 @@ struct reiser4_node_ops {
 	errno_t (*shrink) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	/* Makes the copy of src data to dst place on the base of hint. */
+	/*
+	  Makes copy from @src_entity to @dst_entity with partial
+	  overwriting.
+	*/
 	errno_t (*copy) (object_entity_t *, pos_t *, 
 			 object_entity_t *, pos_t *, 
 			 copy_hint_t *);
+
+	/* Copies items from @src_entity to @dst_entity */
+	errno_t (*rep) (object_entity_t *, pos_t *,
+			object_entity_t *, pos_t *,
+			uint32_t);
 	
 	/* Expands node */
 	errno_t (*expand) (object_entity_t *, pos_t *,

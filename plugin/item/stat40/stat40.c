@@ -468,6 +468,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.estimate_shift   = NULL,
 	.overhead         = NULL,
 	.write            = NULL,
+	.rep              = NULL,
 	.layout           = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
