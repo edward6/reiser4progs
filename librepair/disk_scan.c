@@ -146,8 +146,8 @@ error:
  * save it for further insertion. */
 errno_t repair_disk_scan_pass(repair_data_t *rd) {
     reiser4_node_t *node;
-    reiser4_place_t coord;
-    rpos_t *pos = &coord.pos;
+    reiser4_place_t place;
+    rpos_t *pos = &place.pos;
     repair_ds_t *ds;
     uint32_t count;
     uint8_t level;
@@ -192,32 +192,32 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 	    goto error_node_release;
 
 	/* Remove all metadata items. */
-	coord.node = node;
+	place.node = node;
 	pos->unit = ~0ul;
 	count = reiser4_node_items(node);
 	for (pos->item = 0; pos->item < count; pos->item++) {
-	    if (reiser4_place_realize(&coord)) {
+	    if (reiser4_place_realize(&place)) {
 		aal_exception_error("Node (%llu), item (%u): failed to open"
 		    " the item.", node->blk, pos->item);
 		goto error_node_release;
 	    }
 		
 	    /* If an item does not contain data (only metadata), remove it. */	
-	    if (!reiser4_item_data(coord.item.plugin)) {
-		if (reiser4_node_remove(coord.node, pos, 1)) {
+	    if (!reiser4_item_data(place.item.plugin)) {
+		if (reiser4_node_remove(place.node, pos, 1)) {
 		    aal_exception_error("Node (%llu), item (%u): failed to "
 			"remove the item.", node->blk, pos->item);
 		    goto error_node_release;
 		}
 
-		reiser4_node_mkdirty(coord.node);
+		reiser4_node_mkdirty(place.node);
 		pos->item--;
 		count = reiser4_node_items(node);
 	    }
 	}
 
 	if (reiser4_node_items(node) == 0) {
-	    reiser4_node_mkclean(coord.node);
+	    reiser4_node_mkclean(place.node);
 	    aux_bitmap_mark(ds->bm_frmt, blk);
 	} else if (level == TWIG_LEVEL)
 	    aux_bitmap_mark(ds->bm_twig, blk);

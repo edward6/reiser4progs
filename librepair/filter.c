@@ -82,17 +82,17 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 
 /* Setup callback for traverse. Prepares essential information for a child of 
  * a node - level. */
-static errno_t repair_filter_setup_traverse(reiser4_place_t *coord, void *data) {
+static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) {
     repair_filter_t *fd;
     reiser4_ptr_hint_t ptr;
 
     aal_assert("vpf-255", data != NULL);
-    aal_assert("vpf-531", coord != NULL);
-    aal_assert("vpf-703", reiser4_item_nodeptr(coord));
+    aal_assert("vpf-531", place != NULL);
+    aal_assert("vpf-703", reiser4_item_nodeptr(place));
 
     fd = repair_filter((repair_data_t *)data);
-    if (plugin_call(coord->item.plugin->item_ops, read, 
-	&coord->item, &ptr, coord->pos.unit, 1) != 1) 
+    if (plugin_call(place->item.plugin->item_ops, read, 
+	&place->item, &ptr, place->pos.unit, 1) != 1) 
     {
 	aal_exception_fatal("Failed to fetch the node pointer.");
 	return -1;
@@ -110,37 +110,37 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *coord, void *data) 
  * callback and do some essential stuff after traversing through the child -
  * level, if REPAIR_BAD_PTR flag is set - deletes the child pointer and 
  * mark the pointed block as unused in bm_used bitmap. */
-static errno_t repair_filter_update_traverse(reiser4_place_t *coord, void *data) {
+static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data) {
     rpos_t prev;
     repair_data_t *rd = (repair_data_t *)data;
     
     aal_assert("vpf-257", rd != NULL);
-    aal_assert("vpf-434", coord != NULL);
+    aal_assert("vpf-434", place != NULL);
     
     if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR)) {
 	reiser4_ptr_hint_t ptr;
 	
 	/* Clear pointed block in the formatted bitmap. */
-	if (plugin_call(coord->item.plugin->item_ops,
-	    read, &coord->item, &ptr, coord->pos.unit, 1) != 1)
+	if (plugin_call(place->item.plugin->item_ops,
+	    read, &place->item, &ptr, place->pos.unit, 1) != 1)
 	    return -1;
 	
 	aux_bitmap_clear(repair_filter(rd)->bm_used, ptr.ptr);
 	
 	/* The node corruption was not fixed - delete the internal item. */
-	repair_coord_left_pos_save(coord, &prev);
-	if (reiser4_node_remove(coord->node, &coord->pos, 1)) {
+	repair_place_left_pos_save(place, &prev);
+	if (reiser4_node_remove(place->node, &place->pos, 1)) {
 	    aal_exception_error("Node (%llu), pos (%u, %u): Remove failed.", 
-		coord->node->blk, coord->pos.item, coord->pos.unit);
+		place->node->blk, place->pos.item, place->pos.unit);
 	    return -1;
 	}
-	coord->pos = prev;
+	place->pos = prev;
 	aal_clear_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
     } else {
 	/* Mark all twigs in the bm_twig bitmap. */
-	if (reiser4_node_get_level(coord->node) == TWIG_LEVEL) 
+	if (reiser4_node_get_level(place->node) == TWIG_LEVEL) 
 	    aux_bitmap_mark(repair_filter(rd)->bm_twig, 
-		coord->node->blk);
+		place->node->blk);
     }
     
     repair_filter(rd)->level++;

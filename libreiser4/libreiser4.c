@@ -157,7 +157,7 @@ static errno_t tree_realize(void *tree, place_t *place) {
 /* Handler for requests for next item */
 static errno_t tree_next(
 	void *tree,	            /* opaque pointer to the tree */
-	place_t *place,             /* coord of node */
+	place_t *place,             /* place of node */
 	place_t *next)	            /* next item will be stored here */
 {
 	reiser4_place_t *curr;
@@ -194,7 +194,7 @@ static errno_t tree_next(
 /* Handler for requests for left neighbor */
 static errno_t tree_prev(
 	void *tree,	            /* opaque pointer to the tree */
-	place_t *place,             /* coord of node */
+	place_t *place,             /* place of node */
 	place_t *prev)              /* left neighbour will be here */
 {
 	reiser4_place_t *curr;
@@ -247,7 +247,7 @@ static errno_t tree_lock(
 
 static errno_t tree_unlock(
 	void *tree,               /* tree for working on */
-	place_t *place)           /* coord to make unlock on */
+	place_t *place)           /* place to make unlock on */
 {
 	reiser4_place_t *p;
 	

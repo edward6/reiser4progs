@@ -26,18 +26,18 @@ static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start,
 }
 
 /* Callback for traverse through all items of the node. Calls for the item, 
- * determined by coord, layout method, if it is not the branch and has 
+ * determined by place, layout method, if it is not the branch and has 
  * pointers to some blocks. */
-static errno_t callback_layout(reiser4_place_t *coord, void *data) {
-    aal_assert("vpf-649", coord != NULL);
-    aal_assert("vpf-748", reiser4_item_data(coord->item.plugin));
+static errno_t callback_layout(reiser4_place_t *place, void *data) {
+    aal_assert("vpf-649", place != NULL);
+    aal_assert("vpf-748", reiser4_item_data(place->item.plugin));
 
-    if (!coord->item.plugin->item_ops.layout)
+    if (!place->item.plugin->item_ops.layout)
 	return 0;
 	
     /* All these blocks should not be used in the allocator and should be 
      * forbidden for allocation. Check it somehow first. */
-    return coord->item.plugin->item_ops.layout(&coord->item, 
+    return place->item.plugin->item_ops.layout(&place->item, 
 	callback_item_mark_region, data);
 }
 
@@ -85,8 +85,8 @@ error:
 /* The pass inself, adds all the data which are not in the tree yet and which 
  * were found on the partition during the previous passes. */
 errno_t repair_add_missing_pass(repair_data_t *rd) {
-    reiser4_place_t coord;
-    rpos_t *pos = &coord.pos;
+    reiser4_place_t place;
+    rpos_t *pos = &place.pos;
     reiser4_tree_t *tree;
     reiser4_node_t *node;
     aux_bitmap_t *bitmap;
@@ -160,26 +160,26 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 
 	    pos->unit = ~0ul;
 	    items = reiser4_node_items(node);
-	    coord.node = node;
+	    place.node = node;
 
 	    for (pos->item = 0; pos->item < items; pos->item++) {
 		aal_assert("vpf-636", pos->unit == ~0ul);
 
-		if (reiser4_place_realize(&coord)) {
+		if (reiser4_place_realize(&place)) {
 		    aal_exception_error("Node (%llu), item (%u): cannot open "
-			"the item coord.", blk, pos->item);
+			"the item place.", blk, pos->item);
 		    
 		    goto error_node_free;
 		}
 	 
 		if (i == 0) {
-		    aal_assert("vpf-637", reiser4_item_extent(&coord));
+		    aal_assert("vpf-637", reiser4_item_extent(&place));
 		}
 
-		if (repair_tree_insert(tree, &coord))
+		if (repair_tree_insert(tree, &place))
 		    goto error_node_free;
 
-		if (callback_layout(&coord, rd->fs->alloc))
+		if (callback_layout(&place, rd->fs->alloc))
 		    goto error_node_free;
 	    }
 	

@@ -52,31 +52,31 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
 /* Callback for the traverse which calls item_ops.layout_check method if layout 
  * exists for all items which can contain data, not tree index data only. 
  * Shrink the node if item lenght is changed. */
-static errno_t callback_item_layout_check(reiser4_place_t *coord, void *data) {
+static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     reiser4_node_t *node;
     int32_t len;
     int res;
  
-    aal_assert("vpf-384", coord != NULL);
-    aal_assert("vpf-727", coord->node != NULL);
+    aal_assert("vpf-384", place != NULL);
+    aal_assert("vpf-727", place->node != NULL);
 
-    node = coord->node;
+    node = place->node;
     
-    if (!reiser4_item_data(coord->item.plugin) || 
-	!coord->item.plugin->item_ops.layout_check)
+    if (!reiser4_item_data(place->item.plugin) || 
+	!place->item.plugin->item_ops.layout_check)
 	return 0;
     
-    len = coord->item.plugin->item_ops.layout_check(&coord->item, 
+    len = place->item.plugin->item_ops.layout_check(&place->item, 
 	callback_item_region_check, data);
     
     if (len > 0) {
 	/* shrink the node. */
 	if ((res = plugin_call(node->entity->plugin->node_ops,
-	    shrink, node->entity, &coord->pos, len, 1)))
+	    shrink, node->entity, &place->pos, len, 1)))
 	{
 	    aal_exception_bug("Node (%llu), pos (%u, %u), len (%u): Failed "
 		"to shrink the node on (%u) bytes.", node->blk, 
-		coord->pos.item, coord->pos.unit, coord->item.len, len);
+		place->pos.item, place->pos.unit, place->item.len, len);
 	    return -1;
 	}	
     }
@@ -271,20 +271,20 @@ static int comp_ovrl_index(const void *elem, const void *needle, void *data) {
 */
 
 /* Coord pints to a problem extent. Save it into ovrl_list for further handling. */
-static errno_t repair_ts_ovrl_add(reiser4_place_t *coord, repair_data_t *rd) {
+static errno_t repair_ts_ovrl_add(reiser4_place_t *place, repair_data_t *rd) {
     repair_ovrl_t *ovrl;
     reiser4_node_t *node;
     aal_list_t *list;
     repair_ts_t *ts;
     
-    aal_assert("vpf-520", coord != NULL);
+    aal_assert("vpf-520", place != NULL);
     aal_assert("vpf-521", rd != NULL);
     aal_assert("vpf-524", rd->alloc != NULL);
     aal_assert("vpf-525", rd->alloc->entity != NULL);
 
-    if (!(node = coord->node)) {
-	aal_exception_fatal("Failed to get the node from the coord, but "
-	    "it is expected that the coord is build on the node.");
+    if (!(node = place->node)) {
+	aal_exception_fatal("Failed to get the node from the place, but "
+	    "it is expected that the place is build on the node.");
 	return -1;
     }
 
@@ -295,12 +295,12 @@ static errno_t repair_ts_ovrl_add(reiser4_place_t *coord, repair_data_t *rd) {
 
     ovrl = aal_malloc(sizeof(*ovrl));
     
-    if (plugin_call(coord->item.plugin->item_ops, fetch, 
-	&coord->item, coord->pos.unit, &ovrl->ptr, 1) != 1)
+    if (plugin_call(place->item.plugin->item_ops, fetch, 
+	&place->item, place->pos.unit, &ovrl->ptr, 1) != 1)
 	goto error_free_ovrl;
 
-    ovrl->node = coord->node;
-    ovrl->pos = coord->pos;	
+    ovrl->node = place->node;
+    ovrl->pos = place->pos;	
     ovrl->conflicts = 0;
     
     /* Insert it into the extent list in sorted by ptr.ptr order. */ 
@@ -328,7 +328,7 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
     aal_assert("vpf-552", ovrl_list != NULL);
     aal_assert("vpf-553", *ovrl_list != NULL);
    
-    /* Calculate the initial conflics into ovrl_coord's */
+    /* Calculate the initial conflics into ovrl_place's */
     for (left = aal_list_first(*ovrl_list); left != NULL; left = left->next) {
 	l_ovrl = (repair_ovrl_t *)left->data;
 	    
@@ -378,20 +378,20 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
 	l_ovrl->prev = r_ovrl;
     }
     
-     /* Choose the coord with the largest conflicts value, remove it, 
+     /* Choose the place with the largest conflicts value, remove it, 
      * recalculate conflicts. Continue it unless there is no any conflict. */
     while (max_conflict && max_conflict->conflicts) {
-	reiser4_place_t coord;
+	reiser4_place_t place;
 	
-	if (reiser4_place_open(&coord, max_conflict->node, CT_JOINT, 
+	if (reiser4_place_open(&place, max_conflict->node, CT_JOINT, 
 	    &max_conflict->pos)) 
 	{
-	    aal_exception_error("Can't open item by coord. Node %llu, item %u.",
+	    aal_exception_error("Can't open item by place. Node %llu, item %u.",
 		max_conflict->node->node->blk, max_conflict->pos.item);
 	    return -1;
 	}
 	
-	repair_item_handle_ptr(&coord);
+	repair_item_handle_ptr(&place);
 
 	/* FIXME-VITALY: sync it somehow. */
 	r_ovrl = max_conflict;
@@ -408,7 +408,7 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
 	reiser4_node_release(r_ovrl->node);
 	aal_free(r_ovrl);
 
-	/* Descrement conflict counters of all coords around max_conflict, 
+	/* Descrement conflict counters of all places around max_conflict, 
 	 * which conflicted with r_ptr. */
 
     }
@@ -420,7 +420,7 @@ static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list,
     ovrl_region_func_t func)
 {
     repair_ovrl_region_t *region;
-    repair_ovrl_coord_t *oc;
+    repair_ovrl_place_t *oc;
 
     aal_assert("vpf-548", ovrl_list != NULL);
     aal_assert("vpf-549", *ovrl_list != NULL);
@@ -440,13 +440,13 @@ static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list,
 	
 	while (region->extents != NULL) {
 
-	    oc = (repair_ovrl_coord_t *)aal_list_first(region->extents)->data;
+	    oc = (repair_ovrl_place_t *)aal_list_first(region->extents)->data;
 	    region->extents = aal_list_remove(region->extents, oc);
 	    
 	    // FIXME-VITALY: close the node, sync it if needed. 
-	    reiser4_node_release(reiser4_place_node(oc->coord));
+	    reiser4_node_release(reiser4_place_node(oc->place));
 	    
-	    aal_free(oc->coord);
+	    aal_free(oc->place);
 	    aal_free(oc);
 	}
 
