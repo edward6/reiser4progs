@@ -223,6 +223,8 @@ static errno_t cb_print_bitmap(void *entity, blk_t start,
 {
 	uint32_t size;
 	uint64_t offset;
+	uint64_t i, count;
+
 	alloc40_t *alloc;
 	aal_stream_t *stream;
 	
@@ -230,10 +232,14 @@ static errno_t cb_print_bitmap(void *entity, blk_t start,
 	stream = (aal_stream_t *)data;
 
 	size = alloc->blksize - CRC_SIZE;
-	offset = start / size / 8;
+	offset = start / size;
+
+	count = 0;
+	for (i = offset * 8; i < (offset + size) * 8; i++)
+		count += (aal_test_bit(alloc->bitmap->map, i) ? 1 : 0);
 	
-	aal_stream_format(stream, "%*llu [ 0x%lx ]\n", 10, start,
-			  *((uint32_t *)alloc->crc + offset));
+	aal_stream_format(stream, "%*llu [ 0x%lx ] %llu\n", 10, start,
+			  *((uint32_t *)alloc->crc + offset / 8), count);
 
 	return 0;
 }
@@ -270,7 +276,7 @@ void alloc40_print(generic_entity_t *entity,
 			  alloc->bitmap->total -
 			  alloc->bitmap->marked);
 
-	aal_stream_format(stream, "\n%*s CRC\n", 10, "BLK");
+	aal_stream_format(stream, "\n%*s%*s%*s\n", 10, "BLK", 10, "CRC", 10, "Used");
 	aal_stream_format(stream, "-------------------------\n");
 
 	/* Calling alloc40_layout() in order to print all block checksums */
