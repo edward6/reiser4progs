@@ -1026,9 +1026,9 @@ static errno_t direntry40_print(item_entity_t *item,
 		namewidth = 20 > aal_strlen(name) ? 20 -
 			aal_strlen(name) + 1 : 1;
 
-		aal_stream_format(stream, "%*d %s%*s %u   %.16llx:%.16llx "
+		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
 				  "[ %.7llx:%.7llx ]\n", 3, i, name, namewidth, " ",
-				  entry->offset, ha40_get_objectid(&entry->hash),
+				  6, entry->offset, ha40_get_objectid(&entry->hash),
 				  ha40_get_offset(&entry->hash), locality, objectid);
 	}
 
