@@ -24,17 +24,6 @@ static uint16_t format40_get_height(generic_entity_t *entity) {
 	return get_sb_tree_height(SUPER(entity));
 }
 
-static int format40_get_flag(generic_entity_t *entity,
-			     uint8_t flag)
-{
-	uint64_t flags;
-
-	aal_assert("umka-2339", entity != NULL);
-
-	flags = get_sb_flags(SUPER(entity));
-	return aal_test_bit(&flags, flag);
-}
-
 #ifndef ENABLE_STAND_ALONE
 static uint64_t format40_get_len(generic_entity_t *entity) {
 	aal_assert("umka-401", entity != NULL);
@@ -341,6 +330,17 @@ static rid_t format40_oid_pid(generic_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
+static int format40_tst_flag(generic_entity_t *entity, 
+			     uint8_t flag) 
+{
+	format40_t *format;
+	
+	aal_assert("umka-2343", entity != NULL);
+
+	format = (format40_t *)entity;
+	return format->super.sb_flags & flag;
+}
+
 #ifndef ENABLE_STAND_ALONE
 static const char *formats[] = {"format40"};
 
@@ -390,17 +390,6 @@ static void format40_set_height(generic_entity_t *entity,
 
 	((format40_t *)entity)->dirty = 1;
 	set_sb_tree_height(SUPER(entity), height);
-}
-
-static int format40_tst_flag(generic_entity_t *entity, 
-			     uint8_t flag) 
-{
-	format40_t *format;
-	
-	aal_assert("umka-2343", entity != NULL);
-
-	format = (format40_t *)entity;
-	return aal_test_bit(&format->super.sb_flags, flag);
 }
 
 static void format40_set_flag(generic_entity_t *entity, 
@@ -531,8 +520,8 @@ static reiser4_format_ops_t format40_ops = {
 	.oid	        = format40_oid,
 	.close		= format40_close,
 
+	.tst_flag       = format40_tst_flag,
 	.get_root	= format40_get_root,
-	.get_flag	= format40_get_flag,
 	.get_height	= format40_get_height,
 		
 #ifndef ENABLE_STAND_ALONE
@@ -543,7 +532,6 @@ static reiser4_format_ops_t format40_ops = {
 		
 	.set_flag	= format40_set_flag,
 	.clr_flag	= format40_clr_flag,
-	.tst_flag       = format40_tst_flag,
 	
 	.set_root	= format40_set_root,
 	.set_len	= format40_set_len,
