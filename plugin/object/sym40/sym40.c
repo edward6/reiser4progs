@@ -85,7 +85,7 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
-				     reiser4_file_hint_t *hint,
+				     reiser4_object_hint_t *hint,
 				     place_t *place)
 {
 	roid_t objectid;
@@ -179,7 +179,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	obj40_lock(&sym->obj, &sym->obj.statdata);
 		
 	if (parent) {
-		plugin_call(parent->plugin->file_ops, link,
+		plugin_call(parent->plugin->object_ops, link,
 			    parent);
 	}
 	
@@ -313,9 +313,9 @@ static errno_t callback_find_statdata(char *track,
 	}
 
 	/* Symlinks handling. Method "follow" should be implemented */
-	if (plugin->file_ops.follow) {
+	if (plugin->object_ops.follow) {
 		
-		if (!(entity = plugin_call(plugin->file_ops, open, 
+		if (!(entity = plugin_call(plugin->object_ops, open, 
 					   sym->obj.tree, place)))
 		{
 			aal_exception_error("Can't open parent of directory "
@@ -323,12 +323,12 @@ static errno_t callback_find_statdata(char *track,
 			return -1;
 		}
 
-		if (plugin->file_ops.follow(entity, &sym->obj.key)) {
+		if (plugin->object_ops.follow(entity, &sym->obj.key)) {
 			aal_exception_error("Can't follow %s.", track);
 			goto error_free_entity;
 		}
 
-		plugin_call(plugin->file_ops, close, entity);
+		plugin_call(plugin->object_ops, close, entity);
 	}
 	
 	plugin_call(sym->obj.key.plugin->key_ops,
@@ -337,7 +337,7 @@ static errno_t callback_find_statdata(char *track,
 	return 0;
 
  error_free_entity:
-	plugin_call(plugin->file_ops, close, entity);
+	plugin_call(plugin->object_ops, close, entity);
 	return -1;
 }
 
@@ -365,7 +365,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	}
 
 	/* Opening currect diretory */
-	if (!(entity = plugin_call(plugin->file_ops, open, 
+	if (!(entity = plugin_call(plugin->object_ops, open, 
 				   sym->obj.tree, place)))
 	{
 		aal_exception_error("Can't open parent of directory "
@@ -374,14 +374,14 @@ static errno_t callback_find_entry(char *track, char *entry,
 	}
 
 	/* Looking up for @enrty in current directory */
-	if (plugin_call(plugin->file_ops, lookup, entity,
+	if (plugin_call(plugin->object_ops, lookup, entity,
 			entry, &entry_hint) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
 	}
 
-	plugin_call(plugin->file_ops, close, entity);
+	plugin_call(plugin->object_ops, close, entity);
 
 	/* Assign found key to symlink's object stat data key */
 	plugin_call(item->key.plugin->key_ops, assign,
@@ -390,7 +390,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	return 0;
 	
  error_free_entity:
-	plugin_call(plugin->file_ops, close, entity);
+	plugin_call(plugin->object_ops, close, entity);
 	return -1;
 
 }
@@ -458,37 +458,39 @@ static void sym40_close(object_entity_t *entity) {
 }
 
 static reiser4_plugin_t sym40_plugin = {
-	.file_ops = {
+	.object_ops = {
 		.h = {
 			.handle = EMPTY_HANDLE,
-			.id = FILE_SYMLINK40_ID,
-			.group = SYMLINK_FILE,
-			.type = FILE_PLUGIN_TYPE,
+			.id = OBJECT_SYMLINK40_ID,
+			.group = SYMLINK_OBJECT,
+			.type = OBJECT_PLUGIN_TYPE,
 			.label = "sym40",
 			.desc = "Symlink for reiserfs 4.0, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE
-		.create	    = sym40_create,
-		.write	    = sym40_write,
-		.layout     = sym40_layout,
-		.metadata   = sym40_metadata,
-		.link       = sym40_link,
-		.unlink     = sym40_unlink,
-		.truncate   = NULL,
-		.remove     = NULL,
+		.create	      = sym40_create,
+		.write	      = sym40_write,
+		.layout       = sym40_layout,
+		.metadata     = sym40_metadata,
+		.link         = sym40_link,
+		.unlink       = sym40_unlink,
+		.truncate     = NULL,
+		.rem_entry    = NULL,
+		.add_entry    = NULL,
 #endif
-		.valid	    = NULL,
-		.lookup	    = NULL,
-		.reset	    = NULL,
-		.offset	    = NULL,
-		.seek	    = NULL,
-		.size       = NULL,
+		.valid	      = NULL,
+		.lookup	      = NULL,
+		.reset	      = NULL,
+		.offset	      = NULL,
+		.seek	      = NULL,
+		.size         = NULL,
+		.read_entry   = NULL,
 		
-		.follow     = sym40_follow,
-		.open	    = sym40_open,
-		.close	    = sym40_close,
-		.read	    = sym40_read
+		.follow       = sym40_follow,
+		.open	      = sym40_open,
+		.close	      = sym40_close,
+		.read	      = sym40_read
 	}
 };
 

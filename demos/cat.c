@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 
-	reiser4_file_t *reg;
+	reiser4_object_t *reg;
 
 	if (argc < 3) {
 		cat_print_usage();
@@ -65,10 +65,10 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
-	if (!(reg = reiser4_file_open(fs, argv[2])))
+	if (!(reg = reiser4_object_open(fs, argv[2])))
 		goto error_free_tree;
 
-	if (reg->entity->plugin->h.group != REGULAR_FILE) {
+	if (reg->entity->plugin->h.group != FILE_OBJECT) {
 		aal_exception_error("File %s is not a regular file.",
 				    argv[2]);
 		goto error_free_reg;
@@ -77,13 +77,13 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (!reiser4_file_read(reg, buff, sizeof(buff) - 1))
+		if (!reiser4_object_read(reg, buff, sizeof(buff) - 1))
 			break;
 
 		write(1, buff, sizeof(buff));
 	}
     
-	reiser4_file_close(reg);
+	reiser4_object_close(reg);
 
 	reiser4_fs_sync(fs);
 	reiser4_fs_close(fs);
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
 	return 0;
 
  error_free_reg:
-	reiser4_file_close(reg);
+	reiser4_object_close(reg);
  error_free_tree:
 	reiser4_tree_close(fs->tree);
  error_free_fs:

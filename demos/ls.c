@@ -28,11 +28,12 @@ static void ls_init(void) {
 }
 
 int main(int argc, char *argv[]) {
+	char buff[4096];
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 	reiser4_place_t place;
 
-	reiser4_file_t *dir;
+	reiser4_object_t *dir;
 	reiser4_entry_hint_t entry;
 
 	if (argc < 3) {
@@ -63,19 +64,19 @@ int main(int argc, char *argv[]) {
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
-	if (!(fs->root = reiser4_file_open(fs, "/"))) {
+	if (!(fs->root = reiser4_object_open(fs, "/"))) {
 		aal_exception_error("Can't open root dir.");
 		goto error_free_tree;
 	}
     
-	if (!(dir = reiser4_file_open(fs, argv[2]))) {
+	if (!(dir = reiser4_object_open(fs, argv[2]))) {
 		aal_exception_error("Can't open dir %s.", argv[2]);
 		goto error_free_root;
 	}
     
 	{
 		reiser4_plugin_t *dir_plugin;
-		reiser4_file_hint_t dir_hint;
+		reiser4_object_hint_t dir_hint;
 	
 		dir_hint.plugin = fs->root->entity->plugin;
 		dir_hint.statdata = ITEM_STATDATA40_ID;
@@ -86,47 +87,48 @@ int main(int argc, char *argv[]) {
 		{
 			int i;
 			char name[256];
-			reiser4_file_t *file;
+			reiser4_object_t *object;
 	    
 			for (i = 0; i < 5000; i++) {
 				aal_memset(name, 0, sizeof(name));
 
 				aal_snprintf(name, 256, "testdir%d", i);
 
-				if (!(file = reiser4_file_create(fs, dir, &dir_hint)))
+				if (!(object = reiser4_object_create(fs, dir, &dir_hint)))
 					goto error_free_dir;
 
-				if (reiser4_file_link(dir, file, name)) {
-					reiser4_file_close(file);
+				if (reiser4_object_link(dir, object, name)) {
+					reiser4_object_close(object);
 					goto error_free_dir;
 				}
 
-				place = file->place;
-				reiser4_file_close(file);
+				place = object->place;
+				reiser4_object_close(object);
 			}
 		}
 	}
     
-//	reiser4_file_unlink(dir, "testdir0");
-	
-	if (reiser4_file_reset(dir)) {
+	if (reiser4_object_reset(dir)) {
 		aal_exception_error("Can't rewind dir %s.", argv[2]);
 		goto error_free_dir;
 	}
     
-	while (reiser4_file_read(dir, (void *)&entry, 1)) {
-		aal_stream_t stream;
-		aal_stream_init(&stream);
-		
-		reiser4_key_print(&entry.object, &stream);
-		aal_stream_format(&stream, " %s\n", entry.name);
-		printf((char *)stream.data);
-		
-		aal_stream_fini(&stream);
+	while (1) {
+		aal_memset(buff, 0, sizeof(buff));
+
+		if (reiser4_object_read_entry(dir, &entry) != 0)
+			break;
+
+		reiser4_key_string(&entry.object, buff);
+
+		aal_snprintf(buff + aal_strlen(buff), sizeof(buff),
+			     " %s\n", entry.name);
+
+		printf(buff);
 	}
 
-	reiser4_file_close(dir);
-	reiser4_file_close(fs->root);
+	reiser4_object_close(dir);
+	reiser4_object_close(fs->root);
 	reiser4_tree_close(fs->tree);
 	reiser4_fs_close(fs);
     
@@ -136,9 +138,9 @@ int main(int argc, char *argv[]) {
 	return 0;
 
  error_free_dir:
-	reiser4_file_close(dir);
+	reiser4_object_close(dir);
  error_free_root:
-	reiser4_file_close(fs->root);
+	reiser4_object_close(fs->root);
  error_free_tree:
 	reiser4_tree_close(fs->tree);
  error_free_fs:

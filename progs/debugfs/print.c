@@ -275,9 +275,9 @@ errno_t debugfs_print_file(
 {
 	errno_t res = 0;
 	fprint_hint_t hint;
-	reiser4_file_t *file;
+	reiser4_object_t *object;
 	
-	if (!(file = reiser4_file_open(fs, filename)))
+	if (!(object = reiser4_object_open(fs, filename)))
 		return -1;
 
 	/*
@@ -290,11 +290,11 @@ errno_t debugfs_print_file(
 
 		aal_stream_init(&stream);
 		
-		if (reiser4_file_print(file, &stream) == 0)
+		if (reiser4_object_print(object, &stream) == 0)
 			debugfs_print_stream(&stream);
 		else {
 			aal_exception_error("Can't print file %s.",
-					    file->name);
+					    object->name);
 			res = -1;
 		}
 		
@@ -304,14 +304,14 @@ errno_t debugfs_print_file(
 		hint.data = fs;
 		hint.flags = flags;
 
-		if (reiser4_file_metadata(file, fprint_process_place, &hint)) {
-			aal_exception_error("Can't print file %s metadata.",
-					    file->name);
+		if (reiser4_object_metadata(object, fprint_process_place, &hint)) {
+			aal_exception_error("Can't print object %s metadata.",
+					    object->name);
 			res = -1;
 		}
 	}
 
-	reiser4_file_close(file);
+	reiser4_object_close(object);
 	return res;
 }
 

@@ -64,23 +64,23 @@ static reiser4_profile_t profiles[] = {
 			},
 			[10] = {
 				.name  = "regular",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_REGULAR40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_FILE40_ID
 			},
 			[11] = {
 				.name  = "directory",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_DIRTORY40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_DIRTORY40_ID
 			},
 			[12] = {
 				.name  = "symlink",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_SYMLINK40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_SYMLINK40_ID
 			},
 			[13] = {
 				.name  = "special",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_SPECIAL40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_SPECIAL40_ID
 			},
 			[14] = {
 				.name  = "format",
@@ -170,23 +170,23 @@ static reiser4_profile_t profiles[] = {
 			},
 			[10] = {
 				.name  = "regular",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_REGULAR40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_FILE40_ID
 			},
 			[11] = {
 				.name  = "directory",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_DIRTORY40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_DIRTORY40_ID
 			},
 			[12] = {
 				.name  = "symlink",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_SYMLINK40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_SYMLINK40_ID
 			},
 			[13] = {
 				.name  = "special",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_SPECIAL40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_SPECIAL40_ID
 			},
 			[14] = {
 				.name  = "format",
@@ -276,23 +276,23 @@ static reiser4_profile_t profiles[] = {
 			},
 			[10] = {
 				.name  = "regular",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_REGULAR40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_FILE40_ID
 			},
 			[11] = {
 				.name  = "directory",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_DIRTORY40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_DIRTORY40_ID
 			},
 			[12] = {
 				.name  = "symlink",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_SYMLINK40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_SYMLINK40_ID
 			},
 			[13] = {
 				.name  = "special",
-				.type  = FILE_PLUGIN_TYPE,
-				.value = FILE_SPECIAL40_ID
+				.type  = OBJECT_PLUGIN_TYPE,
+				.value = OBJECT_SPECIAL40_ID
 			},
 			[14] = {
 				.name  = "format",

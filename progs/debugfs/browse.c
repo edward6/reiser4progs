@@ -12,19 +12,21 @@
 #include "debugfs.h"
 
 /* If file is a regular one we show its contant here */
-static errno_t debugfs_file_cat(reiser4_file_t *file) {
+static errno_t debugfs_object_cat(reiser4_object_t *object) {
 	int32_t read;
 	char buff[4096];
 	
-	if (reiser4_file_reset(file)) {
-		aal_exception_error("Can't reset file %s.", file->name);
+	if (reiser4_object_reset(object)) {
+		aal_exception_error("Can't reset object %s.",
+				    object->name);
 		return -1;
 	}
-	
+
+	/* The loop until object_read returns zero bytes read */
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (!(read = reiser4_file_read(file, buff, sizeof(buff))))
+		if (!(read = reiser4_object_read(object, buff, sizeof(buff))))
 			break;
 
 		debugfs_print_buff(buff, read);
@@ -33,24 +35,30 @@ static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	return 0;
 }
 
-/* If file is the directory, we show its contant here */
-static errno_t debugfs_file_ls(reiser4_file_t *file) {
+/* If object is the directory, we show its contant here */
+static errno_t debugfs_object_ls(reiser4_object_t *object) {
+	char buff[4096];
 	reiser4_entry_hint_t entry;
 	
-	if (reiser4_file_reset(file)) {
-		aal_exception_error("Can't reset file %s.", file->name);
+	if (reiser4_object_reset(object)) {
+		aal_exception_error("Can't reset object %s.",
+				    object->name);
 		return -1;
 	}
-	
-	while (reiser4_file_read(file, &entry, 1)) {
-		aal_stream_t stream;
-		aal_stream_init(&stream);
-		
-		reiser4_key_print(&entry.object, &stream);
-		aal_stream_format(&stream, " %s\n", entry.name);
-		debugfs_print_stream(&stream);
-		
-		aal_stream_fini(&stream);
+
+	/* The loop until all entry read */
+	while (1) {
+		aal_memset(buff, 0, sizeof(buff));
+
+		if (reiser4_object_read_entry(object, &entry) != 0)
+			break;
+
+		reiser4_key_string(&entry.object, buff);
+
+		aal_snprintf(buff + aal_strlen(buff), sizeof(buff),
+			     " %s\n", entry.name);
+
+		debugfs_print_buff(buff, aal_strlen(buff));
 	}
 
 	printf("\n");
@@ -61,21 +69,20 @@ static errno_t debugfs_file_ls(reiser4_file_t *file) {
 /* Common entry point for --ls and --cat options handling code */
 errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	errno_t res = 0;
-	reiser4_file_t *file;
+	reiser4_object_t *object;
 	
-	if (!(file = reiser4_file_open(fs, filename)))
+	if (!(object = reiser4_object_open(fs, filename)))
 		return -1;
 
-	/* Determining what the type file is */
-	if (file->entity->plugin->h.group == REGULAR_FILE)
-		res = debugfs_file_cat(file);
-	else if (file->entity->plugin->h.group == DIRTORY_FILE)
-		res = debugfs_file_ls(file);
+	if (object->entity->plugin->h.group == FILE_OBJECT)
+		res = debugfs_object_cat(object);
+	else if (object->entity->plugin->h.group == DIRTORY_OBJECT)
+		res = debugfs_object_ls(object);
 	else {
-		aal_exception_info("Sorry, browsing of the special files "
-				   "is not implemented yet.");
+		aal_exception_info("Sorry, browsing of the special "
+				   "files is not implemented yet.");
 	}
 	
-	reiser4_file_close(file);
+	reiser4_object_close(object);
 	return res;
 }

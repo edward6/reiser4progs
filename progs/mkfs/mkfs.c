@@ -74,9 +74,9 @@ static void mkfs_init(void) {
 }
 
 /* Crates directory */
-static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs,
+static reiser4_object_t *mkfs_create_dir(reiser4_fs_t *fs,
 		                       const char *name,
-				       reiser4_file_t *parent,
+				       reiser4_object_t *parent,
 				       reiser4_profile_t *profile)
 {
 	rpid_t hash;
@@ -84,13 +84,13 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs,
 	rpid_t direntry;
 	rpid_t directory;
 
-	reiser4_file_t *file;
-	reiser4_file_hint_t hint;
+	reiser4_object_t *object;
+	reiser4_object_hint_t hint;
 
 	directory = reiser4_profile_value(profile, "directory");
 	
 	/* Preparing object hint */
-	hint.plugin = libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
+	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, 
 					       directory);
 
 	if (!hint.plugin) {
@@ -104,15 +104,15 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs,
 	hint.body.dir.direntry = reiser4_profile_value(profile, "direntry");
 
 	/* Creating directory by passed parameters */
-	if (!(file = reiser4_file_create(fs, parent, &hint)))
+	if (!(object = reiser4_object_create(fs, parent, &hint)))
 		return NULL;
 
 	if (parent) {
-		if (reiser4_file_link(parent, file, name))
+		if (reiser4_object_link(parent, object, name))
 			return NULL;
 	}
 
-	return file;
+	return object;
 }
 
 int main(int argc, char *argv[]) {
@@ -418,7 +418,7 @@ int main(int argc, char *argv[]) {
 	
 		/* Creating lost+found directory */
 		if (flags & BF_LOST) {
-			reiser4_file_t *object;
+			reiser4_object_t *object;
 	    
 			if (!(object = mkfs_create_dir(fs, "lost+found",
 						       fs->root, profile)))
@@ -428,7 +428,7 @@ int main(int argc, char *argv[]) {
 				goto error_free_root;
 			}
 	    
-			reiser4_file_close(object);
+			reiser4_object_close(object);
 		}
 	
 		aal_gauge_done(gauge);
@@ -461,7 +461,7 @@ int main(int argc, char *argv[]) {
 		aal_gauge_done(gauge);
 
 		/* Freeing the root directory */
-		reiser4_file_close(fs->root);
+		reiser4_object_close(fs->root);
 
 		/* Freeing tree */
 		reiser4_tree_close(fs->tree);
@@ -487,7 +487,7 @@ int main(int argc, char *argv[]) {
 	return NO_ERROR;
 
  error_free_root:
-	reiser4_file_close(fs->root);
+	reiser4_object_close(fs->root);
  error_free_tree:
 	reiser4_tree_close(fs->tree);
  error_free_journal:

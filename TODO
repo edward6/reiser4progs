@@ -40,8 +40,7 @@ reiser4progs/COPYING.
   not allow write symlinks? Write method may just remove old stat
   data and insert new one.
 
-* repacking is needed after tree is created by reiser4progs. Or we
-  should produce the tree in the right order.
+* repacking is needed after tree is created by libreiser4.
 
 * should we move out all bitmap's and alloc's functions which do not work 
   with regions and rename the rest in more simple maner (without region)?

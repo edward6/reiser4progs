@@ -95,7 +95,6 @@ typedef struct reiser4_place reiser4_place_t;
 struct reiser4_place {
 	reiser4_node_t *node;
 	rpos_t pos;
-	
 	item_entity_t item;
 };
 
@@ -121,8 +120,8 @@ typedef struct lru_link lru_link_t;
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
 	
-	/* Position in parent node */
-	rpos_t pos;
+	/* Place in parent node */
+	reiser4_place_t parent;
 
 #ifndef ENABLE_ALONE
 	/* Lru related fields */
@@ -140,9 +139,6 @@ struct reiser4_node {
 	  functions.
 	*/
 	reiser4_tree_t *tree;
-	
-	/* Reference to parent node. Only root has not refference to parent */
-	reiser4_node_t *parent;
 	
 	/*
 	  Reference to left neighbour. It is used for establishing silbing links
@@ -185,7 +181,7 @@ struct reiser4_node {
 };
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
-struct reiser4_file {
+struct reiser4_object {
 
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *entity;
@@ -215,7 +211,7 @@ struct reiser4_file {
 #endif
 };
 
-typedef struct reiser4_file reiser4_file_t;
+typedef struct reiser4_object reiser4_object_t;
 
 #ifndef ENABLE_ALONE
 
@@ -442,7 +438,7 @@ struct reiser4_fs {
 #ifndef ENABLE_ALONE
 	
 	/* Pointer to the semantic tree wrapper object */
-	reiser4_file_t *root;
+	reiser4_object_t *root;
 
 	/*
 	  Default profile. All plugin ids which cannot be obtained anywhere (for

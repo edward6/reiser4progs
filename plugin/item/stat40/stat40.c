@@ -452,17 +452,17 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 	}
 
 	/* Inspecting st_mode field */
-	pid = FILE_SPECIAL40_ID;
+	pid = OBJECT_SPECIAL40_ID;
 	
 	if (S_ISLNK(lw_hint.mode))
-		pid = FILE_SYMLINK40_ID;
+		pid = OBJECT_SYMLINK40_ID;
 	else if (S_ISREG(lw_hint.mode))
-		pid = FILE_REGULAR40_ID;
+		pid = OBJECT_FILE40_ID;
 	else if (S_ISDIR(lw_hint.mode))
-		pid = FILE_DIRTORY40_ID;
+		pid = OBJECT_DIRTORY40_ID;
 
 	/* Finding plugin by found id */
-	return core->factory_ops.ifind(FILE_PLUGIN_TYPE, pid);
+	return core->factory_ops.ifind(OBJECT_PLUGIN_TYPE, pid);
 }
 
 /* Stat data plugin preparing */

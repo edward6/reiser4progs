@@ -24,7 +24,7 @@ extern "C" {
 #include "tree.h"
 #include "node.h"
 #include "key.h"
-#include "file.h"
+#include "object.h"
 #include "place.h"
 #include "master.h"
 #include "item.h"
