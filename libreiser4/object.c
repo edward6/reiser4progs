@@ -17,29 +17,23 @@
 static bool_t callback_guess_object(reiser4_plugin_t *plugin,
 				     void *data)
 {
-	void *tree, *place;
 	reiser4_object_t *object;
 
 	/* We are interested only in object plugins here */
-	if (plugin->h.type == OBJECT_PLUGIN_TYPE) {
+	if (plugin->h.type != OBJECT_PLUGIN_TYPE)
+		return FALSE;
+	
+	object = (reiser4_object_t *)data;
+	
+	/*
+	  Requesting object plugin to open the object on passed @tree
+	  and @place. If it fails, we will continue lookup.
+	*/
+	object->entity = plugin_call(plugin->o.object_ops, open,
+				     (void *)object->fs->tree,
+				     (void *)&object->place);
 
-		object = (reiser4_object_t *)data;
-		
-		place = (void *)&object->place;
-		tree = (void *)object->fs->tree;
-		
-		/*
-		  Requesting object plugin to open the object on passed @tree
-		  and @place. If it fails, we will continue lookup.
-		*/
-		if ((object->entity = plugin_call(plugin->o.object_ops,
-						  open, tree, place)))
-			return TRUE;
-
-		object->entity = NULL;
-	}
-
-	return FALSE;
+	return object->entity != NULL;
 }
 
 uint64_t reiser4_object_size(reiser4_object_t *object) {
@@ -69,7 +63,6 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 /* Looks up for the object stat data place in tree */
 errno_t reiser4_object_stat(reiser4_object_t *object) {
 	errno_t res;
-	item_entity_t *item;
 
 	/* Performing lookup for statdata of current directory */
 	switch (reiser4_tree_lookup(object->fs->tree, &object->key,
@@ -80,8 +73,8 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 		if ((res = reiser4_place_realize(&object->place)))
 			return res;
 
-		item = &object->place.item;
-		return reiser4_key_assign(&object->key, &item->key);
+		reiser4_key_assign(&object->key, &object->place.item.key);
+		return 0;
 	default:
 		return -EINVAL;
 	}
@@ -150,19 +143,17 @@ static errno_t callback_find_statdata(char *track, char *entry,
 static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
-	errno_t res = 0;
+	errno_t res;
 	lookup_t lookup;
 	
 	entry_hint_t entry_hint;
 	reiser4_object_t *object;
-	reiser4_plugin_t *plugin;
 
 	object = (reiser4_object_t *)data;
-	plugin = object->entity->plugin;
 
 	/* Looking up for @entry in current directory */
-	lookup = plugin_call(plugin->o.object_ops, lookup,
-			     object->entity, entry, &entry_hint);
+	lookup = plugin_call(object->entity->plugin->o.object_ops,
+			     lookup, object->entity, entry, &entry_hint);
 	
 	if (lookup == PRESENT) {
 		res = reiser4_key_assign(&object->key,
@@ -606,8 +597,7 @@ void reiser4_object_close(
 
 	plugin_call(object->entity->plugin->o.object_ops,
 		    close, object->entity);
-    
- error_free_object:
+
 	aal_free(object);
 }
 

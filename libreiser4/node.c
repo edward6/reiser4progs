@@ -116,35 +116,42 @@ errno_t reiser4_node_print(
   Helper callback for checking if passed @plugin convenient one for passed @blk
   to open it or not.
 */
-static int callback_guess_node(reiser4_plugin_t *plugin,
+static bool_t callback_guess_node(reiser4_plugin_t *plugin,
 			       void *data)
 {
-	reiser4_node_t *node = (reiser4_node_t *)data;
+	reiser4_node_t *node;
 
 	/* We are interested only in node plugins here */
-	if (plugin->h.type == NODE_PLUGIN_TYPE) {
-		/*
-		  Requesting block supposed to be a correct node to be opened
-		  and confirmed about its format.
-		*/
-		if (!(node->entity = plugin_call(plugin->o.node_ops, init,
-						 node->device, node->size,
-						 node->blk)))
-			return 0;
-
-		if (plugin_call(plugin->o.node_ops, load, node->entity))
-			goto error_free_entity;
-		
-		/* Okay, we have found needed node plugin */
-		if (plugin_call(plugin->o.node_ops, confirm, node->entity))
-			return 1;
-
-	error_free_entity:
-		plugin_call(plugin->o.node_ops, close, node->entity);
-		node->entity = NULL;
-	}
+	if (plugin->h.type != NODE_PLUGIN_TYPE)
+		return FALSE;
 	
-	return 0;
+	node = (reiser4_node_t *)data;
+	
+	/*
+	  Requesting block supposed to be a correct node to be opened
+	  and confirmed about its format.
+	*/
+	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
+					 node->device, node->size,
+					 node->blk)))
+		return FALSE;
+
+	if (plugin_call(plugin->o.node_ops, load, node->entity))
+		goto error_free_entity;
+		
+	/*
+	  Okay, we have found needed node plugin, now we should confirm that
+	  @node is realy formatted node and it uses @plugin.
+	*/
+	if (plugin_call(plugin->o.node_ops, confirm, node->entity))
+		return TRUE;
+
+ error_free_entity:
+	plugin_call(plugin->o.node_ops, close,
+		    node->entity);
+	
+	node->entity = NULL;
+	return FALSE;
 }
 
 /* This function is trying to detect node plugin */
