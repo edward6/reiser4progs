@@ -637,7 +637,10 @@ struct reiser4_item_ops {
  
 	/* Get the max real key which is stored in the item */
 	errno_t (*max_real_key) (item_entity_t *, reiser4_key_t *);
-    
+
+	/* Get the key of a particular unit of the item. */
+	errno_t (*unit_key) (item_entity_t *, uint16_t, reiser4_key_t *);
+
 	/* Returns unit count */
 	uint32_t (*units) (item_entity_t *);
 
@@ -952,6 +955,9 @@ struct reiser4_alloc_ops {
 	/* Creates block allocator */
 	object_entity_t *(*create) (object_entity_t *, uint64_t);
     
+	/* Assign the bitmap to the block allocator. */
+	errno_t (*assign) (object_entity_t *, void *);
+
 	/* Closes blcok allocator */
 	void (*close) (object_entity_t *);
 
