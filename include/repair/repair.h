@@ -63,6 +63,7 @@ struct repair_check {
 	    uint8_t level;
 	    aux_bitmap_t *once_pointed;
 	    aux_bitmap_t *many_pointed;
+	    aux_bitmap_t *format_layout;
 	    aal_list_t *nodes_path;
 	    aal_list_t *items_path;
 	} cut;
