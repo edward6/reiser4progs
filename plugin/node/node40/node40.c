@@ -886,7 +886,8 @@ static errno_t node40_copy(object_entity_t *dst_entity,
 	dst_node = (node40_t *)dst_entity;
 	src_node = (node40_t *)src_entity;
 	
-	return node40_rep(dst_node, dst_pos, src_node, src_pos, count);
+	return node40_rep(dst_node, dst_pos, src_node,
+			  src_pos, count);
 }
 
 static errno_t node40_expand(object_entity_t *entity,
