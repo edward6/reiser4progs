@@ -192,7 +192,7 @@ typedef struct reg40_repair {
 	reiser4_plug_t *tplug;
 	reiser4_plug_t *bplug;
 	reiser4_plug_t *extent;
-	uint64_t size, bytes, maxreal;
+	uint64_t bytes, maxreal;
 } reg40_repair_t;
 
 static errno_t reg40_next(object_entity_t *object, 
@@ -340,7 +340,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 		plug_call(reg->body.key.plug->o.key_ops, set_offset,
 			  &hint->offset, 0);
 
-		hint->bytes = hint->size = 0;
+		hint->bytes = 0;
 
 		/* Count of bytes 0-this item offset. */
 		hint->count = plug_call(reg->body.key.plug->o.key_ops, 
@@ -349,7 +349,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 		reg->policy = repair->extent;
 
 		/* Evth is to be converted. */
-		repair->size = repair->bytes = 0;
+		repair->bytes = 0;
 
 		return 1;
 	}
@@ -360,25 +360,14 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 		plug_call(reg->body.key.plug->o.key_ops, assign,
 			  &hint->offset, &reg->offset);
 
-		hint->bytes = hint->size = 0;
+		hint->bytes = 0;
 	}
 
 	/* Count of bytes 0-this item offset. */
 	hint->count = repair->maxreal + 1 - 
 		plug_call(reg->body.key.plug->o.key_ops,
 			  get_offset, &hint->offset);
-/*
-	} else if (hint->offset.plug) {
-		// Plugins are equal. But some items need to be converted.
-		if ((res = rcore->tree_ops.conv(info->tree, hint)) < 0)
-			return res;
 
-		// Evth was converted, update size and bytes. 
-		repair->size += hint->size;
-		repair->bytes += hint->bytes;
-		aal_memset(&hint->offset, 0, sizeof(hint->offset));
-	}
-*/
 	return 0;
 }
 
@@ -430,8 +419,6 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 
-	repair->size += offset - reg40_offset(object);
-
 	if ((res = reg40_create_hole(reg, offset - reg40_offset(object))) < 0)
 		return res;
 	
@@ -445,8 +432,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	reg40_t *reg = (reg40_t *)object;
-	uint64_t offset;
 	reg40_repair_t repair;
+	uint64_t offset, size;
 	object_info_t *info;
 	conv_hint_t hint;
 	errno_t res = 0;
@@ -551,8 +538,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			
 			if (result) return result;
 
-			/* Evth was converted, update size and bytes. */
-			repair.size += hint.size;
+			/* Evth was converted, update bytes. */
 			repair.bytes += hint.bytes;
 			aal_memset(&hint, 0, sizeof(hint));
 			
@@ -580,10 +566,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
 			return res;
 
-		/* Count size and bytes. */
-		repair.size += plug_call(reg->body.plug->o.item_ops,
-					 size, &reg->body);
-		
+		/* Count bytes. */
 		repair.bytes += plug_call(reg->body.plug->o.item_ops,
 					  bytes, &reg->body);
 		
@@ -596,13 +579,17 @@ errno_t reg40_check_struct(object_entity_t *object,
 		reg40_seek(object, repair.maxreal + 1);
 	}
 	
+	
 	/* Fix the SD, if no fatal corruptions were found. */
-	if (!(res & RE_FATAL))
+	if (!(res & RE_FATAL)) {
+		size = plug_call(reg->offset.plug->o.key_ops, 
+				 get_offset, &reg->offset);
+		
 		res |= obj40_check_stat(&reg->obj, mode == RM_BUILD ?
 					reg40_zero_nlink : NULL,
-					reg40_check_mode, 
-					reg40_check_size,
-					repair.size, repair.bytes, mode);
+					reg40_check_mode, reg40_check_size,
+					size, repair.bytes, mode);
+	}
 
 	return res;
 }
