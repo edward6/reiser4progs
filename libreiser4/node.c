@@ -71,15 +71,21 @@ struct guess_node {
 	object_entity_t *entity;
 };
 
+/* Helper callback for comparing plugins durring searching needed one */
 static errno_t callback_guess_node(reiser4_plugin_t *plugin, void *data) {
 	struct guess_node *guess = (struct guess_node *)data;
 
+	/* We are interested only in node plugins here */
 	if (plugin->h.sign.type == NODE_PLUGIN_TYPE) {
 
+		/*
+		  Requesting block supposed to be a correct node to be opened
+		  and confirmed about its format.
+		*/
 		if (!(guess->entity = plugin_call(return -1, plugin->node_ops,
 						  open, guess->device, guess->blk)))
 			return -1;
-		
+
 		if (plugin_call(return -1, plugin->node_ops, confirm, guess->entity))
 			return 1;
 
@@ -143,7 +149,10 @@ reiser4_node_t *reiser4_node_open(
 	return NULL;
 }
 
-/* Closes specified node */
+/*
+  Closes specified node and ites children. Before the closing, this function
+  also detaches nodes from the tree if they were attached.
+*/
 errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL, return -1);
 	aal_assert("umka-903", node->entity != NULL, return -1);
@@ -157,7 +166,8 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 		aal_exception_warn("Destroing locked (%d) node. Block %llu.",
 				   node->counter, node->blk);
 	}*/
-	
+
+	/* Closing children */
 	if (node->children) {
 		aal_list_t *walk;
 
@@ -170,7 +180,8 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 		aal_list_free(node->children);
 		node->children = NULL;
 	}
- 
+
+	/* Detaching node from the tree */
 	if (node->parent) {
 		reiser4_node_detach(node->parent, node);
 		node->parent = NULL;
@@ -185,7 +196,11 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
     
 	node->left = NULL;
 	node->right = NULL;
-	
+
+	/*
+	  Calling close method from the plugin in odrder to finilize own
+	  entity.
+	*/
 	plugin_call(return -1, node->entity->plugin->node_ops,
 		    close, node->entity);
 	    
@@ -194,6 +209,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	return 0;
 }
 
+/* Increaases lock counter to prevent releasing node from the tree. */
 errno_t reiser4_node_lock(reiser4_node_t *node) {
 	aal_assert("umka-1515", node != NULL, return -1);
 
@@ -201,6 +217,7 @@ errno_t reiser4_node_lock(reiser4_node_t *node) {
 	return 0;
 }
 
+/* Decreasing lock counter */
 errno_t reiser4_node_unlock(reiser4_node_t *node) {
 	aal_assert("umka-1515", node != NULL, return -1);
 	aal_assert("umka-1517", node->counter > 0, return -1);
@@ -209,6 +226,7 @@ errno_t reiser4_node_unlock(reiser4_node_t *node) {
 	return 0;
 }
 
+/* Getting the left delimiting key */
 errno_t reiser4_node_lkey(
 	reiser4_node_t *node,	/* node the ldkey will be obtained from */
 	reiser4_key_t *key)	/* key pointer found key will be stored in */
@@ -242,14 +260,13 @@ errno_t reiser4_node_nkey(
     
 	/* Checking for position */
 	if (direction == D_LEFT) {
-	    
 		if (pos.item == 0) 
 			return -1;
 	
 	} else {
 		reiser4_node_t *parent = node->parent;
 	
-		/* Checking and proceccing the special case called "shaft" */
+		/* Checking and processing the special case called "shaft" */
 		if (pos.item == reiser4_node_count(parent) - 1) {
 
 			if (!parent->parent)
@@ -292,8 +309,8 @@ errno_t reiser4_node_pos(
 }
 
 /* 
-   This function raises up both neighbours of the passed node. This is used by
-   shifting code in tree.c
+   This function raises up to the tree the left neighbour node. This is used by
+   mkspace function in tree.c
 */
 reiser4_node_t *reiser4_node_left(
 	reiser4_node_t *node)	/* node for working with */
@@ -332,6 +349,7 @@ reiser4_node_t *reiser4_node_left(
 	return node->left;
 }
 
+/* The same as previous function, but for right neighbour. */
 reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
 	reiser4_key_t key;
 
@@ -352,7 +370,10 @@ reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
 	return node->right;
 }
 
-/* Helper function for registering in node */
+/*
+  Helper callback function for comparing two nodes durring registering the new
+  child.
+*/
 static int callback_comp_node(
 	const void *item1,		/* the first node instance for comparing */
 	const void *item2,		/* the second one */
@@ -369,7 +390,10 @@ static int callback_comp_node(
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
-/* Helper for comparing during finding in the children list */
+/*
+  Helper callback function for comparing two keys durring registering the new
+  child.
+*/
 static inline int callback_comp_key(
 	const void *item,		/* node find will operate on */
 	const void *key,		/* key to be find */
@@ -398,7 +422,10 @@ reiser4_node_t *reiser4_node_child(
 	if (!node->children)
 		return NULL;
     
-	/* Using aal_list find function */
+	/*
+	  Using aal_list_find_custom function with local helper functions for
+	  comparing keys.
+	*/
 	if (!(list = aal_list_find_custom(node->children, (void *)key,
 					  callback_comp_key, NULL)))
 		return NULL;
@@ -412,7 +439,7 @@ reiser4_node_t *reiser4_node_child(
 }
 
 /*
-  Connects children into sorted children list of specified node. Sets up both
+  Connects child into sorted children list of specified node. Sets up the both
   neighbours and parent pointer.
 */
 errno_t reiser4_node_attach(
@@ -426,9 +453,10 @@ errno_t reiser4_node_attach(
 	aal_assert("umka-561", node != NULL, return -1);
 	aal_assert("umka-564", child != NULL, return -1);
 
+	/* Inserting new child into children list */
 	node->children = aal_list_insert_sorted(node->children, child,
 						callback_comp_node, NULL);
-    
+
 	left = node->children->prev ? 
 		node->children->prev->data : NULL;
     
@@ -437,6 +465,7 @@ errno_t reiser4_node_attach(
     
 	child->parent = node;
 
+	/* Checking tree validness and updating node parent pos */
 	if (reiser4_node_pos(child, &child->pos)) {
 		aal_exception_error("Can't find child %llu in parent node %llu.",
 				    child->blk, node->blk);
@@ -472,6 +501,7 @@ errno_t reiser4_node_attach(
 
 	node->children = aal_list_first(node->children);
 
+	/* Attacking new node into trees lru list */
 	if (node->tree && aal_lru_attach(node->tree->lru, (void *)child))
 		aal_exception_warn("Can't attach node to tree lru.");
 	
@@ -520,8 +550,8 @@ int reiser4_node_confirm(reiser4_node_t *node) {
 }
 
 /* 
-   This function makes lookup inside specified node in order to find item/unit
-   stored in it.
+   This function makes search inside specified node for passed key. Position
+   will eb stored in passed @pos.
 */
 int reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
@@ -556,6 +586,7 @@ int reiser4_node_lookup(
 	if (lookup == 1)
 		return 1;
 
+	/* Initializing item coord points to */
 	if (reiser4_coord_open(&coord, node, pos)) {
 		aal_exception_error("Can't open item by coord. Node "
 				    "%llu, item %u.", node->blk, pos->item);
@@ -583,7 +614,7 @@ int reiser4_node_lookup(
 	/* Calling lookup method of found item (most probably direntry item) */
 	if (!item->plugin->item_ops.lookup)
 		return 0;
-	    
+
 	if ((lookup = item->plugin->item_ops.lookup(item, key, &pos->unit)) == -1) {
 		aal_exception_error("Lookup in the item %d in the node %llu failed.", 
 				    pos->item, node->blk);
@@ -636,6 +667,10 @@ errno_t reiser4_node_valid(
 
 #ifndef ENABLE_COMPACT
 
+/*
+  Makes shift of some amount of items and units into passed neighbour. Shift
+  direction and other flags are passed by @hint. Returns operation error code.
+*/
 errno_t reiser4_node_shift(
 	reiser4_node_t *node,
 	reiser4_node_t *neig,
@@ -714,6 +749,11 @@ errno_t reiser4_node_shift(
 		
 	}
 
+        /*
+	  FIXME-UMKA: Here also should be updating of the children list of the
+	  both nodes.
+	*/
+	
 	return 0;
 }
 
@@ -801,8 +841,8 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 }
 
 /* 
-   Inserts item or unit into cached node. Keeps track of changes of the left
-   delimiting key.
+   Inserts item or unit into node. Keeps track of changes of the left delimiting
+   keys.
 */
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	            /* node item will be inserted in */
@@ -1013,10 +1053,12 @@ errno_t reiser4_node_traverse(
 
 		if (!(hint->objects & (1 << reiser4_item_type(&coord))))
 			continue;
-	    
+
+		/* The loop though the units of the current item */
 		for (pos->unit = 0; pos->unit < reiser4_item_count(&coord); pos->unit++) {
 			reiser4_ptr_hint_t ptr;
-		
+
+			/* Fetching node ptr */
 			if (plugin_call(continue, coord.entity.plugin->item_ops,
 					fetch, &coord.entity, pos->unit, &ptr, 1))
 				goto error_after_func;
