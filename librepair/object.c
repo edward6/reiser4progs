@@ -7,6 +7,9 @@
 
 #include <repair/object.h>
 
+extern void reiser4_object_create_base(reiser4_fs_t *fs,
+    reiser4_object_t *parent, reiser4_object_t *object, object_hint_t *hint);
+
 errno_t repair_object_check_struct(reiser4_object_t *obj, uint8_t mode) {
     aal_assert("vpf-1044", obj != NULL);
 
@@ -22,7 +25,6 @@ reiser4_object_t *repair_object_force_create(reiser4_fs_t *fs,
     reiser4_object_t *parent, object_hint_t *hint)
 {
     reiser4_object_t *object;
-    oid_t objectid, locality;
 
     aal_assert("vpf-1064", fs != NULL);
     aal_assert("vpf-1065", parent != NULL);
@@ -32,32 +34,9 @@ reiser4_object_t *repair_object_force_create(reiser4_fs_t *fs,
     /* Allocating the memory for object instance */
     if (!(object = aal_calloc(sizeof(*object), 0)))
 	return NULL;
-
-    /* Initializing fields and preparing the keys */
-    object->fs = fs;
-	
-    if (parent) {
-	reiser4_key_assign(&hint->parent, &parent->key);
-	objectid = reiser4_oid_allocate(fs->oid);
-    } else {
-
-	/* parent == NULL. Special case for root directory. */
-	hint->parent.plugin = fs->tree->key.plugin;
-		
-	if (reiser4_fs_hyper_key(fs, &hint->parent))
-	    goto error_free_object;
-		
-	objectid = reiser4_oid_root_objectid(fs->oid);
-    }
-
-    locality = reiser4_key_get_objectid(&hint->parent);
     
-    /* Building stat data key of the new object */
-    hint->object.plugin = hint->parent.plugin;
-    reiser4_key_clean(&hint->object);
-    reiser4_key_set_locality(&hint->object, locality);
-    reiser4_key_set_objectid(&hint->object, objectid);
-	
+    reiser4_object_create_base(fs, parent, object, hint);
+    
     if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
 	create, fs->tree, parent ? parent->entity : NULL, hint, 
 	(place_t *)&object->place)))

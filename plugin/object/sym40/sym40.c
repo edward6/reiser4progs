@@ -327,7 +327,8 @@ static reiser4_object_ops_t sym40_ops = {
 	
 	.open	      = sym40_open,
 	.close	      = sym40_close,
-	.follow       = sym40_follow
+	.follow       = sym40_follow,
+	.check_struct = NULL
 };
 
 static reiser4_plugin_t sym40_plugin = {

@@ -756,7 +756,8 @@ static reiser4_object_ops_t reg40_ops = {
 	.seek	      = reg40_seek,
 	.offset	      = reg40_offset,
 	.size         = reg40_size,
-	.read	      = reg40_read
+	.read	      = reg40_read,
+	.check_struct = NULL
 };
 
 static reiser4_plugin_t reg40_plugin = {

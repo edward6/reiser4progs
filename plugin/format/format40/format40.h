@@ -32,7 +32,7 @@ struct format40_super {
 
 	d16_t sb_tree_height;
 	d16_t sb_tail_policy;
-
+	
 	char sb_unused[440];
 };
 

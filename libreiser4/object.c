@@ -337,6 +337,45 @@ int32_t reiser4_object_write(
 			   write, object->entity, buff, n);
 }
 
+/* Helps to create methods. */
+void reiser4_object_create_base(
+	reiser4_fs_t *fs,
+	reiser4_object_t *parent,
+	reiser4_object_t *object,
+	object_hint_t *hint) 
+{
+	oid_t objectid, locality;
+	
+	/* Initializing fields and preparing the keys */
+	object->fs = fs;
+	
+	if (parent) {
+		reiser4_key_assign(&hint->parent, &parent->key);
+		
+		objectid = reiser4_oid_allocate(fs->oid);
+		locality = reiser4_key_get_objectid(&hint->parent);
+	} else {
+		/* Parent is NULL -- special case for '/' directory. */
+		
+		hint->parent.plugin = fs->tree->key.plugin;
+		
+		reiser4_fs_hyper_key(fs, &hint->parent);
+		
+		locality = reiser4_oid_root_locality(fs->oid);
+		objectid = reiser4_oid_root_objectid(fs->oid);
+	}
+	
+	/* 
+	   New object is identified by its locality and objectid. Set them to 
+	   the @hint->object key and plugin create method will build the whole 
+	   key there.
+	*/
+	hint->object.plugin = hint->parent.plugin;
+	reiser4_key_clean(&hint->object);
+	reiser4_key_set_locality(&hint->object, locality);
+	reiser4_key_set_objectid(&hint->object, objectid);
+}
+
 /* Creates new object on specified filesystem */
 reiser4_object_t *reiser4_object_create(
 	reiser4_fs_t *fs,		     /* fs obejct will be created on */
@@ -344,7 +383,6 @@ reiser4_object_t *reiser4_object_create(
 	object_hint_t *hint)                 /* object hint */
 {
 	reiser4_object_t *object;
-	oid_t objectid, locality;
 	
 	aal_assert("umka-790", fs != NULL);
 	aal_assert("umka-1128", hint != NULL);
@@ -355,37 +393,8 @@ reiser4_object_t *reiser4_object_create(
 				    "the tree being initialized.");
 		return NULL;
 	}
-    
-	/* Allocating the memory for object instance */
-	if (!(object = aal_calloc(sizeof(*object), 0)))
-		return NULL;
-
-	/* Initializing fields and preparing the keys */
-	object->fs = fs;
 	
-	/* 
-	  This is the special case. In the case parent is NULL, we are trying to
-	  create root directory.
-	*/
-	if (parent) {
-		reiser4_key_assign(&hint->parent, &parent->key);
-		
-		objectid = reiser4_oid_allocate(fs->oid);
-		locality = reiser4_key_get_objectid(&hint->parent);
-	} else {
-		hint->parent.plugin = fs->tree->key.plugin;
-		
-		if (reiser4_fs_hyper_key(fs, &hint->parent))
-			goto error_free_object;
-		
-		locality = reiser4_oid_root_locality(fs->oid);
-		objectid = reiser4_oid_root_objectid(fs->oid);
-	}
-	
-	hint->object.plugin = hint->parent.plugin;
-	reiser4_key_clean(&hint->object);
-	reiser4_key_set_locality(&hint->object, locality);
-	reiser4_key_set_objectid(&hint->object, objectid);
+	reiser4_object_create_base(fs, parent, object, hint);
 	
 	if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
 					   create, fs->tree, parent ?
@@ -397,11 +406,12 @@ reiser4_object_t *reiser4_object_create(
 		goto error_free_object;
 	}
 	
+	/* @hint->object key is build by plugin create method. */
 	reiser4_key_assign(&object->key, &hint->object);
 	reiser4_key_string(&object->key, object->name);
 	
 	return object;
-
+	
  error_free_object:
 	aal_free(object);
 	return NULL;

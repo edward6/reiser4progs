@@ -375,8 +375,10 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	root_locality = REISER4_ROOT_LOCALITY;
 	root_objectid = REISER4_ROOT_OBJECTID;
 #endif
-	/* FIXME-VITALY->UMKA: Only object plugin can create this key.
-	 * Ask openned '/' for it. */
+	/* FIXME-VITALY: Only object plugin can create this key.
+	 * The best way is to have some method like make_pointer in
+	 * object plugins which will do it. But it is useless difficulty
+	 * for now. */
 	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
 					 root_locality, root_objectid, 0);
 }

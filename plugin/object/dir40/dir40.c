@@ -1023,9 +1023,10 @@ static reiser4_object_ops_t dir40_ops = {
 	.size	      = dir40_size,
 	.seekdir      = dir40_seekdir,
 	.readdir      = dir40_readdir,
-		
+	.check_struct = NULL,
+
 #ifndef ENABLE_STAND_ALONE
-	.telldir      = dir40_telldir
+	.telldir      = dir40_telldir,
 #else
 	.telldir      = NULL
 #endif
