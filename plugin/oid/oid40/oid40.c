@@ -178,7 +178,7 @@ static reiser4_plugin_t oid40_plugin = {
 			.group = 0,
 			.type = OID_PLUGIN_TYPE,
 			.label = "oid40",
-			.desc = "Inode allocator for reiserfs 4.0, ver. " VERSION,
+			.desc = "Inode allocator for reiser4, ver. " VERSION,
 		},
 		.open		= oid40_open,
 		.close		= oid40_close,

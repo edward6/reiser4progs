@@ -10,11 +10,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t node40_plugin;
 
-/* Names of levels nodes lie on. It is used for node40_print function */
-static char *levels[6] = {
-	"LEAF", "LEAF", "TWIG",	"INTERNAL", "INTERNAL",	"INTERNAL"
-};
-
 /* Returns node level */
 uint8_t node40_get_level(object_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL);
@@ -904,6 +899,11 @@ static errno_t node40_set_stamp(
 	return 0;
 }
 
+/* Names of levels nodes lie on. It is used for node40_print function */
+static char *levels[6] = {
+	"LEAF", "LEAF", "TWIG",	"INTERNAL", "INTERNAL",	"INTERNAL"
+};
+
 /* Prepare text node description and push it into specied @stream. */
 static errno_t node40_print(object_entity_t *entity,
 			    aal_stream_t *stream,
@@ -1693,7 +1693,7 @@ static reiser4_plugin_t node40_plugin = {
 			.group = 0,
 			.type = NODE_PLUGIN_TYPE,
 			.label = "node40",
-			.desc = "Node for reiserfs 4.0, ver. " VERSION,
+			.desc = "Node for reiser4, ver. " VERSION,
 		},
 		
 		.open		 = node40_open,

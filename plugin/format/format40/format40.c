@@ -110,10 +110,12 @@ static errno_t format40_super_check(format40_super_t *super,
 	blk_t dev_len = aal_device_len(device);
     
 	if (get_sb_block_count(super) > dev_len) {
+#ifndef ENABLE_ALONE
 		aal_exception_error("Superblock has an invalid block "
 				    "count %llu for device length %llu "
 				    "blocks.", get_sb_block_count(super),
 				    dev_len);
+#endif
 		return -EINVAL;
 	}
     
@@ -122,9 +124,11 @@ static errno_t format40_super_check(format40_super_t *super,
 	if (get_sb_root_block(super) < offset ||
 	    get_sb_root_block(super) > dev_len)
 	{
+#ifndef ENABLE_ALONE
 		aal_exception_error("Superblock has an invalid root block "
 				    "%llu for device length %llu blocks.",
 				    get_sb_root_block(super), dev_len);
+#endif
 		return -EINVAL;
 	}
 	
@@ -456,7 +460,7 @@ static reiser4_plugin_t format40_plugin = {
 			.group = 0,
 			.type = FORMAT_PLUGIN_TYPE,
 			.label = "format40",
-			.desc = "Disk-format for reiserfs 4.0, ver. " VERSION,
+			.desc = "Disk-format for reiser4, ver. " VERSION,
 		},
 		.open		= format40_open,
 		.valid		= format40_valid,

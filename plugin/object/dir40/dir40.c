@@ -254,6 +254,9 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 				return LP_FAILED;
 			}
 
+#ifndef ENABLE_KCW
+			return LP_PRESENT;
+#else
 			/* Handling possible hash collision */
 			if (aal_strncmp(entry->name, name,
 					aal_strlen(name)) == 0)
@@ -264,9 +267,11 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 				return LP_PRESENT;
 			}
 
+#ifndef ENABLE_ALONE
 			aal_exception_warn("Hash collision is detected between "
 					   "%s and %s. Sequentional search has "
 					   "been started.", entry->name, name);
+#endif
 
 			if (!item->plugin->item_ops.units)
 				return LP_FAILED;
@@ -297,6 +302,7 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 			}
 				
 			return LP_ABSENT;
+#endif
 		}
 
 		/* Getting next direntry item */
@@ -909,7 +915,7 @@ static reiser4_plugin_t dir40_plugin = {
 			.group = DIRTORY_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "dir40",
-			.desc = "Compound directory for reiserfs 4.0, ver. " VERSION,
+			.desc = "Compound directory for reiser4, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE

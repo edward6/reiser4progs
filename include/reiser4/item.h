@@ -27,19 +27,22 @@ extern errno_t reiser4_item_set_key(reiser4_place_t *place,
 extern errno_t reiser4_item_print(reiser4_place_t *place,
 				  aal_stream_t *stream);
 
+extern bool_t reiser4_item_mergeable(reiser4_place_t *place1,
+				     reiser4_place_t *place2);
+
 extern errno_t reiser4_item_estimate(reiser4_place_t *place,
 				     reiser4_item_hint_t *hint);
-
-#endif
-
-extern errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
-					reiser4_key_t *key);
 
 extern errno_t reiser4_item_utmost_key(reiser4_place_t *place,
 				       reiser4_key_t *key);
 
 extern errno_t reiser4_item_gap_key(reiser4_place_t *place, 
 				    reiser4_key_t *key);
+
+#endif
+
+extern errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
+					reiser4_key_t *key);
 
 extern bool_t reiser4_item_statdata(reiser4_place_t *place);
 extern bool_t reiser4_item_filebody(reiser4_place_t *place);

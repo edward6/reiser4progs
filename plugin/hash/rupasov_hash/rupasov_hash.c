@@ -58,7 +58,7 @@ static reiser4_plugin_t rupasov_hash_plugin = {
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "rupasov_hash",
-			.desc = "Implementation of rupasov hash for reiserfs 4.0, ver. " VERSION,
+			.desc = "Implementation rupasov hash for reiser4, ver. " VERSION,
 		},
 		.build = rupasov_hash_build
 	}

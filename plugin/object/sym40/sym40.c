@@ -478,7 +478,7 @@ static reiser4_plugin_t sym40_plugin = {
 			.group = SYMLINK_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "sym40",
-			.desc = "Symlink for reiserfs 4.0, ver. " VERSION,
+			.desc = "Symlink for reiser4, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE

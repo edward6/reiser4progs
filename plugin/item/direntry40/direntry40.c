@@ -1073,6 +1073,8 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
+#ifndef ENABLE_ALONE
+
 /* Returns real maximal key in direntry item */
 static errno_t direntry40_utmost_key(item_entity_t *item, 
 				     key_entity_t *key) 
@@ -1091,6 +1093,8 @@ static errno_t direntry40_utmost_key(item_entity_t *item,
 	aal_assert("umka-1653", units > 0);
 	return direntry40_get_key(item, units - 1, key);
 }
+
+#endif
 
 /* 
    Helper function that is used by lookup method for comparing given key with
@@ -1195,7 +1199,7 @@ static reiser4_plugin_t direntry40_plugin = {
 			.group = DIRENTRY_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "direntry40",
-			.desc = "Compound direntry for reiserfs 4.0, ver. " VERSION,
+			.desc = "Compound direntry for reiser4, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE	    
@@ -1208,15 +1212,16 @@ static reiser4_plugin_t direntry40_plugin = {
 		.shift          = direntry40_shift,
 		.predict        = direntry40_predict,
 		.feel           = direntry40_feel,
+		.utmost_key     = direntry40_utmost_key,
 		
 		.set_key	= NULL,
+		.gap_key	= NULL,
 		.insert         = NULL,
 		.layout		= NULL,
 		.layout_check	= NULL,
 #endif
 		.valid		= NULL,
 		.branch         = NULL,
-		.gap_key	= NULL,
 
 		.data		= direntry40_data,
 		.lookup		= direntry40_lookup,
@@ -1225,8 +1230,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.mergeable      = direntry40_mergeable,
 		
 		.get_key	= direntry40_get_key,
-		.maxposs_key	= direntry40_maxposs_key,
-		.utmost_key     = direntry40_utmost_key
+		.maxposs_key	= direntry40_maxposs_key
 	}
 };
 

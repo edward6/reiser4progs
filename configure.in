@@ -12,6 +12,7 @@ AH_TEMPLATE([loff_t], [Define to loff_t])
 AH_TEMPLATE([ENABLE_MONOLITHIC], [Define for enable monolotic build.])
 AH_TEMPLATE([ENABLE_MANAGER], [Define for enable simple memory manager in libaal.])
 AH_TEMPLATE([ENABLE_DEBUG], [Define for enable debug info.])
+AH_TEMPLATE([ENABLE_KCW], [Define for enable key collision workaround code.])
 AH_TEMPLATE([HAVE_LIBUUID], [Define for enable libuuid using.])
 AH_TEMPLATE([HAVE_LIBREADLINE], [Define for enable libreadline using.])
 
@@ -122,6 +123,11 @@ AC_ARG_ENABLE(monolithic,
 AC_ARG_ENABLE(manager,
     [  --enable-manager        enable simple memory manager in libaal [default=no]], ,
         enable_manager=no
+)
+
+AC_ARG_ENABLE(kcw,
+    [  --enable-kcw            enable key collision workaround in directory plugin [default=yes]], ,
+        enable_kcw=yes
 )
 
 AC_ARG_ENABLE(Werror,
@@ -263,6 +269,10 @@ fi
 
 if test x$enable_manager = xyes; then
     AC_DEFINE(ENABLE_MANAGER)
+fi
+
+if test x$enable_kcw = xyes; then
+    AC_DEFINE(ENABLE_KCW)
 fi
 
 PLUGIN_LDFLAGS=""

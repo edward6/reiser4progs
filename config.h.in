@@ -3,6 +3,9 @@
 /* Define for enable debug info. */
 #undef ENABLE_DEBUG
 
+/* Define for enable key collision workaround code. */
+#undef ENABLE_KCW
+
 /* Define for enable simple memory manager in libaal. */
 #undef ENABLE_MANAGER
 

@@ -173,6 +173,8 @@ static errno_t tail40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
+#ifndef ENABLE_ALONE
+
 static errno_t tail40_utmost_key(item_entity_t *item,
 				 key_entity_t *key) 
 {
@@ -194,6 +196,8 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 	
 	return 0;
 }
+
+#endif
 
 static lookup_t tail40_lookup(item_entity_t *item,
 			      key_entity_t *key, 
@@ -406,7 +410,7 @@ static reiser4_plugin_t tail40_plugin = {
 			.group = TAIL_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "tail40",
-			.desc = "Tail item for reiserfs 4.0, ver. " VERSION,
+			.desc = "Tail item for reiser4, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE
@@ -417,6 +421,8 @@ static reiser4_plugin_t tail40_plugin = {
 		.predict        = tail40_predict,
 		.shift	        = tail40_shift,		
 		.feel           = tail40_feel,
+		.utmost_key     = tail40_utmost_key,
+		.gap_key        = tail40_utmost_key,
 		.insert	        = NULL,
 		.check	        = NULL,
 		.estimate       = NULL,
@@ -431,12 +437,14 @@ static reiser4_plugin_t tail40_plugin = {
 		.lookup	        = tail40_lookup,
 		.read	        = tail40_read,
 		.data		= tail40_data,
+
+#ifndef ENABLE_ALONE
 		.mergeable      = tail40_mergeable,
+#else
+		.mergeable      = NULL,
+#endif
 		
 		.maxposs_key    = tail40_maxposs_key,
-		.utmost_key     = tail40_utmost_key,
-		
-		.gap_key        = tail40_utmost_key,
 		.get_key        = tail40_get_key
 	}
 };
@@ -447,4 +455,3 @@ static reiser4_plugin_t *tail40_start(reiser4_core_t *c) {
 }
 
 plugin_register(tail40_start, NULL);
-

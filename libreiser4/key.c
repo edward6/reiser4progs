@@ -262,8 +262,6 @@ errno_t reiser4_key_string(reiser4_key_t *key, char *buff) {
 	return -EINVAL;
 }
 
-#endif
-
 errno_t reiser4_key_valid(reiser4_key_t *key) {
 	aal_assert("vpf-259", key != NULL);
 	aal_assert("vpf-260", key->plugin != NULL);
@@ -271,3 +269,4 @@ errno_t reiser4_key_valid(reiser4_key_t *key) {
 	return plugin_call(key->plugin->key_ops, valid, key);
 }
 
+#endif

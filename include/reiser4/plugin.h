@@ -526,9 +526,9 @@ struct reiser4_item_hint {
 
 typedef struct reiser4_item_hint reiser4_item_hint_t;
 
-#define PLUGIN_MAX_LABEL	32
-#define PLUGIN_MAX_NAME		32
-#define PLUGIN_MAX_DESC		100
+#define PLUGIN_MAX_LABEL	22
+#define PLUGIN_MAX_NAME		22
+#define PLUGIN_MAX_DESC		64
 
 typedef void (*reiser4_abort_t) (char *);
 typedef struct reiser4_core reiser4_core_t;
@@ -582,9 +582,6 @@ struct reiser4_key_ops {
 	*/
 	void (*clean) (key_entity_t *);
 
-	/* Check of key structure */
-	errno_t (*valid) (key_entity_t *);
-    
 	/* Confirms key format */
 	int (*confirm) (key_entity_t *);
 
@@ -637,6 +634,9 @@ struct reiser4_key_ops {
 	uint64_t (*get_hash) (key_entity_t *);
 
 #ifndef ENABLE_ALONE
+	/* Check of key structure */
+	errno_t (*valid) (key_entity_t *);
+    
 	/* Prints key into specified buffer */
 	errno_t (*print) (key_entity_t *, aal_stream_t *,
 			  uint16_t);
@@ -775,9 +775,6 @@ struct reiser4_item_ops {
 	/* Tree write related functions */
 	errno_t (*feel) (item_entity_t *, uint32_t, uint32_t, write_hint_t *);
 
-/*	errno_t (*write) (item_entity_t *, uint32_t, item_entity_t *,
-			  uint32_t, uint32_t, write_hint_t);*/
-	
 	/* Does some specific actions if a block the item points to is wrong. */
 	errno_t (*layout_check) (item_entity_t *, region_func_t, void *, uint8_t);
 
@@ -820,7 +817,9 @@ struct reiser4_item_ops {
 
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*maxposs_key) (item_entity_t *, key_entity_t *);
- 
+
+#ifndef ENABLE_ALONE
+	
 	/* Get the max real key which is stored in the item */
 	errno_t (*utmost_key) (item_entity_t *, key_entity_t *);
 
@@ -829,6 +828,7 @@ struct reiser4_item_ops {
 	  item entity.
 	*/
 	errno_t (*gap_key) (item_entity_t *, key_entity_t *);
+#endif
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;

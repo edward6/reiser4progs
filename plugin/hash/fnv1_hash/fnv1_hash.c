@@ -27,7 +27,7 @@ static reiser4_plugin_t fnv1_hash_plugin = {
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "fnv1_hash",
-			.desc = "Implementation of fnv1 for reiserfs 4.0, ver. " VERSION,
+			.desc = "Implementation fnv1 hash for reiser4, ver. " VERSION,
 		},
 		.build = fnv1_hash_build
 	}

@@ -182,6 +182,8 @@ static errno_t extent40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
+#ifndef ENABLE_ALONE
+
 /* Builds maximal real key in use for specified @item */
 static errno_t extent40_utmost_key(item_entity_t *item,
 				   key_entity_t *key) 
@@ -217,6 +219,8 @@ static errno_t extent40_utmost_key(item_entity_t *item,
 	
 	return 0;	
 }
+
+#endif
 
 /*
   Performs lookup for specified @key inside the passed @item. Result of lookup
@@ -374,6 +378,8 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	return read;
 }
 
+#ifndef ENABLE_ALONE
+
 /* Checks if two extent items are mergeable */
 static int extent40_mergeable(item_entity_t *item1,
 			      item_entity_t *item2)
@@ -417,8 +423,6 @@ static int extent40_mergeable(item_entity_t *item1,
 	
 	return 1;
 }
-
-#ifndef ENABLE_ALONE
 
 /* Deallocates all extent units described by passed @list */
 static errno_t extent40_deallocate(item_entity_t *item,
@@ -756,7 +760,7 @@ static reiser4_plugin_t extent40_plugin = {
 			.group = EXTENT_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "extent40",
-			.desc = "Extent item for reiserfs 4.0, ver. " VERSION,
+			.desc = "Extent item for reiser4, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE
@@ -770,6 +774,8 @@ static reiser4_plugin_t extent40_plugin = {
 		.layout        = extent40_layout,
 		.check	       = extent40_check,
 		.feel          = extent40_feel,
+		.gap_key       = extent40_utmost_key,
+		.utmost_key    = extent40_utmost_key,
 		.layout_check  = extent40_layout_check,
 
 		.insert	       = NULL,
@@ -782,12 +788,15 @@ static reiser4_plugin_t extent40_plugin = {
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,
 		.read          = extent40_read,
+
+#ifndef ENABLE_ALONE
 		.mergeable     = extent40_mergeable,
+#else
+		.mergeable     = NULL,
+#endif
 
 		.get_key       = extent40_get_key,
-		.gap_key       = extent40_utmost_key,
-		.maxposs_key   = extent40_maxposs_key,
-		.utmost_key    = extent40_utmost_key
+		.maxposs_key   = extent40_maxposs_key
 	}
 };
 

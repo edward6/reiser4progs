@@ -145,25 +145,6 @@ static int key40_confirm(key_entity_t *key) {
 	return minor < KEY40_LAST_MINOR;
 }
 
-/* Simple validness check */
-static errno_t key40_valid(key_entity_t *key) {
-	uint8_t band;
-	key40_minor_t minor;
-	
-	aal_assert("vpf-243", key != NULL);
-
-	if (!key40_confirm(key))
-		return -1;
-	
-	minor = k40_get_minor((key40_t *)key->body);
-	band = k40_get_band((key40_t *)key->body);
-	
-	if ((minor == KEY40_FILENAME_MINOR && band == 1) || band == 0)
-		return 0;
-
-	return -EINVAL;
-}
-
 /* Sets up key type */
 static void key40_set_type(key_entity_t *key, 
 			   key_type_t type)
@@ -375,6 +356,25 @@ static errno_t key40_build_short(key_entity_t *key,
 
 #ifndef ENABLE_ALONE
 
+/* Simple validness check */
+static errno_t key40_valid(key_entity_t *key) {
+	uint8_t band;
+	key40_minor_t minor;
+	
+	aal_assert("vpf-243", key != NULL);
+
+	if (!key40_confirm(key))
+		return -1;
+	
+	minor = k40_get_minor((key40_t *)key->body);
+	band = k40_get_band((key40_t *)key->body);
+	
+	if ((minor == KEY40_FILENAME_MINOR && band == 1) || band == 0)
+		return 0;
+
+	return -EINVAL;
+}
+
 /* Prints key into passed stream */
 errno_t key40_print(key_entity_t *key,
 		    aal_stream_t *stream,
@@ -401,10 +401,9 @@ static reiser4_plugin_t key40_plugin = {
 			.group = 0,
 			.type = KEY_PLUGIN_TYPE,
 			.label = "key40",
-			.desc = "Key for reiserfs 4.0, ver. " VERSION,
+			.desc = "Key for reiser4, ver. " VERSION,
 		},
 	
-		.valid		= key40_valid,
 		.confirm	= key40_confirm,
 		.assign		= key40_assign,
 		.minimal	= key40_minimal,
@@ -415,6 +414,7 @@ static reiser4_plugin_t key40_plugin = {
 		.tall           = key40_tall,
 		
 #ifndef ENABLE_ALONE
+		.valid		= key40_valid,
 		.print		= key40_print,
 #endif
 		

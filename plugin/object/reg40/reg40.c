@@ -516,7 +516,7 @@ static reiser4_plugin_t reg40_plugin = {
 			.group = FILE_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "reg40",
-			.desc = "Regular file for reiserfs 4.0, ver. " VERSION,
+			.desc = "Regular file for reiser4, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE

@@ -558,7 +558,7 @@ static reiser4_plugin_t alloc40_plugin = {
 			.group = 0,
 			.type = ALLOC_PLUGIN_TYPE,
 			.label = "alloc40",
-			.desc = "Space allocator for reiserfs 4.0, ver. " VERSION,
+			.desc = "Space allocator for reiser4, ver. " VERSION,
 		},
 		.open		       = alloc40_open,
 		.close		       = alloc40_close,

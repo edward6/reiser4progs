@@ -28,7 +28,7 @@ static reiser4_plugin_t r5_hash_plugin = {
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "r5_hash",
-			.desc = "Implementation of r5 hash for reiserfs 4.0, ver. " VERSION,
+			.desc = "Implementation r5 hash for reiser4, ver. " VERSION,
 		},
 		.build = r5_hash_build
 	}

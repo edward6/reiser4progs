@@ -150,7 +150,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 			.group = NODEPTR_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "nodeptr40",
-			.desc = "Node pointer item for reiserfs 4.0, ver. " VERSION,
+			.desc = "Node pointer item for reiser4, ver. " VERSION,
 		},
 #ifndef ENABLE_ALONE	    
 		.init		= nodeptr40_init,
@@ -169,6 +169,8 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.predict        = NULL,
 
 		.set_key	= NULL,
+		.gap_key	= NULL,
+		.utmost_key     = NULL,
 #endif
 		.units		= nodeptr40_units,
 		.read           = nodeptr40_read,
@@ -180,9 +182,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.mergeable      = NULL,
 
 		.maxposs_key	= NULL,
-		.utmost_key     = NULL,
-		.get_key	= NULL,
-		.gap_key	= NULL
+		.get_key	= NULL
 	}
 };
 

@@ -305,6 +305,27 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 	return 0;
 }
 
+#ifndef ENABLE_ALONE
+
+bool_t reiser4_item_mergeable(reiser4_place_t *place1,
+			      reiser4_place_t *place2)
+{
+	item_entity_t *item1;
+	item_entity_t *item2;
+	
+	aal_assert("umka-2006", place1 != NULL);
+	aal_assert("umka-2007", place2 != NULL);
+	
+	item1 = &place1->item;
+	item2 = &place2->item;
+	
+	if (!item1->plugin->item_ops.mergeable)
+		return FALSE;
+	
+	return item1->plugin->item_ops.mergeable(
+		item1, item2) ? TRUE : FALSE;
+}
+
 /* Returns real maximal item key */
 errno_t reiser4_item_utmost_key(reiser4_place_t *place,
 				reiser4_key_t *key)
@@ -348,6 +369,8 @@ errno_t reiser4_item_gap_key(reiser4_place_t *place,
 	
 	return 0;
 }
+
+#endif
 
 bool_t reiser4_item_data(reiser4_plugin_t *plugin) {
 	aal_assert("vpf-747", plugin != NULL);

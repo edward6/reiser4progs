@@ -33,7 +33,7 @@ static uint16_t sdext_symlink_length(body_t *body) {
 #ifndef ENABLE_ALONE
 
 static errno_t sdext_symlink_init(body_t *body, 
-				  void *hint) 
+				  void *hint)
 {
 	char *data;
 	
@@ -70,7 +70,7 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_symlink",
-			.desc = "Symlink data extention for reiserfs 4.0, ver. " VERSION,
+			.desc = "Symlink stat data extention for reiser4, ver. " VERSION,
 		},
 		.open	 = sdext_symlink_open,
 		

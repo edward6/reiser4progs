@@ -425,7 +425,7 @@ static reiser4_plugin_t stat40_plugin = {
 			.group = STATDATA_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "stat40",
-			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
+			.desc = "Stat data item for reiser4, ver. " VERSION,
 		},
 		
 #ifndef ENABLE_ALONE
@@ -442,6 +442,8 @@ static reiser4_plugin_t stat40_plugin = {
 		.set_key	= NULL,
 		.feel           = NULL,
 		.layout_check	= NULL,
+		.utmost_key     = NULL,
+		.gap_key	= NULL,
 #endif
 		.lookup		= NULL,
 		.branch         = NULL,
@@ -453,9 +455,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.valid		= stat40_valid,
         
 		.maxposs_key	= NULL,
-		.utmost_key     = NULL,
-		.get_key	= NULL,
-		.gap_key	= NULL
+		.get_key	= NULL
 	}
 };
 
