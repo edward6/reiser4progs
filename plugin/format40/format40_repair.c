@@ -93,25 +93,31 @@ errno_t format40_check(reiser4_entity_t *entity, uint16_t options) {
 errno_t format40_print(reiser4_entity_t *entity, char *buff, 
     uint32_t n, uint16_t options) 
 {
+    aal_block_t *block;
     format40_super_t *super;
     
     aal_assert("vpf-246", entity != NULL, return -1);
+    aal_assert("umka-1290", buff != NULL, return -1);
     
-    if (!buff) return -1;
-
-    super = format40_super(((format40_t *)entity)->block);
+    block = ((format40_t *)entity)->block;
+    super = format40_super(block);
     
-    reiser4_aux_strcat(buff, n, "label: %s\n", entity->plugin->h.label);
-    reiser4_aux_strcat(buff, n, "flushes: %llu\n", get_sb_flushes(super));
-    reiser4_aux_strcat(buff, n, "magic: %s\n", super->sb_magic);
+    reiser4_aux_strcat(buff, n, "Label: %s\n", entity->plugin->h.label);
+    reiser4_aux_strcat(buff, n, "Description: %s\n", entity->plugin->h.desc);
+    reiser4_aux_strcat(buff, n, "Block number: %llu\n\n", aal_block_number(block));
     
-    reiser4_aux_strcat(buff, n, "total blocks: %llu\n",get_sb_block_count(super));
-    reiser4_aux_strcat(buff, n, "free blocks: %llu\n", get_sb_free_blocks(super));
-    reiser4_aux_strcat(buff, n, "root block: %llu\n", get_sb_root_block(super));
-    reiser4_aux_strcat(buff, n, "tail policy: %u\n", get_sb_tail_policy(super));
-    reiser4_aux_strcat(buff, n, "next oid: %llu\n", get_sb_oid(super));
-    reiser4_aux_strcat(buff, n, "file count: %llu\n", get_sb_file_count(super));
-    reiser4_aux_strcat(buff, n, "tree height: %u\n", get_sb_tree_height(super));
+    
+    reiser4_aux_strcat(buff, n, "Magic: %s\n", super->sb_magic);
+    reiser4_aux_strcat(buff, n, "Flushes: %llu\n", get_sb_flushes(super));
+    reiser4_aux_strcat(buff, n, "Stamp: 0x%x\n", get_sb_mkfs_id(super));
+    
+    reiser4_aux_strcat(buff, n, "Total blocks: %llu\n",get_sb_block_count(super));
+    reiser4_aux_strcat(buff, n, "Free blocks: %llu\n", get_sb_free_blocks(super));
+    reiser4_aux_strcat(buff, n, "Root block: %llu\n", get_sb_root_block(super));
+    reiser4_aux_strcat(buff, n, "Tail policy: %u\n", get_sb_tail_policy(super));
+    reiser4_aux_strcat(buff, n, "Next oid: %llx\n", get_sb_oid(super));
+    reiser4_aux_strcat(buff, n, "File count: %llu\n", get_sb_file_count(super));
+    reiser4_aux_strcat(buff, n, "Tree height: %u\n", get_sb_tree_height(super));
     
     return 0;
 }
