@@ -664,15 +664,13 @@ static uint64_t extent40_bytes(place_t *place) {
 extern errno_t extent40_check_struct(place_t *place,
 				     uint8_t mode);
 
-extern errno_t extent40_estimate_copy(place_t *dst,
-				      uint32_t dst_pos,
-				      place_t *src,
-				      uint32_t src_pos,
-				      copy_hint_t *hint);
+extern errno_t extent40_estimate_merge(place_t *dst, uint32_t dst_pos,
+				       place_t *src, uint32_t src_pos,
+				       merge_hint_t *hint);
 
-extern errno_t extent40_copy(place_t *dst, uint32_t dst_pos, 
-			     place_t *src, uint32_t src_pos, 
-			     copy_hint_t *hint);
+extern errno_t extent40_merge(place_t *dst, uint32_t dst_pos, 
+			      place_t *src, uint32_t src_pos, 
+			      merge_hint_t *hint);
 
 extern errno_t extent40_check_layout(place_t *place,
 				     region_func_t region_func, 
@@ -681,7 +679,7 @@ extern errno_t extent40_check_layout(place_t *place,
 
 static reiser4_item_ops_t extent40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.copy             = extent40_copy,
+	.merge		  = extent40_merge,
 	.rep              = extent40_rep,
 	.expand           = extent40_expand,
 	.shrink           = extent40_shrink,
@@ -695,7 +693,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.maxreal_key      = extent40_maxreal_key,
 	.check_layout     = extent40_check_layout,
 	.check_struct	  = extent40_check_struct,
-	.estimate_copy    = extent40_estimate_copy,
+	.estimate_merge   = extent40_estimate_merge,
 	.estimate_shift   = extent40_estimate_shift,
 	.estimate_insert  = extent40_estimate_insert,
 	
