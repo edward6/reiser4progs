@@ -1096,7 +1096,7 @@ struct reiser4_core {
 #else
 
 #define plugin_call(action, ops, method, args...)                           \
-    ops.method(args);
+    ops.method(args)
     
 #endif
 
@@ -1121,8 +1121,8 @@ struct reiser4_core {
 	    __attribute__((__section__(".plugins"))) = fini
 #else
 #define plugin_register(init, fini)					    \
-    static reiser4_plugin_init_t __plugin_init = init;                      \
-    static reiser4_plugin_fini_t __plugin_fini = fini
+    reiser4_plugin_init_t __plugin_init = init;                             \
+    reiser4_plugin_fini_t __plugin_fini = fini
 #endif
 
 #endif
