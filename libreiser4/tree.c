@@ -61,7 +61,7 @@ reiser4_node_t *reiser4_tree_allocate(
 	blk_t blk;
 	rpid_t pid;
 
-	uint32_t free;
+	uint32_t free, stamp;
 	reiser4_node_t *node;
 	aal_device_t *device;
     
@@ -87,6 +87,9 @@ reiser4_node_t *reiser4_tree_allocate(
 	/* Setting up of the free blocks in format */
 	free = reiser4_alloc_free(tree->fs->alloc);
 	reiser4_format_set_free(tree->fs->format, free);
+
+	stamp = reiser4_node_get_flush_stamp(tree->root);
+	reiser4_node_set_flush_stamp(node, stamp);
     
 	node->flags |= NF_DIRTY;
 	node->tree = tree;
@@ -527,12 +530,14 @@ errno_t reiser4_tree_attach(
 
 	aal_assert("umka-913", tree != NULL, return -1);
 	aal_assert("umka-916", node != NULL, return -1);
+	aal_assert("umka-1703", reiser4_node_items(node) > 0, return -1);
     
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&ptr, 0, sizeof(ptr));
 
 	hint.hint = &ptr;
+
 	ptr.ptr = node->blk;
 	ptr.width = 1;
 
@@ -549,7 +554,15 @@ errno_t reiser4_tree_attach(
 
 	stop.top = reiser4_node_level(node) + 1;
 	stop.bottom = stop.top;
-	
+
+	/*
+	  Checking if we have the tree with height smaller than node we are
+	  going to attach in it. If so, we should grow the tree by requested
+	  level.
+	*/
+	while (stop.top > reiser4_tree_height(tree))
+		reiser4_tree_grow(tree);
+		
 	/* Looking up for the insert coord */
 	if ((lookup = reiser4_tree_lookup(tree, &hint.key, &stop, &coord))) {
 		aal_stream_t stream = EMPTY_STREAM;
@@ -559,9 +572,10 @@ errno_t reiser4_tree_attach(
 			reiser4_key_print(&hint.key, &stream);
 			
 			/* 
-			    FIXME-VITALY: this offten happens at fsck time when leaves are attached 
-			    into the tree and key may exists in the tree already. The exception 
-			    should not be thrown here.
+			    FIXME-UMKA: This offten happens at fsck time when
+			    leaves are attached into the tree and key may exists
+			    in the tree already. The exception should not be
+			    thrown here.
 			*/
 			aal_exception_error("Left delimiting key %s of node %llu "
 					    "already exists in tree.", stream.data,
@@ -604,7 +618,10 @@ static errno_t reiser4_tree_grow(
 	blk_t blk;
 	uint8_t tree_height;
 	reiser4_node_t *old_root = tree->root;
-    
+
+	aal_assert("umka-1701", tree != NULL, return -1);
+	aal_assert("umka-1702", reiser4_node_items(old_root) > 0, return -1);
+	
 	tree_height = reiser4_tree_height(tree);
     
 	/* Allocating new root node */
@@ -613,10 +630,11 @@ static errno_t reiser4_tree_grow(
 		return -1;
 	}
 
-	/* FIXME: How about the flush_id? Probably it does not matter here, 
-	 * that is important for leaves and twigs only. */
-	
 	tree->root->tree = tree;
+    	reiser4_format_set_root(tree->fs->format, blk);
+
+	reiser4_format_set_height(tree->fs->format,
+				  tree_height + 1);
 	
 	if (reiser4_tree_attach(tree, old_root)) {
 		aal_exception_error("Can't attach old root to the tree.");
@@ -624,9 +642,6 @@ static errno_t reiser4_tree_grow(
 	}
 
 	blk = tree->root->blk;
-	
-	reiser4_format_set_height(tree->fs->format, tree_height + 1);
-    	reiser4_format_set_root(tree->fs->format, blk);
 	
 	return 0;
 
@@ -735,9 +750,6 @@ errno_t reiser4_tree_mkspace(
 		if (!(node = reiser4_tree_allocate(tree, level)))
 			return -1;
 		
-		reiser4_node_set_flush_stamp(node, 
-			reiser4_node_get_flush_stamp(coord->node));
-
 		flags = SF_RIGHT;
 
 		if (alloc == 0)
@@ -822,14 +834,12 @@ errno_t reiser4_tree_insert(
 		if (twig_legal) {
 			coord->pos.item = 0;
 			coord->pos.unit = ~0ul;
+			
 			if (!(coord->node = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
 				aal_exception_error("Can't allocate new leaf node.");
 				return -1;
 			}
 	
-			/* FIXME: What should flush_id be set to? Probably it does not 
-			 * matter for the empty tree. */
-			
 			if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
 	    
 				aal_exception_error("Can't insert an item into the node %llu.", 
