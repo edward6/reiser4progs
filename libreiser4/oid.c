@@ -192,6 +192,9 @@ void reiser4_oid_release(
 /* Synchronizes specified oid allocator */
 errno_t reiser4_oid_sync(reiser4_oid_t *oid) {
 	aal_assert("umka-735", oid != NULL);
+	
+	if (!reiser4_oid_isdirty(oid))
+		return 0;
 
 	return plug_call(oid->entity->plug->o.oid_ops, 
 			 sync, oid->entity);

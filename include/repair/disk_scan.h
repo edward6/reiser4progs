@@ -31,6 +31,8 @@ typedef struct repair_ds {
 	repair_progress_handler_t *progress_handler;    
 	repair_progress_t *progress;
 	repair_ds_stat_t stat;
+
+	bool_t *check_node;
 } repair_ds_t;
 
 extern errno_t repair_disk_scan(repair_ds_t *ds);

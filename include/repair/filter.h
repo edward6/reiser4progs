@@ -24,21 +24,20 @@ typedef struct repair_filter_stat {
 typedef struct repair_filter {
 	repair_data_t *repair;
     
-	aux_bitmap_t *bm_used;	/* Formatted area + formatted nodes. */
+	aux_bitmap_t *bm_used;	/* FS system area + formatted nodes. */
 	
 	/* Results of the work. */
 	aux_bitmap_t *bm_leaf;	/* Bitmap of found leaves. */
 	aux_bitmap_t *bm_twig;	/* Bitmap of found twigs. */
-	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes which cannot 
-				   neither be pointed by extents nor marked 
-				   nowhere else. */
+	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes. */
 	uint8_t level;
 	uint8_t flags;
 
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;
 	repair_filter_stat_t stat;
-
+	
+	bool_t *check_node;
 	uint64_t oid;
 } repair_filter_t;
 

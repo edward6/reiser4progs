@@ -25,32 +25,22 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	blocknr = node_blocknr(place->node);
 		
 	/* This must be fixed at the first pass. */
-	if (start >= ts->bm_met->total || count > ts->bm_met->total ||
+	if (start >= ts->bm_met->total || 
+	    count > ts->bm_met->total ||
 	    start >= ts->bm_met->total - count)
 	{
-		aal_exception_error("Node (%llu), item (%u): Pointed region "
-				    "[%llu..%llu] is invalid.", 
-				    blocknr, place->pos.item, start,
-				    start + count - 1);
-		
 		ts->stat.bad_unfm_ptrs++;
-		return 1;
+		return RE_FATAL;
 	}
 	
-	if (!start)
-		return 0;
+	if (!start) return 0;
 	
 	res = aux_bitmap_test_region(ts->bm_met, start, count, 0);
 	
 	/* Pointed region is used already. */
 	if (res == 0) {
-		aal_exception_error("Node (%llu), item (%u): pointed region "
-				    "[%llu..%llu] is used already or contains "
-				    "a formatted block.",
-				    blocknr, place->pos.item, start, start + count - 1);
-		
 		ts->stat.bad_unfm_ptrs++;
-		return 1;
+		return RE_FATAL;
 	}
 	
 	if (aux_bitmap_test(ts->bm_used, blocknr))
@@ -93,9 +83,9 @@ static errno_t callback_check_layout(reiser4_place_t *place, void *data) {
 
 			hint.count = 1;
 
-			if ((res |= reiser4_node_remove(node, &place->pos, 
-							&hint)))
-				return res;
+			res |= reiser4_node_remove(node, &place->pos, &hint);
+
+			if (res < 0) return res;
 			
 			place->pos.item--;
 			res &= ~RE_FATAL;
@@ -127,7 +117,7 @@ static void repair_twig_scan_setup(repair_ts_t *ts) {
 	ts->progress_handler(ts->progress);
 	
 	ts->progress->state = PROGRESS_UPDATE;
-	ts->progress->text = "";
+	ts->progress->text = NULL;
 }
 
 static void repair_twig_scan_update(repair_ts_t *ts) {
@@ -196,7 +186,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		if (ts->progress_handler)
 			ts->progress_handler(&progress);	
 		
-		node = repair_node_open(ts->repair->fs, blk);
+		node = repair_node_open(ts->repair->fs, blk, 0);
 		
 		if (node == NULL) {
 			aal_exception_fatal("Twig scan pass failed to open "
@@ -219,7 +209,8 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 	}
 	
 	repair_twig_scan_update(ts);
-	reiser4_tree_collapse(ts->repair->fs->tree);
+	reiser4_fs_sync(ts->repair->fs);
+	
 	return 0;
 	
  error_node_free:

@@ -727,7 +727,7 @@ static void repair_semantic_setup(repair_semantic_t *sem) {
 	sem->progress->state = PROGRESS_STAT;
 	time(&sem->stat.time);
 	sem->progress_handler(sem->progress);
-	sem->progress->text = "";
+	sem->progress->text = NULL;
 }
 
 static void repair_semantic_update(repair_semantic_t *sem) {
@@ -838,7 +838,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	}
  error:
 	repair_semantic_update(sem);	
-	reiser4_tree_collapse(sem->repair->fs->tree);
+	reiser4_fs_sync(sem->repair->fs);
 	
 	return res < 0 ? res : 0;
 }

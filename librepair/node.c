@@ -6,7 +6,7 @@
 #include <repair/librepair.h>
 
 /* Opens the node if it has correct mkid stamp. */
-reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
+reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk, bool_t check) {
 	uint32_t blocksize;
 	reiser4_node_t *node;
 	
@@ -19,6 +19,9 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 				       fs->tree->key.plug)))
 		return NULL;
 	
+	if (!check) return node;
+
+	/* Extra checks are needed. */
 	if (reiser4_format_get_stamp(fs->format) != 
 	    reiser4_node_get_mstamp(node))
 	{

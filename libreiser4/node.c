@@ -696,21 +696,14 @@ errno_t reiser4_node_shift(
 errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be synchronized */
 {
-	errno_t res;
-	
 	aal_assert("umka-2253", node != NULL);
     
 	/* Synchronizing passed @node */
-	if (reiser4_node_isdirty(node)) {
-
-		if ((res = plug_call(node->entity->plug->o.node_ops,
-				     sync, node->entity)))
-		{
-			return res;
-		}
-	}
-
-	return 0;
+	if (!reiser4_node_isdirty(node)) 
+		return 0;
+	
+	return plug_call(node->entity->plug->o.node_ops, 
+			 sync, node->entity);
 }
 
 /* Updates nodeptr item in parent node */

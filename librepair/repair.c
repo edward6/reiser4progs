@@ -23,6 +23,7 @@ typedef struct repair_control {
 	aux_bitmap_t *bm_unfm_tree;	/* Unfmatted pointed from tree.      */
 	aux_bitmap_t *bm_unfm_out;	/* Unfoamatted pointed out of tree.  */
 
+	bool_t check_node;
 	uint64_t oid;
 } repair_control_t;
 
@@ -47,6 +48,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	aal_memset(filter, 0, sizeof(*filter));    
 	filter->repair = control->repair;
+	filter->check_node = &control->check_node;
 	
 	filter->progress_handler = control->repair->progress_handler;
 	
@@ -143,6 +145,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	ds->bm_twig = control->bm_twig;
 	ds->bm_met = control->bm_met;
 	ds->bm_scan = control->bm_unfm_tree;
+	ds->check_node = &control->check_node;
 	
 	ds->progress_handler = control->repair->progress_handler;
 	

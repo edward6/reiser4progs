@@ -34,7 +34,7 @@ static void repair_disk_scan_setup(repair_ds_t *ds) {
 	ds->progress_handler(ds->progress);
 	
 	ds->progress->state = PROGRESS_UPDATE;
-	ds->progress->text = "";
+	ds->progress->text = NULL;
 }
 
 static void repair_disk_scan_update(repair_ds_t *ds) {
@@ -108,8 +108,10 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 			ds->progress_handler(&progress);
 		
 		ds->stat.read_nodes++;
-		node = repair_node_open(ds->repair->fs, blk);
-		if (node == NULL) {
+		
+		node = repair_node_open(ds->repair->fs, blk, *ds->check_node);
+		
+		if (!node) {
 			blk++;
 			continue;
 		}
@@ -149,12 +151,12 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		}
 		
 	next:
+		reiser4_node_sync(node);
 		reiser4_node_close(node);
 		blk++;
 	}
-error:
+ error:
 	repair_disk_scan_update(ds);
-	reiser4_tree_collapse(ds->repair->fs->tree);
 	return res;
 }
 

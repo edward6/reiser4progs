@@ -12,17 +12,19 @@
 
 /* This is extention for repair_error_t. */
 typedef enum repair_error_filter {
-	
 	/* Pointer to the wrong place. */
-	RE_NPTR		= (RE_LAST),
-	
+	RE_PTR         = (RE_LAST),
+
 	/* Node is ok, but dkeys are wrong, remove from the tree and insert
 	   back later item-by-item. */
-	RE_DKEYS	= (RE_LAST << 1)
+	RE_DKEYS	= (RE_LAST << 1),
+
+	/* Node was emptied. */
+	RE_EMPTY	= (RE_LAST << 2)
 } repair_error_filter_t;
 
 /* Open callback for traverse. It opens a node at passed blk. It does 
-   nothing if RE_NPTR is set and set this flag if node cannot 
+   nothing if RE_PTR is set and set this flag if node cannot 
    be opeened. Returns error if any. */
 static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 					       reiser4_place_t *place,
@@ -32,6 +34,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	reiser4_node_t *node = NULL;
 	trans_hint_t hint;
 	ptr_hint_t ptr;
+	int error = 0;
 	
 	aal_assert("vpf-379", fd != NULL);
 	aal_assert("vpf-433", fd->repair != NULL);
@@ -46,50 +49,34 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (plug_call(place->plug->o.item_ops, fetch,
 		      (place_t *)place, &hint) != 1)
-	{
 		return NULL;
-	}
 	
-	if (ptr.start > fd->bm_used->total ||
-	    ptr.width > fd->bm_used->total ||
-	    ptr.start > fd->bm_used->total - ptr.width || 
-	    !aux_bitmap_test_region(fd->bm_used, ptr.start, ptr.width, 0))
-	{
-		/* Bad pointer detected. Remove if possible. */
-		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
-				    "to invalid region [%llu..%llu] or some "
-				    "blocks are used already. %s", 
+	if (ptr.start >= fd->bm_used->total) {
+		aal_exception_error("Node (%llu), item (%u), unit (%u): "
+				    "Points to the invalid block (%llu).%s",
 				    node_blocknr(place->node), place->pos.item,
 				    place->pos.unit, ptr.start,
-				    ptr.start + ptr.width - 1,
-				    fd->repair->mode == RM_BUILD ?
-				    "Removed." : "The whole subtree is "
-				    "skipped.");
-			
-		fd->stat.bad_ptrs += ptr.width;
-		if (fd->repair->mode == RM_BUILD) {
-			pos_t ppos;
-			trans_hint_t hint;
-			
-			repair_place_get_lpos(place, ppos);
-
-			hint.count = 1;
-			
-			if (reiser4_node_remove(place->node, &place->pos, &hint))
-				return INVAL_PTR;
-			
-			place->pos = ppos;
-		} else
-			fd->repair->fatal++;
-		
-		return NULL;
+				    fd->repair->mode == RM_BUILD ? " Removed." :
+				    " The whole subtree is skipped.");
+		error = 1;
 	}
 	
-	if ((node = repair_node_open(fd->repair->fs, ptr.start)) == NULL) {
-		fd->flags |= RE_NPTR;
-		fd->repair->fatal++;
-		return NULL;
+	if (aux_bitmap_test_region(fd->bm_used, ptr.start, 1, 1)) {
+		/* Bad pointer detected. Remove if possible. */
+		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
+				    "to the block (%llu) which is in the tree "
+				    "already.%s", node_blocknr(place->node), 
+				    place->pos.item, place->pos.unit, ptr.start,
+				    fd->repair->mode == RM_BUILD ? "Removed." : 
+				    "The whole subtree is skipped.");
+		error = 1;
 	}
+	
+	if (error) goto error;
+	
+	node = repair_node_open(fd->repair->fs, ptr.start, *fd->check_node);
+	
+	if (node == NULL) goto error;
 	
 	if (reiser4_tree_connect(tree, place->node, node))
 		goto error_close_node;
@@ -104,12 +91,16 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	}
 	
 	aux_bitmap_mark_region(fd->bm_used, ptr.start, ptr.width);
-	
+
 	return node;
 	
  error_close_node:
 	reiser4_node_close(node);
 	return INVAL_PTR;
+ error:
+	fd->flags |= RE_PTR;
+	fd->repair->fatal++;
+	return NULL;
 }
 
 /* Before callback for traverse. It checks node level, node consistency, and 
@@ -127,15 +118,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	aal_assert("vpf-409", node != NULL);
     
 	fd->stat.read_nodes++;
-	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
-		fd->progress->state = PROGRESS_START;
-		fd->progress->u.tree.i_total = reiser4_node_items(node);
-		fd->progress->u.tree.u_total = 0;
-		fd->progress->u.tree.item = 0;
-		fd->progress->u.tree.unit = 0;
-		fd->progress_handler(fd->progress);
-	}
-    
+	    
 	level = reiser4_node_get_level(node); 
     
 	/* Initialize the level for the root node before traverse. */
@@ -144,16 +127,27 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	else
 		fd->level--;
 	
+	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
+		fd->progress->state = PROGRESS_START;
+		fd->progress->u.tree.i_total = reiser4_node_items(node);
+		fd->progress->u.tree.u_total = 0;
+		fd->progress->u.tree.item = 0;
+		fd->progress->u.tree.unit = 0;
+		fd->progress_handler(fd->progress);
+	}
+
 	/* Skip this check if level is not set (root node only). */
 	if (fd->level != level) {
 		aal_exception_error("Level of the node (%u) doesn't matche the "
-				    "expected one (%u).", level, fd->level);
+				    "expected one (%u).%s", level, fd->level,
+				    fd->repair->mode == RM_BUILD ? "Removed." :
+				    "The whole subtree is skipped.");
 		
 		/* Should not be check for now as it may lie in unused space.
 		   It is just a wrong pointer. Skip it. */
-		fd->flags |= RE_FATAL;
+		fd->flags |= RE_PTR;
 		fd->repair->fatal++;
-		return 1;
+		goto error;
 	} 
 	
 	if ((res = repair_node_check_struct(node, fd->repair->mode)) < 0)
@@ -161,13 +155,16 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	
 	repair_error_check(res, fd->repair->mode);
 	
-	if (reiser4_node_items(node) == 0)
-		res |= RE_FATAL;
+	if (reiser4_node_items(node) == 0) {
+		res |= RE_EMPTY;
+		reiser4_node_mkclean(node);
+		goto error;
+	}
 	
 	if (res & RE_FATAL) {
 		fd->flags |= RE_FATAL;
 		fd->repair->fatal++;
-		return 1;
+		goto error;
 	} else if (res & RE_FIXABLE) {
 		fd->repair->fixable++;
 	} else {
@@ -194,86 +191,20 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	}
 	
 	return 0;
-}
-
-#if 0
-/* Setup callback for traverse. Prepares essential information for a child of 
-   a node - level. */
-static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) {
-	repair_filter_t *fd = (repair_filter_t *)data;
-	ptr_hint_t ptr;
-
-	aal_assert("vpf-255", data != NULL);
-	aal_assert("vpf-531", place != NULL);
-	aal_assert("vpf-703", reiser4_item_branch(place));
-    
-	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
-		fd->progress->state = PROGRESS_UPDATE;
-		fd->progress->u.tree.i_total = reiser4_node_items(place->node);
-		fd->progress->u.tree.u_total = reiser4_item_units(place);
-		fd->progress->u.tree.item = place->pos.item;
-		fd->progress->u.tree.unit = place->pos.unit;
+ error:
+	if (fd->level != LEAF_LEVEL) {
+		fd->progress->state = PROGRESS_END;
 		fd->progress_handler(fd->progress);
 	}
 	
-	if (plug_call(place->item.plug->o.item_ops, read, &place->item, &ptr,
-		      place->pos.unit, 1) != 1)
-	{
-		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to "
-				    "fetch the node pointer.", place->node, 
-				    place->pos.item, place->pos.unit);
-		
-		return -EINVAL;
-	}
-    
-	/* FIXME: as a result layout of nodeptr items is checked automatically, 
-	   what is not very well as read does not mean that we get pointed block. */
+	fd->level++;
 	
-	/* The validness of this node pointer must be checked at node_check time. */
-	if (ptr.start < fd->bm_used->total && ptr.width < fd->bm_used->total &&
-	    ptr.start < fd->bm_used->total - ptr.width && 
-	    aux_bitmap_test_region(fd->bm_used, ptr.start, ptr.width, 0))
-	{
-		aux_bitmap_mark_region(fd->bm_used, ptr.start, ptr.width);
-	} else {
-		/* Bad pointer detected. Remove if possible. */
-		aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
-				    "invalid region [%llu..%llu] or some blocks are "
-				    "used already. %s", node_blocknr(place->node), 
-				    place->pos.item, place->pos.unit, ptr.start,
-				    ptr.start + ptr.width - 1, 
-				    fd->repair->mode == RM_BUILD ? 
-					"Removed." : "The whole subtree is skipped.");
-			
-		fd->stat.bad_ptrs += ptr.width;
-		if (fd->repair->mode == RM_BUILD) {
-			pos_t ppos;
-			
-			repair_place_get_lpos(place, ppos);
-			
-			if (reiser4_node_remove(place->node, &place->pos, 1)) {
-				aal_exception_error("Node (%llu), pos (%u, %u): "
-						    "Remove failed.", node_blocknr(place->node),
-						    place->pos.item, place->pos.unit);
-				return -EINVAL;
-			}
-			
-			place->pos = ppos;
-		} else
-			fd->repair->fatal++;
-		
-		return 1;
-	}
-	
-	fd->level--;
-	
-	return 0;
+	return RE_FATAL;
 }
-#endif
 
 /* Update callback for traverse. It rollback changes made in setup_traverse 
    callback and do some essential stuff after traversing through the child -
-   level, if RE_NPTR flag is set - deletes the child pointer and mark
+   level, if RE_PTR flag is set - deletes the child pointer and mark
    the pointed block as unused in bm_used bitmap. */
 static errno_t repair_filter_update_traverse(reiser4_tree_t *tree, 
 					     reiser4_place_t *place, 
@@ -299,105 +230,101 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 				    place->pos.item, place->pos.unit);
 		return -EIO;
 	}
-	
-	if (fd->flags) {
-		if (fd->flags & RE_NPTR) {
-			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
-					    "to the invalid node [%llu]. %s", 
-					    node_blocknr(place->node), place->pos.item, 
-					    place->pos.unit, ptr.start, 
-					    fd->repair->mode == RM_BUILD ? 
-					    "Removed." : "The whole subtree is skipped.");
-			
-			fd->stat.bad_ptrs += ptr.width;
-		} else {
-			/* Clear pointed block in the formatted bitmap. */
-			aux_bitmap_clear_region(fd->bm_used, ptr.start, ptr.width);
 
-			level = reiser4_node_get_level(place->node);
-		}
-			
-		if (fd->flags & RE_FATAL) {
-			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
-					    "to the %s node [%llu]. %s", 
-					    node_blocknr(place->node), place->pos.item, 
-					    place->pos.unit, 
-					    fd->repair->mode == RM_BUILD ? 
-					    "emptied" : "unrecoverable", ptr.start, 
-					    fd->repair->mode == RM_BUILD ? 
-					    "Removed." : "The whole subtree is skipped.");
-			
-			/* Extents cannot point to this node. */
-			aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
-			fd->stat.bad_nodes += ptr.width;
-			if (level == LEAF_LEVEL)
-				fd->stat.bad_leaves += ptr.width;
-			else if (level == TWIG_LEVEL)
-				fd->stat.bad_twigs += ptr.width;
-		} else if (fd->flags & RE_DKEYS) {
-			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
-					    "to the node [%llu] with wrong delimiting "
-					    "keys. %s", node_blocknr(place->node), 
-					    place->pos.item, place->pos.unit, 
-					    ptr.start, 
-					    fd->repair->mode == RM_BUILD ? 
-					    "Removed." : "The whole subtree is skipped.");
-			
-			fd->stat.bad_dk_nodes += ptr.width;
-			/* Insert it later. FIXME: This is hardcoded, should be 
-			   changed. */
-			if (level == LEAF_LEVEL) {
-				aux_bitmap_mark_region(fd->bm_leaf, ptr.start, 
-						       ptr.width);
-				fd->stat.bad_dk_leaves += ptr.width;
-			} else if (level == TWIG_LEVEL) {
-				aux_bitmap_mark_region(fd->bm_twig, ptr.start, 
-						       ptr.width);
-				fd->stat.bad_dk_twigs += ptr.width;
-			} else
-				aux_bitmap_mark_region(fd->bm_met, ptr.start, 
-						       ptr.width);
-		} else {
-			aal_assert("vpf-827: Not expected case.", FALSE);
-		}
-		
-		if (fd->repair->mode == RM_BUILD) {
-			pos_t prev;
-			trans_hint_t hint;
-			
-			fd->repair->fatal--;
-			/* The node corruption was not fixed - delete the 
-			   internal item. */
-			repair_place_get_lpos(place, prev);
+	level = reiser4_node_get_level(place->node);
 
-			hint.count = 1;
-
-			if (reiser4_node_remove(place->node, &place->pos, &hint))
-				return -EINVAL;
-			
-			place->pos = prev;
-		} 
-		
-		fd->flags = 0;
-	} else {
+	if (!fd->flags) {
 		/* FIXME-VITALY: hardcoded level, should be changed. */
 		fd->stat.good_nodes += ptr.width;
-		if (reiser4_node_get_level(place->node) == TWIG_LEVEL + 1) {
-			aux_bitmap_mark_region(fd->bm_twig, ptr.start, ptr.width);
+		if (level == TWIG_LEVEL + 1) {
+			aux_bitmap_mark_region(fd->bm_twig, ptr.start, 
+					       ptr.width);
+			
 			fd->stat.good_twigs += ptr.width;
-		} else if (reiser4_node_get_level(place->node) == TWIG_LEVEL) {
-			aux_bitmap_mark_region(fd->bm_leaf, ptr.start, ptr.width);
+		} else if (level == TWIG_LEVEL) {
+			aux_bitmap_mark_region(fd->bm_leaf, ptr.start, 
+					       ptr.width);
+			
 			fd->stat.good_leaves += ptr.width;
 		}
+
+		return 0;
 	}
-    
-	fd->level++;
+
+	if (fd->flags & RE_PTR)
+		fd->stat.bad_ptrs += ptr.width;
+	else
+		/* As some flag is set, clear ptr blocks in bm_used. */
+		aux_bitmap_clear_region(fd->bm_used, ptr.start, ptr.width);
+	
+		
+	if ((fd->flags & RE_FATAL) || (fd->flags & RE_EMPTY)) {
+		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
+				    "to the %s node (%llu).%s",
+				    node_blocknr(place->node), 
+				    place->pos.item, place->pos.unit, 
+				    fd->flags & RE_EMPTY ? "empty" :
+				    fd->repair->mode == RM_BUILD ? 
+				    "unrecoverable" : "broken", ptr.start,
+				    fd->repair->mode == RM_BUILD ? "Removed." :
+				    "The whole subtree is skipped.");
+
+		/* Extents cannot point to this node. */
+		aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
+		fd->stat.bad_nodes += ptr.width;
+		if (level == LEAF_LEVEL)
+			fd->stat.bad_leaves += ptr.width;
+		else if (level == TWIG_LEVEL)
+			fd->stat.bad_twigs += ptr.width;
+	} else if (fd->flags & RE_DKEYS) {
+		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
+				    "to the node [%llu] with wrong delimiting "
+				    "keys. %s", node_blocknr(place->node), 
+				    place->pos.item, place->pos.unit, 
+				    ptr.start, 
+				    fd->repair->mode == RM_BUILD ? 
+				    "Removed." : "The whole subtree is skipped.");
+
+		fd->stat.bad_dk_nodes += ptr.width;
+		/* Insert it later. FIXME: This is hardcoded, should be 
+		   changed. */
+		if (level == LEAF_LEVEL) {
+			aux_bitmap_mark_region(fd->bm_leaf, ptr.start,
+					       ptr.width);
+			fd->stat.bad_dk_leaves += ptr.width;
+		} else if (level == TWIG_LEVEL) {
+			aux_bitmap_mark_region(fd->bm_twig, ptr.start,
+					       ptr.width);
+			fd->stat.bad_dk_twigs += ptr.width;
+		} else
+			aux_bitmap_mark_region(fd->bm_met, ptr.start,
+					       ptr.width);
+	}
+	
+	if (fd->repair->mode == RM_BUILD) {
+		pos_t prev;
+		trans_hint_t hint;
+
+		fd->repair->fatal--;
+		/* The node corruption was not fixed - delete the 
+		   internal item. */
+		repair_place_get_lpos(place, prev);
+
+		hint.count = 1;
+
+		if (reiser4_node_remove(place->node, &place->pos, &hint))
+			return -EINVAL;
+
+		place->pos = prev;
+	} 
+
+	fd->flags = 0;
 
 	return 0;
 }
 
 /* After callback for traverse. Does needed stuff after traversing through all 
-   children - if no child left, set RE_NPTR flag to force deletion of the 
+   children - if no child left, set RE_PTR flag to force deletion of the 
    pointer to this block in update_traverse callback. */
 static errno_t repair_filter_after_traverse(reiser4_tree_t *tree, 
 					    reiser4_node_t *node, 
@@ -409,7 +336,7 @@ static errno_t repair_filter_after_traverse(reiser4_tree_t *tree,
 	aal_assert("vpf-256", fd != NULL);    
 	
 	if (reiser4_node_items(node) == 0) {
-		fd->flags |= RE_FATAL;
+		fd->flags |= RE_EMPTY;
 		reiser4_node_mkclean(node);
 	}
 	
@@ -417,6 +344,8 @@ static errno_t repair_filter_after_traverse(reiser4_tree_t *tree,
 		fd->progress->state = PROGRESS_END;
 		fd->progress_handler(fd->progress);
 	}
+	
+	fd->level++;
 	
 	return 0;
 }
@@ -434,18 +363,17 @@ static void repair_filter_setup(repair_filter_t *fd) {
 	fd->progress->state = PROGRESS_STAT;
 	time(&fd->stat.time);
 	fd->progress_handler(fd->progress);
-	fd->progress->text = "";
+	fd->progress->text = NULL;
 }
 
 /* Does some update stuff after traverse through the internal tree - 
    deletes the pointer to the root block from the specific super block 
-   if RE_NPTR flag is set, mark that block used in bm_used bitmap 
+   if RE_PTR flag is set, mark that block used in bm_used bitmap 
    otherwise. */
-static void repair_filter_update(repair_filter_t *fd, 
-				 reiser4_node_t *root) 
-{
+static void repair_filter_update(repair_filter_t *fd) {
 	repair_filter_stat_t *stat;
 	reiser4_format_t *format;
+	reiser4_node_t *root;
 	aal_stream_t stream;
 	char *time_str;
 	
@@ -453,8 +381,9 @@ static void repair_filter_update(repair_filter_t *fd,
 	
 	stat = &fd->stat;
 	format = fd->repair->fs->format;
+	root = fd->repair->fs->tree->root;
 	
-	if (fd->flags & RE_NPTR) {
+	if (fd->flags & RE_PTR) {
 		stat->bad_ptrs++;
 		if (fd->repair->mode == RM_BUILD)
 			reiser4_format_set_root(format, INVAL_BLK);
@@ -554,8 +483,8 @@ static void repair_filter_update(repair_filter_t *fd,
 static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	reiser4_format_t *format;
 	reiser4_tree_t *tree;
-	blk_t root;
 	errno_t res;
+	blk_t root;
 	
 	aal_assert("vpf-1314", fd != NULL);
 	
@@ -571,9 +500,17 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	else if (aux_bitmap_test(fd->bm_used, root))
 		/* This block is from format area. */
 		goto error;
-
-	if (!(tree->root = repair_node_open(fd->repair->fs, root)))
+	
+	/* try to open the root node. */
+	if (!(tree->root = repair_node_open(fd->repair->fs, root, 0)))
 		goto error;
+	
+	/* Check that the mkfs stamp in SB matches the root block's one. */
+	if (reiser4_format_get_stamp(format) == 
+	    reiser4_node_get_mstamp(tree->root))
+	{
+		*fd->check_node = TRUE;
+	}
 	
 	if (reiser4_tree_connect(tree, NULL, tree->root))
 		goto error;
@@ -587,10 +524,9 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 
 	return res < 0 ? res : 0;
  error:
-	fd->flags |= RE_NPTR;
+	fd->flags |= RE_PTR;
 	fd->repair->fatal++;
 	return 0;
-
 }
 
 /* The pass itself - goes through the existent tree trying to filter all 
@@ -618,12 +554,9 @@ errno_t repair_filter(repair_filter_t *fd) {
 	fd->progress = &progress;
 	repair_filter_setup(fd);
 	
-	if ((res = repair_filter_traverse(fd)))
-		return res;
-		
-	repair_filter_update(fd, fd->repair->fs->tree->root);
+	res = repair_filter_traverse(fd);
 	
-	reiser4_tree_collapse(fd->repair->fs->tree);
-	
+	repair_filter_update(fd);
+	reiser4_fs_sync(fd->repair->fs);
 	return res;
 }

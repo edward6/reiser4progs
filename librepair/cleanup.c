@@ -59,7 +59,7 @@ static void repair_cleanup_setup(repair_cleanup_t *cleanup) {
 		"storage tree up.";
 	time(&cleanup->stat.time);
 	cleanup->progress_handler(cleanup->progress);
-	cleanup->progress->text = "";
+	cleanup->progress->text = NULL;
 }
 
 static void repair_cleanup_update(repair_cleanup_t *cleanup) {
@@ -116,14 +116,13 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		return -EINVAL;
 	
 	/* Cut the corrupted, unrecoverable parts of the tree off. */
-	if ((res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
-				     repair_semantic_node_traverse, 
-				     NULL, NULL, cleanup)))
-		return res;
+	res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
+				repair_semantic_node_traverse, 
+				NULL, NULL, cleanup);
 	
 	repair_cleanup_update(cleanup);
-	reiser4_tree_collapse(fs->tree);
+	reiser4_fs_sync(fs);
 	
-	return 0;
+	return res;
 }
 

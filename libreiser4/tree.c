@@ -879,7 +879,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 				if (place.plug->id.group == NODEPTR_ITEM) {
 					if (reiser4_tree_alloc_nodeptr(tree, &place))
 						return -EINVAL;
-				} else {
+				} else if (place.plug->id.group == EXTENT_ITEM) {
 					if (reiser4_tree_alloc_extent(tree, &place))
 						return -EINVAL;
 				}

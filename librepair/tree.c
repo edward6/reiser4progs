@@ -16,11 +16,9 @@ bool_t repair_tree_legal_level(reiser4_item_group_t group,
 	} else if (group == EXTENT_ITEM) {
 		if (level != TWIG_LEVEL)
 			return FALSE;
-	} else {
-		return level == LEAF_LEVEL;
-	}
+	} 
 	
-	return TRUE;
+	return level == LEAF_LEVEL;
 }
 
 static errno_t callback_data_level(reiser4_plug_t *plug, void *data) {

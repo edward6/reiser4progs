@@ -132,6 +132,9 @@ errno_t reiser4_format_sync(
 {
 	aal_assert("umka-107", format != NULL);
 	
+	if (!reiser4_format_isdirty(format))
+		return 0;
+	
 	return plug_call(format->entity->plug->o.format_ops,
 			 sync, format->entity);
 }

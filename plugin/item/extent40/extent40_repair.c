@@ -38,21 +38,19 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 		start = et40_get_start(extent);
 		width = et40_get_width(extent);
 		
-		if (!start)
-			continue;
+		if (!start) continue;
 
 		if ((res = func(place, start, width, data)) < 0)
 			return res;
 		
-		if (!res)
-			continue;
+		if (!res) continue;
 		
 		/* Zero the problem region. */
 		aal_exception_error("Node (%llu), item (%u), unit (%u): "
-				    "pointed region [%llu..%llu] is invalid.%s", 
-				    place->block->nr, place->pos.item, 
-				    i, start, start + width - 1,
-				    mode != RM_CHECK ? " Zeroed." : "");
+				    "pointed region [%llu..%llu] is invalid.%s",
+				    place->block->nr, place->pos.item, i, start,
+				    start + width - 1, mode != RM_CHECK ? 
+				    " Zeroed." : "");
 
 		if (mode != RM_CHECK) {
 			et40_set_start(extent, 0);
