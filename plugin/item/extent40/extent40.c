@@ -969,8 +969,8 @@ static errno_t extent40_prep_shift(place_t *src_place,
 	/* Check if we have to check for insert point to be staying inside src
 	   place. This is usually needed. Otherwise, we want to shift
 	   everything. */
-	if (!(src_place->pos.item == hint->pos.item &&
-	      hint->pos.unit != MAX_UINT32))
+	if (src_place->pos.item != hint->pos.item &&
+	    hint->pos.unit == MAX_UINT32)
 	{
 		if (hint->units_bytes > src_place->len)
 			hint->units_bytes = src_place->len;
@@ -1001,12 +1001,18 @@ static errno_t extent40_prep_shift(place_t *src_place,
 				hint->result |= SF_MOVE_POINT;
 
 				if (dst_place) {
-					hint->pos.unit = (dst_place->len + hint->units_bytes) /
-						sizeof(extent40_t);
+					hint->pos.unit = dst_place->len +
+						hint->units_bytes;
+				
+					hint->pos.unit /= sizeof(extent40_t);
 				} else {
-					hint->pos.unit = hint->units_bytes / sizeof(extent40_t);
+					hint->pos.unit = hint->units_bytes /
+						sizeof(extent40_t);
 				}
 			}
+		} else {
+			if (hint->units_bytes > src_place->len)
+				hint->units_bytes = src_place->len;
 		}
 	} else {
 		uint32_t right;
@@ -1040,6 +1046,9 @@ static errno_t extent40_prep_shift(place_t *src_place,
 
 				hint->units_bytes = 0;
 			}
+		} else {
+			if (hint->units_bytes > src_place->len)
+				hint->units_bytes = src_place->len;
 		}
 	}
 

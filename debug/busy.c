@@ -14,7 +14,7 @@
 #include <reiser4/libreiser4.h>
 
 static void busy_print_usage(void) {
-	fprintf(stderr, "Usage: busy FILE MODE\n");
+	fprintf(stderr, "Usage: busy FILE DIR\n");
 }
 
 static void busy_init(void) {
@@ -26,6 +26,7 @@ static void busy_init(void) {
 int main(int argc, char *argv[]) {
 	reiser4_fs_t *fs;
 	aal_device_t *device;
+	reiser4_object_t *dir;
 
 	if (argc < 3) {
 		busy_print_usage();
@@ -40,7 +41,7 @@ int main(int argc, char *argv[]) {
 	}
 
 //	misc_param_override("hash=deg_hash");
-//	misc_param_override("policy=tails");
+	misc_param_override("policy=tails");
 		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
@@ -62,10 +63,39 @@ int main(int argc, char *argv[]) {
 		goto error_free_fs;
 	}
 
-	/* Here will be some actions after we decide what we have to do. At
-	   least some kind of stress will be here (creating huge number of
-	   files, remove them , etc). This should be enough for first times. */
-    
+	if (!(dir = reiser4_object_open(fs->tree, argv[2], TRUE))) {
+                aal_error("Can't open dir %s.", argv[2]);
+                goto error_free_root;
+        }
+                                                                                       
+        {
+                int i;
+                char name[256];
+                reiser4_object_t *object;
+                                                                                       
+                for (i = 0; i < 100; i++) {
+                        int j, count;
+                                                                                       
+                        aal_snprintf(name, 256, "file name%d", i);
+                                                                                       
+                        if (!(object = reiser4_reg_create(fs, dir, name)))
+                                goto error_free_dir;
+                                                                                       
+                        count = 1000;
+                                                                                       
+                        for (j = 0; j < count; j++) {
+                                if (reiser4_object_write(object, name,
+                                                         aal_strlen(name)) < 0)
+                                {
+                                        aal_error("Can't write data "
+                                                  "to file %s.", name);
+                                }
+                        }
+                                                                                       
+                        reiser4_object_close(object);
+                }
+        }
+	
 	reiser4_object_close(fs->root);
 	reiser4_fs_close(fs);
     
@@ -74,6 +104,10 @@ int main(int argc, char *argv[]) {
     
 	return 0;
 
+ error_free_dir:
+	reiser4_object_close(dir);
+ error_free_root:
+	reiser4_object_close(fs->root);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:
