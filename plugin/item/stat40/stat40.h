@@ -22,7 +22,9 @@ struct stat40 {
 	d16_t extmask;
 };
 
-typedef struct stat40 stat40_t;  
+typedef struct stat40 stat40_t;
+
+#define STAT40_EXTNR (64)
 
 #define st40_get_extmask(stat)		aal_get_le16(stat, extmask)
 #define st40_set_extmask(stat, val)	aal_set_le16(stat, extmask, val)

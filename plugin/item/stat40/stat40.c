@@ -20,19 +20,15 @@ errno_t stat40_traverse(item_entity_t *item,
 			stat40_ext_func_t ext_func,
 			void *data)
 {
-	uint16_t i;
-	uint16_t len;
-	stat40_t *stat;
-	sdext_entity_t sdext;
-
+	uint16_t i, len;
 	uint16_t chunks = 0;
 	uint16_t extmask = 0;
+
+	sdext_entity_t sdext;
 
 	aal_assert("umka-1197", item != NULL);
 	aal_assert("umka-2059", ext_func != NULL);
     
-	stat = stat40_body(item);
-
 	sdext.offset = 0;
 	sdext.body = item->body;
 
@@ -40,7 +36,7 @@ errno_t stat40_traverse(item_entity_t *item,
 	  Loop though the all possible extentions and calling passed @ext_func
 	  for each of them if corresponing extention exists.
 	*/
-	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
+	for (i = 0; i < STAT40_EXTNR; i++) {
 		errno_t res;
 
 		if (i == 0 || ((i + 1) % 16 == 0)) {
@@ -112,7 +108,8 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	stat_hint = hint->type_specific;
 
 	/* Reading mask into hint */
-	stat_hint->extmask |= ((uint64_t)1 << sdext->plugin->h.id);
+	stat_hint->extmask |= ((uint64_t)1 <<
+			       sdext->plugin->h.id);
 
 	/* We load @ext if its hint present in item hint */
 	if (stat_hint->ext[sdext->plugin->h.id]) {
@@ -169,7 +166,7 @@ static errno_t stat40_estimate_insert(item_entity_t *item,
 	}
     
 	/* Estimating the all stat data extentions */
-	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
+	for (i = 0; i < STAT40_EXTNR; i++) {
 		reiser4_plugin_t *plugin;
 
 		/* Check if extention is present in mask */
@@ -198,8 +195,8 @@ static errno_t stat40_estimate_insert(item_entity_t *item,
 		  Calculating length of the corresponding extention and add it
 		  to the estimated value.
 		*/
-		hint->len += plugin_call(plugin->o.sdext_ops, length,
-					 stat_hint->ext[i]);
+		hint->len += plugin_call(plugin->o.sdext_ops,
+					 length, stat_hint->ext[i]);
 	}
 	
 	return 0;
@@ -223,7 +220,7 @@ static errno_t stat40_insert(item_entity_t *item,
 	if (!stat_hint->extmask)
 		return 0;
     
-	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
+	for (i = 0; i < STAT40_EXTNR; i++) {
 		reiser4_plugin_t *plugin;
 
 		/* Check if extention is present */
@@ -233,11 +230,11 @@ static errno_t stat40_insert(item_entity_t *item,
 		/* 
 		   Stat data contains 16 bit mask of extentions used in it. The
 		   first 15 bits of the mask denote the first 15 extentions in
-		   the stat data.  And the bit number is the stat data extention
-		   plugin id. If the last bit turned on, it means that one more
-		   16 bit mask present and so on. So, we should add sizeof(mask)
-		   to extention body pointer, in the case we are on bit denoted
-		   for indicating if next extention in use or not.
+		   the stat data. And the bit number is the stat data extention
+		   plugin id. If the last bit turned on, then one more 16 bit
+		   mask present and so on. So, we should add sizeof(mask) to
+		   extention body pointer, in the case we are on bit dedicated
+		   to indicating if next extention exists or not.
 		*/
 		if (i % 16 == 0) {
 			uint16_t extmask;
@@ -266,7 +263,8 @@ static errno_t stat40_insert(item_entity_t *item,
 		   Getting pointer to the next extention. It is evaluating as
 		   the previous pointer plus its size.
 		*/
-		extbody += plugin_call(plugin->o.sdext_ops, length, extbody);
+		extbody += plugin_call(plugin->o.sdext_ops, length,
+				       extbody);
 	}
     
 	return 0;
@@ -299,7 +297,6 @@ static uint32_t stat40_units(item_entity_t *item) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
 	body_t *body;
@@ -449,7 +446,6 @@ static errno_t stat40_print(item_entity_t *item,
 	return stat40_traverse(item, callback_print_ext,
 			       (void *)stream);
 }
-
 #endif
 
 static reiser4_item_ops_t stat40_ops = {

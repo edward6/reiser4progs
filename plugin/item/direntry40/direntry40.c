@@ -7,10 +7,6 @@
 
 #include "direntry40.h"
 
-extern lookup_t direntry40_lookup(item_entity_t *item,
-				  key_entity_t *key,
-				  uint32_t *pos);
-
 /*
   Returns pointer to the objectid entry component in passed @direntry at pased
   @pos. It is used in code bellow.
@@ -30,7 +26,7 @@ static errno_t direntry40_get_obj(item_entity_t *item,
 	objid_t *objid = direntry40_objid(item, pos);
 	
 	/* Building key by means of using key plugin */
-	return plugin_call(key->plugin->o.key_ops, build_short,
+	return plugin_call(item->key.plugin->o.key_ops, build_short,
 			   key, ob40_get_locality(objid),
 			   ob40_get_objectid(objid));
 }
@@ -157,9 +153,6 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 		   pos < direntry40_units(item));
     
 	hint = (entry_hint_t *)buff;
-
-	hint->object.plugin = item->key.plugin;
-	hint->offset.plugin = item->key.plugin;
 
 #ifndef ENABLE_STAND_ALONE
 	units = direntry40_units(item);
@@ -899,24 +892,22 @@ static errno_t direntry40_maxreal_key(item_entity_t *item,
 				      key_entity_t *key) 
 {
 	uint32_t units;
-
+	
 	aal_assert("umka-1651", key != NULL);
 	aal_assert("umka-1650", item != NULL);
 
 	units = direntry40_units(item);
-	aal_assert("umka-1653", units > 0);
-	
 	return direntry40_get_key(item, units - 1, key);
 }
-
-extern errno_t direntry40_check(item_entity_t *item,
-				uint8_t mode);
 
 extern errno_t direntry40_copy(item_entity_t *dst,
 			       uint32_t dst_pos, 
 			       item_entity_t *src,
 			       uint32_t src_pos, 
 			       copy_hint_t *hint);
+
+extern errno_t direntry40_check(item_entity_t *item,
+				uint8_t mode);
 
 extern errno_t direntry40_estimate_copy(item_entity_t *dst,
 					uint32_t dst_pos,
