@@ -311,6 +311,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	
 	hint.specific = &ptr;
 	hint.count = 1;
+	hint.offset = 0;
+	hint.tree = tree;
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;
 	
@@ -461,14 +463,31 @@ static bool_t repair_tree_do_conv(reiser4_tree_t *tree,
 	return -EINVAL;
 }
 
-static errno_t repair_tree_copy(reiser4_tree_t *tree, 
-				reiser4_place_t *dst,
-				reiser4_place_t *src)
+/* Copy @src item data over the @dst from the key pointed by @key through the
+   @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
+errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
+				reiser4_place_t *src, reiser4_key_t *key)
 {
+	reiser4_key_t dmax;
+	insert_hint_t hint;
+	errno_t res;
+	
 	aal_assert("vpf-1298", tree != NULL);
 	aal_assert("vpf-1299", dst != NULL);
 	aal_assert("vpf-1300", src != NULL);
 
+	aal_memset(&hint, 0, sizeof(hint));
+	reiser4_key_assign(&hint.key, key);
+	
+	/* FIXME-VITALY: some hint fields need to be initialized by item 
+	   estimate_insert methods--count, offset, etc. I should just 
+	   initialize start and end keys. For now I calculate it here. */
+	hint.tree = tree;
+	hint.plug = dst->plug;
+	
+	if ((res = reiser4_item_maxreal_key(dst, &dmax)))
+		return res;
+	
 	return 0;
 }
 
@@ -578,11 +597,25 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 				goto error;
 		} else {
 			/* For not equal plugins do coping. */
-			if ((res = repair_tree_copy(tree, &dst, src)))
-				return res;
+			aal_exception_error("Node (%llu), item (%u): the item "
+					    "(%s) [%s] is overlapped by keys "
+					    "with the item (%s) [%s] being "
+					    "inserted [node %llu, item %u]. "
+					    "Copying is not realy yet, skip "
+					    "insertion.", 
+					    node_blocknr(dst.node), dst.pos.item,
+					    dst.plug->label, 
+					    reiser4_print_key(&dst.key, PO_INO),
+					    src->plug->label,
+					    reiser4_print_key(&src->key, PO_INO),
+					    node_blocknr(src->node), 
+					    src->pos.item);
 
-			/* Evth should be copied already. */
-			break;
+			/*
+			if ((res = repair_tree_copy(tree, &dst, src, &key)))
+				return res;
+			*/
+			return 0;
 		}
 
 		if (!src->plug->o.item_ops->lookup)

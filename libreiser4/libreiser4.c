@@ -203,6 +203,11 @@ static errno_t object_resolve(void *tree, place_t *place, char *filename,
 	reiser4_object_close(o);
 	return res;
 }
+
+errno_t tree_conv(void *tree, place_t *place, reiser4_plug_t *plug) {
+	return reiser4_tree_conv(tree, (reiser4_place_t *)place, plug);
+}
+
 #endif
 
 /* Initializing the libreiser4 core instance. It will be passed into all plugins
@@ -239,6 +244,9 @@ reiser4_core_t core = {
 		/* Data related functions */
 		.get_data   = tree_get_data,
 		.set_data   = tree_set_data,
+
+		/*Convertion to another item plugin. */
+		.conv	    = tree_conv
 #endif
 	},
 	.profile_ops = {
