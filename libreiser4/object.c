@@ -376,7 +376,7 @@ errno_t reiser4_object_rem_entry(
 }
 
 /* Adds speficied entry into passed opened dir */
-int32_t reiser4_object_write(
+int64_t reiser4_object_write(
 	reiser4_object_t *object,           /* object for writing */
 	void *buff,			    /* new entries buffer */
 	uint64_t n)			    /* the number of entries to be created */
@@ -711,10 +711,10 @@ errno_t reiser4_object_reset(
 
 /* Reads @n bytes of data at the current offset of @object to passed
    @buff. Returns numbers bytes read. */
-int32_t reiser4_object_read(
+int64_t reiser4_object_read(
 	reiser4_object_t *object,   /* object entry will be read from */
 	void *buff,		    /* buffer result will be stored in */
-	uint32_t n)                 /* buffer size */
+	uint64_t n)                 /* buffer size */
 {
 	aal_assert("umka-860", object != NULL);
 	aal_assert("umka-861", object->entity != NULL);
