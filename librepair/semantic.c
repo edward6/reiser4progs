@@ -453,11 +453,8 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 		return NULL;
 
 	/* Entry was found. */
-	object = repair_object_launch(sem->repair->fs->tree, &entry.object);
-	
-	/* No object can be reached by the found entry. FIXME-VITALY: object 
-	   should be built on the base of this objectid. */
-	if (object == NULL)
+	if ((object = repair_object_launch(sem->repair->fs->tree, 
+					   &entry.object)) == NULL)
 		return NULL;
 	
 	res = repair_semantic_check_struct(sem, object);
@@ -465,6 +462,11 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 	if (repair_error_fatal(res))
 		goto error_close_object;
 	
+	/* Remove all "lost_found_" names from "lost+found" directory. 
+	   This is needed to not have any special case later -- when 
+	   some object gets linked to "lost+found" it is not marked as 
+	   ATTCHED to relink it later to some another object having 
+	   the valid name if such is found. */
 	while ((res = reiser4_object_readdir(object, &entry))) {
 		if (!aal_memcmp(entry.name, LOST_PREFIX, len)) {
 			if ((res = reiser4_object_rem_entry(object, &entry)))
@@ -531,8 +533,9 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		
 		/* Traverse the root dir -- recover all objects which can be 
 		   reached from the root. */
-		res = reiser4_object_traverse(root, callback_object_traverse, 
+		res = reiser4_object_traverse(root, callback_object_traverse,
 					      sem);
+
 		if (res)
 			goto error_close_lost;
 	} else {
