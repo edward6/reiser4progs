@@ -866,12 +866,6 @@ struct reiser4_node_ops {
 	reiser4_plugin_header_t h;
 
 #ifndef ENABLE_ALONE
-	/* 
-	   Forms empty node incorresponding to given level in specified block.
-	   Initializes instance of node and returns it to caller.
-	*/
-	object_entity_t *(*create) (aal_device_t *, blk_t, uint8_t);
-
 	/* Saves node onto device */
 	errno_t (*sync) (object_entity_t *);
 	
@@ -936,17 +930,27 @@ struct reiser4_node_ops {
 
 	void (*set_mstamp) (object_entity_t *, uint32_t);
 	void (*set_fstamp) (object_entity_t *, uint64_t);
+
+	/*
+	  Creates node data block and initializes node header by means of
+	  setting up level, plugin id,etc.
+	*/
+	errno_t (*form) (object_entity_t *, uint8_t);
 #endif
 
-	/* 
-	   Opens node (parses data in orser to check whether it is valid for this
-	   node type), initializes instance and returns it to caller.
-	*/
-	object_entity_t *(*open) (aal_device_t *, blk_t);
+	/* Cerates node entity */
+	object_entity_t *(*init) (aal_device_t *,
+				  blk_t);
+	
+	/* Loads data block node lies in */
+	errno_t (*load) (object_entity_t *);
 
+	/* Unloads node data */
+	errno_t (*unload) (object_entity_t *);
+	
 	/* 
-	   Finalizes work with node (compresses data back) and frees all memory.
-	   Returns the error code to caller.
+	   Destroys the node entity. If node data is not unloaded, it also
+	   unloads data.
 	*/
 	errno_t (*close) (object_entity_t *);
 

@@ -169,6 +169,7 @@ struct reiser4_node {
 	signed counter;
 	
 #ifndef ENABLE_ALONE
+	
 	/* Some node flags (dirty, etc) */
 	uint32_t flags;
 	

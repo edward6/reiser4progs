@@ -21,7 +21,10 @@
 
 struct node40 {
 	reiser4_plugin_t *plugin;
+
+	blk_t blk;
 	aal_block_t *block;
+	aal_device_t *device;
 };
 
 typedef struct node40 node40_t;

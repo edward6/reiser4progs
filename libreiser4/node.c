@@ -1,6 +1,6 @@
 /*
-  node.c -- the personalization of the reiser4 on-disk node. The libreiser4
-  internal in-memory tree consists of reiser4_node_t instances.
+  node.c -- personalization of the reiser4 on disk node. The libreiser4 internal
+  in-memory tree consists of reiser4_node_t instances.
   
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -8,14 +8,8 @@
 
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_ALONE
-
-/* Creates node instance based on passed device and block number */
-reiser4_node_t *reiser4_node_create(
-	aal_device_t *device,	/* device new node will be created on*/
-	blk_t blk,		/* block new node will be created on */
-	rid_t pid,		/* node plugin id to be used */
-	uint8_t level)		/* node level */
+reiser4_node_t *reiser4_node_init(aal_device_t *device,
+				  blk_t blk, rid_t pid)
 {
 	reiser4_node_t *node;
 	reiser4_plugin_t *plugin;
@@ -34,17 +28,17 @@ reiser4_node_t *reiser4_node_create(
 	}
     
 	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plugin_call(plugin->node_ops, create, device,
-					 blk, level))) 
-	{
-		aal_exception_error("Can't create node entity.");
+	if (!(node->entity = plugin_call(plugin->node_ops, init,
+					 device, blk))) 
 		goto error_free_node;
-	}
 
+#ifndef ENABLE_ALONE
+	reiser4_node_mkclean(node);
+#endif
+	
 	node->blk = blk;
 	node->device = device;
 
-	reiser4_node_mkclean(node);
 	reiser4_place_assign(&node->parent, NULL, 0, ~0ul);
 	
 	return node;
@@ -52,6 +46,42 @@ reiser4_node_t *reiser4_node_create(
  error_free_node:    
 	aal_free(node);
 	return NULL;
+}
+	
+errno_t reiser4_node_load(reiser4_node_t *node) {
+	aal_assert("umka-2053", node != NULL);
+
+#ifndef ENABLE_ALONE
+	reiser4_node_mkclean(node);
+#endif
+	
+	return plugin_call(node->entity->plugin->node_ops,
+			   load, node->entity);
+}
+
+errno_t reiser4_node_unload(reiser4_node_t *node) {
+	aal_assert("umka-2054", node != NULL);
+
+#ifndef ENABLE_ALONE
+	if (reiser4_node_isdirty(node))
+		reiser4_node_sync(node);
+#endif
+	
+	return plugin_call(node->entity->plugin->node_ops,
+			   unload, node->entity);
+}
+
+#ifndef ENABLE_ALONE
+
+errno_t reiser4_node_form(reiser4_node_t *node,
+			  uint8_t level)
+{
+	aal_assert("umka-2052", node != NULL);
+
+	reiser4_node_mkdirty(node);
+	
+	return plugin_call(node->entity->plugin->node_ops,
+			   form, node->entity, level);
 }
 
 /* Prints passed @node to the specified @stream */
@@ -84,14 +114,18 @@ static int callback_guess_node(reiser4_plugin_t *plugin,
 		  Requesting block supposed to be a correct node to be opened
 		  and confirmed about its format.
 		*/
-		if (!(node->entity = plugin_call(plugin->node_ops, open,
+		if (!(node->entity = plugin_call(plugin->node_ops, init,
 						 node->device, node->blk)))
 			return 0;
 
+		if (plugin_call(plugin->node_ops, load, node->entity))
+			goto error_free_entity;
+		
 		/* Okay, we have found needed node plugin */
 		if (plugin_call(plugin->node_ops, confirm, node->entity))
 			return 1;
 
+	error_free_entity:
 		plugin_call(plugin->node_ops, close, node->entity);
 		node->entity = NULL;
 	}
@@ -111,34 +145,34 @@ static errno_t reiser4_node_guess(reiser4_node_t *node) {
 
 /* Opens node on specified device and block number */
 reiser4_node_t *reiser4_node_open(
-	aal_device_t *device,	         /* device node will be opened on */
-	blk_t blk)		         /* block number node will be opened on */
+        aal_device_t *device,            /* device node will be opened on */
+        blk_t blk)                       /* block number node will be opened on */
 {
-	reiser4_node_t *node;
-
-	aal_assert("umka-160", device != NULL);
-   
-	if (!(node = aal_calloc(sizeof(*node), 0)))
-		return NULL;
-
-	node->blk = blk;
-	node->device = device;
-
-	if (reiser4_node_guess(node))
-		goto error_free_node;
+        reiser4_node_t *node;
+ 
+        aal_assert("umka-160", device != NULL);
     
+        if (!(node = aal_calloc(sizeof(*node), 0)))
+                return NULL;
+ 
+        node->blk = blk;
+        node->device = device;
+ 
+        if (reiser4_node_guess(node))
+                goto error_free_node;
+     
 #ifndef ENABLE_ALONE
-	reiser4_node_mkclean(node);
+        reiser4_node_mkclean(node);
 #endif
-
-	reiser4_place_assign(&node->parent,
-			     NULL, 0, ~0ul);
-	
-	return node;
-    
+ 
+        reiser4_place_assign(&node->parent,
+                             NULL, 0, ~0ul);
+         
+        return node;
+     
  error_free_node:
-	aal_free(node);
-	return NULL;
+        aal_free(node);
+        return NULL;
 }
 
 /*
@@ -160,7 +194,6 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 			  close, node->entity);
 	    
 	aal_free(node);
-
 	return res;
 }
 

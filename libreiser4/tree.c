@@ -318,7 +318,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		}
 #endif
 	}
-	
+
 	return node;
 
  error_free_node:
@@ -516,8 +516,11 @@ reiser4_node_t *reiser4_tree_alloc(
 	pid = reiser4_profile_value(tree->fs->profile, "node");
     
 	/* Creating new node */
-	if (!(node = reiser4_node_create(device, blk, pid, level)))
+	if (!(node = reiser4_node_init(device, blk, pid)))
 		return NULL;
+
+	if (reiser4_node_form(node, level))
+		goto error_free_node;
 
 	stamp = reiser4_format_get_stamp(tree->fs->format);
 	reiser4_node_set_mstamp(node, stamp);
@@ -533,6 +536,10 @@ reiser4_node_t *reiser4_tree_alloc(
 
 	node->tree = tree;
 	return node;
+
+ error_free_node:
+	reiser4_node_close(node);
+	return NULL;
 
 }
 
@@ -852,6 +859,10 @@ lookup_t reiser4_tree_lookup(
 			aal_exception_error("Can't load node by its nodeptr.");
 			return LP_FAILED;
 		}
+
+		/* Unloading parent node data */
+/*		if (reiser4_node_unload(node))
+			return LP_FAILED;*/
 		
 		deep--;
 	}
@@ -904,10 +915,7 @@ errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 		}
 	}
 
-	if ((res = reiser4_node_ukey(place->node, &place->pos, key)))
-		return res;
-
-	return 0;
+	return reiser4_node_ukey(place->node, &place->pos, key);
 }
 
 /*
@@ -1142,7 +1150,7 @@ errno_t reiser4_tree_shift(
 	node = place->node;
 	hint.control = flags;
 	hint.pos = place->pos;
-	
+
 	if ((res = reiser4_node_shift(node, neig, &hint)))
 		return res;
 
@@ -1959,6 +1967,9 @@ errno_t reiser4_tree_remove(
 {
 	errno_t res;
 
+	aal_assert("umka-2055", tree != NULL);
+	aal_assert("umka-2056", place != NULL);
+	
 	/* Calling "pre_remove" handler if it is defined */
 	if (tree->traps.pre_remove) {
 		if ((res = tree->traps.pre_remove(tree, place,
@@ -2153,6 +2164,7 @@ errno_t reiser4_tree_down(
 		res = after_func(node, hint->data);
 
 	reiser4_node_unlock(node);
+	
 	return res;
 
  error_free_child:

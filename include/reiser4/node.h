@@ -14,6 +14,9 @@
 
 #include <reiser4/types.h>
 
+extern errno_t reiser4_node_load(reiser4_node_t *node);
+extern errno_t reiser4_node_unload(reiser4_node_t *node);
+
 extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
 extern uint32_t reiser4_node_get_mstamp(reiser4_node_t *node);
 extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
@@ -21,7 +24,13 @@ extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
 					 blk_t blk);
 
+extern reiser4_node_t *reiser4_node_init(aal_device_t *device,
+					 blk_t blk, rid_t pid);
+
 #ifndef ENABLE_ALONE
+
+extern errno_t reiser4_node_form(reiser4_node_t *node,
+				 uint8_t level);
 
 extern void reiser4_node_set_mstamp(reiser4_node_t *node,
 				    uint32_t stamp);
@@ -34,10 +43,6 @@ extern void reiser4_node_set_level(reiser4_node_t *node,
 
 extern errno_t reiser4_node_uchildren(reiser4_node_t *node,
 				      pos_t *start);
-
-extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
-					   blk_t blk, rid_t pid,
-					   uint8_t level);
 
 extern errno_t reiser4_node_print(reiser4_node_t *node,
 				  aal_stream_t *stream);
