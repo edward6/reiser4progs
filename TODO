@@ -11,3 +11,4 @@ Copyright (C) 1996-2002 Hans Reiser
 * should we throw out uint32_t additional param (unit pos) from item plugin functions?
 * should all plugins (object plugins) know about reiser4_cache_t?
 * should we have core->item_ops->item_plugin function? not item_pid one?
+* rename internal40 to nodeptr40

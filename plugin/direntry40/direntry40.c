@@ -386,8 +386,7 @@ static int direntry40_lookup(reiser4_item_t *item,
 	return -1;
     
     /* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
-    maxkey.plugin = core->factory_ops.plugin_ifind(KEY_PLUGIN_TYPE, 
-        KEY_REISER40_ID);
+    maxkey.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE, KEY_REISER40_ID);
 	
     if (direntry40_maxkey(item, &maxkey))
 	return -1;

@@ -45,7 +45,7 @@ static errno_t stat40_init(reiser4_item_t *item,
 	if (!(((uint64_t)1 << i) & stat_hint->extmask))
 	    continue;
 	    
-	if (!(plugin = core->factory_ops.plugin_ifind(SDEXT_PLUGIN_TYPE, i))) {
+	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 	    aal_exception_warn("Can't find stat data extention plugin "
 	        "by its id 0x%x.", i);
 	    continue;
@@ -86,7 +86,7 @@ static errno_t stat40_estimate(reiser4_item_t *item, uint32_t pos,
         if (!(((uint64_t)1 << i) & stat_hint->extmask))
 	   continue;
 	    
-	if (!(plugin = core->factory_ops.plugin_ifind(SDEXT_PLUGIN_TYPE, i))) {
+	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 	    aal_exception_warn("Can't find stat data extention plugin "
 	        "by its id 0x%x.", i);
 	    continue;
@@ -160,7 +160,7 @@ static reiser4_body_t *stat40_extbody(reiser4_item_t *item,
         if (!(((uint64_t)1 << i) & extmask))
 	   continue;
 	    
-	if (!(plugin = core->factory_ops.plugin_ifind(SDEXT_PLUGIN_TYPE, i))) {
+	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 	    aal_exception_warn("Can't find stat data extention plugin "
 	        "by its id 0x%x.", i);
 	    continue;
@@ -191,9 +191,7 @@ static errno_t stat40_open_sdext(reiser4_item_t *item,
 	return -1;
     }
     
-    if (!(sdext->plugin = 
-	core->factory_ops.plugin_ifind(SDEXT_PLUGIN_TYPE, bit))) 
-    {
+    if (!(sdext->plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, bit))) {
 	aal_exception_error("Can't find stat data extention plugin "
 	    "by its id %x.", bit);
 	return -1;

@@ -162,9 +162,9 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 	    if (reiser4_item_statdata(&item)) {
 		printf("SD");
 	    } else if (reiser4_item_direntry(&item)) {
-		printf("DR");
+		printf("DIR");
 	    } else if (reiser4_item_tail(&item)) {
-		printf("TL");
+		printf("TAIL");
 	    }
 	    
 	    printf(": len=%u, ", reiser4_item_len(&item));

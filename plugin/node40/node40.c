@@ -429,7 +429,7 @@ static errno_t node40_cut(reiser4_entity_t *entity,
     if ((pid = ih40_get_pid(ih)) == INVALID_PLUGIN_ID)
         return -1;
 	
-    if (!(plugin = core->factory_ops.plugin_ifind(ITEM_PLUGIN_TYPE, pid))) {
+    if (!(plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid))) {
 	aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
 	return -1;
     }

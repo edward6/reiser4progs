@@ -14,16 +14,16 @@
 */
 
 /* Handler for plugin finding requests from all plugins */
-static inline reiser4_plugin_t *plugin_ifind(
-    rpid_t type,			    /* needed type of plugin*/
+static reiser4_plugin_t *factory_ifind(
+    rpid_t type,		    /* needed type of plugin*/
     rpid_t id			    /* needed plugin id */
 ) {
     return libreiser4_factory_ifind(type, id);
 }
 
 /* Handler for plugin finding requests from all plugins */
-static inline reiser4_plugin_t *plugin_nfind(
-    rpid_t type,			    /* needed type of plugin*/
+static reiser4_plugin_t *factory_nfind(
+    rpid_t type,		    /* needed type of plugin*/
     const char *name		    /* needed plugin name (label) */
 ) {
     return libreiser4_factory_nfind(type, name);
@@ -32,22 +32,21 @@ static inline reiser4_plugin_t *plugin_nfind(
 #ifndef ENABLE_COMPACT
 
 /* Handler for item insert requests from the all plugins */
-static inline errno_t item_insert(
+static errno_t tree_insert(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_item_hint_t *item,	    /* item hint to be inserted into tree */
-    uint8_t level
+    uint8_t level,		    /* insert level */
+    reiser4_place_t *place	    /* insertion point will be saved here */
 ) {
-    reiser4_coord_t coord;
-
     aal_assert("umka-846", tree != NULL, return -1);
     aal_assert("umka-847", item != NULL, return -1);
     
     return reiser4_tree_insert((reiser4_tree_t *)tree, item, 
-	level, &coord);
+	level, (reiser4_coord_t *)place);
 }
 
 /* Handler for item removing requests from the all plugins */
-static inline errno_t item_remove(
+static errno_t tree_remove(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_key_t *key,		    /* key of the item to be removerd */
     uint8_t level
@@ -61,7 +60,7 @@ static inline errno_t item_remove(
 #endif
 
 /* Handler for lookup reqiests from the all plugin can arrive */
-static inline int item_lookup(
+static int tree_lookup(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_key_t *key,		    /* key to be found */
     uint8_t level,		    /* stop level */
@@ -75,46 +74,8 @@ static inline int item_lookup(
 	key, level, (reiser4_coord_t *)place);
 }
 
-static inline reiser4_entity_t *item_node(
-    const void *tree,		    /* opaque pointer to the tree */
-    reiser4_place_t *place	    /* coords of the item */
-) {
-    aal_assert("umka-1200", tree != NULL, return NULL);
-    aal_assert("umka-1201", place != NULL, return NULL);
-
-    return ((reiser4_cache_t *)place->cache)->node->entity;
-}
-
-/* Hanlder for item body requests arrive from the all plugins */
-static inline errno_t item_body(
-    const void *tree,		    /* opaque pointer to the tree */
-    reiser4_place_t *place,	    /* coords of the item */
-    void **item,		    /* address where item body should be saved */
-    uint32_t *len		    /* address where item length should be saved */
-) {
-    reiser4_node_t *node;
-    
-    aal_assert("umka-853", tree != NULL, return -1);
-    aal_assert("umka-855", place != NULL, return -1);
-    aal_assert("umka-856", item != NULL, return -1);
-    
-    node = ((reiser4_cache_t *)place->cache)->node;
-    
-    /* Getting item from the node */
-    *item = plugin_call(return -1, node->entity->plugin->node_ops, 
-	item_body, node->entity, &place->pos);
-    
-    /* Getting item length from the node */
-    if (len) {
-	*len = plugin_call(return -1, node->entity->plugin->node_ops,
-	    item_len, node->entity, &place->pos);
-    }
-    
-    return 0;
-}
-
 /* Handler for requests for right neighbor */
-static inline errno_t item_right(
+static errno_t tree_right(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node right neighbor will be obtained for */
 ) {
@@ -138,7 +99,7 @@ static inline errno_t item_right(
 }
 
 /* Handler for requests for left neighbor */
-static inline errno_t item_left(
+static errno_t tree_left(
     const void *tree,		    /* opaque pointer to the tree */
     reiser4_place_t *place	    /* coord of node left neighbor will be obtained for */
 ) {
@@ -161,44 +122,52 @@ static inline errno_t item_left(
     return 0;
 }
 
-/* Hanlder for returning item key */
-static inline errno_t item_key(
-    const void *tree,		    /* opaque pointer to the tree */
-    reiser4_place_t *place,	    /* coord of item key should be obtained from */
-    reiser4_key_t *key		    /* place key should be stored in */
+static errno_t item_open(
+    reiser4_item_t *item,		/* item to gettin body from */
+    reiser4_place_t *place		/* the place the item is going to open */
 ) {
-    aal_assert("umka-870", tree != NULL, return -1);
-    aal_assert("umka-871", place != NULL, return -1);
+    reiser4_node_t *node;
+    
+    aal_assert("umka-1218", place != NULL, return -1);
+    aal_assert("umka-1219", item != NULL, return -1);
+    
+    node = ((reiser4_cache_t *)place->cache)->node;
+    return reiser4_item_open(item, node, &place->pos);
+}
 
-    return reiser4_node_get_key(((reiser4_cache_t *)place->cache)->node, 
-	&place->pos, key);
+/* Hanlder for item length requests arrive from the all plugins */
+static uint32_t item_len(
+    reiser4_item_t *item		/* item to getting the len from */
+) {
+    aal_assert("umka-1216", item != NULL, return 0);
+    return reiser4_item_len(item);
+}
+
+/* Hanlder for item body requests arrive from the all plugins */
+static reiser4_body_t *item_body(
+    reiser4_item_t *item		/* item to getting the body from */
+) {
+    aal_assert("umka-855", item != NULL, return NULL);
+    return reiser4_item_body(item);
+}
+
+/* Hanlder for returning item key */
+static errno_t item_key(
+    reiser4_item_t *item,		/* item to getting the key from */
+    reiser4_key_t *key
+) {
+    aal_assert("umka-870", item != NULL, return -1);
+    aal_assert("umka-871", key != NULL, return -1);
+
+    return reiser4_item_key(item, key);
 }
 
 /* Handler for plugin id requests */
-static inline rpid_t item_pid(
-    const void *tree,		    /* opaque pointer to the tree */
-    reiser4_place_t *place,	    /* coord of item pid will be obtained from */
-    reiser4_plugin_type_t type	    /* requested plugin type */
+static reiser4_plugin_t *item_plugin(
+    reiser4_item_t *item		/* item to getting the plugin from */
 ) {
-    aal_assert("umka-872", tree != NULL, return -1);
-    aal_assert("umka-873", place != NULL, return -1);
-    
-    switch (type) {
-	case ITEM_PLUGIN_TYPE: {
-	    reiser4_node_t *node;
-	    
-	    node = ((reiser4_cache_t *)place->cache)->node;
-	    
-	    return plugin_call(return -1, node->entity->plugin->node_ops, 
-		item_pid, node->entity, &place->pos);
-	}
-	case NODE_PLUGIN_TYPE:
-	    return reiser4_node_pid(((reiser4_cache_t *)place->cache)->node);
-	    
-	default:
-	    aal_exception_error("Unknown plugin type 0x%x.", type);
-	    return INVALID_PLUGIN_ID;
-    }
+    aal_assert("umka-872", item != NULL, return NULL);
+    return reiser4_item_plugin(item);
 }
 
 #ifndef ENABLE_COMPACT
@@ -235,45 +204,51 @@ static int __print_key(FILE * stream, const struct printf_info *info,
 reiser4_core_t core = {
     .factory_ops = {
 	/* Installing callback for making search for a plugin by its type and id */
-	.plugin_ifind = plugin_ifind,
+	.ifind = factory_ifind,
 	
 	/* Installing callback for making search for a plugin by its type and name */
-	.plugin_nfind = plugin_nfind,
+	.nfind = factory_nfind
     },
     
     .tree_ops = {
+	
 	/* This one for lookuping the tree */
-	.lookup = item_lookup,
+	.lookup = tree_lookup,
+
+	/* Returns right neighbour of passed coord */
+	.right	= tree_right,
+    
+	/* Returns left neighbour of passed coord */
+	.left	= tree_left,
 
 #ifndef ENABLE_COMPACT	
 	/* Installing callback function for inserting items into the tree */
-	.item_insert = item_insert,
+	.insert = tree_insert,
 
 	/* Installing callback function for removing items from the tree */
-	.item_remove = item_remove,
+	.remove = tree_remove,
 #else
-	.item_insert = NULL,
-	.item_remove = NULL,
+	.insert = NULL,
+	.remove = NULL,
 #endif
-	/* 
-	    And finally this one for getting body of some item and its size by passed 
-	    coord.
-	*/
-	.item_body = item_body,
-
-	.item_node = item_node,
-
-	/* Returns key by coords */
-	.item_key = item_key,
-
-	/* Returns right neighbour of passed coord */
-	.item_right = item_right,
+    },
     
-	/* Returns left neighbour of passed coord */
-	.item_left = item_left,
+    .item_ops {
+	
+	/* Installing open callback */
+	.open	= item_open,
+	
+	/* The callback for getting an item body */
+	.body	= item_body,
 
-	/* Returns tree pid by coord */
-	.item_pid = item_pid
+	/* The callback for getting an item length */
+	.len	= item_len,
+
+	/* Returns key of the item */
+	.key	= item_key,
+
+	/* Returns plugin of the item */
+	.plugin = item_plugin
     }
 };
 

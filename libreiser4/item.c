@@ -250,6 +250,13 @@ reiser4_body_t *reiser4_item_body(reiser4_item_t *item) {
 	item_body, item->node, item->pos);
 }
 
+errno_t reiser4_item_key(reiser4_item_t *item, reiser4_key_t *key) {
+    aal_assert("umka-1215", item != NULL, return -1);
+    
+    return plugin_call(return -1, item->node->plugin->node_ops, 
+	get_key, item->node, item->pos, key);
+}
+
 reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item) {
     aal_assert("umka-755", item != NULL, return NULL);
     return item->plugin;

@@ -200,27 +200,26 @@ typedef struct reiser4_item reiser4_item_t;
     following operations:
     
     (1) Create the description of the data being inserted.
-    (2) Ask item plugin how much space is needed for the 
-	data, described in 1.
+    (2) Ask item plugin how much space is needed for the data, described in 1.
     
     (3) Free needed space for data being inserted.
-    (4) Ask item plugin to create an item (to paste into 
-	the item) on the base of description from 1.
+    (4) Ask item plugin to create an item (to paste into the item) on the base
+        of description from 1.
 
     For such purposes we have:
     
-    (1) Fixed description structures for all item types (stat, 
-	diritem, internal, etc).
+    (1) Fixed description structures for all item types (statdata, direntry, 
+	internal, etc).
     
-    (2) Estimate common item method which gets coord of where 
-	to insert into (NULL or unit == -1 for insertion, 
-	otherwise it is pasting) and data description from 1.
+    (2) Estimate common item method which gets coord of where to insert into 
+        (NULL or unit == -1 for insertion, otherwise it is pasting) and data 
+	description from 1.
     
-    (3) Insert node methods prepare needed space and call 
-	Create/Paste item methods if data description is specified.
+    (3) Insert node methods prepare needed space and call create/paste item 
+        methods if data description is specified.
     
-    (4) Create/Paste item methods if data description has not 
-	beed specified on 3. 
+    (4) Create/Paste item methods if data description has not beed specified 
+        on 3. 
 */
 
 struct reiser4_internal_hint {    
@@ -929,10 +928,10 @@ struct reiser4_core {
     struct {
 	
 	/* Finds plugin by its attribues (type and id) */
-	reiser4_plugin_t *(*plugin_ifind)(rpid_t, rpid_t);
+	reiser4_plugin_t *(*ifind)(rpid_t, rpid_t);
 	
 	/* Finds plugin by its type and name */
-	reiser4_plugin_t *(*plugin_nfind)(rpid_t, const char *);
+	reiser4_plugin_t *(*nfind)(rpid_t, const char *);
 	
     } factory_ops;
     
@@ -947,35 +946,39 @@ struct reiser4_core {
 	    Inserts item/unit into the tree by calling reiser4_tree_insert function,
 	    used by all object plugins (dir, file, etc)
 	*/
-	errno_t (*item_insert)(const void *, reiser4_item_hint_t *, uint8_t);
+	errno_t (*insert)(const void *, reiser4_item_hint_t *, uint8_t, 
+	    reiser4_place_t *);
     
 	/*
 	    Removes item/unit from the tree. It is used in all object plugins for
 	    modification purposes.
 	*/
-	errno_t (*item_remove)(const void *, reiser4_key_t *, uint8_t);
-
-	/*
-	    Returns pointer on the item and its size by passed coord from the tree.
-	    It is used all object plugins in order to access data stored in items.
-	*/
-	errno_t (*item_body) (const void *, reiser4_place_t *, 
-	    void **, uint32_t *);
-
-	reiser4_entity_t *(*item_node) (const void *, reiser4_place_t *);
+	errno_t (*remove)(const void *, reiser4_key_t *, uint8_t);
 	
-	/* Returns key by specified coord */
-	errno_t (*item_key) (const void *, reiser4_place_t *, 
-	    reiser4_key_t *);
-    
-	errno_t (*item_right) (const void *, reiser4_place_t *);
-	errno_t (*item_left) (const void *, reiser4_place_t *);
-
-	/* Returs plugin id by coord */
-	rpid_t (*item_pid) (const void *, reiser4_place_t *, 
-	    reiser4_plugin_type_t type);
+	/* Returns right and left neighbour respectively */
+	errno_t (*right) (const void *, reiser4_place_t *);
+	errno_t (*left) (const void *, reiser4_place_t *);
 	
     } tree_ops;
+
+    struct {
+	    
+	/* Opens item on passed place */
+	errno_t (*open) (reiser4_item_t *, reiser4_place_t *);
+
+	/* Returns pointer to the item body */
+	reiser4_body_t *(*body) (reiser4_item_t *);
+	
+	/* Returns key by specified coord */
+	errno_t (*key) (reiser4_item_t *, reiser4_key_t *);
+    
+	/* Returs plugin by coord */
+	reiser4_plugin_t *(*plugin) (reiser4_item_t *);
+	
+	/* Returns item length */
+	uint32_t (*len) (reiser4_item_t *);
+
+    } item_ops;
 };
 
 typedef struct reiser4_core reiser4_core_t;

@@ -806,10 +806,13 @@ errno_t reiser4_tree_insert(
     
     reiser4_key_t *key;
     reiser4_item_t item;
+    reiser4_coord_t fake;
 
     aal_assert("umka-779", tree != NULL, return -1);
     aal_assert("umka-779", hint != NULL, return -1);
-    aal_assert("umka-909", coord != NULL, return -1);
+//    aal_assert("umka-909", coord != NULL, return -1);
+  
+    if (!coord) coord = &fake;
     
     key = (reiser4_key_t *)&hint->key;
 

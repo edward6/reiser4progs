@@ -10,13 +10,6 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-struct dir40_item {
-    reiser4_body_t *body;
-    reiser4_plugin_t *plugin;
-};
-
-typedef struct dir40_item dir40_item_t;
-
 /* Compaund directory structure */
 struct dir40 {
     reiser4_plugin_t *plugin;
@@ -41,10 +34,10 @@ struct dir40 {
 	Statdata item of the dir. It is used for passing it to statdata plugin 
 	in order to get or set someone field.
     */
-    dir40_item_t statdata;
+    reiser4_item_t statdata;
 
-    /* Current direntry item */
-    dir40_item_t direntry;
+    /* Current body item */
+    reiser4_item_t body;
     
     /* Current position in the directory */
     uint32_t offset;

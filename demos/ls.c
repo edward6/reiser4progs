@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 	{
 	    int i;
 	    char name[256];
-		reiser4_file_t *file;
+	    reiser4_file_t *file;
 	    
 	    for (i = 0; i < 80; i++) {
 		aal_memset(name, 0, sizeof(name));
