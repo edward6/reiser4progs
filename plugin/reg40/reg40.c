@@ -201,8 +201,8 @@ error_set_context:
 }
 
 /* Reads n entries to passed buffer buff */
-static uint64_t reg40_read(reiser4_entity_t *entity, 
-    char *buff, uint64_t n)
+static int32_t reg40_read(reiser4_entity_t *entity, 
+    char *buff, uint32_t n)
 {
     uint32_t read;
     reg40_t *reg = (reg40_t *)entity;
@@ -293,6 +293,7 @@ static reiser4_entity_t *reg40_create(const void *tree,
     reiser4_item_hint_t stat_hint;
     reiser4_statdata_hint_t stat;
     
+    reiser4_sdext_lw_hint_t lw_ext;
     reiser4_sdext_unix_hint_t unix_ext;
     
     roid_t objectid;
@@ -338,12 +339,11 @@ static reiser4_entity_t *reg40_create(const void *tree,
 	assign, stat_hint.key.body, object->body);
     
     /* Initializing stat data item hint. */
-    stat.mode = S_IFREG | 0755;
-    stat.extmask = 1 << SDEXT_UNIX_ID;
-    stat.nlink = 2;
-
-    /* File size, should be changed by truncate */
-    stat.size = 0;
+    stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
+    
+    lw_ext.mode = S_IFDIR | 0755;
+    lw_ext.nlink = 2;
+    lw_ext.size = 0;
     
     unix_ext.uid = getuid();
     unix_ext.gid = getgid();
@@ -355,8 +355,9 @@ static reiser4_entity_t *reg40_create(const void *tree,
     /* Taken space, should be changed by write */
     unix_ext.bytes = 0;
 
-    stat.extentions.count = 1;
-    stat.extentions.hint[0] = &unix_ext;
+    stat.extentions.count = 2;
+    stat.extentions.hint[0] = &lw_ext;
+    stat.extentions.hint[1] = &unix_ext;
 
     stat_hint.hint = &stat;
     
@@ -396,9 +397,43 @@ static errno_t reg40_truncate(reiser4_entity_t *entity,
 }
 
 /* Adds n entries from buff to passed entity */
-static uint64_t reg40_write(reiser4_entity_t *entity, 
-    char *buff, uint64_t n) 
+static int32_t reg40_write(reiser4_entity_t *entity, 
+    char *buff, uint32_t n) 
 {
+    reiser4_item_hint_t hint;
+    reg40_t *reg = (reg40_t *)entity;
+
+    aal_assert("umka-1184", entity != NULL, return -1);
+    aal_assert("umka-1185", entity != NULL, return -1);
+    
+    /* 
+	FIXME-UMKA: Here we should also check if n greater than max space in 
+	node. If so, we should split buffer onto few parts and insert them 
+	separately.
+    */
+    
+    hint.len = n;
+    hint.data = buff;
+    hint.plugin = /*reg->body.plugin*/core->factory_ops.plugin_ifind(ITEM_PLUGIN_TYPE, 
+	ITEM_TAIL40_ID);
+
+    /* 
+	FIXME-UMKA: Here tail policy plugin should decide what kind of item (tail 
+	or extent) we have to insert. And we should build the key basing on that 
+	desicion. 
+    */
+    hint.key.plugin = reg->key.plugin;
+    plugin_call(return 0, hint.key.plugin->key_ops, 
+	build_generic, hint.key.body, KEY_FILEBODY_TYPE, reg40_locality(reg), 
+	reg40_objectid(reg), reg->offset);
+    
+    /* Inserting the entry to the tree */
+    if (core->tree_ops.item_insert(reg->tree, &hint)) {
+        aal_exception_error("Can't insert body item to the thee.");
+	return 0;
+    }
+    
+    reg->offset += n;
     return 0;
 }
 

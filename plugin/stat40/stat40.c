@@ -60,10 +60,7 @@ static errno_t stat40_init(reiser4_body_t *body,
     stat = (stat40_t *)body;
     stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
-    st40_set_mode(stat, stat_hint->mode);
     st40_set_extmask(stat, stat_hint->extmask);
-    st40_set_nlink(stat, stat_hint->nlink);
-    st40_set_size(stat, stat_hint->size);
  
     if (stat_hint->extmask) {
 	uint8_t i = 0;
@@ -176,7 +173,9 @@ static uint32_t stat40_count(reiser4_body_t *body) {
 
 static uint16_t stat40_get_mode(reiser4_body_t *body) {
     aal_assert("umka-710", body != NULL, return 0);
-    return st40_get_mode((stat40_t *)body);
+    
+    /* FIXME-UMKA: Here should be returned right mode */
+    return 0;
 }
 
 #ifndef ENABLE_COMPACT
@@ -185,8 +184,8 @@ static errno_t stat40_set_mode(reiser4_body_t *body,
     uint16_t mode)
 {
     aal_assert("umka-711", body != NULL, return -1);
-    st40_set_mode((stat40_t *)body, mode);
-
+    
+    /* FIXME-UMKA: Here should be setright mode */
     return 0;
 }
 

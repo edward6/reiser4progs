@@ -201,8 +201,8 @@ static uint32_t dir40_count(dir40_t *dir) {
 }
 
 /* Reads n entries to passed buffer buff */
-static uint64_t dir40_read(reiser4_entity_t *entity, 
-    char *buff, uint64_t n)
+static int32_t dir40_read(reiser4_entity_t *entity, 
+    char *buff, uint32_t n)
 {
     uint32_t i, count;
     reiser4_plugin_t *plugin;
@@ -210,8 +210,8 @@ static uint64_t dir40_read(reiser4_entity_t *entity,
 
     reiser4_entry_hint_t *entry = (reiser4_entry_hint_t *)buff;
     
-    aal_assert("umka-844", dir != NULL, return 0);
-    aal_assert("umka-845", entry != NULL, return 0);
+    aal_assert("umka-844", dir != NULL, return -1);
+    aal_assert("umka-845", entry != NULL, return -1);
 
     plugin = dir->direntry.plugin;
     
@@ -347,6 +347,7 @@ static reiser4_entity_t *dir40_create(const void *tree,
     reiser4_item_hint_t direntry_hint;
     reiser4_direntry_hint_t direntry;
    
+    reiser4_sdext_lw_hint_t lw_ext;
     reiser4_sdext_unix_hint_t unix_ext;
     
     roid_t parent_locality;
@@ -459,10 +460,11 @@ static reiser4_entity_t *dir40_create(const void *tree,
 	assign, stat_hint.key.body, object->body);
     
     /* Initializing stat data item hint. */
-    stat.mode = S_IFDIR | 0755;
-    stat.extmask = 1 << SDEXT_UNIX_ID;
-    stat.nlink = 2;
-    stat.size = 2;
+    stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
+    
+    lw_ext.mode = S_IFDIR | 0755;
+    lw_ext.nlink = 2;
+    lw_ext.size = 2;
     
     unix_ext.uid = getuid();
     unix_ext.gid = getgid();
@@ -475,8 +477,9 @@ static reiser4_entity_t *dir40_create(const void *tree,
 	dir->direntry.plugin->item_ops, estimate, ~0ul, 
 	&direntry_hint);
 
-    stat.extentions.count = 1;
-    stat.extentions.hint[0] = &unix_ext;
+    stat.extentions.count = 2;
+    stat.extentions.hint[0] = &lw_ext;
+    stat.extentions.hint[1] = &unix_ext;
 
     stat_hint.hint = &stat;
     
@@ -530,8 +533,8 @@ static errno_t dir40_truncate(reiser4_entity_t *entity,
 }
 
 /* Adds n entries from buff to passed entity */
-static uint64_t dir40_write(reiser4_entity_t *entity, 
-    char *buff, uint64_t n) 
+static int32_t dir40_write(reiser4_entity_t *entity, 
+    char *buff, uint32_t n) 
 {
     uint64_t i;
     reiser4_item_hint_t hint;
@@ -540,8 +543,8 @@ static uint64_t dir40_write(reiser4_entity_t *entity,
     
     reiser4_entry_hint_t *entry = (reiser4_entry_hint_t *)buff;
     
-    aal_assert("umka-844", dir != NULL, return 0);
-    aal_assert("umka-845", entry != NULL, return 0);
+    aal_assert("umka-844", dir != NULL, return -1);
+    aal_assert("umka-845", entry != NULL, return -1);
    
     aal_memset(&hint, 0, sizeof(hint));
     aal_memset(&direntry_hint, 0, sizeof(direntry_hint));
