@@ -1522,9 +1522,14 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 	
 	if (src_hint.len != dst_hint.len) {
 	    /*
-	       FIXME-VITALY: ajust space for the new data according to 
+	       FIXME-VITALY: adjust space for the new data according to 
 	       src_hint.len. 
 	    */
+	    aal_exception_warn("Node (%llu), pos (%u/%u) (%k - %k): Overwriting"
+		    " with space adjusting is not ready yet.", src->node->blk, 
+		    src->pos.item, src->pos.unit, &src->item.key, end);
+	    
+	    return 0;	    
 	}
 	    
 	if ((res = reiser4_node_copy(dst->node, &dst->pos,
