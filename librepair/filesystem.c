@@ -421,10 +421,11 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 		if (pack && reiser4_node_sync(node))
 			goto error;
 		else if (!pack && aal_block_write(block))
-			goto error_free_journal;
+			goto error;
 
 		if (bitmap) {
-			aux_bitmap_mark(bitmap, node->block->nr);
+			aux_bitmap_mark(bitmap, pack ? 
+					node->block->nr : block->nr);
 		}
 		
 		if (pack) {

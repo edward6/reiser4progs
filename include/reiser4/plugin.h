@@ -808,7 +808,7 @@ typedef struct repair_hint repair_hint_t;
 
 enum reiser4_backuper {
 	BK_MASTER	= 0x0,
-	BK_FORMAT	= 0X1,
+	BK_FORMAT	= 0x1,
 	BK_LAST		= 0x2
 };
 
