@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 #  include <dlfcn.h>
 #  include <dirent.h>
 #  include <errno.h>
@@ -123,11 +123,11 @@ errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
 	return ret;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 extern reiser4_abort_t abort_func;
 #endif
 
-#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 
 /*
   Helper function for searcking for the needed symbol inside loaded dynamic
@@ -183,7 +183,7 @@ errno_t libreiser4_plugin_open(const char *name,
     
 	handle->fini = *((reiser4_plugin_fini_t *)addr);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	handle->abort = abort_func;
 #endif
 
@@ -274,7 +274,7 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 	handle->init = (reiser4_plugin_init_t)*entry;
 	handle->fini = (reiser4_plugin_fini_t)*(entry + 1);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	handle->abort = abort_func;
 #endif
 
@@ -347,7 +347,7 @@ errno_t libreiser4_factory_init(void) {
 	plugin_handle_t handle;
 	reiser4_plugin_t *plugin;
 	
-#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 	DIR *dir;
 	struct dirent *ent;
 #else
@@ -358,7 +358,7 @@ errno_t libreiser4_factory_init(void) {
 
 	aal_assert("umka-159", plugins == NULL);
 
-#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 	if (!(dir = opendir(PLUGIN_DIR))) {
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
 				    "Can't open directory %s.", PLUGIN_DIR);
@@ -393,7 +393,7 @@ errno_t libreiser4_factory_init(void) {
 	/* Loads the all built-in plugins */
 	for (entry = &__plugin_start; entry < &__plugin_end; entry += 2) {
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		if (!entry) {
 			aal_exception_warn("Invalid built-in entry detected at "
 					   "address (0x%lx).", &entry);
@@ -406,7 +406,7 @@ errno_t libreiser4_factory_init(void) {
 	}
 #endif
 	if (aal_list_length(plugins) == 0) {
-#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 		aal_exception_error("There are no valid plugins found "
 				    "in %s.", PLUGIN_DIR);
 #else

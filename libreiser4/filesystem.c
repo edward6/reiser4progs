@@ -20,7 +20,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 {
 	rid_t pid;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	count_t blocks;
 #endif
 	reiser4_fs_t *fs;
@@ -28,7 +28,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 
 	aal_assert("umka-148", device != NULL);
 	
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	aal_assert("umka-1866", profile != NULL);
 #endif
 
@@ -38,7 +38,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 
 	fs->device = device;
 	
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	fs->profile = profile;
 #endif
 	
@@ -66,7 +66,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (reiser4_format_valid(fs->format))
 		goto error_free_format;
     
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	
 	if ((blocks = reiser4_format_get_len(fs->format)) == INVAL_BLK)
 		goto error_free_format;
@@ -92,7 +92,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_alloc_close(fs->alloc);
 #endif
 	
@@ -113,14 +113,14 @@ void reiser4_fs_close(
     
 	aal_assert("umka-230", fs != NULL);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_fs_sync(fs);
 #endif
 	
 	/* Closing the all filesystem objects */
 	reiser4_oid_close(fs->oid);
 	
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_alloc_close(fs->alloc);
 #endif
 
@@ -131,7 +131,7 @@ void reiser4_fs_close(
 	aal_free(fs);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t callback_check_block(
 	object_entity_t *entity,

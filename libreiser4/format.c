@@ -62,7 +62,7 @@ reiser4_format_t *reiser4_format_open(
 	return NULL;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
@@ -270,7 +270,7 @@ uint16_t reiser4_format_get_policy(
 			   get_policy, format->entity);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Sets new root block */
 void reiser4_format_set_root(
