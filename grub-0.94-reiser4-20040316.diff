@@ -195,7 +195,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude='*.*~' --exclude='*.m4' ./grub-0.94.orig/stage2/fsys_reiser4.c ./grub-0.94/stage2/fsys_reiser4.c
 --- ./grub-0.94.orig/stage2/fsys_reiser4.c	1970-01-01 03:00:00.000000000 +0300
 +++ ./grub-0.94/stage2/fsys_reiser4.c	2004-01-27 12:36:33.000000000 +0300
-@@ -0,0 +1,245 @@
+@@ -0,0 +1,250 @@
 +/* 
 + *  fsys_reiser4.c -- reiser4 filesystem support.
 + *  Copyright (C) 2001, 2002, 2003 Hans Reiser.
@@ -375,14 +375,16 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +		}
 +
 +		/* Open obejct by @dirname */
-+		if (!(object = reiser4_semantic_open(fs->tree, dirname, 1))) {
++		if (!(object = reiser4_semantic_open(fs->tree, dirname, 
++						     NULL, 1))) 
++		{
 +			errnum = ERR_FILE_NOT_FOUND;
 +			return 0;
 +		}
 +
 +		/* Checking if it is a directory object */
-+		if (object->entity->plug->id.group != DIR_OBJECT) {
-+
++		if (object->ent->opset.plug[OPSET_OBJ]->id.group != DIR_OBJECT)
++		{
 +			/* If not, cutting out last '/' character */
 +    			if ((ch = aal_strrchr(dirname, '/')))
 +				*ch = '\0';
@@ -409,12 +411,15 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +#endif
 +		/* This is the case when resier4_dir() is called for open the
 +		   file @dirname, not for building completion list. */
-+		if (!(object = reiser4_semantic_open(fs->tree, dirname, 1))) {
++		if (!(object = reiser4_semantic_open(fs->tree, dirname,
++						     NULL, 1))) 
++		{
 +			errnum = ERR_FILE_NOT_FOUND;
 +			return 0;
 +		}
 +		
-+		if (object->entity->plug->id.group != REG_OBJECT) {
++		if (object->ent->opset.plug[OPSET_OBJ]->id.group != REG_OBJECT)
++		{
 +			errnum = ERR_BAD_FILETYPE;
 +			return 0;
 +		}

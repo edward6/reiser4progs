@@ -69,6 +69,8 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
 #endif
+uint64_t reiser4_object_size(reiser4_object_t *object);
+	
 extern errno_t reiser4_object_stat(reiser4_object_t *object,
 				   stat_hint_t *hint);
 

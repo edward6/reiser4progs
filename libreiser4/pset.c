@@ -312,7 +312,7 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
 	}
 
-	if (!(tree->ent.opset[OPSET_MKNODE] =
+	if (!(tree->ent.opset[OPSET_MKDIR] =
 	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_DIR40_ID)))
 	{
 		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",

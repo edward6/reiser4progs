@@ -61,9 +61,13 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		plugh->plug[mem] = sdext_plug_core->pset_ops.find(mem, id);
 		
 		if (plugh->plug[mem] == INVAL_PTR) {
+#ifndef ENABLE_STAND_ALONE
 			aal_error("Failed to find a plugin of the opset "
 				  "member (%u), id (%u).", mem, id);
 			return -EIO;
+#else
+			plugh->plug[mem] = NULL;
+#endif
 		}
 #if 0		
 		/* If the plug is valid but cannot be found (not implemented 
