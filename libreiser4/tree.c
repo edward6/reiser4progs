@@ -1903,13 +1903,14 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 	if ((res = reiser4_node_shift(node, neig, &hint)))
 		return res;
 
-	/* Updating insert point by pos returned from node_shift(). */
-	place->pos = hint.pos;
-
 	/* Check if insert point was moved to neighbour node. If so, assign
 	   neightbour node to insert point coord. */
 	if (hint.control & SF_UPDATE_POINT && hint.result & SF_MOVE_POINT)
 		place->node = neig;
+
+	/* Updating @place->pos by hint->pos if there is permission flag. */
+	if (hint.control & SF_UPDATE_POINT)
+		place->pos = hint.pos;
 
 	update = (hint.control & SF_ALLOW_LEFT) ? node : neig;
 
@@ -2565,7 +2566,7 @@ int64_t reiser4_tree_insert(reiser4_tree_t *tree, place_t *place,
 
 	return reiser4_tree_modify(tree, place, hint, level, 
 				   callback_prep_insert,
-				   reiser4_node_insert);
+				   callback_node_insert);
 }
 
 /* Writes data to the tree. used for puting tail and extents to tree. */
@@ -2580,7 +2581,7 @@ int64_t reiser4_tree_write(reiser4_tree_t *tree, place_t *place,
 
 	return reiser4_tree_modify(tree, place, hint, level,
 				   callback_prep_write,
-				   reiser4_node_write);
+				   callback_node_write);
 }
 
 /* Removes item/unit at @place. */

@@ -8,9 +8,6 @@ reiser4progs/COPYING.
 
 * fix reiser4_print_*. This print stuffshould be moved to libaal.
 
-* make tree_insert() code paths shorter, that it do nor use lots of
-  checks of the same conditions and calculations like needed space.
-
 * check all place_fetch() occurences and remove redundant ones.
 
 * improve tree drying out and growing up in the sense of doing this

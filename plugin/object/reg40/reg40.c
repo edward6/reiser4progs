@@ -501,7 +501,10 @@ static int64_t reg40_write(object_entity_t *entity,
 	if ((res = reg40_put(entity, buff, n)) < 0)
 		return res;
 
-	/* Updating stat data fields */
+	/* Updating stat data fields. */
+	if ((res = obj40_update(&reg->obj)))
+		return res;
+	
 	bytes += obj40_get_bytes(&reg->obj) + res;
 
 	return obj40_touch(&reg->obj, size + n, bytes);
@@ -536,15 +539,22 @@ static errno_t reg40_truncate(object_entity_t *entity,
 			return bytes;
 		}
 		
-		/* Updating stat data fields */
+		/* Updating stat data fields. */
+		if ((res = obj40_update(&reg->obj)))
+			return res;
+		
 		bytes += obj40_get_bytes(&reg->obj);
+		
 		return obj40_touch(&reg->obj, n, bytes);
 	} else {
 		/* Cutting items/units */
 		if ((bytes = reg40_cut(entity, size - n)) < 0)
 			return bytes;
 
-		/* Updating stat data fields */
+		/* Updating stat data fields. */
+		if ((res = obj40_update(&reg->obj)))
+			return res;
+
 		bytes = obj40_get_bytes(&reg->obj) - bytes;
 
 		if ((res = obj40_touch(&reg->obj, n, bytes)))

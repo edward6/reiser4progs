@@ -462,15 +462,15 @@ int64_t reiser4_node_modify(node_t *node, pos_t *pos,
 	return write;
 }
 
-static errno_t callback_node_insert(node_t *node, pos_t *pos,
-				    trans_hint_t *hint) 
+errno_t callback_node_insert(node_t *node, pos_t *pos,
+			     trans_hint_t *hint) 
 {
 	return plug_call(node->entity->plug->o.node_ops,
 			 insert, node->entity, pos, hint);
 }
 
-static errno_t callback_node_write(node_t *node, pos_t *pos,
-				   trans_hint_t *hint) 
+errno_t callback_node_write(node_t *node, pos_t *pos,
+			    trans_hint_t *hint) 
 {
 	return plug_call(node->entity->plug->o.node_ops,
 			 write, node->entity, pos, hint);

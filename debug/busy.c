@@ -91,12 +91,16 @@ int main(int argc, char *argv[]) {
 //			strcat(name, part);
 
 			aal_snprintf(name, 256, "file name%d", random());
+/*			if (i % 2 == 0)
+				i += 50;
+			else
+				i -= 50;*/
 //			printf("%s\n", name);
                                                                                        
                         if (!(object = reiser4_reg_create(fs, dir, name)))
                                 continue;
                                                                                        
-                        count = 0;
+                        count = 1;
                                                                                        
                         for (j = 0; j < count; j++) {
                                 if (reiser4_object_write(object, name,

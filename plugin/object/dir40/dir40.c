@@ -509,7 +509,7 @@ static uint64_t dir40_size(object_entity_t *entity) {
 	
 	dir = (dir40_t *)entity;
 	
-	/* Updating stat data place */
+	/* Updating stat data place. */
 	if (obj40_update(&dir->obj))
 		return 0;
 
@@ -861,7 +861,10 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		return res;
 	}
 
-	/* Updating stat data fields */
+	/* Updating stat data fields. */
+	if ((res = obj40_update(&dir->obj)))
+		return res;
+	
 	entry->len = hint.len;
 	size = dir40_size(entity) + 1;
 	bytes = obj40_get_bytes(&dir->obj) + hint.bytes;
@@ -911,6 +914,9 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	}
 
 	/* Updating stat data fields */
+	if ((res = obj40_update(&dir->obj)))
+		return res;
+
 	entry->len = hint.len;
 	size = dir40_size(entity) - 1;
 	bytes = obj40_get_bytes(&dir->obj) - hint.bytes;
