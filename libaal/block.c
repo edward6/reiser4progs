@@ -25,13 +25,17 @@ aal_block_t *aal_block_create(
 
 	aal_assert("umka-443", device != NULL);
     
-	if (!(block = (aal_block_t *)aal_calloc(sizeof(*block), 0)))
+	if (!(block = (aal_block_t *)aal_calloc(sizeof(*block), 0))) {
+		aal_exception_error("Out of memory!");
 		return NULL;
+	}
 
 	block->device = device;
 	    
-	if (!(block->data = aal_calloc(aal_device_get_bs(device), c)))
+	if (!(block->data = aal_calloc(aal_device_get_bs(device), c))) {
+		aal_exception_error("Out of memory!");
 		goto error_free_block;
+	}
 	
 	block->blk = blk;
 	aal_block_mkdirty(block);

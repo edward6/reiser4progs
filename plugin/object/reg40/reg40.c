@@ -93,26 +93,16 @@ static lookup_t reg40_next(reg40_t *reg) {
 		    KEY_FILEBODY_TYPE, object40_locality(&reg->obj), 
 		    object40_objectid(&reg->obj), reg->offset);
 
-        /* Unlocking the old body */
-	object40_unlock(&reg->obj, &reg->body);
-
-	place = reg->body;
-	
 	/* Getting the next body item from the tree */
 	if ((res = object40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				   &reg->body)) != LP_PRESENT)
+				   &place)) == LP_PRESENT)
 	{
-		/*
-		  Restoring previous body place. It is needed because we provide
-		  the behavior which makes user sure that if next position is
-		  not found, we should stay at the end of file.
-		*/
+		object40_unlock(&reg->obj, &reg->body);
+
 		reg->body = place;
+		object40_lock(&reg->obj, &reg->body);
 	}
 
-	/* Locking new body or old one if lookup failed */
-	object40_lock(&reg->obj, &reg->body);
-	
 	return res;
 }
 
