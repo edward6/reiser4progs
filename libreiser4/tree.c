@@ -1262,6 +1262,12 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 			   structures (that is remove internal nodeptr item in
 			   parent node if any). */
 			reiser4_tree_discard_node(tree, right, 1);
+
+			/* Here we do not move compress point to node next to
+			   @right, because @node may still have enough of space
+			   to move some data to it and we preffer to do nothing
+			   here. That is node data will be moved to on the next
+			   cycle of this loop is still the same. */
 		} else {
 			/* Updating @node by @right in order to move control
 			   flow to right neighbour node and so on until
@@ -1295,6 +1301,7 @@ errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 		if ((res = reiser4_tree_compress_level(tree, node)))
 			return res;
 
+		/* Are we on insernal level at all? */
 		if (level > LEAF_LEVEL) {
 			/* Getting first nodeptr on level to get node by it and
 			   in such a manner to move control flow to next level
