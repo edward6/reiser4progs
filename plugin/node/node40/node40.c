@@ -379,6 +379,8 @@ static errno_t node40_expand(node40_t *node,
 		ih40_set_len(ih, len);
 		ih40_set_offset(ih, offset);
 
+		nh40_inc_num_items(node, 1);
+		
 		/* Setting up node free space start */
 		nh40_dec_free_space(node, sizeof(item40_header_t));
 
@@ -457,10 +459,12 @@ static errno_t node40_shrink(node40_t *node,
 
 	/*
 	  Increasing free space by item overhead in the case of removing whole
-	  item from the node.
+	  item from the node. Here also update of num items field.
 	*/
-	if (pos->unit == ~0ul)
+	if (pos->unit == ~0ul) {
+		nh40_dec_num_items(node, 1);
 		nh40_inc_free_space(node, sizeof(item40_header_t));
+	}
     
 	return 0;
 }
@@ -489,8 +493,6 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	ih = node40_ih_at(node, pos->item);
 	ih40_set_pid(ih, hint->plugin->h.id);
 	aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
-
-	nh40_inc_num_items(node, 1);
 
 	/*
 	  If item hint contains some data, we just copy it and going out. This
@@ -563,8 +565,6 @@ errno_t node40_remove(object_entity_t *entity,
 	/* Removing item or unit, depending on @pos */
 	if (node40_shrink(node, pos, len))
 		return -1;
-	
-	nh40_dec_num_items(node, 1);
 	
 	return 0;
 }
@@ -883,7 +883,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 	if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
 		return -1;
 
-	if (hint->bytes > nh40_get_free_space(dst_node))
+	if (hint->part > nh40_get_free_space(dst_node))
 		return 0;
 
 	/* Expanding dst node to make room for units to be moved to it */
@@ -1092,8 +1092,6 @@ static errno_t node40_shift_units(node40_t *src_node,
 					    "shifting units into it.");
 			return -1;
 		}
-		
-		nh40_inc_num_items(dst_node, 1);
 
 		/* Setting up new item fiedls */
 		ih = node40_ih_at(dst_node, pos.item);
@@ -1412,8 +1410,8 @@ static errno_t node40_shift(object_entity_t *entity,
 	hint->items = 0;
 	merge = *hint;
 
-/*	if (node40_merge_items(src_node, dst_node, &merge))
-		return -1;*/
+	if (node40_merge_items(src_node, dst_node, &merge))
+		return -1;
 	
 	flags = hint->flags;
 	

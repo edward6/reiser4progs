@@ -639,7 +639,7 @@ struct reiser4_item_ops {
 	errno_t (*max_real_key) (item_entity_t *, reiser4_key_t *);
 
 	/* Get the key of a particular unit of the item. */
-	errno_t (*unit_key) (item_entity_t *, uint16_t, reiser4_key_t *);
+	errno_t (*unit_key) (item_entity_t *, uint32_t, reiser4_key_t *);
 
 	/* Returns unit count */
 	uint32_t (*units) (item_entity_t *);
