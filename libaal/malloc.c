@@ -41,7 +41,6 @@ struct mpressure {
 	char name[256];
 	
 	aal_mpressure_handler_t handler;
-	aal_mpressure_result_t result;
 };
 
 static int mpressure_active = 0;
@@ -72,20 +71,10 @@ errno_t aal_mpressure_check(void) {
 			aal_list_foreach_forward(walk, mpressure_handler) {
 				mpressure = (struct mpressure *)walk->data;
 
-				if (mpressure->result && mpressure->enabled)
-					mpressure->result(mpressure->data, result);
-			}
-			
-			if (!result)
-				return 0;
-	
-			aal_list_foreach_forward(walk, mpressure_handler) {
-				mpressure = (struct mpressure *)walk->data;
-
 				if (!mpressure->enabled)
 					continue;
 					
-				if (mpressure->handler(mpressure->data)) {
+				if (mpressure->handler(mpressure->data, result)) {
 					aal_exception_warn("Memory pressure handler "
 							   "\"%s\" failed.", mpressure->name);
 				}
@@ -143,7 +132,6 @@ errno_t aal_mpressure_init(aal_mpressure_detect_t handler) {
 }
 
 void *aal_mpressure_handler_create(aal_mpressure_handler_t handler,
-				   aal_mpressure_result_t result,
 				   char *name, void *data)
 {
 	struct mpressure *mpressure;
@@ -154,7 +142,6 @@ void *aal_mpressure_handler_create(aal_mpressure_handler_t handler,
 	if (!(mpressure = aal_calloc(sizeof(*mpressure), 0)))
 		return NULL;
 
-	mpressure->result = result;
 	mpressure->handler = handler;
 	mpressure->data = data;
 	mpressure->enabled = 1;

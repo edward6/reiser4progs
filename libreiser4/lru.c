@@ -58,20 +58,13 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 
 #ifndef ENABLE_COMPACT
 
-errno_t reiser4_lru_mpressure(void *data) {
+static errno_t reiser4_lru_mpressure(void *data, int result) {
 	reiser4_lru_t *lru = (reiser4_lru_t *)data;
 
-	if (!lru->adjust || !lru->list)
+	if (!lru->adjust || !lru->list || !result)
 		return 0;
 	
 	return reiser4_lru_adjust(lru);
-}
-
-void reiser4_lru_result(void *data, int result) {
-	reiser4_lru_t *lru = (reiser4_lru_t *)data;
-
-	if (!result)
-		lru->adjust = 0;
 }
 
 #endif
@@ -80,7 +73,6 @@ errno_t reiser4_lru_init(reiser4_lru_t *lru) {
 
 #ifndef ENABLE_COMPACT
 	lru->mpressure = aal_mpressure_handler_create(reiser4_lru_mpressure,
-						      reiser4_lru_result,
 						      "tree cache", lru);
 	lru->adjustable = aal_mpressure_active();
 #else
