@@ -133,8 +133,9 @@ errno_t repair_tree_next_key(reiser4_tree_t *tree,
 	return reiser4_tree_place_key(tree, &temp, key);
 }
 
-reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, reiser4_node_t *parent,
-			      blk_t blk, bool_t check)
+reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, 
+				      reiser4_node_t *parent,
+				      blk_t blk, bool_t check)
 {
 	reiser4_node_t *node;
 	

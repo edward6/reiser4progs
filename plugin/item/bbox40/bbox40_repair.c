@@ -9,8 +9,7 @@
 #include "bbox40_repair.h"
 
 errno_t bbox40_check_struct(reiser4_place_t *place, uint8_t mode) {
-	uint64_t oid, type;
-	uint64_t slink_oid;
+	uint64_t type;
 	uint8_t size;
 	
 	/* FIXME: this is hardcoded, type should be obtained in another way. */
@@ -39,28 +38,15 @@ errno_t bbox40_check_struct(reiser4_place_t *place, uint8_t mode) {
 		return RE_FATAL;
 	}
 
-	oid = plug_call(place->key.plug->o.key_ops, 
-			get_locality, &place->key);
-
-	slink_oid = bbox40_core->tree_ops.slink_locality(place->node->tree);
-
-	if (oid != slink_oid) {
-		aal_error("Node (%llu), item (%u): safe link item (%s) with "
-			  "the wrong locality (%llu) found. Should be (%llu).", 
-			  place->node->block->nr, place->pos.item, 
-			  place->plug->label, oid, slink_oid);
-		
-		return RE_FATAL;
-	}
-
 	return 0;
 }
 
 void bbox40_print(reiser4_place_t *place, aal_stream_t *stream, 
 		  uint16_t options) 
 {
+	reiser4_key_t key;
 	uint64_t type;
-	uint8_t size;
+	uint16_t size, trunc;
 
 	/* FIXME: this is hardcoded, type should be obtained in another way. */
 	type = plug_call(place->key.plug->o.key_ops, get_offset, &place->key);
@@ -68,22 +54,22 @@ void bbox40_print(reiser4_place_t *place, aal_stream_t *stream,
 	size = plug_call(place->key.plug->o.key_ops, bodysize) * 
 		sizeof(uint64_t);
 
-	if (type == SL_TRUNCATE)
-		size += sizeof(uint64_t);
+	trunc = (type == SL_TRUNCATE) ? sizeof(uint64_t) : 0;
 	
-	if (place->len != size) {
+	if (place->len != (uint32_t)size + trunc) {
 		aal_stream_format(stream, "Broken item.\n");
 		return;
 	}
 	
-	aal_stream_format(stream, "  %s  %s",
-			  bbox40_core->key_ops.print(&place->key, PO_DEFAULT),
+	aal_memcpy(&key, &place->key, sizeof(key));
+	aal_memcpy(&key.body, place->body, size);
+
+	aal_stream_format(stream, "UNITS=1\n    %s  %s",
+			  bbox40_core->key_ops.print(&key, PO_DEFAULT),
 			  reiser4_slink_name[type]);
 	
 	if (type == SL_TRUNCATE) {
-		uint64_t *len = (uint64_t *)(place->body + size - 
-					     sizeof(uint64_t));
-		
+		uint64_t *len = (uint64_t *)(place->body + size);
 		aal_stream_format(stream, "%llu", *len);
 	}
 	
