@@ -127,7 +127,7 @@ errno_t aal_block_sync(
 blk_t aal_block_number(
     aal_block_t *block		/* block, position will be obtained from */
 ) {
-    aal_assert("umka-448", block != NULL, return 0);
+    aal_assert("umka-448", block != NULL, return FAKE_BLK);
    
     /* 
 	Here we are using shifting for calculating block position because block

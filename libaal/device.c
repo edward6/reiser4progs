@@ -200,9 +200,9 @@ uint32_t aal_device_stat(
 count_t aal_device_len(
     aal_device_t *device	/* device, length in blocks will be obtained from */
 ) {
-    aal_assert("vpf-216", device != NULL, return 0);	
+    aal_assert("vpf-216", device != NULL, return FAKE_BLK);
 
-    aal_device_check_routine(device, len, return 0);
+    aal_device_check_routine(device, len, return FAKE_BLK);
     return device->ops->len(device);
 }
 

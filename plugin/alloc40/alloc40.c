@@ -316,8 +316,8 @@ static blk_t alloc40_allocate(reiser4_entity_t *entity) {
 count_t alloc40_free(reiser4_entity_t *entity) {
     alloc40_t *alloc = (alloc40_t *)entity;
 
-    aal_assert("umka-376", alloc != NULL, return 0);
-    aal_assert("umka-377", alloc->bitmap != NULL, return 0);
+    aal_assert("umka-376", alloc != NULL, return FAKE_BLK);
+    aal_assert("umka-377", alloc->bitmap != NULL, return FAKE_BLK);
     
     return aux_bitmap_free(alloc->bitmap);
 }
@@ -326,8 +326,8 @@ count_t alloc40_free(reiser4_entity_t *entity) {
 count_t alloc40_used(reiser4_entity_t *entity) {
     alloc40_t *alloc = (alloc40_t *)entity;
     
-    aal_assert("umka-378", alloc != NULL, return 0);
-    aal_assert("umka-379", alloc->bitmap != NULL, return 0);
+    aal_assert("umka-378", alloc != NULL, return FAKE_BLK);
+    aal_assert("umka-379", alloc->bitmap != NULL, return FAKE_BLK);
 
     return aux_bitmap_used(alloc->bitmap);
 }

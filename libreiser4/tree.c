@@ -190,7 +190,9 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
     }
     
     /* Opening root node */
-    tree_root = reiser4_format_get_root(fs->format);
+    if ((tree_root = reiser4_format_get_root(fs->format)) == FAKE_BLK)
+	goto error_free_tree;
+	
     tree_height = reiser4_format_get_height(fs->format);
     
     if (!(tree->root = reiser4_tree_load(tree, tree_root, tree_height)))
@@ -207,7 +209,7 @@ error_free_tree:
 
 /* Returns tree root block number */
 blk_t reiser4_tree_root(reiser4_tree_t *tree) {
-    aal_assert("umka-738", tree != NULL, return 0);
+    aal_assert("umka-738", tree != NULL, return FAKE_BLK);
     return aal_block_number(tree->root->node->block);
 }
 
@@ -442,7 +444,7 @@ static errno_t reiser4_tree_attach(
     reiser4_joint_t *joint	    /* child to attached */
 ) {
     rpid_t id;
-    int lookup, level;
+    int lookup;
     reiser4_coord_t coord;
     reiser4_item_hint_t hint;
     reiser4_internal_hint_t internal_hint;

@@ -52,7 +52,8 @@ reiser4_fs_t *reiser4_fs_open(
     if (reiser4_format_valid(fs->format))
 	goto error_free_format;
     
-    len = reiser4_format_get_len(fs->format);
+    if ((len = reiser4_format_get_len(fs->format)) == FAKE_BLK)
+	goto error_free_format;
     
     /* Initializes block allocator. See alloc.c for details */
     if (!(fs->alloc = reiser4_alloc_open(fs->format, len)))

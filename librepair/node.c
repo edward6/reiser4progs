@@ -5,7 +5,7 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_node_open(reiser4_node_t *node, blk_t blk, void *data) {
+errno_t repair_node_open(reiser4_node_t **node, blk_t blk, void *data) {
     repair_check_t *check_data = data;
     aal_block_t *block;
     errno_t res;
@@ -21,10 +21,7 @@ errno_t repair_node_open(reiser4_node_t *node, blk_t blk, void *data) {
 	return -1;
     } 
 
-    if ((node = reiser4_node_open(block)) == NULL)
-	return -1;
-
-    return 0;
+    return -((*node = reiser4_node_open(block)) == NULL);
 }
 
 static errno_t repair_node_items_check(reiser4_node_t *node, 

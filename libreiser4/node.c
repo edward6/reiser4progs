@@ -449,30 +449,34 @@ errno_t reiser4_node_traverse(
     reiser4_setup_func_t after_func,	/* callback will be called after all childs  */
     void *data				/* user-spacified data */
 ) {
-    errno_t result = 0;
-    reiser4_node_t *node = NULL;
-    reiser4_item_t item;
     reiser4_pos_t pos;
+    errno_t result = 0;
+    reiser4_item_t item;
+    reiser4_node_t *node;
     
     aal_assert("umka-1024", open_func != NULL, return -1);
 
-    if ((result = open_func(node, blk, data))) {
+    if ((result = open_func(&node, blk, data))) {
 	aal_exception_error("Node (%llu): cannot be openned.", blk);
 	return result;
     }
     
     if ((handler_func && !(result = handler_func(node, data))) || !handler_func) {
+	    
 	if (before_func && (result = before_func(node, &item, data)))
 	    goto error_free_node;
 
 	pos.item = reiser4_node_count(node);
+	
 	do {
 	    pos.unit = ~0ul; 
 	    
 	    if ((result = reiser4_item_open(&item, node, &pos))) {
+
 		/* All items must be openned - this is checked in the handler_func. */
 		aal_exception_error("Node (%llu), item (%u): item cannot be openned.",
 		    aal_block_number(node->block), pos.item);
+		
 		goto error_after_func;
 	    }
 	    
@@ -480,6 +484,7 @@ errno_t reiser4_node_traverse(
 		continue;
 	    
 	    pos.unit = reiser4_item_count(&item) - 1;
+	    
 	    do {
 		blk_t target;
 		

@@ -204,17 +204,17 @@ blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
     aal_assert("vpf-369", reiser4_item_internal(item) || 
 	reiser4_item_extent(item), return FAKE_BLK);
 
-    return plugin_call(return 0, item->plugin->item_ops.specific.ptr, 
+    return plugin_call(return FAKE_BLK, item->plugin->item_ops.specific.ptr, 
 	get_ptr, item);
 }
 
 /* Returns the number of nodes pointed by 1 unit. Called width also. */
 count_t reiser4_item_get_nwidth(reiser4_item_t *item) {
-    aal_assert("vpf-370", item != NULL, return 0);
-    aal_assert("vpf-371", item->plugin != NULL, return 0);
+    aal_assert("vpf-370", item != NULL, return FAKE_BLK);
+    aal_assert("vpf-371", item->plugin != NULL, return FAKE_BLK);
     
     aal_assert("vpf-372", reiser4_item_internal(item) || 
-	reiser4_item_extent(item), return 0);
+	reiser4_item_extent(item), return FAKE_BLK);
 
     if (item->plugin->item_ops.specific.ptr.get_width)
 	return item->plugin->item_ops.specific.ptr.get_width(item);
