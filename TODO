@@ -9,10 +9,10 @@ Copyright (C) 1996-2002 Hans Reiser
 * should we have uint32_t additional param (unit pos) in item plugin functions?
 * should we split reiser4_fs_create and reiser4_fs_open onto separate functions?
 * reiser4_joint_realize may be improved by rid of lookup
-* add check of all journal strucrures durring replaying the journal
 * probably we should do not have sdext specific methods, like get_mode, set_mode 
   in stat40 plugin
 * move the all common code of reg40 and dir40 plugins to separate file and let them 
   use it.
 * rewrite progs/libmisc/profile.c in order to be using the last chnages in plugin 
   header structure.
+* what about tree plugin? it sounds odd?

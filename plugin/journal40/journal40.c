@@ -265,6 +265,11 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 	lr_header = (journal40_lr_header_t *)log_block->data;
 	log_blk = get_lh_next_block(lr_header);
 
+	if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
+	    aal_exception_error("Invalid log record header has been detected.");
+	    return -1;
+	}
+	
 	entry = (journal40_lr_entry_t *)(lr_header + 1);
 	
 	capacity = (device->blocksize - sizeof(journal40_lr_header_t)) / 
@@ -342,6 +347,12 @@ static int format40_replay_oldest(journal40_t *journal) {
 	}
 	
 	tx_header = (journal40_tx_header_t *)tx_block->data;
+
+	if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
+	    aal_exception_error("Invalid transaction header has been detected.");
+	    return -1;
+	}
+	
 	prev_tx = get_th_prev_tx(tx_header);
 
 	if (prev_tx == last_flushed_tx)
