@@ -154,13 +154,13 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 	aal_assert("umka-1163", tree != NULL);
 	aal_assert("umka-1164", place != NULL);
     
+	if (obj40_pid(&place->item) != reg40_plugin.h.id)
+		return NULL;
+
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
 	key = &place->item.key;
-
-	if (obj40_pid(&place->item) != reg40_plugin.h.id)
-		goto error_free_reg;
 
 	/* Initializing file handle */
 	if (obj40_init(&reg->obj, &reg40_plugin, key, core, tree))

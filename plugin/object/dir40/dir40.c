@@ -318,13 +318,13 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 	aal_assert("umka-836", tree != NULL);
 	aal_assert("umka-837", place != NULL);
     
+	if (obj40_pid(&place->item) != dir40_plugin.h.id)
+		return NULL;
+
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 
 	key = &place->item.key;
-
-	if (obj40_pid(&place->item) != dir40_plugin.h.id)
-		goto error_free_dir;
 
 	/* Initializing obj handle for the directory */
 	if (obj40_init(&dir->obj, &dir40_plugin, key, core, tree))

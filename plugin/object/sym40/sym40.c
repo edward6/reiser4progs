@@ -57,14 +57,14 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 	aal_assert("umka-1163", tree != NULL);
 	aal_assert("umka-1164", place != NULL);
     
+	if (obj40_pid(&place->item) != sym40_plugin.h.id)
+		return NULL;
+	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 
 	key = &place->item.key;
 
-	if (obj40_pid(&place->item) != sym40_plugin.h.id)
-		goto error_free_sym;
-	
 	/* Initalizing file handle */
 	if (obj40_init(&sym->obj, &sym40_plugin, key, core, tree))
 		goto error_free_sym;

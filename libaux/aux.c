@@ -34,7 +34,9 @@ int aux_bin_search(
 	left = 0;
 	right = count - 1;
 
-	for (i = (right + left) / 2; left <= right; i = (right + left) / 2) {
+	for (i = (right + left) / 2; left <= right;
+	     i = (right + left) / 2)
+	{
 		res = comp_func(array, i, needle, data);
 		if (res == -1) {
 			left = i + 1;
@@ -86,7 +88,7 @@ errno_t aux_parse_path(const char *path, aux_pre_entry_t pre_func,
     
 		if (!(entry = aal_strsep(&pointer, "/")))
 			break;
-		
+
 		if (!aal_strlen(entry))
 			continue;
 	
