@@ -7,6 +7,7 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
+/* Functions for dirtying node. */
 bool_t reiser4_node_isdirty(reiser4_node_t *node) {
 	aal_assert("umka-2094", node != NULL);
 
@@ -28,6 +29,7 @@ void reiser4_node_mkclean(reiser4_node_t *node) {
 		  mkclean, node->entity);
 }
 
+/* Clones node @src to @dst. */
 errno_t reiser4_node_clone(reiser4_node_t *src,
 			   reiser4_node_t *dst)
 {
@@ -38,13 +40,14 @@ errno_t reiser4_node_clone(reiser4_node_t *src,
 			 clone, src->entity, dst->entity);
 }
 
+/* Creates new node at block @nr on @tree with @level and with plugin @pid. Uses
+   tree instance for accessing block size and key plugin in use. */
 reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 				    blk_t nr, rid_t pid,
 				    uint8_t level)
 {
 	uint32_t size;
 	aal_block_t *block;
-	reiser4_plug_t *kplg;
 	reiser4_node_t *node;
 	reiser4_plug_t *plug;
 	aal_device_t *device;
@@ -62,22 +65,25 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 		goto error_free_node;
 	}
 
-	kplg = tree->key.plug;
+	/* Getting tree tree device and blksize in use to use them for creating
+	   new node. */
 	size = reiser4_tree_get_blksize(tree);
 	device = reiser4_tree_get_device(tree);
 
+	/* Allocate new node of @size at @nr. */
 	if (!(block = aal_block_alloc(device, size, nr)))
 		goto error_free_node;
 
-	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plug_call(plug->o.node_ops,
-				       init, block, kplg)))
+	/* Requesting the plugin for initialization node entity. */
+	if (!(node->entity = plug_call(plug->o.node_ops, init,
+				       block, tree->key.plug)))
 	{
 		goto error_free_block;
 	}
 
 	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
 
+	/* Making node header. */
 	if (reiser4_node_fresh(node, level))
 		goto error_free_entity;
 	
@@ -94,8 +100,11 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 }
 #endif
 
+/* Functions for lock/unlock @node. They are used to prevent releasing node from
+   the tree cache. */
 void reiser4_node_lock(reiser4_node_t *node) {
 	aal_assert("umka-2314", node != NULL);
+	aal_assert("umka-2585", node->counter >= 0);
 	node->counter++;
 }
 
@@ -106,10 +115,13 @@ void reiser4_node_unlock(reiser4_node_t *node) {
 }
 
 bool_t reiser4_node_locked(reiser4_node_t *node) {
+	aal_assert("umka-2586", node != NULL);
+	aal_assert("umka-2587", node->counter >= 0);
 	return node->counter > 0 ? TRUE : FALSE;
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Assigns @nr block number to @node. */
 void reiser4_node_move(reiser4_node_t *node,
 		       blk_t nr)
 {
@@ -119,6 +131,8 @@ void reiser4_node_move(reiser4_node_t *node,
 		  move, node->entity, nr);
 }
 
+/* Call node plugin fresh() method, which creates new node header with zero
+   items in it, etc. */
 errno_t reiser4_node_fresh(reiser4_node_t *node,
 			  uint8_t level)
 {
@@ -128,7 +142,7 @@ errno_t reiser4_node_fresh(reiser4_node_t *node,
 			 fresh, node->entity, level);
 }
 
-/* Prints passed @node to the specified @stream */
+/* Print passed @node to the specified @stream */
 errno_t reiser4_node_print(
 	reiser4_node_t *node,   /* node to be printed */
 	aal_stream_t *stream)   /* stream for printing in */
@@ -141,7 +155,7 @@ errno_t reiser4_node_print(
 }
 #endif
 
-/* Opens node on specified device and block number. */
+/* Opens node on specified @tree and block number @nr. */
 reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree,
 				  blk_t nr)
 {
@@ -151,24 +165,24 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree,
 	aal_device_t *device;
         reiser4_node_t *node;
 	reiser4_plug_t *plug;
-	reiser4_plug_t *kplg;
  
         aal_assert("umka-160", tree != NULL);
 
-	/* Getting tree characteristics neede for open node. */
-	kplg = tree->key.plug;
+	/* Getting tree characteristics needed for open node. */
 	size = reiser4_tree_get_blksize(tree);
 	device = reiser4_tree_get_device(tree);
 	
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;
 
+	/* Load block at @nr, that node lie in. */
 	if (!(block = aal_block_load(device, size, nr))) {
 		aal_exception_error("Can't load node %llu. %s.",
 				    nr, device->error);
 		goto error_free_node;
 	}
 
+	/* Getting node plugin id. */
 	pid = *((uint16_t *)block->data);
 
 	/* Finding the node plug by its id */
@@ -177,7 +191,7 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree,
 
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plug_call(plug->o.node_ops, init,
-				       block, kplg)))
+				       block, tree->key.plug)))
 	{
 		goto error_free_block;
 	}
@@ -194,8 +208,8 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree,
 
 /* Saves node to device if it is dirty and closes node */
 errno_t reiser4_node_fini(reiser4_node_t *node) {
-
 #ifndef ENABLE_STAND_ALONE
+	/* Node should be clean when it is going to be closed. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
 		aal_exception_error("Can't write node %llu.",
 				    node_blocknr(node));
@@ -218,7 +232,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	return 0;
 }
 
-/* Getting the left delimiting key */
+/* Getting the left delimiting key. */
 errno_t reiser4_node_lkey(
 	reiser4_node_t *node,	         /* node for working with */
 	reiser4_key_t *key)	         /* key will be stored here */
@@ -348,7 +362,7 @@ errno_t reiser4_node_realize(
 }
 
 /* Helper function for walking though children list in order to find convenient
- * one (block number is the same as pased @blk) */
+   one (block number is the same as pased @blk) */
 static int callback_comp_blk(
 	const void *node,		/* node find will operate on */
 	const void *blk,		/* block number to be found */
@@ -363,7 +377,7 @@ static int callback_comp_blk(
 	return 0;
 }
 
-/* Finds child node by block number */
+/* Finds child node by block number. */
 reiser4_node_t *reiser4_node_child(
 	reiser4_node_t *node,	        /* node to be greped */
 	blk_t blk)                      /* block number to be found */
@@ -412,10 +426,12 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 
 	aal_assert("umka-1758", node != NULL);
 	aal_assert("umka-1759", child != NULL);
-	
+
+	/* Insert @child into @node->children list. */
 	curr = aal_list_insert_sorted(node->children, child,
 				      callback_comp_node, NULL);
-	
+
+	/* Assign @node to @child parent pointer. */
 	child->p.node = node;
 	reiser4_node_lock(node);
 	
@@ -483,7 +499,6 @@ lookup_t reiser4_node_lookup(
 	}
 
 	if (res == ABSENT) {
-		
 		if (pos->item == 0)
 			return ABSENT;
 		
@@ -515,6 +530,8 @@ lookup_t reiser4_node_lookup(
 			return res;
 		}
 
+		/* Check for @bias. If it is FIND_CONV, this means, that we're
+		   looking for convenient pos for insert into. */
 		if (bias == FIND_CONV) {
 			pos->item++;
 			return ABSENT;
@@ -627,13 +644,15 @@ errno_t reiser4_node_shift(
 	if (!node->children)
 		return 0;
 
-	/* Updating children lists in node and its neighbour */
+	/* Updating children lists. We have to move child node from @node to
+	   @neig. */
 	items = reiser4_node_items(neig);
 	
 	for (i = 0; i < hint->items; i++) {
 		uint32_t units;
 		reiser4_place_t place;
 
+		/* Initializing the place we will start from. */
 		if (hint->control & MSF_LEFT) {
 			reiser4_place_assign(&place, neig,
 					     items - i - 1,
@@ -646,6 +665,8 @@ errno_t reiser4_node_shift(
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
 
+		/* Check if we deal with nodeptr at all, because we are not
+		   interested in extent yet. */
 		if (!reiser4_item_branch(place.plug))
 			continue;
 
@@ -655,7 +676,6 @@ errno_t reiser4_node_shift(
 		for (; place.pos.unit < units; place.pos.unit++) {
 			ptr_hint_t ptr;
 			trans_hint_t hint;
-			reiser4_place_t *p;
 			reiser4_node_t *child;
 
 			/* Getting nodeptr and looking for the cached child by
@@ -663,14 +683,15 @@ errno_t reiser4_node_shift(
 			hint.count = 1;
 			hint.specific = &ptr;
 
-			p = (reiser4_place_t *)&place;
-			
 			if (plug_call(place.plug->o.item_ops, fetch,
-				      (place_t *)p, &hint) != 1)
+				      (place_t *)&place, &hint) < 0)
 			{
 				return -EIO;
 			}
-			
+
+			/* Getting child node by nodeptr coord from parent node
+			   loaded children list. If it is there, by passing this
+			   pos. */
 			if (!(child = reiser4_node_child(node, ptr.start)))
 			        continue;
 
@@ -771,7 +792,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 			 set_key, node->entity, pos, key);
 }
 
-/* Updates children in-parent position. It is used during internal nodes
+/* Updates children in-parent position. It is used durring internal nodes
    modifying. */
 errno_t reiser4_node_uchild(reiser4_node_t *node,
 			    pos_t *start)
@@ -796,7 +817,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 	reiser4_place_assign(&place, node,
 			     start->item, 0);
 
-	/* Searchilg for first nodeptr item */
+	/* Searching for first nodeptr item */
 	for (; place.pos.item < items; place.pos.item++) {
 		
 		if ((res = reiser4_place_fetch(&place)))
@@ -828,7 +849,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 		hint.specific = &ptr;
 		
 		if (plug_call(place.plug->o.item_ops, fetch,
-			      (place_t *)p, &hint) != 1)
+			      (place_t *)p, &hint) < 0)
 		{
 			return -EIO;
 		}
@@ -841,9 +862,8 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 		}
 	}
 
-	if (list == NULL) {
+	if (list == NULL)
 		return 0;
-	}
 
 	/* Updating childrens in-parent position */
 	aal_list_foreach_forward(list, walk) {
