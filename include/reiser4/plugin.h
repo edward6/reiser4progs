@@ -633,7 +633,8 @@ struct reiser4_file_ops {
 	errno_t (*seek) (object_entity_t *, uint64_t);
 
 	/* Makes lookup inside file */
-	lookup_t (*lookup) (object_entity_t *, char *, key_entity_t *);
+	lookup_t (*lookup) (object_entity_t *, char *,
+			    void *);
 
 	/* Finds actual file stat data (symlink) */
 	errno_t (*follow) (object_entity_t *, key_entity_t *);

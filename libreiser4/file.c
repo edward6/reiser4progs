@@ -452,52 +452,52 @@ static errno_t callback_process_place(
 
 /* Removes entry from the @file if it is a directory */
 errno_t reiser4_file_remove(reiser4_file_t *file,
-			    const char *entry)
+			    const char *name)
 {
-	reiser4_key_t key;
 	reiser4_file_t *child;
 	reiser4_place_t place;
+	reiser4_entry_hint_t entry;
 	
 	aal_assert("umka-1910", file != NULL);
-	aal_assert("umka-1918", entry != NULL);
+	aal_assert("umka-1918", name != NULL);
 
 	/* Getting child statdata key */
-	if (reiser4_file_lookup(file, entry, &key) != LP_PRESENT) {
+	if (reiser4_file_lookup(file, name, &entry) != LP_PRESENT) {
 		aal_exception_error("Can't find entry %s in %s.",
-				    entry, file->name);
+				    name, file->name);
 		return -1;
 	}
 
 	if (file->entity->plugin->file_ops.remove) {
 		if (plugin_call(file->entity->plugin->file_ops,
-				remove, file->entity, &key))
+				remove, file->entity, &entry.offset))
 		{
 			aal_exception_error("Can't remove entry %s in %s.",
-					    entry, file->name);
+					    name, file->name);
 			return -1;
 		}
 	}
 	
-	if (reiser4_tree_lookup(file->fs->tree, &key, LEAF_LEVEL,
-				&place) != LP_PRESENT)
+	if (reiser4_tree_lookup(file->fs->tree, &entry.object,
+				LEAF_LEVEL, &place) != LP_PRESENT)
 	{
-		aal_exception_error("Can't find stat data of %s. "
-				    "It seems that %s points to nowere.",
-				    entry, entry);
+		aal_exception_error("Can't find stat data of %s/%s. "
+				    "Entry %s points to nowere.",
+				    file->name, name, name);
 		return -1;
 	}
 	
 	if (!(child = reiser4_file_begin(file->fs, &place))) {
 		aal_exception_error("Can't open %s/%s.",
-				    file->name, entry);
+				    file->name, name);
 		return -1;
 	}
 	
 	if (plugin_call(child->entity->plugin->file_ops, unlink,
 			child->entity))
 	{
-		aal_exception_error("Can't unlink %s/%s.", file->name,
-				    entry);
+		aal_exception_error("Can't unlink %s/%s.",
+				    file->name, name);
 		goto error_free_child;
 	}
 
@@ -520,18 +520,18 @@ errno_t reiser4_file_print(reiser4_file_t *file,
 #endif
 
 lookup_t reiser4_file_lookup(reiser4_file_t *file,
-			     const char *entry,
-			     reiser4_key_t *key)
+			     const char *name,
+			     reiser4_entry_hint_t *entry)
 {
 	aal_assert("umka-1919", file != NULL);
-	aal_assert("umka-1920", entry != NULL);
-	aal_assert("umka-1921", key != NULL);
+	aal_assert("umka-1920", name != NULL);
+	aal_assert("umka-1921", entry != NULL);
 
 	if (!file->entity->plugin->file_ops.lookup)
 		return LP_FAILED;
 	
 	return plugin_call(file->entity->plugin->file_ops, lookup,
-			   file->entity, (char *)entry, (key_entity_t *)key);
+			   file->entity, (char *)name, (void *)entry);
 }
 
 /* Closes specified file */

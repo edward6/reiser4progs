@@ -188,32 +188,37 @@ static int32_t dir40_read(object_entity_t *entity,
 }
 
 /* 
-   Makes lookup in directory by name. Returns the key of the stat data item,
-   entry points to.
+  Makes lookup in directory by name. Fills passed buff by found entry fields
+  (offset key, object key, etc).
 */
 static lookup_t dir40_lookup(object_entity_t *entity, 
-			     char *name, key_entity_t *key) 
+			     char *name, void *buff) 
 {
 	lookup_t res;
 	key_entity_t wanted;
+
+	reiser4_entry_hint_t *entry;
 	dir40_t *dir = (dir40_t *)entity;
     
 	aal_assert("umka-1117", entity != NULL);
 	aal_assert("umka-1118", name != NULL);
-	aal_assert("umka-1119", key != NULL);
+	aal_assert("umka-1924", buff != NULL);
 
+	entry = (reiser4_entry_hint_t *)buff;
+	
 	/*
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
 	*/
-	key->plugin = dir->obj.key.plugin;
-	
 	wanted.plugin = dir->obj.key.plugin;
 	
-	plugin_call(wanted.plugin->key_ops, build_entry, &wanted,
-		    dir->hash, object40_locality(&dir->obj),
+	plugin_call(wanted.plugin->key_ops, build_entry,
+		    &wanted,dir->hash, object40_locality(&dir->obj),
 		    object40_objectid(&dir->obj), name);
 
+	entry->object.plugin = wanted.plugin;
+	entry->offset.plugin = wanted.plugin;
+	
 	/* Lookp until needed entry will be found */
 	while (1) {
 		item_entity_t *item = &dir->body.item;
@@ -224,17 +229,18 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 		  will be used for searching next entry in passed path and so
 		  on.
 		*/
-		if (plugin_call(item->plugin->item_ops, lookup, item, &wanted,
-				&dir->body.pos.unit) == LP_PRESENT) 
+		if (plugin_call(item->plugin->item_ops, lookup, item,
+				&wanted, &dir->body.pos.unit) == LP_PRESENT) 
 		{
-			reiser4_entry_hint_t entry;
-
 			if (plugin_call(item->plugin->item_ops, read, item,
-					&entry, dir->body.pos.unit, 1) != 1)
+					entry, dir->body.pos.unit, 1) != 1)
+			{
+				aal_exception_error("Can't read %lu entry from "
+						    "object 0x%llx.",
+						    dir->body.pos.unit,
+						    object40_objectid(&dir->obj));
 				return LP_FAILED;
-
-			plugin_call(key->plugin->key_ops, assign, key,
-				    &entry.object);
+			}
 	    
 			return LP_PRESENT;
 		}
@@ -551,12 +557,33 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 static errno_t dir40_remove(object_entity_t *entity,
 			    key_entity_t *key)
 {
-	dir40_t *dir = (dir40_t *)entity;
+	dir40_t *dir;
+	uint64_t size;
+	uint32_t atime;
 	
 	aal_assert("umka-1922", entity != NULL);
 	aal_assert("umka-1923", key != NULL);
 
-	return object40_remove(&dir->obj, key, 1);
+	dir = (dir40_t *)entity;
+	
+	if (object40_remove(&dir->obj, key, 1))
+		return -1;
+
+	/* Updating size field in stat data */
+	if (object40_stat(&dir->obj))
+		return -1;
+	
+	size = object40_get_size(&dir->obj);
+
+	if (object40_set_size(&dir->obj, size - 1))
+		return -1;
+
+	atime = time(NULL);
+	
+	if (object40_set_atime(&dir->obj, atime))
+		return -1;
+
+	return object40_set_mtime(&dir->obj, atime);
 }
 
 /* Writes @n number of entries described by @buff to passed directory entity */

@@ -108,6 +108,8 @@ int main(int argc, char *argv[]) {
 		goto error_free_dir;
 	}
     
+	reiser4_file_remove(dir, "testdir0");
+	
 	while (reiser4_file_read(dir, (void *)&entry, 1)) {
 		aal_stream_t stream;
 		aal_stream_init(&stream);
@@ -124,8 +126,6 @@ int main(int argc, char *argv[]) {
 		goto error_free_dir;
 	}
 
-	reiser4_file_remove(dir, "testdir0");
-	
 /*	place.pos.item = 0;
 
 	{

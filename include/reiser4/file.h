@@ -18,8 +18,8 @@ extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs,
 					 const char *name);
 
 extern lookup_t reiser4_file_lookup(reiser4_file_t *file,
-				    const char *entry,
-				    reiser4_key_t *key);
+				    const char *name,
+				    reiser4_entry_hint_t *entry);
 
 extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs,
 					  reiser4_place_t *place);
