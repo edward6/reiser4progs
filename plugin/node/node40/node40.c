@@ -121,7 +121,7 @@ static errno_t node40_sync(node_entity_t *entity) {
 }
 
 /* Moves node to passed @blk. */
-static void node40_move(node_entity_t *entity, blk_t nr) {
+void node40_move(node_entity_t *entity, blk_t nr) {
 	aal_block_t *block;
 	
 	aal_assert("umka-2377", entity != NULL);
@@ -1550,6 +1550,8 @@ static reiser4_node_ops_t node40_ops = {
 	.get_level	= node40_get_level,
 		
 #ifndef ENABLE_STAND_ALONE
+	.pack           = node40_pack,
+	.unpack         = node40_unpack,
 	.move		= node40_move,
 	.clone          = node40_clone,
 	.fresh		= node40_fresh,

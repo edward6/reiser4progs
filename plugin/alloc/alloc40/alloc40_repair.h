@@ -9,6 +9,12 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
+extern errno_t alloc40_pack(generic_entity_t *entity,
+			    aal_stream_t *stream);
+
+extern errno_t alloc40_unpack(generic_entity_t *entity,
+			      aal_stream_t *stream);
+
 extern errno_t alloc40_check_struct(generic_entity_t *entity,
 				    uint8_t mode);
 

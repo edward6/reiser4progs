@@ -60,6 +60,7 @@ extern void node40_mkdirty(node_entity_t *entity);
 extern void node40_mkclean(node_entity_t *entity);
 
 extern inline uint32_t node40_key_pol(node40_t *node);
+extern void node40_move(node_entity_t *entity, blk_t nr);
 
 extern uint32_t node40_size(node40_t *node, pos_t *pos,
 			    uint32_t count);

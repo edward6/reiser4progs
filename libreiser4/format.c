@@ -126,6 +126,28 @@ reiser4_format_t *reiser4_format_create(
 	return NULL;
 }
 
+/* Fetches format data to @stream. */
+errno_t reiser4_format_pack(reiser4_format_t *format,
+			    aal_stream_t *stream)
+{
+	aal_assert("umka-2604", format != NULL);
+	aal_assert("umka-2605", stream != NULL);
+
+	return plug_call(format->entity->plug->o.format_ops,
+			 pack, format->entity, stream);
+}
+
+/* Loads format data from @stream to format entity. */
+errno_t reiser4_format_unpack(reiser4_format_t *format,
+			      aal_stream_t *stream)
+{
+	aal_assert("umka-2606", format != NULL);
+	aal_assert("umka-2607", stream != NULL);
+
+	return plug_call(format->entity->plug->o.format_ops,
+			 unpack, format->entity, stream);
+}
+
 /* Saves passed format on its device */
 errno_t reiser4_format_sync(
 	reiser4_format_t *format)	/* disk-format to be saved */

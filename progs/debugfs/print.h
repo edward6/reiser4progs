@@ -12,6 +12,9 @@
 
 #include <reiser4/reiser4.h>
 
+extern errno_t debugfs_print_stream(aal_stream_t *stream);
+extern errno_t debugfs_print_buff(void *buff, uint32_t size);
+
 extern errno_t debugfs_print_block(reiser4_fs_t *fs,
 				   blk_t blk);
 

@@ -172,8 +172,7 @@ static errno_t callback_fetch_bitmap(void *entity, blk_t start,
    passed @device. This functions is implementation of alloc_ops.open plugin
    method. */
 static generic_entity_t *alloc40_open(aal_device_t *device,
-				     uint64_t len,
-				     uint32_t blksize)
+				     uint64_t len, uint32_t blksize)
 {
 	alloc40_t *alloc;
 	uint32_t crcsize;
@@ -381,12 +380,10 @@ static errno_t alloc40_sync(generic_entity_t *entity) {
 	aal_assert("umka-366", alloc != NULL);
 	aal_assert("umka-367", alloc->bitmap != NULL);
 
-	/* Calling "layout" function for saving all bitmap blocks to device
+	/* Calling layout() function for saving all bitmap blocks to device
 	   block allocator lies on. */
-	if ((res = alloc40_layout((generic_entity_t *)alloc,
-				  callback_sync_bitmap, alloc)))
-	{
-		aal_exception_error("Can't save bitmap.");
+	if ((res = alloc40_layout(entity, callback_sync_bitmap, alloc))) {
+		aal_exception_error("Can't save bitmap to device.");
 		return res;
 	}
 
@@ -688,6 +685,8 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.assign         = alloc40_assign,
 	.extract        = alloc40_extract,
 	.sync           = alloc40_sync,
+	.pack           = alloc40_pack,
+	.unpack         = alloc40_unpack,
 	.isdirty        = alloc40_isdirty,
 	.mkdirty        = alloc40_mkdirty,
 	.mkclean        = alloc40_mkclean,

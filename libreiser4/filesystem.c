@@ -157,7 +157,9 @@ reiser4_owner_t reiser4_fs_belongs(
 	if (fs->journal) {
 		if (reiser4_journal_layout(fs->journal,
 					   callback_check_block, &blk))
+		{
 			return O_JOURNAL;
+		}
 	}
 
 	/* Check if @blk is filesystem status block. */

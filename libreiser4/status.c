@@ -129,6 +129,64 @@ errno_t reiser4_status_layout(reiser4_status_t *status,
 	return region_func(status, blk, 1, data);
 }
 
+#define STATUS_SIGN "STUS"
+
+errno_t reiser4_status_pack(reiser4_status_t *status,
+			    aal_stream_t *stream)
+{
+	uint32_t size;
+	
+	aal_assert("umka-2612", status != NULL);
+	aal_assert("umka-2613", stream != NULL);
+
+	/* Write magic. */
+	aal_stream_write(stream, STATUS_SIGN, 4);
+
+	/* Write data size. */
+	size = sizeof(status->ent);
+	aal_stream_write(stream, &size, sizeof(size));
+
+	/* Write status data to @stream. */
+	aal_stream_write(stream, &status->ent, size);
+
+	return 0;
+}
+
+errno_t reiser4_status_unpack(reiser4_status_t *status,
+			      aal_stream_t *stream)
+{
+	uint32_t size;
+	char sign[5] = {0};
+	
+	aal_assert("umka-2610", status != NULL);
+	aal_assert("umka-2611", stream != NULL);
+
+	/* Check magic first. */
+	aal_stream_read(stream, &sign, 4);
+
+	if (aal_strncmp(sign, STATUS_SIGN, 4)) {
+		aal_exception_error("Invalid status magic %s is "
+				    "detected in stream.", sign);
+		return -EINVAL;
+	}
+
+	/* Read size and check for validness. */
+	aal_stream_read(stream, &size, sizeof(size));
+
+	if (size != sizeof(status->ent)) {
+		aal_exception_error("Invalid size %u is "
+				    "detected in stream.",
+				    size);
+		return -EINVAL;
+	}
+
+	/* Read status data from @stream. */
+	aal_stream_read(stream, &status->ent, size);
+
+	status->dirty = TRUE;
+	return 0;
+}
+
 errno_t reiser4_status_print(reiser4_status_t *status,
 			     aal_stream_t *stream)
 {

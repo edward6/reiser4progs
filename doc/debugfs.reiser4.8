@@ -16,7 +16,7 @@
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
 .SH NAME
-debugfs.reiser4 \- the program for debugging the reiser4 filesystem.
+debugfs.reiser4 \- the program for debugging reiser4 filesystem.
 .SH SYNOPSIS
 .B debugfs.reiser4
 [ options ] FILE
@@ -66,6 +66,14 @@ prints the block allocator data.
 .TP
 .B -d, --print-oid
 prints the oid allocator data.
+.SH METADATA OPTIONS
+.TP
+.B -g, --pack-metadata
+fetches filesystem metadata and writes it to standard output.
+.TP
+.B -u, --unpack-metadata
+uses metadata stream from stdandard input to construct filesystem on
+it.
 .SH PLUGIN OPTIONS
 .TP
 .B -P, --print-params

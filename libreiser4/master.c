@@ -58,6 +58,65 @@ reiser4_master_t *reiser4_master_create(
 	return master;
 }
 
+#define MASTER_SIGN "MSTR"
+
+errno_t reiser4_master_pack(reiser4_master_t *master,
+			    aal_stream_t *stream)
+{
+	uint32_t size;
+	
+	aal_assert("umka-2608", master != NULL);
+	aal_assert("umka-2609", stream != NULL);
+
+	/* Write magic. */
+	aal_stream_write(stream, MASTER_SIGN, 4);
+
+	/* Write data size. */
+	size = sizeof(master->ent);
+	aal_stream_write(stream, &size, sizeof(size));
+
+	/* Write master data to @stream. */
+	aal_stream_write(stream, &master->ent, size);
+
+	return 0;
+}
+
+errno_t reiser4_master_unpack(reiser4_master_t *master,
+			      aal_stream_t *stream)
+{
+	uint32_t size;
+	char sign[5] = {0};
+	
+	aal_assert("umka-2610", master != NULL);
+	aal_assert("umka-2611", stream != NULL);
+
+	/* Check magic first. */
+	aal_stream_read(stream, &sign, 4);
+
+	if (aal_strncmp(sign, MASTER_SIGN, 4)) {
+		aal_exception_error("Invalid master magic %s is "
+				    "detected in stream.",
+				    sign);
+		return -EINVAL;
+	}
+
+	/* Read size and check for validness. */
+	aal_stream_read(stream, &size, sizeof(size));
+
+	if (size != sizeof(master->ent)) {
+		aal_exception_error("Invalid size %u is "
+				    "detected in stream.",
+				    size);
+		return -EINVAL;
+	}
+
+	/* Read master data from @stream. */
+	aal_stream_read(stream, &master->ent, size);
+
+	master->dirty = TRUE;
+	return 0;
+}
+
 errno_t reiser4_master_print(reiser4_master_t *master,
 			     aal_stream_t *stream)
 {

@@ -46,6 +46,11 @@ static void debugfs_print_usage(char *name) {
 		"  -n, --print-nodes FILE          prints all nodes file lies in.\n"
 		"  -i, --print-file FILE           prints all items specified file\n"
 		"                                  consists of.\n"
+		"Metadata options:\n"
+		"  -g, --pack-metadata             fetches filesystem metadata and writes it\n"
+		"                                  to standard output.\n"
+		"  -l, --unpack-metadata           uses metadata stream from stdandard input\n"
+		"                                  to construct filesystem by it.\n"
 		"Plugins options:\n"
 		"  -P, --print-params              prints default params.\n"
 		"  -p, --print-plugins             prints known plugins.\n"
@@ -60,34 +65,6 @@ static void debugfs_init(void) {
 	/* Setting up exception streams */
 	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
 		misc_exception_set_stream(ex, stderr);
-}
-
-/* Prints passed @buff into stdout. The special print function is needed because
-   we can't just put 4k buffer into stdout. */
-errno_t debugfs_print_buff(void *buff, uint32_t size) {
-	int len = size;
-	void *ptr = buff;
-
-	while (len > 0) {
-		int written;
-
-		if ((written = write(1, ptr, len)) <= 0) {
-			
-			if (errno == EINTR)
-				continue;
-			
-			return -EIO;
-		}
-		
-		ptr += written;
-		len -= written;
-	}
-
-	return 0;
-}
-
-errno_t debugfs_print_stream(aal_stream_t *stream) {
-	return debugfs_print_buff(stream->data, stream->size - 1);
 }
 
 int main(int argc, char *argv[]) {
@@ -120,6 +97,8 @@ int main(int argc, char *argv[]) {
 		{"print-block", required_argument, NULL, 'b'},
 		{"print-nodes", required_argument, NULL, 'n'},
 		{"print-file", required_argument, NULL, 'i'},
+		{"pack-metadata", no_argument, NULL, 'g'},
+		{"unpack-metadata", no_argument, NULL, 'l'},
 		{"print-params", no_argument, NULL, 'P'},
 		{"print-plugins", no_argument, NULL, 'p'},
 		{"override", required_argument, NULL, 'o'},
@@ -135,7 +114,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Ppsa",
+	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Ppsagl",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -188,6 +167,12 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'q':
 			behav_flags |= BF_QUIET;
+			break;
+		case 'g':
+			behav_flags |= BF_PACK_META;
+			break;
+		case 'l':
+			behav_flags |= BF_UNPACK_META;
 			break;
 		case 'p':
 			behav_flags |= BF_PLUGS;
@@ -327,6 +312,16 @@ int main(int argc, char *argv[]) {
     
 	if (print_flags & PF_NODES || print_flags & PF_ITEMS) {
 		if (debugfs_print_file(fs, print_filename, print_flags))
+			goto error_free_tree;
+	}
+
+	if (behav_flags & BF_PACK_META) {
+		if (debugfs_pack_metadata(fs))
+			goto error_free_tree;
+	}
+	
+	if (behav_flags & BF_UNPACK_META) {
+		if (debugfs_unpack_metadata(fs))
 			goto error_free_tree;
 	}
 	

@@ -511,6 +511,8 @@ static reiser4_format_ops_t format40_ops = {
 	.update		= format40_update,
 	.start		= format40_begin,
 	.name		= format40_name,
+	.pack           = format40_pack,
+	.unpack         = format40_unpack,
 #endif
 	.open		= format40_open,
 	.oid	        = format40_oid,

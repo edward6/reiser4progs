@@ -816,10 +816,10 @@ struct reiser4_item_ops {
 	errno_t (*set_key) (place_t *, key_entity_t *);
 
 	/* Gets the size of the data item keeps. */
-	uint64_t (*size) (place_t *place);
+	uint64_t (*size) (place_t *);
 	
 	/* Gets the amount of bytes data item keeps takes on the disk. */
-	uint64_t (*bytes) (place_t *place);
+	uint64_t (*bytes) (place_t *);
 #endif
 	
 	/* Returns TRUE is specified item is a nodeptr one. That is, it points
@@ -902,6 +902,10 @@ struct reiser4_node_ops {
     
 	/* Checks thoroughly the node structure and fixes what needed. */
 	errno_t (*check_struct) (node_entity_t *, uint8_t);
+
+	/* Packing/unpacking metadata. */
+	errno_t (*pack) (node_entity_t *, aal_stream_t *);
+	errno_t (*unpack) (node_entity_t *, aal_stream_t *);
 
 	/* Prints node into given buffer */
 	errno_t (*print) (node_entity_t *, aal_stream_t *,
@@ -1027,12 +1031,18 @@ struct reiser4_format_ops {
 	   block, initializes plugins and calls their create method. */
 	generic_entity_t *(*create) (aal_device_t *, uint64_t,
 				    uint32_t, uint16_t);
-	
+
+	/* Save format data to device. */
 	errno_t (*sync) (generic_entity_t *);
-	
+
+	/* Making format dirty, clean, etc. */
 	int (*isdirty) (generic_entity_t *);
 	void (*mkdirty) (generic_entity_t *);
 	void (*mkclean) (generic_entity_t *);
+
+	/* Format pack/unpack methods. */
+	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
+	errno_t (*unpack) (generic_entity_t *, aal_stream_t *);
 	
 	/* Update only fields which can be changed after journal replay in
 	   memory to avoid second checking. */
@@ -1168,9 +1178,14 @@ struct reiser4_alloc_ops {
 	/* Synchronizes block allocator */
 	errno_t (*sync) (generic_entity_t *);
 
+	/* Make dirty or clean functions. */
 	int (*isdirty) (generic_entity_t *);
 	void (*mkdirty) (generic_entity_t *);
 	void (*mkclean) (generic_entity_t *);
+	
+	/* Format pack/unpack methods. */
+	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
+	errno_t (*unpack) (generic_entity_t *, aal_stream_t *);
 	
 	/* Assign the bitmap to the block allocator */
 	errno_t (*assign) (generic_entity_t *, void *);

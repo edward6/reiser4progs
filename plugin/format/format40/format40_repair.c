@@ -91,7 +91,7 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 }
 
 /* Update from the device only those fields which can be changed while 
- * replaying. */
+   replaying. */
 errno_t format40_update(generic_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
@@ -128,4 +128,67 @@ errno_t format40_update(generic_entity_t *entity) {
 	return res;
 }
 
+#define FORMAT40_SIGN "FT40"
+
+errno_t format40_pack(generic_entity_t *entity,
+		      aal_stream_t *stream)
+{
+	uint32_t size;
+	format40_t *format;
+	
+	aal_assert("umka-2600", entity != NULL);
+	aal_assert("umka-2601", stream != NULL);
+
+	format = (format40_t *)entity;
+
+	/* Write magic. */
+	aal_stream_write(stream, FORMAT40_SIGN, 4);
+
+	/* Write data size. */
+	size = sizeof(format->super);
+	aal_stream_write(stream, &size, sizeof(size));
+
+	/* Write format data to @stream. */
+	aal_stream_write(stream, &format->super, size);
+
+	return 0;
+}
+
+errno_t format40_unpack(generic_entity_t *entity,
+			aal_stream_t *stream)
+{
+	uint32_t size;
+	format40_t *format;
+	char sign[5] = {0};
+	
+	aal_assert("umka-2602", entity != NULL);
+	aal_assert("umka-2603", stream != NULL);
+
+	format = (format40_t *)entity;
+
+	/* Check magic first. */
+	aal_stream_read(stream, &sign, 4);
+
+	if (aal_strncmp(sign, FORMAT40_SIGN, 4)) {
+		aal_exception_error("Invalid format magic %s is "
+				    "detected in stream.", sign);
+		return -EINVAL;
+	}
+
+	/* Read size nad check for validness. */
+	aal_stream_read(stream, &size, sizeof(size));
+
+	if (size != sizeof(format->super)) {
+		aal_exception_error("Invalid size %u is "
+				    "detected in stream.",
+				    size);
+		return -EINVAL;
+	}
+
+	/* Read format data from @stream. */
+	aal_stream_read(stream, &format->super, size);
+
+	format->dirty = 1;
+	return 0;
+}
 #endif

@@ -56,6 +56,16 @@ typedef struct reiser4_status_sb reiser4_status_sb_t;
 
 #define ss_stack(ss, n)			LE64_TO_CPU(ss->ss_stack[n])
 
+enum reiser4_state {
+	FS_OK		= 0,
+	FS_CORRUPTED	= 1 << 0,
+	FS_DAMAGED	= 1 << 1,
+	FS_DESTROYED	= 1 << 2,
+	FS_IO		= 1 << 3
+};
+
+typedef enum reiser4_state reiser4_state_t;
+
 struct reiser4_master {
 	/* Flag for marking master dirty */
 	bool_t dirty;

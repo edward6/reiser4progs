@@ -131,6 +131,28 @@ reiser4_alloc_t *reiser4_alloc_create(
 	return NULL;
 }
 
+/* Fetches block allocator data to @stream. */
+errno_t reiser4_alloc_pack(reiser4_alloc_t *alloc,
+			   aal_stream_t *stream)
+{
+	aal_assert("umka-2614", alloc != NULL);
+	aal_assert("umka-2615", stream != NULL);
+
+	return plug_call(alloc->entity->plug->o.alloc_ops,
+			 pack, alloc->entity, stream);
+}
+
+/* Loads block allocator data from @stream to alloc entity. */
+errno_t reiser4_alloc_unpack(reiser4_alloc_t *alloc,
+			     aal_stream_t *stream)
+{
+	aal_assert("umka-2616", alloc != NULL);
+	aal_assert("umka-2617", stream != NULL);
+
+	return plug_call(alloc->entity->plug->o.alloc_ops,
+			 unpack, alloc->entity, stream);
+}
+
 errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc,
 			     aux_bitmap_t *bitmap)
 {
@@ -239,10 +261,14 @@ errno_t reiser4_alloc_release(
 
 	if ((res = plug_call(alloc->entity->plug->o.alloc_ops, 
 			     release, alloc->entity, start, count)))
+	{
 		return res;
+	}
 
-	if (alloc->hook.release)
-		alloc->hook.release(alloc, start, count, alloc->hook.data);
+	if (alloc->hook.release) {
+		alloc->hook.release(alloc, start, count,
+				    alloc->hook.data);
+	}
 
 	return 0;
 }
@@ -312,5 +338,4 @@ errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 			 layout, alloc->entity, region_func,
 			 data);
 }
-
 #endif

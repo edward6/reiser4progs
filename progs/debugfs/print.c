@@ -12,7 +12,37 @@
 #endif
 
 #include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
 #include "debugfs.h"
+
+/* Prints passed @buff into stdout. The special print function is needed because
+   we can't just put 4k buffer into stdout. */
+errno_t debugfs_print_buff(void *buff, uint32_t size) {
+	int len = size;
+	void *ptr = buff;
+
+	while (len > 0) {
+		int written;
+
+		if ((written = write(1, ptr, len)) <= 0) {
+			
+			if (errno == EINTR)
+				continue;
+			
+			return -EIO;
+		}
+		
+		ptr += written;
+		len -= written;
+	}
+
+	return 0;
+}
+
+errno_t debugfs_print_stream(aal_stream_t *stream) {
+	return debugfs_print_buff(stream->data, stream->size - 1);
+}
 
 /* Prints passed @node */
 static errno_t tprint_process_node(
