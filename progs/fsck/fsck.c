@@ -407,12 +407,12 @@ int main(int argc, char *argv[]) {
 			return -EIO;
 	}
 
-	if ((res = fsck_check_init(&repair, parse_data.host_device)) || 
-	    repair.fatal)
-	{
+	if ((res = fsck_check_init(&repair, parse_data.host_device)))
 		goto free_libreiser4;
-	}
 	
+	if (repair.fatal) 
+		goto free_libreiser4;
+		
 	df_fixable = repair.fixable;
 	repair.fixable = 0;
 	

@@ -418,6 +418,10 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 
 		aux_bitmap_close(control->bm_used);
 		control->bm_used = NULL;
+		
+		control->repair->fs->alloc->hook.alloc = NULL;
+		control->repair->fs->alloc->hook.release = NULL;
+		control->repair->fs->alloc->hook.data = NULL;
 	} else {
 		aux_bitmap_t *bm_temp;
 		uint64_t fs_len, i;
@@ -444,6 +448,8 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 			return -EINVAL;
 		}
 		
+		/* This is not the rebuild mode, do not throw away all unused
+		   blocks mared as used in allocator. */
 		for (i = 0; i < control->bm_used->size; i++)
 			bm_temp->map[i] |= control->bm_used->map[i];
 
@@ -494,6 +500,10 @@ static errno_t repair_sem_fini(repair_control_t *control) {
 	aux_bitmap_close(control->bm_alloc);
 	control->bm_used = control->bm_alloc = NULL;
 	
+	control->repair->fs->alloc->hook.alloc = NULL;
+	control->repair->fs->alloc->hook.release = NULL;
+	control->repair->fs->alloc->hook.data = NULL;
+
 	return 0;
 }
 

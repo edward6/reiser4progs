@@ -176,8 +176,6 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 	   into 2 nodes -- it will be done instead of following item
 	   by item insertion. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-		aal_assert("vpf-896", !reiser4_alloc_occupied(alloc, blk, 1));
-
 		node = reiser4_node_open(am->repair->fs->tree, blk);
 		stat->read++;
 

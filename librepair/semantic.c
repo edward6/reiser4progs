@@ -74,9 +74,9 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 	
 	/* Even if this object is ATTACHED already it may allow many names
 	   to itself -- check the attach with this @parent. */
-	if ((res = repair_object_check_attach(parent, object,
-					      sem->repair->mode)) < 0)
-		return res;
+	res = repair_object_check_attach(parent, object, sem->repair->mode);
+	
+	if (res < 0) return res;
 	
 	repair_error_count(sem->repair, res);
 	
@@ -122,8 +122,9 @@ static errno_t repair_semantic_link(repair_semantic_t *sem,
 	aal_assert("vpf-1178", sem != NULL);
 	aal_assert("vpf-1179", parent != NULL);
 	aal_assert("vpf-1180", object != NULL);
+	aal_assert("vpf-1404", name != NULL);
 	
-	if (name && (res = repair_semantic_add_entry(parent, object, name)))
+	if ((res = repair_semantic_add_entry(parent, object, name)))
 		return res;
 	
 	return repair_semantic_check_attach(sem, parent, object);
@@ -575,22 +576,40 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 	if (repair_error_fatal(res))
 		return res;
 	
-	if (sem->repair->mode != RM_BUILD) {
-		if (!parent) return 0;
+	while (sem->repair->mode == RM_BUILD) {
+		reiser4_plug_t *plug;
+		
+		/* Check the attach before. */
+		res = repair_object_check_attach(parent, object, RM_FIX);
+		
+		if (res == 0)
+			break;
+		if (res < 0)
+			return res;
+		
+		/* Some problems found. Reattach it. */
+		
+		plug = object->entity->plug;
+		aal_assert("vpf-1405", plug->o.object_ops->detach != NULL);
 
-		return repair_semantic_check_attach(sem, parent, object);
-	}
-	
-	/* Detach if possible. */
-	if (object->entity->plug->o.object_ops->detach) {
+		aal_exception_info("Object [%s]: detaching.", 
+				   reiser4_print_key(&object->info->object,
+						     PO_INODE));
+		
 		if ((res = plug_call(object->entity->plug->o.object_ops,
 				     detach, object->entity, NULL)))
 			return res;
+		
+		aal_exception_info("Object [%s]: attaching to [%s].", 
+				   reiser4_print_key(&object->info->object,
+						     PO_INODE),
+				   reiser4_print_key(&object->info->parent,
+						     PO_INODE));
+
+		break;
 	}
 	
-	if (!parent) return 0;
-	
-	return repair_semantic_link(sem, parent, object, NULL);
+	return repair_semantic_check_attach(sem, parent, object);
 }
 
 static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
@@ -651,7 +670,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		return 0;
 	}
 	
-	if ((res = repair_semantic_dir_prepare(sem, NULL, sem->lost))) {
+	if ((res = repair_semantic_dir_prepare(sem, sem->root, sem->lost))) {
 		reiser4_object_close(sem->lost);
 		sem->lost = NULL;
 		return res;
@@ -694,11 +713,11 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 	   ATTCHED to relink it later to some another object having 
 	   the valid name if such is found. */
 	while (!reiser4_object_readdir(sem->lost, &entry)) {
-		if (!aal_memcmp(entry.name, LOST_PREFIX, len)) {
-			if (( res = reiser4_object_rem_entry(sem->lost, 
-							     &entry)))
-				goto error_close_lost;
-		}
+		if (aal_memcmp(entry.name, LOST_PREFIX, len)) 
+			continue;
+		
+		if (( res = reiser4_object_rem_entry(sem->lost, &entry)))
+			goto error_close_lost;
 	}
 	
 	return 0;
@@ -816,9 +835,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	}
 
 	/* Traverse "/" and recover all reachable subtree. */
-	if ((res = reiser4_object_traverse(sem->root, callback_object_traverse,
-					   sem)))
-		goto error_close_lost;
+	res = reiser4_object_traverse(sem->root, callback_object_traverse, sem);
+	if (res) goto error_close_lost;
 
 	reiser4_object_close(sem->root);
 	sem->root = NULL;
