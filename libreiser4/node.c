@@ -968,7 +968,6 @@ errno_t reiser4_node_remove(
 	  Removing item or unit. We assume that we are going to remove unit if
 	  unit component is set up.
 	*/
-	    
 	if ((res = plugin_call(node->entity->plugin->o.node_ops,
 			       remove, node->entity, pos, count)))
 	{

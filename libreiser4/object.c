@@ -451,6 +451,7 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 	aal_assert("umka-1945", child != NULL);
 	aal_assert("umka-1946", name != NULL);
 
+	/* Check if we need to add entry ion parent @object */
 	if (name && object) {
 		aal_memset(&entry_hint, 0, sizeof(entry_hint));	
 
