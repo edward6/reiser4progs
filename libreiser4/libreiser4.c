@@ -142,15 +142,6 @@ static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
 	return aal_hash_table_lookup(t->data, key);
 }
 
-static uint32_t tree_blksize(void *tree) {
-	reiser4_fs_t *fs;
-	
-	aal_assert("umka-1220", tree != NULL);
-	
-	fs = ((reiser4_tree_t *)tree)->fs;
-	return reiser4_master_get_blksize(fs->master);
-}
-
 static errno_t tree_ukey(void *tree, place_t *place,
 			 key_entity_t *key)
 {
@@ -219,9 +210,6 @@ reiser4_core_t core = {
 		/* Installing "valid" callback */
 		.valid      = tree_valid,
 
-		/* Returns next item from the passed place */
-		.next	    = tree_next,
-
 #ifndef ENABLE_STAND_ALONE
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
@@ -232,9 +220,11 @@ reiser4_core_t core = {
 		/* Callback for truncating data in tree. */
 		.trunc	    = tree_trunc,
 
+		/*Convertion to another item plugin. */
+		.conv	    = tree_conv,
+		
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
-		.blksize    = tree_blksize,
 
 		/* Update the key in the place and the node itself. */
 		.ukey       = tree_ukey,
@@ -243,16 +233,10 @@ reiser4_core_t core = {
 		.get_data   = tree_get_data,
 		.put_data   = tree_put_data,
 		.rem_data   = tree_rem_data,
-
-		/*Convertion to another item plugin. */
-		.conv	    = tree_conv
 #endif
+		/* Returns next item from the passed place */
+		.next	    = tree_next
 	},
-#ifndef ENABLE_STAND_ALONE
-	.param_ops = {
-		.value = param_value
-	},
-#endif
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its
 		   type and id. */
@@ -264,12 +248,16 @@ reiser4_core_t core = {
 		.nfind = factory_nfind
 #endif
 	},
+#ifndef ENABLE_STAND_ALONE
+	.param_ops = {
+		.value = param_value
+	},
+#endif
 #ifdef ENABLE_SYMLINKS
 	.object_ops = {
 		.resolve = object_resolve
 	},
 #endif
-
 #ifndef ENABLE_STAND_ALONE
 	.key_ops = {
 		.print = key_print

@@ -1131,6 +1131,7 @@ struct reiser4_format_ops {
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;
 
+#ifndef ENABLE_STAND_ALONE
 struct reiser4_oid_ops {
 	/* Opens oid allocator on passed format entity. */
 	generic_entity_t *(*open) (generic_entity_t *);
@@ -1138,7 +1139,6 @@ struct reiser4_oid_ops {
 	/* Closes passed instance of oid allocator */
 	void (*close) (generic_entity_t *);
     
-#ifndef ENABLE_STAND_ALONE
 	/* Creates oid allocator on passed format entity. */
 	generic_entity_t *(*create) (generic_entity_t *);
 
@@ -1173,7 +1173,6 @@ struct reiser4_oid_ops {
 
 	/* Makes check for validness */
 	errno_t (*valid) (generic_entity_t *);
-#endif
 	
 	/* Root locality and objectid */
 	oid_t (*root_locality) (generic_entity_t *);
@@ -1182,7 +1181,6 @@ struct reiser4_oid_ops {
 
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 
-#ifndef ENABLE_STAND_ALONE
 struct reiser4_alloc_ops {
 	/* Functions for create and open block allocator. */
 	generic_entity_t *(*open) (fs_desc_t *, uint64_t);
@@ -1292,7 +1290,7 @@ struct reiser4_journal_ops {
 	errno_t (*check_struct) (generic_entity_t *,
 				 layout_func_t, void *);
 
-	/* Calls func for each block in block allocator */
+	/* Calls func for each block in block allocator. */
 	errno_t (*layout) (generic_entity_t *, region_func_t,
 			   void *);
 };
@@ -1312,6 +1310,8 @@ typedef struct reiser4_policy_ops reiser4_policy_ops_t;
 
 typedef struct reiser4_core reiser4_core_t;
 
+/* Plugin init() and fini() function types. They are used for calling these
+   functions durring plugin initialization. */
 typedef errno_t (*plug_fini_t) (reiser4_core_t *);
 typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
@@ -1327,22 +1327,21 @@ struct plug_class {
 	/* Plugin finalization routine. */
 	plug_fini_t fini;
 
-	/* Plugin location (path for library plugins and address for built-in
-	   ones). This will let user know, that something bad happened to
-	   particular plugin more clearly. */
+	/* Plugin location (filename of library plugin (for instance
+	   /usr/lib/reiser4/libstat40.so) and address for built-in ones). */
 	char location[1024];
 #endif
 };
 
 typedef struct plug_class plug_class_t;
 
-struct plug_id {
+struct plug_ident {
 	rid_t id;
 	rid_t group;
 	rid_t type;
 };
 
-typedef struct plug_id plug_id_t;
+typedef struct plug_ident plug_ident_t;
 
 #ifndef ENABLE_STAND_ALONE
 #define CLASS_INIT \
@@ -1353,11 +1352,12 @@ typedef struct plug_id plug_id_t;
 #endif
 
 struct reiser4_plug {
-	/* Plugin handle. This will be used by plugin factory. */
+	/* Plugin class. This will be used by plugin factory for initializing
+	   plugin. */
 	plug_class_t cl;
 
 	/* Plugin id. This will be used for looking for a plugin. */
-	plug_id_t id;
+	plug_ident_t id;
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Plugin label (name) */
@@ -1367,8 +1367,9 @@ struct reiser4_plug {
 	const char desc[PLUG_MAX_DESC];
 #endif
 
-	/* All possible plugin operations */
+	/* All possible plugin operations. */
 	union {
+		reiser4_key_ops_t *key_ops;
 		reiser4_item_ops_t *item_ops;
 		reiser4_node_ops_t *node_ops;
 		reiser4_hash_ops_t *hash_ops;
@@ -1377,12 +1378,11 @@ struct reiser4_plug {
 		reiser4_format_ops_t *format_ops;
 
 #ifndef ENABLE_STAND_ALONE
+		reiser4_oid_ops_t *oid_ops;
 		reiser4_alloc_ops_t *alloc_ops;
 		reiser4_policy_ops_t *policy_ops;
 		reiser4_journal_ops_t *journal_ops;
 #endif
-		reiser4_oid_ops_t *oid_ops;
-		reiser4_key_ops_t *key_ops;
 	} o;
 };
 
@@ -1397,11 +1397,6 @@ struct reiser4_plug {
         ((place)->block->dirty)
 
 struct tree_ops {
-#ifndef ENABLE_STAND_ALONE
-	/* Returns blocksize in passed tree */
-	uint32_t (*blksize) (void *);
-#endif
-	
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
 	lookup_t (*lookup) (void *, key_entity_t *,
@@ -1428,6 +1423,9 @@ struct tree_ops {
 	/* Truncates data from tree */
 	int64_t (*trunc) (void *, trans_hint_t *);
 	
+	/* Convert some particular place to another plugin. */
+	errno_t (*conv) (void *, conv_hint_t *);
+	
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
 	errno_t (*remove) (void *, place_t *, trans_hint_t *);
@@ -1443,9 +1441,6 @@ struct tree_ops {
 	
 	/* Update the key in the place and the node itsef. */
 	errno_t (*ukey) (void *, place_t *, key_entity_t *);
-
-	/* Convert some particular place to another plugin. */
-	errno_t (*conv) (void *, conv_hint_t *);
 #endif
 	/* Returns next items respectively. */
 	errno_t (*next) (void *, place_t *, place_t *);
@@ -1454,7 +1449,6 @@ struct tree_ops {
 typedef struct tree_ops tree_ops_t;
 
 struct factory_ops {
-
 	/* Finds plugin by its attributes (type and id) */
 	reiser4_plug_t *(*ifind) (rid_t, rid_t);
 	
@@ -1494,12 +1488,11 @@ typedef struct key_ops key_ops_t;
    access libreiser4 factories. */
 struct reiser4_core {
 	tree_ops_t tree_ops;
+	factory_ops_t factory_ops;
 	
 #ifndef ENABLE_STAND_ALONE
 	param_ops_t param_ops;
 #endif
-	
-	factory_ops_t factory_ops;
 	
 #ifdef ENABLE_SYMLINKS
 	object_ops_t object_ops;
