@@ -162,12 +162,15 @@ static errno_t dir40_next(object_entity_t *entity, int adjust) {
 				   &dir->body, &place);
 
 	if (res || !dir40_belong(entity, &place)) {
+		uint64_t offset;
+		
 		/* Making offset pointed to nowhere in order to let know that
-		   directory is over. Of course this offset is not very useful,
-		   it may be only used to make seekdir() by it, but consequent
-		   readdir() will return nothing. */
-		plug_call(dir->offset.plug->o.key_ops,
-			  set_offset, &dir->offset, MAX_UINT64);
+		   directory is over. */
+		offset = plug_call(dir->offset.plug->o.key_ops,
+				   get_offset, &dir->offset);
+		
+		plug_call(dir->offset.plug->o.key_ops, set_offset,
+			  &dir->offset, offset + 1);
 		
 		return -EINVAL;
 	}
@@ -268,6 +271,12 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	if ((res = dir40_update(entity)))
 		return res;
 
+	units = plug_call(dir->body.plug->o.item_ops,
+			  units, &dir->body);
+
+	if (dir->body.pos.unit >= units)
+		return -EINVAL;
+		
 	/* Reading next entry */
 	if ((res = dir40_fetch(entity, entry)))
 		return res;
@@ -293,13 +302,8 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	}
 #endif
 
-	dir->body.pos.unit++;
-	
 	/* Getting next entry in odrer to set up @dir->offset correctly */
-	units = plug_call(dir->body.plug->o.item_ops,
-			  units, &dir->body);
-	
-	if (dir->body.pos.unit < units) {
+	if (++dir->body.pos.unit < units) {
 		entry_hint_t temp;
 		
 		if ((res = dir40_fetch(entity, &temp)))
