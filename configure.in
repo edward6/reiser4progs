@@ -45,16 +45,14 @@ AC_ARG_WITH(uuid,
 dnl Check for libuuid
 if test "$with_uuid" = yes; then
     OLD_LIBS="$LIBS"
-    LIBS="$LIBS $PROGS_LDADD"
-    AC_CHECK_LIB(uuid, uuid_generate,
-	PROGS_LDADD="$PROGS_LDADD -luuid"
-	AC_DEFINE(HAVE_LIBUUID),
+    LIBS=""
+    AC_CHECK_LIB(uuid, uuid_generate, ,
 	AC_MSG_WARN(
 libuuid could not be found which is required for the --with-uuid
 	)
-	$with_uuid=no,
-	$PROGS_LDADD
+	$with_uuid=no
     )
+    PROGS_LDADD="$PROGS_LDADD $LIBS"
     LIBS="$OLD_LIBS"
 fi
 
@@ -66,16 +64,15 @@ AC_ARG_WITH(readline,
 dnl Check for readline
 if test "$with_readline" = yes; then
     OLD_LIBS="$LIBS"
-    LIBS="$LIBS $PROGS_LDADD"
-    AC_CHECK_LIB(readline, readline,
-	PROGS_LDADD="$PROGS_LDADD -lreadline"
-	AC_DEFINE(HAVE_LIBREADLINE),
+    LIBS=""
+    AC_CHECK_LIB(readline, readline, ,
 	    AC_MSG_WARN(
 GNU Readline could not be found which is required for the --with-readline
 	    )
 	    with_readline=no,
-	    $PROGS_LDADD
+	    -lncurses
     )
+    PROGS_LDADD="$PROGS_LDADD $LIBS"
     LIBS="$OLD_LIBS"
 fi
 
