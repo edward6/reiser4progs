@@ -3,13 +3,7 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* cleanup reiser4_tree_copy()
-
 * should nodes be created on tree, not on device?
-
-* manual page resizefs.
-
-* reiser4_fs_resize().
 
 * dumpfs utility.
 
@@ -17,15 +11,9 @@ reiser4progs/COPYING.
 
 * plugin inheritance for objects.
 
-* rid of @level param in tree_lookup(), as it almost always looks 
-  for data on the leaf level.
-
 * atime updating when reading from file or directory.
 
 * extents support (reg40.c, tree.c, etc).
-
-* should we print blocks, that belong to some fs objects 
-  (block allocator, etc) while handling --print-block option?
 
 * special file plugin and special files support in debugfs.
 
@@ -34,6 +22,6 @@ reiser4progs/COPYING.
 * change balancing algorithm from the recursive to task oriented one
   like kernel does.
 
-* online/offline resizer/repacker.
+* online/offline resizer/repacker, manual page resizefs.
 * introduce some kind of reiser4_errnum for all libreiser4 operations.
 * implement credits showing durring mkfs.

@@ -2136,16 +2136,7 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 	last = aal_list_last(hint->path);
 	parent = last ?	(reiser4_node_t *)last->data : NULL;
 	
-	if (parent) {
-		dst_node->p.node = parent;
-		reiser4_node_lkey(dst_node, &lkey);
-
-		reiser4_node_lookup(parent, &lkey,
-				    &dst_node->p.pos);
-	    
-		if ((res = reiser4_node_update(dst_node)))
-			return res;
-	}
+	dst_node->flags |= NF_FOREIGN;
 	
 	if ((res = reiser4_tree_connect(dst_tree, parent, dst_node))) {
 		aal_exception_error("Can't connect node %llu to "
@@ -2153,6 +2144,9 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 		goto error_free_dst_node;
 	}
 
+	if ((res = reiser4_node_update(dst_node)))
+		return res;
+	
 	/* FIXME-UMKA: Here also should be extents handling */
 	
 	if (reiser4_node_get_level(src_node) > LEAF_LEVEL) {

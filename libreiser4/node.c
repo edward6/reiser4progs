@@ -298,8 +298,10 @@ errno_t reiser4_node_realize(
 
 	/* Checking if we are in position already */
 #ifndef ENABLE_STAND_ALONE
-	if (reiser4_node_ack(node, parent))
-		goto parent_realize;
+	if (!(node->flags & NF_FOREIGN)) {
+		if (reiser4_node_ack(node, parent))
+			goto parent_realize;
+	}
 #endif
 	
 	/* Getting position by means of using node lookup */
@@ -309,30 +311,35 @@ errno_t reiser4_node_realize(
 				&parent->pos) == PRESENT)
 	{
 #ifndef ENABLE_STAND_ALONE
-		if (reiser4_node_ack(node, parent))
+		if (!(node->flags & NF_FOREIGN)) {
+			if (reiser4_node_ack(node, parent))
+				goto parent_realize;
+		} else
 #endif
 			goto parent_realize;
 	}
 
 	/* Getting position by means of linear traverse */
 #ifndef ENABLE_STAND_ALONE
-	for (i = 0; i < reiser4_node_items(parent->node); i++) {
-		parent->pos.item = i;
+	if (!(node->flags & NF_FOREIGN)) {
+		for (i = 0; i < reiser4_node_items(parent->node); i++) {
+			parent->pos.item = i;
 
-		if ((res = reiser4_place_realize(parent)))
-			return res;
+			if ((res = reiser4_place_realize(parent)))
+				return res;
 
-		if (!reiser4_item_branch(parent))
-			continue;
+			if (!reiser4_item_branch(parent))
+				continue;
 
-		for (j = 0; j < reiser4_item_units(parent); j++) {
-			parent->pos.unit = j;
+			for (j = 0; j < reiser4_item_units(parent); j++) {
+				parent->pos.unit = j;
 			
-			plugin_call(parent->item.plugin->o.item_ops,
-				    read, &parent->item, &ptr, j, 1);
+				plugin_call(parent->item.plugin->o.item_ops,
+					    read, &parent->item, &ptr, j, 1);
 
-			if (ptr.start == node->number)
-				goto parent_realize;
+				if (ptr.start == node->number)
+					goto parent_realize;
+			}
 		}
 	}
 
