@@ -323,6 +323,10 @@ static void sym40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
+static key_entity_t *sym40_origin(object_entity_t *entity) {
+	return STAT_KEY(&((sym40_t *)entity)->obj);
+}
+
 static reiser4_object_ops_t sym40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.create	        = sym40_create,
@@ -332,6 +336,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.unlink         = sym40_unlink,
 	.links          = sym40_links,
 	.clobber        = sym40_clobber,
+	.origin         = sym40_origin,
 	.realize        = sym40_realize,
 		
 	.seek	        = NULL,
