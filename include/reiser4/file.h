@@ -24,6 +24,7 @@ extern int32_t reiser4_file_read(reiser4_file_t *file, void *buff,
 				 uint64_t n);
 
 extern void reiser4_file_close(reiser4_file_t *file);
+extern errno_t reiser4_file_stat(reiser4_file_t *file);
 
 #ifndef ENABLE_ALONE
 

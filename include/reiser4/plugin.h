@@ -599,7 +599,7 @@ struct reiser4_file_ops {
 	reiser4_plugin_header_t h;
 
 	/* Creates new file with passed parent and object keys */
-	object_entity_t *(*create) (void *, reiser4_file_hint_t *); 
+	object_entity_t *(*create) (void *, reiser4_file_hint_t *, place_t *);
     
 	/* Opens a file with specified key */
 	object_entity_t *(*open) (void *, place_t *);

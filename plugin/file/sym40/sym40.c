@@ -84,13 +84,14 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 #ifndef ENABLE_ALONE
 
 /* Creates symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint) {
+static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint,
+				     place_t *place)
+{
 	roid_t objectid;
 	roid_t locality;
 	roid_t parent_locality;
 
 	sym40_t *sym;
-	place_t place;
 	reiser4_plugin_t *stat_plugin;
     
 	reiser4_statdata_hint_t stat;
@@ -167,11 +168,11 @@ static object_entity_t *sym40_create(void *tree, reiser4_file_hint_t *hint) {
 	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data into the tree */
-	if (object40_insert(&sym->file, &stat_hint, LEAF_LEVEL, &place))
+	if (object40_insert(&sym->file, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_sym;
 
 	/* Saving statdata coord and locking the node it lies in */
-	aal_memcpy(&sym->file.statdata, &place, sizeof(place));
+	aal_memcpy(&sym->file.statdata, place, sizeof(*place));
 	object40_lock(&sym->file, &sym->file.statdata);
 		
 	return (object_entity_t *)sym;

@@ -296,11 +296,11 @@ static char *dir40_empty_dir[2] = { ".", ".." };
   Creates dir40 instance and inserts few item in new directory described by
   passed @hint.
 */
-static object_entity_t *dir40_create(void *tree, reiser4_file_hint_t *hint) {
+static object_entity_t *dir40_create(void *tree, reiser4_file_hint_t *hint,
+				     place_t *place) {
 	uint32_t i;
 	dir40_t *dir;
 
-	place_t place;
 	roid_t parent_locality;
 	roid_t objectid, locality;
 
@@ -470,22 +470,20 @@ static object_entity_t *dir40_create(void *tree, reiser4_file_hint_t *hint) {
 	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data and body into the tree */
-	if (object40_insert(&dir->file, &stat_hint, LEAF_LEVEL, &place))
+	if (object40_insert(&dir->file, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_body;
 	
 	/* Saving stat data coord insert function has returned */
-	aal_memcpy(&dir->file.statdata, &place, sizeof(place));
+	aal_memcpy(&dir->file.statdata, place, sizeof(*place));
 	object40_lock(&dir->file, &dir->file.statdata);
     
 	/* Inserting the direntry item into the tree */
-	if (object40_insert(&dir->file, &body_hint, LEAF_LEVEL, &place))
+	if (object40_insert(&dir->file, &body_hint, LEAF_LEVEL, &dir->body))
 		goto error_free_body;
 	
-	/* Saving directory start in local body coord */
-	aal_memcpy(&dir->body, &place, sizeof(place));
 	object40_lock(&dir->file, &dir->body);
-	
 	aal_free(body);
+	
 	return (object_entity_t *)dir;
 
  error_free_body:

@@ -28,7 +28,8 @@ static reiser4_plugin_t *reiser4_file_plugin(reiser4_file_t *file) {
 	return item->plugin->item_ops.belongs(item);
 }
 
-static errno_t reiser4_file_stat(reiser4_file_t *file) {
+/* Looks up for the file stat data place in tree */
+errno_t reiser4_file_stat(reiser4_file_t *file) {
 	
 	/* Setting up the file key to statdata one */
 	reiser4_key_set_offset(&file->key, 0);
@@ -404,8 +405,8 @@ reiser4_file_t *reiser4_file_create(
 		}
 	}
 
-	if (!(file->entity = plugin_call(plugin->file_ops,
-					 create, fs->tree, hint)))
+	if (!(file->entity = plugin_call(plugin->file_ops, create, fs->tree,
+					 hint, (place_t *)&file->place)))
 	{
 		aal_exception_error("Can't create file with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&file->key));

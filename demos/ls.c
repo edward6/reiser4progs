@@ -30,6 +30,7 @@ static void ls_init(void) {
 int main(int argc, char *argv[]) {
 	reiser4_fs_t *fs;
 	aal_device_t *device;
+	reiser4_place_t place;
 
 	reiser4_file_t *dir;
 	reiser4_entry_hint_t entry;
@@ -93,7 +94,8 @@ int main(int argc, char *argv[]) {
 
 				if (!(file = reiser4_file_create(fs, dir, &dir_hint, name)))
 					goto error_free_dir;
-				
+
+				place = file->place;
 				reiser4_file_close(file);
 			}
 		}
@@ -114,7 +116,9 @@ int main(int argc, char *argv[]) {
 		
 		aal_stream_fini(&stream);
 	}
-    
+
+	reiser4_tree_remove(fs->tree, &place, 1);
+	
 	reiser4_file_close(dir);
 //        reiser4_fs_sync(fs);
 

@@ -391,7 +391,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/*
-	q  In the case no print flags was specified, debugfs will print super
+	  In the case no print flags was specified, debugfs will print super
 	  blocks by defaut.
 	*/
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)

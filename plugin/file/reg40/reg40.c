@@ -203,11 +203,10 @@ static object_entity_t *reg40_open(void *tree,
 #ifndef ENABLE_ALONE
 
 /* Creating the file described by pased @hint */
-static object_entity_t *reg40_create(void *tree, 
-				     reiser4_file_hint_t *hint) 
+static object_entity_t *reg40_create(void *tree, reiser4_file_hint_t *hint,
+				     place_t *place) 
 {
 	reg40_t *reg;
-	place_t place;
 	
 	roid_t parent_locality;
 	roid_t objectid, locality;
@@ -222,6 +221,7 @@ static object_entity_t *reg40_create(void *tree,
 	
 	aal_assert("umka-1169", tree != NULL);
 	aal_assert("umka-1738", hint != NULL);
+	aal_assert("umka-1880", place != NULL);
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
@@ -281,10 +281,11 @@ static object_entity_t *reg40_create(void *tree,
 	stat_hint.type_specific = &stat;
 
 	/* Insert statdata item into the tree */
-	if (object40_insert(&reg->file, &stat_hint, LEAF_LEVEL, &place))
+	if (object40_insert(&reg->file, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_reg;
 
-	aal_memcpy(&reg->file.statdata, &place, sizeof(place));
+	aal_memcpy(&reg->file.statdata, place, sizeof(*place));
+	object40_lock(&reg->file, &reg->file.statdata);
     
 	return (object_entity_t *)reg;
 
