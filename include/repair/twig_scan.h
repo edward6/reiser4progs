@@ -28,11 +28,7 @@ typedef struct repair_ts {
 					   extents.			     */
 	
 	/* Results. */
-	aux_bitmap_t *bm_unfm_tree;	/* Unformatted blocks pointed from 
-					   the tree.			     */
-	aux_bitmap_t *bm_unfm_out;	/* Unformatted blocks pointed out 
-					   of the tree.			     */
-    
+	aux_bitmap_t *bm_unfm;		/* Unformatted blocks pointed from.  */   
 	repair_progress_handler_t *progress_handler;    
 	repair_progress_t *progress;
 	repair_ts_stat_t stat;

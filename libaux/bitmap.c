@@ -61,6 +61,24 @@ int aux_bitmap_test(
 	return aal_test_bit(bitmap->map, bit);
 }
 
+/* Makes loop through bitmap and calculates the number of marked/cleared blocks
+   in it. This function is used for checking the bitmap on validness. Also it is
+   used for calculating marked blocks of bitmap in aux_bitmap_open function. See
+   bellow for details. */
+static uint64_t aux_bitmap_calc(
+	aux_bitmap_t *bitmap,	   /* bitmap will be used for calculating bits */
+	uint64_t start,		   /* start bit, calculating should be performed from */
+	uint64_t count,		   /* end bit, calculating should be stoped on */
+	int marked)		   /* flag for kind of calculating (marked or cleared) */
+{
+	uint64_t i, bits = 0;
+	
+	for (i = start; i < start + count; i++)
+		bits += aux_bitmap_test(bitmap, i) ? marked : !marked;
+
+	return bits;
+}
+
 /* Checks whether passed range of blocks is inside of bitmap and marks
    blocks. This function also increseas marked block counter. */
 void aux_bitmap_mark_region(
@@ -68,13 +86,16 @@ void aux_bitmap_mark_region(
 	uint64_t start,		    /* start bit of the region */
 	uint64_t count)		    /* bit count to be marked */
 {
+	uint64_t num;
+	
 	aal_assert("vpf-472", bitmap != NULL);
 
 	aux_bitmap_bound_check(bitmap, start, return);
 	aux_bitmap_bound_check(bitmap, start + count - 1, return);
 	
+	num = aux_bitmap_calc(bitmap, start, count, 0);
 	aal_set_bits(bitmap->map, start, count);
-	bitmap->marked += count;
+	bitmap->marked += num;
 }
 
 /* Checks whether passed range of blocks is inside of bitmap and clears
@@ -84,13 +105,16 @@ void aux_bitmap_clear_region(
 	uint64_t start,		    /* start bit of the range */
 	uint64_t count)		    /* bit count to be clean */
 {
+	uint64_t num;
+	
 	aal_assert("vpf-473", bitmap != NULL);
 
 	aux_bitmap_bound_check(bitmap, start, return);
 	aux_bitmap_bound_check(bitmap, start + count - 1, return);
 	
+	num = aux_bitmap_calc(bitmap, start, count, 1);
 	aal_clear_bits(bitmap->map, start, count);
-	bitmap->marked -= count;
+	bitmap->marked -= num;
 }
 
 /* Finds first cleared bit in bitmap, starting from passed "start" */
@@ -176,36 +200,12 @@ uint64_t aux_bitmap_find_region(
 	}
 }
 
-/* Makes loop through bitmap and calculates the number of marked/cleared blocks
-   in it. This function is used for checking the bitmap on validness. Also it is
-   used for calculating marked blocks of bitmap in aux_bitmap_open function. See
-   bellow for details. */
-static uint64_t aux_bitmap_calc(
-	aux_bitmap_t *bitmap,	   /* bitmap will be used for calculating bits */
-	uint64_t start,		   /* start bit, calculating should be performed from */
-	uint64_t count,		   /* end bit, calculating should be stoped on */
-	int marked)		   /* flag for kind of calculating (marked or cleared) */
-{
-	uint64_t i, bits = 0;
-	
-	aal_assert("umka-340", bitmap != NULL);
-	
-	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
-	aux_bitmap_bound_check(bitmap, start + count - 1, return INVAL_BLK);
-	
-	for (i = start; i < start + count; i++)
-		bits += aux_bitmap_test(bitmap, i) ? marked : !marked;
-
-	return bits;
-}
-
 /* Public wrapper for previous function */
 uint64_t aux_bitmap_calc_marked(
 	aux_bitmap_t *bitmap)	 /* bitmap, calculating will be performed in */
 {
-	bitmap->marked = aux_bitmap_calc(bitmap, 0, 
-					 bitmap->total, 1);
-
+	aal_assert("umka-340", bitmap != NULL);
+	bitmap->marked = aux_bitmap_calc(bitmap, 0, bitmap->total, 1);
 	return bitmap->marked;
 }
 
@@ -213,8 +213,8 @@ uint64_t aux_bitmap_calc_marked(
 uint64_t aux_bitmap_calc_cleared(
 	aux_bitmap_t *bitmap)	 /* bitmap, calculating will be performed in */
 {
-	return aux_bitmap_calc(bitmap, 0,
-			       bitmap->total, 0);
+	aal_assert("vpf-1320", bitmap != NULL);
+	return aux_bitmap_calc(bitmap, 0, bitmap->total, 0);
 }
 
 /* Retuns stored value of marked blocks from specified bitmap */

@@ -29,7 +29,9 @@ typedef struct repair_filter {
 	/* Results of the work. */
 	aux_bitmap_t *bm_leaf;	/* Bitmap of found leaves. */
 	aux_bitmap_t *bm_twig;	/* Bitmap of found twigs. */
-	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes. */
+	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes which does not get
+				   to neither other bitmap due to corruption or
+				   just an internal one. */
 	uint8_t level;
 	uint8_t flags;
 

@@ -23,6 +23,135 @@ typedef enum repair_error_filter {
 	RE_EMPTY	= (RE_LAST << 2)
 } repair_error_filter_t;
 
+typedef enum repair_mark {
+	RM_BAD   = 0,
+	RM_MARK  = 1,
+	RM_CLEAR = 2
+} repair_mark_t;
+
+static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk, 
+				      uint8_t level, repair_mark_t mark)
+{
+	if (mark == RM_MARK) {
+		aux_bitmap_mark_region(fd->bm_used, blk, 1);
+		fd->stat.good_nodes++;
+	} else {
+		aux_bitmap_clear_region(fd->bm_used, blk, 1);
+		fd->stat.good_nodes--;
+	}
+
+	switch(level) {
+	case LEAF_LEVEL:
+		if (mark == RM_MARK) {
+			if (fd->bm_leaf)
+				aux_bitmap_mark_region(fd->bm_leaf, blk, 1);
+			fd->stat.good_leaves++;
+		} else {
+			if (fd->bm_leaf)
+				aux_bitmap_clear_region(fd->bm_leaf, blk, 1);
+			fd->stat.good_leaves--;
+			if (mark == RM_BAD)
+				fd->stat.bad_leaves++;
+		}
+		return;
+	case TWIG_LEVEL:
+		if (mark == RM_MARK) {
+			if (fd->bm_twig)
+				aux_bitmap_mark_region(fd->bm_twig, blk, 1);
+			fd->stat.good_twigs++;
+		} else {
+			if (fd->bm_twig)
+				aux_bitmap_clear_region(fd->bm_twig, blk, 1);
+			fd->stat.good_twigs--;
+			if (mark == RM_BAD)
+				fd->stat.bad_twigs++;
+		}
+		return;
+	default:
+		if (fd->bm_met) {
+			if (mark == RM_MARK)
+				aux_bitmap_mark_region(fd->bm_met, blk, 1);
+			else if (mark == RM_BAD)
+				aux_bitmap_clear_region(fd->bm_met, blk, 1);
+		}
+		
+		return;
+	}
+}
+
+static void repair_filter_read_node(repair_filter_t *fd, 
+				    blk_t blk, 
+				    uint8_t level) 
+{
+	fd->stat.read_nodes++;
+	repair_filter_node_handle(fd, blk, level, RM_MARK);
+}
+
+
+static void repair_filter_bad_node(repair_filter_t *fd, blk_t blk,
+				   uint8_t level)
+{
+	fd->flags |= RE_FATAL;
+	fd->stat.bad_nodes++;
+	repair_filter_node_handle(fd, blk, level, RM_BAD);
+}
+
+static void repair_filter_empty_node(repair_filter_t *fd, blk_t blk,
+				     uint8_t level)
+{
+	fd->flags |= RE_EMPTY;
+	repair_filter_node_handle(fd, blk, level, RM_BAD);
+}
+
+static void repair_filter_bad_dk(repair_filter_t *fd, blk_t blk,
+				 uint8_t level)
+{
+	fd->flags |= RE_DKEYS;
+	aux_bitmap_clear_region(fd->bm_used, blk, 1);
+	fd->stat.bad_dk_nodes++;
+
+	switch(level) {
+	case LEAF_LEVEL:
+		fd->stat.bad_dk_leaves++;
+		return;
+	case TWIG_LEVEL:
+		fd->stat.bad_dk_twigs++;
+		return;
+	default:
+		return;
+	}
+	
+}
+
+static void repair_filter_fixed_node(repair_filter_t *fd, uint8_t level) {
+	fd->stat.fixed_nodes++;
+	
+	switch(level) {
+	case LEAF_LEVEL:
+		fd->stat.fixed_leaves++;
+		return;
+	case TWIG_LEVEL:
+		fd->stat.fixed_twigs++;
+		return;
+	default:
+		return;
+	}
+}
+
+static void repair_filter_bad_ptr(repair_filter_t *fd) {
+	fd->flags |= RE_PTR;
+	fd->repair->fatal++;
+	fd->stat.bad_ptrs++;
+}
+
+static void repair_filter_bad_level(repair_filter_t *fd, 
+				    blk_t blk, 
+				    uint8_t level) 
+{
+	repair_filter_node_handle(fd, blk, level, RM_CLEAR);
+	repair_filter_bad_ptr(fd);
+}
+
 /* Open callback for traverse. It opens a node at passed blk. It does 
    nothing if RE_PTR is set and set this flag if node cannot 
    be opeened. Returns error if any. */
@@ -49,7 +178,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (plug_call(place->plug->o.item_ops, fetch,
 		      (place_t *)place, &hint) != 1)
-		return NULL;
+		return INVAL_PTR;
 	
 	if (ptr.start >= fd->bm_used->total) {
 		aal_exception_error("Node (%llu), item (%u), unit (%u): "
@@ -99,7 +228,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		fd->progress_handler(fd->progress);
 	}
 	
-	aux_bitmap_mark_region(fd->bm_used, ptr.start, ptr.width);
+	repair_filter_read_node(fd, ptr.start, reiser4_node_get_level(node));
 
 	return node;
 	
@@ -107,8 +236,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	reiser4_node_close(node);
 	return INVAL_PTR;
  error:
-	fd->flags |= RE_PTR;
-	fd->repair->fatal++;
+	repair_filter_bad_ptr(fd);
 	return NULL;
 }
 
@@ -154,8 +282,8 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		
 		/* Should not be check for now as it may lie in unused space.
 		   It is just a wrong pointer. Skip it. */
-		fd->flags |= RE_PTR;
-		fd->repair->fatal++;
+		
+		repair_filter_bad_level(fd, node_blocknr(node), level);
 		goto error;
 	} 
 	
@@ -165,13 +293,13 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	repair_error_check(res, fd->repair->mode);
 	
 	if (reiser4_node_items(node) == 0) {
-		fd->flags |= RE_EMPTY;
+		repair_filter_empty_node(fd, node_blocknr(node), level);
 		reiser4_node_mkclean(node);
 		goto error;
 	}
 	
 	if (res & RE_FATAL) {
-		fd->flags |= RE_FATAL;
+		repair_filter_bad_node(fd, node_blocknr(node), level);
 		fd->repair->fatal++;
 		goto error;
 	} else if (res & RE_FIXABLE) {
@@ -179,14 +307,8 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	} else {
 		aal_assert("vpf-799", res == 0);
 		
-		if (reiser4_node_isdirty(node)) {
-			fd->stat.fixed_nodes++;
-			
-			if (level == LEAF_LEVEL)
-				fd->stat.fixed_leaves++;
-			else if (level == TWIG_LEVEL)
-				fd->stat.fixed_twigs++;
-		}
+		if (reiser4_node_isdirty(node))
+			repair_filter_fixed_node(fd, level);
 	}
 	
 	/* There are no fatal errors, check delimiting keys. */
@@ -194,7 +316,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		return res;
 	
 	if (res) {
-		fd->flags |= RE_DKEYS;
+		repair_filter_bad_dk(fd, node_blocknr(node), level);
 		fd->repair->fatal++;
 		return res;
 	}
@@ -222,7 +344,6 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 	repair_filter_t *fd = (repair_filter_t *)data;
 	ptr_hint_t ptr;
 	trans_hint_t hint;
-	uint8_t level;
     
 	aal_assert("vpf-257", fd != NULL);
 	aal_assert("vpf-434", place != NULL);
@@ -240,74 +361,28 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		return -EIO;
 	}
 
-	level = reiser4_node_get_level(place->node);
-
-	if (!fd->flags) {
-		/* FIXME-VITALY: hardcoded level, should be changed. */
-		fd->stat.good_nodes += ptr.width;
-		if (level == TWIG_LEVEL + 1) {
-			aux_bitmap_mark_region(fd->bm_twig, ptr.start, 
-					       ptr.width);
-			
-			fd->stat.good_twigs += ptr.width;
-		} else if (level == TWIG_LEVEL) {
-			aux_bitmap_mark_region(fd->bm_leaf, ptr.start, 
-					       ptr.width);
-			
-			fd->stat.good_leaves += ptr.width;
-		}
-
+	if (!fd->flags)
 		return 0;
-	}
 
-	if (fd->flags & RE_PTR)
-		fd->stat.bad_ptrs += ptr.width;
-	else
-		/* As some flag is set, clear ptr blocks in bm_used. */
-		aux_bitmap_clear_region(fd->bm_used, ptr.start, ptr.width);
-	
-		
 	if ((fd->flags & RE_FATAL) || (fd->flags & RE_EMPTY)) {
-		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
-				    "to the %s node (%llu).%s",
-				    node_blocknr(place->node), 
-				    place->pos.item, place->pos.unit, 
-				    fd->flags & RE_EMPTY ? "empty" :
+		aal_exception_error("Node (%llu): the node is %s. Pointed from "
+				    "the node(%llu), item (%u), unit (%u).%s",
+				    ptr.start, fd->flags & RE_EMPTY ? "empty" :
 				    fd->repair->mode == RM_BUILD ? 
-				    "unrecoverable" : "broken", ptr.start,
+				    "unrecoverable" : "broken", 
+				    node_blocknr(place->node), 
+				    place->pos.item, place->pos.unit,
 				    fd->repair->mode == RM_BUILD ? "Removed." :
 				    "The whole subtree is skipped.");
-
-		/* Extents cannot point to this node. */
-		aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
-		fd->stat.bad_nodes += ptr.width;
-		if (level == LEAF_LEVEL)
-			fd->stat.bad_leaves += ptr.width;
-		else if (level == TWIG_LEVEL)
-			fd->stat.bad_twigs += ptr.width;
 	} else if (fd->flags & RE_DKEYS) {
 		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 				    "to the node [%llu] with wrong delimiting "
 				    "keys. %s", node_blocknr(place->node), 
 				    place->pos.item, place->pos.unit, 
-				    ptr.start, 
-				    fd->repair->mode == RM_BUILD ? 
-				    "Removed." : "The whole subtree is skipped.");
-
-		fd->stat.bad_dk_nodes += ptr.width;
-		/* Insert it later. FIXME: This is hardcoded, should be 
-		   changed. */
-		if (level == LEAF_LEVEL) {
-			aux_bitmap_mark_region(fd->bm_leaf, ptr.start,
-					       ptr.width);
-			fd->stat.bad_dk_leaves += ptr.width;
-		} else if (level == TWIG_LEVEL) {
-			aux_bitmap_mark_region(fd->bm_twig, ptr.start,
-					       ptr.width);
-			fd->stat.bad_dk_twigs += ptr.width;
-		} else
-			aux_bitmap_mark_region(fd->bm_met, ptr.start,
-					       ptr.width);
+				    ptr.start, fd->repair->mode == RM_BUILD ?
+				    "Removed, content will be inserted later "
+				    "item-by-item." : "The whole subtree is "
+				    "skipped.");
 	}
 	
 	if (fd->repair->mode == RM_BUILD) {
@@ -345,7 +420,8 @@ static errno_t repair_filter_after_traverse(reiser4_tree_t *tree,
 	aal_assert("vpf-256", fd != NULL);    
 	
 	if (reiser4_node_items(node) == 0) {
-		fd->flags |= RE_EMPTY;
+		repair_filter_empty_node(fd, node_blocknr(node), 
+					 reiser4_node_get_level(node));
 		reiser4_node_mkclean(node);
 	}
 	
@@ -392,34 +468,19 @@ static void repair_filter_update(repair_filter_t *fd) {
 	format = fd->repair->fs->format;
 	root = fd->repair->fs->tree->root;
 	
-	if (fd->flags & RE_PTR) {
-		stat->bad_ptrs++;
-		if (fd->repair->mode == RM_BUILD)
-			reiser4_format_set_root(format, INVAL_BLK);
-	} else if (fd->flags & RE_FATAL) {
+	if (fd->flags) {
 		aal_assert("vpf-863", root != NULL);
 		
-		aux_bitmap_clear(fd->bm_used, node_blocknr(root));
-		stat->bad_nodes++;
-
+		aal_exception_error("Root node (%llu): the node is %s. %s",
+				    reiser4_format_get_root(format), 
+				    fd->flags & RE_EMPTY ? "empty" :
+				    fd->repair->mode == RM_BUILD ? 
+				    "unrecoverable" : "broken",
+				    fd->repair->mode == RM_BUILD ? "Zeroed." :
+				    "The whole subtree is skipped.");
+		
 		if (fd->repair->mode == RM_BUILD)
 			reiser4_format_set_root(format, INVAL_BLK);
-	} else {
-		aal_assert("vpf-862", fd->flags == 0);
-		aal_assert("vpf-863", root != NULL);
-		
-		aux_bitmap_mark(fd->bm_used, reiser4_format_get_root(format));
-
-		/* FIXME-VITALY: hardcoded level, should be changed. */
-		if (reiser4_node_get_level(root) == TWIG_LEVEL) {
-			aux_bitmap_mark(fd->bm_twig, node_blocknr(root));
-			stat->good_twigs++;
-		} else if (reiser4_node_get_level(root) == LEAF_LEVEL) {
-			aux_bitmap_mark(fd->bm_leaf, node_blocknr(root));
-			stat->good_leaves++;
-		}
-		
-		stat->good_nodes++;
 	}
 
 	if (!fd->progress_handler)
@@ -518,6 +579,8 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 		goto error;
 	}
 	
+	repair_filter_read_node(fd, root, reiser4_node_get_level(tree->root));
+	
 	/* If SB's mkfs id exists and matches the root node's one, 
 	   check the mkfs id of all nodes. */
 	*fd->check_node = (reiser4_format_get_stamp(format) && 
@@ -536,8 +599,8 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 
 	return res < 0 ? res : 0;
  error:
-	fd->flags |= RE_PTR;
-	fd->repair->fatal++;
+	repair_filter_bad_ptr(fd);
+
 	return 0;
 }
 
@@ -553,10 +616,7 @@ errno_t repair_filter(repair_filter_t *fd) {
 	aal_assert("vpf-843", fd->repair->fs != NULL);
 	aal_assert("vpf-816", fd->repair->fs->tree != NULL);
 	aal_assert("vpf-815", fd->bm_used != NULL);
-	aal_assert("vpf-814", fd->bm_leaf != NULL);
-	aal_assert("vpf-814", fd->bm_twig != NULL);
-	aal_assert("vpf-814", fd->bm_met != NULL);
-    
+
 	if (reiser4_tree_fresh(fd->repair->fs->tree)) {
 		aal_exception_warn("Reiser4 storage tree does not exist. "
 				   "Filter pass skipped.");

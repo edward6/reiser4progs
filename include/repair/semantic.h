@@ -26,6 +26,8 @@ typedef struct repair_ancestor {
 /* Data semantic pass works on. */
 typedef struct repair_semantic {
 	repair_data_t *repair;
+
+	aux_bitmap_t *bm_used;
 	
 	reiser4_object_t *root;
 	reiser4_object_t *lost;

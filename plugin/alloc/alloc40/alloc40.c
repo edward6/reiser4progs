@@ -81,32 +81,6 @@ static void alloc40_mkclean(generic_entity_t *entity) {
 	((alloc40_t *)entity)->dirty = 0;
 }
 
-/* Call @func for all blocks which belong to the same bitmap block as passed
-   @blk. It is needed for fsck. In the case it detremined that a block is not
-   corresponds to its value in block allocator, it should check all the related
-   (neighbour) blocks which are described by one bitmap block (4096 -
-   CRC_SIZE). */
-errno_t alloc40_related(generic_entity_t *entity, blk_t blk, 
-			region_func_t region_func, void *data) 
-{
-	uint64_t size;
-	alloc40_t *alloc;
-    
-	aal_assert("vpf-554", entity != NULL);
-	aal_assert("umka-1746", region_func != NULL);
-    
-	alloc = (alloc40_t *)entity;
-    
-	aal_assert("vpf-710", alloc->bitmap != NULL);
-	aal_assert("vpf-711", alloc->device != NULL);
-    
-	size = alloc->blksize - CRC_SIZE;
-    
-	/* Loop though the all blocks one bitmap block describes and calling
-	   passed @region_func for each of them. */   
-	return region_func(entity, (blk / size) * size, size, data);
-}
-
 /* Calls func for each block allocator block. This function is used in all block
    block allocator operations like load, save, etc. */
 errno_t alloc40_layout(generic_entity_t *entity,
@@ -114,6 +88,7 @@ errno_t alloc40_layout(generic_entity_t *entity,
 		       void *data) 
 {
 	count_t bpb;
+	errno_t res = 0;
 	alloc40_t *alloc;
 	blk_t blk, start;
 	
@@ -133,13 +108,11 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	for (blk = start; blk < start + alloc->bitmap->total;
 	     blk = ((blk / bpb) + 1) * bpb) 
 	{
-		errno_t res;
-		
-		if ((res = region_func(entity, blk, 1, data)))
+		if ((res |= region_func(entity, blk, 1, data)) < 0)
 			return res;
 	}
     
-	return 0;
+	return res;
 }
 
 /* Fetches one bitmap block. Extracts its checksum from teh first 4 bytes and
@@ -610,10 +583,7 @@ static uint64_t alloc40_used(generic_entity_t *entity) {
 }
 
 /* Checks whether specified blocks are used */
-static int alloc40_occupied(generic_entity_t *entity,
-			    uint64_t start,
-			    uint64_t count) 
-{
+int alloc40_occupied(generic_entity_t *entity, uint64_t start, uint64_t count) {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-663", alloc != NULL);
@@ -637,18 +607,24 @@ static int alloc40_available(generic_entity_t *entity,
 				      start, count, 0);
 }
 
+static void callback_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
+	aal_exception_warn("Checksum missmatch in bitmap block %llu. Checksum "
+			   "is 0x%x, should be 0x%x.", start, ladler, cadler);
+}
+
+typedef void (*inval_func_t) (blk_t start, uint32_t ladler, uint32_t cadler);
+
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t callback_check_bitmap(void *entity, blk_t start,
-			      count_t width, void *data)
-{
+errno_t callback_valid(void *entity, blk_t start, count_t width, void *data) {
 	uint32_t chunk;
 	uint64_t offset;
 	alloc40_t *alloc;
 	uint32_t size, free;
 	char *current, *map;
 	uint32_t ladler, cadler;
-    
+	inval_func_t func = (inval_func_t)data;
+
 	alloc = (alloc40_t *)entity;
 	size = alloc->blksize - CRC_SIZE;
 	map = aux_bitmap_map(alloc->bitmap);
@@ -679,17 +655,11 @@ errno_t callback_check_bitmap(void *entity, blk_t start,
 
 	/* If loaded checksum and calculated one are not equal, we have
 	   corrupted bitmap. */
-	if (ladler != cadler) {
-		aal_exception_warn("Checksum missmatch in bitmap "
-				   "block %llu. Checksum is 0x%x, "
-				   "should be 0x%x.", start, ladler,
-				   cadler);
-	
-		return -ESTRUCT;
+	if (ladler != cadler && func) {
+		func(start, ladler, cadler);
+		return ESTRUCT;
 	}
 
-	/* FIXME-FITALY: Probably the check that the bitmap bit is set should be
-	   here also. */
 	return 0;
 }
 
@@ -702,12 +672,19 @@ errno_t alloc40_valid(generic_entity_t *entity) {
 
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
-	return alloc40_layout((generic_entity_t *)alloc,
-			      callback_check_bitmap, alloc);
+	return alloc40_layout((generic_entity_t *)alloc, callback_valid, 
+			      callback_inval_warn);
 }
 
 extern errno_t alloc40_check_struct(generic_entity_t *entity,
 				    uint8_t mode);
+
+extern errno_t alloc40_region(generic_entity_t *entity, blk_t blk, 
+			      region_func_t func, void *data);
+
+extern errno_t alloc40_layout_bad(generic_entity_t *entity, 
+				  region_func_t func,
+				  void *data);
 
 static reiser4_alloc_ops_t alloc40_ops = {
 	.open           = alloc40_open,
@@ -721,8 +698,7 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.mkdirty        = alloc40_mkdirty,
 	.mkclean        = alloc40_mkclean,
 	.print          = alloc40_print,
-	.check_struct	= alloc40_check_struct,
-		
+
 	.used           = alloc40_used,
 	.free           = alloc40_free,
 	.valid          = alloc40_valid,
@@ -730,7 +706,8 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.occupied       = alloc40_occupied,
 	.available      = alloc40_available,
 
-	.related        = alloc40_related,
+	.layout_bad	= alloc40_layout_bad,
+	.region		= alloc40_region,
 	.occupy	        = alloc40_occupy,
 	.allocate       = alloc40_allocate,
 	.release        = alloc40_release

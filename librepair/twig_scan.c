@@ -34,13 +34,10 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	/* Pointed region is used already. */
 	if (aux_bitmap_test_region(ts->bm_met, start, count, 0) == FALSE) {
 		ts->stat.bad_unfm_ptrs++;
-		return RE_FATAL;
+		return RE_FIXABLE;
 	}
 	
-	if (aux_bitmap_test(ts->bm_used, blocknr))
-		aux_bitmap_mark_region(ts->bm_unfm_tree, start, count);
-	else
-		aux_bitmap_mark_region(ts->bm_unfm_out, start, count);
+	aux_bitmap_mark_region(ts->bm_unfm, start, count);
 	
 	return 0;
 }

@@ -18,9 +18,6 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk, bool_t check) {
 	if (!(node = reiser4_node_open(fs, blk)))
 		return NULL;
 	
-	/* Level of the node > 0 */
-	if (!reiser4_node_get_level(node))
-		goto error_node_free;
 	
 	if (!check) return node;
 
@@ -220,6 +217,10 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	aal_assert("vpf-193", node->entity != NULL);    
 	aal_assert("vpf-220", node->entity->plug != NULL);
 	
+	/* Level of the node must be > 0 */
+	if (!reiser4_node_get_level(node))
+		return RE_FATAL;
+
 	res = plug_call(node->entity->plug->o.node_ops, check_struct, 
 			node->entity, mode);
 	
