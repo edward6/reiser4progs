@@ -698,15 +698,15 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 	/* Updating item header plugin id if we insert new item */
 	if (pos->unit == ~0ul) {
 
-		/* Calling item plugin to perform initializing the item */
-		if (plugin_call(hint->plugin->o.item_ops, init, &item))
-			return -EINVAL;
-
 		if (hint->flags == HF_RAWDATA) {
 			aal_memcpy(item.body, hint->type_specific,
 				   hint->len);
 			goto out_make_dirty;
 		}
+
+		/* Calling item plugin to perform initializing the item */
+		if (hint->plugin->o.item_ops->init)
+			hint->plugin->o.item_ops->init(&item);
 
 		if ((res = plugin_call(hint->plugin->o.item_ops,
 				       insert, &item, hint, 0)))
@@ -721,8 +721,10 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 	  Updating item's key if we insert new item or if we insert unit
 	  into leftmost postion.
 	*/
-	if (pos->unit == 0)
-		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+	if (pos->unit == 0) {
+		aal_memcpy(&ih->key, item.key.body,
+			   sizeof(ih->key));
+	}
 
  out_make_dirty:
 	node->dirty = 1;
@@ -1150,7 +1152,7 @@ static errno_t node40_fuse(object_entity_t *src_entity,
 		goto error_free_body;
 	}
 
-	/* Expanding node in order to prepare room */
+	/* Expanding node in order to prepare room for new units */
 	len = src_item.len;
 
 	if (src_item.plugin->o.item_ops->overhead) {
@@ -1161,18 +1163,18 @@ static errno_t node40_fuse(object_entity_t *src_entity,
 	POS_INIT(&pos, dst_pos->item, 0);
 	
 	if (src_pos->item < dst_pos->item)
-		dst_pos->item--;
+		pos.item--;
 
+	/* Reinitializing @dst_item after shrink and pos correcting */
+	if ((res = node40_item(dst_entity, &pos, &dst_item)))
+		goto error_free_body;
+	
 	if ((res = node40_expand(dst_entity, &pos, len, 1))) {
 		aal_exception_error("Can't expand item for "
 				    "shifting units into it.");
 		goto error_free_body;
 	}
-	
-	/* Reinitializing @dst_item after expand */
-	if ((res = node40_item(dst_entity, &pos, &dst_item)))
-		goto error_free_body;
-	
+
 	/* Copying units @src_item to @dst_item */
 	src_units = plugin_call(src_item.plugin->o.item_ops,
 				units, &src_item);
@@ -1203,11 +1205,11 @@ static errno_t node40_merge(object_entity_t *src_entity,
 			    object_entity_t *dst_entity, 
 			    shift_hint_t *hint)
 {
-	int remove;
-
 	pos_t pos;
+	int remove;
 	uint32_t len;
-	
+
+	uint32_t overhead;
 	uint32_t dst_items;
 	uint32_t src_items;
 	
@@ -1356,7 +1358,9 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		/* Setting up new item fields */
 		ih = node40_ih_at(dst_node, pos.item);
 		ih40_set_pid(ih, src_item.plugin->h.id);
-		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
+
+		aal_memcpy(&ih->key, src_item.key.body,
+			   sizeof(ih->key));
 
 		/*
 		  Initializing dst item after it was created by node40_expand()
@@ -1365,7 +1369,17 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		if (node40_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
 
-		plugin_call(dst_item.plugin->o.item_ops, init, &dst_item);
+		if (dst_item.plugin->o.item_ops->init)
+			dst_item.plugin->o.item_ops->init(&dst_item);
+
+		/*
+		  Setting item len to old len, that is zero, as it was just
+		  created. This is needed for correct work of shift() method of
+		  some items, which do not have "units" field and calculate the
+		  number of units by own len, like extent40 does. This is
+		  because, extent40 has all units of the same length.
+		*/
+		dst_item.len = 0;
 	} else {
 		/*
 		  Items are mergeable, so we do not need to create new item in
@@ -1381,14 +1395,21 @@ static errno_t node40_merge(object_entity_t *src_entity,
 					    "shifting units into it.");
 			return -EINVAL;
 		}
-
-		/*
-		  Reinitializing dst item after it was expanded by
-		  node40_expand() function.
-		*/
-		if (node40_item(dst_entity, &pos, &dst_item))
-			return -EINVAL;
 	}
+
+	overhead = 0;
+
+	if (src_item.plugin->o.item_ops->overhead) {
+		overhead = plugin_call(src_item.plugin->o.item_ops,
+				       overhead, &src_item);
+	}
+
+	/*
+	  As @hint->rest is number of bytes units occupy, we decrease it by item
+	  overhead.
+	*/
+	if (hint->create)
+		hint->rest -= overhead;
 	
 	/* Shift units from @src_item to @dst_item */
 	if (plugin_call(src_item.plugin->o.item_ops, shift,
@@ -1404,8 +1425,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	  We will remove src_item if it has became empty and insert point is not
 	  points it.
 	*/
-	remove = plugin_call(src_item.plugin->o.item_ops, units, &src_item) == 0 &&
-		(hint->result & SF_MOVIP || pos.item != hint->pos.item);
+	remove = (hint->rest == (src_item.len - overhead) &&
+		  (hint->result & SF_MOVIP || pos.item != hint->pos.item));
 	
 	/* Updating item's keys */
 	if (hint->control & SF_LEFT) {
@@ -1415,11 +1436,15 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		*/
 		if (!remove) {
 			ih = node40_ih_at(src_node, src_item.pos.item);
-			aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
+
+			aal_memcpy(&ih->key, src_item.key.body,
+				   sizeof(ih->key));
 		}
 	} else {
 		ih = node40_ih_at(dst_node, dst_item.pos.item);
-		aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+
+		aal_memcpy(&ih->key, dst_item.key.body,
+			   sizeof(ih->key));
 	}
 	
 	if (remove) {
@@ -1770,8 +1795,8 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	
 	/* Updating shift hint by merging results. */
 	if (merge.units > 0) {
-		hint->units += merge.units;
 		hint->rest += merge.rest;
+		hint->units += merge.units;
 	}
 	
 	return 0;

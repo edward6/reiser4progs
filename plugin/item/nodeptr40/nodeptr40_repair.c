@@ -14,10 +14,7 @@
 #include "nodeptr40.h"
 #include <repair/repair_plugin.h>
 
-extern errno_t nodeptr40_rep(item_entity_t *dst_item, uint32_t dst_pos,
-    item_entity_t *src_item, uint32_t src_pos, uint32_t count);
-
-errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
+errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t region_func, 
     void *data, uint8_t mode) 
 {
     nodeptr40_t *nodeptr;
@@ -30,7 +27,7 @@ errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func,
 
     blk = np40_get_ptr(nodeptr);
 
-    res = func(item, blk, 1, data);
+    res = region_func(item, blk, 1, data);
     
     if (res > 0) {
 	if (mode == REPAIR_REBUILD) {

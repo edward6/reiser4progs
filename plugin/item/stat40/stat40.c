@@ -137,14 +137,6 @@ static int stat40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Prepares item area */
-static errno_t stat40_init(item_entity_t *item) {
-	aal_assert("umka-1670", item != NULL);
-	
-	aal_memset(item->body, 0, item->len);
-	return 0;
-}
-
 /*
   Estimates how many bytes will be needed for creating statdata item described
   by passed @hint at passed @pos.
@@ -456,10 +448,10 @@ static reiser4_item_ops_t stat40_ops = {
 	.data		  = stat40_data,
 	.read             = stat40_read,
 	.units		  = stat40_units,
+	
 #ifndef ENABLE_STAND_ALONE
 	.copy             = stat40_copy,
 	.insert		  = stat40_insert,
-	.init             = stat40_init,
 	.check            = stat40_check,
 	.print		  = stat40_print,
 	.estimate_copy    = stat40_estimate_copy,
@@ -468,7 +460,10 @@ static reiser4_item_ops_t stat40_ops = {
 	.estimate_shift   = NULL,
 	.overhead         = NULL,
 	.write            = NULL,
+	.init             = NULL,
 	.rep              = NULL,
+	.expand	          = NULL,
+	.shrink           = NULL,
 	.layout           = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,

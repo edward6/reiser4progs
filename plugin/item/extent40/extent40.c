@@ -98,26 +98,26 @@ static int extent40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t extent40_init(item_entity_t *item) {
-	aal_assert("umka-1669", item != NULL);
-	
-	aal_memset(item->body, 0, item->len);
-	return 0;
-}
-
 /* Removes @count byte from passed @item at @pos */
 static int32_t extent40_remove(item_entity_t *item,
 			       uint32_t pos,
 			       uint32_t count)
 {
-
+	void *src;
+	void *dst;
+	uint32_t len;
+	
 	aal_assert("vpf-941", item != NULL);
 	aal_assert("vpf-940", pos < extent40_units(item));
 
 	if (pos + count < extent40_units(item)) {
-		aal_memmove(extent40_body(item) + pos, 
-			    extent40_body(item) + pos + count,
-			    item->len - (pos + count) * sizeof(extent40_t));
+		dst = extent40_body(item) + pos;
+		src = extent40_body(item) + pos + count;
+
+		len = item->len - (pos + count) *
+			sizeof(extent40_t);
+			
+		aal_memmove(dst, src, len);
 	}
 		
 	/* Updating item's key by zero's unit one */
@@ -365,8 +365,6 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 	/* Creating unallocated extent with one unit */
 	et40_set_start(extent, -1);
 	et40_set_width(extent, (count + blocksize - 1) / blocksize);
-
-	/* Here we should attach data from @buff to created extent */
 	
 	return count;
 }
@@ -431,7 +429,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 				hint->pos.unit = (dst_item->len + hint->rest) /
 					sizeof(extent40_t);
 			} else {
-				hint->pos.unit = hint->rest / sizeof(extent40_t);
+				hint->pos.unit = hint->rest /
+					sizeof(extent40_t);
 			}
 		}
 	} else {
@@ -468,54 +467,106 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 	return 0;
 }
 
+static uint32_t extent40_expand(item_entity_t *item, uint32_t pos,
+				uint32_t count, uint32_t len)
+{
+	/* Preparing space in @dst_item */
+	if (pos < extent40_units(item)) {
+		void *src;
+		void *dst;
+		uint32_t len;
+
+		src = (extent40_t *)item->body + pos;
+		dst = src + (count * sizeof(extent40_t));
+
+		len = (extent40_units(item) - pos) *
+			sizeof(extent40_t);
+
+		aal_memmove(dst, src, len);
+	}
+
+	return 0;
+}
+
+static uint32_t extent40_shrink(item_entity_t *item, uint32_t pos,
+			       uint32_t count, uint32_t len)
+{
+	/* Srinking @dst_item */
+	if (pos < extent40_units(item)) {
+		void *src;
+		void *dst;
+		uint32_t len;
+
+		dst = (extent40_t *)item->body + pos;
+		src = dst + (count * sizeof(extent40_t));
+
+		len = (extent40_units(item) - pos) *
+			sizeof(extent40_t);
+
+		aal_memmove(dst, src, len);
+	}
+
+	return 0;
+}
+
+/* Makes copy of units from @src_item to @dst_item */
 static errno_t extent40_rep(item_entity_t *dst_item,
 			    uint32_t dst_pos,
 			    item_entity_t *src_item,
 			    uint32_t src_pos,
 			    uint32_t count)
 {
-	return -EINVAL;
+	/* Copying units from @src_item to @dst_item */
+	if (count > 0) {
+		void *src;
+		void *dst;
+
+		src = (extent40_t *)src_item->body + src_pos;
+		dst = (extent40_t *)dst_item->body + dst_pos;
+		aal_memmove(dst, src, count * sizeof(extent40_t));
+	}
+	
+	return 0;
 }
 
 static errno_t extent40_shift(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
 {
-	uint32_t len;
-	void *src, *dst;
-	
+	aal_assert("umka-1708", hint != NULL);
 	aal_assert("umka-1706", src_item != NULL);
 	aal_assert("umka-1707", dst_item != NULL);
-	aal_assert("umka-1708", hint != NULL);
-
-	len = dst_item->len > hint->rest ? dst_item->len - hint->rest :
-		dst_item->len;
 
 	if (hint->control & SF_LEFT) {
 		
-		/* Copying data from the src tail item to dst one */
-		aal_memcpy(dst_item->body + len, src_item->body,
-			   hint->rest);
+		/* Preparing space in @dst_item */
+		extent40_expand(dst_item, extent40_units(dst_item),
+				hint->units, 0);
 
-		/* Moving src tail data at the start of tail item body */
-		src = src_item->body + hint->rest;
-		dst = src - hint->rest;
-		
-		aal_memmove(dst, src, src_item->len - hint->rest);
+		/* Copying data from the @src_item to @dst_item */
+		extent40_rep(dst_item, extent40_units(dst_item),
+			     src_item, 0, hint->units);
+
+		/* Removing units in @src_item */
+		extent40_shrink(src_item, 0, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
 		if (extent40_get_key(src_item, 0, &src_item->key))
 			return -EINVAL;
 	} else {
-		/* Moving dst tail body into right place */
-		src = dst_item->body;
-		dst = src + hint->rest;
-		
-		aal_memmove(dst, src, len);
+		uint32_t pos;
 
-		/* Copying data from src item to dst one */
-		aal_memcpy(dst_item->body, src_item->body +
-			   src_item->len, hint->rest);
+		/* Preparing space in @dst_item */
+		extent40_expand(dst_item, 0, hint->units, 0);
+
+		/* Copying data from the @src_item to @dst_item */
+		pos = extent40_units(src_item) - hint->units;
+		
+		extent40_rep(dst_item, 0, src_item, pos,
+			     hint->units);
+
+		/* Removing units in @src_item */
+		extent40_shrink(src_item, pos, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
 		if (extent40_get_key(dst_item, 0, &dst_item->key))
@@ -547,10 +598,11 @@ extern errno_t extent40_estimate_copy(item_entity_t *dst,
 
 static reiser4_item_ops_t extent40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.init	          = extent40_init,
 	.write            = extent40_write,
 	.copy             = extent40_copy,
 	.rep              = extent40_rep,
+	.expand           = extent40_expand,
+	.shrink           = extent40_shrink,
 	.remove	          = extent40_remove,
 	.print	          = extent40_print,
 	.shift            = extent40_shift,
@@ -563,8 +615,9 @@ static reiser4_item_ops_t extent40_ops = {
 	.estimate_shift   = extent40_estimate_shift,
 	.estimate_insert  = extent40_estimate_insert,
 	
-	.overhead         = NULL,
+	.init	          = NULL,
 	.insert           = NULL,
+	.overhead         = NULL,
 	.set_key          = NULL,
 #endif
 	.branch           = NULL,

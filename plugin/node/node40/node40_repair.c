@@ -408,15 +408,15 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
     if (node40_item(src, src_pos, &src_item))
 	return -EINVAL;
     
+    if (node40_item(dst, dst_pos, &dst_item))
+	return -EINVAL;
+    
     if (hint->len_delta > 0) {
 	/* Expand the node first. */
 	if (node40_expand(dst, dst_pos, hint->len_delta, 1))
 	    return -EINVAL;
     }
     
-    if (node40_item(dst, dst_pos, &dst_item))
-	return -EINVAL;
-	
     /* If the whole @src item is to be inserted */
     if (dst_pos->unit == ~0ul)
 	return node40_rep(dst, dst_pos, src, src_pos, 1);

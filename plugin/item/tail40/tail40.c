@@ -52,19 +52,6 @@ static int tail40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-errno_t tail40_rep(item_entity_t *dst_item, uint32_t dst_pos,
-		   item_entity_t *src_item, uint32_t src_pos,
-		   uint32_t count)
-{
-	aal_assert("umka-2075", dst_item != NULL);
-	aal_assert("umka-2076", src_item != NULL);
-
-	aal_memcpy(dst_item->body + dst_pos,
-		   src_item->body + src_pos, count);
-	
-	return 0;
-}
-
 /* Rewrites tail from passed @pos by data specifed by hint */
 static int32_t tail40_write(item_entity_t *item, void *buff,
 			    uint32_t pos, uint32_t count)
@@ -117,13 +104,6 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 	}
 	
 	return count;
-}
-
-static errno_t tail40_init(item_entity_t *item) {
-	aal_assert("umka-1668", item != NULL);
-	
-	aal_memset(item->body, 0, item->len);
-	return 0;
 }
 
 static errno_t tail40_print(item_entity_t *item,
@@ -246,46 +226,76 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 	return 0;
 }
 
+errno_t tail40_rep(item_entity_t *dst_item, uint32_t dst_pos,
+		   item_entity_t *src_item, uint32_t src_pos,
+		   uint32_t count)
+{
+	aal_assert("umka-2075", dst_item != NULL);
+	aal_assert("umka-2076", src_item != NULL);
+
+	if (count > 0) {
+		aal_memcpy(dst_item->body + dst_pos,
+			   src_item->body + src_pos, count);
+	}
+	
+	return 0;
+}
+
+static uint32_t tail40_expand(item_entity_t *item, uint32_t pos,
+			      uint32_t count, uint32_t len)
+{
+	if (pos < item->len) {
+		aal_memmove(item->body + pos + count,
+			    item->body + pos, item->len);
+	}
+
+	return 0;
+}
+
+static uint32_t tail40_shrink(item_entity_t *item, uint32_t pos,
+			      uint32_t count, uint32_t len)
+{
+	if (pos < item->len) {
+		aal_memmove(item->body + pos,
+			    item->body + pos + count, item->len);
+	}
+
+	return 0;
+}
+
 static errno_t tail40_shift(item_entity_t *src_item,
 			    item_entity_t *dst_item,
 			    shift_hint_t *hint)
 {
-	uint32_t len;
 	void *src, *dst;
 	
 	aal_assert("umka-1665", src_item != NULL);
 	aal_assert("umka-1666", dst_item != NULL);
 	aal_assert("umka-1667", hint != NULL);
 
-	len = (dst_item->len > hint->rest) ?
-		dst_item->len - hint->rest :
-		dst_item->len;
-
 	if (hint->control & SF_LEFT) {
+		tail40_expand(dst_item, dst_item->len,
+			     hint->units, hint->rest);
 		
-		/* Copying data from the src tail item to dst one */
-		aal_memcpy(dst_item->body + len, src_item->body,
-			   hint->rest);
-
-		/* Moving src tail data at the start of tail item body */
-		src = src_item->body + hint->rest;
-		dst = src - hint->rest;
+		tail40_rep(dst_item, dst_item->len,
+			   src_item, 0, hint->rest);
 		
-		aal_memmove(dst, src, src_item->len - hint->rest);
+		tail40_shrink(src_item, 0, hint->units,
+			      hint->rest);
 
 		/* Updating item's key by the first unit key */
 		if (tail40_get_key(src_item, 0, &src_item->key))
 			return -EINVAL;
 	} else {
-		/* Moving dst tail body into right place */
-		src = dst_item->body;
-		dst = src + hint->rest;
+		uint32_t pos;
 		
-		aal_memmove(dst, src, len);
+		tail40_expand(dst_item, 0, hint->units,
+			      hint->rest);
 
-		/* Copying data from src item to dst one */
-		aal_memcpy(dst_item->body, src_item->body +
-			   src_item->len, hint->rest);
+		pos = src_item->len - hint->units;
+		
+		tail40_rep(dst_item, 0, src_item, pos, hint->rest);
+		tail40_shrink(src_item, pos, hint->units, hint->rest);
 
 		/* Updating item's key by the first unit key */
 		if (tail40_get_key(dst_item, 0, &dst_item->key))
@@ -310,9 +320,10 @@ extern errno_t tail40_estimate_copy(item_entity_t *dst,
 
 static reiser4_item_ops_t tail40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.init	          = tail40_init,
 	.copy	          = tail40_copy,
 	.rep	          = tail40_rep,
+	.expand	          = tail40_expand,
+	.shrink           = tail40_shrink,
 	.write	          = tail40_write,
 	.remove	          = tail40_remove,
 	.print	          = tail40_print,
@@ -324,6 +335,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.estimate_insert  = NULL,
 	.overhead         = NULL,
 	.check	          = NULL,
+	.init	          = NULL,
 	.insert           = NULL,
 	.branch           = NULL,
 	.layout	          = NULL,

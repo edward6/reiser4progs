@@ -59,21 +59,6 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-errno_t nodeptr40_rep(item_entity_t *dst_item,
-		      uint32_t dst_pos,
-		      item_entity_t *src_item,
-		      uint32_t src_pos,
-		      uint32_t count)
-{
-	aal_assert("umka-2146", dst_item != NULL);
-	aal_assert("umka-2147", src_item != NULL);
-
-	aal_memcpy(dst_item->body, src_item->body,
-		   sizeof(nodeptr40_t));
-	
-	return 0;
-}
-
 /* Writes of the specified nodeptr into passed @item*/
 static errno_t nodeptr40_insert(item_entity_t *item,
 				create_hint_t *hint,
@@ -90,15 +75,6 @@ static errno_t nodeptr40_insert(item_entity_t *item,
 	ptr_hint = (ptr_hint_t *)hint->type_specific;
 	np40_set_ptr(nodeptr, ptr_hint->start);
 	
-	return 0;
-}
-
-
-/* Initializes the area nodeptr will lie in */
-static errno_t nodeptr40_init(item_entity_t *item) {
-	aal_assert("umka-1671", item != NULL);
-	
-	aal_memset(item->body, 0, item->len);
 	return 0;
 }
 
@@ -157,7 +133,6 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.branch           = nodeptr40_branch,
 	
 #ifndef ENABLE_STAND_ALONE	    
-	.init		  = nodeptr40_init,
 	.insert           = nodeptr40_insert,
 	.print		  = nodeptr40_print,
 	.check		  = nodeptr40_check,
@@ -168,12 +143,15 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.estimate_copy	  = NULL,
 	.estimate_shift   = NULL,
 
-	.overhead         = NULL,
+	.init		  = NULL,
 	.copy             = NULL,
 	.rep		  = NULL,
+	.expand		  = NULL,
+	.shrink           = NULL,
 	.write            = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
+	.overhead         = NULL,
 
 	.set_key	  = NULL,
 	.maxreal_key      = NULL,

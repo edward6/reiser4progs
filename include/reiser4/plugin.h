@@ -232,8 +232,8 @@ struct item_entity {
 
 	pos_t pos;
 
-	uint32_t len;
 	body_t *body;
+	uint32_t len;
 	
 	key_entity_t key;
 	item_context_t context;
@@ -770,6 +770,12 @@ struct reiser4_item_ops {
 	errno_t (*rep) (item_entity_t *, uint32_t,
 			item_entity_t *, uint32_t,
 			uint32_t);
+	
+	uint32_t (*expand) (item_entity_t *, uint32_t,
+			    uint32_t, uint32_t);
+	
+	uint32_t (*shrink) (item_entity_t *, uint32_t,
+			    uint32_t, uint32_t);
 	
 	/* Removes specified unit from the item. Returns released space */
 	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
