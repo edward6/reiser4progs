@@ -34,12 +34,12 @@ void *aal_malloc(size_t size) {
 	void *mem;
 
 	if (!malloc_handler) {
-		aal_printf("Invalid \"malloc\" handler.\n");
+		aal_printf("Fatal: Invalid \"malloc\" handler.\n");
 		return NULL;
 	}
 
 	if (!(mem = malloc_handler(size))) {
-		aal_printf("Out of memory.\n");
+		aal_printf("Fatal: Out of memory.\n");
 		return NULL;
 	}
 	return mem;
@@ -67,12 +67,12 @@ int aal_realloc(void** old, size_t size) {
 	void *mem;
 
 	if (!realloc_handler) {
-		aal_printf("Invalid \"realloc\" handler.\n");
+		aal_printf("Fatal: Invalid \"realloc\" handler.\n");
 		return 0;
 	}
 
 	if (!(mem = (void *)realloc_handler(*old, size))) {
-		aal_printf("Out of memory.\n");
+		aal_printf("Fatal: Out of memory.\n");
 		return 0;
 	}
 	*old = mem;
@@ -89,7 +89,7 @@ aal_free_handler_t aal_free_handler(void) {
 
 void aal_free(void *ptr) {
 	if (!free_handler) {
-		aal_printf("Invalid \"free\" handler.\n");
+		aal_printf("Fatal: Invalid \"free\" handler.\n");
 		return;
 	}
 	free_handler(ptr);
