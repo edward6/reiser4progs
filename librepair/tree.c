@@ -279,15 +279,14 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
     reiser4_key_assign(&start_key, &src->item.key);
     
     src_pos = src->pos;
-    
-    while (1) {
-	lookup = reiser4_tree_lookup(tree, &start_key, LEAF_LEVEL, &dst);
-	
-	if ((res = reiser4_item_maxreal_key(src, &src_max)))
+ 
+    if ((res = reiser4_item_maxreal_key(src, &src_max)))
 	    return res;
 
+    while (1) {
+	lookup = reiser4_tree_lookup(tree, &start_key, LEAF_LEVEL, &dst);
 	if (lookup == PRESENT) {
-	    /* If lookup returns PRESENT or unit position is set */
+		/* whole data can not be inserted */
 	    whole = 0;
 	} else if (dst.pos.item == reiser4_node_items(dst.node)) {
 	    /* If right neighbour is overlapped with src item, move dst there. */

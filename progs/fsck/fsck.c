@@ -269,7 +269,6 @@ int main(int argc, char *argv[]) {
     repair_data_t repair;
     aal_stream_t stream;
     uint16_t mask = 0;
-    errno_t error;
     
     memset(&parse_data, 0, sizeof(parse_data));
     memset(&repair, 0, sizeof(repair));
@@ -292,8 +291,8 @@ int main(int argc, char *argv[]) {
     fsck_time("fsck.reiser4 started at");
 
     fprintf(stderr, "***** Openning the fs.\n");
-    if ((error = repair_fs_open(&repair, parse_data.host_device, parse_data.host_device,
-	parse_data.profile)))
+    if (repair_fs_open(&repair, parse_data.host_device, parse_data.host_device,
+		       parse_data.profile))
     {
 	exit_code = OPER_ERROR;	
 	goto free_libreiser4;
@@ -322,7 +321,7 @@ int main(int argc, char *argv[]) {
     }
     
     
-    if ((error = repair_check(&repair))) {
+    if (repair_check(&repair)) {
 	exit_code = OPER_ERROR;
 	goto free_tree;
     }
