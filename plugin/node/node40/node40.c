@@ -553,7 +553,7 @@ static errno_t node40_set_stamp(object_entity_t *entity, uint32_t stamp) {
 static char *levels[6] = {
 	"LEAF",
 	"LEAF",
-	"INTERNAL",
+	"TWIG",
 	"INTERNAL",
 	"INTERNAL",
 	"INTERNAL"
@@ -565,7 +565,7 @@ static char *groups[6] = {
 	"DIRENTRY ITEM",
 	"TAIL ITEM",
 	"EXTENT ITEM",
-	"PERMISSN ITEM",
+	"PERMISSION ITEM",
 };
 
 /* 
@@ -755,6 +755,28 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 	return 0;
 }
 
+static int node40_mergeable(item40_header_t *ih1, item40_header_t *ih2) {
+	reiser4_plugin_t *plugin;
+	roid_t locality1, locality2;
+
+	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
+	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
+					       KEY_REISER40_ID)))
+	{
+		aal_exception_error("Can't find key plugin by its id 0x%x",
+				    KEY_REISER40_ID);
+		return -1;
+	}
+	
+	locality1 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &ih1->key);
+
+	locality2 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &ih2->key);
+
+	return (ih1->pid == ih2->pid && locality1 == locality2);
+}
+
 static errno_t node40_shift(object_entity_t *entity, object_entity_t *target, 
 			    reiser4_pos_t *pos, shift_hint_t *hint, shift_flags_t flags)
 {
@@ -914,8 +936,42 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 	  destination node, we should try to shift units from the last item to
 	  first item of destination node.
 	*/
-	if (estimate.part > 0 && !estimate.ipmoved) {
-		/* FIXME-UMKA: Here will be shifting of units */
+	if (estimate.part > 0 && !estimate.ipmoved &&
+	    nh40_get_free_space(estimate.dst))
+	{
+		int mergeable;
+		item40_header_t *src_ih, *dst_ih;
+
+		src_items = nh40_get_num_items(estimate.src);
+		dst_items = nh40_get_num_items(estimate.dst);
+
+		/* Getting border items from the both nodes */
+		if (flags & SF_LEFT) {
+			src_ih = node40_ih_at(estimate.src, 0);
+			dst_ih = node40_ih_at(estimate.dst, dst_items - 1);
+		} else {
+			src_ih = node40_ih_at(estimate.src, src_items - 1);
+			dst_ih = node40_ih_at(estimate.dst, 0);
+		}
+
+		if ((mergeable = node40_mergeable(src_ih, dst_ih)) < 0)
+			return -1;
+		
+		/* Checking if items are mergeable */
+		if (mergeable) {
+			/*
+			  Preparing item entities to be passed to item shift
+			  method.
+			*/
+		} else {
+			/*
+			  Here we should perform some kind of splitting the
+			  border item of the source node onto two part. First
+			  part will stay in the source node, and another one
+			  will be moved to neighbour node. Also here needed
+			  space should be prepared in the destination node.
+			*/
+		}
 	}
 
 	return 0;

@@ -39,7 +39,7 @@ typedef struct node40_flush node40_flush_t;
 struct node40_header {
 
 	/* The node common header */
-	reiser4_node_header_t h;
+	node_header_t h;
     
 	/* The number of items */
 	d16_t num_items;

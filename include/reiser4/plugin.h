@@ -1037,11 +1037,11 @@ struct reiser4_place {
 };
 
 /* The common node header */
-struct reiser4_node_header {
+struct node_header {
 	d16_t pid;
 };
 
-typedef struct reiser4_node_header reiser4_node_header_t;
+typedef struct node_header node_header_t;
 
 struct reiser4_level {
 	uint8_t top, bottom;
