@@ -123,6 +123,7 @@ errno_t repair_item_ptr_format_check(reiser4_coord_t *coord,
 	goto error;
     
     /* Check if no any formatted block exists after ptr. */
+    /* FIXME-VITALY: should not depend on filter specific data. */
     if ((next_blk = aux_bitmap_find(repair_filter_data(data)->format_layout, 
 	ptr.ptr)) == 0)
         return 0;

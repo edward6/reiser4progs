@@ -118,7 +118,7 @@ errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
 	reiser4_ptr_hint_t ptr;
 
 	if (plugin_call(return -1, coord->entity.plugin->item_ops,
-			fetch, &coord->entity, coord->pos.unit, &ptr, 1))
+	    fetch, &coord->entity, coord->pos.unit, &ptr, 1))
 	    return -1;
 	
 	/* Mark the child as a formatted block in the bitmap. */

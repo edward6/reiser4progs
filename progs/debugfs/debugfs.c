@@ -316,7 +316,7 @@ static errno_t debugfs_calc_joint(
 		if (reiser4_item_extent(&coord)) {
 			for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
 				if (plugin_call(continue, coord.entity.plugin->item_ops,
-						fetch, &coord.entity, 0, &ptr, 1))
+						fetch, &coord.entity, pos.unit, &ptr, 1))
 					return -1;
 				
 				hint->curr = ptr.ptr + ptr.width;
@@ -326,7 +326,7 @@ static errno_t debugfs_calc_joint(
 			hint->bad += reiser4_item_count(&coord);
 		} else {
 			if (plugin_call(continue, coord.entity.plugin->item_ops,
-					fetch, &coord.entity, 0, &ptr, 1))
+					fetch, &coord.entity, pos.unit, &ptr, 1))
 				return -1;
 
 			delta = hint->curr - ptr.ptr;
