@@ -170,10 +170,11 @@ typedef struct item40_header item40_header_t;
 #define ih40_get_pid(ih)	  aal_get_le16(ih, pid)
 #define ih40_set_pid(ih, val)	  aal_set_le16(ih, pid, (val))
 
+#define node40_loaded(entity) \
+        (((node40_t *)entity)->block != NULL)
+
 extern uint16_t node40_free_space_end(node40_t *node);
 extern void *node40_ib_at(node40_t *node, uint32_t pos);
 extern item40_header_t *node40_ih_at(node40_t *node, uint32_t pos);
-
-#define node40_loaded(entity)	  (((node40_t *)entity)->block != NULL)
 
 #endif

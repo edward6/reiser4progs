@@ -15,6 +15,8 @@
 #include <reiser4/types.h>
 
 #ifndef ENABLE_STAND_ALONE
+extern errno_t reiser4_item_insert(reiser4_place_t *place,
+				   create_hint_t *hint);
 
 extern errno_t reiser4_item_set_key(reiser4_place_t *place,
 				    reiser4_key_t *key);
@@ -31,14 +33,14 @@ extern errno_t reiser4_item_estimate(reiser4_place_t *place,
 extern errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 					reiser4_key_t *key);
 
+extern reiser4_plugin_t *reiser4_item_plugin(reiser4_place_t *place);
+
 extern rid_t reiser4_item_type(reiser4_place_t *place);
 extern body_t *reiser4_item_body(reiser4_place_t *place);
 extern bool_t reiser4_item_data(reiser4_plugin_t *plugin);
 extern bool_t reiser4_item_statdata(reiser4_place_t *place);
 extern bool_t reiser4_item_filebody(reiser4_place_t *place);
 extern bool_t reiser4_item_filename(reiser4_place_t *place);
-
-extern reiser4_plugin_t *reiser4_item_plugin(reiser4_place_t *place);
 #endif
 
 extern errno_t reiser4_item_maxposs_key(reiser4_place_t *place,

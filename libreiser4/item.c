@@ -279,7 +279,28 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 
 bool_t reiser4_item_data(reiser4_plugin_t *plugin) {
 	aal_assert("vpf-747", plugin != NULL);
-	return plugin->o.item_ops->data && plugin->o.item_ops->data();
+
+	return (plugin->o.item_ops->data &&
+		plugin->o.item_ops->data());
 }
 
+errno_t reiser4_item_insert(reiser4_place_t *place,
+			    create_hint_t *hint)
+{
+	errno_t res;
+	
+	aal_assert("umka-2257", place != NULL);
+	aal_assert("umka-2258", hint != NULL);
+
+	if ((res = plugin_call(place->item.plugin->o.item_ops,
+			       insert, &place->item, hint,
+			       place->pos.unit)))
+	{
+		return res;
+	}
+
+	reiser4_node_mkdirty(place->node);
+	
+	return 0;
+}
 #endif

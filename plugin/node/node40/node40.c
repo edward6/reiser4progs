@@ -114,6 +114,18 @@ static object_entity_t *node40_init(aal_device_t *device,
 }
 
 #ifndef ENABLE_STAND_ALONE
+static void node40_move(object_entity_t *entity,
+			blk_t number)
+{
+	node40_t *node;
+	
+	aal_assert("umka-2249", entity != NULL);
+	aal_assert("umka-2012", node40_loaded(entity));
+
+	node = (node40_t *)entity;
+	aal_block_move(node->block, number);
+}
+
 /* Opens node on passed device and block number */
 static errno_t node40_form(object_entity_t *entity,
 			   uint8_t level)
@@ -1632,9 +1644,9 @@ static errno_t node40_predict(object_entity_t *src_entity,
 }
 
 /* Moves some amount of whole items from @src_entity to @dst_entity */
-static errno_t node40_move(object_entity_t *src_entity,
-			   object_entity_t *dst_entity, 
-			   shift_hint_t *hint)
+static errno_t node40_transfuse(object_entity_t *src_entity,
+				object_entity_t *dst_entity, 
+				shift_hint_t *hint)
 {	
 	errno_t res;
 	pos_t src_pos;
@@ -1753,7 +1765,7 @@ static errno_t node40_shift(object_entity_t *src_entity,
 		goto update_hint_out;
 	
 	/* Moving items from src node to dst one */
-	if (node40_move(src_entity, dst_entity, hint)) {
+	if (node40_transfuse(src_entity, dst_entity, hint)) {
 		aal_exception_error("Can't move items from node "
 				    "%llu to %llu one.",
 				    src_node->block->number,
@@ -1836,6 +1848,7 @@ static reiser4_node_ops_t node40_ops = {
 	.get_mstamp	 = node40_get_mstamp,
 	.get_fstamp      = node40_get_fstamp,
 		
+	.move		 = node40_move,
 	.form		 = node40_form,
 	.sync            = node40_sync,
 	.isdirty         = node40_isdirty,

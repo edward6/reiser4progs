@@ -98,23 +98,11 @@ struct reiser4_place {
 	item_entity_t item;
 };
 
-struct lru_link {
-
-	/* Pointers to next and prev items in lru list */
-	aal_list_t *prev;
-	aal_list_t *next;
-};
-
-typedef struct lru_link lru_link_t;
-
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
 	
 	/* Place in parent node */
 	reiser4_place_t parent;
-
-	/* Lru related fields */
-	lru_link_t lru_link;
 
 	/*
 	  List of children nodes. It is used for constructing part of on-disk
@@ -325,12 +313,6 @@ struct reiser4_tree {
 	/* Tree root key */
 	reiser4_key_t key;
 
-	/*
-	  The list of nodes present in tree cache sorted in recently used
-	  order. Thanks a lot to Nikita for this good idea.
-	*/
-	aal_lru_t *lru;
-
 #ifndef ENABLE_STAND_ALONE
 	/* Tree operation control flags */
 	uint32_t flags;
@@ -442,5 +424,15 @@ struct reiser4_fs {
 	void *data;
 #endif
 };
+
+typedef errno_t (*walk_func_t) (reiser4_tree_t *,
+				reiser4_node_t *);
+
+#define get_fake_blk (fake_blk--)
+#define max_fake_blk (INVAL_BLK - 1)
+#define min_fake_blk (max_fake_blk - 0x100000)
+
+#define is_fake_blk(blk) \
+        (blk >= min_fake_blk && blk <= max_fake_blk)
 
 #endif

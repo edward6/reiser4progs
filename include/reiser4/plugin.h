@@ -896,6 +896,9 @@ struct reiser4_node_ops {
 	*/
 	errno_t (*form) (object_entity_t *, uint8_t);
 
+	/* Changes node location */
+	void (*move) (object_entity_t *, blk_t);
+
 	/* Get mkfs and flush stamps */
 	uint32_t (*get_mstamp) (object_entity_t *);
     	uint64_t (*get_fstamp) (object_entity_t *);

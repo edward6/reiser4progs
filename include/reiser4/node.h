@@ -26,6 +26,9 @@ extern reiser4_node_t *reiser4_node_init(aal_device_t *device,
 					 rid_t pid);
 
 #ifndef ENABLE_STAND_ALONE
+extern void reiser4_node_move(reiser4_node_t *node,
+			      blk_t number);
+
 extern errno_t reiser4_node_form(reiser4_node_t *node,
 				 uint8_t level);
 
@@ -45,6 +48,7 @@ extern errno_t reiser4_node_print(reiser4_node_t *node,
 				  aal_stream_t *stream);
 
 extern errno_t reiser4_node_sync(reiser4_node_t *node);
+extern errno_t reiser4_node_update(reiser4_node_t *node);
 
 extern errno_t reiser4_node_ukey(reiser4_node_t *node,
 				 pos_t *pos,

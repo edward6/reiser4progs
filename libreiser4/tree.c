@@ -5,13 +5,11 @@
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
+static blk_t fake_blk = max_fake_blk;
+
 static errno_t callback_tree_pack(reiser4_tree_t *tree,
 				  reiser4_place_t *place,
 				  void *data)
@@ -23,48 +21,6 @@ static errno_t callback_tree_pack(reiser4_tree_t *tree,
 }
 #endif
 
-static int callback_node_free(void *data) {
-	reiser4_node_t *node = (reiser4_node_t *)data;
-	
-	if (reiser4_node_locked(node))
-		return 0;
-
-	return reiser4_tree_unload(node->tree, node) == 0;
-}
-
-static int callback_node_sync(void *data) {
-#ifndef ENABLE_STAND_ALONE
-	reiser4_node_t *node = (reiser4_node_t *)data;
-	return reiser4_node_sync(node) == 0;
-#endif
-	return 0;
-}
-
-static aal_list_t *callback_get_next(void *data) {
-	return ((reiser4_node_t *)data)->lru_link.next;
-}
-
-static void callback_set_next(void *data, aal_list_t *next) {
-	((reiser4_node_t *)data)->lru_link.next = next;
-}
-
-static aal_list_t *callback_get_prev(void *data) {
-	return ((reiser4_node_t *)data)->lru_link.prev;
-}
-
-static void callback_set_prev(void *data, aal_list_t *prev) {
-	((reiser4_node_t *)data)->lru_link.prev = prev;
-}
-		
-static lru_ops_t lru_ops = {
-	.free      = callback_node_free,
-	.sync      = callback_node_sync,
-	.get_next  = callback_get_next,
-	.set_next  = callback_set_next,
-	.get_prev  = callback_get_prev,
-	.set_prev  = callback_set_prev
-};
-
 /* Dealing with loading root node if it is not loaded yet */
 static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	blk_t root;
@@ -74,8 +30,10 @@ static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	if (tree->root)
 		return 0;
 
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_tree_fresh(tree))
 		return -EINVAL;
+#endif
 	
 	root = reiser4_format_get_root(tree->fs->format);
 	
@@ -114,6 +72,7 @@ static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 
 /* Dealing with allocating root node if it is not allocated yet */
 static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
+	uint32_t height;
 	reiser4_node_t *root;
 	
 	aal_assert("umka-1869", tree != NULL);
@@ -123,8 +82,10 @@ static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 
 	if (!reiser4_tree_fresh(tree))
 		return -EINVAL;
+
+	height = reiser4_tree_height(tree);
 	
-	if (!(root = reiser4_tree_alloc(tree, reiser4_tree_height(tree))))
+	if (!(root = reiser4_tree_alloc(tree, height)))
 		return -ENOSPC;
 
 	return reiser4_tree_assign_root(tree, root);
@@ -143,7 +104,7 @@ errno_t reiser4_tree_connect(
 	errno_t res;
 	
 	aal_assert("umka-1857", tree != NULL);
-	aal_assert("umka-564", node != NULL);
+	aal_assert("umka-2261", node != NULL);
 
 	if (node->blk == reiser4_tree_root(tree)) {
 		tree->root = node;
@@ -178,9 +139,8 @@ errno_t reiser4_tree_connect(
 		
 		reiser4_node_unlock(node);
 	}
-	
-	/* Attaching new node into tree's lru list */
-	return aal_lru_attach(tree->lru, (void *)node);
+
+	return 0;
 }
 
 /*
@@ -240,10 +200,6 @@ errno_t reiser4_tree_disconnect(
 		node->right->left = NULL;
 		node->right = NULL;
 	}
-
-	/* Detaching node from the global tree LRU list */
-	if ((res = aal_lru_detach(tree->lru, (void *)node)))
-		return res;
 	
 	/*
 	  If parent is not exist, then we consider the @node is root and do not
@@ -253,6 +209,7 @@ errno_t reiser4_tree_disconnect(
 		return 0;
 
 	reiser4_node_unlock(parent);
+	
 	return reiser4_node_disconnect(parent, node);
 }
 
@@ -284,13 +241,6 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 
 		if (reiser4_tree_connect(tree, parent, node))
 			goto error_free_node;
-	} else {
-		/*
-		  Touching node in LRU list in odrer to let it know that we
-		  access it and in such maner move to the head of list.
-		*/
-		if (aal_lru_touch(tree->lru, (void *)node))
-			return NULL;
 	}
 
 	return node;
@@ -422,22 +372,20 @@ reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 	aal_assert("umka-2219", node != NULL);
 	aal_assert("umka-1859", tree != NULL);
 
-	/* Parent is not present. The root node. */
+	/* Parent is not present. The root node */
 	if (!node->parent.node)
 		return NULL;
-
-	reiser4_node_lock(node);
 
 	if ((where == D_LEFT && !node->left) ||
 	    (where == D_RIGHT && !node->right))
 	{
-		aal_assert("umka-1629", node->tree != NULL);
+		reiser4_node_lock(node);
 		reiser4_tree_nbr(tree, node, where);
+		reiser4_node_unlock(node);
 	}
-
-	reiser4_node_unlock(node);
 	
-	return (where == D_LEFT) ? node->left : node->right;
+	return (where == D_LEFT) ? node->left :
+		node->right;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -446,23 +394,16 @@ reiser4_node_t *reiser4_tree_alloc(
 	reiser4_tree_t *tree,	    /* tree for operating on */
 	uint8_t level)	 	    /* level of new node */
 {
-	blk_t blk;
 	rid_t pid;
 
 	uint32_t blocksize;
 	uint32_t free, stamp;
+	
 	reiser4_node_t *node;
 	aal_device_t *device;
     
 	aal_assert("umka-756", tree != NULL);
     
-	/* Allocating the block */
-	if (!reiser4_alloc_allocate(tree->fs->alloc, &blk, 1)) {
-		aal_exception_error("Can't allocate block for new node. "
-				    "No space left?");
-		return NULL;
-	}
-
 	device = tree->fs->device;
 	blocksize = reiser4_master_blksize(tree->fs->master);
 	
@@ -470,8 +411,12 @@ reiser4_node_t *reiser4_tree_alloc(
 	pid = reiser4_profile_value(tree->fs->profile, "node");
     
 	/* Creating new node */
-	if (!(node = reiser4_node_init(device, blocksize, blk, pid)))
+	if (!(node = reiser4_node_init(device, blocksize,
+				       get_fake_blk, pid)))
+	{
+		aal_exception_error("Can't initialize node.");
 		return NULL;
+	}
 
 	if (reiser4_node_form(node, level))
 		goto error_free_node;
@@ -502,16 +447,19 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	blk_t free;
 	
 	aal_assert("umka-1841", tree != NULL);
-	aal_assert("umka-917", node != NULL);
+	aal_assert("umka-2255", node != NULL);
 
 	reiser4_node_mkclean(node);
+
+	/* Check if we releasing fake blk */
+	if (!is_fake_blk(node->blk)) {
+		reiser4_alloc_release(tree->fs->alloc,
+				      node->blk, 1);
+
+		free = reiser4_alloc_free(tree->fs->alloc);
+		reiser4_format_set_free(tree->fs->format, free);
+	}
 	
-	reiser4_alloc_release(tree->fs->alloc,
-			      node->blk, 1);
-	
-	free = reiser4_alloc_free(tree->fs->alloc);
-	
-	reiser4_format_set_free(tree->fs->format, free);
 	return reiser4_tree_unload(tree, node);
 }
 #endif
@@ -567,8 +515,6 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 }
 
 void reiser4_tree_fini(reiser4_tree_t *tree) {
-	aal_assert("umka-1531", tree != NULL);
-	aal_lru_free(tree->lru);
 }
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
@@ -586,13 +532,11 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 	/* Building the tree root key */
 	if (reiser4_tree_key(tree)) {
-		aal_exception_error("Can't build the tree root key.");
+		aal_exception_error("Can't build the tree "
+				    "root key.");
 		goto error_free_tree;
 	}
     
-	if (!(tree->lru = aal_lru_create(&lru_ops)))
-		goto error_free_tree;
-
 #ifndef ENABLE_STAND_ALONE
 	reiser4_tree_pack_on(tree);
 	tree->traps.pack = callback_tree_pack;
@@ -606,38 +550,86 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Saves passed @nodes and its children onto device */
-static errno_t reiser4_tree_flush(reiser4_tree_t *tree,
-				  reiser4_node_t *node)
+/* Allocates node pointer items and fake nodes */
+static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
+				    reiser4_node_t *node)
 {
 	errno_t res;
+	aal_list_t *walk;
+	reiser4_node_t *child;
 	
 	aal_assert("umka-1927", tree != NULL);
 	aal_assert("umka-1928", node != NULL);
     
 	/* Synchronizing passed @node */
 	if (reiser4_node_isdirty(node)) {
+		blk_t number;
+
+		if (is_fake_blk(node->blk)) {
+			if (!reiser4_alloc_allocate(tree->fs->alloc,
+						    &number, 1))
+			{
+				return -ENOSPC;
+			}
+
+			reiser4_node_move(node, number);
+		}
 		
-		if ((res = reiser4_node_sync(node))) {
-			aal_exception_error("Can't synchronize node %llu "
-					    "to device. %s.", node->blk,
-					    node->device->error);
-			return res;
+		if (reiser4_node_get_level(node) > LEAF_LEVEL &&
+		    node->children != NULL)
+		{
+			/* Allocating internal items */
+			aal_list_foreach_forward(node->children, walk) {
+				
+				/* Checking if @child is fake one */
+				child = (reiser4_node_t *)walk->data;
+
+				/*
+				  Check if node dirty and not fake one, we will
+				  move it to new location in order to keep tree
+				  in yet more ordered state.
+				*/
+				if (!is_fake_blk(child->blk) &&
+				    reiser4_node_isdirty(child))
+				{
+					reiser4_alloc_release(tree->fs->alloc,
+							      child->blk, 1);
+					
+					reiser4_node_move(child, get_fake_blk);
+				}
+				
+				if (!is_fake_blk(child->blk))
+					continue;
+
+				/*
+				  If @child is fake one it needs to be qallocated
+				  here and its nodeptr should be updated.
+				*/
+				if (!reiser4_alloc_allocate(tree->fs->alloc,
+							    &number, 1))
+				{
+					return -ENOSPC;
+				}
+
+				/* Assigning node to new node blk */
+				reiser4_node_move(child, number);
+
+				/* Updating parent node pointer */
+				if ((res = reiser4_node_update(child)))
+					return res;
+			}
 		}
 	}
-	
+
 	/*
-	  Walking through the list of children and calling reiser4_node_sync
-	  function for each element.
+	  Walking through the list of children and calling tree_flush() function
+	  for each node.
 	*/
 	if (node->children) {
-		aal_list_t *walk;
-		reiser4_node_t *child;
-	
 		aal_list_foreach_forward(node->children, walk) {
 			child = (reiser4_node_t *)walk->data;
 			
-			if ((res = reiser4_tree_flush(tree, child)))
+			if ((res = reiser4_tree_prepare(tree, child)))
 				return res;
 		}
 	}
@@ -647,34 +639,79 @@ static errno_t reiser4_tree_flush(reiser4_tree_t *tree,
 
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
-	aal_assert("umka-560", tree != NULL);
+	errno_t res;
+	count_t free;
+	
+	aal_assert("umka-2259", tree != NULL);
 
 	if (!tree->root)
 		return 0;
+	
+	/*
+	  Preparing tree to be flushed. In this time internal items are
+	  allocated.
+	*/
+	if ((res = reiser4_tree_prepare(tree, tree->root)))
+		return res;
 
-	return reiser4_tree_flush(tree, tree->root);
+	/* Setting up format by new root and free blocks */
+    	reiser4_format_set_root(tree->fs->format,
+				tree->root->blk);
+
+	free = reiser4_alloc_free(tree->fs->alloc);
+	reiser4_format_set_free(tree->fs->format, free);
+
+	/* Closing tree cache */
+	return reiser4_tree_collapse(tree, tree->root);
+}
+
+bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
+	aal_assert("umka-1930", tree != NULL);
+	aal_assert("umka-2210", tree->fs != NULL);
+	aal_assert("umka-2211", tree->fs->format != NULL);
+
+	return (reiser4_format_get_root(tree->fs->format) == INVAL_BLK);
+}
+
+/* Unloads all tree nodes */
+errno_t reiser4_tree_collapse(reiser4_tree_t *tree,
+			      reiser4_node_t *node)
+{
+	aal_assert("umka-2265", tree != NULL);
+	aal_assert("umka-2266", node != NULL);
+	
+	return reiser4_tree_walk(tree, node,
+				 reiser4_tree_unload);
 }
 #endif
 
 /* Walking though the tree cache and closing all nodes */
-void reiser4_tree_collapse(reiser4_tree_t *tree,
-			   reiser4_node_t *node)
+errno_t reiser4_tree_walk(reiser4_tree_t *tree,
+			  reiser4_node_t *node,
+			  walk_func_t walk_func)
 {
+	errno_t res;
+	
 	aal_assert("umka-1933", tree != NULL);
 	aal_assert("umka-1934", node != NULL);
+	aal_assert("umka-2264", walk_func != NULL);
 	
 	/* Closing children */
 	if (node->children) {
 		aal_list_t *walk;
+		aal_list_t *next;
+		reiser4_node_t *child;
 
 		for (walk = node->children; walk; ) {
-			aal_list_t *next;
-			reiser4_node_t *child;
-			
 			next = walk->next;
 			child = (reiser4_node_t *)walk->data;
 			
-			reiser4_tree_collapse(tree, child);
+			if ((res = reiser4_tree_walk(tree, child,
+						     walk_func)))
+			{
+				return res;
+			}
+			
 			walk = next;
 		}
 
@@ -683,19 +720,49 @@ void reiser4_tree_collapse(reiser4_tree_t *tree,
 	}
 
 	/* Throwing out @node from the cache and releasing it */
-	reiser4_tree_unload(tree, node);
+	return walk_func(tree, node);
+}
+
+static errno_t callback_check_node(reiser4_tree_t *tree,
+				   reiser4_node_t *node)
+{
+	if (reiser4_node_locked(node))
+		return 0;
+
+	return reiser4_tree_unload(tree, node);
+}
+
+/* Unloads unlocked tree nodes */
+errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
+	errno_t res;
+	
+	aal_assert("umka-2265", tree != NULL);
+
+#ifndef ENABLE_STAND_ALONE
+	/* Preparing tree for flushing */
+	if ((res = reiser4_tree_prepare(tree, tree->root)))
+		return res;
+#endif
+
+	/*
+	  Walking the tree with callback, which is checking if particular node
+	  is not used and if so, it saves it onto device.
+	*/
+	return reiser4_tree_walk(tree, tree->root,
+				 callback_check_node);
 }
 
 /* Closes specified tree (frees all assosiated memory) */
 void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("umka-134", tree != NULL);
 
+#ifndef ENABLE_STAND_ALONE
+	/* Flushing tree cache */
+	reiser4_tree_sync(tree);
+#endif
+	
 	tree->fs->tree = NULL;
 	
-	/* Freeing tree cache by means of calling recursive node destroy */
-	if (tree->root)
-		reiser4_tree_collapse(tree, tree->root);
-
 	/* Freeing the tree */
 	reiser4_tree_fini(tree);
 	aal_free(tree);
@@ -709,23 +776,9 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 	return reiser4_format_get_height(tree->fs->format);
 }
 
-bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
-	aal_assert("umka-1930", tree != NULL);
-	aal_assert("umka-2210", tree->fs != NULL);
-	aal_assert("umka-2211", tree->fs->format != NULL);
-
-	if (reiser4_format_get_root(tree->fs->format) == INVAL_BLK)
-		return TRUE;
-
-	return FALSE;
-}
-
 /* 
   Makes search in the tree by specified key. Fills passed place by places of
   found item.
-
-  FIXME-VITALY: It looks like we should lookup down to LEAF level all the time.
-  If so, level is redundant here.
 */
 lookup_t reiser4_tree_lookup(
 	reiser4_tree_t *tree,	  /* tree to be grepped */
@@ -916,7 +969,6 @@ errno_t reiser4_tree_attach(
     
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&nodeptr_hint, 0, sizeof(nodeptr_hint));
 
 	/* Prepare nodeptr hint from opassed @node */
 	nodeptr_hint.width = 1;
@@ -944,9 +996,7 @@ errno_t reiser4_tree_attach(
 	if ((res = reiser4_tree_lookup(tree, &hint.key, level,
 				       &place)) != ABSENT)
 	{
-		aal_exception_error("Can't find position "
-				    "node to be attached.");
-		return res;
+		return -EINVAL;
 	}
 
 	/* Inserting node pointer into tree */
@@ -1830,8 +1880,8 @@ errno_t reiser4_tree_cut(
 }
 
 /* Installs ne wpack handler. If it is NULL, default one will be used */
-void reiser4_tree_pack_handler(reiser4_tree_t *tree,
-			       pack_func_t func)
+void reiser4_tree_pack_set(reiser4_tree_t *tree,
+			   pack_func_t func)
 {
 	aal_assert("umka-1896", tree != NULL);
 

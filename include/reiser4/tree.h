@@ -15,13 +15,13 @@
 #include <reiser4/types.h>
 
 extern void reiser4_tree_close(reiser4_tree_t *tree);
-
 extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
 
-extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_walk(reiser4_tree_t *tree,
+				 reiser4_node_t *node,
+				 walk_func_t walk_func);
 
-extern void reiser4_tree_collapse(reiser4_tree_t *tree,
-				  reiser4_node_t *node);
+extern errno_t reiser4_tree_adjust(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_connect(reiser4_tree_t *tree,
 				     reiser4_node_t *parent,
@@ -43,12 +43,13 @@ extern reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 					 aal_direction_t where);
 
 #ifndef ENABLE_STAND_ALONE
-extern void reiser4_tree_pack_handler(reiser4_tree_t *tree,
-				      pack_func_t func);
+extern void reiser4_tree_pack_set(reiser4_tree_t *tree,
+				  pack_func_t func);
 
 extern void reiser4_tree_pack_on(reiser4_tree_t *tree);
 extern void reiser4_tree_pack_off(reiser4_tree_t *tree);
 
+extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_growup(reiser4_tree_t *tree);
@@ -59,6 +60,9 @@ extern errno_t reiser4_tree_attach(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
+
+extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree,
+				     reiser4_node_t *node);
 
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,

@@ -58,24 +58,6 @@ static void resizefs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
-/* Handler for connecting node into tree */
-static errno_t resizefs_connect_handler(reiser4_tree_t *tree,
-					reiser4_place_t *place,
-					reiser4_node_t *node,
-					void *data)
-{
-	/*
-	  If tree's LRU is initializied and memory pressure is detected, calling
-	  adjust lru code, which will remove unused nodes from the tree.
-	*/
-	if (tree->lru) {
-		if (progs_mpressure_detect())
-			return aal_lru_adjust(tree->lru);
-	}
-	
-	return 0;
-}
-
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -258,7 +240,6 @@ int main(int argc, char *argv[]) {
 	}
 	
 	fs_len /= reiser4_master_blksize(fs->master);
-	fs->tree->traps.connect = resizefs_connect_handler;
 
 	if (reiser4_fs_resize(fs, fs_len)) {
 		aal_exception_error("Can't resize reiser4 on %s.",

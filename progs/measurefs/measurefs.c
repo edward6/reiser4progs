@@ -79,14 +79,9 @@ static errno_t measurefs_connect_handler(reiser4_tree_t *tree,
 					 reiser4_node_t *node,
 					 void *data)
 {
-	/*
-	  If tree's LRU is initializied and memory pressure is detected, calling
-	  adjust lru code, which will remove unused nodes from the tree.
-	*/
-	if (tree->lru) {
-		if (progs_mpressure_detect())
-			return aal_lru_adjust(tree->lru);
-	}
+	/* If memory pressure is detected, running tree_adjust() */
+	if (progs_mpressure_detect())
+		return reiser4_tree_adjust(tree);
 	
 	return 0;
 }

@@ -79,6 +79,7 @@ errno_t reiser4_node_load(reiser4_node_t *node) {
 
 errno_t reiser4_node_unload(reiser4_node_t *node) {
 	aal_assert("umka-2054", node != NULL);
+	aal_assert("umka-2251", (!is_fake_blk(node->blk)));
 
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_isdirty(node))
@@ -90,6 +91,19 @@ errno_t reiser4_node_unload(reiser4_node_t *node) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+void reiser4_node_move(reiser4_node_t *node,
+		       blk_t number)
+{
+	aal_assert("umka-2248", node != NULL);
+
+	node->blk = number;
+	
+	plugin_call(node->entity->plugin->o.node_ops,
+		    move, node->entity, number);
+
+	reiser4_node_mkdirty(node);
+}
+
 errno_t reiser4_node_form(reiser4_node_t *node,
 			  uint8_t level)
 {
@@ -117,7 +131,7 @@ errno_t reiser4_node_print(
   to open it or not.
 */
 static bool_t callback_guess_node(reiser4_plugin_t *plugin,
-			       void *data)
+				  void *data)
 {
 	reiser4_node_t *node;
 
@@ -697,7 +711,9 @@ errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be synchronized */
 {
 	errno_t res;
-	aal_assert("umka-124", node != NULL);
+	
+	aal_assert("umka-2253", node != NULL);
+	aal_assert("umka-2252", (!is_fake_blk(node->blk)));
     
 	/* Synchronizing passed @node */
 	if (reiser4_node_isdirty(node)) {
@@ -714,6 +730,33 @@ errno_t reiser4_node_sync(
 	}
 
 	return 0;
+}
+
+/* Updates nodeptr item in parent node */
+errno_t reiser4_node_update(reiser4_node_t *node) {
+	errno_t res;
+	create_hint_t hint;
+	
+	reiser4_place_t *place;
+	ptr_hint_t nodeptr_hint;
+
+	aal_assert("umka-2263", node != NULL);
+
+	place = &node->parent;
+	aal_assert("umka-2262", place->node != NULL);
+	
+	aal_memset(&hint, 0, sizeof(hint));
+
+        /* Preparing node pointer hint to be used */
+	nodeptr_hint.width = 1;
+	nodeptr_hint.start = node->blk;
+	
+	hint.type_specific = &nodeptr_hint;
+				
+	if ((res = reiser4_place_realize(place)))
+		return res;
+
+	return reiser4_item_insert(place, &hint);
 }
 
 /*
