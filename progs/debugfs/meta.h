@@ -8,6 +8,9 @@
 
 #include "types.h"
 
-extern errno_t debugfs_pack_metadata(reiser4_fs_t *fs);
-extern errno_t debugfs_unpack_metadata(reiser4_fs_t *fs);
+extern errno_t debugfs_pack_meta(reiser4_fs_t *fs);
+extern errno_t debugfs_pack_tree(reiser4_fs_t *fs);
+
+extern errno_t debugfs_unpack_meta(reiser4_fs_t *fs);
+extern errno_t debugfs_unpack_tree(reiser4_fs_t *fs);
 #endif

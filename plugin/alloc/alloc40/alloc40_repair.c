@@ -83,8 +83,9 @@ static errno_t callback_pack_bitmap(void *entity, blk_t start,
 	alloc = (alloc40_t *)entity;
 	stream = (aal_stream_t *)data;
 
-	offset = start / size / 8;
 	size = alloc->blksize - CRC_SIZE;
+	offset = start / size / 8;
+
 	map = aux_bitmap_map(alloc->bitmap);
 	current = map + (size * (start / size / 8));
 

@@ -9,7 +9,8 @@
 
 #include "debugfs.h"
 
-static errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
+/* Writes tree nodes metadata to stdout. */
+errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
 	blk_t blk;
 	count_t len;
 	errno_t res;
@@ -35,9 +36,8 @@ static errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
 		if (!(node = reiser4_node_open(fs->tree, blk)))
 			continue;
 
-		/* Stream init. */
 		aal_stream_init(&stream);
-	
+		
 		/* Packing @node to @stream. */
 		if ((res = reiser4_node_pack(node, &stream))) {
 			aal_stream_fini(&stream);
@@ -48,9 +48,9 @@ static errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
 			aal_stream_fini(&stream);
 			return res;
 		}
-		
+
 		aal_stream_fini(&stream);
-		
+
 		/* Close node. */
 		reiser4_node_close(node);
 	}
@@ -58,39 +58,47 @@ static errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
 	return 0;
 }
 
-errno_t debugfs_pack_metadata(reiser4_fs_t *fs) {
+/* Write fs metadata except of tree to stdout. */
+errno_t debugfs_pack_meta(reiser4_fs_t *fs) {
 	errno_t res;
 	aal_stream_t stream;
 
-	/* Stream init. */
-	aal_stream_init(&stream);
+	aal_assert("umka-2630", fs != NULL);
 
+	aal_stream_init(&stream);
+	
 	/* Packing master. */
 	if ((res = reiser4_master_pack(fs->master, &stream)))
-		return res;
+		goto error_free_stream;
 	
 	/* Packing format. */
 	if ((res = reiser4_format_pack(fs->format, &stream)))
-		return res;
+		goto error_free_stream;
 	
 	/* Packing block allocator. */
 	if ((res = reiser4_alloc_pack(fs->alloc, &stream)))
-		return res;
+		goto error_free_stream;
 	
 	/* Packing status block. */
 	if ((res = reiser4_status_pack(fs->status, &stream)))
-		return res;
+		goto error_free_stream;
 	
-	/* Print @stream to stdout. */
 	if ((res = debugfs_print_stream(&stream)))
-		return res;
-
+		goto error_free_stream;
+	
 	aal_stream_fini(&stream);
 	
-	/* Packing tree. */
-	return debugfs_pack_tree(fs);
+	return 0;
+
+ error_free_stream:
+	aal_stream_fini(&stream);
+	return res;
 }
 
-errno_t debugfs_unpack_metadata(reiser4_fs_t *fs) {
+errno_t debugfs_unpack_tree(reiser4_fs_t *fs) {
+	return 0;
+}
+
+errno_t debugfs_unpack_meta(reiser4_fs_t *fs) {
 	return 0;
 }

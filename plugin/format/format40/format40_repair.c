@@ -133,6 +133,7 @@ errno_t format40_update(generic_entity_t *entity) {
 errno_t format40_pack(generic_entity_t *entity,
 		      aal_stream_t *stream)
 {
+	rid_t pid;
 	uint32_t size;
 	format40_t *format;
 	
@@ -140,6 +141,10 @@ errno_t format40_pack(generic_entity_t *entity,
 	aal_assert("umka-2601", stream != NULL);
 
 	format = (format40_t *)entity;
+
+	/* Write plugin id. */
+	pid = entity->plug->id.id;
+	aal_stream_write(stream, &pid, sizeof(pid));
 
 	/* Write magic. */
 	aal_stream_write(stream, FORMAT40_SIGN, 4);
@@ -157,6 +162,7 @@ errno_t format40_pack(generic_entity_t *entity,
 errno_t format40_unpack(generic_entity_t *entity,
 			aal_stream_t *stream)
 {
+	rid_t pid;
 	uint32_t size;
 	format40_t *format;
 	char sign[5] = {0};
@@ -166,6 +172,8 @@ errno_t format40_unpack(generic_entity_t *entity,
 
 	format = (format40_t *)entity;
 
+	aal_stream_read(stream, &pid, sizeof(pid));
+	
 	/* Check magic first. */
 	aal_stream_read(stream, &sign, 4);
 

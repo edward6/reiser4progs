@@ -41,7 +41,21 @@ errno_t debugfs_print_buff(void *buff, uint32_t size) {
 }
 
 errno_t debugfs_print_stream(aal_stream_t *stream) {
-	return debugfs_print_buff(stream->data, stream->size - 1);
+	char buff[4096];
+
+	aal_stream_reset(stream);
+	
+	while (stream->offset < stream->size) {
+		uint32_t size;
+		
+		if ((size = aal_stream_read(stream, buff, 4096)) <= 0)
+			return size;
+		
+		if (debugfs_print_buff(buff, size))
+			return -EIO;
+	}
+
+	return 0;
 }
 
 /* Prints passed @node */
@@ -52,6 +66,7 @@ static errno_t tprint_process_node(
 {
 	errno_t res;
 	aal_stream_t stream;
+	
 	aal_stream_init(&stream);
 
 	if ((res = reiser4_node_print(node, &stream)))
