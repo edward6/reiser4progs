@@ -272,6 +272,13 @@ static errno_t stat40_insert(item_entity_t *item,
 
 extern errno_t stat40_check(item_entity_t *, uint8_t);
 
+extern errno_t stat40_copy(item_entity_t *dst, uint32_t dst_pos, 
+			   item_entity_t *src, uint32_t src_pos, 
+			   copy_hint_t *hint);
+
+extern errno_t stat40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
+				item_entity_t *src, uint32_t src_pos, 
+				copy_hint_t *hint);
 #endif
 
 /*
@@ -436,61 +443,25 @@ static errno_t stat40_print(item_entity_t *item,
 			       (void *)stream);
 }
 
-static errno_t stat40_feel(item_entity_t *item,
-			   key_entity_t *start,
-			   key_entity_t *end,
-			   feel_hint_t *hint)
-{
-	aal_assert("umka-2151", item != NULL);
-	aal_assert("umka-2153", hint != NULL);
-
-	hint->start = 0;
-	hint->count = 1;
-	hint->len = item->len;
-	
-	return 0;
-}
-
-static errno_t stat40_copy(item_entity_t *dst_item,
-			   uint32_t dst_pos,
-			   item_entity_t *src_item,
-			   uint32_t src_pos,
-			   key_entity_t *start,
-			   key_entity_t *end,
-			   feel_hint_t *hint)
-{
-	aal_assert("umka-2144", hint != NULL);
-	aal_assert("umka-2142", dst_item != NULL);
-	aal_assert("umka-2145", src_item != NULL);
-	
-	aal_memcpy(dst_item->body, src_item->body,
-		   hint->len);
-	
-	return 0;
-}
 #endif
 
 static reiser4_item_ops_t stat40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.estimate	= stat40_estimate,
-	.feel           = stat40_feel,
+	.feel_copy      = stat40_feel_copy,
 	.copy           = stat40_copy,
 	.insert		= stat40_insert,
 	.init		= stat40_init,
 	.check		= stat40_check,
 	.print		= stat40_print,
-		
 	.write          = NULL,
 	.layout         = NULL,
 	.remove		= NULL,
-	.shrink		= NULL,
 	.shift          = NULL,
 	.predict        = NULL,
 	.set_key	= NULL,
 	.layout_check	= NULL,
 	.maxreal_key    = NULL,
-	.gap_key	= NULL,
-#endif
 	.data		= stat40_data,
 	.read           = stat40_read,
 	.units		= stat40_units,

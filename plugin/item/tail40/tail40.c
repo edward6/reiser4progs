@@ -14,14 +14,14 @@ static reiser4_core_t *core = NULL;
 #define tail40_body(item) (item->body)
 
 /* Returns tail length */
-static uint32_t tail40_units(item_entity_t *item) {
+uint32_t tail40_units(item_entity_t *item) {
 	return item->len;
 }
 
 /* Returns the key of the specified unit */
-static errno_t tail40_get_key(item_entity_t *item,
-			      uint32_t pos, 
-			      key_entity_t *key) 
+errno_t tail40_get_key(item_entity_t *item,
+		       uint32_t pos, 
+		       key_entity_t *key) 
 {
 	aal_assert("vpf-626", item != NULL);
 	aal_assert("vpf-627", key != NULL);
@@ -52,11 +52,9 @@ static int tail40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t tail40_rep(item_entity_t *dst_item,
-			  uint32_t dst_pos,
-			  item_entity_t *src_item,
-			  uint32_t src_pos,
-			  uint32_t count)
+errno_t tail40_rep(item_entity_t *dst_item, uint32_t dst_pos,
+		   item_entity_t *src_item, uint32_t src_pos,
+		   uint32_t count)
 {
 	aal_assert("umka-2075", dst_item != NULL);
 	aal_assert("umka-2076", src_item != NULL);
@@ -65,55 +63,6 @@ static errno_t tail40_rep(item_entity_t *dst_item,
 		   src_item->body + src_pos, count);
 	
 	return 0;
-}
-
-static errno_t tail40_feel(item_entity_t *item,
-			   key_entity_t *start,
-			   key_entity_t *end,
-			   feel_hint_t *hint)
-{
-	uint64_t start_offset, end_offset, offset;
-	
-	aal_assert("umka-2131", end != NULL);
-	aal_assert("umka-1995", item != NULL);
-	aal_assert("umka-1996", hint != NULL);
-	aal_assert("umka-2132", start != NULL);
-
-	end_offset = plugin_call(end->plugin->o.key_ops,
-				 get_offset, end);
-	
-	start_offset = plugin_call(start->plugin->o.key_ops,
-				   get_offset, start);
-	
-	offset = plugin_call(end->plugin->o.key_ops,
-			     get_offset, &item->key);
-	
-	aal_assert("umka-2130", end_offset > start_offset);
-	aal_assert("vpf-942", start_offset >= offset);
-
-	hint->start = start_offset - offset;
-	hint->len = end_offset - start_offset + 1;
-	hint->count = end_offset - start_offset + 1;
-	
-	return 0;
-}
-
-static errno_t tail40_copy(item_entity_t *dst_item,
-			   uint32_t dst_pos,
-			   item_entity_t *src_item,
-			   uint32_t src_pos,
-			   key_entity_t *start,
-			   key_entity_t *end,
-			   feel_hint_t *hint)
-{
-	aal_assert("umka-2133", end != NULL);
-	aal_assert("umka-2135", hint != NULL);
-	aal_assert("umka-2136", start != NULL);
-	aal_assert("umka-2134", dst_item != NULL);
-	aal_assert("umka-2134", src_item != NULL);
-
-	return tail40_rep(dst_item, dst_pos, src_item,
-			  src_pos, hint->count);
 }
 
 /* Rewrites tail from passed @pos by data specifed by hint */
@@ -170,16 +119,6 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 	return count;
 }
 
-/* Removes the part of tail body between specified keys. */
-static int32_t tail40_shrink(item_entity_t *item,
-			     feel_hint_t *hint)
-{
-	aal_assert("vpf-930", item  != NULL);
-	aal_assert("vpf-931", hint != NULL);
-	
-	return tail40_remove(item, hint->start, hint->count);
-}
-
 static errno_t tail40_init(item_entity_t *item) {
 	aal_assert("umka-1668", item != NULL);
 	
@@ -208,8 +147,8 @@ static errno_t tail40_print(item_entity_t *item,
 	return 0;
 }
 
-static errno_t tail40_maxreal_key(item_entity_t *item,
-				  key_entity_t *key) 
+errno_t tail40_maxreal_key(item_entity_t *item, 
+			   key_entity_t *key) 
 {
 	aal_assert("vpf-442", item != NULL);
 	aal_assert("vpf-443", key != NULL);
@@ -354,22 +293,27 @@ static errno_t tail40_shift(item_entity_t *src_item,
 	
 	return 0;
 }
+
+extern errno_t tail40_copy(item_entity_t *dst, uint32_t dst_pos, 
+			   item_entity_t *src, uint32_t src_pos, 
+			   copy_hint_t *hint);
+
+extern errno_t tail40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
+				item_entity_t *src, uint32_t src_pos,
+				copy_hint_t *hint);
 #endif
 
 static reiser4_item_ops_t tail40_ops = {
-#ifndef ENABLE_STAND_ALONE
 	.init	        = tail40_init,
 	.copy	        = tail40_copy,
 	.write	        = tail40_write,
 	.remove	        = tail40_remove,
-	.shrink	        = tail40_shrink,
 	.print	        = tail40_print,
 	.predict        = tail40_predict,
 	.shift	        = tail40_shift,		
-	.feel           = tail40_feel,
+	.feel_copy      = tail40_feel_copy,
 		
 	.maxreal_key    = tail40_maxreal_key,
-	.gap_key        = tail40_maxreal_key,
 		
 	.check	        = NULL,
 	.insert         = NULL,
@@ -377,7 +321,6 @@ static reiser4_item_ops_t tail40_ops = {
 	.set_key        = NULL,
 	.layout	        = NULL,
 	.layout_check   = NULL,
-#endif
 	.branch         = NULL,
 
 	.units	        = tail40_units,

@@ -7,9 +7,6 @@
 
 #include "node40.h"
 
-#define node40_loaded(entity) \
-        (((node40_t *)entity)->block != NULL)
-
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t node40_plugin;
 
@@ -315,9 +312,7 @@ static errno_t node40_get_item(object_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t node40_item(object_entity_t *entity,
-			   pos_t *pos, item_entity_t *item)
-{
+errno_t node40_item(object_entity_t *entity, pos_t *pos, item_entity_t *item) {
 	rid_t pid;
 	errno_t res;
 	node40_t *node;
@@ -619,9 +614,9 @@ static errno_t node40_cutout(node40_t *node, pos_t *pos,
 }
 
 /* Makes copy of @count items from @src_node to @dst_node */
-static errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
-			  node40_t *src_node, pos_t *src_pos,
-			  uint32_t count)
+errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
+		   node40_t *src_node, pos_t *src_pos,
+		   uint32_t count)
 {
 	uint32_t size;
 	uint32_t items;
@@ -888,9 +883,9 @@ static errno_t node40_cut(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t node40_expand(object_entity_t *entity,
-			     pos_t *pos, uint32_t len,
-			     uint32_t count)
+errno_t node40_expand(object_entity_t *entity,
+		      pos_t *pos, uint32_t len,
+		      uint32_t count)
 {
 	aal_assert("umka-2034", pos != NULL);
 	aal_assert("umka-2033", entity != NULL);
@@ -900,9 +895,9 @@ static errno_t node40_expand(object_entity_t *entity,
 			   len, count);
 }
 
-static errno_t node40_shrink(object_entity_t *entity,
-			     pos_t *pos, uint32_t len,
-			     uint32_t count)
+errno_t node40_shrink(object_entity_t *entity,
+		      pos_t *pos, uint32_t len,
+		      uint32_t count)
 {
 	aal_assert("umka-2035", pos != NULL);
 	aal_assert("umka-2036", entity != NULL);
@@ -912,156 +907,12 @@ static errno_t node40_shrink(object_entity_t *entity,
 			     len, count);
 }
 
-static errno_t node40_dup(object_entity_t *dst_entity,
-			  pos_t *dst_pos,
-			  object_entity_t *src_entity,
-			  pos_t *src_pos,
-			  key_entity_t *start,
-			  key_entity_t *end,
-			  feel_hint_t *dst_hint, 
-			  feel_hint_t *src_hint,
-			  bool_t is_copy)
-{
-	errno_t res;
-	uint32_t src_units;
-	node40_t *dst_node;
-	node40_t *src_node;
-	
-	item40_header_t *ih;
-	item_entity_t src_item;
-	item_entity_t dst_item;
-	reiser4_plugin_t *plugin;
-
-	aal_assert("umka-2124", dst_entity != NULL);
-	aal_assert("umka-2125", src_entity != NULL);
-	aal_assert("vpf-913", dst_pos != NULL);
-	aal_assert("vpf-924", src_pos != NULL);
-	aal_assert("vpf-914", start != NULL);
-	aal_assert("vpf-915", end != NULL);
-	aal_assert("vpf-912", src_hint != NULL);
-	aal_assert("vpf-925", is_copy || dst_hint != NULL);
-	
-	aal_assert("umka-2029", node40_loaded(dst_entity));
-	aal_assert("umka-2030", node40_loaded(src_entity));
-	
-	dst_node = (node40_t *)dst_entity;
-	src_node = (node40_t *)src_entity;
-	
-	if (node40_item(src_entity, src_pos, &src_item))
-		return -EINVAL;
-
-	src_units = plugin_call(src_item.plugin->o.item_ops,
-				units, &src_item);
-	
-	if (is_copy) {
-		/* Expands the node item content will be inserted in */
-		if (node40_expand(dst_entity, dst_pos, src_hint->len, 1))
-			return -EINVAL;
-	} else if (src_hint->len < dst_hint->len) {
-		/* For overwrite, do not account item40_header in shrink */
-		if (dst_pos->unit == ~0ul)
-			dst_pos->unit = 0;
-		
-		/* Expands the node item content will be inserted in */
-		if (node40_expand(dst_entity, dst_pos, 
-				  dst_hint->len - src_hint->len, 1))
-			return -EINVAL;
-	} else if (dst_hint->len > src_hint->len) {
-		if (node40_item(dst_entity, dst_pos, &dst_item))
-			return -EINVAL;
-
-		/* Remove evth between @start and @end keys. */
-		if (dst_item.plugin->o.item_ops->shrink) {
-			if ((res = dst_item.plugin->o.item_ops->shrink(
-				     &dst_item, dst_hint)) <= 0)
-			{
-				aal_exception_error("Node (%llu), item (%u): "
-						    "Can't shrink the item.", 
-						    dst_node->block->number,
-						    dst_pos->item);
-			}
-		}
-		
-		/* For overwrite, do not account item40_header in shrink */
-		if (dst_pos->unit == ~0ul)
-			dst_pos->unit = 0;
-		
-		/* Shrink the item on src_hint->len - dst_hint->len bytes. */
-		if (node40_shrink(dst_entity, dst_pos, 
-				  src_hint->len - dst_hint->len, 1))
-			return -EINVAL;
-	}
-	
-	plugin = src_entity->plugin;
-	aal_assert("umka-2123", plugin != NULL);
-	
-	if (node40_item(dst_entity, dst_pos, &dst_item))
-		return -EINVAL;
-	
-	/*
-	  Check if we will copy whole item, or we should call item's copy()
-	  method in order to copy units from @start key through the @end one.
-	*/
-	if (dst_pos->unit == ~0ul && src_item.len == src_hint->len && 
-	    dst_item.len == src_hint->len) 
-	{
-		return node40_rep(dst_node, dst_pos, src_node,
-				  src_pos, 1);
-	}
-	
-	if ((res = plugin_call(src_item.plugin->o.item_ops, copy,
-			       &dst_item, dst_pos->item, &src_item,
-			       src_pos->item, start, end, src_hint)))
-	{
-		aal_exception_error("Can't copy units from "
-				    "node %llu to node %llu.",
-				    src_node->block->number,
-				    dst_node->block->number);
-		return res;
-	}
-
-	/*
-	  Updating item's key if we insert new item or if we insert unit
-	  into leftmost postion.
-	*/
-	if (dst_pos->unit == 0) {
-		ih = node40_ih_at(dst_node, dst_pos->item);
-		
-		aal_memcpy(&ih->key, dst_item.key.body,
-			   sizeof(ih->key));
-	}
-
-	dst_node->dirty = 1;
-	return 0;
-}
-
-static errno_t node40_copy(object_entity_t *dst_entity,
-			   pos_t *dst_pos,
-			   object_entity_t *src_entity,
-			   pos_t *src_pos,
-			   key_entity_t *start,
-			   key_entity_t *end,
-			   feel_hint_t *hint)
-{
-	return node40_dup(dst_entity, dst_pos, src_entity, src_pos,
-			  start, end, NULL, hint, TRUE);
-}
-
-static errno_t node40_overwrite(object_entity_t *dst_entity,
-				pos_t *dst_pos,
-				object_entity_t *src_entity,
-				pos_t *src_pos,
-				key_entity_t *start,
-				key_entity_t *end,
-				feel_hint_t *dst_hint, 
-				feel_hint_t *src_hint)
-{
-	return node40_dup(dst_entity, dst_pos, src_entity, src_pos,
-			  start, end, dst_hint, src_hint, FALSE);
-}
-
 extern errno_t node40_check(object_entity_t *entity,
 			    uint8_t mode);
+
+extern errno_t node40_copy(object_entity_t *dst_entity, pos_t *dst_pos, 
+			   object_entity_t *src_entity, pos_t *src_pos, 
+			   copy_hint_t *hint);
 
 /* Returns node make stamp */
 static void node40_set_mstamp(object_entity_t *entity,
@@ -1904,7 +1755,6 @@ static reiser4_node_ops_t node40_ops = {
 	.shrink		 = node40_shrink,
 	.expand		 = node40_expand,
 	.copy            = node40_copy,
-	.overwrite       = node40_overwrite,
 
 	.overhead	 = node40_overhead,
 	.maxspace	 = node40_maxspace,
@@ -1926,7 +1776,6 @@ static reiser4_plugin_t node40_plugin = {
 #ifndef ENABLE_STAND_ALONE
 		.label = "node40",
 		.desc = "Node plugin for reiser4, ver. " VERSION
-#endif
 	},
 	.o = {
 		.node_ops = &node40_ops
