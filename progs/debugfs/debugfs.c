@@ -451,7 +451,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbojiTDF:",
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDF:",
 				     long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
