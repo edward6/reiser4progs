@@ -17,7 +17,7 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 	return -(!aal_pow_of_two(get_ms_blocksize(SUPER(master))));
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Forms master super block disk structure */
 reiser4_master_t *reiser4_master_create(
@@ -137,7 +137,7 @@ int reiser4_master_confirm(aal_device_t *device) {
 		uint32_t blocksize = get_ms_blocksize(super);
 			
 		if (aal_device_set_bs(device, blocksize)) {
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 			aal_exception_fatal("Invalid block size detected %u.",
 					    blocksize);
 #endif
@@ -202,7 +202,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 		   should call the function which detectes used format on the
 		   device.
 		*/
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		{
 			reiser4_plugin_t *plugin;
 	    
@@ -246,7 +246,7 @@ reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master) {
 	return reiser4_master_open(device);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Saves master super block to device. */
 errno_t reiser4_master_sync(
