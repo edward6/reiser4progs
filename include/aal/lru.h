@@ -8,7 +8,7 @@
 #ifndef AAL_LRU_H
 #define AAL_LRU_H
 
-#include <aal/list.h>
+#include <aal/aal.h>
 
 struct lru_ops {
 	int (*free) (void *);

@@ -96,9 +96,9 @@ errno_t aal_block_reopen(
 }
 
 /* 
-   Writes specified block onto device. Device reference, block will be wrote
-   onto, stored in block->device field. Marks it as clean and returns error code
-   to caller.
+  Writes specified block onto device. Device reference, block will be wrote
+  onto, stored in block->device field. Marks it as clean and returns error code
+  to caller.
 */
 errno_t aal_block_sync(
 	aal_block_t *block)		/* block for writing */
@@ -107,9 +107,6 @@ errno_t aal_block_sync(
 	blk_t blk;
 
 	aal_assert("umka-446", block != NULL, return -1);
-
-/*      if (aal_block_isclean(block))
-                return 0;*/
 
 	blk = aal_block_number(block);
     

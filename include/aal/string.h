@@ -15,21 +15,20 @@
 #  include <config.h>
 #endif
 
-#include <sys/types.h>
+#include <aal/aal.h>
 
 #ifdef ENABLE_COMPACT
 
 #define aal_memmove aal_memcpy
 
-extern void *aal_memset(void *dest, int c, size_t n);
-extern void *aal_memcpy(void *dest, const void *src, size_t n);
-extern int aal_memcmp(const void *s1, const void *s2, size_t n);
+extern void *aal_memset(void *dest, int c, uint32_t n);
+extern void *aal_memcpy(void *dest, const void *src, uint32_t n);
+extern int aal_memcmp(const void *s1, const void *s2, uint32_t n);
 
-extern char *aal_strncpy(char *dest, const char *src, size_t n);
-extern char *aal_strcat(char *dest, const char *src);
-extern char *aal_strncat(char *dest, const char *src, size_t n);
-extern int aal_strncmp(const char *s1, const char *s2, size_t n);
-extern size_t aal_strlen(const char *s);
+extern char *aal_strncpy(char *dest, const char *src, uint32_t n);
+extern char *aal_strncat(char *dest, const char *src, uint32_t n);
+extern int aal_strncmp(const char *s1, const char *s2, uint32_t n);
+extern uint32_t aal_strlen(const char *s);
 
 extern char *aal_strpbrk(const char *s, const char *accept);
 extern char *aal_strchr(const char *s, int c);
@@ -58,15 +57,25 @@ extern char *aal_strsep(char **stringp, const char *delim);
 
 #endif	/* ENABLE_COMPACT */
 
-extern int aal_utoa(unsigned int d, size_t n, char *a, int base, int flags);
-extern int aal_lutoa(unsigned long int d, size_t n, char *a, int base, int flags);
-extern int aal_llutoa(unsigned long long d, size_t n, char *a, int base, int flags);
+extern char *aal_strndup(const char *s, uint32_t n);
 
-extern int aal_stoa(int d, size_t n, char *a, int base, int flags);
-extern int aal_lstoa(long int d, size_t n, char *a, int base, int flags);
-extern int aal_llstoa(long long d, size_t n, char *a, int base, int flags);
+extern int aal_stoa(int d, uint32_t n, char *a,
+		    int base, int flags);
 
-extern char *aal_strndup(const char *s, size_t n);
+extern int aal_lstoa(long int d, uint32_t n, char *a,
+		     int base, int flags);
+
+extern int aal_llstoa(long long d, uint32_t n,
+		      char *a, int base, int flags);
+
+extern int aal_utoa(unsigned int d, uint32_t n, char *a,
+		    int base, int flags);
+
+extern int aal_lutoa(unsigned long int d, uint32_t n, char *a,
+		     int base, int flags);
+
+extern int aal_llutoa(unsigned long long d, uint32_t n, char *a,
+		      int base, int flags);
 
 #endif
 

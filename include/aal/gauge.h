@@ -8,6 +8,8 @@
 #ifndef AAL_GAUGE_H
 #define AAL_GAUGE_H
 
+#include <aal/aal.h>
+
 typedef struct aal_gauge aal_gauge_t;
 
 enum aal_gauge_type {

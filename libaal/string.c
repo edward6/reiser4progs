@@ -14,8 +14,8 @@
 #ifdef ENABLE_COMPACT
 
 /* 
-   Memory and string working functions. They are full analog of standard ones.
-   See corresponding man page for details.
+  Memory and string working functions. They are full analog of standard ones.
+  See corresponding man page for details.
 */
 void *aal_memset(void *dest, int c, uint32_t n) {
 	char *dest_p = (char *)dest;
@@ -83,10 +83,6 @@ char *aal_strncpy(char *dest, const char *src, uint32_t n) {
 		*(dest + aal_strlen(dest)) = '\0';
 	
 	return dest;
-}
-
-char *aal_strcat(char *dest, const char *src) {
-	return aal_strncat(dest, src, aal_strlen(src));
 }
 
 char *aal_strncat(char *dest, const char *src, uint32_t n) {
@@ -170,7 +166,7 @@ char *aal_strsep(char **stringp, const char *delim) {
 
 #endif
 
-char *aal_strndup(const char *s, size_t n) {
+char *aal_strndup(const char *s, uint32_t n) {
 	char *str = (char *)aal_calloc(n + 1, 0);
 	aal_strncpy(str, s, n);
 

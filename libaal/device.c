@@ -90,7 +90,7 @@ errno_t aal_device_reopen(
 
 bool_t aal_device_readonly(aal_device_t *device) {
 	aal_assert("umka-1291", device != NULL, return -1);
-	return (device->flags & O_RDONLY) == O_RDONLY;
+	return (device->flags & (O_RDONLY + 1));
 }
 
 /* Closes device. Frees all assosiated memory */

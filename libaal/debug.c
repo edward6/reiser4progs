@@ -1,5 +1,7 @@
 /*
-  debug.c -- implements assertions through exception mechanism.
+  debug.c -- implements assertions through exceptions factory. That is if some
+  exception occurs, user will have the ability to make choise, continue running
+  or not.
 
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -9,12 +11,12 @@
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
-
 #ifdef ENABLE_DEBUG
 
+#include <aal/aal.h>
+
 /* 
-   This function is used to provide asserts via exception. It is used by macro
+   This function is used to provide asserts via exceptions. It is used by macro
    aal_assert().
 */
 int __assert(

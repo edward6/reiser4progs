@@ -1,8 +1,5 @@
 /*
-  list.c -- double-linked list implementation. This is an utility thing. It is
-  used for storing plugins, nodes, etc. And there is a lot of documentation
-  related to double-linked lists desing and purposes. So, I won't describe it
-  one more time.
+  list.c -- double-linked list implementation.
     
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -10,6 +7,7 @@
 
 #include <aal/aal.h>
 
+/* Allocates new aal_list_t instance and assigns passed @data to it */
 aal_list_t *aal_list_alloc(void *data) {
 	aal_list_t *list;
    
@@ -23,6 +21,7 @@ aal_list_t *aal_list_alloc(void *data) {
 	return list;
 }
 
+/* Returns last item from the passed @list */
 aal_list_t *aal_list_last(aal_list_t *list) {
 	if (!list) return NULL;
     
@@ -32,6 +31,7 @@ aal_list_t *aal_list_last(aal_list_t *list) {
 	return list;
 }
 
+/* Returns first item from the passed @list */
 aal_list_t *aal_list_first(aal_list_t *list) {
 	if (!list) return NULL;
     
@@ -41,16 +41,19 @@ aal_list_t *aal_list_first(aal_list_t *list) {
 	return list;
 }
 
+/* Returns next item */
 aal_list_t *aal_list_next(aal_list_t *list) {
 	if (!list) return NULL;
 	return list->next;
 }
 
+/* Returns prev item */
 aal_list_t *aal_list_prev(aal_list_t *list) {
 	if (!list) return NULL;
 	return list->prev;
 }
 
+/* Returns list length */
 uint32_t aal_list_length(aal_list_t *list) {
 	uint32_t length = 0;
 
@@ -58,9 +61,15 @@ uint32_t aal_list_length(aal_list_t *list) {
 		length++;
 		list = list->next;
 	}
+	
 	return length;
 }
 
+/*
+  This functions makes walk though the @list and calls passed @func for each
+  list item. This may be used for searching something, or performing some
+  per-item actions.
+*/
 int aal_list_foreach(aal_list_t *list, foreach_func_t func, 
 		     void *data) 
 {
@@ -79,6 +88,7 @@ int aal_list_foreach(aal_list_t *list, foreach_func_t func,
 	return 0;
 }
 
+/* Perform lookup inside @list for @data and returns its position */
 int32_t aal_list_pos(aal_list_t *list, void *data) {
 	int32_t pos = 0;
 
@@ -92,6 +102,7 @@ int32_t aal_list_pos(aal_list_t *list, void *data) {
 	return pos;
 }
 
+/* Gets list item at @n position */
 aal_list_t *aal_list_at(aal_list_t *list, uint32_t n) {
 	while ((n-- > 0) && list)
 		list = list->next;
@@ -99,6 +110,7 @@ aal_list_t *aal_list_at(aal_list_t *list, uint32_t n) {
 	return list;
 }
 
+/* Inserts new item at @n position of @list */
 aal_list_t *aal_list_insert(aal_list_t *list, 
 			    void *data, uint32_t n) 
 {
@@ -125,6 +137,7 @@ aal_list_t *aal_list_insert(aal_list_t *list,
 	return temp == list ? new : list;
 }
 
+/* Inserts new item in sorted maner */
 aal_list_t *aal_list_insert_sorted(aal_list_t *list, void *data,
 				   comp_func_t comp_func, void *user)
 {
@@ -168,6 +181,7 @@ aal_list_t *aal_list_insert_sorted(aal_list_t *list, void *data,
 	return new_list;
 }
 
+/* Inserts new item just before passed @list */
 aal_list_t *aal_list_prepend(aal_list_t *list, void *data) {
 	aal_list_t *new;
 	aal_list_t *last;
@@ -187,6 +201,7 @@ aal_list_t *aal_list_prepend(aal_list_t *list, void *data) {
 	return new;
 }
 
+/* Inserts new item just after passed @list */
 aal_list_t *aal_list_append(aal_list_t *list, void *data) {
 	aal_list_t *new;
     
@@ -208,8 +223,8 @@ aal_list_t *aal_list_append(aal_list_t *list, void *data) {
 }
 
 /* 
-   Removes item from the passed @list and return reffernce to the next or prev
-   list item.
+  Removes item from the passed @list and return reffernce to the next or prev
+  list item.
 */
 aal_list_t *aal_list_remove(aal_list_t *list, void *data) {
 	aal_list_t *temp;
@@ -237,6 +252,7 @@ aal_list_t *aal_list_remove(aal_list_t *list, void *data) {
 	return result;
 }
 
+/* Returns list item by its data */
 aal_list_t *aal_list_find(aal_list_t *list, void *data) {
 	while (list) {
 		if (list->data == data)
@@ -255,7 +271,8 @@ aal_list_t *aal_list_find_custom(aal_list_t *list, void *needle,
 		return NULL;
     
 	while (list) {
-		if (comp_func((const void *)list->data, (const void *)needle, user) == 0)
+		if (comp_func((const void *)list->data,
+			      (const void *)needle, user) == 0)
 			return list;
 
 		list = list->next;
@@ -264,6 +281,7 @@ aal_list_t *aal_list_find_custom(aal_list_t *list, void *needle,
 	return NULL;
 }
 
+/* Releases all list items */
 void aal_list_free(aal_list_t *list) {
 	aal_list_t *last = list;
     

@@ -28,7 +28,7 @@ extern int aal_realloc(void** old, unsigned int size);
 
 extern void aal_free_set_handler(aal_free_handler_t handler);
 extern aal_free_handler_t aal_free_get_handler(void);
-extern void aal_free(void* ptr);
+extern void aal_free(void *ptr);
 
 #endif
 

@@ -8,6 +8,8 @@
 #ifndef AAL_BLOCK_H
 #define AAL_BLOCK_H
 
+#include <aal/aal.h>
+
 /*
   Disk block structure. It is a replica of struct buffer_head from the linux
   kernel. It consists of flags (dirty, clean, etc), data (pointer to data of

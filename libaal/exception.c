@@ -1,6 +1,6 @@
 /*
-  exception.c -- exceptions handling functions. Exception mechanism is used in
-  order to provide unified interface for error handling.
+  exception.c -- exceptions handling functions. Exception factory is used for
+  providing unified interface for error handling.
 
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -37,46 +37,46 @@ static char *option_names[] = {
 static int disable_count = 0;
 
 /* 
-   Helper functions for getting different exception attributes (option string,
-   type string, etc). They are used in exception handing functions.
+  Helper functions for getting different exception attributes (option string,
+  type string, etc). They are used in exception handing functions.
 */
 char *aal_exception_type_name(
-	aal_exception_type_t type)	/* exception type to be converted to string */
+	aal_exception_type_t type)	/* type to be converted to string */
 {
 	return type_names[type - 1];
 }
 
 /* Returns exception type from passed exception instance */
 aal_exception_type_t aal_exception_type(
-	aal_exception_t *exception)	/* exception, type wil be obtained from */
+	aal_exception_t *exception)	/* exception type will be obtained of */
 {
 	return exception->type;
 }
 
 /* Converts passed exception option into corresponding string */
 char *aal_exception_option_name(
-	aal_exception_option_t opt)	/* exception option to be converted to string */
+	aal_exception_option_t opt)	/* option to be converted to string */
 {
 	return option_names[aal_log2(opt) - 1];
 }
 
 /* Returns exception option from passed exception */
 aal_exception_option_t aal_exception_option(
-	aal_exception_t *exception)	/* exception, option will be obtained from */
+	aal_exception_t *exception)	/* exception option will be obtained of */
 {
 	return exception->options;
 }
 
 /* Retutrns exception message */
 char *aal_exception_message(
-	aal_exception_t *exception)	/* exception, message will be obtained from */
+	aal_exception_t *exception)	/* exception message will be obtained of */
 {
 	return exception->message;
 }
 
 /* 
-   Sets alternative exception handler, if passed handler isn't NULL. Otherwise
-   sets exception handler into default one.
+  Sets alternative exception handler, if passed handler isn't NULL. Otherwise
+  sets exception handler into default one.
 */
 void aal_exception_set_handler(
 	aal_exception_handler_t handler) /* new exception handler */
@@ -95,8 +95,8 @@ void aal_exception_catch(
 }
 
 /* 
-   The job of this function is to call current exception handler and return the
-   result of handling (for instance, retry, ignore, etc).
+  The job of this function is to call current exception handler and return the
+  result of handling (for instance, retry, ignore, etc).
 */
 static aal_exception_option_t aal_exception_actual_throw(
 	aal_exception_t *exception)	/* exception to be thrown */
@@ -113,8 +113,8 @@ static aal_exception_option_t aal_exception_actual_throw(
 }
 
 /* 
-   Public function for throw exception. It creates new exception instance and
-   pass the control to aal_exception_actual_throw function for further handling.
+  Public function for throw exception. It creates new exception instance and
+  pass the control to aal_exception_actual_throw function for further handling.
 */
 aal_exception_option_t aal_exception_throw(
 	aal_exception_type_t type,	/* exception type */
@@ -149,10 +149,10 @@ aal_exception_option_t aal_exception_throw(
 }
 
 /* 
-   These functions are used for switching exception factory into silent mode.
-   This mode forces do not handle exceptions at all. As it is may be used few
-   times while the control is flowing through stack, there is counter of how
-   many time exception factory was disabled.
+  These functions are used for switching exception factory into silent mode.
+  This mode forces it do not handle exceptions at all. As it may be used few
+  times while the control flows through the stack, here is the special counter
+  for keeping track of how many times exception factory was disabled.
 */
 void aal_exception_disable(void) {
 	disable_count++;
