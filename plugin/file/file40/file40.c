@@ -185,7 +185,7 @@ errno_t file40_realize(file40_t *file) {
 errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
 		      reiser4_level_t *stop, reiser4_place_t *place)
 {
-	rpid_t objectid = file40_objectid(file);
+	roid_t objectid = file40_objectid(file);
 	
 	switch (file->core->tree_ops.lookup(file->tree, &hint->key,
 				      stop, place))
