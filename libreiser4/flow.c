@@ -14,6 +14,9 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	uint64_t size;
 	reiser4_key_t key;
 
+	aal_assert("umka-2509", tree != NULL);
+	aal_assert("umka-2510", hint != NULL);
+	
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
 	
@@ -97,6 +100,9 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	uint64_t total;
 	reiser4_key_t key;
 
+	aal_assert("umka-2506", tree != NULL);
+	aal_assert("umka-2507", hint != NULL);
+	
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
 

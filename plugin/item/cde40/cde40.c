@@ -205,12 +205,9 @@ static int cde40_mergeable(place_t *place1, place_t *place2) {
 	aal_assert("umka-1581", place1 != NULL);
 	aal_assert("umka-1582", place2 != NULL);
 
-	/* Items mergeable if they have the same locality components in their
-	   keys. */
-	return (plug_call(place1->key.plug->o.key_ops,
-			  get_locality, &place1->key) ==
-		plug_call(place1->key.plug->o.key_ops,
-			  get_locality, &place2->key));
+	/* Items mergeable if their short keys match. */
+	return !plug_call(place1->key.plug->o.key_ops,
+			  compshort, &place1->key, &place2->key);
 }
 
 /* Calculates the size of @count units (entries) in passed @place at passed

@@ -570,10 +570,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
 			return res;
 		
-		if ((result = obj40_fix_key(&reg->obj, &reg->body, 
-					    &reg->position, mode)))
-			return result;
-
 		/* Count bytes. */
 		repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
 					  bytes, &reg->body);

@@ -1058,16 +1058,6 @@ static lookup_t node40_lookup(node_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Checks if two items are mergeable. */
-static int node40_mergeable(place_t *src, place_t *dst) {
-	/* Check if plugins are equal */
-	if (!plug_equal(src->plug, dst->plug))
-		return 0;
-
-	/* Check if mergeable is implemented and calling it if it is. */
-	return src->plug->o.item_ops->balance->mergeable &&
-		src->plug->o.item_ops->balance->mergeable(src, dst);
-}
 
 /* Checks if @place is splittable. */
 static int node40_splittable(place_t *place, shift_hint_t *hint) {
@@ -1192,9 +1182,11 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		/* Check if we need to create new new item in @dst_entity in
 		   order to move data to it. */
 		if (left_shift) {
-			hint->create = !node40_mergeable(&dst_place, &src_place);
+			hint->create = !node40_core->item_ops.mergeable(&dst_place,
+									&src_place);
 		} else {
-			hint->create = !node40_mergeable(&src_place, &dst_place);
+			hint->create = !node40_core->item_ops.mergeable(&src_place,
+									&dst_place);
 		}
 	} else {
 		/* There are no items in dst node and we create new item in
@@ -1653,7 +1645,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 		if ((res = node40_border(dst_entity, !left_shift, &dst_place)))
 			return res;
 		
-		if (node40_mergeable(&src_place, &dst_place))
+		if (node40_core->item_ops.mergeable(&src_place, &dst_place))
 			return 0;
 	}
 

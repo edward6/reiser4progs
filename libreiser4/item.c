@@ -38,6 +38,20 @@ rid_t reiser4_item_type(place_t *place) {
 	return (place->plug->id.group < LAST_ITEM ?
 		place->plug->id.group : LAST_ITEM);
 }
+
+int reiser4_item_mergeable(place_t *place1, place_t *place2) {
+	aal_assert("vpf-1428", place1 != NULL);
+	aal_assert("vpf-1428", place2 != NULL);
+
+	/* Check if plugins are equal */
+	if (!plug_equal(place1->plug, place2->plug))
+		return 0;
+
+	/* Check if mergeable is implemented and calling it if it is. */
+	return place1->plug->o.item_ops->balance->mergeable &&
+		place1->plug->o.item_ops->balance->mergeable(place1, place2);
+}
+
 #endif
 
 /* Returns 1 if @place points to an nodeptr item. */

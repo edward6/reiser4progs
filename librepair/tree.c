@@ -728,7 +728,19 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
                 for (; place.pos.item < count; place.pos.item++) {
                         if ((res = reiser4_place_fetch(&place)))
                                 return res;
+			
+			/* Go down to the child if branch. */
+			if ((res = reiser4_item_branch(place.plug))) {
+				place.node = reiser4_tree_child_node(tree, 
+								     &place);
+				
+				if (!place.node) return -EIO;
 
+				count = reiser4_node_items(place.node);
+				place.pos.item = -1;
+				continue;
+			}
+			
                         /* Get the key of the next item. */
                         if ((res = repair_tree_next_key(tree, &place, &key)))
                                 return res;

@@ -35,33 +35,19 @@ static reiser4_plug_t *factory_nfind(char *name) {
 static int64_t tree_insert(void *tree, place_t *place,
 			   trans_hint_t *hint, uint8_t level)
 {
-	aal_assert("umka-846", tree != NULL);
-	aal_assert("umka-847", hint != NULL);
-	aal_assert("umka-1643", place != NULL);
-
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
 				   place, hint, level);
 }
 
 /* Handler for write operation from @core. */
 static int64_t tree_write(void *tree, trans_hint_t *hint) {
-	reiser4_tree_t *t;
-
-	aal_assert("umka-2506", tree != NULL);
-	aal_assert("umka-2507", hint != NULL);
-	
-	t = (reiser4_tree_t *)tree;
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return reiser4_flow_write(t, hint);
 }
 
 /* Handler for truncate operation from @core. */
 static int64_t tree_truncate(void *tree, trans_hint_t *hint) {
-	reiser4_tree_t *t;
-
-	aal_assert("umka-2525", tree != NULL);
-	aal_assert("umka-2526", hint != NULL);
-	
-	t = (reiser4_tree_t *)tree;
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return reiser4_flow_truncate(t, hint);
 }
 
@@ -69,9 +55,6 @@ static int64_t tree_truncate(void *tree, trans_hint_t *hint) {
 static errno_t tree_remove(void *tree, place_t *place,
 			   trans_hint_t *hint)
 {
-	aal_assert("umka-848", tree != NULL);
-	aal_assert("umka-849", place != NULL);
-    
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
 				   place, hint);
 }
@@ -82,21 +65,12 @@ static lookup_t tree_lookup(void *tree, reiser4_key_t *key,
 			    uint8_t level, bias_t bias,
 			    place_t *place)
 {
-	aal_assert("umka-851", key != NULL);
-	aal_assert("umka-850", tree != NULL);
-	aal_assert("umka-852", place != NULL);
-
 	return reiser4_tree_lookup((reiser4_tree_t *)tree,
 				   key, level, bias, place);
 }
 
 static int64_t tree_read(void *tree, trans_hint_t *hint) {
-	reiser4_tree_t *t;
-
-	aal_assert("umka-2509", tree != NULL);
-	aal_assert("umka-2510", hint != NULL);
-	
-	t = (reiser4_tree_t *)tree;
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return reiser4_flow_read(t, hint);
 }
 
@@ -140,10 +114,6 @@ static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
 static errno_t tree_update_key(void *tree, place_t *place,
 			       key_entity_t *key)
 {
-	aal_assert("vpf-1219", tree != NULL);
-	aal_assert("vpf-1206", place != NULL);
-	aal_assert("vpf-1207", key != NULL);
-
 	return reiser4_tree_update_key((reiser4_tree_t *)tree,
 				       place, (reiser4_key_t *)key);
 }
@@ -153,18 +123,16 @@ static char *key_print(key_entity_t *key, uint16_t options) {
 }
 
 static errno_t tree_convert(void *tree, conv_hint_t *hint) {
-	reiser4_tree_t *t;
-
-	aal_assert("umka-3014", tree != NULL);
-	aal_assert("umka-3015", hint != NULL);
-	
-	t = (reiser4_tree_t *)tree;
+	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return reiser4_flow_convert(t, hint);
 }
 
 static uint64_t param_value(char *name) {
-	aal_assert("vpf-1202", name != NULL);
 	return reiser4_param_value(name);
+}
+
+static int item_mergeable(place_t *place1, place_t *place2) {
+	return reiser4_item_mergeable(place1, place2);
 }
 #endif
 
@@ -261,6 +229,9 @@ reiser4_core_t core = {
 #ifndef ENABLE_STAND_ALONE
 	.key_ops = {
 		.print = key_print
+	},
+	.item_ops = {
+		.mergeable = item_mergeable
 	}
 #endif
 };

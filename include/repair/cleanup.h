@@ -19,6 +19,7 @@ typedef struct repair_cleanup_stat {
 /* Data filter works on. */
 typedef struct repair_cleanup {
 	repair_data_t *repair;
+	place_t neigh;
 	
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;

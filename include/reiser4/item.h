@@ -11,6 +11,7 @@
 #ifndef ENABLE_STAND_ALONE
 extern rid_t reiser4_item_type(place_t *place);
 extern bool_t reiser4_item_statdata(place_t *place);
+extern int reiser4_item_mergeable(place_t *place1, place_t *place2);
 
 extern errno_t reiser4_item_get_key(place_t *place,
 				    reiser4_key_t *key);

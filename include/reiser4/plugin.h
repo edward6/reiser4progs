@@ -1580,7 +1580,7 @@ struct tree_ops {
 	/* Update the key in the place and the node itsef. */
 	errno_t (*update_key) (void *, place_t *, key_entity_t *);
 #endif
-	/* Returns next items respectively. */
+	/* Returns the next item. */
 	errno_t (*next) (void *, place_t *, place_t *);
 };
 
@@ -1620,6 +1620,14 @@ struct key_ops {
 };
 
 typedef struct key_ops key_ops_t;
+
+struct item_ops {
+	/* Checks if items mergeable. */
+	int (*mergeable) (place_t *, place_t *);
+};
+
+typedef struct item_ops item_ops_t;
+
 #endif
 
 /* This structure is passed to all plugins in initialization time and used for
@@ -1638,6 +1646,7 @@ struct reiser4_core {
 
 #ifndef ENABLE_STAND_ALONE
 	key_ops_t key_ops;
+	item_ops_t item_ops;
 #endif
 };
 

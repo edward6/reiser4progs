@@ -216,7 +216,7 @@ static int key_large_compshort(key_entity_t *key1,
 	if ((res = aal_memcmp(&ord1, &ord2, sizeof(ord1))))
 		return res;
 	
-	/* Cheking objectid  */
+	/* Checking objectid  */
 	return kl_comp_el((key_large_t *)key1->body,
 			  (key_large_t *)key2->body, 2);
 }

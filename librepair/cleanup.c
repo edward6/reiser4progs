@@ -8,137 +8,6 @@
 
 #include <repair/cleanup.h>
 
-#if 0
-static errno_t repair_cleanup_check(place_t *place, void *data) {
-	repair_cleanup_t *cleanup;
-	errno_t res = 0;
-	
-	aal_assert("vpf-1060", place != NULL);
-	aal_assert("vpf-1061", data != NULL);
-	
-	cleanup = (repair_cleanup_t *)data;
-
-	if (reiser4_item_branch(place->plug))
-		return 0;
-	
-	if (!repair_item_test_flag(place, OF_CHECKED)) {
-		trans_hint_t hint;
-		
-		/* Not checked item does not belong to any object. Remove. */
-		hint.count = 1;
-		hint.place_func = NULL;
-
-		/* FIXME-UMKA->VITALY: Here @hint->region_func should be set
-		   correctly in order to notify about extent region remove. */
-		hint.region_func = NULL;
-		hint.shift_flags = SF_DEFAULT;
-		
-		res = reiser4_node_remove(place->node, &place->pos, &hint);
-		if (res) return res;
-		
-		cleanup->stat.removed++;
-		place->pos.item--;
-		
-		return 0;	
-	}
-
-	repair_item_clear_flag(place, MAX_UINT16);
-	
-	return 0;
-}
-
-static errno_t repair_cleanup_node_traverse(reiser4_tree_t *tree, 
-					    node_t *node, void *data)
-{
-	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
-
-	if (cleanup->progress_handler && 
-	    reiser4_node_get_level(node) != LEAF_LEVEL) 
-	{
-		cleanup->progress->state = PROGRESS_START;
-		cleanup->progress->u.tree.i_total = reiser4_node_items(node);
-		cleanup->progress->u.tree.u_total = 0;
-		cleanup->progress->u.tree.item = 0;
-		cleanup->progress->u.tree.unit = 0;
-		cleanup->progress_handler(cleanup->progress);
-	}
-
-	return repair_node_traverse(node, repair_cleanup_check, data);
-}
-
-static node_t *repair_cleanup_open_traverse(reiser4_tree_t *tree,
-					    place_t *place,
-					    void *data) 
-{
-	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
-	
-	if (cleanup->progress_handler &&
-	    reiser4_node_get_level(place->node) != LEAF_LEVEL) 
-	{
-		cleanup->progress->state = PROGRESS_UPDATE;
-		cleanup->progress->u.tree.i_total = reiser4_node_items(place->node);
-		cleanup->progress->u.tree.u_total = reiser4_item_units(place);
-		cleanup->progress->u.tree.item = place->pos.item;
-		cleanup->progress->u.tree.unit = place->pos.unit;
-		cleanup->progress_handler(cleanup->progress);
-	}
-
-	return reiser4_tree_child_node(tree, place);
-}
-
-static errno_t repair_cleanup_after_traverse(reiser4_tree_t *tree, 
-					     node_t *node, 
-					     void *data) 
-{
-	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
-	
-	if (cleanup->progress_handler && 
-	    reiser4_node_get_level(node) != LEAF_LEVEL) 
-	{
-		cleanup->progress->state = PROGRESS_END;
-		cleanup->progress_handler(cleanup->progress);
-	}
-
-	return 0;
-}
-
-
-errno_t repair_cleanup(repair_cleanup_t *cleanup) {
-	repair_progress_t progress;
-	reiser4_fs_t *fs;
-	errno_t res;
-	
-	cleanup->progress = &progress;
-	repair_cleanup_setup(cleanup);
-	
-	fs = cleanup->repair->fs;
-	
-	if (reiser4_tree_fresh(fs->tree)) {
-		aal_warn("No reiser4 metadata were found. Cleanup "
-			 "pass is skipped.");
-		return 0;
-	}
-	
-	if ((res = reiser4_tree_load_root(fs->tree)))
-		return res;
-	
-	if (fs->tree->root == NULL)
-		return -EINVAL;
-	
-	/* Cut the corrupted, unrecoverable parts of the tree off. */
-	res = reiser4_tree_trav_node(fs->tree, fs->tree->root, 
-				     repair_cleanup_open_traverse, 
-				     repair_cleanup_node_traverse, 
-				     NULL, repair_cleanup_after_traverse, 
-				     cleanup);
-	
-	repair_cleanup_update(cleanup);
-	reiser4_fs_sync(fs);
-	
-	return res;
-}
-#endif
-
 static void repair_cleanup_setup(repair_cleanup_t *cleanup) {
 	aal_assert("vpf-1045", cleanup != NULL);
 
@@ -207,102 +76,6 @@ static errno_t callback_free_extent(void *object, uint64_t start,
 	return 0;
 }
 
-/*
-errno_t repair_cleanup(repair_cleanup_t *cleanup) {
-	repair_progress_t progress;
-	reiser4_key_t key, max;
-	reiser4_tree_t *tree;
-	trans_hint_t hint;
-	uint32_t count;
-	errno_t res;
-	
-	aal_assert("vpf-1407", cleanup != NULL);
-	aal_assert("vpf-1407", cleanup->repair != NULL);
-	aal_assert("vpf-1407", cleanup->repair->fs != NULL);
-	
-	cleanup->progress = &progress;
-	repair_cleanup_setup(cleanup);
-	
-	tree = cleanup->repair->fs->tree;
-	
-	if (reiser4_tree_fresh(tree)) {
-		aal_warn("No reiser4 metadata were found. Cleanup "
-			 "pass is skipped.");
-		return 0;
-	}
-	
-	if ((res = reiser4_tree_load_root(tree)))
-		return res;
-	
-	if (tree->root == NULL)
-		return -EINVAL;
-	
-	key.plug = max.plug = tree->key.plug;
-	reiser4_key_minimal(&key);
-	reiser4_key_maximal(&max);
-	
-	hint.place_func = NULL;
-	hint.region_func = callback_free_extent;
-	hint.data = cleanup;
-
-	while (TRUE) {
-		lookup_t lookup;
-		place_t place;
-		
-		// FIXME-VITALY: this is not key-collision-safe. To solve it on 
-		// the next item should be set flag NEXT. 
-		
-		// Lookup the @key. 
-		if ((lookup = reiser4_tree_lookup(tree, &key,  LEAF_LEVEL,
-						  FIND_EXACT, &place)) < 0)
-			return lookup;
-
-		place.pos.unit = MAX_UINT32;
-		count = reiser4_node_items(place.node);
-		
-		for (; place.pos.item < count; place.pos.item++) {
-			if ((res = reiser4_place_fetch(&place)))
-				return res;
-
-			// Leave only branches and marked as CHECKED. 
-			if (!reiser4_item_branch(place.plug) && 
-			    !repair_item_test_flag(&place, OF_CHECKED))
-			{
-				// Remove.
-				res = repair_cleanup_next_key(&place, &key);
-				
-				if (res) return res;
-				
-				cleanup->stat.removed++;
-				
-				hint.count = 1;
-				
-				res = reiser4_tree_remove(tree, &place, &hint);
-				
-				if (res) return res;
-
-				goto cont;
-			}
-
-			repair_item_clear_flag(&place, MAX_UINT16);
-		}
-
-		place.pos.item--;
-		
-		if ((res = repair_cleanup_next_key(&place, &key)))
-			return res;
-	cont:
-		if (!reiser4_key_compfull(&key, &max))
-			break;
-	}
-	
-	repair_cleanup_update(cleanup);
-	reiser4_fs_sync(cleanup->repair->fs);
-	
-	return res;
-}
-*/
-
 static errno_t callback_node_cleanup(place_t *place, void *data) {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	trans_hint_t hint;
@@ -310,14 +83,45 @@ static errno_t callback_node_cleanup(place_t *place, void *data) {
 
 	aal_assert("vpf-1425", place != NULL);
 	aal_assert("vpf-1426", cleanup != NULL);
-
-	/* Skip branches. */
-	if (reiser4_item_branch(place->plug))
-		return 0;
+	aal_assert("vpf-1429", !reiser4_item_branch(place->plug));
 
 	/* Clear checked items. */
 	if (repair_item_test_flag(place, OF_CHECKED)) {
 		repair_item_clear_flag(place, MAX_UINT16);
+
+		if (!place->pos.item)
+			goto next;
+		
+		/* Check if neighbour items are mergable. */
+		if (!cleanup->neigh.node || 
+		    node_blocknr(cleanup->neigh.node) != 
+		    node_blocknr(place->node))
+		{
+			cleanup->neigh = *place;
+			cleanup->neigh.pos.item--;
+		
+			if ((res = reiser4_place_fetch(&cleanup->neigh)))
+				return res;
+		}
+
+		if (reiser4_item_mergeable(&cleanup->neigh, place)) {
+			/* Fuse neighbour items. */
+			if ((res = plug_call(place->plug->o.node_ops, 
+					     fuse, place->node->entity, 
+					     &cleanup->neigh.pos,
+					     &place->pos)))
+				return res;
+			
+			place->pos.item--;
+			
+			aal_memset(&cleanup->neigh, 0, 
+				   sizeof(cleanup->neigh));
+			return 0;
+		} 
+		
+	next:
+		/* Save the current place. */
+		aal_memcpy(&cleanup->neigh, place, sizeof(*place));
 		return 0;
 	}
 
@@ -334,7 +138,8 @@ static errno_t callback_node_cleanup(place_t *place, void *data) {
 	/* Remove not checked item. */
 	res = reiser4_tree_remove(cleanup->repair->fs->tree, place, &hint);
 	
-	/* Return the error or that lookup is needed. */
+	aal_memset(&cleanup->neigh, 0, sizeof(cleanup->neigh));
+	
 	return res ? res : 1;
 }
 
