@@ -124,7 +124,7 @@ static int nodeptr40_branch(item_entity_t *item) {
   points to.
 */
 static errno_t nodeptr40_layout(item_entity_t *item,
-				data_func_t func,
+				region_func_t func,
 				void *data)
 {
 	errno_t res;
@@ -134,7 +134,7 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 	aal_assert("vpf-718",   item->body != NULL, return -1);
 	aal_assert("umka-1750", func != NULL, return -1);
 
-	if ((res = func(item, np40_get_ptr(nodeptr40_body(item)), data)))
+	if ((res = func(item, np40_get_ptr(nodeptr40_body(item)), 1, data)))
 		return res;
 
 	return 0;

@@ -322,11 +322,20 @@ struct layout_hint {
 
 typedef struct layout_hint layout_hint_t;
 
-static errno_t callback_item_data(item_entity_t *item,
-				  blk_t blk, void *data)
+static errno_t callback_item_data(item_entity_t *item, uint64_t start,
+				  uint64_t count, void *data)
 {
+	blk_t blk;
+	errno_t res;
+	
 	layout_hint_t *hint = (layout_hint_t *)data;
-	return hint->func(hint->entity, blk, hint->data);
+
+	for (blk = start; blk < start + count; blk++) {
+		if ((res = hint->func(hint->entity, blk, hint->data)))
+			return res;
+	}
+
+	return 0;
 }
 
 /*
@@ -365,7 +374,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 								 &hint)))
 				return res;
 		} else {
-			if ((res = callback_item_data(item, item->con.blk, &hint)))
+			if ((res = callback_item_data(item, item->con.blk, 1, &hint)))
 				return res;
 		}
 		

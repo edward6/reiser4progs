@@ -397,23 +397,25 @@ static errno_t tfrag_open_node(
 
 static errno_t tfrag_process_item(
 	item_entity_t *item,        /* item we traverse now */
-	blk_t blk, void *data)      /* one of blk item points to */
+	uint64_t start,             /* region start */
+	uint64_t count,             /* region width */
+	void *data)                 /* one of blk item points to */
 {
 	int64_t delta;
 	tfrag_hint_t *hint;
 	
 	hint = (tfrag_hint_t *)data;
 	
-	if (blk == 0)
+	if (start == 0)
 		return 0;
-				
-	delta = hint->curr - blk;
+
+	delta = hint->curr - start;
 				
 	if (labs(delta) > 1)
 		hint->bad++;
 				
 	hint->total++;
-	hint->curr = blk;
+	hint->curr = start + count - 1;
 
 	return 0;
 }
@@ -577,10 +579,12 @@ static errno_t stat_open_node(
 /* Process one block belong to the item (extent or nodeptr) */
 static errno_t stat_process_item(
 	item_entity_t *item,        /* item we traverse now */
-	blk_t blk, void *data)      /* one of blk item points to */
+	uint64_t start,             /* region start */
+	uint64_t count,             /* region count */
+	void *data)                 /* one of blk item points to */
 {
 	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
-	stat_hint->nodes++;
+	stat_hint->nodes += count;
 
 	return 0;
 }

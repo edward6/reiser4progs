@@ -311,7 +311,6 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
-typedef errno_t (*data_func_t) (item_entity_t *, uint64_t, void *);
 typedef errno_t (*region_func_t) (item_entity_t *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*place_func_t) (object_entity_t *, reiser4_place_t *, void *);
@@ -688,7 +687,7 @@ struct reiser4_item_ops {
 	int (*mergeable) (item_entity_t *, item_entity_t *);
 
 	/* Goes through all blocks item points to. */
-	errno_t (*layout) (item_entity_t *, data_func_t, void *);
+	errno_t (*layout) (item_entity_t *, region_func_t, void *);
 
 	/*
 	  Returns TRUE is specified item is a nodeptr one. That is, it points to

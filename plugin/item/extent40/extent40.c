@@ -475,9 +475,10 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
   calculating fragmentation, etc.
 */
 static errno_t extent40_layout(item_entity_t *item,
-			       data_func_t func,
+			       region_func_t func,
 			       void *data)
 {
+	errno_t res;
 	uint32_t i, units;
 	extent40_t *extent;
 	
@@ -488,20 +489,14 @@ static errno_t extent40_layout(item_entity_t *item,
 	units = extent40_units(item);
 
 	for (i = 0; i < units; i++, extent++) {
-		uint64_t blk;
 		uint64_t start;
 		uint64_t width;
 
 		start = et40_get_start(extent);
 		width = et40_get_start(extent);
 				
-		for (blk = start; blk < start + width; blk++) {
-			errno_t res;
-			
-			/* Call func for not zero blk. */
-			if (blk && (res = func(item, blk, data)))
-				return res;
-		}
+		if (start && (res = func(item, start, width, data)))
+			return res;
 	}
 			
 	return 0;
