@@ -291,11 +291,11 @@ static errno_t fsck_data_prepare(repair_data_t *repair_data,
     aal_assert("vpf-481", repair_data != NULL, return -1);
     aal_assert("vpf-505", parse_data != NULL, return -1);
     aal_assert("vpf-513", fs != NULL, return -1);
-        
-    repair_data->format = fs->format;
-    repair_data->alloc = fs->alloc;
+ 
+    repair_data->fs = fs;
     repair_data->mode = parse_data->mode;
     repair_data->options = parse_data->options;
+    repair_data->profile = parse_data->profile;
 
     return 0;
 }
