@@ -42,7 +42,7 @@ uint32_t repair_item_split(
  * errors == 0 - nothing left to be fixed.
  * errors != 0 - smth to be fixed.
  */
-errno_t repair_item_check(reiser4_coord_t *coord) {
+errno_t repair_item_check(reiser4_place_t *coord) {
     uint32_t lenght;
     
     if (!coord->item.plugin->item_ops.check)

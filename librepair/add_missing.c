@@ -28,7 +28,7 @@ static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start,
 /* Callback for traverse through all items of the node. Calls for the item, 
  * determined by coord, layout method, if it is not the branch and has 
  * pointers to some blocks. */
-static errno_t callback_layout(reiser4_coord_t *coord, void *data) {
+static errno_t callback_layout(reiser4_place_t *coord, void *data) {
     aal_assert("vpf-649", coord != NULL);
     aal_assert("vpf-748", reiser4_item_data(coord->item.plugin));
 

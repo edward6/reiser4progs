@@ -368,7 +368,7 @@ errno_t reiser4_item_gap_key(reiser4_place_t *place,
 }
 
 bool_t reiser4_item_data(reiser4_plugin_t *plugin) {
-	aal_assert("vpf-747", plugin != NULL, return -1);
+	aal_assert("vpf-747", plugin != NULL);
 
 	return plugin->item_ops.data && plugin->item_ops.data();
 }

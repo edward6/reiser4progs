@@ -256,33 +256,6 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
 
-/* 
-  This checks the level constrains like no internal and extent items at leaf
-  level or no statdata items at internal level.
-*/
-static errno_t node40_item_legal(object_entity_t *entity,
-				 reiser4_plugin_t *plugin)
-{
-	uint8_t level;
-	node40_t *node = (node40_t *)entity;
-
-	aal_assert("vpf-225", node != NULL);
-	aal_assert("vpf-237", plugin != NULL);
-    
-	level = node40_get_level(entity);
-    
-	if (plugin->h.group == NODEPTR_ITEM) {
-		if (level == LEAF_LEVEL)
-			return 1;
-	} else if (plugin->h.group == EXTENT_ITEM) {
-		if (level != TWIG_LEVEL)
-			return 1;
-	} else if (level != LEAF_LEVEL) 
-		return 1;
-    
-	return 0;
-}
-
 /*
   Initializes item entity in order to pass it to an item plugin routine. If unit
   component of pos is set up the function will initialize item's key from the
@@ -1698,7 +1671,6 @@ static reiser4_plugin_t node40_plugin = {
 		.item_len	 = node40_item_len,
 		.item_body	 = node40_item_body,
 		.item_pid	 = node40_item_pid,
-		.item_legal	 = node40_item_legal,
 	}
 };
 

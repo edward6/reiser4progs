@@ -138,7 +138,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 
 	/* Check that the item is legal for this node. If not, it will be 
 	 * deleted in update traverse callback method. */
-	if (!reiser4_tree_legal_level(reiser4_node_level(node), 
+	if (!reiser4_tree_legal_level(reiser4_node_get_level(node), 
 	    coord.item.plugin->h.group))
 	    return 1;
 
@@ -453,7 +453,7 @@ errno_t repair_node_traverse(reiser4_node_t *node, traverse_item_func_t func,
     rpos_t *pos = &coord.pos;
     uint32_t items;
 
-    aal_assert("vpf-744", node != NULL, return -1);
+    aal_assert("vpf-744", node != NULL);
     
     pos->unit = ~0ul;
 

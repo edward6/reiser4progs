@@ -1875,7 +1875,7 @@ static errno_t callback_item_data_level(
 {
 	uint8_t *level = (uint8_t *)data;
 
-	aal_assert("vpf-746", data != NULL, return -1);
+	aal_assert("vpf-746", data != NULL);
 
 	if (!reiser4_tree_legal_level(*level, plugin->h.group))
 		return 0;
