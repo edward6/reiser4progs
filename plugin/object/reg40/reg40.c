@@ -97,10 +97,9 @@ static int64_t reg40_read(object_entity_t *entity,
 	   initialize @count -- number of bytes to read, @specific -- pointer to
 	   buffer data will be read into, and pointer to tree instance, file is
 	   opened on. */ 
+	aal_memset(&hint, 0, sizeof(hint));
 	hint.count = n;
 	hint.specific = buff;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
 
 	/* Initializing offset data must be read from. This is current file
 	   offset, so we use @reg->position. */
@@ -357,11 +356,10 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 	/* Preparing hint to be used for calling write method. This is
 	   initializing @count - number of bytes to write, @specific - buffer to
 	   write into and @offset -- file offset data must be written at. */
-	hint.bytes = 0;
+	aal_memset(&hint, 0, sizeof(hint));
 	hint.count = n;
 
 	hint.specific = buff;
-	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
 	hint.place_func = place_func;
 	hint.plug = reg->body_plug;
@@ -391,6 +389,8 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t offset) {
 
 	aal_assert("umka-3076", size > offset);
 
+	aal_memset(&hint, 0, sizeof(hint));
+	
 	/* Preparing key of the data to be truncated. */
 	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
 		  assign, &hint.offset, &reg->position);
@@ -399,8 +399,6 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t offset) {
 		  set_offset, &hint.offset, offset);
 
 	/* Removing data from the tree. */
-	hint.place_func = NULL;
-	hint.region_func = NULL;
 	hint.count = size - offset;
 	hint.shift_flags = SF_DEFAULT;
 	hint.data = reg->obj.info.tree;
