@@ -2088,12 +2088,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			if ((res = reiser4_tree_growup(tree)))
 				return res;
 		}
-		
-		if (reiser4_node_items(save.node) == 0) {
-			if ((res = reiser4_tree_detach_node(tree, save.node)))
-				return res;
-		}
-		
+
 		/* Attaching new allocated node into the tree, if it is not
 		   empty. */
 		if (reiser4_node_items(node) > 0) {
