@@ -55,47 +55,38 @@ typedef enum lookup lookup_t;
         (p)->item = i, (p)->unit = u
 
 enum reiser4_plugin_type {
-	FILE_PLUGIN_TYPE        = 0x0,
-
-	/*
-	  In reiser4 kernel code DIR_PLUGIN_TYPE exists, but libreiser4 works
-	  with files and directories by the unified interface and do not need an
-	  additional type for that. But we have to be compatible, because
-	  reiser4_plugin_type may be stored in stat data extentions. So, next
-	  type has 0x2 identifier, not 0x1 one.
-	*/
-
-	ITEM_PLUGIN_TYPE	= 0x2,
-	NODE_PLUGIN_TYPE	= 0x3,
-	HASH_PLUGIN_TYPE	= 0x4,
-	TAIL_PLUGIN_TYPE	= 0x5,
-	PERM_PLUGIN_TYPE	= 0x6,
-	SDEXT_PLUGIN_TYPE	= 0x7,
-	FORMAT_PLUGIN_TYPE	= 0x8,
-	OID_PLUGIN_TYPE		= 0x9,
-	ALLOC_PLUGIN_TYPE	= 0xa,
-	JNODE_PLUGIN_TYPE	= 0xb,
-	JOURNAL_PLUGIN_TYPE	= 0xc,
-	KEY_PLUGIN_TYPE		= 0xd
+	OBJECT_PLUGIN_TYPE      = 0x0,
+	ITEM_PLUGIN_TYPE        = 0x2,
+	NODE_PLUGIN_TYPE        = 0x3,
+	HASH_PLUGIN_TYPE        = 0x4,
+	TAIL_PLUGIN_TYPE        = 0x5,
+	PERM_PLUGIN_TYPE        = 0x6,
+	SDEXT_PLUGIN_TYPE       = 0x7,
+	FORMAT_PLUGIN_TYPE      = 0x8,
+	OID_PLUGIN_TYPE         = 0x9,
+	ALLOC_PLUGIN_TYPE       = 0xa,
+	JNODE_PLUGIN_TYPE       = 0xb,
+	JOURNAL_PLUGIN_TYPE     = 0xc,
+	KEY_PLUGIN_TYPE         = 0xd
 };
 
 typedef enum reiser4_plugin_type reiser4_plugin_type_t;
 
-enum reiser4_file_plugin_id {
-	FILE_REGULAR40_ID	= 0x0,
-	FILE_DIRTORY40_ID	= 0x1,
-	FILE_SYMLINK40_ID	= 0x2,
-	FILE_SPECIAL40_ID	= 0x3
+enum reiser4_object_plugin_id {
+	OBJECT_FILE40_ID        = 0x0,
+	OBJECT_DIRTORY40_ID     = 0x1,
+	OBJECT_SYMLINK40_ID     = 0x2,
+	OBJECT_SPECIAL40_ID     = 0x3
 };
 
-enum reiser4_file_group {
-	REGULAR_FILE		= 0x0,
-	DIRTORY_FILE		= 0x1,
-	SYMLINK_FILE		= 0x2,
-	SPECIAL_FILE		= 0x3
+enum reiser4_object_group {
+	FILE_OBJECT             = 0x0,
+	DIRTORY_OBJECT          = 0x1,
+	SYMLINK_OBJECT          = 0x2,
+	SPECIAL_OBJECT          = 0x3
 };
 
-typedef enum reiser4_file_group reiser4_file_group_t;
+typedef enum reiser4_object_group reiser4_object_group_t;
 
 enum reiser4_item_plugin_id {
 	ITEM_STATDATA40_ID	= 0x0,
@@ -434,7 +425,7 @@ struct reiser4_entry_hint {
 
 typedef struct reiser4_entry_hint reiser4_entry_hint_t;
 
-struct reiser4_file_hint {
+struct reiser4_object_hint {
 	
 	rpid_t statdata;
 
@@ -465,7 +456,7 @@ struct reiser4_file_hint {
 	reiser4_plugin_t *plugin;
 };
 
-typedef struct reiser4_file_hint reiser4_file_hint_t;
+typedef struct reiser4_object_hint reiser4_object_hint_t;
 
 /*
   Flags for using in item hint for denoting is type_specific point for type
@@ -635,13 +626,13 @@ struct reiser4_key_ops {
 
 typedef struct reiser4_key_ops reiser4_key_ops_t;
 
-struct reiser4_file_ops {
+struct reiser4_object_ops {
 	reiser4_plugin_header_t h;
 
 #ifndef ENABLE_ALONE
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (void *, object_entity_t *,
-				    reiser4_file_hint_t *,
+				    reiser4_object_hint_t *,
 				    place_t *);
     
 	/*
@@ -654,12 +645,13 @@ struct reiser4_file_ops {
 	/* Writes the data to file from passed buffer */
 	int32_t (*write) (object_entity_t *, void *, uint32_t);
 
+	/* Directory specific methods */
+	errno_t (*rem_entry) (object_entity_t *, reiser4_entry_hint_t *);
+	errno_t (*add_entry) (object_entity_t *, reiser4_entry_hint_t *);
+	
 	/* Truncates file at current offset onto passed units */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
-	/* Removes units at passed offset */
-	errno_t (*remove) (object_entity_t *, key_entity_t *);
-	
 	/*
 	  Function for going through all metadata blocks specfied file
 	  occupied. It is needed for accessing file's metadata.
@@ -697,16 +689,20 @@ struct reiser4_file_ops {
 
 	/* Makes lookup inside file */
 	lookup_t (*lookup) (object_entity_t *, char *,
-			    void *);
+			    reiser4_entry_hint_t *);
 
-	/* Finds actual file stat data (symlink) */
+	/* Finds actual file stat data (used in symlinks) */
 	errno_t (*follow) (object_entity_t *, key_entity_t *);
 
 	/* Reads the data from file to passed buffer */
 	int32_t (*read) (object_entity_t *, void *, uint32_t);
+
+	/* Directory read method */
+	errno_t (*read_entry) (object_entity_t *,
+			       reiser4_entry_hint_t *);
 };
 
-typedef struct reiser4_file_ops reiser4_file_ops_t;
+typedef struct reiser4_object_ops reiser4_object_ops_t;
 
 struct reiser4_item_ops {
 	reiser4_plugin_header_t h;
@@ -1217,7 +1213,6 @@ typedef struct reiser4_journal_ops reiser4_journal_ops_t;
 union reiser4_plugin {
 	reiser4_plugin_header_t h;
 	
-	reiser4_file_ops_t file_ops;
 	reiser4_item_ops_t item_ops;
 	reiser4_node_ops_t node_ops;
 	reiser4_hash_ops_t hash_ops;
@@ -1226,6 +1221,7 @@ union reiser4_plugin {
 	reiser4_perm_ops_t perm_ops;
 
 	reiser4_sdext_ops_t sdext_ops;
+	reiser4_object_ops_t object_ops;
 	reiser4_format_ops_t format_ops;
 
 #ifndef ENABLE_ALONE
@@ -1243,7 +1239,6 @@ union reiser4_plugin {
 struct place {
 	void *node;
 	rpos_t pos;
-	
 	item_entity_t item;
 };
 

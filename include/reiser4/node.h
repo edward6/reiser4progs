@@ -23,8 +23,6 @@ extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
 
 #ifndef ENABLE_ALONE
 
-extern bool_t reiser4_node_actual(reiser4_node_t *node);
-
 extern void reiser4_node_set_mstamp(reiser4_node_t *node,
 				    uint32_t stamp);
 
