@@ -64,15 +64,20 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 					    reiser4_object_t *parent,
 					    reiser4_object_t *object) 
 {
+	place_func_t place_func;
 	errno_t res;
 	
 	aal_assert("vpf-1182", sem != NULL);
 	aal_assert("vpf-1183", object != NULL);
 	aal_assert("vpf-1255", parent != NULL);
 	
+	place_func = sem->repair->mode == RM_BUILD ? 
+		callback_register_item : NULL;
+	
 	/* Even if this object is ATTACHED already it may allow many names
 	   to itself -- check the attach with this @parent. */
-	res = repair_object_check_attach(parent, object, sem->repair->mode);
+	res = repair_object_check_attach(parent, object, place_func, 
+					 sem, sem->repair->mode);
 	
 	if (res < 0) return res;
 	
@@ -108,7 +113,9 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	
 	aal_strncpy(entry.name, name, sizeof(entry.name));
 	reiser4_key_assign(&entry.object, &object->info->object);
-
+	entry.place_func = callback_register_item;
+	entry.data = NULL;
+	
 	if ((res = reiser4_object_add_entry(parent, &entry)))
 		aal_error("Can't add entry %s to %s.",
 			  name, parent->name);
@@ -579,7 +586,9 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 		reiser4_plug_t *plug;
 		
 		/* Check the attach before. */
-		res = repair_object_check_attach(parent, object, RM_FIX);
+		res = repair_object_check_attach(parent, object, 
+						 callback_register_item,
+						 sem, RM_FIX);
 		
 		if (res < 0)  
 			return res;

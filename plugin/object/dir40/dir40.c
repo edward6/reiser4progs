@@ -848,6 +848,9 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	hint.count = 1;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
+	hint.place_func = entry->place_func;
+	hint.data = entry->data;
+	
 	hint.plug = temp.place.plug;
 	hint.specific = (void *)entry;
 	hint.shift_flags = SF_DEFAULT;

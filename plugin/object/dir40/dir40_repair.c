@@ -418,8 +418,10 @@ errno_t dir40_check_struct(object_entity_t *object,
 	return res;
 }
 
-errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent, 
-			   uint8_t mode)
+errno_t dir40_check_attach(object_entity_t *object, 
+			   object_entity_t *parent,
+			   place_func_t place_func, 
+			   void *data, uint8_t mode)
 {
 	dir40_t *dir = (dir40_t *)object;
 	lookup_t lookup;
@@ -430,7 +432,9 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	aal_assert("vpf-1152", parent != NULL);
 	
 	lookup = dir40_lookup(object, "..", &entry);
-
+	entry.place_func = place_func;
+	entry.data = data;
+	
 	switch(lookup) {
 	case PRESENT:
 		/* If the key matches the parent -- ok. */

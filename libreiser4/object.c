@@ -700,7 +700,7 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 }
 
 /* Completes object creating. */
-static reiser4_object_t *reiser4_object_comp(reiser4_tree_t *tree,
+static reiser4_object_t *reiser4_obj_create(reiser4_tree_t *tree,
 					     reiser4_object_t *parent,
 					     entry_hint_t *entry,
 					     object_hint_t *hint)
@@ -722,6 +722,8 @@ static reiser4_object_t *reiser4_object_comp(reiser4_tree_t *tree,
 	} else {
 		reiser4_key_assign(&entry->offset, &tree->key);
 	}
+	
+	entry->place_func = NULL;
 	
 	/* Creating object by passed parameters. */
 	if (!(object = reiser4_object_create(tree, entry, hint)))
@@ -818,7 +820,7 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 		entry.name[0] = '\0';
 	}
 
-	return reiser4_object_comp(fs->tree, parent, &entry, &hint);
+	return reiser4_obj_create(fs->tree, parent, &entry, &hint);
 }
 
 /* Creates regular file, using all plugins it need from profile. Links new
@@ -861,7 +863,7 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 		entry.name[0] = '\0';
 	}
 
-	return reiser4_object_comp(fs->tree, parent, &entry, &hint);
+	return reiser4_obj_create(fs->tree, parent, &entry, &hint);
 }
 
 /* Creates symlink. Uses params preset for all plugin. */
@@ -903,7 +905,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 		entry.name[0] = '\0';
 	}
 
-	return reiser4_object_comp(fs->tree, parent, &entry, &hint);
+	return reiser4_obj_create(fs->tree, parent, &entry, &hint);
 }
 
 /* Creates special file. Uses params preset for all plugin. */
@@ -946,6 +948,6 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 		entry.name[0] = '\0';
 	}
 
-	return reiser4_object_comp(fs->tree, parent, &entry, &hint);
+	return reiser4_obj_create(fs->tree, parent, &entry, &hint);
 }
 #endif

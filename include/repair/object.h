@@ -30,7 +30,8 @@ extern reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree,
 
 extern errno_t repair_object_check_attach(reiser4_object_t *object, 
 					  reiser4_object_t *parent, 
-					  uint8_t mode);
+					  place_func_t place_func,
+					  void *data, uint8_t mode);
 
 extern reiser4_object_t *repair_object_fake(reiser4_tree_t *tree, 
 					    reiser4_object_t *parent,

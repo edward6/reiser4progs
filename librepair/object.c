@@ -133,7 +133,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 /* Checks the attach between @parent and @object */
 errno_t repair_object_check_attach(reiser4_object_t *parent, 
 				   reiser4_object_t *object, 
-				   uint8_t mode)
+				   place_func_t place_func, 
+				   void *data, uint8_t mode)
 {
 	reiser4_plug_t *plug;
 	
@@ -147,8 +148,9 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	if (!object->entity->plug->o.object_ops->check_attach)
 		return 0;
 	
-	return plug_call(object->entity->plug->o.object_ops, check_attach,
-			 object->entity, parent->entity, mode);
+	return plug_call(object->entity->plug->o.object_ops, check_attach, 
+			 object->entity, parent->entity, place_func, data, 
+			 mode);
 }
 
 errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {

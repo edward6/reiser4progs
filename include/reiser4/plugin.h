@@ -508,28 +508,6 @@ enum entry_type {
 
 typedef enum entry_type entry_type_t;
 
-struct entry_hint {
-	/* Entry metadata size. Filled by rem_entry and add_entry. */
-	uint16_t len;
-	
-	/* Tree coord entry lies at. Filled by dir plugin's lookup. */
-	place_t place;
-
-	/* Entry key within the current directory */
-	key_entity_t offset;
-
-	/* The stat data key of the object entry points to */
-	key_entity_t object;
-
-	/* Entry type (name or special), filled by readdir */
-	entry_type_t type;
-
-	/* Name of entry */
-	char name[256];
-};
-
-typedef struct entry_hint entry_hint_t;
-
 /* Object hint. It is used to bring all about object information to object
    plugin to create appropriate object by it. */
 struct object_hint {
@@ -598,6 +576,35 @@ typedef errno_t (*place_func_t) (place_t *, void *);
 /* Function definitions for enumeration item metadata and data. */
 typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
+
+struct entry_hint {
+	/* Entry metadata size. Filled by rem_entry and add_entry. */
+	uint16_t len;
+	
+	/* Tree coord entry lies at. Filled by dir plugin's lookup. */
+	place_t place;
+
+	/* Entry key within the current directory */
+	key_entity_t offset;
+
+	/* The stat data key of the object entry points to */
+	key_entity_t object;
+
+	/* Entry type (name or special), filled by readdir */
+	entry_type_t type;
+
+	/* Name of entry */
+	char name[256];
+
+	/* Hook called onto each create item during write flow. */
+	place_func_t place_func;
+
+	/* Related opaque data. May be used for passing something to
+	   region_func() and place_func(). */
+	void *data;
+};
+
+typedef struct entry_hint entry_hint_t;
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. This is used for all tree modification purposes like
@@ -831,7 +838,7 @@ struct reiser4_object_ops {
 	
 	/* Checks attach of the @object to the @parent. */
 	errno_t (*check_attach) (object_entity_t *, object_entity_t *,
-				 uint8_t);
+				 place_func_t, void *, uint8_t);
 	
 	/* Realizes if the object can be of this plugin and can be recovered as
 	   a such. */
