@@ -128,7 +128,7 @@ static int32_t dir40_read(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	/* Getting stat data item coord */
+	/* Getting stat data item place */
 	object40_stat(&dir->obj);
 
 	/* Getting size from teh statdata */
@@ -304,7 +304,7 @@ static object_entity_t *dir40_open(void *tree,
                 goto error_free_dir;
         }
 
-	/* Copying statdata coord and looking node it lies in */
+	/* Copying statdata place and looking node it lies in */
 	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
 	object40_lock(&dir->obj, &dir->obj.statdata);
 	
@@ -511,7 +511,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	if (object40_insert(&dir->obj, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_body;
 	
-	/* Saving stat data coord insert function has returned */
+	/* Saving stat data place insert function has returned */
 	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
 	object40_lock(&dir->obj, &dir->obj.statdata);
     

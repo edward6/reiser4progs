@@ -66,7 +66,7 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 	if (object40_init(&sym->obj, &sym40_plugin, key, core, tree))
 		goto error_free_sym;
 
-	/* Saving statdata coord and locking the node it lies in */
+	/* Saving statdata place and locking the node it lies in */
 	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
 	object40_lock(&sym->obj, &sym->obj.statdata);
 
@@ -173,7 +173,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	if (object40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, place))
 		goto error_free_sym;
 
-	/* Saving statdata coord and locking the node it lies in */
+	/* Saving statdata place and locking the node it lies in */
 	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
 	object40_lock(&sym->obj, &sym->obj.statdata);
 		

@@ -69,7 +69,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	return 0;
 }
 
-/* Updates body coord in correspond to file offset */
+/* Updates body place in correspond to file offset */
 static lookup_t reg40_next(reg40_t *reg) {
 	lookup_t res;
 	place_t place;
@@ -167,7 +167,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	return read;
 }
 
-/* Opening reg40 by statdata coord passed in @place */
+/* Opening reg40 by statdata place passed in @place */
 static object_entity_t *reg40_open(void *tree, 
 				   place_t *place) 
 {
@@ -186,7 +186,7 @@ static object_entity_t *reg40_open(void *tree,
 	if (object40_init(&reg->obj, &reg40_plugin, key, core, tree))
 		goto error_free_reg;
 
-	/* saving statdata coord and looking the code it lies in */
+	/* saving statdata place and looking the code it lies in */
 	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
 	object40_lock(&reg->obj, &reg->obj.statdata);
 
