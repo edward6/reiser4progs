@@ -14,6 +14,19 @@
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 
+/*
+    The direntry40 structure is as the following:
+   +-------------------------------+-------------------------------------------------+
+   |           Unit Headers        |                     Units.                      |
+   +-------------------------------+-------------------------------------------------+
+   |                               |                      |   |                      |
+   |count|entry40[0]|...|entry40[N]|objid40[0]|name[0]'\0'|...|objid40[N]|name[N]'\0'|
+   |                               |                      |   |                      |
+   +-------------------------------+-------------------------------------------------+
+
+*/
+
+/* Part of the key, the object, an entry points to. */
 struct objid40 {
     d8_t locality[sizeof(d64_t)];
     d8_t objectid[sizeof(d64_t)];
@@ -27,8 +40,10 @@ typedef struct objid40 objid40_t;
 #define oid_get_objectid(oid)		    LE64_TO_CPU(*((d64_t *)oid->objectid))
 #define oid_set_objectid(oid, val)	    (*(d64_t *)oid->objectid) = CPU_TO_LE64(val)
 
+
+/* Part of the key, describing the entry. */
 struct entryid40 {
-    d8_t objectid[sizeof(uint64_t)];
+    d8_t objectid[sizeof(uint64_t)];	    
     d8_t offset[sizeof(uint64_t)];
 };
 
@@ -41,15 +56,15 @@ typedef struct entryid40 entryid40_t;
 #define eid_set_offset(eid, val)	    (*(d64_t *)eid->offset) = CPU_TO_LE64(val)
 
 struct entry40 {
-    entryid40_t entryid;
-    d16_t offset;
+    entryid40_t entryid;		    /* Unit's part of key - hash for key40 */
+    d16_t offset;			    /* Offset within the direntry40 item. */
 };
 
 typedef struct entry40 entry40_t;
 
 struct direntry40 {
-    d16_t count;
-    entry40_t entry[0];
+    d16_t count;			    /* Unit count. */
+    entry40_t entry[0];			    /* Unit headers. */
 };
 
 typedef struct direntry40 direntry40_t;

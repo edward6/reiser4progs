@@ -283,7 +283,7 @@ static int node40_region_find_bad(reiser4_entity_t *entity, uint16_t *start_pos,
 	    /* Looking for the end of the corrupted region. */
 	    /* 
 		Left reliable offset should be less then the right reliable at 
-		least on 'number of items betreen them' bytes.
+		least on 'number of items between them' bytes.
 	    */
 	    if ((prev_offset + ih40_get_len(ih + 1) == offset) && 
 		(node40_get_offset_at(node->block, *start_pos - 1) < offset -
