@@ -354,11 +354,16 @@ errno_t object40_init(object40_t *object, reiser4_plugin_t *plugin,
 
 /* Performs lookup for the object's stat data */
 errno_t object40_stat(object40_t *object) {
+	uint64_t objectid, locality;
+	
 	aal_assert("umka-1905", object != NULL);
 
+	objectid = object40_objectid(object);
+	locality = object40_locality(object);
+	
 	plugin_call(object->key.plugin->key_ops, build_generic,
-		    &object->key, KEY_STATDATA_TYPE, object40_locality(object),
-		    object40_objectid(object), 0);
+		    &object->key, KEY_STATDATA_TYPE, locality,
+		    objectid, 0);
 
 	/* Unlocking old node */
 	if (object->statdata.node)
@@ -369,13 +374,16 @@ errno_t object40_stat(object40_t *object) {
 					  &object->statdata) != LP_PRESENT) 
 	{
 		aal_exception_error("Can't find stat data of object 0x%llx.", 
-				    object40_objectid(object));
+				    objectid);
 
 		if (object->statdata.node)
 			object40_lock(object, &object->statdata);
 		
 		return -1;
 	}
+
+	aal_memcpy(&object->key, &object->statdata.item.key,
+		   sizeof(object->key));
 	
 	/* Locking new node */
 	object40_lock(object, &object->statdata);

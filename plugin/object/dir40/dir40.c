@@ -535,16 +535,17 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	if (object40_stat(&dir->obj))
 		return -1;
 
+	if (dir40_reset(entity))
+		return -1;
+		
 	size = object40_get_size(&dir->obj);
 
 	aal_assert("umka-1909", size > 0);
 
-	/* FIXME-UMKA: Here also should be removing stat data item */
-	
-	if (dir40_reset(entity))
+	if (dir40_truncate(entity, size))
 		return -1;
-		
-	return dir40_truncate(entity, size);
+
+	return object40_remove(&dir->obj, &dir->obj.key, 1);
 }
 
 static errno_t dir40_remove(object_entity_t *entity,
