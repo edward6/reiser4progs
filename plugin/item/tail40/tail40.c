@@ -234,6 +234,58 @@ static int tail40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	return 1;
 }
 
+/* Estimates how many bytes may be shifted into neighbour item */
+static errno_t tail40_predict(item_entity_t *src_item,
+			      item_entity_t *dst_item,
+			      shift_hint_t *hint)
+{
+	aal_assert("umka-1664", src_item != NULL, return -1);
+	
+	if (hint->flags & SF_LEFT) {
+		if (hint->rest > hint->pos.unit)
+			hint->rest -= (hint->rest - hint->pos.unit);
+		
+		hint->pos.unit -= hint->rest;
+		
+		if (hint->pos.unit == 0 && hint->flags & SF_MOVIP) {
+			hint->rest++;
+			hint->pos.unit = dst_item->len + hint->rest;
+		}
+	} else {
+		uint32_t right;
+
+		if (hint->pos.unit < src_item->len) {
+			right = src_item->len - hint->pos.unit;
+		
+			if (hint->rest > right)
+				hint->rest -= (hint->rest - right);
+		
+			if (hint->pos.unit == (src_item->len - hint->rest) &&
+			    hint->flags & SF_MOVIP)
+			{
+				hint->rest++;
+				hint->pos.unit = 0;
+			}
+		} else {
+			if (hint->flags & SF_MOVIP) {
+				hint->pos.unit = 0;
+				hint->rest = 0;
+			}
+		}
+	}
+
+	hint->units = hint->rest;
+
+	return 0;
+}
+
+static errno_t tail40_shift(item_entity_t *src_item,
+			    item_entity_t *dst_item,
+			    shift_hint_t *hint)
+{
+	return -1;
+}
+
 #endif
 
 static reiser4_plugin_t tail40_plugin = {
@@ -253,12 +305,16 @@ static reiser4_plugin_t tail40_plugin = {
 		.remove	       = tail40_remove,
 		.print	       = tail40_print,
 		.mergeable     = tail40_mergeable,
+		.predict       = tail40_predict,
+		.shift         = tail40_shift,
 #else
 		.init	       = NULL,
 		.insert	       = NULL,
 		.remove	       = NULL,
 		.print	       = NULL,
 		.mergeable     = NULL,
+		.predict       = NULL,
+		.shift         = NULL,
 #endif
 		.open          = NULL,
 		.estimate      = NULL,
@@ -266,9 +322,6 @@ static reiser4_plugin_t tail40_plugin = {
 		.valid	       = NULL,
 		.update        = NULL,
 
-		.shift         = NULL,
-		.predict       = NULL,
-		
 		.units	       = tail40_units,
 		.lookup	       = tail40_lookup,
 		.fetch         = tail40_fetch,

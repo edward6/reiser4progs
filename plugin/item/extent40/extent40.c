@@ -381,6 +381,20 @@ static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	return 1;
 }
 
+static errno_t extent40_predict(item_entity_t *src_item,
+				item_entity_t *dst_item,
+				shift_hint_t *hint)
+{
+	return -1;
+}
+
+static errno_t extent40_shift(item_entity_t *src_item,
+			      item_entity_t *dst_item,
+			      shift_hint_t *hint)
+{
+	return -1;
+}
+
 #endif
 
 static reiser4_plugin_t extent40_plugin = {
@@ -401,6 +415,8 @@ static reiser4_plugin_t extent40_plugin = {
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,
 		.mergeable     = extent40_mergeable,
+		.predict       = extent40_predict,
+		.shift         = extent40_shift,
 #else
 		.init	       = NULL,
 		.update        = NULL,
@@ -408,14 +424,13 @@ static reiser4_plugin_t extent40_plugin = {
 		.remove	       = NULL,
 		.print	       = NULL,
 		.mergeable     = NULL, 
+		.predict       = NULL,
+		.shift         = NULL,
 #endif
 		.estimate      = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
 		.open          = NULL,
-
-		.shift         = NULL,
-		.predict       = NULL,
 
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,

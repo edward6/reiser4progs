@@ -115,9 +115,10 @@ static errno_t direntry40_fetch(item_entity_t *item, uint32_t pos,
 	hint->entryid.offset = eid_get_offset(&entry->entryid);
 
 	objid = direntry40_unit(direntry, pos);
+
+	hint->name = (char *)(objid + 1);
 	hint->objid.objectid = oid_get_objectid(objid);
 	hint->objid.locality = oid_get_locality(objid);
-	hint->name = (char *)(objid + 1);
     
 	return 0;
 }
