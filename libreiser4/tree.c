@@ -747,25 +747,6 @@ static errno_t reiser4_tree_adjust_place(reiser4_tree_t *tree,
 	return reiser4_place_fetch(next);
 }
 
-/* Gets the key of the next item. */
-static errno_t reiser4_tree_next_key(reiser4_tree_t *tree, 
-				     reiser4_place_t *place, 
-				     reiser4_key_t *key) 
-{
-	reiser4_place_t temp;
-	
-	aal_assert("vpf-1427", tree != NULL);
-	aal_assert("vpf-1427", place != NULL);
-	aal_assert("vpf-1427", key != NULL);
-
-	temp = *place;
-	temp.pos.item++;
-	temp.pos.unit = MAX_UINT32;
-
-	return reiser4_tree_place_key(tree, &temp, key);
-}
-
-
 /* Moves @place by one item to right. If node is over, returns node next to
    passed @place. Needed for moving though the tree node by node, for instance
    in directory read code. */
@@ -843,6 +824,24 @@ errno_t reiser4_tree_place_key(reiser4_tree_t *tree,
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Gets the key of the next item. */
+static errno_t reiser4_tree_next_key(reiser4_tree_t *tree, 
+				     reiser4_place_t *place, 
+				     reiser4_key_t *key) 
+{
+	reiser4_place_t temp;
+	
+	aal_assert("vpf-1427", tree != NULL);
+	aal_assert("vpf-1427", place != NULL);
+	aal_assert("vpf-1427", key != NULL);
+
+	temp = *place;
+	temp.pos.item++;
+	temp.pos.unit = MAX_UINT32;
+
+	return reiser4_tree_place_key(tree, &temp, key);
+}
+
 /* Requests block allocator for new block and creates empty node in it. */
 reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					uint8_t level)

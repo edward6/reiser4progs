@@ -345,11 +345,11 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 
 #ifndef ENABLE_STAND_ALONE
 errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
+	int i;
 #else
 errno_t reiser4_opset_init(reiser4_tree_t *tree) {
 #endif
 	reiser4_object_t *object;
-	uint8_t i;
 	
 	aal_assert("vpf-1624", tree != NULL);
 
