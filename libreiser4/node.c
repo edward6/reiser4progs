@@ -443,8 +443,8 @@ static errno_t reiser4_node_register(reiser4_node_t *node,
 
 	/* Checking tree validness and updating node parent pos */
 	if (reiser4_node_pos(child, &child->pos)) {
-		aal_exception_error("Can't find child %llu in parent node %llu.",
-				    child->blk, node->blk);
+		aal_exception_error("Can't find child %llu in parent "
+				    "node %llu.", child->blk, node->blk);
 		return -1;
 	}
 
@@ -469,6 +469,7 @@ static reiser4_node_t *reiser4_node_fnn(
 	reiser4_node_t *child;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
+	
 	reiser4_node_t *old = node;
 	
 	stop = plugin_call(return NULL, node->entity->plugin->node_ops,
@@ -526,15 +527,14 @@ static reiser4_node_t *reiser4_node_fnn(
 		plugin_call(return NULL, coord.entity.plugin->item_ops,
 			    fetch, &coord.entity, 0, &ptr, 1);
 
-		if (!(child = reiser4_node_cbp(node->parent, ptr.ptr))) {
-			child = reiser4_tree_load(node->parent->tree, ptr.ptr);
+		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
+			child = reiser4_tree_load(node->tree, ptr.ptr);
 
-			if (reiser4_node_register(node->parent, child))
+			if (reiser4_node_register(node, child))
 				return NULL;
 		}
 			
 		node = child;
-		
 		level--;
 	}
 
@@ -606,6 +606,27 @@ errno_t reiser4_node_attach(
 	return 0;
 }
 
+static void reiser4_node_unregister(
+	reiser4_node_t *node,	/* node child will be detached from */
+	reiser4_node_t *child)	/* pointer to child to be deleted */
+{
+	aal_list_t *next;
+	
+	if (!node->children)
+		return;
+    
+	child->parent = NULL;
+    
+	/* Updating node children list */
+	next = aal_list_remove(node->children, child);
+	
+	if (!next || !next->prev)
+		node->children = next;
+
+	if (node->tree && aal_lru_detach(node->tree->lru, (void *)child))
+		aal_exception_warn("Can't detach node from tree lru.");
+}
+
 /*
   Remove specified childern from the node. Updates all neighbour pointers and
   parent pointer.
@@ -619,9 +640,6 @@ void reiser4_node_detach(
 	aal_assert("umka-562", node != NULL, return);
 	aal_assert("umka-563", child != NULL, return);
 
-	if (!node->children)
-		return;
-    
 	if (child->left) {
 		child->left->right = NULL;
 		child->left = NULL;
@@ -632,16 +650,7 @@ void reiser4_node_detach(
 		child->right = NULL;
 	}
 
-	child->parent = NULL;
-    
-	/* Updating node children list */
-	next = aal_list_remove(node->children, child);
-	
-	if (!next || !next->prev)
-		node->children = next;
-
-	if (node->tree && aal_lru_detach(node->tree->lru, (void *)child))
-		aal_exception_warn("Can't detach node from tree lru.");
+	reiser4_node_unregister(node, child);
 }
 
 int reiser4_node_confirm(reiser4_node_t *node) {
@@ -780,8 +789,8 @@ errno_t reiser4_node_shift(
 {
 	int retval;
 	uint32_t i, items;
-	reiser4_pos_t ldpos;
-	reiser4_key_t ldkey;
+	reiser4_pos_t pos;
+	reiser4_key_t lkey;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-1225", node != NULL, return -1);
@@ -796,12 +805,12 @@ errno_t reiser4_node_shift(
 	*/
 	if (hint->flags & SF_LEFT) {
 		if (node->parent) {
-			if (reiser4_node_pos(node, &ldpos))
+			if (reiser4_node_pos(node, &pos))
 				return -1;
 		}
 	} else {
 		if (neig->parent) {
-			if (reiser4_node_pos(neig, &ldpos))
+			if (reiser4_node_pos(neig, &pos))
 				return -1;
 		}
 	}
@@ -830,10 +839,10 @@ errno_t reiser4_node_shift(
 			node->flags |= NF_DIRTY;
 			
 			if (node->parent) {
-				if (reiser4_node_lkey(node, &ldkey))
+				if (reiser4_node_lkey(node, &lkey))
 					return -1;
 				
-				if (reiser4_node_ukey(node->parent, &ldpos, &ldkey))
+				if (reiser4_node_ukey(node->parent, &pos, &lkey))
 					return -1;
 			}
 		}
@@ -842,25 +851,25 @@ errno_t reiser4_node_shift(
 			neig->flags |= NF_DIRTY;
 			
 			if (neig->parent) {
-				if (reiser4_node_lkey(neig, &ldkey))
+				if (reiser4_node_lkey(neig, &lkey))
 					return -1;
 				
-				if (reiser4_node_ukey(neig->parent, &ldpos, &ldkey))
+				if (reiser4_node_ukey(neig->parent, &pos, &lkey))
 					return -1;
 			}
 		}
 	}
 
+	/* Updating children lists in node and its neighbour */
 	items = reiser4_node_count(neig);
 	
-	/* Updating children list */
 	for (i = 0; i < hint->items; i++) {
-		reiser4_pos_t pos;
 		reiser4_coord_t coord;
 		reiser4_node_t *child;
 		reiser4_ptr_hint_t ptr;
 
-		pos.item = hint->flags & SF_LEFT ? items - i - 1 : i; 
+		pos.item = hint->flags & SF_LEFT ?
+			items - i - 1 : i; 
 
 		if (reiser4_coord_open(&coord, neig, &pos))
 			return -1;
@@ -875,9 +884,9 @@ errno_t reiser4_node_shift(
 		if (!(child = reiser4_node_cbp(node, ptr.ptr)))
 			continue;
 
-		reiser4_node_detach(node, child);
+		reiser4_node_unregister(node, child);
 
-		if (reiser4_node_attach(neig, child))
+		if (reiser4_node_register(neig, child))
 			return -1;
 	}
 	

@@ -344,14 +344,15 @@ reiser4_file_t *reiser4_file_create(
 		}
 	}
 
-	if (!(file->entity = plugin_call(goto error_free_file, 
-					 plugin->file_ops, create,
-					 fs->tree, &parent_key, &file_key, hint)))
+	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
+					 create, fs->tree, &parent_key, &file_key, hint)))
 	{
 		aal_exception_error("Can't create file with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&file_key));
 		goto error_free_file;
 	}
+
+	/* FIXME-UMKA: Updating parent will be here (nlink, size, etc) */
     
 	return file;
 

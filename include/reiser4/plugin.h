@@ -1115,8 +1115,8 @@ struct reiser4_core {
 };
 
 #define plugin_equal(plugin1, plugin2)                        \
-        (plugin1->h.sign.group == plugin1->h.sign.group &&    \
-	 plugin1->h.sign.id == plugin1->h.sign.id)
+        (plugin1->h.sign.group == plugin2->h.sign.group &&    \
+	 plugin1->h.sign.id == plugin2->h.sign.id)
 
 /* Plugin functions and macros */
 #ifndef ENABLE_COMPACT
