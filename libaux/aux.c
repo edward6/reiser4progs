@@ -20,7 +20,7 @@ int aux_bin_search(
 	void *needle,		        /* array item to be found */
 	aux_comp_func_t comp_func,      /* callback function for comparing items from the array */
 	void *data,			/* user-specified data */
-	uint64_t *pos)		        /* pointer result will be saved in */
+	uint32_t *pos)		        /* pointer result will be saved in */
 {
 	void *elem;
 	int res = 0;

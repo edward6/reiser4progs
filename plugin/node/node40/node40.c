@@ -1217,36 +1217,22 @@ static lookup_t node40_lookup(object_entity_t *entity,
 			      key_entity_t *key,
 			      pos_t *pos)
 {
-	int64_t item;
-	lookup_t res; 
-	uint32_t items;
-	node40_t *node;
-
 	aal_assert("umka-472", key != NULL);
 	aal_assert("umka-478", pos != NULL);
 	aal_assert("umka-470", entity != NULL);
 	aal_assert("umka-714", key->plugin != NULL);
 	aal_assert("umka-2046", node40_loaded(entity));
 
-	node = (node40_t *)entity;
-	items = nh40_get_num_items(node);
-
-	switch (aux_bin_search(node, items, key,
-			       callback_comp_key, 
-			       key->plugin, &item))
+	switch (aux_bin_search(entity, nh40_get_num_items((node40_t *)entity),
+			       key, callback_comp_key, key->plugin, &pos->item))
 	{
 	case 1:
-		res = LP_PRESENT;
-		break;
+		return LP_PRESENT;
 	case 0:
-		res = LP_ABSENT;
-		break;
+		return LP_ABSENT;
 	default:
-		res = LP_FAILED;
+		return LP_FAILED;
 	}
-	
-	pos->item = item;
-	return res;
 }
 
 #ifndef ENABLE_STAND_ALONE

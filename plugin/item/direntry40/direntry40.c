@@ -17,10 +17,15 @@ static lookup_t direntry40_lookup(item_entity_t *item,
   Returns pointer to the objectid entry component in passed @direntry at pased
   @pos. It is used in code bellow.
 */
-static objid_t *direntry40_objid(direntry40_t *direntry,
+static objid_t *direntry40_objid(item_entity_t *item,
 				 uint32_t pos)
 {
-	uint32_t offset = direntry->entry[pos].offset;
+	uint32_t offset;
+	direntry40_t *direntry;
+
+	direntry = direntry40_body(item);
+	offset = direntry->entry[pos].offset;
+	
 	return (objid_t *)((void *)direntry + offset);
 }
 
@@ -29,15 +34,9 @@ static errno_t direntry40_get_obj(item_entity_t *item,
 				  uint32_t pos,
 				  key_entity_t *key)
 {
-	objid_t *objid;
-	direntry40_t *direntry;
-	
-	direntry = direntry40_body(item);
-	objid = direntry40_objid(direntry, pos);
+	objid_t *objid = direntry40_objid(item, pos);
 	
 	/* Building key by means of using key plugin */
-	key->plugin = item->key.plugin;
-	
 	return plugin_call(key->plugin->key_ops, build_short,
 			   key, ob40_get_locality(objid),
 			   ob40_get_objectid(objid));
@@ -52,32 +51,23 @@ static errno_t direntry40_get_key(item_entity_t *item,
 				  key_entity_t *key)
 {
 	oid_t locality;
-	oid_t objectid;
-	uint64_t offset;
-
 	entry40_t *entry;
-	direntry40_t *direntry;
 
 	aal_assert("umka-1606", key != NULL);
 	aal_assert("umka-1607", item != NULL);
 	aal_assert("umka-1605", item->body != NULL);
 	
-	direntry = direntry40_body(item);
-	entry = &direntry->entry[pos];
+	entry = &direntry40_body(item)->entry[pos];
 
 	/* Getting item key params */
 	locality = plugin_call(item->key.plugin->key_ops,
 			       get_locality, &item->key);
 
-	/* Getting entry key params */
-	offset = ha40_get_offset(&entry->hash);
-	objectid = ha40_get_objectid(&entry->hash);
-
-	/* Building the full key */
-	key->plugin = item->key.plugin;
-	
-	plugin_call(item->key.plugin->key_ops, build_generic, key,
-		    KEY_FILENAME_TYPE, locality, objectid, offset);
+	/* Building the full key from entry at @pos */
+	plugin_call(item->key.plugin->key_ops, build_generic,
+		    key, KEY_FILENAME_TYPE, locality,
+		    ha40_get_objectid(&entry->hash),
+		    ha40_get_offset(&entry->hash));
 
 	return 0;
 }
@@ -87,11 +77,8 @@ static char *direntry40_get_name(item_entity_t *item,
 				 uint32_t pos, char *buff)
 {
 	char *name;
-
 	key_entity_t key;
-	direntry40_t *direntry;
 
-	direntry = direntry40_body(item);
 	direntry40_get_key(item, pos, &key);
 
         /*
@@ -100,8 +87,8 @@ static char *direntry40_get_name(item_entity_t *item,
 	*/
 	if (plugin_call(key.plugin->key_ops, tall, &key)) {
 		uint32_t len;
-		
-		name = (char *)((direntry40_objid(direntry, pos)) + 1);
+
+		name = (char *)((direntry40_objid(item, pos)) + 1);
 
 		len = aal_strlen(name);
 		aal_strncpy(buff, name, len);
@@ -155,13 +142,7 @@ static uint32_t direntry40_get_len(item_entity_t *item,
 	  average name is shorter than 15 symbols.
 	*/
 	if (plugin_call(key.plugin->key_ops, tall, &key)) {
-		objid_t *objid;
-		direntry40_t *direntry;
-		
-		/* Counting entry name */
-		direntry = direntry40_body(item);
-		objid = direntry40_objid(direntry, pos);
-		
+		objid_t *objid = direntry40_objid(item, pos);
 		len += aal_strlen((char *)(objid + 1)) + 1;
 	}
 	
@@ -172,12 +153,8 @@ static uint32_t direntry40_get_len(item_entity_t *item,
 
 /* Returns the number of usets passed direntry item contains */
 static uint32_t direntry40_units(item_entity_t *item) {
-	direntry40_t *direntry;
-    
 	aal_assert("umka-865", item != NULL);
-
-	direntry = direntry40_body(item);
-	return de40_get_units(direntry);
+	return de40_get_units(direntry40_body(item));
 }
 
 /* Reads @count of the entries starting from @pos into passed @buff */
@@ -186,19 +163,17 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 {
 	uint32_t i;
 	entry_hint_t *hint;
-	direntry40_t *direntry;
     
 	aal_assert("umka-866", item != NULL);
 	aal_assert("umka-1418", buff != NULL);
+
+	aal_assert("umka-1598",
+		   pos < direntry40_units(item));
     
 	hint = (entry_hint_t *)buff;
-	aal_assert("umka-1599", hint != NULL);
-	
-	if (!(direntry = direntry40_body(item)))
-		return -EINVAL;
 
-	aal_assert("umka-1608", direntry != NULL);
-	aal_assert("umka-1598", pos < de40_get_units(direntry));
+	hint->object.plugin = item->key.plugin;
+	hint->offset.plugin = item->key.plugin;
 
 	/* Check if count is valid one */
 	if (count > direntry40_units(item) - pos)
@@ -225,25 +200,17 @@ static int direntry40_data(void) {
 static int direntry40_mergeable(item_entity_t *item1,
 				item_entity_t *item2)
 {
-	reiser4_plugin_t *plugin;
-	oid_t locality1, locality2;
-	
 	aal_assert("umka-1581", item1 != NULL);
 	aal_assert("umka-1582", item2 != NULL);
-
-	plugin = item1->key.plugin;
 
 	/*
 	  Items mergeable if they have the same locality, that is oid of the
 	  directory they belong to.
 	*/
-	locality1 = plugin_call(plugin->key_ops, get_locality,
-				&item1->key);
-	
-	locality2 = plugin_call(plugin->key_ops, get_locality,
-				&item2->key);
-
-	return (locality1 == locality2);
+	return (plugin_call(item1->key.plugin->key_ops,
+			    get_locality, &item1->key) ==
+		plugin_call(item1->key.plugin->key_ops,
+			    get_locality, &item2->key));
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -306,13 +273,10 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	uint32_t src_units;
 	uint32_t dst_units;
 	uint32_t space, len;
-	direntry40_t *direntry;
 	
 	aal_assert("umka-1591", src_item != NULL);
 	aal_assert("umka-1592", hint != NULL);
 
-	direntry = direntry40_body(src_item);
-	
 	src_units = direntry40_units(src_item);
 	dst_units = dst_item ? direntry40_units(dst_item) : 0;
 
@@ -890,20 +854,17 @@ int32_t direntry40_remove(item_entity_t *item,
 			  uint32_t pos, uint32_t count)
 {
 	uint32_t len;
-	direntry40_t *direntry;
-    
-	aal_assert("umka-934", item != NULL);
 
-	direntry = direntry40_body(item);
+	aal_assert("umka-934", item != NULL);
 
 	/* Shrinking direntry */
 	if ((len = direntry40_shrink(item, pos, count)) <= 0)
 		return -EINVAL;
 
-	de40_inc_units(direntry, count);
+	de40_inc_units(direntry40_body(item), count);
 	
 	/* Updating item key */
-	if (pos == 0 && de40_get_units(direntry) > 0)
+	if (pos == 0 && direntry40_units(item) > 0)
 		direntry40_get_key(item, 0, &item->key);
 
 	return len;
@@ -912,6 +873,7 @@ int32_t direntry40_remove(item_entity_t *item,
 /* Prepares area new item will be created at */
 static errno_t direntry40_init(item_entity_t *item) {
 	aal_assert("umka-1010", item != NULL);
+	aal_assert("umka-2215", item->body != NULL);
 	
 	aal_memset(item->body, 0, item->len);
 	return 0;
@@ -955,7 +917,7 @@ static errno_t direntry40_print(item_entity_t *item,
 	/* Loop though the all entries */
 	for (i = 0; i < de40_get_units(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
-		objid_t *objid = direntry40_objid(direntry, i);
+		objid_t *objid = direntry40_objid(item, i);
 
 		direntry40_get_name(item, i, name);
 
@@ -982,7 +944,23 @@ static errno_t direntry40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t direntry40_check(item_entity_t *item, uint8_t mode);
+/* Returns real maximal key in direntry item */
+static errno_t direntry40_maxreal_key(item_entity_t *item, 
+				      key_entity_t *key) 
+{
+	uint32_t units;
+
+	aal_assert("umka-1651", key != NULL);
+	aal_assert("umka-1650", item != NULL);
+
+	units = direntry40_units(item);
+	aal_assert("umka-1653", units > 0);
+	
+	return direntry40_get_key(item, units - 1, key);
+}
+
+extern errno_t direntry40_check(item_entity_t *item,
+				uint8_t mode);
 
 #endif
 
@@ -993,9 +971,6 @@ extern errno_t direntry40_check(item_entity_t *item, uint8_t mode);
 static errno_t direntry40_maxposs_key(item_entity_t *item, 
 				      key_entity_t *key) 
 {
-	uint64_t offset;
-	uint64_t objectid;
-	
 	key_entity_t *maxkey;
 
 	aal_assert("umka-1649", key != NULL);
@@ -1008,41 +983,16 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 	maxkey = plugin_call(key->plugin->key_ops,
 			     maximal,);
     
-	objectid = plugin_call(key->plugin->key_ops,
-			       get_objectid, maxkey);
-	
-    	offset = plugin_call(key->plugin->key_ops,
-			     get_offset, maxkey);
-
     	plugin_call(key->plugin->key_ops, set_objectid,
-		    key, objectid);
+		    key, plugin_call(key->plugin->key_ops,
+				     get_objectid, maxkey));
 	
 	plugin_call(key->plugin->key_ops, set_offset,
-		    key, offset);
-    
+		    key, plugin_call(key->plugin->key_ops,
+				     get_offset, maxkey));
+	
 	return 0;
 }
-
-#ifndef ENABLE_STAND_ALONE
-
-/* Returns real maximal key in direntry item */
-static errno_t direntry40_maxreal_key(item_entity_t *item, 
-				      key_entity_t *key) 
-{
-	uint32_t units;
-	direntry40_t *direntry;
-	
-	aal_assert("umka-1651", key != NULL);
-	aal_assert("umka-1650", item != NULL);
-
-	direntry = direntry40_body(item);
-	units = de40_get_units(direntry);
-	
-	aal_assert("umka-1653", units > 0);
-	return direntry40_get_key(item, units - 1, key);
-}
-
-#endif
 
 /* 
    Helper function that is used by lookup method for comparing given key with
@@ -1051,17 +1001,12 @@ static errno_t direntry40_maxreal_key(item_entity_t *item,
 static int callback_comp_entry(void *array, uint32_t pos,
 			       void *key, void *data)
 {
-	item_entity_t *item;
-	key_entity_t *wanted;
 	key_entity_t current;
 
-	item = (item_entity_t *)data;
-	wanted = (key_entity_t *)key;
-	
-	direntry40_get_key(item, pos, &current);
-	
-	return plugin_call(item->key.plugin->key_ops, compare,
-			   &current, wanted);
+	direntry40_get_key((item_entity_t *)data, pos, &current);
+
+	return plugin_call(((item_entity_t *)data)->key.plugin->key_ops,
+			   compare, &current, (key_entity_t *)key);
 }
 
 /* Performs lookup inside direntry. Found pos is stored in @pos */
@@ -1070,11 +1015,7 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 				  uint32_t *pos)
 {
 	lookup_t res;
-	uint64_t unit;
-	uint32_t units;
-    
-	direntry40_t *direntry;
-	key_entity_t maxkey, minkey;
+	key_entity_t maxkey;
 
 	aal_assert("umka-610", key != NULL);
 	aal_assert("umka-717", key->plugin != NULL);
@@ -1082,8 +1023,6 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	aal_assert("umka-609", item != NULL);
 	aal_assert("umka-629", pos != NULL);
     
-	direntry = direntry40_body(item);
-
 	/* Getting maximal possible key */
 	direntry40_maxposs_key(item, &maxkey);
 
@@ -1091,17 +1030,13 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	  If looked key is greater that maximal possible one then we going out
 	  and return FALSE, that is the key not found.
 	*/
-	units = direntry40_units(item);
-	
 	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
-		*pos = units;
+		*pos = direntry40_units(item);
 		return LP_ABSENT;
 	}
 
-	/* Comparing looked key with minimal one */
-	plugin_call(key->plugin->key_ops, assign, &minkey, &item->key);
-
-	if (plugin_call(key->plugin->key_ops, compare, &minkey, key) > 0) {
+	/* Comparing looked key with minimal one (that is with item key) */
+	if (plugin_call(key->plugin->key_ops, compare, &item->key, key) > 0) {
 		*pos = 0;
 		return LP_ABSENT;
 	}
@@ -1110,9 +1045,8 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	  Performing binary search inside the direntry in order to find position
 	  of the looked key.
 	*/
-	res = aux_bin_search((void *)direntry, units,
-			     key, callback_comp_entry,
-			     (void *)item, &unit);
+	res = aux_bin_search(item->body, direntry40_units(item), key,
+			     callback_comp_entry, (void *)item, pos);
 
 	/*
 	  Position correcting for the case key was not found. It is needed for
@@ -1121,8 +1055,6 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	*/
 	if (res == LP_FAILED)
 		return res;
-	
-	*pos = (uint32_t)unit;
 
 	return res;
 }

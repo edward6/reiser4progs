@@ -182,7 +182,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 
 	if (dir->body.pos.unit >= units)
 		return -EINVAL;
-	
+
 	/* Reading piece of data */
 	if (plugin_call(item->plugin->item_ops, read, item,
 			entry, dir->body.pos.unit, 1) == 1)

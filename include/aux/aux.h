@@ -21,7 +21,7 @@ extern errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 typedef int (*aux_comp_func_t) (void *, uint32_t, void *, void *);
 
 extern int aux_bin_search(void *array, uint32_t count, void *needle,
-			  aux_comp_func_t comp_func, void *, uint64_t *pos);
+			  aux_comp_func_t comp_func, void *, uint32_t *pos);
 
 extern uint64_t aux_pack_string(char *buff, uint32_t start);
 extern char *aux_unpack_string(uint64_t value, char *buff);
