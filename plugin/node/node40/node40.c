@@ -248,23 +248,21 @@ static void node40_item_init(object_entity_t *entity, reiser4_pos_t *pos,
 #ifndef ENABLE_COMPACT
 
 static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
-			     reiser4_item_hint_t *hint) 
+			     uint32_t len) 
 {
 	void *body;
-	int i, item_pos;
-	uint16_t offset;
-    
-	int is_insert;
 	int is_space;
 	int is_range;
+	int is_insert;
+	int i, item_pos;
+	uint16_t offset;
 
 	item40_header_t *ih;
 
 	aal_assert("umka-817", node != NULL, return -1);
 	aal_assert("vpf-006", pos != NULL, return -1);
-	aal_assert("vpf-007", hint != NULL, return -1);
 
-	is_space = (nh40_get_free_space(node) >= hint->len +
+	is_space = (nh40_get_free_space(node) >= len +
 		    (pos->unit == ~0ul ? sizeof(item40_header_t) : 0));
     
 	is_range = (pos->item <= nh40_get_num_items(node));
@@ -282,11 +280,12 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 		offset = ih40_get_offset(ih);
 
 		size = nh40_get_free_space_start(node) - offset;
-		aal_memmove(node->block->data + offset + hint->len,
+		
+		aal_memmove(node->block->data + offset + len,
 			    node->block->data + offset, size);
 	
 		for (i = item_pos; i < nh40_get_num_items(node); i++, ih--) 
-			ih40_set_offset(ih, ih40_get_offset(ih) + hint->len);
+			ih40_inc_offset(ih, len);
 
 		if (is_insert) {
 			aal_memmove(ih, ih + 1, sizeof(item40_header_t) * 
@@ -297,73 +296,18 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	} else
 		offset = nh40_get_free_space_start(node);
 
-	nh40_inc_free_space_start(node, hint->len);
-	nh40_dec_free_space(node, (hint->len + (is_insert ? sizeof(item40_header_t) : 0)));
+	nh40_inc_free_space_start(node, len);
+	nh40_dec_free_space(node, (len + (is_insert ? sizeof(item40_header_t) : 0)));
 	
-	if (!is_insert) {
+	if (is_insert) {
+		ih40_set_offset(ih, offset);
+		ih40_set_len(ih, len);
+	} else {
 		ih = node40_ih_at(node, pos->item);
-		ih40_set_len(ih, ih40_get_len(ih) + hint->len);
-		return 0;
+		ih40_inc_len(ih, len);
 	}
-    
-	aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
-    
-	ih40_set_offset(ih, offset);
-	ih40_set_len(ih, hint->len);
-	ih40_set_pid(ih, hint->plugin->h.sign.id);
-    
-	return 0;
-}
-
-/* Inserts item described by hint structure into node */
-static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
-			     reiser4_item_hint_t *hint) 
-{ 
-	item_entity_t item;
-	node40_t *node = (node40_t *)entity;
-    
-	aal_assert("umka-818", node != NULL, return -1);
-	aal_assert("vpf-119", pos != NULL, return -1);
-	aal_assert("umka-908", pos->unit == ~0ul, return -1);
-    
-	if (!hint->data)
-		aal_assert("umka-712", hint->key.plugin != NULL, return -1);
-    
-	if (node40_expand(node, pos, hint))
-		return -1;
-
-	nh40_inc_num_items(node, 1);
-    
-	if (hint->data) {
-		aal_memcpy(node40_ib_at(node, pos->item), 
-			   hint->data, hint->len);
-		return 0;
-	}
-    
-	node40_item_init(entity, pos, &item);
 	
-	return plugin_call(return -1, hint->plugin->item_ops,
-			   init, &item, hint);
-}
-
-/* Pastes unit into item described by hint structure. */
-static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
-			    reiser4_item_hint_t *hint) 
-{
-	item_entity_t item;
-	node40_t *node = (node40_t *)entity;
-    
-	aal_assert("umka-1017", node != NULL, return -1);
-	aal_assert("vpf-120", pos != NULL && pos->unit != ~0ul, return -1);
-
-	if (node40_expand(node, pos, hint))
-		return -1;
-
-	node40_item_init(entity, pos, &item);
-	node40_get_key(entity, pos, &item.key);
-	    
-	return plugin_call(return -1, hint->plugin->item_ops, 
-			   insert, &item, pos->unit, hint);
+	return 0;
 }
 
 static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
@@ -404,7 +348,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 		end = node40_ih_at(node, nh40_get_num_items(node) - 1);
 
 		for (cur = ih - 1; cur >= end; cur--)
-			ih40_set_offset(cur, ih40_get_offset(cur) - len);
+			ih40_dec_offset(cur, len);
 	
 		/* Moving headers */
 		if (!is_cut)
@@ -414,6 +358,63 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	nh40_dec_free_space_start(node, len);
     
 	return 0;
+}
+
+/* Inserts item described by hint structure into node */
+static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
+			     reiser4_item_hint_t *hint) 
+{
+	item_entity_t item;
+	item40_header_t *ih;
+	node40_t *node = (node40_t *)entity;
+    
+	aal_assert("umka-818", node != NULL, return -1);
+	aal_assert("vpf-119", pos != NULL, return -1);
+	aal_assert("umka-908", pos->unit == ~0ul, return -1);
+    
+	if (!hint->data)
+		aal_assert("umka-712", hint->key.plugin != NULL, return -1);
+    
+	if (node40_expand(node, pos, hint->len))
+		return -1;
+
+	ih = node40_ih_at(node, pos->item);
+
+	ih40_set_pid(ih, hint->plugin->h.sign.id);
+	aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
+
+	nh40_inc_num_items(node, 1);
+    
+	if (hint->data) {
+		aal_memcpy(node40_ib_at(node, pos->item), 
+			   hint->data, hint->len);
+		return 0;
+	}
+    
+	node40_item_init(entity, pos, &item);
+	
+	return plugin_call(return -1, hint->plugin->item_ops,
+			   init, &item, hint);
+}
+
+/* Pastes unit into item described by hint structure. */
+static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
+			    reiser4_item_hint_t *hint) 
+{
+	item_entity_t item;
+	node40_t *node = (node40_t *)entity;
+    
+	aal_assert("umka-1017", node != NULL, return -1);
+	aal_assert("vpf-120", pos != NULL && pos->unit != ~0ul, return -1);
+
+	if (node40_expand(node, pos, hint->len))
+		return -1;
+
+	node40_item_init(entity, pos, &item);
+	node40_get_key(entity, pos, &item.key);
+	    
+	return plugin_call(return -1, hint->plugin->item_ops, 
+			   insert, &item, pos->unit, hint);
 }
 
 /* This function removes item from the node at specified pos */
@@ -860,10 +861,8 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 		/* Updating item headers in src node */
 		ih = node40_ih_at(estimate.src, src_items - estimate.items - 1);
 		
-		for (i = 0; i < src_items - estimate.items; i++, ih++) {
-			uint32_t offset = ih40_get_offset(ih);
-			ih40_set_offset(ih, offset - estimate.bytes);
-		}
+		for (i = 0; i < src_items - estimate.items; i++, ih++)
+			ih40_dec_offset(ih, estimate.bytes);
 	} else {
 		/* Preparing space for moving item headers in destination
 		 * node */
@@ -883,10 +882,8 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 			aal_memmove(dst, src, estimate.bytes);
 
 			/* Updating item headers */
-			for (i = 0; i < dst_items; i++, ih++) {
-				uint32_t offset = ih40_get_offset(ih);
-				ih40_set_offset(ih, offset + estimate.bytes);
-			}
+			for (i = 0; i < dst_items; i++, ih++)
+				ih40_inc_offset(ih, estimate.bytes);
 		}
 
 		/* Copying item headers from src node to dst */
@@ -926,9 +923,7 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 	  destination node, we should try to shift units from the last item to
 	  first item of destination node.
 	*/
-	if (estimate.part > 0 && !estimate.ipmoved &&
-	    nh40_get_free_space(estimate.dst))
-	{
+	if (estimate.part > 0 && !estimate.ipmoved) {
 		int mergeable;
 		reiser4_plugin_t *plugin;
 		reiser4_pos_t src_pos = {0, ~0ul};
