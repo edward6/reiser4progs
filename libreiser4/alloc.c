@@ -273,7 +273,7 @@ errno_t reiser4_alloc_valid(
 			   valid, alloc->entity);
 }
 
-/* Returns TRUE if specified blocks used. */
+/* Returns TRUE if specified blocks are used. */
 bool_t reiser4_alloc_occupied(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
 	blk_t start, 		/* start block to be tested (used or not) */
@@ -285,7 +285,7 @@ bool_t reiser4_alloc_occupied(
 			   occupied, alloc->entity, start, count);
 }
 
-/* Returns TRUE if specified blocks unused. */
+/* Returns TRUE if specified blocks are unused. */
 bool_t reiser4_alloc_available(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
 	blk_t start, 		/* start block to be tested (used or not) */
