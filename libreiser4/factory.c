@@ -79,7 +79,7 @@ reiser4_plugin_t *libreiser4_plugin_fload(const char *name) {
     
     /* Loading specified plugin filename */
     if (!(handle = dlopen(name, RTLD_NOW))) {
-        aal_exception_error("Can't load plugin \"%s\". %s.", 
+        aal_exception_error("Can't load plugin %s. %s.", 
 	    name, dlerror());
 	return NULL;
     }
@@ -87,7 +87,7 @@ reiser4_plugin_t *libreiser4_plugin_fload(const char *name) {
     /* Getting plugin entry point */
     addr = dlsym(handle, "__plugin_entry");
     if (dlerror() != NULL || addr == NULL) {
-        aal_exception_error("Can't find entry point in plugin \"%s\". %s.", 
+        aal_exception_error("Can't find entry point in plugin %s. %s.", 
 	   name, dlerror());
 	goto error_free_handle;
     }

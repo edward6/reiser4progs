@@ -95,7 +95,7 @@ static errno_t reiser4_file_realize(
 	if (reiser4_tree_lookup(file->fs->tree, REISER4_LEAF_LEVEL, 
 	    &file->key, &file->coord) != 1) 
 	{
-	    aal_exception_error("Can't find stat data of directory \"%s\".", track);
+	    aal_exception_error("Can't find stat data of directory %s.", track);
 	    return -1;
 	}
 	
@@ -158,7 +158,7 @@ static errno_t reiser4_file_realize(
 	if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
 	    file->fs->tree, &file->key)))
 	{
-	    aal_exception_error("Can't open parent of directory \"%s\".", track);
+	    aal_exception_error("Can't open parent of directory %s.", track);
 	    return -1;
 	}
 	    
@@ -171,7 +171,7 @@ static errno_t reiser4_file_realize(
 	}
 	
 	if (plugin->file_ops.lookup(entity, dirname, &file->key) != 1) {
-	    aal_exception_error("Can't find entry \"%s\".", dirname);
+	    aal_exception_error("Can't find entry %s.", dirname);
 		
 	    plugin_call(return -1, plugin->file_ops, close, entity);
 	    return -1;
@@ -212,7 +212,7 @@ reiser4_file_t *reiser4_file_open(
     reiser4_key_init(&parent_key, root_key->plugin, root_key->body);
     
     if (reiser4_file_realize(file, name, &parent_key)) {
-	aal_exception_error("Can't find file \"%s\".", name);
+	aal_exception_error("Can't find file %s.", name);
 	goto error_free_file;
     }
     
@@ -341,7 +341,7 @@ reiser4_file_t *reiser4_file_create(
 	entry.name = (char *)name;
 
 	if (!reiser4_file_write(parent, (char *)&entry, 1)) {
-	    aal_exception_error("Can't add entry \"%s\".", name);
+	    aal_exception_error("Can't add entry %s.", name);
 	    goto error_free_file;
 	}
     }

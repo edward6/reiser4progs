@@ -591,7 +591,7 @@ static int32_t dir40_write(reiser4_entity_t *entity,
     
 	/* Inserting the entry to the tree */
 	if (core->tree_ops.item_insert(dir->tree, &hint)) {
-	    aal_exception_error("Can't add entry \"%s\" to the thee.", 
+	    aal_exception_error("Can't add entry %s to the thee.", 
 		entry->name);
 	    break;
 	}

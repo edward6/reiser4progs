@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     }
     
     if (!(dir = reiser4_file_open(fs, argv[2]))) {
-	aal_exception_error("Can't open dir \"%s\".", argv[2]);
+	aal_exception_error("Can't open dir %s.", argv[2]);
 	goto error_free_fs;
     }
     
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     }
     
     if (reiser4_file_reset(dir)) {
-	aal_exception_error("Can't rewind dir \"%s\".", argv[2]);
+	aal_exception_error("Can't rewind dir %s.", argv[2]);
 	goto error_free_dir;
     }
     

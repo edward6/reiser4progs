@@ -14,6 +14,13 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
+struct stat40_sdext {
+    reiser4_body_t *body;
+    reiser4_plugin_t *plugin;
+};
+
+typedef struct stat40_sdext stat40_sdext_t;
+
 struct stat40 {
     d16_t extmask;
 };

@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     }
     
     if (!(reg = reiser4_file_open(fs, argv[2]))) {
-	aal_exception_error("Can't open file \"%s\".", argv[2]);
+	aal_exception_error("Can't open file %s.", argv[2]);
 	goto error_free_fs;
     }
     

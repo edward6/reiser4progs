@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
     
     /* Initializing passed profile */
     if (!(profile = progs_profile_find(profile_label))) {
-	aal_exception_error("Can't find profile by its label \"%s\".", 
+	aal_exception_error("Can't find profile by its label %s.", 
 	    profile_label);
 	goto error;
     }
@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
 	*/
 	if (!S_ISBLK(st.st_mode)) {
 	    if (!force) {
-		aal_exception_error("Device \"%s\" is not block device. "
+		aal_exception_error("Device %s is not block device. "
 		    "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
 	    }
@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
 	    if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 64 == 0) ||
 		(SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) && !force)
 	    {
-		aal_exception_error("Device \"%s\" is an entire harddrive, not "
+		aal_exception_error("Device %s is an entire harddrive, not "
 		    "just one partition.", host_dev);
 		goto error_free_libreiser4;
 	    }
@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
    
 	/* Checking if passed partition is mounted */
 	if (progs_misc_dev_mounted(host_dev, NULL) && !force) {
-	    aal_exception_error("Device \"%s\" is mounted at the moment. "
+	    aal_exception_error("Device %s is mounted at the moment. "
 		"Use -f to force over.", host_dev);
 	    goto error_free_libreiser4;
 	}
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
 	if (!(device = aal_file_open(host_dev, blocksize, O_RDWR))) {
 	    char *error = strerror(errno);
 	
-	    aal_exception_error("Can't open device \"%s\". %s.", host_dev, error);
+	    aal_exception_error("Can't open device %s. %s.", host_dev, error);
 	    goto error_free_libreiser4;
 	}
     
@@ -312,12 +312,12 @@ int main(int argc, char *argv[]) {
 	/* Checking for "quiet" mode */
 	if (!quiet) {
 	    if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, 
-		   "Reiser4 is going to be created on \"%s\".", host_dev) == EXCEPTION_NO)
+		   "Reiser4 is going to be created on %s.", host_dev) == EXCEPTION_NO)
 		goto error_free_device;
 	}
     
-	aal_gauge_rename("Creating reiser4 on \"%s\" with "
-	    "\"%s\" profile", host_dev, profile->label);
+	aal_gauge_rename("Creating reiser4 on %s with "
+	    "%s profile", host_dev, profile->label);
 	aal_gauge_start();
 
 	/* Creating filesystem */
@@ -354,7 +354,7 @@ int main(int argc, char *argv[]) {
 
 	aal_gauge_done();
 	
-	aal_gauge_rename("Synchronizing \"%s\"", host_dev);
+	aal_gauge_rename("Synchronizing %s", host_dev);
 	aal_gauge_start();
 	
 	/* Synchronizing device. If device we are using is a file_device 
