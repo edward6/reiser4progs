@@ -41,7 +41,7 @@ AM_CONFIG_HEADER(config.h)
 AC_DEFINE_UNQUOTED(LIBREISER4_MAX_INTERFACE_VERSION, $LIBREISER4_BINARY_AGE)
 AC_DEFINE_UNQUOTED(LIBREISER4_MIN_INTERFACE_VERSION, $LIBREISER4_INTERFACE_AGE)
 
-dnl Macro for checking libaal
+# Macro for checking libaal
 AC_DEFUN(AC_CHECK_LIBAAL,
 [
 
@@ -50,7 +50,7 @@ AC_CHECK_LIB($1, aal_device_open, ,
 http://www.namesys.com/pub/libaal])]
 $4)
 
-dnl Check for headers and library
+# Check for headers and library
 AC_CHECK_HEADER(aal/aal.h, ,
     [AC_MSG_ERROR([<aal/aal.h> not found])] 
 $4)
@@ -61,7 +61,7 @@ AC_TRY_LINK_FUNC(libaal_version,,
     AC_MSG_RESULT(failed)
     AC_MSG_ERROR([lib$1 can't execute test]))
 
-dnl Get major, minor, and micro version from arg MINIMUM-VERSION
+# Get major, minor, and micro version from arg MINIMUM-VERSION
 libaal_config_major_version=`echo $2 | \
     sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
 libaal_config_minor_version=`echo $2 | \
@@ -69,7 +69,7 @@ libaal_config_minor_version=`echo $2 | \
 libaal_config_micro_version=`echo $2 | \
     sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
 
-dnl Compare MINIMUM-VERSION with libaal version
+# Compare MINIMUM-VERSION with libaal version
 AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,7 +109,7 @@ int main() {
     AC_MSG_RESULT(no) ; $4,
     [echo $ac_n "cross compiling; assumed OK... $ac_c"])
 
-dnl Execute ACTION-IF-FOUND
+# Execute ACTION-IF-FOUND
 $3])
 
 AC_ARG_WITH(uuid,
@@ -117,7 +117,7 @@ AC_ARG_WITH(uuid,
         with_uuid=yes
 )
 
-dnl Check for libuuid
+# Check for libuuid
 if test "$with_uuid" = yes; then
     OLD_LIBS="$LIBS"
     LIBS=""
@@ -138,7 +138,7 @@ AC_ARG_WITH(readline,
         with_readline=yes
 )
 
-dnl Check for termcap
+# Check for termcap
 if test "$with_readline" = yes; then
 	OLD_LIBS="$LIBS"
 	LIBS=""
@@ -153,7 +153,7 @@ termcap could not be found which is required for the
 	LIBS="$OLD_LIBS"
 fi
 
-dnl Check for readline
+# Check for readline
 if test "$with_readline" = yes; then
     OLD_LIBS="$LIBS"
     LIBS=""
@@ -260,8 +260,8 @@ if test x$enable_monolithic = xyes; then
     GENERIC_CFLAGS="-DENABLE_MONOLITHIC"
 fi
 
-dnl make libc threadsafe (not required for us for awhile, but useful other users of
-dnl libreiser4)
+# make libc threadsafe (not required for us for awhile, but useful other users of
+# libreiser4)
 GENERIC_CFLAGS="$GENERIC_CFLAGS -D_REENTRANT"
 
 AM_PROG_LIBTOOL
@@ -289,10 +289,10 @@ AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_CHECK_HEADERS([printf.h errno.h fcntl.h mntent.h stdint.h stdlib.h string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
 
-dnl Checks for typedefs, structures and compiler characteristics.
+# Checks for typedefs, structures and compiler characteristics.
 AC_C_BIGENDIAN
 
-dnl Checks for library functions.
+# Checks for library functions.
 if test "$with_readline" = yes; then
     OLD_LIBS="$LIBS"
     LIBS="$LIBS $PROGS_LIBS"
@@ -329,7 +329,7 @@ else
 -malign-labels=1 -momit-frame-pointer -mno-inline -mstrength-reduce"
 fi
 
-dnl Check for libdl, if we are doing dynamic loading
+# Check for libdl, if we are doing dynamic loading
 if test x$enable_monolithic = xno; then
     OLD_LIBS="$LIBS"
     LIBS=""
