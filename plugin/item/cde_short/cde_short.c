@@ -958,7 +958,6 @@ static reiser4_item_ops_t cde_short_ops = {
 #endif
 	.branch            = NULL,
 
-	.data		   = cde_short_data,
 	.lookup		   = cde_short_lookup,
 	.units		   = cde_short_units,
 	.read              = cde_short_read,

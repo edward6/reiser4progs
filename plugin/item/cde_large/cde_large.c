@@ -978,7 +978,6 @@ static reiser4_item_ops_t cde_large_ops = {
 #endif
 	.branch            = NULL,
 
-	.data		   = cde_large_data,
 	.lookup		   = cde_large_lookup,
 	.units		   = cde_large_units,
 	.read              = cde_large_read,

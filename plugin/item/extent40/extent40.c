@@ -701,7 +701,6 @@ static reiser4_item_ops_t extent40_ops = {
 #endif
 	.branch           = NULL,
 
-	.data	          = extent40_data,
 	.read             = extent40_read,
 	.units	          = extent40_units,
 	.lookup	          = extent40_lookup,

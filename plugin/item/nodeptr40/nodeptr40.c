@@ -143,7 +143,6 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.size		  = NULL,
 	.bytes		  = NULL,
 #endif
-	.data		  = NULL,
 	.lookup		  = NULL,
 	.mergeable        = NULL,
 

@@ -402,7 +402,6 @@ static reiser4_item_ops_t tail40_ops = {
 	.units	          = tail40_units,
 	.lookup	          = tail40_lookup,
 	.read	          = tail40_read,
-	.data		  = tail40_data,
 
 #ifndef ENABLE_STAND_ALONE
 	.mergeable        = tail40_mergeable,
