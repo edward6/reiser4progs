@@ -150,14 +150,15 @@ static errno_t repair_fs_check_setup(reiser4_fs_t *fs, repair_check_t *data) {
 	return -1;
     }
 
-    if (!(repair_cut_data(data)->format_layout = reiser4_bitmap_create(
+    if (!(repair_cut_data(data)->format_layout = aux_bitmap_create(
 	reiser4_format_get_len(data->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for format layout blocks.");
 	return -1;
     }
     
-    aal_memset(repair_cut_data(data)->format_layout->map, 0xff, size);
+    aal_memset(repair_cut_data(data)->format_layout->map, 0xff, 
+	repair_cut_data(data)->format_layout->size);
     
     if (reiser4_format_layout(fs->format, callback_mark_format_block, 
 	repair_cut_data(data)->format_layout)) 

@@ -480,12 +480,13 @@ struct reiser4_statdata_ops {
 typedef struct reiser4_statdata_ops reiser4_statdata_ops_t;
 
 struct reiser4_ptr_ops {
-    blk_t (*get_ptr) (reiser4_item_t *, uint16_t);
-    errno_t (*set_ptr) (reiser4_item_t *, uint16_t, blk_t);
+    blk_t   (*get_ptr) (reiser4_item_t *);
+    errno_t (*set_ptr) (reiser4_item_t *, blk_t);
+    count_t (*get_width) (reiser4_item_t *);
+    errno_t (*set_width) (reiser4_item_t *, count_t);
 };
 
-typedef struct reiser4_ptr_ops reiser4_internal_ops_t;
-typedef struct reiser4_ptr_ops reiser4_extent_ops_t;
+typedef struct reiser4_ptr_ops reiser4_ptr_ops_t;
 
 struct reiser4_item_ops {
     reiser4_plugin_header_t h;
@@ -539,9 +540,9 @@ struct reiser4_item_ops {
     /* Methods specific to particular type of item */
     union {
 	reiser4_statdata_ops_t statdata;
-	reiser4_ptr_ops_t      prt;
+	reiser4_ptr_ops_t      ptr;
 	reiser4_direntry_ops_t direntry;
-	
+
 	/* Here shall be filebody item (extent, tail) */
 
     } specific;

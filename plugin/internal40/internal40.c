@@ -15,7 +15,7 @@ static internal40_t *internal40_body(reiser4_item_t *item) {
 	item->node->plugin->node_ops, item_body, item->node, item->pos);
 }
 
-static internal40_t *internal40_count(reiser4_item_t *item) {
+static uint32_t internal40_count(reiser4_item_t *item) {
     return 1;
 }
 
@@ -62,13 +62,13 @@ static errno_t internal40_print(reiser4_item_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t internal40_set_ptr(reiser4_item_t *item, uint16_t unit 
-    blk_t blk)
+static errno_t internal40_set_ptr(reiser4_item_t *item, blk_t blk)
 {
     internal40_t *internal;
     
     aal_assert("umka-605", item != NULL, return -1);
-    aal_assert("vpf-354", unit != 1, return -1);
+    aal_assert("vpf-361", item->pos != NULL, return -1);
+    aal_assert("vpf-360", item->pos->unit == 0, return -1);
     
     internal = internal40_body(item);
     it40_set_ptr(internal, blk);
@@ -78,11 +78,12 @@ static errno_t internal40_set_ptr(reiser4_item_t *item, uint16_t unit
 
 #endif
 
-static blk_t internal40_get_ptr(reiser4_item_t *item, uint16_t unit) {
+static blk_t internal40_get_ptr(reiser4_item_t *item) {
     internal40_t *internal;
     
     aal_assert("umka-606", item != NULL, return 0);
-    aal_assert("vpf-353", unit != 1, return 0);
+    aal_assert("vpf-362", item->pos != NULL, return 0);
+    aal_assert("vpf-363", item->pos->unit == 0, return 0);
     
     internal = internal40_body(item);
     
@@ -133,11 +134,13 @@ static reiser4_plugin_t internal40_plugin = {
 	
     	.specific = {
 	    .ptr = {
-		.get_ptr = internal40_get_ptr,
+		.get_ptr    = internal40_get_ptr,
+		.get_width  = NULL,
+		.set_width  = NULL,
 #ifndef ENABLE_COMPACT
-		.set_ptr = internal40_set_ptr
+		.set_ptr    = internal40_set_ptr
 #else
-		.set_ptr = NULL
+		.set_ptr    = NULL
 #endif
 	    }
 	}

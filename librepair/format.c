@@ -17,6 +17,15 @@ errno_t callback_data_block_check(reiser4_entity_t *format, blk_t blk,
     return passed_blk == blk ? 1 : 0;
 }
 
+errno_t callback_mark_format_block(reiser4_entity_t *format, blk_t blk, 
+    void *data) 
+{
+    aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
+
+    aux_bitmap_clear(format_layout, blk);
+    
+    return 0;
+}
 
 static reiser4_plugin_t *__choose_format(reiser4_fs_t *fs, 
     aal_device_t *host_device) 

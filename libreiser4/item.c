@@ -208,7 +208,7 @@ blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
 	return 0;
     }
     
-    return plugin_call(return 0, item->plugin->item_ops.specific.internal, 
+    return plugin_call(return 0, item->plugin->item_ops.specific.ptr, 
 	get_ptr, item);
 }
 
@@ -229,7 +229,7 @@ errno_t reiser4_item_set_nptr(reiser4_item_t *item,
     }
     
     /* Calling node plugin for handling */
-    return plugin_call(return -1, item->plugin->item_ops.specific.internal, 
+    return plugin_call(return -1, item->plugin->item_ops.specific.ptr, 
 	set_ptr, item, blk);
 }
 

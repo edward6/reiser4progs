@@ -486,9 +486,8 @@ errno_t reiser4_node_traverse(
 	    
 	    if (!reiser4_item_internal(&item))
 		continue;
-
-	    pos.unit = reiser4_item_count(&item) == 1 ? ~0ul : 0;
-	    while(1) {
+	    
+	    for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
 		blk_t target;
 		
 		if ((target = reiser4_item_get_nptr(&item))) {
@@ -509,11 +508,6 @@ errno_t reiser4_node_traverse(
 		    if (update_func && (result = update_func(node, &item, data)))
 			goto error_after_func;
 		}
-
-		if (pos.unit == ~0ul || pos.unit == (reiser4_item_count(&item) - 1))
-		    break;
-		
-		pos.unit ++;
 	    }
 	}
 	
