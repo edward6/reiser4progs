@@ -60,13 +60,24 @@ typedef struct repair_ts {
     aux_bitmap_t *bm_used;
     aux_bitmap_t *bm_twig;
     aux_bitmap_t *bm_leaf;
-    aux_bitmap_t *bm_met;
-    aux_bitmap_t *bm_unfm;
+    aux_bitmap_t *bm_met;	/* frmt | used | leaf | twig | (after ts) unfm */
+    aux_bitmap_t *bm_unfm_tree;	/* Unformatted blocks pointed from the tree. */
+    aux_bitmap_t *bm_unfm_out;	/* Unformatted blocks pointed out of the tree. */
 } repair_ts_t;
 
+/* Add missing. */
+typedef struct repair_am {
+    aux_bitmap_t *bm_used;
+    aux_bitmap_t *bm_insert;
+
+    reiser4_tree_t *tree;
+
+    reiser4_key_t max_real_key;
+} repair_am_t;
+
 typedef struct repair_data {
-    reiser4_format_t *format;
-    reiser4_alloc_t *alloc;
+    reiser4_fs_t *fs;
+    reiser4_profile_t *profile;
     uint16_t options;
     uint16_t mode;
     uint16_t flags;
@@ -74,12 +85,14 @@ typedef struct repair_data {
 	repair_filter_t filter;
 	repair_ds_t ds;
 	repair_ts_t ts;
+	repair_am_t am;
     } pass;
 } repair_data_t;
 
 #define repair_filter(data) (&(data)->pass.filter)
 #define repair_ts(data)	    (&(data)->pass.ts)
 #define repair_ds(data)	    (&(data)->pass.ds)
+#define repair_am(data)	    (&(data)->pass.am)
 
 /* Temporary flags set during recovery. */
 #define REPAIR_BAD_PTR			0x1
