@@ -1,9 +1,9 @@
 /*
-    coord.c -- reiser4 tree coord functions. Coord contains full information
-    about smaller tree element position in the tree. The instance of structure 
-    reiser4_coord_t contains pointer to node where needed unit or item lies,
-    item position and unit position in specified item. 
-    Copyright (C) 1996-2002 Hans Reiser.
+  coord.c -- reiser4 tree coord functions. Coord contains full information
+  about smaller tree element position in the tree. The instance of structure 
+  reiser4_coord_t contains pointer to node where needed unit or item lies,
+  item position and unit position in specified item. 
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <reiser4/reiser4.h>
@@ -22,7 +22,7 @@ inline void reiser4_pos_init(
 /* Creates coord instance based on passed joint, item pos and unit pos params */
 reiser4_coord_t *reiser4_coord_create(
     reiser4_joint_t *joint,	/* the first component of coord */
-    uint32_t item,		/* the second one */
+uint32_t item,		/* the second one */
     uint32_t unit		/* the third one */
 ) {
     reiser4_coord_t *coord;
