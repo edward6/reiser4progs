@@ -1525,9 +1525,10 @@ errno_t reiser4_tree_convert(reiser4_tree_t *tree,
 
 	if ((res = reiser4_place_fetch(place)))
 		return res;
-
+	
+	/* FIXME-VITALY->UMKA: not plugs are equal, but their groups are. */
 	if (plug_equal(plug, place->plug))
-		return 0;
+		return -EINVAL;
 
 	return 0;
 }

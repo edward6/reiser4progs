@@ -432,9 +432,8 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 	reiser4_key_t src_max, start_key;
 	reiser4_place_t dst;
 	uint32_t src_units;
-	bool_t whole = 1;
 	copy_hint_t hint;
-	lookup_t lookup;
+	bool_t whole = 1;
 	errno_t ret;
 	pos_t src_pos;
 	int res;
@@ -455,22 +454,26 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 		return res;
 	
 	while (1) {
-		lookup = reiser4_tree_lookup(tree, &start_key, 
-					     LEAF_LEVEL, &dst);
-		
-		if (lookup == PRESENT) {
+		switch (reiser4_tree_lookup(tree, &start_key, LEAF_LEVEL, &dst))
+		{
+		case PRESENT:
 			/* Whole data can not be inserted */
 			whole = 0;
-		} else if (dst.pos.item == reiser4_node_items(dst.node)) {
-			/* If right neighbour is overlapped with src item, move
-			   dst there. */	    
-			pos_t rpos = {0, -1};
-			reiser4_place_t rplace;
-			reiser4_node_t *rnode;
-			
-			rnode = reiser4_tree_neigh(tree, dst.node, D_RIGHT);
-			
-			if (rnode != NULL) {
+			break;
+		case ABSENT:
+			/* If right neighbour is overlapped with src item, 
+			   move dst there. */
+			if (dst.pos.item == reiser4_node_items(dst.node)) {
+				pos_t rpos = {0, -1};
+				reiser4_place_t rplace;
+				reiser4_node_t *rnode;
+
+				rnode = reiser4_tree_neigh(tree, dst.node, 
+							   D_RIGHT);
+
+				if (rnode == NULL)
+					break;
+
 				if (reiser4_place_open(&rplace, rnode, &rpos))
 					return -EINVAL;
 				
@@ -481,19 +484,20 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 					whole = 0;
 					dst = rplace;
 				}
-			}
-		} else {
-			if ((res = reiser4_place_fetch(&dst)))
-				return res;
-			
-			if (dst.pos.unit == reiser4_item_units(&dst)) {
+			} else {
+				if ((res = reiser4_place_fetch(&dst)))
+					return res;
+
 				/* Insert another item as between the last real
 				   key in the found item and start_key can be a
 				   hole. Items which can be merged will be at
 				   semantic pass. */
-				dst.pos.item++;
-				dst.pos.unit = MAX_UINT32;
-			} else {
+				if (dst.pos.unit == reiser4_item_units(&dst)) {
+					dst.pos.item++;
+					dst.pos.unit = MAX_UINT32;
+					break;
+				}
+
 				if ((res = reiser4_place_fetch(&dst)))
 					return res;
 				
@@ -505,8 +509,12 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 					whole = 0;
 				}
 			}
+			
+			break;
+		case FAILED:
+			return -EINVAL;
 		}
-	
+		
 		if (!whole) {
 			aal_memset(&hint, 0, sizeof(hint));
 			reiser4_key_assign(&hint.start, &start_key);
@@ -519,23 +527,30 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			if ((res = reiser4_place_fetch(&dst)))
 				return res;
 			
-			
-			if (dst.plug->id.id != src->plug->id.id) {
-				/* FIXME: relocation code should be here. */		
-				aal_exception_error("Tree Overwrite failed to "
-						    "overwrite items of different "
-						    "plugins. Source: node (%llu), "
-						    "item (%u), unit (%u). "
-						    "Destination: node (%llu), "
-						    "items (%u), unit (%u). "
-						    "Relocation is not supported "
-						    "yet.", node_blocknr(src->node), 
-						    src->pos.item, src->pos.unit, 
-						    node_blocknr(dst.node), dst.pos.item, 
-						    dst.pos.unit);
+			if (dst.plug->id.group != src->plug->id.group) {
+				/* Conversion cannot be performed. */
+				aal_exception_error("Node (%llu), item (%u): "
+						    "the item (%s) being "
+						    "inserted into the tree is "
+						    "overlapped with the item "
+						    "(%s) by keys. Insertion "
+						    "is skipped.", 
+						    node_blocknr(src->node), 
+						    src->pos.item, 
+						    src->plug->label,
+						    dst.plug->label);
+
 				return 0;
+			} else {
+				/* Convert dst to the src plugin. */
+				if ((res = reiser4_tree_convert(tree, &dst,
+								src->plug)) < 0)
+					return res;
+				
+				/* Lookup with the same key again. */
+				continue;
 			}
-			
+
 			if ((res = reiser4_item_maxreal_key(&dst, &hint.end)))
 				return res;
 			
@@ -543,27 +558,9 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 				return res;
 		}
 		
-		ret = repair_tree_copy_by_place(tree, &dst, src, whole ? NULL : &hint);
-		
-		if (ret) {
-			if (whole) {				
-				aal_exception_error("Tree Copy failed: from the node "
-						    "(%llu), item (%u) to the node "
-						    "(%llu), item (%u). Key interval "
-						    "[%s] - [%s].", node_blocknr(src->node), 
-						    src->pos.item, node_blocknr(dst.node), 
-						    dst.pos.item,  reiser4_print_key(&hint.start, PO_DEF),
-						    reiser4_print_key(&hint.end, PO_DEF));
-			} else {
-				aal_exception_error("Tree Copy failed: from the node "
-						    "(%llu), item (%u) to the node "
-						    "(%llu), item (%u).", 
-						    node_blocknr(src->node), src->pos.item, 
-						    node_blocknr(dst.node), dst.pos.item);
-			}
-			
-			return ret;
-		}
+		if ((ret = repair_tree_copy_by_place(tree, &dst, src, whole ? 
+						     NULL : &hint)))
+			goto error;
 		
 		if (whole || !src->plug->o.item_ops->lookup)
 			break;
@@ -581,5 +578,24 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 	src->pos = src_pos;
 	
 	return 0;
+	
+ error:
+	if (whole) {
+		aal_exception_error("Tree Copy failed: from the node "
+				    "(%llu), item (%u) to the node "
+				    "(%llu), item (%u). Key interval "
+				    "[%s] - [%s].", node_blocknr(src->node), 
+				    src->pos.item, node_blocknr(dst.node), 
+				    dst.pos.item,  reiser4_print_key(&hint.start, PO_DEF),
+				    reiser4_print_key(&hint.end, PO_DEF));
+	} else {
+		aal_exception_error("Tree Copy failed: from the node "
+				    "(%llu), item (%u) to the node "
+				    "(%llu), item (%u).", 
+				    node_blocknr(src->node), src->pos.item, 
+				    node_blocknr(dst.node), dst.pos.item);
+	}
+	
+	return res;
 }
 
