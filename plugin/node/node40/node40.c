@@ -730,7 +730,7 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 				  item.plugin->h.sign.id, item.plugin->h.label);
 
 		/* Printing item by means of calling item print method */
-		if (level > LEAF_LEVEL || options) {
+		if (level > LEAF_LEVEL) {
 			
 			if (plugin_call(return -1, item.plugin->item_ops, print,
 					&item, stream, options))

@@ -26,8 +26,7 @@ extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
 					   uint8_t level);
 
 extern errno_t reiser4_node_print(reiser4_node_t *node,
-				  aal_stream_t *stream,
-				  uint16_t options);
+				  aal_stream_t *stream);
 
 extern errno_t reiser4_node_sync(reiser4_node_t *node);
 

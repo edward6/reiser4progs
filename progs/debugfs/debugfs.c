@@ -32,8 +32,7 @@ enum print_flags {
 	PF_ALLOC    = 1 << 2,
 	PF_OID	    = 1 << 3,
 	PF_TREE	    = 1 << 4,
-	PF_ITEMS    = 1 << 5,
-	PF_BLOCK    = 1 << 6
+	PF_BLOCK    = 1 << 5
 };
 
 typedef enum print_flags print_flags_t;
@@ -70,9 +69,6 @@ static void debugfs_print_usage(char *name) {
 		"  -c, --cat FILE            browses passed file like standard\n"
 		"                            cat program.\n"
 		"Print options:\n"
-		"  -i, --print-items         forces debugfs.reiser4 to print\n"
-		"                            items content if --print-tree was\n"
-		"                            specified.\n"
 		"  -t, --print-tree          prints the whole tree.\n"
 		"  -j, --print-journal       prints journal.\n"
 		"  -s, --print-super         prints the both super blocks.\n"
@@ -104,21 +100,15 @@ static void debugfs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
-struct tree_print_hint {
-	reiser4_tree_t *tree;
-	print_flags_t flags;
-};
-
 /* Callback function used in traverse for opening the node */
 static errno_t debugfs_open_node(
 	reiser4_node_t **node,      /* node to be opened */
 	blk_t blk,                  /* block node lies in */
 	void *data)		    /* traverse data */
 {
-	struct tree_print_hint *print_hint =
-		(struct tree_print_hint *)data;
+	reiser4_tree_t *tree = (reiser4_tree_t *)data;
 
-	*node = reiser4_tree_load(print_hint->tree, blk);
+	*node = reiser4_tree_load(tree, blk);
 	return -(*node == NULL);
 }
 
@@ -128,12 +118,9 @@ static errno_t debugfs_print_node(
 {	
 	aal_stream_t stream;
 
-	struct tree_print_hint *print_hint =
-		(struct tree_print_hint *)data;
-
 	aal_stream_init(&stream);
 
-	if (reiser4_node_print(node, &stream, print_hint->flags & PF_ITEMS))
+	if (reiser4_node_print(node, &stream))
 		goto error_free_stream;
 
 	printf((char *)stream.data);
@@ -146,13 +133,12 @@ static errno_t debugfs_print_node(
 	return -1;
 }
 
-static errno_t debugfs_print_tree(reiser4_fs_t *fs, print_flags_t flags) {
+static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 	traverse_hint_t hint;
-	struct tree_print_hint print_hint = {fs->tree, flags};
 	
-	hint.objects = 1 << NODEPTR_ITEM;
-	hint.data = &print_hint;
 	hint.cleanup = 1;
+	hint.data = fs->tree;
+	hint.objects = 1 << NODEPTR_ITEM;
 	
 	reiser4_node_traverse(fs->tree->root, &hint, debugfs_open_node, 
 			      debugfs_print_node, NULL, NULL, NULL);
@@ -790,13 +776,10 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	return res;
 }
 
-static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk,
-				   print_flags_t flags)
-{
+static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	errno_t res = 0;
 	reiser4_node_t *node;
 	struct traverse_hint hint;
-	struct tree_print_hint print_hint;
 
 	if (!reiser4_alloc_test(fs->alloc, blk)) {
 		aal_exception_info("Block %llu is not belong to "
@@ -834,10 +817,7 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk,
 
 	aal_exception_enable();
 	
-	print_hint.tree = fs->tree;
-	print_hint.flags = flags;
-
-	hint.data = &print_hint;
+	hint.data = fs->tree;
 		
 	res = debugfs_print_node(node, &hint);
 	reiser4_node_close(node);
@@ -870,7 +850,6 @@ int main(int argc, char *argv[]) {
 		{"force", no_argument, NULL, 'f'},
 		{"ls", required_argument, NULL, 'l'},
 		{"cat", required_argument, NULL, 'c'},
-		{"print-items", no_argument, NULL, 'i'},
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
 		{"print-super", no_argument, NULL, 's'},
@@ -919,9 +898,6 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'j':
 			print_flags |= PF_JOURNAL;
-			break;
-		case 'i':
-			print_flags |= PF_ITEMS;
 			break;
 		case 't':
 			print_flags |= PF_TREE;
@@ -1048,24 +1024,15 @@ int main(int argc, char *argv[]) {
 	}
     
 	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET)) {
-		if (!(print_flags & PF_ITEMS)) {
-			if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
-						"Ambiguous print options has been detected. "
-						"Continue?") == EXCEPTION_NO)
-				goto error_free_fs;
-		}
+		if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
+					"Few print options has been detected. "
+					"Continue?") == EXCEPTION_NO)
+			goto error_free_fs;
 	}
 
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
 		print_flags = PF_SUPER;
 		
-	if (!(print_flags & PF_TREE) && !(print_flags & PF_BLOCK) &&
-	    (print_flags & PF_ITEMS))
-	{
-		aal_exception_warn("Option --print-items is only active if "
-				   "--print-tree is specified.");
-	}
-
 	if (!(behav_flags & BF_DFRAG) && (behav_flags & BF_SEACH)) {
 		aal_exception_warn("Option --show-each is only active if "
 				   "--data-frag is specified.");
@@ -1134,12 +1101,12 @@ int main(int argc, char *argv[]) {
 	}
     
 	if (print_flags & PF_TREE) {
-		if (debugfs_print_tree(fs, print_flags))
+		if (debugfs_print_tree(fs))
 			goto error_free_fs;
 	}
 
 	if (print_flags & PF_BLOCK) {
-		if (debugfs_print_block(fs, blocknr, print_flags))
+		if (debugfs_print_block(fs, blocknr))
 			goto error_free_fs;
 	}
     

@@ -52,14 +52,13 @@ reiser4_node_t *reiser4_node_create(
 
 errno_t reiser4_node_print(
 	reiser4_node_t *node,   /* node to be printed */
-	aal_stream_t *stream,   /* stream for printing in */
-	uint16_t options)       /* some options */
+	aal_stream_t *stream)   /* stream for printing in */
 {
 	aal_assert("umka-1537", node != NULL, return -1);
 	aal_assert("umka-1538", stream != NULL, return -1);
 	
 	return plugin_call(return -1, node->entity->plugin->node_ops,
-			   print, node->entity, stream, options);
+			   print, node->entity, stream, 0);
 }
 
 #endif

@@ -372,9 +372,6 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 					(dst_units == 0 ? sizeof(direntry40_t) : 0);
 				
 				en40_dec_offset(entry, dec);
-
-				aal_assert("umka-1641", en40_get_offset(entry) < src_item->len,
-					   return -1);
 			}
 		}
 		
