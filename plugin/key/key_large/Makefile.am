@@ -12,7 +12,8 @@ else
 STATIC_LIBS                     = 
 lib_LTLIBRARIES			= libkey_large.la
 libkey_large_la_LIBADD		= @AAL_LIBS@ \
-				  $(top_builddir)/libaux/libaux-static.la
+				  $(top_builddir)/libaux/libaux-static.la \
+				  $(top_builddir)/plugin/key/key_common/libkey_common-static.la
 
 libkey_large_la_SOURCES		= $(key_large_sources)
 libkey_large_la_LDFLAGS		= @PLUGIN_LDFLAGS@

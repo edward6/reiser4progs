@@ -535,9 +535,6 @@ struct reiser4_key_ops {
 	/* Returns maximal key for this key-format */
 	key_entity_t *(*maximal) (void);
 
-	/* Shows if key large (4 components) or short (3 components) */
-	int (*large) (void);
-
 	/* Compares two keys by comparing its all components */
 	int (*compraw) (body_t *, body_t *);
 

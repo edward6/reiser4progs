@@ -15,6 +15,7 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          oid/oid40/liboid40-static.la \
 			          node/node_short/libnode_short-static.la \
 			          node/node_large/libnode_large-static.la \
+			          key/key_common/libkey_common-static.la \
 			          key/key_short/libkey_short-static.la \
 			          key/key_large/libkey_large-static.la \
 			          item/body40/libbody40-static.la \
@@ -43,6 +44,7 @@ libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          oid/oid40/liboid40-alone.la \
 			          node/node_short/libnode_short-alone.la \
 			          node/node_large/libnode_large-alone.la \
+			          key/key_common/libkey_common-alone.la \
 			          key/key_short/libkey_short-alone.la \
 			          key/key_large/libkey_large-alone.la \
 			          item/body40/libbody40-alone.la \

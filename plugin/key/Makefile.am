@@ -1,1 +1,1 @@
-SUBDIRS = key_short key_large
+SUBDIRS = key_common key_short key_large
