@@ -531,16 +531,20 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 
 	dir = (dir40_t *)entity;
 	
+	if (object40_stat(&dir->obj))
+		return -1;
+	
 	if (object40_link(&dir->obj, -1))
 		return -1;
 
-	if (object40_get_nlink(&dir->obj) > 0)
+	/*
+	  Checking if nlink reached 1. It is right for directory because it has
+	  first entry refferenced to itself.
+	*/
+	if (object40_get_nlink(&dir->obj) > 1)
 		return 0;
 	
 	/* Removing directory when nlink became zero */
-	if (object40_stat(&dir->obj))
-		return -1;
-
 	if (dir40_reset(entity))
 		return -1;
 		
@@ -551,6 +555,9 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	if (dir40_truncate(entity, size))
 		return -1;
 
+	if (object40_stat(&dir->obj))
+		return -1;
+	
 	return object40_remove(&dir->obj, &dir->obj.key, 1);
 }
 

@@ -323,6 +323,9 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 
 	reg = (reg40_t *)entity;
 	
+	if (object40_stat(&reg->obj))
+		return -1;
+
 	if (object40_link(&reg->obj, -1))
 		return -1;
 
@@ -330,9 +333,6 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 		return 0;
 	
 	/* Removing file when nlink became zero */
-	if (object40_stat(&reg->obj))
-		return -1;
-
 	if (reg40_reset(entity))
 		return -1;
 	
@@ -341,6 +341,9 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	aal_assert("umka-1913", size > 0);
 	
 	if (reg40_truncate(entity, size))
+		return -1;
+
+	if (object40_stat(&reg->obj))
 		return -1;
 
 	return object40_remove(&reg->obj, &reg->obj.key, 1);
