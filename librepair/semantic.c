@@ -105,7 +105,7 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	aal_strncpy(entry.name, name, sizeof(entry.name));
 	reiser4_key_assign(&entry.object, &object->info->object);
 
-	if ((res = reiser4_object_add_entry(object, &entry)))
+	if ((res = reiser4_object_add_entry(parent, &entry)))
 		aal_exception_error("Can't add entry %s to %s.",
 				    name, parent->name);
 	
@@ -318,7 +318,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	
 	if (object == NULL) {
 		aal_exception_error("Failed to open the object [%s].", 
-				    reiser4_print_key(&entry->offset, PO_INODE));
+				    reiser4_print_key(&entry->object, PO_INODE));
 		
 		if (sem->repair->mode != RM_CHECK)
 			goto error_rem_entry;

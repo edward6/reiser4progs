@@ -64,8 +64,8 @@ reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree,
 					  reiser4_object_t *parent,
 					  place_t *place) 
 {
-	return reiser4_object_guess(tree, parent, NULL, place,
-				    repair_object_init);
+	return reiser4_object_guess(tree, parent, &place->key, 
+				    place, repair_object_init);
 }
 
 /* Create the fake object--needed for "/" and "lost+found" recovery when SD 

@@ -165,6 +165,7 @@ reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 	
 	aal_assert("umka-1508", tree != NULL);
 	aal_assert("umka-1509", place != NULL);
+	aal_assert("vpf-1409",  okey != NULL);
 	aal_assert("vpf-1221",  init_func != NULL);
 
 	aal_memset(&info, 0, sizeof(info));
@@ -184,12 +185,9 @@ reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 				   &parent->info->object);
 	}
 
-	/* Putting object key to info struct. */
-	if (okey) {
-		/* We may want to open and fix the object even if 
-		   @place->key does not match @okey. */
-		reiser4_key_assign(&object->info->object, okey);
-	}
+	/* Putting object key to info struct. We may want to open and fix 
+	   the object even if @place->key does not match @okey. */
+	reiser4_key_assign(&object->info->object, okey);
 
 	/* Copying item coord. */
 	aal_memcpy(&object->info->start, place, sizeof(*place));
