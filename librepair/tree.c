@@ -55,11 +55,10 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
 errno_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key, 
     reiser4_coord_t *coord) 
 {
-    reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
     uint32_t items;
     int lookup;
      
-    if ((lookup = reiser4_tree_lookup(tree, key, &stop, coord)) < 0) {
+    if ((lookup = reiser4_tree_lookup(tree, key, LEAF_LEVEL, coord)) < 0) {
 	aal_stream_t stream = EMPTY_STREAM;
 	
 	reiser4_key_print(key, &stream);
@@ -177,7 +176,6 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 /* Insert the item with overwriting of existent in the tree items if needed. */
 errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
-
     reiser4_coord_t coord;
     reiser4_key_t src_key, dst_key;
     errno_t res;
@@ -198,6 +196,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 	}
 	
 	res = repair_tree_lookup(tree, &insert->item.key, &coord);
+
 	if (res == 0) {
 	    /* Start key does not exist in the tree. Prepare the insertion. */
 
