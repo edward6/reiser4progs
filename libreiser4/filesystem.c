@@ -62,7 +62,7 @@ reiser4_fs_t *reiser4_fs_open(
 		goto error_free_format;
     
 	if (reiser4_alloc_valid(fs->alloc))
-		aal_exception_warn("Block allocator data seems to be corrupted.");
+		aal_exception_warn("Block allocator data seems corrupted.");
     
 	/* Journal device may be not specified. In this case it will not be opened */
 	if (journal_device) {

@@ -6,6 +6,10 @@
   reiser4progs/COPYING.
 */
 
+#ifndef ENABLE_COMPACT
+#  include <sys/resource.h>
+#endif
+
 #include <reiser4/reiser4.h>
 
 /* Creates joint instance based on passed node */
@@ -22,6 +26,31 @@ reiser4_joint_t *reiser4_joint_create(
 
 	joint->node = node;
 	return joint;
+}
+
+errno_t reiser4_joint_lock(reiser4_joint_t *joint) {
+	errno_t res = 0;
+	
+	aal_assert("umka-1515", joint != NULL, return -1);
+
+	if (joint->parent)
+		res = reiser4_joint_lock(joint->parent);
+	
+	joint->counter++;
+	return res;
+}
+
+errno_t reiser4_joint_unlock(reiser4_joint_t *joint) {
+	errno_t res = 0;
+	
+	aal_assert("umka-1516", joint != NULL, return -1);
+	aal_assert("umka-1517", joint->counter > 0, return -1);
+
+	if (joint->parent)
+		res = reiser4_joint_unlock(joint->parent);
+	
+	joint->counter--;
+	return res;
 }
 
 /* Makes duplicate of the passed @joint */
@@ -43,7 +72,17 @@ void reiser4_joint_close(
 	aal_list_t *children;
     
 	aal_assert("umka-793", joint != NULL, return);
-    
+
+	if (joint->flags & JF_DIRTY) {
+		aal_exception_warn("Destroing dirty joint. Block %llu.",
+				   aal_block_number(joint->node->block));
+	}
+
+	if (joint->counter) {
+		aal_exception_warn("Destroing locked (%d) joint. Block %llu.",
+				   joint->counter, aal_block_number(joint->node->block));
+	}
+	
 	children = joint->children ? 
 		aal_list_first(joint->children) : NULL;
 
@@ -104,6 +143,13 @@ reiser4_joint_t *reiser4_joint_find(
 					   (void *)key, callback_comp_key, NULL)))
 		return NULL;
 
+	/* Updating tree lru */
+	joint->tree->lru = aal_list_remove(
+		aal_list_first(joint->tree->lru), found);
+
+	joint->tree->lru = aal_list_insert(
+		aal_list_first(joint->tree->lru), found, 0);
+	
 	return (reiser4_joint_t *)found->data;
 }
 
@@ -178,7 +224,7 @@ errno_t reiser4_joint_pos(
    This function raises up both neighbours of the passed joint. This is used
    by shifting code in tree.c
 */
-errno_t reiser4_joint_realize(
+reiser4_joint_t *reiser4_joint_left(
 	reiser4_joint_t *joint)	/* joint for working with */
 {
 	reiser4_key_t key;
@@ -194,27 +240,41 @@ errno_t reiser4_joint_realize(
 	*/
 	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
     
-	aal_assert("umka-776", joint != NULL, return -1);
+	aal_assert("umka-776", joint != NULL, return NULL);
 
+	/* Parent is not present. The root node. */
 	if (!joint->parent)
-		return 0;
+		return NULL;
     
 	/*
-	  Attaching right and left neighbours into the tree. Here we take them
-	  keys and perform lookup. We use lookup because it attaches all nodes
-	  belong to search path.
+	  Attaching left neighbour into the tree. Here we take its key and
+	  perform lookup. We use lookup because it attaches all nodes belong to
+	  search path and settups them neighbours pointers.
 	*/
 	if (!joint->left) {
 		if (reiser4_joint_neighbour_key(joint, D_LEFT, &key) == 0)
 			reiser4_tree_lookup(joint->tree, &key, &level, NULL);
 	}
 
+	return joint->left;
+}
+
+reiser4_joint_t *reiser4_joint_right(reiser4_joint_t *joint) {
+	reiser4_key_t key;
+
+	reiser4_level_t level = {LEAF_LEVEL, LEAF_LEVEL};
+    
+	aal_assert("umka-1510", joint != NULL, return NULL);
+
+	if (!joint->parent)
+		return NULL;
+    
 	if (!joint->right) {
 		if (reiser4_joint_neighbour_key(joint, D_RIGHT, &key) == 0)
 			reiser4_tree_lookup(joint->tree, &key, &level, NULL);
 	}
     
-	return 0;
+	return joint->right;
 }
 
 /* Helper function for registering in joint */
@@ -234,6 +294,28 @@ static int callback_comp_joint(
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
+static inline errno_t reiser4_joint_check(reiser4_joint_t *joint) {
+
+#ifndef ENABLE_COMPACT
+	int res;
+	struct rusage rusage;
+	
+	if ((res = getrusage(RUSAGE_SELF, &rusage)))
+		return res;
+
+	if (rusage.ru_majflt != joint->tree->flt) {
+		joint->tree->flt = rusage.ru_majflt;
+
+		aal_exception_info("Memory presure event. Running tree collector.");
+		
+		if (reiser4_tree_collector(joint->tree))
+			return -1;
+	}
+#endif
+	
+	return 0;
+}
+
 /*
   Connects children into sorted children list of specified node. Sets up both
   neighbours and parent pointer.
@@ -250,7 +332,18 @@ errno_t reiser4_joint_attach(
     
 	aal_assert("umka-561", joint != NULL, return -1);
 	aal_assert("umka-564", child != NULL, return -1);
-    
+
+	joint->counter++;
+	
+	if (reiser4_joint_check(joint)) {
+		aal_exception_error("Can't flush unused nodes "
+				    "under memory preure.");
+		joint->counter--;
+		return -1;
+	}
+	
+	joint->counter--;
+	
 	/* Inserting passed joint into right position */
 	children = joint->children ? 
 		aal_list_first(joint->children) : NULL;
@@ -295,7 +388,11 @@ errno_t reiser4_joint_attach(
 		if (child->right)
 			child->right->left = child;
 	}
-    
+
+	/* Updating tree lru list */
+	joint->tree->lru = aal_list_insert(aal_list_first(joint->tree->lru),
+					   child, 0);
+
 	return 0;
 }
 
@@ -326,7 +423,11 @@ void reiser4_joint_detach(
 	child->tree = NULL;
 	child->parent = NULL;
     
+	/* Updating joint children list */
 	joint->children = aal_list_remove(joint->children, child);
+
+	/* Updating tree lru list */
+	joint->tree->lru = aal_list_remove(aal_list_first(joint->tree->lru), child);
 }
 
 #ifndef ENABLE_COMPACT
@@ -637,6 +738,8 @@ errno_t reiser4_joint_traverse(
 	aal_assert("vpf-392", joint->node->block != NULL, return -1);
 	aal_assert("vpf-418", hint != NULL, return -1);
 
+	joint->counter++;
+	
 	if ((before_func && (result = before_func(joint, hint->data))))
 		goto error;
 
@@ -680,7 +783,7 @@ errno_t reiser4_joint_traverse(
 
 					if (!child)
 						goto update;
-					
+
 					if (reiser4_joint_attach(joint, child))
 						goto error_update_func;
 
@@ -715,15 +818,13 @@ errno_t reiser4_joint_traverse(
 	if (after_func && (result = after_func(joint, hint->data)))
 		goto error;
 
+	joint->counter--;
 	return result;
 
  error_update_func:
 	
 	if (child->data && !child->children) {
-		
-		if (child->parent)
-			reiser4_joint_detach(joint, child);
-		
+		reiser4_joint_detach(joint, child);
 		reiser4_joint_close(child);
 	}
 
@@ -735,6 +836,7 @@ errno_t reiser4_joint_traverse(
 		result = after_func(joint, hint->data);
     
  error:
+	joint->counter--;
 	return result;
 }
 

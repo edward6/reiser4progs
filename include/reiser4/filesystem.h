@@ -265,6 +265,15 @@ struct reiser4_tree {
 
 	/* Tree root key */
 	reiser4_key_t key;
+
+	/*
+	  The list of joints present in tree cache sorted in recently used
+	  order. Thanks a lot to Nikita for this good idea.
+	*/
+	aal_list_t *lru;
+
+	/* The old value of major page faults */
+	long flt;
 };
 
 /* Callback function type for opening node. */

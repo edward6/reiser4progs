@@ -58,9 +58,10 @@ extern errno_t reiser4_joint_traverse(reiser4_joint_t *joint, traverse_hint_t *h
 
 #endif
 
-extern errno_t reiser4_joint_realize(reiser4_joint_t *joint);
-
-#define joint_dirty(joint) (joint->flags & JF_DIRTY)
+extern reiser4_joint_t *reiser4_joint_left(reiser4_joint_t *joint);
+extern reiser4_joint_t *reiser4_joint_right(reiser4_joint_t *joint);
+extern errno_t reiser4_joint_lock(reiser4_joint_t *joint);
+extern errno_t reiser4_joint_unlock(reiser4_joint_t *joint);
 
 #endif
 

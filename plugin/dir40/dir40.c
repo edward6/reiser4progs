@@ -66,13 +66,22 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	key.plugin = dir->key.plugin;
 	plugin_call(return -1, key.plugin->key_ops, build_direntry, key.body, 
 		    dir->hash, dir40_locality(dir), dir40_objectid(dir), ".");
-	    
+
+	if (dir->body.data)
+		core->tree_ops.unlock(dir->tree, &dir->body);
+	
 	if (core->tree_ops.lookup(dir->tree, &key, &level, &dir->body) != 1) {
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    dir40_objectid(dir));
+
+		if (dir->body.data)
+			core->tree_ops.lock(dir->tree, &dir->body);
+		
 		return -1;
 	}
 
+	core->tree_ops.lock(dir->tree, &dir->body);
+	
 	dir->offset = 0;
 	dir->body.pos.unit = 0;
 
@@ -98,16 +107,25 @@ static errno_t dir40_realize(dir40_t *dir) {
 	plugin_call(return -1, dir->key.plugin->key_ops, build_generic, 
 		    dir->key.body, KEY_STATDATA_TYPE, dir40_locality(dir), 
 		    dir40_objectid(dir), 0);
-    
+
+	if (dir->statdata.data)
+		core->tree_ops.unlock(dir->tree, &dir->statdata);
+	
 	/* Positioning to the dir stat data */
 	if (core->tree_ops.lookup(dir->tree, &dir->key, &level,
 				  &dir->statdata) != 1) 
 	{
 		aal_exception_error("Can't find stat data of directory 0x%llx.", 
 				    dir40_objectid(dir));
+
+		if (dir->statdata.data)
+			core->tree_ops.lock(dir->tree, &dir->statdata);
+		
 		return -1;
 	}
     
+	core->tree_ops.lock(dir->tree, &dir->statdata);
+	
 	if (!(dir->hash = dir40_guess(dir))) {
 		aal_exception_error("Can't guess hash plugin for directory %llx.", 
 				    dir40_objectid(dir));
@@ -142,6 +160,10 @@ static int dir40_next(object_entity_t *entity) {
 	
 	/* Checking if items are mergeable */
 	if (curr_locality == next_locality) {
+		
+		core->tree_ops.unlock(dir->tree, &dir->body);
+		core->tree_ops.lock(dir->tree, &right);
+		
 		dir->body = right;
 		return 1;
 	}
@@ -464,9 +486,7 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 	return NULL;
 }
 
-static errno_t dir40_truncate(object_entity_t *entity, 
-			      uint64_t n) 
-{
+static errno_t dir40_truncate(object_entity_t *entity, uint64_t n) {
 	/* Sorry, not implemented yet! */
 	return -1;
 }
@@ -512,14 +532,23 @@ static int32_t dir40_write(object_entity_t *entity,
     
 		hint.len = 0;
 		hint.plugin = dir->body.entity.plugin;
-    
+
+/*		if (dir->body.data)
+			core->tree_ops.unlock(dir->tree, &dir->body);*/
+		
 		/* Inserting the entry to the tree */
 		if (core->tree_ops.insert(dir->tree, &hint, LEAF_LEVEL, NULL)) {
 			aal_exception_error("Can't add entry %s to the thee.", 
 					    entry->name);
+			
+/*			if (dir->body.data)
+				core->tree_ops.lock(dir->tree, &dir->body);*/
+			
 			break;
 		}
 
+//		core->tree_ops.lock(dir->tree, &dir->body);
+		
 		entry++;
 	}
     
@@ -553,7 +582,16 @@ static errno_t dir40_layout(object_entity_t *entity, file_action_func_t func,
 #endif
 
 static void dir40_close(object_entity_t *entity) {
+	dir40_t *dir = (dir40_t *)entity;
+	
 	aal_assert("umka-750", entity != NULL, return);
+
+	if (dir->statdata.data)
+		core->tree_ops.unlock(dir->tree, &dir->statdata);
+	
+	if (dir->body.data)
+		core->tree_ops.unlock(dir->tree, &dir->body);
+	
 	aal_free(entity);
 }
 

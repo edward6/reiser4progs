@@ -11,6 +11,7 @@
 
 #ifndef ENABLE_COMPACT
 #  include <sys/stat.h>
+#  include <sys/resource.h>
 #endif
 
 #include <reiser4/reiser4.h>
@@ -156,6 +157,64 @@ static errno_t reiser4_tree_build_key(
 	return 0;
 }
 
+errno_t reiser4_tree_collector(reiser4_tree_t *tree) {
+	aal_list_t *curr;
+	reiser4_joint_t *joint;
+	
+	aal_assert("umka-1519", tree != NULL, return -1);
+	aal_assert("umka-1520", tree->lru != NULL, return -1);
+
+	curr = aal_list_last(tree->lru);
+	
+	while (curr) {
+		joint = (reiser4_joint_t *)curr->data;
+		curr = curr->prev;
+
+		if (joint->counter == 0) {
+			if (!(joint->flags & JF_DIRTY)) {
+				
+				if (!joint->parent)
+					continue;
+
+				if (joint->children)
+					continue;
+				
+				reiser4_joint_detach(joint->parent, joint);
+				tree->lru = aal_list_remove(tree->lru, joint);
+				reiser4_joint_close(joint);
+			} else {
+				/* Joint flushing will be here */
+//				aal_exception_info("Flushing the joint %llu.",
+//						   aal_block_number(joint->node->block));
+			}
+		}
+	}
+	
+	return 0;
+}
+
+static errno_t reiser4_tree_setup(reiser4_tree_t *tree) {
+	
+#ifndef ENABLE_COMPACT
+	int res;
+	struct rusage rusage;
+	
+	if ((res = getrusage(RUSAGE_SELF, &rusage)))
+		return res;
+
+	tree->flt = rusage.ru_majflt;
+#endif
+	
+	tree->lru = aal_list_insert(tree->lru, tree->root, 0);
+	return 0;
+}
+
+/* Returns tree root block number */
+blk_t reiser4_tree_root(reiser4_tree_t *tree) {
+	aal_assert("umka-738", tree != NULL, return FAKE_BLK);
+	return aal_block_number(tree->root->node->block);
+}
+
 /* Opens the tree (that is, the tree cache) on specified filesystem */
 reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 	blk_t tree_root;
@@ -183,18 +242,13 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 		goto error_free_tree;
     
 	tree->root->tree = tree;
+	reiser4_tree_setup(tree);
     
 	return tree;
 
  error_free_tree:
 	aal_free(tree);
 	return NULL;
-}
-
-/* Returns tree root block number */
-blk_t reiser4_tree_root(reiser4_tree_t *tree) {
-	aal_assert("umka-738", tree != NULL, return FAKE_BLK);
-	return aal_block_number(tree->root->node->block);
 }
 
 #ifndef ENABLE_COMPACT
@@ -251,6 +305,7 @@ reiser4_tree_t *reiser4_tree_create(
 	reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
 
 	tree->root->tree = tree;
+	reiser4_tree_setup(tree);
     
 	return tree;
 
@@ -265,7 +320,7 @@ reiser4_tree_t *reiser4_tree_create(
    Saves whole cached tree and removes all nodes except root node from the 
    cache.
 */
-errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
+/*errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
 	aal_list_t *list;
     
 	aal_assert("umka-573", tree != NULL, return -1);
@@ -285,7 +340,7 @@ errno_t reiser4_tree_flush(reiser4_tree_t *tree) {
 	}
 
 	return 0;
-}
+}*/
 
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
@@ -298,7 +353,11 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 /* Closes specified tree (frees all assosiated memory) */
 void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("umka-134", tree != NULL, return);
-    
+
+	/* Freeing tree lru list */
+	aal_list_free(aal_list_first(tree->lru));
+
+	/* Freeing tree cashe and tree itself*/
 	reiser4_joint_close(tree->root);
 	aal_free(tree);
 }
@@ -645,6 +704,9 @@ errno_t reiser4_tree_mkspace(
 	int alloc;
 	uint32_t max_space;
 	int32_t not_enough;
+
+	reiser4_joint_t *left;
+	reiser4_joint_t *right;
 	reiser4_joint_t *parent;
 
 	aal_assert("umka-759", old != NULL, return -1);
@@ -671,24 +733,18 @@ errno_t reiser4_tree_mkspace(
 	if ((not_enough = needed  - reiser4_node_space(old->u.joint->node)) <= 0)
 		return 0;
     
-	if (reiser4_joint_realize(old->u.joint)) {
-		aal_exception_error("Can't raise up neighbours of node %llu.", 
-				    aal_block_number(old->u.joint->node->block));
-		return -1;
-	}
-    
-	if (new->u.joint->left) {
+	if ((left = reiser4_joint_left(new->u.joint))) {
 	    
-		if (reiser4_tree_shift(tree, D_LEFT, new, new->u.joint->left, needed, 0))
+		if (reiser4_tree_shift(tree, D_LEFT, new, left, needed, 0))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(new->u.joint->node)) <= 0)
 			return 0;
 	}
 
-	if (new->u.joint->right) {
+	if ((right = reiser4_joint_right(new->u.joint))) {
 	    
-		if (reiser4_tree_shift(tree, D_RIGHT, new, new->u.joint->right, needed, 0))
+		if (reiser4_tree_shift(tree, D_RIGHT, new, right, needed, 0))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(new->u.joint->node)) <= 0)

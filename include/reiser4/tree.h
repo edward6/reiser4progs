@@ -51,5 +51,7 @@ extern reiser4_joint_t *reiser4_tree_allocate(reiser4_tree_t *tree, uint8_t leve
 extern void reiser4_tree_release(reiser4_tree_t *tree, reiser4_joint_t *joint);
 extern reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, blk_t blk);
 
+extern errno_t reiser4_tree_collector(reiser4_tree_t *tree);
+
 #endif
 

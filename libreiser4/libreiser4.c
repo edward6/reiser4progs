@@ -81,9 +81,9 @@ static errno_t tree_right(
 	reiser4_place_t *place,     /* coord of node */
 	reiser4_place_t *right)	    /* right neighbour will be here */
 {
+	reiser4_pos_t pos;
 	reiser4_joint_t *joint;
 	reiser4_coord_t *coord;
-	reiser4_pos_t pos = {0, 0};
     
 	aal_assert("umka-867", tree != NULL, return -1);
 	aal_assert("umka-868", place != NULL, return -1);
@@ -96,12 +96,14 @@ static errno_t tree_right(
 		return -1;
 	}
     
-	joint = (reiser4_joint_t *)place->data; 
-    
-	/* Rasing from the device tree lies on both neighbors */
-	if (reiser4_joint_realize(joint) || !joint->right)
-		return -1;
+	joint = (reiser4_joint_t *)place->data;
 
+	if (!reiser4_joint_right(joint))
+		return -1;
+    
+	pos.unit = 0;
+	pos.item = 0;
+	
 	return reiser4_coord_open((reiser4_coord_t *)right, joint->right,
 				  CT_JOINT, &pos);
 }
@@ -129,15 +131,52 @@ static errno_t tree_left(
 	
 	joint = (reiser4_joint_t *)place->data;
     
-	/* Rasing from the device tree lies on both neighbors */
-	if (reiser4_joint_realize(joint) || !joint->left)
+	if (!reiser4_joint_left(joint))
 		return -1;
-
+	
 	pos.unit = 0;
 	pos.item = reiser4_node_count(joint->left->node) - 1;
 	
-	return reiser4_coord_open((reiser4_coord_t *)left, joint->left,
-				  CT_JOINT, &pos);
+	return reiser4_coord_open((reiser4_coord_t *)left,
+				  joint->left, CT_JOINT, &pos);
+}
+
+static errno_t tree_lock(
+	const void *tree,         /* tree for working on */
+	reiser4_place_t *place)   /* coord to make lock on */
+{
+	reiser4_coord_t *coord;
+	
+	aal_assert("umka-1511", tree != NULL, return -1);
+	aal_assert("umka-1512", place != NULL, return -1);
+
+	coord = (reiser4_coord_t *)place;
+
+	if (coord->context != CT_JOINT) {
+		aal_exception_error("Passed place has invalid context.");
+		return -1;
+	}
+	
+	return reiser4_joint_lock(coord->u.joint);
+}
+
+static errno_t tree_unlock(
+	const void *tree,         /* tree for working on */
+	reiser4_place_t *place)   /* coord to make unlock on */
+{
+	reiser4_coord_t *coord;
+	
+	aal_assert("umka-1513", tree != NULL, return -1);
+	aal_assert("umka-1514", place != NULL, return -1);
+
+	coord = (reiser4_coord_t *)place;
+
+	if (coord->context != CT_JOINT) {
+		aal_exception_error("Passed place has invalid context.");
+		return -1;
+	}
+	
+	return reiser4_joint_unlock(coord->u.joint);
 }
 
 static uint32_t tree_blockspace(const void *tree) {
@@ -175,6 +214,10 @@ reiser4_core_t core = {
     
 		/* Returns left neighbour of passed coord */
 		.left	    = tree_left,
+
+		/* Makes look and unlock of node specified by coord */
+		.lock       = tree_lock,
+		.unlock     = tree_unlock,
 
 #ifndef ENABLE_COMPACT	
 		/* Installing callback function for inserting items into the

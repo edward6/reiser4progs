@@ -116,11 +116,21 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body, 
 		    KEY_FILEBODY_TYPE, reg40_locality(reg), reg40_objectid(reg), 0);
     
+	if (reg->body.data)
+		core->tree_ops.unlock(reg->tree, &reg->body);
+	
 	if (core->tree_ops.lookup(reg->tree, &key, &level, &reg->body) != 1)
-		reg->body.entity.plugin = NULL;
+		reg->body.data = NULL;
+	
+	/*
+	  Looking the current body lies in node in order to prevent the throwing
+	  it out of tree cache
+	*/
+	if (reg->body.data)
+		core->tree_ops.lock(reg->tree, &reg->body);
 
-	reg->offset = 0;
 	reg->small = 0;
+	reg->offset = 0;
 	reg->body.pos.unit = 0;
 
 	return 0;
@@ -135,20 +145,31 @@ static errno_t reg40_realize(reg40_t *reg) {
 	plugin_call(return -1, reg->key.plugin->key_ops, build_generic, 
 		    reg->key.body, KEY_STATDATA_TYPE, reg40_locality(reg), 
 		    reg40_objectid(reg), 0);
-    
+
+	if (reg->statdata.data)
+		core->tree_ops.unlock(reg->tree, &reg->statdata);
+	
 	/* Positioning to the file stat data */
 	if (core->tree_ops.lookup(reg->tree, &reg->key, &level, 
 				  &reg->statdata) != 1) 
 	{
 		aal_exception_error("Can't find stat data of file 0x%llx.", 
 				    reg40_objectid(reg));
+
+		if (reg->statdata.data)
+			core->tree_ops.lock(reg->tree, &reg->statdata);
+		
 		return -1;
 	}
-    
+
+	/* Locking the statdata */
+	core->tree_ops.lock(reg->tree, &reg->statdata);
+	
 	return 0;
 }
 
 static int reg40_next(object_entity_t *entity) {
+	int res;
 	reiser4_key_t key;
 	reg40_t *reg = (reg40_t *)entity;
 	reiser4_level_t level = {LEAF_LEVEL, TWIG_LEVEL};
@@ -157,8 +178,19 @@ static int reg40_next(object_entity_t *entity) {
 	plugin_call(return -1, key.plugin->key_ops, build_generic, 
 		    key.body, KEY_FILEBODY_TYPE, reg40_locality(reg), 
 		    reg40_objectid(reg), reg->offset);
-    
-	return core->tree_ops.lookup(reg->tree, &key, &level, &reg->body);
+
+        /* Unlocking the old body */
+	if (reg->body.data)
+		core->tree_ops.unlock(reg->tree, &reg->body);
+
+	/* Getting the next body item from the tree */
+	res = core->tree_ops.lookup(reg->tree, &key, &level, &reg->body);
+
+	/* Locking new body or old one if lookup failed */
+	if (reg->body.data)
+		core->tree_ops.lock(reg->tree, &reg->body);
+	
+	return res;
 }
 
 /* Reads @n bytes to passed buffer @buff */
@@ -173,7 +205,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	aal_assert("umka-1183", buff != NULL, return 0);
 
 	/* There is no any data in file */
-	if (!reg->body.entity.plugin)
+	if (!reg->body.data)
 		return 0;
     
 	if (reg40_get_size(&reg->statdata.entity, &size))
@@ -419,9 +451,7 @@ static object_entity_t *reg40_create(const void *tree,
 	return NULL;
 }
 
-static errno_t reg40_truncate(object_entity_t *entity, 
-			      uint64_t n) 
-{
+static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 	/* Sorry, not implemented yet! */
 	return -1;
 }
@@ -439,74 +469,8 @@ static reiser4_plugin_t *reg40_policy(reg40_t *reg, uint32_t size) {
 static int32_t reg40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
-	int64_t size;
-	int is_extent;
-    
-	uint32_t overwrote;
-	uint32_t wrote, maxspace;
-	reiser4_item_hint_t hint;
-
-	reiser4_plugin_t *plugin;
-	reg40_t *reg = (reg40_t *)entity;
-
-	aal_assert("umka-1184", entity != NULL, return -1);
-	aal_assert("umka-1185", buff != NULL, return -1);
-
-	if (reg40_get_size(&reg->statdata.entity, &size))
-		return -1;
-	
-	overwrote = size - reg->offset;
-	plugin = reg40_policy(reg, n);
-    
-	is_extent = (plugin->h.sign.group == EXTENT_ITEM);
-
-	maxspace = is_extent ? core->tree_ops.blockspace(reg->tree) : 
-		core->tree_ops.nodespace(reg->tree);
-
-	/* 
-	   FIXME-UMKA: Here also should be tail conversion code in the
-	   future. It will find the last tail if exists and convert it to the
-	   extent.
-	*/
-	for (wrote = 0; wrote < n; ) {
-		uint8_t level;
-		uint32_t chunk;
-
-		aal_memset(&hint, 0, sizeof(hint));
-		hint.plugin = reg40_policy(reg, n - wrote);
-		chunk = n - wrote > maxspace ? maxspace : n - wrote;
-
-		hint.len = chunk;
-		hint.data = buff + wrote;
-
-		hint.key.plugin = reg->key.plugin;
-		plugin_call(break, hint.key.plugin->key_ops, build_generic, 
-			    hint.key.body, KEY_FILEBODY_TYPE, reg40_locality(reg), 
-			    reg40_objectid(reg), reg->offset);
-    
-		/* Inserting the entry to the tree */
-		level = LEAF_LEVEL + (hint.plugin->h.sign.group == EXTENT_ITEM);
-	
-		if (core->tree_ops.insert(reg->tree, &hint, level, &reg->body)) {
-			aal_exception_error("Can't insert body item to the tree. "
-					    "Wrote %u bytes.", wrote);
-			return 0;
-		}
-    
-		wrote += chunk;
-		reg->offset += chunk;
-	}
-
-	/*
-	  Updating stat data item, because it may be moved durring balancing. In
-	  the future we should implement some mechanism for automatic updating
-	  all opened files. Probably it will be called "anchor"
-	*/
-	if (reg40_realize(reg))
-		return 0;
-
-	reg40_set_size(&reg->statdata.entity, size + (wrote - overwrote));
-	return wrote;
+	/* Sorry, not implemented yet! */
+	return 0;
 }
 
 static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
@@ -519,7 +483,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 	aal_assert("umka-1471", entity != NULL, return -1);
 	aal_assert("umka-1472", func != NULL, return -1);
 
-	if (!reg->body.entity.plugin)
+	if (!reg->body.data)
 		return 0;
 
 	if (reg40_get_size(&reg->statdata.entity, &size))
@@ -574,7 +538,17 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 #endif
 
 static void reg40_close(object_entity_t *entity) {
+	reg40_t *reg = (reg40_t *)entity;
+		
 	aal_assert("umka-1170", entity != NULL, return);
+
+	/* Unlocking statdata and body */
+	if (reg->statdata.data)
+		core->tree_ops.unlock(reg->tree, &reg->statdata);
+
+	if (reg->body.data)
+		core->tree_ops.unlock(reg->tree, &reg->body);
+	
 	aal_free(entity);
 }
 
