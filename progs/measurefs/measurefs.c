@@ -1,10 +1,10 @@
 /* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
-   
+
    measurefs.c -- program for measuring reiser4. */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h> 
+#  include <config.h>
 #endif
 
 #include <stdio.h>
@@ -36,14 +36,14 @@ typedef enum behav_flags behav_flags_t;
 /* Prints measurefs options */
 static void measurefs_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
-    
-	fprintf(stderr, 
+
+	fprintf(stderr,
 		"Common options:\n"
 		"  -?, -h, --help                  prints program usage.\n"
 		"  -V, --version                   prints current version.\n"
 		"  -q, --quiet                     forces using filesystem without\n"
 		"                                  any questions.\n"
-		"  -f, --force                     makes debugfs to use whole disk, not\n"
+		"  -f, --force                     makes measurefs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"  -c, --cache N                   number of nodes in tree cache,\n"
 		"                                  it affects many aspects of behavior\n"
@@ -125,7 +125,7 @@ static errno_t tree_frag_process_item(void *entity, uint64_t start,
 
 	/* Counting total regions and updating current blk, whci hwill be used
 	   for calculating next delta. */
-	hint->total++;
+	hint->total += count;
 	hint->curr = start + count - 1;
 
 	return 0;
@@ -150,7 +150,7 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
-			aal_error("Can't open item %u in node %llu.", 
+			aal_error("Can't open item %u in node %llu.",
 				  pos.item, node_blocknr(node));
 			return -EINVAL;
 		}
@@ -173,7 +173,7 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 }
 
 static errno_t tree_frag_update_node(reiser4_tree_t *tree,
-				     reiser4_place_t *place, void *data) 
+				     reiser4_place_t *place, void *data)
 {
 	((tree_frag_hint_t *)data)->level++;
 	return 0;
@@ -425,7 +425,7 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 
 	stat_hint.tree = fs->tree;
 	
-	if ((res = reiser4_tree_trav(fs->tree, NULL, stat_process_node, 
+	if ((res = reiser4_tree_trav(fs->tree, NULL, stat_process_node,
 				     NULL, NULL, &stat_hint)))
 	{
 		return res;
@@ -586,7 +586,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 
 		/* Initialiing the item at @place */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
-			aal_error("Can't open item %u in node %llu.", 
+			aal_error("Can't open item %u in node %llu.",
 				  pos.item, node_blocknr(node));
 			return res;
 		}
@@ -641,7 +641,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t data_frag_update_node(reiser4_tree_t *tree, 
+static errno_t data_frag_update_node(reiser4_tree_t *tree,
 				     reiser4_place_t *place,
 				     void *data)
 {
@@ -676,7 +676,7 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
 	
-	if ((res = reiser4_tree_trav(fs->tree, NULL, data_frag_process_node, 
+	if ((res = reiser4_tree_trav(fs->tree, NULL, data_frag_process_node,
 				     data_frag_update_node, NULL, &frag_hint)))
 		return res;
 
@@ -728,10 +728,10 @@ int main(int argc, char *argv[]) {
 		measurefs_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-    
-	/* Parsing parameters */    
+
+	/* Parsing parameters */
 	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:plc:",
-				long_options, (int *)0)) != EOF) 
+				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
 		case 'h':
@@ -788,7 +788,7 @@ int main(int argc, char *argv[]) {
 			return NO_ERROR;
 		}
 	}
-    
+
 	if (!(flags & BF_QUIET))
 		misc_print_banner(argv[0]);
 
@@ -825,7 +825,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	host_dev = argv[optind];
-    
+
 	/* Checking if passed partition is mounted */
 	if (misc_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
 		aal_error("Device %s is mounted at the moment. "
@@ -889,7 +889,7 @@ int main(int argc, char *argv[]) {
 	/* Deinitializing filesystem instance and device instance */
 	reiser4_fs_close(fs);
 	aal_device_close(device);
-    
+
 	/* Deinitializing libreiser4. At the moment only plugins are unloading
 	   during this. */
 	libreiser4_fini();
