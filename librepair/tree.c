@@ -323,10 +323,9 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	lhint.correct_func = NULL;
 	
 	/* Key should not exist in the tree yet. */
-	lookup = reiser4_tree_lookup(tree, &lhint, 
-				     FIND_EXACT, &place);
+	lookup = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, &place);
 	
-	switch(lookup) {
+	switch (lookup) {
 	case PRESENT:
 		return -ESTRUCT;
 	case ABSENT:
@@ -407,9 +406,9 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 }
 
 /* Check that conversion is needed. */
-static bool_t repair_tree_should_conv(reiser4_tree_t *tree, 
-				      reiser4_plug_t *from,
-				      reiser4_plug_t *to)
+static bool_t repair_tree_need_conv(reiser4_tree_t *tree, 
+				    reiser4_plug_t *from,
+				    reiser4_plug_t *to)
 {
 	aal_assert("vpf-1293", tree != NULL);
 	aal_assert("vpf-1294", from != NULL);
@@ -488,39 +487,29 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 	return 0;
 }
 
-/* Lookup for the correct @place place by the @start key in the @tree. */
-static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree, 
-					 reiser4_place_t *place,
-					 trans_hint_t *hint)
+static errno_t callback_lookup(reiser4_place_t *place, 
+			       lookup_hint_t *hint,
+			       lookup_bias_t bias,
+			       lookup_t lookup)
 {
 	reiser4_key_t dkey, end;
-	lookup_hint_t lhint;
 	reiser4_place_t prev;
+	reiser4_place_t *dst;
 	errno_t res;
-	
-	aal_assert("vpf-1364", tree  != NULL);
-	aal_assert("vpf-1365", place != NULL);
-	aal_assert("vpf-1367", hint  != NULL);
 
-	lhint.level = LEAF_LEVEL;
-	lhint.key = &hint->offset;
-	lhint.correct_func = NULL;
-	
-	res = reiser4_tree_lookup(tree, &lhint,
-				  FIND_EXACT, place);
-	
-	switch(res) {
-	case PRESENT:
+	aal_assert("vpf-1519", place != NULL);
+	aal_assert("vpf-1520", hint != NULL);
+
+	if (lookup == PRESENT) {
 		/* The whole item can not be inserted. */
 		if (place->pos.unit == MAX_UINT32)
 			place->pos.unit = 0;
 
 		return 0;
-	case ABSENT:
-		break;
-	default:
-		return res;
 	}
+
+	if (lookup < 0) 
+		aal_bug("Unexpected lookup value is given (%d).", lookup);
 
 	/* Absent. If non-existent unit or item, there is nothing mergable 
 	   from the right side--lookup would go down there in that case.  */
@@ -533,7 +522,9 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 
 		reiser4_node_lock(prev.node);
 		
-		if ((res = reiser4_tree_next_node(tree, place, place))) {
+		if ((res = reiser4_tree_next_node(place->node->tree, 
+						  place, place))) 
+		{
 			aal_error("vpf-1363: Failed to get the next node.");
 			reiser4_node_unlock(prev.node);
 			return res;
@@ -556,7 +547,9 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	if ((res = reiser4_item_get_key(place, &dkey)))
 		return res;
 
-	if ((res = reiser4_item_maxreal_key((reiser4_place_t *)hint->specific, &end)))
+	dst = (reiser4_place_t *)hint->data;
+	
+	if ((res = reiser4_item_maxreal_key(dst, &end)))
 		return res;
 	
 	/* If @end key is not less than the lookuped, items are overlapped. 
@@ -599,6 +592,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	aal_assert("vpf-655", src != NULL);
 	aal_assert("vpf-657", src->node != NULL);
 	
+	if (reiser4_tree_fresh(tree))
+		aal_bug("vpf-1518", "Failed to insert into the fresh tree.");
+		
 	if (reiser4_item_branch(src->plug))
 		return -EINVAL;
 	
@@ -615,22 +611,33 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	hint.region_func = func;
 	hint.data = data;
 	hint.shift_flags = SF_DEFAULT;
-		
+	
 	reiser4_key_assign(&hint.offset, &src->key);
 	level = reiser4_node_get_level(src->node);
+	
+	aal_memset(&lhint, 0, sizeof(lhint));
+	lhint.level = LEAF_LEVEL;
+	lhint.key = &hint.offset;
+	lhint.correct_func = callback_lookup;
+	lhint.data = src;
 
 	/* FIXME-VITALY: be sure that the tree is of enough level. If not, 
 	   @dst place will be changed in tree_modify during growing up. */
 	while (1) {
-		if ((res = repair_tree_insert_lookup(tree, &dst, &hint)))
+		if ((res = reiser4_tree_lookup(tree, &lhint, 
+					       FIND_EXACT, &dst)) < 0)
 			return res;
 		
 		/* Convert @dst if needed. */
 		if (dst.pos.unit != MAX_UINT32) {
-			switch(repair_tree_should_conv(tree, dst.plug, src->plug)) {
+			bool_t conv;
+
+			conv = repair_tree_need_conv(tree, dst.plug, src->plug);
+			
+			switch (conv) {
 			case 1:
-				if ((res = repair_tree_conv(tree, &dst, src->plug)))
-					return res;
+				res = repair_tree_conv(tree, &dst, src->plug);
+				if (res) return res;
 
 				/* Repeat lookup after @dst conversion. */
 				continue;

@@ -1544,16 +1544,14 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */
 	if (reiser4_tree_fresh(tree)) {
-		reiser4_place_assign(place, NULL,
-				     0, MAX_UINT32);
+		reiser4_place_assign(place, NULL, 0, MAX_UINT32);
 		return ABSENT;
 	} else {
 #endif
 		if ((res = reiser4_tree_load_root(tree)) < 0)
 			return res;
 		
-		reiser4_place_assign(place, tree->root,
-				     0, MAX_UINT32);
+		reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
 #ifndef ENABLE_STAND_ALONE
 	}
 #endif
@@ -1567,7 +1565,8 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		    
 	while (1) {
 		uint32_t clevel = reiser4_node_get_level(place->node);
-		lookup_bias_t cbias = (clevel > hint->level ? FIND_EXACT : bias);
+		lookup_bias_t cbias = (clevel > hint->level ? 
+				       FIND_EXACT : bias);
 
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
@@ -1580,27 +1579,20 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		   or some error occured during last node lookup. */
 		if (clevel <= hint->level || res < 0) {
 			if (res == PRESENT) {
-#ifndef ENABLE_STAND_ALONE
-				/* Correcting found pos by means of calling
-				   @correct_func from @hint. */
-				if (hint->correct_func) {
-					if (hint->correct_func(place, hint, bias))
-						return -EINVAL;
-				}
-#endif
-				
 				/* Fetching item at @place if key is found */
 				if (reiser4_place_fetch(place))
 					return -EIO;
 			}
 			
-			return res;
+			goto correct;
 		}
 
 		/* Initializing @place. This should be done before using any
 		   item methods or access @place fields. */
-		if (!reiser4_place_valid(place))
-			return ABSENT;
+		if (!reiser4_place_valid(place)) {
+			res = ABSENT;
+			goto correct;
+		}
 		
 		if (reiser4_place_fetch(place))
 			return -EIO;
@@ -1608,14 +1600,23 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   posision back. */
 		if (!reiser4_item_branch(place->plug))
-			return res;
+			goto correct;
 
 		/* Loading node by its nodeptr item at @place. */
 		if (!(place->node = reiser4_tree_child_node(tree, place)))
 			return -EIO;
 	}
     
-	return ABSENT;
+	res = ABSENT;
+	
+ correct:
+#ifndef ENABLE_STAND_ALONE
+	/* Correcting found pos if the corresponding callback is specified. */
+	if (hint->correct_func && hint->correct_func(place, hint, bias, res))
+		return -EINVAL;
+#endif
+
+	return res;
 }
 
 /* Reads data from the @tree from @place to passed @hint */
