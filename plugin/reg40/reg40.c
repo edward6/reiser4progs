@@ -69,8 +69,13 @@ static errno_t reg40_reset(reiser4_entity_t *entity) {
 	return -1;
     }
     
-    if (core->tree_ops.item_body(reg->tree, &reg->place, &reg->body.body, NULL))
+    if (core->tree_ops.item_body(reg->tree, 
+	&reg->place, &reg->body.body, &reg->body.len))
+    {
+	aal_exception_error("Can't get body of file 0x%x.", 
+	    reg40_objectid(reg));
         return -1;
+    }
     
     reg->offset = 0;
     reg->place.pos.unit = 0;
@@ -128,11 +133,108 @@ static errno_t reg40_realize(reg40_t *reg) {
     return 0;
 }
 
+static reiser4_place_t *reg40_next(reiser4_entity_t *entity, 
+    reiser4_place_t *place) 
+{
+    reiser4_key_t key;
+
+    roid_t curr_objectid;
+    roid_t next_objectid;
+
+    reg40_t *reg = (reg40_t *)entity;
+    reiser4_place_t *next_place = place;
+
+    /* Getting the right neighbour */
+    if (core->tree_ops.item_right(reg->tree, next_place))
+        return NULL;
+    
+    /* Getting key of the first item in the right neightbour */
+    if (core->tree_ops.item_key(reg->tree, next_place, &key)) {
+        aal_exception_error("Can't get next item key by coord.");
+	return NULL;
+    }
+    
+    /* 
+        Getting locality of both keys in order to determine is they are 
+        mergeable.
+    */
+    curr_objectid = plugin_call(return NULL, reg->key.plugin->key_ops,
+        get_objectid, reg->key.body);
+	
+    next_objectid = plugin_call(return NULL, reg->key.plugin->key_ops,
+        get_objectid, key.body);
+	
+    /* Determining is items are mergeable */
+    return (curr_objectid == next_objectid) ? next_place : NULL;
+}
+
 /* Reads n entries to passed buffer buff */
 static uint64_t reg40_read(reiser4_entity_t *entity, 
     char *buff, uint64_t n)
 {
-    return 0;
+    reg40_t *reg;
+    uint32_t read;
+
+    aal_assert("umka-1182", entity != NULL, return 0);
+    aal_assert("umka-1183", buff != NULL, return 0);
+    
+    reg = (reg40_t *)entity;
+    
+    if (reg->body.plugin->item_ops.type != TAIL_ITEM_TYPE) {
+	aal_exception_error("Sorry, extents are not supported yet!");
+	return 0;
+    }
+
+    for (read = 0; read < n;) {
+	uint32_t chunk;
+	
+	if (reg->place.pos.unit >= reg->body.len) {
+	    reiser4_place_t place = reg->place;
+	
+	    if (!reg40_next(entity, &reg->place)) {
+		reg->place = place;
+		break;
+	    }
+
+	    if (core->tree_ops.item_body(reg->tree, &reg->place, 
+		   &reg->body.body, &reg->body.len))
+		break;
+	    
+	    {
+		rpid_t pid;
+		
+		pid = core->tree_ops.item_pid(reg->tree, 
+		    &reg->place, ITEM_PLUGIN_TYPE);
+		
+		if (!(reg->body.plugin = 
+		    core->factory_ops.plugin_ifind(ITEM_PLUGIN_TYPE, pid)))
+		{
+		    aal_exception_error("Can't find item plugin by "
+			"its id %x.", pid);
+		    break;
+		}
+	    }
+	}
+	
+	chunk = (reg->body.len - reg->place.pos.unit) <= n ? n
+	    : reg->body.len - reg->place.pos.unit;
+
+	if (reg->body.plugin->item_ops.type == TAIL_ITEM_TYPE) {
+
+	    /* Getting the data from the tail item */
+	    aal_memcpy(buff, reg->body.body, chunk);
+	    
+	} else {
+	    /* Getting the data from the extent item */
+	    aal_exception_error("Sorry, extents are not supported yet!");
+	    break;
+	}
+	
+	reg->place.pos.unit += chunk;
+	read += chunk;
+    }
+    
+    return read;
 }
 
 static reiser4_entity_t *reg40_open(const void *tree, 

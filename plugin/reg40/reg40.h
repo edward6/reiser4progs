@@ -11,6 +11,7 @@
 #include <reiser4/plugin.h>
 
 struct reg40_item {
+    uint32_t len;
     reiser4_body_t *body;
     reiser4_plugin_t *plugin;
 };

@@ -30,7 +30,7 @@ make
 
 %files -f %name.lang
 %_mandir/*
-%doc AUTHORS BUGS ChangeLog README THANKS TODO COPYING demos/*.c
+%doc AUTHORS BUGS NEWS ChangeLog README THANKS TODO COPYING demos/*.c
 
 %changelog
 Fri May 31 2002 Yury Umanets <umka@namesys.com> 
