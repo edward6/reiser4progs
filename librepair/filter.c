@@ -244,7 +244,9 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
     
 	level = reiser4_node_get_level(node); 
     
-	/* Initialize the level for the root node before traverse. */
+	/* Initialize the level for the root node before traverse.
+	   For the root node @fd->level is not set, set it to the
+	   current node level. */
 	if (!fd->level)
 		fd->level = level;
 	else
@@ -259,7 +261,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		fd->progress_handler(fd->progress);
 	}
 
-	/* Skip this check if level is not set (root node only). */
+	/* Check the level. */
 	if (fd->level != level) {
 		aal_error("Level (%u) of the node (%llu) doesn't match the "
 			  "expected one (%u). %s", level, node_blocknr(node), 
