@@ -283,8 +283,7 @@ reiser4_file_t *reiser4_file_create(
     aal_assert("umka-1152", name != NULL, return NULL);
 
     if (!fs->tree) {
-	aal_exception_error("Can't created file without "
-	    "initialized tree.");
+	aal_exception_error("Can't created file without initialized tree.");
 	return NULL;
     }
     

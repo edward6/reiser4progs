@@ -1,7 +1,6 @@
 /*
     exception.c -- exceptions handling functions. Exception mechanism is used
     in order to provide unified interface for error handling.
-    
     Copyright (C) 1996-2002 Hans Reiser.
 */
 

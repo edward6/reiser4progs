@@ -21,7 +21,7 @@
 
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <sys/mount.h>
+//#include <sys/mount.h>
 
 /* Function for saving last error message into device assosiated buffer */
 static void save_error(
@@ -46,7 +46,7 @@ static errno_t file_read(
     blk_t block,		    /* block number to be read from */
     count_t count		    /* number of blocks to be read */
 ) {
-    loff_t off, len;
+    off_t off, len;
 	
     if (!device || !buff)
     	return -1;
@@ -56,14 +56,14 @@ static errno_t file_read(
 	macro inside config.h file, lseek function will be mapped into lseek64 
 	one.
     */
-    off = (loff_t)(block * device->blocksize);
-    if (lseek(*((int *)device->entity), off, SEEK_SET) == -1) {
+    off = (off_t)block * (off_t)device->blocksize;
+    if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
 	save_error(device);
 	return errno;
     }
 
     /* Reading data form file */
-    len = (loff_t)(count * device->blocksize);
+    len = (off_t)count * (off_t)device->blocksize;
     if (read(*((int *)device->entity), buff, len) <= 0) {
 	save_error(device);
 	return errno;
@@ -82,20 +82,20 @@ static errno_t file_write(
     blk_t block,		    /* start position for writing */
     count_t count		    /* number of blocks to be write */
 ) {
-    loff_t off, len;
+    off_t off, len;
 	
     if (!device || !buff)
 	return -1;
 	
     /* Positioning inside file */
-    off = (loff_t)(block * device->blocksize);
-    if (lseek(*((int *)device->entity), off, SEEK_SET) == -1) {
+    off = (off_t)block * (off_t)device->blocksize;
+    if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
 	save_error(device);
 	return errno;
     }
     
     /* Writing into file */
-    len = (loff_t)(count * device->blocksize);
+    len = (off_t)count * (off_t)device->blocksize;
     if (write((*(int *)device->entity), buff, len) <= 0) {
 	save_error(device);
 	return errno;
@@ -172,7 +172,7 @@ static uint32_t file_stat(
 	save_error(device);
 	return 0;
     }
-    return (uint32_t)st.st_dev;
+    return (uint32_t)st.st_rdev;
 }
 
 #if defined(__linux__) && defined(_IOR) && !defined(BLKGETSIZE64)
@@ -187,7 +187,7 @@ static count_t file_len(
     aal_device_t *device	    /* file device, lenght will be obtained from */
 ) {
     uint64_t size;
-    loff_t max_off = 0;
+    off_t max_off = 0;
 
     if (!device) 
 	return 0;
@@ -207,7 +207,7 @@ static count_t file_len(
 #endif
     
     if ((max_off = lseek(*((int *)device->entity), 
-	0, SEEK_END)) == (loff_t)-1) 
+	0, SEEK_END)) == (off_t)-1) 
     {
 	save_error(device);
 	return 0;
