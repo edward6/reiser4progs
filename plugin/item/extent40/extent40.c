@@ -139,18 +139,53 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	for (i = 0; i < extent40_units(item); i++) {
 		delta = et40_get_width(extent40_body(item) + i);
 		
-		aal_assert("vpf-439", delta < ((uint64_t)-1) / 102400, return -1);
+		aal_assert("vpf-439", delta < ((uint64_t)-1) / 102400, 
+			   return -1);
 
 		delta *= blocksize;
 		
-		aal_assert("vpf-503", offset < ((uint64_t)-1) - delta, return -1);
+		aal_assert("vpf-503", offset < ((uint64_t)-1) - delta, 
+			   return -1);
 		
 		offset += delta;
 	}
 
-	plugin_call(return -1, key->plugin->key_ops, set_offset, key->body, offset);
+	plugin_call(return -1, key->plugin->key_ops, set_offset, key->body, 
+		    offset - 1);
 	
 	return 0;	
+}
+
+static errno_t extent40_unit_key(item_entity_t *item, uint16_t pos, 
+	reiser4_key_t *key) 
+{
+	int i;
+	uint16_t count;
+	extent40_t *extent;
+	uint64_t offset, blocksize;
+	
+	aal_assert("vpf-622", item != NULL, return -1);
+	aal_assert("vpf-623", key != NULL, return -1);
+	
+	count = extent40_count(item);
+
+	aal_assert("vpf-625", pos < count, return -1);
+	
+	extent = extent40_body(item);
+	blocksize = item->con.device->blocksize;
+
+	aal_memcpy(key, &item->key, sizeof(*key));
+		
+	offset = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, key->body);
+
+	for (i = 0; i < pos; i++)
+		offset += et40_get_width(extent + i) * blocksize;
+
+	plugin_call(return -1, key->plugin->key_ops, set_offset, 
+		    key->body, offset);
+	
+	return 0;
 }
 
 static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
@@ -324,6 +359,7 @@ static reiser4_plugin_t extent40_plugin = {
 		
 		.max_poss_key = extent40_max_poss_key,
 		.max_real_key = extent40_max_real_key,
+		.unit_key     = extent40_unit_key,
 	}
 };
 

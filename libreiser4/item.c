@@ -211,17 +211,37 @@ reiser4_plugin_t *reiser4_item_plugin(reiser4_coord_t *coord) {
 	return coord->entity.plugin;
 }
 
-errno_t reiser4_item_key(reiser4_coord_t *coord, reiser4_key_t *key) {
+errno_t reiser4_item_key(reiser4_coord_t *coord) {
 	item_entity_t *item;
+	object_entity_t *entity;
 	
 	aal_assert("umka-1215", coord != NULL, return -1);
-	aal_assert("umka-1271", key != NULL, return -1);
 
+	entity = coord->node->entity;
 	item = &coord->entity;
-	aal_assert("umka-1462", item->plugin != NULL, return 0);
 
-	aal_memcpy(key, &item->key, sizeof(*key));
-	
+	aal_assert("umka-1462", item->plugin != NULL, return -1);
+
+	if (plugin_call(return -1, entity->plugin->node_ops, 
+			get_key, entity, &coord->pos, &item->key))
+	{
+		aal_exception_error("Can't get item key.");
+		return -1;
+	}
+
+	/* 
+	    If unit is specified and unit_key method is implemented - set 
+	    correct key offset. 
+	*/
+	if (coord->pos.unit != ~0ul && coord->entity.plugin->item_ops.unit_key)
+		if (coord->entity.plugin->item_ops.unit_key(&coord->entity, 
+							    coord->pos.unit, 
+							    &item->key))
+			return -1;
+
+	item->key.plugin = reiser4_key_guess(item->key.body);
+	aal_assert("umka-1406", item->key.plugin != NULL, return -1);
+
 	return 0;
 }
 
@@ -250,12 +270,16 @@ errno_t reiser4_item_max_poss_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 
 	entity = &coord->entity;
 	aal_assert("umka-1456", entity->plugin != NULL, return 0);
+		
+	if (reiser4_item_key(coord))
+		return -1;
 	
 	if (entity->plugin->item_ops.max_poss_key)
 		return entity->plugin->item_ops.max_poss_key(entity, key);
-	    
-	return plugin_call(return -1, key->plugin->key_ops,
-			   assign, key->body, entity->key.body);
+	else
+		aal_memcpy(key, &entity->key, sizeof(*key));
+
+	return 0;
 }
 
 errno_t reiser4_item_max_real_key(reiser4_coord_t *coord, reiser4_key_t *key) {
@@ -267,9 +291,14 @@ errno_t reiser4_item_max_real_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	entity = &coord->entity;
 	aal_assert("umka-1457", entity->plugin != NULL, return 0);
 
+	if (reiser4_item_key(coord))
+		return -1;
+	    
 	if (entity->plugin->item_ops.max_real_key) 
 		return entity->plugin->item_ops.max_real_key(entity, key);	
+	else
+		aal_memcpy(key, &entity->key, sizeof(*key));
 		
-	return plugin_call(return -1, key->plugin->key_ops,
-				   assign, key->body, entity->key.body);
+	return 0;
 }
+
