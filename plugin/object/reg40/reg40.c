@@ -486,11 +486,15 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 			return res;
 		}
 
+		reg40_seek(entity, size);
+		if ((bytes = reg40_put(entity, NULL, n - size, NULL)) < 0)
+			return bytes;
+		
 		/* Updating stat data fields. */
 		if ((res = obj40_update(&reg->obj)))
 			return res;
 		
-		bytes = obj40_get_bytes(&reg->obj);
+		bytes += obj40_get_bytes(&reg->obj);
 		return obj40_touch(&reg->obj, n, bytes);
 	} else {
 		if (reg->body_plug->id.group == EXTENT_ITEM) {

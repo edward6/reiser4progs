@@ -34,7 +34,7 @@ errno_t trunc_cmd(busy_ctx_t *ctx) {
 		goto error_close_object;
 	}
 	
-	/* Unlink the object. */
+	/* Truncate the object. */
 	if (reiser4_object_truncate(object, ctx->count)) {
 		aal_error("Can't truncate object %s to %lld bytes.", 
 			  ctx->in.path, ctx->count);
