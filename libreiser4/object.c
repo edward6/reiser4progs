@@ -18,7 +18,6 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 				    void *data)
 {
 	reiser4_object_t *object;
-	bool_t res = FALSE;
 
 	/* We are interested only in object plugins here */
 	if (plugin->h.type != OBJECT_PLUGIN_TYPE)
@@ -35,11 +34,13 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 				     (void *)object->info.tree);
 	
 	if (object->entity != NULL) {	
-	    plugin_call(plugin->o.object_ops, close, object->entity);
-	    res = TRUE;
+		plugin_call(plugin->o.object_ops, close,
+			    object->entity);
+		
+		return TRUE;
 	}
 	
-	return res;
+	return FALSE;
 }
 
 uint64_t reiser4_object_size(reiser4_object_t *object) {
@@ -53,7 +54,8 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 errno_t reiser4_object_guess(reiser4_object_t *object) {
 	reiser4_plugin_t *plugin;
 	
-	plugin = libreiser4_factory_cfind_only(callback_object_guess, object);
+	plugin = libreiser4_factory_cfind(callback_object_guess,
+					  object, TRUE);
 	
 	if (!plugin)
 		return -EINVAL;
@@ -338,8 +340,8 @@ int32_t reiser4_object_write(
 			   write, object->entity, buff, n);
 }
 
-/* Helps to create methods. */
-void reiser4_object_create_base(
+/* Helps to create methods */
+static void reiser4_object_base(
 	reiser4_fs_t *fs,
 	reiser4_object_t *parent,
 	reiser4_object_t *object) 
@@ -350,27 +352,29 @@ void reiser4_object_create_base(
 	object->info.tree = fs->tree;
 	
 	if (parent) {
-		reiser4_key_assign(&object->info.parent, &parent->info.object);
+		reiser4_key_assign(&object->info.parent,
+				   &parent->info.object);
 		
 		objectid = reiser4_oid_allocate(fs->oid);
 		locality = reiser4_key_get_objectid(&object->info.parent);
 	} else {
-		/* Parent is NULL -- special case for '/' directory. */
+		/* If parent is NULL -- special case for '/' directory */
 		
 		object->info.parent.plugin = fs->tree->key.plugin;
 		
-		reiser4_fs_hyper_key(fs, &object->info.parent);
+		reiser4_fs_root_key(fs, &object->info.parent);
 		
 		locality = reiser4_oid_root_locality(fs->oid);
 		objectid = reiser4_oid_root_objectid(fs->oid);
 	}
 	
 	/* 
-	   New object is identified by its locality and objectid. Set them to 
-	   the @object->info.object key and plugin create method will build the 
+	   New object is identified by its locality and objectid. Set them to
+	   the @object->info.object key and plugin create method will build the
 	   whole key there.
 	*/
 	object->info.object.plugin = object->info.parent.plugin;
+	
 	reiser4_key_clean(&object->info.object);
 	reiser4_key_set_locality(&object->info.object, locality);
 	reiser4_key_set_objectid(&object->info.object, objectid);
@@ -397,7 +401,7 @@ reiser4_object_t *reiser4_object_create(
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
 
-	reiser4_object_create_base(fs, parent, object);
+	reiser4_object_base(fs, parent, object);
 	
 	if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
 					   create, &object->info, hint)))

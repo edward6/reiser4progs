@@ -41,7 +41,7 @@ bool_t repair_tree_data_level(uint8_t level) {
 		return FALSE;
 	
 	return (libreiser4_factory_cfind(callback_data_level,
-					 &level) != NULL);
+					 &level, FALSE) != NULL);
 }
 
 /* Get the max real key existed in the tree. Go down through all right-most 

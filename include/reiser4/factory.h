@@ -26,7 +26,8 @@ extern errno_t libreiser4_factory_foreach(plugin_func_t plugin_func,
 					  void *data);
 #endif
 
-extern reiser4_plugin_t *libreiser4_factory_ifind(rid_t type, rid_t id);
+extern reiser4_plugin_t *libreiser4_factory_ifind(rid_t type,
+						  rid_t id);
 
 extern void libreiser4_plugin_close(plugin_class_t *class);
 extern errno_t libreiser4_plugin_fini(plugin_class_t *class);
@@ -49,9 +50,7 @@ extern errno_t libreiser4_factory_load(plugin_init_t init,
 #endif
 
 extern reiser4_plugin_t *libreiser4_factory_cfind(plugin_func_t plugin_func,
-						  void *data);
-extern reiser4_plugin_t *libreiser4_factory_cfind_only(
-				plugin_func_t plugin_func, 
-				void *data);
+						  void *data, bool_t only);
+
 #endif
 

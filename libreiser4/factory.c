@@ -451,46 +451,44 @@ reiser4_plugin_t *libreiser4_factory_ifind(
 /* Finds first matches plugin */
 reiser4_plugin_t *libreiser4_factory_cfind(
 	plugin_func_t plugin_func,               /* per plugin function */
-	void *data)                              /* user-specified data */
+	void *data,                              /* user-specified data */
+	bool_t only)
 {
-	aal_list_t *walk = NULL;
+	aal_list_t *walk;
+
+#ifndef ENABLE_STAND_ALONE
+	reiser4_plugin_t *found;
+#endif
 
 	aal_assert("umka-155", plugins != NULL);    
 	aal_assert("umka-899", plugin_func != NULL);    
-	
-	aal_list_foreach_forward(plugins, walk) {
-		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
 
-		if (plugin_func(plugin, data))
-			return plugin;
-	}
-    
-	return NULL;
-}
-
-/* Finds the only possible plugin. If more then 1 found, return NULL. */
-reiser4_plugin_t *libreiser4_factory_cfind_only(
-	plugin_func_t plugin_func,               /* per plugin function */
-	void *data)                              /* user-specified data */
-{
-	reiser4_plugin_t *found = NULL;
-	aal_list_t *walk = NULL;
-
-	aal_assert("umka-155", plugins != NULL);    
-	aal_assert("umka-899", plugin_func != NULL);    
+#ifndef ENABLE_STAND_ALONE
+	found = NULL;
+#endif
 	
 	aal_list_foreach_forward(plugins, walk) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
 
 		if (plugin_func(plugin, data)) {
-			if (found)
-				return NULL;
-			else 
-				found = plugin;
+#ifndef ENABLE_STAND_ALONE
+			if (only) {
+				if (found)
+					return NULL;
+				else
+					found = plugin;
+			} else
+#endif
+				return plugin;
 		}
 	}
     
-	return found;
+#ifndef ENABLE_STAND_ALONE
+	if (only)
+		return found;
+#endif
+	
+	return NULL;
 }
 
 #ifndef ENABLE_STAND_ALONE

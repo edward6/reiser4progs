@@ -130,10 +130,9 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
 			return plugin;
 	} while (FALSE);
 	
-	/* Try all plugins to realize the object, choose the more preferable. 
-	   
+	/* Try all plugins to realize the object, choose the more preferable.
 	   FIXME-VITALY: plugins are not sorted yet in the list. */
-	return libreiser4_factory_cfind(callback_object_guess, &object->info);
+	return libreiser4_factory_cfind(callback_object_guess, &object->info, FALSE);
 }
 
 errno_t repair_object_traverse(reiser4_object_t *object, traverse_func_t func, 

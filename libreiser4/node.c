@@ -171,7 +171,7 @@ static bool_t callback_guess_node(reiser4_plugin_t *plugin,
 static errno_t reiser4_node_guess(reiser4_node_t *node) {
 
 	/* Finding node plugin by its id */
-	if (!libreiser4_factory_cfind(callback_guess_node, node))
+	if (!libreiser4_factory_cfind(callback_guess_node, node, FALSE))
 		return -EINVAL;
 
 	return 0;

@@ -25,8 +25,8 @@ static errno_t callback_guess_key(
 errno_t reiser4_key_guess(reiser4_key_t *key) {
 	aal_assert("umka-907", key != NULL);
 
-	key->plugin = libreiser4_factory_cfind_only(callback_guess_key,
-						    (void *)key);
+	key->plugin = libreiser4_factory_cfind(callback_guess_key,
+					       (void *)key, TRUE);
 
 	if (key->plugin == NULL)
 		return -EINVAL;
