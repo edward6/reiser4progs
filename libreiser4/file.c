@@ -29,7 +29,7 @@ reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
 
 		return NULL;
 	}
-    
+
     return libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
 									reiser4_item_detect(&item));
 }
@@ -42,8 +42,8 @@ reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
 */
 static errno_t reiser4_file_realize(
     reiser4_file_t *file,	    /* file lookup will be performed in */
-    const char *name		    /* name to be parsed */
-	) {
+    const char *name)		    /* name to be parsed */
+{
     reiser4_entity_t *entity;
     reiser4_plugin_t *plugin;
 
@@ -121,8 +121,8 @@ static errno_t reiser4_file_realize(
 /* This function opens file by its name */
 reiser4_file_t *reiser4_file_open(
     reiser4_fs_t *fs,		/* object (file/dir/etc) will be opened on */
-    const char *name		/* name of file to be opened */
-	) {
+    const char *name)		/* name of file to be opened */
+{
     reiser4_file_t *file;
     reiser4_key_t *root_key;
     reiser4_plugin_t *plugin;
@@ -176,8 +176,8 @@ reiser4_file_t *reiser4_file_open(
 
 errno_t reiser4_file_truncate(
     reiser4_file_t *file,	    /* file for truncating */
-    uint64_t n			    /* the number of entries */
-	) {
+    uint64_t n)			        /* the number of entries */
+{
     aal_assert("umka-1154", file != NULL, return -1);
     aal_assert("umka-1155", file->entity != NULL, return -1);
     
@@ -188,9 +188,9 @@ errno_t reiser4_file_truncate(
 /* Adds speficied entry into passed opened dir */
 errno_t reiser4_file_write(
     reiser4_file_t *file,	    /* file for writing */
-    void *buff,			    /* new entries buffer */
-    uint64_t n			    /* the number of entries to be created */
-	) {
+    void *buff,			        /* new entries buffer */
+    uint64_t n)			        /* the number of entries to be created */
+{
     aal_assert("umka-862", file != NULL, return -1);
     aal_assert("umka-863", file->entity != NULL, return -1);
     
@@ -201,10 +201,10 @@ errno_t reiser4_file_write(
 /* Creates new file on specified filesystem */
 reiser4_file_t *reiser4_file_create(
     reiser4_fs_t *fs,		    /* filesystem dir will be created on */
-    reiser4_file_hint_t *hint,	    /* directory hint */
+    reiser4_file_hint_t *hint,	/* directory hint */
     reiser4_file_t *parent,	    /* parent file */
-    const char *name		    /* name of entry */
-	) {
+    const char *name)		    /* name of entry */
+{
     reiser4_file_t *file;
     reiser4_plugin_t *plugin;
     
@@ -305,8 +305,8 @@ reiser4_file_t *reiser4_file_create(
 
 /* Closes specified file */
 void reiser4_file_close(
-    reiser4_file_t *file	    /* file to be closed */
-	) {
+    reiser4_file_t *file)	    /* file to be closed */
+{
     aal_assert("umka-680", file != NULL, return);
     aal_assert("umka-1149", file->entity != NULL, return);
 
@@ -319,8 +319,8 @@ void reiser4_file_close(
 
 /* Resets directory position */
 errno_t reiser4_file_reset(
-    reiser4_file_t *file	    /* dir to be rewinded */
-	) {
+    reiser4_file_t *file)	    /* dir to be rewinded */
+{
     aal_assert("umka-842", file != NULL, return -1);
     aal_assert("umka-843", file->entity != NULL, return -1);
 
@@ -330,9 +330,9 @@ errno_t reiser4_file_reset(
 
 errno_t reiser4_file_read(
     reiser4_file_t *file,	    /* dir entry will be read from */
-    void *buff,			    /* entry pointer result will be stored in */
-    uint64_t n
-	) {
+    void *buff,			        /* buffer result will be stored in */
+    uint64_t n)
+{
     aal_assert("umka-860", file != NULL, return -1);
     aal_assert("umka-861", file->entity != NULL, return -1);
 
@@ -342,8 +342,8 @@ errno_t reiser4_file_read(
 
 /* Retutns current position in directory */
 uint32_t reiser4_file_offset(
-    reiser4_file_t *file	    /* dir position will be obtained from */
-	) {
+    reiser4_file_t *file)	    /* dir position will be obtained from */
+{
     aal_assert("umka-875", file != NULL, return -1);
     aal_assert("umka-876", file->entity != NULL, return -1);
 
@@ -354,12 +354,11 @@ uint32_t reiser4_file_offset(
 /* Seeks directory current position to passed pos */
 errno_t reiser4_file_seek(
     reiser4_file_t *file,	    /* dir where position shopuld be chnaged */
-    uint32_t offset		    /* offset for seeking */
-	) {
+    uint32_t offset)		    /* offset for seeking */
+{
     aal_assert("umka-1129", file != NULL, return -1);
     aal_assert("umka-1153", file->entity != NULL, return -1);
     
     return plugin_call(return -1, file->entity->plugin->file_ops, 
 					   seek, file->entity, offset);
 }
-

@@ -166,6 +166,9 @@ static uint32_t stat40_count(reiser4_item_t *item) {
     
     for (i = 0; i < sizeof(uint64_t)*8; i++) {
 	    
+        if (!((1 << i) & extmask))
+			continue;
+		
 		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) |
 								  ((uint64_t)1 << 0x1f) |
 								  ((uint64_t)1 << 0x2f)))
@@ -181,7 +184,7 @@ static uint32_t stat40_count(reiser4_item_t *item) {
 			return 0;
 		}
 
-		count += (((uint64_t)1 << i) & extmask);
+		count += ((1 << i) & extmask);
 		extbody = (void *)extbody + plugin_call(return 0,
 												plugin->sdext_ops, length,);
     }
@@ -207,7 +210,7 @@ static reiser4_body_t *stat40_sdext_body(reiser4_item_t *item,
     for (i = 0; i < bit; i++) {
         reiser4_plugin_t *plugin;
 	
-        if (!(((uint64_t)1 << i) & extmask))
+        if (!((1 << i) & extmask))
 			continue;
 	    
 		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) | 
@@ -250,7 +253,7 @@ static int stat40_sdext_present(reiser4_item_t *item,
     for (i = 0; i <= bit; i++) {
         reiser4_plugin_t *plugin;
 	
-        if ((((uint64_t)1 << i) & extmask))
+        if (((1 << i) & extmask))
 			return 1;
 	    
 		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) | 
