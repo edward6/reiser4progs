@@ -8,11 +8,6 @@
 #include "sym40.h"
 #include "repair/plugin.h"
 
-extern reiser4_core_t *sym40_core;
-extern reiser4_plug_t sym40_plug;
-
-extern object_entity_t *sym40_open(object_info_t *info);
-
 #define sym40_exts ((uint64_t)1 << SDEXT_UNIX_ID |	\
 			      1 << SDEXT_LW_ID |	\
 			      1 << SDEXT_SYMLINK_ID)

@@ -364,7 +364,6 @@ static errno_t key_large_build_gener(key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Prints key into passed stream */
 errno_t key_large_print(key_entity_t *key,
 			aal_stream_t *stream,
@@ -383,19 +382,18 @@ errno_t key_large_print(key_entity_t *key,
 	} else {
 		name = key_common_minor2name(key_large_get_type(key));
 
-		aal_stream_format(stream, "%llx:%x:%llx:%llx:%llx:%s",
+		aal_stream_format(stream, "%llx:%x(%s):%llx:%llx:%llx",
 				  key_large_get_locality(key),
-				  key_large_get_type(key),
+				  key_large_get_type(key), name,
 				  key_large_get_ordering(key),
 				  key_large_get_fobjectid(key),
-				  key_large_get_offset(key), name);
+				  key_large_get_offset(key));
 	}
 	
 	return 0;
 }
 
 extern errno_t key_large_check_struct(key_entity_t *key);
-
 #endif
 
 static reiser4_key_ops_t key_large_ops = {

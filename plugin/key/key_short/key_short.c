@@ -343,7 +343,6 @@ static errno_t key_short_build_gener(key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Prints key into passed stream */
 errno_t key_short_print(key_entity_t *key,
 			aal_stream_t *stream,
@@ -361,19 +360,17 @@ errno_t key_short_print(key_entity_t *key,
 	} else {
 		name = key_common_minor2name(key_short_get_type(key));
 		
-		aal_stream_format(stream, "%llx:%x:%llx:%llx:%s",
+		aal_stream_format(stream, "%llx:%x(%s):%llx:%llx",
 				  key_short_get_locality(key),
-				  key_short_get_type(key),
+				  key_short_get_type(key), name,
 				  key_short_get_objectid(key),
-				  key_short_get_offset(key), 
-				  name);
+				  key_short_get_offset(key));
 	}
 	
 	return 0;
 }
 
 extern errno_t key_short_check_struct(key_entity_t *key);
-
 #endif
 
 static reiser4_key_ops_t key_short_ops = {

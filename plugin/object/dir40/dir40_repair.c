@@ -7,16 +7,6 @@
 #include "dir40.h"
 #include "repair/plugin.h"
 
-extern reiser4_core_t *dir40_core;
-extern reiser4_plug_t dir40_plug;
-
-extern errno_t dir40_reset(object_entity_t *entity);
-extern lookup_t dir40_lookup(object_entity_t *entity,
-			     char *name, entry_hint_t *entry);
-
-extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
-extern lookup_t dir40_next(dir40_t *dir, bool_t check);
-
 #define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
 static errno_t dir40_extentions(place_t *stat) {

@@ -9,16 +9,12 @@
 #endif
 
 #include "dir40.h"
+#include "dir40_repair.h"
 
-extern reiser4_plug_t dir40_plug;
 reiser4_core_t *dir40_core = NULL;
 
-static void dir40_close(object_entity_t *entity) {
-	aal_assert("umka-750", entity != NULL);
-	aal_free(entity);
-}
-
 #ifndef ENABLE_STAND_ALONE
+/* Return current position in directory into passed @offset. */
 static errno_t dir40_telldir(object_entity_t *entity,
 			     key_entity_t *offset)
 {
@@ -27,19 +23,21 @@ static errno_t dir40_telldir(object_entity_t *entity,
 	aal_assert("umka-1985", entity != NULL);
 	aal_assert("umka-1986", offset != NULL);
 
-	/* Getting current dir key and adjust */
+	/* Getting current dir key and adjust. */
 	plug_call(dir->offset.plug->o.key_ops,
 		  assign, offset, &dir->offset);
 
+	/* Adjust is offset inside collided keys arrays and needed for
+	   positioning right in such a case. In normal case it is zero. */
 	offset->adjust = dir->adjust;
 	
 	return 0;
 }
 #endif
 
-/* This fucntion checks if passed @place point to item related to @entity, that
-   is belong to directory. */
-int32_t dir40_belong(dir40_t *dir, place_t *place, bool_t pcheck) {
+/* This fucntion checks if passed @place points to item related to @entity, that
+   is belong to this directory. */
+int32_t dir40_belong(dir40_t *dir, place_t *place) {
 	/* Checking if item component in @place->pos is valid one. This is
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
@@ -47,21 +45,28 @@ int32_t dir40_belong(dir40_t *dir, place_t *place, bool_t pcheck) {
 	if (!dir40_core->tree_ops.valid(dir->obj.info.tree, place))
 		return 0;
 
-	/* Fetching item info at @place */
+	/* Fetching item info at @place. This is needed to make sue, that all
+	   @place fields are initialized rigth. Normally it is doing by
+	   tree_lookup(), if it is sure, that place points to valid postion in
+	   node. This happen if lookup found a key. Otherwise it leaves place
+	   not initialized and caller is supoposed to take care about. */
 	if (obj40_fetch(&dir->obj, place))
-		/* FIXME-VITALY: This is an error. */
 		return 0;
 	
-	/* Checking if item plugins are the same. This is needed, because item
-	   method mergeable() expects to have items of the same type. */
-	if (pcheck && !plug_equal(dir->body.plug, place->plug))
-		return 0;
-
 	/* Is the place of the same object? */
 	return plug_call(dir->body.key.plug->o.key_ops, compshort,
 			 &dir->body.key, &place->key) ? 0 : 1;
 }
 
+/* Close directiry instance. */
+static void dir40_close(object_entity_t *entity) {
+	aal_assert("umka-750", entity != NULL);
+	aal_free(entity);
+}
+
+/* Positioning inside directory by passed @offset key. Normally, user should use
+   key got from telldir() function. But, this is possible to generate directory
+   key by himself and pass here. */
 static errno_t dir40_seekdir(object_entity_t *entity,
 			     key_entity_t *offset)
 {
@@ -72,17 +77,21 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
+	/* Getting adjust from the passed key and puting it to
+	   @dir->adjust. Seekdir is accepting key, which might be got from
+	   telldir() function. So, adjust will be set too. */
 #ifndef ENABLE_STAND_ALONE
 	dir->adjust = offset->adjust;
 #endif
-	
+
+	/* Saving passed key to @dir->offset. */
 	plug_call(dir->offset.plug->o.key_ops,
 		  assign, &dir->offset, offset);
 
 	return 0;
 }
 
-/* Resets internal direntry position at zero */
+/* Resets current direntry position to zero. */
 errno_t dir40_reset(object_entity_t *entity) {
 	dir40_t *dir = (dir40_t *)entity;
     
@@ -93,7 +102,8 @@ errno_t dir40_reset(object_entity_t *entity) {
 #ifndef ENABLE_STAND_ALONE
 	dir->adjust = 0;
 #endif
-	
+
+	/* Building key itself. */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
 		  &dir->offset, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), ".");
@@ -122,22 +132,23 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	return 0;
 }
 
-/* Switches current dir body item onto next one. Returns 1 on success, 0 on the
-   case of directory is over and values < 0 on error. */
+/* Switches current dir body item onto next one. Returns PRESENT on success,
+   ABSENT in the case of directory is over and values < 0 on error. */
 lookup_t dir40_next(dir40_t *dir, bool_t check) {
 	lookup_t res;
 	place_t place;
 
 	aal_assert("umka-2063", dir != NULL);
 
-	/* Getting next directory item */
+	/* Getting next directory item coord. */
 	if ((res = dir40_core->tree_ops.next(dir->obj.info.tree,
 					&dir->body, &place)))
 	{
 		return res;
 	}
 
-	if (!place.node || !dir40_belong(dir, &place, check)) {
+	/* Check if this item owned by this directory. */
+	if (!place.node || !dir40_belong(dir, &place)) {
 		uint64_t offset;
 		
 		/* Set offset to non-existent value as the end is reached. */
@@ -151,6 +162,7 @@ lookup_t dir40_next(dir40_t *dir, bool_t check) {
 	}
 	
 	aal_memcpy(&dir->body, &place, sizeof(place));
+	
 	return PRESENT;
 }
 
@@ -166,7 +178,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 	
 	dir = (dir40_t *)entity;
 
-	/* Making lookup by current dir key */
+	/* Making lookup by current dir key. */
 	if ((res = obj40_lookup(&dir->obj, &dir->offset,
 				LEAF_LEVEL, FIND_EXACT,
 				&dir->body)) < 0)
@@ -174,14 +186,14 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 		return res;
 	}
 
-	/* Correcting unit pos for next body item */
+	/* Correcting unit pos for next body item. */
 	if (dir->body.pos.unit == MAX_UINT32)
 		dir->body.pos.unit = 0;
 
 	if (res == ABSENT) {
 
 		/* Directory is over */
-		if (!dir40_belong(dir, &dir->body, 1))
+		if (!dir40_belong(dir, &dir->body))
 			return ABSENT;
 
 		/* Checking if directory is over */
@@ -218,7 +230,9 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 	return PRESENT;
 }
 
-/* Reads one entry from passed @entity */
+/* Reads one current directory entry to passed @entity hint. Returns count of
+   read entries, zero for the case directory is over and nagtive values fopr
+   errors. */
 static int32_t dir40_readdir(object_entity_t *entity, 
 			     entry_hint_t *entry)
 {
@@ -243,11 +257,11 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	if ((res = dir40_fetch(dir, entry)))
 		return res;
 
-	/* Setting up the entry type. It is essential for fsck to know
-	   what is the NAME -- that needs to be traversed semantically
-	   to be recovered completely -- and what is not -- that needs
-	   some other special actions, e.g. check_attach for ".." (and
-	   even "..." if it is needed one day), etc. */
+	/* Setting up the entry type. It is essential for fsck to know what is
+	   the NAME -- that needs to be traversed semantically to be recovered
+	   completely -- and what is not -- that needs some other special
+	   actions, e.g. check_attach for ".." (and even "..." if it is needed
+	   one day), etc. */
 #ifndef ENABLE_STAND_ALONE
 	entry->type = ET_NAME;
 		
@@ -300,6 +314,9 @@ static int32_t dir40_readdir(object_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Helper function for comparing two strings. Needed for the case we detected
+   key collition and need to find right position inside the directory by name of
+   entry. */
 static int32_t dir40_compent(char *entry1, char *entry2) {
 	uint32_t len1 = aal_strlen(entry1);
 	uint32_t len2 = aal_strlen(entry2);
@@ -314,10 +331,9 @@ static int32_t dir40_compent(char *entry1, char *entry2) {
 }
 #endif
 
-/* Makes lookup iside directory with specified position correcting mode. This is
-   needed to be used in add_entry() for two reasons: for make sure, that passed
-   entry does not exists and to use lookup result for consequent insert. As it
-   is used for insert, we should specify pos correctring mode INST. */
+/* Makes lookup inside directory. This is needed to be used in add_entry() for
+   two reasons: for make sure, that passed entry does not exists and to use
+   lookup result for consequent insert. */
 static lookup_t dir40_search(object_entity_t *entity,
 			     char *name, bias_t bias,
 			     entry_hint_t *entry)
@@ -356,36 +372,44 @@ static lookup_t dir40_search(object_entity_t *entity,
 	}
 
 #ifndef ENABLE_STAND_ALONE
-	/* Key collisions handling. Sequentional search of the needed entry by
-	   its name. */
+	/* Key collisions handling. Sequentional search by name. */
 	entry->offset.adjust = 0;
 		
 	while (1) {
 		int32_t comp;
 		uint32_t units;
 		entry_hint_t temp;
-		
+
+		/* Check if item is over. */
 		units = plug_call(dir->body.plug->o.item_ops,
 				  units, &dir->body);
 
 		if (dir->body.pos.unit >= units) {
+			/* Getting next item. */
 			if ((res = dir40_next(dir, 1)) < 0)
 				return res;
 
+			/* Directory is over? */
 			if (res == ABSENT)
 				return res;
 		}
-		
+
+		/* Fetching current unit (entry) into @temp entry hint.*/
 		if (dir40_fetch(dir, &temp))
 			return -EIO;
 
+		/* Save its place to result entry @place field. It may be used
+		   for inserting new entry in this place. */
 		if (entry) {
 			aal_memcpy(&entry->place, &temp.place,
 				   sizeof(temp.place));
 		}
 
+		/* Checking if we found needed name. */
 		comp = dir40_compent(temp.name, name);
-			
+
+		/* If current name is less then we need, we increase collitions
+		   counter -- @adjust. */
 		if (comp < 0) {
 			dir->body.pos.unit++;
 
@@ -395,8 +419,11 @@ static lookup_t dir40_search(object_entity_t *entity,
 			}
 				
 		} else if (comp > 0) {
+			/* Entry is not found, because current name is bigger
+			   then needed. */
 			return ABSENT;
 		} else {
+			/* We have found entry we need. */
 			if (entry) {
 				aal_memcpy(entry, &temp,
 					   sizeof(temp));
@@ -414,15 +441,16 @@ static lookup_t dir40_search(object_entity_t *entity,
 #endif
 }
 
-/* Makes lookup inside @entity by passed @name */
+/* Makes lookup inside @entity by passed @name. Saves found entry in passed
+   @entry hint. */
 lookup_t dir40_lookup(object_entity_t *entity,
 		      char *name, entry_hint_t *entry) 
 {
 	return dir40_search(entity, name, FIND_EXACT, entry);
 }
 
-/* Initializing dir40 instance by stat data place, resetring directory be means
-   of using dir40_reset function and return instance to caller. */
+/* Initializing dir40 instance, resetring directory be means of using reset()
+   function and return instance to caller. */
 static object_entity_t *dir40_open(object_info_t *info) {
 	dir40_t *dir;
 
@@ -444,7 +472,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 		goto error_free_dir;
 	}
 	
-	/* Guessing hash plugin basing on stat data */
+	/* Getting hash plugin basing on stat data and/or param set. */
 	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, "hash")))
                 goto error_free_dir;
 
@@ -457,7 +485,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	return NULL;
 }
 
-/* Loads stat data to passed @hint */
+/* Loads stat data to passed @hint. */
 static errno_t dir40_stat(object_entity_t *entity,
 			  statdata_hint_t *hint)
 {
@@ -486,8 +514,9 @@ static uint64_t dir40_size(object_entity_t *entity) {
 	return obj40_get_size(&dir->obj);
 }
 
-/* Creates dir40 instance and inserts few item in new directory described by
-   passed @hint. */
+/* Creates dir40 instance. Creates its stat data item, and body item with one
+   "." unit. Yet another unit ".." will be inserted latter, then directiry will
+   be attached to a parent object. */
 static object_entity_t *dir40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
@@ -504,7 +533,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 	
-	/* Initializing obj handle */
+	/* Initializing obj handle. */
 	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
 
 	/* Getting hash plugin */
@@ -515,7 +544,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 				    "id 0x%x.", hint->body.dir.hash);
 		goto error_free_dir;
 	}
-   
+
+	/* Initializing body plugin. */
 	if (!(body_plug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, 
 						   hint->body.dir.direntry)))
 	{
@@ -555,7 +585,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 			     LEAF_LEVEL, FIND_CONV, &dir->body))
 	{
 	case ABSENT:
-		/* Inserting the direntry item into the tree */
+		/* Inserting the direntry body item into the tree. */
 		if (obj40_insert(&dir->obj, &dir->body,
 				 &body_hint, LEAF_LEVEL))
 		{
@@ -567,9 +597,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_dir;
 	}
 
-	/* New directory will have two links on it, because of dot 
-	   entry which points onto directory itself and entry in 
-	   parent directory, which points to this new directory. */
+	/* Create stat data item. */
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
 	if (obj40_create_stat(&dir->obj, hint->label.statdata, mask,
@@ -586,7 +614,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	return NULL;
 }
 
-/* Removes all directory body items */
+/* Removes all directory body items. */
 static errno_t dir40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
@@ -623,7 +651,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		}
 
 		/* Checking if found item belongs this directory */
-		if (!dir40_belong(dir, &place, 1))
+		if (!dir40_belong(dir, &place))
 			return 0;
 
 		hint.count = 1;
@@ -636,18 +664,21 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	return 0;
 }
 
-/* Removes directory body and stat data from the tree */
+/* Removes directory body and stat data from the tree. */
 static errno_t dir40_clobber(object_entity_t *entity) {
 	errno_t res;
 		
 	aal_assert("umka-2298", entity != NULL);
 
+	/* Truncates directory body. */
 	if ((res = dir40_truncate(entity, 0)))
 		return res;
 
+	/* Cloberring stat data. */
 	return obj40_clobber(&((dir40_t *)entity)->obj);
 }
 
+/* Attaches passed directory denoted by @entity to @parent object. */
 static errno_t dir40_attach(object_entity_t *entity,
 			    object_entity_t *parent)
 {
@@ -661,7 +692,7 @@ static errno_t dir40_attach(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	aal_strncpy(entry.name, "..", sizeof(entry.name));
 
-	/* Adding ".." to child */
+	/* Adding ".." pointing to parent to @entity object. */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
 		  assign, &entry.object, &parent->info.object);
 
@@ -675,6 +706,7 @@ static errno_t dir40_attach(object_entity_t *entity,
 	return plug_call(parent->plug->o.object_ops, link, parent);
 }
 
+/* Detaches @entity from @parent. */
 static errno_t dir40_detach(object_entity_t *entity,
 			    object_entity_t *parent)
 {
@@ -703,6 +735,7 @@ static errno_t dir40_detach(object_entity_t *entity,
 	}
 }
 
+/* Return number of hard links. */
 static uint32_t dir40_links(object_entity_t *entity) {
 	dir40_t *dir;
 	
@@ -712,6 +745,7 @@ static uint32_t dir40_links(object_entity_t *entity) {
 	return obj40_links(&dir->obj);
 }
 
+/* Addes one had link. */
 static errno_t dir40_link(object_entity_t *entity) {
 	dir40_t *dir;
 	
@@ -721,6 +755,7 @@ static errno_t dir40_link(object_entity_t *entity) {
 	return obj40_link(&dir->obj);
 }
 
+/* Removes one hard link. */
 static errno_t dir40_unlink(object_entity_t *entity) {
 	dir40_t *dir;
 	
@@ -730,6 +765,7 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	return obj40_unlink(&dir->obj);
 }
 
+/* Helper function. Builds entry key by entry name. */
 static errno_t dir40_build_entry(object_entity_t *entity, 
 				 entry_hint_t *entry)
 {
@@ -750,7 +786,7 @@ static errno_t dir40_build_entry(object_entity_t *entity,
 			 locality, objectid, entry->name);
 }
 
-/* Adding new entry */
+/* Add new entry to directory. */
 static errno_t dir40_add_entry(object_entity_t *entity, 
 			       entry_hint_t *entry)
 {
@@ -781,6 +817,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		return -EINVAL;
 	}
 
+	/* Prepare trans hint. */
 	hint.count = 1;
 	hint.plug = temp.place.plug;
 	hint.specific = (void *)entry;
@@ -854,6 +891,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
+/* Directory enumerating related stuff.*/
 struct layout_hint {
 	void *data;
 	object_entity_t *entity;
@@ -866,13 +904,12 @@ static errno_t callback_item_layout(void *place, blk_t start,
 				    count_t width, void *data)
 {
 	layout_hint_t *hint = (layout_hint_t *)data;
-
 	return hint->region_func(hint->entity, start,
 				 width, hint->data);
 }
 
-/* Layout function implementation. It is needed for printing, fragmentation
-   calculating, etc. */
+/* This fucntion implements hashed directory enumerator function. It is used for
+   calculating fargmentation, prining. */
 static errno_t dir40_layout(object_entity_t *entity,
 			    region_func_t region_func,
 			    void *data)
@@ -885,7 +922,8 @@ static errno_t dir40_layout(object_entity_t *entity,
 	aal_assert("umka-1474", region_func != NULL);
 
 	dir = (dir40_t *)entity;
-	
+
+	/* Update current body item coord. */
 	if ((res = dir40_update_body(entity)) < 0)
 		return res;
 
@@ -893,10 +931,12 @@ static errno_t dir40_layout(object_entity_t *entity,
 	if (res == ABSENT)
 		return 0;
 
+	/* Prepare layout hint. */
 	hint.data = data;
 	hint.entity = entity;
 	hint.region_func = region_func;
-	
+
+	/* Loop until all items are enumerated. */
 	while (1) {
 		place_t *place = &dir->body;
 		
@@ -910,6 +950,8 @@ static errno_t dir40_layout(object_entity_t *entity,
 				return res;
 			}
 		} else {
+			/* Layout method is not implemented. Counting item
+			   itself. */
 			blk_t blk = place->block->nr;
 			
 			if ((res = callback_item_layout(place, blk,
@@ -918,10 +960,12 @@ static errno_t dir40_layout(object_entity_t *entity,
 				return res;
 			}
 		}
-		
+
+		/* Getting next directory item. */
 		if ((res = dir40_next(dir, 1)) < 0)
 			return res;
 
+		/* Directory is over? */
 		if (res == ABSENT)
 			return 0;
 	}
@@ -929,9 +973,8 @@ static errno_t dir40_layout(object_entity_t *entity,
 	return 0;
 }
 
-/* Metadata function implementation. It traverses all directory items and calls
-   @func for each of them. It is needed for printing, fragmentation calculating,
-   etc. */
+/* This fucntion implements hashed directory metadata enumerator function. This
+   is needed for getting directory metadata for pack them, etc. */
 static errno_t dir40_metadata(object_entity_t *entity,
 			      place_func_t place_func,
 			      void *data)
@@ -944,19 +987,24 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	
 	dir = (dir40_t *)entity;
 
+	/* Calculating stat data item. */
 	if ((res = obj40_metadata(&dir->obj, place_func, data)))
 		return res;
-	
+
+	/* Update current body item coord. */
 	if ((res = dir40_update_body(entity)) < 0)
 		return res;
 
 	if (res == ABSENT)
 		return 0;
 
+	/* Loop until all items are enumerated. */
 	while (1) {
+		/* Calling callback function. */
 		if ((res = place_func(entity, &dir->body, data)))
 			return res;
-		
+
+		/* Getting next item. */
 		if ((res = dir40_next(dir, 1)) < 0)
 			return res;
 		
@@ -979,20 +1027,9 @@ static errno_t dir40_update(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	return obj40_save_stat(&dir->obj, hint);
 }
-
-extern errno_t dir40_form(object_entity_t *object);
-extern object_entity_t *dir40_fake(object_info_t *info);
-extern object_entity_t *dir40_recognize(object_info_t *info);
-
-extern errno_t dir40_check_attach(object_entity_t *object, 
-				  object_entity_t *parent, 
-				  uint8_t mode);
-
-extern errno_t dir40_check_struct(object_entity_t *object, 
-				  place_func_t place_func,
-				  void *data, uint8_t mode);
 #endif
 
+/* Directory object operations. */
 static reiser4_object_ops_t dir40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.create		= dir40_create,

@@ -9,13 +9,13 @@ reiser4progs/COPYING.
 
 * fix tree_copy(). It should be able to copy extents too.
 
-* cleanups in object.c about name field using.
-
 * functions for adding/removing stat data extentions.
 
 * fix unaligned access on Itanium2.
 
 * dumpfs utility.
+
+* pack/unpack utility.
 
 * plugin inheritance for objects.
 

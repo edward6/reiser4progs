@@ -9,8 +9,8 @@
 #endif
 
 #include "reg40.h"
+#include "reg40_repair.h"
 
-extern reiser4_plug_t reg40_plug;
 reiser4_core_t *reg40_core = NULL;
 
 /* Returns regular file current offset. */
@@ -307,8 +307,8 @@ reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 }
 
 /* Makes tail2extent and extent2tail conversion. */
-errno_t reg40_convert(object_entity_t *entity, 
-		      reiser4_plug_t *plug) 
+static errno_t reg40_convert(object_entity_t *entity, 
+			     reiser4_plug_t *plug) 
 {
 	errno_t res;
 	reg40_t *reg;
@@ -728,14 +728,6 @@ static errno_t reg40_update(object_entity_t *entity,
 	reg = (reg40_t *)entity;
 	return obj40_save_stat(&reg->obj, hint);
 }
-
-/* Fsck related funtions. */
-extern errno_t reg40_form(object_entity_t *object);
-extern object_entity_t *reg40_recognize(object_info_t *info);
-
-extern errno_t reg40_check_struct(object_entity_t *object,
-				  place_func_t place_func,
-				  void *data, uint8_t mode);
 #endif
 
 /* Regular file operations. */

@@ -4,10 +4,11 @@
    sym40.c -- reiser4 symlink file plugin. */
 
 #ifdef ENABLE_SYMLINKS
+
 #include "sym40.h"
+#include "sym40_repair.h"
 
 reiser4_core_t *sym40_core = NULL;
-extern reiser4_plug_t sym40_plug;
 
 /* Opens symlink and returns initialized instance to the caller */
 object_entity_t *sym40_open(object_info_t *info) {
@@ -178,12 +179,6 @@ static errno_t sym40_update(object_entity_t *entity,
 	sym = (sym40_t *)entity;
 	return obj40_save_stat(&sym->obj, hint);
 }
-
-extern object_entity_t *sym40_recognize(object_info_t *info);
-
-extern errno_t sym40_check_struct(object_entity_t *object,
-				  place_func_t place_func,
-				  void *data, uint8_t mode);
 #endif
 
 /* This function reads symlink and parses it by means of using aux_parse_path

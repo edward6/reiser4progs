@@ -33,5 +33,17 @@ struct dir40 {
 };
 
 typedef struct dir40 dir40_t;
+
+extern reiser4_plug_t dir40_plug;
+extern reiser4_core_t *dir40_core;
+
+extern errno_t dir40_reset(object_entity_t *entity);
+extern lookup_t dir40_next(dir40_t *dir, bool_t check);
+extern int32_t dir40_belong(dir40_t *dir, place_t *place);
+
+extern lookup_t dir40_lookup(object_entity_t *entity,
+			     char *name, entry_hint_t *entry);
+
+extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
 #endif
 

@@ -1,9 +1,7 @@
-/*
-  spl40.h -- reiser4 special file plugin structures.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   spl40.h -- reiser4 special file plugin structures. */
 
 #ifndef SPL40_H
 #define SPL40_H

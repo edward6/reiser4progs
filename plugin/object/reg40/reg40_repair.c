@@ -1,31 +1,11 @@
 /* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   reg40_repair.c -- reiser4 default regular file plugin repair code. */
+   reg40_repair.c -- reiser4 regular file plugin repair code. */
  
 #ifndef ENABLE_STAND_ALONE
 #include "reg40.h"
 #include "repair/plugin.h"
-
-extern reiser4_core_t *reg40_core;
-extern reiser4_plug_t reg40_plug;
-
-extern errno_t reg40_seek(object_entity_t *entity, uint64_t offset);
-
-extern errno_t reg40_reset(object_entity_t *entity);
-extern uint64_t reg40_offset(object_entity_t *entity);
-extern lookup_t reg40_update_body(object_entity_t *entity);
-
-extern int64_t reg40_put(object_entity_t *entity,
-			 void *buff, uint32_t n);
-
-extern reiser4_plug_t *reg40_policy_plug(reg40_t *reg,
-					 uint64_t new_size);
-
-extern errno_t reg40_convert(object_entity_t *entity, 
-			     reiser4_plug_t *plug, 
-			     uint64_t new_size, 
-			     int update);
 
 #define reg40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
@@ -69,13 +49,14 @@ object_entity_t *reg40_recognize(object_info_t *info) {
 	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
 	
 	if ((res = obj40_recognize(&reg->obj, callback_stat)))
-		goto error;
+		goto error_free_reg;
 	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
 
 	return (object_entity_t *)reg;
- error:
+	
+ error_free_reg:
 	aal_free(reg);
 	return res < 0 ? INVAL_PTR : NULL;
 }

@@ -233,13 +233,15 @@ reiser4_object_t *reiser4_object_open(
     
 	object->tree = tree;
 
-#ifndef ENABLE_STAND_ALONE
-	aal_strncpy(object->name, filename,
-		    sizeof(object->name));
-#endif
-
 	if (reiser4_object_resolve(object, filename, follow))
 		goto error_free_object;
+
+#ifndef ENABLE_STAND_ALONE
+	{
+		char *name = reiser4_print_key(&object->info->object, PO_INO);
+		aal_strncpy(object->name, name, sizeof(object->name));
+	}
+#endif
 
 	return object;
     
