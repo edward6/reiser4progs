@@ -263,19 +263,16 @@ static errno_t stat40_insert(place_t *place,
 	return 0;
 }
 
-extern errno_t stat40_copy(place_t *dst,
-			   uint32_t dst_pos, 
-			   place_t *src,
-			   uint32_t src_pos, 
+extern errno_t stat40_check_struct(place_t *place,
+				   uint8_t mode);
+
+extern errno_t stat40_copy(place_t *dst, uint32_t dst_pos, 
+			   place_t *src, uint32_t src_pos, 
 			   copy_hint_t *hint);
 
-extern errno_t stat40_estimate_copy(place_t *dst,
-				    uint32_t dst_pos, 
-				    place_t *src,
-				    uint32_t src_pos, 
+extern errno_t stat40_estimate_copy(place_t *dst, uint32_t dst_pos, 
+				    place_t *src, uint32_t src_pos, 
 				    copy_hint_t *hint);
-
-extern errno_t stat40_check_struct(place_t *, uint8_t);
 
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {

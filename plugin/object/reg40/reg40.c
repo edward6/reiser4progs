@@ -751,7 +751,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		if ((res = reg40_update(entity)))
 			return res;
 
-		/* Callng per-place callck function */
+		/* Calling per-place callback function */
 		if ((res = place_func(entity, &reg->body, data)))
 			return res;
 

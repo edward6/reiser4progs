@@ -146,12 +146,12 @@ errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
 	return 0;
 }
 
-/* Switches current dir body item onto next one */
-static errno_t dir40_next(object_entity_t *entity, int adjust) {
+/* Switches current dir body item onto next one. Returns 1 on success, 0 on the
+   case of directory is over and values < 0 on error. */
+static int dir40_next(object_entity_t *entity) {
 	errno_t res;
 	dir40_t *dir;
 	place_t place;
-	entry_hint_t entry;
 
 	aal_assert("umka-2063", entity != NULL);
 
@@ -172,53 +172,30 @@ static errno_t dir40_next(object_entity_t *entity, int adjust) {
 		plug_call(dir->offset.plug->o.key_ops, set_offset,
 			  &dir->offset, offset + 1);
 		
-		return -EINVAL;
+		return 0;
 	}
 	
 	aal_memcpy(&dir->body, &place, sizeof(place));
-
-	/* Reading next direntry in order to get its key and put it to
-	   @dir->offset key, which denotes current entry. */
-	if (dir40_fetch(entity, &entry))
-		return -EIO;
-
-#ifdef ENABLE_COLLISIONS
-	/* Taking care about adjusting */
-	if (adjust) {
-		if (!plug_call(entry.offset.plug->o.key_ops,
-			       compfull, &entry.offset, &dir->offset))
-		{
-			entry.offset.adjust = dir->adjust + 1;
-		} else {
-			entry.offset.adjust = 0;
-		}
-	} else {
-		entry.offset.adjust = dir->adjust;
-	}
-#endif
-	/* Seeking to @dir->offset */
-	return dir40_seekdir(entity, &entry.offset);
+	return 1;
 }
 
-/* Updates current body place */
+/* Updates current body place by place found by @dir->offset and @dir->adjust */
 static errno_t dir40_update(object_entity_t *entity) {
+	dir40_t *dir;
 	lookup_t res;
 	
-#ifdef ENABLE_COLLISIONS
-	uint32_t units;
-	uint32_t adjust;
-#endif
-	
-	dir40_t *dir = (dir40_t *)entity;
-
-	aal_assert("umka-2385", entity != NULL);
+	dir = (dir40_t *)entity;
 	
 	switch ((res = obj40_lookup(&dir->obj, &dir->offset,
 				    LEAF_LEVEL, &dir->body)))
 	{
 	case FAILED:
 		return -EINVAL;
-	default:
+	default: {
+#ifdef ENABLE_COLLISIONS
+		uint32_t units;
+		uint32_t adjust;
+#endif
 		if (dir->body.pos.unit == MAX_UINT32)
 			dir->body.pos.unit = 0;
 
@@ -245,12 +222,13 @@ static errno_t dir40_update(object_entity_t *entity) {
 			dir->body.pos.unit += off - 1;
 
 			if ((adjust -= off) > 0) {
-				if (dir40_next(entity, 0))
+				if (dir40_next(entity) != 1)
 					return -EINVAL;
 			}
 		}
 #endif
 		return 0;
+	}
 	}
 }
 
@@ -303,7 +281,16 @@ static errno_t dir40_readdir(object_entity_t *entity,
 #endif
 
 	/* Getting next entry in odrer to set up @dir->offset correctly */
-	if (++dir->body.pos.unit < units) {
+	if (++dir->body.pos.unit >= units) {
+		/* Switching to the next directory item */
+		if ((res = dir40_next(entity)) < 0)
+			return res;
+	} else {
+		/* There is no needs to switch */
+		res = 1;
+	}
+
+	if (res == 1) {
 		entry_hint_t temp;
 		
 		if ((res = dir40_fetch(entity, &temp)))
@@ -320,24 +307,21 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		}
 #endif
 		dir40_seekdir(entity, &temp.offset);
-	} else {
-		/* Switching to the next directory item */
-		dir40_next(entity, 1);
 	}
-
+	
 	return 0;
 }
 
-static int dir40_compname(char *name1, char *name2) {
-	uint32_t len1 = aal_strlen(name1);
+static int dir40_compent(char *entry1, char *entry2) {
+	uint32_t len1 = aal_strlen(entry1);
 	
-	if (len1 > aal_strlen(name2))
+	if (len1 > aal_strlen(entry2))
 		return 1;
 
-	if (len1 < aal_strlen(name2))
+	if (len1 < aal_strlen(entry2))
 		return -1;
 
-	return aal_strncmp(name1, name2, len1);
+	return aal_strncmp(entry1, entry2, len1);
 }
 
 /* Makes lookup in directory by name. Fills passed buff by found entry fields
@@ -401,7 +385,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 					   sizeof(temp.place));
 			}
 
-			comp = dir40_compname(temp.name, name);
+			comp = dir40_compent(temp.name, name);
 			
 			if (comp < 0) {
 				dir->body.pos.unit++;
@@ -410,6 +394,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 					entry->offset.adjust++;
 					entry->place.pos.unit++;
 				}
+				
 			} else if (comp > 0) {
 				return ABSENT;
 			} else {
@@ -421,8 +406,14 @@ lookup_t dir40_lookup(object_entity_t *entity,
 				return PRESENT;
 			}
 		} else {
-			if (dir40_next(entity, 0))
+			switch (dir40_next(entity)) {
+			case 1:
+				break;
+			case 0:
 				return ABSENT;
+			default:
+				return FAILED;
+			}
 		}
 	}
 	
@@ -902,8 +893,14 @@ static errno_t dir40_layout(object_entity_t *entity,
 			}
 		}
 		
-		if (dir40_next(entity, 0))
+		switch ((res = dir40_next(entity))) {
+		case 1:
+			break;
+		case 0:
 			return 0;
+		default:
+			return res;
+		}
 	}
     
 	return 0;
@@ -934,8 +931,14 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = place_func(entity, &dir->body, data)))
 			return res;
 		
-		if (dir40_next(entity, 0))
+		switch ((res = dir40_next(entity))) {
+		case 1:
+			break;
+		case 0:
 			return 0;
+		default:
+			return res;
+		}
 	}
 	
 	return 0;
