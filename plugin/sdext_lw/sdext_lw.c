@@ -50,7 +50,7 @@ static errno_t sdext_lw_open(reiser4_body_t *body,
 	return 0;
 }
 
-static uint16_t sdext_lw_length(void) {
+static uint16_t sdext_lw_length(reiser4_body_t *body) {
 	return sizeof(sdext_lw_t);
 }
 

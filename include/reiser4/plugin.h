@@ -136,13 +136,15 @@ enum reiser4_perm_plugin_id {
 };
 
 enum reiser4_sdext_plugin_id {
-	SDEXT_LW_ID		 = 0x0,
+	SDEXT_LW_ID	         = 0x0,
 	SDEXT_UNIX_ID		 = 0x1,
-	SDEXT_SYMLINK_ID	 = 0x2,
-	SDEXT_PLUGIN_ID		 = 0x3,
-	SDEXT_GEN_FLAGS_ID       = 0x4,
-	SDEXT_CAPS_ID            = 0x5,
-	SDEXT_LARGE_TIMES_ID     = 0x6
+	SDEXT_LT_ID              = 0x2,
+	SDEXT_SYMLINK_ID	 = 0x3,
+	SDEXT_PLUGIN_ID		 = 0x4,
+	SDEXT_GEN_FLAGS_ID       = 0x5,
+	SDEXT_CAPS_ID            = 0x6,
+	SDEXT_LARGE_TIMES_ID     = 0x7,
+	SDEXT_LAST
 };
 
 enum reiser4_format_plugin_id {
@@ -297,6 +299,14 @@ struct reiser4_sdext_lw_hint {
 };
 
 typedef struct reiser4_sdext_lw_hint reiser4_sdext_lw_hint_t;
+
+struct reiser4_sdext_lt_hint {
+	uint32_t atime;
+	uint32_t mtime;
+	uint32_t ctime;
+};
+
+typedef struct reiser4_sdext_lt_hint reiser4_sdext_lt_hint_t;
 
 /* These fields should be changed to what proper description of needed extentions */
 struct reiser4_statdata_hint {
@@ -626,7 +636,7 @@ struct reiser4_sdext_ops {
 			  uint32_t, uint16_t);
 
 	/* Returns length of the extention */
-	uint16_t (*length) (void);
+	uint16_t (*length) (reiser4_body_t *);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;

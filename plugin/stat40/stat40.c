@@ -68,8 +68,8 @@ static errno_t stat40_layout(item_entity_t *item,
 			return 0;
 		}
 
-		extbody = (void *)extbody + plugin_call(return 0,
-							plugin->sdext_ops, length,);
+		extbody = (void *)extbody + plugin_call(return 0, plugin->sdext_ops,
+							length, extbody);
 	}
     
 	return 0;
@@ -169,7 +169,7 @@ static errno_t stat40_init(item_entity_t *item,
 		   Getting pointer to the next extention. It is evaluating as
 		   previous pointer plus its size.
 		*/
-		extbody += plugin_call(return -1, plugin->sdext_ops, length,);
+		extbody += plugin_call(return -1, plugin->sdext_ops, length, extbody);
 	}
     
 	return 0;
@@ -208,7 +208,7 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 		}
 	
 		hint->len += plugin_call(return -1, plugin->sdext_ops, 
-					 length,);
+					 length, stat_hint->ext[i]);
 	}
 	
 	return 0;

@@ -100,12 +100,19 @@ static errno_t debugfs_open_joint(
 	return -(*joint == NULL);
 }
 
+#define DEBUGFS_ITEM_SIZE (32768)
+
 static errno_t debugfs_print_joint(
 	reiser4_joint_t *joint,	   /* joint to be printed */
 	void *data)		   /* user-specified data */
 {
+	uint32_t i;
 	uint8_t level;
-	char buff[8192];
+	
+	reiser4_key_t key;
+	reiser4_coord_t coord;
+	
+	char *item_buff, key_buff[255];
 	
 	reiser4_node_t *node = joint->node;
 	struct print_tree_hint *hint = (struct print_tree_hint *)data;
@@ -116,96 +123,58 @@ static errno_t debugfs_print_joint(
 	printf("%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
 	       level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
 	       level, reiser4_node_count(node), reiser4_node_space(node));
-    
-	if (level > LEAF_LEVEL) {
-		uint32_t i;
-	
-		for (i = 0; i < reiser4_node_count(node); i++) {
-			reiser4_key_t key;
-			reiser4_coord_t coord;
-			reiser4_pos_t pos = {i, ~0ul};
 
-			if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
-				aal_exception_error("Can't open item %u in node %llu.", 
-						    i, aal_block_number(node->block));
-				return -1;
-			}
+	for (i = 0; i < reiser4_node_count(node); i++) {
+		reiser4_pos_t pos = {i, ~0ul};
 
-			if (reiser4_item_nodeptr(&coord))
-				printf("(%u) NODEPTR: len=%u, ", i, reiser4_item_len(&coord));
-			else
-				printf("(%u) EXTENT: len=%u, ", i, reiser4_item_len(&coord));
-	    
-			if (reiser4_item_key(&coord, &key)) {
-				aal_exception_error("Can't get key of item %u in node %llu.",
-						    i, aal_block_number(node->block));
-				return -1;
-			}
-	    
-			aal_memset(buff, 0, sizeof(buff));
-			reiser4_key_print(&key, buff, sizeof(buff));
-			printf("KEY: %s, ", buff);
-
-			printf("PLUGIN: 0x%x (%s)\n", coord.entity.plugin->h.sign.id,
-			       coord.entity.plugin->h.label);
-
-			aal_memset(buff, 0, sizeof(buff));
-
-			if (reiser4_item_print(&coord, buff, sizeof(buff)))
-				return -1;
-
-			printf("%s\n", buff);
+		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+			aal_exception_error("Can't open item %u in node %llu.", 
+					    i, aal_block_number(node->block));
+			return -1;
 		}
-	} else {
-		uint32_t i;
 
-		for (i = 0; i < reiser4_node_count(node); i++) {
-			reiser4_key_t key;
-			reiser4_coord_t coord;
-			reiser4_pos_t pos = {i, ~0ul};
-
-			if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
-				aal_exception_error("Can't open item %u in node %llu.", 
-						    i, aal_block_number(node->block));
-				return -1;
-			}
-
-			if (reiser4_item_key(&coord, &key)) {
-				aal_exception_error("Can't get key of item %u in node %llu.",
-						    i, aal_block_number(node->block));
-				return -1;
-			}
+		if (reiser4_item_statdata(&coord)) {
+			printf("STATDATA ITEM");
+		} else if (reiser4_item_direntry(&coord)) {
+			printf("DIRENTRY ITEM");
+		} else if (reiser4_item_tail(&coord)) {
+			printf("TAIL ITEM");
+		} else if (reiser4_item_nodeptr(&coord)) {
+			printf("NODEPTR ITEM");
+		} else
+			printf("EXTENT ITEM");
 	    
-			printf("(%u) ", i);
-		    
-			if (reiser4_item_statdata(&coord)) {
-				printf("STATDATA");
-			} else if (reiser4_item_direntry(&coord)) {
-				printf("DIRENTRY");
-			} else if (reiser4_item_tail(&coord)) {
-				printf("TAIL");
-			}
-	    
-			printf(": len=%u, ", reiser4_item_len(&coord));
+		printf(": len=%u, ", reiser4_item_len(&coord));
+		
+		if (reiser4_item_key(&coord, &key)) {
+			aal_exception_error("Can't get key of item %u in node %llu.",
+					    i, aal_block_number(node->block));
+			return -1;
+		}
 
-			aal_memset(buff, 0, sizeof(buff));
-			reiser4_key_print(&key, buff, sizeof(buff));
-			printf("KEY: %s, ", buff);
-	    
-			printf("PLUGIN: 0x%x (%s)\n", coord.entity.plugin->h.sign.id,
-			       coord.entity.plugin->h.label);
-
-			if (hint->flags & PF_ITEMS) {
-				aal_memset(buff, 0, sizeof(buff));
+		aal_memset(key_buff, 0, sizeof(key_buff));
 			
-				if (reiser4_item_print(&coord, buff, sizeof(buff)))
-					return -1;
+		reiser4_key_print(&key, key_buff, sizeof(key_buff));
+		printf("KEY: %s, ", key_buff);
 
-				printf(buff);
-			}
+		printf("PLUGIN: 0x%x (%s)\n", coord.entity.plugin->h.sign.id,
+		       coord.entity.plugin->h.label);
+
+		if (level > LEAF_LEVEL || hint->flags & PF_ITEMS) {
+			
+			if (!(item_buff = aal_calloc(DEBUGFS_ITEM_SIZE, 0)))
+				return -1;
+
+			if (reiser4_item_print(&coord, item_buff, DEBUGFS_ITEM_SIZE))
+				goto error_free_buff;
+
+			printf("%s\n", item_buff);
+			
+		error_free_buff:
+			aal_free(item_buff);
 		}
 	}
-    
+	
 	return 0;
 }
 

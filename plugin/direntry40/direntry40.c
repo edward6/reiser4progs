@@ -288,8 +288,9 @@ static errno_t direntry40_print(item_entity_t *item, char *buff,
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
-
+	
 	aux_strncat(buff, n, "count:\t\t%u\n", direntry->count);
+
 	for (i = 0; i < direntry->count; i++) {
 		entry40_t *entry = &direntry->entry[i];
 
@@ -301,8 +302,9 @@ static errno_t direntry40_print(item_entity_t *item, char *buff,
 		objectid = *((uint64_t *)((void *)direntry + entry->offset +
 					  sizeof(uint64_t)));
 
-		aux_strncat(buff, n, "\"%s\"\t0x%llx:0x%llx\t0x%llx:0x%llx\n",
-			    name, objid, offset, locality, objectid);
+		aux_strncat(buff, n, "%.7llx:%.7llx\t%s%*s%.16llx:%.16llx\n",
+			    locality, objectid, name, 40 - aal_strlen(name) + 1,
+			    " ", objid, offset);
 	}
 
 	return 0;

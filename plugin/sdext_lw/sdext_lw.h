@@ -19,14 +19,14 @@ struct sdext_lw {
 
 typedef struct sdext_lw sdext_lw_t;
 
-#define sdext_lw_get_mode(stat)		aal_get_le16(stat, mode)
-#define sdext_lw_set_mode(stat, val)	aal_set_le16(stat, mode, val)
+#define sdext_lw_get_mode(lw)		aal_get_le16(lw, mode)
+#define sdext_lw_set_mode(lw, val)	aal_set_le16(lw, mode, val)
 
-#define sdext_lw_get_nlink(stat)	aal_get_le32(stat, nlink)
-#define sdext_lw_set_nlink(stat, val)	aal_set_le32(stat, nlink, val)
+#define sdext_lw_get_nlink(lw)	        aal_get_le32(lw, nlink)
+#define sdext_lw_set_nlink(lw, val)	aal_set_le32(lw, nlink, val)
 
-#define sdext_lw_get_size(stat)		aal_get_le64(stat, size)
-#define sdext_lw_set_size(stat, val)	aal_set_le64(stat, size, val)
+#define sdext_lw_get_size(lw)		aal_get_le64(lw, size)
+#define sdext_lw_set_size(lw, val)	aal_set_le64(lw, size, val)
 
 #endif
 

@@ -87,9 +87,14 @@ errno_t reiser4_item_print(
 
 	item = &coord->entity;
 	aal_assert("umka-1449", item->plugin != NULL, return 0);
+
+	if (!item->plugin->item_ops.print) {
+		aal_exception_warn("Method \"print\" is not implemented in %s.",
+				   item->plugin->h.label);
+		return -1;
+	}
 	
-	return plugin_call(return -1, item->plugin->item_ops, print,
-			   item, buff, n, 0);
+	return item->plugin->item_ops.print(item, buff, n, 0);
 }
 
 int reiser4_item_permissn(reiser4_coord_t *coord) {

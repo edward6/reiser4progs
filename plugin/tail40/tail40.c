@@ -5,6 +5,7 @@
   reiser4progs/COPYING.
 */
 
+#include <aux/aux.h>
 #include <reiser4/plugin.h>
 
 static reiser4_core_t *core = NULL;
@@ -30,6 +31,16 @@ static errno_t tail40_insert(item_entity_t *item, uint32_t pos,
 			     reiser4_item_hint_t *hint)
 {
 	aal_memcpy(tail40_body(item) + pos, hint->data, hint->len);
+	return 0;
+}
+
+static errno_t tail40_print(item_entity_t *item, char *buff,
+			    uint32_t n, uint16_t options)
+{
+	aal_assert("umka-1489", item != NULL, return -1);
+	aal_assert("umka-1490", buff != NULL, return -1);
+
+	aux_strncat(buff, n, "len:\t\t%u\n", item->len);
 	return 0;
 }
 
@@ -133,7 +144,7 @@ static reiser4_plugin_t tail40_plugin = {
 #ifndef ENABLE_COMPACT
 		.init	       = tail40_init,
 		.insert	       = tail40_insert,
-		.print	       = NULL,
+		.print	       = tail40_print,
 #else
 		.init	       = NULL,
 		.insert	       = NULL,

@@ -272,6 +272,8 @@ AC_OUTPUT([
     plugin/fnv1_hash/Makefile
     plugin/sdext_unix/Makefile
     plugin/sdext_lw/Makefile
+    plugin/sdext_lt/Makefile
+    plugin/sdext_symlink/Makefile
     demos/Makefile
     progs/Makefile
     progs/include/Makefile

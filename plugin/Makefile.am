@@ -1,6 +1,7 @@
 SUBDIRS 			= format40 journal40 alloc40 node40 stat40 direntry40 nodeptr40 \
 				  oid40 key40 dir40 format36 journal36 alloc36 r5_hash tea_hash \
-				  rupasov_hash fnv1_hash sdext_unix tail40 sdext_lw extent40 reg40
+                                  rupasov_hash fnv1_hash sdext_unix tail40 sdext_lw extent40 reg40 \
+                                  sdext_lt sdext_symlink
 
 noinst_LTLIBRARIES	     	= libheader.la libfooter.la libreiser4-plugin.la
 
@@ -27,6 +28,8 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          fnv1_hash/libfnv1_hash-static.la \
 			          sdext_unix/libsdext_unix-static.la \
 			          sdext_lw/libsdext_lw-static.la \
+			          sdext_lt/libsdext_lt-static.la \
+			          sdext_symlink/libsdext_symlink-static.la \
 			          libfooter.la
 
 libreiser4_plugin_la_SOURCES	=
