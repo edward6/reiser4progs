@@ -8,16 +8,11 @@
 #ifndef REISER4_OID_H
 #define REISER4_OID_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
+#ifndef ENABLE_STAND_ALONE
 #include <reiser4/types.h>
 
 extern void reiser4_oid_close(reiser4_oid_t *oid);
 extern reiser4_oid_t *reiser4_oid_open(reiser4_fs_t *fs);
-
-#ifndef ENABLE_STAND_ALONE
 
 extern errno_t reiser4_oid_layout(reiser4_oid_t *oid,
 				  block_func_t block_func,
@@ -41,11 +36,11 @@ extern bool_t reiser4_oid_isdirty(reiser4_oid_t *oid);
 extern void reiser4_oid_mkdirty(reiser4_oid_t *oid);
 extern void reiser4_oid_mkclean(reiser4_oid_t *oid);
 
-#endif
-
 extern oid_t reiser4_oid_root_locality(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid);
 
-#endif
+#endif /* ENABLE_STAND_ALONE */
+
+#endif /* REISER4_OID_H */
 

@@ -33,7 +33,6 @@ void reiser4_oid_mkclean(reiser4_oid_t *oid) {
 	plugin_call(oid->entity->plugin->o.oid_ops,
 		    mkclean, oid->entity);
 }
-#endif
 
 /* Opens object allocator using start and end pointers */
 reiser4_oid_t *reiser4_oid_open(
@@ -101,8 +100,6 @@ void reiser4_oid_close(
     
 	aal_free(oid);
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Creates oid allocator in specified area */
 reiser4_oid_t *reiser4_oid_create(
@@ -238,8 +235,6 @@ errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
 			   valid, oid->entity);
 }
 
-#endif
-
 /* Returns root parent locality from specified oid allocator */
 oid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid) {
 	aal_assert("umka-745", oid != NULL);
@@ -263,3 +258,4 @@ oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid) {
 	return plugin_call(oid->entity->plugin->o.oid_ops, 
 			   root_objectid,);
 }
+#endif

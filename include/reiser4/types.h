@@ -199,7 +199,6 @@ struct reiser4_object {
 typedef struct reiser4_object reiser4_object_t;
 
 #ifndef ENABLE_STAND_ALONE
-
 enum reiser4_owner {
 	O_SKIPPED  = 1 << 0,
 	O_FORMAT   = 1 << 1,
@@ -210,7 +209,6 @@ enum reiser4_owner {
 };
 
 typedef enum reiser4_owner reiser4_owner_t;
-
 #endif
 
 /*

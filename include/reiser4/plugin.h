@@ -17,11 +17,14 @@
 #define LEAF_LEVEL	        1
 #define TWIG_LEVEL	        (LEAF_LEVEL + 1)
 
-#define MASTER_MAGIC	        ("R4Sb")
-#define MASTER_OFFSET	        (65536)
-
 #define REISER4_SECSIZE         (512)
 #define REISER4_BLKSIZE         (4096)
+
+#define REISER4_MASTER_MAGIC	("R4Sb")
+#define REISER4_MASTER_OFFSET	(65536)
+
+#define REISER4_ROOT_LOCALITY   (0x29)
+#define REISER4_ROOT_OBJECTID   (0x2a)
 
 /* 
   Defining the types for disk structures. All types like f32_t are fake ones

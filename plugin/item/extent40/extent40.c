@@ -279,6 +279,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	uint32_t read, i;
 	key_entity_t key;
 	uint32_t blocksize;
+	uint32_t sectorsize;
 	aal_device_t *device;
 
 	aal_assert("umka-1421", item != NULL);
@@ -286,12 +287,13 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	aal_assert("umka-1672", pos != ~0ul);
 
 	device = item->context.device;
+	sectorsize = device->blocksize;
 	blocksize = extent40_blocksize(item);
 
 	for (read = count, i = extent40_unit(item, pos);
 	     i < extent40_units(item) && count > 0; i++)
 	{
-		uint32_t chunk;
+		uint32_t blkchunk;
 		
 		/*
 		  Here offset is 32 bit value for stand alone mode and
@@ -325,51 +327,52 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		while (blk < start + et40_get_width(extent40_body(item) + i) &&
 		       count > 0)
 		{
-			blk_t dev_blk;
-			uint32_t local;
+			blk_t sec;
+			uint32_t blklocal;
 			aal_block_t *block;
 
-			local = (pos % blocksize);
+			blklocal = (pos % blocksize);
 			
-			if ((chunk = blocksize - local) > count)
-				chunk = count;
+			if ((blkchunk = blocksize - blklocal) > count)
+				blkchunk = count;
 
-			dev_blk = (blk * (blocksize / device->blocksize)) +
-				(local / device->blocksize);
+			sec = (blk * (blocksize / sectorsize)) +
+				(blklocal / sectorsize);
 
-			while (chunk > 0) {
-				uint32_t n, l;
+			while (blkchunk > 0) {
+				uint32_t secchunk;
+				uint32_t seclocal;
 				
 				if (!(block = aal_block_read(device,
-							     device->blocksize,
-							     dev_blk)))
+							     sectorsize,
+							     sec)))
 				{
 					aal_exception_error("Can't read device "
 							    "block %llu.", 
-							    dev_blk);
+							    sec);
 					return -EIO;
 				}
 
-				l = (local % device->blocksize);
+				seclocal = (blklocal % sectorsize);
 				
-				if ((n = device->blocksize - l) > chunk)
-					n = chunk;
+				if ((secchunk = sectorsize - seclocal) > blkchunk)
+					secchunk = blkchunk;
 					
-				aal_memcpy(buff, block->data + l, n);
-				
+				aal_memcpy(buff, block->data + seclocal, secchunk);
 				aal_block_free(block);
 
-				if ((l + n) % device->blocksize == 0)
-					dev_blk++;
+				if ((seclocal + secchunk) % sectorsize == 0)
+					sec++;
 					
-				pos += n;
-				buff += n;
-				chunk -= n;
-				local += n;
-				count -= n;
+				pos += secchunk;
+				buff += secchunk;
+				count -= secchunk;
+
+				blkchunk -= secchunk;
+				blklocal += secchunk;
 			}
-					
-			if (local % blocksize == 0)
+
+			if (blklocal % blocksize == 0)
 				blk++;
 		}
 	}

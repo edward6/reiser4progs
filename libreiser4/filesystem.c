@@ -65,23 +65,20 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (reiser4_alloc_valid(fs->alloc))
 		aal_exception_warn("Block allocator data seems corrupted.");
 	
-#endif
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_alloc;
   
-#ifndef ENABLE_STAND_ALONE
 	if (reiser4_oid_valid(fs->oid))
 		goto error_free_oid;
 #endif
 	
 	return fs;
-
+	
+#ifndef ENABLE_STAND_ALONE
  error_free_oid:
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
-
-#ifndef ENABLE_STAND_ALONE
 	reiser4_alloc_close(fs->alloc);
 #endif
 	
@@ -105,12 +102,10 @@ void reiser4_fs_close(
 #ifndef ENABLE_STAND_ALONE
 	if (!aal_device_readonly(fs->device))
 		reiser4_fs_sync(fs);
-#endif
-	
+
 	/* Closing the all filesystem objects */
 	reiser4_oid_close(fs->oid);
-	
-#ifndef ENABLE_STAND_ALONE
+
 	reiser4_alloc_close(fs->alloc);
 #endif
 
@@ -197,23 +192,8 @@ errno_t reiser4_fs_layout(
 
 /* Destroys reiser4 master super block */
 errno_t reiser4_fs_clobber(aal_device_t *device) {
-	blk_t blk;
-	uint32_t blocksize;
-	aal_block_t *block;
-    
-	aal_assert("umka-1273", device != NULL);
-
-	blocksize = REISER4_BLKSIZE;
-	blk = (MASTER_OFFSET / blocksize);
-		
-	if (!(block = aal_block_create(device,
-				       blocksize,
-				       blk, 0)))
-	{
-		return -ENOMEM;
-	}
-
-	return aal_block_write(block);
+	aal_assert("umka-2224", device != NULL);
+	return reiser4_master_clobber(device);
 }
 
 static errno_t callback_action_mark(
@@ -390,5 +370,4 @@ errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 					 hyper_locality,
 					 root_locality, 0);
 }
-
 #endif

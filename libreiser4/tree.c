@@ -520,13 +520,13 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	rid_t pid;
 	reiser4_oid_t *oid;
-	oid_t objectid, locality;
+	oid_t locality, objectid;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-1090", tree != NULL);
 	aal_assert("umka-1091", tree->fs != NULL);
 	aal_assert("umka-1092", tree->fs->oid != NULL);
-    
+
 	oid = tree->fs->oid;
 	pid = KEY_REISER40_ID;
 	
@@ -541,21 +541,19 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
     
-	/* Getting root directory attributes from oid allocator */
-	locality = plugin_call(oid->entity->plugin->o.oid_ops,
-			       root_locality,);
-	
-	objectid = plugin_call(oid->entity->plugin->o.oid_ops,
-			       root_objectid,);
-
-	/* Initializing the key by found plugin */
+	/* Building root key */
 	tree->key.plugin = plugin;
 
-	/* Building the key */
-	reiser4_key_build_generic(&tree->key, KEY_STATDATA_TYPE,
-				  locality, objectid, 0);
-
-	return 0;
+#ifndef ENABLE_STAND_ALONE
+	locality = reiser4_oid_root_locality(oid);
+	objectid = reiser4_oid_root_objectid(oid);
+#else
+	locality = REISER4_ROOT_LOCALITY;
+	objectid = REISER4_ROOT_OBJECTID;
+#endif
+	
+	return reiser4_key_build_generic(&tree->key, KEY_STATDATA_TYPE,
+					 locality, objectid, 0);
 }
 
 /* Returns tree root block number */

@@ -6,16 +6,12 @@
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
+#ifndef ENABLE_STAND_ALONE
 #include "oid40.h"
 
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t oid40_plugin;
 
-#ifndef ENABLE_STAND_ALONE
 static int oid40_isdirty(object_entity_t *entity) {
 	aal_assert("umka-2088", entity != NULL);
 	return ((oid40_t *)entity)->dirty;
@@ -30,7 +26,6 @@ static void oid40_mkclean(object_entity_t *entity) {
 	aal_assert("umka-2090", entity != NULL);
 	((oid40_t *)entity)->dirty = 0;
 }
-#endif
 
 /*
   Initializies oid allocator instance and loads its data (namely next oid, used
@@ -44,9 +39,8 @@ static object_entity_t *oid40_open(void *start,
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
 
-#ifndef ENABLE_STAND_ALONE
 	oid->dirty = 0;
-#endif
+
 	oid->len = len;
 	oid->start = start;
     
@@ -61,8 +55,6 @@ static void oid40_close(object_entity_t *entity) {
 	aal_assert("umka-510", entity != NULL);
 	aal_free(entity);
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Initializes oid allocator instance and return it to the caller */
 static object_entity_t *oid40_create(void *start, 
@@ -116,10 +108,7 @@ static oid_t oid40_allocate(object_entity_t *entity) {
 
 	((oid40_t *)entity)->next++;
 	((oid40_t *)entity)->used++;
-
-#ifndef ENABLE_STAND_ALONE
 	((oid40_t *)entity)->dirty = 1;
-#endif
 	
 	return ((oid40_t *)entity)->next - 1;
 }
@@ -131,10 +120,7 @@ static void oid40_release(object_entity_t *entity,
 	aal_assert("umka-528", entity != NULL);
 
 	((oid40_t *)entity)->used--;
-	
-#ifndef ENABLE_STAND_ALONE
 	((oid40_t *)entity)->dirty = 1;
-#endif
 }
 
 /* Prints oid allocator data into passed @stream */
@@ -184,8 +170,6 @@ static errno_t oid40_valid(object_entity_t *entity) {
 	return 0;
 }
 
-#endif
-
 /* Returns the root parent locality */
 static oid_t oid40_hyper_locality(void) {
 	return OID40_HYPER_LOCALITY;
@@ -204,8 +188,6 @@ static oid_t oid40_root_objectid(void) {
 reiser4_oid_ops_t oid40_ops = {
 	.open		= oid40_open,
 	.close		= oid40_close,
-		
-#ifndef ENABLE_STAND_ALONE	
 	.create		= oid40_create,
 	.valid		= oid40_valid,
 	.next		= oid40_next,
@@ -219,7 +201,7 @@ reiser4_oid_ops_t oid40_ops = {
 	.used		= oid40_used,
 	.free		= oid40_free,
 	.layout         = NULL,
-#endif
+
 	.root_locality	= oid40_root_locality,
 	.root_objectid	= oid40_root_objectid,
 	.hyper_locality	= oid40_hyper_locality
@@ -231,10 +213,8 @@ static reiser4_plugin_t oid40_plugin = {
 		.id = OID_REISER40_ID,
 		.group = 0,
 		.type = OID_PLUGIN_TYPE,
-#ifndef ENABLE_STAND_ALONE
 		.label = "oid40",
 		.desc = "Inode allocator for reiser4, ver. " VERSION
-#endif
 	},
 	.o = {
 		.oid_ops = &oid40_ops
@@ -247,4 +227,4 @@ static reiser4_plugin_t *oid40_start(reiser4_core_t *c) {
 }
 
 plugin_register(oid40, oid40_start, NULL);
-
+#endif

@@ -86,7 +86,7 @@ static errno_t format40_skipped(object_entity_t *entity,
 	aal_assert("umka-1086", func != NULL);
 	aal_assert("umka-1085", entity != NULL);
     
-	offset = MASTER_OFFSET / format->blocksize;
+	offset = REISER4_MASTER_OFFSET / format->blocksize;
     
 	for (blk = 0; blk < offset; blk++) {
 		errno_t res;
@@ -109,7 +109,7 @@ static errno_t format40_layout(object_entity_t *entity,
 	aal_assert("umka-1042", entity != NULL);
 	aal_assert("umka-1043", func != NULL);
     
-	blk = MASTER_OFFSET / format->blocksize;
+	blk = REISER4_MASTER_OFFSET / format->blocksize;
 	offset = FORMAT40_OFFSET / format->blocksize;
     
 	for (; blk <= offset; blk++) {

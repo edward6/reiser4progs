@@ -406,8 +406,6 @@ errno_t reiser4_format_layout(reiser4_format_t *format,
 			   layout, format->entity, func, data);
 }
 
-#endif
-
 /* Returns oid allocator plugin id in use */
 rid_t reiser4_format_oid_pid(
 	reiser4_format_t *format)	/* disk-format oid allocator pid will be obtained from */
@@ -417,3 +415,4 @@ rid_t reiser4_format_oid_pid(
 	return plugin_call(format->entity->plugin->o.format_ops, 
 			   oid_pid, format->entity);
 }
+#endif

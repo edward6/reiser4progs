@@ -15,7 +15,8 @@
 
 #include "alloc40.h"
 
-#define ALLOC40_START (MASTER_OFFSET + (4096 * 2))
+#define ALLOC40_START \
+        (REISER4_MASTER_OFFSET + (REISER4_BLKSIZE * 2))
 
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t alloc40_plugin;
