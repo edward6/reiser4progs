@@ -53,7 +53,7 @@ static void measurefs_print_usage(char *name) {
 		"                                  file or directory.\n"
 		"  -D, --data-frag                 measures average files fragmentation.\n"
 		"  -E, --show-file                 show file fragmentation for each file\n"
-		"                                  durring calclulation if --data-frag is\n"
+		"                                  during calclulation if --data-frag is\n"
 		"                                  specified.\n"
 		"Plugins options:\n"
 		"  -P, --print-params              prints default params.\n"
@@ -796,7 +796,7 @@ int main(int argc, char *argv[]) {
 	aal_device_close(device);
     
 	/* Deinitializing libreiser4. At the moment only plugins are unloading
-	   durring this. */
+	   during this. */
 	libreiser4_fini();
 	return NO_ERROR;
 

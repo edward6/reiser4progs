@@ -168,7 +168,7 @@ typedef enum reiser4_owner reiser4_owner_t;
 struct reiser4_format {
 	reiser4_fs_t *fs;
 	
-	/* Disk-format entity. It is initialized by disk-format plugin durring
+	/* Disk-format entity. It is initialized by disk-format plugin during
 	   initialization. */
 	generic_entity_t *entity;
 };

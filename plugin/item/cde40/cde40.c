@@ -811,6 +811,19 @@ static errno_t cde40_remove_units(place_t *place, trans_hint_t *hint) {
 	return cde40_delete(place, place->pos.unit, hint);
 }
 
+/* Fuses bodies of two cde items that lie in the same node. */
+static int32_t cde40_fuse(place_t *left_place, place_t *right_place) {
+	aal_assert("umka-2687", left_place != NULL);
+	aal_assert("umka-2689", right_place != NULL);
+
+	/* Eliminating right item header and return header size as space
+	   released as result of fuse. */
+	aal_memmove(right_place->body, right_place->body +
+		    sizeof(cde40_t), right_place->len - sizeof(cde40_t));
+
+	return sizeof(cde40_t);
+}
+
 /* Prints cde item into passed @stream */
 static errno_t cde40_print(place_t *place, aal_stream_t *stream,
 			   uint16_t options) 
@@ -893,7 +906,7 @@ static uint64_t cde40_bytes(place_t *place) {
 }
 #endif
 
-/* Returns maximal possible key in passed item. It is needed durring lookup and
+/* Returns maximal possible key in passed item. It is needed during lookup and
    in other cases. */
 errno_t cde40_maxposs_key(place_t *place, 
 			  key_entity_t *key) 
@@ -990,6 +1003,7 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE	    
+	.fuse          = cde40_fuse,
 	.mergeable     = cde40_mergeable,
 	.prep_shift    = cde40_prep_shift,
 	.shift_units   = cde40_shift_units,

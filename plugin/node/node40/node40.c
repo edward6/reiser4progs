@@ -605,6 +605,7 @@ static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 	place_t place;
 	node40_t *node;
     
+	node = (node40_t *)entity;
 	len = hint->len + hint->ohd;
     
 	/* Makes expand of the node new items will be inserted in */
@@ -613,8 +614,6 @@ static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 				    "item/unit.");
 		return -EINVAL;
 	}
-
-	node = (node40_t *)entity;
 
 	pol = node40_key_pol(node);
 	ih = node40_ih_at(node, pos->item);
@@ -767,9 +766,8 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	units = plug_call(place.plug->o.item_ops->balance,
 			  units, &place);
 	
-	if (units == hint->count) {
+	if (units == hint->count)
 		place.pos.unit = MAX_UINT32;
-	}
 	
 	if (place.pos.unit == MAX_UINT32) {
 		hint->ohd = 0;
@@ -801,6 +799,100 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	
 	return node40_shrink(entity, &place.pos,
 			     len, hint->count);
+}
+
+/* Fuses two mergeable items if they lie in the same node side by side. This is
+   needed for fsck if it discovered, that two items are mergeable and lie in the
+   same node (due to some corruption or fail) it will fuse them.. */
+static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
+			   pos_t *right_pos)
+{
+	errno_t res;
+	uint32_t pol;
+	int32_t delta;
+	node40_t *node;
+	uint32_t items;
+	
+	void *left, *right;
+	place_t left_place;
+	place_t right_place;
+	
+	aal_assert("umka-2682", entity != NULL);
+	aal_assert("umka-2683", left_pos != NULL);
+	aal_assert("umka-2684", right_pos != NULL);
+
+	node = (node40_t *)entity;
+	pol = node40_key_pol(node);
+	items = node40_items(entity);
+
+	aal_assert("umka-2685", (left_pos->item < items &&
+				 right_pos->item < items));
+	
+	/* Check is items lie side by side. */
+	delta = left_pos->item - right_pos->item;
+	
+	if (aal_abs(delta) > 1) {
+		aal_exception_error("Can't fuse items which "
+				    "lie side by side.");
+		return -EINVAL;
+	}
+
+	/* Now we have to perform the following actions:
+
+	   (1) Remove one of item headers (right one).
+	
+	   (2) Fuse items bodies. This stage means, that we should call some
+	   item method, which will take into account item overhead, etc.
+	*/
+	left = node40_ih_at(node, left_pos->item);
+	right = node40_ih_at(node, right_pos->item);
+
+	/* First stage. Check if right item is last one. If so, we will not move
+	   item headers at all. */
+	if (right_pos->item < items - 1) {
+
+		/* Eliminating @right_pos item header. */
+		aal_memmove(right, (right - ih_size(pol)),
+			    ih_size(pol));
+	}
+
+	nh_dec_num_items(node, 1);
+	nh_inc_free_space(node, ih_size(pol));
+
+	/* Second stage. Fusing item bodies. */
+	if ((res = node40_fetch(entity, left_pos, &left_place))) {
+		aal_exception_error("Can't fetch left item "
+				    "during items fuse.");
+		return res;
+	}
+	
+	if ((res = node40_fetch(entity, right_pos, &right_place))) {
+		aal_exception_error("Can't fetch right item "
+				    "during items fuse.");
+		return res;
+	}
+
+	aal_assert("umka-2686", plug_equal(left_place.plug,
+					   right_place.plug));
+
+	/* Check if item needs some speccial actions to fuse (like eliminate
+	   header). If so, fuse items. */
+	if (left_place.plug->o.item_ops->balance->fuse) {
+		int32_t space;
+
+		/* Returned space is released space in node and it should be
+		   counted in node header. */
+		space = plug_call(left_place.plug->o.item_ops->balance,
+				  fuse, &left_place, &right_place);
+
+		/* Updating node header. */
+		nh_inc_free_space(node, space);
+		nh_dec_free_space_start(node, space);
+	}
+
+	/* Now making node dirty. */
+	node->state |= (1 << ENTITY_DIRTY);
+	return 0;
 }
 
 /* Updates key at @pos by specified @key */
@@ -1493,7 +1585,7 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 
    (1) This pass is supposed to merge two border items in @src_entity and
    @dst_entity if they are mergeable at all. This is needed to prevent creation
-   of mergeable items in the same node durring balancing.
+   of mergeable items in the same node during balancing.
 
    (2) Second pass is supposed to move as many whole items from @src_entity to
    @dst_entity as possible. That is exactly how many how does @dst_entity free
@@ -1521,7 +1613,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   merge items. */
 	if (hint->control & SF_ALLOW_MERGE) {
 		if ((res = node40_unite(src_entity, dst_entity, hint, 0))) {
-			aal_exception_error("Can't merge two nodes durring "
+			aal_exception_error("Can't merge two nodes during "
 					    "node shift operation.");
 			return res;
 		}
@@ -1558,7 +1650,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   @src_entity to @dst_entity. */
 	if ((res = node40_transfuse(src_entity, dst_entity, hint))) {
 		aal_exception_error("Can't transfuse two nodes "
-				    "durring node shift operation.");
+				    "during node shift operation.");
 		return res;
 	}
 
@@ -1575,7 +1667,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   up. */
 	if (hint->control & SF_ALLOW_MERGE) {
 		if ((res = node40_unite(src_entity, dst_entity, hint, 1))) {
-			aal_exception_error("Can't merge two nodes durring "
+			aal_exception_error("Can't merge two nodes during"
 					    "node shift operation.");
 			return res;
 		}
@@ -1609,12 +1701,14 @@ static reiser4_node_ops_t node40_ops = {
 	.get_level	= node40_get_level,
 		
 #ifndef ENABLE_STAND_ALONE
-	.pack           = node40_pack,
-	.unpack         = node40_unpack,
 	.move		= node40_move,
 	.clone          = node40_clone,
 	.fresh		= node40_fresh,
 	.sync           = node40_sync,
+	.fuse           = node40_fuse,
+
+	.pack           = node40_pack,
+	.unpack         = node40_unpack,
 	
 	.insert		= node40_insert,
 	.write		= node40_write,

@@ -263,7 +263,7 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 			/* Locking parent. This guaranties, that it will not be
 			   released until we unlock it. And it may be released
 			   in tree_adjust(), as it is allocating new nodes
-			   durring balancing. */
+			   during balancing. */
 			if (parent) {
 				reiser4_node_lock(parent);
 			}
@@ -488,7 +488,7 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 		/* Memory pressure is here, trying to release some nodes. */
 		if (reiser4_tree_adjust_node(tree, tree->root, 1)) {
 			aal_exception_warn("Error when adjusting the "
-					   "tree durring allocating "
+					   "tree during allocating "
 					   "new node.");
 		}
 	}
@@ -581,7 +581,7 @@ static uint64_t callback_hash_func(const void *k) {
 		reiser4_key_get_offset(key));
 }
 
-/* Helper function for comparing two keys durring tree's data hash lookups. */
+/* Helper function for comparing two keys during tree's data hash lookups. */
 static int callback_comp_func(const void *k1, const void *k2,
 			      void *data)
 {
@@ -1222,7 +1222,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 
 	/* We store @key in @wan. All consequence code will use @wan. This is
 	   needed, because @key might point to @place->item.key in @place and
-	   will be corrupted durring lookup. */
+	   will be corrupted during lookup. */
 	reiser4_key_assign(&wan, key);
 
 	/* Making sure that root exists. If not, getting out with @place
@@ -1256,7 +1256,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 					  curr_bias, &place->pos);
 
 		/* Check if we should finish lookup because we reach stop level
-		   or some error occured durring last node lookup. */
+		   or some error occured during last node lookup. */
 		if (curr_level <= level || res < 0) {
 			if (res == PRESENT) {
 #ifndef ENABLE_STAND_ALONE
@@ -1266,7 +1266,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 				   handling. */
 				if (reiser4_tree_leftmost(tree, place, &wan)) {
 					aal_exception_error("Can't find leftmost "
-							    "position durring lookup.");
+							    "position during lookup.");
 					return -EIO;
 				}
 #endif	
@@ -1587,7 +1587,7 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	reiser4_place_assign(&place, old_root, 0, 0);
 
 	if (!(new_root = reiser4_tree_child_node(tree, &place))) {
-		aal_exception_error("Can't load new root durring "
+		aal_exception_error("Can't load new root during "
 				    "drying tree out.");
 		return -EINVAL;
 	}
@@ -2027,7 +2027,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			if ((res = reiser4_tree_attach_node(tree, node))) {
 				reiser4_tree_discard_node(tree, node, 0);
 				aal_exception_error("Tree is failed to attach "
-						    "node durring split opeartion.");
+						    "node during split opeartion.");
 				goto error_free_node;
 			}
 
@@ -2087,7 +2087,7 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
-/* Releases passed region in block allocator. This is used in tail durring tree
+/* Releases passed region in block allocator. This is used in tail during tree
    trunacte. */
 static errno_t callback_region_func(void *entity, uint64_t start,
 				    uint64_t width, void *data)
@@ -2166,7 +2166,7 @@ int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 }
 
 /* Truncates item pointed by @hint->offset key by value stored in
-   @hint->count. This is used durring tail conversion and in object plugins
+   @hint->count. This is used during tail conversion and in object plugins
    truncate() code path. */
 int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 				trans_hint_t *hint)
@@ -2804,7 +2804,7 @@ static node_t *reiser4_tree_clone_node(reiser4_tree_t *src_tree,
 					     pid, level)))
 	{
 		aal_exception_error("Can't initialize destination "
-				    "node durring tree copy.");
+				    "node during tree copy.");
 		return NULL;
 	}
 

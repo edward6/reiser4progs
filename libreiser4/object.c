@@ -159,10 +159,6 @@ reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 				       object_init_t init_func)
 
 {
-#ifndef ENABLE_STAND_ALONE
-	char *name;
-#endif
-
 	errno_t res;
 	object_info_t info;
 	reiser4_object_t *object;
@@ -176,6 +172,8 @@ reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return INVAL_PTR;
 
+	object->tree = tree;
+	
 	/* Initializing object info. */
 	object->info = &info;
 	object->info->tree = tree;
@@ -204,8 +202,12 @@ reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 
 	/* Initializing object name. */
 #ifndef ENABLE_STAND_ALONE
-	name = reiser4_print_key(&object->info->object, PO_INODE);
-	aal_strncpy(object->name, name, sizeof(object->name));
+	{
+		char *name = reiser4_print_key(&object->info->object,
+					       PO_INODE);
+		
+		aal_strncpy(object->name, name, sizeof(object->name));
+	}
 #endif
 	
 	return object;

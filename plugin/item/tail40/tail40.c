@@ -451,8 +451,8 @@ static uint64_t tail40_size(place_t *place) {
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
+	.fuse             = NULL,
 	.update_key       = NULL,
-	
 	.mergeable        = tail40_mergeable,
 	.maxreal_key      = tail40_maxreal_key,
 	.prep_shift       = tail40_prep_shift,
@@ -480,7 +480,6 @@ static item_object_ops_t object_ops = {
 #endif
 	.fetch_units      = NULL,
 	.object_plug      = NULL,
-	
 	.read_units       = tail40_read_units
 };
 

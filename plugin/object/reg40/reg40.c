@@ -780,7 +780,7 @@ reiser4_plug_t reg40_plug = {
 	}
 };
 
-/* Plugin factory related stuff. This method will be called durring plugin
+/* Plugin factory related stuff. This method will be called during plugin
    initializing in plugin factory. */
 static reiser4_plug_t *reg40_start(reiser4_core_t *c) {
 	reg40_core = c;

@@ -356,7 +356,7 @@ enum shift_flags {
 	/* Should be border item merged or only whole items may be shifted . */
 	SF_ALLOW_MERGE   = 1 << 4,
 
-	/* Should be new nodes allocated durring make space or not */
+	/* Should be new nodes allocated during make space or not */
 	SF_ALLOW_ALLOC   = 1 << 5
 };
 
@@ -378,7 +378,7 @@ struct shift_hint {
 	/* Bytes to be moved for items and units. Actually we might use just
 	   item field for providing needed functionality, but I guess, we will
 	   need to collect some statistics like how much items and units were
-	   moved durring making space for inserting particular item or unit. Set
+	   moved during making space for inserting particular item or unit. Set
 	   and used by shift code. */
 	uint32_t bytes;
 	uint32_t rest;
@@ -392,7 +392,7 @@ struct shift_hint {
 	uint32_t control;
 	uint32_t result;
 
-	/* Insert point. It will be modified durring shift. */
+	/* Insert point. It will be modified during shift. */
 	pos_t pos;
 };
 
@@ -596,7 +596,7 @@ struct trans_hint {
 	reiser4_plug_t *plug;
 
 	/* Hook, which lets know, that passed block region is removed. Used for
-	   releasing unformatted blocks durring tail converion, etc. */
+	   releasing unformatted blocks during tail converion, etc. */
 	region_func_t region_func;
 
 	/* Related opaque data. May be used for passing something to
@@ -826,6 +826,10 @@ struct item_balance_ops {
 	lookup_t (*lookup) (place_t *, key_entity_t *, bias_t);
 	
 #ifndef ENABLE_STAND_ALONE
+	/* Fuses two neighbour items in the same node. Returns space released
+	   Needed for fsck. */
+	int32_t (*fuse) (place_t *, place_t *);
+	
 	/* Checks if items mergeable, that is if unit of one item can belong to
 	   another one. Returns 1 if so, 0 otherwise. */
 	int (*mergeable) (place_t *, place_t *);
@@ -984,6 +988,9 @@ struct reiser4_node_ops {
 	/* Performs shift of items and units */
 	errno_t (*shift) (node_entity_t *, node_entity_t *, 
 			  shift_hint_t *);
+
+	/* Fuses two neighbour items in passed node at passed positions. */
+	errno_t (*fuse) (node_entity_t *, pos_t *, pos_t *);
     
 	/* Checks thoroughly the node structure and fixes what needed. */
 	errno_t (*check_struct) (node_entity_t *, uint8_t);
@@ -1115,7 +1122,7 @@ struct reiser4_format_ops {
 #ifndef ENABLE_STAND_ALONE
 	void (*set_flags) (generic_entity_t *, uint64_t);
 	
-	/* Called durring filesystem creating. It forms format-specific super
+	/* Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
 	generic_entity_t *(*create) (fs_desc_t *, uint64_t);
 
@@ -1379,7 +1386,7 @@ typedef struct reiser4_policy_ops reiser4_policy_ops_t;
 typedef struct reiser4_core reiser4_core_t;
 
 /* Plugin init() and fini() function types. They are used for calling these
-   functions durring plugin initialization. */
+   functions during plugin initialization. */
 typedef errno_t (*plug_fini_t) (reiser4_core_t *);
 typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);

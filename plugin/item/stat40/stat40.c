@@ -529,6 +529,7 @@ static rid_t stat40_object_plug(place_t *place, rid_t type) {
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
+	.fuse             = NULL,
 	.prep_shift       = NULL,
 	.shift_units      = NULL,
 	.update_key       = NULL,
@@ -537,7 +538,6 @@ static item_balance_ops_t balance_ops = {
 #endif
 	.lookup           = NULL,
 	.fetch_key	  = NULL,
-	
 	.units            = stat40_units,
 	.maxposs_key	  = stat40_maxposs_key,
 };

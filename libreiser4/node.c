@@ -813,7 +813,7 @@ errno_t reiser4_node_update_key(node_t *node, pos_t *pos,
 			 set_key, node->entity, pos, key);
 }
 
-/* Updates children in-parent position. It is used durring internal nodes
+/* Updates children in-parent position. It is used during internal nodes
    modifying. */
 errno_t reiser4_node_update_children(node_t *node, pos_t *start) {
 	errno_t res;

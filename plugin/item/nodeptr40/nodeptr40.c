@@ -120,6 +120,7 @@ static errno_t nodeptr40_print(place_t *place,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
+	.fuse             = NULL,
 	.prep_shift       = NULL,
 	.shift_units      = NULL,
 	.maxreal_key      = NULL,
@@ -148,7 +149,6 @@ static item_object_ops_t object_ops = {
 #endif
 	.object_plug	  = NULL,
 	.read_units       = NULL,
-	
 	.fetch_units      = nodeptr40_fetch_units
 };
 

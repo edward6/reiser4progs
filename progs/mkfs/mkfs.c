@@ -507,7 +507,7 @@ int main(int argc, char *argv[]) {
 	aal_list_free(devices);
 
 	/* Deinitializing libreiser4. At the moment only plugins are unloading
-	   durring this. */
+	   during this. */
 	libreiser4_fini();
     
 	return NO_ERROR;

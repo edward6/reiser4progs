@@ -556,7 +556,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
 	/* Initializing direntry item hint. This should be done before the stat
-	   data item hint, because we will need size of direntry item durring
+	   data item hint, because we will need size of direntry item during
 	   stat data initialization. */
    	body_hint.count = 1;
 	body_hint.plug = body_plug;

@@ -22,7 +22,7 @@ struct obj40 {
     
 	/* Info about the object, stat data place, object and parent keys and
 	   pointer to the instance of internal libreiser4 tree for modiying
-	   purposes. It is passed by reiser4 library durring initialization of
+	   purposes. It is passed by reiser4 library during initialization of
 	   the file instance. */
 	object_info_t info;
 

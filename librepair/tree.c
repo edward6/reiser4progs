@@ -463,6 +463,7 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 {
 	conv_hint_t hint;
 	
+	hint.chunk = 0;
 	hint.bytes = 0;
 	hint.plug = plug;
 	reiser4_key_assign(&hint.offset, &place->key);
