@@ -718,7 +718,7 @@ errno_t reiser4_node_shift(
 	if (retval < 0)
 		return retval;
 
-	/* Updating leaf delimiting keys in the tree */
+	/* Updating left delimiting keys in the tree */
 	if (hint->flags & SF_LEFT) {
 		if (reiser4_node_count(node) != 0 &&
 		    (hint->items > 0 || hint->units > 0))
@@ -749,11 +749,6 @@ errno_t reiser4_node_shift(
 		
 	}
 
-        /*
-	  FIXME-UMKA: Here also should be updating of the children list of the
-	  both nodes.
-	*/
-	
 	return 0;
 }
 

@@ -857,10 +857,10 @@ static errno_t node40_merge_items(node40_t *src_node,
 	if (!node40_mergeable(&src_item, &dst_item))
 		return 0;
 
-	hint->part = src_item.len;
-	hint->units = src_item.plugin->item_ops.count(&src_item);
+	hint->items = 1;
+	hint->bytes = src_item.len;
 
-	if (hint->part > nh40_get_free_space(dst_node))
+	if (hint->bytes > nh40_get_free_space(dst_node))
 		return 0;
 
 	/* Expanding dst node to make room for units to be moved to it */
@@ -872,7 +872,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 		pos.unit = 0;
 	}
 
-	if (node40_expand(dst_node, &pos, hint->part)) {
+	if (node40_expand(dst_node, &pos, hint->bytes)) {
 		aal_exception_error("Can't expand item for "
 				    "shifting units into it.");
 		return -1;
@@ -897,7 +897,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 	pos.unit = ~0ul;
 	pos.item = src_item.pos;
 	
-	return node40_shrink(src_node, &pos, hint->part);
+	return node40_shrink(src_node, &pos, hint->bytes);
 }
 
 /*
@@ -1135,7 +1135,6 @@ static errno_t node40_predict_items(node40_t *src_node,
 
 	flags = hint->flags;
 	hint->flags &= ~SF_MOVIP;
-	hint->bytes = 0;
 
 	overhead = node40_overhead((object_entity_t *)dst_node);
 
@@ -1252,7 +1251,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 	aal_assert("umka-1306", dst_node != NULL, return -1);
 	aal_assert("umka-1579", hint != NULL, return -1);
 
-	/* No items to be shifted. Probably w can shift units? */
+	/* No items to be shifted */
 	if (hint->items == 0 || hint->bytes == 0)
 		return 0;
 	
@@ -1374,13 +1373,14 @@ static errno_t node40_shift(object_entity_t *entity,
 			    object_entity_t *neighb,
 			    shift_hint_t *hint)
 {
-	uint32_t units;
 	shift_hint_t merge;
 	shift_flags_t flags;
 
 	node40_t *src_node = (node40_t *)entity;
 	node40_t *dst_node = (node40_t *)neighb;
 
+	hint->bytes = 0;
+	hint->items = 0;
 	merge = *hint;
 	
 	if (node40_merge_items(src_node, dst_node, &merge))
@@ -1416,7 +1416,13 @@ static errno_t node40_shift(object_entity_t *entity,
 		return -1;
 
 	/* Shifting units from src_node to dst_node */
-	return node40_shift_units(src_node, dst_node, hint);
+	if (node40_shift_units(src_node, dst_node, hint))
+		return -1;
+
+	hint->items += merge.items;
+	hint->bytes += merge.bytes;
+	
+	return 0;
 }
 
 #endif
