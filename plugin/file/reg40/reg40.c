@@ -43,7 +43,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
     
 	file40_unlock(&reg->file, &reg->body);
 	
-	if (core->tree_ops.lookup(reg->file.tree, &key, &level, &reg->body) != 1)
+	if (core->tree_ops.lookup(reg->file.tree, &key, &level, &reg->body) != PRESENT)
 		reg->body.node = NULL;
 	
 	/*

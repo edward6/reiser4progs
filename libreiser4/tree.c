@@ -847,16 +847,19 @@ errno_t reiser4_tree_insert(
 	/* Needed space is estimated space plugs item overhead */
 	needed = hint->len + (coord->pos.unit == ~0ul ? 
 			      reiser4_node_overhead(coord->node) : 0);
+	
 	old = *coord;
+	
 	if (reiser4_tree_mkspace(tree, coord, needed)) {
 		aal_exception_error("Can't prepare space for insert "
 				    "one more item/unit.");
 		return -1;
 	}
     
-	if (tree->traps.preinsert && 
-	    (res = tree->traps.preinsert(coord, hint, tree->traps.data)))
+	if (tree->traps.preinsert) {
+		if ((res = tree->traps.preinsert(coord, hint, tree->traps.data)))
 			return res;
+	}
 
 	if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
@@ -884,9 +887,10 @@ errno_t reiser4_tree_insert(
 		}
 	}
     
-	if (tree->traps.pstinsert && 
-	    (res = tree->traps.pstinsert(coord, hint, tree->traps.data)))
-		return res;	
+	if (tree->traps.pstinsert) {
+		if ((res = tree->traps.pstinsert(coord, hint, tree->traps.data)))
+			return res;
+	}
     
 	return 0;
 }

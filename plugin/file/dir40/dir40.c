@@ -459,7 +459,7 @@ static int32_t dir40_write(object_entity_t *entity,
    
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&body_hint, 0, sizeof(body_hint));
-
+	
 	body_hint.count = 1;
 
 	if (!(body_hint.entry = aal_calloc(sizeof(*entry), 0)))
