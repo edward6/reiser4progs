@@ -1014,7 +1014,8 @@ static item_balance_ops_t balance_ops = {
 #endif
 	.units		  = cde40_units,
 	.lookup		  = cde40_lookup,
-	.fetch_key	  = cde40_fetch_key
+	.fetch_key	  = cde40_fetch_key,
+	.maxposs_key	  = cde40_maxposs_key
 };
 
 static item_object_ops_t object_ops = {
