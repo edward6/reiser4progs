@@ -186,7 +186,6 @@ static void key_large_clean(reiser4_key_t *key) {
 	aal_memset(key->body, 0, sizeof(key->body));
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* Figures out if items are of one file or not. */
 static int key_large_compshort(reiser4_key_t *key1, 
 			       reiser4_key_t *key2) 
@@ -219,7 +218,6 @@ static int key_large_compshort(reiser4_key_t *key1,
 	return kl_comp_el((key_large_t *)key1->body,
 			  (key_large_t *)key2->body, 2);
 }
-#endif
 
 static int key_large_compraw(void *key1, void *key2) {
 	int res;
@@ -386,11 +384,8 @@ static reiser4_key_ops_t key_large_ops = {
 	.bodysize	= key_lage_bodysize,
 	.compraw	= key_large_compraw,
 	.compfull	= key_large_compfull,
-
-#ifndef ENABLE_STAND_ALONE
 	.compshort	= key_large_compshort,
-#endif
-		
+
 	.build_hashed   = key_large_build_hashed,
 	.build_generic  = key_large_build_generic,
 	

@@ -179,7 +179,6 @@ static void key_short_clean(reiser4_key_t *key) {
 	aal_memset(key->body, 0, sizeof(key->body));
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* Compares two first components of the pased keys (locality and objectid) */
 static int key_short_compshort(reiser4_key_t *key1, 
 			       reiser4_key_t *key2) 
@@ -206,7 +205,6 @@ static int key_short_compshort(reiser4_key_t *key1,
 	/* Checking object id */
 	return aal_memcmp(&oid1, &oid2, sizeof(oid1));
 }
-#endif
 
 /* Compares two passed key bodies. */
 static int key_short_compraw(void *key1, void *key2) {
@@ -368,10 +366,7 @@ static reiser4_key_ops_t key_short_ops = {
 	.bodysize	= key_short_bodysize,
 	.compfull	= key_short_compfull,
 	.compraw	= key_short_compraw,
-
-#ifndef ENABLE_STAND_ALONE
 	.compshort	= key_short_compshort,
-#endif
 		
 	.build_hashed   = key_short_build_hashed,
 	.build_generic  = key_short_build_generic,
