@@ -484,17 +484,17 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		}
 	}
 
+	if ((res = plugin_call(child->entity->plugin->o.object_ops,
+			       link, child->entity)))
+	{
+		return res;
+	}
+	
 	if (child->entity->plugin->o.object_ops->attach) {
 		object_entity_t *parent = object ? object->entity : NULL;
 
-		if ((res = plugin_call(child->entity->plugin->o.object_ops,
-				       attach, child->entity, parent)))
-		{
-			return res;
-		}
-
 		return plugin_call(child->entity->plugin->o.object_ops,
-				   link, child->entity);
+				   attach, child->entity, parent);
 	}
 
 	return 0;
@@ -542,21 +542,25 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 		return -EINVAL;
 	}
 
+	if ((res = plugin_call(child->entity->plugin->o.object_ops,
+			       unlink, child->entity)))
+	{
+		return res;
+	}
+	
 	if (child->entity->plugin->o.object_ops->detach) {
 		if ((res = plugin_call(child->entity->plugin->o.object_ops,
 				       detach, child->entity, object->entity)))
 		{
 			return res;
 		}
-
-		res = plugin_call(child->entity->plugin->o.object_ops,
-				  unlink, child->entity);
 	}
 
 	reiser4_object_close(child);
 	return res;
 }
 
+/* Helper function for printing passed @place into @stream */
 static errno_t callback_print_place(
 	object_entity_t *entity,   /* object to be inspected */
 	place_t *place,            /* next object block */
@@ -584,6 +588,7 @@ errno_t reiser4_object_print(reiser4_object_t *object,
 	return reiser4_object_metadata(object, place_func, stream);
 }
 
+/* Enumerates all blocks passed @object occupies */
 errno_t reiser4_object_layout(
 	reiser4_object_t *object,   /* object we working with */
 	block_func_t block_func,    /* layout callback */
@@ -603,6 +608,7 @@ errno_t reiser4_object_layout(
 					    block_func, data);
 }
 
+/* Enumerates all items object consists of */
 errno_t reiser4_object_metadata(
 	reiser4_object_t *object,   /* object we working with */
 	place_func_t place_func,    /* metadata layout callback */
@@ -622,6 +628,7 @@ errno_t reiser4_object_metadata(
 					      place_func, data);
 }
 
+/* Makes lookup inside the @object */
 lookup_t reiser4_object_lookup(reiser4_object_t *object,
 			     const char *name,
 			     entry_hint_t *entry)
