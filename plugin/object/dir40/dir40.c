@@ -243,13 +243,13 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		if (aal_strlen(entry->name) == 1 &&
 		    !aal_strncmp(entry->name, ".", 1))
 		{
-			entry->type = ET_DOT;
+			entry->type = ET_SELF;
 		}
 
 		if (aal_strlen(entry->name) == 2 &&
 			   !aal_strncmp(entry->name, "..",2))
 		{
-			entry->type = ET_DOTDOT;
+			entry->type = ET_PARENT;
 		}
 #endif
 		
@@ -282,8 +282,8 @@ static errno_t dir40_readdir(object_entity_t *entity,
 
 /* Makes lookup in directory by name. Fills passed buff by found entry fields
    (offset key, object key, etc). */
-static lookup_t dir40_lookup(object_entity_t *entity,
-			     char *name, entry_hint_t *entry) 
+lookup_t dir40_lookup(object_entity_t *entity,
+		      char *name, entry_hint_t *entry) 
 {
 	dir40_t *dir;
 	place_t next;

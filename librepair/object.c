@@ -70,7 +70,7 @@ inline void repair_object_init(reiser4_object_t *object,
    
    FIXME-VITALY: for now it returns the first matched plugin, it should be 
    changed if plugins are not sorted in some order of adventages of recovery. */
-static bool_t callback_object_open(reiser4_plugin_t *plugin, void *data) {
+static bool_t callback_object_realize(reiser4_plugin_t *plugin, void *data) {
 	reiser4_object_t *object;
 	
 	/* We are interested only in object plugins here */
@@ -125,7 +125,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 		if (parent)
 			object->info.parent = parent->info.object;
 		
-		libreiser4_factory_cfind(callback_object_open, object, FALSE);
+		libreiser4_factory_cfind(callback_object_realize, object, FALSE);
 		
 		if (!object->entity)
 			goto error_close_object;
@@ -169,7 +169,7 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	reiser4_key_assign(&object->info.object,
 			   &object->info.start.item.key);
 	
-	libreiser4_factory_cfind(callback_object_open, object, only);
+	libreiser4_factory_cfind(callback_object_realize, object, only);
 	
 	if (!object->entity)
 		goto error_close_object;
@@ -285,7 +285,8 @@ errno_t repair_object_traverse(reiser4_object_t *object,
 /* @parent is the object where the @object name of the type @type was found.
    Check the backlink -- '..' for directories if @type == NAME, that name 
    exists if @type == DOTDOT, etc. On REBUILD pass, insert the name if missed
-   and fix '..' to point correctly. */
+   and fix '..' to point correctly. If the object allow only one NAME and was 
+   reached already -- FATAL corruption is returned. */
 errno_t repair_object_check_backlink(reiser4_object_t *object, 
 				     reiser4_object_t *parent, 
 				     entry_type_t type,
@@ -300,24 +301,26 @@ errno_t repair_object_check_backlink(reiser4_object_t *object,
 		return 0;
 	
 	return object->entity->plugin->o.object_ops->check_backlink(object->entity, 
-								    parent->entity, 
-								    mode);
+								    parent->entity,
+								    type, mode);
 }
 
 static errno_t repair_object_check_base(reiser4_object_t *object,
 					reiser4_object_t *parent,
+					object_check_func_t func,
 					entry_type_t type,
-					uint8_t mode)
+					uint8_t mode, void *data)
 {
-	reiser4_place_t *start;
 	errno_t res = REPAIR_OK;
+	bool_t checked;
 	
 	aal_assert("vpf-1139", object != NULL);
 	aal_assert("vpf-1140", parent != NULL);
 	
-	start = reiser4_object_start(object);
+	checked = repair_item_test_flag(reiser4_object_start(object), 
+					ITEM_CHECKED);
 	
-	if (!repair_item_test_flag(start, ITEM_CHECKED)) {
+	if (!checked) {
 		/* The openned object has not been checked yet. */
 		res = repair_object_check_struct(object, callback_check_struct, 
 						 mode, NULL);
@@ -326,26 +329,28 @@ static errno_t repair_object_check_base(reiser4_object_t *object,
 	if (repair_error_fatal(res))
 		return res;
 	
-	/* Increment the link. */
-	res |= plugin_call(object->entity->plugin->o.object_ops, link, 
-			   object->entity);
+	/* Check the back link from the object to the parent. */
+	res |= repair_object_check_backlink(object, parent, type, mode);
 	
 	if (repair_error_fatal(res))
 		return res;
+
+	/* Increment the link. */
+	res |= plugin_call(object->entity->plugin->o.object_ops, link, 
+			   object->entity);
+
+	if (repair_error_fatal(res))
+		return res;
 	
-	/* If the entry in the parent object was not '..' -- in other words we 
-	   go down not up -- check the uplink -- '..' in directories -- if not 
-	   reachable yet and correct the '..' pointer if needed. 
-	 */
-	if (!repair_item_test_flag(start, ITEM_REACHABLE))
-		res |= repair_object_check_backlink(object, parent, type, mode);
-	
+	if (checked && func)
+		res |= func(object, data);
+
 	return res;
 }
 
-errno_t repair_object_check(reiser4_object_t *parent, entry_hint_t *entry,
-			    reiser4_object_t **object, repair_data_t *repair,
-			    object_check_func_t func, void *data) 
+errno_t repair_object_open(reiser4_object_t *parent, entry_hint_t *entry,
+			   reiser4_object_t **object, repair_data_t *repair,
+			   object_check_func_t func, void *data) 
 {
 	reiser4_place_t *start;
 	bool_t checked;
@@ -357,9 +362,11 @@ errno_t repair_object_check(reiser4_object_t *parent, entry_hint_t *entry,
 	aal_assert("vpf-1146", repair != NULL);
 	
 	/* Trying to open the object by the given @entry->object key. */
-	if (!(*object = repair_object_launch(parent->info.tree, parent, 
-					     &entry->object))) 
-	{
+	*object = repair_object_launch(parent->info.tree, 
+				       entry->type == ET_NAME ? parent : NULL,
+				       &entry->object);
+	
+	if (*object == NULL) {
 		if (repair->mode == REPAIR_REBUILD)
 			goto error_rem_entry;
 		
@@ -371,14 +378,15 @@ errno_t repair_object_check(reiser4_object_t *parent, entry_hint_t *entry,
 	checked = repair_item_test_flag(start, ITEM_CHECKED);
 	
 	/* Check the openned object. */
-	res = repair_object_check_base(*object, parent, entry->type, repair->mode);
+	res = repair_object_check_base(*object, parent, func, entry->type, 
+				       repair->mode, data);
 
 	if (res < 0) {
 		aal_exception_error("Node (%llu), item (%u): check of the object "
 				    "pointed by %k from the %k (%s) failed.", 
 				    start->node->number, start->pos.item,
 				    &entry->object, &entry->offset, entry->name);
-
+		
 		goto error_close_object;
 	} else if (res & REPAIR_FATAL) {
 		if (repair->mode == REPAIR_REBUILD)
@@ -388,9 +396,6 @@ errno_t repair_object_check(reiser4_object_t *parent, entry_hint_t *entry,
 		goto error_close_object;
 	} else if (res & REPAIR_FIXABLE)
 		repair->fixable++;
-	
-	if (checked && func)
-		func(*object, data);
 	
 	if (repair->mode == REPAIR_REBUILD && entry->type == ET_NAME)
 		repair_item_set_flag(start, ITEM_REACHABLE);
@@ -404,7 +409,7 @@ errno_t repair_object_check(reiser4_object_t *parent, entry_hint_t *entry,
  error_rem_entry:
 	res = reiser4_object_rem_entry(parent, entry);
 
-	if (res) {
+	if (res < 0) {
 		aal_exception_error("Semantic traverse failed to remove the entry "
 				    "%k (%s) pointing to %k.", &entry->offset, 
 				    entry->name, &entry->object);

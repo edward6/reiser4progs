@@ -40,10 +40,10 @@ extern errno_t repair_object_check_backlink(reiser4_object_t *object,
 					    entry_type_t type,
 					    uint8_t mode);
 
-extern errno_t repair_object_check(reiser4_object_t *parent, 
-				   entry_hint_t *entry,
-				   reiser4_object_t **object, 
-				   repair_data_t *repair,
-				   object_check_func_t func, 
-				   void *data);
+extern errno_t repair_object_open(reiser4_object_t *parent, 
+				  entry_hint_t *entry,
+				  reiser4_object_t **object, 
+				  repair_data_t *repair,
+				  object_check_func_t func, 
+				  void *data);
 #endif

@@ -45,4 +45,6 @@ typedef enum repair_error {
 			      !(res & REPAIR_FIXABLE));		\
 })
 
+#define LOST_PREFIX "lost_name_"
+
 #endif

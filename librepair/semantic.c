@@ -7,14 +7,68 @@
 extern errno_t callback_check_struct(object_entity_t *object, place_t *place, 
 				     void *data);
 
+/* Checks backlinks. */
+static errno_t repair_semantic_check_link(reiser4_object_t *object,
+					  reiser4_object_t *parent,
+					  entry_hint_t *entry,
+					  void *data)
+{
+	repair_semantic_t *sem = (repair_semantic_t *)data;
+	entry_hint_t prev, curr;
+	lookup_t lookup;
+	errno_t res;
+	char *name;
+	
+	aal_assert("vpf-1155", object != NULL);
+	aal_assert("vpf-1156", parent != NULL);
+	aal_assert("vpf-1157", data != NULL);
+	
+	/* Check the backlink only if traverse has not got into the loop - 
+	   the object was reached from the parent and then the parent is 
+	   reached from the child again through '..'. */
+	name = (char *)object->data;
+	
+	while (name) {
+		/* Save the current position. */
+		if ((res = reiser4_object_readdir(object, &curr)))
+			return res;
+		
+		/* Lookup the entry read the last time. */
+		lookup = reiser4_object_lookup(object, name, &prev);
+		
+		/* The name was read, it must exist. */
+		aal_assert("vpf-1158", lookup == PRESENT);
+		
+		if (!reiser4_key_compare(&prev.object, &parent->info.object)) {
+			/* Loop detected, we must be at the current position again
+			   as name belonged to the last read entry. */
+			return 0;
+		}
+
+		break;
+	}
+	
+	res = repair_object_check_backlink(object, parent, entry->type, 
+					   sem->repair->mode);
+	
+	/* Move back to the current position. */
+	if (name) {
+		lookup = reiser4_object_lookup(object, curr.name, NULL);
+		aal_assert("vpf-1159", lookup == PRESENT);
+	}
+	
+	return res;
+}
+
 static errno_t callback_semantic_open(reiser4_object_t *parent, entry_hint_t *entry,
 				      reiser4_object_t **object, void *data)
 {
-	aal_assert("vpf-1144", data != NULL);
+	repair_semantic_t *sem = (repair_semantic_t *)data;
 	
-	return repair_object_check(parent, entry, object,
-				   ((repair_semantic_t *)data)->repair,
-				   NULL, NULL);
+	aal_assert("vpf-1144", sem != NULL);
+	
+	return repair_object_open(parent, entry, object, sem->repair,
+				  sem->callback_check, sem);
 }
 
 static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) {
@@ -96,6 +150,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	time(&sem->stat.time);
 	
 	fs = sem->repair->fs;
+	sem->callback_check = NULL;
 	
 	if (reiser4_tree_fresh(fs->tree)) {
 		aal_exception_warn("No reiser4 metadata were found. Semantic pass is "

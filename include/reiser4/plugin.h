@@ -413,9 +413,9 @@ struct statdata_hint {
 typedef struct statdata_hint statdata_hint_t;
 
 enum entry_type {
-	ET_NAME     = 1 << 0,
-	ET_DOT      = 1 << 1,
-	ET_DOTDOT   = 1 << 2
+	ET_NAME		= 1 << 0,
+	ET_SELF		= 1 << 1,
+	ET_PARENT	= 1 << 2
 };
 
 typedef enum entry_type entry_type_t;
@@ -624,7 +624,8 @@ struct reiser4_object_ops {
 				 place_func_t, uint8_t, void *);
 	
 	/* Checks if this is a correct uplink of the object. */
-	errno_t (*check_backlink) (object_entity_t *, object_entity_t *, uint8_t);
+	errno_t (*check_backlink) (object_entity_t *, object_entity_t *, 
+				   entry_type_t, uint8_t);
 	
 	/* Realizes if the object can be of this plugin and can be recovered as
 	   a such. */

@@ -20,6 +20,7 @@ typedef struct repair_semantic_stat {
 /* Data filter works on. */
 typedef struct repair_semantic {
 	repair_data_t *repair;
+	object_check_func_t callback_check;
 	
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;

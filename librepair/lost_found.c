@@ -10,9 +10,11 @@ extern errno_t callback_check_struct(object_entity_t *object, place_t *place,
 static void repair_lost_found_make_lost_name(reiser4_object_t *object, 
 					     char *name) 
 {
+	uint8_t len = aal_strlen(LOST_PREFIX);
+	
 	reiser4_key_string(&object->info.object, name);
-	aal_memmove(object->name + 10, object->name, OBJECT_NAME_SIZE - 10);
-	aal_memcpy(object->name, "lost_name_", 10);
+	aal_memmove(object->name + len, object->name, OBJECT_NAME_SIZE - len);
+	aal_memcpy(object->name, LOST_PREFIX, len);
 }
 
 static errno_t repair_lost_found_unlink(reiser4_object_t *object, void *data) {
@@ -36,9 +38,15 @@ static errno_t repair_lost_found_unlink(reiser4_object_t *object, void *data) {
 	repair_lost_found_make_lost_name(object, name);
 	
 	/* If lookup cannot find the object in L&F, nothing to unlink. */
-	if (reiser4_object_lookup(lf->lost, name, NULL) != PRESENT)
+	if (reiser4_object_lookup(lf->lost, name, &entry) != PRESENT)
 		return 0;
-
+	
+	/* Removing entry */
+	if ((res = reiser4_object_rem_entry(lf->lost, &entry))) {
+		aal_exception_error("Can't remove entry %s in 'lost+found.", name);
+		return res;
+	}
+	
 	if ((res = reiser4_object_unlink(lf->lost, name))) {
 		aal_exception_error("Node %llu, item %u: unlink from the object "
 				    "%k of the object pointed by %k failed.",
@@ -64,8 +72,8 @@ static errno_t callback_lost_found_open(reiser4_object_t *parent,
 	aal_assert("vpf-1144", open != NULL);
 	aal_assert("vpf-1150", open->lf != NULL);
 	
-	return repair_object_check(parent, entry, object, open->lf->repair,
-				   open->func, open->lf);
+	return repair_object_open(parent, entry, object, open->lf->repair,
+				  open->func, open->lf);
 }
 
 static errno_t repair_lost_found_object_check(reiser4_place_t *place, 
@@ -134,7 +142,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	
 	/* If '..' is valid, then the parent<->object link was recovered during 
 	   traversing. Othewise, link the object to "lost+found". */
-	if (!repair_item_set_flag(start, ITEM_REACHABLE)) {
+	if (!repair_item_test_flag(start, ITEM_REACHABLE)) {
 		if ((res = reiser4_object_link(lf->lost, object, object->name))) {
 			aal_exception_error("Node %llu, item %u: failed to link "
 					    "the object pointed by %k to the "
