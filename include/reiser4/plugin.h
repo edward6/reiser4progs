@@ -517,7 +517,7 @@ typedef struct insert_hint insert_hint_t;
 
 struct remove_hint {
 	
-	/* Overhead of remoevd data */
+	/* Overhead of removed data */
 	uint32_t ohd;
 	
 	/* Length of removed data */
@@ -535,7 +535,7 @@ struct reiser4_key_ops {
 	void (*clean) (key_entity_t *);
 
 	/* Functions for determining is key long */
-	int (*tall) (key_entity_t *);
+	int (*hashed) (key_entity_t *);
 
 	/* Returns minimal key for this key-format */
 	key_entity_t *(*minimal) (void);
