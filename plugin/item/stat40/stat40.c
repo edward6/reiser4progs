@@ -16,7 +16,9 @@ static reiser4_core_t *core = NULL;
   The function which implements stat40 layout pass. This function is used for
   all statdata extention-related actions. For example for opening, of counting.
 */
-errno_t stat40_traverse(item_entity_t *item, stat40_ext_func_t func, void *data)
+errno_t stat40_traverse(item_entity_t *item,
+			stat40_ext_func_t func,
+			void *data)
 {
 	uint8_t i;
 	stat40_t *stat;
@@ -438,6 +440,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.shift          = NULL,
 		.predict        = NULL,
 		.set_key	= NULL,
+		.feel           = NULL,
 		.layout_check	= NULL,
 #endif
 		.lookup		= NULL,

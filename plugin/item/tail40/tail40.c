@@ -406,6 +406,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.estimate       = NULL,
 		.set_key        = NULL,
 		.layout	        = NULL,
+		.feel           = NULL,
 		.layout_check   = NULL,
 #endif
 		.valid	        = NULL,

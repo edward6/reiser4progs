@@ -3,16 +3,16 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* should we use sdext_entity_t in sdext plugin interface?
-
-* implement reiser4_tree_write function needed for fsck.
-
-* solve the problem with that, the item plugins cannot rely on item.len 
-  due to it is changing by the node plugin before calling item plugin.
-
 * insert an extent among internal items may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
+
+* implement reiser4_tree_write function needed for fsck.
+
+* should we use sdext_entity_t in sdext plugin interface?
+
+* solve the problem with that, the item plugins cannot rely on item.len 
+  due to it is changing by the node plugin before calling item plugin.
 
 * --print-journal option handling code in debugfs.
 

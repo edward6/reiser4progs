@@ -54,12 +54,12 @@ static void callback_set_prev(void *data, aal_list_t *prev) {
 }
 		
 static lru_ops_t lru_ops = {
-	.free     = callback_node_free,
-	.sync     = callback_node_sync,
-	.get_next = callback_get_next,
-	.set_next = callback_set_next,
-	.get_prev = callback_get_prev,
-	.set_prev = callback_set_prev
+	.free      = callback_node_free,
+	.sync      = callback_node_sync,
+	.get_next  = callback_get_next,
+	.set_next  = callback_set_next,
+	.get_prev  = callback_get_prev,
+	.set_prev  = callback_set_prev
 };
 
 #endif
@@ -640,7 +640,8 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
     
 #ifndef ENABLE_ALONE
 	if (!(tree->lru = aal_lru_create(&lru_ops))) {
-		aal_exception_error("Can't initialize tree cache lru list.");
+		aal_exception_error("Can't initialize tree cache "
+				    "lru list.");
 		goto error_free_tree;
 	}
 
@@ -864,7 +865,7 @@ lookup_t reiser4_tree_lookup(
   Returns TRUE if passed @tree has minimal possible height nd thus cannot be
   dried out.
 */
-static inline bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {
+static bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {
 
 	if (reiser4_tree_height(tree) <= 2)
 		return TRUE;

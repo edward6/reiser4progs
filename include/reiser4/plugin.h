@@ -770,6 +770,12 @@ struct reiser4_item_ops {
 	/* Goes through all blocks item points to. */
 	errno_t (*layout) (item_entity_t *, region_func_t, void *);
 
+	/* Tree write related functions */
+	errno_t (*feel) (item_entity_t *, uint32_t, uint32_t, write_hint_t *);
+
+/*	errno_t (*write) (item_entity_t *, uint32_t, item_entity_t *,
+			  uint32_t, uint32_t, write_hint_t);*/
+	
 	/* Does some specific actions if a block the item points to is wrong. */
 	errno_t (*layout_check) (item_entity_t *, region_func_t, void *, uint8_t);
 
@@ -908,6 +914,18 @@ struct reiser4_node_ops {
 	/* Expands node */
 	errno_t (*expand) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
+
+	/* Sets up the passed write hint instance */
+	errno_t (*feel) (object_entity_t *, pos_t *,
+			 uint32_t, write_hint_t *);
+	
+	/*
+	  Writes items and units from src node to dst one by passed write
+	  hint.
+	*/
+	errno_t (*write) (object_entity_t *, pos_t *,
+			  object_entity_t *, pos_t *,
+			  uint32_t, write_hint_t *);
 	
 	errno_t (*set_key) (object_entity_t *, pos_t *,
 			    key_entity_t *);

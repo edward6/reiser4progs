@@ -756,6 +756,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.check	       = extent40_check,
 		.layout_check  = extent40_layout_check,
 
+		.feel          = NULL,
 		.insert	       = NULL,
 		.set_key       = NULL,
 #endif

@@ -248,6 +248,12 @@ static int direntry40_mergeable(item_entity_t *item1,
 
 #ifndef ENABLE_ALONE
 
+static errno_t direntry40_feel(item_entity_t *item, uint32_t pos,
+			       uint32_t count, write_hint_t *hint)
+{
+	return 0;
+}
+
 /*
   Estimates how much bytes will be needed to prepare in node in odrer to make
   room for inserting new entries.
@@ -1181,6 +1187,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.print		= direntry40_print,
 		.shift          = direntry40_shift,
 		.predict        = direntry40_predict,
+		.feel           = direntry40_feel,
 		
 		.set_key	= NULL,
 		.insert         = NULL,

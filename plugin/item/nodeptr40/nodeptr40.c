@@ -163,6 +163,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 
 		.insert		= NULL,
 		.remove		= NULL,
+		.feel           = NULL,
 
 		.shift          = NULL,
 		.predict        = NULL,

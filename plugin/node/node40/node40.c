@@ -1034,9 +1034,64 @@ static lookup_t node40_lookup(object_entity_t *entity,
 
 #ifndef ENABLE_ALONE
 
+static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
+			   uint32_t count, write_hint_t *hint)
+{
+	aal_assert("umka-1991", hint != NULL);
+	aal_assert("umka-1989", pos != NULL);
+	aal_assert("umka-1987", entity != NULL);
+	
+	if (pos->unit == ~0ul) {
+		pos_t p = *pos;
+
+		/*
+		  Zeroing out unused fields in the case we are going to write at
+		  item position, that is, without unit component initialized.
+		*/
+		hint->header_len = 0;
+		hint->header_data = NULL;
+
+		/* Initializing body related fields to item body and item len */
+		hint->body_len = 0;
+
+		if (p.item + count >= node40_items(entity))
+			count = node40_items(entity) - p.item;
+		
+		for (p.item = 0; p.item < p.item + count; p.item++)
+			hint->body_len += node40_item_len(entity, &p);
+		
+		hint->body_data = node40_item_body(entity, pos);
+		return 0;
+	} else {
+		rid_t pid;
+		item_entity_t item;
+	
+		pid = node40_item_pid(entity, pos);
+		
+		if (!(hint->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid)))
+			return -EINVAL;
+
+		if (!hint->plugin->item_ops.feel)
+			return -EINVAL;
+
+		if (node40_item(&item, (node40_t *)entity, pos))
+			return -EINVAL;
+		
+		return hint->plugin->item_ops.feel(&item, pos->unit,
+						   count, hint);
+	}
+}
+
+static errno_t node40_write(object_entity_t *src_entity, pos_t *src_pos,
+			    object_entity_t *dst_entity, pos_t *dst_pos,
+			    uint32_t count, write_hint_t *hint)
+{
+	return 0;
+}
+
 /* Checks if two item entities are mergeable */
 static bool_t node40_mergeable(item_entity_t *item1,
-			    item_entity_t *item2)
+			       item_entity_t *item2)
 {
 	if (!plugin_equal(item1->plugin, item2->plugin))
 		return FALSE;
@@ -1508,14 +1563,14 @@ static errno_t node40_transfuse(node40_t *src_node,
 }
 
 /* Performs shift of items and units from @entity to @neighb */
-static errno_t node40_shift(object_entity_t *entity,
-			    object_entity_t *neigh,
+static errno_t node40_shift(object_entity_t *src_entity,
+			    object_entity_t *dst_entity,
 			    shift_hint_t *hint)
 {
 	shift_hint_t merge;
 
-	node40_t *src_node = (node40_t *)entity;
-	node40_t *dst_node = (node40_t *)neigh;
+	node40_t *src_node = (node40_t *)src_entity;
+	node40_t *dst_node = (node40_t *)dst_entity;
 
 	/*
 	  First of all we should try to merge boundary items if they are
@@ -1532,13 +1587,13 @@ static errno_t node40_shift(object_entity_t *entity,
 	  The all free space in neighbour node will be used for estimating
 	  number of units to be moved.
 	*/
-	merge.rest = node40_space(neigh);
+	merge.rest = node40_space(dst_entity);
 
 	/*
 	  Merges border items without ability to create the new item in dst
 	  node. This is needed for avoiding the case when a node will contain
 	  two neighbour items which are mergeable. That would be not optimal
-	  space usaging and might also led to some unstable behavior of the code
+	  space usage and might also led to some unstable behavior of the code
 	  which assume that next mergeable item lies in the neighbour node, not
 	  in the neighbour position (directory read and lookup code).
 	*/
@@ -1641,6 +1696,8 @@ static reiser4_plugin_t node40_plugin = {
 		.shrink		 = node40_shrink,
 		.expand		 = node40_expand,
 		.copy            = node40_copy,
+		.feel            = node40_feel,
+		.write           = node40_write,
 
 		.overhead	 = node40_overhead,
 		.maxspace	 = node40_maxspace,

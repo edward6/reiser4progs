@@ -172,7 +172,6 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 static errno_t repair_node_ld_key_fetch(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
-    reiser4_place_t place;
     errno_t res;
 
     aal_assert("vpf-501", node != NULL);
@@ -180,11 +179,7 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
     aal_assert("vpf-407", ld_key->plugin != NULL);
 
     if (node->parent.node != NULL) {
-        if ((res = reiser4_place_open(&place, node->parent.node,
-				      &node->parent.pos)))
-	    return res;
-	
-	if (reiser4_item_get_key(&place, ld_key))
+	if (reiser4_item_get_key(&node->parent, ld_key))
 	    return -1;
     } else
 	reiser4_key_minimal(ld_key);
@@ -196,7 +191,6 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
-    reiser4_place_t place;
     errno_t res;
     
     aal_assert("vpf-467", node != NULL);
@@ -206,11 +200,7 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     if (node->parent.node == NULL)
 	return 0;
 
-    if ((res = reiser4_place_open(&place, node->parent.node,
-				  &node->parent.pos)))
-	return res;
-
-    return reiser4_item_set_key(&place, ld_key);
+    return reiser4_item_set_key(&node->parent, ld_key);
 }
 
 /* Sets to the @key the right delimiting key of the node kept in the parent. */
@@ -227,12 +217,9 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	
 	if (reiser4_node_pos(node, NULL))
 	    return -1;
-	
-	/* Open place in the parent at the correct position. */
-        if ((res = reiser4_place_open(&place, node->parent.node,
-				      &node->parent.pos)))
-	    return res;
-	
+
+	place = node->parent;
+
 	/* If this is the last position in the parent, call the method 
 	 * recursevely for the parent. Get the right delimiting key 
 	 * otherwise. */
