@@ -106,7 +106,7 @@ static uint32_t node40_estimate_count(reiser4_node_t *node) {
 	return last + 1;
 }
 
-static errno_t node40_space_check(reiser4_node_t *node, uint32_t pos, 
+static errno_t node40_space_check(reiser4_node_t *node, 
 				  uint32_t offset, uint8_t mode)
 {
 	errno_t res = 0;
@@ -126,7 +126,6 @@ static errno_t node40_space_check(reiser4_node_t *node, uint32_t pos,
 					  space - offset);
 			
 			nh_set_free_space_start(node, offset);
-			nh_set_num_items(node, pos);
 			node40_mkdirty(node);
 		} else {
 			res |= RE_FATAL;
@@ -160,6 +159,7 @@ static errno_t node40_ih_array_check(reiser4_node_t *node, uint8_t mode) {
 	uint32_t right, left, offset;
 	uint32_t last_pos, count, i;
 	errno_t res = 0;
+	bool_t relable;
 	blk_t blk;
 	
 	aal_assert("vpf-208", node != NULL);
@@ -197,48 +197,58 @@ static errno_t node40_ih_array_check(reiser4_node_t *node, uint8_t mode) {
 			continue;
 		}
 		
-		if (offset < left || 
-		    offset + (count - i) * MIN_ITEM_LEN > right) 
-		{
-			/* i-th offset is wrong. Needs to be removed. */
-			if (i == count)
-				break;
-
-			fsck_mess("Node (%llu), item (%u): Offset (%u) "
-				  "is wrong.", blk, i, offset);
+		relable = offset >= left && 
+			offset + (count - i) * MIN_ITEM_LEN <= right;
+		
+		if (!relable) {
+			/* fsck_mess("Node (%llu), item (%u): Offset (%u) "
+				  "is wrong.", blk, i, offset); */
 			
 			res |= (mode == RM_BUILD ? 0 : RE_FATAL);
-			continue;
+			
+			if (count != i)
+				continue;
 		}
 
-		/* i-th offset is ok. */
-		if ((mode == RM_BUILD) && (last_pos != i - 1)){
-			/* Some items need to be removed. */
-
+		/* i-th offset is ok or i == count. Removed broken items. */
+		if ((last_pos != i - 1) || !relable) {
 			uint32_t delta;
 
-			fsck_mess("Node (%llu): Region of items "
-				  "[%d-%d] with wrong offsets is "
-				  "deleted.", blk, last_pos, i - 1);
+			fsck_mess("Node (%llu): Region of items [%d-%d] with "
+				  "wrong offsets %s removed.", blk, last_pos, 
+				  i - 1, mode == RM_BUILD ? "is" : "should be");
 
-			delta = i - last_pos;
-			count -= delta;
-			right += delta * ih_size(node->keypol);
+			if (mode == RM_BUILD) {
+				delta = i - last_pos;
+				count -= delta;
+				right += delta * ih_size(node->keypol);
 
-			if (node40_region_delete(node, last_pos + 1, i))
-				return -EINVAL;
+				if (node40_region_delete(node, last_pos + 1, i))
+					return -EINVAL;
 
-			i = last_pos;
-		} 
-
-		/* Set the last correct offset and the keft limit. */
-		last_pos = i;
-		left = (i == count) ? nh_get_free_space_start(node) : 
-			ih_get_offset(node40_ih_at(node, i), node->keypol);
+				i = last_pos;
+			}
+			
+			/* DO not correct the left limit in the CHECK mode,leave
+			   it the same last_relable_offset + n * MIN_ITEM_SIZE. 
+			   However, correct it for the i == count to check free 
+			   space correctly. */
+			if (mode == RM_BUILD || !relable) {
+				left = ih_get_offset(node40_ih_at(node, last_pos), 
+						     node->keypol);
+			}
+		} else {
+			/* Set the last correct offset and the keft limit. */
+			last_pos = i;
+			left = (i == count) ? nh_get_free_space_start(node) : 
+				ih_get_offset(node40_ih_at(node, i), 
+					      node->keypol);
+		}
 	}
-	
+
 	left -= (i - last_pos) * MIN_ITEM_LEN;
-	res |= node40_space_check(node, last_pos, left, mode);
+	
+	res |= node40_space_check(node, left, mode);
 
 	return res;
 }
@@ -330,7 +340,7 @@ errno_t node40_check_struct(reiser4_node_t *node, uint8_t mode) {
 
 	if (nh_get_num_items(node) == 0) {
 		uint32_t offset = sizeof(node40_header_t);
-		return node40_space_check(node, 0, offset, mode);
+		return node40_space_check(node, offset, mode);
 	}
 	
 	/* Count looks ok. Recover the item array. */

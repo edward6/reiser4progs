@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	if (optind != argc - 1) {
+	if (optind != argc - 1 && optind != argc - 2) {
 		resizefs_print_usage(argv[0]);
 		goto error;
 	}
@@ -163,7 +163,8 @@ int main(int argc, char *argv[]) {
 	if (optind >= argc)
 		goto error_free_libreiser4;
 		
-	host_dev = argv[optind++];
+	host_dev = argv[optind];
+	optind++;
     
 	if (stat(host_dev, &st) == -1) {
 		aal_error("Can't stat %s. %s.", host_dev,
@@ -213,8 +214,13 @@ int main(int argc, char *argv[]) {
 		goto error_free_device;
 	}
 
-	fs_len = misc_size2long(argv[optind]);
-
+	/* Get wanted fs len in kilos. */
+	if (optind == argc - 1) {
+		fs_len = misc_size2long(argv[optind]);
+	} else {
+		fs_len = aal_device_len(device) * device->blksize / 1024;
+	}
+	
 	if (fs_len == INVAL_DIG) {
 		aal_error("Invalid new filesystem "
 			  "size %s.", argv[optind]);
