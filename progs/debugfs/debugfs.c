@@ -538,7 +538,7 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_free(gauge);
 
 	/* Printing the result */
-	printf("%.5f\n", frag_hint.total > 0 ?
+	printf("%.6f\n", frag_hint.total > 0 ?
 	       (double)frag_hint.bad / frag_hint.total : 0);
 	
 	return 0;
@@ -795,7 +795,7 @@ static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 	reiser4_file_close(file);
 
 	/* Showing the results */
-	printf("%.5f\n", frag_hint.fl_total > 0 ?
+	printf("%.6f\n", frag_hint.fl_total > 0 ?
 	       (double)frag_hint.fl_bad / frag_hint.fl_total : 0);
 	
 	return 0;
@@ -890,7 +890,7 @@ static errno_t dfrag_process_node(
 			double factor = frag_hint->fl_total > 0 ?
 				(double)frag_hint->fl_bad / frag_hint->fl_total : 0;
 			
-			aal_exception_info("Fragmentation for %s: %.5f",
+			aal_exception_info("Fragmentation for %s: %.6f",
 					   file->name, factor);
 		}
 		
@@ -949,7 +949,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	if (frag_hint.flags & BF_SEACH)
 		printf("Data fragmentation is: ");
 	
-	printf("%.5f\n", frag_hint.fs_total > 0 ?
+	printf("%.6f\n", frag_hint.fs_total > 0 ?
 	       (double)frag_hint.fs_bad / frag_hint.fs_total : 0);
 	
 	return 0;

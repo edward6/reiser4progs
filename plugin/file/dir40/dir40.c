@@ -584,8 +584,10 @@ static errno_t dir40_layout(object_entity_t *entity,
 								 callback_item_data, 
 								 &hint)))
 				return res;
-		} else if ((res = callback_item_data(item, item->con.blk, &hint)))
-			return res;
+		} else {
+			if ((res = callback_item_data(item, item->con.blk, &hint)))
+				return res;
+		}
 		
 		if (dir40_next(dir) != PRESENT)
 			break;

@@ -357,14 +357,17 @@ static errno_t reg40_layout(object_entity_t *entity,
 		
 	while (reg->offset < size) {
 		item_entity_t *item = &reg->body.item;
+		
 		if (item->plugin->item_ops.layout) {
-			/* Call the item layout method for every item of the file */
+
 			if ((res = item->plugin->item_ops.layout(item, 
 								 callback_item_data, 
 								 &hint)))
 				return res;
-		} else if ((res = callback_item_data(item, item->con.blk, &hint)))
-		    return res;
+		} else {
+			if ((res = callback_item_data(item, item->con.blk, &hint)))
+				return res;
+		}
 		
 		plugin_call(item->plugin->item_ops, utmost_key, item, &key);
 		
