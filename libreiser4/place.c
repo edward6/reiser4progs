@@ -28,19 +28,17 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	uint32_t units;
 	
 	aal_assert("umka-1873", place != NULL);
-
-	reiser4_place_realize(place);
-
-	units = reiser4_item_units(place);
+	
 	items = reiser4_node_items(place->node);
-
-	if (place->pos.item == items - 1 && place->pos.unit == units)
+	
+	if (place->pos.item == items)
 		return TRUE;
 	
-	if (place->pos.item == items && place->pos.unit == ~0ul)
-		return TRUE;
-
-	return FALSE;
+	reiser4_place_realize(place);
+	units = reiser4_item_units(place);
+	
+	return (place->pos.item == items - 1 && 
+		place->pos.unit == units);
 }
 #endif
 

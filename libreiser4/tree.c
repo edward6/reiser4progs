@@ -812,8 +812,10 @@ lookup_t reiser4_tree_lookup(
 		}
 
 		/* Checking is item at @place is nodeptr one */
-		if (!reiser4_item_branch(place))
+		if (!reiser4_item_branch(place)) {
+			place->pos.item++;
 			return res;
+		}
 
 		/* Loading node by nodeptr item @place points to */
 		if (!(place->node = reiser4_tree_child(tree, place))) {
@@ -1485,7 +1487,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		}
 		
 		reiser4_place_init(place, node->parent.node, &node->parent.pos);
-		curr--;
+		curr++;
 	}
 	
 	return 0;
