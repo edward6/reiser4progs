@@ -39,10 +39,6 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 		   sizeof(*place));
 	
 	obj40_lock(&sym->obj, &sym->obj.statdata);
-
-	/* Initializing parent key from the root one */
-	sym->obj.core->tree_ops.rootkey(sym->obj.tree,
-					&sym->parent);
 	
 	return (object_entity_t *)sym;
 }
@@ -103,10 +99,6 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 
 	/* Inizializes file handle */
 	obj40_init(&sym->obj, &sym40_plugin, &hint->object, core, tree);
-	
-	/* Initializing parent key from the parent field of passed @hint */
-	plugin_call(hint->object.plugin->o.key_ops, assign,
-		    &sym->parent, &hint->parent);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -255,14 +247,12 @@ static errno_t sym40_init(sym40_t *sym) {
 
 	item = &sym->obj.statdata.item;
 
-	/* Getting file plugin from @item */
 	if (!(plugin = sym->obj.core->factory_ops.ifind(
 		      OBJECT_PLUGIN_TYPE, obj40_pid(item))))
 	{
 		return -EINVAL;
 	}
 
-	/* Initializing parse current entity */
 	if (!(sym->current = plugin_call(plugin->o.object_ops,
 					 open, sym->obj.tree,
 					 &sym->obj.statdata)))
@@ -305,7 +295,8 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 		  as a part.
 		*/
 		if ((res = plugin_call(sym->current->plugin->o.object_ops,
-				       follow, sym->current, STAT_KEY(&sym->obj))))
+				       follow, sym->current, &sym->parent,
+				       STAT_KEY(&sym->obj))))
 		{
 			aal_exception_error("Can't follow %s.", track);
 			goto error_fini;
@@ -368,6 +359,7 @@ static errno_t callback_find_entry(char *track, char *entry,
   searchig entry. It returns stat data key of the object symlink points to.
 */
 static errno_t sym40_follow(object_entity_t *entity,
+			    key_entity_t *current,
 			    key_entity_t *key)
 {
 	errno_t res;
@@ -376,23 +368,18 @@ static errno_t sym40_follow(object_entity_t *entity,
 	
 	aal_assert("umka-1775", key != NULL);
 	aal_assert("umka-1774", entity != NULL);
+	aal_assert("umka-2245", current != NULL);
 
 	sym = (sym40_t *)entity;
 	
 	if ((res = obj40_get_sym(&sym->obj, path)))
 		return res;
 
-	/*
-	  Assigning parent key to root one of path symlink has is beginning from
-	  the slash or assigning it to the parent key otherwise.
-	*/
-	if (path[0] == '/') {
-		sym->obj.core->tree_ops.rootkey(sym->obj.tree,
-						STAT_KEY(&sym->obj));
-	} else {
-		plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
-			    assign, STAT_KEY(&sym->obj), &sym->parent);
-	}
+	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
+		    assign, STAT_KEY(&sym->obj), current);
+
+	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
+		    assign, &sym->parent, STAT_KEY(&sym->obj));
 
 	sym->current = NULL;
 	
@@ -403,7 +390,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 		
 		plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
 			    assign, key, STAT_KEY(&sym->obj));
-	}
+        }
 
 	return res;
 }

@@ -205,11 +205,6 @@ static uint32_t tree_maxspace(void *tree) {
 }
 #endif
 
-static errno_t tree_rootkey(void *tree, key_entity_t *key) {
-	key_entity_t *rootkey = &((reiser4_tree_t *)tree)->key;
-	return reiser4_key_assign(key, rootkey);
-}
-
 reiser4_core_t core = {
 	.tree_ops = {
 	
@@ -243,8 +238,6 @@ reiser4_core_t core = {
 		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,
 		.unlock     = tree_unlock,
-		
-		.rootkey    = tree_rootkey
 	},
 	.factory_ops = {
 		/*

@@ -179,6 +179,11 @@ struct reiser4_object {
 
 	/* File first item key */
 	reiser4_key_t key;
+
+#ifdef ENABLE_SYMLINKS_SUPPORT
+	/* Parent key */
+	reiser4_key_t parent;
+#endif
 	
 	/* Referrence to the filesystem file opened on */
 	reiser4_fs_t *fs;

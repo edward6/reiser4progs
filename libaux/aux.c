@@ -74,7 +74,8 @@ errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 	aal_strncpy(local, path,
 		    sizeof(local));
 	
-	pointer = &local[0];
+	pointer = local[0] != '/' ?
+		&local[0] : &local[1];
 	
 	while (1) {
 		errno_t res;

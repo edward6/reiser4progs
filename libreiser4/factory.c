@@ -27,7 +27,7 @@ unsigned int registered = 0;
 #ifndef ENABLE_STAND_ALONE
 #define MAX_BUILTINS 50
 #else
-#define MAX_BUILTINS 15
+#define MAX_BUILTINS 16
 #endif
 
 /* Builtin plugin representative struct */

@@ -36,15 +36,15 @@ uint32_t extent40_units(item_entity_t *item) {
 uint64_t extent40_offset(item_entity_t *item,
 			 uint64_t pos)
 {
-	uint32_t i, blocks = 0;
 	extent40_t *extent;
+	uint32_t i, blocks = 0;
     
 	aal_assert("umka-2204", item != NULL);
 	
 	extent = extent40_body(item);
 	
-	for (i = 0; i < pos; i++)
-		blocks += et40_get_width(extent + i);
+	for (i = 0; i < pos; i++, extent++)
+		blocks += et40_get_width(extent);
     
 	return blocks * extent40_blocksize(item);
 }
@@ -63,8 +63,11 @@ uint32_t extent40_unit(item_entity_t *item,
 
 	extent = extent40_body(item);
 	
-	for (i = 0; i < extent40_units(item); i++) {
-		width = et40_get_width(extent + i) *
+	for (i = 0; i < extent40_units(item);
+	     i++, extent++)
+	{
+
+		width = et40_get_width(extent) *
 			extent40_blocksize(item);
 		
 		if (offset < width)
@@ -600,17 +603,15 @@ extern errno_t extent40_layout_check(item_entity_t *item,
 				     region_func_t func, 
 				     void *data, uint8_t mode);
 
-extern errno_t extent40_copy(item_entity_t *dst,
-			     uint32_t dst_pos, 
-			     item_entity_t *src,
-			     uint32_t src_pos, 
-			     copy_hint_t *hint);
-
 extern errno_t extent40_estimate_copy(item_entity_t *dst,
 				      uint32_t dst_pos,
 				      item_entity_t *src,
 				      uint32_t src_pos,
 				      copy_hint_t *hint);
+
+extern errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos, 
+			     item_entity_t *src, uint32_t src_pos, 
+			     copy_hint_t *hint);
 #endif
 
 static reiser4_item_ops_t extent40_ops = {

@@ -14,6 +14,10 @@ extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
 					     char *filename,
 					     bool_t follow);
 
+extern errno_t reiser4_object_resolve(reiser4_object_t *object,
+				      char *filename,
+				      reiser4_key_t *from);
+
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint32_t n);
 
@@ -28,7 +32,6 @@ extern errno_t reiser4_object_seek(reiser4_object_t *object,
 				   uint32_t offset);
 
 #ifndef ENABLE_STAND_ALONE
-
 extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
 				      reiser4_key_t *offset);
 

@@ -656,7 +656,8 @@ struct reiser4_object_ops {
 			    entry_hint_t *);
 
 	/* Finds actual file stat data (used in symlinks) */
-	errno_t (*follow) (object_entity_t *, key_entity_t *);
+	errno_t (*follow) (object_entity_t *, key_entity_t *,
+			   key_entity_t *);
 
 	/* Reads the data from file to passed buffer */
 	int32_t (*read) (object_entity_t *, void *, uint32_t);
@@ -1308,9 +1309,6 @@ struct tree_ops {
 	/* Returns maximal available space in a node */
 	uint32_t (*maxspace) (void *);
 #endif
-		
-	/* Gets root key */
-	errno_t (*rootkey) (void *, key_entity_t *);
 	
 	/*
 	  Makes lookup in the tree in order to know where say stat data
@@ -1367,7 +1365,6 @@ typedef struct factory_ops factory_ops_t;
 struct reiser4_core {
 	tree_ops_t tree_ops;
 	factory_ops_t factory_ops;
-    
 };
 
 #define plugin_equal(plugin1, plugin2)                           \

@@ -100,6 +100,14 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	create_hint_t *hint;
 	statdata_hint_t *stat_hint;
 
+	/*
+	  Method open is not defined, this probebly means, we only interested in
+	  symlink's length method in order to reach other symlinks body. So, we
+	  retrun 0 here.
+	*/
+	if (!sdext->plugin->o.sdext_ops->open)
+		return 0;
+	
 	hint = (create_hint_t *)data;
 	stat_hint = hint->type_specific;
 

@@ -117,7 +117,9 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 	/* Symlinks handling. Method "follow" should be implemented */
 	if (object->follow && plugin->o.object_ops->follow) {
+		
 		if ((res = plugin->o.object_ops->follow(object->entity,
+							&object->parent,
 							&object->key)))
 		{
 			aal_exception_error("Can't follow %s.", track);
@@ -136,6 +138,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		if ((res = reiser4_object_init(object)))
 			return -EINVAL;
 	}
+
+	reiser4_key_assign(&object->parent, &object->key);
 #endif
 
 	return 0;
@@ -171,6 +175,21 @@ static errno_t callback_find_entry(char *track, char *entry,
 	return res;
 }
 
+errno_t reiser4_object_resolve(reiser4_object_t *object,
+			       char *filename,
+			       reiser4_key_t *from)
+{
+	reiser4_key_assign(&object->key, from);
+
+	/* 
+	  Parsing path and looking for object's stat data. We assume, that name
+	  is absolute one. So, user, who calls this method should convert name
+	  previously into absolute one by means of using getcwd function.
+	*/
+	return aux_parse_path(filename, callback_find_statdata,
+			      callback_find_entry, object);
+}
+
 /* This function opens object by its name */
 reiser4_object_t *reiser4_object_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
@@ -200,19 +219,13 @@ reiser4_object_t *reiser4_object_open(
 		    sizeof(object->name));
 #endif
 
-	reiser4_key_assign(&object->key, &fs->tree->key);
-    
-	/* 
-	  Parsing path and looking for object's stat data. We assume, that name
-	  is absolute one. So, user, who calls this method should convert name
-	  previously into absolute one by means of using getcwd function.
-	*/
-	if (aux_parse_path(filename, callback_find_statdata,
-			   callback_find_entry, object))
-	{
+#ifdef ENABLE_SYMLINKS_SUPPORT
+	reiser4_key_assign(&object->parent, &fs->tree->key);
+#endif
+
+	if (reiser4_object_resolve(object, filename, &fs->tree->key))
 		goto error_free_object;
-	}
-    
+
 	return object;
     
  error_free_object:
@@ -237,12 +250,9 @@ reiser4_object_t *reiser4_object_access(
     
 	object->fs = fs;
 	
-	aal_memcpy(&object->place, place, sizeof(*place));
-	
-	if (reiser4_key_assign(&object->key, &object->place.item.key))
-		goto error_free_object;
-
 	reiser4_key_string(&object->key, object->name);
+	aal_memcpy(&object->place, place, sizeof(*place));
+	reiser4_key_assign(&object->key, &object->place.item.key);
 
 	if (reiser4_object_init(object))
 		goto error_free_object;
