@@ -14,55 +14,55 @@
 #include <stdarg.h>
 
 enum format_modifier {
-    mod_empty,
-    mod_long,
-    mod_longer
+	mod_empty,
+	mod_long,
+	mod_longer
 };
 
 typedef enum format_modifier format_modifier_t;
 
 /*
-  This function is used for forming a string by passed format string and 
-  arguments. It is widely used in exception handling and in other places,
-  where format string is needed. It is almost full clone of standard libc
-  function. It was introduced in order to provide formating strings ability
-  in the allone mode.
+  This function is used for forming a string by passed format string and
+  arguments. It is widely used in exception handling and in other places, where
+  format string is needed. It is almost full clone of standard libc function. It
+  was introduced in order to provide formating strings ability in the allone
+  mode.
 */
 int aal_vsnprintf(
-    char *buff,			        /* buffer string will be formed in */
-    size_t n,			        /* size of the buffer */
-    const char *format,		    /* format string */
-    va_list arg_list)		    /* list of parameters */
+	char *buff,			    /* buffer string will be formed in */
+	size_t n,			    /* size of the buffer */
+	const char *format,		    /* format string */
+	va_list arg_list)		    /* list of parameters */
 {
-    int i;
-    long int li;
-    long long int lli;
+	int i;
+	long int li;
+	long long int lli;
 			
-    unsigned int u;
-    unsigned long int lu;
-    unsigned long long llu;
+	unsigned int u;
+	unsigned long int lu;
+	unsigned long long llu;
     
-    const char *old = format;
-    const char *fmt = format;
+	const char *old = format;
+	const char *fmt = format;
     
-    format_modifier_t modifier = mod_empty;
+	format_modifier_t modifier = mod_empty;
     
-    while (*fmt) {
+	while (*fmt) {
 		if (fmt - format + 1 >= (int)n)
 			break;
 
 		modifier = mod_empty;
 		switch (*fmt) {
-	    case '%': {
+		case '%': {
 			if (aal_strlen(fmt) < 2)
 				break;
 			
 			if (fmt - format > 0)
 				aal_memcpy(buff + aal_strlen(buff), old, fmt - old);
-		  repeat:		
+		repeat:		
 			fmt++;
 			switch (*fmt) {
-		    case 's': {
+			case 's': {
 				char *s;
 			
 				if (modifier != mod_empty)
@@ -72,28 +72,28 @@ int aal_vsnprintf(
 				aal_strncat(buff, s, n - aal_strlen(buff));
 				fmt++;
 				break;
-		    }
-		    case 'c' : {
+			}
+			case 'c' : {
 				char c = va_arg(arg_list, int);
 				*buff = c; fmt++;
 				break;
-		    }
-		    case '%' : {
+			}
+			case '%' : {
 				aal_strncat(buff, "% ", n - aal_strlen(buff));
 				fmt++;
 				break;
-		    }
-		    case 'l': {
+			}
+			case 'l': {
 				modifier = (modifier == mod_long ? mod_longer : mod_long);
 				old++;
 				goto repeat;
-		    }
-		    case 'd':
-		    case 'o':
-		    case 'i':
-		    case 'u':
-		    case 'X':
-		    case 'x': {
+			}
+			case 'd':
+			case 'o':
+			case 'i':
+			case 'u':
+			case 'X':
+			case 'x': {
 				char s[32];
 			
 				aal_memset(s, 0, sizeof(s));
@@ -175,36 +175,36 @@ int aal_vsnprintf(
 					aal_strncat(buff, s, n - aal_strlen(buff));
 				}
 				fmt++;
-		    }
+			}
 			}
 			old = fmt;
 			break;
-	    }
-	    default: fmt++;
 		}
-    }
+		default: fmt++;
+		}
+	}
 
-    if (fmt - format > 0)
+	if (fmt - format > 0)
 		aal_memcpy(buff + aal_strlen(buff), old, fmt - old);
 
-    return aal_strlen(buff);
+	return aal_strlen(buff);
 }
 
 /* Forms string in passed buffer by using format string */
 int aal_snprintf(
-    char *buff,				    /* buffer string will be formed in */
-    size_t n,				    /* size of the buffer */
-    const char *format,		    /* format string */
-    ...)					    /* variable list of parametsrs */
+	char *buff,			    /* buffer string will be formed in */
+	size_t n,			    /* size of the buffer */
+	const char *format,		    /* format string */
+	...)				    /* variable list of parametsrs */
 {
-    int len;
-    va_list arg_list;
+	int len;
+	va_list arg_list;
 	
-    va_start(arg_list, format);
-    len = aal_vsnprintf(buff, n, format, arg_list);
-    va_end(arg_list);
+	va_start(arg_list, format);
+	len = aal_vsnprintf(buff, n, format, arg_list);
+	va_end(arg_list);
 
-    return len;
+	return len;
 }
 
 #endif

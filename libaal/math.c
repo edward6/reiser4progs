@@ -5,23 +5,23 @@
 
 /*
   Returns TRUE if passed value is power of two, FALSE otherwise. This function
-  is used for checking block size for validness. 
+  is used for checking block size for validness.
 */
 int aal_pow_of_two(unsigned long n) {
-    return (n & -n) == n;
+	return (n & -n) == n;
 }
 
 /* Retuns log2 of passed value */
 int aal_log2(unsigned long n) {
-    unsigned long x;
+	unsigned long x;
 
-    for (x = 0; (unsigned long)(1 << x) <= n; x++);
+	for (x = 0; (unsigned long)(1 << x) <= n; x++);
 	return x - 1;
 }
 
 /* Calculates factorial */
 long long int aal_fact(long long int n) {
-    return n ? n * aal_fact(n - 1) : 1;
+	return n ? n * aal_fact(n - 1) : 1;
 }
 
 /*
@@ -39,13 +39,14 @@ long long int aal_fact(long long int n) {
   including commercial applications, and to alter it and redistribute it
   freely, subject to the following restrictions:
 
-  1. The origin of this software must not be misrepresented; you must not
-  claim that you wrote the original software. If you use this software
-  in a product, an acknowledgment in the product documentation would be
-  appreciated but is not required.
-  2. Altered source versions must be plainly marked as such, and must not be
-  misrepresented as being the original software.
-  3. This notice may not be removed or altered from any source distribution.
+  1. The origin of this software must not be misrepresented; you must not claim
+  that you wrote the original software. If you use this software in a product,
+  an acknowledgment in the product documentation would be appreciated but is not
+  required.
+  2. Altered source versions must be plainly marked as such, and must
+  not be misrepresented as being the original software.
+  3. This notice may not
+  be removed or altered from any source distribution.
 
   Jean-loup Gailly        Mark Adler
   jloup@gzip.org          madler@alumni.caltech.edu
@@ -57,13 +58,13 @@ long long int aal_fact(long long int n) {
 #define ADLER_NMAX (5552)
 
 unsigned int aal_adler32(char *buff, unsigned int n) {
-    int k;
-    unsigned char *t = buff;
-    unsigned int s1 = 1, s2 = 0;
+	int k;
+	unsigned char *t = buff;
+	unsigned int s1 = 1, s2 = 0;
 
-    while (n > 0) {
+	while (n > 0) {
 		k = n < ADLER_NMAX ? n : ADLER_NMAX;
-    	n -= k;
+		n -= k;
 	
 		while (k--) {
 			s1 += *t++; 
@@ -72,8 +73,8 @@ unsigned int aal_adler32(char *buff, unsigned int n) {
 	
 		s1 %= ADLER_BASE;
 		s2 %= ADLER_BASE;
-    }
+	}
     
-    return (s2 << 16) | s1;
+	return (s2 << 16) | s1;
 }
 

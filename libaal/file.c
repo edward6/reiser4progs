@@ -23,102 +23,102 @@
 
 /* Function for saving last error message into device assosiated buffer */
 static void save_error(
-    aal_device_t *device)	    /* device, error will be saved into */
+	aal_device_t *device)	    /* device, error will be saved into */
 {
-    char *error;
+	char *error;
     
-    if(!device)
+	if(!device)
 		return;
 
-    if ((error = strerror(errno)))
+	if ((error = strerror(errno)))
 		aal_strncpy(device->error, error, aal_strlen(error));
 }
 
 /*
-  Handler for "read" operation for use with file device. See bellow for 
-  understanding where it is used. 
+  Handler for "read" operation for use with file device. See bellow for
+  understanding where it is used.
 */
 static errno_t file_read(
-    aal_device_t *device,	    /* file device for reading */
-    void *buff,			    /* buffer data will be placed in */
-    blk_t block,		    /* block number to be read from */
-    count_t count)		    /* number of blocks to be read */
+	aal_device_t *device,	    /* file device for reading */
+	void *buff,		    /* buffer data will be placed in */
+	blk_t block,		    /* block number to be read from */
+	count_t count)		    /* number of blocks to be read */
 {
-    off_t off, len;
+	off_t off, len;
 	
-    if (!device || !buff)
-    	return -1;
+	if (!device || !buff)
+		return -1;
     
-    /* 
-	   Positioning inside file. As configure script defines __USE_FILE_OFFSET64 
-	   macro inside config.h file, lseek function will be mapped into lseek64 
-	   one.
-    */
-    off = (off_t)block * (off_t)device->blocksize;
-    if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
+	/* 
+	   Positioning inside file. As configure script defines
+	   __USE_FILE_OFFSET64 macro inside config.h file, lseek function will
+	   be mapped into lseek64 one.
+	*/
+	off = (off_t)block * (off_t)device->blocksize;
+	if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
 		save_error(device);
 		return errno;
-    }
+	}
 
-    /* Reading data form file */
-    len = (off_t)count * (off_t)device->blocksize;
-    if (read(*((int *)device->entity), buff, len) <= 0) {
+	/* Reading data form file */
+	len = (off_t)count * (off_t)device->blocksize;
+	if (read(*((int *)device->entity), buff, len) <= 0) {
 		save_error(device);
 		return errno;
-    }
+	}
     
-    return 0;
+	return 0;
 }
 
 /*
-  Handler for "write" operation for use with file device. See bellow for 
-  understanding where it is used. 
+  Handler for "write" operation for use with file device. See bellow for
+  understanding where it is used.
 */
 static errno_t file_write(
-    aal_device_t *device,	    /* file device, data will be wrote onto */
-    void *buff,			    /* buffer, data stored in */
-    blk_t block,		    /* start position for writing */
-    count_t count)		    /* number of blocks to be write */
+	aal_device_t *device,	    /* file device, data will be wrote onto */
+	void *buff,		    /* buffer, data stored in */
+	blk_t block,		    /* start position for writing */
+	count_t count)		    /* number of blocks to be write */
 {
-    off_t off, len;
+	off_t off, len;
 	
-    if (!device || !buff)
+	if (!device || !buff)
 		return -1;
 	
-    /* Positioning inside file */
-    off = (off_t)block * (off_t)device->blocksize;
-    if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
+	/* Positioning inside file */
+	off = (off_t)block * (off_t)device->blocksize;
+	if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
 		save_error(device);
 		return errno;
-    }
+	}
     
-    /* Writing into file */
-    len = (off_t)count * (off_t)device->blocksize;
-    if (write((*(int *)device->entity), buff, len) <= 0) {
+	/* Writing into file */
+	len = (off_t)count * (off_t)device->blocksize;
+	if (write((*(int *)device->entity), buff, len) <= 0) {
 		save_error(device);
 		return errno;
-    }
+	}
 	
-    return 0;
+	return 0;
 }
 
 /*
-  Handler for "sync" operation for use with file device. See bellow for 
-  understanding where it is used. 
+  Handler for "sync" operation for use with file device. See bellow for
+  understanding where it is used.
 */
 static errno_t file_sync(
-    aal_device_t *device)	    /* file device to be synchronized */
+	aal_device_t *device)	    /* file device to be synchronized */
 {
-    if (!device) 
+	if (!device) 
 		return -1;
 	
-    /* As this is file device, we are using fsync function for synchronizing file */
-    if (fsync(*((int *)device->entity))) {
+	/* As this is file device, we are using fsync function for synchronizing file */
+	if (fsync(*((int *)device->entity))) {
 		save_error(device);
 		return errno;
-    }
+	}
 
-    return 0;
+	return 0;
 }
 
 /*
@@ -126,50 +126,50 @@ static errno_t file_sync(
   understanding where it is used. 
 */
 static int file_flags(
-    aal_device_t *device)	    /* file device, flags will be obtained from */
+	aal_device_t *device)	    /* file device, flags will be obtained from */
 {
-    if (!device) 
+	if (!device) 
 		return -1;
 		
-    return device->flags;
+	return device->flags;
 }
 
 /*
-  Handler for "equals" operation for use with file device. See bellow for 
-  understanding where it is used. 
+  Handler for "equals" operation for use with file device. See bellow for
+  understanding where it is used.
 */
 static int file_equals(
-    aal_device_t *device1,	    /* the first device for comparing */
-    aal_device_t *device2)	    /* the second one */
+	aal_device_t *device1,	    /* the first device for comparing */
+	aal_device_t *device2)	    /* the second one */
 {
-    if (!device1 || !device2)
+	if (!device1 || !device2)
 		return 0;
     
-    /* Devices are comparing by comparing their file names */
-    return !aal_strncmp((char *)device1->data, 
-						(char *)device2->data,
-						aal_strlen((char *)device1->data));
+	/* Devices are comparing by comparing their file names */
+	return !aal_strncmp((char *)device1->data, 
+			    (char *)device2->data,
+			    aal_strlen((char *)device1->data));
 }
 
 /*
-  Handler for "stat" operation for use with file device. See bellow for 
-  understanding where it is used. 
+  Handler for "stat" operation for use with file device. See bellow for
+  understanding where it is used.
 */
 static uint32_t file_stat(
-    aal_device_t *device)	    /* file device to be stated */
+	aal_device_t *device)	    /* file device to be stated */
 {
-    struct stat st;
+	struct stat st;
 	
-    if (!device)
+	if (!device)
 		return 0;
     
-    /* Stating file device by using standard "stat" function */
-    if (stat((char *)device->data, &st)) {
+	/* Stating file device by using standard "stat" function */
+	if (stat((char *)device->data, &st)) {
 		save_error(device);
 		return 0;
-    }
+	}
 	
-    return (uint32_t)st.st_rdev;
+	return (uint32_t)st.st_rdev;
 }
 
 #if defined(__linux__) && defined(_IOR) && !defined(BLKGETSIZE64)
@@ -177,56 +177,56 @@ static uint32_t file_stat(
 #endif
 
 /*
-  Handler for "len" operation for use with file device. See bellow for 
+  Handler for "len" operation for use with file device. See bellow for
   understanding where it is used.
 */
 static count_t file_len(
-    aal_device_t *device)	    /* file device, lenght will be obtained from */
+	aal_device_t *device)	    /* file device, lenght will be obtained from */
 {
-    uint64_t size;
-    off_t max_off = 0;
+	uint64_t size;
+	off_t max_off = 0;
 
-    if (!device) 
+	if (!device) 
 		return FAKE_BLK;
     
 #ifdef BLKGETSIZE64
     
-    if (ioctl(*((int *)device->entity), BLKGETSIZE64, &size) >= 0)
-        return (count_t)(size / device->blocksize);
+	if (ioctl(*((int *)device->entity), BLKGETSIZE64, &size) >= 0)
+		return (count_t)(size / device->blocksize);
     
 #endif
 
 #ifdef BLKGETSIZE    
     
-    if (ioctl(*((int *)device->entity), BLKGETSIZE, &size) >= 0)
-        return (count_t)(size / (device->blocksize / 512));
+	if (ioctl(*((int *)device->entity), BLKGETSIZE, &size) >= 0)
+		return (count_t)(size / (device->blocksize / 512));
     
 #endif
     
-    if ((max_off = lseek(*((int *)device->entity), 
-						 0, SEEK_END)) == (off_t)-1) 
+	if ((max_off = lseek(*((int *)device->entity), 
+			     0, SEEK_END)) == (off_t)-1) 
 	{
 		save_error(device);
 		return FAKE_BLK;
 	}
     
-    return (count_t)(max_off / device->blocksize);
+	return (count_t)(max_off / device->blocksize);
 }
 
 /*
-  Initializing the file device operations. They are used when any operation of 
-  enumerated bellow is performed on a file device. Here is the heart of file 
-  the device. It is pretty simple. The same as in linux implemented abstraction 
-  from interrupt controller.
+  Initializing the file device operations. They are used when any operation of
+  enumerated bellow is performed on a file device. Here is the heart of file the
+  device. It is pretty simple. The same as in linux implemented abstraction from
+  interrupt controller.
 */
 static struct aal_device_ops ops = {
-    .read = file_read,		    /* handler for "read" operation */	    
-    .write = file_write,	    /* handler for "write" operation */
-    .sync = file_sync,		    /* handler for "sync" operation */
-    .flags = file_flags,	    /* handler for "flags" obtaining */
-    .equals = file_equals,	    /* handler for comparing two devices */
-    .stat = file_stat,		    /* hanlder for stating device */
-    .len = file_len		    /* handler for length obtaining */
+	.read = file_read,	    /* handler for "read" operation */	    
+	.write = file_write,	    /* handler for "write" operation */
+	.sync = file_sync,	    /* handler for "sync" operation */
+	.flags = file_flags,	    /* handler for "flags" obtaining */
+	.equals = file_equals,	    /* handler for comparing two devices */
+	.stat = file_stat,	    /* hanlder for stating device */
+	.len = file_len		    /* handler for length obtaining */
 };
 
 /*
@@ -235,61 +235,61 @@ static struct aal_device_ops ops = {
   (mkfs, fsck, etc) for opening a device and working with them.
 */
 aal_device_t *aal_file_open(
-    const char *file,		    /* name of file to be used as file device */
-    uint16_t blocksize,		    /* used blocksize */
-    int flags)			    /* flags file will be opened with */
+	const char *file,	    /* name of file to be used as file device */
+	uint16_t blocksize,	    /* used blocksize */
+	int flags)		    /* flags file will be opened with */
 {
-    int fd;
-    aal_device_t *device;
+	int fd;
+	aal_device_t *device;
 	
-    if (!file) 
+	if (!file) 
 		return NULL;
     
-    /* Opening specified file with specified flags */
+	/* Opening specified file with specified flags */
 #if defined(O_LARGEFILE)
-    if ((fd = open(file, flags | O_LARGEFILE)) == -1)
+	if ((fd = open(file, flags | O_LARGEFILE)) == -1)
 #else
 	if ((fd = open(file, flags)) == -1)
 #endif
 		return NULL;
     
-    /* Initializing wrapper aal_device for it */
-    device = aal_device_open(&ops, blocksize, flags, (void *)file);
-    aal_strncpy(device->name, file, aal_strlen(file));
+	/* Initializing wrapper aal_device for it */
+	device = aal_device_open(&ops, blocksize, flags, (void *)file);
+	aal_strncpy(device->name, file, aal_strlen(file));
 
-    /* Initializing device entity (file descripror in the case of file device) */
-    if (!(device->entity = aal_calloc(sizeof(int), 0)))
+	/* Initializing device entity (file descripror in the case of file device) */
+	if (!(device->entity = aal_calloc(sizeof(int), 0)))
 		goto error_free_device;
 
-    *((int *)device->entity) = fd;
+	*((int *)device->entity) = fd;
     
-    return device;
+	return device;
     
-  error_free_device:
-    aal_device_close(device);
-  error:
-    return NULL;    
+ error_free_device:
+	aal_device_close(device);
+ error:
+	return NULL;    
 }
 
 /*
-  This function reopens opened previously file device in order to change 
-  flags, device was opened with.
+  This function reopens opened previously file device in order to change flags,
+  device was opened with.
 */
 errno_t aal_file_reopen(
-    aal_device_t *device,	    /* file device to be reopened */
-    int flags)			        /* flags device will be reopened with */
+	aal_device_t *device,	    /* file device to be reopened */
+	int flags)	            /* flags device will be reopened with */
 {
-    int fd;
+	int fd;
 	
-    if (!device) 
+	if (!device) 
 		return -1;
 
-    /* Close previously opened entity (file descriptor) */
-    close(*((int *)device->entity));
+	/* Close previously opened entity (file descriptor) */
+	close(*((int *)device->entity));
     
-    /* Reopening file */
+	/* Reopening file */
 #if defined(O_LARGEFILE)
-    if ((fd = open((char *)device->data, flags | O_LARGEFILE)) == -1) {
+	if ((fd = open((char *)device->data, flags | O_LARGEFILE)) == -1) {
 #else
 	if ((fd = open((char *)device->data, flags)) == -1) {
 #endif
@@ -305,13 +305,13 @@ errno_t aal_file_reopen(
 }
 
 /* 
-   Closes file device. Close opened file descriptor, frees all assosiated memory.
-   It is usualy called at end for work any utility from reiser4progs set.
+   Closes file device. Close opened file descriptor, frees all assosiated
+   memory.  It is usualy called at end for work any utility from reiser4progs
+   set.
 */
 void aal_file_close(
 	aal_device_t *device)	    /* file device to be closed */
 {
-
 	if (!device) 
 		return;
 

@@ -29,72 +29,73 @@ static aal_free_handler_t free_handler = NULL;
 
 /* 
    Sets new handler for malloc function. This is useful for alone mode, because
-   all application which are working in alone mode (without libc, probably in real
-   mode of processor, etc) have own memory allocation factory. That factory usualy
-   operates on some static memory heap. And all allocation function just mark some 
-   piece of heap as used. And all deallocation function marks corresponding piece
-   as unused.
+   all application which are working in alone mode (without libc, probably in
+   real mode of processor, etc) have own memory allocation factory. That factory
+   usualy operates on some static memory heap. And all allocation function just
+   mark some piece of heap as used. And all deallocation function marks
+   corresponding piece as unused.
 */
 void aal_malloc_set_handler(
-    aal_malloc_handler_t handler)    /* new handler to be set */
+	aal_malloc_handler_t handler)  /* new handler to be set */
 {
-    malloc_handler = handler;
+	malloc_handler = handler;
 }
 
 /* Returns allocation handler */
 aal_malloc_handler_t aal_malloc_get_handler(void) {
-    return malloc_handler;
+	return malloc_handler;
 }
 
 /*
-  The wrapper for malloc function. It checks for result memory allocation and
-  if it failed then reports about this.
+  The wrapper for malloc function. It checks for result memory allocation and if
+  it failed then reports about this.
 */
 void *aal_malloc(
-    size_t size)			    /* size of memory piece to be allocated */
+	size_t size)		    /* size of memory piece to be allocated */
 {
-    void *mem;
+	void *mem;
 
-    /* 
-	   We are using simple printf function instead of exception, because exception
-	   initialization is needed correctly worked memory allocation handler.
-    */
-    if (!malloc_handler)
+	/* 
+	   We are using simple printf function instead of exception, because
+	   exception initialization is needed correctly worked memory allocation
+	   handler.
+	*/
+	if (!malloc_handler)
 		return NULL;
 
-    if (!(mem = malloc_handler(size)))
+	if (!(mem = malloc_handler(size)))
 		return NULL;
 
-    return mem;
+	return mem;
 }
 
 /* Allocates memory piese and fills it by specified byte */
 void *aal_calloc(
-    size_t size,		    /* size of memory piece to be allocated */
-    char c)
+	size_t size,		    /* size of memory piece to be allocated */
+	char c)
 {
-    void *mem;
+	void *mem;
 
-    if (!(mem = aal_malloc(size)))
+	if (!(mem = aal_malloc(size)))
 		return NULL;
 
-    aal_memset(mem, c, size);
-    return mem;
+	aal_memset(mem, c, size);
+	return mem;
 }
 
 /* 
-   Sets new handler for "realloc" operation. The same as in malloc case. See above
-   for details.
+   Sets new handler for "realloc" operation. The same as in malloc case. See
+   above for details.
 */
 void aal_realloc_set_handler(
-    aal_realloc_handler_t handler)   /* new handler for realloc */
+	aal_realloc_handler_t handler)   /* new handler for realloc */
 {
-    realloc_handler = handler;
+	realloc_handler = handler;
 }
 
 /* Returns realloc handler */
 aal_realloc_handler_t aal_realloc_get_handler(void) {
-    return realloc_handler;
+	return realloc_handler;
 }
 
 /*
@@ -102,43 +103,43 @@ aal_realloc_handler_t aal_realloc_get_handler(void) {
   if it failed then reports about this.
 */
 int aal_realloc(
-    void** old,			    /* pointer to previously allocated piece */
-    size_t size)		    /* new size */
+	void** old,		    /* pointer to previously allocated piece */
+	size_t size)		    /* new size */
 {
-    void *mem;
+	void *mem;
 
-    if (!realloc_handler)
+	if (!realloc_handler)
 		return 0;
 
-    if (!(mem = (void *)realloc_handler(*old, size)))
+	if (!(mem = (void *)realloc_handler(*old, size)))
 		return 0;
     
-    *old = mem;
-    return 1;
+	*old = mem;
+	return 1;
 }
 
 /* Sets new handle for "free" operation */
 void aal_free_set_handler(
-    aal_free_handler_t handler)	    /* new "free" operation handler */
+	aal_free_handler_t handler)    /* new "free" operation handler */
 {
-    free_handler = handler;
+	free_handler = handler;
 }
 
 /* Returns hanlder for "free" opetration */
 aal_free_handler_t aal_free_get_handler(void) {
-    return free_handler;
+	return free_handler;
 }
 
 /*
-  The wrapper for free function. It checks for passed memory pointer and
-  if it is invalid then reports about this.
+  The wrapper for free function. It checks for passed memory pointer and if it
+  is invalid then reports about this.
 */
 void aal_free(
-    void *ptr)			    /* pointer onto memory to be released */
+	void *ptr)		    /* pointer onto memory to be released */
 {
-    if (!free_handler)
+	if (!free_handler)
 		return;
 
-    free_handler(ptr);
+	free_handler(ptr);
 }
 
