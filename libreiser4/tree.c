@@ -5,6 +5,14 @@
 
 #include <reiser4/libreiser4.h>
 
+/* Fetches data from passed @tree to passed @hint */
+int64_t reiser4_tree_fetch(reiser4_tree_t *tree, place_t *place,
+			   trans_hint_t *hint)
+{
+	return plug_call(place->plug->o.item_ops->object,
+			 fetch_units, place, hint);
+}
+
 #ifndef ENABLE_STAND_ALONE
 /* Updates root block number in format by passed @blk. Takes care about correct
    block number in loaded root node if any. */
@@ -27,14 +35,6 @@ void reiser4_tree_set_height(reiser4_tree_t *tree,
 	reiser4_format_set_height(tree->fs->format, height);
 }
 #endif
-
-/* Fetches data from passed @tree to passed @hint */
-int64_t reiser4_tree_fetch(reiser4_tree_t *tree, place_t *place,
-			   trans_hint_t *hint)
-{
-	return plug_call(place->plug->o.item_ops->object,
-			 fetch_units, place, hint);
-}
 
 /* Returns tree root block number stored in format. */
 blk_t reiser4_tree_get_root(reiser4_tree_t *tree) {
@@ -429,15 +429,23 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 
 	/* Checking if node in the local cache of @parent. */
 	if (!(node = reiser4_tree_lookup_node(tree, blk))) {
+		uint32_t unformatted = 0;
+
 		aal_assert("umka-3004", !reiser4_fake_ack(blk));
 
+#ifndef ENABLE_STAND_ALONE
+		unformatted = tree->data->real;
+#endif
+		
 		if (parent)
 			reiser4_node_lock(parent);
 		
 		/* Check for memory pressure event. If memory pressure is uppon
 		   us, we call memory cleaning function. For now we call
 		   tree_adjust() in order to release not locked nodes. */
-		if (tree->mpc_func && tree->mpc_func(tree->nodes->real)) {
+		if (tree->mpc_func && tree->mpc_func(tree->nodes->real +
+						     unformatted))
+		{
 			/* Adjusting the tree. It will be finished as soon as
 			   memory pressure condition will gone. */
 			if (reiser4_tree_adjust(tree)) {
@@ -467,6 +475,9 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 			goto error_free_node;
 		}
 	}
+
+	aal_assert("umka-3052", (reiser4_tree_root_node(tree, node) ||
+				 node->p.node != NULL));
 
 	return node;
 
@@ -667,7 +678,9 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	aal_assert("umka-756", tree != NULL);
     
 	/* Check for memory pressure event. */
-	if (tree->mpc_func && tree->mpc_func(tree->nodes->real)) {
+	if (tree->mpc_func && tree->mpc_func(tree->nodes->real +
+					     tree->data->real))
+	{
 		if (reiser4_tree_adjust(tree)) {
 			aal_error("Can't adjust tree when allocating "
 				  "new node.");
@@ -1095,7 +1108,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 					return res;
 				}
 
-				/* Releasing cache entry */
+				/* Releasing cache entry. */
 				aal_hash_table_remove(tree->data, &key);
 
 				/* Updating the key to find next data block */
