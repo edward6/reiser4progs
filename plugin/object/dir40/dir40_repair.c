@@ -137,9 +137,8 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	return obj40_insert(&dir->obj, &dir->body, &body_hint, LEAF_LEVEL);
 }
 
-static errno_t dir40_belongs(dir40_t *dir, reiser4_plug_t *bplug) {
+static errno_t dir40_belongs(dir40_t *dir) {
 	aal_assert("vpf-1245", dir != NULL);
-	aal_assert("vpf-1246", bplug != NULL);
 	
 	/* Check that the body place is valid. */
 	if (!dcore->tree_ops.valid(dir->obj.info.tree, &dir->body))
@@ -148,10 +147,6 @@ static errno_t dir40_belongs(dir40_t *dir, reiser4_plug_t *bplug) {
 	/* Fetching item info at @place */
 	if (obj40_fetch(&dir->obj, &dir->body))
 		return -EINVAL;
-
-	/* Does the found item plugin match  */
-	if (dir->body.plug != bplug)
-		return RE_FATAL;
 
 	/* Does the body item belong to the current object. */
 	return plug_call(dir->body.key.plug->o.key_ops, compshort,
@@ -232,18 +227,39 @@ errno_t dir40_check_struct(object_entity_t *object,
 		errno_t ret;
 		
 		/* Check that the body item is of the current dir. */
-		if ((ret = dir40_belongs(dir, bplug)) < 0)  {
+		if ((ret = dir40_belongs(dir)) < 0)
 			return ret;
-		} else if (ret) {
-			/* Not of the current dir. */
+		else if (ret) /* Not of the current dir. */
 			break;
-		}
 		
-		if (dir->body.plug->id.group != DIRENTRY_ITEM) {
-			/* FIXME-VITALY: break; for now -- delete the item
-			   as it matches by keys. -- this all is handled in 
-			   dir40_belongs -- fix it also. */
-			break;
+		/* Item can be of another plugin, but of the same group. 
+		   FIXME-VITALY: item of the same group but of another 
+		   plugin should be converted. */
+		/*if (dir->body.plug->id.group != DIRENTRY_ITEM) {*/
+		if (dir->body.plug != bplug) {
+			aal_exception_error("Directory [%s], plugin [%s], node "
+					    "[%llu], item [%u]: item of the "
+					    "illegal plugin [%s] with the key "
+					    "of this object found.%s",
+					    print_ino(dcore, &info->object),
+					    dir40_plug.label, 
+					    dir->body.block->nr,
+					    dir->body.pos.item,
+					    dir->body.plug->label,
+					    mode == RM_BUILD ? 
+					    " Removed." : "");
+
+			if (mode == RM_BUILD)
+				return RE_FATAL;
+			
+			hint.count = 1;
+
+			/* Item has wrong key, remove it. */
+			if ((res |= obj40_remove(&dir->obj, &dir->body, 
+						 &hint)) < 0)
+				return res;
+			
+			continue;
 		}
 		    
 		/* Try to register the item if it has not been yet. Any 
@@ -270,7 +286,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				continue;
 			
 			/* Broken entry found, remove it. */
-			aal_exception_error("Directory [%s], plugin %s, node "
+			aal_exception_error("Directory [%s], plugin [%s], node "
 					    "[%llu], item [%u], unit [%u]: "
 					    "entry has wrong offset [%s]."
 					    " Should be [%s]. %s", 
@@ -361,7 +377,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 			break;
 		
 		/* Already attached. */
-		aal_exception_error("Directory [%s], plugin %s: the object "
+		aal_exception_error("Directory [%s], plugin [%s]: the object "
 				    "is attached already to [%s] and cannot "
 				    "be attached to [%s].", 
 				    print_ino(dcore, &object->info.object),
@@ -372,7 +388,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		return RE_FATAL;
 	case ABSENT:
 		/* Not attached yet. */
-		aal_exception_error("Directory [%s], plugin %s: the object "
+		aal_exception_error("Directory [%s], plugin [%s]: the object "
 				    "is not attached. %s [%s].", 
 				    print_ino(dcore, &object->info.object),
 				    dir40_plug.label, mode == RM_CHECK ? 
@@ -437,7 +453,7 @@ errno_t dir40_form(object_entity_t *object) {
 						 "hash");
 
 		if (dir->hash == NULL) {
-			aal_exception_error("Directory %s: failed to init "
+			aal_exception_error("Directory [%s]: failed to init "
 					    "hash plugin. Plugin (%s).", 
 					    print_ino(dcore, &dir->obj.info.object),
 					    dir40_plug.label);
