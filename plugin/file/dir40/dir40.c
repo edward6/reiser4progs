@@ -589,8 +589,12 @@ static errno_t dir40_layout(object_entity_t *entity,
 	while (1) {
 		item_entity_t *item = &dir->body.item;
 		
-		if ((res = plugin_call(item->plugin->item_ops, layout,
-				       item, callback_item_data, &hint)))
+		if (item->plugin->item_ops.layout) {
+			if ((res = item->plugin->item_ops.layout(item, 
+								 callback_item_data, 
+								 &hint)))
+				return res;
+		} else if ((res = callback_item_data(item, item->con.blk, &hint)))
 			return res;
 		
 		if (dir40_next(dir) != PRESENT)

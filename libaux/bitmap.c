@@ -190,8 +190,8 @@ bool_t aux_bitmap_test_region_cleared(
 	uint64_t end)		    /* bit count to be clean */
 {
 	blk_t next;
-	
 	aal_assert("vpf-471", bitmap != NULL, return FALSE);
+	aal_assert("vpf-728", start < end, return FALSE);
 	
 	aux_bitmap_bound_check(bitmap, start, return FALSE);
 	aux_bitmap_bound_check(bitmap, end - 1, return FALSE);

@@ -5,6 +5,28 @@
 
 #include <repair/librepair.h>
 
+static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
+    blk_t end, void *data) 
+{
+    aux_bitmap_t *bitmap = data;
+    
+    aal_assert("vpf-722", item != NULL, return -1);
+    aal_assert("vpf-723", bitmap != NULL, return -1);
+    aal_assert("vpf-726", start < bitmap->total && end < bitmap->total && 
+	start < end, return -1);
+    
+    if (!aux_bitmap_test_region_cleared(bitmap, start, end)) {
+	aal_exception_error("Node (%llu), item (%u), unit (%u): points to some "
+	    "already used block within (%llu - %llu).", item->con.blk, 
+	    item->pos.item, item->pos.unit, start, end);
+	return 1;
+    }
+ 
+    return 0;
+}
+
+
+
 errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *key)
 {
     reiser4_coord_t coord;
@@ -51,7 +73,7 @@ error_child_close:
 reiser4_node_t *repair_node_open(reiser4_format_t *format, blk_t blk) {
     reiser4_node_t *node;
 
-    aal_assert("vpf-433", format != NULL, return NULL);
+    aal_assert("vpf-708", format != NULL, return NULL);
 //    aal_assert("vpf-563", format->device != NULL, return NULL);
 
     /* FIXME-UMKA->VITALY */
@@ -73,6 +95,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 {
     reiser4_coord_t coord;
     rpos_t *pos = &coord.pos;
+    int32_t len;
     int res;
 
     aal_assert("vpf-229", node != NULL, return -1);
@@ -122,17 +145,22 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
 	    continue;
 
-	for (pos->unit = 0; pos->unit < reiser4_item_units(&coord); pos->unit++) {
-	    /* FIXME-VITALY: Improve it later - it could be just width to be
-	     * obviously wrong. Or start block. Give a hint into 
-	     * repair_item_ptr_unused which returns what is obviously 
-	     * wrong. */
-	    res = repair_item_ptr_unused(&coord, bm_used);
+	if (coord.item.plugin->item_ops.layout_check) {
+	    len = plugin_call(return -1, coord.item.plugin->item_ops, 
+		layout_check, &coord.item, callback_item_region_check, bm_used);
 
-	    if (res < 0)  
-		return res;
-	    else if ((res > 0) && repair_item_handle_ptr(&coord)) 
-		return -1;
+	    if (len > 0) {
+		/* shrink the node */
+		if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
+		    shrink, node->entity, pos, len)))
+		{
+		    aal_exception_bug("Node (%llu), item (%llu), len (%u): Failed "
+			"to shrink the node on (%u) bytes.", node->blk, pos->item,
+			coord.item.len, len);
+		    return -1;
+		}
+	    } else
+		return len;
 	}
     }
  
@@ -144,7 +172,7 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 {
     reiser4_coord_t coord;
     errno_t res;
-    
+
     aal_assert("vpf-501", node != NULL, return -1);
     aal_assert("vpf-344", ld_key != NULL, return -1);
     aal_assert("vpf-407", ld_key->plugin != NULL, return -1);

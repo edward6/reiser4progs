@@ -9,47 +9,71 @@
 #include <repair/librepair.h>
 
 /* 
-    Zero extent pointers which point to an already used block (leaf, format 
-    area) or out of format area. .
+    Check unfm block pointer if it points to an already used block (leaf, format 
+    area) or out of format area. Return 1 if it does, 0 - does not, -1 error.
 */
-static errno_t callback_ptr_handler(reiser4_coord_t *coord, void *data) {
+
+static errno_t callback_item_region_check(item_entity_t *item, blk_t start, blk_t end, 
+    void *data) 
+{
     repair_data_t *rd = (repair_data_t *)data;
-    reiser4_ptr_hint_t ptr;
     repair_ts_t *ts;
+    int res;
+
+    aal_assert("vpf-385", rd != NULL, return -1);
+    aal_assert("vpf-567", rd->pass.ts.bm_met != NULL, return -1);
+    
+    ts = repair_ts(rd);
+
+    /* This must be fixed at the first pass. */
+    aal_assert("vpf-387", start < ts->bm_met->total && 
+	end < ts->bm_met->total && start < end, return -1);
+
+    if (!start)
+	return 0;
+
+    res = aux_bitmap_test_region_cleared(ts->bm_met, start, end);
+
+    /* If extent item points to a leaf, to format area or out of format area. */
+    if (res == 0) {
+	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
+	    "(start %llu, count %llu) points to some already used blocks.", 
+	    item->con.blk, item->pos.item, item->pos.unit, start, end - start);
+	return 1;
+    } else if (aux_bitmap_test(ts->bm_used, item->con.blk))
+	aux_bitmap_mark_region(ts->bm_unfm_tree, start, end);
+    else
+	aux_bitmap_mark_region(ts->bm_unfm_out, start, end);
+
+    return 0;
+}
+
+static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
+    reiser4_node_t *node;
+    int32_t len;
     int res;
  
     aal_assert("vpf-384", coord != NULL, return -1);
-    aal_assert("vpf-385", rd != NULL, return -1);
+    aal_assert("vpf-727", coord->node != NULL, return -1);
 
-    if (!reiser4_item_extent(coord))
-	return 0;
- 
-    ts = repair_ts(rd);
+    node = coord->node;
+    
+    if (coord->item.plugin->item_ops.layout) {
+	len = coord->item.plugin->item_ops.layout_check(&coord->item, 
+	    callback_item_region_check, data);
+	if (len > 0) {
+	    /* shrink the node. */
+	    if ((res = plugin_call(return -1, node->entity->plugin->node_ops,
+		    shrink, node->entity, &coord->pos, len)))
+	    {
+		aal_exception_bug("Node (%llu), pos (%u, %u), len (%u): Failed "
+		    "to shrink the node on (%u) bytes.", node->blk, 
+		    coord->pos.item, coord->pos.unit, coord->item.len, len);
+		return -1;
+	    }
+	}
+    }
 
-    aal_assert("vpf-567", ts->bm_met != NULL, return -1);
- 
-    if (plugin_call(coord->item.plugin->item_ops,
-	fetch, &coord->item, &ptr, coord->pos.unit, 1) != 1)
-	return -1;
-
-    /* This must be fixed at the first pass. */
-    aal_assert("vpf-387", 
-	(ptr.ptr < ts->bm_met->total) && (ptr.width < ts->bm_met->total) && 
-	(ptr.ptr < ts->bm_met->total - ptr.width), return -1);
-
-    /* If extent item points to a leaf, to format area or out of format area. */
-    res = repair_item_ptr_unused(coord, ts->bm_met);
- 
-    if (res < 0)
-	/* Fatal error. */
-	return res;
-    else if ((res > 0) && repair_item_handle_ptr(coord)) 
-	return -1;
-    else if (aux_bitmap_test(ts->bm_used, coord->node->blk))
-	aux_bitmap_mark_region(ts->bm_unfm_tree, ptr.ptr, ptr.ptr + ptr.width);
-    else
-	aux_bitmap_mark_region(ts->bm_unfm_out, ptr.ptr, ptr.ptr + ptr.width);
-	
     return 0;
 }
 
@@ -109,7 +133,7 @@ static errno_t repair_ts_update(repair_data_t *rd) {
 	    (ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i])) == 0, 
 	    return -1);
 
-	aal_assert("vpf-696", (ts->bm_used->map[i] & ts->bm_twig->map[i]) == 0, 
+	aal_assert("vpf-717", (ts->bm_used->map[i] & ts->bm_twig->map[i]) == 0, 
 	    return -1);
 
 	/* Let met will be leaves, twigs and unfm which are not in the tree. */
@@ -162,7 +186,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 
 	/* Lookup the node. */	
 	if ((res = repair_node_traverse(node, 1 << EXTENT_ITEM, 
-	    callback_ptr_handler, rd)))
+	    callback_item_layout, rd)))
 	    goto error_node_free;
 
 	if (!reiser4_node_locked(node))
