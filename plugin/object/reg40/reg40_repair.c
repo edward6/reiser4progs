@@ -324,18 +324,18 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 			if (!hint->count)
 				return 0;
 
-			aal_exception_error("The object [%s] (%s), node (%llu), "
-					    "item (%u): the found item [%s] of "
-					    "the plugin (%s) does not match the "
-					    "wanted plugin (%s). Convert items "
-					    "from 0 offset through hint->count "
-					    "to (%s) items.",
-					    print_inode(reg40_core, &info->object),
-					    reg->obj.plug->label, reg->body.block->nr, 
-					    reg->body.pos.item,
-					    print_key(reg40_core, &reg->body.key),
-					    reg->body.plug->label, repair->tplug->label,
-					    repair->eplug->label);
+			aal_error("The object [%s] (%s), node (%llu), "
+				  "item (%u): the found item [%s] of "
+				  "the plugin (%s) does not match the "
+				  "wanted plugin (%s). Convert items "
+				  "from 0 offset through hint->count "
+				  "to (%s) items.",
+				  print_inode(reg40_core, &info->object),
+				  reg->obj.plug->label, reg->body.block->nr, 
+				  reg->body.pos.item,
+				  print_key(reg40_core, &reg->body.key),
+				  reg->body.plug->label, repair->tplug->label,
+				  repair->eplug->label);
 
 			/* Set the start key for convertion. */
 			plug_call(reg->body.key.plug->o.key_ops, assign,
@@ -370,15 +370,15 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 			  get_offset, &hint->offset);
 
  error:
-	aal_exception_error("The object [%s] (%s), node (%llu), item (%u): the "
-			    "found item [%s] of the plugin (%s) does not match "
-			    "the detected tail policy (%s).%s", 
-			    print_inode(reg40_core, &info->object),
-			    reg->obj.plug->label, reg->body.block->nr, 
-			    reg->body.pos.item,
-			    print_key(reg40_core, &reg->body.key),
-			    reg->body.plug->label, reg->policy->label,
-			    mode == RM_BUILD ? " Converted." : "");
+	aal_error("The object [%s] (%s), node (%llu), item (%u): the "
+		  "found item [%s] of the plugin (%s) does not match "
+		  "the detected tail policy (%s).%s", 
+		  print_inode(reg40_core, &info->object),
+		  reg->obj.plug->label, reg->body.block->nr, 
+		  reg->body.pos.item,
+		  print_key(reg40_core, &reg->body.key),
+		  reg->body.plug->label, reg->policy->label,
+		  mode == RM_BUILD ? " Converted." : "");
 
 	/* Return 1 if the conversion should be performed right now. */
 	return mode == RM_BUILD ? 0 : 1;
@@ -474,9 +474,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 	/* Get the reg file tail policy. */
 	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, "policy")))
 	{
-		aal_exception_error("The object [%s] failed to "
-				    "detect the tail policy.", 
-				    print_inode(reg40_core, &info->object));
+		aal_error("The object [%s] failed to "
+			  "detect the tail policy.", 
+			  print_inode(reg40_core, &info->object));
 		return -EINVAL;
 	}
 	
@@ -486,8 +486,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if (!(repair.smart = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
 							    TAIL_SMART_ID)))
 	{
-		aal_exception_error("Failed to find the 'smart' tail "
-				    "policy plugin.");
+		aal_error("Failed to find the 'smart' tail policy plugin.");
 		return -EINVAL;
 	}
 	
