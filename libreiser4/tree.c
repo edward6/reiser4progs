@@ -2372,6 +2372,9 @@ static errno_t callback_estimate_insert(reiser4_place_t *place,
 	aal_assert("umka-2440", hint != NULL);
 	aal_assert("umka-2439", place != NULL);
 
+	hint->ohd = 0;
+	hint->len = 0;
+
 	return plug_call(hint->plug->o.item_ops, estimate_insert,
 			 (place_t *)place, hint);
 }
@@ -2382,6 +2385,9 @@ static errno_t callback_estimate_write(reiser4_place_t *place,
 {
 	aal_assert("umka-2440", hint != NULL);
 	aal_assert("umka-2439", place != NULL);
+
+	hint->ohd = 0;
+	hint->len = 0;
 
 	return plug_call(hint->plug->o.item_ops, estimate_write,
 			 (place_t *)place, hint);
