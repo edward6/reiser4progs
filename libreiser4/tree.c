@@ -1654,7 +1654,7 @@ errno_t reiser4_tree_write(
 	reiser4_tree_t *tree,	    /* tree insertion is performing into */
 	reiser4_place_t *dst,       /* place found by lookup */
 	reiser4_place_t *src,       /* place to be inserted */
-	uint32_t count)		    /* number of units to be inserted */
+	uint32_t count)             /* number of units to be inserted */
 {
 	errno_t res;
 	uint32_t units;

@@ -84,9 +84,6 @@ static errno_t tfrag_process_node(
 
 	frag_hint = (tfrag_hint_t *)data;
 	
-	if (frag_hint->level <= LEAF_LEVEL)
-		return 0;
-
 	aal_gauge_update(frag_hint->gauge, 0);
 		
 	pos.unit = ~0ul;
@@ -107,7 +104,7 @@ static errno_t tfrag_process_node(
 		
 		/*
 		  Checking and calling item's layout method with function
-		  tfrag_process_item as a function for handling one block the
+		  tfrag_process_item() as a function for handling one block the
 		  item points to.
 		*/
 		if (!item->plugin->item_ops.layout) {
@@ -126,9 +123,8 @@ static errno_t tfrag_process_node(
 
 /*
   Traverse callbacks for keeping track the current level we are on. They are
-  needed for make dependence from the node's "level" field lesses in our
-  code. That is baceuse that filed is counting as optional one and probably will
-  be eliminated soon.
+  needed in order to know what level is traversing now and do we want open nodes
+  on this level for checking node pointers on it.
 */
 static errno_t tfrag_setup_node(reiser4_place_t *place, void *data) {
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
@@ -368,12 +364,14 @@ struct ffrag_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
-	blk_t curr;
+	count_t bad;
+	count_t total;
 
-	uint32_t flags;
+	blk_t last;
+	count_t files;
 	
-	count_t fs_total, fs_bad;
-	count_t fl_total, fl_bad;
+	double current;
+	uint32_t flags;
 	uint16_t level;
 };
 
@@ -391,22 +389,17 @@ static errno_t ffrag_process_blk(
 	int64_t delta;
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 
-	if (frag_hint->curr == 0) {
-		frag_hint->curr = blk;
-		return 0;
-	}
-	
-	delta = frag_hint->curr - blk;
+	/* Check if we are went here first time */
+	if (frag_hint->last > 0) {
+		delta = frag_hint->last - blk;
 
-	if (labs(delta) > 1) {
-		frag_hint->fs_bad++;
-		frag_hint->fl_bad++;
+		if (labs(delta) > 1)
+			frag_hint->bad++;
 	}
-	
-	frag_hint->fs_total++;
-	frag_hint->fl_total++;
-	frag_hint->curr = blk;
 
+	frag_hint->total++;
+	frag_hint->last = blk;
+	
 	return 0;
 }
 
@@ -437,14 +430,14 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 	aal_gauge_start(gauge);
 
 	/*
-	  Calling file layout function, wich will call ffrag_process_blk
-	  fucntion on each block belong to the file denoted by @filename. Actual
-	  data file fragmentation will be calculated on are gathering in that
-	  function.
+	  Calling file layout function, which calls ffrag_process_blk() fucntion
+	  for each block belong to the file @filename.
 	*/
-	if ((res = reiser4_object_layout(object, ffrag_process_blk, &frag_hint))) {
-		aal_exception_error("Can't enumerate data blocks occupied "
-				    "by %s", filename);
+	if ((res = reiser4_object_layout(object, ffrag_process_blk,
+					 &frag_hint)))
+	{
+		aal_exception_error("Can't enumerate data blocks "
+				    "occupied by %s", filename);
 		goto error_free_gauge;
 	}
 	
@@ -452,8 +445,8 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 	reiser4_object_close(object);
 
 	/* Showing the results */
-	printf("%.6f\n", frag_hint.fl_total > 0 ?
-	       (double)frag_hint.fl_bad / frag_hint.fl_total : 0);
+	printf("%.6f\n", frag_hint.total > 0 ?
+	       (double)frag_hint.bad / frag_hint.total : 0);
 	
 	return 0;
 
@@ -486,13 +479,14 @@ static errno_t dfrag_process_node(
 {
 	pos_t pos;
 	static int bogus = 0;
-	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
+	ffrag_hint_t *frag_hint;
+
+	pos.unit = ~0ul;
+	frag_hint = (ffrag_hint_t *)data;
 
 	if (frag_hint->level > LEAF_LEVEL)
 		return 0;
 	
-	pos.unit = ~0ul;
-
 	/* The loop though the all items in current node */
 	for (pos.item = 0; pos.item < reiser4_node_items(node);
 	     pos.item++)
@@ -521,9 +515,9 @@ static errno_t dfrag_process_node(
 			continue;
 
 		/* Initializing per-file counters */
-		frag_hint->curr = 0;
-		frag_hint->fl_bad = 0;
-		frag_hint->fl_total = 0;
+		frag_hint->bad = 0;
+		frag_hint->last = 0;
+		frag_hint->total = 0;
 
 		if (bogus++ % 16 == 0)
 			aal_gauge_update(frag_hint->gauge, 0);
@@ -537,23 +531,32 @@ static errno_t dfrag_process_node(
 		if (reiser4_object_layout(object, ffrag_process_blk, data)) {
 			aal_exception_error("Can't enumerate data blocks "
 					    "occupied by %s", object->name);
-			
-			reiser4_object_close(object);
-			continue;
+			goto error_close_object;
 		}
 
+		if (frag_hint->total > 0) {
+			frag_hint->current += (double)frag_hint->bad /
+				frag_hint->total;
+		}
+
+		frag_hint->files++;
+			
 		/*
 		  We was instructed show file fragmentation for each file, not
 		  only the average one, we will do it now.
 		*/
 		if (frag_hint->flags & BF_SEACH) {
-			double factor = frag_hint->fl_total > 0 ?
-				(double)frag_hint->fl_bad / frag_hint->fl_total : 0;
+			double file_factor = frag_hint->total > 0 ?
+				(double)frag_hint->bad / frag_hint->total : 0;
 			
-			aal_exception_info("Fragmentation for %s: %.6f",
-					   object->name, factor);
+			double curr_factor = frag_hint->files > 0 ?
+				(double)frag_hint->current / frag_hint->files : 0;
+			
+			aal_exception_info("Fragmentation for %s: %.6f [ %.6f ]",
+					   object->name, file_factor, curr_factor);
 		}
-		
+
+	error_close_object:
 		reiser4_object_close(object);
 	}
 	
@@ -612,8 +615,8 @@ errno_t debugfs_data_frag(reiser4_fs_t *fs,
 	if (frag_hint.flags & BF_SEACH)
 		printf("Data fragmentation is: ");
 	
-	printf("%.6f\n", frag_hint.fs_total > 0 ?
-	       (double)frag_hint.fs_bad / frag_hint.fs_total : 0);
+	printf("%.6f\n", frag_hint.files > 0 ?
+	       (double)frag_hint.current / frag_hint.files : 0);
 	
 	return 0;
 }
