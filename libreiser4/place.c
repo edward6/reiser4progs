@@ -100,6 +100,7 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	return (place->pos.item == items - 1 && 
 		place->pos.unit == units);
 }
+#endif
 
 /* Returns TRUE for non-existent unit of existent item. */
 bool_t reiser4_place_right(reiser4_place_t *place) {
@@ -150,6 +151,7 @@ void reiser4_place_inc(reiser4_place_t *place, int whole) {
 		place->pos.unit++;
 }
 
+#ifndef ENABLE_STAND_ALONE
 void reiser4_place_dec(reiser4_place_t *place, int whole) {
 	aal_assert("umka-2362", place != NULL);
 	aal_assert("umka-2365", place->node != NULL);

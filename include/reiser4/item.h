@@ -15,9 +15,6 @@ extern bool_t reiser4_item_statdata(reiser4_place_t *place);
 extern int reiser4_item_mergeable(reiser4_place_t *place1,
 				  reiser4_place_t *place2);
 
-extern errno_t reiser4_item_get_key(reiser4_place_t *place,
-				    reiser4_key_t *key);
-
 extern errno_t reiser4_item_update_key(reiser4_place_t *place,
 				       reiser4_key_t *key);
 
@@ -33,6 +30,9 @@ extern uint16_t reiser4_item_overhead(reiser4_plug_t *plug);
 extern uint32_t reiser4_item_units(reiser4_place_t *place);
 extern blk_t reiser4_item_down_link(reiser4_place_t *place);
 extern bool_t reiser4_item_branch(reiser4_plug_t *plug);
+
+extern errno_t reiser4_item_get_key(reiser4_place_t *place,
+				    reiser4_key_t *key);
 
 extern errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 					reiser4_key_t *key);

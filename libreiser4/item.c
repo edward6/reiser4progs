@@ -51,7 +51,6 @@ int reiser4_item_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	return place1->plug->o.item_ops->balance->mergeable &&
 		place1->plug->o.item_ops->balance->mergeable(place1, place2);
 }
-
 #endif
 
 /* Returns 1 if @place points to an nodeptr item. */
@@ -107,6 +106,8 @@ errno_t reiser4_item_update_key(reiser4_place_t *place,
 				       &place->pos,
 				       &place->key);
 }
+#endif
+
 
 errno_t reiser4_item_get_key(reiser4_place_t *place,
 			     reiser4_key_t *key)
@@ -126,6 +127,7 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 			 fetch_key, place, key);
 }
 
+#ifndef ENABLE_STAND_ALONE
 errno_t reiser4_item_update_link(reiser4_place_t *place,
 				 blk_t blk)
 {

@@ -15,11 +15,12 @@ extern errno_t reiser4_place_fetch(reiser4_place_t *place);
 extern bool_t reiser4_place_ltlast(reiser4_place_t *place);
 extern bool_t reiser4_place_gtfirst(reiser4_place_t *place);
 
-#ifndef ENABLE_STAND_ALONE
 extern bool_t reiser4_place_right(reiser4_place_t *place);
+extern void reiser4_place_inc(reiser4_place_t *place, int whole);
+
+#ifndef ENABLE_STAND_ALONE
 extern bool_t reiser4_place_leftmost(reiser4_place_t *place);
 extern bool_t reiser4_place_rightmost(reiser4_place_t *place);
-extern void reiser4_place_inc(reiser4_place_t *place, int whole);
 extern void reiser4_place_dec(reiser4_place_t *place, int whole);
 
 extern reiser4_place_t *reiser4_place_dup(reiser4_place_t *dst,
