@@ -311,9 +311,9 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 		    /* Problems were detected. */
 		    if (i - j - 1) {
 			if (mode == REPAIR_REBUILD)
-			    repair_error(res, REPAIR_FIXED);
+			    res |= REPAIR_FIXED;
 			else
-			    repair_error(res, REPAIR_FATAL);
+			    res |= REPAIR_FATAL;
 		    }
 		    
 		    /*
@@ -401,16 +401,16 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	    "Fixed.");
 	
 	if (mode == REPAIR_CHECK)
-	    repair_error(res, REPAIR_FIXABLE);
+	    res |= REPAIR_FIXABLE;
 	else {
 	    de40_set_units(de, count);
-	    repair_error(res, REPAIR_FIXED);
+	    res |= REPAIR_FIXED;
 	}
     }
 
     if (i) {
 	/* Some first units should be removed. */
-	aal_exception_error("Node %llu, item %u: units [%u..%u] do not seem "
+	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
 	    " to be a valid entries. %s", item->context.blk, item->pos, 0, i - 1, 
 	    mode == REPAIR_REBUILD ? "Removed." : "");
 	
@@ -420,12 +420,12 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		    "(%u), count (%u) failed.", item->context.blk, item->pos, 0, i);
 		return -1;
 	    }
-	    repair_error(res, REPAIR_FIXED);
+	    res |= REPAIR_FIXED;
 	} else
-	    repair_error(res, REPAIR_FATAL);
+	    res |= REPAIR_FATAL;
     } else if (e_count != count) {
 	/* Some last units should be removed. */
-	aal_exception_error("Node %llu, item %u: units [%u..%u] do not seem "
+	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
 	    " to be a valid entries. %s", item->context.blk, item->pos, count, 
 	    e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
 	
@@ -436,9 +436,9 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		    e_count - count);
 		return -1;
 	    }
-	    repair_error(res, REPAIR_FIXED);
+	    res |= REPAIR_FIXED;
 	} else
-	    repair_error(res, REPAIR_FATAL);
+	    res |= REPAIR_FATAL;
     }
 
     /* First and the last units are ok. Remove all not relable units in the 
@@ -463,7 +463,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		}
 		i = last;
 		last = ~0ul;
-		repair_error(res, REPAIR_FIXED);
+		res |= REPAIR_FIXED;
 	    }
 	}
     }
@@ -497,7 +497,7 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
     /* map consists of bit pairs - [not relable -R, relable - R] */
     flags = aux_bitmap_create(count * 2);
     
-    repair_error(res, direntry40_offsets_range_check(item, flags, mode));
+    res |= direntry40_offsets_range_check(item, flags, mode);
     
     if (repair_error_exists(res))
 	goto error;
@@ -518,11 +518,10 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
     }
     
     /* Filter units with relable offsets from others. */
-    repair_error(res, direntry40_filter(item, flags, mode));
+    res |= direntry40_filter(item, flags, mode);
     
-    if (repair_error_exists(res))
-	goto error;
-    
+    aux_bitmap_close(flags);
+
     return res;
     
 error:

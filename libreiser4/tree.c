@@ -2073,11 +2073,12 @@ errno_t reiser4_tree_dig(
 			plugin_call(place.item.plugin->item_ops, read,
 				    &place.item, &ptr, pos->unit, 1);
 
-			if (ptr.ptr == INVAL_BLK && ptr.ptr == 0)
-				goto check;
+			if (ptr.ptr == INVAL_BLK || ptr.ptr == 0)
+				continue;
 			
-			if (setup_func && (res = setup_func(&place, hint->data)))
-				goto error_after_func;
+			if (setup_func && (res = setup_func(&place, hint->data))) {
+				if (res < 0) goto error_after_func; else continue;
+			}
 
 			/*
 			  Trying to get child node pointed by @ptr from the
@@ -2132,14 +2133,6 @@ errno_t reiser4_tree_dig(
 		update:
 			if (update_func && (res = update_func(&place, hint->data)))
 				goto error_after_func;
-
-		check:
-			/*
-			  We want to get out of the internal loop or the item
-			  was removed.
-			*/
-			if (pos->unit == ~0ul)
-				break;
 		}
 	}
 	

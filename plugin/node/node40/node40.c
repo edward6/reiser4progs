@@ -839,7 +839,7 @@ static errno_t node40_shrink(object_entity_t *entity,
 	return node40_cutout(node, pos, len, count);
 }
 
-extern errno_t node40_check(object_entity_t *entity);
+extern errno_t node40_check(object_entity_t *entity, uint8_t mode);
 
 /* Returns node make stamp */
 static void node40_set_mstamp(object_entity_t *entity,

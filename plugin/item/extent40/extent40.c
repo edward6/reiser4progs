@@ -167,9 +167,8 @@ static errno_t extent40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t extent40_layout_check(item_entity_t *item,
-				     region_func_t func, 
-				     void *data);
+extern errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
+				     void *data, uint8_t mode);
 
 #endif
 
