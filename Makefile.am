@@ -3,7 +3,7 @@ SUBDIRS         = libaux plugin libreiser4 librepair libmisc progs demos include
 EXTRA_DIST	= AUTHORS COPYING TODO NEWS BUGS README CREDITS THANKS \
 		  reiser4progs.spec.in reiser4progs.spec libreiser4.m4 \
 		  one_touch_install INSTALL_README CUSTOM_INSTALL_README \
-		  depcomp
+		  depcomp run-ldconfig
 
 aclocaldir 	= $(datadir)/aclocal
 aclocal_DATA	= libreiser4.m4
