@@ -27,10 +27,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	uint32_t blocksize;
 
 	aal_assert("umka-148", device != NULL);
-	
-#ifndef ENABLE_STAND_ALONE
 	aal_assert("umka-1866", profile != NULL);
-#endif
 
 	/* Allocating memory and initializing fields */
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))

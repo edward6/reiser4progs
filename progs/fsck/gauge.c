@@ -179,7 +179,7 @@ static errno_t progress_start(repair_progress_t *progress) {
 	    *tree = progress->u.tree;
 	    
 	    hint->u.tree_hint.tree = aal_list_insert(hint->u.tree_hint.tree, 
-		tree, aal_list_length(hint->u.tree_hint.tree));
+		tree, aal_list_len(hint->u.tree_hint.tree));
 
 	    break;
 	}

@@ -333,7 +333,6 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 */
 static object_entity_t *dir40_open(void *tree, place_t *place) {
 	dir40_t *dir;
-	key_entity_t *key;
 
 	aal_assert("umka-836", tree != NULL);
 	aal_assert("umka-837", place != NULL);
@@ -344,11 +343,9 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 
-	key = &place->item.key;
-
 	/* Initializing obj handle for the directory */
-	if (obj40_init(&dir->obj, &dir40_plugin, key, core, tree))
-		goto error_free_dir;
+	obj40_init(&dir->obj, &dir40_plugin,
+		   &place->item.key, core, tree);
 
 	/* Guessing hash plugin basing on stat data */
 	if (!(dir->hash = dir40_guess(dir))) {
@@ -357,8 +354,10 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
                 goto error_free_dir;
         }
 
-	/* Copying statdata place and looking node it lies in */
-	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
+	/* Initialziing statdata place */
+	aal_memcpy(&dir->obj.statdata, place,
+		   sizeof(*place));
+	
 	obj40_lock(&dir->obj, &dir->obj.statdata);
 	
 	/* Positioning to the first directory unit */
@@ -376,7 +375,6 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static char *dir40_empty_dir[2] = { ".", ".." };
 
 /*
@@ -412,8 +410,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 		return NULL;
 
 	/* Initializing obj handle */
-	if (obj40_init(&dir->obj, &dir40_plugin, &hint->object, core, tree))
-		goto error_free_dir;
+	obj40_init(&dir->obj, &dir40_plugin, &hint->object, core, tree);
 
 	/* Getting hash plugin */
 	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
@@ -504,8 +501,8 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 		entry->offset.plugin = hint->object.plugin;
 		
 		plugin_call(hint->object.plugin->key_ops, build_entry,
-			    &entry->offset, dir->hash, obj40_locality(&dir->obj),
-			    obj40_objectid(&dir->obj), name);
+			    &entry->offset, dir->hash, locality,
+			    objectid, name);
 	}
 	
 	body_hint.type_specific = body;

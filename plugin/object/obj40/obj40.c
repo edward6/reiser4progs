@@ -376,10 +376,9 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 	obj->core = core;
 	obj->plugin = plugin;
 
-	obj->key.plugin = key->plugin;
-	
-	if (plugin_call(key->plugin->key_ops, assign, &obj->key, key))
-		return -EINVAL;
+	/* Initializing stat data key */
+	plugin_call(key->plugin->key_ops, assign,
+		    &obj->key, key);
 
 	return 0;
 }

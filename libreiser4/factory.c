@@ -408,7 +408,7 @@ errno_t libreiser4_factory_init(void) {
                                                                                                 
         closedir(dir);
 
-        if (aal_list_length(plugins) == 0) {
+        if (aal_list_len(plugins) == 0) {
                 aal_exception_error("There are no valid plugins found "
                                     "in %s.", PLUGIN_DIR);
                 return -EINVAL;
@@ -425,7 +425,7 @@ errno_t libreiser4_factory_init(void) {
                         continue;
 	}
 
-	if (aal_list_length(plugins) == 0) {
+	if (aal_list_len(plugins) == 0) {
                 aal_exception_error("There are no valid built-in plugins "
                                     "found.");
                 return -EINVAL;
@@ -443,8 +443,11 @@ void libreiser4_factory_fini(void) {
     
 	/* Unloading all registered plugins */
 	for (walk = aal_list_last(plugins); walk; ) {
-		aal_list_t *temp = aal_list_prev(walk);
-		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
+		aal_list_t *temp;
+		reiser4_plugin_t *plugin;
+		
+		temp = aal_list_prev(walk);
+		plugin = (reiser4_plugin_t *)walk->data;
 		
 		libreiser4_factory_unload(plugin);
 		walk = temp;

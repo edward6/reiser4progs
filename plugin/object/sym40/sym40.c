@@ -50,7 +50,6 @@ static int32_t sym40_read(object_entity_t *entity,
 /* Opens symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_open(void *tree, place_t *place) {
 	sym40_t *sym;
-	key_entity_t *key;
 
 	aal_assert("umka-1163", tree != NULL);
 	aal_assert("umka-1164", place != NULL);
@@ -61,14 +60,14 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 
-	key = &place->item.key;
-
 	/* Initalizing file handle */
-	if (obj40_init(&sym->obj, &sym40_plugin, key, core, tree))
-		goto error_free_sym;
+	obj40_init(&sym->obj, &sym40_plugin,
+		   &place->item.key, core, tree);
 
-	/* Saving statdata place and locking the node it lies in */
-	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
+	/* Initialziing statdata place */
+	aal_memcpy(&sym->obj.statdata, place,
+		   sizeof(*place));
+	
 	obj40_lock(&sym->obj, &sym->obj.statdata);
 
 	/* Initializing parent key from the root one */
@@ -105,8 +104,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 		return NULL;
 
 	/* Inizializes file handle */
-	if (obj40_init(&sym->obj, &sym40_plugin, &hint->object, core, tree))
-		goto error_free_sym;
+	obj40_init(&sym->obj, &sym40_plugin, &hint->object, core, tree);
 	
 	/* Initializing parent key from the parent field of passed @hint */
 	plugin_call(hint->object.plugin->key_ops, assign,

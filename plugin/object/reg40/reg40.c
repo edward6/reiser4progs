@@ -157,7 +157,6 @@ static int32_t reg40_read(object_entity_t *entity,
 /* Opening reg40 by statdata place passed in @place */
 static object_entity_t *reg40_open(void *tree, place_t *place) {
 	reg40_t *reg;
-	key_entity_t *key;
 
 	aal_assert("umka-1163", tree != NULL);
 	aal_assert("umka-1164", place != NULL);
@@ -168,14 +167,14 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
-	key = &place->item.key;
-
 	/* Initializing file handle */
-	if (obj40_init(&reg->obj, &reg40_plugin, key, core, tree))
-		goto error_free_reg;
+	obj40_init(&reg->obj, &reg40_plugin,
+		   &place->item.key, core, tree);
 
-	/* Saving statdata place and looking the code it lies in */
-	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
+	/* Initialziing statdata place */
+	aal_memcpy(&reg->obj.statdata, place,
+		   sizeof(*place));
+	
 	obj40_lock(&reg->obj, &reg->obj.statdata);
 
 	/* Position onto the first body item */
@@ -218,8 +217,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	reg->offset = 0;
 
 	/* Initializing file handle */
-	if (obj40_init(&reg->obj, &reg40_plugin, &hint->object, core, tree))
-		goto error_free_reg;
+	obj40_init(&reg->obj, &reg40_plugin, &hint->object, core, tree);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
