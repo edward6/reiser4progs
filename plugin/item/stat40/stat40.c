@@ -132,6 +132,16 @@ static uint32_t stat40_units(place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+static errno_t stat40_init(place_t *place) {
+	aal_assert("umka-2397", place != NULL);
+	aal_assert("umka-2398", place->body != NULL);
+	
+	((stat40_t *)place->body)->extmask = 0;
+	place_mkdirty(place);
+	
+	return 0;
+}
+
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
 static errno_t stat40_estimate_insert(place_t *place,
@@ -142,8 +152,12 @@ static errno_t stat40_estimate_insert(place_t *place,
 	statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-074", hint != NULL);
+
+	hint->len = 0;
 	
-	hint->len = sizeof(stat40_t);
+	if (pos == MAX_UINT32)
+		hint->len = sizeof(stat40_t);
+	
 	stat_hint = (statdata_hint_t *)hint->type_specific;
 
 	aal_assert("umka-2360", stat_hint->extmask != 0);
@@ -217,10 +231,13 @@ static errno_t stat40_insert(place_t *place,
 		if (i % 16 == 0) {
 			uint16_t extmask;
 
-			extmask = (stat_hint->extmask >> i) &
-				0x000000000000ffff;
-			
+			/* Initializing extemask */
+			extmask = ((stat_hint->extmask >> i) &
+				   0x000000000000ffff);
+
+			extmask |= st40_get_extmask((stat40_t *)extbody);
 			st40_set_extmask((stat40_t *)extbody, extmask);
+			
 			extbody = (void *)extbody + sizeof(d16_t);
 		}
 
@@ -437,6 +454,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.units		  = stat40_units,
 	
 #ifndef ENABLE_STAND_ALONE
+	.init             = stat40_init,
 	.copy             = stat40_copy,
 	.insert		  = stat40_insert,
 	.print		  = stat40_print,
@@ -447,7 +465,6 @@ static reiser4_item_ops_t stat40_ops = {
 
 	.estimate_shift   = NULL,
 	.overhead         = NULL,
-	.init             = NULL,
 	.rep              = NULL,
 	.expand	          = NULL,
 	.shrink           = NULL,
