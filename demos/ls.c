@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	}
 
 //	misc_param_override("hash=deg_hash");
-	misc_param_override("policy=tails");
+//	misc_param_override("policy=tails");
 		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 

@@ -1621,25 +1621,39 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 				 node_t *node)
 {
 	errno_t res;
+	place_t parent;
 	trans_hint_t hint;
 	
 	aal_assert("umka-1726", tree != NULL);
 	aal_assert("umka-1727", node != NULL);
 
+	/* Save parent pos, because it will be needed later and it is destroed
+	   by tree_disconnect_node(). */
+	parent = node->p;
+
+	/* Disconnecting @node from tree. This should be done before removing
+	   nodeptr item in parent, as parent may get empty and we will unable to
+	   release it as it is locked by connect @node. */
+	if ((res = reiser4_tree_disconnect_node(tree, node))) {
+		aal_exception_error("Can't disconnect node %llu "
+				    "from tree during detach it.",
+				    node_blocknr(node));
+		return res;
+	}
+	
         /* Disconnecting node from parent node if any. */
-	if (node->p.node) {
+	if (!reiser4_tree_root_node(tree, node)) {
 		hint.count = 1;
 
-		/* Removing nodeptr item/unit from @node->p. */
-		if ((res = reiser4_tree_remove(tree, &node->p, &hint)))
-			return res;
+		/* Removing nodeptr item/unit at @parent. */
+		return reiser4_tree_remove(tree, &parent, &hint);
 	} else {
 		/* Putting INVAL_BLK into root block number in super block to
 		   let know that old root is detached. */
 		reiser4_tree_set_root(tree, INVAL_BLK);
 	}
 	
-	return reiser4_tree_disconnect_node(tree, node);
+	return 0;
 }
 
 /* This function forces tree to grow by one level and sets it up after the
@@ -1724,24 +1738,36 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 
+	/* Detaching new root from its parent. */
+	if ((res = reiser4_tree_disconnect_node(tree, new_root))) {
+		aal_exception_error("Can't disconnect new root from "
+				    "tree during tree drying out.");
+		return res;
+	}
+	
 	/* Detaching old root from its parent. */
 	if ((res = reiser4_tree_detach_node(tree, old_root))) {
 		aal_exception_error("Can't detach old root from tree "
 				    "during tree drying out.");
-		return res;
+		goto error_connect_new_root;
 	}
-	
+
 	/* Assign new root node. Setting tree height to new root level and root
 	   block number to new root block number. */
 	if ((res = reiser4_tree_assign_root(tree, new_root))) {
 		aal_exception_error("Can't assign new root node "
 				    "durring tree drying out.");
-		reiser4_tree_assign_root(tree, old_root);
-		return res;
+		goto error_assign_old_root;
 	}
 	
         /* Releasing old root node */
 	return reiser4_tree_release_node(tree, old_root);
+
+error_assign_old_root:
+	reiser4_tree_assign_root(tree, old_root);
+error_connect_new_root:
+	reiser4_tree_connect_node(tree, old_root, new_root);
+	return res;
 }
 
 /* Tries to shift items and units from @place to passed @neig node. After that
