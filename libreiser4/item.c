@@ -197,7 +197,7 @@ int reiser4_item_internal(reiser4_item_t *item) {
 }
 
 /* Returns node pointer from internal node */
-blk_t reiser4_item_get_iptr(reiser4_item_t *item) {
+blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
     aal_assert("vpf-041", item != NULL, return 0);
     aal_assert("umka-1074", item->plugin != NULL, return 0);
     
@@ -215,7 +215,7 @@ blk_t reiser4_item_get_iptr(reiser4_item_t *item) {
 #ifndef ENABLE_COMPACT
 
 /* Updates node pointer in internal item specified by "pos" */
-errno_t reiser4_item_set_iptr(reiser4_item_t *item,
+errno_t reiser4_item_set_nptr(reiser4_item_t *item,
     blk_t blk) 
 {
     aal_assert("umka-607", item != NULL, return -1);
@@ -270,3 +270,10 @@ reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item) {
     return item->plugin;
 }
 
+errno_t reiser4_item_max_real_key(reiser4_item_t *item, reiser4_key_t *key) {
+    aal_assert("vpf-351", item != NULL, return -1);
+    aal_assert("vpf-352", key != NULL, return -1);
+    
+    return plugin_call(return -1, item->plugin->item_ops, max_real_key, 
+	item, key);
+}
