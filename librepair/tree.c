@@ -99,8 +99,8 @@ lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
  * the tree. */
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     reiser4_place_t place;
-    reiser4_item_hint_t hint;
-    reiser4_ptr_hint_t ptr;
+    create_hint_t hint;
+    ptr_hint_t ptr;
     reiser4_key_t rkey, key;
     errno_t res;
     rid_t pid;

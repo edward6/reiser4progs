@@ -14,7 +14,7 @@
 
 #include <repair/repair.h>
 
-typedef errno_t (*repair_extent_func_t)(reiser4_ptr_hint_t *, void *);
+typedef errno_t (*repair_extent_func_t)(ptr_hint_t *, void *);
 typedef errno_t (*traverse_item_func_t)(reiser4_place_t *, void *);
 
 extern reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk);

@@ -84,8 +84,8 @@ static reiser4_object_t *mkfs_create_dir(reiser4_fs_t *fs,
 	pid_t direntry;
 	pid_t directory;
 
+	object_hint_t hint;
 	reiser4_object_t *object;
-	reiser4_object_hint_t hint;
 
 	directory = reiser4_profile_value(profile, "directory");
 	

@@ -334,7 +334,7 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 				   reiser4_place_t *place)
 {
-	reiser4_ptr_hint_t ptr;
+	ptr_hint_t ptr;
 	
 	aal_assert("umka-1889", tree != NULL);
 	aal_assert("umka-1890", place != NULL);
@@ -895,9 +895,9 @@ errno_t reiser4_tree_attach(
 	errno_t res;
 	uint8_t level;
 	
+	create_hint_t hint;
 	reiser4_place_t place;
-	reiser4_item_hint_t hint;
-	reiser4_ptr_hint_t nodeptr_hint;
+	ptr_hint_t nodeptr_hint;
 
 	aal_assert("umka-913", tree != NULL);
 	aal_assert("umka-916", node != NULL);
@@ -1436,7 +1436,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 
 static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
 				     reiser4_place_t *place,
-				     reiser4_item_hint_t *hint)
+				     create_hint_t *hint)
 {
 	/*
 	  Initializing hint context and enviromnent fields. This should be done
@@ -1464,7 +1464,7 @@ errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
 	uint8_t level,              /* level item/unit will be inserted on */
-	reiser4_item_hint_t *hint)  /* item hint to be inserted */
+	create_hint_t *hint)        /* item hint to be inserted */
 {
 	int mode;
 	errno_t res;
@@ -1992,7 +1992,7 @@ errno_t reiser4_tree_down(
 
 		/* The loop though the units of the current item */
 		for (pos->unit = 0; pos->unit < reiser4_item_units(&place); pos->unit++) {
-			reiser4_ptr_hint_t ptr;
+			ptr_hint_t ptr;
 			
 			/* Fetching node ptr */
 			plugin_call(place.item.plugin->item_ops, read,

@@ -51,7 +51,7 @@ extern errno_t reiser4_node_ukey(reiser4_node_t *node,
 
 extern errno_t reiser4_node_insert(reiser4_node_t *node,
    				   pos_t *pos,
-				   reiser4_item_hint_t *hint);
+				   create_hint_t *hint);
 
 
 extern errno_t reiser4_node_remove(reiser4_node_t *node,

@@ -237,6 +237,15 @@ struct item_entity {
 };
 
 typedef struct item_entity item_entity_t;
+
+struct sdext_entity {
+	reiser4_plugin_t *plugin;
+	body_t *body;
+	uint32_t pos, len;
+};
+
+typedef struct sdext_entity sdext_entity_t;
+
 typedef struct place place_t;
 
 /* Shift flags control shift process */
@@ -359,14 +368,14 @@ typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
       on 3.
 */
 
-struct reiser4_ptr_hint {    
+struct ptr_hint {    
 	uint64_t ptr;
 	uint64_t width;
 };
 
-typedef struct reiser4_ptr_hint reiser4_ptr_hint_t;
+typedef struct ptr_hint ptr_hint_t;
 
-struct reiser4_sdext_unix_hint {
+struct sdext_unix_hint {
 	uint32_t uid;
 	uint32_t gid;
 	uint32_t atime;
@@ -376,34 +385,26 @@ struct reiser4_sdext_unix_hint {
 	uint64_t bytes;
 };
 
-typedef struct reiser4_sdext_unix_hint reiser4_sdext_unix_hint_t;
+typedef struct sdext_unix_hint sdext_unix_hint_t;
 
-struct reiser4_sdext_lw_hint {
+struct sdext_lw_hint {
 	uint16_t mode;
 	uint32_t nlink;
 	uint64_t size;
 };
 
-typedef struct reiser4_sdext_lw_hint reiser4_sdext_lw_hint_t;
+typedef struct sdext_lw_hint sdext_lw_hint_t;
 
-struct reiser4_sdext_lt_hint {
+struct sdext_lt_hint {
 	uint32_t atime;
 	uint32_t mtime;
 	uint32_t ctime;
 };
 
-typedef struct reiser4_sdext_lt_hint reiser4_sdext_lt_hint_t;
+typedef struct sdext_lt_hint sdext_lt_hint_t;
 
-struct sdext_entity {
-	reiser4_plugin_t *plugin;
-	body_t *body;
-	uint32_t pos, len;
-};
-
-typedef struct sdext_entity sdext_entity_t;
-    
 /* These fields should be changed to what proper description of needed extentions */
-struct reiser4_statdata_hint {
+struct statdata_hint {
 	
 	/* Extentions mask */
 	uint64_t extmask;
@@ -412,9 +413,9 @@ struct reiser4_statdata_hint {
 	void *ext[60];
 };
 
-typedef struct reiser4_statdata_hint reiser4_statdata_hint_t;
+typedef struct statdata_hint statdata_hint_t;
 
-struct reiser4_entry_hint {
+struct entry_hint {
 
 	/* Entry key, it may be found by */
 	key_entity_t offset;
@@ -426,9 +427,9 @@ struct reiser4_entry_hint {
 	char name[256];
 };
 
-typedef struct reiser4_entry_hint reiser4_entry_hint_t;
+typedef struct entry_hint entry_hint_t;
 
-struct reiser4_object_hint {
+struct object_hint {
 	
 	rid_t statdata;
 
@@ -459,7 +460,7 @@ struct reiser4_object_hint {
 	reiser4_plugin_t *plugin;
 };
 
-typedef struct reiser4_object_hint reiser4_object_hint_t;
+typedef struct object_hint object_hint_t;
 
 /*
   Flags for using in item hint for denoting is type_specific point for type
@@ -476,7 +477,7 @@ typedef enum hint_flags hint_flags_t;
   This structure contains fields which describe an item or unit to be inserted
   into the tree.
 */ 
-struct reiser4_item_hint {
+struct create_hint {
 	hint_flags_t flags;
 	
 	/*
@@ -508,7 +509,7 @@ struct reiser4_item_hint {
 	reiser4_plugin_t *plugin;
 };
 
-typedef struct reiser4_item_hint reiser4_item_hint_t;
+typedef struct create_hint create_hint_t;
 
 #define PLUGIN_MAX_LABEL	22
 #define PLUGIN_MAX_NAME		22
@@ -635,8 +636,7 @@ struct reiser4_object_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (void *, object_entity_t *,
-				    reiser4_object_hint_t *,
-				    place_t *);
+				    object_hint_t *, place_t *);
     
 	/*
 	  Links/unlinks file in its parent and updates all needed stat data
@@ -649,8 +649,8 @@ struct reiser4_object_ops {
 	int32_t (*write) (object_entity_t *, void *, uint32_t);
 
 	/* Directory specific methods */
-	errno_t (*add_entry) (object_entity_t *, reiser4_entry_hint_t *);
-	errno_t (*rem_entry) (object_entity_t *, reiser4_entry_hint_t *);
+	errno_t (*add_entry) (object_entity_t *, entry_hint_t *);
+	errno_t (*rem_entry) (object_entity_t *, entry_hint_t *);
 	
 	/* Truncates file at current offset onto passed units */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
@@ -689,7 +689,7 @@ struct reiser4_object_ops {
 
 	/* Makes lookup inside file */
 	lookup_t (*lookup) (object_entity_t *, char *,
-			    reiser4_entry_hint_t *);
+			    entry_hint_t *);
 
 	/* Finds actual file stat data (used in symlinks) */
 	errno_t (*follow) (object_entity_t *, key_entity_t *);
@@ -699,7 +699,7 @@ struct reiser4_object_ops {
 
 	/* Directory read method */
 	errno_t (*readdir) (object_entity_t *,
-			    reiser4_entry_hint_t *);
+			    entry_hint_t *);
 
 	/* Return current position in dirctory */
 	errno_t (*telldir) (object_entity_t *, key_entity_t *);
@@ -869,7 +869,7 @@ struct reiser4_node_ops {
 
 	/* Inserts item at specified pos */
 	errno_t (*insert) (object_entity_t *, pos_t *,
-			   reiser4_item_hint_t *);
+			   create_hint_t *);
     
 	/* Removes item/unit at specified pos */
 	errno_t (*remove) (object_entity_t *, pos_t *, uint32_t);
@@ -1300,7 +1300,7 @@ struct tree_ops {
 	   Inserts item/unit in the tree by calling reiser4_tree_insert
 	   function, used by all object plugins (dir, file, etc)
 	*/
-	errno_t (*insert) (void *, place_t *, uint8_t, reiser4_item_hint_t *);
+	errno_t (*insert) (void *, place_t *, uint8_t, create_hint_t *);
     
 	/*
 	  Removes item/unit from the tree. It is used in all object

@@ -196,21 +196,20 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 /* Creating the file described by pased @hint */
 static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
-				     reiser4_object_hint_t *hint,
-				     place_t *place) 
+				     object_hint_t *hint, place_t *place) 
 {
 	reg40_t *reg;
 	
 	oid_t parent_locality;
 	oid_t objectid, locality;
 
+	statdata_hint_t stat;
+    	create_hint_t stat_hint;
+    
+	sdext_lw_hint_t lw_ext;
+	sdext_unix_hint_t unix_ext;
+	
 	reiser4_plugin_t *stat_plugin;
-    
-	reiser4_item_hint_t stat_hint;
-	reiser4_statdata_hint_t stat;
-    
-	reiser4_sdext_lw_hint_t lw_ext;
-	reiser4_sdext_unix_hint_t unix_ext;
 	
 	aal_assert("umka-1169", tree != NULL);
 	aal_assert("umka-1738", hint != NULL);

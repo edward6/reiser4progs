@@ -141,7 +141,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	place_t next;
 
 	item_entity_t *item;
-	reiser4_entry_hint_t entry;
+	entry_hint_t entry;
 
 	aal_assert("umka-2063", entity != NULL);
 	
@@ -174,7 +174,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 
 /* Reads n entries to passed buffer buff */
 static errno_t dir40_readdir(object_entity_t *entity, 
-			     reiser4_entry_hint_t *entry)
+			     entry_hint_t *entry)
 {
 	dir40_t *dir;
 	uint64_t size;
@@ -224,7 +224,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
   (offset key, object key, etc).
 */
 static lookup_t dir40_lookup(object_entity_t *entity, char *name,
-			     reiser4_entry_hint_t *entry) 
+			     entry_hint_t *entry) 
 {
 	dir40_t *dir;
 	place_t next;
@@ -379,8 +379,7 @@ static char *dir40_empty_dir[2] = { ".", ".." };
   passed @hint.
 */
 static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
-				     reiser4_object_hint_t *hint,
-				     place_t *place)
+				     object_hint_t *hint, place_t *place)
 {
 	uint32_t i;
 	dir40_t *dir;
@@ -388,18 +387,19 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	oid_t parent_locality;
 	oid_t objectid, locality;
 
-	reiser4_entry_hint_t *body;
-	reiser4_entry_hint_t *entry;
-	reiser4_statdata_hint_t stat;
-	reiser4_item_hint_t body_hint;
-	reiser4_item_hint_t stat_hint;
+	entry_hint_t *body;
+	entry_hint_t *entry;
+	statdata_hint_t stat;
+
+	create_hint_t body_hint;
+	create_hint_t stat_hint;
    
+	sdext_lw_hint_t lw_ext;
+	sdext_unix_hint_t unix_ext;
+	
 	reiser4_plugin_t *stat_plugin;
 	reiser4_plugin_t *body_plugin;
     
-	reiser4_sdext_lw_hint_t lw_ext;
-	reiser4_sdext_unix_hint_t unix_ext;
-	
 	aal_assert("umka-835", tree != NULL);
 	aal_assert("umka-1739", hint != NULL);
 
@@ -691,7 +691,7 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 
 /* Removing entry from the directory */
 static errno_t dir40_rem_entry(object_entity_t *entity,
-			       reiser4_entry_hint_t *entry)
+			       entry_hint_t *entry)
 {
 	errno_t res;
 	dir40_t *dir;
@@ -701,8 +701,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	key_entity_t *key;
 	item_entity_t *item;
 
-	reiser4_item_hint_t hint;
-	reiser4_sdext_unix_hint_t unix_hint;
+	create_hint_t hint;
+	sdext_unix_hint_t unix_hint;
 	
 	aal_assert("umka-1922", entity != NULL);
 	aal_assert("umka-1923", entry != NULL);
@@ -758,7 +758,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 
 /* Adding new entry  */
 static errno_t dir40_add_entry(object_entity_t *entity, 
-			       reiser4_entry_hint_t *entry)
+			       entry_hint_t *entry)
 {
 	errno_t res;
 	dir40_t *dir;
@@ -769,8 +769,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	key_entity_t *key;
 	item_entity_t *item;
 	
-	reiser4_item_hint_t hint;
-	reiser4_sdext_unix_hint_t unix_hint;
+	create_hint_t hint;
+	sdext_unix_hint_t unix_hint;
 
 	aal_assert("umka-844", entity != NULL);
 	aal_assert("umka-845", entry != NULL);

@@ -590,8 +590,8 @@ errno_t reiser4_node_shift(
 		units = reiser4_item_units(&place);
 		
 		for (; place.pos.unit < units; place.pos.unit++) {
+			ptr_hint_t ptr;
 			reiser4_node_t *child;
-			reiser4_ptr_hint_t ptr;
 
 			/*
 			  Getting nodeptr and looking for the cached child by
@@ -703,10 +703,10 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 			       pos_t *start)
 {
 	errno_t res;
+	ptr_hint_t ptr;
 	uint32_t items;
-	reiser4_place_t place;
 
-	reiser4_ptr_hint_t ptr;
+	reiser4_place_t place;
 	aal_list_t *walk = NULL;
 	aal_list_t *list = NULL;
 
@@ -774,8 +774,8 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 */
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	         /* node item will be inserted in */
-	pos_t *pos,                     /* pos item will be inserted at */
-	reiser4_item_hint_t *hint)	 /* item hint to be inserted */
+	pos_t *pos,                      /* pos item will be inserted at */
+	create_hint_t *hint)             /* item hint to be inserted */
 {
 	errno_t res;
 	uint32_t needed;

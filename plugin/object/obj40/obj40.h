@@ -56,7 +56,7 @@ extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 extern errno_t obj40_fini(obj40_t *obj);
 
 extern errno_t obj40_read_lw(item_entity_t *item,
-			     reiser4_sdext_lw_hint_t *lw_hint);
+			     sdext_lw_hint_t *lw_hint);
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
 extern errno_t obj40_get_sym(obj40_t *obj, char *data);
@@ -65,13 +65,13 @@ extern errno_t obj40_get_sym(obj40_t *obj, char *data);
 #ifndef ENABLE_STAND_ALONE
 
 extern errno_t obj40_write_lw(item_entity_t *item,
-			      reiser4_sdext_lw_hint_t *lw_hint);
+			      sdext_lw_hint_t *lw_hint);
 
 extern errno_t obj40_read_unix(item_entity_t *item,
-			       reiser4_sdext_unix_hint_t *unix_hint);
+			       sdext_unix_hint_t *unix_hint);
 
 extern errno_t obj40_write_unix(item_entity_t *item,
-				reiser4_sdext_unix_hint_t *unix_hint);
+				sdext_unix_hint_t *unix_hint);
 
 extern errno_t obj40_set_mode(obj40_t *obj, uint16_t mode);
 extern errno_t obj40_set_size(obj40_t *obj, uint64_t size);
@@ -95,7 +95,7 @@ extern errno_t obj40_link(obj40_t *obj, uint32_t value);
 extern errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 			    uint64_t count);
 
-extern errno_t obj40_insert(obj40_t *obj, reiser4_item_hint_t *hint,
+extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 			    uint8_t level, place_t *place);
 
 #endif

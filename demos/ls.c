@@ -33,8 +33,8 @@ int main(int argc, char *argv[]) {
 	aal_device_t *device;
 	reiser4_place_t place;
 
+	entry_hint_t entry;
 	reiser4_object_t *dir;
-	reiser4_entry_hint_t entry;
 
 	if (argc < 3) {
 		ls_print_usage();
@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
 	}
     
 	{
+		object_hint_t dir_hint;
 		reiser4_plugin_t *dir_plugin;
-		reiser4_object_hint_t dir_hint;
 	
 		dir_hint.plugin = fs->root->entity->plugin;
 		dir_hint.statdata = ITEM_STATDATA40_ID;

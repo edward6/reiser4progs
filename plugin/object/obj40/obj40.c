@@ -54,10 +54,10 @@ errno_t obj40_unlock(obj40_t *obj, place_t *place) {
 
 /* Reads light weight stat data extention into passed @lw_hint */
 errno_t obj40_read_lw(item_entity_t *item,
-		      reiser4_sdext_lw_hint_t *lw_hint)
+		      sdext_lw_hint_t *lw_hint)
 {
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
+	create_hint_t hint;
+	statdata_hint_t stat;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
@@ -78,7 +78,7 @@ errno_t obj40_read_lw(item_entity_t *item,
 
 /* Gets size field from the stat data */
 uint64_t obj40_get_size(obj40_t *obj) {
-	reiser4_sdext_lw_hint_t lw_hint;
+	sdext_lw_hint_t lw_hint;
 
 	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
 		return 0;
@@ -92,10 +92,10 @@ uint64_t obj40_get_size(obj40_t *obj) {
   data item.
 */
 errno_t obj40_write_lw(item_entity_t *item,
-		       reiser4_sdext_lw_hint_t *lw_hint)
+		       sdext_lw_hint_t *lw_hint)
 {
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
+	create_hint_t hint;
+	statdata_hint_t stat;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
@@ -118,10 +118,10 @@ errno_t obj40_write_lw(item_entity_t *item,
 
 /* Reads unix stat data extention into passed @unix_hint */
 errno_t obj40_read_unix(item_entity_t *item,
-			reiser4_sdext_unix_hint_t *unix_hint)
+			sdext_unix_hint_t *unix_hint)
 {
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
+	create_hint_t hint;
+	statdata_hint_t stat;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
@@ -142,10 +142,10 @@ errno_t obj40_read_unix(item_entity_t *item,
 
 /* Writes unix stat data extention into @obj stat data item */
 errno_t obj40_write_unix(item_entity_t *item,
-			 reiser4_sdext_unix_hint_t *unix_hint)
+			 sdext_unix_hint_t *unix_hint)
 {
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
+	create_hint_t hint;
+	statdata_hint_t stat;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
@@ -168,7 +168,7 @@ errno_t obj40_write_unix(item_entity_t *item,
 
 /* Gets mode field from the stat data */
 uint16_t obj40_get_mode(obj40_t *obj) {
-	reiser4_sdext_lw_hint_t lw_hint;
+	sdext_lw_hint_t lw_hint;
 
 	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
 		return 0;
@@ -179,7 +179,7 @@ uint16_t obj40_get_mode(obj40_t *obj) {
 /* Updates mode field in statdata */
 errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	errno_t res;
-	reiser4_sdext_lw_hint_t lw_hint;
+	sdext_lw_hint_t lw_hint;
 
 	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
 		return res;
@@ -191,7 +191,7 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 /* Updates size field in the stat data */
 errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	errno_t res;
-	reiser4_sdext_lw_hint_t lw_hint;
+	sdext_lw_hint_t lw_hint;
 
 	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
 		return res;
@@ -202,7 +202,7 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 
 /* Gets nlink field from the stat data */
 uint32_t obj40_get_nlink(obj40_t *obj) {
-	reiser4_sdext_lw_hint_t lw_hint;
+	sdext_lw_hint_t lw_hint;
 
 	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
 		return 0;
@@ -213,7 +213,7 @@ uint32_t obj40_get_nlink(obj40_t *obj) {
 /* Updates nlink field in the stat data */
 errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	errno_t res;
-	reiser4_sdext_lw_hint_t lw_hint;
+	sdext_lw_hint_t lw_hint;
 
 	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
 		return res;
@@ -224,7 +224,7 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 
 /* Gets atime field from the stat data */
 uint32_t obj40_get_atime(obj40_t *obj) {
-	reiser4_sdext_unix_hint_t unix_hint;
+	sdext_unix_hint_t unix_hint;
 
 	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
 		return 0;
@@ -235,7 +235,7 @@ uint32_t obj40_get_atime(obj40_t *obj) {
 /* Updates atime field in the stat data */
 errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	errno_t res;
-	reiser4_sdext_unix_hint_t unix_hint;
+	sdext_unix_hint_t unix_hint;
 
 	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
 		return res;
@@ -246,7 +246,7 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 
 /* Gets mtime field from the stat data */
 uint32_t obj40_get_mtime(obj40_t *obj) {
-	reiser4_sdext_unix_hint_t unix_hint;
+	sdext_unix_hint_t unix_hint;
 
 	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
 		return 0;
@@ -257,7 +257,7 @@ uint32_t obj40_get_mtime(obj40_t *obj) {
 /* Updates mtime field in the stat data */
 errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	errno_t res;
-	reiser4_sdext_unix_hint_t unix_hint;
+	sdext_unix_hint_t unix_hint;
 
 	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
 		return res;
@@ -268,7 +268,7 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 
 /* Gets bytes field from the stat data */
 uint64_t obj40_get_bytes(obj40_t *obj) {
-	reiser4_sdext_unix_hint_t unix_hint;
+	sdext_unix_hint_t unix_hint;
 
 	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
 		return 0;
@@ -279,7 +279,7 @@ uint64_t obj40_get_bytes(obj40_t *obj) {
 /* Updates mtime field in the stat data */
 errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	errno_t res;
-	reiser4_sdext_unix_hint_t unix_hint;
+	sdext_unix_hint_t unix_hint;
 
 	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
 		return res;
@@ -293,8 +293,8 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 /* Gets symlink from the stat data */
 errno_t obj40_get_sym(obj40_t *obj, char *data) {
 	item_entity_t *item;
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
+	create_hint_t hint;
+	statdata_hint_t stat;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
@@ -317,8 +317,8 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 /* Updates symlink data */
 errno_t obj40_set_sym(obj40_t *obj, char *data) {
 	item_entity_t *item;
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
+	create_hint_t hint;
+	statdata_hint_t stat;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
@@ -341,7 +341,7 @@ errno_t obj40_set_sym(obj40_t *obj, char *data) {
 #endif
 
 rid_t obj40_pid(item_entity_t *item) {
-	reiser4_sdext_lw_hint_t lw_hint;
+	sdext_lw_hint_t lw_hint;
 
 	if (obj40_read_lw(item, &lw_hint))
 		return 0;
@@ -460,7 +460,7 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
   Inserts passed item hint into the tree. After function is finished, place
   contains the place of the inserted item.
 */
-errno_t obj40_insert(obj40_t *obj, reiser4_item_hint_t *hint,
+errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 		     uint8_t level, place_t *place)
 {
 	oid_t objectid = obj40_objectid(obj);

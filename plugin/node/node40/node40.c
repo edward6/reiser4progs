@@ -676,7 +676,7 @@ static errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
 
 /* Inserts item described by hint structure into node */
 static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
-			     reiser4_item_hint_t *hint)
+			     create_hint_t *hint)
 {
 	node40_t *node;
 	item_entity_t item;

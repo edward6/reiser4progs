@@ -90,9 +90,9 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 				 uint16_t extmask, 
 				 void *data)
 {
-	reiser4_statdata_hint_t *hint;
+	statdata_hint_t *hint;
 
-	hint = ((reiser4_item_hint_t *)data)->type_specific;
+	hint = ((create_hint_t *)data)->type_specific;
 
 	/* Reading mask into hint */
 	hint->extmask |= 1 << sdext->plugin->h.id;
@@ -147,13 +147,13 @@ static errno_t stat40_estimate(item_entity_t *item, void *buff,
 			       uint32_t pos, uint32_t count) 
 {
 	uint8_t i;
-	reiser4_item_hint_t *hint;
-	reiser4_statdata_hint_t *stat_hint;
+	create_hint_t *hint;
+	statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-074", buff != NULL);
 
-	hint = (reiser4_item_hint_t *)buff;
-	stat_hint = (reiser4_statdata_hint_t *)hint->type_specific;
+	hint = (create_hint_t *)buff;
+	stat_hint = (statdata_hint_t *)hint->type_specific;
 
 	hint->len = sizeof(stat40_t);
     
@@ -207,16 +207,16 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 	uint8_t i;
 	body_t *extbody;
 
-	reiser4_item_hint_t *hint;
-	reiser4_statdata_hint_t *stat_hint;
+	create_hint_t *hint;
+	statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-076", item != NULL); 
 	aal_assert("vpf-075", buff != NULL);
 
 	extbody = (body_t *)item->body;
 
-	hint = (reiser4_item_hint_t *)buff;
-	stat_hint = (reiser4_statdata_hint_t *)hint->type_specific;
+	hint = (create_hint_t *)buff;
+	stat_hint = (statdata_hint_t *)hint->type_specific;
     
 	if (!stat_hint->extmask)
 		return 0;

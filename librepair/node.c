@@ -29,7 +29,7 @@ errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
  
     if (reiser4_item_branch(&place)) {
 	item_entity_t *item = &place.item;
-	reiser4_ptr_hint_t ptr;
+	ptr_hint_t ptr;
 
 	place.pos.unit = reiser4_item_units(&place) - 1;
 	

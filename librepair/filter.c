@@ -103,7 +103,7 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
  * a node - level. */
 static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) {
     repair_filter_t *fd = (repair_filter_t *)data;
-    reiser4_ptr_hint_t ptr;
+    ptr_hint_t ptr;
 
     aal_assert("vpf-255", data != NULL);
     aal_assert("vpf-531", place != NULL);
@@ -163,7 +163,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
  * mark the pointed block as unused in bm_used bitmap. */
 static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data) {
     repair_filter_t *fd = (repair_filter_t *)data;
-    reiser4_ptr_hint_t ptr;
+    ptr_hint_t ptr;
     uint8_t level;
     
     aal_assert("vpf-257", fd != NULL);

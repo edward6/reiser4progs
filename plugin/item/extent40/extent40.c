@@ -438,7 +438,7 @@ static errno_t extent40_deallocate(item_entity_t *item,
 	
 	for (walk = aal_list_last(list); walk; ) {
 		aal_list_t *temp = aal_list_prev(walk);
-		reiser4_ptr_hint_t *ptr = (reiser4_ptr_hint_t *)walk->data;
+		ptr_hint_t *ptr = (ptr_hint_t *)walk->data;
 		
 		plugin_call(alloc->plugin->alloc_ops, release_region, alloc,
 			    ptr->ptr, ptr->width);
@@ -469,7 +469,7 @@ static aal_list_t *extent40_allocate(item_entity_t *item,
 	  requested block count in once.
 	*/
 	while (blocks > 0) {
-		reiser4_ptr_hint_t *ptr;
+		ptr_hint_t *ptr;
 
 		if (!(ptr = aal_calloc(sizeof(*ptr), 0)))
 			return NULL;
@@ -508,11 +508,11 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 
 	uint32_t blocks = 0;
 	aal_list_t *list = NULL;
-	reiser4_item_hint_t *hint;
+	create_hint_t *hint;
 
 	aal_assert("umka-1836", buff != NULL);
 	
-	hint = (reiser4_item_hint_t *)buff;
+	hint = (create_hint_t *)buff;
 	aal_assert("umka-1838", hint->alloc != NULL);
 	
 	size = extent40_size(item);
@@ -559,12 +559,12 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 
 	extent40_t *extent;
 	aal_device_t *device;
-	reiser4_item_hint_t *hint;
+	create_hint_t *hint;
 	
 	aal_assert("umka-1832", item != NULL);
 	aal_assert("umka-1833", buff != NULL);
 
-	hint = (reiser4_item_hint_t *)buff;
+	hint = (create_hint_t *)buff;
 	aal_assert("umka-1838", hint->alloc != NULL);
 	
 	device = item->context.device;

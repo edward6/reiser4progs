@@ -66,13 +66,13 @@ static int tail40_data(void) {
 static int32_t tail40_write(item_entity_t *item, void *buff,
 			    uint32_t pos, uint32_t count)
 {
-	reiser4_item_hint_t *hint;
+	create_hint_t *hint;
 	
 	aal_assert("umka-1677", buff != NULL);
 	aal_assert("umka-1678", item != NULL);
 	aal_assert("umka-1679", pos < item->len);
 
-	hint = (reiser4_item_hint_t *)buff;
+	hint = (create_hint_t *)buff;
 	
 	if (count > item->len - pos)
 		count = item->len - pos;

@@ -22,13 +22,13 @@ static int32_t nodeptr40_read(item_entity_t *item, void *buff,
 			      uint32_t pos, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
-	reiser4_ptr_hint_t *ptr_hint;
+	ptr_hint_t *ptr_hint;
 		
 	aal_assert("umka-1419", item != NULL);
 	aal_assert("umka-1420", buff != NULL);
 
+	ptr_hint = (ptr_hint_t *)buff;
 	nodeptr = nodeptr40_body(item);
-	ptr_hint = (reiser4_ptr_hint_t *)buff;
 	
 	ptr_hint->width = 1;
 	ptr_hint->ptr = np40_get_ptr(nodeptr);
@@ -69,16 +69,16 @@ static int32_t nodeptr40_write(item_entity_t *item, void *buff,
 {
 	nodeptr40_t *nodeptr;
 
-	reiser4_item_hint_t *hint;
-	reiser4_ptr_hint_t *ptr_hint;
+	create_hint_t *hint;
+	ptr_hint_t *ptr_hint;
 		
 	aal_assert("umka-1423", item != NULL);
 	aal_assert("umka-1424", buff != NULL);
 
 	nodeptr = nodeptr40_body(item);
 	
-	hint = (reiser4_item_hint_t *)buff;
-	ptr_hint = (reiser4_ptr_hint_t *)hint->type_specific;
+	hint = (create_hint_t *)buff;
+	ptr_hint = (ptr_hint_t *)hint->type_specific;
 	
 	np40_set_ptr(nodeptr, ptr_hint->ptr);
 	return 1;
@@ -97,11 +97,11 @@ static errno_t nodeptr40_init(item_entity_t *item) {
 static errno_t nodeptr40_estimate(item_entity_t *item, void *buff,
 				  uint32_t pos, uint32_t count) 
 {
-	reiser4_item_hint_t *hint;
+	create_hint_t *hint;
 	
 	aal_assert("vpf-068", buff != NULL);
     
-	hint = (reiser4_item_hint_t *)buff;
+	hint = (create_hint_t *)buff;
 	hint->len = sizeof(nodeptr40_t);
 	
 	return 0;

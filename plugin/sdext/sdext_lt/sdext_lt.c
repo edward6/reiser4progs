@@ -15,13 +15,13 @@ static errno_t sdext_lt_open(body_t *body,
 			     void *hint) 
 {
 	sdext_lt_t *ext;
-	reiser4_sdext_lt_hint_t *sdext_lt;
+	sdext_lt_hint_t *sdext_lt;
     
 	aal_assert("umka-1477", body != NULL);
 	aal_assert("umka-1478", hint != NULL);
 
 	ext = (sdext_lt_t *)body;
-	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
+	sdext_lt = (sdext_lt_hint_t *)hint;
     
 	sdext_lt->atime = sdext_lt_get_atime(ext);
 	sdext_lt->mtime = sdext_lt_get_mtime(ext);
@@ -40,13 +40,13 @@ static errno_t sdext_lt_init(body_t *body,
 			     void *hint) 
 {
 	sdext_lt_t *ext;
-	reiser4_sdext_lt_hint_t *sdext_lt;
+	sdext_lt_hint_t *sdext_lt;
     
 	aal_assert("umka-1475", body != NULL);
 	aal_assert("umka-1476", hint != NULL);
 	
 	ext = (sdext_lt_t *)body;
-	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
+	sdext_lt = (sdext_lt_hint_t *)hint;
     
 	sdext_lt_set_atime(ext, sdext_lt->atime);
 	sdext_lt_set_mtime(ext, sdext_lt->mtime);

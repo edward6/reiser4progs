@@ -181,13 +181,13 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 			       uint32_t pos, uint32_t count)
 {
 	uint32_t i;
+	entry_hint_t *hint;
 	direntry40_t *direntry;
-	reiser4_entry_hint_t *hint;
     
 	aal_assert("umka-866", item != NULL);
 	aal_assert("umka-1418", buff != NULL);
     
-	hint = (reiser4_entry_hint_t *)buff;
+	hint = (entry_hint_t *)buff;
 	aal_assert("umka-1599", hint != NULL);
 	
 	if (!(direntry = direntry40_body(item)))
@@ -254,13 +254,13 @@ static errno_t direntry40_estimate(item_entity_t *item, void *buff,
 				   uint32_t pos, uint32_t count) 
 {
 	uint32_t i;
-	reiser4_item_hint_t *hint;
-	reiser4_entry_hint_t *entry_hint;
+	create_hint_t *hint;
+	entry_hint_t *entry_hint;
 	    
 	aal_assert("vpf-095", buff != NULL);
     
-	hint = (reiser4_item_hint_t *)buff;
-	entry_hint = (reiser4_entry_hint_t *)hint->type_specific;
+	hint = (create_hint_t *)buff;
+	entry_hint = (entry_hint_t *)hint->type_specific;
 	
 	hint->len = count * sizeof(entry40_t);
     
@@ -833,8 +833,8 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	uint32_t i, offset;
 	direntry40_t *direntry;
 
-	reiser4_item_hint_t *hint;
-	reiser4_entry_hint_t *entry_hint;
+	create_hint_t *hint;
+	entry_hint_t *entry_hint;
     
 	aal_assert("umka-791", item != NULL);
 	aal_assert("umka-792", buff != NULL);
@@ -842,8 +842,8 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 
 	direntry = direntry40_body(item);
 
-	hint = (reiser4_item_hint_t *)buff;
-	entry_hint = (reiser4_entry_hint_t *)hint->type_specific;
+	hint = (create_hint_t *)buff;
+	entry_hint = (entry_hint_t *)hint->type_specific;
 
 	/*
 	  Expanding direntry in order to prepare the room for new entries. The

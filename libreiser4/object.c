@@ -130,9 +130,9 @@ static errno_t callback_find_entry(char *track, char *entry,
 {
 	errno_t res;
 	lookup_t lookup;
+	entry_hint_t entry_hint;
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
-	reiser4_entry_hint_t entry_hint;
 	
 	object = (reiser4_object_t *)data;
 
@@ -298,7 +298,7 @@ errno_t reiser4_object_truncate(
 /* Adds @entry to @object */
 errno_t reiser4_object_add_entry(
 	reiser4_object_t *object,           /* object for adding entry */
-	reiser4_entry_hint_t *entry)	    /* entry hint to be added */
+	entry_hint_t *entry)                /* entry hint to be added */
 {
 	aal_assert("umka-1975", object != NULL);
 	aal_assert("umka-1976", object->entity != NULL);
@@ -313,7 +313,7 @@ errno_t reiser4_object_add_entry(
 /* Removes @entry to @object */
 errno_t reiser4_object_rem_entry(
 	reiser4_object_t *object,           /* object for removing */
-	reiser4_entry_hint_t *entry)	    /* entry hint to be added */
+	entry_hint_t *entry)                /* entry hint to be added */
 {
 	aal_assert("umka-1977", object != NULL);
 	aal_assert("umka-1978", object->entity != NULL);
@@ -345,7 +345,7 @@ int32_t reiser4_object_write(
 reiser4_object_t *reiser4_object_create(
 	reiser4_fs_t *fs,		     /* fs obejct will be created on */
 	reiser4_object_t *parent,            /* parent object */
-	reiser4_object_hint_t *hint)	     /* object hint */
+	object_hint_t *hint)                 /* object hint */
 {
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
@@ -439,7 +439,7 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 			    const char *name)
 {
 	errno_t res;
-	reiser4_entry_hint_t entry_hint;
+	entry_hint_t entry_hint;
 	
 	aal_assert("umka-1944", object != NULL);
 	aal_assert("umka-1945", child != NULL);
@@ -472,9 +472,9 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 			      const char *name)
 {
 	errno_t res = 0;
+	entry_hint_t entry;
 	reiser4_place_t place;
 	reiser4_object_t *child;
-	reiser4_entry_hint_t entry;
 	
 	aal_assert("umka-1910", object != NULL);
 	aal_assert("umka-1918", name != NULL);
@@ -577,7 +577,7 @@ errno_t reiser4_object_metadata(
 
 lookup_t reiser4_object_lookup(reiser4_object_t *object,
 			     const char *name,
-			     reiser4_entry_hint_t *entry)
+			     entry_hint_t *entry)
 {
 	aal_assert("umka-1919", object != NULL);
 	aal_assert("umka-1920", name != NULL);
@@ -665,7 +665,7 @@ uint32_t reiser4_object_offset(
 
 /* Reads entry at current @object offset to passed @entry hint */
 errno_t reiser4_object_readdir(reiser4_object_t *object,
-			       reiser4_entry_hint_t *entry)
+			       entry_hint_t *entry)
 {
 	aal_assert("umka-1973", object != NULL);
 	aal_assert("umka-1974", entry != NULL);

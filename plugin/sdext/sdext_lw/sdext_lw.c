@@ -20,13 +20,13 @@ static errno_t sdext_lw_init(body_t *body,
 			     void *hint) 
 {
 	sdext_lw_t *ext;
-	reiser4_sdext_lw_hint_t *sdext_lw;
+	sdext_lw_hint_t *sdext_lw;
     
 	aal_assert("umka-1186", body != NULL);
 	aal_assert("umka-1187", hint != NULL);
 	
 	ext = (sdext_lw_t *)body;
-	sdext_lw = (reiser4_sdext_lw_hint_t *)hint;
+	sdext_lw = (sdext_lw_hint_t *)hint;
     
 	sdext_lw_set_mode(ext, sdext_lw->mode);
 	sdext_lw_set_nlink(ext, sdext_lw->nlink);
@@ -39,13 +39,13 @@ static errno_t sdext_lw_open(body_t *body,
 			     void *hint) 
 {
 	sdext_lw_t *ext;
-	reiser4_sdext_lw_hint_t *sdext_lw;
+	sdext_lw_hint_t *sdext_lw;
     
 	aal_assert("umka-1188", body != NULL);
 	aal_assert("umka-1189", hint != NULL);
 
 	ext = (sdext_lw_t *)body;
-	sdext_lw = (reiser4_sdext_lw_hint_t *)hint;
+	sdext_lw = (sdext_lw_hint_t *)hint;
     
 	sdext_lw->mode = sdext_lw_get_mode(ext);
 	sdext_lw->nlink = sdext_lw_get_nlink(ext);

@@ -26,13 +26,13 @@ static errno_t sdext_unix_open(body_t *body,
 			       void *hint) 
 {
 	sdext_unix_t *ext;
-	reiser4_sdext_unix_hint_t *sdext_unix;
+	sdext_unix_hint_t *sdext_unix;
     
 	aal_assert("umka-886", body != NULL);
 	aal_assert("umka-887", hint != NULL);
 
 	ext = (sdext_unix_t *)body;
-	sdext_unix = (reiser4_sdext_unix_hint_t *)hint;
+	sdext_unix = (sdext_unix_hint_t *)hint;
     
 	sdext_unix->uid = sdext_unix_get_uid(ext);
 	sdext_unix->gid = sdext_unix_get_gid(ext);
@@ -55,13 +55,13 @@ static errno_t sdext_unix_init(body_t *body,
 			       void *hint) 
 {
 	sdext_unix_t *ext;
-	reiser4_sdext_unix_hint_t *sdext_unix;
+	sdext_unix_hint_t *sdext_unix;
     
 	aal_assert("umka-884", body != NULL);
 	aal_assert("umka-885", hint != NULL);
 	
 	ext = (sdext_unix_t *)body;
-	sdext_unix = (reiser4_sdext_unix_hint_t *)hint;
+	sdext_unix = (sdext_unix_hint_t *)hint;
     
 	sdext_unix_set_uid(ext, sdext_unix->uid);
 	sdext_unix_set_gid(ext, sdext_unix->gid);

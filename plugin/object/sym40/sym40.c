@@ -24,8 +24,8 @@ static int32_t sym40_read(object_entity_t *entity,
 			  void *buff, uint32_t n)
 {
 	item_entity_t *item;
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
+	create_hint_t hint;
+	statdata_hint_t stat;
 
 	sym40_t *sym = (sym40_t *)entity;
 
@@ -88,21 +88,21 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
-				     reiser4_object_hint_t *hint,
-				     place_t *place)
+				     object_hint_t *hint, place_t *place)
 {
 	oid_t objectid;
 	oid_t locality;
 	oid_t parent_locality;
 
 	sym40_t *sym;
+    
+	statdata_hint_t stat;
+	create_hint_t stat_hint;
+    
+	sdext_lw_hint_t lw_ext;
+	sdext_unix_hint_t unix_ext;
+	
 	reiser4_plugin_t *stat_plugin;
-    
-	reiser4_statdata_hint_t stat;
-	reiser4_item_hint_t stat_hint;
-    
-	reiser4_sdext_lw_hint_t lw_ext;
-	reiser4_sdext_unix_hint_t unix_ext;
 	
 	aal_assert("umka-1741", tree != NULL);
 	aal_assert("umka-1740", hint != NULL);
@@ -360,8 +360,8 @@ static errno_t callback_find_entry(char *track, char *entry,
 	item_entity_t *item;
 	
 	object_entity_t *entity;
+	entry_hint_t entry_hint;
 	reiser4_plugin_t *plugin;
-	reiser4_entry_hint_t entry_hint;
 	
 	sym = (sym40_t *)data;
 	place = &sym->obj.statdata;

@@ -62,7 +62,7 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 */
 errno_t reiser4_item_estimate(
 	reiser4_place_t *place,	   /* item we will work with */
-	reiser4_item_hint_t *hint) /* item hint to be estimated */
+	create_hint_t *hint)       /* item hint to be estimated */
 {
 	errno_t res;
 	

@@ -76,7 +76,7 @@ static errno_t tree_insert(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* insertion point will be saved here */
 	uint8_t level,              /* target level */
-	reiser4_item_hint_t *item)  /* item hint to be inserted into tree */
+	create_hint_t *item)        /* item hint to be inserted into tree */
 {
 	aal_assert("umka-846", tree != NULL);
 	aal_assert("umka-847", item != NULL);

@@ -24,14 +24,14 @@ extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
 				      reiser4_key_t *offset);
 
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
-				      reiser4_entry_hint_t *entry);
+				      entry_hint_t *entry);
 
 extern errno_t reiser4_object_telldir(reiser4_object_t *object,
 				      reiser4_key_t *offset);
 
 extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 				      const char *name,
-				      reiser4_entry_hint_t *entry);
+				      entry_hint_t *entry);
 
 extern void reiser4_object_close(reiser4_object_t *object);
 extern errno_t reiser4_object_stat(reiser4_object_t *object);
@@ -46,7 +46,7 @@ extern reiser4_object_t *reiser4_object_begin(reiser4_fs_t *fs,
 
 extern reiser4_object_t *reiser4_object_create(reiser4_fs_t *fs,
 					       reiser4_object_t *parent,
-					       reiser4_object_hint_t *hint);
+					       object_hint_t *hint);
 
 extern errno_t reiser4_object_print(reiser4_object_t *object,
 				    aal_stream_t *stream);
@@ -62,10 +62,10 @@ extern int32_t reiser4_object_write(reiser4_object_t *object,
 				    void *buff, uint64_t n);
 
 extern errno_t reiser4_object_add_entry(reiser4_object_t *object,
-					reiser4_entry_hint_t *entry);
+					entry_hint_t *entry);
 
 extern errno_t reiser4_object_rem_entry(reiser4_object_t *object,
-					reiser4_entry_hint_t *entry);
+					entry_hint_t *entry);
 
 extern errno_t reiser4_object_truncate(reiser4_object_t *object,
 				       uint64_t n);

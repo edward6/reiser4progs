@@ -41,7 +41,7 @@ static errno_t debugfs_object_cat(reiser4_object_t *object) {
 static errno_t debugfs_object_ls(reiser4_object_t *object) {
 	errno_t res;
 	char buff[4096];
-	reiser4_entry_hint_t entry;
+	entry_hint_t entry;
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_exception_error("Can't reset object %s.",

@@ -296,7 +296,7 @@ typedef errno_t (*detach_func_t) (reiser4_tree_t *,
 /* Tree modification trap typedefs */
 typedef bool_t (*insert_func_t) (reiser4_tree_t *,
 				 reiser4_place_t *,
-				 reiser4_item_hint_t *, 
+				 create_hint_t *, 
 				 void *);
 
 typedef bool_t (*remove_func_t) (reiser4_tree_t *,
