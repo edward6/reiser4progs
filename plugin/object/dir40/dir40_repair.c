@@ -384,6 +384,8 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		if ((res = plug_call(object->plug->o.object_ops,
 				     add_entry, object, &entry)))
 			return res;
+
+		break;
 	default:
 		return lookup;
 	}
@@ -444,6 +446,7 @@ errno_t dir40_form(object_entity_t *object) {
 	case PRESENT:
 		plug_call(entry.object.plug->o.key_ops, assign,
 			  &object->info.parent, &entry.object);
+		break;
 	default:
 		return -EINVAL;
 	}

@@ -328,7 +328,8 @@ int main(int argc, char *argv[]) {
 				"them.\n", repair.fixable);
 			exit_code = FIXABLE_ERROR;
 		}
-	}
+	} else
+		aal_exception_mess("\nFinished not successfully.");
     
 	aal_stream_init(&stream);
 

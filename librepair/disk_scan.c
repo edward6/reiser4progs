@@ -151,8 +151,7 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		}
 		
 	next:
-		reiser4_node_sync(node);
-		reiser4_node_close(node);
+		reiser4_node_fini(node);
 		blk++;
 	}
  error:

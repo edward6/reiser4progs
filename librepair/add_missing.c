@@ -134,6 +134,28 @@ static errno_t repair_am_node_prepare(repair_am_t *am, reiser4_node_t *node) {
 	return 0;
 }
 
+static errno_t repair_am_blk_free(repair_am_t *am, blk_t blk) {
+	errno_t res;
+	
+	aal_assert("vpf-1330", am != NULL);
+
+	if ((res = reiser4_alloc_permit(am->repair->fs->alloc, blk, 1)))
+		return res;
+
+	return reiser4_alloc_release(am->repair->fs->alloc, blk, 1);
+}
+
+static errno_t repair_am_blk_used(repair_am_t *am, blk_t blk) {
+	errno_t res;
+	
+	aal_assert("vpf-1330", am != NULL);
+
+	if ((res = reiser4_alloc_permit(am->repair->fs->alloc, blk, 1)))
+		return res;
+
+	return reiser4_alloc_occupy(am->repair->fs->alloc, blk, 1);
+}
+
 typedef struct stat_bitmap {
 	uint64_t read, by_node, by_item;
 } stat_bitmap_t;
@@ -178,9 +200,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 			goto error_close_node;
 
 		if (reiser4_node_items(node) == 0) {
-			reiser4_node_mkclean(node);
 			aux_bitmap_clear(bitmap, node_blocknr(node));
-			reiser4_alloc_permit(alloc, node_blocknr(node), 1);
+			repair_am_blk_free(am, node_blocknr(node));
 			reiser4_node_close(node);
 			blk++;
 			continue;
@@ -195,8 +216,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 		} else if (res == 0) {
 			/* Has been inserted. */
 			aux_bitmap_clear(bitmap, node_blocknr(node));
-			reiser4_alloc_permit(alloc, node_blocknr(node), 1);
-			reiser4_alloc_occupy(alloc, node_blocknr(node), 1);
+			repair_am_blk_used(am, node_blocknr(node));
 
 			stat->by_node++;
 
@@ -278,7 +298,7 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 		}
 
 		aux_bitmap_clear(bitmap, node_blocknr(node));
-		reiser4_alloc_permit(alloc, node_blocknr(node), 1);
+		repair_am_blk_free(am, node_blocknr(node));
 		reiser4_node_close(node);
 		blk++;
 	}

@@ -194,7 +194,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 			ts->stat.fixed_twigs++;
 		
 		if (!reiser4_node_locked(node))
-			reiser4_node_close(node);
+			reiser4_node_fini(node);
 		
 		blk++;
 	}

@@ -233,10 +233,18 @@ errno_t reiser4_alloc_release(
 	blk_t start, 		/* start block to be deallocated */
 	count_t count)		/* count of blocks to be deallocated */
 {
+	errno_t res;
+	
 	aal_assert("umka-503", alloc != NULL);
 
-	return plug_call(alloc->entity->plug->o.alloc_ops, 
-			 release, alloc->entity, start, count);
+	if ((res = plug_call(alloc->entity->plug->o.alloc_ops, 
+			     release, alloc->entity, start, count)))
+		return res;
+
+	if (alloc->hook.release)
+		alloc->hook.release(alloc, start, count, alloc->hook.data);
+
+	return 0;
 }
 
 /* Makes request to plugin for allocating block */
@@ -245,12 +253,19 @@ count_t reiser4_alloc_allocate(
 	blk_t *start,           /* start block */
 	count_t count)          /* requested block count */
 {
+	count_t blocks;
+	
 	aal_assert("umka-505", alloc != NULL);
 
 	*start = 0;
 	
-	return plug_call(alloc->entity->plug->o.alloc_ops, 
-			 allocate, alloc->entity, start, count);
+	blocks = plug_call(alloc->entity->plug->o.alloc_ops, 
+			   allocate, alloc->entity, start, count);
+	
+	if (blocks && alloc->hook.alloc)
+		alloc->hook.alloc(alloc, *start, blocks, alloc->hook.data);
+		
+	return blocks;
 }
 
 errno_t reiser4_alloc_valid(
@@ -318,11 +333,16 @@ errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc,
 {
 	aal_assert("vpf-585", alloc != NULL);
 	
-	if (alloc->forbid) {
-		aux_bitmap_clear_region(alloc->forbid,
-					start, count);
-	}
+	if (!alloc->forbid) 
+		return 0;
 	
+	aux_bitmap_clear_region(alloc->forbid, start, count);
+
+	if (alloc->forbid->marked == 0) {
+		aux_bitmap_close(alloc->forbid);
+		alloc->forbid = NULL;
+	}
+
 	return 0;
 }
 
