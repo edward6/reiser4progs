@@ -95,7 +95,7 @@ static errno_t tfrag_process_node(
 		item_entity_t *item;
 		reiser4_place_t place;
 
-		/* Initializing item at @coord */
+		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
