@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
 
 	for (i = 1; i <= 100; i++) {
 		aal_hash_table_insert(table, (void *)i,
-				      (void *)(1 * 100));
+				      (void *)(i * 100));
 	}
 
 	aal_hash_table_free(table);
