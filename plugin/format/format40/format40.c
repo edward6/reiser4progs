@@ -297,11 +297,18 @@ static errno_t format40_backup(generic_entity_t *entity, aal_stream_t *stream) {
 	aal_assert("vpf-1396", entity != NULL);
 	aal_assert("vpf-1397", stream != NULL);
 	
+	aal_stream_write(stream, SUPER(entity)->sb_magic, MAGIC_SIZE);
+	
+	aal_stream_write(stream, &SUPER(entity)->sb_block_count, 
+			 sizeof(SUPER(entity)->sb_block_count));
+	
 	aal_stream_write(stream, &SUPER(entity)->sb_mkfs_id, 
 			 sizeof(SUPER(entity)->sb_mkfs_id));
 	
-	/* Probably not default plugin ids will be added here also 
-	   in the future. */
+	aal_stream_write(stream, &SUPER(entity)->sb_tail_policy, 
+			 sizeof(SUPER(entity)->sb_tail_policy));
+	
+	/* Not default plugin ids should be written also in the future. */
 	
 	return 0;
 }

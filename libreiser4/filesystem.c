@@ -593,20 +593,6 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	if (reiser4_backup_unpack(fs, stream))
 		goto error_free_status;
 
-	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_error("Can't unpack backup blocks. Stream is over?");
-		goto error_free_status;
-	}
-
-	if (aal_strncmp(sign, BACKUP_PACK_SIGN, 4)) {
-		aal_error("Invalid backup blocks sign %s is "
-			  "detected in stream.", sign);
-		goto error_free_status;
-	}
-
-	if (reiser4_backup_unpack(fs, stream))
-		goto error_free_status;
-
 	while (1) {
 		node_t *node;
 		
