@@ -2928,7 +2928,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	{
 		aal_error("Can't prepare space in tree. No space left?");
 
-		if (old.node)
+		if (old.node != NULL)
 			reiser4_tree_unlock_node(tree, old.node);
 		
 		return space;
@@ -2989,8 +2989,10 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	if (place->node != tree->root && !place->node->p.node) {
 		reiser4_place_t aplace;
 
+		reiser4_place_assign(&aplace, tree->root, 0, MAX_UINT32);
+		
 		/* Prepare parent place for new created node. */
-		if (old.node) {
+		if (old.node != NULL) {
 			if (level < reiser4_node_get_level(old.node)) {
 				/* If level lookup gave us is higher level, this
 				   means, that new leaf node was allocated we
@@ -3001,28 +3003,24 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 				reiser4_place_dup(&aplace, &old.node->p);
 				aplace.pos.item++;
 			}
-		} else {
-			reiser4_place_assign(&aplace, tree->root,
-					     0, MAX_UINT32);
-		}
 
-		/* Check if we insert something in root node and tree was not
-		   empty before insert is called. */
-		if (old.node && level == reiser4_tree_get_height(tree)) {
-			reiser4_node_lock(place->node);
+			/* Check if we insert something in root node and tree
+			   was not empty before insert is called. */
+			if (level == reiser4_tree_get_height(tree)) {
+				reiser4_node_lock(place->node);
 
-			if ((res = reiser4_tree_growup(tree))) {
-				aal_error("Can't grow tree up during "
-					  "modify it.");
+				if ((res = reiser4_tree_growup(tree))) {
+					aal_error("Can't grow tree up during "
+						  "modify it.");
+					reiser4_node_unlock(place->node);
+					return res;
+				}
+			
 				reiser4_node_unlock(place->node);
-				return res;
-			}
-			
-			reiser4_node_unlock(place->node);
 
-			reiser4_place_dup(&aplace, &old.node->p);
-			
-			aplace.pos.item++;
+				reiser4_place_dup(&aplace, &old.node->p);
+				aplace.pos.item++;
+			}
 		}
 
 		/* Attaching new node to the tree. */
@@ -3039,7 +3037,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	if ((res = reiser4_place_fetch(place)))
 		return res;
 
-	/* Calling @hint->place_func iff a new item was created. */
+	/* Calling @hint->place_func if a new item was created. */
 	if (hint->place_func && place->pos.unit == MAX_UINT32) {
 		if ((res = hint->place_func(place, hint->data)))
 			return res;
