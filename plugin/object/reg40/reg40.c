@@ -172,7 +172,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-errno_t reg40_create_sd(obj40_t *obj, rid_t pid) {
+errno_t reg40_create_stat(obj40_t *obj, rid_t pid) {
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_ext;
 	create_hint_t stat_hint;
@@ -264,7 +264,7 @@ static object_entity_t *reg40_create(object_info_t *info,
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
-	if (reg40_create_sd(&reg->obj, hint->statdata))
+	if (reg40_create_stat(&reg->obj, hint->statdata))
 	    goto error_free_reg;
 
 	aal_memcpy(&info->start, STAT_PLACE(&reg->obj),
