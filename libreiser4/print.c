@@ -4,44 +4,74 @@
    print.c -- printing different reiser4 objects stuff. */
 
 #ifndef ENABLE_STAND_ALONE
-#include <stdlib.h>
 #include <reiser4/reiser4.h>
 
-aal_stream_t print_stream;
+static uint32_t curr_size; 
+static uint32_t heap_size;
+static aal_list_t *streams;
+
+static void reiser4_print_recycle(uint32_t heap);
+
+static void reiser4_add_stream(aal_stream_t *stream) {
+	aal_list_t *new;
+	
+	if (curr_size + 1 > heap_size)
+		reiser4_print_recycle(heap_size);
+
+	new = aal_list_append(streams, stream);
+
+	if (!new->prev)
+		streams = new;
+
+	curr_size++;
+}
+
+static void reiser4_rem_stream(aal_stream_t *stream) {
+	aal_list_t *next;
+	
+	next = aal_list_remove(streams, stream);
+
+	if (!next || !next->prev)
+		streams = next;
+	
+	curr_size--;
+}
+
+static void reiser4_print_recycle(uint32_t heap) {
+	aal_list_t *walk, *next;
+
+	for (walk = streams; walk && curr_size > heap;
+	     walk = next)
+	{
+		next = walk->next;
+		aal_stream_fini(walk->data);
+		reiser4_rem_stream(walk->data);
+	}
+}
+
+void reiser4_print_init(uint32_t heap) {
+	curr_size = 0;
+	streams = NULL;
+	heap_size = heap;
+}
+
+void reiser4_print_fini(void) {
+	reiser4_print_recycle(0);
+}
 
 char *reiser4_print_key(reiser4_key_t *key,
 			uint16_t options)
 {
+	aal_stream_t *stream;
+	
 	aal_assert("umka-2379", key != NULL);
-	
-	aal_stream_reset(&print_stream);
-	reiser4_key_print(key, &print_stream, options);
-	
-	return (char *)print_stream.entity;
-}
 
-void reiser4_print_node(node_t *node, uint32_t start, 
-			uint32_t count, uint16_t options) 
-{
-	aal_stream_t stream;
+	if (!(stream = aal_stream_create(NULL, &memory_stream)))
+		return NULL;
+
+	reiser4_key_print(key, stream, options);
+	reiser4_add_stream(stream);
 	
-	aal_assert("umka-2642", node != NULL);
-	
-	aal_stream_init(&stream, NULL, &file_stream);
-
-	plug_call(node->entity->plug->o.node_ops, print,
-		  node->entity, &stream, start,  count, options);
-	
-	aal_stream_fini(&stream);
-}
-
-void reiser4_print_format(reiser4_format_t *format, uint16_t options) {
-	aal_stream_t stream;
-
-	aal_assert("vpf-175", format != NULL);
-
-	aal_stream_init(&stream, NULL, &file_stream);
-	reiser4_format_print(format, &print_stream);
-	aal_stream_fini(&stream);
+	return (char *)stream->entity;
 }
 #endif
