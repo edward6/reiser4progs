@@ -8,7 +8,9 @@
 
 #include "types.h"
 
-extern errno_t debugfs_pack_meta(reiser4_fs_t *fs);
-extern reiser4_fs_t *debugfs_unpack_meta(aal_device_t *device);
+extern errno_t debugfs_pack_meta(reiser4_fs_t *fs,
+				 char *filename);
 
+extern reiser4_fs_t *debugfs_unpack_meta(aal_device_t *device,
+					 char *filename);
 #endif

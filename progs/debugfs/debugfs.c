@@ -240,29 +240,39 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device with file_ops and default blocksize */
 	if (!(device = aal_device_open(&file_ops, host_dev,
-				       512, O_RDONLY)))
+				       512, O_RDWR)))
 	{
 		aal_exception_error("Can't open %s. %s.", host_dev,
 				    strerror(errno));
 		goto error_free_libreiser4;
 	}
 
-	/* Open file system on the device */
-	if (!(fs = reiser4_fs_open(device, FALSE))) {
-		aal_exception_error("Can't open reiser4 on %s", host_dev);
-		goto error_free_device;
-	}
+	if (behav_flags & BF_UNPACK_META) {
+		if (!(fs = debugfs_unpack_meta(device, "/home/umka/tmp/metadata"))) {
+			aal_exception_error("Can't unpack filesystem "
+					    "from passed stream.");
+			goto error_free_device;
+		}
+		
+		reiser4_fs_sync(fs);
+	} else {
+		/* Open file system on the device */
+		if (!(fs = reiser4_fs_open(device, FALSE))) {
+			aal_exception_error("Can't open reiser4 on %s", host_dev);
+			goto error_free_device;
+		}
 
-	/* Opening the journal */
-	if (!(fs->journal = reiser4_journal_open(fs, device))) {
-		aal_exception_error("Can't open journal on %s", host_dev);
-		goto error_free_fs;
+		/* Opening the journal */
+		if (!(fs->journal = reiser4_journal_open(fs, device))) {
+			aal_exception_error("Can't open journal on %s", host_dev);
+			goto error_free_fs;
+		}
+
+		/* Initializing tree. */
+		if (!(fs->tree = reiser4_tree_init(fs, NULL)))
+			goto error_free_journal;
 	}
 	
-	/* Initializing tree and tree's traps */
-	if (!(fs->tree = reiser4_tree_init(fs, NULL)))
-		goto error_free_journal;
-    
 	/* In the case no print flags was specified, debugfs will print super
 	   blocks by defaut. */
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
@@ -316,12 +326,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (behav_flags & BF_PACK_META) {
-		if (debugfs_pack_meta(fs))
+		if (debugfs_pack_meta(fs, "/home/umka/tmp/metadata"))
 			goto error_free_tree;
-	}
-	
-	if (behav_flags & BF_UNPACK_META) {
-		aal_exception_error("Sorry, not implemented yet!");
 	}
 	
 	/* Releasing the tree */

@@ -479,7 +479,8 @@ static void repair_filter_update(repair_filter_t *fd) {
 	if (!fd->progress_handler)
 		return;
 
-	aal_stream_init(&stream);
+	aal_stream_init(&stream, NULL, &memory_stream);
+	
 	aal_stream_format(&stream, "\tRead nodes %llu\n", 
 			  stat->read_nodes);
 	aal_stream_format(&stream, "\tNodes left in the tree %llu\n",
@@ -537,7 +538,7 @@ static void repair_filter_update(repair_filter_t *fd) {
 	aal_stream_format(&stream, time_str);
 
 	fd->progress->state = PROGRESS_STAT;
-	fd->progress->text = (char *)stream.data;
+	fd->progress->text = (char *)stream.entity;
 	fd->progress_handler(fd->progress);
 
 	aal_stream_fini(&stream);

@@ -296,10 +296,7 @@ const char *libreiser4_version(void) {
    before any actions performed on libreiser4. */
 errno_t libreiser4_init(void) {
 #ifndef ENABLE_STAND_ALONE
-	if (reiser4_print_init()) {
-		aal_exception_error("Can't initialize print factory");
-		return -EINVAL;
-	}
+	aal_stream_init(&print_stream, NULL, &memory_stream);
 #endif
     
 	if (reiser4_factory_init()) {
@@ -311,7 +308,7 @@ errno_t libreiser4_init(void) {
 	
  error_free_print:
 #ifndef ENABLE_STAND_ALONE
-	reiser4_print_fini();
+	aal_stream_fini(&print_stream);
 #endif
 	return -EINVAL;
 }
@@ -321,6 +318,6 @@ void libreiser4_fini(void) {
 	reiser4_factory_fini();
 	
 #ifndef ENABLE_STAND_ALONE
-	reiser4_print_init();
+	aal_stream_fini(&print_stream);
 #endif
 }

@@ -122,7 +122,7 @@ static void repair_twig_scan_update(repair_ts_t *ts) {
 	ts->progress->state = PROGRESS_END;
 	ts->progress_handler(ts->progress);
 	
-	aal_stream_init(&stream);
+	aal_stream_init(&stream, NULL, &memory_stream);
 	aal_stream_format(&stream, "\tRead twigs %llu\n", ts->stat.read_twigs);
 	
 	if (ts->stat.fixed_twigs) {
@@ -148,7 +148,7 @@ static void repair_twig_scan_update(repair_ts_t *ts) {
 	aal_stream_format(&stream, time_str);
 	
 	ts->progress->state = PROGRESS_STAT;
-	ts->progress->text = (char *)stream.data;
+	ts->progress->text = (char *)stream.entity;
 	ts->progress_handler(ts->progress);
 	
 	aal_stream_fini(&stream);

@@ -143,6 +143,16 @@ libuuid could not be found which is required for the --with-uuid
 	)
 	with_uuid=no
     )
+
+    if test "$with_uuid" = yes; then
+        AC_CHECK_LIB(uuid, uuid_unparse, ,
+	    AC_MSG_WARN(
+libuuid could not be found which is required for the --with-uuid
+  	    )
+	    with_uuid=no
+        )
+    fi
+
     UUID_LIBS="$LIBS"
     LIBS="$OLD_LIBS"
 fi

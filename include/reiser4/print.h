@@ -10,8 +10,7 @@
 #ifndef ENABLE_STAND_ALONE
 #include <reiser4/types.h>
 
-extern errno_t reiser4_print_init(void);
-extern errno_t reiser4_print_fini(void);
+extern aal_stream_t print_stream;
 
 extern char *reiser4_print_key(reiser4_key_t *key, uint16_t options);
 

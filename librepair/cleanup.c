@@ -74,7 +74,7 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	cleanup->progress->state = PROGRESS_END;
 	cleanup->progress_handler(cleanup->progress);
 	
-	aal_stream_init(&stream);
+	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	aal_stream_format(&stream, "\tRemoved items %llu\n", 
 			  cleanup->stat.removed);
@@ -88,7 +88,7 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	aal_stream_format(&stream, time_str);
 	
 	cleanup->progress->state = PROGRESS_STAT;
-	cleanup->progress->text = (char *)stream.data;
+	cleanup->progress->text = (char *)stream.entity;
 	cleanup->progress_handler(cleanup->progress);
 	
 	aal_stream_fini(&stream);

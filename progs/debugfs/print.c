@@ -41,14 +41,19 @@ errno_t debugfs_print_buff(void *buff, uint32_t size) {
 }
 
 errno_t debugfs_print_stream(aal_stream_t *stream) {
-	char buff[4096];
+	char buff[256];
 
 	aal_stream_reset(stream);
 	
-	while (stream->offset < stream->size - 1) {
+	while (stream->offset < stream->size) {
 		uint32_t size;
+
+		size = (stream->size - stream->offset);
 		
-		if ((size = aal_stream_read(stream, buff, 4096)) <= 0)
+		if (size > sizeof(buff))
+			size = sizeof(buff) - size;
+
+		if ((size = aal_stream_read(stream, buff, size)) <= 0)
 			return size;
 		
 		if (debugfs_print_buff(buff, size))
@@ -66,13 +71,12 @@ static errno_t tprint_process_node(
 {
 	errno_t res;
 	aal_stream_t stream;
-	
-	aal_stream_init(&stream);
+
+	aal_stream_init(&stream, stdout, &file_stream);
 
 	if ((res = reiser4_node_print(node, &stream)))
 		goto error_free_stream;
 
-	debugfs_print_stream(&stream);
 	aal_stream_fini(&stream);
 	
 	return 0;
@@ -167,7 +171,7 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	
 	aal_assert("umka-1299", fs != NULL);
 
-	aal_stream_init(&stream);
+	aal_stream_init(&stream, stdout, &file_stream);
 		
 	if ((res = reiser4_master_print(fs->master, &stream)))
 		return res;
@@ -188,9 +192,8 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 #endif
 
 	aal_stream_format(&stream, "\n");
-	debugfs_print_stream(&stream);
-	
 	aal_stream_fini(&stream);
+	
 	return 0;
 }
 
@@ -201,21 +204,19 @@ errno_t debugfs_print_status(reiser4_fs_t *fs) {
 	
 	aal_assert("umka-2495", fs != NULL);
 
-	aal_stream_init(&stream);
+	aal_stream_init(&stream, stdout, &file_stream);
 		
 	if ((res = reiser4_status_print(fs->status, &stream)))
 		return res;
 
 	aal_stream_format(&stream, "\n");
-	debugfs_print_stream(&stream);
-	
 	aal_stream_fini(&stream);
+	
 	return 0;
 }
 
 /* Prints format-specific super block */
 errno_t debugfs_print_format(reiser4_fs_t *fs) {
-	errno_t res;
 	aal_stream_t stream;
 
 	if (!fs->format->entity->plug->o.format_ops->print) {
@@ -224,20 +225,17 @@ errno_t debugfs_print_format(reiser4_fs_t *fs) {
 		return 0;
 	}
     
-	aal_stream_init(&stream);
-	
-	res = reiser4_format_print(fs->format, &stream);
-    
-	aal_stream_format(&stream, "\n");
-	debugfs_print_stream(&stream);
+	aal_stream_init(&stream, stdout, &file_stream);
+	reiser4_format_print(fs->format, &stream);
 
+	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
-    	return res;
+	
+    	return 0;
 }
 
 /* Prints oid allocator */
 errno_t debugfs_print_oid(reiser4_fs_t *fs) {
-	errno_t res;
 	aal_stream_t stream;
     
 	if (!fs->oid->entity->plug->o.oid_ops->print) {
@@ -246,50 +244,42 @@ errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 		return 0;
 	}
 
-	aal_stream_init(&stream);
-
-	res = reiser4_oid_print(fs->oid, &stream);
+	aal_stream_init(&stream, stdout, &file_stream);
+	reiser4_oid_print(fs->oid, &stream);
 
 	aal_stream_format(&stream, "\n");
-	debugfs_print_stream(&stream);
-
 	aal_stream_fini(&stream);
-    	return res;
+	
+    	return 0;
 }
 
 /* Prints block allocator */
 errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
-	errno_t res;
 	aal_stream_t stream;
 
-	aal_stream_init(&stream);
-    
-	res = reiser4_alloc_print(fs->alloc, &stream);
+	aal_stream_init(&stream, stdout, &file_stream);
+	reiser4_alloc_print(fs->alloc, &stream);
 
 	aal_stream_format(&stream, "\n");
-	debugfs_print_stream(&stream);
-
 	aal_stream_fini(&stream);
-    	return res;
+	
+    	return 0;
 }
 
 /* Prints journal */
 errno_t debugfs_print_journal(reiser4_fs_t *fs) {
-	errno_t res;
 	aal_stream_t stream;
 
-	aal_stream_init(&stream);
-	
 	if (!fs->journal)
 		return -EINVAL;
 
-	res = reiser4_journal_print(fs->journal, &stream);
+	aal_stream_init(&stream, stdout, &file_stream);
+	reiser4_journal_print(fs->journal, &stream);
 
 	aal_stream_format(&stream, "\n");
-	debugfs_print_stream(&stream);
-
 	aal_stream_fini(&stream);
-    	return res;
+	
+    	return 0;
 }
 
 struct fprint_hint {
@@ -329,18 +319,16 @@ errno_t debugfs_print_file(
 	if (!(object = reiser4_object_open(fs->tree, filename, FALSE)))
 		return -EINVAL;
 
-	/* If --print-items option is specified, we show only items belong to
-	   the file. If no, that we show all items whihc lie in the same block
-	   as the item belong to the file denoted by @filename. */
+	/* If --print-file option is specified, we show only items belong to the
+	   file. If no, that we show all items whihc lie in the same block as
+	   the item belong to the file denoted by @filename. */
 	if (PF_ITEMS & flags) {
 		aal_stream_t stream;
 
-		aal_stream_init(&stream);
-		
-		if ((res = reiser4_object_print(object, &stream)) == 0)
-			debugfs_print_stream(&stream);
-		
+		aal_stream_init(&stream, stdout, &file_stream);
+		reiser4_object_print(object, &stream);
 		aal_stream_fini(&stream);
+		
 	} else {
 		hint.old = 0;
 		hint.data = fs;

@@ -734,7 +734,7 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 		return;
 	
 	stat = &sem->stat;
-	aal_stream_init(&stream);
+	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	if (stat->dirs || stat->files || stat->syms || stat->spcls) {
 		aal_stream_format(&stream, "\tObject found:\n");
@@ -771,7 +771,7 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 	aal_stream_format(&stream, time_str);
 
 	sem->progress->state = PROGRESS_STAT;
-	sem->progress->text = (char *)stream.data;
+	sem->progress->text = (char *)stream.entity;
 	sem->progress_handler(sem->progress);
 
 	aal_stream_fini(&stream);

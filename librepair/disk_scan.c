@@ -49,7 +49,7 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
 	ds->progress->state = PROGRESS_END;
 	ds->progress_handler(ds->progress);
 	
-	aal_stream_init(&stream);
+	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	aal_stream_format(&stream, "\tRead nodes %llu\n", ds->stat.read_nodes);
 	aal_stream_format(&stream, "\tGood nodes %llu\n", ds->stat.good_nodes);
@@ -74,7 +74,7 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
 	aal_stream_format(&stream, time_str);
 	
 	ds->progress->state = PROGRESS_STAT;
-	ds->progress->text = (char *)stream.data;
+	ds->progress->text = (char *)stream.entity;
 	ds->progress_handler(ds->progress);
 	
 	aal_stream_fini(&stream);

@@ -249,7 +249,7 @@ void misc_print_banner(char *name) {
     
 	aal_snprintf(banner, 255, BANNER);
 	misc_print_wrap(stderr, banner);
-	printf("\n");
+	fprintf(stderr, "\n");
 	aal_free(banner);
 }
 

@@ -75,7 +75,7 @@ static void repair_add_missing_update(repair_am_t *am) {
 	
 	stat = &am->stat;
 	
-	aal_stream_init(&stream);	
+	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, by "
 			  "items %llu\n", stat->read_twigs, stat->by_twig,
@@ -94,7 +94,7 @@ static void repair_add_missing_update(repair_am_t *am) {
 	aal_stream_format(&stream, time_str);
 	
 	am->progress->state = PROGRESS_STAT;
-	am->progress->text = (char *)stream.data;
+	am->progress->text = (char *)stream.entity;
 	am->progress_handler(am->progress);
 	
 	aal_stream_fini(&stream);
