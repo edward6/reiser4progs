@@ -803,7 +803,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 
 /* Fuses two mergeable items if they lie in the same node side by side. This is
    needed for fsck if it discovered, that two items are mergeable and lie in the
-   same node (due to some corruption or fail) it will fuse them.. */
+   same node (due to some corruption or fail) it will fuse them. */
 static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 			   pos_t *right_pos)
 {
@@ -875,7 +875,7 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 	aal_assert("umka-2686", plug_equal(left_place.plug,
 					   right_place.plug));
 
-	/* Check if item needs some speccial actions to fuse (like eliminate
+	/* Check if item needs some special actions to fuse (like eliminate
 	   header). If so, fuse items. */
 	if (left_place.plug->o.item_ops->balance->fuse) {
 		int32_t space;
