@@ -68,17 +68,16 @@ static int32_t tail40_update(item_entity_t *item, void *buff,
 }
 
 /* Inserts tail data into specified tail */
-static errno_t tail40_insert(item_entity_t *item, void *buff,
+static errno_t tail40_insert(item_entity_t *item,
+			     reiser4_item_hint_t *hint,
 			     uint32_t pos)
 {
 	uint32_t len;
 	void *src, *dst;
-	reiser4_item_hint_t *hint;
 	
 	aal_assert("umka-1172", item != NULL, return -1); 
-	aal_assert("umka-1178", buff != NULL, return -1);
+	aal_assert("umka-1178", hint != NULL, return -1);
 
-	hint = (reiser4_item_hint_t *)buff;
 	len = item->len - hint->len;
 		
 	/* Prepare the room for new data */

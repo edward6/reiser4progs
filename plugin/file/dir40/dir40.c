@@ -385,7 +385,7 @@ static object_entity_t *dir40_create(const void *tree,
 	unix_ext.ctime = time(NULL);
 
 	if (plugin_call(goto error_free_body, body_plugin->item_ops,
-			estimate, NULL, ~0ul, &body_hint))
+			estimate, NULL, &body_hint, ~0ul))
 	{
 		aal_exception_error("Can't estimate directory item.");
 		goto error_free_body;

@@ -205,8 +205,9 @@ static int direntry40_mergeable(item_entity_t *item1,
 	return (locality1 == locality2);
 }
 
-static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
-				   reiser4_item_hint_t *hint) 
+static errno_t direntry40_estimate(item_entity_t *item,
+				   reiser4_item_hint_t *hint,
+				   uint32_t pos) 
 {
 	uint32_t i;
 	reiser4_direntry_hint_t *direntry_hint;
@@ -763,7 +764,8 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 	return offset;
 }
 
-static errno_t direntry40_insert(item_entity_t *item, void *buff,
+static errno_t direntry40_insert(item_entity_t *item,
+				 reiser4_item_hint_t *hint,
 				 uint32_t pos)
 {
 	uint32_t offset;
@@ -772,17 +774,15 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 	entry40_t *entry;
 	direntry40_t *direntry;
 
-	reiser4_item_hint_t *hint;
 	reiser4_direntry_hint_t *direntry_hint;
     
 	aal_assert("umka-791", item != NULL, return -1);
-	aal_assert("umka-792", buff != NULL, return -1);
+	aal_assert("umka-792", hint != NULL, return -1);
 	aal_assert("umka-897", pos != ~0ul, return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
     
-	hint = (reiser4_item_hint_t *)buff;
 	direntry_hint = (reiser4_direntry_hint_t *)hint->hint;
 
 	/*

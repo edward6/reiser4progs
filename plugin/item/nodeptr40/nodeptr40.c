@@ -24,28 +24,28 @@ static errno_t nodeptr40_init(item_entity_t *item) {
 	return 0;
 }
 
-static errno_t nodeptr40_insert(item_entity_t *item, void *buff,
+static errno_t nodeptr40_insert(item_entity_t *item,
+				reiser4_item_hint_t *hint,
 				uint32_t pos)
 {
 	nodeptr40_t *nodeptr;
-	reiser4_item_hint_t *hint;
 	reiser4_ptr_hint_t *ptr_hint;
     
 	aal_assert("vpf-063", item != NULL, return -1); 
-	aal_assert("vpf-064", buff != NULL, return -1);
+	aal_assert("vpf-064", hint != NULL, return -1);
 
-	nodeptr = nodeptr40_body(item);
-
-	hint = (reiser4_item_hint_t *)buff;
+	if (!(nodeptr = nodeptr40_body(item)))
+		return -1;
+	
 	ptr_hint = (reiser4_ptr_hint_t *)hint->hint;
-
-	np40_set_ptr(nodeptr,ptr_hint->ptr);
+	np40_set_ptr(nodeptr, ptr_hint->ptr);
 	    
 	return 0;
 }
 
-static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
-				  reiser4_item_hint_t *hint) 
+static errno_t nodeptr40_estimate(item_entity_t *item,
+				  reiser4_item_hint_t *hint,
+				  uint32_t pos) 
 {
 	aal_assert("vpf-068", hint != NULL, return -1);
     
@@ -53,7 +53,8 @@ static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static errno_t nodeptr40_print(item_entity_t *item, aal_stream_t *stream,
+static errno_t nodeptr40_print(item_entity_t *item,
+			       aal_stream_t *stream,
 			       uint16_t options) 
 {
 	nodeptr40_t *nodeptr;

@@ -60,7 +60,8 @@ Beverly Palmer drew our graphics.
 Vitaly Fertman did fsck.  He makes the code simple when it could have
 been so complex, and this is so nice of him...
 
-Yury Umanets (aka Umka) developed reiser4progs.
+Yury Umanets (aka Umka) developed libreiser4, userspace plugins and 
+userspace tools (reiser4progs).
 
 Oleg Drokin (aka Green) is the release manager who fixes everything.
 It is so nice to have someone like that on the team.  He (plus Chris

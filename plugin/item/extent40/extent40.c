@@ -58,7 +58,15 @@ static errno_t extent40_get_key(item_entity_t *item, uint32_t pos,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t extent40_insert(item_entity_t *item, void *buff,
+static errno_t extent40_estimate(item_entity_t *item,
+				 reiser4_item_hint_t *hint,
+				 uint32_t pos)
+{
+	return -1;
+}
+
+static errno_t extent40_insert(item_entity_t *item,
+			       reiser4_item_hint_t *hint,
 			       uint32_t pos)
 {
 	uint32_t count;
@@ -66,17 +74,15 @@ static errno_t extent40_insert(item_entity_t *item, void *buff,
 	uint32_t i, units;
 
 	extent40_t *extent;
-	reiser4_item_hint_t *hint;
 	reiser4_ptr_hint_t *ptr_hint;
 
 	aal_assert("umka-1202", item != NULL, return -1); 
-	aal_assert("umka-1203", buff != NULL, return -1);
+	aal_assert("umka-1203", hint != NULL, return -1);
 	aal_assert("umka-1656", pos != ~0ul, return -1);
 
 	if (!(extent = extent40_body(item)))
 		return -1;
 
-	hint = (reiser4_item_hint_t *)buff;
 	ptr_hint = (reiser4_ptr_hint_t *)hint;
 	
 	count = hint->len / sizeof(extent40_t);
@@ -527,6 +533,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.init	       = extent40_init,
 		.update        = extent40_update,
 		.insert	       = extent40_insert,
+		.estimate      = extent40_estimate,
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,
 		.mergeable     = extent40_mergeable,
@@ -536,6 +543,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.init	       = NULL,
 		.update        = NULL,
 		.insert	       = NULL,
+		.estimate      = NULL,
 		.remove	       = NULL,
 		.print	       = NULL,
 		.mergeable     = NULL, 
@@ -543,7 +551,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.shift         = NULL,
 #endif
 		.set_key       = NULL,
-		.estimate      = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
 		.open          = NULL,

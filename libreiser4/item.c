@@ -72,7 +72,7 @@ errno_t reiser4_item_estimate(
     
 	/* Estimate for the 2nd and for the 4th cases */
 	return plugin_call(return -1, hint->plugin->item_ops, 
-			   estimate, NULL, coord->pos.unit, hint);
+			   estimate, NULL, hint, coord->pos.unit);
 }
 
 /* Prints passed @coord into passed @buff */

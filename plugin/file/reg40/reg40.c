@@ -19,7 +19,6 @@
 #include "reg40.h"
 
 extern reiser4_plugin_t reg40_plugin;
-
 static reiser4_core_t *core = NULL;
 
 static errno_t reg40_reset(object_entity_t *entity) {
@@ -123,20 +122,16 @@ static int32_t reg40_read(object_entity_t *entity,
 			  zero, we go away. Else fetching of data from the item
 			  will be performed.
 			*/
-			chunk = (item->len - reg->local) > n - read ?
-				n - read : (item->len - reg->local);
+			chunk = item->len - reg->local;
+
+			if (chunk > n - read)
+				chunk = n - read;
 			
 			if (chunk == 0)
 				break;
-	
-			if (plugin_call(return -1, item->plugin->item_ops, fetch,
-					item, buff + read, reg->local, chunk) != (int32_t)chunk)
-			{
-				aal_exception_error("Can't fetch data from tail item. "
-						    "Pos %lu, count %lu.", reg->local,
-						    chunk);
-				return -1;
-			}
+
+			plugin_call(return -1, item->plugin->item_ops, fetch,
+				    item, buff + read, reg->local, chunk);
 			
 			read += chunk;
 			reg->offset += chunk;

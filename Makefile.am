@@ -4,7 +4,7 @@ else
 SUBDIRS         = libaal libaux plugin libreiser4 librepair progs demos include doc debug
 endif
 
-EXTRA_DIST	= ABOUT-NLS AUTHORS COPYING TODO NEWS BUGS README CREDITS THANKS \
+EXTRA_DIST	= AUTHORS COPYING TODO NEWS BUGS README CREDITS THANKS \
 		  reiser4progs.spec.in libreiser4.m4 ltconfig
 
 aclocaldir 	= $(datadir)/aclocal

@@ -630,9 +630,6 @@ struct reiser4_item_ops {
 	/* Reads item data to passed hint */
 	errno_t (*open) (item_entity_t *, reiser4_item_hint_t *);
 	
-	/* Inserts unit described by passed hint into the item */
-	int32_t (*insert) (item_entity_t *, void *, uint32_t);
-    
 	/* Reads passed amount of units from the item. */
 	int32_t (*fetch) (item_entity_t *, void *, uint32_t,
 			  uint32_t);
@@ -645,12 +642,22 @@ struct reiser4_item_ops {
 	int32_t (*remove) (item_entity_t *, uint32_t,
 			   uint32_t);
 
+	/* Inserts unit described by passed hint into the item */
+	errno_t (*insert) (item_entity_t *, reiser4_item_hint_t *,
+			   uint32_t);
+	
 	/* Estimates item */
-	errno_t (*estimate) (item_entity_t *, uint32_t, 
-			     reiser4_item_hint_t *);
+	errno_t (*estimate) (item_entity_t *, reiser4_item_hint_t *,
+			     uint32_t);
     
 	/* Checks item for validness */
 	errno_t (*valid) (item_entity_t *);
+
+	/* Checks the item structure. */
+	errno_t (*check) (item_entity_t *);
+	
+	/* Returns unit count */
+	uint32_t (*units) (item_entity_t *);
 
 	/* Makes lookup for passed key */
 	int (*lookup) (item_entity_t *, reiser4_key_t *, 
@@ -664,12 +671,12 @@ struct reiser4_item_ops {
 	errno_t (*predict) (item_entity_t *, item_entity_t *,
 			    shift_hint_t *);
 	
-	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
-	int (*mergeable) (item_entity_t *, item_entity_t *);
-	
 	/* Prints item into specified buffer */
 	errno_t (*print) (item_entity_t *, aal_stream_t *, uint16_t);
 
+	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
+	int (*mergeable) (item_entity_t *, item_entity_t *);
+	
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*max_poss_key) (item_entity_t *, reiser4_key_t *);
  
@@ -681,12 +688,6 @@ struct reiser4_item_ops {
 
 	/* Set the key of a particular unit of the item. */
 	errno_t (*set_key) (item_entity_t *, uint32_t, reiser4_key_t *);
-
-	/* Returns unit count */
-	uint32_t (*units) (item_entity_t *);
-
-	/* Checks the item structure. */
-	errno_t (*check) (item_entity_t *);
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;

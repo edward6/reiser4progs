@@ -15,7 +15,8 @@ static reiser4_core_t *core = NULL;
 #define stat40_body(item) ((stat40_t *)item->body)
 
 /* Type for stat40 layout callback function */
-typedef int (*stat40_perext_func_t) (uint8_t, uint16_t, reiser4_body_t *, void *);
+typedef int (*stat40_perext_func_t) (uint8_t, uint16_t,
+				     reiser4_body_t *, void *);
 
 /* The function which implements stat40 layout pass */
 static errno_t stat40_layout(item_entity_t *item,
@@ -120,8 +121,9 @@ static errno_t stat40_init(item_entity_t *item) {
 	return 0;
 }
 
-static errno_t stat40_estimate(item_entity_t *item, uint32_t pos, 
-			       reiser4_item_hint_t *hint) 
+static errno_t stat40_estimate(item_entity_t *item, 
+			       reiser4_item_hint_t *hint,
+			       uint32_t pos) 
 {
 	uint8_t i;
 	reiser4_statdata_hint_t *stat_hint;
@@ -160,21 +162,18 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 }
 
 /* This method inserts the stat data extentions */
-static errno_t stat40_insert(item_entity_t *item, void *buff,
+static errno_t stat40_insert(item_entity_t *item,
+			     reiser4_item_hint_t *hint,
 			     uint32_t pos)
 {
 	uint8_t i;
 	reiser4_body_t *extbody;
-	
-	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-076", item != NULL, return -1); 
-	aal_assert("vpf-075", buff != NULL, return -1);
+	aal_assert("vpf-075", hint != NULL, return -1);
 
 	extbody = (reiser4_body_t *)item->body;
-
-	hint = (reiser4_item_hint_t *)buff;
 	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
 	if (!stat_hint->extmask)
