@@ -99,13 +99,9 @@ static void reg40_check_mode(uint16_t *mode) {
 }
                                                                                            
 static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
-	reiser4_plug_t *plug;
-	
         /* FIXME-VITALY: This is not correct for extents as the last
            block can be not used completely. Where to take the policy
            plugin to figure out if the size is correct? */
-	plug = reg40_bplug((object_entity_t *)reg, offset);
-	
         if (*sd_size < counted_size)
                 *sd_size = counted_size;
 	
