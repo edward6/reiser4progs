@@ -126,7 +126,7 @@ static inline int k40_comp_el(void *k1, void *k2, int off) {
    is used for minimize code.
 */
 								    
-#define key40_field_handler(L, U, T)				    \
+#define KEY40_FIELD_HANDLER(L, U, T)				    \
 static inline T k40_get_##L (const key40_t *key) {                  \
         aal_assert("vpf-036", key != NULL);                         \
         return (T) ((k40_get_el(key, KEY40_##U##_INDEX) &	    \
@@ -149,11 +149,11 @@ static inline void k40_set_##L(key40_t *key, T loc) {		    \
         k40_set_el(key, KEY40_##U##_INDEX, el);			    \
 }
 
-key40_field_handler(locality, LOCALITY, uint64_t);
-key40_field_handler(minor, TYPE, key40_minor_t);
-key40_field_handler(band, BAND, uint64_t);
-key40_field_handler(objectid, OBJECTID, uint64_t);
-key40_field_handler(offset, OFFSET, uint64_t);
-key40_field_handler(hash, HASH, uint64_t);
+KEY40_FIELD_HANDLER(locality, LOCALITY, uint64_t);
+KEY40_FIELD_HANDLER(minor, TYPE, key40_minor_t);
+KEY40_FIELD_HANDLER(band, BAND, uint64_t);
+KEY40_FIELD_HANDLER(objectid, OBJECTID, uint64_t);
+KEY40_FIELD_HANDLER(offset, OFFSET, uint64_t);
+KEY40_FIELD_HANDLER(hash, HASH, uint64_t);
 
 #endif

@@ -200,14 +200,14 @@ static lookup_t dir40_lookup(object_entity_t *entity,
     
 	aal_assert("umka-1117", entity != NULL);
 	aal_assert("umka-1118", name != NULL);
-
 	aal_assert("umka-1119", key != NULL);
-	aal_assert("umka-1120", key->plugin != NULL);
 
 	/*
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
 	*/
+	key->plugin = dir->obj.key.plugin;
+	
 	wanted.plugin = dir->obj.key.plugin;
 	
 	plugin_call(wanted.plugin->key_ops, build_entry, &wanted,

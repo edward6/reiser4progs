@@ -481,9 +481,9 @@ errno_t reiser4_file_remove(reiser4_file_t *file,
 	if (reiser4_tree_lookup(file->fs->tree, &key, LEAF_LEVEL,
 				&place) != LP_PRESENT)
 	{
-		aal_exception_error("Can't find stat data of %s/%s. "
+		aal_exception_error("Can't find stat data of %s. "
 				    "It seems that %s points to nowere.",
-				    file->name, entry);
+				    entry, entry);
 		return -1;
 	}
 	

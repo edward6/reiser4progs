@@ -459,7 +459,7 @@ errno_t object40_remove(object40_t *object, key_entity_t *key,
 	*/
 	switch (object40_lookup(object, key, LEAF_LEVEL, &place)) {
 	case LP_ABSENT:
-		aal_exception_error("Can't find item/unit durring remove");
+		aal_exception_error("Can't find item/unit durring remove.");
 		return -1;
 	case LP_PRESENT:
 		if (object->core->tree_ops.remove(object->tree, &place,
@@ -469,9 +469,11 @@ errno_t object40_remove(object40_t *object, key_entity_t *key,
 					    "object 0x%llx.", objectid);
 			return -1;
 		}
+		
+		break;
 	case LP_FAILED:
 		aal_exception_error("Lookup is failed while trying to "
-				    "remove new item/unit from object "
+				    "remove item/unit from object "
 				    "0x%llx.", objectid);
 		return -1;
 	}

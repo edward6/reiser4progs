@@ -36,18 +36,14 @@ static errno_t direntry40_unit_key(item_entity_t *item,
 	objid = direntry40_unit(direntry, pos);
 	
 	objectid = oid40_get_objectid(objid);
-
-	/*
-	  FIXME-UMKA: Here is cutting out the minor from the locality. It is not
-	  very good direntry plugin knows about key inetrnals.
-	*/
-	locality = (oid40_get_locality(objid) & 0xfffffffffffffff0ull) >> 4;
+	locality = oid40_get_locality(objid);
 
 	/* Building key by means of using key plugin */
 	key->plugin = item->key.plugin;
 	
 	return plugin_call(key->plugin->key_ops, build_generic,
-			   key, KEY_FILENAME_TYPE, locality, objectid, 0);
+			   key, KEY_STATDATA_TYPE, locality,
+			   objectid, 0);
 }
 
 /* Returns pointer to entry at passed @pos */
@@ -875,13 +871,13 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 		
 	for (i = 0; i < count; i++, entry++, entry_hint++) {
 		objid40_t *objid;
-		entryid40_t *entryid;
+		entryid40_t *entid;
 		uint64_t oid, loc, off;
 
 		key_entity_t *hash;
 		key_entity_t *object;
 
-		entryid = (entryid40_t *)&entry->entryid;
+		entid = (entryid40_t *)&entry->entryid;
 		objid = (objid40_t *)((void *)direntry + offset);
 		
 		/* Setting up the offset of new entry */
@@ -893,12 +889,12 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 		oid = plugin_call(hash->plugin->key_ops,
 				  get_objectid, hash);
 		
-		eid40_set_objectid(entryid, oid);
+		eid40_set_objectid(entid, oid);
 
 		off = plugin_call(hash->plugin->key_ops,
 				  get_offset, hash);
 
-		eid40_set_offset(entryid, off);
+		eid40_set_offset(entid, off);
 
 		/* Creating stat data key of the object, entry will point to */
 		object = &entry_hint->object;
