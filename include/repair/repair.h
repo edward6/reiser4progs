@@ -25,7 +25,7 @@ struct repair_data {
 
 typedef struct repair_data repair_data_t;
 
-#define repair_data(fs)			((repair_data_t *)fs->data)
+#define repair_data(fs)			((repair_data_t *)(fs)->data)
 
 /* Repair modes. */
 #define REPAIR_CHECK	0x1
@@ -42,9 +42,9 @@ typedef struct repair_data repair_data_t;
 #define REPAIR_OPT_VERBOSE	0x5
 #define REPAIR_OPT_READ_ONLY	0x6
 
-#define repair_set_option(bit, repair_data)	(aal_set_bit(bit, &repair_data->options))
-#define repair_test_option(bit, repair_data)	(aal_test_bit(bit, &repair_data->options))
-#define repair_clear_option(bit, repair_data)	(aal_clear_bit(bit, &repair_data->options))
+#define repair_set_option(bit, repair_data)	(aal_set_bit(bit, &(repair_data)->options))
+#define repair_test_option(bit, repair_data)	(aal_test_bit(bit, &(repair_data)->options))
+#define repair_clear_option(bit, repair_data)	(aal_clear_bit(bit, &(repair_data)->options))
 
 #define repair_no_journal(repair_data)	(repair_test_option(REPAIR_OPT_NO_JOURNAL, repair_data))
 #define repair_auto(repair_data)	(repair_test_option(REPAIR_OPT_AUTO, repair_data))
@@ -60,15 +60,16 @@ struct repair_check {
     aux_bitmap_t *many_pointed_blocks;
     union {
 	struct {
-	    uint8_t level;
-	    aux_bitmap_t *once_pointed;
-	    aux_bitmap_t *many_pointed;
 	    aux_bitmap_t *format_layout;
+	    aux_bitmap_t *formatted;
 	    aal_list_t *nodes_path;
 	    aal_list_t *items_path;
+	    uint8_t level;
 	} cut;
 	struct {
-	    reiser4_alloc_t *a_control;
+	    aux_bitmap_t *format_layout;
+	    aux_bitmap_t *formatted;
+	    aux_bitmap_t *used;
 	    reiser4_oid_t *oid_control;
 	} scan;
     } pass;
@@ -76,14 +77,14 @@ struct repair_check {
 
 typedef struct repair_check repair_check_t;
 
-#define repair_cut_data(data)		(&data->pass.cut)
-#define repair_scan_data(data)		(&data->pass.scan)
+#define repair_cut_data(data)		(&(data)->pass.cut)
+#define repair_scan_data(data)		(&(data)->pass.scan)
 
 #define REPAIR_NOT_FIXED		0x1
 
-#define repair_set_flag(data, flag)	(aal_set_bit(flag, &data->flags))
-#define repair_test_flag(data, flag)	(aal_test_bit(flag, &data->flags))
-#define repair_clear_flag(data, flag)	(aal_clear_bit(flag, &data->flags))
+#define repair_set_flag(data, flag)	(aal_set_bit(flag, &(data)->flags))
+#define repair_test_flag(data, flag)	(aal_test_bit(flag, &(data)->flags))
+#define repair_clear_flag(data, flag)	(aal_clear_bit(flag, &(data)->flags))
 
 #define repair_cut_node_at(data, h)				    \
     (h < aal_list_length(repair_cut_data(data)->nodes_path) ?	    \
