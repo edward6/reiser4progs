@@ -374,7 +374,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 
 	conv.place_func = func;
 	
-	/* Reg40 object (its SD item) has been openned or created. */
+	/* Reg40 object (its SD item) has been opened or created. */
 	while (1) {
 		errno_t result;
 		

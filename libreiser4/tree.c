@@ -2340,8 +2340,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 
 		if (!(node = reiser4_tree_alloc_node(tree, level)))
 			return -ENOSPC;
-		
-		if (reiser4_place_leftmost(place)) {
+
+		/* reiser4_place_leftmost cannot be used here because unit == 
+		   0 mean we should stay on this item -- writing to the extent
+		   with holes or inserting a SD extention. */
+		if (place->pos.unit == MAX_UINT32 && place->pos.item == 0) {
 			/* Do not shift anything for the leftmost position.
 			   Just insert the new node and move the insert point
 			   there. */

@@ -148,7 +148,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	return res;
 }
 
-/* Checks the opened format, or build a new one if it was not openned. */
+/* Checks the opened format, or build a new one if it was not opened. */
 static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *defplug, *plug, *policy;
 	bool_t over;

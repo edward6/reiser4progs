@@ -72,14 +72,6 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 	aal_assert("umka-2437", place != NULL);
 	aal_assert("umka-3113", place->node != NULL);
 	
-	/* If wanted key matches the item key, write inside. */
-	if (!plug_call(hint->offset.plug->o.key_ops, compfull, 
-		      &place->key, &hint->offset))
-	{
-		if (place->pos.unit == MAX_UINT32)
-			place->pos.unit = 0;
-	}
-
 	/* Check if we want to create new tail item. If so, we say, that we need
 	   @hint->count bytes in tree. Even if this is more than one node can
 	   fit, it is okay, because write function will actually write only

@@ -62,8 +62,10 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		
 		if (plugh->plug[mem] == INVAL_PTR) {
 #ifndef ENABLE_STAND_ALONE
-			aal_error("Failed to find a plugin of the opset "
-				  "member (%u), id (%u).", mem, id);
+			aal_error("Node (%llu), item (%u): Failed to find "
+				  "a plugin of the opset member (%u), id "
+				  "(%u).", place_blknr(stat->place),
+				  stat->place->pos.item, mem, id);
 			return -EIO;
 #else
 			plugh->plug[mem] = NULL;

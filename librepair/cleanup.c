@@ -60,7 +60,7 @@ static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-1426", cleanup != NULL);
 	aal_assert("vpf-1429", !reiser4_item_branch(place->plug));
 
-	next_node = (!cleanup->neigh.node || 
+	next_node = (!place->pos.item || !cleanup->neigh.node || 
 		     place_blknr(&cleanup->neigh) != place_blknr(place));
 	
 	if (next_node) {

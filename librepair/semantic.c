@@ -513,7 +513,7 @@ static errno_t cb_tree_scan(reiser4_place_t *place, void *data) {
 	else if (object == NULL)
 		return 0;
 	
-	/* Some object was openned. Check its structure and traverse from it. */
+	/* Some object was opened. Check its structure and traverse from it. */
 	res = repair_semantic_check_struct(sem, object);
 
 	if (repair_error_fatal(res))
@@ -635,7 +635,7 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 	
 	if (sem->root == NULL) {
 		sem->repair->fatal++;
-		fsck_mess("No root directory openned.");
+		fsck_mess("No root directory opened.");
 		return RE_FATAL;
 	} else if (sem->root == INVAL_PTR) {
 		sem->root = NULL;
@@ -694,7 +694,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	} else if (sem->lost == NULL) {
 		sem->repair->fatal++;
-		fsck_mess("No 'lost+found' directory openned.");
+		fsck_mess("No 'lost+found' directory opened.");
 		return RE_FATAL;
 	}
 

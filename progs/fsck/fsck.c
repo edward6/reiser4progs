@@ -354,8 +354,6 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	count_t len;
 	errno_t res;
 	
-	aal_mess("***** Opening the fs.");
-	
 	/* Reopen device RW for fixing SB. */
 	if (sb_mode != RM_CHECK) {
 		flags = host->flags;
@@ -502,6 +500,8 @@ int main(int argc, char *argv[]) {
 
 		goto free_device;
 	}
+	
+	fsck_time("fsck.reiser4 started at");
 	
 	/* SB_mode is specified, otherwise  */
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);

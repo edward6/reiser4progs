@@ -399,7 +399,8 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 /* Lookup for the correct @place place by the @start key in the @tree. */
 static errno_t repair_tree_lookup(reiser4_tree_t *tree, 
 				  reiser4_place_t *dst,
-				  reiser4_place_t *src)
+				  reiser4_place_t *src,
+				  reiser4_key_t *key)
 {
 	reiser4_key_t dkey, end;
 	lookup_hint_t lhint;
@@ -410,10 +411,11 @@ static errno_t repair_tree_lookup(reiser4_tree_t *tree,
 	aal_assert("vpf-1364", tree  != NULL);
 	aal_assert("vpf-1365", dst != NULL);
 	aal_assert("vpf-1367", src != NULL);
+	aal_assert("vpf-1689", key != NULL);
 
 	aal_memset(&lhint, 0, sizeof(lhint));
 	lhint.level = LEAF_LEVEL;
-	lhint.key = &src->key;
+	lhint.key = key;
 	lhint.collision = NULL;
 	lhint.hint = NULL;
 	
@@ -528,8 +530,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	level = reiser4_node_get_level(src->node);
 	
 	while (1) {
-		if ((res = repair_tree_lookup(tree, &dst, src)) < 0)
+		if ((res = repair_tree_lookup(tree, &dst, 
+					      src, &hint.offset)) < 0)
+		{
 			return res;
+		}
 		
 		/* Convert @dst if needed. */
 		if (dst.plug) {

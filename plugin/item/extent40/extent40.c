@@ -31,7 +31,8 @@ uint32_t extent40_units(reiser4_place_t *place) {
 /* Calculates extent size. */
 uint64_t extent40_offset(reiser4_place_t *place, uint32_t pos) {
 	extent40_t *extent;
-	uint32_t i, blocks = 0;
+	uint64_t blocks = 0;
+	uint32_t i;
     
 	aal_assert("umka-2204", place != NULL);
 	
@@ -40,7 +41,7 @@ uint64_t extent40_offset(reiser4_place_t *place, uint32_t pos) {
 	for (i = 0; i < pos; i++, extent++)
 		blocks += et40_get_width(extent);
     
-	return (blocks * extent40_blksize(place));
+	return blocks * extent40_blksize(place);
 }
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
@@ -341,8 +342,8 @@ lookup_t extent40_lookup(reiser4_place_t *place,
 			   get_offset, &place->key);
 	
 	for (i = 0; i < units; i++, extent++) {
-		offset += et40_get_width(extent) *
-			extent40_blksize(place);
+		offset += (et40_get_width(extent) *
+			extent40_blksize(place));
 
 		if (offset > wanted) {
 			place->pos.unit = i;
@@ -769,14 +770,6 @@ static errno_t extent40_prep_write(reiser4_place_t *place,
 
 	hint->len = 0;
 	hint->overhead = 0;
-	
-	/* If wanted key matches the item key, write inside. */
-	if (!plug_call(hint->offset.plug->o.key_ops, compfull, 
-		      &place->key, &hint->offset))
-	{
-		if (place->pos.unit == MAX_UINT32)
-			place->pos.unit = 0;
-	}
 	
 	if (place->pos.unit == MAX_UINT32) {
 		/* Assigning maxkey to key of new created item. */
