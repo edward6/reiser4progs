@@ -11,7 +11,7 @@ libnode40_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 STATIC_LIBS		    =
 lib_LTLIBRARIES		    = libnode40.la
-libnode40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
+libnode40_la_LIBADD	    = @AAL_LIBS@ \
 			      $(top_builddir)/libaux/libaux-static.la
 
 libnode40_la_SOURCES	    = $(node40_sources)

@@ -1,4 +1,4 @@
-SUBDIRS         = libaal libaux plugin libreiser4 librepair progs demos include doc debug
+SUBDIRS         = libaux plugin libreiser4 librepair progs demos include doc debug
 
 EXTRA_DIST	= AUTHORS COPYING TODO NEWS BUGS README CREDITS THANKS \
 		  libreiser4.m4 ltconfig

@@ -3,7 +3,6 @@ INCLUDES	= -I$(top_srcdir)/include -I$(top_srcdir)/progs/include
 
 list_SOURCES	= list.c
 
-list_LDFLAGS	= @PROGS_LDFLAGS@
 list_CFLAGS	= @GENERIC_CFLAGS@
 
 list_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
@@ -11,7 +10,6 @@ list_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 
 ls_SOURCES	= ls.c
 
-ls_LDFLAGS	= @PROGS_LDFLAGS@
 ls_CFLAGS	= @GENERIC_CFLAGS@
 
 ls_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
@@ -20,7 +18,6 @@ ls_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 
 cat_SOURCES	= cat.c
 
-cat_LDFLAGS	= @PROGS_LDFLAGS@
 cat_CFLAGS	= @GENERIC_CFLAGS@
 
 cat_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
@@ -29,7 +26,6 @@ cat_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 
 plugin_SOURCES	= plugin.c
 
-plugin_LDFLAGS	= @PROGS_LDFLAGS@
 plugin_CFLAGS	= @GENERIC_CFLAGS@
 
 plugin_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \

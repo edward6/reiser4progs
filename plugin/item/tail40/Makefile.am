@@ -10,7 +10,7 @@ libtail40_static_la_LDFLAGS = @PLUGIN_LDFLAGS@
 libtail40_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 lib_LTLIBRARIES		    = libtail40.la
-libtail40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
+libtail40_la_LIBADD	    = @AAL_LIBS@ \
 			      $(top_builddir)/libaux/libaux-static.la
 
 libtail40_la_SOURCES	    = $(tail40_sources)

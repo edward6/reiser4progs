@@ -11,7 +11,7 @@ libreg40_static_la_CFLAGS   = @GENERIC_CFLAGS@
 else
 STATIC_LIBS                 =
 lib_LTLIBRARIES		    = libreg40.la
-libreg40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
+libreg40_la_LIBADD	    = @AAL_LIBS@ \
 			      $(top_builddir)/plugin/object/obj40/libobj40-static.la
 libreg40_la_SOURCES	    = $(reg40_sources)
 libreg40_la_LDFLAGS	    = @PLUGIN_LDFLAGS@

@@ -11,7 +11,7 @@ libdirentry40_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 STATIC_LIBS                     = 
 lib_LTLIBRARIES			= libdirentry40.la
-libdirentry40_la_LIBADD		= $(top_builddir)/libaal/libaal.la \
+libdirentry40_la_LIBADD		= @AAL_LIBS@ \
 				  $(top_builddir)/libaux/libaux-static.la
 
 libdirentry40_la_SOURCES	= $(direntry40_sources)

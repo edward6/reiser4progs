@@ -11,7 +11,7 @@ libkey40_static_la_CFLAGS	= @GENERIC_CFLAGS@
 else
 STATIC_LIBS                     = 
 lib_LTLIBRARIES			= libkey40.la
-libkey40_la_LIBADD		= $(top_builddir)/libaal/libaal.la \
+libkey40_la_LIBADD		= @AAL_LIBS@ \
 				  $(top_builddir)/libaux/libaux-static.la
 
 libkey40_la_SOURCES		= $(key40_sources)

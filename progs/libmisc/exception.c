@@ -10,6 +10,7 @@
 #endif
 
 #include <ctype.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <aal/aal.h>

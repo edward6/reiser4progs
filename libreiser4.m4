@@ -1,5 +1,6 @@
 # This file is a part of reiser4progs package
-# Copyright (C) 1996-2002 Hans Reiser
+# Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+# reiser4progs/COPYING.
 
 dnl Usage:
 dnl AC_CHECK_LIBREISER4([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
@@ -21,7 +22,7 @@ AC_CHECK_HEADER(reiser4/reiser4.h, ,
     [AC_MSG_ERROR([<reiser4/reiser4.h> not found; install reiser4progs])] 
 $3)
 
-AC_CHECK_LIB(reiser4, reiserfs_fs_init, ,
+AC_CHECK_LIB(reiser4, reiser4_fs_open, ,
     [AC_MSG_ERROR([libreiser4 not found; install reiser4progs available at \
     http://www.namesys.com/pub/reiser4progs])]
 $3)

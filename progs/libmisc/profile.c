@@ -5,6 +5,7 @@
   reiser4progs/COPYING.
 */
 
+#include <stdio.h>
 #include <reiser4/reiser4.h>
 
 static reiser4_profile_t profiles[] = {

@@ -11,7 +11,7 @@ liboid40_static_la_CFLAGS   = @GENERIC_CFLAGS@
 else
 STATIC_LIBS		    =
 lib_LTLIBRARIES		    = liboid40.la
-liboid40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
+liboid40_la_LIBADD	    = @AAL_LIBS@ \
 	  		      $(top_builddir)/libaux/libaux-static.la
 
 liboid40_la_SOURCES	    = $(oid40_sources)

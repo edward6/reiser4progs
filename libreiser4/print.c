@@ -15,6 +15,7 @@
 #if defined(HAVE_PRINTF_H) && defined (HAVE_REGISTER_PRINTF_FUNCTION)
 
 #include <printf.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <reiser4/reiser4.h>
 

@@ -15,14 +15,13 @@ noinst_LTLIBRARIES	     = libreiser4-static.la
 
 if ENABLE_MONOLITHIC
 
-libreiser4_la_LIBADD	     = $(top_builddir)/libaal/libaal.la \
-			       $(top_builddir)/libaux/libaux-static.la \
-			       $(top_builddir)/plugin/libreiser4-plugin.la
+libreiser4_la_LIBADD	     = $(top_builddir)/libaux/libaux-static.la \
+			       $(top_builddir)/plugin/libreiser4-plugin.la \
+			       @AAL_LIBS@ 
 else
 
-libreiser4_la_LIBADD	     = $(top_builddir)/libaal/libaal.la \
-			       $(top_builddir)/libaux/libaux-static.la \
-			       @LIBREISER4_LIBS@
+libreiser4_la_LIBADD	     = $(top_builddir)/libaux/libaux-static.la \
+			       @LIBREISER4_LIBS@ @AAL_LIBS@ 
 endif
 
 libreiser4_la_SOURCES	     = $(libreiser4_sources)
@@ -31,18 +30,18 @@ libreiser4_la_LDFLAGS	     = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE
 			       -release $(LT_RELEASE)
 libreiser4_la_CFLAGS         = @GENERIC_CFLAGS@
 
-libreiser4_static_la_LIBADD  = $(top_builddir)/libaal/libaal-static.la \
-			       $(top_builddir)/libaux/libaux-static.la \
-			       $(top_builddir)/plugin/libreiser4-plugin.la
+libreiser4_static_la_LIBADD  = $(top_builddir)/libaux/libaux-static.la \
+			       $(top_builddir)/plugin/libreiser4-plugin.la \
+			       @AAL_LIBS@ 
 
 libreiser4_static_la_SOURCES = $(libreiser4_sources)
 libreiser4_static_la_CFLAGS  = @GENERIC_CFLAGS@
+libreiser4_static_la_LDFLAGS = -static
 
 if ENABLE_STAND_ALONE
-
-libreiser4_alone_la_LIBADD   = $(top_builddir)/libaal/libaal-alone.la \
-			       $(top_builddir)/libaux/libaux-alone.la \
-			       $(top_builddir)/plugin/libreiser4-plugin-alone.la
+libreiser4_alone_la_LIBADD   = $(top_builddir)/libaux/libaux-alone.la \
+			       $(top_builddir)/plugin/libreiser4-plugin-alone.la \
+			       @AAL_ALONE_LIBS@ 
 
 libreiser4_alone_la_SOURCES  = $(libreiser4_sources)
 

@@ -11,7 +11,7 @@ libsdext_unix_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 STATIC_LIBS                     =
 lib_LTLIBRARIES			= libsdext_unix.la
-libsdext_unix_la_LIBADD		= $(top_builddir)/libaal/libaal.la \
+libsdext_unix_la_LIBADD		= @AAL_LIBS@ \
 				  $(top_builddir)/libaux/libaux-static.la
 
 libsdext_unix_la_SOURCES	= $(sdext_unix_sources)
