@@ -1357,10 +1357,14 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	units = plug_call(src_place.plug->o.item_ops->balance,
 			  units, &src_place);
 	
-	/* We will remove src item if it has became empty and insert point is
-	   not points it, that is next insert will not be dealing with it. */
-	remove_src = ((hint->rest == src_place.len || units == 0) &&
-		      (hint->result & SF_MOVE_POINT || pos.item != hint->pos.item));
+	/* We will remove src item if it has became empty and insert point does
+	   not point it, that is next insert will not be dealing with it. */
+	remove_src = (hint->rest == src_place.len || units == 0);
+	
+	if (hint->control & SF_UPDATE_POINT) {
+		remove_src = remove_src && (hint->result & SF_MOVE_POINT ||
+					    pos.item != hint->pos.item);
+	}
 	
 	/* Updating item's keys. */
 	if (left_shift) {
