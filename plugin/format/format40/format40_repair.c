@@ -129,5 +129,5 @@ errno_t format40_update(generic_entity_t *entity) {
 	aal_block_fini(&block);
 	return res;
 }
-#endif
 
+#endif

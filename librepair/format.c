@@ -172,23 +172,3 @@ errno_t repair_format_update(reiser4_format_t *format) {
     
 	return format->entity->plug->o.format_ops->update(format->entity);
 }
-
-/* Prints the opened format. */
-void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
-	aal_stream_t stream;
-
-	aal_assert("vpf-245", fs != NULL);
-	aal_assert("vpf-175", fs->format != NULL);
-
-	if (!file)
-		return;
-
-	aal_stream_init(&stream);
-
-	plug_call(fs->format->entity->plug->o.format_ops, print, 
-		  fs->format->entity, &stream, options);
-    
-	fprintf(file, (char *)stream.data);
-    
-	aal_stream_fini(&stream);
-}

@@ -41,4 +41,14 @@ char *reiser4_print_node(reiser4_node_t *node, uint32_t start,
 	return (char *)stream.data;
 }
 
+char *reiser4_print_format(reiser4_format_t *format, uint16_t options) {
+	aal_assert("vpf-175", format != NULL);
+
+	aal_stream_reset(&stream);
+	plug_call(format->entity->plug->o.format_ops, print, 
+		  format->entity, &stream, options);
+
+	return (char *)stream.data;
+}
+
 #endif
