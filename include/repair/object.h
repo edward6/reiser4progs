@@ -9,10 +9,10 @@
 #include <repair/repair.h>
 
 typedef enum repair_object_flag {
-	OF_CHECKED	= 0x1,
-	OF_ATTACHED 	= 0x2,
-	OF_ATTACHING 	= 0x3,
-	OF_LAST	 	= 0x4
+	OF_CHECKED	= 0x0,
+	OF_ATTACHED 	= 0x1,
+	OF_ATTACHING 	= 0x2,
+	OF_LAST	 	= 0x3
 } repair_object_flag_t;
 
 extern errno_t repair_object_check_struct(reiser4_object_t *object,

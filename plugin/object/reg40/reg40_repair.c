@@ -191,98 +191,93 @@ static errno_t reg40_next(object_entity_t *object,
 	aal_assert("vpf-1345", repair != NULL);
 	
 	info = &reg->obj.info;
-	
-	while (1) {
-		if ((res = reg40_update_body(object)) < 0)
+
+ start:
+	if ((res = reg40_update_body(object)) < 0)
+		return res;
+
+	if (res == ABSENT) {
+		/* If place is invalid, no more reg40 items. */
+		if (!reg40_core->tree_ops.valid(info->tree, &reg->body))
+			goto end;
+
+		/* Initializing item entity at @next place */
+		if ((res = reg40_core->tree_ops.fetch(info->tree, &reg->body)))
 			return res;
 
-		if (res == ABSENT) {
-			/* If place is invalid, no more reg40 items. */
-			if (!reg40_core->tree_ops.valid(info->tree, &reg->body))
-				goto end;
+		/* Check if this is an item of another object. */
+		if (plug_call(reg->position.plug->o.key_ops, compshort,
+			      &reg->position, &reg->body.key))
+			goto end;
 
-			/* Initializing item entity at @next place */
-			if ((res = reg40_core->tree_ops.fetch(info->tree, 
-							 &reg->body)))
+		/* If non-existent position in the item, move next. */
+		if (plug_call(reg->body.plug->o.item_ops->balance,
+			      units, &reg->body) == reg->body.pos.unit)
+		{
+			place_t next;
+
+			if ((res = reg40_core->tree_ops.next(info->tree, 
+							     &reg->body, 
+							     &next)))
 				return res;
 
-			/* Check if this is an item of another object. */
-			if (plug_call(reg->position.plug->o.key_ops, compshort,
-				      &reg->position, &reg->body.key))
+			/* If this was the last item in the tree, 
+			   evth is handled. */
+			if (next.node == NULL)
 				goto end;
 
-			/* If non-existent position in the item, move next. */
-			if (plug_call(reg->body.plug->o.item_ops->balance,
-				      units, &reg->body) == reg->body.pos.unit)
-			{
-				place_t next;
+			reg->body = next;
 
-				if ((res = reg40_core->tree_ops.next(info->tree, 
-								&reg->body,
-								     &next)))
-				{
-					return res;
-				}
-
-				/* If this was the last item in the tree, 
-				   evth is handled. */
-				if (next.node == NULL)
-					break;
-
-				reg->body = next;
-
-				/* Check if this is an item of another object. */
-				if (plug_call(reg->position.plug->o.key_ops, 
-					      compshort, &reg->position, 
-					      &reg->body.key))
-				{
-					break;
-				}
-			}
+			/* Check if this is an item of another object. */
+			if (plug_call(reg->position.plug->o.key_ops, 
+				      compshort, &reg->position, 
+				      &reg->body.key))
+				goto end;
 		}
-
-		res = 0;
-
-		if (!plug_equal(reg->body.plug, repair->eplug) && 
-		    !plug_equal(reg->body.plug, repair->tplug))
-		{
-			aal_exception_error("The object [%s] (%s), node (%llu),"
-					    "item (%u): the item [%s] of the "
-					    "invalid plugin (%s) found.%s",
-					    print_inode(reg40_core, &info->object),
-					    reg->obj.plug->label,
-					    reg->body.block->nr, 
-					    reg->body.pos.item,
-					    print_key(reg40_core, &reg->body.key),
-					    reg->body.plug->label, 
-					    mode == RM_BUILD ? 
-					    " Removed." : "");
-		} else if (reg40_check_ikey(reg)) {
-			aal_exception_error("The object [%s] (%s), node (%llu),"
-					    "item (%u): the item [%s] has the "
-					    "wrong offset.%s",
-					    print_inode(reg40_core, &info->object),
-					    reg->obj.plug->label,
-					    reg->body.block->nr, 
-					    reg->body.pos.item,
-					    print_key(reg40_core, &reg->body.key),
-					    mode == RM_BUILD ? 
-					    " Removed." : "");
-		} else
-			return 0;
-
-		/* Rm an item with not correct key or of unknown plugin. */
-		if (mode != RM_BUILD) 
-			return RE_FATAL;
-
-		hint.count = 1;
-
-		/* Item has wrong key, remove it. */
-		if ((res = obj40_remove(&reg->obj, &reg->body, &hint)))
-			return res;
-
-		continue;
 	}
+
+	res = 0;
+
+	if (!plug_equal(reg->body.plug, repair->eplug) && 
+	    !plug_equal(reg->body.plug, repair->tplug))
+	{
+		aal_exception_error("The object [%s] (%s), node (%llu),"
+				    "item (%u): the item [%s] of the "
+				    "invalid plugin (%s) found.%s",
+				    print_inode(reg40_core, &info->object),
+				    reg->obj.plug->label,
+				    reg->body.block->nr, 
+				    reg->body.pos.item,
+				    print_key(reg40_core, &reg->body.key),
+				    reg->body.plug->label, 
+				    mode == RM_BUILD ? 
+				    " Removed." : "");
+	} else if (reg40_check_ikey(reg)) {
+		aal_exception_error("The object [%s] (%s), node (%llu),"
+				    "item (%u): the item [%s] has the "
+				    "wrong offset.%s",
+				    print_inode(reg40_core, &info->object),
+				    reg->obj.plug->label,
+				    reg->body.block->nr, 
+				    reg->body.pos.item,
+				    print_key(reg40_core, &reg->body.key),
+				    mode == RM_BUILD ? 
+				    " Removed." : "");
+	} else
+		return 0;
+
+	/* Rm an item with not correct key or of unknown plugin. */
+	if (mode != RM_BUILD) 
+		return RE_FATAL;
+
+	hint.count = 1;
+
+	/* Item has wrong key, remove it. */
+	if ((res = obj40_remove(&reg->obj, &reg->body, &hint)))
+		return res;
+
+	goto start;
+
  end:
 	reg->body.plug = NULL;
 	return 0;
@@ -366,7 +361,7 @@ static uint64_t reg40_place_maxreal(place_t *place) {
 	errno_t res;
 	
 	if (!place->plug)
-		return 0;
+		return MAX_UINT64;
 
 	/* Get the maxreal key of the found item. */
 	if ((res = plug_call(place->plug->o.item_ops->balance, 
@@ -499,29 +494,29 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if ((result = reg40_next(object, &repair, mode)) < 0)
 			return result;
 		
-		if ((repair.maxreal = reg40_place_maxreal(&reg->body)) 
-		    == MAX_UINT64)
-		{
-			return -EINVAL;
-		}
-		
 		if (result) {
 			res |= result;
-			goto next;
+			break;
 		}
 		
-		if (reg->body.plug && !plug_equal(reg->body.plug, 
-						  repair.bplug)) 
-		{
-			/* If found item should be converted, prepare it. */
-			result = reg40_conv_prepare(reg, &hint, &repair, mode);
+		if (reg->body.plug) {
+			repair.maxreal = reg40_place_maxreal(&reg->body);
 
-			if (result && mode != RM_BUILD) {
-				res |= result;
-				goto next;
+			if (repair.maxreal == MAX_UINT64)
+				return -EINVAL;
+
+			if (!plug_equal(reg->body.plug, repair.bplug)) {
+				/* Prepare the convertion if needed. */
+				result = reg40_conv_prepare(reg, &hint, 
+							    &repair, mode);
+
+				if (result && mode != RM_BUILD) {
+					res |= RE_FATAL;
+					goto next;
+				}
 			}
 		}
-
+	
 		/* If no more reg40 body items and some of them need to be 
 		   converted, or convertion is to be now, run tree_conv. */
 		if ((!reg->body.plug && hint.offset.plug) || result) {
@@ -563,9 +558,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 
 	next:
-		if (!repair.maxreal)
-			break;
-		
 		/* Find the next after the maxreal key. */
 		reg40_seek(object, repair.maxreal + 1);
 	}

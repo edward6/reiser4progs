@@ -34,7 +34,7 @@ static errno_t repair_cleanup_check(place_t *place, void *data) {
 		return 0;	
 	}
 
-	repair_node_clear_flags(place->node);
+	repair_item_clear_flag(place, MAX_UINT16);
 	
 	return 0;
 }
