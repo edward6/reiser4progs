@@ -127,5 +127,11 @@ extern reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
 
+extern errno_t reiser4_tree_legal_level(uint8_t level, 
+					reiser4_item_group_t group);
+
+extern bool_t reiser4_tree_data_level(uint8_t level);
+
+    
 #endif
 
