@@ -728,6 +728,7 @@ errno_t reiser4_tree_mkspace(
 	*/
 	for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
 		uint8_t level;
+		shift_flags_t flags;
 		reiser4_coord_t save;
 		reiser4_node_t *node;
 	
@@ -739,10 +740,33 @@ errno_t reiser4_tree_mkspace(
 		reiser4_node_set_flush_stamp(node, 
 			reiser4_node_get_flush_stamp(coord->node));
 
-		save = *coord;
+		flags = SF_RIGHT;
 
-		if (reiser4_tree_shift(tree, coord, node, SF_RIGHT | SF_MOVIP))
+		if (alloc == 0)
+			flags |= SF_MOVIP;
+
+		save = *coord;
+		
+		if (reiser4_tree_shift(tree, coord, node, flags))
 			return -1;	
+
+		/*
+		  Releasing old node, because it has become empty as result of data
+		  shifting.
+		*/
+		if (reiser4_node_items(save.node) == 0) {
+			
+			if (save.node->parent) {
+				
+				if (reiser4_node_remove(save.node->parent, &save.node->pos))
+					return -1;
+				
+				reiser4_node_detach(save.node->parent, save.node);
+			}
+			
+			save.node->flags &= ~NF_DIRTY;
+			reiser4_tree_release(tree, save.node);
+		}
 		
 		/* Attaching new allocated node into the tree, if it is not empty */
 		if (reiser4_node_items(node) > 0) {
@@ -754,37 +778,15 @@ errno_t reiser4_tree_mkspace(
 			/* Attaching new node to the tree */
 			if (reiser4_tree_attach(tree, node)) {
 				aal_exception_error("Can't attach node to the tree.");
+				
 				reiser4_tree_release(tree, node);
 				return -1;
 			}
 		}
 	
 		not_enough = needed - reiser4_node_space(coord->node);
-	
-		/* Checking if the old have enough free space after shifting */
-		if (not_enough > 0 && save.node != coord->node &&
-		    coord->pos.unit == ~0ul)
-		{
-			*coord = save;
-			not_enough = needed - reiser4_node_space(coord->node);
-		}
 	}
 
-	/*
-	  Releasing old node, because it becamed empty as result of data
-	  shifting.
-	*/
-	if (coord->node != old.node && reiser4_node_items(old.node) == 0) {
-		old.node->flags &= ~NF_DIRTY;
-
-		if (old.node->parent) {
-			if (reiser4_node_remove(old.node->parent, &old.node->pos))
-				return -1;
-		}
-
-		reiser4_tree_release(tree, old.node);
-	}
-	
 	return -(not_enough > 0);
 }
 
