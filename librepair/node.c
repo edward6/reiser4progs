@@ -25,11 +25,11 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	if ((res = repair_coord_open(&coord, node, CT_NODE, &pos))) {
 	    if (res > 0) {
 		aal_exception_error("Node (%llu): Failed to open the item (%u)."
-		    " Removed.", aal_block_number(node->block), pos.item);
+		    " Removed.", node->blk, pos.item);
 	    
 		if (reiser4_node_remove(node, &pos)) {
 		    aal_exception_bug("Node (%llu): Failed to delete the item "
-			"(%d).", aal_block_number(node->block), pos.item);
+			"(%d).", node->blk, pos.item);
 		    return -1;
 		}		
 		pos.item--;
@@ -38,7 +38,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    } 
 
 	    aal_exception_fatal("Node (%llu): Failed to open the item (%u).", 
-		aal_block_number(node->block), pos.item);
+		node->blk, pos.item);
 
 	    return res;
 	}
@@ -186,7 +186,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 
     if (repair_joint_ld_key_fetch(joint, &d_key, data)) {
 	aal_exception_error("Node (%llu): Failed to get the left delimiting key.", 
-	    aal_block_number(joint->node->block));
+	    joint->node->blk);
 	return -1;
     }
     
@@ -195,7 +195,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 
     if (reiser4_item_key(&coord, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the left key.",
-	    aal_block_number(joint->node->block));
+	    joint->node->blk);
 	return -1;
     }
 
@@ -206,7 +206,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 	/* The left delimiting key is much then the left key in the node - 
 	 * not legal */
 	aal_exception_error("Node (%llu): The first key %k is not equal to "
-	    "the left delimiting key %k.", aal_block_number(joint->node->block), 
+	    "the left delimiting key %k.", joint->node->blk, 
 	    &key, &d_key);
 	return 1;
     } else if (res < 0) {
@@ -217,8 +217,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
 	    aal_exception_error("Node (%llu): The left delimiting key %k in "
 		"the node (%llu), pos (%u/%u) mismatch the first key %k in the "
 		"node. Left delimiting key is fixed.", 
-		aal_block_number(joint->node->block), &key, 
-		aal_block_number(joint->parent->node->block), coord.pos.item, 
+		joint->node->blk, &key, joint->parent->node->blk, coord.pos.item, 
 		coord.pos.unit, &d_key);
 	    if (repair_joint_ld_key_update(joint, &d_key, data)) 
 		return -1;
@@ -227,7 +226,7 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
     
     if (repair_joint_rd_key(joint, &d_key, data)) {
 	aal_exception_error("Node (%llu): Failed to get the right delimiting "
-	    "key.", aal_block_number(joint->node->block));
+	    "key.", joint->node->blk);
 	return -1;
     }
 
@@ -236,20 +235,20 @@ errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
  
     if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
 	aal_exception_error("Node (%llu): Failed to open the item (%llu).",
-	    aal_block_number(joint->node->block), pos.item);
+	    joint->node->blk, pos.item);
 	return -1;
     }
     
     if (reiser4_item_max_real_key(&coord, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the max real key of "
-	    "the last item.", aal_block_number(joint->node->block));
+	    "the last item.", joint->node->blk);
 	return -1;
     }
     
     if (reiser4_key_compare(&key, &d_key) > 0) {
 	aal_exception_error("Node (%llu): The last key %k in the node is less "
 	    "then the right delimiting key %k.", 
-	    aal_block_number(joint->node->block), &key, &d_key);
+	    joint->node->blk, &key, &d_key);
 	return 1;
     }
 
@@ -282,18 +281,17 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 /*	if (reiser4_node_get_key(node, &pos, &key)) {*/
 	if (reiser4_item_key(&coord, &key)) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
-		"item (%u).", aal_block_number(node->block), pos.item);
+		"item (%u).", node->blk, pos.item);
 	    return -1;
 	}
 	
 	if (reiser4_key_valid(&key)) {
 	    aal_exception_error("Node (%llu): The key %k of the item (%u) is "
-		"not valid. Item removed.", aal_block_number(node->block), 
-		&key, pos.item);
+		"not valid. Item removed.", node->blk, &key, pos.item);
 	    
 	    if (reiser4_node_remove(node, &pos)) {
 		aal_exception_bug("Node (%llu): Failed to delete the item "
-		    "(%d).", aal_block_number(node->block), pos.item);
+		    "(%d).", node->blk, pos.item);
 		return -1;
 	    }
 	    pos.item--;

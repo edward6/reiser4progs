@@ -219,7 +219,8 @@ struct object_entity {
 typedef struct object_entity object_entity_t;
 
 struct item_context {
-	aal_block_t *block;
+	blk_t blk;
+	aal_device_t *device;
 	object_entity_t *node;
 };
 
@@ -653,13 +654,13 @@ struct reiser4_node_ops {
 	   Forms empty node incorresponding to given level in specified block.
 	   Initializes instance of node and returns it to caller.
 	*/
-	object_entity_t *(*create) (aal_block_t *, uint8_t);
+	object_entity_t *(*create) (aal_device_t *, blk_t, uint8_t);
 
 	/* 
 	   Opens node (parses data in orser to check whether it is valid for this
 	   node type), initializes instance and returns it to caller.
 	*/
-	object_entity_t *(*open) (aal_block_t *);
+	object_entity_t *(*open) (aal_device_t *, blk_t);
 
 	/* 
 	   Finalizes work with node (compresses data back) and frees all memory.
@@ -667,6 +668,9 @@ struct reiser4_node_ops {
 	*/
 	errno_t (*close) (object_entity_t *);
 
+	/* Saves node onto device */
+	errno_t (*sync) (object_entity_t *);
+	
 	/* 
 	   Performs shift of items and units. Returns 1 if move point shifted to
 	   passed node, 0 if not shifted and -1 in the case of error.
@@ -683,9 +687,6 @@ struct reiser4_node_ops {
 	/* Check node on validness */
 	errno_t (*valid) (object_entity_t *);
 
-	/* Constrain on the item type. */
-	errno_t (*item_legal) (object_entity_t *, reiser4_plugin_t *);
-    
 	/* Prints node into given buffer */
 	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
     
@@ -748,6 +749,9 @@ struct reiser4_node_ops {
     
 	/* Gets/sets node's plugin ID */
 	uint16_t (*item_pid) (object_entity_t *, reiser4_pos_t *);
+
+	/* Constrain on the item type. */
+	errno_t (*item_legal) (object_entity_t *, reiser4_plugin_t *);
 };
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;

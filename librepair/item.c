@@ -23,7 +23,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 	 * number. */
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) is zeroed.", 
-	    aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
+	    reiser4_coord_blk(coord), coord->pos.item, 
 	    coord->pos.unit, hint.ptr, hint.width);
 
 	hint.ptr = 0;
@@ -44,8 +44,8 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) is removed.", 
-	    aal_block_number(reiser4_coord_block(coord)),
-	    coord->pos.item, coord->pos.unit, hint.ptr, hint.width);
+	    reiser4_coord_blk(coord), coord->pos.item, coord->pos.unit,
+	    hint.ptr, hint.width);
 
 	repair_coord_left_pos_save(coord, &prev);
 	if (reiser4_node_remove(reiser4_coord_node(coord), &coord->pos))
@@ -98,7 +98,7 @@ errno_t repair_item_ptr_used_in_bitmap(reiser4_coord_t *coord,
 error:
     aal_exception_error("Node (%llu), item (%llu), unit (%llu): %s pointer "
 	"(start %llu, count %llu) points to some already used blocks.", 
-	aal_block_number(reiser4_coord_block(coord)), coord->pos.item, 
+	reiser4_coord_blk(coord), coord->pos.item, 
 	coord->pos.unit, reiser4_item_nodeptr(coord) ? "node" : "extent", 
 	ptr.ptr, ptr.width);
 

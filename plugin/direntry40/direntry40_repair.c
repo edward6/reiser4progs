@@ -34,21 +34,21 @@ static errno_t direntry40_count_check(item_entity_t *item) {
     if (de40_min_length(de40_get_count(de)) > item->len) {
 	if (de40_min_length(count) > item->len) {
 	    aal_exception_error("Node %llu, item %u: unit array is not "
-		"recognized.", aal_block_number(item->context.block), item->pos);
+		"recognized.", item->context.blk, item->pos);
 	    return -1;
 	} 
 	
 	aal_exception_error("Node %llu, item %u: unit count (%u) is "
-            "wrong. Fixed to (%u).", aal_block_number(item->context.block),
-	    item->pos, de40_get_count(de), count);
+	    "wrong. Fixed to (%u).", item->context.blk, item->pos,
+	    de40_get_count(de), count);
 	
 	de40_set_count(de, count);
     } else {
 	if ((de40_min_length(count) > item->len) || (count != de40_get_count(de))) 
 	{
 	    aal_exception_error("Node %llu, item %u: wrong offset "
-		"(%llu). Fixed to (%llu).", aal_block_number(item->context.block),
-		item->pos, de->entry[0].offset, de40_get_count(de) * sizeof(entry40_t) + 
+		"(%llu). Fixed to (%llu).", item->context.blk, item->pos,
+		de->entry[0].offset, de40_get_count(de) * sizeof(entry40_t) + 
 		sizeof(direntry40_t));
 	    
 	    de->entry[0].offset = de40_get_count(de) * sizeof(entry40_t) + 
@@ -94,7 +94,7 @@ errno_t direntry40_check(item_entity_t *item) {
 	{
 	    /* Wrong offset occured. */
 	    aal_exception_error("Node %llu, item %u: wrong offset (%llu).",
-		aal_block_number(item->context.block), item->pos, offset);
+		item->context.blk, item->pos, offset);
 	    if (!start_pos)
 		start_pos = i;
 	} else if (start_pos) {

@@ -19,8 +19,7 @@ static uint32_t extent40_count(item_entity_t *item) {
 
 	if (item->len % sizeof(extent40_t) != 0) {
 		aal_exception_error("Invalid item size detected. Node %llu, "
-				    "item %u.", aal_block_number(item->context.block),
-				    item->pos);
+				    "item %u.", item->context.blk, item->pos);
 		return 0;
 	}
 		
@@ -117,7 +116,7 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 				  get_offset, key->body)))
 		return -1;
 	
-	blocksize = aal_block_size(item->context.block);
+	blocksize = item->context.device->blocksize;
 	
 	aal_assert("vpf-440", blocksize != 0, return -1);
 	
@@ -175,7 +174,7 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 			     get_offset, item->key.body);
 
 	extent = extent40_body(item);
-	blocksize = aal_block_size(item->context.block);
+	blocksize = item->context.device->blocksize;
 		
 	for (i = 0; i < count; i++, extent++) {
 		offset += (blocksize * et40_get_width(extent));

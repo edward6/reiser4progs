@@ -15,10 +15,9 @@ errno_t repair_scan_joint_check(reiser4_joint_t *joint, void *data) {
     aal_assert("vpf-427", repair_data != NULL, return -1);
     aal_assert("vpf-428", joint != NULL, return -1);
     aal_assert("vpf-429", joint->node != NULL, return -1);
-    aal_assert("vpf-430", joint->node->block != NULL, return -1);    
 
     aal_assert("vpf-426", aux_bitmap_test(repair_scan_data(repair_data)->bm_used, 
-	aal_block_number(joint->node->block)), return -1);
+	joint->node->blk), return -1);
 
     return 0;    
 }
@@ -34,10 +33,10 @@ errno_t repair_scan_handle_pointers(reiser4_coord_t *coord, void *data) {
  
     aal_assert("vpf-384", coord != NULL, return -1);
     aal_assert("vpf-385", repair_data != NULL, return -1);
-    aal_assert("vpf-431", reiser4_coord_block(coord) != NULL, return -1);
+
     aal_assert("vpf-386", 
 	aux_bitmap_test(repair_scan_data(repair_data)->bm_used, 
-	    aal_block_number(reiser4_coord_block(coord))), return -1);
+	    reiser4_coord_blk(coord)), return -1);
 
     if (plugin_call(return -1, coord->entity.plugin->item_ops,
 	fetch, &coord->entity, coord->pos.unit, &ptr, 1))
