@@ -1,0 +1,122 @@
+diff -rupN ./lilo-22.5.1.orig/Makefile ./lilo-22.5.1/Makefile
+--- ./lilo-22.5.1.orig/Makefile	Fri Mar 28 23:57:26 2003
++++ ./lilo-22.5.1/Makefile	Thu Apr 10 21:44:33 2003
+@@ -40,6 +40,7 @@
+ #		  default command line in the map file after reading it.
+ # * REISERFS      Compile support for parts of LILO on ReiserFS.
+ #                 Requires header files for kernel 2.4.0test8 or later.
++# * REISER4       Compile support for parts of LILO on Reiser4.
+ # * REWRITE_TABLE Enable rewriting the partition table at boot time.
+ # * SOLO_CHAIN	  Assemble all chain-loader functions into 'chain.b', 
+ #		  eliminating the need for 'os2_d.b'.
+@@ -50,7 +51,7 @@
+ #   XL_SECS=n	  Support for extra large (non-standard) floppies.
+ 
+ CONFIG=-DBDATA -DDSECS=3 -DEVMS -DIGNORECASE -DLVM -DONE_SHOT -DPASS160 \
+-   -DREISERFS -DREWRITE_TABLE -DSOLO_CHAIN -DVERSION -DVIRTUAL
++   -DREISERFS -DREISER4 -DREWRITE_TABLE -DSOLO_CHAIN -DVERSION -DVIRTUAL
+ 
+ # set the compiler optimization level
+ 
+diff -rupN ./lilo-22.5.1.orig/geometry.c ./lilo-22.5.1/geometry.c
+--- ./lilo-22.5.1.orig/geometry.c	Sun Mar 16 20:38:50 2003
++++ ./lilo-22.5.1/geometry.c	Thu Apr 10 21:50:45 2003
+@@ -16,13 +16,13 @@ source directory.
+ #include <errno.h>
+ #include <sys/types.h>
+ 
+-#ifdef LCF_REISERFS
++#if defined(LCF_REISERFS) || defined(LCF_REISER4)
+ #include <sys/statfs.h>
+ 
+ #ifdef	_SYS_STATFS_H
+ #define	_I386_STATFS_H	/* two versions of statfs is not good ... */
+ #endif
+-#endif
++#endif /* defined(LCF_REISERFS) || defined(LCF_REISER4) */
+ 
+ #include <string.h>
+ 
+@@ -39,14 +39,21 @@ source directory.
+ #ifndef REISERFS_SUPER_MAGIC
+ #define REISERFS_SUPER_MAGIC 0x52654973
+ #endif
+-#ifndef REISERFS_SUPER_MAGIC_STRING
+-#define REISERFS_SUPER_MAGIC_STRING "ReIsErFs"
+-#endif
+ #ifndef REISERFS_IOC_UNPACK
+ #define REISERFS_IOC_UNPACK		_IOW(0xCD,1,long)
+ #endif
+ #endif
+ 
++#ifdef LCF_REISER4
++#ifndef REISER4_SUPER_MAGIC
++#define REISER4_SUPER_MAGIC  0x52345362 
++/* (*(__u32 *)"R4Sb"); */
++#endif
++#ifndef REISER4_IOC_UNPACK
++#define REISER4_IOC_UNPACK              _IOW(0xCD,1,long)
++#endif
++#endif /* LCF_REISER4 */
++
+ #ifdef LCF_LVM
+ struct lv_bmap {
+     __u32 lv_block;
+@@ -905,17 +912,44 @@ int geo_comp_addr(GEOMETRY *geo,int offs
+     if (geo->boot && offset >= SECTOR_SIZE)
+ 	die("Internal error: sector > 0 after geo_open_boot");
+     block = offset/geo->spb/SECTOR_SIZE;
++
+     if (geo->file) {
+-#ifdef LCF_REISERFS
++#if defined (LCF_REISERFS) || defined (LCF_REISER4)
+ 	    struct statfs buf;
+ 
+ 	    fstatfs(geo->fd, &buf);
++	    
++#ifdef LCF_REISERFS
+ 	    if (buf.f_type == REISERFS_SUPER_MAGIC) {
+ 		if (ioctl (geo->fd, REISERFS_IOC_UNPACK, 1) == ENOSPC)
+ 			die("Cannot unpack ReiserFS file");
+ 		if (verbose > 3) printf("fd %d: REISERFS_IOC_UNPACK\n", geo->fd);
+ 	    }
+ #endif
++
++#ifdef LCF_REISER4	    
++	    /* Forcing reiser4 to perform tail2extent converstion */
++	    if (buf.f_type == REISER4_SUPER_MAGIC) {
++		if (ioctl (geo->fd, REISER4_IOC_UNPACK, 1) != 0)
++			die("Cannot unpack Reiser4 file");
++		if (verbose > 3) printf("fd %d: REISER4_IOC_UNPACK\n", geo->fd);
++
++		/* 
++		    As we may have the situation when extent will be included
++		    into transaction, and its item(s) will not be have the real block
++		    numbers assigned, we should perform fsync() in order to guarantee,
++		    that current atom is flushed and real block numbers assigned to 
++		    the extent(s) file was converted in.
++		*/
++		if (fdatasync(geo->fd) != 0)
++		    die("Cannot perform fdatasync");
++	    
++		if (verbose > 3) printf("fd %d: fdatasync()\n", geo->fd);
++	    }
++#endif
++	    
++#endif /* defined (LCF_REISERFS) || defined (LCF_REISER4) */
++
+ 	if (ioctl(geo->fd,FIBMAP,&block) < 0) pdie("ioctl FIBMAP");
+ 	if (!block) {
+ 	    return 0;
+diff -rupN ./lilo-22.5.1.orig/manPages/lilo.8 ./lilo-22.5.1/manPages/lilo.8
+--- ./lilo-22.5.1.orig/manPages/lilo.8	Fri Mar 14 23:42:02 2003
++++ ./lilo-22.5.1/manPages/lilo.8	Thu Apr 10 21:51:41 2003
+@@ -422,6 +422,8 @@ is known to have problems with the
+ introduced with the 2.2.x kernels, unless the file system is
+ mounted with the 'notail' option.  This incompatibilty has been
+ resolved with reiserfs 3.6.18 and lilo 21.6.
++.I reiser4
++introduced with the 2.5.x kernels requires lilo 22.5.2.
+ .sp
+ Beginning with version 22.0, RAID installations write the boot record to
+ the RAID partition. Conditional writing of MBRs may occur to aid in making
