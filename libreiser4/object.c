@@ -253,11 +253,16 @@ reiser4_object_t *reiser4_object_realize(
 		return NULL;
 
 	/* Initializing info */
+	aal_memset(&info, 0, sizeof(info));
 	object->info = &info;
 	object->info->tree = tree;
-
-	reiser4_key_assign(&object->info->parent, &tree->key);
-	reiser4_key_assign(&object->info->object, &tree->key);
+	
+	if (parent) {
+		reiser4_key_assign(&object->info->parent, 
+				   &parent->info->object);
+	}
+	
+	reiser4_key_assign(&object->info->object, &place->key);
 	aal_memcpy(&object->info->start, place, sizeof(*place));
 
 	if (reiser4_object_init(object, parent))
@@ -534,7 +539,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	/* Opening victim object by found place */
-	if (!(child = reiser4_object_realize(object->tree, NULL, &place))) {
+	if (!(child = reiser4_object_realize(object->tree, object, &place))) {
 		aal_exception_error("Can't open %s/%s.", object->name, name);
 		return -EINVAL;
 	}
