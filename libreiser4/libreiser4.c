@@ -159,7 +159,6 @@ static errno_t tree_prev(
 
 	return reiser4_place_fetch((reiser4_place_t *)prev);
 }
-#endif
 
 static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
 	reiser4_tree_t *t = (reiser4_tree_t *)tree;
@@ -178,7 +177,6 @@ static errno_t tree_set_data(void *tree, key_entity_t *key,
 	return aal_hash_table_insert(t->data, k, block);
 }
 
-#ifndef ENABLE_STAND_ALONE
 static uint32_t tree_blksize(void *tree) {
 	reiser4_fs_t *fs;
 	
@@ -294,11 +292,11 @@ reiser4_core_t core = {
 
 		/* Update the key in the place and the node itsef. */
 		.ukey       = tree_ukey,
-#endif
 
 		/* Data related functions */
 		.get_data   = tree_get_data,
 		.set_data   = tree_set_data
+#endif
 	},
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its
@@ -353,7 +351,9 @@ errno_t libreiser4_init(void) {
 	return 0;
 	
  error_free_print:
+#ifndef ENABLE_STAND_ALONE
 	reiser4_print_fini();
+#endif
 	return -EINVAL;
 }
 
