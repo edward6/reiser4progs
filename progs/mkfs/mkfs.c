@@ -488,7 +488,7 @@ int main(int argc, char *argv[]) {
 		reiser4_object_close(fs->root);
 
 		/* Freeing tree */
-		reiser4_tree_close(fs->tree);
+		reiser4_tree_fini(fs->tree);
 		
 		/* Freeing journal */
 		reiser4_journal_close(fs->journal);
@@ -515,7 +515,7 @@ int main(int argc, char *argv[]) {
  error_free_root:
 	reiser4_object_close(fs->root);
  error_free_tree:
-	reiser4_tree_close(fs->tree);
+	reiser4_tree_fini(fs->tree);
  error_free_journal:
 	reiser4_journal_close(fs->journal);
  error_free_fs:

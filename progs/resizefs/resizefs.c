@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	/* Freeing tree */
-	reiser4_tree_close(fs->tree);
+	reiser4_tree_fini(fs->tree);
     
 	/* Deinitializing filesystem instance and device instance */
 	reiser4_fs_close(fs);
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
 	return NO_ERROR;
 
  error_free_tree:
-	reiser4_tree_close(fs->tree);
+	reiser4_tree_fini(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

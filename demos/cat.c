@@ -90,6 +90,7 @@ int main(int argc, char *argv[]) {
     
 	reiser4_object_close(reg);
 
+	reiser4_tree_fini(fs->tree);
 	reiser4_fs_sync(fs);
 	reiser4_fs_close(fs);
     
@@ -101,7 +102,7 @@ int main(int argc, char *argv[]) {
  error_free_reg:
 	reiser4_object_close(reg);
  error_free_tree:
-	reiser4_tree_close(fs->tree);
+	reiser4_tree_fini(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

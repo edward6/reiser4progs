@@ -518,9 +518,6 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	return reiser4_format_get_root(tree->fs->format);
 }
 
-void reiser4_tree_fini(reiser4_tree_t *tree) {
-}
-
 /* Opens the tree (that is, the tree cache) on specified filesystem */
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	reiser4_tree_t *tree;
@@ -551,6 +548,22 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
  error_free_tree:
 	aal_free(tree);
 	return NULL;
+}
+
+/* Closes specified tree (frees all assosiated memory) */
+void reiser4_tree_fini(reiser4_tree_t *tree) {
+	aal_assert("umka-134", tree != NULL);
+
+#ifndef ENABLE_STAND_ALONE
+	/* Flushing tree cache */
+	reiser4_tree_sync(tree);
+#endif
+	
+	tree->fs->tree = NULL;
+	
+	/* Freeing the tree */
+	reiser4_tree_fini(tree);
+	aal_free(tree);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -754,22 +767,6 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 	*/
 	return reiser4_tree_walk(tree, tree->root,
 				 callback_check_node);
-}
-
-/* Closes specified tree (frees all assosiated memory) */
-void reiser4_tree_close(reiser4_tree_t *tree) {
-	aal_assert("umka-134", tree != NULL);
-
-#ifndef ENABLE_STAND_ALONE
-	/* Flushing tree cache */
-	reiser4_tree_sync(tree);
-#endif
-	
-	tree->fs->tree = NULL;
-	
-	/* Freeing the tree */
-	reiser4_tree_fini(tree);
-	aal_free(tree);
 }
 
 uint8_t reiser4_tree_height(reiser4_tree_t *tree) {

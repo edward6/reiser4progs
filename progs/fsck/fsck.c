@@ -330,7 +330,7 @@ int main(int argc, char *argv[]) {
     fsck_time("fsck.reiser4 finished at");
     
 free_tree:
-    reiser4_tree_close(repair.fs->tree);
+    reiser4_tree_fini(repair.fs->tree);
     repair.fs->tree = NULL;
 
 free_fs:

@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	/* Releasing the tree */
-	reiser4_tree_close(fs->tree);
+	reiser4_tree_fini(fs->tree);
 
 	/* Closing the journal */
 	reiser4_journal_close(fs->journal);
@@ -392,7 +392,7 @@ int main(int argc, char *argv[]) {
 	return NO_ERROR;
 
  error_free_tree:
-	reiser4_tree_close(fs->tree);
+	reiser4_tree_fini(fs->tree);
  error_free_journal:
 	reiser4_journal_close(fs->journal);
  error_free_fs:
