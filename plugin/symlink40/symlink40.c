@@ -18,7 +18,7 @@
 
 #include "symlink40.h"
 
-extern reiser4_plugin_t reg40_plugin;
+extern reiser4_plugin_t symlink40_plugin;
 
 static reiser4_core_t *core = NULL;
 
@@ -106,7 +106,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 	hint.hint = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
-	item = symlink->entity;
+	item = &symlink->statdata.entity;
 	
 	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
 		return -1;
@@ -209,7 +209,7 @@ static object_entity_t *symlink40_create(const void *tree,
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID;
     
-	lw_ext.mode = S_IFREG | 0755;
+	lw_ext.mode = S_IFLNK | 0755;
 	lw_ext.nlink = 2;
 
 	/* This should be modifyed by write */
@@ -227,7 +227,7 @@ static object_entity_t *symlink40_create(const void *tree,
     
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
-	stat.ext[SDEXT_SYMLINK_ID] = hint->symlink.data;
+	stat.ext[SDEXT_SYMLINK_ID] = hint->body.symlink.data;
 
 	stat_hint.hint = &stat;
     

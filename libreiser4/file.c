@@ -430,7 +430,9 @@ errno_t reiser4_file_layout(
 	aal_assert("umka-1469", file != NULL, return -1);
 	aal_assert("umka-1470", func != NULL, return -1);
 
-	return plugin_call(return -1, file->entity->plugin->file_ops, 
-			   layout, file->entity, func, data);
+	if (!file->entity->plugin->file_ops.layout)
+		return 0;
+	
+	return file->entity->plugin->file_ops.layout(file->entity, func, data);
 }
 
