@@ -150,6 +150,9 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
     aal_assert("vpf-407", ld_key->plugin != NULL);
 
     if (node->parent.node != NULL) {
+	if ((ret = reiser4_place_realize(&node->parent)))
+	    return ret;
+
 	if ((ret = reiser4_item_get_key(&node->parent, ld_key)))
 	    return ret;
     } else
@@ -323,7 +326,10 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
     
     aal_assert("vpf-258", node != NULL);
     
+    aal_memset(&place, 0, sizeof(place));
+    
     place.node = node;
+    place.pos.unit = ~0ul;
     count = reiser4_node_items(node);
     
     for (pos->item = 0; pos->item < count; pos->item++) {
@@ -389,13 +395,16 @@ errno_t repair_node_check(reiser4_node_t *node, uint8_t mode) {
     if (repair_error_fatal(res))
 	return res;
     
-    res |= repair_node_items_check(node, mode);
-
+    res |= repair_node_keys_check(node, mode);
+    
     if (repair_error_fatal(res))
 	return res;
     
-    res |= repair_node_keys_check(node, mode);
-    
+    res |= repair_node_items_check(node, mode);
+     
+    if (repair_error_fatal(res))
+	return res;    
+	
     if (res & REPAIR_FIXED) {
 	reiser4_node_mkdirty(node);
 	res &= ~REPAIR_FIXED;
