@@ -13,12 +13,6 @@ reiser4progs/COPYING.
   limit in order to make hash collisions less and thus, to speedup
   loaded nodes access.
 
-* fix reiser4_print_*. This print stuff should be moved to libaal.
-
-* check all place_fetch() occurences and remove redundant ones.
-
-* change R4Sb magic to Reiser4Sb both in progs and in kernel code.
-
 * implement key collisions handling in tree_lookup().
 
 * move plugin directory to libreiser4 directory. Maintain own plugin
@@ -30,8 +24,6 @@ reiser4progs/COPYING.
 * dumpfs utility.
 
 * implement tree_resize() and tree_copy().
-
-* finish pack/unpack (add journal metadata).
 
 * plugin inheritance for objects.
 
