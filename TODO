@@ -8,7 +8,7 @@ reiser4progs/COPYING.
 
 * shift method for item plugins.
 
-* merge neighbour mergeable items if they lie inside the same node
+* left shifting for direntry40 item plugin
 
 * --print-journal and --print-alloc options in debugfs.
 
@@ -17,20 +17,12 @@ reiser4progs/COPYING.
 * something like print_block method for format, journal and block
   allocator plugins.
 
-* improve lru list for storing different objects and move it to libaal
-
 * aal_block_t buffer list on device layer
-
-* join reiser4_node_t and reiser4_joint_t
 
 * special file plugin.
 
 * copy bitmap functions Vitaly need
 
-* changes in aal_list_find_custom and aal_list_insert_sorted
-
 * few disk-format changes (direntry format, big digits storing in stat data)
-
-* move some part of tree_shift method to node API
 
 * callbacks in tree_insert and tree_remove functions
