@@ -12,7 +12,6 @@
 #define JOURNAL40_HEADER (4096 * 19)
 #define JOURNAL40_FOOTER (4096 * 20)
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t journal40_plugin;
 
 static int journal40_isdirty(object_entity_t *entity) {
@@ -787,7 +786,6 @@ static reiser4_plugin_t journal40_plugin = {
 };
 
 static reiser4_plugin_t *journal40_start(reiser4_core_t *c) {
-	core = c;
 	return &journal40_plugin;
 }
 

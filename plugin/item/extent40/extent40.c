@@ -10,8 +10,6 @@
 #define extent40_size(item) \
         (extent40_offset(item, extent40_units(item)))
 
-static reiser4_core_t *core = NULL;
-
 /* Returns blocksize of the device passed extent @item lies on */
 uint32_t extent40_blocksize(item_entity_t *item) {
 	aal_assert("umka-2058", item != NULL);
@@ -673,7 +671,6 @@ static reiser4_plugin_t extent40_plugin = {
 };
 
 static reiser4_plugin_t *extent40_start(reiser4_core_t *c) {
-	core = c;
 	return &extent40_plugin;
 }
 

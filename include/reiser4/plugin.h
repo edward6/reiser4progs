@@ -522,59 +522,6 @@ struct create_hint {
 
 typedef struct create_hint create_hint_t;
 
-#define PLUGIN_MAX_LABEL	22
-#define PLUGIN_MAX_NAME		22
-#define PLUGIN_MAX_DESC		64
-
-typedef struct reiser4_core reiser4_core_t;
-
-typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
-typedef reiser4_plugin_t *(*plugin_init_t) (reiser4_core_t *);
-typedef errno_t (*plugin_func_t) (reiser4_plugin_t *, void *);
-
-struct plugin_class {
-	void *data;
-
-	plugin_init_t init;
-	plugin_fini_t fini;
-	
-#ifndef ENABLE_STAND_ALONE
-	char name[PLUGIN_MAX_NAME];
-#endif
-};
-
-typedef struct plugin_class plugin_class_t;
-
-#ifndef ENABLE_STAND_ALONE
-#define CLASS_INIT \
-        {NULL, NULL, NULL, ""}
-#else
-#define CLASS_INIT \
-        {NULL, NULL, NULL}
-#endif
-
-/* Common plugin header */
-struct plugin_header {
-
-	/* Plugin handle. It is used by plugin factory */
-	plugin_class_t class;
-
-	/* Plugin will be looked by its id, type, etc */
-	rid_t id;
-	rid_t type;
-	rid_t group;
-
-#ifndef ENABLE_STAND_ALONE
-	/* Plugin label (name) */
-	const char label[PLUGIN_MAX_LABEL];
-	
-	/* Plugin description */
-	const char desc[PLUGIN_MAX_DESC];
-#endif
-};
-
-typedef struct plugin_header plugin_header_t;
-
 struct reiser4_key_ops {
 	/* 
 	  Cleans key up. Actually it just memsets it by zeros, but more smart
@@ -1263,6 +1210,59 @@ struct reiser4_journal_ops {
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;
 #endif
 
+#define PLUGIN_MAX_LABEL	22
+#define PLUGIN_MAX_NAME		22
+#define PLUGIN_MAX_DESC		64
+
+typedef struct reiser4_core reiser4_core_t;
+
+typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
+typedef reiser4_plugin_t *(*plugin_init_t) (reiser4_core_t *);
+typedef errno_t (*plugin_func_t) (reiser4_plugin_t *, void *);
+
+struct plugin_class {
+	void *data;
+
+	plugin_init_t init;
+	plugin_fini_t fini;
+	
+#ifndef ENABLE_STAND_ALONE
+	char name[PLUGIN_MAX_NAME];
+#endif
+};
+
+typedef struct plugin_class plugin_class_t;
+
+#ifndef ENABLE_STAND_ALONE
+#define CLASS_INIT \
+        {NULL, NULL, NULL, ""}
+#else
+#define CLASS_INIT \
+        {NULL, NULL, NULL}
+#endif
+
+/* Common plugin header */
+struct plugin_header {
+
+	/* Plugin handle. It is used by plugin factory */
+	plugin_class_t class;
+
+	/* Plugin will be looked by its id, type, etc */
+	rid_t id;
+	rid_t type;
+	rid_t group;
+
+#ifndef ENABLE_STAND_ALONE
+	/* Plugin label (name) */
+	const char label[PLUGIN_MAX_LABEL];
+	
+	/* Plugin description */
+	const char desc[PLUGIN_MAX_DESC];
+#endif
+};
+
+typedef struct plugin_header plugin_header_t;
+
 struct reiser4_plugin {
 	plugin_header_t h;
 
@@ -1278,7 +1278,6 @@ struct reiser4_plugin {
 		reiser4_alloc_ops_t *alloc_ops;
 		reiser4_journal_ops_t *journal_ops;
 #endif
-	
 		reiser4_oid_ops_t *oid_ops;
 		reiser4_key_ops_t *key_ops;
 	} o;

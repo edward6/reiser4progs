@@ -7,8 +7,6 @@
 
 #include "direntry40.h"
 
-static reiser4_core_t *core = NULL;
-
 extern lookup_t direntry40_lookup(item_entity_t *item,
 				  key_entity_t *key,
 				  uint32_t *pos);
@@ -1073,7 +1071,6 @@ static reiser4_plugin_t direntry40_plugin = {
 };
 
 static reiser4_plugin_t *direntry40_start(reiser4_core_t *c) {
-	core = c;
 	return &direntry40_plugin;
 }
 

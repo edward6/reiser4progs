@@ -13,9 +13,6 @@
 #include <sys/stat.h>
 #endif
 
-static reiser4_core_t *core = NULL;
-extern reiser4_plugin_t sdext_lw_plugin;
-
 static errno_t sdext_lw_open(body_t *body, 
 			     void *hint) 
 {
@@ -157,7 +154,6 @@ static reiser4_plugin_t sdext_lw_plugin = {
 };
 
 static reiser4_plugin_t *sdext_lw_start(reiser4_core_t *c) {
-	core = c;
 	return &sdext_lw_plugin;
 }
 

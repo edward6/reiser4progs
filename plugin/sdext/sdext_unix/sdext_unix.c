@@ -14,9 +14,6 @@
 #include <aux/aux.h>
 #include "sdext_unix.h"
 
-static reiser4_core_t *core = NULL;
-extern reiser4_plugin_t sdext_unix_plugin;
-
 static errno_t sdext_unix_open(body_t *body, 
 			       void *hint) 
 {
@@ -137,7 +134,6 @@ static reiser4_plugin_t sdext_unix_plugin = {
 };
 
 static reiser4_plugin_t *sdext_unix_start(reiser4_core_t *c) {
-	core = c;
 	return &sdext_unix_plugin;
 }
 

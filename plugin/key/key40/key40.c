@@ -7,7 +7,6 @@
 
 #include "key40.h"
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t key40_plugin;
 
 /* Minimal possible key */
@@ -448,7 +447,6 @@ static reiser4_plugin_t key40_plugin = {
 };
 
 static reiser4_plugin_t *key40_start(reiser4_core_t *c) {
-	core = c;
 	return &key40_plugin;
 }
 

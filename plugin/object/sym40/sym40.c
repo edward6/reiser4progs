@@ -8,8 +8,8 @@
 #ifdef ENABLE_SYMLINKS_SUPPORT
 
 #ifndef ENABLE_STAND_ALONE
-#include <time.h>
-#include <unistd.h>
+#  include <time.h>
+#  include <unistd.h>
 #endif
 
 #include "sym40.h"
@@ -339,14 +339,10 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
-	errno_t res;
-	sym40_t *sym;
-
-	item_entity_t *item;
 	entry_hint_t entry_hint;
+	errno_t res; sym40_t *sym;
 	
 	sym = (sym40_t *)data;
-	item = &sym->obj.statdata.item;
 
 	/* Looking up for @enrty in current directory */
 	res = plugin_call(sym->current->plugin->o.object_ops,
@@ -354,7 +350,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 	/* If entry found assign found key to object stat data key */
 	if (res == PRESENT) {
-		res = plugin_call(item->key.plugin->o.key_ops,
+		res = plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
 				  assign, STAT_KEY(&sym->obj),
 				  &entry_hint.object);
 	} else {

@@ -9,7 +9,6 @@
 #ifndef ENABLE_STAND_ALONE
 #include "oid40.h"
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t oid40_plugin;
 
 static int oid40_isdirty(object_entity_t *entity) {
@@ -222,7 +221,6 @@ static reiser4_plugin_t oid40_plugin = {
 };
 
 static reiser4_plugin_t *oid40_start(reiser4_core_t *c) {
-	core = c;
 	return &oid40_plugin;
 }
 

@@ -9,8 +9,6 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/common40/common40.h>
 
-static reiser4_core_t *core = NULL;
-
 #define tail40_body(item) (item->body)
 
 /* Returns tail length */
@@ -404,7 +402,6 @@ static reiser4_plugin_t tail40_plugin = {
 };
 
 static reiser4_plugin_t *tail40_start(reiser4_core_t *c) {
-	core = c;
 	return &tail40_plugin;
 }
 

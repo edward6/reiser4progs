@@ -16,7 +16,6 @@
 #  include <stdlib.h>
 #endif
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t format40_plugin;
 
 #define SUPER(entity) (&((format40_t *)entity)->super)
@@ -565,7 +564,6 @@ static reiser4_plugin_t format40_plugin = {
 };
 
 static reiser4_plugin_t *format40_start(reiser4_core_t *c) {
-	core = c;
 	return &format40_plugin;
 }
 

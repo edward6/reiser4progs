@@ -7,8 +7,6 @@
 
 #include "nodeptr40.h"
 
-static reiser4_core_t *core = NULL;
-
 /*
   Returns the number of units in nodeptr. As nodeptr40 has not units and thus
   cannot be splitted by balancing, it has one unit.
@@ -181,7 +179,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 };
 
 static reiser4_plugin_t *nodeptr40_start(reiser4_core_t *c) {
-	core = c;
 	return &nodeptr40_plugin;
 }
 

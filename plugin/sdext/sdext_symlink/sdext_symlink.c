@@ -8,9 +8,6 @@
 #ifdef ENABLE_SYMLINKS_SUPPORT
 #include <reiser4/plugin.h>
 
-static reiser4_core_t *core = NULL;
-extern reiser4_plugin_t sdext_symlink_plugin;
-
 static errno_t sdext_symlink_open(body_t *body, 
 				  void *hint) 
 {
@@ -101,7 +98,6 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 };
 
 static reiser4_plugin_t *sdext_symlink_start(reiser4_core_t *c) {
-	core = c;
 	return &sdext_symlink_plugin;
 }
 

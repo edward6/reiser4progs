@@ -18,7 +18,6 @@
 #define ALLOC40_START \
         (REISER4_MASTER_OFFSET + (REISER4_BLKSIZE * 2))
 
-static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t alloc40_plugin;
 
 /*
@@ -801,10 +800,8 @@ static reiser4_plugin_t alloc40_plugin = {
 };
 
 static reiser4_plugin_t *alloc40_start(reiser4_core_t *c) {
-	core = c;
 	return &alloc40_plugin;
 }
 
 plugin_register(alloc40, alloc40_start, NULL);
-
 #endif

@@ -10,9 +10,6 @@
 #include "sdext_lt.h"
 #include <aux/aux.h>
 
-static reiser4_core_t *core = NULL;
-extern reiser4_plugin_t sdext_lt_plugin;
-
 static errno_t sdext_lt_open(body_t *body, 
 			     void *hint) 
 {
@@ -107,7 +104,6 @@ static reiser4_plugin_t sdext_lt_plugin = {
 };
 
 static reiser4_plugin_t *sdext_lt_start(reiser4_core_t *c) {
-	core = c;
 	return &sdext_lt_plugin;
 }
 
