@@ -38,14 +38,32 @@ static errno_t repair_node_handle_pointers(reiser4_node_t *node,
 	    blk_t form_blk, used_blk;
 
 	    if (plugin_call(return -1, coord.entity.plugin->item_ops, fetch,
-		    &coord.entity, 0, &ptr, 1))
+			    &coord.entity, pos.unit, &ptr, 1))
 	        return -1;
-		
+
+	    /* This should be fixed at the first pass. */
 	    aal_assert("vpf-387", 
 		(ptr.ptr < reiser4_format_get_len(data->format)) && 
 		(ptr.width < reiser4_format_get_len(data->format)) && 
 		(ptr.ptr + ptr.width < reiser4_format_get_len(data->format)), 
 		return -1);
+
+	    if (repair_item_ptr_bitmap_used(&coord, 
+		repair_scan_data(data)->used, data))
+	    {
+		aal_exception_error("Node (%llu), item (%llu), unit (%llu):"
+		    " one of the pointed blocks (first %llu, count %llu) is "
+		    "used already. Zeroed.", 
+		    aal_block_number(reiser4_coord_block(&coord)), pos.item, 
+		    pos.unit, ptr.ptr, ptr.width);
+
+		ptr.ptr = 0;
+		ptr.width = 0;
+
+		if (plugin_call(return -1, coord.entity.plugin->item_ops, update,
+		    &coord.entity, pos.unit, &ptr, 1))
+		    return -1;
+	    }
 	}
     }
     

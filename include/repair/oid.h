@@ -12,6 +12,6 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_oid_check(reiser4_fs_t *fs);
+extern errno_t repair_oid_open(reiser4_fs_t *fs);
 
 #endif

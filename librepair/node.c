@@ -47,7 +47,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	 * in update traverse callback method. */
 	if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
 	    item_legal, node->entity, coord.entity.plugin)))
-	    return res;	
+	    return res;
 
 	/* Check the item structure. */
 	if ((res = plugin_call(return -1, coord.entity.plugin->item_ops, check, 
@@ -58,13 +58,13 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    continue;
 	
 	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
-	    if ((res = repair_coord_ptr_check(&coord, data)) < 0) 
+	    if ((res = repair_item_ptr_format_check(&coord, data)) < 0) { 
 		return -1;
-	    else {
+	    } else if (res > 0) {
 		reiser4_ptr_hint_t hint;
-			
+
 		if (plugin_call(return -1, coord.entity.plugin->item_ops,
-			fetch, &coord.entity, 0, &hint, 1))
+				fetch, &coord.entity, pos.unit, &hint, 1))
 		    return -1;
 		
 		if (reiser4_item_nodeptr(&coord)) {

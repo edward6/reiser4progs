@@ -18,14 +18,16 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
 
     aal_assert("vpf-379", check_data != NULL, return -1);
 
+    *joint = NULL;
+
     if (repair_test_flag(check_data, REPAIR_BAD_PTR))
 	return 0;
-	
+
     device = check_data->format->device;
     
     if ((node = reiser4_node_open(device, blk)) == NULL) {
 	repair_set_flag(check_data, REPAIR_BAD_PTR);
-	return res;
+	return 1;
     }
 	    
     if (!(*joint = reiser4_joint_create(node))) {
@@ -82,15 +84,18 @@ errno_t repair_filter_after_traverse(reiser4_coord_t *coord, void *data)
 errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
     repair_check_t *check_data = data;
     blk_t target;
-    int res;
+    int res = 0;
     
     aal_assert("vpf-255", data != NULL, return -1);
     aal_assert("vpf-269", coord != NULL, return -1);
 
-    if ((res = repair_coord_ptr_check(coord, check_data)) > 0) 
+/* this seems to be done at node_check time.
+    if ((res = repair_coord_ptr_check(coord, check_data)) > 0) {
 	repair_set_flag(check_data, REPAIR_BAD_PTR);
-
-    return 0;
+	res = 0;
+    }
+*/
+    return res;
 }
 
 errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
@@ -114,7 +119,7 @@ errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
 	reiser4_ptr_hint_t ptr;
 
 	if (plugin_call(return -1, coord->entity.plugin->item_ops,
-		fetch, &coord->entity, 0, &ptr, 1))
+			fetch, &coord->entity, coord->pos.unit, &ptr, 1))
 	    return -1;
 	
 	/* Mark the child as a formatted block in the bitmap. */
@@ -138,7 +143,10 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
 
 /* Setup data and initialize data->pass.filter. */
 errno_t repair_filter_setup(reiser4_fs_t *fs, repair_check_t *data) {
- 
+    
+    data->format = fs->format;
+    data->options = repair_data(fs)->options;
+
     if (!(repair_filter_data(data)->formatted = aux_bitmap_create(
 	reiser4_format_get_len(data->format)))) 
     {
@@ -166,9 +174,6 @@ errno_t repair_filter_setup(reiser4_fs_t *fs, repair_check_t *data) {
 	return -1;
     }
     
-    data->format = fs->format;
-    data->options = repair_data(fs)->options;
-
     return 0;
 }
 

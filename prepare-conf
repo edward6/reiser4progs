@@ -1,1 +1,1 @@
-aclocal && autoconf && automake 
+aclocal && autoconf && automake

@@ -5,6 +5,7 @@
 
 #include <repair/librepair.h>
 
+/*
 errno_t callback_data_block_check(object_entity_t *format, blk_t blk, 
     void *data) 
 {
@@ -16,6 +17,7 @@ errno_t callback_data_block_check(object_entity_t *format, blk_t blk,
 
     return passed_blk == blk ? 1 : 0;
 }
+*/
 
 errno_t callback_mark_format_block(object_entity_t *format, blk_t blk, 
     void *data) 
@@ -69,7 +71,7 @@ static reiser4_plugin_t *__choose_format(reiser4_fs_t *fs,
     return plugin;
 }
 
-errno_t repair_format_check(reiser4_fs_t *fs) {    
+static errno_t repair_format_check(reiser4_fs_t *fs) {    
     reiser4_plugin_t *plugin = NULL;
 
     aal_assert("vpf-165", fs != NULL, return -1);
@@ -106,6 +108,30 @@ errno_t repair_format_check(reiser4_fs_t *fs) {
     }
     
     return 0;
+}
+
+errno_t repair_format_open(reiser4_fs_t *fs) {
+    int res;
+    
+    aal_assert("vpf-396", fs != NULL, return -1);
+    aal_assert("vpf-397", fs->data != NULL, return -1);
+    aal_assert("vpf-398", fs->master != NULL, return -1);
+    
+    /* Try to open the disk format. */
+    fs->format = reiser4_format_open(repair_data(fs)->host_device, 
+	reiser4_master_format(fs->master));
+    
+    /* Check the opened disk format or rebuild it if needed. */
+    if ((res = repair_format_check(fs)))
+	goto error_free_format;
+
+    return 0;
+
+error_free_format:
+    if (fs->format)
+	reiser4_format_close(fs->format);
+
+    return res;
 }
 
 void repair_format_print(reiser4_fs_t *fs, FILE *stream, uint16_t options) {

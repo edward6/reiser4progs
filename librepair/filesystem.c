@@ -9,7 +9,7 @@
 errno_t repair_fs_check(reiser4_fs_t *fs) {
     repair_check_t data;
     reiser4_joint_t *joint;
-    errno_t res;
+    errno_t res = 0;
 
     aal_assert("vpf-180", fs != NULL, return -1);
     aal_assert("vpf-181", fs->format != NULL, return -1);
@@ -21,38 +21,52 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 	return -1;    
 
     if ((res = repair_filter_joint_open(&joint, 
-	reiser4_format_get_root(fs->format), &data))) 
-    {
-	repair_set_flag(&data, REPAIR_NOT_FIXED);
-    } else {
+	reiser4_format_get_root(fs->format), &data)) < 0) 
+	return res;
+    
+    if (!res) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 
 	if ((res = reiser4_joint_traverse(joint, &data, 
 	    repair_filter_joint_open,      repair_filter_joint_check, 
 	    repair_filter_before_traverse, repair_filter_setup_traverse, 
 	    repair_filter_update_traverse, repair_filter_after_traverse)) < 0)
-	    return res;
+	    goto error_free_joint;
+    } else 
+	repair_set_flag(&data, REPAIR_NOT_FIXED);
+
+    if (repair_filter_update(fs, &data)) {
+	res = -1;
+	goto error_free_joint;
     }
 
-    if (repair_filter_update(fs, &data))
-	return -1;
-
-    if (reiser4_format_get_root(fs->format) == FAKE_BLK) {
-	if (repair_scan_setup(fs, &data))
-	    return -1;
+    if (reiser4_format_get_root(fs->format) != FAKE_BLK) {
+	if (repair_scan_setup(fs, &data)) {
+	    res = -1;
+	    goto error_free_joint;
+	}
 
 	/* Solve overlapped problem within the tree. */
 	if ((res = reiser4_joint_traverse(joint, &data,
 	    repair_filter_joint_open, repair_scan_node_check,
 	    NULL, NULL, NULL, NULL)) < 0)
-	    return res;
+	    goto error_free_joint;
     }
-      
+
+    if (joint)
+	reiser4_joint_close(joint);
+
+
+    
     return 0;
+    
+error_free_joint:
+    if (joint)
+	reiser4_joint_close(joint);
+
+    return res;
 }
 
-reiser4_fs_t *repair_fs_open(repair_data_t *data, 
-    callback_ask_user_t ask_blocksize) 
-{
+reiser4_fs_t *repair_fs_open(repair_data_t *data) {
     reiser4_fs_t *fs;
     void *oid_area_start, *oid_area_end;
 
@@ -65,44 +79,20 @@ reiser4_fs_t *repair_fs_open(repair_data_t *data,
     
     fs->data = data;
     
-    /* Try to open master and rebuild if needed. */
-    fs->master = reiser4_master_open(data->host_device);
+    if (repair_master_open(fs))
+	goto error_free_fs;
 	
-    /* Check opened master or build a new one. */
-    if (repair_master_check(fs, ask_blocksize))
-	goto error_free_master;
-    
-    /* Try to open the disk format. */
-    fs->format = reiser4_format_open(data->host_device, 
-	reiser4_master_format(fs->master));
-    
-    /* Check the opened disk format or rebuild it if needed. */
-    if (repair_format_check(fs))
-	goto error_free_format;
+    if (repair_format_open(fs))
+	goto error_free_fs;
     
     if (repair_alloc_open(fs))
-	goto error_free_alloc;
+	goto error_free_fs;
 
-    /* Initializes oid allocator */
-    fs->oid = reiser4_oid_open(fs->format);
-  
-    if (repair_oid_check(fs))
-	goto error_free_oid;
+    if (repair_oid_open(fs))
+	goto error_free_fs;
     
     return fs;
-    
-error_free_oid:
-    if (fs->oid)
-	reiser4_oid_close(fs->oid);
-error_free_alloc:
-    if (fs->alloc)
-	reiser4_alloc_close(fs->alloc);
-error_free_format:
-    if (fs->format)
-	reiser4_format_close(fs->format);
-error_free_master:
-    if (fs->master)
-	reiser4_master_close(fs->master);
+ 
 error_free_fs:
     aal_free(fs);
 error:

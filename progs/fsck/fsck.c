@@ -69,8 +69,7 @@ static void fsck_print_usage(char *name) {
   *************************************************************\n\
 \nWill check consistency of the filesystem on (%s).\n"
 
-static int fsck_ask_confirmation(repair_data_t *data, char *host_name) 
-{    
+static int fsck_ask_confirmation(repair_data_t *data, char *host_name) {    
     if (repair_mode(data) == REPAIR_CHECK) {
 	fprintf(stderr, CHECK_WARNING, host_name);
     } else if (repair_mode(data) == REPAIR_REBUILD) {
@@ -96,34 +95,6 @@ static void fsck_init_streams(repair_data_t *data) {
     progs_exception_set_stream(EXCEPTION_FATAL, stderr);
     progs_exception_set_stream(EXCEPTION_BUG, stderr);
     data->logfile = NULL;
-}
-
-uint16_t fsck_callback_blocksize_from_user(reiser4_fs_t *fs, int *error) {
-    char *answer = NULL;
-    int n = 0;
-    uint16_t blocksize;    
-
-    *error = 0;
-    /* Ask for a blocksize used on the fs. */
-    fprintf(stderr, "Which block size do you use? [4096]: ");
-
-    getline(&answer, &n, stdin);
-    if (aal_strncmp(answer, "\n", 1)) {
-        if ((!(blocksize = (uint16_t)aux_strtol(answer, error)) && 
-	    *error) || !aal_pow_of_two(blocksize)) 
-	{
-            aal_exception_fatal("Invalid blocksize was specified (%d).", 
-		blocksize);
-	    *error = -1;
-	    blocksize = 0;
-        }
-    } else 
-	blocksize = DEFAULT_BLOCKSIZE;
-
-    if (answer)
-	free(answer);
-
-    return blocksize;
 }
 
 static int fsck_init(repair_data_t *data, int argc, char *argv[]) 
@@ -323,7 +294,7 @@ int main(int argc, char *argv[]) {
     if (((exit_code = fsck_init(&data, argc, argv)) != NO_ERROR)) 
 	goto free_device;
 
-    if (!(fs = repair_fs_open(&data, fsck_callback_blocksize_from_user))) {
+    if (!(fs = repair_fs_open(&data))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
 	    aal_device_name(data.host_device));
 	goto free_device;
@@ -338,7 +309,7 @@ int main(int argc, char *argv[]) {
 	    exit_code = USER_ERROR;
 	    goto free_fs;
     }
-	
+
     fprintf(stderr, "Synchronizing...");
    
     if (repair_fs_sync(fs)) {

@@ -12,7 +12,6 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_master_check(reiser4_fs_t *fs, 
-    callback_ask_user_t ask_blocksize);
+extern errno_t repair_master_open(reiser4_fs_t *fs);
 
 #endif
