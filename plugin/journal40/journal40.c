@@ -300,14 +300,15 @@ static errno_t journal40_update(journal40_t *journal) {
 errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handler_func,
     journal40_layout_func_t layout_func) 
 {
+	int ret;
 	uint64_t prev_tx, log_blk;
-	uint64_t last_flushed_tx, last_commited_tx;
 	journal40_tx_header_t *tx_header;
 	journal40_lr_header_t *lr_header;
-	aal_block_t *tx_block, *log_block, *wan_block;
-	aal_list_t *tx_list = NULL;
+	uint64_t last_flushed_tx, last_commited_tx;
+
 	aal_device_t *device;
-	int ret;
+	aal_list_t *tx_list = NULL;
+	aal_block_t *tx_block, *log_block, *wan_block;
     
 	aal_assert("vpf-448", journal != NULL, return -1);
 	aal_assert("vpf-448", journal->header != NULL, return -1);
@@ -415,28 +416,25 @@ errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handle
 			aal_block_close(log_block);
 		}
 	
-		if (aal_list_remove(tx_list, tx_block))
-			tx_list = NULL;
-
+		tx_list = aal_list_remove(tx_list, tx_block);
 		aal_block_close(tx_block);
 	}
     
 	return 0;
 
-error_free_wandered:
+ error_free_wandered:
 	aal_block_close(wan_block);
     
-error_free_log_block:
+ error_free_log_block:
 	aal_block_close(log_block);
     
-error_free_tx_list:
-	/* close all from the list */;
+ error_free_tx_list:
+	
+	/* Close all from the list */;
 	while(tx_list != NULL) {
 		tx_block = (aal_block_t *)aal_list_first(tx_list)->data;
 	
-		if (aal_list_remove(tx_list, tx_block))
-			tx_list = NULL;
-
+		tx_list = aal_list_remove(tx_list, tx_block);
 		aal_block_close(tx_block);
 	}
     

@@ -1,5 +1,5 @@
 /*
-  joint.c -- the personalisation of the reiser4 on-disk node. The libreiser4
+  joint.c -- the personalization of the reiser4 on-disk node. The libreiser4
   internal in-memory tree consists of reiser4_joint_t structures.
   
   Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
@@ -317,19 +317,20 @@ void reiser4_joint_detach(
     
 	children = aal_list_first(joint->children);
     
-	if (child->left)
+	if (child->left) {
 		child->left->right = NULL;
-    
-	if (child->right)
+		child->left = NULL;
+	}
+	
+	if (child->right) {
 		child->right->left = NULL;
-    
-	child->left = NULL;
-	child->right = NULL;
+		child->right = NULL;
+	}
+	
 	child->tree = NULL;
 	child->parent = NULL;
     
-	if (aal_list_remove(children, child))
-		joint->children = NULL;
+	joint->children = aal_list_remove(children, child);
 }
 
 #ifndef ENABLE_COMPACT
@@ -626,10 +627,6 @@ errno_t reiser4_joint_traverse(
 	aal_assert("vpf-392", joint->node->block != NULL, return -1);
 	aal_assert("vpf-418", hint != NULL, return -1);
 
-	if (aal_block_number(joint->node->block) == 8473) {
-		printf("here\n");
-	}
-	
 	if ((before_func && (result = before_func(joint, hint->data))))
 		goto error;
 

@@ -56,9 +56,10 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 		progs_gauge_header(gauge->name, gauge->type);
 	
 	switch (gauge->type) {
-	case GAUGE_PERCENTAGE: {
 		unsigned int i;
 		char display[10] = {0};
+		
+	case GAUGE_PERCENTAGE:
 		
 		sprintf(display, "%d%%", gauge->value);
 		fputs(display, stderr);
@@ -66,7 +67,6 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 		for (i = 0; i < strlen(display); i++)
 			fputc('\b', stderr);
 		break;
-	}
 	case GAUGE_INDICATOR:
 		progs_gauge_blit();
 		break;

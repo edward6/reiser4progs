@@ -370,8 +370,8 @@ int reiser4_tree_lookup(
 				
 		if (reiser4_coord_realize(coord)) {
 			blk_t blk = aal_block_number(reiser4_coord_block(coord));
-			aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
-					    blk, coord->pos.item);
+			aal_exception_error("Can't open item by its coord. Node "
+					    "%llu, item %u.", blk, coord->pos.item);
 			return -1;
 		}
 

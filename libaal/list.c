@@ -204,26 +204,23 @@ aal_list_t *aal_list_append(aal_list_t *list, void *data) {
 }
 
 /* 
-   Removes item from the passed @list and return true if it was the last item
-   in the list.
+   Removes item from the passed @list and return reffernce to the next or prev
+   list item.
 */
-int aal_list_remove(aal_list_t *list, void *data) {
-	int result = 0;
+aal_list_t *aal_list_remove(aal_list_t *list, void *data) {
 	aal_list_t *temp;
+	aal_list_t *result = NULL;
 
-	if (!list)
-		return 1;
-	
-	if ((temp = aal_list_find(list, data))) {
-	
-		result = (!temp->next && !temp->prev);
-	
+	if (list && (temp = aal_list_find(list, data))) {
 		if (temp->prev)
 			temp->prev->next = temp->next;
 	    
 		if (temp->next)
 			temp->next->prev = temp->prev;
 	    
+		if (!(result = temp->next))
+			result = temp->prev;
+		
 		aal_free(temp);
 	}
 

@@ -560,7 +560,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 			}
 		}
 		
-		if (reg40_next(entity) != 1 || reg->offset >= size)
+		if (reg->offset >= size || reg40_next(entity) != 1)
 			break;
 			
 	}

@@ -269,7 +269,7 @@ errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 	libreiser4_plugin_fini(handle);
 
 	libreiser4_plugin_close(handle);
-	aal_list_remove(plugins, plugin);
+	plugins = aal_list_remove(plugins, plugin);
 
 	return 0;
 }
