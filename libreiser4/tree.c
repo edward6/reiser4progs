@@ -523,10 +523,10 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 
 	reiser4_node_mkclean(node);
 	
-	free = reiser4_alloc_free(tree->fs->alloc);
-
 	reiser4_alloc_release(tree->fs->alloc,
 			      node->blk, 1);
+	
+	free = reiser4_alloc_free(tree->fs->alloc);
 	
 	reiser4_format_set_free(tree->fs->format, free);
 	return reiser4_tree_unload(tree, node);

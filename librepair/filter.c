@@ -278,10 +278,10 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	fd->stat.good_nodes += ptr.width;
 	if (reiser4_node_get_level(place->node) == TWIG_LEVEL + 1) {
 	    aux_bitmap_mark_region(fd->bm_twig, ptr.start, ptr.width);
-	    fd->stat.good_leaves += ptr.width;
+	    fd->stat.good_twigs += ptr.width;
 	} else if (reiser4_node_get_level(place->node) == TWIG_LEVEL) {
 	    aux_bitmap_mark_region(fd->bm_leaf, ptr.start, ptr.width);
-	    fd->stat.good_twigs += ptr.width;
+	    fd->stat.good_leaves += ptr.width;
 	}
     }
     
