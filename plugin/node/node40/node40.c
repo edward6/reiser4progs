@@ -679,7 +679,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 
 	if (len > 0) {
 		/* Expand node if @len greater than zero. */
-		if ((res = node40_expand(entity, pos, len, hint->count))) {
+		if ((res = node40_expand(entity, pos, len, 1))) {
 			aal_error("Can't expand node for insert one "
 				  "more item/unit.");
 			return res;
@@ -689,7 +689,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 		/* Shrink node if @len less than zero. This is possible for
 		   extents, that in order to write something we need to remove
 		   some extent units. */
-		if ((res = node40_shrink(entity, pos, len, hint->count))) {
+		if ((res = node40_shrink(entity, pos, len, 1))) {
 			aal_error("Can't shrink node for insert one "
 				  "more item/unit.");
 			return res;

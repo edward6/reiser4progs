@@ -382,7 +382,7 @@ errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 	
 	node->tree = NULL;
 
-	if (reiser4_tree_root_node(tree, node)) {
+	if (tree->root == node) {
 		/* The case when we're disconnecting root node for some
 		   reasons. And we will let to do so? Yes, why not? */
 		tree->root = NULL;
@@ -1839,9 +1839,6 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 	   by tree_disconnect_node(). */
 	parent = node->p;
 
-	if (!parent.node)
-		return 0;
-	
 	/* Disconnecting @node from tree. This should be done before removing
 	   nodeptr item in parent, as parent may get empty and we will unable to
 	   release it as it is locked by connect @node. */
@@ -2095,8 +2092,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		needed += overhead;
 
 	/* Check if there is enough of space in insert point node. If so -- do
-	   nothing, but exit. */
-	if ((enough = reiser4_node_space(place->node) - needed) > 0) {
+	   nothing and but exit. Here is also check if node is empty. Then we
+	   exit too and return available space in it. */
+	if ((enough = reiser4_node_space(place->node) - needed) > 0 ||
+	    reiser4_node_items(place->node) == 0)
+	{
 		enough = reiser4_node_space(place->node);
 		
 		if (place->pos.unit == MAX_UINT32)
@@ -2887,9 +2887,6 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 		} else {
 			if ((res = reiser4_tree_discard_node(tree, place->node)))
 				return res;
-		
-			if (tree->root == place->node)
-				tree->root = NULL;
 
 			place->node = NULL;
 		}
