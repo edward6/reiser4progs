@@ -431,8 +431,8 @@ static errno_t cde40_filter(reiser4_place_t *place,
 	/* the last unit size is not checked yet, so save - 1 into @count. */
 	flags->count = --last;
 	
-	tail = offset = cde_get_offset(place, last, pol);
-	offset += ob_size(pol);
+	tail = cde_get_offset(place, last, pol);
+	offset = tail + ob_size(pol);
 	
 	/* Last is the last valid offset. If the last unit is valid also, count
 	   is the last + 1. */
@@ -451,8 +451,11 @@ static errno_t cde40_filter(reiser4_place_t *place,
 			"item length.");
 	}
 	
-	if (flags->count == last && hint->mode == RM_BUILD) {
-		hint->len += place->len - tail;
+	/* Amount of bytes that should be removed at the end. */
+	if (flags->count == last) {
+		tail = place->len - tail;
+	} else {
+		tail = 0;
 	}
 
 	/* Count is the amount of recovered elements. */
@@ -485,10 +488,10 @@ static errno_t cde40_filter(reiser4_place_t *place,
 		/* There are some not correct units at the beginning, 
 		   the correct unit number is the recovered count. */
 		real_count = flags->count;
-	} else if (!offset && e_count > flags->count) {
+	} else if (!tail && e_count > flags->count) {
 		/* If there is enough space for another entry header 
 		   (e_count > count), and nothing to remove at the end 
-		   of the item, the last unit is correct (offset == 0),
+		   of the item, the last unit is correct (tail == 0),
 		   set @count unit offset to the item length to remove 
 		   redundant item headers correctly later. */
 		if (hint->mode == RM_BUILD) {
@@ -532,6 +535,16 @@ static errno_t cde40_filter(reiser4_place_t *place,
 		} else {
 			res |= RE_FATAL;
 		}
+	} else if (tail) {
+		/* Count of recovered units metches the estimated count 
+		   but there are some btes at the end to be removed. */
+		fsck_mess("Node (%llu), item (%u), [%s]: %u redundant bytes at "
+			  "the end.%s", place_blknr(place), place->pos.item,
+			  print_key(cde40_core, &place->key), tail, 
+			  hint->mode == RM_BUILD ? "Removed." : "");
+
+		if (hint->mode == RM_BUILD)
+			hint->len += tail;
 	}
 	
 	if (first) {
