@@ -141,8 +141,7 @@ uint16_t node40_items(object_entity_t *entity) {
 
 /* Returns key at passed @pos */
 static errno_t node40_get_key(object_entity_t *entity,
-			      rpos_t *pos,
-			      key_entity_t *key) 
+			      rpos_t *pos, key_entity_t *key) 
 {
 	uint32_t items;
 	node40_t *node = (node40_t *)entity;
@@ -199,13 +198,14 @@ static void *node40_item_body(object_entity_t *entity,
 static rpid_t node40_item_pid(object_entity_t *entity, 
 			      rpos_t *pos)
 {
+	int is_range;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-039", node != NULL, return INVAL_PID);
 	aal_assert("umka-941", pos != NULL, return INVAL_PID);
 
-	aal_assert("umka-815", pos->item < 
-		   nh40_get_num_items(node), return 0);
+	is_range = pos->item < nh40_get_num_items(node);
+	aal_assert("umka-815", is_range, return INVAL_PID);
     
 	return ih40_get_pid(node40_ih_at(node, pos->item));
 }
@@ -214,15 +214,15 @@ static rpid_t node40_item_pid(object_entity_t *entity,
 static uint16_t node40_item_len(object_entity_t *entity, 
 				rpos_t *pos)
 {
+	int is_range;
 	item40_header_t *ih;
-	uint32_t free_space_start;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("vpf-037", node != NULL, return 0);
 	aal_assert("umka-942", pos != NULL, return 0);
-    
-	aal_assert("umka-815", pos->item < 
-		   nh40_get_num_items(node), return 0);
+
+	is_range = pos->item < nh40_get_num_items(node);
+	aal_assert("umka-815", is_range, return 0);
 
 	/*
 	  Item length is next item body offset minus current item offset. If we
@@ -231,34 +231,38 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	  correctly.
 	*/
 	ih = node40_ih_at(node, pos->item);
-	free_space_start = nh40_get_free_space_start(node);
 
 	if (pos->item == (uint32_t)(node40_items(entity) - 1))
-		return free_space_start - ih40_get_offset(ih);
+		return nh40_get_free_space_start(node) - ih40_get_offset(ih);
 
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
 
-/* Initializes item entity in order to pass it to a item plugin routine */
+/*
+  Initializes item entity in order to pass it to an item plugin routine. If unit
+  component of pos is set up the function will initialize item's key from the
+  unit one.
+*/
 static errno_t node40_item(item_entity_t *item,
 			   node40_t *node,
-			   uint32_t pos)
+			   rpos_t *pos)
 {
 	rpid_t pid;
-	rpos_t item_pos;
+	int is_range;
 
 	aal_assert("umka-1602", item != NULL, return -1);
 	aal_assert("umka-1631", node != NULL, return -1);
+	aal_assert("umka-1813", pos != NULL, return -1);
 
-	item_pos.unit = ~0ul;
-	item_pos.item = pos;
+	is_range = pos->item < nh40_get_num_items(node);
+	aal_assert("umka-1812", is_range, return -1);
 	
-	/* Initializes item's context (node, device, block number, etc) */
+	/* Initializes item's context (device, block number, etc) */
 	item->con.device = node->block->device;
 	item->con.blk = aal_block_number(node->block);
 
 	/* Initializing item's plugin */
-	pid = node40_item_pid((object_entity_t *)node, &item_pos);
+	pid = node40_item_pid((object_entity_t *)node, pos);
 	
 	if (!(item->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id 0x%x",
@@ -267,9 +271,9 @@ static errno_t node40_item(item_entity_t *item,
 	}
 	
 	/* Initializing item's pos, body pointer and length */
-	item->pos.item = pos;
-	item->body = node40_ib_at(node, pos);
-	item->len = node40_item_len((object_entity_t *)node, &item_pos);
+	item->pos = *pos;
+	item->body = node40_ib_at(node, pos->item);
+	item->len = node40_item_len((object_entity_t *)node, pos);
 
 	/* Initializing item's key */
 	if (!(item->key.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
@@ -280,8 +284,23 @@ static errno_t node40_item(item_entity_t *item,
 		return -1;
 	}
 
-	if (node40_get_key((object_entity_t *)node, &item_pos, &item->key))
+	/* Getting item key */
+	if (node40_get_key((object_entity_t *)node, pos, &item->key))
 		return -1;
+
+	/* Getting unit key if unit component is specified */
+	if (pos->unit != ~0ul && item->plugin->item_ops.get_key) {
+		uint32_t units = 0;
+
+		if (item->plugin->item_ops.units)
+			units = item->plugin->item_ops.units(item);
+
+		if (pos->unit < units) {
+			if (item->plugin->item_ops.get_key(item, pos->unit,
+							   &item->key))
+				return -1;
+		}
+	}
 
 	return 0;
 }
@@ -453,18 +472,13 @@ static errno_t node40_shrink(node40_t *node, rpos_t *pos,
 		item_entity_t item;
 		item40_header_t *ih;
 		
-		if (node40_item(&item, node, pos->item))
+		if (node40_item(&item, node, pos))
 			return -1;
 			
 		ih = node40_ih_at(node, pos->item);
 		
-		/* Updating items key */
-		if (pos->unit == 0)
-			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
-		
 		/* Moving item bodies */
 		src = node40_ib_at(node, pos->item) + item.len;
-
 		dst = node40_ib_at(node, pos->item) + item.len - len;
 
 		size = nh40_get_free_space_start(node) -
@@ -487,13 +501,83 @@ static errno_t node40_shrink(node40_t *node, rpos_t *pos,
 	return 0;
 }
 
+/*
+  Calculates size of a region denoted by @pos and @count. This is used by
+  node40_copy, node40_delete, etc.
+*/
+static uint32_t node40_size(node40_t *node, rpos_t *pos, uint32_t count) {
+	int is_range;
+	uint32_t len;
+	uint32_t items;
+	
+	item40_header_t *cur;
+	item40_header_t *end;
+
+	items = nh40_get_num_items(node);
+	is_range = (pos->item + count <= items);
+	
+	aal_assert("umka-1811", is_range, return 0);
+	
+	end = node40_ih_at(node, items - 1);
+	cur = node40_ih_at(node, pos->item);
+
+	if (pos->item + count < items)
+		len = ih40_get_offset(cur - count);
+	else
+		len = nh40_get_free_space_start(node);
+
+	len -= ih40_get_offset(cur);
+
+	return len;
+}
+
+/* Makes copy of @count items from @src_node to @dst_node */
+static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
+			   node40_t *dst_node, rpos_t *dst_pos,
+			   uint32_t count)
+{
+	uint32_t i;
+	uint32_t size;
+	uint32_t items;
+	uint32_t offset;
+
+	void *src, *dst;
+	item40_header_t *ih;
+
+	items = nh40_get_num_items(src_node);
+	
+	/* Copying item headers from src node to dst one */
+	src = node40_ih_at(src_node, src_pos->item);
+	dst = node40_ih_at(dst_node, dst_pos->item);
+	size = count * sizeof(item40_header_t);
+			
+	aal_memcpy(dst, src, size);
+
+	/* Copying item bodies from src node to dst one */
+	src = node40_ib_at(src_node, src_pos->item);
+	dst = node40_ib_at(dst_node, dst_pos->item);
+
+	if (!(size = node40_size(src_node, src_pos, count)))
+		return -1;
+	
+	aal_memcpy(dst, src, size);
+
+	ih = node40_ih_at(dst_node, dst_pos->item);
+	offset = nh40_get_free_space_start(dst_node);
+		
+	/* Updating item headers in dst node */
+	for (i = 0; i < count; i++, ih++)
+		ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));
+
+	return 0;
+}
+
+/* Deletes items or units from teh node */
 static errno_t node40_delete(node40_t *node, rpos_t *pos,
 			     uint32_t count)
 {
 	int is_range;
-	
-	uint32_t items;
-	uint32_t i, len;
+	uint32_t len;
 	
 	item40_header_t *cur;
 	item40_header_t *end;
@@ -501,26 +585,13 @@ static errno_t node40_delete(node40_t *node, rpos_t *pos,
 	aal_assert("umka-1803", node != NULL, return -1);
 	aal_assert("umka-1804", pos != NULL, return -1);
 		
-	items = nh40_get_num_items(node);
-	
 	if (pos->unit == ~0ul) {
-		is_range = (pos->item + count <= items);
-		aal_assert("umka-1805", is_range, return -1);
-		
-		end = node40_ih_at(node, items - 1);
-		cur = node40_ih_at(node, pos->item);
-		
-		for (len = 0, i = 0; i < count && cur >= end; i++, cur--) {
-			len += (cur == end ? nh40_get_free_space_start(node) :
-				ih40_get_offset(cur - 1)) - ih40_get_offset(cur);
-		}
+		if (!(len = node40_size(node, pos, count)))
+			return -1;
 	} else {
 		item_entity_t item;
 		
-		is_range = (pos->item <= items);
-		aal_assert("umka-1806", is_range, return -1);
-		
-		if (node40_item(&item, node, pos->item))
+		if (node40_item(&item, node, pos))
 			return -1;
 			
 		/*
@@ -528,14 +599,20 @@ static errno_t node40_delete(node40_t *node, rpos_t *pos,
 		  be shrinked by this value.
 		*/
 		len = item.plugin->item_ops.remove(&item, pos->unit, count);
+
+		/* Updating items key if leftmost unit was changed */
+		if (pos->unit == 0) {
+			item40_header_t *ih = node40_ih_at(node, pos->item);
+			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+		}
+		
 	}
 
 	return node40_shrink(node, pos, len, count);
 }
 
 /* Inserts item described by hint structure into node */
-static errno_t node40_insert(object_entity_t *entity,
-			     rpos_t *pos,
+static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 			     reiser4_item_hint_t *hint) 
 {
 	node40_t *node;
@@ -554,7 +631,7 @@ static errno_t node40_insert(object_entity_t *entity,
 	ih = node40_ih_at(node, pos->item);
 
 	/* Preparing item for calling item plugin with them */
-	if (node40_item(&item, node, pos->item))
+	if (node40_item(&item, node, pos))
 		return -1;
 
 	/* Updating item header plugin id if we insert new item */
@@ -616,11 +693,17 @@ errno_t node40_remove(object_entity_t *entity,
 	else {
 		item_entity_t item;
 
-		if (node40_item(&item, node, pos->item))
+		if (node40_item(&item, node, pos))
 			return -1;
 		
 		len = plugin_call(item.plugin->item_ops, remove, &item,
 				  pos->unit, 1);
+
+                /* Updating items key if leftmost unit was changed */
+		if (pos->unit == 0) {
+			item40_header_t *ih = node40_ih_at(node, pos->item);
+			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+		}
 	}
 	
 	return node40_shrink(node, pos, len, 1);
@@ -657,7 +740,7 @@ static errno_t node40_cut(object_entity_t *entity,
 			pos.unit = start->unit;
 			pos.item = start->item;
 
-			if (node40_item(&item, node, pos.item))
+			if (node40_item(&item, node, &pos))
 				return -1;
 				
 			units = item.plugin->item_ops.units(&item);
@@ -674,7 +757,7 @@ static errno_t node40_cut(object_entity_t *entity,
 			pos.unit = end->unit;
 			pos.item = end->item;
 
-			if (node40_item(&item, node, pos.item))
+			if (node40_item(&item, node, &pos))
 				return -1;
 				
 			units = item.plugin->item_ops.units(&item);
@@ -710,13 +793,15 @@ static errno_t node40_cut(object_entity_t *entity,
 		if (node40_delete(node, &pos, count))
 			return -1;
 
-		if (node40_item(&item, node, pos.item))
+		if (node40_item(&item, node, &pos))
 			return -1;
 
 		/* Remove empty item */
 		if (!(units = item.plugin->item_ops.units(&item))) {
 			pos.unit = ~0ul;
-			node40_shrink(node, &pos, item.len, 1);
+
+			if (node40_shrink(node, &pos, item.len, 1))
+				return -1;
 		}
 	}
 
@@ -815,8 +900,8 @@ static errno_t node40_print(object_entity_t *entity,
 			    aal_stream_t *stream,
 			    uint16_t options) 
 {
-	uint8_t level;
 	rpos_t pos;
+	uint8_t level;
 	item_entity_t item;
 
 	node40_t *node = (node40_t *)entity;
@@ -837,7 +922,7 @@ static errno_t node40_print(object_entity_t *entity,
 	/* Loop through the all items */
 	for (pos.item = 0; pos.item < node40_items(entity); pos.item++) {
 
-		if (node40_item(&item, node, pos.item)) {
+		if (node40_item(&item, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, aal_block_number(node->block));
 			return -1;
@@ -846,8 +931,13 @@ static errno_t node40_print(object_entity_t *entity,
 		aal_stream_format(stream, "(%u) ", pos.item);
 		
 		/* Printing item by means of calling item print method */
-		if (plugin_call(item.plugin->item_ops, print, &item, stream, options))
-			return -1;
+		if (item.plugin->item_ops.print) {
+			if (item.plugin->item_ops.print(&item, stream, options))
+				return -1;
+		} else {
+			aal_stream_format(stream, "Method \"print\" is not "
+					  "implemented.");
+		}
 
 		aal_stream_format(stream, "\n");
 	}
@@ -904,7 +994,7 @@ static inline int callback_comp_key(void *node, uint32_t pos,
 	plugin = ((reiser4_plugin_t *)data);
 	body = &node40_ih_at((node40_t *)node, pos)->key;
 	aal_memcpy(key1.body, body, sizeof(key1.body));
-	
+
 	return plugin_call(plugin->key_ops, compare, &key1, key2);
 }
 
@@ -959,10 +1049,10 @@ static errno_t node40_merge(node40_t *src_node,
 			    node40_t *dst_node, 
 			    shift_hint_t *hint)
 {
+	rpos_t pos;
+
 	int remove;
 	uint32_t len;
-	
-	rpos_t pos;
 	
 	uint32_t dst_items;
 	uint32_t src_items;
@@ -1001,8 +1091,11 @@ static errno_t node40_merge(node40_t *src_node,
 	  Initializing items to be examaned by the predict method of
 	  corresponding item plugin.
 	*/
-	node40_item(&src_item, src_node, hint->flags & SF_LEFT ? 0 :
-		    src_items - 1);
+	pos.unit = ~0ul;
+	pos.item = (hint->flags & SF_LEFT ? 0 : src_items - 1);
+	
+	if (node40_item(&src_item, src_node, &pos))
+		return -1;
 
 	/*
 	  Items that do not implement predict and shift methods cannot be
@@ -1026,8 +1119,11 @@ static errno_t node40_merge(node40_t *src_node,
 	hint->create = (dst_items == 0);
 
 	if (dst_items > 0) {
-		node40_item(&dst_item, dst_node, hint->flags & SF_LEFT ?
-			    dst_items - 1 : 0);
+		pos.unit = ~0ul;
+		pos.item = (hint->flags & SF_LEFT ? dst_items - 1 : 0);
+		
+		if (node40_item(&dst_item, dst_node, &pos))
+			return -1;
 		
 		hint->create = !node40_mergeable(&src_item, &dst_item);
 	}
@@ -1105,7 +1201,8 @@ static errno_t node40_merge(node40_t *src_node,
 		  Initializing dst item after it was created by node40_expand
 		  function.
 		*/
-		node40_item(&dst_item, dst_node, pos.item);
+		if (node40_item(&dst_item, dst_node, &pos))
+			return -1;
 
 		plugin_call(dst_item.plugin->item_ops, init, &dst_item);
 	} else {
@@ -1128,7 +1225,8 @@ static errno_t node40_merge(node40_t *src_node,
 		  Reinitializing dst item after it was expanded by node40_expand
 		  function.
 		*/
-		node40_item(&dst_item, dst_node, pos.item);
+		if (node40_item(&dst_item, dst_node, &pos))
+			return -1;
 	}
 	
 	/* Calling item method shift */
@@ -1195,6 +1293,7 @@ static errno_t node40_predict_items(node40_t *src_node,
 				    node40_t *dst_node, 
 				    shift_hint_t *hint)
 {
+	rpos_t pos;
 	uint32_t len;
 	uint32_t space;
 
@@ -1259,7 +1358,11 @@ static errno_t node40_predict_items(node40_t *src_node,
 					  If unit component if zero, we can
 					  shift whole item pointed by pos.
 					*/
-					node40_item(&item, src_node, 0);
+					pos.unit = ~0ul;
+					pos.item = 0;
+					
+					if (node40_item(&item, src_node, &pos))
+						return -1;
 
 					if (!item.plugin->item_ops.units)
 						return -1;
@@ -1375,7 +1478,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 
 	if (hint->flags & SF_LEFT) {
 		
-		/* Copying item headers from src node to dst */
+		/* Copying item headers from src node to dst one */
 		src = node40_ih_at(src_node, hint->items - 1);
 		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
 			
