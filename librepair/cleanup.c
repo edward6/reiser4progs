@@ -36,7 +36,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	
 	if (!repair_item_test_flag(place, ITEM_REACHABLE)) {
 		/* Try to open an object. */
-		if (reiser4_object_can_begin(place) == FALSE)
+		if (reiser4_object_begin(place) == FALSE)
 			return 0;
 		
 		object = reiser4_object_launch(cleanup->repair->fs->tree, place);

@@ -815,6 +815,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	hint.statdata = reiser4_profile_value(profile, "statdata");
 	
 	len = aal_strlen(target);
+	
 	aal_strncpy(hint.body.sym, target, 
 		    len > SYMLINK_MAX_LEN ? SYMLINK_MAX_LEN : len);
 	
@@ -831,16 +832,17 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 }
 
 /* Checks if the specified place can be the beginning of an object. */
-bool_t reiser4_object_can_begin(reiser4_place_t *place) {
+bool_t reiser4_object_begin(reiser4_place_t *place) {
 	aal_assert("vpf-1033", place != NULL);
 
 	if (reiser4_place_realize(place))
 		return FALSE;
 
-	/* FIXME-VITALY: This is ok untill we create objects without StatDatas.
-         * But how to distinguish that this is the first item of some plugin,
-	 * and not the second item of the default one? */
+	/*
+	  FIXME-VITALY: This is ok until we create objects without statdatas.
+	  But how to distinguish, that this is the first item of some plugin,
+	  and not the second item of the default one?
+	*/
 	return reiser4_item_statdata(place);
 }
-
 #endif

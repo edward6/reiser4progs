@@ -546,7 +546,7 @@ static errno_t dfrag_process_node(
 		  circle of the loop, because we are intersted only in the stat
 		  data items, which can be used for opening files.
 		*/
-		if (!reiser4_object_can_begin(&place))
+		if (!reiser4_object_begin(&place))
 			continue;
 
 		/* Opening object by its stat data item denoded by @place */

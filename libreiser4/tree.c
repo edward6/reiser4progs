@@ -299,9 +299,9 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 }
 
 /* Finds both left and right neighbours and connects them into the tree */
-reiser4_node_t *reiser4_tree_nbr(reiser4_tree_t *tree,
-				 reiser4_node_t *node,
-				 aal_direction_t where)
+reiser4_node_t *reiser4_tree_find_nbr(reiser4_tree_t *tree,
+				      reiser4_node_t *node,
+				      aal_direction_t where)
 {
         int found = 0;
         uint32_t level;
@@ -383,7 +383,7 @@ reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 	    (where == D_RIGHT && !node->right))
 	{
 		reiser4_node_lock(node);
-		reiser4_tree_nbr(tree, node, where);
+		reiser4_tree_find_nbr(tree, node, where);
 		reiser4_node_unlock(node);
 	}
 	
@@ -2023,10 +2023,10 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
-static errno_t reiser4_tree_down_open(reiser4_tree_t *tree,
-				      reiser4_node_t **node,
-				      reiser4_place_t *place,
-				      void *data)
+static errno_t _tree_down_open(reiser4_tree_t *tree,
+				reiser4_node_t **node,
+				reiser4_place_t *place,
+				void *data)
 {
 	uint32_t blocksize;
 	ptr_hint_t ptr;
@@ -2038,22 +2038,24 @@ static errno_t reiser4_tree_down_open(reiser4_tree_t *tree,
 	aal_assert("vpf-1119", place != NULL);
 	
 	/* Fetching node ptr */
-	plugin_call(place->item.plugin->o.item_ops, read, &place->item, &ptr,
-		    place->pos.unit, 1);
+	plugin_call(place->item.plugin->o.item_ops, read,
+		    &place->item, &ptr, place->pos.unit, 1);
 
 	blocksize = reiser4_master_blksize(tree->fs->master);
 	
 	/*
-	   Trying to get child node pointed by @ptr from the parent cache. 
-	   It fails, if the child is not loaded yet and we have to load 
-	   and connect it to the tree explicitly.
+	   Trying to get child node pointed by @ptr from the parent cache. It
+	   fails, if the child is not loaded yet and we have to load and connect
+	   it to the tree explicitly.
 	 */	
 	if ((*node = reiser4_node_cbp(place->node, ptr.start)))
 		return 0;
 
 	if (!(*node = reiser4_node_open(tree->fs->device, blocksize, 
 					ptr.start)))
+	{
 		return -EINVAL;
+	}
 
 	if ((res = reiser4_tree_connect(tree, place->node, *node)))
 		reiser4_node_close(*node);
@@ -2066,7 +2068,7 @@ errno_t reiser4_tree_down(
 	reiser4_node_t *node,		     /* node which should be traversed */
 	traverse_open_func_t open_func,	     /* callback for node opening */
 	traverse_edge_func_t before_func,    /* callback to be called at the beginning */
-	traverse_update_func_t update_func,   /* callback to be called after a child */
+	traverse_update_func_t update_func,  /* callback to be called after a child */
 	traverse_edge_func_t after_func,     /* callback to be called at the end */
 	void *data)			     /* caller specific data */
 {
@@ -2079,7 +2081,7 @@ errno_t reiser4_tree_down(
 	aal_assert("umka-1935", tree != NULL);
 	
 	if (open_func == NULL)
-	    open_func = reiser4_tree_down_open;
+		open_func = _tree_down_open;
 	
 	reiser4_node_lock(node);
 
@@ -2128,7 +2130,6 @@ errno_t reiser4_tree_down(
 		res = after_func(tree, node, data);
 
 	reiser4_node_unlock(node);
-	
 	return res;
 
  error_after_func:

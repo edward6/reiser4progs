@@ -33,9 +33,9 @@ extern errno_t reiser4_tree_disconnect(reiser4_tree_t *tree,
 				       reiser4_node_t *parent,
 				       reiser4_node_t *node);
 
-extern reiser4_node_t *reiser4_tree_nbr(reiser4_tree_t *tree,
-					reiser4_node_t *node,
-					aal_direction_t where);
+extern reiser4_node_t *reiser4_tree_find_nbr(reiser4_tree_t *tree,
+					     reiser4_node_t *node,
+					     aal_direction_t where);
 
 extern reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 					  reiser4_place_t *place);

@@ -449,7 +449,7 @@ struct entry_hint {
 
 typedef struct entry_hint entry_hint_t;
 
-#define SYMLINK_MAX_LEN 4096
+#define SYMLINK_MAX_LEN 1024
 
 struct object_hint {
 	

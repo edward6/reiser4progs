@@ -97,16 +97,15 @@ extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 					    reiser4_object_t *parent,
 					    reiser4_profile_t *profile);
 
+extern bool_t reiser4_object_begin(reiser4_place_t *place);
 extern errno_t reiser4_object_guess(reiser4_object_t *object);
 
 #endif
 
 extern errno_t reiser4_object_reset(reiser4_object_t *object);
-
 extern uint32_t reiser4_object_offset(reiser4_object_t *object);
 
-extern bool_t reiser4_object_can_begin(reiser4_place_t *place);
-
-#define reiser4_object_start(object) ((reiser4_place_t *)&(object)->info.start)
+#define reiser4_object_start(object) \
+        ((reiser4_place_t *)&(object)->info.start)
 
 #endif
