@@ -96,10 +96,9 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	/* Preparing key of the first entry in directory */
-	key.plugin = STAT_KEY(&dir->obj)->plugin;
-	
-	plugin_call(key.plugin->key_ops, build_entry, &key,
-		    dir->hash, obj40_locality(&dir->obj),
+	plugin_call(STAT_KEY(&dir->obj)->plugin->key_ops,
+		    build_entry, &key, dir->hash,
+		    obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), ".");
 
 	return dir40_seekdir(entity, &key);
@@ -253,10 +252,8 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
 	*/
-	wanted.plugin = STAT_KEY(&dir->obj)->plugin;
-	
-	plugin_call(wanted.plugin->key_ops, build_entry, &wanted,
-		    dir->hash, locality, objectid, name);
+	plugin_call(STAT_KEY(&dir->obj)->plugin->key_ops, build_entry,
+		    &wanted, dir->hash, locality, objectid, name);
 
 	/* Performing tree lookup */
 	res = obj40_lookup(&dir->obj, &wanted, LEAF_LEVEL, &next);
@@ -494,14 +491,10 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 		  Building key for the statdata of object new entry will point
 		  to.
 		*/
-		entry->object.plugin = hint->object.plugin;
-
 		plugin_call(hint->object.plugin->key_ops, build_generic,
 			    &entry->object, KEY_STATDATA_TYPE, loc, oid, 0);
 
 		/* Building key for the hash new entry will have */
-		entry->offset.plugin = hint->object.plugin;
-		
 		plugin_call(hint->object.plugin->key_ops, build_entry,
 			    &entry->offset, dir->hash, locality,
 			    objectid, name);
@@ -714,8 +707,6 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	key = STAT_KEY(&dir->obj);
 
 	/* Generating key of the entry to be removed */
-	entry->offset.plugin = key->plugin;
-	
 	plugin_call(key->plugin->key_ops, build_entry, &entry->offset,
 		    dir->hash, obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), entry->name);
@@ -787,9 +778,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	
 	hint.count = 1;
 	hint.flags = HF_FORMATD;
-	hint.key.plugin = key->plugin;
 	hint.plugin = dir->body.item.plugin;
-
 	hint.type_specific = (void *)entry;
 
 	/* Building key of the new entry */
@@ -801,10 +790,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 		    &hint.key);
 
 	/* Inserting entry */
-	if ((res = obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place))) {
-		aal_exception_error("Can't insert entry %s.", entry->name);
+	if ((res = obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place)))
 		return res;
-	}
 
 	/* Updating stat data fields */
 	size = obj40_get_size(&dir->obj);

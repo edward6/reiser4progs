@@ -39,10 +39,8 @@ static lookup_t reg40_next(reg40_t *reg) {
 	aal_assert("umka-1161", reg != NULL);
 	
 	/* Building key to be searched by current offset */
-	key.plugin = STAT_KEY(&reg->obj)->plugin;
-	
-	plugin_call(key.plugin->key_ops, build_generic, &key,
-		    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
+	plugin_call(STAT_KEY(&reg->obj)->plugin->key_ops, build_generic,
+		    &key, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
 		    obj40_objectid(&reg->obj), reg->offset);
 
 	/* Getting the next body item from the tree */
