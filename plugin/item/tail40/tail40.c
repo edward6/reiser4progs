@@ -171,21 +171,30 @@ static errno_t tail40_maxposs_key(place_t *place,
 	return body40_maxposs_key(place, key);
 }
 
-static lookup_res_t tail40_lookup(place_t *place,
-				  key_entity_t *key, 
-				  uint32_t *pos)
+static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key, 
+				  lookup_mod_t mode, uint32_t *pos)
 {
-	uint64_t offset;
-	lookup_res_t res;
-	
+	uint64_t offset, wanted;
+
 	aal_assert("umka-1228", place != NULL);
 	aal_assert("umka-1229", key != NULL);
 	aal_assert("umka-1230", pos != NULL);
+	
+	offset = plug_call(key->plug->o.key_ops,
+			   get_offset, &place->key);
 
-	res = body40_lookup(place, key, &offset, NULL);
+	wanted = plug_call(key->plug->o.key_ops,
+			   get_offset, key);
 
-	*pos = offset;
-	return res;
+	if (wanted >= offset &&
+	    wanted < offset + tail40_units(place))
+	{
+		*pos = wanted - offset;
+		return PRESENT;
+	}
+
+	*pos = tail40_units(place);
+	return (mode == READ ? ABSENT : PRESENT);
 }
 
 #ifndef ENABLE_STAND_ALONE

@@ -167,6 +167,10 @@ static errno_t tree_ukey(void *tree, place_t *place,
 static char *key_print(key_entity_t *key, uint16_t options) {
 	return reiser4_print_key((reiser4_key_t *)key, options);
 }
+
+static errno_t tree_conv(void *tree, place_t *place, reiser4_plug_t *plug) {
+	return reiser4_tree_conv(tree, (reiser4_place_t *)place, plug);
+}
 #endif
 
 static uint64_t profile_value(char *name) {
@@ -203,11 +207,6 @@ static errno_t object_resolve(void *tree, place_t *place, char *filename,
 	reiser4_object_close(o);
 	return res;
 }
-
-errno_t tree_conv(void *tree, place_t *place, reiser4_plug_t *plug) {
-	return reiser4_tree_conv(tree, (reiser4_place_t *)place, plug);
-}
-
 #endif
 
 /* Initializing the libreiser4 core instance. It will be passed into all plugins

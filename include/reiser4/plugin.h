@@ -793,7 +793,8 @@ struct reiser4_item_ops {
 	uint32_t (*units) (place_t *);
 
 	/* Makes lookup for passed key */
-	lookup_res_t (*lookup) (place_t *, key_entity_t *, uint32_t *);
+	lookup_res_t (*lookup) (place_t *, key_entity_t *,
+				lookup_mod_t, uint32_t *);
 
 	/* Returns TRUE is specified item is a nodeptr one. That is, it points
 	   to formatted node in the tree. If this method if not implemented,
@@ -945,9 +946,8 @@ struct reiser4_node_ops {
 	uint32_t (*items) (node_entity_t *);
     
 	/* Makes lookup inside node by specified key */
-	lookup_res_t (*lookup) (node_entity_t *,
-				key_entity_t *, 
-				pos_t *);
+	lookup_res_t (*lookup) (node_entity_t *, key_entity_t *, 
+				lookup_mod_t, pos_t *);
     
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (node_entity_t *, pos_t *,

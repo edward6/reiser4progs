@@ -14,16 +14,10 @@ extern errno_t body40_get_key(place_t *item, uint32_t pos,
 			      key_entity_t *key,
 			      trans_func_t trans_func);
 
+extern int body40_mergeable(place_t *place1, place_t *place2);
+
 extern errno_t body40_maxreal_key(place_t *item, key_entity_t *key,
 				  trans_func_t trans_func);
 
 extern errno_t body40_maxposs_key(place_t *item, key_entity_t *key);
-
-extern lookup_res_t body40_lookup(place_t *item, key_entity_t *key,
-				  uint64_t *pos, trans_func_t trans_func);
-
-#ifndef ENABLE_STAND_ALONE
-extern int body40_mergeable(place_t *place1, place_t *place2);
-#endif
-
 #endif

@@ -189,7 +189,9 @@ errno_t extent40_estimate_merge(place_t *dst, uint32_t dst_pos,
 	
 	hint->src_head = (src_start - extent40_offset(src, src_pos) - 
 			  src_min) / b_size;
-	
+
+	/* FIXME-UMKA->VITALY: Is it realy needed here to convert values
+	   twice? */
 	hint->src_tail = (src_max - 
 			  extent40_offset(src, extent40_unit(src, src_max - 1)) - 
 			  src_min) / b_size;

@@ -40,13 +40,12 @@ uint64_t extent40_offset(place_t *place,
 	return blocks * extent40_blksize(place);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Gets the number of unit specified offset lies in */
 uint32_t extent40_unit(place_t *place,
 		       uint64_t offset)
 {
 	uint32_t i;
-	
-#ifndef ENABLE_STAND_ALONE
         uint32_t width = 0;
         extent40_t *extent;
                                                                                          
@@ -62,15 +61,10 @@ uint32_t extent40_unit(place_t *place,
                 if (offset < width)
                         return i;
         }
-#else
-	for (i = 0; i < extent40_units(place); i++) {
-		if (offset < extent40_offset(place, i + 1))
-			return i;
-	}
-#endif
-	
+
         return i;
 }
+#endif
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
    variable. It is needed for updating item key after shifting, etc. */
@@ -122,8 +116,7 @@ static errno_t extent40_remove(place_t *place, uint32_t pos,
 }
 
 /* Prints extent item into specified @stream */
-static errno_t extent40_print(place_t *place,
-			      aal_stream_t *stream,
+static errno_t extent40_print(place_t *place, aal_stream_t *stream,
 			      uint16_t options) 
 {
 	uint32_t i, count;
@@ -174,28 +167,40 @@ errno_t extent40_maxposs_key(place_t *place,
 
 /* Performs lookup for specified @key inside the passed @place. Result of lookup
    will be stored in @pos. */
-lookup_res_t extent40_lookup(place_t *place,
-			     key_entity_t *key,
-			     uint32_t *pos)
+lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
+			     lookup_mod_t mode, uint32_t *pos)
 {
 	uint64_t offset;
-	lookup_res_t res;
+	uint64_t wanted;
+	uint32_t i, units;
+	extent40_t *extent;
 
 	aal_assert("umka-1500", place != NULL);
 	aal_assert("umka-1501", key  != NULL);
 	aal_assert("umka-1502", pos != NULL);
 	
-	/* Using body40_lookup() getting position by key */
-	res = body40_lookup(place, key, &offset,
-			    (trans_func_t)extent40_offset);
+	units = extent40_units(place);
 
-	/* Transforming from the offset ot unit */
-	*pos = extent40_unit(place, offset);
+	wanted = plug_call(key->plug->o.key_ops,
+			   get_offset, key);
+
+	offset = plug_call(key->plug->o.key_ops,
+			   get_offset, &place->key);
+
+	extent = extent40_body(place);
 	
-	if (*pos >= extent40_units(place))
-		*pos = extent40_units(place) - 1;
-	
-	return res;
+	for (i = 0; i < units; i++, extent++) {
+		offset += et40_get_width(extent) /
+			extent40_blksize(place);
+
+		if (offset > wanted) {
+			*pos = i;
+			return PRESENT;
+		}
+	}
+
+	*pos = units - 1;
+	return PRESENT;
 }
 
 /* Reads @count bytes of extent data from the extent item at passed @pos into

@@ -823,7 +823,7 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 			if (walk.plug->o.item_ops->lookup) {
 				switch (plug_call(walk.plug->o.item_ops,
 						  lookup, (place_t *)&walk,
-						  key, &walk.pos.unit))
+						  key, READ, &walk.pos.unit))
 				{
 				case PRESENT:
 					aal_memcpy(place, &walk,

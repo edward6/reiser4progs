@@ -442,8 +442,8 @@ lookup_res_t reiser4_node_lookup(
 	POS_INIT(pos, 0, MAX_UINT32);
 
 	/* Calling node plugin lookup method */
-	switch ((res = plug_call(node->entity->plug->o.node_ops,
-				 lookup, node->entity, key, pos)))
+	switch ((res = plug_call(node->entity->plug->o.node_ops, lookup,
+				 node->entity, key, mode, pos)))
 	{
 	case FAILED:
 		return res;
@@ -476,7 +476,8 @@ lookup_res_t reiser4_node_lookup(
 		/* Calling lookup method of found item */
 		if (place.plug->o.item_ops->lookup) {
 			return plug_call(place.plug->o.item_ops, lookup,
-					 (place_t *)&place, key, &pos->unit);
+					 (place_t *)&place, key, mode,
+					 &pos->unit);
 		}
 
 		if (mode == INST) {
