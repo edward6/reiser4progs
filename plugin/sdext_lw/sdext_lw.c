@@ -20,7 +20,7 @@ static errno_t sdext_lw_init(reiser4_body_t *body,
     aal_assert("umka-1187", hint != NULL, return -1);
 	
     ext = (sdext_lw_t *)body;
-    sdext_lw = (reiser4_sdext_lw_hint_t *)body;
+    sdext_lw = (reiser4_sdext_lw_hint_t *)hint;
     
     sdext_lw_set_mode(ext, sdext_lw->mode);
     sdext_lw_set_nlink(ext, sdext_lw->nlink);

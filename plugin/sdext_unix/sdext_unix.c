@@ -20,7 +20,7 @@ static errno_t sdext_unix_init(reiser4_body_t *body,
     aal_assert("umka-885", hint != NULL, return -1);
 	
     ext = (sdext_unix_t *)body;
-    sdext_unix = (reiser4_sdext_unix_hint_t *)body;
+    sdext_unix = (reiser4_sdext_unix_hint_t *)hint;
     
     sdext_unix_set_uid(ext, sdext_unix->uid);
     sdext_unix_set_gid(ext, sdext_unix->gid);

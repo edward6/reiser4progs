@@ -477,6 +477,8 @@ static reiser4_entity_t *dir40_create(const void *tree,
 	dir->direntry.plugin->item_ops, estimate, ~0ul, 
 	&direntry_hint);
 
+    aal_memset(&stat.extentions, 0, sizeof(stat.extentions));
+    
     stat.extentions.count = 2;
     stat.extentions.hint[0] = &lw_ext;
     stat.extentions.hint[1] = &unix_ext;
