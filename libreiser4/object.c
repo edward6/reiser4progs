@@ -461,17 +461,17 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		}
 	}
 
-	if ((res = plugin_call(child->entity->plugin->o.object_ops,
-			       link, child->entity)))
-	{
-		return res;
-	}
-
 	if (child->entity->plugin->o.object_ops->attach) {
 		object_entity_t *parent = object ? object->entity : NULL;
 
+		if ((res = plugin_call(child->entity->plugin->o.object_ops,
+				       attach, child->entity, parent)))
+		{
+			return res;
+		}
+
 		return plugin_call(child->entity->plugin->o.object_ops,
-				   attach, child->entity, parent);
+				   link, child->entity);
 	}
 
 	return 0;
@@ -519,15 +519,15 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 		return -EINVAL;
 	}
 
-	if ((res = plugin_call(child->entity->plugin->o.object_ops,
-			       unlink, child->entity)))
-	{
-		return res;
-	}
-
 	if (child->entity->plugin->o.object_ops->detach) {
-		return plugin_call(child->entity->plugin->o.object_ops,
-				   detach, child->entity, object->entity);
+		if ((res = plugin_call(child->entity->plugin->o.object_ops,
+				       detach, child->entity, object->entity)))
+		{
+			return res;
+		}
+
+		res = plugin_call(child->entity->plugin->o.object_ops,
+				  unlink, child->entity);
 	}
 
 	reiser4_object_close(child);
