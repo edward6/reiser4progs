@@ -514,14 +514,20 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
   Sets up hint by means of uinitializing its fields by item body, item len and
   if pos points to unit, the set up units related fields.
 */
-errno_t reiser4_node_feel(reiser4_node_t *node, pos_t *pos,
-			  uint32_t count, copy_hint_t *hint)
+errno_t reiser4_node_feel(reiser4_node_t *node,
+			  pos_t *pos,
+			  reiser4_key_t *start,
+			  reiser4_key_t *end,
+			  copy_hint_t *hint)
 {
 	aal_assert("umka-1999", node != NULL);
 	aal_assert("umka-2000", hint != NULL);
+	aal_assert("umka-2155", end != NULL);
+	aal_assert("umka-2154", start != NULL);
 
 	return plugin_call(node->entity->plugin->node_ops,
-			   feel, node->entity, pos, count, hint);
+			   feel, node->entity, pos, start,
+			   end, hint);
 }
 
 /* Returns free space of specified node */
@@ -549,25 +555,23 @@ uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 }
 
 /* Makes copy @count items from @src_node into @dst_node */
-errno_t reiser4_node_copy(reiser4_node_t *dst_node, pos_t *dst_pos,
-			  reiser4_node_t *src_node, pos_t *src_pos,
-			  uint32_t count)
+errno_t reiser4_node_copy(reiser4_node_t *dst_node,
+			  pos_t *dst_pos,
+			  reiser4_node_t *src_node,
+			  pos_t *src_pos,
+			  reiser4_key_t *start,
+			  reiser4_key_t *end,
+			  copy_hint_t *hint)
 {
-	errno_t res;
-	
 	aal_assert("umka-1819", src_node != NULL);
 	aal_assert("umka-1821", dst_node != NULL);
 	aal_assert("umka-1820", src_pos != NULL);
 	aal_assert("umka-1822", dst_pos != NULL);
 
-	if (count == 0)
-		return 0;
-
-	res = plugin_call(src_node->entity->plugin->node_ops,
-			  copy, src_node->entity, src_pos,
-			  dst_node->entity, dst_pos, count);
-
-	return res;
+	return plugin_call(src_node->entity->plugin->node_ops,
+			   copy, src_node->entity, src_pos,
+			   dst_node->entity, dst_pos, start,
+			   end, hint);
 }
 
 /* Expands passed @node at @pos by @len */
