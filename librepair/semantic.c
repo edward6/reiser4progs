@@ -272,10 +272,10 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
  error_object_detach:
 	/* Detach if possible. */
 	res = repair_semantic_unlink(sem, NULL, object);
+	return res < 0 ? INVAL_PTR : NULL;
 	
  error_parent_close:
 	reiser4_object_close(parent);
-	
 	return res < 0 ? INVAL_PTR : NULL;
 }
 

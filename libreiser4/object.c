@@ -19,7 +19,7 @@ static errno_t reiser4_object_init(reiser4_object_t *object,
 	/* Getting object plugin by first item coord. */
 	place = object_start(object);
 	
-	if (!(plug = reiser4_semantic_plug(object->tree, place)))
+	if (!(plug = reiser4_semantic_plug(object->info->tree, place)))
 		return -EINVAL;
 	    
 	/* Requesting object plugin to open the object on passed @tree and
@@ -73,7 +73,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 errno_t reiser4_object_refresh(reiser4_object_t *object) {
 	object_info_t *info = object->info;
 
-	switch (reiser4_tree_lookup(object->tree, &info->object,
+	switch (reiser4_tree_lookup(info->tree, &info->object,
 				    LEAF_LEVEL, FIND_EXACT,
 				    object_start(object)))
 	{
@@ -86,19 +86,16 @@ errno_t reiser4_object_refresh(reiser4_object_t *object) {
 
 /* Resolve passed @path. */
 errno_t reiser4_object_resolve(reiser4_object_t *object,
+			       reiser4_tree_t *tree,
 			       char *path, bool_t follow)
 {
-	reiser4_key_t *root_key;
-	
 	aal_assert("umka-2247", path != NULL);
 	aal_assert("umka-2246", object != NULL);
+	aal_assert("vpf-1422", tree != NULL);
 
 	/* Resolving object by @path starting from root key. */
-	root_key = &object->tree->key;
-
-	/* Calling semantic resolve. */
-	if (!(object->entity = reiser4_semantic_resolve(object->tree,
-							path, root_key,
+	if (!(object->entity = reiser4_semantic_resolve(tree, path,
+							&tree->key,
 							follow)))
 	{
 		return -EINVAL;
@@ -127,10 +124,8 @@ reiser4_object_t *reiser4_object_open(
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
     
-	object->tree = tree;
-
 	/* Semantic resolve of @path. */
-	if (reiser4_object_resolve(object, path, follow))
+	if (reiser4_object_resolve(object, tree, path, follow))
 		goto error_free_object;
 	
 
@@ -173,8 +168,6 @@ reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return INVAL_PTR;
 
-	object->tree = tree;
-	
 	/* Initializing object info. */
 	object->info = &info;
 	object->info->tree = tree;
@@ -511,7 +504,9 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	/* Opening victim object by found place */
-	if (!(child = reiser4_object_realize(object->tree, object, &place))) {
+	if (!(child = reiser4_object_realize(object->info->tree, 
+					     object, &place))) 
+	{
 		aal_error("Can't open %s/%s. Object is corrupted?",
 			  object->name, entry->name);
 		return -EINVAL;

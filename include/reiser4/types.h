@@ -149,9 +149,6 @@ typedef struct reiser4_tree reiser4_tree_t;
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
 struct reiser4_object {
-	/* Tree reference */
-	reiser4_tree_t *tree;
-	
 	/* Object info pointer */
 	object_info_t *info;
 	

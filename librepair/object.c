@@ -86,8 +86,6 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return INVAL_PTR;
 
-	object->tree = tree;
-	
 	/* Initializing info */
 	aal_memset(&info, 0, sizeof(info));
 	info.tree = tree;

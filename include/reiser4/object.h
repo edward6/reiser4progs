@@ -23,6 +23,7 @@ extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
 extern errno_t reiser4_object_resolve(reiser4_object_t *object,
+				      reiser4_tree_t *tree,
 				      char *path, bool_t follow);
 
 extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
