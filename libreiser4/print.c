@@ -50,5 +50,4 @@ char *reiser4_print_format(reiser4_format_t *format, uint16_t options) {
 
 	return (char *)stream.data;
 }
-
 #endif

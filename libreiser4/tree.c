@@ -950,11 +950,11 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 					return res;
 
 				if (place.plug->id.group == NODEPTR_ITEM) {
-					if (reiser4_tree_alloc_nodeptr(tree, &place))
-						return -EINVAL;
+					if ((res = reiser4_tree_alloc_nodeptr(tree, &place)))
+						return res;
 				} else if (place.plug->id.group == EXTENT_ITEM) {
-					if (reiser4_tree_alloc_extent(tree, &place))
-						return -EINVAL;
+					if ((res = reiser4_tree_alloc_extent(tree, &place)))
+						return res;
 				}
 			}
 		}
@@ -1516,7 +1516,6 @@ errno_t reiser4_tree_growup(
 /* Decreases tree height by one level */
 errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	errno_t res;
-	uint8_t height;
 	reiser4_node_t *root;
 	reiser4_node_t *child;
 	reiser4_place_t place;
@@ -1552,17 +1551,13 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	reiser4_tree_disconnect_node(tree, NULL, root);
 	reiser4_tree_disconnect_node(tree, root, child);
 
-	/* Assign new root */
+	/* Assign new root. Setting tree height to new root level and root block
+	   number to new root block number. */
 	reiser4_tree_assign_root(tree, child);
 	
         /* Releasing old root node */
 	reiser4_node_mkclean(root);
 	reiser4_tree_release_node(tree, root);
-
-	/* Updating superblock fields */
-	height = reiser4_tree_get_height(tree);
-	reiser4_tree_set_height(tree, height - 1);
-	reiser4_tree_set_root(tree, node_blocknr(child));
 
 	return 0;
 }
@@ -1613,6 +1608,8 @@ errno_t reiser4_tree_shift(
 				reiser4_place_init(&p, node->p.node,
 						   &node->p.pos);
 				
+				reiser4_key_assign(&node->p.key, &lkey);
+				
 				if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
 					return res;
 			}
@@ -1628,6 +1625,8 @@ errno_t reiser4_tree_shift(
 				
 				reiser4_place_init(&p, neig->p.node,
 						   &neig->p.pos);
+				
+				reiser4_key_assign(&neig->p.key, &lkey);
 				
 				if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
 					return res;
@@ -1941,6 +1940,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 						    "node durring split opeartion.");
 				goto error_free_node;
 			}
+			
 			reiser4_place_init(place, node->p.node, &node->p.pos);
 		} else {
 			node = place->node;
@@ -2128,7 +2128,6 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 		if (reiser4_place_leftmost(&place) &&
 		    place.node->p.node)
 		{
-
 			/* If node became empty it will be detached from the
 			   tree, so updating is not needed and impossible,
 			   because it has no items. */
@@ -2141,6 +2140,8 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 				
 				reiser4_place_init(&p, place.node->p.node,
 						   &place.node->p.pos);
+
+				reiser4_key_assign(&place.node->p.key, &lkey);
 
 				if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
 					return res;
@@ -2332,7 +2333,6 @@ static int64_t reiser4_tree_mod(
 
 			POS_INIT(&place->pos, 0, MAX_UINT32);
 		} else if (level > reiser4_node_get_level(place->node)) {
-		
 			/* Prepare the tree for insertion at the level
 			   @level. */
 			if ((res = reiser4_tree_split(tree, place, level)))
@@ -2405,6 +2405,9 @@ static int64_t reiser4_tree_mod(
 		reiser4_place_t *parent = &place->node->p;
 		
 		if (parent->node) {
+			reiser4_key_assign(&place->node->p.key,
+					   &hint->offset);
+			
 			if ((res = reiser4_tree_ukey(tree, parent,
 						     &hint->offset)))
 			{
@@ -2514,6 +2517,8 @@ errno_t reiser4_tree_remove(
 			reiser4_place_init(&p, place->node->p.node,
 					   &place->node->p.pos);
 
+			reiser4_key_assign(&place->node->p.key, &lkey);
+			
 			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
 				return res;
 		}

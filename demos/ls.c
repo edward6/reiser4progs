@@ -79,12 +79,16 @@ int main(int argc, char *argv[]) {
 		reiser4_object_t *object;
 	    
 		for (i = 0; i < 2; i++) {
+			int count;
+			
 			aal_snprintf(name, 256, "file name%d", i);
 
 			if (!(object = reiser4_reg_create(fs, dir, name)))
 				goto error_free_dir;
 
-			for (j = 0; j < 1640; j++) {
+			count = 2439;
+			
+			for (j = 0; j < count; j++) {
 				if (reiser4_object_write(object, name,
 							 aal_strlen(name)) < 0)
 				{

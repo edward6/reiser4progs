@@ -698,47 +698,47 @@ static int64_t node40_truncate(node_entity_t *entity, pos_t *pos,
 	aal_assert("umka-2463", entity != NULL);
 
 	node = (node40_t *)entity;
+	pol = node40_key_pol(node);
 
 	/* Getting item at @pos */
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
-	/* Item has truncate(), so it contains some structure (extent40), not
-	   just stream of bytes (tail40). */
+	/* Truncating item by its method truncate(). */
 	if ((count = plug_call(place.plug->o.item_ops,
 			       truncate, &place, hint)) < 0)
 	{
 		return count;
 	}
 
-	/* Updating key if it makes sence, that is we has not truncated whole
-	   item. */
-	if (hint->len + hint->ohd < place.len) {
-		pol = node40_key_pol(node);
-		ih = node40_ih_at(node, place.pos.item);
-		aal_memcpy(ih, place.key.body, key_size(pol));
-	}
-
-	/* Shrinking node */
-	if ((len = hint->ohd + hint->len)) {
+	len = hint->ohd + hint->len;
+	
+	/* Shrinking node and and update key. */
+	if (len > 0) {
 		errno_t res;
 		uint32_t number;
 		
-		/* If len to be cut out is the same as item size, we remove
-		   whole item. Shribk item otherwise. */
+		number = count;
+		place.pos.unit = 0;
+		
 		if (len >= place.len) {
 			number = 1;
 			place.pos.unit = MAX_UINT32;
-		} else {
-			number = count;
-			place.pos.unit = 0;
 		}
-		
+
 		if ((res = node40_shrink(entity, &place.pos,
 					 len, number)))
 		{
 			return res;
 		}
+
+		if (len < place.len) {
+			ih = node40_ih_at(node, place.pos.item);
+			aal_memcpy(ih, place.key.body, key_size(pol));
+		}
+	} else {
+		ih = node40_ih_at(node, place.pos.item);
+		aal_memcpy(ih, place.key.body, key_size(pol));
 	}
 
 	return count;
@@ -871,12 +871,6 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 	
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
-/*		if (pos.item) {
-			aal_stream_format(stream, "----------------------------"
-					  "------------------------------------"
-					  "--------------\n");
-		}*/
-
 		if (node40_fetch(entity, &pos, &place))
 			return -EINVAL;
 		
