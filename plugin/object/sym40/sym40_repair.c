@@ -23,9 +23,10 @@ static errno_t sym40_extentions(place_t *stat) {
 	extmask = obj40_extmask(stat);
 	
 	/* Check that there is no one unknown extention. */
+	/*
 	if (extmask & ~(sym40_exts | 1 << SDEXT_PLUG_ID))
 		return RE_FATAL;
-	
+	*/
 	/* Check that LW, UNIX and SYMLINK extentions exist. */
 	return ((extmask & sym40_exts) == sym40_exts) ? 0 : RE_FATAL;
 }

@@ -23,9 +23,10 @@ static errno_t dir40_extentions(place_t *stat) {
 	extmask = obj40_extmask(stat);
 	
 	/* Check that there is no one unknown extention. */
+	/*
 	if (extmask & ~(dir40_exts | 1 << SDEXT_PLUG_ID))
 		return RE_FATAL;
-	
+	*/
 	/* Check that LW and UNIX extentions exist. */
 	return ((extmask & dir40_exts) == dir40_exts) ? 0 : RE_FATAL;
 }

@@ -30,9 +30,10 @@ static errno_t reg40_extentions(place_t *stat) {
 	/* Check that there is no one unknown extention. */
 	extmask = obj40_extmask(stat);
 	
+	/*
 	if (extmask & ~(reg40_exts | 1 << SDEXT_PLUG_ID))
 		return RE_FATAL;
-	
+	*/
 	/* Check that LW and UNIX extentions exist. */
 	return ((extmask & reg40_exts) == reg40_exts) ? 0 : RE_FATAL;
 }
