@@ -26,8 +26,12 @@ void oid40_print(generic_entity_t *entity,
 			  ((oid40_t *)entity)->used);
 }
 
-oid_t oid40_lost_objectid(generic_entity_t *entity) {
-	return OID40_LOST;
+oid_t oid40_lost_objectid() {
+	return OID40_LOST_OBJECTID;
+}
+
+oid_t oid40_safe_locality() {
+	return OID40_SAFE_LOCALITY;
 }
 
 #endif

@@ -122,6 +122,8 @@ enum reiser4_item_plug_id {
 	ITEM_ACL40_ID		= 0x4,
 	ITEM_EXTENT40_ID	= 0x5,
 	ITEM_TAIL40_ID		= 0x6,
+	ITEM_CTAIL40_ID		= 0x7,
+	ITEM_BLACKBOX40_ID	= 0x8,
 	ITEM_LAST_ID
 };
 
@@ -133,6 +135,7 @@ enum reiser4_item_group {
 	TAIL_ITEM		= 0x3,
 	EXTENT_ITEM		= 0x4,
 	PERMISSION_ITEM		= 0x5, /* not used yet */
+	SAFE_LINK_ITEM		= 0x6,
 	LAST_ITEM
 };
 
@@ -600,6 +603,28 @@ struct entry_hint {
 };
 
 typedef struct entry_hint entry_hint_t;
+
+enum safe_type {
+	SAFE_UNLINK,   /* safe-link for unlink */
+	SAFE_TRUNCATE, /* safe-link for truncate */
+	SAFE_E2T,      /* safe-link for extent->tail conversion */
+	SAFE_T2E,      /* safe-link for tail->extent conversion */
+	SAFE_LAST
+};
+
+typedef enum safe_type safe_type_t;
+
+struct safe_hint {
+	/* Key of StatData the link points to. */
+	reiser4_key_t key;
+	
+	/* The size to be truncated. */
+	uint64_t size;
+
+	safe_type_t type;
+};
+
+typedef struct safe_hint safe_hint_t;
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. This is used for all tree modification purposes like
@@ -1361,9 +1386,10 @@ struct reiser4_oid_ops {
 	errno_t (*valid) (generic_entity_t *);
 	
 	/* Root locality and objectid and lost+found objectid. */
-	oid_t (*root_locality) (generic_entity_t *);
-	oid_t (*root_objectid) (generic_entity_t *);
-	oid_t (*lost_objectid) (generic_entity_t *);
+	oid_t (*root_locality) ();
+	oid_t (*root_objectid) ();
+	oid_t (*lost_objectid) ();
+	oid_t (*safe_locality) ();
 };
 
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;
@@ -1622,6 +1648,9 @@ struct tree_ops {
 	
 	/* Update the key in the place and the node itsef. */
 	errno_t (*update_key) (void *, reiser4_place_t *, reiser4_key_t *);
+
+	/* Get the safe link locality. */
+	uint64_t (*safe_locality) (void *);
 #endif
 	/* Returns the next item. */
 	errno_t (*next_item) (void *, reiser4_place_t *, reiser4_place_t *);

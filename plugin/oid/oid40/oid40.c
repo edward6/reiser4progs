@@ -152,12 +152,12 @@ static errno_t oid40_valid(generic_entity_t *entity) {
 }
 
 /* Returns root locality */
-static oid_t oid40_root_locality(generic_entity_t *entity) {
+static oid_t oid40_root_locality() {
 	return OID40_ROOT_LOCALITY;
 }
 
 /* Returns root oid */
-static oid_t oid40_root_objectid(generic_entity_t *entity) {
+static oid_t oid40_root_objectid() {
 	return OID40_ROOT_OBJECTID;
 }
 
@@ -179,7 +179,8 @@ reiser4_oid_ops_t oid40_ops = {
 	.get_state      = oid40_get_state,
 	.root_locality	= oid40_root_locality,
 	.root_objectid	= oid40_root_objectid,
-	.lost_objectid	= oid40_lost_objectid
+	.lost_objectid	= oid40_lost_objectid,
+	.safe_locality  = oid40_safe_locality
 };
 
 static reiser4_plug_t oid40_plug = {

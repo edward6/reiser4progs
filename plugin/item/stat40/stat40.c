@@ -124,16 +124,6 @@ static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	return 1;
 }
 
-static errno_t stat40_maxposs_key(reiser4_place_t *place, 
-				  reiser4_key_t *key)
-{
-	aal_assert("umka-2421", key != NULL);
-	aal_assert("umka-2420", place != NULL);
-	
-	return plug_call(place->key.plug->o.key_ops,
-			 assign, key, &place->key);
-}
-
 /* This function returns unit count. This value must be 1 if item has not
    units. It is because balancing code assumes that if item has more than one
    unit the it may be shifted out. That is because w ecan't return the number of
@@ -475,9 +465,9 @@ static item_balance_ops_t balance_ops = {
 #endif
 	.lookup		  = NULL,
 	.fetch_key	  = NULL,
+	.maxposs_key	  = NULL,
 
 	.units		  = stat40_units,
-	.maxposs_key	  = stat40_maxposs_key,
 };
 
 static item_object_ops_t object_ops = {

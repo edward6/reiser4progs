@@ -222,6 +222,7 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(tail40);
 	__load_plug(extent40);
 	__load_plug(nodeptr40);
+	__load_plug(blackbox40);
 
 #ifdef ENABLE_LARGE_KEYS
 	__load_plug(key_large);

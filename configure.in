@@ -603,6 +603,7 @@ AC_OUTPUT([
     	plugin/item/cde40/Makefile
     	plugin/item/tail40/Makefile
     	plugin/item/extent40/Makefile
+    	plugin/item/blackbox40/Makefile
     	plugin/object/Makefile
     	plugin/object/obj40/Makefile
     	plugin/object/dir40/Makefile
