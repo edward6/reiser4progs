@@ -156,10 +156,10 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 	return 0;	
 }
 
-static errno_t extent40_unit_key(item_entity_t *item, uint16_t pos, 
+static errno_t extent40_unit_key(item_entity_t *item, uint32_t pos, 
 	reiser4_key_t *key) 
 {
-	int i;
+	uint32_t i;
 	uint16_t count;
 	extent40_t *extent;
 	uint64_t offset, blocksize;

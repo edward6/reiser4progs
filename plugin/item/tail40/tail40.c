@@ -96,11 +96,11 @@ static uint32_t tail40_units(item_entity_t *item) {
 	return item->len;
 }
 
-static errno_t tail40_unit_key(item_entity_t *item, uint16_t pos, 
+static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos, 
 	reiser4_key_t *key) 
 {
 	uint64_t offset;
-	uint16_t count;
+	uint32_t count;
 
 	aal_assert("vpf-626", item != NULL, return -1);
 	aal_assert("vpf-627", key != NULL, return -1);
