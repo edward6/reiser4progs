@@ -103,7 +103,7 @@ errno_t cde40_set_key(place_t *place, uint32_t pos,
 
 /* Extracts entry name from the passed @entry to passed @buff */
 static char *cde40_get_name(place_t *place, uint32_t pos,
-				char *buff, uint32_t len)
+			    char *buff, uint32_t len)
 {
         key_entity_t key;
                                                                                         
@@ -113,10 +113,12 @@ static char *cde40_get_name(place_t *place, uint32_t pos,
            objectid. Otherwise we extract it from the entry hash. */
         if (plug_call(key.plug->o.key_ops, tall, &key)) {
 		uint32_t pol = cde40_key_pol(place);
-                char *ptr = (char *)(cde40_objid(place, pos) + ob_size(pol));
+		void *objid = cde40_objid(place, pos);
+                char *ptr = (char *)(objid + ob_size(pol));
                 aal_strncpy(buff, ptr, len);
         } else {
-		plug_call(key.plug->o.key_ops, get_name, &key, buff);
+		plug_call(key.plug->o.key_ops, get_name,
+			  &key, buff);
         }
                                                                                         
         return buff;
@@ -994,7 +996,7 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 			/* Comparing keys. We break the loop when keys as not
 			 * equal, that means, that we have found needed pos. */
 			if (!plug_call(key->plug->o.key_ops,
-				      compfull, key, &ekey))
+				       compfull, key, &ekey))
 			{
 				*pos = i;
 			} else {

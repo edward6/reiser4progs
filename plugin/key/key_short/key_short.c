@@ -80,7 +80,7 @@ static void key_short_set_ordering(key_entity_t *key,
 /* Returns key ordering (is not used in short keys) */
 static uint64_t key_short_get_ordering(key_entity_t *key) {
 	aal_assert("umka-2332", key != NULL);
-	return 0;;
+	return 0;
 }
 
 /* Sets up key objectid */

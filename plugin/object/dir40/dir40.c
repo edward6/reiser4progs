@@ -324,15 +324,22 @@ static int32_t dir40_readdir(object_entity_t *entity,
 }
 
 static int32_t dir40_compent(char *entry1, char *entry2) {
-	uint32_t len1 = aal_strlen(entry1);
+	int32_t res;
+	uint32_t len;
+
+	len = aal_min(aal_strlen(entry1),
+		      aal_strlen(entry2));
+
+	if ((res = aal_strncmp(entry1, entry2, len)))
+		return res;
+
+	if (aal_strlen(entry1) < aal_strlen(entry2))
+		return -1;
 	
-	if (len1 > aal_strlen(entry2))
+	if (aal_strlen(entry1) > aal_strlen(entry2))
 		return 1;
 
-	if (len1 < aal_strlen(entry2))
-		return -1;
-
-	return aal_strncmp(entry1, entry2, len1);
+	return 0;
 }
 
 /* Makes lookup in directory by name. Fills passed buff by found entry fields

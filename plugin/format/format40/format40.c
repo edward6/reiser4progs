@@ -228,7 +228,7 @@ static errno_t callback_clobber_block(void *entity, blk_t start,
 	format = (format40_t *)entity;
 
 	if ((res = aal_block_init(&block, format->device,
-				  format->blksize, blk)))
+				  format->blksize, 0)))
 	{
 		return res;
 	}
