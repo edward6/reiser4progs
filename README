@@ -8,7 +8,17 @@ This is a library for reiser4 filesystem access and manipulation.
 Send reiser4progs bug reports, requests for help, feature requests,
 comments, etc. to  reiserfs-list@namesys.com.
 
-In order to build the library, type the following sequence:
+In order to build the library, type the following command:
+
+./laceup [CONFIGURE_OPTIONS]
+
+This will check if configure script is in place and then runs it with
+passed configure options. After configuring if finished, make will be
+ran with -j$number_of_cpus option. This should be quite convenient for
+most of users.
+
+Or if you want to have a full control on build process, then use the
+following sequence:
 
 ./configure [OPTIONS]
 make

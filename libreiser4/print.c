@@ -6,9 +6,9 @@
 #ifndef ENABLE_STAND_ALONE
 #include <reiser4/libreiser4.h>
 
-static uint32_t curr_size; 
-static uint32_t heap_size;
 static aal_list_t *streams;
+static uint32_t curr_size = 0; 
+static uint32_t heap_size = 0;
 
 static void reiser4_print_add_stream(aal_stream_t *stream) {
 	aal_list_t *new;
@@ -42,8 +42,8 @@ void reiser4_print_recycle(uint32_t heap) {
 	     walk = next)
 	{
 		next = walk->next;
-		aal_stream_fini(walk->data);
 		reiser4_print_rem_stream(walk->data);
+		aal_stream_fini(walk->data);
 	}
 }
 
