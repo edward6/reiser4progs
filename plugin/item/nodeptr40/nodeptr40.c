@@ -36,7 +36,7 @@ static int32_t nodeptr40_read(item_entity_t *item, void *buff,
 	return 1;
 }
 
-static int nodeptr40_branch(item_entity_t *item) {
+static int nodeptr40_branch(void) {
 	return 1;
 }
 

@@ -504,14 +504,49 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 #ifndef ENABLE_ALONE
 
+/* Saves passed @nodes and its children onto device */
+static errno_t reiser4_tree_flush(reiser4_tree_t *tree,
+				  reiser4_node_t *node)
+{
+	aal_assert("umka-1927", tree != NULL);
+	aal_assert("umka-1928", node != NULL);
+    
+	/* Synchronizing passed @node */
+	if (reiser4_node_sync(node)) {
+		aal_exception_error("Can't synchronize node %llu "
+				    "to device. %s.", node->blk,
+				    node->device->error);
+		
+		return -1;
+	}
+    
+	/*
+	  Walking through the list of children and calling reiser4_node_sync
+	  function for each element.
+	*/
+	if (node->children) {
+		aal_list_t *walk;
+		reiser4_node_t *child;
+	
+		aal_list_foreach_forward(node->children, walk) {
+			child = (reiser4_node_t *)walk->data;
+			
+			if (reiser4_tree_flush(tree, child))
+				return -1;
+		}
+	}
+
+	return 0;
+}
+
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	aal_assert("umka-560", tree != NULL);
 
 	if (!tree->root)
 		return 0;
-	
-	return reiser4_node_sync(tree->root);
+
+	return reiser4_tree_flush(tree, tree->root);
 }
 
 #endif
@@ -1855,39 +1890,42 @@ errno_t reiser4_tree_traverse(
 				     setup_func, update_func, after_func);
 }
 
-/* Is the pair level of the tree and the  */
-/* Hardcoded method, valid for the current tree imprementation only. */
-bool_t reiser4_tree_legal_level(uint8_t level, reiser4_item_group_t group) {
+/*
+  This function returns TRUE if passed item @group corresponds to passed @level
+  Hardcoded method, valid for the current tree imprementation only.
+*/
+bool_t reiser4_tree_legal_level(reiser4_item_group_t group,
+				uint8_t level)
+{
 	if (group == NODEPTR_ITEM) {
 		if (level == LEAF_LEVEL)
 			return FALSE;
 	} else if (group == EXTENT_ITEM) {
 		if (level != TWIG_LEVEL)
 			return FALSE;
-	} else return level == LEAF_LEVEL;
+	} else
+		return level == LEAF_LEVEL;
 
 	return TRUE;
 }
 
-static errno_t callback_item_data_level(
-	reiser4_plugin_t *plugin,    /* plugin to be checked */
-	void *data)		     /* level to be checked */
+static errno_t callback_data_level(
+	reiser4_plugin_t *plugin,
+	void *data)
 {
 	uint8_t *level = (uint8_t *)data;
 
 	aal_assert("vpf-746", data != NULL);
 
-	if (!reiser4_tree_legal_level(*level, plugin->h.group))
+	if (!reiser4_tree_legal_level(plugin->h.group, *level))
 		return 0;
 
 	return reiser4_item_data(plugin);
 	    
 }
 
-/* Is the specified level may contain items with user data, not tree index data. */
-/* Hardcoded method, valid for the current tree imprementation only. */
 bool_t reiser4_tree_data_level(uint8_t level) {
-	return (libreiser4_factory_cfind(callback_item_data_level, &level) != NULL);
+	return (libreiser4_factory_cfind(callback_data_level, &level) != NULL);
 }
 
 #endif

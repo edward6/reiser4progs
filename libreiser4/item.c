@@ -179,7 +179,7 @@ bool_t reiser4_item_branch(reiser4_place_t *place) {
 	if (!item->plugin->item_ops.branch)
 		return FALSE;
 
-	return item->plugin->item_ops.branch(item);
+	return item->plugin->item_ops.branch();
 }
 
 /* Returns item type from its plugin */
@@ -369,6 +369,5 @@ errno_t reiser4_item_gap_key(reiser4_place_t *place,
 
 bool_t reiser4_item_data(reiser4_plugin_t *plugin) {
 	aal_assert("vpf-747", plugin != NULL);
-
 	return plugin->item_ops.data && plugin->item_ops.data();
 }

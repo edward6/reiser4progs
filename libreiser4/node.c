@@ -209,7 +209,7 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 	}
 
 #ifndef ENABLE_ALONE
-	if (reiser4_node_isdirty(node)) {
+	if (reiser4_node_isdirty(node) && reiser4_node_items(node)) {
 		if (reiser4_node_sync(node)) {
 			aal_exception_error("Can't write node %llu.",
 					    node->blk);
@@ -695,12 +695,7 @@ errno_t reiser4_node_shift(
 	return 0;
 }
 
-/*
-  Saves passed @node by means of using resursive walk though the all children.
-  There is possible to pass as parameter of this function the root node
-  pointer. In this case the whole tree will be flushed onto device, tree lies
-  on.
-*/
+/* Saves passed @node onto device it was opened on */
 errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be synchronized */
 {
@@ -720,19 +715,6 @@ errno_t reiser4_node_sync(
 		}
 
 		reiser4_node_mkclean(node);
-	}
-    
-	/*
-	  Walking through the list of children and calling reiser4_node_sync
-	  function for each element.
-	*/
-	if (node->children) {
-		aal_list_t *walk;
-	
-		aal_list_foreach_forward(node->children, walk) {
-			if (reiser4_node_sync((reiser4_node_t *)walk->data))
-				return -1;
-		}
 	}
 
 	return 0;

@@ -108,6 +108,7 @@ extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 			       reiser4_place_t *place);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
+
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_split(reiser4_tree_t *tree, 
@@ -127,8 +128,8 @@ extern reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
 
-extern errno_t reiser4_tree_legal_level(uint8_t level, 
-					reiser4_item_group_t group);
+extern bool_t reiser4_tree_legal_level(reiser4_item_group_t group,
+				       uint8_t level);
 
 extern bool_t reiser4_tree_data_level(uint8_t level);
 

@@ -746,16 +746,14 @@ struct reiser4_item_ops {
 	  formatted node in the tree. If this method if not implemented, then
 	  item is assumed as not nodeptr one. All tree running operations like
 	  going from the root to leaves will use this function.
-	  FIXME-Vitaly->Yura: entity is redundant here as this is a property of 
-	  the plugin, not of an instance.
 	*/
-	int (*branch) (item_entity_t *);
+	int (*branch) (void);
 	
 	/* 
-	  Returns TRUE if instances of the plugin can contain data, not just 
-	  tree index data. 
+	  Returns TRUE if instances of the plugin can contain data, not just
+	  tree index data.
 	*/
-	int (*data) ();
+	int (*data) (void);
 	
 	/* Does some specific actions if a block the item points to is wrong. */
 	/* FIXME: I wish it to be joint with layout, but how? */
