@@ -115,7 +115,8 @@ reiser4_master_t *reiser4_master_unpack(aal_device_t *device,
 }
 
 errno_t reiser4_master_print(reiser4_master_t *master,
-			     aal_stream_t *stream)
+			     aal_stream_t *stream,
+			     uuid_unparse_t unparse)
 {
 	uint32_t blksize;
 	
@@ -140,7 +141,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	if (*master->ent.ms_uuid != '\0') {
 		char uuid[256];
 		
-		aux_uuid_unparse(reiser4_master_get_uuid(master), uuid);
+		unparse(reiser4_master_get_uuid(master), uuid);
 		aal_stream_format(stream, "uuid:\t\t%s\n", uuid);
 	} else {
 		aal_stream_format(stream, "uuid:\t\t<none>\n");
