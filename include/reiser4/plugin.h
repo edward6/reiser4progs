@@ -579,8 +579,10 @@ typedef enum entity_state entity_state_t;
 typedef errno_t (*region_func_t) (void *, uint64_t,
 				  uint64_t, void *);
 
+/* Type for object place enumeration functions. */
+typedef errno_t (*place_func_t) (place_t *, void *);
+
 /* Function definitions for enumeration item metadata and data. */
-typedef errno_t (*place_func_t) (void *, place_t *, void *);
 typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
 
@@ -1119,13 +1121,13 @@ struct reiser4_node_ops {
 
 	/* Saves node to device */
 	errno_t (*sync) (node_entity_t *);
-#endif
-	/* Open the node on the given block with the given key plugin. */
-	node_entity_t *(*open) (aal_block_t *, reiser4_plug_t *);
-	
+
 	/* Initializes node with passed block and key plugin. */
 	node_entity_t *(*init) (aal_block_t *, uint8_t , 
 				reiser4_plug_t *);
+#endif
+	/* Open the node on the given block with the given key plugin. */
+	node_entity_t *(*open) (aal_block_t *, reiser4_plug_t *);
 	
 	/* Destroys the node entity. */
 	errno_t (*fini) (node_entity_t *);
