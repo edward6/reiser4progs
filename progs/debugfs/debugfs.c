@@ -59,11 +59,11 @@ static void debugfs_print_usage(char *name) {
 
 /* Initializes used by debugfs exception streams */
 static void debugfs_init(void) {
-    int i;
+    int ex;
 
     /* Setting up exception streams*/
-    for (i = 0; i < 5; i++)
-		progs_exception_set_stream(i, stderr);
+    for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
+		progs_exception_set_stream(ex, stderr);
 }
 
 /* Callback function used in traverse for opening the node */

@@ -1,6 +1,6 @@
 /*
-    ui.c -- common for all progs function for work with libreadline.
-    Copyright 1996-2002 (C) Hans Reiser.
+  ui.c -- common for all progs function for work with libreadline.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #include <pty.h>
@@ -35,37 +35,37 @@ static aal_list_t *variant = NULL;
 #include <misc/misc.h>
 
 extern aal_exception_option_t
-    progs_exception_handler(aal_exception_t *exception);
+progs_exception_handler(aal_exception_t *exception);
 
 /* This function gets user enter */
 char *progs_ui_readline(
-    char *prompt		/* prompt to be printed */
-) {
+    char *prompt)		/* prompt to be printed */
+{
     char *line;
     
     aal_assert("umka-1021", prompt != NULL, return NULL);
     
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
     if ((line = readline(prompt)) && aal_strlen(line)) {
-	HIST_ENTRY *last_entry = current_history();
-	if (!last_entry || aal_strncmp(last_entry->line, line, aal_strlen(line)))
-	    add_history(line);
+		HIST_ENTRY *last_entry = current_history();
+		if (!last_entry || aal_strncmp(last_entry->line, line, aal_strlen(line)))
+			add_history(line);
     }
 #else
     fprintf(stderr, prompt);
     
     if (!(line = aal_calloc(256, 0)))
-	return NULL;
+		return NULL;
     
     fgets(line, 256, stdin);
 #endif
     
     if (line) {
-	uint32_t len = aal_strlen(line);
-	if (len) {
-	    if (line[len - 1] == '\n' || line[len - 1] == '\040')
-		line[len - 1] = '\0';
-	}
+		uint32_t len = aal_strlen(line);
+		if (len) {
+			if (line[len - 1] == '\n' || line[len - 1] == '\040')
+				line[len - 1] = '\0';
+		}
     }
 
     return line;
@@ -76,7 +76,7 @@ uint16_t progs_ui_screen_width(void) {
     struct winsize winsize;
     
     if (ioctl(2, TIOCGWINSZ, &winsize))
-	return 0;
+		return 0;
     
     return winsize.ws_col == 0 ? 80 : winsize.ws_col;
 }
@@ -86,11 +86,11 @@ void progs_ui_wipe_line(void *stream) {
     int i, width = progs_ui_screen_width();
     
     if (!(buff = aal_calloc(width + 1, 0)))
-	return;
+		return;
     
     aal_strncat(buff, "\r", 1);
     for (i = 0; i < width - 2; i++)
-	aal_strncat(buff, " ", 1);
+		aal_strncat(buff, " ", 1);
 
     aal_strncat(buff, "\r", 1);
 
@@ -107,48 +107,48 @@ void progs_ui_print_wrap(void *stream, char *text) {
     aal_list_t *list = NULL;
 
     if (!stream || !text)
-	return;
+		return;
     
     line = NULL;
     width = progs_ui_screen_width();
 
     while ((word = aal_strsep(&text, " "))) {
-	if (!line || aal_strlen(line) + aal_strlen(word) > width) {
-	    if (line)
-		list = aal_list_append(list, line);
+		if (!line || aal_strlen(line) + aal_strlen(word) > width) {
+			if (line)
+				list = aal_list_append(list, line);
 	    
-	    line = aal_calloc(width + 1, 0);
-	}
+			line = aal_calloc(width + 1, 0);
+		}
 	
-	aal_strncat(line, word, strlen(word));
+		aal_strncat(line, word, strlen(word));
 
-	if (aal_strlen(line) + 1 < width)
-	    aal_strncat(line, " ", 1);
+		if (aal_strlen(line) + 1 < width)
+			aal_strncat(line, " ", 1);
     }
     
     if (line && aal_strlen(line)) {
-	char lc = line[aal_strlen(line) - 1];
+		char lc = line[aal_strlen(line) - 1];
 	
-	if (lc == '\040')
-	    line[aal_strlen(line) - 1] = '\0';
+		if (lc == '\040')
+			line[aal_strlen(line) - 1] = '\0';
 
-	list = aal_list_append(list, line);
+		list = aal_list_append(list, line);
     }
 
     if (list) {
         list = aal_list_first(list);
     
-	/* Printing message */
-	aal_list_foreach_forward(walk, list) {
-	    char *line = (char *)walk->data;
+		/* Printing message */
+		aal_list_foreach_forward(walk, list) {
+			char *line = (char *)walk->data;
 
-	    if (line && aal_strlen(line) > 0) {
-		fprintf(stream, "%s\n", line);
-		aal_free(line);
-	    }
-	}
+			if (line && aal_strlen(line) > 0) {
+				fprintf(stream, "%s\n", line);
+				aal_free(line);
+			}
+		}
     
-	aal_list_free(list);
+		aal_list_free(list);
     }
 }
 
@@ -160,20 +160,20 @@ static char *progs_ui_generator(char *text, int state) {
     static aal_list_t *cur = NULL;
     
     if (!state) 
-	cur = variant;
+		cur = variant;
     
     while (cur) {
-	aal_memset(s, 0, sizeof(s));
-	aal_memset(s1, 0, sizeof(s1));
+		aal_memset(s, 0, sizeof(s));
+		aal_memset(s1, 0, sizeof(s1));
 	
-	opt = (char *)cur->data;
-	cur = cur->next;
+		opt = (char *)cur->data;
+		cur = cur->next;
 
-	progs_misc_upper(s, opt); 
-	progs_misc_upper(s1, text);
+		progs_misc_upper(s, opt); 
+		progs_misc_upper(s1, text);
 
-	if (!aal_strncmp(s, s1, aal_strlen(s1)))
-	    return aal_strndup(opt, aal_strlen(opt));
+		if (!aal_strncmp(s, s1, aal_strlen(s1)))
+			return aal_strndup(opt, aal_strlen(opt));
     }
     
     return NULL;
@@ -181,7 +181,7 @@ static char *progs_ui_generator(char *text, int state) {
 
 static char **progs_ui_complete(char *text, int start, int end) {
     return rl_completion_matches(text,
-	(rl_compentry_func_t *)progs_ui_generator);
+								 (rl_compentry_func_t *)progs_ui_generator);
 }
 
 void progs_ui_set_variant(aal_list_t *list) {
@@ -194,12 +194,12 @@ aal_list_t *progs_ui_get_variant(void) {
 
 #endif
 
-/* Common alpha handler */
+/* Common alpha handler. Params are the same as in numeric handler */
 static char *progs_ui_alpha_handler(
     const char *prompt, char *defvalue, 
     aal_check_alpha_func_t check_func, 
-    void *data
-) {
+    void *data)
+{
     char *line;
     char buff[255];
     
@@ -209,11 +209,11 @@ static char *progs_ui_alpha_handler(
     aal_snprintf(buff, sizeof(buff), "%s [%s]: ", prompt, defvalue);
     
     while (1) {
-	if (aal_strlen((line = progs_ui_readline(buff))) == 0) 
-	    return defvalue;
+		if (aal_strlen((line = progs_ui_readline(buff))) == 0) 
+			return defvalue;
 
-	if (!check_func || check_func(line, data))
-	    break;
+		if (!check_func || check_func(line, data))
+			break;
     }
     
     return line; 
@@ -221,10 +221,12 @@ static char *progs_ui_alpha_handler(
 
 /* Common for all progs ui get numeric handler */
 static int64_t progs_ui_numeric_handler(
-    const char *prompt, int64_t defvalue, 
-    aal_check_numeric_func_t check_func,
-    void *data
-) {
+    const char *prompt, int64_t defvalue, /* user prompt and default
+										   * value */
+    aal_check_numeric_func_t check_func,  /* user's enter checking
+										   * functions */
+    void *data)                           /* user specified data */
+{
     char buff[255];
     int64_t value = 0;
     
@@ -233,23 +235,23 @@ static int64_t progs_ui_numeric_handler(
     aal_memset(buff, 0, sizeof(buff));
     
     aal_snprintf(buff, sizeof(buff), "%s [%lli]: ", 
-	prompt, defvalue);
+				 prompt, defvalue);
     
     while (1) {
-	int error;
-	char *line;
+		int error;
+		char *line;
 	
-	if (aal_strlen((line = progs_ui_readline(buff))) == 0) 
-	    return defvalue;
+		if (aal_strlen((line = progs_ui_readline(buff))) == 0) 
+			return defvalue;
 
-	if (!(value = progs_misc_size_parse(line, &error)) && error != ~0) {
-	    aal_exception_error("Invalid numeric has been detected (%s). "
-		"Number is expected (1, 1K, 1M, 1G)", line);
-	    continue;
-	}
+		if (!(value = progs_misc_size_parse(line, &error)) && error != ~0) {
+			aal_exception_error("Invalid numeric has been detected (%s). "
+								"Number is expected (1, 1K, 1M, 1G)", line);
+			continue;
+		}
 	
-	if (!check_func || check_func(value, data))
-	    break;
+		if (!check_func || check_func(value, data))
+			break;
     }
     
     return value; 
@@ -261,7 +263,7 @@ void progs_misc_print_banner(char *name) {
     printf("%s %s\n", name, VERSION);
     
     if (!(banner = aal_calloc(255, 0)))
-	return;
+		return;
     
     aal_snprintf(banner, 255, BANNER);
     progs_ui_print_wrap(stderr, banner);
@@ -272,10 +274,11 @@ void progs_misc_print_banner(char *name) {
 static void _init(void) __attribute__((constructor));
 
 static void _init(void) {
+	
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
     rl_initialize();
     rl_attempted_completion_function = 
-	(CPPFunction *)progs_ui_complete;
+		(CPPFunction *)progs_ui_complete;
 #endif
     
     aal_exception_set_handler(progs_exception_handler);

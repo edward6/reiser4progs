@@ -1,6 +1,6 @@
 /*
-    gauge.c -- common for all progs gauge fucntions.
-    Copyright 1996-2002 (C) Hans Reiser.
+  gauge.c -- common for all progs gauge fucntions.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #include <stdio.h>
@@ -23,35 +23,35 @@ static inline void progs_gauge_blit(void) {
 /* This functions "draws" gauge header */
 static inline void progs_gauge_header(
     const char *name,		/* gauge name */
-    aal_gauge_type_t type	/* gauge type */
-) {
+    aal_gauge_type_t type)	/* gauge type */
+{
     if (name) {
-	if (type != GAUGE_SILENT)
-	    fprintf(stderr, "\r%s: ", name);
-	else
-	    fprintf(stderr, "\r%s...", name);
+		if (type != GAUGE_SILENT)
+			fprintf(stderr, "\r%s: ", name);
+		else
+			fprintf(stderr, "\r%s...", name);
     }
 }
 
 /* This function "draws" gauge footer */
 static inline void progs_gauge_footer(
-    const char *name,	    /* footer name */
-    aal_gauge_type_t type   /* gauge type */
-) {
+    const char *name,	     /* footer name */
+    aal_gauge_type_t type)   /* gauge type */
+{
     if (name)
-	fputs(name, stderr);
+		fputs(name, stderr);
 }
 
 void progs_gauge_handler(aal_gauge_t *gauge) {
 
     if (gauge->state == GAUGE_PAUSED) {
-	progs_ui_wipe_line(stderr);
-	fflush(stderr);
-	return;
+		progs_ui_wipe_line(stderr);
+		fflush(stderr);
+		return;
     }
 	
     if (gauge->state == GAUGE_STARTED)
-	progs_gauge_header(gauge->name, gauge->type);
+		progs_gauge_header(gauge->name, gauge->type);
 	
     switch (gauge->type) {
 	case GAUGE_PERCENTAGE: {
@@ -62,7 +62,7 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 	    fputs(display, stderr);
 		
 	    for (i = 0; i < strlen(display); i++)
-		fputc('\b', stderr);
+			fputc('\b', stderr);
 	    break;
 	}
 	case GAUGE_INDICATOR: {
@@ -73,7 +73,7 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
     }
 
     if (gauge->state == GAUGE_DONE)
-	progs_gauge_footer("done\n", gauge->type);
+		progs_gauge_footer("done\n", gauge->type);
     
     fflush(stderr);
 }
