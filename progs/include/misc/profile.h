@@ -8,19 +8,15 @@
 #ifndef PROGS_PROFILE_H
 #define PROGS_PROFILE_H
 
-#ifndef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
-#include <reiser4/reiser4.h>
+#include <reiser4/types.h>
 
 extern void progs_profile_list(void);
 extern void progs_profile_print(reiser4_profile_t *profile);
 
-extern reiser4_profile_t *progs_profile_default();
-extern reiser4_profile_t *progs_profile_find(const char *profile);
+extern reiser4_profile_t *progs_profile_default(void);
+extern reiser4_profile_t *progs_profile_find(const char *name);
 
-extern errno_t progs_profile_override(reiser4_profile_t *profile, 
-				      const char *type, const char *name);
+extern errno_t progs_profile_override(reiser4_profile_t *profile,
+				      char *override);
 
 #endif

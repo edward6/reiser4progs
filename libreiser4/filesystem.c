@@ -40,9 +40,8 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 {
 	rpid_t pid;
 	count_t blocks;
-	uint32_t blocksize;
-	
 	reiser4_fs_t *fs;
+	uint32_t blocksize;
 
 	aal_assert("umka-148", device != NULL);
 	aal_assert("umka-1866", profile != NULL);
@@ -191,13 +190,10 @@ reiser4_fs_t *reiser4_fs_create(
 	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
 	count_t blocks)		        /* filesystem length in blocks */
 {
+	rpid_t tail;
+	rpid_t format;
 	reiser4_fs_t *fs;
 	uint32_t blocksize;
-	blk_t blk, master_offset;
-	blk_t journal_area_start;
-	blk_t journal_area_end;
-    
-	reiser4_file_hint_t root_hint;
 
 	aal_assert("umka-149", device != NULL);
 	aal_assert("vpf-113", profile != NULL);
@@ -236,13 +232,20 @@ reiser4_fs_t *reiser4_fs_create(
 	fs->profile = profile;
 	
 	/* Creates master super block */
-	if (!(fs->master = reiser4_master_create(device, profile->format, 
-						 blocksize, uuid, label)))
+	if ((format = reiser4_profile_value(profile, "format")) == INVAL_PID)
+		return NULL;
+		
+	if (!(fs->master = reiser4_master_create(device, format,
+						 blocksize,
+						 uuid, label)))
 		goto error_free_fs;
 
 	/* Creates disk format */
-	if (!(fs->format = reiser4_format_create(fs, blocks, profile->tail,
-						 profile->format)))
+	if ((tail = reiser4_profile_value(profile, "policy")) == INVAL_PID)
+		goto error_free_master;
+	
+	if (!(fs->format = reiser4_format_create(fs, blocks,
+						 tail, format)))
 		goto error_free_master;
 
 	/* Creates block allocator */

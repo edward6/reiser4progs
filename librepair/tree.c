@@ -149,7 +149,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     ptr.ptr = node->blk;
     ptr.width = 1;
 
-    pid = tree->fs->profile->item.nodeptr;
+    pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
 
     if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
 	aal_exception_error("Can't find item plugin by its id 0x%x.", pid);

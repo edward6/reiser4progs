@@ -65,45 +65,22 @@ struct reiser4_master {
 typedef struct reiser4_fs reiser4_fs_t;
 typedef struct reiser4_master reiser4_master_t;
 
+struct reiser4_pid {
+	char name[255];
+	uint32_t type;
+	uint64_t value;
+};
+
+typedef struct reiser4_pid reiser4_pid_t;
+
 /* 
-   Profile structure. It describes what plugins will be used for every part of
-   the filesystem.
+  Profile structure. It describes what plugins will be used for every part of
+  the filesystem.
 */
 struct reiser4_profile {
-	char label[255];
+	char name[255];
 	char desc[255];
-    
-	rpid_t node;
-	
-	struct {
-		rpid_t regular;
-		rpid_t dirtory;
-		rpid_t symlink;
-		rpid_t special;      
-	} file;
-    
-	struct {	    
-		rpid_t statdata;
-		rpid_t nodeptr;
-	
-		struct {
-			rpid_t tail;
-			rpid_t extent;
-			rpid_t direntry;
-		} file_body;
-	
-		rpid_t acl;
-	} item;
-    
-	rpid_t hash;
-	rpid_t tail;
-	rpid_t perm;
-	rpid_t format;
-	rpid_t oid;
-	rpid_t alloc;
-	rpid_t journal;
-	rpid_t key;
-	uint64_t sdext;
+	reiser4_pid_t plugin[20];
 };
 
 typedef struct reiser4_profile reiser4_profile_t;

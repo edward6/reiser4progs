@@ -32,26 +32,26 @@ static void fsck_print_usage(char *name) {
     fprintf(stderr, "\nUsage: %s [ options ] FILE\n", name);
     
     fprintf(stderr, "Modes:\n"
-	"  --check                        consistency checking (default).\n"
-	"  --rebuild                      fixes all fs corruptions.\n"
+	"  --check                         consistency checking (default).\n"
+	"  --rebuild                       fixes all fs corruptions.\n"
 	"Options:\n"
-	"  -l, --logfile                 complains into the logfile\n"
-	"  -V, --version                 prints the current version.\n"
-	"  -?, -h, --help                prints program usage.\n"
-	"  -n, --no-log                  makes fsck to not complain.\n"
-	"  -q, --quiet                   suppresses the most of the progress.\n"
-	"  -a, -p, --auto, --preen       automatically checks the file system\n"
-        "                                without any questions.\n"
-	"  -f, --force                   forces checking even if the file system\n"
-        "                                seems clean.\n"
-	"  -v, --verbose                 makes fsck to be verbose.\n"
-	"  -r                            ignored.\n"
+	"  -l, --logfile                   complains into the logfile\n"
+	"  -V, --version                   prints the current version.\n"
+	"  -?, -h, --help                  prints program usage.\n"
+	"  -n, --no-log                    makes fsck to not complain.\n"
+	"  -q, --quiet                     suppresses the most of the progress.\n"
+	"  -a, -p, --auto, --preen         automatically checks the file system\n"
+        "                                  without any questions.\n"
+	"  -f, --force                     forces checking even if the file system\n"
+        "                                  seems clean.\n"
+	"  -v, --verbose                   makes fsck to be verbose.\n"
+	"  -r                              ignored.\n"
 	"Plugin options:\n"
-	"  -K, --known-profiles          prints known profiles.\n"
-	"  -k, --known-plugins           prints known plugins.\n"	
-	"  -e, --profile PROFILE         profile 'PROFILE' to be used or printed.\n"
-	"  -o, --override 'TYPE=plugin'  overrides the default plugin of the type\n"
-	"                                'TYPE' by the plugin 'plugin'.\n\n");
+	"  -K, --known-profiles            prints known profiles.\n"
+	"  -k, --known-plugins             prints known plugins.\n"	
+	"  -e, --profile PROFILE           profile \"PROFILE\" to be used or printed.\n"
+	"  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
+	"                                  \"TYPE\" by the plugin \"PLUGIN\".\n\n");
 }
 
 #define REBUILD_WARNING \
@@ -98,10 +98,9 @@ static int fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 	    "", host_name);
     }
 
-    fprintf(stderr, "Will use (%s) profile.\n", data->profile->label);
+    fprintf(stderr, "Will use (%s) profile.\n", data->profile->name);
 
-    if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, 
-	"Continue?") == EXCEPTION_NO) 
+    if (aal_exception_yesno("Continue?") == EXCEPTION_NO) 
 	return USER_ERROR;
      
     return NO_ERROR; 
@@ -119,6 +118,7 @@ static void fsck_init_streams(fsck_parse_t *data) {
 static int fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
 {
     int c;
+    char override[4096];
     char *str, *profile_label = NULL;
     static int flag, mode = REPAIR_CHECK;
     FILE *stream;
@@ -152,6 +152,8 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
     data->profile = progs_profile_default();
     progs_exception_set_stream(EXCEPTION_FATAL, stderr);
     data->logfile = stderr;
+
+    aal_memset(override,0, sizeof(override));
 
     progs_print_banner(argv[0]);
     
@@ -197,18 +199,11 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		return NO_ERROR;
 	    case 'K':
 		progs_profile_list();
-		return NO_ERROR;
+		return NO_ERROR;*/
 	    case 'o':
-		str = aal_strsep(&optarg, "=");
-		if (!optarg || progs_profile_override(data->profile, str, 
-		    optarg)) 
-		{
-		    aal_exception_fatal("Cannot load a plugin (%s) of the type "
-			"(%s).", str, optarg);
-		    return USER_ERROR;
-		}
+		aal_strncat(override, optarg, aal_strlen(optarg));
+		aal_strncat(override, ",", 1);
 		break;
-*/		
 	    case 'h': 
 	    case '?':
 		fsck_print_usage(argv[0]);
@@ -231,6 +226,7 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    profile_label);
 	return USER_ERROR;
     }
+
     if (optind == argc && profile_label) {
 	/* print profile */
 	progs_profile_print(data->profile);
@@ -320,15 +316,14 @@ int main(int argc, char *argv[]) {
     memset(&data, 0, sizeof(data));
     memset(&repair_data, 0, sizeof(repair_data));
 
+    if (((exit_code = fsck_init(&data, argc, argv)) != NO_ERROR)) 
+	goto free_device;
+
     /* Initializing libreiser4 with factory sanity check */
     if (libreiser4_init()) {
 	aal_exception_fatal("Cannot initialize the libreiser4.");
 	exit(OPER_ERROR);
     }
- 
-    if (((exit_code = fsck_init(&data, argc, argv)) != NO_ERROR)) 
-	goto free_device;
-
  
     if (!(fs = repair_fs_open(data.host_device, data.profile))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 

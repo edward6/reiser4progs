@@ -326,7 +326,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	}
 
 	device = tree->fs->device;
-	pid = tree->fs->profile->node;
+	pid = reiser4_profile_value(tree->fs->profile, "node");
     
 	/* Creating new node */
 	if (!(node = reiser4_node_create(device, blk, pid, level)))
@@ -709,7 +709,7 @@ errno_t reiser4_tree_attach(
 
 	reiser4_node_lkey(node, &hint.key);
 
-	pid = tree->fs->profile->item.nodeptr;
+	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
 
 	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id 0x%x.", pid);

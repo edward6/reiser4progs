@@ -20,21 +20,24 @@ errno_t callback_mark_format_block(object_entity_t *format, blk_t blk,
 static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile, 
     aal_device_t *host_device)
 {
+    rpid_t format;
     reiser4_plugin_t *plugin = NULL;
    
     aal_assert("vpf-167", profile != NULL);
     aal_assert("vpf-169", host_device != NULL);
     
+    format = reiser4_profile_value(profile, "format");
+    
     if (!(plugin = reiser4_master_guess(host_device))) {
 	/* Format was not detected on the partition. */
 	aal_exception_fatal("Cannot detect an on-disk format on (%s).", 
 	    aal_device_name(host_device));
-	
+
 	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, 
-	    profile->format))) 
+	    format))) 
 	{
 	    aal_exception_fatal("Cannot find the format plugin (0x%x) specified "
-		"in the profile.", profile->format);
+		"in the profile.", format);
 	    return NULL;	    
 	}
 
@@ -44,7 +47,7 @@ static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile,
 	    return NULL;
     } else {
 	/* Format was detected on the partition. */
-	if (profile->format != plugin->h.id)
+	if (format != plugin->h.id)
 	    aal_exception_fatal("The detected on-disk format (%s) differs from "
 		"the profile's one.\nDo not forget to specify the correct "
 		"on-disk format in the profile next time.", plugin->h.label);

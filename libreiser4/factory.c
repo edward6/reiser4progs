@@ -43,8 +43,8 @@ static int callback_match_id(
 
 /* Helper callback for matching plugin by its name */
 static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
-	return !(plugin->h.type == desc->type &&
-		 !aal_strncmp(plugin->h.label, desc->name, aal_strlen(desc->name)));
+	return aal_strncmp(plugin->h.label, desc->name,
+			   aal_strlen(desc->name));
 }
 
 /* Helper callback for checking plugin validness */
@@ -430,7 +430,6 @@ reiser4_plugin_t *libreiser4_factory_ifind(
 
 /* Makes search for plugin by name */
 reiser4_plugin_t *libreiser4_factory_nfind(
-	rpid_t type,			         /* needed plugin type */
 	const char *name)			 /* needed plugin name */
 {
 	aal_list_t *found;
@@ -438,7 +437,6 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 
 	aal_assert("vpf-156", name != NULL);    
        
-	desc.type = type;
 	desc.name = name;
 
 	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 

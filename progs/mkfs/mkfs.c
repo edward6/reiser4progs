@@ -43,23 +43,25 @@ static void mkfs_print_usage(char *name) {
     
 	fprintf(stderr, 
 		"Common options:\n"
-		"  -?, -h, --help            prints program usage.\n"
-		"  -V, --version             prints current version.\n"
-		"  -q, --quiet               forces creating filesystem without\n"
-		"                            any questions.\n"
-		"  -f, --force               makes mkfs to use whole disk, not\n"
-		"                            block device or mounted partition.\n"
-		"  -s, --lost-found          forces mkfs to create lost+found\n"
-		"                            directory.\n"
-		"  -b, --block-size N        block size, 4096 by default, other\n"
-		"                            are not supported at the moment.\n"
-		"  -i, --uuid UUID           universally unique identifier.\n"
-		"  -l, --label LABEL         volume label lets to mount\n"
-		"                            filesystem by its label.\n"
+		"  -?, -h, --help                  prints program usage.\n"
+		"  -V, --version                   prints current version.\n"
+		"  -q, --quiet                     forces creating filesystem without\n"
+		"                                  any questions.\n"
+		"  -f, --force                     makes mkfs to use whole disk, not\n"
+		"                                  block device or mounted partition.\n"
+		"  -s, --lost-found                forces mkfs to create lost+found\n"
+		"                                  directory.\n"
+		"  -b, --block-size N              block size, 4096 by default, other\n"
+		"                                  are not supported at the moment.\n"
+		"  -i, --uuid UUID                 universally unique identifier.\n"
+		"  -l, --label LABEL               volume label lets to mount\n"
+		"                                  filesystem by its label.\n"
 		"Plugins options:\n"
-		"  -e, --profile PROFILE     profile to be used.\n"
-		"  -P, --known-plugins       prints known plugins.\n"
-		"  -K, --known-profiles      prints known profiles.\n");
+		"  -e, --profile PROFILE           profile to be used.\n"
+		"  -P, --known-plugins             prints known plugins.\n"
+		"  -K, --known-profiles            prints known profiles.\n"
+	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
+	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
 
 /* Initializes used by mkfs exception streams */
@@ -75,22 +77,28 @@ static void mkfs_init(void) {
 static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, reiser4_profile_t *profile,
 		                       reiser4_file_t *parent, const char *name) 
 {
+	rpid_t hash;
+	rpid_t dirtory;
+	rpid_t statdata;
+	rpid_t direntry;
+	
 	reiser4_file_hint_t hint;
 
+	dirtory = reiser4_profile_value(profile, "directory");
+	
 	/* Preparing object hint */
 	hint.plugin = libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
-					       profile->file.dirtory);
+					       dirtory);
 
 	if (!hint.plugin) {
 		aal_exception_error("Can't find dir plugin by its id 0x%x.", 
-				    profile->file.dirtory);
+				    dirtory);
 		return NULL;
 	}
     
-	hint.statdata = profile->item.statdata;
-
-	hint.body.dir.hash = profile->hash;
-	hint.body.dir.direntry = profile->item.file_body.direntry;
+	hint.statdata = reiser4_profile_value(profile, "statdata");
+	hint.body.dir.hash = reiser4_profile_value(profile, "hash");
+	hint.body.dir.direntry = reiser4_profile_value(profile, "direntry");
 	
 	/* Creating directory by passed parameters */
 	return reiser4_file_create(fs, parent, &hint, name);
@@ -108,10 +116,12 @@ int main(int argc, char *argv[]) {
 	aal_list_t *devices = NULL;
     
 	struct stat st;
+	char override[4096];
 	char uuid[17], label[17];
 	mkfs_behav_flags_t flags = 0;
 	count_t fs_len = 0, dev_len = 0;
 	uint16_t blocksize = BLOCKSIZE;
+
 	char *host_dev, *profile_label = "smart40";
     
 	static struct option long_options[] = {
@@ -126,6 +136,7 @@ int main(int argc, char *argv[]) {
 		{"label", required_argument, NULL, 'l'},
 		{"uuid", required_argument, NULL, 'i'},
 		{"lost-found", required_argument, NULL, 's'},
+		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
 	};
     
@@ -138,9 +149,10 @@ int main(int argc, char *argv[]) {
 
 	memset(uuid, 0, sizeof(uuid));
 	memset(label, 0, sizeof(label));
+	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sP", long_options, 
+	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sPo:", long_options, 
 				(int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -164,6 +176,10 @@ int main(int argc, char *argv[]) {
 			break;
 		case 's':
 			flags |= BF_LOST;
+			break;
+		case 'o':
+			aal_strncat(override, optarg, aal_strlen(optarg));
+			aal_strncat(override, ",", 1);
 			break;
 		case 'K':
 			progs_print_banner(argv[0]);
@@ -223,11 +239,27 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
+	/*
+	  Initializing libreiser4 (getting plugins, checking them on validness,
+	  etc).
+	*/
 	if (libreiser4_init()) {
 		aal_exception_error("Can't initialize libreiser4.");
 		goto error;
 	}
 
+	/*
+	  Overriding profile by passed by used values. This should be done after
+	  libreiser4 is initialized.
+	*/
+	if (aal_strlen(override) > 0) {
+		aal_exception_info("Overriding profile %s by \"%s\".",
+				   profile->name, override);
+		
+		if (progs_profile_override(profile, override))
+			goto error_free_libreiser4;
+	}
+	
 	if (flags & BF_PLUGS) {
 		progs_plugin_list();
 		libreiser4_done();
@@ -345,7 +377,7 @@ int main(int argc, char *argv[]) {
 		}
     
 		aal_gauge_rename(gauge, "Creating reiser4 with %s on %s",
-				 profile->label, host_dev);
+				 profile->name, host_dev);
 
 		aal_gauge_start(gauge);
 

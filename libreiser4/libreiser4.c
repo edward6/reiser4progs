@@ -64,7 +64,7 @@ static reiser4_plugin_t *factory_nfind(
 	rpid_t type,		    /* needed type of plugin*/
 	const char *name)	    /* needed plugin name (label) */
 {
-	return libreiser4_factory_nfind(type, name);
+	return libreiser4_factory_nfind(name);
 }
 
 #ifndef ENABLE_ALONE
