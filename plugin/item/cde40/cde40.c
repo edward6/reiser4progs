@@ -418,9 +418,12 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 	if (units > 0) {
 		if (pos < units) {
 			entry = cde40_entry(place, pos);
-			offset = en_get_offset(entry, pol) + headers;
+			
+			offset = en_get_offset(entry, pol) +
+				headers;
 		} else {
 			entry = cde40_entry(place, units - 1);
+			
 			offset = en_get_offset(entry, pol) + en_size(pol) +
 				cde40_get_len(place, units - 1);
 		}
@@ -428,14 +431,14 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 		offset = sizeof(cde40_t) + headers;
 	}
 
-	/* Calculating length bytes to be moved before insert point */
+	/* Calculating length bytes to be moved before insert point. */
 	first = (units - pos) * en_size(pol);
 	first += cde40_regsize(place, 0, pos);
 	
-	/* Calculating length bytes to be moved after insert point */
+	/* Calculating length bytes to be moved after insert point. */
 	second = cde40_regsize(place, pos, units - pos);
 	
-	/* Updating offset of entries which lie before insert point */
+	/* Updating offset of entries which lie before insert point. */
 	entry = cde40_entry(place, 0);
 	
 	for (i = 0; i < pos; i++) {
@@ -443,7 +446,7 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 		entry += en_size(pol);
 	}
     
-	/* Updating offset of entries which lie after insert point */
+	/* Updating offset of entries which lie after insert point. */
 	entry = cde40_entry(place, pos);
 	
 	for (i = pos; i < units; i++) {
@@ -451,15 +454,15 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 		entry += en_size(pol);
 	}
     
-	/* Moving entry bodies if it is needed */
+	/* Moving entry bodies if it is needed. */
 	if (pos < units) {
-		src = place->body + offset - headers;
-		dst = place->body + offset + len - headers;
+		src = (place->body + offset) - headers;
+		dst = (place->body + offset + len) - headers;
 		aal_memmove(dst, src, second);
 	}
     
-	/* Moving unit headers if it is needed */
-	if (first) {
+	/* Moving unit headers if it is needed. */
+	if (first > 0) {
 		src = cde40_entry(place, pos);
 		dst = src + headers;
 		aal_memmove(dst, src, first);
@@ -496,15 +499,19 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	if (hint->create) {
 		if (space < sizeof(cde40_t))
 			return 0;
-		
-		space -= sizeof(cde40_t);
+
+		/* There is only space for header. Getting us out. */
+		if (!(space -= sizeof(cde40_t)))
+			return 0;
 	}
 
 	flags = hint->control;
-	
+
+	/* Getting start item header needed inside loop. */
 	curr = (hint->control & SF_ALLOW_LEFT ? 0 :
 		src_units - 1);
 
+	/* If we need to check insert point. */
 	check = (src_place->pos.item == hint->pos.item &&
 		 hint->pos.unit != MAX_UINT32);
 
@@ -606,6 +613,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	/* Initializing cde body if we shift data to new created item. This is
 	   needed for correct work of cde plugin. */
 	if (hint->create) {
+		hint->rest -= sizeof(cde40_t);
 		((cde40_t *)dst_place->body)->units = 0;
 	}
 

@@ -650,7 +650,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         node = (node40_t *)entity;
         len = hint->len + hint->overhead;
                                                                                               
-        /* Makes expand of the node new items will be inserted in */
+        /* Makes expand of the node new items will be inserted in. */
         if (node40_expand(entity, pos, len, 1)) {
                 aal_exception_error("Can't expand node for insert "
                                     "item/unit.");
@@ -660,7 +660,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         pol = node40_key_pol(node);
         ih = node40_ih_at(node, pos->item);
                                                                                               
-        /* Updating item header if we want insert new item */
+        /* Updating item header if we want insert new item. */
         if (pos->unit == MAX_UINT32) {
                 ih_set_pid(ih, hint->plug->id.id, pol);
                                                                                               
@@ -668,13 +668,13 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
                            key_size(pol));
         }
                                                                                               
-        /* Preparing place for calling item plugin with them */
+        /* Preparing place for calling item plugin with them. */
         if (node40_fetch(entity, pos, &place)) {
                 aal_exception_error("Can't fetch item data.");
                 return -EINVAL;
         }
-                                                                                              
-	/* Inserting units into @place */
+
+	/* Inserting units into @place. */
 	if ((write = modify_func(&place, hint)) < 0) {
 		aal_exception_error("Can't insert unit to "
 				    "node %llu, item %u.",
@@ -1246,6 +1246,8 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		if (hint->rest < overhead)
 			return 0;
 
+		hint->units = 0;
+		
 		/* Substract node overhead, that is item header. */
 		hint->rest -= overhead;
 			
@@ -1274,6 +1276,8 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		/* Prepare pos new item will be created at. */
 		POS_INIT(&pos, (left_shift ? dst_items : 0), MAX_UINT32);
 	} else {
+		hint->units = 0;
+		
 		/* The same for case when we will not create new item, but will
 		   shift units into existent one in neighbour node. */
 		if (plug_call(src_place.plug->o.item_ops->balance,
