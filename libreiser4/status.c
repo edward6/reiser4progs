@@ -22,7 +22,7 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	if (!(status = aal_calloc(sizeof(*status), 0)))
 		return NULL;
 
-	status->dirty = FALSE;
+	status->dirty = 0;
 	status->device = device;
 	status->blksize = blksize;
 	
@@ -66,7 +66,7 @@ reiser4_status_t *reiser4_status_create(aal_device_t *device,
 	if (!(status = aal_calloc(sizeof(*status), 0)))
 		return NULL;
 
-	status->dirty = TRUE;
+	status->dirty = 1;
 	status->device = device;
 	status->blksize = blksize;
 
@@ -106,7 +106,7 @@ errno_t reiser4_status_sync(reiser4_status_t *status) {
 		goto error_free_block;
 	}
 
-	status->dirty = FALSE;
+	status->dirty = 0;
 
  error_free_block:
 	aal_block_free(block);

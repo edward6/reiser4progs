@@ -509,7 +509,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	hint.place_func = func;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
-	while (TRUE) {
+	while (1) {
 		errno_t result;
 		
 		if ((result = reg40_next(object, &repair, mode)) < 0)

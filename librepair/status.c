@@ -23,7 +23,7 @@ errno_t repair_status_open(reiser4_fs_t *fs, uint8_t mode) {
 		return -EINVAL;
 
 	if (mode == RM_CHECK) {
-		fs->status->dirty = FALSE;
+		fs->status->dirty = 0;
 		return RE_FIXABLE;
 	} else
 		aal_error("Creating a new status block.");
@@ -35,7 +35,7 @@ void repair_status_clear(reiser4_status_t *status) {
 	aal_assert("vpf-1342", status != NULL);
 	
 	aal_memset(STATUS(status), 0, sizeof(reiser4_status_sb_t));
-	status->dirty = TRUE;
+	status->dirty = 1;
 }
 
 void repair_status_state(reiser4_status_t *status, uint64_t state) {
@@ -56,7 +56,7 @@ void repair_status_state(reiser4_status_t *status, uint64_t state) {
 		set_ss_status(STATUS(status), state);
 	}
 	
-	status->dirty = TRUE;
+	status->dirty = 1;
 }
 
 errno_t repair_status_pack(reiser4_status_t *status,
@@ -108,7 +108,7 @@ reiser4_status_t *repair_status_unpack(aal_device_t *device,
 		goto error_free_status;
 	}
 
-	status->dirty = TRUE;
+	status->dirty = 1;
 	status->device = device;
 	status->blksize = blksize;
 	

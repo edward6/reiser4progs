@@ -62,7 +62,7 @@ bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 		uint32_t units;
 
 		if (reiser4_place_fetch(place))
-			return FALSE;
+			return 0;
 
 		units = reiser4_item_units(place);
 				
@@ -90,10 +90,10 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	items = reiser4_node_items(place->node);
 	
 	if (place->pos.item == items)
-		return TRUE;
+		return 1;
 	
 	if (reiser4_place_fetch(place))
-		return FALSE;
+		return 0;
 	
 	units = reiser4_item_units(place);
 	
@@ -111,10 +111,10 @@ bool_t reiser4_place_right(reiser4_place_t *place) {
 	items = reiser4_node_items(place->node);
 	
 	if (place->pos.item >= items)
-		return FALSE;
+		return 0;
 	
 	if (reiser4_place_fetch(place))
-		return FALSE;
+		return 0;
 	
 	units = reiser4_item_units(place);
 	

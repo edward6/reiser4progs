@@ -264,7 +264,7 @@ errno_t debugfs_print_file(
 	fprint_hint_t hint;
 	reiser4_object_t *object;
 	
-	if (!(object = reiser4_object_open(fs->tree, filename, FALSE)))
+	if (!(object = reiser4_object_open(fs->tree, filename, 0)))
 		return -EINVAL;
 
 	/* If --print-file option is specified, we show only items belong to the

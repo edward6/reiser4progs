@@ -35,7 +35,7 @@ static errno_t callback_data_level(reiser4_plug_t *plug, void *data) {
 
 bool_t repair_tree_data_level(uint8_t level) {
 	if (level == 0)
-		return FALSE;
+		return 0;
 	
 	return (reiser4_factory_cfind(callback_data_level,
 				      &level) != NULL);
@@ -418,19 +418,19 @@ static bool_t repair_tree_should_conv(reiser4_tree_t *tree,
 		
 	/* Conversion is not needed for equal plugins. */
 	if (plug_equal(from, to))
-		return FALSE;
+		return 0;
 	
 	/* Conversion is needed for equal plugin groups. */
 	if (from->id.group == to->id.group)
-		return TRUE;
+		return 1;
 
 	/* TAIL->EXTENT conversion is needed. */
 	if (from->id.group == TAIL_ITEM && to->id.group == EXTENT_ITEM)
-		return TRUE;
+		return 1;
 
 	/* EXTENT->TAIL conversion is not needed. */
 	if (from->id.group == TAIL_ITEM && to->id.group == EXTENT_ITEM)
-		return FALSE;
+		return 0;
 	
 	/* Other kind of conversions are impossible. */
 	return -EINVAL;
@@ -628,13 +628,13 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 		/* Convert @dst if needed. */
 		if (dst.pos.unit != MAX_UINT32) {
 			switch(repair_tree_should_conv(tree, dst.plug, src->plug)) {
-			case TRUE:
+			case 1:
 				if ((res = repair_tree_conv(tree, &dst, src->plug)))
 					return res;
 
 				/* Repeat lookup after @dst conversion. */
 				continue;
-			case FALSE:
+			case 0:
 				break;
 			default:
 				/* Conversion cannot be performed. */

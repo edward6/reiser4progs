@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, TRUE))) {
+	if (!(fs = reiser4_fs_open(device, 1))) {
 		aal_error("Can't open filesystem on %s.", 
 			  device->name);
 		goto error_free_device;
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 
 	fs->tree->mpc_func = misc_mpressure_detect;
 	
-	if (!(reg = reiser4_object_open(fs->tree, argv[2], TRUE)))
+	if (!(reg = reiser4_object_open(fs->tree, argv[2], 1)))
 		goto error_free_fs;
 
 	if (reg->entity->plug->id.group != REG_OBJECT) {

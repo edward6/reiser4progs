@@ -287,7 +287,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Opening source fs */
-	if (!(src_fs = reiser4_fs_open(src_device, TRUE))) {
+	if (!(src_fs = reiser4_fs_open(src_device, 1))) {
 		aal_error("Cannot open src filesystem on %s.",
 			  src_dev);
 		goto error_free_dst_device;

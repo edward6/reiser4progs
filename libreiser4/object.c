@@ -338,10 +338,10 @@ errno_t reiser4_object_update(reiser4_object_t *object,
 }
 
 /* Helper function for prepare object key to be used for creating new object. */
-static void reiser4_object_base(reiser4_tree_t *tree,
-				entry_hint_t *entry,
-				object_hint_t *hint,
-				object_info_t *info) 
+static void reiser4_object_maintain(reiser4_tree_t *tree,
+				    entry_hint_t *entry,
+				    object_hint_t *hint,
+				    object_info_t *info) 
 {
 	oid_t locality;
 	oid_t ordering;
@@ -394,7 +394,7 @@ reiser4_object_t *reiser4_object_create(
 		return NULL;
 
 	/* Preparing object info. */
-	reiser4_object_base(tree, entry, hint, &info);
+	reiser4_object_maintain(tree, entry, hint, &info);
 
 	/* Calling object plugin to create its body in the tree */
 	if (!(object->entity = plug_call(hint->plug->o.object_ops,
@@ -714,9 +714,9 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 
 /* Completes object creating. */
 static reiser4_object_t *reiser4_obj_create(reiser4_tree_t *tree,
-					     reiser4_object_t *parent,
-					     entry_hint_t *entry,
-					     object_hint_t *hint)
+					    reiser4_object_t *parent,
+					    entry_hint_t *entry,
+					    object_hint_t *hint)
 {
 	reiser4_object_t *object;
 	

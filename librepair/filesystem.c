@@ -367,7 +367,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 		}
 	}
 		
-	while (TRUE) {
+	while (1) {
 		reiser4_node_t *node;
 		
 		if (aal_stream_read(stream, &sign, 4) != 4) {

@@ -333,7 +333,7 @@ int main(int argc, char *argv[]) {
 		goto done;
 	} else {
 		/* Open file system on the device */
-		if (!(fs = reiser4_fs_open(device, FALSE))) {
+		if (!(fs = reiser4_fs_open(device, 0))) {
 			aal_error("Can't open reiser4 on %s", host_dev);
 			goto error_free_device;
 		}

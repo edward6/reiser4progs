@@ -54,7 +54,7 @@ reiser4_master_t *reiser4_master_create(
 	/* Setting up block filesystem used */
 	set_ms_blksize(SUPER(master), blksize);
 
-	master->dirty = TRUE;
+	master->dirty = 1;
 	master->device = device;
 	
 	return master;
@@ -128,7 +128,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	if (!(master = aal_calloc(sizeof(*master), 0)))
 		return NULL;
 
-	master->dirty = FALSE;
+	master->dirty = 0;
 	master->device = device;
 	
 	/* Reading the block where master super block lies */
@@ -228,7 +228,7 @@ errno_t reiser4_master_sync(
 		goto error_free_block;
 	}
 
-	master->dirty = FALSE;
+	master->dirty = 0;
 
  error_free_block:
 	aal_block_free(block);

@@ -35,7 +35,9 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 					"Master super block cannot be found. "
 					"Do you want to build a new one on "
 					"(%s)?", fs->device->name) == EXCEPTION_OPT_NO)
+		{
 			return -EINVAL;
+		}
 		
 		blksize = aal_ui_get_numeric(4096, callback_bs_check, NULL,
 					     "Which block size do you use?");
@@ -175,7 +177,7 @@ reiser4_master_t *repair_master_unpack(aal_device_t *device,
 		goto error_free_master;
 	}
 
-	master->dirty = TRUE;
+	master->dirty = 1;
 	master->device = device;
 	
 	return master;

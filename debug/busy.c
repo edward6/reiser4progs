@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, TRUE))) {
+	if (!(fs = reiser4_fs_open(device, 1))) {
 		aal_error("Can't open filesystem on %s.", 
 			  device->name);
 		goto error_free_device;
@@ -58,15 +58,15 @@ int main(int argc, char *argv[]) {
 
 	fs->tree->mpc_func = misc_mpressure_detect;
     
-	misc_param_override("hash=deg_hash");
+//	misc_param_override("hash=deg_hash");
 //	misc_param_override("policy=tails");
 		
-	if (!(fs->root = reiser4_object_open(fs->tree, "/", TRUE))) {
+	if (!(fs->root = reiser4_object_open(fs->tree, "/", 1))) {
 		aal_error("Can't open root dir.");
 		goto error_free_fs;
 	}
 
-	if (!(dir = reiser4_object_open(fs->tree, argv[2], TRUE))) {
+	if (!(dir = reiser4_object_open(fs->tree, argv[2], 1))) {
                 aal_error("Can't open dir %s.", argv[2]);
                 goto error_free_root;
         }
@@ -82,12 +82,12 @@ int main(int argc, char *argv[]) {
 //		file = fopen("/home/umka/tmp/out", "r");
 
 //		while (!feof(file)) {
-		for (i = 0; i < 500000; i++) {
+		for (i = 0; i < 100000; i++) {
                         int j, count;
 //			char part[256];
 
-//			aal_snprintf(name, 256, "file name%d", random());
-			aal_snprintf(name, 256, "very very long file name%d", random());
+//			aal_snprintf(name, 256, "file name%d", i/*random()*/);
+			aal_snprintf(name, 256, "very very long file name%d", i);
 
 //			fscanf(file, "%s %s\n", name, part);
 //			strcat(name, " ");

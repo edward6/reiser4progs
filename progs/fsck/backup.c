@@ -97,7 +97,7 @@ errno_t backup_rollback(FILE *file, aal_device_t *device) {
 		return -ENOMEM;
 	}
 	
-	while (TRUE) {
+	while (1) {
 		/* Read from the backup file. */
 		count = fread(&blk, sizeof(blk), 1, file);
 

@@ -167,8 +167,8 @@ bool_t aux_bitmap_test_region(
 	aal_assert("vpf-471", bitmap != NULL);
 	aal_assert("vpf-728", count > 0);
 	
-	aux_bitmap_bound_check(bitmap, start, return FALSE);
-	aux_bitmap_bound_check(bitmap, start + count - 1, return FALSE);
+	aux_bitmap_bound_check(bitmap, start, return 0);
+	aux_bitmap_bound_check(bitmap, start + count - 1, return 0);
 
 	if (marked)
 		next = aux_bitmap_find_cleared(bitmap, start);
@@ -176,9 +176,9 @@ bool_t aux_bitmap_test_region(
 		next = aux_bitmap_find_marked(bitmap, start);
 
 	if (next >= start && next < start + count)
-		return FALSE;
+		return 0;
 
-	return TRUE;
+	return 1;
 }
 
 uint64_t aux_bitmap_find_region(
@@ -353,7 +353,7 @@ errno_t aux_bitmap_pack(aux_bitmap_t *bitmap, aal_stream_t *stream) {
 	i = count = 0;
 	set = 1;
 
-	while (TRUE) {
+	while (1) {
 		if (set)
 			i = aux_bitmap_find_cleared(bitmap, count);
 		else
@@ -380,37 +380,42 @@ errno_t aux_bitmap_pack(aux_bitmap_t *bitmap, aal_stream_t *stream) {
 	return 0;
 }
 
+/* Creates bitmap by passed @stream. */
 aux_bitmap_t *aux_bitmap_unpack(aal_stream_t *stream) {
-	char *buf[sizeof(AUX_BITMAP_MAGIC)];
-	aux_bitmap_t *bitmap = NULL;
+	int32_t size, set;
 	uint64_t total, count, bit;
-	int set;
+	aux_bitmap_t *bitmap = NULL;
+	char *buf[sizeof(AUX_BITMAP_MAGIC)];
 	
 	aal_assert("vpf-1434", stream != NULL);
+
+	size = sizeof(AUX_BITMAP_MAGIC);
 	
 	/* Read and check the magic. */
-	if (aal_stream_read(stream, buf, sizeof(AUX_BITMAP_MAGIC)) !=
-	    sizeof(AUX_BITMAP_MAGIC))
+	if (aal_stream_read(stream, buf, size) != size)
 		goto error_eostream;
 	
-	if (aal_memcmp(buf, AUX_BITMAP_MAGIC, sizeof(AUX_BITMAP_MAGIC))) {
-		aal_error("Can't unpack the bitmap. Wrong magic found.");
+	if (aal_memcmp(buf, AUX_BITMAP_MAGIC, size)) {
+		aal_error("Can't unpack the bitmap. "
+			  "Wrong magic found.");
 		return NULL;
 	}
 	
 	/* Read the bitmap size. */
-	if (aal_stream_read(stream, &total, sizeof(total)) != sizeof(total))
+	if (aal_stream_read(stream, &total,
+			    sizeof(total)) != sizeof(total))
+	{
 		goto error_eostream;
+	}
 	
 	if (!(bitmap = aux_bitmap_create(total)))
 		return NULL;
 	
-	bit = 0;
-	set = 1;
-	while (TRUE) {
+	for (bit = 0, set = 1; 1; set = !set, bit += count) {
 		uint32_t read;
 		
-		read = aal_stream_read(stream, &count, sizeof(count));
+		read = aal_stream_read(stream, &count,
+				       sizeof(count));
 		
 		if (read != sizeof(count))
 			break;
@@ -422,16 +427,12 @@ aux_bitmap_t *aux_bitmap_unpack(aal_stream_t *stream) {
 		
 		if (set)
 			aux_bitmap_mark_region(bitmap, bit, count);
-
-		set = !set;
-		bit += count;
 	}
 	
 	if (bit != total)
 		goto error_eostream;
 	
 	return bitmap;
-
  error_eostream:
 	aal_error("Can't unpack the bitmap. Stream is over?");
 
@@ -442,5 +443,4 @@ aux_bitmap_t *aux_bitmap_unpack(aal_stream_t *stream) {
 	
 	return NULL;
 }
-
 #endif
