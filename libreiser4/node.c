@@ -647,6 +647,85 @@ errno_t reiser4_node_valid(
 
 #ifndef ENABLE_COMPACT
 
+errno_t reiser4_node_shift(
+	reiser4_node_t *node,
+	reiser4_node_t *neig,
+	shift_hint_t *hint)
+{
+	int retval;
+	reiser4_pos_t ldpos;
+	reiser4_key_t ldkey;
+	reiser4_plugin_t *plugin;
+    
+	aal_assert("umka-1225", node != NULL, return -1);
+	aal_assert("umka-1226", neig != NULL, return -1);
+	aal_assert("umka-1227", hint != NULL, return -1);
+    
+	aal_assert("umka-1258", reiser4_node_count(node) > 0, return -1);
+
+	/*
+	  Saving node position in parent. It will be used bellow for updating
+	  left delemiting key.
+	*/
+	if (hint->flags & SF_LEFT) {
+		if (node->parent) {
+			if (reiser4_node_pos(node, &ldpos))
+				return -1;
+		}
+	} else {
+		if (neig->parent) {
+			if (reiser4_node_pos(neig, &ldpos))
+				return -1;
+		}
+	}
+
+	/*
+	  Performing the shifting by calling shift method of node plugin. This
+	  method shifts some amount of items and units of last item, based on
+	  passed flags. It returns error code and shift hint, which contains
+	  usefull information about how many items were shifted, how much bytes
+	  were shifted and is insertion point was moved to neigbour node or not.
+	*/
+	plugin = node->entity->plugin;
+	
+	retval = plugin_call(return -1, plugin->node_ops, shift,
+			     node->entity, neig->entity, hint);
+
+	if (retval < 0)
+		return retval;
+
+	/* Updating leaf delimiting keys in the tree */
+	if (hint->flags & SF_LEFT) {
+		if (reiser4_node_count(node) != 0 &&
+		    (hint->items > 0 || hint->units > 0))
+		{
+			node->flags |= NF_DIRTY;
+			
+			if (node->parent) {
+				if (reiser4_node_lkey(node, &ldkey))
+					return -1;
+				
+				if (reiser4_node_ukey(node->parent, &ldpos, &ldkey))
+					return -1;
+			}
+		}
+	} else {
+		if (hint->items > 0 || hint->units > 0) {
+			neig->flags |= NF_DIRTY;
+			
+			if (neig->parent) {
+				if (reiser4_node_lkey(neig, &ldkey))
+					return -1;
+				
+				if (reiser4_node_ukey(neig->parent, &ldpos, &ldkey))
+					return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
 /*
   Synchronizes passed @node by means of using resursive pass though all
   children. There is possible to pass as parameter of this function the root

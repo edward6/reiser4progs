@@ -42,6 +42,10 @@ extern errno_t reiser4_node_insert(reiser4_node_t *node,
 extern errno_t reiser4_node_remove(reiser4_node_t *node,
 				   reiser4_pos_t *pos);
 
+extern errno_t reiser4_node_shift(reiser4_node_t *node,
+				  reiser4_node_t *neig,
+				  shift_hint_t *hint);
+
 extern errno_t reiser4_node_traverse(reiser4_node_t *node,
 				     traverse_hint_t *hint,
 				     traverse_open_func_t open_func,

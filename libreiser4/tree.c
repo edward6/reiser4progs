@@ -510,104 +510,28 @@ static errno_t reiser4_tree_grow(
 errno_t reiser4_tree_shift(
 	reiser4_tree_t *tree,	/* tree we will operate on */
 	reiser4_coord_t *coord,	/* insert point coord */
-	reiser4_node_t *node,	/* node items will be shifted to */
-	shift_flags_t flags)	/* some flags (dirction, move ip or not, etc) */
+	reiser4_node_t *neig,	/* node items will be shifted to */
+	shift_flags_t flags)	/* some flags (direction, move ip or not, etc) */
 {
-	int retval;
 	shift_hint_t hint;
-	reiser4_pos_t ldpos;
-	reiser4_key_t ldkey;
-	reiser4_plugin_t *plugin;
-    
+
 	aal_assert("umka-1225", tree != NULL, return -1);
 	aal_assert("umka-1226", coord != NULL, return -1);
-	aal_assert("umka-1227", node != NULL, return -1);
+	aal_assert("umka-1227", neig != NULL, return -1);
     
-	aal_assert("umka-1258", reiser4_node_count(coord->node) > 0, return -1);
-
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	/*
-	  Saving node position in parent. It will be used bellow for updating
-	  left delemiting key.
-	*/
-	if (flags & SF_LEFT) {
-		if (coord->node->parent) {
-			if (reiser4_node_pos(coord->node, &ldpos))
-				return -1;
-		}
-	} else {
-		if (node->parent) {
-			if (reiser4_node_pos(node, &ldpos))
-				return -1;
-		}
-	}
-
 	hint.flags = flags;
 	hint.pos = coord->pos;
 	
-	/*
-	  Performing the shifting by calling shift method of node plugin. This
-	  method shifts some amount of items and units of last item, based on
-	  passed flags. It returns error code and shift hint, which contains
-	  usefull information about how many items were shifted, how much bytes
-	  were shifted and is insertion point was moved to neigbour node or not.
-	*/
-	plugin = node->entity->plugin;
-	
-	retval = plugin_call(return -1, plugin->node_ops, shift,
-			     coord->node->entity, node->entity, &hint);
+	if (reiser4_node_shift(coord->node, neig, &hint) < 0)
+		return -1;
 
-	if (retval < 0)
-		return retval;
+	coord->pos = hint.pos;
 
-	/* Updating leaf delimiting keys in the tree */
-	if (flags & SF_LEFT) {
-		/*
-		  Updating coords if insertion point was moved to the
-		  corresponding neighbour.
-		*/
-		coord->pos = hint.pos;
+	if (hint.flags & SF_MOVIP)
+		coord->node = neig;
 
-		if (hint.flags & SF_MOVIP)
-			coord->node = node;
-		
-		if (reiser4_node_count(coord->node) != 0 &&
-		    (hint.items > 0 || hint.units > 0))
-		{
-			coord->node->flags |= NF_DIRTY;
-			
-			if (coord->node->parent) {
-				if (reiser4_node_lkey(coord->node, &ldkey))
-					return -1;
-				
-				if (reiser4_node_ukey(coord->node->parent, &ldpos, &ldkey))
-					return -1;
-			}
-		}
-	} else {
-		/*
-		  Updating coords if insertion point was moved to the
-		  corresponding neighbour.
-		*/
-		if (hint.flags & SF_MOVIP) {
-			coord->pos = hint.pos;
-			coord->node = node;
-		}
-
-		if (hint.items > 0 || hint.units > 0) {
-			node->flags |= NF_DIRTY;
-			
-			if (node->parent) {
-				if (reiser4_node_lkey(node, &ldkey))
-					return -1;
-				
-				if (reiser4_node_ukey(node->parent, &ldpos, &ldkey))
-					return -1;
-			}
-		}
-	}
-		
 	return 0;
 }
 

@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	reiser4_file_close(dir);
-        reiser4_fs_sync(fs);
+//        reiser4_fs_sync(fs);
 
 	reiser4_file_close(fs->root);
 	reiser4_fs_close(fs);
