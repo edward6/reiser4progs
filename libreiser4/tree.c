@@ -339,6 +339,28 @@ uint32_t debug_node_loaded_children(reiser4_node_t *node) {
 	reiser4_node_trav(node, callback_count_children, &count);
 	return count;
 }
+
+/* Debugging code for catching wrong order of keys. */
+static errno_t debug_node_check_keys(reiser4_node_t *node) {
+	reiser4_key_t key, prev;
+	pos_t pos = {0, MAX_UINT32};
+	uint32_t count;
+	
+	count = reiser4_node_items(node);
+
+	for (pos.item = 0; pos.item < count; pos.item++) {
+		plug_call(node->plug->o.node_ops, 
+			  get_key, node, &pos, &key);
+
+		if (pos.item && reiser4_key_compfull(&prev, &key) > 0)
+			return 1;
+
+		reiser4_key_assign(&prev, &key);
+	}
+
+	return 0;
+}
+
 #endif
 
 #ifndef ENABLE_STAND_ALONE
@@ -2558,7 +2580,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, reiser4_place_t *place) {
 			if ((res = reiser4_tree_shift(tree, &bogus,
 						      place->node, flags)))
 			{
-				aal_error("Can't pack node %llu into left.",
+				aal_error("Can't pack node %llu into right.",
 					  node_blocknr(right));
 				return res;
 			}
@@ -2868,10 +2890,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		}
 
 		reiser4_node_unlock(place->node);
-
-		/* Assigning insert point into new root as it was requested to
-		   be insert point. */
-		reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
 	}
 
 	/* Preparing things for insert. This may be splitting the tree,
