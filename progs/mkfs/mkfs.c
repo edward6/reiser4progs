@@ -155,8 +155,6 @@ int main(int argc, char *argv[]) {
     
 	mkfs_init();
 
-	aal_exception_error("Test long string Test long string Test long string Test long string Test long string Test long string Test long string Test long string Test long string Test long string Test long string Test long string Test long string.");
-	
 	if (argc < 2) {
 		mkfs_print_usage(argv[0]);
 		return USER_ERROR;
