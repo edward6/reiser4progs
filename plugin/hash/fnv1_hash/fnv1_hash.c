@@ -5,8 +5,6 @@
   reiser4progs/COPYING.
 */
 
-#ifdef ENABLE_FNV1_HASH
-
 #include <reiser4/plugin.h>
 
 static uint64_t fnv1_hash_build(const unsigned char *name, uint32_t len) {
@@ -45,4 +43,3 @@ static reiser4_plugin_t *fnv1_hash_start(reiser4_core_t *c) {
 
 plugin_register(fnv1_hash_start, NULL);
 
-#endif
