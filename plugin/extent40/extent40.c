@@ -55,7 +55,7 @@ static errno_t extent40_print(reiser4_item_t *item, char *buff,
     return 0;
 }
 
-static errno_t extent40_maxkey(reiser4_item_t *item,
+static errno_t extent40_max_poss_key(reiser4_item_t *item,
     reiser4_key_t *key) 
 {
     uint64_t offset;
@@ -91,23 +91,23 @@ static reiser4_plugin_t extent40_plugin = {
 	.type = EXTENT_ITEM_TYPE,
 	
 #ifndef ENABLE_COMPACT
-        .init	    = extent40_init,
-        .insert	    = extent40_insert,
-        .remove	    = extent40_remove,
+        .init		= extent40_init,
+        .insert		= extent40_insert,
+        .remove		= extent40_remove,
 #else
-        .init	    = NULL,
-        .insert	    = NULL,
-        .remove	    = NULL,
+        .init		= NULL,
+        .insert		= NULL,
+        .remove		= NULL,
 #endif
-        .estimate   = NULL,
-        .check	    = NULL,
-        .lookup	    = NULL,
-        .count	    = NULL,
-        .valid	    = NULL,
-        .maxkey	    = extent40_maxkey,
-        .print	    = extent40_print,
+        .estimate	= NULL,
+        .check		= NULL,
+        .lookup		= NULL,
+        .count		= NULL,
+        .valid		= NULL,
+        .max_poss_key	= extent40_max_poss_key,
+        .print		= extent40_print,
 
-	.specific   = {}
+	.specific	= {}
     }
 };
 

@@ -347,7 +347,7 @@ static errno_t stat40_set_size(reiser4_item_t *item,
 
 #endif
 
-static errno_t stat40_maxkey(reiser4_item_t *item,
+static errno_t stat40_max_poss_key(reiser4_item_t *item,
     reiser4_key_t *key) 
 {
     aal_assert("umka-1207", item != NULL, return -1);
@@ -369,24 +369,24 @@ static reiser4_plugin_t stat40_plugin = {
 	.type = STATDATA_ITEM_TYPE,
 	
 #ifndef ENABLE_COMPACT
-        .init	    = stat40_init,
-        .estimate   = stat40_estimate,
-        .insert	    = stat40_insert,
-        .remove	    = stat40_remove,
-        .check	    = stat40_check,
+        .init		= stat40_init,
+        .estimate	= stat40_estimate,
+        .insert		= stat40_insert,
+        .remove		= stat40_remove,
+        .check		= stat40_check,
 #else
-        .init	    = NULL,
-        .estimate   = NULL,
-        .insert	    = NULL,
-        .remove	    = NULL,
-        .check	    = NULL,
+        .init		= NULL,
+        .estimate	= NULL,
+        .insert		= NULL,
+        .remove		= NULL,
+        .check		= NULL,
 #endif
-        .lookup	    = NULL,
-        .print	    = NULL,
+        .lookup		= NULL,
+        .print		= NULL,
 	    
-        .maxkey	    = stat40_maxkey,
-        .count	    = stat40_count,
-        .valid	    = stat40_valid,
+        .max_poss_key	= stat40_max_poss_key,
+        .count		= stat40_count,
+        .valid		= stat40_valid,
 	
 	.specific = {
 	    .statdata = {

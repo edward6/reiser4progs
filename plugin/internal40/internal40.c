@@ -82,7 +82,7 @@ static blk_t internal40_get_ptr(reiser4_item_t *item) {
     return it40_get_ptr(internal);
 }
 
-static errno_t internal40_maxkey(reiser4_item_t *item,
+static errno_t internal40_max_poss_key(reiser4_item_t *item,
     reiser4_key_t *key) 
 {
     aal_assert("umka-1207", item != NULL, return -1);
@@ -104,22 +104,22 @@ static reiser4_plugin_t internal40_plugin = {
 	.type = INTERNAL_ITEM_TYPE,
 	
 #ifndef ENABLE_COMPACT	    
-        .init	    = internal40_init,
-        .estimate   = internal40_estimate,
-        .check	    = internal40_check,
+        .init		= internal40_init,
+        .estimate	= internal40_estimate,
+        .check		= internal40_check,
 #else
-        .init	    = NULL,
-        .estimate   = NULL,
-        .check	    = NULL,
+        .init		= NULL,
+        .estimate	= NULL,
+        .check		= NULL,
 #endif
-        .lookup	    = NULL,
-        .valid	    = NULL,
-        .insert	    = NULL,
-        .count	    = NULL,
-        .remove	    = NULL,
+        .lookup		= NULL,
+        .valid		= NULL,
+        .insert		= NULL,
+        .count		= NULL,
+        .remove		= NULL,
 
-	.maxkey	    = internal40_maxkey,
-        .print	    = internal40_print,
+	.max_poss_key	= internal40_max_poss_key,
+        .print		= internal40_print,
 	
     	.specific = {
 	    .internal = {

@@ -37,7 +37,7 @@ static errno_t tail40_insert(reiser4_item_t *item, uint32_t pos,
 
 #endif
 
-static errno_t tail40_maxkey(reiser4_item_t *item,
+static errno_t tail40_max_poss_key(reiser4_item_t *item,
     reiser4_key_t *key) 
 {
     uint64_t offset;
@@ -77,7 +77,7 @@ static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key,
     aal_assert("umka-1230", pos != NULL, return -1);
 
     maxkey.plugin = key->plugin;
-    tail40_maxkey(item, &maxkey);
+    tail40_max_poss_key(item, &maxkey);
 
     if (plugin_call(return -1, key->plugin->key_ops, compare,
 	key->body, maxkey.body))
@@ -117,22 +117,22 @@ static reiser4_plugin_t tail40_plugin = {
 	.type = TAIL_ITEM_TYPE,
 	
 #ifndef ENABLE_COMPACT
-        .init	    = tail40_init,
-        .insert	    = tail40_insert,
+        .init		= tail40_init,
+        .insert		= tail40_insert,
 #else
-        .init	    = NULL,
-        .insert	    = NULL,
+        .init		= NULL,
+        .insert		= NULL,
 #endif
-        .maxkey	    = tail40_maxkey,
-        .lookup	    = tail40_lookup,
-        .remove	    = NULL,
-        .estimate   = NULL,
-        .check	    = NULL,
-        .count	    = NULL,
-        .valid	    = NULL,
-        .print	    = NULL,
+        .max_poss_key    = tail40_max_poss_key,
+        .lookup		= tail40_lookup,
+        .remove		= NULL,
+        .estimate	= NULL,
+        .check		= NULL,
+        .count		= NULL,
+        .valid		= NULL,
+        .print		= NULL,
 
-	.specific   = {}
+	.specific	= {}
     }
 };
 

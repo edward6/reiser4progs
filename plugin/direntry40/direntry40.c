@@ -335,7 +335,7 @@ static inline int callback_comp_entry(
 	compare, entrykey.body, lookkey);
 }
 
-static errno_t direntry40_maxkey(reiser4_item_t *item, 
+static errno_t direntry40_max_poss_key(reiser4_item_t *item, 
     reiser4_key_t *key) 
 {
     uint64_t offset;
@@ -387,7 +387,7 @@ static int direntry40_lookup(reiser4_item_t *item,
     /* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
     maxkey.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE, KEY_REISER40_ID);
 	
-    if (direntry40_maxkey(item, &maxkey))
+    if (direntry40_max_poss_key(item, &maxkey))
 	return -1;
     
     if (plugin_call(return -1, key->plugin->key_ops,
@@ -432,24 +432,24 @@ static reiser4_plugin_t direntry40_plugin = {
 	.type = DIRENTRY_ITEM_TYPE,
 	
 #ifndef ENABLE_COMPACT	    
-        .init	    = direntry40_init,
-        .insert	    = direntry40_insert,
-        .remove	    = direntry40_remove,
-        .estimate   = direntry40_estimate,
-        .check	    = direntry40_check,
+        .init		= direntry40_init,
+        .insert		= direntry40_insert,
+        .remove		= direntry40_remove,
+        .estimate	= direntry40_estimate,
+        .check		= direntry40_check,
 #else
-        .init	    = NULL,
-        .estimate   = NULL,
-        .insert	    = NULL,
-        .remove	    = NULL,
-        .check	    = NULL,
+        .init		= NULL,
+        .estimate	= NULL,
+        .insert		= NULL,
+        .remove		= NULL,
+        .check		= NULL,
 #endif
-        .valid	    = NULL,
+        .valid		= NULL,
 	    
-        .print	    = direntry40_print,
-        .lookup	    = direntry40_lookup,
-        .maxkey	    = direntry40_maxkey,
-        .count	    = direntry40_count,
+        .print		= direntry40_print,
+        .lookup		= direntry40_lookup,
+        .max_poss_key	= direntry40_max_poss_key,
+        .count		= direntry40_count,
 	
 	.specific = {
 	    .direntry = { 

@@ -251,9 +251,18 @@ reiser4_body_t *reiser4_item_body(reiser4_item_t *item) {
 
 errno_t reiser4_item_key(reiser4_item_t *item, reiser4_key_t *key) {
     aal_assert("umka-1215", item != NULL, return -1);
+    aal_assert("umka-1271", key != NULL, return -1);
     
     return plugin_call(return -1, item->node->plugin->node_ops, 
 	get_key, item->node, item->pos, key);
+}
+
+errno_t reiser4_item_max_poss_key(reiser4_item_t *item, reiser4_key_t *key) {
+    aal_assert("umka-1269", item != NULL, return -1);
+    aal_assert("umka-1270", key != NULL, return -1);
+    
+    return plugin_call(return -1, item->plugin->item_ops, 
+	max_poss_key, item, key);
 }
 
 reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item) {

@@ -338,13 +338,13 @@ int reiser4_node_lookup(
 	We are on the position where key is less then wanted. Key could lies 
 	within the item or after the item.
     */
-    if (item.plugin->item_ops.maxkey) {
+    if (item.plugin->item_ops.max_poss_key) {
 	
 	/* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
 	maxkey.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
 	    KEY_REISER40_ID);
 	
-	if (item.plugin->item_ops.maxkey(&item, &maxkey) == -1) {
+	if (item.plugin->item_ops.max_poss_key(&item, &maxkey) == -1) {
 	    aal_exception_error("Getting max key of the item %d "
 		"in the node %llu failed.", pos->item, 
 		aal_block_number(node->block));

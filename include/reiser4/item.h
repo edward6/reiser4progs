@@ -30,6 +30,9 @@ extern reiser4_body_t *reiser4_item_body(reiser4_item_t *item);
 extern reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item);
 extern errno_t reiser4_item_key(reiser4_item_t *item, reiser4_key_t *key);
 
+extern errno_t reiser4_item_max_poss_key(reiser4_item_t *item, 
+    reiser4_key_t *key);
+
 /* Internal item methods */
 extern int reiser4_item_internal(reiser4_item_t *item);
 extern blk_t reiser4_item_get_iptr(reiser4_item_t *item);

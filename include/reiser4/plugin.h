@@ -518,7 +518,7 @@ struct reiser4_item_ops {
 	uint16_t);
 
     /* Get the max key which could be stored in the item of this type */
-    errno_t (*maxkey) (reiser4_item_t *, reiser4_key_t *);
+    errno_t (*max_poss_key) (reiser4_item_t *, reiser4_key_t *);
     
     /* Returns unit count */
     uint32_t (*count) (reiser4_item_t *);
