@@ -869,7 +869,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 		
 		if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
 			uint64_t unit_size;
-		
+
 			unit_size = et40_get_width(extent) * blksize;
 			
 			/* We will allocate new unit if we write data to hole
@@ -922,9 +922,9 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 				   it's a hole or usual data unit.*/
 				if (et40_get_start(last) == EXTENT_HOLE_UNIT) {
 					/* Check if last unit is a hole. If so
-					   andwe write data or hole of size less
-					   than blksize, we will insert new unit
-					   at the end of extent. */
+					   and we write data or hole of size
+					   less than blksize, we will insert new
+					   unit at the end of extent. */
 					if (hint->specific || towrite < blksize) {
 						aal_assert("umka-3066", hint->len);
 							
