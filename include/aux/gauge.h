@@ -24,5 +24,4 @@ extern void aux_gauge_set_handler(aal_gauge_handler_t handler,
 				  aux_gauge_type_t type);
 
 #endif
-
 #endif

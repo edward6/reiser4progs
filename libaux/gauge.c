@@ -3,6 +3,7 @@
 
    gauge.c -- common for all progs gauge metods. */
 
+#ifndef ENABLE_STAND_ALONE
 #include <aal/aal.h>
 #include <aux/gauge.h>
 
@@ -19,4 +20,4 @@ aal_gauge_handler_t aux_gauge_get_handler(aux_gauge_type_t type) {
 	aal_assert("vpf-1685", type < GT_LAST);
 	return aux_gauge_handlers[type];
 }
-
+#endif
