@@ -18,7 +18,7 @@ struct sdext_unix {
     d32_t ctime;
     d32_t rdev;
     d64_t bytes;
-};
+} __attribute__((packed));
 
 typedef struct sdext_unix sdext_unix_t;
 

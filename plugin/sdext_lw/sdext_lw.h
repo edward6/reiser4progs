@@ -13,7 +13,7 @@ struct sdext_lw {
     d16_t mode;
     d32_t nlink;
     d64_t size;
-};
+} __attribute__((packed));
 
 typedef struct sdext_lw sdext_lw_t;
 
