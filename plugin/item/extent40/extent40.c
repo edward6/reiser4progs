@@ -139,14 +139,14 @@ static errno_t extent40_remove_units(place_t *place,
 			
 	aal_memmove(dst, src, len);
 
-	/* Updating item's key by zero's unit one. */
+	/* Updating item's key by key of first unit. */
 	if (pos == 0) {
 		if (extent40_fetch_key(place, &place->key))
 			return -EINVAL;
 	}
 
 	hint->overhead = 0;
-	hint->len = sizeof(extent40_t);
+	hint->len = sizeof(extent40_t) * hint->count;
 
 	place_mkdirty(place);
 	return 0;

@@ -257,24 +257,21 @@ typedef errno_t (*modify_func_t) (node_t *node, pos_t *pos,
 				  trans_hint_t *hint);
 #endif
 
-typedef bool_t (*mem_check_func_t) (void);
+typedef int (*bool_func_t) (void);
 
 /* Tree structure */
 struct reiser4_tree {
-
-	/* Reference to filesystem instance tree opened on */
+	/* Reference to filesystem instance tree opened on. */
 	reiser4_fs_t *fs;
 
-	/* Reference to root node. It is created by tree initialization routines
-	   and always exists. All other nodes are loaded on demand and flushed
-	   at memory presure event. */
+	/* Reference to root node. */
 	node_t *root;
 
-	/* Tree root key */
+	/* Tree root key. */
 	reiser4_key_t key;
 
-	/* Memory pressure check function */
-	mem_check_func_t mpc_func;
+	/* Memory pressure detect function. */
+	bool_func_t mpc_func;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Minimal tree level we have to allocate something on it. In current
@@ -284,8 +281,7 @@ struct reiser4_tree {
 	   Few words about why do we do so. We do so not because of reiser3. We
 	   really don't think, that libreiser4 will support reiser3 some day, we
 	   do this just to make tree more flexible and in order to avoid to use
-	   any kind of hardcoding.
-	*/
+	   any kind of hardcoding. */
 	uint32_t bottom;
 #endif
 	

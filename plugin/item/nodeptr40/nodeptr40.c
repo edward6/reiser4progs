@@ -95,6 +95,20 @@ static int64_t nodeptr40_insert_units(place_t *place,
 	place_mkdirty(place);
 	return 1;
 }
+
+/* Removes nodeptr unit. Asit is always one, we only set up passed @hint here by
+   sizeof nodeptr40_t struct. */
+static errno_t nodeptr40_remove_units(place_t *place,
+				      trans_hint_t *hint)
+{
+	aal_assert("umka-3029", hint != NULL);
+	aal_assert("umka-3028", place != NULL);
+
+	hint->overhead = 0;
+	hint->len = sizeof(nodeptr40_t);
+	
+	return 0;
+}
 #endif
 
 static item_balance_ops_t balance_ops = {
@@ -118,11 +132,11 @@ static item_object_ops_t object_ops = {
 	.layout		  = nodeptr40_layout,
 	.prep_insert	  = nodeptr40_prep_insert,
 	.insert_units	  = nodeptr40_insert_units,
+	.remove_units	  = nodeptr40_remove_units,
 
 	.prep_write	  = NULL,
 	.write_units	  = NULL,
 	.update_units	  = NULL,
-	.remove_units	  = NULL,
 	.trunc_units	  = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,

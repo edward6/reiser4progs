@@ -801,31 +801,41 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	errno_t res;
 	uint32_t len;
 	place_t place;
+	uint32_t count;
+	uint32_t units;
 	node40_t *node;
-	uint32_t count, units;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
 
 	node = (node40_t *)entity;
 
-	if (node40_fetch(entity, pos, &place))
-		return -EINVAL;
-
-	/* Checking if we have to remove whole item as it will has not units
-	   after removing. */
-	units = plug_call(place.plug->o.item_ops->balance, units, &place);
-	
-	if (units == hint->count)
-		place.pos.unit = MAX_UINT32;
-	
-	if (place.pos.unit == MAX_UINT32) {
+	/* Check if we remove some number of whole items, or units inside
+	   particular item. */
+	if (pos->unit == MAX_UINT32) {
+		pos_t walk = {pos->item, MAX_UINT32};
+		
 		/* Calculating amount of bytes removed item occupie. Node will
 		   be shrinked by this value. */
 		if (!(len = node40_size(node, &place.pos, hint->count)))
 			return -EINVAL;
 
 		count = hint->count;
+
+		/* Calling layout function with @hint->region_func for each
+		   removed item in order to let higher levels know that some
+		   region is released. */
+		for (; walk.item < walk.item + count; walk.item++) {
+
+			if ((res = node40_fetch(entity, &walk, &place)))
+				return res;
+			
+			if (place.plug->o.item_ops->object->layout) {
+				plug_call(place.plug->o.item_ops->object,
+					  layout, &place, hint->region_func,
+					  hint->data);
+			}
+		}
 	} else {
 		/* Here we init @count (number of items to be removed) to 1, as
 		   here are possible only two cases:
@@ -836,6 +846,13 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		   (2) Shrink item at @place.pos.item by @len and @count is
 		   ignored.
 		*/
+
+		if ((res = node40_fetch(entity, pos, &place)))
+			return res;
+
+		units = plug_call(place.plug->o.item_ops->balance,
+				  units, &place);
+	
 		count = 1;
 		
 		if (place.plug->o.item_ops->object->remove_units) {
@@ -848,9 +865,12 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		}
 		
 		/* Check if item is empty. If so, we remove it too. */
-		if ((len = hint->len + hint->overhead) >= place.len) {
+		if ((len = hint->len + hint->overhead) >= place.len ||
+		    units == hint->count)
+		{
 			/* Forcing node40_shrink() to remove whole item, as we
 			   have removed all units from it.*/
+			len = place.len;
 			place.pos.unit = MAX_UINT32;
 		} else {
 			uint32_t pol = node40_key_pol(node);
@@ -866,7 +886,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 
 	/* Shrinking node by @hint->len. Item @place.pos will be removed if
 	   place.pos points to whole item (unit is MAX_UINT32). */
-	return node40_shrink(entity, &place.pos, len, count);
+	return node40_shrink(entity, pos, len, count);
 }
 
 /* Fuses two mergeable items if they lie in the same node side by side. This is
