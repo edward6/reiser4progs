@@ -1,6 +1,6 @@
 sbin_PROGRAMS 		 = debugfs.reiser4
 debugfs_reiser4_SOURCES	 = debugfs.c debugfs.h print.c print.h browse.c \
-			   meta.c browse.h types.h meta.h
+			   browse.h types.h
 
 debugfs_reiser4_LDADD 	 = $(top_builddir)/libreiser4/libreiser4.la \
 			   $(top_builddir)/libmisc/libmisc.la \
