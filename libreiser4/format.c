@@ -418,18 +418,6 @@ rid_t reiser4_format_alloc_pid(
 			 alloc_pid, format->entity);
 }
 
-errno_t reiser4_format_skipped(reiser4_format_t *format, 
-			       region_func_t region_func,
-			       void *data)
-{
-	aal_assert("umka-1083", format != NULL);
-	aal_assert("umka-1084", region_func != NULL);
-
-	return plug_call(format->entity->plug->o.format_ops,
-			 skipped, format->entity, region_func,
-			 data);
-}
-
 errno_t reiser4_format_layout(reiser4_format_t *format, 
 			      region_func_t region_func,
 			      void *data)

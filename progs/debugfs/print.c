@@ -110,10 +110,6 @@ errno_t debugfs_print_block(
 
 	/* Determining what is the object block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {
-	case O_SKIPPED:
-		fprintf(stdout, "Block %llu belongs to skipped area "
-			"in the begin of partition.\n", blk);
-		return 0;
 	case O_MASTER:
 		fprintf(stdout, "Block %llu is filesystem "
 			"master super block.\n", blk);

@@ -1078,12 +1078,15 @@ struct reiser4_format_ops {
 	void (*set_free) (generic_entity_t *, uint64_t);
 	void (*set_stamp) (generic_entity_t *, uint32_t);
 	void (*set_policy) (generic_entity_t *, uint16_t);
-	    
+
+	/* Return plugin ids for journal, block allocator, and oid allocator
+	   components. */
 	rid_t (*journal_pid) (generic_entity_t *);
 	rid_t (*alloc_pid) (generic_entity_t *);
+	rid_t (*oid_pid) (generic_entity_t *);
 
+	/* Format enumerator function. */
 	errno_t (*layout) (generic_entity_t *, region_func_t, void *);
-	errno_t (*skipped) (generic_entity_t *, region_func_t, void *);
 
 	/* Checks format-specific super block for validness. Also checks whether
 	   filesystem objects lie in valid places. For example, format-specific
@@ -1109,7 +1112,7 @@ struct reiser4_format_ops {
 	uint16_t (*get_height) (generic_entity_t *);
 
 #ifndef ENABLE_STAND_ALONE
-	/* Gets the start of the filesystem. */
+	/* Gets start of the filesystem. */
 	uint64_t (*start) (generic_entity_t *);
 	
 	uint64_t (*get_len) (generic_entity_t *);
@@ -1117,13 +1120,10 @@ struct reiser4_format_ops {
     
 	uint32_t (*get_stamp) (generic_entity_t *);
 	uint16_t (*get_policy) (generic_entity_t *);
-#endif
-
-	/* Return plugin id for oid allocator. */
-	rid_t (*oid_pid) (generic_entity_t *);
 
 	/* Returns area where oid data lies in */
 	void (*oid_area) (generic_entity_t *, void **, uint32_t *);
+#endif
 };
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;

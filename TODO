@@ -3,9 +3,7 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* improve data writing in tree.c. There should be call to item plugin
-  in order to determine is it enough space in tree to insert data or
-  not.
+* cleanup item plugins interface.
 
 * fix tree_copy(). It should be able to copy extents too.
 

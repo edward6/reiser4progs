@@ -63,27 +63,12 @@ void format40_set_state(generic_entity_t *entity,
 	((format40_t *)entity)->state = state;
 }
 
-static errno_t format40_skipped(generic_entity_t *entity,
-				region_func_t region_func,
-				void *data) 
-{
-	blk_t offset;
-	format40_t *format;
-        
-	aal_assert("umka-1085", entity != NULL);
-	aal_assert("umka-1086", region_func != NULL);
-
-	format = (format40_t *)entity;
-	offset = MASTER_BLOCKNR(format->blksize);
-    
-	return region_func(entity, 0, offset, data);
-}
-
 static errno_t format40_layout(generic_entity_t *entity,
 			       region_func_t region_func,
 			       void *data) 
 {
 	blk_t blk;
+	errno_t res;
 	format40_t *format;
         
 	aal_assert("umka-1042", entity != NULL);
@@ -91,7 +76,10 @@ static errno_t format40_layout(generic_entity_t *entity,
     
 	format = (format40_t *)entity;
 	blk = FORMAT40_BLOCKNR(format->blksize);
-    
+	
+	if ((res = region_func(entity, 0, blk, data)))
+		return res;
+	
 	return region_func(entity, blk, 1, data);
 }
 
@@ -194,8 +182,17 @@ static void format40_close(generic_entity_t *entity) {
 	aal_free(entity);
 }
 
+static uint64_t format40_get_flags(generic_entity_t *entity) {
+	format40_t *format;
+	
+	aal_assert("umka-2343", entity != NULL);
+
+	format = (format40_t *)entity;
+	return format->super.sb_flags;
+}
+
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_clobber_block(void *entity, blk_t start,
+static errno_t format40_clobber_block(void *entity, blk_t start,
 				      count_t width, void *data) 
 {
 	blk_t blk;
@@ -281,8 +278,8 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	   area is [0-15] blocks. */
 	start = MASTER_BLOCKNR(format->blksize);
 	
-	if (format40_skipped((generic_entity_t *)format,
-			     callback_clobber_block, NULL))
+	if (format40_clobber_block((generic_entity_t *)format,
+				   0, start, NULL))
 	{
 		aal_exception_error("Can't clobber format "
 				    "skipped area [%u-%llu].",
@@ -290,7 +287,7 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 		aal_free(format);
 		return NULL;
 	}
-    
+
 	return (generic_entity_t *)format;
 }
 
@@ -327,7 +324,6 @@ static errno_t format40_valid(generic_entity_t *entity) {
 	aal_assert("umka-397", entity != NULL);
 	return format40_check(entity, SUPER(entity));
 }
-#endif
 
 static void format40_oid_area(generic_entity_t *entity, 
 			      void **start, uint32_t *len) 
@@ -344,16 +340,6 @@ static rid_t format40_oid_pid(generic_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
-static uint64_t format40_get_flags(generic_entity_t *entity) {
-	format40_t *format;
-	
-	aal_assert("umka-2343", entity != NULL);
-
-	format = (format40_t *)entity;
-	return format->super.sb_flags;
-}
-
-#ifndef ENABLE_STAND_ALONE
 static const char *formats[] = {"format40"};
 
 static const char *format40_name(generic_entity_t *entity) {
@@ -503,22 +489,12 @@ static reiser4_format_ops_t format40_ops = {
 	.create		= format40_create,
 	.print		= format40_print,
 	.layout	        = format40_layout,
-	.skipped        = format40_skipped,
 	.update		= format40_update,
 	.start		= format40_begin,
 	.name		= format40_name,
 	.pack           = format40_pack,
 	.unpack         = format40_unpack,
-#endif
-	.open		= format40_open,
-	.close		= format40_close,
 
-	.get_flags      = format40_get_flags,
-	.get_root	= format40_get_root,
-	.get_height	= format40_get_height,
-	.oid_area       = format40_oid_area,
-		
-#ifndef ENABLE_STAND_ALONE
 	.get_len	= format40_get_len,
 	.get_free	= format40_get_free,
 	.get_stamp	= format40_get_stamp,
@@ -533,11 +509,18 @@ static reiser4_format_ops_t format40_ops = {
 	.set_policy	= format40_set_policy,
 	.set_state      = format40_set_state,
 	.get_state      = format40_get_state,
+	.oid_pid	= format40_oid_pid,
+	.oid_area       = format40_oid_area,
 	.journal_pid	= format40_journal_pid,
 	.alloc_pid	= format40_alloc_pid,
 	.check_struct	= format40_check_struct,
 #endif
-	.oid_pid	= format40_oid_pid
+	.open		= format40_open,
+	.close		= format40_close,
+
+	.get_flags      = format40_get_flags,
+	.get_root	= format40_get_root,
+	.get_height	= format40_get_height
 };
 
 reiser4_plug_t format40_plug = {

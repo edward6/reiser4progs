@@ -151,10 +151,6 @@ reiser4_owner_t reiser4_fs_belongs(
 {
 	aal_assert("umka-1534", fs != NULL);
 
-	/* Checks if passed @blk belongs to skipped area */
-	if (reiser4_format_skipped(fs->format, callback_check_block, &blk))
-		return O_SKIPPED;
-	
 	/* Checks if passed @blk is master super block */
 	if (reiser4_master_layout(fs->master, callback_check_block, &blk))
 		return O_MASTER;
@@ -188,30 +184,24 @@ reiser4_owner_t reiser4_fs_belongs(
 	return O_UNKNOWN;
 }
 
-/* Enumerates all filesystem areas (block alloc, journal, etc.) */
+/* Enumerates all filesystem areas (block alloc, journal, etc.). This is used
+   for marking all blocks belong to all fs components as budy in block allocator
+   and in fsck. */
 errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 			  region_func_t region_func, 
 			  void *data)
 {
 	errno_t res;
 
-	/* Enumerating skipped area */
-	if ((res = reiser4_format_skipped(fs->format, region_func, data)))
-		return res;
-	
-	/* Enumerating master area */
 	if ((res = reiser4_master_layout(fs->master, region_func, data)))
 		return res;
 
-	/* Enumerating oid allocator area */
 	if ((res = reiser4_oid_layout(fs->oid, region_func, data)))
 		return res;
 	
-	/* Enumerating format area */
 	if ((res = reiser4_format_layout(fs->format, region_func, data)))
 		return res;
 
-	/* Enumerating journal area */
 	if (fs->journal) {
 		if ((res = reiser4_journal_layout(fs->journal,
 						  region_func, data)))
@@ -223,7 +213,6 @@ errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 	if ((res = reiser4_status_layout(fs->status, region_func, data)))
 		return res;
 
-	/* Enumerating block allocator area */
 	return reiser4_alloc_layout(fs->alloc, region_func, data);
 }
 
