@@ -9,12 +9,10 @@
 #include <aux/bitmap.h>
 #include <reiser4/reiser4.h>
 #include <repair/plugin.h>
+#include <misc/gauge.h>
 
-typedef enum repair_progress_type {
-	PROGRESS_SILENT	= 0x1,
-	PROGRESS_RATE	= 0x2,
-	PROGRESS_TREE	= 0x3
-} repair_progress_type_t;
+#define GAUGE_TREE	GAUGE_LAST
+#define GAUGE_SEM	GAUGE_LAST + 1
 
 typedef enum repair_progress_state {
 	PROGRESS_START	= 0x1,

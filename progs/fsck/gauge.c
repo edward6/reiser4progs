@@ -132,21 +132,15 @@ static errno_t progress_start(repair_progress_t *progress) {
     gauge = progress->data;
     
     if (progress->data == NULL) {
-	int gauge_type;
 	
 	if (progress->title)
 	    fprintf(stderr, "%s\n", progress->title);
 
-	gauge_type = progress->type == PROGRESS_SILENT ? GAUGE_INDICATOR :
-		 progress->type == PROGRESS_RATE ? GAUGE_PERCENTAGE :
-		 progress->type == PROGRESS_TREE  ? GAUGE_TREE :
-		 progress->type;
+	if (!(gauge = aal_gauge_create(progress->type, NULL)))
+		return -ENOMEM;
 	
-	gauge = aal_gauge_create(gauge_type, NULL);
 	if (progress->text)
 	    aal_gauge_rename(gauge, progress->text);
-	
-	if (!gauge) return -ENOMEM;
 
 	hint = gauge->data = aal_calloc(sizeof(gauge_hint_t), 0);
 

@@ -288,6 +288,16 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 }
 
 errno_t repair_sem_prepare(repair_control_t *control, repair_semantic_t *sem) {
+	aal_assert("vpf-1274", sem != NULL);
+	aal_assert("vpf-1275", control != NULL);
+	aal_assert("vpf-1276", control->repair != NULL);
+	aal_assert("vpf-1277", control->repair->fs != NULL);
+	
+	aal_memset(sem, 0, sizeof(*sem));
+	
+	sem->repair = control->repair;
+	sem->progress_handler = control->repair->progress_handler;
+
 	return 0;
 }
 

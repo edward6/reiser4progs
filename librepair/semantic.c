@@ -719,7 +719,7 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 
 static void repair_semantic_setup(repair_semantic_t *sem) {
 	aal_memset(sem->progress, 0, sizeof(*sem->progress));
-	sem->progress->type = PROGRESS_TREE;
+	sem->progress->type = GAUGE_SEM;
 	sem->progress->title = "***** Semantic Traverse Pass: reiser4 semantic "
 		"tree recovering.";
 	sem->progress->text = "";

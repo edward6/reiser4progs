@@ -52,7 +52,7 @@ static void repair_cleanup_setup(repair_cleanup_t *cleanup) {
 	aal_assert("vpf-1048", cleanup->repair->fs->tree != NULL);
 	
 	aal_memset(cleanup->progress, 0, sizeof(*cleanup->progress));
-	cleanup->progress->type = PROGRESS_TREE;
+	cleanup->progress->type = GAUGE_TREE;
 	cleanup->progress->title = "***** Cleanup Pass: cleaning reiser4 "
 		"storage tree up.";
 	cleanup->progress->text = "";

@@ -34,15 +34,18 @@ typedef struct gauge_tree_hint {
     aal_list_t *tree;
 } gauge_tree_hint_t;
 
+typedef struct gauge_sem_hint {
+    aal_list_t *names;
+} gauge_sem_hint_t;
+
 typedef struct gauge_hint {
     time_t start_time, displayed_time;
     uint8_t percent;
     union {
 	gauge_rate_hint_t rate_hint;
 	gauge_tree_hint_t tree_hint;
+	gauge_sem_hint_t  sem_hint;
     } u;
 } gauge_hint_t;
-
-#define GAUGE_TREE	GAUGE_LAST
 
 #endif

@@ -112,7 +112,7 @@ static void repair_twig_scan_setup(repair_ts_t *ts) {
 	aal_assert("vpf-884", ts != NULL);
 	
 	aal_memset(ts->progress, 0, sizeof(*ts->progress));
-	ts->progress->type = PROGRESS_RATE;
+	ts->progress->type = GAUGE_PERCENTAGE;
 	ts->progress->title = "***** TwigScan Pass: checking extent pointers "
 		"of all twigs.";
 	
