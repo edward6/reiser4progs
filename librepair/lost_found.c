@@ -71,7 +71,7 @@ static errno_t callback_lost_found_open(reiser4_object_t *parent,
 static errno_t repair_lost_found_object_check(reiser4_place_t *place, 
 					      void *data) 
 {
-	reiser4_object_t *object, *parent;
+	reiser4_object_t *object;
 	repair_lost_found_t *lf;
 	reiser4_place_t *start;
 	object_open_t open;
@@ -83,35 +83,35 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	
 	lf = (repair_lost_found_t *)data;
 	
-	/* CHECKED items belong to objects with StatData or reached from its parent. 
-	   For the former, wait for their StatDatas. For the later, they are CHECKED 
-	   and REACHABLE -- nothing to do anymore. So continue only for not CHECKED 
-	   items -- their StatDatas was not found on Semantic pass -- and for not 
-	   REACHABLE StatDatas. */
+	/* If the object the item belongs to was reached already, skip it. */
+	if (repair_item_test_flag(place, ITEM_REACHABLE))
+		return 0;
+	
 	if (repair_item_test_flag(place, ITEM_CHECKED)) {
-		if (!reiser4_item_statdata(place))
-			return 0;
-		
-		if (repair_item_test_flag(place, ITEM_REACHABLE))
-			return 0;
-
-		/* CHECKED and not REACHABLE StatData item. */
-		if (!(object = reiser4_object_realize(lf->repair->fs->tree, place))) {
-			aal_exception_error("Node %llu, item %u: failed to open an "
-					    "object pointed by %k.", place->node->number, 
-					    place->pos.item, &place->item.key);
-			return res;
+		/* If the object the item belongs to was chacked already, its 
+		   object plugin must be realized unambiguously. */
+		if (!(object = repair_object_realize(lf->repair->fs->tree,
+						     place, TRUE)))
+		{
+			aal_exception_error("Node %llu, item %u: failed to "
+					    "open an object pointed by %k.", 
+					    place->node->number, 
+					    place->pos.item, 
+					    &place->item.key);
+			return -EINVAL;
 		}
 	} else {
-		/* Some not CHECKED item. Try to realize the plugin. */
+		/* Some not CHECKED item -- try to realize the object plugin,
+		   take the most appropriate if some plugins fit. */
 		if (!(object = repair_object_realize(lf->repair->fs->tree, 
 						     place, FALSE)))
 			return 0;
+
+		/* Some plugin is choosed, check/fix the object structure. */
+		res = repair_object_check_struct(object, callback_check_struct,
+						      lf->repair->mode, NULL);
 		
-		/* This is really an object, check its structure. */
-		if ((res = repair_object_check_struct(object, callback_check_struct,
-						      lf->repair->mode, NULL)))
-		{
+		if (res) {
 			aal_exception_error("Node %llu, item %u: structure check "
 					    "of the object pointed by %k failed. "
 					    "Plugin %s.", place->node->number, 
@@ -119,71 +119,40 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 					    object->entity->plugin->h.label);
 			return res;
 		}
-	} 
-	
-	repair_lost_found_make_lost_name(object, object->name);
-	
-	start = reiser4_object_start(object);
-
-	/* Object is openned and if it keeps its parent it put it into 
-	   @object.info.parent at , try to link the object to its parent or if it 
-	   fails link it to to the "lost+found". */
-	if (object->info.parent.plugin) {
-		/* Try to open the parent by the parent key, obtained from the object. */
-		parent = reiser4_object_launch(lf->repair->fs->tree, NULL, 
-					      &object->info.parent);
-
-		/* If there is no parent found, zero parent object to link to 
-		   lost+found later. */
-		if (!parent)
-			parent = lf->lost;
-	} else
-		parent = lf->lost;
-	
-	/* This will link parebt<->object to each other, '..' does may be left not 
-	   pointing to the parent, so check_attach after that. */
-	if ((res = reiser4_object_link(parent, object, object->name))) {
-		aal_exception_error("Node %llu, item %u: failed to link the object "
-				    "pointed by %k to the object pointed by %k.",
-				    start->node->number, start->pos.item, 
-				    &object->info.object, &parent->info.object);
-		goto error_close_parent;
-	}
-	
-	/* Fix '..' if needed. */
-	if ((res = repair_object_check_backlink(object, parent, ET_NAME, 
-						lf->repair->mode))) 
-	{
-		aal_exception_error("Node %llu, item %u: failed to check the uplink "
-				    "from the object %k to the object %k.",
-				    start->node->number, start->pos.item, 
-				    &object->info.object, &parent->info.object);
-		goto error_close_parent;
-	}
-		
-	
-	/* Do not mark objects linked to 'lost+found' as REACHABLE. */
-	if (parent != lf->lost) {
-		repair_item_set_flag(start, ITEM_REACHABLE);
-		reiser4_object_close(parent);
 	}
 	
 	open.lf = lf;
 	open.func = repair_lost_found_unlink;
 	
+	/* Traverse the object. */
 	if ((res = repair_object_traverse(object, callback_lost_found_open, &open)))
 		goto error_close_object;
+
+	repair_lost_found_make_lost_name(object, object->name);
 	
+	start = reiser4_object_start(object);
+	
+	/* If '..' is valid, then the parent<->object link was recovered during 
+	   traversing. Othewise, link the object to "lost+found". */
+	if (!repair_item_set_flag(start, ITEM_REACHABLE)) {
+		if ((res = reiser4_object_link(lf->lost, object, object->name))) {
+			aal_exception_error("Node %llu, item %u: failed to link "
+					    "the object pointed by %k to the "
+					    "'lost+found' pointed by %k.",
+					    start->node->number, start->pos.item, 
+					    &object->info.object, 
+					    &lf->lost->info.object);
+			goto error_close_object;
+		}
+
+	}
+		
 	/* The whole reachable subtree must be recovered for now and marked as 
 	   REACHABLE. */
 	
 	reiser4_object_close(object);
 	return 0;
 	
- error_close_parent:
-	if (parent != lf->lost)
-		reiser4_object_close(parent);
-
  error_close_object:
 	reiser4_object_close(object);
 	return res;
