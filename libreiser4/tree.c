@@ -523,6 +523,7 @@ static errno_t reiser4_tree_shift(
     int direction,		/* direction of the shifting */
     reiser4_coord_t *coord,	/* insert point coord */
     reiser4_avatar_t *avatar,	/* destination node */
+    uint32_t needed,
     int move_ip			/* should we move insert point too */
 ) {
     uint32_t overhead;
@@ -567,6 +568,9 @@ static errno_t reiser4_tree_shift(
 	if (reiser4_node_space(avatar->node) < reiser4_item_len(&item) + overhead)
 	    return 0;
 	
+	if (reiser4_node_space(avatar->node) - 
+		(reiser4_item_len(&item) + overhead) < needed)
+	    return 0;
 	/* 
 	    Check if we should finish shifting due to insert point reached and
 	    @move_ip flag is not turned on.
@@ -595,15 +599,21 @@ static errno_t reiser4_tree_shift(
 	    if (coord->avatar == old.avatar) {
 		uint32_t count = reiser4_node_count(old.avatar->node);
 		if (coord->pos.item >= count - 1) {
+		    if (coord->pos.item > count - 1) {
+			coord->pos.item = 0;
+			coord->avatar = dst.avatar;
+			return 0;
+		    }
 		    coord->pos.item = 0;
 		    coord->avatar = dst.avatar;
 		}
 	    } else
 		coord->pos.item++;
 	}
-
-	if (coord->avatar != old.avatar)
-	    return 0;
+	
+	if (reiser4_node_count(src.avatar->node) == 1) {
+	    int a = 0;
+	}
 	
 	/* Moving the item denoted by @src coord to @dst one */
         if (reiser4_tree_move(tree, &dst, &src)) {
@@ -612,14 +622,8 @@ static errno_t reiser4_tree_shift(
 	    return -1;
 	}
 	
-	/* 
-	    Checking if node was moved from the tree by reiser4_tree_move 
-	    function. If so, we are going to finish shifting.
-	*/
-	if (src.avatar == NULL) {
-	    aal_assert("umka-1259", coord->avatar == dst.avatar, return -1);
+	if (coord->avatar != src.avatar)
 	    return 0;
-	}
 
 	aal_assert("umka-1260", 
 	    reiser4_node_count(src.avatar->node) > 0, return -1);
@@ -630,16 +634,16 @@ static errno_t reiser4_tree_shift(
 
 /* Wrapper for left shifting performed by reiser4_tree_shift function */
 static errno_t reiser4_tree_left_shift(reiser4_tree_t *tree, 
-    reiser4_coord_t *coord, reiser4_avatar_t *avatar, int move_ip)
+    reiser4_coord_t *coord, reiser4_avatar_t *avatar, uint32_t needed, int move_ip)
 {
-    return reiser4_tree_shift(tree, LEFT, coord, avatar, move_ip);
+    return reiser4_tree_shift(tree, LEFT, coord, avatar, needed, move_ip);
 }
 
 /* Wrapper for right shifting performed by reiser4_tree_shift function */
 static errno_t reiser4_tree_right_shift(reiser4_tree_t *tree, 
-    reiser4_coord_t *coord, reiser4_avatar_t *avatar, int move_ip)
+    reiser4_coord_t *coord, reiser4_avatar_t *avatar, uint32_t needed, int move_ip)
 {
-    return reiser4_tree_shift(tree, RIGHT, coord, avatar, move_ip);
+    return reiser4_tree_shift(tree, RIGHT, coord, avatar, needed, move_ip);
 }
 
 errno_t reiser4_tree_mkspace(
@@ -659,7 +663,7 @@ errno_t reiser4_tree_mkspace(
 
     *new = *old;
 
-    if (!old->avatar->parent || needed == 0)
+    if (needed == 0)
 	return 0;
     
     max_space = reiser4_node_maxspace(old->avatar->node);
@@ -685,7 +689,7 @@ errno_t reiser4_tree_mkspace(
     
     if (new->avatar->left) {
 	    
-	if (reiser4_tree_left_shift(tree, new, new->avatar->left, 0))
+	if (reiser4_tree_left_shift(tree, new, new->avatar->left, needed, 0))
 	    return -1;
 	
 	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
@@ -694,7 +698,7 @@ errno_t reiser4_tree_mkspace(
 
     if (new->avatar->right) {
 	    
-	if (reiser4_tree_right_shift(tree, new, new->avatar->right, 0))
+	if (reiser4_tree_right_shift(tree, new, new->avatar->right, needed, 0))
 	    return -1;
 	
 	if ((not_enough = needed - reiser4_node_space(new->avatar->node)) <= 0)
@@ -710,20 +714,27 @@ errno_t reiser4_tree_mkspace(
 	
 	reiser4_coord_dup(new, &save);
 	
-        if (reiser4_tree_right_shift(tree, new, avatar, 1))
+        if (reiser4_tree_right_shift(tree, new, avatar, needed, 1))
 	   return -1;
-	
-	aal_assert("umka-1262", new->avatar == avatar, return -1);
 	
 	not_enough = needed - reiser4_node_space(new->avatar->node);
 	
 	/* Checking if the old have enough free space after shifting */
-        if (not_enough > 0 && save.avatar != new->avatar) {
+        if (not_enough > 0 && save.avatar != new->avatar && 
+	    new->pos.unit == ~0ull) 
+	{
 	    reiser4_coord_dup(&save, new);
 	    not_enough = needed - reiser4_node_space(new->avatar->node);
 	}
     }
 
+    if (new->avatar != old->avatar && 
+        reiser4_node_count(old->avatar->node) == 0)
+    {
+        reiser4_tree_release(tree, old->avatar);
+        old->avatar = NULL;
+    }
+	
     return -(not_enough > 0);
 }
 
@@ -798,7 +809,7 @@ errno_t reiser4_tree_insert(
 	    reiser4_tree_release(tree, avatar);
 	    return -1;
 	}
-
+	
 	return 0;
     }
     
@@ -880,19 +891,12 @@ errno_t reiser4_tree_move(
     reiser4_coord_t *dst,	    /* dst coord */
     reiser4_coord_t *src	    /* src coord */
 ) {
-    uint32_t count;
-    
     aal_assert("umka-1020", tree != NULL, return -1);
     aal_assert("umka-1020", dst != NULL, return -1);
     aal_assert("umka-1020", src != NULL, return -1);
-    
-    count = reiser4_node_count(src->avatar->node);
-    
+
     if (reiser4_avatar_move(dst->avatar, &dst->pos, src->avatar, &src->pos))
 	return -1;
-    
-    if (count == 1)
-	src->avatar = NULL;
     
     return 0;
 }

@@ -45,8 +45,12 @@ static errno_t stat40_init(reiser4_item_t *item,
 	    continue;
 	    
 	/* 
-	    Correcting of the next stat data extention location and for plugin 
-	    id. As you know, each 16 bit in each mask can't be used for id.
+	    Stat data contains 16 bit mask of extentions used in it. The first 
+	    15 bits of the mask denote the first 15 extentions in the stat data.
+	    And the bit number is the stat data extention plugin id. If the last 
+	    bit turned on, it means that one more 16 bit mask present and so on. 
+	    So, we should add sizeof(mask) to extention body pointer, in the case
+	    we are on bit denoted for indicating if next extention in use or not.
 	*/
 	if (((uint64_t)1 << i) & (uint64_t)(((uint64_t)1 << 0xf) | 
 	    ((uint64_t)1 << 0x1f) | ((uint64_t)1 << 0x2f))) 
