@@ -8,6 +8,8 @@
 #ifndef REPAIR_PLUGIN_H
 #define REPAIR_PLUGIN_H
 
+#include <aal/types.h>
+
 enum repair_flag {
     REPAIR_CHECK    = 1,
     REPAIR_FIX	    = 2,

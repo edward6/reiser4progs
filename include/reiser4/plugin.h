@@ -410,6 +410,14 @@ struct reiser4_sdext_lt_hint {
 
 typedef struct reiser4_sdext_lt_hint reiser4_sdext_lt_hint_t;
 
+struct sdext_entity {
+	reiser4_plugin_t *plugin;
+	rbody_t *body;
+	uint32_t pos, len;
+};
+
+typedef struct sdext_entity sdext_entity_t;
+    
 /* These fields should be changed to what proper description of needed extentions */
 struct reiser4_statdata_hint {
 	
@@ -810,6 +818,9 @@ struct reiser4_sdext_ops {
 
 	/* Returns length of the extention */
 	uint16_t (*length) (rbody_t *);
+	
+	/* Checks sd extention content. */
+	errno_t (*check) (sdext_entity_t *, uint8_t);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;

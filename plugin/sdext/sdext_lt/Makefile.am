@@ -1,7 +1,7 @@
 includedir			= -I$(top_srcdir)/include
 libdir				= $(plugindir)
 
-sdext_lt_sources		= sdext_lt.c sdext_lt.h
+sdext_lt_sources		= sdext_lt.c sdext_lt_repair.c sdext_lt.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libsdext_lt-static.la

@@ -1,7 +1,7 @@
 includedir			= -I$(top_srcdir)/include
 libdir				= $(plugindir)
 
-key40_sources                   = key40.c key40_repair.c key40.h
+key40_sources                   = key40.c key40.h
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libkey40-static.la

@@ -14,30 +14,26 @@ static reiser4_core_t *core = NULL;
 
 #define stat40_body(item) ((stat40_t *)item->body)
 
-/* Type for stat40 layout callback function */
-typedef int (*stat40_ext_func_t) (uint8_t, reiser4_plugin_t *, uint16_t,
-				  rbody_t *, void *);
-
 /*
   The function which implements stat40 layout pass. This function is used for
   all statdata extention-related actions. For example for opening, of counting.
 */
-static errno_t stat40_traverse(item_entity_t *item,
-			       stat40_ext_func_t func,
-			       void *data)
+errno_t stat40_traverse(item_entity_t *item, stat40_ext_func_t func, void *data)
 {
 	uint8_t i;
 	stat40_t *stat;
 	uint16_t extmask;
 	
-	rbody_t *extbody;
-	reiser4_plugin_t *plugin;
+	sdext_entity_t sdext;
 
 	aal_assert("umka-1197", item != NULL);
     
 	stat = stat40_body(item);
 	extmask = st40_get_extmask(stat);
-	extbody = (void *)stat + sizeof(stat40_t);
+
+	sdext.body = item->body;
+	sdext.len = item->len;
+	sdext.pos = sizeof(stat40_t);
 
 	/*
 	  Loop though the all possible extentions and calling passed @func for
@@ -51,7 +47,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 			if (!((1 << i) & extmask))
 				break;
 			
-			extmask = *((uint16_t *)extbody);
+			extmask = *((uint16_t *)(sdext.body + sdext.pos));
 
 			/* Clear the last bit in last mask */
 			if (((uint64_t)1 << i) & 0x2f) {
@@ -59,8 +55,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 					extmask &= ~0x8000;
 			}
 			
-			extbody = (void *)extbody + sizeof(d16_t);
-			continue;
+			sdext.pos += sizeof(d16_t);
 		}
 
 		/* If extention is not present, we going to the next one */
@@ -68,7 +63,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 			continue;
 
 		/* Getting extention plugin from the plugin factory */
-		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
+		if (!(sdext.plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 					   "by its id 0x%x.", i);
 			return 0;
@@ -78,20 +73,19 @@ static errno_t stat40_traverse(item_entity_t *item,
 		  Okay, extention is present, calling callback fucntion for it
 		  and if result is not good, returning it to teh caller.
 		*/
-		if (!(res = func(i, plugin, extmask, extbody, data)))
+		if (!(res = func(&sdext, extmask, data)))
 			return res;
 
 		/* Calculating the pointer to the next extention body */
-		extbody = (void *)extbody + plugin_call(plugin->sdext_ops,
-							length, extbody);
+		sdext.pos += plugin_call(sdext.plugin->sdext_ops, length, 
+					 sdext.body + sdext.pos);
 	}
     
 	return 0;
 }
 
 /* Callback for opening one extention */
-static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
-				 uint16_t extmask, rbody_t *extbody,
+static errno_t callback_open_ext(sdext_entity_t *sdext, uint16_t extmask, 
 				 void *data)
 {
 	reiser4_statdata_hint_t *hint;
@@ -99,16 +93,14 @@ static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
 	hint = ((reiser4_item_hint_t *)data)->type_specific;
 
 	/* Reading mask into hint */
-	if (ext % 16 == 0) {
-		hint->extmask <<= 16;
-		hint->extmask |= extmask;
-	}
+	hint->extmask |= 1 << sdext->plugin->h.id;
 
 	/* We load @ext if its hint present in item hint */
-	if (hint->ext[ext]) {
-
+	if (hint->ext[sdext->plugin->h.id]) {
 		/* Calling loading the corresponding statdata extention */
-		if (plugin_call(plugin->sdext_ops, open, extbody, hint->ext[ext]))
+		if (plugin_call(sdext->plugin->sdext_ops, open, 
+				sdext->body + sdext->pos, 
+				hint->ext[sdext->plugin->h.id]))
 			return -1;
 	}
 	
@@ -174,6 +166,8 @@ static errno_t stat40_estimate(item_entity_t *item, void *buff,
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
 
+		aal_assert("vpf-773", stat_hint->ext[i] != NULL);
+		
 		/*
 		  If we are on the extention which is multiple of 16 (each mask
 		  has 16 bits) then we add to hint's len the size of next mask.
@@ -298,14 +292,13 @@ struct body_hint {
 };
 
 /* Callback function for finding stat data extention body by bit */
-static int callback_body_ext(uint8_t ext, reiser4_plugin_t *plugin,
-			     uint16_t extmask, rbody_t *extbody,
+static int callback_body_ext(sdext_entity_t *sdext, uint16_t extmask, 
 			     void *data)
 {
 	struct body_hint *hint = (struct body_hint *)data;
 
-	hint->body = extbody;
-	return (ext < hint->ext);
+	hint->body = sdext->body + sdext->pos;
+	return (sdext->plugin->h.id < hint->ext);
 }
 
 /* Finds extention body by number of bit in 64bits mask */
@@ -333,13 +326,12 @@ struct present_hint {
   Callback for getting presence information for certain stat data
   extention.
 */
-static int callback_present_ext(uint8_t ext, reiser4_plugin_t *plugin,
-				uint16_t extmask, rbody_t *extbody,
+static int callback_present_ext(sdext_entity_t *sdext, uint16_t extmask, 
 				void *data)
 {
 	struct present_hint *hint = (struct present_hint *)data;
 	
-	hint->present = (ext == hint->ext);
+	hint->present = (sdext->plugin->h.id == hint->ext);
 	return !hint->present;
 }
 
@@ -358,8 +350,7 @@ static int stat40_sdext_present(item_entity_t *item,
 #ifndef ENABLE_ALONE
 
 /* Callback for counting the number of stat data extentions in use */
-static int callback_count_ext(uint8_t ext, reiser4_plugin_t *plugin,
-			      uint16_t extmask, rbody_t *extbody,
+static int callback_count_ext(sdext_entity_t *sdext, uint16_t extmask, 
 			      void *data)
 {
         (*(uint32_t *)data)++;
@@ -377,19 +368,19 @@ static uint32_t stat40_sdexts(item_entity_t *item) {
 }
 
 /* Prints extention into @stream */
-static int callback_print_ext(uint8_t ext, reiser4_plugin_t *plugin,
-			      uint16_t extmask, rbody_t *extbody,
+static int callback_print_ext(sdext_entity_t *sdext, uint16_t extmask, 
 			      void *data)
 {
 	aal_stream_t *stream = (aal_stream_t *)data;
 
-	if (ext == 0 || (ext + 1) % 16 == 0)
+	if (sdext->plugin->h.id == 0 || (sdext->plugin->h.id + 1) % 16 == 0)
 		aal_stream_format(stream, "mask:\t\t0x%x\n", extmask);
 				
-	aal_stream_format(stream, "label:\t\t%s\n", plugin->h.label);
-	aal_stream_format(stream, "plugin:\t\t%s\n", plugin->h.desc);
+	aal_stream_format(stream, "label:\t\t%s\n", sdext->plugin->h.label);
+	aal_stream_format(stream, "plugin:\t\t%s\n", sdext->plugin->h.desc);
 	
-	plugin_call(plugin->sdext_ops, print, extbody, stream, 0);
+	plugin_call(sdext->plugin->sdext_ops, print, sdext->body + sdext->pos, 
+		    stream, 0);
 	
 	return 1;
 }

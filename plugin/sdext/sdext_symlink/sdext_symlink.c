@@ -40,7 +40,7 @@ static errno_t sdext_symlink_open(rbody_t *body,
 
 static uint16_t sdext_symlink_length(rbody_t *body) {
 	aal_assert("umka-1488", body != NULL);
-	return aal_strlen((char *)body);
+	return aal_strlen((char *)body) + 1;
 }
 
 #ifndef ENABLE_ALONE

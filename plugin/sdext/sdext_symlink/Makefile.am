@@ -1,7 +1,7 @@
 includedir			   = -I$(top_srcdir)/include
 libdir				   = $(plugindir)
 
-sdext_symlink_sources		   = sdext_symlink.c
+sdext_symlink_sources		   = sdext_symlink.c sdext_symlink_repair.c
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                        = libsdext_symlink-static.la

@@ -106,6 +106,8 @@ static errno_t sdext_unix_print(rbody_t *body, aal_stream_t *stream,
 	return 0;
 }
 
+extern errno_t sdext_unix_check(sdext_entity_t *sdext, uint8_t mode);
+
 #endif
 
 static reiser4_plugin_t sdext_unix_plugin = {
@@ -123,8 +125,10 @@ static reiser4_plugin_t sdext_unix_plugin = {
 		
 #ifndef ENABLE_ALONE
 		.print   = sdext_unix_print,
+		.check	 = NULL,
 #else
 		.print   = NULL,
+		.check	 = NULL,
 #endif
 		.length	 = sdext_unix_length
 	}

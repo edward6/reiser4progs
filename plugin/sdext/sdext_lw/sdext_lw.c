@@ -118,6 +118,8 @@ static errno_t sdext_lw_print(rbody_t *body, aal_stream_t *stream,
 	return 0;
 }
 
+extern errno_t sdext_lw_check(sdext_entity_t *sdext, uint8_t mode);
+
 #endif
 
 static reiser4_plugin_t sdext_lw_plugin = {
@@ -135,8 +137,10 @@ static reiser4_plugin_t sdext_lw_plugin = {
 		
 #ifndef ENABLE_ALONE
 		.print   = sdext_lw_print,
+		.check	 = sdext_lw_check,
 #else
 		.print   = NULL,
+		.check	 = NULL,
 #endif		
 		.length	 = sdext_lw_length
 	}

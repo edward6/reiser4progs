@@ -12,6 +12,7 @@
 #ifndef ENABLE_ALONE
 
 #include "nodeptr40.h"
+#include "repair/repair_plugins.h"
 
 int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
     void *data) 
@@ -37,7 +38,7 @@ int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func,
 
 errno_t nodeptr40_check(item_entity_t *item, uint8_t mode) {
     aal_assert("vpf-751", item != NULL);
-    return item->len != sizeof(nodeptr40_t);
+    return item->len != sizeof(nodeptr40_t) ? REPAIR_FATAL : REPAIR_OK;
 }
 
 #endif
