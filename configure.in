@@ -251,33 +251,42 @@ AC_OUTPUT([
     libreiser4/Makefile
     librepair/Makefile
     plugin/Makefile
-    plugin/format40/Makefile
-    plugin/journal40/Makefile
-    plugin/alloc40/Makefile
-    plugin/oid40/Makefile
-    plugin/node40/Makefile
-    plugin/nodeptr40/Makefile
-    plugin/stat40/Makefile
-    plugin/direntry40/Makefile
-    plugin/tail40/Makefile
-    plugin/extent40/Makefile
-    plugin/key40/Makefile
+    plugin/format/Makefile
+    plugin/format/format40/Makefile
+    plugin/format/format36/Makefile
+    plugin/alloc/Makefile
+    plugin/alloc/alloc40/Makefile
+    plugin/alloc/alloc36/Makefile
+    plugin/journal/Makefile
+    plugin/journal/journal40/Makefile
+    plugin/journal/journal36/Makefile
+    plugin/oid/Makefile
+    plugin/oid/oid40/Makefile
+    plugin/node/Makefile
+    plugin/node/node40/Makefile
+    plugin/key/Makefile
+    plugin/key/key40/Makefile
+    plugin/item/Makefile
+    plugin/item/nodeptr40/Makefile
+    plugin/item/stat40/Makefile
+    plugin/item/direntry40/Makefile
+    plugin/item/tail40/Makefile
+    plugin/item/extent40/Makefile
     plugin/file/Makefile
     plugin/file/file40/Makefile
     plugin/file/dir40/Makefile
     plugin/file/reg40/Makefile
     plugin/file/symlink40/Makefile
-    plugin/format36/Makefile
-    plugin/journal36/Makefile
-    plugin/alloc36/Makefile
-    plugin/r5_hash/Makefile
-    plugin/tea_hash/Makefile
-    plugin/rupasov_hash/Makefile
-    plugin/fnv1_hash/Makefile
-    plugin/sdext_unix/Makefile
-    plugin/sdext_lw/Makefile
-    plugin/sdext_lt/Makefile
-    plugin/sdext_symlink/Makefile
+    plugin/hash/Makefile
+    plugin/hash/r5_hash/Makefile
+    plugin/hash/tea_hash/Makefile
+    plugin/hash/rupasov_hash/Makefile
+    plugin/hash/fnv1_hash/Makefile
+    plugin/sdext/Makefile
+    plugin/sdext/sdext_unix/Makefile
+    plugin/sdext/sdext_lw/Makefile
+    plugin/sdext/sdext_lt/Makefile
+    plugin/sdext/sdext_symlink/Makefile
     demos/Makefile
     progs/Makefile
     progs/include/Makefile

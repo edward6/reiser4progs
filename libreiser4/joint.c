@@ -739,8 +739,6 @@ errno_t reiser4_joint_traverse(
 					if (!child)
 						goto update;
 
-//					child->data = (void *)1;
-					
 					if (reiser4_joint_attach(joint, child))
 						goto error_free_child;
 				}

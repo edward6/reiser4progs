@@ -14,10 +14,8 @@ reiser4progs/COPYING.
 
 * print_block method for format, journal and block allocator plugins.
 
-* improve lru list for storing different objects in it
+* improve lru list for storing different objects and move it to libaal
 
 * join reiser4_node_t and reiser4_joint_t
 
 * special file plugin.
-
-* tree refference in the reiser4_coord_t

@@ -113,7 +113,6 @@ enum coord_context {
 typedef enum coord_context coord_context_t;
 
 struct reiser4_coord {
-
 	/* Coord may used in any context (with node, joint, etc) */
 	union {
 		void *data;
