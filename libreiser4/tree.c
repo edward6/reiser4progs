@@ -74,30 +74,6 @@ static lru_ops_t lru_ops = {
 	.set_prev = callback_set_prev
 };
 
-/* Assignes passed @node as new root */
-static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
-					reiser4_node_t *node)
-{
-	uint32_t level;
-	
-	aal_assert("umka-1867", tree != NULL);
-	aal_assert("umka-1868", node != NULL);
-
-	tree->root = node;
-	node->tree = tree;
-	node->parent = NULL;
-
-	level = reiser4_node_get_level(node);
-
-	reiser4_format_set_root(tree->fs->format,
-				tree->root->blk);
-	
-	reiser4_format_set_height(tree->fs->format,
-				  level);
-
-	return 0;
-}
-
 /* Dealing with loading root node if it is not loaded yet */
 static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	blk_t root;
@@ -121,6 +97,30 @@ static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_ALONE
+
+/* Assignes passed @node as new root */
+static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
+					reiser4_node_t *node)
+{
+	uint32_t level;
+	
+	aal_assert("umka-1867", tree != NULL);
+	aal_assert("umka-1868", node != NULL);
+
+	tree->root = node;
+	node->tree = tree;
+	node->parent = NULL;
+
+	level = reiser4_node_get_level(node);
+
+	reiser4_format_set_root(tree->fs->format,
+				tree->root->blk);
+	
+	reiser4_format_set_height(tree->fs->format,
+				  level);
+
+	return 0;
+}
 
 /* Dealing with allocating root node if it is not allocated yet */
 static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {

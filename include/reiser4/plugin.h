@@ -326,6 +326,21 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
+/* This struct is used for writing data from the one place to another */
+struct write_hint {
+	key_entity_t key;
+	
+	void *header_data;
+	uint32_t header_len;
+
+	void *body_data;
+	uint32_t body_len;
+	
+	reiser4_plugin_t *plugin;
+};
+
+typedef struct write_hint write_hint_t;
+
 typedef errno_t (*region_func_t) (item_entity_t *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*place_func_t) (object_entity_t *, place_t *, void *);

@@ -197,7 +197,9 @@ reiser4_file_t *reiser4_file_begin(
 		goto error_free_file;
 	}
 
+#ifndef ENABLE_ALONE
 	reiser4_key_string(&file->key, file->name);
+#endif
 
 	/* Guessing file plugin */
 	if (!(plugin = reiser4_file_plugin(file))) {
@@ -244,6 +246,7 @@ reiser4_file_t *reiser4_file_open(
 		return NULL;
     
 	file->fs = fs;
+
 	aal_strncpy(file->name, name, sizeof(file->name));
 
 	reiser4_key_assign(&file->key, &fs->tree->key);
