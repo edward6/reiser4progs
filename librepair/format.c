@@ -13,11 +13,10 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	count_t count;
 	
 	aal_assert("vpf-165", fs != NULL);
-	aal_assert("vpf-833", fs->profile != NULL);
 	aal_assert("vpf-171", fs->device != NULL);
 	aal_assert("vpf-834", fs->master != NULL);
 	
-	policy = reiser4_profile_value(fs->profile, "policy");
+	policy = reiser4_profile_value("policy");
 	
 	if (policy >= TAIL_LAST_ID) {
 		/* Tail id from the profile is wrong. */
@@ -35,7 +34,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			/* Fatal error in the format structure. */
 			return RE_FATAL;
 		
-		pid = reiser4_profile_value(fs->profile, "format");
+		pid = reiser4_profile_value("format");
 		
 		/* Try to detect a format on the device. */
 		if (!(plug = reiser4_master_guess(fs->device))) {
@@ -43,7 +42,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			aal_exception_fatal("Cannot detect an on-disk format on (%s).",
 					    fs->device->name);
 			
-			plug = libreiser4_factory_ifind(FORMAT_PLUG_TYPE, pid);
+			plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid);
 			
 			if (!plug) {
 				aal_exception_fatal("Cannot find the format plugin "

@@ -6,115 +6,7 @@
 #include <stdio.h>
 #include <reiser4/reiser4.h>
 
-static reiser4_profile_t profile = {
-	.name = "default",
-	.pid  = {
-		[0] = {
-			.name  = "node",
-			.type  = NODE_PLUG_TYPE,
-			.value = NODE_LARGE_ID
-		},
-		[1] = {
-			.name  = "nodeptr",
-			.type  = ITEM_PLUG_TYPE,
-			.value = ITEM_NODEPTR40_ID
-		},
-		[2] = {
-			.name  = "statdata",
-			.type  = ITEM_PLUG_TYPE,
-			.value = ITEM_STATDATA40_ID
-		},
-		[3] = {
-			.name  = "tail",
-			.type  = ITEM_PLUG_TYPE,
-			.value = ITEM_TAIL40_ID
-		},
-		[4] = {
-			.name  = "extent",
-			.type  = ITEM_PLUG_TYPE,
-			.value = ITEM_EXTENT40_ID
-		},
-		[5] = {
-			.name  = "cde",
-			.type  = ITEM_PLUG_TYPE,
-			.value = ITEM_CDE_LARGE_ID
-		},
-		[6] = {
-			.name  = "acl",
-			.type  = ITEM_PLUG_TYPE,
-			.value = ITEM_ACL40_ID
-		},
-		[7] = {
-			.name  = "hash",
-			.type  = HASH_PLUG_TYPE,
-			.value = HASH_R5_ID
-		},
-		[8] = {
-			.name  = "policy",
-			.type  = POLICY_PLUG_TYPE,
-			.value = TAIL_SMART_ID
-		},
-		[9] = {
-			.name  = "perm",
-			.type  = PERM_PLUG_TYPE,
-			.value = PERM_RWX_ID
-		},
-		[10] = {
-			.name  = "regular",
-			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_FILE40_ID
-		},
-		[11] = {
-			.name  = "directory",
-			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_DIRTORY40_ID
-		},
-		[12] = {
-			.name  = "symlink",
-			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_SYMLINK40_ID
-		},
-		[13] = {
-			.name  = "special",
-			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_SPECIAL40_ID
-		},
-		[14] = {
-			.name  = "format",
-			.type  = FORMAT_PLUG_TYPE,
-			.value = FORMAT_REISER40_ID
-		},
-		[15] = {
-			.name  = "oid",
-			.type  = OID_PLUG_TYPE,
-			.value = OID_REISER40_ID
-		},
-		[16] = {
-			.name  = "alloc",
-			.type  = ALLOC_PLUG_TYPE,
-			.value = ALLOC_REISER40_ID
-		},
-		[17] = {
-			.name  = "journal",
-			.type  = JOURNAL_PLUG_TYPE,
-			.value = JOURNAL_REISER40_ID
-		},
-		[18] = {
-			.name  = "key",
-			.type  = KEY_PLUG_TYPE,
-			.value = KEY_LARGE_ID
-		}
-	}
-};
-
-#define PROFILE_SIZE 19
-
-reiser4_profile_t *misc_profile_default(void) {
-	return &profile;
-}
-
-errno_t misc_profile_override(char *override)
-{
+errno_t misc_profile_override(char *override) {
 	while (1) {
 		char *index;
 		char *entry;
@@ -148,7 +40,7 @@ errno_t misc_profile_override(char *override)
 		aal_strncpy(value, index + 1, entry + aal_strlen(entry) -
 			    index);
 	
-		if (reiser4_profile_override(&profile, name, value))
+		if (reiser4_profile_override(name, value))
 			return -EINVAL;
 	}
 
@@ -156,26 +48,29 @@ errno_t misc_profile_override(char *override)
 }
 
 void misc_profile_print(void) {
-	uint32_t i;
+	uint32_t i, pids;
 	reiser4_plug_t *plug;
 
 	printf("Default profile\n");
+
+	pids = sizeof(default_profile.pid) /
+		sizeof(reiser4_pid_t);
 	
-	for (i = 0; i < PROFILE_SIZE; i++) {
+	for (i = 0; i < pids; i++) {
 		uint32_t width;
-		reiser4_pid_t *pid = &profile.pid[i];
+		reiser4_pid_t *pid;
 
-		plug = libreiser4_factory_ifind(pid->type,
-						pid->value);
-
+		pid = &default_profile.pid[i];
 		width = 12 - aal_strlen(pid->name);
-
-		if (plug) {
-			printf("%s:%*s\"%s\"\n", pid->name, width - 1, " ",
-			       plug->label);
+		
+		if ((plug = reiser4_factory_ifind(pid->type,
+						  pid->value)))
+		{
+			printf("%s:%*s\"%s\"\n", pid->name, width - 1,
+			       " ", plug->label);
 		} else {
-			printf("%s:%*s\"0x%llx\"\n", pid->name, width - 1, " ",
-			       pid->value);
+			printf("%s:%*s\"0x%llx\"\n", pid->name, width - 1,
+			       " ", pid->value);
 		}
 	}
 	

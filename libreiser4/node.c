@@ -54,7 +54,7 @@ reiser4_node_t *reiser4_node_create(aal_device_t *device,
 		return NULL;
 
 	/* Finding the node plugin by its id */
-	if (!(plug = libreiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find node plugin by its id "
 				    "0x%x.", pid);
 		goto error_free_node;
@@ -152,7 +152,7 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
                 return NULL;
 
 	/* Finding the node plug by its id */
-	if (!(plug = libreiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find node plugin by its id "
 				    "0x%x.", pid);
 		goto error_free_node;

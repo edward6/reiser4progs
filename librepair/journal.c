@@ -62,7 +62,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			return -EINVAL;
 		}
 		
-		if (!(plug = libreiser4_factory_ifind(JOURNAL_PLUG_TYPE, pid)))  {
+		if (!(plug = reiser4_factory_ifind(JOURNAL_PLUG_TYPE, pid)))  {
 			aal_exception_error("Cannot find journal plugin by its id 0x%x.",
 					    pid);
 			return -EINVAL;

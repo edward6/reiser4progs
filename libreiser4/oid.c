@@ -60,7 +60,7 @@ reiser4_oid_t *reiser4_oid_open(
 	}
     
 	/* Getting oid allocator plugin */
-	if (!(plug = libreiser4_factory_ifind(OID_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(OID_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find oid allocator plugin by "
 				    "its id 0x%x.", pid);
 		goto error_free_oid;
@@ -127,7 +127,7 @@ reiser4_oid_t *reiser4_oid_create(
 	}
     
 	/* Getting plugin from plugin id */
-	if (!(plug = libreiser4_factory_ifind(OID_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(OID_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find oid allocator plugin "
 				    "by its id 0x%x.", pid);
 		goto error_free_oid;

@@ -59,7 +59,7 @@ reiser4_format_t *reiser4_format_open(
 	blocksize = reiser4_master_blksize(fs->master);
     
 	/* Finding needed disk-format plugin by its plugin id */
-	if (!(plug = libreiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find disk-format plugin by "
 				    "its id 0x%x.", pid);
 		goto error_free_format;
@@ -96,7 +96,7 @@ reiser4_format_t *reiser4_format_create(
 	aal_assert("umka-105", fs != NULL);
 
 	/* Getting needed plugin from plugin factory */
-	if (!(plug = libreiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {
+	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {
 		aal_exception_error("Can't find disk-format plugin by "
 				    "its id 0x%x.", pid);
 		return NULL;

@@ -61,7 +61,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	}
     
 	/* Finding block allocator plugin */
-	if (!(plug = libreiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find block allocator plugin by "
 				    "its id 0x%x.", pid);
 		goto error_free_alloc;
@@ -113,7 +113,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 	}
     
 	/* Getting needed plugin from plugin factory by its id */
-	if (!(plug = libreiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find block allocator plugin by "
 				    "its id 0x%x.", pid);
 		goto error_free_alloc;

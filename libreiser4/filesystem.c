@@ -10,9 +10,7 @@
 #include <reiser4/reiser4.h>
 
 /* Opens filesystem on specified device */
-reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
-			      reiser4_profile_t *profile)
-{
+reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	rid_t pid;
 
 #ifndef ENABLE_STAND_ALONE
@@ -21,17 +19,12 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	reiser4_fs_t *fs;
 
 	aal_assert("umka-148", device != NULL);
-	aal_assert("umka-1866", profile != NULL);
 
 	/* Allocating memory and initializing fields */
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 
 	fs->device = device;
-	
-#ifndef ENABLE_STAND_ALONE
-	fs->profile = profile;
-#endif
 	
 	/* Reads master super block. See above for details */
 	if (!(fs->master = reiser4_master_open(device)))
@@ -50,13 +43,13 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (plug_call(fs->format->entity->plug->o.format_ops,
 		      tst_flag, fs->format->entity, 0))
 	{
-		reiser4_profile_override(fs->profile, "key", "key_large");
-		reiser4_profile_override(fs->profile, "cde", "cde_large");
-		reiser4_profile_override(fs->profile, "node", "node_large");
+		reiser4_profile_override("key", "key_large");
+		reiser4_profile_override("cde", "cde_large");
+		reiser4_profile_override("node", "node_large");
 	} else {
-		reiser4_profile_override(fs->profile, "key", "key_short");
-		reiser4_profile_override(fs->profile, "cde", "cde_short");
-		reiser4_profile_override(fs->profile, "node", "node_short");
+		reiser4_profile_override("key", "key_short");
+		reiser4_profile_override("cde", "cde_short");
+		reiser4_profile_override("node", "node_short");
 	}
 	
 	if (reiser4_format_valid(fs->format))
@@ -232,7 +225,6 @@ reiser4_fs_t *reiser4_fs_create(
 
 	aal_assert("vpf-113", hint != NULL);
 	aal_assert("umka-149", device != NULL);
-	aal_assert("vpf-113", hint->profile != NULL);
 
 	/* Makes check for validness of specified block size value */
 	if (!aal_pow2(hint->blksize)) {
@@ -266,10 +258,9 @@ reiser4_fs_t *reiser4_fs_create(
 		return NULL;
 	
 	fs->device = device;
-	fs->profile = hint->profile;
 	
 	/* Creates master super block */
-	format = reiser4_profile_value(hint->profile, "format");
+	format = reiser4_profile_value("format");
 		
 	if (!(fs->master = reiser4_master_create(device, format,
 						 hint->blksize,
@@ -280,7 +271,7 @@ reiser4_fs_t *reiser4_fs_create(
 	}
 
 	/* Getting tail policy from the passed profile */
-	policy = reiser4_profile_value(hint->profile, "policy");
+	policy = reiser4_profile_value("policy");
 	
 	/* Creates disk format */
 	if (!(fs->format = reiser4_format_create(fs, hint->blocks,
@@ -290,18 +281,18 @@ reiser4_fs_t *reiser4_fs_create(
 	}
 
 	/* Taking care about key flags in format super block */
-	if (reiser4_profile_value(fs->profile, "key") == KEY_LARGE_ID) {
+	if (reiser4_profile_value("key") == KEY_LARGE_ID) {
 		plug_call(fs->format->entity->plug->o.format_ops,
 			  set_flag, fs->format->entity, 0);
 
-		reiser4_profile_override(fs->profile, "cde", "cde_large");
-		reiser4_profile_override(fs->profile, "node", "node_large");
+		reiser4_profile_override("cde", "cde_large");
+		reiser4_profile_override("node", "node_large");
 	} else {
 		plug_call(fs->format->entity->plug->o.format_ops,
 			  clr_flag, fs->format->entity, 0);
 
-		reiser4_profile_override(fs->profile, "cde", "cde_short");
-		reiser4_profile_override(fs->profile, "node", "node_short");
+		reiser4_profile_override("cde", "cde_short");
+		reiser4_profile_override("node", "node_short");
 	}
 
 	/* Creates block allocator */

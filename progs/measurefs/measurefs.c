@@ -502,6 +502,9 @@ static errno_t dfrag_process_node(
 			return res;
 		}
 
+		if (!reiser4_item_statdata(&place))
+			continue;
+
 		/* Opening object by its stat data item denoded by @place */
 		if (!(object = reiser4_object_realize(tree, NULL, &place)))
 			continue;
@@ -613,7 +616,6 @@ int main(int argc, char *argv[]) {
 
 	reiser4_fs_t *fs;
 	aal_device_t *device;
-	reiser4_profile_t *profile;
 	char *frag_filename = NULL;
 	
 	static struct option long_options[] = {
@@ -698,9 +700,6 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	/* Initializing passed profile */
-	profile = misc_profile_default();
-    
 	/* Overriding profile by passed by used values. This should be done
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
@@ -769,7 +768,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Open file system on the device */
-	if (!(fs = reiser4_fs_open(device, profile))) {
+	if (!(fs = reiser4_fs_open(device))) {
 		aal_exception_error("Can't open reiser4 on %s",
 				    host_dev);
 		goto error_free_libreiser4;

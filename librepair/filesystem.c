@@ -10,22 +10,19 @@
    opening a journal. */
 errno_t repair_fs_open(repair_data_t *repair, 
 		       aal_device_t *host_device,
-		       aal_device_t *journal_device, 
-		       reiser4_profile_t *profile)
+		       aal_device_t *journal_device)
 {
 	void *oid_area_start, *oid_area_end;
 	errno_t error = RE_OK;
 
 	aal_assert("vpf-851", repair != NULL);
 	aal_assert("vpf-159", host_device != NULL);
-	aal_assert("vpf-172", profile != NULL);
  
 	/* Allocating memory and initializing fields */
 	if (!(repair->fs = aal_calloc(sizeof(*repair->fs), 0)))
 		return -ENOMEM;
 
 	repair->fs->device = host_device;
-	repair->fs->profile = profile;
     
 	if ((error = repair_master_open(repair->fs, repair->mode))) {
 		aal_exception_fatal("Failed to open the master super block.");

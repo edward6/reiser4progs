@@ -120,7 +120,7 @@ static errno_t callback_guess_format(
 }
 
 reiser4_plug_t *reiser4_master_guess(aal_device_t *device) {
-	return libreiser4_factory_cfind(callback_guess_format, device, TRUE);
+	return reiser4_factory_cfind(callback_guess_format, device);
 }
 
 errno_t reiser4_master_print(reiser4_master_t *master,

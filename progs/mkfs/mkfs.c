@@ -208,9 +208,6 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	/* Initializing passed profile */
-	hint.profile = misc_profile_default();
-
 	/* Overriding profile by passed by used values. This should be done
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {

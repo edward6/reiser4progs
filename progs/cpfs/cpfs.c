@@ -134,9 +134,6 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	/* Initializing passed profile */
-	hint.profile = misc_profile_default();
-
 	/* Overriding profile by passed by used values. This should be done
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
@@ -280,7 +277,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Opening source fs */
-	if (!(src_fs = reiser4_fs_open(src_device, hint.profile))) {
+	if (!(src_fs = reiser4_fs_open(src_device))) {
 		aal_exception_error("Cannot open src filesystem on %s.",
 				    src_dev);
 		goto error_free_dst_device;

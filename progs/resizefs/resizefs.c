@@ -66,7 +66,6 @@ int main(int argc, char *argv[]) {
 
 	reiser4_fs_t *fs;
 	aal_device_t *device;
-	reiser4_profile_t *profile;
 	
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -138,9 +137,6 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
 	}
 	
-	/* Initializing passed profile */
-	profile = misc_profile_default();
-    
 	if (flags & BF_PROF)
 		misc_profile_print();
 
@@ -195,7 +191,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Open file system on the device */
-	if (!(fs = reiser4_fs_open(device, profile))) {
+	if (!(fs = reiser4_fs_open(device))) {
 		aal_exception_error("Can't open reiser4 on %s", host_dev);
 		goto error_free_libreiser4;
 	}

@@ -252,33 +252,8 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 #endif
 
 rid_t obj40_pid(place_t *place) {
-	sdext_lw_hint_t lw_hint;
-
-	if (obj40_read_ext(place, SDEXT_LW_ID, &lw_hint))
-		return INVAL_PID;
-
-	/* FIXME-UMKA: Here also should beq discovering the stat data extentions
-	   in order to try find not standard file plugin first. Then if it is
-	   not found, detect it by mode field in sdext_lw extention. */
-	
-	if (S_ISLNK(lw_hint.mode))
-		return OBJECT_SYMLINK40_ID;
-	else if (S_ISREG(lw_hint.mode))
-		return OBJECT_FILE40_ID;
-	else if (S_ISDIR(lw_hint.mode))
-		return OBJECT_DIRTORY40_ID;
-#ifndef ENABLE_STAND_ALONE	
-	else if (S_ISCHR(lw_hint.mode))
-		return OBJECT_SPECIAL40_ID;
-	else if (S_ISBLK(lw_hint.mode))
-		return OBJECT_SPECIAL40_ID;
-	else if (S_ISFIFO(lw_hint.mode))
-		return OBJECT_SPECIAL40_ID;
-	else if (S_ISSOCK(lw_hint.mode))
-		return OBJECT_SPECIAL40_ID;
-#endif
-
-	return INVAL_PID;
+	return plug_call(place->plug->o.item_ops,
+			 object_plug, place);
 }
 
 /*
@@ -292,9 +267,9 @@ errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 	aal_assert("umka-1756", plug != NULL);
 	aal_assert("umka-1757", info != NULL);
 
-	obj->info = *info;
 	obj->core = core;
 	obj->plug = plug;
+	obj->info = *info;
 
 	if (info->object.plug) {
 		plug_call(info->object.plug->o.key_ops,

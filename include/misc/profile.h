@@ -10,6 +10,5 @@
 #include <reiser4/types.h>
 
 extern void misc_profile_print(void);
-extern reiser4_profile_t *misc_profile_default(void);
 extern errno_t misc_profile_override(char *override);
 #endif

@@ -354,11 +354,6 @@ struct reiser4_fs {
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_object_t *root;
 
-	/* Default profile. All plugin ids which cannot be obtained anywhere
-	   (for instance, in parent node or directory) will be taken from this
-	   profile.*/
-	reiser4_profile_t *profile;
-
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;
@@ -369,7 +364,6 @@ struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
 	char uuid[17], label[17];
-	reiser4_profile_t *profile;
 };
 
 typedef struct fs_hint fs_hint_t;

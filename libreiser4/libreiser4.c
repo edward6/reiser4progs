@@ -16,7 +16,7 @@ static reiser4_plug_t *factory_ifind(
 	rid_t type,		    /* needed type of plugin*/
 	rid_t id)		    /* needed plugin id */
 {
-	return libreiser4_factory_ifind(type, id);
+	return reiser4_factory_ifind(type, id);
 }
 
 /* Handler for plugin lookup requests from all plugins */
@@ -25,13 +25,13 @@ static reiser4_plug_t *factory_pfind(
 	rid_t id,                   /* needed id of plugin */
 	key_policy_t policy)        /* needed key policy */
 {
-	return libreiser4_factory_pfind(type, id, policy);
+	return reiser4_factory_pfind(type, id, policy);
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Handler for plugin finding requests from all plugins */
 static reiser4_plug_t *factory_nfind(char *name) {
-	return libreiser4_factory_nfind(name);
+	return reiser4_factory_nfind(name);
 }
 
 /* Handler for item insert requests from the all plugins */
@@ -197,20 +197,9 @@ static uint32_t tree_maxspace(void *tree) {
 	return reiser4_node_maxspace(root);
 }
 
-static uint64_t tree_profile(void *t, char *entry) {
-	reiser4_tree_t *tree = (reiser4_tree_t *)t;
-	
-	aal_assert("vpf-1201", tree != NULL);
-	aal_assert("vpf-1202", entry != NULL);
-	aal_assert("vpf-1203", tree->fs != NULL);
-	
-	if (tree->fs->profile == NULL)
-		return INVAL_PID;
-	
-	return reiser4_profile_value(tree->fs->profile, entry);
-}
-
-static errno_t tree_ukey(void *tree, place_t *place, key_entity_t *key) {
+static errno_t tree_ukey(void *tree, place_t *place,
+			 key_entity_t *key)
+{
 	aal_assert("vpf-1219", tree != NULL);
 	aal_assert("vpf-1206", place != NULL);
 	aal_assert("vpf-1207", key != NULL);
@@ -224,6 +213,11 @@ static char *key_print(key_entity_t *key, uint16_t options) {
 	return reiser4_print_key((reiser4_key_t *)key, options);
 }
 #endif
+
+static uint64_t profile_value(char *name) {
+	aal_assert("vpf-1202", name != NULL);
+	return reiser4_profile_value(name);
+}
 
 #ifdef ENABLE_SYMLINKS
 static errno_t object_resolve(void *tree, place_t *place, char *filename,
@@ -292,9 +286,6 @@ reiser4_core_t core = {
 		.maxspace   = tree_maxspace,
 		.blksize    = tree_blksize,
 
-		/* Get the default plugin id. */
-		.profile    = tree_profile,
-
 		/* Update the key in the place and the node itsef. */
 		.ukey       = tree_ukey,
 
@@ -325,8 +316,11 @@ reiser4_core_t core = {
 #ifndef ENABLE_STAND_ALONE
 	.key_ops = {
 		.print = key_print
-	}
+	},
 #endif
+	.profile_ops = {
+		.value = profile_value
+	}
 };
 
 /* Returns libreiser4 max supported interface version */
@@ -354,7 +348,7 @@ errno_t libreiser4_init(void) {
 	}
 #endif
     
-	if (libreiser4_factory_init()) {
+	if (reiser4_factory_init()) {
 		aal_exception_fatal("Can't initialize plugin factory.");
 		goto error_free_print;
 	}
@@ -370,7 +364,7 @@ errno_t libreiser4_init(void) {
 
 /* Finalizes libreiser4 */
 void libreiser4_fini(void) {
-	libreiser4_factory_fini();
+	reiser4_factory_fini();
 	
 #ifndef ENABLE_STAND_ALONE
 	reiser4_print_init();

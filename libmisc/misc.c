@@ -163,6 +163,6 @@ static errno_t callback_print_plug(reiser4_plug_t *plug, void *data) {
 
 void misc_plugins_print(void) {
 	printf("Known plugins:\n");
-	libreiser4_factory_foreach(callback_print_plug, NULL);
+	reiser4_factory_foreach(callback_print_plug, NULL);
 	printf("\n");
 }

@@ -56,31 +56,11 @@ errno_t reiser4_item_print(
 					      stream, 0);
 }
 
-bool_t reiser4_item_filebody(reiser4_place_t *place) {
-	int type;
-	
-	aal_assert("umka-1098", place != NULL);
-
-	type = reiser4_key_get_type(&place->key);
-	return type == KEY_FILEBODY_TYPE;
-}
-
 bool_t reiser4_item_statdata(reiser4_place_t *place) {
-	int type;
-	
 	aal_assert("umka-1831", place != NULL);
+	aal_assert("umka-2382", place->plug != NULL);
 
-	type = reiser4_key_get_type(&place->key);
-	return type == KEY_STATDATA_TYPE;
-}
-
-bool_t reiser4_item_filename(reiser4_place_t *place) {
-	int type;
-	
-	aal_assert("umka-1830", place != NULL);
-
-	type = reiser4_key_get_type(&place->key);
-	return type == KEY_FILENAME_TYPE;
+	return place->plug->id.group == STATDATA_ITEM;
 }
 
 /* Returns item type from its plugin */

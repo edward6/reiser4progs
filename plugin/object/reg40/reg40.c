@@ -77,9 +77,21 @@ static lookup_t reg40_next(reg40_t *reg) {
 /* Resets file position. That is it searches first body item and sets file's
    offset to zero. */
 errno_t reg40_reset(object_entity_t *entity) {
+	reg40_t *reg;
+	key_entity_t *key;
+	
 	aal_assert("umka-1963", entity != NULL);
 
-	((reg40_t *)entity)->offset = 0;
+	reg = (reg40_t *)entity;
+	key = &reg->body.key;
+	
+	reg->offset = 0;
+
+	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops, build_gener,
+		  key, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
+		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
+		  reg->offset);
+	
 	return 0;
 }
 
@@ -221,9 +233,15 @@ errno_t reg40_create_stat(obj40_t *obj, rid_t pid) {
 
 	stat_hint.type_specific = &stat;
 
-	if (obj40_lookup(obj, &stat_hint.key, LEAF_LEVEL, 
-			 STAT_PLACE(obj)) != ABSENT)
+	switch (obj40_lookup(obj, &stat_hint.key,
+			     LEAF_LEVEL, STAT_PLACE(obj)))
+	{
+	case FAILED:
+	case PRESENT:
 		return -EINVAL;
+	default:
+		break;
+	}
 	
 	/* Insert statdata item into the tree */
 	return obj40_insert(obj, &stat_hint, LEAF_LEVEL, STAT_PLACE(obj));
@@ -265,12 +283,14 @@ static object_entity_t *reg40_create(object_info_t *info,
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
 	if (reg40_create_stat(&reg->obj, hint->statdata))
-	    goto error_free_reg;
+		goto error_free_reg;
 
 	aal_memcpy(&info->start, STAT_PLACE(&reg->obj),
 		   sizeof(info->start));
 	
 	reg->bplug = reg40_bplug((object_entity_t *)reg, 0);
+
+	reg40_reset((object_entity_t *)reg);
 	return (object_entity_t *)reg;
 
  error_free_reg:
@@ -703,8 +723,10 @@ static errno_t reg40_layout(object_entity_t *entity,
 	if ((size = reg40_size(entity)) == 0)
 		return 0;
 
+	/* As we can have no a body in regulat files, we return zero instead of
+	   some error. */
 	if (obj40_update(&reg->obj, &reg->body))
-		return -EINVAL;
+		return 0;
 
 	hint.data = data;
 	hint.entity = entity;

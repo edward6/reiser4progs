@@ -129,7 +129,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		{0, 0, 0, 0}
 	};
 
-	data->profile = misc_profile_default();
+	data->profile = &default_profile;
 	misc_exception_set_stream(EXCEPTION_FATAL, stderr);
 	data->logfile = stderr;
 
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "***** Openning the fs.\n");
 	if (repair_fs_open(&repair, parse_data.host_device,
-			   parse_data.host_device, parse_data.profile))
+			   parse_data.host_device))
 	{
 		exit_code = OPER_ERROR;	
 		goto free_libreiser4;

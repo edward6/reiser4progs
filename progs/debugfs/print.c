@@ -89,9 +89,8 @@ errno_t debugfs_print_block(
 	}
 	
 	device = fs->device;
-
+	pid = reiser4_profile_value("node");
 	blksize = reiser4_master_blksize(fs->master);
-	pid = reiser4_profile_value(fs->profile, "node");
 	
 	if (!(node = reiser4_node_open(device, blksize, blk,
 				       fs->tree->key.plug, pid)))

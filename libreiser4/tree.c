@@ -228,7 +228,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		blksize = reiser4_master_blksize(tree->fs->master);
 
 #ifndef ENABLE_STAND_ALONE
-		pid = reiser4_profile_value(tree->fs->profile, "node");
+		pid = reiser4_profile_value("node");
 #else
 		pid = reiser4_format_node_pid(tree->fs->format);
 #endif
@@ -405,8 +405,8 @@ reiser4_node_t *reiser4_tree_alloc(
 	reiser4_format_set_free(tree->fs->format, free - 1);
 
 	fake_blk = reiser4_fake_get();
+	pid = reiser4_profile_value("node");
 	blksize = reiser4_master_blksize(tree->fs->master);
-	pid = reiser4_profile_value(tree->fs->profile, "node");
 
 	/* Creating new node */
 	if (!(node = reiser4_node_create(tree->fs->device, blksize,
@@ -473,14 +473,14 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	aal_assert("umka-1092", tree->fs->oid != NULL);
 
 #ifndef ENABLE_STAND_ALONE
-	pid = reiser4_profile_value(tree->fs->profile, "key");
+	pid = reiser4_profile_value("key");
 #else
 	pid = reiser4_format_key_pid(tree->fs->format);
 #endif
 
 	/* Finding needed key plugin by its identifier */
-	if (!(tree->key.plug = libreiser4_factory_ifind(KEY_PLUG_TYPE,
-							pid)))
+	if (!(tree->key.plug = reiser4_factory_ifind(KEY_PLUG_TYPE,
+						     pid)))
 	{
 		aal_exception_error("Can't find key plugin by its id "
 				    "0x%x.", pid);
@@ -951,10 +951,10 @@ errno_t reiser4_tree_attach(
 	hint.type_specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);
-	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
+	pid = reiser4_profile_value("nodeptr");
 
-	if (!(hint.plug = libreiser4_factory_ifind(ITEM_PLUG_TYPE,
-						   pid)))
+	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE,
+						pid)))
 	{
 		aal_exception_error("Can't find item plugin by "
 				    "its id 0x%x.", pid);
