@@ -1,4 +1,4 @@
-/* Copyright (C) 2003 by Hans Reiser, licensing governed by
+/* Copyright (C) 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
    gauge.c -- gauges for fsck.reiser4. */

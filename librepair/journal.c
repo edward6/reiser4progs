@@ -1,4 +1,4 @@
-/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+/* Copyright 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by 
    reiser4progs/COPYING.
    
    librepair/journal.c - methods are needed for the work with broken reiser4

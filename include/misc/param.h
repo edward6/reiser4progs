@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+/* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
    param.h -- methods for working with params reiser4

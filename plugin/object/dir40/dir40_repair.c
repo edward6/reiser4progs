@@ -1,4 +1,4 @@
-/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+/* Copyright 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
    dir40_repair.c -- reiser4 default directory file plugin repair code. */
