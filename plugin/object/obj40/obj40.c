@@ -76,7 +76,7 @@ errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint) {
 	
 	aal_assert("umka-2553", obj != NULL);
 
-	/* Preparing hint and mask */
+	/* Preparing hint and mask. */
 	trans.specific = hint;
 	
 	/* Calling statdata fetch method. */

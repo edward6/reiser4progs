@@ -10,7 +10,7 @@
 
 reiser4_core_t *sym40_core = NULL;
 
-/* Opens symlink and returns initialized instance to the caller */
+/* Opens symlink and returns initialized instance to caller. */
 object_entity_t *sym40_open(object_info_t *info) {
 	sym40_t *sym;
 
@@ -43,21 +43,23 @@ object_entity_t *sym40_open(object_info_t *info) {
 	return NULL;
 }
 
-/* Reads @n bytes to passed buffer @buff */
+/* Reads whole symlink data to passed @buff. */
 static int64_t sym40_read(object_entity_t *entity, 
 			  void *buff, uint64_t n)
 {
-	sym40_t *sym;
 	errno_t res;
+	sym40_t *sym;
 
 	aal_assert("umka-1571", buff != NULL);
 	aal_assert("umka-1570", entity != NULL);
 
 	sym = (sym40_t *)entity;
 
+	/* Update stat data coord. */
 	if ((res = obj40_update(&sym->obj)))
 		return res;
-	
+
+	/* Reading symlink extention data. */
 	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
 				  SDEXT_SYMLINK_ID, buff)))
 	{
@@ -96,14 +98,16 @@ static object_entity_t *sym40_create(object_info_t *info,
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 	
-	/* Inizializes file handle */
+	/* Inizializes symlink file handle. */
 	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 
+	/* Initializing stat data extentions mask */
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
 		1 << SDEXT_SYMLINK_ID);
 
 	len = aal_strlen(hint->body.sym);
-	
+
+	/* Create symlink sta data item. */
 	if (obj40_create_stat(&sym->obj, hint->label.statdata, mask,
 			      len, len, 0, 0, S_IFLNK, hint->body.sym))
 	{
@@ -121,11 +125,13 @@ static object_entity_t *sym40_create(object_info_t *info,
 	return NULL;
 }
 
+/* Clober symlink, that is clobber its stat data. */
 static errno_t sym40_clobber(object_entity_t *entity) {
 	aal_assert("umka-2300", entity != NULL);
 	return obj40_clobber(&((sym40_t *)entity)->obj);
 }
 
+/* Return number of hard links. */
 static uint32_t sym40_links(object_entity_t *entity) {
 	sym40_t *sym;
 	
@@ -135,6 +141,7 @@ static uint32_t sym40_links(object_entity_t *entity) {
 	return obj40_links(&sym->obj);
 }
 
+/* Add one hard link. */
 static errno_t sym40_link(object_entity_t *entity) {
 	sym40_t *sym;
 	
@@ -144,6 +151,7 @@ static errno_t sym40_link(object_entity_t *entity) {
 	return obj40_link(&sym->obj);
 }
 
+/* Remove one hard link. */
 static errno_t sym40_unlink(object_entity_t *entity) {
 	sym40_t *sym;
 	
@@ -153,7 +161,7 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 	return obj40_unlink(&sym->obj);
 }
 
-/* Calls function @func for each symlink item (statdata only) */
+/* Calls function @place_func for each symlink item (statdata only) */
 static errno_t sym40_metadata(object_entity_t *entity,
 			      place_func_t place_func,
 			      void *data)
@@ -181,9 +189,10 @@ static errno_t sym40_update(object_entity_t *entity,
 }
 #endif
 
-/* This function reads symlink and parses it by means of using aux_parse_path
+/* This function reads symlink, parses it by means of using aux_parse_path()
    with applying corresponding callback fucntions for searching stat data and
-   searchig entry. It returns stat data key of the object symlink points to. */
+   searchig all entries. It returns stat data key of the object symlink points
+   to. */
 static errno_t sym40_follow(object_entity_t *entity,
 			    key_entity_t *from,
 			    key_entity_t *key)
@@ -197,12 +206,13 @@ static errno_t sym40_follow(object_entity_t *entity,
 	aal_assert("umka-1774", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	
+
+	/* Read symlink data to @path */
 	if ((res = sym40_read(entity, path, sizeof(path)) < 0))
 		return res;
 
+	/* Calling symlink parse function and resolution function. */
 	return sym->obj.core->object_ops.resolve(sym->obj.info.tree,
-						 STAT_PLACE(&sym->obj),
 						 path, from, key);
 }
 
@@ -213,6 +223,7 @@ static void sym40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
+/* Symlinks operations. */
 static reiser4_object_ops_t sym40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.create	        = sym40_create,
@@ -254,6 +265,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.follow         = sym40_follow
 };
 
+/* Symlink plugin itself. */
 reiser4_plug_t sym40_plug = {
 	.cl    = CLASS_INIT,
 	.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},

@@ -21,6 +21,7 @@ extern "C" {
 #include <reiser4/tree.h>
 #include <reiser4/node.h>
 #include <reiser4/key.h>
+#include <reiser4/semantic.h>
 #include <reiser4/object.h>
 #include <reiser4/place.h>
 #include <reiser4/master.h>

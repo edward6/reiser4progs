@@ -22,12 +22,11 @@ extern int64_t reiser4_object_read(reiser4_object_t *object,
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
-extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
-					     char *filename,
-					     bool_t follow);
-
 extern errno_t reiser4_object_resolve(reiser4_object_t *object,
-				      char *filename, bool_t follow);
+				      char *path, bool_t follow);
+
+extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
+					     char *path, bool_t follow);
 
 extern reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree, 
 					      reiser4_object_t *parent,	

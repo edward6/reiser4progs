@@ -1440,8 +1440,8 @@ typedef struct factory_ops factory_ops_t;
 
 #ifdef ENABLE_SYMLINKS
 struct object_ops {
-	errno_t (*resolve) (void *, place_t *, char *,
-			    key_entity_t *, key_entity_t *);
+	errno_t (*resolve) (void *, char *, key_entity_t *,
+			    key_entity_t *);
 };
 
 typedef struct object_ops object_ops_t;

@@ -186,9 +186,6 @@ struct reiser4_object {
 	   into the objects of our library for their own use. */
 	void *data;
 #endif
-
-	/* Should be symlinks resolved or not. */
-	bool_t follow;
 };
 
 typedef struct reiser4_object reiser4_object_t;

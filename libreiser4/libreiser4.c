@@ -178,33 +178,26 @@ static uint64_t param_value(char *name) {
 #endif
 
 #ifdef ENABLE_SYMLINKS
-static errno_t object_resolve(void *tree, place_t *place, char *filename,
-			      key_entity_t *from, key_entity_t *key)
+static errno_t object_resolve(void *tree, char *path,
+			      key_entity_t *from,
+			      key_entity_t *key)
 {
-	errno_t res;
 	reiser4_tree_t *t;
-	reiser4_place_t *p;
-	reiser4_object_t *o;
+	object_entity_t *o;
 	
 	t = (reiser4_tree_t *)tree;
-	p = (reiser4_place_t *)place;
 
-	if (!(o = reiser4_object_realize(t, NULL, p)))
+	/* Resolving symlink path. */
+	if (!(o = reiser4_semantic_resolve(t, path, from, TRUE)))
 		return -EINVAL;
 
-	/* Setting up the key resolve will start from */
-	reiser4_key_assign(&o->entity->info.object, from);
+	/* Save object stat data key to passed @key. */
+	reiser4_key_assign(key, &o->info.object);
 
-	/* Resolving symlink */
-	if ((res = reiser4_object_resolve(o, filename, TRUE)))
-		goto error_free_object;
+	/* Close found object. */
+	plug_call(o->plug->o.object_ops, close, o);
 
-	/* Assigning found key to passed @key */
-	reiser4_key_assign(key, &o->entity->info.object);
-
- error_free_object:
-	reiser4_object_close(o);
-	return res;
+	return 0;
 }
 #endif
 
