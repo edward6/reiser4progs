@@ -531,6 +531,24 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	return reiser4_format_get_root(tree->fs->format);
 }
 
+#ifndef ENABLE_STAND_ALONE
+static uint32_t callback_hash_func(const void *k) {
+	return 0;
+}
+
+static int callback_comp_func(const void *k1,
+			      const void *k2,
+			      void *data)
+{
+	reiser4_key_t *key1, *key2;
+
+	key1 = (reiser4_key_t *)k1;
+	key2 = (reiser4_key_t *)k2;
+	
+	return reiser4_key_compare(key1, key2);
+}
+#endif
+
 /* Opens the tree (that is, the tree cache) on specified filesystem */
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 				  mpc_func_t mpc_func)
@@ -547,11 +565,19 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 	tree->fs->tree = tree;
 	tree->mpc_func = mpc_func;
 
+#ifndef ENABLE_STAND_ALONE
+	if (!(tree->data = aal_hash_table_alloc(callback_hash_func,
+						callback_comp_func)))
+	{
+		goto error_free_tree;
+	}
+#endif
+
 	/* Building the tree root key */
 	if (reiser4_tree_key(tree)) {
 		aal_exception_error("Can't build the tree "
 				    "root key.");
-		goto error_free_tree;
+		goto error_free_data;
 	}
     
 #ifndef ENABLE_STAND_ALONE
@@ -561,6 +587,10 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 		
 	return tree;
 
+ error_free_data:
+#ifndef ENABLE_STAND_ALONE
+	aal_hash_table_free(tree->data);
+#endif
  error_free_tree:
 	aal_free(tree);
 	return NULL;
@@ -576,6 +606,11 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 #endif
 	
 	tree->fs->tree = NULL;
+	
+#ifndef ENABLE_STAND_ALONE
+	/* Freeing tree data (extents) */
+	aal_hash_table_free(tree->data);
+#endif
 	
 	/* Freeing the tree */
 	aal_free(tree);
