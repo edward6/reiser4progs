@@ -2457,7 +2457,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	}
 
 	/* Handling the case when tree is empty (just after tree is initialized
-	 * by tree_init() function). */
+	   by tree_init() function). */
 	if (!reiser4_tree_fresh(tree)) {
 		old = *place;
 		
@@ -2520,16 +2520,15 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		}
 		
 		/* Check is we have spece at all. */
-		if (!(hint->len = hint->count = space)) {
+		if (!(hint->len = hint->count = space))
 			return -ENOSPC;
-		}
 	}
 
 	/* Making yet another estimate if insert mode is changed after making
 	   space. That is if we wanted to insert new unit into existent item,
 	   but insert point was moved to new empty node and thus, we need to
 	   insert new item. As item may has an overhead like directory one has,
-	   we should to take it into acount. */
+	   we should take it to acount. */
 	if (mode != (place->pos.unit == MAX_UINT32)) {
 		if ((res = estimate_func(place, hint)))
 			return res;
@@ -2640,7 +2639,6 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 	if (reiser4_place_leftmost(place) &&
 	    place->node->p.node)
 	{
-
 		/* If node became empty it will be detached from the tree, so
 		   updating is not needed and impossible, because it has no
 		   items. */

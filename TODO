@@ -3,6 +3,14 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* implement tree_pack() function, which will pack treeon leaf level in
+  order to make it well packed and thus occupied less nodes on device. 
+  This is needed for using less space and especially important in fsck
+  when tail <--> extent convertion is running.
+
+* return back node40 function for fusing two mergeable items if
+  they both lie in the same node.
+
 * implement key collisions working code in tree_lookup().
 
 * remove one of reiser4_key_t and key_entity_t.
