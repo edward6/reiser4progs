@@ -16,6 +16,7 @@ aal_gauge_t *current_gauge = NULL;
 
 static int misc_gauge_time(aal_gauge_time_t *time) {
 	struct timeval t;
+	uint64_t delta;
 	uint64_t usec;
 	
 	if (!time->gap) 
@@ -23,16 +24,25 @@ static int misc_gauge_time(aal_gauge_time_t *time) {
 	
 	gettimeofday(&t, NULL);
 
-	usec = ((uint64_t)t.tv_sec * 1000000 + t.tv_usec) / 1000;
+	usec = t.tv_usec / 1000;
 	
-	if (usec < time->shown || 
-	    usec > time->shown + time->gap) 
-	{
-		time->shown = usec;
-		return 1;
-	}
+	if ((uint64_t)t.tv_sec < time->sec)
+		goto next;
+	
+	if (((uint64_t)t.tv_sec == time->sec) && (usec < time->misec))
+		goto next;
+
+	delta = (t.tv_sec  - time->sec) * 1000 + (usec - time->misec);
+	
+	if (delta > time->gap) 
+		goto next;
 	
 	return 0;
+	
+ next:
+	time->sec = t.tv_sec;
+	time->misec = usec;
+	return 1;
 }
 
 static inline void misc_gauge_blit(void) {
@@ -50,7 +60,9 @@ void misc_progress_handler(aal_gauge_t *gauge) {
 
 	setlinebuf(stderr);
 
-	if (gauge->state == GS_ACTIVE) {
+	if (gauge->state == GS_ACTIVE ||
+	    gauge->state == GS_RESUME)
+	{
 		/* Show gauge once per rate->time.interval. */
 		if (!misc_gauge_time(&gauge->time))
 			return;

@@ -495,6 +495,8 @@ static errno_t cb_tree_scan(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-1171", place != NULL);
 	aal_assert("vpf-1037", sem != NULL);
 	
+	aal_gauge_touch(sem->gauge);
+
 	/* Objects w/out SD get recovered only when reached from the parent. */
 	if (!reiser4_item_statdata(place))
 		return 0;

@@ -160,7 +160,7 @@ aal_exception_option_t misc_exception_handler(
 	if ((tty = fileno(stream)) == -1)
 		return EXCEPTION_OPT_UNHANDLED;
 
-	if (current_gauge)
+	if (current_gauge && stream == stderr)
 		aal_gauge_pause(current_gauge);
 	else {
 		if (isatty(tty))
