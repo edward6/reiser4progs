@@ -289,7 +289,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	   matches the given @parent, otherwise try to get the pointed parent
 	   and its parent and so on and traverse that subtree also. */
 	if (!repair_item_test_flag(start, OF_ATTACHED) && 
-	    object->info.parent.plugin &&
+	    object->info.parent.plug && 
 	    reiser4_key_compare(&object->info.parent, &parent->info.object))
 	{
 		/* The object has not been ATTACHED yet [ a) was just checked;
