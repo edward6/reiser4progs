@@ -50,7 +50,7 @@ extern void reiser4_tree_pack_off(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_grow(reiser4_tree_t *tree);
-extern errno_t reiser4_tree_dryup(reiser4_tree_t *tree);
+extern errno_t reiser4_tree_dryout(reiser4_tree_t *tree);
 
 extern errno_t reiser4_tree_attach(reiser4_tree_t *tree,
 				   reiser4_node_t *node);

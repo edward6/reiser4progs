@@ -741,7 +741,7 @@ static int32_t direntry40_shrink(item_entity_t *item,
 		aal_memmove(dst, src, after);
 
 		/* Setting up entry offsets */
-		for (i = pos; i < units - (pos + count); i++) {
+		for (i = pos; i < units - count; i++) {
 			entry = direntry40_entry(direntry, i);
 			en40_dec_offset(entry, (headers + remove));
 		}

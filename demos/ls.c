@@ -103,13 +103,13 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
+	reiser4_file_remove(dir, "testdir0");
+	
 	if (reiser4_file_reset(dir)) {
 		aal_exception_error("Can't rewind dir %s.", argv[2]);
 		goto error_free_dir;
 	}
     
-	reiser4_file_remove(dir, "testdir0");
-	
 	while (reiser4_file_read(dir, (void *)&entry, 1)) {
 		aal_stream_t stream;
 		aal_stream_init(&stream);

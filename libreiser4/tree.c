@@ -74,41 +74,6 @@ static lru_ops_t lru_ops = {
 	.set_prev = callback_set_prev
 };
 
-/*
-  Updates key at passed @place by passed @key by means of using
-  reiser4_node_ukey functions in recursive maner.
-*/
-errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
-			  reiser4_place_t *place,
-			  reiser4_key_t *key)
-{
-	aal_assert("umka-1892", tree != NULL);
-	aal_assert("umka-1893", place != NULL);
-	aal_assert("umka-1894", key != NULL);
-
-	/* Getting into recursion if we should update leftmost key */
-	if (reiser4_place_leftmost(place)) {
-		
-		if (place->node->parent) {
-			reiser4_place_t p;
-
-			reiser4_place_init(&p, place->node->parent,
-					   &place->pos);
-			
-			if (reiser4_node_pos(place->node, &p.pos))
-				return -1;
-	    
-			if (reiser4_tree_ukey(tree, &p, key))
-				return -1;
-		}
-	}
-
-	if (reiser4_node_ukey(place->node, &place->pos, key))
-		return -1;
-
-	return 0;
-}
-
 /* Loads denoted by passed nodeptr @place child node */
 reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 				   reiser4_place_t *place)
@@ -726,6 +691,52 @@ lookup_t reiser4_tree_lookup(
 #ifndef ENABLE_ALONE
 
 /*
+  Returns TRUE if passed @tree has minimal possible height nd thus cannot be
+  dried out.
+*/
+static inline bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {
+	if (reiser4_tree_height(tree) <= 2)
+		return TRUE;
+
+	return FALSE;
+}
+
+/*
+  Updates key at passed @place by passed @key by means of using
+  reiser4_node_ukey functions in recursive maner.
+*/
+errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
+			  reiser4_place_t *place,
+			  reiser4_key_t *key)
+{
+	aal_assert("umka-1892", tree != NULL);
+	aal_assert("umka-1893", place != NULL);
+	aal_assert("umka-1894", key != NULL);
+
+	/* Getting into recursion if we should update leftmost key */
+	if (reiser4_place_leftmost(place)) {
+		
+		if (place->node->parent) {
+			reiser4_place_t p;
+
+			reiser4_place_init(&p, place->node->parent,
+					   &place->pos);
+			
+			if (reiser4_node_pos(place->node, &p.pos))
+				return -1;
+	    
+			if (reiser4_tree_ukey(tree, &p, key))
+				return -1;
+		}
+	}
+
+	if (reiser4_node_ukey(place->node, &place->pos, key))
+		return -1;
+
+	return 0;
+}
+
+/*
   This function inserts new nodeptr item to the tree and in such way it attaches
   passed @node to it. It also connects passed @node into tree cache.
 */
@@ -916,7 +927,7 @@ errno_t reiser4_tree_grow(
 }
 
 /* Decreases tree height by one level */
-errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
+errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	uint32_t height;
 	reiser4_place_t place;
 	reiser4_node_t *old_root;
@@ -939,7 +950,7 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 	if (!(old_root = tree->root))
 		return -1;
 
-	/* Check if we can dry tree safely */
+	/* Check if we can dry tree out safely */
 	if (reiser4_node_items(old_root) > 1)
 		return -1;
 
@@ -948,7 +959,7 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 
 	if (!(tree->root = reiser4_tree_child(tree, &place))) {
 		aal_exception_error("Can't load new root durring "
-				    "dryup the tree");
+				    "drying tree out.");
 		return -1;
 	}
 
@@ -1222,8 +1233,8 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	}
 
 	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1) {
-		if (reiser4_tree_dryup(tree))
+	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+		if (reiser4_tree_dryout(tree))
 			return -1;
 	}
 
@@ -1647,8 +1658,8 @@ errno_t reiser4_tree_cut(
 	}
 
 	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1) {
-		if (reiser4_tree_dryup(tree))
+	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+		if (reiser4_tree_dryout(tree))
 			return -1;
 	}
 
@@ -1762,8 +1773,8 @@ errno_t reiser4_tree_remove(
 	}
 
 	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1) {
-		if (reiser4_tree_dryup(tree))
+	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+		if (reiser4_tree_dryout(tree))
 			return -1;
 	}
 	
