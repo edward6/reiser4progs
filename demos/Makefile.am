@@ -1,16 +1,6 @@
-noinst_PROGRAMS = ls cat
+noinst_PROGRAMS = cat
 
 INCLUDES	= -I$(top_srcdir)/include
-
-ls_SOURCES	= ls.c
-
-ls_LDFLAGS      = @PROGS_LDFLAGS@
-
-ls_CFLAGS	= @GENERIC_CFLAGS@
-
-ls_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
-	          $(top_builddir)/libmisc/libmisc.la \
-		  $(PROGS_LIBS)
 
 cat_SOURCES	= cat.c
 

@@ -562,19 +562,7 @@ struct object_info {
 };
 
 typedef struct object_info object_info_t;
-
-/* Object plugin entity. */
-/*
-struct object_entity {
-	object_info_t info;
-	reiser4_plug_t *plug;
-};
-
-typedef struct object_entity object_entity_t;
-*/
-
 typedef object_info_t object_entity_t;
-
 
 
 /* Object hint. It is used to bring all about object information to object

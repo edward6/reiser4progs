@@ -483,7 +483,7 @@ void extent40_print(reiser4_place_t *place, aal_stream_t *stream,
 	extent = extent40_body(place);
 	count = extent40_units(place);
 
-	aal_stream_format(stream, "UNITS=%u\n[", count);
+	aal_stream_format(stream, "UNITS=%u [", count);
 		
 	for (i = 0; i < count; i++) {
 		aal_stream_format(stream, "%llu(%llu)%s",

@@ -67,7 +67,7 @@ void bbox40_print(reiser4_place_t *place, aal_stream_t *stream,
 	aal_memcpy(&key, &place->key, sizeof(key));
 	aal_memcpy(&key.body, place->body, size);
 
-	aal_stream_format(stream, "UNITS=1\n    %s  %s",
+	aal_stream_format(stream, "    %s  %s",
 			  print_key(bbox40_core, &key),
 			  reiser4_slink_name[type]);
 	
