@@ -40,11 +40,11 @@ extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_lshift(reiser4_tree_t *tree, 
     reiser4_coord_t *old, reiser4_coord_t *new, 
-    uint32_t needed, int allocate);
+    uint32_t needed);
 
 extern errno_t reiser4_tree_rshift(reiser4_tree_t *tree, 
     reiser4_coord_t *old, reiser4_coord_t *new, 
-    uint32_t needed, int allocate);
+    uint32_t needed);
 
 #endif
 

@@ -61,9 +61,6 @@
 /* Define if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define if you have the `uuid' library (-luuid). */
-#undef HAVE_LIBUUID
-
 /* Define if your system has a working `malloc' function. */
 #undef HAVE_MALLOC
 

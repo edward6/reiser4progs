@@ -504,314 +504,171 @@ error_free_cache:
     return -1;
 }
 
-/* Pefroms left shifting of items */
-errno_t reiser4_tree_lshift(
-    reiser4_tree_t *tree,	    /* tree pointer function operates on */
-    reiser4_coord_t *old,	    /* old coord of insertion point */
-    reiser4_coord_t *new,	    /* new coord will be stored here */
-    uint32_t needed,		    /* amount of space that should be freed */
-    int allocate		    /* to do allocation of new blocks or not */
-) {
-    reiser4_cache_t *left;
-    reiser4_cache_t *parent;
+#define LEFT	(0)
+#define RIGHT	(1)
+
+static errno_t reiser4_tree_shift(reiser4_tree_t *tree, int direction, 
+    reiser4_coord_t *coord, reiser4_cache_t *cache, int mip) 
+{
+    uint32_t overhead;
+    reiser4_item_t item;
     
+    reiser4_coord_t old;
     reiser4_coord_t src, dst;
-
-    uint32_t item_len;
-    uint32_t item_overhead;
-
-    aal_assert("umka-759", old != NULL, return -1);
-    aal_assert("umka-766", new != NULL, return -1);
-    aal_assert("umka-929", tree != NULL, return -1);
-
-    *new = *old;
     
-    /* Checking for the root node which has not parent and has not any neighbours */
-    if (needed == 0) return 0;
+    aal_assert("umka-1225", tree != NULL, return -1);
+    aal_assert("umka-1226", coord != NULL, return -1);
+    aal_assert("umka-1227", cache != NULL, return -1);
+
+    old = *coord;
     
-    /* 
-	Checking both neighbours and loading them if needed in order to perform
-	the shifting of items from target node into neighbours.
-    */
-    if (reiser4_cache_raise(old->cache)) {
-	aal_exception_error("Can't raise up neighbours of node %llu.", 
-	    aal_block_number(old->cache->node->block));
-	return -1;
-    }
-
-    if (!(left = old->cache->left))
-	return 0;
-
-    item_overhead = reiser4_node_overhead(old->cache->node);
-    
-    /* Trying to move items into the left neighbour */
-    if (reiser4_node_count(old->cache->node) > 0) {
-	uint32_t old_count;
-	reiser4_pos_t mpos;
-	reiser4_item_t item;
-
-	reiser4_pos_init(&mpos, 0, ~0ul);
-
-        /* Initializing item_len by length of the first item from shifted node */
-	if (reiser4_item_open(&item, old->cache->node, &mpos)) {
+    while (1) {
+	
+	if (direction == LEFT) {
+	    reiser4_coord_init(&src, old.cache, 0, ~0ul);
+	    reiser4_coord_init(&dst, cache, reiser4_node_count(cache->node), ~0ul);
+	} else {
+	    reiser4_coord_init(&src, old.cache, 
+		reiser4_node_count(old.cache->node) - 1, ~0ul);
+	    
+	    reiser4_coord_init(&dst, cache, 0, ~0ul);
+	}
+	
+	if (reiser4_item_open(&item, src.cache->node, &src.pos)) {
 	    aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
-		aal_block_number(old->cache->node->block), mpos.item);
+		aal_block_number(src.cache->node->block), src.pos.item);
 	    return -1;
 	}
 	
-	old_count = reiser4_node_count(old->cache->node);
-	item_len = reiser4_item_len(&item) + item_overhead;
+	overhead = reiser4_node_overhead(cache->node);
 	
-	/* Moving items until insertion point reach first position in node */
-	while (old_count > 0 && reiser4_node_space(new->cache->node) < needed) {
-	    if (allocate && (reiser4_node_space(left->node) < item_len ||
-		(new->cache == old->cache && new->pos.item == 0 &&
-		reiser4_node_space(left->node) - item_len < needed)))
-	    {
-		if (!(left = reiser4_tree_allocate(tree, left->level))) {
-		    aal_exception_error("Can't allocate new leaf node "
-			"durring left shift.");
-		    return -1;
-		}
-	    }
-	    
-	    /* Updating coord of new insertion point */
-	    if (new->cache == old->cache) {
-		if (new->pos.item == 0) {
-		    new->cache = left;
-		    new->pos.item = reiser4_node_count(left->node);
-		} else 
-		    new->pos.item--;
-	    } else
-	        new->pos.item--;
-	    
-	    /* Preparing coord for moving items */
-	    reiser4_coord_init(&src, old->cache, 0, ~0ul);
-	    
-	    reiser4_coord_init(&dst, left, 
-		reiser4_node_count(left->node), ~0ul);
-	    
-	    /* Moving item into left neighbor */
-	    if (reiser4_tree_move(tree, &dst, &src)) {
-	        aal_exception_error("Left shifting failed. Can't move item.");
-		return -1;
-	    }
-	    
-	    old->cache = src.cache;
+	if (reiser4_node_space(cache->node) < reiser4_item_len(&item) + overhead)
+	    return 0;
+	
+	if (reiser4_node_count(src.cache->node) == 1)
+	    return 0;
 
-	    if (!src.cache) break;
-	    
-	    if ((old_count = reiser4_node_count(old->cache->node)) > 0)
-		item_len = reiser4_item_len(&item) + item_overhead;
-	}
-	
-	if (!old->cache || left != old->cache->left) {
-	    if (old->cache && !old->cache->parent) {
-		/* 
-		    Tree growing is occured in the case insertion point hasn't
-		    parent.
-		*/
-		if (reiser4_tree_grow(tree, old->cache)) {
-		    aal_exception_error("Can't grow tree durring right shift.");
-		    return -1;
-		}
-	    }
-	    
-	    if (reiser4_tree_attach(tree, left)) {
-		aal_exception_error("Can't attach new left neighbour block to the tree "
-		    "durring left shift.");
-		return -1;
+	if (!mip) {
+	    if (direction == LEFT) {
+		if (coord->cache == old.cache && coord->pos.item == 0)
+		    return 0;
+	    } else {
+		if (coord->cache == old.cache && 
+			coord->pos.item == reiser4_node_count(coord->cache->node) - 1)
+		    return 0;
 	    }
 	}
-    }
-
-    return 0;
-}
-
-/* Performs shift of items into right neighbor */
-errno_t reiser4_tree_rshift(
-    reiser4_tree_t *tree,	    /* tree pointer function operates on */
-    reiser4_coord_t *old,	    /* old coord of insertion point */
-    reiser4_coord_t *new,	    /* new coord will be stored here */
-    uint32_t needed,		    /* amount of space that should be freed */
-    int allocate		    /* to do allocation of new blocks or not */
-) {
-    reiser4_cache_t *right;
-    reiser4_cache_t *parent;
-    reiser4_coord_t src, dst;
-
-    uint32_t item_len;
-    uint32_t item_overhead;
-
-    aal_assert("umka-759", old != NULL, return -1);
-    aal_assert("umka-766", new != NULL, return -1);
-    aal_assert("umka-929", tree != NULL, return -1);
-
-    *new = *old;
-    
-    /* Checking for the root node which has not parent and has not any neighbours */
-    if (needed == 0)
-	return 0;
-    
-    /* 
-	Checking both neighbours and loading them if needed in order to perform
-	the shifting of items from target node into neighbours.
-    */
-    if (reiser4_cache_raise(old->cache)) {
-	aal_exception_error("Can't raise up neighbours of node %llu.", 
-	    aal_block_number(old->cache->node->block));
-	return -1;
-    }
-
-    if (!(right = old->cache->right)) {
-
-	if (!allocate) return 0;
 	
-	if (!(right = reiser4_tree_allocate(tree, old->cache->level))) {
-	    aal_exception_error("Can't allocate new leaf node durring right shift.");
-	    return -1;
-	}
-    }
-    
-    item_overhead = reiser4_node_overhead(old->cache->node);
-    
-    /* Trying to move items into the right neighbour */
-    if (reiser4_node_count(old->cache->node) > 0) {
-	uint32_t old_count;
-	reiser4_pos_t mpos;
-	reiser4_item_t item;
-	
-	reiser4_pos_init(&mpos, 
-	    reiser4_node_count(old->cache->node) - 1, ~0ul);
-	
-	/* Initializing item in order to get its len, etc */
-	if (reiser4_item_open(&item, old->cache->node, &mpos)) {
-	    aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
-		aal_block_number(old->cache->node->block), mpos.item);
-	    return -1;
-	}
-	
-	old_count = reiser4_node_count(old->cache->node);
-	item_len = reiser4_item_len(&item) + item_overhead;
-	    
-	while (old_count > 0 && reiser4_node_space(new->cache->node) < needed) {
-	    uint32_t new_count = reiser4_node_count(new->cache->node);
-	    
-	    /* Allocating new block */
-	    if (allocate && (reiser4_node_space(right->node) < item_len ||
-		(new->cache == old->cache && new->pos.item >= new_count - 1 &&
-		(reiser4_node_space(right->node) - item_len) < needed)))
-	    {
-		if (!(right = reiser4_tree_allocate(tree, right->level))) {
-		    aal_exception_error("Can't allocate new leaf node durring right shift.");
-		    return -1;
-		}
+	if (direction == LEFT) {
+	    if (coord->cache == old.cache) {
+		if (coord->pos.item == 0) {
+		    coord->cache = dst.cache;
+		    coord->pos.item = reiser4_node_count(dst.cache->node);
+		} else
+		    coord->pos.item--;
 	    }
-	    
-	    if (new->cache == old->cache) {
-		if (new->pos.item >= new_count - 1) {
-		    new->cache = right;
-		    new->pos.item = (new->pos.item > new_count - 1);
-		}
-	    } else
-		new->pos.item++;
-	    
-	    reiser4_coord_init(&src, old->cache, 
-		reiser4_node_count(old->cache->node) - 1, ~0ul);
-
-	    reiser4_coord_init(&dst, right, 0, ~0ul);
-
-	    if (reiser4_tree_move(tree, &dst, &src)) {
-	        aal_exception_error("Right shifting of an item failed.");
-	        return -1;
-	    }
-	    
-	    old->cache = src.cache;
-	    
-	    if (!src.cache)
-		break;
+	} else {
+	    if (coord->cache == old.cache) {
 		
-	    /* Updating item_len for next item to be moved */
-	    if ((old_count = reiser4_node_count(old->cache->node)) > 0) {
-	        mpos.item = old_count - 1;
-	        item_len = reiser4_item_len(&item) + item_overhead;
-	    }
-	}
-	
-	if (!old->cache || right != old->cache->right) {
-	    if (old->cache && !old->cache->parent) {
-		/* 
-		    Tree growing is occured in the case insertion point hasn't
-		    parent.
-		*/
-		if (reiser4_tree_grow(tree, old->cache)) {
-		    aal_exception_error("Can't grow tree durring right shift.");
-		    return -1;
+		uint32_t count = reiser4_node_count(old.cache->node);
+		
+		if (coord->pos.item >= count - 1) {
+		    coord->pos.item = 0;
+		    coord->cache = dst.cache;
 		}
-	    }
+	    } else
+		coord->pos.item++;
+	}
 
-	    if (reiser4_tree_attach(tree, right)) {
-		aal_exception_error("Can't attach new right neighbour block to the tree "
-		    "durring right shift.");
-		return -1;
-	    }
+        if (reiser4_tree_move(tree, &dst, &src)) {
+            aal_exception_error("Can't move item %u into %s neighbour.",
+		src.pos.item, (direction == LEFT ? "left" : "right"));
+	    return -1;
 	}
     }
-    
+
     return 0;
 }
 
-/* 
-    The central packing on insert function. It shifts some number of items to left
-    or right neightbor in order to release "needed" space in specified by "old"
-    node. As insertion point may be shifted to one of neighbors, new insertion 
-    point position is stored in "new" coord.
-*/
 errno_t reiser4_tree_mkspace(
     reiser4_tree_t *tree,	    /* tree pointer function operates on */
     reiser4_coord_t *old,	    /* old coord of insertion point */
     reiser4_coord_t *new,	    /* new coord will be stored here */
     uint32_t needed		    /* amount of space that should be freed */
 ) {
-    uint32_t maxspace;
+    int alloc;
+    uint32_t max_space;
+    int32_t not_enough;
     reiser4_cache_t *parent;
 
     aal_assert("umka-759", old != NULL, return -1);
     aal_assert("umka-766", new != NULL, return -1);
     aal_assert("umka-929", tree != NULL, return -1);
 
+    *new = *old;
+
     if (!old->cache->parent || needed == 0)
 	return 0;
     
-    maxspace = reiser4_node_maxspace(old->cache->node);
+    max_space = reiser4_node_maxspace(old->cache->node);
 	
     /* 
         Checking if item hint to be inserted to tree has length more than 
         max possible space in a node.
     */
-    if (needed > maxspace) {
+    if (needed > max_space) {
         aal_exception_error("Item size is too big. Maximal possible "
-	   "item size can be %u bytes long.", maxspace);
+	   "item size can be %u bytes long.", max_space);
 	return -1;
     }
-	
-    /* Trying to shift items into left neighbour */
-    if (reiser4_tree_lshift(tree, old, new, needed, 1))
-	return -1;
-
-    if (!old->cache) return 0;
     
-    /* Trying to shift items into right neighbour */
-    if (reiser4_node_space(new->cache->node) < needed && 
-	reiser4_node_count(old->cache->node) > 0) 
-    {
-	reiser4_coord_t coord = *new;
-	
-	if (reiser4_tree_rshift(tree, &coord, new, needed, 1))
+    if ((not_enough = needed  - reiser4_node_space(old->cache->node)) <= 0)
+	return 0;
+    
+    if (reiser4_cache_raise(old->cache)) {
+	aal_exception_error("Can't raise up neighbours of node %llu.", 
+	    aal_block_number(old->cache->node->block));
+	return -1;
+    }
+    
+    if (new->cache->left) {
+	    
+	if (reiser4_tree_shift(tree, LEFT, new, new->cache->left, 1))
 	    return -1;
+	
+	if ((not_enough = needed - reiser4_node_space(new->cache->node)) <= 0)
+	    return 0;
     }
 
-    return 0;
+    if (new->cache->right) {
+	    
+	if (reiser4_tree_shift(tree, RIGHT, new, new->cache->right, 0))
+	    return -1;
+	
+	if ((not_enough = needed - reiser4_node_space(new->cache->node)) <= 0)
+	    return 0;
+    }
+    
+    for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
+        reiser4_cache_t *cache;
+        reiser4_coord_t coord;
+	
+        if (!(cache = reiser4_tree_allocate(tree, new->cache->level)))
+	   return -1;
+	
+        coord = *new;
+	    
+        if (reiser4_tree_shift(tree, RIGHT, new, cache, 1))
+	   return -1;
+	
+        if ((not_enough = needed - reiser4_node_space(new->cache->node)) <= 0)
+	   return 0;
+
+	if ((not_enough = needed - reiser4_node_space(coord.cache->node)) <= 0)
+	    *new = coord;
+    }
+
+    return -(not_enough > 0);
 }
 
 /* Inserts new item described by item hint into the tree */
@@ -826,7 +683,9 @@ errno_t reiser4_tree_insert(
     
     reiser4_key_t *key;
     reiser4_item_t item;
+    
     reiser4_coord_t fake;
+    reiser4_coord_t insert;
 
     aal_assert("umka-779", tree != NULL, return -1);
     aal_assert("umka-779", hint != NULL, return -1);
@@ -857,7 +716,7 @@ errno_t reiser4_tree_insert(
     needed = hint->len + (coord->pos.unit == ~0ul ? 
 	reiser4_node_overhead(coord->cache->node) : 0);
    
-    /* THis is the special case. The tree doesn't contain any nodes */
+    /* This is the special case. The tree doesn't contain any nodes */
     if (level == LEAF_LEVEL && !tree->cache->list) {
 	reiser4_cache_t *cache;
 	
@@ -885,15 +744,10 @@ errno_t reiser4_tree_insert(
 	return 0;
     }
     
-    /* Inserting item at coord if there is enough free space */
-    if (reiser4_node_space(coord->cache->node) < needed) {
-	reiser4_coord_t insert;
-	
-	if (reiser4_tree_mkspace(tree, coord, &insert, needed))
-	    return -1;
+    if (reiser4_tree_mkspace(tree, coord, &insert, needed))
+        return -1;
 
-	*coord = insert;
-    }
+    *coord = insert;
     
     if (reiser4_cache_insert(coord->cache, &coord->pos, hint)) {
         aal_exception_error("Can't insert an %s into the node %llu.", 
@@ -902,6 +756,14 @@ errno_t reiser4_tree_insert(
 	return -1;
     }
 
+    if (coord->cache != tree->cache && !coord->cache->parent) {
+	if (reiser4_tree_attach(tree, coord->cache)) {
+	    aal_exception_error("Can't attach node to the tree.");
+	    reiser4_tree_release(tree, coord->cache);
+	    return -1;
+	}
+    }
+    
     return 0;
 }
 
