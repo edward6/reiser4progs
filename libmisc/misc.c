@@ -13,10 +13,8 @@
 #include <sys/vfs.h>
 #include <sys/mount.h>
 
-#include <aux/aux.h>
-#include <reiser4/reiser4.h>
-
 #include <misc/misc.h>
+#include <reiser4/reiser4.h>
 
 #define KB 1024
 #define MB (KB * KB)

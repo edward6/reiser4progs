@@ -8,8 +8,6 @@
 
 #include <aal/aal.h>
 #include <misc/misc.h>
-#include <reiser4/filesystem.h>
-
 #include <linux/major.h>
 
 #define NO_ERROR	0  /* no errors */
