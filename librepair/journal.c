@@ -109,6 +109,9 @@ errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) 
 	if (reiser4_journal_replay(journal))
 		return -EINVAL;
 	
+	if (reiser4_journal_sync(journal))
+		return -EIO;
+	
 	if (aal_device_reopen(device, device->blksize, flags))
 		return -EIO;
 	

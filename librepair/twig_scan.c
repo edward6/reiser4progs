@@ -27,7 +27,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 		return RE_FATAL;
 	}
 	
-	/* Pointed region is used already. */
+	/* Check that the pointed region is free. */
 	if (aux_bitmap_test_region(ts->bm_met, start, count, 0) == FALSE) {
 		ts->stat.bad_unfm_ptrs++;
 		return RE_FIXABLE;

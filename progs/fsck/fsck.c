@@ -9,9 +9,6 @@
 
 #include <fsck.h>
 
-static errno_t fsck_write_backup(aal_device_t *device, void *buff, 
-				 blk_t block, count_t count);
-
 static void fsck_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
 
@@ -32,9 +29,12 @@ static void fsck_print_usage(char *name) {
 		"  -f, --force            forces checking even if the file system\n"
 		"                         seems clean\n"
 		"  -v, --verbose          makes fsck to be verbose\n"
-		"  -b | --backup file     backup blocks to the file before changes\n"
 		"  -B | --bitmap file     handle blocks marked in the bitmap only\n"
-		"  -r                     ignored\n");
+		"  -r                     ignored\n"
+		"Backup options:\n"
+		" --rollback              rollback changes made before\n"
+		"  -b | --backup file     backup blocks being written to the file\n"
+		);
 }
 
 #define REBUILD_WARNING \
@@ -106,8 +106,8 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 		fprintf(stderr, "Will build the Reiser4 FileSystem.\n");
 		break;
 	case RM_BACK:
-		fprintf(stderr, "Will rollback all data saved in (%s) "
-			"into (%s).\n", "", host_name);
+		fprintf(stderr, "Will rollback changes saved in '%s' back "
+			"onto (%s).\n", data->backup_file, host_name);
 		break;
 	default:
 		break;
@@ -197,13 +197,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		case 'U':
 			break;
 		case 'b':
-			if ((data->backup = fopen(optarg, "w+")) == NULL) {
-				aal_fatal("Cannot not open the "
-					  "backup file (%s).", optarg);
-				goto oper_error;
-			}
-
-			ops->write = fsck_write_backup;
+			data->backup_file = optarg;
 			
 			break;
 		case 'f':
@@ -243,19 +237,31 @@ static errno_t fsck_init(fsck_parse_t *data,
     
 	if (optind != argc - 1) {
 		fsck_print_usage(argv[0]);
-		return USER_ERROR;
+		goto user_error;
 	}
 	
 	data->sb_mode = sb_mode ? sb_mode : mode;
 	data->fs_mode = fs_mode ? fs_mode : mode;
-   
+  
+	if (data->backup_file) {
+		data->backup = fopen(data->backup_file, 
+				     mode == RM_BACK ? 
+				     "r" : "w+");
+		
+		if (!data->backup) {
+			aal_fatal("Cannot not open the backup file (%s).", 
+				  optarg);
+			goto oper_error;
+		}
+	}
+	
 	/* Check if device is mounted and we are able to fsck it. */ 
 	if (misc_dev_mounted(argv[optind], NULL)) {
 		if (!misc_dev_mounted(argv[optind], "ro")) {
 			aal_fatal("The partition (%s) is mounted "
 				  "w/ write permissions, cannot "
 				  "fsck it.", argv[optind]);
-			return USER_ERROR;
+			goto user_error;
 		} else {
 			aal_set_bit(&data->options, FSCK_OPT_READ_ONLY);
 		}
@@ -266,7 +272,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 	{
 		aal_fatal("Cannot open the partition (%s): %s.",
 			  argv[optind], strerror(errno));
-		return OPER_ERROR;
+		goto oper_error;
 	}
 
 	if (aal_test_bit(&data->options, FSCK_OPT_AUTO)) {
@@ -298,8 +304,7 @@ static void fsck_fini(fsck_parse_t *data) {
 	if (data->logfile != NULL && data->logfile != stderr)
 		fclose(data->logfile);
 
-	if (data->backup)
-		fclose(data->backup);
+	backup_fini();
 }
 
 static void fsck_time(char *string) {
@@ -314,8 +319,12 @@ static void callback_uuid_unparse(char *uuid, char *string) {
 }
 
 /* Open the fs and init the tree. */
-static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
+static errno_t fsck_check_init(repair_data_t *repair, 
+			       aal_device_t *host, 
+			       FILE *backup) 
+{
 	aal_stream_t stream;
+	count_t len;
 	errno_t res;
 	
 	fprintf(stderr, "***** Openning the fs.\n");
@@ -347,7 +356,17 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 	
 	aal_stream_fini(&stream);
 	
+	/* Initialize the backup. */
+	len = reiser4_format_get_len(repair->fs->format);
+	if ((res = backup_init(backup, host, len)))
+		goto error_close_fs;
+
 	return 0;
+	
+ error_close_fs:
+	reiser4_fs_close(repair->fs);
+	repair->fs = NULL;
+	return res;
 }
 
 static errno_t fsck_check_fini(repair_data_t *repair) {
@@ -385,30 +404,37 @@ static errno_t fsck_check_fini(repair_data_t *repair) {
 	return 0;
 }
 
-static errno_t fsck_write_backup(
-	aal_device_t *device,	    /* file device, data will be wrote onto */
-	void *buff,		    /* buffer, data stored in */
-	blk_t block,		    /* start position for writing */
-	count_t count)
-{
-	return 0;
-}
-
 int main(int argc, char *argv[]) {
 	struct aal_device_ops fsck_ops = file_ops;
-	errno_t ex = NO_ERROR;
-	uint64_t df_fixable = 0;
-	fsck_parse_t parse_data;
+	aal_device_t *device;
 	repair_data_t repair;
+	
+	fsck_parse_t parse_data;
+	uint64_t df_fixable = 0;
+	errno_t ex = NO_ERROR;
 	int stage = 0;
 	errno_t res;
- 
+
 	memset(&parse_data, 0, sizeof(parse_data));
 	memset(&repair, 0, sizeof(repair));
-
+	
 	if ((ex = fsck_init(&parse_data, &fsck_ops, argc, argv)) != NO_ERROR)
 		exit(ex);
-    
+
+	device = parse_data.host_device;
+	
+	if (parse_data.fs_mode == RM_BACK){
+		if (aal_device_reopen(device, device->blksize, O_RDWR)) {
+			ex = OPER_ERROR;
+			goto free_device;
+		}
+
+		if ((res = backup_rollback(parse_data.backup, device)))
+			ex = OPER_ERROR;
+
+		goto free_device;
+	}
+	
 	/* Initializing libreiser4 with factory sanity check */
 	if ((res = libreiser4_init())) {
 		aal_fatal("Cannot initialize the libreiser4.");
@@ -422,13 +448,13 @@ int main(int argc, char *argv[]) {
 	repair.bitmap_file = parse_data.bitmap_file;
 	
 	if (parse_data.sb_mode != RM_CHECK || parse_data.fs_mode != RM_CHECK) {
-		aal_device_t *device = parse_data.host_device;
-		
-		if (aal_device_reopen(device, device->blksize, O_RDWR))
-			return -EIO;
+		if (aal_device_reopen(device, device->blksize, O_RDWR)) {
+			ex = OPER_ERROR;
+			goto free_libreiser4;
+		}
 	}
 
-	if ((res = fsck_check_init(&repair, parse_data.host_device)))
+	if ((res = fsck_check_init(&repair, device, parse_data.backup)))
 		goto free_libreiser4;
 	
 	if (repair.fatal) 
@@ -455,13 +481,13 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
     
  free_device:
-	if (parse_data.host_device) {
-		if (aal_device_sync(parse_data.host_device)) {
+	if (device) {
+		if (aal_device_sync(device)) {
 			aal_fatal("Cannot synchronize the device (%s).", 
-				  parse_data.host_device->name);
+				  device->name);
 			ex = OPER_ERROR;
 		}
-		aal_device_close(parse_data.host_device);
+		aal_device_close(device);
 	}
 	
 	fprintf(stderr, "\n");
@@ -469,8 +495,11 @@ int main(int argc, char *argv[]) {
 	/* Report about the results. */
 	if (res < 0) {
 		aal_mess("Operational error occured while fscking.");
-		return OPER_ERROR;
+		goto free_fsck;
 	} 
+	
+	if (parse_data.fs_mode == RM_BACK)
+		goto free_fsck;
 	
 	if (df_fixable) {
 		/* No fatal corruptions in SB, but some fixable ones. */
@@ -499,6 +528,7 @@ int main(int argc, char *argv[]) {
 	} else if (!df_fixable)
 		fprintf(stderr, "No corruption found.\n\n");
 
+ free_fsck:
 	fsck_fini(&parse_data);
 	
 	return ex;

@@ -20,8 +20,9 @@
 #include <time.h>
 
 #include "gauge.h"
-#include <aux/aux.h>
+#include "backup.h"
 
+#include <aux/aux.h>
 #include <repair/librepair.h>
 #include <reiser4/libreiser4.h>
 
@@ -44,6 +45,8 @@ typedef struct fsck_parse {
 
     FILE *logfile;
     FILE *backup;
+
+    char *backup_file;
     char *bitmap_file;
     aal_device_t *host_device;
     uint16_t options;

@@ -861,29 +861,9 @@ static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 		return -EINVAL;
 	}
 
-	/* Now we have to perform the following actions:
 
-	   (1) Remove one of item headers (right one).
-	
-	   (2) Fuse items bodies. This stage means, that we should call some
-	   item method, which will take into account item overhead, etc.
-	*/
-	left = node40_ih_at(entity, left_pos->item);
-	right = node40_ih_at(entity, right_pos->item);
-
-	/* First stage. Check if right item is last one. If so, we will not move
-	   item headers at all. */
-	if (right_pos->item < items - 1) {
-
-		/* Eliminating @right_pos item header. */
-		aal_memmove(right, (right - ih_size(pol)),
-			    ih_size(pol));
-	}
-
-	nh_dec_num_items(entity, 1);
-	nh_inc_free_space(entity, ih_size(pol));
-
-	/* Second stage. Fusing item bodies. */
+	/* First stage. Fusing item bodies: we should call some item 
+	   method, which will take care about item overhead, etc. */
 	if ((res = node40_fetch(entity, left_pos, &left_place))) {
 		aal_error("Can't fetch left item during items fuse.");
 		return res;
@@ -907,10 +887,30 @@ static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 		space = plug_call(left_place.plug->o.item_ops->balance,
 				  fuse, &left_place, &right_place);
 
-		/* Updating node header. */
-		nh_inc_free_space(entity, space);
-		nh_dec_free_space_start(entity, space);
+		if (space) {
+			right_pos->unit = 0;
+
+			/* Shrink the right item. */
+			if ((res = node40_shrink(entity, right_pos, space, 1)))
+				return res;
+		}
 	}
+	
+	/* The second stage: remove the right item header. */
+	left = node40_ih_at(entity, left_pos->item);
+	right = node40_ih_at(entity, right_pos->item);
+
+	/* First stage. Check if right item is last one. If so, we will not move
+	   item headers at all. */
+	if (right_pos->item < items - 1) {
+
+		/* Eliminating @right_pos item header. */
+		aal_memmove(right, (right - ih_size(pol)),
+			    ih_size(pol));
+	}
+
+	nh_dec_num_items(entity, 1);
+	nh_inc_free_space(entity, ih_size(pol));
 
 	/* Now make node dirty. */
 	node40_mkdirty(entity);

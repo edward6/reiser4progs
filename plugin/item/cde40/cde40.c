@@ -826,14 +826,19 @@ static errno_t cde40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 }
 
 /* Fuses bodies of two cde items that lie in the same node. */
-static int32_t cde40_fuse(reiser4_place_t *left_place, reiser4_place_t *right_place) {
+static int32_t cde40_fuse(reiser4_place_t *left_place, 
+			  reiser4_place_t *right_place) 
+{
 	aal_assert("umka-2687", left_place != NULL);
 	aal_assert("umka-2689", right_place != NULL);
 
+	/* Set the correct amount of units. */
+	cde_inc_units(left_place, cde_get_units(right_place));
+	
 	/* Eliminating right item header and return header size as space
 	   released as result of fuse. */
-	aal_memmove(right_place->body, right_place->body +
-		    sizeof(cde40_t), right_place->len - sizeof(cde40_t));
+	aal_memmove(right_place->body, right_place->body + sizeof(cde40_t), 
+		    right_place->len - sizeof(cde40_t));
 
 	return sizeof(cde40_t);
 }
@@ -980,6 +985,7 @@ static item_object_ops_t object_ops = {
 
 	.size		  = cde40_size,
 	.bytes		  = cde40_bytes,
+	.overhead	  = cde40_overhead,
 		 
 	.update_units	  = NULL,
 	.prep_write	  = NULL,

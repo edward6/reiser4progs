@@ -416,8 +416,10 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		   hint->count * sizeof(extent40_t));
 	
 	if (hint->head) {
-		et40_set_start(dextent, et40_get_start(dextent) + 
-			       hint->head);
+		/* Cut head blocks of the first unit copied from src, 
+		   if it was not the hole (==0). */
+		if ((dstart = et40_get_start(dextent)))
+			et40_set_start(dextent, dstart + hint->head);
 		
 		et40_set_width(dextent, et40_get_width(dextent) - 
 			       hint->head);
@@ -435,7 +437,10 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		dextent -= (hint->count - 1);
 		
 		for (i = 0; i < hint->count; i++, dextent++) {
-			res = hint->region_func(place, et40_get_start(dextent),
+			if (!(dstart = et40_get_start(dextent)))
+				continue;
+			
+			res = hint->region_func(place, dstart,
 						et40_get_width(dextent), 
 						hint->data);
 			

@@ -13,17 +13,13 @@ errno_t body40_get_key(reiser4_place_t *place, uint32_t pos,
 {
 	uint64_t offset;
 
-	plug_call(place->key.plug->o.key_ops, assign,
-		  key, &place->key);
+	plug_call(place->key.plug->o.key_ops, assign, key, &place->key);
 		
-	offset = plug_call(key->plug->o.key_ops,
-			   get_offset, key);
+	offset = plug_call(key->plug->o.key_ops, get_offset, key);
 
-	offset += (trans_func ?
-		    trans_func(place, pos) : pos);
+	offset += (trans_func ? trans_func(place, pos) : pos);
 	
-	plug_call(key->plug->o.key_ops, set_offset,
-		  key, offset);
+	plug_call(key->plug->o.key_ops, set_offset, key, offset);
 	
 	return 0;
 }
@@ -33,17 +29,13 @@ errno_t body40_maxposs_key(reiser4_place_t *place, reiser4_key_t *key) {
 	uint64_t offset;
 	reiser4_key_t *maxkey;
     
-	plug_call(place->key.plug->o.key_ops, assign,
-		  key, &place->key);
+	plug_call(place->key.plug->o.key_ops, assign, key, &place->key);
     
-	maxkey = plug_call(key->plug->o.key_ops,
-			   maximal);
+	maxkey = plug_call(key->plug->o.key_ops, maximal);
     
-	offset = plug_call(key->plug->o.key_ops,
-			   get_offset, maxkey);
+	offset = plug_call(key->plug->o.key_ops, get_offset, maxkey);
 	
-    	plug_call(key->plug->o.key_ops, set_offset,
-		  key, offset);
+    	plug_call(key->plug->o.key_ops, set_offset, key, offset);
 
 	return 0;
 }
@@ -57,20 +49,15 @@ errno_t body40_maxreal_key(reiser4_place_t *place,
 	uint64_t units;
 	uint64_t offset;
 
-	units = plug_call(place->plug->o.item_ops->balance,
-			  units, place);
+	units = plug_call(place->plug->o.item_ops->balance, units, place);
 	
-	plug_call(place->key.plug->o.key_ops, assign, key,
-		  &place->key);
+	plug_call(place->key.plug->o.key_ops, assign, key, &place->key);
 
-	offset = plug_call(key->plug->o.key_ops, get_offset,
-			   key);
+	offset = plug_call(key->plug->o.key_ops, get_offset, key);
 
-	offset += (trans_func ? trans_func(place, units) :
-		   units);
+	offset += (trans_func ? trans_func(place, units) : units);
 	
-	plug_call(key->plug->o.key_ops, set_offset,
-		  key, offset - 1);
+	plug_call(key->plug->o.key_ops, set_offset, key, offset - 1);
 	
 	return 0;
 }

@@ -140,6 +140,7 @@ static item_object_ops_t object_ops = {
 	.trunc_units	  = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
+	.overhead	  = NULL,
 #endif
 	.object_plug	  = NULL,
 	.read_units	  = NULL,

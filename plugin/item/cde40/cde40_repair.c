@@ -497,9 +497,8 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		if (mode == RM_BUILD) {
 			hint.count = e_count - flags->count;
 
-			if ((res |= cde40_delete(place, flags->count, 
-						 &hint)) < 0) 
-				return res;
+			res |= cde40_delete(place, flags->count, &hint);
+			if (res < 0) return res;
 			
 			place_mkdirty(place);
 		} else {
@@ -518,7 +517,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 			hint.count = i;
 			
 			if ((res |= cde40_delete(place, 0, &hint)) < 0)
-						return res;
+				return res;
 			
 			place_mkdirty(place);
 			aal_memmove(flags->elem, flags->elem + i, 
@@ -572,8 +571,6 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 			place_mkdirty(place);
 		}
 	}
-	
-	aal_assert("vpf-766", cde_get_units(place));
 	
 	return res;
 }
@@ -779,13 +776,11 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		/* Expand @place & copy @hint->count units there from @src. */
 		dpos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 		
-		if (place->pos.unit != MAX_UINT32) {
+		if (place->pos.unit != MAX_UINT32)
 			cde40_expand(place, dpos, hint->count, hint->len);	
-		}
 		
 		res = cde40_copy(place, dpos, src, src->pos.unit, hint->count);
-		
-		if (res < 0) return res;
+		if (res) return res;
 
 		spos = src->pos.unit + hint->count;
 

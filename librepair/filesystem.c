@@ -140,6 +140,7 @@ void repair_fs_close(reiser4_fs_t *fs) {
 	aal_assert("vpf-910", fs->journal != NULL);
 	
 	reiser4_journal_close(fs->journal);
+	fs->journal = NULL;
 	reiser4_fs_close(fs);    
 }
 
@@ -368,7 +369,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 		}
 	}
 		
-	while (1) {
+	while (TRUE) {
 		reiser4_node_t *node;
 		
 		if (aal_stream_read(stream, &sign, 4) != 4) {

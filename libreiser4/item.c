@@ -134,6 +134,17 @@ errno_t reiser4_item_update_link(reiser4_place_t *place,
 	return plug_call(place->plug->o.item_ops->tree,
 			 update_link, place, blk);
 }
+
+uint16_t reiser4_item_overhead(reiser4_plug_t *plug) {
+	aal_assert("vpf-1514", plug != NULL);
+	aal_assert("vpf-1515", plug->id.type == ITEM_PLUG_TYPE);
+
+	if (!plug->o.item_ops->object->overhead)
+		return 0;
+	
+	return plug_call(plug->o.item_ops->object, overhead);
+}
+
 #endif
 
 /* Return block number nodeptr item contains. */

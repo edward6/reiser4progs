@@ -79,9 +79,9 @@ static void dir40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t counted_s
 }
 
 static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
-	trans_hint_t body_hint;
 	object_info_t *info;
 	entry_hint_t entry;
+	trans_hint_t hint;
 	errno_t res;
 	
 	aal_assert("vpf-1242", dir != NULL);
@@ -112,22 +112,23 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	/* Absent. Add a new ".". Take it from the param for now.
 
-	   FIXME-VITALY: It can be stored in SD also, but it is not clear under
-	   which type -- ITEM_PLUG? Fix it when reiser4 syscall will be
-	   ready. */
+	   FIXME-VITALY: It can be stored in SD also, but it is not clear 
+	   under which type -- ITEM_PLUG? Fix it when reiser4 syscall will 
+	   be ready. */
 		
-	aal_memset(&body_hint, 0, sizeof(body_hint));
+	aal_memset(&hint, 0, sizeof(hint));
 
-	body_hint.count = 1;
-	body_hint.plug = bplug;
+	hint.count = 1;
+	hint.plug = bplug;
+	hint.shift_flags = SF_DEFAULT;
 	
-	aal_memcpy(&body_hint.offset, &dir->position, sizeof(dir->position));
+	aal_memcpy(&hint.offset, &dir->position, sizeof(dir->position));
 	aal_memcpy(&entry.offset,  &dir->position, sizeof(dir->position));
 	aal_memcpy(&entry.object,  &dir->obj.info.object, sizeof(entry.object));
 
 	aal_strncpy(entry.name, ".", 1);
-	body_hint.specific = &entry;
-	res = obj40_insert(&dir->obj, &dir->body, &body_hint, LEAF_LEVEL);
+	hint.specific = &entry;
+	res = obj40_insert(&dir->obj, &dir->body, &hint, LEAF_LEVEL);
 
 	return res < 0 ? res : 0;
 }
@@ -316,28 +317,16 @@ errno_t dir40_check_struct(object_entity_t *object,
 				return RE_FATAL;
 			
 			hint.count = 1;
+			hint.shift_flags = SF_DEFAULT;
 
 			/* Item has wrong key, remove it. */
-			if ((res |= obj40_remove(&dir->obj, &dir->body, 
-						 &hint)) < 0)
-				return res;
+			res |= obj40_remove(&dir->obj, &dir->body, &hint);
+			if (res < 0) return res;
 			
 			continue;
 		}
 
-		/* Try to register the item if it has not been yet. Any item has
-		   a pointer to objectid in the key, if it is shared between 2 
-		   objects, it should be already solved at relocation time. */
-		if (place_func && place_func(&dir->body, data))
-			return -EINVAL;
 		
-		/* Count size and bytes. */
-		size += plug_call(dir->body.plug->o.item_ops->object, 
-				  size, &dir->body);
-
-		bytes += plug_call(dir->body.plug->o.item_ops->object, 
-				   bytes, &dir->body);
-
 		units = plug_call(dir->body.plug->o.item_ops->balance, 
 				  units, &dir->body);
 		
@@ -368,20 +357,16 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 
 			if (mode != RM_BUILD) {
-				res |= RE_FIXABLE;
+				res |= RE_FATAL;
 				goto next;
 			}
 
 			hint.count = 1;
 
-			if ((res |= obj40_remove(&dir->obj, &dir->body, 
-						 &hint)) < 0)
-				return res;
+			res |= obj40_remove(&dir->obj, &dir->body, &hint);
+			if (res < 0) return res;
 
 			/* Lookup it again. */
-			size--;
-			bytes -= hint.bytes;
-			
 			break;
 			
 		next:
@@ -399,6 +384,22 @@ errno_t dir40_check_struct(object_entity_t *object,
 				/* Key collision. */
 				dir->position.adjust++;
 			}
+		}
+		
+		if (pos->unit == units) {
+			/* Try to register the item if it has not been yet. Any 
+			   item has a pointer to objectid in the key, if it is 
+			   shared between 2 objects, it should be already solved 
+			   at relocation time. */
+			if (place_func && place_func(&dir->body, data))
+				return -EINVAL;
+
+			/* Count size and bytes. */
+			size += plug_call(dir->body.plug->o.item_ops->object, 
+					  size, &dir->body);
+
+			bytes += plug_call(dir->body.plug->o.item_ops->object, 
+					   bytes, &dir->body);
 		}
 		
 		/* Lookup for the last entry left in the tree with the 

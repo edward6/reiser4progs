@@ -494,6 +494,7 @@ static item_object_ops_t object_ops = {
 	.layout		  = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
+	.overhead	  = NULL,
 #endif
 	.fetch_units	  = stat40_fetch_units,
 	.object_plug	  = stat40_object_plug

@@ -735,6 +735,7 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
         while (reiser4_key_compfull(&key, &max)) {
                 reiser4_place_t place;
                 lookup_t lookup;
+		pos_t *pos;
 
                 /* FIXME-VITALY: This is not key-collision-safe. */
 
@@ -743,10 +744,9 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
                                                   FIND_EXACT, &place)) < 0)
                         return lookup;
 
+		pos = &place.pos;
 
-                count = reiser4_node_items(place.node);
-
-                for (; place.pos.item < count; place.pos.item++) {
+                for (; pos->item < reiser4_node_items(place.node); pos->item++)	{
                         if ((res = reiser4_place_fetch(&place)))
                                 return res;
 			

@@ -494,6 +494,8 @@ static item_object_ops_t object_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.size		  = tail40_size,
 	.bytes		  = tail40_size,
+	.overhead	  = NULL,
+	
 	.prep_write	  = tail40_prep_write,
 	.write_units	  = tail40_write_units,
 	.trunc_units	  = tail40_trunc_units,

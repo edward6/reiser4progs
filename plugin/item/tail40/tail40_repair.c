@@ -56,8 +56,10 @@ errno_t tail40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 }
 
 errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint) {
-	uint64_t offset;
 	reiser4_place_t *src;
+	uint64_t offset;
+	uint32_t pos;
+	errno_t res;
 	
 	aal_assert("vpf-987", place != NULL);
 	aal_assert("vpf-988", hint != NULL);
@@ -68,10 +70,14 @@ errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 			   get_offset, &hint->offset);
 	
 	if (hint->count) {
-		tail40_expand(place, place->pos.unit, hint->len);
+		/* Expand @place & copy @hint->count units there from @src. */
+		pos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 
-		tail40_copy(place, place->pos.unit, src, 
-			    src->pos.unit, hint->count);
+		if (place->pos.unit != MAX_UINT32)
+			tail40_expand(place, place->pos.unit, hint->len);
+
+		res = tail40_copy(place, pos, src, src->pos.unit, hint->count);
+		if (res) return res;
 
 		offset += hint->count;
 	} else
