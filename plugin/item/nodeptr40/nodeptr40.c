@@ -196,8 +196,8 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.get_key	= NULL,
 		.set_key	= NULL,
 		
-		.max_poss_key	= NULL,
-		.max_real_key   = NULL,
+		.maxposs_key	= NULL,
+		.utmost_key     = NULL,
 		.gap_key	= NULL
 	}
 };

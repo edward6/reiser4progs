@@ -695,13 +695,15 @@ struct reiser4_item_ops {
 	errno_t (*set_key) (item_entity_t *, uint32_t, key_entity_t *);
 	
 	/* Get the max key which could be stored in the item of this type */
-	errno_t (*max_poss_key) (item_entity_t *, key_entity_t *);
+	errno_t (*maxposs_key) (item_entity_t *, key_entity_t *);
  
 	/* Get the max real key which is stored in the item */
-	errno_t (*max_real_key) (item_entity_t *, key_entity_t *);
+	errno_t (*utmost_key) (item_entity_t *, key_entity_t *);
 
-	/* Get the max real key stored continously from the key specified 
-	 * in the item_entity */
+	/*
+	  Get the max real key stored continously from the key specified in the
+	  item entity.
+	*/
 	errno_t (*gap_key) (item_entity_t *, key_entity_t *);
 };
 

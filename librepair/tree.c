@@ -47,7 +47,7 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
 	if (reiser4_node_release(child))
 	    return -1;
     } else 
-	res = reiser4_item_max_real_key(&coord, key);
+	res = reiser4_item_utmost_key(&coord, key);
 
     return res;
 }
@@ -233,7 +233,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 	    if (reiser4_item_gap_key(&coord, &dst_key)) 
 		return -1;
 
-	    if (reiser4_item_max_real_key(insert, &src_key)) 
+	    if (reiser4_item_utmost_key(insert, &src_key)) 
 		return -1;
 	    
 	    /* Count of items to be inserted. */

@@ -250,8 +250,8 @@ static errno_t extent40_print(item_entity_t *item,
 #endif
 
 /* Builds maximal possible key for the extent item */
-static errno_t extent40_max_poss_key(item_entity_t *item,
-				     key_entity_t *key) 
+static errno_t extent40_maxposs_key(item_entity_t *item,
+				    key_entity_t *key) 
 {
 	uint64_t offset;
 	key_entity_t *maxkey;
@@ -273,8 +273,8 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 }
 
 /* Builds maximal real key in use for specified @item */
-static errno_t extent40_max_real_key(item_entity_t *item,
-				     key_entity_t *key) 
+static errno_t extent40_utmost_key(item_entity_t *item,
+				   key_entity_t *key) 
 {
 	uint32_t i, blocksize;
 	uint64_t delta, offset;
@@ -334,7 +334,7 @@ static int extent40_lookup(item_entity_t *item,
 	if (!(extent = extent40_body(item)))
 		return -1;
 	
-	if (extent40_max_poss_key(item, &maxkey))
+	if (extent40_maxposs_key(item, &maxkey))
 		return -1;
 
 	if (!(units = extent40_units(item)))
@@ -694,7 +694,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.predict       = extent40_predict,
 		.shift         = extent40_shift,
 		.layout        = extent40_layout,
-		.gap_key       = extent40_max_real_key,		
+		.gap_key       = extent40_utmost_key,
 #else
 		.init	       = NULL,
 		.update        = NULL,
@@ -716,10 +716,10 @@ static reiser4_plugin_t extent40_plugin = {
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,
 		.fetch         = extent40_fetch,
-		.get_key       = extent40_get_key,
-		
-		.max_poss_key  = extent40_max_poss_key,
-		.max_real_key  = extent40_max_real_key,
+
+		.maxposs_key   = extent40_maxposs_key,
+		.utmost_key    = extent40_utmost_key,
+		.get_key       = extent40_get_key
 	}
 };
 

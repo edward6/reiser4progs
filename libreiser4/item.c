@@ -99,6 +99,12 @@ errno_t reiser4_item_print(
 
 #endif
 
+/*
+  These couple of functions which are using for determining item type. They are
+  deprecated and will be eliminated soon. That is because we should not be
+  depend in libreiser4 on possible item types. We should rely only on item
+  plugin methods.
+*/
 bool_t reiser4_item_permissn(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
@@ -171,6 +177,7 @@ bool_t reiser4_item_nodeptr(reiser4_coord_t *coord) {
 		item->plugin->h.group == NODEPTR_ITEM;
 }
 
+/* Returns item type from its plugin */
 rpid_t reiser4_item_type(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
@@ -186,6 +193,7 @@ rpid_t reiser4_item_type(reiser4_coord_t *coord) {
 		item->plugin->h.group : LAST_ITEM);
 }
 
+/* Returns item len */
 uint32_t reiser4_item_len(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
@@ -197,6 +205,7 @@ uint32_t reiser4_item_len(reiser4_coord_t *coord) {
 	return item->len;
 }
 
+/* Retuns item body pointer */
 rbody_t *reiser4_item_body(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
@@ -208,11 +217,13 @@ rbody_t *reiser4_item_body(reiser4_coord_t *coord) {
 	return item->body;
 }
 
+/* Returns item plugin in use */
 reiser4_plugin_t *reiser4_item_plugin(reiser4_coord_t *coord) {
 	aal_assert("umka-755", coord != NULL, return NULL);
 	return coord->item.plugin;
 }
 
+/* Returns item key and updates key fields in coord->item.key */
 errno_t reiser4_item_get_key(reiser4_coord_t *coord,
 			     reiser4_key_t *key)
 {
@@ -253,6 +264,7 @@ errno_t reiser4_item_get_key(reiser4_coord_t *coord,
 
 #ifndef ENABLE_COMPACT
 
+/* Updates item key in node and in coord->item.key field */
 errno_t reiser4_item_set_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *item;
 	object_entity_t *entity;
@@ -278,7 +290,11 @@ errno_t reiser4_item_set_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 
 #endif
 
-errno_t reiser4_item_max_poss_key(reiser4_coord_t *coord, reiser4_key_t *key) {
+/*
+  Returns maximal possible key may exist in item at @coord. If item's "get_key"
+  method is not implemented, it returns item key.
+*/
+errno_t reiser4_item_maxposs_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *entity;
 	
 	aal_assert("umka-1269", coord != NULL, return -1);
@@ -290,13 +306,14 @@ errno_t reiser4_item_max_poss_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	if (reiser4_item_get_key(coord, key))
 		return -1;
 	
-	if (entity->plugin->item_ops.max_poss_key)
-		return entity->plugin->item_ops.max_poss_key(entity, key);
+	if (entity->plugin->item_ops.maxposs_key)
+		return entity->plugin->item_ops.maxposs_key(entity, key);
 
 	return 0;
 }
 
-errno_t reiser4_item_max_real_key(reiser4_coord_t *coord, reiser4_key_t *key) {
+/* Returns real maximal item key */
+errno_t reiser4_item_utmost_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *entity;
 	
 	aal_assert("vpf-351", coord != NULL, return -1);
@@ -308,12 +325,13 @@ errno_t reiser4_item_max_real_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	if (reiser4_item_get_key(coord, key))
 		return -1;
 	    
-	if (entity->plugin->item_ops.max_real_key) 
-		return entity->plugin->item_ops.max_real_key(entity, key);	
+	if (entity->plugin->item_ops.utmost_key) 
+		return entity->plugin->item_ops.utmost_key(entity, key);	
 		
 	return 0;
 }
 
+/* Returns item gap key. It is the key where non-contiguous region starts */
 errno_t reiser4_item_gap_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	item_entity_t *entity;
 	

@@ -152,8 +152,8 @@ static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,
 
 #endif
 
-static errno_t tail40_max_poss_key(item_entity_t *item,
-				   key_entity_t *key) 
+static errno_t tail40_maxposs_key(item_entity_t *item,
+				  key_entity_t *key) 
 {
 	uint64_t offset;
 	key_entity_t *maxkey;
@@ -174,8 +174,8 @@ static errno_t tail40_max_poss_key(item_entity_t *item,
 	return 0;
 }
 
-static errno_t tail40_max_real_key(item_entity_t *item,
-				   key_entity_t *key) 
+static errno_t tail40_utmost_key(item_entity_t *item,
+				 key_entity_t *key) 
 {
 	uint64_t offset;
 
@@ -226,7 +226,7 @@ static int tail40_lookup(item_entity_t *item,
 
 	maxkey.plugin = key->plugin;
 	
-	tail40_max_poss_key(item, &maxkey);
+	tail40_maxposs_key(item, &maxkey);
 
 	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
 		*pos = item->len;
@@ -401,39 +401,40 @@ static reiser4_plugin_t tail40_plugin = {
 		},
 		
 #ifndef ENABLE_COMPACT
-		.init		= tail40_init,
-		.insert		= tail40_insert,
-		.update		= tail40_update,
-		.remove		= tail40_remove,
-		.print		= tail40_print,
-		.mergeable	= tail40_mergeable,
-		.predict	= tail40_predict,
-		.shift		= tail40_shift,
+		.init	        = tail40_init,
+		.insert	        = tail40_insert,
+		.update	        = tail40_update,
+		.remove	        = tail40_remove,
+		.print	        = tail40_print,
+		.mergeable      = tail40_mergeable,
+		.predict        = tail40_predict,
+		.shift	        = tail40_shift,
 #else
-		.init		= NULL,
-		.insert		= NULL,
-		.update		= NULL,
-		.remove		= NULL,
-		.print		= NULL,
-		.mergeable	= NULL,
-		.predict	= NULL,
-		.shift		= NULL,
+		.init	        = NULL,
+		.insert	        = NULL,
+		.update	        = NULL,
+		.remove	        = NULL,
+		.print	        = NULL,
+		.mergeable      = NULL,
+		.predict        = NULL,
+		.shift	        = NULL,
 #endif
-		.layout		= NULL,
+		.layout	        = NULL,
 		.belongs        = NULL,
-		.check		= NULL,
-		.valid		= NULL,
-		.estimate	= NULL,
-		.set_key	= NULL,
+		.check	        = NULL,
+		.valid	        = NULL,
+		.estimate       = NULL,
+		.set_key        = NULL,
 
-		.units		= tail40_units,
-		.lookup		= tail40_lookup,
-		.fetch		= tail40_fetch,
+		.units	        = tail40_units,
+		.lookup	        = tail40_lookup,
+		.fetch	        = tail40_fetch,
 		
-		.get_key	= tail40_get_key,
-		.max_poss_key	= tail40_max_poss_key,
-		.max_real_key	= tail40_max_real_key,
-		.gap_key	= tail40_max_real_key
+		.maxposs_key    = tail40_maxposs_key,
+		.utmost_key     = tail40_utmost_key,
+		
+		.gap_key        = tail40_utmost_key,
+		.get_key        = tail40_get_key
 	}
 };
 

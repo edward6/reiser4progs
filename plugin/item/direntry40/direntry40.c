@@ -1043,8 +1043,8 @@ extern errno_t direntry40_check(item_entity_t *item);
   Returns maximal possible key in direntry item. It is needed for lookuping
   needed entry by entry key.
 */
-static errno_t direntry40_max_poss_key(item_entity_t *item, 
-				       key_entity_t *key) 
+static errno_t direntry40_maxposs_key(item_entity_t *item, 
+				      key_entity_t *key) 
 {
 	uint64_t offset;
 	uint64_t objectid;
@@ -1069,8 +1069,8 @@ static errno_t direntry40_max_poss_key(item_entity_t *item,
 }
 
 /* Returns real maximal key in direntry item */
-static errno_t direntry40_max_real_key(item_entity_t *item, 
-				       key_entity_t *key) 
+static errno_t direntry40_utmost_key(item_entity_t *item, 
+				     key_entity_t *key) 
 {
 	uint32_t units;
 	direntry40_t *direntry;
@@ -1133,7 +1133,7 @@ static int direntry40_lookup(item_entity_t *item,
 
 	plugin_call(maxkey.plugin->key_ops, assign, &maxkey, &item->key);
 	
-	if (direntry40_max_poss_key(item, &maxkey))
+	if (direntry40_maxposs_key(item, &maxkey))
 		return -1;
 
 	/*
@@ -1225,10 +1225,9 @@ static reiser4_plugin_t direntry40_plugin = {
 		.units		= direntry40_units,
 		.fetch          = direntry40_fetch,
 		
-		.max_poss_key	= direntry40_max_poss_key,
-		.max_real_key   = direntry40_max_real_key,
-		
-		.gap_key	= NULL,
+		.maxposs_key	= direntry40_maxposs_key,
+		.utmost_key     = direntry40_utmost_key,
+		.gap_key	= NULL
 	}
 };
 

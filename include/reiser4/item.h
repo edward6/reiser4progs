@@ -30,11 +30,11 @@ extern errno_t reiser4_item_estimate(reiser4_coord_t *coord,
 
 #endif
 
-extern errno_t reiser4_item_max_poss_key(reiser4_coord_t *coord,
-					 reiser4_key_t *key);
+extern errno_t reiser4_item_maxposs_key(reiser4_coord_t *coord,
+					reiser4_key_t *key);
 
-extern errno_t reiser4_item_max_real_key(reiser4_coord_t *coord,
-					 reiser4_key_t *key);
+extern errno_t reiser4_item_utmost_key(reiser4_coord_t *coord,
+				       reiser4_key_t *key);
 
 extern errno_t reiser4_item_gap_key(reiser4_coord_t *coord, 
 				    reiser4_key_t *key);

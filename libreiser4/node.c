@@ -704,7 +704,7 @@ int reiser4_node_lookup(
 	  within the item or after the item.
 	*/
 		
-	if (reiser4_item_max_poss_key(&coord, &maxkey))
+	if (reiser4_item_maxposs_key(&coord, &maxkey))
 		return -1;
 
 	if (reiser4_key_compare(key, &maxkey) > 0) {
