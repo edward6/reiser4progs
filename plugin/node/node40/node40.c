@@ -1130,7 +1130,7 @@ static bool_t node40_mergeable(item_entity_t *item1,
 	return item1->plugin->o.item_ops->mergeable(item1, item2);
 }
 
-static bool_t node40_shiftable(item_entity_t *item) {
+static bool_t node40_splitable(item_entity_t *item) {
 	if (!item->plugin->o.item_ops->predict)
 		return FALSE;
 
@@ -1214,7 +1214,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	  Items that do not implement predict and shift methods cannot be
 	  splitted.
 	*/
-	if (!node40_shiftable(&src_item))
+	if (!node40_splitable(&src_item))
 		return 0;
 	
 	/* Checking if items are mergeable */
