@@ -18,6 +18,11 @@ extern errno_t repair_tree_next_key(reiser4_tree_t *tree,
 				    place_t *place, 
 				    reiser4_key_t *key);
 
+extern node_t *repair_tree_load_node(reiser4_tree_t *tree, 
+				     node_t *parent,
+				     blk_t blk, 
+				     bool_t check);
+
 extern errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 
 					node_t *node, uint8_t mode);
 
