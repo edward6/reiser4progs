@@ -192,17 +192,16 @@ static void symlink40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL, return);
 
 	/* Unlocking statdata and body */
-	if (symlink->file.statdata.data)
-		core->tree_ops.unlock(symlink->file.tree, &symlink->file.statdata);
+	file40_unlock(&symlink->file, &symlink->file.statdata);
 	
 	aal_free(entity);
 }
 
 /* Detecting the object plugin by extentions or mode */
-static int symlink40_confirm(item_entity_t *item) {
+static int symlink40_confirm(reiser4_place_t *place) {
 	uint16_t mode;
     
-	aal_assert("umka-1292", item != NULL, return 0);
+	aal_assert("umka-1292", place != NULL, return 0);
 
 	/* 
 	   FIXME-UMKA: Here we should inspect all extentions and try to find out
@@ -213,7 +212,7 @@ static int symlink40_confirm(item_entity_t *item) {
 	   Guessing plugin type and plugin id by mode field from the stat data
 	   item. Here we return default plugins for every file type.
 	*/
-	if (file40_get_mode(item, &mode)) {
+	if (file40_get_mode(place, &mode)) {
 		aal_exception_error("Can't get mode from stat data while probing %s.",
 				    symlink40_plugin.h.label);
 		return 0;

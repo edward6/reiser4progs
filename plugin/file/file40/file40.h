@@ -44,20 +44,23 @@ extern roid_t file40_objectid(file40_t *file);
 extern roid_t file40_locality(file40_t *file);
 extern errno_t file40_realize(file40_t *file);
 
-extern errno_t file40_get_mode(item_entity_t *item,
+extern errno_t file40_lock(file40_t *file,
+			   reiser4_place_t *place);
+
+extern errno_t file40_unlock(file40_t *file,
+			     reiser4_place_t *place);
+
+extern errno_t file40_get_mode(reiser4_place_t *place,
 			       uint16_t *mode);
 
-extern errno_t file40_get_size(item_entity_t *item,
+extern errno_t file40_set_mode(reiser4_place_t *place,
+			       uint16_t mode);
+
+extern errno_t file40_get_size(reiser4_place_t *place,
 			       uint64_t *size);
 
-extern errno_t file40_set_size(item_entity_t *item,
+extern errno_t file40_set_size(reiser4_place_t *place,
 			       uint64_t size);
-
-extern errno_t reg40_get_size(item_entity_t *item,
-			      uint64_t *size);
-
-extern errno_t reg40_set_size(item_entity_t *item,
-			      uint64_t size);
 
 extern errno_t file40_init(file40_t *file, reiser4_key_t *key,
 			   reiser4_plugin_t *plugin, const void *tree,

@@ -30,7 +30,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
     
 	aal_assert("umka-1161", reg != NULL, return -1);
     
-	if (file40_get_size(&reg->file.statdata.entity, &size))
+	if (file40_get_size(&reg->file.statdata, &size))
 		return -1;
 
 	if (size == 0)
@@ -41,18 +41,16 @@ static errno_t reg40_reset(object_entity_t *entity) {
 		    KEY_FILEBODY_TYPE, file40_locality(&reg->file),
 		    file40_objectid(&reg->file), 0);
     
-	if (reg->body.data)
-		core->tree_ops.unlock(reg->file.tree, &reg->body);
+	file40_unlock(&reg->file, &reg->body);
 	
 	if (core->tree_ops.lookup(reg->file.tree, &key, &level, &reg->body) != 1)
 		reg->body.data = NULL;
 	
 	/*
-	  Looking the current body lies in node in order to prevent the throwing
-	  it out of tree cache
+	  Locking node the current body lies in, due to prevent the throwing
+	  it out of tree cache.
 	*/
-	if (reg->body.data)
-		core->tree_ops.lock(reg->file.tree, &reg->body);
+	file40_lock(&reg->file, &reg->body);
 
 	reg->offset = 0;
 	reg->local = 0;
@@ -72,15 +70,13 @@ static int reg40_next(object_entity_t *entity) {
 		    file40_objectid(&reg->file), reg->offset);
 
         /* Unlocking the old body */
-	if (reg->body.data)
-		core->tree_ops.unlock(reg->file.tree, &reg->body);
+	file40_unlock(&reg->file, &reg->body);
 
 	/* Getting the next body item from the tree */
 	res = core->tree_ops.lookup(reg->file.tree, &key, &level, &reg->body);
 
 	/* Locking new body or old one if lookup failed */
-	if (reg->body.data)
-		core->tree_ops.lock(reg->file.tree, &reg->body);
+	file40_lock(&reg->file, &reg->body);
 	
 	return res;
 }
@@ -100,7 +96,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	if (!reg->body.data)
 		return 0;
     
-	if (file40_get_size(&reg->file.statdata.entity, &size))
+	if (file40_get_size(&reg->file.statdata, &size))
 		return -1;
 
 	if (size == 0)
@@ -369,7 +365,7 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 	if (!reg->body.data)
 		return 0;
 
-	if (file40_get_size(&reg->file.statdata.entity, &size))
+	if (file40_get_size(&reg->file.statdata, &size))
 		return -1;
 		
 	while (1) {
@@ -426,11 +422,8 @@ static void reg40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL, return);
 
 	/* Unlocking statdata and body */
-	if (reg->file.statdata.data)
-		core->tree_ops.unlock(reg->file.tree, &reg->file.statdata);
-
-	if (reg->body.data)
-		core->tree_ops.unlock(reg->file.tree, &reg->body);
+	file40_unlock(&reg->file, &reg->file.statdata);
+	file40_unlock(&reg->file, &reg->body);
 	
 	aal_free(entity);
 }
@@ -441,10 +434,10 @@ static uint64_t reg40_offset(object_entity_t *entity) {
 }
 
 /* Detecting the object plugin by extentions or mode */
-static int reg40_confirm(item_entity_t *item) {
+static int reg40_confirm(reiser4_place_t *place) {
 	uint16_t mode;
     
-	aal_assert("umka-1292", item != NULL, return 0);
+	aal_assert("umka-1292", place != NULL, return 0);
 
 	/* 
 	   FIXME-UMKA: Here we should inspect all extentions and try to find out
@@ -455,7 +448,7 @@ static int reg40_confirm(item_entity_t *item) {
 	   Guessing plugin type and plugin id by mode field from the stat data
 	   item. Here we return default plugins for every file type.
 	*/
-	if (file40_get_mode(item, &mode)) {
+	if (file40_get_mode(place, &mode)) {
 		aal_exception_error("Can't get mode from stat data while probing %s.",
 				    reg40_plugin.h.label);
 		return 0;

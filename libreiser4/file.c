@@ -19,7 +19,7 @@ static errno_t callback_guess_file(
 {
 	if (plugin->h.sign.type == FILE_PLUGIN_TYPE) {
 		return plugin_call(return 0, plugin->file_ops, confirm,
-				   (item_entity_t *)data);
+				   (reiser4_place_t *)data);
 	}
     
 	return 0;
@@ -31,7 +31,7 @@ static errno_t callback_guess_file(
 */
 static reiser4_plugin_t *reiser4_file_guess(reiser4_coord_t *coord) {
 	aal_assert("umka-1296", coord != NULL, return NULL);
-	return libreiser4_factory_cfind(callback_guess_file, (void *)&coord->entity);
+	return libreiser4_factory_cfind(callback_guess_file, (void *)coord);
 }
 
 /* 

@@ -32,8 +32,24 @@ roid_t file40_locality(file40_t *file) {
 			   get_locality, file->key.body);
 }
 
+errno_t file40_lock(file40_t *file, reiser4_place_t *place) {
+	if (place->data)
+		return file->core->tree_ops.lock(file->tree, place);
+
+	return 0;
+}
+
+errno_t file40_unlock(file40_t *file, reiser4_place_t *place) {
+	
+	if (place->data)
+		return file->core->tree_ops.unlock(file->tree, place);
+
+	return 0;
+}
+
 /* Gets mode field from the stat data */
-errno_t file40_get_mode(item_entity_t *item, uint16_t *mode) {
+errno_t file40_get_mode(reiser4_place_t *place, uint16_t *mode) {
+	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -44,6 +60,7 @@ errno_t file40_get_mode(item_entity_t *item, uint16_t *mode) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
+	item = &place->entity;
 	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
 		return -1;
 
@@ -51,8 +68,14 @@ errno_t file40_get_mode(item_entity_t *item, uint16_t *mode) {
 	return 0;
 }
 
+errno_t file40_set_mode(reiser4_place_t *place, uint16_t mode) {
+	/* FIXME-UMKA: Is not implemented yet! */
+	return -1;
+}
+
 /* Gets size field from the stat data */
-errno_t file40_get_size(item_entity_t *item, uint64_t *size) {
+errno_t file40_get_size(reiser4_place_t *place, uint64_t *size) {
+	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -63,6 +86,7 @@ errno_t file40_get_size(item_entity_t *item, uint64_t *size) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
+	item = &place->entity;
 	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
 		return -1;
 
@@ -71,7 +95,8 @@ errno_t file40_get_size(item_entity_t *item, uint64_t *size) {
 }
 
 /* Updates size field in the stat data */
-errno_t file40_set_size(item_entity_t *item, uint64_t size) {
+errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
+	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -82,6 +107,7 @@ errno_t file40_set_size(item_entity_t *item, uint64_t size) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
+	item = &place->entity;
 	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
 		return -1;
 

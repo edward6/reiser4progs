@@ -34,20 +34,16 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	plugin_call(return -1, key.plugin->key_ops, build_direntry, key.body, dir->hash,
 		    file40_locality(&dir->file), file40_objectid(&dir->file), ".");
 
-	if (dir->body.data)
-		core->tree_ops.unlock(dir->file.tree, &dir->body);
+	file40_unlock(&dir->file, &dir->body);
 	
 	if (core->tree_ops.lookup(dir->file.tree, &key, &level, &dir->body) != 1) {
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    file40_objectid(&dir->file));
-
-		if (dir->body.data)
-			core->tree_ops.lock(dir->file.tree, &dir->body);
-		
+		file40_lock(&dir->file, &dir->body);
 		return -1;
 	}
 
-	core->tree_ops.lock(dir->file.tree, &dir->body);
+	file40_lock(&dir->file, &dir->body);
 	
 	dir->offset = 0;
 	dir->body.pos.unit = 0;
@@ -96,9 +92,9 @@ static int dir40_next(object_entity_t *entity) {
 	/* Checking if items are mergeable */
 	if (curr_locality == next_locality) {
 		
-		core->tree_ops.unlock(dir->file.tree, &dir->body);
-		core->tree_ops.lock(dir->file.tree, &right);
-		
+		file40_unlock(&dir->file, &dir->body);
+		file40_lock(&dir->file, &right);
+
 		dir->body = right;
 		return 1;
 	}
@@ -513,11 +509,8 @@ static void dir40_close(object_entity_t *entity) {
 	
 	aal_assert("umka-750", entity != NULL, return);
 
-	if (dir->file.statdata.data)
-		core->tree_ops.unlock(dir->file.tree, &dir->file.statdata);
-	
-	if (dir->body.data)
-		core->tree_ops.unlock(dir->file.tree, &dir->body);
+	file40_unlock(&dir->file, &dir->file.statdata);
+	file40_unlock(&dir->file, &dir->body);
 	
 	aal_free(entity);
 }
@@ -541,10 +534,10 @@ static errno_t dir40_seek(object_entity_t *entity,
 }
 
 /* Detecting the object plugin by extentions or mode */
-static int dir40_confirm(item_entity_t *item) {
+static int dir40_confirm(reiser4_place_t *place) {
 	uint16_t mode;
     
-	aal_assert("umka-1417", item != NULL, return 0);
+	aal_assert("umka-1417", place != NULL, return 0);
 
 	/* 
 	   FIXME-UMKA: Here we should inspect all extentions and try to find out
@@ -555,7 +548,7 @@ static int dir40_confirm(item_entity_t *item) {
 	   Guessing plugin type and plugin id by mode field from the stat data 
 	   item. Here we return default plugins for every file type.
 	*/
-	if (file40_get_mode(item, &mode)) {
+	if (file40_get_mode(place, &mode)) {
 		aal_exception_error("Can't get mode from stat data while probing %s.",
 				    dir40_plugin.h.label);
 		return 0;

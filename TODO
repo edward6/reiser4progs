@@ -6,9 +6,6 @@ reiser4progs/COPYING.
 * should we split reiser4_fs_create and reiser4_fs_open onto separate
   functions?
 
-* move the all common code of reg40 and dir40 plugins to separate
-  file.
-
 * finish balancing code in node40 plugin.
 
 * --print-journal and --print-alloc options in debugfs.
@@ -21,4 +18,6 @@ reiser4progs/COPYING.
 
 * join reiser4_node_t and reiser4_joint_t
 
-* symlink and special file plugins.
+* special file plugin.
+
+* tree refference in the reiser4_coord_t

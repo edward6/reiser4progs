@@ -529,13 +529,13 @@ struct reiser4_file_ops {
 
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (const void *, reiser4_key_t *, 
-				     reiser4_key_t *, reiser4_file_hint_t *); 
+				    reiser4_key_t *, reiser4_file_hint_t *); 
     
 	/* Opens a file with specified key */
 	object_entity_t *(*open) (const void *, reiser4_key_t *);
 
 	/* Conforms file plugin in use */
-	int (*confirm) (item_entity_t *);
+	int (*confirm) (reiser4_place_t *);
     
 	/* Closes previously opened or created directory */
 	void (*close) (object_entity_t *);
