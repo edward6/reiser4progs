@@ -191,7 +191,7 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	aal_assert("umka-1599", hint != NULL);
 	
 	if (!(direntry = direntry40_body(item)))
-		return -1;
+		return -EINVAL;
 
 	aal_assert("umka-1608", direntry != NULL);
 	aal_assert("umka-1598", pos < de40_get_units(direntry));
@@ -1024,11 +1024,11 @@ static errno_t direntry40_print(item_entity_t *item,
 		objectid = ob40_get_objectid(objid);
 		
 		namewidth = 20 > aal_strlen(name) ? 20 -
-			aal_strlen(name) + 1 : 1;
+			aal_strlen(name) : 0;
 
 		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
-				  "[ %.7llx:%.7llx ]\n", 3, i, name, namewidth, " ",
-				  6, entry->offset, ha40_get_objectid(&entry->hash),
+				  "[ %.7llx:%.7llx ]\n", 3, i, name, namewidth, "", 6,
+				  entry->offset, ha40_get_objectid(&entry->hash),
 				  ha40_get_offset(&entry->hash), locality, objectid);
 	}
 

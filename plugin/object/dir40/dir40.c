@@ -27,10 +27,6 @@ static uint64_t dir40_size(object_entity_t *entity) {
 	dir40_t *dir;
 
 	dir = (dir40_t *)entity;
-	
-	/* Getting stat data item place */
-	obj40_stat(&dir->obj);
-	
 	return obj40_get_size(&dir->obj);
 }
 

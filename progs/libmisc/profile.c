@@ -369,7 +369,7 @@ errno_t progs_profile_override(reiser4_profile_t *profile,
 		if (!(index = aal_strchr(entry, '='))) {
 			aal_exception_error("Invalid profile override "
 					    "entry detected %s.", entry);
-			return -1;
+			return -EINVAL;
 		}
 
 		aal_memset(name, 0, sizeof(name));
@@ -380,14 +380,14 @@ errno_t progs_profile_override(reiser4_profile_t *profile,
 		if (index + 1 == '\0') {
 			aal_exception_error("Invalid profile override "
 					    "entry detected %s.", entry);
-			return -1;
+			return -EINVAL;
 		}
 		
 		aal_strncpy(value, index + 1, (entry + aal_strlen(entry)) -
 			    index);
 	
 		if (reiser4_profile_override(profile, name, value))
-			return -1;
+			return -EINVAL;
 	}
 
 	return 0;

@@ -276,6 +276,7 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /*
   Initializes item entity in order to pass it to an item plugin routine. If unit
   component of pos is set up the function will initialize item's key from the
@@ -349,8 +350,6 @@ static errno_t node40_item(object_entity_t *entity, pos_t *pos,
 
 	return 0;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Returns node free space */
 static uint16_t node40_space(object_entity_t *entity) {
@@ -1036,7 +1035,6 @@ static errno_t node40_print(object_entity_t *entity,
 
 	return 0;
 }
-
 #endif
 
 /* Helper callback for comparing two keys. This is used by node lookup */

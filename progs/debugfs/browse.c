@@ -13,13 +13,14 @@
 
 /* If file is a regular one we show its contant here */
 static errno_t debugfs_object_cat(reiser4_object_t *object) {
+	errno_t res;
 	int32_t read;
 	char buff[4096];
 	
-	if (reiser4_object_reset(object)) {
+	if ((res = reiser4_object_reset(object))) {
 		aal_exception_error("Can't reset object %s.",
 				    object->name);
-		return -1;
+		return res;
 	}
 
 	/* The loop until object_read returns zero bytes read */
@@ -38,13 +39,14 @@ static errno_t debugfs_object_cat(reiser4_object_t *object) {
 
 /* If object is the directory, we show its contant here */
 static errno_t debugfs_object_ls(reiser4_object_t *object) {
+	errno_t res;
 	char buff[4096];
 	reiser4_entry_hint_t entry;
 	
-	if (reiser4_object_reset(object)) {
+	if ((res = reiser4_object_reset(object))) {
 		aal_exception_error("Can't reset object %s.",
 				    object->name);
-		return -1;
+		return res;
 	}
 
 	/* The loop until all entry read */
@@ -73,7 +75,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	reiser4_object_t *object;
 	
 	if (!(object = reiser4_object_open(fs, filename)))
-		return -1;
+		return -EINVAL;
 
 	switch (object->entity->plugin->h.group) {
 	case FILE_OBJECT:

@@ -450,7 +450,7 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 	uint32_t nlink;
 	
 	if (obj40_stat(obj))
-		return -1;
+		return -EINVAL;
 	
 	nlink = obj40_get_nlink(obj);
 	return obj40_set_nlink(obj, nlink + value);

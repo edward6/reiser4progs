@@ -12,16 +12,15 @@
 
 #ifndef ENABLE_STAND_ALONE
 
-#include <aal/aal.h>
-
 #include <fcntl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+
+#include <aal/aal.h>
 
 /* Function for saving last error message into device assosiated buffer */
 static void file_error(

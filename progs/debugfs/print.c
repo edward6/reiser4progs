@@ -32,11 +32,12 @@ static errno_t tprint_open_node(
 static errno_t tprint_process_node(
 	reiser4_node_t *node,	    /* node to be printed */
 	void *data)		    /* traverse data */
-{	
+{
+	errno_t res;
 	aal_stream_t stream;
 	aal_stream_init(&stream);
 
-	if (reiser4_node_print(node, &stream))
+	if ((res = reiser4_node_print(node, &stream)))
 		goto error_free_stream;
 
 	debugfs_print_stream(&stream);
@@ -46,7 +47,7 @@ static errno_t tprint_process_node(
 	
  error_free_stream:
 	aal_stream_fini(&stream);
-	return -1;
+	return res;
 }
 
 errno_t debugfs_print_node(reiser4_node_t *node) {
@@ -105,8 +106,8 @@ errno_t debugfs_print_block(
 
 	aal_exception_on();
 	
-	if (debugfs_print_node(node))
-		return -1;
+	if ((res = debugfs_print_node(node)))
+		return res;
 	
 	reiser4_node_close(node);
 	
@@ -126,14 +127,15 @@ errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 
 /* Prints master super block */
 errno_t debugfs_print_master(reiser4_fs_t *fs) {
+	errno_t res;
 	aal_stream_t stream;
 	
 	aal_assert("umka-1299", fs != NULL);
 
 	aal_stream_init(&stream);
 		
-	if (reiser4_master_print(fs->master, &stream))
-		return -1;
+	if ((res = reiser4_master_print(fs->master, &stream)))
+		return res;
 
 	/*
 	  If reiser4progs supports uuid (if it was found durring building), then
@@ -156,17 +158,20 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 
 /* Prints format-specific super block */
 errno_t debugfs_print_format(reiser4_fs_t *fs) {
+	errno_t res;
 	aal_stream_t stream;
 
 	if (!fs->format->entity->plugin->format_ops.print) {
-		aal_exception_info("Format print method is not implemented.");
+		aal_exception_info("Format print method is not "
+				   "implemented.");
 		return 0;
 	}
     
 	aal_stream_init(&stream);
 	
-	if (reiser4_format_print(fs->format, &stream)) {
-		aal_exception_error("Can't print format specific super block.");
+	if ((res = reiser4_format_print(fs->format, &stream))) {
+		aal_exception_error("Can't print format specific "
+				    "super block.");
 		goto error_free_stream;
 	}
     
@@ -178,21 +183,23 @@ errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	
  error_free_stream:
 	aal_stream_fini(&stream);
-	return -1;
+	return res;
 }
 
 /* Prints oid allocator */
 errno_t debugfs_print_oid(reiser4_fs_t *fs) {
+	errno_t res;
 	aal_stream_t stream;
     
 	if (!fs->oid->entity->plugin->oid_ops.print) {
-		aal_exception_info("Oid allocator print method is not implemented.");
+		aal_exception_info("Oid allocator print method is "
+				   "not implemented.");
 		return 0;
 	}
 
 	aal_stream_init(&stream);
 
-	if (reiser4_oid_print(fs->oid, &stream)) {
+	if ((res = reiser4_oid_print(fs->oid, &stream))) {
 		aal_exception_error("Can't print oid allocator.");
 		goto error_free_stream;;
 	}
@@ -205,16 +212,17 @@ errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	
  error_free_stream:
 	aal_stream_fini(&stream);
-	return -1;
+	return res;
 }
 
 /* Prints block allocator */
 errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
+	errno_t res;
 	aal_stream_t stream;
 
 	aal_stream_init(&stream);
     
-	if (reiser4_alloc_print(fs->alloc, &stream)) {
+	if ((res = reiser4_alloc_print(fs->alloc, &stream))) {
 		aal_exception_error("Can't print block allocator.");
 		goto error_free_stream;;
 	}
@@ -227,12 +235,13 @@ errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
 	
  error_free_stream:
 	aal_stream_fini(&stream);
-	return -1;
+	return res;
 }
 
 /* Prints journal */
 errno_t debugfs_print_journal(reiser4_fs_t *fs) {
-	aal_exception_error("Sorry, journal print is not implemented yet!");
+	aal_exception_error("Sorry, journal print is not "
+			    "implemented yet!");
 	return 0;
 }
 
@@ -250,6 +259,7 @@ static errno_t fprint_process_place(
 	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
+	errno_t res;
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 	reiser4_place_t *p = (reiser4_place_t *)place;
 
@@ -258,10 +268,10 @@ static errno_t fprint_process_place(
 
 	hint->old = p->node->blk;
 	
-	if (debugfs_print_node(p->node)) {
+	if ((res = debugfs_print_node(p->node))) {
 		aal_exception_error("Can't print node %llu.",
 				    hint->old);
-		return -1;
+		return res;
 	}
 
 	return 0;
@@ -278,7 +288,7 @@ errno_t debugfs_print_file(
 	reiser4_object_t *object;
 	
 	if (!(object = reiser4_object_open(fs, filename)))
-		return -1;
+		return -EINVAL;
 
 	/*
 	  If --show-items option is specified, we show only items belong to the

@@ -188,8 +188,7 @@ errno_t libreiser4_plugin_open(const char *name,
     
  error_free_handle:
 	dlclose(handle->data);
- error:
-	return -1;
+	return -EINVAL;
 }
 
 void libreiser4_plugin_close(plugin_handle_t *handle) {

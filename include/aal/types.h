@@ -12,6 +12,22 @@
 #  include <config.h>
 #endif
 
+/* Some usefull return codes */
+#undef EINVAL
+#define EINVAL                  0x1
+
+#undef ENOSPC
+#define ENOSPC                  0x2
+
+#undef ENOMEM
+#define ENOMEM                  0x3
+
+#undef EIO
+#define EIO                     0x4
+
+#undef ESTRUCT
+#define ESTRUCT                 0x5
+
 #ifndef __int8_t_defined
 # define __int8_t_defined
 typedef signed char             int8_t;
@@ -332,6 +348,7 @@ typedef struct aal_stream aal_stream_t;
 
 #endif
 
-typedef void (*assert_handler_t) (char *, int, char *, char *, int, char *);
+typedef void (*assert_handler_t) (char *, int, char *,
+				  char *, int, char *);
 
 #endif

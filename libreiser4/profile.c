@@ -52,11 +52,11 @@ errno_t reiser4_profile_override(reiser4_profile_t *profile,
 	aal_assert("umka-922", profile != NULL);
 
 	if (!(pid = reiser4_profile_pid(profile, type)))
-		return -1;
+		return -EINVAL;
 
 	if (!(plugin = libreiser4_factory_nfind(name))) {
 		aal_exception_error("Can't find plugin name \"%s\".", name);
-		return -1;
+		return -EINVAL;
 	}
 
 	pid->value = plugin->h.id;

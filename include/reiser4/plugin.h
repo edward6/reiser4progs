@@ -52,22 +52,6 @@ enum lookup {
 
 typedef enum lookup lookup_t;
 
-/* Some usefull return codes */
-#undef EINVAL
-#define EINVAL                  0x1
-
-#undef ENOSPC
-#define ENOSPC                  0x2
-
-#undef ENOMEM
-#define ENOMEM                  0x3
-
-#undef EIO
-#define EIO                     0x4
-
-#undef ESTRUCT
-#define ESTRUCT                 0x5
-
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
 

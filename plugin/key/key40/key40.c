@@ -352,7 +352,7 @@ static errno_t key40_valid(key_entity_t *key) {
 	aal_assert("vpf-243", key != NULL);
 
 	if (!key40_confirm(key))
-		return -1;
+		return -EINVAL;
 	
 	minor = k40_get_minor((key40_t *)key->body);
 	band = k40_get_band((key40_t *)key->body);

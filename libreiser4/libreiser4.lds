@@ -129,14 +129,6 @@ SECTIONS
     KEEP (*(.init))
   } =0x90909090
   .plt      : { *(.plt)	}
-
-  /* Plugins entry points segment */
-  __plugin_start = .;
-  .plugins : {
-    *(.plugins) 
-  } = 0x90909090
-  __plugin_end = .;
-  
   .text      :
   {
     *(.text)
@@ -146,6 +138,13 @@ SECTIONS
     *(.gnu.warning)
     *(.gnu.linkonce.t.*)
   } =0x90909090
+  
+  /* Plugins entry points segment */
+  __plugin_start = .;
+  .plugins : {
+    *(.plugins) 
+  } = 0x90909090
+  __plugin_end = .;
   
   .fini      :
   {

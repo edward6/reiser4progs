@@ -100,7 +100,7 @@ static errno_t tfrag_process_node(
 		if (reiser4_place_open(&place, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
-			return -1;
+			return -EINVAL;
 		}
 
 		item = &place.item;
@@ -152,6 +152,7 @@ static errno_t tfrag_update_node(reiser4_place_t *place, void *data) {
   callbacks and subcallbacks (for item traversing).
 */
 errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
+	errno_t res;
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	tfrag_hint_t frag_hint;
@@ -162,7 +163,7 @@ errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	*/
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
 				       "Tree fragmentation", NULL)))
-		return -1;
+		return -ENOMEM;
 	
 	/* Preparing serve structure, statistics will be stored in  */
 	frag_hint.bad = 0;
@@ -180,10 +181,10 @@ errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_start(gauge);
 
 	/* Calling tree traversal */
-	if (reiser4_tree_traverse(fs->tree, &hint, tfrag_open_node,
-				  tfrag_process_node, tfrag_setup_node,
-				  tfrag_update_node, NULL))
-		return -1;
+	if ((res = reiser4_tree_traverse(fs->tree, &hint, tfrag_open_node,
+					 tfrag_process_node, tfrag_setup_node,
+					 tfrag_update_node, NULL)))
+		return res;
 
 	aal_gauge_free(gauge);
 
@@ -281,13 +282,14 @@ static errno_t stat_process_node(
 		stat_hint->internals_used /= (stat_hint->internals + 1);
 
 		for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
+			errno_t res;
 			item_entity_t *item;
 			reiser4_place_t place;
 			
-			if (reiser4_place_open(&place, node, &pos)) {
+			if ((res = reiser4_place_open(&place, node, &pos))) {
 				aal_exception_error("Can't open item %u in node %llu.", 
 						    pos.item, node->blk);
-				return -1;
+				return res;
 			}
 
 			item = &place.item;
@@ -319,13 +321,14 @@ static errno_t stat_process_node(
 
 /* Entry point function for calculating tree statistics */
 errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
+	errno_t res;
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	tstat_hint_t stat_hint;
 
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
 				       "Tree statistics", NULL)))
-		return -1;
+		return -ENOMEM;
 	
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 
@@ -339,9 +342,9 @@ errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 
 	aal_gauge_start(gauge);
 	
-	if (reiser4_tree_traverse(fs->tree, &hint, stat_open_node,
-				  stat_process_node, NULL, NULL, NULL))
-		return -1;
+	if ((res = reiser4_tree_traverse(fs->tree, &hint, stat_open_node,
+					 stat_process_node, NULL, NULL, NULL)))
+		return res;
 
 	aal_gauge_free(gauge);
 	
@@ -411,13 +414,14 @@ static errno_t ffrag_process_blk(
 errno_t debugfs_file_frag(reiser4_fs_t *fs,
 			  char *filename)
 {
+	errno_t res = 0;
 	aal_gauge_t *gauge;
 	ffrag_hint_t frag_hint;
 	reiser4_object_t *object;
 
 	/* Opens object by its name */
 	if (!(object = reiser4_object_open(fs, filename)))
-		return -1;
+		return -EINVAL;
 
 	/* Create a gauge which will show the progress */
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "", NULL)))
@@ -438,7 +442,7 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 	  data file fragmentation will be calculated on are gathering in that
 	  function.
 	*/
-	if (reiser4_object_layout(object, ffrag_process_blk, &frag_hint)) {
+	if ((res = reiser4_object_layout(object, ffrag_process_blk, &frag_hint))) {
 		aal_exception_error("Can't enumerate data blocks occupied "
 				    "by %s", filename);
 		goto error_free_gauge;
@@ -457,7 +461,7 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 	aal_gauge_free(gauge);
  error_free_object:
 	reiser4_object_close(object);
-	return -1;
+	return res;
 }
 
 static errno_t dfrag_open_node(
@@ -493,14 +497,15 @@ static errno_t dfrag_process_node(
 	for (pos.item = 0; pos.item < reiser4_node_items(node);
 	     pos.item++)
 	{
+		errno_t res;
 		reiser4_place_t place;
 		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
-		if (reiser4_place_open(&place, node, &pos)) {
+		if ((res = reiser4_place_open(&place, node, &pos))) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
-			return -1;
+			return res;
 		}
 
 		/*
@@ -574,13 +579,14 @@ static errno_t dfrag_update_node(reiser4_place_t *place, void *data) {
 errno_t debugfs_data_frag(reiser4_fs_t *fs,
 			  uint32_t flags)
 {
+	errno_t res;
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	ffrag_hint_t frag_hint;
 
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
 				       "Data fragmentation", NULL)))
-		return -1;
+		return -ENOMEM;
 	
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 
@@ -596,10 +602,10 @@ errno_t debugfs_data_frag(reiser4_fs_t *fs,
 
 	aal_gauge_start(gauge);
 	
-	if (reiser4_tree_traverse(fs->tree, &hint, dfrag_open_node,
-				  dfrag_process_node, dfrag_setup_node, 
-				  dfrag_update_node, NULL))
-		return -1;
+	if ((res = reiser4_tree_traverse(fs->tree, &hint, dfrag_open_node,
+					 dfrag_process_node, dfrag_setup_node, 
+					 dfrag_update_node, NULL)))
+		return res;
 
 	aal_gauge_free(gauge);
 

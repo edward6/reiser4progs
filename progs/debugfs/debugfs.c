@@ -89,7 +89,7 @@ errno_t debugfs_print_buff(void *buff, uint32_t size) {
 			if (errno == EINTR)
 				continue;
 			
-			return -1;
+			return -EIO;
 		}
 		
 		ptr += written;
