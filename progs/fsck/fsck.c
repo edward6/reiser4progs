@@ -413,7 +413,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "%llu fatal corruptions were detected in %s. "
 			"Run with %s option to fix them.\n", repair.fatal, 
 			stage ? "FileSystem" : "SuperBlock", 
-			stage ? "--fs-build" : "--sb-build");
+			stage ? "--build-fs" : "--build-sb");
 		
 		exit_code = stage ? FATAL_ERROR : FATAL_SB_ERROR;
 	} else if (repair.fixable) {
