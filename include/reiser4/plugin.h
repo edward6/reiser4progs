@@ -1399,6 +1399,7 @@ typedef void (*register_builtin_t) (plugin_init_t,
   support.
 */
 #if defined(ENABLE_MONOLITHIC)
+
 #define plugin_register(n, i, f)			       \
     extern register_builtin_t __register_builtin;              \
                                                                \
@@ -1412,9 +1413,7 @@ typedef void (*register_builtin_t) (plugin_init_t,
 #elif defined (ENABLE_STAND_ALONE)
 
 #define plugin_register(n, i, f)                               \
-    plugin_init_t __##n##_plugin_init = i;                     \
-    plugin_fini_t __##n##_plugin_fini = f
-
+    plugin_init_t __##n##_plugin_init = i
 #else
 
 #define plugin_register(n, i, f)			       \
