@@ -769,7 +769,15 @@ static errno_t extent40_prep_write(reiser4_place_t *place,
 
 	hint->len = 0;
 	hint->overhead = 0;
-		
+	
+	/* If wanted key matches the item key, write inside. */
+	if (!plug_call(hint->offset.plug->o.key_ops, compfull, 
+		      &place->key, &hint->offset))
+	{
+		if (place->pos.unit == MAX_UINT32)
+			place->pos.unit = 0;
+	}
+	
 	if (place->pos.unit == MAX_UINT32) {
 		/* Assigning maxkey to key of new created item. */
 		plug_call(hint->offset.plug->o.key_ops,
