@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
 			if (!(object = reiser4_reg_create(fs, dir, name)))
 				goto error_free_dir;
 
-			count = 2034;
+			count = 3000;
 			
 			for (j = 0; j < count; j++) {
 				if (reiser4_object_write(object, name,

@@ -1082,12 +1082,26 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	   point position. After this function is finish @hint->rest will
 	   contain real number of bytes to be shifted into neighbour item. */
 	if (hint->create) {
+		uint32_t overhead;
+		
 		/* If items are not mergeable and we are in merge mode, we
 		   will not create new item in dst node. This mode is needed for
 		   mergeing mergeable items when they lie in the same node. */
 		if (hint->control & MSF_MERGE)
 			return 0;
 
+		/* Getting node overhead in order to substract it from
+		   @hint->rest, that is from space allowed to be used. */
+		overhead = node40_overhead(dst_entity);
+
+		/* There is not of enough free space in @dst_entity even to
+		   create an empty item in it. Getting out. */
+		if (hint->rest < overhead)
+			return 0;
+
+		/* Substract node overhead, that is item header. */
+		hint->rest -= overhead;
+			
 		if (plug_call(src_place.plug->o.item_ops->balance,
 			      prep_shift, &src_place, NULL, hint))
 		{

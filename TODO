@@ -3,6 +3,9 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* probably we should perform tail convertion by chunks of more than
+  4096 bytes?
+
 * should we introduce two stat data related methods 
   something like load_sd() and save_sd() like kernel does?
 
