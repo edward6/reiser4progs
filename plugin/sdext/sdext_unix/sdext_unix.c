@@ -12,7 +12,6 @@
 #define _GNU_SOURCE 1
 #endif
 
-#include <pwd.h>
 #include <time.h>
 #include <sys/types.h>
 #endif
@@ -73,20 +72,6 @@ static uint16_t sdext_unix_length(reiser4_body_t *body) {
 	return sizeof(sdext_unix_t);
 }
 
-static char *sdext_unix_name(char *pwdline) {
-	return aal_strsep(&pwdline, ":");
-}
-
-static char *sdext_unix_gecos(char *pwdline) {
-	char *token;
-	int counter = 0;
-
-	while ((token = aal_strsep(&pwdline, ":")))
-		if (counter++ == 4) return token;
-	
-	return NULL;
-}
-
 #ifndef ENABLE_COMPACT
 
 static errno_t sdext_unix_print(reiser4_body_t *body, aal_stream_t *stream,
@@ -104,20 +89,8 @@ static errno_t sdext_unix_print(reiser4_body_t *body, aal_stream_t *stream,
 	aal_memset(uid, 0, sizeof(uid));
 	aal_memset(gid, 0, sizeof(gid));
 
-	if (!getpw(sdext_unix_get_uid(ext), uid) && !getpw(sdext_unix_get_uid(ext), gid)) {
-		char *name, *gecos;
-
-		name = sdext_unix_name(uid);
-		
-		if (!(gecos = sdext_unix_gecos(uid)))
-			gecos = "undefined";
-		
-		aal_stream_format(stream, "uid:\t\t%s (%s)\n", name, gecos);
-		aal_stream_format(stream, "gid:\t\t%s (%s)\n", name, gecos);
-	} else {
-		aal_stream_format(stream, "uid:\t\t%u\n", sdext_unix_get_uid(ext));
-		aal_stream_format(stream, "gid:\t\t%u\n", sdext_unix_get_gid(ext));
-	}
+	aal_stream_format(stream, "uid:\t\t%u\n", sdext_unix_get_uid(ext));
+	aal_stream_format(stream, "gid:\t\t%u\n", sdext_unix_get_gid(ext));
 	
 	atm = sdext_unix_get_atime(ext);
 	mtm = sdext_unix_get_mtime(ext);
