@@ -96,10 +96,10 @@ extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 typedef errno_t (*realize_func_t) (place_t *);
 typedef errno_t (*realize_key_func_t) (obj40_t *);
 
+extern errno_t obj40_check_sd(obj40_t *obj, realize_func_t sd_func);
 extern errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
 			     realize_key_func_t key_func, uint64_t types);
 
-errno_t obj40_check_sd(place_t *sd);
 
 #endif
 
