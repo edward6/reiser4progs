@@ -654,8 +654,9 @@ struct trans_hint {
 	   and place_func. */
 	void *data;
 
-	/* Flag needed for extents. */
-	int merge_units;
+	/* These are used to simplify extent write code be means of setting
+	   almost all thing during prep_write(). */
+        int create_unit;
 };
 
 typedef struct trans_hint trans_hint_t;
