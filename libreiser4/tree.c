@@ -656,7 +656,6 @@ static errno_t reiser4_tree_flush(reiser4_tree_t *tree,
 			aal_exception_error("Can't synchronize node %llu "
 					    "to device. %s.", node->blk,
 					    node->device->error);
-		
 			return -1;
 		}
 	}
@@ -692,8 +691,8 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 #endif
 
-static void reiser4_tree_collapse(reiser4_tree_t *tree,
-				  reiser4_node_t *node)
+void reiser4_tree_collapse(reiser4_tree_t *tree,
+			   reiser4_node_t *node)
 {
 	aal_assert("umka-1933", tree != NULL);
 	aal_assert("umka-1934", node != NULL);
