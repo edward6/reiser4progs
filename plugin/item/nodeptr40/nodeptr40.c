@@ -114,7 +114,7 @@ static errno_t nodeptr40_remove_units(reiser4_place_t *place,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_MINIMAL
-	.fuse		  = NULL,
+	.merge		  = NULL,
 	.prep_shift	  = NULL,
 	.shift_units	  = NULL,
 	.maxreal_key	  = NULL,

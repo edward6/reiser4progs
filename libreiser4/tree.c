@@ -2672,30 +2672,6 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return res;
 }
 
-/* Estimates how many bytes is needed to insert data described by @hint. */
-static errno_t cb_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
-	aal_assert("umka-2440", hint != NULL);
-	aal_assert("umka-2439", place != NULL);
-
-	hint->len = 0;
-	hint->overhead = 0;
-
-	return plug_call(hint->plug->o.item_ops->object,
-			 prep_insert, place, hint);
-}
-
-/* Estimates how many bytes is needed to write data described by @hint. */
-static errno_t cb_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
-	aal_assert("umka-3007", hint != NULL);
-	aal_assert("umka-3008", place != NULL);
-
-	hint->len = 0;
-	hint->overhead = 0;
-
-	return plug_call(hint->plug->o.item_ops->object,
-			 prep_write, place, hint);
-}
-
 /* This grows tree until requested level reached. */
 static inline errno_t tree_growup_level(reiser4_tree_t *tree,
 					uint8_t level)
@@ -2718,14 +2694,43 @@ static inline errno_t tree_growup_level(reiser4_tree_t *tree,
 
 /* This function prepares the tree for insert. That is it allocated root and
    first leaf if needed, splits the tree, etc. */
-static inline errno_t tree_prepare_insert(reiser4_tree_t *tree,
-					  reiser4_place_t *parent,
-					  reiser4_place_t *place,
-					  uint8_t level)
+static inline errno_t tree_prep_modify(reiser4_tree_t *tree,
+				       reiser4_place_t *parent,
+				       reiser4_place_t *place,
+				       uint8_t level)
 {
-	errno_t res;
-	uint32_t height;
 	reiser4_node_t *root;
+	uint32_t height;
+	errno_t res;
+
+	/* Check if tree has at least one node. If so -- load root node. Tree
+	   has not nodes just after it is created. Root node and first leaf will
+	   be created on demand then. */
+	if (!reiser4_tree_fresh(tree)) {
+		aal_assert("umka-3124", place->node != NULL);
+		
+		reiser4_node_lock(place->node);
+		
+		if ((res = reiser4_tree_load_root(tree))) {
+			reiser4_node_unlock(place->node);
+			return res;
+		}
+
+		reiser4_node_unlock(place->node);
+	}
+
+	/* Checking if we have the tree with height less than requested
+	   level. If so, we should grow the tree up to requested level. */
+	if (level > reiser4_tree_get_height(tree)) {
+		reiser4_node_lock(place->node);
+
+		if ((res = tree_growup_level(tree, level))) {
+			reiser4_node_unlock(place->node);
+			return res;
+		}
+
+		reiser4_node_unlock(place->node);
+	}
 
 	if (!reiser4_tree_fresh(tree)) {
 		if (level < reiser4_node_get_level(place->node)) {
@@ -2782,6 +2787,43 @@ static inline errno_t tree_prepare_insert(reiser4_tree_t *tree,
 	return 0;
 }
 
+static inline errno_t tree_post_modify(reiser4_tree_t *tree, 
+				       reiser4_place_t *place) 
+{
+	uint32_t items;
+	errno_t res;
+
+	/* Nothing to be done if no item is left in the node. */
+	if (!(items = reiser4_node_items(place->node)))
+		return 0;
+
+	/* Initializing insert point place. */
+	if ((res = reiser4_place_fetch(place)))
+		return res;
+
+	/* Parent keys will be updated if we inserted item/unit into leftmost
+	   pos and if target node has parent. */
+	if (reiser4_place_leftmost(place) && place->node->p.node) {
+		/* We will not update keys if node is not attached to tree
+		   yet. This will be done later on its attach. */
+		reiser4_place_t *parent = &place->node->p;
+		reiser4_key_t lkey;
+
+		reiser4_item_get_key(place, &lkey);
+
+		if ((res = reiser4_tree_update_keys(tree, parent, &lkey)))
+			return res;
+	}
+
+	/* Update @place->node children's parent pointers. */
+	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
+		if ((res = reiser4_tree_update_node(tree, place->node)))
+			return res;
+	}
+
+	return 0;
+}
+
 /* Main function for tree modifications. It is used for inserting data to tree
    (stat data items, directries) or writting (tails, extents). */
 int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
@@ -2793,46 +2835,19 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	errno_t res;
 	int32_t space;
 	int32_t write;
-	reiser4_place_t aplace;
+	reiser4_place_t parent;
 
 	aal_assert("umka-2673", tree != NULL);
 	aal_assert("umka-2674", hint != NULL);
+	aal_assert("umka-1645", hint->plug != NULL);
+	aal_assert("umka-1644", place != NULL);
 	
 	aal_assert("umka-2676", modify_func != NULL);
 	aal_assert("umka-2675", estimate_func != NULL);
 
-	/* Check if tree has at least one node. If so -- load root node. Tree
-	   has not nodes just after it is created. Root node and first leaf will
-	   be created on demand then. */
-	if (!reiser4_tree_fresh(tree)) {
-		aal_assert("umka-3124", place->node != NULL);
-		
-		reiser4_node_lock(place->node);
-		
-		if ((res = reiser4_tree_load_root(tree))) {
-			reiser4_node_unlock(place->node);
-			return res;
-		}
-
-		reiser4_node_unlock(place->node);
-	}
-
-	/* Checking if we have the tree with height less than requested
-	   level. If so, we should grow the tree up to requested level. */
-	if (level > reiser4_tree_get_height(tree)) {
-		reiser4_node_lock(place->node);
-
-		if ((res = tree_growup_level(tree, level))) {
-			reiser4_node_unlock(place->node);
-			return res;
-		}
-
-		reiser4_node_unlock(place->node);
-	}
-
-	/* Preparing things for insert. This may be splitting the tree,
+	/* Preparing the tree modification. This may include splitting, 
 	   allocating root, etc. */
-	if ((res = tree_prepare_insert(tree, &aplace, place, level)))
+	if ((res = tree_prep_modify(tree, &parent, place, level)))
 		return res;
 
 	/* Estimating item/unit to inserted/written to tree. */
@@ -2843,10 +2858,9 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	mode = (place->pos.unit == MAX_UINT32);
 		
 	/* Preparing space in tree. */
-	space = reiser4_tree_expand(tree, place, &aplace, hint->len, 
+	space = reiser4_tree_expand(tree, place, &parent, hint->len, 
 				    hint->overhead, hint->shift_flags);
 	
-
 	/* Needed space is the length of the item + an item overhead on 
 	   the item creation if needed. */
 	if (place->pos.unit != MAX_UINT32)
@@ -2863,44 +2877,15 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	}
 
 	/* Inserting/writing data to node. */
-	if ((write = reiser4_node_modify(place->node, &place->pos,
-					 hint, modify_func)) < 0)
-	{
+	if ((write = modify_func(place->node, &place->pos, hint)) < 0) {
 		aal_error("Can't insert data to node %llu.",
 			  place_blknr(place));
 		return write;
 	}
 
-	/* Initializing insert point place. */
-	if ((res = reiser4_place_fetch(place)))
+	if ((res = tree_post_modify(tree, place)))
 		return res;
-
-	/* Parent keys will be updated if we inserted item/unit into leftmost
-	   pos and if target node has parent. */
-	if (reiser4_place_leftmost(place) && place->node != tree->root) {
-		reiser4_place_t *parent = &place->node->p;
-
-		/* We will not update keys if node is not attached to tree
-		   yet. This will be done later on its attach. */
-		if (parent->node != NULL) {
-			reiser4_key_t lkey;
-
-			reiser4_item_get_key(place, &lkey);
-			
-			if ((res = reiser4_tree_update_keys(tree, parent,
-							    &lkey)))
-			{
-				return res;
-			}
-		}
-	}
-
-	/* Update children parent pointers of @place->node if any. */
-	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
-		if ((res = reiser4_tree_update_node(tree, place->node)))
-			return res;
-	}
-
+	
         /* If make space function allocates new node, we should attach it to the
 	   tree. Also, here we should handle the special case, when tree root
 	   should be changed. */
@@ -2922,11 +2907,11 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			reiser4_node_unlock(place->node);
 
 			/* Handling tree growth case. */
-			tree_next_child_pos(old_root, &aplace);
+			tree_next_child_pos(old_root, &parent);
 		}
 		
 		/* Attaching new node to the tree. */
-		if ((res = reiser4_tree_attach_node(tree, place->node, &aplace,
+		if ((res = reiser4_tree_attach_node(tree, place->node, &parent,
 						    hint->shift_flags)))
 		{
 			aal_error("Can't attach node %llu to tree.",
@@ -2945,33 +2930,58 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	return write;
 }
 
+/* Estimates how many bytes is needed to insert data described by @hint. */
+static errno_t cb_tree_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
+	aal_assert("umka-2440", hint != NULL);
+	aal_assert("umka-2439", place != NULL);
+
+	hint->len = 0;
+	hint->overhead = 0;
+
+	return plug_call(hint->plug->o.item_ops->object,
+			 prep_insert, place, hint);
+}
+
+static errno_t cb_tree_insert(reiser4_node_t *node, pos_t *pos, 
+			      trans_hint_t *hint) 
+{
+	return plug_call(node->plug->o.node_ops, 
+			 insert, node, pos, hint);
+}
+
 /* Inserts data to the tree. This function is used for inserting items which are
    not file body items, that is statdata, directory, etc. */
 int64_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_place_t *place,
 			    trans_hint_t *hint, uint8_t level)
 {
-	aal_assert("umka-779", tree != NULL);
-	aal_assert("umka-779", hint != NULL);
-	
-	aal_assert("umka-1644", place != NULL);
-	aal_assert("umka-1645", hint->plug != NULL);
-
 	return reiser4_tree_modify(tree, place, hint, level, 
-				   cb_prep_insert, cb_node_insert);
+				   cb_tree_prep_insert, cb_tree_insert);
 }
 
-/* Writes data to the tree. used for puting tail and extents to tree. */
+/* Estimates how many bytes is needed to write data described by @hint. */
+static errno_t cb_tree_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
+	aal_assert("umka-3007", hint != NULL);
+	aal_assert("umka-3008", place != NULL);
+
+	hint->len = 0;
+	hint->overhead = 0;
+
+	return plug_call(hint->plug->o.item_ops->object,
+			 prep_write, place, hint);
+}
+
+static errno_t cb_tree_write(reiser4_node_t *node, 
+			     pos_t *pos, trans_hint_t *hint) 
+{
+	return plug_call(node->plug->o.node_ops, 
+			 write, node, pos, hint);
+}
+
 int64_t reiser4_tree_write(reiser4_tree_t *tree, reiser4_place_t *place,
 			   trans_hint_t *hint, uint8_t level)
 {
-	aal_assert("umka-2441", tree != NULL);
-	aal_assert("umka-2442", hint != NULL);
-	
-	aal_assert("umka-2443", place != NULL);
-	aal_assert("umka-2444", hint->plug != NULL);
-
 	return reiser4_tree_modify(tree, place, hint, level,
-				   cb_prep_write, cb_node_write);
+				   cb_tree_prep_write, cb_tree_write);
 }
 
 /* Removes item/unit at @place. */
@@ -2989,34 +2999,9 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree,
 	if ((res = reiser4_node_remove(place->node, &place->pos, hint)))
 		return res;
 
-	/* Updating left deleimiting key in all parent nodes. */
-	if (reiser4_place_leftmost(place) &&
-	    place->node->p.node)
-	{
-		/* If node became empty it will be detached from the tree, so
-		   updating is not needed and impossible, because it has no
-		   items. */
-		if (reiser4_node_items(place->node) > 0) {
-			reiser4_key_t lkey;
-			reiser4_place_t parent;
-
-			/* Updating parent keys. */
-			reiser4_item_get_key(place, &lkey);
-			aal_memcpy(&parent, &place->node->p, sizeof(parent));
-			
-			if ((res = reiser4_tree_update_keys(tree, &parent, 
-							    &lkey)))
-				return res;
-		}
-	}
+	if ((res = tree_post_modify(tree, place)))
+		return res;
 	
-	if (reiser4_node_get_level(place->node) > LEAF_LEVEL &&
-	    reiser4_node_items(place->node) > 0)
-	{
-		if ((res = reiser4_tree_update_node(tree, place->node)))
-			return res;
-	}
-
 	/* Checking if the node became empty. If so, we release it, otherwise we
 	   pack the tree about it. */
 	if (reiser4_node_items(place->node) == 0) {

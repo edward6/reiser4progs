@@ -357,11 +357,11 @@ errno_t reiser4_node_shift(reiser4_node_t *node, reiser4_node_t *neig,
 			 node, neig, hint);
 }
 
-errno_t reiser4_node_fuse(reiser4_node_t *node, pos_t *pos1, pos_t *pos2) {
+errno_t reiser4_node_merge(reiser4_node_t *node, pos_t *pos1, pos_t *pos2) {
 	aal_assert("vpf-1507", node != NULL);
 
 	return plug_call(node->plug->o.node_ops, 
-			 fuse, node, pos1, pos2);
+			 merge, node, pos1, pos2);
 }
 
 /* Saves passed @node onto device it was opened on */
@@ -403,19 +403,11 @@ errno_t reiser4_node_update_key(reiser4_node_t *node, pos_t *pos,
 			 set_key, node, pos, key);
 }
 
-/* Node modifying fucntion. */
-int64_t reiser4_node_modify(reiser4_node_t *node, pos_t *pos,
-			    trans_hint_t *hint,
-			    modify_func_t modify_func)
-{
-	uint32_t len;
-	int64_t write;
-	uint32_t needed;
 
-	aal_assert("umka-2679", pos != NULL);
-	aal_assert("umka-2678", node != NULL);
-	aal_assert("umka-2680", hint != NULL);
-	aal_assert("umka-2681", modify_func != NULL);
+static errno_t node_modify_check(reiser4_node_t *node, 
+				 pos_t *pos, trans_hint_t *hint) 
+{
+	uint32_t len, needed;
 	
 	len = hint->len + hint->overhead;
 
@@ -429,41 +421,52 @@ int64_t reiser4_node_modify(reiser4_node_t *node, pos_t *pos,
 		return -EINVAL;
 	}
 
-	/* Modifing the node with the given @hint. */
-	if ((write = modify_func(node, pos, hint)) < 0)
-		return write;
-
-	return write;
-}
-
-errno_t cb_node_insert(reiser4_node_t *node, pos_t *pos, trans_hint_t *hint) {
-	return plug_call(node->plug->o.node_ops,
-			 insert, node, pos, hint);
-}
-
-errno_t cb_node_write(reiser4_node_t *node, pos_t *pos, trans_hint_t *hint) {
-	return plug_call(node->plug->o.node_ops,
-			 write, node, pos, hint);
+	return 0;
 }
 
 errno_t reiser4_node_insert(reiser4_node_t *node, pos_t *pos,
 			    trans_hint_t *hint)
 {
+	errno_t res;
+	
 	aal_assert("umka-991", pos != NULL);
 	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-992", hint != NULL);
+
+	if ((res = node_modify_check(node, pos, hint)))
+		return res;
 	
-	return reiser4_node_modify(node, pos, hint, cb_node_insert);
+	return plug_call(node->plug->o.node_ops, insert, node, pos, hint);
 }
 
 int64_t reiser4_node_write(reiser4_node_t *node, pos_t *pos,
 			   trans_hint_t *hint)
 {
+	errno_t res;
+
 	aal_assert("umka-2446", pos != NULL);
 	aal_assert("umka-2447", hint != NULL);
 	aal_assert("umka-2445", node != NULL);
 
-	return reiser4_node_modify(node, pos, hint, cb_node_write);
+	if ((res = node_modify_check(node, pos, hint)))
+		return res;
+
+	return plug_call(node->plug->o.node_ops, write, node, pos, hint);
+}
+
+/* Deletes item or unit from cached node. Keeps track of changes of the left
+   delimiting key. */
+errno_t reiser4_node_remove(reiser4_node_t *node, pos_t *pos,
+			    trans_hint_t *hint)
+{
+	aal_assert("umka-993", node != NULL);
+	aal_assert("umka-994", pos != NULL);
+	aal_assert("umka-2391", hint != NULL);
+
+	/* Removing item or unit. We assume that we remove whole item if unit
+	   component is set to MAX_UINT32. Otherwise we remove unit. */
+	return plug_call(node->plug->o.node_ops,
+			 remove, node, pos, hint);
 }
 
 int64_t reiser4_node_trunc(reiser4_node_t *node, pos_t *pos,
@@ -475,31 +478,6 @@ int64_t reiser4_node_trunc(reiser4_node_t *node, pos_t *pos,
 	
 	return plug_call(node->plug->o.node_ops,
 			 trunc, node, pos, hint);
-}
-
-/* Deletes item or unit from cached node. Keeps track of changes of the left
-   delimiting key. */
-errno_t reiser4_node_remove(reiser4_node_t *node, pos_t *pos,
-			    trans_hint_t *hint)
-{
-	errno_t res;
-	
-	aal_assert("umka-993", node != NULL);
-	aal_assert("umka-994", pos != NULL);
-	aal_assert("umka-2391", hint != NULL);
-
-	/* Removing item or unit. We assume that we remove whole item if unit
-	   component is set to MAX_UINT32. Otherwise we remove unit. */
-	if ((res = plug_call(node->plug->o.node_ops,
-			     remove, node, pos, hint)))
-	{
-		aal_error("Can't remove %llu %s from the node %llu.", 
-			  hint->count, pos->unit == MAX_UINT32 ? 
-			  "items" : "units", node->block->nr);
-		return res;
-	}
-
-	return 0;
 }
 
 void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {

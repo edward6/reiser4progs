@@ -1215,7 +1215,7 @@ struct reiser4_node_ops {
 			  shift_hint_t *);
 
 	/* Fuses two neighbour items in passed node at passed positions. */
-	errno_t (*fuse) (reiser4_node_t *, pos_t *, pos_t *);
+	errno_t (*merge) (reiser4_node_t *, pos_t *, pos_t *);
     
 	/* Checks thoroughly the node structure and fixes what needed. */
 	errno_t (*check_struct) (reiser4_node_t *, uint8_t);

@@ -41,7 +41,6 @@ static errno_t cb_free_extent(uint64_t start, uint64_t count, void *data) {
 	return 0;
 }
 
-
 static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	trans_hint_t hint;
@@ -78,9 +77,9 @@ static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 
 		if (reiser4_item_mergeable(&cleanup->neigh, place)) {
 			/* Fuse neighbour items. */
-			if ((res = reiser4_node_fuse(place->node,
-						     &cleanup->neigh.pos,
-						     &place->pos)))
+			if ((res = reiser4_node_merge(place->node,
+						      &cleanup->neigh.pos,
+						      &place->pos)))
 				return res;
 			
 			/*

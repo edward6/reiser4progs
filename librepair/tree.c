@@ -432,8 +432,31 @@ static errno_t cb_prep_insert_raw(reiser4_place_t *place,
 static errno_t cb_insert_raw(reiser4_node_t *node, pos_t *pos, 
 			     trans_hint_t *hint) 
 {
-	return plug_call(node->plug->o.node_ops, insert_raw, node, pos, hint);
+	return plug_call(node->plug->o.node_ops, 
+			 insert_raw, node, pos, hint);
 }
+
+#if 0
+/* Debugging. */
+uint64_t maxreal_offset(reiser4_node_t *node, uint32_t item) {
+	reiser4_place_t place;
+	reiser4_key_t key;
+	pos_t pos = {item, MAX_UINT32};
+	
+	if (!node) return MAX_UINT64;
+
+	if (reiser4_node_items(node) <= item)
+		return MAX_UINT64;
+	
+	if (reiser4_place_open(&place, node, &pos))
+		return MAX_UINT64;
+	
+	if (reiser4_item_maxreal_key(&place, &key))
+		return MAX_UINT64;
+
+	return key.body[3];
+}
+#endif
 
 /* Insert the item into the tree overwriting an existent in the tree item 
    if needed. Does not insert branches. */

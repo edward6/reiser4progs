@@ -19,12 +19,6 @@ extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 extern errno_t reiser4_node_update_ptr(reiser4_node_t *node);
 extern void reiser4_node_move(reiser4_node_t *node, blk_t nr);
 
-extern errno_t cb_node_insert(reiser4_node_t *node, pos_t *pos,
-			      trans_hint_t *hint);
-
-extern errno_t cb_node_write(reiser4_node_t *node, pos_t *pos,
-			     trans_hint_t *hint);
-
 extern reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 					   reiser4_plug_t *plug,
 					   blk_t nr, uint8_t level);
@@ -32,7 +26,6 @@ extern reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 extern errno_t reiser4_node_trav(reiser4_node_t *node,
 				 place_func_t func,
 				 void *data);
-
 
 extern int64_t reiser4_node_modify(reiser4_node_t *node, pos_t *pos,
 				   trans_hint_t *hint,
@@ -59,8 +52,8 @@ extern errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 extern errno_t reiser4_node_shift(reiser4_node_t *node, reiser4_node_t *neig,
 				  shift_hint_t *hint);
 
-extern errno_t reiser4_node_fuse(reiser4_node_t *node, pos_t *pos1,
-				 pos_t *pos2);
+extern errno_t reiser4_node_merge(reiser4_node_t *node, 
+				  pos_t *pos1, pos_t *pos2);
 
 extern errno_t reiser4_node_update_key(reiser4_node_t *node, pos_t *pos,
 				       reiser4_key_t *key);

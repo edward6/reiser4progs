@@ -842,8 +842,8 @@ static errno_t cde40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 }
 
 /* Fuses bodies of two cde items that lie in the same node. */
-static int32_t cde40_fuse(reiser4_place_t *left_place, 
-			  reiser4_place_t *right_place) 
+static int32_t cde40_merge(reiser4_place_t *left_place, 
+			   reiser4_place_t *right_place) 
 {
 	void *buf;
 	void *entry;
@@ -869,7 +869,7 @@ static int32_t cde40_fuse(reiser4_place_t *left_place,
 	cde_inc_units(left_place, cde_get_units(right_place));
 	
 	/* Eliminating right item header and return header size as space
-	   released as result of fuse. */
+	   released as result of merge. */
 	aal_memmove(right_place->body, 
 		    right_place->body + sizeof(cde40_t), 
 		    right_place->len - sizeof(cde40_t));
@@ -1063,7 +1063,7 @@ lookup_t cde40_lookup(reiser4_place_t *place,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_MINIMAL
-	.fuse		  = cde40_fuse, 
+	.merge		  = cde40_merge, 
 	.mergeable	  = cde40_mergeable,
 	.prep_shift	  = cde40_prep_shift,
 	.shift_units	  = cde40_shift_units,

@@ -501,7 +501,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_MINIMAL
-	.fuse		  = NULL,
+	.merge		  = NULL,
 	.prep_shift	  = NULL,
 	.shift_units	  = NULL,
 	.update_key	  = NULL,

@@ -57,7 +57,7 @@ static errno_t ctail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_MINIMAL
-	.fuse		  = NULL,
+	.merge		  = NULL,
 	.update_key	  = NULL,
 	.mergeable	  = ctail40_mergeable,
 	.maxreal_key	  = tail40_maxreal_key,

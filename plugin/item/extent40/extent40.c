@@ -1458,7 +1458,7 @@ static errno_t extent40_shift_units(reiser4_place_t *src_place,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_MINIMAL
-	.fuse		  = NULL,
+	.merge		  = NULL,
 	.update_key	  = NULL,
 	.mergeable	  = extent40_mergeable,
 	.prep_shift	  = extent40_prep_shift,

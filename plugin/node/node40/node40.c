@@ -845,9 +845,9 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 
 /* Fuses two mergeable items if they lie in the same node side by side. This is
    needed for fsck if it discovered, that two items are mergeable and lie in the
-   same node (due to some corruption or fail) it will fuse them. */
-static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
-			   pos_t *right_pos)
+   same node (due to some corruption or fail) it will merge them. */
+static errno_t node40_merge(reiser4_node_t *entity,  
+			    pos_t *left_pos, pos_t *right_pos)
 {
 	errno_t res;
 	uint32_t pol;
@@ -872,7 +872,7 @@ static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 	delta = left_pos->item - right_pos->item;
 	
 	if (aal_abs(delta) > 1) {
-		aal_error("Can't fuse items which lie not side "
+		aal_error("Can't merge items which lie not side "
 			  "by side each other.");
 		return -EINVAL;
 	}
@@ -892,15 +892,15 @@ static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 	aal_assert("umka-2686", plug_equal(left_place.plug,
 					   right_place.plug));
 
-	/* Check if item needs some special actions to fuse (like eliminate
-	   header). If so, fuse items. */
-	if (left_place.plug->o.item_ops->balance->fuse) {
+	/* Check if item needs some special actions to merge (like eliminate
+	   header). If so, merge items. */
+	if (left_place.plug->o.item_ops->balance->merge) {
 		int32_t space;
 
 		/* Returned space is released space in node and it should be
 		   counted in node header. */
 		space = plug_call(left_place.plug->o.item_ops->balance,
-				  fuse, &left_place, &right_place);
+				  merge, &left_place, &right_place);
 
 		if (space) {
 			right_pos->unit = 0;
@@ -1615,7 +1615,7 @@ static errno_t node40_shift(reiser4_node_t *src_entity,
 	   up. */
 	if (hint->control & SF_ALLOW_MERGE) {
 		if ((res = node40_unite(src_entity, dst_entity, hint, 1))) {
-			aal_error("Can't merge two nodes during"
+			aal_error("Can't unite two nodes during"
 				  "node shift operation.");
 			return res;
 		}
@@ -1665,7 +1665,7 @@ static reiser4_node_ops_t node40_ops = {
 #ifndef ENABLE_MINIMAL
 	.init		= node40_init,
 	.sync           = node40_sync,
-	.fuse           = node40_fuse,
+	.merge          = node40_merge,
 
 	.pack           = node40_pack,
 	.unpack         = node40_unpack,

@@ -44,7 +44,7 @@ errno_t plain40_prep_shift(reiser4_place_t *src_place,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_MINIMAL
-	.fuse		  = NULL,
+	.merge		  = NULL,
 	.update_key	  = NULL,
 	.mergeable	  = plain40_mergeable,
 	.maxreal_key	  = tail40_maxreal_key,
