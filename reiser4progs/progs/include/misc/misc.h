@@ -13,6 +13,10 @@
 
 #include <linux/major.h>
 
+#define NO_ERROR	0  /* no errors */
+#define OPER_ERROR	8  /* bug in the code, assertions, etc. */
+#define USER_ERROR	16 /* wrong parameters, not allowed values, etc. */
+
 #ifndef MAJOR
 #  define MAJOR(rdev) ((rdev) >> 8)
 #  define MINOR(rdev) ((rdev) & 0xff)
@@ -44,21 +48,14 @@
 #  endif
 #endif
 
-/* Error codes for all reiser4progs */
-#define NO_ERROR	    0 /* no errors */
-#define OPERATION_ERROR	    8 /* bug in the code, assertions, etc. */
-#define USER_ERROR	   16 /* wrong parameters, not allowed values, syntax error, etc. */
+#include "gauge.h"
+#include "exception.h"
+#include "profile.h"
+#include "version.h"
+#include "ui.h"
 
-/* Device functions */
-extern int progs_misc_dev_mounted(const char *name, 
-    const char *ops);
-
-extern unsigned long long progs_misc_size_parse(const char *str, int *error);
-
-/* Common gauge handler functions */
-extern void progs_gauge_handler(aal_gauge_t *gauge);
-
-/* Plugin list printing function */
+extern int progs_misc_dev_mounted(const char *name, const char *ops);
+extern long long progs_misc_size_parse(const char *str, int *error);
 extern void progs_misc_factory_list(void);
 
 #endif
