@@ -50,6 +50,7 @@
 #endif
 
 #include "gauge.h"
+#include "mpressure.h"
 #include "exception.h"
 #include "profile.h"
 #include "version.h"

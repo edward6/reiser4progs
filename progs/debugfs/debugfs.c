@@ -135,8 +135,10 @@ static errno_t debugfs_attach_handler(reiser4_tree_t *tree,
 				      reiser4_node_t *node,
 				      void *data)
 {
-	if (tree->lru)
-		return aal_lru_adjust(tree->lru);
+	if (tree->lru) {
+		if (progs_mpressure_detect())
+			return aal_lru_adjust(tree->lru);
+	}
 	
 	return 0;
 }
