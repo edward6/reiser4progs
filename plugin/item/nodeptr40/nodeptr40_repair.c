@@ -7,7 +7,7 @@
 
 #include "nodeptr40.h"
 
-/*int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
+int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
     void *data) 
 {
     nodeptr40_t *nodeptr;
@@ -27,4 +27,4 @@
 	return res;
 
     return 0;
-}*/
+}

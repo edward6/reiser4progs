@@ -1,5 +1,5 @@
 /*
-  extent40_repair.c -- repair default extent plugin methods.
+  extent40_repare.c -- repair dafault extent plugin methods.
   
   Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -7,10 +7,9 @@
 
 #include "extent40.h"
 
-/*extern uint32_t extent40_units(item_entity_t *item);*/
+extern uint32_t extent40_units(item_entity_t *item);
 
-/* Checking extent item and zeroing out the problem region */
-/*int32_t extent40_layout_check(item_entity_t *item, region_func_t func, 
+int32_t extent40_layout_check(item_entity_t *item, region_func_t func, 
     void *data) 
 {
     int res;
@@ -33,6 +32,7 @@
 	    res = func(item, start, start + et40_get_start(extent), data);
 
 	    if (res > 0) {
+		/* Zero the problem region. */
 		et40_set_start(extent, 0);
 	    } else if (res < 0) 
 		return res;
@@ -40,5 +40,5 @@
     }
 
     return 0;
-}*/
+}
 

@@ -106,6 +106,9 @@ static errno_t extent40_get_key(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
+extern errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
+				     void *data);
+
 static errno_t extent40_estimate(item_entity_t *item, void *buff,
 				 uint32_t pos, uint32_t count)
 {
@@ -475,7 +478,6 @@ static errno_t extent40_layout(item_entity_t *item,
 			       data_func_t func,
 			       void *data)
 {
-	errno_t res;
 	uint32_t i, units;
 	extent40_t *extent;
 	
@@ -486,15 +488,20 @@ static errno_t extent40_layout(item_entity_t *item,
 	units = extent40_units(item);
 
 	for (i = 0; i < units; i++, extent++) {
+		uint64_t blk;
 		uint64_t start;
 		uint64_t width;
 
 		start = et40_get_start(extent);
-		width = et40_get_width(extent);
-
-		/* Call @func for not zero start (not allocated extent). */
-		if (start && (res = func(item, start, start + width, data)))
-			return res;
+		width = et40_get_start(extent);
+				
+		for (blk = start; blk < start + width; blk++) {
+			errno_t res;
+			
+			/* Call func for not zero blk. */
+			if (blk && (res = func(item, blk, data)))
+				return res;
+		}
 	}
 			
 	return 0;
@@ -695,6 +702,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.shift         = extent40_shift,
 		.layout        = extent40_layout,
 		.gap_key       = extent40_utmost_key,
+		.layout_check  = extent40_layout_check,
 #else
 		.init	       = NULL,
 		.update        = NULL,
@@ -707,6 +715,9 @@ static reiser4_plugin_t extent40_plugin = {
 		.shift         = NULL,
 		.layout        = NULL,
 		.gap_key       = NULL,
+		
+		.layout_check  = NULL,
+	
 #endif
 		.belongs       = NULL,
 		.check	       = NULL,

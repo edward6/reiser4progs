@@ -397,28 +397,23 @@ static errno_t tfrag_open_node(
 
 static errno_t tfrag_process_item(
 	item_entity_t *item,        /* item we traverse now */
-	uint64_t start,             /* start item block item */
-	uint64_t end,               /* end item block */
-	void *data)
+	blk_t blk, void *data)      /* one of blk item points to */
 {
-	uint32_t blk;
 	int64_t delta;
 	tfrag_hint_t *hint;
 	
 	hint = (tfrag_hint_t *)data;
 	
-	if (start == 0)
+	if (blk == 0)
 		return 0;
-
-	for (blk = start; blk < end; blk++) {
-		delta = hint->curr - blk;
 				
-		if (labs(delta) > 1)
-			hint->bad++;
+	delta = hint->curr - blk;
 				
-		hint->total++;
-		hint->curr = blk;
-	}
+	if (labs(delta) > 1)
+		hint->bad++;
+				
+	hint->total++;
+	hint->curr = blk;
 
 	return 0;
 }
@@ -466,7 +461,7 @@ static errno_t tfrag_process_node(
 		if (!item->plugin->item_ops.layout) {
 			aal_exception_warn("Item %u in node %llu has not "
 					   "\"layout\" method implemented. "
-					   "The result will not be reliable.",
+					   "The result will not be releable.",
 					   pos.item, node->blk);
 			continue;
 		}
@@ -582,12 +577,10 @@ static errno_t stat_open_node(
 /* Process one block belong to the item (extent or nodeptr) */
 static errno_t stat_process_item(
 	item_entity_t *item,        /* item we traverse now */
-	uint64_t start,             /* start item block*/
-	uint64_t end,               /* end item block */
-	void *data)
+	blk_t blk, void *data)      /* one of blk item points to */
 {
 	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
-	stat_hint->nodes += end - start;
+	stat_hint->nodes++;
 
 	return 0;
 }

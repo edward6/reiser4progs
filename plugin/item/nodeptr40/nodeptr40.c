@@ -19,6 +19,9 @@ static uint32_t nodeptr40_units(item_entity_t *item) {
 
 #ifndef ENABLE_COMPACT
 
+extern errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
+				      void *data);
+
 /* Initializes the area nodeptr will lie in */
 static errno_t nodeptr40_init(item_entity_t *item) {
 	aal_assert("umka-1671", item != NULL, return -1);
@@ -121,16 +124,13 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 				void *data)
 {
 	errno_t res;
-	uint64_t start;
 	nodeptr40_t *nodeptr;
 	
 	aal_assert("umka-1749", item != NULL, return -1);
 	aal_assert("vpf-718",   item->body != NULL, return -1);
 	aal_assert("umka-1750", func != NULL, return -1);
 
-	start = np40_get_ptr(nodeptr40_body(item));
-	
-	if ((res = func(item, start, start + 1, data)))
+	if ((res = func(item, np40_get_ptr(nodeptr40_body(item)), data)))
 		return res;
 
 	return 0;
@@ -173,17 +173,19 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.update         = nodeptr40_update,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
+		.layout_check	= nodeptr40_layout_check,
 #else
 		.init		= NULL,
 		.insert		= NULL,
 		.update         = NULL,
 		.estimate	= NULL,
 		.print		= NULL,
+		.layout_check   = NULL,
 #endif
 		.units		= nodeptr40_units,
 		.fetch          = nodeptr40_fetch,
-		.layout         = nodeptr40_layout,
-		
+	
+		.layout         = NULL,
 		.belongs        = NULL,
 		.lookup		= NULL,
 		.valid		= NULL,
