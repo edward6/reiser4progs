@@ -483,7 +483,19 @@ static uint64_t reg40_offset(object_entity_t *entity) {
 static errno_t reg40_seek(object_entity_t *entity, 
 			  uint64_t offset) 
 {
-	return -1;
+	reg40_t *reg;
+	uint64_t size;
+	
+	aal_assert("umka-1968", entity != NULL);
+
+	reg = (reg40_t *)entity;
+	
+	if (offset >= (size = (reg40_size(entity))))
+		offset = size - 1;
+
+	reg->offset = offset;
+	
+	return -(reg40_next(reg) != LP_PRESENT);
 }
 
 static reiser4_plugin_t reg40_plugin = {
