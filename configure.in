@@ -343,7 +343,7 @@ AC_CACHE_CHECK([whether -falign-loops works], [falign_loop_flag], [
 ])
 
 # Checking for compiler warning options
-AC_CACHE_CHECK([whether -Wuninitialized and friends work], [uninitialized], [
+AC_CACHE_CHECK([whether -Wuninitialized works], [uninitialized], [
   saved_CPPFLAGS="$CPPFLAGS"
   CPPFLAGS="-Wuninitialized"
   AC_TRY_COMPILE(, , [uninitialized=yes], [uninitialized=no])
