@@ -601,7 +601,6 @@ errno_t repair_filter(repair_filter_t *fd) {
 	repair_filter_update(fd, fs->tree->root);
 	
 	reiser4_tree_collapse(fs->tree);
-	fs->tree->root = NULL;
 	
 	return res;
 }

@@ -96,18 +96,206 @@ static void repair_add_missing_update(repair_am_t *am) {
 	aal_stream_fini(&stream);
 }
 
+static errno_t repair_am_node_prepare(repair_am_t *am, reiser4_node_t *node) {
+	reiser4_place_t place;
+	remove_hint_t hint;
+	uint32_t count;
+	errno_t res;
+	
+	/* Remove all metadata items from the node before insertion. */
+	place.node = node;
+	place.pos.unit = MAX_UINT32;
+	count = reiser4_node_items(node);
+
+	for (place.pos.item = 0; place.pos.item < count; place.pos.item++) {
+		if ((res = reiser4_place_fetch(&place))) {
+			aal_exception_error("Node (%llu), item (%u): failed to "
+					    "open the item.",node_blocknr(node),
+					    place.pos.item);
+
+			return res;
+		}
+
+		/* If this is an index item of the tree, remove it. */
+		if (!reiser4_item_branch(place.plug)) 
+			continue;
+
+		hint.count = 1;
+
+		if ((res = reiser4_node_remove(place.node, &place.pos, &hint)))
+			return res;
+
+		place.pos.item--;
+		count--;
+	}
+	
+	return 0;
+}
+
+typedef struct stat_bitmap {
+	uint64_t read, by_node, by_item;
+} stat_bitmap_t;
+
+static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
+				      stat_bitmap_t *stat)
+{
+	reiser4_alloc_t *alloc;
+	reiser4_node_t *node;
+	errno_t res;
+	blk_t blk;
+	
+	aal_assert("vpf-1282", am != NULL);
+	aal_assert("vpf-1283", bitmap != NULL);
+	aal_assert("vpf-1284", stat != NULL);
+	
+	alloc = am->repair->fs->alloc;
+	
+	blk = 0;
+	/* Try to insert the whole twig/leaf at once. If it can be 
+	   inserted only after splitting the node found by lookup 
+	   into 2 nodes -- it will be done instead of following item
+	   by item insertion. */
+	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
+		aal_assert("vpf-896", !reiser4_alloc_occupied(alloc, blk, 1));
+
+		node = repair_node_open(am->repair->fs, blk);
+		stat->read++;
+
+		if (am->progress_handler)
+			am->progress_handler(am->progress);
+
+		if (node == NULL) {
+			aal_exception_fatal("Add Missing pass failed to "
+					    "open the node (%llu)", blk);
+
+			return -EINVAL;
+		}
+
+		/* Prepare the node for the insertion. */
+		if ((res = repair_am_node_prepare(am, node))) 
+			goto error_close_node;
+
+		if (reiser4_node_items(node) == 0) {
+			reiser4_node_mkclean(node);
+			aux_bitmap_clear(bitmap, node_blocknr(node));
+			reiser4_alloc_permit(alloc, node_blocknr(node), 1);
+			reiser4_node_close(node);
+			blk++;
+			continue;
+		}
+
+		res = repair_tree_attach(am->repair->fs->tree, node);
+		if (res < 0 && res != -ESTRUCT) {
+			aal_exception_bug("Add missing pass failed to attach "
+					  "the node (%llu) to the tree.", blk);
+
+			goto error_close_node;
+		} else if (res == 0) {
+			/* Has been inserted. */
+			aux_bitmap_clear(bitmap, node_blocknr(node));
+			reiser4_alloc_permit(alloc, node_blocknr(node), 1);
+			reiser4_alloc_occupy(alloc, node_blocknr(node), 1);
+
+			stat->by_node++;
+
+			if ((res = repair_node_traverse(node, callback_layout, 
+							alloc)))
+				goto error_close_node;
+
+			blk++;
+		} /* if res > 0 - uninsertable case - insert by items later. */
+	}
+
+	return 0;
+
+ error_close_node:
+	reiser4_node_close(node);
+	return res;
+}
+
+static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap, 
+				      stat_bitmap_t *stat)
+{
+	reiser4_alloc_t *alloc;
+	reiser4_node_t *node;
+	uint32_t count;
+	errno_t res;
+	blk_t blk;
+
+	aal_assert("vpf-1285", am != NULL);
+	aal_assert("vpf-1286", bitmap != NULL);
+	aal_assert("vpf-1287", stat != NULL);
+	
+	blk = 0;
+	/* Insert extents from the twigs/all items from leaves which 
+	   are not in the tree yet item-by-item into the tree, overwrite
+	   existent data which is in the tree already if needed. 
+	   FIXME: overwriting should be done on the base of flush_id. */
+	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
+		reiser4_place_t place;
+		pos_t *pos = &place.pos;
+
+		aal_assert("vpf-897", !reiser4_alloc_occupied(alloc, blk, 1));
+
+		node = repair_node_open(am->repair->fs, blk);
+
+		if (am->progress_handler)
+			am->progress_handler(am->progress);
+
+		if (node == NULL) {
+			aal_exception_fatal("Add Missing pass failed to "
+					    "open the node (%llu)", blk);
+			return -EINVAL;
+		}
+
+		pos->unit = MAX_UINT32;
+		count = reiser4_node_items(node);
+		place.node = node;
+
+		stat->by_item++;
+
+		for (pos->item = 0; pos->item < count; pos->item++) {
+			aal_assert("vpf-636", pos->unit == MAX_UINT32);
+
+			if ((res = reiser4_place_fetch(&place))) {
+				aal_exception_error("Node (%llu), item (%u): "
+						    "cannot open the item "
+						    "place.", blk, pos->item);
+
+				goto error_close_node;
+			}
+
+			if ((res = repair_tree_copy(am->repair->fs->tree, 
+						    &place)) < 0)
+				goto error_close_node;
+
+			if (res == 0) {
+				if ((res = callback_layout(&place, alloc)))
+					goto error_close_node;
+			}
+		}
+
+		aux_bitmap_clear(bitmap, node_blocknr(node));
+		reiser4_alloc_permit(alloc, node_blocknr(node), 1);
+		reiser4_node_close(node);
+		blk++;
+	}
+
+	return 0;
+
+ error_close_node:
+	reiser4_node_close(node);
+	return res;
+}
+
 /* The pass inself, adds all the data which are not in the tree yet and which 
    were found on the partition during the previous passes. */
 errno_t repair_add_missing(repair_am_t *am) {
 	repair_progress_t progress;
-	reiser4_alloc_t *alloc;
-	reiser4_place_t place;
-	pos_t *pos = &place.pos;
-	reiser4_node_t *node;
 	aux_bitmap_t *bitmap;
-	uint32_t items, count, i;
+	stat_bitmap_t stat;
+	uint32_t bnum;
 	errno_t res;
-	blk_t blk;
 	
 	aal_assert("vpf-595", am != NULL);
 	aal_assert("vpf-846", am->repair != NULL);
@@ -119,218 +307,76 @@ errno_t repair_add_missing(repair_am_t *am) {
 	
 	repair_add_missing_setup(am);
 	
-	alloc = am->repair->fs->alloc;
 	
 	/* 2 loops - 1 for twigs, another for leaves. */
-	for (i = 0; i < 2; i++) {
-		
-		if (i == 0) {
-			bitmap = am->bm_twig;
-			am->progress->text = "Inserting unconnected twigs: ";
-			am->progress->u.rate.total = 
-				aux_bitmap_marked(am->bm_twig);
-		} else {
+	for (bnum = 0; bnum < 2; bnum++) {
+		if (bnum) {
 			bitmap = am->bm_leaf;
 			am->progress->text = "Inserting unconnected leaves: ";
 			am->progress->u.rate.total = 
 				aux_bitmap_marked(am->bm_leaf);
+		} else {
+			bitmap = am->bm_twig;
+			am->progress->text = "Inserting unconnected twigs: ";
+			am->progress->u.rate.total = 
+				aux_bitmap_marked(am->bm_twig);
 		}
-
+		
 		/* Debugging of item coping. */
 		if (am->repair->debug_flag) 
 			goto debug;
 		
-		blk = 0;
-	
 		am->progress->u.rate.done = 0;
-		
 		am->progress->state = PROGRESS_UPDATE;
- 
-		/* Try to insert the whole twig/leaf at once. If it can be 
-		   inserted only after splitting the node found by lookup 
-		   into 2 nodes -- it will be done instead of following item
-		   by item insertion. */
-		blk = aux_bitmap_find_marked(bitmap, blk);
-		while (blk != INVAL_BLK) {
-			node = repair_node_open(am->repair->fs, blk);
-	    
-			aal_assert("vpf-896", 
-				   !reiser4_alloc_occupied(alloc, blk, 1));
-			
-			if (i == 0)
-				am->stat.read_twigs++;
-			else
-				am->stat.read_leaves++;
-			
-			if (am->progress_handler)
-				am->progress_handler(am->progress);
-	    
-			if (node == NULL) {
-				aal_exception_fatal("Add Missing pass failed "
-						    "to open the node (%llu)",
-						    blk);
-				
-				return -EINVAL;
-			}
-			
-			/* Remove all metadata items from the node before insertion. */
-			place.node = node;
-			pos->unit = MAX_UINT32;
-			count = reiser4_node_items(node);
-			
-			for (pos->item = 0; pos->item < count; pos->item++) {
-				if ((res = reiser4_place_fetch(&place))) {
-					aal_exception_error("Node (%llu), item (%u): "
-							    "failed to open the item.", 
-							    node_blocknr(node), pos->item);
-					
-					goto error_node_close;
-				}
-				
-				/* If an item does not contain data (only metadata), 
-				   remove it.
-				   FIXME: Just a reminder - here should be deleted all 
-				   metadata info from items, only user data should be 
-				   left. For now, items contain data xor metadata, not 
-				   both. */
-				if (reiser4_item_branch(place.plug)) {
-					remove_hint_t hint;
-
-					hint.count = 1;
-
-					if ((res = reiser4_node_remove(place.node, 
-								       pos, &hint)))
-						goto error_node_close;
-					
-					pos->item--;
-					count = reiser4_node_items(node);
-				}
-			}
-			
-			if (reiser4_node_items(node) == 0) {
-				reiser4_node_mkclean(place.node);
-				aux_bitmap_clear(bitmap, node_blocknr(node));
-				reiser4_alloc_permit(alloc, node_blocknr(node), 1);
-				goto find_next;
-			}
-			
-			res = repair_tree_attach(am->repair->fs->tree, node);
-			
-			if (res < 0 && res != -ESTRUCT) {
-				aal_exception_bug("Add missing pass failed to attach the "
-						  "%s (%llu) to the tree.", i == 0 ? "twig" :
-						  "leaf", blk);
-				
-				goto error_node_close;
-			} else if (res == 0) {
-				/* Has been inserted. */
-				aux_bitmap_clear(bitmap, node_blocknr(node));
-				reiser4_alloc_permit(alloc, node_blocknr(node), 1);
-				reiser4_alloc_occupy(alloc, node_blocknr(node), 1);
-				
-				if (i == 0)
-					am->stat.by_twig++;
-				else
-					am->stat.by_leaf++;
-				
-				res = repair_node_traverse(node, callback_layout, alloc);
-				
-				if (res)
-					goto error_node_close;
-				
-				blk++;
-				continue;
-			} /* if res > 0 - uninsertable case - insert by items later. */
-	
-		find_next:
-			reiser4_node_close(node);
-			blk++;
+		
+		aal_memset(&stat, 0, sizeof(stat));
+		
+		if ((res = repair_am_nodes_insert(am, bitmap, &stat)))
+			goto error;
+		
+		if (bnum) {
+			am->stat.read_twigs = stat.read;
+			am->stat.by_twig = stat.by_node;
+		} else {
+			am->stat.read_leaves = stat.read;
+			am->stat.by_leaf = stat.by_node;
 		}
 	debug:
-		
-		blk = 0;
 		am->progress->u.rate.done = 0;
-		if (i == 0) {
-			am->progress->text = 
-				"Inserting unconnected leaves item-by-item: ";
-			am->progress->u.rate.total = aux_bitmap_marked(am->bm_twig);
+		if (bnum) {
+			am->progress->text = "Inserting unconnected twigs "
+				"item-by-item: ";
+			am->progress->u.rate.total = 
+				aux_bitmap_marked(am->bm_leaf);
 		} else {
-			am->progress->text = 
-				"Inserting unconnected twigs item-by-item: ";
-			am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
-		}
+			am->progress->text = "Inserting unconnected leaves "
+				"item-by-item: ";
+			am->progress->u.rate.total = 
+				aux_bitmap_marked(am->bm_twig);
+		} 
 		
-		/* Insert extents from the twigs/all items from leaves which are not in 
-		   the tree yet item-by-item into the tree, overwrite existent data 
-		   which is in the tree already if needed. FIXME: overwriting should be 
-		   done on the base of flush_id. */
-		while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-			aal_assert("vpf-897", !reiser4_alloc_occupied(alloc, blk, 1));
-			
-			node = repair_node_open(am->repair->fs, blk);
-			
-			if (am->progress_handler)
-				am->progress_handler(am->progress);
-			
-			if (node == NULL) {
-				aal_exception_fatal("Add Missing pass failed to open "
-						    "the node (%llu)", blk);
-				return -EINVAL;
-			}
-			
-			pos->unit = MAX_UINT32;
-			items = reiser4_node_items(node);
-			place.node = node;
-			
-			if (i == 0)
-				am->stat.by_item_twigs++;
-			else
-				am->stat.by_item_leaves++;
-	    
-			for (pos->item = 0; pos->item < items; pos->item++) {
-				aal_assert("vpf-636", pos->unit == MAX_UINT32);
-				
-				if ((res = reiser4_place_fetch(&place))) {
-					aal_exception_error("Node (%llu), item (%u): "
-							    "cannot open the item "
-							    "place.", blk, pos->item);
-					
-					goto error_node_close;
-				}
-				
-				if ((res = repair_tree_copy(am->repair->fs->tree, 
-							    &place)) < 0)
-					goto error_node_close;
-				
-				if (res == 0) {
-					if ((res = callback_layout(&place, alloc)))
-						goto error_node_close;
-				}
-			}
-			
-			aux_bitmap_clear(bitmap, node_blocknr(node));
-			reiser4_alloc_permit(alloc, node_blocknr(node), 1);
-			reiser4_node_close(node);
-			blk++;
-		}
+		aal_memset(&stat, 0, sizeof(stat));
+		
+		if ((res = repair_am_items_insert(am, bitmap, &stat)))
+			goto error;
+
+		if (bnum)
+			am->stat.by_item_leaves = stat.by_item;
+		else
+			am->stat.by_item_twigs = stat.by_item;
 	}
 	
 	repair_add_missing_update(am);
 	reiser4_tree_collapse(am->repair->fs->tree);
-	am->repair->fs->tree->root = NULL;
 	return 0;
 
- error_node_close:
-	reiser4_node_close(node);
-
+ error:
 	am->progress->state = PROGRESS_END;
 	if (am->progress_handler)
 		am->progress_handler(am->progress);
 	
 	repair_add_missing_update(am);
 	reiser4_tree_collapse(am->repair->fs->tree);
-	am->repair->fs->tree->root = NULL;
-
 	return res;
 }
 

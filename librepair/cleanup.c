@@ -119,7 +119,6 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	
 	repair_cleanup_update(cleanup);
 	reiser4_tree_collapse(fs->tree);
-	fs->tree->root = NULL;
 	
 	return 0;
 }

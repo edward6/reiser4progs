@@ -828,7 +828,6 @@ errno_t repair_semantic(repair_semantic_t *sem) {
  error:
 	repair_semantic_update(sem);	
 	reiser4_tree_collapse(sem->repair->fs->tree);
-	sem->repair->fs->tree->root = NULL;
 	
 	return res < 0 ? res : 0;
 }
