@@ -493,8 +493,16 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 		bytes = obj40_get_bytes(&reg->obj);
 		return obj40_touch(&reg->obj, n, bytes);
 	} else {
+		if (reg->body_plug->id.group == EXTENT_ITEM) {
+			uint32_t blksize;
+			
+			blksize = STAT_PLACE(&reg->obj)->node->block->size;
+			size = (n + blksize) / blksize * blksize;
+		} else
+			size = n;
+			
 		/* Cutting items/units */
-		if ((bytes = reg40_cut(entity, n)) < 0)
+		if ((bytes = reg40_cut(entity, size)) < 0)
 			return bytes;
 
 		/* Updating stat data fields. */
