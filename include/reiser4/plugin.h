@@ -221,7 +221,6 @@ typedef struct object_entity object_entity_t;
 struct item_context {
 	blk_t blk;
 	aal_device_t *device;
-	object_entity_t *node;
 };
 
 typedef struct item_context item_context_t;

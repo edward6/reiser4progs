@@ -67,7 +67,7 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 
 	con = &coord->entity.con;
 	
-	con->node = coord->node->entity;
+//	con->node = coord->node->entity;
 	con->blk = reiser4_coord_blk(coord);
 	con->device = reiser4_coord_device(coord);
 	
