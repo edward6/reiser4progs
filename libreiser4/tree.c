@@ -2268,6 +2268,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		/* Checking if it is enough of space in @place. */
 		enough = (reiser4_node_space(place->node) - needed);
 
+		/* Check if asked space is more than block size. */
+		if (enough < 0 && needed > reiser4_node_maxspace(place->node))
+			break;
+
 		/* If it is not enough of space and insert point was actually
 		   moved to neighbour node, we set @place to @save and give it
 		   yet another try to make space. */
