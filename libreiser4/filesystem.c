@@ -6,14 +6,18 @@
 #include <reiser4/libreiser4.h>
 
 /* Opens filesystem on specified device */
-reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
-			      bool_t check)
-{
+
+#ifndef ENABLE_STAND_ALONE
+reiser4_fs_t *reiser4_fs_open(aal_device_t *device, bool_t check) {
+#else
+reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
+#endif
+	reiser4_fs_t *fs;
+
 #ifndef ENABLE_STAND_ALONE
 	count_t blocks;
 	uint32_t blksize;
 #endif
-	reiser4_fs_t *fs;
 
 	aal_assert("umka-148", device != NULL);
 
@@ -76,10 +80,15 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		goto error_free_oid;
 
 
+#ifndef ENABLE_STAND_ALONE
 	if (check) {
 		if (reiser4_opset_init(fs->tree, check))
 			goto error_free_oid;
 	}
+#else
+	if (reiser4_opset_init(fs->tree))
+		goto error_free_oid;
+#endif
 	
 	return fs;
 

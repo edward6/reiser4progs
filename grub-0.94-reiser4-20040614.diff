@@ -304,7 +304,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +		return 0;
 +	
 +	/* Open filesystem on @dev. */
-+	if (!(fs = reiser4_fs_open(dev, 0)))
++	if (!(fs = reiser4_fs_open(dev)))
 +		return 0;
 +
 +	fs->tree->mpc_func = mpressure_detect;
