@@ -76,12 +76,12 @@ static aal_block_t *format36_super_open(aal_device_t *device) {
 			
 	    if (format36_magic(super)) {
 		if (aal_device_set_bs(device, get_sb_block_size(super))) {
-		    aal_block_free(block);
+		    aal_block_close(block);
 		    continue;
 		}
 				
 		if (format36_super_check(super, device)) {
-		    aal_block_free(block);
+		    aal_block_close(block);
 		    continue;
 		}
 		
@@ -89,7 +89,7 @@ static aal_block_t *format36_super_open(aal_device_t *device) {
 		    return block;
 		
 	    }
-	    aal_block_free(block);
+	    aal_block_close(block);
 	} else {
 	    aal_exception_error("Can't read block %d. %s.", super_offset[i], 
 		aal_device_error(device));
@@ -159,7 +159,7 @@ static errno_t format36_valid(reiser4_entity_t *entity) {
 
 static void format36_close(reiser4_entity_t *entity) {
     aal_assert("umka-384", entity != NULL, return);
-    aal_block_free(((format36_t *)entity)->block);
+    aal_block_close(((format36_t *)entity)->block);
     aal_free(entity);
 }
 
@@ -171,7 +171,7 @@ static int format36_confirm(aal_device_t *device) {
     if (!(block = format36_super_open(device)))
 	return 0;
 	
-    aal_block_free(block);
+    aal_block_close(block);
     return 1;
 }
 

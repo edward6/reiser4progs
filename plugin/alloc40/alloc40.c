@@ -54,11 +54,11 @@ static errno_t callback_fetch_bitmap(reiser4_entity_t *format,
     aal_memcpy((void *)(alloc->crc + ((blk / size / 8) * CRC_SIZE)), 
 	block->data, CRC_SIZE);
     
-    aal_block_free(block);
+    aal_block_close(block);
     return 0;
     
 error_free_block:
-    aal_block_free(block);
+    aal_block_close(block);
     return -1;
 }
 
@@ -220,12 +220,12 @@ static errno_t callback_flush_bitmap(reiser4_entity_t *format,
 	goto error_free_block;
     }
 
-    aal_block_free(block);
+    aal_block_close(block);
     
     return 0;
     
 error_free_block:
-    aal_block_free(block);
+    aal_block_close(block);
     return -1;
 }
 

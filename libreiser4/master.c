@@ -126,15 +126,15 @@ int reiser4_master_confirm(aal_device_t *device) {
 	    goto error_free_block;
 	}
 	
-	aal_block_free(block);
+	aal_block_close(block);
 	return 1;
     }
     
-    aal_block_free(block);
+    aal_block_close(block);
     return 0;
     
 error_free_block:
-    aal_block_free(block);
+    aal_block_close(block);
     return 0;
 }
 
@@ -195,7 +195,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
     return master;
     
 error_free_block:
-    aal_block_free(master->block);
+    aal_block_close(master->block);
 error_free_master:
     aal_free(master);
     return NULL;
@@ -232,7 +232,7 @@ void reiser4_master_close(
 ) {
     aal_assert("umka-147", master != NULL, return);
 
-    aal_block_free(master->block);
+    aal_block_close(master->block);
     aal_free(master);
 }
 

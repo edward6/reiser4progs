@@ -21,9 +21,8 @@ reiser4_joint_t *reiser4_tree_allocate(
     uint8_t level		    /* level of new node */
 ) {
     blk_t blk;
-    aal_block_t *block;
-    
     rpid_t pid;
+    
     reiser4_node_t *node;
     reiser4_joint_t *joint;
     
@@ -35,21 +34,16 @@ reiser4_joint_t *reiser4_tree_allocate(
 	return NULL;
     }
 
-    if (!(block = aal_block_create(tree->fs->format->device, blk, 0))) {
-	aal_exception_error("Can't allocate block %llu in memory.", blk);
+    if ((pid = reiser4_node_pid(tree->root->node)) == FAKE_PLUGIN) {
+	aal_exception_error("Invalid node plugin has been detected.");
 	return NULL;
     }
     
-    if ((pid = reiser4_node_pid(tree->root->node)) == FAKE_PLUGIN) {
-	aal_exception_error("Invalid node plugin has been detected.");
-	goto error_free_block;
-    }
-    
     /* Creating new node */
-    if (!(node = reiser4_node_create(block, pid, level)))
-	goto error_free_block;
+    if (!(node = reiser4_node_create(tree->fs->format->device, blk, pid, level)))
+	return NULL;
 
-    plugin_call(goto error_free_block, node->entity->plugin->node_ops,
+    plugin_call(goto error_free_node, node->entity->plugin->node_ops,
 	set_stamp, node->entity, reiser4_format_get_stamp(tree->fs->format));
     
     if (!(joint = reiser4_joint_create(node)))
@@ -63,8 +57,6 @@ reiser4_joint_t *reiser4_tree_allocate(
     
 error_free_node:
     reiser4_node_close(node);
-error_free_block:
-    aal_block_free(block);
     return NULL;
 }
 
@@ -89,7 +81,6 @@ void reiser4_tree_release(reiser4_tree_t *tree,
 reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
     blk_t blk) 
 {
-    aal_block_t *block;
     aal_device_t *device;
     reiser4_node_t *node;
     reiser4_joint_t *joint;
@@ -98,14 +89,8 @@ reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree,
     
     device = tree->fs->format->device;
     
-    if (!(block = aal_block_open(device, blk))) {
-	aal_exception_error("Can't read block %llu. %s.", 
-	    blk, device->error);
+    if (!(node = reiser4_node_open(device, blk))) 
 	return NULL;
-    }
-    
-    if (!(node = reiser4_node_open(block))) 
-	goto error_free_block;
 	    
     if (!(joint = reiser4_joint_create(node)))
 	goto error_free_node;
@@ -114,8 +99,6 @@ reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree,
     
 error_free_node:
     reiser4_node_close(node);
-error_free_block:
-    aal_block_free(block);
     return NULL;
 }
 
@@ -217,7 +200,7 @@ reiser4_tree_t *reiser4_tree_create(
 ) {
     blk_t blk;
     uint8_t level;
-    aal_block_t *block;
+    aal_device_t *device;
     reiser4_node_t *node;
     reiser4_tree_t *tree;
 
@@ -242,17 +225,13 @@ reiser4_tree_t *reiser4_tree_create(
 	goto error_free_tree;
     }
 
-    if (!(block = aal_block_create(fs->format->device, blk, 0))) {
-        aal_exception_error("Can't allocate in memory root block.");
-	goto error_free_tree;
-    }
-
     level = reiser4_format_get_height(fs->format);
+    device = fs->format->device;
     
     /* Creating root node */
-    if (!(node = reiser4_node_create(block, profile->node, level))) {
+    if (!(node = reiser4_node_create(device, blk, profile->node, level))) {
 	aal_exception_error("Can't create root node.");
-	goto error_free_block;
+	goto error_free_tree;
     }
 
     /* Creating joint for the root node */
@@ -260,12 +239,10 @@ reiser4_tree_t *reiser4_tree_create(
 	goto error_free_node;
     
     /* Setting up of the root block */
-    reiser4_format_set_root(fs->format, 
-	aal_block_number(node->block));
+    reiser4_format_set_root(fs->format, aal_block_number(node->block));
     
     /* Setting up of the free blocks */
-    reiser4_format_set_free(fs->format, 
-	reiser4_alloc_free(fs->alloc));
+    reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
 
     tree->root->tree = tree;
     
@@ -273,8 +250,6 @@ reiser4_tree_t *reiser4_tree_create(
 
 error_free_node:
     reiser4_node_close(node);
-error_free_block:
-    aal_block_free(block);
 error_free_tree:
     aal_free(tree);
     return NULL;

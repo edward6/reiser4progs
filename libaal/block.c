@@ -61,7 +61,7 @@ aal_block_t *aal_block_open(
 
     /* Reading block data from device */
     if (aal_device_read(device, block->data, blk, 1)) {
-	aal_block_free(block);
+	aal_block_close(block);
 	return NULL;
     }
     
@@ -168,7 +168,7 @@ uint32_t aal_block_size(aal_block_t *block) {
 }
 
 /* Frees block instance and all assosiated memory */
-void aal_block_free(
+void aal_block_close(
     aal_block_t *block		/* block to be released */
 ) {
     aal_assert("umka-451", block != NULL, return);

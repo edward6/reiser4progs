@@ -11,10 +11,10 @@
 
 errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
 {
-    repair_check_t *check_data = data;
-    aal_block_t *block;
-    reiser4_node_t *node;
     errno_t res = 0;
+    aal_device_t *device;
+    reiser4_node_t *node;
+    repair_check_t *check_data = data;
 
     aal_assert("vpf-379", check_data != NULL, return -1);
 
@@ -30,16 +30,11 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
     }
 */  
 
-    if (!(block = aal_block_open(check_data->format->device, blk))) {
-	aal_exception_error("Can't read block (%llu). %s.", blk, 
-	    check_data->format->device->error);
-
-	return -1;
-    }
-
-    if ((node = reiser4_node_open(block)) == NULL) {
+    device = check_data->format->device;
+    
+    if ((node = reiser4_node_open(device, blk)) == NULL) {
 	repair_set_flag(check_data, REPAIR_BAD_PTR);
-	goto error_free_block;
+	return res;
     }
 	    
     if (!(*joint = reiser4_joint_create(node))) {
@@ -51,8 +46,6 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
     
 error_free_node:
     reiser4_node_close(node);
-error_free_block:
-    aal_block_free(block);
     return res;
 }
 

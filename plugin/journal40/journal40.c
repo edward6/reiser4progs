@@ -162,7 +162,7 @@ static reiser4_entity_t *journal40_create(reiser4_entity_t *format,
     return (reiser4_entity_t *)journal;
 
 error_free_header:
-    aal_block_free(journal->header);
+    aal_block_close(journal->header);
 error_free_journal:
     aal_free(journal);
 error:
@@ -278,15 +278,15 @@ static errno_t journal40_replay_transaction(journal40_t *journal,
 		aal_exception_error("Can't write block %llu.", 
 		    aal_block_number(block));
 		
-		aal_block_free(block);
+		aal_block_close(block);
 		return -1;
 	    }
 	    
-	    aal_block_free(block);
+	    aal_block_close(block);
 	    entry++;
 	}
 
-	aal_block_free(log_block);
+	aal_block_close(log_block);
 
 	footer = (journal40_footer_t *)journal->footer->data;
 	
@@ -346,11 +346,11 @@ static int format40_replay_oldest(journal40_t *journal) {
 	if (prev_tx == last_flushed_tx)
 	    break;
 
-	aal_block_free(tx_block);
+	aal_block_close(tx_block);
     }
     
     ret = journal40_replay_transaction(journal, tx_block);
-    aal_block_free(tx_block);
+    aal_block_close(tx_block);
 
     return (ret == 0);
 }
@@ -376,8 +376,8 @@ static void journal40_close(reiser4_entity_t *entity) {
     
     aal_assert("umka-411", entity != NULL, return);
 
-    aal_block_free(journal->header);
-    aal_block_free(journal->footer);
+    aal_block_close(journal->header);
+    aal_block_close(journal->footer);
     aal_free(journal);
 }
 

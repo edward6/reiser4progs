@@ -439,13 +439,13 @@ int main(int argc, char *argv[]) {
 	    goto error_free_fs;
     }
     
-    if (flags & PF_ALLOC) {
-	if (debugfs_print_alloc(fs))
+    if (flags & PF_OID) {
+	if (debugfs_print_oid(fs))
 	    goto error_free_fs;
     }
     
-    if (flags & PF_OID) {
-	if (debugfs_print_oid(fs))
+    if (flags & PF_ALLOC) {
+	if (debugfs_print_alloc(fs))
 	    goto error_free_fs;
     }
     

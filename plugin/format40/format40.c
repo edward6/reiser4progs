@@ -244,11 +244,11 @@ static errno_t callback_clobber_block(reiser4_entity_t *entity,
 	goto error_free_block;
     }
     
-    aal_block_free(block);
+    aal_block_close(block);
     return 0;
     
 error_free_block:
-    aal_block_free(block);
+    aal_block_close(block);
     return -1;
 }
 
@@ -299,7 +299,7 @@ static reiser4_entity_t *format40_create(aal_device_t *device,
     return (reiser4_entity_t *)format;
 
 error_free_block:
-    aal_block_free(format->block);
+    aal_block_close(format->block);
 error_free_format:
     aal_free(format);
 error:
@@ -342,7 +342,7 @@ static errno_t format40_valid(reiser4_entity_t *entity) {
 static void format40_close(reiser4_entity_t *entity) {
     aal_assert("umka-398", entity != NULL, return);
     
-    aal_block_free(((format40_t *)entity)->block);
+    aal_block_close(((format40_t *)entity)->block);
     aal_free(entity);
 }
 
@@ -354,7 +354,7 @@ static int format40_confirm(aal_device_t *device) {
     if (!(block = format40_super_open(device)))
 	return 0;
 	
-    aal_block_free(block);
+    aal_block_close(block);
     return 1;
 }
 

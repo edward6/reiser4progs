@@ -13,24 +13,26 @@
 
 /* Creates node on specified device and block and with spcified key plugin */
 reiser4_node_t *reiser4_node_create(
-    aal_block_t *block,		/* block new node will be created on */
+    aal_device_t *device,	/* device new node will be created on*/
+    blk_t blk,			/* block new node will be created on */
     rpid_t pid,			/* node plugin id to be used */
     uint8_t level		/* node level */
 ) {
     reiser4_node_t *node;
     reiser4_plugin_t *plugin;
     
-    aal_assert("umka-121", block != NULL, return NULL);
+    aal_assert("umka-121", device != NULL, return NULL);
 
     if (!(node = aal_calloc(sizeof(*node), 0)))
 	return NULL;
     
-    node->block = block;
+    if (!(node->block = aal_block_create(device, blk, 0)))
+	goto error_free_node;
     
     /* Finding the node plugin by its id */
     if (!(plugin = libreiser4_factory_ifind(NODE_PLUGIN_TYPE, pid))) {
 	aal_exception_error("Can't find node plugin by its id 0x%x.", pid);
-	goto error_free_node;
+	goto error_free_block;
     }
     
     /* Requesting the plugin for initialization of the entity */
@@ -38,13 +40,17 @@ reiser4_node_t *reiser4_node_create(
 	plugin->node_ops, create, node->block, level))) 
     {
 	aal_exception_error("Can't create node entity.");
-	goto error_free_node;
+	goto error_free_block;
     }
     
     return node;
     
 error_free_node:    
     aal_free(node);
+
+error_free_block:
+    aal_block_close(node->block);
+
     return NULL;
 }
 
@@ -95,23 +101,28 @@ static reiser4_plugin_t *reiser4_node_guess(
 
 /* Opens node on specified device and block number */
 reiser4_node_t *reiser4_node_open(
-    aal_block_t *block		/* block node will be opened on */
+    aal_device_t *device,	/* device node will be opened on */
+    blk_t blk			/* block number node will be opened on */
 ) {
     reiser4_node_t *node;
     reiser4_plugin_t *plugin;
 
-    aal_assert("umka-160", block != NULL, return NULL);
+    aal_assert("umka-160", device != NULL, return NULL);
    
     if (!(node = aal_calloc(sizeof(*node), 0)))
 	return NULL;
    
-    node->block = block;
+    if (!(node->block = aal_block_open(device, blk))) {
+	aal_exception_error("Can't read block %llu. %s.",
+	    blk, device->error);
+	goto error_free_node;
+    }
     
     /* Finding the node plugin by its id */
     if (!(plugin = reiser4_node_guess(node->block))) {
 	aal_exception_error("Can't guess node plugin for node %llu.", 
-	    aal_block_number(block));
-	return NULL;
+	    aal_block_number(node->block));
+	goto error_free_block;
     }
     
     /* 
@@ -122,13 +133,17 @@ reiser4_node_t *reiser4_node_open(
 	plugin->node_ops, open, node->block)))
     {
 	aal_exception_error("Can't initialize node entity.");
-	goto error_free_node;
+	goto error_free_block;
     }
 	    
     return node;
     
 error_free_node:
     aal_free(node);
+
+error_free_block:
+    aal_block_close(node->block);
+    
     return NULL;
 }
 
@@ -140,7 +155,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
     plugin_call(return -1, node->entity->plugin->node_ops,
 	close, node->entity);
 	    
-    aal_block_free(node->block);
+    aal_block_close(node->block);
     aal_free(node);
 
     return 0;
