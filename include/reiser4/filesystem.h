@@ -224,16 +224,16 @@ struct reiser4_tree {
 };
 
 /* Callback function type for opening node. */
-typedef errno_t (*reiser4_open_func_t) (reiser4_node_t **, blk_t, void *);
+typedef errno_t (*reiser4_open_func_t) (reiser4_joint_t **, blk_t, void *);
 
 /* Callback function type for preparing per-node traverse data. */
-typedef errno_t (*reiser4_edge_func_t) (reiser4_node_t *, void *);
+typedef errno_t (*reiser4_edge_func_t) (reiser4_joint_t *, void *);
 
 /* Callback function type for node handler. */
-typedef errno_t (*reiser4_handler_func_t) (reiser4_node_t *, void *);
+typedef errno_t (*reiser4_handler_func_t) (reiser4_joint_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*reiser4_setup_func_t) (reiser4_node_t *, reiser4_item_t *, 
+typedef errno_t (*reiser4_setup_func_t) (reiser4_joint_t *, reiser4_item_t *, 
     void *);
 
 /* Filesystem compound structure */
