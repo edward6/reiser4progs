@@ -12,10 +12,10 @@
 static reiser4_core_t *core = NULL;
 
 #define STAT_KEY(o) \
-        (&((o)->statdata.key))
+        (&((o)->info.start.key))
 
 #define STAT_ITEM(o) \
-        (&((o)->statdata))
+        (&((o)->info.start))
 
 struct obj40 {
 
@@ -23,16 +23,14 @@ struct obj40 {
 	   object_entity_t */
 	reiser4_plug_t *plug;
     
-	/* Stat data coord stored here */
-	place_t statdata;
-
 	/* Core operations pointer */
 	reiser4_core_t *core;
-
-	/* Pointer to the instance of internal libreiser4 tree, file opened on
-	   stored here for lookup and modiying purposes. It is passed by reiser4
-	   library durring initialization of the file instance. */
-	void *tree;
+	
+	/* Info about the object, SD place, object and parent keys and 
+	   pointer to the instance of internal libreiser4 tree also for 
+	   modiying purposes. It is passed by reiser4 library durring 
+	   initialization of the file instance. */
+	object_info_t info;
 };
 
 typedef struct obj40 obj40_t;
@@ -45,8 +43,7 @@ extern errno_t obj40_stat(obj40_t *obj);
 extern rid_t obj40_pid(place_t *place);
 
 extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
-			  key_entity_t *key, reiser4_core_t *core,
-			  void *tree);
+			  reiser4_core_t *core, object_info_t *info);
 
 extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 			     uint8_t level, place_t *place);
@@ -91,13 +88,11 @@ extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    uint32_t count);
 
-typedef errno_t (*realize_sd_func_t)   (place_t *);
-typedef errno_t (*realize_body_func_t) (object_info_t *, key_entity_t *);
+typedef errno_t (*realize_func_t) (place_t *);
+typedef errno_t (*realize_key_func_t) (obj40_t *);
 
-extern errno_t obj40_realize(object_info_t *info, 
-			     realize_sd_func_t sd_func,
-			     realize_body_func_t body_func,
-			     uint64_t item_type);
+extern errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
+			     realize_key_func_t key_func, uint64_t types);
 
 errno_t obj40_check_sd(place_t *sd);
 

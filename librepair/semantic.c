@@ -384,6 +384,10 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-1171", place != NULL);
 	aal_assert("vpf-1037", sem != NULL);
 	
+	/* Objects w/out SD get recovered only when reached from the parent. */
+	if (place->plug->id.group != STATDATA_ITEM)
+		return 0;
+		
 	/* If this item was checked already, skip it. */
 	if (repair_item_test_flag(place, OF_CHECKED))
 		return 0;
@@ -391,8 +395,10 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	/* Try to realize unambiguously the object by the place. Objects which 
 	   cannot be recognized unambiguously will be recovered later -- on the 
 	   CLEANUP pass. */
-	if ((object = repair_object_realize(sem->repair->fs->tree, 
-					    place, TRUE)) == NULL)
+	
+	object = reiser4_object_realize(sem->repair->fs->tree, place);
+	
+	if (object == NULL)
 		return 0;
 	
 	res = repair_semantic_check_struct(sem, object);
