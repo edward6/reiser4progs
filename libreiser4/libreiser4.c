@@ -100,66 +100,32 @@ static errno_t tree_next(
 	place_t *next)	            /* next item will be stored here */
 {
 	reiser4_tree_t *t;
-	reiser4_place_t *curr;
+	reiser4_place_t *p;
     
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
 	aal_assert("umka-1491", next != NULL);
 
 	t = (reiser4_tree_t *)tree;
-	curr = (reiser4_place_t *)place;
+	p = (reiser4_place_t *)place;
 
-	if (curr->pos.item < reiser4_node_items(curr->node) - 1) {
-		reiser4_place_assign((reiser4_place_t *)next,
-				     curr->node, curr->pos.item + 1,
-				     MAX_UINT32);
-	} else {
-		reiser4_tree_neigh(t, curr->node, D_RIGHT);
+	if (p->pos.item >= reiser4_node_items(p->node) - 1) {
+		reiser4_tree_neigh(t, p->node, D_RIGHT);
 
-		if (!curr->node->right)
+		if (!p->node->right)
 			return -EINVAL;
 
-		((reiser4_place_t *)next)->node = curr->node->right;
-		reiser4_place_first((reiser4_place_t *)next);
+		reiser4_place_assign((reiser4_place_t *)next,
+				     p->node->right, 0, 0);
+	} else {
+		reiser4_place_assign((reiser4_place_t *)next,
+				     p->node, p->pos.item + 1, 0);
 	}
 
 	return reiser4_place_fetch((reiser4_place_t *)next);
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Handler for requests for left neighbor */
-static errno_t tree_prev(
-	void *tree,	            /* opaque pointer to the tree */
-	place_t *place,             /* place of node */
-	place_t *prev)              /* left neighbour will be here */
-{
-	reiser4_tree_t *t;
-	reiser4_place_t *curr;
-	
-	aal_assert("umka-867", tree != NULL);
-	aal_assert("umka-868", place != NULL);
-	aal_assert("umka-1492", prev != NULL);
-
-	t = (reiser4_tree_t *)tree;
-	curr = (reiser4_place_t *)place;
-
-	if (reiser4_place_gtfirst(curr)) {
-		reiser4_place_assign((reiser4_place_t *)prev,
-				     curr->node, curr->pos.item - 1,
-				     MAX_UINT32);
-	} else {
-		reiser4_tree_neigh(t, curr->node, D_LEFT);
-
-		if (!curr->node->left)
-			return -EINVAL;
-
-		((reiser4_place_t *)prev)->node = curr->node->left;
-		reiser4_place_last((reiser4_place_t *)prev);
-	}
-
-	return reiser4_place_fetch((reiser4_place_t *)prev);
-}
-
 static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
 	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return aal_hash_table_lookup(t->data, key);
@@ -267,14 +233,6 @@ reiser4_core_t core = {
 
 		/* Returns next item from the passed place */
 		.next	    = tree_next,
-    
-#ifndef ENABLE_STAND_ALONE
-		/* Returns prev item from the passed place */
-		.prev	    = tree_prev,
-#else
-		/* Returns prev item from the passed place */
-		.prev	    = NULL,
-#endif
 
 #ifndef ENABLE_STAND_ALONE
 		/* Callback function for inserting items into the tree */
