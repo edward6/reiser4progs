@@ -190,8 +190,11 @@ lookup_res_t extent40_lookup(place_t *place,
 			    (trans_func_t)extent40_offset);
 
 	/* Transforming from the offset ot unit */
-	*pos = extent40_unit(place, res == ABSENT ?
-			     offset - 1 : offset);
+	*pos = extent40_unit(place, offset);
+	
+	if (*pos >= extent40_units(place))
+		*pos = extent40_units(place) - 1;
+	
 	return res;
 }
 
@@ -215,18 +218,8 @@ static int32_t extent40_read(place_t *place, void *buff,
 	     i < extent40_units(place) && count > 0; i++)
 	{
 		uint32_t blkchunk;
-		
-		/* Here offset is 32 bit value for stand alone mode and
-		   apparently code will not be working well with files larger
-		   than 4Gb. We can't merely use here uint64_t due to build mode
-		   that is without gcc built-in functions like __udivdi3 and
-		   __umoddi3 dedicated for working with 64 bit digits. */
-		
-#ifndef ENABLE_STAND_ALONE
 		uint64_t blk, start;
-#else
-		uint32_t blk, start;
-#endif
+
 		/* Calculating start block for read */
 		start = blk = et40_get_start(extent40_body(place) + i) +
 			((pos - (uint32_t)extent40_offset(place, i)) /
@@ -410,15 +403,15 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 		}
 
 		/* Writting data to @block */
-		if ((size = count) > blksize - (hint->offset % blksize))
-			size = blksize - (hint->offset % blksize);
+		if ((size = count) > blksize - (ins_offset % blksize))
+			size = blksize - (ins_offset % blksize);
 		
 		if (hint->specific) {
-			aal_memcpy(block->data + (hint->offset % blksize),
+			aal_memcpy(block->data + (ins_offset % blksize),
 				   hint->specific, size);
 		}
 
-		hint->offset += size;
+		ins_offset += size;
 	}
 	
 	place_mkdirty(place);

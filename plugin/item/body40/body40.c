@@ -118,7 +118,7 @@ lookup_res_t body40_lookup(place_t *place, key_entity_t *key,
 	uint32_t units;
 	key_entity_t maxkey;
 
-	body40_maxreal_key(place, &maxkey, trans_func);
+	body40_maxposs_key(place, &maxkey);
 
 	if (!(units = plug_call(place->plug->o.item_ops,
 				units, place)))
@@ -149,5 +149,5 @@ lookup_res_t body40_lookup(place_t *place, key_entity_t *key,
 	}
 
 	*pos = size;
-	return ABSENT;
+	return PRESENT;
 }
