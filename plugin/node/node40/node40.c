@@ -960,17 +960,18 @@ static int callback_comp_key(void *node, uint32_t pos,
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
 static lookup_t node40_lookup(reiser4_node_t *entity,
-			      reiser4_key_t *key,
-			      bias_t bias, pos_t *pos)
+			      lookup_hint_t *hint,
+			      lookup_bias_t bias,
+			      pos_t *pos)
 {
-	aal_assert("umka-472", key != NULL);
 	aal_assert("umka-478", pos != NULL);
+	aal_assert("umka-472", hint != NULL);
 	aal_assert("umka-470", entity != NULL);
-	aal_assert("umka-714", key->plug != NULL);
+	aal_assert("umka-3089", hint->key != NULL);
 
 	switch (aux_bin_search(entity, node40_items(entity),
-			       key->body, callback_comp_key,
-			       key->plug, &pos->item))
+			       hint->key->body, callback_comp_key,
+			       hint->key->plug, &pos->item))
 	{
 	case 1:
 		return PRESENT;

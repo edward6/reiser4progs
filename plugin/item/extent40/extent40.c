@@ -291,8 +291,9 @@ errno_t extent40_maxposs_key(reiser4_place_t *place,
 
 /* Performs lookup for specified @key inside the passed @place. Result of lookup
    will be stored in @pos. */
-lookup_t extent40_lookup(reiser4_place_t *place, reiser4_key_t *key,
-			 bias_t bias)
+lookup_t extent40_lookup(reiser4_place_t *place,
+			 lookup_hint_t *hint,
+			 lookup_bias_t bias)
 {
 	uint64_t offset;
 	uint64_t wanted;
@@ -300,15 +301,15 @@ lookup_t extent40_lookup(reiser4_place_t *place, reiser4_key_t *key,
 	extent40_t *extent;
 
 	aal_assert("umka-1500", place != NULL);
-	aal_assert("umka-1501", key  != NULL);
+	aal_assert("umka-1501", hint != NULL);
 	
 	extent = extent40_body(place);
 	units = extent40_units(place);
 
-	wanted = plug_call(key->plug->o.key_ops,
-			   get_offset, key);
+	wanted = plug_call(hint->key->plug->o.key_ops,
+			   get_offset, hint->key);
 
-	offset = plug_call(key->plug->o.key_ops,
+	offset = plug_call(hint->key->plug->o.key_ops,
 			   get_offset, &place->key);
 	
 	for (i = 0; i < units; i++, extent++) {

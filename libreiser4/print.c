@@ -75,6 +75,7 @@ char *reiser4_print_key(reiser4_key_t *key,
 	if (!(current = current->next))
 		current = aal_list_first(streams);
 
+	aal_stream_reset(stream);
 	reiser4_key_print(key, stream, options);
 
 	return (char *)stream->entity;

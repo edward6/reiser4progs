@@ -182,23 +182,23 @@ static errno_t tail40_maxposs_key(reiser4_place_t *place,
 
 /* Makes lookup of @key inside tail at @place. */
 static lookup_t tail40_lookup(reiser4_place_t *place,
-			      reiser4_key_t *key, 
-			      bias_t bias)
+			      lookup_hint_t *hint,
+			      lookup_bias_t bias)
 {
 	uint32_t units;
 	uint64_t offset;
 	uint64_t wanted;
 
-	aal_assert("umka-1229", key != NULL);
+	aal_assert("umka-1229", hint != NULL);
 	aal_assert("umka-1228", place != NULL);
 
 	units = tail40_units(place);
 	
-	offset = plug_call(key->plug->o.key_ops,
+	offset = plug_call(hint->key->plug->o.key_ops,
 			   get_offset, &place->key);
 
-	wanted = plug_call(key->plug->o.key_ops,
-			   get_offset, key);
+	wanted = plug_call(hint->key->plug->o.key_ops,
+			   get_offset, hint->key);
 
 	/* Check if needed key is inside this tail. */
 	if (wanted >= offset &&

@@ -279,7 +279,7 @@ void reiser4_key_print(reiser4_key_t *key,
 	aal_assert("vpf-189", key != NULL);
 	aal_assert("vpf-190", key->plug != NULL);
 
-	plug_call(key->plug->o.key_ops, print, key, stream, options); 
+	plug_call(key->plug->o.key_ops, print, key,
+		  stream, options); 
 }
-
 #endif

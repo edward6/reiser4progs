@@ -182,22 +182,29 @@ errno_t reiser4_node_leftmost_key(
 
 /* This function makes search inside of specified node for passed key. Position
    will be stored in passed @pos. */
-lookup_t reiser4_node_lookup(reiser4_node_t *node, reiser4_key_t *key,
-			     bias_t bias, pos_t *pos)
+lookup_t reiser4_node_lookup(reiser4_node_t *node,
+			     lookup_hint_t *hint,
+			     lookup_bias_t bias,
+			     pos_t *pos)
 {
+#ifndef ENABLE_STAND_ALONE
+	int32_t i;
+#endif
 	lookup_t res;
 	reiser4_key_t maxkey;
 	reiser4_place_t place;
     
 	aal_assert("umka-475", pos != NULL);
 	aal_assert("vpf-048", node != NULL);
-	aal_assert("umka-476", key != NULL);
+	
+	aal_assert("umka-476", hint != NULL);
+	aal_assert("umka-3090", hint->key != NULL);
 
 	POS_INIT(pos, 0, MAX_UINT32);
 
 	/* Calling node plugin lookup method */
 	if ((res = plug_call(node->plug->o.node_ops, lookup,
-			     node, key, bias, pos)) < 0)
+			     node, hint, bias, pos)) < 0)
 	{
 		return res;
 	}
@@ -219,16 +226,16 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node, reiser4_key_t *key,
 		if (place.plug->o.item_ops->balance->maxposs_key) {
 			reiser4_item_maxposs_key(&place, &maxkey);
 
-			if (reiser4_key_compfull(key, &maxkey) > 0) {
+			if (reiser4_key_compfull(hint->key, &maxkey) > 0) {
 				pos->item++;
 				return ABSENT;
 			}
 		}
 	
-		/* Calling lookup method of found item */
+		/* Calling lookup method of found item. */
 		if (place.plug->o.item_ops->balance->lookup) {
 			res = plug_call(place.plug->o.item_ops->balance,
-					lookup, &place, key, bias);
+					lookup, &place, hint, bias);
 			
 			pos->unit = place.pos.unit;
 			return res;
@@ -241,8 +248,44 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node, reiser4_key_t *key,
 			return ABSENT;
 		}
 	}
+	
+#ifndef ENABLE_STAND_ALONE
+	/* Initializng @place by current @node and found @pos. */
+	if (reiser4_place_open(&place, node, pos))
+		return -EIO;
+	
+	/* Loop through the items of the current node. */
+	for (i = place.pos.item - 1; i >= 0; i--) {
+		place.pos.item = i;
 
-	return PRESENT;
+		/* Fetching item info. */
+		if (reiser4_place_fetch(&place))
+			return -EIO;
+			
+		/* If items are of different objects, get out of here. */
+		if (reiser4_key_compshort(&place.key, hint->key))
+			return res;
+
+		/* If item's lookup is implemented, we use it. Item key
+		   comparing is used otherwise. */
+		if (place.plug->o.item_ops->balance->lookup) {
+			switch (plug_call(place.plug->o.item_ops->balance,
+					  lookup, &place, hint, FIND_EXACT))
+			{
+			case PRESENT:
+				*pos = place.pos;
+				break;
+			default:
+				return res;
+			}
+		} else {
+			if (reiser4_key_compfull(&place.key, hint->key))
+				return res;
+		}
+	}
+#endif
+
+	return res;
 }
 
 /* Returns real item count in specified node */

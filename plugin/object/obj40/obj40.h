@@ -51,7 +51,7 @@ extern rid_t obj40_pid(obj40_t *obj, rid_t type, char *name);
 extern int64_t obj40_read(obj40_t *obj, trans_hint_t *hint);
 
 extern lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
-			     uint8_t level, bias_t bias,
+			     uint8_t level, lookup_bias_t bias,
 			     reiser4_place_t *place);
 
 extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,

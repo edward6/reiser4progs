@@ -71,10 +71,14 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 
 /* Updates object stat data coord by means of using tree_lookup(). */
 errno_t reiser4_object_refresh(reiser4_object_t *object) {
-	object_info_t *info = object->info;
+	lookup_hint_t hint;
+	object_info_t *info;
 
-	switch (reiser4_tree_lookup(info->tree, &info->object,
-				    LEAF_LEVEL, FIND_EXACT,
+	info = object->info;
+	hint.level = LEAF_LEVEL;
+	hint.key = &info->object;
+
+	switch (reiser4_tree_lookup(info->tree, &hint, FIND_EXACT,
 				    object_start(object)))
 	{
 	case PRESENT:
@@ -229,14 +233,16 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					reiser4_object_t *parent,
 					reiser4_key_t *key) 
 {
+	lookup_hint_t hint;
 	reiser4_place_t place;
 
 	aal_assert("vpf-1136", tree != NULL);
 	aal_assert("vpf-1185", key != NULL);
+
+	hint.key = key;
+	hint.level = LEAF_LEVEL;
 	
-	switch (reiser4_tree_lookup(tree, key, LEAF_LEVEL,
-				    FIND_EXACT, &place))
-	{
+	switch (reiser4_tree_lookup(tree, &hint, FIND_EXACT, &place)) {
 	case PRESENT:
 		/* The key must point to the start of the object. */
 		if (reiser4_key_compfull(&place.key, key))
@@ -471,6 +477,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 			      entry_hint_t *entry)
 {
 	errno_t res = 0;
+	lookup_hint_t hint;
 	reiser4_place_t place;
 	reiser4_object_t *child;
 	
@@ -491,10 +498,13 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 			  entry->name, object->name);
 		return res;
 	}
+
+	hint.level = LEAF_LEVEL;
+	hint.key = &entry->object;
 	
 	/* Looking up for the victim's statdata place */
-	if (reiser4_tree_lookup(object->info->tree, &entry->object,
-				LEAF_LEVEL, FIND_EXACT, &place) != PRESENT)
+	if (reiser4_tree_lookup(object->info->tree, &hint,
+				FIND_EXACT, &place) != PRESENT)
 	{
 		char *key = reiser4_print_key(&entry->object, PO_DEFAULT);
 		aal_error("Can't find an item pointed by %s. "

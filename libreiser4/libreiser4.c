@@ -60,13 +60,12 @@ static errno_t tree_remove(void *tree, reiser4_place_t *place,
 }
 #endif
 
-/* Handler for lookup reqiests from the all plugin can arrive */
-static lookup_t tree_lookup(void *tree, reiser4_key_t *key,
-			    uint8_t level, bias_t bias,
-			    reiser4_place_t *place)
+/* Handler for lookup reqiests from the all plugin can arrive. */
+static lookup_t tree_lookup(void *tree, lookup_hint_t *hint,
+			    lookup_bias_t bias, reiser4_place_t *place)
 {
 	return reiser4_tree_lookup((reiser4_tree_t *)tree,
-				   key, level, bias, place);
+				   hint, bias, place);
 }
 
 static int64_t tree_read(void *tree, trans_hint_t *hint) {
@@ -74,17 +73,17 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 	return reiser4_flow_read(t, hint);
 }
 
-/* Initializes item at passed @place */
+/* Initializes item at passed @place. */
 static errno_t tree_fetch(void *tree, reiser4_place_t *place) {
 	return reiser4_place_fetch(place);
 }
 
-/* Returns TRUE if passed @place points to some real item in a node */
+/* Returns TRUE if passed @place points to some real item in a node. */
 static int tree_valid(void *tree, reiser4_place_t *place) {
 	return reiser4_place_valid(place);
 }
 
-/* Handler for requests for next item */
+/* Handler for requests for next item. */
 static errno_t tree_next(void *tree, reiser4_place_t *place,
 			 reiser4_place_t *next)
 {

@@ -336,9 +336,8 @@ static int32_t dir40_compent(char *entry1, char *entry2) {
 /* Makes lookup inside directory. This is needed to be used in add_entry() for
    two reasons: for make sure, that passed entry does not exists and to use
    lookup result for consequent insert. */
-static lookup_t dir40_search(object_entity_t *entity,
-			     char *name, bias_t bias,
-			     entry_hint_t *entry)
+static lookup_t dir40_search(object_entity_t *entity, char *name,
+			     lookup_bias_t bias, entry_hint_t *entry)
 {
 	dir40_t *dir;
 	lookup_t res;

@@ -27,6 +27,10 @@ extern uint64_t extent40_offset(reiser4_place_t *place,
 extern uint32_t extent40_unit(reiser4_place_t *place,
 			      uint64_t offset);
 
+extern lookup_t extent40_lookup(reiser4_place_t *place,
+				lookup_hint_t *hint,
+				lookup_bias_t bias);
+
 extern errno_t extent40_maxreal_key(reiser4_place_t *place,
 				    reiser4_key_t *key);
 
@@ -35,9 +39,6 @@ extern uint32_t extent40_expand(reiser4_place_t *place,
 
 extern uint32_t extent40_shrink(reiser4_place_t *place,
 				uint32_t pos, uint32_t count);
-
-extern lookup_t extent40_lookup(reiser4_place_t *place,
-				reiser4_key_t *key, bias_t bias);
 
 #define extent40_blksize(place) \
         ((place)->node->block->size)

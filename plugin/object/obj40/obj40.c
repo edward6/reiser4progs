@@ -37,7 +37,9 @@ uint64_t obj40_ordering(obj40_t *obj) {
 }
 
 /* Reads one stat data extension to @data. */
-errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data) {
+errno_t obj40_read_ext(reiser4_place_t *place, rid_t id,
+		       void *data)
+{
 	trans_hint_t trans;
 	statdata_hint_t stat;
 
@@ -615,13 +617,18 @@ errno_t obj40_update(obj40_t *obj) {
 
 /* Performs lookup and returns result to caller */
 lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
-		      uint8_t level, bias_t bias,
+		      uint8_t level, lookup_bias_t bias,
 		      reiser4_place_t *place)
 {
-	aal_assert("umka-1966", obj != NULL);
+	lookup_hint_t hint;
 	
-	return obj->core->tree_ops.lookup(obj->info.tree, key,
-					  level, bias, place);
+	aal_assert("umka-1966", obj != NULL);
+
+	hint.key = key;
+	hint.level = level;
+	
+	return obj->core->tree_ops.lookup(obj->info.tree,
+					  &hint, bias, place);
 }
 
 /* Reads data from the tree to passed @hint. */

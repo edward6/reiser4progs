@@ -921,22 +921,22 @@ static int callback_comp_entry(void *array, uint32_t pos,
 }
 
 /* Performs lookup inside cde item. Found position is stored in @pos. */
-lookup_t cde40_lookup(reiser4_place_t *place, reiser4_key_t *key,
-		      bias_t bias)
+lookup_t cde40_lookup(reiser4_place_t *place,
+		      lookup_hint_t *hint,
+		      lookup_bias_t bias)
 {
 #ifndef ENABLE_STAND_ALONE
 	int32_t i;
 #endif
 
-	aal_assert("umka-610", key != NULL);
+	aal_assert("umka-610", hint != NULL);
 	aal_assert("umka-609", place != NULL);
-	aal_assert("umka-717", key->plug != NULL);
     
 	/* Bin search within the cde item to get the position of 
 	   the wanted key. */
 	switch (aux_bin_search(place->body, cde40_units(place),
-			       key, callback_comp_entry, place,
-			       &place->pos.unit))
+			       hint->key, callback_comp_entry,
+			       place, &place->pos.unit))
 	{
 	case 1:
 #ifndef ENABLE_STAND_ALONE
@@ -946,7 +946,7 @@ lookup_t cde40_lookup(reiser4_place_t *place, reiser4_key_t *key,
 		for (i = place->pos.unit - 1; i >= 0; i--) {
 			/* Comparing keys. We break the loop when keys as not
 			   equal, that means, that we have found needed pos. */
-			if (!cde40_comp_entry(place, i, key))
+			if (!cde40_comp_entry(place, i, hint->key))
 				place->pos.unit = i;
 			else
 				return PRESENT;

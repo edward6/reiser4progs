@@ -208,7 +208,8 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 #ifndef ENABLE_STAND_ALONE
 	uint32_t i;
 #endif
-	
+
+	lookup_hint_t hint;
         reiser4_key_t lkey;
 	reiser4_place_t *parent;
     
@@ -226,8 +227,10 @@ errno_t reiser4_tree_realize_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 
         reiser4_node_leftmost_key(node, &lkey);
 
+	hint.key = &lkey;
+
 	/* Getting position by means of using node lookup. */
-        if (reiser4_node_lookup(parent->node, &lkey, FIND_EXACT,
+        if (reiser4_node_lookup(parent->node, &hint, FIND_EXACT,
 				&parent->pos) == PRESENT)
 	{
 #ifndef ENABLE_STAND_ALONE
@@ -1509,96 +1512,25 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	
 	return res;
 }
-
-/* Makes search of the leftmost item/unit with the same key as passed @key is
-   starting from @place. This is needed to work with key collisions. */
-static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
-				     reiser4_place_t *place, reiser4_key_t *key)
-{
-	reiser4_place_t walk;
-	
-	aal_assert("umka-2396", key != NULL);
-	aal_assert("umka-2388", tree != NULL);
-	aal_assert("umka-2389", place != NULL);
-
-	if (reiser4_place_fetch(place))
-		return -EINVAL;
-
-	aal_memcpy(&walk, place, sizeof(*place));
-			
-	/* Main loop until leftmost node reached */
-	while (walk.node) {
-		int32_t i;
-
-		/* Loop through the items of the current node */
-		for (i = walk.pos.item - 1; i >= 0; i--) {
-			walk.pos.item = i;
-
-			/* Fetching item info */
-			if (reiser4_place_fetch(&walk))
-				return -EINVAL;
-			
-			/* If items of different objects, get out here. */
-			if (reiser4_key_compshort(&walk.key, key))
-				return 0;
-
-			/* If item's lookup is implemented, we use it. Item key
-			   comparing is used otherwise. */
-			if (walk.plug->o.item_ops->balance->lookup) {
-				switch (plug_call(walk.plug->o.item_ops->balance,
-						  lookup, &walk, key, FIND_EXACT))
-				{
-				case PRESENT:
-					aal_memcpy(place, &walk,
-						   sizeof(*place));
-					break;
-				default:
-					return 0;
-				}
-			} else {
-				if (!reiser4_key_compfull(&walk.key, key)) {
-					aal_memcpy(place, &walk, sizeof(*place));
-				} else {
-					return 0;
-				}
-			}
-		}
-
-		/* Getting left neighbour node. */
-		reiser4_node_lock(place->node);
-		reiser4_tree_neig_node(tree, walk.node, DIR_LEFT);
-		reiser4_node_unlock(place->node);
-
-		/* Initializing @walk by neighbour node and last item. */
-		if ((walk.node = walk.node->left)) {
-			int32_t items = reiser4_node_items(walk.node);
-
-			/* Here should be namely @items, not @items - 1, because
-			   we will access @walk.item - 1 on the next cycle */
-			POS_INIT(&walk.pos, items, MAX_UINT32);
-		}
-	}
-
-	return 0;
-}
 #endif
 
 /* Makes search in the tree by specified @key. Fills passed place by data of
    found item. That is body pointer, plugin, etc. */
-lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
-			     uint8_t level, bias_t bias, reiser4_place_t *place)
+lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
+			     lookup_bias_t bias, reiser4_place_t *place)
 {
 	lookup_t res;
 	reiser4_key_t wan;
 
-	aal_assert("umka-742", key != NULL);
+	aal_assert("umka-742", hint != NULL);
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-2057", place != NULL);
+	aal_assert("umka-3088", hint->key != NULL);
 
 	/* We store @key in @wan. All consequence code will use @wan. This is
 	   needed, because @key might point to @place->item.key in @place and
 	   will be corrupted during lookup. */
-	reiser4_key_assign(&wan, key);
+	reiser4_key_assign(&wan, hint->key);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Making sure that root exists. If not, getting out with @place
@@ -1626,30 +1558,20 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
-		uint32_t curr_level = reiser4_node_get_level(place->node);
-		bias_t curr_bias = (curr_level > level ? FIND_EXACT : bias);
-		
+		uint32_t clevel = reiser4_node_get_level(place->node);
+		lookup_bias_t cbias = (clevel > hint->level ? FIND_EXACT : bias);
+
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
-		res = reiser4_node_lookup(place->node, &wan,
-					  curr_bias, &place->pos);
+		hint->key = &wan;
+
+		res = reiser4_node_lookup(place->node, hint,
+					  cbias, &place->pos);
 
 		/* Check if we should finish lookup because we reach stop level
 		   or some error occured during last node lookup. */
-		if (curr_level <= level || res < 0) {
+		if (clevel <= hint->level || res < 0) {
 			if (res == PRESENT) {
-#ifndef ENABLE_STAND_ALONE
-				/* If collision handling is allowed (and it is
-				   for non stand alone mode), we will find
-				   leftmost coord with the same key. This is
-				   needed for correct key collisions handling in
-				   object plugins (directory ones). */
-				if (reiser4_tree_leftmost(tree, place, &wan)) {
-					aal_error("Can't find leftmost "
-						  "position during lookup.");
-					return -EIO;
-				}
-#endif	
 				/* Fetching item at @place if key is found */
 				if (reiser4_place_fetch(place))
 					return -EIO;
@@ -1745,43 +1667,45 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	errno_t res;
 	uint8_t level;
 	
-	reiser4_place_t place;
 	ptr_hint_t ptr;
-	trans_hint_t hint;
+	trans_hint_t thint;
+	lookup_hint_t lhint;
+	reiser4_place_t place;
 
 	aal_assert("umka-913", tree != NULL);
 	aal_assert("umka-916", node != NULL);
     
 	/* Preparing nodeptr item hint. */
-	hint.count = 1;
-	hint.specific = &ptr;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
-	hint.shift_flags = flags;
+	thint.count = 1;
+	thint.specific = &ptr;
+	thint.place_func = NULL;
+	thint.region_func = NULL;
+	thint.shift_flags = flags;
 
 	ptr.width = 1;
 	ptr.start = node_blocknr(node);
 	pid = reiser4_param_value("nodeptr");
 
 	level = reiser4_node_get_level(node) + 1;
-	reiser4_node_leftmost_key(node, &hint.offset);
+	reiser4_node_leftmost_key(node, &thint.offset);
 
-	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
+	if (!(thint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
 		aal_error("Can't find item plugin by its id 0x%x.", pid);
 		return -EINVAL;
 	}
 
+	lhint.level = level;
+	lhint.key = &thint.offset;
+
 	/* Looking up for the insert point place */
-	if ((res = reiser4_tree_lookup(tree, &hint.offset, level,
-				       FIND_CONV, &place)) < 0)
-	{
+	if ((res = reiser4_tree_lookup(tree, &lhint, FIND_CONV, &place)) < 0) {
 		aal_error("Lookup is failed during attach node "
 			  "%llu to tree.", node_blocknr(node));
 		return res;
 	}
 
 	/* Inserting node ptr into tree. */
-	if ((res = reiser4_tree_insert(tree, &place, &hint, level)) < 0) {
+	if ((res = reiser4_tree_insert(tree, &place, &thint, level)) < 0) {
 		aal_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}
@@ -2382,20 +2306,20 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				  uint8_t level)
 {
 	errno_t res;
-	reiser4_node_t *node;
 	uint32_t flags;
-	uint32_t curr_level;
+	uint32_t clevel;
+	reiser4_node_t *node;
 	
 	aal_assert("vpf-674", level > 0);
 	aal_assert("vpf-672", tree != NULL);
 	aal_assert("vpf-673", place != NULL);
 	aal_assert("vpf-813", place->node != NULL);
 
-	curr_level = reiser4_node_get_level(place->node);
-	aal_assert("vpf-680", curr_level < level);
+	clevel = reiser4_node_get_level(place->node);
+	aal_assert("vpf-680", clevel < level);
 
 	/* Loop until desired @level is reached.*/
-	while (curr_level < level) {
+	while (clevel < level) {
 		aal_assert("vpf-676", place->node->p.node != NULL);
 
 		/* Check if @place points inside node. That is should we split
@@ -2408,7 +2332,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			/* We are not on the border, split @place->node. That is
 			   allocate new right neighbour node and move all item
 			   right to @place->pos to new allocated node. */
-			if (!(node = reiser4_tree_alloc_node(tree, curr_level))) {
+			if (!(node = reiser4_tree_alloc_node(tree, clevel))) {
 				aal_error("Tree failed to allocate "
 					  "a new node.");
 				return -EINVAL;
@@ -2475,7 +2399,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			}
 		}
 
-		curr_level++;
+		clevel++;
 	}
 	
 	return 0;
@@ -2551,6 +2475,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	/* Checking if we have the tree with height less than requested
 	   level. If so, we should grow the tree up to requested level. */
 	if (level > reiser4_tree_get_height(tree)) {
+		lookup_hint_t lhint;
 		
 		if (reiser4_tree_fresh(tree))
 			return -EINVAL;
@@ -2571,8 +2496,11 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		   the node of the given @level bu after tree_growup() and thus
 		   rebalancing we need to get correct position where to insert
 		   item. */
-		if ((res = reiser4_tree_lookup(tree, &hint->offset, level,
-					       FIND_CONV, place) < 0))
+		lhint.level = level;
+		lhint.key = &hint->offset;
+		
+		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_CONV,
+					       place) < 0))
 		{
 			aal_error("Lookup failed after tree growed up to "
 				  "requested level %d.", level);
@@ -2606,8 +2534,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 				return res;
 		}
 	} else {
-		reiser4_node_t *root;
 		uint32_t height;
+		reiser4_node_t *root;
 
 		aal_assert("umka-3055", place->node == NULL);
 
@@ -2684,7 +2612,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	   but insert point was moved to new empty node and thus, we need to
 	   insert new item. As item may has an overhead like directory one has,
 	   we should take it to acount. */
-	if (!mode && (place->pos.unit == MAX_UINT32)) {
+	if (mode != (place->pos.unit == MAX_UINT32)) {
 		hint->overhead = reiser4_item_overhead(hint->plug);
 	}
 

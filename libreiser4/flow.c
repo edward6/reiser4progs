@@ -13,6 +13,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	int64_t total;
 	uint64_t size;
 	reiser4_key_t key;
+	lookup_hint_t lhint;
 
 	aal_assert("umka-2509", tree != NULL);
 	aal_assert("umka-2510", hint != NULL);
@@ -24,9 +25,11 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		int32_t read;
 		reiser4_place_t place;
 
+		lhint.level = LEAF_LEVEL;
+		lhint.key = &hint->offset;
+		
 		/* Looking for the place to read. */
-		if ((res = reiser4_tree_lookup(tree, &hint->offset,
-					       LEAF_LEVEL, FIND_EXACT,
+		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT,
 					       &place)) < 0)
 		{
 			return res;
@@ -109,20 +112,23 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	/* Loop until desired number of bytes is written. */
 	for (total = bytes = 0, size = hint->count; size > 0;) {
 		int32_t write;
-		reiser4_place_t place;
 		uint32_t level;
+		lookup_hint_t lhint;
+		reiser4_place_t place;
 
 		hint->count = size;
+		lhint.level = LEAF_LEVEL;
+		lhint.key = &hint->offset;
 
 		/* Looking for place to write. */
-		if ((res = reiser4_tree_lookup(tree, &hint->offset,
-					       LEAF_LEVEL, FIND_CONV,
+		if ((res = reiser4_tree_lookup(tree, &lhint,
+					       FIND_CONV,
 					       &place)) < 0)
 		{
 			return res;
 		}
 
-		/* Making decission if we should write data to leaf level or to
+		/* Making decision if we should write data to leaf level or to
 		   twig. Probably this may be improved somehow. */
 		if (hint->plug->id.group == TAIL_ITEM) {
 			level = LEAF_LEVEL;
@@ -181,10 +187,13 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	for (total = 0, size = hint->count; size > 0;
 	     size -= trunc, total += trunc)
 	{
+		lookup_hint_t lhint;
 		reiser4_place_t place;
+
+		lhint.level = LEAF_LEVEL;
+		lhint.key = &hint->offset;
 		
-		if ((res = reiser4_tree_lookup(tree, &hint->offset,
-					       LEAF_LEVEL, FIND_EXACT,
+		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT,
 					       &place)) < 0)
 		{
 			return res;

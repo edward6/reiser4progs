@@ -297,6 +297,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
 	reiser4_place_t place;
+	lookup_hint_t lhint;
 	trans_hint_t hint;
 	lookup_t lookup;
 	ptr_hint_t ptr;
@@ -316,9 +317,12 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	aal_memset(&ptr, 0, sizeof(ptr));
 	
 	reiser4_node_leftmost_key(node, &hint.offset);
+
+	lhint.level = LEAF_LEVEL;
+	lhint.key = &hint.offset;
 	
 	/* Key should not exist in the tree yet. */
-	lookup = reiser4_tree_lookup(tree, &hint.offset,  LEAF_LEVEL, 
+	lookup = reiser4_tree_lookup(tree, &lhint, 
 				     FIND_EXACT, &place);
 	
 	switch(lookup) {
@@ -489,14 +493,18 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 					 trans_hint_t *hint)
 {
 	reiser4_key_t dkey, end;
+	lookup_hint_t lhint;
 	reiser4_place_t prev;
 	errno_t res;
 	
 	aal_assert("vpf-1364", tree  != NULL);
 	aal_assert("vpf-1365", place != NULL);
 	aal_assert("vpf-1367", hint  != NULL);
+
+	lhint.level = LEAF_LEVEL;
+	lhint.key = &hint->offset;
 	
-	res = reiser4_tree_lookup(tree, &hint->offset, LEAF_LEVEL,
+	res = reiser4_tree_lookup(tree, &lhint,
 				  FIND_EXACT, place);
 	
 	switch(res) {
@@ -578,11 +586,12 @@ static errno_t callback_merge(reiser4_node_t *node, pos_t *pos,
 errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src, 
 			   region_func_t func, void *data)
 {
+	reiser4_place_t dst;
+	lookup_hint_t lhint;
 	trans_hint_t hint;
 	uint32_t scount;
 	uint8_t level;
 	errno_t res;
-	reiser4_place_t dst;
 	
 	aal_assert("vpf-654", tree != NULL);
 	aal_assert("vpf-655", src != NULL);
@@ -677,9 +686,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 
 		if (!src->plug->o.item_ops->balance->lookup)
 			break;
-		
+
+		lhint.key = &hint.maxkey;
+			
 		/* Lookup by end_key. */
-		res = src->plug->o.item_ops->balance->lookup(src, &hint.maxkey,
+		res = src->plug->o.item_ops->balance->lookup(src, &lhint,
 							     FIND_EXACT);
 
 		if (res < 0) return res;
@@ -734,15 +745,20 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
         /* While not the end of the tree. */
         while (reiser4_key_compfull(&key, &max)) {
                 reiser4_place_t place;
+		lookup_hint_t hint;
                 lookup_t lookup;
 		pos_t *pos;
 
                 /* FIXME-VITALY: This is not key-collision-safe. */
+		hint.key = &key;
+		hint.level = LEAF_LEVEL;
 
                 /* Lookup the key. */
-                if ((lookup = reiser4_tree_lookup(tree, &key, LEAF_LEVEL,
-                                                  FIND_EXACT, &place)) < 0)
+                if ((lookup = reiser4_tree_lookup(tree, &hint,
+						  FIND_EXACT, &place)) < 0)
+		{
                         return lookup;
+		}
 
 		pos = &place.pos;
 

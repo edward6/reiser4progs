@@ -54,7 +54,8 @@ extern errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 extern errno_t reiser4_node_shift(reiser4_node_t *node, reiser4_node_t *neig,
 				  shift_hint_t *hint);
 
-extern errno_t reiser4_node_fuse(reiser4_node_t *node, pos_t *pos1, pos_t *pos2);
+extern errno_t reiser4_node_fuse(reiser4_node_t *node, pos_t *pos1,
+				 pos_t *pos2);
 
 extern errno_t reiser4_node_update_key(reiser4_node_t *node, pos_t *pos,
 				       reiser4_key_t *key);
@@ -75,8 +76,9 @@ extern errno_t reiser4_node_leftmost_key(reiser4_node_t *node,
 					 reiser4_key_t *key);
 
 extern lookup_t reiser4_node_lookup(reiser4_node_t *node,
-				    reiser4_key_t *key,
-				    bias_t bias, pos_t *pos);
+				    lookup_hint_t *hint,
+				    lookup_bias_t bias,
+				    pos_t *pos);
 
 extern errno_t reiser4_node_fini(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);

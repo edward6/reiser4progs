@@ -65,14 +65,6 @@ enum lookup {
 
 typedef int32_t lookup_t;
 
-/* Lookup bias. */
-enum bias {
-	FIND_EXACT              = 1,
-	FIND_CONV               = 2
-};
-
-typedef enum bias bias_t;
-
 /* Known by library plugin types. */
 enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE        = 0x0,
@@ -670,6 +662,36 @@ struct conv_hint {
 
 typedef struct conv_hint conv_hint_t;
 
+/* Lookup bias. */
+enum lookup_bias {
+	FIND_EXACT              = 1,
+	FIND_CONV               = 2
+};
+
+typedef enum lookup_bias lookup_bias_t;
+
+typedef struct lookup_hint lookup_hint_t;
+
+typedef lookup_t (*lookup_func_t) (reiser4_place_t *,
+				   lookup_hint_t *,
+				   lookup_bias_t);
+
+/* Hint to be used when looking for data in tree. */
+struct lookup_hint {
+	/* Key to be found. */
+	reiser4_key_t *key;
+
+	/* Tree level lookup should stop on. */
+	uint8_t level;
+
+	/* Function for modifying position during lookup in some way needed by
+	   caller. Key collisions may be handler though this. */
+	lookup_func_t lookup_func;
+
+	/* Data needed by @lookup_func. */
+	void *data;
+};
+
 /* Filesystem description. */
 struct fs_desc {
 	uint16_t policy;
@@ -876,7 +898,8 @@ struct item_balance_ops {
 	uint32_t (*units) (reiser4_place_t *);
 	
 	/* Makes lookup for passed key. */
-	lookup_t (*lookup) (reiser4_place_t *, reiser4_key_t *, bias_t);
+	lookup_t (*lookup) (reiser4_place_t *, lookup_hint_t *,
+			    lookup_bias_t);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Fuses two neighbour items in the same node. Returns space released
@@ -1143,8 +1166,8 @@ struct reiser4_node_ops {
 	uint32_t (*items) (reiser4_node_t *);
     
 	/* Makes lookup inside node by specified key */
-	lookup_t (*lookup) (reiser4_node_t *, reiser4_key_t *, 
-			    bias_t, pos_t *);
+	lookup_t (*lookup) (reiser4_node_t *, lookup_hint_t *, 
+			    lookup_bias_t, pos_t *);
     
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (reiser4_node_t *, pos_t *,
@@ -1467,9 +1490,9 @@ struct plug_ident {
 typedef struct plug_ident plug_ident_t;
 
 #ifndef ENABLE_STAND_ALONE
-#define class_init {NULL, NULL, ""}
+#  define class_init {NULL, NULL, ""}
 #else
-#define class_init {NULL, NULL}
+#  define class_init {NULL, NULL}
 #endif
 
 struct reiser4_plug {
@@ -1544,8 +1567,8 @@ struct tree_ops {
 
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
-	lookup_t (*lookup) (void *, reiser4_key_t *,
-			    uint8_t, bias_t, reiser4_place_t *);
+	lookup_t (*lookup) (void *, lookup_hint_t *, lookup_bias_t,
+			    reiser4_place_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Inserts item/unit in the tree by calling tree_insert() function, used

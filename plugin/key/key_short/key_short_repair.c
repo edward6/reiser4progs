@@ -47,13 +47,13 @@ void key_short_print(reiser4_key_t *key, aal_stream_t *stream,
 	aal_assert("umka-1548", stream != NULL);
 	
 	if (options == PO_INODE) {
-		aal_stream_format(stream, "%llx:%llx",
+		aal_stream_format(stream, "%llx:%llx\0",
 				  key_short_get_locality(key),
 				  key_short_get_objectid(key));
 	} else {
 		name = key_common_minor2name(key_short_get_type(key));
 		
-		aal_stream_format(stream, "%llx:%x(%s):%llx:%llx",
+		aal_stream_format(stream, "%llx:%x(%s):%llx:%llx\0",
 				  key_short_get_locality(key),
 				  key_short_get_type(key), name,
 				  key_short_get_objectid(key),

@@ -19,24 +19,24 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
-	reiser4_place_t *place;
 	resolve_t *resol;
-	
+
+	lookup_hint_t hint;
 	reiser4_tree_t *tree;
 	reiser4_plug_t *plug;
+	reiser4_place_t *place;
 
 	resol = (resolve_t *)data;
 	place = &resol->info.start;
-	
+
+	hint.level = LEAF_LEVEL;
+	hint.key = &resol->info.object;
 	tree = (reiser4_tree_t *)resol->info.tree;
 
 	/* Looking for current @resolve->object in order to the coord of stat
 	   data of find object pointed by @resolve->object. It is needed for
 	   consequent handling. */
-	if ((res = reiser4_tree_lookup(tree, &resol->info.object,
-				       LEAF_LEVEL, FIND_EXACT,
-				       place)) < 0)
-	{
+	if ((res = reiser4_tree_lookup(tree, &hint, FIND_EXACT, place)) < 0) {
 		return res;
 	} else {
 		/* Key is not found. */
@@ -49,7 +49,9 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		return -EINVAL;
 
 	/* Initializing object at @place. */
-	if (!(resol->entity = plug_call(plug->o.object_ops, open, &resol->info))) {
+	if (!(resol->entity = plug_call(plug->o.object_ops, open,
+					&resol->info)))
+	{
 		aal_error("Can't open object %s.", track);
 		return -EINVAL;
 	}
@@ -70,15 +72,14 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	        /* Close current object. */
 		plug_call(plug->o.object_ops, close, resol->entity);
 
-		/* Symlink cannot be followed */
+		/* Symlink cannot be followed. */
 		if (res != 0) {
 			aal_error("Can't follow %s.", track);
 			return res;
 		}
 		
 		/* Getting stat data place by key returned from follow() */
-		if ((res = reiser4_tree_lookup(tree, &resol->info.object,
-					       LEAF_LEVEL, FIND_EXACT,
+		if ((res = reiser4_tree_lookup(tree, &hint, FIND_EXACT,
 					       place)) < 0)
 		{
 			return res;

@@ -43,9 +43,6 @@ int main(int argc, char *argv[]) {
 		return 0xff;
 	}
 
-//	misc_param_override("hash=deg_hash");
-//	misc_param_override("policy=tails");
-		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
 	{
@@ -61,6 +58,9 @@ int main(int argc, char *argv[]) {
 
 	fs->tree->mpc_func = misc_mpressure_detect;
     
+	misc_param_override("hash=deg_hash");
+//	misc_param_override("policy=tails");
+		
 	if (!(fs->root = reiser4_object_open(fs->tree, "/", TRUE))) {
 		aal_error("Can't open root dir.");
 		goto error_free_fs;
@@ -86,7 +86,8 @@ int main(int argc, char *argv[]) {
                         int j, count;
 //			char part[256];
 
-			aal_snprintf(name, 256, "file name%d", random());
+//			aal_snprintf(name, 256, "file name%d", random());
+			aal_snprintf(name, 256, "very very long file name%d", random());
 
 //			fscanf(file, "%s %s\n", name, part);
 //			strcat(name, " ");
@@ -96,7 +97,7 @@ int main(int argc, char *argv[]) {
                         if (!(object = reiser4_reg_create(fs, dir, name)))
                                 continue;
                                                                                        
-                        count = 100000;
+                        count = 1/*00000*/;
                                                                                        
                         for (j = 0; j < count; j++) {
 /*				reiser4_object_seek(object,

@@ -166,10 +166,7 @@ extern reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 					      reiser4_node_t *parent,
 					      blk_t blk);
 
-extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
-				    reiser4_key_t *key,
-				    uint8_t level,
-				    bias_t bias,
-				    reiser4_place_t *place);
+extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
+				    lookup_bias_t bias, reiser4_place_t *place);
 #endif
 
