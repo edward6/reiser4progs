@@ -242,7 +242,10 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 	    strerror(errno));
 	return OPER_ERROR;
     }
-     
+
+    /* FIXME-VITALY: This should be a parameter for 3.6 format support. */
+    data->journal_device = data->host_device;    
+    
     return fsck_ask_confirmation(data, argv[optind]);
 }
 
