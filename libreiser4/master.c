@@ -55,6 +55,7 @@ reiser4_master_t *reiser4_master_create(
 
 	master->dirty = TRUE;
 	master->device = device;
+	
 	return master;
 }
 
@@ -81,13 +82,14 @@ errno_t reiser4_master_pack(reiser4_master_t *master,
 	return 0;
 }
 
-errno_t reiser4_master_unpack(reiser4_master_t *master,
-			      aal_stream_t *stream)
+reiser4_master_t *reiser4_master_unpack(aal_device_t *device,
+					aal_stream_t *stream)
 {
 	uint32_t size;
 	char sign[5] = {0};
-	
-	aal_assert("umka-2610", master != NULL);
+	reiser4_master_t *master;
+    
+	aal_assert("umka-981", device != NULL);
 	aal_assert("umka-2611", stream != NULL);
 
 	/* Check magic first. */
@@ -97,24 +99,34 @@ errno_t reiser4_master_unpack(reiser4_master_t *master,
 		aal_exception_error("Invalid master magic %s is "
 				    "detected in stream.",
 				    sign);
-		return -EINVAL;
+		return NULL;
 	}
 
 	/* Read size and check for validness. */
 	aal_stream_read(stream, &size, sizeof(size));
 
+	/* Allocating the memory for master super block struct */
+	if (!(master = aal_calloc(sizeof(*master), 0)))
+		return NULL;
+	
 	if (size != sizeof(master->ent)) {
 		aal_exception_error("Invalid size %u is "
 				    "detected in stream.",
 				    size);
-		return -EINVAL;
+		goto error_free_master;
 	}
 
 	/* Read master data from @stream. */
 	aal_stream_read(stream, &master->ent, size);
 
 	master->dirty = TRUE;
-	return 0;
+	master->device = device;
+	
+	return master;
+	
+ error_free_master:
+	aal_free(master);
+	return NULL;
 }
 
 errno_t reiser4_master_print(reiser4_master_t *master,

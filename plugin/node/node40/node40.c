@@ -6,7 +6,6 @@
 #include "node40.h"
 #include "node40_repair.h"
 
-extern reiser4_plug_t node40_plug;
 static reiser4_core_t *core = NULL;
 
 /* Return current node key policy (key size in fact). */
@@ -1592,7 +1591,7 @@ static reiser4_node_ops_t node40_ops = {
 #endif
 };
 
-static reiser4_plug_t node40_plug = {
+reiser4_plug_t node40_plug = {
 	.cl    = CLASS_INIT,
 	.id    = {NODE40_ID, 0, NODE_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE

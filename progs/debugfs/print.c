@@ -45,7 +45,7 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 
 	aal_stream_reset(stream);
 	
-	while (stream->offset < stream->size) {
+	while (stream->offset < stream->size - 1) {
 		uint32_t size;
 		
 		if ((size = aal_stream_read(stream, buff, 4096)) <= 0)

@@ -50,8 +50,8 @@ extern errno_t reiser4_node_ukey(reiser4_node_t *node,
 extern errno_t reiser4_node_pack(reiser4_node_t *node,
 				 aal_stream_t *stream);
 
-extern errno_t reiser4_node_unpack(reiser4_node_t *node,
-				   aal_stream_t *stream);
+extern reiser4_node_t *reiser4_node_unpack(reiser4_tree_t *tree,
+					   aal_stream_t *stream);
 
 extern int64_t reiser4_node_modify(reiser4_node_t *node, pos_t *pos,
 				   trans_hint_t *hint, modify_func_t modify);

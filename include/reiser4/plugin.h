@@ -904,8 +904,11 @@ struct reiser4_node_ops {
 	errno_t (*check_struct) (node_entity_t *, uint8_t);
 
 	/* Packing/unpacking metadata. */
+	node_entity_t *(*unpack) (aal_block_t *,
+				  reiser4_plug_t *,
+				  aal_stream_t *);
+	
 	errno_t (*pack) (node_entity_t *, aal_stream_t *);
-	errno_t (*unpack) (node_entity_t *, aal_stream_t *);
 
 	/* Prints node into given buffer */
 	errno_t (*print) (node_entity_t *, aal_stream_t *,
@@ -1041,8 +1044,10 @@ struct reiser4_format_ops {
 	void (*mkclean) (generic_entity_t *);
 
 	/* Format pack/unpack methods. */
+	generic_entity_t *(*unpack) (aal_device_t *, uint32_t,
+				     aal_stream_t *);
+	
 	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
-	errno_t (*unpack) (generic_entity_t *, aal_stream_t *);
 	
 	/* Update only fields which can be changed after journal replay in
 	   memory to avoid second checking. */
@@ -1184,8 +1189,10 @@ struct reiser4_alloc_ops {
 	void (*mkclean) (generic_entity_t *);
 	
 	/* Format pack/unpack methods. */
+	generic_entity_t *(*unpack) (aal_device_t *, uint32_t,
+				     aal_stream_t *);
+	
 	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
-	errno_t (*unpack) (generic_entity_t *, aal_stream_t *);
 	
 	/* Assign the bitmap to the block allocator */
 	errno_t (*assign) (generic_entity_t *, void *);

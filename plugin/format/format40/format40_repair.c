@@ -159,29 +159,31 @@ errno_t format40_pack(generic_entity_t *entity,
 	return 0;
 }
 
-errno_t format40_unpack(generic_entity_t *entity,
-			aal_stream_t *stream)
+generic_entity_t *format40_unpack(aal_device_t *device,
+				  uint32_t blksize,
+				  aal_stream_t *stream)
 {
-	rid_t pid;
 	uint32_t size;
 	format40_t *format;
 	char sign[5] = {0};
 	
-	aal_assert("umka-2602", entity != NULL);
 	aal_assert("umka-2603", stream != NULL);
 
-	format = (format40_t *)entity;
-
-	aal_stream_read(stream, &pid, sizeof(pid));
-	
 	/* Check magic first. */
 	aal_stream_read(stream, &sign, 4);
 
 	if (aal_strncmp(sign, FORMAT40_SIGN, 4)) {
 		aal_exception_error("Invalid format magic %s is "
 				    "detected in stream.", sign);
-		return -EINVAL;
+		return NULL;
 	}
+
+	if (!(format = aal_calloc(sizeof(*format), 0)))
+		return NULL;
+
+	format->device = device;
+	format->blksize = blksize;
+	format->plug = &format40_plug;
 
 	/* Read size nad check for validness. */
 	aal_stream_read(stream, &size, sizeof(size));
@@ -190,13 +192,17 @@ errno_t format40_unpack(generic_entity_t *entity,
 		aal_exception_error("Invalid size %u is "
 				    "detected in stream.",
 				    size);
-		return -EINVAL;
+		goto error_free_format;
 	}
 
 	/* Read format data from @stream. */
 	aal_stream_read(stream, &format->super, size);
 
 	format->dirty = 1;
-	return 0;
+	return (generic_entity_t *)format;
+
+ error_free_format:
+	aal_free(format);
+	return NULL;
 }
 #endif

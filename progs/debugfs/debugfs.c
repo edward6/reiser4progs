@@ -318,17 +318,10 @@ int main(int argc, char *argv[]) {
 	if (behav_flags & BF_PACK_META) {
 		if (debugfs_pack_meta(fs))
 			goto error_free_tree;
-
-		if (debugfs_pack_tree(fs))
-			goto error_free_tree;
 	}
 	
 	if (behav_flags & BF_UNPACK_META) {
-		if (debugfs_unpack_meta(fs))
-			goto error_free_tree;
-
-		if (debugfs_unpack_tree(fs))
-			goto error_free_tree;
+		aal_exception_error("Sorry, not implemented yet!");
 	}
 	
 	/* Releasing the tree */

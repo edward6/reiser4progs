@@ -58,8 +58,8 @@ extern errno_t reiser4_format_print(reiser4_format_t *format,
 extern errno_t reiser4_format_pack(reiser4_format_t *format,
 				   aal_stream_t *stream);
 
-extern errno_t reiser4_format_unpack(reiser4_format_t *format,
-				     aal_stream_t *stream);
+extern reiser4_format_t *reiser4_format_unpack(reiser4_fs_t *fs,
+					       aal_stream_t *stream);
 
 extern errno_t reiser4_format_valid(reiser4_format_t *format);
 extern rid_t reiser4_format_alloc_pid(reiser4_format_t *format);

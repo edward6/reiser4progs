@@ -40,28 +40,6 @@ errno_t reiser4_node_clone(reiser4_node_t *src,
 			 clone, src->entity, dst->entity);
 }
 
-/* Packes @node to @stream. */
-errno_t reiser4_node_pack(reiser4_node_t *node,
-			  aal_stream_t *stream)
-{
-	aal_assert("umka-2622", node != NULL);
-	aal_assert("umka-2623", stream != NULL);
-
-	return plug_call(node->entity->plug->o.node_ops,
-			 pack, node->entity, stream);
-}
-
-/* Unpackes @stream to @node. */
-errno_t reiser4_node_unpack(reiser4_node_t *node,
-			    aal_stream_t *stream)
-{
-	aal_assert("umka-2624", node != NULL);
-	aal_assert("umka-2625", stream != NULL);
-
-	return plug_call(node->entity->plug->o.node_ops,
-			 unpack, node->entity, stream);
-}
-
 /* Creates new node at block @nr on @tree with @level and with plugin @pid. Uses
    tree instance for accessing block size and key plugin in use. */
 reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
@@ -76,15 +54,11 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 
 	aal_assert("umka-1268", tree != NULL);
     
-	/* Allocating memory for instance of node */
-	if (!(node = aal_calloc(sizeof(*node), 0)))
-		return NULL;
-
 	/* Finding the node plugin by its id */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find node plugin by its id "
-				    "0x%x.", pid);
-		goto error_free_node;
+		aal_exception_error("Can't find node plugin by its "
+				    "id 0x%x.", pid);
+		return NULL;
 	}
 
 	/* Getting tree tree device and blksize in use to use them for creating
@@ -94,13 +68,17 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 
 	/* Allocate new node of @size at @nr. */
 	if (!(block = aal_block_alloc(device, size, nr)))
-		goto error_free_node;
+		return NULL;
+
+	/* Allocating memory for instance of node */
+	if (!(node = aal_calloc(sizeof(*node), 0)))
+		goto error_free_block;
 
 	/* Requesting the plugin for initialization node entity. */
 	if (!(node->entity = plug_call(plug->o.node_ops, init,
 				       block, tree->key.plug)))
 	{
-		goto error_free_block;
+		goto error_free_node;
 	}
 
 	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
@@ -112,12 +90,74 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 	return node;
 
  error_free_entity:
-	plug_call(plug->o.node_ops, fini,
-		  node->entity);
- error_free_block:
-	aal_block_free(block);
+	plug_call(plug->o.node_ops, fini, node->entity);
  error_free_node:    
 	aal_free(node);
+ error_free_block:
+	aal_block_free(block);
+	return NULL;
+}
+
+/* Packes @node to @stream. */
+errno_t reiser4_node_pack(reiser4_node_t *node,
+			  aal_stream_t *stream)
+{
+	aal_assert("umka-2622", node != NULL);
+	aal_assert("umka-2623", stream != NULL);
+
+	return plug_call(node->entity->plug->o.node_ops,
+			 pack, node->entity, stream);
+}
+
+/* Unpackes @stream to @node. */
+reiser4_node_t *reiser4_node_unpack(reiser4_tree_t *tree,
+				    aal_stream_t *stream)
+{
+	blk_t blk;
+	rid_t pid;
+	
+	uint32_t size;
+	aal_block_t *block;
+	reiser4_node_t *node;
+	reiser4_plug_t *plug;
+	aal_device_t *device;
+	
+	aal_assert("umka-2624", tree != NULL);
+	aal_assert("umka-2625", stream != NULL);
+
+	aal_stream_read(stream, &pid, sizeof(pid));
+	aal_stream_read(stream, &blk, sizeof(blk));
+	
+	/* Finding the node plugin by its id */
+	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
+		aal_exception_error("Can't find node plugin by its id "
+				    "0x%x.", pid);
+		return NULL;
+	}
+
+	size = reiser4_tree_get_blksize(tree);
+	device = reiser4_tree_get_device(tree);
+
+	/* Allocate new node of @size at @nr. */
+	if (!(block = aal_block_alloc(device, size, blk)))
+		return NULL;
+
+	/* Allocating memory for instance of node */
+	if (!(node = aal_calloc(sizeof(*node), 0)))
+		goto error_free_block;
+
+	/* Requesting the plugin for initialization node entity. */
+	if (!(node->entity = plug_call(plug->o.node_ops, unpack,
+				       block, tree->key.plug, stream)))
+	{
+		goto error_free_node;
+	}
+
+	return node;
+ error_free_node:    
+	aal_free(node);
+ error_free_block:
+	aal_block_free(block);
 	return NULL;
 }
 #endif

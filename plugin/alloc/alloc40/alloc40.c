@@ -12,8 +12,6 @@
 #define ALLOC40_BLOCKNR(blksize) \
         ((REISER4_MASTER_OFFSET / blksize) + 2)
 
-extern reiser4_plug_t alloc40_plug;
-
 /* Calculates the adler32 checksum for the data pointed by "buff" of the length
    "n". This function was originally taken from zlib, version 1.1.3, July 9th,
    1998.
@@ -232,7 +230,7 @@ static generic_entity_t *alloc40_open(aal_device_t *device,
    alloc40_open. The difference is that it does not load bitmap from the passed
    device. */
 static generic_entity_t *alloc40_create(aal_device_t *device,
-				       uint64_t len, uint32_t blksize)
+					uint64_t len, uint32_t blksize)
 {
 	alloc40_t *alloc;
 	uint32_t mapsize;
@@ -706,7 +704,7 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.release        = alloc40_release
 };
 
-static reiser4_plug_t alloc40_plug = {
+reiser4_plug_t alloc40_plug = {
 	.cl = CLASS_INIT,
 	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
 	.label = "alloc40",

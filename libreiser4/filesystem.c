@@ -263,7 +263,7 @@ reiser4_fs_t *reiser4_fs_create(
 		return NULL;
 	}
     
-	/* Checks whether filesystem size is enough big */
+	/* Checks whether filesystem size is enough big. */
 	if (hint->blocks < REISER4_MIN_SIZE) {
 		aal_exception_error("Requested filesytem size (%llu) "
 				    "too small. Reiser4 required minimal "
@@ -272,19 +272,19 @@ reiser4_fs_t *reiser4_fs_create(
 		return NULL;
 	}
     
-	/* Allocating memory and initializing fileds */
+	/* Allocating memory and initializing fileds. */
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 	
 	fs->device = device;
 	
-	/* Create master super block */
+	/* Create master super block. */
 	format = reiser4_param_value("format");
 		
 	if (!(fs->master = reiser4_master_create(device, hint->blksize)))
 		goto error_free_fs;
 
-	/* Setting up master super block */
+	/* Setting up master super block. */
 	reiser4_master_set_format(fs->master, format);
 	reiser4_master_set_uuid(fs->master, hint->uuid);
 	reiser4_master_set_label(fs->master, hint->label);
@@ -295,7 +295,7 @@ reiser4_fs_t *reiser4_fs_create(
 	/* Getting tail policy from default params. */
 	policy = reiser4_param_value("policy");
 	
-	/* Creates disk format */
+	/* Creates disk format. */
 	if (!(fs->format = reiser4_format_create(fs, hint->blocks,
 						 policy, format)))
 	{
@@ -341,7 +341,6 @@ reiser4_fs_t *reiser4_fs_create(
 	reiser4_master_close(fs->master);
  error_free_fs:
 	aal_free(fs);
-
 	return NULL;
 }
 

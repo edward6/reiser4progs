@@ -10,7 +10,7 @@
 #include "debugfs.h"
 
 /* Writes tree nodes metadata to stdout. */
-errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
+static errno_t debugfs_pack_tree(reiser4_fs_t *fs) {
 	blk_t blk;
 	count_t len;
 	errno_t res;
@@ -88,17 +88,55 @@ errno_t debugfs_pack_meta(reiser4_fs_t *fs) {
 	
 	aal_stream_fini(&stream);
 	
-	return 0;
+	return debugfs_pack_tree(fs);
 
  error_free_stream:
 	aal_stream_fini(&stream);
 	return res;
 }
 
-errno_t debugfs_unpack_tree(reiser4_fs_t *fs) {
-	return 0;
-}
+reiser4_fs_t *debugfs_unpack_meta(aal_device_t *device) {
+	reiser4_fs_t *fs;
+	aal_stream_t stream;
 
-errno_t debugfs_unpack_meta(reiser4_fs_t *fs) {
-	return 0;
+	aal_assert("umka-2633", device != NULL);
+	
+	aal_stream_init(&stream);
+	
+	/* Allocating memory and initializing fileds */
+	if (!(fs = aal_calloc(sizeof(*fs), 0)))
+		goto error_free_stream;
+	
+	fs->device = device;
+
+	if (!(fs->master = reiser4_master_unpack(device, &stream)))
+		goto error_free_fs;
+
+	if (!(fs->status = reiser4_status_unpack(device, &stream)))
+		goto error_free_master;
+
+	/* Creates disk format. */
+	if (!(fs->format = reiser4_format_unpack(fs, &stream)))
+		goto error_free_status;
+
+	/* Creates block allocator. */
+	if (!(fs->alloc = reiser4_alloc_unpack(fs, &stream)))
+		goto error_free_format;
+
+	/* FIXME-UMKA: Here shopuld also be nodes unpacking. */
+
+	aal_stream_fini(&stream);
+	return fs;
+
+ error_free_format:
+	reiser4_format_close(fs->format);
+ error_free_status:
+	reiser4_status_close(fs->status);
+ error_free_master:
+	reiser4_master_close(fs->master);
+ error_free_fs:
+	aal_free(fs);
+ error_free_stream:
+	aal_stream_fini(&stream);
+	return NULL;
 }

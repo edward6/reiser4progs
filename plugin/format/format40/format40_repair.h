@@ -9,11 +9,12 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-extern errno_t format40_pack (generic_entity_t *entity,
+extern errno_t format40_pack(generic_entity_t *entity,
 			      aal_stream_t *stream);
 
-extern errno_t format40_unpack (generic_entity_t *entity,
-			      aal_stream_t *stream);
+extern generic_entity_t *format40_unpack(aal_device_t *device,
+					 uint32_t blksize,
+					 aal_stream_t *stream);
 
 extern errno_t format40_update(generic_entity_t *entity);
 

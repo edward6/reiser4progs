@@ -11,10 +11,6 @@
 #include "format40.h"
 #include "format40_repair.h"
 
-extern reiser4_plug_t format40_plug;
-
-#define SUPER(entity) (&((format40_t *)entity)->super)
-
 static uint64_t format40_get_root(generic_entity_t *entity) {
 	aal_assert("umka-400", entity != NULL);
 	return get_sb_root_block(SUPER(entity));
@@ -544,7 +540,7 @@ static reiser4_format_ops_t format40_ops = {
 	.oid_pid	= format40_oid_pid
 };
 
-static reiser4_plug_t format40_plug = {
+reiser4_plug_t format40_plug = {
 	.cl    = CLASS_INIT,
 	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE

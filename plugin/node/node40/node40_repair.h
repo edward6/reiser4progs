@@ -12,8 +12,9 @@
 extern errno_t node40_pack(node_entity_t *entity,
 			   aal_stream_t *stream);
 
-extern errno_t node40_unpack(node_entity_t *entity,
-			     aal_stream_t *stream);
+extern node_entity_t *node40_unpack(aal_block_t *block,
+				    reiser4_plug_t *kplug,
+				    aal_stream_t *stream);
 
 extern void node40_set_flag(node_entity_t *entity, 
 			    uint32_t pos, uint16_t flag);

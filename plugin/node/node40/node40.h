@@ -10,8 +10,6 @@
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 
-#define NODE40_MAGIC 0x52344653
-
 struct node40 {
 	reiser4_plug_t *plug;
 	aal_block_t *block;
@@ -19,6 +17,10 @@ struct node40 {
 };
 
 typedef struct node40 node40_t;
+
+#define NODE40_MAGIC 0x52344653
+
+extern reiser4_plug_t node40_plug;
 
 /* Format of node header for node_common */
 struct node40_header {

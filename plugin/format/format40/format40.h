@@ -17,6 +17,8 @@
 #define MASTER_BLOCKNR(blksize) \
         (REISER4_MASTER_OFFSET / blksize)
 
+#define SUPER(entity) (&((format40_t *)entity)->super)
+
 struct format40_super {
 	d64_t sb_block_count;
 	d64_t sb_free_blocks;
@@ -50,6 +52,7 @@ struct format40 {
 };
 
 typedef struct format40 format40_t;
+extern reiser4_plug_t format40_plug;
 
 extern void format40_mkdirty(generic_entity_t *entity);
 

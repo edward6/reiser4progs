@@ -520,18 +520,22 @@ bool_t node40_test_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 #define NODE40_SIGN "ND40"
 
 errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream) {
+	rid_t pid;
+	
 	aal_assert("umka-2596", entity != NULL);
 	aal_assert("umka-2598", stream != NULL);
 
-	/* Write signature first. */
-	aal_stream_write(stream, NODE40_SIGN, 4);
-
+	pid = entity->plug->id.id;
+	aal_stream_write(stream, &pid, sizeof(pid));
+	
 	/* Write node block number. */
 	aal_stream_write(stream, &entity->block->nr,
 			 sizeof(entity->block->nr));
 
-	/* Write node size. This is needed, because metadata may be packed on
-	   platforms different than thay will be unpacked later. */
+	/* Write signature first. */
+	aal_stream_write(stream, NODE40_SIGN, 4);
+
+	/* Write node size. */
 	aal_stream_write(stream, &entity->block->size,
 			 sizeof(entity->block->size));
 	
@@ -542,43 +546,52 @@ errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream) {
 	return 0;
 }
 
-errno_t node40_unpack(node_entity_t *entity, aal_stream_t *stream) {
-	blk_t blocknr;
+node_entity_t *node40_unpack(aal_block_t *block,
+			     reiser4_plug_t *kplug,
+			     aal_stream_t *stream)
+{
 	uint32_t size;
+	node40_t *node;
 	char sign[5] = {0};
 	
-	aal_assert("umka-2597", entity != NULL);
+	aal_assert("umka-2597", block != NULL);
+	aal_assert("umka-2632", kplug != NULL);
 	aal_assert("umka-2599", stream != NULL);
 
-	/* Read signature and chek it for validness. */
+	/* Read signature and check it for validness. */
 	aal_stream_read(stream, sign, 4);
 
 	if (aal_strncmp(sign, NODE40_SIGN, 4)) {
 		aal_exception_error("Invalid pack magic %s "
 				    "is detected in stream.",
 				    sign);
-		return -EINVAL;
+		return NULL;
 	}
 
-	/* Write node block number. */
-	aal_stream_read(stream, &blocknr, sizeof(blocknr));
+	if (!(node = aal_calloc(sizeof(*node), 0)))
+		return NULL;
+
+	node->kplug = kplug;
+	node->block = block;
+	node->plug = &node40_plug;
 	
-	/* Read node size. */
 	aal_stream_read(stream, &size, sizeof(size));
 
-	if (size != entity->block->size) {
+	if (size != node->block->size) {
 		aal_exception_error("Invalid node size %u "
 				    "is detected.", size);
-		return -EINVAL;
+		goto error_free_node;
 	}
 	
 	/* Read node raw data. */
-	aal_stream_read(stream, entity->block->data,
-			entity->block->size);
+	aal_stream_read(stream, node->block->data,
+			node->block->size);
 
-	node40_move(entity, blocknr);
-	node40_mkdirty(entity);
-	
-	return 0;
+	node40_mkdirty((node_entity_t *)node);
+	return (node_entity_t *)node;
+
+ error_free_node:
+	aal_free(node);
+	return NULL;
 }
 #endif
