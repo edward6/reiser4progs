@@ -5,15 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef TREE_H
-#define TREE_H
+#ifndef REISER4_TREE_H
+#define REISER4_TREE_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <reiser4/plugin.h>
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 extern void reiser4_tree_close(reiser4_tree_t *tree);
 extern reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs);

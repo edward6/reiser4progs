@@ -89,7 +89,7 @@ reiser4_fs_t *reiser4_fs_open(
 	if (journal_device) {
 	    
 		/* Setting up block size in use for journal device */
-		aal_device_set_bs(journal_device, reiser4_fs_blocksize(fs));
+		aal_device_set_bs(journal_device, blocksize);
 
 		/* Initializing the journal. See  journal.c for details */
 		if (!(fs->journal = reiser4_journal_open(fs, journal_device)))
@@ -317,8 +317,8 @@ reiser4_fs_t *reiser4_fs_create(
 }
 
 /* 
-   Synchronizes all filesystem objects to corresponding devices (all filesystem
-   objects except journal - to host device and journal - to journal device).
+  Synchronizes all filesystem objects to corresponding devices (all filesystem
+  objects except journal - to host device and journal - to journal device).
 */
 errno_t reiser4_fs_sync(
 	reiser4_fs_t *fs)		/* fs instance to be synchronized */
@@ -352,17 +352,14 @@ errno_t reiser4_fs_sync(
 
 #endif
 
-/* 
-   Closes all filesystem's entities. Calls plugins' "done" routine for every
-   plugin and frees all assosiated memory.
-*/
+/* Close all filesystem's objects */
 void reiser4_fs_close(
 	reiser4_fs_t *fs)		/* filesystem to be closed */
 {
     
 	aal_assert("umka-230", fs != NULL);
     
-	/* Closong the all filesystem objects */
+	/* Closing the all filesystem objects */
 	reiser4_tree_close(fs->tree);
 	reiser4_oid_close(fs->oid);
     
@@ -376,31 +373,3 @@ void reiser4_fs_close(
 	/* Freeing memory occupied by fs instance */
 	aal_free(fs);
 }
-
-/* Returns format string from disk format object (for instance, reiserfs 4.0) */
-const char *reiser4_fs_name(
-	reiser4_fs_t *fs)		/* fs format name will be obtained from */
-{
-	return reiser4_format_name(fs->format);
-}
-
-/* Returns disk format plugin in use */
-rpid_t reiser4_fs_format_pid(
-	reiser4_fs_t *fs)		/* fs disk format pid will be obtained from */
-{
-	aal_assert("umka-151", fs != NULL);
-	aal_assert("umka-152", fs->master != NULL);
-
-	return reiser4_master_format(fs->master);
-}
-
-/* Returns filesystem block size value */
-uint16_t reiser4_fs_blocksize(
-	reiser4_fs_t *fs)		/* fs blocksize will be obtained from */
-{
-	aal_assert("umka-153", fs != NULL);
-	aal_assert("umka-154", fs->master != NULL);
-    
-	return reiser4_master_blocksize(fs->master);
-}
-

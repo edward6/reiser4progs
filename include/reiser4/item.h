@@ -5,14 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef ITEM_H
-#define ITEM_H
+#ifndef REISER4_ITEM_H
+#define REISER4_ITEM_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 extern errno_t reiser4_item_get_key(reiser4_coord_t *coord,
 				    reiser4_key_t *key);

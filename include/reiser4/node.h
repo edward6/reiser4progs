@@ -5,16 +5,14 @@
   reiser4progs/COPYING.
 */ 
 
-#ifndef NODE_H
-#define NODE_H
+#ifndef REISER4_NODE_H
+#define REISER4_NODE_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
-#include <reiser4/key.h>
-#include <reiser4/plugin.h>
+#include <reiser4/types.h>
 
 extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
 					 blk_t blk);

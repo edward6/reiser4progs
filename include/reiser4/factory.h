@@ -5,14 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef FACTORY_H
-#define FACTORY_H
+#ifndef REISER4_FACTORY_H
+#define REISER4_FACTORY_H
 
 #ifdef CONFIG_H
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
+#include <reiser4/types.h>
 
 extern errno_t libreiser4_factory_init(void);
 extern void libreiser4_factory_done(void);

@@ -5,14 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef MASTER_H
-#define MASTER_H
+#ifndef REISER4_MASTER_H
+#define REISER4_MASTER_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 #ifndef ENABLE_COMPACT
 

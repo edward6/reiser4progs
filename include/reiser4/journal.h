@@ -5,16 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef JOURNAL_H
-#define JOURNAL_H
+#ifndef REISER4_JOURNAL_H
+#define REISER4_JOURNAL_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
-#include <reiser4/filesystem.h>
-#include <reiser4/plugin.h>
+#include <reiser4/types.h>
 
 extern reiser4_journal_t *reiser4_journal_open(reiser4_fs_t *fs,
 					       aal_device_t *device);

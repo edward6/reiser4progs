@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef PLUGIN_H
-#define PLUGIN_H
+#ifndef REISER4_PLUGIN_H
+#define REISER4_PLUGIN_H
 
 #include <aal/aal.h>
 

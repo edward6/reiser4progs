@@ -5,16 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef FORMAT_H
-#define FORMAT_H
+#ifndef REISER4_FORMAT_H
+#define REISER4_FORMAT_H
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
 
-#include <aal/aal.h>
-#include <reiser4/plugin.h>
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 extern reiser4_format_t *reiser4_format_reopen(reiser4_format_t *format);
 extern reiser4_format_t *reiser4_format_open(reiser4_fs_t *fs);

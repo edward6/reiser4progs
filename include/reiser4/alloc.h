@@ -5,14 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef ALLOC_H
-#define ALLOC_H
+#ifndef REISER4_ALLOC_H
+#define REISER4_ALLOC_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 
 					   count_t count);

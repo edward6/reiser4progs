@@ -5,12 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef FILE_H
-#define FILE_H
+#ifndef REISER4_FILE_H
+#define REISER4_FILE_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
+
+#include <reiser4/types.h>
 
 extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs,
 					 char *name);

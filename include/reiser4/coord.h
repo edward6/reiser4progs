@@ -5,10 +5,10 @@
   reiser4progs/COPYING.
 */
 
-#ifndef COORD_H
-#define COORD_H
+#ifndef REISER4_COORD_H
+#define REISER4_COORD_H
 
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 extern blk_t reiser4_coord_block(reiser4_coord_t *coord);
 extern errno_t reiser4_coord_realize(reiser4_coord_t *coord);

@@ -5,15 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef KEY_H
-#define KEY_H
+#ifndef REISER4_KEY_H
+#define REISER4_KEY_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 extern int reiser4_key_compare(reiser4_key_t *key1, reiser4_key_t *key2);
 extern errno_t reiser4_key_assign(reiser4_key_t *dst, reiser4_key_t *src);

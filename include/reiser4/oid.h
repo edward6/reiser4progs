@@ -5,15 +5,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef OID_H
-#define OID_H
+#ifndef REISER4_OID_H
+#define REISER4_OID_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
-#include <reiser4/filesystem.h>
+#include <reiser4/types.h>
 
 extern reiser4_oid_t *reiser4_oid_open(reiser4_fs_t *fs);
 extern void reiser4_oid_close(reiser4_oid_t *oid);

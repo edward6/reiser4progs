@@ -14,6 +14,7 @@ extern "C" {
 
 #include <aal/aal.h>
 
+#include "types.h"
 #include "filesystem.h"
 #include "format.h"
 #include "journal.h"

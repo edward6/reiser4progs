@@ -8,6 +8,8 @@
 
 #include <repair/librepair.h>
 
+#define SUPER(master) ((reiser4_master_sb_t *)master->block->data)
+
 static int callback_bs_check (int64_t val, void * data) {
     if (!aal_pow_of_two(val))
 	return 0;
@@ -38,7 +40,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 
 	/* 
 	    FIXME-VITALY: What should be done here with uuid and label? 
-	    At least not here as uiud and label seem to be on the wrong place.
+	    At least not here as uuid and label seem to be on the wrong place.
 	    Move them to specific SB.
 	*/
 
@@ -63,7 +65,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 	    blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL, 
 		"Which block size do you use?");
 
-	    set_mr_blocksize(fs->master->super, blocksize);
+	    set_ms_blocksize(SUPER(fs->master), blocksize);
 	} 
     }
 
