@@ -237,11 +237,11 @@ reiser4_object_t *reiser4_object_open(
 	return NULL;
 }
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
-/* This function opens object by its @place 
+#ifndef ENABLE_STAND_ALONE
+/* This function opens object by its @place.
    
-   FIXME-VITALY->UMKA: how to open the object without SD? 
-   At least the parent object is needed here. */
+   FIXME-VITALY->UMKA: How to open the object without SD? At least the parent
+   object is needed here. */
 reiser4_object_t *reiser4_object_realize(
 	reiser4_tree_t *tree,           /* tree object will be opened on */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
@@ -263,9 +263,7 @@ reiser4_object_t *reiser4_object_realize(
 	reiser4_key_assign(&object->info.object,
 			   &object->info.start.item.key);
 	
-#ifndef ENABLE_STAND_ALONE
 	reiser4_key_string(&object->info.object, object->name);
-#endif
 	
 	if (reiser4_object_guess(object))
 		goto error_free_object;
@@ -276,9 +274,7 @@ reiser4_object_t *reiser4_object_realize(
 	aal_free(object);
 	return NULL;
 }
-#endif
 
-#ifndef ENABLE_STAND_ALONE
 errno_t reiser4_object_truncate(
 	reiser4_object_t *object,           /* object for truncating */
 	uint64_t n)			    /* the number of entries */
@@ -556,13 +552,13 @@ errno_t reiser4_object_print(reiser4_object_t *object,
 
 errno_t reiser4_object_layout(
 	reiser4_object_t *object,   /* object we working with */
-	block_func_t func,          /* layout callback */
+	block_func_t block_func,    /* layout callback */
 	void *data)                 /* user-specified data */
 {
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1469", object != NULL);
-	aal_assert("umka-1470", func != NULL);
+	aal_assert("umka-1470", block_func != NULL);
 
 	plugin = object->entity->plugin;
 	
@@ -570,18 +566,18 @@ errno_t reiser4_object_layout(
 		return 0;
 	
 	return plugin->o.object_ops->layout(object->entity,
-					 func, data);
+					    block_func, data);
 }
 
 errno_t reiser4_object_metadata(
 	reiser4_object_t *object,   /* object we working with */
-	place_func_t func,          /* metadata layout callback */
+	place_func_t place_func,    /* metadata layout callback */
 	void *data)                 /* user-spaecified data */
 {
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1714", object != NULL);
-	aal_assert("umka-1715", func != NULL);
+	aal_assert("umka-1715", place_func != NULL);
 
 	plugin = object->entity->plugin;
 	
@@ -589,7 +585,7 @@ errno_t reiser4_object_metadata(
 		return 0;
 	
 	return plugin->o.object_ops->metadata(object->entity,
-					    func, data);
+					      place_func, data);
 }
 
 lookup_t reiser4_object_lookup(reiser4_object_t *object,

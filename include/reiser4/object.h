@@ -22,7 +22,7 @@ extern int32_t reiser4_object_read(reiser4_object_t *object,
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifndef ENABLE_STAND_ALONE
 extern reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree,
 						reiser4_place_t *place);
 #endif
