@@ -141,9 +141,9 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	lw_new = lw_hint;
 	
 	if (nlink_func)
-		nlink_func(&lw_new.nlink);
+		nlink_func(obj, &lw_new.nlink);
 
-	mode_func(&lw_new.mode);
+	mode_func(obj, &lw_new.mode);
 	
 	/* Check the mode in the LW extention. */
 	if (lw_new.mode != lw_hint.mode) {
@@ -160,7 +160,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 			res = RE_FIXABLE;
 	}
 	
-	size_func(&lw_new.size, size);
+	size_func(obj, &lw_new.size, size);
 	
 	/* Check the size in the LW extention. */
 	if (lw_new.size != lw_hint.size) {
@@ -197,10 +197,6 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 		}
 	}
 	
-	/* Fix r_dev field silently. */
-	if (unix_hint.rdev)
-		unix_hint.rdev = 0;
-
 	if (mode == RM_CHECK)
 		return res;
 	

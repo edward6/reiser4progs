@@ -272,10 +272,8 @@ static uint32_t reg40_chunk(reg40_t *reg) {
 /* Returns plugin (tail or extent) for next write operation basing on passed
    @size -- new file size. This function will use tail policy plugin for find
    out what next item should be writen. */
-reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint64_t new_size) {
-	reg40_t *reg = (reg40_t *)entity;
-	
-	aal_assert("umka-2394", entity != NULL);
+reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size) {
+	aal_assert("umka-2394", reg != NULL);
 	aal_assert("umka-2393", reg->policy != NULL);
 
 	/* FIXME-UMKA: Here is not enough to have only plugin type to get it
@@ -352,7 +350,7 @@ errno_t reg40_conv_body(object_entity_t *entity, uint64_t new_size) {
 	if (reg40_size(entity) == 0 || new_size == 0)
 		return 0;
 	
-	if (!(bplug = reg40_bplug(entity, new_size))) {
+	if (!(bplug = reg40_bplug(reg, new_size))) {
 		aal_exception_error("Can't get new body plugin.");
 		return -EINVAL;
 	}
@@ -395,7 +393,7 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 		/* Preparing insert hint */
 		hint.specific = buff;
 		hint.tree = reg->obj.info.tree;
-		hint.plug = reg40_bplug(entity, reg40_offset(entity) + n);
+		hint.plug = reg40_bplug(reg, reg40_offset(entity) + n);
 
 		/* Lookup place data will be inserted at */
 		if ((res = obj40_lookup(&reg->obj, &hint.offset,

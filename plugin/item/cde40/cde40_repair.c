@@ -608,6 +608,7 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 }
 
 errno_t cde40_check_struct(place_t *place, uint8_t mode) {
+	static key_entity_t pkey, ckey;
 	struct entry_flags flags;
 	uint32_t pol;
 	errno_t res = 0;
@@ -717,23 +718,23 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 	if (res & RE_FATAL)
 		return res;
 
+	aal_memset(&pkey, 0, sizeof(pkey));
+	aal_memset(&pkey, 0, sizeof(ckey));
+	cde40_get_hash(place, 0, &pkey);
+	
 	for (i = 1; i < flags.count; i++) {
-		void *prev_hash;
-		void *curr_hash;
-
-		prev_hash = cde_get_entry(place, i - 1, pol);
-		curr_hash = cde_get_entry(place, i, pol);
+		cde40_get_hash(place, i, &ckey);
 		
-		if (aal_memcmp(prev_hash, curr_hash, 
-			       ha_size(pol)) == 1)
-		{
+		if (plug_call(pkey.plug->o.key_ops, compfull, &pkey, &ckey) == 1) {
 			aal_exception_error("Node (%llu), item (%u): wrong "
-					    "order of units {%d, %d}. The whole"
-					    "item has to be removed -- will be "
-					    "improved soon.", place->block->nr, 
-					    place->pos.item, i - 1, i);
+					    "order of units {%d, %d}. The "
+					    "whole item has to be removed -- "
+					    "will be improved soon.", 
+					    place->block->nr, place->pos.item, 
+					    i - 1, i);
 			return res & RE_FATAL;
 		}
+		pkey = ckey;
 	}
 	
 	if (flags.count == 0)

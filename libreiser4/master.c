@@ -120,7 +120,7 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 	aal_assert("vpf-1317", master != NULL);
 	aal_assert("vpf-1317", region_func != NULL);
 	
-	blk = REISER4_MASTER_OFFSET / master->device->blksize;
+	blk = REISER4_MASTER_OFFSET / reiser4_master_blksize(master);
 	return region_func(master, blk, 1, data);
 }
 

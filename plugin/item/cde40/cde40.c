@@ -835,10 +835,6 @@ static errno_t cde40_print(place_t *place, aal_stream_t *stream,
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
 			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
 	
-	aal_stream_format(stream, "----------------------------"
-			  "------------------------------------"
-			  "--------------\n");
-	
 	/* Loop though the all entries */
 	pol = cde40_key_pol(place);
 		

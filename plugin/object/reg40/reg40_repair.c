@@ -19,7 +19,7 @@ extern lookup_res_t reg40_update(object_entity_t *entity);
 extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
 
-extern reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint64_t new_size);
+extern reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size);
 extern errno_t reg40_convert(object_entity_t *entity, uint64_t new_size);
 
 #define reg40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
@@ -91,24 +91,40 @@ static errno_t callback_layout(void *p, uint64_t start, uint64_t count,
 	return hint->region_func(hint->entity, start, count, hint->data);
 }
 
-static void reg40_check_mode(uint16_t *mode) {
+static void reg40_check_mode(obj40_t *obj, uint16_t *mode) {
         if (!S_ISREG(*mode)) {
                 *mode &= ~S_IFMT;
                 *mode |= S_IFREG;
         }
 }
                                                                                            
-static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
-        /* FIXME-VITALY: This is not correct for extents as the last
-           block can be not used completely. Where to take the policy
-           plugin to figure out if the size is correct? */
-        if (*sd_size < counted_size)
-                *sd_size = counted_size;
+static void reg40_check_size(obj40_t *obj, uint64_t *sd_size, 
+			     uint64_t counted_size) 
+{
+	reg40_t *reg = (reg40_t *)obj;
+	reiser4_plug_t *plug;
 	
+	aal_assert("vpf-1318", reg != NULL);
+	aal_assert("vpf-1318", sd_size != NULL);
+	
+	if (*sd_size >= counted_size)
+		return;
+	
+	/* sd_size lt counted size, check if it is correct for extent. */
+	plug = reg40_bplug(reg, counted_size);
+
+	if (plug->id.group == EXTENT_ITEM) {
+		/* The last extent block can be not used up. */
+		if (*sd_size + STAT_PLACE(obj)->block->size > counted_size)
+			return;
+	}
+	
+	/* SD size is not correct. */
+	*sd_size = counted_size;
 }
-                                                                                           
+
 /* Zero nlink number for BUILD mode. */
-static void reg40_zero_nlink(uint32_t *nlink) {
+static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
         *nlink = 0;
 }
 
@@ -150,7 +166,7 @@ static reiser4_plug_t *reg40_bodyplug(reg40_t *reg) {
 
 	/* If place is invalid, there is no items of the file. */
 	if (!rcore->tree_ops.valid(reg->obj.info.tree, &place))
-		return reg40_bplug((object_entity_t *)reg, 0);
+		return reg40_bplug(reg, 0);
 
 	/* Initializing item entity. */
 	if ((res = rcore->tree_ops.fetch(reg->obj.info.tree, &place)))
@@ -163,7 +179,7 @@ static reiser4_plug_t *reg40_bodyplug(reg40_t *reg) {
 
 	offset = plug_call(key.plug->o.key_ops, get_offset, &key);
 
-	return reg40_bplug((object_entity_t *)reg, offset);
+	return reg40_bplug(reg, offset);
 }
 
 static errno_t reg40_check_ikey(reg40_t *reg) {	

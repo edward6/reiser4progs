@@ -69,18 +69,18 @@ object_entity_t *dir40_recognize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static void dir40_one_nlink(uint32_t *nlink) {
+static void dir40_one_nlink(obj40_t *obj, uint32_t *nlink) {
 	*nlink = 1;
 }
 
-static void dir40_check_mode(uint16_t *mode) {
+static void dir40_check_mode(obj40_t *obj, uint16_t *mode) {
 	if (!S_ISDIR(*mode)) {
 		*mode &= ~S_IFMT;
         	*mode |= S_IFDIR;
 	}
 }
 
-static void dir40_check_size(uint64_t *sd_size, uint64_t counted_size) {
+static void dir40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t counted_size) {
 	if (*sd_size != counted_size)
 		*sd_size = counted_size;
 }
@@ -336,8 +336,8 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 			   uint8_t mode)
 {
 	dir40_t *dir = (dir40_t *)object;
-	entry_hint_t entry;
 	lookup_res_t lookup;
+	entry_hint_t entry;
 	errno_t res;
 	
 	aal_assert("vpf-1151", object != NULL);
@@ -351,15 +351,34 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
 			       &entry.object, &parent->info.object))
 			break;
+		
+		/* Already attached. */
+		aal_exception_error("Directory [%s], plugin %s: the object "
+				    "is attached already to [%s] and cannot "
+				    "be attached to [%s].", 
+				    print_ino(dcore, &object->info.object),
+				    dir40_plug.label, 
+				    print_key(dcore, &entry.object),
+				    print_ino(dcore, &parent->info.object));
 
 		return RE_FATAL;
 	case ABSENT:
+		/* Not attached yet. */
+		aal_exception_error("Directory [%s], plugin %s: the object "
+				    "is not attached. %s [%s].", 
+				    print_ino(dcore, &object->info.object),
+				    dir40_plug.label, mode == RM_CHECK ? 
+				    "Reached from" : "Attaching to",
+				    print_ino(dcore, &parent->info.object));
+	
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
 		
 		/* Adding ".." to the @object pointing to the @parent. */
 		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, assign,
 			  &entry.object, &parent->info.object);
+		
+		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
 		if ((res = plug_call(object->plug->o.object_ops,
 				     add_entry, object, &entry)))

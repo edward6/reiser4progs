@@ -244,30 +244,9 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 	
-	/* Checking is passed device is a block device. If so, we check also is
-	   it whole drive or just a partition. If the device is not a block
-	   device, then we emmit exception and propose user to use -f flag to
-	   force. */
-	if (!S_ISBLK(st.st_mode)) {
-		if (!(behav_flags & BF_FORCE)) {
-			aal_exception_error("Device %s is not block device. "
-					    "Use -f to force over.", host_dev);
-			goto error_free_libreiser4;
-		}
-	} else {
-		if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 64 == 0) ||
-		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
-		    (!(behav_flags & BF_FORCE)))
-		{
-			aal_exception_error("Device %s is an entire harddrive, not "
-					    "just one partition.", host_dev);
-			goto error_free_libreiser4;
-		}
-	}
-   
 	/* Checking if passed partition is mounted */
-	if (misc_dev_mounted(host_dev, NULL) && !(behav_flags & BF_FORCE)) {
-		aal_exception_error("Device %s is mounted at the moment. "
+	if (misc_dev_mounted(host_dev, "rw") && !(behav_flags & BF_FORCE)) {
+		aal_exception_error("Device %s is mounted 'rw' at the moment. "
 				    "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
 	}

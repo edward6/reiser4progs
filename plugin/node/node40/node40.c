@@ -860,6 +860,10 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 	
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
+		if (pos.item)
+			aal_stream_format(stream, "----------------------------"
+					  "------------------------------------"
+					  "--------------\n");
 
 		if (node40_fetch(entity, &pos, &place))
 			return -EINVAL;

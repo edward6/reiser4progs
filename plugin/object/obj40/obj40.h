@@ -61,9 +61,9 @@ extern errno_t obj40_read_ext(place_t *place, rid_t id, void *data);
 typedef errno_t (*key_func_t) (obj40_t *);
 typedef errno_t (*stat_func_t) (place_t *);
 
-typedef void (*mode_func_t) (uint16_t *);
-typedef void (*nlink_func_t) (uint32_t *);
-typedef void (*size_func_t) (uint64_t *, uint64_t);
+typedef void (*mode_func_t) (obj40_t *, uint16_t *);
+typedef void (*nlink_func_t) (obj40_t *, uint32_t *);
+typedef void (*size_func_t) (obj40_t *, uint64_t *, uint64_t);
 
 extern errno_t obj40_write_ext(place_t *place,
 			       rid_t id, void *data);
