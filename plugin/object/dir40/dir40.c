@@ -909,13 +909,10 @@ static errno_t dir40_layout(object_entity_t *entity,
 		} else {
 			/* Layout method is not implemented. Counting item
 			   itself. */
-			blk_t blk = place->node->block->nr;
+			blk_t blk = place_blknr(place);
 			
-			if ((res = callback_item_layout(place, blk,
-							1, &hint)))
-			{
+			if ((res = callback_item_layout(place, blk, 1, &hint)))
 				return res;
-			}
 		}
 
 		/* Getting next directory item. */

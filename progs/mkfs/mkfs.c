@@ -89,24 +89,7 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	/* Preparing object hint. INVAL_PTR means that this kind of plugin 
 	   is not ready yet but needs to be stored, */
 	hint.mode = 0;
-	hint.info.opset[OPSET_OBJ] = reiser4_profile_plug(PROF_DIR);
-	hint.info.opset[OPSET_DIR] = INVAL_PTR;
-	hint.info.opset[OPSET_PERM] = INVAL_PTR;
-	hint.info.opset[OPSET_POLICY] = reiser4_profile_plug(PROF_POLICY);
-	hint.info.opset[OPSET_HASH] =  reiser4_profile_plug(PROF_HASH);
-	hint.info.opset[OPSET_FIBRE] = reiser4_profile_plug(PROF_FIBRE);
-	hint.info.opset[OPSET_STAT] = reiser4_profile_plug(PROF_STAT);
-	hint.info.opset[OPSET_DENTRY] = reiser4_profile_plug(PROF_DENTRY);
-	hint.info.opset[OPSET_CRYPTO] = INVAL_PTR;
-	hint.info.opset[OPSET_DIGEST] = INVAL_PTR;
-	hint.info.opset[OPSET_COMPRES] = INVAL_PTR;
-	hint.info.opset[OPSET_CREATE] = reiser4_profile_plug(PROF_REG);
-	hint.info.opset[OPSET_MKDIR] = reiser4_profile_plug(PROF_DIR);
-	hint.info.opset[OPSET_SYMLINK] = reiser4_profile_plug(PROF_SYM);
-	hint.info.opset[OPSET_MKNODE] = reiser4_profile_plug(PROF_SPL);
-	hint.info.opset[OPSET_TAIL] = reiser4_profile_plug(PROF_TAIL);
-	hint.info.opset[OPSET_EXTENT] = reiser4_profile_plug(PROF_EXTENT);
-	hint.info.opset[OPSET_ACL] = INVAL_PTR;
+	reiser4_opset_root(hint.info.opset);
 
 	/* Preparing entry hint. */
 	entry.name[0] = '\0';
@@ -114,7 +97,6 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 
 	return reiser4_object_create(fs->tree, &entry, &hint);
 }
-
 
 int main(int argc, char *argv[]) {
 	int c;

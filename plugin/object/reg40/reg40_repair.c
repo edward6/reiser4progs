@@ -202,8 +202,7 @@ static errno_t reg40_next(object_entity_t *object,
 			  "invalid plugin (%s) found.%s",
 			  print_inode(reg40_core, &info->object),
 			  object->opset[OPSET_OBJ]->label, 
-			  reg->body.node->block->nr, 
-			  reg->body.pos.item,
+			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
 			  object->opset[OPSET_OBJ]->label, 
 			  mode == RM_BUILD ? " Removed." : "");
@@ -213,7 +212,7 @@ static errno_t reg40_next(object_entity_t *object,
 			  "wrong offset.%s",
 			  print_inode(reg40_core, &info->object),
 			  object->opset[OPSET_OBJ]->label, 
-			  reg->body.node->block->nr, reg->body.pos.item,
+			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
 	} else

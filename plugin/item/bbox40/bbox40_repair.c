@@ -17,7 +17,7 @@ errno_t bbox40_check_struct(reiser4_place_t *place, uint8_t mode) {
 
 	if (type >= SL_LAST) {
 		aal_error("Node (%llu), item (%u): safe link item (%s) of the "
-			  "unknown type (%llu) found.", place->node->block->nr, 
+			  "unknown type (%llu) found.", place_blknr(place), 
 			  place->pos.item, place->plug->label, type);
 		
 		return RE_FATAL;
@@ -32,7 +32,7 @@ errno_t bbox40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	if (size != place->len) {
 		aal_error("Node (%llu), item (%u): safe link item (%s) of "
 			  "the wrong length (%u) found. Should be (%u).", 
-			  place->node->block->nr, place->pos.item, 
+			  place_blknr(place), place->pos.item, 
 			  place->plug->label, place->len, size);
 		
 		return RE_FATAL;

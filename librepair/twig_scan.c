@@ -68,8 +68,7 @@ static errno_t callback_check_layout(reiser4_place_t *place, void *data) {
 
 			aal_error("Node (%llu), item (%u): broken "
 				  "item layout. Remove the item.",
-				  node_blocknr(node), 
-				  place->pos.item);
+				  node->block->nr, place->pos.item);
 
 			hint.count = 1;
 			hint.place_func = NULL;

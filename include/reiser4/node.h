@@ -94,8 +94,6 @@ extern void reiser4_node_mkdirty(reiser4_node_t *node);
 extern void reiser4_node_mkclean(reiser4_node_t *node);
 #endif
 
-#define node_blocknr(node) ((node)->block->nr)
-
 extern void reiser4_node_lock(reiser4_node_t *node);
 extern void reiser4_node_unlock(reiser4_node_t *node);
 extern bool_t reiser4_node_locked(reiser4_node_t *node);

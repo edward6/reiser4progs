@@ -36,7 +36,7 @@ extern errno_t repair_object_check_attach(reiser4_object_t *object,
 extern reiser4_object_t *repair_object_fake(reiser4_tree_t *tree, 
 					    reiser4_object_t *parent,
 					    reiser4_key_t *key,
-					    reiser4_plug_t *plug);
+					    reiser4_plug_t **opset);
 
 extern errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag);
 extern errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag);

@@ -605,7 +605,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 				return res;
 			}
 		} else {
-			blk_t blk = place->node->block->nr;
+			blk_t blk = place_blknr(place);
 			
 			if ((res = callback_item_layout(place, blk, 1, &hint)))
 				return res;

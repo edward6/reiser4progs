@@ -75,7 +75,7 @@ errno_t reiser4_node_trav(reiser4_node_t *node, place_func_t func, void *data) {
 		if ((res = reiser4_place_open(&place, node, pos))) {
 			aal_error("Node (%llu), item (%u): failed to "
 				  "open the item by its place.", 
-				  node_blocknr(node), pos->item);
+				  node->block->nr, pos->item);
 			return res;
 		}
 		
@@ -169,7 +169,7 @@ errno_t reiser4_node_fini(reiser4_node_t *node) {
 #ifndef ENABLE_STAND_ALONE
 	/* Node should be clean when it is going to be closed. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
-		aal_error("Can't write node %llu.", node_blocknr(node));
+		aal_error("Can't write node %llu.", node->block->nr);
 	}
 #endif
 
@@ -326,10 +326,8 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 	if ((res = plug_call(node->plug->o.node_ops, shrink,
 			     node, pos, len, count)))
 	{
-		aal_error("Node %llu, pos %u/%u: can't "
-			  "shrink the node on %u bytes.", 
-			  node_blocknr(node), pos->item, 
-			  pos->unit, len);
+		aal_error("Node %llu, pos %u/%u: can't shrink the node on %u "
+			  "bytes.", node->block->nr, pos->item, pos->unit, len);
 	}
 
 	return res;
@@ -371,7 +369,6 @@ errno_t reiser4_node_sync(reiser4_node_t *node) {
 
 /* Updates nodeptr item in parent node */
 errno_t reiser4_node_update_ptr(reiser4_node_t *node) {
-	blk_t blk;
 	errno_t res;
 
 	aal_assert("umka-2263", node != NULL);
@@ -379,12 +376,10 @@ errno_t reiser4_node_update_ptr(reiser4_node_t *node) {
 	if (!node->p.node)
 		return 0;
 	
-	blk = node_blocknr(node);
-	
 	if ((res = reiser4_place_fetch(&node->p)))
 		return res;
 	
-	return reiser4_item_update_link(&node->p, blk);
+	return reiser4_item_update_link(&node->p, node->block->nr);
 }
 
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all
@@ -421,9 +416,8 @@ int64_t reiser4_node_modify(reiser4_node_t *node, pos_t *pos,
 	
 	/* Checking if item length is greater then free space in the node. */
 	if (needed > reiser4_node_space(node)) {
-		aal_error("There is no space to insert new "
-			  "item/unit of (%u) size in the node "
-			  "(%llu).", len, node_blocknr(node));
+		aal_error("There is no space to insert new item/unit of (%u) "
+			  "size in the node (%llu).", len, node->block->nr);
 		return -EINVAL;
 	}
 
@@ -499,7 +493,7 @@ errno_t reiser4_node_remove(reiser4_node_t *node, pos_t *pos,
 	{
 		aal_error("Can't remove %llu %s from the node %llu.", 
 			  hint->count, pos->unit == MAX_UINT32 ? 
-			  "items" : "units", node_blocknr(node));
+			  "items" : "units", node->block->nr);
 		return res;
 	}
 

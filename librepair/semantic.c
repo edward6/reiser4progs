@@ -23,7 +23,7 @@ static errno_t callback_register_item(reiser4_place_t *place, void *data) {
         if (reiser4_item_test_flag(place, OF_CHECKED)) {
                 aal_error("Node (%llu), item (%u): item registering "
 			  "failed, it belongs to another object already.",
-			  place->node->block->nr, place->pos.item);
+			  place_blknr(place), place->pos.item);
                 return -EINVAL;
         }
          
@@ -531,8 +531,8 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 						  reiser4_object_t *parent,
 						  reiser4_key_t *key)
 {
+	reiser4_plug_t *opset[OPSET_LAST];
 	reiser4_object_t *object;
-	reiser4_plug_t *plug;
 	reiser4_tree_t *tree;
 	
 	aal_assert("vpf-1250", sem != NULL);
@@ -563,12 +563,20 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	if (sem->repair->mode != RM_BUILD)
 		return NULL;
 	
-	plug = reiser4_profile_plug(PROF_DIR);
+	if (!parent) {
+		/* Init all plugins for the root. */
+		reiser4_opset_root(opset);
+	} else {
+		/* Init only the object plugin not for the root. */
+		opset[OPSET_OBJ] = reiser4_profile_plug(PROF_DIR);
+	}
 
-	aal_error("Trying to recover the directory [%s] with the default plugin"
-		  "--%s.", reiser4_print_key(key, PO_INODE), plug->label);
+	aal_error("Trying to recover the directory [%s] "
+		  "with the default plugin--%s.", 
+		  reiser4_print_key(key, PO_INODE),
+		  opset[OPSET_OBJ]->label);
 
-	return repair_object_fake(tree, parent, key, plug);
+	return repair_object_fake(tree, parent, key, opset);
 }
 
 static errno_t repair_semantic_object_check(repair_semantic_t *sem, 
@@ -818,6 +826,9 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	/* Open "/" directory. */
 	if ((res = repair_semantic_root_prepare(sem)))
 		goto error_update;
+	
+	if (reiser4_opset_init(tree))
+		goto error_close_root;
 	
 	/* Open "lost+found" directory in BUILD mode. */
 	if (sem->repair->mode == RM_BUILD) {

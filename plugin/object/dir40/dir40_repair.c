@@ -166,7 +166,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				  "item [%u]: item of the illegal plugin [%s] "
 				  "with the key of this object found.%s",
 				  print_inode(dir40_core, &info->object),
-				  dir40_plug.label, dir->body.node->block->nr,
+				  dir40_plug.label, place_blknr(&dir->body),
 				  dir->body.pos.item, dir->body.plug->label,
 				  mode == RM_BUILD ? " Removed." : "");
 
@@ -233,7 +233,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				  "item [%u], unit [%u]: entry has wrong "
 				  "offset [%s]. Should be [%s].%s", 
 				  print_inode(dir40_core, &info->object),
-				  dir40_plug.label, dir->body.node->block->nr,
+				  dir40_plug.label, place_blknr(&dir->body),
 				  dir->body.pos.item, dir->body.pos.unit,
 				  print_key(dir40_core, &entry.offset),
 				  print_key(dir40_core, &key), 

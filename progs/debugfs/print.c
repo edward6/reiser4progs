@@ -245,10 +245,10 @@ static errno_t fprint_process_place(
 {
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 
-	if (node_blocknr(place->node) == hint->old)
+	if (place_blknr(place) == hint->old)
 		return 0;
 
-	hint->old = node_blocknr(place->node);
+	hint->old = place_blknr(place);
 	debugfs_print_node(place->node);
 
 	return 0;

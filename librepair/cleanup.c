@@ -94,8 +94,8 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 		
 		/* Check if neighbour items are mergable. */
 		if (!cleanup->neigh.node || 
-		    node_blocknr(cleanup->neigh.node) != 
-		    node_blocknr(place->node))
+		    place_blknr(&cleanup->neigh) != 
+		    place_blknr(place))
 		{
 			cleanup->neigh = *place;
 			cleanup->neigh.pos.item--;
@@ -113,7 +113,7 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 			
 			/*
 			aal_mess("Node (%llu), items (%u, %u): fuse items "
-				 "[%s], [%s].", node_blocknr(place->node), 
+				 "[%s], [%s].", place_blknr(place), 
 				 cleanup->neigh.pos.item, place->pos.item,
 				 reiser4_print_key(&cleanup->neigh.key, PO_DEFAULT),
 				 reiser4_print_key(&place->key, PO_DEFAULT));
@@ -145,7 +145,7 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 
 	/*
 	aal_mess("Node (%llu), item (%u): remove not used '%s' item [%s].",
-		 node_blocknr(place->node), place->pos.item, place->plug->label,
+		 place_blknr(place), place->pos.item, place->plug->label,
 		 reiser4_print_key(&place->key, PO_DEFAULT));
 	*/
 

@@ -163,9 +163,8 @@ typedef enum reiser4_hash_plug_id reiser4_hash_plug_id_t;
 /* Know tail policy plugin ids. */
 enum reiser4_tail_plug_id {
 	TAIL_NEVER_ID		= 0x0,
-	TAIL_SUPPRESS_OLD_ID	= 0x1,
-	TAIL_ALWAYS_ID		= 0x3,
-	TAIL_SMART_ID		= 0x4,
+	TAIL_ALWAYS_ID		= 0x1,
+	TAIL_SMART_ID		= 0x2,
 	TAIL_LAST_ID
 };
 
@@ -329,6 +328,8 @@ typedef void tree_entity_t;
 typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
 
+#define place_blknr(place) ((place)->node->block->nr)
+
 /* Tree coord struct. */
 struct reiser4_place {
 	/* Item/unit pos and node it lies in. These fields should be always
@@ -429,7 +430,7 @@ struct stat_entity {
 
 typedef struct stat_entity stat_entity_t;
 
-#define stat_body(stat) ((stat)->place->body + (stat)->offset)
+#define stat_body(stat) ((char *)(stat)->place->body + (stat)->offset)
 
 /* Shift flags control shift process */
 enum shift_flags {

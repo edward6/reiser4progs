@@ -57,7 +57,7 @@ reiser4_object_t *repair_object_fetch(reiser4_tree_t *tree,
 reiser4_object_t *repair_object_fake(reiser4_tree_t *tree, 
 				     reiser4_object_t *parent,
 				     reiser4_key_t *key,
-				     reiser4_plug_t *plug) 
+				     reiser4_plug_t **opset) 
 {
 	reiser4_object_t *object;
 	object_info_t info;
@@ -65,25 +65,25 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 
 	aal_assert("vpf-1247", tree != NULL);
 	aal_assert("vpf-1248", key != NULL);
-	aal_assert("vpf-1249", plug != NULL);
+	aal_assert("vpf-1249", opset != NULL);
+	aal_assert("vpf-1640", opset[OPSET_OBJ] != NULL);
 
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return INVAL_PTR;
 
 	/* Initializing info */
 	aal_memset(&info, 0, sizeof(info));
-	aal_memcpy(&info.opset, &tree->entity.opset, 
-		   sizeof(reiser4_plug_t *) * OPSET_LAST);
-	
+
+	info.tree = (tree_entity_t *)tree;
+	reiser4_key_assign(&info.object, key);
+
 	if (parent) {
 		reiser4_key_assign(&info.parent, &parent->entity->object);
 	}
 	
-	reiser4_key_assign(&info.object, key);
-	info.tree = (tree_entity_t *)tree;
-	
 	/* Create the fake object. */
-	if (!(object->entity = plug_call(plug->o.object_ops, fake, &info)))
+	if (!(object->entity = plug_call(opset[OPSET_OBJ]->o.object_ops, 
+					 fake, &info)))
 		goto error_close_object;
 	
 	name = reiser4_print_key(&object->entity->object, PO_INODE);

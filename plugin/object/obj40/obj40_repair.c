@@ -136,7 +136,7 @@ static inline errno_t obj40_check_lw_ext(obj40_t *obj,
 		
 		aal_error("Node (%llu), item (%u), plugin (%s): StatData of the"
 			  " file [%s] does not have a mandatory light-weight "
-			  "extention.%s Plugin (%s).", start->node->block->nr, 
+			  "extention.%s Plugin (%s).", place_blknr(start), 
 			  start->pos.item, start->plug->label,
 			  print_inode(obj->core, &start->key),
 			  mode != RM_CHECK ? "Added." : "", 
@@ -206,7 +206,7 @@ static inline errno_t obj40_check_lw_ext(obj40_t *obj,
 	if (fixed) {
 		aal_error("Node (%llu), item (%u): StatData of the "
 			  "file [%s] has the wrong mode (%u), %s (%u).",
-			  start->node->block->nr, start->pos.item,
+			  place_blknr(start), start->pos.item,
 			  print_inode(obj->core, &start->key), hint.mode,
 			  mode == RM_CHECK ? "Should be" : "Fixed to", 
 			  correct.mode);
@@ -226,7 +226,7 @@ static inline errno_t obj40_check_lw_ext(obj40_t *obj,
 	if (fixed) {
 		aal_error("Node (%llu), item (%u): StatData of the file "
 			  "[%s] has the wrong size (%llu), %s (%llu).",
-			  start->node->block->nr, start->pos.item, 
+			  place_blknr(start), start->pos.item, 
 			  print_inode(obj->core, &start->key), hint.size, 
 			  mode == RM_CHECK ? "Should be" : "Fixed to", 
 			  correct.size);
@@ -261,9 +261,9 @@ static inline errno_t obj40_check_unix_ext(obj40_t *obj,
 		if (!(params->must_exts & (1 << SDEXT_UNIX_ID)))
 			return 0;
 		
-		aal_error("Node (%llu), item (%u), plugin (%s): StatData of the"
-			  " file [%s] does not have a mandatory unix extention."
-			  "%s Plugin (%s).", start->node->block->nr, 
+		aal_error("Node (%llu), item (%u), plugin (%s): StatData "
+			  "of the file [%s] does not have a mandatory unix "
+			  "extention.%s Plugin (%s).", place_blknr(start), 
 			  start->pos.item, start->plug->label,
 			  print_inode(obj->core, &start->key),
 			  mode != RM_CHECK ? " Added." : "", 
@@ -321,9 +321,9 @@ static inline errno_t obj40_check_unix_ext(obj40_t *obj,
 
 	if (fixed) {
 		/* sd_bytes are set wrongly in the kernel. */
-		aal_error("Node (%llu), item (%u): StatData of the file "
-			  "[%s] has the wrong bytes (%llu), %s (%llu).",
-			  start->node->block->nr, start->pos.item, 
+		aal_error("Node (%llu), item (%u): StatData of the "
+			  "file [%s] has the wrong bytes (%llu), %s "
+			  "(%llu).", place_blknr(start), start->pos.item,
 			  print_inode(obj->core, &start->key), hint.bytes, 
 			  mode == RM_CHECK ? "Should be" : "Fixed to", 
 			  correct.bytes);
@@ -363,7 +363,7 @@ errno_t obj40_update_stat(obj40_t *obj,
 	if ((extmask = obj40_extmask(start)) == MAX_UINT64) {
 		aal_error("Node (%llu), item (%u), plugin (%s): failed "
 			  "to obtain the StatData extention mask.",
-			  start->node->block->nr, start->pos.item,
+			  place_blknr(start), start->pos.item,
 			  start->plug->label);
 		return res;
 	}
@@ -378,9 +378,9 @@ errno_t obj40_update_stat(obj40_t *obj,
 		
 		stat.extmask = extmask & params->unkn_exts;
 		
-		aal_error("Node (%llu), item (%u): StatData of the file "
-			  "[%s] has some unknown extentions (mask=%llu).%s"
-			  " Plugin (%s).", start->node->block->nr, 
+		aal_error("Node (%llu), item (%u): StatData of the "
+			  "file [%s] has some unknown extentions "
+			  "(mask=%llu).%s Plugin (%s).", place_blknr(start),
 			  start->pos.item, print_inode(obj->core, &start->key),
 			  stat.extmask, mode != RM_CHECK ? " Removed." : "", 
 			  start->plug->label);
@@ -423,12 +423,12 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 	if (!key->plug->o.key_ops->compfull(key, &place->key))
 		return 0;
 	
-	aal_error("Node (%llu), item (%u), plugin (%s): the key "
-		  "[%s] of the item is wrong, %s [%s]. Plugin (%s).", 
-		  place->node->block->nr, place->pos.unit, 
-		  place->plug->label, print_key(obj->core, &place->key),
-		  mode == RM_BUILD ? "fixed to" : "should be", 
-		  print_key(obj->core, key), obj->info.opset[OPSET_OBJ]->label);
+	aal_error("Node (%llu), item (%u), plugin (%s): the key [%s] of the "
+		  "item is wrong, %s [%s]. Plugin (%s).", place_blknr(place),
+		  place->pos.unit, place->plug->label, 
+		  print_key(obj->core, &place->key), mode == RM_BUILD ? 
+		  "fixed to" : "should be", print_key(obj->core, key), 
+		  obj->info.opset[OPSET_OBJ]->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -437,7 +437,7 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 						  place, key)))
 	{
 		aal_error("Node (%llu), item(%u): update of the "
-			  "item key failed.", place->node->block->nr,
+			  "item key failed.", place_blknr(place),
 			  place->pos.unit);
 	}
 
@@ -470,7 +470,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 		   object was created. */
 		aal_error("Node (%llu), item (%u), plugin (%s): not "
 			  "StatData is found by the key (%s).%s",
-			  start->node->block->nr, start->pos.item, 
+			  place_blknr(start), start->pos.item, 
 			  start->plug->label, print_key(obj->core, key),
 			  mode == RM_BUILD ? "Removed." : "");
 

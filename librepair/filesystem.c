@@ -76,7 +76,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 		res = -ENOMEM;
 		goto error_journal_close;
 	}
-		
+	
 	repair_error_count(repair, res);
 	return 0;
 
@@ -409,8 +409,9 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 			goto error_free_status;
 		}
 
-		if (bitmap)
-			aux_bitmap_mark(bitmap, node_blocknr(node));
+		if (bitmap) {
+			aux_bitmap_mark(bitmap, node->block->nr);
+		}
 		
 		reiser4_node_close(node);
 	}

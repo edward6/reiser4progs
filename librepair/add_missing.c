@@ -111,7 +111,7 @@ static errno_t repair_am_node_prepare(repair_am_t *am, reiser4_node_t *node) {
 	for (place.pos.item = 0; place.pos.item < count; place.pos.item++) {
 		if ((res = reiser4_place_fetch(&place))) {
 			aal_error("Node (%llu), item (%u): failed to "
-				  "open the item.",node_blocknr(node),
+				  "open the item.",node->block->nr,
 				  place.pos.item);
 
 			return res;
@@ -192,8 +192,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 			goto error_close_node;
 
 		if (reiser4_node_items(node) == 0) {
-			aux_bitmap_clear(bitmap, node_blocknr(node));
-			repair_am_blk_free(am, node_blocknr(node));
+			aux_bitmap_clear(bitmap, node->block->nr);
+			repair_am_blk_free(am, node->block->nr);
 			reiser4_node_close(node);
 			blk++;
 			continue;
@@ -208,8 +208,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 			goto error_close_node;
 		} else if (res == 0) {
 			/* Has been inserted. */
-			aux_bitmap_clear(bitmap, node_blocknr(node));
-			repair_am_blk_used(am, node_blocknr(node));
+			aux_bitmap_clear(bitmap, node->block->nr);
+			repair_am_blk_used(am, node->block->nr);
 
 			stat->by_node++;
 
@@ -288,8 +288,8 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 			if (res) goto error_close_node;
 		}
 
-		aux_bitmap_clear(bitmap, node_blocknr(node));
-		repair_am_blk_free(am, node_blocknr(node));
+		aux_bitmap_clear(bitmap, node->block->nr);
+		repair_am_blk_free(am, node->block->nr);
 		reiser4_node_close(node);
 		blk++;
 	}

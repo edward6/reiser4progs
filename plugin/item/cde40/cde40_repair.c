@@ -181,7 +181,7 @@ static uint8_t cde40_short_entry_detect(reiser4_place_t *place,
 	{
 		aal_error("Node (%llu), item (%u), unit (%u): unit "
 			  "offset (%u) is wrong, should be (%u). %s", 
-			  place->node->block->nr, place->pos.item,
+			  place_blknr(place), place->pos.item,
 			  start_pos, cde_get_offset(place, start_pos, pol),
 			  limit + offset,  mode == RM_BUILD ? "Fixed." : "");
 		
@@ -236,7 +236,7 @@ static uint8_t cde40_long_entry_detect(reiser4_place_t *place,
 		{
 			aal_error("Node %llu, item %u, unit (%u): unit "
 				  "offset (%u) is wrong, should be (%u). "
-				  "%s", place->node->block->nr, place->pos.item,
+				  "%s", place_blknr(place), place->pos.item,
 				  start_pos + count,
 				  cde_get_offset(place, start_pos + count, pol),
 				  l_limit, mode == RM_BUILD ? "Fixed." : "");
@@ -309,7 +309,7 @@ static errno_t cde40_offsets_range_check(reiser4_place_t *place,
 		if (cde40_offset_check(place, i)) {
 			aal_error("Node %llu, item %u, unit %u: unit "
 				  "offset (%u) is wrong.", 
-				  place->node->block->nr, place->pos.item, 
+				  place_blknr(place), place->pos.item, 
 				  i, cde_get_offset(place, i, pol));
 			
 			/* mark offset wrong. */	    
@@ -407,7 +407,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		/* No one R unit was found */
 		aal_error("Node %llu, item %u: no one valid unit has "
 			  "been found. Does not look like a valid `%s` "
-			  "item.", place->node->block->nr, place->pos.item, 
+			  "item.", place_blknr(place), place->pos.item, 
 			  place->plug->label);
 		
 		return RE_FATAL;
@@ -468,7 +468,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 	if (e_count != cde_get_units(place)) {
 		aal_error("Node %llu, item %u: unit count (%u) "
 			  "is not correct. Should be (%u). %s",
-			  place->node->block->nr,  place->pos.item,
+			  place_blknr(place),  place->pos.item,
 			  cde_get_units(place), e_count, 
 			  mode == RM_CHECK ? "" : "Fixed.");
 		
@@ -484,7 +484,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		/* Estimated count is greater then the recovered count, in other 
 		   words there are some last unit headers should be removed. */
 		aal_error("Node %llu, item %u: entries [%u..%u] look "
-			  "corrupted. %s", place->node->block->nr,
+			  "corrupted. %s", place_blknr(place),
 			  place->pos.item, flags->count, e_count - 1, 
 			  mode == RM_BUILD ? "Removed." : "");
 		
@@ -502,7 +502,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 	if (i) {
 		/* Some first units should be removed. */
 		aal_error("Node %llu, item %u: entries [%u..%u] look "
-			  " corrupted. %s", place->node->block->nr, 
+			  " corrupted. %s", place_blknr(place), 
 			  place->pos.item, 0, i - 1, 
 			  mode == RM_BUILD ? "Removed." : "");
 		
@@ -537,7 +537,7 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		if (aal_test_bit(flags->elem + i, R)) {
 			aal_error("Node %llu, item %u: entries "
 				  "[%u..%u] look corrupted. %s", 
-				  place->node->block->nr, place->pos.item,
+				  place_blknr(place), place->pos.item,
 				  last, i - 1, mode == RM_BUILD ? 
 				  "Removed." : "");
 
@@ -576,9 +576,9 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	pol = cde40_key_pol(place);
 	
 	if (place->len < en_len_min(1, pol)) {
-		aal_error("Node %llu, item %u: item length (%u) is too "
-			  "small to contain a valid item.", 
-			  place->node->block->nr, place->pos.item, place->len);
+		aal_error("Node %llu, item %u: item length (%u) is too small "
+			  "to contain a valid item.", place_blknr(place), 
+			  place->pos.item, place->len);
 		return RE_FATAL;
 	}
 	
@@ -622,7 +622,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			/* Hashed, key is wrong, remove the entry. */
 			aal_error("Node (%llu), item (%u): wrong key "
 				  "[%s] of the unit (%u).%s", 
-				  place->node->block->nr, place->pos.item,
+				  place_blknr(place), place->pos.item,
 				  cde40_core->key_ops.print(&key, PO_INODE),
 				  i - 1, mode == RM_BUILD ? " Removed." : "");
 			
@@ -650,7 +650,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			/* Not hashed, key is wrong, remove the entry. */
 			aal_error("Node (%llu), item (%u): wrong key "
 				  "[%s] of the unit (%u).%s", 
-				  place->node->block->nr, place->pos.item, 
+				  place_blknr(place), place->pos.item,
 				  cde40_core->key_ops.print(&key, PO_INODE),
 				  i - 1, mode == RM_BUILD ? " Removed." : "");
 			
@@ -688,7 +688,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			aal_error("Node (%llu), item (%u): wrong order of "
 				  "units {%d, %d}. The whole item to be "
 				  "removed -- will be improved soon.",
-				  place->node->block->nr, place->pos.item,
+				  place_blknr(place), place->pos.item,
 				  i - 1, i);
 			return res | RE_FATAL;
 		}
@@ -702,7 +702,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	if (plug_call(ckey.plug->o.key_ops, compfull, &ckey, &place->key)) {
 		aal_error("Node (%llu), item (%u): the item key [%s] does "
 			  "not match the first unit key [%s].%s", 
-			  place->node->block->nr, place->pos.item,
+			  place_blknr(place), place->pos.item,
 			  cde40_core->key_ops.print(&place->key, PO_INODE),
 			  cde40_core->key_ops.print(&ckey, PO_INODE),
 			  mode == RM_BUILD ? " Fixed." : "");

@@ -79,7 +79,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	
 	if (res) {
 		aal_error("Node (%llu), item (%u): does not look like a "
-			  "valid stat data.", place->node->block->nr,
+			  "valid stat data.", place_blknr(place),
 			  place->pos.item);
 		
 		return RE_FATAL;
@@ -88,7 +88,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	if (hint.len < place->len) {
 		aal_error("Node (%llu), item (%u): item has the "
 			  "wrong length (%u). Should be (%llu). %s",
-			  place->node->block->nr, place->pos.item, 
+			  place_blknr(place), place->pos.item, 
 			  place->len, hint.len, mode == RM_BUILD ? 
 			  "Fixed." : "");
 		
@@ -103,7 +103,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	if (hint.extmask != hint.goodmask) {
 		aal_error("Node (%llu), item (%u): item has the wrong "
 			  "extention mask (%llu). Should be (%llu). %s",
-			  place->node->block->nr, place->pos.item,
+			  place_blknr(place), place->pos.item,
 			  hint.extmask, hint.goodmask,
 			  mode == RM_CHECK ? "" : "Fixed.");
 		

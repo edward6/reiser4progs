@@ -8,11 +8,13 @@
 
 #ifndef ENABLE_STAND_ALONE
 
-errno_t reiser4_pset_init(reiser4_tree_t *tree);
+extern errno_t reiser4_pset_init(reiser4_tree_t *tree);
 
-errno_t reiser4_opset_init(reiser4_tree_t *tree);
+extern void reiser4_opset_root(reiser4_plug_t **opset);
 
-reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id);
+extern errno_t reiser4_opset_init(reiser4_tree_t *tree);
+
+extern reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id);
 
 #endif
 #endif

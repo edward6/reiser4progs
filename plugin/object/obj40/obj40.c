@@ -547,7 +547,6 @@ errno_t obj40_clobber(obj40_t *obj) {
 errno_t obj40_layout(obj40_t *obj, region_func_t region_func,
 		     void *data)
 {
-	blk_t blk;
 	errno_t res;
 
 	aal_assert("umka-2547", obj != NULL);
@@ -556,8 +555,7 @@ errno_t obj40_layout(obj40_t *obj, region_func_t region_func,
 	if ((res = obj40_update(obj)))
 		return res;
 	
-	blk = STAT_PLACE(obj)->node->block->nr;
-	return region_func(obj, blk, 1, data);
+	return region_func(obj, place_blknr(STAT_PLACE(obj)), 1, data);
 }
 
 /* Enumerates object metadata. */

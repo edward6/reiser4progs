@@ -15,7 +15,7 @@ errno_t tail40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	if (!place->len) {
 		aal_error("Node (%llu), item (%u): tail40 "
 			  "item of zero length found.",
-			  place->node->block->nr,
+			  place_blknr(place),
 			  place->pos.item);
 		return RE_FATAL;
 	} 

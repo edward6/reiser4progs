@@ -151,7 +151,7 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
 			aal_error("Can't open item %u in node %llu.",
-				  pos.item, node_blocknr(node));
+				  pos.item, node->block->nr);
 			return -EINVAL;
 		}
 
@@ -353,7 +353,7 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 		/* Fetching item data. */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
 			aal_error("Can't open item %u in node %llu.",
-				  pos.item, node_blocknr(node));
+				  pos.item, node->block->nr);
 			return res;
 		}
 
@@ -584,7 +584,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 		/* Initialiing the item at @place */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
 			aal_error("Can't open item %u in node %llu.",
-				  pos.item, node_blocknr(node));
+				  pos.item, node->block->nr);
 			return res;
 		}
 
