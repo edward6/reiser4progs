@@ -24,7 +24,6 @@ typedef struct fsck_parse {
 
     FILE *logfile;
     aal_device_t *host_device;
-    aal_device_t *journal_device;    
     uint16_t options;
 } fsck_parse_t;
 
@@ -257,9 +256,6 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	return OPER_ERROR;
     }
 
-    /* FIXME-VITALY: This should be a parameter for 3.6 format support. */
-    data->journal_device = data->host_device;    
-    
     return fsck_ask_confirmation(data, argv[optind]);
 }
 
@@ -330,7 +326,7 @@ int main(int argc, char *argv[]) {
 	goto free_fs;
     }
     
-    if (repair_journal_handle(fs, parse_data.journal_device)) {
+    if (repair_journal_handle(fs, parse_data.host_device)) {
 	aal_exception_fatal("Failed to replay the journal.");
 	exit_code = OPER_ERROR;
 	goto free_tree;
