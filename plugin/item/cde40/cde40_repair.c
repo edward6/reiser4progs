@@ -872,7 +872,7 @@ void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options)
 		    entry >= place->body + place->len)
 		{
 			aal_stream_format(stream, "Broken entry array "
-					  "detected\n.");
+					  "detected.\n");
 			break;
 		}
 		

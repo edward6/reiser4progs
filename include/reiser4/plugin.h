@@ -142,6 +142,7 @@ enum reiser4_item_group {
 typedef enum reiser4_item_group reiser4_item_group_t;
 
 extern const char *reiser4_igname[];
+extern const char *reiser4_slink_name[];
 
 /* Known node plugin ids. */
 enum reiser4_node_plug_id {
@@ -604,27 +605,27 @@ struct entry_hint {
 
 typedef struct entry_hint entry_hint_t;
 
-enum safe_type {
-	SAFE_UNLINK,   /* safe-link for unlink */
-	SAFE_TRUNCATE, /* safe-link for truncate */
-	SAFE_E2T,      /* safe-link for extent->tail conversion */
-	SAFE_T2E,      /* safe-link for tail->extent conversion */
-	SAFE_LAST
+enum slink_type {
+	SL_UNLINK,   /* safe-link for unlink */
+	SL_TRUNCATE, /* safe-link for truncate */
+	SL_E2T,      /* safe-link for extent->tail conversion */
+	SL_T2E,      /* safe-link for tail->extent conversion */
+	SL_LAST
 };
 
-typedef enum safe_type safe_type_t;
+typedef enum slink_type slink_type_t;
 
-struct safe_hint {
+struct slink_hint {
 	/* Key of StatData the link points to. */
 	reiser4_key_t key;
 	
 	/* The size to be truncated. */
 	uint64_t size;
 
-	safe_type_t type;
+	slink_type_t type;
 };
 
-typedef struct safe_hint safe_hint_t;
+typedef struct slink_hint slink_hint_t;
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. This is used for all tree modification purposes like
@@ -1389,7 +1390,7 @@ struct reiser4_oid_ops {
 	oid_t (*root_locality) ();
 	oid_t (*root_objectid) ();
 	oid_t (*lost_objectid) ();
-	oid_t (*safe_locality) ();
+	oid_t (*slink_locality) ();
 };
 
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;
@@ -1650,7 +1651,7 @@ struct tree_ops {
 	errno_t (*update_key) (void *, reiser4_place_t *, reiser4_key_t *);
 
 	/* Get the safe link locality. */
-	uint64_t (*safe_locality) (void *);
+	uint64_t (*slink_locality) (void *);
 #endif
 	/* Returns the next item. */
 	errno_t (*next_item) (void *, reiser4_place_t *, reiser4_place_t *);

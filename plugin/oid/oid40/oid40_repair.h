@@ -14,7 +14,7 @@ extern void oid40_print(generic_entity_t *entity,
 			uint16_t options);
 
 extern oid_t oid40_lost_objectid();
-extern oid_t oid40_safe_locality();
+extern oid_t oid40_slink_locality();
 
 #endif
 

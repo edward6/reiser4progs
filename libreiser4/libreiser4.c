@@ -13,7 +13,15 @@ const char *reiser4_igname[] = {
 	"DENTRY",
 	"TAIL",
 	"EXTENT",
-	"PERM"
+	"PERM",
+	"SLINK"
+};
+
+const char *reiser4_slink_name[] = {
+	"UNLINK",
+	"TRUNCATE",
+	"Extent2Tail Convertion",
+	"Tail2Extent Convertion"
 };
 #endif
 
@@ -114,14 +122,14 @@ static int item_mergeable(reiser4_place_t *place1,
 	return reiser4_item_mergeable(place1, place2);
 }
 
-static uint64_t tree_safe_locality(void *tree) {
+static uint64_t tree_slink_locality(void *tree) {
 	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	
 	aal_assert("vpf-1579", t != NULL);
 	aal_assert("vpf-1580", t->fs != NULL);
 	aal_assert("vpf-1581", t->fs->oid != NULL);
 	
-	return plug_call(t->fs->oid->entity->plug->o.oid_ops, safe_locality);
+	return plug_call(t->fs->oid->entity->plug->o.oid_ops, slink_locality);
 }
 #endif
 
@@ -186,7 +194,7 @@ reiser4_core_t core = {
 		.update_key = tree_update_key,
 
 		/* Get the safe link locality. */
-		.safe_locality = tree_safe_locality,
+		.slink_locality = tree_slink_locality,
 #endif
 		/* Returns next item from the passed place. */
 		.next_item   = tree_next_item

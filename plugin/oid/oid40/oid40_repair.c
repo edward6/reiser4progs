@@ -30,7 +30,7 @@ oid_t oid40_lost_objectid() {
 	return OID40_LOST_OBJECTID;
 }
 
-oid_t oid40_safe_locality() {
+oid_t oid40_slink_locality() {
 	return OID40_SAFE_LOCALITY;
 }
 

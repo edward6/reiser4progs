@@ -180,7 +180,7 @@ reiser4_oid_ops_t oid40_ops = {
 	.root_locality	= oid40_root_locality,
 	.root_objectid	= oid40_root_objectid,
 	.lost_objectid	= oid40_lost_objectid,
-	.safe_locality  = oid40_safe_locality
+	.slink_locality  = oid40_slink_locality
 };
 
 static reiser4_plug_t oid40_plug = {
