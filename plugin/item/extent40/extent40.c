@@ -55,12 +55,30 @@ uint32_t extent40_unit(item_entity_t *item,
 {
 	uint32_t i;
 	
+#ifndef ENABLE_STAND_ALONE
+        uint32_t width = 0;
+        extent40_t *extent;
+                                                                                         
+        extent = extent40_body(item);
+                                                                                         
+        for (i = 0; i < extent40_units(item);
+             i++, extent++)
+        {
+                                                                                         
+                width += et40_get_width(extent) *
+                        extent40_blocksize(item);
+                                                                                         
+                if (offset < width)
+                        return i;
+        }
+#else
 	for (i = 0; i < extent40_units(item); i++) {
 		if (offset < extent40_offset(item, i + 1))
 			return i;
 	}
-
-	return i;
+#endif
+	
+        return i;
 }
 
 /*
@@ -75,7 +93,7 @@ static errno_t extent40_get_key(item_entity_t *item,
 	aal_assert("vpf-623", key != NULL);
 
 	return common40_get_key(item, pos, key,
-				extent40_offset);
+				(trans_func_t)extent40_offset);
 }
 
 static int extent40_data(void) {
@@ -189,9 +207,9 @@ lookup_t extent40_lookup(item_entity_t *item,
 	aal_assert("umka-1501", key  != NULL);
 	aal_assert("umka-1502", pos != NULL);
 	
-	/* Looking up */
+	/* Using common40_lookup() getting position by key */
 	res = common40_lookup(item, key, &offset,
-			      extent40_offset);
+			      (trans_func_t)extent40_offset);
 
 	/* Transforming from the offset ot unit */
 	*pos = extent40_unit(item, offset);

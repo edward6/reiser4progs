@@ -12,7 +12,7 @@ typedef uint64_t (*trans_func_t) (item_entity_t *,
 				  uint32_t);
 
 extern errno_t common40_get_key(item_entity_t *item,
-				uint64_t pos,
+				uint32_t pos,
 				key_entity_t *key,
 				trans_func_t trans_func);
 

@@ -97,10 +97,6 @@ static int32_t reg40_read(object_entity_t *entity,
 	if (n > size - reg->offset)
 		n = size - reg->offset;
 
-	/*
-	  Reading data from the file. As we do not know item types, we just call
-	  item's read method.
-	*/
 	for (read = 0; read < n; ) {
 
 		if (reg40_next(reg) != PRESENT)

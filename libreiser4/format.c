@@ -86,7 +86,6 @@ reiser4_format_t *reiser4_format_open(
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Creates disk-format structures on specified device */
 reiser4_format_t *reiser4_format_create(
 	reiser4_fs_t *fs,	/* fs the format will be created on */

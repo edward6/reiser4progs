@@ -13,7 +13,7 @@
   variable. It is needed for updating item key after shifting, etc.
 */
 errno_t common40_get_key(item_entity_t *item,
-			 uint64_t pos,
+			 uint32_t pos,
 			 key_entity_t *key,
 			 trans_func_t trans_func)
 {
@@ -131,8 +131,7 @@ lookup_t common40_lookup(item_entity_t *item,
 		return ABSENT;
 	}
 
-	size = trans_func ? trans_func(item, units) :
-		units;
+	size = trans_func ? trans_func(item, units) : units;
 	
 	if (plugin_call(key->plugin->o.key_ops,
 			compare, key, &maxkey) > 0)

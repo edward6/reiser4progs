@@ -5,10 +5,6 @@
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
@@ -190,7 +186,6 @@ int reiser4_master_confirm(aal_device_t *device) {
 
 /* Reads master super block from disk */
 reiser4_master_t *reiser4_master_open(aal_device_t *device) {
-	blk_t offset;
 	aal_block_t *block;
 	uint32_t blocksize;
 	reiser4_master_t *master;
@@ -204,12 +199,12 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	master->device = device;
 	
 	blocksize = device->blocksize;
-	offset = (blk_t)(REISER4_MASTER_OFFSET / blocksize);
 
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(device, blocksize, offset))) {
-		aal_exception_fatal("Can't read master super block "
-				    "at %llu.", offset);
+	if (!(block = aal_block_read(device, blocksize,
+				     REISER4_MASTER_OFFSET / blocksize)))
+	{
+		aal_exception_fatal("Can't read master super block.");
 		goto error_free_master;
 	}
 
@@ -232,28 +227,22 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 		   device.
 		*/
 #ifndef ENABLE_STAND_ALONE
+		reiser4_plugin_t *plugin;
+	    
+		if (!(plugin = reiser4_master_guess(device)))
+			goto error_free_master;
+	    
+		/* Creating in-memory master super block */
+		if (!(master = reiser4_master_create(device, plugin->h.id, 
+						     REISER4_BLKSIZE,
+						     NULL, NULL)))
 		{
-			reiser4_plugin_t *plugin;
-	    
-			if (!(plugin = reiser4_master_guess(device)))
-				goto error_free_master;
-	    
-			/* Creating in-memory master super block */
-			if (!(master = reiser4_master_create(device, plugin->h.id, 
-							     REISER4_BLKSIZE,
-							     NULL, NULL)))
-			{
-				aal_exception_error("Can't find format in "
-						    "use after probe the all "
-						    "registered format plugins.");
-				goto error_free_master;
-			}
-	    
-			master->native = FALSE;
-			return master;
+			goto error_free_master;
 		}
+	    
+		master->native = FALSE;
+		return master;
 #endif
-		aal_exception_error("Can't find reiser4 on passed device.");
 		goto error_free_master;
 	}
     
