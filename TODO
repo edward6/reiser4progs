@@ -21,3 +21,4 @@ reiser4progs/COPYING.
 * --data-fragmentation option in debugfs.reiser4
 
 * fix checksum calculating for the last block of bitmap
+* improve tree fragmentation calculating speed by avoiding leaves open
