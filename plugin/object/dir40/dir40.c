@@ -537,10 +537,10 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 
 	size = object40_get_size(&dir->obj);
 
-	/* FIXME-UMKA: Here also should be removing symlink stat data */
-
 	aal_assert("umka-1909", size > 0);
 
+	/* FIXME-UMKA: Here also should be removing stat data item */
+	
 	if (dir40_reset(entity))
 		return -1;
 		

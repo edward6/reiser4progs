@@ -330,17 +330,18 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 		return 0;
 	
 	/* Removing file when nlink became zero */
-	if (reg40_reset(entity))
-		return -1;
-		
 	if (object40_stat(&reg->obj))
 		return -1;
 
 	size = object40_get_size(&reg->obj);
 
-	/* FIXME-UMKA: Here also should be removing symlink stat data */
+	/* FIXME-UMKA: Here also should be removing stat data item */
 
 	aal_assert("umka-1913", size > 0);
+
+	if (reg40_reset(entity))
+		return -1;
+		
 	return reg40_truncate(entity, size);
 }
 

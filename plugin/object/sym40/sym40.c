@@ -210,9 +210,7 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 	if (object40_stat(&sym->obj))
 		return -1;
 
-	/* FIXME-UMKA: Here also should be removing symlink stat data */
-	
-	return 0;
+	return object40_remove(&sym->obj, &sym->obj.key, 1);
 }
 
 /* Writes "n" bytes from "buff" to passed file. */
@@ -229,6 +227,10 @@ static int32_t sym40_write(object_entity_t *entity,
 	  we have do here?
 	*/
 	sym = (sym40_t *)entity;
+
+	if (object40_stat(&sym->obj))
+		return -1;
+	
 	return object40_set_sym(&sym->obj, buff);
 }
 
