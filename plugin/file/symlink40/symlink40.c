@@ -46,6 +46,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 	return aal_strlen(buff);
 }
 
+/* Opens symlink and returns initialized instance to the caller */
 static object_entity_t *symlink40_open(void *tree, 
 				       reiser4_place_t *place) 
 {
@@ -59,13 +60,16 @@ static object_entity_t *symlink40_open(void *tree,
 		return NULL;
 
 	key = &place->item.key;
-		
+
+	/* Initalizing file handle */
 	if (file40_init(&symlink->file, &symlink40_plugin, key, core, tree))
 		goto error_free_symlink;
-	
+
+	/* Saving statdata coord and locking the node it lies in */
 	aal_memcpy(&symlink->file.statdata, place, sizeof(*place));
 	file40_lock(&symlink->file, &symlink->file.statdata);
 
+	/* Initializing parent key from the root one */
 	symlink->file.core->tree_ops.rootkey(symlink->file.tree,
 					     &symlink->parent);
 	
@@ -78,6 +82,7 @@ static object_entity_t *symlink40_open(void *tree,
 
 #ifndef ENABLE_COMPACT
 
+/* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *symlink40_create(void *tree, 
 					 reiser4_file_hint_t *hint) 
 {
@@ -100,10 +105,12 @@ static object_entity_t *symlink40_create(void *tree,
 
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
-    
+
+	/* Inizializes file handle */
 	file40_init(&symlink->file, &symlink40_plugin, &hint->object, 
 		    core, tree);
-	
+
+	/* Initializing parent key from the parent field of passed @hint */
 	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops,
 		    assign, &symlink->parent, &hint->parent);
 	
@@ -113,7 +120,8 @@ static object_entity_t *symlink40_create(void *tree,
 	parent_locality = plugin_call(goto error_free_symlink,
 				      hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
-    
+
+	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))
 	{
@@ -131,16 +139,19 @@ static object_entity_t *symlink40_create(void *tree,
 	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops,
 		    assign, &stat_hint.key, &hint->object);
     
-	/* Initializing stat data item hint. */
+	/*
+	  Initializing stat data item hint. Here we set up the extentions mask
+	  to unix extention, light weight and symlink ones.
+	*/
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
 		1 << SDEXT_SYMLINK_ID;
-    
+
+	/* Lightweigh extention hint setup */
 	lw_ext.mode = S_IFLNK | 0755;
 	lw_ext.nlink = 2;
-
-	/* This should be modifyed by write */
 	lw_ext.size = 0;
-    
+
+	/* Unix extention hint setup */
 	unix_ext.uid = getuid();
 	unix_ext.gid = getgid();
 	unix_ext.atime = time(NULL);
@@ -157,9 +168,11 @@ static object_entity_t *symlink40_create(void *tree,
 
 	stat_hint.hint = &stat;
 
+	/* Inserting stat data into the tree */
 	if (file40_insert(&symlink->file, &stat_hint, LEAF_LEVEL, &place))
 		goto error_free_symlink;
 
+	/* Saving statdata coord and locking the node it lies in */
 	aal_memcpy(&symlink->file.statdata, &place, sizeof(place));
 	file40_lock(&symlink->file, &symlink->file.statdata);
 		
@@ -187,6 +200,7 @@ static int32_t symlink40_write(object_entity_t *entity,
 	return file40_set_symlink(&symlink->file, buff);
 }
 
+/* Calls function @func for each symlink item (statdata only) */
 static errno_t symlink40_metadata(object_entity_t *entity,
 			      place_func_t func,
 			      void *data)
@@ -200,6 +214,7 @@ static errno_t symlink40_metadata(object_entity_t *entity,
 	return func(entity, &symlink->file.statdata, data);
 }
 
+/* Calls function @func for each block symlink items lie in */
 static errno_t symlink40_layout(object_entity_t *entity,
 				block_func_t func,
 				void *data)
@@ -218,6 +233,7 @@ static errno_t symlink40_layout(object_entity_t *entity,
 
 #endif
 
+/* Callback function for searching statdata item while parsing symlink */
 static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
@@ -292,6 +308,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	return -1;
 }
 
+/* Callback for searching entry inside current directory */
 static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
@@ -338,6 +355,11 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 }
 
+/*
+  This function reads symlink and parses it by means of using aux_parse_path
+  with applying corresponding callback fucntions for searching stat data and
+  searchig entry. It returns stat data key of the object symlink points to.
+*/
 static errno_t symlink40_follow(object_entity_t *entity,
 				key_entity_t *key)
 {
@@ -382,6 +404,7 @@ static errno_t symlink40_follow(object_entity_t *entity,
 	return res;
 }
 
+/* Releases passed @entity */
 static void symlink40_close(object_entity_t *entity) {
 	symlink40_t *symlink = (symlink40_t *)entity;
 		
