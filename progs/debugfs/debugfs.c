@@ -110,8 +110,13 @@ static errno_t debugfs_print_stream(aal_stream_t *stream) {
 	while (len > 0) {
 		int written;
 
-		if ((written = write(1, ptr, len)) < 0)
+		if ((written = write(1, ptr, len)) <= 0) {
+
+			if (errno == EINTR)
+				continue;
+			
 			return -1;
+		}
 		
 		ptr += written;
 		len -= written;

@@ -158,13 +158,13 @@ static int dir40_lookup(object_entity_t *entity,
 		item_entity_t *item = &dir->body.entity;
 
 		if (plugin_call(return -1, item->plugin->item_ops, lookup, 
-				item, &wanted, &dir->body.pos.unit) == 1) 
+				item, &wanted, &dir->body.pos.unit) == PRESENT) 
 		{
 			roid_t locality;
 			reiser4_entry_hint_t entry;
 
 			if (plugin_call(return -1, item->plugin->item_ops, fetch,
-					item, &entry, dir->body.pos.unit, 1))
+					item, &entry, dir->body.pos.unit, 1) != 1)
 				return -1;
 
 			locality = plugin_call(return -1, key->plugin->key_ops,
