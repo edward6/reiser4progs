@@ -322,9 +322,6 @@ struct traverse_hint {
 	 * not */
 	int cleanup;
 	
-	/* Current level traverse operates on */
-	uint8_t level;
-	
 	/* Bitmask of item types which should be handled. */
 	rpid_t objects;
 	
@@ -335,13 +332,13 @@ struct traverse_hint {
 typedef struct traverse_hint traverse_hint_t;
 
 /* Callback function type for opening node. */
-typedef errno_t (*reiser4_open_func_t) (reiser4_joint_t **, blk_t, traverse_hint_t *);
+typedef errno_t (*reiser4_open_func_t) (reiser4_joint_t **, blk_t, void *);
 
 /* Callback function type for preparing per-node traverse data. */
-typedef errno_t (*reiser4_edge_func_t) (reiser4_joint_t *, traverse_hint_t *);
+typedef errno_t (*reiser4_edge_func_t) (reiser4_joint_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*reiser4_setup_func_t) (reiser4_coord_t *, traverse_hint_t *);
+typedef errno_t (*reiser4_setup_func_t) (reiser4_coord_t *, void *);
 
 /* Filesystem compound structure */
 struct reiser4_fs {

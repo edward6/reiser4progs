@@ -12,12 +12,12 @@
  * on it. It does nothing if REPAIR_BAD_POINTER is set and set this flag if 
  * node cannot be opeened. Returns error if any. */
 errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, 
-    traverse_hint_t *hint)
+    void *data)
 {
     errno_t res = 0;
     aal_device_t *device;
     reiser4_node_t *node;
-    repair_data_t *repair_data = (repair_data_t *)hint->data;
+    repair_data_t *repair_data = (repair_data_t *)data;
 
     aal_assert("vpf-379", repair_data != NULL, return -1);
     aal_assert("vpf-432", joint != NULL, return -1);
@@ -46,23 +46,28 @@ error_free_node:
 /* Before callback for traverse. It checks node level, node consistency, and 
  * delimiting keys. If any check reveals a problem with the data consistency
  * it sets REPAIR_NOT_FIXED flag. */
-errno_t repair_filter_joint_check(reiser4_joint_t *joint, traverse_hint_t *hint) {
+errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
     repair_filter_data_t *filter_data;
     object_entity_t *entity;
     errno_t res = 0;
     
-    aal_assert("vpf-252", hint  != NULL, return -1);
+    aal_assert("vpf-252", data  != NULL, return -1);
     aal_assert("vpf-409", joint != NULL, return -1);
     aal_assert("vpf-410", joint->node != NULL, return -1);
     aal_assert("vpf-411", joint->node->entity != NULL, return -1);    
     aal_assert("vpf-412", joint->node->entity->plugin != NULL, return -1);
 
-    filter_data = repair_filter_data((repair_data_t *)hint->data);
+    filter_data = repair_filter_data((repair_data_t *)data);
     entity = joint->node->entity;
 
+    /* Initialize the level for the root node before traverse. */
+    if (!filter_data->level)
+	filter_data->level = plugin_call(return -1, entity->plugin->node_ops, 
+	    get_level, entity);
+    
     /* Skip this check if level is not set (root node only). */
-    if (entity->plugin->node_ops.get_level && filter_data->level && 
-	entity->plugin->node_ops.get_level(entity) != filter_data->level) 
+    if (plugin_call(return -1, entity->plugin->node_ops, get_level, entity) != 
+	filter_data->level) 
     {
 	aal_exception_error("Level of the node (%u) mismatches to the expected "
 	    "one (%u).", entity->plugin->node_ops.get_level(entity), 
@@ -70,14 +75,14 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, traverse_hint_t *hint)
 	res = 1;
     }
 
-    if (!res && (res = repair_joint_check(joint, hint->data)) < 0)
+    if (!res && (res = repair_joint_check(joint, data)) < 0)
 	return res;
 	
-    if (!res && (res = repair_joint_dkeys_check(joint, hint->data)) < 0)
+    if (!res && (res = repair_joint_dkeys_check(joint, data)) < 0)
 	return res;
 
     if (res > 0)
-	repair_set_flag((repair_data_t *)hint->data, REPAIR_NOT_FIXED);
+	repair_set_flag((repair_data_t *)data, REPAIR_NOT_FIXED);
 
     return res;
 }
@@ -85,9 +90,9 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, traverse_hint_t *hint)
 /* Setup callback for traverse. Prepares essential information for a child of 
  * a node - level, mark node as used in the bm_formatted bitmap. If block was 
  * met already, set REPAIR_BAD_PTR flag. */
-errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, traverse_hint_t *hint) {
+errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) {
     reiser4_ptr_hint_t ptr;
-    repair_data_t *repair_data = (repair_data_t *)hint->data;
+    repair_data_t *repair_data = (repair_data_t *)data;
 	
     aal_assert("vpf-255", repair_data != NULL, return -1);
     aal_assert("vpf-254", repair_data->format != NULL, return -1);
@@ -114,19 +119,6 @@ errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, traverse_hint_t *hi
     }
 */
 
-    /* Initialize the level for the root node before traverse. */
-    /* FIXME-VITALY: If there is no get_level method implemented we have to 
-     * rely on the height in super block what is not very well. What if it is 
-     * corrupted in the SB? And == 0? I would prefere to set it up when the 
-     * first leaf is found. But how is it possible to identify the leaf if 
-     * there is no level in it? */
-    if (!repair_filter_data(repair_data)->level)
-	repair_filter_data(repair_data)->level = 
-	    (reiser4_coord_entity(coord)->plugin->node_ops.get_level ? 
-	    reiser4_coord_entity(coord)->plugin->node_ops.get_level(
-		reiser4_coord_entity(coord)) : 
-	    reiser4_format_get_height(repair_data->format));
-    
     repair_filter_data(repair_data)->level--;
     
     return 0;
@@ -136,9 +128,9 @@ errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, traverse_hint_t *hi
  * callback and do some essential stuff after traversing through the child -
  * level, if REPAIR_NOT_FIXED flag is set - deletes the child pointer and 
  * mark the pointed block as unused in bm_formatted bitmap. */
-errno_t repair_filter_update_traverse(reiser4_coord_t *coord, traverse_hint_t *hint) {
+errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data) {
     reiser4_pos_t prev;
-    repair_data_t *repair_data = (repair_data_t *)hint->data;
+    repair_data_t *repair_data = (repair_data_t *)data;
     
     aal_assert("vpf-257", repair_data != NULL, return -1);
     aal_assert("vpf-434", coord != NULL, return -1);
@@ -172,8 +164,8 @@ errno_t repair_filter_update_traverse(reiser4_coord_t *coord, traverse_hint_t *h
 /* After callback for traverse. Does needed stuff after traversing through all 
  * children - if no child left, set REPAIR_NOT_FIXED flag to forse deletion of 
  * the pointer to this block in update_traverse callback. */
-errno_t repair_filter_after_traverse(reiser4_joint_t *joint, traverse_hint_t *hint) {
-    repair_data_t *repair_data = (repair_data_t *)hint->data;
+errno_t repair_filter_after_traverse(reiser4_joint_t *joint, void *data) {
+    repair_data_t *repair_data = (repair_data_t *)data;
      
     aal_assert("vpf-393", joint != NULL, return -1);
     aal_assert("vpf-394", joint->node != NULL, return -1);   
@@ -204,7 +196,7 @@ errno_t repair_filter_setup(traverse_hint_t *hint) {
 	return -1;
     }
     
-        /* Hint for objects to be traversed - node pointers only here. */
+    /* Hint for objects to be traversed - node pointers only here. */
     hint->objects = 1 << NODEPTR_ITEM;
     
     repair_data->flags = 0;

@@ -113,23 +113,23 @@ struct tree_print_hint {
 static errno_t common_open_joint(
 	reiser4_joint_t **joint,    /* joint to be opened */
 	blk_t blk,                  /* block node lies in */
-	traverse_hint_t *hint)	    /* traverse hint */
+	void *data)		    /* traverse data */
 {
 	struct tree_print_hint *print_hint =
-		(struct tree_print_hint *)hint->data;
+		(struct tree_print_hint *)data;
 
 	*joint = reiser4_tree_load(print_hint->tree, blk);
 	return -(*joint == NULL);
 }
 
 static errno_t debugfs_print_joint(
-	reiser4_joint_t *joint,	   /* joint to be printed */
-	traverse_hint_t *hint)	   /* traverse hint */
-{
+	reiser4_joint_t *joint,	    /* joint to be printed */
+	void *data)		    /* traverse data */
+{	
 	aal_stream_t stream;
 
 	struct tree_print_hint *print_hint =
-		(struct tree_print_hint *)hint->data;
+		(struct tree_print_hint *)data;
 
 	aal_stream_init(&stream);
 
@@ -259,21 +259,22 @@ struct tree_frag_hint {
 
 	blk_t curr;
 	count_t total, bad;
+	uint16_t level;
 };
 
 static errno_t frag_open_joint(
 	reiser4_joint_t **joint,    /* joint to be opened */
 	blk_t blk,                  /* blk node lies in */
-	traverse_hint_t *hint)	    /* traverse hint */
-{
+	void *data)		    /* traverse hint */
+{	
 	struct tree_frag_hint *frag_hint =
-		(struct tree_frag_hint *)hint->data;
+		(struct tree_frag_hint *)data;
 
 	*joint = NULL;
 
-	aal_assert("umka-1556", hint->level > 0, return -1);
+	aal_assert("umka-1556", frag_hint->level > 0, return -1);
 	
-	if (hint->level <= LEAF_LEVEL)
+	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 	
 	*joint = reiser4_tree_load(frag_hint->tree, blk);
@@ -282,15 +283,15 @@ static errno_t frag_open_joint(
 
 static errno_t callback_tree_frag(
 	reiser4_joint_t *joint,	   /* joint to be estimated */
-	traverse_hint_t *hint)	   /* user-specified data */
+	void *data)	   /* user-specified data */
 {
 	reiser4_pos_t pos;
 	reiser4_node_t *node = joint->node;
 	
 	struct tree_frag_hint *frag_hint =
-		(struct tree_frag_hint *)hint->data;
+		(struct tree_frag_hint *)data;
 
-	if (hint->level <= LEAF_LEVEL)
+	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 	
 	aal_gauge_update(frag_hint->gauge, 0);
@@ -341,6 +342,26 @@ static errno_t callback_tree_frag(
 	return 0;
 }
 
+static errno_t callback_setup_frag(reiser4_coord_t *coord, void *data) {
+	struct tree_frag_hint *frag_hint = (struct tree_frag_hint *)data;
+    
+	aal_assert("vpf-508", frag_hint != NULL, return -1);
+
+	frag_hint->level--;
+
+	return 0;
+}
+
+static errno_t callback_update_frag(reiser4_coord_t *coord, void *data) {
+    struct tree_frag_hint *frag_hint = (struct tree_frag_hint *)data;
+    
+    aal_assert("vpf-509", frag_hint != NULL, return -1);
+
+    frag_hint->level++;
+
+    return 0;
+}
+
 static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
@@ -359,6 +380,9 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	frag_hint.gauge = gauge;
 	frag_hint.tree = fs->tree;
 	frag_hint.curr = root->node->blk;
+	frag_hint.level = plugin_call(return -1, 
+	    fs->tree->root->node->entity->plugin->node_ops, get_level, 
+	    fs->tree->root->node->entity);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -369,7 +393,8 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_start(gauge);
 	
 	reiser4_joint_traverse(fs->tree->root, &hint, frag_open_joint,
-			       callback_tree_frag, NULL, NULL, NULL);
+			       callback_tree_frag, callback_setup_frag, 
+			       callback_update_frag, NULL);
 
 	aal_gauge_free(gauge);
 
@@ -388,14 +413,14 @@ struct node_pack_hint {
 };
 
 static errno_t callback_node_packing(
-	reiser4_joint_t *joint,   /* joint to be inspected */
-	traverse_hint_t *hint)    /* traverse hint */
+	reiser4_joint_t *joint,	    /* joint to be inspected */
+	void *data)		    /* traverse data */
 {
 	uint32_t used;
 	aal_device_t *device;
 	
 	struct node_pack_hint *pack_hint =
-		(struct node_pack_hint *)hint->data;
+		(struct node_pack_hint *)data;
 
 	if (pack_hint->total % 128 == 0)
 		aal_gauge_update(pack_hint->gauge, 0);
@@ -452,6 +477,7 @@ struct file_frag_hint {
 	
 	count_t fs_total, fs_bad;
 	count_t fl_total, fl_bad;
+	uint16_t level;
 };
 
 static errno_t callback_file_frag(
@@ -527,15 +553,15 @@ static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 
 static errno_t callback_data_frag(
 	reiser4_joint_t *joint,  /* node to be inspected */
-	traverse_hint_t *hint)   /* traverse hint */
+	void *data)   /* traverse hint */
 {
 	reiser4_pos_t pos;
 	reiser4_node_t *node = joint->node;
 
 	struct file_frag_hint *frag_hint =
-		(struct file_frag_hint *)hint->data;
+		(struct file_frag_hint *)data;
 
-	if (hint->level > LEAF_LEVEL)
+	if (frag_hint->level > LEAF_LEVEL)
 		return 0;
 	
 	pos.unit = ~0ul;
@@ -562,7 +588,7 @@ static errno_t callback_data_frag(
 		frag_hint->fl_bad = 0;
 		frag_hint->fl_total = 0;
 
-		if (reiser4_file_layout(file, callback_file_frag, hint->data)) {
+		if (reiser4_file_layout(file, callback_file_frag, data)) {
 			aal_exception_error("Can't enumerate blocks occupied by %s",
 					    file->name);
 			
@@ -608,7 +634,8 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, behav_flags_t flags) {
 	aal_gauge_start(gauge);
 	
 	reiser4_joint_traverse(fs->tree->root, &hint, common_open_joint,
-			       callback_data_frag, NULL, NULL, NULL);
+			       callback_data_frag, callback_setup_frag, 
+			       callback_update_frag, NULL);
 
 	aal_gauge_free(gauge);
 

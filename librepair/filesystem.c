@@ -25,7 +25,7 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *repair_data) {
     if ((res = repair_filter_joint_open(&joint, 
 	reiser4_format_get_root(fs->format), &hint)) < 0)
 	return res;
- 
+
     if (res == 0 && joint != NULL) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 
 	if ((res = reiser4_joint_traverse(joint, &hint, repair_filter_joint_open,
@@ -38,22 +38,20 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *repair_data) {
     if ((res = repair_filter_update(&hint)))
 	goto error_free_joint;
 
-//    if (reiser4_format_get_root(fs->format) != FAKE_BLK) {
+    if (reiser4_format_get_root(fs->format) != FAKE_BLK) {
 	/* repair_data->pass.scan.(format_layout|used) are initialized from 
 	 * repair_data->pass.filter.(format_layout|formatted) due to repair_data->pass 
 	 * unit structure. */
 
 	/* Solve overlapped problem within the tree. */
-/*	if ((res = reiser4_joint_traverse(joint, &hint, repair_filter_joint_open,
+	if ((res = reiser4_joint_traverse(joint, &hint, repair_filter_joint_open,
 	    repair_scan_node_check, NULL, NULL, NULL)) < 0)
 	    goto error_free_joint;
-    }*/
+    }
 
     if (joint)
 	reiser4_joint_close(joint);
 
-
- 
     return 0;
     
 error_free_joint:

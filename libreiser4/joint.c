@@ -693,12 +693,9 @@ errno_t reiser4_joint_traverse(
 
 	entity = joint->node->entity;
 	
-	hint->level = plugin_call(return -1, entity->plugin->node_ops,
-				  get_level, entity);
-	
 	joint->counter++;
-	
-	if ((before_func && (result = before_func(joint, hint))))
+
+	if ((before_func && (result = before_func(joint, hint->data))))
 		goto error;
 
 	for (pos->item = 0; pos->item < reiser4_node_count(joint->node); pos->item++) {
@@ -728,7 +725,7 @@ errno_t reiser4_joint_traverse(
 			if (ptr.ptr != FAKE_BLK && ptr.ptr != 0) {
 				child = NULL;
 					
-				if (setup_func && (result = setup_func(&coord, hint)))
+				if (setup_func && (result = setup_func(&coord, hint->data)))
 					goto error_after_func;
 
 				if (!open_func)
@@ -736,7 +733,7 @@ errno_t reiser4_joint_traverse(
 
 				if (!(child = reiser4_joint_find(joint, &coord.entity.key))) {
 						
-					if ((result = open_func(&child, ptr.ptr, hint)))
+					if ((result = open_func(&child, ptr.ptr, hint->data)))
 						goto error_update_func;
 
 					if (!child)
@@ -747,7 +744,7 @@ errno_t reiser4_joint_traverse(
 					if (reiser4_joint_attach(joint, child))
 						goto error_free_child;
 				}
-				
+
 				if ((result = reiser4_joint_traverse(child, hint, 
 								     open_func,
 								     before_func, 
@@ -756,14 +753,11 @@ errno_t reiser4_joint_traverse(
 								     after_func)) < 0)
 					goto error_free_child;
 
-				hint->level = plugin_call(return -1, entity->plugin->node_ops,
-							  get_level, entity);
-				
 				if (hint->cleanup && !child->children && child->data)
 					reiser4_joint_close(child);
 					
 			update:
-				if (update_func && (result = update_func(&coord, hint)))
+				if (update_func && (result = update_func(&coord, hint->data)))
 					goto error_after_func;
 			}
 				
@@ -773,7 +767,7 @@ errno_t reiser4_joint_traverse(
 		}
 	}
 	
-	if (after_func && (result = after_func(joint, hint)))
+	if (after_func && (result = after_func(joint, hint->data)))
 		goto error;
 
 	joint->counter--;
@@ -787,11 +781,11 @@ errno_t reiser4_joint_traverse(
  error_update_func:
 	
 	if (update_func)
-		result = update_func(&coord, hint);
+		result = update_func(&coord, hint->data);
     
  error_after_func:
 	if (after_func)
-		result = after_func(joint, hint);
+		result = after_func(joint, hint->data);
     
  error:
 	joint->counter--;
