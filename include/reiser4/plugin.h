@@ -364,7 +364,7 @@ typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
   (1) Fixed description structures for all item types (statdata, direntry, 
       nodeptr, etc).
     
-  (2) Estimate common item method which gets coord of where to insert into
+  (2) Estimate common item method which gets place of where to insert into
       (NULL or unit == -1 for insertion, otherwise it is pasting) and data
       description from 1.
     
@@ -731,7 +731,7 @@ struct reiser4_item_ops {
 	errno_t (*valid) (item_entity_t *);
 
 	/* Checks the item structure. */
-	errno_t (*check) (item_entity_t *);
+	errno_t (*check) (item_entity_t *, uint8_t);
 	
 	/* Returns unit count */
 	uint32_t (*units) (item_entity_t *);
