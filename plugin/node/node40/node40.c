@@ -415,8 +415,6 @@ static uint32_t node40_size(node40_t *node, pos_t *pos,
 static errno_t node40_grow(node40_t *node, pos_t *pos,
 			   uint32_t len, uint32_t count)
 {
-	int is_space;
-	int is_range;
 	int is_insert;
 
 	uint32_t item;
@@ -434,13 +432,9 @@ static errno_t node40_grow(node40_t *node, pos_t *pos,
 	items = nh40_get_num_items(node);
 	headers = count * sizeof(item40_header_t);
 
-	is_space = (nh40_get_free_space(node) >= len +
-		    (is_insert ? sizeof(item40_header_t) : 0));
-    
-	is_range = (pos->item <= items);
-    
-	aal_assert("vpf-026", is_space);
-	aal_assert("vpf-027", is_range);
+	aal_assert("vpf-026", nh40_get_free_space(node) >= 
+		   len + (is_insert ? sizeof(item40_header_t) : 0));
+	aal_assert("vpf-027", pos->item <= items);
 
 	/* Getting real pos of the item to be updated */
 	item = pos->item + !is_insert;
@@ -947,23 +941,47 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 		/* Expands the node item content will be inserted in */
 		if (node40_expand(dst_entity, dst_pos, src_hint->len, 1))
 			return -EINVAL;
-	} else if (dst_hint->len < dst_hint->len) {
+	} else if (src_hint->len < dst_hint->len) {
+		/* For overwrite, do not account item40_header in shrink */
+		if (dst_pos->unit == ~0ul)
+			dst_pos->unit = 0;
+		
 		/* Expands the node item content will be inserted in */
 		if (node40_expand(dst_entity, dst_pos, 
 				  dst_hint->len - src_hint->len, 1))
 			return -EINVAL;
-	} else if (dst_hint->len > dst_hint->len) {
-		aal_exception_warn("Shrinking the node during the overwriting "
-			"is not ready yet.");
-		return 0;
+	} else if (dst_hint->len > src_hint->len) {
+		if (node40_item(dst_entity, dst_pos, &dst_item))
+			return -EINVAL;
+
+		/* Remove evth between @start and @end keys. */
+		if (dst_item.plugin->item_ops.shrink) {
+			if ((res = dst_item.plugin->item_ops.shrink(
+					&dst_item, start, end)) <= 0)
+			{
+				aal_exception_error("Node (%llu), item (%u): "
+						    "Can't shrink the item.", 
+						    dst_node->block->blk,
+						    dst_pos->item);
+			}
+		}
+		
+		/* For overwrite, do not account item40_header in shrink */
+		if (dst_pos->unit == ~0ul)
+			dst_pos->unit = 0;
+		
+		/* Shrink the item on src_hint->len - dst_hint->len bytes. */
+		if (node40_shrink(dst_entity, dst_pos, 
+				  src_hint->len - dst_hint->len, 1))
+			return -EINVAL;
 	}
 	
 	plugin = src_entity->plugin;
 	aal_assert("umka-2123", plugin != NULL);
-		
+	
 	if (node40_item(dst_entity, dst_pos, &dst_item))
 		return -EINVAL;
-		
+	
 	/*
 	  Check if we will copy whole item, or we should call item's copy()
 	  method in order to copy units from @start key through the @end one.
