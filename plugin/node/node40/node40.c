@@ -701,6 +701,114 @@ static errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
 	return 0;
 }
 
+static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
+			   key_entity_t *start, key_entity_t *end,
+			   copy_hint_t *hint)
+{
+	errno_t res;
+	item_entity_t item;
+	
+	aal_assert("umka-1989", pos != NULL);
+	aal_assert("umka-1991", hint != NULL);
+	aal_assert("umka-1987", entity != NULL);
+	aal_assert("umka-2047", node40_loaded(entity));
+
+	if (node40_item(entity, pos, &item))
+		return -EINVAL;
+	
+	hint->plugin = item.plugin;
+	
+	if ((res = node40_get_key(entity, pos, &hint->key)))
+		return res;
+	
+	/* Initializing hint fields */
+	if (pos->unit == ~0ul ||
+	    !hint->plugin->item_ops.feel)
+	{
+		hint->len = item.len;
+		return 0;
+	}
+	
+	return hint->plugin->item_ops.feel(&item, pos->unit,
+					   start, end, hint);
+}
+
+static errno_t node40_copy(object_entity_t *dst_entity,
+			   pos_t *dst_pos,
+			   object_entity_t *src_entity,
+			   pos_t *src_pos,
+			   key_entity_t *start,
+			   key_entity_t *end,
+			   copy_hint_t *hint)
+{
+	errno_t res;
+	node40_t *dst_node;
+	node40_t *src_node;
+	
+	item40_header_t *ih;
+	item_entity_t src_item;
+	item_entity_t dst_item;
+	reiser4_plugin_t *plugin;
+
+	aal_assert("umka-2124", dst_entity != NULL);
+	aal_assert("umka-2125", src_entity != NULL);
+	
+	aal_assert("umka-2029", node40_loaded(dst_entity));
+	aal_assert("umka-2030", node40_loaded(src_entity));
+	
+	dst_node = (node40_t *)dst_entity;
+	src_node = (node40_t *)src_entity;
+	
+	/*
+	  Check if we will copy one item, or we should call item's copy() method
+	  in order to copy units from @start key through the @end one.
+	*/
+	if (src_pos->unit == ~0ul) {
+		return node40_rep(dst_node, dst_pos, src_node,
+				  src_pos, 1);
+	}
+
+	if (node40_item(src_entity, src_pos, &src_item))
+		return -EINVAL;
+
+	plugin = src_entity->plugin;
+	aal_assert("umka-2123", plugin != NULL);
+	
+	ih = node40_ih_at(dst_node, dst_pos->item);
+
+	ih40_set_pid(ih, plugin->h.id);
+
+	aal_memcpy(&ih->key, hint->key.body,
+		   sizeof(ih->key));
+		
+	if (node40_item(dst_entity, dst_pos, &dst_item))
+		return -EINVAL;
+		
+	if ((res = plugin_call(hint->plugin->item_ops, copy,
+			       &dst_item, dst_pos->item,
+			       &src_item, src_pos->item,
+			       start, end, hint)))
+	{
+		aal_exception_error("Can't copy units from "
+				    "node %llu to node %llu.",
+				    src_node->block->blk,
+				    dst_node->block->blk);
+		return res;
+	}
+
+	/*
+	  Updating item's key if we insert new item or if we insert unit
+	  into leftmost postion.
+	*/
+	if (dst_pos->unit == 0) {
+		aal_memcpy(&ih->key, dst_item.key.body,
+			   sizeof(ih->key));
+	}
+
+	dst_node->dirty = 1;
+	return 0;
+}
+
 /* Inserts item described by hint structure into node */
 static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			     create_hint_t *hint)
@@ -749,15 +857,14 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			goto out_make_dirty;
 		}
 
-		res = plugin_call(hint->plugin->item_ops, insert,
-				  &item, hint, 0);
+		if ((res = plugin_call(hint->plugin->item_ops,
+				       insert, &item, hint, 0)))
+			return res;
 	} else {
-		res = plugin_call(hint->plugin->item_ops, insert,
-				  &item, hint, pos->unit);
+		if ((res = plugin_call(hint->plugin->item_ops,
+				       insert, &item, hint, pos->unit)))
+			return res;
 	}
-	
-	if (res != 0)
-		return res;
 
 	/*
 	  Updating item's key if we insert new item or if we insert unit
@@ -902,25 +1009,6 @@ static errno_t node40_cut(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t node40_copy(object_entity_t *dst_entity,
-			   pos_t *dst_pos,
-			   object_entity_t *src_entity,
-			   pos_t *src_pos,
-			   uint32_t count)
-{
-	node40_t *dst_node;
-	node40_t *src_node;
-
-	aal_assert("umka-2029", node40_loaded(dst_entity));
-	aal_assert("umka-2030", node40_loaded(src_entity));
-	
-	dst_node = (node40_t *)dst_entity;
-	src_node = (node40_t *)src_entity;
-	
-	return node40_rep(dst_node, dst_pos, src_node,
-			  src_pos, count);
-}
-
 static errno_t node40_expand(object_entity_t *entity,
 			     pos_t *pos, uint32_t len,
 			     uint32_t count)
@@ -929,7 +1017,8 @@ static errno_t node40_expand(object_entity_t *entity,
 	aal_assert("umka-2033", entity != NULL);
 	aal_assert("umka-2032", node40_loaded(entity));
 	
-	return node40_grow((node40_t *)entity, pos, len, count);
+	return node40_grow((node40_t *)entity, pos,
+			   len, count);
 }
 
 static errno_t node40_shrink(object_entity_t *entity,
@@ -940,7 +1029,8 @@ static errno_t node40_shrink(object_entity_t *entity,
 	aal_assert("umka-2036", entity != NULL);
 	aal_assert("umka-2037", node40_loaded(entity));
 	
-	return node40_cutout((node40_t *)entity, pos, len, count);
+	return node40_cutout((node40_t *)entity, pos,
+			     len, count);
 }
 
 extern errno_t node40_check(object_entity_t *entity, uint8_t mode);
@@ -1151,75 +1241,6 @@ static lookup_t node40_lookup(object_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
-static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
-			   uint32_t count, copy_hint_t *hint)
-{
-	rid_t pid;
-	errno_t res;
-	
-	aal_assert("umka-1989", pos != NULL);
-	aal_assert("umka-1991", hint != NULL);
-	aal_assert("umka-1987", entity != NULL);
-	aal_assert("umka-2047", node40_loaded(entity));
-
-	hint->pos = *pos;
-	
-	pid = node40_item_pid(entity, pos);
-
-	/* Calling item feel method to fill @hint fields */
-	if (!(hint->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid)))
-		return -EINVAL;
-	
-	if ((res = node40_get_key(entity, pos, &hint->key)))
-		return res;
-	
-	if (pos->unit == ~0ul) {
-		pos_t p = *pos;
-
-		/*
-		  Zeroing out unused fields in the case we are going to write at
-		  item position, that is, without unit component initialized.
-		*/
-		hint->header_len = 0;
-		hint->header_data = NULL;
-
-		/* Initializing body related fields to item body and item len */
-		hint->body_len = 0;
-
-		if (p.item + count >= node40_items(entity))
-			count = node40_items(entity) - p.item;
-		
-		for (p.item = 0; p.item < p.item + count; p.item++)
-			hint->body_len += node40_item_len(entity, &p);
-		
-		hint->body_data = node40_item_body(entity, pos);
-		return 0;
-	} else {
-		item_entity_t item;
-	
-		if (node40_item(entity, pos, &item))
-			return -EINVAL;
-		
-		/*
-		  If feel() is not implemented we suppose we want copy item
-		  which has not units. In this case we initialize hint as
-		  pointer to item body with item len.
-		*/
-		if (!hint->plugin->item_ops.feel) {
-			hint->header_len = 0;
-			hint->header_data = NULL;
-
-			hint->body_len = item.len;
-			hint->header_data = item.body;
-			return 0;
-		}
-
-		return hint->plugin->item_ops.feel(&item, pos->unit,
-						   count, hint);
-	}
-}
-
 /* Checks if two item entities are mergeable */
 static bool_t node40_mergeable(item_entity_t *item1,
 			       item_entity_t *item2)

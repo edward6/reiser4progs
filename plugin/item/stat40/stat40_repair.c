@@ -51,19 +51,19 @@ errno_t stat40_check(item_entity_t *item, uint8_t mode) {
 	return REPAIR_FATAL;
     }
     
-    hint.sdext.pos += plugin_call(hint.sdext.plugin->sdext_ops, length, 
-	hint.sdext.body + hint.sdext.pos);
+    hint.sdext.offset += plugin_call(hint.sdext.plugin->sdext_ops, length, 
+	hint.sdext.body);
     
-    aal_assert("vpf-784", hint.sdext.pos <= item->len);
+    aal_assert("vpf-784", hint.sdext.offset <= item->len);
     
-    if (hint.sdext.pos < item->len) {
+    if (hint.sdext.offset < item->len) {
 	aal_exception_error("Node (%llu), item (%u): item has a wrong length "
 	    "(%u). Should be (%u). %s", item->context.blk, item->pos.item, 
-	     item->len, hint.sdext.pos, mode == REPAIR_REBUILD ? 
+	     item->len, hint.sdext.offset, mode == REPAIR_REBUILD ? 
 	     "Fixed." : "");
 	
 	if (mode == REPAIR_REBUILD)
-	    item->len = hint.sdext.pos;
+	    item->len = hint.sdext.offset;
 	
 	return mode == REPAIR_REBUILD ? REPAIR_FIXED : REPAIR_FATAL;
     }

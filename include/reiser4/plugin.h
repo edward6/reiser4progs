@@ -238,8 +238,10 @@ typedef struct item_entity item_entity_t;
 
 struct sdext_entity {
 	reiser4_plugin_t *plugin;
+
 	body_t *body;
-	uint32_t pos, len;
+	uint32_t len;
+	uint32_t offset;
 };
 
 typedef struct sdext_entity sdext_entity_t;
@@ -317,15 +319,10 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
-/* This struct is used for writing data from the one place to another */
 struct copy_hint {
-	void *header_data;
-	uint32_t header_len;
-
-	void *body_data;
-	uint32_t body_len;
+	uint32_t len;
+	uint32_t count;
 	
-	pos_t pos;
 	key_entity_t key;
 	reiser4_plugin_t *plugin;
 };
@@ -711,13 +708,20 @@ struct reiser4_item_ops {
 	/* Prepares item body for working with it */
 	errno_t (*init) (item_entity_t *);
 
-	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
-			 uint32_t, uint32_t);
-	
-	/* Write method for filebody items */
-	int32_t (*write) (item_entity_t *, void *, uint32_t,
-			  uint32_t);
+	/* Copy related functions */
+	errno_t (*feel) (item_entity_t *, uint32_t, key_entity_t *,
+			 key_entity_t *, copy_hint_t *);
 
+	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
+			 uint32_t, key_entity_t *, key_entity_t *,
+			 copy_hint_t *);
+	
+	/*
+	  Estimates item in order to find out how many bytes is needed for
+	  inserting one more unit.
+	*/
+	errno_t (*estimate) (item_entity_t *, uint32_t, uint32_t,
+			     create_hint_t *);
 	/*
 	  Inserts some amount of units described by passed hint into passed
 	  item.
@@ -729,13 +733,10 @@ struct reiser4_item_ops {
 	int32_t (*remove) (item_entity_t *, uint32_t,
 			   uint32_t);
 	
-	/*
-	  Estimates item in order to find out how many bytes is needed for
-	  inserting one more unit.
-	*/
-	errno_t (*estimate) (item_entity_t *, void *, uint32_t,
-			     uint32_t);
-    
+	/* Write method for filebody items */
+	int32_t (*write) (item_entity_t *, void *, uint32_t,
+			  uint32_t);
+
 	/* Checks the item structure. */
 	errno_t (*check) (item_entity_t *, uint8_t);
 	
@@ -752,9 +753,6 @@ struct reiser4_item_ops {
 
 	/* Goes through all blocks item points to. */
 	errno_t (*layout) (item_entity_t *, region_func_t, void *);
-
-	/* Tree write related functions */
-	errno_t (*feel) (item_entity_t *, uint32_t, uint32_t, copy_hint_t *);
 
 	/* Does some specific actions if a block the item points to is wrong. */
 	errno_t (*layout_check) (item_entity_t *, region_func_t, void *, uint8_t);
@@ -885,18 +883,19 @@ struct reiser4_node_ops {
 	errno_t (*shrink) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
+	/* Sets up the passed write hint instance */
+	errno_t (*feel) (object_entity_t *, pos_t *, key_entity_t *,
+			 key_entity_t *, copy_hint_t *);
+	
 	errno_t (*copy) (object_entity_t *, pos_t *,
 			 object_entity_t *, pos_t *,
-			 uint32_t);
+			 key_entity_t *, key_entity_t *,
+			 copy_hint_t *);
 	
 	/* Expands node */
 	errno_t (*expand) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	/* Sets up the passed write hint instance */
-	errno_t (*feel) (object_entity_t *, pos_t *,
-			 uint32_t, copy_hint_t *);
-	
 	errno_t (*set_key) (object_entity_t *, pos_t *,
 			    key_entity_t *);
 

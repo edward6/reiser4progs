@@ -546,8 +546,8 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	  Estimating body item and setting up "bytes" field from the unix
 	  extetion.
 	*/
-	if (plugin_call(body_plugin->item_ops, estimate, NULL, &body_hint,
-			~0ul, 1))
+	if (plugin_call(body_plugin->item_ops, estimate, NULL,
+			~0ul, 1, &body_hint))
 	{
 		aal_exception_error("Can't estimate directory item.");
 		goto error_free_body;
@@ -744,7 +744,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	hint.key.plugin = dir->obj.key.plugin;
 
 	if ((res = plugin_call(hint.plugin->item_ops,
-			       estimate, NULL, &hint, 0, 1)))
+			       estimate, NULL, 0, 1, &hint)))
 		return res;
 
 	item = &dir->obj.statdata.item;

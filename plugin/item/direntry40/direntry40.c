@@ -9,6 +9,10 @@
 
 static reiser4_core_t *core = NULL;
 
+static lookup_t direntry40_lookup(item_entity_t *item,
+				  key_entity_t *key,
+				  uint32_t *pos);
+
 /*
   Returns pointer to the objectid entry component in passed @direntry at pased
   @pos. It is used in code bellow.
@@ -248,18 +252,15 @@ static int direntry40_mergeable(item_entity_t *item1,
   Estimates how much bytes will be needed to prepare in node in odrer to make
   room for inserting new entries.
 */
-static errno_t direntry40_estimate(item_entity_t *item, void *buff,
-				   uint32_t pos, uint32_t count) 
+static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
+				   uint32_t count, create_hint_t *hint) 
 {
 	uint32_t i;
-	create_hint_t *hint;
 	entry_hint_t *entry_hint;
 	    
-	aal_assert("vpf-095", buff != NULL);
+	aal_assert("vpf-095", hint != NULL);
     
-	hint = (create_hint_t *)buff;
 	entry_hint = (entry_hint_t *)hint->type_specific;
-	
 	hint->len = count * sizeof(entry40_t);
     
 	for (i = 0; i < count; i++, entry_hint++) {
@@ -464,9 +465,9 @@ static uint32_t direntry40_size(item_entity_t *item,
 }
 
 /* Makes copy of @count amount of units from @src_item to @dst_one */
-static errno_t direntry40_copy(item_entity_t *dst_item, uint32_t dst_pos,
-			       item_entity_t *src_item, uint32_t src_pos,
-			       uint32_t count)
+static errno_t direntry40_rep(item_entity_t *dst_item, uint32_t dst_pos,
+			      item_entity_t *src_item, uint32_t src_pos,
+			      uint32_t count)
 {
 	uint32_t i;
 	uint32_t size;
@@ -537,6 +538,45 @@ static errno_t direntry40_copy(item_entity_t *dst_item, uint32_t dst_pos,
 		direntry40_get_key(dst_item, 0, &dst_item->key);
 	
 	return 0;
+}
+
+static errno_t direntry40_feel(item_entity_t *item,
+			       uint32_t pos,
+			       key_entity_t *start,
+			       key_entity_t *end,
+			       copy_hint_t *hint)
+{
+	uint32_t end_pos;
+	
+	aal_assert("umka-1992", item != NULL);
+	aal_assert("umka-1993", hint != NULL);
+
+	if (direntry40_lookup(item, end, &end_pos) != LP_PRESENT)
+		return -EINVAL;
+
+	hint->count = end_pos - pos;
+
+	hint->len = (sizeof(entry40_t) * hint->count) +
+		direntry40_size(item, pos, hint->count);
+
+	return 0;
+}
+
+static errno_t direntry40_copy(item_entity_t *dst_item,
+			       uint32_t dst_pos,
+			       item_entity_t *src_item,
+			       uint32_t src_pos,
+			       key_entity_t *start,
+			       key_entity_t *end,
+			       copy_hint_t *hint)
+{
+	aal_assert("umka-2127", dst_item != NULL);
+	aal_assert("umka-2128", src_item != NULL);
+	aal_assert("umka-2128", start != NULL);
+	aal_assert("umka-2128", end != NULL);
+	
+	return direntry40_rep(dst_item, dst_pos, src_item,
+			      src_pos, hint->count);
 }
 
 /* Shrinks direntry item in order to delete some entries */
@@ -732,8 +772,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			  hint->units, hint->rest);
 
 	/* Copying units from @src item to @dst one */
-	direntry40_copy(dst_item, dst_pos, src_item,
-			src_pos, hint->units);
+	direntry40_rep(dst_item, dst_pos, src_item,
+		       src_pos, hint->units);
 
 	direntry40_shrink(src_item, src_pos, hint->units);
 	de40_dec_units(src_direntry, hint->units);
@@ -867,32 +907,6 @@ int32_t direntry40_remove(item_entity_t *item,
 		direntry40_get_key(item, 0, &item->key);
 
 	return len;
-}
-
-static errno_t direntry40_feel(item_entity_t *item, uint32_t pos,
-			       uint32_t count, copy_hint_t *hint)
-{
-	uint32_t units;
-	direntry40_t *direntry;
-	
-	aal_assert("umka-1992", item != NULL);
-	aal_assert("umka-1993", hint != NULL);
-
-	units = direntry40_units(item);
-	aal_assert("umka-1994", pos < units);
-		
-	direntry = direntry40_body(item);
-
-	if (pos + count >= units)
-		count = units - pos;
-	
-	hint->header_data = &direntry->entry[pos];
-	hint->header_len = sizeof(entry40_t) * count;
-	
-	hint->body_len = direntry40_size(item, pos, count);
-	hint->body_data = item->body + direntry->entry[pos].offset;
-
-	return 0;
 }
 
 /* Prepares area new item will be created at */

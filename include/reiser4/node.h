@@ -61,12 +61,6 @@ extern errno_t reiser4_node_cut(reiser4_node_t *node,
 				pos_t *start,
 				pos_t *end);
 
-extern errno_t reiser4_node_copy(reiser4_node_t *src_node,
-				 pos_t *src_pos,
-				 reiser4_node_t *dst_node,
-				 pos_t *dst_pos,
-				 uint32_t count);
-
 extern errno_t reiser4_node_expand(reiser4_node_t *node, pos_t *pos,
 				   uint32_t len, uint32_t count);
 
@@ -77,8 +71,19 @@ extern errno_t reiser4_node_shift(reiser4_node_t *node,
 				  reiser4_node_t *neig,
 				  shift_hint_t *hint);
 
-extern errno_t reiser4_node_feel(reiser4_node_t *node, pos_t *pos,
-				 uint32_t count, copy_hint_t *hint);
+extern errno_t reiser4_node_feel(reiser4_node_t *node,
+				 pos_t *pos,
+				 reiser4_key_t *start,
+				 reiser4_key_t *end,
+				 copy_hint_t *hint);
+
+extern errno_t reiser4_node_copy(reiser4_node_t *src_node,
+				 pos_t *src_pos,
+				 reiser4_node_t *dst_node,
+				 pos_t *dst_pos,
+				 reiser4_key_t *start,
+				 reiser4_key_t *end,
+				 copy_hint_t *hint);
 
 extern bool_t reiser4_node_confirm(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);

@@ -62,12 +62,11 @@ static int tail40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
-static errno_t tail40_copy(item_entity_t *dst_item,
-			   uint32_t dst_pos,
-			   item_entity_t *src_item,
-			   uint32_t src_pos,
-			   uint32_t count)
+static errno_t tail40_rep(item_entity_t *dst_item,
+			  uint32_t dst_pos,
+			  item_entity_t *src_item,
+			  uint32_t src_pos,
+			  uint32_t count)
 {
 	aal_assert("umka-2075", dst_item != NULL);
 	aal_assert("umka-2076", src_item != NULL);
@@ -76,6 +75,52 @@ static errno_t tail40_copy(item_entity_t *dst_item,
 		   src_item->body + src_pos, count);
 	
 	return 0;
+}
+
+static errno_t tail40_feel(item_entity_t *item,
+			   uint32_t pos,
+			   key_entity_t *start,
+			   key_entity_t *end,
+			   copy_hint_t *hint)
+{
+	uint64_t end_offset;
+	uint64_t start_offset;
+	
+	aal_assert("umka-2131", end != NULL);
+	aal_assert("umka-1995", item != NULL);
+	aal_assert("umka-1996", hint != NULL);
+	aal_assert("umka-2132", start != NULL);
+
+	end_offset = plugin_call(end->plugin->key_ops,
+				 get_offset, end);
+	
+	start_offset = plugin_call(start->plugin->key_ops,
+				   get_offset, start);
+
+	aal_assert("umka-2130", end_offset > start_offset);
+
+	hint->len = end_offset - start_offset;
+	hint->count = end_offset - start_offset;
+	
+	return 0;
+}
+
+static errno_t tail40_copy(item_entity_t *dst_item,
+			   uint32_t dst_pos,
+			   item_entity_t *src_item,
+			   uint32_t src_pos,
+			   key_entity_t *start,
+			   key_entity_t *end,
+			   copy_hint_t *hint)
+{
+	aal_assert("umka-2133", end != NULL);
+	aal_assert("umka-2135", hint != NULL);
+	aal_assert("umka-2136", start != NULL);
+	aal_assert("umka-2134", dst_item != NULL);
+	aal_assert("umka-2134", src_item != NULL);
+
+	return tail40_rep(dst_item, dst_pos, src_item,
+			  src_pos, hint->count);
 }
 
 /* Rewrites tail from passed @pos by data specifed by hint */
@@ -192,7 +237,6 @@ static errno_t tail40_maxposs_key(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t tail40_utmost_key(item_entity_t *item,
 				 key_entity_t *key) 
 {
@@ -214,7 +258,6 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 	
 	return 0;
 }
-
 #endif
 
 static lookup_t tail40_lookup(item_entity_t *item,
@@ -406,22 +449,6 @@ static errno_t tail40_shift(item_entity_t *src_item,
 	
 	return 0;
 }
-
-static errno_t tail40_feel(item_entity_t *item, uint32_t pos,
-			   uint32_t count, copy_hint_t *hint)
-{
-	aal_assert("umka-1995", item != NULL);
-	aal_assert("umka-1996", hint != NULL);
-
-	hint->header_len = 0;
-	hint->header_data = NULL;
-
-	hint->body_len = count;
-	hint->body_data = item->body + pos;
-
-	return 0;
-}
-
 #endif
 
 static reiser4_plugin_t tail40_plugin = {

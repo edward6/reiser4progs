@@ -1445,31 +1445,38 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 			  reiser4_key_t *start,
 			  reiser4_key_t *end)
 {
-/*	errno_t res;
-	uint32_t needed;
+	errno_t res;
 	copy_hint_t hint;
+	reiser4_place_t old;
 	   
 	aal_assert("umka-2116", dst != NULL);
 	aal_assert("umka-2117", src != NULL);
 	aal_assert("umka-2119", end != NULL);
 	aal_assert("umka-2115", tree != NULL);
 	aal_assert("umka-2118", start != NULL);
+
+	/*
+	  FIXME-UMKA: Here should be stuff for handling the situation when tree
+	  is empty, like tree_insert() does.
+	*/
 	
-	if ((res = reiser4_item_feel(src, &hint)))
+	if ((res = reiser4_item_feel(src, start, end, &hint)))
 		return res;
 
-	needed = hint.header_len + hint.body_len;
-	aal_assert("umka-2122", needed > 0);
+	aal_assert("umka-2122", hint.len > 0);
 	
-	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
-		aal_exception_error("Can't prepare space for copy "
-				    "one more item/unit.");
+	old = *dst;
+	
+	if ((res = reiser4_tree_expand(tree, dst, hint.len,
+				       SF_DEFAULT)))
+	{
+		aal_exception_error("Can't prepare space for "
+				    "copy one more item/unit.");
 		return res;
 	}
 
-	if ((res = reiser4_node_copy(dst->node, &dst->pos,
-				     src->node, &src->pos,
-				     start, end, hint)))
+	if ((res = reiser4_node_copy(dst->node, &dst->pos, src->node,
+				     &src->pos, start, end, &hint)))
 	{
 		aal_exception_error("Can't copy an item/unit from node "
 				    "%llu to %llu one.", src->node->blk,
@@ -1477,41 +1484,28 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 		return res;
 	}
 
-	if (reiser4_place_leftmost(place) &&
-	    place->node->parent.node)
-	{
+	if (reiser4_place_leftmost(dst) && dst->node->parent.node) {
 		reiser4_place_t p;
 
-		reiser4_place_init(&p, place->node->parent.node,
-				   &place->node->parent.pos);
+		reiser4_place_init(&p, dst->node->parent.node,
+				   &dst->node->parent.pos);
 		
-		if ((res = reiser4_tree_ukey(tree, &p, &hint->key)))
+		if ((res = reiser4_tree_ukey(tree, &p, &hint.key)))
 			return res;
 	}
 	
-	if (place->node != tree->root && !place->node->parent.node) {
+	if (dst->node != tree->root && !dst->node->parent.node) {
+		
 		if (!old.node->parent.node)
 			reiser4_tree_growup(tree);
 	
-		if ((res = reiser4_tree_attach(tree, place->node))) {
+		if ((res = reiser4_tree_attach(tree, dst->node))) {
 			aal_exception_error("Can't attach node %llu to "
-					    "the tree.", place->node->blk);
-			reiser4_tree_release(tree, place->node);
+					    "the tree.", dst->node->blk);
+			reiser4_tree_release(tree, dst->node);
 			return res;
 		}
 	}
-
-	if ((res = reiser4_place_realize(place)))
-		return res;
-
-	if ((res = reiser4_item_realize(place)))
-		return res;
-
-	if (tree->traps.post_insert) {
-		if ((res = tree->traps.post_insert(tree, place, hint,
-						   tree->traps.data)))
-			return res;
-	}*/
     
 	return 0;
 }

@@ -15,16 +15,16 @@
 #include <repair/repair_plugin.h>
 
 errno_t sdext_symlink_check(sdext_entity_t *sdext, uint8_t mode) {
-    uint32_t pos;
+    uint32_t offset;
     
     aal_assert("vpf-779", sdext != NULL);
     aal_assert("vpf-780", sdext->plugin != NULL);
     
-    pos = sdext->pos;
+    offset = 0;
     
-    while (*((char *)sdext->body + pos)) {
-	pos++;
-	if (pos == sdext->len) {
+    while (*((char *)sdext->body + offset)) {
+	offset++;
+	if (offset == sdext->len) {
 	    aal_exception_error("Does not look like a valid (%s) statdata "
 		"extention.", sdext->plugin->h.label);
 	    
