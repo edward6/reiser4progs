@@ -294,22 +294,26 @@ static int callback_comp_joint(
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
+#define WATERMARK (10*1024*1024)
+
 static inline errno_t reiser4_joint_check(reiser4_joint_t *joint) {
 
 #ifndef ENABLE_COMPACT
 	int res;
 	struct rusage rusage;
-	
+
 	if ((res = getrusage(RUSAGE_SELF, &rusage)))
 		return res;
 
 	if (rusage.ru_majflt != joint->tree->flt) {
-		joint->tree->flt = rusage.ru_majflt;
-
-		aal_exception_info("Memory presure event. Running tree collector.");
 		
-		if (reiser4_tree_collector(joint->tree))
-			return -1;
+		if (joint->tree->lru == NULL)
+			return 0;
+
+		aal_exception_info("Memory pressure event. Running tree collector.");
+		
+		joint->tree->flt = rusage.ru_majflt;
+		return reiser4_tree_collector(joint->tree);
 	}
 #endif
 	

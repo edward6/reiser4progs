@@ -173,7 +173,7 @@ errno_t reiser4_tree_collector(reiser4_tree_t *tree) {
 		if (joint->counter == 0) {
 			if (!(joint->flags & JF_DIRTY)) {
 				
-				if (!joint->parent)
+				if (joint == tree->root)
 					continue;
 
 				if (joint->children)
@@ -182,6 +182,8 @@ errno_t reiser4_tree_collector(reiser4_tree_t *tree) {
 				reiser4_joint_detach(joint->parent, joint);
 				tree->lru = aal_list_remove(tree->lru, joint);
 				reiser4_joint_close(joint);
+
+				return 0;
 			} else {
 				/* Joint flushing will be here */
 //				aal_exception_info("Flushing the joint %llu.",
@@ -205,7 +207,6 @@ static errno_t reiser4_tree_setup(reiser4_tree_t *tree) {
 	tree->flt = rusage.ru_majflt;
 #endif
 	
-	tree->lru = aal_list_insert(tree->lru, tree->root, 0);
 	return 0;
 }
 
