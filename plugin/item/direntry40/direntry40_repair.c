@@ -44,7 +44,7 @@
 /* short name is all in the key, long is 16 + '\0' */
 #define NAME_LEN_MIN(kind)	(kind ? 16 + 1: 0)
 #define ENTRY_LEN_MIN(kind) 	(sizeof(objid_t) + NAME_LEN_MIN(kind))
-#define UNIT_LEN_MIN(kind)	(sizeof(hash_t) + ENTRY_LEN_MIN(kind))
+#define UNIT_LEN_MIN(kind)	(sizeof(entry40_t) + ENTRY_LEN_MIN(kind))
 #define DENTRY_LEN_MIN		(UNIT_LEN_MIN(S_NAME) + sizeof(direntry40_t))
 
 #define de40_len_min(count)	((uint64_t)count * UNIT_LEN_MIN(S_NAME) + \
@@ -52,9 +52,12 @@
 
 #define OFFSET(de, i)		(en40_get_offset(&de->entry[i]))
 
-#define R(n)			(2 * n + 1)
-#define NR(n)			(2 * n)
+#define R(n)			(2 * (n) + 1)
+#define NR(n)			(2 * (n))
 
+/* Extention for repair_flag_t */
+#define REPAIR_SKIP	0
+    
 extern int32_t direntry40_remove(item_entity_t *item, uint32_t pos, uint32_t count);
  
 /* Check the i-th offset of the unit body within the item. */
@@ -67,8 +70,10 @@ static errno_t direntry40_offset_check(item_entity_t *item, uint32_t pos) {
     offset = OFFSET(de, pos);
     
     /* There must be enough space for the entry in the item. */
-    if (offset != item->len - UNIT_LEN_MIN(S_NAME) && 
-	offset > item->len - UNIT_LEN_MIN(L_NAME))
+    /* FIXME-BUG: offset can be == item->len - 2 * ENTRY_LEN_MIN(S_NAME) */
+    if (offset != item->len - ENTRY_LEN_MIN(S_NAME) && 
+	offset != item->len - 2 * ENTRY_LEN_MIN(S_NAME) && 
+	offset > item->len - ENTRY_LEN_MIN(L_NAME))
 	return 1;
 
     /* There must be enough space for item header, set of unit headers and set 
@@ -76,7 +81,7 @@ static errno_t direntry40_offset_check(item_entity_t *item, uint32_t pos) {
     return pos != 0 ?
 	(offset < sizeof(direntry40_t) + sizeof(entry40_t) * (pos + 1) + 
 	    sizeof(objid_t) * pos) :
-        (offset - sizeof(direntry40_t)) % (sizeof(entry40_t)) == 0;
+        (offset - sizeof(direntry40_t)) % (sizeof(entry40_t)) != 0;
 	
     /* If item was shorten, left entries should be recovered also. 
      * So this check is excessive as it can avoid such recovering 
@@ -154,16 +159,16 @@ static uint8_t direntry40_short_entry_detect(item_entity_t *item, uint32_t start
     if (length % ENTRY_LEN_MIN(S_NAME))
 	return 0;
     
-    if (!mode)
+    if (mode == REPAIR_SKIP)
 	return length / ENTRY_LEN_MIN(S_NAME);
     
     for (offset = ENTRY_LEN_MIN(S_NAME); offset < length; 
 	offset += ENTRY_LEN_MIN(S_NAME), start_pos++) 
     {
 	aal_exception_error("Node (%llu), item (%u), unit (%u): unit offset "
-	    "(%u) is wrong, should be (%u). %s", item->context.blk, item->pos,
-	    start_pos, OFFSET(de, start_pos), limit + offset, 
-	    mode == REPAIR_REBUILD ? "Fixed." : "");
+	    "(%u) is wrong, should be (%u). %s", item->context.blk, 
+	    item->pos.item, start_pos, OFFSET(de, start_pos), 
+	    limit + offset, mode == REPAIR_REBUILD ? "Fixed." : "");
 
 	if (mode == REPAIR_REBUILD)
 	    en40_set_offset(&de->entry[start_pos], limit + offset);
@@ -201,10 +206,10 @@ static uint8_t direntry40_long_entry_detect(item_entity_t *item, uint32_t start_
 	if (offset + 1 == l_limit)
 	    return count;
 	
-	if (mode) {
+	if (mode != REPAIR_SKIP) {
 	    aal_exception_error("Node %llu, item %u, unit (%u): unit "
 		"offset (%u) is wrong, should be (%u). %s", item->context.blk, 
-		item->pos, start_pos + count, OFFSET(de, start_pos + count), 
+		item->pos.item, start_pos + count, OFFSET(de, start_pos + count), 
 		l_limit, mode == REPAIR_REBUILD ? "Fixed." : "");
 	    
 	    if (mode == REPAIR_REBUILD) {
@@ -225,21 +230,21 @@ static inline uint8_t direntry40_entry_detect(item_entity_t *item,
     uint8_t count;
 
     count = direntry40_short_entry_detect(item, start_pos, 
-	OFFSET(de, end_pos), 0);
+	OFFSET(de, end_pos) - OFFSET(de, start_pos), 0);
     
     if (count == end_pos - start_pos) {
 	direntry40_short_entry_detect(item, start_pos, 
-	    OFFSET(de, end_pos), mode);
+	    OFFSET(de, end_pos) - OFFSET(de, start_pos), mode);
 	
 	return count;
     }
 
     count = direntry40_long_entry_detect(item, start_pos, 
-	OFFSET(de, end_pos), 0);
+	OFFSET(de, end_pos) - OFFSET(de, start_pos), 0);
     
     if (count == end_pos - start_pos) {
 	direntry40_long_entry_detect(item, start_pos, 
-	    OFFSET(de, end_pos), mode);
+	    OFFSET(de, end_pos) - OFFSET(de, start_pos), mode);
 	
 	return count;
     }
@@ -263,8 +268,9 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
     for (i = 0; i < count; i++) {
 	/* Check if the offset is valid. */
 	if (direntry40_offset_check(item, i)) {
-	    aal_exception_error("node %llu, item %u, unit %u: unit offset "
-		"(%u) is wrong.", item->context.blk, item->pos, i, OFFSET(de, i));
+	    aal_exception_error("Node %llu, item %u, unit %u: unit offset "
+		"(%u) is wrong.", item->context.blk, item->pos.item, i, 
+		OFFSET(de, i));
 
 	    /* mark offset wrong. */
 	    aux_bitmap_mark(flags, NR(i));
@@ -304,9 +310,6 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 		    if (count > limit)
 			count = limit;
 		    
-		    /* Mark all recovered elements as R. */
-		    for (; j <= i; j++)
-			aux_bitmap_mark(flags, R(j));
 
 		    /* Problems were detected. */
 		    if (i - j - 1) {
@@ -315,6 +318,10 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 			else
 			    res |= REPAIR_FATAL;
 		    }
+		    
+		    /* Mark all recovered elements as R. */
+		    for (; j <= i; j++)
+			aux_bitmap_mark(flags, R(j));
 		    
 		    /*
 		    if (info->mode == REPAIR_REBUILD) 
@@ -352,8 +359,18 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     
     aal_assert("vpf-757", flags != NULL);
 
-    for (last = flags->total / 2; aux_bitmap_test(flags, NR(last)) || 
-	!aux_bitmap_test(flags, R(last)); last--) {}
+    for (last = flags->total / 2; 
+	last && (aux_bitmap_test(flags, NR(last - 1)) || 
+	!aux_bitmap_test(flags, R(last - 1))); last--) {}
+    
+    if (last == 0) {
+	/* No one R unit was found */
+	aal_exception_error("Node %llu, item %u: no one valid unit has been "
+	    "found. Does not look like a valid `%s` item.", item->context.blk, 
+	    item->pos.item, item->plugin->item_ops.h.label);
+
+	return REPAIR_FATAL;
+    }
     
     /* The last offset is correct, but the last entity was not checked yet. */
     offset = direntry40_name_end(item->body, OFFSET(de, last) + sizeof(objid_t),
@@ -375,7 +392,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     if (offset == item->len - 1) {
 	count++;
 	/* If there is enough space for another entry header, set its offset 
-	 * to the item lenght. */
+	 * to the item length. */
 	if (e_count > count && mode == REPAIR_REBUILD)
 	    en40_set_offset(&de->entry[count], item->len);
     } 
@@ -396,7 +413,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     
     if (e_count != de40_get_units(de)) {
 	aal_exception_error("Node %llu, item %u: unit count (%u) is not "
-	    "correct. Should be (%u). %s", item->context.blk, item->pos, 
+	    "correct. Should be (%u). %s", item->context.blk, item->pos.item, 
 	    de40_get_units(de), e_count, mode == REPAIR_CHECK ? "" : 
 	    "Fixed.");
 	
@@ -411,13 +428,14 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     if (i) {
 	/* Some first units should be removed. */
 	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
-	    " to be a valid entries. %s", item->context.blk, item->pos, 0, i - 1, 
-	    mode == REPAIR_REBUILD ? "Removed." : "");
+	    " to be a valid entries. %s", item->context.blk, item->pos.item, 0, 
+	    i - 1, mode == REPAIR_REBUILD ? "Removed." : "");
 	
 	if (mode == REPAIR_REBUILD) {
 	    if (direntry40_remove(item, 0, i) < 0) {
 		aal_exception_error("Node %llu, item %u: remove of the unit "
-		    "(%u), count (%u) failed.", item->context.blk, item->pos, 0, i);
+		    "(%u), count (%u) failed.", item->context.blk, 
+		    item->pos.item, 0, i);
 		return -EINVAL;
 	    }
 	    res |= REPAIR_FIXED;
@@ -426,14 +444,14 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     } else if (e_count != count) {
 	/* Some last units should be removed. */
 	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
-	    " to be a valid entries. %s", item->context.blk, item->pos, count, 
-	    e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
+	    " to be a valid entries. %s", item->context.blk, item->pos.item, 
+	    count, e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
 	
 	if (mode == REPAIR_REBUILD) {
 	    if (direntry40_remove(item, count, e_count - count) < 0) {
 		aal_exception_error("Node %llu, item %u: remove of the unit "
-		    "(%u), count (%u) failed.", item->context.blk, item->pos, count, 
-		    e_count - count);
+		    "(%u), count (%u) failed.", item->context.blk, 
+		    item->pos.item, count, e_count - count);
 		return -EINVAL;
 	    }
 	    res |= REPAIR_FIXED;
@@ -458,7 +476,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		if (direntry40_remove(item, last, i - last) < 0) {
 		    aal_exception_error("Node %llu, item %u: remove of the "
 			"unit (%u), count (%u) failed.", item->context.blk, 
-			item->pos, last, i - last);
+			item->pos.item, last, i - last);
 		    return -EINVAL;
 		}
 		i = last;
@@ -484,7 +502,7 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
 
     if (item->len < de40_len_min(1)) {
 	aal_exception_error("Node %llu, item %u: item length (%u) is too "
-	    "small to contain a valid item.", item->context.blk, item->pos, 
+	    "small to contain a valid item.", item->context.blk, item->pos.item, 
 	    item->len);
 	return REPAIR_FATAL;
     }
@@ -501,21 +519,6 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
     
     if (repair_error_exists(res))
 	goto error;
-    
-    /* FIXME: direntry40_offsets_range_check should shrink bitmap at the 
-     * end of the work. Just take total after that. */
-    for (; aux_bitmap_test(flags, NR(count)) || 
-	!aux_bitmap_test(flags, R(count)); count--) {}
-    
-    if (++count == 0) {
-	/* No one R unit was found */
-	aal_exception_error("Node %llu, item %u: no one valid unit has been "
-	    "found. Does not look like a valid `%s` item.", item->context.blk, 
-	    item->pos, item->plugin->item_ops.h.label);
-
-	aux_bitmap_close(flags);
-	return REPAIR_FATAL;
-    }
     
     /* Filter units with relable offsets from others. */
     res |= direntry40_filter(item, flags, mode);
