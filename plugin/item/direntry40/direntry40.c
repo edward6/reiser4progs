@@ -136,10 +136,10 @@ static int direntry40_mergeable(item_entity_t *item1,
 	plugin = item1->key.plugin;
 	
 	locality1 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item1->key);
+				get_locality, &item1->key.body);
 
 	locality2 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item2->key);
+				get_locality, &item2->key.body);
 
 	return (locality1 == locality2);
 }

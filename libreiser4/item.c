@@ -229,19 +229,18 @@ errno_t reiser4_item_key(reiser4_coord_t *coord) {
 		return -1;
 	}
 
+	item->key.plugin = reiser4_key_guess(item->key.body);
+	aal_assert("umka-1406", item->key.plugin != NULL, return -1);
+
 	/* 
 	    If unit is specified and unit_key method is implemented - set 
 	    correct key offset. 
 	*/
-	if (coord->pos.unit != ~0ul && coord->entity.plugin->item_ops.unit_key) {
-		if (coord->entity.plugin->item_ops.unit_key(&coord->entity, 
-							    coord->pos.unit, 
-							    &item->key))
+	if (coord->pos.unit != ~0ul && item->plugin->item_ops.unit_key) {
+		if (item->plugin->item_ops.unit_key(item, coord->pos.unit, 
+						    &item->key))
 			return -1;
 	}
-
-	item->key.plugin = reiser4_key_guess(item->key.body);
-	aal_assert("umka-1406", item->key.plugin != NULL, return -1);
 
 	return 0;
 }

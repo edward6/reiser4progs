@@ -38,3 +38,6 @@ reiser4progs/COPYING.
 * insert an extent among internals may require perform shift and
   insert an item (nor extent or nodeptr) may require to perform so
   called drilling on the twig level.
+
+* improve work with keys in API and plugins. The problem is that we 
+  always need the key plugin. Where should we take it everytime?

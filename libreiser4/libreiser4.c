@@ -71,12 +71,21 @@ static int tree_lookup(
 	reiser4_level_t *level,	    /* stop level */
 	reiser4_place_t *place)	    /* result will be stored in */
 {
+	int lookup;
 	aal_assert("umka-851", key != NULL, return -1);
 	aal_assert("umka-850", tree != NULL, return -1);
 	aal_assert("umka-852", place != NULL, return -1);
     
-	return reiser4_tree_lookup((reiser4_tree_t *)tree, key, level,
-				   (reiser4_coord_t *)place);
+	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree, key, level,
+					  (reiser4_coord_t *)place)) == FAILED)
+		return lookup;
+
+	if (lookup == PRESENT) {
+		if (reiser4_item_key((reiser4_coord_t *)place))
+			return FAILED;
+	}
+
+	return lookup;
 }
 
 /* Handler for requests for right neighbor */
@@ -100,8 +109,11 @@ static errno_t tree_right(
 	pos.unit = 0;
 	pos.item = 0;
 	
-	return reiser4_coord_open((reiser4_coord_t *)right,
-				  coord->node->right, &pos);
+	if (reiser4_coord_open((reiser4_coord_t *)right,
+			       coord->node->right, &pos))
+		return -1;
+
+	return reiser4_item_key((reiser4_coord_t *)right);
 }
 
 /* Handler for requests for left neighbor */
@@ -125,8 +137,11 @@ static errno_t tree_left(
 	pos.unit = 0;
 	pos.item = reiser4_node_items(coord->node->left) - 1;
 	
-	return reiser4_coord_open((reiser4_coord_t *)left,
-				  coord->node->left, &pos);
+	if (reiser4_coord_open((reiser4_coord_t *)left,
+			       coord->node->left, &pos))
+		return -1;
+
+	return reiser4_item_key((reiser4_coord_t *)left);
 }
 
 static errno_t tree_lock(
