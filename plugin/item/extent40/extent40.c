@@ -64,7 +64,7 @@ static uint64_t extent40_size(reiser4_place_t *place) {
 /* Returns actual item size on disk */
 static uint64_t extent40_bytes(reiser4_place_t *place) {
 	extent40_t *extent;
-	uint32_t i, blocks;
+	uint64_t i, blocks;
     
 	aal_assert("umka-2204", place != NULL);
 	
