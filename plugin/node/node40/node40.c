@@ -308,18 +308,20 @@ static errno_t node40_item(item_entity_t *item,
 #ifndef ENABLE_COMPACT
 
 /*
-  Makes expand passed @node by @len in odrer to insert item/unit into it. This
-  function is used by insert and shift methods.
+  Makes expand passed @node by @len in odrer to make room for insert new
+  items/units. This function is used by insert and shift methods.
 */
 static errno_t node40_expand(node40_t *node, rpos_t *pos,
-			     uint32_t size)
+			     uint32_t len, uint32_t count)
 {
+	int i, item;
 	int is_space;
 	int is_range;
 	int is_insert;
-	int i, item_pos;
-	uint32_t offset;
 
+	uint32_t items;
+	uint32_t offset;
+	uint32_t headers;
 	item40_header_t *ih;
 
 	aal_assert("umka-817", node != NULL, return -1);
@@ -328,73 +330,79 @@ static errno_t node40_expand(node40_t *node, rpos_t *pos,
 	/* Checks for input validness */
 	is_insert = (pos->unit == ~0ul);
 
-	is_space = (nh40_get_free_space(node) >= size +
+	items = nh40_get_num_items(node);
+	headers = count * sizeof(item40_header_t);
+
+	is_space = (nh40_get_free_space(node) >= len +
 		    (is_insert ? sizeof(item40_header_t) : 0));
     
-	is_range = (pos->item <= nh40_get_num_items(node));
+	is_range = (pos->item <= items);
     
 	aal_assert("vpf-026", is_space, return -1);
 	aal_assert("vpf-027", is_range, return -1);
 
 	/* Getting real pos of the item to be updated */
-	item_pos = pos->item + !is_insert;
-	ih = node40_ih_at(node, item_pos);
+	item = pos->item + !is_insert;
+	ih = node40_ih_at(node, item);
 
 	/*
 	  If item pos is inside the range [0..count - 1], we should perform the
 	  data moving and offset upadting.
 	*/
-	if (item_pos < nh40_get_num_items(node)) {
-		uint32_t move;
+	if (item < items) {
+		uint32_t size;
 		void *src, *dst;
 
 		offset = ih40_get_offset(ih);
 
 		/* Moving items bodies */
 		src = node->block->data + offset;
-		dst = src + size;
+		dst = src + len;
 
-		move = nh40_get_free_space_start(node) - offset;
+		size = nh40_get_free_space_start(node) - offset;
 
-		aal_memmove(dst, src, move);
+		aal_memmove(dst, src, size);
 
 		/* Updating item offsets */
-		for (i = item_pos; i < nh40_get_num_items(node); i++, ih--) 
-			ih40_inc_offset(ih, size);
+		for (i = 0; i < items - item; i++, ih--) 
+			ih40_inc_offset(ih, len);
 
 		/*
 		  If this is the insert new item mode, we should prepare the
 		  room for new item header and set it up.
 		*/
 		if (is_insert) {
-			move = sizeof(item40_header_t) *
-				(nh40_get_num_items(node) - item_pos);
+			src = node40_ih_at(node, items - 1);
+
+			dst = node40_ih_at(node, items - 1 +
+					   count);
+
+			size = sizeof(item40_header_t) *
+				(items - item);
 			
-			aal_memmove(ih, ih + 1, move);
+			aal_memmove(dst, src, size);
 		}
 
-		ih += (nh40_get_num_items(node) - item_pos);
+		ih = node40_ih_at(node, item);
 	} else
 		offset = nh40_get_free_space_start(node);
 
 	/* Updating node's free space and free space start fields */
-	nh40_inc_free_space_start(node, size);
-	nh40_dec_free_space(node, size);
+	nh40_inc_free_space_start(node, len);
+	nh40_dec_free_space(node, len);
 
 	if (is_insert) {
                 /* Setting up the fields of new item */
-		ih40_set_len(ih, size);
+		ih40_set_len(ih, len);
 		ih40_set_offset(ih, offset);
 
-		nh40_inc_num_items(node, 1);
-		
-		/* Setting up node free space start */
-		nh40_dec_free_space(node, sizeof(item40_header_t));
+		/* Setting up node header */
+		nh40_inc_num_items(node, count);
+		nh40_dec_free_space(node, headers);
 	} else {
-
 		/* Increasing item len mfor the case of pasting new units */
 		ih = node40_ih_at(node, pos->item);
-		ih40_inc_len(ih, size);
+		ih40_inc_len(ih, len);
 	}
 	
 	return 0;
@@ -469,20 +477,21 @@ static errno_t node40_shrink(node40_t *node, rpos_t *pos,
 		nh40_dec_num_items(node, count);
 		nh40_inc_free_space(node, (len + headers));
 	} else {
-		item_entity_t item;
+		uint32_t item_len;
 		item40_header_t *ih;
-		
-		if (node40_item(&item, node, pos))
-			return -1;
-			
+		object_entity_t *entity;
+
+		entity = (object_entity_t *)node;
+
 		ih = node40_ih_at(node, pos->item);
+		item_len = node40_item_len(entity, pos);
 		
 		/* Moving item bodies */
-		src = node40_ib_at(node, pos->item) + item.len;
-		dst = node40_ib_at(node, pos->item) + item.len - len;
+		src = node40_ib_at(node, pos->item) + item_len;
+		dst = node40_ib_at(node, pos->item) + item_len - len;
 
 		size = nh40_get_free_space_start(node) -
-			ih40_get_offset(ih) - item.len;
+			ih40_get_offset(ih) - item_len;
 		
 		aal_memmove(dst, src, size);
 		
@@ -645,7 +654,7 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 	node = (node40_t *)entity;
 	
 	/* Makes expand of the node new item will be inaserted to */
-	if (node40_expand(node, pos, hint->len))
+	if (node40_expand(node, pos, hint->len, 1))
 		return -1;
 
 	ih = node40_ih_at(node, pos->item);
@@ -657,9 +666,11 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 	/* Updating item header plugin id if we insert new item */
 	if (pos->unit == ~0ul) {
 
-		/* Updating item header */
+                /* Updating item header */
 		ih40_set_pid(ih, hint->plugin->h.id);
-		aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
+
+		aal_memcpy(&ih->key, hint->key.body,
+			   sizeof(ih->key));
 	
 		/*
 		  If item hint contains some data, we just copy it and going
@@ -1198,7 +1209,7 @@ static errno_t node40_merge(node40_t *src_node,
 		/* Expanding dst node with creating new item */
 		rpos_init(&pos, (hint->flags & SF_LEFT ? dst_items : 0), ~0ul);
 		
-		if (node40_expand(dst_node, &pos, hint->rest)) {
+		if (node40_expand(dst_node, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand node for "
 					    "shifting units into it.");
 			return -1;
@@ -1226,7 +1237,7 @@ static errno_t node40_merge(node40_t *src_node,
 		*/
 		rpos_init(&pos, (hint->flags & SF_LEFT ? dst_items - 1 : 0), 0);
 
-		if (node40_expand(dst_node, &pos, hint->rest)) {
+		if (node40_expand(dst_node, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand item for "
 					    "shifting units into it.");
 			return -1;
@@ -1490,15 +1501,22 @@ static errno_t node40_shift_items(node40_t *src_node,
 	headers = sizeof(item40_header_t) * hint->items;
 
 	if (hint->flags & SF_LEFT) {
-
-		/* Expand will be called here */
-		nh40_dec_free_space(dst_node, (hint->bytes + headers));
-		nh40_inc_free_space_start(dst_node, hint->bytes);
-		nh40_inc_num_items(dst_node, hint->items);
+		/*
+		  Expanding dst node in order to making room for new items and
+		  update node header.
+		*/
+		rpos_init(&dst_pos, dst_items, ~0ul);
+		
+		if (node40_expand(dst_node, &dst_pos, hint->bytes,
+				  hint->items))
+		{
+			aal_exception_error("Can't expand node %llu durring "
+					    "shift.", dst_node->block->blk);
+			return -1;
+		}
 		
 		/* Copying items from src node to dst one */
 		rpos_init(&src_pos, 0, ~0ul);
-		rpos_init(&dst_pos, dst_items, ~0ul);
 		
 		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
 				hint->items))
@@ -1530,38 +1548,22 @@ static errno_t node40_shift_items(node40_t *src_node,
 	} else {
 		rpos_t pos = {src_items - hint->items, ~0ul};
 		
-		/* Preparing space for headers in dst node */
-		if (dst_items > 0) {
-			src = node40_ih_at(dst_node, dst_items - 1);
-			dst = src - headers;
-
-			size = dst_items * sizeof(item40_header_t);
-			
-			aal_memmove(dst, src, size);
-
-			/* Updating item headers */
-			ih = (item40_header_t *)dst;
-			
-			for (i = 0; i < dst_items; i++, ih++)
-				ih40_inc_offset(ih, hint->bytes);
-			
-			/* Preparing space for bodies in dst node */
-			src = dst_node->block->data + sizeof(node40_header_t);
-			dst = src + hint->bytes;
-
-			size = nh40_get_free_space_start(dst_node) -
-				sizeof(node40_header_t);
-			
-			aal_memmove(dst, src, size);
+		/*
+		  Expanding dst node in order to making room for new items and
+		  update node header.
+		*/
+		rpos_init(&dst_pos, 0, ~0ul);
+		
+		if (node40_expand(dst_node, &dst_pos, hint->bytes,
+				  hint->items))
+		{
+			aal_exception_error("Can't expand node %llu durring "
+					    "shift.", dst_node->block->blk);
+			return -1;
 		}
-
-		nh40_inc_free_space_start(dst_node, hint->bytes);
-		nh40_dec_free_space(dst_node, (hint->bytes + headers));
-		nh40_inc_num_items(dst_node, hint->items);
 
 		/* Copying items from the src node to dst one */
 		rpos_init(&src_pos, src_items - hint->items, ~0ul);
-		rpos_init(&dst_pos, 0, ~0ul);
 		
 		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
 				hint->items))
