@@ -9,9 +9,6 @@ reiser4progs/COPYING.
   in order to determine is it enough space in tree to insert data or
   not.
 
-* release extent blocks in block allocator data durring tail
-  conversion.
-
 * fix unaligned access on Itanium2.
 
 * functions for adding/removing stat data extentions.

@@ -1260,6 +1260,12 @@ static bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {
 	return (reiser4_tree_get_height(tree) <= 2);
 }
 
+/* Returns TRUE if root node contain one item, that is, tree is singular and
+   should be dried out. */
+static bool_t reiser4_tree_singular(reiser4_tree_t *tree) {
+	return (reiser4_node_items(tree->root) == 1);
+}
+
 /* Updates key at passed @place by passed @key by means of using
    reiser4_node_ukey functions in recursive maner. */
 errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
@@ -1788,11 +1794,10 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach_node(tree, place->node);
 		reiser4_tree_release_node(tree, place->node);
-		place->node = NULL;
 	}
 
 	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+	if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree)) {
 		if ((res = reiser4_tree_dryout(tree)))
 			return res;
 	}
@@ -2007,6 +2012,14 @@ int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 	return total;
 }
 
+/* Releases passed region in block allocator. This is used in tail convertion */
+errno_t callback_region_func(void *entity, uint64_t start,
+			     uint64_t width, void *data)
+{
+	reiser4_tree_t *tree = (reiser4_tree_t *)data;
+	return reiser4_alloc_release(tree->fs->alloc, start, width);
+}
+
 /* Converts item at passed @place from tail to extent and back from extent to
    tail. */
 errno_t reiser4_tree_conv(reiser4_tree_t *tree,
@@ -2056,9 +2069,13 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			goto error_free_buff;
 		}
 		
+		/* Setting up blocks remove hook. */
+		trans.data = tree;
+		trans.region_func = callback_region_func;
+		
 		/* Removing read data from the tree. */
 		trans.plug = hint->plug;
-		
+
 		if ((res = reiser4_tree_truncate(tree, &trans)))
 			goto error_free_buff;
 
@@ -2395,9 +2412,7 @@ errno_t reiser4_tree_truncate(reiser4_tree_t *tree,
 	}
 
 	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1 &&
-	    !reiser4_tree_minimal(tree))
-	{
+	if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree))	{
 		if ((res = reiser4_tree_dryout(tree)))
 			return res;
 	}
@@ -2470,7 +2485,7 @@ errno_t reiser4_tree_remove(
 	}
 
 	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+	if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree)) {
 		if ((res = reiser4_tree_dryout(tree)))
 			return res;
 	}
@@ -2478,6 +2493,7 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
+/* Traverses @node with passed functions as actions. */
 errno_t reiser4_tree_trav_node(
 	reiser4_tree_t *tree,		/* tree for traversing it */
 	reiser4_node_t *node,		/* node to be traversed */
@@ -2564,9 +2580,8 @@ errno_t reiser4_tree_trav_node(
 	return res;
 }
 
-/* Traverses tree with passed callback functions for each event (node open,
-   etc). This is is used for all tree traverse related operations like copy,
-   measurements, etc. */
+/* Traverses tree with passed callback functions for each event. This is used
+   for all tree traverse related operations like copy, measurements, etc. */
 errno_t reiser4_tree_trav(
 	reiser4_tree_t *tree,		/* node to be traversed */
 	tree_open_func_t open_func,	/* callback for node opening */
@@ -2624,19 +2639,19 @@ static reiser4_node_t *reiser4_tree_clone_node(reiser4_tree_t *src_tree,
 	return dst_node;
 }
 
-struct move_hint {
+struct clone_hint {
 	aal_list_t *path;
 	reiser4_tree_t *tree;
 };
 
-typedef struct move_hint move_hint_t;
+typedef struct clone_hint clone_hint_t;
 
 static errno_t clone_down(reiser4_tree_t *src_tree,
 			  reiser4_node_t *src_node,
 			  void *data)
 {
 	errno_t res = 0;
-	move_hint_t *hint;
+	clone_hint_t *hint;
 
 	aal_list_t *last;
 	aal_list_t *current;
@@ -2644,7 +2659,7 @@ static errno_t clone_down(reiser4_tree_t *src_tree,
 	reiser4_node_t *dst_node;
 	reiser4_tree_t *dst_tree;
 
-	hint = (move_hint_t *)data;
+	hint = (clone_hint_t *)data;
 
 	if (!(dst_tree = hint->tree))
 		return -EINVAL;
@@ -2695,10 +2710,10 @@ static errno_t clone_up(reiser4_tree_t *src_tree,
 {
 	aal_list_t *next;
 	aal_list_t *last;
-	move_hint_t *hint;
+	clone_hint_t *hint;
 
 	if (reiser4_node_get_level(src_node) > LEAF_LEVEL) {
-		hint = (move_hint_t *)data;
+		hint = (clone_hint_t *)data;
 		last = aal_list_last(hint->path);
 		next = aal_list_remove(last, last->data);
 
@@ -2713,7 +2728,7 @@ static errno_t clone_up(reiser4_tree_t *src_tree,
 errno_t reiser4_tree_clone(reiser4_tree_t *src_tree,
 			   reiser4_tree_t *dst_tree)
 {
-	move_hint_t hint;
+	clone_hint_t hint;
 	
 	aal_assert("umka-2304", src_tree != NULL);
 	aal_assert("umka-2305", dst_tree != NULL);

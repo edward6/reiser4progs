@@ -165,11 +165,19 @@ static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 					  &key, (offset * blksize));
 			}
 
+			/* Calling region remove notification function. */
+			hint->region_func(place, et40_get_start(extent),
+					  remove, hint->data);
+				
 			/* Making extent unit shorter */
 			et40_inc_start(extent, remove);
 			et40_dec_width(extent, remove);
 			hint->bytes += remove * blksize;
 		} else {
+			/* Calling region remove notification function. */
+			hint->region_func(place, et40_get_start(extent),
+					  width, hint->data);
+			
 			/* Here we remove whole unit. So, we count width blocks
 			   to be released, etc. */
 			hint->len += sizeof(extent40_t);

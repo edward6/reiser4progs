@@ -349,13 +349,6 @@ struct merge_hint {
 
 typedef struct merge_hint merge_hint_t;
 
-typedef errno_t (*region_func_t) (void *, uint64_t,
-				  uint64_t, void *);
-
-typedef errno_t (*place_func_t) (void *, place_t *, void *);
-typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
-typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
-
 /* To create a new item or to insert into the item we need to perform the
    following operations:
     
@@ -488,6 +481,13 @@ struct object_hint {
 
 typedef struct object_hint object_hint_t;
 
+typedef errno_t (*region_func_t) (void *, uint64_t,
+				  uint64_t, void *);
+
+typedef errno_t (*place_func_t) (void *, place_t *, void *);
+typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
+typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
+
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. */ 
 struct trans_hint {
@@ -520,6 +520,14 @@ struct trans_hint {
 
 	/* Plugin to be used for working with item */
 	reiser4_plug_t *plug;
+
+	/* Hook, which lets know, that passed block region is removed. Used for
+	   releasing unformatted blocks durring tail converion, etc. */
+	region_func_t region_func;
+
+	/* Related opaque data. May be used for passing something to
+	   remove_hook. */
+	void *data;
 };
 
 typedef struct trans_hint trans_hint_t;
