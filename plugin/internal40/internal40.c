@@ -68,7 +68,7 @@ static errno_t internal40_set_ptr(reiser4_item_t *item, blk_t blk)
     
     aal_assert("umka-605", item != NULL, return -1);
     aal_assert("vpf-361", item->pos != NULL, return -1);
-    aal_assert("vpf-360", item->pos->unit == 0, return -1);
+//    aal_assert("vpf-360", item->pos->unit == 0, return -1);
     
     internal = internal40_body(item);
     it40_set_ptr(internal, blk);
@@ -83,7 +83,7 @@ static blk_t internal40_get_ptr(reiser4_item_t *item) {
     
     aal_assert("umka-606", item != NULL, return 0);
     aal_assert("vpf-362", item->pos != NULL, return 0);
-    aal_assert("vpf-363", item->pos->unit == 0, return 0);
+//    aal_assert("vpf-363", item->pos->unit == 0, return 0);
     
     internal = internal40_body(item);
     
