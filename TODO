@@ -3,8 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* add option to measurefs, which will turn off directories from the data
-  fragmentation calculating.
+* add option to measurefs, which will introduce some kind of filter 
+  for file fragmentation calculating.
 
 * insert an extent among internal items may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
@@ -12,10 +12,8 @@ reiser4progs/COPYING.
 
 * --print-journal option handling code in debugfs.
 
-* --print-block-alloc should also be able to print bitmap, not just
-  the info about it like used blocks, free blocks, etc.
-
-* finish --print-block handling code in debugfs.
+* should we print blocks, that belong to some of fs objects 
+  (block allocator, etc) while handling --print-block option?
 
 * special file plugin and special files support in debugfs.
 
@@ -31,6 +29,10 @@ reiser4progs/COPYING.
 
 * some kind of flush is needed for libreiser4.
 
+* extents handling code.
+
 * change balancing algorithm from the recursive to task oriented one
   like kernel does.
 
+* make GRUB working in its native mode (make reiser4 in GRUb less size 
+  that it is for now).

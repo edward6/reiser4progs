@@ -311,9 +311,15 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 
+	/* Opening the journal */
+	if (!(fs->journal = reiser4_journal_open(fs, device))) {
+		aal_exception_error("Can't open journal on %s", host_dev);
+		goto error_free_fs;
+	}
+	
 	/* Initializing tree and tree's traps */
 	if (!(fs->tree = reiser4_tree_init(fs)))
-		goto error_free_fs;
+		goto error_free_journal;
     
 	/*
 	  In the case no print flags was specified, debugfs will print super
@@ -366,22 +372,29 @@ int main(int argc, char *argv[]) {
 			goto error_free_tree;
 	}
 	
-	/* Freeing tree */
+	/* Releasing the tree */
 	reiser4_tree_close(fs->tree);
-    
-	/* Deinitializing filesystem instance and device instance */
+
+	/* Closing the journal */
+	reiser4_journal_close(fs->journal);
+	
+	/* Closing filesystem itself */
 	reiser4_fs_close(fs);
+
+	/* Closing device */
 	aal_device_close(device);
     
 	/* 
-	   Deinitializing libreiser4. At theq moment only plugins are unloading
-	   durrign this.
+	   Deinitializing libreiser4. At the moment only plugins are unloading
+	   while doing this.
 	*/
 	libreiser4_fini();
 	return NO_ERROR;
 
  error_free_tree:
 	reiser4_tree_close(fs->tree);
+ error_free_journal:
+	reiser4_journal_close(fs->journal);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

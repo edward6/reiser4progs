@@ -59,39 +59,46 @@ errno_t debugfs_print_block(
 	reiser4_fs_t *fs,           /* filesystem for work with */
 	blk_t blk)                  /* block number to be printed */
 {
+	count_t blocks;
 	errno_t res = 0;
 	aal_device_t *device;
 	reiser4_node_t *node;
 
+	if (blk >= (blocks = reiser4_format_get_len(fs->format))) {
+		aal_exception_error("Block %llu is out of filesystem "
+				    "size %llu-%llu.", blk, (uint64_t)0,
+				    (uint64_t)blocks);
+		return -EINVAL;
+	}
+	
 	/* Check if @blk is a filesystem block at all */
 	if (!reiser4_alloc_occupied(fs->alloc, blk, 1)) {
-		aal_exception_info("Block %llu is not occupied by"
-				   "filesystem.", blk);
+		aal_exception_info("Block %llu is not used.", blk);
 		return 0;
 	}
 
-	/* Determining whata object this block belong to */
+	/* Determining what is the object block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {
 	case O_SKIPPED:
-		aal_exception_info("Block %llu belongs to skipped area.", blk);
+		aal_exception_info("Block %llu belongs to skipped area "
+				   "in the begin of partition.", blk);
 		return 0;
 	case O_FORMAT:
-		aal_exception_info("Sorry, printing format area blocks is not "
-				   "implemented yet!");
+		aal_exception_info("Block %llu belongs to format "
+				   "metadata.", blk);
 		return 0;
 	case O_JOURNAL:
-		aal_exception_info("Sorry, printing journal area blocks is not "
-				   "implemented yet!");
+		aal_exception_info("Block %llu belongs to journal "
+				   "metadata.", blk);
 		return 0;
 	case O_ALLOC:
-		aal_exception_info("Sorry, printing block allocator blocks is not "
-				   "implemented yet!");
+		aal_exception_info("Block %llu belongs to block "
+				   "allocator metadata.", blk);
 		return 0;
 	default:
 		break;
 	}
 	
-	aal_exception_off();
 	device = fs->device;
 
 	/*
@@ -99,12 +106,10 @@ errno_t debugfs_print_block(
 	  using print_process_node listed abowe.
 	*/
 	if (!(node = reiser4_node_open(device, blk))) {
-		aal_exception_on();
-		aal_exception_info("Node %llu is not a formated one.", blk);
+		aal_exception_info("Block %llu is not a formatted "
+				   "one.", blk);
 		return 0;
 	}
-
-	aal_exception_on();
 	
 	if ((res = debugfs_print_node(node)))
 		return res;
