@@ -3,8 +3,8 @@
     
     cleanup.c -- repair/cleanup.c -- cleanup pass recovery code.
     
-    The pass is intended for cleanuping the storage reiser4 tree from garbage 
-    and linking not reachable objects to 'lost+found' directory. */
+    The pass is intended for cleanuping the storage reiser4 tree from
+    not reacoverable garbage. */
 
 #include <repair/cleanup.h>
 
@@ -12,6 +12,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	repair_cleanup_t *cleanup;
 	reiser4_object_t *object;
 	errno_t res = 0;
+	uint8_t i;
 	
 	aal_assert("vpf-1060", place != NULL);
 	aal_assert("vpf-1061", data != NULL);
@@ -31,41 +32,12 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		place->pos.item--;
 		
 		return 0;	
-	} else {
-		/* Checked item belongs to some object, clear the flag. */
-		repair_item_clear_flag(place, OF_CHECKED);
 	}
+
+	for (i = 0; i < OF_LAST; i++)
+		repair_item_clear_flag(place, i);
 	
-	if (!repair_item_test_flag(place, OF_ATTACHED)) {
-		/* Try to open an object. */
-		if (reiser4_object_begin(place) == FALSE)
-			return 0;
-		
-		object = reiser4_object_realize(cleanup->repair->fs->tree, 
-						place);
-		
-		if (object == NULL)
-			return 0;
-		
-		/* Not reachable object should be linked to 'lost+found'. */
-		res = reiser4_object_link(cleanup->lost, object, object->name);
-		
-		if (res) {
-			aal_exception_error("Node (%llu), item(%u): openned "
-					    "object is failed to be linked to "
-					    "'lost+found'.", 
-					    place->node->number, 
-					    place->pos.item);
-			return res;
-		}
-		
-		cleanup->stat.linked++;
-	} else {	
-		/* Reachable, clear the flag. */
-		repair_item_clear_flag(place, OF_ATTACHED);
-	}
-	
-	return res;
+	return 0;
 }
 
 static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree, 
