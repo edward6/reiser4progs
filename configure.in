@@ -486,7 +486,7 @@ AC_CHECK_SIZEOF(off_t, 64, [
 ])
 
 OLD_LIBS="$LIBS"
-AC_CHECK_LIBAAL(aal, 0.5.1, ,exit)
+AC_CHECK_LIBAAL(aal, 0.5.2, ,exit)
 AAL_LIBS="$LIBS"
 LIBS="$OLD_LIBS"
 
@@ -494,7 +494,7 @@ AC_SUBST(AAL_LIBS)
 
 if test x$enable_stand_alone = xyes; then
     	OLD_LIBS="$LIBS"
-    	AC_CHECK_LIBAAL(aal-alone, 0.5.1, ,exit)
+    	AC_CHECK_LIBAAL(aal-alone, 0.5.2, ,exit)
     	AAL_ALONE_LIBS="$LIBS"
     	LIBS="$OLD_LIBS"
 
