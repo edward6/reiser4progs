@@ -286,6 +286,9 @@ struct reiser4_lru {
 
 	/* Memory pressure handler handle */
 	void *mpressure;
+
+	/* Some usefull data */
+	void *data;
 };
 
 typedef struct reiser4_lru reiser4_lru_t;
@@ -315,6 +318,10 @@ struct reiser4_tree {
 
 struct traverse_hint {
 
+	/* Flag which shows, should traverse remove nodes from tree cache or
+	 * not */
+	int cleanup;
+	
 	/* Current level traverse operates on */
 	uint8_t level;
 	

@@ -297,11 +297,12 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("umka-134", tree != NULL, return);
 
+	/* Freeing tree cashe and tree itself*/
+	reiser4_joint_close(tree->root);
+
 	/* Freeing tree lru */
 	reiser4_lru_fini(&tree->lru);
 
-	/* Freeing tree cashe and tree itself*/
-	reiser4_joint_close(tree->root);
 	aal_free(tree);
 }
 
@@ -734,9 +735,6 @@ errno_t reiser4_tree_mkspace(
 	if (new->u.joint != old->u.joint && 
 	    reiser4_node_count(old->u.joint->node) == 0)
 	{
-		if (old->u.joint->parent)
-			reiser4_joint_detach(old->u.joint->parent, old->u.joint);
-	
 		reiser4_tree_release(tree, old->u.joint);
 		old->u.joint = NULL;
 	}

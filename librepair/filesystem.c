@@ -17,6 +17,7 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *repair_data) {
     aal_assert("vpf-493", repair_data != NULL, return -1);
 
     hint.data = repair_data;
+    hint.cleanup = 1;
     
     if (repair_filter_setup(&hint))
 	return -1;    

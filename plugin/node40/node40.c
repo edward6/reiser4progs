@@ -43,7 +43,6 @@ static object_entity_t *node40_create(aal_device_t *device, blk_t blk,
 	
 	node->plugin = &node40_plugin;
     
-	/* Plugin setup was moved here because we should support reiser3 */
 	nh40_set_pid(node, NODE_REISER40_ID);
 
 	nh40_set_free_space(node, aal_block_size(node->block) -
@@ -93,7 +92,8 @@ static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 	node->plugin = &node40_plugin;
     
 	if (nh40_get_pid(node) != NODE_REISER40_ID) {
-		aal_exception_error("Plugin id (%u) does not match current plugin id (%u).", 
+		aal_exception_error("Plugin id (%u) does not match "
+				    "current plugin id (%u).", 
 				    nh40_get_pid(node), NODE_REISER40_ID);
 		goto error_free_node;
 	}
@@ -304,8 +304,8 @@ static errno_t node40_expand(node40_t *node,
 }
 
 /* Inserts item described by hint structure into node */
-static errno_t node40_insert(object_entity_t *entity, 
-			     reiser4_pos_t *pos, reiser4_item_hint_t *hint) 
+static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
+			     reiser4_item_hint_t *hint) 
 { 
 	item_entity_t item;
 	node40_t *node = (node40_t *)entity;
@@ -355,8 +355,8 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 			   insert, &item, pos->unit, hint);
 }
 
-static errno_t node40_shrink(node40_t *node,
-			     reiser4_pos_t *pos, uint16_t len) 
+static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
+			     uint16_t len) 
 {
 	int is_range;
 	int is_move;

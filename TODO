@@ -15,8 +15,6 @@ reiser4progs/COPYING.
 
 * FIBMAP ioctl implementation in reiser4
 
-* move memory pressure mechanism to libaal
-
 * print_block method for format, journal and block allocator plugins.
 
 * improve lru list for storing different objects in it
@@ -26,3 +24,7 @@ reiser4progs/COPYING.
 * find out do we need big endian bitops code. If no, remove it.
 
 * should we have print methods in format, alloc and oid in libreiser4?
+
+* debug lru and memory pressure code.
+
+* symlink and special file plugins.

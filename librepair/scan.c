@@ -77,6 +77,7 @@ errno_t repair_scan_node_check(reiser4_joint_t *joint, void *data) {
     
     hint.objects = 1 << EXTENT_ITEM;
     hint.data = data;
+    hint.cleanup = 1;
     
     return reiser4_joint_traverse(joint, &hint, NULL, repair_scan_joint_check, 
 	repair_scan_handle_pointers, NULL, NULL);

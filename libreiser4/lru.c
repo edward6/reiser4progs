@@ -24,6 +24,9 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	
 	aal_assert("umka-1519", lru != NULL, return -1);
 
+	aal_exception_info("Shrinking tree cache on %u nodes.",
+			   lru->adjust);
+	
 	if (!lru->adjustable)
 		lru->adjust = 1;
 	
@@ -31,9 +34,6 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 		return 0;
 
 	aal_mpressure_disable(lru->mpressure);
-	
-	aal_exception_info("Shrinking tree cache on %u nodes.",
-			   lru->adjust);
 	
 	while (curr && lru->adjust > 0) {
 		joint = (reiser4_joint_t *)curr->data;
@@ -44,8 +44,6 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 			if (!joint->parent || joint->children)
 				continue;
 
-			reiser4_joint_detach(joint->parent, joint);
-				
 /*			if (joint->flags & JF_DIRTY)
 				reiser4_joint_sync(joint);*/
 			
@@ -108,7 +106,7 @@ errno_t reiser4_lru_attach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	
 	aal_assert("umka-1525", lru != NULL, return -1);
 	aal_assert("umka-1526", joint != NULL, return -1);
-	
+
 	joint->prev = lru->list;
 	joint->next = lru->list ? lru->list->next : NULL;
 
@@ -133,6 +131,9 @@ errno_t reiser4_lru_detach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	
 	aal_assert("umka-1528", lru != NULL, return -1);
 	aal_assert("umka-1527", joint != NULL, return -1);
+
+	if (!joint->prev && joint->next)
+		return 0;
 	
 	if (joint->prev) {
 		prev = (reiser4_joint_t *)joint->prev->data;
@@ -160,7 +161,7 @@ errno_t reiser4_lru_touch(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	
 	aal_assert("umka-1529", lru != NULL, return -1);
 	aal_assert("umka-1530", joint != NULL, return -1);
-	
+
 	if (lru->list && joint->prev) {
 		prev = (reiser4_joint_t *)joint->prev->data;
 		prev->next = joint->next;

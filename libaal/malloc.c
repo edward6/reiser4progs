@@ -59,7 +59,7 @@ static void callback_check_mpressure(int dummy) {
 
 #endif
 
-static errno_t aal_mpressure_check(void) {
+errno_t aal_mpressure_check(void) {
 	int result;
 	aal_list_t *walk;
 	struct mpressure *mpressure;
@@ -76,18 +76,18 @@ static errno_t aal_mpressure_check(void) {
 					mpressure->result(mpressure->data, result);
 			}
 			
-			if (result) {
+			if (!result)
+				return 0;
 	
-				aal_list_foreach_forward(walk, mpressure_handler) {
-					mpressure = (struct mpressure *)walk->data;
+			aal_list_foreach_forward(walk, mpressure_handler) {
+				mpressure = (struct mpressure *)walk->data;
 
-					if (!mpressure->enabled)
-						continue;
+				if (!mpressure->enabled)
+					continue;
 					
-					if (mpressure->handler(mpressure->data)) {
-						aal_exception_warn("Memory pressure handler "
-								   "\"%s\" failed.", mpressure->name);
-					}
+				if (mpressure->handler(mpressure->data)) {
+					aal_exception_warn("Memory pressure handler "
+							   "\"%s\" failed.", mpressure->name);
 				}
 			}
 		}
@@ -202,8 +202,8 @@ void *aal_malloc(
 {
 	void *mem;
 
-	if (aal_mpressure_check())
-		return NULL;
+/*	if (aal_mpressure_check())
+		return NULL;*/
 		
 	/* 
 	   We are using simple printf function instead of exception, because

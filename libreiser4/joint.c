@@ -80,13 +80,19 @@ void reiser4_joint_close(
 	if (joint->children) {
 		aal_list_t *walk;
 
-		aal_list_foreach_forward(walk, joint->children)
+		for (walk = joint->children; walk; ) {
+			aal_list_t *temp = aal_list_next(walk);
 			reiser4_joint_close((reiser4_joint_t *)walk->data);
+			walk = temp;
+		}
 
 		aal_list_free(joint->children);
 		joint->children = NULL;
 	}
  
+	if (joint->parent)
+		reiser4_joint_detach(joint->parent, joint);
+	
 	/* Uninitializing all fields */
 	if (joint->left)
 		joint->left->right = NULL;
@@ -96,8 +102,9 @@ void reiser4_joint_close(
     
 	joint->left = NULL;
 	joint->right = NULL;
+
 	joint->parent = NULL;
-    
+	
 	reiser4_node_close(joint->node);
 	aal_free(joint);
 }
@@ -735,6 +742,8 @@ errno_t reiser4_joint_traverse(
 					if (!child)
 						goto update;
 
+					child->data = (void *)1;
+					
 					if (reiser4_joint_attach(joint, child))
 						goto error_free_child;
 				}
@@ -750,10 +759,8 @@ errno_t reiser4_joint_traverse(
 				hint->level = plugin_call(return -1, entity->plugin->node_ops,
 							  get_level, entity);
 				
-				if (!child->children) {
-					reiser4_joint_detach(joint, child);
+				if (hint->cleanup && !child->children && child->data)
 					reiser4_joint_close(child);
-				}
 					
 			update:
 				if (update_func && (result = update_func(&coord, hint)))
@@ -774,10 +781,8 @@ errno_t reiser4_joint_traverse(
 
  error_free_child:
 	
-	if (!child->children) {
-		reiser4_joint_detach(joint, child);
+	if (hint->cleanup && !child->children && child->data)
 		reiser4_joint_close(child);
-	}
 
  error_update_func:
 	
