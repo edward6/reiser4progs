@@ -1099,6 +1099,7 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 				blk_t blk;
 				uint32_t j;
 				node_t *child;
+				
 				/* Allocating unallocated nodeptr item
 				   at @place. */
 				if ((res = reiser4_tree_alloc_nodeptr(tree, &place)))

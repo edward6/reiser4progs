@@ -208,7 +208,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
  error_node_free:
 	reiser4_node_close(node);
 	repair_twig_scan_update(ts);
-//	reiser4_tree_collapse(ts->repair->fs->tree);
+	reiser4_tree_collapse(ts->repair->fs->tree);
 
 	return -EINVAL;
 }
