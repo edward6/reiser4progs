@@ -12,7 +12,6 @@
     enough information for their proper check.
 */
 
-#include <repair/librepair.h>
 #include <repair/filter.h>
 
 /* This is extention for repair_error_t. */
@@ -54,7 +53,8 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     
     aal_assert("vpf-252", data  != NULL);
     aal_assert("vpf-409", node != NULL);
-
+    
+    fd->stat.read_nodes++;
     if (fd->progress_handler && fd->level != LEAF_LEVEL) {
 	fd->progress->state = PROGRESS_START;
 	fd->progress->u.tree.i_total = reiser4_node_items(node);
@@ -93,11 +93,20 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 	fd->repair->fixable++;
 	/* Do not break traverse. */
 	res = 0;
-    } else
+    } else {
 	aal_assert("vpf-799", res == 0);
+	if (reiser4_node_isdirty(node)) {
+	    fd->stat.fixed_nodes++;
+	    if (level == LEAF_LEVEL)
+		fd->stat.fixed_leaves++;
+	    else if (level == TWIG_LEVEL)
+		fd->stat.fixed_twigs++;
+	}
+    }
     
     /* There are no fatal errors, check delimiting keys. */
-    if ((res = repair_node_dkeys_check(node, fd->repair->mode)) < 0 && res != -ESTRUCT)
+    if ((res = repair_node_dkeys_check(node, fd->repair->mode)) < 0 && 
+	res != -ESTRUCT)
 	return res;
     
     if (res) {
@@ -152,6 +161,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 	    ptr.start + ptr.width - 1, fd->repair->mode == REPAIR_REBUILD ? 
 	    "Removed." : "The whole subtree is skipped.");
 	
+	fd->stat.bad_ptrs += ptr.width;
 	if (fd->repair->mode == REPAIR_REBUILD) {
 	    pos_t ppos;
 	    
@@ -206,15 +216,21 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 		place->pos.item, place->pos.unit, ptr.start, 
 		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
+	    fd->stat.bad_ptrs += ptr.width;
 	} else if (fd->flags & REPAIR_FATAL) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
-		"the unrecoverable node [%llu]. %s", place->node->blk, 
-		place->pos.item, place->pos.unit, ptr.start, 
-		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
-		"The whole subtree is skipped.");
+		"the %s node [%llu]. %s", place->node->blk, place->pos.item, 
+		place->pos.unit, fd->repair->mode == REPAIR_REBUILD ? "emptied" 
+		: "unrecoverable", ptr.start, fd->repair->mode == REPAIR_REBUILD
+		? "Removed." : "The whole subtree is skipped.");
 	    
 	    /* Extents cannot point to this node. */
 	    aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
+	    fd->stat.bad_nodes += ptr.width;
+	    if (level == LEAF_LEVEL)
+		fd->stat.bad_leaves += ptr.width;
+	    else if (level == TWIG_LEVEL)
+		fd->stat.bad_twigs += ptr.width;
 	} else if (fd->flags & REPAIR_BAD_DKEYS) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the node [%llu] with wrong delimiting keys. %s", 
@@ -224,12 +240,15 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 
 	    level = reiser4_node_get_level(place->node);
 	    
+	    fd->stat.bad_dk_nodes += ptr.width;
 	    /* Insert it later. FIXME: This is hardcoded, should be changed. */
-	    if (level == LEAF_LEVEL) 
+	    if (level == LEAF_LEVEL) {
 		aux_bitmap_mark_region(fd->bm_leaf, ptr.start, ptr.width);
-	    else if (level == TWIG_LEVEL)
+		fd->stat.bad_dk_leaves += ptr.width;
+	    } else if (level == TWIG_LEVEL) {
 		aux_bitmap_mark_region(fd->bm_twig, ptr.start, ptr.width);
-	    else
+		fd->stat.bad_dk_twigs += ptr.width;
+	    } else
 		aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
 	} else
 	    aal_assert("vpf-827: Not expected case.", FALSE);
@@ -253,10 +272,14 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	fd->flags = 0;
     } else {
 	/* FIXME-VITALY: hardcoded level, should be changed. */
-	if (reiser4_node_get_level(place->node) == TWIG_LEVEL + 1) 
+	fd->stat.good_nodes += ptr.width;
+	if (reiser4_node_get_level(place->node) == TWIG_LEVEL + 1) {
 	    aux_bitmap_mark_region(fd->bm_twig, ptr.start, ptr.width);
-	else if (reiser4_node_get_level(place->node) == TWIG_LEVEL)
+	    fd->stat.good_leaves += ptr.width;
+	} else if (reiser4_node_get_level(place->node) == TWIG_LEVEL) {
 	    aux_bitmap_mark_region(fd->bm_leaf, ptr.start, ptr.width);
+	    fd->stat.good_twigs += ptr.width;
+	}
     }
     
     fd->level++;
@@ -310,7 +333,8 @@ static void repair_filter_setup(repair_filter_t *fd) {
     fd->progress->type = PROGRESS_TREE;
     fd->progress->title = "Tree Traverse Pass: scanning the reiser4 internal "
 	"tree.";
-    fd->progress->header = "";
+    fd->progress->text = "";
+    time(&fd->stat.time);
 }
 
 /* Does some update stuff after traverse through the internal tree - deletes 
@@ -320,6 +344,9 @@ static void repair_filter_setup(repair_filter_t *fd) {
 static void repair_filter_fini_traverse(repair_filter_t *fd, 
     reiser4_node_t *root) 
 {
+    aal_stream_t stream;
+    char *time_str;
+    
     aal_assert("vpf-421", fd != NULL);
     aal_assert("vpf-863", root != NULL);
     
@@ -328,13 +355,73 @@ static void repair_filter_fini_traverse(repair_filter_t *fd,
 	reiser4_format_set_root(fd->repair->fs->format, INVAL_BLK);
 	/* FIXME: sync it to disk. */
 	fd->flags = 0;
+	if (fd->flags & REPAIR_BAD_PTR) 
+	    fd->stat.bad_ptrs++;
+	else
+	    fd->stat.bad_nodes++;
     } else {
 	aal_assert("vpf-862", fd->flags == 0);
 	/* FIXME-VITALY: hardcoded level, should be changed. */
-	if (reiser4_node_get_level(root) == TWIG_LEVEL) 
+	if (reiser4_node_get_level(root) == TWIG_LEVEL) {
 	    aux_bitmap_mark(fd->bm_twig, root->blk);
-	else if (reiser4_node_get_level(root) == LEAF_LEVEL)
+	    fd->stat.good_twigs++;
+	} else if (reiser4_node_get_level(root) == LEAF_LEVEL) {
 	    aux_bitmap_mark(fd->bm_leaf, root->blk);
+	    fd->stat.good_leaves++;
+	}
+	fd->stat.good_nodes++;
+    }
+
+    if (fd->progress_handler) {
+	aal_stream_init(&stream);
+	aal_stream_format(&stream, "\tRead nodes %llu\n", fd->stat.read_nodes);
+	aal_stream_format(&stream, "\tNodes left in the tree %llu\n", 
+	    fd->stat.good_nodes);
+	
+	aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them "
+	    "%llu\n", fd->stat.good_leaves, fd->stat.good_twigs);
+	
+	if (fd->stat.fixed_nodes) {
+	    aal_stream_format(&stream, "\tCorrected nodes %llu\n", 
+		fd->stat.fixed_nodes);
+	    aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them "
+		"%llu\n", fd->stat.fixed_leaves, fd->stat.fixed_twigs);
+	}
+	if (fd->stat.bad_nodes) {
+	    aal_stream_format(&stream, "\t%s of them %llu\n", 
+		fd->repair->mode == REPAIR_REBUILD ? "Emptied" : "Broken",
+		fd->stat.bad_nodes);
+	    aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them "
+		"%llu\n", fd->stat.bad_leaves, fd->stat.bad_twigs);
+	}
+	if (fd->stat.bad_dk_nodes) {
+	    aal_stream_format(&stream, "\tNodes with wrong delimiting keys %llu\n", 
+		fd->stat.bad_dk_nodes);
+	    
+	    aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them "
+		"%llu\n", fd->stat.bad_dk_leaves, fd->stat.bad_dk_twigs);
+	}
+	
+	if (fd->stat.bad_ptrs) {
+	    aal_stream_format(&stream, "\t%s node pointers %llu\n", 
+		fd->repair->mode == REPAIR_REBUILD ? "Zeroed" : "Invalid", 
+		fd->stat.bad_ptrs);
+	}
+
+	
+	time_str = ctime(&fd->stat.time);
+	time_str[aal_strlen(time_str) - 1] = '\0';
+	aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
+	time(&fd->stat.time);
+	time_str = ctime(&fd->stat.time);
+	time_str[aal_strlen(time_str) - 1] = '\0';
+	aal_stream_format(&stream, time_str);
+	
+	fd->progress->state = PROGRESS_STAT;
+	fd->progress->text = (char *)stream.data;
+	fd->progress_handler(fd->progress);
+	
+	aal_stream_fini(&stream);
     }
 }
 

@@ -40,6 +40,8 @@ static errno_t tprint_process_node(
 	if ((res = reiser4_node_print(node, &stream)))
 		goto error_free_stream;
 
+	/* FIXME-VITALY->UMKA: it printf a node, so it is not binary data
+	 * and just a printf could be called here. */
 	debugfs_print_stream(&stream);
 	aal_stream_fini(&stream);
 	

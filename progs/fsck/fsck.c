@@ -263,12 +263,15 @@ int main(int argc, char *argv[]) {
     errno_t exit_code = NO_ERROR;
     fsck_parse_t parse_data;
     repair_data_t repair;
+    aal_gauge_t *gauge;
+    aal_stream_t stream;
     errno_t error;
     
     uint16_t mask = 0;
     
     memset(&parse_data, 0, sizeof(parse_data));
     memset(&repair, 0, sizeof(repair));
+    aal_stream_init(&stream);
 
     if ((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)
 	exit(exit_code);
@@ -283,12 +286,23 @@ int main(int argc, char *argv[]) {
     repair.mode = parse_data.mode;    
     repair.progress_handler = gauge_handler;    
 
+    fsck_time("fsck.reiser4 started at");
+
+    gauge = aal_gauge_create(GAUGE_SILENT, "Openning the fs", NULL);
+    aal_gauge_start(gauge);
     if ((error = repair_fs_open(&repair, parse_data.host_device, parse_data.host_device,
 	parse_data.profile)))
     {
 	exit_code = OPER_ERROR;	
 	goto free_libreiser4;
     }
+    aal_gauge_done(gauge);
+    aal_gauge_free(gauge);
+    
+    reiser4_master_print(repair.fs->master, &stream);
+    reiser4_format_print(repair.fs->format, &stream);
+    fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s", 
+	aal_device_name(parse_data.host_device), (char *)stream.data);
     
     if (repair.fs == NULL) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
@@ -304,7 +318,6 @@ int main(int argc, char *argv[]) {
 	goto free_fs;
     }
     
-    fsck_time("fsck.reiser4 started at");
     
     if ((error = repair_check(&repair))) {
 	exit_code = OPER_ERROR;
@@ -353,6 +366,8 @@ free_device:
 	}
     }
     
+    aal_stream_init(&stream);
+
     return exit_code;
 }
 

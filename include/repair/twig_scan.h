@@ -12,11 +12,15 @@
 #  include <config.h>
 #endif
 
-#include <repair/repair.h>
+#include <repair/librepair.h>
+#include <time.h>
 
 /* Statistics gathered during the pass. */
-typedef struct repair_ts_info {
-} repair_ts_info_t;
+typedef struct repair_ts_stat {
+    uint64_t read_twigs, fixed_twigs;
+    uint64_t bad_unfm_ptrs;
+    time_t time;
+} repair_ts_stat_t;
 
 
 /* Twig scan data. */
@@ -30,7 +34,9 @@ typedef struct repair_ts {
     aux_bitmap_t *bm_unfm_tree;	/* Unformatted blocks pointed from the tree. */
     aux_bitmap_t *bm_unfm_out;	/* Unformatted blocks pointed out of the tree. */
     
-    repair_ts_info_t info;
+    repair_progress_handler_t *progress_handler;    
+    repair_progress_t *progress;
+    repair_ts_stat_t stat;
 } repair_ts_t;
 
 extern errno_t repair_twig_scan(repair_ts_t *ts);

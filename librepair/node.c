@@ -158,8 +158,10 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 
 	if ((ret = reiser4_item_get_key(&node->parent, ld_key)))
 	    return ret;
-    } else
+    } else {
+	reiser4_key_guess(ld_key);
 	reiser4_key_minimal(ld_key);
+    }
     
     return 0;
 }
@@ -215,8 +217,10 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	    if ((ret = reiser4_item_get_key(&place, rd_key)))
 		return ret;
 	}
-    } else
+    } else {
+	reiser4_key_guess(rd_key);
 	reiser4_key_maximal(rd_key);
+    }
     
     return 0;
 }

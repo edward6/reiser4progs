@@ -190,6 +190,8 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
     ts->bm_met = control->bm_met;
     ts->bm_unfm_tree = control->bm_unfm_tree;
 
+    ts->progress_handler = control->repair->progress_handler;
+
     aux_bitmap_clear_region(control->bm_unfm_tree, 
         0, control->bm_unfm_tree->total);
 

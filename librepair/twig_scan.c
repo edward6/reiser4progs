@@ -10,7 +10,6 @@
     already used block. Builds a map of used blocks.
 */
 
-#include <repair/librepair.h>
 #include <repair/twig_scan.h>
 
 /* Check unfm block pointer if it points to an already used block (leaf, format 
@@ -32,6 +31,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	aal_exception_error("Node (%llu), item (%u): Pointed region "
 	    "[%llu..%llu] is invalid.", item->context.blk, item->pos.item, 
 	    start, start + count - 1);
+	ts->stat.bad_unfm_ptrs++;
 	return 1;
     }
     
@@ -45,6 +45,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	aal_exception_error("Node (%llu), item (%u): Pointed region "
 	    "[%llu..%llu] is used already or contains a formatted block.", 
 	    item->context.blk, item->pos.item, start, start + count - 1);
+	ts->stat.bad_unfm_ptrs++;
 	return 1;
     } 
     
@@ -86,6 +87,8 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     else if (res & REPAIR_FIXED)
 	reiser4_node_mkdirty(place->node);
     else if (res & REPAIR_REMOVED) {
+	/* FIXME: Empty nodes may be left in the tree. Cleanup the tree 
+	 * afterwords. */
 	reiser4_node_mkdirty(place->node);
 	place->pos.item--;
     }
@@ -93,11 +96,70 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     return 0;
 }
 
+static void repair_twig_scan_setup(repair_ts_t *ts) {
+    aal_assert("vpf-884", ts != NULL);
+    
+    aal_memset(ts->progress, 0, sizeof(*ts->progress));
+    ts->progress->type = PROGRESS_RATE;
+    ts->progress->title = "TwigScan Pass: checking extent pointers of all "
+	"twigs.";
+    ts->progress->text = "";
+    time(&ts->stat.time);
+    
+    if (!ts->progress_handler)
+	return;
+
+    ts->progress->state = PROGRESS_START;
+    ts->progress->u.rate.total = aux_bitmap_marked(ts->bm_twig);
+    ts->progress_handler(ts->progress);
+    
+    ts->progress->state = PROGRESS_UPDATE;
+}
+
+static void repair_twig_scan_update(repair_ts_t *ts) {
+    aal_stream_t stream;
+    char *time_str;
+
+    aal_assert("vpf-885", ts != NULL);
+    
+    if (!ts->progress_handler)
+	return;
+
+    ts->progress->state = PROGRESS_END;
+    ts->progress_handler(ts->progress);
+    
+    aal_stream_init(&stream);
+    aal_stream_format(&stream, "\tRead twigs %llu\n", ts->stat.read_twigs);
+    if (ts->stat.fixed_twigs) {
+	aal_stream_format(&stream, "\tCorrected nodes %llu\n", 
+	    ts->stat.fixed_twigs);	
+    }
+    if (ts->stat.bad_unfm_ptrs) {
+	aal_stream_format(&stream, "\tFixed invalid extent pointers %llu\n", 
+	    ts->stat.bad_unfm_ptrs);
+    }
+    time_str = ctime(&ts->stat.time);
+    time_str[aal_strlen(time_str) - 1] = '\0';
+    aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
+    time(&ts->stat.time);
+    time_str = ctime(&ts->stat.time);
+    time_str[aal_strlen(time_str) - 1] = '\0';
+    aal_stream_format(&stream, time_str);
+
+    ts->progress->state = PROGRESS_STAT;
+    ts->progress->text = (char *)stream.data;
+    ts->progress_handler(ts->progress);
+    
+    aal_stream_fini(&stream);
+    
+}
+
 /* The pass itself, goes through all twigs, check block pointers which items may have 
  * and account them in proper bitmaps. */
 errno_t repair_twig_scan(repair_ts_t *ts) {
-    reiser4_node_t *node;
+    repair_progress_t progress;
     object_entity_t *entity;
+    reiser4_node_t *node;
     errno_t res = -1;
     blk_t blk = 0;
 
@@ -105,9 +167,15 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
     aal_assert("vpf-534", ts->repair != NULL);
     aal_assert("vpf-845", ts->repair->fs != NULL);
     
-    /* There were found overlapped extents. Look through twigs, build list of
-     * extents for each problem region. */ 
+    ts->progress = &progress;
+    
+    repair_twig_scan_setup(ts);
+    
     while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
+	ts->stat.read_twigs++;
+	if (ts->progress_handler)
+	    ts->progress_handler(&progress);	
+	
 	node = repair_node_open(ts->repair->fs, blk);
 	if (node == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
@@ -120,17 +188,22 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 	/* Lookup the node. */	
 	if ((res = repair_node_traverse(node, callback_item_layout_check, ts)))
 	    goto error_node_free;
-
+	
+	if (reiser4_node_isdirty(node))
+	    ts->stat.fixed_twigs++;
+	    
 	if (!reiser4_node_locked(node))
 	    reiser4_node_close(node);
 
 	blk++;
     }
 
+    repair_twig_scan_update(ts);
     return 0;
 
 error_node_free:
     reiser4_node_close(node);
+    repair_twig_scan_update(ts);
 
     return -EINVAL;
 }

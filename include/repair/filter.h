@@ -12,9 +12,19 @@
 #  include <config.h>
 #endif
 
+#include <repair/librepair.h>
+#include <time.h>
+
 /* Statistics gathered during the pass. */
-typedef struct repair_filter_info {
-} repair_filter_info_t;
+typedef struct repair_filter_stat {
+    uint64_t read_nodes;
+    uint64_t good_nodes,   good_leaves,	  good_twigs;    
+    uint64_t fixed_nodes,  fixed_leaves,  fixed_twigs;
+    uint64_t bad_nodes,	   bad_leaves,	  bad_twigs;
+    uint64_t bad_dk_nodes, bad_dk_leaves, bad_dk_twigs;
+    uint64_t bad_ptrs;
+    time_t time;
+} repair_filter_stat_t;
 
 /* Data filter works on. */
 typedef struct repair_filter {
@@ -31,7 +41,7 @@ typedef struct repair_filter {
 
     repair_progress_handler_t *progress_handler;
     repair_progress_t *progress;
-    repair_filter_info_t info;
+    repair_filter_stat_t stat;
 } repair_filter_t;
 
 extern errno_t repair_filter(repair_filter_t *filter);

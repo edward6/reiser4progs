@@ -42,7 +42,8 @@ typedef enum repair_progress_type {
 typedef enum repair_progress_state {
     PROGRESS_START  = 0x1,
     PROGRESS_UPDATE = 0x2,
-    PROGRESS_END    = 0x3
+    PROGRESS_END    = 0x3,
+    PROGRESS_STAT   = 0x4
 } repair_progress_state_t;
 
 typedef struct repair_progress_rate {
@@ -61,7 +62,8 @@ typedef struct repair_progress {
     uint8_t type;   /* type of the progress - progress_type_t */
     uint8_t state;  /* state of the progress - progress_state_t */
     char *title;    /* The title of the progress. */
-    char *header;   /* The header of the progress. */
+    char *text;	    /* Some uptodate text for the progress. 
+		       Becomes the name of the gauge for now.*/
 
     union {
 	repair_progress_rate_t rate;

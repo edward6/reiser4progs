@@ -17,8 +17,69 @@
     zero extent pointer.
 */
 
-#include <repair/librepair.h>
 #include <repair/disk_scan.h>
+
+static void repair_disk_scan_setup(repair_ds_t *ds) {
+    aal_assert("vpf-883", ds != NULL);
+    
+    aal_memset(ds->progress, 0, sizeof(*ds->progress));
+    ds->progress->type = PROGRESS_RATE;
+    ds->progress->title = "DiskScan Pass: scanning the partition for lost nodes.";
+    ds->progress->text = "";
+    time(&ds->stat.time);
+    
+    if (!ds->progress_handler)
+	return;
+    
+    ds->progress->state = PROGRESS_START;
+    ds->progress->u.rate.total = aux_bitmap_marked(ds->bm_scan);
+    ds->progress_handler(ds->progress);
+    
+    ds->progress->state = PROGRESS_UPDATE;
+}
+
+static void repair_disk_scan_update(repair_ds_t *ds) {
+    aal_stream_t stream;
+    char *time_str;
+
+    aal_assert("vpf-882", ds != NULL);
+
+    if (!ds->progress_handler)
+	return;
+	
+    ds->progress->state = PROGRESS_END;
+    ds->progress_handler(ds->progress);
+    
+    aal_stream_init(&stream);
+    
+    aal_stream_format(&stream, "\tRead nodes %llu\n", ds->stat.read_nodes);
+    aal_stream_format(&stream, "\tGood nodes %llu\n", 
+	ds->stat.good_nodes);
+	
+    aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them %llu\n", 
+	ds->stat.good_leaves, ds->stat.good_twigs);
+	
+    if (ds->stat.fixed_nodes) {
+	aal_stream_format(&stream, "\tCorrected nodes %llu\n", 
+	    ds->stat.fixed_nodes);
+	aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them "
+	    "%llu\n", ds->stat.fixed_leaves, ds->stat.fixed_twigs);
+    }
+    
+    time_str = ctime(&ds->stat.time);
+    time_str[aal_strlen(time_str) - 1] = '\0';
+    aal_stream_format(&stream, "\tTime interval: %s - ", time_str);
+    time(&ds->stat.time);
+    time_str = ctime(&ds->stat.time);
+    time_str[aal_strlen(time_str) - 1] = '\0';
+    aal_stream_format(&stream, time_str);
+
+    ds->progress->state = PROGRESS_STAT;
+    ds->progress->text = (char *)stream.data;
+    ds->progress_handler(ds->progress);
+    
+    aal_stream_fini(&stream);
+}
 
 /* The pass inself, goes through all the blocks marked in the scan bitmap, 
  * and if a block can contain some data to be recovered (formatted and contains 
@@ -39,23 +100,15 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
     aal_assert("vpf-820", ds->bm_scan != NULL);
     aal_assert("vpf-820", ds->bm_met != NULL);    
 
-    if (ds->progress_handler) {
-	aal_memset(&progress, 0, sizeof(repair_progress_t));
-	progress.type = PROGRESS_RATE;
-	progress.state = PROGRESS_START;
-	progress.u.rate.total = aux_bitmap_marked(ds->bm_scan);
-	progress.title = "DiskScan Pass: scanning the partition for lost "
-	    "nodes:";
-	progress.header = "";
-	ds->progress_handler(&progress);
-	progress.state = PROGRESS_UPDATE;
-    }
+    ds->progress = &progress;
+    
+    repair_disk_scan_setup(ds);
     
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
-	if (ds->progress_handler) {
+	if (ds->progress_handler)
 	    ds->progress_handler(&progress);
-	}
- 
+	
+	ds->stat.read_nodes++;
 	node = repair_node_open(ds->repair->fs, blk);
 	if (node == NULL) {
 	    blk++;
@@ -81,10 +134,18 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 	if (repair_error_exists(res) || reiser4_node_items(node) == 0)
 	    goto next;
 	
-	if (level == TWIG_LEVEL)
+	ds->stat.good_nodes++;
+	if (level == TWIG_LEVEL) {
 	    aux_bitmap_mark(ds->bm_twig, blk);
-	else
+	    ds->stat.good_twigs++;
+	    if (reiser4_node_isdirty(node))
+		ds->stat.fixed_twigs++;
+	} else {
 	    aux_bitmap_mark(ds->bm_leaf, blk);
+	    ds->stat.good_leaves++;
+	    if (reiser4_node_isdirty(node))
+		ds->stat.fixed_leaves++;
+	}
 	
     next:
 	reiser4_node_close(node);
@@ -92,11 +153,7 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
     }
     
 error:
-    
-    if (ds->progress_handler) {
-	progress.state = PROGRESS_END;
-	ds->progress_handler(&progress);
-    }
+    repair_disk_scan_update(ds);
     
     return res;
 }
