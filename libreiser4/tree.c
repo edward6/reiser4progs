@@ -1325,7 +1325,7 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 
 			/* Here we do not move compress point to node next to
 			   @right, because @node may still have enough of space
-			   to move some data to it and we preffer to do nothing
+			   to move some data to it and we prefer to do nothing
 			   here. That is node data will be moved to on the next
 			   cycle of this loop is still the same. */
 		} else {
