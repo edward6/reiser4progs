@@ -52,9 +52,14 @@
 
 #define OFFSET(de, i)		(en40_get_offset(&de->entry[i]))
 
-#define R(n)			(2 * (n) + 1)
-#define NR(n)			(2 * (n))
+#define NR	0
+#define R	1
 
+struct entry_flags {
+    uint8_t *elem;
+    uint8_t count;
+};
+    
 /* Extention for repair_flag_t */
 #define REPAIR_SKIP	0
     
@@ -107,7 +112,7 @@ static uint32_t direntry40_count_estimate(item_entity_t *item, uint32_t pos) {
     return pos == 0 ?
 	(offset - sizeof(direntry40_t)) / sizeof(entry40_t) :
         ((offset - pos * sizeof(objid_t) - sizeof(direntry40_t)) / 
-	    sizeof(entry40_t)) - 1;
+	    sizeof(entry40_t));
 }
 
 /* Check that 2 neighbour offsets look coorect. */
@@ -254,26 +259,25 @@ static inline uint8_t direntry40_entry_detect(item_entity_t *item,
 
 /* Build a bitmap of not R offstes. */
 static errno_t direntry40_offsets_range_check(item_entity_t *item, 
-    aux_bitmap_t *flags, uint8_t mode) 
+    struct entry_flags *flags, uint8_t mode) 
 {
     direntry40_t *de = direntry40_body(item);
-    uint32_t i, j, count, to_compare;
+    uint32_t i, j, to_compare;
     errno_t res = REPAIR_OK;
     
     aal_assert("vpf-757", flags != NULL);
 
-    count = flags->total / 2;
     to_compare = ~0ul;
 
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < flags->count; i++) {
 	/* Check if the offset is valid. */
 	if (direntry40_offset_check(item, i)) {
 	    aal_exception_error("Node %llu, item %u, unit %u: unit offset "
 		"(%u) is wrong.", item->context.blk, item->pos.item, i, 
 		OFFSET(de, i));
 
-	    /* mark offset wrong. */
-	    aux_bitmap_mark(flags, NR(i));
+	    /* mark offset wrong. */	    
+	    aal_set_bit(flags->elem + i, NR);
 	    continue;
 	}
 	
@@ -282,8 +286,8 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 	    if ((i == 0) && (direntry40_count_estimate(item, i) == 
 		de40_get_units(de)))
 	    {
-		count = de40_get_units(de);
-		aux_bitmap_mark(flags, R(i));
+		flags->count = de40_get_units(de);
+		aal_set_bit(flags->elem + i, R);
 	    }
 	    to_compare = i;
 	    continue;
@@ -292,7 +296,7 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 	for (j = to_compare; j < i; j++) {
 	    /* If to_compare is a R element, do just 1 comparing.
 	     * Otherwise, compare with all not NR elements. */
-	    if (aux_bitmap_test(flags, NR(j)))
+	    if (aal_test_bit(flags->elem + j, NR))
 		continue;
 	    
 	    /* Check that a pair of offsets is valid. */
@@ -307,8 +311,8 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 		    /* It is possible to decrease the count when first R found. */
 		    limit = direntry40_count_estimate(item, j);
 
-		    if (count > limit)
-			count = limit;
+		    if (flags->count > limit)
+			flags->count = limit;
 		    
 
 		    /* Problems were detected. */
@@ -321,47 +325,36 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 		    
 		    /* Mark all recovered elements as R. */
 		    for (; j <= i; j++)
-			aux_bitmap_mark(flags, R(j));
+			aal_set_bit(flags->elem + j, R);
 		    
-		    /*
-		    if (info->mode == REPAIR_REBUILD) 
-			info->fixed += i - j - 1;
-		    else 
-			info->fatal += i - j - 1;
-		    */
-
 		    break;
 		}
 		continue;
 	    }
 	    
-	    /* Pair does not look ok, if left is a R element */
-	    if (aux_bitmap_test(flags, R(j))) {
-		aux_bitmap_mark(flags, NR(i));
+	    /* Pair does not look ok, if left is R offset, this is NR offset. */
+	    if (aal_test_bit(flags->elem + j, R)) {
+		aal_set_bit(flags->elem + i, NR);
 		break;
 	    }
 	}
     }
 
-    /* Mark redundant elements as NR. */
-    if (count < flags->total / 2)
-	aux_bitmap_mark_region(flags, count * 2, flags->total - count * 2);
-    
     return res;
 }
 
-static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags, 
-    uint8_t mode) 
+static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
+    uint8_t mode)
 {
     direntry40_t *de = direntry40_body(item);
-    uint32_t count, e_count, i, last;
+    uint32_t e_count, i, last;
     errno_t res = REPAIR_OK;
     
     aal_assert("vpf-757", flags != NULL);
 
-    for (last = flags->total / 2; 
-	last && (aux_bitmap_test(flags, NR(last - 1)) || 
-	!aux_bitmap_test(flags, R(last - 1))); last--) {}
+    for (last = flags->count; 
+	last && (aal_test_bit(flags->elem + last - 1, NR) || 
+	!aal_test_bit(flags->elem + last - 1, R)); last--) {}
     
     if (last == 0) {
 	/* No one R unit was found */
@@ -372,12 +365,12 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	return REPAIR_FATAL;
     }
     
-    count = --last;
+    flags->count = --last;
 
     /* Last is the last valid offset. If the last unit is valid also, count is 
      * the last + 1. */
     if (OFFSET(de, last) + sizeof(objid_t) == item->len)
-	count++;
+	flags->count++;
     else if (OFFSET(de, last) + sizeof(objid_t) < item->len) {
 	uint32_t offset;
 	
@@ -385,38 +378,38 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	offset = direntry40_name_end(item->body, OFFSET(de, last) + 
 	    sizeof(objid_t), item->len);
 	if (offset == item->len - 1)
-	    count++;
+	    flags->count++;
     }
     
     /* Count is the amount of recovered elements. */
     
     /* Find the first relable. */
-    for (i = 0; i < count && !aux_bitmap_test(flags, R(i)); i++) {}
+    for (i = 0; i < flags->count && !aal_test_bit(flags->elem + i, R); i++) {}
 
     /* Estimate the amount of units on the base of the first R element. */
     e_count = direntry40_count_estimate(item, i);
     
     /* Estimated count must be less then count found on the base of the last 
      * valid offset. */
-    aal_assert("vpf-765", e_count >= count);
+    aal_assert("vpf-765", e_count >= flags->count);
     
     /* If there is enough space for another entry header, and the last entry is 
      * valid also, set count unit offset to the item length. */
-    if (e_count > count && last != count && mode == REPAIR_REBUILD)
-	en40_set_offset(&de->entry[count], item->len);
+    if (e_count > flags->count && last != flags->count && mode == REPAIR_REBUILD)
+	en40_set_offset(&de->entry[flags->count], item->len);
  	
-    if (count == last) 
+    if (flags->count == last) 
 	/* Last unit is not valid. */
 	item->len = OFFSET(de, last);
    
     if (i) {
 	/* Some first offset are not relable. Consider count as the correct 
 	 * count and set the first offset just after the last unit.*/
-	e_count = count;
+	e_count = flags->count;
 
 	if (mode == REPAIR_REBUILD)
 	    en40_set_offset(&de->entry[0], sizeof(direntry40_t) + 
-		sizeof(entry40_t) * count);
+		sizeof(entry40_t) * flags->count);
     }
     
     if (e_count != de40_get_units(de)) {
@@ -433,18 +426,20 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	}
     }
 
-    if (count != e_count) {
+    if (flags->count != e_count) {
 	/* Estimated count is greater then the recovered count, in other words there 
 	 * are some last unit headers should be removed. */
-	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
-	    " to be a valid entries. %s", item->context.blk, item->pos.item, 
-	    count, e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
+	aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
+	    "corrupted. %s", item->context.blk, item->pos.item, flags->count, 
+	    e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
 	
 	if (mode == REPAIR_REBUILD) {
-	    if (direntry40_remove(item, count, e_count - count) < 0) {
+	    if (direntry40_remove(item, flags->count, 
+		e_count - flags->count) < 0) 
+	    {
 		aal_exception_error("Node %llu, item %u: remove of the unit "
 		    "(%u), count (%u) failed.", item->context.blk, 
-		    item->pos.item, count, e_count - count);
+		    item->pos.item, flags->count, e_count - flags->count);
 		return -EINVAL;
 	    }
 	    res |= REPAIR_FIXED;
@@ -454,8 +449,8 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     
     if (i) {
 	/* Some first units should be removed. */
-	aal_exception_error("Node %llu, item %u: units [%lu..%lu] do not seem "
-	    " to be a valid entries. %s", item->context.blk, item->pos.item, 0, 
+	aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
+	    " corrupted. %s", item->context.blk, item->pos.item, 0, 
 	    i - 1, mode == REPAIR_REBUILD ? "Removed." : "");
 	
 	if (mode == REPAIR_REBUILD) {
@@ -466,33 +461,46 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		return -EINVAL;
 	    }
 	    res |= REPAIR_FIXED;
+	    aal_memmove(flags->elem, flags->elem + i, flags->count - i);
+	    flags->count -= i;
 	} else
-	    res |= REPAIR_FATAL;
+	    return REPAIR_FATAL;
+
     } 
     
     /* First and the last units are ok. Remove all not relable units in the 
      * midle of the item. */
     last = ~0ul;
-    for (i = 0; i < de40_get_units(de); i++) {
+    for (i = 0; i < flags->count; i++) {
 	if (last == ~0ul) {
 	    /* Looking for the problem interval start. */
-	    if (!aux_bitmap_test(flags, R(i))) {
+	    if (!aal_test_bit(flags->elem + i, R)) {
 		if (mode != REPAIR_REBUILD)
 		    return REPAIR_FATAL;
 		last = i - 1;
 	    }
 	} else {
 	    /* Looking for the problem interval end. */
-	    if (aux_bitmap_test(flags, R(i))) {
+	    if (aal_test_bit(flags->elem + i, R)) {
+		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] "
+		    "look corrupted. %s", item->context.blk, item->pos.item, 
+		    last, i - 1, mode == REPAIR_REBUILD ? "Removed." : "");
+			
 		if (direntry40_remove(item, last, i - last) < 0) {
 		    aal_exception_error("Node %llu, item %u: remove of the "
 			"unit (%u), count (%u) failed.", item->context.blk, 
 			item->pos.item, last, i - last);
 		    return -EINVAL;
 		}
+		
+		aal_memmove(flags->elem + last, flags->elem + i, 
+		    flags->count - i);
+		flags->count -= (i - last);
+		
 		i = last;
 		last = ~0ul;
 		res |= REPAIR_FIXED;
+
 	    }
 	}
     }
@@ -503,9 +511,8 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 }
 
 errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
-    aux_bitmap_t *flags;
+    struct entry_flags flags;
     direntry40_t *de;
-    uint32_t count;
     errno_t res = REPAIR_OK;
     int i, j;
 
@@ -521,25 +528,22 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
     de = direntry40_body(item);
     
     /* Try to recover even if item was shorten and not all entries exist. */
-    count = (item->len - sizeof(direntry40_t)) / (sizeof(entry40_t));
+    flags.count = (item->len - sizeof(direntry40_t)) / (sizeof(entry40_t));
     
     /* map consists of bit pairs - [not relable -R, relable - R] */
-    flags = aux_bitmap_create(count * 2);
+    flags.elem = aal_malloc(flags.count);
     
-    res |= direntry40_offsets_range_check(item, flags, mode);
+    res |= direntry40_offsets_range_check(item, &flags, mode);
     
     if (repair_error_exists(res))
 	goto error;
     
     /* Filter units with relable offsets from others. */
-    res |= direntry40_filter(item, flags, mode);
-    
-    aux_bitmap_close(flags);
-
-    return res;
+    res |= direntry40_filter(item, &flags, mode);
     
 error:
-    aux_bitmap_close(flags);
+    aal_free(flags.elem);
+
     return res;    
 }
 

@@ -92,6 +92,10 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
     if (data->mode == REPAIR_CHECK) {
 	fprintf(stderr, CHECK_WARNING, host_name);
     } else if (data->mode == REPAIR_FIX) {
+	fprintf(stderr, CHECK_WARNING, host_name);
+	fprintf(stderr, "Will fix corruptions which can be fixed without "
+	    "rebuilding the tree.\n");
+    } else if (data->mode == REPAIR_REBUILD) {
 	fprintf(stderr, REBUILD_WARNING, host_name);	
     } else if (data->mode == REPAIR_ROLLBACK) {
 	fprintf(stderr, "Will rollback all data saved in (%s) into (%s).\n", 
@@ -208,7 +212,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    case 'h': 
 	    case '?':
 		fsck_print_usage(argv[0]);
-		return NO_ERROR;	    
+		return USER_ERROR;	    
 	    case 'V': 
 		progs_print_banner(argv[0]);
 		return USER_ERROR;
@@ -279,9 +283,9 @@ int main(int argc, char *argv[]) {
     memset(&parse_data, 0, sizeof(parse_data));
     memset(&repair, 0, sizeof(repair));
 
-    if (((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)) 
+    if ((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)
 	exit(exit_code);
-
+    
     /* Initializing libreiser4 with factory sanity check */
     if (libreiser4_init()) {
 	aal_exception_fatal("Cannot initialize the libreiser4.");

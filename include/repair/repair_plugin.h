@@ -40,9 +40,9 @@ typedef enum repair_error {
 
 #define repair_error_check(result, mode)				       \
 ({									       \
-    aal_assert("vpf-785", (mode == REPAIR_CHECK)  || !(res & REPAIR_FIXED));   \
-    aal_assert("vpf-786", (mode == REPAIR_FIX)	  || !(res & REPAIR_FIXABLE)); \
-    aal_assert("vpf-787", (mode == REPAIR_REBUILD)|| !(res & REPAIR_FIXABLE)); \
+    aal_assert("vpf-785", (mode != REPAIR_CHECK)  || !(res & REPAIR_FIXED));   \
+    aal_assert("vpf-786", (mode != REPAIR_FIX)	  || !(res & REPAIR_FIXABLE)); \
+    aal_assert("vpf-787", (mode != REPAIR_REBUILD)|| !(res & REPAIR_FIXABLE)); \
 })
 
 #endif

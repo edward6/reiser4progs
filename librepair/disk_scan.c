@@ -37,8 +37,6 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
     aal_assert("vpf-516", ds->bm_twig != NULL);
     aal_assert("vpf-820", ds->bm_scan != NULL);
     aal_assert("vpf-820", ds->bm_met != NULL);    
-    aal_assert("vpf-821", ds->repair->mode == REPAIR_CHECK || 
-	ds->repair->mode == REPAIR_FIX || ds->repair->mode == REPAIR_REBUILD);
 
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
 	node = repair_node_open(ds->repair->fs, blk);

@@ -33,6 +33,9 @@ static errno_t callback_data_level(reiser4_plugin_t *plugin,
 
     aal_assert("vpf-746", data != NULL);
 
+    if (plugin->h.type != ITEM_PLUGIN_TYPE)
+	return 0;
+    
     if (!repair_tree_legal_level(plugin->h.group, *level))
 	return 0;
 

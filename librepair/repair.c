@@ -86,6 +86,13 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	return -EINVAL;
     }
 
+    /* Allocate a bitmap of blocks to be scanned on this pass. */ 
+    if (!(control->bm_unfm_tree = aux_bitmap_create(fs_len))) {
+	aal_exception_error("Failed to allocate a bitmap of blocks unconnected"
+	    " from the tree.");
+	return -EINVAL;
+    }
+
     return 0; 
 }
 
@@ -126,16 +133,10 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
     ds->bm_leaf = control->bm_leaf;
     ds->bm_twig = control->bm_twig;
     ds->bm_met = control->bm_met;
+    ds->bm_scan = control->bm_unfm_tree;
     
     fs_len = reiser4_format_get_len(control->repair->fs->format);
     
-    /* Allocate a bitmap of blocks to be scanned on this pass. */ 
-    if (!(control->bm_unfm_tree = ds->bm_scan = aux_bitmap_create(fs_len))) {
-	aal_exception_error("Failed to allocate a bitmap of blocks unconnected"
-	    " from the tree.");
-	return -EINVAL;
-    }
-
     /* Build a bitmap of what was met already. */
     for (i = 0; i < control->bm_met->size; i++) {	
 	/* If block is marked as met, it should not be marked as used. */
@@ -188,6 +189,18 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
     aux_bitmap_clear_all(control->bm_unfm_tree);
 
     fs_len =  reiser4_format_get_len(ts->repair->fs->format);
+    
+    if (control->repair->mode != REPAIR_REBUILD) {
+	uint32_t i;
+	for (i = 0; i < control->bm_met->size; i++) {
+	    aal_assert("vpf-864", (control->bm_met->map[i] & 
+		(control->bm_used->map[i] | control->bm_leaf->map[i] | 
+		control->bm_twig->map[i])) == 0);
+	    /* bm_met is bm_met | bm_used | bm_leaf | bm_twig */
+	    control->bm_met->map[i] |= (control->bm_used->map[i] | 
+		control->bm_leaf->map[i] | control->bm_twig->map[i]);
+	}
+    }
     
     if (!(control->bm_unfm_out = ts->bm_unfm_out = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of unformatted blocks "
@@ -284,23 +297,27 @@ errno_t repair_check(repair_data_t *repair) {
     if ((res = repair_filter(&filter)))
 	goto error;
     
-    if ((res = repair_ds_prepare(&control, &ds)))
-	goto error;
+    if (repair->mode == REPAIR_REBUILD) {
+	if ((res = repair_ds_prepare(&control, &ds)))
+	    goto error;
     
-    if ((res = repair_disk_scan(&ds)))
-	goto error;
-     
+	if ((res = repair_disk_scan(&ds)))
+	    goto error;
+    }
+	
     if ((res = repair_ts_prepare(&control, &ts)))
 	goto error;
 
     if ((res = repair_twig_scan(&ts)))
 	goto error;
-    
-    if ((res = repair_am_prepare(&control, &am)))
-	goto error;
 
-    if ((res = repair_add_missing(&am)))
-	goto error;
+    if (repair->mode == REPAIR_REBUILD) {
+	if ((res = repair_am_prepare(&control, &am)))
+	    goto error;
+
+	if ((res = repair_add_missing(&am)))
+	    goto error;
+    }
 
 error:
     repair_control_release(&control);

@@ -122,6 +122,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    res |= REPAIR_FATAL;
 	}
 
+	if ((ret = reiser4_item_realize(&place)))
+	    return ret;
+
 	/* Check the item structure. */
 	if ((ret = repair_item_check(&place, mode)) < 0)
 	    return ret;
