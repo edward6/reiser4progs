@@ -18,16 +18,16 @@ errno_t repair_status_open(reiser4_fs_t *fs, uint8_t mode) {
 	if ((fs->status = reiser4_status_open(fs->device, blksize)))
 		return 0;
 	
-	
 	/* Status open failed. Create a new one. */
 	if (!(fs->status = reiser4_status_create(fs->device, blksize)))
 		return -EINVAL;
 
 	if (mode == RM_CHECK) {
 		fs->status->dirty = FALSE;
-		blksize = reiser4_master_get_blksize(fs->master);
-	}
-		
+		return RE_FIXABLE;
+	} else
+		aal_exception_error("Creating a new status block.");
+	
 	return 0;
 }
 

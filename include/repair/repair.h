@@ -63,4 +63,15 @@ typedef struct repair_data {
 } repair_data_t;
 
 extern errno_t repair_check(repair_data_t *repair);
+
+#define repair_error_count(repair, error)	\
+({						\
+	if (res > 0) {				\
+		if (error & RE_FATAL)		\
+			repair->fatal++;	\
+		else if (res & RE_FIXABLE)	\
+			repair->fixable++;	\
+	}					\
+})
+
 #endif

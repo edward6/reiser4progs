@@ -117,19 +117,17 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	if (pid >= TAIL_LAST_ID) {
 		/* Tail id from the profile is wrong. */
 		aal_exception_error("Invalid tail policy (%u) detected in the format "
-				    "on (%s).", pid, fs->device->name);
+				    "on (%s). %s (%u) -- from the profile.", pid, 
+				    fs->device->name, mode == RM_CHECK ? "Should be" :
+				    "Fixed to", policy);
 		
-		if (mode != RM_CHECK) {
-			aal_exception_error("Fixed to the specified in profile (%u).", 
-					    policy);
-			
-			reiser4_format_set_policy(fs->format, policy);
+		reiser4_format_set_policy(fs->format, policy);
+
+		if (mode != RM_CHECK)
 			reiser4_format_mkdirty(fs->format);
-		} else
+		else
 			res |= RE_FIXABLE;
-	}
-	
-	if (pid != policy) {
+	} else if (pid != policy) {
 		aal_exception_fatal("The tail policy (%u) detected on (%s) differs "
 				    "from the specified in the profile (%u). Do not "
 				    "forget to fix the profile.", pid, fs->device->name,
@@ -141,7 +139,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 
 /* Try to open format and check it. */
 errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
-	errno_t error;
+	errno_t res;
 	
 	aal_assert("vpf-398", fs != NULL);
 	
@@ -149,12 +147,12 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 	fs->format = reiser4_format_open(fs);
 	
 	/* Check the opened disk format or rebuild it if needed. */
-	error = repair_format_check_struct(fs, mode);
+	res = repair_format_check_struct(fs, mode);
 	
-	if (repair_error_exists(error))
+	if (repair_error_fatal(res))
 		goto error_format_close;
 	
-	return 0;
+	return res;
 	
  error_format_close:
 	
@@ -163,7 +161,7 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 		fs->format = NULL;
 	}
 	
-	return error;
+	return res;
 }
 
 errno_t repair_format_update(reiser4_format_t *format) {

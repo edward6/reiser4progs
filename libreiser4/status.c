@@ -43,8 +43,8 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	if (aal_strncmp(STATUS(status)->ss_magic, REISER4_STATUS_MAGIC,
 			aal_strlen(REISER4_STATUS_MAGIC)) != 0)
 	{
-		aal_exception_warn("Wrong magic is found in the "
-				   "filesystem status block.");
+		aal_exception_error("Wrong magic is found in the "
+				    "filesystem status block.");
 		
 		goto error_free_status;
 	}

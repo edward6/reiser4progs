@@ -69,7 +69,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 					    reiser4_master_get_blksize(fs->master));
 			
 			if (mode != RM_BUILD)
-				return -EINVAL;
+				return RE_FATAL;
 			
 			blksize = aal_ui_get_numeric(4096, callback_bs_check,
 						     NULL, "Which block size "
@@ -107,10 +107,10 @@ errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode) {
 	/* Either check the opened master or build a new one. */
 	res = repair_master_check(fs, mode);
 	
-	if (repair_error_exists(res))
+	if (repair_error_fatal(res))
 		goto error_master_free;
 	
-	return 0;
+	return res;
 	
  error_master_free:
 	if (fs->master) {

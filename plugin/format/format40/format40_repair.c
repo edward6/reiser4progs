@@ -57,10 +57,11 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 				    "partition (%llu). %s", get_sb_block_count(super),
 				    count, mode != RM_CHECK ? "Fixed.": "");
 		
-		if (mode != RM_CHECK) {
-			set_sb_block_count(super, count);
+		set_sb_block_count(super, count);
+		
+		if (mode != RM_CHECK)
 			format40_mkdirty(entity);
-		} else 
+		else 
 			res |= RE_FIXABLE;
 	}
 	

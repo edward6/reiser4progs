@@ -87,10 +87,7 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 		if (res < 0)
 			return res;
 		
-		if (res & RE_FATAL)
-			sem->repair->fatal++;
-		else if (res & RE_FIXABLE)
-			sem->repair->fixable++;
+		repair_error_count(sem->repair, res);
 	}
 	
 	/* Update the @object->info. */
@@ -114,11 +111,10 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 					      sem->repair->mode)) < 0)
 		return res;
 	
-	if (res & RE_FATAL) {
-		sem->repair->fatal++;
+	repair_error_count(sem->repair, res);
+	
+	if (res & RE_FATAL)
 		return res;
-	} else if (res & RE_FIXABLE)
-		sem->repair->fixable++;
 	
 	if (sem->repair->mode != RM_BUILD)
 		return res;

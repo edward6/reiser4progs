@@ -298,15 +298,12 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		goto error;
 	}
 	
+	repair_error_count(fd->repair, res);
+	
 	if (res & RE_FATAL) {
 		repair_filter_bad_node(fd, node_blocknr(node), level);
-		fd->repair->fatal++;
 		goto error;
-	} else if (res & RE_FIXABLE) {
-		fd->repair->fixable++;
-	} else {
-		aal_assert("vpf-799", res == 0);
-		
+	} else if (res == 0) {
 		if (reiser4_node_isdirty(node))
 			repair_filter_fixed_node(fd, level);
 	}
