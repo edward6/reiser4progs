@@ -34,4 +34,9 @@ extern errno_t repair_object_check_link(reiser4_object_t *object,
 					reiser4_object_t *parent, 
 					uint8_t mode);
 
+extern errno_t repair_object_check(reiser4_object_t *object, 
+				   reiser4_object_t *parent,
+				   entry_hint_t *entry, 
+				   repair_data_t *repair);
+
 #endif

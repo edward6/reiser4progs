@@ -302,3 +302,69 @@ errno_t repair_object_check_link(reiser4_object_t *object,
 								mode);
 }
 
+errno_t repair_object_check(reiser4_object_t *object, reiser4_object_t *parent,
+			    entry_hint_t *entry, repair_data_t *repair)
+{
+	errno_t res = 0;
+
+	aal_assert("vpf-1139", object != NULL);
+	aal_assert("vpf-1140", parent != NULL);
+	aal_assert("vpf-1141", entry  != NULL);
+	aal_assert("vpf-1142", repair != NULL);
+	
+	/* Object->start contains the first item of the object. Do not check it if 
+	   checked already. */
+	if (!repair_item_test_flag(reiser4_object_start(object), ITEM_CHECKED)) {
+		/* The realized object has not been checked yet. */
+		res = repair_object_check_struct(object, callback_check_struct, 
+						 repair->mode, NULL);
+		
+		if (res < 0) {
+			aal_exception_error("Check of the object pointed by %k from "
+					    "the %k (%s) failed.", &entry->object, 
+					    &entry->offset, entry->name);
+			
+			return res;
+		} else if (res) {
+			repair_error_check(result, repair->mode);
+			
+			/* Do no do down in traverse for fatal errors. */
+			if (res == REPAIR_FATAL) {
+				if (repair->mode == REPAIR_REBUILD) {
+					res = reiser4_object_rem_entry(parent, entry);
+					
+					if (res) {
+						aal_exception_error("Semantic traverse "
+								    "failed to remove "
+								    "the entry %k (%s) "
+								    "pointing to %k.", 
+								    &entry->offset, 
+								    entry->name,
+								    &entry->object);
+						return res;
+					}
+				} else
+					repair->fatal++;
+				
+				return REPAIR_FATAL;
+			} else if (res == REPAIR_FIXABLE) {
+				repair->fixable++;
+			}
+		}
+	}
+	
+	if ((res = plugin_call(object->entity->plugin->o.object_ops,
+			       link, object->entity)))
+	{
+		aal_exception_error("Node %llu, item %u: failed to link the "
+				    "object pointed by %k.",
+				    reiser4_object_start(object)->node->blk,
+				    object->info.start.pos.item, 
+				    &object->info.object);
+		
+		return res;
+	}
+
+	return 0;
+	
+}

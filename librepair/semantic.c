@@ -7,9 +7,9 @@
 extern errno_t callback_check_struct(object_entity_t *object, place_t *place, 
 				     void *data);
 
-errno_t callback_semantic_open(reiser4_object_t *parent, 
-			       reiser4_object_t **object, 
-			       entry_hint_t *entry, void *data)
+static errno_t callback_semantic_open(reiser4_object_t *parent, 
+				      reiser4_object_t **object, 
+				      entry_hint_t *entry, void *data)
 {
 	repair_semantic_t *sem;
 	reiser4_key_t key;
@@ -24,41 +24,26 @@ errno_t callback_semantic_open(reiser4_object_t *parent,
 	aal_memset(&key, 0, sizeof(key));
 	aal_memcpy(&key, &entry->object, sizeof(entry->object));
 	
-	if (!(*object = repair_object_launch(parent->info.tree, parent, &key)))
-		return -EINVAL;
-	
-	/* Object->start contains the first item of the object. Do not check it if 
-	   checked already. */
-	if (!repair_item_test_flag(reiser4_object_start(*object), ITEM_CHECKED)) {
-		/* The realized object has not been checked yet. */
-		res = repair_object_check_struct(*object, callback_check_struct, 
-						 sem->repair->mode, sem);
-		
-		if (res < 0) {
-			aal_exception_error("Check of the object pointed by %k from "
-					    "the %k (%s) failed.", &entry->object, 
-					    &entry->offset, entry->name);
-			
-			goto error_close_object;
-		} else if (res) {
-			/* FIXME: different actions in different modes. 
-			   Account fixable corruptions here. */
-			
+	if (!(*object = repair_object_launch(parent->info.tree, parent, &key))) {
+		if (sem->repair->mode == REPAIR_REBUILD) {
 			if ((res = reiser4_object_rem_entry(parent, entry))) {
 				aal_exception_error("Semantic traverse failed to remove "
 						    "the entry %k (%s) pointing to %k.", 
 						    &entry->offset, entry->name,
 						    &entry->object);
+				return res;
 			}
-			
-			/* Do no do down in traverse for fatal errors. */
-			if (res != REPAIR_FATAL)
-				res = 0;
-			
-			goto error_close_object;
-		}
+		} else
+			sem->repair->fixable++;
+
+		return 0;
 	}
 	
+	if ((res = repair_object_check(*object, parent, entry, sem->repair))) {
+		res = res < 0 ? res : 0;
+		goto error_close_object;
+	}
+
 	/* Check the uplink - '..' in directories. If it is correct, mark as 
 	   REACHABLE, othewise wait if it will be reached from somewhere else
 	   and if not, link it to lost+found. */
@@ -78,18 +63,6 @@ errno_t callback_semantic_open(reiser4_object_t *parent,
 		goto error_close_object;
 	}
 	
-	if ((res = plugin_call((*object)->entity->plugin->o.object_ops,
-			       link, (*object)->entity)))
-	{
-		aal_exception_error("Node %llu, item %u: failed to link the "
-				    "object pointed by %k.",
-				    reiser4_object_start(*object)->node->blk,
-				    (*object)->info.start.pos.item, 
-				    &((*object)->info.object));
-		
-		goto error_close_object;
-	}
-
 	return 0;
 	
  error_close_object:
