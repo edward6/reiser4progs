@@ -309,30 +309,25 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 		hint->maxoff = 0;
 		hint->len = sizeof(extent40_t);
 	} else {
-		uint64_t offset;
-		extent40_t *extent;
-		
+		uint32_t offset;
 		key_entity_t key;
 		key_entity_t maxkey;
 
-		/* Getting max real key */
-		extent40_maxreal_key(place, &maxkey);
-		
-		extent = extent40_body(place);
 		extent40_get_key(place, pos, &key);
-
-		offset = plug_call(key.plug->o.key_ops,
-				   get_offset, &key);
-
-		offset += hint->offset;
+		extent40_maxreal_key(place, &maxkey);
 
 		hint->maxoff = plug_call(maxkey.plug->o.key_ops,
 					 get_offset, &maxkey) + 1;
 
-		if (offset + hint->count > hint->maxoff) {
+		offset = plug_call(key.plug->o.key_ops, get_offset,
+				   &key);
+
+		/* Check if insert offset plus data length will not fit to max
+		   real offset. */
+		if (offset + hint->offset + hint->count > hint->maxoff) {
 			/* Check if we insert inside allocated extent. If so, we
 			   need addition unit. */
-			if (et40_get_start(extent + pos) != 1)
+			if (et40_get_start(extent40_body(place) + pos) != 1)
 				hint->len = sizeof(extent40_t);
 		}
 	}
@@ -348,8 +343,9 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	aal_block_t *block;
 	extent40_t *extent;
 	
+	uint64_t ins_offset;
+	uint64_t uni_offset;
 	uint32_t count, size;
-	uint64_t unit_offset;
 	uint64_t block_offset;
 	
 	aal_assert("umka-2357", hint != NULL);
@@ -365,16 +361,20 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	
 	extent40_get_key(place, pos, &key);
 
-	/* Offset of the unit we will insert at. */
-	unit_offset = plug_call(key.plug->o.key_ops,
-				get_offset, &key);
+	uni_offset = plug_call(key.plug->o.key_ops,
+			       get_offset, &key);
+	
+	ins_offset = plug_call(place->key.plug->o.key_ops,
+			       get_offset, &place->key);
+
+	ins_offset += hint->offset;
 
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
 		/* Block offset we will insert in. */
-		block_offset = (unit_offset + hint->offset) -
-			((unit_offset + hint->offset) & (blksize - 1));
+		block_offset = ins_offset - (ins_offset &
+					     (blksize - 1));
 
 		/* Preparing key for getting data by it */
 		plug_call(key.plug->o.key_ops, set_offset,
@@ -386,7 +386,7 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 			if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
 				
 				blk = et40_get_start(extent) +
-					(block_offset - unit_offset) / blksize;
+					(block_offset - uni_offset) / blksize;
 				
 				if (!(block = aal_block_load(extent40_device(place),
 							     blksize, blk)))

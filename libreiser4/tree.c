@@ -898,24 +898,16 @@ lookup_res_t reiser4_tree_lookup(
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
+		uint32_t curr = reiser4_node_get_level(place->node);
+		
 		/* Looking up for key inside node. Result of lookuping will be
 		   stored in &place->pos. */
-		if (reiser4_node_get_level(place->node) > level) {
-			/* Here we use READ mode for pos correscting, as we are
-			   on internal level still. */
-			res = reiser4_node_lookup(place->node, &wan,
-						  READ, &place->pos);
-		} else {
-			/* Using passed @mode */
-			res = reiser4_node_lookup(place->node, &wan,
-						  mode, &place->pos);
-		}
+		res = reiser4_node_lookup(place->node, &wan, curr > level ?
+					  READ : mode, &place->pos);
 
 		/* Check if we should finish lookup because we reach stop level
 		   or some error occured durring last node lookup. */
-		if (reiser4_node_get_level(place->node) <= level ||
-		    res == FAILED)
-		{
+		if (curr <= level || res == FAILED) {
 			if (res == PRESENT) {
 #ifdef ENABLE_COLLISIONS
 				/* If collision handling is allwoed, we will
@@ -933,18 +925,22 @@ lookup_res_t reiser4_tree_lookup(
 		}
 
 		/* Initializing @place. This should be done before using any
-		   item methods. */
-		if (reiser4_place_fetch(place))
-			return FAILED;
-		    
-		/* Checking is item at @place is nodeptr one. If not, we correct
-		   posision back. */
-		if (!reiser4_item_branch(place->plug))
-			return res;
+		   item methods or access @place fields. */
+		if (reiser4_place_valid(place)) {
+			if (reiser4_place_fetch(place))
+				return FAILED;
 
-		/* Loading node by its nodeptr item at @place */
-		if (!(place->node = reiser4_tree_child(tree, place)))
-			return FAILED;
+			/* Checking is item at @place is nodeptr one. If not, we
+			   correct posision back. */
+			if (!reiser4_item_branch(place->plug))
+				return res;
+
+			/* Loading node by its nodeptr item at @place */
+			if (!(place->node = reiser4_tree_child(tree, place)))
+				return FAILED;
+		} else {
+			return ABSENT;
+		}
 	}
     
 	return ABSENT;

@@ -375,6 +375,7 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 	for (bytes = 0, written = 0; written < n; ) {
 		uint32_t level;
 		uint64_t offset;
+
 		insert_hint_t hint;
 		key_entity_t maxkey;
 
@@ -416,7 +417,6 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 						reg40_offset(entity);
 				}
 			} else {
-				/* Initializing offset from unit start */
 				hint.offset = reg40_offset(entity);
 
 				hint.offset -= plug_call(hint.key.plug->o.key_ops,
