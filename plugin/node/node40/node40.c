@@ -1309,15 +1309,18 @@ static errno_t node40_merge(node40_t *src_node,
 
 /*
   Estimatuing how many whole items may be shifted from the src node to dst
-  one. This function is called before item shifting.
+  one. Then shifting estimated items. This function is used from node40_shift.
 */
-static errno_t node40_predict_items(node40_t *src_node,
-				    node40_t *dst_node, 
-				    shift_hint_t *hint)
+static errno_t node40_transfuse(node40_t *src_node,
+				node40_t *dst_node, 
+				shift_hint_t *hint)
 {
 	rpos_t pos;
 	uint32_t len;
 	uint32_t space;
+
+	rpos_t src_pos;
+	rpos_t dst_pos;
 
 	uint32_t overhead;
 	uint32_t src_items;
@@ -1347,8 +1350,8 @@ static errno_t node40_predict_items(node40_t *src_node,
 	overhead = node40_overhead((object_entity_t *)dst_node);
 
 	/*
-	  Estimating will be finished if src_items value will be exhausted of
-	  if insert point will be shifted into neighbour node.
+	  Estimating will be finished if src_items value will be exhausted of if
+	  insert point will be shifted into neighbour node.
 	*/
 	while (src_items > 0 && !(hint->flags & SF_MOVIP)) {
 
@@ -1462,35 +1465,6 @@ static errno_t node40_predict_items(node40_t *src_node,
 	*/
 	hint->rest = space;
 
-	return 0;
-
- out:
-	hint->flags &= ~SF_MOVIP;
-	return 0;
-}
-
-/* Makes shift of items from the src node to dst one */
-static errno_t node40_shift_items(node40_t *src_node,
-				  node40_t *dst_node, 
-				  shift_hint_t *hint)
-{
-	void *dst, *src;
-	uint32_t offset;
-	uint32_t i, size;
-	uint32_t headers;
-	
-	rpos_t src_pos;
-	rpos_t dst_pos;
-	
-	uint32_t src_items;
-	uint32_t dst_items;
-
-	item40_header_t *ih;
-	
-	aal_assert("umka-1305", src_node != NULL, return -1);
-	aal_assert("umka-1306", dst_node != NULL, return -1);
-	aal_assert("umka-1579", hint != NULL, return -1);
-
 	/* No items to be shifted */
 	if (hint->items == 0 || hint->bytes == 0)
 		return 0;
@@ -1498,98 +1472,54 @@ static errno_t node40_shift_items(node40_t *src_node,
 	dst_items = nh40_get_num_items(dst_node);
 	src_items = nh40_get_num_items(src_node);
 
-	headers = sizeof(item40_header_t) * hint->items;
-
 	if (hint->flags & SF_LEFT) {
-		/*
-		  Expanding dst node in order to making room for new items and
-		  update node header.
-		*/
-		rpos_init(&dst_pos, dst_items, ~0ul);
-		
-		if (node40_expand(dst_node, &dst_pos, hint->bytes,
-				  hint->items))
-		{
-			aal_exception_error("Can't expand node %llu durring "
-					    "shift.", dst_node->block->blk);
-			return -1;
-		}
-		
-		/* Copying items from src node to dst one */
 		rpos_init(&src_pos, 0, ~0ul);
-		
-		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
-				hint->items))
-		{
-			aal_exception_error("Can't copy items from node "
-					    "%llu to node %llu, durring "
-					    "shift", src_node->block->blk,
-					    dst_node->block->blk);
-			return -1;
-		}
-
-		/*
-		  Shrinking source node after items are copied from it to dst
-		  node.
-		*/
-		if (src_items > hint->items) {
-			rpos_t pos = {0, ~0ul};
-
-			if (node40_shrink(src_node, &pos, hint->bytes,
-					  hint->items))
-			{
-				aal_exception_error("Can't shrink node "
-						    "%llu durring shift.",
-						    src_node->block->blk);
-				return -1;
-			}
-		}
-
+		rpos_init(&dst_pos, dst_items, ~0ul);
 	} else {
-		rpos_t pos = {src_items - hint->items, ~0ul};
-		
-		/*
-		  Expanding dst node in order to making room for new items and
-		  update node header.
-		*/
 		rpos_init(&dst_pos, 0, ~0ul);
-		
-		if (node40_expand(dst_node, &dst_pos, hint->bytes,
-				  hint->items))
-		{
-			aal_exception_error("Can't expand node %llu durring "
-					    "shift.", dst_node->block->blk);
-			return -1;
-		}
-
-		/* Copying items from the src node to dst one */
 		rpos_init(&src_pos, src_items - hint->items, ~0ul);
-		
-		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
-				hint->items))
-		{
-			aal_exception_error("Can't copy items from node "
-					    "%llu to node %llu, durring "
-					    "shift", src_node->block->blk,
-					    dst_node->block->blk);
-			return -1;
-		}
-		
-		/*
-		  Shrinking source node after items are copied from it to dst
-		  node. Actually here will be only src node header updating
-		  performed by node40_shrink function.
-		*/
-		if (node40_shrink(src_node, &pos, hint->bytes,
-				  hint->items))
-		{
-			aal_exception_error("Can't shrink node "
-					    "%llu durring shift.",
-					    src_node->block->blk);
-			return -1;
-		}
 	}
 	
+	/*
+	  Expanding dst node in order to making room for new items and
+	  update node header.
+	*/
+	if (node40_expand(dst_node, &dst_pos, hint->bytes,
+			  hint->items))
+	{
+		aal_exception_error("Can't expand node %llu durring "
+				    "shift.", dst_node->block->blk);
+		return -1;
+	}
+		
+	/* Copying items from src node to dst one */
+	if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
+			hint->items))
+	{
+		aal_exception_error("Can't copy items from node "
+				    "%llu to node %llu, durring "
+				    "shift", src_node->block->blk,
+				    dst_node->block->blk);
+		return -1;
+	}
+
+	/*
+	  Shrinking source node after items are copied from it to dst
+	  node.
+	*/
+	if (node40_shrink(src_node, &src_pos, hint->bytes,
+			  hint->items))
+	{
+		aal_exception_error("Can't shrink node "
+				    "%llu durring shift.",
+				    src_node->block->blk);
+		return -1;
+	}
+	
+	return 0;
+
+ out:
+	hint->flags &= ~SF_MOVIP;
 	return 0;
 }
 
@@ -1643,15 +1573,8 @@ static errno_t node40_shift(object_entity_t *entity,
 	
 	hint->flags = flags;
 	
-	/*
-	  Estimating shift in order to determine how many items will be shifted,
-	  how much bytes, etc.
-	*/
-	if (node40_predict_items(src_node, dst_node, hint))
-		return -1;
-
-	/* Shifting items from src_node to dst_node */
-	if (node40_shift_items(src_node, dst_node, hint))
+	/* Estimating how many and transfusing items from src node to dst one */
+	if (node40_transfuse(src_node, dst_node, hint))
 		return -1;
 
 	/*
