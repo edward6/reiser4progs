@@ -263,9 +263,7 @@ errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 
 #ifndef ENABLE_STAND_ALONE
 /* Updates all internal node loaded children positions in parent. */
-static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
-					node_t *node)
-{
+static errno_t reiser4_tree_update_node(reiser4_tree_t *tree, node_t *node) {
 	uint32_t i;
 	errno_t res;
 	
@@ -277,8 +275,7 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
 		place_t place;
 
 		/* Initializing item at @i. */
-		reiser4_place_assign(&place, node,
-				     i, MAX_UINT32);
+		reiser4_place_assign(&place, node, i, MAX_UINT32);
 
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
@@ -299,6 +296,12 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
 			if (!(child = reiser4_tree_lookup_node(tree, blk)))
 				continue;
 
+			/* Fix @node->counter's of bothe nodes. */
+			if (child->p.node != node) {
+				reiser4_node_unlock(child->p.node);
+				reiser4_node_lock(node);
+			}
+			
 			/* Update @child parent pos. */
 			child->p.node = node;
 			
@@ -1836,11 +1839,8 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 				
 			reiser4_key_assign(&update->p.key, &lkey);
 				
-			if ((res = reiser4_tree_update_key(tree, &p,
-							   &lkey)))
-			{
+			if ((res = reiser4_tree_update_key(tree, &p, &lkey)))
 				return res;
-			}
 		}
 	}
 
