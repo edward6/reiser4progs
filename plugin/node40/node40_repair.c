@@ -429,6 +429,7 @@ errno_t node40_check(object_entity_t *entity, uint16_t options) {
 /* 
     This checks the level constrains like no internal and extent items 
     at leaf level or no statdata items at internal level.
+    Returns 0 is legal, 1 - not, -1 - error.
 */
 errno_t node40_item_legal(object_entity_t *entity, reiser4_plugin_t *plugin) {
     node40_t *node = (node40_t *)entity;
@@ -441,14 +442,14 @@ errno_t node40_item_legal(object_entity_t *entity, reiser4_plugin_t *plugin) {
     
     if (plugin->h.sign.group == NODEPTR_ITEM) {
 	if (level == NODE40_LEAF)
-	    return 0;
+	    return 1;
     } else if (plugin->h.sign.group == EXTENT_ITEM) {
 	if (level != NODE40_TWIG)
-	    return 0;
+	    return 1;
     } else if (level != NODE40_LEAF) 
-	return 0;
+	return 1;
     
-    return 1;
+    return 0;
 }
 
 #endif
