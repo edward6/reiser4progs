@@ -674,7 +674,8 @@ typedef struct lookup_hint lookup_hint_t;
 
 typedef errno_t (*correct_func_t) (reiser4_place_t *,
 				   lookup_hint_t *,
-				   lookup_bias_t);
+				   lookup_bias_t,
+				   lookup_t);
 
 /* Hint to be used when looking for data in tree. */
 struct lookup_hint {

@@ -40,7 +40,7 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 		fd->stat.good_nodes--;
 	}
 
-	switch(level) {
+	switch (level) {
 	case LEAF_LEVEL:
 		if (mark == RM_MARK) {
 			if (fd->bm_leaf)
@@ -114,7 +114,7 @@ static void repair_filter_bad_dk(repair_filter_t *fd, blk_t blk,
 	fd->stat.bad_dk_nodes++;
 	fd->repair->fatal++;
 
-	switch(level) {
+	switch (level) {
 	case LEAF_LEVEL:
 		fd->stat.bad_dk_leaves++;
 		return;
@@ -130,7 +130,7 @@ static void repair_filter_bad_dk(repair_filter_t *fd, blk_t blk,
 static void repair_filter_fixed_node(repair_filter_t *fd, uint8_t level) {
 	fd->stat.fixed_nodes++;
 	
-	switch(level) {
+	switch (level) {
 	case LEAF_LEVEL:
 		fd->stat.fixed_leaves++;
 		return;
@@ -477,10 +477,12 @@ static void repair_filter_update(repair_filter_t *fd) {
 			
 			root = fd->repair->fs->tree->root;
 			
-			reiser4_node_fini(root);
+			if (root) {			
+				reiser4_node_fini(root);			
+				fd->repair->fs->tree->root = NULL;
+			}
 			
 			reiser4_format_set_root(format, INVAL_BLK);
-			fd->repair->fs->tree->root = NULL;
 			fd->repair->fatal--;
 		}
 	}

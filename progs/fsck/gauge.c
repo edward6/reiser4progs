@@ -276,7 +276,7 @@ errno_t gauge_handler(repair_progress_t *progress) {
 
 	aal_assert("vpf-868", progress != NULL);
 
-	switch(progress->state) {
+	switch (progress->state) {
 	case PROGRESS_START:
 		if ((res = progress_start(progress)))
 			return res;
