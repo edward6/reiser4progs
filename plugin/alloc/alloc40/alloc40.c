@@ -51,7 +51,7 @@ static errno_t alloc40_layout(object_entity_t *entity,
 
 	/* Loop though the all bitmap blocks */
 	for (blk = start; blk < start + alloc->bitmap->total;
-	     blk = (blk / bpb + 1) * bpb) 
+	     blk = ((blk >> aal_pow_of_two(bpb)) + 1) * bpb) 
 	{
 		errno_t res;
 		
@@ -71,6 +71,7 @@ static errno_t alloc40_layout(object_entity_t *entity,
 static errno_t callback_fetch_bitmap(object_entity_t *entity, 
 				     uint64_t blk, void *data)
 {
+	uint64_t offset;
 	aal_block_t *block;
 	char *current, *start;
 	uint32_t size, chunk, free;
@@ -89,7 +90,8 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 
 	/* Calculating bitmap size in bytes its position inside map */
 	size = aal_block_size(block) - CRC_SIZE;
-	current = start + (size * (blk / size / 8));
+	offset = blk >> aal_pow_of_two(size) >> aal_pow_of_two(8);
+	current = start + (size * offset);
 
 	/* Calculating where and how many bytes will be copied */
 	free = (start + alloc->bitmap->size) - current;
@@ -101,7 +103,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	*/
 	aal_memcpy(current, block->data + CRC_SIZE, chunk);
 
-	aal_memcpy(alloc->crc + (blk / size / 8) * CRC_SIZE,
+	aal_memcpy(alloc->crc + (offset * CRC_SIZE),		   
 		   block->data, CRC_SIZE);
 	
 	aal_block_close(block);
@@ -492,8 +494,9 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 				     uint64_t blk, void *data)
 {
 	char *current, *start;
-    
-	uint32_t size, n, free;
+
+	uint64_t offset;
+	uint32_t size, free;
 	uint32_t ladler, cadler, chunk;
 	alloc40_t *alloc = (alloc40_t *)entity;
     
@@ -501,11 +504,11 @@ static errno_t callback_check_bitmap(object_entity_t *entity,
 	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
     
 	/* Getting pointer to next bitmap portion */
-	n = (blk / size / 8);
-	current = start + (n * size);
+	offset = blk >> aal_pow_of_two(size) >> aal_pow_of_two(8);
+	current = start + (offset * size);
 	    
 	/* Getting the checksum from loaded crc map */
-	ladler = *((uint32_t *)(alloc->crc + (n * CRC_SIZE)));
+	ladler = *((uint32_t *)(alloc->crc + (offset * CRC_SIZE)));
 	free = (start + alloc->bitmap->size) - current;
     
 	/* Calculating adler checksumm for piece of bitmap */

@@ -240,12 +240,10 @@ char *aal_strndup(const char *s, uint32_t n) {
    by aal_vsnprintf function.
 */
 #define DEFINE_DCONV(name, type)			                \
-int aal_##name##toa(type d, uint32_t n, char *a,                        \
-					int base, int flags)            \
-{	                                                                \
-    char *p = a;						        \
+int aal_##name##toa(type d, uint32_t n, char *a, int base, int flags) { \
     type s;							        \
     type range;							        \
+    char *p = a;						        \
 				                                        \
     switch (base) {						        \
 	    case 10: range = DCONV_RANGE_DEC; break;			\
@@ -260,26 +258,32 @@ int aal_##name##toa(type d, uint32_t n, char *a,                        \
 	    return 1;						        \
     }								        \
 								        \
-    for (s = range; s > 0; s /= base) {				        \
-	    type v = d / s;						\
+    for (s = range; s > 0; s = s >> aal_pow_of_two(base)) {		\
+	    type v = d >> aal_pow_of_two(s);				\
 								        \
 	    if ((uint32_t)(p - a) >= n)				        \
-	        break;						        \
+	            break;			                        \
+                                                                        \
+	    if (v <= 0)                                                 \
+		    continue;                                           \
 								        \
-	    if (v > 0) {						\
-	        if (v >= (type)base)				        \
-		        v = (d / s) - ((v / base) * base);		\
-	        switch (base) {					        \
-		        case 10: case 8: *p++ = '0' + v; break;		\
-		        case 16: {					\
+	    if (v >= (type)base) {				        \
+                    type ds = d >> aal_pow_of_two(s);                   \
+                    type vb = v >> aal_pow_of_two(base);                \
+		    v = ds - (vb * base);		                \
+            }                                                           \
+	    switch (base) {					        \
+		    case 10:                                            \
+	            case 8:                                             \
+			    *p++ = '0' + v;                             \
+			    break;		                        \
+		    case 16:					        \
 		            if (flags == 0)				\
-			            *p++ = '0' + (v > 9 ? 39 : 0) + v;	\
+		                    *p++ = '0' + (v > 9 ? 39 : 0) + v;	\
 		            else					\
 			            *p++ = '0' + (v > 9 ? 7 : 0) + v;	\
 		            break;					\
-		        }						\
-	        }							\
-	    }							        \
+            }							        \
     }								        \
     return p - a;						        \
 }
