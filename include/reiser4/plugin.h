@@ -207,7 +207,7 @@ enum reiser4_journal_plug_id {
 	JOURNAL_LAST_ID
 };
 
-/* Known key plugin ids. All these plugins are virtual in teh sence they not
+/* Known key plugin ids. All these plugins are virtual in the sense they not
    exist in kernel and needed in reiser4progs because we need them working with
    both keys policy (large and short) without recompiling. */
 enum reiser4_key_plug_id {
@@ -309,11 +309,6 @@ struct node {
 	/* Reference to right neighbour. It is used for establishing silbing
 	   links among nodes in memory tree cache. */
 	node_t *right;
-	
-	/* List of children nodes. It is used for constructing part of on-disk
-	   tree in the memory. This should be rewritten to use hash table like
-	   kernel does. */
-	aal_list_t *children;
 	
 	/* Usage counter to prevent releasing used nodes */
 	signed int counter;
@@ -557,9 +552,9 @@ struct object_hint {
 			rid_t policy;
 		} reg;
 
-		/* rdev field for special file. Nevertheless it is stored inside
-		   special file stat data field, we put it to @body definition,
-		   because it is the special file essence. */
+		/* rdev field for special file. Nevertheless, it is stored
+		   inside special file stat data field, we put it to @body
+		   definition, because it is the special file essence. */
 		struct {
 			uint64_t rdev;
 		} spl;
@@ -1460,6 +1455,7 @@ struct plug_class {
 typedef struct plug_class plug_class_t;
 
 struct plug_ident {
+	/* Plugin id, type and group. */
 	rid_t id;
 	rid_t group;
 	rid_t type;
@@ -1491,7 +1487,7 @@ struct reiser4_plug {
 	const char desc[PLUG_MAX_DESC];
 #endif
 
-	/* All possible plugin operations. */
+        /* All possible plugin operations. */
 	union {
 		reiser4_key_ops_t *key_ops;
 		reiser4_item_ops_t *item_ops;
@@ -1627,22 +1623,24 @@ struct reiser4_core {
 #endif
 };
 
-#define print_key(core, key) \
-(core->key_ops.print(key, PO_DEFAULT))
+#define print_key(core, key)                                 \
+	((core)->key_ops.print((key), PO_DEFAULT))
 
-#define print_inode(core, key) \
-(core->key_ops.print(key, PO_INODE))
+#define print_inode(core, key)                               \
+	((core)->key_ops.print((key), PO_INODE))
 
-#define plug_equal(plug1, plug2)                                 \
-        (plug1->id.type == plug2->id.type &&                     \
-         plug1->id.group == plug2->id.group &&                   \
-	 plug1->id.id == plug2->id.id)
+#define ident_equal(ident1, ident2)                          \
+	((ident1)->type == (ident2)->type &&		     \
+	 (ident1)->id == (ident2)->id)
+
+#define plug_equal(plug1, plug2)                             \
+        ident_equal(&((plug1)->id), &((plug2)->id))
 
 /* Makes check is needed method implemengted */
-#define plug_call(ops, method, ...) ({                           \
-        aal_assert("Method \""#method"\" isn't implemented in "  \
-                   ""#ops".", ops->method != NULL);              \
-        ops->method(__VA_ARGS__);			         \
+#define plug_call(ops, method, ...) ({                       \
+        aal_assert("Method \""#method"\" isn't implemented " \
+                   "in "#ops"", ops->method != NULL);        \
+        ops->method(__VA_ARGS__);			     \
 })
 
 #if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
@@ -1665,7 +1663,6 @@ typedef void (*register_builtin_t) (plug_init_t, plug_fini_t);
     }
 
 #elif defined (ENABLE_STAND_ALONE)
-
 #define plug_register(n, i, f)                                 \
     plug_init_t __##n##_plug_init = i
 #else
