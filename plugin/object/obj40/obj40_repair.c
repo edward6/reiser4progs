@@ -52,8 +52,8 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 		if (!obj->core->tree_ops.valid(info->tree, &info->start))
 			return RE_FATAL;
 
-		if ((res = obj->core->tree_ops.fetch(info->tree, &info->start)))
-			return -EINVAL;
+		if ((res = obj40_fetch_item(obj, &info->start)))
+			return res;
 	}
 	
 	if (info->start.plug->id.group != STATDATA_ITEM)

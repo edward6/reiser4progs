@@ -1563,9 +1563,6 @@ struct tree_ops {
 	/* Checks if passed @place points to some real item inside a node. */
 	int (*valid) (void *, reiser4_place_t *);
 	
-	/* Initializes all item fields in passed place. */
-	errno_t (*fetch) (void *, reiser4_place_t *);
-
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
 	lookup_t (*lookup) (void *, lookup_hint_t *, lookup_bias_t,

@@ -36,6 +36,12 @@ uint64_t obj40_ordering(obj40_t *obj) {
 			 get_ordering, STAT_KEY(obj));
 }
 
+/* Fetches item info at @place. */
+errno_t obj40_fetch_item(obj40_t *obj, reiser4_place_t *place) {
+	return plug_call(place->node->plug->o.node_ops, fetch,
+			 place->node, &place->pos, place);
+}
+
 /* Reads one stat data extension to @data. */
 errno_t obj40_read_ext(reiser4_place_t *place, rid_t id,
 		       void *data)
@@ -531,11 +537,6 @@ errno_t obj40_unlink(obj40_t *obj) {
 	return obj40_inc_link(obj, -1);
 }
 #endif
-
-/* Fetches item at passed @place */
-errno_t obj40_fetch(obj40_t *obj, reiser4_place_t *place) {
-	return obj->core->tree_ops.fetch(obj->info.tree, place);
-}
 
 /* Obtains the plugin of the plugid returned by obj40_pid(). */
 reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {

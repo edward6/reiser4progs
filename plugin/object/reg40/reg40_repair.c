@@ -100,9 +100,8 @@ static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
 
 /* Lookup for the end byte and find out the body plug for such a size. */
 static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
-	reiser4_key_t key;
-	uint64_t offset;
 	reiser4_place_t place;
+	reiser4_key_t key;
 	errno_t res;
 	
 	aal_assert("vpf-1305", reg != NULL);
@@ -120,22 +119,25 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 		return reg40_policy_plug(reg, 0);
 
 	/* Initializing item entity. */
-	if ((res = reg40_core->tree_ops.fetch(reg->obj.info.tree, &place)))
+	if ((res = obj40_fetch_item(&reg->obj, &place)))
 		return NULL;
 
 	/* Check if this is an item of another object. */
 	if (plug_call(reg->position.plug->o.key_ops, compshort,
 		      &reg->position, &place.key))
+	{
 		return reg40_policy_plug(reg, 0);
+	}
 
 	/* Get the maxreal key of the found item and find next. */
 	if ((res = plug_call(place.plug->o.item_ops->balance,
 			     maxreal_key, &place, &key)))
+	{
 		return NULL;
+	}
 
-	offset = plug_call(key.plug->o.key_ops, get_offset, &key);
-	
-	return reg40_policy_plug(reg, offset);
+	return reg40_policy_plug(reg, plug_call(key.plug->o.key_ops,
+						get_offset, &key));
 }
 
 static errno_t reg40_check_ikey(reg40_t *reg) {	
@@ -188,7 +190,7 @@ static errno_t reg40_next(object_entity_t *object,
 			goto end;
 
 		/* Initializing item entity at @next place */
-		if ((res = reg40_core->tree_ops.fetch(info->tree, &reg->body)))
+		if ((res = obj40_fetch_item(&reg->obj, &reg->body)))
 			return res;
 
 		/* Check if this is an item of another object. */

@@ -32,9 +32,6 @@ struct obj40 {
 
 typedef struct obj40 obj40_t;
 
-extern errno_t obj40_fetch(obj40_t *obj,
-			   reiser4_place_t *place);
-
 extern errno_t obj40_fini(obj40_t *obj);
 extern errno_t obj40_update(obj40_t *obj);
 
@@ -42,6 +39,9 @@ extern oid_t obj40_objectid(obj40_t *obj);
 extern oid_t obj40_locality(obj40_t *obj);
 extern uint64_t obj40_ordering(obj40_t *obj);
 extern uint64_t obj40_get_size(obj40_t *obj);
+
+extern errno_t obj40_fetch_item(obj40_t *obj,
+				reiser4_place_t *place);
 
 extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type,
 				  char *name);

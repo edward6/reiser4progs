@@ -1456,6 +1456,9 @@ errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 
 	aal_assert("umka-3000", tree != NULL);
 
+	if (!tree->root)
+		return 0;
+
 	node = tree->root;
 
 	/* Loop for getting to first node of leaf level. */

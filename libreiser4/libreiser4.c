@@ -79,11 +79,6 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 	return reiser4_flow_read(t, hint);
 }
 
-/* Initializes item at passed @place. */
-static errno_t tree_fetch(void *tree, reiser4_place_t *place) {
-	return reiser4_place_fetch(place);
-}
-
 /* Returns TRUE if passed @place points to some real item in a node. */
 static int tree_valid(void *tree, reiser4_place_t *place) {
 	return reiser4_place_valid(place);
@@ -190,9 +185,6 @@ reiser4_core_t core = {
 	
 		/* Installing "valid" callback */
 		.valid      = tree_valid,
-
-		/* This one for initializing an item at place */
-		.fetch      = tree_fetch,
 
 		/* This one for lookuping the tree */
 		.lookup	    = tree_lookup,

@@ -49,7 +49,7 @@ int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
 	   tree_lookup(), if it is sure, that place points to valid postion in
 	   node. This happen if lookup found a key. Otherwise it leaves place
 	   not initialized and caller is supoposed to take care about. */
-	if (obj40_fetch(&dir->obj, place))
+	if (obj40_fetch_item(&dir->obj, place))
 		return 0;
 	
 	/* Is the place of the same object? */
@@ -750,7 +750,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 			     FIND_EXACT, &temp))
 	{
 	case ABSENT:
-		if ((res = obj40_fetch(&dir->obj, &temp.place)))
+		if ((res = obj40_fetch_item(&dir->obj, &temp.place)))
 			return res;
 		
 		break;
