@@ -43,6 +43,9 @@ extern errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 					 node_t *parent,
 					 node_t *node);
 
+extern errno_t reiser4_tree_node_realize(reiser4_tree_t *tree,
+					 node_t *node);
+
 extern errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 					    node_t *node);
 

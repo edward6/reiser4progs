@@ -68,7 +68,6 @@ extern void reiser4_node_set_fstamp(node_t *node, uint64_t stamp);
 extern void reiser4_node_set_level(node_t *node, uint8_t level);
 #endif
 
-extern errno_t reiser4_node_realize(node_t *node);
 extern uint8_t reiser4_node_get_level(node_t *node);
 
 extern node_t *reiser4_node_open(reiser4_tree_t *tree,
