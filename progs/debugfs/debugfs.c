@@ -318,7 +318,8 @@ static errno_t debugfs_calc_joint(
 	reiser4_joint_t *joint,	   /* joint to be estimated */
 	void *data)		   /* user-specified data */
 {
-	uint32_t i, level;
+	uint32_t level;
+	reiser4_pos_t pos;
 	reiser4_node_t *node = joint->node;
 	struct tree_frag_hint *hint = (struct tree_frag_hint *)data;
 
@@ -328,42 +329,42 @@ static errno_t debugfs_calc_joint(
 	if (level <= LEAF_LEVEL)
 		return 0;
 	
-	if (hint->curr == 0)
-		hint->curr = aal_block_number(node->block);
-
-	for (i = 0; i < reiser4_node_count(node); i++) {
+	aal_gauge_touch(hint->gauge);
+		
+	pos.unit = ~0ul;
+	
+	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 		int64_t delta;
 		reiser4_coord_t coord;
 		reiser4_ptr_hint_t ptr;
-		reiser4_pos_t pos = {i, ~0ul};
 
-		aal_gauge_touch(hint->gauge);
-		
 		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, aal_block_number(node->block));
 			return -1;
 		}
 
-		if (plugin_call(continue, coord.entity.plugin->item_ops,
-				fetch, &coord.entity, 0, &ptr, 1))
-			return -1;
+		for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+			
+			if (plugin_call(continue, coord.entity.plugin->item_ops,
+					fetch, &coord.entity, pos.unit, &ptr, 1))
+				return -1;
 
-		delta = hint->curr - ptr.ptr;
+			delta = hint->curr - ptr.ptr;
 
-		if (ptr.ptr == 0)
-			continue;
+			if (ptr.ptr == 0)
+				continue;
 		
-		if (labs(delta) > 1) {
-			hint->bad += labs(delta);
-			hint->total += labs(delta);
-		} else
+			if (labs(delta) > 1)
+				hint->bad++;
+
 			hint->total++;
 
-		hint->curr = ptr.ptr;
+			hint->curr = ptr.ptr;
 		
-		if (reiser4_item_extent(&coord))
-			hint->curr += ptr.width;
+			if (reiser4_item_extent(&coord))
+				hint->curr += ptr.width;
+		}
 	}
 	
 	return 0;
@@ -379,8 +380,9 @@ static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
 				       progs_gauge_handler, NULL)))
 		return -1;
 	
-	hint.tree = fs->tree;
 	hint.gauge = gauge;
+	hint.tree = fs->tree;
+	hint.curr = aal_block_number(fs->tree->root->node->block);
 
 	aal_gauge_start(gauge);
 	
@@ -412,23 +414,18 @@ static errno_t callback_file_fragmentation(object_entity_t *entity,
 
 	aal_gauge_touch(hint->gauge);
 	
-	if (hint->curr == 0) {
-		hint->curr = aal_block_number(block);
-		return 0;
-	}
-		
 	delta = hint->curr - aal_block_number(block);
 
-	if (labs(delta) > 1) {
-		hint->bad += labs(delta);
-		hint->total += labs(delta);
-	} else
-		hint->total++;
+	if (labs(delta) > 1)
+		hint->bad++;
+
+	hint->total++;
 
 	return 0;
 }
 
 static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
+	aal_block_t *block;
 	aal_gauge_t *gauge;
 	reiser4_file_t *file;
 	struct file_frag_hint hint;
@@ -444,6 +441,9 @@ static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
 	
 	hint.fs = fs;
 	hint.gauge = gauge;
+
+	block = reiser4_coord_block(&file->coord);
+	hint.curr = aal_block_number(block);
 
 	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
 	aal_gauge_start(gauge);
@@ -577,9 +577,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
-	if (print_flags == 0)
-		print_flags |= PF_SUPER;
-    
 	if (optind >= argc) {
 		debugfs_print_usage(argv[0]);
 		return USER_ERROR;
@@ -661,53 +658,50 @@ int main(int argc, char *argv[]) {
 				   "--print-tree is specified.");
 	}
 
-	if (behav_flags != 0) {
-		if ((behav_flags & BF_TFRAG)) {
-			if (debugfs_tree_fragmentation(fs))
-				goto error_free_fs;
-			print_flags = 0;
-		}
+	if ((behav_flags & BF_TFRAG)) {
+		if (debugfs_tree_fragmentation(fs))
+			goto error_free_fs;
+		print_flags = 0;
+	}
 
-		if ((behav_flags & BF_DFRAG)) {
-			if (debugfs_data_fragmentation(fs))
-				goto error_free_fs;
-			print_flags = 0;
-		}
+	if ((behav_flags & BF_DFRAG)) {
+		if (debugfs_data_fragmentation(fs))
+			goto error_free_fs;
+		print_flags = 0;
+	}
 
-		if ((behav_flags & BF_FFRAG)) {
-			if (debugfs_file_fragmentation(fs, filename))
-				goto error_free_fs;
-			print_flags = 0;
-		}
+	if ((behav_flags & BF_FFRAG)) {
+		if (debugfs_file_fragmentation(fs, filename))
+			goto error_free_fs;
+		print_flags = 0;
+	}
 	
-	} else {
-		if (print_flags & PF_SUPER) {
-			if (debugfs_print_master(fs))
-				goto error_free_fs;
+	if (print_flags & PF_SUPER) {
+		if (debugfs_print_master(fs))
+			goto error_free_fs;
 	
-			if (debugfs_print_format(fs))
-				goto error_free_fs;
-		}
+		if (debugfs_print_format(fs))
+			goto error_free_fs;
+	}
     
-		if (print_flags & PF_OID) {
-			if (debugfs_print_oid(fs))
-				goto error_free_fs;
-		}
+	if (print_flags & PF_OID) {
+		if (debugfs_print_oid(fs))
+			goto error_free_fs;
+	}
     
-		if (print_flags & PF_ALLOC) {
-			if (debugfs_print_alloc(fs))
-				goto error_free_fs;
-		}
+	if (print_flags & PF_ALLOC) {
+		if (debugfs_print_alloc(fs))
+			goto error_free_fs;
+	}
     
-		if (print_flags & PF_JOURNAL) {
-			if (debugfs_print_journal(fs))
-				goto error_free_fs;
-		}
+	if (print_flags & PF_JOURNAL) {
+		if (debugfs_print_journal(fs))
+			goto error_free_fs;
+	}
     
-		if (print_flags & PF_TREE) {
-			if (debugfs_print_tree(fs, print_flags))
-				goto error_free_fs;
-		}
+	if (print_flags & PF_TREE) {
+		if (debugfs_print_tree(fs, print_flags))
+			goto error_free_fs;
 	}
     
 	/* Deinitializing filesystem instance and device instance */

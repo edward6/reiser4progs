@@ -3,24 +3,31 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* all functions which return errno_t should return real errno, not just -1.
+* all functions which return errno_t should return real errno, not
+  just -1.
 
-* should we have reset method in object plugins? does call like seek(obj, 0) will 
-  not be convenient enough
+* should we have reset method in object plugins? is call like
+  seek(obj, 0) will not be convenient enough?
 
-* should we split reiser4_fs_create and reiser4_fs_open onto separate functions?
-* reiser4_joint_realize may be improved by rid of lookup
+* should we split reiser4_fs_create and reiser4_fs_open onto separate
+  functions?
 
-* move the all common code of reg40 and dir40 plugins to separate file and let them 
-  use it.
+* reiser4_joint_realize may be improved by rid of search_by_key
 
-* rewrite progs/libmisc/profile.c in order to be using the last changes in plugin 
-  header structure.
+* move the all common code of reg40 and dir40 plugins to separate
+  file.
 
-* should we use node print method for printing the all node items?
+* node print method for printing the all node items
 
 * finish balancing code in node40 plugin.
 
-* reg40_layout, which will allow us to measure the fragmentation of the regular files
+* reg40_layout, which will allow us to measure the fragmentation of
+  the regular files
 
 * --print-journal and --print-alloc options in debugfs.
+
+* FIBMAP ioctl implementation in reiser4
+
+* --data-fragmentation option in debugfs.reiser4
+
+* fix checksum calculating for the last block of bitmap
