@@ -238,7 +238,6 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 			return NULL;
 		}
 		
-		reiser4_node_mkclean(node);
 		node->tree = tree;
 		
 		if (parent && reiser4_tree_connect(tree, parent, node))
@@ -406,7 +405,6 @@ reiser4_node_t *reiser4_tree_alloc(
 		reiser4_node_set_fstamp(node, stamp);
 	}
 
-	reiser4_node_mkdirty(node);
 	node->tree = tree;
 	
 	return node;
@@ -960,11 +958,8 @@ errno_t reiser4_tree_shift(
 	reiser4_node_t *neig,	/* node items will be shifted to */
 	uint32_t flags)	        /* some flags (direction, move ip or not, etc) */
 {
-	rpos_t pos;
-	uint32_t i, items;
-	reiser4_key_t lkey;
-	
 	shift_hint_t hint;
+	reiser4_key_t lkey;
 	reiser4_node_t *node;
 
 	aal_assert("umka-1225", tree != NULL);
@@ -977,28 +972,6 @@ errno_t reiser4_tree_shift(
 	hint.control = flags;
 	hint.pos = place->pos;
 	
-	/*
-	  Saving node position in parent. It will be used bellow for updating
-	  left delemiting key.
-	*/
-	if (hint.control & SF_LEFT) {
-		if (node->parent) {
-			if (reiser4_node_pos(node, &pos)) {
-				aal_exception_error("Can't find node %llu in "
-						    "its parent node.", node->blk);
-				return -1;
-			}
-		}
-	} else {
-		if (neig->parent) {
-			if (reiser4_node_pos(neig, &pos)) {
-				aal_exception_error("Can't find node %llu in "
-						    "its parent node.", neig->blk);
-				return -1;
-			}
-		}
-	}
-	
 	if (reiser4_node_shift(node, neig, &hint))
 		return -1;
 
@@ -1007,20 +980,15 @@ errno_t reiser4_tree_shift(
 	if (hint.result & SF_MOVIP)
 		place->node = neig;
 
-	if (hint.items > 0 || hint.units > 0) {
-		reiser4_node_mkdirty(node);
-		reiser4_node_mkdirty(neig);
-	}
-	
 	/* Updating left delimiting keys in the tree */
 	if (hint.control & SF_LEFT) {
 		
-		if (reiser4_node_items(node) != 0 &&
+		if (reiser4_node_items(node) > 0 &&
 		    (hint.items > 0 || hint.units > 0))
 		{
 			if (node->parent) {
 				reiser4_place_t p;
-				
+
 				if (reiser4_node_lkey(node, &lkey))
 					return -1;
 
@@ -1047,46 +1015,6 @@ errno_t reiser4_tree_shift(
 		}
 	}
 
-	/* We do not need update children lists if we are on leaf level */
-	if (reiser4_node_get_level(node) <= LEAF_LEVEL)
-		return 0;
-
-	/* Updating children lists in node and its neighbour */
-	items = reiser4_node_items(neig);
-	
-	for (i = 0; i < hint.items; i++) {
-		uint32_t units;
-		reiser4_place_t place;
-
-		POS_INIT(&pos, (hint.control & SF_LEFT) ?
-			 items - i - 1 : i, ~0ul);
-
-		if (reiser4_place_open(&place, neig, &pos))
-			return -1;
-
-		units = reiser4_item_units(&place);
-		
-		if (!reiser4_item_branch(&place))
-			continue;
-
-		for (pos.unit = 0; pos.unit < units; pos.unit++) {
-			reiser4_node_t *child;
-			reiser4_ptr_hint_t ptr;
-			
-			plugin_call(place.item.plugin->item_ops, read,
-				    &place.item, &ptr, pos.unit, 1);
-			
-			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
-			        continue;
-			
-			reiser4_node_disconnect(node, child);
-
-			if (reiser4_node_connect(neig, child))
-				return -1;
-		}
-
-	}
-	
 	return 0;
 }
 

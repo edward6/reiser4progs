@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
 
 	place.pos.item = 0;
 		
-	while (reiser4_node_items(place.node) > 0)
+	while (place.node && reiser4_node_items(place.node) > 0)
 		reiser4_tree_remove(fs->tree, &place, 1);
 	
 //	reiser4_tree_detach(fs->tree, place.node);

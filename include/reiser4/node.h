@@ -32,6 +32,9 @@ extern void reiser4_node_set_fstamp(reiser4_node_t *node,
 extern void reiser4_node_set_level(reiser4_node_t *node,
 				   uint8_t level);
 
+extern errno_t reiser4_node_uchildren(reiser4_node_t *node,
+				      rpos_t *start);
+
 extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
 					   blk_t blk, rpid_t pid,
 					   uint8_t level);
