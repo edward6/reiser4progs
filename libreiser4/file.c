@@ -367,6 +367,29 @@ reiser4_file_t *reiser4_file_create(
 	return NULL;
 }
 
+static errno_t callback_process_place(
+	object_entity_t *entity,   /* file to be inspected */
+	reiser4_place_t *place,    /* next file block */
+	void *data)                /* user-specified data */
+{
+	aal_stream_t *stream = (aal_stream_t *)data;
+	reiser4_coord_t *coord = (reiser4_coord_t *)place;
+	
+	if (reiser4_item_print(coord, stream)) {
+		aal_exception_error("Can't print item %lu in node %llu.",
+				    coord->pos.item, coord->node->blk);
+		return -1;
+	}
+		
+	aal_stream_write(stream, "\n", 1);
+	return 0;
+}
+
+/* Prints file items into passed stream */
+errno_t reiser4_file_print(reiser4_file_t *file, aal_stream_t *stream) {
+	return reiser4_file_metadata(file, callback_process_place, stream);
+}
+
 #endif
 
 /* Closes specified file */

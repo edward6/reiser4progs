@@ -895,7 +895,7 @@ struct fprint_hint {
 
 typedef struct fprint_hint fprint_hint_t;
 
-static errno_t fprint_process_blk(
+static errno_t fprint_process_place(
 	object_entity_t *entity,   /* file to be inspected */
 	reiser4_place_t *place,    /* next file block */
 	void *data)                /* user-specified data */
@@ -903,30 +903,15 @@ static errno_t fprint_process_blk(
 	fprint_hint_t *hint = (fprint_hint_t *)data;
 	reiser4_coord_t *coord = (reiser4_coord_t *)place;
 
-	if (!(PF_SITEMS & hint->flags)) {
-		if (coord->node->blk == hint->old)
-			return 0;
+	if (coord->node->blk == hint->old)
+		return 0;
 
-		hint->old = coord->node->blk;
+	hint->old = coord->node->blk;
 	
-		if (print_process_node(coord->node, NULL)) {
-			aal_exception_error("Can't print node %llu.",
-					    hint->old);
-			return -1;
-		}
-	} else {
-		aal_stream_t stream;
-		aal_stream_init(&stream);
-
-		if (reiser4_item_print(coord, &stream)) {
-			aal_exception_error("Can't print item %lu in node %llu.",
-					    coord->pos.item, coord->node->blk);
-			return -1;
-		}
-		
-		aal_stream_write(&stream, "\n", 1);
-		debugfs_print_stream(&stream);
-		aal_stream_fini(&stream);
+	if (print_process_node(coord->node, NULL)) {
+		aal_exception_error("Can't print node %llu.",
+				    hint->old);
+		return -1;
 	}
 
 	return 0;
@@ -943,17 +928,31 @@ static errno_t debugfs_print_file(reiser4_fs_t *fs,
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
 
-	hint.old = 0;
-	hint.data = fs;
-	hint.flags = flags;
+	if (PF_SITEMS & flags) {
+		aal_stream_t stream;
 
-	if (reiser4_file_metadata(file, fprint_process_blk, &hint)) {
-		aal_exception_error("Can't print file %s metadata.",
-				    file->name);
-		res = -1;
+		aal_stream_init(&stream);
+		
+		if (reiser4_file_print(file, &stream) == 0)
+			debugfs_print_stream(&stream);
+		else {
+			aal_exception_error("Can't print file %s.",
+					    file->name);
+			res = -1;
+		}
+		
+		aal_stream_fini(&stream);
+	} else {
+		hint.old = 0;
+		hint.data = fs;
+		hint.flags = flags;
+
+		if (reiser4_file_metadata(file, fprint_process_place, &hint)) {
+			aal_exception_error("Can't print file %s metadata.",
+					    file->name);
+			res = -1;
+		}
 	}
-
-	printf("\n");
 
 	reiser4_file_close(file);
 	return res;

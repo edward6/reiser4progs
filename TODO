@@ -8,7 +8,7 @@ reiser4progs/COPYING.
 * something like "print_block" method for format, journal and block
   allocator plugins.
 
-* aal_block_t buffer list on device layer
+* should we have aal_block_t buffer list on device layer?
 
 * special file plugin.
 
@@ -31,7 +31,7 @@ reiser4progs/COPYING.
 * return value from the all low level plugin functions should be raised 
   up to the libreiser4 level.
 
-* debug tree remove function.
+* to debug tree remove function.
 
 * add overwriting ability.
 
@@ -41,6 +41,4 @@ reiser4progs/COPYING.
 
 * copy methods in node API.
 
-* reiser4_file_print function.
-
-* reiser4_tree_splitt function.
+* should we have the unit position inside an extent in bytes?
