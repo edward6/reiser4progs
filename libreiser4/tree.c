@@ -980,7 +980,9 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		/* Fetching extent infomation. */
 		hint.count = 1;
 		hint.specific = &ptr;
+		
 		hint.place_func = NULL;
+		hint.region_func = NULL;
 
 		if (plug_call(place->plug->o.item_ops->object,
 			      fetch_units, place, &hint) != 1)
@@ -1647,6 +1649,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 
 	hint.count = 1;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	hint.specific = &nodeptr_hint;
 
 	/* Prepare nodeptr hint. */
@@ -1732,6 +1735,7 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 		
 		hint.count = 1;
 		hint.place_func = NULL;
+		hint.region_func = NULL;
 
 		/* Removing nodeptr item/unit at @parent. */
 		return reiser4_tree_remove(tree, &parent, &hint);
@@ -2498,7 +2502,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	if ((res = reiser4_place_fetch(place)))
 		return res;
 
-	/* Calling @hint->place_func if any. */
+	/* Calling @hint->place_func if any andif there was new item create. */
 	if (hint->place_func && place->pos.unit == MAX_UINT32) {
 		if ((res = hint->place_func(place, hint)))
 			return res;

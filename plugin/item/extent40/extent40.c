@@ -24,7 +24,7 @@ uint32_t extent40_units(place_t *place) {
 	return place->len / sizeof(extent40_t);
 }
 
-/* Calculates extent size */
+/* Calculates extent size. */
 uint64_t extent40_offset(place_t *place, uint32_t pos) {
 	extent40_t *extent;
 	uint32_t i, blocks = 0;
@@ -77,7 +77,7 @@ static uint64_t extent40_bytes(place_t *place) {
 
 }
 
-/* Gets the number of unit specified offset lies in */
+/* Gets the number of unit specified offset lies in. */
 uint32_t extent40_unit(place_t *place, uint64_t offset) {
 	uint32_t i;
         uint32_t width = 0;
@@ -86,8 +86,7 @@ uint32_t extent40_unit(place_t *place, uint64_t offset) {
         extent = extent40_body(place);
                                                                                          
         for (i = 0; i < extent40_units(place); i++, extent++) {
-                width += et40_get_width(extent) *
-                        extent40_blksize(place);
+                width += et40_get_width(extent) * extent40_blksize(place);
 
                 if (offset < width)
                         return i;
@@ -102,26 +101,45 @@ static errno_t extent40_remove_units(place_t *place,
 {
 	uint32_t len;
 	uint32_t pos;
+	uint32_t units;
 	void *src, *dst;
 
-	pos = place->pos.unit;
-	
 	aal_assert("vpf-941", place != NULL);
 	aal_assert("umka-2402", hint != NULL);
 
-	if (pos + hint->count < extent40_units(place)) {
-		dst = extent40_body(place) + pos;
+	pos = place->pos.unit;
+	units = extent40_units(place);
 
-		src = extent40_body(place) + pos +
-			hint->count;
+	aal_assert("umka-3026",
+		   pos + hint->count <= units);
+	
+	/* Calling @hint->region_func for removed region in order to let higher
+	   levels know that some extent region is released and perform some
+	   actions like release blocks in block allocator, etc. */
+	if (hint->region_func) {
+		uint32_t i;
+		extent40_t *extent;
 
-		len = place->len - (pos + hint->count) *
-			sizeof(extent40_t);
+		extent = extent40_body(place) + pos;
 			
-		aal_memmove(dst, src, len);
+		for (i = pos; i < pos + hint->count; i++, extent++) {
+			hint->region_func(place, et40_get_start(extent),
+					  et40_get_width(extent), hint->data);
+		}
 	}
-		
-	/* Updating item's key by zero's unit one */
+
+	/* Removing units from @pos to @hint->count. */
+	dst = extent40_body(place) + pos;
+
+	src = extent40_body(place) + pos +
+		hint->count;
+
+	len = place->len - (pos + hint->count) *
+		sizeof(extent40_t);
+			
+	aal_memmove(dst, src, len);
+
+	/* Updating item's key by zero's unit one. */
 	if (pos == 0) {
 		if (extent40_fetch_key(place, &place->key))
 			return -EINVAL;
@@ -134,7 +152,7 @@ static errno_t extent40_remove_units(place_t *place,
 	return 0;
 }
 
-/* Truncates extent item stating from left by @hint->count bytes */
+/* Truncates extent item stating from left by @hint->count bytes. */
 static int64_t extent40_trunc_units(place_t *place,
 				    trans_hint_t *hint)
 {

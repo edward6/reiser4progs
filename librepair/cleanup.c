@@ -27,6 +27,10 @@ static errno_t repair_cleanup_check(place_t *place, void *data) {
 		/* Not checked item does not belong to any object. Remove. */
 		hint.count = 1;
 		hint.place_func = NULL;
+
+		/* FIXME-UMKA->VITALY: Here @hint->region_func should be set
+		   correctly in order to notify about extent region remove. */
+		hint.region_func = NULL;
 		
 		res = reiser4_node_remove(place->node, &place->pos, &hint);
 		if (res) return res;

@@ -46,6 +46,7 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	/* Preparing hint and mask */
 	trans.specific = &stat;
 	trans.place_func = NULL;
+	trans.region_func = NULL;
 	
 	if (data) {
 		stat.ext[id] = data;
@@ -80,6 +81,7 @@ errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint) {
 	/* Preparing hint and mask. */
 	trans.specific = hint;
 	trans.place_func = NULL;
+	trans.region_func = NULL;
 	
 	/* Calling statdata fetch method. */
 	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
@@ -101,6 +103,7 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 	/* Preparing hint and mask */
 	trans.specific = hint;
 	trans.place_func = NULL;
+	trans.region_func = NULL;
 
 	/* Updating stat data. */
 	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
@@ -136,6 +139,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 
 	hint.count = 1;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	
 	plug_call(obj->info.object.plug->o.key_ops, assign, 
 		  &hint.offset, &obj->info.object);
@@ -230,6 +234,7 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 
 	hint.specific = &stat;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 
 	if (plug_call(place->plug->o.item_ops->object,
 		      fetch_units, place, &hint) != 1)
@@ -258,6 +263,7 @@ uint64_t obj40_extmask(place_t *place) {
 	/* Preparing hint and mask */
 	hint.specific = &stat;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	
 	/* Calling statdata open method if any */
 	if (plug_call(place->plug->o.item_ops->object,
@@ -446,6 +452,7 @@ errno_t obj40_clobber(obj40_t *obj) {
 
 	hint.count = 1;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	
 	return obj40_remove(obj, STAT_PLACE(obj), &hint);
 }

@@ -64,6 +64,7 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 
 			hint.count = 1;
 			hint.place_func = NULL;
+			hint.region_func = NULL;
 
 			if ((res |= reiser4_node_remove(node, pos, &hint)) < 0)
 				return res;
@@ -101,6 +102,7 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 
 			hint.count = 1;
 			hint.place_func = NULL;
+			hint.region_func = NULL;
 
 			if ((ret = reiser4_node_remove(node, pos, &hint)))
 				return ret;
@@ -162,6 +164,7 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 			aal_memset(&hint, 0, sizeof(hint));
 			hint.count = 1;
 			hint.place_func = NULL;
+			hint.region_func = NULL;
 			
 			if ((res = reiser4_node_remove(node, pos, &hint)))
 				return res;

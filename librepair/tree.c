@@ -321,6 +321,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	hint.specific = &ptr;
 	hint.count = 1;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	hint.tree = tree;
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;
@@ -426,6 +427,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, place_t *dst,
 	hint.tree = tree;
 	hint.plug = dst->plug;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	
 	if ((res = reiser4_item_maxreal_key(dst, &dmax)))
 		return res;

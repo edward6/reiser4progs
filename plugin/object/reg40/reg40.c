@@ -103,6 +103,7 @@ static int64_t reg40_read(object_entity_t *entity,
 	hint.count = n;
 	hint.specific = buff;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	hint.tree = reg->obj.info.tree;
 
 	/* Initializing offset data must be read from. This is current file
@@ -409,6 +410,7 @@ int64_t reg40_put(object_entity_t *entity, void *buff, uint64_t n) {
 
 	hint.specific = buff;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	hint.tree = reg->obj.info.tree;
 	
 	plug_call(reg->position.plug->o.key_ops,
@@ -450,6 +452,7 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
 	/* Removing data from the tree. */
 	hint.count = size - n;
 	hint.place_func = NULL;
+	hint.region_func = NULL;
 	hint.data = reg->obj.info.tree;
 	hint.plug = reg40_policy_plug(reg, n);
 
