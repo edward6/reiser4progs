@@ -25,31 +25,36 @@ static errno_t nodeptr40_init(item_entity_t *item) {
 }
 
 static errno_t nodeptr40_insert(item_entity_t *item,
-				reiser4_item_hint_t *hint,
-				uint32_t pos)
+				void *buff, uint32_t pos)
 {
 	nodeptr40_t *nodeptr;
+	reiser4_item_hint_t *hint;
 	reiser4_ptr_hint_t *ptr_hint;
     
 	aal_assert("vpf-063", item != NULL, return -1); 
-	aal_assert("vpf-064", hint != NULL, return -1);
+	aal_assert("vpf-064", buff != NULL, return -1);
 
 	if (!(nodeptr = nodeptr40_body(item)))
 		return -1;
 	
+	hint = (reiser4_item_hint_t *)buff;
 	ptr_hint = (reiser4_ptr_hint_t *)hint->hint;
+	
 	np40_set_ptr(nodeptr, ptr_hint->ptr);
 	    
 	return 0;
 }
 
 static errno_t nodeptr40_estimate(item_entity_t *item,
-				  reiser4_item_hint_t *hint,
-				  uint32_t pos) 
+				  void *buff, uint32_t pos) 
 {
-	aal_assert("vpf-068", hint != NULL, return -1);
+	reiser4_item_hint_t *hint;
+	
+	aal_assert("vpf-068", buff != NULL, return -1);
     
+	hint = (reiser4_item_hint_t *)buff;
 	hint->len = sizeof(nodeptr40_t);
+	
 	return 0;
 }
 
@@ -164,7 +169,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.lookup		= NULL,
 		.valid		= NULL,
 		.remove		= NULL,
-		.open           = NULL,
 		.mergeable      = NULL,
 
 		.shift          = NULL,

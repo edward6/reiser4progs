@@ -628,9 +628,6 @@ struct reiser4_item_ops {
 	/* Returns plugin file object item belongs to */
 	reiser4_plugin_t *(*belongs) (item_entity_t *);
 	
-	/* Reads item data to passed hint */
-	errno_t (*open) (item_entity_t *, reiser4_item_hint_t *);
-	
 	/* Reads passed amount of units from the item. */
 	int32_t (*fetch) (item_entity_t *, void *, uint32_t,
 			  uint32_t);
@@ -644,12 +641,10 @@ struct reiser4_item_ops {
 			   uint32_t);
 
 	/* Inserts unit described by passed hint into the item */
-	errno_t (*insert) (item_entity_t *, reiser4_item_hint_t *,
-			   uint32_t);
+	errno_t (*insert) (item_entity_t *, void *, uint32_t);
 	
 	/* Estimates item */
-	errno_t (*estimate) (item_entity_t *, reiser4_item_hint_t *,
-			     uint32_t);
+	errno_t (*estimate) (item_entity_t *, void *, uint32_t);
     
 	/* Checks item for validness */
 	errno_t (*valid) (item_entity_t *);

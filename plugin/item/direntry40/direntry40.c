@@ -306,15 +306,17 @@ static int direntry40_mergeable(item_entity_t *item1,
   room for inserting new entries.
 */
 static errno_t direntry40_estimate(item_entity_t *item,
-				   reiser4_item_hint_t *hint,
-				   uint32_t pos) 
+				   void *buff, uint32_t pos) 
 {
 	uint32_t i;
+	reiser4_item_hint_t *hint;
 	reiser4_direntry_hint_t *direntry_hint;
 	    
-	aal_assert("vpf-095", hint != NULL, return -1);
+	aal_assert("vpf-095", buff != NULL, return -1);
     
+	hint = (reiser4_item_hint_t *)buff;
 	direntry_hint = (reiser4_direntry_hint_t *)hint->hint;
+	
 	hint->len = direntry_hint->count * sizeof(entry40_t);
     
 	for (i = 0; i < direntry_hint->count; i++) {
@@ -887,8 +889,7 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 
 /* Inserts new entries inside direntry item */
 static errno_t direntry40_insert(item_entity_t *item,
-				 reiser4_item_hint_t *hint,
-				 uint32_t pos)
+				 void *buff, uint32_t pos)
 {
 	uint32_t offset;
 	uint32_t i, count;
@@ -896,21 +897,23 @@ static errno_t direntry40_insert(item_entity_t *item,
 	entry40_t *entry;
 	direntry40_t *direntry;
 
+	reiser4_item_hint_t *hint;
 	reiser4_direntry_hint_t *direntry_hint;
     
 	aal_assert("umka-791", item != NULL, return -1);
-	aal_assert("umka-792", hint != NULL, return -1);
+	aal_assert("umka-792", buff != NULL, return -1);
 	aal_assert("umka-897", pos != ~0ul, return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
-    
+
+	hint = (reiser4_item_hint_t *)buff;
 	direntry_hint = (reiser4_direntry_hint_t *)hint->hint;
 
 	/*
-	  Expanding direntry in order to prepare the room for new
-	  units. Function direntry40_expand returns the offset of
-	  where new unit will be inserted.
+	  Expanding direntry in order to prepare the room for new entries. The
+	  function direntry40_expand returns the offset of where new unit will
+	  be inserted.
 	*/
 	count = direntry_hint->count;
 	
@@ -1254,7 +1257,6 @@ static reiser4_plugin_t direntry40_plugin = {
 #endif
 		.belongs        = NULL,
 		.valid		= NULL,
-		.open           = NULL,
 		.update         = NULL,
 		.set_key	= NULL,
 		

@@ -101,8 +101,7 @@ static errno_t extent40_get_key(item_entity_t *item,
 #ifndef ENABLE_COMPACT
 
 static errno_t extent40_estimate(item_entity_t *item,
-				 reiser4_item_hint_t *hint,
-				 uint32_t pos)
+				 void *buff, uint32_t pos)
 {
 	return -1;
 }
@@ -126,23 +125,24 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 }
 
 static errno_t extent40_insert(item_entity_t *item,
-			       reiser4_item_hint_t *hint,
-			       uint32_t pos)
+			       void *buff, uint32_t pos)
 {
 	uint32_t count;
 	void *src, *dst;
 	uint32_t i, units;
 
 	extent40_t *extent;
+	reiser4_item_hint_t *hint;
 	reiser4_ptr_hint_t *ptr_hint;
 
 	aal_assert("umka-1202", item != NULL, return -1); 
-	aal_assert("umka-1203", hint != NULL, return -1);
+	aal_assert("umka-1203", buff != NULL, return -1);
 	aal_assert("umka-1656", pos != ~0ul, return -1);
 
 	if (!(extent = extent40_body(item)))
 		return -1;
 
+	hint = (reiser4_item_hint_t *)buff;
 	ptr_hint = (reiser4_ptr_hint_t *)hint;
 	
 	count = hint->len / sizeof(extent40_t);
@@ -713,7 +713,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.belongs       = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
-		.open          = NULL,
 		.set_key       = NULL,
 
 		.lookup	       = extent40_lookup,

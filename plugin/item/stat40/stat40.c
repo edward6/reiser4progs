@@ -116,17 +116,17 @@ static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
 	return 1;
 }
 
-/*
-  Opens statdata item, that is loads all extentions into corresponding extent
-  hits inside passed @hint.
-*/
-static errno_t stat40_open(item_entity_t *item, 
-			   reiser4_item_hint_t *hint)
+/* Fetches whole statdata item with extentions into passed @buff */
+static int32_t stat40_fetch(item_entity_t *item, void *buff,
+			    uint32_t pos, uint32_t count)
 {
 	aal_assert("umka-1414", item != NULL, return -1);
-	aal_assert("umka-1415", hint != NULL, return -1);
+	aal_assert("umka-1415", buff != NULL, return -1);
 
-	return stat40_traverse(item, callback_open_ext, (void *)hint);
+	if (stat40_traverse(item, callback_open_ext, buff))
+		return -1;
+
+	return 1;
 }
 
 #ifndef ENABLE_COMPACT
@@ -144,19 +144,24 @@ static errno_t stat40_init(item_entity_t *item) {
   by passed @hint at passed @pos.
 */
 static errno_t stat40_estimate(item_entity_t *item, 
-			       reiser4_item_hint_t *hint,
-			       uint32_t pos) 
+			       void *buff, uint32_t pos) 
 {
 	uint8_t i;
+	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
     
-	aal_assert("vpf-074", hint != NULL, return -1);
+	aal_assert("vpf-074", buff != NULL, return -1);
+
+	hint = (reiser4_item_hint_t *)buff;
+	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
 
 	hint->len = sizeof(stat40_t);
-	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
-	if (!stat_hint->extmask)
+	if (!stat_hint->extmask) {
+		aal_exception_warn("Empty extention mask detected "
+				   "while estimating stat data.");
 		return 0;
+	}
     
 	/* Estimating the all stat data extentions */
 	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
@@ -195,17 +200,20 @@ static errno_t stat40_estimate(item_entity_t *item,
 
 /* This method inserts the stat data extentions */
 static errno_t stat40_insert(item_entity_t *item,
-			     reiser4_item_hint_t *hint,
-			     uint32_t pos)
+			     void *buff, uint32_t pos)
 {
 	uint8_t i;
 	reiser4_body_t *extbody;
+
+	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-076", item != NULL, return -1); 
-	aal_assert("vpf-075", hint != NULL, return -1);
+	aal_assert("vpf-075", buff != NULL, return -1);
 
 	extbody = (reiser4_body_t *)item->body;
+
+	hint = (reiser4_item_hint_t *)buff;
 	stat_hint = (reiser4_statdata_hint_t *)hint->hint;
     
 	if (!stat_hint->extmask)
@@ -454,7 +462,7 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 	
-	if (stat40_open(item, &hint)) {
+	if (stat40_fetch(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata extention (0x%x)",
 				    SDEXT_LW_ID);
 		return NULL;
@@ -503,17 +511,16 @@ static reiser4_plugin_t stat40_plugin = {
 #endif
 		.remove		= NULL,
 		.lookup		= NULL,
-		.fetch          = NULL,
 		.update         = NULL,
 		.mergeable      = NULL,
 	    
 		.shift          = NULL,
 		.predict        = NULL,
 
-		.belongs        = stat40_belongs,
-		.open           = stat40_open,
+		.fetch          = stat40_fetch,
 		.units		= stat40_units,
 		.valid		= stat40_valid,
+		.belongs        = stat40_belongs,
         
 		.get_key	= NULL,
 		.set_key	= NULL,

@@ -39,8 +39,11 @@ static int32_t symlink40_read(object_entity_t *entity,
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
 	item = &symlink->file.statdata.item;
-	
-	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
+
+	if (!item->plugin->item_ops.fetch)
+		return -1;
+
+	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1)
 		return -1;
 
 	return aal_strlen(buff);

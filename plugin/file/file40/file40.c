@@ -68,10 +68,10 @@ uint16_t file40_get_mode(file40_t *file) {
 	item = &file->statdata.item;
 
 	/* Calling statdata open method if it exists */
-	if (!item->plugin->item_ops.open)
+	if (!item->plugin->item_ops.fetch)
 		return 0;
 
-	if (item->plugin->item_ops.open(item, &hint)) {
+	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return 0;
 	}
@@ -96,10 +96,10 @@ errno_t file40_set_mode(file40_t *file, uint16_t mode) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.open)
+	if (!item->plugin->item_ops.fetch)
 		return -1;
 
-	if (item->plugin->item_ops.open(item, &hint)) {
+	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return -1;
 	}
@@ -127,10 +127,10 @@ uint64_t file40_get_size(file40_t *file) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.open)
+	if (!item->plugin->item_ops.fetch)
 		return 0;
 
-	if (item->plugin->item_ops.open(item, &hint)) {
+	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return 0;
 	}
@@ -155,10 +155,10 @@ errno_t file40_set_size(file40_t *file, uint64_t size) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.open)
+	if (!item->plugin->item_ops.fetch)
 		return -1;
 
-	if (item->plugin->item_ops.open(item, &hint)) {
+	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return -1;
 	}
@@ -185,10 +185,10 @@ errno_t file40_get_symlink(file40_t *file, char *data) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.open)
+	if (!item->plugin->item_ops.fetch)
 		return -1;
 
-	if (item->plugin->item_ops.open(item, &hint)) {
+	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return -1;
 	}
