@@ -190,7 +190,6 @@ uint32_t reiser4_item_len(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Updates item key in node and in place->item.key field */
 errno_t reiser4_item_set_key(reiser4_place_t *place,
 			     reiser4_key_t *key)
@@ -211,7 +210,6 @@ errno_t reiser4_item_set_key(reiser4_place_t *place,
 	return plugin_call(entity->plugin->o.node_ops, set_key, 
 			   entity, &place->pos, key);
 }
-
 #endif
 
 /*

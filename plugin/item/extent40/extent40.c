@@ -225,15 +225,13 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	key_entity_t key;
 	uint32_t blocksize;
 	uint32_t sectorsize;
-	aal_device_t *device;
 
 	aal_assert("umka-1421", item != NULL);
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != ~0ul);
 
-	device = item->context.device;
-	sectorsize = device->blocksize;
 	blocksize = extent40_blocksize(item);
+	sectorsize = item->context.device->blocksize;
 
 	for (read = count, i = extent40_unit(item, pos);
 	     i < extent40_units(item) && count > 0; i++)
@@ -249,13 +247,9 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		*/
 		
 #ifndef ENABLE_STAND_ALONE
-		uint64_t blk;
-		uint64_t start;
-		uint64_t offset;
+		uint64_t blk, start, offset;
 #else
-		uint32_t blk;
-		uint32_t start;
-		uint32_t offset;
+		uint32_t blk, start, offset;
 #endif
 		extent40_get_key(item, i, &key);
 
@@ -269,6 +263,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		start = blk = et40_get_start(extent40_body(item) + i) +
 			((pos - offset) / blocksize);
 
+		/* Loop though the extent blocks */
 		while (blk < start + et40_get_width(extent40_body(item) + i) &&
 		       count > 0)
 		{
@@ -284,24 +279,27 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 			sec = (blk * (blocksize / sectorsize)) +
 				(blklocal / sectorsize);
 
+			/* Loop though one block (4096) */
 			while (blkchunk > 0) {
 				uint32_t secchunk;
 				uint32_t seclocal;
-				
-				if (!(block = aal_block_read(device,
-							     sectorsize,
-							     sec)))
+
+				/* Reading one device block (sector) */
+				if (!(block = aal_block_read(item->context.device,
+							     sectorsize, sec)))
 				{
 					aal_exception_error("Can't read device "
 							    "block %llu.", sec);
 					return -EIO;
 				}
 
+				/* Calculating data chunk to be copied */
 				seclocal = (blklocal % sectorsize);
 				
 				if ((secchunk = sectorsize - seclocal) > blkchunk)
 					secchunk = blkchunk;
-					
+
+				/* Copy data to passed buffer */
 				aal_memcpy(buff, block->data + seclocal, secchunk);
 				aal_block_free(block);
 
