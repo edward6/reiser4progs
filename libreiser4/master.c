@@ -174,9 +174,9 @@ int reiser4_master_confirm(aal_device_t *device) {
     
 	super = (reiser4_master_sb_t *)block->data;
 
-	/* FIXME-GREEN->UMKA: While it works for now, perhaps you need to replace 4 with "sizeof(REISER4_MASTER_MAGIC)-1"
-	   or "sizeof(super->ms_magic)" */
-	if (aal_strncmp(super->ms_magic, REISER4_MASTER_MAGIC, 4) == 0) {
+	if (aal_strncmp(super->ms_magic, REISER4_MASTER_MAGIC,
+			sizeof(super->ms_magic)) == 0)
+	{
 		aal_block_free(block);
 		return 1;
 	}
@@ -189,7 +189,6 @@ int reiser4_master_confirm(aal_device_t *device) {
 /* Reads master super block from disk */
 reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	aal_block_t *block;
-	uint32_t blocksize;
 	reiser4_master_t *master;
     
 	aal_assert("umka-143", device != NULL);
@@ -200,20 +199,17 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	master->dirty = FALSE;
 	master->device = device;
 	
-	blocksize = device->blocksize;
-
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_read(device, blocksize,
-				     REISER4_MASTER_OFFSET / blocksize)))
+	if (!(block = aal_block_read(device, device->blocksize,
+				     REISER4_MASTER_OFFSET /
+				     device->blocksize)))
 	{
 		aal_exception_fatal("Can't read master super block.");
 		goto error_free_master;
 	}
 
 	/* Copying master super block */
-	/* FIXME-GREEN->UMKA: What if device->blocksize is less than sizeof(*SUPER(master)) ? */
-	aal_memcpy(SUPER(master), block->data,
-		   sizeof(*SUPER(master)));
+	aal_memcpy(SUPER(master), block->data, sizeof(*SUPER(master)));
 
 	aal_block_free(block);
     
@@ -223,9 +219,9 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	  block, then we trying guess format in use by means of traversing all
 	  format plugins and call its confirm method.
 	*/
-	/* FIXME-GREEN->UMKA: While it works for now, perhaps you need to replace 4 with "sizeof(REISER4_MASTER_MAGIC)-1"
-	   or "sizeof(super->ms_magic)" */
-	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC, 4) != 0) {
+	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
+			sizeof(super->ms_magic)) != 0)
+	{
 		/* 
 		   Reiser4 was not found on the device. At this point we
 		   should call the function which detects used format on the
