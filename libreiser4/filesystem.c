@@ -192,23 +192,6 @@ static errno_t callback_mark_block(void *entity, blk_t start,
 				    start, width);
 }
 
-/* Marks filesystem area as used */
-errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
-	blk_t blk;
-	
-	aal_assert("umka-1139", fs != NULL);
-	aal_assert("umka-1684", fs->alloc != NULL);
-
-        /* Marking master super block */
-	blk = (REISER4_MASTER_OFFSET /
-	       reiser4_master_blksize(fs->master));
-	
-	reiser4_alloc_occupy(fs->alloc, blk, 1);
-	
-	return reiser4_fs_layout(fs, callback_mark_block,
-				 fs->alloc);
-}
-
 #define REISER4_MIN_SIZE 122
 
 /* Create filesystem on specified host device and with passed params */
@@ -297,9 +280,8 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->oid = reiser4_oid_create(fs)))
 		goto error_free_alloc;
 	
-	if (reiser4_fs_mark(fs)) {
-		aal_exception_error("Can't mark filesystem used "
-				    "blocks.");
+	if (reiser4_fs_layout(fs, callback_mark_block, fs->alloc)) {
+		aal_exception_error("Can't mark filesystem blocks used.");
 		goto error_free_oid;
 	}
 
