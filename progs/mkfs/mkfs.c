@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
 			return NO_ERROR;
 		}
 	}
-    
+
 	if (optind >= argc + 1) {
 		mkfs_print_usage(argv[0]);
 		return USER_ERROR;
@@ -333,7 +333,8 @@ int main(int argc, char *argv[]) {
 		host_dev = (char *)walk->data;
     
 		if (stat(host_dev, &st) == -1) {
-			aal_exception_error("Can't stat %s.", host_dev);
+			aal_exception_error("Can't stat %s. %s.", host_dev,
+					    strerror(errno));
 			goto error_free_libreiser4;
 		}
     
