@@ -10,8 +10,6 @@ reiser4progs/COPYING.
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
 
-* --print-journal option handling code in debugfs.
-
 * should we print blocks, that belong to some of fs objects 
   (block allocator, etc) while handling --print-block option?
 
