@@ -14,13 +14,13 @@
 
 #include <reiser4/types.h>
 
-extern reiser4_format_t *reiser4_format_reopen(reiser4_format_t *format);
 extern reiser4_format_t *reiser4_format_open(reiser4_fs_t *fs);
 
 #ifndef ENABLE_STAND_ALONE
 
 extern int reiser4_format_confirm(reiser4_format_t *format);
 extern errno_t reiser4_format_sync(reiser4_format_t *format);
+extern errno_t reiser4_format_reopen(reiser4_format_t *format);
 
 extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       count_t len,
@@ -63,20 +63,19 @@ extern errno_t reiser4_format_valid(reiser4_format_t *format);
 extern rid_t reiser4_format_alloc_pid(reiser4_format_t *format);
 extern rid_t reiser4_format_journal_pid(reiser4_format_t *format);
 
-#endif
-
 extern blk_t reiser4_format_start(reiser4_format_t *format);
-extern void reiser4_format_close(reiser4_format_t *format);
-
-extern blk_t reiser4_format_get_root(reiser4_format_t *format);
 extern count_t reiser4_format_get_len(reiser4_format_t *format);
 extern count_t reiser4_format_get_free(reiser4_format_t *format);
-extern uint16_t reiser4_format_get_height(reiser4_format_t *format);
 extern uint32_t reiser4_format_get_stamp(reiser4_format_t *format);
 extern uint16_t reiser4_format_get_policy(reiser4_format_t *format);
 
-extern const char *reiser4_format_name(reiser4_format_t *format);
+#endif
+
+extern void reiser4_format_close(reiser4_format_t *format);
 extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
+extern blk_t reiser4_format_get_root(reiser4_format_t *format);
+extern const char *reiser4_format_name(reiser4_format_t *format);
+extern uint16_t reiser4_format_get_height(reiser4_format_t *format);
 
 #endif
 

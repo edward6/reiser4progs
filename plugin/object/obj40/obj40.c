@@ -454,8 +454,8 @@ errno_t obj40_stat(obj40_t *obj) {
 		return -EINVAL;
 	}
 
-	aal_memcpy(&obj->key, &obj->statdata.item.key,
-		   sizeof(obj->key));
+	plugin_call(obj->key.plugin->key_ops, assign, &obj->key,
+		    &obj->statdata.item.key);
 	
 	/* Locking new node */
 	obj40_lock(obj, &obj->statdata);

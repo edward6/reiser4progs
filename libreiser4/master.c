@@ -234,18 +234,32 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	return NULL;
 }
 
-reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master) {
-	aal_device_t *device;
+#ifndef ENABLE_STAND_ALONE
+
+/* Rereads master super block from the device */
+errno_t reiser4_master_reopen(reiser4_master_t *master) {
+	blk_t offset;
+	aal_block_t *block;
 	
 	aal_assert("umka-1576", master != NULL);
 
-	device = master->device;
-	reiser4_master_close(master);
+	offset = (blk_t)(MASTER_OFFSET / REISER4_BLKSIZE);
 	
-	return reiser4_master_open(device);
-}
+	/* Reading the block where master super block lies */
+	if (!(block = aal_block_open(master->device, offset))) {
+		aal_exception_fatal("Can't read master super block "
+				    "at %llu.", offset);
+		return -EIO;
+	}
 
-#ifndef ENABLE_STAND_ALONE
+	/* Copying master super block */
+	aal_memcpy(SUPER(master), block->data,
+		   sizeof(*SUPER(master)));
+
+	aal_block_close(block);
+	
+	return 0;
+}
 
 /* Saves master super block to device. */
 errno_t reiser4_master_sync(

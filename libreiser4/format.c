@@ -156,21 +156,30 @@ errno_t reiser4_format_valid(
 			   valid, format->entity);
 }
 
-#endif
-
 /* Reopens disk-format on specified device */
-reiser4_format_t *reiser4_format_reopen(
+errno_t reiser4_format_reopen(
 	reiser4_format_t *format)	/* format to be reopened */
 {
-	reiser4_fs_t *fs;
-
+	reiser4_plugin_t *plugin;
+	
 	aal_assert("umka-428", format != NULL);
 
-	fs = format->fs;
-	reiser4_format_close(format);
+	plugin = format->entity->plugin;
 	
-	return reiser4_format_open(fs);
+	plugin_call(plugin->format_ops, close, format->entity);
+	
+	if (!(format->entity = plugin_call(plugin->format_ops, open,
+					   format->fs->device)))
+	{
+		aal_exception_fatal("Can't open disk-format %s.",
+				    plugin->h.label);
+		return -EINVAL;
+	}
+	
+	return 0;
 }
+
+#endif
 
 /* Closes passed disk-format */
 void reiser4_format_close(
@@ -207,6 +216,7 @@ blk_t reiser4_format_get_root(
 			   get_root, format->entity);
 }
 
+#ifndef ENABLE_STAND_ALONE
 blk_t reiser4_format_start(reiser4_format_t *format) {
 	aal_assert("umka-1693", format != NULL);
 	
@@ -233,6 +243,7 @@ count_t reiser4_format_get_free(
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_free, format->entity);
 }
+#endif
 
 /* Returns tree height */
 uint16_t reiser4_format_get_height(
@@ -244,6 +255,7 @@ uint16_t reiser4_format_get_height(
 			   get_height, format->entity);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Returns current mkfs id from the format-specific super-block */
 uint32_t reiser4_format_get_stamp(
 	reiser4_format_t *format)	/* format to be inspected */
@@ -263,8 +275,6 @@ uint16_t reiser4_format_get_policy(
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_policy, format->entity);
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Sets new root block */
 void reiser4_format_set_root(

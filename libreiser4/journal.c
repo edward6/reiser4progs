@@ -226,10 +226,7 @@ void reiser4_journal_close(
 {
 	aal_assert("umka-102", journal != NULL);
 	
-#ifndef ENABLE_ALONE
 	reiser4_journal_sync(journal);
-#endif	
-
 	journal->fs->journal = NULL;
 	
 	plugin_call(journal->entity->plugin->journal_ops, 
