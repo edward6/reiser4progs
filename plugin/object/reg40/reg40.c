@@ -480,6 +480,12 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 		return 0;
 
 	if (n > size) {
+		/* Converting body if needed. */
+		if ((res = reg40_check_body(entity, n))) {
+			aal_error("Can't perform tail conversion.");
+			return res;
+		}
+
 		/* Updating stat data fields. */
 		if ((res = obj40_update(&reg->obj)))
 			return res;

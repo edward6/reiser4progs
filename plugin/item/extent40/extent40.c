@@ -516,7 +516,6 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	blksize = extent40_blksize(place);
 	secsize = extent40_secsize(place);
 
-
 	read_offset = plug_call(hint->offset.plug->o.key_ops,
 				get_offset, &hint->offset);
 	
