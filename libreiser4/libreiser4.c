@@ -80,32 +80,14 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 }
 
 /* Handler for requests for next item. */
-static errno_t tree_next(void *tree, reiser4_place_t *place,
-			 reiser4_place_t *next)
+static errno_t tree_next_item(void *tree, reiser4_place_t *place,
+			      reiser4_place_t *next)
 {
 	return reiser4_tree_next_node((reiser4_tree_t *)tree, 
 				      place, next);
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*static errno_t tree_put_block(void *tree, reiser4_key_t *key,
-			     aal_block_t *block)
-{
-	reiser4_key_t *k = reiser4_key_clone(key);
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return aal_hash_table_insert(t->data, k, block);
-}
-
-static errno_t tree_rem_block(void *tree, reiser4_key_t *key) {
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return aal_hash_table_remove(t->data, key);
-}
-
-static aal_block_t *tree_get_block(void *tree, reiser4_key_t *key) {
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return aal_hash_table_lookup(t->data, key);
-}*/
-
 static errno_t tree_update_key(void *tree, reiser4_place_t *place,
 			       reiser4_key_t *key)
 {
@@ -192,16 +174,9 @@ reiser4_core_t core = {
 
 		/* Update the key in the place and the node itself. */
 		.update_key = tree_update_key,
-
-#if 0
-		/* Data related functions */
-		.put_block   = tree_put_block,
-		.rem_block   = tree_rem_block,
-		.get_block   = tree_get_block,
-#endif
 #endif
 		/* Returns next item from the passed place. */
-		.next	    = tree_next
+		.next_item   = tree_next_item
 	},
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its

@@ -143,8 +143,8 @@ lookup_t dir40_next(dir40_t *dir) {
 	aal_assert("umka-2063", dir != NULL);
 
 	/* Getting next directory item coord. */
-	if ((res = dir40_core->tree_ops.next(dir->obj.info.tree,
-					     &dir->body, &place)))
+	if ((res = dir40_core->tree_ops.next_item(dir->obj.info.tree,
+						  &dir->body, &place)))
 	{
 		return res;
 	}

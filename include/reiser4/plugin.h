@@ -1583,7 +1583,7 @@ struct tree_ops {
 	errno_t (*update_key) (void *, reiser4_place_t *, reiser4_key_t *);
 #endif
 	/* Returns the next item. */
-	errno_t (*next) (void *, reiser4_place_t *, reiser4_place_t *);
+	errno_t (*next_item) (void *, reiser4_place_t *, reiser4_place_t *);
 };
 
 typedef struct tree_ops tree_ops_t;
