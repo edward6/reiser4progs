@@ -169,6 +169,12 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 						object->name)))
 			goto error_parent_close;
 		
+		/* If object get linked to "lost+found" clear ATTACHED flag to
+		   relink it to some parent later if one will be found. */
+		if (!reiser4_key_compare(&parent->info.object, 
+					&sem->lost->info.object))
+			repair_item_clear_flag(start, OF_ATTACHED);
+		
 		/* Parent was checked and traversed already, stop here to not
 		   traverse it another time. */
 		reiser4_object_close(parent);
@@ -222,8 +228,8 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 		if ((res = repair_semantic_link(sem, sem->lost, parent, parent->name)))
 			goto error_parent_close;
 		
-		/* Do not mark objects linked to "lost+found" as ATTACHED to relink 
-		   them to their parents if one is found later. */
+		/* Clear ATTACHED flag to relink it to some parent later if one 
+		   will be found. */
 		repair_item_clear_flag(start, OF_ATTACHED);
 	}
 	
@@ -399,9 +405,16 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	if (upper == NULL) {
 		/* Connect object to "lost+found". */
 		repair_semantic_lost_name(object, object->name);
+		
 		if ((res = repair_semantic_link(sem, sem->lost, object,
 						object->name)))
 			goto error_close_object;
+
+		/* Clear ATTACHED flag to relink it to some parent later
+		   if one will be found. */
+		repair_item_clear_flag(reiser4_object_start(object), 
+				       OF_ATTACHED);
+
 	}
 	
 	/* Traverse the found parent if any or the openned object. */
@@ -425,11 +438,56 @@ static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree,
 	return repair_node_traverse(node, callback_node_traverse, data);
 }
 
+/* Try to open "lost+found" in the given @root and remove all entries 
+   started with "lost_name". */
 static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 							 reiser4_object_t *root)
 {
-	/* FIXME-VITALY: Not ready yet. */
-	return NULL;
+	uint8_t len = aal_strlen(LOST_PREFIX);
+	reiser4_object_t *object;
+	entry_hint_t entry;
+	lookup_t lookup;
+	errno_t res;
+	
+	aal_assert("vpf-1193", sem != NULL);
+	aal_assert("vpf-1194", root != NULL);
+	
+	lookup = reiser4_object_lookup(root, "lost+found", &entry);
+	
+	if (lookup == FAILED)
+		return INVAL_PTR;
+	
+	if (lookup == ABSENT)
+		return NULL;
+
+	/* Entry was found. */
+	object = repair_object_launch(sem->repair->fs->tree, &entry.object);
+	
+	/* No object can be reached by the found entry. FIXME-VITALY: object 
+	   should be built on the base of this objectid. */
+	if (object == NULL)
+		return NULL;
+	
+	if ((res = repair_semantic_check_struct(sem, object)) < 0)
+		goto error_close_object;
+	
+	if (repair_error_fatal(res)) {
+		reiser4_object_close(object);
+		return NULL;
+	}
+	
+	while ((res = reiser4_object_readdir(object, &entry))) {
+		if (!aal_memcmp(entry.name, LOST_PREFIX, len)) {
+			if ((res = reiser4_object_rem_entry(object, &entry)))
+				goto error_close_object;
+		}
+	}
+	
+	return object;
+	
+ error_close_object:
+	reiser4_object_close(object);
+	return INVAL_PTR;
 }
 
 errno_t repair_semantic(repair_semantic_t *sem) {
@@ -475,7 +533,6 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 			goto error_close_root;
 		
 		/* Open "lost+found" directory. */
-		/* Create 'lost+found' directory. */
 		sem->lost = repair_semantic_open_lost_found(sem, root);
 
 		if (sem->lost == INVAL_PTR) {
@@ -483,6 +540,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 			return -EINVAL;
 		}
 		
+		/* Traverse the root dir -- recover all objects which can be 
+		   reached from the root. */
 		res = reiser4_object_traverse(root, callback_object_traverse, 
 					      sem);
 		if (res)
@@ -494,7 +553,15 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 					    "directory.");
 			return -EINVAL;
 		}
-
+	}
+	
+	/* Create a new "lost+found" directory if not openned. */
+	if (sem->lost == NULL) {
+		if (!(sem->lost = reiser4_dir_create(fs, root, "lost+found"))) {
+			aal_exception_error("Failed to create 'lost+found'"
+					    "directory.");
+			return -EINVAL;
+		}
 	}
 	
 	/* If lost+found dir is not openned yet, that means that it failed to 
