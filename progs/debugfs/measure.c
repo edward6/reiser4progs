@@ -9,6 +9,7 @@
 #  include <config.h> 
 #endif
 
+#include <stdlib.h>
 #include "debugfs.h"
 
 struct tfrag_hint {

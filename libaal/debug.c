@@ -17,6 +17,7 @@
 
 #ifndef ENABLE_ALONE
 #  include <unistd.h>
+#  include <stdlib.h>
 #endif
 
 static void default_assert_handler(char *hint, int cond, char *text,
