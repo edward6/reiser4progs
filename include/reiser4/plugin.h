@@ -513,19 +513,19 @@ struct trans_hint {
 	/* Overhead of data to be insetred. This is needed for the case when we
 	   insert directory item and tree should now how many space should be
 	   prepared in the tree ohd + len, but we don't need overhead for
-	   updating stat data bytes field. */
+	   updating stat data bytes field. Set by estimate */
 	uint32_t ohd;
 	
-	/* Length of the data to be inserted */
-	uint32_t len;
+	/* Length of the data to be inserted/removed. Set by estimate. */
+	int32_t len;
 
-	/* Value needed for updating bytes field in stat data */
+	/* Value needed for updating bytes field in stat data. Set by estimate. */
 	uint64_t bytes;
 
 	/* This is opaque pointer to item type specific information */
 	void *specific;
 
-	/* Tree insert is going to be in */
+	/* The storage tree instance */
 	void *tree;
 
 	/* Count of units to be inserted into the tree */
@@ -534,7 +534,7 @@ struct trans_hint {
 	/* The key of item/unit to be inserted */
 	key_entity_t offset;
 
-	/* Max real key */
+	/* Max real key. Needed for extents only. Set by estimate. */
 	key_entity_t maxkey;
 
 	/* Plugin to be used for working with item */
