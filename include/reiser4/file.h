@@ -15,7 +15,7 @@
 #include <reiser4/types.h>
 
 extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs,
-					 char *name);
+					 const char *name);
 
 extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs,
 					  reiser4_place_t *place);
@@ -32,9 +32,8 @@ extern errno_t reiser4_file_print(reiser4_file_t *file,
 				  aal_stream_t *stream);
 
 extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs,
-					   reiser4_file_t *parent,
-					   reiser4_file_hint_t *hint,
-					   const char *name);
+					   const char *name,
+					   reiser4_file_hint_t *hint);
 
 extern errno_t reiser4_file_nlink(reiser4_file_t *file);
 

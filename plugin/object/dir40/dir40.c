@@ -532,9 +532,6 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 		return 0;
 	
 	/* Removing directory when nlink became zero */
-	if (dir40_reset(entity))
-		return -1;
-		
 	if (object40_stat(&dir->obj))
 		return -1;
 
@@ -543,6 +540,10 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	/* FIXME-UMKA: Here also should be removing symlink stat data */
 
 	aal_assert("umka-1909", size > 0);
+
+	if (dir40_reset(entity))
+		return -1;
+		
 	return dir40_truncate(entity, size);
 }
 

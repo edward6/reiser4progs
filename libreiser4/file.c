@@ -151,7 +151,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 */
 static errno_t reiser4_file_lookup(
 	reiser4_file_t *file,	    /* file lookup will be performed in */
-	char *name)	            /* name to be parsed */
+	const char *name)           /* name to be parsed */
 {
 	aal_assert("umka-682", file != NULL);
 	aal_assert("umka-681", name != NULL);
@@ -226,7 +226,7 @@ reiser4_file_t *reiser4_file_begin(
 /* This function opens file by its name */
 reiser4_file_t *reiser4_file_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
-	char *name)		        /* name of file to be opened */
+	const char *name)               /* name of file to be opened */
 {
 	place_t *place;
 	reiser4_file_t *file;
@@ -251,10 +251,9 @@ reiser4_file_t *reiser4_file_open(
 	reiser4_key_assign(&file->dir, &fs->tree->key);
     
 	/* 
-	   Getting the file's stat data key by means of parsing its path. I
-	   assume, that name is absolute one. So, user, who will call this
-	   method should convert name previously into absolute one by getcwd
-	   function.
+	  Getting the file's stat data key by means of parsing its path. I
+	  assume, that name is absolute one. So, user, who will call this method
+	  should convert name previously into absolute one by getcwd function.
 	*/
 	if (reiser4_file_lookup(file, name))
 		goto error_free_file;
@@ -309,19 +308,21 @@ int32_t reiser4_file_write(
 /* Creates new file on specified filesystem */
 reiser4_file_t *reiser4_file_create(
 	reiser4_fs_t *fs,		    /* filesystem dir will be created on */
-	reiser4_file_t *parent,	            /* parent file */
-	reiser4_file_hint_t *hint,	    /* directory hint */
-	const char *name)		    /* name of entry */
+	const char *name,		    /* name of entry */
+	reiser4_file_hint_t *hint)	    /* directory hint */
 {
 	reiser4_file_t *file;
-	object_entity_t *par;
 	reiser4_plugin_t *plugin;
+
+	char *entry = NULL;
+	reiser4_file_t *parent = NULL;
     
 	roid_t objectid, locality;
     
 	aal_assert("umka-790", fs != NULL);
 	aal_assert("umka-1128", hint != NULL);
 	aal_assert("umka-1152", name != NULL);
+	aal_assert("umka-1917", hint->plugin != NULL);
 
 	if (!fs->tree) {
 		aal_exception_error("Can't created file without "
@@ -329,33 +330,35 @@ reiser4_file_t *reiser4_file_create(
 		return NULL;
 	}
     
-	/* Getting plugin will be used for file creating */
-	if (!(plugin = hint->plugin)) {
-		if (!parent) {
-			aal_exception_error("Can't find plugin for "
-					    "file creating.");
-			return NULL;
-		}
+	plugin = hint->plugin;
 	
-		plugin = parent->entity->plugin;
-	}
-    
 	/* Allocating the memory for object instance */
 	if (!(file = aal_calloc(sizeof(*file), 0)))
 		return NULL;
 
-	/* Initializing fileds and preparing keys */
+	aal_strncpy(file->name, name, sizeof(file->name));
+	
+	/* Initializing fileds and preparing the keys */
 	file->fs = fs;
 
-	if (parent) {
-		aal_strncat(file->name, parent->name, sizeof(file->name));
+	/* Opening parent file */
+	if (aal_strncmp(name, "/", aal_strlen(name)) != 0) {
+		char p[256];
 
-		if (file->name[aal_strlen(file->name) - 1] != '/')
-			aal_strncat(file->name, "/", sizeof(file->name));
-		
-		aal_strncat(file->name, name, sizeof(file->name));
-	} else
-		aal_strncpy(file->name, name, sizeof(file->name));
+		while (file->name[aal_strlen(file->name) - 1] == '/')
+			file->name[aal_strlen(file->name) - 1] = '\0';
+
+		if ((entry = aal_strrchr(file->name, '/')))
+			entry += 1;
+
+		aal_memset(p, 0, sizeof(p));
+		aal_strncpy(p, name, (uint32_t)(entry - file->name));
+
+		if (!(parent = reiser4_file_open(fs, p))) {
+			aal_exception_error("Can't open %s.", p);
+			goto error_free_file;
+		}
+	}
 
 	/* 
 	  This is the special case. In the case parent is NULL, we are trying to
@@ -386,8 +389,8 @@ reiser4_file_t *reiser4_file_create(
 	reiser4_key_assign(&file->key, &hint->object);
     
 	/* Creating entry in parent */
-	if (parent) {
-		reiser4_entry_hint_t entry;
+	if (parent && entry) {
+		reiser4_entry_hint_t entry_hint;
 
 		/* 
 		  Creating entry in parent directory. It should be done first,
@@ -395,29 +398,35 @@ reiser4_file_t *reiser4_file_create(
 		  and do not delete inserted file stat data and some kind of
 		  body.
 		*/
-		aal_memset(&entry, 0, sizeof(entry));
+		aal_memset(&entry_hint, 0, sizeof(entry_hint));
 	
-		reiser4_key_assign(&entry.object, &hint->object);
-		aal_strncpy(entry.name, (char *)name, sizeof(entry.name));
+		reiser4_key_assign(&entry_hint.object, &hint->object);
+		aal_strncpy(entry_hint.name, entry, sizeof(entry_hint.name));
 
-		if (reiser4_file_write(parent, &entry, 1) != 1) {
-			aal_exception_error("Can't add entry %s.", name);
-			goto error_free_file;
+		if (reiser4_file_write(parent, &entry_hint, 1) != 1) {
+			aal_exception_error("Can't add entry %s to %s.",
+					    entry, parent->name);
+			goto error_free_parent;
 		}
 	}
 
-	par = parent ? parent->entity : NULL;
-	
 	if (!(file->entity = plugin_call(plugin->file_ops, create, fs->tree,
-					 par, hint, (place_t *)&file->place)))
+					 (parent ? parent->entity : NULL),
+					 hint, (place_t *)&file->place)))
 	{
 		aal_exception_error("Can't create file with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&file->key));
-		goto error_free_file;
+		goto error_free_parent;
 	}
 
+	if (parent)
+		reiser4_file_close(parent);
+	
 	return file;
 
+ error_free_parent:
+	if (parent)
+		reiser4_file_close(parent);
  error_free_file:
 	aal_free(file);
 	return NULL;

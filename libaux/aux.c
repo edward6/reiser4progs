@@ -56,7 +56,7 @@ int aux_bin_search(
 }
 
 /* Parse standard unix path function */
-errno_t aux_parse_path(char *path, aux_pre_parse_t pre_func,
+errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
 		       aux_post_parse_t post_func, void *data)
 {
 	char track[4096];

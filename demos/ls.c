@@ -90,9 +90,9 @@ int main(int argc, char *argv[]) {
 	    
 			for (i = 0; i < 5000; i++) {
 				aal_memset(name, 0, sizeof(name));
-				aal_snprintf(name, 256, "testdir%d", i);
+				aal_snprintf(name, 256, "/testdir%d", i);
 
-				if (!(file = reiser4_file_create(fs, dir, &dir_hint, name)))
+				if (!(file = reiser4_file_create(fs, name, &dir_hint)))
 					goto error_free_dir;
 
 				place = file->place;

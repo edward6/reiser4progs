@@ -14,7 +14,7 @@
 typedef errno_t (*aux_pre_parse_t) (char *, char *, void *);
 typedef errno_t (*aux_post_parse_t) (char *, char *, void *);
 
-extern errno_t aux_parse_path(char *path, aux_pre_parse_t pre_func,
+extern errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
 			      aux_post_parse_t post_func, void *data);
 
 /* Binary search stuff */
