@@ -213,13 +213,13 @@ struct object_entity {
 
 typedef struct object_entity object_entity_t;
 
-struct place_context {
-	blk_t blk;
-	uint32_t blksize;
- 	aal_device_t *device; 
+struct node_entity {
+	reiser4_plug_t *plug;
+	aal_block_t *block;
 };
 
-typedef struct place_context place_context_t;
+typedef struct node_entity node_entity_t;
+
 
 struct sdext_entity {
 	reiser4_plug_t *plug;
@@ -230,6 +230,14 @@ struct sdext_entity {
 };
 
 typedef struct sdext_entity sdext_entity_t;
+
+struct place_context {
+	blk_t blk;
+	uint32_t blksize;
+ 	aal_device_t *device; 
+};
+
+typedef struct place_context place_context_t;
 
 struct place {
 	object_entity_t *node;
@@ -807,128 +815,121 @@ typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
    not initialized previously hypothetic instance of node. */
 struct reiser4_node_ops {
 #ifndef ENABLE_STAND_ALONE
-	/* Saves node onto device */
-	errno_t (*sync) (object_entity_t *);
-	
+	int (*isdirty) (node_entity_t *);
+	void (*mkdirty) (node_entity_t *);
+	void (*mkclean) (node_entity_t *);
+
+	/* Makes clone of passed node */
+	errno_t (*clone) (node_entity_t *, node_entity_t *);
+
 	/* Performs shift of items and units */
-	errno_t (*shift) (object_entity_t *, object_entity_t *, 
+	errno_t (*shift) (node_entity_t *, node_entity_t *, 
 			  shift_hint_t *);
     
 	/* Checks thoroughly the node structure and fixes what needed. */
-	errno_t (*check_struct) (object_entity_t *, uint8_t);
-
-	int (*isdirty) (object_entity_t *);
-	void (*mkdirty) (object_entity_t *);
-	void (*mkclean) (object_entity_t *);
+	errno_t (*check_struct) (node_entity_t *, uint8_t);
 
 	/* Prints node into given buffer */
-	errno_t (*print) (object_entity_t *, aal_stream_t *,
+	errno_t (*print) (node_entity_t *, aal_stream_t *,
 			  uint32_t, uint32_t, uint16_t);
     
 	/* Returns item's overhead */
-	uint16_t (*overhead) (object_entity_t *);
+	uint16_t (*overhead) (node_entity_t *);
 
 	/* Returns item's max size */
-	uint16_t (*maxspace) (object_entity_t *);
+	uint16_t (*maxspace) (node_entity_t *);
     
 	/* Returns free space in the node */
-	uint16_t (*space) (object_entity_t *);
+	uint16_t (*space) (node_entity_t *);
 
-	/* Fetches item data to passed @place */
-	errno_t (*fetch) (object_entity_t *, pos_t *,
-			  place_t *);
-	
 	/* Inserts item at specified pos */
-	errno_t (*insert) (object_entity_t *, pos_t *,
+	errno_t (*insert) (node_entity_t *, pos_t *,
 			   create_hint_t *);
     
 	/* Removes item/unit at specified pos */
-	errno_t (*remove) (object_entity_t *, pos_t *,
+	errno_t (*remove) (node_entity_t *, pos_t *,
 			   uint32_t);
 
 	/* Removes some amount of items/units */
-	errno_t (*cut) (object_entity_t *, pos_t *, pos_t *);
+	errno_t (*cut) (node_entity_t *, pos_t *, pos_t *);
 	
 	/* Shrinks node without calling any item methods */
-	errno_t (*shrink) (object_entity_t *, pos_t *,
+	errno_t (*shrink) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
 	/* Makes copy from @src_entity to @dst_entity with partial
 	   overwriting. */
-	errno_t (*copy) (object_entity_t *, pos_t *, 
-			 object_entity_t *, pos_t *, 
+	errno_t (*copy) (node_entity_t *, pos_t *, 
+			 node_entity_t *, pos_t *, 
 			 copy_hint_t *);
 
 	/* Copies items from @src_entity to @dst_entity */
-	errno_t (*rep) (object_entity_t *, pos_t *,
-			object_entity_t *, pos_t *,
+	errno_t (*rep) (node_entity_t *, pos_t *,
+			node_entity_t *, pos_t *,
 			uint32_t);
 	
 	/* Expands node */
-	errno_t (*expand) (object_entity_t *, pos_t *,
+	errno_t (*expand) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	errno_t (*set_key) (object_entity_t *, pos_t *,
+	errno_t (*set_key) (node_entity_t *, pos_t *,
 			    key_entity_t *);
 
-	void (*set_level) (object_entity_t *, uint8_t);
+	void (*set_level) (node_entity_t *, uint8_t);
 
-	void (*set_mstamp) (object_entity_t *, uint32_t);
-	void (*set_fstamp) (object_entity_t *, uint64_t);
-
-	/* Creates node data block and initializes node header by means of
-	   setting up level, plugin id, etc. */
-	errno_t (*form) (object_entity_t *, uint8_t);
+	void (*set_mstamp) (node_entity_t *, uint32_t);
+	void (*set_fstamp) (node_entity_t *, uint64_t);
 
 	/* Changes node location */
-	void (*move) (object_entity_t *, blk_t);
+	void (*move) (node_entity_t *, blk_t);
 
 	/* Get mkfs and flush stamps */
-	uint32_t (*get_mstamp) (object_entity_t *);
-    	uint64_t (*get_fstamp) (object_entity_t *);
+	uint32_t (*get_mstamp) (node_entity_t *);
+    	uint64_t (*get_fstamp) (node_entity_t *);
 	
 	/* Get/set/test item flags. */
-	void (*set_flag) (object_entity_t *, uint32_t,
+	void (*set_flag) (node_entity_t *, uint32_t,
 			  uint16_t);
 	
-	void (*clear_flag) (object_entity_t *, uint32_t,
+	void (*clear_flag) (node_entity_t *, uint32_t,
 			    uint16_t);
 	
-	bool_t (*test_flag) (object_entity_t *, uint32_t,
+	bool_t (*test_flag) (node_entity_t *, uint32_t,
 			     uint16_t);
 
-	errno_t (*clone) (object_entity_t *, object_entity_t *);
+	/* Saves node to device */
+	errno_t (*sync) (node_entity_t *);
+
+	/* Makes fresh node (zero items, etc) */
+	errno_t (*fresh) (node_entity_t *, uint8_t);
 #endif
 
-	/* Cerates node entity */
-	object_entity_t *(*init) (aal_device_t *, uint32_t,
-				  blk_t, reiser4_plug_t *);
+	/* Initializes node with passed block and key plugin. */
+	node_entity_t *(*init) (aal_block_t *,
+				reiser4_plug_t *);
 	
-	/* Loads data block node lies in */
-	errno_t (*load) (object_entity_t *);
+	/* Destroys the node entity. */
+	errno_t (*fini) (node_entity_t *);
 
-	/* Unloads node data */
-	errno_t (*unload) (object_entity_t *);
+	/* Fetches item data to passed @place */
+	errno_t (*fetch) (node_entity_t *, pos_t *,
+			  place_t *);
 	
-	/* Destroys the node entity. If node data is not unloaded, it also
-	   unloads data. */
-	errno_t (*close) (object_entity_t *);
-
 	/* Confirms that given block contains valid node */
-	int (*confirm) (object_entity_t *);
+	int (*confirm) (node_entity_t *);
 
 	/* Returns item count */
-	uint16_t (*items) (object_entity_t *);
+	uint16_t (*items) (node_entity_t *);
     
 	/* Makes lookup inside node by specified key */
-	lookup_t (*lookup) (object_entity_t *, key_entity_t *, 
+	lookup_t (*lookup) (node_entity_t *, key_entity_t *, 
 			    pos_t *);
     
 	/* Gets/sets key at pos */
-	errno_t (*get_key) (object_entity_t *, pos_t *,
+	errno_t (*get_key) (node_entity_t *, pos_t *,
 			    key_entity_t *);
     
-	uint8_t (*get_level) (object_entity_t *);
+	uint8_t (*get_level) (node_entity_t *);
 };
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;
