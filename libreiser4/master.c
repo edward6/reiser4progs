@@ -229,6 +229,17 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	return NULL;
 }
 
+reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master) {
+	aal_device_t *device;
+	
+	aal_assert("umka-1576", master != NULL, return NULL);
+
+	device = master->block->device;
+	reiser4_master_close(master);
+
+	return reiser4_master_open(device);
+}
+
 #ifndef ENABLE_COMPACT
 
 /* Saves master super block to device. */

@@ -178,16 +178,18 @@ errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 
 /* Reopens disk-format on specified device */
 reiser4_format_t *reiser4_format_reopen(
-	reiser4_format_t *format,	/* format to be reopened */
-	aal_device_t *device)	        /* device format will be reopened on */
+	reiser4_format_t *format)	/* format to be reopened */
 {
 	rpid_t pid;
+	aal_device_t *device;
 	
 	aal_assert("umka-428", format != NULL, return NULL);
 
+	device = format->device;
 	pid = format->entity->plugin->h.sign.id;
-    
+	
 	reiser4_format_close(format);
+	
 	return reiser4_format_open(device, pid);
 }
 

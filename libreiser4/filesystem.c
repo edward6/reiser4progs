@@ -99,10 +99,10 @@ reiser4_fs_t *reiser4_fs_open(
 			   journal replaying. Journal might contain super block
 			   ior master super block.
 			*/
+			if (!(fs->master = reiser4_master_reopen(fs->master)))
+				goto error_free_journal;
 	    
-			/* FIXME-UMKA: Here also master super block should be reopened */
-	    
-			if (!(fs->format = reiser4_format_reopen(fs->format, host_device)))
+			if (!(fs->format = reiser4_format_reopen(fs->format)))
 				goto error_free_journal;
 		}
 #endif

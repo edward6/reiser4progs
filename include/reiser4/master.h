@@ -31,8 +31,10 @@ extern errno_t reiser4_master_print(reiser4_master_t *master,
 
 #endif
 
-extern errno_t reiser4_master_valid(reiser4_master_t *master);
 extern reiser4_master_t *reiser4_master_open(aal_device_t *device);
+extern reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master);
+
+extern errno_t reiser4_master_valid(reiser4_master_t *master);
 extern int reiser4_master_confirm(aal_device_t *device);
 extern void reiser4_master_close(reiser4_master_t *master);
 

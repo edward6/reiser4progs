@@ -16,10 +16,10 @@
 #include <reiser4/plugin.h>
 #include <reiser4/filesystem.h>
 
-extern reiser4_format_t *reiser4_format_open(aal_device_t *device, rpid_t pid);
+extern reiser4_format_t *reiser4_format_reopen(reiser4_format_t *format);
 
-extern reiser4_format_t *reiser4_format_reopen(reiser4_format_t *format,
-					       aal_device_t *device);
+extern reiser4_format_t *reiser4_format_open(aal_device_t *device,
+					     rpid_t pid);
 
 #ifndef ENABLE_COMPACT
 
