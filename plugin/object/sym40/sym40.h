@@ -8,6 +8,8 @@
 #ifndef SYM40_H
 #define SYM40_H
 
+#ifndef ENABLE_SYMLINKS_SUPPORT
+
 #include <aal/aal.h>
 #include <aux/aux.h>
 #include <sys/stat.h>
@@ -30,6 +32,8 @@ struct sym40 {
 };
 
 typedef struct sym40 sym40_t;
+
+#endif
 
 #endif
 

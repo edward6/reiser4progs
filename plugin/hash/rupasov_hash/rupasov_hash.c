@@ -5,6 +5,8 @@
   reiser4progs/COPYING.
 */
 
+#ifdef ENABLE_RUPASOV_HASH
+
 #include <reiser4/plugin.h>
 
 uint64_t rupasov_hash_build(const unsigned char *name, uint32_t len) {
@@ -73,3 +75,5 @@ static reiser4_plugin_t *rupasov_hash_start(reiser4_core_t *c) {
 }
 
 plugin_register(rupasov_hash_start, NULL);
+
+#endif

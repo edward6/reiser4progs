@@ -32,12 +32,13 @@ static int callback_node_free(void *data) {
 	return reiser4_tree_unload(node->tree, node) == 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
 static int callback_node_sync(void *data) {
+#ifndef ENABLE_STAND_ALONE
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	return reiser4_node_sync(node) == 0;
-}
 #endif
+	return 0;
+}
 
 static aal_list_t *callback_get_next(void *data) {
 	return ((reiser4_node_t *)data)->lru_link.next;
@@ -57,9 +58,7 @@ static void callback_set_prev(void *data, aal_list_t *prev) {
 		
 static lru_ops_t lru_ops = {
 	.free      = callback_node_free,
-#ifndef ENABLE_STAND_ALONE
 	.sync      = callback_node_sync,
-#endif
 	.get_next  = callback_get_next,
 	.set_next  = callback_set_next,
 	.get_prev  = callback_get_prev,

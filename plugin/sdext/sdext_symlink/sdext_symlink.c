@@ -5,6 +5,8 @@
   reiser4progs/COPYING.
 */
 
+#ifdef ENABLE_SYMLINKS_SUPPORT
+
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 
@@ -93,3 +95,6 @@ static reiser4_plugin_t *sdext_symlink_start(reiser4_core_t *c) {
 }
 
 plugin_register(sdext_symlink_start, NULL);
+
+#endif
+
