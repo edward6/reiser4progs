@@ -95,7 +95,11 @@ extern uint32_t reiser4_node_items(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
 extern uint16_t reiser4_node_maxspace(reiser4_node_t *node);
-extern uint32_t reiser4_node_stamp(reiser4_node_t *node);
+
+extern uint32_t reiser4_node_get_make_stamp(reiser4_node_t *node);
+extern void reiser4_node_set_make_stamp(reiser4_node_t *node, uint32_t stamp);
+extern uint64_t reiser4_node_get_flush_stamp(reiser4_node_t *node);
+extern void reiser4_node_set_flush_stamp(reiser4_node_t *node, uint64_t stamp);
 
 #endif
 

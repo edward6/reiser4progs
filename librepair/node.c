@@ -5,34 +5,27 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_node_child_max_real_key(reiser4_coord_t *c, reiser4_key_t *key)
+errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *key)
 {
     reiser4_coord_t coord;
-    reiser4_node_t *child = NULL;
     errno_t res;
 
-    aal_assert("vpf-614", c != NULL, return -1);
+    aal_assert("vpf-614", parent != NULL, return -1);
     aal_assert("vpf-615", key != NULL, return -1);
-    aal_assert("vpf-616", c->entity.plugin != NULL, return -1);
+    aal_assert("vpf-616", parent->entity.plugin != NULL, return -1);
 
-    coord = *c;
-
-    if (coord.pos.unit == ~0ul) 
-	coord.pos.unit = reiser4_item_units(&coord) - 1;
-
-    if (reiser4_item_nodeptr(&coord)) {
-	item_entity_t *item = &coord.entity;
+    if (reiser4_item_nodeptr(parent)) {
+	item_entity_t *item = &parent->entity;
 	reiser4_ptr_hint_t ptr;
 
 	if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-	    coord.pos.unit, &ptr, 1) || ptr.ptr == INVAL_BLK)
-		return -1;
-
-	if (!(child = reiser4_node_open(coord.node->device, ptr.ptr))) 
+	    parent->pos.unit, &ptr, 1) || ptr.ptr == INVAL_BLK)
 	    return -1;
 
-	coord.node = child;
-	coord.pos.item = reiser4_node_items(child) - 1;
+	if (!(coord.node = reiser4_node_open(parent->node->device, ptr.ptr))) 
+	    return -1;
+
+	coord.pos.item = reiser4_node_items(coord.node) - 1;
 	coord.pos.unit = ~0ul;
 	
 	if (reiser4_coord_realize(&coord)) {
@@ -43,15 +36,15 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *c, reiser4_key_t *key)
 	
 	res = repair_node_child_max_real_key(&coord, key);
 	
-	if (reiser4_node_close(child))
+	if (reiser4_node_close(coord.node))
 	    return -1;
-
-	return res;
     } else 
-	return reiser4_item_max_real_key(&coord, key);
+	res = reiser4_item_max_real_key(parent, key);
 
+    return res;
+    
 error_child_close:
-    reiser4_node_close(child);
+    reiser4_node_close(coord.node);
     return -1;
 }
 
@@ -64,7 +57,7 @@ reiser4_node_t *repair_node_open(reiser4_format_t *format, blk_t blk) {
     if ((node = reiser4_node_open(format->device, blk)) == NULL)
 	return NULL;
 
-    if (reiser4_format_get_stamp(format) != reiser4_node_stamp(node))
+    if (reiser4_format_get_make_stamp(format) != reiser4_node_get_make_stamp(node))
 	goto error_node_free;
 
     return node;

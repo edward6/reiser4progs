@@ -89,6 +89,12 @@ typedef struct node40_header node40_header_t;
 #define nh40_get_mkfs_id(node) \
         aal_get_le32(nh40(node->block), flush.mkfs_id)
 
+#define nh40_set_flush_id(node, val) \
+        aal_set_le64(nh40(node->block), flush.flush_id, val)
+
+#define nh40_get_flush_id(node) \
+        aal_get_le64(nh40(node->block), flush.flush_id)
+
 #define nh40_get_num_items(node) \
         aal_get_le16(nh40(node->block), num_items)
 
