@@ -483,15 +483,16 @@ lookup_t reiser4_node_lookup(
 	POS_INIT(pos, 0, ~0ul);
 
 	/* Calling node plugin */
-	res = plugin_call(node->entity->plugin->o.node_ops,
-			  lookup, node->entity, key, pos);
-
-	if (res != ABSENT)
+	switch ((res = plugin_call(node->entity->plugin->o.node_ops,
+				   lookup, node->entity, key, pos)))
+	{
+	case ABSENT:
+		if (pos->item == 0)
+			return ABSENT;
+	default:
 		return res;
+	}
 
-	if (pos->item == 0)
-		return ABSENT;
-	
 	pos->item--;
 
 	/* Initializing item place points to */
@@ -504,10 +505,7 @@ lookup_t reiser4_node_lookup(
 	  We are on the position where key is less then wanted. Key could lies
 	  within the item or after the item.
 	*/
-	
 	if (item->plugin->o.item_ops->maxposs_key) {
-
-		/* Maxposs_key is impemented */
 		reiser4_item_maxposs_key(&place, &maxkey);
 
 		if (reiser4_key_compare(key, &maxkey) > 0) {
@@ -516,7 +514,7 @@ lookup_t reiser4_node_lookup(
 		}
 	}
 	
-	/* Calling lookup method of found item (most probably direntry item) */
+	/* Calling lookup method of found item */
 	if (item->plugin->o.item_ops->lookup) {
 		return plugin_call(item->plugin->o.item_ops,
 				   lookup, item, key, &pos->unit);
