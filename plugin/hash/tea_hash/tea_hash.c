@@ -146,7 +146,7 @@ static reiser4_hash_ops_t tea_hash_ops = {
 };
 
 static reiser4_plug_t tea_hash_plug = {
-	.cl = CLASS_INIT,
+	.cl = class_init,
 	.id = {HASH_TEA_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "tea_hash",

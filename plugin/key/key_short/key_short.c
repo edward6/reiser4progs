@@ -420,7 +420,7 @@ static reiser4_key_ops_t key_short_ops = {
 };
 
 static reiser4_plug_t key_short_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "key_short",

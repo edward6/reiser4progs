@@ -189,7 +189,7 @@ reiser4_oid_ops_t oid40_ops = {
 };
 
 static reiser4_plug_t oid40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {OID_REISER40_ID, 0, OID_PLUG_TYPE},
 	.label = "oid40",
 	.desc  = "Inode allocator for reiser4, ver. " VERSION,

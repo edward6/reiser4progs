@@ -21,14 +21,17 @@ Configure script is accepting the following keys:
 
 --enable-stand-alone           enable building stand alone library (default=off)
 
---disable-monolithic           disable embeding plugins in libreiser4
-			       (default=on)
-
---disable-plugins-check        disable plugins validness check in stand alone
-                               library (default=on)
-
 --disable-symlinks             disable symlinks support in stand alone
                                library (default=on)
+
+--disable-special              disable special files support in stand alone
+                               library (default=on)
+
+--diable-large-keys            disable large keys in stand alone library
+                               (default=on)
+
+--diable-short-keys            disable short keys in stand alone library
+                               (default=on)
 
 --disable-r5-hash              disable r5 hash plugin in stand alone library
                                (default=on)
@@ -42,8 +45,8 @@ Configure script is accepting the following keys:
 --disable-tea-hash             disable tea hash plugin in stand alone library
                                (default=on)
 
---disable-deg-hash             disable degenerate hash plugin in stand alone 
-                               library (default=on)
+--enable-deg-hash              disable degenerate hash plugin in stand alone 
+                               library (default=off)
 
 --with-uuid                    add support uuid generating and checking 
                                (default=auto)
@@ -54,10 +57,7 @@ Configure script is accepting the following keys:
 --with-plugins=PATH            directory plugin libraries (*.so) lie in
                                (default=${prefix}/lib/reiser4)
 
---with-libaa=PATH              directory libaal was installed in
-
---with-keys                    key policy in stand alone library (large|short|both)
-                               (default=large)
+--with-libaal=PATH             directory libaal was installed in
 
 Reiser4 support in GNU GRUB.
 
@@ -74,10 +74,10 @@ images (used for embeding just after mbr and used for reading main
 GRUB core), we strongly recomend you do not build in unused hash
 plugins and extra checks code into "stand alone" library.
 
-Most convenient configure comand is the following:
+Most convenient configure command is the following:
 
-./configure --disable-debug --enable-stand-alone --disable-plugins-check 
---disable-fnv1-hash --disable-rupasov-hash --disable-tea-hash --disable-deg-hash
+./configure --disable-debug --enable-stand-alone --disable-fnv1-hash 
+--disable-rupasov-hash --disable-tea-hash --disable-deg-hash --disable-short-keys
 
 This assumes, that r5 hash is used in filesystem, as it is not
 disabled here.
@@ -91,14 +91,15 @@ version (configure script says about expected version).
 (2) Make sure, that you have one copy of libaal in the system.  
 
 (3) Make sure, that you have specified correct libaal directory using
---with-libaal option.
+--with-libaal option (if you have used it). Default location is $prefix/lib.
 
 (4) Make sure, that /etc/ld.so.conf contains correct path to the
-directory libaal installed in.
+directory libaal was installed in.
 
 (5) Make sure, that dynamic linker cache is up to date. Running
-ldconfig will not be overkill.
+ldconfig will not be overkill here.
 
 If you have checked all listed above, everything looks correct, and
 you're still unable to build reiser4progs, send an email to
 reiserfs-list@namesys.com.
+

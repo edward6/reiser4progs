@@ -24,7 +24,7 @@ reiser4_hash_ops_t r5_hash_ops = {
 };
 
 static reiser4_plug_t r5_hash_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "r5_hash",

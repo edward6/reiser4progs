@@ -606,7 +606,7 @@ static reiser4_item_ops_t stat40_ops = {
 };
 
 static reiser4_plug_t stat40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {ITEM_STATDATA40_ID, STATDATA_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "stat40",

@@ -515,7 +515,7 @@ static reiser4_item_ops_t tail40_ops = {
 };
 
 static reiser4_plug_t tail40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {ITEM_TAIL40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "tail40",

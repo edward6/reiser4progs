@@ -513,7 +513,7 @@ static reiser4_format_ops_t format40_ops = {
 };
 
 reiser4_plug_t format40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "format40",

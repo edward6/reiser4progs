@@ -1424,8 +1424,9 @@ struct reiser4_policy_ops {
 typedef struct reiser4_policy_ops reiser4_policy_ops_t;
 #endif
 
-#define PLUG_MAX_LABEL	22
+#define PLUG_MAX_PATH   1024
 #define PLUG_MAX_DESC	64
+#define PLUG_MAX_LABEL	22
 
 typedef struct reiser4_core reiser4_core_t;
 
@@ -1435,20 +1436,29 @@ typedef errno_t (*plug_fini_t) (reiser4_core_t *);
 typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
 
+/* Builtin plugin representative struct. It contains pointers to plugin init()
+   and fini() methods. */
+struct plug_desc {
+	plug_init_t init;
+	plug_fini_t fini;
+};
+
+typedef struct plug_desc plug_desc_t;
+
 /* Plugin class descriptor. Used for loading plugins. */
 struct plug_class {
-	void *data;
+	void *handle;
 
 	/* Plugin initialization routine. */
 	plug_init_t init;
 	
-#ifndef ENABLE_STAND_ALONE
 	/* Plugin finalization routine. */
 	plug_fini_t fini;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Plugin location. Filename of library plugin (for instance
 	   /usr/lib/reiser4/libstat40.so) or address for built-in ones. */
-	char location[1024];
+	char location[PLUG_MAX_PATH];
 #endif
 };
 
@@ -1464,11 +1474,11 @@ struct plug_ident {
 typedef struct plug_ident plug_ident_t;
 
 #ifndef ENABLE_STAND_ALONE
-#define CLASS_INIT \
+#define class_init \
         {NULL, NULL, NULL, ""}
 #else
-#define CLASS_INIT \
-        {NULL, NULL}
+#define class_init \
+        {NULL, NULL, NULL}
 #endif
 
 struct reiser4_plug {
@@ -1643,34 +1653,13 @@ struct reiser4_core {
         ops->method(__VA_ARGS__);			     \
 })
 
-#if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
 typedef void (*register_builtin_t) (plug_init_t, plug_fini_t);
-#endif
 
 /* Macro for registering a plugin in plugin factory. It accepts two pointers to
    functions. The first one is pointer to plugin init function and second - to
-   plugin finalization function. The idea the same as in the linux kernel module
-   support. */
-#if defined(ENABLE_MONOLITHIC)
-#define plug_register(n, i, f)			               \
-    extern register_builtin_t __register_builtin;              \
-                                                               \
-    static void __plug_init(void)                              \
-            __attribute__((constructor));                      \
-                                                               \
-    static void __plug_init(void) {                            \
-	    __register_builtin(i, f);                          \
-    }
-
-#elif defined (ENABLE_STAND_ALONE)
+   plugin finalization function. */
 #define plug_register(n, i, f)                                 \
-    plug_init_t __##n##_plug_init = i
-#else
-
-#define plug_register(n, i, f)			               \
-    plug_init_t __plug_init = i;                               \
-    plug_fini_t __plug_fini = f
-
-#endif
+	plug_init_t __##n##_plug_init = i;		       \
+	plug_init_t __##n##_plug_fini = f
 
 #endif

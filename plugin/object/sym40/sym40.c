@@ -267,7 +267,7 @@ static reiser4_object_ops_t sym40_ops = {
 
 /* Symlink plugin itself. */
 reiser4_plug_t sym40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sym40",

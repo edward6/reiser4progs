@@ -1076,7 +1076,7 @@ static reiser4_object_ops_t dir40_ops = {
 };
 
 reiser4_plug_t dir40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "dir40",

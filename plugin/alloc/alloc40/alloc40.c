@@ -697,7 +697,7 @@ static reiser4_alloc_ops_t alloc40_ops = {
 };
 
 reiser4_plug_t alloc40_plug = {
-	.cl = CLASS_INIT,
+	.cl = class_init,
 	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
 	.label = "alloc40",
 	.desc  = "Space allocator for reiser4, ver. " VERSION,

@@ -91,7 +91,7 @@ static reiser4_sdext_ops_t sdext_lt_ops = {
 };
 
 static reiser4_plug_t sdext_lt_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {SDEXT_LT_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_lt",

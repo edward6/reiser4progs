@@ -15,7 +15,7 @@ reiser4_policy_ops_t tails_ops = {
 };
 
 static reiser4_plug_t tails_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {TAIL_ALWAYS_ID, 0, POLICY_PLUG_TYPE},
 	.label = "tails",
 	.desc  = "Tail policy \"tails only\" for reiser4, ver. " VERSION,

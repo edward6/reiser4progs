@@ -124,7 +124,7 @@ static reiser4_sdext_ops_t sdext_unix_ops = {
 };
 
 static reiser4_plug_t sdext_unix_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {SDEXT_UNIX_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_unix",

@@ -3,13 +3,7 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* comment and update comments in factory.c.
-
-* implement ability to build progs staticaly.
-
 * implement tree_resize() and tree_copy().
-
-* update GRUB patch.
 
 * improve tree_adjust_node() to be able to stop if memory pressure is
   gone.
@@ -36,11 +30,6 @@ reiser4progs/COPYING.
 
 * should we introduce two stat data related methods 
   something like load_sd() and save_sd() like kernel does?
-
-* cleanups in item modify and access methods. Do we realy need fetch()
-  and update()?
-
-* fix tree_copy(). It should be able to copy extents too.
 
 * fix unaligned access on Itanium2.
 

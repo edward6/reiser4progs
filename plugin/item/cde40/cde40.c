@@ -1071,7 +1071,7 @@ static reiser4_item_ops_t cde40_ops = {
 };
 
 static reiser4_plug_t cde40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {ITEM_CDE40_ID, DIRENTRY_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "cde40",

@@ -1732,7 +1732,7 @@ static reiser4_node_ops_t node40_ops = {
 };
 
 reiser4_plug_t node40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "node40",

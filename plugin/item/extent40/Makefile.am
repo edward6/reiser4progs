@@ -1,23 +1,10 @@
 includedir		      = -I$(top_srcdir)/include
-libdir			      = $(plugindir)
 
 extent40_sources	      = extent40.c extent40_repair.c extent40.h extent40_repair.h
 
-if ENABLE_MONOLITHIC
 STATIC_LIBS                   = libextent40-static.la
 libextent40_static_la_SOURCES = $(extent40_sources)
-libextent40_static_la_LDFLAGS = @PLUGIN_LDFLAGS@
 libextent40_static_la_CFLAGS  = @GENERIC_CFLAGS@
-else
-STATIC_LIBS                   = 
-lib_LTLIBRARIES		      = libextent40.la
-libextent40_la_LIBADD	      = $(top_builddir)/plugin/item/body40/libbody40-static.la \
-				@AAL_LIBS@
-
-libextent40_la_SOURCES	      = $(extent40_sources)
-libextent40_la_LDFLAGS	      = @PLUGIN_LDFLAGS@
-libextent40_la_CFLAGS         = @GENERIC_CFLAGS@
-endif
 
 if ENABLE_STAND_ALONE
 ALONE_LIBS                    = libextent40-alone.la

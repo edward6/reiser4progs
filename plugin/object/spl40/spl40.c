@@ -205,7 +205,7 @@ static reiser4_object_ops_t spl40_ops = {
 };
 
 reiser4_plug_t spl40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "spl40",

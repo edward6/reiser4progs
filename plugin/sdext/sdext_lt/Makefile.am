@@ -1,23 +1,10 @@
 includedir			= -I$(top_srcdir)/include
-libdir				= $(plugindir)
 
 sdext_lt_sources		= sdext_lt.c sdext_lt_repair.c sdext_lt.h
 
-if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libsdext_lt-static.la
 libsdext_lt_static_la_SOURCES 	= $(sdext_lt_sources)
-libsdext_lt_static_la_LDFLAGS 	= @PLUGIN_LDFLAGS@
 libsdext_lt_static_la_CFLAGS 	= @GENERIC_CFLAGS@
-else
-STATIC_LIBS                     = 
-lib_LTLIBRARIES			= libsdext_lt.la
-libsdext_lt_la_LIBADD		= @AAL_LIBS@ \
-				  $(top_builddir)/libaux/libaux-static.la
-
-libsdext_lt_la_SOURCES		= $(sdext_lt_sources)
-libsdext_lt_la_LDFLAGS		= @PLUGIN_LDFLAGS@
-libsdext_lt_la_CFLAGS           = @GENERIC_CFLAGS@
-endif
 
 if ENABLE_STAND_ALONE
 ALONE_LIBS                      = libsdext_lt-alone.la

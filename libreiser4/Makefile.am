@@ -13,16 +13,9 @@ endif
 lib_LTLIBRARIES		     = libreiser4.la $(ALONE_LIBS)
 noinst_LTLIBRARIES	     = libreiser4-static.la
 
-if ENABLE_MONOLITHIC
-
 libreiser4_la_LIBADD	     = $(top_builddir)/libaux/libaux-static.la \
 			       $(top_builddir)/plugin/libreiser4-plugin.la \
 			       @AAL_LIBS@ 
-else
-
-libreiser4_la_LIBADD	     = $(top_builddir)/libaux/libaux-static.la \
-			       @LIBREISER4_LIBS@ @AAL_LIBS@ 
-endif
 
 libreiser4_la_SOURCES	     = $(libreiser4_sources)
 

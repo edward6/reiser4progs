@@ -9,7 +9,6 @@ endif
 
 noinst_LTLIBRARIES	     	= libreiser4-plugin.la $(ALONE_LIBS)
 
-if ENABLE_MONOLITHIC
 libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          journal/journal40/libjournal40-static.la \
 			          alloc/alloc40/liballoc40-static.la \
@@ -38,10 +37,9 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 				  policy/smart/libsmart-static.la \
 				  hash/r5_hash/libr5_hash-static.la \
 				  hash/fnv1_hash/libfnv1_hash-static.la \
-                                  hash/rupasov_hash/librupasov_hash-static.la \
-                                  hash/tea_hash/libtea_hash-static.la \
-                                  hash/deg_hash/libdeg_hash-static.la
-endif
+				  hash/rupasov_hash/librupasov_hash-static.la \
+	                          hash/tea_hash/libtea_hash-static.la \
+	                          hash/deg_hash/libdeg_hash-static.la
 
 if ENABLE_STAND_ALONE
 libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \

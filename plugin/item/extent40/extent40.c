@@ -1184,7 +1184,7 @@ static reiser4_item_ops_t extent40_ops = {
 };
 
 static reiser4_plug_t extent40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "extent40",

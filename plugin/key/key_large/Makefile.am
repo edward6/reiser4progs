@@ -1,24 +1,10 @@
 includedir			= -I$(top_srcdir)/include
-libdir				= $(plugindir)
 
 key_large_sources               = key_large.c key_large.h key_large_repair.c
 
-if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libkey_large-static.la
 libkey_large_static_la_SOURCES	= $(key_large_sources)
-libkey_large_static_la_LDFLAGS	= @PLUGIN_LDFLAGS@
 libkey_large_static_la_CFLAGS	= @GENERIC_CFLAGS@
-else
-STATIC_LIBS                     = 
-lib_LTLIBRARIES			= libkey_large.la
-libkey_large_la_LIBADD		= @AAL_LIBS@ \
-				  $(top_builddir)/libaux/libaux-static.la \
-				  $(top_builddir)/plugin/key/key_common/libkey_common-static.la
-
-libkey_large_la_SOURCES		= $(key_large_sources)
-libkey_large_la_LDFLAGS		= @PLUGIN_LDFLAGS@
-libkey_large_la_CFLAGS          = @GENERIC_CFLAGS@
-endif
 
 if ENABLE_STAND_ALONE
 ALONE_LIBS                      = libkey_large-alone.la

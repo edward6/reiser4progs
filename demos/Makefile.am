@@ -4,6 +4,8 @@ INCLUDES	= -I$(top_srcdir)/include
 
 ls_SOURCES	= ls.c
 
+ls_LDFLAGS      = @PROGS_LDFLAGS@
+
 ls_CFLAGS	= @GENERIC_CFLAGS@
 
 ls_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
@@ -11,6 +13,8 @@ ls_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 		  $(PROGS_LIBS)
 
 cat_SOURCES	= cat.c
+
+cat_LDFLAGS     = @PROGS_LDFLAGS@
 
 cat_CFLAGS	= @GENERIC_CFLAGS@
 

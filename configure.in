@@ -6,12 +6,12 @@ AC_PREREQ(2.50)
 AH_TEMPLATE([PACKAGE], [Define this to be the name of the package.])
 AH_TEMPLATE([VERSION], [Define to the version of the package.])
 
-AH_TEMPLATE([LIBREISER4_MAX_INTERFACE_VERSION], [Define to the max interface version.])
-AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [Define to the min interface version.])
 AH_TEMPLATE([ENABLE_DEBUG], [Define for enable debug info.])
-AH_TEMPLATE([ENABLE_MONOLITHIC], [Define for enable monolotic build.])
 AH_TEMPLATE([HAVE_LIBUUID], [Define for enable libuuid using.])
 AH_TEMPLATE([HAVE_LIBREADLINE], [Define for enable libreadline using.])
+
+AH_TEMPLATE([LIBREISER4_MAX_INTERFACE_VERSION], [Define to the max interface version.])
+AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [Define to the min interface version.])
 
 LIBREISER4_MAJOR_VERSION=0
 LIBREISER4_MINOR_VERSION=4
@@ -144,15 +144,6 @@ libuuid could not be found which is required for the --with-uuid
 	with_uuid=no
     )
 
-    if test "$with_uuid" = yes; then
-        AC_CHECK_LIB(uuid, uuid_unparse, ,
-	    AC_MSG_WARN(
-libuuid could not be found which is required for the --with-uuid
-  	    )
-	    with_uuid=no
-        )
-    fi
-
     UUID_LIBS="$LIBS"
     LIBS="$OLD_LIBS"
 fi
@@ -164,20 +155,7 @@ AC_ARG_WITH(readline,
         with_readline=yes
 )
 
-# Check for ncurses
-if test "x$with_readline" = xyes; then
-	OLD_LIBS="$LIBS"
-	LIBS=""
-	AC_SEARCH_LIBS(tgetent, ncurses, 
-		PROGS_LIBS="$PROGS_LIBS $LIBS",
-		AC_MSG_WARN(
-ncurses could not be found which is required for the
---with-readline option (which is enabled by default).
-		)
-		with_readline=no
-	)
-	LIBS="$OLD_LIBS"
-fi
+PROGS_LIBS=""
 
 # Check for readline
 if test "x$with_readline" = xyes; then
@@ -194,26 +172,41 @@ GNU Readline could not be found which is required for the --with-readline
     LIBS="$OLD_LIBS"
 fi
 
-AC_SUBST(PROGS_LIBS)
+# Check for ncurses
+if test "x$with_readline" = xyes; then
+	OLD_LIBS="$LIBS"
+	LIBS=""
+	AC_SEARCH_LIBS(tgetent, ncurses, 
+		PROGS_LIBS="$PROGS_LIBS $LIBS",
+		AC_MSG_WARN(
+ncurses could not be found which is required for the
+--with-readline option (which is enabled by default).
+		)
+		with_readline=no
+	)
+	LIBS="$OLD_LIBS"
+fi
 
 AM_ENABLE_SHARED
 
-AC_ARG_WITH(keys,
-    [  --with-keys              key policy in standalone library (large|short|both)]
+PROGS_LDFLAGS=""
+AC_ARG_ENABLE(all-static,
+    [  --enable-all-static      build static binaries [default=no]], ,
+	enable_all_static=no
 )
-if test x$with_keys = x; then
-    with_keys="large"
+if test x$enable_all_static = xyes; then
+	PROGS_LDFLAGS=-all-static
+	enable_static=yes
 fi
 
-AC_ARG_WITH(plugins, 
-    [  --with-plugins           path to directory plugins will lie in]
+AC_ARG_ENABLE(part-static,
+    [  --enable-part-static     build partially static binaries [default=no]], ,
+	enable_part_static=no
 )
-if test x$with_plugins = x; then
-    with_plugins="$libdir/reiser4"
+if test x$enable_part_static = xyes; then
+	PROGS_LDFLAGS="-Wl,-lc,-static -static"
+	enable_static=yes
 fi
-
-plugindir=$with_plugins
-AC_SUBST(plugindir)
 
 AC_ARG_ENABLE(Werror,
     [  --enable-Werror          enable build with gcc -Werror ], ,
@@ -228,16 +221,6 @@ AC_ARG_ENABLE(debug,
 AC_ARG_ENABLE(stand_alone,
     [  --enable-stand-alone     enable stand alone library ], ,
         enable_stand_alone=no
-)
-
-AC_ARG_ENABLE(monolithic,
-    [  --disable-monolithic     disable including all plugins embeding plugins ], ,
-        enable_monolithic=yes
-)
-
-AC_ARG_ENABLE(plugins_check,
-    [  --disable-plugins-check  disable plugins check in stand alone library ], ,
-        enable_plugins_check=yes
 )
 
 AC_ARG_ENABLE(symlinks,
@@ -275,6 +258,16 @@ AC_ARG_ENABLE(deg_hash,
         enable_deg_hash=no
 )
 
+AC_ARG_ENABLE(short_keys,
+    [  --disable-short-keys     disable short keys in stand alone library ], ,
+        enable_short_keys=yes
+)
+
+AC_ARG_ENABLE(large_keys,
+    [  --disable-large-keys     disable large keys in stand alone library ], ,
+        enable_large_keys=yes
+)
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -286,10 +279,6 @@ AC_PROG_AWK
 
 ALONE_CFLAGS=""
 GENERIC_CFLAGS=""
-
-if test x$enable_monolithic = xyes; then
-    GENERIC_CFLAGS="-DENABLE_MONOLITHIC"
-fi
 
 # make libc threadsafe (not required for us for awhile, but useful other users of
 # libreiser4)
@@ -414,19 +403,6 @@ AC_CHECK_SIZEOF(off_t, 64, [
 	#include <unistd.h>
 ])
 
-# Check for libdl, if we are doing dynamic loading
-if test x$enable_monolithic = xno; then
-    OLD_LIBS="$LIBS"
-    LIBS=""
-    AC_CHECK_LIB(dl, dlopen, ,
-	AC_MSG_ERROR(libdl not found!)
-	exit
-    )
-    LIBREISER4_LIBS="$LIBS"
-    LIBS="$OLD_LIBS"
-fi
-AC_SUBST(LIBREISER4_LIBS)
-
 OLD_LIBS="$LIBS"
 AC_CHECK_LIBAAL(aal, 0.4.13, ,exit)
 AAL_LIBS="$LIBS"
@@ -442,10 +418,6 @@ if test x$enable_stand_alone = xyes; then
     LIBS="$OLD_LIBS"
 
     AC_SUBST(AAL_ALONE_LIBS)
-
-    if test x$enable_plugins_check = xyes; then
-	PLUGINS_CHECK_CFLAGS="-DENABLE_PLUGINS_CHECK"
-    fi
 
     if test x$enable_symlinks = xyes; then
 	SYMLINKS_CFLAGS="-DENABLE_SYMLINKS"
@@ -475,26 +447,21 @@ if test x$enable_stand_alone = xyes; then
 	DEG_HASH_CFLAGS="-DENABLE_DEG_HASH"
     fi
 
-    if test x$with_keys = xlarge; then
-	LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
-    fi
-
-    if test x$with_keys = xshort; then
+    if test x$enable_short_keys = xyes; then
 	SHORT_KEYS_CFLAGS="-DENABLE_SHORT_KEYS"
     fi
 
-    if test x$with_keys = xboth; then
+    if test x$enable_large_keys = xyes; then
 	LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
-	SHORT_KEYS_CFLAGS="-DENABLE_SHORT_KEYS"
     fi
 
-    ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $PLUGINS_CHECK_CFLAGS $SYMLINKS_CFLAGS \
-$SPECIAL_CFLAGS $R5_HASH_CFLAGS $FNV1_HASH_CFLAGS $RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS \
-$DEG_HASH_CFLAGS $ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS"
+    ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $SYMLINKS_CFLAGS $SPECIAL_CFLAGS \
+$R5_HASH_CFLAGS $FNV1_HASH_CFLAGS $RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS $DEG_HASH_CFLAGS \
+$ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS"
 fi
 
-GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_PLUGINS_CHECK -DENABLE_SYMLINKS -DENABLE_SPECIAL \
--DENABLE_R5_HASH -DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH -DENABLE_TEA_HASH -DENABLE_DEG_HASH \
+GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_SYMLINKS -DENABLE_SPECIAL -DENABLE_R5_HASH \
+-DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH -DENABLE_TEA_HASH -DENABLE_DEG_HASH \
 -DENABLE_LARGE_KEYS -DENABLE_SHORT_KEYS"
 
 CFLAGS="$CFLAGS -W -Wall"
@@ -506,18 +473,18 @@ else
     GENERIC_CFLAGS="$GENERIC_CFLAGS -O2"
     ALONE_CFLAGS="$ALONE_CFLAGS -Os"
 
-    if test "x$uninitialized" = xyes; then
+    if test x$uninitialized = xyes; then
        CFLAGS="$CFLAGS -Wuninitialized"
     fi
 fi
 
-if test "x$no_unused_parameter" = xyes; then
+if test x$no_unused_parameter = xyes; then
     CFLAGS="$CFLAGS -Wno-unused-parameter"
 else
     CFLAGS="$CFLAGS -Wno-unused"
 fi
 
-if test "x$redundant_decls" = xyes; then
+if test x$redundant_decls = xyes; then
     CFLAGS="$CFLAGS -Wredundant-decls"
 fi
 
@@ -525,26 +492,16 @@ if test x$enable_Werror = xyes; then
     CFLAGS="$CFLAGS -Werror"
 fi
 
-AM_CONDITIONAL(ENABLE_MONOLITHIC, test x$enable_monolithic = xyes)
-
-if test x$enable_monolithic = xno; then
-    CFLAGS="$CFLAGS -DPLUGIN_DIR=\\\"$with_plugins\\\""
-fi
-
-PLUGIN_LDFLAGS=""
-if test x$enable_monolithic = xno; then
-    PLUGIN_LDFLAGS="-module -avoid-version"
-fi
-AC_SUBST(PLUGIN_LDFLAGS)
-
 AM_CONDITIONAL(ENABLE_STAND_ALONE, test x$enable_stand_alone = xyes)
 
 if test x$enable_debug = xyes; then
     AC_DEFINE(ENABLE_DEBUG)
 fi
 
+AC_SUBST(PROGS_LIBS)
 AC_SUBST(ALONE_CFLAGS)
 AC_SUBST(GENERIC_CFLAGS)
+AC_SUBST(PROGS_LDFLAGS)
 
 AC_OUTPUT([
     Makefile

@@ -735,7 +735,7 @@ static reiser4_journal_ops_t journal40_ops = {
 };
 
 static reiser4_plug_t journal40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
 	.label = "journal40",
 	.desc  = "Journal for reiser4, ver. " VERSION,

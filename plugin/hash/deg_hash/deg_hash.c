@@ -16,7 +16,7 @@ static reiser4_hash_ops_t deg_hash_ops = {
 };
 
 static reiser4_plug_t deg_hash_plug = {
-	.cl = CLASS_INIT,
+	.cl = class_init,
 	.id = {HASH_DEG_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "deg_hash",

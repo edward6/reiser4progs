@@ -1,20 +1,10 @@
 includedir		      = -I$(top_srcdir)/include
-libdir			      = $(plugindir)
 
 tea_hash_sources	      = tea_hash.c
 
-if ENABLE_MONOLITHIC
 STATIC_LIBS	              = libtea_hash-static.la
 libtea_hash_static_la_SOURCES = $(tea_hash_sources)
-libtea_hash_static_la_LDFLAGS = @PLUGIN_LDFLAGS@
 libtea_hash_static_la_CFLAGS  = @GENERIC_CFLAGS@
-else
-STATIC_LIBS	              =
-lib_LTLIBRARIES		      = libtea_hash.la
-libtea_hash_la_SOURCES	      = $(tea_hash_sources)
-libtea_hash_la_LDFLAGS	      = @PLUGIN_LDFLAGS@
-libtea_hash_la_CFLAGS         = @GENERIC_CFLAGS@
-endif
 
 if ENABLE_STAND_ALONE
 ALONE_LIBS                    = libtea_hash-alone.la

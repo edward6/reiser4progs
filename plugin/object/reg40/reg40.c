@@ -769,7 +769,7 @@ static reiser4_object_ops_t reg40_ops = {
 
 /* Regular file plugin. */
 reiser4_plug_t reg40_plug = {
-	.cl    = CLASS_INIT,
+	.cl    = class_init,
 	.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "reg40",
