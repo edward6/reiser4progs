@@ -344,19 +344,12 @@ static errno_t node40_count_check(node40_t *node, uint8_t mode) {
 	/* Count is wrong. Try to recover it if possible. */
 	num = node40_count_estimate(node);
 	
+	aal_error("Node (%llu): Count of items (%u) is wrong. Only (%u) "
+		  "items found.%s", blk, nh_get_num_items(node), num, 
+		  mode == RM_BUILD ? " Fixed." : "");
+	
 	/* Recover is impossible. */
-	if (num == 0) {
-		aal_error("Node (%llu): Count of items (%u) is wrong.", 
-			  blk, nh_get_num_items(node));
-		return RE_FATAL;
-	}
-	
-	/* Recover is possible. */
-	aal_error("Node (%llu): Count of items (%u) is wrong. (%u) looks "
-		  "correct. %s", blk, nh_get_num_items(node), num, 
-		  mode == RM_BUILD ? "Fixed." : "");
-	
-	if (mode != RM_BUILD) 
+	if (num == 0 || mode != RM_BUILD) 
 		return RE_FATAL;
 	
 	nh_set_num_items(node, num);
@@ -556,9 +549,9 @@ node_entity_t *node40_unpack(aal_block_t *block,
 			     int mode)
 {
 	node40_header_t *head;
+	uint32_t pol, read;
 	node40_t *node;
 	place_t place;
-	uint32_t pol;
 	uint16_t num;
 	pos_t *pos;
 
@@ -577,8 +570,10 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	
 	if (mode != PACK_FULL) {
 		/* Read node raw data. */
-		aal_stream_read(stream, node->block->data,
-				node->block->size);
+		read = aal_stream_read(stream, node->block->data,
+				       node->block->size);
+		if (read != node->block->size)
+			goto error_free_node;
 		
 		return (node_entity_t *)node;
 	}
@@ -589,21 +584,42 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	
 	/* Node header w/out magic and padding. */
 	head = nh((node)->block);
-	aal_stream_read(stream, &head->num_items, 
-			sizeof(head->num_items));
-	aal_stream_read(stream, &head->free_space, 
-			sizeof(head->free_space));
-	aal_stream_read(stream, &head->free_space_start, 
-			sizeof(head->free_space_start));
-	aal_stream_read(stream, &head->mkfs_id, 
-			sizeof(head->mkfs_id));
-	aal_stream_read(stream, &head->flush_id, 
-			sizeof(head->flush_id));
-	aal_stream_read(stream, &head->flags, 
-			sizeof(head->flags));
-	aal_stream_read(stream, &head->level, 
-			sizeof(head->level));
-
+	
+	read = aal_stream_read(stream, &head->num_items, 
+			       sizeof(head->num_items));
+	if (read != sizeof(head->num_items))
+		goto error_free_node;
+	
+	read = aal_stream_read(stream, &head->free_space, 
+			       sizeof(head->free_space));
+	if (read != sizeof(head->free_space))
+		goto error_free_node;
+	
+	read = aal_stream_read(stream, &head->free_space_start, 
+			       sizeof(head->free_space_start));	
+	if (read != sizeof(head->free_space_start))
+		goto error_free_node;
+	
+	read = aal_stream_read(stream, &head->mkfs_id, 
+			       sizeof(head->mkfs_id));
+	if (read != sizeof(head->mkfs_id))
+		goto error_free_node;
+	
+	read = aal_stream_read(stream, &head->flush_id, 
+			       sizeof(head->flush_id));
+	if (read != sizeof(head->flush_id))
+		goto error_free_node;
+	
+	read = aal_stream_read(stream, &head->flags, 
+			       sizeof(head->flags));
+	if (read != sizeof(head->flags))
+		goto error_free_node;
+	
+	read = aal_stream_read(stream, &head->level, 
+			       sizeof(head->level));
+	if (read != sizeof(head->level))
+		goto error_free_node;
+	
 	/* Set the magic and the pid. */
 	nh_set_magic(node, NODE40_MAGIC);
 	nh_set_pid(node, node40_plug.id.id);
@@ -616,7 +632,9 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	/* Unpack all item headers. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
 		void *ih = node40_ih_at(node, pos->item);
-		aal_stream_read(stream, ih, ih_size(pol));
+		read = aal_stream_read(stream, ih, ih_size(pol));
+		if (read != ih_size(pol))
+			goto error_free_node;
 	}
 
 	/* Unpack all item bodies. */
@@ -635,12 +653,19 @@ node_entity_t *node40_unpack(aal_block_t *block,
 						  &place.pos);
 			
 			/* Do not unpack body. */
-			aal_stream_read(stream, ib, len);
+			if (aal_stream_read(stream, ib, len) != (int32_t)len)
+				goto error_free_node;
 		}
 	}
-
 	
 	return (node_entity_t *)node;
+	
+ error_free_node:
+	aal_error("Can't unpack the node (%llu). "
+		  "Stream is over?", block->nr);
+	
+	aal_free(node);
+	return NULL;
 }
 
 /* Prepare text node description and push it into specified @stream. */
@@ -651,7 +676,8 @@ void node40_print(node_entity_t *entity, aal_stream_t *stream,
 	char *key;
 	pos_t pos;
 	uint8_t level;
-	uint32_t last, pol;	
+	uint32_t pol;
+	uint32_t last, num;
 	
 	place_t place;
 	node40_t *node;
@@ -674,9 +700,10 @@ void node40_print(node_entity_t *entity, aal_stream_t *stream,
 	if (start == MAX_UINT32)
 		start = 0;
 	
-	last = node40_items(entity);
+	last = node40_count_estimate(node);
+	num = node40_items(entity);
 	
-	if (last > start + count)
+	if (count != MAX_UINT32 && last > start + count)
 		last = start + count;
 	
 	pol = node40_key_pol(node);
@@ -695,8 +722,9 @@ void node40_print(node_entity_t *entity, aal_stream_t *stream,
 		ih = node40_ih_at(node, pos.item);
 		key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
 		
-		aal_stream_format(stream, "#%u, %s (%s): [%s] OFF %u, "
-				  "LEN=%u, flags=0x%x ", pos.item, 
+		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF %u, "
+				  "LEN=%u, flags=0x%x ", pos.item,
+				  pos.item >= num ? "D" : " ",
 				  reiser4_igname[place.plug->id.group],
 				  place.plug->label, key, 
 				  ih_get_offset(ih, pol),
