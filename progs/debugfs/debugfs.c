@@ -344,10 +344,20 @@ static errno_t debugfs_calc_joint(
 			return -1;
 		}
 
-		for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+		if (reiser4_item_extent(&coord)) {
+			for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+				if (plugin_call(continue, coord.entity.plugin->item_ops,
+						fetch, &coord.entity, 0, &ptr, 1))
+					return -1;
+				
+				hint->curr = ptr.ptr + ptr.width;
+				hint->total += ptr.width;
+			}
 			
+			hint->bad += reiser4_item_count(&coord);
+		} else {
 			if (plugin_call(continue, coord.entity.plugin->item_ops,
-					fetch, &coord.entity, pos.unit, &ptr, 1))
+					fetch, &coord.entity, 0, &ptr, 1))
 				return -1;
 
 			delta = hint->curr - ptr.ptr;
@@ -361,9 +371,6 @@ static errno_t debugfs_calc_joint(
 			hint->total++;
 
 			hint->curr = ptr.ptr;
-		
-			if (reiser4_item_extent(&coord))
-				hint->curr += ptr.width;
 		}
 	}
 	
