@@ -107,7 +107,7 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 
 /*
-  Helper function for searcking for the needed symbol inside loaded dynamic
+  Helper function for searching for the needed symbol inside loaded dynamic
   library.
 */
 static void *find_symbol(void *handle, char *name, char *plugin) {
@@ -202,7 +202,7 @@ errno_t libreiser4_factory_load(char *name) {
 	if (!(plugin = class.init(&core)))
 		return -EINVAL;
 
-	/* Checking pluign for validness (the same ids, etc) */
+	/* Checking plugin for validness (the same ids, etc) */
 	plugin->h.class = class;
 
 #ifdef ENABLE_PLUGINS_CHECK
@@ -335,14 +335,10 @@ errno_t libreiser4_factory_init(void) {
                                                                                                 
         /* Getting plugins filenames */
         while ((ent = readdir(dir))) {
-                char name[256];
+                char name[256]; /* FIXME-GREEN->UMKA, this should be PATH_MAX and promally not allocated on stack */
                                                                                                 
-                if ((aal_strlen(ent->d_name) == 1 &&
-		     aal_strncmp(ent->d_name, ".", 1)) ||
-                    (aal_strlen(ent->d_name) == 2 &&
-		     aal_strncmp(ent->d_name, "..", 2)))
-                        continue;
-                                                                                                
+		/* FIXME-GREEN->UMKA: do strlen() only once, otherwise this is quite a demonstration on how to convert linear
+		   algorythm into quadratic one */
                 if (aal_strlen(ent->d_name) <= 2)
                         continue;
                                                                                                 
@@ -471,6 +467,8 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 static int callback_match_name(reiser4_plugin_t *plugin,
 			       walk_desc_t *desc)
 {
+	/* FIXME-GREEN->UMKA: lack of aal_strcmp() implementation makes you code in such an
+	   unoptimal way and calculating lenght of desc->name twice */
 	return aal_strncmp(plugin->h.label, desc->name,
 			   aal_strlen(desc->name));
 }
