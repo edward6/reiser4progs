@@ -979,7 +979,6 @@ struct reiser4_node_ops {
 			    key_entity_t *);
 
 	void (*set_level) (node_entity_t *, uint8_t);
-
 	void (*set_mstamp) (node_entity_t *, uint32_t);
 	void (*set_fstamp) (node_entity_t *, uint64_t);
 
@@ -1034,6 +1033,7 @@ struct reiser4_node_ops {
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;
 
+/* Hash plugin operations. */
 struct reiser4_hash_ops {
 	uint64_t (*build) (char *, uint32_t);
 };
@@ -1093,9 +1093,6 @@ struct reiser4_format_ops {
 	   super block for format40 must lie in 17-th block for 4096 byte long
 	   blocks. */
 	errno_t (*valid) (generic_entity_t *);
-
-	/* Returns the device disk-format lies on */
-	aal_device_t *(*device) (generic_entity_t *);
 #endif
 	/* Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format. */
@@ -1114,11 +1111,17 @@ struct reiser4_format_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Gets start of the filesystem. */
 	uint64_t (*start) (generic_entity_t *);
-	
+
+	/* Format length in blocks. */
 	uint64_t (*get_len) (generic_entity_t *);
+
+	/* Number of free blocks. */
 	uint64_t (*get_free) (generic_entity_t *);
-    
+
+	/* Return mkfs stamp. */
 	uint32_t (*get_stamp) (generic_entity_t *);
+
+	/* Return policy flags (tail, extents, etc). */
 	uint16_t (*get_policy) (generic_entity_t *);
 
 	/* Returns area where oid data lies in */
@@ -1196,8 +1199,8 @@ struct reiser4_alloc_ops {
 	void (*set_state) (generic_entity_t *, uint32_t);
 	
 	/* Format pack/unpack methods. */
-	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
 	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
+	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
 	
 	/* Assign the bitmap to the block allocator */
 	errno_t (*assign) (generic_entity_t *, void *);
@@ -1242,8 +1245,9 @@ struct reiser4_alloc_ops {
 	errno_t (*release) (generic_entity_t *, uint64_t,
 			    uint64_t);
 
-	/* Calls func for all not relable regions. */
-	errno_t (*layout_bad) (generic_entity_t *, region_func_t, void *);
+	/* Calls func for all not reliable regions. */
+	errno_t (*layout_bad) (generic_entity_t *,
+			       region_func_t, void *);
 	
 	/* Calls func for the region the blk lies in. */
 	errno_t (*region) (generic_entity_t *, blk_t,
@@ -1295,6 +1299,7 @@ struct reiser4_journal_ops {
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;
 
+/* Tail policy plugin operations. */
 struct reiser4_policy_ops {
 	int (*tails) (uint64_t);
 };

@@ -114,10 +114,6 @@ static errno_t format40_check(generic_entity_t *entity,
 	
 	return 0;
 }
-
-static aal_device_t *format40_device(generic_entity_t *entity) {
-	return ((format40_t *)entity)->device;
-}
 #endif
 
 static int format40_magic(format40_super_t *super) {
@@ -477,7 +473,6 @@ errno_t format40_print(generic_entity_t *entity,
 
 static reiser4_format_ops_t format40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.device		= format40_device,
 	.valid		= format40_valid,
 	.sync		= format40_sync,
 	.create		= format40_create,
