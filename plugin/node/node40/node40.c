@@ -309,6 +309,14 @@ errno_t node40_fetch(reiser4_node_t *entity,
 		return -EINVAL;
 	}
 
+	/* Init item specific stuff. */
+	if (place->plug->o.item_ops->tree->init) {
+		place->plug->o.item_ops->tree->init(place);
+	} else {
+		/* Zero all item-specific fields here. */
+		place->off = 0;
+	}
+	
 	return 0;
 }
 
@@ -1461,9 +1469,9 @@ static errno_t node40_predict(reiser4_node_t *src_entity,
 }
 
 /* Moves some amount of whole items from @src_entity to @dst_entity */
-static errno_t node40_transfuse(reiser4_node_t *src_entity,
-				reiser4_node_t *dst_entity, 
-				shift_hint_t *hint)
+static errno_t node40_move(reiser4_node_t *src_entity,
+			   reiser4_node_t *dst_entity, 
+			   shift_hint_t *hint)
 {	
 	errno_t res;
 	pos_t src_pos;
@@ -1552,8 +1560,8 @@ static errno_t node40_shift(reiser4_node_t *src_entity,
 	aal_assert("umka-2050", src_entity != NULL);
 	aal_assert("umka-2051", dst_entity != NULL);
 
-	/* First pass is merge border items. Heer we check is we are allowed to
-	   merge items. */
+	/* First pass: if merge is allowed, try to merge border items; 
+	   otheriwse, check that border items are not mergeable. */
 	if (hint->control & SF_ALLOW_MERGE) {
 		if ((res = node40_unite(src_entity, dst_entity, hint, 0))) {
 			aal_error("Can't merge two nodes during "
@@ -1590,9 +1598,9 @@ static errno_t node40_shift(reiser4_node_t *src_entity,
 
 	/* Second pass is started here. Moving some amount of whole items from
 	   @src_entity to @dst_entity. */
-	if ((res = node40_transfuse(src_entity, dst_entity, hint))) {
-		aal_error("Can't transfuse two nodes during node "
-			  "shift operation.");
+	if ((res = node40_move(src_entity, dst_entity, hint))) {
+		aal_error("Can't move items from the numde %llu to %llu.",
+			  src_entity->block->nr, dst_entity->block->nr);
 		return res;
 	}
 

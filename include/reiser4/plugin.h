@@ -120,7 +120,7 @@ enum reiser4_item_plug_id {
 	ITEM_NODEPTR40_ID	= 0x3,
 	ITEM_ACL40_ID		= 0x4,
 	ITEM_EXTENT40_ID	= 0x5,
-	ITEM_TAIL40_ID		= 0x6,
+	ITEM_PLAIN40_ID		= 0x6,
 	ITEM_CTAIL40_ID		= 0x7,
 	ITEM_BLACKBOX40_ID	= 0x8,
 	ITEM_LAST_ID
@@ -135,6 +135,8 @@ enum reiser4_item_group {
 	EXTENT_ITEM		= 0x4,
 	PERMISSION_ITEM		= 0x5, /* not used yet */
 	SAFE_LINK_ITEM		= 0x6,
+	CTAIL_ITEM		= 0x7,
+	BLACK_BOX_ITEM		= 0x8,
 	LAST_ITEM
 };
 
@@ -345,6 +347,11 @@ struct reiser4_place {
 	   method fetch() and stored here to make work with them simpler. */
 	void *body;
 	uint32_t len;
+
+	/* First unit offset within the item. Used by item internal code only. 
+	   Useful to minimize the code (e.g. tail, ctail). */
+	uint32_t off;
+	
 	reiser4_key_t key;
 	reiser4_plug_t *plug;
 };
@@ -1150,6 +1157,9 @@ struct item_debug_ops {
 typedef struct item_debug_ops item_debug_ops_t;
 
 struct item_tree_ops {
+	/* Initialize the item-specific place info. */
+	void (*init) (reiser4_place_t *);
+	
 	/* Return block number from passed place. Place is nodeptr item. */
 	blk_t (*down_link) (reiser4_place_t *);
 

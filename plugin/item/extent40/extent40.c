@@ -1509,6 +1509,7 @@ static item_debug_ops_t debug_ops = {
 #endif
 
 static item_tree_ops_t tree_ops = {
+	.init		  = NULL,
 	.down_link	  = NULL,
 #ifndef ENABLE_MINIMAL
 	.update_link	  = NULL,

@@ -12,9 +12,10 @@
 errno_t tail40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	aal_assert("vpf-1508", place != NULL);
 	
-	if (!place->len) {
-		fsck_mess("Node (%llu), item (%u): tail40 item of zero length "
-			  "found.", place_blknr(place), place->pos.item);
+	if (place->len <= place->off) {
+		fsck_mess("Node (%llu), item (%u): %s item of zero length "
+			  "found.", place_blknr(place), place->pos.item, 
+			  place->plug->label);
 		return RE_FATAL;
 	} 
 	
@@ -30,11 +31,11 @@ errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	src = (reiser4_place_t *)hint->specific;
 	
-	if (place->pos.unit == tail40_units(place) || 
+	if (tail40_pos(place) == tail40_units(place) || 
 	    place->pos.unit == MAX_UINT32)
 	{
 		/* New item or appending to the end. */
-		hint->count = tail40_units(src) - src->pos.unit;
+		hint->count = tail40_units(src) - tail40_pos(src);
 	} else {
 		uint64_t doffset, start;
 		
@@ -51,7 +52,7 @@ errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 			hint->count = 0;
 	}
 
-	hint->overhead = 0;
+	hint->overhead = (place->pos.unit == MAX_UINT32) ? place->off : 0;
 	hint->bytes = 0;
 	hint->len = hint->count;
 
@@ -105,10 +106,24 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 }
 
 errno_t tail40_pack(reiser4_place_t *place, aal_stream_t *stream) {
+	aal_assert("vpf-1767", place != NULL);
+	aal_assert("vpf-1768", stream != NULL);
+	
+	if (place->off) {
+		aal_stream_write(stream, place->body, place->off);
+	}
+	
 	return 0;
 }
 
 errno_t tail40_unpack(reiser4_place_t *place, aal_stream_t *stream) {
+	aal_assert("vpf-1769", place != NULL);
+	aal_assert("vpf-1770", stream != NULL);
+	
+	if (place->off) {
+		aal_stream_read(stream, place->body, place->off);
+	}
+
 	return 0;
 }
 

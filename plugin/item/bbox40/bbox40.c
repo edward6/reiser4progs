@@ -164,6 +164,7 @@ static item_debug_ops_t debug_ops = {
 #endif
 
 static item_tree_ops_t tree_ops = {
+	.init		  = NULL,
 	.down_link	  = NULL,
 #ifndef ENABLE_MINIMAL
 	.update_link	  = NULL
@@ -182,7 +183,7 @@ static reiser4_item_ops_t bbox40_ops = {
 
 static reiser4_plug_t bbox40_plug = {
 	.cl    = class_init,
-	.id    = {ITEM_BLACKBOX40_ID, SAFE_LINK_ITEM, ITEM_PLUG_TYPE},
+	.id    = {ITEM_BLACKBOX40_ID, BLACK_BOX_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "bbox40",
 	.desc  = "Safe link item plugin for reiser4. ",

@@ -166,6 +166,7 @@ static item_debug_ops_t debug_ops = {
 #endif
 
 static item_tree_ops_t tree_ops = {
+	.init		  = NULL,
 	.down_link	  = nodeptr40_down_link,
 #ifndef ENABLE_MINIMAL
 	.update_link	  = nodeptr40_update_link

@@ -220,7 +220,8 @@ errno_t reiser4_factory_init(void) {
 
 	__load_plug(cde40);
 	__load_plug(stat40);
-	__load_plug(tail40);
+	__load_plug(plain40);
+	__load_plug(ctail40);
 	__load_plug(extent40);
 	__load_plug(nodeptr40);
 	__load_plug(bbox40);

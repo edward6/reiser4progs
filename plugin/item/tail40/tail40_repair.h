@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   tail40_repair.h -- reiser4 tail plugin repair functions. */
+   tail40_repair.h -- reiser4 common tail repair functions. */
 
 #ifndef TAIL40_REPAIR_H
 #define TAIL40_REPAIR_H

@@ -61,7 +61,7 @@ reiser4_profile_t defprof = {
 		[PROF_TAIL] = {
 			.name  = "tail",
 			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_TAIL40_ID,
+			.id = ITEM_PLAIN40_ID,
 		},
 		[PROF_EXTENT] = {
 			.name  = "extent",

@@ -10,11 +10,9 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 
-reiser4_core_t *tail40_core;
-
 /* Returns tail length. */
 uint32_t tail40_units(reiser4_place_t *place) {
-	return place->len;
+	return place->len - place->off;
 }
 
 /* Returns key from tail at @place. */
@@ -31,8 +29,8 @@ errno_t tail40_fetch_key(reiser4_place_t *place,
 }
 
 /* Reads units from tail at @place into passed @hint. */
-static int64_t tail40_read_units(reiser4_place_t *place,
-				 trans_hint_t *hint)
+int64_t tail40_read_units(reiser4_place_t *place,
+			  trans_hint_t *hint)
 {
 	uint32_t count;
 	
@@ -49,12 +47,11 @@ static int64_t tail40_read_units(reiser4_place_t *place,
 
 	/* Calculating number of bytes, which can be actually read from this
 	   tail item. It cannot be more than item length. */
-	if (place->pos.unit + hint->count > place->len)
-		count = place->len - place->pos.unit;
+	if (tail40_pos(place) + hint->count > place->len)
+		count = place->len - tail40_pos(place);
 
 	/* Copying data from tail body to hint. */
-	aal_memcpy(hint->specific, place->body +
-		   place->pos.unit, count);
+	aal_memcpy(hint->specific, place->body + tail40_pos(place), count);
 	
 	return count;
 }
@@ -63,9 +60,7 @@ static int64_t tail40_read_units(reiser4_place_t *place,
 /* Estimates how many bytes in tree is needed to write @hint->count bytes of
    data. This function considers, that tail item is not expandable one. That is,
    tail will not be splitted at insert point, but will be rewritten instead. */
-static errno_t tail40_prep_write(reiser4_place_t *place,
-				 trans_hint_t *hint)
-{
+errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	uint16_t space;
 	
 	aal_assert("umka-1836", hint != NULL);
@@ -78,6 +73,7 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 	   amount of data which may fit into node at passed @place. */
 	if (place->pos.unit == MAX_UINT32) {
 		hint->len = hint->count;
+		hint->overhead = place->off;
 
 		plug_call(hint->offset.plug->o.key_ops,
 			  assign, &hint->maxkey, &hint->offset);
@@ -89,7 +85,7 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 
 		/* Item already exists. We will rewrite some part of it and some
 		   part have to be append. */
-		right = place->len - place->pos.unit;
+		right = place->len - tail40_pos(place);
 		
 		hint->len = (right >= hint->count ? 0 :
 			     hint->count - right);
@@ -110,34 +106,31 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 			  maxspace, place->node);
 	
 	if (hint->len > space)
-		hint->len = space;
+		hint->len = space - hint->overhead;
 		
 	
 	return 0;
 }
 
 /* Rewrites tail from passed @place by data from @hint. */
-static int64_t tail40_write_units(reiser4_place_t *place,
-				  trans_hint_t *hint)
-{
+int64_t tail40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint64_t ins_offset;
 	uint64_t max_offset;
-	uint32_t count, pos;
+	uint32_t count;
 	
 	aal_assert("umka-1677", hint != NULL);
 	aal_assert("umka-1678", place != NULL);
 
 	hint->bytes = 0;
 	count = hint->count;
-        pos = place->pos.unit;
 
 	/* Check if we create new tail item. If so -- normalize insert pos. */
-	if (pos == MAX_UINT32)
-		pos = 0;
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
 
 	/* Calculating actual amount of data to be written. */
-	if (count > place->len - pos)
-		count = place->len - pos;
+	if (count + tail40_pos(place) > place->len)
+		count = place->len - tail40_pos(place);
 
 	/* Getting old max real offset. */
 	max_offset = plug_call(hint->maxkey.plug->o.key_ops,
@@ -152,14 +145,17 @@ static int64_t tail40_write_units(reiser4_place_t *place,
 	   otherwise. */
 	if (hint->specific) {
 		/* Copying data into @place. */
-		aal_memcpy(place->body + pos, hint->specific, count);
+		aal_memcpy(place->body + tail40_pos(place), 
+			   hint->specific, count);
 	} else {
 		/* Making hole @count of size. */
-		aal_memset(place->body + pos, 0, count);
+		aal_memset(place->body + tail40_pos(place), 
+			   0, count);
 	}
 
-	/* Updating item key if pos is zero, that is start of item. */
-	if (pos == 0)
+	/* Updating item key if pos is zero, that is start of item. 
+	   FIXME: this seems to do nothing. */
+	if (place->pos.unit == 0)
 		body40_get_key(place, 0, &place->key, NULL);
 
 	/* Bytes are added if we wrote something behind of item size. */
@@ -179,18 +175,16 @@ errno_t tail40_maxreal_key(reiser4_place_t *place, reiser4_key_t *key) {
 #endif
 
 /* Return max possible key iside tail at @place. */
-static errno_t tail40_maxposs_key(reiser4_place_t *place,
-				  reiser4_key_t *key) 
-{
+errno_t tail40_maxposs_key(reiser4_place_t *place, reiser4_key_t *key) {
 	aal_assert("umka-1209", place != NULL);
 	aal_assert("umka-1210", key != NULL);
 	return body40_maxposs_key(place, key);
 }
 
 /* Makes lookup of @key inside tail at @place. */
-static lookup_t tail40_lookup(reiser4_place_t *place,
-			      lookup_hint_t *hint,
-			      lookup_bias_t bias)
+lookup_t tail40_lookup(reiser4_place_t *place,
+		       lookup_hint_t *hint,
+		       lookup_bias_t bias)
 {
 	uint32_t units;
 	uint64_t offset;
@@ -208,9 +202,7 @@ static lookup_t tail40_lookup(reiser4_place_t *place,
 			   get_offset, hint->key);
 
 	/* Check if needed key is inside this tail. */
-	if (wanted >= offset &&
-	    wanted < offset + units)
-	{
+	if (wanted >= offset && wanted < offset + units) {
 		place->pos.unit = wanted - offset;
 		return PRESENT;
 	}
@@ -220,27 +212,16 @@ static lookup_t tail40_lookup(reiser4_place_t *place,
 }
 
 #ifndef ENABLE_MINIMAL
-/* Return 1 if two tail items are mergeable. Otherwise 0 will be returned. This
-   method is used in balancing to determine if two border items may be
-   merged. */
-static int tail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
-	aal_assert("umka-2201", place1 != NULL);
-	aal_assert("umka-2202", place2 != NULL);
-	return body40_mergeable(place1, place2);
-}
-
 /* Estimates how many bytes may be shifted from @stc_place to @dst_place. */
-static errno_t tail40_prep_shift(reiser4_place_t *src_place,
-				 reiser4_place_t *dst_place,
-				 shift_hint_t *hint)
+errno_t tail40_prep_shift(reiser4_place_t *src_place,
+			  reiser4_place_t *dst_place,
+			  shift_hint_t *hint)
 {
 	int check_point;
 
 	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_place != NULL);
 
-	hint->units_number = 0;
-	
 	check_point = (src_place->pos.item == hint->pos.item &&
 		       hint->pos.unit != MAX_UINT32);
 
@@ -262,11 +243,13 @@ static errno_t tail40_prep_shift(reiser4_place_t *src_place,
 				hint->result |= SF_MOVE_POINT;
 
 				hint->pos.unit = hint->units_bytes +
-					(dst_place ? dst_place->len : 0);
+					(dst_place ? dst_place->len - 
+					 dst_place->off : 0);
 			}
 		} else {
-			if (hint->units_bytes > src_place->len)
-				hint->units_bytes = src_place->len;
+			if (hint->units_bytes + src_place->off > src_place->len)
+				hint->units_bytes = 
+					src_place->len - src_place->off;
 		}
 	} else {
 		uint32_t right;
@@ -274,8 +257,9 @@ static errno_t tail40_prep_shift(reiser4_place_t *src_place,
 		/* Check if should take into account insert point. */
 		if (hint->control & SF_UPDATE_POINT && check_point) {
 			/* Is insert point inside item? */
-			if (hint->pos.unit < src_place->len) {
-				right = src_place->len - hint->pos.unit;
+			if (hint->pos.unit + src_place->off < src_place->len) {
+				right = src_place->len - hint->pos.unit - 
+					src_place->off;
 
 				/* Insert point inside item and we can move
 				   something. */
@@ -284,7 +268,7 @@ static errno_t tail40_prep_shift(reiser4_place_t *src_place,
 
 				/* Updating insert point to first position in
 				   neighbour item. */
-				if (hint->pos.unit >= src_place->len &&
+				if (hint->pos.unit + src_place->off >= src_place->len && 
 				    hint->control & SF_MOVE_POINT)
 				{
 					hint->result |= SF_MOVE_POINT;
@@ -301,8 +285,11 @@ static errno_t tail40_prep_shift(reiser4_place_t *src_place,
 				hint->units_bytes = 0;
 			}
 		} else {
-			if (hint->units_bytes > src_place->len)
-				hint->units_bytes = src_place->len;
+			if (hint->units_bytes + src_place->off > src_place->len)
+			{
+				hint->units_bytes = 
+					src_place->len - src_place->off;
+			}
 		}
 	}
 
@@ -321,8 +308,8 @@ errno_t tail40_copy(reiser4_place_t *dst_place, uint32_t dst_pos,
 	aal_assert("umka-2076", src_place != NULL);
 
 	if (count > 0) {
-		aal_memcpy(dst_place->body + dst_pos,
-			   src_place->body + src_pos, count);
+		aal_memcpy(dst_place->body + dst_pos + dst_place->off,
+			   src_place->body + src_pos + src_place->off, count);
 
 		place_mkdirty(dst_place);
 	}
@@ -333,13 +320,15 @@ errno_t tail40_copy(reiser4_place_t *dst_place, uint32_t dst_pos,
 /* Expand tail at @place and @pos by @count bytes. Used in balancing code
    pathes. */
 uint32_t tail40_expand(reiser4_place_t *place, uint32_t pos, uint32_t count) {
-	aal_assert("vpf-1559", place->len >= pos + count);
+	uint32_t size;
 	
-	if (pos < place->len) {
-		uint32_t size = place->len - count - pos;
-		
-		aal_memmove(place->body + pos + count,
-			    place->body + pos, size);
+	aal_assert("vpf-1559", place->len >= pos + count + place->off);
+	
+	size = place->len - pos - place->off - count;
+	
+	if (size && count) {
+		aal_memmove(place->body + place->off + pos + count,
+			    place->body + place->off + pos, size);
 
 		place_mkdirty(place);
 	}
@@ -352,16 +341,15 @@ uint32_t tail40_expand(reiser4_place_t *place, uint32_t pos, uint32_t count) {
 static uint32_t tail40_shrink(reiser4_place_t *place, uint32_t pos,
 			      uint32_t count, uint32_t len)
 {
-	if (pos < place->len) {
-		uint32_t size;
-
-		if ((size = place->len - (pos + count))) {
-			void *src, *dst;
-			
-			dst = place->body + pos;
-			src = place->body + pos + count;
-			aal_memmove(dst, src, size);
-		}
+	uint32_t size;
+	
+	aal_assert("vpf-1764", place->len >= pos + count + place->off);
+	
+	size = place->len - pos - place->off - count;
+	
+	if (size && count) { 
+		aal_memmove(place->body + pos + place->off,
+			    place->body + pos + place->off + count, size);
 		
 		place_mkdirty(place);
 	}
@@ -371,9 +359,9 @@ static uint32_t tail40_shrink(reiser4_place_t *place, uint32_t pos,
 
 /* Shift some number of units from @src_place to @dst_place. All actions are
    performed with keeping in mind passed @hint. */
-static errno_t tail40_shift_units(reiser4_place_t *src_place,
-				  reiser4_place_t *dst_place,
-				  shift_hint_t *hint)
+errno_t tail40_shift_units(reiser4_place_t *src_place,
+			   reiser4_place_t *dst_place,
+			   shift_hint_t *hint)
 {
 	uint32_t pos;
 	uint64_t offset;
@@ -384,7 +372,7 @@ static errno_t tail40_shift_units(reiser4_place_t *src_place,
 
 	/* Check if this is left shift. */
 	if (hint->control & SF_ALLOW_LEFT) {
-		pos = dst_place->len - hint->units_number;
+		pos = dst_place->len - dst_place->off - hint->units_number;
 		
 		/* Expanding tail item at @dst_place by @hint->units_number
 		   value. It is that, prep_shift() has prepared for us. */
@@ -413,7 +401,7 @@ static errno_t tail40_shift_units(reiser4_place_t *src_place,
 		tail40_expand(dst_place, 0, hint->units_number);
 
 		/* Copying data and removing it from source. */
-		pos = src_place->len - hint->units_number;
+		pos = src_place->len - src_place->off - hint->units_number;
 		
 		tail40_copy(dst_place, 0, src_place, pos,
 			    hint->units_bytes);
@@ -436,41 +424,36 @@ static errno_t tail40_shift_units(reiser4_place_t *src_place,
 /* Removes some number of units from tail at @place based on @hint. This is used
    in trunc_flow() code path. That is in tail convertion code and in object
    truncate() functions. */
-static int64_t tail40_trunc_units(reiser4_place_t *place,
-				  trans_hint_t *hint)
-{
-	uint32_t pos;
+int64_t tail40_trunc_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint64_t count;
 
 	aal_assert("umka-2480", hint != NULL);
 	aal_assert("umka-2479", place != NULL);
 
 	/* Correcting position. */
-	pos = place->pos.unit;
-
-	if (pos == MAX_UINT32)
-		pos = 0;
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
 
 	/* Correcting count. */
 	count = hint->count;
 	
-	if (pos + count > place->len)
-		count = place->len - pos;
+	if (tail40_pos(place) + count > place->len)
+		count = place->len - tail40_pos(place);
 
 	/* Taking care about rest of tail */
-	if (pos + count < place->len) {
-		aal_memmove(place->body + pos,
-			    place->body + pos + count,
-			    place->len - (pos + count));
+	if (tail40_pos(place) + count < place->len) {
+		aal_memmove(place->body + tail40_pos(place),
+			    place->body + tail40_pos(place) + count,
+			    place->len - (tail40_pos(place) + count));
 	}
 
 	/* Updating key if it is needed. */
-	if (pos == 0 && pos + count < place->len) {
-		body40_get_key(place, pos + count,
+	if (place->pos.unit == 0 && tail40_pos(place) + count < place->len) {
+		body40_get_key(place, place->pos.unit + count,
 			       &place->key, NULL);
 	}
 	
-	hint->overhead = 0;
+	hint->overhead = count == (place->len - place->off) ? place->off : 0;
 	hint->len = count;
 	hint->bytes = count;
 	
@@ -478,97 +461,8 @@ static int64_t tail40_trunc_units(reiser4_place_t *place,
 }
 
 /* Returns item size in bytes */
-static uint64_t tail40_size(reiser4_place_t *place) {
+uint64_t tail40_size(reiser4_place_t *place) {
 	aal_assert("vpf-1210", place != NULL);
-	return place->len;
+	return place->len - place->off;
 }
 #endif
-
-static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_MINIMAL
-	.fuse		  = NULL,
-	.update_key	  = NULL,
-	.mergeable	  = tail40_mergeable,
-	.maxreal_key	  = tail40_maxreal_key,
-	.prep_shift	  = tail40_prep_shift,
-	.shift_units	  = tail40_shift_units,
-	.collision	  = NULL,
-#endif
-	.units            = tail40_units,
-	.lookup		  = tail40_lookup,
-	.fetch_key	  = tail40_fetch_key,
-	.maxposs_key	  = tail40_maxposs_key
-};
-
-static item_object_ops_t object_ops = {
-#ifndef ENABLE_MINIMAL
-	.size		  = tail40_size,
-	.bytes		  = tail40_size,
-	.overhead	  = NULL,
-	
-	.prep_write	  = tail40_prep_write,
-	.write_units	  = tail40_write_units,
-	.trunc_units	  = tail40_trunc_units,
-	
-	.prep_insert	  = NULL,
-	.insert_units	  = NULL,
-	.remove_units	  = NULL,
-	.update_units	  = NULL,
-	.layout		  = NULL,
-#endif
-	.fetch_units	  = NULL,
-	.read_units	  = tail40_read_units
-};
-
-#ifndef ENABLE_MINIMAL
-static item_repair_ops_t repair_ops = {
-	.check_struct	  = tail40_check_struct,
-	.check_layout	  = NULL,
-
-	.prep_insert_raw  = tail40_prep_insert_raw,
-	.insert_raw	  = tail40_insert_raw,
-
-	.pack		  = tail40_pack,
-	.unpack		  = tail40_unpack
-};
-
-static item_debug_ops_t debug_ops = {
-	.print		  = NULL
-};
-#endif
-
-static item_tree_ops_t tree_ops = {
-	.down_link	  = NULL,
-#ifndef ENABLE_MINIMAL
-	.update_link	  = NULL
-#endif
-};
-
-static reiser4_item_ops_t tail40_ops = {
-	.tree		  = &tree_ops,
-	.object		  = &object_ops,
-	.balance	  = &balance_ops,
-#ifndef ENABLE_MINIMAL
-	.repair		  = &repair_ops,
-	.debug		  = &debug_ops,
-#endif
-};
-
-static reiser4_plug_t tail40_plug = {
-	.cl    = class_init,
-	.id    = {ITEM_TAIL40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "tail40",
-	.desc  = "Tail item for reiser4. ",
-#endif
-	.o = {
-		.item_ops = &tail40_ops
-	}
-};
-
-static reiser4_plug_t *tail40_start(reiser4_core_t *c) {
-	tail40_core = c;
-	return &tail40_plug;
-}
-
-plug_register(tail40, tail40_start, NULL);
