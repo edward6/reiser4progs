@@ -108,7 +108,7 @@ errno_t reiser4_tree_connect(
 		/* Registering @child in @node children list */
 		if ((res = reiser4_node_connect(parent, node))) {
 			aal_exception_error("Can't connect node %llu to "
-					    "tree cache.", node->number);
+					    "tree.", node->number);
 			return res;
 		}
 	}
@@ -1917,10 +1917,10 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
-static errno_t _node_open(reiser4_tree_t *tree,
-			  reiser4_node_t **node,
-			  reiser4_place_t *place,
-			  void *data)
+static errno_t down_node_open(reiser4_tree_t *tree,
+			      reiser4_node_t **node,
+			      reiser4_place_t *place,
+			      void *data)
 {
 	uint32_t blocksize;
 	ptr_hint_t ptr;
@@ -1928,8 +1928,8 @@ static errno_t _node_open(reiser4_tree_t *tree,
 	
 	aal_assert("vpf-1049", tree != NULL);
 	aal_assert("vpf-1050", node != NULL);
-	aal_assert("vpf-1051", tree->fs != NULL);
 	aal_assert("vpf-1119", place != NULL);
+	aal_assert("vpf-1051", tree->fs != NULL);
 	
 	/* Fetching node ptr */
 	plugin_call(place->item.plugin->o.item_ops, read,
@@ -1959,23 +1959,22 @@ static errno_t _node_open(reiser4_tree_t *tree,
 
 errno_t reiser4_tree_down(
 	reiser4_tree_t *tree,                /* tree for traversing it */
-	reiser4_node_t *node,		     /* node which should be traversed */
+	reiser4_node_t *node,		     /* node to be traversed */
 	traverse_open_func_t open_func,	     /* callback for node opening */
-	traverse_edge_func_t before_func,    /* callback to be called at the beginning */
-	traverse_update_func_t update_func,  /* callback to be called after a child */
-	traverse_edge_func_t after_func,     /* callback to be called at the end */
+	traverse_edge_func_t before_func,    /* begin callback */
+	traverse_update_func_t update_func,  /* per child callback */
+	traverse_edge_func_t after_func,     /* end callback */
 	void *data)			     /* caller specific data */
 {
 	errno_t res = 0;
 	reiser4_place_t place;
 	pos_t *pos = &place.pos;
-	reiser4_node_t *child = NULL;
  
 	aal_assert("vpf-390", node != NULL);
 	aal_assert("umka-1935", tree != NULL);
 	
 	if (open_func == NULL)
-		open_func = _node_open;
+		open_func = down_node_open;
 	
 	reiser4_node_lock(node);
 
@@ -1983,7 +1982,9 @@ errno_t reiser4_tree_down(
 		goto error_unlock_node;
 
 	/* The loop though the items of current node */
-	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
+	for (pos->item = 0; pos->item < reiser4_node_items(node);
+	     pos->item++)
+	{
 		pos->unit = ~0ul; 
 
 		/* If there is a suspicion of a corruption, it must be checked
@@ -1999,7 +2000,10 @@ errno_t reiser4_tree_down(
 			continue;
 
 		/* The loop though the units of the current item */
-		for (pos->unit = 0; pos->unit < reiser4_item_units(&place); pos->unit++) {
+		for (pos->unit = 0; pos->unit < reiser4_item_units(&place);
+		     pos->unit++)
+		{
+			reiser4_node_t *child = NULL;
 			
 			/* Opening the node by its pointer kept in @place */
 			if ((res = open_func(tree, &child, &place, data)))
@@ -2040,11 +2044,11 @@ errno_t reiser4_tree_down(
    etc). This is is used for all tree traverse related operations like copy,
    measurements, etc. */
 errno_t reiser4_tree_traverse(
-	reiser4_tree_t *tree,		     /* node which should be traversed */
+	reiser4_tree_t *tree,		     /* node to be traversed */
 	traverse_open_func_t open_func,	     /* callback for node opening */
-	traverse_edge_func_t before_func,    /* callback to be called at the start */
-	traverse_update_func_t update_func,  /* callback to be called after a child */
-	traverse_edge_func_t after_func,     /* callback to be called at the end */
+	traverse_edge_func_t before_func,    /* start callback */
+	traverse_update_func_t update_func,  /* after child callback */
+	traverse_edge_func_t after_func,     /* end callback */
 	void *data)			     /* caller specific data */
 {
 	errno_t res;
@@ -2054,29 +2058,22 @@ errno_t reiser4_tree_traverse(
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	
-	return reiser4_tree_down(tree, tree->root, open_func, before_func, 
-				 update_func, after_func, data);
+	return reiser4_tree_down(tree, tree->root, open_func,
+				 before_func, update_func,
+				 after_func, data);
 }
 
-static errno_t _node_move(reiser4_tree_t *src_tree,
-			  reiser4_node_t *src_node,
-			  void *data)
+/* Makes copy of @node from @src_tree to @dst_tree */
+reiser4_node_t *reiser4_tree_clone(reiser4_tree_t *src_tree,
+				   reiser4_node_t *src_node,
+				   reiser4_tree_t *dst_tree)
 {
 	rid_t pid;
-	pos_t pos;
-	
 	uint32_t level;
-	errno_t res = 0;
-
-	reiser4_place_t place;
+	
 	reiser4_node_t *dst_node;
-	reiser4_tree_t *dst_tree;
-
 	aal_device_t *dst_device;
-
-	if (!(dst_tree = (reiser4_tree_t *)data))
-		return -EINVAL;
-
+	
 	dst_device = dst_tree->fs->device;
 	pid = src_node->entity->plugin->h.id;
 	
@@ -2085,58 +2082,128 @@ static errno_t _node_move(reiser4_tree_t *src_tree,
 	{
 		aal_exception_error("Can't initialize destination "
 				    "node durring tree copy.");
-		return -EINVAL;
+		return NULL;
 	}
 
 	level = reiser4_node_get_level(src_node);
-	reiser4_node_form(dst_node, level);
-	reiser4_node_clone(src_node, dst_node);
 
-	reiser4_node_lock(src_node);
+	reiser4_node_form(dst_node, level);
+
+	if (reiser4_node_clone(src_node, dst_node))
+		goto error_free_dst_node;
+
+	return dst_node;
+	
+ error_free_dst_node:
+	reiser4_node_close(dst_node);
+	return NULL;
+}
+
+struct move_hint {
+	reiser4_tree_t *tree;
+	reiser4_node_t *parent;
+};
+
+typedef struct move_hint move_hint_t;
+
+static errno_t copy_node_move(reiser4_tree_t *src_tree,
+			      reiser4_node_t *src_node,
+			      void *data)
+{
+	pos_t pos;
+	errno_t res = 0;
+
+	move_hint_t *hint;
+	reiser4_node_t *dst_node;
+	reiser4_tree_t *dst_tree;
+
+	hint = (move_hint_t *)data;
+
+	if (hint->parent)
+		return 0;
+	
+	if (!(dst_tree = hint->tree))
+		return -EINVAL;
+
+	if (!(dst_node = reiser4_tree_clone(src_tree, src_node,
+					    dst_tree)))
+	{
+		aal_exception_error("Can't clone node %llu.",
+				    src_node->number);
+		return -EINVAL;
+	}
 
 	if ((res = reiser4_tree_connect(dst_tree, NULL, dst_node))) {
 		aal_exception_error("Can't connect node %llu to "
-				    "destination tree.", src_node->number);
-		goto error_unlock_src_node;
+				    "target tree.", src_node->number);
+		goto error_free_dst_node;
 	}
 
-	/* The loop though the items of current node */
-	for (pos.item = 0; pos.item < reiser4_node_items(src_node);
-	     pos.item++)
+	if (reiser4_node_get_level(dst_node) > LEAF_LEVEL)
+		hint->parent = dst_node;
+	
+	return 0;
+
+ error_free_dst_node:
+	reiser4_node_close(dst_node);
+	return res;
+}
+
+static errno_t copy_node_open(reiser4_tree_t *tree,
+			      reiser4_node_t **node,
+			      reiser4_place_t *place,
+			      void *data)
+{
+	errno_t res;
+
+	move_hint_t *hint;
+	key_entity_t lkey;
+	reiser4_node_t *child;
+
+	hint = (move_hint_t *)data;
+
+	aal_assert("umka-2325", hint != NULL);
+	aal_assert("umka-2324", hint->parent != NULL);
+	
+	if ((res = down_node_open(tree, node, place, data)))
+		return res;
+
+	if (!(child = reiser4_tree_clone(tree, *node,
+					 hint->tree)))
 	{
-		pos.unit = ~0ul; 
-
-		if (reiser4_place_open(&place, src_node, &pos)) {
-			aal_exception_error("Can't open item by place. Node "
-					    "%llu, item %u.", src_node->number,
-					    pos.item);
-			goto error_unlock_src_node;
-		}
-
-		if (!reiser4_item_branch(&place)) {
-			/* FIXME-UMKA: Here also should be extents handling
-			   code. */
-			continue;
-		}
-
-		/* The loop though the units of the current item */
-		for (pos.unit = 0; pos.unit < reiser4_item_units(&place);
-		     pos.unit++)
-		{
-			reiser4_node_t *child;
+		aal_exception_error("Can't clone node %llu.",
+				    (*node)->number);
+		return -EINVAL;
+	}
 			
-			/* Opening the node by its pointer kept in @place */
-			if (!(child = reiser4_tree_child(src_tree, &place)))
-				goto error_unlock_src_node;
+	/* Connecting clonned child to destination tree */
+	child->p.node = hint->parent;
 
-			/* FIXME-UMKA: Here should be @child moving to
-			   @dst_tree */
-		}
+        reiser4_node_lkey(child, &lkey);
+                                                                                                   
+        reiser4_node_lookup(hint->parent, &lkey,
+			    &child->p.pos);
+	    
+	if ((res = reiser4_node_update(child)))
+		return res;
+			
+	if ((res = reiser4_tree_connect(hint->tree,
+					hint->parent,
+					child)))
+	{
+		aal_exception_error("Can't connect node %llu "
+				    "to target tree.",
+				    (*node)->number);
+		goto error_free_child;
 	}
 	
+	if (reiser4_node_get_level(child) > LEAF_LEVEL)
+		hint->parent = child;
+	
+	return 0;
 
- error_unlock_src_node:
-	reiser4_node_unlock(src_node);
+ error_free_child:
+	reiser4_node_close(child);
 	return res;
 }
 
@@ -2144,10 +2211,24 @@ static errno_t _node_move(reiser4_tree_t *src_tree,
 errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
 			  reiser4_tree_t *dst_tree)
 {
+	move_hint_t hint;
+	
 	aal_assert("umka-2304", src_tree != NULL);
 	aal_assert("umka-2305", dst_tree != NULL);
 
-	return reiser4_tree_traverse(src_tree, _node_open, _node_move,
-				     NULL, NULL, dst_tree);
+	hint.tree = dst_tree;
+	hint.parent = dst_tree->root;
+
+	return reiser4_tree_traverse(src_tree, copy_node_open,
+				     copy_node_move, NULL, NULL,
+				     &hint);
+}
+
+/* Resizes @tree by @blocks */
+errno_t reiser4_tree_resize(reiser4_tree_t *tree,
+			    count_t blocks)
+{
+	aal_assert("umka-2323", tree != NULL);
+	return -EINVAL;
 }
 #endif

@@ -320,8 +320,7 @@ errno_t reiser4_fs_resize(
 	reiser4_fs_t *fs,               /* fs to be resized */
 	count_t blocks)                 /* new fs size */
 {
-	/* FIXME-UMKA: Not implemented yet! */
-	return -EINVAL;
+	return reiser4_tree_resize(fs->tree, blocks);
 }
 
 /* Makes copy of @src_fs to @dst_fs */
@@ -329,8 +328,7 @@ errno_t reiser4_fs_copy(
 	reiser4_fs_t *src_fs,           /* fs to be copied */
 	reiser4_fs_t *dst_fs)           /* destination fs */
 {
-	/* FIXME-UMKA: Not implemented yet! */
-	return -EINVAL;
+	return reiser4_tree_copy(src_fs->tree, dst_fs->tree);
 }
 
 /* Synchronizes all filesystem objects. */

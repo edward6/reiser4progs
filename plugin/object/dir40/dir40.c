@@ -237,6 +237,22 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	if (plugin_call(item->plugin->o.item_ops, read,
 			item, entry, dir->unit, 1) == 1)
 	{
+#ifndef ENABLE_STAND_ALONE
+		entry->type = ET_NAME;
+		
+		if (aal_strlen(entry->name) == 1 &&
+		    !aal_strncmp(entry->name, ".", 1))
+		{
+			entry->type = ET_DOT;
+		}
+
+		if (aal_strlen(entry->name) == 2 &&
+			   !aal_strncmp(entry->name, "..",2))
+		{
+			entry->type = ET_DOTDOT;
+		}
+#endif
+		
 		/* Updating positions */
 		dir->unit++;
 		

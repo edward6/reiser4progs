@@ -411,14 +411,6 @@ int main(int argc, char *argv[]) {
 			aal_gauge_start(gauge);
 		}
 	
-		/* Synchronizing device. If device we are using is a file device
-		   (libaal/file.c), then function fsync will be called. */
-		if (aal_device_sync(device)) {
-			aal_exception_error("Can't synchronize device %s.", 
-					    aal_device_name(device));
-			goto error_free_root;
-		}
-
 		/* Zeroing uuid in order to force mkfs to generate it on its own
 		   for next device form built device list. */
 		aal_memset(uuid, 0, sizeof(uuid));
@@ -441,6 +433,15 @@ int main(int argc, char *argv[]) {
 
 		/* Freeing the filesystem instance and device instance */
 		reiser4_fs_close(fs);
+
+		/* Synchronizing device. If device we are using is a file device
+		   (libaal/file.c), then function fsync will be called. */
+		if (aal_device_sync(device)) {
+			aal_exception_error("Can't synchronize device %s.", 
+					    aal_device_name(device));
+			goto error_free_device;
+		}
+
 		aal_device_close(device);
 	}
     

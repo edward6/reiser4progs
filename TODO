@@ -7,8 +7,6 @@ reiser4progs/COPYING.
 
 * manual pages for cpfs and resizefs.
 
-* take care about locking in all tree functions.
-
 * reiser4_fs_copy() and reiser4_fs_resize().
 
 * dumpfs utility.

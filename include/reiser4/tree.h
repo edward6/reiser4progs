@@ -123,6 +123,9 @@ extern reiser4_node_t *reiser4_tree_alloc(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
 				 reiser4_tree_t *dst_tree);
 
+extern errno_t reiser4_tree_resize(reiser4_tree_t *tree,
+				   count_t blocks);
+
 extern errno_t reiser4_tree_release(reiser4_tree_t *tree,
 				    reiser4_node_t *node);
 

@@ -122,8 +122,9 @@ static errno_t node40_clone(object_entity_t *src_entity,
 	aal_assert("umka-2310", loaded(src_entity));
 	aal_assert("umka-2311", loaded(dst_entity));
 
-	src_node = (node40_t *)src_node;
-	dst_node = (node40_t *)dst_node;
+	src_node = (node40_t *)src_entity;
+	dst_node = (node40_t *)dst_entity;
+	
 	blocksize = aal_block_size(src_node->block);
 
 	aal_memcpy(dst_node->block->data,

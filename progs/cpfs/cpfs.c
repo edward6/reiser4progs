@@ -344,14 +344,6 @@ int main(int argc, char *argv[]) {
 		aal_gauge_start(gauge);
 	}
 	
-	/* Synchronizing device. If device we are using is a file device
-	   (libaal/file.c), then function fsync will be called. */
-	if (aal_device_sync(dst_device)) {
-		aal_exception_error("Can't synchronize device %s.", 
-				    dst_dev);
-		goto error_free_dst_tree;
-	}
-
 	if (gauge) {
 		aal_gauge_done(gauge);
 		aal_gauge_free(gauge);
@@ -365,6 +357,15 @@ int main(int argc, char *argv[]) {
 
 	/* Closing dst fs */
 	reiser4_fs_close(dst_fs);
+
+	/* Synchronizing device. If device we are using is a file device
+	   (libaal/file.c), then function fsync will be called. */
+	if (aal_device_sync(dst_device)) {
+		aal_exception_error("Can't synchronize device %s.", 
+				    dst_dev);
+		goto error_free_dst_device;
+	}
+
 	aal_device_close(dst_device);
     
 	/* Finalizing libreiser4. At the moment only plugins are unloading
@@ -372,6 +373,7 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
     
 	return NO_ERROR;
+	
  error_free_dst_tree:
 	reiser4_tree_fini(dst_fs->tree);
  error_free_dst_journal:

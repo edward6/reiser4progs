@@ -412,6 +412,14 @@ struct statdata_hint {
 
 typedef struct statdata_hint statdata_hint_t;
 
+enum entry_type {
+	ET_NAME     = 1 << 0,
+	ET_DOT      = 1 << 1,
+	ET_DOTDOT   = 1 << 2
+};
+
+typedef enum entry_type entry_type_t;
+
 struct entry_hint {
 
 	/* Entry key within the current directory */
@@ -419,6 +427,9 @@ struct entry_hint {
 
 	/* The stat data key of the object entry points to */
 	key_entity_t object;
+
+	/* Entry type (name or special), filled by readdir */
+	entry_type_t type;
 
 	/* Name of entry */
 	char name[256];
