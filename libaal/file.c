@@ -37,9 +37,8 @@ static void file_error(
 }
 
 /*
-  Opens actual file, initializes aal_device_t instance and returns it to caller.
-  This function as well fille device at all is whidely used in all reiser4progs
-  (mkfs, fsck, etc) for opening a device and working with them.
+  Opens actual file, initializes aal_device_t instance and returns it to caller
+  function.
 */
 errno_t file_open(
 	aal_device_t *device,
@@ -177,7 +176,10 @@ static errno_t file_sync(
 	if (!device) 
 		return -1;
 	
-	/* As this is file device, we are using fsync function for synchronizing file */
+	/*
+	  As this is file device, we are using fsync function for synchronizing
+	  file.
+	*/
 	if (fsync(*((int *)device->entity))) {
 		file_error(device);
 		return errno;
@@ -194,13 +196,16 @@ static int file_equals(
 	aal_device_t *device1,	    /* the first device for comparing */
 	aal_device_t *device2)	    /* the second one */
 {
+	char *file1, *file2;
+	
 	if (!device1 || !device2)
 		return 0;
-    
+
+	file1 = (char *)device1->data;
+	file2 = (char *)device2->data;
+	
 	/* Devices are comparing by comparing their file names */
-	return !aal_strncmp((char *)device1->data, 
-			    (char *)device2->data,
-			    aal_strlen((char *)device1->data));
+	return !aal_strncmp(file1, file2, aal_strlen(file1));
 }
 
 #if defined(__linux__) && defined(_IOR) && !defined(BLKGETSIZE64)

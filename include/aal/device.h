@@ -104,12 +104,12 @@ extern errno_t aal_device_write(aal_device_t *device,
 extern int aal_device_flags(aal_device_t *device);
 extern errno_t aal_device_sync(aal_device_t *device);
 
-extern int aal_device_equals(aal_device_t *device1, 
+extern bool_t aal_device_equals(aal_device_t *device1, 
 			     aal_device_t *device2);
 
 extern char *aal_device_name(aal_device_t *device);
 extern count_t aal_device_len(aal_device_t *device);
 extern char *aal_device_error(aal_device_t *device);
-extern int aal_device_readonly(aal_device_t *device);
+extern bool_t aal_device_readonly(aal_device_t *device);
 
 #endif

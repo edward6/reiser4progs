@@ -346,7 +346,8 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		start = et40_get_start(extent + i);
 		width = et40_get_width(extent + i);
 
-		extent40_unit_key(item, i, &key);
+		if (extent40_unit_key(item, i, &key))
+			return -1;
 
 		if (!item->key.plugin->key_ops.get_offset)
 			return -1;
@@ -391,6 +392,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+/* Deallocates all extent units described by passed @list */
 static errno_t extent40_deallocate(item_entity_t *item,
 				   aal_list_t *list)
 {
@@ -414,6 +416,10 @@ static errno_t extent40_deallocate(item_entity_t *item,
 	return 0;
 }
 
+/*
+  Allocates extent units needed for storing @blocks of data and put them into
+  list. This function is called from extent40_estimate.
+*/
 static aal_list_t *extent40_allocate(item_entity_t *item,
 				     uint32_t blocks)
 {

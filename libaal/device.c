@@ -9,17 +9,17 @@
 #include <fcntl.h>
 
 /* 
-   This macro is used for checking whether specified routine from the device
-   operations is implemented or not. If not, it throws exception and performs
-   specified action.
+  This macro is used for checking whether specified routine from the device
+  operations is implemented or not. If not, it throws exception and performs
+  specified action.
 
-   It is using in the following maner:
+  It is using in the following maner:
 
-   aal_device_check_routine(some_devive_instance, read_operation, goto
-   error_processing);
+  aal_device_check_routine(some_devive_instance, read_operation, goto
+  error_processing);
     
-   This macro was introdused to decrease source code by removing a lot of common
-   pieces and replace them by just one line of macro.
+  This macro was introdused to decrease source code by removing a lot of common
+  pieces and replace them by just one line of macro.
 */
 #define aal_device_check_routine(device, routine, action)		         \
     do {								         \
@@ -88,9 +88,9 @@ errno_t aal_device_reopen(
 				 blocksize, flags);
 }
 
-int aal_device_readonly(aal_device_t *device) {
+bool_t aal_device_readonly(aal_device_t *device) {
 	aal_assert("umka-1291", device != NULL, return -1);
-	return (device->flags & 07) == O_RDONLY;
+	return (device->flags & O_RDONLY) == O_RDONLY;
 }
 
 /* Closes device. Frees all assosiated memory */
@@ -104,8 +104,8 @@ void aal_device_close(
 }
 
 /* 
-   Checks and sets new block size for specified device. Returns error code, see
-   aal.h for more detailed description of errno_t.
+  Checks and sets new block size for specified device. Returns error code, see
+  aal.h for more detailed description of errno_t.
 */
 errno_t aal_device_set_bs(
 	aal_device_t *device,	/* device to be set with passed blocksize */
@@ -137,9 +137,9 @@ uint32_t aal_device_get_bs(
 }
 
 /* 
-   Performs read operation on specified device. Actualy it calls corresponding
-   operation (read) from assosiated with device operations. Returns error code,
-   see aal.h for more detailed description of errno_t.
+  Performs read operation on specified device. Actualy it calls corresponding
+  operation (read) from assosiated with device operations. Returns error code,
+  see aal.h for more detailed description of errno_t.
 */
 errno_t aal_device_read(
 	aal_device_t *device,	/* device instance we will read from */
@@ -154,9 +154,9 @@ errno_t aal_device_read(
 }
 
 /* 
-   Performs write operation on specified device. Actualy it calls corresponding
-   operation (write) from assosiated with device operations. Returns error code,
-   see aal.h for more detailed description of errno_t.
+  Performs write operation on specified device. Actualy it calls corresponding
+  operation (write) from assosiated with device operations. Returns error code,
+  see aal.h for more detailed description of errno_t.
 */
 errno_t aal_device_write(
 	aal_device_t *device,	/* device instance we will write into */
@@ -172,9 +172,9 @@ errno_t aal_device_write(
 }
 
 /* 
-   Performs sync operation on specified device. Actualy it calls corresponding
-   operation (sync) from assosiated with device operations. Returns error code,
-   see aal.h for more detailed description of errno_t.
+  Performs sync operation on specified device. Actualy it calls corresponding
+  operation (sync) from assosiated with device operations. Returns error code,
+  see aal.h for more detailed description of errno_t.
 */
 errno_t aal_device_sync(
 	aal_device_t *device)	/* device instance that will be synchronized */
@@ -194,11 +194,11 @@ int aal_device_flags(
 }
 
 /* 
-   Compares two devices. Returns TRUE for equal devices and FALSE for different
-   ones. This function is needed in order to be aware is host device user has
-   specified corresponds journal one. And in some other cases.
+  Compares two devices. Returns TRUE for equal devices and FALSE for different
+  ones. This function is needed in order to be aware is host device user has
+  specified corresponds journal one. And in some other cases.
 */
-int aal_device_equals(
+bool_t aal_device_equals(
 	aal_device_t *device1,	/* first device for comparing */
 	aal_device_t *device2)	/* second one */
 {

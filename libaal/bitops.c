@@ -1,21 +1,20 @@
 /*
-  bitops.c -- bitops functions.
+  bitops.c -- bitops functions. This file contains not only functions for
+  getting/setting one bit at some position, but also functions for working with
+  bit range.
   
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aal/aal.h>
 
-inline int aal_set_bit(void *addr, bit_t nr) {
-	unsigned char *p, mask;
+/* Turns on @nr bit in @map bitmap */
+inline int aal_set_bit(void *map, bit_t nr) {
 	int retval;
+	unsigned char *p, mask;
 
-	p = (unsigned char *)addr;
+	p = (unsigned char *)map;
 	p += nr >> 3;
 	mask = 1 << (nr & 0x7);
 
@@ -25,11 +24,12 @@ inline int aal_set_bit(void *addr, bit_t nr) {
 	return retval;
 }
 
-inline int aal_clear_bit(void *addr, bit_t nr) {
-	unsigned char *p, mask;
+/* Turns off @nr bit in @map bitmap */
+inline int aal_clear_bit(void *map, bit_t nr) {
 	int retval;
+	unsigned char *p, mask;
 
-	p = (unsigned char *)addr;
+	p = (unsigned char *)map;
 	p += nr >> 3;
 	mask = 1 << (nr & 0x7);
 
@@ -39,21 +39,23 @@ inline int aal_clear_bit(void *addr, bit_t nr) {
 	return retval;
 }
 
-inline int aal_test_bit(void *addr, bit_t nr) {
+/* Makes test of the @nr bit in @map bitmap */
+inline int aal_test_bit(void *map, bit_t nr) {
 	unsigned char *p, mask;
   
-	p = (unsigned char *)addr;
+	p = (unsigned char *)map;
 	p += nr >> 3;
 	mask = 1 << (nr & 0x7);
 	return ((mask & *p) != 0);
 }
 
-inline bit_t aal_find_first_zero_bit(void *vaddr, 
+/* Finds first zero bit inside @map */
+inline bit_t aal_find_first_zero_bit(void *map, 
 				     bit_t size) 
 {
 	int res;
-	unsigned char *p = vaddr;
-	unsigned char *addr = vaddr;
+	unsigned char *p = map;
+	unsigned char *addr = map;
 
 	if (!size)
 		return 0;
@@ -74,12 +76,13 @@ inline bit_t aal_find_first_zero_bit(void *vaddr,
 	return (p - addr) * 8 + res;
 }
 
-inline bit_t aal_find_next_zero_bit(void *vaddr, 
+/* Finds zero bit inside @map starting from @offset */
+inline bit_t aal_find_next_zero_bit(void *map, 
 				    bit_t size,
 				    bit_t offset) 
 {
 	int bit = offset & 7, res;
-	unsigned char *addr = vaddr;
+	unsigned char *addr = map;
 	unsigned char *p = addr + (offset >> 3);
   
 	if (offset >= size)
@@ -96,13 +99,14 @@ inline bit_t aal_find_next_zero_bit(void *vaddr,
 	return (p - addr) * 8 + res;
 }
 
-/* Finds next zero bit in byte */
-static inline int aal_find_nzb(unsigned char byte, int start) {
-        int i = start;
-        unsigned char mask = 1 << start;
+/* Finds zero bit in @byte starting from @offset */
+static inline int aal_find_nzb(unsigned char byte, bit_t offset) {
+        int i = offset;
+        unsigned char mask = 1 << offset;
 
         while ((byte & mask) != 0) {
                 mask <<= 1;
+		
                 if (++i >= 8)
                         break;
         }
@@ -110,11 +114,12 @@ static inline int aal_find_nzb(unsigned char byte, int start) {
         return i;
 }
 
-inline bit_t aal_find_next_set_bit(void *vaddr, 
+/* Finds set bit inside @map starting from @offset */
+inline bit_t aal_find_next_set_bit(void *map, 
 				   bit_t size, 
 				   bit_t offset)
 {
-        unsigned char *addr = vaddr;
+        unsigned char *addr = map;
         unsigned int byte_nr = offset >> 3;
         unsigned int bit_nr = offset & 0x7;
         unsigned int max_byte_nr = (size - 1) >> 3;
@@ -143,13 +148,14 @@ inline bit_t aal_find_next_set_bit(void *vaddr,
         return size;
 }
 
-inline void aal_clear_bits(void *vaddr, 
+/* Makes cleanup of bits inside range @start - @end */
+inline void aal_clear_bits(void *map, 
 			   bit_t start, 
 			   bit_t end)
 {
 	int end_byte;
 	int start_byte;
-	char *addr = vaddr;
+	char *addr = map;
 
         start_byte = start >> 3;
         end_byte = (end - 1) >> 3;
@@ -177,13 +183,14 @@ inline void aal_clear_bits(void *vaddr,
         }
 }
 
-inline void aal_set_bits(void *vaddr, 
+/* Sets up the bits inside range @start - @end */
+inline void aal_set_bits(void *map, 
 			 bit_t start, 
 			 bit_t end)
 {
 	int end_byte;
 	int start_byte;
-	char *addr = vaddr;
+	char *addr = map;
 
 	start_byte = start >> 3;
 	end_byte = (end - 1) >> 3;
@@ -211,41 +218,47 @@ inline void aal_set_bits(void *vaddr,
         }
 }
 
-inline bit_t aal_find_zero_bits(void *vaddr, bit_t size,
-				bit_t *start, bit_t count)
+/* Finds @count clear bits inside @map */
+inline bit_t aal_find_zero_bits(void *map,
+				bit_t size,
+				bit_t *start,
+				bit_t count)
 {
 	bit_t prev;
 	bit_t next;
 
-	prev = aal_find_next_zero_bit(vaddr, size, 0);
-	next = aal_find_next_zero_bit(vaddr, size, prev + 1);
+	prev = aal_find_next_zero_bit(map, size, 0);
+	next = aal_find_next_zero_bit(map, size, prev + 1);
 
 	count--;
 	*start = prev;
 
 	while (next - prev == 1 && count--) {
 		prev = next;
-		next = aal_find_next_zero_bit(vaddr, size, next + 1);
+		next = aal_find_next_zero_bit(map, size, next + 1);
 	}
 
 	return next - *start;
 }
 
-inline bit_t aal_find_set_bits(void *vaddr, bit_t size,
-			       bit_t *start, bit_t count)
+/* Finds @count set bits inside @map */
+inline bit_t aal_find_set_bits(void *map,
+			       bit_t size,
+			       bit_t *start,
+			       bit_t count)
 {
 	bit_t prev;
 	bit_t next;
 
-	prev = aal_find_next_set_bit(vaddr, size, 0);
-	next = aal_find_next_set_bit(vaddr, size, prev + 1);
+	prev = aal_find_next_set_bit(map, size, 0);
+	next = aal_find_next_set_bit(map, size, prev + 1);
 
 	count--;
 	*start = prev;
 
 	while (next - prev == 1 && count--) {
 		prev = next;
-		next = aal_find_next_set_bit(vaddr, size, next + 1);
+		next = aal_find_next_set_bit(map, size, next + 1);
 	}
 
 	return next - *start;
