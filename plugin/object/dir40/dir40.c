@@ -19,15 +19,9 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t dir40_plugin;
 
-/*
-  Updates stat data place as it might be moved due to rebalancing and then gets
-  size field from it.
-*/
+/* Gets size from the object stat data */
 static uint64_t dir40_size(object_entity_t *entity) {
-	dir40_t *dir;
-
-	dir = (dir40_t *)entity;
-	return obj40_get_size(&dir->obj);
+	return obj40_get_size(&((dir40_t *)entity)->obj);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -163,7 +157,6 @@ static errno_t dir40_readdir(object_entity_t *entity,
 			     entry_hint_t *entry)
 {
 	dir40_t *dir;
-	uint64_t size;
 	uint32_t units;
 	item_entity_t *item;
 
@@ -174,7 +167,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	item = &dir->body.item;
 
 	/* Getting size from teh statdata */
-	if ((size = dir40_size(entity)) == 0)
+	if (dir40_size(entity) == 0)
 		return -EINVAL;
 
 	units = plugin_call(item->plugin->item_ops,

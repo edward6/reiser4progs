@@ -20,14 +20,7 @@ static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t reg40_plugin;
 
 static uint64_t reg40_size(object_entity_t *entity) {
-	reg40_t *reg;
-
-	reg = (reg40_t *)entity;
-	
-	/* Getting stat data item place */
-	obj40_stat(&reg->obj);
-	
-	return obj40_get_size(&reg->obj);
+	return obj40_get_size(&((reg40_t *)entity)->obj);
 }
 
 /* Updates body place in correspond to file offset */
@@ -120,12 +113,9 @@ static int32_t reg40_read(object_entity_t *entity,
 		
 		chunk = n - read;
 
-		/* Getting item's key offset */
-		offset = plugin_call(item->key.plugin->key_ops,
-				     get_offset, &item->key);
-
 		/* Calculating in-item local offset */
-		offset = reg->offset - offset;
+		offset = reg->offset - plugin_call(item->key.plugin->key_ops,
+						   get_offset, &item->key);
 
 		/* Calling body item's "read" method */
 		if ((chunk = plugin_call(item->plugin->item_ops, read,
@@ -143,9 +133,7 @@ static int32_t reg40_read(object_entity_t *entity,
 		reg->offset += chunk;
 
 		/* Getting new body item by current file offset */
-		res = reg40_next(reg);
-		
-		if (res != LP_PRESENT)
+		if ((res = reg40_next(reg)) != LP_PRESENT)
 			break;
 	}
 
@@ -175,7 +163,7 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 	
 	obj40_lock(&reg->obj, &reg->obj.statdata);
 
-	/* Position onto the first body item */
+	/* Reseting file offset, position onto the first body item */
 	if (reg40_reset((object_entity_t *)reg)) {
 		aal_exception_error("Can't reset file 0x%llx.", 
 				    obj40_objectid(&reg->obj));
@@ -190,7 +178,6 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Creating the file described by pased @hint */
 static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 				     object_hint_t *hint, place_t *place) 
