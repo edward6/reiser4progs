@@ -58,7 +58,7 @@ static errno_t callback_write_block(void *object, blk_t blk,
 	return 0;
 }
 
-/* Write the backup to 16 blocks. */
+/* Write the backup to REISER4_BACKUPS_MAX blocks. */
 void reiser4_backup_sync(reiser4_backup_t *backup) {
 	count_t size;
 	aal_block_t *block;
@@ -97,11 +97,11 @@ static errno_t callback_region_last(void *object, blk_t blk,
 	return 0;
 }
 
-/* Backup is saved in 16 blocks spreaded across the fs aligned by the next
-   bitmap block.
+/* Backup is saved in REISER4_BACKUPS_MAX blocks spreaded across the fs 
+   aligned by the next bitmap block.
    
-   Note: Backup should not be touched another time -- do not open them another
-   time, even for the layout operation. */
+   Note: Backup should not be touched another time -- do not open them 
+   another time, even for the layout operation. */
 errno_t reiser4_backup_layout(reiser4_fs_t *fs, 
 			      region_func_t region_func,
 			      void *data)
@@ -116,16 +116,16 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 
 	len = reiser4_format_get_len(fs->format);
 
-	/* FIXME-UMKA->VITALY: Is this ok to use here hardcoded numbers like 17
-	   is? May it be replaced by some macro? */
-	for (blk = len / 17 - 1; blk < len; blk += len / 17) {
+	for (blk = len / REISER4_BACKUPS_MAX; blk < len; 
+	     blk += len / (REISER4_BACKUPS_MAX + 1)) 
+	{
 		reiser4_alloc_region(fs->alloc, blk, 
 				     callback_region_last, &copy);
 
-		/* If copy == 0 -- it is not possible to have the last copy on
-		   this fs as the last block is the allocator one. If the blk
-		   number for the copy is the same as the previous one, skip
-		   another copy as fs is pretty small. */
+		/* If copy == 0 -- it is not possible to have the last copy 
+		   on this fs as the last block is the allocator one. If the 
+		   blk number for the copy is the same as the previous one, 
+		   skip another copy as fs is pretty small. */
 		if (!copy || copy == prev)
 			continue;
 

@@ -12,7 +12,7 @@
 #define LEAF_LEVEL	        1
 #define TWIG_LEVEL	        (LEAF_LEVEL + 1)
 
-/* Master related stuff like magic and offset in bytes. These are sued by both
+/* Master related stuff like magic and offset in bytes. These are used by both
    plugins and library itself. */
 #define REISER4_MASTER_MAGIC	("R4Sb")
 #define REISER4_MASTER_OFFSET	(65536)
@@ -20,6 +20,9 @@
 /* The same for fs stat block. */
 #define REISER4_STATUS_BLOCK    (21)
 #define REISER4_STATUS_MAGIC    ("ReiSeR4StATusBl")
+
+/* Max number of backups on the reiser4. */
+#define REISER4_BACKUPS_MAX	16
 
 /* Root key locality and objectid. This actually is defined by oid plugin, but
    we hardcoded them her to avoid use oid plugin in stand alone mode. Because in
