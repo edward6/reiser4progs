@@ -1789,11 +1789,8 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	}
 
  out_update_hint:
-
-	hint->rest += merge.rest;
 	hint->units += merge.units;
 	hint->items += merge.items;
-	
 	return 0;
 }
 

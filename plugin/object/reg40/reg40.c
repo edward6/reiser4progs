@@ -422,11 +422,8 @@ static int32_t reg40_put(object_entity_t *entity,
 	  something.
 	*/
 	if (reg->offset > size) {
-		if ((res = obj40_set_size(&reg->obj,
-					  size + written)))
-		{
+		if ((res = obj40_set_size(&reg->obj, reg->offset)))
 			return res;
-		}
 	}
 	
 	item = &reg->obj.statdata.item;
@@ -439,8 +436,8 @@ static int32_t reg40_put(object_entity_t *entity,
 	unix_hint.atime = atime;
 	unix_hint.mtime = atime;
 
-	if (reg->offset > size)
-		unix_hint.bytes += written;
+	if (reg->offset > unix_hint.bytes)
+		unix_hint.bytes = reg->offset;
 
 	if ((res = obj40_write_unix(item, &unix_hint)))
 		return res;

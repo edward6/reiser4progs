@@ -91,8 +91,8 @@ static errno_t tail40_estimate_insert(item_entity_t *item,
 		
 		right = item->len - pos;
 
-		hint->len = right >= hint->count ? 0 :
-			hint->count;
+		hint->len = (right >= hint->count ? 0 :
+			     hint->count - right);
 	}
 	
 	return 0;
