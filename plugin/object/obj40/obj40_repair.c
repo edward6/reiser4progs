@@ -602,14 +602,9 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 		aal_memset(&trans, 0, sizeof(trans));
 		trans.shift_flags = SF_DEFAULT;
 		trans.count = 1;
+		start->pos.unit = MAX_UINT32;
 
 		if ((res = obj40_remove(obj, start, &trans)))
-			return res;
-		
-		if ((res = obj40_update(obj)))
-			return res;
-
-		if ((res = obj40_fetch_item(&obj->info.start)))
 			return res;
 	}
 

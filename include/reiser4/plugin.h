@@ -64,7 +64,7 @@ enum lookup {
 	ABSENT                  = 0,
 };
 
-typedef int32_t lookup_t;
+typedef int64_t lookup_t;
 
 /* Known by library plugin types. */
 enum reiser4_plug_type {

@@ -219,6 +219,7 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 
 	hint.count = 1;
 	hint.shift_flags = SF_DEFAULT;
+	reg->body.pos.unit = MAX_UINT32;
 
 	/* Item has wrong key, remove it. */
 	if ((res = obj40_remove(&reg->obj, &reg->body, &hint)))

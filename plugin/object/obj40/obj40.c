@@ -509,6 +509,7 @@ errno_t obj40_clobber(obj40_t *obj) {
 	hint.place_func = NULL;
 	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
+	STAT_PLACE(obj)->pos.unit = MAX_UINT32;
 	
 	return obj40_remove(obj, STAT_PLACE(obj), &hint);
 }
