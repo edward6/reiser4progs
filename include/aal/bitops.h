@@ -6,39 +6,30 @@
 #ifndef BITOPS_H
 #define BITOPS_H
 
-#define _ROUND_UP(x, n) (((x)+(n) - 1u) & ~((n) - 1u))
-#define ROUND_UP(x) _ROUND_UP(x, 8ll)
+typedef unsigned long long bit_t;
 
-extern inline int aal_set_bit(unsigned long long nr, void *addr);
-extern inline int aal_clear_bit(unsigned long long nr, void *addr);
-extern inline int aal_test_bit(unsigned long long nr, const void *addr);
+extern inline int aal_set_bit(void *addr, bit_t nr);
+extern inline int aal_clear_bit(void *addr, bit_t nr);
+extern inline int aal_test_bit(void *addr, bit_t nr);
 
-extern inline void aal_clear_bits(void *vaddr, 
-				  unsigned long long  start,
-				  unsigned long long end);
+extern inline bit_t aal_find_first_zero_bit(void *vaddr, bit_t size);
 
-extern inline void aal_set_bits(void *vaddr, 
-				unsigned long long start,
-				unsigned long long end);
+extern inline bit_t aal_find_next_zero_bit(void *vaddr, bit_t size,
+					   bit_t offset);
 
-extern inline unsigned long long aal_find_first_zero_bit(const void *vaddr,
-							 unsigned long long size);
+extern inline bit_t aal_find_next_set_bit(void *vaddr, bit_t size,
+					  bit_t offset);
 
-extern inline unsigned long long aal_find_next_zero_bit(const void *vaddr,
-							unsigned long long size,
-							unsigned long long offset);
+extern inline bit_t aal_find_zero_bits(void *vaddr, bit_t size,
+				       bit_t *start, bit_t count);
 
-extern inline unsigned long long aal_find_next_set_bit(const void *vaddr,
-						       unsigned long long size,
-						       unsigned long long offset);
+extern inline bit_t aal_find_set_bits(void *vaddr, bit_t size,
+				      bit_t *start, bit_t count);
 
-extern inline void aal_find_zero_bits(void *vaddr,
-				      unsigned long long size,
-				      unsigned long long *start,
-				      unsigned long long *count);
+extern inline void aal_clear_bits(void *vaddr, bit_t start,
+				  bit_t end);
 
-extern inline void aal_find_set_bits(void *vaddr,
-				     unsigned long long size,
-				     unsigned long long *start,
-				     unsigned long long *count);
+extern inline void aal_set_bits(void *vaddr, bit_t start,
+				bit_t end);
+
 #endif

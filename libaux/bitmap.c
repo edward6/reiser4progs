@@ -34,10 +34,10 @@ void aux_bitmap_mark(
 
 	aux_bitmap_bound_check(bitmap, bit, return);
 	
-	if (aal_test_bit(bit, bitmap->map))
+	if (aal_test_bit(bitmap->map, bit))
 		return;
 	
-	aal_set_bit(bit, bitmap->map);
+	aal_set_bit(bitmap->map, bit);
 	bitmap->marked++;
 }
 
@@ -50,12 +50,12 @@ void aux_bitmap_clear(
 	uint64_t bit)		    /* bit to be cleared */
 {
 	aal_assert("umka-337", bitmap != NULL, return);
-
 	aux_bitmap_bound_check(bitmap, bit, return);
-	if (!aal_test_bit(bit, bitmap->map))
+	
+	if (!aal_test_bit(bitmap->map, bit))
 		return;
 	
-	aal_clear_bit(bit, bitmap->map);
+	aal_clear_bit(bitmap->map, bit);
 	bitmap->marked--;
 }
 
@@ -86,7 +86,7 @@ int aux_bitmap_test(
 	aal_assert("umka-338", bitmap != NULL, return 0);
 	
 	aux_bitmap_bound_check(bitmap, bit, return 0);
-	return aal_test_bit(bit, bitmap->map);
+	return aal_test_bit(bitmap->map, bit);
 }
 
 /* 
@@ -156,7 +156,8 @@ uint64_t aux_bitmap_find_cleared(
 	aal_assert("umka-339", bitmap != NULL, return INVAL_BLK);
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
 
-	bit = aal_find_next_zero_bit(bitmap->map, bitmap->total, start);
+	bit = aal_find_next_zero_bit(bitmap->map,
+				     bitmap->total, start);
 	
 	if (bit >= bitmap->total)
 		return INVAL_BLK;
@@ -203,26 +204,26 @@ int aux_bitmap_test_region_cleared(
 }
 
 /* Finds first cleared bit in bitmap, starting from passed "start" */
-errno_t aux_bitmap_find_region_cleared(
+uint64_t aux_bitmap_find_region_cleared(
 	aux_bitmap_t *bitmap,	    /* bitmap, clear bit will be searched in */
 	uint64_t *start,	    /* start of clean region will be stored */
-	uint64_t *end)
+	uint64_t count)             /* blocks requested */
 {
 	aal_assert("umka-1772", bitmap != NULL, return -1);
 
-	aal_find_zero_bits(bitmap->map, bitmap->total, start, end);
-	return 0;
+	return aal_find_zero_bits(bitmap->map, bitmap->total,
+				  start, count);
 }
 
-errno_t aux_bitmap_find_region_marked(
+uint64_t aux_bitmap_find_region_marked(
 	aux_bitmap_t *bitmap,	    /* bitmap, clear bit will be searched in */
 	uint64_t *start,	    /* start of clean region will be stored */
-	uint64_t *end)
+	uint64_t count)             /* blocks requested */
 {
-	aal_assert("umka-1772", bitmap != NULL, return -1);
+	aal_assert("umka-1773", bitmap != NULL, return -1);
 
-	aal_find_set_bits(bitmap->map, bitmap->total, start, end);
-	return 0;
+	return aal_find_set_bits(bitmap->map, bitmap->total,
+				 start, count);
 }
 
 /*

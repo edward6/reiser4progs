@@ -338,24 +338,27 @@ static errno_t alloc40_release_region(object_entity_t *entity,
 }
 
 /* Finds first free block in bitmap and returns it to caller */
-static errno_t alloc40_allocate_region(object_entity_t *entity,
-				       uint64_t *start,
-				       uint64_t *count)
+static uint64_t alloc40_allocate_region(object_entity_t *entity,
+					uint64_t *start,
+					uint64_t count)
 {
+	uint64_t found;
 	alloc40_t *alloc;
+	
 	alloc = (alloc40_t *)entity;
 	
 	aal_assert("umka-374", alloc != NULL, return -1);
 	aal_assert("umka-1771", start != NULL, return -1);
 	aal_assert("umka-375", alloc->bitmap != NULL, return -1);
 
-	if (aux_bitmap_find_region_cleared(alloc->bitmap, start, count))
-		return -1;
+	found = aux_bitmap_find_region_cleared(alloc->bitmap,
+					       start, count);
+	if (found > 0) {
+		aux_bitmap_mark_region(alloc->bitmap, *start,
+				       *start + found);
+	}
 
-	*count += *start;
-	
-	aux_bitmap_mark_region(alloc->bitmap, *start, *count);
-	return 0;
+	return found;
 }
 
 static errno_t alloc40_print(object_entity_t *entity,
@@ -503,6 +506,7 @@ static reiser4_plugin_t alloc40_plugin = {
 		.assign		       = alloc40_assign,
 		.sync		       = alloc40_sync,
 		.print                 = alloc40_print,
+		
 		.related_region        = alloc40_related_region,
 		.occupy_region	       = alloc40_occupy_region,
 		.allocate_region       = alloc40_allocate_region,

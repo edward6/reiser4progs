@@ -1038,9 +1038,9 @@ struct reiser4_alloc_ops {
 	errno_t (*occupy_region) (object_entity_t *, uint64_t,
 				  uint64_t);
 
-	/* Allocates one block */
-	errno_t (*allocate_region) (object_entity_t *, uint64_t *,
-				    uint64_t *);
+	/* Tries to allocate passed amount of blocks */
+	uint64_t (*allocate_region) (object_entity_t *, uint64_t *,
+				     uint64_t);
 	
 	/* Deallocates passed blocks */
 	errno_t (*release_region) (object_entity_t *, uint64_t,

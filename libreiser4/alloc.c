@@ -205,10 +205,10 @@ errno_t reiser4_alloc_release_region(
 }
 
 /* Makes request to plugin for allocating block */
-errno_t reiser4_alloc_allocate_region(
+count_t reiser4_alloc_allocate_region(
 	reiser4_alloc_t *alloc, /* allocator for working with */
 	blk_t *start,           /* start block */
-	count_t *count)	        /* number of blocks */
+	count_t count)          /* requested block count */
 {
 	aal_assert("umka-505", alloc != NULL, return -1);
 

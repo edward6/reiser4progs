@@ -1,6 +1,8 @@
 /*
   bitops.c -- bitops functions.
-  Some parts of this code stolen somewhere from linux.
+  
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  reiser4progs/COPYING.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -9,7 +11,7 @@
 
 #include <aal/aal.h>
 
-inline int aal_set_bit(unsigned long long nr, void *addr) {
+inline int aal_set_bit(void *addr, bit_t nr) {
 	unsigned char *p, mask;
 	int retval;
 
@@ -23,7 +25,7 @@ inline int aal_set_bit(unsigned long long nr, void *addr) {
 	return retval;
 }
 
-inline int aal_clear_bit(unsigned long long nr, void *addr) {
+inline int aal_clear_bit(void *addr, bit_t nr) {
 	unsigned char *p, mask;
 	int retval;
 
@@ -37,7 +39,7 @@ inline int aal_clear_bit(unsigned long long nr, void *addr) {
 	return retval;
 }
 
-inline int aal_test_bit(unsigned long long nr, const void *addr) {
+inline int aal_test_bit(void *addr, bit_t nr) {
 	unsigned char *p, mask;
   
 	p = (unsigned char *)addr;
@@ -46,42 +48,46 @@ inline int aal_test_bit(unsigned long long nr, const void *addr) {
 	return ((mask & *p) != 0);
 }
 
-inline unsigned long long aal_find_first_zero_bit(const void *vaddr, 
-						  unsigned long long size) 
+inline bit_t aal_find_first_zero_bit(void *vaddr, 
+				     bit_t size) 
 {
-	const unsigned char *p = vaddr, *addr = vaddr;
 	int res;
+	unsigned char *p = vaddr;
+	unsigned char *addr = vaddr;
 
 	if (!size)
 		return 0;
 
 	size = (size >> 3) + ((size & 0x7) > 0);
+	
 	while (*p++ == 255) {
 		if (--size == 0)
 			return (p - addr) << 3;
 	}
   
 	--p;
-	for (res = 0; res < 8; res++)
-		if (!aal_test_bit(res, p)) break;
+	for (res = 0; res < 8; res++) {
+		if (!aal_test_bit(p, res))
+			break;
+	}
     
 	return (p - addr) * 8 + res;
 }
 
-inline unsigned long long aal_find_next_zero_bit(const void *vaddr, 
-						 unsigned long long size,
-						 unsigned long long offset) 
+inline bit_t aal_find_next_zero_bit(void *vaddr, 
+				    bit_t size,
+				    bit_t offset) 
 {
 	int bit = offset & 7, res;
-	const unsigned char *addr = vaddr;
-	const unsigned char *p = addr + (offset >> 3);
+	unsigned char *addr = vaddr;
+	unsigned char *p = addr + (offset >> 3);
   
 	if (offset >= size)
 		return size;
   
 	if (bit) {
 		for (res = bit; res < 8; res++)
-			if (!aal_test_bit (res, p))
+			if (!aal_test_bit (p, res))
 				return (p - addr) * 8 + res;
 		p++;
 	}
@@ -90,11 +96,10 @@ inline unsigned long long aal_find_next_zero_bit(const void *vaddr,
 	return (p - addr) * 8 + res;
 }
 
-static inline int aal_find_next_zero_bit_in_byte(unsigned int byte,
-						 int start)
-{
+/* Finds next zero bit in byte */
+static inline int aal_find_nzb(unsigned char byte, int start) {
         int i = start;
-        unsigned int mask = 1 << start;
+        unsigned char mask = 1 << start;
 
         while ((byte & mask) != 0) {
                 mask <<= 1;
@@ -105,18 +110,18 @@ static inline int aal_find_next_zero_bit_in_byte(unsigned int byte,
         return i;
 }
 
-inline unsigned long long aal_find_next_set_bit(const void *vaddr, 
-						unsigned long long size, 
-						unsigned long long offset)
+inline bit_t aal_find_next_set_bit(void *vaddr, 
+				   bit_t size, 
+				   bit_t offset)
 {
-        const unsigned char *addr = vaddr;
+        unsigned char *addr = vaddr;
         unsigned int byte_nr = offset >> 3;
         unsigned int bit_nr = offset & 0x7;
         unsigned int max_byte_nr = (size - 1) >> 3;
 
         if (bit_nr != 0) {
 		unsigned int b = ~(unsigned int)addr[byte_nr];
-                unsigned int nzb = aal_find_next_zero_bit_in_byte(b, bit_nr);
+                unsigned int nzb = aal_find_nzb(b, bit_nr);
 
                 if (nzb < 8)
                         return (byte_nr << 3) + nzb;
@@ -127,7 +132,7 @@ inline unsigned long long aal_find_next_set_bit(const void *vaddr,
         while (byte_nr <= max_byte_nr) {
                 if (addr[byte_nr] != 0) {
 			unsigned int b = ~(unsigned int)addr[byte_nr];
-			unsigned int nzb = aal_find_next_zero_bit_in_byte(b, 0);
+			unsigned int nzb = aal_find_nzb(b, 0);
 			
                         return (byte_nr << 3) + nzb;
                 }
@@ -139,12 +144,12 @@ inline unsigned long long aal_find_next_set_bit(const void *vaddr,
 }
 
 inline void aal_clear_bits(void *vaddr, 
-			   unsigned long long start, 
-			   unsigned long long end)
+			   bit_t start, 
+			   bit_t end)
 {
-	char *addr = vaddr;
         int first_byte;
         int last_byte;
+	char *addr = vaddr;
 
         unsigned char first_byte_mask = 0xff;
         unsigned char last_byte_mask = 0xff;
@@ -169,8 +174,8 @@ inline void aal_clear_bits(void *vaddr,
 }
 
 inline void aal_set_bits(void *vaddr, 
-			 unsigned long long start, 
-			 unsigned long long end)
+			 bit_t start, 
+			 bit_t end)
 {
         int last_byte;
         int first_byte;
@@ -198,16 +203,43 @@ inline void aal_set_bits(void *vaddr,
         }
 }
 
-inline void aal_find_zero_bits(void *vaddr,
-			       unsigned long long size,
-			       unsigned long long *start,
-			       unsigned long long *count)
+typedef bit_t (*next_bit_func_t) (void *, bit_t, bit_t);
+
+static bit_t aal_find_bits(void *vaddr, bit_t size,
+			   next_bit_func_t func,
+			   bit_t *start, bit_t count)
 {
+	bit_t prev;
+	bit_t next;
+
+	prev = func(vaddr, size, 0);
+	next = func(vaddr, size, prev + 1);
+
+	count--;
+	*start = prev;
+
+	while (next - prev == 1 && count--) {
+		prev = next;
+		next = func(vaddr, size, next + 1);
+	}
+
+	return next - *start;
 }
 
-inline void aal_find_set_bits(void *vaddr,
-			      unsigned long long size,
-			      unsigned long long *start,
-			      unsigned long long *count)
+inline bit_t aal_find_zero_bits(void *vaddr,
+				bit_t size,
+				bit_t *start,
+				bit_t count)
 {
+	return aal_find_bits(vaddr, size, aal_find_next_zero_bit,
+			     start, count);
+}
+
+inline bit_t aal_find_set_bits(void *vaddr,
+			       bit_t size,
+			       bit_t *start,
+			       bit_t count)
+{
+	return aal_find_bits(vaddr, size, aal_find_next_set_bit,
+			     start, count);
 }

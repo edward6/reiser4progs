@@ -27,9 +27,9 @@
 #define REPAIR_OPT_VERBOSE	0x5
 #define REPAIR_OPT_READ_ONLY	0x6
 
-#define repair_set_option(bit, repair_data)	(aal_set_bit(bit, &(repair_data)->options))
-#define repair_test_option(bit, repair_data)	(aal_test_bit(bit, &(repair_data)->options))
-#define repair_clear_option(bit, repair_data)	(aal_clear_bit(bit, &(repair_data)->options))
+#define repair_set_option(bit, repair_data)	(aal_set_bit(&(repair_data)->options, bit))
+#define repair_test_option(bit, repair_data)	(aal_test_bit(&(repair_data)->options, bit))
+#define repair_clear_option(bit, repair_data)	(aal_clear_bit(&(repair_data)->options, bit))
 
 #define repair_auto(repair_data)	(repair_test_option(REPAIR_OPT_AUTO, repair_data))
 #define repair_force(repair_data)	(repair_test_option(REPAIR_OPT_FORCE, repair_data))
@@ -98,9 +98,9 @@ typedef struct repair_data {
 /* Temporary flags set during recovery. */
 #define REPAIR_BAD_PTR			0x1
 
-#define repair_set_flag(data, flag)	(aal_set_bit(flag, &(data)->flags))
-#define repair_test_flag(data, flag)	(aal_test_bit(flag, &(data)->flags))
-#define repair_clear_flag(data, flag)	(aal_clear_bit(flag, &(data)->flags))
+#define repair_set_flag(data, flag)	(aal_set_bit(&(data)->flags, flag))
+#define repair_test_flag(data, flag)	(aal_test_bit(&(data)->flags, flag))
+#define repair_clear_flag(data, flag)	(aal_clear_bit(&(data)->flags, flag))
 
 #endif
 

@@ -200,7 +200,7 @@ static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
     node40_t *node = (node40_t *)entity;
     
     for(i = 0; i < node40_items(entity) + 1; i++) {
-	if (aal_test_bit(i, &options)) {
+	if (aal_test_bit(&options, i)) {
 	    node40_set_offset_at(entity, i, INVALID_U16);
 	}
     }
