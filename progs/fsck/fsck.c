@@ -34,8 +34,7 @@ static void fsck_print_usage(char *name) {
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
-		"  -q, --quiet                   forces checking filesystem without\n"
-		"                                any questions.\n"
+		"  -q, --quiet                   supresses progress information.\n"
 		"  -f, --force                   makes fsck to use whole disk, not block\n"
 		"                                device or mounted partition.\n"
 		"  -c, --cache N                 number of nodes in tree buffer cache\n");
