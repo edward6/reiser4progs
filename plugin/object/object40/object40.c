@@ -87,6 +87,8 @@ static errno_t object40_read_lw(object40_t *object,
 	return -(item->plugin->item_ops.read(item, &hint, 0, 1) != 1);
 }
 
+#ifndef ENABLE_ALONE
+
 static errno_t object40_write_lw(object40_t *object,
 				 reiser4_sdext_lw_hint_t *lw_hint)
 {
@@ -109,6 +111,8 @@ static errno_t object40_write_lw(object40_t *object,
 
 	return -(item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
 }
+
+#endif
 
 static errno_t object40_read_unix(object40_t *object,
 				  reiser4_sdext_unix_hint_t *unix_hint)
@@ -133,6 +137,8 @@ static errno_t object40_read_unix(object40_t *object,
 	return -(item->plugin->item_ops.read(item, &hint, 0, 1) != 1);
 }
 
+#ifndef ENABLE_ALONE
+
 static errno_t object40_write_unix(object40_t *object,
 				   reiser4_sdext_unix_hint_t *unix_hint)
 {
@@ -156,6 +162,8 @@ static errno_t object40_write_unix(object40_t *object,
 	return -(item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
 }
 
+#endif
+
 /* Gets mode field from the stat data */
 uint16_t object40_get_mode(object40_t *object) {
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -165,6 +173,8 @@ uint16_t object40_get_mode(object40_t *object) {
 	
 	return lw_hint.mode;
 }
+
+#ifndef ENABLE_ALONE
 
 /* Updates mode field in statdata */
 errno_t object40_set_mode(object40_t *object,
@@ -180,6 +190,8 @@ errno_t object40_set_mode(object40_t *object,
 	return object40_write_lw(object, &lw_hint);
 }
 
+#endif
+
 /* Gets size field from the stat data */
 uint64_t object40_get_size(object40_t *object) {
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -189,6 +201,8 @@ uint64_t object40_get_size(object40_t *object) {
 	
 	return lw_hint.size;
 }
+
+#ifndef ENABLE_ALONE
 
 /* Updates size field in the stat data */
 errno_t object40_set_size(object40_t *object,
@@ -204,6 +218,8 @@ errno_t object40_set_size(object40_t *object,
 	return object40_write_lw(object, &lw_hint);
 }
 
+#endif
+
 /* Gets nlink field from the stat data */
 uint32_t object40_get_nlink(object40_t *object) {
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -213,6 +229,8 @@ uint32_t object40_get_nlink(object40_t *object) {
 	
 	return lw_hint.nlink;
 }
+
+#ifndef ENABLE_ALONE
 
 /* Updates nlink field in the stat data */
 errno_t object40_set_nlink(object40_t *object,
@@ -228,6 +246,8 @@ errno_t object40_set_nlink(object40_t *object,
 	return object40_write_lw(object, &lw_hint);
 }
 
+#endif
+
 /* Gets atime field from the stat data */
 uint32_t object40_get_atime(object40_t *object) {
 	reiser4_sdext_unix_hint_t unix_hint;
@@ -237,6 +257,8 @@ uint32_t object40_get_atime(object40_t *object) {
 	
 	return unix_hint.atime;
 }
+
+#ifndef ENABLE_ALONE
 
 /* Updates atime field in the stat data */
 errno_t object40_set_atime(object40_t *object,
@@ -252,6 +274,8 @@ errno_t object40_set_atime(object40_t *object,
 	return object40_write_unix(object, &unix_hint);
 }
 
+#endif
+
 /* Gets mtime field from the stat data */
 uint32_t object40_get_mtime(object40_t *object) {
 	reiser4_sdext_unix_hint_t unix_hint;
@@ -261,6 +285,8 @@ uint32_t object40_get_mtime(object40_t *object) {
 	
 	return unix_hint.mtime;
 }
+
+#ifndef ENABLE_ALONE
 
 /* Updates mtime field in the stat data */
 errno_t object40_set_mtime(object40_t *object,
@@ -275,6 +301,8 @@ errno_t object40_set_mtime(object40_t *object,
 
 	return object40_write_unix(object, &unix_hint);
 }
+
+#endif
 
 /* Gets symlink from the stat data */
 errno_t object40_get_sym(object40_t *object,
@@ -303,6 +331,8 @@ errno_t object40_get_sym(object40_t *object,
 	return 0;
 }
 
+#ifndef ENABLE_ALONE
+
 /* Updates symlink data */
 errno_t object40_set_sym(object40_t *object,
 			 char *data)
@@ -329,6 +359,8 @@ errno_t object40_set_sym(object40_t *object,
 
 	return 0;
 }
+
+#endif
 
 /*
   Initializes object handle by plugin, key, core operations and opaque pointer
@@ -391,6 +423,16 @@ errno_t object40_stat(object40_t *object) {
 	return 0;
 }
 
+/* Performs lookup and returns result to caller */
+lookup_t object40_lookup(object40_t *object, key_entity_t *key,
+			 uint8_t stop, place_t *place)
+{
+	return object->core->tree_ops.lookup(object->tree, key,
+					     stop, place);
+}
+
+#ifndef ENABLE_ALONE
+
 /* Changes nlink field in statdata by passed @value */
 errno_t object40_link(object40_t *object,
 		      uint32_t value)
@@ -403,14 +445,6 @@ errno_t object40_link(object40_t *object,
 	nlink = object40_get_nlink(object);
 
 	return object40_set_nlink(object, nlink + value);
-}
-
-/* Performs lookup and returns result to caller */
-lookup_t object40_lookup(object40_t *object, key_entity_t *key,
-			 uint8_t stop, place_t *place)
-{
-	return object->core->tree_ops.lookup(object->tree, key,
-					     stop, place);
 }
 
 /*
@@ -480,3 +514,5 @@ errno_t object40_remove(object40_t *object, key_entity_t *key,
 
 	return 0;
 }
+
+#endif

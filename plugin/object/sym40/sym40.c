@@ -396,7 +396,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    key_entity_t *key)
 {
 	errno_t res;
-	char path[4096];
+	char path[256];
 
 	sym40_t *sym;
 	reiser4_plugin_t *plugin;

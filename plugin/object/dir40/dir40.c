@@ -236,6 +236,9 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 				return LP_FAILED;
 			}
 
+#ifdef ENABLE_ALONE
+			return LP_PRESENT;
+#else
 			/* Handling possible hash collision */
 			if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0)
 				return LP_PRESENT;
@@ -266,6 +269,8 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 			}
 				
 			return LP_ABSENT;
+#endif
+			
 		}
 
 		if ((res = dir40_next(dir)) != LP_PRESENT)
