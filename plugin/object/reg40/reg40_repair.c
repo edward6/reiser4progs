@@ -98,8 +98,7 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
-	if ((res = obj40_realize(&reg->obj, callback_stat, callback_key,
-				 1 << KEY_FILEBODY_TYPE)))
+	if ((res = obj40_realize(&reg->obj, callback_stat, callback_key)))
 		goto error;
 	
 	/* Reseting file (setting offset to 0) */
@@ -257,17 +256,17 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 		/*  */
 		if (res) {
-			uint64_t sd;
+			uint64_t pid;
 			
-			sd = core->tree_ops.profile(info->tree, "statdata");
+			pid = core->tree_ops.profile(info->tree, "statdata");
 			
-			if (sd = INVAL_PID)
+			if (pid == INVAL_PID)
 				return -EINVAL;
 			
 			/* SD not found, create a new one. Special case and not
 			   used in reg40. Usualy objects w/out SD are skipped as
 			   they just fail to realize themselves. */
-			if ((res = reg40_create_stat(&reg->obj, sd)))
+			if ((res = reg40_create_stat(&reg->obj, pid)))
 				return res;
 		} else {
 			/* SD is found, fix the item key (~offset is wrong). */

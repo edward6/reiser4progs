@@ -13,7 +13,7 @@
 #include <repair/plugin.h>
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
-errno_t obj40_check_stat(obj40_t *obj, realize_func_t stat_func) {
+errno_t obj40_check_stat(obj40_t *obj, realize_stat_func_t stat_func) {
 	object_info_t *info;
 	errno_t res;
 
@@ -41,7 +41,7 @@ errno_t obj40_check_stat(obj40_t *obj, realize_func_t stat_func) {
 }
 
 /* The plugin tries to realize the object: detects the SD, body items */
-errno_t obj40_realize(obj40_t *obj, realize_func_t stat_func, 
+errno_t obj40_realize(obj40_t *obj, realize_stat_func_t stat_func, 
 		      realize_key_func_t key_func)
 {
 	object_info_t *info;

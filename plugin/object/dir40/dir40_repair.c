@@ -19,7 +19,7 @@ extern lookup_t dir40_lookup(object_entity_t *entity, char *name,
 			     entry_hint_t *entry);
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
-static errno_t callback_sd(place_t *sd) {
+static errno_t callback_stat(place_t *sd) {
 	sdext_lw_hint_t lw_hint;
 	uint64_t mask, extmask;
 	errno_t res;
@@ -72,8 +72,7 @@ object_entity_t *dir40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&dir->obj, &dir40_plug, core, info);
 	
-	if ((res = obj40_realize(&dir->obj, callback_sd, callback_key,
-				 1 << KEY_FILENAME_TYPE)))
+	if ((res = obj40_realize(&dir->obj, callback_stat, callback_key)))
 		goto error;
 	
 	/* Positioning to the first directory unit */
