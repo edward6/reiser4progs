@@ -160,6 +160,8 @@ static errno_t tree_lock(
 	aal_assert("umka-1512", place != NULL);
 
 	p = (reiser4_place_t *)place;
+
+	aal_assert("umka-2313", p->node->counter >= 0);
 	reiser4_node_lock(p->node);
 	
 	return 0;
@@ -174,7 +176,9 @@ static errno_t tree_unlock(
 	aal_assert("umka-1513", tree != NULL);
 	aal_assert("umka-1514", place != NULL);
 
-	p = (reiser4_place_t *)place;	
+	p = (reiser4_place_t *)place;
+	
+	aal_assert("umka-2312", p->node->counter > 0);
 	reiser4_node_unlock(p->node);
 
 	return 0;

@@ -148,7 +148,11 @@ static errno_t dir40_reset(object_entity_t *entity) {
 }
 
 /* Trying to guess hash in use by stat data extention */
-static reiser4_plugin_t *dir40_hash(dir40_t *dir, rid_t pid) {
+static reiser4_plugin_t *dir40_hash(object_entity_t *entity, rid_t pid) {
+	dir40_t *dir;
+	
+	dir = (dir40_t *)entity;
+	
 	if (pid == INVAL_PID) {
 		/* This function should inspect stat data extentions first. And
 		   only if they do not contain a convenient plugin extention
@@ -378,7 +382,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 		   core, info->tree);
 
 	/* Guessing hash plugin basing on stat data */
-	if (!(dir->hash = dir40_hash(dir, INVAL_PID))) {
+	if (!(dir->hash = dir40_hash((object_entity_t *)dir, INVAL_PID))) {
                 aal_exception_error("Can't guess hash plugin for directory "
 				    "%llx.", obj40_objectid(&dir->obj));
                 goto error_free_dir;
@@ -448,7 +452,9 @@ static object_entity_t *dir40_create(object_info_t *info,
 		   core, info->tree);
 
 	/* Getting hash plugin */
-	if (!(dir->hash = dir40_hash(dir, hint->body.dir.hash))) {
+	if (!(dir->hash = dir40_hash((object_entity_t *)dir,
+				     hint->body.dir.hash)))
+	{
 		aal_exception_error("Can't find hash plugin by its "
 				    "id 0x%x.", hint->body.dir.hash);
 		goto error_free_dir;
