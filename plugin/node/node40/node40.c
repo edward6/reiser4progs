@@ -235,19 +235,18 @@ static errno_t node40_get_key(object_entity_t *entity,
 			      pos_t *pos, key_entity_t *key) 
 {
 	void *body;
-	uint32_t items;
-	node40_t *node;
     
 	aal_assert("umka-821", key != NULL);
 	aal_assert("umka-939", pos != NULL);
 	aal_assert("vpf-009", entity != NULL);
 	aal_assert("umka-2022", node40_loaded(entity));
 
-	node = (node40_t *)entity;
-	items = nh40_get_num_items(node);
-	aal_assert("umka-810", pos->item < items);
+	aal_assert("umka-810", pos->item <
+		   nh40_get_num_items((node40_t *)entity));
 
-	body = &(node40_ih_at(node, pos->item)->key);
+	body = &(node40_ih_at((node40_t *)entity,
+			      pos->item)->key);
+	
 	aal_memcpy(key->body, body, sizeof(key40_t));
     
 	return 0;
@@ -257,14 +256,11 @@ static errno_t node40_get_key(object_entity_t *entity,
 static uint16_t node40_item_len(object_entity_t *entity, 
 				pos_t *pos)
 {
-	node40_t *node;
 	item40_header_t *ih;
     
 	aal_assert("vpf-037", entity != NULL);
 	aal_assert("umka-942", pos != NULL);
 	aal_assert("umka-2024", node40_loaded(entity));
-
-	node = (node40_t *)entity;
 
 	/*
 	  Item length is calculated as next item body offset minus current item
@@ -272,10 +268,12 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	  that. We use this way, because reiser4 kernel code does not set item's
 	  length correctly. And they are rather reserved for future using.
 	*/
-	ih = node40_ih_at(node, pos->item);
+	ih = node40_ih_at((node40_t *)entity, pos->item);
 
-	if (pos->item == (uint32_t)(node40_items(entity) - 1))
-		return nh40_get_free_space_start(node) - ih40_get_offset(ih);
+	if (pos->item == (uint32_t)(node40_items(entity) - 1)) {
+		return nh40_get_free_space_start((node40_t *)entity) -
+			ih40_get_offset(ih);
+	}
 
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
@@ -1034,7 +1032,6 @@ static int callback_comp_key(void *node, uint32_t pos,
 {
 	void *body;
 	key_entity_t key1;
-	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-566", node != NULL);
 	aal_assert("umka-567", key2 != NULL);
@@ -1046,11 +1043,11 @@ static int callback_comp_key(void *node, uint32_t pos,
 	  new key compare method which operates on memory pointer key body lies
 	  in.
 	*/
-	plugin = ((reiser4_plugin_t *)data);
 	body = &node40_ih_at((node40_t *)node, pos)->key;
 	aal_memcpy(key1.body, body, sizeof(key1.body));
 
-	return plugin_call(plugin->o.key_ops, compare, &key1, key2);
+	return plugin_call(((reiser4_plugin_t *)data)->o.key_ops,
+			   compare, &key1, key2);
 }
 
 /*
@@ -1061,18 +1058,14 @@ static lookup_t node40_lookup(object_entity_t *entity,
 			      key_entity_t *key,
 			      pos_t *pos)
 {
-	uint32_t items;
-	
 	aal_assert("umka-472", key != NULL);
 	aal_assert("umka-478", pos != NULL);
 	aal_assert("umka-470", entity != NULL);
 	aal_assert("umka-714", key->plugin != NULL);
 	aal_assert("umka-2046", node40_loaded(entity));
 
-	items = nh40_get_num_items((node40_t *)entity);
-		
-	switch (aux_bin_search(entity, items, key,
-			       callback_comp_key,
+	switch (aux_bin_search(entity, node40_items(entity),
+			       key, callback_comp_key,
 			       key->plugin, &pos->item))
 	{
 	case 1:

@@ -11,12 +11,7 @@
 
 #include <reiser4/reiser4.h>
 
-/* 
-   Opens filesystem on specified host device and journal device. Replays the
-   journal if "replay" flag is specified.
-
-   FIXME-GREEN->UMKA: Huh? what "replay" flag?
-*/
+/* Opens filesystem on specified device */
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 			      reiser4_profile_t *profile)
 {
