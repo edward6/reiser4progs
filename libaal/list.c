@@ -140,18 +140,18 @@ aal_list_t *aal_list_insert_sorted(aal_list_t *list, void *data,
 		return new_list;
 	}
   
-	cmp = comp_func((const void *)data, 
-			(const void *)tmp_list->data, user);
+	cmp = comp_func((const void *)tmp_list->data,
+			(const void *)data, user);
   
-	while ((tmp_list->next) && (cmp > 0)) {
+	while ((tmp_list->next) && (cmp < 0)) {
 		tmp_list = tmp_list->next;
-		cmp = comp_func((const void *)data, 
-				(const void *)tmp_list->data, user);
+		cmp = comp_func((const void *)tmp_list->data,
+				(const void *)data, user);
 	}
 
 	new_list = aal_list_alloc(data);
 
-	if ((!tmp_list->next) && (cmp > 0)) {
+	if ((!tmp_list->next) && (cmp < 0)) {
 		tmp_list->next = new_list;
 		new_list->prev = tmp_list;
 		return new_list;
@@ -255,11 +255,12 @@ aal_list_t *aal_list_find_custom(aal_list_t *list, void *needle,
 		return NULL;
     
 	while (list) {
-		if (comp_func((const void *)list->data, (const void *)needle, user))
+		if (comp_func((const void *)list->data, (const void *)needle, user) == 0)
 			return list;
 
 		list = list->next;
 	}
+	
 	return NULL;
 }
 

@@ -37,12 +37,12 @@ static int callback_match_id(
 	reiser4_plugin_t *plugin,	         /* current plugin in list */
 	walk_desc_t *desc)		         /* desction contained needed plugin type and id */
 {
-	return (plugin->h.sign.type == desc->type 
+	return !(plugin->h.sign.type == desc->type 
 		&& plugin->h.sign.id == desc->id);
 }
 
 static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
-	return (plugin->h.sign.type == desc->type 
+	return !(plugin->h.sign.type == desc->type 
 		&& !aal_strncmp(plugin->h.label, desc->name, aal_strlen(desc->name)));
 }
     
@@ -361,12 +361,6 @@ void libreiser4_factory_done(void) {
 	}
 	
 	plugins = NULL;
-}
-
-static int callback_match_coord(reiser4_plugin_t *plugin,
-				walk_desc_t *desc)
-{
-	return (plugin->h.sign.type == desc->type);
 }
 
 /* Finds plugins by its type and id */

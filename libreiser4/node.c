@@ -408,7 +408,7 @@ static inline int callback_comp_key(
 		return -1;
 	
 	reiser4_node_lkey(node, &lkey);
-	return reiser4_key_compare(&lkey, (reiser4_key_t *)key) == 0;
+	return reiser4_key_compare(&lkey, (reiser4_key_t *)key);
 }
 
 /* Finds child by its left delimiting key */
