@@ -190,9 +190,9 @@ static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
 	return repair_object_clear(object, OF_ATTACHED);
 }
 
-/* If the @object keeps the info about its parent, look for it and 
-   recover the link between them. Continue it untill an object with 
-   unknown or unreachable parent is found. */
+/* If the @object keeps the info about its parent, look for it and recover the
+   link between them. Continue it untill an object with unknown or unreachable
+   parent is found. */
 static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem, 
 						reiser4_object_t *object) 
 {
@@ -307,6 +307,8 @@ static errno_t repair_semantic_unlink(repair_semantic_t *sem,
 				      reiser4_object_t *parent,
 				      reiser4_object_t *object)
 {
+	entry_hint_t entry;
+	
 	aal_assert("vpf-1336", sem != NULL);
 	aal_assert("vpf-1337", object != NULL);
 
@@ -320,7 +322,8 @@ static errno_t repair_semantic_unlink(repair_semantic_t *sem,
 	}
 	
 	/* unlink from the parent. */
-	return reiser4_object_unlink(parent, object->name);
+	aal_strncpy(entry.name, object->name, sizeof(entry.name));
+	return reiser4_object_unlink(parent, &entry);
 }
 
 static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent, 

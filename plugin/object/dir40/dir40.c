@@ -739,6 +739,26 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	return obj40_link(&dir->obj, -1);
 }
 
+static errno_t dir40_build_entry(object_entity_t *entity, 
+				 entry_hint_t *entry)
+{
+	dir40_t *dir;
+	uint64_t locality;
+	uint64_t objectid;
+	
+	aal_assert("umka-2528", entry != NULL);
+	aal_assert("umka-2527", entity != NULL);
+
+	dir = (dir40_t *)entity;
+	
+	locality = obj40_locality(&dir->obj);
+	objectid = obj40_objectid(&dir->obj);
+	
+	return plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
+			 build_entry, &entry->offset, dir->hash,
+			 locality, objectid, entry->name);
+}
+
 /* Adding new entry */
 static errno_t dir40_add_entry(object_entity_t *entity, 
 			       entry_hint_t *entry)
@@ -775,9 +795,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	hint.specific = (void *)entry;
 
 	/* Building key of the new entry and hint's one */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,
-		  &entry->offset, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), entry->name);
+	dir40_build_entry(entity, entry);
 
 	/* Copying key to @hint */
 	plug_call(entry->offset.plug->o.key_ops, assign,
@@ -982,6 +1000,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.truncate	= dir40_truncate,
 	.add_entry	= dir40_add_entry,
 	.rem_entry	= dir40_rem_entry,
+	.build_entry    = dir40_build_entry,
 	.attach		= dir40_attach,
 	.detach		= dir40_detach,
 	.clobber	= dir40_clobber,

@@ -193,6 +193,14 @@ struct reiser4_object {
 
 typedef struct reiser4_object reiser4_object_t;
 
+/* Calback types used in object code. */
+typedef errno_t (*object_init_t) (reiser4_object_t *, 
+				  reiser4_object_t *);
+
+typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *, 
+						 entry_hint_t *, 
+						 void *);
+
 #ifndef ENABLE_STAND_ALONE
 enum reiser4_owner {
 	O_SKIPPED  = 1 << 0,

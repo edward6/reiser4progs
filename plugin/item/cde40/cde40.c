@@ -703,7 +703,8 @@ static int64_t cde40_insert(place_t *place,
 	for (i = 0; i < hint->count; i++, entry_hint++) {
 		void *objid;
 		uint64_t oid;
-		uint64_t off, ord;
+		uint64_t off;
+		uint64_t ord;
 
 		key_entity_t *hash;
 		key_entity_t *object;

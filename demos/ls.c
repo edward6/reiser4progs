@@ -73,83 +73,27 @@ int main(int argc, char *argv[]) {
 		goto error_free_root;
 	}
 
-#if 0
 	{
-		object_hint_t dir_hint;
-	
-		dir_hint.plug = fs->root->entity->plug;
-		dir_hint.statdata = ITEM_STATDATA40_ID;
-	
-		dir_hint.body.dir.hash = HASH_R5_ID;
-		dir_hint.body.dir.direntry = ITEM_CDE40_ID;
-	
-		{
-			int i;
-			char name[256];
-			reiser4_object_t *object;
+		int i, j;
+		char name[256];
+		reiser4_object_t *object;
 	    
-			for (i = 0; i < 5000; i++) {
-				aal_snprintf(name, 256, "dir%d", i);
+		for (i = 0; i < 1; i++) {
+			aal_snprintf(name, 256, "file name%d", i);
 
-				if (!(object = reiser4_object_create(fs->tree,
-				                                     dir, &dir_hint)))
+			if (!(object = reiser4_reg_create(fs, dir, name)))
+				goto error_free_dir;
+
+			for (j = 0; j < 2049; j++) {
+				if (reiser4_object_write(object, name,
+							 aal_strlen(name)) < 0)
 				{
-				       goto error_free_dir;
+					aal_exception_error("Can't write data "
+							    "to file %s.", name);
 				}
-
-				if (reiser4_object_link(dir, object, name)) {
-					reiser4_object_close(object);
-					goto error_free_dir;
-				}
-
-				reiser4_object_close(object);
 			}
-		}
-	}
-#endif
-
-	{
-		object_hint_t reg_hint;
-	
-		reg_hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE,
-						      OBJECT_REG40_ID);
-		
-		reg_hint.statdata = ITEM_STATDATA40_ID;
-
-		reg_hint.body.reg.tail = ITEM_TAIL40_ID;
-		reg_hint.body.reg.extent = ITEM_EXTENT40_ID;
-//		reg_hint.body.reg.policy = TAIL_ALWAYS_ID;
-//		reg_hint.body.reg.policy = TAIL_NEVER_ID;
-		reg_hint.body.reg.policy = TAIL_SMART_ID;
-
-		{
-			int i, j;
-			char name[256];
-			reiser4_object_t *object;
-	    
-			for (i = 0; i < 1; i++) {
-				aal_snprintf(name, 256, "file name%d", i);
-
-				if (!(object = reiser4_object_create(fs->tree, dir,
-								     &reg_hint)))
-				{
-					goto error_free_dir;
-				}
-
-				if (reiser4_object_link(dir, object, name))
-					continue;
-
-				for (j = 0; j < 2049; j++) {
-					if (reiser4_object_write(object, name,
-								 aal_strlen(name)) < 0)
-					{
-						aal_exception_error("Can't write data "
-								    "to file %s.", name);
-					}
-				}
 				
-				reiser4_object_close(object);
-			}
+			reiser4_object_close(object);
 		}
 	}
 	

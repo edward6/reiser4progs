@@ -11,9 +11,6 @@ reiser4progs/COPYING.
 
 * functions for adding/removing stat data extentions.
 
-* object key's odrering should be the same as in entry key, 
-  that points to, for large key policy.
-
 * fix unaligned access on Itanium2.
 
 * dumpfs utility.

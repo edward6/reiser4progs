@@ -9,13 +9,6 @@
 
 #include <reiser4/types.h>
 
-typedef errno_t (*object_init_t) (reiser4_object_t *, 
-				  reiser4_object_t *);
-
-typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *, 
-						 entry_hint_t *, 
-						 void *);
-
 extern void reiser4_object_close(reiser4_object_t *object);
 extern errno_t reiser4_object_stat(reiser4_object_t *object);
 extern uint64_t reiser4_object_size(reiser4_object_t *object);
@@ -52,7 +45,7 @@ extern reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 
 #ifndef ENABLE_STAND_ALONE
 extern reiser4_object_t *reiser4_object_create(reiser4_tree_t *tree,
-					       reiser4_object_t *parent,
+					       entry_hint_t *entry,
 					       object_hint_t *hint);
 
 extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
@@ -68,14 +61,14 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 extern errno_t reiser4_object_print(reiser4_object_t *object,
 				    aal_stream_t *stream);
 
-extern uint32_t reiser4_object_links(reiser4_object_t *object);
-
 extern errno_t reiser4_object_link(reiser4_object_t *object,
 				   reiser4_object_t *child,
-				   const char *name);
+				   entry_hint_t *entry);
 
 extern errno_t reiser4_object_unlink(reiser4_object_t *object,
-				     const char *name);
+				     entry_hint_t *entry);
+
+extern uint32_t reiser4_object_links(reiser4_object_t *object);
 
 extern int64_t reiser4_object_write(reiser4_object_t *object,
 				    void *buff, uint64_t n);

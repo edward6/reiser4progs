@@ -702,16 +702,17 @@ static reiser4_object_ops_t reg40_ops = {
 	.layout         = reg40_layout,
 	.metadata       = reg40_metadata,
 	.convert        = reg40_convert,
+	.form		= reg40_form,
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,
 	.links          = reg40_links,
 	.clobber        = reg40_clobber,
 	.recognize	= reg40_recognize,
 	.check_struct   = reg40_check_struct,
-
-	.form		= reg40_form,
+	
 	.add_entry      = NULL,
 	.rem_entry      = NULL,
+	.build_entry    = NULL,
 	.attach         = NULL,
 	.detach         = NULL,
 	
