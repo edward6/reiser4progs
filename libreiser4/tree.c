@@ -348,11 +348,11 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 				       reiser4_node_t *node,
 				       aal_direction_t where)
 {
+	pos_t pos;
 	int found = 0;
 	uint32_t orig;
 	uint32_t level;
 
-	pos_t pos;
 	reiser4_node_t *old;
 	reiser4_place_t place;
 
