@@ -869,25 +869,43 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	return res;
 }
 
+struct fprint_hint {
+	blk_t old;
+	void *data;
+};
+
+typedef struct fprint_hint fprint_hint_t;
+
 static errno_t fprint_process_blk(
 	object_entity_t *entity,   /* file to be inspected */
-	blk_t blk,                 /* next file block */
+	reiser4_place_t *place,    /* next file block */
 	void *data)                /* user-specified data */
 {
-	reiser4_fs_t *fs = (reiser4_fs_t *)data;
-	return debugfs_print_block(fs, blk);
+	fprint_hint_t *hint = (fprint_hint_t *)data;
+	reiser4_coord_t *coord = (reiser4_coord_t *)place;
+
+	if (coord->node->blk == hint->old)
+		return 0;
+
+	hint->old = coord->node->blk;
+	
+	return print_process_node(coord->node, NULL);
 }
 
 static errno_t debugfs_print_file(reiser4_fs_t *fs,
 				  char *filename)
 {
 	errno_t res = 0;
+	fprint_hint_t hint;
 	reiser4_file_t *file;
 	
 	if (!(file = reiser4_file_open(fs, filename)))
 		return -1;
 
-	if (reiser4_file_metadata(file, fprint_process_blk, fs)) {
+	hint.old = 0;
+	hint.data = fs;
+	
+	if (reiser4_file_metadata(file, fprint_process_blk, &hint)) {
 		aal_exception_error("Can't enumerate metadata "
 				    "blocks occupied by %s",
 				    file->name);

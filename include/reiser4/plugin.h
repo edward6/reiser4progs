@@ -274,6 +274,9 @@ typedef struct shift_hint shift_hint_t;
 typedef errno_t (*action_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*layout_func_t) (object_entity_t *, action_func_t, void *);
 
+typedef errno_t (*metadata_func_t) (object_entity_t *, reiser4_place_t *,
+				    void *data);
+
 /* 
    To create a new item or to insert into the item we need to perform the
    following operations:
@@ -586,7 +589,7 @@ struct reiser4_file_ops {
 	  Function for going throught all metadata blocks specfied file
 	  occupied.
 	*/
-	errno_t (*metadata) (object_entity_t *, action_func_t, void *);
+	errno_t (*metadata) (object_entity_t *, metadata_func_t, void *);
 	
 	/*
 	  Function for going throught the all data blocks specfied file

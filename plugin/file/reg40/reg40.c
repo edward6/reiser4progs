@@ -447,21 +447,18 @@ static errno_t reg40_layout(object_entity_t *entity,
 }
 
 static errno_t reg40_metadata(object_entity_t *entity,
-			      action_func_t action_func,
+			      metadata_func_t metadata_func,
 			      void *data)
 {
 	errno_t res;
 	uint64_t size;
-	blk_t blk, old = 0;
 
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1716", entity != NULL, return -1);
-	aal_assert("umka-1717", action_func != NULL, return -1);
+	aal_assert("umka-1717", metadata_func != NULL, return -1);
 
-	blk = reg->file.statdata.entity.con.blk;
-	
-	if ((res = action_func(entity, blk, data)))
+	if ((res = metadata_func(entity, &reg->file.statdata, data)))
 		return res;
 
 	if (!reg->body.node)
@@ -471,19 +468,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		return -1;
 	
 	while (1) {
-		blk = reg->body.entity.con.blk;
-
-		/*
-		  Checking if current block number is the same as the previous
-		  one.
-		*/
-		if (blk == old)
-			continue;
-		
-		if ((res = action_func(entity, blk, data)))
+		if ((res = metadata_func(entity, &reg->body, data)))
 			return res;
-
-		old = blk;
 
 		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
 			/*

@@ -430,31 +430,31 @@ errno_t reiser4_file_seek(
 
 errno_t reiser4_file_layout(
 	reiser4_file_t *file,       /* file we working with */
-	action_func_t action_func,  /* layout callback */
+	action_func_t func,         /* layout callback */
 	void *data)                 /* user-spaecified data */
 {
 	aal_assert("umka-1469", file != NULL, return -1);
-	aal_assert("umka-1470", action_func != NULL, return -1);
+	aal_assert("umka-1470", func != NULL, return -1);
 
 	if (!file->entity->plugin->file_ops.layout)
 		return 0;
 	
 	return file->entity->plugin->file_ops.layout(file->entity,
-						     action_func, data);
+						     func, data);
 }
 
 errno_t reiser4_file_metadata(
 	reiser4_file_t *file,       /* file we working with */
-	action_func_t action_func,  /* layout callback */
+	metadata_func_t func,       /* layout callback */
 	void *data)                 /* user-spaecified data */
 {
 	aal_assert("umka-1714", file != NULL, return -1);
-	aal_assert("umka-1715", action_func != NULL, return -1);
+	aal_assert("umka-1715", func != NULL, return -1);
 
 	if (!file->entity->plugin->file_ops.metadata)
 		return 0;
 	
 	return file->entity->plugin->file_ops.metadata(file->entity,
-						       action_func, data);
+						       func, data);
 }
 

@@ -541,23 +541,29 @@ static errno_t dir40_layout(object_entity_t *entity,
 }
 
 static errno_t dir40_metadata(object_entity_t *entity,
-			      action_func_t action_func,
+			      metadata_func_t metadata_func,
 			      void *data)
 {
-	blk_t blk;
 	errno_t res;
 
 	dir40_t *dir = (dir40_t *)entity;
 	
 	aal_assert("umka-1712", entity != NULL, return -1);
-	aal_assert("umka-1713", action_func != NULL, return -1);
+	aal_assert("umka-1713", metadata_func != NULL, return -1);
 	
-	blk = dir->file.statdata.entity.con.blk;
-
-	if ((res = action_func(entity, blk, data)))
+	if ((res = metadata_func(entity, &dir->file.statdata, data)))
 		return res;
 
-	return dir40_layout(entity, action_func, data);
+	while (1) {
+		if ((res = metadata_func(entity, &dir->body, data)))
+			return res;
+		
+		if (dir40_next(entity) != PRESENT)
+			break;
+			
+	}
+	
+	return 0;
 }
 
 #endif

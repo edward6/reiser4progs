@@ -41,7 +41,7 @@ extern errno_t reiser4_file_layout(reiser4_file_t *file,
 				   void *data);
 
 extern errno_t reiser4_file_metadata(reiser4_file_t *file,
-				     action_func_t func,
+				     metadata_func_t func,
 				     void *data);
 #endif
 
