@@ -55,7 +55,7 @@ void reiser4_joint_close(
 	aal_list_free(children);
 	joint->children = NULL;
     }
-    
+
     /* Uninitializing all fields */
     if (joint->left)
 	joint->left->right = NULL;
@@ -66,6 +66,8 @@ void reiser4_joint_close(
     joint->left = NULL;
     joint->right = NULL;
     joint->parent = NULL;
+    
+    reiser4_pos_init(&joint->pos, 0, 0);
     
     reiser4_node_close(joint->node);
     aal_free(joint);
@@ -125,13 +127,15 @@ static errno_t reiser4_joint_neighbour_key(
 	    return -1;
 	
     } else {
+	reiser4_joint_t *parent = joint->parent;
+	
 	/* Checking and proceccing the special case called "shaft" */
-	if (pos.item == reiser4_node_count(joint->parent->node) - 1) {
+	if (pos.item == reiser4_node_count(parent->node) - 1) {
 
-    	    if (!joint->parent->parent)
+    	    if (!parent->parent)
 		return -1;
 		
-	    return reiser4_joint_neighbour_key(joint->parent->parent, 
+	    return reiser4_joint_neighbour_key(parent->parent, 
 		direction, key);
 	}
     }
@@ -256,8 +260,12 @@ errno_t reiser4_joint_attach(
     
     right = joint->children->next ? 
 	joint->children->next->data : NULL;
-   
+    
     child->parent = joint;
+    
+    if (reiser4_joint_pos(child, &child->pos))
+	return -1;
+    
     child->tree = joint->tree;
     
     /* Setting up neighbours */
@@ -296,7 +304,6 @@ void reiser4_joint_detach(
     reiser4_joint_t *joint,	/* joint child will be detached from */
     reiser4_joint_t *child	/* pointer to child to be deleted */
 ) {
-    uint32_t count;
     aal_list_t *children;
     
     aal_assert("umka-562", joint != NULL, return);
@@ -307,9 +314,6 @@ void reiser4_joint_detach(
     
     children = aal_list_first(joint->children);
     
-    /* Deleteing passed child from children list of specified joint */
-    count = aal_list_length(children);
-	
     if (child->left)
         child->left->right = NULL;
     
@@ -318,12 +322,12 @@ void reiser4_joint_detach(
     
     child->left = NULL;
     child->right = NULL;
-    child->parent = NULL;
     child->tree = NULL;
-	
-    aal_list_remove(children, child);
-	
-    if (count == 1)
+    child->parent = NULL;
+    
+    reiser4_pos_init(&child->pos, 0, 0);
+
+    if (aal_list_remove(children, child))
         joint->children = NULL;
 }
 
@@ -440,8 +444,10 @@ errno_t reiser4_joint_insert(
 
     /* Updating ldkey in parent joint */
     if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
-	if (joint->parent) {
-	    if (reiser4_joint_update_key(joint->parent, &parent_pos, &hint->key))
+	reiser4_joint_t *parent = joint->parent;
+	
+	if (parent) {
+	    if (reiser4_joint_update_key(parent, &parent_pos, &hint->key))
 		return -1;
 	}
     }
@@ -488,21 +494,21 @@ errno_t reiser4_joint_remove(
     
     /* Updating left deleimiting key in all parent nodes */
     if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
-	if (reiser4_node_count(joint->node) > 0) {
-	    if (joint->parent) {
+	reiser4_joint_t *parent = joint->parent;
+	
+	if (parent) {
+	    if (reiser4_node_count(joint->node) > 0) {
 		reiser4_key_t lkey;
 
 		reiser4_node_lkey(joint->node, &lkey);
-		if (reiser4_joint_update_key(joint->parent, &parent_pos, &lkey))
+		if (reiser4_joint_update_key(parent, &parent_pos, &lkey))
 		    return -1;
-	    }
-	} else {
-	    if (joint->parent) {
+	    } else {
 		/* 
 		    Removing cached node from the tree in the case it has not items 
 		    anymore.
 		*/
-		if (reiser4_joint_remove(joint->parent, &parent_pos))
+		if (reiser4_joint_remove(parent, &parent_pos))
 		    return -1;
 	    }
 	}
@@ -555,7 +561,6 @@ errno_t reiser4_joint_move(
     }
     
     if (reiser4_node_count(src_joint->node) == 1 && src_joint->parent) {
-	    
         if (reiser4_joint_remove(src_joint->parent, &src_parent_pos))
 	   return -1;
     }
@@ -566,10 +571,11 @@ errno_t reiser4_joint_move(
     
     /* Updating ldkey in parent node for dst node */
     if (dst_pos->item == 0 && (dst_pos->unit == ~0ul || dst_pos->unit == 0)) {
-	    
+	reiser4_joint_t *parent = dst_joint->parent;
 	reiser4_node_lkey(dst_joint->node, &lkey);
-	if (dst_joint->parent) {
-	    if (reiser4_joint_update_key(dst_joint->parent, &dst_parent_pos, &lkey))
+	
+	if (parent) {
+	    if (reiser4_joint_update_key(parent, &dst_parent_pos, &lkey))
 		return -1;
 	}
     }
@@ -577,9 +583,12 @@ errno_t reiser4_joint_move(
     /* Updating ldkey in parent node for src node */
     if (reiser4_node_count(src_joint->node) > 0) {
 	if (src_pos->item == 0 && (src_pos->unit == ~0ul || src_pos->unit == 0)) {
-	    if (src_joint->parent) {
+
+	    reiser4_joint_t *parent = src_joint->parent;
+	    
+	    if (parent) {
 		reiser4_node_lkey(src_joint->node, &lkey);
-		if (reiser4_joint_update_key(src_joint->parent, &src_parent_pos, &lkey))
+		if (reiser4_joint_update_key(parent, &src_parent_pos, &lkey))
 		    return -1;
 	    }
 	}
@@ -590,5 +599,4 @@ errno_t reiser4_joint_move(
 }
 
 #endif
-
 

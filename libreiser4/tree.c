@@ -87,7 +87,7 @@ static void reiser4_tree_release(reiser4_tree_t *tree,
 #endif
 
 static reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
-    blk_t blk/*, uint8_t level*/) 
+    blk_t blk) 
 {
     aal_block_t *block;
     reiser4_node_t *node;
@@ -167,8 +167,6 @@ static errno_t reiser4_tree_build_key(
 /* Opens the tree (that is, the tree cache) on specified filesystem */
 reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
     blk_t tree_root;
-    blk_t tree_height;
-    
     reiser4_tree_t *tree;
 
     aal_assert("umka-737", fs != NULL, return NULL);
@@ -189,9 +187,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
     if ((tree_root = reiser4_format_get_root(fs->format)) == FAKE_BLK)
 	goto error_free_tree;
 	
-    tree_height = reiser4_format_get_height(fs->format);
-    
-    if (!(tree->root = reiser4_tree_load(tree, tree_root/*, tree_height*/)))
+    if (!(tree->root = reiser4_tree_load(tree, tree_root)))
 	goto error_free_tree;
     
     tree->root->tree = tree;
@@ -899,88 +895,6 @@ errno_t reiser4_tree_move(
     
     return 0;
 }
-
-/*static errno_t reiser4_tree_traverse_node(
-    blk_t blk,
-    reiser4_open_func_t open_func,
-    reiser4_handler_func_t handler_func,
-    reiser4_setup_func_t before_func,
-    reiser4_setup_func_t setup_func,
-    reiser4_setup_func_t update_func,
-    reiser4_setup_func_t after_func,
-    void *data
-) {
-    reiser4_pos_t pos;
-    errno_t result = 0;
-    reiser4_item_t item;
-    reiser4_node_t *node;
-    
-    aal_assert("umka-1024", open_func != NULL, return -1);
-
-    if ((result = open_func(&node, blk, data))) {
-	aal_exception_error("Node (%llu): cannot be openned.", blk);
-	return result;
-    }
-    
-    if ((handler_func && !(result = handler_func(node, data))) || !handler_func) {
-	    
-	if (before_func && (result = before_func(node, &item, data)))
-	    goto error_free_node;
-
-	pos.item = reiser4_node_count(node);
-	
-	do {
-	    pos.unit = ~0ul; 
-	    
-	    if ((result = reiser4_item_open(&item, node, &pos))) {
-
-		aal_exception_error("Node (%llu), item (%u): item cannot be openned.",
-		    aal_block_number(node->block), pos.item);
-		
-		goto error_after_func;
-	    }
-	    
-	    if (!reiser4_item_internal(&item))
-		continue;
-	    
-	    pos.unit = reiser4_item_count(&item) - 1;
-	    
-	    do {
-		blk_t target;
-		
-		if ((target = reiser4_item_get_nptr(&item)) != FAKE_BLK) {
-		    if (setup_func && (result = setup_func(node, &item, data)))
-			goto error_after_func;
-	
-		    if ((result = reiser4_node_traverse(target, open_func, 
-			handler_func, before_func, setup_func, 
-			update_func, after_func, data)) < 0)
-			return result;
-
-		    if (update_func && (result = update_func(node, &item, data)))
-			goto error_after_func;
-		}
-	    } while (pos.unit--);
-	} while (pos.item--);
-	
-	if (after_func && (result = after_func(node, &item, data)))
-	    goto error_free_node;
-    }
-
-    reiser4_node_close(node);
-    return result;
-
-error_update_func:
-    if (update_func)
-       result = update_func(node, &item, data);
-error_after_func:
-    if (after_func)
-	result = after_func(node, &item, data);
-error_free_node:
-    reiser4_node_close(node);
-error:
-    return result;
-}*/
 
 #endif
 

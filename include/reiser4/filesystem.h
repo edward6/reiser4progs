@@ -101,7 +101,12 @@ typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_coord reiser4_coord_t;
 typedef struct reiser4_joint reiser4_joint_t;
 
-/* The real personalization of on-disk node in libreiser4 internal tree */
+struct reiser4_coord {
+    reiser4_joint_t *joint;
+    reiser4_pos_t pos;
+};
+
+/* The personalization of on-disk node in libreiser4 internal tree */
 struct reiser4_joint {
 
     /* Reference to the tree */
@@ -110,8 +115,13 @@ struct reiser4_joint {
     /* Pointer to the node */
     reiser4_node_t *node;
 
-    /* References to parent, left and right neighbours */
+    /* Reference to parent node */
     reiser4_joint_t *parent;
+
+    /* The position */
+    reiser4_pos_t pos;
+
+    /* References to left and right neighbours */
     reiser4_joint_t *left;
     reiser4_joint_t *right;
 
@@ -120,11 +130,6 @@ struct reiser4_joint {
 
     /* User spacified data */
     void *data;
-};
-
-struct reiser4_coord {
-    reiser4_joint_t *joint;
-    reiser4_pos_t pos;
 };
 
 /* Reiser4 in-memory node structure */

@@ -44,7 +44,7 @@ extern aal_list_t *aal_list_insert_sorted(aal_list_t *list,
     
 extern aal_list_t *aal_list_prepend(aal_list_t *list, void *data);
 extern aal_list_t *aal_list_append(aal_list_t *list, void *data);
-extern void aal_list_remove(aal_list_t *list, void *data);
+extern int aal_list_remove(aal_list_t *list, void *data);
 extern aal_list_t *aal_list_find(aal_list_t *list, void *data);
 
 extern aal_list_t *aal_list_find_custom(aal_list_t *list, void *needle, 

@@ -202,11 +202,19 @@ aal_list_t *aal_list_append(aal_list_t *list, void *data) {
 	return new;
 }
 
-void aal_list_remove(aal_list_t *list, void *data) {
+/* 
+    Removes item from trhe passed @list and return true if it was the last item
+    in the list.
+*/
+int aal_list_remove(aal_list_t *list, void *data) {
+    int result = 0;
     aal_list_t *temp;
    
     temp = aal_list_find(list, data);
     if (temp) {
+	
+	result = (temp->next == NULL);
+	
 	if (temp->prev)
 	    temp->prev->next = temp->next;
 	    
@@ -215,6 +223,8 @@ void aal_list_remove(aal_list_t *list, void *data) {
 	    
 	aal_free(temp);
     }
+
+    return result;
 }
 
 aal_list_t *aal_list_find(aal_list_t *list, void *data) {
