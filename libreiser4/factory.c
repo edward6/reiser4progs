@@ -19,12 +19,12 @@
 #include <reiser4/reiser4.h>
 
 /* This list contain all known libreiser4 plugins */
-aal_list_t *plugins;
 static int last = 0;
+aal_list_t *plugins;
 
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 
-#define MAX_BUILTINS 100
+#define MAX_BUILTINS 50
 
 /* Builtin plugin representative struct */
 struct plugin_builtin {
@@ -112,37 +112,6 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 }
 #endif
 
-/* Initializes plugin (that is calls its init method) by its handle */
-reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle) {
-	reiser4_plugin_t *plugin;
-    
-	aal_assert("umka-259", handle != NULL);
-	aal_assert("umka-1429", handle->init != NULL);
-    
-	if (!(plugin = handle->init(&core))) {
-		aal_exception_error("Can't initialiaze plugin %s.",
-				    handle->name);
-		return NULL;
-	}
-    
-	return plugin;
-}
-
-/* Finalizes plugin by means of calling its fini method */
-errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
-	errno_t ret = 0;
-	reiser4_plugin_t *plugin;
-    
-	aal_assert("umka-1428", handle != NULL);
-    
-	if (handle->fini && (ret = handle->fini(&core))) {
-		aal_exception_warn("Plugin %s finished with error %d.",
-				   handle->name, ret);
-	}
-    
-	return ret;
-}
-
 #ifndef ENABLE_STAND_ALONE
 extern reiser4_abort_t abort_func;
 #endif
@@ -180,8 +149,6 @@ errno_t libreiser4_plugin_open(const char *name,
 	aal_assert("umka-260", name != NULL);
 	aal_assert("umka-1430", handle != NULL);
     
-	aal_memset(handle, 0, sizeof(*handle));
-	
 	/* Loading specified plugin filename */
 	if (!(handle->data = dlopen(name, RTLD_NOW))) {
 		aal_exception_error("Can't load plugin %s. %s.", 
@@ -246,7 +213,7 @@ errno_t libreiser4_factory_load(char *name) {
 	  Init plugin (in this point all plugin's global variables are
 	  initializing too).
 	*/
-	if (!(plugin = libreiser4_plugin_init(&handle)))
+	if (!(plugin = handle.init(&core)))
 		return -EINVAL;
 
 	/* Checking pluign for validness (the same ids, etc) */
@@ -283,8 +250,6 @@ errno_t libreiser4_plugin_open(plugin_init_t init,
 	aal_assert("umka-1431", init != NULL);
 	aal_assert("umka-1432", handle != NULL);
 
-	aal_memset(handle, 0, sizeof(*handle));
-
 #ifndef ENABLE_STAND_ALONE
 	aal_snprintf(handle->name, sizeof(handle->name),
 		     "built-in (%p)", init);
@@ -303,7 +268,9 @@ errno_t libreiser4_plugin_open(plugin_init_t init,
 /* Closes built-in plugins */
 void libreiser4_plugin_close(plugin_handle_t *handle) {
 	aal_assert("umka-1433", handle != NULL);
-	aal_memset(handle, 0, sizeof(*handle));
+
+	handle->init = 0;
+	handle->fini = 0;
 }
 
 /*
@@ -321,7 +288,7 @@ errno_t libreiser4_factory_load(plugin_init_t init,
 	if ((res = libreiser4_plugin_open(init, fini, &handle)))
 		return res;
 
-	if (!(plugin = libreiser4_plugin_init(&handle)))
+	if (!(plugin = handle.init(&core)))
 		return -EINVAL;
 
 	plugin->h.handle = handle;
@@ -353,8 +320,10 @@ errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 	aal_assert("umka-1496", plugin != NULL);
 	
 	handle = &plugin->h.handle;
-	libreiser4_plugin_fini(handle);
 
+	if (handle->fini)
+		handle->fini(&core);
+	
 	libreiser4_plugin_close(handle);
 	plugins = aal_list_remove(plugins, plugin);
 
@@ -387,8 +356,10 @@ errno_t libreiser4_factory_init(void) {
         while ((ent = readdir(dir))) {
                 char name[256];
                                                                                                 
-                if ((aal_strlen(ent->d_name) == 1 && aal_strncmp(ent->d_name, ".", 1)) ||
-                    (aal_strlen(ent->d_name) == 2 && aal_strncmp(ent->d_name, "..", 2)))
+                if ((aal_strlen(ent->d_name) == 1 &&
+		     aal_strncmp(ent->d_name, ".", 1)) ||
+                    (aal_strlen(ent->d_name) == 2 &&
+		     aal_strncmp(ent->d_name, "..", 2)))
                         continue;
                                                                                                 
                 if (aal_strlen(ent->d_name) <= 2)
@@ -399,7 +370,9 @@ errno_t libreiser4_factory_init(void) {
                         continue;
                                                                                                 
                 aal_memset(name, 0, sizeof(name));
-                aal_snprintf(name, sizeof(name), "%s/%s", PLUGIN_DIR, ent->d_name);
+
+                aal_snprintf(name, sizeof(name), "%s/%s",
+			     PLUGIN_DIR, ent->d_name);
                                                                                                 
                 /* Loading plugin*/
                 if (libreiser4_factory_load(name))
@@ -495,6 +468,25 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 	return NULL;
 }
 
+#ifndef ENABLE_STAND_ALONE
+/* Makes search for plugin by name */
+reiser4_plugin_t *libreiser4_factory_nfind(
+	const char *name)			 /* needed plugin name */
+{
+	aal_list_t *found;
+	walk_desc_t desc;
+
+	aal_assert("vpf-156", name != NULL);    
+       
+	desc.name = name;
+
+	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
+				     (comp_func_t)callback_match_name, NULL);
+
+	return found ? (reiser4_plugin_t *)found->data : NULL;
+}
+#endif
+
 #if !defined(ENABLE_STAND_ALONE) || defined(ENABLE_PLUGINS_CHECK)
 /* 
    Calls specified function for every plugin from plugin list. This functions is
@@ -520,26 +512,7 @@ errno_t libreiser4_factory_foreach(
 }
 #endif
 
-#ifndef ENABLE_STAND_ALONE
-/* Makes search for plugin by name */
-reiser4_plugin_t *libreiser4_factory_nfind(
-	const char *name)			 /* needed plugin name */
-{
-	aal_list_t *found;
-	walk_desc_t desc;
-
-	aal_assert("vpf-156", name != NULL);    
-       
-	desc.name = name;
-
-	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
-				     (comp_func_t)callback_match_name, NULL);
-
-	return found ? (reiser4_plugin_t *)found->data : NULL;
-}
-#endif
-
-#if defined(ENABLE_MONOLITHIC) || defined(ENABLE_STAND_ALONE)
+#if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 /* This function registers builtin plugin entry points */
 void register_builtin(plugin_init_t init, plugin_fini_t fini) {
 	if (last >= MAX_BUILTINS)

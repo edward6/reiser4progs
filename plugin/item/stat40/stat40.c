@@ -140,7 +140,6 @@ static int stat40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Prepares item area */
 static errno_t stat40_init(item_entity_t *item) {
 	aal_assert("umka-1670", item != NULL);
@@ -161,11 +160,11 @@ static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
     
 	aal_assert("vpf-074", hint != NULL);
 	
-	stat_hint = (statdata_hint_t *)hint->type_specific;
 	hint->len = sizeof(stat40_t);
+	stat_hint = (statdata_hint_t *)hint->type_specific;
     
 	if (!stat_hint->extmask) {
-		aal_exception_warn("Empty extention mask detected "
+		aal_exception_warn("Empty extention mask is detected "
 				   "while estimating stat data.");
 		return 0;
 	}

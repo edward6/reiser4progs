@@ -73,14 +73,13 @@ errno_t obj40_read_lw(item_entity_t *item,
 	create_hint_t hint;
 	statdata_hint_t stat;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* Preparing hint and mask */
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
-	/* Calling statdata open method if it exists */
+	/* Calling statdata open method if any */
 	if (plugin_call(item->plugin->item_ops, read,
 			item, &hint, 0, 1) != 1)
 	{
@@ -111,18 +110,20 @@ errno_t obj40_write_lw(item_entity_t *item,
 	create_hint_t hint;
 	statdata_hint_t stat;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 	
 	hint.type_specific = &stat;
 
-	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+	if (plugin_call(item->plugin->item_ops, read,
+			item, &hint, 0, 1) != 1)
+	{
 		return -EINVAL;
+	}
 
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
-	return plugin_call(item->plugin->item_ops, insert,
-			   item, &hint, 0);
+	return plugin_call(item->plugin->item_ops,
+			   insert, item, &hint, 0);
 }
 
 /* Reads unix stat data extention into passed @unix_hint */
@@ -132,7 +133,6 @@ errno_t obj40_read_unix(item_entity_t *item,
 	create_hint_t hint;
 	statdata_hint_t stat;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* Preparing hint and mask */
@@ -156,18 +156,20 @@ errno_t obj40_write_unix(item_entity_t *item,
 	create_hint_t hint;
 	statdata_hint_t stat;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 	
 	hint.type_specific = &stat;
 
-	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+	if (plugin_call(item->plugin->item_ops, read,
+			item, &hint, 0, 1) != 1)
+	{
 		return -EINVAL;
+	}
 
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
-	return plugin_call(item->plugin->item_ops, insert,
-			   item, &hint, 0);
+	return plugin_call(item->plugin->item_ops,
+			   insert, item, &hint, 0);
 }
 
 /* Gets mode field from the stat data */
@@ -189,6 +191,7 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 		return res;
 
 	lw_hint.mode = mode;
+	
 	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
@@ -201,6 +204,7 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 		return res;
 
 	lw_hint.size = size;
+	
 	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
@@ -223,6 +227,7 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 		return res;
 
 	lw_hint.nlink = nlink;
+	
 	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
@@ -245,6 +250,7 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 		return res;
 
 	unix_hint.atime = atime;
+	
 	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
 
@@ -267,6 +273,7 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 		return res;
 
 	unix_hint.mtime = mtime;
+	
 	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
 
@@ -289,6 +296,7 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 		return res;
 
 	unix_hint.bytes = bytes;
+	
 	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
 #endif
@@ -300,7 +308,6 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 	create_hint_t hint;
 	statdata_hint_t stat;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 	
 	hint.type_specific = &stat;
@@ -324,7 +331,6 @@ errno_t obj40_set_sym(obj40_t *obj, char *data) {
 	create_hint_t hint;
 	statdata_hint_t stat;
 
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 	
 	hint.type_specific = &stat;
@@ -417,18 +423,19 @@ errno_t obj40_stat(obj40_t *obj) {
 	  Requesting libreiser4 lookup in order to find stat data place in the
 	  tree.
 	*/
-	res = obj->core->tree_ops.lookup(obj->tree, key, LEAF_LEVEL,
+	res = obj->core->tree_ops.lookup(obj->tree, key,
+					 LEAF_LEVEL,
 					 &obj->statdata);
 
 	if (res != LP_PRESENT) {
 		aal_exception_error("Can't find stat data of object "
 				    "0x%llx.", objectid);
-		obj->statdata.node = NULL;
 		return -EINVAL;
 	}
 
 	/* Locking new node */
 	obj40_lock(obj, &obj->statdata);
+	
 	return 0;
 }
 
@@ -451,6 +458,7 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 		return -EINVAL;
 	
 	nlink = obj40_get_nlink(obj);
+	
 	return obj40_set_nlink(obj, nlink + value);
 }
 

@@ -50,7 +50,6 @@ static uint16_t sdext_unix_length(body_t *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t sdext_unix_init(body_t *body, 
 			       void *hint) 
 {
@@ -117,7 +116,8 @@ static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 	return 0;
 }
 
-extern errno_t sdext_unix_check(sdext_entity_t *sdext, uint8_t mode);
+extern errno_t sdext_unix_check(sdext_entity_t *sdext,
+				uint8_t mode);
 
 #endif
 

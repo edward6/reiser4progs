@@ -39,12 +39,6 @@ errno_t libreiser4_plugin_open(const char *name, plugin_handle_t *handle);
 #else
 extern errno_t libreiser4_factory_load(plugin_init_t init,
 				       plugin_fini_t fini);
-
-extern errno_t libreiser4_plugin_open(plugin_init_t init,
-				      plugin_fini_t fini,
-				      plugin_handle_t *handle);
-
-extern void libreiser4_plugin_close(plugin_handle_t *handle);
 #endif
 
 extern reiser4_plugin_t *libreiser4_factory_cfind(plugin_func_t plugin_func,

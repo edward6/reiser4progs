@@ -16,25 +16,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_lw_plugin;
 
-static errno_t sdext_lw_init(body_t *body, 
-			     void *hint) 
-{
-	sdext_lw_t *ext;
-	sdext_lw_hint_t *sdext_lw;
-    
-	aal_assert("umka-1186", body != NULL);
-	aal_assert("umka-1187", hint != NULL);
-	
-	ext = (sdext_lw_t *)body;
-	sdext_lw = (sdext_lw_hint_t *)hint;
-    
-	sdext_lw_set_mode(ext, sdext_lw->mode);
-	sdext_lw_set_nlink(ext, sdext_lw->nlink);
-	sdext_lw_set_size(ext, sdext_lw->size);
-
-	return 0;
-}
-
 static errno_t sdext_lw_open(body_t *body, 
 			     void *hint) 
 {
@@ -59,6 +40,28 @@ static uint16_t sdext_lw_length(body_t *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+
+static errno_t sdext_lw_init(body_t *body, 
+			     void *hint) 
+{
+	sdext_lw_hint_t *sdext_lw;
+    
+	aal_assert("umka-1186", body != NULL);
+	aal_assert("umka-1187", hint != NULL);
+	
+	sdext_lw = (sdext_lw_hint_t *)hint;
+    
+	sdext_lw_set_mode((sdext_lw_t *)body,
+			  sdext_lw->mode);
+	
+	sdext_lw_set_nlink((sdext_lw_t *)body,
+			   sdext_lw->nlink);
+	
+	sdext_lw_set_size((sdext_lw_t *)body,
+			  sdext_lw->size);
+
+	return 0;
+}
 
 static char sdext_lw_file_type(uint16_t mode) {
 	if (S_ISDIR(mode))
@@ -122,7 +125,8 @@ static errno_t sdext_lw_print(body_t *body, aal_stream_t *stream,
 	return 0;
 }
 
-extern errno_t sdext_lw_check(sdext_entity_t *sdext, uint8_t mode);
+extern errno_t sdext_lw_check(sdext_entity_t *sdext,
+			      uint8_t mode);
 
 #endif
 

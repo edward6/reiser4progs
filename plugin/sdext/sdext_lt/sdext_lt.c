@@ -38,18 +38,21 @@ static uint16_t sdext_lt_length(body_t *body) {
 static errno_t sdext_lt_init(body_t *body, 
 			     void *hint) 
 {
-	sdext_lt_t *ext;
 	sdext_lt_hint_t *sdext_lt;
     
 	aal_assert("umka-1475", body != NULL);
 	aal_assert("umka-1476", hint != NULL);
 	
-	ext = (sdext_lt_t *)body;
 	sdext_lt = (sdext_lt_hint_t *)hint;
     
-	sdext_lt_set_atime(ext, sdext_lt->atime);
-	sdext_lt_set_mtime(ext, sdext_lt->mtime);
-	sdext_lt_set_ctime(ext, sdext_lt->ctime);
+	sdext_lt_set_atime((sdext_lt_t *)body,
+			   sdext_lt->atime);
+	
+	sdext_lt_set_mtime((sdext_lt_t *)body,
+			   sdext_lt->mtime);
+	
+	sdext_lt_set_ctime((sdext_lt_t *)body,
+			   sdext_lt->ctime);
 
 	return 0;
 }

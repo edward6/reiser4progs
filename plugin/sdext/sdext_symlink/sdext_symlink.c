@@ -33,17 +33,15 @@ static uint16_t sdext_symlink_length(body_t *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t sdext_symlink_init(body_t *body, 
 				  void *hint)
 {
-	char *data;
-	
 	aal_assert("umka-1481", body != NULL);
 	aal_assert("umka-1482", hint != NULL);
 
-	data = (char *)hint;
-	aal_memcpy((char *)body, data, aal_strlen(data));
+	aal_memcpy((char *)body, (char *)hint,
+		   aal_strlen((char *)hint));
+	
 	return 0;
 }
 
@@ -54,13 +52,17 @@ static errno_t sdext_symlink_print(body_t *body,
 	aal_assert("umka-1485", body != NULL);
 	aal_assert("umka-1486", stream != NULL);
 
-	aal_stream_format(stream, "len:\t\t%u\n", aal_strlen((char *)body));
-	aal_stream_format(stream, "value:\t\t\"%s\"\n", (char *)body);
+	aal_stream_format(stream, "len:\t\t%u\n",
+			  aal_strlen((char *)body));
+	
+	aal_stream_format(stream, "value:\t\t\"%s\"\n",
+			  (char *)body);
 	
 	return 0;
 }
 
-extern errno_t sdext_symlink_check(sdext_entity_t *sdext, uint8_t mode);
+extern errno_t sdext_symlink_check(sdext_entity_t *sdext,
+				   uint8_t mode);
 
 #endif
 
