@@ -5,20 +5,6 @@
 
 #include <repair/librepair.h>
 
-/*
-errno_t callback_data_block_check(object_entity_t *format, blk_t blk, 
-    void *data) 
-{
-    blk_t passed_blk = *(blk_t *)data;
-
-    if (passed_blk >= plugin_call(return -1, format->plugin->format_ops, 
-	get_len, format))
-	return -1;
-
-    return passed_blk == blk ? 1 : 0;
-}
-*/
-
 errno_t callback_mark_format_block(object_entity_t *format, blk_t blk, 
     void *data) 
 {
@@ -32,7 +18,7 @@ errno_t callback_mark_format_block(object_entity_t *format, blk_t blk,
 static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile, 
     aal_device_t *host_device)
 {
-    reiser4_plugin_t *plugin;
+    reiser4_plugin_t *plugin = NULL;
    
     aal_assert("vpf-167", profile != NULL, return NULL);
     aal_assert("vpf-169", host_device != NULL, return NULL);
@@ -45,7 +31,7 @@ static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile,
 	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, 
 	    profile->format))) 
 	{
-	    aal_exception_fatal("Cannot find the format plugin (%d) specified "
+	    aal_exception_fatal("Cannot find the format plugin (0x%x) specified "
 		"in the profile.", profile->format);
 	    return NULL;	    
 	}
@@ -75,11 +61,10 @@ static errno_t repair_format_check(reiser4_format_t **format,
     reiser4_plugin_t *plugin = NULL;
 
     aal_assert("vpf-165", format != NULL, return -1);
-    aal_assert("vpf-166", *format == NULL || profile != NULL, 
-	return -1);
     aal_assert("vpf-171", host_device != NULL, return -1);
-    aal_assert("vpf-480", profile != NULL, return -1);
-    
+    aal_assert("vpf-166", *format != NULL || profile != NULL, 
+	return -1);
+   
     if (*format == NULL) {
 	/* Format was not opened. */
 	aal_exception_fatal("Cannot open the on-disk format on (%s)", 
@@ -88,7 +73,7 @@ static errno_t repair_format_check(reiser4_format_t **format,
 	if (!(plugin = __choose_format(profile, host_device)))
 	    return -1;
 
-	/* Create the format of the fake plugin number and fix it later. */
+	/* Create the format with fake tail plugin. */
 	if (!(*format = reiser4_format_create(host_device, 0, FAKE_PLUGIN, 
 	    plugin->h.sign.id))) 
 	{
@@ -114,8 +99,7 @@ reiser4_format_t *repair_format_open(reiser4_master_t *master,
     reiser4_profile_t *profile) 
 {
     reiser4_format_t *format = NULL;
-    aal_device_t *host_device;
-    int res;
+    aal_device_t *host_device;    
 
     aal_assert("vpf-398", master != NULL, return NULL);
     aal_assert("vpf-396", master->block != NULL, return NULL);
@@ -125,16 +109,16 @@ reiser4_format_t *repair_format_open(reiser4_master_t *master,
     
     /* Try to open the disk format. */
     format = reiser4_format_open(host_device, reiser4_master_format(master));
-    
+
     /* Check the opened disk format or rebuild it if needed. */
     if (repair_format_check(&format, host_device, profile))
-	goto error_free_format;
+	goto error_close_format;
 
-    aal_assert("vpf-478", format != NULL, res = -1; goto error);
-	
+    aal_assert("vpf-478", format != NULL, goto error);
+
     return format;
 
-error_free_format:
+error_close_format:
     if (format)
 	reiser4_format_close(format);
 error:

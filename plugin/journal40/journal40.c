@@ -13,11 +13,12 @@
 
 extern reiser4_plugin_t journal40_plugin;
 
-typedef errno_t (*journal40_handler_func_t)(object_entity_t *entity,  
-					    aal_block_t *block, 
-					    d64_t original);
+typedef errno_t (*journal40_handler_func_t)(object_entity_t *, aal_block_t *, 
+					    d64_t, void *);
 
-typedef errno_t (*journal40_blk_func_t)(object_entity_t *entity, blk_t);
+typedef errno_t (*journal40_txh_func_t)(object_entity_t *, blk_t, void *);
+typedef errno_t (*journal40_sec_func_t)(object_entity_t *, aal_block_t *, 
+	blk_t, int, void *);
 
 static reiser4_core_t *core = NULL;
 
@@ -31,7 +32,7 @@ static errno_t journal40_fcheck(journal40_footer_t *footer) {
 	return 0;
 }
 
-static aal_device_t *journal40_device(object_entity_t *entity) {
+aal_device_t *journal40_device(object_entity_t *entity) {
 	object_entity_t *format;
 	
 	aal_assert("vpf-455", entity != NULL, return NULL);
@@ -228,9 +229,8 @@ static errno_t journal40_sync(object_entity_t *entity) {
 	return 0;
 }
 
-static errno_t callback_journal_handler(object_entity_t *entity,
-					aal_block_t *block,
-					d64_t original) 
+static errno_t callback_journal_handler(object_entity_t *entity, aal_block_t *block,
+					d64_t original, void *data) 
 {
 	aal_block_relocate(block, original);
 	    
@@ -257,7 +257,7 @@ static errno_t journal40_update(journal40_t *journal) {
 	aal_assert("vpf-451", journal->footer != NULL, return -1);
 	aal_assert("vpf-452", journal->footer->data != NULL, return -1);
 	aal_assert("vpf-453", journal->header != NULL, return -1);
-	aal_assert("vpf-452", journal->header->data != NULL, return -1);
+	aal_assert("vpf-504", journal->header->data != NULL, return -1);
 	aal_assert("vpf-454", journal->format != NULL, return -1);
 
 	footer = (journal40_footer_t *)journal->footer->data;	
@@ -296,22 +296,133 @@ static errno_t journal40_update(journal40_t *journal) {
 	return 0;
 }
 
-errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handler_func,
-    journal40_blk_func_t layout_func, journal40_blk_func_t target_func) 
+errno_t journal40_traverse_trans(
+	journal40_t *journal,			/* journal object to be traversed */
+	aal_block_t *tx_block,			/* trans header of a transaction */
+	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
+	journal40_sec_func_t sec_func,		/* secondary (LR, wand, orig) blocks callback */
+	void *data) 
+{
+	uint64_t log_blk;
+	uint32_t i, capacity;
+	errno_t ret;
+	aal_device_t *device = NULL;
+	journal40_lr_entry_t *entry = NULL;
+	aal_block_t *log_block = NULL;
+	aal_block_t *wan_block = NULL;	
+	journal40_lr_header_t *lr_header = NULL;
+
+	log_blk = get_th_next_block((journal40_tx_header_t *)tx_block->data);
+	
+	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
+		aal_exception_error("Invalid device has been detected.");
+		return -1;
+	}
+	
+	while (log_blk != aal_block_number(tx_block)) {
+		/* FIXME-VITALY->UMKA: There should be a check that the log_blk 
+		 * is not one of the LGR's of the same transaction. return 1. */
+	    
+		if (sec_func && (ret = sec_func((object_entity_t *)journal, 
+						tx_block, log_blk, LGR, data)))
+			goto error;
+	    
+		if (!(log_block = aal_block_open(device, log_blk))) {
+			aal_exception_error("Can't read block %llu while "
+					    "traversing the journal. %s.", 
+					    log_blk, device->error);
+			ret = -1;
+			goto error;
+		}
+
+		lr_header = (journal40_lr_header_t *)log_block->data;
+		log_blk = get_lh_next_block(lr_header);
+
+		if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
+			aal_exception_error("Invalid log record header has been"
+					    " detected.");
+			ret = 1;
+			goto error;
+		}
+
+		entry = (journal40_lr_entry_t *)(lr_header + 1);
+		capacity = (device->blocksize - sizeof(journal40_lr_header_t)) /
+			sizeof(journal40_lr_entry_t);
+
+		for (i = 0; i < capacity; i++) {
+			if (get_le_wandered(entry) == 0)
+				break;
+
+			if (sec_func) {
+				if ((ret = sec_func((object_entity_t *)journal, tx_block, 
+						    get_le_wandered(entry), WAN, data)))
+					goto error_free_log_block;
+		    
+				if ((ret = sec_func((object_entity_t *)journal, tx_block,
+						    get_le_original(entry), ORG, data)))
+					goto error_free_log_block;
+			}
+	
+			if (handler_func) {
+				wan_block = aal_block_open(device, get_le_wandered(entry));
+		
+				if (!wan_block) {
+					aal_exception_error("Can't read block %llu while "
+							    "traversing the journal. %s.",
+							    get_le_wandered(entry), 
+							    device->error);
+					ret = -1;
+					goto error_free_log_block;
+				}
+
+				if ((ret = handler_func((object_entity_t *)journal, wan_block, 
+							get_le_original(entry), data)))
+					goto error_free_wandered;
+
+				aal_block_close(wan_block);
+			}
+
+			entry++;
+		}
+
+		aal_block_close(log_block);
+	}
+
+	return 0;
+ error_free_wandered:
+	aal_block_close(wan_block);
+    
+ error_free_log_block:
+	aal_block_close(log_block);
+ error:
+	return ret;	
+}
+
+/* Journal traverse method. Finds the oldest transaction first, then goes through each 
+ * transaction from the oldest to the earliest. 
+ * Returns: 
+ *	what a callback has returned if not 0; 
+ *	1 for bad journal structure; 
+ *	-1 - fatal error */
+errno_t journal40_traverse(
+	journal40_t *journal,			/* journal object to be traversed */
+	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
+	journal40_txh_func_t txh_func,		/* TxH block callback */
+	journal40_sec_func_t sec_func,		/* secondary (LR, wand, orig) blocks callback */
+	void *data)				/* opaque data for traverse callbacks. */ 
 {
 	int ret;
-	uint64_t prev_tx, log_blk;
-	journal40_tx_header_t *tx_header;
-	journal40_lr_header_t *lr_header;
+	uint64_t txh_blk;
 	uint64_t last_flushed_tx, last_commited_tx;
 
-	aal_device_t *device;
+	journal40_tx_header_t *tx_header = NULL;
+	aal_device_t *device = NULL;
+	aal_block_t *tx_block = NULL;
 	aal_list_t *tx_list = NULL;
-	aal_block_t *tx_block, *log_block, *wan_block;
     
 	aal_assert("vpf-448", journal != NULL, return -1);
-	aal_assert("vpf-448", journal->header != NULL, return -1);
-	aal_assert("vpf-448", journal->header->data != NULL, return -1);
+	aal_assert("vpf-487", journal->header != NULL, return -1);
+	aal_assert("vpf-488", journal->header->data != NULL, return -1);
 
 	last_commited_tx = 
 		get_jh_last_commited((journal40_header_t *)journal->header->data);
@@ -319,101 +430,47 @@ errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handle
 	last_flushed_tx = 
 		get_jf_last_flushed((journal40_footer_t *)journal->footer->data);
 
-	prev_tx = last_commited_tx;
+	txh_blk = last_commited_tx;
 
 	if ((device = journal40_device((object_entity_t *)journal)) == NULL) {
 		aal_exception_error("Invalid device has been detected.");
 		return -1;
 	}
 	
-	while (prev_tx != last_flushed_tx) {
-		if (layout_func && layout_func((object_entity_t *)journal, prev_tx))
+	while (txh_blk != last_flushed_tx) {
+		/* FIXME-VITALY->UMKA: There should be a check that the txh_blk 
+		 * is not one of the TxH's we have met already. return 1. */
+	    
+		if (txh_func && (ret = txh_func((object_entity_t *)journal, 
+						txh_blk, data)))
 			goto error_free_tx_list;
-
-		if (!(tx_block = aal_block_open(device, prev_tx))) {
+	    
+		if (!(tx_block = aal_block_open(device, txh_blk))) {
 			aal_exception_error("Can't read block %llu while traversing "
-					    "the journal. %s.", prev_tx, device->error);
+					    "the journal. %s.", txh_blk, device->error);
+			ret = -1;
 			goto error_free_tx_list;
 		}
 	
 		tx_header = (journal40_tx_header_t *)tx_block->data;
 
 		if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
-			aal_exception_error("Invalid transaction header has "
-					    "been detected.");
+			aal_exception_error("Invalid transaction header has been detected.");
+			ret = 1;
 			goto error_free_tx_list;
 		}
-		
-		prev_tx = get_th_prev_tx(tx_header);
+
+		txh_blk = get_th_prev_tx(tx_header);
 		tx_list = aal_list_append(tx_list, tx_block);
 	}
 
 	while (tx_list != NULL) {
 		/* The last valid unreplayed transction. */
-
 		tx_block = (aal_block_t *)aal_list_last(tx_list)->data;
-		log_blk = get_th_next_block((journal40_tx_header_t *)tx_block->data);
-
-		while (log_blk != aal_block_number(tx_block)) {
-			uint32_t i, capacity;
-			journal40_lr_entry_t *entry;
-
-			if (layout_func && layout_func((object_entity_t *)journal, log_blk))
-				goto error_free_tx_list;
-	    
-			if (!(log_block = aal_block_open(device, log_blk))) {
-				aal_exception_error("Can't read block %llu while traversing "
-						    "the journal. %s.", log_blk, device->error);
-				goto error_free_tx_list;
-			}
-
-			lr_header = (journal40_lr_header_t *)log_block->data;
-			log_blk = get_lh_next_block(lr_header);
-
-			if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {	
-				aal_exception_error("Invalid log record header has been detected.");
-				goto error_free_log_block;
-			}
-
-			entry = (journal40_lr_entry_t *)(lr_header + 1);
-			capacity = (device->blocksize - sizeof(journal40_lr_header_t)) / 
-				sizeof(journal40_lr_entry_t);
-
-			for (i = 0; i < capacity; i++) {
-				if (get_le_wandered(entry) == 0)
-					break;
-
-				if (layout_func) {
-					if (layout_func((object_entity_t *)journal, 
-							get_le_wandered(entry)))
-						goto error_free_log_block;
-		    
-					if (target_func((object_entity_t *)journal, 
-							get_le_original(entry)))
-						goto error_free_log_block;
-				}
 		
-				wan_block = aal_block_open(device, get_le_wandered(entry));
-		
-				if (!wan_block) {
-					aal_exception_error("Can't read block %llu while "
-							    "traversing the journal. %s.", 
-							    get_le_wandered(entry), 
-							    device->error);
-					goto error_free_log_block;
-				}
-
-				if (handler_func && handler_func((object_entity_t *)journal, 
-								 wan_block, 
-								 get_le_original(entry)))
-					goto error_free_wandered;
-
-				aal_block_close(wan_block);
-				entry++;
-			}
-
-			aal_block_close(log_block);
-		}
+		if ((ret = journal40_traverse_trans(journal, tx_block, handler_func, 
+						    sec_func, data)))
+		    goto error_free_tx_list;
 	
 		tx_list = aal_list_remove(tx_list, tx_block);
 		aal_block_close(tx_block);
@@ -421,12 +478,6 @@ errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handle
     
 	return 0;
 
- error_free_wandered:
-	aal_block_close(wan_block);
-    
- error_free_log_block:
-	aal_block_close(log_block);
-    
  error_free_tx_list:
 	
 	/* Close all from the list */;
@@ -437,7 +488,7 @@ errno_t journal40_traverse(journal40_t *journal, journal40_handler_func_t handle
 		aal_block_close(tx_block);
 	}
     
-	return -1;
+	return ret;
 }
 
 static errno_t journal40_replay(object_entity_t *entity) {
@@ -445,7 +496,8 @@ static errno_t journal40_replay(object_entity_t *entity) {
     
 	aal_assert("umka-412", entity != NULL, return -1);
 
-	if (journal40_traverse((journal40_t *)entity, callback_journal_handler, NULL, NULL))
+	if (journal40_traverse((journal40_t *)entity, callback_journal_handler, 
+			       NULL, NULL, NULL))
 		return -1;
 
 	/* FIXME: super block has been left not updated. */

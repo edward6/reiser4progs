@@ -13,7 +13,7 @@
    This macros is used for checking whether given block is inside of allowed
    range or not. It is used in all bitmap functions.
 */
-#define aux_bitmap_range_check(bitmap, bit, action)		        \
+#define aux_bitmap_bound_check(bitmap, bit, action)		        \
 do {								        \
     if (bit >= bitmap->total) {					        \
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL,	        \
@@ -32,7 +32,7 @@ void aux_bitmap_mark(
 {
 	aal_assert("umka-336", bitmap != NULL, return);
 
-	aux_bitmap_range_check(bitmap, bit, return);
+	aux_bitmap_bound_check(bitmap, bit, return);
 	if (aal_test_bit(bit, bitmap->map))
 		return;
 	
@@ -50,7 +50,7 @@ void aux_bitmap_clear(
 {
 	aal_assert("umka-337", bitmap != NULL, return);
 
-	aux_bitmap_range_check(bitmap, bit, return);
+	aux_bitmap_bound_check(bitmap, bit, return);
 	if (!aal_test_bit(bit, bitmap->map))
 		return;
 	
@@ -67,7 +67,7 @@ int aux_bitmap_test(
 	uint64_t bit)		    /* bit to be tested */
 {
 	aal_assert("umka-338", bitmap != NULL, return 0);
-	aux_bitmap_range_check(bitmap, bit, return 0);
+	aux_bitmap_bound_check(bitmap, bit, return 0);
 	return aal_test_bit(bit, bitmap->map);
 }
 
@@ -83,8 +83,8 @@ void aux_bitmap_mark_range(
 	aal_assert("vpf-472", bitmap != NULL, return);
 	aal_assert("vpf-458", start < end, return);
 
-	aux_bitmap_range_check(bitmap, start, return);
-	aux_bitmap_range_check(bitmap, end, return);
+	aux_bitmap_bound_check(bitmap, start, return);
+	aux_bitmap_bound_check(bitmap, end, return);
 	
 	aal_set_bits(bitmap->map, start, end);
 	bitmap->marked += (end - start);
@@ -102,8 +102,8 @@ void aux_bitmap_clear_range(
 	aal_assert("vpf-473", bitmap != NULL, return);
 	aal_assert("vpf-459", start < end, return);
 
-	aux_bitmap_range_check(bitmap, start, return);
-	aux_bitmap_range_check(bitmap, end, return);
+	aux_bitmap_bound_check(bitmap, start, return);
+	aux_bitmap_bound_check(bitmap, end, return);
 	
 	aal_clear_bits(bitmap->map, start, end);
 	
@@ -120,8 +120,8 @@ int aux_bitmap_test_range_cleared(
 	aal_assert("vpf-471", bitmap != NULL, return 0);
 	aal_assert("vpf-470", start < end, return 0);
 	
-	aux_bitmap_range_check(bitmap, start, return 0);
-	aux_bitmap_range_check(bitmap, end, return 0);
+	aux_bitmap_bound_check(bitmap, start, return 0);
+	aux_bitmap_bound_check(bitmap, end, return 0);
 	
 	next = aux_bitmap_find_marked(bitmap, start);
 
@@ -141,8 +141,8 @@ int aux_bitmap_test_range_marked(
 	aal_assert("vpf-474", bitmap != NULL, return 0);
 	aal_assert("vpf-475", start < end, return 0);
 	
-	aux_bitmap_range_check(bitmap, start, return 0);
-	aux_bitmap_range_check(bitmap, end, return 0);
+	aux_bitmap_bound_check(bitmap, start, return 0);
+	aux_bitmap_bound_check(bitmap, end, return 0);
 	
 	next = aux_bitmap_find_cleared(bitmap, start);
 
@@ -160,7 +160,7 @@ uint64_t aux_bitmap_find_cleared(
 	
 	aal_assert("umka-339", bitmap != NULL, return FAKE_BLK);
 	
-	aux_bitmap_range_check(bitmap, start, return FAKE_BLK);
+	aux_bitmap_bound_check(bitmap, start, return FAKE_BLK);
 
 	if ((bit = aal_find_next_zero_bit(bitmap->map, 
 					  bitmap->total, start)) >= bitmap->total)
@@ -178,7 +178,7 @@ uint64_t aux_bitmap_find_marked(
 	
 	aal_assert("vpf-457", bitmap != NULL, return FAKE_BLK);
 	
-	aux_bitmap_range_check(bitmap, start, return FAKE_BLK);
+	aux_bitmap_bound_check(bitmap, start, return FAKE_BLK);
 
 	if ((bit = aal_find_next_set_bit(bitmap->map, 
 					 bitmap->total, start)) >= bitmap->total)
@@ -203,8 +203,8 @@ static uint64_t aux_bitmap_calc(
 	
 	aal_assert("umka-340", bitmap != NULL, return FAKE_BLK);
 	
-	aux_bitmap_range_check(bitmap, start, return FAKE_BLK);
-	aux_bitmap_range_check(bitmap, end - 1, return FAKE_BLK);
+	aux_bitmap_bound_check(bitmap, start, return FAKE_BLK);
+	aux_bitmap_bound_check(bitmap, end - 1, return FAKE_BLK);
 	
 	for (i = start; i < end; i++)
 		bits += aux_bitmap_test(bitmap, i) ? flag : !flag;

@@ -865,6 +865,7 @@ struct reiser4_format_ops {
 	void (*oid_area)(object_entity_t *, void **, uint32_t *);
 
 	/* The set of methods for going through format blocks */
+	format_layout_func_t layout;
 	format_layout_func_t skipped_layout;
 	format_layout_func_t format_layout;
 	format_layout_func_t alloc_layout;

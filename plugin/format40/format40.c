@@ -164,6 +164,16 @@ static errno_t format40_format_layout(object_entity_t *entity,
 	return 0;
 }
 
+static errno_t format40_layout(object_entity_t *entity,
+			       format_action_func_t action_func,
+			       void *data)
+{
+    return (format40_skipped_layout(entity, action_func, data) ||
+	    format40_format_layout(entity, action_func, data) ||
+	    format40_journal_layout(entity, action_func, data) ||
+	    format40_alloc_layout(entity, action_func, data));
+}
+
 static errno_t format40_super_check(format40_super_t *super, 
 				    aal_device_t *device) 
 {
@@ -533,6 +543,7 @@ static reiser4_plugin_t format40_plugin = {
 		.get_height	= format40_get_height,
 		.get_stamp	= format40_get_stamp,
 
+		.layout		= format40_layout,
 		.skipped_layout	= format40_skipped_layout,
 		.format_layout	= format40_format_layout,
 		.alloc_layout	= format40_alloc_layout,

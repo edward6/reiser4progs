@@ -129,7 +129,7 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 
 		delta *= blocksize;
 		
-		aal_assert("vpf-439", offset < ((uint64_t)-1) - delta, return -1);
+		aal_assert("vpf-503", offset < ((uint64_t)-1) - delta, return -1);
 		
 		offset += delta;
 	}
