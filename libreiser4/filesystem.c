@@ -40,12 +40,8 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 		      tst_flag, fs->format->entity, 0))
 	{
 		reiser4_profile_override("key", "key_large");
-		reiser4_profile_override("cde", "cde_large");
-		reiser4_profile_override("node", "node_large");
 	} else {
 		reiser4_profile_override("key", "key_short");
-		reiser4_profile_override("cde", "cde_short");
-		reiser4_profile_override("node", "node_short");
 	}
 	
 	if (reiser4_format_valid(fs->format))
@@ -286,15 +282,9 @@ reiser4_fs_t *reiser4_fs_create(
 	if (reiser4_profile_value("key") == KEY_LARGE_ID) {
 		plug_call(fs->format->entity->plug->o.format_ops,
 			  set_flag, fs->format->entity, 0);
-
-		reiser4_profile_override("cde", "cde_large");
-		reiser4_profile_override("node", "node_large");
 	} else {
 		plug_call(fs->format->entity->plug->o.format_ops,
 			  clr_flag, fs->format->entity, 0);
-
-		reiser4_profile_override("cde", "cde_short");
-		reiser4_profile_override("node", "node_short");
 	}
 
 	/* Creates block allocator */

@@ -7,7 +7,6 @@
 
 /* Opens the node if it has correct mkid stamp. */
 reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
-	rid_t pid;
 	uint32_t blocksize;
 	reiser4_node_t *node;
 	
@@ -16,16 +15,11 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 	
 	blocksize = reiser4_master_blksize(fs->master);
 
-	if ((pid = reiser4_profile_value("node")) == INVAL_PID) {
-		aal_exception_error("Failed to find a valid plugin id "
-				    "for the node.");
+	if (!(node = reiser4_node_open(fs->device, blocksize, blk, 
+				       fs->tree->key.plug)))
+	{
 		return NULL;
 	}
-
-	
-	if (!(node = reiser4_node_open(fs->device, blocksize, blk, 
-				       fs->tree->key.plug, pid)))
-		return NULL;
 	
 	if (reiser4_format_get_stamp(fs->format) != 
 	    reiser4_node_get_mstamp(node))

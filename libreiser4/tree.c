@@ -163,7 +163,6 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 
 	/* Checking if node in the local cache of @parent */
 	if (!parent || !(node = reiser4_node_child(parent, blk))) {
-		rid_t pid;
 		uint32_t blksize;
 
 		if (tree->mpc_func && tree->mpc_func()) {
@@ -177,18 +176,12 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 				reiser4_node_unlock(parent);
 		}
 		
-#ifndef ENABLE_STAND_ALONE
-		pid = reiser4_profile_value("node");
-#else
-		pid = reiser4_format_node_pid(tree->fs->format);
-#endif
-
 		blksize = reiser4_master_blksize(tree->fs->master);
 
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
 		if (!(node = reiser4_node_open(tree->fs->device, blksize,
-					       blk, tree->key.plug, pid)))
+					       blk, tree->key.plug)))
 		{
 			aal_exception_error("Can't open node "
 					    "%llu.", blk);
@@ -1765,179 +1758,6 @@ errno_t reiser4_tree_remove(
 			return res;
 	}
 	
-	return 0;
-}
-
-/* Cuts some amount of items or units from the tree. Updates internal keys and
-   children list. */
-errno_t reiser4_tree_cut(
-	reiser4_tree_t *tree,       /* tree for working with */
-	reiser4_place_t *start,     /* place of the start */
-	reiser4_place_t *end)       /* place of the end */
-{
-	errno_t res;
-	reiser4_node_t *node;
-
-	aal_assert("umka-1018", tree != NULL);
-	aal_assert("umka-1725", start != NULL);
-	aal_assert("umka-1782", end != NULL);
-
-	node = reiser4_tree_neigh(tree, start->node, D_RIGHT);
-	
-	while (node && node != end->node)
-		node = reiser4_tree_neigh(tree, node, D_RIGHT);
-
-	if (node != end->node) {
-		aal_exception_error("End place is not reachable from the"
-				    "start one during cutting the tree.");
-		return -EINVAL;
-	}
-
-	if (start->node != end->node) {
-		pos_t pos = {MAX_UINT32, MAX_UINT32};
-
-		/* Removing start + 1 though end - 1 node from the tree */
-		node = reiser4_tree_neigh(tree, start->node, D_RIGHT);
-		
-		while (node && node != end->node) {
-			reiser4_node_t *right;
-
-			right = node->right;
-			
-			reiser4_node_mkclean(node);
-			reiser4_tree_detach(tree, node);
-			reiser4_tree_release(tree, node);
-			
-			node = right;
-		}
-
-		/* Removing items/units from the start node */
-		pos.item = reiser4_node_items(start->node);
-
-		if ((res = reiser4_node_cut(start->node, &start->pos, &pos)))
-			return res;
-
-		if (reiser4_place_leftmost(start) &&
-		    start->node->p.node)
-		{
-			reiser4_place_t p;
-			reiser4_key_t lkey;
-
-			if ((res = reiser4_node_lkey(start->node, &lkey)))
-				return res;
-			
-			reiser4_place_init(&p, start->node->p.node,
-					   &start->node->p.pos);
-
-			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
-				return res;
-		}
-		
-		if (reiser4_node_items(start->node) == 0) {
-			reiser4_node_mkclean(start->node);
-			reiser4_tree_detach(tree, start->node);
-			
-			reiser4_tree_release(tree, start->node);
-			start->node = NULL;
-		}
-		
-		/* Removing from the end node */
-		pos.item = 0;
-		
-		if ((res = reiser4_node_cut(end->node, &pos, &end->pos)))
-			return res;
-
-		if (reiser4_place_leftmost(end) &&
-		    end->node->p.node)
-		{
-			reiser4_place_t p;
-			reiser4_key_t lkey;
-
-			if ((res = reiser4_node_lkey(end->node, &lkey)))
-				return res;
-			
-			reiser4_place_init(&p, end->node->p.node,
-					   &end->node->p.pos);
-
-			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
-				return res;
-		}
-		
-		if (reiser4_node_items(end->node) == 0) {
-			reiser4_node_mkclean(end->node);
-			reiser4_tree_detach(tree, end->node);
-			
-			reiser4_tree_release(tree, end->node);
-			end->node = NULL;
-		}
-
-		/* Packing the tree at @start */
-		if (start->node) {
-			if ((tree->flags & TF_PACK) && tree->traps.pack) {
-				errno_t res;
-			
-				if ((res = tree->traps.pack(tree, start,
-							    tree->traps.data)))
-					return res;
-			}
-		}
-
-		/* Packing the tree at @end */
-		if (end->node) {
-			if ((tree->flags & TF_PACK) && tree->traps.pack) {
-				errno_t res;
-			
-				if ((res = tree->traps.pack(tree, end,
-							    tree->traps.data)))
-					return res;
-			}
-		}
-	} else {
-		if ((res = reiser4_node_cut(start->node, &start->pos, &end->pos)))
-			return res;
-
-		if (reiser4_place_leftmost(start) &&
-		    start->node->p.node)
-		{
-			reiser4_place_t p;
-			reiser4_key_t lkey;
-
-			if ((res = reiser4_node_lkey(start->node, &lkey)))
-				return res;
-			
-			reiser4_place_init(&p, start->node->p.node,
-					   &start->node->p.pos);
-
-			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
-				return res;
-		}
-		
-		if (reiser4_node_items(start->node) > 0) {
-			if (start->node) {
-				if ((tree->flags & TF_PACK) && tree->traps.pack) {
-					errno_t res;
-			
-					if ((res = tree->traps.pack(tree, start,
-								    tree->traps.data)))
-						return res;
-				}
-			}
-		} else {
-			reiser4_node_mkclean(start->node);
-			reiser4_tree_detach(tree, start->node);
-			
-			reiser4_tree_release(tree, start->node);
-			start->node = NULL;
-		}
-
-	}
-
-	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
-		if ((res = reiser4_tree_dryout(tree)))
-			return res;
-	}
-
 	return 0;
 }
 

@@ -3,6 +3,12 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fix bug with bitmaps on big filesystems
+
+* do we need tree_cut() related stuff?
+
+* fix unaligned access on ia64
+
 * tail conversion in reg40 plugin.
 
 * functions for adding/removing stat data extentions.

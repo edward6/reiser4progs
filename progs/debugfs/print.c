@@ -46,11 +46,9 @@ errno_t debugfs_print_block(
 	reiser4_fs_t *fs,           /* filesystem for work with */
 	blk_t blk)                  /* block number to be printed */
 {
-	rid_t pid;
 	errno_t res;
 	count_t blocks;
 	uint32_t blksize;
-	aal_device_t *device;
 	reiser4_node_t *node;
 
 	if (blk >= (blocks = reiser4_format_get_len(fs->format))) {
@@ -88,12 +86,10 @@ errno_t debugfs_print_block(
 		break;
 	}
 	
-	device = fs->device;
-	pid = reiser4_profile_value("node");
 	blksize = reiser4_master_blksize(fs->master);
 	
-	if (!(node = reiser4_node_open(device, blksize, blk,
-				       fs->tree->key.plug, pid)))
+	if (!(node = reiser4_node_open(fs->device, blksize, blk,
+				       fs->tree->key.plug)))
 	{
 		fprintf(stdout, "Block %llu is used, but it is not "
 			"a formatted one.\n", blk);

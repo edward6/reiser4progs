@@ -484,9 +484,7 @@ AC_OUTPUT([
     plugin/oid/Makefile
     plugin/oid/oid40/Makefile
     plugin/node/Makefile
-    plugin/node/node_common/Makefile
-    plugin/node/node_short/Makefile
-    plugin/node/node_large/Makefile
+    plugin/node/node40/Makefile
     plugin/key/Makefile
     plugin/key/key_common/Makefile
     plugin/key/key_short/Makefile
@@ -495,8 +493,7 @@ AC_OUTPUT([
     plugin/item/body40/Makefile
     plugin/item/nodeptr40/Makefile
     plugin/item/stat40/Makefile
-    plugin/item/cde_short/Makefile
-    plugin/item/cde_large/Makefile
+    plugin/item/cde40/Makefile
     plugin/item/tail40/Makefile
     plugin/item/extent40/Makefile
     plugin/object/Makefile

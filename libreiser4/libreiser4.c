@@ -15,15 +15,6 @@ static reiser4_plug_t *factory_ifind(
 	return reiser4_factory_ifind(type, id);
 }
 
-/* Handler for plugin lookup requests from all plugins */
-static reiser4_plug_t *factory_pfind(
-	rid_t type,		    /* needed type of plugin*/
-	rid_t id,                   /* needed id of plugin */
-	key_policy_t policy)        /* needed key policy */
-{
-	return reiser4_factory_pfind(type, id, policy);
-}
-
 #ifndef ENABLE_STAND_ALONE
 /* Handler for plugin finding requests from all plugins */
 static reiser4_plug_t *factory_nfind(char *name) {
@@ -256,8 +247,6 @@ reiser4_core_t core = {
 		/* Installing callback for making search for a plugin by its
 		   type and id. */
 		.ifind = factory_ifind,
-
-		.pfind = factory_pfind,
 
 #ifndef ENABLE_STAND_ALONE
 		/* Installing callback for making search for a plugin by its

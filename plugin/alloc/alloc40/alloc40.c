@@ -381,8 +381,9 @@ static errno_t callback_sync_bitmap(void *entity, blk_t start,
 		adler = aal_adler32(fake, size);
 		
 		aal_free(fake);
-	} else
+	} else {
 		adler = aal_adler32(current, chunk);
+	}
 	
 	aal_memcpy(block.data, &adler, sizeof(adler));
 
@@ -572,11 +573,11 @@ static errno_t alloc40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "[ ");
 
 	while (start < total) {
-		blocks = aux_bitmap_find_region(alloc->bitmap, &start,
-					       total - start, 1);
-
-		if (blocks == 0)
+		if (!(blocks = aux_bitmap_find_region(alloc->bitmap, &start,
+						      total - start, 1)))
+		{
 			break;
+		}
 
 		aal_stream_format(stream, "%llu-%llu ",
 				  start, start + blocks);

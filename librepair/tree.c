@@ -82,8 +82,8 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 
 		blksize = reiser4_master_blksize(tree->fs->master);
 		
-		child = reiser4_node_open(tree->fs->device, blksize, ptr.start,
-					  tree->key.plug, node->entity->plug->id.id);
+		child = reiser4_node_open(tree->fs->device, blksize,
+					  ptr.start, tree->key.plug);
 		
 		if (!child)
 			return -EINVAL;

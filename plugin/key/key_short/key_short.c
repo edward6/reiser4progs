@@ -18,6 +18,10 @@ static key_entity_t *key_short_maximal(void) {
 	return key_common_maximal(&key_short_plug);
 }
 
+static uint32_t key_short_bodysize(void) {
+	return KEY_SHORT_LAST_INDEX;
+}
+
 /* Assigns src key to dst one  */
 static errno_t key_short_assign(key_entity_t *dst,
 				key_entity_t *src)
@@ -412,6 +416,7 @@ static reiser4_key_ops_t key_short_ops = {
 	.clean             = key_short_clean,
 	.minimal           = key_short_minimal,
 	.maximal           = key_short_maximal,
+	.bodysize          = key_short_bodysize,
 	.compfull	   = key_short_compfull,
 	.compraw           = key_short_compraw,
 

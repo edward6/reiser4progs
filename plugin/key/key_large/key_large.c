@@ -18,6 +18,10 @@ static key_entity_t *key_large_maximal(void) {
 	return key_common_maximal(&key_large_plug);
 }
 
+static uint32_t key_lage_bodysize(void) {
+	return KEY_LARGE_LAST_INDEX;
+}
+
 /* Assigns src key to dst one  */
 static errno_t key_large_assign(key_entity_t *dst,
 				key_entity_t *src)
@@ -434,6 +438,7 @@ static reiser4_key_ops_t key_large_ops = {
 	.clean             = key_large_clean,
 	.minimal           = key_large_minimal,
 	.maximal           = key_large_maximal,
+	.bodysize          = key_lage_bodysize,
 	.compraw	   = key_large_compraw,
 	.compfull	   = key_large_compfull,
 

@@ -14,16 +14,13 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          journal/journal40/libjournal40-static.la \
 			          alloc/alloc40/liballoc40-static.la \
 			          oid/oid40/liboid40-static.la \
-			          node/node_common/libnode_common-static.la \
-			          node/node_short/libnode_short-static.la \
-			          node/node_large/libnode_large-static.la \
+			          node/node40/libnode40-static.la \
 			          key/key_common/libkey_common-static.la \
 			          key/key_short/libkey_short-static.la \
 			          key/key_large/libkey_large-static.la \
 			          item/body40/libbody40-static.la \
 			          item/nodeptr40/libnodeptr40-static.la \
-			          item/cde_short/libcde_short-static.la \
-			          item/cde_large/libcde_large-static.la \
+			          item/cde40/libcde40-static.la \
 			          item/tail40/libtail40-static.la \
 			          item/extent40/libextent40-static.la \
 			          item/stat40/libstat40-static.la \
@@ -48,16 +45,13 @@ endif
 if ENABLE_STAND_ALONE
 libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          oid/oid40/liboid40-alone.la \
-			          node/node_common/libnode_common-alone.la \
-			          node/node_short/libnode_short-alone.la \
-			          node/node_large/libnode_large-alone.la \
+			          node/node40/libnode40-alone.la \
 			          key/key_common/libkey_common-alone.la \
 			          key/key_short/libkey_short-alone.la \
 			          key/key_large/libkey_large-alone.la \
 			          item/body40/libbody40-alone.la \
 			          item/nodeptr40/libnodeptr40-alone.la \
-			          item/cde_short/libcde_short-alone.la \
-			          item/cde_large/libcde_large-alone.la \
+			          item/cde40/libcde40-alone.la \
 			          item/tail40/libtail40-alone.la \
 			          item/extent40/libextent40-alone.la \
 			          item/stat40/libstat40-alone.la \

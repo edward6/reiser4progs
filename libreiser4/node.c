@@ -136,15 +136,12 @@ errno_t reiser4_node_print(
 }
 #endif
 
-/* Opens node on specified device and block number.
-   FIXME-VITALY->UMKA: Each node keeps its own pid, in other words 
-   each node is independant on another and can be of another plugin 
-   in theory. Therefore, pid should not be given as a parameter. */
+/* Opens node on specified device and block number. */
 reiser4_node_t *reiser4_node_open(aal_device_t *device,
 				  uint32_t size, blk_t nr,
-				  reiser4_plug_t *kplg,
-				  rid_t pid)
+				  reiser4_plug_t *kplg)
 {
+	uint16_t pid;
 	aal_block_t *block;
         reiser4_node_t *node;
 	reiser4_plug_t *plug;
@@ -154,17 +151,19 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;
 
-	/* Finding the node plug by its id */
-	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find node plugin by its id "
-				    "0x%x.", pid);
-		goto error_free_node;
-	}
-
 	if (!(block = aal_block_load(device, size, nr))) {
 		aal_exception_error("Can't load node %llu. %s.",
 				    nr, device->error);
 		goto error_free_node;
+	}
+
+	pid = *((uint16_t *)block->data);
+
+	/* Finding the node plug by its id */
+	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
+		aal_exception_error("Can't find node plugin by its id "
+				    "0x%x.", pid);
+		goto error_free_block;
 	}
 
 	/* Requesting the plugin for initialization of the entity */
@@ -173,15 +172,14 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
 	{
 		aal_exception_error("Can't initialize node %llu.",
 				    block->nr);
-		goto error_free_node;
+		goto error_free_block;
 	}
 	
         reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
 	return node;
 	
- error_free_entity:
-	plug_call(node->entity->plug->o.node_ops,
-		  fini, node->entity);
+ error_free_block:
+	aal_block_free(block);
  error_free_node:
         aal_free(node);
         return NULL;
@@ -854,36 +852,6 @@ errno_t reiser4_node_insert(
 				    "node %llu.", node_blocknr(node));
 		return res;
 	}
-	
-	return 0;
-}
-
-/* Removes some amount of item/units */
-errno_t reiser4_node_cut(
-	reiser4_node_t *node,	         /* node item will be removed from */
-	pos_t *start,		         /* start item will be removed at */
-	pos_t *end)		         /* end item will be removed at */
-{
-	errno_t res;
-	
-	aal_assert("umka-1785", node != NULL);
-	aal_assert("umka-1786", start != NULL);
-	aal_assert("umka-1787", end != NULL);
-
-	/* Calling plugin's cut method */
-	if ((res = plug_call(node->entity->plug->o.node_ops,
-			     cut, node->entity, start, end)))
-	{
-		aal_exception_error("Can't cut items/units from the node "
-				    "%llu. Start: (%u, %u), end: (%u, %u).",
-				    node_blocknr(node), start->item,
-				    start->unit, end->item, end->unit);
-		return res;
-	}
-
-	/* Updating children */
-	if ((res = reiser4_node_uchild(node, start)))
-		return res;
 	
 	return 0;
 }

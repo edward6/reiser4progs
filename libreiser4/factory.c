@@ -47,7 +47,6 @@ struct walk_desc {
 	rid_t id;			    /* needed plugin id */
 	rid_t type;		            /* needed plugin type */
 	char *label;                        /* plugin label */
-	key_policy_t policy;                /* key policy */
 };
 
 typedef struct walk_desc walk_desc_t;
@@ -424,55 +423,6 @@ reiser4_plug_t *reiser4_factory_ifind(
 
 	found = aal_list_find_custom(plugins, (void *)&desc,
 				     callback_match_id, NULL);
-
-	return found ? (reiser4_plug_t *)found->data : NULL;
-}
-
-/* Helper callback function for matching plugin by type and id */
-static int callback_match_policy(reiser4_plug_t *plug,
-				 walk_desc_t *desc, void *data)
-{
-	if (plug->id.type == desc->type 
-	    && plug->id.id == desc->id)
-	{
-		if (plug->id.group == DIRENTRY_ITEM) {
-			if ((desc->policy == LARGE &&
-			     desc->id == ITEM_CDE_LARGE_ID) ||
-			    (desc->policy == SHORT &&
-			     desc->id == ITEM_CDE_SHORT_ID) ||
-			    (desc->policy == LARGE &&
-			     desc->id == NODE_LARGE_ID)     ||
-			    (desc->policy == SHORT &&
-			     desc->id == NODE_SHORT_ID))
-			{
-				return 0;
-			} else
-				return 1;
-		}
-
-		return 0;
-	}
-
-	return 1;
-}
-
-/* Finds plugins by its type and id */
-reiser4_plug_t *reiser4_factory_pfind(
-	rid_t type,			         /* requested plugin type */
-	rid_t id,				 /* requested plugin id */
-	key_policy_t policy)
-{
-	aal_list_t *found;
-	walk_desc_t desc;
-
-	aal_assert("umka-155", plugins != NULL);    
-	
-	desc.id = id;
-	desc.type = type;
-	desc.policy = policy;
-
-	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
-				     (comp_func_t)callback_match_policy, NULL);
 
 	return found ? (reiser4_plug_t *)found->data : NULL;
 }

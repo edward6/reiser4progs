@@ -239,7 +239,7 @@ uint64_t aux_bitmap_cleared(
 aux_bitmap_t *aux_bitmap_create(uint64_t len) {
 	aux_bitmap_t *bitmap;
 	    
-	if (!(bitmap = (aux_bitmap_t *)aal_calloc(sizeof(*bitmap), 0)))
+	if (!(bitmap = aal_calloc(sizeof(*bitmap), 0)))
 		return NULL;
 	
 	bitmap->marked = 0;

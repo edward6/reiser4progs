@@ -12,7 +12,7 @@ reiser4_profile_t default_profile = {
 		[0] = {
 			.name  = "node",
 			.type  = NODE_PLUG_TYPE,
-			.value = NODE_LARGE_ID
+			.value = NODE40_ID
 		},
 		[1] = {
 			.name  = "nodeptr",
@@ -37,7 +37,7 @@ reiser4_profile_t default_profile = {
 		[5] = {
 			.name  = "cde",
 			.type  = ITEM_PLUG_TYPE,
-			.value = ITEM_CDE_LARGE_ID
+			.value = ITEM_CDE40_ID
 		},
 		[6] = {
 			.name  = "acl",

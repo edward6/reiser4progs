@@ -18,9 +18,6 @@ extern reiser4_plug_t *reiser4_plug_init(plug_class_t *class);
 
 extern reiser4_plug_t *reiser4_factory_ifind(rid_t type, rid_t id);
 
-extern reiser4_plug_t *reiser4_factory_pfind(rid_t type, rid_t id,
-					     key_policy_t policy);
-
 extern reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func,
 					     void *data);
 
