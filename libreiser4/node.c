@@ -261,9 +261,12 @@ errno_t reiser4_node_pbc(
 	reiser4_place_t *place;
     
 	aal_assert("umka-869", node != NULL);
+	aal_assert("umka-1941", node->parent.node != NULL);
 
 	place = &node->parent;
-	aal_assert("umka-1941", place->node != NULL);
+	
+	if (reiser4_place_realize(place))
+		return -EINVAL;
 
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_ack(node, place))
