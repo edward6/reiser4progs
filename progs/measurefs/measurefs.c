@@ -493,11 +493,11 @@ static errno_t ffrag_process_blk(
 
 		if (labs(delta) > 1)
 			frag_hint->bad++;
+
+		frag_hint->total++;
 	}
 
-	frag_hint->total++;
 	frag_hint->last = blk;
-	
 	return 0;
 }
 
