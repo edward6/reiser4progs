@@ -56,8 +56,8 @@ static errno_t dir40_telldir(object_entity_t *entity,
 
 /* This fucntion checks if passed @place point to item related to @entity, that
    is belong to directory. */
-static int dir40_belongs(object_entity_t *entity,
-			 place_t *place)
+static int dir40_belong(object_entity_t *entity,
+			place_t *place)
 {
 	dir40_t *dir = (dir40_t *)entity;
 
@@ -161,7 +161,7 @@ static errno_t dir40_next(object_entity_t *entity, int adjust) {
 	res = dcore->tree_ops.next(dir->obj.info.tree,
 				   &dir->body, &place);
 
-	if (res || !dir40_belongs(entity, &place)) {
+	if (res || !dir40_belong(entity, &place)) {
 		/* Making offset pointed to nowhere in order to let know that
 		   directory is over. Of course this offset is not very useful,
 		   it may be only used to make seekdir() by it, but consequent
@@ -199,20 +199,30 @@ static errno_t dir40_next(object_entity_t *entity, int adjust) {
 
 /* Updates current body place */
 static errno_t dir40_update(object_entity_t *entity) {
+	lookup_t res;
+	
+#ifdef ENABLE_COLLISIONS
+	uint32_t units;
+	uint32_t adjust;
+#endif
+	
 	dir40_t *dir = (dir40_t *)entity;
 
 	aal_assert("umka-2385", entity != NULL);
 	
-	switch (obj40_lookup(&dir->obj, &dir->offset,
-			     LEAF_LEVEL, &dir->body)) {
-	case PRESENT: {
-#ifdef ENABLE_COLLISIONS
-		uint32_t units;
-		uint32_t adjust;
-#endif
-		
+	switch ((res = obj40_lookup(&dir->obj, &dir->offset,
+				    LEAF_LEVEL, &dir->body)))
+	{
+	case FAILED:
+		return -EINVAL;
+	default:
 		if (dir->body.pos.unit == MAX_UINT32)
 			dir->body.pos.unit = 0;
+
+		if (res == ABSENT) {
+			if (!dir40_belong(entity, &dir->body))
+				return -EINVAL;
+		}
 
 #ifdef ENABLE_COLLISIONS
 		/* Adjusting current position by key's adjust. This is needed
@@ -223,26 +233,27 @@ static errno_t dir40_update(object_entity_t *entity) {
 			units = plug_call(dir->body.plug->o.item_ops,
 					  units, &dir->body);
 			
+			if (dir->body.pos.unit >= units)
+				return -EINVAL;
+			
 			if (off > units - 1 - dir->body.pos.unit)
 				off = units - dir->body.pos.unit;
 
 			dir->body.pos.unit += off - 1;
 
 			if ((adjust -= off) > 0) {
-				dir40_next(entity, 0);
+				if (dir40_next(entity, 0))
+					return -EINVAL;
 			}
 		}
 #endif
 		return 0;
 	}
-	default:
-		return -EINVAL;
-	}
 }
 
 /* Reads one entry from passed @entity */
-errno_t dir40_readdir(object_entity_t *entity, 
-		      entry_hint_t *entry)
+static errno_t dir40_readdir(object_entity_t *entity, 
+			     entry_hint_t *entry)
 {
 	errno_t res;
 	dir40_t *dir;
@@ -313,6 +324,18 @@ errno_t dir40_readdir(object_entity_t *entity,
 	return 0;
 }
 
+static int dir40_compname(char *name1, char *name2) {
+	uint32_t len1 = aal_strlen(name1);
+	
+	if (len1 > aal_strlen(name2))
+		return 1;
+
+	if (len1 < aal_strlen(name2))
+		return -1;
+
+	return aal_strncmp(name1, name2, len1);
+}
+
 /* Makes lookup in directory by name. Fills passed buff by found entry fields
    (offset key, object key, etc). */
 lookup_t dir40_lookup(object_entity_t *entity,
@@ -347,13 +370,17 @@ lookup_t dir40_lookup(object_entity_t *entity,
 			aal_memcpy(&entry->place, &dir->body,
 				   sizeof(place_t));
 		}
+		
 		return res;
 	}
 
 #ifdef ENABLE_COLLISIONS
 	/* Key collisions handling. Sequentional search of the needed entry by
 	   its name. */
+	entry->offset.adjust = 0;
+		
 	while (1) {
+		int comp;
 		uint32_t units;
 		entry_hint_t temp;
 		
@@ -369,26 +396,19 @@ lookup_t dir40_lookup(object_entity_t *entity,
 				aal_memcpy(&entry->place, &temp.place,
 					   sizeof(temp.place));
 			}
-				
-			if (aal_strlen(name) > aal_strlen(temp.name))
-				goto next_entry;
 
-			if (aal_strlen(name) < aal_strlen(temp.name))
-				return ABSENT;
+			comp = dir40_compname(temp.name, name);
 			
-			if (aal_strlen(name) == aal_strlen(temp.name)) {
-				if (aal_strncmp(name, temp.name,
-						aal_strlen(name)) > 0)
-				{
-					goto next_entry;
-				}
+			if (comp < 0) {
+				dir->body.pos.unit++;
 
-				if (aal_strncmp(name, temp.name,
-						aal_strlen(name)) < 0)
-				{
-					return ABSENT;
+				if (entry) {
+					entry->offset.adjust++;
+					entry->place.pos.unit++;
 				}
-
+			} else if (comp > 0) {
+				return ABSENT;
+			} else {
 				if (entry) {
 					aal_memcpy(entry, &temp,
 						   sizeof(temp));
@@ -396,11 +416,6 @@ lookup_t dir40_lookup(object_entity_t *entity,
 				
 				return PRESENT;
 			}
-
-		next_entry:
-			dir->body.pos.unit++;
-			entry->place.pos.unit++;
-			continue;
 		} else {
 			if (dir40_next(entity, 0))
 				return ABSENT;
@@ -589,7 +604,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 			return -EINVAL;
 		default:
 			/* Checking if found item belongs this directory */
-			if (!dir40_belongs(entity, &place))
+			if (!dir40_belong(entity, &place))
 				return 0;
 
 			hint.count = 1;
@@ -775,12 +790,13 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	entry->len = hint.len;
 	size = dir40_size(entity) + 1;
 	bytes = obj40_get_bytes(&dir->obj) + hint.len;
-	
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
 /* Removing entry from the directory */
-static errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry) {
+static errno_t dir40_rem_entry(object_entity_t *entity,
+			       entry_hint_t *entry)
+{
 	errno_t res;
 	dir40_t *dir;
 	uint64_t size;
@@ -803,6 +819,13 @@ static errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry) {
 		/* Removing one unit from directory */
 		if ((res = obj40_remove(&dir->obj, &temp.place, &hint)))
 			return res;
+
+		if (!plug_call(dir->offset.plug->o.key_ops,
+			       compfull, &dir->offset, &temp.offset))
+		{
+			if (entry->offset.adjust < dir->adjust)
+				dir->adjust--;
+		}
 		
 		break;
 	default:
@@ -813,7 +836,6 @@ static errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry) {
 	entry->len = hint.len;
 	size = dir40_size(entity) - 1;
 	bytes = obj40_get_bytes(&dir->obj) - hint.len;
-	
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
