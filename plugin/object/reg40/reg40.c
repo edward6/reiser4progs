@@ -307,73 +307,53 @@ errno_t reg40_convert(object_entity_t *entity,
 		      int update) 
 {
 	reg40_t *reg;
-	uint64_t bytes;
-	uint64_t offset;
-	key_entity_t key;
+	place_t place;
+	uint64_t fsize;
 	conv_hint_t hint;
+	key_entity_t key;
 
 	aal_assert("umka-2467", plug != NULL);
 	aal_assert("umka-2466", entity != NULL);
 
 	reg = (reg40_t *)entity;
 
-	/* Initializing key to be used for walking though the all file items. */
 	plug_call(reg->offset.plug->o.key_ops, assign, &key, &reg->offset);
 
 	plug_call(reg->offset.plug->o.key_ops, set_offset, &key, 0);
 	
-	for (bytes = 0, offset = 0; offset < fsize;) {
-		place_t place;
-		uint32_t size;
-
-		/* Looking for item to be converted */
-		switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				     FIND_EXACT, &place))
-		{
-		case PRESENT:
-			break;
-		default:
-			return -EIO;
-		}
-		
-		/* Calculating right item size */
-		size = plug_call(place.plug->o.item_ops, size, &place);
-
-		if (offset + size > fsize)
-			size = fsize - offset;
-
-		/* Prepare convert hint. */
-		hint.bytes = 0;
-		hint.size = size;
-		hint.plug = plug;
-		hint.place = &place;
-
-		/* Converting item. */
-		if (rcore->tree_ops.conv(reg->obj.info.tree, &hint)) {
-			aal_exception_error("Can't convert item "
-					    "%s at %llu:%u to %s.",
-					    place.plug->label,
-					    place.block->nr,
-					    place.pos.item,
-					    plug->label);
-			return -EIO;
-		}
-
-		/* Updating bytes */
-		bytes += hint.bytes;
-
-		/* Updating file offset */
-		offset = size + plug_call(key.plug->o.key_ops, 
-					  get_offset, &key);
-
-		plug_call(key.plug->o.key_ops, set_offset, &key, offset);
+	/* Looking for item to be converted */
+	switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
+			     FIND_EXACT, &place))
+	{
+	case PRESENT:
+		break;
+	default:
+		return -EIO;
 	}
+	
+	/* Prepare convert hint. */
+	hint.bytes = 0;
+	hint.size = fsize;
+	hint.plug = plug;
+	hint.place = &place;
 
-	/* Updating bytes field stat data using collected @bytes. */
+	/* Converting item. */
+	if (rcore->tree_ops.conv(reg->obj.info.tree,
+				 &hint))
+	{
+		aal_exception_error("Can't convert item "
+				    "%s at %llu:%u to %s.",
+				    place.plug->label,
+				    place.block->nr,
+				    place.pos.item,
+				    plug->label);
+		return -EIO;
+	}
+	
 	return update ? obj40_touch(&reg->obj, fsize, bytes, time(NULL)) : 0;
 }
 
-errno_t reg40_convert_body(object_entity_t *entity, uint64_t new_size) {
+static errno_t reg40_check_body(object_entity_t *entity, uint64_t new_size) {
 	reg40_t *reg;
 	uint64_t fsize;
 	reiser4_plug_t *bplug;
@@ -544,7 +524,7 @@ static int32_t reg40_write(object_entity_t *entity,
 	size = reg40_size(entity);
 	offset = reg40_offset(entity);
 
-	if (reg40_convert_body(entity, size + n)) {
+	if (reg40_check_body(entity, size + n)) {
 		aal_exception_error("Can't perform tail "
 				    "conversion.");
 		return -EINVAL;
@@ -590,7 +570,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		return 0;
 
 	/* Converting body. */
-	if (reg40_convert_body(entity, n)) {
+	if (reg40_check_body(entity, n)) {
 		aal_exception_error("Can't perform tail "
 				    "conversion.");
 		return -EINVAL;
