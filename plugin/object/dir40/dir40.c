@@ -148,6 +148,18 @@ static int32_t dir40_read(object_entity_t *entity,
 	/* Loop until requested data is read */
 	for (read = 0; read < n; entry += chunk) {
 		
+		/* Getting next direntry item to be current */
+		if (dir->body.pos.unit >= units) {
+			
+			if (dir40_next(dir) != LP_PRESENT)
+				break;
+
+			item = &dir->body.item;
+
+			units = plugin_call(item->plugin->item_ops,
+					    units, item);
+		}
+		
 		if ((chunk = n - read) == 0)
 			return read;
 
@@ -163,18 +175,6 @@ static int32_t dir40_read(object_entity_t *entity,
 		read += chunk;
 		dir->offset += chunk;
 		dir->body.pos.unit += chunk;
-
-		/* Getting next direntry item to be current */
-		if (dir->body.pos.unit >= units) {
-			
-			if (dir40_next(dir) != LP_PRESENT)
-				break;
-
-			item = &dir->body.item;
-
-			units = plugin_call(item->plugin->item_ops,
-					    units, item);
-		}
 	}
     
 	return read;

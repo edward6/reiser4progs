@@ -56,7 +56,7 @@ bool_t progs_mpressure_detect(void) {
 
 	fclose(file);
 	
-	return diff > 4096;
+	return diff > 4096 && swapped > 0;
 #else
 	return 0;
 #endif

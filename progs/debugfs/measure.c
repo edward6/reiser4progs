@@ -588,7 +588,7 @@ errno_t debugfs_data_frag(reiser4_fs_t *fs,
 	frag_hint.tree = fs->tree;
 	frag_hint.gauge = gauge;
 	frag_hint.flags = flags;
-	frag_hint.level = reiser4_node_get_level(fs->tree->root);
+	frag_hint.level = reiser4_tree_height(fs->tree);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	

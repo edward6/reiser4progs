@@ -52,6 +52,7 @@ reiser4_node_t *reiser4_node_create(
 	return NULL;
 }
 
+/* Prints passed @node to the specified @stream */
 errno_t reiser4_node_print(
 	reiser4_node_t *node,   /* node to be printed */
 	aal_stream_t *stream)   /* stream for printing in */
@@ -149,54 +150,8 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
 
-	if (reiser4_node_locked(node))
-		return 0;
-	
-	/* Closing children */
-	if (node->children) {
-		aal_list_t *walk;
-
-		for (walk = node->children; walk; ) {
-			aal_list_t *next = aal_list_next(walk);
-			reiser4_node_close((reiser4_node_t *)walk->data);
-			walk = next;
-		}
-
-		aal_list_free(node->children);
-		node->children = NULL;
-	}
-
-#ifndef ENABLE_ALONE
-	if (reiser4_node_isdirty(node) && reiser4_node_items(node)) {
-		if (reiser4_node_sync(node)) {
-			aal_exception_error("Can't write node %llu.",
-					    node->blk);
-			return -1;
-		}
-	}
-#endif
-	
-	/* Detaching node from the tree */
-	if (node->parent) {
-		reiser4_node_disconnect(node->parent, node);
-		node->parent = NULL;
-	}
-	
-	/* Uninitializing all fields */
-	if (node->left)
-		node->left->right = NULL;
-    
-	if (node->right)
-		node->right->left = NULL;
-    
-	node->left = NULL;
-	node->right = NULL;
-
-	/*
-	  Calling close method from the node plugin in odrder to finilize the
-	  entity.
-	*/
-	plugin_call(node->entity->plugin->node_ops, close, node->entity);
+	plugin_call(node->entity->plugin->node_ops,
+		    close, node->entity);
 	    
 	aal_free(node);
 
@@ -315,6 +270,7 @@ static int callback_comp_node(
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
+/* Addes passed @child into children list of @node */
 errno_t reiser4_node_connect(reiser4_node_t *node,
 			     reiser4_node_t *child)
 {
@@ -507,6 +463,7 @@ errno_t reiser4_node_copy(reiser4_node_t *dst_node, rpos_t *dst_pos,
 	return res;
 }
 
+/* Expands passed @node at @pos by @len */
 errno_t reiser4_node_expand(reiser4_node_t *node, rpos_t *pos,
 			    uint32_t len, uint32_t count)
 {
@@ -524,6 +481,7 @@ errno_t reiser4_node_expand(reiser4_node_t *node, rpos_t *pos,
 	return res;
 }
 
+/* Shrinks passed @node at @pos by @len */
 errno_t reiser4_node_shrink(reiser4_node_t *node, rpos_t *pos,
 			    uint32_t len, uint32_t count)
 {
@@ -670,8 +628,9 @@ errno_t reiser4_node_sync(
 				sync, node->entity))
 		{
 			aal_device_t *device = node->device;
-			aal_exception_error("Can't synchronize node %llu to "
-					    "device. %s.", node->blk, device->error);
+			aal_exception_error("Can't synchronize node "
+					    "%llu to device. %s.",
+					    node->blk, device->error);
 
 			return -1;
 		}
@@ -920,117 +879,7 @@ errno_t reiser4_node_traverse(
 	traverse_setup_func_t update_func,   /* callback to be called after a child */
 	traverse_edge_func_t after_func)     /* callback to be called at the end */
 {
-	errno_t result = 0;
-	reiser4_place_t place;
-	rpos_t *pos = &place.pos;
-	reiser4_node_t *child = NULL;
- 
-	aal_assert("vpf-418", hint != NULL);
-	aal_assert("vpf-390", node != NULL);
-
-	reiser4_node_lock(node);
-
-	if ((before_func && (result = before_func(node, hint->data))))
-		goto error;
-
-	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
-		pos->unit = ~0ul; 
-
-		/*
-		  If there is a suspicion in a corruption, it must be checked in
-		  before_func. All items must be opened here.
-		*/
-		if (reiser4_place_open(&place, node, pos)) {
-			aal_exception_error("Can't open item by place. Node "
-					    "%llu, item %u.", node->blk, pos->item);
-			goto error_after_func;
-		}
-
-		if (!reiser4_item_branch(&place))
-			continue;
-
-		/* The loop though the units of the current item */
-		for (pos->unit = 0; pos->unit < reiser4_item_units(&place); pos->unit++) {
-			reiser4_ptr_hint_t ptr;
-
-			/* Fetching node ptr */
-			plugin_call(place.item.plugin->item_ops, read,
-				    &place.item, &ptr, pos->unit, 1);
-		
-			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {
-				child = NULL;
-					
-				if (setup_func && (result = setup_func(&place, hint->data)))
-					goto error_after_func;
-
-				if (!open_func)
-					goto update;
-
-				if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
-						
-					if ((result = open_func(&child, ptr.ptr, hint->data)))
-						goto error_update_func;
-
-					if (!child)
-						goto update;
-
-					child->data = (void *)1;
-					
-					if (reiser4_node_connect(node, child))
-						goto error_free_child;
-				}
-
-				if ((result = reiser4_node_traverse(child, hint, 
-								    open_func,
-								    before_func, 
-								    setup_func,
-								    update_func,
-								    after_func)) < 0)
-					goto error_free_child;
-
-				if (hint->cleanup && !child->children &&
-				    !reiser4_node_locked(child) && child->data)
-				{
-					reiser4_node_close(child);
-				}
-				
-			update:
-				if (update_func && (result = update_func(&place, hint->data)))
-					goto error_after_func;
-			}
-				
-			/* We want to get out of the internal loop or the item was removed. */
-			if (pos->unit == ~0ul)
-				break;
-		}
-	}
-	
-	if (after_func && (result = after_func(node, hint->data)))
-		goto error;
-
-	reiser4_node_unlock(node);
-	return result;
-
- error_free_child:
-	
-	if (hint->cleanup && !child->children &&
-	    !reiser4_node_locked(child) && child->data)
-	{
-		reiser4_node_close(child);
-	}
-
- error_update_func:
-	
-	if (update_func)
-		result = update_func(&place, hint->data);
-    
- error_after_func:
-	if (after_func)
-		result = after_func(node, hint->data);
-    
- error:
-	reiser4_node_unlock(node);
-	return result;
+	return -1;
 }
 
 void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {

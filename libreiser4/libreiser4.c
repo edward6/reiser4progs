@@ -172,6 +172,9 @@ static errno_t tree_next(
 			return -1;
 	} else {
 		reiser4_tree_right((reiser4_tree_t *)tree, curr->node);
+
+		if (!curr->node->right)
+			return -1;
 		
 		reiser4_place_assign((reiser4_place_t *)next,
 				     curr->node->right, 0, ~0ul);
@@ -209,6 +212,9 @@ static errno_t tree_prev(
 		
 		reiser4_tree_left((reiser4_tree_t *)tree, curr->node);
 
+		if (!curr->node->left)
+			return -1;
+		
 		items = reiser4_node_items(curr->node->left);
 			
 		reiser4_place_assign((reiser4_place_t *)prev,

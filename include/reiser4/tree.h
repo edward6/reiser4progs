@@ -18,6 +18,8 @@ extern void reiser4_tree_close(reiser4_tree_t *tree);
 
 extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
 
+extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
+
 extern errno_t reiser4_tree_connect(reiser4_tree_t *tree,
 				     reiser4_node_t *parent,
 				     reiser4_node_t *node);
@@ -92,6 +94,17 @@ extern errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 				 reiser4_place_t *place,
 				 reiser4_key_t *key);
 
+#endif
+
+extern errno_t reiser4_tree_dig(reiser4_tree_t *tree,
+				reiser4_node_t *node,
+				traverse_hint_t *hint,
+				traverse_open_func_t open_func,
+				traverse_edge_func_t before_func,
+				traverse_setup_func_t setup_func,
+				traverse_setup_func_t update_func,
+				traverse_edge_func_t after_func);
+
 extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_hint_t *hint,
 				     traverse_open_func_t open_func,
@@ -99,8 +112,6 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_setup_func_t setup_func,
 				     traverse_setup_func_t update_func,
 				     traverse_edge_func_t after_func);
-
-#endif
 
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 			       reiser4_key_t *key,
