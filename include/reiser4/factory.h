@@ -16,7 +16,6 @@
 
 extern errno_t libreiser4_factory_init(void);
 extern void libreiser4_factory_done(void);
-errno_t libreiser4_factory_check(void);
 
 extern errno_t libreiser4_factory_foreach(reiser4_plugin_func_t func, 
 					  void *data);
@@ -28,17 +27,21 @@ extern reiser4_plugin_t *libreiser4_factory_cfind(reiser4_plugin_func_t func,
 						  void *data);
 
 extern reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle);
-errno_t libreiser4_plugin_fini(plugin_handle_t *handle);
+extern errno_t libreiser4_plugin_fini(plugin_handle_t *handle);
+
+extern errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin);
 
 #if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
 
-errno_t libreiser4_plugin_file_load(const char *name, plugin_handle_t *handle);
-void libreiser4_plugin_file_uload(plugin_handle_t *handle);
+extern errno_t libreiser4_factory_load(char *name);
+extern void libreiser4_plugin_close(plugin_handle_t *handle);
+errno_t libreiser4_plugin_open(const char *name, plugin_handle_t *handle);
 
 #else
 
-extern errno_t libreiser4_plugin_entry_load(unsigned long *entry, plugin_handle_t *handle);
-extern void libreiser4_plugin_entry_uload(plugin_handle_t *handle);
+extern void libreiser4_plugin_close(plugin_handle_t *handle);
+extern errno_t libreiser4_factory_load(unsigned long *entry);
+extern errno_t libreiser4_plugin_open(unsigned long *entry, plugin_handle_t *handle);
 
 #endif
 

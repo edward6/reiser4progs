@@ -261,7 +261,7 @@ typedef errno_t (*file_layout_func_t) (object_entity_t *, reiser4_place_t *, voi
    For such purposes we have:
     
    (1) Fixed description structures for all item types (statdata, direntry, 
-   internal, etc).
+   nodeptr, etc).
     
    (2) Estimate common item method which gets coord of where to insert into
    (NULL or unit == -1 for insertion, otherwise it is pasting) and data

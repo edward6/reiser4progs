@@ -386,7 +386,7 @@ int reiser4_tree_lookup(
 		
 		if (ptr.ptr == FAKE_BLK) {
 			blk_t blk = aal_block_number(reiser4_coord_block(coord));
-			aal_exception_error("Can't get pointer from internal item %u, "
+			aal_exception_error("Can't get pointer from nodeptr item %u, "
 					    "node %llu.", coord->pos.item, blk);
 			return -1;
 		}
@@ -425,7 +425,7 @@ int reiser4_tree_lookup(
 
 #ifndef ENABLE_COMPACT
 
-/* This function inserts internal item to the tree */
+/* This function inserts nodeptr item to the tree */
 static errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
 	reiser4_joint_t *joint)	    /* child to attached */
@@ -439,18 +439,18 @@ static errno_t reiser4_tree_attach(
 	aal_assert("umka-913", tree != NULL, return -1);
 	aal_assert("umka-916", joint != NULL, return -1);
     
-	/* Preparing internal item hint */
+	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* 
-	   FIXME-UMKA: Hardcoded internal item id. Here should be getting internal
+	   FIXME-UMKA: Hardcoded nodeptr item id. Here should be getting nodeptr
 	   item plugin id from parent. In the case parent doesn't exist, it should
 	   be got from filesystem default profile.
 	*/
 	id = ITEM_NODEPTR40_ID;
 
 	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, id))) {
-		aal_exception_error("Can't find internal item plugin "
+		aal_exception_error("Can't find nodeptr item plugin "
 				    "by its id 0x%x.", id);
 		return -1;
 	}
@@ -462,7 +462,7 @@ static errno_t reiser4_tree_attach(
 	hint.hint = &ptr;
 
 	if (reiser4_tree_insert(tree, &hint, LEAF_LEVEL + 1, &coord)) {
-		aal_exception_error("Can't insert internal item to the tree.");
+		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return -1;
 	}
     

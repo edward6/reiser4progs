@@ -16,23 +16,23 @@ static void fsck_print_usage(char *name) {
 	"  --check                        consistency checking (default).\n"
 	"  --rebuild                      fixes all fs corruptions.\n"
 	"Options:\n"
-	"  -l | --logfile                 complains into the logfile\n"
-	"  -V | --version                 prints the current version.\n"
-	"  -? | -h | --help               prints program usage.\n"
-	"  -n | --no-log                  makes fsck to not complain.\n"
-	"  -q | --quiet                   suppresses the most of the progress.\n"
-	"  -a | -p | --auto | --preen     automatically checks the file system\n"
-        "                                 without any questions.\n"
-	"  -f | --force                   forces checking even if the file system\n"
-        "                                 seems clean.\n"
-	"  -v | --verbose                 makes fsck to be verbose.\n"
-	"  -r                             ignored.\n"
+	"  -l, --logfile                 complains into the logfile\n"
+	"  -V, --version                 prints the current version.\n"
+	"  -?, -h, --help                prints program usage.\n"
+	"  -n, --no-log                  makes fsck to not complain.\n"
+	"  -q, --quiet                   suppresses the most of the progress.\n"
+	"  -a, -p, --auto, --preen       automatically checks the file system\n"
+        "                                without any questions.\n"
+	"  -f, --force                   forces checking even if the file system\n"
+        "                                seems clean.\n"
+	"  -v, --verbose                 makes fsck to be verbose.\n"
+	"  -r                            ignored.\n"
 	"Plugin options:\n"
-	"  -K | --known-profiles          prints known profiles.\n"
-	"  -k | --known-plugins           prints known plugins.\n"	
-	"  -e | --profile PROFILE         profile 'PROFILE' to be used or printed.\n"
-	"  -o | --override 'TYPE=plugin'  overrides the default plugin of the type\n"
-	"                                 'TYPE' by the plugin 'plugin'.\n\n");
+	"  -K, --known-profiles          prints known profiles.\n"
+	"  -k, --known-plugins           prints known plugins.\n"	
+	"  -e, --profile PROFILE         profile 'PROFILE' to be used or printed.\n"
+	"  -o, --override 'TYPE=plugin'  overrides the default plugin of the type\n"
+	"                                'TYPE' by the plugin 'plugin'.\n\n");
 }
 
 #define REBUILD_WARNING \
@@ -287,7 +287,7 @@ int main(int argc, char *argv[]) {
     memset(&data, 0, sizeof(data));
 
     /* Initializing libreiser4 with factory sanity check */
-    if (libreiser4_init(1)) {
+    if (libreiser4_init()) {
 	aal_exception_fatal("Cannot initialize the libreiser4.");
 	exit(OPER_ERROR);
     }

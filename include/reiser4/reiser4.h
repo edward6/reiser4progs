@@ -44,7 +44,7 @@ extern "C" {
 #include "joint.h"
 
 extern void libreiser4_done(void);
-extern errno_t libreiser4_init(int check);
+extern errno_t libreiser4_init(void);
 extern const char *libreiser4_version(void);
 
 extern int libreiser4_max_interface_version(void);

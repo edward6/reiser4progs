@@ -223,8 +223,7 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	/* Initializing libreiser4 with factory sanity check */
-	if (libreiser4_init(1)) {
+	if (libreiser4_init()) {
 		aal_exception_error("Can't initialize libreiser4.");
 		goto error;
 	}
