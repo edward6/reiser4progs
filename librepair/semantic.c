@@ -1,4 +1,5 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+   reiser4progs/COPYING.
    
    repair/semantic.c -- semantic pass recovery code. */
 
@@ -81,10 +82,11 @@ reiser4_object_t *repair_semantic_open_child(reiser4_object_t *parent,
 		res |= func(object, parent, repair->mode, data);
 	
 	if (res < 0) {
-		aal_exception_error("Node (%llu), item (%u): check of the object "
-				    "pointed by %k from the %k (%s) failed.", 
-				    start->node->number, start->pos.item,
-				    &entry->object, &entry->offset, entry->name);
+		aal_exception_error("Node (%llu), item (%u): check of the "
+				    "object pointed by %k from the %k (%s) "
+				    "failed.", start->node->number, 
+				    start->pos.item, &entry->object,
+				    &entry->offset, entry->name);
 		
 		goto error_close_object;
 	} else if (res & REPAIR_FATAL) {
@@ -116,9 +118,10 @@ reiser4_object_t *repair_semantic_open_child(reiser4_object_t *parent,
 	res = reiser4_object_rem_entry(parent, entry);
 
 	if (res < 0) {
-		aal_exception_error("Semantic traverse failed to remove the entry "
-				    "%k (%s) pointing to %k.", &entry->offset, 
-				    entry->name, &entry->object);
+		aal_exception_error("Semantic traverse failed to remove the "
+				    "entry %k (%s) pointing to %k.", 
+				    &entry->offset, entry->name, 
+				    &entry->object);
 	}
 	
  error_close_object:
@@ -169,7 +172,9 @@ static void callback_semantic_close(reiser4_object_t *object, void *data) {
 	reiser4_object_close(object);
 }
 
-static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) {
+static errno_t repair_semantic_object_check(reiser4_place_t *place,
+					    void *data) 
+{
 	reiser4_object_t *object;
 	repair_semantic_t *sem;
 	errno_t res = 0;
@@ -189,17 +194,19 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 		return 0;
 	
 	/* Try to realize unambiguously the object by the place. */
-	if (!(object = repair_object_realize(sem->repair->fs->tree, place, TRUE)))
+	object = repair_object_realize(sem->repair->fs->tree, place, TRUE);
+	
+	if (!object)
 		return 0;
 	
 	/* This is really an object, check its structure. */
 	if ((res = repair_object_check_struct(object, callback_check_struct,
 					      sem->repair->mode, NULL))) 
 	{
-		aal_exception_error("Node %llu, item %u: structure check of the "
-				    "object pointed by %k failed. Plugin %s.", 
-				    place->node->number, place->pos.item, 
-				    &place->item.key, 
+		aal_exception_error("Node %llu, item %u: structure check of "
+				    "the object pointed by %k failed. Plugin "
+				    "%s.", place->node->number, 
+				    place->pos.item, &place->item.key, 
 				    object->entity->plugin->label);
 		return res;
 	}
@@ -242,16 +249,16 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	sem->progress = &progress;
 	aal_memset(sem->progress, 0, sizeof(*sem->progress));
 	sem->progress->type = PROGRESS_TREE;
-	sem->progress->title = "***** Semantic Traverse Pass: reiser4 semantic tree "
-		"recovering.";
+	sem->progress->title = "***** Semantic Traverse Pass: reiser4 semantic "
+		"tree recovering.";
 	sem->progress->text = "";
 	time(&sem->stat.time);
 	
 	fs = sem->repair->fs;
 	
 	if (reiser4_tree_fresh(fs->tree)) {
-		aal_exception_warn("No reiser4 metadata were found. Semantic pass is "
-				   "skipped.");
+		aal_exception_warn("No reiser4 metadata were found. Semantic "
+				   "pass is skipped.");
 		return 0;
 	}
 	
@@ -266,7 +273,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if (root == NULL) {
 		/* Failed to realize the root directory, create a new one. */
 		if (!(root = reiser4_dir_create(fs, NULL, NULL))) {
-			aal_exception_error("Failed to create the root directory.");
+			aal_exception_error("Failed to create the root "
+					    "directory.");
 			return -EINVAL;
 		}
 	}

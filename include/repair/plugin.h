@@ -1,4 +1,5 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
    repair/plugin.h - reiser4 plugins repair code known types and macros. */
 
@@ -19,8 +20,8 @@ typedef enum repair_error {
 	REPAIR_BUG		= (-1),
 	/* No error were detected. */
 	REPAIR_OK		= (0),
-	/* When item gets removed from the node, to correct position in the loop 
-	 * correctly. */
+	/* When item gets removed from the node, to correct position in the 
+	   loop correctly. */
 	REPAIR_REMOVED	= (1 << 0),
 	/* All errors were fixed. */
 	REPAIR_FIXED	= (1 << 1),
@@ -32,8 +33,8 @@ typedef enum repair_error {
 	REPAIR_ERROR_LAST	= (1 << 4)
 } repair_error_t;
 
-#define repair_error_exists(result)	((result > REPAIR_FIXED) || (result < 0))
-#define repair_error_fatal(result)	((result >= REPAIR_FATAL) || (result < 0))
+#define repair_error_exists(result)  ((result > REPAIR_FIXED) || (result < 0))
+#define repair_error_fatal(result)   ((result >= REPAIR_FATAL) || (result < 0))
 
 #define repair_error_check(result, mode)			\
 ({								\

@@ -1,7 +1,8 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
-   repair/cleanup.h -- the structures and methods needed for tree cleanuping as the 
-   end of filsystem recovery. */
+   repair/cleanup.h -- the structures and methods needed for tree
+   cleanuping as the end of filsystem recovery. */
 
 #ifndef REPAIR_CLEANUP_H
 #define REPAIR_CLEANUP_H

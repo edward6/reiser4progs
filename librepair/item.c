@@ -1,12 +1,15 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+   reiser4progs/COPYING.
    
    librepair/item.c -- common repair item functions. */
 
 #include <repair/librepair.h>
 
 /* Checks if length has been changed, shrink the node if so. */
-static errno_t repair_item_check_fini(reiser4_place_t *place, repair_error_t result, 
-				      uint32_t old_len, uint8_t mode)
+static errno_t repair_item_check_fini(reiser4_place_t *place,
+				      repair_error_t result,
+				      uint32_t old_len,
+				      uint8_t mode)
 {
 	errno_t ret;
 	pos_t pos;
@@ -24,9 +27,10 @@ static errno_t repair_item_check_fini(reiser4_place_t *place, repair_error_t res
 					  old_len - place->item.len, 1);
 		
 		if (ret) {
-			aal_exception_bug("Node (%llu), item (%u), len (%u): Failed "
-					  "to shrink the node on (%u) bytes.", 
-					  place->node->number, pos.item, old_len, 
+			aal_exception_bug("Node (%llu), item (%u), len (%u): "
+					  "Failed to shrink the node on (%u) "
+					  "bytes.", place->node->number, 
+					  pos.item, old_len, 
 					  old_len - place->item.len);
 			return ret;
 		}
@@ -35,15 +39,16 @@ static errno_t repair_item_check_fini(reiser4_place_t *place, repair_error_t res
 	}
 	
 	if ((result & REPAIR_FATAL) && mode == REPAIR_REBUILD) {
-		aal_exception_error("Node (%llu), item (%u): unrecoverable corruption "
-				    "found. Remove item.", place->node->number, 
-				    place->pos.item);
+		aal_exception_error("Node (%llu), item (%u): unrecoverable "
+				    "corruption found. Remove item.", 
+				    place->node->number, place->pos.item);
 		
 		place->pos.unit = ~0ul;
 		
 		if ((ret = reiser4_node_remove(place->node, &place->pos, 1))) {
-			aal_exception_error("Node (%llu), item (%u): failed to remove "
-					    "the item.", place->node->number, 
+			aal_exception_error("Node (%llu), item (%u): failed to "
+					    "remove the item.",
+					    place->node->number, 
 					    place->pos.item);
 			return ret;
 		}
@@ -54,9 +59,9 @@ static errno_t repair_item_check_fini(reiser4_place_t *place, repair_error_t res
 	return result;
 }
 
-/* Calls the item check method to check the item structure and shrink the node if 
-   item length has been changed. Returns values are described in repair_error_t, 
-   but REPAIR_FIXED. */
+/* Calls the item check method to check the item structure and shrink the 
+   node if item length has been changed. Returns values are described in 
+   repair_error_t, but REPAIR_FIXED. */
 errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	uint32_t length;
 	errno_t res;
@@ -75,15 +80,19 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 		return res;
 	
 	repair_error_check(res, mode);
-	aal_assert("vpf-789", mode != REPAIR_CHECK || length == place->item.len);
+	
+	
+	aal_assert("vpf-789", mode != REPAIR_CHECK || 
+			      length == place->item.len);
+	
 	aal_assert("vpf-767", length == place->item.len || res != REPAIR_OK);
 	
 	return repair_item_check_fini(place, res, length, mode);
 }
 
-/* Calls the item check_layout method to check the layout of an item and shrink 
-   the node if item length has been changed. Returns values are described in 
-   repair_error_codes_t, but REPAIR_FIXED. */
+/* Calls the item check_layout method to check the layout of an item and 
+   shrink the node if item length has been changed. Returns values are 
+   described in repair_error_codes_t, but REPAIR_FIXED. */
 errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func, 
 				 void *data, uint8_t mode) 
 {
@@ -102,7 +111,8 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 							   data, mode);
 	
 	repair_error_check(res, mode);
-	aal_assert("vpf-795", mode != REPAIR_CHECK || length == place->item.len);
+	aal_assert("vpf-795", mode != REPAIR_CHECK || 
+			      length == place->item.len);
 	aal_assert("vpf-796", length == place->item.len || res != REPAIR_OK);
 	
 	return repair_item_check_fini(place, res, length, mode);

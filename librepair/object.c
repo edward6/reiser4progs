@@ -1,4 +1,5 @@
-/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/*  Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+    reiser4progs/COPYING.
     
     librepair/object.c - Object consystency recovery code. */
 
@@ -15,12 +16,13 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plugin_call(object->entity->plugin->o.object_ops, check_struct, 
-			       object->entity, &object->info, place_func, mode, data)))
+	if ((res = plugin_call(object->entity->plugin->o.object_ops, 
+			       check_struct, object->entity, &object->info,
+			       place_func, mode, data)))
 		return res;
 	
-	/* FIXME-VITALY: this is probably should be set by plugin. Together with 
-	   object->info.parent key. */
+	/* FIXME-VITALY: this is probably should be set by plugin. Together 
+	   with object->info.parent key. */
 	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
 	reiser4_key_string(&object->info.object, object->name);
 	
@@ -29,8 +31,9 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 
 /* Helper callback for probing passed @plugin. 
    
-   FIXME-VITALY: for now it returns the first matched plugin, it should be 
-   changed if plugins are not sorted in some order of adventages of recovery. */
+   FIXME-VITALY: for now it returns the first matched plugin, it should 
+   be changed if plugins are not sorted in some order of adventages of 
+   recovery. */
 static bool_t callback_object_realize(reiser4_plugin_t *plugin, void *data) {
 	reiser4_object_t *object;
 	
@@ -41,7 +44,8 @@ static bool_t callback_object_realize(reiser4_plugin_t *plugin, void *data) {
 	object = (reiser4_object_t *)data;
 	
 	/* Try to realize the object as an instance of this plugin. */
-	object->entity = plugin_call(plugin->o.object_ops, realize, &object->info);
+	object->entity = plugin_call(plugin->o.object_ops, realize, 
+				     &object->info);
 	return object->entity ? TRUE : FALSE;
 }
 
@@ -88,7 +92,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 			object->info.parent = parent->info.object;
 		*/
 		
-		libreiser4_factory_cfind(callback_object_realize, object, FALSE);
+		libreiser4_factory_cfind(callback_object_realize, 
+					 object, FALSE);
 		
 		if (!object->entity)
 			goto error_close_object;
@@ -200,7 +205,7 @@ errno_t repair_object_check_backlink(reiser4_object_t *object,
 	if (!object->entity->plugin->o.object_ops->check_backlink)
 		return 0;
 	
-	return object->entity->plugin->o.object_ops->check_backlink(object->entity, 
+	return object->entity->plugin->o.object_ops->check_backlink(object->entity,
 								    parent->entity,
 								    type, mode);
 }

@@ -1,16 +1,18 @@
-/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/*  Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+    reiser4progs/COPYING.
     
     librepair/disk_scan.c - Disk scan pass of reiser4 filesystem recovery. 
     
-    The disk_scan pass scans the blocks which are specified in the bm_scan bitmap, 
-    all formatted blocks marks in bm_map bitmap, all found leaves in bm_leaf, all 
-    found twigs in bm_twig.
+    The disk_scan pass scans the blocks which are specified in the bm_scan 
+    bitmap, all formatted blocks marks in bm_map bitmap, all found leaves 
+    in bm_leaf, all found twigs in bm_twig.
 
     After filter pass:
     - some extent units may points to formatted blocks;
-    - if some formatted block is unused in on-disk block allocator, correct allocator;
-    - if some unformatted block is used in on-disk block allocator, zero extent 
-    pointer. */
+    - if some formatted block is unused in on-disk block allocator, correct 
+    allocator;
+    - if some unformatted block is used in on-disk block allocator, zero 
+    extent pointer. */
 
 #include <repair/disk_scan.h>
 
@@ -19,8 +21,8 @@ static void repair_disk_scan_setup(repair_ds_t *ds) {
 	
 	aal_memset(ds->progress, 0, sizeof(*ds->progress));
 	ds->progress->type = PROGRESS_RATE;
-	ds->progress->title = "***** DiskScan Pass: scanning the partition for "
-		"unconnected nodes.";
+	ds->progress->title = "***** DiskScan Pass: scanning the partition "
+		"for unconnected nodes.";
 	ds->progress->text = "";
 	time(&ds->stat.time);
 	
@@ -51,14 +53,15 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
 	aal_stream_format(&stream, "\tRead nodes %llu\n", ds->stat.read_nodes);
 	aal_stream_format(&stream, "\tGood nodes %llu\n", ds->stat.good_nodes);
 	
-	aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them %llu\n", 
-			  ds->stat.good_leaves, ds->stat.good_twigs);
+	aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them "
+			  "%llu\n", ds->stat.good_leaves, ds->stat.good_twigs);
 	
 	if (ds->stat.fixed_nodes) {
 		aal_stream_format(&stream, "\tCorrected nodes %llu\n", 
 				  ds->stat.fixed_nodes);
-		aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of them "
-				  "%llu\n", ds->stat.fixed_leaves, ds->stat.fixed_twigs);
+		aal_stream_format(&stream, "\t\tLeaves of them %llu, Twigs of "
+				  "them %llu\n", ds->stat.fixed_leaves, 
+				  ds->stat.fixed_twigs);
 	}
 	
 	time_str = ctime(&ds->stat.time);
@@ -76,10 +79,10 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
 	aal_stream_fini(&stream);
 }
 
-/* The pass inself, goes through all the blocks marked in the scan bitmap, and if a 
-   block can contain some data to be recovered (formatted and contains not tree index 
-   data only) then fix all corruptions within the node and save it for further 
-   insertion. */
+/* The pass inself, goes through all the blocks marked in the scan bitmap, and
+   if a block can contain some data to be recovered (formatted and contains not
+   tree index data only) then fix all corruptions within the node and save it
+   for further insertion. */
 errno_t repair_disk_scan(repair_ds_t *ds) {
 	repair_progress_t progress;
 	reiser4_node_t *node;

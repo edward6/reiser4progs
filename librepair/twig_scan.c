@@ -1,13 +1,15 @@
-/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/*  Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+    reiser4progs/COPYING.
     
     librepair/twig_scan.c - methods are needed for the second fsck pass. 
-    Description: fsck on this pass zeroes extent pointers which point to an already 
-    used block. Builds a map of used blocks. */
+    Description: fsck on this pass zeroes extent pointers which point to 
+    an already used block. Builds a map of used blocks. */
 
 #include <repair/twig_scan.h>
 
-/* Check unfm block pointer if it points to an already used block (leaf, format area)
-   or out of format area. Return 1 if it does, 0 - does not, -1 error. */
+/* Check unfm block pointer if it points to an already used block (leaf, 
+   format area) or out of format area. Return 1 if it does, 0 - does not,
+   -1 error. */
 static errno_t callback_item_region_check(void *object, blk_t start, 
 					  uint64_t count, void *data) 
 {
@@ -23,8 +25,9 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	    start >= ts->bm_met->total - count)
 	{
 		aal_exception_error("Node (%llu), item (%u): Pointed region "
-				    "[%llu..%llu] is invalid.", item->context.blk, 
-				    item->pos.item, start, start + count - 1);
+				    "[%llu..%llu] is invalid.", 
+				    item->context.blk, item->pos.item, start,
+				    start + count - 1);
 		ts->stat.bad_unfm_ptrs++;
 		return 1;
 	}
@@ -37,8 +40,8 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	/* Pointed region is used already. */
 	if (res == 0) {
 		aal_exception_error("Node (%llu), item (%u): pointed region "
-				    "[%llu..%llu] is used already or contains a "
-				    "formatted block.", item->context.blk, 
+				    "[%llu..%llu] is used already or contains "
+				    "a formatted block.", item->context.blk, 
 				    item->pos.item, start, start + count - 1);
 		ts->stat.bad_unfm_ptrs++;
 		return 1;
@@ -52,9 +55,9 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	return 0;
 }
 
-/* Callback for the traverse which calls item_ops.check_layout method if layout 
-   exists for all items which can contain data, not tree index data only. Shrink 
-   the node if item lenght is changed. */
+/* Callback for the traverse which calls item_ops.check_layout method if 
+   layout exists for all items which can contain data, not tree index data
+   only. Shrink the node if item lenght is changed. */
 static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
 	repair_ts_t *ts = (repair_ts_t *)data;
 	reiser4_node_t *node;
@@ -82,8 +85,8 @@ static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
 	else if (res & REPAIR_FIXED)
 		reiser4_node_mkdirty(place->node);
 	else if (res & REPAIR_REMOVED) {
-		/* FIXME: Empty nodes may be left in the tree. Cleanup the tree 
-		   afterwords. */
+		/* FIXME: Empty nodes may be left in the tree. Cleanup the 
+		   tree afterwords. */
 		reiser4_node_mkdirty(place->node);
 		place->pos.item--;
 	}
@@ -96,8 +99,8 @@ static void repair_twig_scan_setup(repair_ts_t *ts) {
 	
 	aal_memset(ts->progress, 0, sizeof(*ts->progress));
 	ts->progress->type = PROGRESS_RATE;
-	ts->progress->title = "***** TwigScan Pass: checking extent pointers of "
-		"all twigs.";
+	ts->progress->title = "***** TwigScan Pass: checking extent pointers "
+		"of all twigs.";
 	
 	ts->progress->text = "";
 	time(&ts->stat.time);
@@ -133,8 +136,8 @@ static void repair_twig_scan_update(repair_ts_t *ts) {
 	}
 	
 	if (ts->stat.bad_unfm_ptrs) {
-		aal_stream_format(&stream, "\tFixed invalid extent pointers %llu\n",
-				  ts->stat.bad_unfm_ptrs);
+		aal_stream_format(&stream, "\tFixed invalid extent pointers "
+				  "%llu\n", ts->stat.bad_unfm_ptrs);
 	}
 	
 	time_str = ctime(&ts->stat.time);
@@ -156,8 +159,8 @@ static void repair_twig_scan_update(repair_ts_t *ts) {
     
 }
 
-/* The pass itself, goes through all twigs, check block pointers which items may 
-   have and account them in proper bitmaps. */
+/* The pass itself, goes through all twigs, check block pointers which items 
+   may have and account them in proper bitmaps. */
 errno_t repair_twig_scan(repair_ts_t *ts) {
 	repair_progress_t progress;
 	reiser4_node_t *node;
@@ -180,13 +183,14 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		node = repair_node_open(ts->repair->fs, blk);
 		
 		if (node == NULL) {
-			aal_exception_fatal("Twig scan pass failed to open the "
-					    "twig (%llu)", blk);
+			aal_exception_fatal("Twig scan pass failed to open "
+					    "the twig (%llu)", blk);
 			return -EINVAL;
 		}
 		
 		/* Lookup the node. */	
-		res = repair_node_traverse(node, callback_item_check_layout, ts);
+		res = repair_node_traverse(node, callback_item_check_layout,
+					   ts);
 		
 		if (res)
 			goto error_node_free;

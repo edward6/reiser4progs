@@ -1,9 +1,10 @@
-/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/*  Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+    reiser4progs/COPYING.
     
     cleanup.c -- repair/cleanup.c -- cleanup pass recovery code.
     
-    The pass is intended for cleanuping the storage reiser4 tree from garbage and 
-    linking not reachable objects to 'lost+found' directory. */
+    The pass is intended for cleanuping the storage reiser4 tree from garbage 
+    and linking not reachable objects to 'lost+found' directory. */
 
 #include <repair/cleanup.h>
 
@@ -18,10 +19,11 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	cleanup = (repair_cleanup_t *)data;
 	
 	if (!repair_item_test_flag(place, OF_CHECKED)) {
-		/* Not checked item does not belong to any object, remove it. */	
+		/* Not checked item does not belong to any object. Remove. */
 		if ((res = reiser4_node_remove(place->node, &place->pos, 1))) {
-			aal_exception_bug("Node (%llu): Failed to delete the item (%d).",
-					  place->node->number, place->pos.item);
+			aal_exception_bug("Node (%llu): Failed to delete the "
+					  "item (%d).", place->node->number, 
+					  place->pos.item);
 			return res;
 		}
 		
@@ -30,7 +32,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		
 		return 0;	
 	} else {
-		/* Checked item belongs to some object, clear the flag. */	
+		/* Checked item belongs to some object, clear the flag. */
 		repair_item_clear_flag(place, OF_CHECKED);
 	}
 	
@@ -39,17 +41,21 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		if (reiser4_object_begin(place) == FALSE)
 			return 0;
 		
-		object = reiser4_object_realize(cleanup->repair->fs->tree, place);
+		object = reiser4_object_realize(cleanup->repair->fs->tree, 
+						place);
 		
 		if (object == NULL)
 			return 0;
 		
 		/* Not reachable object should be linked to 'lost+found'. */
-		if ((res = reiser4_object_link(cleanup->lost, object, object->name))) {
-			aal_exception_error("Node (%llu), item(%u): openned object is "
-					    "failed to be linked to 'lost+found'.", 
-					    place->node->number, place->pos.item);
-			
+		res = reiser4_object_link(cleanup->lost, object, object->name);
+		
+		if (res) {
+			aal_exception_error("Node (%llu), item(%u): openned "
+					    "object is failed to be linked to "
+					    "'lost+found'.", 
+					    place->node->number, 
+					    place->pos.item);
 			return res;
 		}
 		
@@ -77,8 +83,8 @@ static void repair_cleanup_setup(repair_cleanup_t *cleanup) {
 	
 	aal_memset(cleanup->progress, 0, sizeof(*cleanup->progress));
 	cleanup->progress->type = PROGRESS_TREE;
-	cleanup->progress->title = "***** Cleanup Pass: cleaning reiser4 storage "
-		"tree up.";
+	cleanup->progress->title = "***** Cleanup Pass: cleaning reiser4 "
+		"storage tree up.";
 	cleanup->progress->text = "";
 	time(&cleanup->stat.time);
 }
@@ -97,7 +103,8 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	
 	aal_stream_init(&stream);
 	
-	aal_stream_format(&stream, "\tRemoved items %llu\n", cleanup->stat.removed);
+	aal_stream_format(&stream, "\tRemoved items %llu\n", 
+			  cleanup->stat.removed);
 	aal_stream_format(&stream, "\tObjects list to 'lost+found' %llu\n",
 			  cleanup->stat.linked);
 		
@@ -127,8 +134,8 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	fs = cleanup->repair->fs;
 	
 	if (reiser4_tree_fresh(fs->tree)) {
-		aal_exception_warn("No reiser4 metadata were found. Cleanup pass is "
-				   "skipped.");
+		aal_exception_warn("No reiser4 metadata were found. Cleanup "
+				   "pass is skipped.");
 		return 0;
 	}
 	
@@ -151,7 +158,8 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		cleanup->lost = reiser4_dir_create(fs, root, "lost+found");
 		
 		if (cleanup->lost == NULL) {
-			aal_exception_error("Cleanup failed to find '/' directory.");
+			aal_exception_error("Cleanup failed to find '/' "
+					    "directory.");
 			reiser4_object_close(root);
 			return -EINVAL;
 		}
@@ -159,7 +167,7 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	
 	reiser4_object_close(root);
 	
-	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
+	/* Cut the corrupted, unrecoverable parts of the tree off. */
 	res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
 				repair_semantic_node_traverse, 
 				NULL, NULL, cleanup);

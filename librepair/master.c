@@ -1,6 +1,8 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+   reiser4progs/COPYING.
    
-   librepair/master.c - methods are needed for work with broken master super block. */
+   librepair/master.c - methods are needed for work with broken master 
+   super block. */
 
 #include <repair/librepair.h>
 
@@ -27,33 +29,37 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	
 	if (fs->master == NULL) {
 		if (mode != REPAIR_REBUILD) {
-			aal_exception_fatal("Master super block cannot be found.");
+			aal_exception_fatal("Master super block cannot be "
+					    "found.");
 			return REPAIR_FATAL;
 		}
 		
 		/* Master SB was not opened. Create a new one. */
 		if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
-					"Master super block cannot be found. Do you "
-					"want to build a new one on (%s)?", 
-					aal_device_name(fs->device)) == EXCEPTION_NO)
+					"Master super block cannot be found. "
+					"Do you want to build a new one on "
+					"(%s)?", aal_device_name(fs->device))
+		    == EXCEPTION_NO)
 			return -EINVAL;
 		
 		blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL,
 					       "Which block size do you use?");
 		
-		/* FIXME-VITALY: What should be done with uuid and label? At least 
-		   not here as uuid and label seem to be on the wrong place. 
-		   Move them to specific SB. */
+		/* FIXME-VITALY: What should be done with uuid and label? At 
+		   least not here as uuid and label seem to be on the wrong 
+		   place. Move them to specific SB. */
 		
 		/* Create a new master SB. */
-		if (!(fs->master = reiser4_master_create(fs->device, INVAL_PID,
-							 blocksize, NULL, NULL))) 
-		{
-			aal_exception_fatal("Cannot create a new master super block.");
+		fs->master = reiser4_master_create(fs->device, INVAL_PID,
+						   blocksize, NULL, NULL);
+		if (!fs->master) {
+			aal_exception_fatal("Cannot create a new master super "
+					    "block.");
 				return -EINVAL;
 		} else {
-			aal_exception_fatal("A new master superblock was created on "
-					    "(%s).", aal_device_name(fs->device));
+			aal_exception_fatal("A new master superblock was "
+					    "created on (%s).", 
+					    aal_device_name(fs->device));
 		}
 		
 		error |= REPAIR_FIXED;
@@ -62,15 +68,16 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		
 		/* Check the blocksize. */		
 		if (!aal_pow2(reiser4_master_blksize(fs->master))) {			
-			aal_exception_fatal("Invalid blocksize found in the master "
-					    "super block (%u).", 
+			aal_exception_fatal("Invalid blocksize found in the "
+					    "master super block (%u).",
 					    reiser4_master_blksize(fs->master));
 			
 			if (mode != REPAIR_REBUILD)
 				return -EINVAL;
 			
-			blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL, 
-						       "Which block size do you use?");
+			blocksize = aal_ui_get_numeric(4096, callback_bs_check,
+						       NULL, "Which block size "
+						       "do you use?");
 			
 			set_ms_blksize(SUPER(fs->master), blocksize);
 			error |= REPAIR_FIXED;
@@ -79,8 +86,8 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	
 	/* Setting actual used block size from master super block */
 	if (aal_device_set_bs(fs->device, reiser4_master_blksize(fs->master))) {
-		aal_exception_fatal("Invalid block size was specified (%u). It must "
-				    "be power of two.", 
+		aal_exception_fatal("Invalid block size was specified (%u). It "
+				    "must be power of two.", 
 				    reiser4_master_blksize(fs->master));
 		return -EINVAL;
 	}

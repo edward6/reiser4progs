@@ -1,11 +1,12 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+   reiser4progs/COPYING.
    
    repair/lost_found.c -- lost&found pass recovery code. */
 
 #include <repair/lost_found.h>
 #include <repair/semantic.h>
 
-extern errno_t callback_check_struct(object_entity_t *object, place_t *place, 
+extern errno_t callback_check_struct(object_entity_t *object, place_t *place,
 				     void *data);
 
 static void repair_lost_found_make_lost_name(reiser4_object_t *object, 
@@ -50,7 +51,8 @@ static errno_t callback_object_check_link(reiser4_object_t *object,
 	
 	start = reiser4_object_start(object);	
 	
-	/* If HAS_NAME, skip it as objects linked to L&F are not marked as such. */
+	/* If HAS_NAME, skip it as objects linked to 'lost+found' are not 
+	   marked as such. */
 	if (repair_item_test_flag(start, OF_HAS_NAME))
 		goto error;
 	
@@ -61,8 +63,8 @@ static errno_t callback_object_check_link(reiser4_object_t *object,
 	/* Unlink from lost+found */
 	res |= reiser4_object_unlink(lf->lost, object->name);
 	if (repair_error_fatal(res)) {
-		aal_exception_error("Node %llu, item %u: unlink from the object "
-				    "%k of the object pointed by %k failed.",
+		aal_exception_error("Node %llu, item %u: unlink from the object"
+				    " %k of the object pointed by %k failed.",
 				    start->node->number, start->pos.item,
 				    &lf->lost->info.object, &entry.object);
 	}
@@ -162,17 +164,18 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 						      lf->repair->mode, NULL);
 		
 		if (res) {
-			aal_exception_error("Node %llu, item %u: structure check "
-					    "of the object pointed by %k failed. "
-					    "Plugin %s.", place->node->number, 
-					    place->pos.item, &place->item.key, 
+			aal_exception_error("Node %llu, item %u: structure "
+					    "check of the object pointed by "
+					    "%k failed. Plugin %s.",
+					    place->node->number, 
+					    place->pos.item, &place->item.key,
 					    object->entity->plugin->label);
 			return res;
 		}
 	}
 	
 	/* Traverse the object. */
-	if ((res = repair_object_traverse(object, callback_traverse_open, 
+	if ((res = repair_object_traverse(object, callback_traverse_open,
 					  callback_traverse_close, lf)))
 		goto error_close_object;
 
@@ -180,23 +183,24 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	
 	start = reiser4_object_start(object);
 	
-	/* If '..' is valid, then the parent<->object link was recovered during 
-	   traversing. Othewise, link the object to "lost+found". */
+	/* If '..' is valid, then the parent<->object link was recovered
+	   during traversing. Othewise, link the object to "lost+found". */
 	if (!repair_item_test_flag(start, OF_HAS_NAME)) {
-		if ((res = reiser4_object_link(lf->lost, object, object->name))) {
-			aal_exception_error("Node %llu, item %u: failed to link "
-					    "the object pointed by %k to the "
-					    "'lost+found' pointed by %k.",
-					    start->node->number, start->pos.item, 
-					    &object->info.object, 
+		res = reiser4_object_link(lf->lost, object, object->name);
+		if (res) {
+			aal_exception_error("Node %llu, item %u: failed to "
+					    "link the object pointed by %k "
+					    "to the 'lost+found' pointed by "
+					    "%k.", start->node->number,
+					    start->pos.item, 
+					    &object->info.object,
 					    &lf->lost->info.object);
 			goto error_close_object;
 		}
-
 	}
 		
-	/* The whole reachable subtree must be recovered for now and marked as 
-	   HAS_NAME. */
+	/* The whole reachable subtree must be recovered for now and marked 
+	   as HAS_NAME. */
 	
 	reiser4_object_close(object);
 	return 0;
@@ -210,7 +214,8 @@ static errno_t repair_lost_found_node_traverse(reiser4_tree_t *tree,
 					       reiser4_node_t *node, 
 					       void *data) 
 {
-	return repair_node_traverse(node, repair_lost_found_object_check, data);
+	return repair_node_traverse(node, repair_lost_found_object_check, 
+				    data);
 }
 
 errno_t repair_lost_found(repair_lost_found_t *lf) {
@@ -235,8 +240,8 @@ errno_t repair_lost_found(repair_lost_found_t *lf) {
 	fs = lf->repair->fs;
 	
 	if (reiser4_tree_fresh(fs->tree)) {
-		aal_exception_warn("No reiser4 metadata were found. Semantic pass is "
-				   "skipped.");
+		aal_exception_warn("No reiser4 metadata were found. Semantic "
+				   "pass is skipped.");
 		return 0;
 	}
 	
@@ -248,20 +253,22 @@ errno_t repair_lost_found(repair_lost_found_t *lf) {
 	lf->lost = reiser4_object_open(fs->tree, "/lost+found", FALSE);
 	
 	if (lf->lost == NULL) {
-		/* 'lost+found' directory openning failed. That means that it has 
-		   not been reached on semantic pass from '/'. Create a new one. */
+		/* 'lost+found' directory openning failed. That means that 
+		   it has not been reached on semantic pass from '/'. Create 
+		   a new one. */
 		
-		if ((root = reiser4_object_open(fs->tree, "/", FALSE)) == NULL) {
-			aal_exception_error("Lost&Found pass failed: no root directory "
-					    "found.");
+		root = reiser4_object_open(fs->tree, "/", FALSE);
+		if (root == NULL) {
+			aal_exception_error("Lost&Found pass failed: no root "
+					    "directory found.");
 			return -EINVAL;
 		}
 		
 		lf->lost = reiser4_dir_create(fs, root, "lost+found");
 		
 		if (lf->lost == NULL) {
-			aal_exception_error("Lost&Found pass failed: cannot create "
-					    "'lost+found' directory.");
+			aal_exception_error("Lost&Found pass failed: cannot "
+					    "create 'lost+found' directory.");
 			reiser4_object_close(root);
 			return -EINVAL;
 		}

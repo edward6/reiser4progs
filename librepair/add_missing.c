@@ -1,14 +1,15 @@
-/*  Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/*  Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+    reiser4progs/COPYING.
     
-    repair/add_missing.c -- the common methods for insertion leaves and extent item 
-    from twigs unconnected from the tree. */
+    repair/add_missing.c -- the common methods for insertion leaves and extent
+    item from twigs unconnected from the tree. */
 
 #include <repair/add_missing.h>
 
-/* Callback for item_ops->layout method to mark all the blocks, items points to, in the 
-   allocator. */
-static errno_t callback_item_mark_region(void *object, uint64_t start, uint64_t count, 
-					 void *data)
+/* Callback for item_ops->layout method to mark all the blocks, items points 
+   to, in the allocator. */
+static errno_t callback_item_mark_region(void *object, uint64_t start, 
+					 uint64_t count, void *data)
 {
 	item_entity_t *item = (item_entity_t *)object;
 	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
@@ -23,8 +24,9 @@ static errno_t callback_item_mark_region(void *object, uint64_t start, uint64_t 
 	return 0;
 }
 
-/* Callback for traverse through all items of the node. Calls for the item, determined by
-   place, layout method, if it is not the branch and has pointers to some blocks. */
+/* Callback for traverse through all items of the node. Calls for the item, 
+   determined by place, layout method, if it is not the branch and has pointers
+   to some blocks. */
 static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
 	aal_assert("vpf-748", reiser4_item_data(place->item.plugin));
@@ -32,8 +34,8 @@ static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	if (!place->item.plugin->o.item_ops->layout)
 		return 0;
 	
-	/* All these blocks should not be used in the allocator and should be forbidden 
-	   for allocation. Check it somehow first. */
+	/* All these blocks should not be used in the allocator and should be 
+	   forbidden for allocation. Check it somehow first. */
 	return place->item.plugin->o.item_ops->layout(&place->item, 
 		callback_item_mark_region, data);
 }
@@ -44,8 +46,8 @@ static void repair_add_missing_setup(repair_am_t *am) {
 	aal_memset(am->progress, 0, sizeof(*am->progress));
 	am->progress->type = PROGRESS_RATE;
 	
-	am->progress->title = "***** AddMissing Pass: inserting unconnected nodes into "
-		"the tree.";
+	am->progress->title = "***** AddMissing Pass: inserting unconnected "
+		"nodes into the tree.";
 	
 	am->progress->state = PROGRESS_START;
 	
@@ -72,11 +74,13 @@ static void repair_add_missing_update(repair_am_t *am) {
 	
 	aal_stream_init(&stream);	
 	
-	aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, by items %llu\n", 
-			  stat->read_twigs, stat->by_twig, stat->by_item_twigs);
+	aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, by "
+			  "items %llu\n", stat->read_twigs, stat->by_twig,
+			  stat->by_item_twigs);
 	    
-	aal_stream_format(&stream, "\tLeaves: read %llu, inserted %llu, by items %llu\n",
-			  stat->read_leaves, stat->by_leaf, stat->by_item_leaves);
+	aal_stream_format(&stream, "\tLeaves: read %llu, inserted %llu, by "
+			  "items %llu\n", stat->read_leaves, stat->by_leaf, 
+			  stat->by_item_leaves);
 
 	time_str = ctime(&am->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
@@ -93,8 +97,8 @@ static void repair_add_missing_update(repair_am_t *am) {
 	aal_stream_fini(&stream);
 }
 
-/* The pass inself, adds all the data which are not in the tree yet and which were found
-   on the partition during the previous passes. */
+/* The pass inself, adds all the data which are not in the tree yet and which 
+   were found on the partition during the previous passes. */
 errno_t repair_add_missing(repair_am_t *am) {
 	repair_progress_t progress;
 	reiser4_alloc_t *alloc;
@@ -143,15 +147,16 @@ errno_t repair_add_missing(repair_am_t *am) {
 		
 		am->progress->state = PROGRESS_UPDATE;
  
-		/* Try to insert the whole twig/leaf at once. If found twig/leaf could 
-		   be split into 2 twigs/leaves and the wanted wtig/leaf fits between 
-		   them w/out problem - it will be done instead of following item by 
-		   item insertion. */
+		/* Try to insert the whole twig/leaf at once. If it can be 
+		   inserted only after splitting the node found by lookup 
+		   into 2 nodes -- it will be done instead of following item
+		   by item insertion. */
 		blk = aux_bitmap_find_marked(bitmap, blk);
 		while (blk != INVAL_BLK) {
 			node = repair_node_open(am->repair->fs, blk);
 	    
-			aal_assert("vpf-896", !reiser4_alloc_occupied(alloc, blk, 1));
+			aal_assert("vpf-896", 
+				   !reiser4_alloc_occupied(alloc, blk, 1));
 			
 			if (i == 0)
 				am->stat.read_twigs++;
@@ -162,13 +167,14 @@ errno_t repair_add_missing(repair_am_t *am) {
 				am->progress_handler(am->progress);
 	    
 			if (node == NULL) {
-				aal_exception_fatal("Add Missing pass failed to open "
-						    "the node (%llu)", blk);
+				aal_exception_fatal("Add Missing pass failed "
+						    "to open the node (%llu)",
+						    blk);
 				
 				return -EINVAL;
 			}
 			
-			/* Prepare the node for insertion - Remove all metadata items. */
+			/* Remove all metadata items from the node before insertion. */
 			place.node = node;
 			pos->unit = ~0ul;
 			count = reiser4_node_items(node);

@@ -1,4 +1,5 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
    sdext_lt_repair.c -- large time stat data extention plugin recovery code. */
 

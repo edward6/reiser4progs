@@ -1,6 +1,8 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
-   repair/master.h -- reiserfs master superblock recovery structures and macros. */
+   repair/master.h -- reiserfs master superblock recovery structures
+   and macros. */
 
 #ifndef REPAIR_MASTER_H
 #define REPAIR_MASTER_H

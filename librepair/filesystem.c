@@ -1,14 +1,17 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+   reiser4progs/COPYING.
    
-   librepair/filesystem.c - methods are needed mostly by fsck for work with broken 
-   filesystems. */
+   librepair/filesystem.c - methods are needed mostly by fsck for work 
+   with broken filesystems. */
 
 #include <repair/librepair.h>
 
-/* Opens the filesystem - master, format, block and oid allocators - without opening a 
-   journal. */
-errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device, 
-		       aal_device_t *journal_device, reiser4_profile_t *profile)
+/* Opens the filesystem - master, format, block and oid allocators - without 
+   opening a journal. */
+errno_t repair_fs_open(repair_data_t *repair, 
+		       aal_device_t *host_device,
+		       aal_device_t *journal_device, 
+		       reiser4_profile_t *profile)
 {
 	void *oid_area_start, *oid_area_end;
 	errno_t error = REPAIR_OK;
@@ -55,7 +58,7 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
 	}
     
 	/* Block and oid allocator plugins are specified by format plugin 
-	 * unambiguously, so there is nothing to be checked additionally here. */
+	 * unambiguously, so there is nothing to be checked here anymore. */
 	if ((repair->fs->alloc = reiser4_alloc_open(repair->fs, 
 			       reiser4_format_get_len(repair->fs->format))) 
 	    == NULL) 
@@ -64,8 +67,9 @@ errno_t repair_fs_open(repair_data_t *repair, aal_device_t *host_device,
 		error = -EINVAL;
 		goto error_journal_close;
 	}
-
-	if ((error = repair_alloc_check_struct(repair->fs->alloc, repair->mode)))
+	
+	error = repair_alloc_check_struct(repair->fs->alloc, repair->mode);
+	if (error)
 		goto error_alloc_close;
 	
 	if ((repair->fs->oid = reiser4_oid_open(repair->fs)) == NULL) {	

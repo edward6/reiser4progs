@@ -1,4 +1,5 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+   reiser4progs/COPYING.
    
    librepair/repair.c - control methods for broken filesystem recovery. */
 
@@ -14,15 +15,17 @@ typedef struct repair_control {
 	repair_data_t *repair;
 
 	aux_bitmap_t *bm_used;		/* Formatted area + formatted nodes. */
-	aux_bitmap_t *bm_leaf;		/* Leaf bitmap not in the tree yet. */
-	aux_bitmap_t *bm_twig;		/* Twig nodes */
-	aux_bitmap_t *bm_met;		/* frmt | used | leaf | twig. */
-	aux_bitmap_t *bm_unfm_tree;	/* Unformatted blocks point from the tree. */
-	aux_bitmap_t *bm_unfm_out;	/* Unformatted blocks point out of the tree. */
+	aux_bitmap_t *bm_leaf;		/* Leaf bitmap not in the tree yet.  */
+	aux_bitmap_t *bm_twig;		/* Twig nodes 			     */
+	aux_bitmap_t *bm_met;		/* frmt | used | leaf | twig. 	     */
+	aux_bitmap_t *bm_unfm_tree;	/* Unfmatted pointed from tree.      */
+	aux_bitmap_t *bm_unfm_out;	/* Unfoamatted pointed out of tree.  */
 } repair_control_t;
 
-/* Callback for the format_ops.layout method to mark all its blocks in the bitmap. */
-static errno_t callback_format_mark(object_entity_t *format, blk_t blk, void *data) {
+/* Callback for the format_ops.layout method - mark all blocks in the bitmap. */
+static errno_t callback_format_mark(object_entity_t *format,
+				    blk_t blk, void *data)
+{
 	aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
 	
 	aux_bitmap_mark(format_layout, blk);
@@ -47,10 +50,11 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
-	/* Allocate a bitmap of blocks belong to the format area - skipped, super 
-	   block, journal, bitmaps. */
+	/* Allocate a bitmap of blocks belong to the format area - skipped, 
+	   super block, journal, bitmaps. */
 	if (!(control->bm_used = filter->bm_used = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of format layout.");
+		aal_exception_error("Failed to allocate a bitmap of format "
+				    "layout.");
 		return -EINVAL;
 	}
 	
@@ -58,27 +62,29 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	if (reiser4_fs_layout(control->repair->fs, callback_format_mark,
 			      filter->bm_used)) 
 	{
-		aal_exception_error("Failed to mark the filesystem area as used in "
-				    "the bitmap.");
+		aal_exception_error("Failed to mark the filesystem area as "
+				    "used in the bitmap.");
 		return -EINVAL;
 	}
 	
 	/* A bitmap of leaves removed from the tree and to be inserted back. */
-	if (!(control->bm_leaf = filter->bm_leaf = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of leaves removed "
-				    " from the tree and to be inserted later back "
-				    "item-by-item.");
+	control->bm_leaf = filter->bm_leaf = aux_bitmap_create(fs_len);
+	if (!control->bm_leaf) {
+		aal_exception_error("Failed to allocate a bitmap of leaves "
+				    "removed from the tree and to be inserted "
+				    "later back item-by-item.");
 		return -EINVAL;
 	}
 	
 	/* Allocate a bitmap of twig blocks in the tree. */
 	if (!(control->bm_twig = filter->bm_twig = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of twig blocks.");
+		aal_exception_error("Failed to allocate a bitmap of twig "
+				    "blocks.");
 		return -EINVAL;
 	}
 	
-	/* Allocate a bitmap of formatted blocks which cannot be pointed by extents,
-	   which are not in the used nor twig not leaf bitmaps. */
+	/* Allocate a bitmap of formatted blocks which cannot be pointed by 
+	   extents, which are not in the used nor twig not leaf bitmaps. */
 	if (!(control->bm_met = filter->bm_met = aux_bitmap_create(fs_len))) {
 		aal_exception_error("Failed to allocate a bitmap of broken "
 				    "formatted blocks.");
@@ -115,9 +121,10 @@ static errno_t callback_region_mark(void *object, blk_t blk, uint64_t count,
 	return 0;
 }
 
-/* Setup the pass to be performed - create 2 new bitmaps for blocks to be scanned, 
-   leaves, and formatted blocks which cannot be pointed by nodeptr's and not 
-   accounted anywhere else; fill the scan bitmap with what should be scanned. */
+/* Setup the pass to be performed - create 2 new bitmaps for blocks to be 
+   scanned, leaves, and formatted blocks which cannot be pointed by nodeptr's 
+   and not accounted anywhere else; fill the scan bitmap with what should be 
+   scanned. */
 static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	repair_data_t *repair;
 	uint64_t fs_len, i;
@@ -143,7 +150,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	
 	/* Build a bitmap of what was met already. */
 	for (i = 0; i < control->bm_met->size; i++) {
-		/* If block is marked as met, it should not be marked as used. */
+		/* If block is marked as met, it is not marked as used. */
 		aal_assert("vpf-817", ( control->bm_met->map[i] & 
 				        ( control->bm_used->map[i] | 
 					  control->bm_leaf->map[i] | 
@@ -161,18 +168,15 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	
 	/* Build a bitmap of blocks which are not in the tree yet. */
 	for (; i < fs_len; i++) {
-		/* Block was met as formatted, but unused in on-disk block 
+		/* Block was met as formatted, but unused in on-disk block
 		   allocator. Looks like the bitmap block of the allocator 
 		   has not been synced on disk. Scan through all its blocks. */
 		avail = reiser4_alloc_available(repair->fs->alloc, i, 1);
 		
-		if (avail) {
-			if (aux_bitmap_test(ds->bm_met, i)) {
-				repair_alloc_related_region(repair->fs->alloc, i, 
-							    callback_region_mark, 
-							    ds);
-			}
-		} else if (!aux_bitmap_test(ds->bm_met, i)) {
+		if (avail && aux_bitmap_test(ds->bm_met, i)) {
+			repair_alloc_related_region(repair->fs->alloc, i,
+						    callback_region_mark, ds);
+		} else if (!avail && !aux_bitmap_test(ds->bm_met, i)) {
 			aux_bitmap_mark(ds->bm_scan, i);
 		}
 	}
@@ -200,7 +204,8 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 	
 	ts->progress_handler = control->repair->progress_handler;
 	
-	aux_bitmap_clear_region(control->bm_unfm_tree, 0, control->bm_unfm_tree->total);
+	aux_bitmap_clear_region(control->bm_unfm_tree, 0, 
+				control->bm_unfm_tree->total);
 	
 	fs_len =  reiser4_format_get_len(ts->repair->fs->format);
 	
@@ -224,9 +229,9 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 	
 	control->bm_unfm_out = ts->bm_unfm_out = aux_bitmap_create(fs_len);
 	if (!control->bm_unfm_out) {
-		aal_exception_error("Failed to allocate a bitmap of unformatted "
-				    "blocks pointed by extents which are not in "
-				    "the tree.");
+		aal_exception_error("Failed to allocate a bitmap of "
+				    "unformatted blocks pointed by "
+				    "extents which are not in the tree.");
 		return -EINVAL;
 	}
 	
@@ -254,7 +259,7 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 				        ( control->bm_unfm_tree->map[i] | 
 					  control->bm_unfm_out->map[i])) == 0);
 		
-		/* Let met will be leaves, twigs and unfm which are not in the tree. */
+		/* met is leaves, twigs and unfm which are not in the tree. */
 		control->bm_met->map[i] = ( ( control->bm_leaf->map[i] | 
 					      control->bm_twig->map[i] | 
 					      control->bm_unfm_out->map[i] ) 
@@ -325,14 +330,15 @@ static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	if (!(am->bm_leaf = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of leaves removed "
-				    " from the tree and to be inserted later back "
-				    "item-by-item.");
+		aal_exception_error("Failed to allocate a bitmap of leaves "
+				    "removed from the tree and to be inserted "
+				    "later back item-by-item.");
 		return -EINVAL;
 	}
 	
 	if (!(am->bm_twig = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of twig blocks.");
+		aal_exception_error("Failed to allocate a bitmap of twig "
+				    "blocks.");
 		return -EINVAL;
 	}
 	
@@ -360,8 +366,9 @@ static void repair_control_release(repair_control_t *control) {
 	if (control->bm_unfm_out)
 		aux_bitmap_close(control->bm_unfm_out);
 
-	control->bm_used = control->bm_leaf = control->bm_twig = control->bm_met = 
-		control->bm_unfm_tree = control->bm_unfm_out = NULL;
+	control->bm_used = control->bm_leaf = control->bm_twig = 
+		control->bm_met = control->bm_unfm_tree = 
+		control->bm_unfm_out = NULL;
 }
 
 errno_t repair_check(repair_data_t *repair) {

@@ -1,4 +1,5 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
    repair/filter.h -- the structures and methods needed for fsck pass1. */
 
@@ -32,8 +33,9 @@ typedef struct repair_filter {
 	/* Results of the work. */
 	aux_bitmap_t *bm_leaf;	/* Bitmap of found leaves. */
 	aux_bitmap_t *bm_twig;	/* Bitmap of found twigs. */
-	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes which cannot neither 
-				   be pointed by extents nor marked nowhere else. */
+	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes which cannot 
+				   neither be pointed by extents nor marked 
+				   nowhere else. */
 	uint8_t level;
 	uint8_t flags;
 

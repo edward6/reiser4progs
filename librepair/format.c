@@ -1,4 +1,5 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by 
+   reiser4progs/COPYING.
    
    libprogs/format.c - methods are needed for handle the fs format. */
 
@@ -20,8 +21,8 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	
 	if (policy >= TAIL_LAST_ID) {
 		/* Tail id from the profile is wrong. */
-		aal_exception_error("Invalid tail policy (%u) is specified in the "
-				    "profile.", policy);
+		aal_exception_error("Invalid tail policy (%u) is specified in "
+				    "the profile.", policy);
 		return -EINVAL;
 	}
 	

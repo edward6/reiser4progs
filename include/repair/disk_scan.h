@@ -1,6 +1,8 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
-   repair/disk_scan.h -- the structures and methods needed for the second pass of fsck. */
+   repair/disk_scan.h -- the structures and methods needed for the 
+   second pass of fsck. */
 
 #ifndef REPAIR_DS_H
 #define REPAIR_DS_H
@@ -24,9 +26,8 @@ typedef struct repair_ds_stat {
 typedef struct repair_ds {
 	repair_data_t *repair;
     
-	aux_bitmap_t *bm_scan;	/* Bitmap of blocks to be scanned on the pass. */
-	aux_bitmap_t *bm_met;	/* Bitmap of blocks met already. 
-				   Mark all formatted block here also. */
+	aux_bitmap_t *bm_scan;	/* Blocks to be scanned on the pass. */
+	aux_bitmap_t *bm_met;	/* Blocks met already + all formatted . */
 	/* Results of the work. */
 	aux_bitmap_t *bm_leaf;	/* Found leaves. */
 	aux_bitmap_t *bm_twig;	/* Fount twigs. */

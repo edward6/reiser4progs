@@ -1,4 +1,5 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
    repair/repair.h -- the common structures and methods for recovery. */
 
@@ -27,30 +28,30 @@ typedef enum repair_progress_state {
 } repair_progress_state_t;
 
 typedef struct repair_progress_rate {
-	uint64_t done;		/* current element is been handled		*/
-	uint64_t total;		/* total elements to be handled			*/
+	uint64_t done;		/* current element is been handled	   */
+	uint64_t total;		/* total elements to be handled		   */
 } repair_progress_rate_t;
 
 typedef struct repair_progress_tree {
-	uint32_t item;		/* current element is been handled		*/
-	uint32_t unit;		/* current subelement is been handled		*/
-	uint32_t i_total;	/* total of elements				*/
-	uint32_t u_total;	/* total of subelements				*/
+	uint32_t item;		/* current element is been handled	   */
+	uint32_t unit;		/* current subelement is been handled	   */
+	uint32_t i_total;	/* total of elements			   */
+	uint32_t u_total;	/* total of subelements			   */
 } repair_progress_tree_t;
 
 typedef struct repair_progress {
-	uint8_t type;		/* type of the progress - progress_type_t	*/
-	uint8_t state;		/* state of the progress - progress_state_t	*/
-	char *title;		/* The title of the progress.			*/
+	uint8_t type;		/* type of the progress - progress_type_t   */
+	uint8_t state;		/* state of the progress - progress_state_t */
+	char *title;		/* The title of the progress.		    */
 	char *text;		/* Some uptodate text for the progress.     
-				   Becomes the name of the gauge for now.	*/
+				   Becomes the name of the gauge for now.   */
     
 	union {
 		repair_progress_rate_t rate;
 		repair_progress_tree_t tree;
 	} u;
     
-	void *data;		/* opaque application data			*/
+	void *data;		/* opaque application data		    */
 } repair_progress_t;
 
 /* Callback for repair passes to print the progress. */

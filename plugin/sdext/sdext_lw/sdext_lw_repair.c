@@ -1,6 +1,8 @@
-/* Copyright 2001-2003 by Hans Reiser, licensing governed by reiser4progs/COPYING.
+/* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
    
-   sdext_lw_repair.c -- light weight stat data extention plugin recovery code. */
+   sdext_lw_repair.c -- light weight stat data extention plugin recovery 
+   code. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
