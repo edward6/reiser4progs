@@ -168,6 +168,7 @@ uint32_t cde40_number_units(place_t *place) {
 	return cde_get_units(place);
 }
 
+/* Fetches some number of cde items to passed @hint. */
 static int64_t cde40_fetch_units(place_t *place, trans_hint_t *hint) {
 	uint32_t i, pos;
 	entry_hint_t *entry;
@@ -179,9 +180,13 @@ static int64_t cde40_fetch_units(place_t *place, trans_hint_t *hint) {
 	entry = (entry_hint_t *)hint->specific;
 	
 	for (i = pos; i < pos + hint->count; i++, entry++) {
+		/* Get object stat data key. */
 		cde40_get_obj(place, i, &entry->object);
+
+		/* Get entry key (hash). */
 		cde40_get_hash(place, i, &entry->offset);
-		
+
+		/* Extract entry name. */
 		cde40_get_name(place, i, entry->name,
 			       sizeof(entry->name));
 	}
@@ -205,11 +210,8 @@ static int cde40_mergeable(place_t *place1, place_t *place2) {
 			  get_locality, &place2->key));
 }
 
-static uint16_t cde40_overhead(place_t *place) {
-	return sizeof(cde40_t);
-}
-
-/* Calculates the size of @count units in passed @place at passed @pos */
+/* Calculates the size of @count units (entries) in passed @place at passed
+   @pos. */
 uint32_t cde40_regsize(place_t *place, uint32_t pos, uint32_t count) {
 	uint32_t pol;
 	uint32_t size;
@@ -462,8 +464,8 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 	return offset;
 }
 
-/* Predicts how many entries and bytes can be shifted from the @src_item to
-   @dst_item. The behavior of the function depends on the passed @hint. */
+/* Predicts how many entries and bytes can be shifted from the @src_place to
+   @dst_place. The behavior of the function depends on the passed @hint. */
 static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 				shift_hint_t *hint)
 {
@@ -485,7 +487,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	/* Substracting cde item overhead in the case of shift to new create cde
 	   item, whcih needs to have own cde40 header. */
 	if (!dst_place || dst_place->pos.unit == MAX_UINT32)
-		hint->rest -= cde40_overhead(src_place);
+		hint->rest -= sizeof(cde40_t);
 	
 	space = hint->rest;
 
@@ -501,7 +503,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	flags = hint->control;
 	
 	curr = (hint->control & SF_LEFT_SHIFT ? 0 : src_units - 1);
-	
+
 	check = (src_place->pos.item == hint->pos.item &&
 		 hint->pos.unit != MAX_UINT32);
 
@@ -585,14 +587,13 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 
 	/* Updating @hint->rest. It is needed for unit shifting. This value is
 	   number of bytes to be moved from @src_place to @dst_place. */
-	if (hint->units > 0) {
+	if (hint->units > 0)
 		hint->rest -= space;
-	}
 	
 	return 0;
 }
 
-/* Makes shift of the entries from the @src_place to the @dst_place */
+/* Makes shift of the entries from the @src_place to the @dst_place. */
 static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 				 shift_hint_t *hint)
 {
@@ -605,7 +606,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	/* Substracting cde item overhead in the case of shift to new create cde
 	   item, whcih needs to have own cde40 header. */
 	if (dst_place->pos.unit == MAX_UINT32)
-		hint->rest -= cde40_overhead(src_place);
+		hint->rest -= sizeof(cde40_t);
 	
 	if (hint->control & SF_LEFT_SHIFT) {
 		src_pos = 0;
@@ -638,8 +639,8 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	return 0;
 }
 
-/* Estimates how much bytes will be needed to prepare in node in odrer to make
-   room for inserting new entries. */
+/* Estimates how many bytes will be needed to make room for inserting new
+   entries. */
 static errno_t cde40_prep_insert(place_t *place, trans_hint_t *hint) {
 	uint32_t i, pol;
 	entry_hint_t *entry;
@@ -676,12 +677,12 @@ static errno_t cde40_prep_insert(place_t *place, trans_hint_t *hint) {
 	   count item overhead, that is cde40 header which contains the number
 	   of entries in item. */
 	hint->ohd = (place->pos.unit == MAX_UINT32 ?
-		     cde40_overhead(place) : 0);
+		     sizeof(cde40_t) : 0);
 	
 	return 0;
 }
 
-/* Inserts new entries to cde item */
+/* Inserts new entries to cde item. */
 static int64_t cde40_insert_units(place_t *place, trans_hint_t *hint) {
 	void *entry;
 	uint32_t pol, i, offset;
@@ -778,6 +779,8 @@ static int64_t cde40_insert_units(place_t *place, trans_hint_t *hint) {
 	return hint->count;
 }
 
+/* Remove some number of entries (based on passed @hint) from cde40 item
+   starting from @pos. */
 errno_t cde40_delete(place_t *place, uint32_t pos,
 		     trans_hint_t *hint)
 {
@@ -796,9 +799,7 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 	}
 
 	hint->bytes = bytes;
-	
-	hint->ohd = (pos == MAX_UINT32 ?
-		     cde40_overhead(place) : 0);
+	hint->ohd = (pos == MAX_UINT32 ? sizeof(cde40_t) : 0);
 	
 	return 0;
 }
@@ -832,9 +833,9 @@ static errno_t cde40_print(place_t *place, aal_stream_t *stream,
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
 			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
 	
-	/* Loop though the all entries */
 	pol = cde40_key_pol(place);
-		
+
+	/* Loop though the all entries and print them to @stream. */
 	for (i = 0; i < cde_get_units(place); i++) {
 		uint64_t offset, haobj;
 		void *objid = cde40_objid(place, i);
@@ -850,13 +851,15 @@ static errno_t cde40_print(place_t *place, aal_stream_t *stream,
 			name[13 + j] = '\0';
 		}
 
+		/* Getting locality, objectid. */
 		locality = ob_get_locality(objid, pol);
 		objectid = ob_get_objectid(objid, pol);
 		namewidth = 16 - aal_strlen(name) + 1;
 
 		offset = ha_get_offset(entry, pol);
 		haobj = ha_get_objectid(entry, pol);
-		
+
+		/* Putting data to @stream. */
 		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
 				  "%.7llx:%.7llx\n", 3, i, name, namewidth,
 				  " ", 6, en_get_offset(entry, pol), haobj,
@@ -880,17 +883,18 @@ static errno_t cde40_maxreal_key(place_t *place,
 }
 
 static uint64_t cde40_size(place_t *place) {
+	aal_assert("umka-2677", place != NULL);
 	return cde40_number_units(place);
 }
 
 static uint64_t cde40_bytes(place_t *place) {
 	aal_assert("vpf-1211", place != NULL);
-	return place->len - sizeof(uint16_t);
+	return (place->len - sizeof(uint16_t));
 }
 #endif
 
-/* Returns maximal possible key in the item. It is needed durring lookup and in
-   other cases. */
+/* Returns maximal possible key in passed item. It is needed durring lookup and
+   in other cases. */
 errno_t cde40_maxposs_key(place_t *place, 
 			  key_entity_t *key) 
 {
@@ -902,9 +906,12 @@ errno_t cde40_maxposs_key(place_t *place,
 	plug_call(place->key.plug->o.key_ops,
 		  assign, key, &place->key);
 
+	/* Getting maximal key from current key plugin. */
 	maxkey = plug_call(key->plug->o.key_ops,
 			   maximal);
-    
+
+	/* Setting up @key by mans of putting to it offset, ordering and
+	   objectid from values from maximal key. */
     	plug_call(key->plug->o.key_ops, set_ordering,
 		  key, plug_call(key->plug->o.key_ops,
 				 get_ordering, maxkey));
@@ -933,7 +940,7 @@ static int callback_comp_entry(void *array, uint32_t pos,
 			 compfull, &curr, (key_entity_t *)key);
 }
 
-/* Performs lookup inside cde. Found pos is stored in @pos */
+/* Performs lookup inside cde item. Found position is stored in @pos. */
 lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 		      bias_t bias)
 {
@@ -954,8 +961,8 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 	case 1:
 #ifndef ENABLE_STAND_ALONE
 		/* Making sure, that we have found right unit. This is needed
-		   because of possible key collition. We go to left until we
-		   find, that we found key smaller than passed one. */
+		   because of possible key collision. We move left direction
+		   until we find a key smaller than passed one. */
 		for (i = place->pos.unit - 1; i >= 0; i--) {
 			key_entity_t ekey;
 
@@ -963,7 +970,7 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 			cde40_get_hash(place, i, &ekey);
 
 			/* Comparing keys. We break the loop when keys as not
-			 * equal, that means, that we have found needed pos. */
+			   equal, that means, that we have found needed pos. */
 			if (!plug_call(key->plug->o.key_ops,
 				       compfull, key, &ekey))
 			{

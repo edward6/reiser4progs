@@ -1047,8 +1047,8 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 	}
 
 	/* If node is locked, that is it is not leaf or it is used by someone,
-	   it cannot be released, and thus, it dopes not make sence to save it
-	   to device. */
+	   it cannot be released, and thus, it does not make sence to save it to
+	   device. */
 	if (!reiser4_node_locked(node)) {
 #ifndef ENABLE_STAND_ALONE
 		/* Okay, node is allocated and ready to be saved to device. */

@@ -1193,7 +1193,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   created. This is needed for correct work of shift_units()
 		   method of some items, which do not have "units" field and
 		   calculate the number of units by own len, like extent40
-		   does.q */
+		   does. */
 		dst_place.len = 0;
 	} else {
 		/* Items are mergeable, so we do not need to create new item in
