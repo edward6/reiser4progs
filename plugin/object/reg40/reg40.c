@@ -736,6 +736,7 @@ static reiser4_object_ops_t reg40_ops = {
 		
 	.add_entry    = NULL,
 	.rem_entry    = NULL,
+	.check_struct = NULL,
 #endif
 	.lookup	      = NULL,
 	.follow       = NULL,
@@ -750,7 +751,6 @@ static reiser4_object_ops_t reg40_ops = {
 	.offset	      = reg40_offset,
 	.size         = reg40_size,
 	.read	      = reg40_read,
-	.check_struct = NULL
 };
 
 static reiser4_plugin_t reg40_plugin = {

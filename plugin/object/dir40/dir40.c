@@ -1043,6 +1043,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.rem_entry    = dir40_rem_entry,
 	.seek	      = NULL,
 	.write        = NULL,
+	.check_struct = NULL,
 #endif
 	.follow       = NULL,
 	.read         = NULL,
@@ -1055,7 +1056,6 @@ static reiser4_object_ops_t dir40_ops = {
 	.size	      = dir40_size,
 	.seekdir      = dir40_seekdir,
 	.readdir      = dir40_readdir,
-	.check_struct = NULL,
 
 #ifndef ENABLE_STAND_ALONE
 	.telldir      = dir40_telldir,

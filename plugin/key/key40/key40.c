@@ -313,30 +313,6 @@ static errno_t key40_build_generic(key_entity_t *key,
 	return 0;
 }
 
-/*
-static errno_t key40_build_short(key_entity_t *key,
-				 uint64_t locality,
-				 uint64_t objectid)
-{
-	aal_assert("umka-1960", key != NULL);
-
-	key40_clean(key);
-	key->plugin = &key40_plugin;
-	
-	k40_set_locality((key40_t *)key->body,
-			 (locality & KEY40_LOCALITY_MASK) >>
-			 KEY40_LOCALITY_SHIFT);
-
-	k40_set_objectid((key40_t *)key->body, objectid);
-	k40_set_minor((key40_t *)key->body,
-		      (locality & KEY40_TYPE_MASK));
-
-	k40_set_offset((key40_t *)key->body, 0);
-
-	return 0;
-}
-*/
-
 #ifndef ENABLE_STAND_ALONE
 /* Simple validness check */
 static errno_t key40_valid(key_entity_t *key) {
@@ -385,7 +361,6 @@ errno_t key40_print(key_entity_t *key,
 
 	return 0;
 }
-
 #endif
 
 static reiser4_key_ops_t key40_ops = {
