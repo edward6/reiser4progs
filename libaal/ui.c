@@ -1,6 +1,6 @@
 /*
-    ui.c -- callback function for using them for asking user to enter something.
-    Copyright 1996-2002 (C) Hans Reiser.
+  ui.c -- callback function for using them for asking user to enter something.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #include <aal/aal.h>
@@ -16,14 +16,14 @@ aal_numeric_func_t aal_ui_get_numeric_handler(void) {
 }
 
 int64_t aal_ui_get_numeric(int64_t defvalue, 
-    aal_check_numeric_func_t check_func, void *data,
-    const char *format, ...) 
+						   aal_check_numeric_func_t check_func,
+						   void *data, const char *format, ...) 
 {
     char buff[256];
     va_list arg_list;
     
     if (!numeric_handler)
-	return ~0ll;
+		return ~0ll;
     
     aal_memset(buff, 0, sizeof(buff));
     
@@ -45,14 +45,14 @@ aal_alpha_func_t aal_ui_get_alpha_handler(void) {
 }
 
 char *aal_ui_get_alpha(char *defvalue, 
-    aal_check_alpha_func_t check_func, void *data,
-    const char *format, ...)
+					   aal_check_alpha_func_t check_func,
+					   void *data, const char *format, ...)
 {
     char buff[256];
     va_list arg_list;
     
     if (!alpha_handler)
-	return NULL;
+		return NULL;
     
     aal_memset(buff, 0, sizeof(buff));
     

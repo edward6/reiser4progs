@@ -328,11 +328,11 @@ static reiser4_entity_t *dir40_create(const void *tree,
     
     if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
 											  hint->body.dir.hash_pid)))
-		{
-			aal_exception_error("Can't find hash plugin by its id 0x%x.", 
-								hint->body.dir.hash_pid);
-			goto error_free_dir;
-		}
+	{
+		aal_exception_error("Can't find hash plugin by its id 0x%x.", 
+							hint->body.dir.hash_pid);
+		goto error_free_dir;
+	}
     
     locality = plugin_call(return NULL, 
 						   object->plugin->key_ops, get_objectid, parent->body);
@@ -345,23 +345,23 @@ static reiser4_entity_t *dir40_create(const void *tree,
     
     if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 												hint->statdata_pid)))
-		{
-			aal_exception_error("Can't find stat data item plugin by its id 0x%x.", 
-								hint->statdata_pid);
-	
-			goto error_free_dir;
-		}
+	{
+		aal_exception_error("Can't find stat data item plugin by its id 0x%x.", 
+							hint->statdata_pid);
+
+		goto error_free_dir;
+	}
    
     {
 		rpid_t body_pid = hint->body.dir.direntry_pid;
 
 		if (!(body_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 													body_pid)))
-			{
-				aal_exception_error("Can't find direntry item plugin by its id 0x%x.", 
-									body_pid);
-				goto error_free_dir;
-			}
+		{
+			aal_exception_error("Can't find direntry item plugin by its id 0x%x.", 
+								body_pid);
+			goto error_free_dir;
+		}
     }
     
     /* 
@@ -426,10 +426,10 @@ static reiser4_entity_t *dir40_create(const void *tree,
 
     if (plugin_call(goto error_free_dir, body_plugin->item_ops, estimate, 
 					NULL, ~0ul, &body_hint))
-		{
-			aal_exception_error("Can't estimate directory item.");
-			goto error_free_dir;
-		}
+	{
+		aal_exception_error("Can't estimate directory item.");
+		goto error_free_dir;
+	}
     
     unix_ext.bytes = body_hint.len;
     

@@ -318,7 +318,8 @@ int main(int argc, char *argv[]) {
 		/* Checking for "quiet" mode */
 		if (!quiet) {
 			if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, 
-									"Reiser4 is going to be created on %s.", host_dev) == EXCEPTION_NO)
+									"Reiser4 with %s profile is going to be created "
+									"on %s.", profile_label, host_dev) == EXCEPTION_NO)
 				goto error_free_device;
 		}
     

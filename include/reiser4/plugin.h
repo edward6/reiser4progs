@@ -1057,20 +1057,20 @@ typedef struct reiser4_core reiser4_core_t;
 /* Plugin functions and macros */
 #ifndef ENABLE_COMPACT
 
-#define plugin_call(action, ops, method, args...)		    \
-    ({								    \
-	if (!ops.method) {					    \
-	    aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,	    \
-		"Method \"" #method "\" isn't implemented in %s.",  \
-		#ops);						    \
-	    action;						    \
-	}							    \
-	ops.method(args);					    \
+#define plugin_call(action, ops, method, args...)	                \
+    ({								                                \
+	    if (!ops.method) {					                        \
+	        aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,	    \
+		        "Method \"" #method "\" isn't implemented in %s.",  \
+		        #ops);						                        \
+	        action;						                            \
+	    }							                                \
+	    ops.method(args);					                        \
     })
 
 #else
 
-#define plugin_call(action, ops, method, args...) \
+#define plugin_call(action, ops, method, args...)                   \
     ops.method(args);
     
 #endif
@@ -1080,12 +1080,12 @@ typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
 
 #if defined(ENABLE_COMPACT) || defined(ENABLE_MONOLITHIC)
     
-#define plugin_register(entry)					    \
-    static reiser4_plugin_entry_t __plugin_entry		    \
-	__attribute__((__section__(".plugins"))) = entry
+#define plugin_register(entry)					                    \
+    static reiser4_plugin_entry_t __plugin_entry		            \
+	    __attribute__((__section__(".plugins"))) = entry
 #else
 
-#define plugin_register(entry)					    \
+#define plugin_register(entry)					                    \
     reiser4_plugin_entry_t __plugin_entry = entry
 
 #endif

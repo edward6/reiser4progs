@@ -1,7 +1,7 @@
 /*
-    exception.c -- exceptions handling functions. Exception mechanism is used
-    in order to provide unified interface for error handling.
-    Copyright (C) 1996-2002 Hans Reiser.
+  exception.c -- exceptions handling functions. Exception mechanism is used
+  in order to provide unified interface for error handling.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -35,60 +35,60 @@ static char *option_names[] = {
 static int disable_count = 0;
 
 /* 
-    Helper functions for getting different exception attributes (option string, 
-    type string, etc). They are used in exception handing functions.
+   Helper functions for getting different exception attributes (option string, 
+   type string, etc). They are used in exception handing functions.
 */
 char *aal_exception_type_name(
-    aal_exception_type_t type		/* exception type to be converted to string */
-) {
+    aal_exception_type_t type)		/* exception type to be converted to string */
+{
     return type_names[type - 1];
 }
 
 /* Returns exception type from passed exception instance */
 aal_exception_type_t aal_exception_type(
-    aal_exception_t *exception		/* exception, type wil be obtained from */
-) {
+    aal_exception_t *exception)		/* exception, type wil be obtained from */
+{
     return exception->type;
 }
 
 /* Converts passed exception option into corresponding string */
 char *aal_exception_option_name(
-    aal_exception_option_t opt		/* exception option to be converted to string */
-) {
+    aal_exception_option_t opt)		/* exception option to be converted to string */
+{
     return option_names[aal_log2(opt) - 1];
 }
 
 /* Returns exception option from passed exception */
 aal_exception_option_t aal_exception_option(
-    aal_exception_t *exception		/* exception, option will be obtained from */
-) {
+    aal_exception_t *exception)		/* exception, option will be obtained from */
+{
     return exception->options;
 }
 
 /* Retutrns exception message */
 char *aal_exception_message(
-    aal_exception_t *exception		/* exception, message will be obtained from */
-) {
+    aal_exception_t *exception)		/* exception, message will be obtained from */
+{
     return exception->message;
 }
 
 /* 
-    Sets alternative exception handler, if passed handler isn't NULL. Otherwise 
-    sets exception handler into default one.
- */
+   Sets alternative exception handler, if passed handler isn't NULL. Otherwise 
+   sets exception handler into default one.
+*/
 void aal_exception_set_handler(
-    aal_exception_handler_t handler	/* new exception handler */
-) {
+    aal_exception_handler_t handler) /* new exception handler */
+{
     exception_handler = handler;
 }
 
 /* Finishes exception life cycle, that is, destroys exception */
 void aal_exception_catch(
-    aal_exception_t *exception		/* exception, to be destroyed */
-) {
+    aal_exception_t *exception)		/* exception, to be destroyed */
+{
     if (!exception) return;
     
-    aal_free(exception->message);
+	aal_free(exception->message);
     aal_free(exception);
 }
 
@@ -102,7 +102,7 @@ static aal_exception_option_t aal_exception_actual_throw(
     aal_exception_option_t opt;
 
     if (!exception_handler || disable_count)
-	return EXCEPTION_UNHANDLED;
+		return EXCEPTION_UNHANDLED;
 	
     opt = exception_handler(exception);
     aal_exception_catch(exception);
@@ -117,19 +117,19 @@ static aal_exception_option_t aal_exception_actual_throw(
 aal_exception_option_t aal_exception_throw(
     aal_exception_type_t type,		/* exception type */
     aal_exception_option_t opts,	/* exception options */
-    const char *message,		/* format string for exception message */ 
-    ...					/* a number of parameters for format string */
-) {
+    const char *message,		    /* format string for exception message */ 
+    ...)					        /* a number of parameters for format string */
+{
     va_list arg_list;
     aal_exception_t *exception;
 
     /* Alloacting memory for exception */
     if (!(exception = (aal_exception_t *)aal_malloc(sizeof(aal_exception_t))))
-	goto error_no_memory;
+		goto error_no_memory;
 
     /* Allocating memory for exception message */
     if (!(exception->message = (char*)aal_calloc(4096, 0)))
-	goto error_no_memory;
+		goto error_no_memory;
 
     /* Initializing exception instance by passed params */
     exception->type = type;

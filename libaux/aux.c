@@ -1,27 +1,27 @@
 /*
-    aux.c -- miscellaneous useful code. 
-    Copyright (C) 1996-2002 Hans Reiser.
+  aux.c -- miscellaneous useful code. 
+  Copyright (C) 1996-2002 Hans Reiser.
 */  
 
 #include <aux/aux.h>
 
 /* 
-    This implements binary search for "needle" among "count" elements.
+   This implements binary search for "needle" among "count" elements.
     
-    Return values: 
-    1 - key on *pos found exact key on *pos position; 
-    0 - exact key has not been found. key of *pos < then wanted.
+   Return values: 
+   1 - key on *pos found exact key on *pos position; 
+   0 - exact key has not been found. key of *pos < then wanted.
 */
 
 int aux_binsearch(
-    void *array,		    /* opaque pointer to array item will be searched in */
-    uint32_t count,		    /* array length */
-    void *needle,		    /* array item to be found */
+    void *array,		            /* opaque pointer to array item will be searched in */
+    uint32_t count,		            /* array length */
+    void *needle,		            /* array item to be found */
     reiser4_elem_func_t elem_func,  /* callback function for getting next item from the array */
     reiser4_comp_func_t comp_func,  /* callback function for comparing items from the array */
-    void *data,			    /* user-specified data */
-    uint64_t *pos		    /* pointer result will be saved in */
-) {
+    void *data,			            /* user-specified data */
+    uint64_t *pos)		            /* pointer result will be saved in */
+{
     void *elem;
     int res = 0;
     int left, right, i;
@@ -36,23 +36,23 @@ int aux_binsearch(
 
     for (i = (right + left) / 2; left <= right; i = (right + left) / 2) {
 	
-	if (!(elem = elem_func(array, i, data)))
-	    return -1;
+		if (!(elem = elem_func(array, i, data)))
+			return -1;
 	
-	res = comp_func(elem, needle, data);
-	if (res == -1) {
-	    left = i + 1;
-	    continue;
-	} else if (res == 1) {
-	    if (i == 0)
-		break;
+		res = comp_func(elem, needle, data);
+		if (res == -1) {
+			left = i + 1;
+			continue;
+		} else if (res == 1) {
+			if (i == 0)
+				break;
 	    
-	    right = i - 1;
-	    continue;
-	} else {
-	    *pos = i;
-	    return 1;
-	}	
+			right = i - 1;
+			continue;
+		} else {
+			*pos = i;
+			return 1;
+		}	
     }
 
     *pos = left - (left > 0 ? 1 : 0);
@@ -63,24 +63,24 @@ int aux_binsearch(
 
 long int aux_strtol(
     const char *str,	    /* string to be converted */
-    int *error		    /* error will be stored here */
-) {
+    int *error)		        /* error will be stored here */
+{
     char *err;
     long result = 0;
 
     if (error)
-	*error = 0;
+		*error = 0;
 	
     if (!str) {
-	if (error) *error = 1; 
-	return 0;
+		if (error) *error = 1; 
+		return 0;
     }	
 	
     result = strtol(str, &err, 10);
 	
     if (errno == ERANGE || *err) {
-	if (error) *error = 1;
-	return 0;
+		if (error) *error = 1;
+		return 0;
     }	
 	
     return result;
@@ -89,15 +89,15 @@ long int aux_strtol(
 char *aux_strncat(
     char *dest,		    /* a buffer where result will be stored */
     uint32_t n,		    /* size of the buffer */
-    const char *src,	    /* format string */
-    ...			    /* list of params */
-) {
+    const char *src,	/* format string */
+    ...)		        /* list of params */
+{
     va_list arg_list;
     
     va_start(arg_list, src);
 
     aal_vsnprintf(dest + aal_strlen(dest), 
-	n - aal_strlen(dest), src, arg_list);
+				  n - aal_strlen(dest), src, arg_list);
     
     va_end(arg_list);
     
@@ -105,4 +105,3 @@ char *aux_strncat(
 }
 
 #endif
-
