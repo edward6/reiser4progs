@@ -117,9 +117,10 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			goto error_free_entity;
 		}
 		
-		plugin_call(plugin->object_ops, close, object->entity);
-		object->entity = NULL;
 	}
+
+	plugin_call(plugin->object_ops, close, object->entity);
+	object->entity = NULL;
 	
 	return 0;
 

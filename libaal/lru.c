@@ -9,8 +9,6 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
-
 #include <aal/aal.h>
 
 errno_t aal_lru_adjust(aal_lru_t *lru) {
@@ -26,8 +24,12 @@ errno_t aal_lru_adjust(aal_lru_t *lru) {
 		data = walk->data;
 		walk = walk->prev;
 
-		if (!lru->ops->sync(data))
-			continue;
+#ifndef ENABLE_ALONE
+		if (lru->ops->sync) {
+			if (!lru->ops->sync(data))
+				continue;
+		}
+#endif
 
 		lru->ops->free(data);
 	}
@@ -62,7 +64,9 @@ errno_t aal_lru_attach(aal_lru_t *lru, void *data) {
 	aal_assert("umka-1526", data != NULL);
 
 	lru->ops->set_prev(data, lru->list);
-	lru->ops->set_next(data, lru->list ? lru->list->next : NULL);
+
+	lru->ops->set_next(data, lru->list ?
+			   lru->list->next : NULL);
 	
 	lru->list = aal_list_append(lru->list, data);
 
@@ -112,5 +116,3 @@ errno_t aal_lru_touch(aal_lru_t *lru, void *data) {
 	aal_lru_detach(lru, data);
 	return aal_lru_attach(lru, data);
 }
-
-#endif

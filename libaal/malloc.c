@@ -103,9 +103,9 @@ struct chunk {
 	chunk_state_t state;
 } __attribute__((packed));
 
-static unsigned mem_len = 0;
-static unsigned mem_free = 0;
 static void *mem_start = NULL;
+static unsigned int mem_len = 0;
+static unsigned int mem_free = 0;
 
 static void __chunk_init(void *ptr, int len,
 			 chunk_state_t state,
@@ -216,6 +216,7 @@ static void *__chunk_alloc(unsigned int size) {
 			/* Check if we need to split @walk chunk */
 			if (__chunk_exact(walk, size)) {
 				walk->state = ST_USED;
+				mem_free -= walk->len;
 				return (void *)walk + sizeof(chunk_t);
 			}
 			
@@ -231,17 +232,16 @@ static void *__chunk_alloc(unsigned int size) {
 
 /* Frees passed memory pointer */
 static void __chunk_free(void *ptr) {
-	unsigned int len;
-	chunk_t *curr = ptr2chunk(ptr);
+	chunk_t *chunk = ptr2chunk(ptr);
 
-	curr->state = ST_FREE;
-	mem_free += ((len = curr->len));
+	chunk->state = ST_FREE;
+	mem_free += chunk->len;
 
 	/*
 	  Fusing both left and right neighbour chunks if they are not used. This
 	  is needed for keep memory manager area in optimal state.
 	*/
-	__chunk_fuse(curr);
+	__chunk_fuse(chunk);
 }
 
 /* Initializes memory manager on passed memory area */

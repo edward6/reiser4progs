@@ -104,8 +104,6 @@ enum node_flags {
 
 typedef enum node_flags node_flags_t;
 
-#ifndef ENABLE_ALONE
-
 struct lru_link {
 
 	/* Pointers to next and prev items in lru list */
@@ -115,18 +113,14 @@ struct lru_link {
 
 typedef struct lru_link lru_link_t;
 
-#endif
-
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
 	
 	/* Place in parent node */
 	reiser4_place_t parent;
 
-#ifndef ENABLE_ALONE
 	/* Lru related fields */
 	lru_link_t lru_link;
-#endif
 
 	/*
 	  List of children nodes. It is used for constructing part of on-disk
@@ -289,6 +283,14 @@ struct reiser4_oid {
 
 typedef struct reiser4_oid reiser4_oid_t;
 
+typedef errno_t (*attach_func_t) (reiser4_tree_t *,
+				  reiser4_place_t *,
+				  reiser4_node_t *, void *);
+
+typedef errno_t (*detach_func_t) (reiser4_tree_t *,
+				  reiser4_place_t *,
+				  reiser4_node_t *, void *);
+
 #ifndef ENABLE_ALONE
 
 /* Tree modification trap typedefs */
@@ -300,14 +302,6 @@ typedef bool_t (*insert_func_t) (reiser4_tree_t *,
 typedef bool_t (*remove_func_t) (reiser4_tree_t *,
 				 reiser4_place_t *,
 				 void *);
-
-typedef errno_t (*attach_func_t) (reiser4_tree_t *,
-				  reiser4_place_t *,
-				  reiser4_node_t *, void *);
-
-typedef errno_t (*detach_func_t) (reiser4_tree_t *,
-				  reiser4_place_t *,
-				  reiser4_node_t *, void *);
 
 typedef errno_t (*pack_func_t) (reiser4_tree_t *,
 				reiser4_place_t *,
@@ -337,18 +331,21 @@ struct reiser4_tree {
 	/* Tree root key */
 	reiser4_key_t key;
 
-#ifndef ENABLE_ALONE
 	/*
 	  The list of nodes present in tree cache sorted in recently used
 	  order. Thanks a lot to Nikita for this good idea.
 	*/
 	aal_lru_t *lru;
 
+#ifndef ENABLE_ALONE
 	/* Tree operation control flags */
 	uint32_t flags;
+#endif
 	
 	/* Tree modification traps */
 	struct {
+
+#ifndef ENABLE_ALONE
 		/* These traps will be called durring insert an item/unit */
 		insert_func_t pre_insert;
 		insert_func_t post_insert;
@@ -356,7 +353,7 @@ struct reiser4_tree {
 		/* These traps will be called durring remove an item/unit */
 		remove_func_t pre_remove;
 		remove_func_t post_remove;
-
+#endif
 		/*
 		  These traps will be called for connect/disconnect nodes in
 		  tree. They may be used for keeping track nodes in tree.
@@ -364,6 +361,7 @@ struct reiser4_tree {
 		attach_func_t connect;
 		detach_func_t disconnect;
 
+#ifndef ENABLE_ALONE
 		/*
 		  This trap is called by any remove from the tree. It may be
 		  used for implementing an alternative tree packing in remove
@@ -372,12 +370,11 @@ struct reiser4_tree {
 		  into target one.
 		*/
 		pack_func_t pack;
+#endif
 
 		/* Traps used opaque data  */
 		void *data;
 	} traps;
-#endif
-	
 };
 
 #ifndef ENABLE_ALONE

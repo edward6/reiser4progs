@@ -23,6 +23,8 @@ static inline errno_t callback_tree_pack(reiser4_tree_t *tree,
 	return reiser4_tree_shrink(tree, place);
 }
 
+#endif
+
 static int callback_node_free(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	
@@ -32,10 +34,14 @@ static int callback_node_free(void *data) {
 	return reiser4_tree_unload(node->tree, node) == 0;
 }
 
+#ifndef ENABLE_ALONE
+
 static int callback_node_sync(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	return reiser4_node_sync(node) == 0;
 }
+
+#endif
 
 static aal_list_t *callback_get_next(void *data) {
 	return ((reiser4_node_t *)data)->lru_link.next;
@@ -55,14 +61,14 @@ static void callback_set_prev(void *data, aal_list_t *prev) {
 		
 static lru_ops_t lru_ops = {
 	.free      = callback_node_free,
+#ifndef ENABLE_ALONE
 	.sync      = callback_node_sync,
+#endif
 	.get_next  = callback_get_next,
 	.set_next  = callback_set_next,
 	.get_prev  = callback_get_prev,
 	.set_prev  = callback_set_prev
 };
-
-#endif
 
 /* Dealing with loading root node if it is not loaded yet */
 static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
@@ -154,7 +160,6 @@ errno_t reiser4_tree_connect(
 	reiser4_node_lock(parent);
 	node->tree = tree;
 
-#ifndef ENABLE_ALONE
 	if (tree->traps.connect) {
 		reiser4_place_t place;
 			
@@ -173,17 +178,10 @@ errno_t reiser4_tree_connect(
 		
 		reiser4_node_unlock(node);
 	}
-#endif
-	
-#ifndef ENABLE_ALONE
 	
 	/* Attaching new node into tree's lru list */
-	if ((res = aal_lru_attach(tree->lru, (void *)node))) {
-		aal_exception_error("Can't attach node %llu to "
-				    "tree LRU.", node->blk);
+	if ((res = aal_lru_attach(tree->lru, (void *)node)))
 		return res;
-	}
-#endif
 	
 	return res;
 }
@@ -203,7 +201,6 @@ errno_t reiser4_tree_disconnect(
 	aal_assert("umka-1858", tree != NULL);
 	aal_assert("umka-563", node != NULL);
 
-#ifndef ENABLE_ALONE
 	if (tree->traps.disconnect) {
 		reiser4_place_t place;
 
@@ -233,7 +230,6 @@ errno_t reiser4_tree_disconnect(
 			return res;
 
 	}
-#endif
 	
 	/* Disconnecting left and right neighbours */
 	if (node->left) {
@@ -246,12 +242,9 @@ errno_t reiser4_tree_disconnect(
 		node->right = NULL;
 	}
 
-#ifndef ENABLE_ALONE
-	
 	/* Detaching node from the global tree LRU list */
 	if ((res = aal_lru_detach(tree->lru, (void *)node)))
 		return res;
-#endif
 	
 	/*
 	  If parent is not exist, then we consider the @node is root and do not
@@ -305,18 +298,12 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		if (parent && reiser4_tree_connect(tree, parent, node))
 			goto error_free_node;
 	} else {
-#ifndef ENABLE_ALONE		
 		/*
 		  Touching node in LRU list in odrer to let it know that we
 		  access it and in such maner move to the head of list.
 		*/
-		if (aal_lru_touch(tree->lru, (void *)node)) {
-			aal_exception_error("Updating tree LRU is failed "
-					    "while node loading from the "
-					    "tree cache.");
+		if (aal_lru_touch(tree->lru, (void *)node))
 			return NULL;
-		}
-#endif
 	}
 
 	return node;
@@ -620,10 +607,7 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 
 void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_assert("umka-1531", tree != NULL);
-	
-#ifndef ENABLE_ALONE
 	aal_lru_free(tree->lru);
-#endif
 }
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
@@ -645,13 +629,10 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		goto error_free_tree;
 	}
     
-#ifndef ENABLE_ALONE
-	if (!(tree->lru = aal_lru_create(&lru_ops))) {
-		aal_exception_error("Can't initialize tree cache "
-				    "lru list.");
+	if (!(tree->lru = aal_lru_create(&lru_ops)))
 		goto error_free_tree;
-	}
 
+#ifndef ENABLE_ALONE
 	reiser4_tree_pack_on(tree);
 	tree->traps.pack = callback_tree_pack;
 #endif
@@ -859,10 +840,6 @@ lookup_t reiser4_tree_lookup(
 			aal_exception_error("Can't load node by its nodeptr.");
 			return LP_FAILED;
 		}
-
-		/* Unloading parent node data */
-/*		if (reiser4_node_unload(node))
-			return LP_FAILED;*/
 		
 		deep--;
 	}

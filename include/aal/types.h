@@ -131,11 +131,12 @@ typedef int (*comp_func_t) (const void *, const void *, void *);
 */
 typedef int (*foreach_func_t) (const void *, const void *);
 
-#ifndef ENABLE_ALONE
-
 struct lru_ops {
 	int (*free) (void *);
+
+#ifndef ENABLE_ALONE
 	int (*sync) (void *);
+#endif
 
 	aal_list_t *(*get_next) (void *);
 	void (*set_next) (void *, aal_list_t *);
@@ -153,8 +154,6 @@ struct aal_lru {
 };
 
 typedef struct aal_lru aal_lru_t;
-
-#endif
 
 /* 
    This types is used for keeping the block number and block count value. They
