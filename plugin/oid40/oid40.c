@@ -1,7 +1,6 @@
 /*
     oid40.c -- reiser4 default oid allocator plugin.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

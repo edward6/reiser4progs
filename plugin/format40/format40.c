@@ -1,7 +1,6 @@
 /*
     format40.c -- default disk-layout plugin for reiser4.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include "format40.h"

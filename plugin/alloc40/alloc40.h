@@ -1,7 +1,6 @@
 /*
     alloc40.h -- default block allocator plugin for reiser4.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef ALLOC40_H

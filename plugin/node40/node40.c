@@ -1,7 +1,6 @@
 /*
     node40.c -- reiser4 default node plugin.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include "node40.h"

@@ -1,7 +1,6 @@
 /*
     format40_repair.c -- repair methods for the default disk-layout plugin for reiserfs 4.0.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 /* Remove it when exception will know how to get an open answer. */

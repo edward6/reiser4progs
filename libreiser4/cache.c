@@ -1,7 +1,6 @@
 /*
     cache.c -- reiser4 balanced tree cache functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <reiser4/reiser4.h>

@@ -1,7 +1,6 @@
 /*
     alloc.h -- reiser4 block allocator functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef ALLOC_H

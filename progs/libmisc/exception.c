@@ -1,7 +1,6 @@
 /*
     exception.c -- common for all progs exception handler and related functions.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

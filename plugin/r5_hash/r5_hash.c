@@ -1,7 +1,6 @@
 /*
     r5_hash.c -- r5 hash.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <reiser4/plugin.h>

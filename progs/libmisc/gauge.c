@@ -1,7 +1,6 @@
 /*
     gauge.c -- common for all progs gauge fucntions.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <stdio.h>

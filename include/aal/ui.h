@@ -1,7 +1,6 @@
 /*
     ui.c -- callback function for using them for ask user enter something.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef UI_H

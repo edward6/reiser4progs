@@ -1,7 +1,6 @@
 /*
     factory.h -- plugin factory header file.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef FACTORY_H

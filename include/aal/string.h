@@ -5,7 +5,6 @@
     doesn't exist due to libc is not in use.
     
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef STRING_H

@@ -1,7 +1,6 @@
 /*
     cache.h -- functions which work with node cache.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets. 
 */
 
 #ifndef CACHE_H

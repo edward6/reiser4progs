@@ -1,7 +1,6 @@
 /*
     info.c -- a demo program that demonstrates opening reiser4 and getting some information.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

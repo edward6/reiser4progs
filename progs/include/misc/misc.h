@@ -1,7 +1,6 @@
 /*
     misc.h -- reiser4progs common include.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef REISER4_MISC_H

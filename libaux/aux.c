@@ -1,7 +1,6 @@
 /*
     aux.c -- miscellaneous useful code. 
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */  
 
 #include <aux/aux.h>

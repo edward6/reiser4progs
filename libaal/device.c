@@ -1,7 +1,6 @@
 /*
     device.c -- device independent interface and block-working functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <aal/aal.h>

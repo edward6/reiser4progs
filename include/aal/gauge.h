@@ -1,7 +1,6 @@
 /*
     gauge.h -- progress-bar structures.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef GAUGE_H

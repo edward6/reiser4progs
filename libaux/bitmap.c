@@ -3,7 +3,6 @@
     plugin.
     
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <aux/bitmap.h>

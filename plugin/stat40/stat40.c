@@ -1,7 +1,6 @@
 /*
     stat40.c -- reiser4 default stat data plugin.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include "stat40.h"

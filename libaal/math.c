@@ -1,7 +1,6 @@
 /*
     math.c -- some math functions needed by libaal.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 /*

@@ -1,7 +1,6 @@
 /*
     reg40.c -- reiser4 default regular file plugin.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

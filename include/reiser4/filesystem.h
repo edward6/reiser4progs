@@ -1,7 +1,6 @@
 /*
     filesystem.h -- reiser4 filesystem structures and macros.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef FILESYSTEM_H

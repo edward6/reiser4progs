@@ -1,7 +1,6 @@
 /*
     fnv1_hash.c -- fnv1 hash.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <reiser4/plugin.h>

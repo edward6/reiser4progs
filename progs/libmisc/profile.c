@@ -1,7 +1,6 @@
 /*
     profile.c -- methods for working with profiles in reiser4 programs.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 #include <misc/profile.h>

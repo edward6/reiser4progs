@@ -1,9 +1,7 @@
 /*
     sdext_unix.h -- stat data exception plugin, that implements unix stat data 
     fields.
-    
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef SDEXT_UNIX_H

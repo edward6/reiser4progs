@@ -1,7 +1,6 @@
 /*
     oid40.h -- reiser4 default oid allocator structures.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef OID40_H

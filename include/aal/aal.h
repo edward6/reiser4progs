@@ -6,7 +6,6 @@
     processor, no libc).
     
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef AAL_H

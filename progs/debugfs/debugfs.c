@@ -1,7 +1,6 @@
 /*
     debugfs.c -- program to debug reiser4 filesystem.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

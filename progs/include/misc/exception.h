@@ -1,7 +1,6 @@
 /*
     exception.h -- common for all progs exception functions.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef PROGS_EXCEPTION_H

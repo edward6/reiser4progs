@@ -1,7 +1,6 @@
 /*
     sdext_lw.h -- stat data plugin, that implements base stat data fields.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef SDEXT_LW_H

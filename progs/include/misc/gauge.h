@@ -1,7 +1,6 @@
 /*
     gauge.h -- common for all progs gauge fucntions.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef PROGS_GAUGE_H

@@ -1,7 +1,6 @@
 /*
     coord.h -- reiser4 tree coord functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef COORD_H

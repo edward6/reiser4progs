@@ -1,7 +1,6 @@
 /*
     stat40.h -- reiser4 default stat data structures.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 #ifndef STAT40_H

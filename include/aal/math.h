@@ -1,7 +1,6 @@
 /*
     math.h -- some math functions which are needed by libaal.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef MATH_H

@@ -1,7 +1,6 @@
 /*
     debug.h -- assert through exception implementation.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef DEBUG_H

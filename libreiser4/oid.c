@@ -1,7 +1,6 @@
 /*
     oid.c -- oid allocator common code.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

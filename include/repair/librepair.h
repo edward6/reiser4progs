@@ -1,7 +1,6 @@
 /*
     repair/librepair.h -- the central recovery include file.
     Copyright (C) 1996 - 2002 Hans Reiser
-    Author Vitaly Fertman
 */
 
 #ifndef LIBREPAIR_H

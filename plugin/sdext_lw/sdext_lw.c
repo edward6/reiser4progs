@@ -3,7 +3,6 @@
     stat data fields.
     
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include "sdext_lw.h"

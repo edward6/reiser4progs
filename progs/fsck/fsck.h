@@ -1,7 +1,6 @@
 /*
     fsck.h -- fsck structure declarations.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.    
 */
 
 #ifdef HAVE_CONFIG_H

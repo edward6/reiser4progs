@@ -1,7 +1,6 @@
 /*
     extent40 -- resier4 default extent plugin.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef EXTENT40

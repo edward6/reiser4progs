@@ -1,7 +1,6 @@
 /*
     format36.h -- disk-layout plugin for reiser3.6.x.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef FORMAT36_H

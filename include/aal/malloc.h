@@ -4,9 +4,7 @@
     corresponding memory allocation functions, which are used in certain alone
     application (bootloaders, etc). In the standard mode they are pointed to 
     libc memory allocation functions (malloc, free, etc).
-    
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef MALLOC_H

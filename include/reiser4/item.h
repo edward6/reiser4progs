@@ -1,7 +1,6 @@
 /*
     item.h -- common item functions.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef ITEM_H

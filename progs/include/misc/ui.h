@@ -1,7 +1,6 @@
 /*
     ui.h -- common for all progs function for work with libreadline.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef PROGS_UI_H

@@ -4,9 +4,7 @@
     reiser4_coord_t contains pointer to cache where needed unit or item lies,
     item position and unit position in specified item. As cache is wrapper for 
     reiser4_node_t, we are able to access nodes stored in cache by nodes funcs.
-    
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <reiser4/reiser4.h>

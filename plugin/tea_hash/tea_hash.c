@@ -1,7 +1,6 @@
 /*
     tea_hash.c -- tea hash.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <reiser4/plugin.h>

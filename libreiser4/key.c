@@ -1,7 +1,6 @@
 /*
     key.c -- reiser4 common key code.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */  
 
 #include <reiser4/reiser4.h>

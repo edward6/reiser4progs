@@ -1,7 +1,6 @@
 /*
     librepair/node.c - methods are needed for node recovery.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 #include <repair/librepair.h>

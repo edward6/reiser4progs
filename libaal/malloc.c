@@ -1,7 +1,6 @@
 /*
     malloc.c -- hanlders for memory allocation functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <aal/aal.h>

@@ -1,7 +1,6 @@
 /*
     node.h -- reiser4 formated node functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */ 
 
 #ifndef NODE_H

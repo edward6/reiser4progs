@@ -1,7 +1,6 @@
 /*
     misc.c -- some common tools for all reiser4 utilities.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include <stdio.h>

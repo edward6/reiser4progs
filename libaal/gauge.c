@@ -18,7 +18,6 @@
     failing report will be made.
     
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

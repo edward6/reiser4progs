@@ -1,7 +1,6 @@
 /*
     journal.h -- reiser4 filesystem journal functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef JOURNAL_H

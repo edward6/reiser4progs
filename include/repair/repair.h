@@ -1,7 +1,6 @@
 /*
     repair/repair.h -- the common structures and methods for recovery.
     Copyright (C) 1996 - 2002 Hans Reiser
-    Author Vitaly Fertman
 */
 
 #ifndef REPAIR_H

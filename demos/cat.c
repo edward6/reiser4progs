@@ -1,7 +1,6 @@
 /*
     cat.c -- a demo program which works like standard cat utility.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

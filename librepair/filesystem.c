@@ -2,7 +2,6 @@
     librepair/filesystem.c - methods are needed mostly by fsck for work 
     with broken filesystems.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 #include <repair/librepair.h>

@@ -1,7 +1,6 @@
 /*
     master.h -- master super block functions.
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef MASTER_H

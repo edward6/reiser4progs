@@ -1,7 +1,6 @@
 /*
     journal36.c -- journal plugin for reiser3.6.x.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include "journal36.h"

@@ -1,7 +1,6 @@
 /*
     key40_repair.c -- reiser4 default key plugin recovery methods.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 #include <aal/aal.h>

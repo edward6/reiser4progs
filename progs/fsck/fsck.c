@@ -1,7 +1,6 @@
 /*
     fsck.c -- reiser4 filesystem checking and recovering program.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 #ifndef _GNU_SOURCE

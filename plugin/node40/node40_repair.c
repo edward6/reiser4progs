@@ -1,7 +1,6 @@
 /*
     node40_repair.c -- reiser4 default node plugin.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Vitaly Fertman.
 */
 
 #include "node40.h"

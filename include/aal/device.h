@@ -1,7 +1,6 @@
 /*
     device.h -- device independent interface and block-working functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef DEVICE_H

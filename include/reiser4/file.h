@@ -1,7 +1,6 @@
 /*
     file.h -- reiser4 file functions.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef OBJECT_H

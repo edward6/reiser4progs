@@ -1,7 +1,6 @@
 /*
     debug.c -- implements assertions through exception mechanism.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifdef HAVE_CONFIG_H

@@ -3,7 +3,6 @@
     fields.
     
     Copyright 1996-2002 (C) Hans Reiser.
-    Author Yury Umanets.
 */
 
 #include "sdext_unix.h"

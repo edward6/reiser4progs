@@ -1,7 +1,6 @@
 /*
     journal40.h -- reiser4 default journal plugin.
     Copyright (C) 1996-2002 Hans Reiser.
-    Author Yury Umanets.
 */
 
 #ifndef JOURNAL40_H
