@@ -486,29 +486,50 @@ static int32_t dir40_write(object_entity_t *entity,
 	return i;
 }
 
+struct layout_hint {
+	object_entity_t *entity;
+	block_func_t func;
+	void *data;
+};
+
+typedef struct layout_hint layout_hint_t;
+
+static errno_t callback_item_data(item_entity_t *item,
+				  blk_t blk, void *data)
+{
+	layout_hint_t *hint = (layout_hint_t *)data;
+	return hint->func(hint->entity, blk, hint->data);
+}
+
 static errno_t dir40_layout(object_entity_t *entity,
 			    block_func_t func,
 			    void *data)
 {
-	blk_t blk;
-	errno_t res = 0;
-	dir40_t *dir = (dir40_t *)entity;
+	errno_t res;
+	dir40_t *dir;
+	layout_hint_t hint;
 
-	aal_assert("umka-1473", dir != NULL, return -1);
+	aal_assert("umka-1473", entity != NULL, return -1);
 	aal_assert("umka-1474", func != NULL, return -1);
 
+	hint.func = func;
+	hint.data = data;
+	hint.entity = entity;
+
+	dir = (dir40_t *)entity;
+	
 	while (1) {
-		blk = dir->body.entity.con.blk;
+		item_entity_t *item = &dir->body.entity;
 		
-		if ((res = func(entity, blk, data)))
+		if ((res = plugin_call(return -1, item->plugin->item_ops, layout,
+				       item, callback_item_data, &hint)))
 			return res;
 		
 		if (dir40_next(dir) != PRESENT)
 			break;
-			
 	}
     
-	return res;
+	return 0;
 }
 
 static errno_t dir40_metadata(object_entity_t *entity,

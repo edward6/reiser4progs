@@ -185,6 +185,21 @@ static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+static errno_t direntry40_layout(item_entity_t *item,
+				 data_func_t func,
+				 void *data)
+{
+	errno_t res;
+	
+	aal_assert("umka-1747", item != NULL, return -1);
+	aal_assert("umka-1748", func != NULL, return -1);
+
+	if ((res = func(item, item->con.blk, data)))
+		return res;
+
+	return 0;
+}
+
 static int direntry40_mergeable(item_entity_t *item1,
 				item_entity_t *item2)
 {
@@ -1065,7 +1080,7 @@ static reiser4_plugin_t direntry40_plugin = {
 
 		.shift          = direntry40_shift,
 		.predict        = direntry40_predict,
-//		.layout         = direntry40_layout,
+		.layout         = direntry40_layout,
 #else
 		.init		= NULL,
 		.estimate	= NULL,
@@ -1076,7 +1091,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.mergeable      = NULL,
 		.shift          = NULL,
 		.predict        = NULL,
-//		.layout         = NULL,
+		.layout         = NULL,
 #endif
 		.valid		= NULL,
 		.open           = NULL,

@@ -293,6 +293,7 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
+typedef errno_t (*data_func_t) (item_entity_t *, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*place_func_t) (object_entity_t *, reiser4_place_t *, void *);
 
@@ -680,7 +681,7 @@ struct reiser4_item_ops {
 	int (*mergeable) (item_entity_t *, item_entity_t *);
 
 	/* Enumerates all the blocks item's data lies in */
-//	errno_t (*layout) (item_entity_t *, action_func_t, void *);
+	errno_t (*layout) (item_entity_t *, data_func_t, void *);
 	
 	/* Get the key of a particular unit of the item. */
 	errno_t (*get_key) (item_entity_t *, uint32_t, reiser4_key_t *);

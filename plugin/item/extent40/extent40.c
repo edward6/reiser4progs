@@ -425,6 +425,38 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+static errno_t extent40_layout(item_entity_t *item,
+			       data_func_t func,
+			       void *data)
+{
+	uint32_t i, units;
+	extent40_t *extent;
+	
+	aal_assert("umka-1747", item != NULL, return -1);
+	aal_assert("umka-1748", func != NULL, return -1);
+
+	extent = extent40_body(item);
+	units = extent40_units(item);
+			
+	for (i = 0; i < units; i++, extent++) {
+		uint64_t blk;
+		uint64_t start;
+		uint64_t width;
+
+		start = et40_get_start(extent);
+		width = et40_get_start(extent);
+				
+		for (blk = start; blk < start + width; blk++) {
+			errno_t res;
+			
+			if ((res = func(item, blk, data)))
+				return res;
+		}
+	}
+			
+	return 0;
+}
+
 static int32_t extent40_update(item_entity_t *item, void *buff,
 			       uint32_t pos, uint32_t count)
 {
@@ -621,6 +653,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.mergeable     = extent40_mergeable,
 		.predict       = extent40_predict,
 		.shift         = extent40_shift,
+		.layout        = extent40_layout,
 #else
 		.init	       = NULL,
 		.update        = NULL,
@@ -631,6 +664,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.mergeable     = NULL, 
 		.predict       = NULL,
 		.shift         = NULL,
+		.layout        = NULL,
 #endif
 		.set_key       = NULL,
 		.check	       = NULL,

@@ -854,6 +854,8 @@ static errno_t debugfs_file_ls(reiser4_file_t *file) {
 		printf("[%llx:%llx] %s\n", (entry.objid.locality >> 4), 
 		       entry.objid.objectid, entry.name);
 	}
+
+	printf("\n");
 	
 	return 0;
 }
@@ -943,6 +945,8 @@ static errno_t debugfs_print_file(reiser4_fs_t *fs,
 				    file->name);
 		res = -1;
 	}
+
+	printf("\n");
 
 	reiser4_file_close(file);
 	return res;

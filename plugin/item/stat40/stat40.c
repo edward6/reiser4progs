@@ -19,8 +19,9 @@ typedef int (*stat40_perext_func_t) (uint8_t, uint16_t,
 				     reiser4_body_t *, void *);
 
 /* The function which implements stat40 layout pass */
-static errno_t stat40_layout(item_entity_t *item,
-			     stat40_perext_func_t perext_func, void *data)
+static errno_t stat40_traverse(item_entity_t *item,
+			       stat40_perext_func_t func,
+			       void *data)
 {
 	uint8_t i;
 	stat40_t *stat;
@@ -33,7 +34,7 @@ static errno_t stat40_layout(item_entity_t *item,
     
 	stat = stat40_body(item);
 	extmask = st40_get_extmask(stat);
-	extbody = (reiser4_body_t *)stat + sizeof(stat40_t);
+	extbody = (void *)stat + sizeof(stat40_t);
     
 	for (i = 0; i < sizeof(uint64_t)*8; i++) {
 		int ret;
@@ -58,7 +59,7 @@ static errno_t stat40_layout(item_entity_t *item,
 		if (!((1 << i) & extmask))
 			continue;
 		
-		if (!(ret = perext_func(i, extmask, extbody, data)))
+		if (!(ret = func(i, extmask, extbody, data)))
 			return ret;
 
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
@@ -109,7 +110,7 @@ static errno_t stat40_open(item_entity_t *item,
 	aal_assert("umka-1414", item != NULL, return -1);
 	aal_assert("umka-1415", hint != NULL, return -1);
 
-	return stat40_layout(item, callback_open, (void *)hint);
+	return stat40_traverse(item, callback_open, (void *)hint);
 }
 
 #ifndef ENABLE_COMPACT
@@ -262,7 +263,7 @@ static reiser4_body_t *stat40_sdext_body(item_entity_t *item,
 {
 	struct body_hint hint = {NULL, bit};
 
-	if (stat40_layout(item, callback_body, &hint) < 0)
+	if (stat40_traverse(item, callback_body, &hint) < 0)
 		return NULL;
 	
 	return hint.body;
@@ -291,13 +292,28 @@ static int stat40_sdext_present(item_entity_t *item,
 {
 	struct present_hint hint = {0, bit};
 
-	if (!stat40_layout(item, callback_body, &hint) < 0)
+	if (!stat40_traverse(item, callback_body, &hint) < 0)
 		return 0;
 
 	return hint.present;
 }
 
 #ifndef ENABLE_COMPACT
+
+static errno_t stat40_layout(item_entity_t *item,
+			     data_func_t func,
+			     void *data)
+{
+	errno_t res;
+	
+	aal_assert("umka-1751", item != NULL, return -1);
+	aal_assert("umka-1752", func != NULL, return -1);
+
+	if ((res = func(item, item->con.blk, data)))
+		return res;
+
+	return 0;
+}
 
 /* Callback for counting the number of stat data extentions in use */
 static int callback_sdexts(uint8_t ext, uint16_t extmask,
@@ -311,7 +327,7 @@ static int callback_sdexts(uint8_t ext, uint16_t extmask,
 static uint32_t stat40_sdexts(item_entity_t *item) {
         uint32_t count = 0;
 
-        if (stat40_layout(item, callback_sdexts, &count) < 0)
+        if (stat40_traverse(item, callback_sdexts, &count) < 0)
                 return 0;
 
         return count;
@@ -358,7 +374,7 @@ static errno_t stat40_print(item_entity_t *item, aal_stream_t *stream,
 
 	aal_stream_format(stream, "count:\t\t%u\n", stat40_sdexts(item));
 
-	if (stat40_layout(item, callback_print, (void *)stream) < 0)
+	if (stat40_traverse(item, callback_print, (void *)stream) < 0)
 		return -1;
 
 	return 0;
@@ -376,18 +392,21 @@ static reiser4_plugin_t stat40_plugin = {
 			.label = "stat40",
 			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 		},
+		
 #ifndef ENABLE_COMPACT
 		.estimate	= stat40_estimate,
 		.insert		= stat40_insert,
 		.init		= stat40_init,
 		.check		= stat40_check,
 		.print		= stat40_print,
+		.layout         = stat40_layout,
 #else
 		.estimate	= NULL,
 		.insert		= NULL,
 		.init		= NULL,
 		.check		= NULL,
 		.print		= NULL,
+		.layout         = NULL,
 #endif
 		.remove		= NULL,
 		.lookup		= NULL,

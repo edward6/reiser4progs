@@ -100,6 +100,21 @@ static int32_t nodeptr40_fetch(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+static errno_t nodeptr40_layout(item_entity_t *item,
+				data_func_t func,
+				void *data)
+{
+	errno_t res;
+	
+	aal_assert("umka-1749", item != NULL, return -1);
+	aal_assert("umka-1750", func != NULL, return -1);
+
+	if ((res = func(item, item->con.blk, data)))
+		return res;
+
+	return 0;
+}
+
 static int32_t nodeptr40_update(item_entity_t *item, void *buff,
 				uint32_t pos, uint32_t count)
 {
@@ -136,12 +151,14 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.update         = nodeptr40_update,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
+		.layout         = nodeptr40_layout,
 #else
 		.init		= NULL,
 		.insert		= NULL,
 		.update         = NULL,
 		.estimate	= NULL,
 		.print		= NULL,
+		.layout         = NULL,
 #endif
 		.lookup		= NULL,
 		.valid		= NULL,

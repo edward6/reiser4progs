@@ -293,66 +293,57 @@ static int32_t reg40_write(object_entity_t *entity,
 	return 0;
 }
 
+struct layout_hint {
+	object_entity_t *entity;
+	block_func_t func;
+	void *data;
+};
+
+typedef struct layout_hint layout_hint_t;
+
+static errno_t callback_item_data(item_entity_t *item,
+				  blk_t blk, void *data)
+{
+	layout_hint_t *hint = (layout_hint_t *)data;
+	return hint->func(hint->entity, blk, hint->data);
+}
+
 static errno_t reg40_layout(object_entity_t *entity,
 			    block_func_t func,
 			    void *data)
 {
 	errno_t res;
+	reg40_t *reg;
 	uint64_t size;
-	
-	reg40_t *reg = (reg40_t *)entity;
+	reiser4_key_t key;
+	layout_hint_t hint;
 	
 	aal_assert("umka-1471", entity != NULL, return -1);
 	aal_assert("umka-1472", func != NULL, return -1);
 
+	reg = (reg40_t *)entity;
+	
 	if ((size = file40_get_size(&reg->file.statdata)) == 0)
 		return 0;
+
+	hint.func = func;
+	hint.data = data;
+	hint.entity = entity;
 		
-	while (1) {
-		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
-			blk_t blk = reg->body.entity.con.blk;
-
-			if ((res = func(entity, blk, data)))
-				return res;
-
-			reg->offset += reg->body.entity.len;
-		} else {
-			uint32_t units;
-			uint32_t blocksize;
-			reiser4_ptr_hint_t ptr;
-			reiser4_pos_t pos = reg->body.pos;
-
-			units = plugin_call(return -1, reg->body.entity.plugin->item_ops,
-					    units, &reg->body.entity);
-
-			blocksize = reg->body.entity.con.device->blocksize;
-
-			if (pos.unit == ~0ul)
-				pos.unit = 0;
-			
-			for (; pos.unit < units; pos.unit++) {
-				uint64_t blk;
-				
-				if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
-						fetch, &reg->body.entity, &ptr, pos.unit, 1) != 1)
-				{
-					aal_exception_error("Can't fetch data from extent item. "
-							    "Pos %lu, count %lu.", pos.unit, 1);
-					return -1;
-				}
-
-				for (blk = ptr.ptr; blk < ptr.ptr + ptr.width; blk++) {
-					if ((res = func(entity, blk, data)))
-						return res;
-				}
-			
-				reg->offset += ptr.width * blocksize;
-			}
-		}
+	while (size < reg->offset) {
+		item_entity_t *item = &reg->body.entity;
 		
-		if (reg40_next(reg) != PRESENT)
-			break;
-			
+		if ((res = plugin_call(return -1, item->plugin->item_ops,
+				       layout, item, callback_item_data, &hint)))
+			return res;
+
+		plugin_call(return -1, item->plugin->item_ops, max_real_key,
+			    item, &key);
+		
+		reg->offset = plugin_call(return -1, key.plugin->key_ops,
+					  get_offset, key.body) + 1;
+		
+		reg40_next(reg);
 	}
 	
 	return 0;
@@ -378,16 +369,13 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		return 0;
 	
 	while (reg->offset < size) {
-		uint64_t offset;
-		item_entity_t *item;
-
-		item = &reg->body.entity;
+		item_entity_t *item = &reg->body.entity;
 			
 		if ((res = func(entity, &reg->body, data)))
 			return res;
 
-		plugin_call(return -1, item->plugin->item_ops,
-			    max_real_key, item, &key);
+		plugin_call(return -1, item->plugin->item_ops, max_real_key,
+			    item, &key);
 
 		reg->offset = plugin_call(return -1, key.plugin->key_ops,
 					  get_offset, key.body) + 1;

@@ -44,6 +44,21 @@ static errno_t tail40_get_key(item_entity_t *item, uint32_t pos,
 
 #ifndef ENABLE_COMPACT
 
+static errno_t tail40_layout(item_entity_t *item,
+			     data_func_t func,
+			     void *data)
+{
+	errno_t res;
+	
+	aal_assert("umka-1753", item != NULL, return -1);
+	aal_assert("umka-1754", func != NULL, return -1);
+
+	if ((res = func(item, item->con.blk, data)))
+		return res;
+
+	return 0;
+}
+
 /* Rewrites tail from passed @pos by data specifed by hint */
 static int32_t tail40_update(item_entity_t *item, void *buff,
 			     uint32_t pos, uint32_t count)
@@ -425,6 +440,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.mergeable     = tail40_mergeable,
 		.predict       = tail40_predict,
 		.shift         = tail40_shift,
+		.layout        = tail40_layout,
 #else
 		.init	       = NULL,
 		.insert	       = NULL,
@@ -434,6 +450,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.mergeable     = NULL,
 		.predict       = NULL,
 		.shift         = NULL,
+		.layout        = NULL,
 #endif
 		.open          = NULL,
 		.check	       = NULL,
