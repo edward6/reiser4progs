@@ -11,8 +11,6 @@
 
 #include <reiser4/reiser4.h>
 
-#define SUPER(master) (&master->super)
-
 /* This function checks master super block for validness */
 errno_t reiser4_master_valid(reiser4_master_t *master) {
 	aal_assert("umka-898", master != NULL);

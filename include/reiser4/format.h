@@ -50,6 +50,9 @@ extern void reiser4_format_set_height(reiser4_format_t *format,
 extern void reiser4_format_set_stamp(reiser4_format_t *format, 
 				     uint32_t stamp);
 
+extern void reiser4_format_set_policy(reiser4_format_t *format, 
+				      uint16_t policy);
+
 extern errno_t reiser4_format_mark(reiser4_format_t *format, 
 				   reiser4_alloc_t *alloc);
 
@@ -70,6 +73,7 @@ extern count_t reiser4_format_get_len(reiser4_format_t *format);
 extern count_t reiser4_format_get_free(reiser4_format_t *format);
 extern uint16_t reiser4_format_get_height(reiser4_format_t *format);
 extern uint32_t reiser4_format_get_stamp(reiser4_format_t *format);
+extern uint16_t reiser4_format_get_policy(reiser4_format_t *format);
 
 extern const char *reiser4_format_name(reiser4_format_t *format);
 extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);

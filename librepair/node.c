@@ -425,9 +425,11 @@ errno_t repair_node_check(reiser4_node_t *node, uint8_t mode) {
     
     res |= repair_node_keys_check(node, mode);
     
-    if (repair_error_fatal(res))
-	return res;
-
+    if (res & REPAIR_FIXED) {
+	reiser4_node_mkdirty(node);
+	res &= ~REPAIR_FIXED;
+    }
+    
     return res;
 }
 

@@ -31,16 +31,17 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
     blk_t blk = 0;
 
     aal_assert("vpf-514", ds != NULL);
-    aal_assert("vpf-705", ds->fs != NULL);
+    aal_assert("vpf-705", ds->repair != NULL);
+    aal_assert("vpf-844", ds->repair->fs != NULL);
     aal_assert("vpf-515", ds->bm_leaf != NULL);
     aal_assert("vpf-516", ds->bm_twig != NULL);
     aal_assert("vpf-820", ds->bm_scan != NULL);
-    aal_assert("vpf-820", ds->bm_met != NULL);
-    aal_assert("vpf-821", ds->mode == REPAIR_CHECK || ds->mode == REPAIR_FIX || 
-	ds->mode == REPAIR_REBUILD);
+    aal_assert("vpf-820", ds->bm_met != NULL);    
+    aal_assert("vpf-821", ds->repair->mode == REPAIR_CHECK || 
+	ds->repair->mode == REPAIR_FIX || ds->repair->mode == REPAIR_REBUILD);
 
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
-	node = repair_node_open(ds->fs, blk);
+	node = repair_node_open(ds->repair->fs, blk);
 	if (node == NULL) {
 	    blk++;
 	    continue;
@@ -53,19 +54,16 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 	if (!repair_tree_data_level(level))
 	    goto next;
 
-	res = repair_node_check(node, ds->mode);
+	res = repair_node_check(node, ds->repair->mode);
 
 	if (res < 0)
 	    goto error_node_release;
 	
-	aal_assert("vpf-812", (res & REPAIR_FIXABLE) == 0);
+	aal_assert("vpf-812", (res & ~REPAIR_FATAL) == 0);
 	
 	if (repair_error_exists(res) || reiser4_node_items(node) == 0)
 	    goto next;
 	
-	if (res & REPAIR_FIXED)
-	    reiser4_node_mkdirty(node);
-
 	if (level == TWIG_LEVEL)
 	    aux_bitmap_mark(ds->bm_twig, blk);
 	else

@@ -55,6 +55,10 @@ errno_t repair_add_missing(repair_am_t *am) {
     blk_t blk;
     
     aal_assert("vpf-595", am != NULL);
+    aal_assert("vpf-846", am->repair != NULL);
+    aal_assert("vpf-847", am->repair->fs != NULL);
+    aal_assert("vpf-848", am->bm_twig != NULL);
+    aal_assert("vpf-849", am->bm_leaf != NULL);
 
     bitmap = am->bm_twig;
     
@@ -67,7 +71,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 	 * them w/out problem - it will be done instead of following item by 
 	 * item insertion. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-	    node = repair_node_open(am->fs, blk);
+	    node = repair_node_open(am->repair->fs, blk);
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
@@ -105,11 +109,11 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    if (reiser4_node_items(node) == 0) {
 		reiser4_node_mkclean(place.node);
 		aux_bitmap_clear(bitmap, node->blk);
-		reiser4_alloc_permit(am->fs->alloc, node->blk, 1);
+		reiser4_alloc_permit(am->repair->fs->alloc, node->blk, 1);
 		goto first_next;
 	    }
 		
-	    res = repair_tree_attach(am->fs->tree, node);
+	    res = repair_tree_attach(am->repair->fs->tree, node);
 
 	    if (res < 0 && res != -ESTRUCT) {
 		aal_exception_bug("Add missing pass failed to attach the %s "
@@ -118,10 +122,13 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    } else if (res == 0) {
 		/* Has been inserted. */
 		aux_bitmap_clear(bitmap, node->blk);
-		reiser4_alloc_permit(am->fs->alloc, node->blk, 1);
-		reiser4_alloc_occupy_region(am->fs->alloc, node->blk, 1);
+		reiser4_alloc_permit(am->repair->fs->alloc, node->blk, 1);
+		reiser4_alloc_occupy_region(am->repair->fs->alloc, 
+		    node->blk, 1);
 
-		res = repair_node_traverse(node, callback_layout, am->fs->alloc);
+		res = repair_node_traverse(node, callback_layout, 
+		    am->repair->fs->alloc);
+
 		if (res)
 		    goto error_node_close;
 
@@ -140,7 +147,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 	 * which is in the tree already if needed. FIXME: overwriting should be 
 	 * done on the base of flush_id. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-	    node = repair_node_open(am->fs, blk);
+	    node = repair_node_open(am->repair->fs, blk);
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
@@ -161,15 +168,15 @@ errno_t repair_add_missing(repair_am_t *am) {
 		    goto error_node_close;
 		}
 	 
-		if ((res = repair_tree_insert(am->fs->tree, &place)))
+		if ((res = repair_tree_insert(am->repair->fs->tree, &place)))
 		    goto error_node_close;
 
-		if ((res = callback_layout(&place, am->fs->alloc)))
+		if ((res = callback_layout(&place, am->repair->fs->alloc)))
 		    goto error_node_close;
 	    }
 	
 	    aux_bitmap_clear(bitmap, node->blk);
-	    reiser4_alloc_permit(am->fs->alloc, node->blk, 1);
+	    reiser4_alloc_permit(am->repair->fs->alloc, node->blk, 1);
 	    reiser4_node_close(node);
 
 	    blk++;

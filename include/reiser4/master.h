@@ -16,6 +16,8 @@
 
 #ifndef ENABLE_ALONE
 
+#define SUPER(master) (&master->super)
+
 extern errno_t reiser4_master_print(reiser4_master_t *master,
 				    aal_stream_t *stream);
 

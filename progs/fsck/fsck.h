@@ -22,3 +22,6 @@
 #include <repair/librepair.h>
 #include <reiser4/reiser4.h>
 
+/* Extended error codes for described in misc.h */
+#define FIXABLE_ERROR	1
+#define FATAL_ERROR	2

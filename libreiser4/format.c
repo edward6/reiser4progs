@@ -245,7 +245,7 @@ uint16_t reiser4_format_get_height(
 			   get_height, format->entity);
 }
 
-/* Returns current mkfs id from teh format-specific super-block */
+/* Returns current mkfs id from the format-specific super-block */
 uint32_t reiser4_format_get_stamp(
 	reiser4_format_t *format)	/* format to be inspected */
 {
@@ -253,6 +253,16 @@ uint32_t reiser4_format_get_stamp(
     
 	return plugin_call(format->entity->plugin->format_ops, 
 			   get_stamp, format->entity);
+}
+
+/* Returns current tail policy id from the format-specific super-block */
+uint16_t reiser4_format_get_policy(
+	reiser4_format_t *format)	/* format to be inspected */
+{
+	aal_assert("vpf-836", format != NULL);
+    
+	return plugin_call(format->entity->plugin->format_ops, 
+			   get_policy, format->entity);
 }
 
 #ifndef ENABLE_ALONE
@@ -320,6 +330,19 @@ void reiser4_format_set_stamp(
 	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_stamp, format->entity, stamp);
+}
+
+/* Sets tail policy in the super block */
+void reiser4_format_set_policy(
+	reiser4_format_t *format,	/* format to be used */
+	uint16_t policy)		/* new policy */
+{
+	aal_assert("vpf-835", format != NULL);
+    
+	format->dirty = TRUE;
+	
+	plugin_call(format->entity->plugin->format_ops, 
+		    set_policy, format->entity, policy);
 }
 
 /* Returns jouranl plugin id in use */

@@ -38,11 +38,6 @@ typedef enum repair_error {
 #define repair_error_exists(result)	((result > REPAIR_FIXED) || (result < 0))
 #define repair_error_fatal(result)	((result >= REPAIR_FATAL) || (result < 0))
 
-/*
-#define repair_error(result, kind)	(result = result < kind || kind < 0 ? \
-					    kind : result)
-*/
-
 #define repair_error_check(result, mode)				       \
 ({									       \
     aal_assert("vpf-785", (mode == REPAIR_CHECK)  || !(res & REPAIR_FIXED));   \

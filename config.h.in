@@ -15,6 +15,8 @@
 /* Define for enable plugins check code. */
 #undef ENABLE_PLUGINS_CHECK
 
+/* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
+   */
 #undef HAVE_DIRENT_H
 
 /* Define to 1 if you have the <dlfcn.h> header file. */

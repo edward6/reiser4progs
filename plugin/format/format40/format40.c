@@ -46,6 +46,11 @@ static uint32_t format40_get_stamp(object_entity_t *entity) {
 	return get_sb_mkfs_id(SUPER(entity));
 }
 
+static uint16_t format40_get_policy(object_entity_t *entity) {
+	aal_assert("vpf-831", entity != NULL);
+	return get_sb_tail_policy(SUPER(entity));
+}
+
 static uint64_t format40_begin(object_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
@@ -121,8 +126,8 @@ static errno_t format40_super_check(format40_super_t *super,
     
 	offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
 
-	if (get_sb_root_block(super) < offset ||
-	    get_sb_root_block(super) > dev_len)
+	if (get_sb_root_block(super) <= offset ||
+	    get_sb_root_block(super) >= dev_len)
 	{
 #ifndef ENABLE_ALONE
 		aal_exception_error("Superblock has an invalid root block "
@@ -388,6 +393,13 @@ static void format40_set_stamp(object_entity_t *entity,
 	set_sb_mkfs_id(SUPER(entity), mkfsid);
 }
 
+static void format40_set_policy(object_entity_t *entity, 
+			       uint16_t tail)
+{
+	aal_assert("vpf-830", entity != NULL);
+	set_sb_tail_policy(SUPER(entity), tail);
+}
+
 errno_t format40_print(object_entity_t *entity,
 		       aal_stream_t *stream,
 		       uint16_t options) 
@@ -448,7 +460,8 @@ errno_t format40_print(object_entity_t *entity,
 	return 0;
 }
 
-extern errno_t format40_check(object_entity_t *entity);
+extern errno_t format40_check(object_entity_t *entity, uint8_t mode);
+extern errno_t format40_update(object_entity_t *entity);
 
 #endif
 
@@ -474,6 +487,7 @@ static reiser4_plugin_t format40_plugin = {
 		.layout	        = format40_layout,
 		.skipped        = format40_skipped,
 		.confirm	= format40_confirm,
+		.update		= format40_update,
 #endif
 		.start		= format40_begin,
 		.oid	        = format40_oid,
@@ -485,13 +499,14 @@ static reiser4_plugin_t format40_plugin = {
 		.get_free	= format40_get_free,
 		.get_height	= format40_get_height,
 		.get_stamp	= format40_get_stamp,
-
+		.get_policy	= format40_get_policy, 
 #ifndef ENABLE_ALONE
 		.set_root	= format40_set_root,
 		.set_len	= format40_set_len,
 		.set_free	= format40_set_free,
 		.set_height	= format40_set_height,
 		.set_stamp	= format40_set_stamp,
+		.set_policy	= format40_set_policy,
 		.journal_pid	= format40_journal_pid,
 		.alloc_pid	= format40_alloc_pid,
 #endif

@@ -20,7 +20,7 @@ enum {
 
 typedef struct fsck_parse {
     reiser4_profile_t *profile;
-    uint16_t mode;
+    uint8_t mode;
 
     FILE *logfile;
     aal_device_t *host_device;
@@ -225,7 +225,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    profile_label);
 	return USER_ERROR;
     }
-
+    
     if (optind == argc && profile_label) {
 	/* print profile */
 	progs_profile_print(data->profile);
@@ -266,41 +266,16 @@ void fsck_time(char *string) {
     fprintf(stderr, "#####%s %s#####\n", string, ctime (&t));
 }
 
-static errno_t fsck_check(reiser4_fs_t *fs, uint8_t mode) {
-    repair_info_t info;
-    errno_t res;
-    
-    aal_assert("vpf-180", fs != NULL);
-    
-    aal_memset(&info, 0, sizeof(info));
-    
-    fsck_time("fsck.reiser4 started at");
-    
-    if (repair_check(fs, &info, mode))
-	return OPER_ERROR;
-
-    fsck_time("fsck.reiser4 finished at");
-    
-    return NO_ERROR;
-}
-
-static errno_t fsck_rebuild_fs(reiser4_fs_t *fs) {
-    return NO_ERROR;
-}
-
-static errno_t fsck_rollback() {
-    return NO_ERROR;
-}
-/*
-*/
 int main(int argc, char *argv[]) {
     errno_t exit_code = NO_ERROR;
     fsck_parse_t parse_data;
+    repair_data_t repair;
+    errno_t error;
     
-    reiser4_fs_t *fs;
     uint16_t mask = 0;
     
     memset(&parse_data, 0, sizeof(parse_data));
+    memset(&repair, 0, sizeof(repair));
 
     if (((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)) 
 	exit(exit_code);
@@ -311,55 +286,79 @@ int main(int argc, char *argv[]) {
 	exit_code = OPER_ERROR;
 	goto free_device;
     }
- 
-    if (!(fs = repair_fs_open(parse_data.host_device, parse_data.profile))) {
-	aal_exception_fatal("Cannot open the filesystem on (%s).", 
-	    aal_device_name(parse_data.host_device));
-	exit_code = OPER_ERROR;
+    
+    repair.mode = parse_data.mode;
+    
+    if ((error = repair_fs_open(&repair, parse_data.host_device, parse_data.host_device,
+	parse_data.profile)))
+    {
+	exit_code = OPER_ERROR;	
 	goto free_libreiser4;
     }
-
-    if (!(fs->tree =  reiser4_tree_init(fs))) {
+    
+    if (repair.fs == NULL) {
+	aal_exception_fatal("Cannot open the filesystem on (%s).", 
+	    aal_device_name(parse_data.host_device));
+	
+	goto free_libreiser4;
+    }
+    
+    if (!(repair.fs->tree = reiser4_tree_init(repair.fs))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
 	    aal_device_name(parse_data.host_device));
 	exit_code = OPER_ERROR;
 	goto free_fs;
     }
     
-    if (repair_journal_handle(fs, parse_data.host_device)) {
-	aal_exception_fatal("Failed to replay the journal.");
+    fsck_time("fsck.reiser4 started at");
+    
+    if ((error = repair_check(&repair))) {
 	exit_code = OPER_ERROR;
 	goto free_tree;
     }
     
-    exit_code = fsck_check(fs, parse_data.mode);
+    fsck_time("fsck.reiser4 finished at");
     
-    fprintf(stderr, "Synchronizing...");
-   
-    if (repair_fs_sync(fs)) {
+free_tree:
+    reiser4_tree_close(repair.fs->tree);
+
+free_fs:
+    fprintf(stderr, "Synchronizing fs ...");
+    if (repair_fs_sync(repair.fs)) {
 	aal_exception_fatal("Cannot synchronize the filesystem.");
 	exit_code = OPER_ERROR;
-	goto free_tree;
     }
-    
-    if (aal_device_sync(parse_data.host_device)) {
-	aal_exception_fatal("Cannot synchronize the device (%s).", 
-	    aal_device_name(parse_data.host_device));
-	exit_code = OPER_ERROR;
-	goto free_tree;
-    }
-
     fprintf(stderr, "done\n");
-free_tree:
-    reiser4_tree_close(fs->tree);
-free_fs:
-    repair_fs_close(fs);
+    repair_fs_close(repair.fs);
+    
 free_libreiser4:
     libreiser4_fini();
+    
 free_device:
-    if (parse_data.host_device)
+    if (parse_data.host_device) {
+	fprintf(stderr, "Synchronizing device ...");
+	if (aal_device_sync(parse_data.host_device)) {
+	    aal_exception_fatal("Cannot synchronize the device (%s).", 
+		aal_device_name(parse_data.host_device));
+	    exit_code = OPER_ERROR;
+	}
+	fprintf(stderr, "done\n");
 	aal_device_close(parse_data.host_device);
-   
+    }
+    
+    /* Report about the results. */
+    if (exit_code == 0) {
+	if (repair.fatal) {
+	    fprintf(stderr, "%llu fatal corruptions were detected. Run in "
+		"--repair mode to fix them.", repair.fatal);
+	    exit_code = FATAL_ERROR;
+	} else if (repair.fixable) {
+	    fprintf(stderr, "%llu fixable corruptions were detected. Run in "
+		"--fixable mode to fix them.", repair.fixable);
+	    exit_code = FIXABLE_ERROR;
+	}
+    }
+    
     return exit_code;
 }
 

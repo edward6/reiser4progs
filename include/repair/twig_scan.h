@@ -14,19 +14,23 @@
 
 #include <repair/repair.h>
 
+/* Statistics gathered during the pass. */
+typedef struct repair_ts_info {
+} repair_ts_info_t;
+
+
 /* Twig scan data. */
 typedef struct repair_ts {
-    reiser4_fs_t *fs;
+    repair_data_t *repair;
+
     aux_bitmap_t *bm_used;	/* Bitmap of blocks which are in the treee already. */
     aux_bitmap_t *bm_twig;	/* Bitmap of blocks should be scanned. */
     aux_bitmap_t *bm_met;	/* Bitmap of met blocks, cannot be pointed by extents. */
-    
     /* Results. */
     aux_bitmap_t *bm_unfm_tree;	/* Unformatted blocks pointed from the tree. */
     aux_bitmap_t *bm_unfm_out;	/* Unformatted blocks pointed out of the tree. */
     
-    repair_info_t info;
-    uint8_t mode;    
+    repair_ts_info_t info;
 } repair_ts_t;
 
 extern errno_t repair_twig_scan(repair_ts_t *ts);

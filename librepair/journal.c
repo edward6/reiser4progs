@@ -23,24 +23,19 @@ static errno_t callback_fs_check(void *layout, block_func_t func,
 
 /* Checks the opened journal. */
 static errno_t repair_journal_check(reiser4_journal_t *journal) {
-    errno_t ret;
-    
     aal_assert("vpf-460", journal != NULL);
     aal_assert("vpf-736", journal->fs != NULL);
 
-    if ((ret = plugin_call(journal->entity->plugin->journal_ops, check, 
-	journal->entity, callback_fs_check, journal->fs)))
-    {
-	aal_exception_error("Failed to recover the journal (%s) on (%s).", 
-	    journal->entity->plugin->h.label, aal_device_name(journal->device));
-	return ret;
-    }
-    
-    return 0;	    
+    return plugin_call(journal->entity->plugin->journal_ops, check, 
+	journal->entity, callback_fs_check, journal->fs);
 }
 /* Open the journal and check it. */
-errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device) {
-    errno_t ret = 0;
+errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device, 
+    uint8_t mode) 
+{
+    reiser4_plugin_t *plugin;
+    errno_t ret = REPAIR_OK;
+    rid_t pid;
     
     aal_assert("vpf-445", fs != NULL);
     aal_assert("vpf-446", fs->format != NULL);
@@ -49,20 +44,42 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device) {
     /* Try to open the journal. */
     if ((fs->journal = reiser4_journal_open(fs, journal_device)) == NULL) {
 	/* failed to open a journal. Build a new one. */
-	aal_exception_fatal("Failed to open a journal by its id (0x%x). "
-	    "Try to build a new one.", reiser4_format_journal_pid(fs->format));
+	aal_exception_fatal("Failed to open a journal by its id (0x%x). %s", 
+	    reiser4_format_journal_pid(fs->format));
 	
-	if (!(fs->journal = reiser4_journal_create(fs, journal_device, NULL))) 
-	{
+	if (mode != REPAIR_REBUILD)
+	    return REPAIR_FATAL;
+
+	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
+	    aal_exception_error("Invalid journal plugin id has been found.");
+	    return -EINVAL;
+	}
+    
+	if (!(plugin = libreiser4_factory_ifind(JOURNAL_PLUGIN_TYPE, pid)))  {
+	    aal_exception_error("Cannot find journal plugin by its id 0x%x.", 
+		pid);
+	    return -EINVAL;
+	}
+	
+	if (aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_YESNO, "Do you want "
+	    "to create a new journal (%s)?", plugin->h.label) == EXCEPTION_NO)
+	    return -EINVAL;
+	    
+	if (!(fs->journal = reiser4_journal_create(fs, journal_device, NULL))) {
 	    aal_exception_fatal("Cannot create a journal by its id (0x%x).", 
 		reiser4_format_journal_pid(fs->format));
 	    return -EINVAL;
 	}
+    } else {    
+	/* Check the structure of the opened journal or rebuild it if needed. */
+	ret = repair_journal_check(fs->journal);
+
+	if (repair_error_exists(ret))
+	    goto error_journal_close;
+
+	if (ret & REPAIR_FIXED)
+	    fs->journal->dirty = TRUE;
     }
-    
-    /* Check the structure of the opened journal or rebuild it if needed. */
-    if ((ret = repair_journal_check(fs->journal)))
-	goto error_journal_close;
     
     return 0;
     
@@ -74,30 +91,30 @@ error_journal_close:
 }
 
 /* Open, replay, close journal. */
-errno_t repair_journal_handle(reiser4_fs_t *fs, aal_device_t *journal_device) {    
-    errno_t ret = 0;
+errno_t repair_journal_handle(reiser4_fs_t *fs, aal_device_t *journal_device, 
+    uint8_t mode) 
+{
+    errno_t ret = REPAIR_OK;
     int flags;
- 
-    if ((ret = repair_journal_open(fs, journal_device)))
+    
+    ret = repair_journal_open(fs, journal_device, mode);
+    
+    if (repair_error_exists(ret))
 	return ret;
     
     flags = journal_device->flags;
     if (aal_device_reopen(journal_device, journal_device->blocksize, O_RDWR))
 	return -EIO;
     
-    if ((ret = reiser4_journal_replay(fs->journal)))
-	ret = ret;
-
-    /* FIXME-UMKA->VITALY: Here should be also reopening format and master super
-     * blocks due to them might be in replayed transactions and we should keep
-     * them uptodate */
+    if (reiser4_journal_replay(fs->journal))
+	return -EINVAL;
     
     if (aal_device_reopen(journal_device, journal_device->blocksize, flags))
 	return -EIO;
     
     reiser4_journal_close(fs->journal);
     fs->journal = NULL;
-
+    
     return 0;
 }
 

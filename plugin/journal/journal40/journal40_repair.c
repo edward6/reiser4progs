@@ -12,6 +12,7 @@
 #ifndef ENABLE_ALONE
 
 #include "journal40.h"
+#include <repair/repair_plugin.h>
 #include <aux/bitmap.h>
 
 /*
@@ -389,9 +390,9 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout, 
     void *layout)
 {
-    errno_t ret;
-    journal40_check_t data;
     journal40_t *journal = (journal40_t *)entity;
+    journal40_check_t data;
+    errno_t ret;
     
     aal_assert("vpf-447", journal != NULL);
     aal_assert("vpf-733", fs_layout != NULL);
@@ -460,9 +461,11 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
 	
 	set_jh_last_commited((journal40_header_t *)journal->header->data, 
 	    data.cur_txh);
+
+	return REPAIR_FIXED;
     }
     
-    return 0;
+    return REPAIR_OK;
     
 }
 

@@ -72,15 +72,15 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     node = place->node;
     
     res = repair_item_layout_check(place, callback_item_region_check, 
-	ts, ts->mode);
+	ts, ts->repair->mode);
     
     if (res < 0) 
 	return res;
     
     if (res & REPAIR_FATAL) 
-	ts->info.check.fatal++;
+	ts->repair->fatal++;
     else if (res & REPAIR_FIXABLE)
-	ts->info.check.fixable++;
+	ts->repair->fixable++;
     else if (res & REPAIR_FIXED)
 	reiser4_node_mkdirty(place->node);
     else if (res & REPAIR_REMOVED) {
@@ -100,12 +100,13 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
     blk_t blk = 0;
 
     aal_assert("vpf-533", ts != NULL);
-    aal_assert("vpf-534", ts->fs != NULL);
+    aal_assert("vpf-534", ts->repair != NULL);
+    aal_assert("vpf-845", ts->repair->fs != NULL);
     
     /* There were found overlapped extents. Look through twigs, build list of
      * extents for each problem region. */ 
     while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
-	node = repair_node_open(ts->fs, blk);
+	node = repair_node_open(ts->repair->fs, blk);
 	if (node == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);

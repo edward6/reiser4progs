@@ -32,12 +32,13 @@ static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk,
 {
     repair_filter_t *fd = (repair_filter_t *)data;
 
-    aal_assert("vpf-379", fd != NULL);
     aal_assert("vpf-432", node != NULL);
-    aal_assert("vpf-433", fd->fs != NULL);
-    aal_assert("vpf-591", fd->fs->format != NULL);
+    aal_assert("vpf-379", fd != NULL);
+    aal_assert("vpf-433", fd->repair != NULL);
+    aal_assert("vpf-842", fd->repair->fs != NULL);
+    aal_assert("vpf-591", fd->repair->fs->format != NULL);
 
-    if ((*node = repair_node_open(fd->fs, blk)) == NULL)
+    if ((*node = repair_node_open(fd->repair->fs, blk)) == NULL)
 	fd->flags |= REPAIR_BAD_PTR;
 
     return 0;
@@ -70,25 +71,21 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 	return 1;
     }
     
-    if ((res = repair_node_check(node, fd->mode)) < 0)
+    if ((res = repair_node_check(node, fd->repair->mode)) < 0)
 	return res;
     
     if (reiser4_node_items(node) == 0)
 	res |= REPAIR_FATAL;
-
-    aal_assert("vpf-799", (res & REPAIR_REMOVED) == 0);
     
     if (res & REPAIR_FATAL) {
 	fd->flags |= REPAIR_FATAL;
 	return 1;
     } else if (res & REPAIR_FIXABLE) {
-	fd->info.check.fixable++;
+	fd->repair->fixable++;
 	/* Do not break traverse. */
 	res = 0;
-    } else if (res & REPAIR_FIXED) {
-	reiser4_node_mkdirty(node);
-	res = 0;
-    }
+    } else
+	aal_assert("vpf-799", res == 0);
     
     /* There are no fatal errors, check delimiting keys. */
     if ((res = repair_node_dkeys_check(node)) < 0 && res != -ESTRUCT)
@@ -134,10 +131,10 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 	aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 	    "invalid region [%llu..%llu] or some blocks are used already. %s", 
 	    place->node->blk, place->pos.item, place->pos.unit, ptr.ptr, 
-	    ptr.ptr + ptr.width - 1, fd->mode == REPAIR_REBUILD ? 
+	    ptr.ptr + ptr.width - 1, fd->repair->mode == REPAIR_REBUILD ? 
 	    "Removed." : "The whole subtree is skipped.");
 	
-	if (fd->mode == REPAIR_REBUILD) {
+	if (fd->repair->mode == REPAIR_REBUILD) {
 	    pos_t ppos;
 	    
 	    repair_place_get_lpos(place, ppos);
@@ -150,7 +147,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 	
 	    place->pos = ppos;
 	} else
-	    fd->info.check.fatal++;
+	    fd->repair->fatal++;
 	
 	return 1;
     }
@@ -189,13 +186,13 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the invalid node [%llu]. %s", place->node->blk, 
 		place->pos.item, place->pos.unit, ptr.ptr, 
-		fd->mode == REPAIR_REBUILD ? "Removed." : 
+		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
 	} else if (fd->flags & REPAIR_FATAL) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the unrecoverable node [%llu]. %s", place->node->blk, 
 		place->pos.item, place->pos.unit, ptr.ptr, 
-		fd->mode == REPAIR_REBUILD ? "Removed." : 
+		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
 	    
 	    /* Extents cannot point to this node. */
@@ -204,7 +201,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the node [%llu] with wrong delimiting keys. %s", 
 		place->node->blk, place->pos.item, place->pos.unit, ptr.ptr, 
-		fd->mode == REPAIR_REBUILD ? "Removed." : 
+		fd->repair->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
 
 	    level = reiser4_node_get_level(place->node);
@@ -219,7 +216,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	} else
 	    aal_assert("vpf-827: Not expected case.", FALSE);
 	
-	if (fd->mode == REPAIR_REBUILD) {
+	if (fd->repair->mode == REPAIR_REBUILD) {
 	    pos_t prev;
 	    
 	    /* The node corruption was not fixed - delete the internal item. */
@@ -233,7 +230,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	
 	    place->pos = prev;
 	} else
-	    fd->info.check.fatal++;
+	    fd->repair->fatal++;
 	
 	fd->flags = 0;
     } else {
@@ -270,20 +267,21 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
 static void repair_filter_setup(repair_filter_t *fd) {
     blk_t root;
         
-    root = reiser4_format_get_root(fd->fs->format);
+    root = reiser4_format_get_root(fd->repair->fs->format);
 
     /* Check the root pointer to be valid block. */
-    if (root < reiser4_format_start(fd->fs->format) || 
-	root > reiser4_format_get_len(fd->fs->format))
+    if (root < reiser4_format_start(fd->repair->fs->format) || 
+	root > reiser4_format_get_len(fd->repair->fs->format))
 	/* Wrong pointer. */
 	fd->flags |= REPAIR_BAD_PTR;
     else if (aux_bitmap_test(fd->bm_used, 
-	reiser4_format_get_root(fd->fs->format))) 
+	reiser4_format_get_root(fd->repair->fs->format))) 
 	/* This block is from format area. */
 	fd->flags |= REPAIR_BAD_PTR;
     else	
 	/* We meet the block for the first time. */
-	aux_bitmap_mark(fd->bm_used, reiser4_format_get_root(fd->fs->format));
+	aux_bitmap_mark(fd->bm_used, 
+	    reiser4_format_get_root(fd->repair->fs->format));
 }
 
 /* Does some update stuff after traverse through the internal tree - deletes 
@@ -294,8 +292,9 @@ static void repair_filter_update(repair_filter_t *fd) {
     aal_assert("vpf-421", fd != NULL);
     
     if (fd->flags & REPAIR_BAD_PTR) {
-	aux_bitmap_clear(fd->bm_used, reiser4_format_get_root(fd->fs->format));
-	reiser4_format_set_root(fd->fs->format, INVAL_BLK);
+	aux_bitmap_clear(fd->bm_used, 
+	    reiser4_format_get_root(fd->repair->fs->format));
+	reiser4_format_set_root(fd->repair->fs->format, INVAL_BLK);
 	/* FIXME: sync it to disk. */
 	fd->flags = 0;
     } 
@@ -309,8 +308,9 @@ errno_t repair_filter(repair_filter_t *fd) {
     errno_t res;
 
     aal_assert("vpf-536", fd != NULL);
-    aal_assert("vpf-814", fd->fs != NULL);
-    aal_assert("vpf-816", fd->fs->tree != NULL);
+    aal_assert("vpf-814", fd->repair != NULL);
+    aal_assert("vpf-843", fd->repair->fs != NULL);
+    aal_assert("vpf-816", fd->repair->fs->tree != NULL);
     aal_assert("vpf-815", fd->bm_used != NULL);
     aal_assert("vpf-814", fd->bm_leaf != NULL);
     aal_assert("vpf-814", fd->bm_twig != NULL);
@@ -318,21 +318,21 @@ errno_t repair_filter(repair_filter_t *fd) {
 
     repair_filter_setup(fd);
     
-    if ((res = repair_filter_node_open(&fd->fs->tree->root, 
-	reiser4_format_get_root(fd->fs->format), fd)) < 0)
+    if ((res = repair_filter_node_open(&fd->repair->fs->tree->root, 
+	reiser4_format_get_root(fd->repair->fs->format), fd)) < 0)
 	return res;
     
-    if (res == 0 && fd->fs->tree->root != NULL) {
+    if (res == 0 && fd->repair->fs->tree->root != NULL) {
 	hint.data = fd;
 	hint.cleanup = 1;
 
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-	res = reiser4_tree_down(fd->fs->tree, fd->fs->tree->root, &hint,
-	    repair_filter_node_open,	    repair_filter_node_check,
-	    repair_filter_setup_traverse,   repair_filter_update_traverse,
-	    repair_filter_after_traverse);
+	res = reiser4_tree_down(fd->repair->fs->tree, 
+	    fd->repair->fs->tree->root, &hint, repair_filter_node_open,
+	    repair_filter_node_check,	    repair_filter_setup_traverse,
+	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
-	reiser4_node_close(fd->fs->tree->root);
+	reiser4_node_close(fd->repair->fs->tree->root);
 
 	if (res < 0)
 	    return res;

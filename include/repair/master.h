@@ -14,6 +14,6 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_master_open(reiser4_fs_t *fs);
+extern errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode);
 
 #endif

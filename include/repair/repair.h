@@ -16,11 +16,9 @@
 #include <reiser4/reiser4.h>
 #include <repair/repair_plugin.h>
 
+/*
 typedef struct repair_check_info {
-    /* amounts of different kinds of corruptions. */
-    uint64_t fatal;
-    uint64_t fixable;
-    /* amounts of different kinds of nodes. */
+    // amounts of different kinds of nodes.
     uint64_t leaves;
     uint64_t twigs;
     uint64_t branches;
@@ -32,8 +30,18 @@ typedef struct repair_check_info {
 typedef union repair_info {
     repair_check_info_t check;    
 } repair_info_t;
+*/
 
-extern errno_t repair_check(reiser4_fs_t *fs, repair_info_t *info, uint8_t mode);
+typedef struct repair_data {
+    reiser4_fs_t *fs;
+    
+    uint64_t fatal;
+    uint64_t fixable;
+
+    uint8_t mode;
+} repair_data_t;
+
+extern errno_t repair_check(repair_data_t *repair);
 
 #endif
 

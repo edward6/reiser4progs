@@ -13,14 +13,18 @@
 #  include <config.h>
 #endif
 
+/* Statistics gathered during the pass. */
+typedef struct repair_am_info {
+} repair_am_info_t;
+
 /* Add missing. */
 typedef struct repair_am {
-    reiser4_fs_t *fs;
+    repair_data_t *repair;
+
     aux_bitmap_t *bm_twig;
     aux_bitmap_t *bm_leaf;
 
-    repair_info_t info;
-    uint8_t mode;
+    repair_am_info_t info;
 } repair_am_t;
 
 extern errno_t repair_add_missing(repair_am_t *am);

@@ -8,8 +8,6 @@
 
 #include <repair/librepair.h>
 
-#define SUPER(master) (&master->super)
-
 /* Checks the blocksize. */
 static int callback_bs_check (int64_t val, void * data) {
     if (!aal_pow_of_two(val))
@@ -23,15 +21,20 @@ static int callback_bs_check (int64_t val, void * data) {
 
 /* Checks the opened master, builds a new one on the base of user profile if 
  * no one was opened. */
-static errno_t repair_master_check(reiser4_fs_t *fs) {
-    uint16_t blocksize = 0;
-    int error = 0;
+static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
     reiser4_plugin_t *plugin;
+    errno_t error = REPAIR_OK;
+    uint16_t blocksize = 0;
 
     aal_assert("vpf-730", fs != NULL);
     aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
  
     if (fs->master == NULL) {
+	if (mode != REPAIR_REBUILD) {
+	    aal_exception_fatal("Master super block cannot be found.");
+	    return REPAIR_FATAL;
+	}
+	
 	/* Master SB was not opened. Create a new one. */
 	if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO, 
 	    "Master super block cannot be found. Do you want to build a new "
@@ -42,7 +45,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 	    "Which block size do you use?");
 
 	/* 
-	    FIXME-VITALY: What should be done here with uuid and label? 
+	    FIXME-VITALY: What should be done with uuid and label? 
 	    At least not here as uuid and label seem to be on the wrong place.
 	    Move them to specific SB.
 	*/
@@ -53,10 +56,11 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 	{
 	    aal_exception_fatal("Cannot create a new master super block.");
 	    return -EINVAL;
-	} else 
-	    /* Will be printed if verbose. */
-	    aal_exception_info("A new master superblock was created on (%s).", 
+	} else {
+	    aal_exception_fatal("A new master superblock was created on (%s).", 
 		aal_device_name(fs->device));
+	}
+	error |= REPAIR_FIXED;
     } else {
 	/* Master SB was opened. Check it for validness. */
 
@@ -65,10 +69,14 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 	    aal_exception_fatal("Invalid blocksize found in the master super "
 		"block (%u).", reiser4_master_blocksize(fs->master));
 
+	    if (mode != REPAIR_REBUILD)
+		return -EINVAL;
+
 	    blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL, 
 		"Which block size do you use?");
 
 	    set_ms_blocksize(SUPER(fs->master), blocksize);
+	    error |= REPAIR_FIXED;
 	} 
     }
 
@@ -79,11 +87,11 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
 	return -EINVAL;
     }
     
-    return 0;
+    return error;
 }
 
 /* Opens and checks the master. */
-errno_t repair_master_open(reiser4_fs_t *fs) {
+errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode) {
     errno_t ret;
     
     aal_assert("vpf-399", fs != NULL);
@@ -93,11 +101,16 @@ errno_t repair_master_open(reiser4_fs_t *fs) {
     fs->master = reiser4_master_open(fs->device);
 
     /* Either check the opened master or build a new one. */
-    if ((ret = repair_master_check(fs)))
+    ret = repair_master_check(fs, mode);
+    
+    if (repair_error_exists(ret))
 	goto error_master_free;
- 
+    
+    if (ret & REPAIR_FIXED)
+	fs->master->dirty = TRUE;
+    
     return 0;
-
+    
 error_master_free:
     if (fs->master) {
 	reiser4_master_close(fs->master);

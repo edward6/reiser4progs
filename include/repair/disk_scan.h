@@ -15,9 +15,14 @@
 
 #include <repair/repair.h>
 
+/* Statistics gathered during the pass. */
+typedef struct repair_ds_info {
+} repair_ds_info_t;
+
 /* Disk scan data. */
 typedef struct repair_ds {
-    reiser4_fs_t *fs;
+    repair_data_t *repair;
+    
     aux_bitmap_t *bm_scan;	/* Bitmap of blocks to be scanned on the pass. */
     aux_bitmap_t *bm_met;	/* Bitmap of blocks met already. 
 				   Mark all formatted block here also. */
@@ -25,8 +30,7 @@ typedef struct repair_ds {
     aux_bitmap_t *bm_leaf;	/* Found leaves. */
     aux_bitmap_t *bm_twig;	/* Fount twigs. */
 
-    repair_info_t info;
-    uint8_t mode;
+    repair_ds_info_t info;
 } repair_ds_t;
 
 extern errno_t repair_disk_scan(repair_ds_t *ds);
