@@ -2078,7 +2078,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		trans.count = conv;
 		trans.plug = hint->plug;
 
-		if ((conv = reiser4_tree_truncate(tree, &trans)) < 0) {
+		if ((conv = reiser4_tree_trunc_flow(tree, &trans)) < 0) {
 			res = conv;
 			goto error_free_buff;
 		}
@@ -2340,8 +2340,8 @@ int32_t reiser4_tree_write(reiser4_tree_t *tree,
 
 /* Truncates item @hint->offset point to by value stored in @hint->count. This
    is used durring tail conversion. */
-int64_t reiser4_tree_truncate(reiser4_tree_t *tree,
-			      trans_hint_t *hint)
+int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
+				trans_hint_t *hint)
 {
 	errno_t res;
 	int64_t trunc;

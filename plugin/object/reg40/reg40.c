@@ -302,9 +302,7 @@ reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size) {
 
 /* Makes tail2extent and extent2tail conversion */
 errno_t reg40_convert(object_entity_t *entity, 
-		      reiser4_plug_t *plug, 
-		      uint64_t fsize, 
-		      int update) 
+		      reiser4_plug_t *plug) 
 {
 	reg40_t *reg;
 	place_t place;
@@ -316,10 +314,13 @@ errno_t reg40_convert(object_entity_t *entity,
 	aal_assert("umka-2466", entity != NULL);
 
 	reg = (reg40_t *)entity;
+	fsize = reg40_size(entity);
 
-	plug_call(reg->offset.plug->o.key_ops, assign, &key, &reg->offset);
-
-	plug_call(reg->offset.plug->o.key_ops, set_offset, &key, 0);
+	plug_call(reg->offset.plug->o.key_ops, assign,
+		  &key, &reg->offset);
+	
+	plug_call(reg->offset.plug->o.key_ops, set_offset,
+		  &key, 0);
 	
 	/* Looking for item to be converted */
 	switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
@@ -350,10 +351,13 @@ errno_t reg40_convert(object_entity_t *entity,
 		return -EIO;
 	}
 	
-	return update ? obj40_touch(&reg->obj, fsize, bytes, time(NULL)) : 0;
+	return obj40_touch(&reg->obj, fsize,
+			   hint.bytes, time(NULL));
 }
 
-static errno_t reg40_check_body(object_entity_t *entity, uint64_t new_size) {
+static errno_t reg40_check_body(object_entity_t *entity,
+				uint64_t new_size)
+{
 	reg40_t *reg;
 	uint64_t fsize;
 	reiser4_plug_t *bplug;
@@ -369,7 +373,9 @@ static errno_t reg40_check_body(object_entity_t *entity, uint64_t new_size) {
 		return 0;
 	
 	if (!(bplug = reg40_bplug(reg, new_size))) {
-		aal_exception_error("Can't get new body plugin.");
+		aal_exception_error("Can't get body plugin "
+				    "for new file size %llu.",
+				    new_size);
 		return -EINVAL;
 	}
 
@@ -378,7 +384,7 @@ static errno_t reg40_check_body(object_entity_t *entity, uint64_t new_size) {
 	if (plug_equal(bplug, reg->body.plug))
 		return 0;
 
-	return reg40_convert(entity, bplug, fsize, 1);
+	return reg40_convert(entity, bplug);
 }
 
 /* Writes passed data to the file. Returns amount of data written to the
@@ -638,7 +644,6 @@ static errno_t callback_item_layout(void *place, blk_t start,
 				    count_t width, void *data)
 {
 	layout_hint_t *hint = (layout_hint_t *)data;
-
 	return hint->region_func(hint->entity, start,
 				 width, hint->data);
 }
@@ -763,7 +768,6 @@ static errno_t reg40_metadata(object_entity_t *entity,
 }
 
 extern errno_t reg40_form(object_entity_t *object);
-
 extern object_entity_t *reg40_recognize(object_info_t *info);
 
 extern errno_t reg40_check_struct(object_entity_t *object,

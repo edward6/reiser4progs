@@ -78,8 +78,8 @@ int main(int argc, char *argv[]) {
 		plug = reiser4_factory_ifind(ITEM_PLUG_TYPE,
 					     ITEM_TAIL40_ID);
 
-		plug_call(reg->entity->plug->o.object_ops, convert, 
-			  reg->entity, plug, reiser4_object_size(reg), 1);
+		plug_call(reg->entity->plug->o.object_ops,
+			  convert, reg->entity, plug);
 	}
 	
 	while (1) {

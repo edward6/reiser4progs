@@ -92,8 +92,8 @@ extern int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 extern int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				       trans_hint_t *hint);
 
-extern int64_t reiser4_tree_truncate(reiser4_tree_t *tree,
-				     trans_hint_t *hint);
+extern int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
+				       trans_hint_t *hint);
 
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
