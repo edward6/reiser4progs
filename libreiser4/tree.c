@@ -528,24 +528,16 @@ static errno_t reiser4_tree_grow(
 	return -1;
 }
 
-static errno_t reiser4_tree_shift(
+errno_t reiser4_tree_shift(
 	reiser4_tree_t *tree,	/* tree we will operate on */
-	direction_t direction,	/* direction of the shifting */
 	reiser4_coord_t *coord,	/* insert point coord */
 	reiser4_joint_t *joint,	/* destination node */
-	uint32_t needed,        /* space need to be freed */
-	int move_ip)		/* should we move insert point too */
+	shift_flags_t flags)	/* some flags (dirction, move ip or not, etc) */
 {
-	uint32_t overhead;
-	reiser4_coord_t old;
-	reiser4_coord_t src, dst;
-
 	int retval;
 	shift_hint_t hint;
 	reiser4_pos_t ldpos;
 	reiser4_key_t ldkey;
-	shift_flags_t flags = 0;
-	reiser4_coord_t ldcoord;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-1225", tree != NULL, return -1);
@@ -555,16 +547,13 @@ static errno_t reiser4_tree_shift(
 	aal_assert("umka-1258", 
 		   reiser4_node_count(coord->u.joint->node) > 0, return -1);
 
-	old = *coord;
-
-/*	flags |= (direction == D_LEFT ? SF_LEFT : SF_RIGHT);
-		
-	if (move_ip)
-		flags |= SF_MOVIP;
-
-	if (direction == D_LEFT) {
-		if (old.u.joint->parent) {
-			if (reiser4_joint_pos(old.u.joint, &ldpos))
+	/*
+	  Saving node position in parent. It will be used bellow for updating
+	  left delemiting key.
+	*/
+	if (flags & SF_LEFT) {
+		if (coord->u.joint->parent) {
+			if (reiser4_joint_pos(coord->u.joint, &ldpos))
 				return -1;
 		}
 	} else {
@@ -574,135 +563,56 @@ static errno_t reiser4_tree_shift(
 		}
 	}
 
+	/*
+	  Performing the shifting by calling shift method of node plugin. This
+	  method shifts some amount of items and units of last item, based on
+	  passed flags. It returns error code and shift hint, which contains
+	  usefull information about how many items were shifted, how much bytes
+	  were shifted and is insertion point was moved to neigbour node or not.
+	*/
 	plugin = joint->node->entity->plugin;
 	
-	retval = plugin_call(return -1, plugin->node_ops,
-			     shift, old.u.joint->node->entity,
+	retval = plugin_call(return -1, plugin->node_ops, shift,
+			     coord->u.joint->node->entity,
 			     joint->node->entity, &coord->pos,
 			     &hint, flags);
 
 	if (retval < 0)
 		return retval;
 
+	/* Updating coords joint if insertion point was moved to neighbour */
 	if (hint.ipmoved)
 		coord->u.joint = joint;
 
-	if (direction == D_LEFT) {
-		reiser4_pos_t pos = {0, ~0ul};
-		
-		if (reiser4_node_count(old.u.joint->node) != 0 &&
-		    old.u.joint->parent && hint.items > 0)
+	/* Updating leaf delimiting keys in the tree */
+	if (flags & SF_LEFT) {
+		if (reiser4_node_count(coord->u.joint->node) != 0 &&
+		    hint.items > 0)
 		{
-			if (reiser4_coord_open(&ldcoord, old.u.joint, CT_JOINT, &pos))
-				return -1;
-
-			if (reiser4_item_key(&ldcoord, &ldkey))
-				return -1;
+			coord->u.joint->flags |= JF_DIRTY;
+			
+			if (coord->u.joint->parent) {
+				if (reiser4_node_lkey(coord->u.joint->node, &ldkey))
+					return -1;
 				
-			if (reiser4_joint_update(old.u.joint->parent, &ldpos, &ldkey))
-				return -1;
+				if (reiser4_joint_update(coord->u.joint->parent, &ldpos, &ldkey))
+					return -1;
+			}
 		}
 	} else {
-		reiser4_pos_t pos = {0, ~0ul};
-		
-		if (joint->parent && hint.items > 0) {
-			if (reiser4_coord_open(&ldcoord, joint, CT_JOINT, &pos))
-				return -1;
-
-			if (reiser4_item_key(&ldcoord, &ldkey))
-				return -1;
-				
-			if (reiser4_joint_update(joint->parent, &ldpos, &ldkey))
-				return -1;
-		}
-	}
-		
-	return 0;*/
-
-	while (1) {
-    
-		/* Prepare the src and dst coords for moving */
-		if (direction == D_LEFT) {
-			reiser4_pos_t src_pos = {0, ~0ul};
-			reiser4_pos_t dst_pos = {reiser4_node_count(joint->node), ~0ul};
-
-			if (reiser4_coord_open(&src, old.u.joint, CT_JOINT, &src_pos))
-				return -1;
-	    
-			reiser4_coord_init(&dst, joint, CT_JOINT, &dst_pos);
-		} else {
-			reiser4_pos_t dst_pos = {0, ~0ul};
-			reiser4_pos_t src_pos = {reiser4_node_count(old.u.joint->node) - 1, ~0ul};
+		if (hint.items > 0) {
+			joint->flags |= JF_DIRTY;
 			
-			if (reiser4_coord_open(&src, old.u.joint, CT_JOINT, &src_pos))
-				return -1;
-	    
-			reiser4_coord_init(&dst, joint, CT_JOINT, &dst_pos);
-		}
-	
-		overhead = reiser4_node_overhead(joint->node);
-	
-		if (reiser4_node_space(joint->node) < reiser4_item_len(&src) + overhead)
-			return 0;
-	
-		if (reiser4_node_space(joint->node) - (reiser4_item_len(&src) + overhead) < needed)
-			return 0;
-	
-		/* 
-		   Check if we should finish shifting due to insert point
-		   reached and @move_ip flag is not turned on.
-		*/
-		if (!move_ip && coord->u.joint == old.u.joint) {
-			if (direction == D_LEFT) {
-				if (coord->pos.item == 0)
-					return 0;
-			} else {
-				uint32_t count = reiser4_node_count(coord->u.joint->node);
-				if (coord->pos.item == count - 1)
-					return 0;
+			if (joint->parent) {
+				if (reiser4_node_lkey(joint->node, &ldkey))
+					return -1;
+				
+				if (reiser4_joint_update(joint->parent, &ldpos, &ldkey))
+					return -1;
 			}
 		}
-
-		/* Updating the insertion point coord */
-		if (direction == D_LEFT) {
-			if (coord->u.joint == old.u.joint) {
-				if (coord->pos.item == 0) {
-					coord->u.joint = dst.u.joint;
-					coord->pos.item = reiser4_node_count(dst.u.joint->node);
-				} else
-					coord->pos.item--;
-			}
-		} else {
-			if (coord->u.joint == old.u.joint) {
-				uint32_t count = reiser4_node_count(old.u.joint->node);
-				if (coord->pos.item >= count - 1) {
-					if (coord->pos.item > count - 1) {
-						coord->pos.item = 0;
-						coord->u.joint = dst.u.joint;
-						return 0;
-					}
-					coord->pos.item = 0;
-					coord->u.joint = dst.u.joint;
-				}
-			} else
-				coord->pos.item++;
-		}
-	
-		/* Moving the item denoted by @src coord to @dst one */
-		if (reiser4_tree_move(tree, &dst, &src)) {
-			char *side = (direction == D_LEFT ? "left" : "right");
-			aal_exception_error("Can't move item %u into %s neighbour.",
-					    src.pos.item, side);
-			return -1;
-		}
-	
-		if (coord->u.joint != src.u.joint)
-			return 0;
-
-		aal_assert("umka-1260", 
-			   reiser4_node_count(src.u.joint->node) > 0, return -1);
 	}
-
+		
 	return 0;
 }
 
@@ -743,25 +653,31 @@ errno_t reiser4_tree_mkspace(
     
 	if ((not_enough = needed  - reiser4_node_space(old->u.joint->node)) <= 0)
 		return 0;
-    
+
+	/* Shifting data into left neighbour if it exists */
 	if ((left = reiser4_joint_left(new->u.joint))) {
 	    
-		if (reiser4_tree_shift(tree, D_LEFT, new, left, needed, 0))
+		if (reiser4_tree_shift(tree, new, left, SF_LEFT))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(new->u.joint->node)) <= 0)
 			return 0;
 	}
 
+	/* Shifting data into right neighbour if it exists */
 	if ((right = reiser4_joint_right(new->u.joint))) {
 	    
-		if (reiser4_tree_shift(tree, D_RIGHT, new, right, needed, 0))
+		if (reiser4_tree_shift(tree, new, right, SF_RIGHT))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(new->u.joint->node)) <= 0)
 			return 0;
 	}
     
+	/*
+	  Here we still have not enough free space for inserting item/unit into
+	  the tree. Allocating new noe and trying to shift data into it.
+	*/
 	for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
 		uint8_t level;
 		reiser4_coord_t save;
@@ -775,10 +691,10 @@ errno_t reiser4_tree_mkspace(
 
 		save = *new;
 		
-		if (reiser4_tree_shift(tree, D_RIGHT, new, joint, needed, 1))
+		if (reiser4_tree_shift(tree, new, joint, SF_RIGHT | SF_MOVIP))
 			return -1;
 	
-		/* Attaching new allocated node into the tree */
+		/* Attaching new allocated node into the tree, if it is not empty */
 		if (reiser4_node_count(joint->node)) {
 		
 			if (reiser4_tree_attach(tree, joint)) {
@@ -799,6 +715,10 @@ errno_t reiser4_tree_mkspace(
 		}
 	}
 
+	/*
+	  Releasing old node, because it becames empty as result of data
+	  shifting.
+	*/
 	if (new->u.joint != old->u.joint && 
 	    reiser4_node_count(old->u.joint->node) == 0)
 	{
@@ -843,11 +763,17 @@ errno_t reiser4_tree_insert(
 	if ((lookup = reiser4_tree_lookup(tree, key, &stop, coord)) == -1)
 		return -1;
 
+	/* Passed key already exists in the tree */
 	if (lookup == 1) {
-		aal_exception_error(
-			"Key (0x%llx:0x%x:0x%llx:0x%llx) already exists in tree.", 
-			reiser4_key_get_locality(key), reiser4_key_get_type(key), 
-			reiser4_key_get_objectid(key), reiser4_key_get_offset(key));
+		aal_stream_t stream;
+
+		aal_stream_init(&stream);
+		reiser4_key_print(key, &stream);
+			
+		aal_exception_error("Key %s already exists in tree.",
+				    stream.data);
+		
+		aal_stream_fini(&stream);
 		return -1;
 	}
 

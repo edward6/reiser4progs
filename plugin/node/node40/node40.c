@@ -674,15 +674,11 @@ static int node40_lookup(object_entity_t *entity,
 struct node40_estimate {
 	int ipmoved;
 	
-	node40_t *src;
-	node40_t *dst;
-    
-	uint32_t bytes;
-	uint32_t items;
-	uint32_t part;
-
 	reiser4_pos_t *pos;
 	shift_flags_t flags;
+
+	node40_t *src, *dst;
+	uint32_t bytes, items, part;
 };
 
 typedef struct node40_estimate node40_estimate_t;
@@ -706,7 +702,7 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 
 	dst_space = node40_space((object_entity_t *)estimate->dst);
 
-	while (1) {
+	while (node == estimate->src) {
 		len = (cur == end ? nh40_get_free_space_start(node) - ih40_get_offset(cur) :
 		       ih40_get_offset(cur) - ih40_get_offset(cur + 1));
 
@@ -726,7 +722,6 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 		if (estimate->flags & SF_LEFT) {
 			if (node == estimate->src) {
 				if (estimate->pos->item == 0) {
-					estimate->ipmoved = 1;
 					estimate->pos->item = dst_items;
 					node = estimate->dst;
 				} else
@@ -735,34 +730,28 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 		} else {
 			if (node == estimate->src) {
 				if (estimate->pos->item >= src_items - 1) {
-					if (estimate->pos->item > src_items - 1) {
-						estimate->ipmoved = 1;
-						estimate->pos->item = 0;
-						node = estimate->dst;
-						break;
-					}
 					estimate->pos->item = 0;
 					node = estimate->dst;
+
+					if (estimate->pos->item > src_items - 1)
+						break;
 				}
 			} else
 				estimate->pos->item++;
 		}
 
-		src_items--;
-		dst_items++;
+		src_items--; dst_items++;
 		
 		estimate->items++;
 		estimate->bytes += len;
 		dst_space -= (len + sizeof(item40_header_t));
 
 		cur += (estimate->flags & SF_LEFT ? -1 : 1);
-
-		if (node != estimate->src)
-			break;
 	}
 	
 	estimate->part = dst_space;
-
+	estimate->ipmoved = (node != estimate->src);
+	
 	return 0;
 }
 
@@ -789,6 +778,10 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 	estimate.src = (node40_t *)entity;
 	estimate.dst = (node40_t *)target;
 
+	/*
+	  Estimating shift in order to determine how many items will be shifted,
+	  how much bytes, etc.
+	*/
 	if (node40_estimate(&estimate)) {
 
 		blk_t src_blk = aal_block_number(estimate.src->block);
@@ -814,32 +807,51 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 	headers_size = sizeof(item40_header_t) * estimate.items;
 
 	if (estimate.flags & SF_LEFT) {
-		ih = node40_ih_at(estimate.src, estimate.items - 1);
-
-		if (dst_items > 0) {
-			/* Copying item headers from src node to dst */
-			dst = node40_ih_at(estimate.dst, dst_items - 1);
-			dst -= headers_size;
+		/* Copying item headers from src node to dst */
+		src = node40_ih_at(estimate.src, estimate.items - 1);
+		dst = node40_ih_at(estimate.dst, dst_items + estimate.items - 1);
 			
-			aal_memcpy(dst, ih, headers_size);
+		aal_memcpy(dst, src, headers_size);
 
-			ih = (item40_header_t *)dst;
+		ih = (item40_header_t *)dst;
 		
-			/* Copying item bodies from src node to dst */
-			src = node40_ib_at(estimate.src, 0);
+		/* Copying item bodies from src node to dst */
+		src = node40_ib_at(estimate.src, 0);
 
-			dst = estimate.dst->block->data +
-				nh40_get_free_space_start(estimate.dst);
+		dst = estimate.dst->block->data +
+			nh40_get_free_space_start(estimate.dst);
 
-			aal_memcpy(dst, src, estimate.bytes);
-		}
+		aal_memcpy(dst, src, estimate.bytes);
 
-		/* Updating item headers */
+		/* Updating item headers in dst node */
 		for (i = 0; i < estimate.items; i++, ih++) {
 			uint32_t offset = nh40_get_free_space_start(estimate.dst);
 			ih40_set_offset(ih, offset + (offset - ih40_get_offset(ih)));
 		}
+
+		/* Moving src item headers to right place */
+		src = node40_ih_at(estimate.src, src_items - 1);
+		dst = node40_ih_at(estimate.src, estimate.items - 1);
+
+		aal_memmove(dst, src, (src_items - estimate.items) *
+			    sizeof(item40_header_t));
+
+		/* Moving src item bodies to right place */
+		ih = node40_ih_at(estimate.src, 0);
+
+		src = estimate.src->block->data + ih40_get_offset(ih);
+		dst = estimate.src->block->data + sizeof(node40_header_t);
+
+		aal_memmove(dst, src, nh40_get_free_space_start(estimate.src) -
+			    ih40_get_offset(ih));
+
+		/* Updating item headers in src node */
+		ih = node40_ih_at(estimate.src, src_items - estimate.items - 1);
 		
+		for (i = 0; i < src_items - estimate.items; i++, ih++) {
+			uint32_t offset = ih40_get_offset(ih);
+			ih40_set_offset(ih, offset - estimate.bytes);
+		}
 	} else {
 		/* Preparing space for moving item headers in destination
 		 * node */
@@ -865,13 +877,21 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 			}
 		}
 
-		/* Copying item headers */
+		/* Copying item headers from src node to dst */
 		src = node40_ih_at(estimate.src, src_items - 1);
 		dst = node40_ih_at(estimate.dst, estimate.items - 1);
 
 		aal_memcpy(dst, src, headers_size);
 
-		/* Copying item bodies */
+		/* Updating item headers in dst node */
+		ih = (item40_header_t *)dst;
+		
+		for (i = 0; i < estimate.items; i++, ih++) {
+			uint32_t offset = ih40_get_offset(ih);
+			ih40_set_offset(ih, offset - (offset - sizeof(item40_header_t)));
+		}
+		
+		/* Copying item bodies from src node to dst*/
 		ih = node40_ih_at(estimate.src, src_items - estimate.items);
 		src = estimate.src->block->data + ih40_get_offset(ih);
 		dst = estimate.dst->block->data + sizeof(node40_header_t);
@@ -880,12 +900,12 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 	}
 	
 	/* Updating destination node fields */
-	nh40_dec_free_space(estimate.dst, estimate.bytes + headers_size);
+	nh40_dec_free_space(estimate.dst, (estimate.bytes + headers_size));
 	nh40_inc_num_items(estimate.dst, estimate.items);
 	nh40_inc_free_space_start(estimate.dst, estimate.bytes);
 	
 	/* Updating source node fields */
-	nh40_inc_free_space(estimate.src, estimate.bytes + headers_size);
+	nh40_inc_free_space(estimate.src, (estimate.bytes + headers_size));
 	nh40_dec_num_items(estimate.src, estimate.items);
 	nh40_dec_free_space_start(estimate.src, estimate.bytes);
 
