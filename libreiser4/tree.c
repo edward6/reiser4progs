@@ -1904,7 +1904,11 @@ int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		}
 
 		/* Writing data to to tree */
-		level = reiser4_node_get_level(place.node);
+		if (hint->plug->id.group == TAIL_ITEM) {
+			level = LEAF_LEVEL;
+		} else {
+			level = TWIG_LEVEL;
+		}
 		
 		if ((write = reiser4_tree_write(tree, &place,
 						hint, level)) < 0)
