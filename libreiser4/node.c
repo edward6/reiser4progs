@@ -461,9 +461,8 @@ static errno_t reiser4_node_register(reiser4_node_t *node,
 	return 0;
 }
 
-reiser4_node_t *reiser4_node_neighbour(
-	reiser4_node_t *node,
-	int direction) 
+reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
+				       int direction)
 {
 	int found = 0;
 	uint32_t orig;

@@ -64,13 +64,14 @@ static errno_t reiser4_file_realize(
 	while (1) {
 		reiser4_place_t *place;
 		
-		reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 		reiser4_key_set_offset(&file->key, 0);
+		reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 	
 		if (reiser4_tree_lookup(file->fs->tree, &file->key, 
 					LEAF_LEVEL, &file->coord) != PRESENT) 
 		{
-			aal_exception_error("Can't find stat data of directory %s.", track);
+			aal_exception_error("Can't find stat data of "
+					    "directory %s.", track);
 			return -1;
 		}
 	
@@ -99,21 +100,35 @@ static errno_t reiser4_file_realize(
 		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
 					   file->fs->tree, place)))
 		{
-			aal_exception_error("Can't open parent of directory %s.", track);
+			aal_exception_error("Can't open parent of directory "
+					    "%s.", track);
 			return -1;
 		}
 
-		/* Symlinks handling should be here */
+//		if (file->coord->item.plugin->item_ops.follow) {
+			/*
+			  If the file may be followed (symlink) we call follow
+			  method in order to find actual stat data coord.
+			*/
+/*			if (file->coord->item.plugin->item_ops.follow(entity,
+								      &file->key))
+			{
+				aal_exception_error("Can't follow file.");
+				return -1;
+			}
+		}*/
+
+		reiser4_key_assign(&file->dir, &file->key);
 		
 		if (!plugin->file_ops.lookup) {
-			aal_exception_error("Method \"lookup\" is not implemented in %s plugin.", 
-					    plugin->h.label);
+			aal_exception_error("Method \"lookup\" is not implemented in "
+					    "%s plugin.", plugin->h.label);
 		
 			plugin_call(return -1, plugin->file_ops, close, entity);
 			return -1;
 		}
 	
-		if (plugin->file_ops.lookup(entity, entryname, &file->key) != 1) {
+		if (plugin->file_ops.lookup(entity, entryname, &file->key) != PRESENT) {
 			plugin_call(return -1, plugin->file_ops, close, entity);
 			return -1;
 		}
@@ -180,7 +195,6 @@ reiser4_file_t *reiser4_file_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
 	const char *name)		/* name of file to be opened */
 {
-	reiser4_key_t *key;
 	reiser4_file_t *file;
 	reiser4_place_t *place;
 	reiser4_plugin_t *plugin;
@@ -200,8 +214,8 @@ reiser4_file_t *reiser4_file_open(
 	file->fs = fs;
 	aal_strncpy(file->name, name, sizeof(file->name));
 
-	key = &fs->tree->key;
-	reiser4_key_assign(&file->key, key);
+	reiser4_key_assign(&file->key, &fs->tree->key);
+	reiser4_key_assign(&file->dir, &fs->tree->key);
     
 	/* 
 	   Getting the file's stat data key by means of parsing its path. I

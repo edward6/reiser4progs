@@ -181,6 +181,14 @@ errno_t file40_realize(file40_t *file) {
 	return 0;
 }
 
+/* Performs lookup and returns result to caller */
+errno_t file40_lookup(file40_t *file, key_entity_t *key,
+		      uint8_t stop, reiser4_place_t *place)
+{
+	return file->core->tree_ops.lookup(file->tree, key,
+					   stop, place);
+}
+
 /*
   Inserts passed item hint into the tree. After function is finished, place
   contains the coord of the inserted item.
@@ -190,9 +198,7 @@ errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
 {
 	roid_t objectid = file40_objectid(file);
 	
-	switch (file->core->tree_ops.lookup(file->tree, &hint->key,
-					    stop, place))
-	{
+	switch (file40_lookup(file, &hint->key, stop, place)) {
 	case PRESENT:
 		aal_exception_error("Key already exists in the tree.");
 		return -1;

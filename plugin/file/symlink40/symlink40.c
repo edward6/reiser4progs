@@ -76,6 +76,33 @@ static object_entity_t *symlink40_open(const void *tree,
 	return NULL;
 }
 
+/* Gets symlink from the stat data */
+errno_t symlink40_get_data(reiser4_place_t *place,
+			   char *data)
+{
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.hint = &stat;
+	stat.ext[SDEXT_SYMLINK_ID] = data;
+
+	item = &place->item;
+
+	if (!item->plugin->item_ops.open)
+		return -1;
+
+	if (item->plugin->item_ops.open(item, &hint)) {
+		aal_exception_error("Can't open statdata item.");
+		return -1;
+	}
+
+	return 0;
+}
+
 #ifndef ENABLE_COMPACT
 
 static object_entity_t *symlink40_create(const void *tree, 

@@ -176,9 +176,12 @@ struct reiser4_file {
 	/* Current coord */
 	reiser4_coord_t coord;
 
-	/* Object key of first item (most probably stat data item) */
+	/* File first item (most probably stat data) key */
 	reiser4_key_t key;
-    
+
+	/* The key of parent */
+	reiser4_key_t dir;
+	
 	/* Referrence to the filesystem object opened on */
 	reiser4_fs_t *fs;
 
