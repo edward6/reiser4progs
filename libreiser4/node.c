@@ -614,7 +614,9 @@ errno_t reiser4_node_shift(
 	
 	if ((res = plugin_call(plugin->o.node_ops, shift,
 			       node->entity, neig->entity, hint)))
+	{
 		return res;
+	}
 
 	/*
 	  We do not need update children if @node does not have children at all

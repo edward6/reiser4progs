@@ -176,7 +176,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	item = &dir->body.item;
 
-	/* Getting size from teh statdata */
+	/* Getting directory size from statdata item */
 	if (dir40_size(entity) == 0)
 		return -EINVAL;
 
@@ -219,7 +219,8 @@ static errno_t dir40_readdir(object_entity_t *entity,
   Makes lookup in directory by name. Fills passed buff by found entry fields
   (offset key, object key, etc).
 */
-static lookup_t dir40_lookup(object_entity_t *entity, char *name,
+static lookup_t dir40_lookup(object_entity_t *entity,
+			     char *name,
 			     entry_hint_t *entry) 
 {
 	dir40_t *dir;
@@ -353,12 +354,7 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 	obj40_lock(&dir->obj, &dir->obj.statdata);
 	
 	/* Positioning to the first directory unit */
-	if (dir40_reset((object_entity_t *)dir)) {
-		aal_exception_error("Can't reset directory 0x%llx.", 
-				    obj40_objectid(&dir->obj));
-		goto error_free_dir;
-	}
-    
+	dir40_reset((object_entity_t *)dir);
 	return (object_entity_t *)dir;
 
  error_free_dir:

@@ -156,18 +156,10 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 	
 	obj40_lock(&reg->obj, &reg->obj.statdata);
 
-	/* Reseting file offset, position onto the first body item */
-	if (reg40_reset((object_entity_t *)reg)) {
-		aal_exception_error("Can't reset file 0x%llx.", 
-				    obj40_objectid(&reg->obj));
-		goto error_free_reg;
-	}
-    
-	return (object_entity_t *)reg;
+	/* Reseting file (setting offset to 0) */
+	reg40_reset((object_entity_t *)reg);
 
- error_free_reg:
-	aal_free(reg);
-	return NULL;
+	return (object_entity_t *)reg;
 }
 
 #ifndef ENABLE_STAND_ALONE
