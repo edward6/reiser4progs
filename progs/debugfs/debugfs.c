@@ -329,8 +329,6 @@ static errno_t callback_tree_frag(
 				frag_hint->curr = ptr.ptr + ptr.width;
 				frag_hint->total += ptr.width;
 			}
-			
-			frag_hint->bad += reiser4_item_count(&coord);
 		} else {
 			if (plugin_call(continue, coord.entity.plugin->item_ops,
 					fetch, &coord.entity, pos.unit, &ptr, 1))
