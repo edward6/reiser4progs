@@ -133,9 +133,9 @@ errno_t reiser4_item_key(reiser4_place_t *place, reiser4_key_t *key) {
 	aal_assert("vpf-1290", place != NULL);
 	aal_assert("vpf-1291", key != NULL);
 
-	aal_memcpy(&place->key, key, sizeof(*key));
+	aal_memcpy(key, &place->key, sizeof(*key));
 	
-	if (place->plug->o.item_ops->get_key == NULL)
+	if (!place->pos.unit || !place->plug->o.item_ops->get_key)
 		return 0;
 	
 	return plug_call(place->plug->o.item_ops, get_key, (place_t *)place,

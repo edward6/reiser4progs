@@ -43,17 +43,19 @@ static void repair_add_missing_setup(repair_am_t *am) {
 	aal_assert("vpf-887", am != NULL);
 	
 	aal_memset(am->progress, 0, sizeof(*am->progress));
+	
+	if (!am->progress_handler)
+		return;
+	
 	am->progress->type = GAUGE_PERCENTAGE;
 	
-	am->progress->title = "***** AddMissing Pass: inserting unconnected "
+	am->progress->text = "***** AddMissing Pass: inserting unconnected "
 		"nodes into the tree.";
 	
 	am->progress->state = PROGRESS_START;
-	
-	if (am->progress_handler)
-		am->progress_handler(am->progress);
-	
 	time(&am->stat.time);
+	am->progress_handler(am->progress);
+	am->progress->text = "";
 }
 
 static void repair_add_missing_update(repair_am_t *am) {

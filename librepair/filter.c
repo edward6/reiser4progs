@@ -107,7 +107,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 
 /* Before callback for traverse. It checks node level, node consistency, and 
    delimiting keys. If any check reveals a problem with the data consistency 
-   it sets RE_NPTR flag. */
+   it sets RE_FATAL flag. */
 static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 					reiser4_node_t *node,
 					void *data)
@@ -134,19 +134,20 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	/* Initialize the level for the root node before traverse. */
 	if (!fd->level)
 		fd->level = level;
-    
+	else
+		fd->level--;
+	
 	/* Skip this check if level is not set (root node only). */
-	if (fd->level - 1 != level) {
-		aal_exception_error("Level of the node (%u) mismatches to the "
+	if (fd->level != level) {
+		aal_exception_error("Level of the node (%u) doesn't matche the "
 				    "expected one (%u).", level, fd->level);
 		
 		/* Should not be check for now as it may lie in unused space.
 		   It is just a wrong pointer. Skip it. */
-		fd->flags |= RE_NPTR;
+		fd->flags |= RE_FATAL;
 		fd->repair->fatal++;
 		return 1;
-	} else 
-		fd->level--;
+	} 
 	
 	if ((res = repair_node_check_struct(node, fd->repair->mode)) < 0)
 		return res;
@@ -288,9 +289,6 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 	}
 	
 	if (fd->flags) {
-		/* Clear pointed block in the formatted bitmap. */
-		aux_bitmap_clear_region(fd->bm_used, ptr.start, ptr.width);
-		
 		if (fd->flags & RE_NPTR) {
 			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 					    "to the invalid node [%llu]. %s", 
@@ -300,7 +298,14 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 					    "Removed." : "The whole subtree is skipped.");
 			
 			fd->stat.bad_ptrs += ptr.width;
-		} else if (fd->flags & RE_FATAL) {
+		} else {
+			/* Clear pointed block in the formatted bitmap. */
+			aux_bitmap_clear_region(fd->bm_used, ptr.start, ptr.width);
+
+			level = reiser4_node_get_level(place->node);
+		}
+			
+		if (fd->flags & RE_FATAL) {
 			aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 					    "to the %s node [%llu]. %s", 
 					    node_blocknr(place->node), place->pos.item, 
@@ -309,8 +314,6 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 					    "emptied" : "unrecoverable", ptr.start, 
 					    fd->repair->mode == RM_BUILD ? 
 					    "Removed." : "The whole subtree is skipped.");
-			
-			level = reiser4_node_get_level(place->node);
 			
 			/* Extents cannot point to this node. */
 			aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
@@ -327,8 +330,6 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 					    ptr.start, 
 					    fd->repair->mode == RM_BUILD ? 
 					    "Removed." : "The whole subtree is skipped.");
-			
-			level = reiser4_node_get_level(place->node);
 			
 			fd->stat.bad_dk_nodes += ptr.width;
 			/* Insert it later. FIXME: This is hardcoded, should be 
@@ -410,36 +411,18 @@ static errno_t repair_filter_after_traverse(reiser4_tree_t *tree,
 
 /* Setup data (common and specific) before traverse through the tree. */
 static void repair_filter_setup(repair_filter_t *fd) {
-	reiser4_format_t *format = fd->repair->fs->format;
-	blk_t root;
-        
-	root = reiser4_format_get_root(format);
-	
-	/* Check the root pointer to be valid block. */
-	if (root < reiser4_format_start(format) || 
-	    root > reiser4_format_get_len(format))
-	{
-		/* Wrong pointer. */
-		fd->flags |= RE_NPTR;
-		fd->repair->fatal++;
-	} else if (aux_bitmap_test(fd->bm_used, 
-				   reiser4_format_get_root(format)))
-	{
-		/* This block is from format area. */
-		fd->flags |= RE_NPTR;
-		fd->repair->fatal++;
-	} else	{
-		/* We meet the block for the first time. */
-		aux_bitmap_mark(fd->bm_used, 
-				reiser4_format_get_root(format));
-	}
-	
 	aal_memset(fd->progress, 0, sizeof(*fd->progress));
+	
+	if (!fd->progress_handler)
+		return;
+	
 	fd->progress->type = GAUGE_TREE;
-	fd->progress->title = "***** Tree Traverse Pass: scanning the reiser4 "
+	fd->progress->text = "***** Tree Traverse Pass: scanning the reiser4 "
 		"internal tree.";
-	fd->progress->text = "";
+	fd->progress->state = PROGRESS_STAT;
 	time(&fd->stat.time);
+	fd->progress_handler(fd->progress);
+	fd->progress->text = "";
 }
 
 /* Does some update stuff after traverse through the internal tree - 
@@ -450,31 +433,33 @@ static void repair_filter_update(repair_filter_t *fd,
 				 reiser4_node_t *root) 
 {
 	repair_filter_stat_t *stat;
+	reiser4_format_t *format;
 	aal_stream_t stream;
 	char *time_str;
 	
 	aal_assert("vpf-421", fd != NULL);
-	aal_assert("vpf-863", root != NULL);
 	
 	stat = &fd->stat;
+	format = fd->repair->fs->format;
 	
-	if (fd->flags & (RE_NPTR | RE_FATAL)) {
+	if (fd->flags & RE_NPTR) {
+		stat->bad_ptrs++;
+		if (fd->repair->mode == RM_BUILD)
+			reiser4_format_set_root(format, INVAL_BLK);
+	} else if (fd->flags & RE_FATAL) {
+		aal_assert("vpf-863", root != NULL);
+		
 		aux_bitmap_clear(fd->bm_used, node_blocknr(root));
+		stat->bad_nodes++;
 
-		fd->flags = 0;
-		if (fd->flags & RE_NPTR)
-			stat->bad_ptrs++;
-		else
-			stat->bad_nodes++;
-
-		if (fd->repair->mode == RM_BUILD) {
-			reiser4_format_set_root(fd->repair->fs->format, 
-						INVAL_BLK);
-			/* FIXME: sync it to disk. */
-		}
+		if (fd->repair->mode == RM_BUILD)
+			reiser4_format_set_root(format, INVAL_BLK);
 	} else {
 		aal_assert("vpf-862", fd->flags == 0);
+		aal_assert("vpf-863", root != NULL);
 		
+		aux_bitmap_mark(fd->bm_used, reiser4_format_get_root(format));
+
 		/* FIXME-VITALY: hardcoded level, should be changed. */
 		if (reiser4_node_get_level(root) == TWIG_LEVEL) {
 			aux_bitmap_mark(fd->bm_twig, node_blocknr(root));
@@ -554,12 +539,53 @@ static void repair_filter_update(repair_filter_t *fd,
 	aal_stream_fini(&stream);
 }
 
+static errno_t repair_filter_traverse(repair_filter_t *fd) {
+	reiser4_format_t *format;
+	reiser4_tree_t *tree;
+	blk_t root;
+	errno_t res;
+	
+	aal_assert("vpf-1314", fd != NULL);
+	
+	format = fd->repair->fs->format;
+	tree = fd->repair->fs->tree;
+	root = reiser4_format_get_root(format);
+	
+	/* Check the root pointer to be valid block. */
+	if (root < reiser4_format_start(format) || 
+	    root > reiser4_format_get_len(format))
+		/* Wrong pointer. */
+		goto error;
+	else if (aux_bitmap_test(fd->bm_used, root))
+		/* This block is from format area. */
+		goto error;
+
+	if (!(tree->root = repair_node_open(fd->repair->fs, root)))
+		goto error;
+	
+	if (reiser4_tree_connect(tree, NULL, tree->root))
+		goto error;
+
+	/* Cut the corrupted, unrecoverable parts of the tree off. */
+	res = reiser4_tree_down(tree, tree->root,
+				repair_filter_node_open,
+				repair_filter_node_check,
+				repair_filter_update_traverse,  
+				repair_filter_after_traverse, fd);
+
+	return res < 0 ? res : 0;
+ error:
+	fd->flags |= RE_NPTR;
+	fd->repair->fatal++;
+	return 0;
+
+}
+
 /* The pass itself - goes through the existent tree trying to filter all 
    corrupted parts off, and fixing what can be fixed. Account all kind of 
    nodes in corresponding bitmaps. */
 errno_t repair_filter(repair_filter_t *fd) {
 	repair_progress_t progress;
-	reiser4_fs_t *fs;
 	errno_t res = 0;
 
 	aal_assert("vpf-536", fd != NULL);
@@ -571,9 +597,7 @@ errno_t repair_filter(repair_filter_t *fd) {
 	aal_assert("vpf-814", fd->bm_twig != NULL);
 	aal_assert("vpf-814", fd->bm_met != NULL);
     
-	fs = fd->repair->fs;
-    
-	if (reiser4_tree_fresh(fs->tree)) {
+	if (reiser4_tree_fresh(fd->repair->fs->tree)) {
 		aal_exception_warn("Reiser4 storage tree does not exist. "
 				   "Filter pass skipped.");
 		return 0;
@@ -582,25 +606,12 @@ errno_t repair_filter(repair_filter_t *fd) {
 	fd->progress = &progress;
 	repair_filter_setup(fd);
 	
-	fs->tree->root = repair_node_open(fd->repair->fs, 
-					  reiser4_format_get_root(fs->format));
+	if ((res = repair_filter_traverse(fd)))
+		return res;
+		
+	repair_filter_update(fd, fd->repair->fs->tree->root);
 	
-	if (fs->tree->root != NULL) {
-		/* Cut the corrupted, unrecoverable parts of the tree off. */
-		res = reiser4_tree_down(fs->tree, fs->tree->root, 
-					repair_filter_node_open,
-					repair_filter_node_check,
-					repair_filter_update_traverse,  
-					repair_filter_after_traverse, fs);
-	
-		if (res < 0)
-			return res;
-	} else
-		fd->flags |= RE_NPTR;
-	
-	repair_filter_update(fd, fs->tree->root);
-	
-	reiser4_tree_collapse(fs->tree);
+	reiser4_tree_collapse(fd->repair->fs->tree);
 	
 	return res;
 }

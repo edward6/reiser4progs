@@ -20,20 +20,21 @@ static void repair_disk_scan_setup(repair_ds_t *ds) {
 	aal_assert("vpf-883", ds != NULL);
 	
 	aal_memset(ds->progress, 0, sizeof(*ds->progress));
-	ds->progress->type = GAUGE_PERCENTAGE;
-	ds->progress->title = "***** DiskScan Pass: scanning the partition "
-		"for unconnected nodes.";
-	ds->progress->text = "";
-	time(&ds->stat.time);
 	
 	if (!ds->progress_handler)
 		return;
+	
+	ds->progress->type = GAUGE_PERCENTAGE;
+	ds->progress->text = "***** DiskScan Pass: scanning the partition "
+		"for unconnected nodes.";
+	time(&ds->stat.time);
 	
 	ds->progress->state = PROGRESS_START;
 	ds->progress->u.rate.total = aux_bitmap_marked(ds->bm_scan);
 	ds->progress_handler(ds->progress);
 	
 	ds->progress->state = PROGRESS_UPDATE;
+	ds->progress->text = "";
 }
 
 static void repair_disk_scan_update(repair_ds_t *ds) {

@@ -17,9 +17,7 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 
 	if (!(node = reiser4_node_open(fs->device, blocksize, blk, 
 				       fs->tree->key.plug)))
-	{
 		return NULL;
-	}
 	
 	if (reiser4_format_get_stamp(fs->format) != 
 	    reiser4_node_get_mstamp(node))

@@ -28,7 +28,7 @@ char *reiser4_print_key(reiser4_key_t *key,
 	return (char *)stream.data;
 }
 
-char *repair_print_node(reiser4_node_t *node, uint32_t start, 
+char *reiser4_print_node(reiser4_node_t *node, uint32_t start, 
 			uint32_t count, uint16_t options) 
 {
 	if (node == NULL)

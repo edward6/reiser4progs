@@ -35,7 +35,7 @@ reiser4_profile_t default_profile = {
 			.value = ITEM_EXTENT40_ID
 		},
 		[5] = {
-			.name  = "cde",
+			.name  = "direntry",
 			.type  = ITEM_PLUG_TYPE,
 			.value = ITEM_CDE40_ID
 		},

@@ -36,7 +36,6 @@ typedef struct repair_progress_tree {
 typedef struct repair_progress {
 	uint8_t type;		/* type of the progress - progress_type_t   */
 	uint8_t state;		/* state of the progress - progress_state_t */
-	char *title;		/* The title of the progress.		    */
 	char *text;		/* Some uptodate text for the progress.     
 				   Becomes the name of the gauge for now.   */
     

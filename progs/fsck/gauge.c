@@ -130,16 +130,12 @@ static errno_t progress_start(repair_progress_t *progress) {
     gauge = progress->data;
     
     if (progress->data == NULL) {
-	
-	if (progress->title)
-	    fprintf(stderr, "%s\n", progress->title);
+	if (progress->text)
+	    fprintf(stderr, "%s\n", progress->text);
 
 	if (!(gauge = aal_gauge_create(progress->type, NULL)))
 		return -ENOMEM;
 	
-	if (progress->text)
-	    aal_gauge_rename(gauge, progress->text);
-
 	hint = gauge->data = aal_calloc(sizeof(gauge_hint_t), 0);
 
 	if (!hint) {
@@ -290,6 +286,7 @@ errno_t gauge_handler(repair_progress_t *progress) {
 	progress_update(progress);
 	break;
     case PROGRESS_STAT:
+	misc_wipe_line(stderr);
 	if (progress->text)
 	    fprintf(stderr, "%s\n", progress->text);
 

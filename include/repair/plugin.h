@@ -32,7 +32,7 @@ typedef enum repair_error {
 	RE_LAST		= (1 << 2)
 } repair_error_t;
 
-#define repair_error_exists(result)  (!result)
+#define repair_error_exists(result)  (result)
 #define repair_error_fatal(result)   ((result >= RE_FATAL) || (result < 0))
 
 #define repair_error_check(result, mode)		\

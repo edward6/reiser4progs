@@ -49,13 +49,17 @@ static void repair_cleanup_setup(repair_cleanup_t *cleanup) {
 	aal_assert("vpf-1046", cleanup->repair != NULL);
 	aal_assert("vpf-1047", cleanup->repair->fs != NULL);
 	aal_assert("vpf-1048", cleanup->repair->fs->tree != NULL);
+
+	if (!cleanup->progress_handler)
+		return;
 	
 	aal_memset(cleanup->progress, 0, sizeof(*cleanup->progress));
 	cleanup->progress->type = GAUGE_TREE;
-	cleanup->progress->title = "***** Cleanup Pass: cleaning reiser4 "
+	cleanup->progress->text = "***** Cleanup Pass: cleaning reiser4 "
 		"storage tree up.";
-	cleanup->progress->text = "";
 	time(&cleanup->stat.time);
+	cleanup->progress_handler(cleanup->progress);
+	cleanup->progress->text = "";
 }
 
 static void repair_cleanup_update(repair_cleanup_t *cleanup) {

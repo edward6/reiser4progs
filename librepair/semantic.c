@@ -579,7 +579,9 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 		return res;
 	
 	/* Detach if possible. */
-	if (object->entity->plug->o.object_ops->detach) {
+	if (sem->repair->mode == RM_BUILD && 
+	    object->entity->plug->o.object_ops->detach) 
+	{
 		if ((res = plug_call(object->entity->plug->o.object_ops,
 				     detach, object->entity, NULL)))
 			return res;
@@ -588,12 +590,9 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 	if (!parent)
 		return 0;
 	
-	res = repair_semantic_link(sem, parent, object, NULL);
-	
-	if (repair_error_fatal(res))
-		return res;
-	
-	return 0;
+	return sem->repair->mode != RM_CHECK ?
+		repair_semantic_link(sem, parent, object, NULL) :
+		repair_semantic_check_attach(sem, parent, object);
 }
 
 static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
@@ -718,11 +717,17 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 
 static void repair_semantic_setup(repair_semantic_t *sem) {
 	aal_memset(sem->progress, 0, sizeof(*sem->progress));
+
+	if (!sem->progress_handler)
+		return;
+
 	sem->progress->type = GAUGE_SEM;
-	sem->progress->title = "***** Semantic Traverse Pass: reiser4 semantic "
+	sem->progress->text = "***** Semantic Traverse Pass: reiser4 semantic "
 		"tree recovering.";
-	sem->progress->text = "";
+	sem->progress->state = PROGRESS_STAT;
 	time(&sem->stat.time);
+	sem->progress_handler(sem->progress);
+	sem->progress->text = "";
 }
 
 static void repair_semantic_update(repair_semantic_t *sem) {
@@ -748,7 +753,7 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 			  "%llu\n",stat->shared);
 	aal_stream_format(&stream, "\tRemoved names pointing to nowhere %llu\n",
 			  stat->rm_entries);
-	aal_stream_format(&stream, "\tUnrecoverable objects found %llu", 
+	aal_stream_format(&stream, "\tUnrecoverable objects found %llu\n", 
 			  stat->broken);
 	
 	time_str = ctime(&sem->stat.time);
@@ -814,17 +819,23 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	
 	/* Connect lost objects to their parents -- if parents can be 
 	   identified -- or to "lost+found". */
-	if ((res = reiser4_tree_down(tree, tree->root, NULL, 
-				     repair_semantic_node_traverse,
-				     NULL, NULL, sem)))
-		goto error_close_lost;
+	if (sem->repair->mode == RM_BUILD) {
+		if ((res = reiser4_tree_down(tree, tree->root, NULL, 
+					     repair_semantic_node_traverse,
+					     NULL, NULL, sem)))
+			goto error_close_lost;
+	}
 	
  error_close_lost:
-	reiser4_object_close(sem->lost);
-	sem->lost = NULL;
+	if (sem->lost) {
+		reiser4_object_close(sem->lost);
+		sem->lost = NULL;
+	}
  error_close_root:
-	reiser4_object_close(sem->root);
-	sem->root = NULL;
+	if (sem->root) {
+		reiser4_object_close(sem->root);
+		sem->root = NULL;
+	}
  error:
 	repair_semantic_update(sem);	
 	reiser4_tree_collapse(sem->repair->fs->tree);

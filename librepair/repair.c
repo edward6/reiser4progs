@@ -13,7 +13,9 @@
 
 typedef struct repair_control {
 	repair_data_t *repair;
-
+	
+	reiser4_alloc_t *alloc;
+	
 	aux_bitmap_t *bm_used;		/* Formatted area + formatted nodes. */
 	aux_bitmap_t *bm_leaf;		/* Leaf bitmap not in the tree yet.  */
 	aux_bitmap_t *bm_twig;		/* Twig nodes 			     */

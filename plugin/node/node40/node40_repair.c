@@ -63,8 +63,6 @@ static errno_t node40_region_delete(node40_t *node,
 	pol = node40_key_pol(node);
 	ih = node40_ih_at(node, start_pos);
 
-	/* FIXME-UMKA->VITALY: Is this correct that we increase offset by one
-	   for all items between @start_pos and @end_pos? */
 	for (i = start_pos; i < end_pos; i++) {
 		ih_set_offset(ih, ih_get_offset(ih + ih_size(pol),
 						pol) + 1, pol);
@@ -96,8 +94,7 @@ static bool_t node40_item_count_valid(node40_t *node,
 }
 
 static uint32_t node40_count_estimate(node40_t *node) {
-	uint32_t pol;
-	uint32_t num, blk_size;
+	uint32_t num, blk_size, pol;
 	
 	aal_assert("vpf-804", node != NULL);
 	aal_assert("vpf-806", node->block != NULL);
@@ -145,7 +142,7 @@ static uint32_t node40_count_estimate(node40_t *node) {
 
 /* Count of items is correct. Free space fields and item locations should be 
  * checked/recovered if broken. */
-static errno_t node40_item_array_check(node40_t *node, uint8_t mode) {
+static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 	uint32_t limit, offset, last_relable, count, i, last_pos;
 	bool_t free_valid;
 	errno_t res = 0;
@@ -170,7 +167,7 @@ static errno_t node40_item_array_check(node40_t *node, uint8_t mode) {
 		node->block->size - count * ih_size(pol);
 	
 	last_pos = 0;
-	last_relable = ih_size(pol);
+	last_relable = sizeof(node40_header_t);
 	for(i = 0; i <= count; i++) {
 		offset = (i == count) ? nh_get_free_space_start(node) : 
 			ih_get_offset(node40_ih_at(node, i), pol);
@@ -265,7 +262,7 @@ static errno_t node40_item_array_check(node40_t *node, uint8_t mode) {
 	return res;
 }
 
-static errno_t node40_item_array_find(node40_t *node, uint8_t mode) {
+static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 	uint32_t offset, i, nr = 0;
 	errno_t res = 0;
 	uint32_t pol;
@@ -280,7 +277,7 @@ static errno_t node40_item_array_find(node40_t *node, uint8_t mode) {
 		offset = ih_get_offset(node40_ih_at(node, i), pol);
 		
 		if (i) {
-			if (offset < ih_size(pol) + i * MIN_ITEM_LEN)
+			if (offset < sizeof(node40_header_t) + i * MIN_ITEM_LEN)
 				break;	
 		} else {
 			if (offset != sizeof(node40_header_t))
@@ -399,11 +396,11 @@ errno_t node40_check_struct(node_entity_t *entity, uint8_t mode) {
 			return res;
 		
 		/* Recover count on the base of correct item array if one exists. */
-		return node40_item_array_find(node, mode);
+		return node40_item_find_array(node, mode);
 	}
 	
 	/* Count looks ok. Recover item array. */
-	return node40_item_array_check(node, mode);    
+	return node40_item_check_array(node, mode);    
 }
 
 errno_t node40_corrupt(node_entity_t *entity, uint16_t options) {

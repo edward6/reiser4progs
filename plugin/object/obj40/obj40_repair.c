@@ -139,7 +139,10 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Form the correct LW extention. */
 	lw_new = lw_hint;
-	nlink_func(&lw_new.nlink);
+	
+	if (nlink_func)
+		nlink_func(&lw_new.nlink);
+
 	mode_func(&lw_new.mode);
 	
 	/* Check the mode in the LW extention. */

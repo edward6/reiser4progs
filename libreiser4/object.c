@@ -801,7 +801,7 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
     
 	hint.statdata = reiser4_profile_value("statdata");
 	hint.body.dir.hash = reiser4_profile_value("hash");
-	hint.body.dir.direntry = reiser4_profile_value("cde");
+	hint.body.dir.direntry = reiser4_profile_value("direntry");
 
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))

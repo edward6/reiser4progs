@@ -307,6 +307,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 							&dir->body, 
 							&dir->body)) < 0)
 				return res;
+
+			if (!dir->body.node)
+				break;
 		} else {
 			/* Lookup the last removed entry, get the next item. */
 			if (dir40_lookup(object, entry.name, &entry) == FAILED)

@@ -16,8 +16,8 @@ extern errno_t reiser4_print_fini(void);
 extern char *reiser4_print_key(reiser4_key_t *key,
 			       uint16_t options);
 
-extern char *repair_node_print(reiser4_node_t *node, uint32_t start, 
-			       uint32_t count, uint16_t options);
+extern char *reiser4_print_node(reiser4_node_t *node, uint32_t start, 
+				uint32_t count, uint16_t options);
 
 #endif
 
