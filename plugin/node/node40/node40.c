@@ -1433,7 +1433,8 @@ static errno_t node40_shift_items(node40_t *src_node,
 
 			dst = src + headers;
 
-			size = (src_items - hint->items) * sizeof(item40_header_t);
+			size = (src_items - hint->items) *
+				sizeof(item40_header_t);
 
 			aal_memmove(dst, src, size);
 

@@ -34,12 +34,12 @@ AC_DEFINE_UNQUOTED(LIBREISER4_MAX_INTERFACE_VERSION, $LIBREISER4_BINARY_AGE)
 AC_DEFINE_UNQUOTED(LIBREISER4_MIN_INTERFACE_VERSION, $LIBREISER4_INTERFACE_AGE)
 
 AC_ARG_ENABLE(debug, 
-    [  --enable-debug        compile in assertions [default=yes]], , 
+    [  --enable-debug          compile in assertions [default=yes]], , 
 	enable_debug=yes
 )
 
 AC_ARG_WITH(uuid,
-    [  --with-uuid        support uuid generating and checking], ,
+    [  --with-uuid             support uuid generating and checking], ,
         with_uuid=yes
 )
 
@@ -60,7 +60,7 @@ fi
 AC_SUBST(UUID_LIBS)
 
 AC_ARG_WITH(readline,
-    [  --with-readline        support fancy command line editing], ,
+    [  --with-readline         support fancy command line editing], ,
         with_readline=yes
 )
 
@@ -107,7 +107,7 @@ if test x$enable_compact = xyes; then
 fi
 
 AC_ARG_ENABLE(monolithic,
-    [  --enable-monolithic        build in monolithic maner (with builtin plugins) [default=yes]], ,
+    [  --enable-monolithic     build in monolithic maner (with builtin plugins) [default=yes]], ,
         enable_monolithic=yes
 )
 
@@ -120,12 +120,12 @@ if test x$enable_debug = xyes; then
 fi
 
 AC_ARG_ENABLE(Werror,
-    [  --enable-Werror       build with gcc -Werror [default=yes]], ,
+    [  --enable-Werror         build with gcc -Werror [default=yes]], ,
 	enable_Werror=yes
 )
 
 AC_ARG_WITH(plugin-dir, 
-    [  --with-plugin-dir=PATH where plugins will be placed]
+    [  --with-plugin-dir=PATH  directory plugins will lie in]
 )
 if test x$with_plugin_dir = x; then
     with_plugin_dir="$libdir/reiser4"
