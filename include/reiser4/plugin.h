@@ -659,9 +659,10 @@ struct reiser4_object_ops {
 	*/
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 
+#endif
+	
 	/* Change current position to passed value */
 	errno_t (*seek) (object_entity_t *, uint64_t);
-#endif
 	
 	/* Opens file with specified key */
 	object_entity_t *(*open) (void *, place_t *);

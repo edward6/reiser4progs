@@ -589,6 +589,8 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 			   (void *)entry);
 }
 
+#endif
+
 /* Seeks directory current position to passed pos */
 errno_t reiser4_object_seek(
 	reiser4_object_t *object,    /* object where position shopuld be changed */
@@ -603,7 +605,6 @@ errno_t reiser4_object_seek(
 	return plugin_call(object->entity->plugin->object_ops, 
 			   seek, object->entity, offset);
 }
-#endif
 
 /* Closes specified object */
 void reiser4_object_close(
