@@ -559,7 +559,7 @@ static reiser4_plugin_t format40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *format40_start(reiser4_core_t *c) {
+static reiser4_plugin_t *format40_start(reiser4_core_t *core) {
 	return &format40_plugin;
 }
 

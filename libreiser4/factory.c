@@ -240,10 +240,11 @@ errno_t libreiser4_plugin_open(plugin_init_t init,
 #ifndef ENABLE_STAND_ALONE
 	aal_snprintf(class->name, sizeof(class->name),
 		     "built-in (%p)", init);
+
+	class->fini = fini;
 #endif
 	
 	class->init = init;
-	class->fini = fini;
 
 	return 0;
 }
@@ -253,7 +254,9 @@ void libreiser4_plugin_close(plugin_class_t *class) {
 	aal_assert("umka-1433", class != NULL);
 
 	class->init = 0;
+#ifndef ENABLE_STAND_ALONE
 	class->fini = 0;
+#endif
 }
 
 /*
@@ -304,8 +307,10 @@ errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 	
 	class = &plugin->h.class;
 
+#ifndef ENABLE_STAND_ALONE
 	if (class->fini)
 		class->fini(&core);
+#endif
 	
 	libreiser4_plugin_close(class);
 	plugins = aal_list_remove(plugins, plugin);

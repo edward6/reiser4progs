@@ -1228,9 +1228,9 @@ struct plugin_class {
 	void *data;
 
 	plugin_init_t init;
-	plugin_fini_t fini;
 	
 #ifndef ENABLE_STAND_ALONE
+	plugin_fini_t fini;
 	char name[PLUGIN_MAX_NAME];
 #endif
 };
@@ -1242,7 +1242,7 @@ typedef struct plugin_class plugin_class_t;
         {NULL, NULL, NULL, ""}
 #else
 #define CLASS_INIT \
-        {NULL, NULL, NULL}
+        {NULL, NULL}
 #endif
 
 /* Common plugin header */

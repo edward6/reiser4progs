@@ -220,7 +220,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	  format plugins and call its confirm method.
 	*/
 	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
-			sizeof(super->ms_magic)) != 0)
+			sizeof(SUPER(master)->ms_magic)) != 0)
 	{
 		/* 
 		   Reiser4 was not found on the device. At this point we
