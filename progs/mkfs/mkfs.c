@@ -47,6 +47,7 @@ static void mkfs_print_usage(char *name) {
 		"  -i | --uuid UUID               universally unique identifier.\n"
 		"Plugins options:\n"
 		"  -e | --profile PROFILE         profile to be used.\n"
+		"  -P | --known-plugins           prints known plugins.\n"
 		"  -K | --known-profiles          prints known profiles.\n");
 }
 
@@ -59,10 +60,9 @@ static void mkfs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
-/* Crates lost+found directory */
-static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, 
-				       reiser4_profile_t *profile, reiser4_file_t *parent, 
-				       const char *name) 
+/* Crates directory */
+static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, reiser4_profile_t *profile,
+		                       reiser4_file_t *parent, const char *name) 
 {
 	reiser4_file_hint_t hint;
 
@@ -93,8 +93,9 @@ int main(int argc, char *argv[]) {
     
 	char uuid[17], label[17];
 	count_t fs_len = 0, dev_len = 0;
+	int c, error, force = 0, quiet = 0;
+	int known_plugins = 0, lost_found = 0;
 	char *host_dev, *profile_label = "smart40";
-	int c, error, force = 0, quiet = 0, lost_found = 0;
 	uint16_t blocksize = DEFAULT_BLOCKSIZE;
     
 	reiser4_fs_t *fs;
@@ -110,6 +111,7 @@ int main(int argc, char *argv[]) {
 		{"profile", required_argument, NULL, 'e'},
 		{"force", no_argument, NULL, 'f'},
 		{"known-profiles", no_argument, NULL, 'K'},
+		{"known-plugins", no_argument, NULL, 'P'},
 		{"quiet", no_argument, NULL, 'q'},
 		{"block-size", required_argument, NULL, 'b'},
 		{"label", required_argument, NULL, 'l'},
@@ -131,36 +133,32 @@ int main(int argc, char *argv[]) {
 	memset(label, 0, sizeof(label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKb:i:l:s", long_options, 
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKb:i:l:sP", long_options, 
 				     (int *)0)) != EOF) 
 	{
 		switch (c) {
-		case 'h': {
+		case 'h':
 			mkfs_print_usage(argv[0]);
 			return NO_ERROR;
-		}
-		case 'V': {
+		case 'V':
 			progs_misc_print_banner(argv[0]);
 			return NO_ERROR;
-		}
-		case 'e': {
+		case 'e':
 			profile_label = optarg;
 			break;
-		}
-		case 'f': {
+		case 'f':
 			force = 1;
 			break;
-		}
-		case 'q': {
+		case 'q':
 			quiet = 1;
 			break;
-		}
-		case 'K': {
+		case 'K':
 			progs_profile_list();
 			return NO_ERROR;
-		}
-		case 'b': {
-		
+		case 'P':
+			known_plugins = 1;
+			break;
+		case 'b':
 			/* Parsing blocksize */
 			if (!(blocksize = (uint16_t)aux_strtol(optarg, &error)) && error) {
 				aal_exception_error("Invalid blocksize (%s).", optarg);
@@ -168,13 +166,12 @@ int main(int argc, char *argv[]) {
 			}
 			if (!aal_pow_of_two(blocksize)) {
 				aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL, 
-						    "Invalid block size %u. It must power of two.", (uint16_t)blocksize);
+						    "Invalid block size %u. It must power of two.",
+						    (uint16_t)blocksize);
 				return USER_ERROR;	
 			}
 			break;
-		}
-		case 'i': {
-		
+		case 'i':
 			/* Parsing passed by user uuid */
 			if (aal_strlen(optarg) != 36) {
 				aal_exception_error("Invalid uuid was specified (%s).", optarg);
@@ -189,23 +186,19 @@ int main(int argc, char *argv[]) {
 			}
 #endif		
 			break;
-		}
-		case 'l': {
+		case 'l':
 			aal_strncpy(label, optarg, sizeof(label) - 1);
 			break;
-		}
-		case 's': {
+		case 's':
 			lost_found = 1;
 			break;
-		}
-		case '?': {
+		case '?':
 			mkfs_print_usage(argv[0]);
 			return USER_ERROR;
 		}
-		}
 	}
     
-	if (optind >= argc) {
+	if (optind >= argc + 1) {
 		mkfs_print_usage(argv[0]);
 		return USER_ERROR;
 	}
@@ -222,10 +215,16 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
+	if (known_plugins) {
+		progs_plugin_list();
+		libreiser4_done();
+		return 0;
+	}
+	
 	/* Building list of devices filesystem will be created on */
 	for (; optind < argc; optind++) {
 		if (stat(argv[optind], &st) == -1) {
-			fs_len = (progs_misc_size_parse(argv[optind], &error));
+			fs_len = (progs_parse_size(argv[optind], &error));
 			if (!error || error == ~0) {
 				if (error != ~0 && fs_len < blocksize) {
 					aal_exception_error("Strange filesystem size has "
@@ -284,7 +283,7 @@ int main(int argc, char *argv[]) {
 		}
    
 		/* Checking if passed partition is mounted */
-		if (progs_misc_dev_mounted(host_dev, NULL) && !force) {
+		if (progs_dev_mounted(host_dev, NULL) && !force) {
 			aal_exception_error("Device %s is mounted at the moment. "
 					    "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;

@@ -25,9 +25,9 @@
 #include <reiser4/reiser4.h>
 
 enum debugfs_print_flags {
-	PF_SUPER	= 1 << 0,
-	PF_JOURNAL	= 1 << 1,
-	PF_ALLOC	= 1 << 2,
+	PF_SUPER    = 1 << 0,
+	PF_JOURNAL  = 1 << 1,
+	PF_ALLOC    = 1 << 2,
 	PF_OID	    = 1 << 3,
 	PF_TREE	    = 1 << 4
 };
@@ -68,7 +68,7 @@ static void debugfs_init(void) {
 
 /* Callback function used in traverse for opening the node */
 static errno_t debugfs_open_joint(
-	reiser4_joint_t **joint,	/* joint to be opened */
+	reiser4_joint_t **joint,    /* joint to be opened */
 	blk_t blk, void *data)	    /* blk to pe opened and user-specified data */
 {
 	*joint = reiser4_tree_load((reiser4_tree_t *)data, blk);
@@ -77,7 +77,7 @@ static errno_t debugfs_open_joint(
 
 static errno_t debugfs_print_joint(
 	reiser4_joint_t *joint,	   /* joint to be printed */
-	void *data)			       /* user-specified data */
+	void *data)		   /* user-specified data */
 {
 	char buff[255];
 	reiser4_node_t *node = joint->node;
@@ -173,8 +173,8 @@ static errno_t debugfs_print_joint(
 }
 
 static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
-	reiser4_joint_traverse(fs->tree->root, (void *)fs->tree,
-			       debugfs_open_joint, debugfs_print_joint, NULL, NULL, NULL, NULL);
+	reiser4_joint_traverse(fs->tree->root, (void *)fs->tree, debugfs_open_joint,
+			       debugfs_print_joint, NULL, NULL, NULL, NULL);
     
 	printf("\n");
     
@@ -408,7 +408,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (progs_misc_dev_mounted(host_dev, NULL) && !force) {
+	if (progs_dev_mounted(host_dev, NULL) && !force) {
 		aal_exception_error("Device %s is mounted at the moment. "
 				    "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
@@ -429,7 +429,8 @@ int main(int argc, char *argv[]) {
     
 	if (!aal_pow_of_two(flags) && !quiet) {
 		if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
-					"Ambiguous print options has been detected. Continue?") == EXCEPTION_NO)
+					"Ambiguous print options has been detected. "
+					"Continue?") == EXCEPTION_NO)
 			goto error_free_fs;
 	}
     

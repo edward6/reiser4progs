@@ -1,8 +1,8 @@
 /*
-  qcoord.c -- reiser4 tree coord functions. Coord contains full information about
-  smaller tree element position in the tree. The instance of structure
-  reiser4_coord_t contains pointer to node where needed unit or item lies, item
-  position and unit position in specified item.
+  coord.c -- reiser4 tree coord functions. Coord contains full information about
+  tree element position in the tree. The instance of structure reiser4_coord_t
+  contains pointer to node where needed unit or item lies, item position and
+  unit position in specified item.
 
   Copyright (C) 1996-2002 Hans Reiser.
 */

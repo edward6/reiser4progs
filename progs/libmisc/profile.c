@@ -6,9 +6,9 @@
 #include <misc/profile.h>
 
 static reiser4_profile_t profiles[] = {
-    [0] = {
+	[0] = {
 		.label = "smart40",
-        .desc = "Profile for reiser4 with smart tail policy",
+		.desc = "Profile for reiser4 with smart tail policy",
 		.node		= NODE_REISER40_ID,
 		.file = {
 			.regular	= FILE_REGULAR40_ID, 
@@ -37,8 +37,8 @@ static reiser4_profile_t profiles[] = {
 		.journal	= JOURNAL_REISER40_ID,
 		.key		= KEY_REISER40_ID,
 		.sdext		= 1 << SDEXT_UNIX_ID
-    },
-    [1] = {
+	},
+	[1] = {
 		.label = "extent40",
 		.desc = "Profile for reiser4 with extents turned on",
 		.node		= NODE_REISER40_ID,
@@ -69,8 +69,8 @@ static reiser4_profile_t profiles[] = {
 		.journal	= JOURNAL_REISER40_ID,
 		.key		= KEY_REISER40_ID,
 		.sdext		= 1 << SDEXT_UNIX_ID
-    },
-    [2] = {
+	},
+	[2] = {
 		.label = "tail40",
 		.desc = "Profile for reiser4 with tails turned on",     
 		.node		= NODE_REISER40_ID,
@@ -101,290 +101,290 @@ static reiser4_profile_t profiles[] = {
 		.journal	= JOURNAL_REISER40_ID,
 		.key		= KEY_REISER40_ID,
 		.sdext		= 1 << SDEXT_UNIX_ID
-    }
+	}
 };
 
 /* Finds profile by its name */
 reiser4_profile_t *progs_profile_find(
-    const char *profile)		    /* needed profile name */
+	const char *profile)		    /* needed profile name */
 {
-    unsigned i;
+	unsigned i;
     
-    aal_assert("vpf-104", profile != NULL, return NULL);
+	aal_assert("vpf-104", profile != NULL, return NULL);
     
-    for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++) {
+	for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++) {
 		if (!aal_strncmp(profiles[i].label, profile, strlen(profiles[i].label)))
 			return &profiles[i];
-    }
+	}
 
-    return NULL;
+	return NULL;
 }
 
 /* Shows all knows profiles */
 void progs_profile_list(void) {
-    unsigned i;
+	unsigned i;
     
-    printf("\nKnown profiles are:\n");
-    for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++)
-		printf("%s: %s.\n", profiles[i].label, profiles[i].desc);
+	printf("Known profiles are:\n");
+	for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++)
+		printf("%s:  \t%s.\n", profiles[i].label, profiles[i].desc);
     
-    printf("\n");
+	printf("\n");
 }
 
 /* 0 profile is the default one. */
 reiser4_profile_t *progs_profile_default() {
-    return &profiles[0];
+	return &profiles[0];
 }
 
 enum progs_plugin_type {
-    PROGS_NODE_PLUGIN,
-    PROGS_REGULAR_PLUGIN,
-    PROGS_DIRTORY_PLUGIN,
-    PROGS_SYMLINK_PLUGIN,
-    PROGS_SPECIAL_PLUGIN,
-    PROGS_NODEPTR_PLUGIN, 
-    PROGS_STATDATA_PLUGIN, 
-    PROGS_DIRENTRY_PLUGIN,
-    PROGS_TAIL_PLUGIN,
-    PROGS_EXTENT_PLUGIN,
-    PROGS_ACL_PLUGIN,
-    PROGS_HASH_PLUGIN,
-    PROGS_TAIL_POLICY_PLUGIN,
-    PROGS_PERM_PLUGIN,
-    PROGS_FORMAT_PLUGIN,
-    PROGS_OID_PLUGIN,
-    PROGS_ALLOC_PLUGIN,
-    PROGS_JOURNAL_PLUGIN,
-    PROGS_KEY_PLUGIN,
-    PROGS_LAST_PLUGIN
+	PROGS_NODE_PLUGIN,
+	PROGS_REGULAR_PLUGIN,
+	PROGS_DIRTORY_PLUGIN,
+	PROGS_SYMLINK_PLUGIN,
+	PROGS_SPECIAL_PLUGIN,
+	PROGS_NODEPTR_PLUGIN, 
+	PROGS_STATDATA_PLUGIN, 
+	PROGS_DIRENTRY_PLUGIN,
+	PROGS_TAIL_PLUGIN,
+	PROGS_EXTENT_PLUGIN,
+	PROGS_ACL_PLUGIN,
+	PROGS_HASH_PLUGIN,
+	PROGS_TAIL_POLICY_PLUGIN,
+	PROGS_PERM_PLUGIN,
+	PROGS_FORMAT_PLUGIN,
+	PROGS_OID_PLUGIN,
+	PROGS_ALLOC_PLUGIN,
+	PROGS_JOURNAL_PLUGIN,
+	PROGS_KEY_PLUGIN,
+	PROGS_LAST_PLUGIN
 };
 
 typedef enum progs_plugin_type progs_plugin_type_t;
 
 static char *progs_plugin_name[] = {
-    "NODE",
-    "REGULAR",
-    "DIRECTORY",
-    "SYMLINK",
-    "SPECIAL",
-    "NODEPTR",
-    "STATDATA",
-    "DIRENTRY",
-    "TAIL",
-    "EXTENT",
-    "ACL",
-    "HASH",
-    "TAIL_POLICY",
-    "PERM",
-    "FORMAT",
-    "OID",
-    "ALLOC",
-    "JOURNAL",
-    "KEY"
+	"NODE",
+	"REGULAR",
+	"DIRECTORY",
+	"SYMLINK",
+	"SPECIAL",
+	"NODEPTR",
+	"STATDATA",
+	"DIRENTRY",
+	"TAIL",
+	"EXTENT",
+	"ACL",
+	"HASH",
+	"TAIL_POLICY",
+	"PERM",
+	"FORMAT",
+	"OID",
+	"ALLOC",
+	"JOURNAL",
+	"KEY"
 };
 
 static rpid_t *progs_profile_field(reiser4_profile_t *profile, 
-								   progs_plugin_type_t type) 
+				   progs_plugin_type_t type) 
 {
-    aal_assert("umka-920", profile != NULL, return NULL);
+	aal_assert("umka-920", profile != NULL, return NULL);
     
-    if (type >= PROGS_LAST_PLUGIN) 
+	if (type >= PROGS_LAST_PLUGIN) 
 		return NULL;
     
-    switch (type) {
+	switch (type) {
 	case PROGS_NODE_PLUGIN:
-	    return &profile->node;
+		return &profile->node;
 	case PROGS_REGULAR_PLUGIN:
-	    return &profile->file.regular;
+		return &profile->file.regular;
 	case PROGS_DIRTORY_PLUGIN:
-	    return &profile->file.dirtory;
+		return &profile->file.dirtory;
 	case PROGS_SYMLINK_PLUGIN:
-	    return &profile->file.symlink;
+		return &profile->file.symlink;
 	case PROGS_SPECIAL_PLUGIN:
-	    return &profile->file.special;
+		return &profile->file.special;
 	case PROGS_NODEPTR_PLUGIN:
-	    return &profile->item.nodeptr;
+		return &profile->item.nodeptr;
 	case PROGS_STATDATA_PLUGIN:
-	    return &profile->item.statdata;
+		return &profile->item.statdata;
 	case PROGS_DIRENTRY_PLUGIN:
-	    return &profile->item.file_body.direntry;
+		return &profile->item.file_body.direntry;
 	case PROGS_TAIL_PLUGIN:
-	    return &profile->item.file_body.tail;
+		return &profile->item.file_body.tail;
 	case PROGS_EXTENT_PLUGIN:
-	    return &profile->item.file_body.extent;
+		return &profile->item.file_body.extent;
 	case PROGS_ACL_PLUGIN:
-	    return &profile->item.acl;
+		return &profile->item.acl;
 	case PROGS_HASH_PLUGIN:
-	    return &profile->hash;
+		return &profile->hash;
 	case PROGS_TAIL_POLICY_PLUGIN:
-	    return &profile->tail;
+		return &profile->tail;
 	case PROGS_PERM_PLUGIN:
-	    return &profile->perm;
+		return &profile->perm;
 	case PROGS_FORMAT_PLUGIN:
-	    return &profile->format;
+		return &profile->format;
 	case PROGS_OID_PLUGIN:
-	    return &profile->oid;
+		return &profile->oid;
 	case PROGS_ALLOC_PLUGIN:
-	    return &profile->alloc;
+		return &profile->alloc;
 	case PROGS_JOURNAL_PLUGIN:
-	    return &profile->journal;
+		return &profile->journal;
 	case PROGS_KEY_PLUGIN:
-	    return &profile->key;
+		return &profile->key;
 
 	default: 
-	    return NULL;	    
-    }
+		return NULL;	    
+	}
 }
 
 static reiser4_plugin_type_t progs_profile_it2pt(progs_plugin_type_t type) {
-    if (type >= PROGS_LAST_PLUGIN) 
+	if (type >= PROGS_LAST_PLUGIN) 
 		return 0xffff;
     
-    switch (type) {
+	switch (type) {
 	case PROGS_NODE_PLUGIN:
-	    return NODE_PLUGIN_TYPE;
+		return NODE_PLUGIN_TYPE;
 	case PROGS_REGULAR_PLUGIN:
-	    return FILE_PLUGIN_TYPE;
+		return FILE_PLUGIN_TYPE;
 	case PROGS_DIRTORY_PLUGIN:
-	    return FILE_PLUGIN_TYPE;
+		return FILE_PLUGIN_TYPE;
 	case PROGS_SYMLINK_PLUGIN:
-	    return FILE_PLUGIN_TYPE;
+		return FILE_PLUGIN_TYPE;
 	case PROGS_SPECIAL_PLUGIN:
-	    return FILE_PLUGIN_TYPE;
+		return FILE_PLUGIN_TYPE;
 	case PROGS_NODEPTR_PLUGIN:
-	    return ITEM_PLUGIN_TYPE;
+		return ITEM_PLUGIN_TYPE;
 	case PROGS_STATDATA_PLUGIN:
-	    return ITEM_PLUGIN_TYPE;
+		return ITEM_PLUGIN_TYPE;
 	case PROGS_DIRENTRY_PLUGIN:
-	    return ITEM_PLUGIN_TYPE;
+		return ITEM_PLUGIN_TYPE;
 	case PROGS_TAIL_PLUGIN:
-	    return ITEM_PLUGIN_TYPE;
+		return ITEM_PLUGIN_TYPE;
 	case PROGS_EXTENT_PLUGIN:
-	    return ITEM_PLUGIN_TYPE;
+		return ITEM_PLUGIN_TYPE;
 	case PROGS_ACL_PLUGIN:
-	    return ITEM_PLUGIN_TYPE;
+		return ITEM_PLUGIN_TYPE;
 	case PROGS_HASH_PLUGIN:
-	    return HASH_PLUGIN_TYPE;
+		return HASH_PLUGIN_TYPE;
 	case PROGS_TAIL_POLICY_PLUGIN:
-	    return TAIL_PLUGIN_TYPE;
+		return TAIL_PLUGIN_TYPE;
 	case PROGS_PERM_PLUGIN:
-	    return PERM_PLUGIN_TYPE;
+		return PERM_PLUGIN_TYPE;
 	case PROGS_FORMAT_PLUGIN:
-	    return FORMAT_PLUGIN_TYPE;
+		return FORMAT_PLUGIN_TYPE;
 	case PROGS_OID_PLUGIN:
-	    return OID_PLUGIN_TYPE;
+		return OID_PLUGIN_TYPE;
 	case PROGS_ALLOC_PLUGIN:
-	    return ALLOC_PLUGIN_TYPE;
+		return ALLOC_PLUGIN_TYPE;
 	case PROGS_JOURNAL_PLUGIN:
-	    return JOURNAL_PLUGIN_TYPE;
+		return JOURNAL_PLUGIN_TYPE;
 	case PROGS_KEY_PLUGIN:
-	    return KEY_PLUGIN_TYPE;
+		return KEY_PLUGIN_TYPE;
 
 	default:
-	    return 0xffff;
-    }
+		return 0xffff;
+	}
 }
 
 static progs_plugin_type_t progs_profile_name2it(const char *name) {
-    aal_assert("umka-921", name != NULL, return 0xffff);
+	aal_assert("umka-921", name != NULL, return 0xffff);
 
-    if (!aal_strncmp(name, "NODE", 4))
+	if (!aal_strncmp(name, "NODE", 4))
 		return PROGS_NODE_PLUGIN;
-    else if (!aal_strncmp(name, "REGULAR", 7))
+	else if (!aal_strncmp(name, "REGULAR", 7))
 		return PROGS_REGULAR_PLUGIN;
-    else if (!aal_strncmp(name, "DIRECTORY", 9))
+	else if (!aal_strncmp(name, "DIRECTORY", 9))
 		return PROGS_DIRTORY_PLUGIN;
-    else if (!aal_strncmp(name, "SYMLINK", 7))
+	else if (!aal_strncmp(name, "SYMLINK", 7))
 		return PROGS_SYMLINK_PLUGIN;
-    else if (!aal_strncmp(name, "SPECIAL", 7))
+	else if (!aal_strncmp(name, "SPECIAL", 7))
 		return PROGS_SPECIAL_PLUGIN;
-    else if (!aal_strncmp(name, "NODEPTR", 7))
+	else if (!aal_strncmp(name, "NODEPTR", 7))
 		return PROGS_NODEPTR_PLUGIN;
-    else if (!aal_strncmp(name, "STATDATA", 8))
+	else if (!aal_strncmp(name, "STATDATA", 8))
 		return PROGS_STATDATA_PLUGIN;
-    else if (!aal_strncmp(name, "DIRENTRY", 8))
+	else if (!aal_strncmp(name, "DIRENTRY", 8))
 		return PROGS_DIRENTRY_PLUGIN;
-    else if (!aal_strncmp(name, "TAIL", 4))
+	else if (!aal_strncmp(name, "TAIL", 4))
 		return PROGS_TAIL_PLUGIN;
-    else if (!aal_strncmp(name, "EXTENT", 6))
+	else if (!aal_strncmp(name, "EXTENT", 6))
 		return PROGS_EXTENT_PLUGIN;
-    else if (!aal_strncmp(name, "ACL", 3))
+	else if (!aal_strncmp(name, "ACL", 3))
 		return PROGS_ACL_PLUGIN;
-    else if (!aal_strncmp(name, "HASH", 4))
+	else if (!aal_strncmp(name, "HASH", 4))
 		return PROGS_HASH_PLUGIN;
-    else if (!aal_strncmp(name, "TAIL_POLICY", 11))
+	else if (!aal_strncmp(name, "TAIL_POLICY", 11))
 		return PROGS_TAIL_POLICY_PLUGIN;
-    else if (!aal_strncmp(name, "PERM", 4))
+	else if (!aal_strncmp(name, "PERM", 4))
 		return PROGS_PERM_PLUGIN;
-    else if (!aal_strncmp(name, "FORMAT", 6))
+	else if (!aal_strncmp(name, "FORMAT", 6))
 		return PROGS_FORMAT_PLUGIN;
-    else if (!aal_strncmp(name, "OID", 3))
+	else if (!aal_strncmp(name, "OID", 3))
 		return PROGS_OID_PLUGIN;
-    else if (!aal_strncmp(name, "ALLOC", 5))
+	else if (!aal_strncmp(name, "ALLOC", 5))
 		return PROGS_ALLOC_PLUGIN;
-    else if (!aal_strncmp(name, "JOURNAL", 7))
+	else if (!aal_strncmp(name, "JOURNAL", 7))
 		return PROGS_JOURNAL_PLUGIN;
-    else if (!aal_strncmp(name, "KEY", 3))
+	else if (!aal_strncmp(name, "KEY", 3))
 		return PROGS_KEY_PLUGIN;
     
-    return 0xffff;
+	return 0xffff;
 }
 
 static char *progs_profile_it2name(progs_plugin_type_t type) {
-    return (type >= PROGS_LAST_PLUGIN) ? NULL : progs_plugin_name[type];
+	return (type >= PROGS_LAST_PLUGIN) ? NULL : progs_plugin_name[type];
 }
 
 errno_t progs_profile_override(reiser4_profile_t *profile, 
-							   const char *type, const char *name) 
+			       const char *type, const char *name) 
 {
-    rpid_t *field;
-    progs_plugin_type_t it;
-    reiser4_plugin_type_t pt;
-    reiser4_plugin_t *plugin;
+	rpid_t *field;
+	progs_plugin_type_t it;
+	reiser4_plugin_type_t pt;
+	reiser4_plugin_t *plugin;
 
-    aal_assert("umka-922", profile != NULL, return -1);
-    aal_assert("umka-923", type != NULL, return -1);
-    aal_assert("umka-924", name != NULL, return -1);
+	aal_assert("umka-922", profile != NULL, return -1);
+	aal_assert("umka-923", type != NULL, return -1);
+	aal_assert("umka-924", name != NULL, return -1);
        	
-    if ((it = progs_profile_name2it(type)) == 0xffff) {
+	if ((it = progs_profile_name2it(type)) == 0xffff) {
 		aal_exception_error("Can't find plugin type \"%s\".", type);
 		return -1;
-    }
+	}
     
-    if ((pt = progs_profile_it2pt(it)) == 0xffff)
+	if ((pt = progs_profile_it2pt(it)) == 0xffff)
 		return -1;
     
-    if (!(plugin = libreiser4_factory_nfind(pt, name))) {
+	if (!(plugin = libreiser4_factory_nfind(pt, name))) {
 		aal_exception_error("Can't find plugin by type \"%s\" and name \"%s\".", 
-							type, name);
+				    type, name);
 		return -1;
-    }
+	}
     
-    if (!(field = progs_profile_field(profile, it))) {
+	if (!(field = progs_profile_field(profile, it))) {
 		aal_exception_error("Can't get profile field.");
 		return -1;
-    }
+	}
     
-    *field = plugin->h.sign.id;
+	*field = plugin->h.sign.id;
  
-    return 0;
+	return 0;
 }
 
 void progs_profile_print(reiser4_profile_t *profile) {
-    int i;
-    reiser4_plugin_t *plugin;
+	int i;
+	reiser4_plugin_t *plugin;
 
-    aal_assert("umka-925", profile != NULL, return);
+	aal_assert("umka-925", profile != NULL, return);
 	
-    printf("\nProfile %s:\n", profile->label);
-    for (i = 0; i < PROGS_LAST_PLUGIN; i++) {
+	printf("Profile %s:\n", profile->label);
+	for (i = 0; i < PROGS_LAST_PLUGIN; i++) {
 		if ((plugin = libreiser4_factory_ifind(progs_profile_it2pt(i), 
-											   *progs_profile_field(profile, i))) != NULL) 
-			{
-				printf("%s: %s (%s).\n", progs_profile_it2name(i),
-					   plugin->h.label, plugin->h.desc);
-			}
-    }
+						       *progs_profile_field(profile, i))) != NULL) 
+		{
+			printf("%s:\t%s\t(%s).\n", progs_profile_it2name(i),
+			       plugin->h.label, plugin->h.desc);
+		}
+	}
 
-    printf("\n");
+	printf("\n");
 }

@@ -257,8 +257,8 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
     repair_mode(data) = mode;
    
     /* Check if device is mounted and we are able to fsck it. */ 
-    if (progs_misc_dev_mounted(argv[optind], NULL)) {
-	if (!progs_misc_dev_mounted(argv[optind], "ro")) {
+    if (progs_dev_mounted(argv[optind], NULL)) {
+	if (!progs_dev_mounted(argv[optind], "ro")) {
 	    aal_exception_fatal("The partition (%s) is mounted w/ write "
 		"permissions, cannot fsck it.", argv[optind]);
 	    return USER_ERROR;

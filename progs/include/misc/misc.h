@@ -1,6 +1,6 @@
 /*
-    misc.h -- reiser4progs common include.
-    Copyright (C) 1996-2002 Hans Reiser.
+  misc.h -- reiser4progs common include.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef REISER4_MISC_H
@@ -53,10 +53,10 @@
 #include "version.h"
 #include "ui.h"
 
-extern int progs_misc_dev_mounted(const char *name, const char *ops);
-extern long long progs_misc_size_parse(const char *str, int *error);
-extern void progs_misc_upper(char *dst, const char *src);
-extern void progs_misc_factory_list(void);
+extern int progs_dev_mounted(const char *name, const char *ops);
+extern long long progs_parse_size(const char *str, int *error);
+extern void progs_upper_case(char *dst, const char *src);
+extern void progs_plugin_list(void);
 
 #endif
 
