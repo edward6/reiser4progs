@@ -250,6 +250,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	if (plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT])) {
 		/* Extent found, all previous items were tails, convert all 
 		   previous ones to extents. */
+		hint->plug = reg->body.plug;
 		
 		/* Convert from 0 to this item offset bytes. */
 		if (!(hint->count = plug_call(reg->body.key.plug->o.key_ops, 
