@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, misc_profile_default()))) {
+	if (!(fs = reiser4_fs_open(device))) {
 		aal_exception_error("Can't open filesystem on %s.", 
 				    device->name);
 		goto error_free_device;
@@ -108,8 +108,8 @@ int main(int argc, char *argv[]) {
 	{
 		object_hint_t reg_hint;
 	
-		reg_hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE,
-							 OBJECT_FILE40_ID);
+		reg_hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE,
+						      OBJECT_FILE40_ID);
 		
 		reg_hint.statdata = ITEM_STATDATA40_ID;
 
