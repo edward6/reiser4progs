@@ -357,7 +357,7 @@ int reiser4_tree_lookup(
 			return lookup;
 
 		/* Check if we should finish lookup because we reach stop level */
-		if (deep >= level->top && deep <= level->bottom) {
+		if (deep <= level->top) {
 			
 			if (lookup == 1)
 				reiser4_coord_realize(coord);
@@ -375,12 +375,8 @@ int reiser4_tree_lookup(
 			return -1;
 		}
 
-		/*
-		  FIXME-UMKA: Not internal item was found on the twig
-		  level. Sorry, drilling is not supported yet!
-		*/
 		if (!reiser4_item_nodeptr(coord))
-			return 0;
+			return deep <= level->bottom ? lookup : 0;
 		
 		item = &coord->entity;
 		

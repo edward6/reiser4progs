@@ -99,12 +99,19 @@ static errno_t reg40_set_size(item_entity_t *item, uint64_t size) {
 #endif
 
 static errno_t reg40_reset(object_entity_t *entity) {
+	uint64_t size;
 	reiser4_key_t key;
 	reg40_t *reg = (reg40_t *)entity;
 	reiser4_level_t level = {LEAF_LEVEL, TWIG_LEVEL};
     
 	aal_assert("umka-1161", reg != NULL, return -1);
     
+	if (reg40_get_size(&reg->statdata.entity, &size))
+		return -1;
+
+	if (size == 0)
+		return 0;
+	
 	key.plugin = reg->key.plugin;
 	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body, 
 		    KEY_FILEBODY_TYPE, reg40_locality(reg), reg40_objectid(reg), 0);
@@ -197,6 +204,7 @@ static int reg40_next1(object_entity_t *entity) {
 static int32_t reg40_read(object_entity_t *entity, 
 			  void *buff, uint32_t n)
 {
+	uint64_t size;
 	uint32_t read;
 	reg40_t *reg = (reg40_t *)entity;
 
@@ -207,6 +215,12 @@ static int32_t reg40_read(object_entity_t *entity,
 	if (!reg->body.entity.plugin)
 		return 0;
     
+	if (reg40_get_size(&reg->statdata.entity, &size))
+		return -1;
+
+	if (size == 0)
+		return 0;
+	
 	for (read = 0; read < n; ) {
 		uint32_t chunk;
 		item_entity_t *item = &reg->body.entity;
@@ -234,9 +248,10 @@ static int32_t reg40_read(object_entity_t *entity,
 		}
 		
 		read += chunk;
+		reg->offset += chunk;
 		reg->body.pos.unit += chunk;
 	}
-    
+
 	return read;
 }
 
@@ -494,7 +509,6 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 		
 	while (1) {
 		if (reg->body.entity.plugin->h.sign.group == TAIL_ITEM) {
-			
 			aal_block_t *block = reg->body.entity.context.block;
 
 			if ((res = func(entity, aal_block_number(block), data)))
