@@ -256,8 +256,12 @@ typedef errno_t (*modify_func_t) (node_t *node, pos_t *pos,
 
 typedef int (*mpc_func_t) (uint32_t);
 
-/* Tree structure */
+/* Tree structure. */
 struct reiser4_tree {
+	/* Flag that shows, that tree adjusting is running now and should be
+	   called again until this flag is turned off. */
+	int adjusting;
+	
 	/* Reference to filesystem instance tree opened on. */
 	reiser4_fs_t *fs;
 

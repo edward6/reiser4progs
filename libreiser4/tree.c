@@ -851,6 +851,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		return NULL;
 
 	tree->fs = fs;
+	tree->adjusting = 0;
 	tree->fs->tree = tree;
 
 #ifndef ENABLE_STAND_ALONE
@@ -1132,10 +1133,17 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 	aal_assert("umka-3034", tree != NULL);
 	
-	if (!tree->root)
-		return 0;
+	if (tree->root && !tree->adjusting) {
+		errno_t res;
+		
+		tree->adjusting = 1;
+		res = reiser4_tree_adjust_node(tree, tree->root);
+		tree->adjusting = 0;
+		
+		return res;
+	}
 
-	return reiser4_tree_adjust_node(tree, tree->root);
+	return 0;
 }
 
 /* Flushes some part of tree cache (recursively) to device starting from passed
@@ -2529,7 +2537,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 			/* Allocating node of requested level and assign place
 			   for insert to it. */
 			if (!(place->node = reiser4_tree_alloc_node(tree, level))) {
-				reiser4_node_unlock(place->node);
+				reiser4_node_unlock(old.node);
 				return -ENOSPC;
 			}
 
