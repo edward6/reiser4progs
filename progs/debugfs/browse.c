@@ -68,7 +68,7 @@ static errno_t debugfs_object_ls(reiser4_object_t *object) {
 
 /* Common entry point for --ls and --cat options handling code */
 errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
-	errno_t res = -1;
+	errno_t res = -EINVAL;
 	reiser4_object_t *object;
 	
 	if (!(object = reiser4_object_open(fs, filename)))

@@ -54,7 +54,8 @@ static void measurefs_print_usage(char *name) {
 		"                                  file or directory.\n"
 		"  -D, --data-frag                 measures average files fragmentation.\n"
 		"  -E, --show-file                 show file fragmentation for each file\n"
-		"                                  if --data-frag is specified.\n"
+		"                                  durring calclulation if --data-frag is\n"
+		"                                  specified.\n"
 		"Plugins options:\n"
 		"  -e, --profile PROFILE           profile to be used.\n"
 		"  -P, --known-plugins             prints known plugins.\n"
@@ -123,16 +124,17 @@ static errno_t tfrag_open_node(
 }
 
 static errno_t tfrag_process_item(
-	void *object,		    /* item we traverse now */
+	void *entity,               /* item we traverse now */
 	uint64_t start,             /* region start */
 	uint64_t count,             /* region width */
 	void *data)                 /* one of blk item points to */
 {
-	item_entity_t *item = (item_entity_t *)object;
 	int64_t delta;
 	tfrag_hint_t *hint;
+	item_entity_t *item;
 	
 	hint = (tfrag_hint_t *)data;
+	item = (item_entity_t *)entity;
 	
 	if (start == 0)
 		return 0;
@@ -310,7 +312,7 @@ static errno_t stat_open_node(
 
 /* Process one block belong to the item (extent or nodeptr) */
 static errno_t stat_process_item(
-	void *object,		    /* item we traverse now */
+	void *entity,		    /* item we traverse now */
 	uint64_t start,             /* region start */
 	uint64_t count,             /* region count */
 	void *data)                 /* one of blk item points to */

@@ -46,14 +46,14 @@ browses passed file like standard cat and ls programs.
 .B -t, --print-tree
 prints the internal tree.
 .TP
-.B -n, --print-block N
+.B -b, --print-block N
 prints block by passed block number.
 .TP
-.B -i, --print-file FILE
-prints all metadata blocks specified file occupies.
+.B -n, --print-nodes FILE
+prints all nodes passed file lies in.
 .TP
-.B -w, --show-items
-forces --print-file show only items which are belong to specified file.
+.B -i, --show-items
+prints all items passed file consists of.
 .TP
 .B -s, --print-super
 prints the both super blocks: master super block and format specific one.
@@ -61,10 +61,10 @@ prints the both super blocks: master super block and format specific one.
 .B -j, --print-journal
 prints the journal with not commited transaction (if any).
 .TP
-.B -b, --print-block-alloc
+.B -k, --print-alloc
 prints the block allocator data.
 .TP
-.B -d, --print-oid-alloc
+.B -d, --print-oid
 prints the oid allocator data.
 .SH PLUGIN OPTIONS
 .TP

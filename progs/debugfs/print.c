@@ -305,7 +305,7 @@ errno_t debugfs_print_file(
 		else {
 			aal_exception_error("Can't print file %s.",
 					    object->name);
-			res = -1;
+			res = -EINVAL;
 		}
 		
 		aal_stream_fini(&stream);
@@ -317,7 +317,7 @@ errno_t debugfs_print_file(
 		if (reiser4_object_metadata(object, fprint_process_place, &hint)) {
 			aal_exception_error("Can't print object %s metadata.",
 					    object->name);
-			res = -1;
+			res = -EINVAL;
 		}
 	}
 

@@ -15,7 +15,7 @@ enum print_flags {
 	PF_OID	    = 1 << 3,
 	PF_TREE	    = 1 << 4,
 	PF_BLOCK    = 1 << 5,
-	PF_FILE     = 1 << 6,
+	PF_NODES    = 1 << 6,
 	PF_ITEMS    = 1 << 7
 };
 

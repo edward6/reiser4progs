@@ -39,15 +39,14 @@ static void debugfs_print_usage(char *name) {
 		"  -c, --cat FILE                  browses passed file like standard\n"
 		"                                  cat and ls programs.\n"
 		"Print options:\n"
+		"  -s, --print-super               prints the both super blocks.\n"
 		"  -t, --print-tree                prints the whole tree.\n"
 		"  -j, --print-journal             prints journal.\n"
-		"  -s, --print-super               prints the both super blocks.\n"
-		"  -b, --print-block-alloc         prints block allocator data.\n"
-		"  -d, --print-oid-alloc           prints oid allocator data.\n"
-		"  -n, --print-block N             prints block by its number.\n"
-		"  -i, --print-file FILE           prints the all file's metadata.\n"
-		"  -w, --print-items               forces --print-file show only items\n"
-		"                                  which are belong to specified file.\n"
+		"  -d, --print-oid                 prints oid allocator data.\n"
+		"  -k, --print-alloc               prints block allocator data.\n"
+		"  -b, --print-block N             prints block by its number.\n"
+		"  -n, --print-nodes FILE          prints all nodes file lies in.\n"
+		"  -i, --print-items FILE          prints all items file consists of.\n"
 		"Plugins options:\n"
 		"  -e, --profile PROFILE           profile to be used.\n"
 		"  -P, --known-plugins             prints known plugins.\n"
@@ -123,11 +122,11 @@ int main(int argc, char *argv[]) {
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
 		{"print-super", no_argument, NULL, 's'},
-		{"print-block-alloc", no_argument, NULL, 'b'},
-		{"print-oid-alloc", no_argument, NULL, 'd'},
-		{"print-block", required_argument, NULL, 'n'},
-		{"print-file", required_argument, NULL, 'i'},
-		{"print-items", no_argument, NULL, 'w'},
+		{"print-alloc", no_argument, NULL, 'k'},
+		{"print-oid", no_argument, NULL, 'd'},
+		{"print-block", required_argument, NULL, 'b'},
+		{"print-nodes", required_argument, NULL, 'n'},
+		{"print-items", required_argument, NULL, 'i'},
 		{"profile", required_argument, NULL, 'e'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"known-plugins", no_argument, NULL, 'P'},
@@ -143,7 +142,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjc:n:i:wo:P",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtb:djc:n:i:o:P",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -159,7 +158,7 @@ int main(int argc, char *argv[]) {
 		case 'd':
 			print_flags |= PF_OID;
 			break;
-		case 'b':
+		case 'k':
 			print_flags |= PF_ALLOC;
 			break;
 		case 's':
@@ -171,7 +170,7 @@ int main(int argc, char *argv[]) {
 		case 't':
 			print_flags |= PF_TREE;
 			break;
-		case 'n': {
+		case 'b': {
 			print_flags |= PF_BLOCK;
 
 			/* Parsing block number */
@@ -182,12 +181,13 @@ int main(int argc, char *argv[]) {
 			
 			break;
 		}
-		case 'i':
-			print_flags |= PF_FILE;
+		case 'n':
+			print_flags |= PF_NODES;
 			print_filename = optarg;
 			break;
-		case 'w':
+		case 'i':
 			print_flags |= PF_ITEMS;
+			print_filename = optarg;
 			break;
 		case 'c':
 			behav_flags |= BF_CAT;
@@ -322,12 +322,6 @@ int main(int argc, char *argv[]) {
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
 		print_flags = PF_SUPER;
 
-	/* The same for --print-file option */
-	if (!(print_flags & PF_FILE) && (print_flags & PF_ITEMS)) {
-		aal_exception_warn("Option --print-items is only active if "
-				   "--print-file is specified.");
-	}
-
 	/* Handling print options */
 	if ((behav_flags & BF_CAT)) {
 		if (debugfs_browse(fs, cat_filename))
@@ -367,11 +361,16 @@ int main(int argc, char *argv[]) {
 			goto error_free_tree;
 	}
     
-	if (print_flags & PF_FILE) {
+	if (print_flags & PF_NODES) {
 		if (debugfs_print_file(fs, print_filename, print_flags))
 			goto error_free_tree;
 	}
 
+	if (print_flags & PF_ITEMS) {
+		if (debugfs_print_file(fs, print_filename, print_flags))
+			goto error_free_tree;
+	}
+	
 	/* Freeing tree */
 	reiser4_tree_close(fs->tree);
     

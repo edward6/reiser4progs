@@ -104,9 +104,9 @@ int main() {
     printf("\nAn old version of libaal (%s) was found.\n",
 	version);
 
-    printf("You need a version of libaal newer than or equal "
-	"to %d.%d.%d.\n", $libaal_config_major_version, 
-        $libaal_config_minor_version, $libaal_config_micro_version);
+    printf("You need a version of libaal newer than %d.%d.%d.\n", 
+	$libaal_config_major_version, $libaal_config_minor_version, 
+	$libaal_config_micro_version);
 
     printf("You can get it at http://www.namesys.com/pub/libaal\n");
     return 1;
