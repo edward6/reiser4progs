@@ -11,8 +11,7 @@
 
 extern void reiser4_print_fini(void);
 
-extern void reiser4_print_init(uint32_t heap);
-extern void reiser4_print_recycle(uint32_t heap);
+extern errno_t reiser4_print_init(uint32_t pool);
 
 extern char *reiser4_print_key(reiser4_key_t *key,
 			       uint16_t options);

@@ -260,7 +260,7 @@ const char *libreiser4_version(void) {
    before any actions performed on libreiser4. */
 errno_t libreiser4_init(void) {
 #ifndef ENABLE_STAND_ALONE
-	reiser4_print_init(10);
+	reiser4_print_init(20);
 #endif
     
 	if (reiser4_factory_init()) {

@@ -6,24 +6,15 @@
 #ifndef ENABLE_STAND_ALONE
 #include <reiser4/libreiser4.h>
 
-static aal_list_t *streams;
-static uint32_t curr_size = 0; 
-static uint32_t heap_size = 0;
+static aal_list_t *current = NULL;
+static aal_list_t *streams = NULL;
 
+/* Adds passed stream to stream pool. */
 static void reiser4_print_add_stream(aal_stream_t *stream) {
-	aal_list_t *new;
-	
-	if (curr_size + 1 > heap_size)
-		reiser4_print_recycle(heap_size);
-
-	new = aal_list_append(streams, stream);
-
-	if (!new->prev)
-		streams = new;
-
-	curr_size++;
+	streams = aal_list_append(streams, stream);
 }
 
+/* Removes passed stream from stream pool. */
 static void reiser4_print_rem_stream(aal_stream_t *stream) {
 	aal_list_t *next;
 	
@@ -31,16 +22,31 @@ static void reiser4_print_rem_stream(aal_stream_t *stream) {
 
 	if (!next || !next->prev)
 		streams = next;
-	
-	curr_size--;
 }
 
-void reiser4_print_recycle(uint32_t heap) {
-	aal_list_t *walk, *next;
+/* Initializes stream pool. It creates @pool number of streams, which will be
+   used later for printing something to them. */
+errno_t reiser4_print_init(uint32_t pool) {
+	streams = NULL;
+	
+	for (; pool > 0; pool--) {
+		aal_stream_t *stream;
+		
+		if (!(stream = aal_stream_create(NULL, &memory_stream)))
+			return -ENOMEM;
 
-	for (walk = streams; walk && curr_size > heap;
-	     walk = next)
-	{
+		reiser4_print_add_stream(stream);
+	}
+
+	current = aal_list_first(streams);
+	return 0;
+}
+
+/* Finalizes stream pool. */
+void reiser4_print_fini(void) {
+	aal_list_t *walk, *next;
+	
+	for (walk = streams; walk; walk = next)	{
 		void *stream = walk->data;
 		
 		next = walk->next;
@@ -48,31 +54,29 @@ void reiser4_print_recycle(uint32_t heap) {
 		reiser4_print_rem_stream(stream);
 		aal_stream_fini(stream);
 	}
-}
 
-void reiser4_print_init(uint32_t heap) {
-	curr_size = 0;
+	current = NULL;
 	streams = NULL;
-	heap_size = heap;
 }
 
-void reiser4_print_fini(void) {
-	reiser4_print_recycle(0);
-}
-
+/* Prints passed @key with @options to some of stream from stream pool and
+   retrun pointer to result. */
 char *reiser4_print_key(reiser4_key_t *key,
 			uint16_t options)
 {
 	aal_stream_t *stream;
 	
 	aal_assert("umka-2379", key != NULL);
+	aal_assert("umka-3086", current != NULL);
+	aal_assert("umka-3087", streams != NULL);
 
-	if (!(stream = aal_stream_create(NULL, &memory_stream)))
-		return NULL;
+	stream = (aal_stream_t *)current->data;
+
+	if (!(current = current->next))
+		current = aal_list_first(streams);
 
 	reiser4_key_print(key, stream, options);
-	reiser4_print_add_stream(stream);
-	
+
 	return (char *)stream->entity;
 }
 #endif
