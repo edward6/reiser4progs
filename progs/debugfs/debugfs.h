@@ -16,6 +16,5 @@
 #include "types.h"
 #include "browse.h"
 #include "print.h"
-#include "meta.h"
 
 #endif

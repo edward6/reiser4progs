@@ -21,6 +21,8 @@ reiser4progs/COPYING.
 
 * dumpfs utility.
 
+* finish pack/unpack (add journal metadata).
+
 * plugin inheritance for objects.
 
 * big digits stat data fields format change.

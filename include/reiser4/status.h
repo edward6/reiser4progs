@@ -19,6 +19,7 @@ extern errno_t reiser4_status_pack(reiser4_status_t *status,
 				   aal_stream_t *stream);
 
 extern reiser4_status_t *reiser4_status_unpack(aal_device_t *device,
+					       uint32_t blksize,
 					       aal_stream_t *stream);
 
 extern errno_t reiser4_status_print(reiser4_status_t *status,

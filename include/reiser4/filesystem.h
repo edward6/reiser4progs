@@ -17,6 +17,16 @@ extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 				     bool_t check);
 
 #ifndef ENABLE_STAND_ALONE
+
+#define MASTER_PACK_SIGN "MSTR"
+#define STATUS_PACK_SIGN "STAT"
+#define FORMAT_PACK_SIGN "FRMT"
+#define ALLOC_PACK_SIGN  "ALLO"
+#define NODE_PACK_SIGN   "NODE"
+
+extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
+extern errno_t reiser4_fs_clobber(aal_device_t *device);
+
 extern errno_t reiser4_fs_resize(reiser4_fs_t *fs,
 				 count_t blocks);
 
@@ -33,9 +43,11 @@ extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
 extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 				       fs_hint_t *hint);
 
-extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
+extern errno_t reiser4_fs_pack(reiser4_fs_t *fs,
+			       aal_stream_t *stream);
 
-extern errno_t reiser4_fs_clobber(aal_device_t *device);
+extern reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
+				       aal_stream_t *stream);
 #endif
 
 #endif

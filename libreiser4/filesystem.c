@@ -390,6 +390,177 @@ errno_t reiser4_fs_sync(
 
 	return reiser4_status_sync(fs->status);
 }
+
+errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
+	blk_t blk;
+	count_t len;
+	errno_t res;
+	
+	aal_assert("umka-2630", fs != NULL);
+	aal_assert("umka-2647", stream != NULL);
+
+	aal_stream_write(stream, MASTER_PACK_SIGN, 4);
+
+	if ((res = reiser4_master_pack(fs->master, stream)))
+		return res;
+	
+	aal_stream_write(stream, FORMAT_PACK_SIGN, 4);
+	
+	if ((res = reiser4_format_pack(fs->format, stream)))
+		return res;
+	
+	aal_stream_write(stream, ALLOC_PACK_SIGN, 4);
+	
+	if ((res = reiser4_alloc_pack(fs->alloc, stream)))
+		return res;
+	
+	aal_stream_write(stream, STATUS_PACK_SIGN, 4);
+	
+	if ((res = reiser4_status_pack(fs->status, stream)))
+		return res;
+	
+	len = reiser4_format_get_len(fs->format);
+
+	/* Loop though the all data blocks, check if they belong to tree and if
+	   so try to open a formated node on it. */
+	for (blk = 0; blk < len; blk++) {
+		reiser4_node_t *node;
+		
+		/* We're not interested in unused blocks yet. */
+		if (!reiser4_alloc_occupied(fs->alloc, blk, 1))
+			continue;
+
+		/* We're not interested in other blocks, but tree nodes. */
+		if (reiser4_fs_belongs(fs, blk) != O_UNKNOWN)
+			continue;
+
+		/* Try to open @blk block and find out is it formatted one or
+		   not. */
+		if (!(node = reiser4_node_open(fs->tree, blk)))
+			continue;
+
+		aal_stream_write(stream, NODE_PACK_SIGN, 4);
+		
+		/* Packing @node to @stream. */
+		if ((res = reiser4_node_pack(node, stream)))
+			return res;
+
+		/* Close node. */
+		reiser4_node_close(node);
+	}
+
+	return 0;
+}
+
+reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
+				aal_stream_t *stream)
+{
+	reiser4_fs_t *fs;
+	char sign[5] = {0};
+
+	aal_assert("umka-2633", device != NULL);
+	aal_assert("umka-2648", stream != NULL);
+
+	if (!(fs = aal_calloc(sizeof(*fs), 0)))
+		return NULL;
+	
+	fs->device = device;
+
+	while (1) {
+		reiser4_node_t *node;
+		
+		if (aal_stream_read(stream, &sign, 4) != 4) {
+			if (aal_stream_eof(stream)) {
+				break;
+			} else {
+				goto error_free_fs;
+			}
+		}
+
+		if (!aal_strncmp(sign, MASTER_PACK_SIGN, 4)) {
+			if (fs->master) {
+				aal_exception_error("Few \"master\" objects "
+						    "detected in stream.");
+				goto error_free_fs;
+			}
+			
+			if (!(fs->master = reiser4_master_unpack(device, stream)))
+				goto error_free_fs;
+
+		} else if (!aal_strncmp(sign, FORMAT_PACK_SIGN, 4)) {
+			if (fs->format) {
+				aal_exception_error("Few \"format\" objects "
+						    "detected in stream.");
+				goto error_free_master;
+			}
+			
+			if (!(fs->format = reiser4_format_unpack(fs, stream)))
+				goto error_free_master;
+
+			if (!(fs->oid = reiser4_oid_open(fs)))
+				goto error_free_format;
+			
+			if (!(fs->tree = reiser4_tree_init(fs, NULL)))
+				goto error_free_oid;
+		} else if (!aal_strncmp(sign, ALLOC_PACK_SIGN, 4)) {
+			if (fs->alloc) {
+				aal_exception_error("Few \"alloc\" objects "
+						    "detected in stream.");
+				goto error_free_tree;
+			}
+			
+			if (!(fs->alloc = reiser4_alloc_unpack(fs, stream)))
+				goto error_free_tree;
+		} else if (!aal_strncmp(sign, STATUS_PACK_SIGN, 4)) {
+			uint32_t bs = reiser4_master_get_blksize(fs->master);
+			
+			if (fs->status) {
+				aal_exception_error("Few \"ststus\" objects "
+						    "detected in stream.");
+				goto error_free_alloc;
+			}
+			
+			if (!(fs->status = reiser4_status_unpack(device, bs,
+								 stream)))
+			{
+				goto error_free_alloc;
+			}
+		} else if (!aal_strncmp(sign, NODE_PACK_SIGN, 4)) {
+			if (!(node = reiser4_node_unpack(fs->tree, stream)))
+				goto error_free_status;
+
+			if (reiser4_node_sync(node)) {
+				reiser4_node_close(node);
+				goto error_free_status;
+			}
+		
+			reiser4_node_close(node);
+		} else {
+			aal_exception_error("Invalid object %s is "
+					    "detected in stream.",
+					    sign);
+			goto error_free_fs;
+		}
+	}
+
+	return fs;
+
+ error_free_status:
+	reiser4_status_close(fs->status);
+ error_free_alloc:
+	reiser4_alloc_close(fs->alloc);
+ error_free_tree:
+	reiser4_tree_fini(fs->tree);
+ error_free_oid:
+	reiser4_oid_close(fs->oid);
+ error_free_format:
+	reiser4_format_close(fs->format);
+ error_free_master:
+	reiser4_master_close(fs->master);
+ error_free_fs:
+	aal_free(fs);
+	return NULL;
+}
 #endif
 
 /* Returns the key of the fake root parent */

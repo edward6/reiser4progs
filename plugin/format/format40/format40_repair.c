@@ -128,8 +128,6 @@ errno_t format40_update(generic_entity_t *entity) {
 	return res;
 }
 
-#define FORMAT40_SIGN "FT40"
-
 errno_t format40_pack(generic_entity_t *entity,
 		      aal_stream_t *stream)
 {
@@ -145,9 +143,6 @@ errno_t format40_pack(generic_entity_t *entity,
 	/* Write plugin id. */
 	pid = entity->plug->id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
-
-	/* Write magic. */
-	aal_stream_write(stream, FORMAT40_SIGN, 4);
 
 	/* Write data size. */
 	size = sizeof(format->super);
@@ -165,18 +160,8 @@ generic_entity_t *format40_unpack(aal_device_t *device,
 {
 	uint32_t size;
 	format40_t *format;
-	char sign[5] = {0};
 	
 	aal_assert("umka-2603", stream != NULL);
-
-	/* Check magic first. */
-	aal_stream_read(stream, &sign, 4);
-
-	if (aal_strncmp(sign, FORMAT40_SIGN, 4)) {
-		aal_exception_error("Invalid format magic %s is "
-				    "detected in stream.", sign);
-		return NULL;
-	}
 
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;

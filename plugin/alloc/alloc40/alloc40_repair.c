@@ -34,7 +34,7 @@ errno_t alloc40_region(generic_entity_t *entity, blk_t blk,
 }
 
 struct alloc_hint {
-	region_func_t func;
+	region_func_t region_func;
 	void *data;
 };
 
@@ -50,20 +50,22 @@ static errno_t callback_check_layout(void *entity, blk_t start,
 	/* If bitmap block looks corrupted or the very first bit is not set,
 	   call func for the region */
 	if (res || alloc40_occupied(entity, start, 1))
-		hint->func(entity, start, width, hint->data);
+		hint->region_func(entity, start, width, hint->data);
 	
 	return 0;
 }
 
 errno_t alloc40_layout_bad(generic_entity_t *entity,
-			   region_func_t func, void *data)
+			   region_func_t region_func,
+			   void *data)
 {
 	struct alloc_hint hint;
 	
-	aal_assert("vpf-1323", func != NULL);
+	aal_assert("umka-2646", entity != NULL);
+	aal_assert("vpf-1323", region_func != NULL);
 	
-	hint.func = func;
 	hint.data = data;
+	hint.region_func = region_func;
 	
 	return alloc40_layout(entity, callback_check_layout, &hint);
 }
@@ -89,15 +91,13 @@ static errno_t callback_pack_bitmap(void *entity, blk_t start,
 	map = aux_bitmap_map(alloc->bitmap);
 	current = map + (size * (start / size / 8));
 
-	chunk = (map + alloc->bitmap->size) - current > (int)size ? 
-		(int)size : (int)((map + alloc->bitmap->size) - current);
+	if ((chunk = (map + alloc->bitmap->size) - current) > size)
+		chunk = size;
 
-	/* Write checksum. */
 	aal_stream_write(stream, alloc->crc + (offset * CRC_SIZE),
 			 CRC_SIZE);
 
-	/* Write bitmap. */
-	aal_stream_write(stream, current, size);
+	aal_stream_write(stream, current, chunk);
 	
 	return 0;
 }
@@ -119,23 +119,20 @@ static errno_t callback_unpack_bitmap(void *entity, blk_t start,
 
 	size = alloc->blksize - CRC_SIZE;
 	offset = start / size / 8;
+	
 	map = aux_bitmap_map(alloc->bitmap);
 	current = map + (size * (start / size / 8));
 
-	chunk = (map + alloc->bitmap->size) - current > (int)size ? 
-		(int)size : (int)((map + alloc->bitmap->size) - current);
+	if ((chunk = (map + alloc->bitmap->size) - current) > size)
+		chunk = size;
 
-	/* Write checksum. */
 	aal_stream_read(stream, alloc->crc + (offset * CRC_SIZE),
 			CRC_SIZE);
 
-	/* Write bitmap. */
-	aal_stream_read(stream, current, size);
+	aal_stream_read(stream, current, chunk);
 	
 	return 0;
 }
-
-#define ALLOC40_SIGN "AL40"
 
 /* Pack block allocator data to passed @stream. */
 errno_t alloc40_pack(generic_entity_t *entity,
@@ -153,8 +150,6 @@ errno_t alloc40_pack(generic_entity_t *entity,
 
 	pid = entity->plug->id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
-
-	aal_stream_write(stream, ALLOC40_SIGN, 4);
 
 	len = alloc->bitmap->total;
 	aal_stream_write(stream, &len, sizeof(len));
@@ -175,20 +170,11 @@ generic_entity_t *alloc40_unpack(aal_device_t *device,
 {
 	uint64_t len;
 	uint32_t crcsize;
+	uint32_t mapsize;
 	alloc40_t *alloc;
-	char sign[5] = {0};
 	
 	aal_assert("umka-2620", device != NULL);
 	aal_assert("umka-2621", stream != NULL);
-
-	/* Check signature first. */
-	aal_stream_read(stream, sign, 4);
-	
-	if (aal_strncmp(sign, ALLOC40_SIGN, 4)) {
-		aal_exception_error("Invalid block allocator magic "
-				    "%s is detected in stream.", sign);
-		return NULL;
-	}
 
 	/* Allocating block allocator instance and initializing it by passed
 	   @blksize, @device and data from the @stream. */
@@ -206,8 +192,10 @@ generic_entity_t *alloc40_unpack(aal_device_t *device,
 		goto error_free_alloc;
 
 	/* Initializing adler checksums. */
-	crcsize = (alloc->bitmap->size /
-		   (alloc->blksize - CRC_SIZE)) * CRC_SIZE;
+	mapsize = alloc->blksize - CRC_SIZE;
+
+	crcsize = ((alloc->bitmap->size + mapsize - 1) /
+		   mapsize) * CRC_SIZE;
     
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
@@ -222,6 +210,8 @@ generic_entity_t *alloc40_unpack(aal_device_t *device,
 	}
 
 	alloc->dirty = 1;
+	aux_bitmap_calc_marked(alloc->bitmap);
+	
 	return (generic_entity_t *)alloc;
 
  error_free_crc:

@@ -109,7 +109,7 @@ errno_t reiser4_node_pack(reiser4_node_t *node,
 			 pack, node->entity, stream);
 }
 
-/* Unpackes @stream to @node. */
+/* Create node from passed @stream. */
 reiser4_node_t *reiser4_node_unpack(reiser4_tree_t *tree,
 				    aal_stream_t *stream)
 {
