@@ -253,7 +253,7 @@ reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 	
 	aal_assert("umka-2393", policy != NULL);
 
-	/* Calling tail policy plugin to detect body plugin. */
+	/* Calling formatting policy plugin to detect body plugin. */
 	if (plug_call(policy->o.policy_ops, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */

@@ -80,11 +80,12 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	if (pid != defplug->id.id) {
 		if (reiser4_profile_overridden(PROF_POLICY)) {
 			/* The policy was overridden. */
-			aal_error("The specified reiser4 tail policy is '%s'. "
-				  "Its id (0x%x) does not match the on-disk id "
-				  "(0x%x). %s", defplug->label, defplug->id.id, 
-				  pid, mode == RM_BUILD ? "Fixed." : "Has "
-				  "effect in the BUILD mode only.");
+			aal_error("The specified reiser4 formatting policy "
+				  "is '%s'. Its id (0x%x) does not match the "
+				  "on-disk id (0x%x). %s", defplug->label,
+				  defplug->id.id, pid, mode == RM_BUILD ? 
+				  "Fixed." : "Has effect in the BUILD mode "
+				  "only.");
 
 			if (mode != RM_BUILD)
 				return RE_FATAL;
@@ -95,15 +96,16 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			plug = reiser4_factory_ifind(POLICY_PLUG_TYPE, pid);
 
 			if (!plug) {
-				aal_error("Can't find the tail policy plugin "
-					  "by the detected id 0x%x.", pid);
+				aal_error("Can't find the formatting policy "
+					  "plugin by the detected id 0x%x.", 
+					  pid);
 
 				if (mode != RM_BUILD)
 					return RE_FATAL;
 
 				/* This is not overridden in BUILD mode. */
-				aal_error("Using the default tail policy '%s'.",
-					  defplug->label);
+				aal_error("Using the default formatting policy "
+					  "'%s'.", defplug->label);
 
 				reiser4_format_set_policy(fs->format, 
 							  defplug->id.id);

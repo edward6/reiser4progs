@@ -36,7 +36,7 @@ struct format40_super {
 	char sb_magic[MAGIC_SIZE];
 
 	d16_t sb_tree_height;
-	d16_t sb_tail_policy;
+	d16_t sb_policy;
 	d64_t sb_flags;
 	
 	char sb_unused[432];
@@ -70,8 +70,8 @@ extern reiser4_core_t *format40_core;
 #define get_sb_root_block(sb)			aal_get_le64(sb, sb_root_block)
 #define set_sb_root_block(sb, val)		aal_set_le64(sb, sb_root_block, val)
 
-#define get_sb_tail_policy(sb)			aal_get_le16(sb, sb_tail_policy)
-#define set_sb_tail_policy(sb, val)		aal_set_le16(sb, sb_tail_policy, val)
+#define get_sb_policy(sb)			aal_get_le16(sb, sb_policy)
+#define set_sb_policy(sb, val)			aal_set_le16(sb, sb_policy, val)
 
 #define get_sb_oid(sb)                         aal_get_le64(sb, sb_oid)
 #define set_sb_oid(sb, val)                    aal_set_le64(sb, sb_oid, val)

@@ -117,10 +117,10 @@ void format40_print(generic_entity_t *entity,
 		    aal_stream_t *stream,
 		    uint16_t options) 
 {
-	rid_t tail_pid;
-	format40_t *format;
 	format40_super_t *super;
-	reiser4_plug_t *tail_plug;
+	reiser4_plug_t *plug;
+	format40_t *format;
+	rid_t pid;
     
 	aal_assert("vpf-246", entity != NULL);
 	aal_assert("umka-1290", stream != NULL);
@@ -128,13 +128,10 @@ void format40_print(generic_entity_t *entity,
 	format = (format40_t *)entity;
 	super = &format->super;
     
-	tail_pid = get_sb_tail_policy(super);
+	pid = get_sb_policy(super);
 
-	if (!(tail_plug = format40_core->factory_ops.ifind(POLICY_PLUG_TYPE,
-							   tail_pid)))
-	{
-		aal_error("Can't find tail policy plugin by its id 0x%x.",
-			  tail_pid);
+	if (!(plug = format40_core->factory_ops.ifind(POLICY_PLUG_TYPE, pid))) {
+		aal_error("Can't find tail policy plugin by its id 0x%x.", pid);
 	}
 		
 	aal_stream_format(stream, "Format super block (%lu):\n",
@@ -165,7 +162,7 @@ void format40_print(generic_entity_t *entity,
 			  get_sb_root_block(super));
 
 	aal_stream_format(stream, "tail policy:\t0x%x (%s)\n",
-			  tail_pid, tail_plug ? tail_plug->label:
+			  pid, plug ? plug->label:
 			  "absent");
 	
 	aal_stream_format(stream, "next oid:\t0x%llx\n",

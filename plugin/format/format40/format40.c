@@ -44,7 +44,7 @@ static uint32_t format40_get_stamp(generic_entity_t *entity) {
 
 static uint16_t format40_get_policy(generic_entity_t *entity) {
 	aal_assert("vpf-831", entity != NULL);
-	return get_sb_tail_policy(SUPER(entity));
+	return get_sb_policy(SUPER(entity));
 }
 
 static uint64_t format40_start(generic_entity_t *entity) {
@@ -267,7 +267,7 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	set_sb_root_block(super, INVAL_BLK);
 
 	/* Setting up tail policy to passed @desc->policy value. */
-	set_sb_tail_policy(super, desc->policy->id.id);
+	set_sb_policy(super, desc->policy->id.id);
 
 	/* Initializing fsck related fields. */
 	srandom(time(0));
@@ -305,8 +305,8 @@ static errno_t format40_backup(generic_entity_t *entity, aal_stream_t *stream) {
 	aal_stream_write(stream, &SUPER(entity)->sb_mkfs_id, 
 			 sizeof(SUPER(entity)->sb_mkfs_id));
 	
-	aal_stream_write(stream, &SUPER(entity)->sb_tail_policy, 
-			 sizeof(SUPER(entity)->sb_tail_policy));
+	aal_stream_write(stream, &SUPER(entity)->sb_policy, 
+			 sizeof(SUPER(entity)->sb_policy));
 	
 	/* Not default plugin ids should be written also in the future. */
 	
@@ -370,45 +370,35 @@ static rid_t format40_alloc_pid(generic_entity_t *entity) {
 	return ALLOC_REISER40_ID;
 }
 
-static void format40_set_root(generic_entity_t *entity, 
-			      uint64_t root) 
-{
+static void format40_set_root(generic_entity_t *entity, uint64_t root) {
 	aal_assert("umka-403", entity != NULL);
 
 	set_sb_root_block(SUPER(entity), root);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
-static void format40_set_len(generic_entity_t *entity, 
-			     uint64_t blocks) 
-{
+static void format40_set_len(generic_entity_t *entity, uint64_t blocks) {
 	aal_assert("umka-404", entity != NULL);
 
 	set_sb_block_count(SUPER(entity), blocks);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
-static void format40_set_free(generic_entity_t *entity, 
-			      uint64_t blocks) 
-{
+static void format40_set_free(generic_entity_t *entity, uint64_t blocks) {
 	aal_assert("umka-405", entity != NULL);
 
 	set_sb_free_blocks(SUPER(entity), blocks);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
-static void format40_set_height(generic_entity_t *entity, 
-				uint16_t height) 
-{
+static void format40_set_height(generic_entity_t *entity, uint16_t height) {
 	aal_assert("umka-555", entity != NULL);
 
 	set_sb_tree_height(SUPER(entity), height);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
-static void format40_set_flags(generic_entity_t *entity, 
-			       uint64_t flags) 
-{
+static void format40_set_flags(generic_entity_t *entity, uint64_t flags) {
 	format40_t *format;
 	
 	aal_assert("umka-2340", entity != NULL);
@@ -418,21 +408,17 @@ static void format40_set_flags(generic_entity_t *entity,
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
-static void format40_set_stamp(generic_entity_t *entity, 
-			       uint32_t mkfsid) 
-{
+static void format40_set_stamp(generic_entity_t *entity, uint32_t mkfsid) {
 	aal_assert("umka-1121", entity != NULL);
 
 	set_sb_mkfs_id(SUPER(entity), mkfsid);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
-static void format40_set_policy(generic_entity_t *entity, 
-			       uint16_t tail)
-{
+static void format40_set_policy(generic_entity_t *entity, uint16_t tail) {
 	aal_assert("vpf-830", entity != NULL);
 
-	set_sb_tail_policy(SUPER(entity), tail);
+	set_sb_policy(SUPER(entity), tail);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 #endif

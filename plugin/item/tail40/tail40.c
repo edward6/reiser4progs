@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   tail40.c -- reiser4 tail items plugin. */
+   tail40.c -- reiser4 tail (formatting) item plugin. */
 
 #include "tail40.h"
 #include "tail40_repair.h"
