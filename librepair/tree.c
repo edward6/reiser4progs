@@ -509,7 +509,8 @@ static errno_t callback_lookup(reiser4_place_t *place,
 	}
 
 	if (lookup < 0) 
-		aal_bug("Unexpected lookup value is given (%d).", lookup);
+		aal_bug("vpf-1521", "Unexpected lookup value is given (%d).", 
+			lookup);
 
 	/* Absent. If non-existent unit or item, there is nothing mergable 
 	   from the right side--lookup would go down there in that case.  */
