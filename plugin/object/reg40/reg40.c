@@ -102,6 +102,7 @@ static int64_t reg40_read(object_entity_t *entity,
 	   opened on. */ 
 	hint.count = n;
 	hint.specific = buff;
+	hint.place_func = NULL;
 	hint.tree = reg->obj.info.tree;
 
 	/* Initializing offset data must be read from. This is current file
@@ -332,7 +333,9 @@ static errno_t reg40_convert(object_entity_t *entity,
 	hint.chunk = 0;
 	hint.bytes = 0;
 	hint.plug = plug;
+
 	hint.count = fsize;
+	hint.place_func = NULL;
 
 	/* Converting file data. */
 	if ((res = obj40_convert(&reg->obj, &hint)))
@@ -405,8 +408,9 @@ int64_t reg40_put(object_entity_t *entity, void *buff, uint64_t n) {
 	   to write into and @offset -- file offset data must be written at. */
 	hint.bytes = 0;
 	hint.count = n;
-	
+
 	hint.specific = buff;
+	hint.place_func = NULL;
 	hint.tree = reg->obj.info.tree;
 	
 	plug_call(reg->position.plug->o.key_ops,
@@ -447,6 +451,7 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
 
 	/* Removing data from the tree. */
 	hint.count = size - n;
+	hint.place_func = NULL;
 	hint.data = reg->obj.info.tree;
 	hint.plug = reg40_policy_plug(reg, n);
 

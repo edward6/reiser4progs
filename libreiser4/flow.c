@@ -123,7 +123,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		} else {
 			level = TWIG_LEVEL;
 		}
-		
+
 		/* Writing data to tree. */
 		if ((write = reiser4_tree_write(tree, &place,
 						hint, level)) < 0)
@@ -332,6 +332,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 
 		trans.count = conv;
 		trans.plug = hint->plug;
+		trans.place_func = hint->place_func;
 		
 		/* Third stage -- writing data back to tree with new item plugin
 		   used.*/

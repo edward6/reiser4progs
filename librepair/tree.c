@@ -320,6 +320,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	
 	hint.specific = &ptr;
 	hint.count = 1;
+	hint.place_func = NULL;
 	hint.tree = tree;
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;
@@ -394,6 +395,10 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	hint.chunk = 0;
 	hint.bytes = 0;
 	hint.plug = plug;
+
+	/* FIXME-UMKA->VITALY: Here @hint->place_func should be initialized. */
+	hint.place_func = NULL;
+	
 	reiser4_key_assign(&hint.offset, &place->key);
 
 	hint.count = plug_call(place->plug->o.item_ops->object,
@@ -423,6 +428,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, place_t *dst,
 	   initialize start and end keys. For now I calculate it here. */
 	hint.tree = tree;
 	hint.plug = dst->plug;
+	hint.place_func = NULL;
 	
 	if ((res = reiser4_item_maxreal_key(dst, &dmax)))
 		return res;
@@ -539,6 +545,8 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 	hint.tree = tree;
 	hint.specific = src;
 	hint.plug = src->plug;
+	hint.place_func = NULL;
+	
 	reiser4_key_assign(&hint.offset, &src->key);
 	level = reiser4_node_get_level(src->node);
 

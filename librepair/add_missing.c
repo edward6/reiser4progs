@@ -125,6 +125,7 @@ static errno_t repair_am_node_prepare(repair_am_t *am, node_t *node) {
 			continue;
 
 		hint.count = 1;
+		hint.place_func = NULL;
 
 		if ((res = reiser4_node_remove(place.node, &place.pos, &hint)))
 			return res;

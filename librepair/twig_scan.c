@@ -72,7 +72,10 @@ static errno_t callback_check_layout(place_t *place, void *data) {
 					    place->pos.item);
 
 			hint.count = 1;
+			hint.place_func = NULL;
 
+			/* FIXME-UMKA->VITALY: Is this correct? I mean res |=
+			   etc. */
 			res |= reiser4_node_remove(node, &place->pos, &hint);
 
 			if (res < 0) return res;

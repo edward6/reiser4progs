@@ -986,6 +986,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		/* Fetching extent infomation. */
 		hint.count = 1;
 		hint.specific = &ptr;
+		hint.place_func = NULL;
 
 		if (plug_call(place->plug->o.item_ops->object,
 			      fetch_units, place, &hint) != 1)
@@ -1655,6 +1656,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	aal_memset(&hint, 0, sizeof(hint));
 
 	hint.count = 1;
+	hint.place_func = NULL;
 	hint.specific = &nodeptr_hint;
 
 	/* Prepare nodeptr hint. */
@@ -1717,7 +1719,6 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 {
 	errno_t res;
 	place_t parent;
-	trans_hint_t hint;
 	
 	aal_assert("umka-1726", tree != NULL);
 	aal_assert("umka-1727", node != NULL);
@@ -1738,7 +1739,10 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 	
         /* Disconnecting node from parent node if any. */
 	if (!reiser4_tree_root_node(tree, node)) {
+		trans_hint_t hint;
+		
 		hint.count = 1;
+		hint.place_func = NULL;
 
 		/* Removing nodeptr item/unit at @parent. */
 		return reiser4_tree_remove(tree, &parent, &hint);
@@ -2507,6 +2511,12 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	/* Initializing insert point place. */
 	if ((res = reiser4_place_fetch(place)))
 		return res;
+
+	/* Calling @hint->place_func if any. */
+	if (hint->place_func) {
+		if ((res = hint->place_func(NULL, place, hint)))
+			return res;
+	}
 
 	return write;
 }

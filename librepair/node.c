@@ -63,6 +63,7 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 			}
 
 			hint.count = 1;
+			hint.place_func = NULL;
 
 			if ((res |= reiser4_node_remove(node, pos, &hint)) < 0)
 				return res;
@@ -99,6 +100,7 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 					    node_blocknr(node), pos->item);
 
 			hint.count = 1;
+			hint.place_func = NULL;
 
 			if ((ret = reiser4_node_remove(node, pos, &hint)))
 				return ret;
@@ -156,6 +158,13 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 					    " Removed." : "");
 			if (mode != RM_BUILD)
 				return RE_FATAL;
+
+			/* FIXME-UMKA->VITALY: Here was not initialized
+			   @hint. It should have at least these two
+			   fields. Please check if I have set @hint->count
+			   correctly.*/
+			hint.count = 1;
+			hint.place_func = NULL;
 			
 			if ((res = reiser4_node_remove(node, pos, &hint)))
 				return res;

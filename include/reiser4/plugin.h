@@ -584,7 +584,8 @@ typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
 
 /* This structure contains fields which describe an item or unit to be inserted
-   into the tree. UMKA-FIXME-HANS: trans stands for what? */ 
+   into the tree. This is used for all tree modification purposes like
+   insertitem, or write some file data. */ 
 struct trans_hint {
 	/* Overhead of data to be inserted. This is needed for the case when we
 	   insert directory item and tree should know how much space should be
@@ -626,6 +627,9 @@ struct trans_hint {
 	   releasing unformatted blocks during tail converion, etc. */
 	region_func_t region_func;
 
+	/* Hook called onto each create item during write flow. */
+	place_func_t place_func;
+
 	/* Related opaque data. May be used for passing something to
 	   remove_hook(). */
 	void *data;
@@ -649,6 +653,10 @@ struct conv_hint {
 	
 	/* Plugin item will be converted to. */
 	reiser4_plug_t *plug;
+
+	/* Callback function caled onto each new created item during tail
+	   conversion. */
+	place_func_t place_func;
 };
 
 typedef struct conv_hint conv_hint_t;

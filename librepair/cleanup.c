@@ -26,6 +26,7 @@ static errno_t repair_cleanup_check(place_t *place, void *data) {
 		
 		/* Not checked item does not belong to any object. Remove. */
 		hint.count = 1;
+		hint.place_func = NULL;
 		
 		res = reiser4_node_remove(place->node, &place->pos, &hint);
 		if (res) return res;
@@ -265,9 +266,10 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 				cleanup->stat.removed++;
 				
 				hint.count = 1;
-				res = reiser4_tree_remove(tree, &place, &hint);
-
-				if (res) return res;
+				hint.place_func = NULL;
+				
+				if ((res = reiser4_tree_remove(tree, &place, &hint)))
+					return res;
 
 				goto cont;
 			}

@@ -486,6 +486,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 		
 	aal_memset(&hint, 0, sizeof(hint));
+
+	/* FIXME-UMKA->VITALY: Here @hint->place_func should be initialized. */
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
