@@ -41,8 +41,8 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	aal_assert("vpf-1187", place != NULL);
 	
 	/* Fetching node ptr */
-	plugin_call(place->item.plugin->o.item_ops, read, &place->item,
-		    &ptr, place->pos.unit, 1);
+	plug_call(place->plug->o.item_ops, read, (place_t *)place,
+		  &ptr, place->pos.unit, 1);
 	
 	if (ptr.start > fd->bm_used->total ||
 	    ptr.width > fd->bm_used->total ||
@@ -206,8 +206,8 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 		fd->progress_handler(fd->progress);
 	}
 	
-	if (plugin_call(place->item.plugin->o.item_ops, read, &place->item, &ptr,
-			place->pos.unit, 1) != 1)
+	if (plug_call(place->item.plug->o.item_ops, read, &place->item, &ptr,
+		      place->pos.unit, 1) != 1)
 	{
 		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed to "
 				    "fetch the node pointer.", place->node, 
@@ -276,8 +276,8 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 	aal_assert("vpf-257", fd != NULL);
 	aal_assert("vpf-434", place != NULL);
     
-	if (plugin_call(place->item.plugin->o.item_ops, read, &place->item, 
-			&ptr, place->pos.unit, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read, (place_t *)place, 
+		      &ptr, place->pos.unit, 1) != 1)
 	{
 		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed "
 				    "to fetch the node pointer.", place->node,

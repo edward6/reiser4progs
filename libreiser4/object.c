@@ -11,26 +11,26 @@
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
-/* Helper callback for probing passed @plugin */
-static bool_t callback_object_guess(reiser4_plugin_t *plugin,
+/* Helper callback for probing passed @plug */
+static bool_t callback_object_guess(reiser4_plug_t *plug,
 				    void *data)
 {
 	reiser4_object_t *object;
 
 	/* We are interested only in object plugins here */
-	if (plugin->id.type != OBJECT_PLUGIN_TYPE)
+	if (plug->id.type != OBJECT_PLUG_TYPE)
 		return FALSE;
 	
 	object = (reiser4_object_t *)data;
 	
 	/* Requesting object plugin to open the object on passed @tree and
 	   @place. If it fails, we will continue lookup. */
-	object->entity = plugin_call(plugin->o.object_ops, open,
-				     &object->info);
+	object->entity = plug_call(plug->o.object_ops, open,
+				   &object->info);
 	
 	if (object->entity != NULL) {	
-		plugin_call(plugin->o.object_ops, close,
-			    object->entity);
+		plug_call(plug->o.object_ops, close,
+			  object->entity);
 		
 		return TRUE;
 	}
@@ -41,29 +41,29 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 uint64_t reiser4_object_size(reiser4_object_t *object) {
 	aal_assert("umka-1961", object != NULL);
 
-	return plugin_call(object->entity->plugin->o.object_ops,
-			   size, object->entity);
+	return plug_call(object->entity->plug->o.object_ops,
+			 size, object->entity);
 }
 
 /* This function is trying to open object's entity on @object->place */
 errno_t reiser4_object_guess(reiser4_object_t *object) {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	
-	plugin = libreiser4_factory_cfind(callback_object_guess,
-					  object, TRUE);
+	plug = libreiser4_factory_cfind(callback_object_guess,
+					object, TRUE);
 	
-	if (!plugin)
+	if (!plug)
 		return -EINVAL;
 	
-	object->entity = plugin_call(plugin->o.object_ops, open,
-				     &object->info);
+	object->entity = plug_call(plug->o.object_ops, open,
+				   &object->info);
 	
 	return object->entity != NULL ? 0 : -EINVAL;
 }
 
 static void reiser4_object_fini(reiser4_object_t *object) {
-	plugin_call(object->entity->plugin->o.object_ops,
-		    close, object->entity);
+	plug_call(object->entity->plug->o.object_ops,
+		  close, object->entity);
 	
 	object->entity = NULL;
 }
@@ -80,7 +80,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 		if (reiser4_place_realize(reiser4_object_start(object)))
 			return -EINVAL;
 
-		reiser4_key_assign(&info->object, &info->start.item.key);
+		reiser4_key_assign(&info->object, &info->start.key);
 		return 0;
 	default:
 		return -EINVAL;
@@ -92,11 +92,12 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
-	reiser4_object_t *object;
 
 #ifdef ENABLE_SYMLINKS
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 #endif
+
+	reiser4_object_t *object;
 
 	object = (reiser4_object_t *)data;
 
@@ -114,16 +115,16 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	}
 	
 #ifdef ENABLE_SYMLINKS
-	plugin = object->entity->plugin;
+	plug = object->entity->plug;
 
 	/* Symlinks handling. Method follow() should be implemented */
-	if (object->follow && plugin->o.object_ops->follow) {
+	if (object->follow && plug->o.object_ops->follow) {
 
 		/* Calling object's follow() in order to get stat data key of
 		   the real stat data item. */
-		if ((res = plugin->o.object_ops->follow(object->entity,
-							&object->info.parent,
-							&object->info.object)))
+		if ((res = plug->o.object_ops->follow(object->entity,
+						      &object->info.parent,
+						      &object->info.object)))
 		{
 			aal_exception_error("Can't follow %s.", track);
 			reiser4_object_fini(object);
@@ -161,8 +162,8 @@ static errno_t callback_find_entry(char *track, char *name,
 	object = (reiser4_object_t *)data;
 
 	/* Looking up for @entry in current directory */
-	lookup = plugin_call(object->entity->plugin->o.object_ops,
-			     lookup, object->entity, name, &entry);
+	lookup = plug_call(object->entity->plug->o.object_ops,
+			   lookup, object->entity, name, &entry);
 	
 	if (lookup == PRESENT) {
 		res = reiser4_key_assign(&object->info.object,
@@ -197,8 +198,8 @@ reiser4_object_t *reiser4_object_open(
 	char *filename,                 /* name of object to be opened */
 	bool_t follow)                  /* follow symlinks */
 {
+	reiser4_plug_t *plug;
 	reiser4_object_t *object;
-	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-678", tree != NULL);
 	aal_assert("umka-789", filename != NULL);
@@ -245,8 +246,8 @@ reiser4_object_t *reiser4_object_realize(
 	reiser4_tree_t *tree,           /* tree object will be opened on */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
 {
+	reiser4_plug_t *plug;
 	reiser4_object_t *object;
-	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1508", tree != NULL);
 	aal_assert("umka-1509", place != NULL);
@@ -260,7 +261,7 @@ reiser4_object_t *reiser4_object_realize(
 		   place, sizeof(*place));
 	
 	reiser4_key_assign(&object->info.object,
-			   &object->info.start.item.key);
+			   &object->info.start.key);
 	
 #ifndef ENABLE_STAND_ALONE
 	reiser4_key_string(&object->info.object, object->name);
@@ -297,7 +298,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 		return NULL;
 	
 	/* The key must point to the start of the object. */
-	if (reiser4_key_compare(&place.item.key, key))
+	if (reiser4_key_compare(&place.key, key))
 		return NULL;
 	
 	/* If the pointed item was found, object must be opanable. 
@@ -317,8 +318,8 @@ errno_t reiser4_object_truncate(
 	aal_assert("umka-1154", object != NULL);
 	aal_assert("umka-1155", object->entity != NULL);
     
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   truncate, object->entity, n);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 truncate, object->entity, n);
 }
 
 /* Adds @entry to @object */
@@ -329,11 +330,11 @@ errno_t reiser4_object_add_entry(
 	aal_assert("umka-1975", object != NULL);
 	aal_assert("umka-1976", object->entity != NULL);
 
-	if (!object->entity->plugin->o.object_ops->add_entry)
+	if (!object->entity->plug->o.object_ops->add_entry)
 		return -EINVAL;
 	
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   add_entry, object->entity, entry);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 add_entry, object->entity, entry);
 }
 
 /* Removes @entry to @object */
@@ -344,11 +345,11 @@ errno_t reiser4_object_rem_entry(
 	aal_assert("umka-1977", object != NULL);
 	aal_assert("umka-1978", object->entity != NULL);
     
-	if (!object->entity->plugin->o.object_ops->rem_entry)
+	if (!object->entity->plug->o.object_ops->rem_entry)
 		return -EINVAL;
 	
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   rem_entry, object->entity, entry);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 rem_entry, object->entity, entry);
 }
 
 /* Adds speficied entry into passed opened dir */
@@ -360,11 +361,11 @@ int32_t reiser4_object_write(
 	aal_assert("umka-862", object != NULL);
 	aal_assert("umka-863", object->entity != NULL);
     
-	if (!object->entity->plugin->o.object_ops->write)
+	if (!object->entity->plug->o.object_ops->write)
 		return -EINVAL;
 	
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   write, object->entity, buff, n);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 write, object->entity, buff, n);
 }
 
 /* Helps to create methods */
@@ -385,7 +386,7 @@ static void reiser4_object_base(reiser4_fs_t *fs,
 		locality = reiser4_key_get_objectid(&object->info.parent);
 	} else {
 		/* If parent is NULL -- special case for "/" directory */
-		object->info.parent.plugin = fs->tree->key.plugin;
+		object->info.parent.plug = fs->tree->key.plug;
 		
 		reiser4_fs_root_key(fs, &object->info.parent);
 		
@@ -396,7 +397,7 @@ static void reiser4_object_base(reiser4_fs_t *fs,
 	/* New object is identified by its locality and objectid. Set them to
 	   the @object->info.object key and plugin create method will build the
 	   whole key there. */
-	object->info.object.plugin = object->info.parent.plugin;
+	object->info.object.plug = object->info.parent.plug;
 	
 	reiser4_key_clean(&object->info.object);
 	reiser4_key_set_locality(&object->info.object, locality);
@@ -413,7 +414,7 @@ reiser4_object_t *reiser4_object_create(
 	
 	aal_assert("umka-790", fs != NULL);
 	aal_assert("umka-1128", hint != NULL);
-	aal_assert("umka-1917", hint->plugin != NULL);
+	aal_assert("umka-1917", hint->plug != NULL);
 
 	if (!fs->tree) {
 		aal_exception_error("Can't create object without "
@@ -427,8 +428,8 @@ reiser4_object_t *reiser4_object_create(
 
 	reiser4_object_base(fs, parent, object);
 	
-	if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
-					   create, &object->info, hint)))
+	if (!(object->entity = plug_call(hint->plug->o.object_ops,
+					 create, &object->info, hint)))
 	{
 		aal_exception_error("Can't create object with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&object->info.object));
@@ -448,16 +449,16 @@ reiser4_object_t *reiser4_object_create(
 errno_t reiser4_object_clobber(reiser4_object_t *object) {
 	aal_assert("umka-2297", object != NULL);
 
-	return plugin_call(object->entity->plugin->o.object_ops,
-			   clobber, object->entity);
+	return plug_call(object->entity->plug->o.object_ops,
+			 clobber, object->entity);
 }
 
 /* Returns @nlink value from the stat data if any */
 uint32_t reiser4_object_links(reiser4_object_t *object) {
 	aal_assert("umka-2293", object != NULL);
 
-	return plugin_call(object->entity->plugin->o.object_ops,
-			   links, object->entity);
+	return plug_call(object->entity->plug->o.object_ops,
+			 links, object->entity);
 }
 
 /* Links @child to @object if it is a directory */
@@ -484,17 +485,17 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		}
 	}
 
-	if ((res = plugin_call(child->entity->plugin->o.object_ops,
-			       link, child->entity)))
+	if ((res = plug_call(child->entity->plug->o.object_ops,
+			     link, child->entity)))
 	{
 		return res;
 	}
 	
-	if (child->entity->plugin->o.object_ops->attach) {
+	if (child->entity->plug->o.object_ops->attach) {
 		object_entity_t *parent = object ? object->entity : NULL;
 
-		return plugin_call(child->entity->plugin->o.object_ops,
-				   attach, child->entity, parent);
+		return plug_call(child->entity->plug->o.object_ops,
+				 attach, child->entity, parent);
 	}
 
 	return 0;
@@ -542,15 +543,15 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 		return -EINVAL;
 	}
 
-	if ((res = plugin_call(child->entity->plugin->o.object_ops,
-			       unlink, child->entity)))
+	if ((res = plug_call(child->entity->plug->o.object_ops,
+			     unlink, child->entity)))
 	{
 		return res;
 	}
 	
-	if (child->entity->plugin->o.object_ops->detach) {
-		if ((res = plugin_call(child->entity->plugin->o.object_ops,
-				       detach, child->entity, object->entity)))
+	if (child->entity->plug->o.object_ops->detach) {
+		if ((res = plug_call(child->entity->plug->o.object_ops,
+				     detach, child->entity, object->entity)))
 		{
 			return res;
 		}
@@ -594,18 +595,18 @@ errno_t reiser4_object_layout(
 	block_func_t block_func,    /* layout callback */
 	void *data)                 /* user-specified data */
 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	
 	aal_assert("umka-1469", object != NULL);
 	aal_assert("umka-1470", block_func != NULL);
 
-	plugin = object->entity->plugin;
+	plug = object->entity->plug;
 	
-	if (!plugin->o.object_ops->layout)
+	if (!plug->o.object_ops->layout)
 		return 0;
 	
-	return plugin->o.object_ops->layout(object->entity,
-					    block_func, data);
+	return plug->o.object_ops->layout(object->entity,
+					  block_func, data);
 }
 
 /* Enumerates all items object consists of */
@@ -614,18 +615,18 @@ errno_t reiser4_object_metadata(
 	place_func_t place_func,    /* metadata layout callback */
 	void *data)                 /* user-spaecified data */
 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	
 	aal_assert("umka-1714", object != NULL);
 	aal_assert("umka-1715", place_func != NULL);
 
-	plugin = object->entity->plugin;
+	plug = object->entity->plug;
 	
-	if (!plugin->o.object_ops->metadata)
+	if (!plug->o.object_ops->metadata)
 		return 0;
 	
-	return plugin->o.object_ops->metadata(object->entity,
-					      place_func, data);
+	return plug->o.object_ops->metadata(object->entity,
+					    place_func, data);
 }
 
 /* Makes lookup inside the @object */
@@ -636,12 +637,12 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 	aal_assert("umka-1919", object != NULL);
 	aal_assert("umka-1920", name != NULL);
 
-	if (!object->entity->plugin->o.object_ops->lookup)
+	if (!object->entity->plug->o.object_ops->lookup)
 		return FAILED;
 	
-	return plugin_call(object->entity->plugin->o.object_ops,
-			   lookup, object->entity, (char *)name,
-			   (void *)entry);
+	return plug_call(object->entity->plug->o.object_ops,
+			 lookup, object->entity, (char *)name,
+			 (void *)entry);
 }
 #endif
 
@@ -653,11 +654,11 @@ errno_t reiser4_object_seek(
 	aal_assert("umka-1129", object != NULL);
 	aal_assert("umka-1153", object->entity != NULL);
     
-	if (!object->entity->plugin->o.object_ops->seek)
+	if (!object->entity->plug->o.object_ops->seek)
 		return -EINVAL;
 	
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   seek, object->entity, offset);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 seek, object->entity, offset);
 }
 
 /* Closes specified object */
@@ -667,8 +668,8 @@ void reiser4_object_close(
 	aal_assert("umka-680", object != NULL);
 	aal_assert("umka-1149", object->entity != NULL);
 
-	plugin_call(object->entity->plugin->o.object_ops,
-		    close, object->entity);
+	plug_call(object->entity->plug->o.object_ops,
+		  close, object->entity);
 
 	aal_free(object);
 }
@@ -680,8 +681,8 @@ errno_t reiser4_object_reset(
 	aal_assert("umka-842", object != NULL);
 	aal_assert("umka-843", object->entity != NULL);
 
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   reset, object->entity);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 reset, object->entity);
 }
 
 /* Reads @n bytes of data at the current offset of @object to passed
@@ -694,11 +695,11 @@ int32_t reiser4_object_read(
 	aal_assert("umka-860", object != NULL);
 	aal_assert("umka-861", object->entity != NULL);
 
-	if (!object->entity->plugin->o.object_ops->read)
+	if (!object->entity->plug->o.object_ops->read)
 		return -EINVAL;
 	
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   read, object->entity, buff, n);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 read, object->entity, buff, n);
 }
 
 /* Returns current position in directory */
@@ -708,8 +709,8 @@ uint32_t reiser4_object_offset(
 	aal_assert("umka-875", object != NULL);
 	aal_assert("umka-876", object->entity != NULL);
 
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   offset, object->entity);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 offset, object->entity);
 }
 
 /* Reads entry at current @object offset to passed @entry hint */
@@ -719,11 +720,11 @@ errno_t reiser4_object_readdir(reiser4_object_t *object,
 	aal_assert("umka-1973", object != NULL);
 	aal_assert("umka-1974", entry != NULL);
 
-	if (!object->entity->plugin->o.object_ops->readdir)
+	if (!object->entity->plug->o.object_ops->readdir)
 		return -EINVAL;
 	
-	return plugin_call(object->entity->plugin->o.object_ops, 
-			   readdir, object->entity, entry);
+	return plug_call(object->entity->plug->o.object_ops, 
+			 readdir, object->entity, entry);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -734,11 +735,11 @@ errno_t reiser4_object_seekdir(reiser4_object_t *object,
 	aal_assert("umka-1979", object != NULL);
 	aal_assert("umka-1980", offset != NULL);
 
-	if (!object->entity->plugin->o.object_ops->seekdir)
+	if (!object->entity->plug->o.object_ops->seekdir)
 		return -EINVAL;
 
-	return plugin_call(object->entity->plugin->o.object_ops,
-			   seekdir, object->entity, offset);
+	return plug_call(object->entity->plug->o.object_ops,
+			 seekdir, object->entity, offset);
 }
 
 /* Return current position in passed @object if it is a directory */
@@ -748,11 +749,11 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 	aal_assert("umka-1981", object != NULL);
 	aal_assert("umka-1982", offset != NULL);
 
-	if (!object->entity->plugin->o.object_ops->telldir)
+	if (!object->entity->plug->o.object_ops->telldir)
 		return -EINVAL;
 
-	return plugin_call(object->entity->plugin->o.object_ops,
-			   telldir, object->entity, offset);
+	return plug_call(object->entity->plug->o.object_ops,
+			 telldir, object->entity, offset);
 }
 
 /* Creates directory */
@@ -769,9 +770,9 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	pid = reiser4_profile_value(fs->profile, "directory");
 	
 	/* Preparing object hint */
-	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, pid);
+	hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE, pid);
 
-	if (!hint.plugin) {
+	if (!hint.plug) {
 		aal_exception_error("Can't find dir plugin by its id "
 				    "0x%x.", pid);
 		return NULL;
@@ -807,9 +808,9 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	regular = reiser4_profile_value(fs->profile, "regular");
 	
 	/* Preparing object hint */
-	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, regular);
+	hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE, regular);
 
-	if (!hint.plugin) {
+	if (!hint.plug) {
 		aal_exception_error("Can't find dir plugin by its id "
 				    "0x%x.", regular);
 		return NULL;
@@ -848,9 +849,9 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	symlink = reiser4_profile_value(fs->profile, "symlink");
 	
 	/* Preparing object hint */
-	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, symlink);
+	hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE, symlink);
 
-	if (!hint.plugin) {
+	if (!hint.plug) {
 		aal_exception_error("Can't find dir plugin by its id "
 				    "0x%x.", symlink);
 		return NULL;
