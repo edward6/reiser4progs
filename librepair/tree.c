@@ -110,9 +110,9 @@ errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 		if ((res = reiser4_place_fetch(&node->p)))
 			return res;
 		
-		if ((res = reiser4_item_key(&node->p, key)))
-			return res;
+		aal_memcpy(key, &node->p.key, sizeof(*key));
 	} else {
+		key->plug = node->tree->key.plug;
 		reiser4_key_minimal(key);
 	}
 	

@@ -883,7 +883,7 @@ static uint64_t cde40_size(place_t *place) {
 
 static uint64_t cde40_bytes(place_t *place) {
 	aal_assert("vpf-1211", place != NULL);
-	return place->len;
+	return place->len - sizeof(uint16_t);
 }
 
 extern errno_t cde40_merge(place_t *dst, uint32_t dst_pos, 
